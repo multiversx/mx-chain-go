@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/middleware"
 	"github.com/ElrondNetwork/elrond-go/api/shared"
+	nodeExternal "github.com/ElrondNetwork/elrond-go/node/external"
 	txSimData "github.com/ElrondNetwork/elrond-go/process/txsimulator/data"
 	"github.com/gin-gonic/gin"
 )
@@ -35,8 +36,7 @@ const (
 
 // transactionFacadeHandler defines the methods to be implemented by a facade for transaction requests
 type transactionFacadeHandler interface {
-	CreateTransaction(nonce uint64, value string, receiver string, receiverUsername []byte, sender string, senderUsername []byte, gasPrice uint64,
-		gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32, options uint32, guardian string, guardianSigHex string) (*transaction.Transaction, []byte, error)
+	CreateTransaction(txArgs *nodeExternal.ArgsCreateTransaction) (*transaction.Transaction, []byte, error)
 	ValidateTransaction(tx *transaction.Transaction) error
 	ValidateTransactionForSimulation(tx *transaction.Transaction, checkSignature bool) error
 	SendBulkTransactions([]*transaction.Transaction) (uint64, error)
@@ -194,23 +194,24 @@ func (tg *transactionGroup) simulateTransaction(c *gin.Context) {
 		return
 	}
 
-	tx, txHash, err := tg.getFacade().CreateTransaction(
-		gtx.Nonce,
-		gtx.Value,
-		gtx.Receiver,
-		gtx.ReceiverUsername,
-		gtx.Sender,
-		gtx.SenderUsername,
-		gtx.GasPrice,
-		gtx.GasLimit,
-		gtx.Data,
-		gtx.Signature,
-		gtx.ChainID,
-		gtx.Version,
-		gtx.Options,
-		gtx.GuardianAddr,
-		gtx.GuardianSignature,
-	)
+	txArgs := &nodeExternal.ArgsCreateTransaction{
+		Nonce:            gtx.Nonce,
+		Value:            gtx.Value,
+		Receiver:         gtx.Receiver,
+		ReceiverUsername: gtx.ReceiverUsername,
+		Sender:           gtx.Sender,
+		SenderUsername:   gtx.SenderUsername,
+		GasPrice:         gtx.GasPrice,
+		GasLimit:         gtx.GasLimit,
+		DataField:        gtx.Data,
+		SignatureHex:     gtx.Signature,
+		ChainID:          gtx.ChainID,
+		Version:          gtx.Version,
+		Options:          gtx.Options,
+		Guardian:         gtx.GuardianAddr,
+		GuardianSigHex:   gtx.GuardianSignature,
+	}
+	tx, txHash, err := tg.getFacade().CreateTransaction(txArgs)
 	if err != nil {
 		c.JSON(
 			http.StatusBadRequest,
@@ -276,23 +277,24 @@ func (tg *transactionGroup) sendTransaction(c *gin.Context) {
 		return
 	}
 
-	tx, txHash, err := tg.getFacade().CreateTransaction(
-		gtx.Nonce,
-		gtx.Value,
-		gtx.Receiver,
-		gtx.ReceiverUsername,
-		gtx.Sender,
-		gtx.SenderUsername,
-		gtx.GasPrice,
-		gtx.GasLimit,
-		gtx.Data,
-		gtx.Signature,
-		gtx.ChainID,
-		gtx.Version,
-		gtx.Options,
-		gtx.GuardianAddr,
-		gtx.GuardianSignature,
-	)
+	txArgs := &nodeExternal.ArgsCreateTransaction{
+		Nonce:            gtx.Nonce,
+		Value:            gtx.Value,
+		Receiver:         gtx.Receiver,
+		ReceiverUsername: gtx.ReceiverUsername,
+		Sender:           gtx.Sender,
+		SenderUsername:   gtx.SenderUsername,
+		GasPrice:         gtx.GasPrice,
+		GasLimit:         gtx.GasLimit,
+		DataField:        gtx.Data,
+		SignatureHex:     gtx.Signature,
+		ChainID:          gtx.ChainID,
+		Version:          gtx.Version,
+		Options:          gtx.Options,
+		Guardian:         gtx.GuardianAddr,
+		GuardianSigHex:   gtx.GuardianSignature,
+	}
+	tx, txHash, err := tg.getFacade().CreateTransaction(txArgs)
 	if err != nil {
 		c.JSON(
 			http.StatusBadRequest,
@@ -366,23 +368,24 @@ func (tg *transactionGroup) sendMultipleTransactions(c *gin.Context) {
 
 	txsHashes := make(map[int]string)
 	for idx, receivedTx := range gtx {
-		tx, txHash, err = tg.getFacade().CreateTransaction(
-			receivedTx.Nonce,
-			receivedTx.Value,
-			receivedTx.Receiver,
-			receivedTx.ReceiverUsername,
-			receivedTx.Sender,
-			receivedTx.SenderUsername,
-			receivedTx.GasPrice,
-			receivedTx.GasLimit,
-			receivedTx.Data,
-			receivedTx.Signature,
-			receivedTx.ChainID,
-			receivedTx.Version,
-			receivedTx.Options,
-			receivedTx.GuardianAddr,
-			receivedTx.GuardianSignature,
-		)
+		txArgs := &nodeExternal.ArgsCreateTransaction{
+			Nonce:            receivedTx.Nonce,
+			Value:            receivedTx.Value,
+			Receiver:         receivedTx.Receiver,
+			ReceiverUsername: receivedTx.ReceiverUsername,
+			Sender:           receivedTx.Sender,
+			SenderUsername:   receivedTx.SenderUsername,
+			GasPrice:         receivedTx.GasPrice,
+			GasLimit:         receivedTx.GasLimit,
+			DataField:        receivedTx.Data,
+			SignatureHex:     receivedTx.Signature,
+			ChainID:          receivedTx.ChainID,
+			Version:          receivedTx.Version,
+			Options:          receivedTx.Options,
+			Guardian:         receivedTx.GuardianAddr,
+			GuardianSigHex:   receivedTx.GuardianSignature,
+		}
+		tx, txHash, err = tg.getFacade().CreateTransaction(txArgs)
 		if err != nil {
 			continue
 		}
@@ -489,23 +492,24 @@ func (tg *transactionGroup) computeTransactionGasLimit(c *gin.Context) {
 		return
 	}
 
-	tx, _, err := tg.getFacade().CreateTransaction(
-		gtx.Nonce,
-		gtx.Value,
-		gtx.Receiver,
-		gtx.ReceiverUsername,
-		gtx.Sender,
-		gtx.SenderUsername,
-		gtx.GasPrice,
-		gtx.GasLimit,
-		gtx.Data,
-		gtx.Signature,
-		gtx.ChainID,
-		gtx.Version,
-		gtx.Options,
-		gtx.GuardianAddr,
-		gtx.GuardianSignature,
-	)
+	txArgs := &nodeExternal.ArgsCreateTransaction{
+		Nonce:            gtx.Nonce,
+		Value:            gtx.Value,
+		Receiver:         gtx.Receiver,
+		ReceiverUsername: gtx.ReceiverUsername,
+		Sender:           gtx.Sender,
+		SenderUsername:   gtx.SenderUsername,
+		GasPrice:         gtx.GasPrice,
+		GasLimit:         gtx.GasLimit,
+		DataField:        gtx.Data,
+		SignatureHex:     gtx.Signature,
+		ChainID:          gtx.ChainID,
+		Version:          gtx.Version,
+		Options:          gtx.Options,
+		Guardian:         gtx.GuardianAddr,
+		GuardianSigHex:   gtx.GuardianSignature,
+	}
+	tx, _, err := tg.getFacade().CreateTransaction(txArgs)
 	if err != nil {
 		c.JSON(
 			http.StatusInternalServerError,

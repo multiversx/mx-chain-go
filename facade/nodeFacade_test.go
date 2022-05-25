@@ -498,7 +498,24 @@ func TestNodeFacade_CreateTransaction(t *testing.T) {
 	arg.Node = node
 	nf, _ := NewNodeFacade(arg)
 
-	_, _, _ = nf.CreateTransaction(0, "0", "0", nil, "0", nil, 0, 0, []byte("0"), "0", "chainID", 1, 0, "", "")
+	txArgs := &external.ArgsCreateTransaction{
+		Nonce:            uint64(0),
+		Value:            "0",
+		Receiver:         "0",
+		ReceiverUsername: nil,
+		Sender:           "0",
+		SenderUsername:   nil,
+		GasPrice:         0,
+		GasLimit:         0,
+		DataField:        []byte("0"),
+		SignatureHex:     "0",
+		ChainID:          "chainID",
+		Version:          1,
+		Options:          0,
+		Guardian:         "",
+		GuardianSigHex:   "",
+	}
+	_, _, _ = nf.CreateTransaction(txArgs)
 
 	assert.True(t, nodeCreateTxWasCalled)
 }

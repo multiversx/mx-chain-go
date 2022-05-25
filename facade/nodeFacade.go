@@ -21,6 +21,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/debug"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
 	"github.com/ElrondNetwork/elrond-go/node/external"
+	nodeExternal "github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/process"
 	txSimData "github.com/ElrondNetwork/elrond-go/process/txsimulator/data"
@@ -217,40 +218,7 @@ func (nf *nodeFacade) GetAllIssuedESDTs(tokenType string) ([]string, error) {
 }
 
 // CreateTransaction creates a transaction from all needed fields
-func (nf *nodeFacade) CreateTransaction(
-	nonce uint64,
-	value string,
-	receiver string,
-	receiverUsername []byte,
-	sender string,
-	senderUsername []byte,
-	gasPrice uint64,
-	gasLimit uint64,
-	txData []byte,
-	signatureHex string,
-	chainID string,
-	version uint32,
-	options uint32,
-	guardian string,
-	guardianSigHex string,
-) (*transaction.Transaction, []byte, error) {
-	txArgs := &external.ArgsCreateTransaction{
-		Nonce:            nonce,
-		Value:            value,
-		Receiver:         receiver,
-		ReceiverUsername: receiverUsername,
-		Sender:           sender,
-		SenderUsername:   senderUsername,
-		GasPrice:         gasPrice,
-		GasLimit:         gasLimit,
-		DataField:        txData,
-		SignatureHex:     signatureHex,
-		ChainID:          chainID,
-		Version:          version,
-		Options:          options,
-		Guardian:         guardian,
-		GuardianSigHex:   guardianSigHex,
-	}
+func (nf *nodeFacade) CreateTransaction(txArgs *nodeExternal.ArgsCreateTransaction) (*transaction.Transaction, []byte, error) {
 	return nf.node.CreateTransaction(txArgs)
 }
 
