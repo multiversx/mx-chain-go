@@ -45,6 +45,7 @@ type baseResolversContainerFactory struct {
 	peersRatingHandler                   dataRetriever.PeersRatingHandler
 	numCrossShardPeers                   int
 	numIntraShardPeers                   int
+	numTotalPeers                        int
 	numFullHistoryPeers                  int
 	nodesCoordinator                     dataRetriever.NodesCoordinator
 	maxNumOfPeerAuthenticationInResponse int
@@ -97,8 +98,8 @@ func (brcf *baseResolversContainerFactory) checkParams() error {
 	if brcf.numCrossShardPeers <= 0 {
 		return fmt.Errorf("%w for numCrossShardPeers", dataRetriever.ErrInvalidValue)
 	}
-	if brcf.numIntraShardPeers <= 0 {
-		return fmt.Errorf("%w for numIntraShardPeers", dataRetriever.ErrInvalidValue)
+	if brcf.numTotalPeers <= brcf.numCrossShardPeers {
+		return fmt.Errorf("%w for numTotalPeers", dataRetriever.ErrInvalidValue)
 	}
 	if brcf.numFullHistoryPeers <= 0 {
 		return fmt.Errorf("%w for numFullHistoryPeers", dataRetriever.ErrInvalidValue)
@@ -133,7 +134,7 @@ func (brcf *baseResolversContainerFactory) generateTxResolvers(
 		identifierTx := topic + shardC.CommunicationIdentifier(idx)
 		excludePeersFromTopic := topic + shardC.CommunicationIdentifier(shardC.SelfId())
 
-		resolver, err := brcf.createTxResolver(identifierTx, excludePeersFromTopic, unit, dataPool, idx)
+		resolver, err := brcf.createTxResolver(identifierTx, excludePeersFromTopic, unit, dataPool, idx, brcf.numCrossShardPeers, brcf.numIntraShardPeers)
 		if err != nil {
 			return err
 		}
@@ -145,7 +146,7 @@ func (brcf *baseResolversContainerFactory) generateTxResolvers(
 	identifierTx := topic + shardC.CommunicationIdentifier(core.MetachainShardId)
 	excludePeersFromTopic := topic + shardC.CommunicationIdentifier(shardC.SelfId())
 
-	resolver, err := brcf.createTxResolver(identifierTx, excludePeersFromTopic, unit, dataPool, core.MetachainShardId)
+	resolver, err := brcf.createTxResolver(identifierTx, excludePeersFromTopic, unit, dataPool, core.MetachainShardId, brcf.numCrossShardPeers, brcf.numIntraShardPeers)
 	if err != nil {
 		return err
 	}
@@ -162,11 +163,13 @@ func (brcf *baseResolversContainerFactory) createTxResolver(
 	unit dataRetriever.UnitType,
 	dataPool dataRetriever.ShardedDataCacherNotifier,
 	targetShardID uint32,
+	numCrossShardPeers int,
+	numIntraShardPeers int,
 ) (dataRetriever.Resolver, error) {
 
 	txStorer := brcf.store.GetStorer(unit)
 
-	resolverSender, err := brcf.createOneResolverSender(topic, excludedTopic, targetShardID)
+	resolverSender, err := brcf.createOneResolverSenderWithSpecifiedNumRequests(topic, excludedTopic, targetShardID, numCrossShardPeers, numIntraShardPeers)
 	if err != nil {
 		return nil, err
 	}
@@ -206,7 +209,7 @@ func (brcf *baseResolversContainerFactory) generateMiniBlocksResolvers() error {
 		identifierMiniBlocks := factory.MiniBlocksTopic + shardC.CommunicationIdentifier(idx)
 		excludePeersFromTopic := factory.MiniBlocksTopic + shardC.CommunicationIdentifier(shardC.SelfId())
 
-		resolver, err := brcf.createMiniBlocksResolver(identifierMiniBlocks, excludePeersFromTopic, idx)
+		resolver, err := brcf.createMiniBlocksResolver(identifierMiniBlocks, excludePeersFromTopic, idx, brcf.numCrossShardPeers, brcf.numIntraShardPeers)
 		if err != nil {
 			return err
 		}
@@ -218,7 +221,7 @@ func (brcf *baseResolversContainerFactory) generateMiniBlocksResolvers() error {
 	identifierMiniBlocks := factory.MiniBlocksTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
 	excludePeersFromTopic := factory.MiniBlocksTopic + shardC.CommunicationIdentifier(shardC.SelfId())
 
-	resolver, err := brcf.createMiniBlocksResolver(identifierMiniBlocks, excludePeersFromTopic, core.MetachainShardId)
+	resolver, err := brcf.createMiniBlocksResolver(identifierMiniBlocks, excludePeersFromTopic, core.MetachainShardId, brcf.numCrossShardPeers, brcf.numIntraShardPeers)
 	if err != nil {
 		return err
 	}
@@ -227,7 +230,7 @@ func (brcf *baseResolversContainerFactory) generateMiniBlocksResolvers() error {
 	keys[noOfShards] = identifierMiniBlocks
 
 	identifierAllShardMiniBlocks := factory.MiniBlocksTopic + shardC.CommunicationIdentifier(core.AllShardId)
-	allShardMiniblocksResolver, err := brcf.createMiniBlocksResolver(identifierAllShardMiniBlocks, EmptyExcludePeersOnTopic, brcf.shardCoordinator.SelfId())
+	allShardMiniblocksResolver, err := brcf.createMiniBlocksResolver(identifierAllShardMiniBlocks, EmptyExcludePeersOnTopic, brcf.shardCoordinator.SelfId(), brcf.numCrossShardPeers, brcf.numIntraShardPeers)
 	if err != nil {
 		return err
 	}
@@ -242,10 +245,12 @@ func (brcf *baseResolversContainerFactory) createMiniBlocksResolver(
 	topic string,
 	excludedTopic string,
 	targetShardID uint32,
+	numCrossShardPeers int,
+	numIntraShardPeers int,
 ) (dataRetriever.Resolver, error) {
 	miniBlocksStorer := brcf.store.GetStorer(dataRetriever.MiniBlockUnit)
 
-	resolverSender, err := brcf.createOneResolverSender(topic, excludedTopic, targetShardID)
+	resolverSender, err := brcf.createOneResolverSenderWithSpecifiedNumRequests(topic, excludedTopic, targetShardID, numCrossShardPeers, numIntraShardPeers)
 	if err != nil {
 		return nil, err
 	}
@@ -278,7 +283,7 @@ func (brcf *baseResolversContainerFactory) createMiniBlocksResolver(
 func (brcf *baseResolversContainerFactory) generatePeerAuthenticationResolver() error {
 	identifierPeerAuth := common.PeerAuthenticationTopic
 	shardC := brcf.shardCoordinator
-	resolverSender, err := brcf.createOneResolverSender(identifierPeerAuth, EmptyExcludePeersOnTopic, shardC.SelfId())
+	resolverSender, err := brcf.createOneResolverSenderWithSpecifiedNumRequests(identifierPeerAuth, EmptyExcludePeersOnTopic, shardC.SelfId(), brcf.numCrossShardPeers, brcf.numIntraShardPeers)
 	if err != nil {
 		return err
 	}
@@ -309,34 +314,17 @@ func (brcf *baseResolversContainerFactory) generatePeerAuthenticationResolver() 
 	return brcf.container.Add(identifierPeerAuth, peerAuthResolver)
 }
 
-func (brcf *baseResolversContainerFactory) createOneResolverSender(
-	topic string,
-	excludedTopic string,
-	targetShardId uint32,
-) (dataRetriever.TopicResolverSender, error) {
-	return brcf.createOneResolverSenderWithSpecifiedNumRequests(
-		topic,
-		excludedTopic,
-		targetShardId,
-		brcf.numCrossShardPeers,
-		brcf.numIntraShardPeers,
-		brcf.numFullHistoryPeers,
-		brcf.currentNetworkEpochProvider,
-	)
-}
-
 func (brcf *baseResolversContainerFactory) createOneResolverSenderWithSpecifiedNumRequests(
 	topic string,
 	excludedTopic string,
 	targetShardId uint32,
-	numCrossShard int,
-	numIntraShard int,
-	numFullHistory int,
-	currentNetworkEpochProvider dataRetriever.CurrentNetworkEpochProviderHandler,
+	numCrossShardPeers int,
+	numIntraShardPeers int,
 ) (dataRetriever.TopicResolverSender, error) {
 
 	log.Trace("baseResolversContainerFactory.createOneResolverSenderWithSpecifiedNumRequests",
-		"topic", topic, "intraShardTopic", brcf.intraShardTopic, "excludedTopic", excludedTopic)
+		"topic", topic, "intraShardTopic", brcf.intraShardTopic, "excludedTopic", excludedTopic,
+		"numCrossShardPeers", numCrossShardPeers, "numIntraShardPeers", numIntraShardPeers)
 
 	peerListCreator, err := topicResolverSender.NewDiffPeerListCreator(brcf.messenger, topic, brcf.intraShardTopic, excludedTopic)
 	if err != nil {
@@ -351,10 +339,10 @@ func (brcf *baseResolversContainerFactory) createOneResolverSenderWithSpecifiedN
 		Randomizer:                  brcf.intRandomizer,
 		TargetShardId:               targetShardId,
 		OutputAntiflooder:           brcf.outputAntifloodHandler,
-		NumCrossShardPeers:          numCrossShard,
-		NumIntraShardPeers:          numIntraShard,
-		NumFullHistoryPeers:         numFullHistory,
-		CurrentNetworkEpochProvider: currentNetworkEpochProvider,
+		NumCrossShardPeers:          numCrossShardPeers,
+		NumIntraShardPeers:          numIntraShardPeers,
+		NumFullHistoryPeers:         brcf.numFullHistoryPeers,
+		CurrentNetworkEpochProvider: brcf.currentNetworkEpochProvider,
 		PreferredPeersHolder:        brcf.preferredPeersHolder,
 		SelfShardIdProvider:         brcf.shardCoordinator,
 		PeersRatingHandler:          brcf.peersRatingHandler,
@@ -372,20 +360,16 @@ func (brcf *baseResolversContainerFactory) createOneResolverSenderWithSpecifiedN
 func (brcf *baseResolversContainerFactory) createTrieNodesResolver(
 	topic string,
 	trieId string,
-	numCrossShard int,
-	numIntraShard int,
-	numFullHistory int,
+	numCrossShardPeers int,
+	numIntraShardPeers int,
 	targetShardID uint32,
-	currentNetworkEpochProviderHandler dataRetriever.CurrentNetworkEpochProviderHandler,
 ) (dataRetriever.Resolver, error) {
 	resolverSender, err := brcf.createOneResolverSenderWithSpecifiedNumRequests(
 		topic,
 		EmptyExcludePeersOnTopic,
 		targetShardID,
-		numCrossShard,
-		numIntraShard,
-		numFullHistory,
-		currentNetworkEpochProviderHandler,
+		numCrossShardPeers,
+		numIntraShardPeers,
 	)
 	if err != nil {
 		return nil, err
