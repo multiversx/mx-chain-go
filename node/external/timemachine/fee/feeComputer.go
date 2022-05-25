@@ -10,13 +10,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 )
 
-type ArgsNewFeeComputer struct {
-	BuiltInFunctionsCostHandler    economics.BuiltInFunctionsCostHandler
-	EconomicsConfig                *config.EconomicsConfig
-	PenalizedTooMuchGasEnableEpoch uint32
-	GasPriceModifierEnableEpoch    uint32
-}
-
 type feeComputer struct {
 	builtInFunctionsCostHandler    economics.BuiltInFunctionsCostHandler
 	economicsConfig                *config.EconomicsConfig
@@ -27,14 +20,32 @@ type feeComputer struct {
 }
 
 // NewFeeComputer creates a fee computer which handles historical transactions, as well
-func NewFeeComputer(args ArgsNewFeeComputer) *feeComputer {
-	return &feeComputer{
+func NewFeeComputer(args ArgsNewFeeComputer) (*feeComputer, error) {
+	err := args.check()
+	if err != nil {
+		return nil, err
+	}
+
+	computer := &feeComputer{
 		builtInFunctionsCostHandler:    args.BuiltInFunctionsCostHandler,
 		economicsConfig:                args.EconomicsConfig,
 		penalizedTooMuchGasEnableEpoch: args.PenalizedTooMuchGasEnableEpoch,
 		gasPriceModifierEnableEpoch:    args.GasPriceModifierEnableEpoch,
 		economicsInstances:             make(map[int]economicsDataWithComputeFee),
 	}
+
+	// Create some economics data instance (but do not save them) in order to validate the arguments:
+	_, err = computer.createEconomicsInstance(0)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = computer.createEconomicsInstance(int(args.GasPriceModifierEnableEpoch))
+	if err != nil {
+		return nil, err
+	}
+
+	return computer, nil
 }
 
 // ComputeTransactionFee computes a transaction fee, at a given epoch
@@ -80,7 +91,7 @@ func (computer *feeComputer) createEconomicsInstance(epoch int) (economicsDataWi
 		PenalizedTooMuchGasEnableEpoch: computer.penalizedTooMuchGasEnableEpoch,
 		GasPriceModifierEnableEpoch:    computer.gasPriceModifierEnableEpoch,
 		BuiltInFunctionsCostHandler:    computer.builtInFunctionsCostHandler,
-		EpochNotifier:                  &timemachine.DisabledEpochNotifier{}
+		EpochNotifier:                  &timemachine.DisabledEpochNotifier{},
 	}
 
 	economicsData, err := economics.NewEconomicsData(args)

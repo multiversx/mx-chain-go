@@ -189,12 +189,15 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		return nil, err
 	}
 
-	feeComputer := fee.NewFeeComputer(fee.ArgsNewFeeComputer{
+	feeComputer, err := fee.NewFeeComputer(fee.ArgsNewFeeComputer{
 		BuiltInFunctionsCostHandler:    builtInCostHandler,
 		EconomicsConfig:                args.Configs.EconomicsConfig,
 		PenalizedTooMuchGasEnableEpoch: args.Configs.EpochConfig.EnableEpochs.PenalizedTooMuchGasEnableEpoch,
 		GasPriceModifierEnableEpoch:    args.Configs.EpochConfig.EnableEpochs.GasPriceModifierEnableEpoch,
 	})
+	if err != nil {
+		return nil, err
+	}
 
 	argsAPITransactionProc := &transactionAPI.ArgAPITransactionProcessor{
 		RoundDuration:            args.CoreComponents.GenesisNodesSetup().GetRoundDuration(),
