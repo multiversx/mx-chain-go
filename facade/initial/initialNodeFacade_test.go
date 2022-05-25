@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
+	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -45,8 +46,7 @@ func TestDisabledNodeFacade_AllMethodsShouldNotPanic(t *testing.T) {
 	assert.Nil(t, s3)
 	assert.Equal(t, errNodeStarting, err)
 
-	n1, n2, err := inf.CreateTransaction(uint64(0), "", "", []byte{0}, "",
-		[]byte{0}, uint64(0), uint64(0), []byte{0}, "", "", uint32(0), uint32(0), "", "")
+	n1, n2, err := inf.CreateTransaction(&external.ArgsCreateTransaction{})
 	assert.Nil(t, n1)
 	assert.Nil(t, n2)
 	assert.Equal(t, errNodeStarting, err)
