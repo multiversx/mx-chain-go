@@ -38,6 +38,7 @@ type PeerstoreStub struct {
 	FirstSupportedProtocolCalled func(id peer.ID, s ...string) (string, error)
 	PeerInfoCalled               func(id peer.ID) peer.AddrInfo
 	PeersCalled                  func() peer.IDSlice
+	RemovePeerCalled             func(id peer.ID)
 }
 
 // Close -
@@ -267,4 +268,11 @@ func (ps *PeerstoreStub) Peers() peer.IDSlice {
 	}
 
 	return nil
+}
+
+// RemovePeer -
+func (ps *PeerstoreStub) RemovePeer(id peer.ID) {
+	if ps.RemovePeerCalled != nil {
+		ps.RemovePeerCalled(id)
+	}
 }
