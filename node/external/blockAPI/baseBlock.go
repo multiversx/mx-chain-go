@@ -162,11 +162,11 @@ func (bap *baseAPIBlockProcessor) getReceiptsFromMiniblock(miniblock *block.Mini
 	log.Debug(fmt.Sprintf("GetBulkFromEpoch took %s", time.Since(start)))
 
 	apiReceipts := make([]*transaction.ApiReceipt, 0)
-	for recHash, recBytes := range marshalizedReceipts {
-		receipt, errUnmarshal := bap.txUnmarshaller.UnmarshalReceipt(recBytes)
+	for _, pair := range marshalizedReceipts {
+		receipt, errUnmarshal := bap.txUnmarshaller.UnmarshalReceipt(pair.Value)
 		if errUnmarshal != nil {
 			log.Warn("cannot unmarshal receipt",
-				"hash", []byte(recHash),
+				"hash", pair.Key,
 				"error", errUnmarshal.Error())
 			continue
 		}
@@ -196,15 +196,15 @@ func (bap *baseAPIBlockProcessor) getTxsFromMiniblock(
 
 	start = time.Now()
 	txs := make([]*transaction.ApiTransactionResult, 0)
-	for txHash, txBytes := range marshalizedTxs {
-		tx, errUnmarshalTx := bap.txUnmarshaller.UnmarshalTransaction(txBytes, txType)
+	for _, pair := range marshalizedTxs {
+		tx, errUnmarshalTx := bap.txUnmarshaller.UnmarshalTransaction(pair.Value, txType)
 		if errUnmarshalTx != nil {
 			log.Warn("cannot unmarshal transaction",
-				"hash", []byte(txHash),
+				"hash", pair.Key,
 				"error", errUnmarshalTx.Error())
 			continue
 		}
-		tx.Hash = hex.EncodeToString([]byte(txHash))
+		tx.Hash = hex.EncodeToString(pair.Key)
 		tx.MiniBlockType = miniblock.Type.String()
 		tx.MiniBlockHash = hex.EncodeToString(miniblockHash)
 		tx.SourceShard = miniblock.SenderShardID

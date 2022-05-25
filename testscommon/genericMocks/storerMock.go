@@ -78,18 +78,18 @@ func (sm *StorerMock) GetFromEpoch(key []byte, epoch uint32) ([]byte, error) {
 }
 
 // GetBulkFromEpoch -
-func (sm *StorerMock) GetBulkFromEpoch(keys [][]byte, epoch uint32) (map[string][]byte, error) {
+func (sm *StorerMock) GetBulkFromEpoch(keys [][]byte, epoch uint32) ([]storage.KeyValuePair, error) {
 	data := sm.GetEpochData(epoch)
-	result := map[string][]byte{}
+	results := make([]storage.KeyValuePair, 0, len(keys))
 
 	for _, key := range keys {
 		value, ok := data.Get(string(key))
 		if ok {
-			result[string(key)] = value.([]byte)
+			results = append(results, storage.KeyValuePair{Key: key, Value: value.([]byte)})
 		}
 	}
 
-	return result, nil
+	return results, nil
 }
 
 // hasInEpoch -

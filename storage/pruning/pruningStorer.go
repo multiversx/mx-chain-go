@@ -489,7 +489,7 @@ func (ps *PruningStorer) GetFromEpoch(key []byte, epoch uint32) ([]byte, error) 
 }
 
 // GetBulkFromEpoch will return a slice of keys only in the persister for the given epoch
-func (ps *PruningStorer) GetBulkFromEpoch(keys [][]byte, epoch uint32) (map[string][]byte, error) {
+func (ps *PruningStorer) GetBulkFromEpoch(keys [][]byte, epoch uint32) ([]storage.KeyValuePair, error) {
 	ps.lock.RLock()
 	pd, exists := ps.persistersMapByEpoch[epoch]
 	ps.lock.RUnlock()
@@ -506,11 +506,11 @@ func (ps *PruningStorer) GetBulkFromEpoch(keys [][]byte, epoch uint32) (map[stri
 	}
 	defer closePersister()
 
-	returnMap := make(map[string][]byte)
+	results := make([]storage.KeyValuePair, 0, len(keys))
 	for _, key := range keys {
 		v, ok := ps.cacher.Get(key)
 		if ok {
-			returnMap[string(key)] = v.([]byte)
+			results = append(results, storage.KeyValuePair{Key: key, Value: v.([]byte)})
 			continue
 		}
 
@@ -523,10 +523,10 @@ func (ps *PruningStorer) GetBulkFromEpoch(keys [][]byte, epoch uint32) (map[stri
 			continue
 		}
 
-		returnMap[string(key)] = res
+		results = append(results, storage.KeyValuePair{Key: key, Value: res})
 	}
 
-	return returnMap, nil
+	return results, nil
 }
 
 // SearchFirst will search a given key in all the active persisters, from the newest to the oldest

@@ -185,8 +185,8 @@ func (u *Unit) GetFromEpoch(key []byte, _ uint32) ([]byte, error) {
 }
 
 // GetBulkFromEpoch will call the Get method for all keys as this storer doesn't handle epochs
-func (u *Unit) GetBulkFromEpoch(keys [][]byte, _ uint32) (map[string][]byte, error) {
-	retMap := make(map[string][]byte)
+func (u *Unit) GetBulkFromEpoch(keys [][]byte, _ uint32) ([]storage.KeyValuePair, error) {
+	results := make([]storage.KeyValuePair, 0, len(keys))
 	for _, key := range keys {
 		value, err := u.Get(key)
 		if err != nil {
@@ -196,9 +196,9 @@ func (u *Unit) GetBulkFromEpoch(keys [][]byte, _ uint32) (map[string][]byte, err
 			)
 			continue
 		}
-		retMap[string(key)] = value
+		results = append(results, storage.KeyValuePair{Key: key, Value: value})
 	}
-	return retMap, nil
+	return results, nil
 }
 
 // Has checks if the key is in the Unit.

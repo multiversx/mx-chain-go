@@ -17,7 +17,7 @@ func (ns *NilStorer) GetFromEpoch(_ []byte, _ uint32) ([]byte, error) {
 }
 
 // GetBulkFromEpoch will do nothing
-func (ns *NilStorer) GetBulkFromEpoch(_ [][]byte, _ uint32) (map[string][]byte, error) {
+func (ns *NilStorer) GetBulkFromEpoch(_ [][]byte, _ uint32) ([]storage.KeyValuePair, error) {
 	return nil, nil
 }
 

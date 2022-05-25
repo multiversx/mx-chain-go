@@ -95,7 +95,7 @@ type Storer interface {
 	ClearCache()
 	DestroyUnit() error
 	GetFromEpoch(key []byte, epoch uint32) ([]byte, error)
-	GetBulkFromEpoch(keys [][]byte, epoch uint32) (map[string][]byte, error)
+	GetBulkFromEpoch(keys [][]byte, epoch uint32) ([]KeyValuePair, error)
 	GetOldestEpoch() (uint32, error)
 	RangeKeys(handler func(key []byte, val []byte) bool)
 	Close() error
