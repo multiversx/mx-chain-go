@@ -1,0 +1,74 @@
+package enableEpochs
+
+import "github.com/ElrondNetwork/elrond-go-core/core/atomic"
+
+type flagsHolder struct {
+	scDeployFlag                               atomic.Flag
+	builtInFunctionsFlag                       atomic.Flag
+	relayedTransactionsFlag                    atomic.Flag
+	penalizedTooMuchGasFlag                    atomic.Flag
+	switchJailWaitingFlag                      atomic.Flag
+	belowSignedThresholdFlag                   atomic.Flag
+	switchHysteresisForMinNodesFlag            atomic.Flag
+	transactionSignedWithTxHashFlag            atomic.Flag
+	metaProtectionFlag                         atomic.Flag
+	aheadOfTimeGasUsageFlag                    atomic.Flag
+	gasPriceModifierFlag                       atomic.Flag
+	repairCallbackFlag                         atomic.Flag
+	balanceWaitingListsFlag                    atomic.Flag
+	returnDataToLastTransferFlag               atomic.Flag
+	senderInOutTransferFlag                    atomic.Flag
+	stakeFlag                                  atomic.Flag
+	stakingV2Flag                              atomic.Flag
+	stakingV2OwnerFlag                         atomic.Flag
+	stakingV2DelegationFlag                    atomic.Flag
+	doubleKeyProtectionFlag                    atomic.Flag
+	esdtFlag                                   atomic.Flag
+	esdtCurrentEpochFlag                       atomic.Flag
+	governanceFlag                             atomic.Flag
+	governanceCurrentEpochFlag                 atomic.Flag
+	delegationManagerFlag                      atomic.Flag
+	delegationSmartContractFlag                atomic.Flag
+	correctLastUnjailedFlag                    atomic.Flag
+	correctLastUnjailedCurrentEpochFlag        atomic.Flag
+	relayedTransactionsV2Flag                  atomic.Flag
+	unbondTokensV2Flag                         atomic.Flag
+	saveJailedAlwaysFlag                       atomic.Flag
+	reDelegateBelowMinCheckFlag                atomic.Flag
+	validatorToDelegationFlag                  atomic.Flag
+	waitingListFixFlag                         atomic.Flag
+	incrementSCRNonceInMultiTransferFlag       atomic.Flag
+	esdtMultiTransferFlag                      atomic.Flag
+	globalMintBurnDisableFlag                  atomic.Flag
+	esdtTransferRoleFlag                       atomic.Flag
+	builtInFunctionOnMetaFlag                  atomic.Flag
+	computeRewardCheckpointFlag                atomic.Flag
+	scrSizeInvariantCheckFlag                  atomic.Flag
+	backwardCompSaveKeyValueFlag               atomic.Flag
+	esdtNFTCreateOnMultiShardFlag              atomic.Flag
+	metaESDTSetFlag                            atomic.Flag
+	addTokensToDelegationFlag                  atomic.Flag
+	multiESDTTransferFixOnCallBackFlag         atomic.Flag
+	optimizeGasUsedInCrossMiniBlocksFlag       atomic.Flag
+	correctFirstQueuedFlag                     atomic.Flag
+	deleteDelegatorAfterClaimRewardsFlag       atomic.Flag
+	fixOOGReturnCodeFlag                       atomic.Flag
+	removeNonUpdatedStorageFlag                atomic.Flag
+	optimizeNFTStoreFlag                       atomic.Flag
+	createNFTThroughExecByCallerFlag           atomic.Flag
+	stopDecreasingValidatorRatingWhenStuckFlag atomic.Flag
+	frontRunningProtectionFlag                 atomic.Flag
+	isPayableBySCFlag                          atomic.Flag
+	cleanUpInformativeSCRsFlag                 atomic.Flag
+	storageAPICostOptimizationFlag             atomic.Flag
+	transformToMultiShardCreateFlag            atomic.Flag
+	esdtRegisterAndSetAllRolesFlag             atomic.Flag
+	scheduledMiniBlocksFlag                    atomic.Flag
+	correctJailedNotUnstakedEmptyQueueFlag     atomic.Flag
+	doNotReturnOldBlockInBlockchainHookFlag    atomic.Flag
+	scrSizeInvariantOnBuiltInResultFlag        atomic.Flag
+	checkCorrectTokenIDForTransferRoleFlag     atomic.Flag
+	failExecutionOnEveryAPIErrorFlag           atomic.Flag
+	heartbeatDisableFlag                       atomic.Flag
+	isMiniBlockPartialExecutionFlag            atomic.Flag
+}
