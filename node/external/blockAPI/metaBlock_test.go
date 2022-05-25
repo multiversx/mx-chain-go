@@ -13,12 +13,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
+	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
 	"github.com/stretchr/testify/assert"
 )
 
 func createMockMetaAPIProcessor(
 	blockHeaderHash []byte,
-	storerMock *mock.StorerMock,
+	storerMock *genericMocks.StorerMock,
 	withHistory bool,
 	withKey bool,
 ) *metaAPIBlockProcessor {
@@ -54,7 +55,7 @@ func TestMetaAPIBlockProcessor_GetBlockByHashInvalidHashShouldErr(t *testing.T) 
 
 	headerHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
 
-	storerMock := mock.NewStorerMock()
+	storerMock := genericMocks.NewStorerMockWithDefaults()
 
 	metaAPIBlockProcessor := createMockMetaAPIProcessor(
 		headerHash,
@@ -73,7 +74,7 @@ func TestMetaAPIBlockProcessor_GetBlockByNonceInvalidNonceShouldErr(t *testing.T
 
 	headerHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
 
-	storerMock := mock.NewStorerMock()
+	storerMock := genericMocks.NewStorerMockWithDefaults()
 
 	metaAPIBlockProcessor := createMockMetaAPIProcessor(
 		headerHash,
@@ -92,7 +93,7 @@ func TestMetaAPIBlockProcessor_GetBlockByRoundInvalidRoundShouldErr(t *testing.T
 
 	headerHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
 
-	storerMock := mock.NewStorerMock()
+	storerMock := genericMocks.NewStorerMockWithDefaults()
 
 	metaAPIBlockProcessor := createMockMetaAPIProcessor(
 		headerHash,
@@ -115,7 +116,7 @@ func TestMetaAPIBlockProcessor_GetBlockByHashFromHistoryNode(t *testing.T) {
 	miniblockHeader := []byte("miniBlockHash")
 	headerHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
 
-	storerMock := mock.NewStorerMock()
+	storerMock := genericMocks.NewStorerMockWithEpoch(epoch)
 	uint64Converter := mock.NewNonceHashConverterMock()
 
 	metaAPIBlockProcessor := createMockMetaAPIProcessor(
@@ -180,7 +181,7 @@ func TestMetaAPIBlockProcessor_GetBlockByNonceFromHistoryNode(t *testing.T) {
 	miniblockHeader := []byte("miniBlockHash")
 	headerHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
 
-	storerMock := mock.NewStorerMock()
+	storerMock := genericMocks.NewStorerMockWithEpoch(epoch)
 
 	metaAPIBlockProcessor := createMockMetaAPIProcessor(
 		headerHash,
@@ -241,7 +242,7 @@ func TestMetaAPIBlockProcessor_GetBlockByRoundFromStorer(t *testing.T) {
 	miniblockHeader := []byte("miniBlockHash")
 	headerHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
 
-	storerMock := mock.NewStorerMock()
+	storerMock := genericMocks.NewStorerMockWithEpoch(epoch)
 
 	metaAPIBlockProcessor := createMockMetaAPIProcessor(
 		headerHash,
@@ -309,7 +310,7 @@ func TestMetaAPIBlockProcessor_GetBlockByHashFromHistoryNodeStatusReverted(t *te
 	miniblockHeader := []byte("miniBlockHash")
 	headerHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
 
-	storerMock := mock.NewStorerMock()
+	storerMock := genericMocks.NewStorerMockWithEpoch(epoch)
 	uint64Converter := mock.NewNonceHashConverterMock()
 
 	metaAPIBlockProcessor := createMockMetaAPIProcessor(
@@ -375,7 +376,7 @@ func TestMetaAPIBlockProcessor_GetBlockByRound_GetBlockByNonce_EpochStartBlock(t
 	miniblockHeader := []byte("miniBlockHash")
 	headerHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
 
-	storerMock := mock.NewStorerMock()
+	storerMock := genericMocks.NewStorerMockWithEpoch(epoch)
 
 	metaAPIBlockProc := createMockMetaAPIProcessor(
 		headerHash,

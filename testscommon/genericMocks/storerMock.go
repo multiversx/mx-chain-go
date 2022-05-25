@@ -32,6 +32,14 @@ func NewStorerMock(name string, currentEpoch uint32) *StorerMock {
 	return sm
 }
 
+func NewStorerMockWithEpoch(currentEpoch uint32) *StorerMock {
+	return NewStorerMock("Storage", currentEpoch)
+}
+
+func NewStorerMockWithDefaults() *StorerMock {
+	return NewStorerMock("Storage", 0)
+}
+
 // NewStorerMockWithErrKeyNotFound -
 func NewStorerMockWithErrKeyNotFound(name string, currentEpoch uint32) *StorerMock {
 	sm := NewStorerMock(name, currentEpoch)
