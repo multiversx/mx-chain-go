@@ -92,9 +92,9 @@ func (atp *apiTransactionProcessor) GetTransaction(txHash string, withResults bo
 		return nil, err
 	}
 
-	atp.populateProcessingTypeFields(tx)
-	atp.populateInitiallyPaidFee(tx)
-	atp.populateIsRefund(tx)
+	atp.populateComputedFieldsProcessingType(tx)
+	atp.populateComputedFieldInitiallyPaidFee(tx)
+	atp.populateComputedFieldIsRefund(tx)
 
 	return tx, nil
 }
@@ -115,13 +115,13 @@ func (atp *apiTransactionProcessor) doGetTransaction(hash []byte, withResults bo
 	return atp.getTransactionFromStorage(hash)
 }
 
-func (atp *apiTransactionProcessor) populateProcessingTypeFields(tx *transaction.ApiTransactionResult) {
+func (atp *apiTransactionProcessor) populateComputedFieldsProcessingType(tx *transaction.ApiTransactionResult) {
 	typeOnSource, typeOnDestination := atp.txTypeHandler.ComputeTransactionType(tx.Tx)
 	tx.ProcessingTypeOnSource = typeOnSource.String()
 	tx.ProcessingTypeOnDestination = typeOnDestination.String()
 }
 
-func (atp *apiTransactionProcessor) populateInitiallyPaidFee(tx *transaction.ApiTransactionResult) {
+func (atp *apiTransactionProcessor) populateComputedFieldInitiallyPaidFee(tx *transaction.ApiTransactionResult) {
 	initiallyPaidFee, err := atp.feeComputer.ComputeTransactionFee(tx.Tx, int(tx.Epoch))
 	if err != nil {
 		log.Warn("populateInitiallyPaidFee(): unexpected condition, cannot compute fee", "tx", tx.Hash)
@@ -129,12 +129,14 @@ func (atp *apiTransactionProcessor) populateInitiallyPaidFee(tx *transaction.Api
 	}
 
 	isZero := initiallyPaidFee.Cmp(big.NewInt(0)) == 0
-	if !isZero {
-		tx.InitiallyPaidFee = initiallyPaidFee.String()
+	if isZero {
+		return
 	}
+
+	tx.InitiallyPaidFee = initiallyPaidFee.String()
 }
 
-func (atp *apiTransactionProcessor) populateIsRefund(tx *transaction.ApiTransactionResult) {
+func (atp *apiTransactionProcessor) populateComputedFieldIsRefund(tx *transaction.ApiTransactionResult) {
 	if tx.Type != string(transaction.TxTypeUnsigned) {
 		return
 	}
@@ -389,9 +391,9 @@ func (atp *apiTransactionProcessor) UnmarshalTransaction(txBytes []byte, txType 
 		return nil, err
 	}
 
-	atp.populateProcessingTypeFields(tx)
-	atp.populateInitiallyPaidFee(tx)
-	atp.populateIsRefund(tx)
+	atp.populateComputedFieldsProcessingType(tx)
+	atp.populateComputedFieldInitiallyPaidFee(tx)
+	atp.populateComputedFieldIsRefund(tx)
 
 	return tx, nil
 }
