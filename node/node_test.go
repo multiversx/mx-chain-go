@@ -1234,6 +1234,29 @@ func getDefaultTransactionArgs() *external.ArgsCreateTransaction {
 	}
 }
 
+func TestCreateTransaction_NilArgsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.IntMarsh = getMarshalizer()
+	coreComponents.VmMarsh = getMarshalizer()
+	coreComponents.TxMarsh = getMarshalizer()
+	coreComponents.Hash = getHasher()
+	stateComponents := getDefaultStateComponents()
+	stateComponents.AccountsAPI = &stateMock.AccountsStub{}
+
+	n, _ := node.NewNode(
+		node.WithCoreComponents(coreComponents),
+		node.WithStateComponents(stateComponents),
+	)
+
+	tx, txHash, err := n.CreateTransaction(nil)
+
+	assert.Nil(t, tx)
+	assert.Nil(t, txHash)
+	assert.Equal(t, node.ErrNilCreateTransactionArgs, err)
+}
+
 func TestCreateTransaction_NilAddrConverterShouldErr(t *testing.T) {
 	t.Parallel()
 

@@ -678,6 +678,9 @@ func (n *Node) checkSenderIsInShard(tx *transaction.Transaction) error {
 
 // CreateTransaction will return a transaction from all the required fields
 func (n *Node) CreateTransaction(txArgs *external.ArgsCreateTransaction) (*transaction.Transaction, []byte, error) {
+	if txArgs == nil {
+		return nil, nil, ErrNilCreateTransactionArgs
+	}
 	if txArgs.Version == 0 {
 		return nil, nil, ErrInvalidTransactionVersion
 	}
