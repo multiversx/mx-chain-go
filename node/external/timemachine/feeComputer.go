@@ -47,9 +47,11 @@ func (computer *feeComputer) ComputeTransactionFee(tx data.TransactionWithFeeHan
 	return fee, nil
 }
 
-// getOrCreateInstance gets or lazily creates a fee computer (using double-checked locking pattern)
+// getOrCreateInstance gets or lazily creates a fee computer (using "double-checked locking" pattern)
 func (computer *feeComputer) getOrCreateInstance(epoch int) (economicsDataWithComputeFee, error) {
-	instance, ok := computer.getEconomicsInstance(epoch)
+	computer.mutex.RLock()
+	instance, ok := computer.economicsInstances[epoch]
+	computer.mutex.RUnlock()
 	if ok {
 		return instance, nil
 	}
@@ -57,7 +59,7 @@ func (computer *feeComputer) getOrCreateInstance(epoch int) (economicsDataWithCo
 	computer.mutex.Lock()
 	defer computer.mutex.Unlock()
 
-	instance, ok = computer.getEconomicsInstance(epoch)
+	instance, ok = computer.economicsInstances[epoch]
 	if ok {
 		return instance, nil
 	}
@@ -69,13 +71,6 @@ func (computer *feeComputer) getOrCreateInstance(epoch int) (economicsDataWithCo
 
 	computer.economicsInstances[epoch] = newInstance
 	return newInstance, nil
-}
-
-func (computer *feeComputer) getEconomicsInstance(epoch int) (economicsDataWithComputeFee, bool) {
-	computer.mutex.RLock()
-	instance, ok := computer.economicsInstances[epoch]
-	computer.mutex.RUnlock()
-	return instance, ok
 }
 
 func (computer *feeComputer) createEconomicsInstance(epoch int) (economicsDataWithComputeFee, error) {
