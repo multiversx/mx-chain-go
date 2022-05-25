@@ -8,6 +8,11 @@ import (
 // GetGeneralConfig returns the common configuration used for testing
 func GetGeneralConfig() config.Config {
 	return config.Config{
+		SoftAuctionConfig: config.SoftAuctionConfig{
+			TopUpStep: "10",
+			MinTopUp:  "1",
+			MaxTopUp:  "32000000",
+		},
 		PublicKeyPeerId: config.CacheConfig{
 			Type:     "LRU",
 			Capacity: 5000,
