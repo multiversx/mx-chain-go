@@ -72,7 +72,7 @@ func getPrettyValue(val *big.Int, denominator *big.Int) string {
 
 	return first + "." + second2
 
-	//return big.NewInt(0).Div(val, als.softAuctionConfig.denomination).String()
+	//return big.NewInt(0).Div(val, als.softAuctionConfig.denominator).String()
 }
 
 func (als *auctionListSelector) displayOwnersData(ownersData map[string]*ownerData) {
@@ -97,8 +97,8 @@ func (als *auctionListSelector) displayOwnersData(ownersData map[string]*ownerDa
 			strconv.Itoa(int(owner.numStakedNodes)),
 			strconv.Itoa(int(owner.numActiveNodes)),
 			strconv.Itoa(int(owner.numAuctionNodes)),
-			getPrettyValue(owner.totalTopUp, als.softAuctionConfig.denomination),
-			getPrettyValue(owner.topUpPerNode, als.softAuctionConfig.denomination),
+			getPrettyValue(owner.totalTopUp, als.softAuctionConfig.denominator),
+			getPrettyValue(owner.topUpPerNode, als.softAuctionConfig.denominator),
 			getShortDisplayableBlsKeys(owner.auctionList),
 		}
 		lines = append(lines, display.NewLineData(false, line))
@@ -127,12 +127,12 @@ func (als *auctionListSelector) displayOwnersSelectedNodes(ownersData map[string
 		line := []string{
 			(ownerPubKey),
 			strconv.Itoa(int(owner.numStakedNodes)),
-			getPrettyValue(owner.topUpPerNode, als.softAuctionConfig.denomination),
-			getPrettyValue(owner.totalTopUp, als.softAuctionConfig.denomination),
+			getPrettyValue(owner.topUpPerNode, als.softAuctionConfig.denominator),
+			getPrettyValue(owner.totalTopUp, als.softAuctionConfig.denominator),
 			strconv.Itoa(int(owner.numAuctionNodes)),
 			strconv.Itoa(int(owner.numQualifiedAuctionNodes)),
 			strconv.Itoa(int(owner.numActiveNodes)),
-			getPrettyValue(owner.qualifiedTopUpPerNode, als.softAuctionConfig.denomination),
+			getPrettyValue(owner.qualifiedTopUpPerNode, als.softAuctionConfig.denominator),
 			getShortDisplayableBlsKeys(owner.auctionList[:owner.numQualifiedAuctionNodes]),
 		}
 		lines = append(lines, display.NewLineData(false, line))
@@ -180,7 +180,7 @@ func (als *auctionListSelector) displayAuctionList(
 		line := display.NewLineData(horizontalLine, []string{
 			(owner),
 			string(pubKey),
-			getPrettyValue(topUp, als.softAuctionConfig.denomination),
+			getPrettyValue(topUp, als.softAuctionConfig.denominator),
 		})
 		lines = append(lines, line)
 	}

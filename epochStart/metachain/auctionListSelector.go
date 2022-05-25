@@ -28,10 +28,10 @@ type ownerData struct {
 }
 
 type auctionConfig struct {
-	step         *big.Int
-	minTopUp     *big.Int
-	maxTopUp     *big.Int
-	denomination *big.Int
+	step        *big.Int
+	minTopUp    *big.Int
+	maxTopUp    *big.Int
+	denominator *big.Int
 }
 
 type auctionListSelector struct {
@@ -39,7 +39,6 @@ type auctionListSelector struct {
 	stakingDataProvider epochStart.StakingDataProvider
 	nodesConfigProvider epochStart.MaxNodesChangeConfigProvider
 	softAuctionConfig   *auctionConfig
-	denomination        int
 }
 
 // AuctionListSelectorArgs is a struct placeholder for all arguments required to create an auctionListSelector
@@ -54,50 +53,85 @@ type AuctionListSelectorArgs struct {
 // NewAuctionListSelector will create a new auctionListSelector, which handles selection of nodes from auction list based
 // on their top up
 func NewAuctionListSelector(args AuctionListSelectorArgs) (*auctionListSelector, error) {
-	step, ok := big.NewInt(0).SetString(args.SoftAuctionConfig.TopUpStep, 10)
-	if !ok || step.Cmp(zero) <= 0 {
-		return nil, process.ErrInvalidValue
+	softAuctionConfig, err := getAuctionConfig(args.SoftAuctionConfig, args.Denomination)
+	if err != nil {
+		return nil, err
+	}
+	err = checkNilArgs(args)
+	if err != nil {
+		return nil, err
 	}
 
-	minTopUp, ok := big.NewInt(0).SetString(args.SoftAuctionConfig.MinTopUp, 10)
-	if !ok || minTopUp.Cmp(zero) <= 0 {
-		return nil, process.ErrInvalidValue
-	}
-
-	maxTopUp, ok := big.NewInt(0).SetString(args.SoftAuctionConfig.MaxTopUp, 10)
-	if !ok || maxTopUp.Cmp(zero) <= 0 {
-		return nil, process.ErrInvalidValue
-	}
-
-	if args.Denomination < 0 {
-		return nil, process.ErrInvalidValue
-	}
-	den := int(math.Pow10(args.Denomination))
-
-	if check.IfNil(args.ShardCoordinator) {
-		return nil, epochStart.ErrNilShardCoordinator
-	}
-	if check.IfNil(args.StakingDataProvider) {
-		return nil, epochStart.ErrNilStakingDataProvider
-	}
-	if check.IfNil(args.MaxNodesChangeConfigProvider) {
-		return nil, epochStart.ErrNilMaxNodesChangeConfigProvider
-	}
+	log.Debug("NewAuctionListSelector with config",
+		"step top up", softAuctionConfig.step.String(),
+		"min top up", softAuctionConfig.minTopUp.String(),
+		"max top up", softAuctionConfig.maxTopUp.String(),
+		"denomination", args.Denomination,
+		"denominator for pretty values", softAuctionConfig.denominator.String(),
+	)
 
 	asl := &auctionListSelector{
 		shardCoordinator:    args.ShardCoordinator,
 		stakingDataProvider: args.StakingDataProvider,
 		nodesConfigProvider: args.MaxNodesChangeConfigProvider,
-		softAuctionConfig: &auctionConfig{
-			step:         step,
-			minTopUp:     minTopUp,
-			maxTopUp:     maxTopUp,
-			denomination: big.NewInt(int64(den)),
-		},
-		denomination: args.Denomination,
+		softAuctionConfig:   softAuctionConfig,
 	}
 
 	return asl, nil
+}
+
+func getAuctionConfig(softAuctionConfig config.SoftAuctionConfig, denomination int) (*auctionConfig, error) {
+	step, ok := big.NewInt(0).SetString(softAuctionConfig.TopUpStep, 10)
+	if !ok || step.Cmp(zero) <= 0 {
+		return nil, fmt.Errorf("%w for step in soft auction config;expected number > 0, got %s",
+			process.ErrInvalidValue,
+			softAuctionConfig.TopUpStep,
+		)
+	}
+
+	minTopUp, ok := big.NewInt(0).SetString(softAuctionConfig.MinTopUp, 10)
+	if !ok || minTopUp.Cmp(zero) <= 0 {
+		return nil, fmt.Errorf("%w for min top up in soft auction config;expected number > 0, got %s",
+			process.ErrInvalidValue,
+			softAuctionConfig.MinTopUp,
+		)
+	}
+
+	maxTopUp, ok := big.NewInt(0).SetString(softAuctionConfig.MaxTopUp, 10)
+	if !ok || maxTopUp.Cmp(zero) <= 0 {
+		return nil, fmt.Errorf("%w for max top up in soft auction config;expected number > 0, got %s",
+			process.ErrInvalidValue,
+			softAuctionConfig.MaxTopUp,
+		)
+	}
+
+	if denomination < 0 {
+		return nil, fmt.Errorf("%w for denomination soft auction config;expected number >= 0, got %d",
+			process.ErrInvalidValue,
+			denomination,
+		)
+	}
+
+	return &auctionConfig{
+		step:        step,
+		minTopUp:    minTopUp,
+		maxTopUp:    maxTopUp,
+		denominator: big.NewInt(int64(math.Pow10(denomination))),
+	}, nil
+}
+
+func checkNilArgs(args AuctionListSelectorArgs) error {
+	if check.IfNil(args.ShardCoordinator) {
+		return epochStart.ErrNilShardCoordinator
+	}
+	if check.IfNil(args.StakingDataProvider) {
+		return epochStart.ErrNilStakingDataProvider
+	}
+	if check.IfNil(args.MaxNodesChangeConfigProvider) {
+		return epochStart.ErrNilMaxNodesChangeConfigProvider
+	}
+
+	return nil
 }
 
 // SelectNodesFromAuctionList will select nodes from validatorsInfoMap based on their top up. If two or more validators
@@ -297,11 +331,9 @@ func (als *auctionListSelector) calcSoftAuctionNodesConfig(
 		"max top up per node", maxTopUp.String(),
 	)
 
-	step := big.NewInt(10) // todo: 10 egld for real
 	topUp := big.NewInt(0).SetBytes(minTopUp.Bytes())
-
 	previousConfig := copyOwnersData(ownersData)
-	for ; topUp.Cmp(maxTopUp) < 0; topUp.Add(topUp, step) {
+	for ; topUp.Cmp(maxTopUp) < 0; topUp.Add(topUp, als.softAuctionConfig.step) {
 		numNodesQualifyingForTopUp := int64(0)
 		previousConfig = copyOwnersData(ownersData)
 
@@ -331,7 +363,7 @@ func (als *auctionListSelector) calcSoftAuctionNodesConfig(
 		}
 	}
 
-	als.displayMinRequiredTopUp(topUp, minTopUp, step)
+	als.displayMinRequiredTopUp(topUp, minTopUp, als.softAuctionConfig.step)
 	return previousConfig
 }
 

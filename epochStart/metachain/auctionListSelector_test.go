@@ -3,7 +3,6 @@ package metachain
 import (
 	"encoding/hex"
 	"errors"
-	"math"
 	"math/big"
 	"strings"
 	"testing"
@@ -22,6 +21,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func createSoftAuctionConfig() config.SoftAuctionConfig {
+	return config.SoftAuctionConfig{
+		TopUpStep: "10",
+		MinTopUp:  "1",
+		MaxTopUp:  "32000000",
+	}
+}
+
 func createAuctionListSelectorArgs(maxNodesChangeConfig []config.MaxNodesChangeConfig) AuctionListSelectorArgs {
 	epochNotifier := forking.NewGenericEpochNotifier()
 	nodesConfigProvider, _ := notifier.NewNodesConfigProvider(epochNotifier, maxNodesChangeConfig)
@@ -34,11 +41,7 @@ func createAuctionListSelectorArgs(maxNodesChangeConfig []config.MaxNodesChangeC
 		ShardCoordinator:             shardCoordinator,
 		StakingDataProvider:          stakingSCProvider,
 		MaxNodesChangeConfigProvider: nodesConfigProvider,
-		SoftAuctionConfig: config.SoftAuctionConfig{
-			TopUpStep: "10",
-			MinTopUp:  "1",
-			MaxTopUp:  "32000000",
-		},
+		SoftAuctionConfig:            createSoftAuctionConfig(),
 	}
 }
 
@@ -52,11 +55,7 @@ func createFullAuctionListSelectorArgs(maxNodesChangeConfig []config.MaxNodesCha
 		ShardCoordinator:             argsSystemSC.ShardCoordinator,
 		StakingDataProvider:          argsSystemSC.StakingDataProvider,
 		MaxNodesChangeConfigProvider: nodesConfigProvider,
-		SoftAuctionConfig: config.SoftAuctionConfig{
-			TopUpStep: "10",
-			MinTopUp:  "1",
-			MaxTopUp:  "32000000",
-		},
+		SoftAuctionConfig:            createSoftAuctionConfig(),
 	}, argsSystemSC
 }
 
@@ -97,12 +96,123 @@ func TestNewAuctionListSelector(t *testing.T) {
 		require.Equal(t, epochStart.ErrNilMaxNodesChangeConfigProvider, err)
 	})
 
+	t.Run("invalid soft auction config", func(t *testing.T) {
+		t.Parallel()
+		args := createAuctionListSelectorArgs(nil)
+		args.SoftAuctionConfig.TopUpStep = "0"
+		als, err := NewAuctionListSelector(args)
+		require.Nil(t, als)
+		requireInvalidValueError(t, err, "step")
+	})
+
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 		args := createAuctionListSelectorArgs(nil)
 		als, err := NewAuctionListSelector(args)
 		require.NotNil(t, als)
 		require.Nil(t, err)
+	})
+}
+
+func requireInvalidValueError(t *testing.T, err error, msgToContain string) {
+	require.Error(t, err)
+	require.True(t, strings.Contains(err.Error(), process.ErrInvalidValue.Error()))
+	require.True(t, strings.Contains(err.Error(), msgToContain))
+}
+
+func TestGetAuctionConfig(t *testing.T) {
+	t.Parallel()
+
+	t.Run("invalid step", func(t *testing.T) {
+		t.Parallel()
+
+		cfg := createSoftAuctionConfig()
+
+		cfg.TopUpStep = "dsa"
+		res, err := getAuctionConfig(cfg, 1)
+		require.Nil(t, res)
+		requireInvalidValueError(t, err, "step")
+
+		cfg.TopUpStep = "-1"
+		res, err = getAuctionConfig(cfg, 1)
+		require.Nil(t, res)
+		requireInvalidValueError(t, err, "step")
+
+		cfg.TopUpStep = "0"
+		res, err = getAuctionConfig(cfg, 1)
+		require.Nil(t, res)
+		requireInvalidValueError(t, err, "step")
+	})
+
+	t.Run("invalid min top up", func(t *testing.T) {
+		t.Parallel()
+
+		cfg := createSoftAuctionConfig()
+
+		cfg.MinTopUp = "dsa"
+		res, err := getAuctionConfig(cfg, 1)
+		require.Nil(t, res)
+		requireInvalidValueError(t, err, "min top up")
+
+		cfg.MinTopUp = "-1"
+		res, err = getAuctionConfig(cfg, 1)
+		require.Nil(t, res)
+		requireInvalidValueError(t, err, "min top up")
+
+		cfg.MinTopUp = "0"
+		res, err = getAuctionConfig(cfg, 1)
+		require.Nil(t, res)
+		requireInvalidValueError(t, err, "min top up")
+	})
+
+	t.Run("invalid max top up", func(t *testing.T) {
+		t.Parallel()
+
+		cfg := createSoftAuctionConfig()
+
+		cfg.MaxTopUp = "dsa"
+		res, err := getAuctionConfig(cfg, 1)
+		require.Nil(t, res)
+		requireInvalidValueError(t, err, "max top up")
+
+		cfg.MaxTopUp = "-1"
+		res, err = getAuctionConfig(cfg, 1)
+		require.Nil(t, res)
+		requireInvalidValueError(t, err, "max top up")
+
+		cfg.MaxTopUp = "0"
+		res, err = getAuctionConfig(cfg, 1)
+		require.Nil(t, res)
+		requireInvalidValueError(t, err, "max top up")
+	})
+
+	t.Run("invalid denomination", func(t *testing.T) {
+		t.Parallel()
+
+		cfg := createSoftAuctionConfig()
+
+		res, err := getAuctionConfig(cfg, -1)
+		require.Nil(t, res)
+		requireInvalidValueError(t, err, "denomination")
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		cfg := config.SoftAuctionConfig{
+			TopUpStep: "10",
+			MinTopUp:  "1",
+			MaxTopUp:  "444",
+		}
+
+		res, err := getAuctionConfig(cfg, 4)
+		require.Nil(t, err)
+		require.Equal(t, &auctionConfig{
+			step:        big.NewInt(10),
+			minTopUp:    big.NewInt(1),
+			maxTopUp:    big.NewInt(444),
+			denominator: big.NewInt(10000),
+		}, res)
 	})
 }
 
@@ -724,88 +834,4 @@ func TestAuctionListSelector_calcSoftAuctionNodesConfig(t *testing.T) {
 	require.Equal(t, expectedConfig, softAuctionConfig)
 	selectedNodes = als.selectNodes(softAuctionConfig, 1, randomness)
 	require.Equal(t, []state.ValidatorInfoHandler{v5}, selectedNodes)
-}
-
-func TestGetPrettyValue(t *testing.T) {
-	require.Equal(t, "1234.0", getPrettyValue(big.NewInt(1234), big.NewInt(1)))
-	require.Equal(t, "123.4", getPrettyValue(big.NewInt(1234), big.NewInt(10)))
-	require.Equal(t, "12.34", getPrettyValue(big.NewInt(1234), big.NewInt(100)))
-	require.Equal(t, "1.234", getPrettyValue(big.NewInt(1234), big.NewInt(1000)))
-	require.Equal(t, "0.1234", getPrettyValue(big.NewInt(1234), big.NewInt(10000)))
-	require.Equal(t, "0.01234", getPrettyValue(big.NewInt(1234), big.NewInt(100000)))
-	require.Equal(t, "0.00123", getPrettyValue(big.NewInt(1234), big.NewInt(1000000)))
-	require.Equal(t, "0.00012", getPrettyValue(big.NewInt(1234), big.NewInt(10000000)))
-	require.Equal(t, "0.00001", getPrettyValue(big.NewInt(1234), big.NewInt(100000000)))
-	require.Equal(t, "0.00000", getPrettyValue(big.NewInt(1234), big.NewInt(1000000000)))
-	require.Equal(t, "0.00000", getPrettyValue(big.NewInt(1234), big.NewInt(10000000000)))
-
-	require.Equal(t, "1.0", getPrettyValue(big.NewInt(1), big.NewInt(1)))
-	require.Equal(t, "0.1", getPrettyValue(big.NewInt(1), big.NewInt(10)))
-	require.Equal(t, "0.01", getPrettyValue(big.NewInt(1), big.NewInt(100)))
-	require.Equal(t, "0.001", getPrettyValue(big.NewInt(1), big.NewInt(1000)))
-	require.Equal(t, "0.0001", getPrettyValue(big.NewInt(1), big.NewInt(10000)))
-	require.Equal(t, "0.00001", getPrettyValue(big.NewInt(1), big.NewInt(100000)))
-	require.Equal(t, "0.00000", getPrettyValue(big.NewInt(1), big.NewInt(1000000)))
-	require.Equal(t, "0.00000", getPrettyValue(big.NewInt(1), big.NewInt(10000000)))
-
-	oneEGLD := big.NewInt(1000000000000000000)
-	denominationEGLD := big.NewInt(int64(math.Pow10(18)))
-
-	require.Equal(t, "0.00000", getPrettyValue(big.NewInt(0), denominationEGLD))
-	require.Equal(t, "1.00000", getPrettyValue(oneEGLD, denominationEGLD))
-	require.Equal(t, "1.10000", getPrettyValue(big.NewInt(1100000000000000000), denominationEGLD))
-	require.Equal(t, "1.10000", getPrettyValue(big.NewInt(1100000000000000001), denominationEGLD))
-	require.Equal(t, "1.11000", getPrettyValue(big.NewInt(1110000000000000001), denominationEGLD))
-	require.Equal(t, "0.11100", getPrettyValue(big.NewInt(111000000000000001), denominationEGLD))
-	require.Equal(t, "0.01110", getPrettyValue(big.NewInt(11100000000000001), denominationEGLD))
-	require.Equal(t, "0.00111", getPrettyValue(big.NewInt(1110000000000001), denominationEGLD))
-	require.Equal(t, "0.00011", getPrettyValue(big.NewInt(111000000000001), denominationEGLD))
-	require.Equal(t, "0.00001", getPrettyValue(big.NewInt(11100000000001), denominationEGLD))
-	require.Equal(t, "0.00000", getPrettyValue(big.NewInt(1110000000001), denominationEGLD))
-	require.Equal(t, "0.00000", getPrettyValue(big.NewInt(111000000001), denominationEGLD))
-
-	require.Equal(t, "2.00000", getPrettyValue(big.NewInt(0).Mul(oneEGLD, big.NewInt(2)), denominationEGLD))
-	require.Equal(t, "20.00000", getPrettyValue(big.NewInt(0).Mul(oneEGLD, big.NewInt(20)), denominationEGLD))
-	require.Equal(t, "2000000.00000", getPrettyValue(big.NewInt(0).Mul(oneEGLD, big.NewInt(2000000)), denominationEGLD))
-
-	require.Equal(t, "3.22220", getPrettyValue(big.NewInt(0).Add(oneEGLD, big.NewInt(2222200000000000000)), denominationEGLD))
-	require.Equal(t, "1.22222", getPrettyValue(big.NewInt(0).Add(oneEGLD, big.NewInt(222220000000000000)), denominationEGLD))
-	require.Equal(t, "1.02222", getPrettyValue(big.NewInt(0).Add(oneEGLD, big.NewInt(22222000000000000)), denominationEGLD))
-	require.Equal(t, "1.00222", getPrettyValue(big.NewInt(0).Add(oneEGLD, big.NewInt(2222200000000000)), denominationEGLD))
-	require.Equal(t, "1.00022", getPrettyValue(big.NewInt(0).Add(oneEGLD, big.NewInt(222220000000000)), denominationEGLD))
-	require.Equal(t, "1.00002", getPrettyValue(big.NewInt(0).Add(oneEGLD, big.NewInt(22222000000000)), denominationEGLD))
-	require.Equal(t, "1.00000", getPrettyValue(big.NewInt(0).Add(oneEGLD, big.NewInt(2222200000000)), denominationEGLD))
-	require.Equal(t, "1.00000", getPrettyValue(big.NewInt(0).Add(oneEGLD, big.NewInt(222220000000)), denominationEGLD))
-}
-
-func TestCalcNormalizedRandomness(t *testing.T) {
-	t.Parallel()
-
-	t.Run("randomness longer than expected len", func(t *testing.T) {
-		t.Parallel()
-
-		result := calcNormalizedRandomness([]byte("rand"), 2)
-		require.Equal(t, []byte("ra"), result)
-	})
-
-	t.Run("randomness length equal to expected len", func(t *testing.T) {
-		t.Parallel()
-
-		result := calcNormalizedRandomness([]byte("rand"), 4)
-		require.Equal(t, []byte("rand"), result)
-	})
-
-	t.Run("randomness length less than expected len", func(t *testing.T) {
-		t.Parallel()
-
-		result := calcNormalizedRandomness([]byte("rand"), 6)
-		require.Equal(t, []byte("randra"), result)
-	})
-
-	t.Run("expected len is zero", func(t *testing.T) {
-		t.Parallel()
-
-		result := calcNormalizedRandomness([]byte("rand"), 0)
-		require.Empty(t, result)
-	})
 }
