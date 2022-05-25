@@ -131,6 +131,7 @@ func TestShardStorageBootstrapper_LoadFromStorageShouldWork(t *testing.T) {
 					wasCalledEpochNotifier = true
 				},
 			},
+			ProcessedMiniBlocksTracker: &testscommon.ProcessedMiniBlocksTrackerStub{},
 		},
 	}
 
