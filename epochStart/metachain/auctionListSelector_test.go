@@ -1,7 +1,10 @@
 package metachain
 
 import (
+	"encoding/hex"
+	"errors"
 	"math/big"
+	"strings"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -9,7 +12,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common/forking"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
+	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon/stakingcommon"
@@ -90,61 +95,239 @@ func TestNewAuctionListSelector(t *testing.T) {
 	})
 }
 
-func TestAuctionListSelector_SelectNodesFromAuctionListNotEnoughSlotsForAuctionNodes(t *testing.T) {
+func TestAuctionListSelector_SelectNodesFromAuctionErrorCases(t *testing.T) {
 	t.Parallel()
 
-	args, argsSystemSC := createFullAuctionListSelectorArgs([]config.MaxNodesChangeConfig{{MaxNumNodes: 1}})
-	owner1 := []byte("owner1")
-	owner2 := []byte("owner2")
+	t.Run("nil randomness, expect error", func(t *testing.T) {
+		t.Parallel()
 
-	owner1StakedKeys := [][]byte{[]byte("pubKey0")}
-	owner2StakedKeys := [][]byte{[]byte("pubKey1")}
+		args := createAuctionListSelectorArgs(nil)
+		als, _ := NewAuctionListSelector(args)
+		err := als.SelectNodesFromAuctionList(state.NewShardValidatorsInfoMap(), nil, nil)
+		require.Equal(t, process.ErrNilRandSeed, err)
+	})
 
-	validatorsInfo := state.NewShardValidatorsInfoMap()
-	_ = validatorsInfo.Add(createValidatorInfo(owner1StakedKeys[0], common.EligibleList, owner1, 0))
-	_ = validatorsInfo.Add(createValidatorInfo(owner2StakedKeys[0], common.AuctionList, owner2, 0))
+	t.Run("cannot get bls key owner, expect error", func(t *testing.T) {
+		t.Parallel()
 
-	stakingcommon.RegisterValidatorKeys(argsSystemSC.UserAccountsDB, owner1, owner1, owner1StakedKeys, big.NewInt(1000), argsSystemSC.Marshalizer)
-	stakingcommon.RegisterValidatorKeys(argsSystemSC.UserAccountsDB, owner2, owner2, owner2StakedKeys, big.NewInt(1000), argsSystemSC.Marshalizer)
-	fillValidatorsInfo(t, validatorsInfo, argsSystemSC.StakingDataProvider)
+		stakedKey := []byte("pubKey0")
+		validatorsInfo := state.NewShardValidatorsInfoMap()
+		_ = validatorsInfo.Add(createValidatorInfo(stakedKey, common.AuctionList, []byte("owner1"), 0))
 
-	als, _ := NewAuctionListSelector(args)
-	err := als.SelectNodesFromAuctionList(validatorsInfo, nil, []byte("rnd"))
-	require.Nil(t, err)
+		args := createAuctionListSelectorArgs(nil)
+		errGetOwner := errors.New("error getting owner")
+		args.StakingDataProvider = &mock.StakingDataProviderStub{
+			GetBlsKeyOwnerCalled: func(blsKey []byte) (string, error) {
+				require.Equal(t, stakedKey, blsKey)
+				return "", errGetOwner
+			},
+		}
 
-	expectedValidatorsInfo := map[uint32][]state.ValidatorInfoHandler{
-		0: {
-			createValidatorInfo(owner1StakedKeys[0], common.EligibleList, owner1, 0),
-			createValidatorInfo(owner2StakedKeys[0], common.AuctionList, owner2, 0),
-		},
-	}
-	require.Equal(t, expectedValidatorsInfo, validatorsInfo.GetShardValidatorsInfoMap())
+		als, _ := NewAuctionListSelector(args)
+		err := als.SelectNodesFromAuctionList(validatorsInfo, nil, []byte("rand"))
+		require.Equal(t, errGetOwner, err)
+	})
+
+	t.Run("cannot get owner's staked nodes, expect error", func(t *testing.T) {
+		t.Parallel()
+
+		expectedOwner := []byte("owner")
+		stakedKey := []byte("pubKey0")
+		validatorsInfo := state.NewShardValidatorsInfoMap()
+		_ = validatorsInfo.Add(createValidatorInfo([]byte("pubKey0"), common.AuctionList, expectedOwner, 0))
+
+		args := createAuctionListSelectorArgs(nil)
+		errGetNumStakedNodes := errors.New("error getting number of staked nodes")
+		args.StakingDataProvider = &mock.StakingDataProviderStub{
+			GetBlsKeyOwnerCalled: func(blsKey []byte) (string, error) {
+				require.Equal(t, stakedKey, blsKey)
+				return string(expectedOwner), nil
+			},
+			GetNumStakedNodesCalled: func(owner []byte) (int64, error) {
+				require.Equal(t, expectedOwner, owner)
+				return 1, errGetNumStakedNodes
+			},
+		}
+
+		als, _ := NewAuctionListSelector(args)
+		err := als.SelectNodesFromAuctionList(validatorsInfo, nil, []byte("rand"))
+		require.Error(t, err)
+		require.True(t, strings.Contains(err.Error(), errGetNumStakedNodes.Error()))
+		require.True(t, strings.Contains(err.Error(), hex.EncodeToString(expectedOwner)))
+		require.True(t, strings.Contains(err.Error(), hex.EncodeToString(stakedKey)))
+	})
+
+	t.Run("owner has 0 staked nodes, but has one node in auction, expect error", func(t *testing.T) {
+		t.Parallel()
+
+		expectedOwner := []byte("owner")
+		stakedKey := []byte("pubKey0")
+		validatorsInfo := state.NewShardValidatorsInfoMap()
+		_ = validatorsInfo.Add(createValidatorInfo([]byte("pubKey0"), common.AuctionList, expectedOwner, 0))
+
+		args := createAuctionListSelectorArgs(nil)
+		args.StakingDataProvider = &mock.StakingDataProviderStub{
+			GetBlsKeyOwnerCalled: func(blsKey []byte) (string, error) {
+				require.Equal(t, stakedKey, blsKey)
+				return string(expectedOwner), nil
+			},
+			GetNumStakedNodesCalled: func(owner []byte) (int64, error) {
+				require.Equal(t, expectedOwner, owner)
+				return 0, nil
+			},
+		}
+
+		als, _ := NewAuctionListSelector(args)
+		err := als.SelectNodesFromAuctionList(validatorsInfo, nil, []byte("rand"))
+		require.Error(t, err)
+		require.True(t, strings.Contains(err.Error(), epochStart.ErrOwnerHasNoStakedNode.Error()))
+		require.True(t, strings.Contains(err.Error(), hex.EncodeToString(expectedOwner)))
+		require.True(t, strings.Contains(err.Error(), hex.EncodeToString(stakedKey)))
+	})
+
+	t.Run("cannot get owner's total top up, expect error", func(t *testing.T) {
+		t.Parallel()
+
+		expectedOwner := []byte("owner")
+		stakedKey := []byte("pubKey0")
+		validatorsInfo := state.NewShardValidatorsInfoMap()
+		_ = validatorsInfo.Add(createValidatorInfo([]byte("pubKey0"), common.AuctionList, expectedOwner, 0))
+
+		args := createAuctionListSelectorArgs(nil)
+		errGetTotalTopUp := errors.New("error getting total top up")
+		args.StakingDataProvider = &mock.StakingDataProviderStub{
+			GetBlsKeyOwnerCalled: func(blsKey []byte) (string, error) {
+				require.Equal(t, stakedKey, blsKey)
+				return string(expectedOwner), nil
+			},
+			GetNumStakedNodesCalled: func(owner []byte) (int64, error) {
+				require.Equal(t, expectedOwner, owner)
+				return 1, nil
+			},
+			GetTotalTopUpCalled: func(owner []byte) (*big.Int, error) {
+				require.Equal(t, expectedOwner, owner)
+				return nil, errGetTotalTopUp
+			},
+		}
+
+		als, _ := NewAuctionListSelector(args)
+		err := als.SelectNodesFromAuctionList(validatorsInfo, nil, []byte("rand"))
+		require.Error(t, err)
+		require.True(t, strings.Contains(err.Error(), errGetTotalTopUp.Error()))
+		require.True(t, strings.Contains(err.Error(), hex.EncodeToString(expectedOwner)))
+		require.True(t, strings.Contains(err.Error(), hex.EncodeToString(stakedKey)))
+	})
 }
 
-func TestAuctionListSelector_SelectNodesFromAuctionListNotEnoughNodesInAuctionToFillAvailableSlots(t *testing.T) {
+func TestAuctionListSelector_SelectNodesFromAuction(t *testing.T) {
 	t.Parallel()
 
-	args, argsSystemSC := createFullAuctionListSelectorArgs([]config.MaxNodesChangeConfig{{MaxNumNodes: 2}})
-	owner1 := []byte("owner1")
-	owner1StakedKeys := [][]byte{[]byte("pubKey0")}
+	t.Run("empty auction list", func(t *testing.T) {
+		t.Parallel()
 
-	validatorsInfo := state.NewShardValidatorsInfoMap()
-	_ = validatorsInfo.Add(createValidatorInfo(owner1StakedKeys[0], common.AuctionList, owner1, 0))
+		owner1 := []byte("owner1")
+		owner1StakedKeys := [][]byte{[]byte("pubKey0")}
 
-	stakingcommon.RegisterValidatorKeys(argsSystemSC.UserAccountsDB, owner1, owner1, owner1StakedKeys, big.NewInt(1000), argsSystemSC.Marshalizer)
-	fillValidatorsInfo(t, validatorsInfo, argsSystemSC.StakingDataProvider)
+		validatorsInfo := state.NewShardValidatorsInfoMap()
+		_ = validatorsInfo.Add(createValidatorInfo(owner1StakedKeys[0], common.EligibleList, owner1, 0))
 
-	als, _ := NewAuctionListSelector(args)
-	err := als.SelectNodesFromAuctionList(validatorsInfo, nil, []byte("rnd"))
-	require.Nil(t, err)
+		args, argsSystemSC := createFullAuctionListSelectorArgs([]config.MaxNodesChangeConfig{{MaxNumNodes: 2}})
+		stakingcommon.RegisterValidatorKeys(argsSystemSC.UserAccountsDB, owner1, owner1, owner1StakedKeys, big.NewInt(1000), argsSystemSC.Marshalizer)
+		fillValidatorsInfo(t, validatorsInfo, argsSystemSC.StakingDataProvider)
 
-	expectedValidatorsInfo := map[uint32][]state.ValidatorInfoHandler{
-		0: {
-			createValidatorInfo(owner1StakedKeys[0], common.SelectedFromAuctionList, owner1, 0),
-		},
-	}
-	require.Equal(t, expectedValidatorsInfo, validatorsInfo.GetShardValidatorsInfoMap())
+		als, _ := NewAuctionListSelector(args)
+		err := als.SelectNodesFromAuctionList(state.NewShardValidatorsInfoMap(), nil, []byte("rand"))
+		require.Nil(t, err)
+		expectedValidatorsInfo := map[uint32][]state.ValidatorInfoHandler{
+			0: {
+				createValidatorInfo(owner1StakedKeys[0], common.EligibleList, owner1, 0),
+			},
+		}
+		require.Equal(t, expectedValidatorsInfo, validatorsInfo.GetShardValidatorsInfoMap())
+	})
+
+	t.Run("not enough available slots to select auction nodes", func(t *testing.T) {
+		t.Parallel()
+
+		owner1 := []byte("owner1")
+		owner2 := []byte("owner2")
+		owner1StakedKeys := [][]byte{[]byte("pubKey0")}
+		owner2StakedKeys := [][]byte{[]byte("pubKey1")}
+
+		validatorsInfo := state.NewShardValidatorsInfoMap()
+		_ = validatorsInfo.Add(createValidatorInfo(owner1StakedKeys[0], common.EligibleList, owner1, 0))
+		_ = validatorsInfo.Add(createValidatorInfo(owner2StakedKeys[0], common.AuctionList, owner2, 0))
+
+		args, argsSystemSC := createFullAuctionListSelectorArgs([]config.MaxNodesChangeConfig{{MaxNumNodes: 1}})
+		stakingcommon.RegisterValidatorKeys(argsSystemSC.UserAccountsDB, owner1, owner1, owner1StakedKeys, big.NewInt(1000), argsSystemSC.Marshalizer)
+		stakingcommon.RegisterValidatorKeys(argsSystemSC.UserAccountsDB, owner2, owner2, owner2StakedKeys, big.NewInt(1000), argsSystemSC.Marshalizer)
+		fillValidatorsInfo(t, validatorsInfo, argsSystemSC.StakingDataProvider)
+
+		als, _ := NewAuctionListSelector(args)
+		err := als.SelectNodesFromAuctionList(validatorsInfo, nil, []byte("rnd"))
+		require.Nil(t, err)
+		expectedValidatorsInfo := map[uint32][]state.ValidatorInfoHandler{
+			0: {
+				createValidatorInfo(owner1StakedKeys[0], common.EligibleList, owner1, 0),
+				createValidatorInfo(owner2StakedKeys[0], common.AuctionList, owner2, 0),
+			},
+		}
+		require.Equal(t, expectedValidatorsInfo, validatorsInfo.GetShardValidatorsInfoMap())
+	})
+
+	t.Run("one eligible + one auction, max num nodes = 1, number of nodes after shuffling = 0, expect node in auction is selected", func(t *testing.T) {
+		t.Parallel()
+
+		owner1 := []byte("owner1")
+		owner2 := []byte("owner2")
+		owner1StakedKeys := [][]byte{[]byte("pubKey0")}
+		owner2StakedKeys := [][]byte{[]byte("pubKey1")}
+
+		validatorsInfo := state.NewShardValidatorsInfoMap()
+		_ = validatorsInfo.Add(createValidatorInfo(owner1StakedKeys[0], common.EligibleList, owner1, 0))
+		_ = validatorsInfo.Add(createValidatorInfo(owner2StakedKeys[0], common.AuctionList, owner2, 0))
+
+		args, argsSystemSC := createFullAuctionListSelectorArgs([]config.MaxNodesChangeConfig{{MaxNumNodes: 1, NodesToShufflePerShard: 1}})
+		stakingcommon.RegisterValidatorKeys(argsSystemSC.UserAccountsDB, owner1, owner1, owner1StakedKeys, big.NewInt(1000), argsSystemSC.Marshalizer)
+		stakingcommon.RegisterValidatorKeys(argsSystemSC.UserAccountsDB, owner2, owner2, owner2StakedKeys, big.NewInt(1000), argsSystemSC.Marshalizer)
+		fillValidatorsInfo(t, validatorsInfo, argsSystemSC.StakingDataProvider)
+
+		als, _ := NewAuctionListSelector(args)
+		err := als.SelectNodesFromAuctionList(validatorsInfo, nil, []byte("rnd"))
+		require.Nil(t, err)
+		expectedValidatorsInfo := map[uint32][]state.ValidatorInfoHandler{
+			0: {
+				createValidatorInfo(owner1StakedKeys[0], common.EligibleList, owner1, 0),
+				createValidatorInfo(owner2StakedKeys[0], common.SelectedFromAuctionList, owner2, 0),
+			},
+		}
+		require.Equal(t, expectedValidatorsInfo, validatorsInfo.GetShardValidatorsInfoMap())
+	})
+
+	t.Run("two available slots for auction nodes, but only one node in auction", func(t *testing.T) {
+		t.Parallel()
+
+		owner1 := []byte("owner1")
+		owner1StakedKeys := [][]byte{[]byte("pubKey0")}
+		validatorsInfo := state.NewShardValidatorsInfoMap()
+		_ = validatorsInfo.Add(createValidatorInfo(owner1StakedKeys[0], common.AuctionList, owner1, 0))
+
+		args, argsSystemSC := createFullAuctionListSelectorArgs([]config.MaxNodesChangeConfig{{MaxNumNodes: 2}})
+		stakingcommon.RegisterValidatorKeys(argsSystemSC.UserAccountsDB, owner1, owner1, owner1StakedKeys, big.NewInt(1000), argsSystemSC.Marshalizer)
+		fillValidatorsInfo(t, validatorsInfo, argsSystemSC.StakingDataProvider)
+
+		als, _ := NewAuctionListSelector(args)
+		err := als.SelectNodesFromAuctionList(validatorsInfo, nil, []byte("rnd"))
+		require.Nil(t, err)
+		expectedValidatorsInfo := map[uint32][]state.ValidatorInfoHandler{
+			0: {
+				createValidatorInfo(owner1StakedKeys[0], common.SelectedFromAuctionList, owner1, 0),
+			},
+		}
+		require.Equal(t, expectedValidatorsInfo, validatorsInfo.GetShardValidatorsInfoMap())
+	})
 }
+
 func TestAuctionListSelector_calcSoftAuctionNodesConfigEdgeCases(t *testing.T) {
 	t.Parallel()
 
@@ -373,32 +556,32 @@ func TestAuctionListSelector_calcSoftAuctionNodesConfigEdgeCases(t *testing.T) {
 				numAuctionNodes:          2,
 				numQualifiedAuctionNodes: 2,
 				numStakedNodes:           2,
-				totalTopUp:               big.NewInt(2000),
-				topUpPerNode:             big.NewInt(1000),
-				qualifiedTopUpPerNode:    big.NewInt(1000),
+				totalTopUp:               big.NewInt(1980),
+				topUpPerNode:             big.NewInt(990),
+				qualifiedTopUpPerNode:    big.NewInt(990),
 				auctionList:              []state.ValidatorInfoHandler{v2, v0},
 			},
 		}
 
 		minTopUp, maxTopUp := getMinMaxPossibleTopUp(ownersData)
-		require.Equal(t, big.NewInt(1000), minTopUp)
-		require.Equal(t, big.NewInt(2000), maxTopUp)
+		require.Equal(t, big.NewInt(990), minTopUp)
+		require.Equal(t, big.NewInt(1980), maxTopUp)
 
 		softAuctionConfig := calcSoftAuctionNodesConfig(ownersData, 3)
 		require.Equal(t, ownersData, softAuctionConfig)
 		selectedNodes := selectNodes(softAuctionConfig, 3, randomness)
-		require.Equal(t, []state.ValidatorInfoHandler{v2, v1, v0}, selectedNodes)
+		require.Equal(t, []state.ValidatorInfoHandler{v1, v2, v0}, selectedNodes)
 
 		softAuctionConfig = calcSoftAuctionNodesConfig(ownersData, 2)
-		require.Equal(t, ownersData, softAuctionConfig)
+		expectedSoftAuction := copyOwnersData(ownersData)
+		expectedSoftAuction[owner2].numQualifiedAuctionNodes = 1
+		expectedSoftAuction[owner2].qualifiedTopUpPerNode = big.NewInt(1980)
+		require.Equal(t, expectedSoftAuction, softAuctionConfig)
 		selectedNodes = selectNodes(softAuctionConfig, 2, randomness)
 		require.Equal(t, []state.ValidatorInfoHandler{v2, v1}, selectedNodes)
 
 		softAuctionConfig = calcSoftAuctionNodesConfig(ownersData, 1)
-		expectedSoftAuction := copyOwnersData(ownersData)
 		delete(expectedSoftAuction, owner1)
-		expectedSoftAuction[owner2].numQualifiedAuctionNodes = 1
-		expectedSoftAuction[owner2].qualifiedTopUpPerNode = big.NewInt(2000)
 		require.Equal(t, expectedSoftAuction, softAuctionConfig)
 		selectedNodes = selectNodes(softAuctionConfig, 1, randomness)
 		require.Equal(t, []state.ValidatorInfoHandler{v2}, selectedNodes)
@@ -471,10 +654,12 @@ func TestAuctionListSelector_calcSoftAuctionNodesConfig(t *testing.T) {
 
 	softAuctionConfig := calcSoftAuctionNodesConfig(ownersData, 9)
 	require.Equal(t, ownersData, softAuctionConfig)
+	selectedNodes := selectNodes(softAuctionConfig, 8, randomness)
+	require.Equal(t, []state.ValidatorInfoHandler{v5, v4, v3, v2, v1, v7, v6, v8}, selectedNodes)
 
 	softAuctionConfig = calcSoftAuctionNodesConfig(ownersData, 8)
 	require.Equal(t, ownersData, softAuctionConfig)
-	selectedNodes := selectNodes(softAuctionConfig, 8, randomness)
+	selectedNodes = selectNodes(softAuctionConfig, 8, randomness)
 	require.Equal(t, []state.ValidatorInfoHandler{v5, v4, v3, v2, v1, v7, v6, v8}, selectedNodes)
 
 	softAuctionConfig = calcSoftAuctionNodesConfig(ownersData, 7)

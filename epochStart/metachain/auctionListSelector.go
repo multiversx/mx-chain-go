@@ -81,7 +81,7 @@ func (als *auctionListSelector) SelectNodesFromAuctionList(
 		return err
 	}
 	if auctionListSize == 0 {
-		log.Debug("auctionListSelector.SelectNodesFromAuctionList: empty auction list; skip selection")
+		log.Info("auctionListSelector.SelectNodesFromAuctionList: empty auction list; skip selection")
 		return nil
 	}
 
@@ -108,7 +108,7 @@ func (als *auctionListSelector) SelectNodesFromAuctionList(
 		return nil
 	}
 
-	log.Info("systemSCProcessor.SelectNodesFromAuctionList",
+	log.Info("auctionListSelector.SelectNodesFromAuctionList",
 		"max nodes", maxNumNodes,
 		"current number of validators", currNumOfValidators,
 		"num of nodes which will be shuffled out", numOfShuffledNodes,
@@ -139,7 +139,8 @@ func (als *auctionListSelector) getAuctionDataAndNumOfValidators(
 	numOfNodesInAuction := uint32(0)
 
 	for _, validator := range validatorsInfoMap.GetAllValidatorsInfo() {
-		owner, err := als.stakingDataProvider.GetBlsKeyOwner(validator.GetPublicKey())
+		blsKey := validator.GetPublicKey()
+		owner, err := als.stakingDataProvider.GetBlsKeyOwner(blsKey)
 		if err != nil {
 			return nil, 0, 0, err
 		}
@@ -149,12 +150,12 @@ func (als *auctionListSelector) getAuctionDataAndNumOfValidators(
 			if isUnqualified {
 				log.Debug("auctionListSelector: found node in auction with unqualified owner, do not add it to selection",
 					"owner", owner,
-					"bls key", string(validator.GetPublicKey()), //todo: hex
+					"bls key", string(blsKey), //todo: hex
 				)
 				continue
 			}
 
-			err = als.addOwnerData(validator, ownersData)
+			err = als.addOwnerData(owner, validator, ownersData)
 			if err != nil {
 				return nil, 0, 0, err
 			}
@@ -175,22 +176,22 @@ func isInAuction(validator state.ValidatorInfoHandler) bool {
 }
 
 func (als *auctionListSelector) addOwnerData(
+	owner string,
 	validator state.ValidatorInfoHandler,
 	ownersData map[string]*ownerData,
 ) error {
-	validatorPubKey := validator.GetPublicKey()
-	owner, err := als.stakingDataProvider.GetBlsKeyOwner(validatorPubKey)
-	if err != nil {
-		return err
-	}
-
 	ownerPubKey := []byte(owner)
+	validatorPubKey := validator.GetPublicKey()
 	stakedNodes, err := als.stakingDataProvider.GetNumStakedNodes(ownerPubKey)
 	if err != nil {
-		return err
+		return fmt.Errorf("auctionListSelector.addOwnerData: error getting num staked nodes: %w, owner: %s, node: %s",
+			err,
+			hex.EncodeToString(ownerPubKey),
+			hex.EncodeToString(validatorPubKey),
+		)
 	}
 	if stakedNodes == 0 {
-		return fmt.Errorf("auctionListSelector.addOwnerData: error: %w, owner: %s, node: %s",
+		return fmt.Errorf("auctionListSelector.addOwnerData error: %w, owner: %s, node: %s",
 			epochStart.ErrOwnerHasNoStakedNode,
 			hex.EncodeToString(ownerPubKey),
 			hex.EncodeToString(validatorPubKey),
@@ -199,7 +200,11 @@ func (als *auctionListSelector) addOwnerData(
 
 	totalTopUp, err := als.stakingDataProvider.GetTotalTopUp(ownerPubKey)
 	if err != nil {
-		return err
+		return fmt.Errorf("auctionListSelector.addOwnerData: error getting total top up: %w, owner: %s, node: %s",
+			err,
+			hex.EncodeToString(ownerPubKey),
+			hex.EncodeToString(validatorPubKey),
+		)
 	}
 
 	data, exists := ownersData[owner]
