@@ -20,15 +20,14 @@ import (
 
 // FacadeStub is the mock implementation of a node router handler
 type FacadeStub struct {
-	ShouldErrorStart           bool
-	ShouldErrorStop            bool
-	GetHeartbeatsHandler       func() ([]data.PubKeyHeartbeat, error)
-	BalanceHandler             func(string) (*big.Int, error)
-	GetAccountHandler          func(address string) (api.AccountResponse, error)
-	GenerateTransactionHandler func(sender string, receiver string, value *big.Int, code string) (*transaction.Transaction, error)
-	GetTransactionHandler      func(hash string, withResults bool) (*transaction.ApiTransactionResult, error)
-	CreateTransactionHandler   func(nonce uint64, value string, receiver string, receiverUsername []byte, sender string, senderUsername []byte, gasPrice uint64,
-		gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32, options uint32, guardian string, guardianSigHex string) (*transaction.Transaction, []byte, error)
+	ShouldErrorStart                        bool
+	ShouldErrorStop                         bool
+	GetHeartbeatsHandler                    func() ([]data.PubKeyHeartbeat, error)
+	BalanceHandler                          func(string) (*big.Int, error)
+	GetAccountHandler                       func(address string) (api.AccountResponse, error)
+	GenerateTransactionHandler              func(sender string, receiver string, value *big.Int, code string) (*transaction.Transaction, error)
+	GetTransactionHandler                   func(hash string, withResults bool) (*transaction.ApiTransactionResult, error)
+	CreateTransactionHandler                func(txArgs *external.ArgsCreateTransaction) (*transaction.Transaction, []byte, error)
 	ValidateTransactionHandler              func(tx *transaction.Transaction) error
 	ValidateTransactionForSimulationHandler func(tx *transaction.Transaction, bypassSignature bool) error
 	SendBulkTransactionsHandler             func(txs []*transaction.Transaction) (uint64, error)
@@ -231,24 +230,8 @@ func (f *FacadeStub) GetAccount(address string) (api.AccountResponse, error) {
 }
 
 // CreateTransaction is  mock implementation of a handler's CreateTransaction method
-func (f *FacadeStub) CreateTransaction(
-	nonce uint64,
-	value string,
-	receiver string,
-	receiverUsername []byte,
-	sender string,
-	senderUsername []byte,
-	gasPrice uint64,
-	gasLimit uint64,
-	data []byte,
-	signatureHex string,
-	chainID string,
-	version uint32,
-	options uint32,
-	guardian string,
-	guardianSigHex string,
-) (*transaction.Transaction, []byte, error) {
-	return f.CreateTransactionHandler(nonce, value, receiver, receiverUsername, sender, senderUsername, gasPrice, gasLimit, data, signatureHex, chainID, version, options, guardian, guardianSigHex)
+func (f *FacadeStub) CreateTransaction(txArgs *external.ArgsCreateTransaction) (*transaction.Transaction, []byte, error) {
+	return f.CreateTransactionHandler(txArgs)
 }
 
 // GetTransaction is the mock implementation of a handler's GetTransaction method

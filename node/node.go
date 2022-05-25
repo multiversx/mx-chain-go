@@ -26,6 +26,7 @@ import (
 	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
 	heartbeatData "github.com/ElrondNetwork/elrond-go/heartbeat/data"
 	"github.com/ElrondNetwork/elrond-go/node/disabled"
+	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/dataValidators"
@@ -676,27 +677,14 @@ func (n *Node) checkSenderIsInShard(tx *transaction.Transaction) error {
 }
 
 // CreateTransaction will return a transaction from all the required fields
-func (n *Node) CreateTransaction(
-	nonce uint64,
-	value string,
-	receiver string,
-	receiverUsername []byte,
-	sender string,
-	senderUsername []byte,
-	gasPrice uint64,
-	gasLimit uint64,
-	dataField []byte,
-	signatureHex string,
-	chainID string,
-	version uint32,
-	options uint32,
-	guardian string,
-	guardianSigHex string,
-) (*transaction.Transaction, []byte, error) {
-	if version == 0 {
+func (n *Node) CreateTransaction(txArgs *external.ArgsCreateTransaction) (*transaction.Transaction, []byte, error) {
+	if txArgs == nil {
+		return nil, nil, ErrNilCreateTransactionArgs
+	}
+	if txArgs.Version == 0 {
 		return nil, nil, ErrInvalidTransactionVersion
 	}
-	if chainID == "" || len(chainID) > len(n.coreComponents.ChainID()) {
+	if txArgs.ChainID == "" || len(txArgs.ChainID) > len(n.coreComponents.ChainID()) {
 		return nil, nil, ErrInvalidChainIDInTransaction
 	}
 	addrPubKeyConverter := n.coreComponents.AddressPubKeyConverter()
@@ -706,74 +694,74 @@ func (n *Node) CreateTransaction(
 	if check.IfNil(n.stateComponents.AccountsAdapterAPI()) {
 		return nil, nil, ErrNilAccountsAdapter
 	}
-	if len(signatureHex) > n.addressSignatureHexSize {
+	if len(txArgs.SignatureHex) > n.addressSignatureHexSize {
 		return nil, nil, ErrInvalidSignatureLength
 	}
-	if len(guardianSigHex) > n.addressSignatureHexSize {
+	if len(txArgs.GuardianSigHex) > n.addressSignatureHexSize {
 		return nil, nil, fmt.Errorf("%w for guardian signature", ErrInvalidSignatureLength)
 	}
 
-	if uint32(len(receiver)) > n.coreComponents.EncodedAddressLen() {
+	if uint32(len(txArgs.Receiver)) > n.coreComponents.EncodedAddressLen() {
 		return nil, nil, fmt.Errorf("%w for receiver", ErrInvalidAddressLength)
 	}
-	if uint32(len(sender)) > n.coreComponents.EncodedAddressLen() {
+	if uint32(len(txArgs.Sender)) > n.coreComponents.EncodedAddressLen() {
 		return nil, nil, fmt.Errorf("%w for sender", ErrInvalidAddressLength)
 	}
-	if uint32(len(guardian)) > n.coreComponents.EncodedAddressLen() {
+	if uint32(len(txArgs.Guardian)) > n.coreComponents.EncodedAddressLen() {
 		return nil, nil, fmt.Errorf("%w for guardian", ErrInvalidAddressLength)
 	}
-	if len(senderUsername) > core.MaxUserNameLength {
+	if len(txArgs.SenderUsername) > core.MaxUserNameLength {
 		return nil, nil, ErrInvalidSenderUsernameLength
 	}
-	if len(receiverUsername) > core.MaxUserNameLength {
+	if len(txArgs.ReceiverUsername) > core.MaxUserNameLength {
 		return nil, nil, ErrInvalidReceiverUsernameLength
 	}
-	if len(dataField) > core.MegabyteSize {
+	if len(txArgs.DataField) > core.MegabyteSize {
 		return nil, nil, ErrDataFieldTooBig
 	}
 
-	receiverAddress, err := addrPubKeyConverter.Decode(receiver)
+	receiverAddress, err := addrPubKeyConverter.Decode(txArgs.Receiver)
 	if err != nil {
 		return nil, nil, errors.New("could not create receiver address from provided param")
 	}
 
-	senderAddress, err := addrPubKeyConverter.Decode(sender)
+	senderAddress, err := addrPubKeyConverter.Decode(txArgs.Sender)
 	if err != nil {
 		return nil, nil, errors.New("could not create sender address from provided param")
 	}
 
-	signatureBytes, err := hex.DecodeString(signatureHex)
+	signatureBytes, err := hex.DecodeString(txArgs.SignatureHex)
 	if err != nil {
 		return nil, nil, errors.New("could not fetch signature bytes")
 	}
 
-	if len(value) > len(n.coreComponents.EconomicsData().GenesisTotalSupply().String())+1 {
+	if len(txArgs.Value) > len(n.coreComponents.EconomicsData().GenesisTotalSupply().String())+1 {
 		return nil, nil, ErrTransactionValueLengthTooBig
 	}
 
-	valAsBigInt, ok := big.NewInt(0).SetString(value, 10)
+	valAsBigInt, ok := big.NewInt(0).SetString(txArgs.Value, 10)
 	if !ok {
 		return nil, nil, ErrInvalidValue
 	}
 
 	tx := &transaction.Transaction{
-		Nonce:       nonce,
+		Nonce:       txArgs.Nonce,
 		Value:       valAsBigInt,
 		RcvAddr:     receiverAddress,
-		RcvUserName: receiverUsername,
+		RcvUserName: txArgs.ReceiverUsername,
 		SndAddr:     senderAddress,
-		SndUserName: senderUsername,
-		GasPrice:    gasPrice,
-		GasLimit:    gasLimit,
-		Data:        dataField,
+		SndUserName: txArgs.SenderUsername,
+		GasPrice:    txArgs.GasPrice,
+		GasLimit:    txArgs.GasLimit,
+		Data:        txArgs.DataField,
 		Signature:   signatureBytes,
-		ChainID:     []byte(chainID),
-		Version:     version,
-		Options:     options,
+		ChainID:     []byte(txArgs.ChainID),
+		Version:     txArgs.Version,
+		Options:     txArgs.Options,
 	}
 
-	if len(guardian) > 0 {
-		err = n.setTxGuardianData(guardian, guardianSigHex, tx)
+	if len(txArgs.Guardian) > 0 {
+		err = n.setTxGuardianData(txArgs.Guardian, txArgs.GuardianSigHex, tx)
 		if err != nil {
 			return nil, nil, err
 		}

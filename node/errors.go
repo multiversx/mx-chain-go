@@ -144,3 +144,6 @@ var ErrCannotCastUserAccountHandlerToVmCommonUserAccountHandler = errors.New("ca
 
 // ErrNilBlockHeader signals that current block header is nil
 var ErrNilBlockHeader = errors.New("nil block header")
+
+// ErrNilCreateTransactionArgs signals that create transaction args is nil
+var ErrNilCreateTransactionArgs = errors.New("nil args for create transaction")
