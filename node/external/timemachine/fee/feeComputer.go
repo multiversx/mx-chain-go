@@ -1,4 +1,4 @@
-package timemachine
+package fee
 
 import (
 	"math/big"
@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/node/external/timemachine"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 )
 
@@ -79,7 +80,7 @@ func (computer *feeComputer) createEconomicsInstance(epoch int) (economicsDataWi
 		PenalizedTooMuchGasEnableEpoch: computer.penalizedTooMuchGasEnableEpoch,
 		GasPriceModifierEnableEpoch:    computer.gasPriceModifierEnableEpoch,
 		BuiltInFunctionsCostHandler:    computer.builtInFunctionsCostHandler,
-		EpochNotifier:                  &disabledEpochNotifier{},
+		EpochNotifier:                  &timemachine.DisabledEpochNotifier{}
 	}
 
 	economicsData, err := economics.NewEconomicsData(args)

@@ -1,4 +1,4 @@
-package timemachine
+package fee
 
 import (
 	"math/big"

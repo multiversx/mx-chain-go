@@ -4,14 +4,15 @@ import (
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
-type disabledEpochNotifier struct {
+// DisabledEpochNotifier is a no-operation EpochNotifier
+type DisabledEpochNotifier struct {
 }
 
 // RegisterNotifyHandler does nothing
-func (notifier *disabledEpochNotifier) RegisterNotifyHandler(_ vmcommon.EpochSubscriberHandler) {
+func (notifier *DisabledEpochNotifier) RegisterNotifyHandler(_ vmcommon.EpochSubscriberHandler) {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (notifier *disabledEpochNotifier) IsInterfaceNil() bool {
+func (notifier *DisabledEpochNotifier) IsInterfaceNil() bool {
 	return notifier == nil
 }

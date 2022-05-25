@@ -13,7 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/facade"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/node/external/blockAPI"
-	"github.com/ElrondNetwork/elrond-go/node/external/timemachine"
+	"github.com/ElrondNetwork/elrond-go/node/external/timemachine/fee"
 	"github.com/ElrondNetwork/elrond-go/node/external/transactionAPI"
 	"github.com/ElrondNetwork/elrond-go/node/trieIterators"
 	trieIteratorsFactory "github.com/ElrondNetwork/elrond-go/node/trieIterators/factory"
@@ -189,7 +189,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		return nil, err
 	}
 
-	feeComputer := timemachine.NewFeeComputer(timemachine.ArgsNewFeeComputer{
+	feeComputer := fee.NewFeeComputer(fee.ArgsNewFeeComputer{
 		BuiltInFunctionsCostHandler:    builtInCostHandler,
 		EconomicsConfig:                args.Configs.EconomicsConfig,
 		PenalizedTooMuchGasEnableEpoch: args.Configs.EpochConfig.EnableEpochs.PenalizedTooMuchGasEnableEpoch,
