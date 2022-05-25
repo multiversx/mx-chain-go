@@ -816,6 +816,8 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		ShardCoordinator:             pcf.bootstrapComponents.ShardCoordinator(),
 		StakingDataProvider:          stakingDataProvider,
 		MaxNodesChangeConfigProvider: maxNodesChangeConfigProvider,
+		SoftAuctionConfig:            pcf.config.SoftAuctionConfig,
+		Denomination:                 pcf.economicsConfig.GlobalSettings.Denomination,
 	}
 	auctionListSelector, err := metachainEpochStart.NewAuctionListSelector(argsAuctionListSelector)
 	if err != nil {

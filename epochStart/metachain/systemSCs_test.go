@@ -859,6 +859,11 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieS
 		ShardCoordinator:             shardCoordinator,
 		StakingDataProvider:          stakingSCProvider,
 		MaxNodesChangeConfigProvider: nodesConfigProvider,
+		SoftAuctionConfig: config.SoftAuctionConfig{
+			TopUpStep: "10",
+			MinTopUp:  "1",
+			MaxTopUp:  "32000000",
+		},
 	}
 	als, _ := NewAuctionListSelector(argsAuctionListSelector)
 
@@ -1807,6 +1812,12 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4Enabled(t *testing
 		ShardCoordinator:             args.ShardCoordinator,
 		StakingDataProvider:          args.StakingDataProvider,
 		MaxNodesChangeConfigProvider: nodesConfigProvider,
+		SoftAuctionConfig: config.SoftAuctionConfig{
+			TopUpStep: "10",
+			MinTopUp:  "1",
+			MaxTopUp:  "32000000",
+		},
+		Denomination: 1,
 	}
 	als, _ := NewAuctionListSelector(argsAuctionListSelector)
 	args.AuctionListSelector = als
@@ -1886,7 +1897,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4Enabled(t *testing
 		| owner2 | 3                | 1                | 2                 | 2555         | 851             | pubKey4, pubKey5          |
 		+--------+------------------+------------------+-------------------+--------------+-----------------+---------------------------+
 		  	-> Min possible topUp = 666; max possible topUp = 1333, min required topUp = 1216
-			-> Selected nodes config in auction list
+			-> Selected nodes config in auction list. For each owner's auction nodes, qualified ones are selected by XOR with randomness
 		+--------+------------------+----------------+--------------+-------------------+-----------------------------+------------------+---------------------------+-----------------------------+
 		| Owner  | Num staked nodes | TopUp per node | Total top up | Num auction nodes | Num qualified auction nodes | Num active nodes | Qualified top up per node | Selected auction list nodes |
 		+--------+------------------+----------------+--------------+-------------------+-----------------------------+------------------+---------------------------+-----------------------------+

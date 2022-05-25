@@ -4,23 +4,26 @@ import (
 	"fmt"
 	"math/big"
 	"strconv"
+	"strings"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/display"
 	"github.com/ElrondNetwork/elrond-go/state"
 )
 
 const maxPubKeyDisplayableLen = 20
+const maxNumOfDecimalsToDisplay = 5
 
-func displayMinRequiredTopUp(topUp *big.Int, min *big.Int, step *big.Int) {
+func (als *auctionListSelector) displayMinRequiredTopUp(topUp *big.Int, minFound *big.Int, step *big.Int) {
 	//if log.GetLevel() > logger.LogDebug {
 	//	return
 	//}
 
-	if !(topUp.Cmp(min) == 0) {
+	if !(topUp.Cmp(als.softAuctionConfig.minTopUp) == 0) {
 		topUp = big.NewInt(0).Sub(topUp, step)
 	}
 
-	iteratedValues := big.NewInt(0).Sub(topUp, min)
+	iteratedValues := big.NewInt(0).Sub(topUp, minFound)
 	iterations := big.NewInt(0).Div(iteratedValues, step)
 
 	log.Info("auctionListSelector: found min required",
@@ -56,7 +59,23 @@ func getShortDisplayableBlsKeys(list []state.ValidatorInfoHandler) string {
 	return pubKeys
 }
 
-func displayOwnersData(ownersData map[string]*ownerData) {
+func getPrettyValue(val *big.Int, denominator *big.Int) string {
+	first := big.NewInt(0).Div(val, denominator).String()
+	second := big.NewInt(0).Mod(val, denominator).String()
+
+	repeatCt := core.MaxInt(len(denominator.String())-len(second)-1, 0)
+	zeroes := strings.Repeat("0", repeatCt)
+	second2 := zeroes + second
+	if len(second2) > maxNumOfDecimalsToDisplay {
+		second2 = second2[:maxNumOfDecimalsToDisplay]
+	}
+
+	return first + "." + second2
+
+	//return big.NewInt(0).Div(val, als.softAuctionConfig.denomination).String()
+}
+
+func (als *auctionListSelector) displayOwnersData(ownersData map[string]*ownerData) {
 	//if log.GetLevel() > logger.LogDebug {
 	//	return
 	//}
@@ -78,8 +97,8 @@ func displayOwnersData(ownersData map[string]*ownerData) {
 			strconv.Itoa(int(owner.numStakedNodes)),
 			strconv.Itoa(int(owner.numActiveNodes)),
 			strconv.Itoa(int(owner.numAuctionNodes)),
-			owner.totalTopUp.String(),
-			owner.topUpPerNode.String(),
+			getPrettyValue(owner.totalTopUp, als.softAuctionConfig.denomination),
+			getPrettyValue(owner.topUpPerNode, als.softAuctionConfig.denomination),
 			getShortDisplayableBlsKeys(owner.auctionList),
 		}
 		lines = append(lines, display.NewLineData(false, line))
@@ -88,7 +107,7 @@ func displayOwnersData(ownersData map[string]*ownerData) {
 	displayTable(tableHeader, lines, "Initial nodes config in auction list")
 }
 
-func displayOwnersSelectedNodes(ownersData map[string]*ownerData) {
+func (als *auctionListSelector) displayOwnersSelectedNodes(ownersData map[string]*ownerData) {
 	//if log.GetLevel() > logger.LogDebug {
 	//	return
 	//}
@@ -108,12 +127,12 @@ func displayOwnersSelectedNodes(ownersData map[string]*ownerData) {
 		line := []string{
 			(ownerPubKey),
 			strconv.Itoa(int(owner.numStakedNodes)),
-			owner.topUpPerNode.String(),
-			owner.totalTopUp.String(),
+			getPrettyValue(owner.topUpPerNode, als.softAuctionConfig.denomination),
+			getPrettyValue(owner.totalTopUp, als.softAuctionConfig.denomination),
 			strconv.Itoa(int(owner.numAuctionNodes)),
 			strconv.Itoa(int(owner.numQualifiedAuctionNodes)),
 			strconv.Itoa(int(owner.numActiveNodes)),
-			owner.qualifiedTopUpPerNode.String(),
+			getPrettyValue(owner.qualifiedTopUpPerNode, als.softAuctionConfig.denomination),
 			getShortDisplayableBlsKeys(owner.auctionList[:owner.numQualifiedAuctionNodes]),
 		}
 		lines = append(lines, display.NewLineData(false, line))
@@ -133,7 +152,7 @@ func getBlsKeyOwnerMap(ownersData map[string]*ownerData) map[string]string {
 	return ret
 }
 
-func displayAuctionList(
+func (als *auctionListSelector) displayAuctionList(
 	auctionList []state.ValidatorInfoHandler,
 	ownersData map[string]*ownerData,
 	numOfSelectedNodes uint32,
@@ -157,12 +176,11 @@ func displayAuctionList(
 		}
 
 		topUp := ownersData[owner].qualifiedTopUpPerNode
-
 		horizontalLine = uint32(idx) == numOfSelectedNodes-1
 		line := display.NewLineData(horizontalLine, []string{
 			(owner),
 			string(pubKey),
-			topUp.String(),
+			getPrettyValue(topUp, als.softAuctionConfig.denomination),
 		})
 		lines = append(lines, line)
 	}

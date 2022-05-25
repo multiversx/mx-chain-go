@@ -3,20 +3,18 @@ package metachain
 import (
 	"encoding/hex"
 	"fmt"
+	"math"
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
 )
-
-const oneEGLD = 1000000000000000000 // with 18 decimals = 1 EGLD
-const minEGLD = 1                   // with 18 decimals = 0.00...01 egld
-const allEGLD = 21000000            // without 18 decimals
 
 type ownerData struct {
 	numActiveNodes           int64
@@ -29,22 +27,53 @@ type ownerData struct {
 	auctionList              []state.ValidatorInfoHandler
 }
 
+type auctionConfig struct {
+	step         *big.Int
+	minTopUp     *big.Int
+	maxTopUp     *big.Int
+	denomination *big.Int
+}
+
 type auctionListSelector struct {
 	shardCoordinator    sharding.Coordinator
 	stakingDataProvider epochStart.StakingDataProvider
 	nodesConfigProvider epochStart.MaxNodesChangeConfigProvider
+	softAuctionConfig   *auctionConfig
+	denomination        int
 }
 
-// AuctionListSelectorArgs is a struct placeholder for all arguments required to create a auctionListSelector
+// AuctionListSelectorArgs is a struct placeholder for all arguments required to create an auctionListSelector
 type AuctionListSelectorArgs struct {
 	ShardCoordinator             sharding.Coordinator
 	StakingDataProvider          epochStart.StakingDataProvider
 	MaxNodesChangeConfigProvider epochStart.MaxNodesChangeConfigProvider
+	SoftAuctionConfig            config.SoftAuctionConfig
+	Denomination                 int
 }
 
 // NewAuctionListSelector will create a new auctionListSelector, which handles selection of nodes from auction list based
 // on their top up
 func NewAuctionListSelector(args AuctionListSelectorArgs) (*auctionListSelector, error) {
+	step, ok := big.NewInt(0).SetString(args.SoftAuctionConfig.TopUpStep, 10)
+	if !ok || step.Cmp(zero) <= 0 {
+		return nil, process.ErrInvalidValue
+	}
+
+	minTopUp, ok := big.NewInt(0).SetString(args.SoftAuctionConfig.MinTopUp, 10)
+	if !ok || minTopUp.Cmp(zero) <= 0 {
+		return nil, process.ErrInvalidValue
+	}
+
+	maxTopUp, ok := big.NewInt(0).SetString(args.SoftAuctionConfig.MaxTopUp, 10)
+	if !ok || maxTopUp.Cmp(zero) <= 0 {
+		return nil, process.ErrInvalidValue
+	}
+
+	if args.Denomination < 0 {
+		return nil, process.ErrInvalidValue
+	}
+	den := int(math.Pow10(args.Denomination))
+
 	if check.IfNil(args.ShardCoordinator) {
 		return nil, epochStart.ErrNilShardCoordinator
 	}
@@ -59,6 +88,13 @@ func NewAuctionListSelector(args AuctionListSelectorArgs) (*auctionListSelector,
 		shardCoordinator:    args.ShardCoordinator,
 		stakingDataProvider: args.StakingDataProvider,
 		nodesConfigProvider: args.MaxNodesChangeConfigProvider,
+		softAuctionConfig: &auctionConfig{
+			step:         step,
+			minTopUp:     minTopUp,
+			maxTopUp:     maxTopUp,
+			denomination: big.NewInt(int64(den)),
+		},
+		denomination: args.Denomination,
 	}
 
 	return asl, nil
@@ -117,7 +153,7 @@ func (als *auctionListSelector) SelectNodesFromAuctionList(
 		fmt.Sprintf("available slots (%v - %v)", maxNumNodes, numOfValidatorsAfterShuffling), availableSlots,
 	)
 
-	displayOwnersData(ownersData)
+	als.displayOwnersData(ownersData)
 	numOfAvailableNodeSlots := core.MinUint32(auctionListSize, availableSlots)
 
 	sw := core.NewStopWatch()
@@ -127,7 +163,7 @@ func (als *auctionListSelector) SelectNodesFromAuctionList(
 		log.Info("time measurements", sw.GetMeasurements()...)
 	}()
 
-	return sortAuctionList(ownersData, numOfAvailableNodeSlots, validatorsInfoMap, randomness)
+	return als.sortAuctionList(ownersData, numOfAvailableNodeSlots, validatorsInfoMap, randomness)
 }
 
 func (als *auctionListSelector) getAuctionDataAndNumOfValidators(
@@ -239,23 +275,23 @@ func safeSub(a, b uint32) (uint32, error) {
 	return a - b, nil
 }
 
-func sortAuctionList(
+func (als *auctionListSelector) sortAuctionList(
 	ownersData map[string]*ownerData,
 	numOfAvailableNodeSlots uint32,
 	validatorsInfoMap state.ShardValidatorsInfoMapHandler,
 	randomness []byte,
 ) error {
-	softAuctionNodesConfig := calcSoftAuctionNodesConfig(ownersData, numOfAvailableNodeSlots)
-	selectedNodes := selectNodes(softAuctionNodesConfig, numOfAvailableNodeSlots, randomness)
+	softAuctionNodesConfig := als.calcSoftAuctionNodesConfig(ownersData, numOfAvailableNodeSlots)
+	selectedNodes := als.selectNodes(softAuctionNodesConfig, numOfAvailableNodeSlots, randomness)
 	return markAuctionNodesAsSelected(selectedNodes, validatorsInfoMap)
 }
 
-func calcSoftAuctionNodesConfig(
+func (als *auctionListSelector) calcSoftAuctionNodesConfig(
 	data map[string]*ownerData,
 	numAvailableSlots uint32,
 ) map[string]*ownerData {
 	ownersData := copyOwnersData(data)
-	minTopUp, maxTopUp := getMinMaxPossibleTopUp(ownersData)
+	minTopUp, maxTopUp := als.getMinMaxPossibleTopUp(ownersData)
 	log.Info("auctionListSelector: calc min and max possible top up",
 		"min top up per node", minTopUp.String(),
 		"max top up per node", maxTopUp.String(),
@@ -295,13 +331,13 @@ func calcSoftAuctionNodesConfig(
 		}
 	}
 
-	displayMinRequiredTopUp(topUp, minTopUp, step)
+	als.displayMinRequiredTopUp(topUp, minTopUp, step)
 	return previousConfig
 }
 
-func getMinMaxPossibleTopUp(ownersData map[string]*ownerData) (*big.Int, *big.Int) {
-	min := big.NewInt(0).Mul(big.NewInt(oneEGLD), big.NewInt(allEGLD))
-	max := big.NewInt(0)
+func (als *auctionListSelector) getMinMaxPossibleTopUp(ownersData map[string]*ownerData) (*big.Int, *big.Int) {
+	min := big.NewInt(0).SetBytes(als.softAuctionConfig.maxTopUp.Bytes())
+	max := big.NewInt(0).SetBytes(als.softAuctionConfig.minTopUp.Bytes())
 
 	for _, owner := range ownersData {
 		if owner.topUpPerNode.Cmp(min) < 0 {
@@ -315,9 +351,8 @@ func getMinMaxPossibleTopUp(ownersData map[string]*ownerData) (*big.Int, *big.In
 		}
 	}
 
-	minPossible := big.NewInt(minEGLD)
-	if min.Cmp(minPossible) < 0 {
-		min = minPossible
+	if min.Cmp(als.softAuctionConfig.minTopUp) < 0 {
+		min = als.softAuctionConfig.minTopUp
 	}
 
 	return min, max

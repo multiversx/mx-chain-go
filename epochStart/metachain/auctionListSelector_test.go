@@ -3,6 +3,7 @@ package metachain
 import (
 	"encoding/hex"
 	"errors"
+	"math"
 	"math/big"
 	"strings"
 	"testing"
@@ -21,9 +22,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func createAuctionListSelectorArgs(config []config.MaxNodesChangeConfig) AuctionListSelectorArgs {
+func createAuctionListSelectorArgs(maxNodesChangeConfig []config.MaxNodesChangeConfig) AuctionListSelectorArgs {
 	epochNotifier := forking.NewGenericEpochNotifier()
-	nodesConfigProvider, _ := notifier.NewNodesConfigProvider(epochNotifier, config)
+	nodesConfigProvider, _ := notifier.NewNodesConfigProvider(epochNotifier, maxNodesChangeConfig)
 
 	argsStakingDataProvider := createStakingDataProviderArgs()
 	stakingSCProvider, _ := NewStakingDataProvider(argsStakingDataProvider)
@@ -33,12 +34,17 @@ func createAuctionListSelectorArgs(config []config.MaxNodesChangeConfig) Auction
 		ShardCoordinator:             shardCoordinator,
 		StakingDataProvider:          stakingSCProvider,
 		MaxNodesChangeConfigProvider: nodesConfigProvider,
+		SoftAuctionConfig: config.SoftAuctionConfig{
+			TopUpStep: "10",
+			MinTopUp:  "1",
+			MaxTopUp:  "32000000",
+		},
 	}
 }
 
-func createFullAuctionListSelectorArgs(config []config.MaxNodesChangeConfig) (AuctionListSelectorArgs, ArgsNewEpochStartSystemSCProcessing) {
+func createFullAuctionListSelectorArgs(maxNodesChangeConfig []config.MaxNodesChangeConfig) (AuctionListSelectorArgs, ArgsNewEpochStartSystemSCProcessing) {
 	epochNotifier := forking.NewGenericEpochNotifier()
-	nodesConfigProvider, _ := notifier.NewNodesConfigProvider(epochNotifier, config)
+	nodesConfigProvider, _ := notifier.NewNodesConfigProvider(epochNotifier, maxNodesChangeConfig)
 
 	argsSystemSC, _ := createFullArgumentsForSystemSCProcessing(0, createMemUnit())
 	argsSystemSC.MaxNodesChangeConfigProvider = nodesConfigProvider
@@ -46,6 +52,11 @@ func createFullAuctionListSelectorArgs(config []config.MaxNodesChangeConfig) (Au
 		ShardCoordinator:             argsSystemSC.ShardCoordinator,
 		StakingDataProvider:          argsSystemSC.StakingDataProvider,
 		MaxNodesChangeConfigProvider: nodesConfigProvider,
+		SoftAuctionConfig: config.SoftAuctionConfig{
+			TopUpStep: "10",
+			MinTopUp:  "1",
+			MaxTopUp:  "32000000",
+		},
 	}, argsSystemSC
 }
 
@@ -157,7 +168,7 @@ func TestAuctionListSelector_SelectNodesFromAuctionErrorCases(t *testing.T) {
 		require.True(t, strings.Contains(err.Error(), hex.EncodeToString(stakedKey)))
 	})
 
-	t.Run("owner has 0 staked nodes, but has one node in auction, expect error", func(t *testing.T) {
+	t.Run("owner has one node in auction, but 0 staked nodes, expect error", func(t *testing.T) {
 		t.Parallel()
 
 		expectedOwner := []byte("owner")
@@ -332,6 +343,8 @@ func TestAuctionListSelector_calcSoftAuctionNodesConfigEdgeCases(t *testing.T) {
 	t.Parallel()
 
 	randomness := []byte("pk0")
+	args := createAuctionListSelectorArgs(nil)
+	als, _ := NewAuctionListSelector(args)
 
 	t.Run("two validators, both have zero top up", func(t *testing.T) {
 		t.Parallel()
@@ -364,18 +377,18 @@ func TestAuctionListSelector_calcSoftAuctionNodesConfigEdgeCases(t *testing.T) {
 			},
 		}
 
-		minTopUp, maxTopUp := getMinMaxPossibleTopUp(ownersData)
-		require.Equal(t, big.NewInt(1), minTopUp)
-		require.Equal(t, big.NewInt(0), maxTopUp)
+		minTopUp, maxTopUp := als.getMinMaxPossibleTopUp(ownersData)
+		require.Equal(t, als.softAuctionConfig.minTopUp, minTopUp)
+		require.Equal(t, als.softAuctionConfig.minTopUp, maxTopUp)
 
-		softAuctionConfig := calcSoftAuctionNodesConfig(ownersData, 2)
+		softAuctionConfig := als.calcSoftAuctionNodesConfig(ownersData, 2)
 		require.Equal(t, ownersData, softAuctionConfig)
-		selectedNodes := selectNodes(softAuctionConfig, 2, randomness)
+		selectedNodes := als.selectNodes(softAuctionConfig, 2, randomness)
 		require.Equal(t, []state.ValidatorInfoHandler{v2, v1}, selectedNodes)
 
-		softAuctionConfig = calcSoftAuctionNodesConfig(ownersData, 1)
+		softAuctionConfig = als.calcSoftAuctionNodesConfig(ownersData, 1)
 		require.Equal(t, ownersData, softAuctionConfig)
-		selectedNodes = selectNodes(softAuctionConfig, 1, randomness)
+		selectedNodes = als.selectNodes(softAuctionConfig, 1, randomness)
 		require.Equal(t, []state.ValidatorInfoHandler{v2}, selectedNodes)
 	})
 
@@ -422,26 +435,26 @@ func TestAuctionListSelector_calcSoftAuctionNodesConfigEdgeCases(t *testing.T) {
 			},
 		}
 
-		minTopUp, maxTopUp := getMinMaxPossibleTopUp(ownersData)
+		minTopUp, maxTopUp := als.getMinMaxPossibleTopUp(ownersData)
 		require.Equal(t, big.NewInt(1), minTopUp)
 		require.Equal(t, big.NewInt(1000), maxTopUp)
 
-		softAuctionConfig := calcSoftAuctionNodesConfig(ownersData, 3)
+		softAuctionConfig := als.calcSoftAuctionNodesConfig(ownersData, 3)
 		require.Equal(t, ownersData, softAuctionConfig)
-		selectedNodes := selectNodes(softAuctionConfig, 3, randomness)
+		selectedNodes := als.selectNodes(softAuctionConfig, 3, randomness)
 		require.Equal(t, []state.ValidatorInfoHandler{v3, v2, v1}, selectedNodes)
 
-		softAuctionConfig = calcSoftAuctionNodesConfig(ownersData, 2)
+		softAuctionConfig = als.calcSoftAuctionNodesConfig(ownersData, 2)
 		expectedSoftAuctionConfig := copyOwnersData(softAuctionConfig)
 		delete(expectedSoftAuctionConfig, owner1)
 		require.Equal(t, expectedSoftAuctionConfig, softAuctionConfig)
-		selectedNodes = selectNodes(softAuctionConfig, 2, randomness)
+		selectedNodes = als.selectNodes(softAuctionConfig, 2, randomness)
 		require.Equal(t, []state.ValidatorInfoHandler{v3, v2}, selectedNodes)
 
-		softAuctionConfig = calcSoftAuctionNodesConfig(ownersData, 1)
+		softAuctionConfig = als.calcSoftAuctionNodesConfig(ownersData, 1)
 		delete(expectedSoftAuctionConfig, owner2)
 		require.Equal(t, expectedSoftAuctionConfig, softAuctionConfig)
-		selectedNodes = selectNodes(softAuctionConfig, 1, randomness)
+		selectedNodes = als.selectNodes(softAuctionConfig, 1, randomness)
 		require.Equal(t, []state.ValidatorInfoHandler{v3}, selectedNodes)
 	})
 
@@ -474,18 +487,18 @@ func TestAuctionListSelector_calcSoftAuctionNodesConfigEdgeCases(t *testing.T) {
 			},
 		}
 
-		minTopUp, maxTopUp := getMinMaxPossibleTopUp(ownersData)
+		minTopUp, maxTopUp := als.getMinMaxPossibleTopUp(ownersData)
 		require.Equal(t, big.NewInt(1000), minTopUp)
 		require.Equal(t, big.NewInt(1000), maxTopUp)
 
-		softAuctionConfig := calcSoftAuctionNodesConfig(ownersData, 2)
+		softAuctionConfig := als.calcSoftAuctionNodesConfig(ownersData, 2)
 		require.Equal(t, ownersData, softAuctionConfig)
-		selectedNodes := selectNodes(softAuctionConfig, 2, randomness)
+		selectedNodes := als.selectNodes(softAuctionConfig, 2, randomness)
 		require.Equal(t, []state.ValidatorInfoHandler{v2, v1}, selectedNodes)
 
-		softAuctionConfig = calcSoftAuctionNodesConfig(ownersData, 1)
+		softAuctionConfig = als.calcSoftAuctionNodesConfig(ownersData, 1)
 		require.Equal(t, ownersData, softAuctionConfig)
-		selectedNodes = selectNodes(softAuctionConfig, 1, randomness)
+		selectedNodes = als.selectNodes(softAuctionConfig, 1, randomness)
 		require.Equal(t, []state.ValidatorInfoHandler{v2}, selectedNodes)
 	})
 
@@ -518,18 +531,18 @@ func TestAuctionListSelector_calcSoftAuctionNodesConfigEdgeCases(t *testing.T) {
 			},
 		}
 
-		minTopUp, maxTopUp := getMinMaxPossibleTopUp(ownersData)
+		minTopUp, maxTopUp := als.getMinMaxPossibleTopUp(ownersData)
 		require.Equal(t, big.NewInt(995), minTopUp)
 		require.Equal(t, big.NewInt(1000), maxTopUp)
 
-		softAuctionConfig := calcSoftAuctionNodesConfig(ownersData, 2)
+		softAuctionConfig := als.calcSoftAuctionNodesConfig(ownersData, 2)
 		require.Equal(t, ownersData, softAuctionConfig)
-		selectedNodes := selectNodes(softAuctionConfig, 2, randomness)
+		selectedNodes := als.selectNodes(softAuctionConfig, 2, randomness)
 		require.Equal(t, []state.ValidatorInfoHandler{v1, v2}, selectedNodes)
 
-		softAuctionConfig = calcSoftAuctionNodesConfig(ownersData, 1)
+		softAuctionConfig = als.calcSoftAuctionNodesConfig(ownersData, 1)
 		require.Equal(t, ownersData, softAuctionConfig)
-		selectedNodes = selectNodes(softAuctionConfig, 1, randomness)
+		selectedNodes = als.selectNodes(softAuctionConfig, 1, randomness)
 		require.Equal(t, []state.ValidatorInfoHandler{v1}, selectedNodes)
 	})
 
@@ -563,27 +576,27 @@ func TestAuctionListSelector_calcSoftAuctionNodesConfigEdgeCases(t *testing.T) {
 			},
 		}
 
-		minTopUp, maxTopUp := getMinMaxPossibleTopUp(ownersData)
+		minTopUp, maxTopUp := als.getMinMaxPossibleTopUp(ownersData)
 		require.Equal(t, big.NewInt(990), minTopUp)
 		require.Equal(t, big.NewInt(1980), maxTopUp)
 
-		softAuctionConfig := calcSoftAuctionNodesConfig(ownersData, 3)
+		softAuctionConfig := als.calcSoftAuctionNodesConfig(ownersData, 3)
 		require.Equal(t, ownersData, softAuctionConfig)
-		selectedNodes := selectNodes(softAuctionConfig, 3, randomness)
+		selectedNodes := als.selectNodes(softAuctionConfig, 3, randomness)
 		require.Equal(t, []state.ValidatorInfoHandler{v1, v2, v0}, selectedNodes)
 
-		softAuctionConfig = calcSoftAuctionNodesConfig(ownersData, 2)
+		softAuctionConfig = als.calcSoftAuctionNodesConfig(ownersData, 2)
 		expectedSoftAuction := copyOwnersData(ownersData)
 		expectedSoftAuction[owner2].numQualifiedAuctionNodes = 1
 		expectedSoftAuction[owner2].qualifiedTopUpPerNode = big.NewInt(1980)
 		require.Equal(t, expectedSoftAuction, softAuctionConfig)
-		selectedNodes = selectNodes(softAuctionConfig, 2, randomness)
+		selectedNodes = als.selectNodes(softAuctionConfig, 2, randomness)
 		require.Equal(t, []state.ValidatorInfoHandler{v2, v1}, selectedNodes)
 
-		softAuctionConfig = calcSoftAuctionNodesConfig(ownersData, 1)
+		softAuctionConfig = als.calcSoftAuctionNodesConfig(ownersData, 1)
 		delete(expectedSoftAuction, owner1)
 		require.Equal(t, expectedSoftAuction, softAuctionConfig)
-		selectedNodes = selectNodes(softAuctionConfig, 1, randomness)
+		selectedNodes = als.selectNodes(softAuctionConfig, 1, randomness)
 		require.Equal(t, []state.ValidatorInfoHandler{v2}, selectedNodes)
 	})
 }
@@ -648,66 +661,121 @@ func TestAuctionListSelector_calcSoftAuctionNodesConfig(t *testing.T) {
 		},
 	}
 
-	minTopUp, maxTopUp := getMinMaxPossibleTopUp(ownersData)
+	args := createAuctionListSelectorArgs(nil)
+	als, _ := NewAuctionListSelector(args)
+
+	minTopUp, maxTopUp := als.getMinMaxPossibleTopUp(ownersData)
 	require.Equal(t, big.NewInt(1), minTopUp)    // owner4 having all nodes in auction
 	require.Equal(t, big.NewInt(3000), maxTopUp) // owner2 having only only one node in auction
 
-	softAuctionConfig := calcSoftAuctionNodesConfig(ownersData, 9)
+	softAuctionConfig := als.calcSoftAuctionNodesConfig(ownersData, 9)
 	require.Equal(t, ownersData, softAuctionConfig)
-	selectedNodes := selectNodes(softAuctionConfig, 8, randomness)
+	selectedNodes := als.selectNodes(softAuctionConfig, 8, randomness)
 	require.Equal(t, []state.ValidatorInfoHandler{v5, v4, v3, v2, v1, v7, v6, v8}, selectedNodes)
 
-	softAuctionConfig = calcSoftAuctionNodesConfig(ownersData, 8)
+	softAuctionConfig = als.calcSoftAuctionNodesConfig(ownersData, 8)
 	require.Equal(t, ownersData, softAuctionConfig)
-	selectedNodes = selectNodes(softAuctionConfig, 8, randomness)
+	selectedNodes = als.selectNodes(softAuctionConfig, 8, randomness)
 	require.Equal(t, []state.ValidatorInfoHandler{v5, v4, v3, v2, v1, v7, v6, v8}, selectedNodes)
 
-	softAuctionConfig = calcSoftAuctionNodesConfig(ownersData, 7)
+	softAuctionConfig = als.calcSoftAuctionNodesConfig(ownersData, 7)
 	expectedConfig := copyOwnersData(ownersData)
 	delete(expectedConfig, owner4)
 	require.Equal(t, expectedConfig, softAuctionConfig)
-	selectedNodes = selectNodes(softAuctionConfig, 7, randomness)
+	selectedNodes = als.selectNodes(softAuctionConfig, 7, randomness)
 	require.Equal(t, []state.ValidatorInfoHandler{v5, v4, v3, v2, v1, v7, v6}, selectedNodes)
 
-	softAuctionConfig = calcSoftAuctionNodesConfig(ownersData, 6)
+	softAuctionConfig = als.calcSoftAuctionNodesConfig(ownersData, 6)
 	expectedConfig[owner3].numQualifiedAuctionNodes = 1
 	expectedConfig[owner3].qualifiedTopUpPerNode = big.NewInt(500)
 	require.Equal(t, expectedConfig, softAuctionConfig)
-	selectedNodes = selectNodes(softAuctionConfig, 6, randomness)
+	selectedNodes = als.selectNodes(softAuctionConfig, 6, randomness)
 	require.Equal(t, []state.ValidatorInfoHandler{v5, v4, v3, v7, v2, v1}, selectedNodes)
 
-	softAuctionConfig = calcSoftAuctionNodesConfig(ownersData, 5)
+	softAuctionConfig = als.calcSoftAuctionNodesConfig(ownersData, 5)
 	expectedConfig[owner1].numQualifiedAuctionNodes = 1
 	expectedConfig[owner1].qualifiedTopUpPerNode = big.NewInt(500)
 	require.Equal(t, expectedConfig, softAuctionConfig)
-	selectedNodes = selectNodes(softAuctionConfig, 5, randomness)
+	selectedNodes = als.selectNodes(softAuctionConfig, 5, randomness)
 	require.Equal(t, []state.ValidatorInfoHandler{v5, v4, v3, v7, v2}, selectedNodes)
 
-	softAuctionConfig = calcSoftAuctionNodesConfig(ownersData, 4)
+	softAuctionConfig = als.calcSoftAuctionNodesConfig(ownersData, 4)
 	require.Equal(t, expectedConfig, softAuctionConfig)
-	selectedNodes = selectNodes(softAuctionConfig, 4, randomness)
+	selectedNodes = als.selectNodes(softAuctionConfig, 4, randomness)
 	require.Equal(t, []state.ValidatorInfoHandler{v5, v4, v3, v7}, selectedNodes)
 
-	softAuctionConfig = calcSoftAuctionNodesConfig(ownersData, 3)
+	softAuctionConfig = als.calcSoftAuctionNodesConfig(ownersData, 3)
 	delete(expectedConfig, owner3)
 	delete(expectedConfig, owner1)
 	require.Equal(t, expectedConfig, softAuctionConfig)
-	selectedNodes = selectNodes(softAuctionConfig, 3, randomness)
+	selectedNodes = als.selectNodes(softAuctionConfig, 3, randomness)
 	require.Equal(t, []state.ValidatorInfoHandler{v5, v4, v3}, selectedNodes)
 
-	softAuctionConfig = calcSoftAuctionNodesConfig(ownersData, 2)
+	softAuctionConfig = als.calcSoftAuctionNodesConfig(ownersData, 2)
 	expectedConfig[owner2].numQualifiedAuctionNodes = 2
 	expectedConfig[owner2].qualifiedTopUpPerNode = big.NewInt(1500)
 	require.Equal(t, expectedConfig, softAuctionConfig)
-	selectedNodes = selectNodes(softAuctionConfig, 2, randomness)
+	selectedNodes = als.selectNodes(softAuctionConfig, 2, randomness)
 	require.Equal(t, []state.ValidatorInfoHandler{v5, v4}, selectedNodes)
 
-	softAuctionConfig = calcSoftAuctionNodesConfig(ownersData, 1)
+	softAuctionConfig = als.calcSoftAuctionNodesConfig(ownersData, 1)
 	expectedConfig[owner2].numQualifiedAuctionNodes = 1
 	expectedConfig[owner2].qualifiedTopUpPerNode = big.NewInt(3000)
 	require.Equal(t, expectedConfig, softAuctionConfig)
-	selectedNodes = selectNodes(softAuctionConfig, 1, randomness)
+	selectedNodes = als.selectNodes(softAuctionConfig, 1, randomness)
 	require.Equal(t, []state.ValidatorInfoHandler{v5}, selectedNodes)
+}
+
+func TestGetPrettyValue(t *testing.T) {
+	require.Equal(t, "1234.0", getPrettyValue(big.NewInt(1234), big.NewInt(1)))
+	require.Equal(t, "123.4", getPrettyValue(big.NewInt(1234), big.NewInt(10)))
+	require.Equal(t, "12.34", getPrettyValue(big.NewInt(1234), big.NewInt(100)))
+	require.Equal(t, "1.234", getPrettyValue(big.NewInt(1234), big.NewInt(1000)))
+	require.Equal(t, "0.1234", getPrettyValue(big.NewInt(1234), big.NewInt(10000)))
+	require.Equal(t, "0.01234", getPrettyValue(big.NewInt(1234), big.NewInt(100000)))
+	require.Equal(t, "0.00123", getPrettyValue(big.NewInt(1234), big.NewInt(1000000)))
+	require.Equal(t, "0.00012", getPrettyValue(big.NewInt(1234), big.NewInt(10000000)))
+	require.Equal(t, "0.00001", getPrettyValue(big.NewInt(1234), big.NewInt(100000000)))
+	require.Equal(t, "0.00000", getPrettyValue(big.NewInt(1234), big.NewInt(1000000000)))
+	require.Equal(t, "0.00000", getPrettyValue(big.NewInt(1234), big.NewInt(10000000000)))
+
+	require.Equal(t, "1.0", getPrettyValue(big.NewInt(1), big.NewInt(1)))
+	require.Equal(t, "0.1", getPrettyValue(big.NewInt(1), big.NewInt(10)))
+	require.Equal(t, "0.01", getPrettyValue(big.NewInt(1), big.NewInt(100)))
+	require.Equal(t, "0.001", getPrettyValue(big.NewInt(1), big.NewInt(1000)))
+	require.Equal(t, "0.0001", getPrettyValue(big.NewInt(1), big.NewInt(10000)))
+	require.Equal(t, "0.00001", getPrettyValue(big.NewInt(1), big.NewInt(100000)))
+	require.Equal(t, "0.00000", getPrettyValue(big.NewInt(1), big.NewInt(1000000)))
+	require.Equal(t, "0.00000", getPrettyValue(big.NewInt(1), big.NewInt(10000000)))
+
+	oneEGLD := big.NewInt(1000000000000000000)
+	denominationEGLD := big.NewInt(int64(math.Pow10(18)))
+
+	require.Equal(t, "0.00000", getPrettyValue(big.NewInt(0), denominationEGLD))
+	require.Equal(t, "1.00000", getPrettyValue(oneEGLD, denominationEGLD))
+	require.Equal(t, "1.10000", getPrettyValue(big.NewInt(1100000000000000000), denominationEGLD))
+	require.Equal(t, "1.10000", getPrettyValue(big.NewInt(1100000000000000001), denominationEGLD))
+	require.Equal(t, "1.11000", getPrettyValue(big.NewInt(1110000000000000001), denominationEGLD))
+	require.Equal(t, "0.11100", getPrettyValue(big.NewInt(111000000000000001), denominationEGLD))
+	require.Equal(t, "0.01110", getPrettyValue(big.NewInt(11100000000000001), denominationEGLD))
+	require.Equal(t, "0.00111", getPrettyValue(big.NewInt(1110000000000001), denominationEGLD))
+	require.Equal(t, "0.00011", getPrettyValue(big.NewInt(111000000000001), denominationEGLD))
+	require.Equal(t, "0.00001", getPrettyValue(big.NewInt(11100000000001), denominationEGLD))
+	require.Equal(t, "0.00000", getPrettyValue(big.NewInt(1110000000001), denominationEGLD))
+	require.Equal(t, "0.00000", getPrettyValue(big.NewInt(111000000001), denominationEGLD))
+
+	require.Equal(t, "2.00000", getPrettyValue(big.NewInt(0).Mul(oneEGLD, big.NewInt(2)), denominationEGLD))
+	require.Equal(t, "20.00000", getPrettyValue(big.NewInt(0).Mul(oneEGLD, big.NewInt(20)), denominationEGLD))
+	require.Equal(t, "2000000.00000", getPrettyValue(big.NewInt(0).Mul(oneEGLD, big.NewInt(2000000)), denominationEGLD))
+
+	require.Equal(t, "3.22220", getPrettyValue(big.NewInt(0).Add(oneEGLD, big.NewInt(2222200000000000000)), denominationEGLD))
+	require.Equal(t, "1.22222", getPrettyValue(big.NewInt(0).Add(oneEGLD, big.NewInt(222220000000000000)), denominationEGLD))
+	require.Equal(t, "1.02222", getPrettyValue(big.NewInt(0).Add(oneEGLD, big.NewInt(22222000000000000)), denominationEGLD))
+	require.Equal(t, "1.00222", getPrettyValue(big.NewInt(0).Add(oneEGLD, big.NewInt(2222200000000000)), denominationEGLD))
+	require.Equal(t, "1.00022", getPrettyValue(big.NewInt(0).Add(oneEGLD, big.NewInt(222220000000000)), denominationEGLD))
+	require.Equal(t, "1.00002", getPrettyValue(big.NewInt(0).Add(oneEGLD, big.NewInt(22222000000000)), denominationEGLD))
+	require.Equal(t, "1.00000", getPrettyValue(big.NewInt(0).Add(oneEGLD, big.NewInt(2222200000000)), denominationEGLD))
+	require.Equal(t, "1.00000", getPrettyValue(big.NewInt(0).Add(oneEGLD, big.NewInt(222220000000)), denominationEGLD))
 }
 
 func TestCalcNormalizedRandomness(t *testing.T) {

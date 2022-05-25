@@ -184,6 +184,7 @@ type Config struct {
 	TrieSync              TrieSyncConfig
 	Resolvers             ResolverConfig
 	VMOutputCacher        CacheConfig
+	SoftAuctionConfig     SoftAuctionConfig
 }
 
 // LogsConfig will hold settings related to the logging sub-system
@@ -545,4 +546,11 @@ type ResolverConfig struct {
 	NumCrossShardPeers  uint32
 	NumIntraShardPeers  uint32
 	NumFullHistoryPeers uint32
+}
+
+// SoftAuctionConfig represents the config options for soft auction selecting used in staking v4
+type SoftAuctionConfig struct {
+	TopUpStep string
+	MinTopUp  string
+	MaxTopUp  string
 }

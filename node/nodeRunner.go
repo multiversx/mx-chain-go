@@ -1008,6 +1008,7 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 		EpochConfig:            *configs.EpochConfig,
 		PrefConfigs:            configs.PreferencesConfig.Preferences,
 		ImportDBConfig:         *configs.ImportDbConfig,
+		EconomicsConfig:        *configs.EconomicsConfig,
 		AccountsParser:         accountsParser,
 		SmartContractParser:    smartContractParser,
 		GasSchedule:            gasScheduleNotifier,

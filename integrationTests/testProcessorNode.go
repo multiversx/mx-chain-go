@@ -2197,6 +2197,11 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 			ShardCoordinator:             tpn.ShardCoordinator,
 			StakingDataProvider:          stakingDataProvider,
 			MaxNodesChangeConfigProvider: maxNodesChangeConfigProvider,
+			SoftAuctionConfig: config.SoftAuctionConfig{
+				TopUpStep: "10",
+				MinTopUp:  "1",
+				MaxTopUp:  "32000000",
+			},
 		}
 		auctionListSelector, _ := metachain.NewAuctionListSelector(argsAuctionListSelector)
 
