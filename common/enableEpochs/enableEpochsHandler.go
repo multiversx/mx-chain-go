@@ -1,8 +1,6 @@
 package enableEpochs
 
 import (
-	"sync"
-
 	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -14,7 +12,6 @@ var log = logger.GetOrCreate("enableEpochsHandler")
 
 type enableEpochsHandler struct {
 	*flagsHolder
-	mutFlags           sync.RWMutex
 	enableEpochsConfig config.EnableEpochs
 }
 
@@ -36,9 +33,6 @@ func NewEnableEpochsHandler(enableEpochsConfig config.EnableEpochs, epochNotifie
 
 // EpochConfirmed is called whenever a new epoch is confirmed
 func (handler *enableEpochsHandler) EpochConfirmed(epoch uint32, _ uint64) {
-	handler.mutFlags.Lock()
-	defer handler.mutFlags.Unlock()
-
 	cfg := handler.enableEpochsConfig
 
 	handler.setFlagValue(epoch >= cfg.SCDeployEnableEpoch, &handler.scDeployFlag, "scDeployFlag")
