@@ -630,19 +630,12 @@ func isActiveDB(storer pruningStorer) bool {
 
 func isTrieSynced(storer pruningStorer, epoch uint32) bool {
 	isTrieSyncedThisEpoch := isTrieSyncedInEpoch(storer, epoch)
-	isTrieSyncedLastEpoch := false
 
-	if epoch > 0 {
-		isTrieSyncedLastEpoch = isTrieSyncedInEpoch(storer, epoch-1)
-	}
-
-	isTrieSynced := isTrieSyncedThisEpoch || isTrieSyncedLastEpoch
 	log.Debug("isTrieSynced",
 		"this epoch ", isTrieSyncedThisEpoch,
-		"last epoch", isTrieSyncedLastEpoch,
 		"epoch", epoch,
 	)
-	return isTrieSynced
+	return isTrieSyncedThisEpoch
 }
 
 func isTrieSyncedInEpoch(storer pruningStorer, epoch uint32) bool {
