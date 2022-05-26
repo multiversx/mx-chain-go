@@ -278,7 +278,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		TimeStamp: arg.GenesisTime,
 	}
 	epochNotifier.CheckEpoch(temporaryMetaHeader)
-	_, err := enableEpochs.NewEnableEpochsHandler(enableEpochsConfig, epochNotifier)
+	enableEpochsHandler, err := enableEpochs.NewEnableEpochsHandler(enableEpochsConfig, epochNotifier)
 	if err != nil {
 		return nil, err
 	}
@@ -429,7 +429,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		ScProcessor:         scProcessor,
 		TxTypeHandler:       txTypeHandler,
 		EconomicsFee:        genesisFeeHandler,
-		EnableEpochsHandler: arg.Core.EnableEpochsHandler(),
+		EnableEpochsHandler: enableEpochsHandler,
 	}
 	txProcessor, err := processTransaction.NewMetaTxProcessor(argsNewMetaTxProcessor)
 	if err != nil {
@@ -477,11 +477,9 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 	}
 
 	argsDetector := coordinator.ArgsPrintDoubleTransactionsDetector{
-		Marshaller:    arg.Core.InternalMarshalizer(),
-		Hasher:        arg.Core.Hasher(),
-		EpochNotifier: epochNotifier,
-
-		AddFailedRelayedTxToInvalidMBsDisableEpoch: enableEpochsConfig.AddFailedRelayedTxToInvalidMBsDisableEpoch,
+		Marshaller:          arg.Core.InternalMarshalizer(),
+		Hasher:              arg.Core.Hasher(),
+		EnableEpochsHandler: enableEpochsHandler,
 	}
 	doubleTransactionsDetector, err := coordinator.NewPrintDoubleTransactionsDetector(argsDetector)
 	if err != nil {

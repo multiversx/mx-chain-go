@@ -331,11 +331,9 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 	}
 
 	argsDetector := coordinator.ArgsPrintDoubleTransactionsDetector{
-		Marshaller:    pcf.coreData.InternalMarshalizer(),
-		Hasher:        pcf.coreData.Hasher(),
-		EpochNotifier: pcf.epochNotifier,
-
-		AddFailedRelayedTxToInvalidMBsDisableEpoch: pcf.epochConfig.EnableEpochs.AddFailedRelayedTxToInvalidMBsDisableEpoch,
+		Marshaller:          pcf.coreData.InternalMarshalizer(),
+		Hasher:              pcf.coreData.Hasher(),
+		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
 	}
 	doubleTransactionsDetector, err := coordinator.NewPrintDoubleTransactionsDetector(argsDetector)
 	if err != nil {
@@ -624,11 +622,9 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	}
 
 	argsDetector := coordinator.ArgsPrintDoubleTransactionsDetector{
-		Marshaller:    pcf.coreData.InternalMarshalizer(),
-		Hasher:        pcf.coreData.Hasher(),
-		EpochNotifier: pcf.epochNotifier,
-
-		AddFailedRelayedTxToInvalidMBsDisableEpoch: pcf.epochConfig.EnableEpochs.AddFailedRelayedTxToInvalidMBsDisableEpoch,
+		Marshaller:          pcf.coreData.InternalMarshalizer(),
+		Hasher:              pcf.coreData.Hasher(),
+		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
 	}
 	doubleTransactionsDetector, err := coordinator.NewPrintDoubleTransactionsDetector(argsDetector)
 	if err != nil {
