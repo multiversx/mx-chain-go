@@ -3053,6 +3053,7 @@ func GetDefaultCoreComponents() *mock.CoreComponentsStub {
 		RoundNotifierField:           &processMock.RoundNotifierStub{},
 		TxVersionCheckField:          versioning.NewTxVersionChecker(MinTransactionVersion),
 		ProcessStatusHandlerInternal: &testscommon.ProcessStatusHandlerStub{},
+		EnableEpochsHandlerField:     &testscommon.EnableEpochsHandlerStub{},
 	}
 }
 
