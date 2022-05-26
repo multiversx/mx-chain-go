@@ -15,6 +15,7 @@ import (
 	blproc "github.com/ElrondNetwork/elrond-go/process/block"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/process/block/postprocess"
+	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/scToProtocol"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
@@ -91,6 +92,7 @@ func createMetaBlockProcessor(
 			ScheduledMiniBlocksEnableEpoch: 10000,
 			VMContainersFactory:            metaVMFactory,
 			VmContainer:                    vmContainer,
+			ProcessedMiniBlocksTracker:     processedMb.NewProcessedMiniBlocksTracker(),
 		},
 		SCToProtocol:             stakingToPeer,
 		PendingMiniBlocksHandler: &mock.PendingMiniBlocksHandlerStub{},
