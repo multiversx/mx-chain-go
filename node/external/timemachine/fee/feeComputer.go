@@ -34,7 +34,8 @@ func NewFeeComputer(args ArgsNewFeeComputer) (*feeComputer, error) {
 		economicsConfig:                args.EconomicsConfig,
 		penalizedTooMuchGasEnableEpoch: args.PenalizedTooMuchGasEnableEpoch,
 		gasPriceModifierEnableEpoch:    args.GasPriceModifierEnableEpoch,
-		economicsInstances:             make(map[int]economicsDataWithComputeFee),
+		// TODO: use a LRU cache instead
+		economicsInstances: make(map[int]economicsDataWithComputeFee),
 	}
 
 	// Create some economics data instance (but do not save them) in order to validate the arguments:
