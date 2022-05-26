@@ -331,9 +331,9 @@ type TestProcessorNode struct {
 	EnableEpochs             config.EnableEpochs
 	UseValidVmBlsSigVerifier bool
 
-	TransactionLogProcessor        process.TransactionLogProcessor
-	PeersRatingHandler p2p.PeersRatingHandler
-	HardforkTrigger node.HardforkTrigger
+	TransactionLogProcessor process.TransactionLogProcessor
+	PeersRatingHandler      p2p.PeersRatingHandler
+	HardforkTrigger         node.HardforkTrigger
 }
 
 // CreatePkBytes creates 'numShards' public key-like byte slices
@@ -1045,10 +1045,10 @@ func (tpn *TestProcessorNode) initChainHandler() {
 
 func (tpn *TestProcessorNode) initEconomicsData(economicsConfig *config.EconomicsConfig) {
 	argsNewEconomicsData := economics.ArgsNewEconomicsData{
-		Economics:                      economicsConfig,
-		PenalizedTooMuchGasEnableEpoch: 0,
-		EpochNotifier:                  &epochNotifier.EpochNotifierStub{},
-		BuiltInFunctionsCostHandler:    &mock.BuiltInCostHandlerStub{},
+		Economics:                   economicsConfig,
+		EpochNotifier:               &epochNotifier.EpochNotifierStub{},
+		EnableEpochsHandler:         &testscommon.EnableEpochsHandlerStub{},
+		BuiltInFunctionsCostHandler: &mock.BuiltInCostHandlerStub{},
 	}
 	economicsData, _ := economics.NewEconomicsData(argsNewEconomicsData)
 	tpn.EconomicsData = economics.NewTestEconomicsData(economicsData)

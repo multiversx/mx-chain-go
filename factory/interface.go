@@ -131,6 +131,7 @@ type CoreComponentsHolder interface {
 	ArwenChangeLocker() common.Locker
 	ProcessStatusHandler() common.ProcessStatusHandler
 	HardforkTriggerPubKey() []byte
+	EnableEpochsHandler() common.EnableEpochsHandler
 	IsInterfaceNil() bool
 }
 

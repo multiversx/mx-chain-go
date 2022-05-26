@@ -86,7 +86,7 @@ func (stub *EnableEpochsHandlerStub) IsSCDeployFlagEnabled() bool {
 		return stub.IsSCDeployFlagEnabledCalled()
 	}
 
-	return false
+	return true
 }
 
 // IsBuiltInFunctionsFlagEnabled -
@@ -95,7 +95,7 @@ func (stub *EnableEpochsHandlerStub) IsBuiltInFunctionsFlagEnabled() bool {
 		return stub.IsBuiltInFunctionsFlagEnabledCalled()
 	}
 
-	return false
+	return true
 }
 
 // IsRelayedTransactionsFlagEnabled -
@@ -104,7 +104,7 @@ func (stub *EnableEpochsHandlerStub) IsRelayedTransactionsFlagEnabled() bool {
 		return stub.IsRelayedTransactionsFlagEnabledCalled()
 	}
 
-	return false
+	return true
 }
 
 // IsPenalizedTooMuchGasFlagEnabled -
@@ -113,7 +113,7 @@ func (stub *EnableEpochsHandlerStub) IsPenalizedTooMuchGasFlagEnabled() bool {
 		return stub.IsPenalizedTooMuchGasFlagEnabledCalled()
 	}
 
-	return false
+	return true
 }
 
 // IsSwitchJailWaitingFlagEnabled -
@@ -122,7 +122,7 @@ func (stub *EnableEpochsHandlerStub) IsSwitchJailWaitingFlagEnabled() bool {
 		return stub.IsSwitchJailWaitingFlagEnabledCalled()
 	}
 
-	return false
+	return true
 }
 
 // IsBelowSignedThresholdFlagEnabled -
@@ -131,7 +131,7 @@ func (stub *EnableEpochsHandlerStub) IsBelowSignedThresholdFlagEnabled() bool {
 		return stub.IsBelowSignedThresholdFlagEnabledCalled()
 	}
 
-	return false
+	return true
 }
 
 // IsSwitchHysteresisForMinNodesFlagEnabled -
@@ -140,7 +140,7 @@ func (stub *EnableEpochsHandlerStub) IsSwitchHysteresisForMinNodesFlagEnabled() 
 		return stub.IsSwitchHysteresisForMinNodesFlagEnabledCalled()
 	}
 
-	return false
+	return true
 }
 
 // IsTransactionSignedWithTxHashFlagEnabled -
@@ -149,7 +149,7 @@ func (stub *EnableEpochsHandlerStub) IsTransactionSignedWithTxHashFlagEnabled() 
 		return stub.IsTransactionSignedWithTxHashFlagEnabledCalled()
 	}
 
-	return false
+	return true
 }
 
 // IsMetaProtectionFlagEnabled -
@@ -158,7 +158,7 @@ func (stub *EnableEpochsHandlerStub) IsMetaProtectionFlagEnabled() bool {
 		return stub.IsMetaProtectionFlagEnabledCalled()
 	}
 
-	return false
+	return true
 }
 
 // IsAheadOfTimeGasUsageFlagEnabled -
@@ -167,7 +167,7 @@ func (stub *EnableEpochsHandlerStub) IsAheadOfTimeGasUsageFlagEnabled() bool {
 		return stub.IsAheadOfTimeGasUsageFlagEnabledCalled()
 	}
 
-	return false
+	return true
 }
 
 // IsGasPriceModifierFlagEnabled -
@@ -176,7 +176,7 @@ func (stub *EnableEpochsHandlerStub) IsGasPriceModifierFlagEnabled() bool {
 		return stub.IsGasPriceModifierFlagEnabledCalled()
 	}
 
-	return false
+	return true
 }
 
 // IsRepairCallbackFlagEnabled -
@@ -185,7 +185,7 @@ func (stub *EnableEpochsHandlerStub) IsRepairCallbackFlagEnabled() bool {
 		return stub.IsRepairCallbackFlagEnabledCalled()
 	}
 
-	return false
+	return true
 }
 
 // IsBalanceWaitingListsFlagEnabled -
@@ -194,7 +194,7 @@ func (stub *EnableEpochsHandlerStub) IsBalanceWaitingListsFlagEnabled() bool {
 		return stub.IsBalanceWaitingListsFlagEnabledCalled()
 	}
 
-	return false
+	return true
 }
 
 // IsReturnDataToLastTransferFlagEnabled -
@@ -203,7 +203,7 @@ func (stub *EnableEpochsHandlerStub) IsReturnDataToLastTransferFlagEnabled() boo
 		return stub.IsReturnDataToLastTransferFlagEnabledCalled()
 	}
 
-	return false
+	return true
 }
 
 // IsSenderInOutTransferFlagEnabled -
@@ -212,7 +212,7 @@ func (stub *EnableEpochsHandlerStub) IsSenderInOutTransferFlagEnabled() bool {
 		return stub.IsSenderInOutTransferFlagEnabledCalled()
 	}
 
-	return false
+	return true
 }
 
 // IsStakeFlagEnabled -
@@ -221,7 +221,7 @@ func (stub *EnableEpochsHandlerStub) IsStakeFlagEnabled() bool {
 		return stub.IsStakeFlagEnabledCalled()
 	}
 
-	return false
+	return true
 }
 
 // IsStakingV2FlagEnabled -
@@ -230,7 +230,7 @@ func (stub *EnableEpochsHandlerStub) IsStakingV2FlagEnabled() bool {
 		return stub.IsStakingV2FlagEnabledCalled()
 	}
 
-	return false
+	return true
 }
 
 // IsStakingV2OwnerFlagEnabled -
@@ -239,7 +239,7 @@ func (stub *EnableEpochsHandlerStub) IsStakingV2OwnerFlagEnabled() bool {
 		return stub.IsStakingV2OwnerFlagEnabledCalled()
 	}
 
-	return false
+	return true
 }
 
 // IsStakingV2DelegationFlagEnabled -
@@ -248,7 +248,7 @@ func (stub *EnableEpochsHandlerStub) IsStakingV2DelegationFlagEnabled() bool {
 		return stub.IsStakingV2DelegationFlagEnabledCalled()
 	}
 
-	return false
+	return true
 }
 
 // IsDoubleKeyProtectionFlagEnabled -
@@ -257,7 +257,7 @@ func (stub *EnableEpochsHandlerStub) IsDoubleKeyProtectionFlagEnabled() bool {
 		return stub.IsDoubleKeyProtectionFlagEnabledCalled()
 	}
 
-	return false
+	return true
 }
 
 // IsESDTFlagEnabled -
@@ -266,7 +266,7 @@ func (stub *EnableEpochsHandlerStub) IsESDTFlagEnabled() bool {
 		return stub.IsESDTFlagEnabledCalled()
 	}
 
-	return false
+	return true
 }
 
 // IsESDTFlagEnabledForCurrentEpoch -
@@ -275,7 +275,7 @@ func (stub *EnableEpochsHandlerStub) IsESDTFlagEnabledForCurrentEpoch() bool {
 		return stub.IsESDTFlagEnabledForCurrentEpochCalled()
 	}
 
-	return false
+	return true
 }
 
 // IsGovernanceFlagEnabled -
@@ -284,7 +284,7 @@ func (stub *EnableEpochsHandlerStub) IsGovernanceFlagEnabled() bool {
 		return stub.IsGovernanceFlagEnabledCalled()
 	}
 
-	return false
+	return true
 }
 
 // IsGovernanceFlagEnabledForCurrentEpoch -
@@ -293,7 +293,7 @@ func (stub *EnableEpochsHandlerStub) IsGovernanceFlagEnabledForCurrentEpoch() bo
 		return stub.IsGovernanceFlagEnabledForCurrentEpochCalled()
 	}
 
-	return false
+	return true
 }
 
 // IsDelegationManagerFlagEnabled -
@@ -302,7 +302,7 @@ func (stub *EnableEpochsHandlerStub) IsDelegationManagerFlagEnabled() bool {
 		return stub.IsDelegationManagerFlagEnabledCalled()
 	}
 
-	return false
+	return true
 }
 
 // IsDelegationSmartContractFlagEnabled -
@@ -311,7 +311,7 @@ func (stub *EnableEpochsHandlerStub) IsDelegationSmartContractFlagEnabled() bool
 		return stub.IsDelegationSmartContractFlagEnabledCalled()
 	}
 
-	return false
+	return true
 }
 
 // IsCorrectLastUnjailedFlagEnabled -
@@ -320,7 +320,7 @@ func (stub *EnableEpochsHandlerStub) IsCorrectLastUnjailedFlagEnabled() bool {
 		return stub.IsCorrectLastUnjailedFlagEnabledCalled()
 	}
 
-	return false
+	return true
 }
 
 // IsCorrectLastUnjailedFlagEnabledForCurrentEpoch -
@@ -329,7 +329,7 @@ func (stub *EnableEpochsHandlerStub) IsCorrectLastUnjailedFlagEnabledForCurrentE
 		return stub.IsCorrectLastUnjailedFlagEnabledForCurrentEpochCalled()
 	}
 
-	return false
+	return true
 }
 
 // IsRelayedTransactionsV2FlagEnabled -
@@ -338,7 +338,7 @@ func (stub *EnableEpochsHandlerStub) IsRelayedTransactionsV2FlagEnabled() bool {
 		return stub.IsRelayedTransactionsV2FlagEnabledCalled()
 	}
 
-	return false
+	return true
 }
 
 // IsUnbondTokensV2FlagEnabled -
@@ -347,7 +347,7 @@ func (stub *EnableEpochsHandlerStub) IsUnbondTokensV2FlagEnabled() bool {
 		return stub.IsUnbondTokensV2FlagEnabledCalled()
 	}
 
-	return false
+	return true
 }
 
 // IsSaveJailedAlwaysFlagEnabled -
@@ -356,7 +356,7 @@ func (stub *EnableEpochsHandlerStub) IsSaveJailedAlwaysFlagEnabled() bool {
 		return stub.IsSaveJailedAlwaysFlagEnabledCalled()
 	}
 
-	return false
+	return true
 }
 
 // IsReDelegateBelowMinCheckFlagEnabled -
@@ -365,7 +365,7 @@ func (stub *EnableEpochsHandlerStub) IsReDelegateBelowMinCheckFlagEnabled() bool
 		return stub.IsReDelegateBelowMinCheckFlagEnabledCalled()
 	}
 
-	return false
+	return true
 }
 
 // IsValidatorToDelegationFlagEnabled -
@@ -374,7 +374,7 @@ func (stub *EnableEpochsHandlerStub) IsValidatorToDelegationFlagEnabled() bool {
 		return stub.IsValidatorToDelegationFlagEnabledCalled()
 	}
 
-	return false
+	return true
 }
 
 // IsWaitingListFixFlagEnabled -
@@ -383,7 +383,7 @@ func (stub *EnableEpochsHandlerStub) IsWaitingListFixFlagEnabled() bool {
 		return stub.IsWaitingListFixFlagEnabledCalled()
 	}
 
-	return false
+	return true
 }
 
 // IsIncrementSCRNonceInMultiTransferFlagEnabled -
@@ -392,7 +392,7 @@ func (stub *EnableEpochsHandlerStub) IsIncrementSCRNonceInMultiTransferFlagEnabl
 		return stub.IsIncrementSCRNonceInMultiTransferFlagEnabledCalled()
 	}
 
-	return false
+	return true
 }
 
 // IsESDTMultiTransferFlagEnabled -
@@ -401,7 +401,7 @@ func (stub *EnableEpochsHandlerStub) IsESDTMultiTransferFlagEnabled() bool {
 		return stub.IsESDTMultiTransferFlagEnabledCalled()
 	}
 
-	return false
+	return true
 }
 
 // IsGlobalMintBurnFlagEnabled -
@@ -410,7 +410,7 @@ func (stub *EnableEpochsHandlerStub) IsGlobalMintBurnFlagEnabled() bool {
 		return stub.IsGlobalMintBurnFlagEnabledCalled()
 	}
 
-	return false
+	return true
 }
 
 // IsESDTTransferRoleFlagEnabled -
@@ -419,7 +419,7 @@ func (stub *EnableEpochsHandlerStub) IsESDTTransferRoleFlagEnabled() bool {
 		return stub.IsESDTTransferRoleFlagEnabledCalled()
 	}
 
-	return false
+	return true
 }
 
 // IsBuiltInFunctionOnMetaFlagEnabled -
@@ -428,7 +428,7 @@ func (stub *EnableEpochsHandlerStub) IsBuiltInFunctionOnMetaFlagEnabled() bool {
 		return stub.IsBuiltInFunctionOnMetaFlagEnabledCalled()
 	}
 
-	return false
+	return true
 }
 
 // IsComputeRewardCheckpointFlagEnabled -
@@ -437,7 +437,7 @@ func (stub *EnableEpochsHandlerStub) IsComputeRewardCheckpointFlagEnabled() bool
 		return stub.IsComputeRewardCheckpointFlagEnabledCalled()
 	}
 
-	return false
+	return true
 }
 
 // IsSCRSizeInvariantCheckFlagEnabled -
@@ -446,7 +446,7 @@ func (stub *EnableEpochsHandlerStub) IsSCRSizeInvariantCheckFlagEnabled() bool {
 		return stub.IsSCRSizeInvariantCheckFlagEnabledCalled()
 	}
 
-	return false
+	return true
 }
 
 // IsBackwardCompSaveKeyValueFlagEnabled -
@@ -455,7 +455,7 @@ func (stub *EnableEpochsHandlerStub) IsBackwardCompSaveKeyValueFlagEnabled() boo
 		return stub.IsBackwardCompSaveKeyValueFlagEnabledCalled()
 	}
 
-	return false
+	return true
 }
 
 // IsESDTNFTCreateOnMultiShardFlagEnabled -
@@ -464,7 +464,7 @@ func (stub *EnableEpochsHandlerStub) IsESDTNFTCreateOnMultiShardFlagEnabled() bo
 		return stub.IsESDTNFTCreateOnMultiShardFlagEnabledCalled()
 	}
 
-	return false
+	return true
 }
 
 // IsMetaESDTSetFlagEnabled -
@@ -473,7 +473,7 @@ func (stub *EnableEpochsHandlerStub) IsMetaESDTSetFlagEnabled() bool {
 		return stub.IsMetaESDTSetFlagEnabledCalled()
 	}
 
-	return false
+	return true
 }
 
 // IsAddTokensToDelegationFlagEnabled -
@@ -482,7 +482,7 @@ func (stub *EnableEpochsHandlerStub) IsAddTokensToDelegationFlagEnabled() bool {
 		return stub.IsAddTokensToDelegationFlagEnabledCalled()
 	}
 
-	return false
+	return true
 }
 
 // IsMultiESDTTransferFixOnCallBackFlagEnabled -
@@ -491,7 +491,7 @@ func (stub *EnableEpochsHandlerStub) IsMultiESDTTransferFixOnCallBackFlagEnabled
 		return stub.IsMultiESDTTransferFixOnCallBackFlagEnabledCalled()
 	}
 
-	return false
+	return true
 }
 
 // IsOptimizeGasUsedInCrossMiniBlocksFlagEnabled -
@@ -500,7 +500,7 @@ func (stub *EnableEpochsHandlerStub) IsOptimizeGasUsedInCrossMiniBlocksFlagEnabl
 		return stub.IsOptimizeGasUsedInCrossMiniBlocksFlagEnabledCalled()
 	}
 
-	return false
+	return true
 }
 
 // IsCorrectFirstQueuedFlagEnabled -
@@ -509,7 +509,7 @@ func (stub *EnableEpochsHandlerStub) IsCorrectFirstQueuedFlagEnabled() bool {
 		return stub.IsCorrectFirstQueuedFlagEnabledCalled()
 	}
 
-	return false
+	return true
 }
 
 // IsDeleteDelegatorAfterClaimRewardsFlagEnabled -
@@ -518,7 +518,7 @@ func (stub *EnableEpochsHandlerStub) IsDeleteDelegatorAfterClaimRewardsFlagEnabl
 		return stub.IsDeleteDelegatorAfterClaimRewardsFlagEnabledCalled()
 	}
 
-	return false
+	return true
 }
 
 // IsFixOOGReturnCodeFlagEnabled -
@@ -527,7 +527,7 @@ func (stub *EnableEpochsHandlerStub) IsFixOOGReturnCodeFlagEnabled() bool {
 		return stub.IsFixOOGReturnCodeFlagEnabledCalled()
 	}
 
-	return false
+	return true
 }
 
 // IsRemoveNonUpdatedStorageFlagEnabled -
@@ -536,7 +536,7 @@ func (stub *EnableEpochsHandlerStub) IsRemoveNonUpdatedStorageFlagEnabled() bool
 		return stub.IsRemoveNonUpdatedStorageFlagEnabledCalled()
 	}
 
-	return false
+	return true
 }
 
 // IsOptimizeNFTStoreFlagEnabled -
@@ -545,7 +545,7 @@ func (stub *EnableEpochsHandlerStub) IsOptimizeNFTStoreFlagEnabled() bool {
 		return stub.IsOptimizeNFTStoreFlagEnabledCalled()
 	}
 
-	return false
+	return true
 }
 
 // IsCreateNFTThroughExecByCallerFlagEnabled -
@@ -554,7 +554,7 @@ func (stub *EnableEpochsHandlerStub) IsCreateNFTThroughExecByCallerFlagEnabled()
 		return stub.IsCreateNFTThroughExecByCallerFlagEnabledCalled()
 	}
 
-	return false
+	return true
 }
 
 // IsStopDecreasingValidatorRatingWhenStuckFlagEnabled -
@@ -563,7 +563,7 @@ func (stub *EnableEpochsHandlerStub) IsStopDecreasingValidatorRatingWhenStuckFla
 		return stub.IsStopDecreasingValidatorRatingWhenStuckFlagEnabledCalled()
 	}
 
-	return false
+	return true
 }
 
 // IsFrontRunningProtectionFlagEnabled -
@@ -572,7 +572,7 @@ func (stub *EnableEpochsHandlerStub) IsFrontRunningProtectionFlagEnabled() bool 
 		return stub.IsFrontRunningProtectionFlagEnabledCalled()
 	}
 
-	return false
+	return true
 }
 
 // IsPayableBySCFlagEnabled -
@@ -581,7 +581,7 @@ func (stub *EnableEpochsHandlerStub) IsPayableBySCFlagEnabled() bool {
 		return stub.IsPayableBySCFlagEnabledCalled()
 	}
 
-	return false
+	return true
 }
 
 // IsCleanUpInformativeSCRsFlagEnabled -
@@ -590,7 +590,7 @@ func (stub *EnableEpochsHandlerStub) IsCleanUpInformativeSCRsFlagEnabled() bool 
 		return stub.IsCleanUpInformativeSCRsFlagEnabledCalled()
 	}
 
-	return false
+	return true
 }
 
 // IsStorageAPICostOptimizationFlagEnabled -
@@ -599,7 +599,7 @@ func (stub *EnableEpochsHandlerStub) IsStorageAPICostOptimizationFlagEnabled() b
 		return stub.IsStorageAPICostOptimizationFlagEnabledCalled()
 	}
 
-	return false
+	return true
 }
 
 // IsESDTRegisterAndSetAllRolesFlagEnabled -
@@ -608,7 +608,7 @@ func (stub *EnableEpochsHandlerStub) IsESDTRegisterAndSetAllRolesFlagEnabled() b
 		return stub.IsESDTRegisterAndSetAllRolesFlagEnabledCalled()
 	}
 
-	return false
+	return true
 }
 
 // IsScheduledMiniBlocksFlagEnabled -
@@ -617,7 +617,7 @@ func (stub *EnableEpochsHandlerStub) IsScheduledMiniBlocksFlagEnabled() bool {
 		return stub.IsScheduledMiniBlocksFlagEnabledCalled()
 	}
 
-	return false
+	return true
 }
 
 // IsCorrectJailedNotUnstakedEmptyQueueFlagEnabled -
@@ -626,7 +626,7 @@ func (stub *EnableEpochsHandlerStub) IsCorrectJailedNotUnstakedEmptyQueueFlagEna
 		return stub.IsCorrectJailedNotUnstakedEmptyQueueFlagEnabledCalled()
 	}
 
-	return false
+	return true
 }
 
 // IsDoNotReturnOldBlockInBlockchainHookFlagEnabled -
@@ -635,7 +635,7 @@ func (stub *EnableEpochsHandlerStub) IsDoNotReturnOldBlockInBlockchainHookFlagEn
 		return stub.IsDoNotReturnOldBlockInBlockchainHookFlagEnabledCalled()
 	}
 
-	return false
+	return true
 }
 
 // IsSCRSizeInvariantOnBuiltInResultFlagEnabled -
@@ -644,7 +644,7 @@ func (stub *EnableEpochsHandlerStub) IsSCRSizeInvariantOnBuiltInResultFlagEnable
 		return stub.IsSCRSizeInvariantOnBuiltInResultFlagEnabledCalled()
 	}
 
-	return false
+	return true
 }
 
 // IsCheckCorrectTokenIDForTransferRoleFlagEnabled -
@@ -653,7 +653,7 @@ func (stub *EnableEpochsHandlerStub) IsCheckCorrectTokenIDForTransferRoleFlagEna
 		return stub.IsCheckCorrectTokenIDForTransferRoleFlagEnabledCalled()
 	}
 
-	return false
+	return true
 }
 
 // IsFailExecutionOnEveryAPIErrorFlagEnabled -
@@ -662,7 +662,7 @@ func (stub *EnableEpochsHandlerStub) IsFailExecutionOnEveryAPIErrorFlagEnabled()
 		return stub.IsFailExecutionOnEveryAPIErrorFlagEnabledCalled()
 	}
 
-	return false
+	return true
 }
 
 // IsHeartbeatDisableFlagEnabled -
@@ -671,7 +671,7 @@ func (stub *EnableEpochsHandlerStub) IsHeartbeatDisableFlagEnabled() bool {
 		return stub.IsHeartbeatDisableFlagEnabledCalled()
 	}
 
-	return false
+	return true
 }
 
 // IsMiniBlockPartialExecutionFlagEnabled -
@@ -680,7 +680,7 @@ func (stub *EnableEpochsHandlerStub) IsMiniBlockPartialExecutionFlagEnabled() bo
 		return stub.IsMiniBlockPartialExecutionFlagEnabledCalled()
 	}
 
-	return false
+	return true
 }
 
 // IsInterfaceNil -

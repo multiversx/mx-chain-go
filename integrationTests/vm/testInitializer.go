@@ -23,6 +23,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/common/enableEpochs"
 	"github.com/ElrondNetwork/elrond-go/common/forking"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -344,7 +345,7 @@ func CreateAccount(accnts state.AccountsAdapter, pubKey []byte, nonce uint64, ba
 	return hashCreated, nil
 }
 
-func createEconomicsData(penalizedTooMuchGasEnableEpoch uint32) (process.EconomicsDataHandler, error) {
+func createEconomicsData(enableEpochsConfig config.EnableEpochs) (process.EconomicsDataHandler, error) {
 	maxGasLimitPerBlock := strconv.FormatUint(math.MaxUint64, 10)
 	minGasPrice := strconv.FormatUint(1, 10)
 	minGasLimit := strconv.FormatUint(1, 10)
@@ -354,6 +355,9 @@ func createEconomicsData(penalizedTooMuchGasEnableEpoch uint32) (process.Economi
 		ArgsParser:  smartContract.NewArgumentParser(),
 		GasSchedule: mock.NewGasScheduleNotifierMock(defaults.FillGasMapInternal(map[string]map[string]uint64{}, 1)),
 	})
+
+	realEpochNotifier := forking.NewGenericEpochNotifier()
+	enableEpochsHandler, _ := enableEpochs.NewEnableEpochsHandler(enableEpochsConfig, realEpochNotifier)
 
 	argsNewEconomicsData := economics.ArgsNewEconomicsData{
 		Economics: &config.EconomicsConfig{
@@ -394,9 +398,9 @@ func createEconomicsData(penalizedTooMuchGasEnableEpoch uint32) (process.Economi
 				GasPriceModifier: 1.0,
 			},
 		},
-		PenalizedTooMuchGasEnableEpoch: penalizedTooMuchGasEnableEpoch,
-		EpochNotifier:                  &epochNotifier.EpochNotifierStub{},
-		BuiltInFunctionsCostHandler:    builtInCost,
+		EpochNotifier:               realEpochNotifier,
+		EnableEpochsHandler:         enableEpochsHandler,
+		BuiltInFunctionsCostHandler: builtInCost,
 	}
 
 	return economics.NewEconomicsData(argsNewEconomicsData)
@@ -451,7 +455,7 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 	gasSchedule := make(map[string]map[string]uint64)
 	defaults.FillGasMapInternal(gasSchedule, 1)
 
-	economicsData, err := createEconomicsData(enableEpochs.PenalizedTooMuchGasEnableEpoch)
+	economicsData, err := createEconomicsData(enableEpochs)
 	if err != nil {
 		return nil, err
 	}
@@ -652,7 +656,7 @@ func CreateVMAndBlockchainHookMeta(
 		EpochNotifier:      &epochNotifier.EpochNotifierStub{},
 	}
 
-	economicsData, err := createEconomicsData(0)
+	economicsData, err := createEconomicsData(config.EnableEpochs{})
 	if err != nil {
 		log.LogIfError(err)
 	}
@@ -791,7 +795,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 
 	gasSchedule := make(map[string]map[string]uint64)
 	defaults.FillGasMapInternal(gasSchedule, 1)
-	economicsData, err := createEconomicsData(enableEpochs.PenalizedTooMuchGasEnableEpoch)
+	economicsData, err := createEconomicsData(enableEpochs)
 	if err != nil {
 		return nil, err
 	}

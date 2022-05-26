@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go/common/enableEpochs"
 	"github.com/ElrondNetwork/elrond-go/common/forking"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -402,7 +403,7 @@ func (gbc *genesisBlockCreator) createHeaders(
 }
 
 // in case of hardfork initial smart contracts deployment is not called as they are all imported from previous state
-func (gbc *genesisBlockCreator) computeDNSAddresses(enableEpochs config.EnableEpochs) error {
+func (gbc *genesisBlockCreator) computeDNSAddresses(enableEpochsConfig config.EnableEpochs) error {
 	var dnsSC genesis.InitialSmartContractHandler
 	for _, sc := range gbc.arg.SmartContractParser.InitialSmartContracts() {
 		if sc.GetType() == genesis.DNSType {
@@ -420,6 +421,11 @@ func (gbc *genesisBlockCreator) computeDNSAddresses(enableEpochs config.EnableEp
 		TimeStamp: gbc.arg.GenesisTime,
 	}
 	epochNotifier.CheckEpoch(temporaryMetaHeader)
+	_, err := enableEpochs.NewEnableEpochsHandler(enableEpochsConfig, epochNotifier)
+	if err != nil {
+		return err
+	}
+
 	builtInFuncs := vmcommonBuiltInFunctions.NewBuiltInFunctionContainer()
 	argsHook := hooks.ArgBlockChainHook{
 		Accounts:           gbc.arg.Accounts,
@@ -435,7 +441,7 @@ func (gbc *genesisBlockCreator) computeDNSAddresses(enableEpochs config.EnableEp
 		CompiledSCPool:     gbc.arg.Data.Datapool().SmartContracts(),
 		EpochNotifier:      epochNotifier,
 		NilCompiledSCStore: true,
-		EnableEpochs:       enableEpochs,
+		EnableEpochs:       enableEpochsConfig,
 	}
 	blockChainHook, err := hooks.NewBlockChainHookImpl(argsHook)
 	if err != nil {

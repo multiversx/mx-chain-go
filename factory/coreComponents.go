@@ -21,6 +21,7 @@ import (
 	marshalizerFactory "github.com/ElrondNetwork/elrond-go-core/marshal/factory"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/common/enableEpochs"
 	commonFactory "github.com/ElrondNetwork/elrond-go/common/factory"
 	"github.com/ElrondNetwork/elrond-go/common/forking"
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -104,6 +105,7 @@ type coreComponents struct {
 	arwenChangeLocker             common.Locker
 	processStatusHandler          common.ProcessStatusHandler
 	hardforkTriggerPubKey         []byte
+	enableEpochsHandler           common.EnableEpochsHandler
 }
 
 // NewCoreComponentsFactory initializes the factory which is responsible to creating core components
@@ -229,6 +231,11 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 	epochNotifier := forking.NewGenericEpochNotifier()
 	roundNotifier := forking.NewRoundNotifier()
 
+	enableEpochsHandler, err := enableEpochs.NewEnableEpochsHandler(ccf.epochConfig.EnableEpochs, epochNotifier)
+	if err != nil {
+		return nil, err
+	}
+
 	arwenChangeLocker := &sync.RWMutex{}
 	gasScheduleConfigurationFolderName := ccf.configPathsHolder.GasScheduleDirectoryName
 	argsGasScheduleNotifier := forking.ArgsNewGasScheduleNotifier{
@@ -252,11 +259,10 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 
 	log.Trace("creating economics data components")
 	argsNewEconomicsData := economics.ArgsNewEconomicsData{
-		Economics:                      &ccf.economicsConfig,
-		PenalizedTooMuchGasEnableEpoch: ccf.epochConfig.EnableEpochs.PenalizedTooMuchGasEnableEpoch,
-		GasPriceModifierEnableEpoch:    ccf.epochConfig.EnableEpochs.GasPriceModifierEnableEpoch,
-		EpochNotifier:                  epochNotifier,
-		BuiltInFunctionsCostHandler:    builtInCostHandler,
+		Economics:                   &ccf.economicsConfig,
+		EpochNotifier:               epochNotifier,
+		EnableEpochsHandler:         enableEpochsHandler,
+		BuiltInFunctionsCostHandler: builtInCostHandler,
 	}
 	economicsData, err := economics.NewEconomicsData(argsNewEconomicsData)
 	if err != nil {
@@ -373,6 +379,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		arwenChangeLocker:             arwenChangeLocker,
 		processStatusHandler:          statusHandler.NewProcessStatusHandler(),
 		hardforkTriggerPubKey:         pubKeyBytes,
+		enableEpochsHandler:           enableEpochsHandler,
 	}, nil
 }
 
