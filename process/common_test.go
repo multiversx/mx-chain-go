@@ -1961,3 +1961,28 @@ func TestGetMiniBlockHeaderWithHash(t *testing.T) {
 		assert.Equal(t, expectedMbh, mbh)
 	})
 }
+
+func TestCheckIfIndexesAreOutOfBound(t *testing.T) {
+	txHashes := [][]byte{[]byte("txHash1"), []byte("txHash2"), []byte("txHash3")}
+	miniBlock := &block.MiniBlock{TxHashes: txHashes}
+
+	indexOfFirstTxToBeProcessed := int32(1)
+	indexOfLastTxToBeProcessed := int32(0)
+	err := process.CheckIfIndexesAreOutOfBound(indexOfFirstTxToBeProcessed, indexOfLastTxToBeProcessed, miniBlock)
+	assert.True(t, errors.Is(err, process.ErrIndexIsOutOfBound))
+
+	indexOfFirstTxToBeProcessed = int32(-1)
+	indexOfLastTxToBeProcessed = int32(0)
+	err = process.CheckIfIndexesAreOutOfBound(indexOfFirstTxToBeProcessed, indexOfLastTxToBeProcessed, miniBlock)
+	assert.True(t, errors.Is(err, process.ErrIndexIsOutOfBound))
+
+	indexOfFirstTxToBeProcessed = int32(0)
+	indexOfLastTxToBeProcessed = int32(len(txHashes))
+	err = process.CheckIfIndexesAreOutOfBound(indexOfFirstTxToBeProcessed, indexOfLastTxToBeProcessed, miniBlock)
+	assert.True(t, errors.Is(err, process.ErrIndexIsOutOfBound))
+
+	indexOfFirstTxToBeProcessed = int32(0)
+	indexOfLastTxToBeProcessed = int32(len(txHashes) - 1)
+	err = process.CheckIfIndexesAreOutOfBound(indexOfFirstTxToBeProcessed, indexOfLastTxToBeProcessed, miniBlock)
+	assert.Nil(t, err)
+}

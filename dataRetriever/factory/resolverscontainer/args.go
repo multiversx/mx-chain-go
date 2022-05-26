@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
@@ -26,6 +27,10 @@ type FactoryArgs struct {
 	OutputAntifloodHandler      dataRetriever.P2PAntifloodHandler
 	CurrentNetworkEpochProvider dataRetriever.CurrentNetworkEpochProviderHandler
 	PreferredPeersHolder        p2p.PreferredPeersHolderHandler
+	PeersRatingHandler          dataRetriever.PeersRatingHandler
 	SizeCheckDelta              uint32
 	IsFullHistoryNode           bool
+	NodesCoordinator                     dataRetriever.NodesCoordinator
+	MaxNumOfPeerAuthenticationInResponse int
+	PeerShardMapper                      process.PeerShardMapper
 }

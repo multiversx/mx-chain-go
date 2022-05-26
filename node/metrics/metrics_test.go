@@ -32,8 +32,6 @@ func TestInitBaseMetrics(t *testing.T) {
 		common.MetricNumTimesInForkChoice,
 		common.MetricHighestFinalBlock,
 		common.MetricCountConsensusAcceptedBlocks,
-		common.MetricRoundAtEpochStart,
-		common.MetricNonceAtEpochStart,
 		common.MetricRoundsPassedInCurrentEpoch,
 		common.MetricNoncesPassedInCurrentEpoch,
 		common.MetricNumConnectedPeers,
@@ -127,6 +125,7 @@ func TestInitConfigMetrics(t *testing.T) {
 			ESDTTransferRoleEnableEpoch:                 33,
 			BuiltInFunctionOnMetaEnableEpoch:            34,
 			WaitingListFixEnableEpoch:                   35,
+			HeartbeatDisableEpoch:                       35,
 		},
 	}
 
@@ -167,6 +166,7 @@ func TestInitConfigMetrics(t *testing.T) {
 		"erd_builtin_function_on_meta_enable_epoch":              uint32(34),
 		"erd_waiting_list_fix_enable_epoch":                      uint32(35),
 		"erd_max_nodes_change_enable_epoch":                      nil,
+		"erd_heartbeat_disable_epoch":                            uint32(35),
 		"erd_total_supply":                                       "12345",
 		"erd_hysteresis":                                         "0.100000",
 		"erd_adaptivity":                                         "true",

@@ -75,7 +75,10 @@ type EnableEpochs struct {
 	DoNotReturnOldBlockInBlockchainHookEnableEpoch    uint32
 	AddFailedRelayedTxToInvalidMBsDisableEpoch        uint32
 	SCRSizeInvariantOnBuiltInResultEnableEpoch        uint32
+	CheckCorrectTokenIDForTransferRoleEnableEpoch     uint32
 	FailExecutionOnEveryAPIErrorEnableEpoch           uint32
+	HeartbeatDisableEpoch                             uint32
+	MiniBlockPartialExecutionEnableEpoch              uint32
 	StakeLimitsEnableEpoch                            uint32
 	StakingV4InitEnableEpoch                          uint32
 	StakingV4EnableEpoch                              uint32
