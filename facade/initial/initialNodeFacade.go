@@ -109,22 +109,7 @@ func (inf *initialNodeFacade) GetESDTsWithRole(_ string, _ string) ([]string, er
 }
 
 // CreateTransaction return nil and error
-func (inf *initialNodeFacade) CreateTransaction(
-	_ uint64,
-	_ string,
-	_ string,
-	_ []byte,
-	_ string,
-	_ []byte,
-	_ uint64,
-	_ uint64,
-	_ []byte,
-	_ string,
-	_ string,
-	_ uint32,
-	_ uint32,
-	_ string,
-	_ string) (*transaction.Transaction, []byte, error) {
+func (inf *initialNodeFacade) CreateTransaction(_ *external.ArgsCreateTransaction) (*transaction.Transaction, []byte, error) {
 	return nil, nil, errNodeStarting
 }
 

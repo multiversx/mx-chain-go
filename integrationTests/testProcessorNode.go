@@ -24,7 +24,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing/keccak"
 	"github.com/ElrondNetwork/elrond-go-core/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go-crypto"
+	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/ed25519"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl"
@@ -2318,23 +2318,24 @@ func (tpn *TestProcessorNode) initNode() {
 
 // SendTransaction can send a transaction (it does the dispatching)
 func (tpn *TestProcessorNode) SendTransaction(tx *dataTransaction.Transaction) (string, error) {
-	tx, txHash, err := tpn.Node.CreateTransaction(
-		tx.Nonce,
-		tx.Value.String(),
-		TestAddressPubkeyConverter.Encode(tx.RcvAddr),
-		nil,
-		TestAddressPubkeyConverter.Encode(tx.SndAddr),
-		nil,
-		tx.GasPrice,
-		tx.GasLimit,
-		tx.Data,
-		hex.EncodeToString(tx.Signature),
-		string(tx.ChainID),
-		tx.Version,
-		tx.Options,
-		TestAddressPubkeyConverter.Encode(tx.GuardianAddr),
-		hex.EncodeToString(tx.GuardianSignature),
-	)
+	txArgs := &external.ArgsCreateTransaction{
+		Nonce:            tx.Nonce,
+		Value:            tx.Value.String(),
+		Receiver:         TestAddressPubkeyConverter.Encode(tx.RcvAddr),
+		ReceiverUsername: nil,
+		Sender:           TestAddressPubkeyConverter.Encode(tx.SndAddr),
+		SenderUsername:   nil,
+		GasPrice:         tx.GasPrice,
+		GasLimit:         tx.GasLimit,
+		DataField:        tx.Data,
+		SignatureHex:     hex.EncodeToString(tx.Signature),
+		ChainID:          string(tx.ChainID),
+		Version:          tx.Version,
+		Options:          tx.Options,
+		Guardian:         TestAddressPubkeyConverter.Encode(tx.GuardianAddr),
+		GuardianSigHex:   hex.EncodeToString(tx.GuardianSignature),
+	}
+	tx, txHash, err := tpn.Node.CreateTransaction(txArgs)
 	if err != nil {
 		return "", err
 	}
