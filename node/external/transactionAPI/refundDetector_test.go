@@ -25,6 +25,13 @@ func TestRefundDetector_IsRefundShouldDetectRefund(t *testing.T) {
 
 	require.True(t, detector.isRefund(refundDetectorInput{
 		Value:         "1000",
+		Data:          []byte("@6f6b@test"),
+		GasLimit:      0,
+		ReturnMessage: "",
+	}))
+
+	require.True(t, detector.isRefund(refundDetectorInput{
+		Value:         "1000",
 		Data:          []byte("foobar"),
 		GasLimit:      0,
 		ReturnMessage: "gas refund for relayer",
@@ -43,6 +50,12 @@ func TestRefundDetector_IsRefundShouldDetectRefund(t *testing.T) {
 	require.False(t, detector.isRefund(refundDetectorInput{
 		Value:    "1000",
 		Data:     []byte("@ok@test"),
+		GasLimit: 1,
+	}))
+
+	require.False(t, detector.isRefund(refundDetectorInput{
+		Value:    "1000",
+		Data:     []byte("@6f6b@test"),
 		GasLimit: 1,
 	}))
 }

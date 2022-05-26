@@ -2,9 +2,7 @@ package transactionAPI
 
 import (
 	"bytes"
-	"encoding/hex"
-
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"strings"
 )
 
 type refundDetectorInput struct {
@@ -22,11 +20,11 @@ func newRefundDetector() *refundDetector {
 }
 
 // Also see: https://github.com/ElrondNetwork/elastic-indexer-go/blob/master/process/transactions/scrsDataToTransactions.go
-func (detector *refundDetector) isRefund(result refundDetectorInput) bool {
-	hasValue := result.Value != "0" && result.Value != ""
-	hasNoGasLimit := result.GasLimit == 0
-	hasReturnCodeOK := detector.isReturnCodeOK(result.Data)
-	isRefundForRelayTxSender := result.ReturnMessage == gasRefundForRelayerMessage
+func (detector *refundDetector) isRefund(input refundDetectorInput) bool {
+	hasValue := input.Value != "0" && input.Value != ""
+	hasNoGasLimit := input.GasLimit == 0
+	hasReturnCodeOK := detector.isReturnCodeOK(input.Data)
+	isRefundForRelayTxSender := strings.Contains(input.ReturnMessage, gasRefundForRelayerMessage)
 	isSuccessful := hasReturnCodeOK || isRefundForRelayTxSender
 
 	return hasValue && hasNoGasLimit && isSuccessful
@@ -34,12 +32,8 @@ func (detector *refundDetector) isRefund(result refundDetectorInput) bool {
 
 // Also see: https://github.com/ElrondNetwork/elastic-indexer-go/blob/master/process/transactions/checkers.go
 func (detector *refundDetector) isReturnCodeOK(resultData []byte) bool {
-	okCode := vmcommon.Ok.String()
-	okMarker := []byte("@" + hex.EncodeToString([]byte(okCode)))
-	okMarkerBackwardsCompatible := []byte("@" + okCode)
-
-	containsOk := bytes.Contains(resultData, okMarker)
-	containsOkBackwardsCompatible := bytes.Contains(resultData, okMarkerBackwardsCompatible)
+	containsOk := bytes.Contains(resultData, []byte(okReturnCodeMarker))
+	containsOkBackwardsCompatible := bytes.Contains(resultData, []byte(okReturnCodeMarkerBackwardsCompatible))
 
 	return containsOk || containsOkBackwardsCompatible
 }

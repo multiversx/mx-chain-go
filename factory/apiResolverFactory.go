@@ -191,7 +191,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 
 	feeComputer, err := fee.NewFeeComputer(fee.ArgsNewFeeComputer{
 		BuiltInFunctionsCostHandler:    builtInCostHandler,
-		EconomicsConfig:                args.Configs.EconomicsConfig,
+		EconomicsConfig:                *args.Configs.EconomicsConfig,
 		PenalizedTooMuchGasEnableEpoch: args.Configs.EpochConfig.EnableEpochs.PenalizedTooMuchGasEnableEpoch,
 		GasPriceModifierEnableEpoch:    args.Configs.EpochConfig.EnableEpochs.GasPriceModifierEnableEpoch,
 	})

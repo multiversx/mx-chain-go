@@ -3,7 +3,6 @@ package transactionAPI
 import (
 	"encoding/hex"
 	"fmt"
-	"math/big"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -122,18 +121,11 @@ func (atp *apiTransactionProcessor) populateComputedFieldsProcessingType(tx *tra
 }
 
 func (atp *apiTransactionProcessor) populateComputedFieldInitiallyPaidFee(tx *transaction.ApiTransactionResult) {
-	initiallyPaidFee, err := atp.feeComputer.ComputeTransactionFee(tx.Tx, int(tx.Epoch))
-	if err != nil {
-		log.Warn("populateInitiallyPaidFee(): unexpected condition, cannot compute fee", "tx", tx.Hash)
-		return
+	// Only user-initiated transactions will present an initially paid fee.
+	if tx.Type == string(transaction.TxTypeNormal) || tx.Type == string(transaction.TxTypeInvalid) {
+		fee := atp.feeComputer.ComputeTransactionFee(tx.Tx, int(tx.Epoch))
+		tx.InitiallyPaidFee = fee.String()
 	}
-
-	isZero := initiallyPaidFee.Cmp(big.NewInt(0)) == 0
-	if isZero {
-		return
-	}
-
-	tx.InitiallyPaidFee = initiallyPaidFee.String()
 }
 
 func (atp *apiTransactionProcessor) populateComputedFieldIsRefund(tx *transaction.ApiTransactionResult) {

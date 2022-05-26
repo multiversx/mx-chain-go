@@ -7,9 +7,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 )
 
+// ArgsNewFeeComputer holds the arguments for constructing a feeComputer.
 type ArgsNewFeeComputer struct {
 	BuiltInFunctionsCostHandler    economics.BuiltInFunctionsCostHandler
-	EconomicsConfig                *config.EconomicsConfig
+	EconomicsConfig                config.EconomicsConfig
 	PenalizedTooMuchGasEnableEpoch uint32
 	GasPriceModifierEnableEpoch    uint32
 }
@@ -17,9 +18,6 @@ type ArgsNewFeeComputer struct {
 func (args *ArgsNewFeeComputer) check() error {
 	if check.IfNil(args.BuiltInFunctionsCostHandler) {
 		return process.ErrNilBuiltInFunctionsCostHandler
-	}
-	if args.EconomicsConfig == nil {
-		return ErrNilEconomicsConfig
 	}
 
 	return nil

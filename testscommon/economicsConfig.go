@@ -5,8 +5,8 @@ import (
 )
 
 // GetEconomicsConfig returns the common configuration used for testing
-func GetEconomicsConfig() *config.EconomicsConfig {
-	return &config.EconomicsConfig{
+func GetEconomicsConfig() config.EconomicsConfig {
+	return config.EconomicsConfig{
 		GlobalSettings: config.GlobalSettings{
 			GenesisTotalSupply: "2000000000000000000000",
 			MinimumInflation:   0,

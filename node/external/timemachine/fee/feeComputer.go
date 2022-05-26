@@ -5,14 +5,17 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-core/data"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/node/external/timemachine"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 )
 
+var log = logger.GetOrCreate("node/external/timemachine/fee")
+
 type feeComputer struct {
 	builtInFunctionsCostHandler    economics.BuiltInFunctionsCostHandler
-	economicsConfig                *config.EconomicsConfig
+	economicsConfig                config.EconomicsConfig
 	penalizedTooMuchGasEnableEpoch uint32
 	gasPriceModifierEnableEpoch    uint32
 	economicsInstances             map[int]economicsDataWithComputeFee
@@ -40,6 +43,11 @@ func NewFeeComputer(args ArgsNewFeeComputer) (*feeComputer, error) {
 		return nil, err
 	}
 
+	_, err = computer.createEconomicsInstance(int(args.PenalizedTooMuchGasEnableEpoch))
+	if err != nil {
+		return nil, err
+	}
+
 	_, err = computer.createEconomicsInstance(int(args.GasPriceModifierEnableEpoch))
 	if err != nil {
 		return nil, err
@@ -49,14 +57,15 @@ func NewFeeComputer(args ArgsNewFeeComputer) (*feeComputer, error) {
 }
 
 // ComputeTransactionFee computes a transaction fee, at a given epoch
-func (computer *feeComputer) ComputeTransactionFee(tx data.TransactionWithFeeHandler, epoch int) (*big.Int, error) {
+func (computer *feeComputer) ComputeTransactionFee(tx data.TransactionWithFeeHandler, epoch int) *big.Int {
 	instance, err := computer.getOrCreateInstance(epoch)
 	if err != nil {
-		return nil, err
+		log.Error("ComputeTransactionFee(): unexpected error when creating an economicsData instance", "epoch", epoch, "error", err)
+		return big.NewInt(0)
 	}
 
 	fee := instance.ComputeTxFee(tx)
-	return fee, nil
+	return fee
 }
 
 // getOrCreateInstance gets or lazily creates a fee computer (using "double-checked locking" pattern)
@@ -87,7 +96,7 @@ func (computer *feeComputer) getOrCreateInstance(epoch int) (economicsDataWithCo
 
 func (computer *feeComputer) createEconomicsInstance(epoch int) (economicsDataWithComputeFee, error) {
 	args := economics.ArgsNewEconomicsData{
-		Economics:                      computer.economicsConfig,
+		Economics:                      &computer.economicsConfig,
 		PenalizedTooMuchGasEnableEpoch: computer.penalizedTooMuchGasEnableEpoch,
 		GasPriceModifierEnableEpoch:    computer.gasPriceModifierEnableEpoch,
 		BuiltInFunctionsCostHandler:    computer.builtInFunctionsCostHandler,
