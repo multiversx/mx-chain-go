@@ -62,20 +62,6 @@ func sortListByPubKey(list []state.ValidatorInfoHandler) {
 	})
 }
 
-func compareByXORWithRandomness(pubKey1, pubKey2, randomness []byte) bool {
-	xorLen := len(randomness)
-
-	key1Xor := make([]byte, xorLen)
-	key2Xor := make([]byte, xorLen)
-
-	for idx := 0; idx < xorLen; idx++ {
-		key1Xor[idx] = pubKey1[idx] ^ randomness[idx]
-		key2Xor[idx] = pubKey2[idx] ^ randomness[idx]
-	}
-
-	return bytes.Compare(key1Xor, key2Xor) == 1
-}
-
 func addQualifiedValidatorsTopUpInMap(owner *ownerData, validatorTopUpMap map[string]*big.Int) {
 	for i := int64(0); i < owner.numQualifiedAuctionNodes; i++ {
 		validatorPubKey := string(owner.auctionList[i].GetPublicKey())
@@ -101,4 +87,18 @@ func sortValidators(
 
 		return nodeTopUpPubKey1.Cmp(nodeTopUpPubKey2) > 0
 	})
+}
+
+func compareByXORWithRandomness(pubKey1, pubKey2, randomness []byte) bool {
+	xorLen := len(randomness)
+
+	key1Xor := make([]byte, xorLen)
+	key2Xor := make([]byte, xorLen)
+
+	for idx := 0; idx < xorLen; idx++ {
+		key1Xor[idx] = pubKey1[idx] ^ randomness[idx]
+		key2Xor[idx] = pubKey2[idx] ^ randomness[idx]
+	}
+
+	return bytes.Compare(key1Xor, key2Xor) == 1
 }

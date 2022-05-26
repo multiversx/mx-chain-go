@@ -16,7 +16,7 @@ import (
 const maxPubKeyDisplayableLen = 20
 const maxNumOfDecimalsToDisplay = 5
 
-func (als *auctionListSelector) displayMinRequiredTopUp(topUp *big.Int, minFound *big.Int, step *big.Int) {
+func (als *auctionListSelector) displayMinRequiredTopUp(topUp *big.Int, startTopUp *big.Int, step *big.Int) {
 	if log.GetLevel() > logger.LogDebug {
 		return
 	}
@@ -25,7 +25,7 @@ func (als *auctionListSelector) displayMinRequiredTopUp(topUp *big.Int, minFound
 		topUp = big.NewInt(0).Sub(topUp, step)
 	}
 
-	iteratedValues := big.NewInt(0).Sub(topUp, minFound)
+	iteratedValues := big.NewInt(0).Sub(topUp, startTopUp)
 	iterations := big.NewInt(0).Div(iteratedValues, step).Int64()
 	iterations++
 
@@ -145,17 +145,6 @@ func (als *auctionListSelector) displayOwnersSelectedNodes(ownersData map[string
 	displayTable(tableHeader, lines, "Selected nodes config from auction list")
 }
 
-func getBlsKeyOwnerMap(ownersData map[string]*ownerData) map[string]string {
-	ret := make(map[string]string)
-	for ownerPubKey, owner := range ownersData {
-		for _, blsKey := range owner.auctionList {
-			ret[string(blsKey.GetPublicKey())] = ownerPubKey
-		}
-	}
-
-	return ret
-}
-
 func (als *auctionListSelector) displayAuctionList(
 	auctionList []state.ValidatorInfoHandler,
 	ownersData map[string]*ownerData,
@@ -177,17 +166,28 @@ func (als *auctionListSelector) displayAuctionList(
 			continue
 		}
 
-		topUp := ownersData[owner].qualifiedTopUpPerNode
+		qualifiedTopUp := ownersData[owner].qualifiedTopUpPerNode
 		horizontalLine := uint32(idx) == numOfSelectedNodes-1
 		line := display.NewLineData(horizontalLine, []string{
 			hex.EncodeToString([]byte(owner)),
 			hex.EncodeToString(pubKey),
-			getPrettyValue(topUp, als.softAuctionConfig.denominator),
+			getPrettyValue(qualifiedTopUp, als.softAuctionConfig.denominator),
 		})
 		lines = append(lines, line)
 	}
 
 	displayTable(tableHeader, lines, "Final selected nodes from auction list")
+}
+
+func getBlsKeyOwnerMap(ownersData map[string]*ownerData) map[string]string {
+	ret := make(map[string]string)
+	for ownerPubKey, owner := range ownersData {
+		for _, blsKey := range owner.auctionList {
+			ret[string(blsKey.GetPublicKey())] = ownerPubKey
+		}
+	}
+
+	return ret
 }
 
 func displayTable(tableHeader []string, lines []*display.LineData, message string) {

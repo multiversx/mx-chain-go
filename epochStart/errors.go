@@ -335,7 +335,7 @@ var ErrNilMaxNodesChangeConfigProvider = errors.New("nil nodes config provider h
 // ErrNilAuctionListSelector signals that a nil auction list selector has been provided
 var ErrNilAuctionListSelector = errors.New("nil auction list selector has been provided")
 
-// ErrOwnerHasNoStakedNode signals that an owner has no staked node
+// ErrOwnerHasNoStakedNode signals that the owner has no staked node
 var ErrOwnerHasNoStakedNode = errors.New("owner has no staked node")
 
 // ErrUint32SubtractionOverflow signals uint32 subtraction overflowed
