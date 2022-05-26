@@ -1440,7 +1440,7 @@ func (e *esdt) checkSpecialRolesAccordingToTokenType(args [][]byte, token *ESDTD
 		return validateRoles(args, e.isSpecialRoleValidForFungible)
 	case core.NonFungibleESDT:
 		return validateRoles(args, e.isSpecialRoleValidForNonFungible)
-	case core.SemiFungibleESDT:
+	case core.SemiFungibleESDT, metaESDT:
 		return validateRoles(args, e.isSpecialRoleValidForSemiFungible)
 	}
 	return nil
