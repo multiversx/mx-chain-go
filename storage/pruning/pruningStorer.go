@@ -297,6 +297,7 @@ func (ps *PruningStorer) Put(key, data []byte) error {
 	ps.cacher.Put(key, data, len(data))
 
 	persisterToUse := ps.getPersisterToUse()
+	log.Trace("pruning storer put", "key", key, "epoch", persisterToUse.epoch)
 	return ps.doPutInPersister(key, data, persisterToUse.getPersister())
 }
 

@@ -48,7 +48,7 @@ type node interface {
 
 	commitDirty(level byte, maxTrieLevelInMemory uint, originDb common.DBWriteCacher, targetDb common.DBWriteCacher) error
 	commitCheckpoint(originDb common.DBWriteCacher, targetDb common.DBWriteCacher, checkpointHashes CheckpointHashesHolder, leavesChan chan core.KeyValueHolder, ctx context.Context, stats common.SnapshotStatisticsHandler, idleProvider IdleNodeProvider) error
-	saveChildToAppropriateStorage(originDb pruningStorer, leavesChan chan core.KeyValueHolder, ctx context.Context, stats common.SnapshotStatisticsHandler, idleProvider IdleNodeProvider) error
+	saveChildToAppropriateStorage(db pruningStorer, leavesChan chan core.KeyValueHolder, ctx context.Context, stats common.SnapshotStatisticsHandler, idleProvider IdleNodeProvider) error
 	saveToStorage(targetDb common.DBWriteCacher, stats common.SnapshotStatisticsHandler) error
 
 	getMarshalizer() marshal.Marshalizer
@@ -62,7 +62,7 @@ type node interface {
 
 type snapshotNode interface {
 	commitCheckpoint(originDb common.DBWriteCacher, targetDb common.DBWriteCacher, checkpointHashes CheckpointHashesHolder, leavesChan chan core.KeyValueHolder, ctx context.Context, stats common.SnapshotStatisticsHandler, idleProvider IdleNodeProvider) error
-	saveChildToAppropriateStorage(originDb pruningStorer, leavesChan chan core.KeyValueHolder, ctx context.Context, stats common.SnapshotStatisticsHandler, idleProvider IdleNodeProvider) error
+	saveChildToAppropriateStorage(db pruningStorer, leavesChan chan core.KeyValueHolder, ctx context.Context, stats common.SnapshotStatisticsHandler, idleProvider IdleNodeProvider) error
 }
 
 // RequestHandler defines the methods through which request to data can be made
