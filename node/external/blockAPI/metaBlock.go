@@ -36,7 +36,7 @@ func newMetaApiBlockProcessor(arg *ArgAPIBlockProcessor, emptyReceiptsHash []byt
 }
 
 // GetBlockByNonce wil return a meta APIBlock by nonce
-func (mbp *metaAPIBlockProcessor) GetBlockByNonce(nonce uint64, withTxs bool) (*api.Block, error) {
+func (mbp *metaAPIBlockProcessor) GetBlockByNonce(nonce uint64, options api.BlockQueryOptions) (*api.Block, error) {
 	storerUnit := dataRetriever.MetaHdrNonceHashDataUnit
 
 	nonceToByteSlice := mbp.uint64ByteSliceConverter.ToByteSlice(nonce)
@@ -50,17 +50,17 @@ func (mbp *metaAPIBlockProcessor) GetBlockByNonce(nonce uint64, withTxs bool) (*
 		return nil, err
 	}
 
-	return mbp.convertMetaBlockBytesToAPIBlock(headerHash, blockBytes, withTxs)
+	return mbp.convertMetaBlockBytesToAPIBlock(headerHash, blockBytes, options)
 }
 
 // GetBlockByHash will return a meta APIBlock by hash
-func (mbp *metaAPIBlockProcessor) GetBlockByHash(hash []byte, withTxs bool) (*api.Block, error) {
+func (mbp *metaAPIBlockProcessor) GetBlockByHash(hash []byte, options api.BlockQueryOptions) (*api.Block, error) {
 	blockBytes, err := mbp.getFromStorer(dataRetriever.MetaBlockUnit, hash)
 	if err != nil {
 		return nil, err
 	}
 
-	blockAPI, err := mbp.convertMetaBlockBytesToAPIBlock(hash, blockBytes, withTxs)
+	blockAPI, err := mbp.convertMetaBlockBytesToAPIBlock(hash, blockBytes, options)
 	if err != nil {
 		return nil, err
 	}
@@ -69,16 +69,16 @@ func (mbp *metaAPIBlockProcessor) GetBlockByHash(hash []byte, withTxs bool) (*ap
 }
 
 // GetBlockByRound will return a meta APIBlock by round
-func (mbp *metaAPIBlockProcessor) GetBlockByRound(round uint64, withTxs bool) (*api.Block, error) {
+func (mbp *metaAPIBlockProcessor) GetBlockByRound(round uint64, options api.BlockQueryOptions) (*api.Block, error) {
 	headerHash, blockBytes, err := mbp.getBlockHeaderHashAndBytesByRound(round, dataRetriever.MetaBlockUnit)
 	if err != nil {
 		return nil, err
 	}
 
-	return mbp.convertMetaBlockBytesToAPIBlock(headerHash, blockBytes, withTxs)
+	return mbp.convertMetaBlockBytesToAPIBlock(headerHash, blockBytes, options)
 }
 
-func (mbp *metaAPIBlockProcessor) convertMetaBlockBytesToAPIBlock(hash []byte, blockBytes []byte, withTxs bool) (*api.Block, error) {
+func (mbp *metaAPIBlockProcessor) convertMetaBlockBytesToAPIBlock(hash []byte, blockBytes []byte, options api.BlockQueryOptions) (*api.Block, error) {
 	blockHeader := &block.MetaBlock{}
 	err := mbp.marshalizer.Unmarshal(blockHeader, blockBytes)
 	if err != nil {
@@ -102,7 +102,7 @@ func (mbp *metaAPIBlockProcessor) convertMetaBlockBytesToAPIBlock(hash []byte, b
 			SourceShard:      mb.SenderShardID,
 			DestinationShard: mb.ReceiverShardID,
 		}
-		if withTxs {
+		if options.WithTransactions {
 			miniBlockCopy := mb
 			mbp.getAndAttachTxsToMb(&miniBlockCopy, headerEpoch, miniblockAPI)
 		}
@@ -110,7 +110,7 @@ func (mbp *metaAPIBlockProcessor) convertMetaBlockBytesToAPIBlock(hash []byte, b
 		miniblocks = append(miniblocks, miniblockAPI)
 	}
 
-	intraMb := mbp.getIntraMiniblocks(blockHeader.GetReceiptsHash(), headerEpoch, withTxs)
+	intraMb := mbp.getIntraMiniblocks(blockHeader.GetReceiptsHash(), headerEpoch, options)
 	if len(intraMb) > 0 {
 		miniblocks = append(miniblocks, intraMb...)
 	}

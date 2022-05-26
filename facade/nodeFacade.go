@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/core/throttler"
 	chainData "github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	apiData "github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
@@ -410,18 +411,18 @@ func (nf *nodeFacade) GetThrottlerForEndpoint(endpoint string) (core.Throttler, 
 }
 
 // GetBlockByHash return the block for a given hash
-func (nf *nodeFacade) GetBlockByHash(hash string, withTxs bool) (*apiData.Block, error) {
-	return nf.apiResolver.GetBlockByHash(hash, withTxs)
+func (nf *nodeFacade) GetBlockByHash(hash string, options api.BlockQueryOptions) (*apiData.Block, error) {
+	return nf.apiResolver.GetBlockByHash(hash, options)
 }
 
 // GetBlockByNonce returns the block for a given nonce
-func (nf *nodeFacade) GetBlockByNonce(nonce uint64, withTxs bool) (*apiData.Block, error) {
-	return nf.apiResolver.GetBlockByNonce(nonce, withTxs)
+func (nf *nodeFacade) GetBlockByNonce(nonce uint64, options api.BlockQueryOptions) (*apiData.Block, error) {
+	return nf.apiResolver.GetBlockByNonce(nonce, options)
 }
 
 // GetBlockByRound returns the block for a given round
-func (nf *nodeFacade) GetBlockByRound(round uint64, withTxs bool) (*apiData.Block, error) {
-	return nf.apiResolver.GetBlockByRound(round, withTxs)
+func (nf *nodeFacade) GetBlockByRound(round uint64, options api.BlockQueryOptions) (*apiData.Block, error) {
+	return nf.apiResolver.GetBlockByRound(round, options)
 }
 
 // GetInternalMetaBlockByHash return the meta block for a given hash

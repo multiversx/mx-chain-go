@@ -15,9 +15,9 @@ type TransactionUnmarshaller interface {
 
 // APIBlockHandler defines the behavior of a component able to return api blocks
 type APIBlockHandler interface {
-	GetBlockByNonce(nonce uint64, withTxs bool) (*api.Block, error)
-	GetBlockByHash(hash []byte, withTxs bool) (*api.Block, error)
-	GetBlockByRound(round uint64, withTxs bool) (*api.Block, error)
+	GetBlockByNonce(nonce uint64, options api.BlockQueryOptions) (*api.Block, error)
+	GetBlockByHash(hash []byte, options api.BlockQueryOptions) (*api.Block, error)
+	GetBlockByRound(round uint64, options api.BlockQueryOptions) (*api.Block, error)
 	IsInterfaceNil() bool
 }
 

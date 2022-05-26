@@ -63,7 +63,7 @@ func TestMetaAPIBlockProcessor_GetBlockByHashInvalidHashShouldErr(t *testing.T) 
 		false,
 	)
 
-	blk, err := metaAPIBlockProcessor.GetBlockByHash([]byte("invalidHash"), false)
+	blk, err := metaAPIBlockProcessor.GetBlockByHash([]byte("invalidHash"), api.BlockQueryOptions{})
 	assert.Nil(t, blk)
 	assert.Error(t, err)
 }
@@ -82,7 +82,7 @@ func TestMetaAPIBlockProcessor_GetBlockByNonceInvalidNonceShouldErr(t *testing.T
 		false,
 	)
 
-	blk, err := metaAPIBlockProcessor.GetBlockByNonce(100, false)
+	blk, err := metaAPIBlockProcessor.GetBlockByNonce(100, api.BlockQueryOptions{})
 	assert.Nil(t, blk)
 	assert.Error(t, err)
 }
@@ -101,7 +101,7 @@ func TestMetaAPIBlockProcessor_GetBlockByRoundInvalidRoundShouldErr(t *testing.T
 		true,
 	)
 
-	blk, err := metaAPIBlockProcessor.GetBlockByRound(100, false)
+	blk, err := metaAPIBlockProcessor.GetBlockByRound(100, api.BlockQueryOptions{})
 	assert.Nil(t, blk)
 	assert.Error(t, err)
 }
@@ -166,7 +166,7 @@ func TestMetaAPIBlockProcessor_GetBlockByHashFromHistoryNode(t *testing.T) {
 		Status:                 BlockStatusOnChain,
 	}
 
-	blk, err := metaAPIBlockProcessor.GetBlockByHash(headerHash, false)
+	blk, err := metaAPIBlockProcessor.GetBlockByHash(headerHash, api.BlockQueryOptions{})
 	assert.Nil(t, err)
 	assert.Equal(t, expectedBlock, blk)
 }
@@ -228,7 +228,7 @@ func TestMetaAPIBlockProcessor_GetBlockByNonceFromHistoryNode(t *testing.T) {
 		Status:                 BlockStatusOnChain,
 	}
 
-	blk, err := metaAPIBlockProcessor.GetBlockByNonce(1, true)
+	blk, err := metaAPIBlockProcessor.GetBlockByNonce(1, api.BlockQueryOptions{WithTransactions: true})
 	assert.Nil(t, err)
 	assert.Equal(t, expectedBlock, blk)
 }
@@ -291,11 +291,11 @@ func TestMetaAPIBlockProcessor_GetBlockByRoundFromStorer(t *testing.T) {
 		Status:                 BlockStatusOnChain,
 	}
 
-	blk, err := metaAPIBlockProcessor.GetBlockByRound(round+1, true)
+	blk, err := metaAPIBlockProcessor.GetBlockByRound(round+1, api.BlockQueryOptions{})
 	assert.NotNil(t, err)
 	assert.Nil(t, blk)
 
-	blk, err = metaAPIBlockProcessor.GetBlockByRound(round, true)
+	blk, err = metaAPIBlockProcessor.GetBlockByRound(round, api.BlockQueryOptions{})
 	assert.Nil(t, err)
 	assert.Equal(t, expectedBlock, blk)
 }
@@ -361,7 +361,7 @@ func TestMetaAPIBlockProcessor_GetBlockByHashFromHistoryNodeStatusReverted(t *te
 		Status:                 BlockStatusReverted,
 	}
 
-	blk, err := metaAPIBlockProcessor.GetBlockByHash(headerHash, false)
+	blk, err := metaAPIBlockProcessor.GetBlockByHash(headerHash, api.BlockQueryOptions{})
 	assert.Nil(t, err)
 	assert.Equal(t, expectedBlock, blk)
 }
@@ -467,11 +467,11 @@ func TestMetaAPIBlockProcessor_GetBlockByRound_GetBlockByNonce_EpochStartBlock(t
 		},
 	}
 
-	blk, err := metaAPIBlockProc.GetBlockByNonce(nonce, false)
+	blk, err := metaAPIBlockProc.GetBlockByNonce(nonce, api.BlockQueryOptions{})
 	assert.Nil(t, err)
 	assert.Equal(t, expectedBlock, blk)
 
-	blk, err = metaAPIBlockProc.GetBlockByRound(round, false)
+	blk, err = metaAPIBlockProc.GetBlockByRound(round, api.BlockQueryOptions{})
 	assert.Nil(t, err)
 	assert.Equal(t, expectedBlock, blk)
 }

@@ -139,7 +139,7 @@ func TestGetBlockByHash_KeyNotFound(t *testing.T) {
 	}
 	apiBlockProc, _ := CreateAPIBlockProcessor(args)
 
-	blk, err := apiBlockProc.GetBlockByHash(headerHash, false)
+	blk, err := apiBlockProc.GetBlockByHash(headerHash, api.BlockQueryOptions{})
 	assert.Equal(t, "key: ZDA4MDg5ZjJhYjczOTUyMDU5OGZkN2FlZWQwOGM0Mjc0NjBmZTk0ZjI4NjM4MzA0N2YzZjYxOTUxYWZjNGUwMA== not found", err.Error())
 	assert.Nil(t, blk)
 }
@@ -211,7 +211,7 @@ func TestGetBlockByHashFromHistoryNode(t *testing.T) {
 		Status:          BlockStatusOnChain,
 	}
 
-	blk, err := apiBlockProc.GetBlockByHash(headerHash, false)
+	blk, err := apiBlockProc.GetBlockByHash(headerHash, api.BlockQueryOptions{})
 	assert.Nil(t, err)
 	assert.Equal(t, expectedBlock, blk)
 }
@@ -280,7 +280,7 @@ func TestGetBlockByHashFromNormalNode(t *testing.T) {
 		DeveloperFeesInEpoch:   "49",
 	}
 
-	blk, err := apiBlockProc.GetBlockByHash(headerHash, false)
+	blk, err := apiBlockProc.GetBlockByHash(headerHash, api.BlockQueryOptions{})
 	assert.Nil(t, err)
 	assert.Equal(t, expectedBlock, blk)
 }
@@ -348,7 +348,7 @@ func TestGetBlockByNonceFromHistoryNode(t *testing.T) {
 		Status:          BlockStatusOnChain,
 	}
 
-	blk, err := apiBlockProc.GetBlockByNonce(1, false)
+	blk, err := apiBlockProc.GetBlockByNonce(1, api.BlockQueryOptions{})
 	assert.Nil(t, err)
 	assert.Equal(t, expectedBlock, blk)
 }
@@ -409,11 +409,11 @@ func TestGetBlockByNonce_GetBlockByRound_FromNormalNode(t *testing.T) {
 		Status:          BlockStatusOnChain,
 	}
 
-	blk, err := apiBlockProc.GetBlockByNonce(nonce, false)
+	blk, err := apiBlockProc.GetBlockByNonce(nonce, api.BlockQueryOptions{})
 	assert.Nil(t, err)
 	assert.Equal(t, expectedBlock, blk)
 
-	blk, err = apiBlockProc.GetBlockByRound(round, false)
+	blk, err = apiBlockProc.GetBlockByRound(round, api.BlockQueryOptions{})
 	assert.Nil(t, err)
 	assert.Equal(t, expectedBlock, blk)
 }
@@ -485,7 +485,7 @@ func TestGetBlockByHashFromHistoryNode_StatusReverted(t *testing.T) {
 		Status:          BlockStatusReverted,
 	}
 
-	blk, err := apiBlockProc.GetBlockByHash([]byte(headerHash), false)
+	blk, err := apiBlockProc.GetBlockByHash([]byte(headerHash), api.BlockQueryOptions{})
 	assert.Nil(t, err)
 	assert.Equal(t, expectedBlock, blk)
 }
