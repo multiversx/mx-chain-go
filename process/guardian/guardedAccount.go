@@ -17,12 +17,11 @@ import (
 var guardianKey = []byte(core.ElrondProtectedKeyPrefix + core.GuardiansKeyIdentifier)
 
 type guardedAccount struct {
-	marshaller               marshal.Marshalizer
-	epochNotifier            vmcommon.EpochNotifier
-	mutEpoch                 sync.RWMutex
-	guardianActivationEpochs uint32
-	currentEpoch             uint32
-	epochsForActivation      uint32
+	marshaller                    marshal.Marshalizer
+	epochNotifier                 vmcommon.EpochNotifier
+	mutEpoch                      sync.RWMutex
+	guardianActivationEpochsDelay uint32
+	currentEpoch                  uint32
 }
 
 // NewGuardedAccount creates a new guarded account
@@ -42,9 +41,9 @@ func NewGuardedAccount(
 	}
 
 	agc := &guardedAccount{
-		marshaller:               marshaller,
-		epochNotifier:            epochNotifier,
-		guardianActivationEpochs: setGuardianEpochsDelay,
+		marshaller:                    marshaller,
+		epochNotifier:                 epochNotifier,
+		guardianActivationEpochsDelay: setGuardianEpochsDelay,
 	}
 
 	epochNotifier.RegisterNotifyHandler(agc)
@@ -88,7 +87,7 @@ func (agc *guardedAccount) SetGuardian(uah vmcommon.UserAccountHandler, guardian
 
 	guardian := &guardians.Guardian{
 		Address:         guardianAddress,
-		ActivationEpoch: agc.currentEpoch + agc.guardianActivationEpochs,
+		ActivationEpoch: agc.currentEpoch + agc.guardianActivationEpochsDelay,
 	}
 
 	return agc.setAccountGuardian(stateUserAccount, guardian)

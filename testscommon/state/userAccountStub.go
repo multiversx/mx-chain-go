@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/state"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 var _ state.UserAccountHandler = (*UserAccountStub)(nil)
@@ -17,6 +18,7 @@ type UserAccountStub struct {
 	DataTrieTrackerCalled                  func() state.DataTrieTracker
 	IsFrozenCalled                         func() bool
 	RetrieveValueFromDataTrieTrackerCalled func(key []byte) ([]byte, error)
+	AccountDataHandlerCalled               func() vmcommon.AccountDataHandler
 }
 
 // HasNewCode -
@@ -166,4 +168,12 @@ func (u *UserAccountStub) IsFrozen() bool {
 // IsInterfaceNil -
 func (u *UserAccountStub) IsInterfaceNil() bool {
 	return false
+}
+
+// AccountDataHandler -
+func (u *UserAccountStub) AccountDataHandler() vmcommon.AccountDataHandler {
+	if u.AccountDataHandlerCalled != nil {
+		return u.AccountDataHandlerCalled()
+	}
+	return nil
 }

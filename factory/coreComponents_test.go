@@ -278,6 +278,7 @@ func getCoreArgs() factory.CoreComponentsFactoryArgs {
 				ChainID:                  "undefined",
 				MinTransactionVersion:    1,
 				GenesisMaxNumberOfShards: 3,
+				SetGuardianEpochsDelay:   20,
 			},
 			Marshalizer: config.MarshalizerConfig{
 				Type:           testMarshalizer,
