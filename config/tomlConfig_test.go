@@ -654,6 +654,9 @@ func TestEnableEpochConfig(t *testing.T) {
 	# FailExecutionOnEveryAPIErrorEnableEpoch represent the epoch when new protection in VM is enabled to fail all wrong API calls
 	FailExecutionOnEveryAPIErrorEnableEpoch = 53
 
+	# ManagedCryptoAPIsEnableEpoch represents the epoch when the new managed crypto APIs are enabled
+	ManagedCryptoAPIsEnableEpoch = 54
+
     # HeartbeatDisableEpoch represents the epoch when heartbeat v1 messages stop being sent and processed
     HeartbeatDisableEpoch = 54
 
@@ -737,6 +740,7 @@ func TestEnableEpochConfig(t *testing.T) {
 			TransformToMultiShardCreateEnableEpoch:      51,
 			ESDTRegisterAndSetAllRolesEnableEpoch:       52,
 			FailExecutionOnEveryAPIErrorEnableEpoch:     53,
+			ManagedCryptoAPIsEnableEpoch:                54,
 			HeartbeatDisableEpoch:                       54,
 		},
 		GasSchedule: GasScheduleConfig{
