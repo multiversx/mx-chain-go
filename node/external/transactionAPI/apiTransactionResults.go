@@ -2,6 +2,7 @@ package transactionAPI
 
 import (
 	"encoding/hex"
+
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
@@ -177,6 +178,7 @@ func (arp *apiTransactionResultsProcessor) adaptSmartContractResult(scrHash []by
 	return apiSCR
 }
 
+// TODO: conversion logic useful for ...?withLogs=true, as well. Perhaps extract it (converters.go)?
 func (arp *apiTransactionResultsProcessor) prepareLogsAndEvents(logsAndEvents *transaction.Log) *transaction.ApiLogs {
 	addrEncoded := arp.addressPubKeyConverter.Encode(logsAndEvents.Address)
 

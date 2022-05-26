@@ -105,8 +105,12 @@ func (bap *baseAPIBlockProcessor) prepareAPIMiniblock(miniblock *block.MiniBlock
 		SourceShard:      miniblock.SenderShardID,
 		DestinationShard: miniblock.ReceiverShardID,
 	}
+	// TODO: loadMiniblock(): miniblock, miniblockHash (implementation = first parts of getAndAttachTxsToMb)
 	if withTxs {
+		// TODO: rename to loadTransactions()
 		bap.getAndAttachTxsToMbByEpoch(mbHash, miniblock, epoch, miniblockAPI)
+
+		// TODO: if withLogs { loadLogs }
 	}
 
 	return miniblockAPI, true
