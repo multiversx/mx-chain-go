@@ -828,3 +828,6 @@ const (
 	// ApiOutputFormatProto outport format returns the bytes of the proto object
 	ApiOutputFormatProto ApiOutputFormat = 1
 )
+
+// MaxIndexOfTxInMiniBlock defines the maximum index of a tx inside one mini block
+const MaxIndexOfTxInMiniBlock = int32(29999)

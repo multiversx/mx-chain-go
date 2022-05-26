@@ -50,7 +50,7 @@ import (
 
 const (
 	defaultNodeName           = "heartbeatNode"
-	timeBetweenPeerAuths      = 15 * time.Second
+	timeBetweenPeerAuths      = 10 * time.Second
 	timeBetweenHeartbeats     = 5 * time.Second
 	timeBetweenSendsWhenError = time.Second
 	thresholdBetweenSends     = 0.2
@@ -447,7 +447,7 @@ func (thn *TestHeartbeatNode) initResolvers() {
 		PreferredPeersHolder:        &p2pmocks.PeersHolderStub{},
 		ResolverConfig: config.ResolverConfig{
 			NumCrossShardPeers:  2,
-			NumIntraShardPeers:  1,
+			NumTotalPeers:       3,
 			NumFullHistoryPeers: 3,
 		},
 		NodesCoordinator:                     thn.NodesCoordinator,

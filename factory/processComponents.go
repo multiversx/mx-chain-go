@@ -42,6 +42,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/block/pendingMb"
 	"github.com/ElrondNetwork/elrond-go/process/block/poolsCleaner"
 	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
+	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 	"github.com/ElrondNetwork/elrond-go/process/factory/interceptorscontainer"
 	"github.com/ElrondNetwork/elrond-go/process/headerCheck"
 	"github.com/ElrondNetwork/elrond-go/process/peer"
@@ -111,6 +112,7 @@ type processComponents struct {
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 	txsSender                    process.TxsSenderHandler
 	hardforkTrigger              HardforkTrigger
+	processedMiniBlocksTracker   process.ProcessedMiniBlocksTracker
 }
 
 // ProcessComponentsFactoryArgs holds the arguments needed to create a process components factory
@@ -521,6 +523,8 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
+	processedMiniBlocksTracker := processedMb.NewProcessedMiniBlocksTracker()
+
 	blockProcessorComponents, err := pcf.newBlockProcessor(
 		requestHandler,
 		forkDetector,
@@ -533,6 +537,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		txSimulatorProcessorArgs,
 		pcf.coreData.ArwenChangeLocker(),
 		scheduledTxsExecutionHandler,
+		processedMiniBlocksTracker,
 	)
 	if err != nil {
 		return nil, err
@@ -638,6 +643,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		scheduledTxsExecutionHandler: scheduledTxsExecutionHandler,
 		txsSender:                    txsSenderWithAccumulator,
 		hardforkTrigger:              hardforkTrigger,
+		processedMiniBlocksTracker:   processedMiniBlocksTracker,
 	}, nil
 }
 

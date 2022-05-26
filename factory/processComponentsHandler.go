@@ -155,6 +155,9 @@ func (m *managedProcessComponents) CheckSubcomponents() error {
 	if check.IfNil(m.processComponents.txsSender) {
 		return errors.ErrNilTxsSender
 	}
+	if check.IfNil(m.processComponents.processedMiniBlocksTracker) {
+		return process.ErrNilProcessedMiniBlocksTracker
+	}
 	return nil
 }
 
@@ -552,6 +555,18 @@ func (m *managedProcessComponents) HardforkTrigger() HardforkTrigger {
 	}
 
 	return m.processComponents.hardforkTrigger
+}
+
+// ProcessedMiniBlocksTracker returns the processed mini blocks tracker
+func (m *managedProcessComponents) ProcessedMiniBlocksTracker() process.ProcessedMiniBlocksTracker {
+	m.mutProcessComponents.RLock()
+	defer m.mutProcessComponents.RUnlock()
+
+	if m.processComponents == nil {
+		return nil
+	}
+
+	return m.processComponents.processedMiniBlocksTracker
 }
 
 // IsInterfaceNil returns true if the interface is nil
