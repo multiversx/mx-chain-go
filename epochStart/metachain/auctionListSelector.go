@@ -361,7 +361,7 @@ func (als *auctionListSelector) calcSoftAuctionNodesConfig(
 		}
 	}
 
-	als.displayMinRequiredTopUp(topUp, minTopUp, als.softAuctionConfig.step)
+	als.displayMinRequiredTopUp(topUp, minTopUp)
 	return previousConfig
 }
 

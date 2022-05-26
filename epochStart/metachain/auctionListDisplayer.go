@@ -16,17 +16,17 @@ import (
 const maxPubKeyDisplayableLen = 20
 const maxNumOfDecimalsToDisplay = 5
 
-func (als *auctionListSelector) displayMinRequiredTopUp(topUp *big.Int, startTopUp *big.Int, step *big.Int) {
+func (als *auctionListSelector) displayMinRequiredTopUp(topUp *big.Int, startTopUp *big.Int) {
 	if log.GetLevel() > logger.LogDebug {
 		return
 	}
 
 	if topUp.Cmp(als.softAuctionConfig.minTopUp) > 0 {
-		topUp = big.NewInt(0).Sub(topUp, step)
+		topUp = big.NewInt(0).Sub(topUp, als.softAuctionConfig.step)
 	}
 
 	iteratedValues := big.NewInt(0).Sub(topUp, startTopUp)
-	iterations := big.NewInt(0).Div(iteratedValues, step).Int64()
+	iterations := big.NewInt(0).Div(iteratedValues, als.softAuctionConfig.step).Int64()
 	iterations++
 
 	log.Debug("auctionListSelector: found min required",
