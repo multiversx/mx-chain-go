@@ -101,6 +101,7 @@ func init() {
 
 // TODO refactor this struct to have be a wrapper (with logic) over a glue code
 type networkMessenger struct {
+	*p2pSigner
 	ctx        context.Context
 	cancelFunc context.CancelFunc
 	p2pHost    ConnectableHost
@@ -126,7 +127,8 @@ type networkMessenger struct {
 	marshalizer          p2p.Marshalizer
 	syncTimer            p2p.SyncTimer
 	preferredPeersHolder p2p.PreferredPeersHolderHandler
-	connectionsWatcher   p2p.ConnectionsWatcher
+	printConnectionsWatcher   p2p.ConnectionsWatcher
+	peersRatingHandler   p2p.PeersRatingHandler
 }
 
 // ArgsNetworkMessenger defines the options used to create a p2p wrapper
@@ -137,6 +139,7 @@ type ArgsNetworkMessenger struct {
 	SyncTimer            p2p.SyncTimer
 	PreferredPeersHolder p2p.PreferredPeersHolderHandler
 	NodeOperationMode    p2p.NodeOperation
+	PeersRatingHandler   p2p.PeersRatingHandler
 }
 
 // NewNetworkMessenger creates a libP2P messenger by opening a port on the current machine
@@ -153,6 +156,9 @@ func newNetworkMessenger(args ArgsNetworkMessenger, messageSigning messageSignin
 	}
 	if check.IfNil(args.PreferredPeersHolder) {
 		return nil, fmt.Errorf("%w when creating a new network messenger", p2p.ErrNilPreferredPeersHolder)
+	}
+	if check.IfNil(args.PeersRatingHandler) {
+		return nil, fmt.Errorf("%w when creating a new network messenger", p2p.ErrNilPeersRatingHandler)
 	}
 
 	p2pPrivKey, err := createP2PPrivKey(args.P2pConfig.Node.Seed)
@@ -222,11 +228,15 @@ func constructNode(
 	}
 
 	p2pNode := &networkMessenger{
-		ctx:                ctx,
-		cancelFunc:         cancelFunc,
-		p2pHost:            NewConnectableHost(h),
-		port:               port,
-		connectionsWatcher: connWatcher,
+		p2pSigner: &p2pSigner{
+			privateKey: p2pPrivKey,
+		},
+		ctx:                     ctx,
+		cancelFunc:              cancelFunc,
+		p2pHost:                 NewConnectableHost(h),
+		port:                    port,
+		printConnectionsWatcher: connWatcher,
+		peersRatingHandler: args.PeersRatingHandler,
 	}
 
 	return p2pNode, nil
@@ -295,6 +305,7 @@ func addComponentsToNode(
 	p2pNode.syncTimer = args.SyncTimer
 	p2pNode.preferredPeersHolder = args.PreferredPeersHolder
 	p2pNode.debugger = p2pDebug.NewP2PDebugger(core.PeerID(p2pNode.p2pHost.ID()))
+	p2pNode.peersRatingHandler = args.PeersRatingHandler
 
 	err = p2pNode.createPubSub(messageSigning)
 	if err != nil {
@@ -347,6 +358,7 @@ func (netMes *networkMessenger) createPubSub(messageSigning messageSigningConfig
 	}
 
 	netMes.poc, err = newPeersOnChannel(
+		netMes.peersRatingHandler,
 		netMes.pb.ListPeers,
 		refreshPeersOnTopic,
 		ttlPeersOnTopic)
@@ -434,7 +446,7 @@ func (netMes *networkMessenger) createDiscoverer(p2pConfig config.P2PConfig) err
 		Host:               netMes.p2pHost,
 		Sharder:            netMes.sharder,
 		P2pConfig:          p2pConfig,
-		ConnectionsWatcher: netMes.connectionsWatcher,
+		ConnectionsWatcher: netMes.printConnectionsWatcher,
 	}
 
 	netMes.peerDiscoverer, err = discoveryFactory.NewPeerDiscoverer(args)
@@ -458,7 +470,7 @@ func (netMes *networkMessenger) createConnectionMonitor(p2pConfig config.P2PConf
 		Sharder:                    sharder,
 		ThresholdMinConnectedPeers: p2pConfig.Node.ThresholdMinConnectedPeers,
 		PreferredPeersHolder:       netMes.preferredPeersHolder,
-		ConnectionsWatcher:         netMes.connectionsWatcher,
+		ConnectionsWatcher:         netMes.printConnectionsWatcher,
 	}
 	var err error
 	netMes.connMonitor, err = connectionMonitor.NewLibp2pConnectionMonitorSimple(args)
@@ -469,7 +481,7 @@ func (netMes *networkMessenger) createConnectionMonitor(p2pConfig config.P2PConf
 	cmw := newConnectionMonitorWrapper(
 		netMes.p2pHost.Network(),
 		netMes.connMonitor,
-		&disabled.NilPeerDenialEvaluator{},
+		&disabled.PeerDenialEvaluator{},
 	)
 	netMes.p2pHost.Network().Notify(cmw)
 	netMes.connMonitorWrapper = cmw
@@ -598,8 +610,8 @@ func (netMes *networkMessenger) Close() error {
 			"error", err)
 	}
 
-	log.Debug("closing network messenger's connection watcher...")
-	errConnWatcher := netMes.connectionsWatcher.Close()
+	log.Debug("closing network messenger's print connection watcher...")
+	errConnWatcher := netMes.printConnectionsWatcher.Close()
 	if errConnWatcher != nil {
 		err = errConnWatcher
 		log.Warn("networkMessenger.Close",
@@ -838,6 +850,10 @@ func (netMes *networkMessenger) CreateTopic(name string, createChannelForTopic b
 		return nil
 	}
 
+	if name == common.ConnectionTopic {
+		return nil
+	}
+
 	topic, err := netMes.pb.Join(name)
 	if err != nil {
 		return fmt.Errorf("%w for topic %s", err, name)
@@ -946,7 +962,7 @@ func (netMes *networkMessenger) RegisterMessageProcessor(topic string, identifie
 		topicProcs = newTopicProcessors()
 		netMes.processors[topic] = topicProcs
 
-		err := netMes.pb.RegisterTopicValidator(topic, netMes.pubsubCallback(topicProcs, topic))
+		err := netMes.registerOnPubSub(topic, topicProcs)
 		if err != nil {
 			return err
 		}
@@ -958,6 +974,15 @@ func (netMes *networkMessenger) RegisterMessageProcessor(topic string, identifie
 	}
 
 	return nil
+}
+
+func (netMes *networkMessenger) registerOnPubSub(topic string, topicProcs *topicProcessors) error {
+	if topic == common.ConnectionTopic {
+		// do not allow broadcasts on this connection topic
+		return nil
+	}
+
+	return netMes.pb.RegisterTopicValidator(topic, netMes.pubsubCallback(topicProcs, topic))
 }
 
 func (netMes *networkMessenger) pubsubCallback(topicProcs *topicProcessors, topic string) func(ctx context.Context, pid peer.ID, message *pubsub.Message) bool {
@@ -986,6 +1011,10 @@ func (netMes *networkMessenger) pubsubCallback(topicProcs *topicProcessors, topi
 			}
 		}
 		netMes.processDebugMessage(topic, fromConnectedPeer, uint64(len(message.Data)), !messageOk)
+
+		if messageOk {
+			netMes.peersRatingHandler.IncreaseRating(fromConnectedPeer)
+		}
 
 		return messageOk
 	}
@@ -1076,6 +1105,11 @@ func (netMes *networkMessenger) UnregisterAllMessageProcessors() error {
 	defer netMes.mutTopics.Unlock()
 
 	for topic := range netMes.processors {
+		if topic == common.ConnectionTopic {
+			delete(netMes.processors, topic)
+			continue
+		}
+
 		err := netMes.pb.UnregisterTopicValidator(topic)
 		if err != nil {
 			return err
@@ -1132,7 +1166,9 @@ func (netMes *networkMessenger) UnregisterMessageProcessor(topic string, identif
 	if len(identifiers) == 0 {
 		netMes.processors[topic] = nil
 
-		return netMes.pb.UnregisterTopicValidator(topic)
+		if topic != common.ConnectionTopic { // no validator registered for this topic
+			return netMes.pb.UnregisterTopicValidator(topic)
+		}
 	}
 
 	return nil
@@ -1214,6 +1250,10 @@ func (netMes *networkMessenger) directMessageHandler(message *pubsub.Message, fr
 		}
 
 		netMes.debugger.AddIncomingMessage(msg.Topic(), uint64(len(msg.Data())), !messageOk)
+
+		if messageOk {
+			netMes.peersRatingHandler.IncreaseRating(fromConnectedPeer)
+		}
 	}(msg)
 
 	return nil

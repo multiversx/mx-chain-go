@@ -31,7 +31,7 @@ type P2PMessenger interface {
 // The interface assures that the collected data will be used by the p2p network sharding components
 type NetworkShardingCollector interface {
 	UpdatePeerIDInfo(pid core.PeerID, pk []byte, shardID uint32)
-	UpdatePeerIdSubType(pid core.PeerID, peerSubType core.P2PPeerSubType)
+	PutPeerIdSubType(pid core.PeerID, peerSubType core.P2PPeerSubType)
 	GetPeerInfo(pid core.PeerID) core.P2PPeerInfo
 	IsInterfaceNil() bool
 }
@@ -50,12 +50,14 @@ type P2PAntifloodHandler interface {
 
 // HardforkTrigger defines the behavior of a hardfork trigger
 type HardforkTrigger interface {
+	SetExportFactoryHandler(exportFactoryHandler update.ExportFactoryHandler) error
 	TriggerReceived(payload []byte, data []byte, pkBytes []byte) (bool, error)
 	RecordedTriggerMessage() ([]byte, bool)
 	Trigger(epoch uint32, withEarlyEndOfEpoch bool) error
 	CreateData() []byte
 	AddCloser(closer update.Closer) error
 	NotifyTriggerReceived() <-chan struct{}
+	NotifyTriggerReceivedV2() <-chan struct{}
 	IsSelfTrigger() bool
 	IsInterfaceNil() bool
 }

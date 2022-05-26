@@ -9,10 +9,10 @@ import (
 	indexerFactory "github.com/ElrondNetwork/elastic-indexer-go/factory"
 	"github.com/ElrondNetwork/elrond-go/outport"
 	"github.com/ElrondNetwork/elrond-go/outport/factory"
+	notifierFactory "github.com/ElrondNetwork/elrond-go/outport/factory"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
-	notifierFactory "github.com/ElrondNetwork/notifier-go/factory"
 	"github.com/stretchr/testify/require"
 )
 
@@ -124,8 +124,9 @@ func TestCreateOutport_SubscribeCovalentDriver(t *testing.T) {
 func TestCreateOutport_SubscribeNotifierDriver(t *testing.T) {
 	args := createMockArgsOutportHandler(false, true, false)
 
-	args.EventNotifierFactoryArgs.Marshalizer = &mock.MarshalizerMock{}
+	args.EventNotifierFactoryArgs.Marshaller = &mock.MarshalizerMock{}
 	args.EventNotifierFactoryArgs.Hasher = &hashingMocks.HasherMock{}
+	args.EventNotifierFactoryArgs.PubKeyConverter = &mock.PubkeyConverterMock{}
 	outPort, err := factory.CreateOutport(args)
 
 	defer func(c outport.OutportHandler) {
