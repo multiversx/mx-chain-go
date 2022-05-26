@@ -1817,7 +1817,6 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4Enabled(t *testing
 			MinTopUp:  "1",
 			MaxTopUp:  "32000000",
 		},
-		Denomination: 1,
 	}
 	als, _ := NewAuctionListSelector(argsAuctionListSelector)
 	args.AuctionListSelector = als
@@ -1897,21 +1896,21 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4Enabled(t *testing
 		| owner2 | 3                | 1                | 2                 | 2555         | 851             | pubKey4, pubKey5          |
 		+--------+------------------+------------------+-------------------+--------------+-----------------+---------------------------+
 		  	-> Min possible topUp = 666; max possible topUp = 1333, min required topUp = 1216
-			-> Selected nodes config in auction list. For each owner's auction nodes, qualified ones are selected by XOR with randomness
+			-> Selected nodes config in auction list. For each owner's auction nodes, qualified ones are selected by sorting the bls keys
 		+--------+------------------+----------------+--------------+-------------------+-----------------------------+------------------+---------------------------+-----------------------------+
 		| Owner  | Num staked nodes | TopUp per node | Total top up | Num auction nodes | Num qualified auction nodes | Num active nodes | Qualified top up per node | Selected auction list nodes |
 		+--------+------------------+----------------+--------------+-------------------+-----------------------------+------------------+---------------------------+-----------------------------+
 		| owner1 | 3                | 1222           | 3666         | 1                 | 1                           | 2                | 1222                      | pubKey2                     |
-		| owner2 | 3                | 851            | 2555         | 2                 | 1                           | 1                | 1277                      | pubKey4                     |
+		| owner2 | 3                | 851            | 2555         | 2                 | 1                           | 1                | 1277                      | pubKey5                     |
 		| owner3 | 2                | 1222           | 2444         | 1                 | 1                           | 1                | 1222                      | pubKey7                     |
-		| owner4 | 4                | 666            | 2666         | 3                 | 1                           | 1                | 1333                      | pubKe10                     |
+		| owner4 | 4                | 666            | 2666         | 3                 | 1                           | 1                | 1333                      | pubKey9                     |
 		+--------+------------------+----------------+--------------+-------------------+-----------------------------+------------------+---------------------------+-----------------------------+
 			-> Final selected nodes from auction list
 		+--------+----------------+--------------------------+
 		| Owner  | Registered key | Qualified TopUp per node |
 		+--------+----------------+--------------------------+
-		| owner4 | pubKe10        | 1333                     |
-		| owner2 | pubKey4        | 1277                     |
+		| owner4 | pubKey9        | 1333                     |
+		| owner2 | pubKey5        | 1277                     |
 		| owner1 | pubKey2        | 1222                     |
 		+--------+----------------+--------------------------+
 		| owner3 | pubKey7        | 1222                     |
@@ -1941,15 +1940,15 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4Enabled(t *testing
 		},
 		1: {
 			createValidatorInfo(owner2StakedKeys[0], common.EligibleList, owner2, 1),
-			createValidatorInfo(owner2StakedKeys[1], common.SelectedFromAuctionList, owner2, 1),
-			createValidatorInfo(owner2StakedKeys[2], common.AuctionList, owner2, 1),
+			createValidatorInfo(owner2StakedKeys[1], common.AuctionList, owner2, 1),
+			createValidatorInfo(owner2StakedKeys[2], common.SelectedFromAuctionList, owner2, 1),
 
 			createValidatorInfo(owner3StakedKeys[0], common.LeavingList, owner3, 1),
 			createValidatorInfo(owner3StakedKeys[1], common.AuctionList, owner3, 1),
 
 			createValidatorInfo(owner4StakedKeys[0], common.JailedList, owner4, 1),
-			createValidatorInfo(owner4StakedKeys[1], common.AuctionList, owner4, 1),
-			createValidatorInfo(owner4StakedKeys[2], common.SelectedFromAuctionList, owner4, 1),
+			createValidatorInfo(owner4StakedKeys[1], common.SelectedFromAuctionList, owner4, 1),
+			createValidatorInfo(owner4StakedKeys[2], common.AuctionList, owner4, 1),
 			createValidatorInfo(owner4StakedKeys[3], common.AuctionList, owner4, 1),
 
 			createValidatorInfo(owner5StakedKeys[0], common.EligibleList, owner5, 1),

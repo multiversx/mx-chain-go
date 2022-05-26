@@ -63,21 +63,19 @@ func NewAuctionListSelector(args AuctionListSelectorArgs) (*auctionListSelector,
 	}
 
 	log.Debug("NewAuctionListSelector with config",
-		"step top up", softAuctionConfig.step.String(),
+		"top up step", softAuctionConfig.step.String(),
 		"min top up", softAuctionConfig.minTopUp.String(),
 		"max top up", softAuctionConfig.maxTopUp.String(),
 		"denomination", args.Denomination,
 		"denominator for pretty values", softAuctionConfig.denominator.String(),
 	)
 
-	asl := &auctionListSelector{
+	return &auctionListSelector{
 		shardCoordinator:    args.ShardCoordinator,
 		stakingDataProvider: args.StakingDataProvider,
 		nodesConfigProvider: args.MaxNodesChangeConfigProvider,
 		softAuctionConfig:   softAuctionConfig,
-	}
-
-	return asl, nil
+	}, nil
 }
 
 func getAuctionConfig(softAuctionConfig config.SoftAuctionConfig, denomination int) (*auctionConfig, error) {
@@ -194,7 +192,7 @@ func (als *auctionListSelector) SelectNodesFromAuctionList(
 	sw.Start("auctionListSelector.sortAuctionList")
 	defer func() {
 		sw.Stop("auctionListSelector.sortAuctionList")
-		log.Info("time measurements", sw.GetMeasurements()...)
+		log.Debug("time measurements", sw.GetMeasurements()...)
 	}()
 
 	return als.sortAuctionList(ownersData, numOfAvailableNodeSlots, validatorsInfoMap, randomness)
@@ -219,8 +217,8 @@ func (als *auctionListSelector) getAuctionDataAndNumOfValidators(
 			_, isUnqualified := unqualifiedOwners[owner]
 			if isUnqualified {
 				log.Debug("auctionListSelector: found node in auction with unqualified owner, do not add it to selection",
-					"owner", owner,
-					"bls key", string(blsKey), //todo: hex
+					"owner", hex.EncodeToString([]byte(owner)),
+					"bls key", hex.EncodeToString(blsKey),
 				)
 				continue
 			}
@@ -326,7 +324,7 @@ func (als *auctionListSelector) calcSoftAuctionNodesConfig(
 ) map[string]*ownerData {
 	ownersData := copyOwnersData(data)
 	minTopUp, maxTopUp := als.getMinMaxPossibleTopUp(ownersData)
-	log.Info("auctionListSelector: calc min and max possible top up",
+	log.Debug("auctionListSelector: calc min and max possible top up",
 		"min top up per node", minTopUp.String(),
 		"max top up per node", maxTopUp.String(),
 	)

@@ -20,7 +20,7 @@ func (als *auctionListSelector) selectNodes(
 	normRand := calcNormalizedRandomness(randomness, pubKeyLen)
 
 	for _, owner := range ownersData {
-		sortListByXORWithRand(owner.auctionList, normRand)
+		sortListByPubKey(owner.auctionList)
 		addQualifiedValidatorsTopUpInMap(owner, validatorTopUpMap)
 		selectedFromAuction = append(selectedFromAuction, owner.auctionList[:owner.numQualifiedAuctionNodes]...)
 	}
@@ -53,12 +53,12 @@ func calcNormalizedRandomness(randomness []byte, expectedLen int) []byte {
 	return rand
 }
 
-func sortListByXORWithRand(list []state.ValidatorInfoHandler, randomness []byte) {
+func sortListByPubKey(list []state.ValidatorInfoHandler) {
 	sort.SliceStable(list, func(i, j int) bool {
 		pubKey1 := list[i].GetPublicKey()
 		pubKey2 := list[j].GetPublicKey()
 
-		return compareByXORWithRandomness(pubKey1, pubKey2, randomness)
+		return bytes.Compare(pubKey1, pubKey2) > 0
 	})
 }
 

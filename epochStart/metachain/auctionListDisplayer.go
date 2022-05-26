@@ -1,6 +1,7 @@
 package metachain
 
 import (
+	"encoding/hex"
 	"fmt"
 	"math/big"
 	"strconv"
@@ -8,6 +9,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/display"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/state"
 )
 
@@ -15,41 +17,41 @@ const maxPubKeyDisplayableLen = 20
 const maxNumOfDecimalsToDisplay = 5
 
 func (als *auctionListSelector) displayMinRequiredTopUp(topUp *big.Int, minFound *big.Int, step *big.Int) {
-	//if log.GetLevel() > logger.LogDebug {
-	//	return
-	//}
+	if log.GetLevel() > logger.LogDebug {
+		return
+	}
 
-	if !(topUp.Cmp(als.softAuctionConfig.minTopUp) == 0) {
+	if topUp.Cmp(als.softAuctionConfig.minTopUp) > 0 {
 		topUp = big.NewInt(0).Sub(topUp, step)
 	}
 
 	iteratedValues := big.NewInt(0).Sub(topUp, minFound)
-	iterations := big.NewInt(0).Div(iteratedValues, step)
+	iterations := big.NewInt(0).Div(iteratedValues, step).Int64()
+	iterations++
 
-	log.Info("auctionListSelector: found min required",
+	log.Debug("auctionListSelector: found min required",
 		"topUp", topUp.String(),
-		"after num of iterations", iterations.String(),
+		"after num of iterations", iterations,
 	)
 }
 
 func getShortKey(pubKey []byte) string {
-	displayablePubKey := pubKey
-	pubKeyLen := len(pubKey)
+	pubKeyHex := hex.EncodeToString(pubKey)
+	displayablePubKey := pubKeyHex
+
+	pubKeyLen := len(displayablePubKey)
 	if pubKeyLen > maxPubKeyDisplayableLen {
-		displayablePubKey = make([]byte, 0)
-		displayablePubKey = append(displayablePubKey, pubKey[:maxPubKeyDisplayableLen/2]...)
-		displayablePubKey = append(displayablePubKey, []byte("...")...)
-		displayablePubKey = append(displayablePubKey, pubKey[pubKeyLen-maxPubKeyDisplayableLen/2:]...)
+		displayablePubKey = pubKeyHex[:maxPubKeyDisplayableLen/2] + "..." + pubKeyHex[pubKeyLen-maxPubKeyDisplayableLen/2:]
 	}
 
-	return string(displayablePubKey)
+	return displayablePubKey
 }
 
 func getShortDisplayableBlsKeys(list []state.ValidatorInfoHandler) string {
 	pubKeys := ""
 
 	for idx, validator := range list {
-		pubKeys += getShortKey(validator.GetPublicKey()) // todo: hex here
+		pubKeys += getShortKey(validator.GetPublicKey())
 		addDelimiter := idx != len(list)-1
 		if addDelimiter {
 			pubKeys += ", "
@@ -61,24 +63,24 @@ func getShortDisplayableBlsKeys(list []state.ValidatorInfoHandler) string {
 
 func getPrettyValue(val *big.Int, denominator *big.Int) string {
 	first := big.NewInt(0).Div(val, denominator).String()
-	second := big.NewInt(0).Mod(val, denominator).String()
+	decimals := big.NewInt(0).Mod(val, denominator).String()
 
-	repeatCt := core.MaxInt(len(denominator.String())-len(second)-1, 0)
-	zeroes := strings.Repeat("0", repeatCt)
-	second2 := zeroes + second
-	if len(second2) > maxNumOfDecimalsToDisplay {
-		second2 = second2[:maxNumOfDecimalsToDisplay]
+	zeroesCt := (len(denominator.String()) - len(decimals)) - 1
+	zeroesCt = core.MaxInt(zeroesCt, 0)
+	zeroes := strings.Repeat("0", zeroesCt)
+
+	second := zeroes + decimals
+	if len(second) > maxNumOfDecimalsToDisplay {
+		second = second[:maxNumOfDecimalsToDisplay]
 	}
 
-	return first + "." + second2
-
-	//return big.NewInt(0).Div(val, als.softAuctionConfig.denominator).String()
+	return first + "." + second
 }
 
 func (als *auctionListSelector) displayOwnersData(ownersData map[string]*ownerData) {
-	//if log.GetLevel() > logger.LogDebug {
-	//	return
-	//}
+	if log.GetLevel() > logger.LogDebug {
+		return
+	}
 
 	tableHeader := []string{
 		"Owner",
@@ -89,11 +91,11 @@ func (als *auctionListSelector) displayOwnersData(ownersData map[string]*ownerDa
 		"Top up per node",
 		"Auction list nodes",
 	}
+
 	lines := make([]*display.LineData, 0, len(ownersData))
 	for ownerPubKey, owner := range ownersData {
-
 		line := []string{
-			(ownerPubKey),
+			hex.EncodeToString([]byte(ownerPubKey)),
 			strconv.Itoa(int(owner.numStakedNodes)),
 			strconv.Itoa(int(owner.numActiveNodes)),
 			strconv.Itoa(int(owner.numAuctionNodes)),
@@ -108,9 +110,10 @@ func (als *auctionListSelector) displayOwnersData(ownersData map[string]*ownerDa
 }
 
 func (als *auctionListSelector) displayOwnersSelectedNodes(ownersData map[string]*ownerData) {
-	//if log.GetLevel() > logger.LogDebug {
-	//	return
-	//}
+	if log.GetLevel() > logger.LogDebug {
+		return
+	}
+
 	tableHeader := []string{
 		"Owner",
 		"Num staked nodes",
@@ -122,10 +125,11 @@ func (als *auctionListSelector) displayOwnersSelectedNodes(ownersData map[string
 		"Qualified top up per node",
 		"Selected auction list nodes",
 	}
+
 	lines := make([]*display.LineData, 0, len(ownersData))
 	for ownerPubKey, owner := range ownersData {
 		line := []string{
-			(ownerPubKey),
+			hex.EncodeToString([]byte(ownerPubKey)),
 			strconv.Itoa(int(owner.numStakedNodes)),
 			getPrettyValue(owner.topUpPerNode, als.softAuctionConfig.denominator),
 			getPrettyValue(owner.totalTopUp, als.softAuctionConfig.denominator),
@@ -157,29 +161,27 @@ func (als *auctionListSelector) displayAuctionList(
 	ownersData map[string]*ownerData,
 	numOfSelectedNodes uint32,
 ) {
-	//if log.GetLevel() > logger.LogDebug {
-	//	return
-	//}
+	if log.GetLevel() > logger.LogDebug {
+		return
+	}
 
 	tableHeader := []string{"Owner", "Registered key", "Qualified TopUp per node"}
 	lines := make([]*display.LineData, 0, len(auctionList))
-	horizontalLine := false
 	blsKeysOwnerMap := getBlsKeyOwnerMap(ownersData)
 	for idx, validator := range auctionList {
 		pubKey := validator.GetPublicKey()
-
 		owner, found := blsKeysOwnerMap[string(pubKey)]
 		if !found {
 			log.Error("auctionListSelector.displayAuctionList could not find owner for",
-				"bls key", string(pubKey)) //todo: hex here
+				"bls key", hex.EncodeToString(pubKey))
 			continue
 		}
 
 		topUp := ownersData[owner].qualifiedTopUpPerNode
-		horizontalLine = uint32(idx) == numOfSelectedNodes-1
+		horizontalLine := uint32(idx) == numOfSelectedNodes-1
 		line := display.NewLineData(horizontalLine, []string{
-			(owner),
-			string(pubKey),
+			hex.EncodeToString([]byte(owner)),
+			hex.EncodeToString(pubKey),
 			getPrettyValue(topUp, als.softAuctionConfig.denominator),
 		})
 		lines = append(lines, line)
@@ -196,5 +198,5 @@ func displayTable(tableHeader []string, lines []*display.LineData, message strin
 	}
 
 	msg := fmt.Sprintf("%s\n%s", message, table)
-	log.Info(msg)
+	log.Debug(msg)
 }
