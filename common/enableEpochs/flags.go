@@ -3,72 +3,71 @@ package enableEpochs
 import "github.com/ElrondNetwork/elrond-go-core/core/atomic"
 
 type flagsHolder struct {
-	scDeployFlag                               atomic.Flag
-	builtInFunctionsFlag                       atomic.Flag
-	relayedTransactionsFlag                    atomic.Flag
-	penalizedTooMuchGasFlag                    atomic.Flag
-	switchJailWaitingFlag                      atomic.Flag
-	belowSignedThresholdFlag                   atomic.Flag
-	switchHysteresisForMinNodesFlag            atomic.Flag
-	transactionSignedWithTxHashFlag            atomic.Flag
-	metaProtectionFlag                         atomic.Flag
-	aheadOfTimeGasUsageFlag                    atomic.Flag
-	gasPriceModifierFlag                       atomic.Flag
-	repairCallbackFlag                         atomic.Flag
-	balanceWaitingListsFlag                    atomic.Flag
-	returnDataToLastTransferFlag               atomic.Flag
-	senderInOutTransferFlag                    atomic.Flag
-	stakeFlag                                  atomic.Flag
-	stakingV2Flag                              atomic.Flag
-	stakingV2OwnerFlag                         atomic.Flag
-	stakingV2DelegationFlag                    atomic.Flag
-	doubleKeyProtectionFlag                    atomic.Flag
-	esdtFlag                                   atomic.Flag
-	esdtCurrentEpochFlag                       atomic.Flag
-	governanceFlag                             atomic.Flag
-	governanceCurrentEpochFlag                 atomic.Flag
-	delegationManagerFlag                      atomic.Flag
-	delegationSmartContractFlag                atomic.Flag
-	correctLastUnjailedFlag                    atomic.Flag
-	correctLastUnjailedCurrentEpochFlag        atomic.Flag
-	relayedTransactionsV2Flag                  atomic.Flag
-	unbondTokensV2Flag                         atomic.Flag
-	saveJailedAlwaysFlag                       atomic.Flag
-	reDelegateBelowMinCheckFlag                atomic.Flag
-	validatorToDelegationFlag                  atomic.Flag
-	waitingListFixFlag                         atomic.Flag
-	incrementSCRNonceInMultiTransferFlag       atomic.Flag
-	esdtMultiTransferFlag                      atomic.Flag
-	globalMintBurnDisableFlag                  atomic.Flag
-	esdtTransferRoleFlag                       atomic.Flag
-	builtInFunctionOnMetaFlag                  atomic.Flag
-	computeRewardCheckpointFlag                atomic.Flag
-	scrSizeInvariantCheckFlag                  atomic.Flag
-	backwardCompSaveKeyValueFlag               atomic.Flag
-	esdtNFTCreateOnMultiShardFlag              atomic.Flag
-	metaESDTSetFlag                            atomic.Flag
-	addTokensToDelegationFlag                  atomic.Flag
-	multiESDTTransferFixOnCallBackFlag         atomic.Flag
-	optimizeGasUsedInCrossMiniBlocksFlag       atomic.Flag
-	correctFirstQueuedFlag                     atomic.Flag
-	deleteDelegatorAfterClaimRewardsFlag       atomic.Flag
-	fixOOGReturnCodeFlag                       atomic.Flag
-	removeNonUpdatedStorageFlag                atomic.Flag
-	optimizeNFTStoreFlag                       atomic.Flag
-	createNFTThroughExecByCallerFlag           atomic.Flag
-	stopDecreasingValidatorRatingWhenStuckFlag atomic.Flag
-	frontRunningProtectionFlag                 atomic.Flag
-	isPayableBySCFlag                          atomic.Flag
-	cleanUpInformativeSCRsFlag                 atomic.Flag
-	storageAPICostOptimizationFlag             atomic.Flag
-	transformToMultiShardCreateFlag            atomic.Flag
-	esdtRegisterAndSetAllRolesFlag             atomic.Flag
-	scheduledMiniBlocksFlag                    atomic.Flag
-	correctJailedNotUnstakedEmptyQueueFlag     atomic.Flag
-	doNotReturnOldBlockInBlockchainHookFlag    atomic.Flag
-	scrSizeInvariantOnBuiltInResultFlag        atomic.Flag
-	checkCorrectTokenIDForTransferRoleFlag     atomic.Flag
-	failExecutionOnEveryAPIErrorFlag           atomic.Flag
-	heartbeatDisableFlag                       atomic.Flag
-	isMiniBlockPartialExecutionFlag            atomic.Flag
+	scDeployFlag                               atomic.Flag // nolint
+	builtInFunctionsFlag                       atomic.Flag // nolint
+	relayedTransactionsFlag                    atomic.Flag // nolint
+	penalizedTooMuchGasFlag                    atomic.Flag // nolint
+	switchJailWaitingFlag                      atomic.Flag // nolint
+	belowSignedThresholdFlag                   atomic.Flag // nolint
+	switchHysteresisForMinNodesFlag            atomic.Flag // nolint
+	transactionSignedWithTxHashFlag            atomic.Flag // nolint
+	metaProtectionFlag                         atomic.Flag // nolint
+	aheadOfTimeGasUsageFlag                    atomic.Flag // nolint
+	gasPriceModifierFlag                       atomic.Flag // nolint
+	repairCallbackFlag                         atomic.Flag // nolint
+	balanceWaitingListsFlag                    atomic.Flag // nolint
+	returnDataToLastTransferFlag               atomic.Flag // nolint
+	senderInOutTransferFlag                    atomic.Flag // nolint
+	stakeFlag                                  atomic.Flag // nolint
+	stakingV2Flag                              atomic.Flag // nolint
+	stakingV2OwnerFlag                         atomic.Flag // nolint
+	stakingV2DelegationFlag                    atomic.Flag // nolint
+	doubleKeyProtectionFlag                    atomic.Flag // nolint
+	esdtFlag                                   atomic.Flag // nolint
+	esdtCurrentEpochFlag                       atomic.Flag // nolint
+	governanceFlag                             atomic.Flag // nolint
+	governanceCurrentEpochFlag                 atomic.Flag // nolint
+	delegationManagerFlag                      atomic.Flag // nolint
+	delegationSmartContractFlag                atomic.Flag // nolint
+	correctLastUnjailedFlag                    atomic.Flag // nolint
+	correctLastUnjailedCurrentEpochFlag        atomic.Flag // nolint
+	relayedTransactionsV2Flag                  atomic.Flag // nolint
+	unbondTokensV2Flag                         atomic.Flag // nolint
+	saveJailedAlwaysFlag                       atomic.Flag // nolint
+	reDelegateBelowMinCheckFlag                atomic.Flag // nolint
+	validatorToDelegationFlag                  atomic.Flag // nolint
+	waitingListFixFlag                         atomic.Flag // nolint
+	incrementSCRNonceInMultiTransferFlag       atomic.Flag // nolint
+	esdtMultiTransferFlag                      atomic.Flag // nolint
+	globalMintBurnDisableFlag                  atomic.Flag // nolint
+	esdtTransferRoleFlag                       atomic.Flag // nolint
+	builtInFunctionOnMetaFlag                  atomic.Flag // nolint
+	computeRewardCheckpointFlag                atomic.Flag // nolint
+	scrSizeInvariantCheckFlag                  atomic.Flag // nolint
+	backwardCompSaveKeyValueFlag               atomic.Flag // nolint
+	esdtNFTCreateOnMultiShardFlag              atomic.Flag // nolint
+	metaESDTSetFlag                            atomic.Flag // nolint
+	addTokensToDelegationFlag                  atomic.Flag // nolint
+	multiESDTTransferFixOnCallBackFlag         atomic.Flag // nolint
+	optimizeGasUsedInCrossMiniBlocksFlag       atomic.Flag // nolint
+	correctFirstQueuedFlag                     atomic.Flag // nolint
+	deleteDelegatorAfterClaimRewardsFlag       atomic.Flag // nolint
+	fixOOGReturnCodeFlag                       atomic.Flag // nolint
+	removeNonUpdatedStorageFlag                atomic.Flag // nolint
+	optimizeNFTStoreFlag                       atomic.Flag // nolint
+	createNFTThroughExecByCallerFlag           atomic.Flag // nolint
+	stopDecreasingValidatorRatingWhenStuckFlag atomic.Flag // nolint
+	frontRunningProtectionFlag                 atomic.Flag // nolint
+	isPayableBySCFlag                          atomic.Flag // nolint
+	cleanUpInformativeSCRsFlag                 atomic.Flag // nolint
+	storageAPICostOptimizationFlag             atomic.Flag // nolint
+	esdtRegisterAndSetAllRolesFlag             atomic.Flag // nolint
+	scheduledMiniBlocksFlag                    atomic.Flag // nolint
+	correctJailedNotUnstakedEmptyQueueFlag     atomic.Flag // nolint
+	doNotReturnOldBlockInBlockchainHookFlag    atomic.Flag // nolint
+	scrSizeInvariantOnBuiltInResultFlag        atomic.Flag // nolint
+	checkCorrectTokenIDForTransferRoleFlag     atomic.Flag // nolint
+	failExecutionOnEveryAPIErrorFlag           atomic.Flag // nolint
+	heartbeatDisableFlag                       atomic.Flag // nolint
+	isMiniBlockPartialExecutionFlag            atomic.Flag // nolint
 }
