@@ -86,7 +86,7 @@ func NewEconomicsData(args ArgsNewEconomicsData) (*economicsData, error) {
 	}
 
 	if check.IfNil(args.EnableEpochsHandler) {
-		return nil, common.ErrNilEnableEpochsHandler
+		return nil, process.ErrNilEnableEpochsHandler
 	}
 
 	rewardsConfigs := make([]config.EpochRewardSettings, len(args.Economics.RewardsSettings.RewardsConfigByEpoch))

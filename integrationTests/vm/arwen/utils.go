@@ -349,23 +349,21 @@ func (context *TestContext) initTxProcessorWithOneSCExecutorWithVMs() {
 	require.Nil(context.T, err)
 
 	argsNewTxProcessor := processTransaction.ArgsNewTxProcessor{
-		Accounts:                       context.Accounts,
-		Hasher:                         hasher,
-		PubkeyConv:                     pkConverter,
-		Marshalizer:                    marshalizer,
-		SignMarshalizer:                marshalizer,
-		ShardCoordinator:               oneShardCoordinator,
-		ScProcessor:                    context.ScProcessor,
-		TxFeeHandler:                   context.UnsignexTxHandler,
-		TxTypeHandler:                  txTypeHandler,
-		EconomicsFee:                   context.EconomicsFee,
-		ReceiptForwarder:               &mock.IntermediateTransactionHandlerMock{},
-		BadTxForwarder:                 &mock.IntermediateTransactionHandlerMock{},
-		ArgsParser:                     smartContract.NewArgumentParser(),
-		ScrForwarder:                   &mock.IntermediateTransactionHandlerMock{},
-		RelayedTxEnableEpoch:           0,
-		PenalizedTooMuchGasEnableEpoch: 0,
-		EpochNotifier:                  forking.NewGenericEpochNotifier(),
+		Accounts:            context.Accounts,
+		Hasher:              hasher,
+		PubkeyConv:          pkConverter,
+		Marshalizer:         marshalizer,
+		SignMarshalizer:     marshalizer,
+		ShardCoordinator:    oneShardCoordinator,
+		ScProcessor:         context.ScProcessor,
+		TxFeeHandler:        context.UnsignexTxHandler,
+		TxTypeHandler:       txTypeHandler,
+		EconomicsFee:        context.EconomicsFee,
+		ReceiptForwarder:    &mock.IntermediateTransactionHandlerMock{},
+		BadTxForwarder:      &mock.IntermediateTransactionHandlerMock{},
+		ArgsParser:          smartContract.NewArgumentParser(),
+		ScrForwarder:        &mock.IntermediateTransactionHandlerMock{},
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
 	}
 
 	context.TxProcessor, err = processTransaction.NewTxProcessor(argsNewTxProcessor)

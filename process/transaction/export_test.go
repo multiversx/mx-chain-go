@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
@@ -40,10 +41,6 @@ func (inTx *InterceptedTransaction) SetWhitelistHandler(handler process.WhiteLis
 
 func (txProc *baseTxProcessor) IsCrossTxFromMe(adrSrc, adrDst []byte) bool {
 	return txProc.isCrossTxFromMe(adrSrc, adrDst)
-}
-
-func (txProc *txProcessor) SetPenalizedTooMuchGasEnableEpoch(epoch uint32) {
-	txProc.penalizedTooMuchGasEnableEpoch = epoch
 }
 
 func (txProc *txProcessor) ProcessUserTx(
@@ -85,5 +82,8 @@ func (txProc *txProcessor) ExecuteFailedRelayedTransaction(
 }
 
 func (txProc *metaTxProcessor) SetValueFlagMetaBuiltIn(set bool) {
-	txProc.flagBuiltInFunction.SetValue(set)
+	stub, _ := txProc.enableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
+	stub.IsBuiltInFunctionOnMetaFlagEnabledCalled = func() bool {
+		return set
+	}
 }

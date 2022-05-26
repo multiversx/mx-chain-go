@@ -6,6 +6,7 @@ type EnableEpochsHandlerStub struct {
 	IsBuiltInFunctionsFlagEnabledCalled                       func() bool
 	IsRelayedTransactionsFlagEnabledCalled                    func() bool
 	IsPenalizedTooMuchGasFlagEnabledCalled                    func() bool
+	ResetPenalizedTooMuchGasFlagCalled                        func()
 	IsSwitchJailWaitingFlagEnabledCalled                      func() bool
 	IsBelowSignedThresholdFlagEnabledCalled                   func() bool
 	IsSwitchHysteresisForMinNodesFlagEnabledCalled            func() bool
@@ -64,6 +65,7 @@ type EnableEpochsHandlerStub struct {
 	IsScheduledMiniBlocksFlagEnabledCalled                    func() bool
 	IsCorrectJailedNotUnstakedEmptyQueueFlagEnabledCalled     func() bool
 	IsDoNotReturnOldBlockInBlockchainHookFlagEnabledCalled    func() bool
+	IsAddFailedRelayedTxToInvalidMBsFlagCalled                func() bool
 	IsSCRSizeInvariantOnBuiltInResultFlagEnabledCalled        func() bool
 	IsCheckCorrectTokenIDForTransferRoleFlagEnabledCalled     func() bool
 	IsFailExecutionOnEveryAPIErrorFlagEnabledCalled           func() bool
@@ -114,6 +116,13 @@ func (stub *EnableEpochsHandlerStub) IsPenalizedTooMuchGasFlagEnabled() bool {
 	}
 
 	return true
+}
+
+// ResetPenalizedTooMuchGasFlag -
+func (stub *EnableEpochsHandlerStub) ResetPenalizedTooMuchGasFlag() {
+	if stub.ResetPenalizedTooMuchGasFlagCalled != nil {
+		stub.ResetPenalizedTooMuchGasFlagCalled()
+	}
 }
 
 // IsSwitchJailWaitingFlagEnabled -
@@ -633,6 +642,15 @@ func (stub *EnableEpochsHandlerStub) IsCorrectJailedNotUnstakedEmptyQueueFlagEna
 func (stub *EnableEpochsHandlerStub) IsDoNotReturnOldBlockInBlockchainHookFlagEnabled() bool {
 	if stub.IsDoNotReturnOldBlockInBlockchainHookFlagEnabledCalled != nil {
 		return stub.IsDoNotReturnOldBlockInBlockchainHookFlagEnabledCalled()
+	}
+
+	return true
+}
+
+// IsAddFailedRelayedTxToInvalidMBsFlag -
+func (stub *EnableEpochsHandlerStub) IsAddFailedRelayedTxToInvalidMBsFlag() bool {
+	if stub.IsAddFailedRelayedTxToInvalidMBsFlagCalled != nil {
+		return stub.IsAddFailedRelayedTxToInvalidMBsFlagCalled()
 	}
 
 	return true

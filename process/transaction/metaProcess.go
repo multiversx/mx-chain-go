@@ -2,11 +2,11 @@ package transaction
 
 import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
@@ -18,26 +18,21 @@ var _ process.TransactionProcessor = (*metaTxProcessor)(nil)
 // txProcessor implements TransactionProcessor interface and can modify account states according to a transaction
 type metaTxProcessor struct {
 	*baseTxProcessor
-	txTypeHandler              process.TxTypeHandler
-	flagESDTEnabled            atomic.Flag
-	esdtEnableEpoch            uint32
-	flagBuiltInFunction        atomic.Flag
-	builtInFunctionEnableEpoch uint32
+	txTypeHandler       process.TxTypeHandler
+	enableEpochsHandler common.EnableEpochsHandler
 }
 
 // ArgsNewMetaTxProcessor defines the arguments needed for new meta tx processor
 type ArgsNewMetaTxProcessor struct {
-	Hasher                                hashing.Hasher
-	Marshalizer                           marshal.Marshalizer
-	Accounts                              state.AccountsAdapter
-	PubkeyConv                            core.PubkeyConverter
-	ShardCoordinator                      sharding.Coordinator
-	ScProcessor                           process.SmartContractProcessor
-	TxTypeHandler                         process.TxTypeHandler
-	EconomicsFee                          process.FeeHandler
-	ESDTEnableEpoch                       uint32
-	BuiltInFunctionOnMetachainEnableEpoch uint32
-	EpochNotifier                         process.EpochNotifier
+	Hasher              hashing.Hasher
+	Marshalizer         marshal.Marshalizer
+	Accounts            state.AccountsAdapter
+	PubkeyConv          core.PubkeyConverter
+	ShardCoordinator    sharding.Coordinator
+	ScProcessor         process.SmartContractProcessor
+	TxTypeHandler       process.TxTypeHandler
+	EconomicsFee        process.FeeHandler
+	EnableEpochsHandler common.EnableEpochsHandler
 }
 
 // NewMetaTxProcessor creates a new txProcessor engine
@@ -61,33 +56,28 @@ func NewMetaTxProcessor(args ArgsNewMetaTxProcessor) (*metaTxProcessor, error) {
 	if check.IfNil(args.EconomicsFee) {
 		return nil, process.ErrNilEconomicsFeeHandler
 	}
-	if check.IfNil(args.EpochNotifier) {
-		return nil, process.ErrNilEpochNotifier
+	if check.IfNil(args.EnableEpochsHandler) {
+		return nil, process.ErrNilEnableEpochsHandler
 	}
 
 	baseTxProcess := &baseTxProcessor{
-		accounts:                args.Accounts,
-		shardCoordinator:        args.ShardCoordinator,
-		pubkeyConv:              args.PubkeyConv,
-		economicsFee:            args.EconomicsFee,
-		hasher:                  args.Hasher,
-		marshalizer:             args.Marshalizer,
-		scProcessor:             args.ScProcessor,
-		flagPenalizedTooMuchGas: atomic.Flag{},
+		accounts:            args.Accounts,
+		shardCoordinator:    args.ShardCoordinator,
+		pubkeyConv:          args.PubkeyConv,
+		economicsFee:        args.EconomicsFee,
+		hasher:              args.Hasher,
+		marshalizer:         args.Marshalizer,
+		scProcessor:         args.ScProcessor,
+		enableEpochsHandler: args.EnableEpochsHandler,
 	}
 	// backwards compatibility
-	baseTxProcess.flagPenalizedTooMuchGas.Reset()
+	baseTxProcess.enableEpochsHandler.ResetPenalizedTooMuchGasFlag()
 
 	txProc := &metaTxProcessor{
-		baseTxProcessor:            baseTxProcess,
-		txTypeHandler:              args.TxTypeHandler,
-		esdtEnableEpoch:            args.ESDTEnableEpoch,
-		builtInFunctionEnableEpoch: args.BuiltInFunctionOnMetachainEnableEpoch,
+		baseTxProcessor:     baseTxProcess,
+		txTypeHandler:       args.TxTypeHandler,
+		enableEpochsHandler: args.EnableEpochsHandler,
 	}
-	log.Debug("metaProcess: enable epoch for esdt", "epoch", txProc.esdtEnableEpoch)
-	log.Debug("metaProcess: enable epoch for built in function on metachain", "epoch", txProc.builtInFunctionEnableEpoch)
-
-	args.EpochNotifier.RegisterNotifyHandler(txProc)
 
 	return txProc, nil
 }
@@ -129,11 +119,11 @@ func (txProc *metaTxProcessor) ProcessTransaction(tx *transaction.Transaction) (
 	case process.SCInvoking:
 		return txProc.processSCInvoking(tx, tx.SndAddr, tx.RcvAddr)
 	case process.BuiltInFunctionCall:
-		if txProc.flagBuiltInFunction.IsSet() {
+		if txProc.enableEpochsHandler.IsBuiltInFunctionOnMetaFlagEnabled() {
 			return txProc.processBuiltInFunctionCall(tx, tx.SndAddr, tx.RcvAddr)
 		}
 
-		if txProc.flagESDTEnabled.IsSet() {
+		if txProc.enableEpochsHandler.IsESDTFlagEnabled() {
 			return txProc.processSCInvoking(tx, tx.SndAddr, tx.RcvAddr)
 		}
 	}
@@ -199,15 +189,6 @@ func (txProc *metaTxProcessor) processBuiltInFunctionCall(
 	}
 
 	return txProc.scProcessor.ExecuteBuiltInFunction(tx, acntSrc, acntDst)
-}
-
-// EpochConfirmed is called whenever a new epoch is confirmed
-func (txProc *metaTxProcessor) EpochConfirmed(epoch uint32, _ uint64) {
-	txProc.flagESDTEnabled.SetValue(epoch >= txProc.esdtEnableEpoch)
-	log.Debug("txProcessor: esdt", "enabled", txProc.flagESDTEnabled.IsSet())
-
-	txProc.flagBuiltInFunction.SetValue(epoch >= txProc.builtInFunctionEnableEpoch)
-	log.Debug("txProcessor: built in function on metachain", "enabled", txProc.flagBuiltInFunction.IsSet())
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

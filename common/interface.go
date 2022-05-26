@@ -140,6 +140,7 @@ type EnableEpochsHandler interface {
 	IsBuiltInFunctionsFlagEnabled() bool
 	IsRelayedTransactionsFlagEnabled() bool
 	IsPenalizedTooMuchGasFlagEnabled() bool
+	ResetPenalizedTooMuchGasFlag()
 	IsSwitchJailWaitingFlagEnabled() bool
 	IsBelowSignedThresholdFlagEnabled() bool
 	IsSwitchHysteresisForMinNodesFlagEnabled() bool
@@ -198,6 +199,7 @@ type EnableEpochsHandler interface {
 	IsScheduledMiniBlocksFlagEnabled() bool
 	IsCorrectJailedNotUnstakedEmptyQueueFlagEnabled() bool
 	IsDoNotReturnOldBlockInBlockchainHookFlagEnabled() bool
+	IsAddFailedRelayedTxToInvalidMBsFlag() bool
 	IsSCRSizeInvariantOnBuiltInResultFlagEnabled() bool
 	IsCheckCorrectTokenIDForTransferRoleFlagEnabled() bool
 	IsFailExecutionOnEveryAPIErrorFlagEnabled() bool

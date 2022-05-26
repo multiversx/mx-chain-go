@@ -20,3 +20,15 @@ func TestNewFlagsHolder_NilFlagShouldPanic(t *testing.T) {
 	fh.scDeployFlag = nil
 	fh.IsSCDeployFlagEnabled()
 }
+
+func TestFlagsHolder_ResetPenalizedTooMuchGasFlag(t *testing.T) {
+	t.Parallel()
+
+	fh := newFlagsHolder()
+	require.NotNil(t, fh)
+
+	fh.penalizedTooMuchGasFlag.SetValue(true)
+	require.True(t, fh.IsPenalizedTooMuchGasFlagEnabled())
+	fh.ResetPenalizedTooMuchGasFlag()
+	require.False(t, fh.IsPenalizedTooMuchGasFlagEnabled())
+}

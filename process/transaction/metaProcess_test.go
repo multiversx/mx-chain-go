@@ -24,16 +24,15 @@ import (
 
 func createMockNewMetaTxArgs() txproc.ArgsNewMetaTxProcessor {
 	args := txproc.ArgsNewMetaTxProcessor{
-		Hasher:           &hashingMocks.HasherMock{},
-		Marshalizer:      &mock.MarshalizerMock{},
-		Accounts:         &stateMock.AccountsStub{},
-		PubkeyConv:       createMockPubkeyConverter(),
-		ShardCoordinator: mock.NewOneShardCoordinatorMock(),
-		ScProcessor:      &testscommon.SCProcessorMock{},
-		TxTypeHandler:    &testscommon.TxTypeHandlerMock{},
-		EconomicsFee:     createFreeTxFeeHandler(),
-		ESDTEnableEpoch:  0,
-		EpochNotifier:    &epochNotifier.EpochNotifierStub{},
+		Hasher:              &hashingMocks.HasherMock{},
+		Marshalizer:         &mock.MarshalizerMock{},
+		Accounts:            &stateMock.AccountsStub{},
+		PubkeyConv:          createMockPubkeyConverter(),
+		ShardCoordinator:    mock.NewOneShardCoordinatorMock(),
+		ScProcessor:         &testscommon.SCProcessorMock{},
+		TxTypeHandler:       &testscommon.TxTypeHandlerMock{},
+		EconomicsFee:        createFreeTxFeeHandler(),
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
 	}
 	return args
 }

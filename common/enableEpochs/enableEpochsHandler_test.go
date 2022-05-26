@@ -182,6 +182,7 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsScheduledMiniBlocksFlagEnabled())
 		assert.True(t, handler.IsCorrectJailedNotUnstakedEmptyQueueFlagEnabled())
 		assert.True(t, handler.IsDoNotReturnOldBlockInBlockchainHookFlagEnabled())
+		assert.False(t, handler.IsAddFailedRelayedTxToInvalidMBsFlag()) // epoch < limit
 		assert.True(t, handler.IsSCRSizeInvariantOnBuiltInResultFlagEnabled())
 		assert.True(t, handler.IsCheckCorrectTokenIDForTransferRoleFlagEnabled())
 		assert.True(t, handler.IsFailExecutionOnEveryAPIErrorFlagEnabled())
@@ -266,6 +267,7 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsScheduledMiniBlocksFlagEnabled())
 		assert.True(t, handler.IsCorrectJailedNotUnstakedEmptyQueueFlagEnabled())
 		assert.True(t, handler.IsDoNotReturnOldBlockInBlockchainHookFlagEnabled())
+		assert.False(t, handler.IsAddFailedRelayedTxToInvalidMBsFlag()) // epoch < limit
 		assert.True(t, handler.IsSCRSizeInvariantOnBuiltInResultFlagEnabled())
 		assert.True(t, handler.IsCheckCorrectTokenIDForTransferRoleFlagEnabled())
 		assert.True(t, handler.IsFailExecutionOnEveryAPIErrorFlagEnabled())
@@ -345,6 +347,7 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.False(t, handler.IsScheduledMiniBlocksFlagEnabled())
 		assert.False(t, handler.IsCorrectJailedNotUnstakedEmptyQueueFlagEnabled())
 		assert.False(t, handler.IsDoNotReturnOldBlockInBlockchainHookFlagEnabled())
+		assert.True(t, handler.IsAddFailedRelayedTxToInvalidMBsFlag()) // epoch < limit
 		assert.False(t, handler.IsSCRSizeInvariantOnBuiltInResultFlagEnabled())
 		assert.False(t, handler.IsCheckCorrectTokenIDForTransferRoleFlagEnabled())
 		assert.False(t, handler.IsFailExecutionOnEveryAPIErrorFlagEnabled())

@@ -421,17 +421,15 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 	}
 
 	argsNewMetaTxProcessor := processTransaction.ArgsNewMetaTxProcessor{
-		Hasher:                                arg.Core.Hasher(),
-		Marshalizer:                           arg.Core.InternalMarshalizer(),
-		Accounts:                              arg.Accounts,
-		PubkeyConv:                            arg.Core.AddressPubKeyConverter(),
-		ShardCoordinator:                      arg.ShardCoordinator,
-		ScProcessor:                           scProcessor,
-		TxTypeHandler:                         txTypeHandler,
-		EconomicsFee:                          genesisFeeHandler,
-		ESDTEnableEpoch:                       enableEpochsConfig.ESDTEnableEpoch,
-		BuiltInFunctionOnMetachainEnableEpoch: enableEpochsConfig.BuiltInFunctionOnMetaEnableEpoch,
-		EpochNotifier:                         epochNotifier,
+		Hasher:              arg.Core.Hasher(),
+		Marshalizer:         arg.Core.InternalMarshalizer(),
+		Accounts:            arg.Accounts,
+		PubkeyConv:          arg.Core.AddressPubKeyConverter(),
+		ShardCoordinator:    arg.ShardCoordinator,
+		ScProcessor:         scProcessor,
+		TxTypeHandler:       txTypeHandler,
+		EconomicsFee:        genesisFeeHandler,
+		EnableEpochsHandler: arg.Core.EnableEpochsHandler(),
 	}
 	txProcessor, err := processTransaction.NewMetaTxProcessor(argsNewMetaTxProcessor)
 	if err != nil {
