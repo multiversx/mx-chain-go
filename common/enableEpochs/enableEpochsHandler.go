@@ -10,7 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
-var log = logger.GetOrCreate("enableEpochHandler")
+var log = logger.GetOrCreate("enableEpochsHandler")
 
 type enableEpochsHandler struct {
 	*flagsHolder
