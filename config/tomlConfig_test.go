@@ -658,7 +658,7 @@ func TestEnableEpochConfig(t *testing.T) {
 	ManagedCryptoAPIsEnableEpoch = 54
 
     # HeartbeatDisableEpoch represents the epoch when heartbeat v1 messages stop being sent and processed
-    HeartbeatDisableEpoch = 54
+    HeartbeatDisableEpoch = 55
 
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
@@ -741,7 +741,7 @@ func TestEnableEpochConfig(t *testing.T) {
 			ESDTRegisterAndSetAllRolesEnableEpoch:       52,
 			FailExecutionOnEveryAPIErrorEnableEpoch:     53,
 			ManagedCryptoAPIsEnableEpoch:                54,
-			HeartbeatDisableEpoch:                       54,
+			HeartbeatDisableEpoch:                       55,
 		},
 		GasSchedule: GasScheduleConfig{
 			GasScheduleByEpochs: []GasScheduleByEpochs{
