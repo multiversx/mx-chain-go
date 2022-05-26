@@ -156,7 +156,7 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsWaitingListFixFlagEnabled())
 		assert.True(t, handler.IsIncrementSCRNonceInMultiTransferFlagEnabled())
 		assert.True(t, handler.IsESDTMultiTransferFlagEnabled())
-		assert.False(t, handler.IsGlobalMintBurnDisableFlagEnabled()) // epoch < limit
+		assert.False(t, handler.IsGlobalMintBurnFlagEnabled()) // epoch < limit
 		assert.True(t, handler.IsESDTTransferRoleFlagEnabled())
 		assert.True(t, handler.IsBuiltInFunctionOnMetaFlagEnabled())
 		assert.True(t, handler.IsComputeRewardCheckpointFlagEnabled())
@@ -240,7 +240,7 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsWaitingListFixFlagEnabled())
 		assert.True(t, handler.IsIncrementSCRNonceInMultiTransferFlagEnabled())
 		assert.True(t, handler.IsESDTMultiTransferFlagEnabled())
-		assert.False(t, handler.IsGlobalMintBurnDisableFlagEnabled()) // epoch < limit
+		assert.False(t, handler.IsGlobalMintBurnFlagEnabled()) // epoch < limit
 		assert.True(t, handler.IsESDTTransferRoleFlagEnabled())
 		assert.True(t, handler.IsBuiltInFunctionOnMetaFlagEnabled())
 		assert.True(t, handler.IsComputeRewardCheckpointFlagEnabled())
@@ -319,7 +319,7 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.False(t, handler.IsWaitingListFixFlagEnabled())
 		assert.False(t, handler.IsIncrementSCRNonceInMultiTransferFlagEnabled())
 		assert.False(t, handler.IsESDTMultiTransferFlagEnabled())
-		assert.True(t, handler.IsGlobalMintBurnDisableFlagEnabled()) // epoch < limit
+		assert.True(t, handler.IsGlobalMintBurnFlagEnabled()) // epoch < limit
 		assert.False(t, handler.IsESDTTransferRoleFlagEnabled())
 		assert.False(t, handler.IsBuiltInFunctionOnMetaFlagEnabled())
 		assert.False(t, handler.IsComputeRewardCheckpointFlagEnabled())

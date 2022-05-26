@@ -39,7 +39,7 @@ type flagsHolder struct {
 	waitingListFixFlag                         *atomic.Flag
 	incrementSCRNonceInMultiTransferFlag       *atomic.Flag
 	esdtMultiTransferFlag                      *atomic.Flag
-	globalMintBurnDisableFlag                  *atomic.Flag
+	globalMintBurnFlag                         *atomic.Flag
 	esdtTransferRoleFlag                       *atomic.Flag
 	builtInFunctionOnMetaFlag                  *atomic.Flag
 	computeRewardCheckpointFlag                *atomic.Flag
@@ -110,7 +110,7 @@ func newFlagsHolder() *flagsHolder {
 		waitingListFixFlag:                         &atomic.Flag{},
 		incrementSCRNonceInMultiTransferFlag:       &atomic.Flag{},
 		esdtMultiTransferFlag:                      &atomic.Flag{},
-		globalMintBurnDisableFlag:                  &atomic.Flag{},
+		globalMintBurnFlag:                         &atomic.Flag{},
 		esdtTransferRoleFlag:                       &atomic.Flag{},
 		builtInFunctionOnMetaFlag:                  &atomic.Flag{},
 		computeRewardCheckpointFlag:                &atomic.Flag{},
@@ -324,9 +324,9 @@ func (fh *flagsHolder) IsESDTMultiTransferFlagEnabled() bool {
 	return fh.esdtMultiTransferFlag.IsSet()
 }
 
-// IsGlobalMintBurnDisableFlagEnabled returns true if globalMintBurnDisableFlag is enabled
-func (fh *flagsHolder) IsGlobalMintBurnDisableFlagEnabled() bool {
-	return fh.globalMintBurnDisableFlag.IsSet()
+// IsGlobalMintBurnFlagEnabled returns true if globalMintBurnFlag is enabled
+func (fh *flagsHolder) IsGlobalMintBurnFlagEnabled() bool {
+	return fh.globalMintBurnFlag.IsSet()
 }
 
 // IsESDTTransferRoleFlagEnabled returns true if esdtTransferRoleFlag is enabled

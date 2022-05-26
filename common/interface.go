@@ -172,7 +172,7 @@ type EnableEpochsHandler interface {
 	IsWaitingListFixFlagEnabled() bool
 	IsIncrementSCRNonceInMultiTransferFlagEnabled() bool
 	IsESDTMultiTransferFlagEnabled() bool
-	IsGlobalMintBurnDisableFlagEnabled() bool
+	IsGlobalMintBurnFlagEnabled() bool
 	IsESDTTransferRoleFlagEnabled() bool
 	IsBuiltInFunctionOnMetaFlagEnabled() bool
 	IsComputeRewardCheckpointFlagEnabled() bool

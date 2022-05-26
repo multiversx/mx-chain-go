@@ -69,7 +69,7 @@ func (handler *enableEpochsHandler) EpochConfirmed(epoch uint32, _ uint64) {
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.WaitingListFixEnableEpoch, handler.waitingListFixFlag, "waitingListFixFlag")
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.IncrementSCRNonceInMultiTransferEnableEpoch, handler.incrementSCRNonceInMultiTransferFlag, "incrementSCRNonceInMultiTransferFlag")
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.ESDTMultiTransferEnableEpoch, handler.esdtMultiTransferFlag, "esdtMultiTransferFlag")
-	handler.setFlagValue(epoch < handler.enableEpochsConfig.GlobalMintBurnDisableEpoch, handler.globalMintBurnDisableFlag, "globalMintBurnDisableFlag")
+	handler.setFlagValue(epoch < handler.enableEpochsConfig.GlobalMintBurnDisableEpoch, handler.globalMintBurnFlag, "globalMintBurnFlag")
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.ESDTTransferRoleEnableEpoch, handler.esdtTransferRoleFlag, "esdtTransferRoleFlag")
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.BuiltInFunctionOnMetaEnableEpoch, handler.builtInFunctionOnMetaFlag, "builtInFunctionOnMetaFlag")
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.ComputeRewardCheckpointEnableEpoch, handler.computeRewardCheckpointFlag, "computeRewardCheckpointFlag")
