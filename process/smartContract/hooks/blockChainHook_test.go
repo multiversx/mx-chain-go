@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"math"
 	"math/big"
 	"strings"
 	"testing"
@@ -25,7 +24,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon/trie"
@@ -45,21 +43,22 @@ func createMockBlockChainHookArgs() hooks.ArgBlockChainHook {
 				return &mock.AccountWrapMock{}, nil
 			},
 		},
-		PubkeyConv:         mock.NewPubkeyConverterMock(32),
-		StorageService:     &mock.ChainStorerMock{},
-		BlockChain:         &testscommon.ChainHandlerStub{},
-		ShardCoordinator:   mock.NewOneShardCoordinatorMock(),
-		Marshalizer:        &mock.MarshalizerMock{},
-		Uint64Converter:    &mock.Uint64ByteSliceConverterMock{},
-		BuiltInFunctions:   vmcommonBuiltInFunctions.NewBuiltInFunctionContainer(),
-		NFTStorageHandler:  &testscommon.SimpleNFTStorageHandlerStub{},
-		DataPool:           datapool,
-		CompiledSCPool:     datapool.SmartContracts(),
-		EpochNotifier:      &epochNotifier.EpochNotifierStub{},
-		NilCompiledSCStore: true,
-		EnableEpochs: config.EnableEpochs{
-			DoNotReturnOldBlockInBlockchainHookEnableEpoch: math.MaxUint32,
+		PubkeyConv:        mock.NewPubkeyConverterMock(32),
+		StorageService:    &mock.ChainStorerMock{},
+		BlockChain:        &testscommon.ChainHandlerStub{},
+		ShardCoordinator:  mock.NewOneShardCoordinatorMock(),
+		Marshalizer:       &mock.MarshalizerMock{},
+		Uint64Converter:   &mock.Uint64ByteSliceConverterMock{},
+		BuiltInFunctions:  vmcommonBuiltInFunctions.NewBuiltInFunctionContainer(),
+		NFTStorageHandler: &testscommon.SimpleNFTStorageHandlerStub{},
+		DataPool:          datapool,
+		CompiledSCPool:    datapool.SmartContracts(),
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
+			IsDoNotReturnOldBlockInBlockchainHookFlagEnabledCalled: func() bool {
+				return false
+			},
 		},
+		NilCompiledSCStore: true,
 	}
 	return arguments
 }
@@ -164,10 +163,10 @@ func TestNewBlockChainHookImpl(t *testing.T) {
 		{
 			args: func() hooks.ArgBlockChainHook {
 				args := createMockBlockChainHookArgs()
-				args.EpochNotifier = nil
+				args.EnableEpochsHandler = nil
 				return args
 			},
-			expectedErr: process.ErrNilEpochNotifier,
+			expectedErr: process.ErrNilEnableEpochsHandler,
 		},
 		{
 			args: func() hooks.ArgBlockChainHook {
@@ -604,7 +603,8 @@ func TestBlockChainHookImpl_GetBlockhashFromStorerInSameEpochWithFlagEnabled(t *
 	t.Parallel()
 
 	args := createMockBlockChainHookArgs()
-	args.EnableEpochs.DoNotReturnOldBlockInBlockchainHookEnableEpoch = 0
+	// reset IsDoNotReturnOldBlockInBlockchainHookFlagEnabledCalled to return true
+	args.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{}
 	nonce := uint64(10)
 	header := &block.Header{Nonce: nonce}
 	shardID := args.ShardCoordinator.SelfId()
@@ -760,7 +760,8 @@ func TestBlockChainHookImpl_GettersFromBlockchainCurrentHeader(t *testing.T) {
 		}
 
 		args := createMockBlockChainHookArgs()
-		args.EnableEpochs.DoNotReturnOldBlockInBlockchainHookEnableEpoch = 0
+		// reset IsDoNotReturnOldBlockInBlockchainHookFlagEnabledCalled to return true
+		args.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{}
 		args.BlockChain = &testscommon.ChainHandlerStub{
 			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 				return hdrToRet
@@ -1575,9 +1576,15 @@ func TestBlockChainHookImpl_GetESDTToken(t *testing.T) {
 				return errMarshaller
 			},
 		}
+		isFlagSet := true
+		args.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+			IsOptimizeNFTStoreFlagEnabledCalled: func() bool {
+				return isFlagSet
+			},
+		}
 
 		bh, _ := hooks.NewBlockChainHookImpl(args)
-		bh.SetFlagOptimizeNFTStore(false)
+		isFlagSet = false
 
 		esdtData, err := bh.GetESDTToken(address, token, nonce)
 		require.Nil(t, esdtData)
@@ -1610,9 +1617,15 @@ func TestBlockChainHookImpl_GetESDTToken(t *testing.T) {
 				return addressHandler, nil
 			},
 		}
+		isFlagSet := true
+		args.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+			IsOptimizeNFTStoreFlagEnabledCalled: func() bool {
+				return isFlagSet
+			},
+		}
 
 		bh, _ := hooks.NewBlockChainHookImpl(args)
-		bh.SetFlagOptimizeNFTStore(false)
+		isFlagSet = false
 
 		esdtData, err := bh.GetESDTToken(address, token, nonce)
 		assert.Nil(t, esdtData)
@@ -1634,9 +1647,15 @@ func TestBlockChainHookImpl_GetESDTToken(t *testing.T) {
 				return addressHandler, nil
 			},
 		}
+		isFlagSet := true
+		args.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+			IsOptimizeNFTStoreFlagEnabledCalled: func() bool {
+				return isFlagSet
+			},
+		}
 
 		bh, _ := hooks.NewBlockChainHookImpl(args)
-		bh.SetFlagOptimizeNFTStore(false)
+		isFlagSet = false
 
 		esdtData, err := bh.GetESDTToken(address, token, nonce)
 		assert.Equal(t, emptyESDTData, esdtData)
@@ -1657,9 +1676,15 @@ func TestBlockChainHookImpl_GetESDTToken(t *testing.T) {
 				return addressHandler, nil
 			},
 		}
+		isFlagSet := true
+		args.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+			IsOptimizeNFTStoreFlagEnabledCalled: func() bool {
+				return isFlagSet
+			},
+		}
 
 		bh, _ := hooks.NewBlockChainHookImpl(args)
-		bh.SetFlagOptimizeNFTStore(false)
+		isFlagSet = false
 
 		esdtData, err := bh.GetESDTToken(address, token, nftNonce)
 		assert.Equal(t, testESDTData, esdtData)
@@ -1678,9 +1703,15 @@ func TestBlockChainHookImpl_GetESDTToken(t *testing.T) {
 				return addressHandler, nil
 			},
 		}
+		isFlagSet := true
+		args.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+			IsOptimizeNFTStoreFlagEnabledCalled: func() bool {
+				return isFlagSet
+			},
+		}
 
 		bh, _ := hooks.NewBlockChainHookImpl(args)
-		bh.SetFlagOptimizeNFTStore(false)
+		isFlagSet = false
 
 		esdtData, err := bh.GetESDTToken(address, token, nonce)
 		assert.Equal(t, testESDTData, esdtData)
@@ -1746,7 +1777,11 @@ func TestBlockChainHookImpl_ApplyFiltersOnCodeMetadata(t *testing.T) {
 		t.Parallel()
 
 		args := createMockBlockChainHookArgs()
-		args.EnableEpochs.IsPayableBySCEnableEpoch = 1000000
+		args.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+			IsPayableBySCFlagEnabledCalled: func() bool {
+				return false
+			},
+		}
 		bh, _ := hooks.NewBlockChainHookImpl(args)
 
 		provided := vmcommon.CodeMetadata{
@@ -1770,7 +1805,6 @@ func TestBlockChainHookImpl_ApplyFiltersOnCodeMetadata(t *testing.T) {
 		t.Parallel()
 
 		args := createMockBlockChainHookArgs()
-		args.EnableEpochs.IsPayableBySCEnableEpoch = 0
 		bh, _ := hooks.NewBlockChainHookImpl(args)
 
 		provided := vmcommon.CodeMetadata{
@@ -1813,7 +1847,11 @@ func TestBlockChainHookImpl_FilterCodeMetadataForUpgrade(t *testing.T) {
 		t.Parallel()
 
 		args := createMockBlockChainHookArgs()
-		args.EnableEpochs.IsPayableBySCEnableEpoch = 100000
+		args.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+			IsPayableBySCFlagEnabledCalled: func() bool {
+				return false
+			},
+		}
 		bh, _ := hooks.NewBlockChainHookImpl(args)
 
 		providedBytes := []byte{0xFF, 0xFF, 0xFF}
@@ -1825,7 +1863,6 @@ func TestBlockChainHookImpl_FilterCodeMetadataForUpgrade(t *testing.T) {
 		t.Parallel()
 
 		args := createMockBlockChainHookArgs()
-		args.EnableEpochs.IsPayableBySCEnableEpoch = 0
 		bh, _ := hooks.NewBlockChainHookImpl(args)
 
 		providedBytes := []byte{0x05, 0x06}
@@ -1843,7 +1880,6 @@ func TestBlockChainHookImpl_FilterCodeMetadataForUpgrade(t *testing.T) {
 		t.Parallel()
 
 		args := createMockBlockChainHookArgs()
-		args.EnableEpochs.IsPayableBySCEnableEpoch = 0
 		bh, _ := hooks.NewBlockChainHookImpl(args)
 
 		providedBytes := []byte{0xFF, 0xFF, 0xFF}
@@ -1855,7 +1891,6 @@ func TestBlockChainHookImpl_FilterCodeMetadataForUpgrade(t *testing.T) {
 		t.Parallel()
 
 		args := createMockBlockChainHookArgs()
-		args.EnableEpochs.IsPayableBySCEnableEpoch = 0
 		bh, _ := hooks.NewBlockChainHookImpl(args)
 
 		providedBytes := []byte{0xFF, 0xFF}

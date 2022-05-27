@@ -285,20 +285,19 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 
 	builtInFuncs := vmcommonBuiltInFunctions.NewBuiltInFunctionContainer()
 	argsHook := hooks.ArgBlockChainHook{
-		Accounts:           arg.Accounts,
-		PubkeyConv:         arg.Core.AddressPubKeyConverter(),
-		StorageService:     arg.Data.StorageService(),
-		BlockChain:         arg.Data.Blockchain(),
-		ShardCoordinator:   arg.ShardCoordinator,
-		Marshalizer:        arg.Core.InternalMarshalizer(),
-		Uint64Converter:    arg.Core.Uint64ByteSliceConverter(),
-		BuiltInFunctions:   builtInFuncs,
-		NFTStorageHandler:  &disabled.SimpleNFTStorage{},
-		DataPool:           arg.Data.Datapool(),
-		CompiledSCPool:     arg.Data.Datapool().SmartContracts(),
-		EpochNotifier:      epochNotifier,
-		NilCompiledSCStore: true,
-		EnableEpochs:       enableEpochsConfig,
+		Accounts:            arg.Accounts,
+		PubkeyConv:          arg.Core.AddressPubKeyConverter(),
+		StorageService:      arg.Data.StorageService(),
+		BlockChain:          arg.Data.Blockchain(),
+		ShardCoordinator:    arg.ShardCoordinator,
+		Marshalizer:         arg.Core.InternalMarshalizer(),
+		Uint64Converter:     arg.Core.Uint64ByteSliceConverter(),
+		BuiltInFunctions:    builtInFuncs,
+		NFTStorageHandler:   &disabled.SimpleNFTStorage{},
+		DataPool:            arg.Data.Datapool(),
+		CompiledSCPool:      arg.Data.Datapool().SmartContracts(),
+		EnableEpochsHandler: enableEpochsHandler,
+		NilCompiledSCStore:  true,
 	}
 
 	pubKeyVerifier, err := disabled.NewMessageSignVerifier(arg.BlockSignKeyGen)

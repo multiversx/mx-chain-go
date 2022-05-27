@@ -421,27 +421,26 @@ func (gbc *genesisBlockCreator) computeDNSAddresses(enableEpochsConfig config.En
 		TimeStamp: gbc.arg.GenesisTime,
 	}
 	epochNotifier.CheckEpoch(temporaryMetaHeader)
-	_, err := enableEpochs.NewEnableEpochsHandler(enableEpochsConfig, epochNotifier)
+	enableEpochsHandler, err := enableEpochs.NewEnableEpochsHandler(enableEpochsConfig, epochNotifier)
 	if err != nil {
 		return err
 	}
 
 	builtInFuncs := vmcommonBuiltInFunctions.NewBuiltInFunctionContainer()
 	argsHook := hooks.ArgBlockChainHook{
-		Accounts:           gbc.arg.Accounts,
-		PubkeyConv:         gbc.arg.Core.AddressPubKeyConverter(),
-		StorageService:     gbc.arg.Data.StorageService(),
-		BlockChain:         gbc.arg.Data.Blockchain(),
-		ShardCoordinator:   gbc.arg.ShardCoordinator,
-		Marshalizer:        gbc.arg.Core.InternalMarshalizer(),
-		Uint64Converter:    gbc.arg.Core.Uint64ByteSliceConverter(),
-		BuiltInFunctions:   builtInFuncs,
-		NFTStorageHandler:  &disabled.SimpleNFTStorage{},
-		DataPool:           gbc.arg.Data.Datapool(),
-		CompiledSCPool:     gbc.arg.Data.Datapool().SmartContracts(),
-		EpochNotifier:      epochNotifier,
-		NilCompiledSCStore: true,
-		EnableEpochs:       enableEpochsConfig,
+		Accounts:            gbc.arg.Accounts,
+		PubkeyConv:          gbc.arg.Core.AddressPubKeyConverter(),
+		StorageService:      gbc.arg.Data.StorageService(),
+		BlockChain:          gbc.arg.Data.Blockchain(),
+		ShardCoordinator:    gbc.arg.ShardCoordinator,
+		Marshalizer:         gbc.arg.Core.InternalMarshalizer(),
+		Uint64Converter:     gbc.arg.Core.Uint64ByteSliceConverter(),
+		BuiltInFunctions:    builtInFuncs,
+		NFTStorageHandler:   &disabled.SimpleNFTStorage{},
+		DataPool:            gbc.arg.Data.Datapool(),
+		CompiledSCPool:      gbc.arg.Data.Datapool().SmartContracts(),
+		EnableEpochsHandler: enableEpochsHandler,
+		NilCompiledSCStore:  true,
 	}
 	blockChainHook, err := hooks.NewBlockChainHookImpl(argsHook)
 	if err != nil {
