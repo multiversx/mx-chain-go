@@ -453,7 +453,6 @@ func (rtp *rewardTxPreprocessor) ProcessMiniBlock(
 	miniBlock *block.MiniBlock,
 	haveTime func() bool,
 	_ func() bool,
-	_ func() (int, int),
 	_ bool,
 	partialMbExecutionMode bool,
 	indexOfLastTxProcessed int,
