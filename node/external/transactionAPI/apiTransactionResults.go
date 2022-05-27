@@ -19,6 +19,7 @@ type apiTransactionResultsProcessor struct {
 	storageService         dataRetriever.StorageService
 	marshalizer            marshal.Marshalizer
 	selfShardID            uint32
+	refundDetector         *refundDetector
 }
 
 func newAPITransactionResultProcessor(
@@ -29,6 +30,8 @@ func newAPITransactionResultProcessor(
 	txUnmarshaller *txUnmarshaller,
 	selfShardID uint32,
 ) *apiTransactionResultsProcessor {
+	refundDetector := newRefundDetector()
+
 	return &apiTransactionResultsProcessor{
 		txUnmarshaller:         txUnmarshaller,
 		addressPubKeyConverter: addressPubKeyConverter,
@@ -36,6 +39,7 @@ func newAPITransactionResultProcessor(
 		storageService:         storageService,
 		marshalizer:            marshalizer,
 		selfShardID:            selfShardID,
+		refundDetector:         refundDetector,
 	}
 }
 
@@ -143,6 +147,13 @@ func (arp *apiTransactionResultsProcessor) getScrFromStorage(hash []byte, epoch 
 }
 
 func (arp *apiTransactionResultsProcessor) adaptSmartContractResult(scrHash []byte, scr *smartContractResult.SmartContractResult) *transaction.ApiSmartContractResult {
+	isRefund := arp.refundDetector.isRefund(refundDetectorInput{
+		Value:         scr.Value.String(),
+		Data:          scr.Data,
+		ReturnMessage: string(scr.ReturnMessage),
+		GasLimit:      scr.GasLimit,
+	})
+
 	apiSCR := &transaction.ApiSmartContractResult{
 		Hash:           hex.EncodeToString(scrHash),
 		Nonce:          scr.Nonce,
@@ -157,6 +168,7 @@ func (arp *apiTransactionResultsProcessor) adaptSmartContractResult(scrHash []by
 		CallType:       scr.CallType,
 		CodeMetadata:   string(scr.CodeMetadata),
 		ReturnMessage:  string(scr.ReturnMessage),
+		IsRefund:       isRefund,
 	}
 
 	if len(scr.SndAddr) == arp.addressPubKeyConverter.Len() {
