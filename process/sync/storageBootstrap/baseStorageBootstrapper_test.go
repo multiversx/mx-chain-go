@@ -199,7 +199,7 @@ func TestBaseStorageBootstrapper_RestoreBlockBodyIntoPoolsShouldErrMissingBody(t
 		},
 	}
 	marshaledHeader, _ := baseArgs.Marshalizer.Marshal(header)
-	storerMock := genericMocks.NewStorerMockWithDefaults()
+	storerMock := genericMocks.NewStorerMock()
 	_ = storerMock.Put(headerHash, marshaledHeader)
 	baseArgs.Store = &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
@@ -234,7 +234,7 @@ func TestBaseStorageBootstrapper_RestoreBlockBodyIntoPoolsShouldErrWhenRestoreBl
 		},
 	}
 	marshaledHeader, _ := baseArgs.Marshalizer.Marshal(header)
-	storerMock := genericMocks.NewStorerMockWithDefaults()
+	storerMock := genericMocks.NewStorerMock()
 	_ = storerMock.Put(headerHash, marshaledHeader)
 	baseArgs.Store = &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
@@ -268,7 +268,7 @@ func TestBaseStorageBootstrapper_RestoreBlockBodyIntoPoolsShouldWork(t *testing.
 		},
 	}
 	marshaledHeader, _ := baseArgs.Marshalizer.Marshal(header)
-	storerMock := genericMocks.NewStorerMockWithDefaults()
+	storerMock := genericMocks.NewStorerMock()
 	_ = storerMock.Put(headerHash, marshaledHeader)
 	baseArgs.Store = &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {

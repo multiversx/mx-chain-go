@@ -78,7 +78,7 @@ func TestTrigger_LoadHeaderV1StateAfterSave(t *testing.T) {
 	epoch := uint32(5)
 	arguments := createMockShardEpochStartTriggerArguments()
 	arguments.Epoch = epoch
-	bootStorer := genericMocks.NewStorerMockWithDefaults()
+	bootStorer := genericMocks.NewStorerMock()
 
 	arguments.Storage = &mock.ChainStorerStub{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
@@ -102,7 +102,7 @@ func TestTrigger_LoadHeaderV2StateAfterSave(t *testing.T) {
 	epoch := uint32(5)
 	arguments := createMockShardEpochStartTriggerArguments()
 	arguments.Epoch = epoch
-	bootStorer := genericMocks.NewStorerMockWithDefaults()
+	bootStorer := genericMocks.NewStorerMock()
 
 	arguments.Storage = &mock.ChainStorerStub{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
@@ -130,7 +130,7 @@ func TestTrigger_LoadStateBackwardsCompatibility(t *testing.T) {
 	epoch := uint32(5)
 	arguments := createMockShardEpochStartTriggerArguments()
 	arguments.Epoch = epoch
-	bootStorer := genericMocks.NewStorerMockWithDefaults()
+	bootStorer := genericMocks.NewStorerMock()
 
 	arguments.Storage = &mock.ChainStorerStub{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {

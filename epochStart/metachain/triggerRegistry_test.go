@@ -45,7 +45,7 @@ func TestTrigger_LoadStateAfterSave(t *testing.T) {
 	epoch := uint32(5)
 	arguments := createMockEpochStartTriggerArguments()
 	arguments.Epoch = epoch
-	bootStorer := genericMocks.NewStorerMockWithDefaults()
+	bootStorer := genericMocks.NewStorerMock()
 
 	arguments.Storage = &mock.ChainStorerStub{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
@@ -78,7 +78,7 @@ func TestTrigger_LoadStateBackwardsCompatibility(t *testing.T) {
 	epoch := uint32(5)
 	arguments := createMockEpochStartTriggerArguments()
 	arguments.Epoch = epoch
-	bootStorer := genericMocks.NewStorerMockWithDefaults()
+	bootStorer := genericMocks.NewStorerMock()
 
 	arguments.Storage = &mock.ChainStorerStub{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {

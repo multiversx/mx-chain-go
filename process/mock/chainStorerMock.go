@@ -49,7 +49,7 @@ func (csm *ChainStorerMock) GetStorer(unitType dataRetriever.UnitType) storage.S
 	if csm.GetStorerCalled != nil {
 		return csm.GetStorerCalled(unitType)
 	}
-	return genericMocks.NewStorerMockWithDefaults()
+	return genericMocks.NewStorerMock()
 }
 
 // Has returns true if the key is found in the selected Unit or false otherwise

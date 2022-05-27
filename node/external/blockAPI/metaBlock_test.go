@@ -55,7 +55,7 @@ func TestMetaAPIBlockProcessor_GetBlockByHashInvalidHashShouldErr(t *testing.T) 
 
 	headerHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
 
-	storerMock := genericMocks.NewStorerMockWithDefaults()
+	storerMock := genericMocks.NewStorerMock()
 
 	metaAPIBlockProcessor := createMockMetaAPIProcessor(
 		headerHash,
@@ -74,7 +74,7 @@ func TestMetaAPIBlockProcessor_GetBlockByNonceInvalidNonceShouldErr(t *testing.T
 
 	headerHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
 
-	storerMock := genericMocks.NewStorerMockWithDefaults()
+	storerMock := genericMocks.NewStorerMock()
 
 	metaAPIBlockProcessor := createMockMetaAPIProcessor(
 		headerHash,
@@ -93,7 +93,7 @@ func TestMetaAPIBlockProcessor_GetBlockByRoundInvalidRoundShouldErr(t *testing.T
 
 	headerHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
 
-	storerMock := genericMocks.NewStorerMockWithDefaults()
+	storerMock := genericMocks.NewStorerMock()
 
 	metaAPIBlockProcessor := createMockMetaAPIProcessor(
 		headerHash,

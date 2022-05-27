@@ -227,7 +227,7 @@ func TestGetBlockByHashFromNormalNode(t *testing.T) {
 	epoch := uint32(1)
 	miniblockHeader := []byte("mbHash")
 	headerHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
-	storerMock := genericMocks.NewStorerMockWithDefaults()
+	storerMock := genericMocks.NewStorerMock()
 
 	args := createMockArgsAPIBlockProc()
 	args.SelfShardID = core.MetachainShardId

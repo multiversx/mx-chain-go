@@ -17,8 +17,8 @@ import (
 
 func createDefaultArg() ArgHardforkStorer {
 	return ArgHardforkStorer{
-		KeysStore:   genericMocks.NewStorerMockWithDefaults(),
-		KeyValue:    genericMocks.NewStorerMockWithDefaults(),
+		KeysStore:   genericMocks.NewStorerMock(),
+		KeyValue:    genericMocks.NewStorerMock(),
 		Marshalizer: &mock.MarshalizerMock{},
 	}
 }

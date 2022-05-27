@@ -154,7 +154,7 @@ func (bap *baseAPIBlockProcessor) getAndAttachTxsToMbByEpoch(miniblockHash []byt
 func (bap *baseAPIBlockProcessor) getReceiptsFromMiniblock(miniblock *block.MiniBlock, epoch uint32) []*transaction.ApiReceipt {
 	storer := bap.store.GetStorer(dataRetriever.UnsignedTransactionUnit)
 	start := time.Now()
-	marshalizedReceipts, err := storer.GetBulkFromEpoch(miniblock.TxHashes, epoch)
+	marshalledReceipts, err := storer.GetBulkFromEpoch(miniblock.TxHashes, epoch)
 	if err != nil {
 		log.Warn("cannot get receipts from storage", "error", err.Error())
 		return []*transaction.ApiReceipt{}
@@ -162,7 +162,7 @@ func (bap *baseAPIBlockProcessor) getReceiptsFromMiniblock(miniblock *block.Mini
 	log.Debug(fmt.Sprintf("GetBulkFromEpoch took %s", time.Since(start)))
 
 	apiReceipts := make([]*transaction.ApiReceipt, 0)
-	for _, pair := range marshalizedReceipts {
+	for _, pair := range marshalledReceipts {
 		receipt, errUnmarshal := bap.txUnmarshaller.UnmarshalReceipt(pair.Value)
 		if errUnmarshal != nil {
 			log.Warn("cannot unmarshal receipt",
@@ -186,7 +186,7 @@ func (bap *baseAPIBlockProcessor) getTxsFromMiniblock(
 ) []*transaction.ApiTransactionResult {
 	storer := bap.store.GetStorer(unit)
 	start := time.Now()
-	marshalizedTxs, err := storer.GetBulkFromEpoch(miniblock.TxHashes, epoch)
+	marshalledTxs, err := storer.GetBulkFromEpoch(miniblock.TxHashes, epoch)
 	if err != nil {
 		log.Warn("cannot get from storage transactions",
 			"error", err.Error())
@@ -196,7 +196,7 @@ func (bap *baseAPIBlockProcessor) getTxsFromMiniblock(
 
 	start = time.Now()
 	txs := make([]*transaction.ApiTransactionResult, 0)
-	for _, pair := range marshalizedTxs {
+	for _, pair := range marshalledTxs {
 		tx, errUnmarshalTx := bap.txUnmarshaller.UnmarshalTransaction(pair.Value, txType)
 		if errUnmarshalTx != nil {
 			log.Warn("cannot unmarshal transaction",

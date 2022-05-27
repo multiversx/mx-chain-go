@@ -196,7 +196,8 @@ func (u *Unit) GetBulkFromEpoch(keys [][]byte, _ uint32) ([]common.KeyValuePair,
 			)
 			continue
 		}
-		results = append(results, common.KeyValuePair{Key: key, Value: value})
+		keyValue := common.KeyValuePair{Key: key, Value: value}
+		results = append(results, keyValue)
 	}
 	return results, nil
 }

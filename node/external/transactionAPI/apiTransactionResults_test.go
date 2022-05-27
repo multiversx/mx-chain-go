@@ -139,7 +139,7 @@ func TestPutEventsInTransactionSmartContractResults(t *testing.T) {
 					},
 				}
 			default:
-				return genericMocks.NewStorerMockWithDefaults()
+				return genericMocks.NewStorerMock()
 			}
 		},
 	}

@@ -510,7 +510,8 @@ func (ps *PruningStorer) GetBulkFromEpoch(keys [][]byte, epoch uint32) ([]common
 	for _, key := range keys {
 		v, ok := ps.cacher.Get(key)
 		if ok {
-			results = append(results, common.KeyValuePair{Key: key, Value: v.([]byte)})
+			keyValue := common.KeyValuePair{Key: key, Value: v.([]byte)}
+			results = append(results, keyValue)
 			continue
 		}
 
@@ -523,7 +524,8 @@ func (ps *PruningStorer) GetBulkFromEpoch(keys [][]byte, epoch uint32) ([]common
 			continue
 		}
 
-		results = append(results, common.KeyValuePair{Key: key, Value: res})
+		keyValue := common.KeyValuePair{Key: key, Value: res}
+		results = append(results, keyValue)
 	}
 
 	return results, nil

@@ -44,7 +44,7 @@ func TestShardStorageBootstrapper_LoadFromStorageShouldWork(t *testing.T) {
 	}
 	hdrHash := []byte("header hash")
 	hdrBytes, _ := marshaller.Marshal(hdr)
-	blockStorerMock := genericMocks.NewStorerMockWithDefaults()
+	blockStorerMock := genericMocks.NewStorerMock()
 	_ = blockStorerMock.Put(hdrHash, hdrBytes)
 
 	args := ArgsShardStorageBootstrapper{

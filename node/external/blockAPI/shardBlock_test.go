@@ -56,7 +56,7 @@ func TestShardAPIBlockProcessor_GetBlockByHashInvalidHashShouldErr(t *testing.T)
 	shardID := uint32(3)
 	headerHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
 
-	storerMock := genericMocks.NewStorerMockWithDefaults()
+	storerMock := genericMocks.NewStorerMock()
 
 	shardAPIBlockProcessor := createMockShardAPIProcessor(
 		shardID,
@@ -77,7 +77,7 @@ func TestShardAPIBlockProcessor_GetBlockByNonceInvalidNonceShouldErr(t *testing.
 	shardID := uint32(3)
 	headerHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
 
-	storerMock := genericMocks.NewStorerMockWithDefaults()
+	storerMock := genericMocks.NewStorerMock()
 
 	shardAPIBlockProcessor := createMockShardAPIProcessor(
 		shardID,
@@ -98,7 +98,7 @@ func TestShardAPIBlockProcessor_GetBlockByRoundInvalidRoundShouldErr(t *testing.
 	shardID := uint32(3)
 	headerHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
 
-	storerMock := genericMocks.NewStorerMockWithDefaults()
+	storerMock := genericMocks.NewStorerMock()
 
 	shardAPIBlockProcessor := createMockShardAPIProcessor(
 		shardID,
@@ -123,7 +123,7 @@ func TestShardAPIBlockProcessor_GetBlockByHashFromNormalNode(t *testing.T) {
 	miniblockHeader := []byte("miniBlockHash")
 	headerHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
 
-	storerMock := genericMocks.NewStorerMockWithDefaults()
+	storerMock := genericMocks.NewStorerMock()
 	uint64Converter := mock.NewNonceHashConverterMock()
 
 	shardAPIBlockProcessor := createMockShardAPIProcessor(

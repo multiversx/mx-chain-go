@@ -37,7 +37,7 @@ func TestNewBootstrapStorer_NilMarshalizerShouldErr(t *testing.T) {
 func TestNewBootstrapStorer_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	storer := genericMocks.NewStorerMockWithDefaults()
+	storer := genericMocks.NewStorerMock()
 	bt, err := bootstrapStorage.NewBootstrapStorer(testMarshalizer, storer)
 
 	assert.NotNil(t, bt)
@@ -50,7 +50,7 @@ func TestBootstrapStorer_PutAndGet(t *testing.T) {
 
 	numRounds := int64(10)
 	round := int64(0)
-	storer := genericMocks.NewStorerMockWithDefaults()
+	storer := genericMocks.NewStorerMock()
 	bt, _ := bootstrapStorage.NewBootstrapStorer(testMarshalizer, storer)
 
 	headerInfo := bootstrapStorage.BootstrapHeaderInfo{ShardId: 2, Nonce: 3, Hash: []byte("Hash")}

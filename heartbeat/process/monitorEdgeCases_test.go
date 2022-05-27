@@ -67,7 +67,7 @@ const twoHundredSeconds = 200
 func TestMonitor_ObserverGapValidatorOffline(t *testing.T) {
 	t.Parallel()
 
-	storer, _ := storage.NewHeartbeatDbStorer(genericMocks.NewStorerMockWithDefaults(), &mock.MarshalizerMock{})
+	storer, _ := storage.NewHeartbeatDbStorer(genericMocks.NewStorerMock(), &mock.MarshalizerMock{})
 	timer := mock.NewTimerMock()
 
 	genesisTime := timer.Now()
@@ -104,7 +104,7 @@ func TestMonitor_ObserverGapValidatorOffline(t *testing.T) {
 func TestMonitor_ObserverGapValidatorOnline(t *testing.T) {
 	t.Parallel()
 
-	storer, _ := storage.NewHeartbeatDbStorer(genericMocks.NewStorerMockWithDefaults(), &mock.MarshalizerMock{})
+	storer, _ := storage.NewHeartbeatDbStorer(genericMocks.NewStorerMock(), &mock.MarshalizerMock{})
 
 	timer := mock.NewTimerMock()
 	genesisTime := timer.Now()
@@ -153,7 +153,7 @@ func TestMonitor_ObserverGapValidatorOnline(t *testing.T) {
 func TestMonitor_ObserverGapValidatorActiveUnitlMaxPeriodEnds(t *testing.T) {
 	t.Parallel()
 
-	storer, _ := storage.NewHeartbeatDbStorer(genericMocks.NewStorerMockWithDefaults(), &mock.MarshalizerMock{})
+	storer, _ := storage.NewHeartbeatDbStorer(genericMocks.NewStorerMock(), &mock.MarshalizerMock{})
 
 	timer := mock.NewTimerMock()
 	genesisTime := timer.Now()
@@ -192,7 +192,7 @@ func TestMonitor_ObserverGapValidatorActiveUnitlMaxPeriodEnds(t *testing.T) {
 func TestMonitor_ObserverGapValidatorPartlyOnline1(t *testing.T) {
 	t.Parallel()
 
-	storer, _ := storage.NewHeartbeatDbStorer(genericMocks.NewStorerMockWithDefaults(), &mock.MarshalizerMock{})
+	storer, _ := storage.NewHeartbeatDbStorer(genericMocks.NewStorerMock(), &mock.MarshalizerMock{})
 
 	timer := mock.NewTimerMock()
 	genesisTime := timer.Now()
@@ -244,7 +244,7 @@ func TestMonitor_ObserverGapValidatorPartlyOnline1(t *testing.T) {
 func TestMonitor_ObserverGapValidatorPartlyOnline2(t *testing.T) {
 	t.Parallel()
 
-	storer, _ := storage.NewHeartbeatDbStorer(genericMocks.NewStorerMockWithDefaults(), &mock.MarshalizerMock{})
+	storer, _ := storage.NewHeartbeatDbStorer(genericMocks.NewStorerMock(), &mock.MarshalizerMock{})
 
 	timer := mock.NewTimerMock()
 	genesisTime := timer.Now()
@@ -296,7 +296,7 @@ func TestMonitor_ObserverGapValidatorPartlyOnline2(t *testing.T) {
 func TestMonitor_ObserverGapValidatorPartlyOnline3(t *testing.T) {
 	t.Parallel()
 
-	storer, _ := storage.NewHeartbeatDbStorer(genericMocks.NewStorerMockWithDefaults(), &mock.MarshalizerMock{})
+	storer, _ := storage.NewHeartbeatDbStorer(genericMocks.NewStorerMock(), &mock.MarshalizerMock{})
 
 	timer := mock.NewTimerMock()
 	genesisTime := timer.Now()
@@ -348,7 +348,7 @@ func TestMonitor_ObserverGapValidatorPartlyOnline3(t *testing.T) {
 func TestMonitor_ObserverGapValidatorPartlyOnline4(t *testing.T) {
 	t.Parallel()
 
-	storer, _ := storage.NewHeartbeatDbStorer(genericMocks.NewStorerMockWithDefaults(), &mock.MarshalizerMock{})
+	storer, _ := storage.NewHeartbeatDbStorer(genericMocks.NewStorerMock(), &mock.MarshalizerMock{})
 
 	timer := mock.NewTimerMock()
 	genesisTime := timer.Now()
@@ -397,7 +397,7 @@ func TestMonitor_ObserverGapValidatorPartlyOnline4(t *testing.T) {
 func TestMonitor_ObserverGapValidatorPartlyOnline5(t *testing.T) {
 	t.Parallel()
 
-	storer, _ := storage.NewHeartbeatDbStorer(genericMocks.NewStorerMockWithDefaults(), &mock.MarshalizerMock{})
+	storer, _ := storage.NewHeartbeatDbStorer(genericMocks.NewStorerMock(), &mock.MarshalizerMock{})
 
 	timer := mock.NewTimerMock()
 	genesisTime := timer.Now()
@@ -448,7 +448,7 @@ func TestMonitor_ObserverGapValidatorPartlyOnline5(t *testing.T) {
 func TestMonitor_ObserverGapValidatorPartlyOnline6(t *testing.T) {
 	t.Parallel()
 
-	storer, _ := storage.NewHeartbeatDbStorer(genericMocks.NewStorerMockWithDefaults(), &mock.MarshalizerMock{})
+	storer, _ := storage.NewHeartbeatDbStorer(genericMocks.NewStorerMock(), &mock.MarshalizerMock{})
 
 	timer := mock.NewTimerMock()
 	genesisTime := timer.Now()
@@ -494,7 +494,7 @@ func TestMonitor_ObserverGapValidatorPartlyOnline6(t *testing.T) {
 func TestMonitor_ObserverGapValidatorPartlyOnline7(t *testing.T) {
 	t.Parallel()
 
-	storer, _ := storage.NewHeartbeatDbStorer(genericMocks.NewStorerMockWithDefaults(), &mock.MarshalizerMock{})
+	storer, _ := storage.NewHeartbeatDbStorer(genericMocks.NewStorerMock(), &mock.MarshalizerMock{})
 
 	timer := mock.NewTimerMock()
 	genesisTime := timer.Now()

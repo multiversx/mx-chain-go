@@ -430,7 +430,7 @@ func TestMonitor_ProcessReceivedMessageShouldSetPeerInactive(t *testing.T) {
 	th := mock.NewTimerMock()
 	pubKey1 := "pk1-should-stay-online"
 	pubKey2 := "pk2-should-go-offline"
-	storer, _ := storage.NewHeartbeatDbStorer(genericMocks.NewStorerMockWithDefaults(), &mock.MarshalizerMock{})
+	storer, _ := storage.NewHeartbeatDbStorer(genericMocks.NewStorerMock(), &mock.MarshalizerMock{})
 	arg := createMockArgHeartbeatMonitor()
 	arg.Marshalizer = &mock.MarshalizerStub{
 		UnmarshalHandler: func(obj interface{}, buff []byte) error {
@@ -495,7 +495,7 @@ func TestMonitor_RemoveInactiveValidatorsIfIntervalExceeded(t *testing.T) {
 	pubKey3 := "pk3-observer"
 	pubKey4 := "pk4-inactive"
 
-	storer, _ := storage.NewHeartbeatDbStorer(genericMocks.NewStorerMockWithDefaults(), &mock.MarshalizerMock{})
+	storer, _ := storage.NewHeartbeatDbStorer(genericMocks.NewStorerMock(), &mock.MarshalizerMock{})
 
 	timer := mock.NewTimerMock()
 	genesisTime := timer.Now()

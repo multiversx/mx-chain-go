@@ -275,7 +275,7 @@ func TestInternalBlockProcessor_GetProtoShardBlockByRound(t *testing.T) {
 }
 
 func preapreShardBlockProcessor(nonce uint64, round uint64, headerHash []byte) (*internalBlockProcessor, []byte) {
-	storerMock := genericMocks.NewStorerMockWithDefaults()
+	storerMock := genericMocks.NewStorerMock()
 	uint64Converter := mock.NewNonceHashConverterMock()
 
 	ibp := createMockInternalBlockProcessor(
@@ -521,7 +521,7 @@ func TestInternalBlockProcessor_GetProtoMetaBlockByRound(t *testing.T) {
 }
 
 func prepareMetaBlockProcessor(nonce uint64, round uint64, headerHash []byte) (*internalBlockProcessor, []byte) {
-	storerMock := genericMocks.NewStorerMockWithDefaults()
+	storerMock := genericMocks.NewStorerMock()
 	uint64Converter := mock.NewNonceHashConverterMock()
 
 	ibp := createMockInternalBlockProcessor(

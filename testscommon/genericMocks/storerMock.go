@@ -23,9 +23,14 @@ type StorerMock struct {
 }
 
 // NewStorerMock -
-func NewStorerMock(name string, currentEpoch uint32) *StorerMock {
+func NewStorerMock() *StorerMock {
+	return NewStorerMockWithEpoch(0)
+}
+
+// NewStorerMockWithEpoch -
+func NewStorerMockWithEpoch(currentEpoch uint32) *StorerMock {
 	sm := &StorerMock{
-		Name:        name,
+		Name:        "",
 		DataByEpoch: make(map[uint32]*container.MutexMap),
 	}
 
@@ -33,17 +38,9 @@ func NewStorerMock(name string, currentEpoch uint32) *StorerMock {
 	return sm
 }
 
-func NewStorerMockWithEpoch(currentEpoch uint32) *StorerMock {
-	return NewStorerMock("Storage", currentEpoch)
-}
-
-func NewStorerMockWithDefaults() *StorerMock {
-	return NewStorerMock("Storage", 0)
-}
-
 // NewStorerMockWithErrKeyNotFound -
-func NewStorerMockWithErrKeyNotFound(name string, currentEpoch uint32) *StorerMock {
-	sm := NewStorerMock(name, currentEpoch)
+func NewStorerMockWithErrKeyNotFound(currentEpoch uint32) *StorerMock {
+	sm := NewStorerMockWithEpoch(currentEpoch)
 	sm.shouldReturnErrKeyNotFound = true
 
 	return sm
@@ -94,7 +91,8 @@ func (sm *StorerMock) GetBulkFromEpoch(keys [][]byte, epoch uint32) ([]common.Ke
 	for _, key := range keys {
 		value, ok := data.Get(string(key))
 		if ok {
-			results = append(results, common.KeyValuePair{Key: key, Value: value.([]byte)})
+			keyValue := common.KeyValuePair{Key: key, Value: value.([]byte)}
+			results = append(results, keyValue)
 		}
 	}
 

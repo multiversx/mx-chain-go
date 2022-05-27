@@ -54,6 +54,7 @@ func (sm *StorerMock) GetFromEpoch(key []byte, _ uint32) ([]byte, error) {
 	return sm.Get(key)
 }
 
+// GetBulkFromEpoch -
 func (sm *StorerMock) GetBulkFromEpoch(keys [][]byte, _ uint32) ([]common.KeyValuePair, error) {
 	return nil, errors.New("not implemented")
 }

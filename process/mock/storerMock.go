@@ -22,6 +22,11 @@ func NewStorerMock() *StorerMock {
 	}
 }
 
+// Close -
+func (sm *StorerMock) Close() error {
+	return nil
+}
+
 // Put -
 func (sm *StorerMock) Put(key, data []byte) error {
 	sm.mut.Lock()
@@ -54,7 +59,13 @@ func (sm *StorerMock) GetFromEpoch(key []byte, _ uint32) ([]byte, error) {
 	return sm.Get(key)
 }
 
+// GetBulkFromEpoch -
 func (sm *StorerMock) GetBulkFromEpoch(keys [][]byte, _ uint32) ([]common.KeyValuePair, error) {
+	return nil, errors.New("not implemented")
+}
+
+// SearchFirst -
+func (sm *StorerMock) SearchFirst(_ []byte) ([]byte, error) {
 	return nil, errors.New("not implemented")
 }
 
@@ -63,29 +74,18 @@ func (sm *StorerMock) Has(_ []byte) error {
 	return errors.New("not implemented")
 }
 
-// SearchFirst -
-func (sm *StorerMock) SearchFirst(key []byte) ([]byte, error) {
-	return sm.Get(key)
-}
-
 // RemoveFromCurrentEpoch -
 func (sm *StorerMock) RemoveFromCurrentEpoch(key []byte) error {
-	delete(sm.data, string(key))
-	return nil
+	return sm.Remove(key)
 }
 
 // Remove -
 func (sm *StorerMock) Remove(key []byte) error {
+	sm.mut.Lock()
+	defer sm.mut.Unlock()
+
 	delete(sm.data, string(key))
-	return nil
-}
 
-// ClearCache -
-func (sm *StorerMock) ClearCache() {
-}
-
-// DestroyUnit -
-func (sm *StorerMock) DestroyUnit() error {
 	return nil
 }
 
@@ -94,8 +94,12 @@ func (sm *StorerMock) GetOldestEpoch() (uint32, error) {
 	return 0, nil
 }
 
-// Close -
-func (sm *StorerMock) Close() error {
+// ClearCache -
+func (sm *StorerMock) ClearCache() {
+}
+
+// DestroyUnit -
+func (sm *StorerMock) DestroyUnit() error {
 	return nil
 }
 

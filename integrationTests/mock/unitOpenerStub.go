@@ -12,12 +12,12 @@ type UnitOpenerStub struct {
 
 // OpenDB -
 func (u *UnitOpenerStub) OpenDB(_ config.DBConfig, _ uint32, _ uint32) (storage.Storer, error) {
-	return genericMocks.NewStorerMockWithDefaults(), nil
+	return genericMocks.NewStorerMock(), nil
 }
 
 // GetMostRecentStorageUnit -
 func (u *UnitOpenerStub) GetMostRecentStorageUnit(_ config.DBConfig) (storage.Storer, error) {
-	return genericMocks.NewStorerMockWithDefaults(), nil
+	return genericMocks.NewStorerMock(), nil
 }
 
 // IsInterfaceNil -

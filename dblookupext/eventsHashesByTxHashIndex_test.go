@@ -18,7 +18,7 @@ func TestGetResultsHashesByTxHashShouldErr(t *testing.T) {
 
 	epoch := uint32(0)
 	marshalizerMock := &mock.MarshalizerMock{}
-	storerMock := genericMocks.NewStorerMock("EventsHashesByTxHash", epoch)
+	storerMock := genericMocks.NewStorerMockWithEpoch(epoch)
 
 	eventsHashesIndex := newEventsHashesByTxHash(storerMock, marshalizerMock)
 
@@ -32,7 +32,7 @@ func TestSaveAndGetResultsSCRSHashesByTxHash(t *testing.T) {
 
 	epoch := uint32(0)
 	marshalizerMock := &mock.MarshalizerMock{}
-	storerMock := genericMocks.NewStorerMock("EventsHashesByTxHash", epoch)
+	storerMock := genericMocks.NewStorerMockWithEpoch(epoch)
 
 	eventsHashesIndex := newEventsHashesByTxHash(storerMock, marshalizerMock)
 
@@ -76,7 +76,7 @@ func TestSaveAndGetResultsSCRSHashesByTxHash(t *testing.T) {
 func TestSaveAndGetResultsReceiptsHashesByTxHash(t *testing.T) {
 	epoch := uint32(0)
 	marshalizerMock := &mock.MarshalizerMock{}
-	storerMock := genericMocks.NewStorerMock("EventsHashesByTxHash", epoch)
+	storerMock := genericMocks.NewStorerMockWithEpoch(epoch)
 
 	eventsHashesIndex := newEventsHashesByTxHash(storerMock, marshalizerMock)
 
@@ -107,7 +107,7 @@ func TestGroupSmartContractResults(t *testing.T) {
 
 	epoch := uint32(0)
 	marshalizerMock := &mock.MarshalizerMock{}
-	storerMock := genericMocks.NewStorerMock("EventsHashesByTxHash", epoch)
+	storerMock := genericMocks.NewStorerMockWithEpoch(epoch)
 
 	eventsHashesIndex := newEventsHashesByTxHash(storerMock, marshalizerMock)
 

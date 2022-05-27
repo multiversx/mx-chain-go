@@ -90,12 +90,14 @@ func (fhps *FullHistoryPruningStorer) GetBulkFromEpoch(keys [][]byte, epoch uint
 	for _, key := range keys {
 		dataInCache, found := fhps.cacher.Get(key)
 		if found {
-			results = append(results, common.KeyValuePair{Key: key, Value: dataInCache.([]byte)})
+			keyValue := common.KeyValuePair{Key: key, Value: dataInCache.([]byte)}
+			results = append(results, keyValue)
 			continue
 		}
 		data, errGet := persister.Get(key)
 		if errGet == nil && data != nil {
-			results = append(results, common.KeyValuePair{Key: key, Value: data})
+			keyValue := common.KeyValuePair{Key: key, Value: data}
+			results = append(results, keyValue)
 		}
 	}
 
