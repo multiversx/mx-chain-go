@@ -7,14 +7,24 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/stretchr/testify/assert"
 )
 
+func TestNewPeersOnChannel_NilPeersRatingHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	poc, err := newPeersOnChannel(nil, nil, 1, 1)
+
+	assert.Nil(t, poc)
+	assert.Equal(t, p2p.ErrNilPeersRatingHandler, err)
+}
+
 func TestNewPeersOnChannel_NilFetchPeersHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	poc, err := newPeersOnChannel(nil, 1, 1)
+	poc, err := newPeersOnChannel(&p2pmocks.PeersRatingHandlerStub{}, nil, 1, 1)
 
 	assert.Nil(t, poc)
 	assert.Equal(t, p2p.ErrNilFetchPeersOnTopicHandler, err)
@@ -24,6 +34,7 @@ func TestNewPeersOnChannel_InvalidRefreshIntervalShouldErr(t *testing.T) {
 	t.Parallel()
 
 	poc, err := newPeersOnChannel(
+		&p2pmocks.PeersRatingHandlerStub{},
 		func(topic string) []peer.ID {
 			return nil
 		},
@@ -38,6 +49,7 @@ func TestNewPeersOnChannel_InvalidTTLIntervalShouldErr(t *testing.T) {
 	t.Parallel()
 
 	poc, err := newPeersOnChannel(
+		&p2pmocks.PeersRatingHandlerStub{},
 		func(topic string) []peer.ID {
 			return nil
 		},
@@ -52,6 +64,7 @@ func TestNewPeersOnChannel_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
 	poc, err := newPeersOnChannel(
+		&p2pmocks.PeersRatingHandlerStub{},
 		func(topic string) []peer.ID {
 			return nil
 		},
@@ -71,6 +84,7 @@ func TestPeersOnChannel_ConnectedPeersOnChannelMissingTopicShouldTriggerFetchAnd
 	wasFetchCalled.Store(false)
 
 	poc, _ := newPeersOnChannel(
+		&p2pmocks.PeersRatingHandlerStub{},
 		func(topic string) []peer.ID {
 			if topic == testTopic {
 				wasFetchCalled.Store(true)
@@ -99,6 +113,7 @@ func TestPeersOnChannel_ConnectedPeersOnChannelFindTopicShouldReturn(t *testing.
 	wasFetchCalled.Store(false)
 
 	poc, _ := newPeersOnChannel(
+		&p2pmocks.PeersRatingHandlerStub{},
 		func(topic string) []peer.ID {
 			wasFetchCalled.Store(true)
 			return nil
@@ -131,6 +146,7 @@ func TestPeersOnChannel_RefreshShouldBeDone(t *testing.T) {
 	ttlInterval := time.Duration(2)
 
 	poc, _ := newPeersOnChannel(
+		&p2pmocks.PeersRatingHandlerStub{},
 		func(topic string) []peer.ID {
 			wasFetchCalled.Store(true)
 			return nil

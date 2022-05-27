@@ -1055,7 +1055,8 @@ func mergeVMOutputLogs(newVMOutput *vmcommon.VMOutput, vmOutput *vmcommon.VMOutp
 	if newVMOutput.Logs == nil {
 		newVMOutput.Logs = make([]*vmcommon.LogEntry, 0, len(vmOutput.Logs))
 	}
-	newVMOutput.Logs = append(newVMOutput.Logs, vmOutput.Logs...)
+
+	newVMOutput.Logs = append(vmOutput.Logs, newVMOutput.Logs...)
 }
 
 func (sc *scProcessor) processSCRForSenderAfterBuiltIn(

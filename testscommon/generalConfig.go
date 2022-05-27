@@ -13,6 +13,10 @@ func GetGeneralConfig() config.Config {
 			MinTopUp:  "1",
 			MaxTopUp:  "32000000",
 		},
+		Hardfork: config.HardforkConfig{
+			PublicKeyToListenFrom:     "153dae6cb3963260f309959bf285537b77ae16d82e9933147be7827f7394de8dc97d9d9af41e970bc72aecb44b77e819621081658c37f7000d21e2d0e8963df83233407bde9f46369ba4fcd03b57f40b80b06c191a428cfb5c447ec510e79307",
+			CloseAfterExportInMinutes: 2,
+		},
 		PublicKeyPeerId: config.CacheConfig{
 			Type:     "LRU",
 			Capacity: 5000,
@@ -262,6 +266,25 @@ func GetGeneralConfig() config.Config {
 				},
 			},
 		},
+		HeartbeatV2: config.HeartbeatV2Config{
+			PeerAuthenticationTimeBetweenSendsInSec:          1,
+			PeerAuthenticationTimeBetweenSendsWhenErrorInSec: 1,
+			PeerAuthenticationThresholdBetweenSends:          0.1,
+			HeartbeatTimeBetweenSendsInSec:                   1,
+			HeartbeatTimeBetweenSendsWhenErrorInSec:          1,
+			HeartbeatThresholdBetweenSends:                   0.1,
+			MaxNumOfPeerAuthenticationInResponse:             5,
+			DelayBetweenConnectionNotificationsInSec:         5,
+			HeartbeatExpiryTimespanInSec:                     30,
+			MaxDurationPeerUnresponsiveInSec:                 10,
+			HideInactiveValidatorIntervalInSec:               60,
+			HardforkTimeBetweenSendsInSec:                    5,
+			PeerAuthenticationPool: config.PeerAuthenticationPoolConfig{
+				DefaultSpanInSec: 30,
+				CacheExpiryInSec: 30,
+			},
+			HeartbeatPool: getLRUCacheConfig(),
+		},
 		StatusMetricsStorage: config.StorageConfig{
 			Cache: getLRUCacheConfig(),
 			DB: config.DBConfig{
@@ -376,7 +399,7 @@ func GetGeneralConfig() config.Config {
 		},
 		Resolvers: config.ResolverConfig{
 			NumCrossShardPeers:  2,
-			NumIntraShardPeers:  1,
+			NumTotalPeers:       3,
 			NumFullHistoryPeers: 3,
 		},
 		VirtualMachine: config.VirtualMachineServicesConfig{
@@ -398,6 +421,10 @@ func GetGeneralConfig() config.Config {
 			Type:     "LRU",
 			Capacity: 10000,
 			Name:     "VMOutputCacher",
+		},
+		PeersRatingConfig: config.PeersRatingConfig{
+			TopRatedCacheCapacity: 1000,
+			BadRatedCacheCapacity: 1000,
 		},
 	}
 }
