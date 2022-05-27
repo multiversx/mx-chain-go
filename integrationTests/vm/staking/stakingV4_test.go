@@ -549,7 +549,7 @@ func TestStakingV4_UnStakeNodes(t *testing.T) {
 			0: pubKeys[2:4],
 		},
 		StakingQueueKeys: pubKeys[4:6],
-		TotalStake:       big.NewInt(6 * nodePrice),
+		TotalStake:       big.NewInt(10 * nodePrice),
 	}
 
 	owner2 := "owner2"
@@ -558,9 +558,15 @@ func TestStakingV4_UnStakeNodes(t *testing.T) {
 			0: pubKeys[6:8],
 		},
 		WaitingBlsKeys: map[uint32][][]byte{
-			core.MetachainShardId: pubKeys[8:10],
+			core.MetachainShardId: pubKeys[8:12],
 		},
-		StakingQueueKeys: pubKeys[10:12],
+		StakingQueueKeys: pubKeys[12:15],
+		TotalStake:       big.NewInt(10 * nodePrice),
+	}
+
+	owner3 := "owner3"
+	owner3Stats := &OwnerStats{
+		StakingQueueKeys: pubKeys[15:17],
 		TotalStake:       big.NewInt(6 * nodePrice),
 	}
 
@@ -573,6 +579,7 @@ func TestStakingV4_UnStakeNodes(t *testing.T) {
 		Owners: map[string]*OwnerStats{
 			owner1: owner1Stats,
 			owner2: owner2Stats,
+			owner3: owner3Stats,
 		},
 		MaxNodesChangeConfig: []config.MaxNodesChangeConfig{
 			{
@@ -588,18 +595,20 @@ func TestStakingV4_UnStakeNodes(t *testing.T) {
 	// 1. Check initial config is correct
 	currNodesConfig := node.NodesConfig
 	require.Len(t, getAllPubKeys(currNodesConfig.eligible), 4)
-	require.Len(t, getAllPubKeys(currNodesConfig.waiting), 4)
+	require.Len(t, getAllPubKeys(currNodesConfig.waiting), 6)
 	require.Len(t, currNodesConfig.eligible[core.MetachainShardId], 2)
-	require.Len(t, currNodesConfig.waiting[core.MetachainShardId], 2)
+	require.Len(t, currNodesConfig.waiting[core.MetachainShardId], 4)
 	require.Len(t, currNodesConfig.eligible[0], 2)
 	require.Len(t, currNodesConfig.waiting[0], 2)
 
 	owner1StakingQueue := owner1Stats.StakingQueueKeys
 	owner2StakingQueue := owner2Stats.StakingQueueKeys
+	owner3StakingQueue := owner3Stats.StakingQueueKeys
 	queue := make([][]byte, 0)
 	queue = append(queue, owner1StakingQueue...)
 	queue = append(queue, owner2StakingQueue...)
-	require.Len(t, currNodesConfig.queue, 4)
+	queue = append(queue, owner3StakingQueue...)
+	require.Len(t, currNodesConfig.queue, 7)
 	requireSameSliceDifferentOrder(t, currNodesConfig.queue, queue)
 
 	require.Empty(t, currNodesConfig.shuffledOut)
