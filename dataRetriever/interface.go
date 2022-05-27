@@ -153,6 +153,13 @@ type MiniBlocksResolver interface {
 	RequestDataFromHashArray(hashes [][]byte, epoch uint32) error
 }
 
+// PeerAuthenticationResolver defines what a peer authentication resolver should do
+type PeerAuthenticationResolver interface {
+	Resolver
+	RequestDataFromChunk(chunkIndex uint32, epoch uint32) error
+	RequestDataFromHashArray(hashes [][]byte, epoch uint32) error
+}
+
 // ValidatorInfoResolver defines what a validator info resolver should do
 type ValidatorInfoResolver interface {
 	Resolver
@@ -327,7 +334,10 @@ type PoolsHolder interface {
 	TrieNodesChunks() storage.Cacher
 	SmartContracts() storage.Cacher
 	CurrentBlockTxs() TransactionCacher
+	PeerAuthentications() storage.Cacher
+	Heartbeats() storage.Cacher
 	ValidatorsInfo() storage.Cacher
+	Close() error
 	IsInterfaceNil() bool
 }
 
@@ -429,5 +439,11 @@ type PeersRatingHandler interface {
 // SelfShardIDProvider defines the behavior of a component able to provide the self shard ID
 type SelfShardIDProvider interface {
 	SelfId() uint32
+	IsInterfaceNil() bool
+}
+
+// NodesCoordinator provides Validator methods needed for the peer processing
+type NodesCoordinator interface {
+	GetAllEligibleValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error)
 	IsInterfaceNil() bool
 }

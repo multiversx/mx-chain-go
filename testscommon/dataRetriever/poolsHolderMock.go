@@ -1,6 +1,9 @@
 package dataRetriever
 
 import (
+	"time"
+
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
@@ -8,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/shardedData"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/txpool"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/mapTimeCache"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon/txcachemocks"
 )
@@ -24,6 +28,8 @@ type PoolsHolderMock struct {
 	trieNodesChunks      storage.Cacher
 	smartContracts       storage.Cacher
 	currBlockTxs         dataRetriever.TransactionCacher
+	peerAuthentications  storage.Cacher
+	heartbeats           storage.Cacher
 	validatorsInfo       storage.Cacher
 }
 
@@ -83,6 +89,15 @@ func NewPoolsHolderMock() *PoolsHolderMock {
 	panicIfError("NewPoolsHolderMock", err)
 
 	holder.smartContracts, err = storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 10000, Shards: 1, SizeInBytes: 0})
+	panicIfError("NewPoolsHolderMock", err)
+
+	holder.peerAuthentications, err = mapTimeCache.NewMapTimeCache(mapTimeCache.ArgMapTimeCacher{
+		DefaultSpan: 10 * time.Second,
+		CacheExpiry: 10 * time.Second,
+	})
+	panicIfError("NewPoolsHolderMock", err)
+
+	holder.heartbeats, err = storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 10000, Shards: 1, SizeInBytes: 0})
 	panicIfError("NewPoolsHolderMock", err)
 
 	holder.validatorsInfo, err = storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 10000, Shards: 1, SizeInBytes: 0})
@@ -151,9 +166,39 @@ func (holder *PoolsHolderMock) SmartContracts() storage.Cacher {
 	return holder.smartContracts
 }
 
+// PeerAuthentications -
+func (holder *PoolsHolderMock) PeerAuthentications() storage.Cacher {
+	return holder.peerAuthentications
+}
+
+// Heartbeats -
+func (holder *PoolsHolderMock) Heartbeats() storage.Cacher {
+	return holder.heartbeats
+}
+
 // ValidatorsInfo -
 func (holder *PoolsHolderMock) ValidatorsInfo() storage.Cacher {
 	return holder.validatorsInfo
+}
+
+// Close -
+func (holder *PoolsHolderMock) Close() error {
+	var lastError error
+	if !check.IfNil(holder.trieNodes) {
+		err := holder.trieNodes.Close()
+		if err != nil {
+			lastError = err
+		}
+	}
+
+	if !check.IfNil(holder.peerAuthentications) {
+		err := holder.peerAuthentications.Close()
+		if err != nil {
+			lastError = err
+		}
+	}
+
+	return lastError
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

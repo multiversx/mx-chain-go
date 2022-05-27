@@ -57,6 +57,7 @@ type CoreComponentsMock struct {
 	NodeTypeProviderField        core.NodeTypeProviderHandler
 	ArwenChangeLockerInternal    common.Locker
 	ProcessStatusHandlerInternal common.ProcessStatusHandler
+	HardforkTriggerPubKeyField  []byte
 }
 
 // InternalMarshalizer -
@@ -246,6 +247,11 @@ func (ccm *CoreComponentsMock) ArwenChangeLocker() common.Locker {
 // ProcessStatusHandler -
 func (ccm *CoreComponentsMock) ProcessStatusHandler() common.ProcessStatusHandler {
 	return ccm.ProcessStatusHandlerInternal
+}
+
+// HardforkTriggerPubKey -
+func (ccm *CoreComponentsMock) HardforkTriggerPubKey() []byte {
+	return ccm.HardforkTriggerPubKeyField
 }
 
 // IsInterfaceNil -

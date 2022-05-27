@@ -227,8 +227,18 @@ func TestStatusMetrics_NetworkMetrics(t *testing.T) {
 		"erd_nonces_passed_in_current_epoch": uint64(85),
 	}
 
-	configMetrics, _ := sm.NetworkMetrics()
-	assert.Equal(t, expectedConfig, configMetrics)
+	t.Run("no cross check value", func(t *testing.T) {
+		configMetrics, _ := sm.NetworkMetrics()
+		assert.Equal(t, expectedConfig, configMetrics)
+	})
+	t.Run("with cross check value", func(t *testing.T) {
+		crossCheckValue := "0: 9169897, 1: 9166353, 2: 9170524, "
+		sm.SetStringValue(common.MetricCrossCheckBlockHeight, crossCheckValue)
+
+		configMetrics, _ := sm.NetworkMetrics()
+		expectedConfig[common.MetricCrossCheckBlockHeight] = crossCheckValue
+		assert.Equal(t, expectedConfig, configMetrics)
+	})
 }
 
 func TestStatusMetrics_EnableEpochMetrics(t *testing.T) {
@@ -259,6 +269,7 @@ func TestStatusMetrics_EnableEpochMetrics(t *testing.T) {
 	sm.SetUInt64Value(common.MetricIncrementSCRNonceInMultiTransferEnableEpoch, 3)
 	sm.SetUInt64Value(common.MetricBalanceWaitingListsEnableEpoch, 4)
 	sm.SetUInt64Value(common.MetricWaitingListFixEnableEpoch, 1)
+	sm.SetUInt64Value(common.MetricHeartbeatDisableEpoch, 5)
 
 	maxNodesChangeConfig := []map[string]uint64{
 		{
@@ -321,6 +332,7 @@ func TestStatusMetrics_EnableEpochMetrics(t *testing.T) {
 				common.MetricNodesToShufflePerShard: uint64(5),
 			},
 		},
+		common.MetricHeartbeatDisableEpoch:                       uint64(5),
 	}
 
 	epochsMetrics, _ := sm.EnableEpochsMetrics()

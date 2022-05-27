@@ -3,6 +3,7 @@ package dataRetriever
 import (
 	"fmt"
 	"io/ioutil"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -12,11 +13,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/shardedData"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/txpool"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache/capacity"
+	"github.com/ElrondNetwork/elrond-go/storage/mapTimeCache"
 	"github.com/ElrondNetwork/elrond-go/storage/storageCacherAdapter"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon/txcachemocks"
 	"github.com/ElrondNetwork/elrond-go/trie/factory"
 )
+
+var peerAuthDuration = 10 * time.Second
 
 func panicIfError(message string, err error) {
 	if err != nil {
@@ -112,6 +116,16 @@ func CreatePoolsHolder(numShards uint32, selfShard uint32) dataRetriever.PoolsHo
 	smartContracts, err := storageUnit.NewCache(cacherConfig)
 	panicIfError("CreatePoolsHolder", err)
 
+	peerAuthPool, err := mapTimeCache.NewMapTimeCache(mapTimeCache.ArgMapTimeCacher{
+		DefaultSpan: 60 * time.Second,
+		CacheExpiry: 60 * time.Second,
+	})
+	panicIfError("CreatePoolsHolder", err)
+
+	cacherConfig = storageUnit.CacheConfig{Capacity: 50000, Type: storageUnit.LRUCache}
+	heartbeatPool, err := storageUnit.NewCache(cacherConfig)
+	panicIfError("CreatePoolsHolder", err)
+
 	cacherConfig = storageUnit.CacheConfig{Capacity: 50000, Type: storageUnit.LRUCache}
 	validatorsInfo, err := storageUnit.NewCache(cacherConfig)
 	panicIfError("CreatePoolsHolder", err)
@@ -128,6 +142,8 @@ func CreatePoolsHolder(numShards uint32, selfShard uint32) dataRetriever.PoolsHo
 		TrieNodesChunks:          trieNodesChunks,
 		CurrentBlockTransactions: currentTx,
 		SmartContracts:           smartContracts,
+		PeerAuthentications:      peerAuthPool,
+		Heartbeats:               heartbeatPool,
 		ValidatorsInfo:           validatorsInfo,
 	}
 	holder, err := dataPool.NewDataPool(dataPoolArgs)
@@ -183,6 +199,16 @@ func CreatePoolsHolderWithTxPool(txPool dataRetriever.ShardedDataCacherNotifier)
 	validatorsInfo, err := storageUnit.NewCache(cacherConfig)
 	panicIfError("CreatePoolsHolderWithTxPool", err)
 
+	peerAuthPool, err := mapTimeCache.NewMapTimeCache(mapTimeCache.ArgMapTimeCacher{
+		DefaultSpan: peerAuthDuration,
+		CacheExpiry: peerAuthDuration,
+	})
+	panicIfError("CreatePoolsHolderWithTxPool", err)
+
+	cacherConfig = storageUnit.CacheConfig{Capacity: 50000, Type: storageUnit.LRUCache}
+	heartbeatPool, err := storageUnit.NewCache(cacherConfig)
+	panicIfError("CreatePoolsHolderWithTxPool", err)
+
 	currentTx := dataPool.NewCurrentBlockPool()
 	dataPoolArgs := dataPool.DataPoolArgs{
 		Transactions:             txPool,
@@ -195,6 +221,8 @@ func CreatePoolsHolderWithTxPool(txPool dataRetriever.ShardedDataCacherNotifier)
 		TrieNodesChunks:          trieNodesChunks,
 		CurrentBlockTransactions: currentTx,
 		SmartContracts:           smartContracts,
+		PeerAuthentications:      peerAuthPool,
+		Heartbeats:               heartbeatPool,
 		ValidatorsInfo:           validatorsInfo,
 	}
 	holder, err := dataPool.NewDataPool(dataPoolArgs)

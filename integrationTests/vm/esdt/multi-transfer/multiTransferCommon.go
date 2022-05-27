@@ -20,13 +20,15 @@ import (
 const numRoundsCrossShard = 15
 const numRoundsSameShard = 1
 
-type esdtTransfer struct {
-	tokenIdentifier string
-	nonce           int64
-	amount          int64
+// EsdtTransfer -
+type EsdtTransfer struct {
+	TokenIdentifier string
+	Nonce           int64
+	Amount          int64
 }
 
-func issueFungibleToken(
+// IssueFungibleToken -
+func IssueFungibleToken(
 	t *testing.T,
 	net *integrationTests.TestNetwork,
 	issuerNode *integrationTests.TestProcessorNode,
@@ -48,7 +50,7 @@ func issueFungibleToken(
 		issuePrice,
 		vm.ESDTSCAddress,
 		txData.ToString(), core.MinMetaTxExtraGasCost)
-	waitForOperationCompletion(net, numRoundsCrossShard)
+	WaitForOperationCompletion(net, numRoundsCrossShard)
 
 	tokenIdentifier := integrationTests.GetTokenIdentifier(net.Nodes, []byte(ticker))
 
@@ -58,7 +60,8 @@ func issueFungibleToken(
 	return string(tokenIdentifier)
 }
 
-func issueNft(
+// IssueNft -
+func IssueNft(
 	net *integrationTests.TestNetwork,
 	issuerNode *integrationTests.TestProcessorNode,
 	ticker string,
@@ -85,7 +88,7 @@ func issueNft(
 		vm.ESDTSCAddress,
 		txData.ToString(),
 		core.MinMetaTxExtraGasCost)
-	waitForOperationCompletion(net, numRoundsCrossShard)
+	WaitForOperationCompletion(net, numRoundsCrossShard)
 
 	issuerAddress := issuerNode.OwnAccount.Address
 	tokenIdentifier := string(integrationTests.GetTokenIdentifier(net.Nodes, []byte(ticker)))
@@ -97,12 +100,13 @@ func issueNft(
 		roles = append(roles, []byte(core.ESDTRoleNFTAddQuantity))
 	}
 
-	setLocalRoles(net, issuerNode, issuerAddress, tokenIdentifier, roles)
+	SetLocalRoles(net, issuerNode, issuerAddress, tokenIdentifier, roles)
 
 	return tokenIdentifier
 }
 
-func setLocalRoles(
+// SetLocalRoles -
+func SetLocalRoles(
 	net *integrationTests.TestNetwork,
 	issuerNode *integrationTests.TestProcessorNode,
 	addrForRole []byte,
@@ -124,10 +128,11 @@ func setLocalRoles(
 		vm.ESDTSCAddress,
 		txData,
 		core.MinMetaTxExtraGasCost)
-	waitForOperationCompletion(net, numRoundsCrossShard)
+	WaitForOperationCompletion(net, numRoundsCrossShard)
 }
 
-func createSFT(
+// CreateSFT -
+func CreateSFT(
 	t *testing.T,
 	net *integrationTests.TestNetwork,
 	issuerNode *integrationTests.TestProcessorNode,
@@ -161,13 +166,14 @@ func createSFT(
 		issuerAddress,
 		txData.ToString(),
 		integrationTests.AdditionalGasLimit)
-	waitForOperationCompletion(net, numRoundsSameShard)
+	WaitForOperationCompletion(net, numRoundsSameShard)
 
 	esdt.CheckAddressHasTokens(t, issuerAddress, net.Nodes,
 		[]byte(tokenIdentifier), createdTokenNonce, initialSupply)
 }
 
-func createNFT(
+// CreateNFT -
+func CreateNFT(
 	t *testing.T,
 	net *integrationTests.TestNetwork,
 	issuerNode *integrationTests.TestProcessorNode,
@@ -175,12 +181,13 @@ func createNFT(
 	createdTokenNonce int64,
 ) {
 
-	createSFT(t, net, issuerNode, tokenIdentifier, createdTokenNonce, 1)
+	CreateSFT(t, net, issuerNode, tokenIdentifier, createdTokenNonce, 1)
 }
 
-func buildEsdtMultiTransferTxData(
+// BuildEsdtMultiTransferTxData -
+func BuildEsdtMultiTransferTxData(
 	receiverAddress []byte,
-	transfers []*esdtTransfer,
+	transfers []*EsdtTransfer,
 	endpointName string,
 	arguments ...[]byte,
 ) string {
@@ -193,9 +200,9 @@ func buildEsdtMultiTransferTxData(
 	txData.Int(nrTransfers)
 
 	for _, transfer := range transfers {
-		txData.Str(transfer.tokenIdentifier)
-		txData.Int64(transfer.nonce)
-		txData.Int64(transfer.amount)
+		txData.Str(transfer.TokenIdentifier)
+		txData.Int64(transfer.Nonce)
+		txData.Int64(transfer.Amount)
 	}
 
 	if len(endpointName) > 0 {
@@ -209,17 +216,19 @@ func buildEsdtMultiTransferTxData(
 	return txData.ToString()
 }
 
-func waitForOperationCompletion(net *integrationTests.TestNetwork, roundsToWait int) {
+// WaitForOperationCompletion -
+func WaitForOperationCompletion(net *integrationTests.TestNetwork, roundsToWait int) {
 	time.Sleep(time.Second)
 	net.Steps(roundsToWait)
 }
 
-func multiTransferToVault(
+// MultiTransferToVault -
+func MultiTransferToVault(
 	t *testing.T,
 	net *integrationTests.TestNetwork,
 	senderNode *integrationTests.TestProcessorNode,
 	vaultScAddress []byte,
-	transfers []*esdtTransfer,
+	transfers []*EsdtTransfer,
 	nrRoundsToWait int,
 	userBalances map[string]map[int64]int64,
 	scBalances map[string]map[int64]int64,
@@ -228,7 +237,7 @@ func multiTransferToVault(
 	acceptMultiTransferEndpointName := "accept_funds_multi_transfer"
 	senderAddress := senderNode.OwnAccount.Address
 
-	txData := buildEsdtMultiTransferTxData(vaultScAddress,
+	txData := BuildEsdtMultiTransferTxData(vaultScAddress,
 		transfers,
 		acceptMultiTransferEndpointName,
 	)
@@ -241,27 +250,28 @@ func multiTransferToVault(
 		txData,
 		integrationTests.AdditionalGasLimit,
 	)
-	waitForOperationCompletion(net, nrRoundsToWait)
+	WaitForOperationCompletion(net, nrRoundsToWait)
 
 	// update expected balances after transfers
 	for _, transfer := range transfers {
-		userBalances[transfer.tokenIdentifier][transfer.nonce] -= transfer.amount
-		scBalances[transfer.tokenIdentifier][transfer.nonce] += transfer.amount
+		userBalances[transfer.TokenIdentifier][transfer.Nonce] -= transfer.Amount
+		scBalances[transfer.TokenIdentifier][transfer.Nonce] += transfer.Amount
 	}
 
 	// check expected vs actual values
 	for _, transfer := range transfers {
-		expectedUserBalance := userBalances[transfer.tokenIdentifier][transfer.nonce]
-		expectedScBalance := scBalances[transfer.tokenIdentifier][transfer.nonce]
+		expectedUserBalance := userBalances[transfer.TokenIdentifier][transfer.Nonce]
+		expectedScBalance := scBalances[transfer.TokenIdentifier][transfer.Nonce]
 
 		esdt.CheckAddressHasTokens(t, senderAddress, net.Nodes,
-			[]byte(transfer.tokenIdentifier), transfer.nonce, expectedUserBalance)
+			[]byte(transfer.TokenIdentifier), transfer.Nonce, expectedUserBalance)
 		esdt.CheckAddressHasTokens(t, vaultScAddress, net.Nodes,
-			[]byte(transfer.tokenIdentifier), transfer.nonce, expectedScBalance)
+			[]byte(transfer.TokenIdentifier), transfer.Nonce, expectedScBalance)
 	}
 }
 
-func deployNonPayableSmartContract(
+// DeployNonPayableSmartContract -
+func DeployNonPayableSmartContract(
 	t *testing.T,
 	net *integrationTests.TestNetwork,
 	deployerNode *integrationTests.TestProcessorNode,
@@ -281,10 +291,323 @@ func deployNonPayableSmartContract(
 		arwen.CreateDeployTxDataNonPayable(scCode),
 		integrationTests.AdditionalGasLimit,
 	)
-	waitForOperationCompletion(net, 4)
+	WaitForOperationCompletion(net, 4)
 
 	_, err := deployerNode.AccntState.GetExistingAccount(scAddress)
 	require.Nil(t, err)
 
 	return scAddress
+}
+
+// EsdtMultiTransferToVault -
+func EsdtMultiTransferToVault(t *testing.T, crossShard bool, scCodeFilename string) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	// For cross shard, we use 2 nodes, with node[1] being the SC deployer, and node[0] being the caller
+	numShards := 1
+	nrRoundsToWait := numRoundsSameShard
+
+	if crossShard {
+		numShards = 2
+		nrRoundsToWait = numRoundsCrossShard
+	}
+
+	net := integrationTests.NewTestNetworkSized(t, numShards, 1, 1)
+	net.Start()
+	defer net.Close()
+
+	net.MintNodeAccountsUint64(10000000000)
+	net.Step()
+
+	senderNode := net.NodesSharded[0][0]
+	if crossShard {
+		senderNode = net.NodesSharded[1][0]
+	}
+
+	expectedIssuerBalance := make(map[string]map[int64]int64)
+	expectedVaultBalance := make(map[string]map[int64]int64)
+
+	// deploy vault SC
+	vaultScAddress := DeployNonPayableSmartContract(t, net, net.NodesSharded[0][0], scCodeFilename)
+
+	// issue two fungible tokens
+	fungibleTokenIdentifier1 := IssueFungibleToken(t, net, senderNode, "FUNG1", 1000)
+	fungibleTokenIdentifier2 := IssueFungibleToken(t, net, senderNode, "FUNG2", 1000)
+
+	expectedIssuerBalance[fungibleTokenIdentifier1] = make(map[int64]int64)
+	expectedIssuerBalance[fungibleTokenIdentifier2] = make(map[int64]int64)
+	expectedVaultBalance[fungibleTokenIdentifier1] = make(map[int64]int64)
+	expectedVaultBalance[fungibleTokenIdentifier2] = make(map[int64]int64)
+
+	expectedIssuerBalance[fungibleTokenIdentifier1][0] = 1000
+	expectedIssuerBalance[fungibleTokenIdentifier2][0] = 1000
+
+	// issue two NFT, with multiple NFTCreate
+	nonFungibleTokenIdentifier1 := IssueNft(net, senderNode, "NFT1", false)
+	nonFungibleTokenIdentifier2 := IssueNft(net, senderNode, "NFT2", false)
+
+	expectedIssuerBalance[nonFungibleTokenIdentifier1] = make(map[int64]int64)
+	expectedIssuerBalance[nonFungibleTokenIdentifier2] = make(map[int64]int64)
+
+	expectedVaultBalance[nonFungibleTokenIdentifier1] = make(map[int64]int64)
+	expectedVaultBalance[nonFungibleTokenIdentifier2] = make(map[int64]int64)
+
+	for i := int64(1); i <= 10; i++ {
+		CreateNFT(t, net, senderNode, nonFungibleTokenIdentifier1, i)
+		CreateNFT(t, net, senderNode, nonFungibleTokenIdentifier2, i)
+
+		expectedIssuerBalance[nonFungibleTokenIdentifier1][i] = 1
+		expectedIssuerBalance[nonFungibleTokenIdentifier2][i] = 1
+	}
+
+	// issue two SFTs, with two NFTCreate for each
+	semiFungibleTokenIdentifier1 := IssueNft(net, senderNode, "SFT1", true)
+	semiFungibleTokenIdentifier2 := IssueNft(net, senderNode, "SFT2", true)
+
+	expectedIssuerBalance[semiFungibleTokenIdentifier1] = make(map[int64]int64)
+	expectedIssuerBalance[semiFungibleTokenIdentifier2] = make(map[int64]int64)
+
+	expectedVaultBalance[semiFungibleTokenIdentifier1] = make(map[int64]int64)
+	expectedVaultBalance[semiFungibleTokenIdentifier2] = make(map[int64]int64)
+
+	for i := int64(1); i <= 2; i++ {
+		CreateSFT(t, net, senderNode, semiFungibleTokenIdentifier1, i, 1000)
+		CreateSFT(t, net, senderNode, semiFungibleTokenIdentifier2, i, 1000)
+
+		expectedIssuerBalance[semiFungibleTokenIdentifier1][i] = 1000
+		expectedIssuerBalance[semiFungibleTokenIdentifier2][i] = 1000
+	}
+
+	// send a single ESDT with multi-transfer
+	transfers := []*EsdtTransfer{
+		{
+			TokenIdentifier: fungibleTokenIdentifier1,
+			Nonce:           0,
+			Amount:          100,
+		}}
+	MultiTransferToVault(t, net, senderNode,
+		vaultScAddress, transfers, nrRoundsToWait,
+		expectedIssuerBalance, expectedVaultBalance,
+	)
+
+	// send two identical transfers with multi-transfer
+	transfers = []*EsdtTransfer{
+		{
+			TokenIdentifier: fungibleTokenIdentifier1,
+			Nonce:           0,
+			Amount:          50,
+		},
+		{
+			TokenIdentifier: fungibleTokenIdentifier1,
+			Nonce:           0,
+			Amount:          50,
+		}}
+	MultiTransferToVault(t, net, senderNode,
+		vaultScAddress, transfers, nrRoundsToWait,
+		expectedIssuerBalance, expectedVaultBalance,
+	)
+
+	// send two different transfers amounts, same token
+	transfers = []*EsdtTransfer{
+		{
+			TokenIdentifier: fungibleTokenIdentifier1,
+			Nonce:           0,
+			Amount:          50,
+		},
+		{
+			TokenIdentifier: fungibleTokenIdentifier1,
+			Nonce:           0,
+			Amount:          100,
+		}}
+	MultiTransferToVault(t, net, senderNode,
+		vaultScAddress, transfers, nrRoundsToWait,
+		expectedIssuerBalance, expectedVaultBalance,
+	)
+
+	// send two different tokens, same amount
+	transfers = []*EsdtTransfer{
+		{
+			TokenIdentifier: fungibleTokenIdentifier1,
+			Nonce:           0,
+			Amount:          100,
+		},
+		{
+			TokenIdentifier: fungibleTokenIdentifier2,
+			Nonce:           0,
+			Amount:          100,
+		}}
+	MultiTransferToVault(t, net, senderNode,
+		vaultScAddress, transfers, nrRoundsToWait,
+		expectedIssuerBalance, expectedVaultBalance,
+	)
+
+	// send single NFT
+	transfers = []*EsdtTransfer{
+		{
+			TokenIdentifier: nonFungibleTokenIdentifier1,
+			Nonce:           1,
+			Amount:          1,
+		}}
+	MultiTransferToVault(t, net, senderNode,
+		vaultScAddress, transfers, nrRoundsToWait,
+		expectedIssuerBalance, expectedVaultBalance,
+	)
+
+	// send two NFTs, same token ID
+	transfers = []*EsdtTransfer{
+		{
+			TokenIdentifier: nonFungibleTokenIdentifier1,
+			Nonce:           2,
+			Amount:          1,
+		},
+		{
+			TokenIdentifier: nonFungibleTokenIdentifier1,
+			Nonce:           3,
+			Amount:          1,
+		}}
+	MultiTransferToVault(t, net, senderNode,
+		vaultScAddress, transfers, nrRoundsToWait,
+		expectedIssuerBalance, expectedVaultBalance,
+	)
+
+	// send two NFTs, different token ID
+	transfers = []*EsdtTransfer{
+		{
+			TokenIdentifier: nonFungibleTokenIdentifier1,
+			Nonce:           4,
+			Amount:          1,
+		},
+		{
+			TokenIdentifier: nonFungibleTokenIdentifier2,
+			Nonce:           1,
+			Amount:          1,
+		}}
+	MultiTransferToVault(t, net, senderNode,
+		vaultScAddress, transfers, nrRoundsToWait,
+		expectedIssuerBalance, expectedVaultBalance,
+	)
+
+	// send fours NFTs, two of each different token ID
+	transfers = []*EsdtTransfer{
+		{
+			TokenIdentifier: nonFungibleTokenIdentifier1,
+			Nonce:           5,
+			Amount:          1,
+		},
+		{
+			TokenIdentifier: nonFungibleTokenIdentifier2,
+			Nonce:           2,
+			Amount:          1,
+		},
+		{
+			TokenIdentifier: nonFungibleTokenIdentifier1,
+			Nonce:           6,
+			Amount:          1,
+		},
+		{
+			TokenIdentifier: nonFungibleTokenIdentifier2,
+			Nonce:           3,
+			Amount:          1,
+		}}
+	MultiTransferToVault(t, net, senderNode,
+		vaultScAddress, transfers, nrRoundsToWait,
+		expectedIssuerBalance, expectedVaultBalance,
+	)
+
+	// send single SFT
+	transfers = []*EsdtTransfer{
+		{
+			TokenIdentifier: semiFungibleTokenIdentifier1,
+			Nonce:           1,
+			Amount:          100,
+		}}
+	MultiTransferToVault(t, net, senderNode,
+		vaultScAddress, transfers, nrRoundsToWait,
+		expectedIssuerBalance, expectedVaultBalance,
+	)
+
+	// send two SFTs, same token ID
+	transfers = []*EsdtTransfer{
+		{
+			TokenIdentifier: semiFungibleTokenIdentifier1,
+			Nonce:           1,
+			Amount:          100,
+		},
+		{
+			TokenIdentifier: semiFungibleTokenIdentifier1,
+			Nonce:           2,
+			Amount:          100,
+		}}
+	MultiTransferToVault(t, net, senderNode,
+		vaultScAddress, transfers, nrRoundsToWait,
+		expectedIssuerBalance, expectedVaultBalance,
+	)
+
+	// send two SFTs, different token ID
+	transfers = []*EsdtTransfer{
+		{
+			TokenIdentifier: semiFungibleTokenIdentifier1,
+			Nonce:           1,
+			Amount:          100,
+		},
+		{
+			TokenIdentifier: semiFungibleTokenIdentifier2,
+			Nonce:           1,
+			Amount:          100,
+		}}
+	MultiTransferToVault(t, net, senderNode,
+		vaultScAddress, transfers, nrRoundsToWait,
+		expectedIssuerBalance, expectedVaultBalance,
+	)
+
+	// send fours SFTs, two of each different token ID
+	transfers = []*EsdtTransfer{
+		{
+			TokenIdentifier: semiFungibleTokenIdentifier1,
+			Nonce:           1,
+			Amount:          100,
+		},
+		{
+			TokenIdentifier: semiFungibleTokenIdentifier2,
+			Nonce:           2,
+			Amount:          100,
+		},
+		{
+			TokenIdentifier: semiFungibleTokenIdentifier1,
+			Nonce:           2,
+			Amount:          50,
+		},
+		{
+			TokenIdentifier: semiFungibleTokenIdentifier2,
+			Nonce:           1,
+			Amount:          200,
+		}}
+	MultiTransferToVault(t, net, senderNode,
+		vaultScAddress, transfers, nrRoundsToWait,
+		expectedIssuerBalance, expectedVaultBalance,
+	)
+
+	// transfer all 3 types
+	transfers = []*EsdtTransfer{
+		{
+			TokenIdentifier: fungibleTokenIdentifier1,
+			Nonce:           0,
+			Amount:          100,
+		},
+		{
+			TokenIdentifier: semiFungibleTokenIdentifier2,
+			Nonce:           2,
+			Amount:          100,
+		},
+		{
+			TokenIdentifier: nonFungibleTokenIdentifier1,
+			Nonce:           7,
+			Amount:          1,
+		}}
+	MultiTransferToVault(t, net, senderNode,
+		vaultScAddress, transfers, nrRoundsToWait,
+		expectedIssuerBalance, expectedVaultBalance,
+	)
 }

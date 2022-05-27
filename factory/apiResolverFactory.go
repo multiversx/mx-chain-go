@@ -115,6 +115,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		args.Configs.EpochConfig.EnableEpochs.ESDTTransferRoleEnableEpoch,
 		args.Configs.EpochConfig.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch,
 		args.Configs.EpochConfig.EnableEpochs.OptimizeNFTStoreEnableEpoch,
+		args.Configs.EpochConfig.EnableEpochs.CheckCorrectTokenIDForTransferRoleEnableEpoch,
 	)
 	if err != nil {
 		return nil, err
@@ -284,6 +285,7 @@ func createScQueryElement(
 		args.epochConfig.EnableEpochs.ESDTTransferRoleEnableEpoch,
 		args.epochConfig.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch,
 		args.epochConfig.EnableEpochs.OptimizeNFTStoreEnableEpoch,
+		args.epochConfig.EnableEpochs.CheckCorrectTokenIDForTransferRoleEnableEpoch,
 	)
 	if err != nil {
 		return nil, err
@@ -394,6 +396,7 @@ func createScQueryElement(
 		ArwenChangeLocker:        args.coreComponents.ArwenChangeLocker(),
 		Bootstrapper:             args.bootstrapper,
 		AllowExternalQueriesChan: args.allowVMQueriesChan,
+		MaxGasLimitPerQuery:      args.generalConfig.VirtualMachine.GasConfig.MaxGasPerVmQuery,
 	}
 
 	return smartContract.NewSCQueryService(argsNewSCQueryService)
@@ -410,19 +413,21 @@ func createBuiltinFuncs(
 	esdtTransferRoleEnableEpoch uint32,
 	transferToMetaEnableEpoch uint32,
 	optimizeNFTStoreEnableEpoch uint32,
+	checkCorrectTokenIDEnableEpoch uint32,
 ) (vmcommon.BuiltInFunctionContainer, vmcommon.SimpleESDTNFTStorageHandler, error) {
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:                  gasScheduleNotifier,
-		MapDNSAddresses:              make(map[string]struct{}),
-		Marshalizer:                  marshalizer,
-		Accounts:                     accnts,
-		ShardCoordinator:             shardCoordinator,
-		EpochNotifier:                epochNotifier,
-		ESDTMultiTransferEnableEpoch: esdtMultiTransferEnableEpoch,
-		ESDTTransferRoleEnableEpoch:  esdtTransferRoleEnableEpoch,
-		GlobalMintBurnDisableEpoch:   esdtGlobalMintBurnDisableEpoch,
-		ESDTTransferMetaEnableEpoch:  transferToMetaEnableEpoch,
-		OptimizeNFTStoreEnableEpoch:  optimizeNFTStoreEnableEpoch,
+		GasSchedule:                    gasScheduleNotifier,
+		MapDNSAddresses:                make(map[string]struct{}),
+		Marshalizer:                    marshalizer,
+		Accounts:                       accnts,
+		ShardCoordinator:               shardCoordinator,
+		EpochNotifier:                  epochNotifier,
+		ESDTMultiTransferEnableEpoch:   esdtMultiTransferEnableEpoch,
+		ESDTTransferRoleEnableEpoch:    esdtTransferRoleEnableEpoch,
+		GlobalMintBurnDisableEpoch:     esdtGlobalMintBurnDisableEpoch,
+		ESDTTransferMetaEnableEpoch:    transferToMetaEnableEpoch,
+		OptimizeNFTStoreEnableEpoch:    optimizeNFTStoreEnableEpoch,
+		CheckCorrectTokenIDEnableEpoch: checkCorrectTokenIDEnableEpoch,
 	}
 	return builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
 }
