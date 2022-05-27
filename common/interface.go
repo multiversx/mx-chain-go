@@ -132,3 +132,77 @@ type ProcessStatusHandler interface {
 	IsIdle() bool
 	IsInterfaceNil() bool
 }
+
+// EnableEpochsHandler is used to verify the which flags are set in the current epoch based on EnableEpochs config
+type EnableEpochsHandler interface {
+	BlockGasAndFeesReCheckEnableEpoch() uint32
+	IsSCDeployFlagEnabled() bool
+	IsBuiltInFunctionsFlagEnabled() bool
+	IsRelayedTransactionsFlagEnabled() bool
+	IsPenalizedTooMuchGasFlagEnabled() bool
+	IsSwitchJailWaitingFlagEnabled() bool
+	IsBelowSignedThresholdFlagEnabled() bool
+	IsSwitchHysteresisForMinNodesFlagEnabled() bool
+	IsTransactionSignedWithTxHashFlagEnabled() bool
+	IsMetaProtectionFlagEnabled() bool
+	IsAheadOfTimeGasUsageFlagEnabled() bool
+	IsGasPriceModifierFlagEnabled() bool
+	IsRepairCallbackFlagEnabled() bool
+	IsBalanceWaitingListsFlagEnabled() bool
+	IsReturnDataToLastTransferFlagEnabled() bool
+	IsSenderInOutTransferFlagEnabled() bool
+	IsStakeFlagEnabled() bool
+	IsStakingV2FlagEnabled() bool
+	IsStakingV2OwnerFlagEnabled() bool
+	IsStakingV2DelegationFlagEnabled() bool
+	IsDoubleKeyProtectionFlagEnabled() bool
+	IsESDTFlagEnabled() bool
+	IsESDTFlagEnabledForCurrentEpoch() bool
+	IsGovernanceFlagEnabled() bool
+	IsGovernanceFlagEnabledForCurrentEpoch() bool
+	IsDelegationManagerFlagEnabled() bool
+	IsDelegationSmartContractFlagEnabled() bool
+	IsCorrectLastUnJailedFlagEnabled() bool
+	IsCorrectLastUnJailedFlagEnabledForCurrentEpoch() bool
+	IsRelayedTransactionsV2FlagEnabled() bool
+	IsUnBondTokensV2FlagEnabled() bool
+	IsSaveJailedAlwaysFlagEnabled() bool
+	IsReDelegateBelowMinCheckFlagEnabled() bool
+	IsValidatorToDelegationFlagEnabled() bool
+	IsWaitingListFixFlagEnabled() bool
+	IsIncrementSCRNonceInMultiTransferFlagEnabled() bool
+	IsESDTMultiTransferFlagEnabled() bool
+	IsGlobalMintBurnFlagEnabled() bool
+	IsESDTTransferRoleFlagEnabled() bool
+	IsBuiltInFunctionOnMetaFlagEnabled() bool
+	IsComputeRewardCheckpointFlagEnabled() bool
+	IsSCRSizeInvariantCheckFlagEnabled() bool
+	IsBackwardCompSaveKeyValueFlagEnabled() bool
+	IsESDTNFTCreateOnMultiShardFlagEnabled() bool
+	IsMetaESDTSetFlagEnabled() bool
+	IsAddTokensToDelegationFlagEnabled() bool
+	IsMultiESDTTransferFixOnCallBackFlagEnabled() bool
+	IsOptimizeGasUsedInCrossMiniBlocksFlagEnabled() bool
+	IsCorrectFirstQueuedFlagEnabled() bool
+	IsDeleteDelegatorAfterClaimRewardsFlagEnabled() bool
+	IsFixOOGReturnCodeFlagEnabled() bool
+	IsRemoveNonUpdatedStorageFlagEnabled() bool
+	IsOptimizeNFTStoreFlagEnabled() bool
+	IsCreateNFTThroughExecByCallerFlagEnabled() bool
+	IsStopDecreasingValidatorRatingWhenStuckFlagEnabled() bool
+	IsFrontRunningProtectionFlagEnabled() bool
+	IsPayableBySCFlagEnabled() bool
+	IsCleanUpInformativeSCRsFlagEnabled() bool
+	IsStorageAPICostOptimizationFlagEnabled() bool
+	IsESDTRegisterAndSetAllRolesFlagEnabled() bool
+	IsScheduledMiniBlocksFlagEnabled() bool
+	IsCorrectJailedNotUnStakedEmptyQueueFlagEnabled() bool
+	IsDoNotReturnOldBlockInBlockchainHookFlagEnabled() bool
+	IsSCRSizeInvariantOnBuiltInResultFlagEnabled() bool
+	IsCheckCorrectTokenIDForTransferRoleFlagEnabled() bool
+	IsFailExecutionOnEveryAPIErrorFlagEnabled() bool
+	IsHeartbeatDisableFlagEnabled() bool
+	IsMiniBlockPartialExecutionFlagEnabled() bool
+
+	IsInterfaceNil() bool
+}
