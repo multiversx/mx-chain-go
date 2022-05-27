@@ -338,11 +338,11 @@ func (context *TestContext) initTxProcessorWithOneSCExecutorWithVMs() {
 		GasHandler: &testscommon.GasHandlerStub{
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
-		GasSchedule:       mock.NewGasScheduleNotifierMock(gasSchedule),
-		TxLogsProcessor:   logsProcessor,
-		EpochNotifier:     forking.NewGenericEpochNotifier(),
-		ArwenChangeLocker: context.ArwenChangeLocker,
-		VMOutputCacher:    txcache.NewDisabledCache(),
+		GasSchedule:         mock.NewGasScheduleNotifierMock(gasSchedule),
+		TxLogsProcessor:     logsProcessor,
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+		ArwenChangeLocker:   context.ArwenChangeLocker,
+		VMOutputCacher:      txcache.NewDisabledCache(),
 	}
 	sc, err := smartContract.NewSmartContractProcessor(argsNewSCProcessor)
 	context.ScProcessor = smartContract.NewTestScProcessor(sc)

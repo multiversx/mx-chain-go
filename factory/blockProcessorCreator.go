@@ -225,10 +225,9 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		TxTypeHandler:       txTypeHandler,
 		IsGenesisProcessing: false,
 		BadTxForwarder:      badTxInterim,
-		EpochNotifier:       pcf.epochNotifier,
+		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
 		VMOutputCacher:      txcache.NewDisabledCache(),
 		ArwenChangeLocker:   arwenChangeLocker,
-		EnableEpochs:        enableEpochs,
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	if err != nil {
@@ -535,10 +534,9 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		TxLogsProcessor:     pcf.txLogsProcessor,
 		IsGenesisProcessing: false,
 		BadTxForwarder:      badTxForwarder,
-		EpochNotifier:       pcf.epochNotifier,
+		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
 		VMOutputCacher:      txcache.NewDisabledCache(),
 		ArwenChangeLocker:   arwenChangeLocker,
-		EnableEpochs:        enableEpochs,
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	if err != nil {

@@ -460,6 +460,8 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 		return nil, err
 	}
 
+	enableEpochsHandler, _ := enableEpochs.NewEnableEpochsHandler(enableEpochsConfig, forking.NewGenericEpochNotifier())
+
 	argsNewSCProcessor := smartContract.ArgsNewSmartContractProcessor{
 		VmContainer:      vmContainer,
 		ArgsParser:       smartContract.NewArgumentParser(),
@@ -478,16 +480,13 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 		GasHandler: &testscommon.GasHandlerStub{
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
-		GasSchedule:       mock.NewGasScheduleNotifierMock(gasSchedule),
-		TxLogsProcessor:   &mock.TxLogsProcessorStub{},
-		EpochNotifier:     forking.NewGenericEpochNotifier(),
-		EnableEpochs:      enableEpochsConfig,
-		VMOutputCacher:    txcache.NewDisabledCache(),
-		ArwenChangeLocker: arwenChangeLocker,
+		GasSchedule:         mock.NewGasScheduleNotifierMock(gasSchedule),
+		TxLogsProcessor:     &mock.TxLogsProcessorStub{},
+		EnableEpochsHandler: enableEpochsHandler,
+		VMOutputCacher:      txcache.NewDisabledCache(),
+		ArwenChangeLocker:   arwenChangeLocker,
 	}
 	scProcessor, _ := smartContract.NewSmartContractProcessor(argsNewSCProcessor)
-
-	enableEpochsHandler, _ := enableEpochs.NewEnableEpochsHandler(enableEpochsConfig, forking.NewGenericEpochNotifier())
 
 	argsNewTxProcessor := transaction.ArgsNewTxProcessor{
 		Accounts:            accnts,
@@ -808,29 +807,30 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		SaveInStorageEnabled: false,
 		Marshalizer:          testMarshalizer,
 	})
+
+	enableEpochsHandler, _ := enableEpochs.NewEnableEpochsHandler(enableEpochsConfig, epochNotifierInstance)
 	intermediateTxHandler := &mock.IntermediateTransactionHandlerMock{}
 	argsNewSCProcessor := smartContract.ArgsNewSmartContractProcessor{
-		VmContainer:       vmContainer,
-		ArgsParser:        smartContract.NewArgumentParser(),
-		Hasher:            testHasher,
-		Marshalizer:       testMarshalizer,
-		AccountsDB:        accnts,
-		BlockChainHook:    blockChainHook,
-		BuiltInFunctions:  blockChainHook.GetBuiltinFunctionsContainer(),
-		PubkeyConv:        pubkeyConv,
-		ShardCoordinator:  shardCoordinator,
-		ScrForwarder:      intermediateTxHandler,
-		BadTxForwarder:    intermediateTxHandler,
-		TxFeeHandler:      feeAccumulator,
-		EconomicsFee:      economicsData,
-		TxTypeHandler:     txTypeHandler,
-		GasHandler:        gasComp,
-		GasSchedule:       mock.NewGasScheduleNotifierMock(gasSchedule),
-		TxLogsProcessor:   logProc,
-		EpochNotifier:     epochNotifierInstance,
-		ArwenChangeLocker: arwenChangeLocker,
-		VMOutputCacher:    txcache.NewDisabledCache(),
-		EnableEpochs:      enableEpochsConfig,
+		VmContainer:         vmContainer,
+		ArgsParser:          smartContract.NewArgumentParser(),
+		Hasher:              testHasher,
+		Marshalizer:         testMarshalizer,
+		AccountsDB:          accnts,
+		BlockChainHook:      blockChainHook,
+		BuiltInFunctions:    blockChainHook.GetBuiltinFunctionsContainer(),
+		PubkeyConv:          pubkeyConv,
+		ShardCoordinator:    shardCoordinator,
+		ScrForwarder:        intermediateTxHandler,
+		BadTxForwarder:      intermediateTxHandler,
+		TxFeeHandler:        feeAccumulator,
+		EconomicsFee:        economicsData,
+		TxTypeHandler:       txTypeHandler,
+		GasHandler:          gasComp,
+		GasSchedule:         mock.NewGasScheduleNotifierMock(gasSchedule),
+		TxLogsProcessor:     logProc,
+		EnableEpochsHandler: enableEpochsHandler,
+		ArwenChangeLocker:   arwenChangeLocker,
+		VMOutputCacher:      txcache.NewDisabledCache(),
 	}
 
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewSCProcessor)
@@ -839,7 +839,6 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 	}
 	testScProcessor := smartContract.NewTestScProcessor(scProcessor)
 
-	enableEpochsHandler, _ := enableEpochs.NewEnableEpochsHandler(enableEpochsConfig, epochNotifierInstance)
 	argsNewTxProcessor := transaction.ArgsNewTxProcessor{
 		Accounts:            accnts,
 		Hasher:              testHasher,
@@ -951,8 +950,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		txSimulator,
 		argsNewTxProcessor.Accounts,
 		shardCoordinator,
-		argsNewSCProcessor.EpochNotifier,
-		0,
+		argsNewSCProcessor.EnableEpochsHandler,
 	)
 	if err != nil {
 		return nil, err

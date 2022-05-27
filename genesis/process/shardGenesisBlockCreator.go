@@ -506,11 +506,10 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		GasSchedule:         arg.GasSchedule,
 		TxLogsProcessor:     arg.TxLogsProcessor,
 		BadTxForwarder:      badTxInterim,
-		EpochNotifier:       epochNotifier,
+		EnableEpochsHandler: enableEpochsHandler,
 		IsGenesisProcessing: true,
 		VMOutputCacher:      txcache.NewDisabledCache(),
 		ArwenChangeLocker:   genesisArwenLocker,
-		EnableEpochs:        enableEpochsConfig,
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	if err != nil {

@@ -146,8 +146,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		args.ProcessComponents.TransactionSimulatorProcessor(),
 		args.StateComponents.AccountsAdapterAPI(),
 		args.ProcessComponents.ShardCoordinator(),
-		args.CoreComponents.EpochNotifier(),
-		args.Configs.EpochConfig.EnableEpochs.CleanUpInformativeSCRsEnableEpoch,
+		args.CoreComponents.EnableEpochsHandler(),
 	)
 	if err != nil {
 		return nil, err

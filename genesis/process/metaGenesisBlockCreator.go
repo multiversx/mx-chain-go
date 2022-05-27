@@ -409,8 +409,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		GasSchedule:         arg.GasSchedule,
 		TxLogsProcessor:     arg.TxLogsProcessor,
 		BadTxForwarder:      badTxForwarder,
-		EpochNotifier:       epochNotifier,
-		EnableEpochs:        enableEpochsConfig,
+		EnableEpochsHandler: enableEpochsHandler,
 		IsGenesisProcessing: true,
 		ArwenChangeLocker:   &sync.RWMutex{}, // local Locker as to not interfere with the rest of the components
 		VMOutputCacher:      txcache.NewDisabledCache(),
