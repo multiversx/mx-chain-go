@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 )
@@ -79,22 +80,22 @@ func (fhps *FullHistoryPruningStorer) GetFromEpoch(key []byte, epoch uint32) ([]
 
 // GetBulkFromEpoch will search a a bulk of keys in the persister for the given epoch
 // doesn't return an error if a key or any isn't found
-func (fhps *FullHistoryPruningStorer) GetBulkFromEpoch(keys [][]byte, epoch uint32) ([]storage.KeyValuePair, error) {
+func (fhps *FullHistoryPruningStorer) GetBulkFromEpoch(keys [][]byte, epoch uint32) ([]common.KeyValuePair, error) {
 	persister, err := fhps.getOrOpenPersister(epoch)
 	if err != nil {
 		return nil, err
 	}
 
-	results := make([]storage.KeyValuePair, 0, len(keys))
+	results := make([]common.KeyValuePair, 0, len(keys))
 	for _, key := range keys {
 		dataInCache, found := fhps.cacher.Get(key)
 		if found {
-			results = append(results, storage.KeyValuePair{Key: key, Value: dataInCache.([]byte)})
+			results = append(results, common.KeyValuePair{Key: key, Value: dataInCache.([]byte)})
 			continue
 		}
 		data, errGet := persister.Get(key)
 		if errGet == nil && data != nil {
-			results = append(results, storage.KeyValuePair{Key: key, Value: data})
+			results = append(results, common.KeyValuePair{Key: key, Value: data})
 		}
 	}
 

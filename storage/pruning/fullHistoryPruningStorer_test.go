@@ -12,6 +12,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core/random"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/factory"
@@ -196,7 +197,7 @@ func TestNewFullHistoryPruningStorer_GetBulkFromEpoch(t *testing.T) {
 	res, err := fhps.GetBulkFromEpoch([][]byte{testKey0, testKey1}, testEpoch)
 	assert.Nil(t, err)
 
-	expected := []storage.KeyValuePair{
+	expected := []common.KeyValuePair{
 		{Key: testKey0, Value: testVal0},
 		{Key: testKey1, Value: testVal1},
 	}
@@ -224,7 +225,7 @@ func TestNewFullHistoryPruningStorer_GetBulkFromEpochShouldNotLoadFromCache(t *t
 	res, err := fhps.GetBulkFromEpoch([][]byte{testKey0, testKey1}, testEpoch)
 	assert.Nil(t, err)
 
-	expected := []storage.KeyValuePair{
+	expected := []common.KeyValuePair{
 		{Key: testKey0, Value: testVal0},
 		{Key: testKey1, Value: testVal1},
 	}

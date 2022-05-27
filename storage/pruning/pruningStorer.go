@@ -489,7 +489,7 @@ func (ps *PruningStorer) GetFromEpoch(key []byte, epoch uint32) ([]byte, error) 
 }
 
 // GetBulkFromEpoch will return a slice of keys only in the persister for the given epoch
-func (ps *PruningStorer) GetBulkFromEpoch(keys [][]byte, epoch uint32) ([]storage.KeyValuePair, error) {
+func (ps *PruningStorer) GetBulkFromEpoch(keys [][]byte, epoch uint32) ([]common.KeyValuePair, error) {
 	ps.lock.RLock()
 	pd, exists := ps.persistersMapByEpoch[epoch]
 	ps.lock.RUnlock()
@@ -506,11 +506,11 @@ func (ps *PruningStorer) GetBulkFromEpoch(keys [][]byte, epoch uint32) ([]storag
 	}
 	defer closePersister()
 
-	results := make([]storage.KeyValuePair, 0, len(keys))
+	results := make([]common.KeyValuePair, 0, len(keys))
 	for _, key := range keys {
 		v, ok := ps.cacher.Get(key)
 		if ok {
-			results = append(results, storage.KeyValuePair{Key: key, Value: v.([]byte)})
+			results = append(results, common.KeyValuePair{Key: key, Value: v.([]byte)})
 			continue
 		}
 
@@ -523,7 +523,7 @@ func (ps *PruningStorer) GetBulkFromEpoch(keys [][]byte, epoch uint32) ([]storag
 			continue
 		}
 
-		results = append(results, storage.KeyValuePair{Key: key, Value: res})
+		results = append(results, common.KeyValuePair{Key: key, Value: res})
 	}
 
 	return results, nil

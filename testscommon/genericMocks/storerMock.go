@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go-core/core/container"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -86,14 +87,14 @@ func (sm *StorerMock) GetFromEpoch(key []byte, epoch uint32) ([]byte, error) {
 }
 
 // GetBulkFromEpoch -
-func (sm *StorerMock) GetBulkFromEpoch(keys [][]byte, epoch uint32) ([]storage.KeyValuePair, error) {
+func (sm *StorerMock) GetBulkFromEpoch(keys [][]byte, epoch uint32) ([]common.KeyValuePair, error) {
 	data := sm.GetEpochData(epoch)
-	results := make([]storage.KeyValuePair, 0, len(keys))
+	results := make([]common.KeyValuePair, 0, len(keys))
 
 	for _, key := range keys {
 		value, ok := data.Get(string(key))
 		if ok {
-			results = append(results, storage.KeyValuePair{Key: key, Value: value.([]byte)})
+			results = append(results, common.KeyValuePair{Key: key, Value: value.([]byte)})
 		}
 	}
 

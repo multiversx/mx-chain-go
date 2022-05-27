@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/common"
 )
 
 // StorerMock -
@@ -54,7 +54,7 @@ func (sm *StorerMock) GetFromEpoch(key []byte, _ uint32) ([]byte, error) {
 	return sm.Get(key)
 }
 
-func (sm *StorerMock) GetBulkFromEpoch(keys [][]byte, _ uint32) ([]storage.KeyValuePair, error) {
+func (sm *StorerMock) GetBulkFromEpoch(keys [][]byte, _ uint32) ([]common.KeyValuePair, error) {
 	return nil, errors.New("not implemented")
 }
 
