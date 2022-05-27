@@ -10,6 +10,7 @@ var ignorable = []string{
 	"/usr/local/go/src/net/dnsclient_unix.go",
 	"/usr/local/go/src/runtime/proc.go",
 	"internal/race/race.go",
+	"github.com/libp2p/go-libp2p-nat.(*NAT)",
 }
 
 // AllPassFilter returns true for all provided strings
