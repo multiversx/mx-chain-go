@@ -194,11 +194,13 @@ func (rcf *resolversContainerFactory) createTrieNodesResolver(baseTopic string, 
 
 	trie := rcf.dataTrieContainer.Get([]byte(trieId))
 	argTrieResolver := resolvers.ArgTrieNodeResolver{
-		SenderResolver:   resolverSender,
-		TrieDataGetter:   trie,
-		Marshalizer:      rcf.marshalizer,
-		AntifloodHandler: rcf.inputAntifloodHandler,
-		Throttler:        rcf.throttler,
+		ArgBaseResolver: resolvers.ArgBaseResolver{
+			SenderResolver:   resolverSender,
+			Marshaller:       rcf.marshalizer,
+			AntifloodHandler: rcf.inputAntifloodHandler,
+			Throttler:        rcf.throttler,
+		},
+		TrieDataGetter: trie,
 	}
 	resolver, err := resolvers.NewTrieNodeResolver(argTrieResolver)
 	if err != nil {

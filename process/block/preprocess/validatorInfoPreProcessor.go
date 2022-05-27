@@ -325,22 +325,30 @@ func (vip *validatorInfoPreprocessor) CreateAndProcessMiniBlocks(_ func() bool, 
 }
 
 // ProcessMiniBlock does nothing
-func (vip *validatorInfoPreprocessor) ProcessMiniBlock(miniBlock *block.MiniBlock, _ func() bool, _ func() bool, _ func() (int, int), _ bool) ([][]byte, int, error) {
+func (vip *validatorInfoPreprocessor) ProcessMiniBlock(
+	miniBlock *block.MiniBlock,
+	_ func() bool,
+	_ func() bool,
+	_ bool,
+	_ bool,
+	indexOfLastTxProcessed int,
+	_ process.PreProcessorExecutionInfoHandler,
+) ([][]byte, int, bool, error) {
 	if miniBlock.Type != block.PeerBlock {
-		return nil, 0, process.ErrWrongTypeInMiniBlock
+		return nil, indexOfLastTxProcessed, false, process.ErrWrongTypeInMiniBlock
 	}
 	if miniBlock.SenderShardID != core.MetachainShardId {
-		return nil, 0, process.ErrValidatorInfoMiniBlockNotFromMeta
+		return nil, indexOfLastTxProcessed, false, process.ErrValidatorInfoMiniBlockNotFromMeta
 	}
 
 	if vip.blockSizeComputation.IsMaxBlockSizeWithoutThrottleReached(1, len(miniBlock.TxHashes)) {
-		return nil, 0, process.ErrMaxBlockSizeReached
+		return nil, indexOfLastTxProcessed, false, process.ErrMaxBlockSizeReached
 	}
 
 	vip.blockSizeComputation.AddNumMiniBlocks(1)
 	vip.blockSizeComputation.AddNumTxs(len(miniBlock.TxHashes))
 
-	return nil, len(miniBlock.TxHashes), nil
+	return nil, len(miniBlock.TxHashes) - 1, false, nil
 }
 
 // CreateMarshalledData marshals validators info hashes and saves them into a new structure

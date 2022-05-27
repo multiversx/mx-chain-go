@@ -6,7 +6,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data/batch"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/requestHandlers"
@@ -19,12 +18,9 @@ var _ requestHandlers.HashSliceResolver = (*miniblockResolver)(nil)
 
 // ArgMiniblockResolver is the argument structure used to create a new miniblockResolver instance
 type ArgMiniblockResolver struct {
-	SenderResolver    dataRetriever.TopicResolverSender
+	ArgBaseResolver
 	MiniBlockPool     storage.Cacher
 	MiniBlockStorage  storage.Storer
-	Marshalizer       marshal.Marshalizer
-	AntifloodHandler  dataRetriever.P2PAntifloodHandler
-	Throttler         dataRetriever.ResolverThrottler
 	DataPacker        dataRetriever.DataPacker
 	IsFullHistoryNode bool
 }
@@ -32,7 +28,7 @@ type ArgMiniblockResolver struct {
 // miniblockResolver is a wrapper over Resolver that is specialized in resolving miniblocks requests
 // TODO extract common functionality between this and transactionResolver
 type miniblockResolver struct {
-	dataRetriever.TopicResolverSender
+	*baseResolver
 	messageProcessor
 	baseStorageResolver
 	miniBlockPool storage.Cacher
@@ -41,35 +37,20 @@ type miniblockResolver struct {
 
 // NewMiniblockResolver creates a miniblock resolver
 func NewMiniblockResolver(arg ArgMiniblockResolver) (*miniblockResolver, error) {
-	if check.IfNil(arg.SenderResolver) {
-		return nil, dataRetriever.ErrNilResolverSender
-	}
-	if check.IfNil(arg.MiniBlockPool) {
-		return nil, dataRetriever.ErrNilMiniblocksPool
-	}
-	if check.IfNil(arg.MiniBlockStorage) {
-		return nil, dataRetriever.ErrNilMiniblocksStorage
-	}
-	if check.IfNil(arg.Marshalizer) {
-		return nil, dataRetriever.ErrNilMarshalizer
-	}
-	if check.IfNil(arg.AntifloodHandler) {
-		return nil, dataRetriever.ErrNilAntifloodHandler
-	}
-	if check.IfNil(arg.Throttler) {
-		return nil, dataRetriever.ErrNilThrottler
-	}
-	if check.IfNil(arg.DataPacker) {
-		return nil, dataRetriever.ErrNilDataPacker
+	err := checkArgMiniblockResolver(arg)
+	if err != nil {
+		return nil, err
 	}
 
 	mbResolver := &miniblockResolver{
-		TopicResolverSender: arg.SenderResolver,
+		baseResolver: &baseResolver{
+			TopicResolverSender: arg.SenderResolver,
+		},
 		miniBlockPool:       arg.MiniBlockPool,
 		baseStorageResolver: createBaseStorageResolver(arg.MiniBlockStorage, arg.IsFullHistoryNode),
 		dataPacker:          arg.DataPacker,
 		messageProcessor: messageProcessor{
-			marshalizer:      arg.Marshalizer,
+			marshalizer:      arg.Marshaller,
 			antifloodHandler: arg.AntifloodHandler,
 			topic:            arg.SenderResolver.RequestTopic(),
 			throttler:        arg.Throttler,
@@ -77,6 +58,23 @@ func NewMiniblockResolver(arg ArgMiniblockResolver) (*miniblockResolver, error) 
 	}
 
 	return mbResolver, nil
+}
+
+func checkArgMiniblockResolver(arg ArgMiniblockResolver) error {
+	err := checkArgBase(arg.ArgBaseResolver)
+	if err != nil {
+		return err
+	}
+	if check.IfNil(arg.MiniBlockPool) {
+		return dataRetriever.ErrNilMiniblocksPool
+	}
+	if check.IfNil(arg.MiniBlockStorage) {
+		return dataRetriever.ErrNilMiniblocksStorage
+	}
+	if check.IfNil(arg.DataPacker) {
+		return dataRetriever.ErrNilDataPacker
+	}
+	return nil
 }
 
 // ProcessReceivedMessage will be the callback func from the p2p.Messenger and will be called each time a new message was received
@@ -225,26 +223,6 @@ func (mbRes *miniblockResolver) RequestDataFromHashArray(hashes [][]byte, epoch 
 		},
 		hashes,
 	)
-}
-
-// SetNumPeersToQuery will set the number of intra shard and cross shard number of peer to query
-func (mbRes *miniblockResolver) SetNumPeersToQuery(intra int, cross int) {
-	mbRes.TopicResolverSender.SetNumPeersToQuery(intra, cross)
-}
-
-// NumPeersToQuery will return the number of intra shard and cross shard number of peer to query
-func (mbRes *miniblockResolver) NumPeersToQuery() (int, int) {
-	return mbRes.TopicResolverSender.NumPeersToQuery()
-}
-
-// SetResolverDebugHandler will set a resolver debug handler
-func (mbRes *miniblockResolver) SetResolverDebugHandler(handler dataRetriever.ResolverDebugHandler) error {
-	return mbRes.TopicResolverSender.SetResolverDebugHandler(handler)
-}
-
-// Close returns nil
-func (mbRes *miniblockResolver) Close() error {
-	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -122,7 +122,6 @@ func startNodesWithCommitBlock(nodes []*testNode, mutex *sync.Mutex, nonceForRou
 				},
 			},
 			BootstrapRoundIndex: 0,
-			HardforkTrigger:     n.node.GetHardforkTrigger(),
 			CoreComponents:      n.node.GetCoreComponents(),
 			NetworkComponents:   n.node.GetNetworkComponents(),
 			CryptoComponents:    n.node.GetCryptoComponents(),

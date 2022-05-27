@@ -53,6 +53,7 @@ type CoreComponentsStub struct {
 	NodeTypeProviderField              core.NodeTypeProviderHandler
 	ArwenChangeLockerInternal          common.Locker
 	ProcessStatusHandlerInternal       common.ProcessStatusHandler
+	HardforkTriggerPubKeyField         []byte
 }
 
 // Create -
@@ -251,6 +252,11 @@ func (ccs *CoreComponentsStub) ProcessStatusHandler() common.ProcessStatusHandle
 // String -
 func (ccs *CoreComponentsStub) String() string {
 	return "CoreComponentsStub"
+}
+
+// HardforkTriggerPubKey -
+func (ccs *CoreComponentsStub) HardforkTriggerPubKey() []byte {
+	return ccs.HardforkTriggerPubKeyField
 }
 
 // IsInterfaceNil -

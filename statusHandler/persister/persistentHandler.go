@@ -139,6 +139,11 @@ func (psh *PersistentStatusHandler) SetUInt64Value(key string, value uint64) {
 		return
 	}
 
+	if value == 0 {
+		// do not write in database when the metrics are initialized. as a side effect, metrics for genesis block won't be saved
+		return
+	}
+
 	psh.saveMetricsInDb(value)
 }
 

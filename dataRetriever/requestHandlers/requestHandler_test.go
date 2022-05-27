@@ -17,6 +17,7 @@ import (
 )
 
 var timeoutSendRequests = time.Second * 2
+var errExpected = errors.New("expected error")
 
 func createResolversFinderStubThatShouldNotBeCalled(tb testing.TB) *mock.ResolversFinderStub {
 	return &mock.ResolversFinderStub{
@@ -111,7 +112,6 @@ func TestResolverRequestHandler_RequestTransactionErrorWhenGettingCrossShardReso
 		}
 	}()
 
-	errExpected := errors.New("expected error")
 	rrh, _ := NewResolverRequestHandler(
 		&mock.ResolversFinderStub{
 			CrossShardResolverCalled: func(baseTopic string, crossShard uint32) (resolver dataRetriever.Resolver, e error) {
@@ -245,7 +245,6 @@ func TestResolverRequestHandler_RequestTransactionErrorsOnRequestShouldNotPanic(
 		}
 	}()
 
-	errExpected := errors.New("expected error")
 	chTxRequested := make(chan struct{})
 	txResolver := &mock.HashSliceResolverStub{
 		RequestDataFromHashArrayCalled: func(hashes [][]byte, epoch uint32) error {
@@ -290,7 +289,6 @@ func TestResolverRequestHandler_RequestMiniBlockErrorWhenGettingCrossShardResolv
 		}
 	}()
 
-	errExpected := errors.New("expected error")
 	rrh, _ := NewResolverRequestHandler(
 		&mock.ResolversFinderStub{
 			CrossShardResolverCalled: func(baseTopic string, crossShard uint32) (resolver dataRetriever.Resolver, e error) {
@@ -317,7 +315,6 @@ func TestResolverRequestHandler_RequestMiniBlockErrorsOnRequestShouldNotPanic(t 
 		}
 	}()
 
-	errExpected := errors.New("expected error")
 	mbResolver := &mock.ResolverStub{
 		RequestDataFromHashCalled: func(hash []byte, epoch uint32) error {
 			return errExpected
@@ -599,8 +596,6 @@ func TestResolverRequestHandler_RequestShardHeaderByNonceFinderReturnsErrorShoul
 		}
 	}()
 
-	errExpected := errors.New("expected error")
-
 	rrh, _ := NewResolverRequestHandler(
 		&mock.ResolversFinderStub{
 			CrossShardResolverCalled: func(baseTopic string, shardID uint32) (resolver dataRetriever.Resolver, e error) {
@@ -627,7 +622,6 @@ func TestResolverRequestHandler_RequestShardHeaderByNonceFinderReturnsAWrongReso
 		}
 	}()
 
-	errExpected := errors.New("expected error")
 	hdrResolver := &mock.ResolverStub{
 		RequestDataFromHashCalled: func(hash []byte, epoch uint32) error {
 			return errExpected
@@ -660,7 +654,6 @@ func TestResolverRequestHandler_RequestShardHeaderByNonceResolverFailsShouldNotP
 		}
 	}()
 
-	errExpected := errors.New("expected error")
 	hdrResolver := &mock.HeaderResolverStub{
 		RequestDataFromHashCalled: func(hash []byte, epoch uint32) error {
 			return errExpected
@@ -774,7 +767,6 @@ func TestResolverRequestHandler_RequestScrErrorWhenGettingCrossShardResolverShou
 		}
 	}()
 
-	errExpected := errors.New("expected error")
 	rrh, _ := NewResolverRequestHandler(
 		&mock.ResolversFinderStub{
 			CrossShardResolverCalled: func(baseTopic string, crossShard uint32) (resolver dataRetriever.Resolver, e error) {
@@ -864,7 +856,6 @@ func TestResolverRequestHandler_RequestScrErrorsOnRequestShouldNotPanic(t *testi
 		}
 	}()
 
-	errExpected := errors.New("expected error")
 	chTxRequested := make(chan struct{})
 	txResolver := &mock.HashSliceResolverStub{
 		RequestDataFromHashArrayCalled: func(hashes [][]byte, epoch uint32) error {
@@ -1206,6 +1197,256 @@ func TestResolverRequestHandler_RequestTrieNodeNotAValidResolver(t *testing.T) {
 
 	rrh.RequestTrieNode([]byte("hash"), "topic", 1)
 	assert.True(t, called)
+}
+
+//------- RequestPeerAuthentications
+
+func TestResolverRequestHandler_RequestPeerAuthenticationsChunk(t *testing.T) {
+	t.Parallel()
+
+	providedChunkId := uint32(123)
+	providedShardId := uint32(15)
+	t.Run("CrossShardResolver returns error", func(t *testing.T) {
+		t.Parallel()
+
+		wasCalled := false
+		paResolver := &mock.PeerAuthenticationResolverStub{
+			RequestDataFromChunkCalled: func(chunkIndex uint32, epoch uint32) error {
+				wasCalled = true
+				return nil
+			},
+		}
+		rrh, _ := NewResolverRequestHandler(
+			&mock.ResolversFinderStub{
+				MetaChainResolverCalled: func(baseTopic string) (dataRetriever.Resolver, error) {
+					assert.Equal(t, common.PeerAuthenticationTopic, baseTopic)
+					return paResolver, errExpected
+				},
+			},
+			&mock.RequestedItemsHandlerStub{},
+			&mock.WhiteListHandlerStub{},
+			1,
+			0,
+			time.Second,
+		)
+
+		rrh.RequestPeerAuthenticationsChunk(providedShardId, providedChunkId)
+		assert.False(t, wasCalled)
+	})
+	t.Run("cast fails", func(t *testing.T) {
+		t.Parallel()
+
+		wasCalled := false
+		mbResolver := &mock.ResolverStub{
+			RequestDataFromHashCalled: func(hash []byte, epoch uint32) error {
+				wasCalled = true
+				return nil
+			},
+		}
+		rrh, _ := NewResolverRequestHandler(
+			&mock.ResolversFinderStub{
+				MetaChainResolverCalled: func(baseTopic string) (dataRetriever.Resolver, error) {
+					assert.Equal(t, common.PeerAuthenticationTopic, baseTopic)
+					return mbResolver, nil
+				},
+			},
+			&mock.RequestedItemsHandlerStub{},
+			&mock.WhiteListHandlerStub{},
+			1,
+			0,
+			time.Second,
+		)
+
+		rrh.RequestPeerAuthenticationsChunk(providedShardId, providedChunkId)
+		assert.False(t, wasCalled)
+	})
+	t.Run("RequestDataFromChunk returns error", func(t *testing.T) {
+		t.Parallel()
+
+		wasCalled := false
+		paResolver := &mock.PeerAuthenticationResolverStub{
+			RequestDataFromChunkCalled: func(chunkIndex uint32, epoch uint32) error {
+				wasCalled = true
+				assert.Equal(t, providedChunkId, chunkIndex)
+				return errExpected
+			},
+		}
+		rrh, _ := NewResolverRequestHandler(
+			&mock.ResolversFinderStub{
+				MetaChainResolverCalled: func(baseTopic string) (dataRetriever.Resolver, error) {
+					assert.Equal(t, common.PeerAuthenticationTopic, baseTopic)
+					return paResolver, nil
+				},
+			},
+			&mock.RequestedItemsHandlerStub{},
+			&mock.WhiteListHandlerStub{},
+			1,
+			0,
+			time.Second,
+		)
+
+		rrh.RequestPeerAuthenticationsChunk(providedShardId, providedChunkId)
+		assert.True(t, wasCalled)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		defer func() {
+			r := recover()
+			if r != nil {
+				assert.Fail(t, "should not panic")
+			}
+		}()
+
+		wasCalled := false
+		paResolver := &mock.PeerAuthenticationResolverStub{
+			RequestDataFromChunkCalled: func(chunkIndex uint32, epoch uint32) error {
+				wasCalled = true
+				assert.Equal(t, providedChunkId, chunkIndex)
+				return nil
+			},
+		}
+		rrh, _ := NewResolverRequestHandler(
+			&mock.ResolversFinderStub{
+				MetaChainResolverCalled: func(baseTopic string) (dataRetriever.Resolver, error) {
+					assert.Equal(t, common.PeerAuthenticationTopic, baseTopic)
+					return paResolver, nil
+				},
+			},
+			&mock.RequestedItemsHandlerStub{},
+			&mock.WhiteListHandlerStub{},
+			1,
+			0,
+			time.Second,
+		)
+
+		rrh.RequestPeerAuthenticationsChunk(providedShardId, providedChunkId)
+		assert.True(t, wasCalled)
+	})
+}
+
+func TestResolverRequestHandler_RequestPeerAuthenticationsByHashes(t *testing.T) {
+	t.Parallel()
+
+	providedHashes := [][]byte{[]byte("h1"), []byte("h2")}
+	providedShardId := uint32(15)
+	t.Run("CrossShardResolver returns error", func(t *testing.T) {
+		t.Parallel()
+
+		wasCalled := false
+		paResolver := &mock.PeerAuthenticationResolverStub{
+			RequestDataFromChunkCalled: func(chunkIndex uint32, epoch uint32) error {
+				wasCalled = true
+				return nil
+			},
+		}
+		rrh, _ := NewResolverRequestHandler(
+			&mock.ResolversFinderStub{
+				MetaChainResolverCalled: func(baseTopic string) (dataRetriever.Resolver, error) {
+					assert.Equal(t, common.PeerAuthenticationTopic, baseTopic)
+					return paResolver, errExpected
+				},
+			},
+			&mock.RequestedItemsHandlerStub{},
+			&mock.WhiteListHandlerStub{},
+			1,
+			0,
+			time.Second,
+		)
+
+		rrh.RequestPeerAuthenticationsByHashes(providedShardId, providedHashes)
+		assert.False(t, wasCalled)
+	})
+	t.Run("cast fails", func(t *testing.T) {
+		t.Parallel()
+
+		wasCalled := false
+		mbResolver := &mock.ResolverStub{
+			RequestDataFromHashCalled: func(hash []byte, epoch uint32) error {
+				wasCalled = true
+				return nil
+			},
+		}
+		rrh, _ := NewResolverRequestHandler(
+			&mock.ResolversFinderStub{
+				MetaChainResolverCalled: func(baseTopic string) (dataRetriever.Resolver, error) {
+					assert.Equal(t, common.PeerAuthenticationTopic, baseTopic)
+					return mbResolver, errExpected
+				},
+			},
+			&mock.RequestedItemsHandlerStub{},
+			&mock.WhiteListHandlerStub{},
+			1,
+			0,
+			time.Second,
+		)
+
+		rrh.RequestPeerAuthenticationsByHashes(providedShardId, providedHashes)
+		assert.False(t, wasCalled)
+	})
+	t.Run("RequestDataFromHashArray returns error", func(t *testing.T) {
+		t.Parallel()
+
+		wasCalled := false
+		paResolver := &mock.PeerAuthenticationResolverStub{
+			RequestDataFromHashArrayCalled: func(hashes [][]byte, epoch uint32) error {
+				wasCalled = true
+				assert.Equal(t, providedHashes, hashes)
+				return errExpected
+			},
+		}
+		rrh, _ := NewResolverRequestHandler(
+			&mock.ResolversFinderStub{
+				MetaChainResolverCalled: func(baseTopic string) (dataRetriever.Resolver, error) {
+					assert.Equal(t, common.PeerAuthenticationTopic, baseTopic)
+					return paResolver, nil
+				},
+			},
+			&mock.RequestedItemsHandlerStub{},
+			&mock.WhiteListHandlerStub{},
+			1,
+			0,
+			time.Second,
+		)
+
+		rrh.RequestPeerAuthenticationsByHashes(providedShardId, providedHashes)
+		assert.True(t, wasCalled)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		defer func() {
+			r := recover()
+			if r != nil {
+				assert.Fail(t, "should not panic")
+			}
+		}()
+
+		wasCalled := false
+		paResolver := &mock.PeerAuthenticationResolverStub{
+			RequestDataFromHashArrayCalled: func(hashes [][]byte, epoch uint32) error {
+				wasCalled = true
+				assert.Equal(t, providedHashes, hashes)
+				return nil
+			},
+		}
+		rrh, _ := NewResolverRequestHandler(
+			&mock.ResolversFinderStub{
+				MetaChainResolverCalled: func(baseTopic string) (dataRetriever.Resolver, error) {
+					assert.Equal(t, common.PeerAuthenticationTopic, baseTopic)
+					return paResolver, nil
+				},
+			},
+			&mock.RequestedItemsHandlerStub{},
+			&mock.WhiteListHandlerStub{},
+			1,
+			0,
+			time.Second,
+		)
+
+		rrh.RequestPeerAuthenticationsByHashes(providedShardId, providedHashes)
+		assert.True(t, wasCalled)
+	})
 }
 
 func TestResolverRequestHandler_RequestValidatorInfo(t *testing.T) {

@@ -132,7 +132,7 @@ func getAllMiniBlocksWithDst(metaBlock data.MetaHeaderHandler, destShardID uint3
 	}
 
 	miniBlockHeaderHandlers := metaBlock.GetMiniBlockHeaderHandlers()
-	for i, mbHdr := range  miniBlockHeaderHandlers{
+	for i, mbHdr := range miniBlockHeaderHandlers {
 		if mbHdr.GetReceiverShardID() == destShardID && mbHdr.GetSenderShardID() != destShardID {
 			mbHdrs = append(mbHdrs, miniBlockHeaderHandlers[i])
 		}

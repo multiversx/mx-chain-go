@@ -1296,9 +1296,9 @@ func TestNodeFacade_GetTransactionsPool(t *testing.T) {
 
 		arg := createMockArguments()
 		expectedPool := &common.TransactionsPoolAPIResponse{
-			RegularTransactions: []string{"tx0", "tx1"},
+			RegularTransactions:  []string{"tx0", "tx1"},
 			SmartContractResults: []string{"tx2", "tx3"},
-			Rewards: []string{"tx4"},
+			Rewards:              []string{"tx4"},
 		}
 		arg.ApiResolver = &mock.ApiResolverStub{
 			GetTransactionsPoolCalled: func() (*common.TransactionsPoolAPIResponse, error) {

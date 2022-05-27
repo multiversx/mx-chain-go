@@ -39,6 +39,7 @@ func NewMetaStorageBootstrapper(arguments ArgsMetaStorageBootstrapper) (*metaSto
 		scheduledTxsExecutionHandler: arguments.ScheduledTxsExecutionHandler,
 		miniBlocksProvider:           arguments.MiniblocksProvider,
 		epochNotifier:                arguments.EpochNotifier,
+		processedMiniBlocksTracker:   arguments.ProcessedMiniBlocksTracker,
 	}
 
 	boot := metaStorageBootstrapper{
@@ -131,6 +132,9 @@ func (msb *metaStorageBootstrapper) cleanupNotarizedStorage(metaBlockHash []byte
 				"error", err.Error())
 		}
 	}
+}
+
+func (msb *metaStorageBootstrapper) cleanupNotarizedStorageForHigherNoncesIfExist(_ []bootstrapStorage.BootstrapHeaderInfo) {
 }
 
 func (msb *metaStorageBootstrapper) applySelfNotarizedHeaders(

@@ -103,6 +103,34 @@ type SoftwareVersionConfig struct {
 	PollingIntervalInMinutes int
 }
 
+// HeartbeatV2Config will hold the configuration for heartbeat v2
+type HeartbeatV2Config struct {
+	PeerAuthenticationTimeBetweenSendsInSec          int64
+	PeerAuthenticationTimeBetweenSendsWhenErrorInSec int64
+	PeerAuthenticationThresholdBetweenSends          float64
+	HeartbeatTimeBetweenSendsInSec                   int64
+	HeartbeatTimeBetweenSendsWhenErrorInSec          int64
+	HeartbeatThresholdBetweenSends                   float64
+	MaxNumOfPeerAuthenticationInResponse             int
+	HeartbeatExpiryTimespanInSec                     int64
+	MinPeersThreshold                                float32
+	DelayBetweenRequestsInSec                        int64
+	MaxTimeoutInSec                                  int64
+	DelayBetweenConnectionNotificationsInSec         int64
+	MaxMissingKeysInRequest                          uint32
+	MaxDurationPeerUnresponsiveInSec                 int64
+	HideInactiveValidatorIntervalInSec               int64
+	PeerAuthenticationPool                           PeerAuthenticationPoolConfig
+	HeartbeatPool                                    CacheConfig
+	HardforkTimeBetweenSendsInSec                    int64
+}
+
+// PeerAuthenticationPoolConfig will hold the configuration for peer authentication pool
+type PeerAuthenticationPoolConfig struct {
+	DefaultSpanInSec int
+	CacheExpiryInSec int
+}
+
 // Config will hold the entire application configuration parameters
 type Config struct {
 	MiniBlocksStorage               StorageConfig
@@ -163,6 +191,7 @@ type Config struct {
 	Antiflood           AntifloodConfig
 	ResourceStats       ResourceStatsConfig
 	Heartbeat           HeartbeatConfig
+	HeartbeatV2         HeartbeatV2Config
 	ValidatorStatistics ValidatorStatisticsConfig
 	GeneralSettings     GeneralSettingsConfig
 	Consensus           ConsensusConfig
@@ -361,6 +390,7 @@ type IncreaseFactorConfig struct {
 type VirtualMachineServicesConfig struct {
 	Execution VirtualMachineConfig
 	Querying  QueryVirtualMachineConfig
+	GasConfig VirtualMachineGasConfig
 }
 
 // VirtualMachineConfig holds configuration for a Virtual Machine service
@@ -380,6 +410,11 @@ type ArwenVersionByEpoch struct {
 type QueryVirtualMachineConfig struct {
 	VirtualMachineConfig
 	NumConcurrentVMs int
+}
+
+// VirtualMachineGasConfig holds the configuration for the virtual machine(s) gas operations
+type VirtualMachineGasConfig struct {
+	MaxGasPerVmQuery uint64
 }
 
 // HardforkConfig holds the configuration for the hardfork trigger
@@ -552,6 +587,6 @@ type TrieSyncConfig struct {
 // ResolverConfig represents the config options to be used when setting up the resolver instances
 type ResolverConfig struct {
 	NumCrossShardPeers  uint32
-	NumIntraShardPeers  uint32
+	NumTotalPeers       uint32
 	NumFullHistoryPeers uint32
 }
