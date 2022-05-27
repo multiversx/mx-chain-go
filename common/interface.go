@@ -162,10 +162,10 @@ type EnableEpochsHandler interface {
 	IsGovernanceFlagEnabledForCurrentEpoch() bool
 	IsDelegationManagerFlagEnabled() bool
 	IsDelegationSmartContractFlagEnabled() bool
-	IsCorrectLastUnjailedFlagEnabled() bool
-	IsCorrectLastUnjailedFlagEnabledForCurrentEpoch() bool
+	IsCorrectLastUnJailedFlagEnabled() bool
+	IsCorrectLastUnJailedFlagEnabledForCurrentEpoch() bool
 	IsRelayedTransactionsV2FlagEnabled() bool
-	IsUnbondTokensV2FlagEnabled() bool
+	IsUnBondTokensV2FlagEnabled() bool
 	IsSaveJailedAlwaysFlagEnabled() bool
 	IsReDelegateBelowMinCheckFlagEnabled() bool
 	IsValidatorToDelegationFlagEnabled() bool
@@ -196,7 +196,7 @@ type EnableEpochsHandler interface {
 	IsStorageAPICostOptimizationFlagEnabled() bool
 	IsESDTRegisterAndSetAllRolesFlagEnabled() bool
 	IsScheduledMiniBlocksFlagEnabled() bool
-	IsCorrectJailedNotUnstakedEmptyQueueFlagEnabled() bool
+	IsCorrectJailedNotUnStakedEmptyQueueFlagEnabled() bool
 	IsDoNotReturnOldBlockInBlockchainHookFlagEnabled() bool
 	IsSCRSizeInvariantOnBuiltInResultFlagEnabled() bool
 	IsCheckCorrectTokenIDForTransferRoleFlagEnabled() bool

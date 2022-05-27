@@ -9,14 +9,9 @@ import (
 func TestNewFlagsHolder_NilFlagShouldPanic(t *testing.T) {
 	t.Parallel()
 
-	defer func() {
-		r := recover()
-		require.NotNil(t, r)
-	}()
-
 	fh := newFlagsHolder()
 	require.NotNil(t, fh)
 
 	fh.scDeployFlag = nil
-	fh.IsSCDeployFlagEnabled()
+	require.Panicsf(t, func() { fh.IsSCDeployFlagEnabled() }, "")
 }
