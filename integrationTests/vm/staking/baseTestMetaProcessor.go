@@ -86,7 +86,6 @@ func newTestMetaProcessor(
 		coreComponents.InternalMarshalizer(),
 		nc,
 		maxNodesConfig,
-		len(queue),
 	)
 
 	gasScheduleNotifier := createGasScheduleNotifier()
@@ -360,11 +359,10 @@ func saveNodesConfig(
 	marshaller marshal.Marshalizer,
 	nc nodesCoordinator.NodesCoordinator,
 	maxNodesConfig []config.MaxNodesChangeConfig,
-	queueSize int,
 ) {
 	eligibleMap, _ := nc.GetAllEligibleValidatorsPublicKeys(0)
 	waitingMap, _ := nc.GetAllWaitingValidatorsPublicKeys(0)
-	allStakedNodes := int64(len(getAllPubKeys(eligibleMap)) + len(getAllPubKeys(waitingMap)) + queueSize)
+	allStakedNodes := int64(len(getAllPubKeys(eligibleMap)) + len(getAllPubKeys(waitingMap)))
 
 	maxNumNodes := allStakedNodes
 	if len(maxNodesConfig) > 0 {
