@@ -23,7 +23,7 @@ func createMockArgInterceptedValidatorInfo() ArgInterceptedValidatorInfo {
 		Hasher:           &hashingMocks.HasherMock{},
 		NodesCoordinator: &shardingMocks.NodesCoordinatorStub{},
 	}
-	args.DataBuff, _ = args.Marshalizer.Marshal(createMockValidatorInfo())
+	args.DataBuff, _ = args.Marshalizer.Marshal(createMockShardValidatorInfo())
 
 	return args
 }
@@ -104,9 +104,6 @@ func TestInterceptedValidatorInfo_CheckValidity(t *testing.T) {
 	t.Run("listProperty too short", testInterceptedValidatorInfoPropertyLen(listProperty, false))
 	t.Run("listProperty too long", testInterceptedValidatorInfoPropertyLen(listProperty, true))
 
-	t.Run("rewardAddressProperty too short", testInterceptedValidatorInfoPropertyLen(rewardAddressProperty, false))
-	t.Run("rewardAddressProperty too long", testInterceptedValidatorInfoPropertyLen(rewardAddressProperty, true))
-
 	t.Run("not validator should error", func(t *testing.T) {
 		t.Parallel()
 
@@ -158,8 +155,6 @@ func testInterceptedValidatorInfoPropertyLen(property string, tooLong bool) func
 			ivi.validatorInfo.PublicKey = value
 		case listProperty:
 			ivi.validatorInfo.List = string(value)
-		case rewardAddressProperty:
-			ivi.validatorInfo.RewardAddress = value
 		default:
 			assert.True(t, false)
 		}
@@ -176,12 +171,12 @@ func TestInterceptedValidatorInfo_Getters(t *testing.T) {
 	ivi, _ := NewInterceptedValidatorInfo(args)
 	require.False(t, check.IfNil(ivi))
 
-	validatorInfo := createMockValidatorInfo()
+	validatorInfo := createMockShardValidatorInfo()
 	validatorInfoBuff, _ := args.Marshalizer.Marshal(validatorInfo)
 	hash := args.Hasher.Compute(string(validatorInfoBuff))
 
 	assert.True(t, ivi.IsForCurrentShard())
-	assert.Equal(t, *validatorInfo, ivi.ValidatorInfo())
+	assert.Equal(t, validatorInfo, ivi.ValidatorInfo())
 	assert.Equal(t, hash, ivi.Hash())
 	assert.Equal(t, interceptedValidatorInfoType, ivi.Type())
 
@@ -195,5 +190,4 @@ func TestInterceptedValidatorInfo_Getters(t *testing.T) {
 	assert.True(t, strings.Contains(str, fmt.Sprintf("list=%s", validatorInfo.List)))
 	assert.True(t, strings.Contains(str, fmt.Sprintf("index=%d", validatorInfo.Index)))
 	assert.True(t, strings.Contains(str, fmt.Sprintf("tempRating=%d", validatorInfo.TempRating)))
-	assert.True(t, strings.Contains(str, fmt.Sprintf("rating=%d", validatorInfo.Rating)))
 }

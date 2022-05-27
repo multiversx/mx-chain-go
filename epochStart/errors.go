@@ -140,8 +140,17 @@ var ErrValidatorInfoMiniBlocksNumDoesNotMatch = errors.New("number of created an
 // ErrNilValidatorInfo signals that a nil value for the validatorInfo has been provided
 var ErrNilValidatorInfo = errors.New("validator info is nil")
 
-// ErrNilMetaBlock signals that a nil metablock has been provided
-var ErrNilMetaBlock = errors.New("nil metablock")
+// ErrNilValidatorsInfoPool signals that a nil value for the validatorsInfoPool has been provided
+var ErrNilValidatorsInfoPool = errors.New("validators info pool is nil")
+
+// ErrNilCurrentEpochValidatorsInfoPool signals that a nil value for the currentEpochValidatorsInfoPool has been provided
+var ErrNilCurrentEpochValidatorsInfoPool = errors.New("current epoch validators info pool is nil")
+
+// ErrNilMetaBlock signals that a nil meta block has been provided
+var ErrNilMetaBlock = errors.New("nil meta block")
+
+// ErrNilBlockBody signals that a nil block body has been provided
+var ErrNilBlockBody = errors.New("nil block body")
 
 // ErrNilMiniBlockPool signals that a nil mini blocks pool was used
 var ErrNilMiniBlockPool = errors.New("nil mini block pool")
@@ -154,9 +163,6 @@ var ErrEpochStartDataForShardNotFound = errors.New("epoch start data for current
 
 // ErrMissingHeader signals that searched header is missing
 var ErrMissingHeader = errors.New("missing header")
-
-// ErrMissingMiniBlock signals that the searched miniBlock is missing
-var ErrMissingMiniBlock = errors.New("missing miniBlock")
 
 // ErrNilPathManager signals that a nil path manager has been provided
 var ErrNilPathManager = errors.New("nil path manager")
@@ -187,9 +193,6 @@ var ErrNilGenesisNodesConfig = errors.New("nil genesis nodes config")
 
 // ErrNilRater signals that a nil rater has been provided
 var ErrNilRater = errors.New("nil rater")
-
-// ErrInvalidWorkingDir signals that an invalid working directory has been provided
-var ErrInvalidWorkingDir = errors.New("invalid working directory")
 
 // ErrTimeoutWaitingForMetaBlock signals that a timeout event was raised while waiting for the epoch start meta block
 var ErrTimeoutWaitingForMetaBlock = errors.New("timeout while waiting for epoch start meta block")
@@ -271,12 +274,6 @@ var ErrNilDataTrie = errors.New("nil data trie")
 
 // ErrInvalidMinNodePrice signals that the minimum node price is invalid (e.g negative, not a number, etc)
 var ErrInvalidMinNodePrice = errors.New("minimum node price is invalid")
-
-// ErrInvalidRewardsTopUpGradientPoint signals that the given point controlling the top-up gradient is invalid
-var ErrInvalidRewardsTopUpGradientPoint = errors.New("top-up gradient point invalid")
-
-// ErrInvalidRewardsTopUpFactor signals that the factor for computing the top-up rewards out of the full rewards is invalid
-var ErrInvalidRewardsTopUpFactor = errors.New("top-up factor invalid")
 
 // ErrNilEconomicsDataProvider signals that the economics data provider is nil
 var ErrNilEconomicsDataProvider = errors.New("end of epoch economics data provider is nil")

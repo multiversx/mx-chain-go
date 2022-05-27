@@ -28,7 +28,7 @@ func createMockArgs() ArgsNewTransactionsSyncer {
 				return &storageStubs.StorerStub{}
 			},
 		},
-		Marshalizer:    &mock.MarshalizerFake{},
+		Marshaller:     &mock.MarshalizerFake{},
 		RequestHandler: &testscommon.RequestHandlerStub{},
 	}
 }
@@ -70,7 +70,7 @@ func TestNewPendingTransactionsSyncer_NilMarshalizer(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgs()
-	args.Marshalizer = nil
+	args.Marshaller = nil
 
 	pendingTxsSyncer, err := NewTransactionsSyncer(args)
 	require.Nil(t, pendingTxsSyncer)

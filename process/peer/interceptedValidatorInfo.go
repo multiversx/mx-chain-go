@@ -21,7 +21,7 @@ type ArgInterceptedValidatorInfo struct {
 
 // interceptedValidatorInfo is a wrapper over validatorInfo
 type interceptedValidatorInfo struct {
-	validatorInfo    state.ValidatorInfo
+	validatorInfo    *state.ShardValidatorInfo
 	nodesCoordinator process.NodesCoordinator
 	hash             []byte
 }
@@ -39,7 +39,7 @@ func NewInterceptedValidatorInfo(args ArgInterceptedValidatorInfo) (*intercepted
 	}
 
 	return &interceptedValidatorInfo{
-		validatorInfo:    *validatorInfo,
+		validatorInfo:    validatorInfo,
 		nodesCoordinator: args.NodesCoordinator,
 		hash:             args.Hasher.Compute(string(args.DataBuff)),
 	}, nil
@@ -62,8 +62,8 @@ func checkArgs(args ArgInterceptedValidatorInfo) error {
 	return nil
 }
 
-func createValidatorInfo(marshalizer marshal.Marshalizer, buff []byte) (*state.ValidatorInfo, error) {
-	validatorInfo := &state.ValidatorInfo{}
+func createValidatorInfo(marshalizer marshal.Marshalizer, buff []byte) (*state.ShardValidatorInfo, error) {
+	validatorInfo := &state.ShardValidatorInfo{}
 	err := marshalizer.Unmarshal(validatorInfo, buff)
 	if err != nil {
 		return nil, err
@@ -83,10 +83,6 @@ func (ivi *interceptedValidatorInfo) CheckValidity() error {
 	if err != nil {
 		return err
 	}
-	err = verifyPropertyLen(rewardAddressProperty, ivi.validatorInfo.RewardAddress, 0, minSizeInBytes, rewardAddressPropertyMaxPropertyBytesLen)
-	if err != nil {
-		return err
-	}
 
 	// Check if the public key is a validator
 	_, _, err = ivi.nodesCoordinator.GetValidatorWithPublicKey(ivi.validatorInfo.PublicKey)
@@ -99,7 +95,7 @@ func (ivi *interceptedValidatorInfo) IsForCurrentShard() bool {
 }
 
 // ValidatorInfo returns the current validator info structure
-func (ivi *interceptedValidatorInfo) ValidatorInfo() state.ValidatorInfo {
+func (ivi *interceptedValidatorInfo) ValidatorInfo() *state.ShardValidatorInfo {
 	return ivi.validatorInfo
 }
 
@@ -120,13 +116,12 @@ func (ivi *interceptedValidatorInfo) Identifiers() [][]byte {
 
 // String returns the validator's info most important fields as string
 func (ivi *interceptedValidatorInfo) String() string {
-	return fmt.Sprintf("pk=%s, shard=%d, list=%s, index=%d, tempRating=%d, rating=%d",
+	return fmt.Sprintf("pk=%s, shard=%d, list=%s, index=%d, tempRating=%d",
 		logger.DisplayByteSlice(ivi.validatorInfo.PublicKey),
 		ivi.validatorInfo.ShardId,
 		ivi.validatorInfo.List,
 		ivi.validatorInfo.Index,
 		ivi.validatorInfo.TempRating,
-		ivi.validatorInfo.Rating,
 	)
 }
 

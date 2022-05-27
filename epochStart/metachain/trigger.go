@@ -109,7 +109,7 @@ func NewEpochStartTrigger(args *ArgsNewMetaEpochStartTrigger) (*trigger, error) 
 		return nil, epochStart.ErrNilDataPoolsHolder
 	}
 	if check.IfNil(args.DataPool.CurrentEpochValidatorInfo()) {
-		return nil, epochStart.ErrNilValidatorInfo
+		return nil, epochStart.ErrNilCurrentEpochValidatorsInfoPool
 	}
 
 	triggerStorage := args.Storage.GetStorer(dataRetriever.BootstrapUnit)

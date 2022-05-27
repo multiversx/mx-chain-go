@@ -11,10 +11,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -63,7 +63,7 @@ func NewValidatorInfoCreator(args ArgsNewValidatorInfoCreator) (*validatorInfoCr
 		return nil, epochStart.ErrNilDataPoolsHolder
 	}
 	if check.IfNil(args.DataPool.CurrentEpochValidatorInfo()) {
-		return nil, epochStart.ErrNilValidatorInfo
+		return nil, epochStart.ErrNilCurrentEpochValidatorsInfoPool
 	}
 
 	//TODO: currValidatorInfoCache := dataPool.NewCurrentEpochValidatorInfoPool() should be replaced by
@@ -238,7 +238,7 @@ func (vic *validatorInfoCreator) CreateMarshalledData(body *block.Body) map[stri
 			continue
 		}
 
-		broadcastTopic := createBroadcastTopic(factory.UnsignedTransactionTopic, vic.shardCoordinator, miniBlock.ReceiverShardID)
+		broadcastTopic := common.ValidatorInfoTopic
 		if _, ok := marshalledValidatorInfoTxs[broadcastTopic]; !ok {
 			marshalledValidatorInfoTxs[broadcastTopic] = make([][]byte, 0, len(miniBlock.TxHashes))
 		}

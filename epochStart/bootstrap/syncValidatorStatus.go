@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
+	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/update/sync"
 )
 
@@ -24,6 +25,7 @@ const consensusGroupCacheSize = 50
 
 type syncValidatorStatus struct {
 	miniBlocksSyncer   epochStart.PendingMiniBlocksSyncHandler
+	transactionsSyncer update.TransactionsSyncHandler
 	dataPool           dataRetriever.PoolsHolder
 	marshalizer        marshal.Marshalizer
 	requestHandler     process.RequestHandler
@@ -61,14 +63,27 @@ func NewSyncValidatorStatus(args ArgsNewSyncValidatorStatus) (*syncValidatorStat
 		requestHandler:     args.RequestHandler,
 		genesisNodesConfig: args.GenesisNodesConfig,
 	}
+
+	var err error
+
 	syncMiniBlocksArgs := sync.ArgsNewPendingMiniBlocksSyncer{
 		Storage:        disabled.CreateMemUnit(),
 		Cache:          s.dataPool.MiniBlocks(),
 		Marshalizer:    s.marshalizer,
 		RequestHandler: s.requestHandler,
 	}
-	var err error
 	s.miniBlocksSyncer, err = sync.NewPendingMiniBlocksSyncer(syncMiniBlocksArgs)
+	if err != nil {
+		return nil, err
+	}
+
+	syncTxsArgs := sync.ArgsNewTransactionsSyncer{
+		DataPools:      s.dataPool,
+		Storages:       dataRetriever.NewChainStorer(),
+		Marshaller:     s.marshalizer,
+		RequestHandler: s.requestHandler,
+	}
+	s.transactionsSyncer, err = sync.NewTransactionsSyncer(syncTxsArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -203,6 +218,24 @@ func (s *syncValidatorStatus) getPeerBlockBodyForMeta(
 	peerMiniBlocks, err := s.miniBlocksSyncer.GetMiniBlocks()
 	if err != nil {
 		return nil, err
+	}
+
+	s.transactionsSyncer.ClearFields()
+	ctx, cancel = context.WithTimeout(context.Background(), time.Minute)
+	err = s.transactionsSyncer.SyncTransactionsFor(peerMiniBlocks, metaBlock.GetEpoch(), ctx)
+	cancel()
+	if err != nil {
+		return nil, err
+	}
+
+	validatorsInfo, err := s.transactionsSyncer.GetValidatorsInfo()
+	if err != nil {
+		return nil, err
+	}
+
+	currentEpochValidatorInfoPool := s.dataPool.CurrentEpochValidatorInfo()
+	for validatorInfoHash, validatorInfo := range validatorsInfo {
+		currentEpochValidatorInfoPool.AddValidatorInfo([]byte(validatorInfoHash), validatorInfo)
 	}
 
 	blockBody := &block.Body{MiniBlocks: make([]*block.MiniBlock, 0, len(peerMiniBlocks))}

@@ -275,8 +275,9 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 	}
 
 	argsPeerMiniBlocksSyncer := shardchain.ArgPeerMiniBlockSyncer{
-		MiniBlocksPool: e.dataPool.MiniBlocks(),
-		Requesthandler: e.requestHandler,
+		MiniBlocksPool:     e.dataPool.MiniBlocks(),
+		ValidatorsInfoPool: e.dataPool.ValidatorsInfo(),
+		RequestHandler:     e.requestHandler,
 	}
 	peerMiniBlocksSyncer, err := shardchain.NewPeerMiniBlockSyncer(argsPeerMiniBlocksSyncer)
 	if err != nil {
@@ -420,7 +421,7 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 	argsPendingTransactions := sync.ArgsNewTransactionsSyncer{
 		DataPools:      e.dataPool,
 		Storages:       e.storageService,
-		Marshalizer:    e.CoreComponents.InternalMarshalizer(),
+		Marshaller:     e.CoreComponents.InternalMarshalizer(),
 		RequestHandler: e.requestHandler,
 	}
 	epochStartTransactionsSyncer, err := sync.NewTransactionsSyncer(argsPendingTransactions)

@@ -25,5 +25,5 @@ type ShardedPool interface {
 
 type interceptedValidatorInfo interface {
 	Hash() []byte
-	ValidatorInfo() state.ValidatorInfo
+	ValidatorInfo() *state.ShardValidatorInfo
 }

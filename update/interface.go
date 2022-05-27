@@ -20,6 +20,7 @@ type StateSyncer interface {
 	SyncAllState(epoch uint32) error
 	GetAllTries() (map[string]common.Trie, error)
 	GetAllTransactions() (map[string]data.TransactionHandler, error)
+	GetAllValidatorsInfo() (map[string]*state.ShardValidatorInfo, error)
 	GetAllMiniBlocks() (map[string]*block.MiniBlock, error)
 	IsInterfaceNil() bool
 }
@@ -143,6 +144,8 @@ type EpochStartPendingMiniBlocksSyncHandler interface {
 type TransactionsSyncHandler interface {
 	SyncTransactionsFor(miniBlocks map[string]*block.MiniBlock, epoch uint32, ctx context.Context) error
 	GetTransactions() (map[string]data.TransactionHandler, error)
+	GetValidatorsInfo() (map[string]*state.ShardValidatorInfo, error)
+	ClearFields()
 	IsInterfaceNil() bool
 }
 

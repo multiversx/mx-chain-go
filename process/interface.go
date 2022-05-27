@@ -981,7 +981,8 @@ type RatingsStepHandler interface {
 
 // ValidatorInfoSyncer defines the method needed for validatorInfoProcessing
 type ValidatorInfoSyncer interface {
-	SyncMiniBlocks(metaBlock data.HeaderHandler) ([][]byte, data.BodyHandler, error)
+	SyncMiniBlocks(headerHandler data.HeaderHandler) ([][]byte, data.BodyHandler, error)
+	SyncValidatorsInfo(bodyHandler data.BodyHandler) ([][]byte, map[string]*state.ShardValidatorInfo, error)
 	IsInterfaceNil() bool
 }
 

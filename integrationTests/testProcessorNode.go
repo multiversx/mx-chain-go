@@ -382,7 +382,7 @@ func newBaseTestProcessorNode(
 			return numNodes
 		},
 	}
-	nodesCoordinator := &shardingMocks.NodesCoordinatorStub{
+	nodesCoordinatorStub := &shardingMocks.NodesCoordinatorStub{
 		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []nodesCoordinator.Validator, err error) {
 			v, _ := nodesCoordinator.NewValidator(pksBytes[shardId], 1, defaultChancesSelection)
 			return []nodesCoordinator.Validator{v}, nil
@@ -416,7 +416,7 @@ func newBaseTestProcessorNode(
 	tpn := &TestProcessorNode{
 		ShardCoordinator:        shardCoordinator,
 		Messenger:               messenger,
-		NodesCoordinator:        nodesCoordinator,
+		NodesCoordinator:        nodesCoordinatorStub,
 		HeaderSigVerifier:       &mock.HeaderSigVerifierStub{},
 		HeaderIntegrityVerifier: CreateHeaderIntegrityVerifier(),
 		ChainID:                 ChainID,
@@ -596,7 +596,7 @@ func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32
 
 	messenger := CreateMessengerWithNoDiscoveryAndPeersRatingHandler(peersRatingHandler)
 	_ = messenger.SetThresholdMinConnectedPeers(minConnectedPeers)
-	nodesCoordinator := &shardingMocks.NodesCoordinatorMock{}
+	nodesCoordinatorMock := &shardingMocks.NodesCoordinatorMock{}
 	kg := &mock.KeyGenMock{}
 	sk, pk := kg.GeneratePair()
 
@@ -604,7 +604,7 @@ func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32
 	tpn := &TestProcessorNode{
 		ShardCoordinator:        shardCoordinator,
 		Messenger:               messenger,
-		NodesCoordinator:        nodesCoordinator,
+		NodesCoordinator:        nodesCoordinatorMock,
 		HeaderSigVerifier:       &mock.HeaderSigVerifierStub{},
 		HeaderIntegrityVerifier: CreateHeaderIntegrityVerifier(),
 		ChainID:                 ChainID,
@@ -1267,8 +1267,9 @@ func (tpn *TestProcessorNode) initInterceptors() {
 		}
 	} else {
 		argsPeerMiniBlocksSyncer := shardchain.ArgPeerMiniBlockSyncer{
-			MiniBlocksPool: tpn.DataPool.MiniBlocks(),
-			Requesthandler: tpn.RequestHandler,
+			MiniBlocksPool:     tpn.DataPool.MiniBlocks(),
+			ValidatorsInfoPool: tpn.DataPool.ValidatorsInfo(),
+			RequestHandler:     tpn.RequestHandler,
 		}
 		peerMiniBlockSyncer, _ := shardchain.NewPeerMiniBlockSyncer(argsPeerMiniBlocksSyncer)
 		argsShardEpochStart := &shardchain.ArgsShardEpochStartTrigger{
@@ -2182,8 +2183,9 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 	} else {
 		if check.IfNil(tpn.EpochStartTrigger) {
 			argsPeerMiniBlocksSyncer := shardchain.ArgPeerMiniBlockSyncer{
-				MiniBlocksPool: tpn.DataPool.MiniBlocks(),
-				Requesthandler: tpn.RequestHandler,
+				MiniBlocksPool:     tpn.DataPool.MiniBlocks(),
+				ValidatorsInfoPool: tpn.DataPool.ValidatorsInfo(),
+				RequestHandler:     tpn.RequestHandler,
 			}
 			peerMiniBlocksSyncer, _ := shardchain.NewPeerMiniBlockSyncer(argsPeerMiniBlocksSyncer)
 			argsShardEpochStart := &shardchain.ArgsShardEpochStartTrigger{
@@ -2501,9 +2503,9 @@ func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.Bod
 	}
 
 	for _, mb := range shardBlockBody.MiniBlocks {
-		//if mb.Type == dataBlock.PeerBlock {
-		//	continue
-		//}
+		if mb.Type == dataBlock.PeerBlock {
+			continue
+		}
 		for _, hash := range mb.TxHashes {
 			copiedHash := make([]byte, len(hash))
 			copy(copiedHash, hash)

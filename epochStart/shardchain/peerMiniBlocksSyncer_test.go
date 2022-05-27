@@ -18,8 +18,9 @@ import (
 
 func createDefaultArguments() ArgPeerMiniBlockSyncer {
 	defaultArgs := ArgPeerMiniBlockSyncer{
-		MiniBlocksPool: testscommon.NewCacherStub(),
-		Requesthandler: &testscommon.RequestHandlerStub{},
+		MiniBlocksPool:     testscommon.NewCacherStub(),
+		ValidatorsInfoPool: testscommon.NewShardedDataStub(),
+		RequestHandler:     &testscommon.RequestHandlerStub{},
 	}
 
 	return defaultArgs
@@ -36,11 +37,22 @@ func TestNewValidatorInfoProcessor_NilMiniBlocksPoolErr(t *testing.T) {
 	require.Equal(t, epochStart.ErrNilMiniBlockPool, err)
 }
 
+func TestNewValidatorInfoProcessor_NilValidatorsInfoPoolShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createDefaultArguments()
+	args.ValidatorsInfoPool = nil
+	syncer, err := NewPeerMiniBlockSyncer(args)
+
+	require.Nil(t, syncer)
+	require.Equal(t, epochStart.ErrNilValidatorsInfoPool, err)
+}
+
 func TestNewValidatorInfoProcessor_NilRequestHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := createDefaultArguments()
-	args.Requesthandler = nil
+	args.RequestHandler = nil
 	syncer, err := NewPeerMiniBlockSyncer(args)
 
 	require.Nil(t, syncer)
@@ -253,7 +265,7 @@ func TestValidatorInfoProcessor_ProcesStartOfEpochWithMissinPeerMiniblocksShould
 		},
 	}
 
-	args.Requesthandler = &testscommon.RequestHandlerStub{
+	args.RequestHandler = &testscommon.RequestHandlerStub{
 		RequestMiniBlocksHandlerCalled: func(destShardID uint32, miniblockHashes [][]byte) {
 			if destShardID == core.MetachainShardId &&
 				bytes.Equal(miniblockHashes[0], peerMiniBlockHash) {
@@ -317,7 +329,7 @@ func TestValidatorInfoProcessor_ProcesStartOfEpochWithMissinPeerMiniblocksTimeou
 		},
 	}
 
-	args.Requesthandler = &testscommon.RequestHandlerStub{
+	args.RequestHandler = &testscommon.RequestHandlerStub{
 		RequestMiniBlocksHandlerCalled: func(destShardID uint32, miniblockHashes [][]byte) {
 			if destShardID == core.MetachainShardId &&
 				bytes.Equal(miniblockHashes[0], peerMiniBlockHash) {

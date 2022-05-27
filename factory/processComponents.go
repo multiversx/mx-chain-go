@@ -667,8 +667,9 @@ func (pcf *processComponentsFactory) newEpochStartTrigger(requestHandler epochSt
 		}
 
 		argsPeerMiniBlockSyncer := shardchain.ArgPeerMiniBlockSyncer{
-			MiniBlocksPool: pcf.data.Datapool().MiniBlocks(),
-			Requesthandler: requestHandler,
+			MiniBlocksPool:     pcf.data.Datapool().MiniBlocks(),
+			ValidatorsInfoPool: pcf.data.Datapool().ValidatorsInfo(),
+			RequestHandler:     requestHandler,
 		}
 
 		peerMiniBlockSyncer, err := shardchain.NewPeerMiniBlockSyncer(argsPeerMiniBlockSyncer)
