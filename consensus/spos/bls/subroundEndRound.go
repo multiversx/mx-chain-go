@@ -197,6 +197,20 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 		return false
 	}
 
+	currentMultiSigner := sr.MultiSigner()
+	err = currentMultiSigner.SetAggregatedSig(sig)
+	if err != nil {
+		log.Debug("doEndRoundJobByLeader.SetAggregatedSig", "error", err.Error())
+		return false
+	}
+
+	err = sr.MultiSigner().Verify(sr.GetData(), bitmap)
+	if err != nil {
+		log.Debug("doEndRoundJobByLeader.Verify", "error", err.Error())
+		return false
+	}
+	log.Debug("doEndRoundJobByLeader.Verify: TRIGERRED")
+
 	err = sr.Header.SetPubKeysBitmap(bitmap)
 	if err != nil {
 		log.Debug("doEndRoundJobByLeader.SetPubKeysBitmap", "error", err.Error())
