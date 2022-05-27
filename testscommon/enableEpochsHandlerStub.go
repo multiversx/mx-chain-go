@@ -29,10 +29,10 @@ type EnableEpochsHandlerStub struct {
 	IsGovernanceFlagEnabledForCurrentEpochCalled              func() bool
 	IsDelegationManagerFlagEnabledCalled                      func() bool
 	IsDelegationSmartContractFlagEnabledCalled                func() bool
-	IsCorrectLastUnjailedFlagEnabledCalled                    func() bool
-	IsCorrectLastUnjailedFlagEnabledForCurrentEpochCalled     func() bool
+	IsCorrectLastUnJailedFlagEnabledCalled                    func() bool
+	IsCorrectLastUnJailedFlagEnabledForCurrentEpochCalled     func() bool
 	IsRelayedTransactionsV2FlagEnabledCalled                  func() bool
-	IsUnbondTokensV2FlagEnabledCalled                         func() bool
+	IsUnBondTokensV2FlagEnabledCalled                         func() bool
 	IsSaveJailedAlwaysFlagEnabledCalled                       func() bool
 	IsReDelegateBelowMinCheckFlagEnabledCalled                func() bool
 	IsValidatorToDelegationFlagEnabledCalled                  func() bool
@@ -63,7 +63,7 @@ type EnableEpochsHandlerStub struct {
 	IsStorageAPICostOptimizationFlagEnabledCalled             func() bool
 	IsESDTRegisterAndSetAllRolesFlagEnabledCalled             func() bool
 	IsScheduledMiniBlocksFlagEnabledCalled                    func() bool
-	IsCorrectJailedNotUnstakedEmptyQueueFlagEnabledCalled     func() bool
+	IsCorrectJailedNotUnStakedEmptyQueueFlagEnabledCalled     func() bool
 	IsDoNotReturnOldBlockInBlockchainHookFlagEnabledCalled    func() bool
 	IsAddFailedRelayedTxToInvalidMBsFlagCalled                func() bool
 	IsSCRSizeInvariantOnBuiltInResultFlagEnabledCalled        func() bool
@@ -323,19 +323,19 @@ func (stub *EnableEpochsHandlerStub) IsDelegationSmartContractFlagEnabled() bool
 	return true
 }
 
-// IsCorrectLastUnjailedFlagEnabled -
-func (stub *EnableEpochsHandlerStub) IsCorrectLastUnjailedFlagEnabled() bool {
-	if stub.IsCorrectLastUnjailedFlagEnabledCalled != nil {
-		return stub.IsCorrectLastUnjailedFlagEnabledCalled()
+// IsCorrectLastUnJailedFlagEnabled -
+func (stub *EnableEpochsHandlerStub) IsCorrectLastUnJailedFlagEnabled() bool {
+	if stub.IsCorrectLastUnJailedFlagEnabledCalled != nil {
+		return stub.IsCorrectLastUnJailedFlagEnabledCalled()
 	}
 
 	return true
 }
 
-// IsCorrectLastUnjailedFlagEnabledForCurrentEpoch -
-func (stub *EnableEpochsHandlerStub) IsCorrectLastUnjailedFlagEnabledForCurrentEpoch() bool {
-	if stub.IsCorrectLastUnjailedFlagEnabledForCurrentEpochCalled != nil {
-		return stub.IsCorrectLastUnjailedFlagEnabledForCurrentEpochCalled()
+// IsCorrectLastUnJailedFlagEnabledForCurrentEpoch -
+func (stub *EnableEpochsHandlerStub) IsCorrectLastUnJailedFlagEnabledForCurrentEpoch() bool {
+	if stub.IsCorrectLastUnJailedFlagEnabledForCurrentEpochCalled != nil {
+		return stub.IsCorrectLastUnJailedFlagEnabledForCurrentEpochCalled()
 	}
 
 	return true
@@ -350,10 +350,10 @@ func (stub *EnableEpochsHandlerStub) IsRelayedTransactionsV2FlagEnabled() bool {
 	return true
 }
 
-// IsUnbondTokensV2FlagEnabled -
-func (stub *EnableEpochsHandlerStub) IsUnbondTokensV2FlagEnabled() bool {
-	if stub.IsUnbondTokensV2FlagEnabledCalled != nil {
-		return stub.IsUnbondTokensV2FlagEnabledCalled()
+// IsUnBondTokensV2FlagEnabled -
+func (stub *EnableEpochsHandlerStub) IsUnBondTokensV2FlagEnabled() bool {
+	if stub.IsUnBondTokensV2FlagEnabledCalled != nil {
+		return stub.IsUnBondTokensV2FlagEnabledCalled()
 	}
 
 	return true
@@ -629,10 +629,10 @@ func (stub *EnableEpochsHandlerStub) IsScheduledMiniBlocksFlagEnabled() bool {
 	return true
 }
 
-// IsCorrectJailedNotUnstakedEmptyQueueFlagEnabled -
-func (stub *EnableEpochsHandlerStub) IsCorrectJailedNotUnstakedEmptyQueueFlagEnabled() bool {
-	if stub.IsCorrectJailedNotUnstakedEmptyQueueFlagEnabledCalled != nil {
-		return stub.IsCorrectJailedNotUnstakedEmptyQueueFlagEnabledCalled()
+// IsCorrectJailedNotUnStakedEmptyQueueFlagEnabled -
+func (stub *EnableEpochsHandlerStub) IsCorrectJailedNotUnStakedEmptyQueueFlagEnabled() bool {
+	if stub.IsCorrectJailedNotUnStakedEmptyQueueFlagEnabledCalled != nil {
+		return stub.IsCorrectJailedNotUnStakedEmptyQueueFlagEnabledCalled()
 	}
 
 	return true
