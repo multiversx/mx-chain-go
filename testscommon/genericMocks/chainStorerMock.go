@@ -16,10 +16,10 @@ type ChainStorerMock struct {
 // NewChainStorerMock -
 func NewChainStorerMock(epoch uint32) *ChainStorerMock {
 	return &ChainStorerMock{
-		Transactions: NewStorerMock("Transactions", epoch),
-		Rewards:      NewStorerMock("Rewards", epoch),
-		Unsigned:     NewStorerMock("Unsigned", epoch),
-		HdrNonce:     NewStorerMock("HeaderNonce", epoch),
+		Transactions: NewStorerMockWithEpoch(epoch),
+		Rewards:      NewStorerMockWithEpoch(epoch),
+		Unsigned:     NewStorerMockWithEpoch(epoch),
+		HdrNonce:     NewStorerMockWithEpoch(epoch),
 	}
 }
 

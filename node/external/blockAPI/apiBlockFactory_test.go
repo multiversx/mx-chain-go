@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/txstatus"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
+	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -125,7 +126,7 @@ func TestGetBlockByHash_KeyNotFound(t *testing.T) {
 		},
 	}
 	headerHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
-	storerMock := mock.NewStorerMock()
+	storerMock := genericMocks.NewStorerMockWithEpoch(1)
 
 	args := createMockArgsAPIBlockProc()
 	args.HistoryRepo = historyProc
@@ -140,7 +141,7 @@ func TestGetBlockByHash_KeyNotFound(t *testing.T) {
 	apiBlockProc, _ := CreateAPIBlockProcessor(args)
 
 	blk, err := apiBlockProc.GetBlockByHash(headerHash, api.BlockQueryOptions{})
-	assert.Equal(t, "key: ZDA4MDg5ZjJhYjczOTUyMDU5OGZkN2FlZWQwOGM0Mjc0NjBmZTk0ZjI4NjM4MzA0N2YzZjYxOTUxYWZjNGUwMA== not found", err.Error())
+	assert.Equal(t, "StorerMock: not found; key = 64303830383966326162373339353230353938666437616565643038633432373436306665393466323836333833303437663366363139353161666334653030, epoch = 1", err.Error())
 	assert.Nil(t, blk)
 }
 
@@ -163,7 +164,7 @@ func TestGetBlockByHashFromHistoryNode(t *testing.T) {
 	headerHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
 
 	uint64Converter := mock.NewNonceHashConverterMock()
-	storerMock := mock.NewStorerMock()
+	storerMock := genericMocks.NewStorerMockWithEpoch(epoch)
 
 	args := createMockArgsAPIBlockProc()
 	args.Store = &mock.ChainStorerMock{
@@ -226,7 +227,7 @@ func TestGetBlockByHashFromNormalNode(t *testing.T) {
 	epoch := uint32(1)
 	miniblockHeader := []byte("mbHash")
 	headerHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
-	storerMock := mock.NewStorerMock()
+	storerMock := genericMocks.NewStorerMock()
 
 	args := createMockArgsAPIBlockProc()
 	args.SelfShardID = core.MetachainShardId
@@ -302,7 +303,7 @@ func TestGetBlockByNonceFromHistoryNode(t *testing.T) {
 	epoch := uint32(1)
 	shardID := uint32(5)
 	miniblockHeader := []byte("mbHash")
-	storerMock := mock.NewStorerMock()
+	storerMock := genericMocks.NewStorerMockWithEpoch(epoch)
 	headerHash := "d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00"
 
 	args := createMockArgsAPIBlockProc()
@@ -436,7 +437,7 @@ func TestGetBlockByHashFromHistoryNode_StatusReverted(t *testing.T) {
 	miniblockHeader := []byte("mbHash")
 	headerHash := "d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00"
 	uint64Converter := mock.NewNonceHashConverterMock()
-	storerMock := mock.NewStorerMock()
+	storerMock := genericMocks.NewStorerMockWithEpoch(epoch)
 
 	args := createMockArgsAPIBlockProc()
 	args.HistoryRepo = historyProc
