@@ -536,3 +536,72 @@ func TestStakingV4_StakeNewNodes(t *testing.T) {
 	requireMapContains(t, currNodesConfig.waiting, owner3StakingQueue)
 	requireSliceContains(t, currNodesConfig.auction, owner1StakingQueue)
 }
+
+func TestStakingV4_UnStakeNodes(t *testing.T) {
+	pubKeys := generateAddresses(0, 20)
+
+	owner1 := "owner1"
+	owner1Stats := &OwnerStats{
+		EligibleBlsKeys: map[uint32][][]byte{
+			core.MetachainShardId: pubKeys[:2],
+		},
+		WaitingBlsKeys: map[uint32][][]byte{
+			0: pubKeys[2:4],
+		},
+		StakingQueueKeys: pubKeys[4:6],
+		TotalStake:       big.NewInt(6 * nodePrice),
+	}
+
+	owner2 := "owner2"
+	owner2Stats := &OwnerStats{
+		EligibleBlsKeys: map[uint32][][]byte{
+			0: pubKeys[6:8],
+		},
+		WaitingBlsKeys: map[uint32][][]byte{
+			core.MetachainShardId: pubKeys[8:10],
+		},
+		StakingQueueKeys: pubKeys[10:12],
+		TotalStake:       big.NewInt(6 * nodePrice),
+	}
+
+	cfg := &InitialNodesConfig{
+		MetaConsensusGroupSize:        1,
+		ShardConsensusGroupSize:       1,
+		MinNumberOfEligibleShardNodes: 1,
+		MinNumberOfEligibleMetaNodes:  1,
+		NumOfShards:                   1,
+		Owners: map[string]*OwnerStats{
+			owner1: owner1Stats,
+			owner2: owner2Stats,
+		},
+		MaxNodesChangeConfig: []config.MaxNodesChangeConfig{
+			{
+				EpochEnable:            0,
+				MaxNumNodes:            8,
+				NodesToShufflePerShard: 1,
+			},
+		},
+	}
+	node := NewTestMetaProcessorWithCustomNodes(cfg)
+	node.EpochStartTrigger.SetRoundsPerEpoch(4)
+
+	// 1. Check initial config is correct
+	currNodesConfig := node.NodesConfig
+	require.Len(t, getAllPubKeys(currNodesConfig.eligible), 4)
+	require.Len(t, getAllPubKeys(currNodesConfig.waiting), 4)
+	require.Len(t, currNodesConfig.eligible[core.MetachainShardId], 2)
+	require.Len(t, currNodesConfig.waiting[core.MetachainShardId], 2)
+	require.Len(t, currNodesConfig.eligible[0], 2)
+	require.Len(t, currNodesConfig.waiting[0], 2)
+
+	owner1StakingQueue := owner1Stats.StakingQueueKeys
+	owner2StakingQueue := owner2Stats.StakingQueueKeys
+	queue := make([][]byte, 0)
+	queue = append(queue, owner1StakingQueue...)
+	queue = append(queue, owner2StakingQueue...)
+	require.Len(t, currNodesConfig.queue, 4)
+	requireSameSliceDifferentOrder(t, currNodesConfig.queue, queue)
+
+	require.Empty(t, currNodesConfig.shuffledOut)
+	require.Empty(t, currNodesConfig.auction)
+}
