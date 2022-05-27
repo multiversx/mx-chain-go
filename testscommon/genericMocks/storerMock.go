@@ -231,5 +231,5 @@ func (sm *StorerMock) newErrNotFound(key []byte, epoch uint32) error {
 		return storage.ErrKeyNotFound
 	}
 
-	return fmt.Errorf("StorerMock: not found in %s: key = %s, epoch = %d", sm.Name, hex.EncodeToString(key), epoch)
+	return fmt.Errorf("StorerMock: not found; key = %s, epoch = %d", hex.EncodeToString(key), epoch)
 }

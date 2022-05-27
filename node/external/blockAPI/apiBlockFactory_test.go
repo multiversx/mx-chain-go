@@ -141,7 +141,7 @@ func TestGetBlockByHash_KeyNotFound(t *testing.T) {
 	apiBlockProc, _ := CreateAPIBlockProcessor(args)
 
 	blk, err := apiBlockProc.GetBlockByHash(headerHash, false)
-	assert.Equal(t, "StorerMock: not found in Storage: key = 64303830383966326162373339353230353938666437616565643038633432373436306665393466323836333833303437663366363139353161666334653030, epoch = 1", err.Error())
+	assert.Equal(t, "StorerMock: not found; key = 64303830383966326162373339353230353938666437616565643038633432373436306665393466323836333833303437663366363139353161666334653030, epoch = 1", err.Error())
 	assert.Nil(t, blk)
 }
 
