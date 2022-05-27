@@ -33,9 +33,11 @@ type apiTransactionProcessor struct {
 	storageService              dataRetriever.StorageService
 	dataPool                    dataRetriever.PoolsHolder
 	uint64ByteSliceConverter    typeConverters.Uint64ByteSliceConverter
+	feeComputer                 feeComputer
+	txTypeHandler               process.TxTypeHandler
 	txUnmarshaller              *txUnmarshaller
 	transactionResultsProcessor *apiTransactionResultsProcessor
-	txTypeHandler               process.TxTypeHandler
+	refundDetector              *refundDetector
 }
 
 // NewAPITransactionProcessor will create a new instance of apiTransactionProcessor
@@ -46,6 +48,7 @@ func NewAPITransactionProcessor(args *ArgAPITransactionProcessor) (*apiTransacti
 	}
 
 	txUnmarshalerAndPreparer := newTransactionUnmarshaller(args.Marshalizer, args.AddressPubKeyConverter)
+
 	txResultsProc := newAPITransactionResultProcessor(
 		args.AddressPubKeyConverter,
 		args.HistoryRepository,
@@ -54,6 +57,8 @@ func NewAPITransactionProcessor(args *ArgAPITransactionProcessor) (*apiTransacti
 		txUnmarshalerAndPreparer,
 		args.ShardCoordinator.SelfId(),
 	)
+
+	refundDetector := newRefundDetector()
 
 	return &apiTransactionProcessor{
 		roundDuration:               args.RoundDuration,
@@ -65,9 +70,11 @@ func NewAPITransactionProcessor(args *ArgAPITransactionProcessor) (*apiTransacti
 		storageService:              args.StorageService,
 		dataPool:                    args.DataPool,
 		uint64ByteSliceConverter:    args.Uint64ByteSliceConverter,
+		feeComputer:                 args.FeeComputer,
+		txTypeHandler:               args.TxTypeHandler,
 		txUnmarshaller:              txUnmarshalerAndPreparer,
 		transactionResultsProcessor: txResultsProc,
-		txTypeHandler:               args.TxTypeHandler,
+		refundDetector:              refundDetector,
 	}, nil
 }
 
@@ -84,7 +91,9 @@ func (atp *apiTransactionProcessor) GetTransaction(txHash string, withResults bo
 		return nil, err
 	}
 
-	atp.populateProcessingTypeFields(tx)
+	atp.populateComputedFieldsProcessingType(tx)
+	atp.populateComputedFieldInitiallyPaidFee(tx)
+	atp.populateComputedFieldIsRefund(tx)
 
 	return tx, nil
 }
@@ -105,10 +114,31 @@ func (atp *apiTransactionProcessor) doGetTransaction(hash []byte, withResults bo
 	return atp.getTransactionFromStorage(hash)
 }
 
-func (atp *apiTransactionProcessor) populateProcessingTypeFields(tx *transaction.ApiTransactionResult) {
+func (atp *apiTransactionProcessor) populateComputedFieldsProcessingType(tx *transaction.ApiTransactionResult) {
 	typeOnSource, typeOnDestination := atp.txTypeHandler.ComputeTransactionType(tx.Tx)
 	tx.ProcessingTypeOnSource = typeOnSource.String()
 	tx.ProcessingTypeOnDestination = typeOnDestination.String()
+}
+
+func (atp *apiTransactionProcessor) populateComputedFieldInitiallyPaidFee(tx *transaction.ApiTransactionResult) {
+	// Only user-initiated transactions will present an initially paid fee.
+	if tx.Type == string(transaction.TxTypeNormal) || tx.Type == string(transaction.TxTypeInvalid) {
+		fee := atp.feeComputer.ComputeTransactionFee(tx.Tx, int(tx.Epoch))
+		tx.InitiallyPaidFee = fee.String()
+	}
+}
+
+func (atp *apiTransactionProcessor) populateComputedFieldIsRefund(tx *transaction.ApiTransactionResult) {
+	if tx.Type != string(transaction.TxTypeUnsigned) {
+		return
+	}
+
+	tx.IsRefund = atp.refundDetector.isRefund(refundDetectorInput{
+		Value:         tx.Value,
+		Data:          tx.Data,
+		ReturnMessage: tx.ReturnMessage,
+		GasLimit:      tx.GasLimit,
+	})
 }
 
 // GetTransactionsPool will return a structure containing the transactions pool that is to be returned on API calls
@@ -353,7 +383,9 @@ func (atp *apiTransactionProcessor) UnmarshalTransaction(txBytes []byte, txType 
 		return nil, err
 	}
 
-	atp.populateProcessingTypeFields(tx)
+	atp.populateComputedFieldsProcessingType(tx)
+	atp.populateComputedFieldInitiallyPaidFee(tx)
+	atp.populateComputedFieldIsRefund(tx)
 
 	return tx, nil
 }

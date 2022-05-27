@@ -13,3 +13,6 @@ var ErrNilStatusComputer = errors.New("nil transaction status computer")
 
 // ErrNilAPITransactionProcessorArg signals that a nil arguments structure has been provided
 var ErrNilAPITransactionProcessorArg = errors.New("nil api transaction processor arg")
+
+// ErrNilFeeComputer signals that the fee computer is nil
+var ErrNilFeeComputer = errors.New("nil fee computer")
