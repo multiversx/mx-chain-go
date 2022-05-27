@@ -7,7 +7,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
@@ -79,11 +78,4 @@ func (txProc *txProcessor) ExecuteFailedRelayedTransaction(
 		originalTx,
 		originalTxHash,
 		errorMsg)
-}
-
-func (txProc *metaTxProcessor) SetValueFlagMetaBuiltIn(set bool) {
-	stub, _ := txProc.enableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
-	stub.IsBuiltInFunctionOnMetaFlagEnabledCalled = func() bool {
-		return set
-	}
 }
