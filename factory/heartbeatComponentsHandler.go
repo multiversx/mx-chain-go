@@ -142,5 +142,5 @@ func (mhc *managedHeartbeatComponents) IsInterfaceNil() bool {
 
 // String returns the name of the component
 func (mhc *managedHeartbeatComponents) String() string {
-	return "managedHeartbeatComponents"
+	return heartbeatComponentsName
 }

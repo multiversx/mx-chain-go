@@ -262,6 +262,7 @@ func (sm *statusMetrics) EnableEpochsMetrics() (map[string]interface{}, error) {
 	enableEpochsMetrics[common.MetricIncrementSCRNonceInMultiTransferEnableEpoch] = sm.uint64Metrics[common.MetricIncrementSCRNonceInMultiTransferEnableEpoch]
 	enableEpochsMetrics[common.MetricBalanceWaitingListsEnableEpoch] = sm.uint64Metrics[common.MetricBalanceWaitingListsEnableEpoch]
 	enableEpochsMetrics[common.MetricWaitingListFixEnableEpoch] = sm.uint64Metrics[common.MetricWaitingListFixEnableEpoch]
+	enableEpochsMetrics[common.MetricHeartbeatDisableEpoch] = sm.uint64Metrics[common.MetricHeartbeatDisableEpoch]
 
 	numNodesChangeConfig := sm.uint64Metrics[common.MetricMaxNodesChangeEnableEpoch+"_count"]
 
@@ -288,10 +289,17 @@ func (sm *statusMetrics) EnableEpochsMetrics() (map[string]interface{}, error) {
 
 // NetworkMetrics will return metrics related to current configuration
 func (sm *statusMetrics) NetworkMetrics() (map[string]interface{}, error) {
+	networkMetrics := make(map[string]interface{})
+
+	sm.saveUint64MetricsInMap(networkMetrics)
+	sm.saveStringMetricsInMap(networkMetrics)
+
+	return networkMetrics, nil
+}
+
+func (sm *statusMetrics) saveUint64MetricsInMap(networkMetrics map[string]interface{}) {
 	sm.mutUint64Operations.RLock()
 	defer sm.mutUint64Operations.RUnlock()
-
-	networkMetrics := make(map[string]interface{})
 
 	currentRound := sm.uint64Metrics[common.MetricCurrentRound]
 	roundNumberAtEpochStart := sm.uint64Metrics[common.MetricRoundAtEpochStart]
@@ -316,8 +324,16 @@ func (sm *statusMetrics) NetworkMetrics() (map[string]interface{}, error) {
 		noncesPassedInEpoch = currentNonce - nonceAtEpochStart
 	}
 	networkMetrics[common.MetricNoncesPassedInCurrentEpoch] = noncesPassedInEpoch
+}
 
-	return networkMetrics, nil
+func (sm *statusMetrics) saveStringMetricsInMap(networkMetrics map[string]interface{}) {
+	sm.mutStringOperations.RLock()
+	defer sm.mutStringOperations.RUnlock()
+
+	crossCheckValue := sm.stringMetrics[common.MetricCrossCheckBlockHeight]
+	if len(crossCheckValue) > 0 {
+		networkMetrics[common.MetricCrossCheckBlockHeight] = crossCheckValue
+	}
 }
 
 // RatingsMetrics will return metrics related to current configuration

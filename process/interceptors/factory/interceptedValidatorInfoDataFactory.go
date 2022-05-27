@@ -16,7 +16,7 @@ type interceptedValidatorInfoDataFactory struct {
 
 // NewInterceptedValidatorInfoDataFactory creates an instance of interceptedValidatorInfoDataFactory
 func NewInterceptedValidatorInfoDataFactory(args ArgInterceptedDataFactory) (*interceptedValidatorInfoDataFactory, error) {
-	err := checkArgs(args)
+	err := checkInterceptedValidatorInfoDataFactoryArgs(args)
 	if err != nil {
 		return nil, err
 	}
@@ -28,7 +28,7 @@ func NewInterceptedValidatorInfoDataFactory(args ArgInterceptedDataFactory) (*in
 	}, nil
 }
 
-func checkArgs(args ArgInterceptedDataFactory) error {
+func checkInterceptedValidatorInfoDataFactoryArgs(args ArgInterceptedDataFactory) error {
 	if check.IfNil(args.CoreComponents) {
 		return process.ErrNilCoreComponentsHolder
 	}
