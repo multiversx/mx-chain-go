@@ -146,10 +146,10 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.False(t, handler.IsGovernanceFlagEnabledForCurrentEpoch()) // epoch == limit
 		assert.True(t, handler.IsDelegationManagerFlagEnabled())
 		assert.True(t, handler.IsDelegationSmartContractFlagEnabled())
-		assert.True(t, handler.IsCorrectLastUnjailedFlagEnabled())
-		assert.False(t, handler.IsCorrectLastUnjailedFlagEnabledForCurrentEpoch()) // epoch == limit
+		assert.True(t, handler.IsCorrectLastUnJailedFlagEnabled())
+		assert.False(t, handler.IsCorrectLastUnJailedFlagEnabledForCurrentEpoch()) // epoch == limit
 		assert.True(t, handler.IsRelayedTransactionsV2FlagEnabled())
-		assert.True(t, handler.IsUnbondTokensV2FlagEnabled())
+		assert.True(t, handler.IsUnBondTokensV2FlagEnabled())
 		assert.True(t, handler.IsSaveJailedAlwaysFlagEnabled())
 		assert.True(t, handler.IsReDelegateBelowMinCheckFlagEnabled())
 		assert.True(t, handler.IsValidatorToDelegationFlagEnabled())
@@ -180,7 +180,7 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsStorageAPICostOptimizationFlagEnabled())
 		assert.True(t, handler.IsESDTRegisterAndSetAllRolesFlagEnabled())
 		assert.True(t, handler.IsScheduledMiniBlocksFlagEnabled())
-		assert.True(t, handler.IsCorrectJailedNotUnstakedEmptyQueueFlagEnabled())
+		assert.True(t, handler.IsCorrectJailedNotUnStakedEmptyQueueFlagEnabled())
 		assert.True(t, handler.IsDoNotReturnOldBlockInBlockchainHookFlagEnabled())
 		assert.False(t, handler.IsAddFailedRelayedTxToInvalidMBsFlag()) // epoch < limit
 		assert.True(t, handler.IsSCRSizeInvariantOnBuiltInResultFlagEnabled())
@@ -231,10 +231,10 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsGovernanceFlagEnabledForCurrentEpoch()) // epoch == limit
 		assert.True(t, handler.IsDelegationManagerFlagEnabled())
 		assert.True(t, handler.IsDelegationSmartContractFlagEnabled())
-		assert.True(t, handler.IsCorrectLastUnjailedFlagEnabled())
-		assert.True(t, handler.IsCorrectLastUnjailedFlagEnabledForCurrentEpoch()) // epoch == limit
+		assert.True(t, handler.IsCorrectLastUnJailedFlagEnabled())
+		assert.True(t, handler.IsCorrectLastUnJailedFlagEnabledForCurrentEpoch()) // epoch == limit
 		assert.True(t, handler.IsRelayedTransactionsV2FlagEnabled())
-		assert.True(t, handler.IsUnbondTokensV2FlagEnabled())
+		assert.True(t, handler.IsUnBondTokensV2FlagEnabled())
 		assert.True(t, handler.IsSaveJailedAlwaysFlagEnabled())
 		assert.True(t, handler.IsReDelegateBelowMinCheckFlagEnabled())
 		assert.True(t, handler.IsValidatorToDelegationFlagEnabled())
@@ -265,7 +265,7 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsStorageAPICostOptimizationFlagEnabled())
 		assert.True(t, handler.IsESDTRegisterAndSetAllRolesFlagEnabled())
 		assert.True(t, handler.IsScheduledMiniBlocksFlagEnabled())
-		assert.True(t, handler.IsCorrectJailedNotUnstakedEmptyQueueFlagEnabled())
+		assert.True(t, handler.IsCorrectJailedNotUnStakedEmptyQueueFlagEnabled())
 		assert.True(t, handler.IsDoNotReturnOldBlockInBlockchainHookFlagEnabled())
 		assert.False(t, handler.IsAddFailedRelayedTxToInvalidMBsFlag()) // epoch < limit
 		assert.True(t, handler.IsSCRSizeInvariantOnBuiltInResultFlagEnabled())
@@ -311,10 +311,10 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.False(t, handler.IsGovernanceFlagEnabledForCurrentEpoch()) // epoch == limit
 		assert.False(t, handler.IsDelegationManagerFlagEnabled())
 		assert.False(t, handler.IsDelegationSmartContractFlagEnabled())
-		assert.False(t, handler.IsCorrectLastUnjailedFlagEnabled())
-		assert.False(t, handler.IsCorrectLastUnjailedFlagEnabledForCurrentEpoch()) // epoch == limit
+		assert.False(t, handler.IsCorrectLastUnJailedFlagEnabled())
+		assert.False(t, handler.IsCorrectLastUnJailedFlagEnabledForCurrentEpoch()) // epoch == limit
 		assert.False(t, handler.IsRelayedTransactionsV2FlagEnabled())
-		assert.False(t, handler.IsUnbondTokensV2FlagEnabled())
+		assert.False(t, handler.IsUnBondTokensV2FlagEnabled())
 		assert.False(t, handler.IsSaveJailedAlwaysFlagEnabled())
 		assert.False(t, handler.IsReDelegateBelowMinCheckFlagEnabled())
 		assert.False(t, handler.IsValidatorToDelegationFlagEnabled())
@@ -345,7 +345,7 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.False(t, handler.IsStorageAPICostOptimizationFlagEnabled())
 		assert.False(t, handler.IsESDTRegisterAndSetAllRolesFlagEnabled())
 		assert.False(t, handler.IsScheduledMiniBlocksFlagEnabled())
-		assert.False(t, handler.IsCorrectJailedNotUnstakedEmptyQueueFlagEnabled())
+		assert.False(t, handler.IsCorrectJailedNotUnStakedEmptyQueueFlagEnabled())
 		assert.False(t, handler.IsDoNotReturnOldBlockInBlockchainHookFlagEnabled())
 		assert.True(t, handler.IsAddFailedRelayedTxToInvalidMBsFlag()) // epoch < limit
 		assert.False(t, handler.IsSCRSizeInvariantOnBuiltInResultFlagEnabled())
