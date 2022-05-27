@@ -20,6 +20,7 @@ type apiTransactionResultsProcessor struct {
 	marshalizer            marshal.Marshalizer
 	selfShardID            uint32
 	refundDetector         *refundDetector
+	logsRepository         LogsRepository
 }
 
 func newAPITransactionResultProcessor(
@@ -28,6 +29,7 @@ func newAPITransactionResultProcessor(
 	storageService dataRetriever.StorageService,
 	marshalizer marshal.Marshalizer,
 	txUnmarshaller *txUnmarshaller,
+	logsRepository LogsRepository,
 	selfShardID uint32,
 ) *apiTransactionResultsProcessor {
 	refundDetector := newRefundDetector()
@@ -40,6 +42,7 @@ func newAPITransactionResultProcessor(
 		marshalizer:            marshalizer,
 		selfShardID:            selfShardID,
 		refundDetector:         refundDetector,
+		logsRepository:         logsRepository,
 	}
 }
 
@@ -111,23 +114,21 @@ func (arp *apiTransactionResultsProcessor) putSmartContractResultsInTransactionB
 }
 
 func (arp *apiTransactionResultsProcessor) putLogsInTransaction(hash []byte, tx *transaction.ApiTransactionResult, epoch uint32) {
-	logsAndEvents, err := arp.getLogsAndEvents(hash, epoch)
-	if err != nil || logsAndEvents == nil {
-		return
-	}
+	var err error
 
-	logsAPI := arp.prepareLogsAndEvents(logsAndEvents)
-	tx.Logs = logsAPI
+	tx.Logs, err = arp.logsRepository.GetLog(hash, epoch)
+	if err != nil {
+		log.Warn("putLogsInTransaction()", "hash", hash, "epoch", epoch, "err", err)
+	}
 }
 
 func (arp *apiTransactionResultsProcessor) putLogsInSCR(scrHash []byte, epoch uint32, scr *transaction.ApiSmartContractResult) {
-	logsAndEvents, err := arp.getLogsAndEvents(scrHash, epoch)
-	if err != nil {
-		return
-	}
+	var err error
 
-	logsAPI := arp.prepareLogsAndEvents(logsAndEvents)
-	scr.Logs = logsAPI
+	scr.Logs, err = arp.logsRepository.GetLog(scrHash, epoch)
+	if err != nil {
+		log.Warn("putLogsInSCR()", "hash", scrHash, "epoch", epoch, "err", err)
+	}
 }
 
 func (arp *apiTransactionResultsProcessor) getScrFromStorage(hash []byte, epoch uint32) (*smartContractResult.SmartContractResult, error) {
@@ -188,41 +189,4 @@ func (arp *apiTransactionResultsProcessor) adaptSmartContractResult(scrHash []by
 	}
 
 	return apiSCR
-}
-
-// TODO: conversion logic useful for ...?withLogs=true, as well. Perhaps extract it (converters.go)?
-func (arp *apiTransactionResultsProcessor) prepareLogsAndEvents(logsAndEvents *transaction.Log) *transaction.ApiLogs {
-	addrEncoded := arp.addressPubKeyConverter.Encode(logsAndEvents.Address)
-
-	logsAPI := &transaction.ApiLogs{
-		Address: addrEncoded,
-		Events:  make([]*transaction.Events, 0, len(logsAndEvents.Events)),
-	}
-
-	for _, event := range logsAndEvents.Events {
-		logsAPI.Events = append(logsAPI.Events, &transaction.Events{
-			Address:    arp.addressPubKeyConverter.Encode(event.Address),
-			Identifier: string(event.Identifier),
-			Topics:     event.Topics,
-			Data:       event.Data,
-		})
-	}
-
-	return logsAPI
-}
-
-func (arp *apiTransactionResultsProcessor) getLogsAndEvents(hash []byte, epoch uint32) (*transaction.Log, error) {
-	logsAndEventsStorer := arp.storageService.GetStorer(dataRetriever.TxLogsUnit)
-	logsAndEventsBytes, err := logsAndEventsStorer.GetFromEpoch(hash, epoch)
-	if err != nil {
-		return nil, err
-	}
-
-	txLog := &transaction.Log{}
-	err = arp.marshalizer.Unmarshal(txLog, logsAndEventsBytes)
-	if err != nil {
-		return nil, err
-	}
-
-	return txLog, nil
 }

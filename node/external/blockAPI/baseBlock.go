@@ -43,6 +43,7 @@ type baseAPIBlockProcessor struct {
 	addressPubKeyConverter   core.PubkeyConverter
 	txStatusComputer         transaction.StatusComputerHandler
 	txUnmarshaller           TransactionUnmarshaller
+	logsRepository           LogsRepository
 }
 
 var log = logger.GetOrCreate("node/blockAPI")
@@ -105,12 +106,9 @@ func (bap *baseAPIBlockProcessor) prepareAPIMiniblock(miniblock *block.MiniBlock
 		SourceShard:      miniblock.SenderShardID,
 		DestinationShard: miniblock.ReceiverShardID,
 	}
-	// TODO: loadMiniblock(): miniblock, miniblockHash (implementation = first parts of getAndAttachTxsToMb)
-	if options.WithTransactions {
-		// TODO: rename to loadTransactions()
-		bap.getAndAttachTxsToMbByEpoch(mbHash, miniblock, epoch, miniblockAPI)
 
-		// TODO: if withLogs { loadLogs }
+	if options.WithTransactions {
+		bap.getAndAttachTxsToMbByEpoch(mbHash, miniblock, epoch, miniblockAPI)
 	}
 
 	return miniblockAPI, true
@@ -209,6 +207,7 @@ func (bap *baseAPIBlockProcessor) getTxsFromMiniblock(
 			continue
 		}
 		tx.Hash = hex.EncodeToString(pair.Key)
+		tx.HashBytes = pair.Key
 		tx.MiniBlockType = miniblock.Type.String()
 		tx.MiniBlockHash = hex.EncodeToString(miniblockHash)
 		tx.SourceShard = miniblock.SenderShardID
@@ -220,6 +219,12 @@ func (bap *baseAPIBlockProcessor) getTxsFromMiniblock(
 		txs = append(txs, tx)
 	}
 	log.Debug(fmt.Sprintf("UnmarshalTransactions took %s", time.Since(start)))
+
+	// TODO: only if WithLogs = true.
+	err = bap.logsRepository.IncludeLogsInTransactions(txs, miniblock.TxHashes, epoch)
+	if err != nil {
+		log.Warn("cannot include logs in transactions", "error", err)
+	}
 
 	return txs
 }

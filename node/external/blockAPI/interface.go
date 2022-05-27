@@ -33,3 +33,9 @@ type APIInternalBlockHandler interface {
 	GetInternalMiniBlock(format common.ApiOutputFormat, hash []byte, epoch uint32) (interface{}, error)
 	IsInterfaceNil() bool
 }
+
+// LogsRepository defines the interface of a logs repository
+type LogsRepository interface {
+	IncludeLogsInTransactions(txs []*transaction.ApiTransactionResult, logsHashes [][]byte, epoch uint32) error
+	IsInterfaceNil() bool
+}

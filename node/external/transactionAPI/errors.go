@@ -16,3 +16,6 @@ var ErrNilAPITransactionProcessorArg = errors.New("nil api transaction processor
 
 // ErrNilFeeComputer signals that the fee computer is nil
 var ErrNilFeeComputer = errors.New("nil fee computer")
+
+// ErrNilLogsRepository signals that the logs repository is nil
+var ErrNilLogsRepository = errors.New("nil logs repository")

@@ -25,4 +25,5 @@ type ArgAPITransactionProcessor struct {
 	Uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
 	FeeComputer              feeComputer
 	TxTypeHandler            process.TxTypeHandler
+	LogsRepository           LogsRepository
 }

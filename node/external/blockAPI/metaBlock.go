@@ -31,6 +31,7 @@ func newMetaApiBlockProcessor(arg *ArgAPIBlockProcessor, emptyReceiptsHash []byt
 			hasher:                   arg.Hasher,
 			addressPubKeyConverter:   arg.AddressPubkeyConverter,
 			emptyReceiptsHash:        emptyReceiptsHash,
+			logsRepository:           arg.LogsRepository,
 		},
 	}
 }

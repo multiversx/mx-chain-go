@@ -10,9 +10,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/facade"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/node/external/blockAPI"
+	"github.com/ElrondNetwork/elrond-go/node/external/logs"
 	"github.com/ElrondNetwork/elrond-go/node/external/timemachine/fee"
 	"github.com/ElrondNetwork/elrond-go/node/external/transactionAPI"
 	"github.com/ElrondNetwork/elrond-go/node/trieIterators"
@@ -199,6 +201,11 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		return nil, err
 	}
 
+	logsRepository, err := createLogsRepository(args)
+	if err != nil {
+		return nil, err
+	}
+
 	argsAPITransactionProc := &transactionAPI.ArgAPITransactionProcessor{
 		RoundDuration:            args.CoreComponents.GenesisNodesSetup().GetRoundDuration(),
 		GenesisTime:              args.CoreComponents.GenesisTime(),
@@ -211,6 +218,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		Uint64ByteSliceConverter: args.CoreComponents.Uint64ByteSliceConverter(),
 		FeeComputer:              feeComputer,
 		TxTypeHandler:            txTypeHandler,
+		LogsRepository:           logsRepository,
 	}
 	apiTransactionProcessor, err := transactionAPI.NewAPITransactionProcessor(argsAPITransactionProc)
 	if err != nil {
@@ -482,6 +490,11 @@ func createAPIBlockProcessorArgs(args *ApiResolverArgs, apiTransactionHandler ex
 		return nil, errors.New("error creating transaction status computer " + err.Error())
 	}
 
+	logsRepository, err := createLogsRepository(args)
+	if err != nil {
+		return nil, err
+	}
+
 	blockApiArgs := &blockAPI.ArgAPIBlockProcessor{
 		SelfShardID:              args.ProcessComponents.ShardCoordinator().SelfId(),
 		Store:                    args.DataComponents.StorageService(),
@@ -492,7 +505,16 @@ func createAPIBlockProcessorArgs(args *ApiResolverArgs, apiTransactionHandler ex
 		StatusComputer:           statusComputer,
 		AddressPubkeyConverter:   args.CoreComponents.AddressPubKeyConverter(),
 		Hasher:                   args.CoreComponents.Hasher(),
+		LogsRepository:           logsRepository,
 	}
 
 	return blockApiArgs, nil
+}
+
+func createLogsRepository(args *ApiResolverArgs) (LogsRepository, error) {
+	return logs.NewLogsRepository(logs.ArgsNewLogsRepository{
+		Storer:          args.DataComponents.StorageService().GetStorer(dataRetriever.TxLogsUnit),
+		Marshalizer:     args.CoreComponents.InternalMarshalizer(),
+		PubKeyConverter: args.CoreComponents.AddressPubKeyConverter(),
+	})
 }
