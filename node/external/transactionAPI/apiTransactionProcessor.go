@@ -91,6 +91,7 @@ func (atp *apiTransactionProcessor) GetTransaction(txHash string, withResults bo
 		return nil, err
 	}
 
+	tx.Hash = txHash
 	atp.populateComputedFieldsProcessingType(tx)
 	atp.populateComputedFieldInitiallyPaidFee(tx)
 	atp.populateComputedFieldIsRefund(tx)
