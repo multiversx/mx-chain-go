@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	dbLookupExtMock "github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
+	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
 	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/stretchr/testify/require"
 )
@@ -138,7 +139,7 @@ func TestPutEventsInTransactionSmartContractResults(t *testing.T) {
 					},
 				}
 			default:
-				return mock.NewStorerMock()
+				return genericMocks.NewStorerMock()
 			}
 		},
 	}

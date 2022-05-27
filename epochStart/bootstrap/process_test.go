@@ -90,7 +90,7 @@ func createMockEpochStartBootstrapArgs(
 ) ArgsEpochStartBootstrap {
 	generalCfg := testscommon.GetGeneralConfig()
 	return ArgsEpochStartBootstrap{
-		ScheduledSCRsStorer:    genericMocks.NewStorerMock("path", 0),
+		ScheduledSCRsStorer:    genericMocks.NewStorerMock(),
 		CoreComponentsHolder:   coreMock,
 		CryptoComponentsHolder: cryptoMock,
 		Messenger:              &mock.MessengerStub{},

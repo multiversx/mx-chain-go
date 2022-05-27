@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
+	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
 	"github.com/stretchr/testify/require"
 )
 
@@ -46,7 +47,7 @@ func TestBaseBlockGetIntraMiniblocksSCRS(t *testing.T) {
 	}
 	mbScrsBytes, _ := baseAPIBlockProc.marshalizer.Marshal(mbScrs)
 
-	receiptsStorer := mock.NewStorerMock()
+	receiptsStorer := genericMocks.NewStorerMock()
 
 	batchData := &batch.Batch{
 		Data: [][]byte{mbScrsBytes},
@@ -56,7 +57,7 @@ func TestBaseBlockGetIntraMiniblocksSCRS(t *testing.T) {
 	receiptsHash := []byte("recHash")
 	_ = receiptsStorer.Put(receiptsHash, batchDataBytes)
 
-	unsignedStorer := mock.NewStorerMock()
+	unsignedStorer := genericMocks.NewStorerMock()
 	scResult := &smartContractResult.SmartContractResult{
 		SndAddr: []byte("snd"),
 		RcvAddr: []byte("rcv"),
@@ -117,7 +118,7 @@ func TestBaseBlockGetIntraMiniblocksReceipts(t *testing.T) {
 	}
 	recMbBytes, _ := baseAPIBlockProc.marshalizer.Marshal(recMb)
 
-	receiptsStorer := mock.NewStorerMock()
+	receiptsStorer := genericMocks.NewStorerMock()
 
 	batchData := &batch.Batch{
 		Data: [][]byte{recMbBytes},
@@ -127,7 +128,7 @@ func TestBaseBlockGetIntraMiniblocksReceipts(t *testing.T) {
 	receiptsHash := []byte("recHash")
 	_ = receiptsStorer.Put(receiptsHash, batchDataBytes)
 
-	unsignedStorer := mock.NewStorerMock()
+	unsignedStorer := genericMocks.NewStorerMock()
 	rec := &receipt.Receipt{
 		Value:   big.NewInt(1000),
 		SndAddr: []byte("sndAddr"),
@@ -188,11 +189,11 @@ func TestBaseBlock_getAndAttachTxsToMb_MiniblockTxBlock(t *testing.T) {
 	}
 	txMbBytes, _ := baseAPIBlockProc.marshalizer.Marshal(txMb)
 
-	mbStorer := mock.NewStorerMock()
+	mbStorer := genericMocks.NewStorerMock()
 	mbHash := []byte("mbHash")
 	_ = mbStorer.Put(mbHash, txMbBytes)
 
-	unsignedStorer := mock.NewStorerMock()
+	unsignedStorer := genericMocks.NewStorerMock()
 	tx := &transaction.Transaction{
 		Value:   big.NewInt(1000),
 		SndAddr: []byte("sndAddr"),
