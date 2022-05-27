@@ -401,7 +401,7 @@ func (brcf *baseResolversContainerFactory) createTrieNodesResolver(
 func (brcf *baseResolversContainerFactory) generateValidatorInfoResolver() error {
 	identifierValidatorInfo := common.ValidatorInfoTopic
 	shardC := brcf.shardCoordinator
-	resolverSender, err := brcf.createOneResolverSender(identifierValidatorInfo, EmptyExcludePeersOnTopic, shardC.SelfId())
+	resolverSender, err := brcf.createOneResolverSenderWithSpecifiedNumRequests(identifierValidatorInfo, EmptyExcludePeersOnTopic, shardC.SelfId(), brcf.numCrossShardPeers, brcf.numIntraShardPeers)
 	if err != nil {
 		return err
 	}

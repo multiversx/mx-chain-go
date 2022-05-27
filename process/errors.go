@@ -1077,12 +1077,6 @@ var ErrNilDoubleTransactionsDetector = errors.New("nil double transactions detec
 // ErrNoTxToProcess signals that no transaction were sent for processing
 var ErrNoTxToProcess = errors.New("no transaction to process")
 
-// ErrPropertyTooLong signals that a heartbeat property was too long
-var ErrPropertyTooLong = errors.New("property too long")
-
-// ErrPropertyTooShort signals that a heartbeat property was too short
-var ErrPropertyTooShort = errors.New("property too short")
-
 // ErrInvalidPeerSubType signals that an invalid peer subtype was provided
 var ErrInvalidPeerSubType = errors.New("invalid peer subtype")
 
