@@ -647,7 +647,7 @@ func (e *esdt) createNewToken(
 		Upgradable:         true,
 		CanAddSpecialRoles: true,
 	}
-	err = e.upgradeProperties(newESDTToken, properties, true, owner)
+	err = e.upgradeProperties(tokenIdentifier, newESDTToken, properties, true, owner)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -711,7 +711,7 @@ func (e *esdt) createNewTokenIdentifier(caller []byte, ticker []byte) ([]byte, e
 	return nil, vm.ErrCouldNotCreateNewTokenIdentifier
 }
 
-func (e *esdt) upgradeProperties(token *ESDTDataV2, args [][]byte, isCreate bool, callerAddr []byte) error {
+func (e *esdt) upgradeProperties(tokenIdentifier []byte, token *ESDTDataV2, args [][]byte, isCreate bool, callerAddr []byte) error {
 	mintBurnable := true
 	if string(token.TokenType) != core.FungibleESDT {
 		mintBurnable = false
@@ -772,7 +772,7 @@ func (e *esdt) upgradeProperties(token *ESDTDataV2, args [][]byte, isCreate bool
 	}
 
 	topics := make([][]byte, 0)
-	topics = append(topics, token.TickerName, big.NewInt(0).Bytes())
+	topics = append(topics, tokenIdentifier, big.NewInt(0).Bytes())
 	topics = append(topics, args...)
 	logEntry := &vmcommon.LogEntry{
 		Identifier: []byte(upgradeProperties),
@@ -1328,7 +1328,7 @@ func (e *esdt) controlChanges(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		return vmcommon.UserError
 	}
 
-	err := e.upgradeProperties(token, args.Arguments[1:], false, args.CallerAddr)
+	err := e.upgradeProperties(args.Arguments[0], token, args.Arguments[1:], false, args.CallerAddr)
 	if err != nil {
 		e.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
