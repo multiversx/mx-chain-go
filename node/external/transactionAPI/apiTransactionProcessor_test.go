@@ -44,6 +44,7 @@ func createMockArgAPIBlockProcessor() *ArgAPITransactionProcessor {
 		StorageService:           &mock.ChainStorerMock{},
 		DataPool:                 &dataRetrieverMock.PoolsHolderMock{},
 		Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
+		FeeComputer:              &testscommon.FeeComputerStub{},
 		TxTypeHandler:            &testscommon.TxTypeHandlerMock{},
 	}
 }
@@ -128,7 +129,17 @@ func TestNewAPITransactionProcessor(t *testing.T) {
 		require.Equal(t, process.ErrNilUint64Converter, err)
 	})
 
-	t.Run("NilTxTypeHandler", func(t *testing.T) {
+	t.Run("NilTxFeeComputer", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createMockArgAPIBlockProcessor()
+		arguments.FeeComputer = nil
+
+		_, err := NewAPITransactionProcessor(arguments)
+		require.Equal(t, ErrNilFeeComputer, err)
+	})
+
+	t.Run("NilTypeHandler", func(t *testing.T) {
 		t.Parallel()
 
 		arguments := createMockArgAPIBlockProcessor()
@@ -349,12 +360,19 @@ func TestNode_GetTransactionWithResultsFromStorage(t *testing.T) {
 			}
 		},
 	}
+
 	historyRepo := &dblookupextMock.HistoryRepositoryStub{
 		GetMiniblockMetadataByTxHashCalled: func(hash []byte) (*dblookupext.MiniblockMetadata, error) {
 			return &dblookupext.MiniblockMetadata{}, nil
 		},
 		GetEventsHashesByTxHashCalled: func(hash []byte, epoch uint32) (*dblookupext.ResultsHashesByTxHash, error) {
 			return resultHashesByTxHash, nil
+		},
+	}
+
+	feeComputer := &testscommon.FeeComputerStub{
+		ComputeTransactionFeeCalled: func(tx data.TransactionWithFeeHandler, epoch int) *big.Int {
+			return big.NewInt(1000)
 		},
 	}
 
@@ -368,6 +386,7 @@ func TestNode_GetTransactionWithResultsFromStorage(t *testing.T) {
 		StorageService:           chainStorer,
 		DataPool:                 dataRetrieverMock.NewPoolsHolderMock(),
 		Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
+		FeeComputer:              feeComputer,
 		TxTypeHandler:            &testscommon.TxTypeHandlerMock{},
 	}
 	apiTransactionProc, _ := NewAPITransactionProcessor(args)
@@ -389,6 +408,7 @@ func TestNode_GetTransactionWithResultsFromStorage(t *testing.T) {
 				OriginalTxHash: txHash,
 			},
 		},
+		InitiallyPaidFee: "1000",
 	}
 
 	apiTx, err := apiTransactionProc.GetTransaction(txHash, true)
@@ -631,6 +651,7 @@ func createAPITransactionProc(t *testing.T, epoch uint32, withDbLookupExt bool) 
 		StorageService:           chainStorer,
 		DataPool:                 dataPool,
 		Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
+		FeeComputer:              &testscommon.FeeComputerStub{},
 		TxTypeHandler:            &testscommon.TxTypeHandlerMock{},
 	}
 	apiTransactionProc, err := NewAPITransactionProcessor(args)
@@ -753,58 +774,145 @@ func getTime(t *testing.T, timestamp string) time.Time {
 	return tm
 }
 
-func TestApiTransactionProcessor_GetTransactionPopulatesProcessingTypeFields(t *testing.T) {
+func TestApiTransactionProcessor_GetTransactionPopulatesComputedFields(t *testing.T) {
 	dataPool := dataRetrieverMock.NewPoolsHolderMock()
-	txTypeHandler := &testscommon.TxTypeHandlerMock{
-		ComputeTransactionTypeCalled: func(data.TransactionHandler) (process.TransactionType, process.TransactionType) {
-			return process.MoveBalance, process.SCDeployment
-		},
-	}
+	feeComputer := &testscommon.FeeComputerStub{}
+	txTypeHandler := &testscommon.TxTypeHandlerMock{}
 
 	arguments := createMockArgAPIBlockProcessor()
 	arguments.DataPool = dataPool
+	arguments.FeeComputer = feeComputer
 	arguments.TxTypeHandler = txTypeHandler
 
 	processor, err := NewAPITransactionProcessor(arguments)
 	require.Nil(t, err)
 	require.NotNil(t, processor)
 
-	// Normal transaction
-	dataPool.Transactions().AddData([]byte{0, 0}, &transaction.Transaction{Nonce: 7, SndAddr: []byte("alice"), RcvAddr: []byte("bob")}, 42, "1")
-	firstTx, err := processor.GetTransaction("0000", true)
-	require.Nil(t, err)
-	require.Equal(t, process.MoveBalance.String(), firstTx.ProcessingTypeOnSource)
-	require.Equal(t, process.SCDeployment.String(), firstTx.ProcessingTypeOnDestination)
+	t.Run("InitiallyPaidFee", func(t *testing.T) {
+		feeComputer.ComputeTransactionFeeCalled = func(tx data.TransactionWithFeeHandler, epoch int) *big.Int {
+			return big.NewInt(1000)
+		}
 
-	// Unsigned transaction
-	dataPool.UnsignedTransactions().AddData([]byte{0, 1}, &smartContractResult.SmartContractResult{GasLimit: 15, SndAddr: []byte("alice"), RcvAddr: []byte("bob")}, 42, "foo")
-	secondTx, err := processor.GetTransaction("0001", true)
-	require.Nil(t, err)
-	require.Equal(t, process.MoveBalance.String(), secondTx.ProcessingTypeOnSource)
-	require.Equal(t, process.SCDeployment.String(), secondTx.ProcessingTypeOnDestination)
+		dataPool.Transactions().AddData([]byte{0, 0}, &transaction.Transaction{Nonce: 7, SndAddr: []byte("alice"), RcvAddr: []byte("bob")}, 42, "1")
+		tx, err := processor.GetTransaction("0000", true)
+
+		require.Nil(t, err)
+		require.Equal(t, "1000", tx.InitiallyPaidFee)
+	})
+
+	t.Run("InitiallyPaidFee (missing on unsigned transaction)", func(t *testing.T) {
+		feeComputer.ComputeTransactionFeeCalled = func(tx data.TransactionWithFeeHandler, epoch int) *big.Int {
+			return big.NewInt(1000)
+		}
+
+		scr := &smartContractResult.SmartContractResult{GasLimit: 0, Data: []byte("@ok"), Value: big.NewInt(0)}
+		dataPool.UnsignedTransactions().AddData([]byte{0, 1}, scr, 42, "foo")
+		tx, err := processor.GetTransaction("0001", true)
+
+		require.Nil(t, err)
+		require.Equal(t, "", tx.InitiallyPaidFee)
+	})
+
+	t.Run("ProcessingType", func(t *testing.T) {
+		txTypeHandler.ComputeTransactionTypeCalled = func(data.TransactionHandler) (process.TransactionType, process.TransactionType) {
+			return process.MoveBalance, process.SCDeployment
+		}
+
+		dataPool.Transactions().AddData([]byte{0, 2}, &transaction.Transaction{Nonce: 7, SndAddr: []byte("alice"), RcvAddr: []byte("bob")}, 42, "1")
+		tx, err := processor.GetTransaction("0002", true)
+
+		require.Nil(t, err)
+		require.Equal(t, process.MoveBalance.String(), tx.ProcessingTypeOnSource)
+		require.Equal(t, process.SCDeployment.String(), tx.ProcessingTypeOnDestination)
+	})
+
+	t.Run("IsRefund (false)", func(t *testing.T) {
+		scr := &smartContractResult.SmartContractResult{GasLimit: 0, Data: []byte("@ok"), Value: big.NewInt(0)}
+		dataPool.UnsignedTransactions().AddData([]byte{0, 3}, scr, 42, "foo")
+		tx, err := processor.GetTransaction("0003", true)
+
+		require.Nil(t, err)
+		require.Equal(t, false, tx.IsRefund)
+	})
+
+	t.Run("IsRefund (true)", func(t *testing.T) {
+		scr := &smartContractResult.SmartContractResult{GasLimit: 0, Data: []byte("@6f6b"), Value: big.NewInt(500)}
+		dataPool.UnsignedTransactions().AddData([]byte{0, 4}, scr, 42, "foo")
+		tx, err := processor.GetTransaction("0004", true)
+
+		require.Nil(t, err)
+		require.Equal(t, true, tx.IsRefund)
+	})
 }
 
-func TestApiTransactionProcessor_UnmarshalTransactionPopulatesProcessingTypeFields(t *testing.T) {
-	txTypeHandler := &testscommon.TxTypeHandlerMock{
-		ComputeTransactionTypeCalled: func(data.TransactionHandler) (process.TransactionType, process.TransactionType) {
-			return process.MoveBalance, process.SCInvoking
-		},
-	}
+func TestApiTransactionProcessor_UnmarshalTransactionPopulatesComputedFields(t *testing.T) {
+	feeComputer := &testscommon.FeeComputerStub{}
+	txTypeHandler := &testscommon.TxTypeHandlerMock{}
 
 	arguments := createMockArgAPIBlockProcessor()
 	arguments.Marshalizer, _ = marshalizerFactory.NewMarshalizer("gogo protobuf")
+	arguments.FeeComputer = feeComputer
 	arguments.TxTypeHandler = txTypeHandler
 
 	processor, err := NewAPITransactionProcessor(arguments)
 	require.Nil(t, err)
 	require.NotNil(t, processor)
 
-	txBytes, err := hex.DecodeString("08061209000de0b6b3a76400001a208049d639e5a6980d1cd2392abcce41029cda74a1563523a202f09641cc2618f82a200139472eff6886771a982f3083da5d421f24c29181e63888228dc81ca60d69e1388094ebdc0340a08d06520d6c6f63616c2d746573746e657458016240e011a7ab7788e40e61348445e2ccb55b0c61ab81d2ba88fda9d2d23b0a7512a627e2dc9b88bebcfdc4c49e9eaa2f65c016bc62ec3155dc3f60628cc7260e150d")
-	require.Nil(t, err)
+	t.Run("InitiallyPaidFee", func(t *testing.T) {
+		feeComputer.ComputeTransactionFeeCalled = func(tx data.TransactionWithFeeHandler, epoch int) *big.Int {
+			return big.NewInt(1000)
+		}
 
-	tx, err := processor.UnmarshalTransaction(txBytes, transaction.TxTypeNormal)
-	require.Nil(t, err)
-	require.NotNil(t, tx)
-	require.Equal(t, process.MoveBalance.String(), tx.ProcessingTypeOnSource)
-	require.Equal(t, process.SCInvoking.String(), tx.ProcessingTypeOnDestination)
+		txBytes, err := hex.DecodeString("08061209000de0b6b3a76400001a208049d639e5a6980d1cd2392abcce41029cda74a1563523a202f09641cc2618f82a200139472eff6886771a982f3083da5d421f24c29181e63888228dc81ca60d69e1388094ebdc0340a08d06520d6c6f63616c2d746573746e657458016240e011a7ab7788e40e61348445e2ccb55b0c61ab81d2ba88fda9d2d23b0a7512a627e2dc9b88bebcfdc4c49e9eaa2f65c016bc62ec3155dc3f60628cc7260e150d")
+		require.Nil(t, err)
+
+		tx, err := processor.UnmarshalTransaction(txBytes, transaction.TxTypeNormal)
+		require.Nil(t, err)
+		require.Equal(t, "1000", tx.InitiallyPaidFee)
+	})
+
+	t.Run("InitiallyPaidFee (missing on unsigned transaction)", func(t *testing.T) {
+		feeComputer.ComputeTransactionFeeCalled = func(tx data.TransactionWithFeeHandler, epoch int) *big.Int {
+			return big.NewInt(1000)
+		}
+
+		txBytes, err := hex.DecodeString("080712070021eca426ba801a200139472eff6886771a982f3083da5d421f24c29181e63888228dc81ca60d69e12220000000000000000005004888d06daef6d4ce8a01d72812d08617b4b504a369e1320100420540366636624a205be93498d366ab14a6794c5c5661c06e70cfef2fbfbd460911c6c924703594ef52205be93498d366ab14a6794c5c5661c06e70cfef2fbfbd460911c6c924703594ef608094ebdc03")
+		require.Nil(t, err)
+
+		tx, err := processor.UnmarshalTransaction(txBytes, transaction.TxTypeUnsigned)
+		require.Nil(t, err)
+		require.Equal(t, "", tx.InitiallyPaidFee)
+	})
+
+	t.Run("ProcessingType", func(t *testing.T) {
+		txTypeHandler.ComputeTransactionTypeCalled = func(data.TransactionHandler) (process.TransactionType, process.TransactionType) {
+			return process.MoveBalance, process.SCDeployment
+		}
+
+		txBytes, err := hex.DecodeString("08061209000de0b6b3a76400001a208049d639e5a6980d1cd2392abcce41029cda74a1563523a202f09641cc2618f82a200139472eff6886771a982f3083da5d421f24c29181e63888228dc81ca60d69e1388094ebdc0340a08d06520d6c6f63616c2d746573746e657458016240e011a7ab7788e40e61348445e2ccb55b0c61ab81d2ba88fda9d2d23b0a7512a627e2dc9b88bebcfdc4c49e9eaa2f65c016bc62ec3155dc3f60628cc7260e150d")
+		require.Nil(t, err)
+
+		tx, err := processor.UnmarshalTransaction(txBytes, transaction.TxTypeNormal)
+		require.Nil(t, err)
+		require.Equal(t, process.MoveBalance.String(), tx.ProcessingTypeOnSource)
+		require.Equal(t, process.SCDeployment.String(), tx.ProcessingTypeOnDestination)
+	})
+
+	t.Run("IsRefund (false)", func(t *testing.T) {
+		txBytes, err := hex.DecodeString("08061209000de0b6b3a76400001a208049d639e5a6980d1cd2392abcce41029cda74a1563523a202f09641cc2618f82a200139472eff6886771a982f3083da5d421f24c29181e63888228dc81ca60d69e1388094ebdc0340a08d06520d6c6f63616c2d746573746e657458016240e011a7ab7788e40e61348445e2ccb55b0c61ab81d2ba88fda9d2d23b0a7512a627e2dc9b88bebcfdc4c49e9eaa2f65c016bc62ec3155dc3f60628cc7260e150d")
+		require.Nil(t, err)
+
+		tx, err := processor.UnmarshalTransaction(txBytes, transaction.TxTypeNormal)
+		require.Nil(t, err)
+		require.Equal(t, false, tx.IsRefund)
+	})
+
+	t.Run("IsRefund (true)", func(t *testing.T) {
+		txBytes, err := hex.DecodeString("080712070021eca426ba801a200139472eff6886771a982f3083da5d421f24c29181e63888228dc81ca60d69e12220000000000000000005004888d06daef6d4ce8a01d72812d08617b4b504a369e1320100420540366636624a205be93498d366ab14a6794c5c5661c06e70cfef2fbfbd460911c6c924703594ef52205be93498d366ab14a6794c5c5661c06e70cfef2fbfbd460911c6c924703594ef608094ebdc03")
+		require.Nil(t, err)
+
+		tx, err := processor.UnmarshalTransaction(txBytes, transaction.TxTypeUnsigned)
+		require.Nil(t, err)
+		require.Equal(t, true, tx.IsRefund)
+	})
 }
