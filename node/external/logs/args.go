@@ -7,7 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 )
 
-// ArgsNewFeeComputer holds the arguments for constructing a logsFacade
+// ArgsNewLogsFacade holds the arguments for constructing a logsFacade
 type ArgsNewLogsFacade struct {
 	StorageService  dataRetriever.StorageService
 	Marshalizer     marshal.Marshalizer
@@ -22,8 +22,17 @@ func (args *ArgsNewLogsFacade) check() error {
 		return core.ErrNilMarshalizer
 	}
 	if check.IfNil(args.PubKeyConverter) {
-		return ErrNilPubkeyConverter
+		return core.ErrNilPubkeyConverter
 	}
 
 	return nil
+}
+
+type argsNewLogsRepository struct {
+	StorageService dataRetriever.StorageService
+	Marshalizer    marshal.Marshalizer
+}
+
+type argsNewLogsConverter struct {
+	pubKeyConverter core.PubkeyConverter
 }

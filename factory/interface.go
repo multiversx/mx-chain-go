@@ -467,7 +467,7 @@ type EconomicsHandler interface {
 
 // LogsFacade defines the interface of a logs facade
 type LogsFacade interface {
-	GetLog(txHash []byte, epoch uint32) (*transaction.ApiLogs, error)
+	GetLog(logKey []byte, epoch uint32) (*transaction.ApiLogs, error)
 	IncludeLogsInTransactions(txs []*transaction.ApiTransactionResult, logsKeys [][]byte, epoch uint32) error
 	IsInterfaceNil() bool
 }

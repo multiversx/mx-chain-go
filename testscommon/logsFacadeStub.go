@@ -12,18 +12,9 @@ type LogsFacadeStub struct {
 }
 
 // GetLog -
-func (stub *LogsFacadeStub) GetLog(txHash []byte, epoch uint32) (*transaction.ApiLogs, error) {
+func (stub *LogsFacadeStub) GetLog(logKey []byte, epoch uint32) (*transaction.ApiLogs, error) {
 	if stub.GetLogCalled != nil {
-		return stub.GetLogCalled(txHash, epoch)
-	}
-
-	return nil, nil
-}
-
-// GetLogs -
-func (stub *LogsFacadeStub) GetLogs(txHashes [][]byte, epoch uint32) ([]*transaction.ApiLogs, error) {
-	if stub.GetLogsCalled != nil {
-		return stub.GetLogsCalled(txHashes, epoch)
+		return stub.GetLogCalled(logKey, epoch)
 	}
 
 	return nil, nil

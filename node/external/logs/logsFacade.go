@@ -1,20 +1,15 @@
 package logs
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 var log = logger.GetOrCreate("node/external/logs")
 
 type logsFacade struct {
-	storer          storage.Storer
-	marshalizer     marshal.Marshalizer
-	pubKeyConverter core.PubkeyConverter
+	repository *logsRepository
+	converter  *logsConverter
 }
 
 func NewLogsFacade(args ArgsNewLogsFacade) (*logsFacade, error) {
@@ -23,97 +18,49 @@ func NewLogsFacade(args ArgsNewLogsFacade) (*logsFacade, error) {
 		return nil, err
 	}
 
-	storer := args.StorageService.GetStorer(dataRetriever.TxLogsUnit)
+	repository := newLogsRepository(argsNewLogsRepository{
+		StorageService: args.StorageService,
+		Marshalizer:    args.Marshalizer,
+	})
+
+	converter := newLogsConverter(argsNewLogsConverter{
+		pubKeyConverter: args.PubKeyConverter,
+	})
 
 	return &logsFacade{
-		storer:          storer,
-		marshalizer:     args.Marshalizer,
-		pubKeyConverter: args.PubKeyConverter,
+		repository: repository,
+		converter:  converter,
 	}, nil
 }
 
-// GetLog loads a transaction log from storage
-func (facade *logsFacade) GetLog(txHash []byte, epoch uint32) (*transaction.ApiLogs, error) {
-	bytes, err := facade.storer.GetFromEpoch(txHash, epoch)
+// GetLog loads a transaction log (from storage)
+func (facade *logsFacade) GetLog(logKey []byte, epoch uint32) (*transaction.ApiLogs, error) {
+	txLog, err := facade.repository.getLog(logKey, epoch)
 	if err != nil {
 		return nil, err
 	}
 
-	log := &transaction.Log{}
-	err = facade.marshalizer.Unmarshal(log, bytes)
-	if err != nil {
-		return nil, err
-	}
-
-	apiLogs := facade.convertTxLogToApiLogs(txHash, log)
-	return apiLogs, nil
-}
-
-// GetLogs loads transaction logs from storage
-func (facade *logsFacade) GetLogs(logsKeys [][]byte, epoch uint32) ([]*transaction.ApiLogs, error) {
-	keyValuePairs, err := facade.storer.GetBulkFromEpoch(logsKeys, epoch)
-	if err != nil {
-		return nil, err
-	}
-
-	results := make([]*transaction.ApiLogs, 0, len(logsKeys))
-
-	for _, pair := range keyValuePairs {
-		txLog := &transaction.Log{}
-		err = facade.marshalizer.Unmarshal(txLog, pair.Value)
-		if err != nil {
-			log.Warn("GetLogs() / Unmarshal()", "hash", pair.Key, "epoch", epoch, "err", err)
-			continue
-		}
-
-		apiLogs := facade.convertTxLogToApiLogs(pair.Key, txLog)
-		results = append(results, apiLogs)
-	}
-
-	return results, nil
+	apiResource := facade.converter.txLogToApiResource(logKey, txLog)
+	return apiResource, nil
 }
 
 // IncludeLogsInTransactions loads transaction logs from storage and includes them in the provided transaction objects
-// Note: the transaction objects must have the field "TxHashBytes" set in advance.
+// Note: the transaction objects MUST have the field "HashBytes" set in advance.
 func (facade *logsFacade) IncludeLogsInTransactions(txs []*transaction.ApiTransactionResult, logsKeys [][]byte, epoch uint32) error {
-	txsLookup := make(map[string]*transaction.ApiTransactionResult, len(txs))
-
-	for _, tx := range txs {
-		txsLookup[string(tx.HashBytes)] = tx
-	}
-
-	logs, err := facade.GetLogs(logsKeys, epoch)
+	logsByKey, err := facade.repository.getLogs(logsKeys, epoch)
 	if err != nil {
 		return err
 	}
 
-	for _, logEntry := range logs {
-		tx, ok := txsLookup[string(logEntry.TxHashBytes)]
+	for _, tx := range txs {
+		key := tx.HashBytes
+		txLog, ok := logsByKey[string(key)]
 		if ok {
-			tx.Logs = logEntry
+			tx.Logs = facade.converter.txLogToApiResource(key, txLog)
 		}
 	}
 
 	return nil
-}
-
-func (facade *logsFacade) convertTxLogToApiLogs(txHash []byte, log *transaction.Log) *transaction.ApiLogs {
-	events := make([]*transaction.Events, len(log.Events))
-
-	for i, event := range log.Events {
-		events[i] = &transaction.Events{
-			Address:    facade.pubKeyConverter.Encode(event.Address),
-			Identifier: string(event.Identifier),
-			Topics:     event.Topics,
-			Data:       event.Data,
-		}
-	}
-
-	return &transaction.ApiLogs{
-		TxHashBytes: txHash,
-		Address:     facade.pubKeyConverter.Encode(log.Address),
-		Events:      events,
-	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
