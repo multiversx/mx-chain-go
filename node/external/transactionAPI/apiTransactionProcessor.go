@@ -124,10 +124,13 @@ func (atp *apiTransactionProcessor) populateComputedFieldsProcessingType(tx *tra
 
 func (atp *apiTransactionProcessor) populateComputedFieldInitiallyPaidFee(tx *transaction.ApiTransactionResult) {
 	// Only user-initiated transactions will present an initially paid fee.
-	if tx.Type == string(transaction.TxTypeNormal) || tx.Type == string(transaction.TxTypeInvalid) {
-		fee := atp.feeComputer.ComputeTransactionFee(tx.Tx, int(tx.Epoch))
-		tx.InitiallyPaidFee = fee.String()
+	if tx.Type != string(transaction.TxTypeNormal) && tx.Type != string(transaction.TxTypeInvalid) {
+		return
 	}
+
+	fee := atp.feeComputer.ComputeTransactionFee(tx.Tx, int(tx.Epoch))
+	// For user-initiated transactions, we can assume the fee is always strictly positive (note: BigInt(0) is stringified as "").
+	tx.InitiallyPaidFee = fee.String()
 }
 
 func (atp *apiTransactionProcessor) populateComputedFieldIsRefund(tx *transaction.ApiTransactionResult) {
