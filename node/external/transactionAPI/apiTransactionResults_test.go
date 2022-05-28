@@ -55,9 +55,9 @@ func TestPutEventsInTransactionReceipt(t *testing.T) {
 
 	pubKeyConverter := &mock.PubkeyConverterMock{}
 	txUnmarshalerAndPreparer := newTransactionUnmarshaller(marshalizerdMock, pubKeyConverter)
-	logsRepository := &testscommon.LogsRepositoryStub{}
+	logsFacade := &testscommon.LogsFacadeStub{}
 
-	n := newAPITransactionResultProcessor(pubKeyConverter, historyRepo, dataStore, marshalizerdMock, txUnmarshalerAndPreparer, logsRepository, 0)
+	n := newAPITransactionResultProcessor(pubKeyConverter, historyRepo, dataStore, marshalizerdMock, txUnmarshalerAndPreparer, logsFacade, 0)
 
 	epoch := uint32(0)
 
@@ -158,7 +158,7 @@ func TestPutEventsInTransactionSmartContractResults(t *testing.T) {
 	pubKeyConverter := mock.NewPubkeyConverterMock(3)
 	txUnmarshalerAndPreparer := newTransactionUnmarshaller(marshalizerdMock, pubKeyConverter)
 
-	logsRepository := &testscommon.LogsRepositoryStub{
+	logsFacade := &testscommon.LogsFacadeStub{
 		GetLogCalled: func(txHash []byte, epoch uint32) (*transaction.ApiLogs, error) {
 			if bytes.Equal(txHash, scrHash1) && epoch == testEpoch {
 				return logs, nil
@@ -168,7 +168,7 @@ func TestPutEventsInTransactionSmartContractResults(t *testing.T) {
 		},
 	}
 
-	n := newAPITransactionResultProcessor(pubKeyConverter, historyRepo, dataStore, marshalizerdMock, txUnmarshalerAndPreparer, logsRepository, 0)
+	n := newAPITransactionResultProcessor(pubKeyConverter, historyRepo, dataStore, marshalizerdMock, txUnmarshalerAndPreparer, logsFacade, 0)
 
 	expectedSCRS := []*transaction.ApiSmartContractResult{
 		{
@@ -238,7 +238,7 @@ func TestPutLogsInTransaction(t *testing.T) {
 
 	pubKeyConverter := &mock.PubkeyConverterMock{}
 	txUnmarshalerAndPreparer := newTransactionUnmarshaller(marshalizerMock, pubKeyConverter)
-	logsRepository := &testscommon.LogsRepositoryStub{
+	logsFacade := &testscommon.LogsFacadeStub{
 		GetLogCalled: func(txHash []byte, epoch uint32) (*transaction.ApiLogs, error) {
 			if bytes.Equal(txHash, testTxHash) && epoch == testEpoch {
 				return logs, nil
@@ -248,7 +248,7 @@ func TestPutLogsInTransaction(t *testing.T) {
 		},
 	}
 
-	n := newAPITransactionResultProcessor(pubKeyConverter, historyRepo, dataStore, marshalizerMock, txUnmarshalerAndPreparer, logsRepository, 0)
+	n := newAPITransactionResultProcessor(pubKeyConverter, historyRepo, dataStore, marshalizerMock, txUnmarshalerAndPreparer, logsFacade, 0)
 	tx := &transaction.ApiTransactionResult{}
 	n.putResultsInTransaction(testTxHash, tx, testEpoch)
 	require.Equal(t, logs, tx.Logs)

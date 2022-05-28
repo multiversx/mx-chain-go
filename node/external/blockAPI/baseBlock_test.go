@@ -33,7 +33,7 @@ func createMockBaseBlock() *baseAPIBlockProcessor {
 		addressPubKeyConverter:   mock.NewPubkeyConverterMock(32),
 		txStatusComputer:         &mock.StatusComputerStub{},
 		txUnmarshaller:           &mock.TransactionAPIHandlerStub{},
-		logsRepository:           &testscommon.LogsRepositoryStub{},
+		logsFacade:               &testscommon.LogsFacadeStub{},
 	}
 }
 

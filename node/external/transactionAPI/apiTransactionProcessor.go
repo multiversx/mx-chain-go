@@ -55,7 +55,7 @@ func NewAPITransactionProcessor(args *ArgAPITransactionProcessor) (*apiTransacti
 		args.StorageService,
 		args.Marshalizer,
 		txUnmarshalerAndPreparer,
-		args.LogsRepository,
+		args.LogsFacade,
 		args.ShardCoordinator.SelfId(),
 	)
 

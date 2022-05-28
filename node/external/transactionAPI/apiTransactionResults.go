@@ -20,7 +20,7 @@ type apiTransactionResultsProcessor struct {
 	marshalizer            marshal.Marshalizer
 	selfShardID            uint32
 	refundDetector         *refundDetector
-	logsRepository         LogsRepository
+	logsFacade             LogsFacade
 }
 
 func newAPITransactionResultProcessor(
@@ -29,7 +29,7 @@ func newAPITransactionResultProcessor(
 	storageService dataRetriever.StorageService,
 	marshalizer marshal.Marshalizer,
 	txUnmarshaller *txUnmarshaller,
-	logsRepository LogsRepository,
+	logsFacade LogsFacade,
 	selfShardID uint32,
 ) *apiTransactionResultsProcessor {
 	refundDetector := newRefundDetector()
@@ -42,7 +42,7 @@ func newAPITransactionResultProcessor(
 		marshalizer:            marshalizer,
 		selfShardID:            selfShardID,
 		refundDetector:         refundDetector,
-		logsRepository:         logsRepository,
+		logsFacade:             logsFacade,
 	}
 }
 
@@ -116,8 +116,9 @@ func (arp *apiTransactionResultsProcessor) putSmartContractResultsInTransactionB
 func (arp *apiTransactionResultsProcessor) putLogsInTransaction(hash []byte, tx *transaction.ApiTransactionResult, epoch uint32) {
 	var err error
 
-	tx.Logs, err = arp.logsRepository.GetLog(hash, epoch)
+	tx.Logs, err = arp.logsFacade.GetLog(hash, epoch)
 	if err != nil {
+		// TODO: if simply not found, do not warn.
 		log.Warn("putLogsInTransaction()", "hash", hash, "epoch", epoch, "err", err)
 	}
 }
@@ -125,8 +126,9 @@ func (arp *apiTransactionResultsProcessor) putLogsInTransaction(hash []byte, tx 
 func (arp *apiTransactionResultsProcessor) putLogsInSCR(scrHash []byte, epoch uint32, scr *transaction.ApiSmartContractResult) {
 	var err error
 
-	scr.Logs, err = arp.logsRepository.GetLog(scrHash, epoch)
+	scr.Logs, err = arp.logsFacade.GetLog(scrHash, epoch)
 	if err != nil {
+		// TODO: if simply not found, do not warn.
 		log.Warn("putLogsInSCR()", "hash", scrHash, "epoch", epoch, "err", err)
 	}
 }

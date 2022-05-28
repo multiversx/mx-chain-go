@@ -190,7 +190,7 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 	delegatedListHandler, err := factory.CreateDelegatedListHandler(args)
 	log.LogIfError(err)
 
-	logsRepository := &testscommon.LogsRepositoryStub{}
+	logsFacade := &testscommon.LogsFacadeStub{}
 
 	argsApiTransactionProc := &transactionAPI.ArgAPITransactionProcessor{
 		Marshalizer:              TestMarshalizer,
@@ -202,7 +202,7 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 		Uint64ByteSliceConverter: TestUint64Converter,
 		FeeComputer:              &testscommon.FeeComputerStub{},
 		TxTypeHandler:            txTypeHandler,
-		LogsRepository:           logsRepository,
+		LogsFacade:               logsFacade,
 	}
 	apiTransactionHandler, err := transactionAPI.NewAPITransactionProcessor(argsApiTransactionProc)
 	log.LogIfError(err)
@@ -220,7 +220,7 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 		StatusComputer:           statusCom,
 		Hasher:                   TestHasher,
 		AddressPubkeyConverter:   TestAddressPubkeyConverter,
-		LogsRepository:           logsRepository,
+		LogsFacade:               logsFacade,
 	}
 	blockAPIHandler, err := blockAPI.CreateAPIBlockProcessor(argsBlockAPI)
 	log.LogIfError(err)

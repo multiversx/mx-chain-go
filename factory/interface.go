@@ -465,8 +465,8 @@ type EconomicsHandler interface {
 	IsInterfaceNil() bool
 }
 
-// LogsRepository defines the interface of a logs repository
-type LogsRepository interface {
+// LogsFacade defines the interface of a logs facade
+type LogsFacade interface {
 	GetLog(txHash []byte, epoch uint32) (*transaction.ApiLogs, error)
 	IncludeLogsInTransactions(txs []*transaction.ApiTransactionResult, logsKeys [][]byte, epoch uint32) error
 	IsInterfaceNil() bool

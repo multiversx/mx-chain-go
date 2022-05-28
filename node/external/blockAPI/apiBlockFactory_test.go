@@ -32,7 +32,7 @@ func createMockArgsAPIBlockProc() *ArgAPIBlockProcessor {
 		StatusComputer:           statusComputer,
 		Hasher:                   &mock.HasherMock{},
 		AddressPubkeyConverter:   &mock.PubkeyConverterMock{},
-		LogsRepository:           &testscommon.LogsRepositoryStub{},
+		LogsFacade:               &testscommon.LogsFacadeStub{},
 	}
 }
 

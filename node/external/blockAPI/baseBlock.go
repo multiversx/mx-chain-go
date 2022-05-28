@@ -43,7 +43,7 @@ type baseAPIBlockProcessor struct {
 	addressPubKeyConverter   core.PubkeyConverter
 	txStatusComputer         transaction.StatusComputerHandler
 	txUnmarshaller           TransactionUnmarshaller
-	logsRepository           LogsRepository
+	logsFacade               LogsFacade
 }
 
 var log = logger.GetOrCreate("node/blockAPI")
@@ -151,7 +151,7 @@ func (bap *baseAPIBlockProcessor) getAndAttachTxsToMbByEpoch(miniblockHash []byt
 	}
 
 	if options.WithLogs {
-		err := bap.logsRepository.IncludeLogsInTransactions(apiMiniblock.Transactions, miniBlock.TxHashes, epoch)
+		err := bap.logsFacade.IncludeLogsInTransactions(apiMiniblock.Transactions, miniBlock.TxHashes, epoch)
 		if err != nil {
 			log.Warn("cannot include logs in transactions", "error", err)
 		}

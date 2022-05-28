@@ -46,7 +46,7 @@ func createMockArgAPIBlockProcessor() *ArgAPITransactionProcessor {
 		Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
 		FeeComputer:              &testscommon.FeeComputerStub{},
 		TxTypeHandler:            &testscommon.TxTypeHandlerMock{},
-		LogsRepository:           &testscommon.LogsRepositoryStub{},
+		LogsFacade:               &testscommon.LogsFacadeStub{},
 	}
 }
 
@@ -150,14 +150,14 @@ func TestNewAPITransactionProcessor(t *testing.T) {
 		require.Equal(t, process.ErrNilTxTypeHandler, err)
 	})
 
-	t.Run("NilLogsRepository", func(t *testing.T) {
+	t.Run("NilLogsFacade", func(t *testing.T) {
 		t.Parallel()
 
 		arguments := createMockArgAPIBlockProcessor()
-		arguments.LogsRepository = nil
+		arguments.LogsFacade = nil
 
 		_, err := NewAPITransactionProcessor(arguments)
-		require.Equal(t, ErrNilLogsRepository, err)
+		require.Equal(t, ErrNilLogsFacade, err)
 	})
 }
 
@@ -399,7 +399,7 @@ func TestNode_GetTransactionWithResultsFromStorage(t *testing.T) {
 		Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
 		FeeComputer:              feeComputer,
 		TxTypeHandler:            &testscommon.TxTypeHandlerMock{},
-		LogsRepository:           &testscommon.LogsRepositoryStub{},
+		LogsFacade:               &testscommon.LogsFacadeStub{},
 	}
 	apiTransactionProc, _ := NewAPITransactionProcessor(args)
 
@@ -666,7 +666,7 @@ func createAPITransactionProc(t *testing.T, epoch uint32, withDbLookupExt bool) 
 		Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
 		FeeComputer:              &testscommon.FeeComputerStub{},
 		TxTypeHandler:            &testscommon.TxTypeHandlerMock{},
-		LogsRepository:           &testscommon.LogsRepositoryStub{},
+		LogsFacade:               &testscommon.LogsFacadeStub{},
 	}
 	apiTransactionProc, err := NewAPITransactionProcessor(args)
 	require.Nil(t, err)

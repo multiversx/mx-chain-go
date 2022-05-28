@@ -4,15 +4,15 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 )
 
-// LogsRepositoryStub -
-type LogsRepositoryStub struct {
+// LogsFacadeStub -
+type LogsFacadeStub struct {
 	GetLogCalled                    func(txHash []byte, epoch uint32) (*transaction.ApiLogs, error)
 	GetLogsCalled                   func(txHashes [][]byte, epoch uint32) ([]*transaction.ApiLogs, error)
 	IncludeLogsInTransactionsCalled func(txs []*transaction.ApiTransactionResult, logsKeys [][]byte, epoch uint32) error
 }
 
 // GetLog -
-func (stub *LogsRepositoryStub) GetLog(txHash []byte, epoch uint32) (*transaction.ApiLogs, error) {
+func (stub *LogsFacadeStub) GetLog(txHash []byte, epoch uint32) (*transaction.ApiLogs, error) {
 	if stub.GetLogCalled != nil {
 		return stub.GetLogCalled(txHash, epoch)
 	}
@@ -21,7 +21,7 @@ func (stub *LogsRepositoryStub) GetLog(txHash []byte, epoch uint32) (*transactio
 }
 
 // GetLogs -
-func (stub *LogsRepositoryStub) GetLogs(txHashes [][]byte, epoch uint32) ([]*transaction.ApiLogs, error) {
+func (stub *LogsFacadeStub) GetLogs(txHashes [][]byte, epoch uint32) ([]*transaction.ApiLogs, error) {
 	if stub.GetLogsCalled != nil {
 		return stub.GetLogsCalled(txHashes, epoch)
 	}
@@ -30,7 +30,7 @@ func (stub *LogsRepositoryStub) GetLogs(txHashes [][]byte, epoch uint32) ([]*tra
 }
 
 // IncludeLogsInTransactions
-func (stub *LogsRepositoryStub) IncludeLogsInTransactions(txs []*transaction.ApiTransactionResult, logsKeys [][]byte, epoch uint32) error {
+func (stub *LogsFacadeStub) IncludeLogsInTransactions(txs []*transaction.ApiTransactionResult, logsKeys [][]byte, epoch uint32) error {
 	if stub.IncludeLogsInTransactionsCalled != nil {
 		return stub.IncludeLogsInTransactionsCalled(txs, logsKeys, epoch)
 	}
@@ -39,6 +39,6 @@ func (stub *LogsRepositoryStub) IncludeLogsInTransactions(txs []*transaction.Api
 }
 
 // IsInterfaceNil -
-func (stub *LogsRepositoryStub) IsInterfaceNil() bool {
+func (stub *LogsFacadeStub) IsInterfaceNil() bool {
 	return stub == nil
 }

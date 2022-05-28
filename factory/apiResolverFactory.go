@@ -200,7 +200,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		return nil, err
 	}
 
-	logsRepository, err := createLogsRepository(args)
+	logsFacade, err := createLogsFacade(args)
 	if err != nil {
 		return nil, err
 	}
@@ -217,7 +217,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		Uint64ByteSliceConverter: args.CoreComponents.Uint64ByteSliceConverter(),
 		FeeComputer:              feeComputer,
 		TxTypeHandler:            txTypeHandler,
-		LogsRepository:           logsRepository,
+		LogsFacade:               logsFacade,
 	}
 	apiTransactionProcessor, err := transactionAPI.NewAPITransactionProcessor(argsAPITransactionProc)
 	if err != nil {
@@ -489,7 +489,7 @@ func createAPIBlockProcessorArgs(args *ApiResolverArgs, apiTransactionHandler ex
 		return nil, errors.New("error creating transaction status computer " + err.Error())
 	}
 
-	logsRepository, err := createLogsRepository(args)
+	logsFacade, err := createLogsFacade(args)
 	if err != nil {
 		return nil, err
 	}
@@ -504,14 +504,14 @@ func createAPIBlockProcessorArgs(args *ApiResolverArgs, apiTransactionHandler ex
 		StatusComputer:           statusComputer,
 		AddressPubkeyConverter:   args.CoreComponents.AddressPubKeyConverter(),
 		Hasher:                   args.CoreComponents.Hasher(),
-		LogsRepository:           logsRepository,
+		LogsFacade:               logsFacade,
 	}
 
 	return blockApiArgs, nil
 }
 
-func createLogsRepository(args *ApiResolverArgs) (LogsRepository, error) {
-	return logs.NewLogsRepository(logs.ArgsNewLogsRepository{
+func createLogsFacade(args *ApiResolverArgs) (LogsFacade, error) {
+	return logs.NewLogsFacade(logs.ArgsNewLogsFacade{
 		StorageService:  args.DataComponents.StorageService(),
 		Marshalizer:     args.CoreComponents.InternalMarshalizer(),
 		PubKeyConverter: args.CoreComponents.AddressPubKeyConverter(),

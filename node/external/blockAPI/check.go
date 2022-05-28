@@ -10,7 +10,7 @@ import (
 var (
 	errNilArgAPIBlockProcessor   = errors.New("nil arg api block processor")
 	errNilTransactionUnmarshaler = errors.New("nil transaction unmarshaler")
-	errNilLogsRepository         = errors.New("nil logs repository")
+	errNilLogsFacade             = errors.New("nil logs facade")
 )
 
 func checkNilArg(arg *ArgAPIBlockProcessor) error {
@@ -38,8 +38,8 @@ func checkNilArg(arg *ArgAPIBlockProcessor) error {
 	if check.IfNil(arg.AddressPubkeyConverter) {
 		return process.ErrNilPubkeyConverter
 	}
-	if check.IfNil(arg.LogsRepository) {
-		return errNilLogsRepository
+	if check.IfNil(arg.LogsFacade) {
+		return errNilLogsFacade
 	}
 
 	return nil
