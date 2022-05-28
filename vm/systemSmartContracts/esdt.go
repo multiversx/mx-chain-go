@@ -772,7 +772,8 @@ func (e *esdt) upgradeProperties(tokenIdentifier []byte, token *ESDTDataV2, args
 	}
 
 	topics := make([][]byte, 0)
-	topics = append(topics, tokenIdentifier, big.NewInt(0).Bytes())
+	nonce := big.NewInt(0)
+	topics = append(topics, tokenIdentifier, nonce.Bytes())
 	topics = append(topics, args...)
 	logEntry := &vmcommon.LogEntry{
 		Identifier: []byte(upgradeProperties),
