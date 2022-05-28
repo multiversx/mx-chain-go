@@ -46,6 +46,7 @@ func createMockArgAPIBlockProcessor() *ArgAPITransactionProcessor {
 		Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
 		FeeComputer:              &testscommon.FeeComputerStub{},
 		TxTypeHandler:            &testscommon.TxTypeHandlerMock{},
+		LogsRepository:           &testscommon.LogsRepositoryStub{},
 	}
 }
 
@@ -147,6 +148,16 @@ func TestNewAPITransactionProcessor(t *testing.T) {
 
 		_, err := NewAPITransactionProcessor(arguments)
 		require.Equal(t, process.ErrNilTxTypeHandler, err)
+	})
+
+	t.Run("NilLogsRepository", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createMockArgAPIBlockProcessor()
+		arguments.LogsRepository = nil
+
+		_, err := NewAPITransactionProcessor(arguments)
+		require.Equal(t, ErrNilLogsRepository, err)
 	})
 }
 

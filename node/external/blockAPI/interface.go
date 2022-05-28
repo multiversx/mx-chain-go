@@ -36,6 +36,6 @@ type APIInternalBlockHandler interface {
 
 // LogsRepository defines the interface of a logs repository
 type LogsRepository interface {
-	IncludeLogsInTransactions(txs []*transaction.ApiTransactionResult, logsHashes [][]byte, epoch uint32) error
+	IncludeLogsInTransactions(txs []*transaction.ApiTransactionResult, logsKeys [][]byte, epoch uint32) error
 	IsInterfaceNil() bool
 }

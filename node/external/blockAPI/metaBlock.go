@@ -105,7 +105,7 @@ func (mbp *metaAPIBlockProcessor) convertMetaBlockBytesToAPIBlock(hash []byte, b
 		}
 		if options.WithTransactions {
 			miniBlockCopy := mb
-			mbp.getAndAttachTxsToMb(&miniBlockCopy, headerEpoch, miniblockAPI)
+			mbp.getAndAttachTxsToMb(&miniBlockCopy, headerEpoch, miniblockAPI, options)
 		}
 
 		miniblocks = append(miniblocks, miniblockAPI)

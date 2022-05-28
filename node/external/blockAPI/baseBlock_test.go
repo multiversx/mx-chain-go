@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
 	"github.com/stretchr/testify/require"
@@ -32,6 +33,7 @@ func createMockBaseBlock() *baseAPIBlockProcessor {
 		addressPubKeyConverter:   mock.NewPubkeyConverterMock(32),
 		txStatusComputer:         &mock.StatusComputerStub{},
 		txUnmarshaller:           &mock.TransactionAPIHandlerStub{},
+		logsRepository:           &testscommon.LogsRepositoryStub{},
 	}
 }
 
@@ -96,6 +98,7 @@ func TestBaseBlockGetIntraMiniblocksSCRS(t *testing.T) {
 		Transactions: []*transaction.ApiTransactionResult{
 			{
 				Hash:          "73637231",
+				HashBytes:     []byte{0x73, 0x63, 0x72, 0x31},
 				Sender:        "736e64",
 				Receiver:      "726376",
 				Data:          []byte("doSomething"),
@@ -233,12 +236,13 @@ func TestBaseBlock_getAndAttachTxsToMb_MiniblockTxBlock(t *testing.T) {
 	}
 
 	apiMB := &api.MiniBlock{}
-	baseAPIBlockProc.getAndAttachTxsToMb(mbHeader, 0, apiMB)
+	baseAPIBlockProc.getAndAttachTxsToMb(mbHeader, 0, apiMB, api.BlockQueryOptions{})
 	require.Equal(t, &api.MiniBlock{
 		Transactions: []*transaction.ApiTransactionResult{
 			{
 				Nonce:         1,
 				Hash:          "747831",
+				HashBytes:     []byte{0x74, 0x78, 0x31},
 				Sender:        "736e6441646472",
 				Receiver:      "72637641646472",
 				Data:          []byte("refund"),

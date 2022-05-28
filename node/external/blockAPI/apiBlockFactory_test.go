@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/txstatus"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
 	"github.com/stretchr/testify/assert"
@@ -21,6 +22,7 @@ import (
 
 func createMockArgsAPIBlockProc() *ArgAPIBlockProcessor {
 	statusComputer, _ := txstatus.NewStatusComputer(0, mock.NewNonceHashConverterMock(), &mock.ChainStorerStub{})
+
 	return &ArgAPIBlockProcessor{
 		Store:                    &mock.ChainStorerStub{},
 		Marshalizer:              &mock.MarshalizerFake{},
@@ -30,6 +32,7 @@ func createMockArgsAPIBlockProc() *ArgAPIBlockProcessor {
 		StatusComputer:           statusComputer,
 		Hasher:                   &mock.HasherMock{},
 		AddressPubkeyConverter:   &mock.PubkeyConverterMock{},
+		LogsRepository:           &testscommon.LogsRepositoryStub{},
 	}
 }
 

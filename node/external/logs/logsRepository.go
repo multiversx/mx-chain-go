@@ -29,6 +29,7 @@ func NewLogsRepository(args ArgsNewLogsRepository) (*logsRepository, error) {
 	}, nil
 }
 
+// GetLog loads a transaction log from storage
 func (repository *logsRepository) GetLog(txHash []byte, epoch uint32) (*transaction.ApiLogs, error) {
 	bytes, err := repository.storer.GetFromEpoch(txHash, epoch)
 	if err != nil {
@@ -45,6 +46,7 @@ func (repository *logsRepository) GetLog(txHash []byte, epoch uint32) (*transact
 	return apiLogs, nil
 }
 
+// GetLogs loads transaction logs from storage
 func (repository *logsRepository) GetLogs(txHashes [][]byte, epoch uint32) ([]*transaction.ApiLogs, error) {
 	keyValuePairs, err := repository.storer.GetBulkFromEpoch(txHashes, epoch)
 	if err != nil {
@@ -68,14 +70,16 @@ func (repository *logsRepository) GetLogs(txHashes [][]byte, epoch uint32) ([]*t
 	return results, nil
 }
 
-func (repository *logsRepository) IncludeLogsInTransactions(txs []*transaction.ApiTransactionResult, logsHashes [][]byte, epoch uint32) error {
+// IncludeLogsInTransactions loads transaction logs from storage and includes them in the provided transaction objects
+// Note: the transaction objects must have the field "TxHashBytes" set in advance.
+func (repository *logsRepository) IncludeLogsInTransactions(txs []*transaction.ApiTransactionResult, logsKeys [][]byte, epoch uint32) error {
 	txsLookup := make(map[string]*transaction.ApiTransactionResult, len(txs))
 
 	for _, tx := range txs {
 		txsLookup[string(tx.HashBytes)] = tx
 	}
 
-	logs, err := repository.GetLogs(logsHashes, epoch)
+	logs, err := repository.GetLogs(logsKeys, epoch)
 	if err != nil {
 		return err
 	}

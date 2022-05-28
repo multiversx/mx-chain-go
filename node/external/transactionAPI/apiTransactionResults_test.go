@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dbLookupExtMock "github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
 	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
@@ -55,7 +56,9 @@ func TestPutEventsInTransactionReceipt(t *testing.T) {
 
 	pubKeyConverter := &mock.PubkeyConverterMock{}
 	txUnmarshalerAndPreparer := newTransactionUnmarshaller(marshalizerdMock, pubKeyConverter)
-	n := newAPITransactionResultProcessor(pubKeyConverter, historyRepo, dataStore, marshalizerdMock, txUnmarshalerAndPreparer, 0)
+	logsRepository := &testscommon.LogsRepositoryStub{}
+
+	n := newAPITransactionResultProcessor(pubKeyConverter, historyRepo, dataStore, marshalizerdMock, txUnmarshalerAndPreparer, logsRepository, 0)
 
 	epoch := uint32(0)
 
@@ -159,7 +162,9 @@ func TestPutEventsInTransactionSmartContractResults(t *testing.T) {
 
 	pubKeyConverter := mock.NewPubkeyConverterMock(3)
 	txUnmarshalerAndPreparer := newTransactionUnmarshaller(marshalizerdMock, pubKeyConverter)
-	n := newAPITransactionResultProcessor(pubKeyConverter, historyRepo, dataStore, marshalizerdMock, txUnmarshalerAndPreparer, 0)
+	logsRepository := &testscommon.LogsRepositoryStub{}
+
+	n := newAPITransactionResultProcessor(pubKeyConverter, historyRepo, dataStore, marshalizerdMock, txUnmarshalerAndPreparer, logsRepository, 0)
 
 	expectedSCRS := []*transaction.ApiSmartContractResult{
 		{
@@ -252,7 +257,9 @@ func TestPutLogsInTransaction(t *testing.T) {
 
 	pubKeyConverter := &mock.PubkeyConverterMock{}
 	txUnmarshalerAndPreparer := newTransactionUnmarshaller(marshalizerMock, pubKeyConverter)
-	n := newAPITransactionResultProcessor(pubKeyConverter, historyRepo, dataStore, marshalizerMock, txUnmarshalerAndPreparer, 0)
+	logsRepository := &testscommon.LogsRepositoryStub{}
+
+	n := newAPITransactionResultProcessor(pubKeyConverter, historyRepo, dataStore, marshalizerMock, txUnmarshalerAndPreparer, logsRepository, 0)
 	expectedLogs := &transaction.ApiLogs{
 		Address: pubKeyConverter.Encode(logsAndEvents.Address),
 		Events: []*transaction.Events{

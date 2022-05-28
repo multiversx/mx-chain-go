@@ -108,20 +108,13 @@ func (bap *baseAPIBlockProcessor) prepareAPIMiniblock(miniblock *block.MiniBlock
 	}
 
 	if options.WithTransactions {
-		bap.getAndAttachTxsToMbByEpoch(mbHash, miniblock, epoch, miniblockAPI)
-
-		if options.WithLogs {
-			err = bap.logsRepository.IncludeLogsInTransactions(miniblockAPI.Transactions, miniblock.TxHashes, epoch)
-			if err != nil {
-				log.Warn("cannot include logs in transactions", "error", err)
-			}
-		}
+		bap.getAndAttachTxsToMbByEpoch(mbHash, miniblock, epoch, miniblockAPI, options)
 	}
 
 	return miniblockAPI, true
 }
 
-func (bap *baseAPIBlockProcessor) getAndAttachTxsToMb(mbHeader data.MiniBlockHeaderHandler, epoch uint32, apiMiniblock *api.MiniBlock) {
+func (bap *baseAPIBlockProcessor) getAndAttachTxsToMb(mbHeader data.MiniBlockHeaderHandler, epoch uint32, apiMiniblock *api.MiniBlock, options api.BlockQueryOptions) {
 	miniblockHash := mbHeader.GetHash()
 	mbBytes, err := bap.getFromStorerWithEpoch(dataRetriever.MiniBlockUnit, miniblockHash, epoch)
 	if err != nil {
@@ -140,10 +133,10 @@ func (bap *baseAPIBlockProcessor) getAndAttachTxsToMb(mbHeader data.MiniBlockHea
 		return
 	}
 
-	bap.getAndAttachTxsToMbByEpoch(miniblockHash, miniBlock, epoch, apiMiniblock)
+	bap.getAndAttachTxsToMbByEpoch(miniblockHash, miniBlock, epoch, apiMiniblock, options)
 }
 
-func (bap *baseAPIBlockProcessor) getAndAttachTxsToMbByEpoch(miniblockHash []byte, miniBlock *block.MiniBlock, epoch uint32, apiMiniblock *api.MiniBlock) {
+func (bap *baseAPIBlockProcessor) getAndAttachTxsToMbByEpoch(miniblockHash []byte, miniBlock *block.MiniBlock, epoch uint32, apiMiniblock *api.MiniBlock, options api.BlockQueryOptions) {
 	switch miniBlock.Type {
 	case block.TxBlock:
 		apiMiniblock.Transactions = bap.getTxsFromMiniblock(miniBlock, miniblockHash, epoch, transaction.TxTypeNormal, dataRetriever.TransactionUnit)
@@ -155,8 +148,13 @@ func (bap *baseAPIBlockProcessor) getAndAttachTxsToMbByEpoch(miniblockHash []byt
 		apiMiniblock.Transactions = bap.getTxsFromMiniblock(miniBlock, miniblockHash, epoch, transaction.TxTypeInvalid, dataRetriever.TransactionUnit)
 	case block.ReceiptBlock:
 		apiMiniblock.Receipts = bap.getReceiptsFromMiniblock(miniBlock, epoch)
-	default:
-		return
+	}
+
+	if options.WithLogs {
+		err := bap.logsRepository.IncludeLogsInTransactions(apiMiniblock.Transactions, miniBlock.TxHashes, epoch)
+		if err != nil {
+			log.Warn("cannot include logs in transactions", "error", err)
+		}
 	}
 }
 
