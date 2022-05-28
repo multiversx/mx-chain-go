@@ -109,6 +109,13 @@ func (bap *baseAPIBlockProcessor) prepareAPIMiniblock(miniblock *block.MiniBlock
 
 	if options.WithTransactions {
 		bap.getAndAttachTxsToMbByEpoch(mbHash, miniblock, epoch, miniblockAPI)
+
+		if options.WithLogs {
+			err = bap.logsRepository.IncludeLogsInTransactions(miniblockAPI.Transactions, miniblock.TxHashes, epoch)
+			if err != nil {
+				log.Warn("cannot include logs in transactions", "error", err)
+			}
+		}
 	}
 
 	return miniblockAPI, true
@@ -219,12 +226,6 @@ func (bap *baseAPIBlockProcessor) getTxsFromMiniblock(
 		txs = append(txs, tx)
 	}
 	log.Debug(fmt.Sprintf("UnmarshalTransactions took %s", time.Since(start)))
-
-	// TODO: only if WithLogs = true.
-	err = bap.logsRepository.IncludeLogsInTransactions(txs, miniblock.TxHashes, epoch)
-	if err != nil {
-		log.Warn("cannot include logs in transactions", "error", err)
-	}
 
 	return txs
 }
