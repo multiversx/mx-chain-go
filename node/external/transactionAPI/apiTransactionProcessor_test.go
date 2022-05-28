@@ -399,11 +399,13 @@ func TestNode_GetTransactionWithResultsFromStorage(t *testing.T) {
 		Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
 		FeeComputer:              feeComputer,
 		TxTypeHandler:            &testscommon.TxTypeHandlerMock{},
+		LogsRepository:           &testscommon.LogsRepositoryStub{},
 	}
 	apiTransactionProc, _ := NewAPITransactionProcessor(args)
 
 	expectedTx := &transaction.ApiTransactionResult{
 		Tx:                          &transaction.Transaction{Nonce: tx.Nonce, RcvAddr: tx.RcvAddr, SndAddr: tx.SndAddr, Value: tx.Value},
+		Hash:                        "747848617368",
 		ProcessingTypeOnSource:      process.MoveBalance.String(),
 		ProcessingTypeOnDestination: process.MoveBalance.String(),
 		Nonce:                       tx.Nonce,
@@ -664,6 +666,7 @@ func createAPITransactionProc(t *testing.T, epoch uint32, withDbLookupExt bool) 
 		Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
 		FeeComputer:              &testscommon.FeeComputerStub{},
 		TxTypeHandler:            &testscommon.TxTypeHandlerMock{},
+		LogsRepository:           &testscommon.LogsRepositoryStub{},
 	}
 	apiTransactionProc, err := NewAPITransactionProcessor(args)
 	require.Nil(t, err)

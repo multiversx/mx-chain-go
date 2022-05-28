@@ -10,7 +10,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/facade"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/node/external/blockAPI"
@@ -513,7 +512,7 @@ func createAPIBlockProcessorArgs(args *ApiResolverArgs, apiTransactionHandler ex
 
 func createLogsRepository(args *ApiResolverArgs) (LogsRepository, error) {
 	return logs.NewLogsRepository(logs.ArgsNewLogsRepository{
-		Storer:          args.DataComponents.StorageService().GetStorer(dataRetriever.TxLogsUnit),
+		StorageService:  args.DataComponents.StorageService(),
 		Marshalizer:     args.CoreComponents.InternalMarshalizer(),
 		PubKeyConverter: args.CoreComponents.AddressPubKeyConverter(),
 	})

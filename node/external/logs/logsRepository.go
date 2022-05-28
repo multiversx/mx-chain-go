@@ -5,6 +5,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -22,8 +23,10 @@ func NewLogsRepository(args ArgsNewLogsRepository) (*logsRepository, error) {
 		return nil, err
 	}
 
+	storer := args.StorageService.GetStorer(dataRetriever.TxLogsUnit)
+
 	return &logsRepository{
-		storer:          args.Storer,
+		storer:          storer,
 		marshalizer:     args.Marshalizer,
 		pubKeyConverter: args.PubKeyConverter,
 	}, nil
