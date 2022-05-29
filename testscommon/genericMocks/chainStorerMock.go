@@ -1,31 +1,33 @@
 package genericMocks
 
 import (
-	"fmt"
-
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 // ChainStorerMock -
 type ChainStorerMock struct {
+	Miniblocks    *StorerMock
 	Transactions  *StorerMock
 	Rewards       *StorerMock
 	Unsigned      *StorerMock
 	Logs          *StorerMock
 	MetaHdrNonce  *StorerMock
 	ShardHdrNonce *StorerMock
+	Others        *StorerMock
 }
 
 // NewChainStorerMock -
 func NewChainStorerMock(epoch uint32) *ChainStorerMock {
 	return &ChainStorerMock{
+		Miniblocks:    NewStorerMockWithEpoch(epoch),
 		Transactions:  NewStorerMockWithEpoch(epoch),
 		Rewards:       NewStorerMockWithEpoch(epoch),
 		Unsigned:      NewStorerMockWithEpoch(epoch),
 		Logs:          NewStorerMockWithEpoch(epoch),
 		MetaHdrNonce:  NewStorerMockWithEpoch(epoch),
 		ShardHdrNonce: NewStorerMockWithEpoch(epoch),
+		Others:        NewStorerMockWithEpoch(epoch),
 	}
 }
 
@@ -41,6 +43,9 @@ func (sm *ChainStorerMock) AddStorer(_ dataRetriever.UnitType, _ storage.Storer)
 
 // GetStorer -
 func (sm *ChainStorerMock) GetStorer(unitType dataRetriever.UnitType) storage.Storer {
+	if unitType == dataRetriever.MiniBlockUnit {
+		return sm.Miniblocks
+	}
 	if unitType == dataRetriever.TransactionUnit {
 		return sm.Transactions
 	}
@@ -60,7 +65,12 @@ func (sm *ChainStorerMock) GetStorer(unitType dataRetriever.UnitType) storage.St
 		return sm.ShardHdrNonce
 	}
 
-	panic(fmt.Sprintf("unknown storer: %s", unitType))
+	// According to: dataRetriever/interface.go
+	if unitType > dataRetriever.ShardHdrNonceHashDataUnit {
+		return sm.MetaHdrNonce
+	}
+
+	return sm.Others
 }
 
 // Has -
@@ -103,6 +113,7 @@ func (sm *ChainStorerMock) SetEpochForPutOperation(_ uint32) {
 // GetAllStorers -
 func (sm *ChainStorerMock) GetAllStorers() map[dataRetriever.UnitType]storage.Storer {
 	return map[dataRetriever.UnitType]storage.Storer{
+		dataRetriever.MiniBlockUnit:             sm.Miniblocks,
 		dataRetriever.TransactionUnit:           sm.Transactions,
 		dataRetriever.RewardTransactionUnit:     sm.Rewards,
 		dataRetriever.UnsignedTransactionUnit:   sm.Unsigned,

@@ -7,7 +7,6 @@ import (
 // LogsFacadeStub -
 type LogsFacadeStub struct {
 	GetLogCalled                    func(txHash []byte, epoch uint32) (*transaction.ApiLogs, error)
-	GetLogsCalled                   func(txHashes [][]byte, epoch uint32) ([]*transaction.ApiLogs, error)
 	IncludeLogsInTransactionsCalled func(txs []*transaction.ApiTransactionResult, logsKeys [][]byte, epoch uint32) error
 }
 
