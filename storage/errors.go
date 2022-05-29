@@ -1,7 +1,9 @@
 package storage
 
 import (
+	"encoding/hex"
 	"errors"
+	"fmt"
 )
 
 // ErrNilPersister is raised when a nil persister is provided
@@ -147,3 +149,8 @@ var ErrNilOldDataCleanerProvider = errors.New("nil old data cleaner provider")
 
 // ErrNilStoredDataFactory signals that a nil stored data factory has been provided
 var ErrNilStoredDataFactory = errors.New("nil stored data factory")
+
+// NewErrKeyNotFoundInStorer creates a detailed error of type "key not found"
+func NewErrKeyNotFoundInStorer(key []byte, storer string) error {
+	return fmt.Errorf("key = %s, storer = %s: %w", hex.EncodeToString(key), storer, ErrKeyNotFound)
+}

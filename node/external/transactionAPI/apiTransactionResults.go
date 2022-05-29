@@ -2,6 +2,7 @@ package transactionAPI
 
 import (
 	"encoding/hex"
+	"errors"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
@@ -10,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/node/filters"
+	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 type apiTransactionResultsProcessor struct {
@@ -117,8 +119,7 @@ func (arp *apiTransactionResultsProcessor) putLogsInTransaction(hash []byte, tx 
 	var err error
 
 	tx.Logs, err = arp.logsFacade.GetLog(hash, epoch)
-	if err != nil {
-		// TODO: if simply not found, do not warn.
+	if err != nil && !errors.Is(err, storage.ErrKeyNotFound) {
 		log.Warn("putLogsInTransaction()", "hash", hash, "epoch", epoch, "err", err)
 	}
 }
@@ -127,8 +128,7 @@ func (arp *apiTransactionResultsProcessor) putLogsInSCR(scrHash []byte, epoch ui
 	var err error
 
 	scr.Logs, err = arp.logsFacade.GetLog(scrHash, epoch)
-	if err != nil {
-		// TODO: if simply not found, do not warn.
+	if err != nil && !errors.Is(err, storage.ErrKeyNotFound) {
 		log.Warn("putLogsInSCR()", "hash", scrHash, "epoch", epoch, "err", err)
 	}
 }
