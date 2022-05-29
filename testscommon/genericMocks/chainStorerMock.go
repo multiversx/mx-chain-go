@@ -1,25 +1,31 @@
 package genericMocks
 
 import (
+	"fmt"
+
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 // ChainStorerMock -
 type ChainStorerMock struct {
-	Transactions *StorerMock
-	Rewards      *StorerMock
-	Unsigned     *StorerMock
-	HdrNonce     *StorerMock
+	Transactions  *StorerMock
+	Rewards       *StorerMock
+	Unsigned      *StorerMock
+	Logs          *StorerMock
+	MetaHdrNonce  *StorerMock
+	ShardHdrNonce *StorerMock
 }
 
 // NewChainStorerMock -
 func NewChainStorerMock(epoch uint32) *ChainStorerMock {
 	return &ChainStorerMock{
-		Transactions: NewStorerMockWithEpoch(epoch),
-		Rewards:      NewStorerMockWithEpoch(epoch),
-		Unsigned:     NewStorerMockWithEpoch(epoch),
-		HdrNonce:     NewStorerMockWithEpoch(epoch),
+		Transactions:  NewStorerMockWithEpoch(epoch),
+		Rewards:       NewStorerMockWithEpoch(epoch),
+		Unsigned:      NewStorerMockWithEpoch(epoch),
+		Logs:          NewStorerMockWithEpoch(epoch),
+		MetaHdrNonce:  NewStorerMockWithEpoch(epoch),
+		ShardHdrNonce: NewStorerMockWithEpoch(epoch),
 	}
 }
 
@@ -44,8 +50,17 @@ func (sm *ChainStorerMock) GetStorer(unitType dataRetriever.UnitType) storage.St
 	if unitType == dataRetriever.UnsignedTransactionUnit {
 		return sm.Unsigned
 	}
+	if unitType == dataRetriever.TxLogsUnit {
+		return sm.Logs
+	}
+	if unitType == dataRetriever.MetaHdrNonceHashDataUnit {
+		return sm.MetaHdrNonce
+	}
+	if unitType == dataRetriever.ShardHdrNonceHashDataUnit {
+		return sm.ShardHdrNonce
+	}
 
-	return sm.HdrNonce
+	panic(fmt.Sprintf("unknown storer: %s", unitType))
 }
 
 // Has -
@@ -88,10 +103,12 @@ func (sm *ChainStorerMock) SetEpochForPutOperation(_ uint32) {
 // GetAllStorers -
 func (sm *ChainStorerMock) GetAllStorers() map[dataRetriever.UnitType]storage.Storer {
 	return map[dataRetriever.UnitType]storage.Storer{
-		dataRetriever.TransactionUnit:          sm.Transactions,
-		dataRetriever.RewardTransactionUnit:    sm.Rewards,
-		dataRetriever.UnsignedTransactionUnit:  sm.Unsigned,
-		dataRetriever.MetaHdrNonceHashDataUnit: sm.HdrNonce,
+		dataRetriever.TransactionUnit:           sm.Transactions,
+		dataRetriever.RewardTransactionUnit:     sm.Rewards,
+		dataRetriever.UnsignedTransactionUnit:   sm.Unsigned,
+		dataRetriever.TxLogsUnit:                sm.Logs,
+		dataRetriever.MetaHdrNonceHashDataUnit:  sm.MetaHdrNonce,
+		dataRetriever.ShardHdrNonceHashDataUnit: sm.ShardHdrNonce,
 	}
 }
 

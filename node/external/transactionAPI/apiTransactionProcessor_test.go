@@ -486,7 +486,7 @@ func TestNode_lookupHistoricalTransaction(t *testing.T) {
 	headerHash := []byte("hash")
 	headerNonce := uint64(1)
 	nonceBytes := n.uint64ByteSliceConverter.ToByteSlice(headerNonce)
-	_ = chainStorer.HdrNonce.Put(nonceBytes, headerHash)
+	_ = chainStorer.MetaHdrNonce.Put(nonceBytes, headerHash)
 	txD := &rewardTx.RewardTx{Round: 42, RcvAddr: []byte("alice")}
 	_ = chainStorer.Rewards.PutWithMarshalizer([]byte("d"), txD, internalMarshalizer)
 	setupGetMiniblockMetadataByTxHash(historyRepo, block.RewardsBlock, core.MetachainShardId, 1, 42, headerHash, headerNonce)
@@ -559,7 +559,7 @@ func TestNode_lookupHistoricalTransaction(t *testing.T) {
 	headerHash = []byte("hash")
 	headerNonce = uint64(1)
 	nonceBytes = n.uint64ByteSliceConverter.ToByteSlice(headerNonce)
-	_ = chainStorer.HdrNonce.Put(nonceBytes, headerHash)
+	_ = chainStorer.MetaHdrNonce.Put(nonceBytes, headerHash)
 	txH := &rewardTx.RewardTx{Round: 50, RcvAddr: []byte("alice")}
 	_ = chainStorer.Rewards.PutWithMarshalizer([]byte("h"), txH, n.marshalizer)
 	setupGetMiniblockMetadataByTxHash(historyRepo, block.RewardsBlock, core.MetachainShardId, 1, 42, wrongHeaderHash, headerNonce)
