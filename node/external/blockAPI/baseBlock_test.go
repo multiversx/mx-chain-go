@@ -286,7 +286,7 @@ func TestBaseBlock_getAndAttachTxsToMbShouldIncludeLogsAsSpecified(t *testing.T)
 		TxHashes: [][]byte{{0xaa}, {0xbb}, {0xcc}},
 	}
 	miniblockBytes, _ := processor.marshalizer.Marshal(miniblock)
-	storageService.Miniblocks.Put(miniblockHash, miniblockBytes)
+	_ = storageService.Miniblocks.Put(miniblockHash, miniblockBytes)
 
 	// Setup some transactions
 	firstTx := &transaction.Transaction{Nonce: 42}
@@ -297,9 +297,9 @@ func TestBaseBlock_getAndAttachTxsToMbShouldIncludeLogsAsSpecified(t *testing.T)
 	secondTxBytes, _ := marshalizer.Marshal(secondTx)
 	thirdTxBytes, _ := marshalizer.Marshal(thirdTx)
 
-	storageService.Transactions.Put([]byte{0xaa}, firstTxBytes)
-	storageService.Transactions.Put([]byte{0xbb}, secondTxBytes)
-	storageService.Transactions.Put([]byte{0xcc}, thirdTxBytes)
+	_ = storageService.Transactions.Put([]byte{0xaa}, firstTxBytes)
+	_ = storageService.Transactions.Put([]byte{0xbb}, secondTxBytes)
+	_ = storageService.Transactions.Put([]byte{0xcc}, thirdTxBytes)
 
 	// Setup some logs for 1st and 3rd transactions (none for 2nd)
 	processor.logsFacade = &testscommon.LogsFacadeStub{

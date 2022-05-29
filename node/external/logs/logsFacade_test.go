@@ -75,7 +75,7 @@ func TestLogsFacade_GetLogShouldWork(t *testing.T) {
 	logKey := []byte("hello")
 	logBytes, err := marshalizer.Marshal(testLog)
 	require.Nil(t, err)
-	storageService.Logs.Put(logKey, logBytes)
+	_ = storageService.Logs.Put(logKey, logBytes)
 
 	facade, _ := NewLogsFacade(arguments)
 	logOnApi, err := facade.GetLog(logKey, 7)
@@ -130,9 +130,9 @@ func TestLogsFacade_IncludeLogsInTransactionsShouldWork(t *testing.T) {
 	logOfFirstBytes, _ := marshalizer.Marshal(logOfFirst)
 	logOfSecondBytes, _ := marshalizer.Marshal(logOfSecond)
 	logOfFourthBytes, _ := marshalizer.Marshal(logOfFourth)
-	storageService.Logs.Put([]byte{0xaa}, logOfFirstBytes)
-	storageService.Logs.Put([]byte{0xbb}, logOfSecondBytes)
-	storageService.Logs.Put([]byte{0xdd}, logOfFourthBytes)
+	_ = storageService.Logs.Put([]byte{0xaa}, logOfFirstBytes)
+	_ = storageService.Logs.Put([]byte{0xbb}, logOfSecondBytes)
+	_ = storageService.Logs.Put([]byte{0xdd}, logOfFourthBytes)
 
 	err := facade.IncludeLogsInTransactions(transactions, [][]byte{{0xaa}, {0xbb}, {0xcc}, {0xdd}}, 7)
 	require.Nil(t, err)
