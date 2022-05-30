@@ -136,6 +136,57 @@ func (tmp *TestMetaProcessor) ProcessStake(t *testing.T, nodes map[string]*Nodes
 	tmp.currentRound += 1
 }
 
+// ProcessUnStake will create a block containing mini blocks with unStaking txs using provided nodes.
+// Block will be committed + call to validator system sc will be made to unStake all nodes
+func (tmp *TestMetaProcessor) ProcessUnStake(t *testing.T, nodes map[string]*NodesRegisterData) {
+	header := tmp.createNewHeader(t, tmp.currentRound)
+	tmp.BlockChainHook.SetCurrentHeader(header)
+
+	txHashes := make([][]byte, 0)
+	for owner, nodesData := range nodes {
+		numBLSKeys := int64(len(nodesData.BLSKeys))
+		numBLSKeysBytes := big.NewInt(numBLSKeys).Bytes()
+
+		txData := hex.EncodeToString([]byte("unStake")) + "@" + hex.EncodeToString(numBLSKeysBytes)
+		argsUnStake := make([][]byte, 0)
+
+		for _, blsKey := range nodesData.BLSKeys {
+			argsUnStake = append(argsUnStake, blsKey)
+			txData += "@" + hex.EncodeToString(blsKey) + "@"
+		}
+
+		txHash := append([]byte("txHash-unStake-"), []byte(owner)...)
+		txHashes = append(txHashes, txHash)
+
+		tmp.TxCacher.AddTx(txHash, &smartContractResult.SmartContractResult{
+			RcvAddr: vm.StakingSCAddress,
+			Data:    []byte(txData),
+		})
+
+		tmp.doUnStake(t, vmcommon.VMInput{
+			CallerAddr:  []byte(owner),
+			Arguments:   argsUnStake,
+			CallValue:   big.NewInt(0),
+			GasProvided: 10,
+		})
+	}
+	_, err := tmp.AccountsAdapter.Commit()
+	require.Nil(t, err)
+
+	miniBlocks := block.MiniBlockSlice{
+		{
+			TxHashes:        txHashes,
+			SenderShardID:   core.MetachainShardId,
+			ReceiverShardID: core.MetachainShardId,
+			Type:            block.SmartContractResultBlock,
+		},
+	}
+	tmp.TxCoordinator.AddTxsFromMiniBlocks(miniBlocks)
+	tmp.createAndCommitBlock(t, header, noTime)
+
+	tmp.currentRound += 1
+}
+
 //TODO:
 // - Do the same for unStake/unJail
 func (tmp *TestMetaProcessor) doStake(t *testing.T, vmInput vmcommon.VMInput) {
@@ -146,6 +197,21 @@ func (tmp *TestMetaProcessor) doStake(t *testing.T, vmInput vmcommon.VMInput) {
 	}
 	vmOutput, err := tmp.SystemVM.RunSmartContractCall(arguments)
 	require.Nil(t, err)
+	require.Equal(t, vmcommon.Ok, vmOutput.ReturnCode)
+
+	err = integrationTests.ProcessSCOutputAccounts(vmOutput, tmp.AccountsAdapter)
+	require.Nil(t, err)
+}
+
+func (tmp *TestMetaProcessor) doUnStake(t *testing.T, vmInput vmcommon.VMInput) {
+	arguments := &vmcommon.ContractCallInput{
+		VMInput:       vmInput,
+		RecipientAddr: vm.ValidatorSCAddress,
+		Function:      "unStake",
+	}
+	vmOutput, err := tmp.SystemVM.RunSmartContractCall(arguments)
+	require.Nil(t, err)
+	require.Equal(t, vmcommon.Ok, vmOutput.ReturnCode)
 
 	err = integrationTests.ProcessSCOutputAccounts(vmOutput, tmp.AccountsAdapter)
 	require.Nil(t, err)

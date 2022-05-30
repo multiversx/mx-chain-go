@@ -600,7 +600,7 @@ func TestStakingV4_UnStakeNodes(t *testing.T) {
 		MaxNodesChangeConfig: []config.MaxNodesChangeConfig{
 			{
 				EpochEnable:            0,
-				MaxNumNodes:            8,
+				MaxNumNodes:            10,
 				NodesToShufflePerShard: 1,
 			},
 		},
@@ -629,4 +629,15 @@ func TestStakingV4_UnStakeNodes(t *testing.T) {
 
 	require.Empty(t, currNodesConfig.shuffledOut)
 	require.Empty(t, currNodesConfig.auction)
+	//logger.SetLogLevel("*:DEBUG")
+
+	node.ProcessUnStake(t, map[string]*NodesRegisterData{
+		owner2: {
+			BLSKeys: [][]byte{owner2Stats.StakingQueueKeys[0]},
+		},
+	})
+	currNodesConfig = node.NodesConfig
+	require.Len(t, currNodesConfig.queue, 6)
+	queue = remove(queue, owner2Stats.StakingQueueKeys[0])
+	//requireSameSliceDifferentOrder(t, currNodesConfig.queue, queue)
 }

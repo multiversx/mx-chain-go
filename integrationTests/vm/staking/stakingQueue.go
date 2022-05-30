@@ -55,14 +55,6 @@ func createStakingQueueCustomNodes(
 	queue := make([][]byte, 0)
 
 	for owner, ownerStats := range owners {
-		stakingcommon.AddKeysToWaitingList(
-			accountsAdapter,
-			ownerStats.StakingQueueKeys,
-			marshaller,
-			[]byte(owner),
-			[]byte(owner),
-		)
-
 		stakingcommon.RegisterValidatorKeys(
 			accountsAdapter,
 			[]byte(owner),
@@ -70,6 +62,14 @@ func createStakingQueueCustomNodes(
 			ownerStats.StakingQueueKeys,
 			ownerStats.TotalStake,
 			marshaller,
+		)
+
+		stakingcommon.AddKeysToWaitingList(
+			accountsAdapter,
+			ownerStats.StakingQueueKeys,
+			marshaller,
+			[]byte(owner),
+			[]byte(owner),
 		)
 
 		queue = append(queue, ownerStats.StakingQueueKeys...)
