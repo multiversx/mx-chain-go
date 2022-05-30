@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/stretchr/testify/require"
 )
@@ -227,8 +228,16 @@ func TestBaseBlock_getAndAttachTxsToMb_MiniblockTxBlock(t *testing.T) {
 		},
 	}
 
+	mbhr := &block.MiniBlockHeaderReserved{
+		IndexOfFirstTxProcessed: 0,
+		IndexOfLastTxProcessed:  1,
+	}
+	marshalizer := testscommon.ProtobufMarshalizerMock{}
+	mbhrBytes, _ := marshalizer.Marshal(mbhr)
+
 	mbHeader := &block.MiniBlockHeader{
-		Hash: mbHash,
+		Hash:     mbHash,
+		Reserved: mbhrBytes,
 	}
 
 	apiMB := &api.MiniBlock{}
