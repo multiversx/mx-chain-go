@@ -102,7 +102,7 @@ func createMockSmartContractProcessorArguments() ArgsNewSmartContractProcessor {
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
 		GasSchedule:         mock.NewGasScheduleNotifierMock(gasSchedule),
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{FlagsEnabled: true},
 		ArwenChangeLocker:   &sync.RWMutex{},
 		VMOutputCacher:      txcache.NewDisabledCache(),
 	}
@@ -376,6 +376,7 @@ func TestNewSmartContractProcessorVerifyAllMembers(t *testing.T) {
 
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+		FlagsEnabled: true,
 		IsBuiltInFunctionOnMetaFlagEnabledCalled: func() bool {
 			return false
 		},
@@ -533,6 +534,7 @@ func TestScProcessor_DeploySmartContractDisabled(t *testing.T) {
 	arguments.VmContainer = vmContainer
 	arguments.ArgsParser = argParser
 	arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+		FlagsEnabled: true,
 		IsSCDeployFlagEnabledCalled: func() bool {
 			return false
 		},
@@ -572,6 +574,7 @@ func TestScProcessor_BuiltInCallSmartContractDisabled(t *testing.T) {
 	arguments.VmContainer = vmContainer
 	arguments.ArgsParser = argParser
 	arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+		FlagsEnabled: true,
 		IsBuiltInFunctionsFlagEnabledCalled: func() bool {
 			return false
 		},
@@ -610,6 +613,7 @@ func TestScProcessor_BuiltInCallSmartContractSenderFailed(t *testing.T) {
 	arguments.VmContainer = vmContainer
 	arguments.ArgsParser = argParser
 	arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+		FlagsEnabled: true,
 		IsBuiltInFunctionsFlagEnabledCalled: func() bool {
 			return false
 		},
@@ -743,6 +747,7 @@ func TestScProcessor_ExecuteBuiltInFunctionSCResultCallSelfShardCannotSaveLog(t 
 	arguments.ArgsParser = argParser
 	isFlagSet := false
 	arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+		FlagsEnabled: true,
 		IsBuiltInFunctionsFlagEnabledCalled: func() bool {
 			return isFlagSet
 		},
@@ -798,6 +803,7 @@ func TestScProcessor_ExecuteBuiltInFunction(t *testing.T) {
 	arguments.ArgsParser = argParser
 	isFlagSet := false
 	arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+		FlagsEnabled: true,
 		IsBuiltInFunctionsFlagEnabledCalled: func() bool {
 			return isFlagSet
 		},
@@ -845,6 +851,7 @@ func TestScProcessor_ExecuteBuiltInFunctionSCRTooBig(t *testing.T) {
 	arguments.ArgsParser = argParser
 	isFlagSet := false
 	arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+		FlagsEnabled: true,
 		IsSCRSizeInvariantOnBuiltInResultFlagEnabledCalled: func() bool {
 			return isFlagSet
 		},
@@ -2527,6 +2534,7 @@ func TestScProcessor_RefundGasToSender(t *testing.T) {
 		return minGasPrice
 	}}
 	arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+		FlagsEnabled: true,
 		IsSCDeployFlagEnabledCalled: func() bool {
 			return false
 		},
@@ -2571,6 +2579,7 @@ func TestScProcessor_DoNotRefundGasToSenderForAsyncCall(t *testing.T) {
 		return minGasPrice
 	}}
 	arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+		FlagsEnabled: true,
 		IsSCDeployFlagEnabledCalled: func() bool {
 			return false
 		},
@@ -3295,6 +3304,7 @@ func TestScProcessor_ProcessSmartContractResultExecuteSCIfMetaAndBuiltIn(t *test
 	}
 	isFlagSet := false
 	arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+		FlagsEnabled: true,
 		IsBuiltInFunctionOnMetaFlagEnabledCalled: func() bool {
 			return isFlagSet
 		},
@@ -3732,9 +3742,7 @@ func TestSmartContractProcessor_computeTotalConsumedFeeAndDevRwdWithDifferentSCC
 	}
 
 	arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
-		IsStakingV2DelegationFlagEnabledCalled: func() bool {
-			return true
-		},
+		FlagsEnabled: true,
 	}
 
 	sc, err := NewSmartContractProcessor(arguments)
@@ -3824,9 +3832,7 @@ func TestSmartContractProcessor_finishSCExecutionV2(t *testing.T) {
 			}
 
 			arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
-				IsStakingV2DelegationFlagEnabledCalled: func() bool {
-					return true
-				},
+				FlagsEnabled: true,
 			}
 
 			sc, err := NewSmartContractProcessor(arguments)
@@ -4008,12 +4014,7 @@ func TestProcessIfErrorCheckBackwardsCompatibilityProcessTransactionFeeCalledSho
 	}
 
 	arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
-		IsCleanUpInformativeSCRsFlagEnabledCalled: func() bool {
-			return true
-		},
-		IsOptimizeGasUsedInCrossMiniBlocksFlagEnabledCalled: func() bool {
-			return true
-		},
+		FlagsEnabled: true,
 	}
 
 	sc, _ := NewSmartContractProcessor(arguments)
@@ -4035,6 +4036,7 @@ func TestProcessSCRSizeTooBig(t *testing.T) {
 	arguments := createMockSmartContractProcessorArguments()
 	isFlagSet := false
 	arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+		FlagsEnabled: true,
 		IsSCRSizeInvariantCheckFlagEnabledCalled: func() bool {
 			return isFlagSet
 		},
@@ -4094,6 +4096,7 @@ func TestCleanInformativeOnlySCRs(t *testing.T) {
 	arguments.ArgsParser = NewArgumentParser()
 	isFlagSet := false
 	arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+		FlagsEnabled: true,
 		IsCleanUpInformativeSCRsFlagEnabledCalled: func() bool {
 			return isFlagSet
 		},
@@ -4240,7 +4243,7 @@ func createRealEconomicsDataArgs() *economics.ArgsNewEconomicsData {
 			},
 		},
 		EpochNotifier:               &epochNotifier.EpochNotifierStub{},
-		EnableEpochsHandler:         &testscommon.EnableEpochsHandlerStub{},
+		EnableEpochsHandler:         &testscommon.EnableEpochsHandlerStub{FlagsEnabled: true},
 		BuiltInFunctionsCostHandler: &mock.BuiltInCostHandlerStub{},
 	}
 }
@@ -4349,6 +4352,7 @@ func TestScProcessor_TooMuchGasProvidedMessage(t *testing.T) {
 	arguments := createMockSmartContractProcessorArguments()
 	isFlagSet := false
 	arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+		FlagsEnabled: true,
 		IsCleanUpInformativeSCRsFlagEnabledCalled: func() bool {
 			return isFlagSet
 		},

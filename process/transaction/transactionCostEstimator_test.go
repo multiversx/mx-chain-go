@@ -29,7 +29,7 @@ func TestTransactionCostEstimator_NilTxTypeHandler(t *testing.T) {
 		&mock.TransactionSimulatorStub{},
 		&stateMock.AccountsStub{},
 		&mock.ShardCoordinatorStub{},
-		&testscommon.EnableEpochsHandlerStub{})
+		&testscommon.EnableEpochsHandlerStub{FlagsEnabled: true})
 
 	require.Nil(t, tce)
 	require.Equal(t, process.ErrNilTxTypeHandler, err)
@@ -44,7 +44,7 @@ func TestTransactionCostEstimator_NilFeeHandlerShouldErr(t *testing.T) {
 		&mock.TransactionSimulatorStub{},
 		&stateMock.AccountsStub{},
 		&mock.ShardCoordinatorStub{},
-		&testscommon.EnableEpochsHandlerStub{})
+		&testscommon.EnableEpochsHandlerStub{FlagsEnabled: true})
 
 	require.Nil(t, tce)
 	require.Equal(t, process.ErrNilEconomicsFeeHandler, err)
@@ -59,7 +59,7 @@ func TestTransactionCostEstimator_NilTransactionSimulatorShouldErr(t *testing.T)
 		nil,
 		&stateMock.AccountsStub{},
 		&mock.ShardCoordinatorStub{},
-		&testscommon.EnableEpochsHandlerStub{})
+		&testscommon.EnableEpochsHandlerStub{FlagsEnabled: true})
 
 	require.Nil(t, tce)
 	require.Equal(t, txsimulator.ErrNilTxSimulatorProcessor, err)
@@ -89,7 +89,7 @@ func TestTransactionCostEstimator_Ok(t *testing.T) {
 		&mock.TransactionSimulatorStub{},
 		&stateMock.AccountsStub{},
 		&mock.ShardCoordinatorStub{},
-		&testscommon.EnableEpochsHandlerStub{})
+		&testscommon.EnableEpochsHandlerStub{FlagsEnabled: true})
 
 	require.Nil(t, err)
 	require.False(t, check.IfNil(tce))
@@ -119,7 +119,7 @@ func TestComputeTransactionGasLimit_MoveBalance(t *testing.T) {
 			return &stateMock.UserAccountStub{Balance: big.NewInt(100000)}, nil
 		},
 	}, &mock.ShardCoordinatorStub{},
-		&testscommon.EnableEpochsHandlerStub{})
+		&testscommon.EnableEpochsHandlerStub{FlagsEnabled: true})
 
 	tx := &transaction.Transaction{}
 	cost, err := tce.ComputeTransactionGasLimit(tx)
@@ -152,7 +152,7 @@ func TestComputeTransactionGasLimit_MoveBalanceInvalidNonceShouldStillComputeCos
 			return &stateMock.UserAccountStub{Balance: big.NewInt(100000)}, nil
 		},
 	}, &mock.ShardCoordinatorStub{},
-		&testscommon.EnableEpochsHandlerStub{})
+		&testscommon.EnableEpochsHandlerStub{FlagsEnabled: true})
 
 	tx := &transaction.Transaction{}
 	cost, err := tce.ComputeTransactionGasLimit(tx)
@@ -185,7 +185,7 @@ func TestComputeTransactionGasLimit_BuiltInFunction(t *testing.T) {
 				return &stateMock.UserAccountStub{Balance: big.NewInt(100000)}, nil
 			},
 		}, &mock.ShardCoordinatorStub{},
-		&testscommon.EnableEpochsHandlerStub{})
+		&testscommon.EnableEpochsHandlerStub{FlagsEnabled: true})
 
 	tx := &transaction.Transaction{}
 	cost, err := tce.ComputeTransactionGasLimit(tx)
@@ -213,7 +213,7 @@ func TestComputeTransactionGasLimit_BuiltInFunctionShouldErr(t *testing.T) {
 				return &stateMock.UserAccountStub{Balance: big.NewInt(100000)}, nil
 			},
 		}, &mock.ShardCoordinatorStub{},
-		&testscommon.EnableEpochsHandlerStub{})
+		&testscommon.EnableEpochsHandlerStub{FlagsEnabled: true})
 
 	tx := &transaction.Transaction{}
 	cost, err := tce.ComputeTransactionGasLimit(tx)
@@ -240,7 +240,7 @@ func TestComputeTransactionGasLimit_NilVMOutput(t *testing.T) {
 				return &stateMock.UserAccountStub{Balance: big.NewInt(100000)}, nil
 			},
 		}, &mock.ShardCoordinatorStub{},
-		&testscommon.EnableEpochsHandlerStub{})
+		&testscommon.EnableEpochsHandlerStub{FlagsEnabled: true})
 
 	tx := &transaction.Transaction{}
 	cost, err := tce.ComputeTransactionGasLimit(tx)
@@ -271,7 +271,7 @@ func TestComputeTransactionGasLimit_RetCodeNotOk(t *testing.T) {
 				return &stateMock.UserAccountStub{Balance: big.NewInt(100000)}, nil
 			},
 		}, &mock.ShardCoordinatorStub{},
-		&testscommon.EnableEpochsHandlerStub{})
+		&testscommon.EnableEpochsHandlerStub{FlagsEnabled: true})
 
 	tx := &transaction.Transaction{}
 	cost, err := tce.ComputeTransactionGasLimit(tx)
@@ -292,7 +292,7 @@ func TestTransactionCostEstimator_RelayedTxShouldErr(t *testing.T) {
 		&mock.TransactionSimulatorStub{},
 		&stateMock.AccountsStub{},
 		&mock.ShardCoordinatorStub{},
-		&testscommon.EnableEpochsHandlerStub{})
+		&testscommon.EnableEpochsHandlerStub{FlagsEnabled: true})
 
 	tx := &transaction.Transaction{}
 	cost, err := tce.ComputeTransactionGasLimit(tx)

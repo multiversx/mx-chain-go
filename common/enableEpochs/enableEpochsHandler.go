@@ -113,6 +113,11 @@ func (handler *enableEpochsHandler) BlockGasAndFeesReCheckEnableEpoch() uint32 {
 	return handler.enableEpochsConfig.BlockGasAndFeesReCheckEnableEpoch
 }
 
+// StakingV2EnableEpoch returns the epoch for staking v2
+func (handler *enableEpochsHandler) StakingV2EnableEpoch() uint32 {
+	return handler.enableEpochsConfig.StakingV2EnableEpoch
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (handler *enableEpochsHandler) IsInterfaceNil() bool {
 	return handler == nil

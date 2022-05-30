@@ -136,6 +136,7 @@ type ProcessStatusHandler interface {
 // EnableEpochsHandler is used to verify the which flags are set in the current epoch based on EnableEpochs config
 type EnableEpochsHandler interface {
 	BlockGasAndFeesReCheckEnableEpoch() uint32
+	StakingV2EnableEpoch() uint32
 	IsSCDeployFlagEnabled() bool
 	IsBuiltInFunctionsFlagEnabled() bool
 	IsRelayedTransactionsFlagEnabled() bool
