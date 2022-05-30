@@ -426,7 +426,7 @@ func (ps *PruningStorer) Get(key []byte) ([]byte, error) {
 		return nil, storage.ErrDBIsClosed
 	}
 
-	return nil, storage.NewErrKeyNotFoundInStorer(key, ps.identifier)
+	return nil, fmt.Errorf("key %s not found in %s", hex.EncodeToString(key), ps.identifier)
 }
 
 // Close will close PruningStorer
@@ -463,7 +463,8 @@ func (ps *PruningStorer) GetFromEpoch(key []byte, epoch uint32) ([]byte, error) 
 	pd, exists := ps.persistersMapByEpoch[epoch]
 	ps.lock.RUnlock()
 	if !exists {
-		return nil, storage.NewErrKeyNotFoundInStorer(key, ps.identifier)
+		return nil, fmt.Errorf("key %s not found in %s",
+			hex.EncodeToString(key), ps.identifier)
 	}
 
 	persister, closePersister, err := ps.createAndInitPersisterIfClosedProtected(pd)
@@ -483,7 +484,8 @@ func (ps *PruningStorer) GetFromEpoch(key []byte, epoch uint32) ([]byte, error) 
 		"key", key,
 		"error", err.Error())
 
-	return nil, storage.NewErrKeyNotFoundInStorer(key, ps.identifier)
+	return nil, fmt.Errorf("key %s not found in %s",
+		hex.EncodeToString(key), ps.identifier)
 }
 
 // GetBulkFromEpoch will return a slice of keys only in the persister for the given epoch

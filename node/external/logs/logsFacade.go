@@ -12,20 +12,15 @@ type logsFacade struct {
 	converter  *logsConverter
 }
 
+// NewLogsFacade creates a new logs facade
 func NewLogsFacade(args ArgsNewLogsFacade) (*logsFacade, error) {
 	err := args.check()
 	if err != nil {
 		return nil, err
 	}
 
-	repository := newLogsRepository(argsNewLogsRepository{
-		StorageService: args.StorageService,
-		Marshalizer:    args.Marshalizer,
-	})
-
-	converter := newLogsConverter(argsNewLogsConverter{
-		pubKeyConverter: args.PubKeyConverter,
-	})
+	repository := newLogsRepository(args.StorageService, args.Marshalizer)
+	converter := newLogsConverter(args.PubKeyConverter)
 
 	return &logsFacade{
 		repository: repository,

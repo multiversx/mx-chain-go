@@ -27,12 +27,3 @@ func (args *ArgsNewLogsFacade) check() error {
 
 	return nil
 }
-
-type argsNewLogsRepository struct {
-	StorageService dataRetriever.StorageService
-	Marshalizer    marshal.Marshalizer
-}
-
-type argsNewLogsConverter struct {
-	pubKeyConverter core.PubkeyConverter
-}

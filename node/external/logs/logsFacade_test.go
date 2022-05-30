@@ -6,7 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	marshalizerFactory "github.com/ElrondNetwork/elrond-go-core/marshal/factory"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
 	"github.com/stretchr/testify/require"
@@ -52,7 +52,7 @@ func TestNewLogsFacade(t *testing.T) {
 
 func TestLogsFacade_GetLogShouldWork(t *testing.T) {
 	storageService := genericMocks.NewChainStorerMock(7)
-	marshalizer, _ := marshalizerFactory.NewMarshalizer("gogo protobuf")
+	marshalizer := &marshal.GogoProtoMarshalizer{}
 
 	arguments := ArgsNewLogsFacade{
 		StorageService:  storageService,
@@ -90,7 +90,7 @@ func TestLogsFacade_GetLogShouldWork(t *testing.T) {
 
 func TestLogsFacade_IncludeLogsInTransactionsShouldWork(t *testing.T) {
 	storageService := genericMocks.NewChainStorerMock(7)
-	marshalizer, _ := marshalizerFactory.NewMarshalizer("gogo protobuf")
+	marshalizer := &marshal.GogoProtoMarshalizer{}
 
 	arguments := ArgsNewLogsFacade{
 		StorageService:  storageService,

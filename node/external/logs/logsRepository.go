@@ -12,12 +12,12 @@ type logsRepository struct {
 	marshalizer marshal.Marshalizer
 }
 
-func newLogsRepository(args argsNewLogsRepository) *logsRepository {
-	storer := args.StorageService.GetStorer(dataRetriever.TxLogsUnit)
+func newLogsRepository(storageService dataRetriever.StorageService, marshalizer marshal.Marshalizer) *logsRepository {
+	storer := storageService.GetStorer(dataRetriever.TxLogsUnit)
 
 	return &logsRepository{
 		storer:      storer,
-		marshalizer: args.Marshalizer,
+		marshalizer: marshalizer,
 	}
 }
 
@@ -44,15 +44,13 @@ func (repository *logsRepository) getLogs(logsKeys [][]byte, epoch uint32) (map[
 		return nil, err
 	}
 
-	results := make(map[string]*transaction.Log, len(logsKeys))
+	results := make(map[string]*transaction.Log)
 
 	for _, pair := range keyValuePairs {
 		txLog := &transaction.Log{}
 		err = repository.marshalizer.Unmarshal(txLog, pair.Value)
 		if err != nil {
-			// When loading a bulk of logs, we are a bit more tolerant to eventual errors (should never happen, though).
-			log.Warn("logsRepository.getLogs(): cannot unmarshal", "key", pair.Key, "epoch", epoch, "err", err)
-			continue
+			return nil, err
 		}
 
 		results[string(pair.Key)] = txLog

@@ -9,9 +9,9 @@ type logsConverter struct {
 	pubKeyConverter core.PubkeyConverter
 }
 
-func newLogsConverter(args argsNewLogsConverter) *logsConverter {
+func newLogsConverter(pubKeyConverter core.PubkeyConverter) *logsConverter {
 	return &logsConverter{
-		pubKeyConverter: args.pubKeyConverter,
+		pubKeyConverter: pubKeyConverter,
 	}
 }
 

@@ -43,25 +43,20 @@ func (sm *ChainStorerMock) AddStorer(_ dataRetriever.UnitType, _ storage.Storer)
 
 // GetStorer -
 func (sm *ChainStorerMock) GetStorer(unitType dataRetriever.UnitType) storage.Storer {
-	if unitType == dataRetriever.MiniBlockUnit {
+	switch unitType {
+	case dataRetriever.MiniBlockUnit:
 		return sm.Miniblocks
-	}
-	if unitType == dataRetriever.TransactionUnit {
+	case dataRetriever.TransactionUnit:
 		return sm.Transactions
-	}
-	if unitType == dataRetriever.RewardTransactionUnit {
+	case dataRetriever.RewardTransactionUnit:
 		return sm.Rewards
-	}
-	if unitType == dataRetriever.UnsignedTransactionUnit {
+	case dataRetriever.UnsignedTransactionUnit:
 		return sm.Unsigned
-	}
-	if unitType == dataRetriever.TxLogsUnit {
+	case dataRetriever.TxLogsUnit:
 		return sm.Logs
-	}
-	if unitType == dataRetriever.MetaHdrNonceHashDataUnit {
+	case dataRetriever.MetaHdrNonceHashDataUnit:
 		return sm.MetaHdrNonce
-	}
-	if unitType == dataRetriever.ShardHdrNonceHashDataUnit {
+	case dataRetriever.ShardHdrNonceHashDataUnit:
 		return sm.ShardHdrNonce
 	}
 

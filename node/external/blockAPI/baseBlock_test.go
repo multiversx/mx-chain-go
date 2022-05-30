@@ -12,7 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/receipt"
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	marshalizerFactory "github.com/ElrondNetwork/elrond-go-core/marshal/factory"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -260,7 +260,8 @@ func TestBaseBlock_getAndAttachTxsToMbShouldIncludeLogsAsSpecified(t *testing.T)
 
 	testEpoch := uint32(7)
 
-	marshalizer, _ := marshalizerFactory.NewMarshalizer("gogo protobuf")
+	marshalizer := &marshal.GogoProtoMarshalizer{}
+
 	storageService := genericMocks.NewChainStorerMock(testEpoch)
 	processor := createBaseBlockProcessor()
 	processor.marshalizer = marshalizer

@@ -371,7 +371,7 @@ func TestGetBlockByRound_ShouldWork(t *testing.T) {
 	assert.Equal(t, expectedBlock, response.Data.Block)
 }
 
-func TestGetBlockByRound_WithBadBlockQueryOptions_ShouldErr(t *testing.T) {
+func TestGetBlockByRound_WithBadBlockQueryOptionsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	facade := mock.FacadeStub{
@@ -394,7 +394,7 @@ func TestGetBlockByRound_WithBadBlockQueryOptions_ShouldErr(t *testing.T) {
 	require.Contains(t, response.Error, apiErrors.ErrInvalidQueryParameter.Error())
 }
 
-func TestGetBlockByRound_WithBlockQueryOptions_ShouldWork(t *testing.T) {
+func TestGetBlockByRound_WithBlockQueryOptionsShouldWork(t *testing.T) {
 	t.Parallel()
 
 	var calledWithRound uint64

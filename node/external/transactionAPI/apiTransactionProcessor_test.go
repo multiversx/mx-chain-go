@@ -18,7 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	marshalizerFactory "github.com/ElrondNetwork/elrond-go-core/marshal/factory"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
@@ -864,7 +864,7 @@ func TestApiTransactionProcessor_UnmarshalTransactionPopulatesComputedFields(t *
 	txTypeHandler := &testscommon.TxTypeHandlerMock{}
 
 	arguments := createMockArgAPIBlockProcessor()
-	arguments.Marshalizer, _ = marshalizerFactory.NewMarshalizer("gogo protobuf")
+	arguments.Marshalizer = &marshal.GogoProtoMarshalizer{}
 	arguments.FeeComputer = feeComputer
 	arguments.TxTypeHandler = txTypeHandler
 
