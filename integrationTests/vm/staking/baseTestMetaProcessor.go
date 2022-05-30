@@ -52,6 +52,7 @@ type nodesConfig struct {
 	shuffledOut map[uint32][][]byte
 	queue       [][]byte
 	auction     [][]byte
+	new         [][]byte
 }
 
 // TestMetaProcessor -
@@ -368,9 +369,13 @@ func (tmp *TestMetaProcessor) updateNodesConfig(epoch uint32) {
 	validatorsInfoMap, _ := tmp.ValidatorStatistics.GetValidatorInfoForRootHash(rootHash)
 
 	auction := make([][]byte, 0)
+	newList := make([][]byte, 0)
 	for _, validator := range validatorsInfoMap.GetAllValidatorsInfo() {
 		if validator.GetList() == string(common.AuctionList) {
 			auction = append(auction, validator.GetPublicKey())
+		}
+		if validator.GetList() == string(common.NewList) {
+			newList = append(newList, validator.GetPublicKey())
 		}
 	}
 
@@ -379,6 +384,7 @@ func (tmp *TestMetaProcessor) updateNodesConfig(epoch uint32) {
 	tmp.NodesConfig.shuffledOut = shuffledOut
 	tmp.NodesConfig.leaving = leaving
 	tmp.NodesConfig.auction = auction
+	tmp.NodesConfig.new = newList
 	tmp.NodesConfig.queue = tmp.getWaitingListKeys()
 }
 

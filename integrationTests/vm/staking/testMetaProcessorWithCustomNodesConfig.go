@@ -1,8 +1,10 @@
 package staking
 
 import (
+	"bytes"
 	"encoding/hex"
 	"math/big"
+	"strconv"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -11,6 +13,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
+	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract"
+	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/testscommon/stakingcommon"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/require"
@@ -163,12 +169,23 @@ func (tmp *TestMetaProcessor) ProcessUnStake(t *testing.T, nodes map[string]*Nod
 			Data:    []byte(txData),
 		})
 
-		tmp.doUnStake(t, vmcommon.VMInput{
+		txsData := tmp.doUnStake(t, vmcommon.VMInput{
 			CallerAddr:  []byte(owner),
 			Arguments:   argsUnStake,
 			CallValue:   big.NewInt(0),
 			GasProvided: 10,
 		})
+
+		for i, tData := range txsData {
+			txHash = []byte("rrrr" + strconv.Itoa(i))
+			txHashes = append(txHashes, txHash)
+
+			tmp.TxCacher.AddTx(txHash, &smartContractResult.SmartContractResult{
+				RcvAddr: vm.StakingSCAddress,
+				Data:    []byte(tData),
+			})
+
+		}
 	}
 	_, err := tmp.AccountsAdapter.Commit()
 	require.Nil(t, err)
@@ -203,7 +220,7 @@ func (tmp *TestMetaProcessor) doStake(t *testing.T, vmInput vmcommon.VMInput) {
 	require.Nil(t, err)
 }
 
-func (tmp *TestMetaProcessor) doUnStake(t *testing.T, vmInput vmcommon.VMInput) {
+func (tmp *TestMetaProcessor) doUnStake(t *testing.T, vmInput vmcommon.VMInput) []string {
 	arguments := &vmcommon.ContractCallInput{
 		VMInput:       vmInput,
 		RecipientAddr: vm.ValidatorSCAddress,
@@ -213,6 +230,45 @@ func (tmp *TestMetaProcessor) doUnStake(t *testing.T, vmInput vmcommon.VMInput) 
 	require.Nil(t, err)
 	require.Equal(t, vmcommon.Ok, vmOutput.ReturnCode)
 
-	err = integrationTests.ProcessSCOutputAccounts(vmOutput, tmp.AccountsAdapter)
+	txsData, err := ProcessSCOutputAccounts(vmOutput, tmp.AccountsAdapter)
 	require.Nil(t, err)
+	return txsData
+}
+
+func ProcessSCOutputAccounts(vmOutput *vmcommon.VMOutput, accountsDB state.AccountsAdapter) ([]string, error) {
+	outputAccounts := process.SortVMOutputInsideData(vmOutput)
+	data := make([]string, 0)
+	for _, outAcc := range outputAccounts {
+		acc := stakingcommon.LoadUserAccount(accountsDB, outAcc.Address)
+
+		storageUpdates := process.GetSortedStorageUpdates(outAcc)
+		for _, storeUpdate := range storageUpdates {
+			err := acc.DataTrieTracker().SaveKeyValue(storeUpdate.Offset, storeUpdate.Data)
+			if err != nil {
+				return nil, err
+			}
+
+			if outAcc.BalanceDelta != nil && outAcc.BalanceDelta.Cmp(big.NewInt(0)) != 0 {
+				err = acc.AddToBalance(outAcc.BalanceDelta)
+				if err != nil {
+					return nil, err
+				}
+			}
+
+			err = accountsDB.SaveAccount(acc)
+			if err != nil {
+				return nil, err
+			}
+
+			if bytes.Equal(outAcc.Address, vm.StakingSCAddress) {
+				parser := smartContract.NewArgumentParser()
+				data2 := parser.CreateDataFromStorageUpdate(storageUpdates)
+				data = append(data, data2)
+
+			}
+
+		}
+	}
+
+	return data, nil
 }

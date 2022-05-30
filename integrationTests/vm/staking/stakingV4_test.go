@@ -632,6 +632,7 @@ func TestStakingV4_UnStakeNodes(t *testing.T) {
 	require.Empty(t, currNodesConfig.auction)
 	//logger.SetLogLevel("*:DEBUG")
 
+	// Check unStaked node is removed from waiting list
 	node.ProcessUnStake(t, map[string]*NodesRegisterData{
 		owner2: {
 			BLSKeys: [][]byte{owner2Stats.StakingQueueKeys[0]},
@@ -641,4 +642,22 @@ func TestStakingV4_UnStakeNodes(t *testing.T) {
 	require.Len(t, currNodesConfig.queue, 6)
 	queue = remove(queue, owner2Stats.StakingQueueKeys[0])
 	requireSameSliceDifferentOrder(t, currNodesConfig.queue, queue)
+
+	node.ProcessUnStake(t, map[string]*NodesRegisterData{
+		owner2: {
+			BLSKeys: [][]byte{owner2Stats.WaitingBlsKeys[core.MetachainShardId][0]},
+		},
+	})
+	currNodesConfig = node.NodesConfig
+	require.Len(t, currNodesConfig.new, 1)
+	require.Equal(t, currNodesConfig.new[0], owner1Stats.StakingQueueKeys[0])
+
+	node.Process(t, 6)
+	/*
+		node.Process(t, 4)
+		currNodesConfig = node.NodesConfig
+		require.Empty(t, currNodesConfig.queue)
+		requireSameSliceDifferentOrder(t, queue, currNodesConfig.auction)
+
+	*/
 }
