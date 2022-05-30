@@ -24,7 +24,7 @@ require (
 	github.com/gizak/termui/v3 v3.1.0
 	github.com/gogo/protobuf v1.3.2
 	github.com/google/gops v0.3.18
-	github.com/gorilla/websocket v1.4.2
+	github.com/gorilla/websocket v1.5.0
 	github.com/hashicorp/golang-lru v0.5.4
 	github.com/ipfs/go-log v1.0.5
 	github.com/jbenet/goprocess v0.1.4
