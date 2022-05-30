@@ -444,9 +444,12 @@ func newBaseTestProcessorNode(
 		PeersRatingHandler:      peersRatingHandler,
 		PeerShardMapper:         mock.NewNetworkShardingCollectorMock(),
 		EnableEpochs: config.EnableEpochs{
-			StakingV4InitEnableEpoch:                 StakingV4InitEpoch,
-			StakingV4EnableEpoch:                     StakingV4Epoch,
-			StakingV4DistributeAuctionToWaitingEpoch: StakingV4DistributeAuctionToWaiting,
+			OptimizeGasUsedInCrossMiniBlocksEnableEpoch: 10,
+			ScheduledMiniBlocksEnableEpoch:              1000000,
+			MiniBlockPartialExecutionEnableEpoch:        1000000,
+			StakingV4InitEnableEpoch:                    StakingV4InitEpoch,
+			StakingV4EnableEpoch:                        StakingV4Epoch,
+			StakingV4DistributeAuctionToWaitingEpoch:    StakingV4DistributeAuctionToWaiting,
 		},
 	}
 
@@ -964,11 +967,13 @@ func (tpn *TestProcessorNode) createFullSCQueryService() {
 			EpochNotifier:       tpn.EpochNotifier,
 			EpochConfig: &config.EpochConfig{
 				EnableEpochs: config.EnableEpochs{
-					StakingV2EnableEpoch:               0,
-					StakingV4EnableEpoch:               444,
-					StakeEnableEpoch:                   0,
-					DelegationSmartContractEnableEpoch: 0,
-					DelegationManagerEnableEpoch:       0,
+					StakingV2EnableEpoch:                     0,
+					StakingV4EnableEpoch:                     StakingV4Epoch,
+					StakingV4InitEnableEpoch:                 StakingV4InitEpoch,
+					StakingV4DistributeAuctionToWaitingEpoch: StakingV4DistributeAuctionToWaiting,
+					StakeEnableEpoch:                         0,
+					DelegationSmartContractEnableEpoch:       0,
+					DelegationManagerEnableEpoch:             0,
 				},
 			},
 			ShardCoordinator: tpn.ShardCoordinator,
@@ -2302,10 +2307,11 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 			MaxNodesChangeConfigProvider: maxNodesChangeConfigProvider,
 			EpochConfig: config.EpochConfig{
 				EnableEpochs: config.EnableEpochs{
-					StakingV2EnableEpoch:     StakingV2Epoch,
-					StakingV4InitEnableEpoch: StakingV4InitEpoch,
-					StakingV4EnableEpoch:     StakingV4Epoch,
-					ESDTEnableEpoch:          0,
+					StakingV2EnableEpoch:                     StakingV2Epoch,
+					StakingV4InitEnableEpoch:                 StakingV4InitEpoch,
+					StakingV4EnableEpoch:                     StakingV4Epoch,
+					StakingV4DistributeAuctionToWaitingEpoch: StakingV4DistributeAuctionToWaiting,
+					ESDTEnableEpoch:                          0,
 				},
 			},
 		}
