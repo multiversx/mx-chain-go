@@ -54,6 +54,7 @@ func createMockBlockChainHookArgs() hooks.ArgBlockChainHook {
 		DataPool:          datapool,
 		CompiledSCPool:    datapool.SmartContracts(),
 		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
+			FlagsEnabled: true,
 			IsDoNotReturnOldBlockInBlockchainHookFlagEnabledCalled: func() bool {
 				return false
 			},
@@ -604,7 +605,7 @@ func TestBlockChainHookImpl_GetBlockhashFromStorerInSameEpochWithFlagEnabled(t *
 
 	args := createMockBlockChainHookArgs()
 	// reset IsDoNotReturnOldBlockInBlockchainHookFlagEnabledCalled to return true
-	args.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{}
+	args.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{FlagsEnabled: true}
 	nonce := uint64(10)
 	header := &block.Header{Nonce: nonce}
 	shardID := args.ShardCoordinator.SelfId()
@@ -761,7 +762,7 @@ func TestBlockChainHookImpl_GettersFromBlockchainCurrentHeader(t *testing.T) {
 
 		args := createMockBlockChainHookArgs()
 		// reset IsDoNotReturnOldBlockInBlockchainHookFlagEnabledCalled to return true
-		args.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{}
+		args.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{FlagsEnabled: true}
 		args.BlockChain = &testscommon.ChainHandlerStub{
 			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 				return hdrToRet
