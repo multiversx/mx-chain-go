@@ -72,6 +72,7 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilPool(t *testing.T
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
 		2,
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
 	assert.Nil(t, txs)
@@ -99,6 +100,7 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilStore(t *testing.
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
 		2,
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
 	assert.Nil(t, txs)
@@ -126,6 +128,7 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilHasher(t *testing
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
 		2,
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
 	assert.Nil(t, txs)
@@ -153,6 +156,7 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilMarsalizer(t *tes
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
 		2,
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
 	assert.Nil(t, txs)
@@ -180,6 +184,7 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilTxProce(t *testin
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
 		2,
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
 	assert.Nil(t, txs)
@@ -207,6 +212,7 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilShardCoord(t *tes
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
 		2,
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
 	assert.Nil(t, txs)
@@ -234,6 +240,7 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilAccounts(t *testi
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
 		2,
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
 	assert.Nil(t, txs)
@@ -260,6 +267,7 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilRequestFunc(t *te
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
 		2,
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
 	assert.Nil(t, txs)
@@ -287,6 +295,7 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilGasHandler(t *tes
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
 		2,
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
 	assert.Nil(t, txs)
@@ -314,6 +323,7 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorShouldWork(t *testin
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
 		2,
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
 	assert.Nil(t, err)
@@ -341,6 +351,7 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilPubkeyConverter(t
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
 		2,
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
 	assert.Nil(t, txs)
@@ -368,6 +379,7 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilBlockSizeComputat
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
 		2,
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
 	assert.Nil(t, txs)
@@ -395,6 +407,7 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilBalanceComputatio
 		nil,
 		&epochNotifier.EpochNotifierStub{},
 		2,
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
 	assert.Nil(t, txs)
@@ -422,10 +435,39 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilEpochNotifier(t *
 		&testscommon.BalanceComputationStub{},
 		nil,
 		2,
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
 	assert.Nil(t, txs)
 	assert.Equal(t, process.ErrNilEpochNotifier, err)
+}
+
+func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilProcessedMiniBlocksTracker(t *testing.T) {
+	t.Parallel()
+
+	tdp := initDataPool()
+	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
+	txs, err := NewSmartContractResultPreprocessor(
+		tdp.UnsignedTransactions(),
+		&mock.ChainStorerMock{},
+		&hashingMocks.HasherMock{},
+		&mock.MarshalizerMock{},
+		&testscommon.TxProcessorMock{},
+		mock.NewMultiShardsCoordinatorMock(3),
+		&stateMock.AccountsStub{},
+		requestTransaction,
+		&mock.GasHandlerMock{},
+		feeHandlerMock(),
+		createMockPubkeyConverter(),
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
+		&epochNotifier.EpochNotifierStub{},
+		2,
+		nil,
+	)
+
+	assert.Nil(t, txs)
+	assert.Equal(t, process.ErrNilProcessedMiniBlocksTracker, err)
 }
 
 func TestScrsPreProcessor_GetTransactionFromPool(t *testing.T) {
@@ -449,6 +491,7 @@ func TestScrsPreProcessor_GetTransactionFromPool(t *testing.T) {
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
 		2,
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
 	txHash := []byte("tx1_hash")
@@ -480,6 +523,7 @@ func TestScrsPreprocessor_RequestTransactionNothingToRequestAsGeneratedAtProcess
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
 		2,
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
 	shardId := uint32(1)
@@ -519,6 +563,7 @@ func TestScrsPreprocessor_RequestTransactionFromNetwork(t *testing.T) {
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
 		2,
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
 	shardId := uint32(1)
@@ -557,6 +602,7 @@ func TestScrsPreprocessor_RequestBlockTransactionFromMiniBlockFromNetwork(t *tes
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
 		2,
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
 	shardId := uint32(1)
@@ -606,6 +652,7 @@ func TestScrsPreprocessor_ReceivedTransactionShouldEraseRequested(t *testing.T) 
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
 		2,
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
 	// add 3 tx hashes on requested list
@@ -681,6 +728,7 @@ func TestScrsPreprocessor_GetAllTxsFromMiniBlockShouldWork(t *testing.T) {
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
 		2,
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
 	mb := &block.MiniBlock{
@@ -725,6 +773,7 @@ func TestScrsPreprocessor_RemoveBlockDataFromPoolsNilBlockShouldErr(t *testing.T
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
 		2,
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
 	err := txs.RemoveBlockDataFromPools(nil, tdp.MiniBlocks())
@@ -754,6 +803,7 @@ func TestScrsPreprocessor_RemoveBlockDataFromPoolsOK(t *testing.T) {
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
 		2,
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
 	body := &block.Body{}
@@ -796,6 +846,7 @@ func TestScrsPreprocessor_IsDataPreparedErr(t *testing.T) {
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
 		2,
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
 	err := txs.IsDataPrepared(1, haveTime)
@@ -825,6 +876,7 @@ func TestScrsPreprocessor_IsDataPrepared(t *testing.T) {
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
 		2,
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
 	go func() {
@@ -859,6 +911,7 @@ func TestScrsPreprocessor_SaveTxsToStorage(t *testing.T) {
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
 		2,
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
 	body := &block.Body{}
@@ -916,6 +969,7 @@ func TestScrsPreprocessor_SaveTxsToStorageShouldSaveCorrectly(t *testing.T) {
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
 		2,
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
 	body := &block.Body{}
@@ -995,6 +1049,7 @@ func TestScrsPreprocessor_SaveTxsToStorageMissingTransactionsShouldNotErr(t *tes
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
 		2,
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
 	body := &block.Body{}
@@ -1042,6 +1097,7 @@ func TestScrsPreprocessor_ProcessBlockTransactionsShouldWork(t *testing.T) {
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
 		2,
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
 	body := &block.Body{}
@@ -1070,7 +1126,7 @@ func TestScrsPreprocessor_ProcessBlockTransactionsShouldWork(t *testing.T) {
 
 	scrPreproc.scrForBlock.txHashAndInfo["txHash"] = &txInfo{&scr, &txshardInfo}
 
-	err := scrPreproc.ProcessBlockTransactions(&block.Header{MiniBlockHeaders: []block.MiniBlockHeader{{Hash: miniblockHash}}}, body, nil, haveTimeTrue)
+	err := scrPreproc.ProcessBlockTransactions(&block.Header{MiniBlockHeaders: []block.MiniBlockHeader{{TxCount: 1, Hash: miniblockHash}}}, body, haveTimeTrue)
 
 	assert.Nil(t, err)
 }
@@ -1104,6 +1160,7 @@ func TestScrsPreprocessor_ProcessBlockTransactionsShouldErrMaxGasLimitPerBlockIn
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
 		2,
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
 	body := &block.Body{}
@@ -1131,12 +1188,12 @@ func TestScrsPreprocessor_ProcessBlockTransactionsShouldErrMaxGasLimitPerBlockIn
 
 	scrPreproc.scrForBlock.txHashAndInfo["txHash"] = &txInfo{&scr, &txshardInfo}
 
-	err := scrPreproc.ProcessBlockTransactions(&block.Header{MiniBlockHeaders: []block.MiniBlockHeader{{Hash: miniblockHash, TxCount: 1}}}, body, nil, haveTimeTrue)
+	err := scrPreproc.ProcessBlockTransactions(&block.Header{MiniBlockHeaders: []block.MiniBlockHeader{{Hash: miniblockHash, TxCount: 1}}}, body, haveTimeTrue)
 	assert.Nil(t, err)
 
 	scrPreproc.EpochConfirmed(2, 0)
 
-	err = scrPreproc.ProcessBlockTransactions(&block.Header{MiniBlockHeaders: []block.MiniBlockHeader{{Hash: miniblockHash, TxCount: 1}}}, body, nil, haveTimeTrue)
+	err = scrPreproc.ProcessBlockTransactions(&block.Header{MiniBlockHeaders: []block.MiniBlockHeader{{Hash: miniblockHash, TxCount: 1}}}, body, haveTimeTrue)
 	assert.Equal(t, process.ErrMaxGasLimitPerBlockInSelfShardIsReached, err)
 }
 
@@ -1182,6 +1239,7 @@ func TestScrsPreprocessor_ProcessMiniBlock(t *testing.T) {
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
 		2,
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
 	txHash := []byte("tx1_hash")
@@ -1195,11 +1253,11 @@ func TestScrsPreprocessor_ProcessMiniBlock(t *testing.T) {
 		Type:            block.SmartContractResultBlock,
 	}
 
-	postProcessorInfoHandlerMock := &mock.PostProcessorInfoHandlerMock{
+	preProcessorExecutionInfoHandlerMock := &testscommon.PreProcessorExecutionInfoHandlerMock{
 		GetNumOfCrossInterMbsAndTxsCalled: getNumOfCrossInterMbsAndTxsZero,
 	}
 
-	_, _, _, err := scr.ProcessMiniBlock(&miniblock, haveTimeTrue, haveAdditionalTimeFalse, false, false, -1, postProcessorInfoHandlerMock)
+	_, _, _, err := scr.ProcessMiniBlock(&miniblock, haveTimeTrue, haveAdditionalTimeFalse, false, false, -1, preProcessorExecutionInfoHandlerMock)
 
 	assert.Nil(t, err)
 }
@@ -1226,6 +1284,7 @@ func TestScrsPreprocessor_ProcessMiniBlockWrongTypeMiniblockShouldErr(t *testing
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
 		2,
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
 	miniblock := block.MiniBlock{
@@ -1233,11 +1292,11 @@ func TestScrsPreprocessor_ProcessMiniBlockWrongTypeMiniblockShouldErr(t *testing
 		SenderShardID:   0,
 	}
 
-	postProcessorInfoHandlerMock := &mock.PostProcessorInfoHandlerMock{
+	preProcessorExecutionInfoHandlerMock := &testscommon.PreProcessorExecutionInfoHandlerMock{
 		GetNumOfCrossInterMbsAndTxsCalled: getNumOfCrossInterMbsAndTxsZero,
 	}
 
-	_, _, _, err := scr.ProcessMiniBlock(&miniblock, haveTimeTrue, haveAdditionalTimeFalse, false, false, -1, postProcessorInfoHandlerMock)
+	_, _, _, err := scr.ProcessMiniBlock(&miniblock, haveTimeTrue, haveAdditionalTimeFalse, false, false, -1, preProcessorExecutionInfoHandlerMock)
 
 	assert.NotNil(t, err)
 	assert.Equal(t, err, process.ErrWrongTypeInMiniBlock)
@@ -1289,6 +1348,7 @@ func TestScrsPreprocessor_RestoreBlockDataIntoPools(t *testing.T) {
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
 		2,
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
 	body := &block.Body{}
@@ -1333,6 +1393,7 @@ func TestScrsPreprocessor_RestoreBlockDataIntoPoolsNilMiniblockPoolShouldErr(t *
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
 		2,
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
 	body := &block.Body{}
@@ -1367,6 +1428,7 @@ func TestSmartContractResults_CreateBlockStartedShouldEmptyTxHashAndInfo(t *test
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
 		2,
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
 	scr.CreateBlockStarted()
@@ -1395,6 +1457,7 @@ func TestSmartContractResults_GetAllCurrentUsedTxs(t *testing.T) {
 		&testscommon.BalanceComputationStub{},
 		&epochNotifier.EpochNotifierStub{},
 		2,
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
 	txshardInfo := txShardInfo{0, 3}

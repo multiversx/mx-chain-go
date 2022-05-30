@@ -13,7 +13,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -46,6 +45,7 @@ func NewRewardTxPreprocessor(
 	pubkeyConverter core.PubkeyConverter,
 	blockSizeComputation BlockSizeComputationHandler,
 	balanceComputation BalanceComputationHandler,
+	processedMiniBlocksTracker process.ProcessedMiniBlocksTracker,
 ) (*rewardTxPreprocessor, error) {
 
 	if check.IfNil(hasher) {
@@ -84,6 +84,9 @@ func NewRewardTxPreprocessor(
 	if check.IfNil(balanceComputation) {
 		return nil, process.ErrNilBalanceComputationHandler
 	}
+	if check.IfNil(processedMiniBlocksTracker) {
+		return nil, process.ErrNilProcessedMiniBlocksTracker
+	}
 
 	bpp := &basePreProcess{
 		hasher:      hasher,
@@ -93,10 +96,11 @@ func NewRewardTxPreprocessor(
 			gasHandler:       gasHandler,
 			economicsFee:     nil,
 		},
-		blockSizeComputation: blockSizeComputation,
-		balanceComputation:   balanceComputation,
-		accounts:             accounts,
-		pubkeyConverter:      pubkeyConverter,
+		blockSizeComputation:       blockSizeComputation,
+		balanceComputation:         balanceComputation,
+		accounts:                   accounts,
+		pubkeyConverter:            pubkeyConverter,
+		processedMiniBlocksTracker: processedMiniBlocksTracker,
 	}
 
 	rtp := &rewardTxPreprocessor{
@@ -211,7 +215,6 @@ func (rtp *rewardTxPreprocessor) RestoreBlockDataIntoPools(
 func (rtp *rewardTxPreprocessor) ProcessBlockTransactions(
 	headerHandler data.HeaderHandler,
 	body *block.Body,
-	processedMiniBlocks *processedMb.ProcessedMiniBlockTracker,
 	haveTime func() bool,
 ) error {
 	if check.IfNil(body) {
@@ -224,34 +227,20 @@ func (rtp *rewardTxPreprocessor) ProcessBlockTransactions(
 			continue
 		}
 
-		miniBlockHash, err := core.CalculateHash(rtp.marshalizer, rtp.hasher, miniBlock)
+		pi, err := rtp.getIndexesOfLastTxProcessed(miniBlock, headerHandler)
 		if err != nil {
 			return err
 		}
 
-		indexOfLastTxProcessedByItself := int32(-1)
-		if processedMiniBlocks != nil {
-			processedMiniBlockInfo, _ := processedMiniBlocks.GetProcessedMiniBlockInfo(miniBlockHash)
-			indexOfLastTxProcessedByItself = processedMiniBlockInfo.IndexOfLastTxProcessed
-		}
-
-		miniBlockHeader, err := getMiniBlockHeaderOfMiniBlock(headerHandler, miniBlockHash)
+		indexOfFirstTxToBeProcessed := pi.indexOfLastTxProcessed + 1
+		err = process.CheckIfIndexesAreOutOfBound(indexOfFirstTxToBeProcessed, pi.indexOfLastTxProcessedByProposer, miniBlock)
 		if err != nil {
 			return err
 		}
-		indexOfLastTxProcessedByProposer := miniBlockHeader.GetIndexOfLastTxProcessed()
 
-		for j := 0; j < len(miniBlock.TxHashes); j++ {
+		for j := indexOfFirstTxToBeProcessed; j <= pi.indexOfLastTxProcessedByProposer; j++ {
 			if !haveTime() {
 				return process.ErrTimeIsOut
-			}
-
-			if j <= int(indexOfLastTxProcessedByItself) {
-				continue
-			}
-
-			if j > int(indexOfLastTxProcessedByProposer) {
-				break
 			}
 
 			txHash := miniBlock.TxHashes[j]
@@ -276,6 +265,7 @@ func (rtp *rewardTxPreprocessor) ProcessBlockTransactions(
 			}
 		}
 	}
+
 	return nil
 }
 
@@ -458,7 +448,7 @@ func (rtp *rewardTxPreprocessor) ProcessMiniBlock(
 	_ bool,
 	partialMbExecutionMode bool,
 	indexOfLastTxProcessed int,
-	postProcessorInfoHandler process.PostProcessorInfoHandler,
+	preProcessorExecutionInfoHandler process.PreProcessorExecutionInfoHandler,
 ) ([][]byte, int, bool, error) {
 
 	var err error
@@ -471,6 +461,12 @@ func (rtp *rewardTxPreprocessor) ProcessMiniBlock(
 		return nil, indexOfLastTxProcessed, false, process.ErrRewardMiniBlockNotFromMeta
 	}
 
+	indexOfFirstTxToBeProcessed := indexOfLastTxProcessed + 1
+	err = process.CheckIfIndexesAreOutOfBound(int32(indexOfFirstTxToBeProcessed), int32(len(miniBlock.TxHashes))-1, miniBlock)
+	if err != nil {
+		return nil, indexOfLastTxProcessed, false, err
+	}
+
 	miniBlockRewardTxs, miniBlockTxHashes, err := rtp.getAllRewardTxsFromMiniBlock(miniBlock, haveTime)
 	if err != nil {
 		return nil, indexOfLastTxProcessed, false, err
@@ -481,10 +477,7 @@ func (rtp *rewardTxPreprocessor) ProcessMiniBlock(
 	}
 
 	processedTxHashes := make([][]byte, 0)
-	for txIndex = 0; txIndex < len(miniBlockRewardTxs); txIndex++ {
-		if txIndex <= indexOfLastTxProcessed {
-			continue
-		}
+	for txIndex = indexOfFirstTxToBeProcessed; txIndex < len(miniBlockRewardTxs); txIndex++ {
 		if !haveTime() {
 			err = process.ErrTimeIsOut
 			break
@@ -492,10 +485,10 @@ func (rtp *rewardTxPreprocessor) ProcessMiniBlock(
 
 		rtp.saveAccountBalanceForAddress(miniBlockRewardTxs[txIndex].GetRcvAddr())
 
-		snapshot := rtp.handleProcessTransactionInit(postProcessorInfoHandler, miniBlockTxHashes[txIndex])
+		snapshot := rtp.handleProcessTransactionInit(preProcessorExecutionInfoHandler, miniBlockTxHashes[txIndex])
 		err = rtp.rewardsProcessor.ProcessRewardTransaction(miniBlockRewardTxs[txIndex])
 		if err != nil {
-			rtp.handleProcessTransactionError(postProcessorInfoHandler, snapshot, miniBlockTxHashes[txIndex])
+			rtp.handleProcessTransactionError(preProcessorExecutionInfoHandler, snapshot, miniBlockTxHashes[txIndex])
 			break
 		}
 

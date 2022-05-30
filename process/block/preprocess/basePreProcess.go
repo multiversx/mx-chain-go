@@ -106,6 +106,11 @@ type txsForBlock struct {
 	txHashAndInfo  map[string]*txInfo
 }
 
+type processedIndexes struct {
+	indexOfLastTxProcessed           int32
+	indexOfLastTxProcessedByProposer int32
+}
+
 // basePreProcess is the base struct for all pre-processors
 // beware of calling basePreProcess.epochConfirmed in all extensions of this struct if the flags from the basePreProcess are
 // used in those extensions instances
@@ -121,6 +126,7 @@ type basePreProcess struct {
 	flagOptimizeGasUsedInCrossMiniBlocks        atomic.Flag
 	frontRunningProtectionEnableEpoch           uint32
 	flagFrontRunningProtection                  atomic.Flag
+	processedMiniBlocksTracker                  process.ProcessedMiniBlocksTracker
 }
 
 func (bpp *basePreProcess) removeBlockDataFromPools(
@@ -482,14 +488,14 @@ func (bpp *basePreProcess) updateGasConsumedWithGasRefundedAndGasPenalized(
 	gasInfo.totalGasConsumedInSelfShard -= gasToBeSubtracted
 }
 
-func (bpp *basePreProcess) handleProcessTransactionInit(postProcessorInfoHandler process.PostProcessorInfoHandler, txHash []byte) int {
+func (bpp *basePreProcess) handleProcessTransactionInit(preProcessorExecutionInfoHandler process.PreProcessorExecutionInfoHandler, txHash []byte) int {
 	snapshot := bpp.accounts.JournalLen()
-	postProcessorInfoHandler.InitProcessedTxsResults(txHash)
+	preProcessorExecutionInfoHandler.InitProcessedTxsResults(txHash)
 	bpp.gasHandler.Reset(txHash)
 	return snapshot
 }
 
-func (bpp *basePreProcess) handleProcessTransactionError(postProcessorInfoHandler process.PostProcessorInfoHandler, snapshot int, txHash []byte) {
+func (bpp *basePreProcess) handleProcessTransactionError(preProcessorExecutionInfoHandler process.PreProcessorExecutionInfoHandler, snapshot int, txHash []byte) {
 	bpp.gasHandler.RestoreGasSinceLastReset(txHash)
 
 	errRevert := bpp.accounts.RevertToSnapshot(snapshot)
@@ -497,7 +503,7 @@ func (bpp *basePreProcess) handleProcessTransactionError(postProcessorInfoHandle
 		log.Debug("basePreProcess.handleProcessError: RevertToSnapshot", "error", errRevert.Error())
 	}
 
-	postProcessorInfoHandler.RevertProcessedTxsResults([][]byte{txHash}, txHash)
+	preProcessorExecutionInfoHandler.RevertProcessedTxsResults([][]byte{txHash}, txHash)
 }
 
 func getMiniBlockHeaderOfMiniBlock(headerHandler data.HeaderHandler, miniBlockHash []byte) (data.MiniBlockHeaderHandler, error) {
@@ -516,4 +522,29 @@ func (bpp *basePreProcess) epochConfirmed(epoch uint32, _ uint64) {
 	log.Debug("basePreProcess: optimize gas used in cross mini blocks", "enabled", bpp.flagOptimizeGasUsedInCrossMiniBlocks.IsSet())
 	bpp.flagFrontRunningProtection.SetValue(epoch >= bpp.frontRunningProtectionEnableEpoch)
 	log.Debug("basePreProcess: front running protection", "enabled", bpp.flagFrontRunningProtection.IsSet())
+}
+
+func (bpp *basePreProcess) getIndexesOfLastTxProcessed(
+	miniBlock *block.MiniBlock,
+	headerHandler data.HeaderHandler,
+) (*processedIndexes, error) {
+
+	miniBlockHash, err := core.CalculateHash(bpp.marshalizer, bpp.hasher, miniBlock)
+	if err != nil {
+		return nil, err
+	}
+
+	pi := &processedIndexes{}
+
+	processedMiniBlockInfo, _ := bpp.processedMiniBlocksTracker.GetProcessedMiniBlockInfo(miniBlockHash)
+	pi.indexOfLastTxProcessed = processedMiniBlockInfo.IndexOfLastTxProcessed
+
+	miniBlockHeader, err := getMiniBlockHeaderOfMiniBlock(headerHandler, miniBlockHash)
+	if err != nil {
+		return nil, err
+	}
+
+	pi.indexOfLastTxProcessedByProposer = miniBlockHeader.GetIndexOfLastTxProcessed()
+
+	return pi, nil
 }

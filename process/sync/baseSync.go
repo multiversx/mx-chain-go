@@ -750,7 +750,7 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 			return err
 		}
 
-		allowRollBack := boot.shouldAllowRollback(currHeader)
+		allowRollBack := boot.shouldAllowRollback(currHeader, currHeaderHash)
 		if !revertUsingForkNonce && !allowRollBack {
 			return ErrRollBackBehindFinalHeader
 		}
@@ -834,17 +834,22 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 	return nil
 }
 
-func (boot *baseBootstrap) shouldAllowRollback(currHeader data.HeaderHandler) bool {
+func (boot *baseBootstrap) shouldAllowRollback(currHeader data.HeaderHandler, currHeaderHash []byte) bool {
 	finalBlockNonce := boot.forkDetector.GetHighestFinalBlockNonce()
+	finalBlockHash := boot.forkDetector.GetHighestFinalBlockHash()
 	isRollBackBehindFinal := currHeader.GetNonce() <= finalBlockNonce
 	isFinalBlockRollBack := currHeader.GetNonce() == finalBlockNonce
 
 	headerWithScheduledMiniBlocks := currHeader.HasScheduledMiniBlocks()
-	allowFinalBlockRollBack := headerWithScheduledMiniBlocks && isFinalBlockRollBack
+	headerHashDoesNotMatchWithFinalBlockHash := !bytes.Equal(currHeaderHash, finalBlockHash)
+	allowFinalBlockRollBack := (headerWithScheduledMiniBlocks || headerHashDoesNotMatchWithFinalBlockHash) && isFinalBlockRollBack
 	allowRollBack := !isRollBackBehindFinal || allowFinalBlockRollBack
 
 	log.Debug("baseBootstrap.shouldAllowRollback",
 		"isRollBackBehindFinal", isRollBackBehindFinal,
+		"isFinalBlockRollBack", isFinalBlockRollBack,
+		"headerWithScheduledMiniBlocks", headerWithScheduledMiniBlocks,
+		"headerHashDoesNotMatchWithFinalBlockHash", headerHashDoesNotMatchWithFinalBlockHash,
 		"allowFinalBlockRollBack", allowFinalBlockRollBack,
 		"allowRollBack", allowRollBack,
 	)

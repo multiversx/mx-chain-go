@@ -145,6 +145,7 @@ func NewShardProcessorEmptyWith3shards(
 			GasHandler:                     &mock.GasHandlerMock{},
 			ScheduledTxsExecutionHandler:   &testscommon.ScheduledTxsExecutionStub{},
 			ScheduledMiniBlocksEnableEpoch: 2,
+			ProcessedMiniBlocksTracker:     &testscommon.ProcessedMiniBlocksTrackerStub{},
 		},
 	}
 	shardProc, err := NewShardProcessor(arguments)
@@ -489,8 +490,8 @@ func (bp *baseProcessor) SetIndexOfLastTxProcessed(
 	return bp.setIndexOfLastTxProcessed(miniBlockHeaderHandler, processedMiniBlocksDestMeInfo)
 }
 
-func (bp *baseProcessor) GetProcessedMiniBlocks() *processedMb.ProcessedMiniBlockTracker {
-	return bp.processedMiniBlocks
+func (bp *baseProcessor) GetProcessedMiniBlocksTracker() process.ProcessedMiniBlocksTracker {
+	return bp.processedMiniBlocksTracker
 }
 
 func (bp *baseProcessor) SetProcessingTypeAndConstructionStateForScheduledMb(
@@ -511,6 +512,18 @@ func (sp *shardProcessor) RollBackProcessedMiniBlockInfo(miniBlockHeader data.Mi
 	sp.rollBackProcessedMiniBlockInfo(miniBlockHeader, miniBlockHash)
 }
 
-func (sp *shardProcessor) GetProcessedMiniBlocks() *processedMb.ProcessedMiniBlockTracker {
-	return sp.processedMiniBlocks
+func (sp *shardProcessor) SetProcessedMiniBlocksInfo(miniBlockHashes [][]byte, metaBlockHash string, metaBlock *block.MetaBlock) {
+	sp.setProcessedMiniBlocksInfo(miniBlockHashes, metaBlockHash, metaBlock)
+}
+
+func (sp *shardProcessor) GetIndexOfLastTxProcessedInMiniBlock(miniBlockHash []byte, metaBlock *block.MetaBlock) int32 {
+	return getIndexOfLastTxProcessedInMiniBlock(miniBlockHash, metaBlock)
+}
+
+func (sp *shardProcessor) RollBackProcessedMiniBlocksInfo(headerHandler data.HeaderHandler, mapMiniBlockHashes map[string]uint32) {
+	sp.rollBackProcessedMiniBlocksInfo(headerHandler, mapMiniBlockHashes)
+}
+
+func (bp *baseProcessor) CheckConstructionStateAndIndexesCorrectness(mbh data.MiniBlockHeaderHandler) error {
+	return checkConstructionStateAndIndexesCorrectness(mbh)
 }

@@ -62,6 +62,7 @@ type ArgsExporter struct {
 	InputAntifloodHandler     process.P2PAntifloodHandler
 	OutputAntifloodHandler    process.P2PAntifloodHandler
 	RoundHandler              process.RoundHandler
+	PeersRatingHandler        dataRetriever.PeersRatingHandler
 	InterceptorDebugConfig    config.InterceptorResolverDebugConfig
 	EnableSignTxWithHashEpoch uint32
 	MaxHardCapForMissingNodes int
@@ -98,6 +99,7 @@ type exportHandlerFactory struct {
 	inputAntifloodHandler     process.P2PAntifloodHandler
 	outputAntifloodHandler    process.P2PAntifloodHandler
 	roundHandler              process.RoundHandler
+	peersRatingHandler        dataRetriever.PeersRatingHandler
 	interceptorDebugConfig    config.InterceptorResolverDebugConfig
 	enableSignTxWithHashEpoch uint32
 	maxHardCapForMissingNodes int
@@ -200,6 +202,9 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 	if check.IfNil(args.RoundHandler) {
 		return nil, update.ErrNilRoundHandler
 	}
+	if check.IfNil(args.PeersRatingHandler) {
+		return nil, update.ErrNilPeersRatingHandler
+	}
 	if check.IfNil(args.CoreComponents.TxSignHasher()) {
 		return nil, update.ErrNilHasher
 	}
@@ -244,6 +249,7 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 		outputAntifloodHandler:    args.OutputAntifloodHandler,
 		maxTrieLevelInMemory:      args.MaxTrieLevelInMemory,
 		roundHandler:              args.RoundHandler,
+		peersRatingHandler:        args.PeersRatingHandler,
 		interceptorDebugConfig:    args.InterceptorDebugConfig,
 		enableSignTxWithHashEpoch: args.EnableSignTxWithHashEpoch,
 		maxHardCapForMissingNodes: args.MaxHardCapForMissingNodes,
@@ -333,6 +339,7 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 		NumConcurrentResolvingJobs: 100,
 		InputAntifloodHandler:      e.inputAntifloodHandler,
 		OutputAntifloodHandler:     e.outputAntifloodHandler,
+		PeersRatingHandler:         e.peersRatingHandler,
 	}
 	resolversFactory, err := NewResolversContainerFactory(argsResolvers)
 	if err != nil {

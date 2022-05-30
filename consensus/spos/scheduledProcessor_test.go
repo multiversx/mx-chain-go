@@ -148,10 +148,10 @@ func TestScheduledProcessorWrapper_IsProcessedInProgressStartingInFuture(t *test
 
 	sp.setStatus(inProgress)
 	startTime := time.Now()
-	sp.startTime = startTime.Add(10 * time.Millisecond)
+	sp.startTime = startTime.Add(500 * time.Millisecond)
 	require.False(t, sp.IsProcessedOKWithTimeout())
 	endTime := time.Now()
-	require.Less(t, endTime.Sub(startTime), time.Millisecond)
+	require.Less(t, endTime.Sub(startTime), time.Millisecond*100)
 }
 
 func TestScheduledProcessorWrapper_IsProcessedInProgressEarlyCompletion(t *testing.T) {

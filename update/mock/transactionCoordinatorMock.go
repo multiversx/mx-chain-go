@@ -1,12 +1,12 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 )
 
 // TransactionCoordinatorMock -
@@ -19,7 +19,7 @@ type TransactionCoordinatorMock struct {
 	RestoreBlockDataFromStorageCalled                    func(body *block.Body) (int, error)
 	RemoveBlockDataFromPoolCalled                        func(body *block.Body) error
 	RemoveTxsFromPoolCalled                              func(body *block.Body) error
-	ProcessBlockTransactionCalled                        func(header data.HeaderHandler, body *block.Body, processedMiniBlocks *processedMb.ProcessedMiniBlockTracker, haveTime func() time.Duration) error
+	ProcessBlockTransactionCalled                        func(header data.HeaderHandler, body *block.Body, haveTime func() time.Duration) error
 	CreateBlockStartedCalled                             func()
 	CreateMbsAndProcessCrossShardTransactionsDstMeCalled func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool) (block.MiniBlockSlice, uint32, bool, error)
 	CreateMbsAndProcessTransactionsFromMeCalled          func(haveTime func() bool) block.MiniBlockSlice
@@ -28,7 +28,7 @@ type TransactionCoordinatorMock struct {
 	VerifyCreatedBlockTransactionsCalled                 func(hdr data.HeaderHandler, body *block.Body) error
 	CreatePostProcessMiniBlocksCalled                    func() block.MiniBlockSlice
 	CreateMarshalizedReceiptsCalled                      func() ([]byte, error)
-	VerifyCreatedMiniBlocksCalled                        func(hdr data.HeaderHandler, body *block.Body, processedMiniBlocks *processedMb.ProcessedMiniBlockTracker) error
+	VerifyCreatedMiniBlocksCalled                        func(hdr data.HeaderHandler, body *block.Body) error
 	AddIntermediateTransactionsCalled                    func(mapSCRs map[block.Type][]data.TransactionHandler) error
 	GetAllIntermediateTxsCalled                          func() map[block.Type]map[string]data.TransactionHandler
 	AddTxsFromMiniBlocksCalled                           func(miniBlocks block.MiniBlockSlice)
@@ -117,12 +117,12 @@ func (tcm *TransactionCoordinatorMock) RemoveTxsFromPool(body *block.Body) error
 }
 
 // ProcessBlockTransaction -
-func (tcm *TransactionCoordinatorMock) ProcessBlockTransaction(header data.HeaderHandler, body *block.Body, processedMiniBlocks *processedMb.ProcessedMiniBlockTracker, haveTime func() time.Duration) error {
+func (tcm *TransactionCoordinatorMock) ProcessBlockTransaction(header data.HeaderHandler, body *block.Body, haveTime func() time.Duration) error {
 	if tcm.ProcessBlockTransactionCalled == nil {
 		return nil
 	}
 
-	return tcm.ProcessBlockTransactionCalled(header, body, processedMiniBlocks, haveTime)
+	return tcm.ProcessBlockTransactionCalled(header, body, haveTime)
 }
 
 // CreateBlockStarted -
@@ -195,12 +195,12 @@ func (tcm *TransactionCoordinatorMock) CreateMarshalizedReceipts() ([]byte, erro
 }
 
 // VerifyCreatedMiniBlocks -
-func (tcm *TransactionCoordinatorMock) VerifyCreatedMiniBlocks(hdr data.HeaderHandler, body *block.Body, processedMiniBlocks *processedMb.ProcessedMiniBlockTracker) error {
+func (tcm *TransactionCoordinatorMock) VerifyCreatedMiniBlocks(hdr data.HeaderHandler, body *block.Body) error {
 	if tcm.VerifyCreatedMiniBlocksCalled == nil {
 		return nil
 	}
 
-	return tcm.VerifyCreatedMiniBlocksCalled(hdr, body, processedMiniBlocks)
+	return tcm.VerifyCreatedMiniBlocksCalled(hdr, body)
 }
 
 // AddIntermediateTransactions -

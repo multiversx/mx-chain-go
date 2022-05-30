@@ -1,12 +1,12 @@
 package disabled
 
 import (
-	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 )
 
 // TxCoordinator implements the TransactionCoordinator interface but does nothing as it is disabled
@@ -61,7 +61,7 @@ func (txCoordinator *TxCoordinator) RemoveTxsFromPool(_ *block.Body) error {
 }
 
 // ProcessBlockTransaction does nothing as it is disabled
-func (txCoordinator *TxCoordinator) ProcessBlockTransaction(_ data.HeaderHandler, _ *block.Body, _ *processedMb.ProcessedMiniBlockTracker, _ func() time.Duration) error {
+func (txCoordinator *TxCoordinator) ProcessBlockTransaction(_ data.HeaderHandler, _ *block.Body, _ func() time.Duration) error {
 	return nil
 }
 
@@ -106,7 +106,7 @@ func (txCoordinator *TxCoordinator) CreateMarshalizedReceipts() ([]byte, error) 
 }
 
 // VerifyCreatedMiniBlocks does nothing as it is disabled
-func (txCoordinator *TxCoordinator) VerifyCreatedMiniBlocks(_ data.HeaderHandler, _ *block.Body, _ *processedMb.ProcessedMiniBlockTracker) error {
+func (txCoordinator *TxCoordinator) VerifyCreatedMiniBlocks(_ data.HeaderHandler, _ *block.Body) error {
 	return nil
 }
 

@@ -6,7 +6,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -18,11 +17,11 @@ type PreProcessorMock struct {
 	RemoveTxsFromPoolsCalled              func(body *block.Body) error
 	RestoreBlockDataIntoPoolsCalled       func(body *block.Body, miniBlockPool storage.Cacher) (int, error)
 	SaveTxsToStorageCalled                func(body *block.Body) error
-	ProcessBlockTransactionsCalled        func(header data.HeaderHandler, body *block.Body, processedMiniBlocks *processedMb.ProcessedMiniBlockTracker, haveTime func() bool) error
+	ProcessBlockTransactionsCalled        func(header data.HeaderHandler, body *block.Body, haveTime func() bool) error
 	RequestBlockTransactionsCalled        func(body *block.Body) int
 	CreateMarshalizedDataCalled           func(txHashes [][]byte) ([][]byte, error)
 	RequestTransactionsForMiniBlockCalled func(miniBlock *block.MiniBlock) int
-	ProcessMiniBlockCalled                func(miniBlock *block.MiniBlock, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool, partialMbExecutionMode bool, indexOfLastTxProcessed int, postProcessorInfoHandler process.PostProcessorInfoHandler) ([][]byte, int, bool, error)
+	ProcessMiniBlockCalled                func(miniBlock *block.MiniBlock, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool, partialMbExecutionMode bool, indexOfLastTxProcessed int, preProcessorExecutionInfoHandler process.PreProcessorExecutionInfoHandler) ([][]byte, int, bool, error)
 	CreateAndProcessMiniBlocksCalled      func(haveTime func() bool) (block.MiniBlockSlice, error)
 	GetAllCurrentUsedTxsCalled            func() map[string]data.TransactionHandler
 	AddTxsFromMiniBlocksCalled            func(miniBlocks block.MiniBlockSlice)
@@ -78,11 +77,11 @@ func (ppm *PreProcessorMock) SaveTxsToStorage(body *block.Body) error {
 }
 
 // ProcessBlockTransactions -
-func (ppm *PreProcessorMock) ProcessBlockTransactions(header data.HeaderHandler, body *block.Body, processedMiniBlocks *processedMb.ProcessedMiniBlockTracker, haveTime func() bool) error {
+func (ppm *PreProcessorMock) ProcessBlockTransactions(header data.HeaderHandler, body *block.Body, haveTime func() bool) error {
 	if ppm.ProcessBlockTransactionsCalled == nil {
 		return nil
 	}
-	return ppm.ProcessBlockTransactionsCalled(header, body, processedMiniBlocks, haveTime)
+	return ppm.ProcessBlockTransactionsCalled(header, body, haveTime)
 }
 
 // RequestBlockTransactions -
@@ -117,12 +116,12 @@ func (ppm *PreProcessorMock) ProcessMiniBlock(
 	scheduledMode bool,
 	partialMbExecutionMode bool,
 	indexOfLastTxProcessed int,
-	postProcessorInfoHandler process.PostProcessorInfoHandler,
+	preProcessorExecutionInfoHandler process.PreProcessorExecutionInfoHandler,
 ) ([][]byte, int, bool, error) {
 	if ppm.ProcessMiniBlockCalled == nil {
 		return nil, 0, false, nil
 	}
-	return ppm.ProcessMiniBlockCalled(miniBlock, haveTime, haveAdditionalTime, scheduledMode, partialMbExecutionMode, indexOfLastTxProcessed, postProcessorInfoHandler)
+	return ppm.ProcessMiniBlockCalled(miniBlock, haveTime, haveAdditionalTime, scheduledMode, partialMbExecutionMode, indexOfLastTxProcessed, preProcessorExecutionInfoHandler)
 }
 
 // CreateAndProcessMiniBlocks creates miniblocks from storage and processes the reward transactions added into the miniblocks

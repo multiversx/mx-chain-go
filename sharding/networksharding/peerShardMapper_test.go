@@ -17,7 +17,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 const epochZero = uint32(0)
@@ -139,28 +138,6 @@ func TestPeerShardMapper_UpdatePeerIDInfoShouldWork(t *testing.T) {
 		peerInfo)
 }
 
-func TestPeerShardMapper_UpdatePeerIDInfoShouldAddInPreferredPeers(t *testing.T) {
-	t.Parallel()
-
-	expectedPid := core.PeerID("dummy peer ID")
-	expectedPk := []byte("dummy pk")
-	expectedShardID := uint32(3737)
-	putWasCalled := false
-	arg := createMockArgumentForPeerShardMapper()
-	arg.PreferredPeersHolder = &p2pmocks.PeersHolderStub{
-		PutCalled: func(publicKey []byte, peerID core.PeerID, shardID uint32) {
-			putWasCalled = true
-			require.Equal(t, expectedPid, peerID)
-			require.Equal(t, expectedPk, publicKey)
-			require.Equal(t, expectedShardID, shardID)
-		},
-	}
-	psm, _ := networksharding.NewPeerShardMapper(arg)
-
-	psm.UpdatePeerIDInfo(expectedPid, expectedPk, expectedShardID)
-	require.True(t, putWasCalled)
-}
-
 func TestPeerShardMapper_UpdatePeerIDInfoMorePidsThanAllowedShouldTrim(t *testing.T) {
 	t.Parallel()
 
@@ -248,6 +225,24 @@ func TestPeerShardMapper_UpdatePeerIDInfoShouldWorkConcurrently(t *testing.T) {
 
 	shardidRecovered := psm.GetShardIdFromPkShardId(pk)
 	assert.Equal(t, shardId, shardidRecovered)
+}
+
+// ------- UpdatePeerIDPublicKeyPair
+
+func TestPeerShardMapper_UpdatePeerIDPublicKeyPairShouldWork(t *testing.T) {
+	t.Parallel()
+
+	psm := createPeerShardMapper()
+	pid := core.PeerID("dummy peer ID")
+	pk := []byte("dummy pk")
+
+	psm.UpdatePeerIDPublicKeyPair(pid, pk)
+
+	pkRecovered := psm.GetPkFromPidPk(pid)
+	assert.Equal(t, pk, pkRecovered)
+
+	pidRecovered := psm.GetFromPkPeerId(pk)
+	assert.Equal(t, []core.PeerID{pid}, pidRecovered)
 }
 
 // ------- GetPeerInfo
@@ -581,4 +576,68 @@ func TestPeerShardMapper_UpdatePeerIDPublicKey(t *testing.T) {
 		assert.False(t, psm.UpdatePeerIDPublicKey(pid1, pk1))
 		assert.False(t, psm.UpdatePeerIDPublicKey(pid2, pk1))
 	})
+}
+
+func TestPeerShardMapper_GetLastKnownPeerID(t *testing.T) {
+	t.Parallel()
+
+	pid1 := core.PeerID("pid1")
+	pid2 := core.PeerID("pid2")
+	pk1 := []byte("pk1")
+	pk2 := []byte("pk2")
+
+	t.Run("no pk in cache should return false", func(t *testing.T) {
+		t.Parallel()
+
+		psm := createPeerShardMapper()
+		pid, ok := psm.GetLastKnownPeerID(pk1)
+		assert.Nil(t, pid)
+		assert.False(t, ok)
+	})
+	t.Run("cast error should return false", func(t *testing.T) {
+		t.Parallel()
+
+		psm := createPeerShardMapper()
+		dummyData := "dummy data"
+		psm.PkPeerId().Put(pk1, dummyData, len(dummyData))
+
+		pid, ok := psm.GetLastKnownPeerID(pk1)
+		assert.Nil(t, pid)
+		assert.False(t, ok)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		psm := createPeerShardMapper()
+		psm.UpdatePeerIDPublicKeyPair(pid1, pk1)
+		pid, ok := psm.GetLastKnownPeerID(pk1)
+		assert.True(t, ok)
+		assert.Equal(t, &pid1, pid)
+
+		psm.UpdatePeerIDPublicKeyPair(pid2, pk2)
+		pid, ok = psm.GetLastKnownPeerID(pk2)
+		assert.True(t, ok)
+		assert.Equal(t, &pid2, pid)
+	})
+}
+
+func TestPeerShardMapper_PutPeerIdShardId(t *testing.T) {
+	t.Parallel()
+
+	providedPid := core.PeerID("provided pid")
+	providedShardID := uint32(123)
+	wasCalled := false
+	args := createMockArgumentForPeerShardMapper()
+	args.PreferredPeersHolder = &p2pmocks.PeersHolderStub{
+		PutShardIDCalled: func(peerID core.PeerID, shardID uint32) {
+			wasCalled = true
+			assert.Equal(t, providedPid, peerID)
+			assert.Equal(t, providedShardID, shardID)
+		},
+	}
+	psm, _ := networksharding.NewPeerShardMapper(args)
+	assert.False(t, check.IfNil(psm))
+
+	psm.PutPeerIdShardId(providedPid, providedShardID)
+	assert.True(t, wasCalled)
 }

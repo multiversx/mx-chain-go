@@ -559,6 +559,7 @@ func createHardForkExporter(
 		coreComponents.ChainIdCalled = func() string {
 			return string(node.ChainID)
 		}
+		coreComponents.HardforkTriggerPubKeyField = []byte("provided hardfork pub key")
 
 		cryptoComponents := integrationTests.GetDefaultCryptoComponents()
 		cryptoComponents.BlockSig = node.OwnAccount.BlockSingleSigner
@@ -618,6 +619,7 @@ func createHardForkExporter(
 			MaxHardCapForMissingNodes: 500,
 			NumConcurrentTrieSyncers:  50,
 			TrieSyncerVersion:         2,
+			PeersRatingHandler:        node.PeersRatingHandler,
 		}
 
 		exportHandler, err := factory.NewExportHandlerFactory(argsExportHandler)
