@@ -237,6 +237,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		AlteredAccountsProvider:        &testscommon.AlteredAccountsProviderStub{},
 		ScheduledTxsExecutionHandler:   &testscommon.ScheduledTxsExecutionStub{},
 		ScheduledMiniBlocksEnableEpoch: ScheduledMiniBlocksEnableEpoch,
+		ProcessedMiniBlocksTracker:     &testscommon.ProcessedMiniBlocksTrackerStub{},
 	}
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {

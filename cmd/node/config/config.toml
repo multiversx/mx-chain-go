@@ -11,7 +11,11 @@
     # available in local disk
     StartInEpochEnabled = true
 
-    # ChainID identifies the blockChain
+    # ChainID represents the chain identifier
+    # The currently supported constants are:
+    #   "1" for Mainnet
+    #   "D" for Devnet
+    #   "T" for Testnet
     ChainID = "undefined"
 
     # MinTransactionVersion represents the minimum transaction version accepted
@@ -894,7 +898,7 @@
 
 [Resolvers]
     NumCrossShardPeers  = 2
-    NumIntraShardPeers  = 1
+    NumTotalPeers       = 3 # NumCrossShardPeers + num intra shard
     NumFullHistoryPeers = 3
 
 [HeartbeatV2]

@@ -269,6 +269,7 @@ type ProcessComponentsHolder interface {
 	ScheduledTxsExecutionHandler() process.ScheduledTxsExecutionHandler
 	TxsSenderHandler() process.TxsSenderHandler
 	HardforkTrigger() HardforkTrigger
+	ProcessedMiniBlocksTracker() process.ProcessedMiniBlocksTracker
 	ESDTDataStorageHandlerForAPI() vmcommon.ESDTNFTStorageHandler
 	IsInterfaceNil() bool
 }

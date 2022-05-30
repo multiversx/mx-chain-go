@@ -32,6 +32,7 @@ func NewShardResolversContainerFactory(
 		return nil, err
 	}
 
+	numIntraShardPeers := args.ResolverConfig.NumTotalPeers - args.ResolverConfig.NumCrossShardPeers
 	container := containers.NewResolversContainer()
 	base := &baseResolversContainerFactory{
 		container:                            container,
@@ -52,7 +53,8 @@ func NewShardResolversContainerFactory(
 		preferredPeersHolder:                 args.PreferredPeersHolder,
 		peersRatingHandler:                   args.PeersRatingHandler,
 		numCrossShardPeers:                   int(args.ResolverConfig.NumCrossShardPeers),
-		numIntraShardPeers:                   int(args.ResolverConfig.NumIntraShardPeers),
+		numIntraShardPeers:                   int(numIntraShardPeers),
+		numTotalPeers:                        int(args.ResolverConfig.NumTotalPeers),
 		numFullHistoryPeers:                  int(args.ResolverConfig.NumFullHistoryPeers),
 		nodesCoordinator:                     args.NodesCoordinator,
 		maxNumOfPeerAuthenticationInResponse: args.MaxNumOfPeerAuthenticationInResponse,
@@ -134,11 +136,11 @@ func (srcf *shardResolversContainerFactory) Create() (dataRetriever.ResolversCon
 func (srcf *shardResolversContainerFactory) generateHeaderResolvers() error {
 	shardC := srcf.shardCoordinator
 
-	//only one shard header topic, for example: shardBlocks_0_META
+	// only one shard header topic, for example: shardBlocks_0_META
 	identifierHdr := factory.ShardBlocksTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
 
 	hdrStorer := srcf.store.GetStorer(dataRetriever.BlockHeaderUnit)
-	resolverSender, err := srcf.createOneResolverSender(identifierHdr, EmptyExcludePeersOnTopic, shardC.SelfId())
+	resolverSender, err := srcf.createOneResolverSenderWithSpecifiedNumRequests(identifierHdr, EmptyExcludePeersOnTopic, shardC.SelfId(), srcf.numCrossShardPeers, srcf.numIntraShardPeers)
 	if err != nil {
 		return err
 	}
@@ -175,12 +177,12 @@ func (srcf *shardResolversContainerFactory) generateHeaderResolvers() error {
 //------- MetaBlockHeaderResolvers
 
 func (srcf *shardResolversContainerFactory) generateMetablockHeaderResolvers() error {
-	//only one metachain header block topic
-	//this is: metachainBlocks
+	// only one metachain header block topic
+	// this is: metachainBlocks
 	identifierHdr := factory.MetachainBlocksTopic
 	hdrStorer := srcf.store.GetStorer(dataRetriever.MetaBlockUnit)
 
-	resolverSender, err := srcf.createOneResolverSender(identifierHdr, EmptyExcludePeersOnTopic, core.MetachainShardId)
+	resolverSender, err := srcf.createOneResolverSenderWithSpecifiedNumRequests(identifierHdr, EmptyExcludePeersOnTopic, core.MetachainShardId, srcf.numCrossShardPeers, srcf.numIntraShardPeers)
 	if err != nil {
 		return err
 	}
@@ -224,10 +226,8 @@ func (srcf *shardResolversContainerFactory) generateTrieNodesResolvers() error {
 		identifierTrieNodes,
 		triesFactory.UserAccountTrie,
 		0,
-		srcf.numIntraShardPeers+srcf.numCrossShardPeers,
-		srcf.numFullHistoryPeers,
+		srcf.numTotalPeers,
 		core.MetachainShardId,
-		srcf.currentNetworkEpochProvider,
 	)
 	if err != nil {
 		return err
@@ -252,7 +252,7 @@ func (srcf *shardResolversContainerFactory) generateRewardResolver(
 	identifierTx := topic + shardC.CommunicationIdentifier(core.MetachainShardId)
 	excludedPeersOnTopic := factory.TransactionTopic + shardC.CommunicationIdentifier(shardC.SelfId())
 
-	resolver, err := srcf.createTxResolver(identifierTx, excludedPeersOnTopic, unit, dataPool, core.MetachainShardId)
+	resolver, err := srcf.createTxResolver(identifierTx, excludedPeersOnTopic, unit, dataPool, core.MetachainShardId, srcf.numCrossShardPeers, srcf.numIntraShardPeers)
 	if err != nil {
 		return err
 	}
