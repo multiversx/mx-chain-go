@@ -1,6 +1,7 @@
 package block
 
 import (
+	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 	"sync"
 	"time"
 
@@ -56,7 +57,7 @@ func (sp *shardProcessor) ReceivedMetaBlock(header data.HeaderHandler, metaBlock
 	sp.receivedMetaBlock(header, metaBlockHash)
 }
 
-func (sp *shardProcessor) CreateMiniBlocks(haveTime func() bool) (*block.Body, error) {
+func (sp *shardProcessor) CreateMiniBlocks(haveTime func() bool) (*block.Body, map[string]*processedMb.ProcessedMiniBlockInfo, error) {
 	return sp.createMiniBlocks(haveTime, []byte("random"))
 }
 
@@ -145,6 +146,7 @@ func NewShardProcessorEmptyWith3shards(
 			AlteredAccountsProvider:        &testscommon.AlteredAccountsProviderStub{},
 			ScheduledTxsExecutionHandler:   &testscommon.ScheduledTxsExecutionStub{},
 			ScheduledMiniBlocksEnableEpoch: 2,
+			ProcessedMiniBlocksTracker:     &testscommon.ProcessedMiniBlocksTrackerStub{},
 		},
 	}
 	shardProc, err := NewShardProcessor(arguments)
@@ -311,7 +313,8 @@ func (sp *shardProcessor) CheckMetaHeadersValidityAndFinality() error {
 func (sp *shardProcessor) CreateAndProcessMiniBlocksDstMe(
 	haveTime func() bool,
 ) (block.MiniBlockSlice, uint32, uint32, error) {
-	return sp.createAndProcessMiniBlocksDstMe(haveTime)
+	createAndProcessInfo, err := sp.createAndProcessMiniBlocksDstMe(haveTime)
+	return createAndProcessInfo.miniBlocks, createAndProcessInfo.numHdrsAdded, createAndProcessInfo.numTxsAdded, err
 }
 
 func (sp *shardProcessor) DisplayLogInfo(
@@ -334,8 +337,9 @@ func (sp *shardProcessor) GetHighestHdrForOwnShardFromMetachain(processedHdrs []
 func (sp *shardProcessor) RestoreMetaBlockIntoPool(
 	miniBlockHashes map[string]uint32,
 	metaBlockHashes [][]byte,
+	headerHandler data.HeaderHandler,
 ) error {
-	return sp.restoreMetaBlockIntoPool(miniBlockHashes, metaBlockHashes)
+	return sp.restoreMetaBlockIntoPool(headerHandler, miniBlockHashes, metaBlockHashes)
 }
 
 func (sp *shardProcessor) GetAllMiniBlockDstMeFromMeta(
@@ -372,15 +376,15 @@ func (mp *metaProcessor) ApplyBodyToHeader(metaHdr data.MetaHeaderHandler, body 
 	return mp.applyBodyToHeader(metaHdr, body)
 }
 
-func (sp *shardProcessor) ApplyBodyToHeader(shardHdr data.ShardHeaderHandler, body *block.Body) (*block.Body, error) {
-	return sp.applyBodyToHeader(shardHdr, body)
+func (sp *shardProcessor) ApplyBodyToHeader(shardHdr data.ShardHeaderHandler, body *block.Body, processedMiniBlocksDestMeInfo map[string]*processedMb.ProcessedMiniBlockInfo) (*block.Body, error) {
+	return sp.applyBodyToHeader(shardHdr, body, processedMiniBlocksDestMeInfo)
 }
 
 func (mp *metaProcessor) CreateBlockBody(metaBlock data.HeaderHandler, haveTime func() bool) (data.BodyHandler, error) {
 	return mp.createBlockBody(metaBlock, haveTime)
 }
 
-func (sp *shardProcessor) CreateBlockBody(shardHdr data.HeaderHandler, haveTime func() bool) (data.BodyHandler, error) {
+func (sp *shardProcessor) CreateBlockBody(shardHdr data.HeaderHandler, haveTime func() bool) (data.BodyHandler, map[string]*processedMb.ProcessedMiniBlockInfo, error) {
 	return sp.createBlockBody(shardHdr, haveTime)
 }
 
@@ -462,10 +466,10 @@ func (bp *baseProcessor) CheckScheduledMiniBlocksValidity(headerHandler data.Hea
 
 func (bp *baseProcessor) SetMiniBlockHeaderReservedField(
 	miniBlock *block.MiniBlock,
-	miniBlockHash []byte,
 	miniBlockHeaderHandler data.MiniBlockHeaderHandler,
+	processedMiniBlocksDestMeInfo map[string]*processedMb.ProcessedMiniBlockInfo,
 ) error {
-	return bp.setMiniBlockHeaderReservedField(miniBlock, miniBlockHash, miniBlockHeaderHandler)
+	return bp.setMiniBlockHeaderReservedField(miniBlock, miniBlockHeaderHandler, processedMiniBlocksDestMeInfo)
 }
 
 func (mp *metaProcessor) GetFinalMiniBlockHeaders(miniBlockHeaderHandlers []data.MiniBlockHeaderHandler) []data.MiniBlockHeaderHandler {
@@ -474,4 +478,53 @@ func (mp *metaProcessor) GetFinalMiniBlockHeaders(miniBlockHeaderHandlers []data
 
 func CheckProcessorNilParameters(arguments ArgBaseProcessor) error {
 	return checkProcessorNilParameters(arguments)
+}
+
+func (bp *baseProcessor) SetIndexOfFirstTxProcessed(miniBlockHeaderHandler data.MiniBlockHeaderHandler) error {
+	return bp.setIndexOfFirstTxProcessed(miniBlockHeaderHandler)
+}
+
+func (bp *baseProcessor) SetIndexOfLastTxProcessed(
+	miniBlockHeaderHandler data.MiniBlockHeaderHandler,
+	processedMiniBlocksDestMeInfo map[string]*processedMb.ProcessedMiniBlockInfo,
+) error {
+	return bp.setIndexOfLastTxProcessed(miniBlockHeaderHandler, processedMiniBlocksDestMeInfo)
+}
+
+func (bp *baseProcessor) GetProcessedMiniBlocksTracker() process.ProcessedMiniBlocksTracker {
+	return bp.processedMiniBlocksTracker
+}
+
+func (bp *baseProcessor) SetProcessingTypeAndConstructionStateForScheduledMb(
+	miniBlockHeaderHandler data.MiniBlockHeaderHandler,
+	processedMiniBlocksDestMeInfo map[string]*processedMb.ProcessedMiniBlockInfo,
+) error {
+	return bp.setProcessingTypeAndConstructionStateForScheduledMb(miniBlockHeaderHandler, processedMiniBlocksDestMeInfo)
+}
+
+func (bp *baseProcessor) SetProcessingTypeAndConstructionStateForNormalMb(
+	miniBlockHeaderHandler data.MiniBlockHeaderHandler,
+	processedMiniBlocksDestMeInfo map[string]*processedMb.ProcessedMiniBlockInfo,
+) error {
+	return bp.setProcessingTypeAndConstructionStateForNormalMb(miniBlockHeaderHandler, processedMiniBlocksDestMeInfo)
+}
+
+func (sp *shardProcessor) RollBackProcessedMiniBlockInfo(miniBlockHeader data.MiniBlockHeaderHandler, miniBlockHash []byte) {
+	sp.rollBackProcessedMiniBlockInfo(miniBlockHeader, miniBlockHash)
+}
+
+func (sp *shardProcessor) SetProcessedMiniBlocksInfo(miniBlockHashes [][]byte, metaBlockHash string, metaBlock *block.MetaBlock) {
+	sp.setProcessedMiniBlocksInfo(miniBlockHashes, metaBlockHash, metaBlock)
+}
+
+func (sp *shardProcessor) GetIndexOfLastTxProcessedInMiniBlock(miniBlockHash []byte, metaBlock *block.MetaBlock) int32 {
+	return getIndexOfLastTxProcessedInMiniBlock(miniBlockHash, metaBlock)
+}
+
+func (sp *shardProcessor) RollBackProcessedMiniBlocksInfo(headerHandler data.HeaderHandler, mapMiniBlockHashes map[string]uint32) {
+	sp.rollBackProcessedMiniBlocksInfo(headerHandler, mapMiniBlockHashes)
+}
+
+func (bp *baseProcessor) CheckConstructionStateAndIndexesCorrectness(mbh data.MiniBlockHeaderHandler) error {
+	return checkConstructionStateAndIndexesCorrectness(mbh)
 }

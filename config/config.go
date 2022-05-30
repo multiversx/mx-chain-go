@@ -586,6 +586,6 @@ type TrieSyncConfig struct {
 // ResolverConfig represents the config options to be used when setting up the resolver instances
 type ResolverConfig struct {
 	NumCrossShardPeers  uint32
-	NumIntraShardPeers  uint32
+	NumTotalPeers       uint32
 	NumFullHistoryPeers uint32
 }
