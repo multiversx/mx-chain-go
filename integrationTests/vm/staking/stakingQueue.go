@@ -103,7 +103,7 @@ func (tmp *TestMetaProcessor) getWaitingListKeys() [][]byte {
 
 	allPubKeys := make([][]byte, 0)
 	for len(nextKey) != 0 && index <= waitingList.Length {
-		allPubKeys = append(allPubKeys, nextKey)
+		allPubKeys = append(allPubKeys, nextKey[2:]) // remove "w_" prefix
 
 		element, errGet := stakingcommon.GetWaitingListElement(stakingSCAcc, tmp.Marshaller, nextKey)
 		if errGet != nil {

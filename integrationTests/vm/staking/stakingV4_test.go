@@ -505,6 +505,7 @@ func TestStakingV4_StakeNewNodes(t *testing.T) {
 	queue = append(queue, newNodes0[newOwner0].BLSKeys...)
 	currNodesConfig = node.NodesConfig
 	require.Len(t, currNodesConfig.queue, 4)
+	requireSameSliceDifferentOrder(t, currNodesConfig.queue, queue)
 
 	// NewOwner1 stakes 1 node with top up = 2*node price; should be sent to auction list
 	newOwner1 := "newOwner1"
@@ -639,5 +640,5 @@ func TestStakingV4_UnStakeNodes(t *testing.T) {
 	currNodesConfig = node.NodesConfig
 	require.Len(t, currNodesConfig.queue, 6)
 	queue = remove(queue, owner2Stats.StakingQueueKeys[0])
-	//requireSameSliceDifferentOrder(t, currNodesConfig.queue, queue)
+	requireSameSliceDifferentOrder(t, currNodesConfig.queue, queue)
 }
