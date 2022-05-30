@@ -15,7 +15,7 @@ require (
 	github.com/ElrondNetwork/elrond-vm-common v1.3.6
 	github.com/ElrondNetwork/go-libp2p-pubsub v0.5.5-rc2
 	github.com/beevik/ntp v0.3.0
-	github.com/btcsuite/btcd v0.22.0-beta
+	github.com/btcsuite/btcd v0.22.1
 	github.com/davecgh/go-spew v1.1.1
 	github.com/elastic/go-elasticsearch/v7 v7.12.0
 	github.com/gin-contrib/cors v0.0.0-20190301062745-f9e10995c85a
