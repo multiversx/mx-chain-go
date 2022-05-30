@@ -59,6 +59,7 @@ type RequestHandler interface {
 	SetNumPeersToQuery(key string, intra int, cross int) error
 	GetNumPeersToQuery(key string) (int, int, error)
 	RequestValidatorInfo(hash []byte)
+	RequestValidatorsInfo(hashes [][]byte)
 	IsInterfaceNil() bool
 }
 

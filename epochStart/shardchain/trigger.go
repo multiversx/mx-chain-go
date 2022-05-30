@@ -347,9 +347,7 @@ func (t *trigger) requestMissingValidatorsInfo(ctx context.Context) {
 		}
 		t.mutMissingValidatorsInfo.RUnlock()
 
-		for index := range missingValidatorsInfo {
-			go t.requestHandler.RequestValidatorInfo(missingValidatorsInfo[index])
-		}
+		go t.requestHandler.RequestValidatorsInfo(missingValidatorsInfo)
 
 		select {
 		case <-ctx.Done():
@@ -672,13 +670,13 @@ func (t *trigger) isMetaBlockValid(hash string, metaHdr data.HeaderHandler) bool
 	for i := metaHdr.GetNonce() - 1; i >= metaHdr.GetNonce()-t.validity; i-- {
 		neededHdr, err := t.getHeaderWithNonceAndHash(i, currHdr.GetPrevHash())
 		if err != nil {
-			log.Debug("isMetaBlockValid.getHeaderWithNonceAndHash",  "hash", hash, "error", err.Error())
+			log.Debug("isMetaBlockValid.getHeaderWithNonceAndHash", "hash", hash, "error", err.Error())
 			return false
 		}
 
 		err = t.headerValidator.IsHeaderConstructionValid(currHdr, neededHdr)
 		if err != nil {
-			log.Debug("isMetaBlockValid.IsHeaderConstructionValid",  "hash", hash, "error", err.Error())
+			log.Debug("isMetaBlockValid.IsHeaderConstructionValid", "hash", hash, "error", err.Error())
 			return false
 		}
 

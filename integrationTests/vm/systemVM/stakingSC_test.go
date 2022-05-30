@@ -128,30 +128,42 @@ func TestStakingUnstakingAndUnbondingOnMultiShardEnvironmentWithValidatorStatist
 	numOfShards := 2
 	nodesPerShard := 2
 	numMetachainNodes := 2
-	shardConsensusGroupSize := 1
-	metaConsensusGroupSize := 1
+	//shardConsensusGroupSize := 1
+	//metaConsensusGroupSize := 1
 
-	nodesMap := integrationTests.CreateNodesWithNodesCoordinator(
+	nodes := integrationTests.CreateNodes(
+		numOfShards,
 		nodesPerShard,
 		numMetachainNodes,
-		numOfShards,
-		shardConsensusGroupSize,
-		metaConsensusGroupSize,
 	)
 
-	nodes := make([]*integrationTests.TestProcessorNode, 0)
 	idxProposers := make([]int, numOfShards+1)
-
-	for _, nds := range nodesMap {
-		nodes = append(nodes, nds...)
+	for i := 0; i < numOfShards; i++ {
+		idxProposers[i] = i * nodesPerShard
 	}
+	idxProposers[numOfShards] = numOfShards * nodesPerShard
 
-	for _, nds := range nodesMap {
-		idx, err := integrationTestsVm.GetNodeIndex(nodes, nds[0])
-		require.Nil(t, err)
+	//nodesMap := integrationTests.CreateNodesWithNodesCoordinator(
+	//	nodesPerShard,
+	//	numMetachainNodes,
+	//	numOfShards,
+	//	shardConsensusGroupSize,
+	//	metaConsensusGroupSize,
+	//)
 
-		idxProposers = append(idxProposers, idx)
-	}
+	//nodes := make([]*integrationTests.TestProcessorNode, 0)
+	//idxProposers := make([]int, numOfShards+1)
+	//
+	//for _, nds := range nodesMap {
+	//	nodes = append(nodes, nds...)
+	//}
+	//
+	//for _, nds := range nodesMap {
+	//	idx, err := integrationTestsVm.GetNodeIndex(nodes, nds[0])
+	//	require.Nil(t, err)
+	//
+	//	idxProposers = append(idxProposers, idx)
+	//}
 
 	integrationTests.DisplayAndStartNodes(nodes)
 
@@ -161,9 +173,9 @@ func TestStakingUnstakingAndUnbondingOnMultiShardEnvironmentWithValidatorStatist
 		}
 	}()
 
-	for _, nds := range nodesMap {
-		fmt.Println(integrationTests.MakeDisplayTable(nds))
-	}
+	//for _, nds := range nodesMap {
+	//	fmt.Println(integrationTests.MakeDisplayTable(nds))
+	//}
 
 	initialVal := big.NewInt(10000000000)
 	integrationTests.MintAllNodes(nodes, initialVal)

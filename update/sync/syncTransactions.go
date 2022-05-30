@@ -215,8 +215,9 @@ func (ts *transactionsSync) requestTransactionsForPeerMiniBlock(miniBlock *block
 	for _, txHash := range missingTxs {
 		ts.mapTxsToMiniBlocks[string(txHash)] = miniBlock
 		log.Debug("transactionsSync.requestTransactionsForPeerMiniBlock", "mb type", miniBlock.Type, "mb sender", miniBlock.SenderShardID, "mb receiver", miniBlock.ReceiverShardID, "tx hash missing", txHash)
-		ts.requestHandler.RequestValidatorInfo(txHash)
 	}
+
+	ts.requestHandler.RequestValidatorsInfo(missingTxs)
 
 	return len(missingTxs)
 }
