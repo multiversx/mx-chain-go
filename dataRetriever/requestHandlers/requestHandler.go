@@ -586,6 +586,7 @@ func (rrh *resolverRequestHandler) RequestValidatorInfo(hash []byte) {
 			"hash", hash,
 			"epoch", rrh.epoch,
 		)
+		return
 	}
 
 	rrh.addRequestedItems([][]byte{hash}, uniqueValidatorInfoSuffix)
@@ -631,6 +632,7 @@ func (rrh *resolverRequestHandler) RequestValidatorsInfo(hashes [][]byte) {
 			"num hashes", len(unrequestedHashes),
 			"epoch", rrh.epoch,
 		)
+		return
 	}
 
 	rrh.addRequestedItems(unrequestedHashes, uniqueValidatorInfoSuffix)
