@@ -465,6 +465,7 @@ func newBaseTestProcessorNode(
 		MiniBlockPartialExecutionEnableEpoch:        1000000,
 		StakingV4InitEnableEpoch:                    StakingV4InitEpoch,
 		StakingV4EnableEpoch:                        StakingV4Epoch,
+		StakingV4DistributeAuctionToWaitingEpoch:    StakingV4DistributeAuctionToWaiting,
 	}
 
 	return tpn
