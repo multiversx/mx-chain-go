@@ -630,6 +630,7 @@ func (t *trigger) updateTriggerFromMeta() {
 			log.Debug("trigger.updateTriggerFromMeta", "isEpochStart", t.isEpochStart)
 			logger.SetCorrelationEpoch(t.metaEpoch)
 			t.clearMissingMiniBlocksMap(t.metaEpoch)
+			t.clearMissingValidatorsInfoMap(t.metaEpoch)
 		}
 
 		// save all final-valid epoch start blocks
