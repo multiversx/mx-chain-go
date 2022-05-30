@@ -149,9 +149,9 @@ func NewTransactionCoordinator(args ArgTransactionCoordinator) (*transactionCoor
 		return tc.keysTxPreProcs[i] < tc.keysTxPreProcs[j]
 	})
 	for _, value := range tc.keysTxPreProcs {
-		preProc, err := args.PreProcessors.Get(value)
-		if err != nil {
-			return nil, err
+		preProc, errGet := args.PreProcessors.Get(value)
+		if errGet != nil {
+			return nil, errGet
 		}
 		tc.txPreProcessors[value] = preProc
 	}
@@ -161,9 +161,9 @@ func NewTransactionCoordinator(args ArgTransactionCoordinator) (*transactionCoor
 		return tc.keysInterimProcs[i] < tc.keysInterimProcs[j]
 	})
 	for _, value := range tc.keysInterimProcs {
-		interProc, err := args.InterProcessors.Get(value)
-		if err != nil {
-			return nil, err
+		interProc, errGet := args.InterProcessors.Get(value)
+		if errGet != nil {
+			return nil, errGet
 		}
 		tc.interimProcessors[value] = interProc
 	}
@@ -588,7 +588,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 
 	headerHash, err := core.CalculateHash(tc.marshalizer, tc.hasher, hdr)
 	if err != nil {
-		return createMBDestMeExecutionInfo.miniBlocks, createMBDestMeExecutionInfo.numTxAdded, false, nil
+		return createMBDestMeExecutionInfo.miniBlocks, createMBDestMeExecutionInfo.numTxAdded, false, nil // TODO: check if we should return err here
 	}
 
 	tc.handleCreateMiniBlocksDestMeInit(headerHash)
@@ -703,9 +703,9 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 
 		oldIndexOfLastTxProcessed := processedMbInfo.IndexOfLastTxProcessed
 
-		err := tc.processCompleteMiniBlock(preproc, miniBlock, miniBlockInfo.Hash, haveTime, haveAdditionalTime, scheduledMode, processedMbInfo)
+		errProc := tc.processCompleteMiniBlock(preproc, miniBlock, miniBlockInfo.Hash, haveTime, haveAdditionalTime, scheduledMode, processedMbInfo)
 		tc.handleProcessMiniBlockExecution(oldIndexOfLastTxProcessed, miniBlock, processedMbInfo, createMBDestMeExecutionInfo)
-		if err != nil {
+		if errProc != nil {
 			shouldSkipShard[miniBlockInfo.SenderShardID] = true
 			log.Debug("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: processed complete mini block failed",
 				"scheduled mode", scheduledMode,
@@ -721,6 +721,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 				"total gas provided as scheduled", tc.gasHandler.TotalGasProvidedAsScheduled(),
 				"total gas refunded", tc.gasHandler.TotalGasRefunded(),
 				"total gas penalized", tc.gasHandler.TotalGasPenalized(),
+				"error", errProc,
 			)
 			continue
 		}
@@ -1215,10 +1216,8 @@ func (tc *transactionCoordinator) processCompleteMiniBlock(
 
 func (tc *transactionCoordinator) handleProcessMiniBlockInit(miniBlockHash []byte) int {
 	snapshot := tc.accounts.JournalLen()
-	if tc.shardCoordinator.SelfId() != core.MetachainShardId {
-		tc.InitProcessedTxsResults(miniBlockHash)
-		tc.gasHandler.Reset(miniBlockHash)
-	}
+	tc.InitProcessedTxsResults(miniBlockHash)
+	tc.gasHandler.Reset(miniBlockHash)
 
 	return snapshot
 }
