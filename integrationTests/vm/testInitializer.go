@@ -431,7 +431,7 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 		CompiledSCPool:      datapool.SmartContracts(),
 		NilCompiledSCStore:  true,
 		ConfigSCStorage:     *defaultStorageConfig(),
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{FlagsEnabled: true},
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
 	}
 
 	blockChainHook, _ := hooks.NewBlockChainHookImpl(args)
@@ -527,7 +527,7 @@ func CreateOneSCExecutorMockVM(accnts state.AccountsAdapter) vmcommon.VMExecutio
 		CompiledSCPool:      datapool.SmartContracts(),
 		NilCompiledSCStore:  true,
 		ConfigSCStorage:     *defaultStorageConfig(),
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{FlagsEnabled: true},
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
 	}
 	blockChainHook, _ := hooks.NewBlockChainHookImpl(args)
 	vm, _ := mock.NewOneSCExecutorMockVM(blockChainHook, testHasher)
@@ -651,7 +651,7 @@ func CreateVMAndBlockchainHookMeta(
 		DataPool:            datapool,
 		CompiledSCPool:      datapool.SmartContracts(),
 		NilCompiledSCStore:  true,
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{FlagsEnabled: true},
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
 	}
 
 	economicsData, err := createEconomicsData(config.EnableEpochs{})

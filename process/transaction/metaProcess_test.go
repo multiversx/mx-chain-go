@@ -32,7 +32,7 @@ func createMockNewMetaTxArgs() txproc.ArgsNewMetaTxProcessor {
 		ScProcessor:         &testscommon.SCProcessorMock{},
 		TxTypeHandler:       &testscommon.TxTypeHandlerMock{},
 		EconomicsFee:        createFreeTxFeeHandler(),
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{FlagsEnabled: true},
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
 	}
 	return args
 }
