@@ -95,9 +95,7 @@ func createArgsForEconomicsData(gasModifier float64) economics.ArgsNewEconomicsD
 		Economics:     createDummyEconomicsConfig(feeSettings),
 		EpochNotifier: &epochNotifier.EpochNotifierStub{},
 		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
-			IsGasPriceModifierFlagEnabledCalled: func() bool {
-				return true
-			},
+			IsGasPriceModifierFlagEnabledField: true,
 		},
 		BuiltInFunctionsCostHandler: &mock.BuiltInCostHandlerStub{},
 	}
@@ -110,9 +108,7 @@ func createArgsForEconomicsDataRealFees(handler economics.BuiltInFunctionsCostHa
 		Economics:     createDummyEconomicsConfig(feeSettings),
 		EpochNotifier: &epochNotifier.EpochNotifierStub{},
 		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
-			IsGasPriceModifierFlagEnabledCalled: func() bool {
-				return true
-			},
+			IsGasPriceModifierFlagEnabledField: true,
 		},
 		BuiltInFunctionsCostHandler: handler,
 	}
