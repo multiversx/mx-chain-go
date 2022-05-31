@@ -926,7 +926,7 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieS
 		NFTStorageHandler:   &testscommon.SimpleNFTStorageHandlerStub{},
 		DataPool:            testDataPool,
 		CompiledSCPool:      testDataPool.SmartContracts(),
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{FlagsEnabled: true},
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
 		NilCompiledSCStore:  true,
 	}
 
@@ -1083,7 +1083,7 @@ func createEconomicsData() process.EconomicsDataHandler {
 			},
 		},
 		EpochNotifier:               &epochNotifier.EpochNotifierStub{},
-		EnableEpochsHandler:         &testscommon.EnableEpochsHandlerStub{FlagsEnabled: true},
+		EnableEpochsHandler:         &testscommon.EnableEpochsHandlerStub{},
 		BuiltInFunctionsCostHandler: &mock.BuiltInCostHandlerStub{},
 	}
 	economicsData, _ := economicsHandler.NewEconomicsData(argsNewEconomicsData)

@@ -12,14 +12,9 @@ import (
 
 func createMockArgsPrintDoubleTransactionsDetector() ArgsPrintDoubleTransactionsDetector {
 	return ArgsPrintDoubleTransactionsDetector{
-		Marshaller: &testscommon.MarshalizerMock{},
-		Hasher:     &testscommon.HasherStub{},
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
-			FlagsEnabled: true,
-			IsAddFailedRelayedTxToInvalidMBsFlagCalled: func() bool {
-				return false
-			},
-		},
+		Marshaller:          &testscommon.MarshalizerMock{},
+		Hasher:              &testscommon.HasherStub{},
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
 	}
 }
 
@@ -136,7 +131,9 @@ func TestPrintDoubleTransactionsDetector_ProcessBlockBody(t *testing.T) {
 
 		debugCalled := false
 		args := createMockArgsPrintDoubleTransactionsDetector()
-		args.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{FlagsEnabled: true}
+		args.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+			IsAddFailedRelayedTxToInvalidMBsFlagField: true,
+		}
 		detector, _ := NewPrintDoubleTransactionsDetector(args)
 		detector.logger = &testscommon.LoggerStub{
 			ErrorCalled: func(message string, args ...interface{}) {

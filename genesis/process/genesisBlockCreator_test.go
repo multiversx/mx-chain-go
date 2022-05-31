@@ -64,7 +64,7 @@ func createMockArgument(
 			AddrPubKeyConv:           mock.NewPubkeyConverterMock(32),
 			Chain:                    "chainID",
 			MinTxVersion:             1,
-			EnableEpochsHandlerField: &testscommon.EnableEpochsHandlerStub{FlagsEnabled: true},
+			EnableEpochsHandlerField: &testscommon.EnableEpochsHandlerStub{},
 		},
 		Data: &mock.DataComponentsMock{
 			Storage: &mock.ChainStorerStub{

@@ -20,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/ElrondNetwork/elrond-go/vm"
@@ -69,21 +70,23 @@ func createAccountStub(sndAddr, rcvAddr []byte,
 
 func createArgsForTxProcessor() txproc.ArgsNewTxProcessor {
 	args := txproc.ArgsNewTxProcessor{
-		Accounts:            &stateMock.AccountsStub{},
-		Hasher:              &hashingMocks.HasherMock{},
-		PubkeyConv:          createMockPubkeyConverter(),
-		Marshalizer:         &mock.MarshalizerMock{},
-		SignMarshalizer:     &mock.MarshalizerMock{},
-		ShardCoordinator:    mock.NewOneShardCoordinatorMock(),
-		ScProcessor:         &testscommon.SCProcessorMock{},
-		TxFeeHandler:        &mock.FeeAccumulatorStub{},
-		TxTypeHandler:       &testscommon.TxTypeHandlerMock{},
-		EconomicsFee:        feeHandlerMock(),
-		ReceiptForwarder:    &mock.IntermediateTransactionHandlerMock{},
-		BadTxForwarder:      &mock.IntermediateTransactionHandlerMock{},
-		ArgsParser:          &mock.ArgumentParserMock{},
-		ScrForwarder:        &mock.IntermediateTransactionHandlerMock{},
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{FlagsEnabled: true},
+		Accounts:         &stateMock.AccountsStub{},
+		Hasher:           &hashingMocks.HasherMock{},
+		PubkeyConv:       createMockPubkeyConverter(),
+		Marshalizer:      &mock.MarshalizerMock{},
+		SignMarshalizer:  &mock.MarshalizerMock{},
+		ShardCoordinator: mock.NewOneShardCoordinatorMock(),
+		ScProcessor:      &testscommon.SCProcessorMock{},
+		TxFeeHandler:     &mock.FeeAccumulatorStub{},
+		TxTypeHandler:    &testscommon.TxTypeHandlerMock{},
+		EconomicsFee:     feeHandlerMock(),
+		ReceiptForwarder: &mock.IntermediateTransactionHandlerMock{},
+		BadTxForwarder:   &mock.IntermediateTransactionHandlerMock{},
+		ArgsParser:       &mock.ArgumentParserMock{},
+		ScrForwarder:     &mock.IntermediateTransactionHandlerMock{},
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
+			IsPenalizedTooMuchGasFlagEnabledField: true,
+		},
 	}
 	return args
 }
@@ -1553,6 +1556,9 @@ func TestTxProcessor_ProcessTransactionShouldReturnErrForInvalidMetaTx(t *testin
 			return process.MoveBalance, process.MoveBalance
 		},
 	}
+	args.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+		IsMetaProtectionFlagEnabledField: true,
+	}
 	execTx, _ := txproc.NewTxProcessor(args)
 
 	_, err = execTx.ProcessTransaction(&tx)
@@ -1685,7 +1691,6 @@ func TestTxProcessor_ProcessRelayedTransactionV2NotActiveShouldErr(t *testing.T)
 	args.ShardCoordinator = shardC
 	args.TxTypeHandler = txTypeHandler
 	args.PubkeyConv = pubKeyConverter
-	args.EnableEpochsHandler = enableEpochsHander
 	args.ArgsParser = smartContract.NewArgumentParser()
 	execTx, _ := txproc.NewTxProcessor(args)
 
@@ -2010,6 +2015,9 @@ func TestTxProcessor_ProcessRelayedTransactionV2(t *testing.T) {
 	args.TxTypeHandler = txTypeHandler
 	args.PubkeyConv = pubKeyConverter
 	args.ArgsParser = smartContract.NewArgumentParser()
+	args.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+		IsRelayedTransactionsV2FlagEnabledField: true,
+	}
 	execTx, _ := txproc.NewTxProcessor(args)
 
 	returnCode, err := execTx.ProcessTransaction(&tx)
@@ -2084,6 +2092,9 @@ func TestTxProcessor_ProcessRelayedTransaction(t *testing.T) {
 	args.TxTypeHandler = txTypeHandler
 	args.PubkeyConv = pubKeyConverter
 	args.ArgsParser = smartContract.NewArgumentParser()
+	args.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+		IsRelayedTransactionsFlagEnabledField: true,
+	}
 	execTx, _ := txproc.NewTxProcessor(args)
 
 	returnCode, err := execTx.ProcessTransaction(&tx)
@@ -2611,11 +2622,6 @@ func TestTxProcessor_ProcessRelayedTransactionDisabled(t *testing.T) {
 	args.TxTypeHandler = txTypeHandler
 	args.PubkeyConv = pubKeyConverter
 	args.ArgsParser = smartContract.NewArgumentParser()
-	args.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
-		IsRelayedTransactionsFlagEnabledCalled: func() bool {
-			return false
-		},
-	}
 	called := false
 	args.BadTxForwarder = &mock.IntermediateTransactionHandlerMock{
 		AddIntermediateTransactionsCalled: func(txs []data.TransactionHandler) error {

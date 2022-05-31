@@ -1051,7 +1051,7 @@ func (tpn *TestProcessorNode) initEconomicsData(economicsConfig *config.Economic
 	argsNewEconomicsData := economics.ArgsNewEconomicsData{
 		Economics:                   economicsConfig,
 		EpochNotifier:               &epochNotifier.EpochNotifierStub{},
-		EnableEpochsHandler:         &testscommon.EnableEpochsHandlerStub{FlagsEnabled: true},
+		EnableEpochsHandler:         &testscommon.EnableEpochsHandlerStub{},
 		BuiltInFunctionsCostHandler: &mock.BuiltInCostHandlerStub{},
 	}
 	economicsData, _ := economics.NewEconomicsData(argsNewEconomicsData)
@@ -3037,7 +3037,7 @@ func GetDefaultCoreComponents() *mock.CoreComponentsStub {
 		RoundNotifierField:           &processMock.RoundNotifierStub{},
 		TxVersionCheckField:          versioning.NewTxVersionChecker(MinTransactionVersion),
 		ProcessStatusHandlerInternal: &testscommon.ProcessStatusHandlerStub{},
-		EnableEpochsHandlerField:     &testscommon.EnableEpochsHandlerStub{FlagsEnabled: true},
+		EnableEpochsHandlerField:     &testscommon.EnableEpochsHandlerStub{},
 	}
 }
 

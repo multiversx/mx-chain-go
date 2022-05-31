@@ -43,23 +43,18 @@ func createMockBlockChainHookArgs() hooks.ArgBlockChainHook {
 				return &mock.AccountWrapMock{}, nil
 			},
 		},
-		PubkeyConv:        mock.NewPubkeyConverterMock(32),
-		StorageService:    &mock.ChainStorerMock{},
-		BlockChain:        &testscommon.ChainHandlerStub{},
-		ShardCoordinator:  mock.NewOneShardCoordinatorMock(),
-		Marshalizer:       &mock.MarshalizerMock{},
-		Uint64Converter:   &mock.Uint64ByteSliceConverterMock{},
-		BuiltInFunctions:  vmcommonBuiltInFunctions.NewBuiltInFunctionContainer(),
-		NFTStorageHandler: &testscommon.SimpleNFTStorageHandlerStub{},
-		DataPool:          datapool,
-		CompiledSCPool:    datapool.SmartContracts(),
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
-			FlagsEnabled: true,
-			IsDoNotReturnOldBlockInBlockchainHookFlagEnabledCalled: func() bool {
-				return false
-			},
-		},
-		NilCompiledSCStore: true,
+		PubkeyConv:          mock.NewPubkeyConverterMock(32),
+		StorageService:      &mock.ChainStorerMock{},
+		BlockChain:          &testscommon.ChainHandlerStub{},
+		ShardCoordinator:    mock.NewOneShardCoordinatorMock(),
+		Marshalizer:         &mock.MarshalizerMock{},
+		Uint64Converter:     &mock.Uint64ByteSliceConverterMock{},
+		BuiltInFunctions:    vmcommonBuiltInFunctions.NewBuiltInFunctionContainer(),
+		NFTStorageHandler:   &testscommon.SimpleNFTStorageHandlerStub{},
+		DataPool:            datapool,
+		CompiledSCPool:      datapool.SmartContracts(),
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+		NilCompiledSCStore:  true,
 	}
 	return arguments
 }
@@ -604,8 +599,9 @@ func TestBlockChainHookImpl_GetBlockhashFromStorerInSameEpochWithFlagEnabled(t *
 	t.Parallel()
 
 	args := createMockBlockChainHookArgs()
-	// reset IsDoNotReturnOldBlockInBlockchainHookFlagEnabledCalled to return true
-	args.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{FlagsEnabled: true}
+	args.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+		IsDoNotReturnOldBlockInBlockchainHookFlagEnabledField: true,
+	}
 	nonce := uint64(10)
 	header := &block.Header{Nonce: nonce}
 	shardID := args.ShardCoordinator.SelfId()
@@ -761,8 +757,9 @@ func TestBlockChainHookImpl_GettersFromBlockchainCurrentHeader(t *testing.T) {
 		}
 
 		args := createMockBlockChainHookArgs()
-		// reset IsDoNotReturnOldBlockInBlockchainHookFlagEnabledCalled to return true
-		args.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{FlagsEnabled: true}
+		args.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+			IsDoNotReturnOldBlockInBlockchainHookFlagEnabledField: true,
+		}
 		args.BlockChain = &testscommon.ChainHandlerStub{
 			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 				return hdrToRet
@@ -911,6 +908,9 @@ func TestBlockChainHookImpl_IsPayablePayableBySC(t *testing.T) {
 			acc.SetCodeMetadata([]byte{0, vmcommon.MetadataPayableBySC})
 			return acc, nil
 		},
+	}
+	args.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+		IsPayableBySCFlagEnabledField: true,
 	}
 
 	bh, _ := hooks.NewBlockChainHookImpl(args)
@@ -1577,16 +1577,14 @@ func TestBlockChainHookImpl_GetESDTToken(t *testing.T) {
 				return errMarshaller
 			},
 		}
-		isFlagSet := true
-		args.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
-			IsOptimizeNFTStoreFlagEnabledCalled: func() bool {
-				return isFlagSet
-			},
+		enableEpochsHandlerStub := &testscommon.EnableEpochsHandlerStub{
+			IsOptimizeNFTStoreFlagEnabledField: true,
 		}
+		args.EnableEpochsHandler = enableEpochsHandlerStub
 
 		bh, _ := hooks.NewBlockChainHookImpl(args)
-		isFlagSet = false
 
+		enableEpochsHandlerStub.IsOptimizeNFTStoreFlagEnabledField = false
 		esdtData, err := bh.GetESDTToken(address, token, nonce)
 		require.Nil(t, esdtData)
 		require.Equal(t, errMarshaller, err)
@@ -1618,16 +1616,14 @@ func TestBlockChainHookImpl_GetESDTToken(t *testing.T) {
 				return addressHandler, nil
 			},
 		}
-		isFlagSet := true
-		args.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
-			IsOptimizeNFTStoreFlagEnabledCalled: func() bool {
-				return isFlagSet
-			},
+		enableEpochsHandlerStub := &testscommon.EnableEpochsHandlerStub{
+			IsOptimizeNFTStoreFlagEnabledField: true,
 		}
+		args.EnableEpochsHandler = enableEpochsHandlerStub
 
 		bh, _ := hooks.NewBlockChainHookImpl(args)
-		isFlagSet = false
 
+		enableEpochsHandlerStub.IsOptimizeNFTStoreFlagEnabledField = false
 		esdtData, err := bh.GetESDTToken(address, token, nonce)
 		assert.Nil(t, esdtData)
 		assert.Equal(t, state.ErrNilTrie, err)
@@ -1648,16 +1644,14 @@ func TestBlockChainHookImpl_GetESDTToken(t *testing.T) {
 				return addressHandler, nil
 			},
 		}
-		isFlagSet := true
-		args.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
-			IsOptimizeNFTStoreFlagEnabledCalled: func() bool {
-				return isFlagSet
-			},
+		enableEpochsHandlerStub := &testscommon.EnableEpochsHandlerStub{
+			IsOptimizeNFTStoreFlagEnabledField: true,
 		}
+		args.EnableEpochsHandler = enableEpochsHandlerStub
 
 		bh, _ := hooks.NewBlockChainHookImpl(args)
-		isFlagSet = false
 
+		enableEpochsHandlerStub.IsOptimizeNFTStoreFlagEnabledField = false
 		esdtData, err := bh.GetESDTToken(address, token, nonce)
 		assert.Equal(t, emptyESDTData, esdtData)
 		assert.Nil(t, err)
@@ -1677,16 +1671,14 @@ func TestBlockChainHookImpl_GetESDTToken(t *testing.T) {
 				return addressHandler, nil
 			},
 		}
-		isFlagSet := true
-		args.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
-			IsOptimizeNFTStoreFlagEnabledCalled: func() bool {
-				return isFlagSet
-			},
+		enableEpochsHandlerStub := &testscommon.EnableEpochsHandlerStub{
+			IsOptimizeNFTStoreFlagEnabledField: true,
 		}
+		args.EnableEpochsHandler = enableEpochsHandlerStub
 
 		bh, _ := hooks.NewBlockChainHookImpl(args)
-		isFlagSet = false
 
+		enableEpochsHandlerStub.IsOptimizeNFTStoreFlagEnabledField = false
 		esdtData, err := bh.GetESDTToken(address, token, nftNonce)
 		assert.Equal(t, testESDTData, esdtData)
 		assert.Nil(t, err)
@@ -1704,16 +1696,14 @@ func TestBlockChainHookImpl_GetESDTToken(t *testing.T) {
 				return addressHandler, nil
 			},
 		}
-		isFlagSet := true
-		args.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
-			IsOptimizeNFTStoreFlagEnabledCalled: func() bool {
-				return isFlagSet
-			},
+		enableEpochsHandlerStub := &testscommon.EnableEpochsHandlerStub{
+			IsOptimizeNFTStoreFlagEnabledField: true,
 		}
+		args.EnableEpochsHandler = enableEpochsHandlerStub
 
 		bh, _ := hooks.NewBlockChainHookImpl(args)
-		isFlagSet = false
 
+		enableEpochsHandlerStub.IsOptimizeNFTStoreFlagEnabledField = false
 		esdtData, err := bh.GetESDTToken(address, token, nonce)
 		assert.Equal(t, testESDTData, esdtData)
 		assert.Nil(t, err)
@@ -1735,6 +1725,9 @@ func TestBlockChainHookImpl_GetESDTToken(t *testing.T) {
 
 				return nil, false, expectedErr
 			},
+		}
+		args.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+			IsOptimizeNFTStoreFlagEnabledField: true,
 		}
 
 		bh, _ := hooks.NewBlockChainHookImpl(args)
@@ -1762,6 +1755,9 @@ func TestBlockChainHookImpl_GetESDTToken(t *testing.T) {
 				return &copyToken, false, nil
 			},
 		}
+		args.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+			IsOptimizeNFTStoreFlagEnabledField: true,
+		}
 
 		bh, _ := hooks.NewBlockChainHookImpl(args)
 
@@ -1777,13 +1773,7 @@ func TestBlockChainHookImpl_ApplyFiltersOnCodeMetadata(t *testing.T) {
 	t.Run("PayableBySC flag is not set; should reset the flag", func(t *testing.T) {
 		t.Parallel()
 
-		args := createMockBlockChainHookArgs()
-		args.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
-			IsPayableBySCFlagEnabledCalled: func() bool {
-				return false
-			},
-		}
-		bh, _ := hooks.NewBlockChainHookImpl(args)
+		bh, _ := hooks.NewBlockChainHookImpl(createMockBlockChainHookArgs())
 
 		provided := vmcommon.CodeMetadata{
 			Payable:     true,
@@ -1806,6 +1796,9 @@ func TestBlockChainHookImpl_ApplyFiltersOnCodeMetadata(t *testing.T) {
 		t.Parallel()
 
 		args := createMockBlockChainHookArgs()
+		args.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+			IsPayableBySCFlagEnabledField: true,
+		}
 		bh, _ := hooks.NewBlockChainHookImpl(args)
 
 		provided := vmcommon.CodeMetadata{
@@ -1847,13 +1840,7 @@ func TestBlockChainHookImpl_FilterCodeMetadataForUpgrade(t *testing.T) {
 	t.Run("flag not set should not filter", func(t *testing.T) {
 		t.Parallel()
 
-		args := createMockBlockChainHookArgs()
-		args.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
-			IsPayableBySCFlagEnabledCalled: func() bool {
-				return false
-			},
-		}
-		bh, _ := hooks.NewBlockChainHookImpl(args)
+		bh, _ := hooks.NewBlockChainHookImpl(createMockBlockChainHookArgs())
 
 		providedBytes := []byte{0xFF, 0xFF, 0xFF}
 		resultBytes, err := bh.FilterCodeMetadataForUpgrade(providedBytes)
@@ -1881,6 +1868,9 @@ func TestBlockChainHookImpl_FilterCodeMetadataForUpgrade(t *testing.T) {
 		t.Parallel()
 
 		args := createMockBlockChainHookArgs()
+		args.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+			IsPayableBySCFlagEnabledField: true,
+		}
 		bh, _ := hooks.NewBlockChainHookImpl(args)
 
 		providedBytes := []byte{0xFF, 0xFF, 0xFF}
@@ -1892,6 +1882,9 @@ func TestBlockChainHookImpl_FilterCodeMetadataForUpgrade(t *testing.T) {
 		t.Parallel()
 
 		args := createMockBlockChainHookArgs()
+		args.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+			IsPayableBySCFlagEnabledField: true,
+		}
 		bh, _ := hooks.NewBlockChainHookImpl(args)
 
 		providedBytes := []byte{0xFF, 0xFF}

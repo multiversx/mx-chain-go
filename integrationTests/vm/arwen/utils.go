@@ -134,7 +134,7 @@ func SetupTestContextWithGasSchedulePath(t *testing.T, gasScheduleConfigPath str
 	context.T = t
 	context.Round = 500
 	context.EpochNotifier = &epochNotifier.EpochNotifierStub{}
-	context.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{FlagsEnabled: true}
+	context.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{}
 	context.ArwenChangeLocker = &sync.RWMutex{}
 
 	context.initAccounts()
@@ -220,7 +220,7 @@ func (context *TestContext) initFeeHandlers() {
 			},
 		},
 		EpochNotifier:               context.EpochNotifier,
-		EnableEpochsHandler:         &testscommon.EnableEpochsHandlerStub{FlagsEnabled: true},
+		EnableEpochsHandler:         &testscommon.EnableEpochsHandlerStub{},
 		BuiltInFunctionsCostHandler: &mock.BuiltInCostHandlerStub{},
 	}
 	economicsData, _ := economics.NewEconomicsData(argsNewEconomicsData)
@@ -340,7 +340,7 @@ func (context *TestContext) initTxProcessorWithOneSCExecutorWithVMs() {
 		},
 		GasSchedule:         mock.NewGasScheduleNotifierMock(gasSchedule),
 		TxLogsProcessor:     logsProcessor,
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{FlagsEnabled: true},
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
 		ArwenChangeLocker:   context.ArwenChangeLocker,
 		VMOutputCacher:      txcache.NewDisabledCache(),
 	}
@@ -363,7 +363,7 @@ func (context *TestContext) initTxProcessorWithOneSCExecutorWithVMs() {
 		BadTxForwarder:      &mock.IntermediateTransactionHandlerMock{},
 		ArgsParser:          smartContract.NewArgumentParser(),
 		ScrForwarder:        &mock.IntermediateTransactionHandlerMock{},
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{FlagsEnabled: true},
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
 	}
 
 	context.TxProcessor, err = processTransaction.NewTxProcessor(argsNewTxProcessor)
