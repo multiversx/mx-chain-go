@@ -420,12 +420,11 @@ func TestMetaTxProcessor_ProcessTransactionBuiltInCallTxShouldWork(t *testing.T)
 			return process.BuiltInFunctionCall, process.BuiltInFunctionCall
 		},
 	}
-	isFlagSet := false
-	args.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
-		IsBuiltInFunctionOnMetaFlagEnabledCalled: func() bool {
-			return isFlagSet
-		},
+	enableEpochsHandlerStub := &testscommon.EnableEpochsHandlerStub{
+		IsBuiltInFunctionOnMetaFlagEnabledField: false,
+		IsESDTFlagEnabledField:                  true,
 	}
+	args.EnableEpochsHandler = enableEpochsHandlerStub
 	txProc, _ := txproc.NewMetaTxProcessor(args)
 
 	_, err = txProc.ProcessTransaction(&tx)
@@ -433,13 +432,13 @@ func TestMetaTxProcessor_ProcessTransactionBuiltInCallTxShouldWork(t *testing.T)
 	assert.True(t, wasCalled)
 	assert.Equal(t, 0, saveAccountCalled)
 
-	isFlagSet = true
-
 	builtInCalled := false
 	scProcessorMock.ExecuteBuiltInFunctionCalled = func(tx data.TransactionHandler, acntSrc, acntDst state.UserAccountHandler) (vmcommon.ReturnCode, error) {
 		builtInCalled = true
 		return 0, nil
 	}
+
+	enableEpochsHandlerStub.IsBuiltInFunctionOnMetaFlagEnabledField = true
 
 	_, err = txProc.ProcessTransaction(&tx)
 	assert.Nil(t, err)
