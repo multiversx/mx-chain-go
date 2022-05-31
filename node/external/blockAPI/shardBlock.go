@@ -143,7 +143,8 @@ func filterOutDuplicatedMiniblocks(miniblocks []*api.MiniBlock) []*api.MiniBlock
 	seenMiniblocks := make(map[string]struct{})
 
 	for _, miniblock := range miniblocks {
-		if _, ok := seenMiniblocks[miniblock.Hash]; ok {
+		_, ok := seenMiniblocks[miniblock.Hash]
+		if ok {
 			continue
 		}
 
