@@ -95,33 +95,17 @@ func (tmp *TestMetaProcessor) ProcessStake(t *testing.T, nodes map[string]*Nodes
 
 	txHashes := make([][]byte, 0)
 	for owner, nodesData := range nodes {
-		numBLSKeys := int64(len(nodesData.BLSKeys))
-		numBLSKeysBytes := big.NewInt(numBLSKeys).Bytes()
-
-		txData := hex.EncodeToString([]byte("stake")) + "@" + hex.EncodeToString(numBLSKeysBytes)
-		argsStake := [][]byte{numBLSKeysBytes}
-
-		for _, blsKey := range nodesData.BLSKeys {
-			signature := append([]byte("signature-"), blsKey...)
-
-			argsStake = append(argsStake, blsKey, signature)
-			txData += "@" + hex.EncodeToString(blsKey) + "@" + hex.EncodeToString(signature)
-		}
-
-		txHash := append([]byte("txHash-stake-"), []byte(owner)...)
-		txHashes = append(txHashes, txHash)
-
-		tmp.TxCacher.AddTx(txHash, &smartContractResult.SmartContractResult{
-			RcvAddr: vm.StakingSCAddress,
-			Data:    []byte(txData),
-		})
-
-		tmp.doStake(t, vmcommon.VMInput{
+		scrs := tmp.doStake(t, vmcommon.VMInput{
 			CallerAddr:  []byte(owner),
-			Arguments:   argsStake,
+			Arguments:   createStakeArgs(nodesData.BLSKeys),
 			CallValue:   nodesData.TotalStake,
 			GasProvided: 10,
-		})
+		}, tmp.Marshaller)
+
+		for scrHash, scr := range scrs {
+			txHashes = append(txHashes, []byte(scrHash))
+			tmp.TxCacher.AddTx([]byte(scrHash), scr)
+		}
 	}
 	_, err := tmp.AccountsAdapter.Commit()
 	require.Nil(t, err)
@@ -148,28 +132,9 @@ func (tmp *TestMetaProcessor) ProcessUnStake(t *testing.T, nodes map[string]*Nod
 
 	txHashes := make([][]byte, 0)
 	for owner, nodesData := range nodes {
-		numBLSKeys := int64(len(nodesData.BLSKeys))
-		numBLSKeysBytes := big.NewInt(numBLSKeys).Bytes()
-
-		txData := hex.EncodeToString([]byte("unStake")) + "@" + hex.EncodeToString(numBLSKeysBytes)
-		argsUnStake := make([][]byte, 0)
-
-		for _, blsKey := range nodesData.BLSKeys {
-			argsUnStake = append(argsUnStake, blsKey)
-			txData += "@" + hex.EncodeToString(blsKey) + "@"
-		}
-
-		txHash := append([]byte("txHash-unStake-"), []byte(owner)...)
-		txHashes = append(txHashes, txHash)
-
-		tmp.TxCacher.AddTx(txHash, &smartContractResult.SmartContractResult{
-			RcvAddr: vm.StakingSCAddress,
-			Data:    []byte(txData),
-		})
-
 		scrs := tmp.doUnStake(t, vmcommon.VMInput{
 			CallerAddr:  []byte(owner),
-			Arguments:   argsUnStake,
+			Arguments:   createUnStakeArgs(nodesData.BLSKeys),
 			CallValue:   big.NewInt(0),
 			GasProvided: 10,
 		}, tmp.Marshaller)
@@ -179,6 +144,7 @@ func (tmp *TestMetaProcessor) ProcessUnStake(t *testing.T, nodes map[string]*Nod
 			tmp.TxCacher.AddTx([]byte(scrHash), scr)
 		}
 	}
+
 	_, err := tmp.AccountsAdapter.Commit()
 	require.Nil(t, err)
 
@@ -196,9 +162,26 @@ func (tmp *TestMetaProcessor) ProcessUnStake(t *testing.T, nodes map[string]*Nod
 	tmp.currentRound += 1
 }
 
+func createStakeArgs(blsKeys [][]byte) [][]byte {
+	numBLSKeys := int64(len(blsKeys))
+	numBLSKeysBytes := big.NewInt(numBLSKeys).Bytes()
+	argsStake := [][]byte{numBLSKeysBytes}
+
+	for _, blsKey := range blsKeys {
+		signature := append([]byte("signature-"), blsKey...)
+		argsStake = append(argsStake, blsKey, signature)
+	}
+
+	return argsStake
+}
+
 //TODO:
 // - Do the same for unJail
-func (tmp *TestMetaProcessor) doStake(t *testing.T, vmInput vmcommon.VMInput) {
+func (tmp *TestMetaProcessor) doStake(
+	t *testing.T,
+	vmInput vmcommon.VMInput,
+	marshaller marshal.Marshalizer,
+) map[string]*smartContractResult.SmartContractResult {
 	arguments := &vmcommon.ContractCallInput{
 		VMInput:       vmInput,
 		RecipientAddr: vm.ValidatorSCAddress,
@@ -210,6 +193,17 @@ func (tmp *TestMetaProcessor) doStake(t *testing.T, vmInput vmcommon.VMInput) {
 
 	err = integrationTests.ProcessSCOutputAccounts(vmOutput, tmp.AccountsAdapter)
 	require.Nil(t, err)
+
+	return createSCRsFromStakingSCOutput(vmOutput, marshaller)
+}
+
+func createUnStakeArgs(blsKeys [][]byte) [][]byte {
+	argsUnStake := make([][]byte, 0)
+	for _, blsKey := range blsKeys {
+		argsUnStake = append(argsUnStake, blsKey)
+	}
+
+	return argsUnStake
 }
 
 func (tmp *TestMetaProcessor) doUnStake(
@@ -229,10 +223,10 @@ func (tmp *TestMetaProcessor) doUnStake(
 	err = integrationTests.ProcessSCOutputAccounts(vmOutput, tmp.AccountsAdapter)
 	require.Nil(t, err)
 
-	return createSCRFromStakingSCOutput(vmOutput, marshaller)
+	return createSCRsFromStakingSCOutput(vmOutput, marshaller)
 }
 
-func createSCRFromStakingSCOutput(
+func createSCRsFromStakingSCOutput(
 	vmOutput *vmcommon.VMOutput,
 	marshaller marshal.Marshalizer,
 ) map[string]*smartContractResult.SmartContractResult {
