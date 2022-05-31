@@ -149,6 +149,11 @@ func (ps *triePruningStorer) PutInEpochWithoutCache(key []byte, data []byte, epo
 
 // GetFromOldEpochsWithoutAddingToCache searches the old epochs for the given key without adding to the cache
 func (ps *triePruningStorer) GetFromOldEpochsWithoutAddingToCache(key []byte, epochOffset int) ([]byte, error) {
+	v, ok := ps.cacher.Get(key)
+	if ok && !bytes.Equal([]byte(common.ActiveDBKey), key) {
+		return v.([]byte), nil
+	}
+
 	ps.lock.RLock()
 	defer ps.lock.RUnlock()
 

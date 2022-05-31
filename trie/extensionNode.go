@@ -241,7 +241,7 @@ func (en *extensionNode) commitCheckpoint(
 	return en.saveToStorage(targetDb, stats)
 }
 
-func (en *extensionNode) saveChildToAppropriateStorage(
+func (en *extensionNode) saveChildToStorage(
 	db pruningStorer,
 	leavesChan chan core.KeyValueHolder,
 	ctx context.Context,
@@ -267,7 +267,7 @@ func (en *extensionNode) saveChildToAppropriateStorage(
 		return err
 	}
 
-	err = en.child.saveChildToAppropriateStorage(db, leavesChan, ctx, stats, idleProvider)
+	err = en.child.saveChildToStorage(db, leavesChan, ctx, stats, idleProvider)
 	if err != nil {
 		return err
 	}

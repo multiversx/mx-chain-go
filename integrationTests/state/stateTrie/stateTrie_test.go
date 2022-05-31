@@ -2423,47 +2423,21 @@ func TestSnapshotSavesDataInTheCorrectEpochStorages(t *testing.T) {
 	_, err := createDummyAccountsWith100EGLD(numAccounts, adb)
 	require.Nil(t, err)
 
-	for i := uint32(0); i < numAccounts/2; i++ {
-		acc, _ := adb.LoadAccount(getDummyAccountAddressFromIndex(i))
-		accState := acc.(state.UserAccountHandler)
-		k, v := createDummyKeyValue(int(i))
-		_ = accState.DataTrieTracker().SaveKeyValue(k, v)
-		_ = adb.SaveAccount(accState)
-	}
-	rootHash, _ := adb.Commit()
-
-	dataTriesRootHashes := make([][]byte, 0)
-	for i := uint32(0); i < numAccounts/2; i++ {
-		acc, _ := adb.LoadAccount(getDummyAccountAddressFromIndex(i))
-		accState := acc.(state.UserAccountHandler)
-		rh := accState.GetRootHash()
-		require.NotEqual(t, 0, len(rh))
-		dataTriesRootHashes = append(dataTriesRootHashes, rh)
-	}
-	require.NotEqual(t, 0, len(dataTriesRootHashes))
+	rootHash := createDataTries(numAccounts/2, adb)
+	dataTriesRootHashes := getDataTrieRootHashes(t, numAccounts/2, adb)
 
 	require.Equal(t, uint32(0), notifier.CurrentEpoch())
 	notifier.NewEpoch(1)
 
 	mainTr, _ := adb.GetTrie(rootHash)
 	epoch0Hashes, _ := mainTr.GetAllHashes()
-	epoch0storer := storers[epoch0Path]
-	epoch1storer := storers[epoch1Path]
-	for i := 0; i < len(epoch0Hashes)/2; i++ {
-		val, err := epoch0storer.Get(epoch0Hashes[i])
-		require.Nil(t, err)
-		err = epoch1storer.Put(epoch0Hashes[i], val)
-		require.Nil(t, err)
-	}
+	epoch0storer := storers.GetPersister(epoch0Path)
+	epoch1storer := storers.GetPersister(epoch1Path)
+	copyHalfNodesToStorer(t, epoch0Hashes, epoch0storer, epoch1storer)
 
-	numMissingHashes := 0
-	for i := 0; i < len(epoch0Hashes); i++ {
-		_, err := epoch1storer.Get(epoch0Hashes[i])
-		if err != nil {
-			numMissingHashes++
-		}
-	}
+	numMissingHashes := getNumMissingHashes(epoch0Hashes, epoch1storer)
 	assert.Equal(t, len(epoch0Hashes)/2, numMissingHashes)
+
 	for _, hash := range dataTriesRootHashes {
 		_, err := epoch1storer.Get(hash)
 		require.NotNil(t, err)
@@ -2475,17 +2449,59 @@ func TestSnapshotSavesDataInTheCorrectEpochStorages(t *testing.T) {
 	_ = epoch0storer.Put([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal))
 	adb.SnapshotState(rootHash)
 
-	numMissingHashes = 0
-	for _, hash := range epoch0Hashes {
-		_, err = epoch1storer.Get(hash)
-		if err != nil {
-			numMissingHashes++
-		}
-	}
+	numMissingHashes = getNumMissingHashes(epoch0Hashes, epoch1storer)
 	require.Equal(t, 0, numMissingHashes)
 
 	for _, hash := range dataTriesRootHashes {
 		_, err := epoch1storer.Get(hash)
+		require.Nil(t, err)
+	}
+}
+
+func getNumMissingHashes(hashes [][]byte, storer storage.Persister) int {
+	numMissingHashes := 0
+	for i := 0; i < len(hashes); i++ {
+		_, err := storer.Get(hashes[i])
+		if err != nil {
+			numMissingHashes++
+		}
+	}
+
+	return numMissingHashes
+}
+
+func getDataTrieRootHashes(t *testing.T, numAccounts uint32, adb state.AccountsAdapter) [][]byte {
+	dataTriesRootHashes := make([][]byte, 0)
+	for i := uint32(0); i < numAccounts; i++ {
+		acc, _ := adb.LoadAccount(getDummyAccountAddressFromIndex(i))
+		accState := acc.(state.UserAccountHandler)
+		rh := accState.GetRootHash()
+		require.NotEqual(t, 0, len(rh))
+		dataTriesRootHashes = append(dataTriesRootHashes, rh)
+	}
+	require.NotEqual(t, 0, len(dataTriesRootHashes))
+
+	return dataTriesRootHashes
+}
+
+func createDataTries(numAccounts uint32, adb state.AccountsAdapter) []byte {
+	for i := uint32(0); i < numAccounts; i++ {
+		acc, _ := adb.LoadAccount(getDummyAccountAddressFromIndex(i))
+		accState := acc.(state.UserAccountHandler)
+		k, v := createDummyKeyValue(int(i))
+		_ = accState.DataTrieTracker().SaveKeyValue(k, v)
+		_ = adb.SaveAccount(accState)
+	}
+	rootHash, _ := adb.Commit()
+
+	return rootHash
+}
+
+func copyHalfNodesToStorer(t *testing.T, hashes [][]byte, sourceStorer storage.Persister, destStorer storage.Persister) {
+	for i := 0; i < len(hashes)/2; i++ {
+		val, err := sourceStorer.Get(hashes[i])
+		require.Nil(t, err)
+		err = destStorer.Put(hashes[i], val)
 		require.Nil(t, err)
 	}
 }

@@ -335,7 +335,7 @@ func (bn *branchNode) commitCheckpoint(
 	return bn.saveToStorage(targetDb, stats)
 }
 
-func (bn *branchNode) saveChildToAppropriateStorage(
+func (bn *branchNode) saveChildToStorage(
 	db pruningStorer,
 	leavesChan chan core.KeyValueHolder,
 	ctx context.Context,
@@ -371,7 +371,7 @@ func (bn *branchNode) saveChildToAppropriateStorage(
 			continue
 		}
 
-		err = bn.children[i].saveChildToAppropriateStorage(db, leavesChan, ctx, stats, idleProvider)
+		err = bn.children[i].saveChildToStorage(db, leavesChan, ctx, stats, idleProvider)
 		if err != nil {
 			return err
 		}

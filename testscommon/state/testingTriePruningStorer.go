@@ -13,7 +13,7 @@ import (
 )
 
 // CreateTestingTriePruningStorer creates a new trie pruning storer that is used for testing
-func CreateTestingTriePruningStorer(coordinator sharding.Coordinator, notifier pruning.EpochStartNotifier) (storage.Storer, map[string]storage.Persister, error) {
+func CreateTestingTriePruningStorer(coordinator sharding.Coordinator, notifier pruning.EpochStartNotifier) (storage.Storer, *persisterMap, error) {
 	cacheConf := storageUnit.CacheConfig{
 		Capacity: 10,
 		Type:     "LRU",
@@ -27,20 +27,10 @@ func CreateTestingTriePruningStorer(coordinator sharding.Coordinator, notifier p
 		MaxOpenFiles:      1000,
 	}
 
-	lockPersisterMap := sync.Mutex{}
-	persistersMap := make(map[string]storage.Persister)
+	persistersMap := NewPersistersMap()
 	persisterFactory := &storageMock.PersisterFactoryStub{
 		CreateCalled: func(path string) (storage.Persister, error) {
-			lockPersisterMap.Lock()
-			defer lockPersisterMap.Unlock()
-
-			persister, exists := persistersMap[path]
-			if !exists {
-				persister = memorydb.New()
-				persistersMap[path] = persister
-			}
-
-			return persister, nil
+			return persistersMap.GetPersister(path), nil
 		},
 	}
 	args := &pruning.StorerArgs{
@@ -61,4 +51,31 @@ func CreateTestingTriePruningStorer(coordinator sharding.Coordinator, notifier p
 
 	tps, err := pruning.NewTriePruningStorer(args)
 	return tps, persistersMap, err
+}
+
+type persisterMap struct {
+	persisters map[string]storage.Persister
+	mutex      sync.Mutex
+}
+
+// NewPersistersMap returns a new persisterMap
+func NewPersistersMap() *persisterMap {
+	return &persisterMap{
+		persisters: make(map[string]storage.Persister),
+		mutex:      sync.Mutex{},
+	}
+}
+
+// GetPersister returns the persister for the given path, or creates a new persister if it does not exist
+func (pm *persisterMap) GetPersister(path string) storage.Persister {
+	pm.mutex.Lock()
+	defer pm.mutex.Unlock()
+
+	persister, exists := pm.persisters[path]
+	if !exists {
+		persister = memorydb.New()
+		pm.persisters[path] = persister
+	}
+
+	return persister
 }

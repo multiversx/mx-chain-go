@@ -413,7 +413,7 @@ func (tsm *trieStorageManager) takeSnapshot(snapshotEntry *snapshotsQueueEntry, 
 		return
 	}
 
-	rootBytes, saveRootToAppropriateStorage, err := getNodeBytesForSnapshot(stsm, snapshotEntry.rootHash)
+	rootBytes, shouldSaveRoot, err := getNodeBytesForSnapshot(stsm, snapshotEntry.rootHash)
 	if err != nil {
 		treatSnapshotError(err,
 			"trie storage manager: getChildForSnapshot",
@@ -431,7 +431,7 @@ func (tsm *trieStorageManager) takeSnapshot(snapshotEntry *snapshotsQueueEntry, 
 		return
 	}
 
-	err = newRoot.saveChildToAppropriateStorage(stsm, snapshotEntry.leavesChan, ctx, snapshotEntry.stats, tsm.idleProvider)
+	err = newRoot.saveChildToStorage(stsm, snapshotEntry.leavesChan, ctx, snapshotEntry.stats, tsm.idleProvider)
 	if err != nil {
 		treatSnapshotError(err,
 			"trie storage manager: takeSnapshot commit",
@@ -441,7 +441,7 @@ func (tsm *trieStorageManager) takeSnapshot(snapshotEntry *snapshotsQueueEntry, 
 		return
 	}
 
-	if !saveRootToAppropriateStorage {
+	if !shouldSaveRoot {
 		return
 	}
 

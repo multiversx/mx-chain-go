@@ -173,7 +173,7 @@ func (ln *leafNode) commitCheckpoint(
 	return nil
 }
 
-func (ln *leafNode) saveChildToAppropriateStorage(
+func (ln *leafNode) saveChildToStorage(
 	_ pruningStorer,
 	leavesChan chan core.KeyValueHolder,
 	ctx context.Context,
