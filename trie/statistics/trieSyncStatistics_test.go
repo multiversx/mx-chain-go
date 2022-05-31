@@ -2,6 +2,7 @@ package statistics
 
 import (
 	"testing"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/stretchr/testify/assert"
@@ -105,4 +106,38 @@ func TestTrieSyncStatistics_BytesReceived(t *testing.T) {
 
 	tss.Reset()
 	assert.Equal(t, uint64(0), tss.NumBytesReceived())
+}
+
+func TestTrieSyncStatistics_IncrementIteration(t *testing.T) {
+	t.Parallel()
+
+	tss := NewTrieSyncStatistics()
+
+	assert.Equal(t, 0, tss.NumIterations())
+
+	tss.IncrementIteration()
+	assert.Equal(t, 1, tss.NumIterations())
+
+	tss.IncrementIteration()
+	assert.Equal(t, 2, tss.NumIterations())
+
+	tss.Reset()
+	assert.Equal(t, 0, tss.NumIterations())
+}
+
+func TestTrieSyncStatistics_AddProcessorTime(t *testing.T) {
+	t.Parallel()
+
+	tss := NewTrieSyncStatistics()
+
+	assert.Equal(t, time.Duration(0), tss.ProcessorTime())
+
+	tss.AddProcessorTime(time.Second)
+	assert.Equal(t, time.Second, tss.ProcessorTime())
+
+	tss.AddProcessorTime(time.Millisecond)
+	assert.Equal(t, time.Second+time.Millisecond, tss.ProcessorTime())
+
+	tss.Reset()
+	assert.Equal(t, time.Duration(0), tss.ProcessorTime())
 }
