@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func createMockShardAPIProcessor(
@@ -350,4 +351,23 @@ func TestShardAPIBlockProcessor_GetBlockByHashFromHistoryNodeStatusReverted(t *t
 	blk, err := shardAPIBlockProcessor.GetBlockByHash(headerHash, api.BlockQueryOptions{})
 	assert.Nil(t, err)
 	assert.Equal(t, expectedBlock, blk)
+}
+
+func TestFilterOutDuplicatedMiniblocks(t *testing.T) {
+	miniblocks := []*api.MiniBlock{
+		{Hash: "abba"},
+		{Hash: "aabb"},
+		{Hash: "aaaa"},
+		{Hash: "abba"},
+	}
+
+	filteredMiniblocks := filterOutDuplicatedMiniblocks(miniblocks)
+
+	expectedFilteredMiniblocks := []*api.MiniBlock{
+		{Hash: "abba"},
+		{Hash: "aabb"},
+		{Hash: "aaaa"},
+	}
+
+	require.Equal(t, expectedFilteredMiniblocks, filteredMiniblocks)
 }

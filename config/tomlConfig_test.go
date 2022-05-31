@@ -654,6 +654,9 @@ func TestEnableEpochConfig(t *testing.T) {
 	# FailExecutionOnEveryAPIErrorEnableEpoch represent the epoch when new protection in VM is enabled to fail all wrong API calls
 	FailExecutionOnEveryAPIErrorEnableEpoch = 53
 
+	# ManagedCryptoAPIsEnableEpoch represents the epoch when the new managed crypto APIs are enabled
+	ManagedCryptoAPIsEnableEpoch = 54
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 44, MaxNumNodes = 2169, NodesToShufflePerShard = 80 },
@@ -734,6 +737,7 @@ func TestEnableEpochConfig(t *testing.T) {
 			TransformToMultiShardCreateEnableEpoch:      51,
 			ESDTRegisterAndSetAllRolesEnableEpoch:       52,
 			FailExecutionOnEveryAPIErrorEnableEpoch:     53,
+			ManagedCryptoAPIsEnableEpoch:                54,
 		},
 		GasSchedule: GasScheduleConfig{
 			GasScheduleByEpochs: []GasScheduleByEpochs{

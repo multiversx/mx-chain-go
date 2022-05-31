@@ -22,12 +22,11 @@ func newRefundDetector() *refundDetector {
 // Also see: https://github.com/ElrondNetwork/elastic-indexer-go/blob/master/process/transactions/scrsDataToTransactions.go
 func (detector *refundDetector) isRefund(input refundDetectorInput) bool {
 	hasValue := input.Value != "0" && input.Value != ""
-	hasNoGasLimit := input.GasLimit == 0
 	hasReturnCodeOK := detector.isReturnCodeOK(input.Data)
 	isRefundForRelayTxSender := strings.Contains(input.ReturnMessage, gasRefundForRelayerMessage)
 	isSuccessful := hasReturnCodeOK || isRefundForRelayTxSender
 
-	return hasValue && hasNoGasLimit && isSuccessful
+	return hasValue && isSuccessful
 }
 
 // Also see: https://github.com/ElrondNetwork/elastic-indexer-go/blob/master/process/transactions/checkers.go
