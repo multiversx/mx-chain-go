@@ -27,8 +27,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon/stakingcommon"
-	"github.com/ElrondNetwork/elrond-go/vm"
-	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/require"
@@ -91,7 +89,7 @@ func newTestMetaProcessor(
 		maxNodesConfig,
 	)
 
-	createDelegationManagementConfig(
+	stakingcommon.SaveDelegationManagerConfig(
 		stateComponents.AccountsAdapter(),
 		coreComponents.InternalMarshalizer(),
 	)
@@ -206,18 +204,6 @@ func saveNodesConfig(
 		1,
 		maxNumNodes,
 	)
-}
-
-func createDelegationManagementConfig(accountsDB state.AccountsAdapter, marshaller marshal.Marshalizer) {
-	delegationCfg := &systemSmartContracts.DelegationManagement{
-		MinDelegationAmount: big.NewInt(10),
-	}
-	marshalledData, _ := marshaller.Marshal(delegationCfg)
-
-	delegationAcc := stakingcommon.LoadUserAccount(accountsDB, vm.DelegationManagerSCAddress)
-	_ = delegationAcc.DataTrieTracker().SaveKeyValue([]byte("delegationManagement"), marshalledData)
-	_ = accountsDB.SaveAccount(delegationAcc)
-	_, _ = accountsDB.Commit()
 }
 
 func createGasScheduleNotifier() core.GasScheduleNotifier {
