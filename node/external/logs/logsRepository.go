@@ -1,6 +1,9 @@
 package logs
 
 import (
+	"encoding/hex"
+	"fmt"
+
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -24,13 +27,13 @@ func newLogsRepository(storageService dataRetriever.StorageService, marshalizer 
 func (repository *logsRepository) getLog(logKey []byte, epoch uint32) (*transaction.Log, error) {
 	bytes, err := repository.storer.GetFromEpoch(logKey, epoch)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w: %v, epoch = %d, key = %s", errCannotLoadLogs, err, epoch, hex.EncodeToString(logKey))
 	}
 
 	txLog := &transaction.Log{}
 	err = repository.marshalizer.Unmarshal(txLog, bytes)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w: %v, epoch = %d, key = %s", errCannotUnmarshalLog, err, epoch, hex.EncodeToString(logKey))
 	}
 
 	return txLog, nil
@@ -41,7 +44,7 @@ func (repository *logsRepository) getLog(logKey []byte, epoch uint32) (*transact
 func (repository *logsRepository) getLogs(logsKeys [][]byte, epoch uint32) (map[string]*transaction.Log, error) {
 	keyValuePairs, err := repository.storer.GetBulkFromEpoch(logsKeys, epoch)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w: %v, epoch = %d", errCannotLoadLogs, err, epoch)
 	}
 
 	results := make(map[string]*transaction.Log)
@@ -50,7 +53,7 @@ func (repository *logsRepository) getLogs(logsKeys [][]byte, epoch uint32) (map[
 		txLog := &transaction.Log{}
 		err = repository.marshalizer.Unmarshal(txLog, pair.Value)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("%w: %v, epoch = %d, key = %s", errCannotUnmarshalLog, err, epoch, hex.EncodeToString(pair.Key))
 		}
 
 		results[string(pair.Key)] = txLog

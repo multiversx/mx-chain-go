@@ -21,7 +21,8 @@ func TestNewLogsFacade(t *testing.T) {
 		}
 
 		facade, err := NewLogsFacade(arguments)
-		require.Equal(t, core.ErrNilStore, err)
+		require.ErrorIs(t, err, errCannotCreateLogsFacade)
+		require.ErrorContains(t, err, core.ErrNilStore.Error())
 		require.True(t, check.IfNil(facade))
 	})
 
@@ -33,7 +34,8 @@ func TestNewLogsFacade(t *testing.T) {
 		}
 
 		facade, err := NewLogsFacade(arguments)
-		require.Equal(t, core.ErrNilMarshalizer, err)
+		require.ErrorIs(t, err, errCannotCreateLogsFacade)
+		require.ErrorContains(t, err, core.ErrNilMarshalizer.Error())
 		require.True(t, check.IfNil(facade))
 	})
 
@@ -45,7 +47,8 @@ func TestNewLogsFacade(t *testing.T) {
 		}
 
 		facade, err := NewLogsFacade(arguments)
-		require.Equal(t, core.ErrNilPubkeyConverter, err)
+		require.ErrorIs(t, err, errCannotCreateLogsFacade)
+		require.ErrorContains(t, err, core.ErrNilPubkeyConverter.Error())
 		require.True(t, check.IfNil(facade))
 	})
 }

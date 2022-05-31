@@ -1,6 +1,8 @@
 package logs
 
 import (
+	"fmt"
+
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 )
@@ -16,7 +18,7 @@ type logsFacade struct {
 func NewLogsFacade(args ArgsNewLogsFacade) (*logsFacade, error) {
 	err := args.check()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w: %v", errCannotCreateLogsFacade, err)
 	}
 
 	repository := newLogsRepository(args.StorageService, args.Marshalizer)
