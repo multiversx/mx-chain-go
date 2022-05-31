@@ -101,10 +101,12 @@ func createMockSmartContractProcessorArguments() ArgsNewSmartContractProcessor {
 		GasHandler: &testscommon.GasHandlerStub{
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
-		GasSchedule:         mock.NewGasScheduleNotifierMock(gasSchedule),
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
-		ArwenChangeLocker:   &sync.RWMutex{},
-		VMOutputCacher:      txcache.NewDisabledCache(),
+		GasSchedule: mock.NewGasScheduleNotifierMock(gasSchedule),
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
+			IsSCDeployFlagEnabledField: true,
+		},
+		ArwenChangeLocker: &sync.RWMutex{},
+		VMOutputCacher:    txcache.NewDisabledCache(),
 	}
 }
 
@@ -375,11 +377,6 @@ func TestNewSmartContractProcessorVerifyAllMembers(t *testing.T) {
 	t.Parallel()
 
 	arguments := createMockSmartContractProcessorArguments()
-	arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
-		IsBuiltInFunctionOnMetaFlagEnabledCalled: func() bool {
-			return false
-		},
-	}
 	sc, _ := NewSmartContractProcessor(arguments)
 
 	assert.Equal(t, arguments.VmContainer, sc.vmContainer)
@@ -532,11 +529,7 @@ func TestScProcessor_DeploySmartContractDisabled(t *testing.T) {
 	}}
 	arguments.VmContainer = vmContainer
 	arguments.ArgsParser = argParser
-	arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
-		IsSCDeployFlagEnabledCalled: func() bool {
-			return false
-		},
-	}
+	arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{}
 
 	sc, err := NewSmartContractProcessor(arguments)
 	require.NotNil(t, sc)
@@ -571,11 +564,6 @@ func TestScProcessor_BuiltInCallSmartContractDisabled(t *testing.T) {
 	}}
 	arguments.VmContainer = vmContainer
 	arguments.ArgsParser = argParser
-	arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
-		IsBuiltInFunctionsFlagEnabledCalled: func() bool {
-			return false
-		},
-	}
 	funcName := "builtIn"
 	sc, err := NewSmartContractProcessor(arguments)
 	require.NotNil(t, sc)
@@ -609,11 +597,6 @@ func TestScProcessor_BuiltInCallSmartContractSenderFailed(t *testing.T) {
 	}}
 	arguments.VmContainer = vmContainer
 	arguments.ArgsParser = argParser
-	arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
-		IsBuiltInFunctionsFlagEnabledCalled: func() bool {
-			return false
-		},
-	}
 	funcName := "builtIn"
 	localError := errors.New("failed built in call")
 	arguments.BlockChainHook = &testscommon.BlockChainHookStub{
@@ -674,15 +657,11 @@ func TestScProcessor_ExecuteBuiltInFunctionSCResultCallSelfShard(t *testing.T) {
 			return nil
 		},
 	}
-	isFlagSet := false
 	arguments.AccountsDB = accountState
 	arguments.VmContainer = vmContainer
 	arguments.ArgsParser = argParser
-	arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
-		IsBuiltInFunctionsFlagEnabledCalled: func() bool {
-			return isFlagSet
-		},
-	}
+	enableEpochsHandlerStub := &testscommon.EnableEpochsHandlerStub{}
+	arguments.EnableEpochsHandler = enableEpochsHandlerStub
 	funcName := "builtIn"
 	sc, err := NewSmartContractProcessor(arguments)
 	require.NotNil(t, sc)
@@ -711,7 +690,7 @@ func TestScProcessor_ExecuteBuiltInFunctionSCResultCallSelfShard(t *testing.T) {
 		return nil, nil
 	}
 
-	isFlagSet = true
+	enableEpochsHandlerStub.IsBuiltInFunctionsFlagEnabledField = true
 	retCode, err := sc.ExecuteBuiltInFunction(tx, acntSrc, actDst)
 	require.Equal(t, vmcommon.Ok, retCode)
 	require.Nil(t, err)
@@ -741,12 +720,8 @@ func TestScProcessor_ExecuteBuiltInFunctionSCResultCallSelfShardCannotSaveLog(t 
 	arguments.AccountsDB = accountState
 	arguments.VmContainer = vmContainer
 	arguments.ArgsParser = argParser
-	isFlagSet := false
-	arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
-		IsBuiltInFunctionsFlagEnabledCalled: func() bool {
-			return isFlagSet
-		},
-	}
+	enableEpochsHandlerStub := &testscommon.EnableEpochsHandlerStub{}
+	arguments.EnableEpochsHandler = enableEpochsHandlerStub
 	funcName := "builtIn"
 	sc, err := NewSmartContractProcessor(arguments)
 	require.NotNil(t, sc)
@@ -775,7 +750,7 @@ func TestScProcessor_ExecuteBuiltInFunctionSCResultCallSelfShardCannotSaveLog(t 
 		return nil, nil
 	}
 
-	isFlagSet = true
+	enableEpochsHandlerStub.IsBuiltInFunctionsFlagEnabledField = true
 	retCode, err := sc.ExecuteBuiltInFunction(tx, acntSrc, actDst)
 	require.Equal(t, vmcommon.Ok, retCode)
 	require.Nil(t, err)
@@ -796,12 +771,8 @@ func TestScProcessor_ExecuteBuiltInFunction(t *testing.T) {
 	arguments.AccountsDB = accountState
 	arguments.VmContainer = vmContainer
 	arguments.ArgsParser = argParser
-	isFlagSet := false
-	arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
-		IsBuiltInFunctionsFlagEnabledCalled: func() bool {
-			return isFlagSet
-		},
-	}
+	enableEpochsHandlerStub := &testscommon.EnableEpochsHandlerStub{}
+	arguments.EnableEpochsHandler = enableEpochsHandlerStub
 	funcName := "builtIn"
 	sc, err := NewSmartContractProcessor(arguments)
 	require.NotNil(t, sc)
@@ -823,7 +794,7 @@ func TestScProcessor_ExecuteBuiltInFunction(t *testing.T) {
 		return acntSrc, nil
 	}
 
-	isFlagSet = true
+	enableEpochsHandlerStub.IsBuiltInFunctionsFlagEnabledField = true
 	retCode, err := sc.ExecuteBuiltInFunction(tx, acntSrc, nil)
 	require.Equal(t, vmcommon.Ok, retCode)
 	require.Nil(t, err)
@@ -843,13 +814,10 @@ func TestScProcessor_ExecuteBuiltInFunctionSCRTooBig(t *testing.T) {
 	arguments.AccountsDB = accountState
 	arguments.VmContainer = vmContainer
 	arguments.ArgsParser = argParser
-	isFlagSet := false
-	arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
-		IsSCRSizeInvariantOnBuiltInResultFlagEnabledCalled: func() bool {
-			return isFlagSet
-		},
+	enableEpochsHandlerStub := &testscommon.EnableEpochsHandlerStub{
+		IsBuiltInFunctionsFlagEnabledField: true,
 	}
-
+	arguments.EnableEpochsHandler = enableEpochsHandlerStub
 	funcName := "builtIn"
 	tx := &transaction.Transaction{}
 	tx.Nonce = 0
@@ -888,7 +856,8 @@ func TestScProcessor_ExecuteBuiltInFunctionSCRTooBig(t *testing.T) {
 	require.Nil(t, err)
 
 	_ = acntSrc.AddToBalance(big.NewInt(100))
-	isFlagSet = true
+	enableEpochsHandlerStub.IsSCRSizeInvariantOnBuiltInResultFlagEnabledField = true
+	enableEpochsHandlerStub.IsSCRSizeInvariantCheckFlagEnabledField = true
 	retCode, err = sc.ExecuteBuiltInFunction(tx, acntSrc, nil)
 	require.Equal(t, vmcommon.UserError, retCode)
 	require.Nil(t, err)
@@ -2411,12 +2380,10 @@ func TestScProcessor_ProcessSCPaymentWithNewFlags(t *testing.T) {
 			return core.SafeMul(tx.GetGasPrice(), gasToUse)
 		},
 	}
-	isFlagSet := true
-	arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
-		IsPenalizedTooMuchGasFlagEnabledCalled: func() bool {
-			return isFlagSet
-		},
+	enableEpochsHandlerStub := &testscommon.EnableEpochsHandlerStub{
+		IsPenalizedTooMuchGasFlagEnabledField: true,
 	}
+	arguments.EnableEpochsHandler = enableEpochsHandlerStub
 	sc, err := NewSmartContractProcessor(arguments)
 
 	require.NotNil(t, sc)
@@ -2440,7 +2407,7 @@ func TestScProcessor_ProcessSCPaymentWithNewFlags(t *testing.T) {
 
 	acntSrc, _ = createAccounts(tx)
 	modifiedBalance = currBalance - tx.Value.Uint64() - tx.GasLimit*tx.GasLimit
-	isFlagSet = false
+	enableEpochsHandlerStub.IsPenalizedTooMuchGasFlagEnabledField = false
 	err = sc.processSCPayment(tx, acntSrc)
 	require.Nil(t, err)
 	require.Equal(t, modifiedBalance, acntSrc.GetBalance().Uint64())
@@ -2526,11 +2493,7 @@ func TestScProcessor_RefundGasToSender(t *testing.T) {
 	arguments.EconomicsFee = &mock.FeeHandlerStub{MinGasPriceCalled: func() uint64 {
 		return minGasPrice
 	}}
-	arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
-		IsSCDeployFlagEnabledCalled: func() bool {
-			return false
-		},
-	}
+	arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{}
 	sc, err := NewSmartContractProcessor(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
@@ -2570,11 +2533,7 @@ func TestScProcessor_DoNotRefundGasToSenderForAsyncCall(t *testing.T) {
 	arguments.EconomicsFee = &mock.FeeHandlerStub{MinGasPriceCalled: func() uint64 {
 		return minGasPrice
 	}}
-	arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
-		IsSCDeployFlagEnabledCalled: func() bool {
-			return false
-		},
-	}
+	arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{}
 	sc, err := NewSmartContractProcessor(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
@@ -2864,6 +2823,9 @@ func TestScProcessor_CreateIntraShardTransactionsWithAsyncCalls(t *testing.T) {
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.AccountsDB = accountsDB
 	arguments.ShardCoordinator = shardCoordinator
+	arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+		IsMultiESDTTransferFixOnCallBackFlagEnabledField: true,
+	}
 	sc, err := NewSmartContractProcessor(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
@@ -3293,12 +3255,10 @@ func TestScProcessor_ProcessSmartContractResultExecuteSCIfMetaAndBuiltIn(t *test
 			return process.BuiltInFunctionCall, process.BuiltInFunctionCall
 		},
 	}
-	isFlagSet := false
-	arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
-		IsBuiltInFunctionOnMetaFlagEnabledCalled: func() bool {
-			return isFlagSet
-		},
+	enableEpochsHandlerStub := &testscommon.EnableEpochsHandlerStub{
+		IsSCDeployFlagEnabledField: true,
 	}
+	arguments.EnableEpochsHandler = enableEpochsHandlerStub
 
 	sc, err := NewSmartContractProcessor(arguments)
 	require.NotNil(t, sc)
@@ -3315,7 +3275,8 @@ func TestScProcessor_ProcessSmartContractResultExecuteSCIfMetaAndBuiltIn(t *test
 	require.True(t, executeCalled)
 
 	executeCalled = false
-	isFlagSet = true
+	enableEpochsHandlerStub.IsBuiltInFunctionOnMetaFlagEnabledField = true
+	enableEpochsHandlerStub.IsBuiltInFunctionsFlagEnabledField = true
 	_, err = sc.ProcessSmartContractResult(&scr)
 	require.Nil(t, err)
 	require.False(t, executeCalled)
@@ -3452,6 +3413,9 @@ func TestScProcessor_penalizeUserIfNeededShouldWork(t *testing.T) {
 	t.Parallel()
 
 	arguments := createMockSmartContractProcessorArguments()
+	arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+		IsPenalizedTooMuchGasFlagEnabledField: true,
+	}
 	sc, _ := NewSmartContractProcessor(arguments)
 
 	gasProvided := uint64(1000)
@@ -3530,6 +3494,11 @@ func TestScProcessor_penalizeUserIfNeededShouldWorkOnFlagActivation(t *testing.T
 
 func TestSCProcessor_createSCRWhenError(t *testing.T) {
 	arguments := createMockSmartContractProcessorArguments()
+	arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+		IsSCDeployFlagEnabledField:            true,
+		IsPenalizedTooMuchGasFlagEnabledField: true,
+		IsRepairCallbackFlagEnabledField:      true,
+	}
 	sc, _ := NewSmartContractProcessor(arguments)
 
 	acntSnd := &stateMock.UserAccountStub{}
@@ -3588,6 +3557,9 @@ func TestGasLockedInSmartContractProcessor(t *testing.T) {
 		return shardCoordinator.SelfId() + 1
 	}
 	arguments.ShardCoordinator = shardCoordinator
+	arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+		IsMultiESDTTransferFixOnCallBackFlagEnabledField: true,
+	}
 	sc, _ := NewSmartContractProcessor(arguments)
 
 	outaddress := []byte("newsmartcontract")
@@ -3730,11 +3702,9 @@ func TestSmartContractProcessor_computeTotalConsumedFeeAndDevRwdWithDifferentSCC
 			return acc, nil
 		},
 	}
-
 	arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
-		IsStakingV2DelegationFlagEnabledCalled: func() bool {
-			return true
-		},
+		IsSCDeployFlagEnabledField:            true,
+		IsStakingV2DelegationFlagEnabledField: true,
 	}
 
 	sc, err := NewSmartContractProcessor(arguments)
@@ -3822,11 +3792,9 @@ func TestSmartContractProcessor_finishSCExecutionV2(t *testing.T) {
 					return acc, nil
 				},
 			}
-
 			arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
-				IsStakingV2DelegationFlagEnabledCalled: func() bool {
-					return true
-				},
+				IsSCDeployFlagEnabledField:            true,
+				IsStakingV2DelegationFlagEnabledField: true,
 			}
 
 			sc, err := NewSmartContractProcessor(arguments)
@@ -4008,12 +3976,9 @@ func TestProcessIfErrorCheckBackwardsCompatibilityProcessTransactionFeeCalledSho
 	}
 
 	arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
-		IsCleanUpInformativeSCRsFlagEnabledCalled: func() bool {
-			return true
-		},
-		IsOptimizeGasUsedInCrossMiniBlocksFlagEnabledCalled: func() bool {
-			return true
-		},
+		IsSCDeployFlagEnabledField:                         true,
+		IsCleanUpInformativeSCRsFlagEnabledField:           true,
+		IsOptimizeGasUsedInCrossMiniBlocksFlagEnabledField: true,
 	}
 
 	sc, _ := NewSmartContractProcessor(arguments)
@@ -4033,12 +3998,8 @@ func TestProcessSCRSizeTooBig(t *testing.T) {
 	t.Parallel()
 
 	arguments := createMockSmartContractProcessorArguments()
-	isFlagSet := false
-	arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
-		IsSCRSizeInvariantCheckFlagEnabledCalled: func() bool {
-			return isFlagSet
-		},
-	}
+	enableEpochsHandlerStub := &testscommon.EnableEpochsHandlerStub{}
+	arguments.EnableEpochsHandler = enableEpochsHandlerStub
 	sc, _ := NewSmartContractProcessor(arguments)
 
 	scrTooBig := &smartContractResult.SmartContractResult{Data: bytes.Repeat([]byte{1}, core.MegabyteSize)}
@@ -4048,8 +4009,7 @@ func TestProcessSCRSizeTooBig(t *testing.T) {
 	err := sc.checkSCRSizeInvariant(scrs)
 	assert.Nil(t, err)
 
-	isFlagSet = true
-
+	enableEpochsHandlerStub.IsSCRSizeInvariantCheckFlagEnabledField = true
 	err = sc.checkSCRSizeInvariant(scrs)
 	assert.Equal(t, err, process.ErrResultingSCRIsTooBig)
 }
@@ -4092,12 +4052,8 @@ func TestCleanInformativeOnlySCRs(t *testing.T) {
 	builtInFuncs := builtInFunctions.NewBuiltInFunctionContainer()
 	arguments.BuiltInFunctions = builtInFuncs
 	arguments.ArgsParser = NewArgumentParser()
-	isFlagSet := false
-	arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
-		IsCleanUpInformativeSCRsFlagEnabledCalled: func() bool {
-			return isFlagSet
-		},
-	}
+	enableEpochsHandlerStub := &testscommon.EnableEpochsHandlerStub{}
+	arguments.EnableEpochsHandler = enableEpochsHandlerStub
 	sc, _ := NewSmartContractProcessor(arguments)
 
 	scrs := make([]data.TransactionHandler, 0)
@@ -4108,7 +4064,7 @@ func TestCleanInformativeOnlySCRs(t *testing.T) {
 	assert.Equal(t, len(finalSCRs), len(scrs))
 	assert.Equal(t, 1, len(logs))
 
-	isFlagSet = true
+	enableEpochsHandlerStub.IsCleanUpInformativeSCRsFlagEnabledField = true
 	finalSCRs, logs = sc.cleanInformativeOnlySCRs(scrs)
 	assert.Equal(t, 1, len(finalSCRs))
 	assert.Equal(t, 1, len(logs))
@@ -4349,12 +4305,11 @@ func TestScProcessor_TooMuchGasProvidedMessage(t *testing.T) {
 	t.Parallel()
 
 	arguments := createMockSmartContractProcessorArguments()
-	isFlagSet := false
-	arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
-		IsCleanUpInformativeSCRsFlagEnabledCalled: func() bool {
-			return isFlagSet
-		},
+	enableEpochsHandlerStub := &testscommon.EnableEpochsHandlerStub{
+		IsSCDeployFlagEnabledField:            true,
+		IsPenalizedTooMuchGasFlagEnabledField: true,
 	}
+	arguments.EnableEpochsHandler = enableEpochsHandlerStub
 	sc, _ := NewSmartContractProcessor(arguments)
 
 	tx := &transaction.Transaction{}
@@ -4370,7 +4325,7 @@ func TestScProcessor_TooMuchGasProvidedMessage(t *testing.T) {
 		TooMuchGasProvidedMessage, 1, 10)
 	assert.Equal(t, vmOutput.ReturnMessage, returnMessage)
 
-	isFlagSet = true
+	enableEpochsHandlerStub.IsCleanUpInformativeSCRsFlagEnabledField = true
 	vmOutput = &vmcommon.VMOutput{GasRemaining: 10}
 	sc.penalizeUserIfNeeded(tx, []byte("txHash"), vmData.DirectCall, 11, vmOutput)
 	returnMessage = "@" + fmt.Sprintf("%s for processing: gas provided = %d, gas used = %d",
