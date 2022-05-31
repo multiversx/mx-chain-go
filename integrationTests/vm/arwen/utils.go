@@ -23,7 +23,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/common/forking"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
@@ -309,7 +308,6 @@ func (context *TestContext) initTxProcessorWithOneSCExecutorWithVMs() {
 		ShardCoordinator:   oneShardCoordinator,
 		BuiltInFunctions:   context.BlockchainHook.GetBuiltinFunctionsContainer(),
 		ArgumentParser:     parsers.NewCallArgsParser(),
-		EpochNotifier:      forking.NewGenericEpochNotifier(),
 		ESDTTransferParser: esdtTransferParser,
 	}
 
