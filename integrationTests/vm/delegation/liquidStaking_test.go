@@ -44,18 +44,18 @@ func TestDelegationSystemSCWithLiquidStaking(t *testing.T) {
 	}
 
 	nrRoundsToPropagateMultiShard := 12
-	time.Sleep(2 * time.Second)
+	time.Sleep(time.Second)
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
-	time.Sleep(2 * time.Second)
+	time.Sleep(time.Second)
 
 	// claim again
 	for _, node := range nodes {
 		integrationTests.CreateAndSendTransaction(node, nodes, big.NewInt(0), vm.LiquidStakingSCAddress, txData, core.MinMetaTxExtraGasCost)
 	}
 
-	time.Sleep(2 * time.Second)
+	time.Sleep(time.Second)
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
-	time.Sleep(2 * time.Second)
+	time.Sleep(time.Second)
 
 	for i := 1; i < len(nodes); i++ {
 		checkLPPosition(t, nodes[i].OwnAccount.Address, nodes, tokenID, uint64(1), big.NewInt(10000))
@@ -87,10 +87,10 @@ func TestDelegationSystemSCWithLiquidStaking(t *testing.T) {
 	for _, node := range nodes {
 		integrationTests.CreateAndSendTransaction(node, nodes, big.NewInt(0), node.OwnAccount.Address, txBuilder.ToString(), core.MinMetaTxExtraGasCost)
 	}
-	time.Sleep(2 * time.Second)
+	time.Sleep(time.Second)
 	finalWait := 20
 	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, finalWait, nonce, round, idxProposers)
-	time.Sleep(2 * time.Second)
+	time.Sleep(time.Second)
 
 	for _, node := range nodes {
 		checkLPPosition(t, node.OwnAccount.Address, nodes, tokenID, uint64(1), big.NewInt(0))
