@@ -1,5 +1,6 @@
 package testscommon
 
+// EnableEpochsHandlerStub -
 type EnableEpochsHandlerStub struct {
 	ResetPenalizedTooMuchGasFlagCalled                       func()
 	BlockGasAndFeesReCheckEnableEpochField                   uint32

@@ -137,17 +137,17 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsSenderInOutTransferFlagEnabled())
 		assert.True(t, handler.IsStakeFlagEnabled())
 		assert.True(t, handler.IsStakingV2FlagEnabled())
-		assert.False(t, handler.IsStakingV2OwnerFlagEnabled())
+		assert.False(t, handler.IsStakingV2OwnerFlagEnabled()) // epoch == limit
 		assert.True(t, handler.IsStakingV2DelegationFlagEnabled())
 		assert.True(t, handler.IsDoubleKeyProtectionFlagEnabled())
 		assert.True(t, handler.IsESDTFlagEnabled())
-		assert.False(t, handler.IsESDTFlagEnabledForCurrentEpoch())
+		assert.False(t, handler.IsESDTFlagEnabledForCurrentEpoch()) // epoch == limit
 		assert.True(t, handler.IsGovernanceFlagEnabled())
-		assert.False(t, handler.IsGovernanceFlagEnabledForCurrentEpoch())
+		assert.False(t, handler.IsGovernanceFlagEnabledForCurrentEpoch()) // epoch == limit
 		assert.True(t, handler.IsDelegationManagerFlagEnabled())
 		assert.True(t, handler.IsDelegationSmartContractFlagEnabled())
 		assert.True(t, handler.IsCorrectLastUnJailedFlagEnabled())
-		assert.False(t, handler.IsCorrectLastUnJailedFlagEnabledForCurrentEpoch())
+		assert.False(t, handler.IsCorrectLastUnJailedFlagEnabledForCurrentEpoch()) // epoch == limit
 		assert.True(t, handler.IsRelayedTransactionsV2FlagEnabled())
 		assert.True(t, handler.IsUnBondTokensV2FlagEnabled())
 		assert.True(t, handler.IsSaveJailedAlwaysFlagEnabled())
@@ -222,17 +222,17 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsSenderInOutTransferFlagEnabled())
 		assert.True(t, handler.IsStakeFlagEnabled())
 		assert.True(t, handler.IsStakingV2FlagEnabled())
-		assert.True(t, handler.IsStakingV2OwnerFlagEnabled())
+		assert.True(t, handler.IsStakingV2OwnerFlagEnabled()) // epoch == limit
 		assert.False(t, handler.IsStakingV2DelegationFlagEnabled())
 		assert.True(t, handler.IsDoubleKeyProtectionFlagEnabled())
 		assert.True(t, handler.IsESDTFlagEnabled())
-		assert.True(t, handler.IsESDTFlagEnabledForCurrentEpoch())
+		assert.True(t, handler.IsESDTFlagEnabledForCurrentEpoch()) // epoch == limit
 		assert.True(t, handler.IsGovernanceFlagEnabled())
-		assert.True(t, handler.IsGovernanceFlagEnabledForCurrentEpoch())
+		assert.True(t, handler.IsGovernanceFlagEnabledForCurrentEpoch()) // epoch == limit
 		assert.True(t, handler.IsDelegationManagerFlagEnabled())
 		assert.True(t, handler.IsDelegationSmartContractFlagEnabled())
 		assert.True(t, handler.IsCorrectLastUnJailedFlagEnabled())
-		assert.True(t, handler.IsCorrectLastUnJailedFlagEnabledForCurrentEpoch())
+		assert.True(t, handler.IsCorrectLastUnJailedFlagEnabledForCurrentEpoch()) // epoch == limit
 		assert.True(t, handler.IsRelayedTransactionsV2FlagEnabled())
 		assert.True(t, handler.IsUnBondTokensV2FlagEnabled())
 		assert.True(t, handler.IsSaveJailedAlwaysFlagEnabled())
@@ -302,17 +302,17 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.False(t, handler.IsSenderInOutTransferFlagEnabled())
 		assert.False(t, handler.IsStakeFlagEnabled())
 		assert.False(t, handler.IsStakingV2FlagEnabled())
-		assert.False(t, handler.IsStakingV2OwnerFlagEnabled())
+		assert.False(t, handler.IsStakingV2OwnerFlagEnabled()) // epoch == limit
 		assert.False(t, handler.IsStakingV2DelegationFlagEnabled())
 		assert.False(t, handler.IsDoubleKeyProtectionFlagEnabled())
 		assert.False(t, handler.IsESDTFlagEnabled())
-		assert.False(t, handler.IsESDTFlagEnabledForCurrentEpoch())
+		assert.False(t, handler.IsESDTFlagEnabledForCurrentEpoch()) // epoch == limit
 		assert.False(t, handler.IsGovernanceFlagEnabled())
-		assert.False(t, handler.IsGovernanceFlagEnabledForCurrentEpoch())
+		assert.False(t, handler.IsGovernanceFlagEnabledForCurrentEpoch()) // epoch == limit
 		assert.False(t, handler.IsDelegationManagerFlagEnabled())
 		assert.False(t, handler.IsDelegationSmartContractFlagEnabled())
 		assert.False(t, handler.IsCorrectLastUnJailedFlagEnabled())
-		assert.False(t, handler.IsCorrectLastUnJailedFlagEnabledForCurrentEpoch())
+		assert.False(t, handler.IsCorrectLastUnJailedFlagEnabledForCurrentEpoch()) // epoch == limit
 		assert.False(t, handler.IsRelayedTransactionsV2FlagEnabled())
 		assert.False(t, handler.IsUnBondTokensV2FlagEnabled())
 		assert.False(t, handler.IsSaveJailedAlwaysFlagEnabled())
