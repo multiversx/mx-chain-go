@@ -1215,10 +1215,8 @@ func (tc *transactionCoordinator) processCompleteMiniBlock(
 
 func (tc *transactionCoordinator) handleProcessMiniBlockInit(miniBlockHash []byte) int {
 	snapshot := tc.accounts.JournalLen()
-	if tc.shardCoordinator.SelfId() != core.MetachainShardId {
-		tc.InitProcessedTxsResults(miniBlockHash)
-		tc.gasHandler.Reset(miniBlockHash)
-	}
+	tc.InitProcessedTxsResults(miniBlockHash)
+	tc.gasHandler.Reset(miniBlockHash)
 
 	return snapshot
 }
