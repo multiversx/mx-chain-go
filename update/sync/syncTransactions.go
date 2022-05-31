@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 	"github.com/ElrondNetwork/elrond-go/update"
 )
 
@@ -229,22 +230,31 @@ func (ts *transactionsSync) receivedTransaction(txHash []byte, val interface{}) 
 		return
 	}
 
-	miniBlock, ok := ts.mapTxsToMiniBlocks[string(txHash)]
-	if !ok {
+	miniBlock, foundInMap := ts.mapTxsToMiniBlocks[string(txHash)]
+	if !foundInMap {
 		ts.mutPendingTx.Unlock()
 		return
 	}
-	_, ok = ts.mapTransactions[string(txHash)]
-	if ok {
+	_, foundInMap = ts.mapTransactions[string(txHash)]
+	if foundInMap {
 		ts.mutPendingTx.Unlock()
 		return
 	}
 
-	tx, ok := val.(data.TransactionHandler)
+	var tx data.TransactionHandler
+	var wrappedTx *txcache.WrappedTransaction
+	var ok bool
+
+	tx, ok = val.(data.TransactionHandler)
 	if !ok {
-		ts.mutPendingTx.Unlock()
-		log.Error("transactionsSync.receivedTransaction", "tx hash", txHash, "error", update.ErrWrongTypeAssertion)
-		return
+		wrappedTx, ok = val.(*txcache.WrappedTransaction)
+		if !ok {
+			ts.mutPendingTx.Unlock()
+			log.Error("transactionsSync.receivedTransaction", "tx hash", txHash, "error", update.ErrWrongTypeAssertion)
+			return
+		}
+
+		tx = wrappedTx.Tx
 	}
 
 	log.Debug("transactionsSync.receivedTransaction", "mb type", miniBlock.Type, "mb sender", miniBlock.SenderShardID, "mb receiver", miniBlock.ReceiverShardID, "tx hash got", txHash)
