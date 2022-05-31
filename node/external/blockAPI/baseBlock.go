@@ -69,10 +69,10 @@ func (bap *baseAPIBlockProcessor) getIntraMiniblocks(receiptsHash []byte, epoch 
 		return nil
 	}
 
-	return bap.extractMbsFromBatch(batchWithMbs, epoch, withTxs)
+	return bap.extractIntraShardMbsFromBatch(batchWithMbs, epoch, withTxs)
 }
 
-func (bap *baseAPIBlockProcessor) extractMbsFromBatch(batchWithMbs *batch.Batch, epoch uint32, withTxs bool) []*api.MiniBlock {
+func (bap *baseAPIBlockProcessor) extractIntraShardMbsFromBatch(batchWithMbs *batch.Batch, epoch uint32, withTxs bool) []*api.MiniBlock {
 	mbs := make([]*api.MiniBlock, 0)
 	for _, mbBytes := range batchWithMbs.Data {
 		miniBlock := &block.MiniBlock{}
@@ -81,7 +81,7 @@ func (bap *baseAPIBlockProcessor) extractMbsFromBatch(batchWithMbs *batch.Batch,
 			continue
 		}
 
-		miniblockAPI, ok := bap.prepareAPIMiniblock(miniBlock, epoch, withTxs)
+		miniblockAPI, ok := bap.prepareIntraShardAPIMiniblock(miniBlock, epoch, withTxs)
 		if !ok {
 			continue
 		}
@@ -92,7 +92,7 @@ func (bap *baseAPIBlockProcessor) extractMbsFromBatch(batchWithMbs *batch.Batch,
 	return mbs
 }
 
-func (bap *baseAPIBlockProcessor) prepareAPIMiniblock(miniblock *block.MiniBlock, epoch uint32, withTxs bool) (*api.MiniBlock, bool) {
+func (bap *baseAPIBlockProcessor) prepareIntraShardAPIMiniblock(miniblock *block.MiniBlock, epoch uint32, withTxs bool) (*api.MiniBlock, bool) {
 	mbHash, err := core.CalculateHash(bap.marshalizer, bap.hasher, miniblock)
 	if err != nil {
 		log.Warn("cannot compute miniblock's hash", "error", err.Error())
@@ -299,14 +299,14 @@ func (bap *baseAPIBlockProcessor) getBlockHeaderHashAndBytesByRound(round uint64
 }
 
 func extractExecutedTxHashes(mbTxHashes [][]byte, firstProcessed, lastProcessed int32) [][]byte {
-	executedTxHashes := make([][]byte, 0)
-	for txIndex, txHash := range mbTxHashes {
-		if int32(txIndex) < firstProcessed || int32(txIndex) > lastProcessed {
-			continue
-		}
-
-		executedTxHashes = append(executedTxHashes, txHash)
+	invalidIndexes := firstProcessed < 0 || lastProcessed >= int32(len(mbTxHashes)) || firstProcessed > lastProcessed
+	if invalidIndexes {
+		log.Warn("extractExecutedTxHashes encountered invalid indexes", "firstProcessed", firstProcessed,
+			"lastProcessed", lastProcessed,
+			"len(mbTxHashes)", len(mbTxHashes),
+		)
+		return mbTxHashes
 	}
 
-	return executedTxHashes
+	return mbTxHashes[firstProcessed : lastProcessed+1]
 }

@@ -256,3 +256,33 @@ func TestBaseBlock_getAndAttachTxsToMb_MiniblockTxBlock(t *testing.T) {
 		},
 	}, apiMB)
 }
+
+func TestExtractExecutedTxHashes(t *testing.T) {
+	t.Parallel()
+
+	array := make([][]byte, 10)
+	res := extractExecutedTxHashes(array, 0, int32(len(array))-1)
+	require.Len(t, res, 10)
+
+	res = extractExecutedTxHashes(array, 0, int32(len(array)))
+	require.Equal(t, res, array)
+
+	res = extractExecutedTxHashes(array, -1, int32(len(array)))
+	require.Equal(t, res, array)
+
+	res = extractExecutedTxHashes(array, 20, int32(len(array)))
+	require.Equal(t, res, array)
+
+	res = extractExecutedTxHashes(array, 0, int32(len(array))+1)
+	require.Equal(t, res, array)
+
+	res = extractExecutedTxHashes(array, 0, int32(len(array))+1)
+	require.Equal(t, res, array)
+
+	array = make([][]byte, 0, 10)
+	for idx := 0; idx < 10; idx++ {
+		array = append(array, []byte{byte(idx)})
+	}
+	res = extractExecutedTxHashes(array, 0, 5)
+	require.Equal(t, res, [][]byte{{byte(0)}, {byte(1)}, {byte(2)}, {byte(3)}, {byte(4)}, {byte(5)}})
+}
