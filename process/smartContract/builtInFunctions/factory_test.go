@@ -1,6 +1,7 @@
 package builtInFunctions
 
 import (
+	"bytes"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/common"
@@ -19,13 +20,14 @@ func createMockArguments() ArgsCreateBuiltInFunctionContainer {
 
 	gasScheduleNotifier := mock.NewGasScheduleNotifierMock(gasMap)
 	args := ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:          gasScheduleNotifier,
-		MapDNSAddresses:      make(map[string]struct{}),
-		EnableUserNameChange: false,
-		Marshalizer:          &mock.MarshalizerMock{},
-		Accounts:             &stateMock.AccountsStub{},
-		ShardCoordinator:     mock.NewMultiShardsCoordinatorMock(1),
-		EpochNotifier:        &epochNotifier.EpochNotifierStub{},
+		GasSchedule:             gasScheduleNotifier,
+		MapDNSAddresses:         make(map[string]struct{}),
+		EnableUserNameChange:    false,
+		Marshalizer:             &mock.MarshalizerMock{},
+		Accounts:                &stateMock.AccountsStub{},
+		ShardCoordinator:        mock.NewMultiShardsCoordinatorMock(1),
+		EpochNotifier:           &epochNotifier.EpochNotifierStub{},
+		AutomaticCrawlerAddress: bytes.Repeat([]byte{1}, 32),
 	}
 
 	return args
