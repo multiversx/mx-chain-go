@@ -12,13 +12,9 @@ import (
 
 func createMockArgsPrintDoubleTransactionsDetector() ArgsPrintDoubleTransactionsDetector {
 	return ArgsPrintDoubleTransactionsDetector{
-		Marshaller: &testscommon.MarshalizerMock{},
-		Hasher:     &testscommon.HasherStub{},
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
-			IsAddFailedRelayedTxToInvalidMBsFlagCalled: func() bool {
-				return false
-			},
-		},
+		Marshaller:          &testscommon.MarshalizerMock{},
+		Hasher:              &testscommon.HasherStub{},
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
 	}
 }
 
@@ -136,9 +132,7 @@ func TestPrintDoubleTransactionsDetector_ProcessBlockBody(t *testing.T) {
 		debugCalled := false
 		args := createMockArgsPrintDoubleTransactionsDetector()
 		args.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
-			IsAddTokensToDelegationFlagEnabledCalled: func() bool {
-				return true
-			},
+			IsAddFailedRelayedTxToInvalidMBsFlagField: true,
 		}
 		detector, _ := NewPrintDoubleTransactionsDetector(args)
 		detector.logger = &testscommon.LoggerStub{

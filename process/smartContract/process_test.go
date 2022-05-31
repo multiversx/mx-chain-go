@@ -4239,8 +4239,10 @@ func createRealEconomicsDataArgs() *economics.ArgsNewEconomicsData {
 				GasPriceModifier: 0.01,
 			},
 		},
-		EpochNotifier:               &epochNotifier.EpochNotifierStub{},
-		EnableEpochsHandler:         &testscommon.EnableEpochsHandlerStub{},
+		EpochNotifier: &epochNotifier.EpochNotifierStub{},
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
+			IsGasPriceModifierFlagEnabledField: true,
+		},
 		BuiltInFunctionsCostHandler: &mock.BuiltInCostHandlerStub{},
 	}
 }

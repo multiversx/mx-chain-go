@@ -29,10 +29,10 @@ type flagsHolder struct {
 	governanceCurrentEpochFlag                 *atomic.Flag
 	delegationManagerFlag                      *atomic.Flag
 	delegationSmartContractFlag                *atomic.Flag
-	correctLastUnjailedFlag                    *atomic.Flag
-	correctLastUnjailedCurrentEpochFlag        *atomic.Flag
+	correctLastUnJailedFlag                    *atomic.Flag
+	correctLastUnJailedCurrentEpochFlag        *atomic.Flag
 	relayedTransactionsV2Flag                  *atomic.Flag
-	unbondTokensV2Flag                         *atomic.Flag
+	unBondTokensV2Flag                         *atomic.Flag
 	saveJailedAlwaysFlag                       *atomic.Flag
 	reDelegateBelowMinCheckFlag                *atomic.Flag
 	validatorToDelegationFlag                  *atomic.Flag
@@ -63,7 +63,7 @@ type flagsHolder struct {
 	storageAPICostOptimizationFlag             *atomic.Flag
 	esdtRegisterAndSetAllRolesFlag             *atomic.Flag
 	scheduledMiniBlocksFlag                    *atomic.Flag
-	correctJailedNotUnstakedEmptyQueueFlag     *atomic.Flag
+	correctJailedNotUnStakedEmptyQueueFlag     *atomic.Flag
 	doNotReturnOldBlockInBlockchainHookFlag    *atomic.Flag
 	addFailedRelayedTxToInvalidMBsFlag         *atomic.Flag
 	scrSizeInvariantOnBuiltInResultFlag        *atomic.Flag
@@ -101,10 +101,10 @@ func newFlagsHolder() *flagsHolder {
 		governanceCurrentEpochFlag:                 &atomic.Flag{},
 		delegationManagerFlag:                      &atomic.Flag{},
 		delegationSmartContractFlag:                &atomic.Flag{},
-		correctLastUnjailedFlag:                    &atomic.Flag{},
-		correctLastUnjailedCurrentEpochFlag:        &atomic.Flag{},
+		correctLastUnJailedFlag:                    &atomic.Flag{},
+		correctLastUnJailedCurrentEpochFlag:        &atomic.Flag{},
 		relayedTransactionsV2Flag:                  &atomic.Flag{},
-		unbondTokensV2Flag:                         &atomic.Flag{},
+		unBondTokensV2Flag:                         &atomic.Flag{},
 		saveJailedAlwaysFlag:                       &atomic.Flag{},
 		reDelegateBelowMinCheckFlag:                &atomic.Flag{},
 		validatorToDelegationFlag:                  &atomic.Flag{},
@@ -135,7 +135,7 @@ func newFlagsHolder() *flagsHolder {
 		storageAPICostOptimizationFlag:             &atomic.Flag{},
 		esdtRegisterAndSetAllRolesFlag:             &atomic.Flag{},
 		scheduledMiniBlocksFlag:                    &atomic.Flag{},
-		correctJailedNotUnstakedEmptyQueueFlag:     &atomic.Flag{},
+		correctJailedNotUnStakedEmptyQueueFlag:     &atomic.Flag{},
 		doNotReturnOldBlockInBlockchainHookFlag:    &atomic.Flag{},
 		addFailedRelayedTxToInvalidMBsFlag:         &atomic.Flag{},
 		scrSizeInvariantOnBuiltInResultFlag:        &atomic.Flag{},
@@ -281,14 +281,14 @@ func (fh *flagsHolder) IsDelegationSmartContractFlagEnabled() bool {
 	return fh.delegationSmartContractFlag.IsSet()
 }
 
-// IsCorrectLastUnjailedFlagEnabled returns true if correctLastUnjailedFlag is enabled
-func (fh *flagsHolder) IsCorrectLastUnjailedFlagEnabled() bool {
-	return fh.correctLastUnjailedFlag.IsSet()
+// IsCorrectLastUnJailedFlagEnabled returns true if correctLastUnJailedFlag is enabled
+func (fh *flagsHolder) IsCorrectLastUnJailedFlagEnabled() bool {
+	return fh.correctLastUnJailedFlag.IsSet()
 }
 
-// IsCorrectLastUnjailedFlagEnabledForCurrentEpoch returns true if correctLastUnjailedCurrentEpochFlag is enabled
-func (fh *flagsHolder) IsCorrectLastUnjailedFlagEnabledForCurrentEpoch() bool {
-	return fh.correctLastUnjailedCurrentEpochFlag.IsSet()
+// IsCorrectLastUnJailedFlagEnabledForCurrentEpoch returns true if correctLastUnJailedCurrentEpochFlag is enabled
+func (fh *flagsHolder) IsCorrectLastUnJailedFlagEnabledForCurrentEpoch() bool {
+	return fh.correctLastUnJailedCurrentEpochFlag.IsSet()
 }
 
 // IsRelayedTransactionsV2FlagEnabled returns true if relayedTransactionsV2Flag is enabled
@@ -296,9 +296,9 @@ func (fh *flagsHolder) IsRelayedTransactionsV2FlagEnabled() bool {
 	return fh.relayedTransactionsV2Flag.IsSet()
 }
 
-// IsUnbondTokensV2FlagEnabled returns true if unbondTokensV2Flag is enabled
-func (fh *flagsHolder) IsUnbondTokensV2FlagEnabled() bool {
-	return fh.unbondTokensV2Flag.IsSet()
+// IsUnBondTokensV2FlagEnabled returns true if unBondTokensV2Flag is enabled
+func (fh *flagsHolder) IsUnBondTokensV2FlagEnabled() bool {
+	return fh.unBondTokensV2Flag.IsSet()
 }
 
 // IsSaveJailedAlwaysFlagEnabled returns true if saveJailedAlwaysFlag is enabled
@@ -451,9 +451,9 @@ func (fh *flagsHolder) IsScheduledMiniBlocksFlagEnabled() bool {
 	return fh.scheduledMiniBlocksFlag.IsSet()
 }
 
-// IsCorrectJailedNotUnstakedEmptyQueueFlagEnabled returns true if correctJailedNotUnstakedEmptyQueueFlag is enabled
-func (fh *flagsHolder) IsCorrectJailedNotUnstakedEmptyQueueFlagEnabled() bool {
-	return fh.correctJailedNotUnstakedEmptyQueueFlag.IsSet()
+// IsCorrectJailedNotUnStakedEmptyQueueFlagEnabled returns true if correctJailedNotUnStakedEmptyQueueFlag is enabled
+func (fh *flagsHolder) IsCorrectJailedNotUnStakedEmptyQueueFlagEnabled() bool {
+	return fh.correctJailedNotUnStakedEmptyQueueFlag.IsSet()
 }
 
 // IsDoNotReturnOldBlockInBlockchainHookFlagEnabled returns true if doNotReturnOldBlockInBlockchainHookFlag is enabled
