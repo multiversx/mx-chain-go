@@ -4,19 +4,17 @@ import (
 	"bytes"
 	"encoding/hex"
 	"math/big"
-	"strconv"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/testscommon/stakingcommon"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/require"
@@ -169,22 +167,16 @@ func (tmp *TestMetaProcessor) ProcessUnStake(t *testing.T, nodes map[string]*Nod
 			Data:    []byte(txData),
 		})
 
-		txsData := tmp.doUnStake(t, vmcommon.VMInput{
+		scrs := tmp.doUnStake(t, vmcommon.VMInput{
 			CallerAddr:  []byte(owner),
 			Arguments:   argsUnStake,
 			CallValue:   big.NewInt(0),
 			GasProvided: 10,
-		})
+		}, tmp.Marshaller)
 
-		for i, tData := range txsData {
-			txHash = []byte("rrrr" + strconv.Itoa(i))
-			txHashes = append(txHashes, txHash)
-
-			tmp.TxCacher.AddTx(txHash, &smartContractResult.SmartContractResult{
-				RcvAddr: vm.StakingSCAddress,
-				Data:    []byte(tData),
-			})
-
+		for scrHash, scr := range scrs {
+			txHashes = append(txHashes, []byte(scrHash))
+			tmp.TxCacher.AddTx([]byte(scrHash), scr)
 		}
 	}
 	_, err := tmp.AccountsAdapter.Commit()
@@ -205,7 +197,7 @@ func (tmp *TestMetaProcessor) ProcessUnStake(t *testing.T, nodes map[string]*Nod
 }
 
 //TODO:
-// - Do the same for unStake/unJail
+// - Do the same for unJail
 func (tmp *TestMetaProcessor) doStake(t *testing.T, vmInput vmcommon.VMInput) {
 	arguments := &vmcommon.ContractCallInput{
 		VMInput:       vmInput,
@@ -220,7 +212,11 @@ func (tmp *TestMetaProcessor) doStake(t *testing.T, vmInput vmcommon.VMInput) {
 	require.Nil(t, err)
 }
 
-func (tmp *TestMetaProcessor) doUnStake(t *testing.T, vmInput vmcommon.VMInput) []string {
+func (tmp *TestMetaProcessor) doUnStake(
+	t *testing.T,
+	vmInput vmcommon.VMInput,
+	marshaller marshal.Marshalizer,
+) map[string]*smartContractResult.SmartContractResult {
 	arguments := &vmcommon.ContractCallInput{
 		VMInput:       vmInput,
 		RecipientAddr: vm.ValidatorSCAddress,
@@ -230,45 +226,34 @@ func (tmp *TestMetaProcessor) doUnStake(t *testing.T, vmInput vmcommon.VMInput) 
 	require.Nil(t, err)
 	require.Equal(t, vmcommon.Ok, vmOutput.ReturnCode)
 
-	txsData, err := ProcessSCOutputAccounts(vmOutput, tmp.AccountsAdapter)
+	err = integrationTests.ProcessSCOutputAccounts(vmOutput, tmp.AccountsAdapter)
 	require.Nil(t, err)
-	return txsData
+
+	return createSCRFromStakingSCOutput(vmOutput, marshaller)
 }
 
-func ProcessSCOutputAccounts(vmOutput *vmcommon.VMOutput, accountsDB state.AccountsAdapter) ([]string, error) {
+func createSCRFromStakingSCOutput(
+	vmOutput *vmcommon.VMOutput,
+	marshaller marshal.Marshalizer,
+) map[string]*smartContractResult.SmartContractResult {
+	allSCR := make(map[string]*smartContractResult.SmartContractResult)
+	parser := smartContract.NewArgumentParser()
 	outputAccounts := process.SortVMOutputInsideData(vmOutput)
-	data := make([]string, 0)
 	for _, outAcc := range outputAccounts {
-		acc := stakingcommon.LoadUserAccount(accountsDB, outAcc.Address)
-
 		storageUpdates := process.GetSortedStorageUpdates(outAcc)
-		for _, storeUpdate := range storageUpdates {
-			err := acc.DataTrieTracker().SaveKeyValue(storeUpdate.Offset, storeUpdate.Data)
-			if err != nil {
-				return nil, err
+
+		if bytes.Equal(outAcc.Address, vm.StakingSCAddress) {
+			scrData := parser.CreateDataFromStorageUpdate(storageUpdates)
+			scr := &smartContractResult.SmartContractResult{
+				RcvAddr: vm.StakingSCAddress,
+				Data:    []byte(scrData),
 			}
+			scrBytes, _ := marshaller.Marshal(scr)
+			scrHash := hex.EncodeToString(scrBytes)
 
-			if outAcc.BalanceDelta != nil && outAcc.BalanceDelta.Cmp(big.NewInt(0)) != 0 {
-				err = acc.AddToBalance(outAcc.BalanceDelta)
-				if err != nil {
-					return nil, err
-				}
-			}
-
-			err = accountsDB.SaveAccount(acc)
-			if err != nil {
-				return nil, err
-			}
-
-			if bytes.Equal(outAcc.Address, vm.StakingSCAddress) {
-				parser := smartContract.NewArgumentParser()
-				data2 := parser.CreateDataFromStorageUpdate(storageUpdates)
-				data = append(data, data2)
-
-			}
-
+			allSCR[scrHash] = scr
 		}
 	}
 
-	return data, nil
+	return allSCR
 }
