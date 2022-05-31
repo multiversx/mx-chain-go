@@ -1454,16 +1454,21 @@ func Test_getProcessedMiniBlocks(t *testing.T) {
 
 	processedMiniBlocks = getProcessedMiniBlocks(metaBlock, 0, processedMiniBlocks, referencedMetaBlockHash)
 
+	idxOfMiniBlock0, idxOfMiniBlock1 := 0, 1
+	if bytes.Equal(processedMiniBlocks[0].MiniBlocksHashes[0], mbHash2) {
+		idxOfMiniBlock0, idxOfMiniBlock1 = 1, 0
+	}
+
 	require.Equal(t, 1, len(processedMiniBlocks))
 	require.Equal(t, 2, len(processedMiniBlocks[0].MiniBlocksHashes))
 	require.Equal(t, 2, len(processedMiniBlocks[0].IndexOfLastTxProcessed))
 	require.Equal(t, 2, len(processedMiniBlocks[0].FullyProcessed))
 
 	require.Equal(t, referencedMetaBlockHash, processedMiniBlocks[0].MetaHash)
-	assert.Equal(t, int32(mbh1.TxCount-2), processedMiniBlocks[0].IndexOfLastTxProcessed[0])
-	assert.Equal(t, int32(mbh1.TxCount-1), processedMiniBlocks[0].IndexOfLastTxProcessed[1])
-	assert.False(t, processedMiniBlocks[0].FullyProcessed[0])
-	assert.True(t, processedMiniBlocks[0].FullyProcessed[1])
-	assert.Equal(t, mbHash1, processedMiniBlocks[0].MiniBlocksHashes[0])
-	assert.Equal(t, mbHash2, processedMiniBlocks[0].MiniBlocksHashes[1])
+	assert.Equal(t, int32(mbh1.TxCount-2), processedMiniBlocks[0].IndexOfLastTxProcessed[idxOfMiniBlock0])
+	assert.Equal(t, int32(mbh1.TxCount-1), processedMiniBlocks[0].IndexOfLastTxProcessed[idxOfMiniBlock1])
+	assert.False(t, processedMiniBlocks[0].FullyProcessed[idxOfMiniBlock0])
+	assert.True(t, processedMiniBlocks[0].FullyProcessed[idxOfMiniBlock1])
+	assert.Equal(t, mbHash1, processedMiniBlocks[0].MiniBlocksHashes[idxOfMiniBlock0])
+	assert.Equal(t, mbHash2, processedMiniBlocks[0].MiniBlocksHashes[idxOfMiniBlock1])
 }
