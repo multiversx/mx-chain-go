@@ -631,10 +631,8 @@ func TestStakingV4_UnStakeNodes(t *testing.T) {
 	requireSameSliceDifferentOrder(t, currNodesConfig.queue, queue)
 
 	// 1.1 Owner2 unStakes one of his staking queue nodes. Node should be removed from staking queue list
-	node.ProcessUnStake(t, map[string]*NodesRegisterData{
-		owner2: {
-			BLSKeys: [][]byte{owner2Stats.StakingQueueKeys[0]},
-		},
+	node.ProcessUnStake(t, map[string][][]byte{
+		owner2: {owner2Stats.StakingQueueKeys[0]},
 	})
 	currNodesConfig = node.NodesConfig
 	queue = remove(queue, owner2Stats.StakingQueueKeys[0])
@@ -645,10 +643,8 @@ func TestStakingV4_UnStakeNodes(t *testing.T) {
 
 	// 1.2 Owner2 unStakes one of his waiting list keys. First node from staking queue should be added to fill its place.
 	copy(queue, currNodesConfig.queue) // copy queue to local variable so we have the queue in same order
-	node.ProcessUnStake(t, map[string]*NodesRegisterData{
-		owner2: {
-			BLSKeys: [][]byte{owner2Stats.WaitingBlsKeys[core.MetachainShardId][0]},
-		},
+	node.ProcessUnStake(t, map[string][][]byte{
+		owner2: {owner2Stats.WaitingBlsKeys[core.MetachainShardId][0]},
 	})
 	currNodesConfig = node.NodesConfig
 	require.Len(t, currNodesConfig.new, 1)
@@ -663,17 +659,16 @@ func TestStakingV4_UnStakeNodes(t *testing.T) {
 	currNodesConfig = node.NodesConfig
 	require.Len(t, getAllPubKeys(currNodesConfig.eligible), 4)
 	require.Len(t, getAllPubKeys(currNodesConfig.waiting), 6)
-	// owner2's waiting list which was unStaked in previous epoch is now leaving
+	// Owner2's node from waiting list which was unStaked in previous epoch is now leaving
 	require.Len(t, currNodesConfig.leaving, 1)
 	require.Equal(t, owner2Stats.WaitingBlsKeys[core.MetachainShardId][0], currNodesConfig.leaving[core.MetachainShardId][0])
 	require.Len(t, currNodesConfig.auction, 5)
+	// All nodes from queue have been moved to auction
 	requireSameSliceDifferentOrder(t, queue, currNodesConfig.auction)
 
 	// 2.1 Owner3 unStakes one of his nodes from auction
-	node.ProcessUnStake(t, map[string]*NodesRegisterData{
-		owner3: {
-			BLSKeys: [][]byte{owner3StakingQueue[1]},
-		},
+	node.ProcessUnStake(t, map[string][][]byte{
+		owner3: {owner3StakingQueue[1]},
 	})
 	unStakedNodesInStakingV4InitEpoch := make([][]byte, 0)
 	unStakedNodesInStakingV4InitEpoch = append(unStakedNodesInStakingV4InitEpoch, owner3StakingQueue[1])
@@ -685,10 +680,8 @@ func TestStakingV4_UnStakeNodes(t *testing.T) {
 	require.Empty(t, currNodesConfig.new)
 
 	// 2.2 Owner1 unStakes 2 nodes: one from auction + one active
-	node.ProcessUnStake(t, map[string]*NodesRegisterData{
-		owner1: {
-			BLSKeys: [][]byte{owner1StakingQueue[1], owner1Stats.WaitingBlsKeys[0][0]},
-		},
+	node.ProcessUnStake(t, map[string][][]byte{
+		owner1: {owner1StakingQueue[1], owner1Stats.WaitingBlsKeys[0][0]},
 	})
 	unStakedNodesInStakingV4InitEpoch = append(unStakedNodesInStakingV4InitEpoch, owner1StakingQueue[1])
 	unStakedNodesInStakingV4InitEpoch = append(unStakedNodesInStakingV4InitEpoch, owner1Stats.WaitingBlsKeys[0][0])
@@ -705,25 +698,24 @@ func TestStakingV4_UnStakeNodes(t *testing.T) {
 	require.Len(t, getAllPubKeys(currNodesConfig.eligible), 4)
 	require.Len(t, getAllPubKeys(currNodesConfig.waiting), 4)
 	require.Len(t, getAllPubKeys(currNodesConfig.leaving), 3)
+	// All unStaked nodes in previous epoch are now leaving
 	requireMapContains(t, currNodesConfig.leaving, unStakedNodesInStakingV4InitEpoch)
 	// 3.1 Owner2 unStakes one of his nodes from auction
-	node.ProcessUnStake(t, map[string]*NodesRegisterData{
-		owner2: {
-			BLSKeys: [][]byte{owner2StakingQueue[1]},
-		},
+	node.ProcessUnStake(t, map[string][][]byte{
+		owner2: {owner2StakingQueue[1]},
 	})
 	currNodesConfig = node.NodesConfig
 	queue = remove(queue, owner2StakingQueue[1])
-	requireSliceContains(t, currNodesConfig.auction, getAllPubKeys(currNodesConfig.shuffledOut))
+	shuffledOutNodes := getAllPubKeys(currNodesConfig.shuffledOut)
+	require.Len(t, currNodesConfig.auction, len(shuffledOutNodes)+len(queue))
+	requireSliceContains(t, currNodesConfig.auction, shuffledOutNodes)
 	requireSliceContains(t, currNodesConfig.auction, queue)
 
 	// 4. Check config after whole staking v4 chain is ready, when one of the owners unStakes a node
 	node.Process(t, 4)
 	currNodesConfig = node.NodesConfig
-	node.ProcessUnStake(t, map[string]*NodesRegisterData{
-		owner2: {
-			BLSKeys: [][]byte{owner2Stats.EligibleBlsKeys[0][0]},
-		},
+	node.ProcessUnStake(t, map[string][][]byte{
+		owner2: {owner2Stats.EligibleBlsKeys[0][0]},
 	})
 	node.Process(t, 4)
 	currNodesConfig = node.NodesConfig

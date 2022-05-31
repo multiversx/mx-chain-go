@@ -124,44 +124,6 @@ func (tmp *TestMetaProcessor) ProcessStake(t *testing.T, nodes map[string]*Nodes
 	tmp.currentRound += 1
 }
 
-// ProcessUnStake will create a block containing mini blocks with unStaking txs using provided nodes.
-// Block will be committed + call to validator system sc will be made to unStake all nodes
-func (tmp *TestMetaProcessor) ProcessUnStake(t *testing.T, nodes map[string]*NodesRegisterData) {
-	header := tmp.createNewHeader(t, tmp.currentRound)
-	tmp.BlockChainHook.SetCurrentHeader(header)
-
-	txHashes := make([][]byte, 0)
-	for owner, nodesData := range nodes {
-		scrs := tmp.doUnStake(t, vmcommon.VMInput{
-			CallerAddr:  []byte(owner),
-			Arguments:   createUnStakeArgs(nodesData.BLSKeys),
-			CallValue:   big.NewInt(0),
-			GasProvided: 10,
-		}, tmp.Marshaller)
-
-		for scrHash, scr := range scrs {
-			txHashes = append(txHashes, []byte(scrHash))
-			tmp.TxCacher.AddTx([]byte(scrHash), scr)
-		}
-	}
-
-	_, err := tmp.AccountsAdapter.Commit()
-	require.Nil(t, err)
-
-	miniBlocks := block.MiniBlockSlice{
-		{
-			TxHashes:        txHashes,
-			SenderShardID:   core.MetachainShardId,
-			ReceiverShardID: core.MetachainShardId,
-			Type:            block.SmartContractResultBlock,
-		},
-	}
-	tmp.TxCoordinator.AddTxsFromMiniBlocks(miniBlocks)
-	tmp.createAndCommitBlock(t, header, noTime)
-
-	tmp.currentRound += 1
-}
-
 func createStakeArgs(blsKeys [][]byte) [][]byte {
 	numBLSKeys := int64(len(blsKeys))
 	numBLSKeysBytes := big.NewInt(numBLSKeys).Bytes()
@@ -195,6 +157,44 @@ func (tmp *TestMetaProcessor) doStake(
 	require.Nil(t, err)
 
 	return createSCRsFromStakingSCOutput(vmOutput, marshaller)
+}
+
+// ProcessUnStake will create a block containing mini blocks with unStaking txs using provided nodes.
+// Block will be committed + call to validator system sc will be made to unStake all nodes
+func (tmp *TestMetaProcessor) ProcessUnStake(t *testing.T, nodes map[string][][]byte) {
+	header := tmp.createNewHeader(t, tmp.currentRound)
+	tmp.BlockChainHook.SetCurrentHeader(header)
+
+	txHashes := make([][]byte, 0)
+	for owner, blsKeys := range nodes {
+		scrs := tmp.doUnStake(t, vmcommon.VMInput{
+			CallerAddr:  []byte(owner),
+			Arguments:   createUnStakeArgs(blsKeys),
+			CallValue:   big.NewInt(0),
+			GasProvided: 10,
+		}, tmp.Marshaller)
+
+		for scrHash, scr := range scrs {
+			txHashes = append(txHashes, []byte(scrHash))
+			tmp.TxCacher.AddTx([]byte(scrHash), scr)
+		}
+	}
+
+	_, err := tmp.AccountsAdapter.Commit()
+	require.Nil(t, err)
+
+	miniBlocks := block.MiniBlockSlice{
+		{
+			TxHashes:        txHashes,
+			SenderShardID:   core.MetachainShardId,
+			ReceiverShardID: core.MetachainShardId,
+			Type:            block.SmartContractResultBlock,
+		},
+	}
+	tmp.TxCoordinator.AddTxsFromMiniBlocks(miniBlocks)
+	tmp.createAndCommitBlock(t, header, noTime)
+
+	tmp.currentRound += 1
 }
 
 func createUnStakeArgs(blsKeys [][]byte) [][]byte {
