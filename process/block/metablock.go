@@ -1278,9 +1278,9 @@ func (mp *metaProcessor) CommitBlock(
 
 	go mp.historyRepo.OnNotarizedBlocks(mp.shardCoordinator.SelfId(), []data.HeaderHandler{currentHeader}, [][]byte{currentHeaderHash})
 
-	log.Debug("highest final meta block",
-		"nonce", mp.forkDetector.GetHighestFinalBlockNonce(),
-	)
+	highestFinalBlockNonce := mp.forkDetector.GetHighestFinalBlockNonce()
+
+	log.Debug("highest final meta block", "nonce", highestFinalBlockNonce)
 
 	lastHeader := mp.blockChain.GetCurrentBlockHeader()
 	lastMetaBlock, ok := lastHeader.(data.MetaHeaderHandler)
@@ -1305,6 +1305,7 @@ func (mp *metaProcessor) CommitBlock(
 	}
 
 	mp.blockChain.SetCurrentBlockHeaderHash(headerHash)
+	mp.blockChain.SetHighestFinalBlockNonce(highestFinalBlockNonce)
 
 	if !check.IfNil(lastMetaBlock) && lastMetaBlock.IsStartOfEpochBlock() {
 		mp.blockTracker.CleanupInvalidCrossHeaders(header.Epoch, header.Round)
@@ -1313,7 +1314,6 @@ func (mp *metaProcessor) CommitBlock(
 	mp.indexBlock(header, headerHash, body, lastMetaBlock, notarizedHeadersHashes, rewardsTxs)
 	mp.recordBlockInHistory(headerHash, headerHandler, bodyHandler)
 
-	highestFinalBlockNonce := mp.forkDetector.GetHighestFinalBlockNonce()
 	saveMetricsForCommitMetachainBlock(mp.appStatusHandler, header, headerHash, mp.nodesCoordinator, highestFinalBlockNonce)
 
 	headersPool := mp.dataPool.Headers()

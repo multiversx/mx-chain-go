@@ -15,7 +15,9 @@ var _ data.ChainHandler = (*metaChain)(nil)
 // The MetaChain also holds pointers to the Genesis block and the current block.
 type metaChain struct {
 	*baseBlockChain
+	// Question for review: perhaps move this to baseBlockchain?
 	currentBlockRootHash []byte
+	finalTracker         *highestFinalTracker
 }
 
 // NewMetaChain will initialize a new metachain instance
@@ -28,6 +30,7 @@ func NewMetaChain(appStatusHandler core.AppStatusHandler) (*metaChain, error) {
 		baseBlockChain: &baseBlockChain{
 			appStatusHandler: appStatusHandler,
 		},
+		finalTracker: newHighestFinalTracker(),
 	}, nil
 }
 
@@ -91,6 +94,26 @@ func (mc *metaChain) GetCurrentBlockRootHash() []byte {
 	copy(cloned, rootHash)
 
 	return cloned
+}
+
+func (mc *metaChain) SetHighestFinalBlockNonce(nonce uint64) {
+	mc.mut.Lock()
+	mc.finalTracker.trackCoordinates(currentCoordinates{
+		highestFinalNonce: nonce,
+		// TODO: Maybe check for nil?
+		currentBlockNonce:    mc.currentBlockHeader.GetNonce(),
+		currentBlockHash:     mc.currentBlockHeaderHash,
+		currentBlockRootHash: mc.currentBlockRootHash,
+	})
+	mc.mut.Unlock()
+}
+
+func (mc *metaChain) GetHighestFinalCoordinates() (nonce uint64, hash []byte, rootHash []byte) {
+	nonce = mc.finalTracker.highestFinalRecord.blockNonce
+	hash = mc.finalTracker.highestFinalRecord.blockHash
+	rootHash = mc.finalTracker.highestFinalRecord.blockRootHash
+
+	return
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

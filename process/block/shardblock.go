@@ -968,6 +968,8 @@ func (sp *shardProcessor) CommitBlock(
 	}
 
 	sp.blockChain.SetCurrentBlockHeaderHash(headerHash)
+	sp.blockChain.SetHighestFinalBlockNonce(highestFinalBlockNonce)
+
 	sp.indexBlockIfNeeded(bodyHandler, headerHash, headerHandler, lastBlockHeader)
 	sp.recordBlockInHistory(headerHash, headerHandler, bodyHandler)
 

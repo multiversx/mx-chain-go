@@ -14,7 +14,9 @@ var _ data.ChainHandler = (*blockChain)(nil)
 // The BlockChain also holds pointers to the Genesis block header and the current block
 type blockChain struct {
 	*baseBlockChain
+	// Question for review: perhaps move this to baseBlockchain?
 	currentBlockRootHash []byte
+	finalTracker         *highestFinalTracker
 }
 
 // NewBlockChain returns an initialized blockchain
@@ -26,6 +28,7 @@ func NewBlockChain(appStatusHandler core.AppStatusHandler) (*blockChain, error) 
 		baseBlockChain: &baseBlockChain{
 			appStatusHandler: appStatusHandler,
 		},
+		finalTracker: newHighestFinalTracker(),
 	}, nil
 }
 
@@ -51,6 +54,8 @@ func (bc *blockChain) SetGenesisHeader(genesisBlock data.HeaderHandler) error {
 }
 
 // SetCurrentBlockHeaderAndRootHash sets current block header pointer and the root hash
+// Question for review: perhaps also receive the blockHash as a parameter
+// (since SetCurrentBlockHeaderAndRootHash and SetCurrentBlockHeaderHash are always called in pair)?
 func (bc *blockChain) SetCurrentBlockHeaderAndRootHash(header data.HeaderHandler, rootHash []byte) error {
 	if check.IfNil(header) {
 		bc.mut.Lock()
@@ -89,6 +94,26 @@ func (bc *blockChain) GetCurrentBlockRootHash() []byte {
 	copy(cloned, rootHash)
 
 	return cloned
+}
+
+func (bc *blockChain) SetHighestFinalBlockNonce(nonce uint64) {
+	bc.mut.Lock()
+	bc.finalTracker.trackCoordinates(currentCoordinates{
+		highestFinalNonce: nonce,
+		// TODO: Maybe check for nil?
+		currentBlockNonce:    bc.currentBlockHeader.GetNonce(),
+		currentBlockHash:     bc.currentBlockHeaderHash,
+		currentBlockRootHash: bc.currentBlockRootHash,
+	})
+	bc.mut.Unlock()
+}
+
+func (bc *blockChain) GetHighestFinalCoordinates() (nonce uint64, hash []byte, rootHash []byte) {
+	nonce = bc.finalTracker.highestFinalRecord.blockNonce
+	hash = bc.finalTracker.highestFinalRecord.blockHash
+	rootHash = bc.finalTracker.highestFinalRecord.blockRootHash
+
+	return
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
