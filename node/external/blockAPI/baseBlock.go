@@ -101,7 +101,7 @@ func (bap *baseAPIBlockProcessor) prepareAPIMiniblock(miniblock *block.MiniBlock
 		DestinationShard: miniblock.ReceiverShardID,
 	}
 
-	if options.WithTransactions {
+	if options.WithTransactions || options.WithLogs {
 		err = bap.getAndAttachTxsToMbByEpoch(mbHash, miniblock, epoch, miniblockAPI, options)
 		if err != nil {
 			return nil, err
@@ -141,6 +141,9 @@ func (bap *baseAPIBlockProcessor) getAndAttachTxsToMbByEpoch(miniblockHash []byt
 	}
 
 	if options.WithLogs {
+		if !options.WithTransactions {
+			apiMiniblock.Transactions = createTransactionsPlaceholder(miniBlock.TxHashes)
+		}
 		err := bap.logsFacade.IncludeLogsInTransactions(apiMiniblock.Transactions, miniBlock.TxHashes, epoch)
 		if err != nil {
 			return err
@@ -148,6 +151,20 @@ func (bap *baseAPIBlockProcessor) getAndAttachTxsToMbByEpoch(miniblockHash []byt
 	}
 
 	return nil
+}
+
+// Creates an array of transaction objects that only have the following fields populated: "Hash", "HashBytes"
+func createTransactionsPlaceholder(txHashes [][]byte) []*transaction.ApiTransactionResult {
+	transactions := make([]*transaction.ApiTransactionResult, 0, len(txHashes))
+
+	for _, txHash := range txHashes {
+		transactions = append(transactions, &transaction.ApiTransactionResult{
+			HashBytes: txHash,
+			Hash:      hex.EncodeToString(txHash),
+		})
+	}
+
+	return transactions
 }
 
 func (bap *baseAPIBlockProcessor) getReceiptsFromMiniblock(miniblock *block.MiniBlock, epoch uint32) ([]*transaction.ApiReceipt, error) {

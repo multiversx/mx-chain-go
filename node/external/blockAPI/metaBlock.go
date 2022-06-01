@@ -103,7 +103,7 @@ func (mbp *metaAPIBlockProcessor) convertMetaBlockBytesToAPIBlock(hash []byte, b
 			SourceShard:      mb.SenderShardID,
 			DestinationShard: mb.ReceiverShardID,
 		}
-		if options.WithTransactions {
+		if options.WithTransactions || options.WithLogs {
 			miniBlockCopy := mb
 			err := mbp.getAndAttachTxsToMb(&miniBlockCopy, headerEpoch, miniblockAPI, options)
 			if err != nil {
