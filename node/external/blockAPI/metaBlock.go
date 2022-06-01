@@ -105,13 +105,20 @@ func (mbp *metaAPIBlockProcessor) convertMetaBlockBytesToAPIBlock(hash []byte, b
 		}
 		if options.WithTransactions {
 			miniBlockCopy := mb
-			mbp.getAndAttachTxsToMb(&miniBlockCopy, headerEpoch, miniblockAPI, options)
+			err := mbp.getAndAttachTxsToMb(&miniBlockCopy, headerEpoch, miniblockAPI, options)
+			if err != nil {
+				return nil, err
+			}
 		}
 
 		miniblocks = append(miniblocks, miniblockAPI)
 	}
 
-	intraMb := mbp.getIntraMiniblocks(blockHeader.GetReceiptsHash(), headerEpoch, options)
+	intraMb, err := mbp.getIntraMiniblocks(blockHeader.GetReceiptsHash(), headerEpoch, options)
+	if err != nil {
+		return nil, err
+	}
+
 	if len(intraMb) > 0 {
 		miniblocks = append(miniblocks, intraMb...)
 	}
