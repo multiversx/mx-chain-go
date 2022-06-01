@@ -115,6 +115,16 @@ func TestCreateAPIBlockProcessorNilArgs(t *testing.T) {
 		_, err := CreateAPIBlockProcessor(arguments)
 		assert.Equal(t, process.ErrNilPubkeyConverter, err)
 	})
+
+	t.Run("NilLogsFacade", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createMockArgsAPIBlockProc()
+		arguments.LogsFacade = nil
+
+		_, err := CreateAPIBlockProcessor(arguments)
+		assert.Equal(t, errNilLogsFacade, err)
+	})
 }
 
 func TestGetBlockByHash_KeyNotFound(t *testing.T) {

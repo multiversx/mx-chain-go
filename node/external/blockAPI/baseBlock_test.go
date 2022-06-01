@@ -240,7 +240,8 @@ func TestBaseBlock_getAndAttachTxsToMb_MiniblockTxBlock(t *testing.T) {
 	}
 
 	apiMB := &api.MiniBlock{}
-	baseAPIBlockProc.getAndAttachTxsToMb(mbHeader, 0, apiMB, api.BlockQueryOptions{})
+	err := baseAPIBlockProc.getAndAttachTxsToMb(mbHeader, 0, apiMB, api.BlockQueryOptions{})
+	require.Nil(t, err)
 	require.Equal(t, &api.MiniBlock{
 		Transactions: []*transaction.ApiTransactionResult{
 			{
@@ -339,8 +340,9 @@ func TestBaseBlock_getAndAttachTxsToMbShouldIncludeLogsAsSpecified(t *testing.T)
 	// Now let's test the loading of transaction and logs
 	miniblockHeader := &block.MiniBlockHeader{Hash: miniblockHash}
 	miniblockOnApi := &api.MiniBlock{}
-	processor.getAndAttachTxsToMb(miniblockHeader, testEpoch, miniblockOnApi, api.BlockQueryOptions{WithLogs: true})
+	err := processor.getAndAttachTxsToMb(miniblockHeader, testEpoch, miniblockOnApi, api.BlockQueryOptions{WithLogs: true})
 
+	require.Nil(t, err)
 	require.Len(t, miniblockOnApi.Transactions, 3)
 	require.Equal(t, uint64(42), miniblockOnApi.Transactions[0].Nonce)
 	require.Equal(t, uint64(43), miniblockOnApi.Transactions[1].Nonce)

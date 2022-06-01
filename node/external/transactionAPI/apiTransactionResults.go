@@ -2,7 +2,6 @@ package transactionAPI
 
 import (
 	"encoding/hex"
-	"errors"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
@@ -11,7 +10,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/node/filters"
-	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 type apiTransactionResultsProcessor struct {
@@ -49,7 +47,7 @@ func newAPITransactionResultProcessor(
 }
 
 func (arp *apiTransactionResultsProcessor) putResultsInTransaction(hash []byte, tx *transaction.ApiTransactionResult, epoch uint32) {
-	arp.putLogsInTransaction(hash, tx, epoch)
+	arp.loadLogsIntoTransaction(hash, tx, epoch)
 
 	resultsHashes, err := arp.historyRepository.GetResultsHashesByTxHash(hash, epoch)
 	if err != nil {
@@ -109,27 +107,29 @@ func (arp *apiTransactionResultsProcessor) putSmartContractResultsInTransactionB
 		}
 
 		scrAPI := arp.adaptSmartContractResult(scrHash, scr)
-		arp.putLogsInSCR(scrHash, epoch, scrAPI)
+		arp.loadLogsIntoContractResults(scrHash, epoch, scrAPI)
 
 		tx.SmartContractResults = append(tx.SmartContractResults, scrAPI)
 	}
 }
 
-func (arp *apiTransactionResultsProcessor) putLogsInTransaction(hash []byte, tx *transaction.ApiTransactionResult, epoch uint32) {
+func (arp *apiTransactionResultsProcessor) loadLogsIntoTransaction(hash []byte, tx *transaction.ApiTransactionResult, epoch uint32) {
 	var err error
 
 	tx.Logs, err = arp.logsFacade.GetLog(hash, epoch)
-	if err != nil && !errors.Is(err, storage.ErrKeyNotFound) {
-		log.Warn("putLogsInTransaction()", "hash", hash, "epoch", epoch, "err", err)
+	if err != nil {
+		// TODO: We should unwrap the error, reason about its type and possibly ignore "key not found in storage" errors.
+		log.Debug("loadLogsIntoTransaction()", "hash", hash, "epoch", epoch, "err", err)
 	}
 }
 
-func (arp *apiTransactionResultsProcessor) putLogsInSCR(scrHash []byte, epoch uint32, scr *transaction.ApiSmartContractResult) {
+func (arp *apiTransactionResultsProcessor) loadLogsIntoContractResults(scrHash []byte, epoch uint32, scr *transaction.ApiSmartContractResult) {
 	var err error
 
 	scr.Logs, err = arp.logsFacade.GetLog(scrHash, epoch)
-	if err != nil && !errors.Is(err, storage.ErrKeyNotFound) {
-		log.Warn("putLogsInSCR()", "hash", scrHash, "epoch", epoch, "err", err)
+	if err != nil {
+		// TODO: We should unwrap the error, reason about its type and possibly ignore "key not found in storage" errors.
+		log.Debug("loadLogsIntoContractResults()", "hash", scrHash, "epoch", epoch, "err", err)
 	}
 }
 
