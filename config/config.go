@@ -419,7 +419,7 @@ type VirtualMachineGasConfig struct {
 
 // BuiltInFunctionsConfig holds the configuration for the built in functions
 type BuiltInFunctionsConfig struct {
-	AutomaticCrawlerAddress []byte
+	AutomaticCrawlerAddress string
 }
 
 // HardforkConfig holds the configuration for the hardfork trigger

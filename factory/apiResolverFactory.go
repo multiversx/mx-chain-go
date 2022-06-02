@@ -104,6 +104,11 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		return nil, err
 	}
 
+	pubKeyConverter := args.CoreComponents.AddressPubKeyConverter()
+	convertedAddress, err := pubKeyConverter.Decode(args.Configs.GeneralConfig.BuiltInFunctions.AutomaticCrawlerAddress)
+	if err != nil {
+		return nil, err
+	}
 	builtInFuncs, _, _, err := createBuiltinFuncs(
 		args.GasScheduleNotifier,
 		args.CoreComponents.InternalMarshalizer(),
@@ -117,7 +122,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		args.Configs.EpochConfig.EnableEpochs.OptimizeNFTStoreEnableEpoch,
 		args.Configs.EpochConfig.EnableEpochs.CheckCorrectTokenIDForTransferRoleEnableEpoch,
 		args.Configs.EpochConfig.EnableEpochs.ESDTMetadataContinuousCleanupEnableEpoch,
-		args.Configs.GeneralConfig.BuiltInFunctions.AutomaticCrawlerAddress,
+		convertedAddress,
 	)
 	if err != nil {
 		return nil, err
@@ -276,6 +281,11 @@ func createScQueryElement(
 	var vmFactory process.VirtualMachinesContainerFactory
 	var err error
 
+	pubKeyConverter := args.coreComponents.AddressPubKeyConverter()
+	convertedAddress, err := pubKeyConverter.Decode(args.generalConfig.BuiltInFunctions.AutomaticCrawlerAddress)
+	if err != nil {
+		return nil, err
+	}
 	builtInFuncs, nftStorageHandler, globalSettingsHandler, err := createBuiltinFuncs(
 		args.gasScheduleNotifier,
 		args.coreComponents.InternalMarshalizer(),
@@ -289,7 +299,7 @@ func createScQueryElement(
 		args.epochConfig.EnableEpochs.OptimizeNFTStoreEnableEpoch,
 		args.epochConfig.EnableEpochs.CheckCorrectTokenIDForTransferRoleEnableEpoch,
 		args.epochConfig.EnableEpochs.ESDTMetadataContinuousCleanupEnableEpoch,
-		args.generalConfig.BuiltInFunctions.AutomaticCrawlerAddress,
+		convertedAddress,
 	)
 	if err != nil {
 		return nil, err

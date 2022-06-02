@@ -1155,6 +1155,12 @@ func (pcf *processComponentsFactory) createBuiltInFunctionContainer(
 	accounts state.AccountsAdapter,
 	mapDNSAddresses map[string]struct{},
 ) (vmcommon.BuiltInFunctionContainer, vmcommon.SimpleESDTNFTStorageHandler, vmcommon.ESDTGlobalSettingsHandler, error) {
+	pubKeyConverter := pcf.coreData.AddressPubKeyConverter()
+	convertedAddress, err := pubKeyConverter.Decode(pcf.config.BuiltInFunctions.AutomaticCrawlerAddress)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
 		GasSchedule:                              pcf.gasSchedule,
 		MapDNSAddresses:                          mapDNSAddresses,
@@ -1169,7 +1175,7 @@ func (pcf *processComponentsFactory) createBuiltInFunctionContainer(
 		OptimizeNFTStoreEnableEpoch:              pcf.epochConfig.EnableEpochs.OptimizeNFTStoreEnableEpoch,
 		CheckCorrectTokenIDEnableEpoch:           pcf.epochConfig.EnableEpochs.CheckCorrectTokenIDForTransferRoleEnableEpoch,
 		ESDTMetadataContinuousCleanupEnableEpoch: pcf.epochConfig.EnableEpochs.ESDTMetadataContinuousCleanupEnableEpoch,
-		AutomaticCrawlerAddress:                  pcf.config.BuiltInFunctions.AutomaticCrawlerAddress,
+		AutomaticCrawlerAddress:                  convertedAddress,
 	}
 
 	return builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
