@@ -127,8 +127,7 @@ func (arp *apiTransactionResultsProcessor) loadLogsIntoContractResults(scrHash [
 
 	scr.Logs, err = arp.logsFacade.GetLog(scrHash, epoch)
 	if err != nil {
-		// TODO: We should unwrap the error, reason about its type and possibly ignore "key not found in storage" errors.
-		log.Debug("loadLogsIntoContractResults()", "hash", scrHash, "epoch", epoch, "err", err)
+		log.Trace("loadLogsIntoContractResults()", "hash", scrHash, "epoch", epoch, "err", err)
 	}
 }
 
