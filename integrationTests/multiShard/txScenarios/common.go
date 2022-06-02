@@ -36,10 +36,7 @@ func createGeneralSetupForTxTest(initialBalance *big.Int) (
 	nodesPerShard := 1
 	numMetachainNodes := 1
 
-	enableEpochs := config.EnableEpochs{
-		ScheduledMiniBlocksEnableEpoch:       10,
-		MiniBlockPartialExecutionEnableEpoch: 10,
-	}
+	enableEpochs := config.EnableEpochs{}
 
 	nodes := integrationTests.CreateNodesWithEnableEpochs(
 		numOfShards,
