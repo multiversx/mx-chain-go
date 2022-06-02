@@ -348,7 +348,7 @@ func (bn *branchNode) saveChildToStorage(
 
 	err := bn.isEmptyOrNil()
 	if err != nil {
-		return fmt.Errorf("commit snapshot error %w", err)
+		return fmt.Errorf("saveChildToStorage error %w", err)
 	}
 
 	for i, childHash := range bn.EncodedChildren {

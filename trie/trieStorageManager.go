@@ -434,7 +434,7 @@ func (tsm *trieStorageManager) takeSnapshot(snapshotEntry *snapshotsQueueEntry, 
 	err = newRoot.saveChildToStorage(stsm, snapshotEntry.leavesChan, ctx, snapshotEntry.stats, tsm.idleProvider)
 	if err != nil {
 		treatSnapshotError(err,
-			"trie storage manager: takeSnapshot commit",
+			"trie storage manager: saveChildToStorage",
 			snapshotEntry.rootHash,
 			snapshotEntry.mainTrieRootHash,
 		)
