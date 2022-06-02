@@ -10,8 +10,10 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	esdtCommon "github.com/ElrondNetwork/elrond-go/integrationTests/vm/esdt"
+	"github.com/ElrondNetwork/elrond-go/testscommon/txDataBuilder"
 )
 
 func TestESDTLocalMintAndBurnFromSC(t *testing.T) {
@@ -217,36 +219,9 @@ func TestESDTSetTransferRoles(t *testing.T) {
 
 	scAddress := esdtCommon.DeployNonPayableSmartContract(t, nodes, idxProposers, &nonce, &round, "../testdata/use-module.wasm")
 	nrRoundsToPropagateMultiShard := 12
-
-	// issuePrice := big.NewInt(1000)
-	// txData := []byte("issueFungibleToken" + "@" + hex.EncodeToString([]byte("TOKEN")) +
-	// 	"@" + hex.EncodeToString([]byte("TKR")) + "@" + hex.EncodeToString(big.NewInt(1).Bytes()))
-	// integrationTests.CreateAndSendTransaction(
-	// 	nodes[0],
-	// 	nodes,
-	// 	issuePrice,
-	// 	scAddress,
-	// 	string(txData),
-	// 	integrationTests.AdditionalGasLimit+core.MinMetaTxExtraGasCost,
-	// )
-
-	// time.Sleep(time.Second)
-	// nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
-	// time.Sleep(time.Second)
-
-	// tokenIdentifier := string(integrationTests.GetTokenIdentifier(nodes, []byte("TKR")))
 	tokenIdentifier := esdtCommon.PrepareFungibleTokensWithLocalBurnAndMint(t, nodes, scAddress, idxProposers, &nonce, &round)
 
-	txData := []byte("setLocalRoles" + "@" + hex.EncodeToString(scAddress) +
-		"@" + hex.EncodeToString([]byte(tokenIdentifier)) + "@" + "ESDTTransferRole")
-	integrationTests.CreateAndSendTransaction(
-		nodes[0],
-		nodes,
-		big.NewInt(0),
-		scAddress,
-		string(txData),
-		integrationTests.AdditionalGasLimit+core.MinMetaTxExtraGasCost,
-	)
+	esdtCommon.SetRoles(nodes, scAddress, []byte(tokenIdentifier), [][]byte{[]byte(core.ESDTRoleTransfer)})
 
 	time.Sleep(time.Second)
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
@@ -255,23 +230,20 @@ func TestESDTSetTransferRoles(t *testing.T) {
 	destAddress := bytes.Repeat([]byte{1}, 32)
 
 	amount := int64(100)
-	txData = []byte("forwardPayments" + "@" + hex.EncodeToString(scAddress) +
-		"@" + "ESDTTransfer" +
-		"@" + hex.EncodeToString([]byte(tokenIdentifier)) +
-		"@" + hex.EncodeToString(big.NewInt(amount).Bytes()) +
-		"@" + hex.EncodeToString(destAddress) +
-		"@")
+	txData := txDataBuilder.NewBuilder()
+	txData.Clear().TransferESDT(tokenIdentifier, amount).Str("forwardPayments").Bytes(destAddress).Str("fund")
+
 	integrationTests.CreateAndSendTransaction(
 		nodes[0],
 		nodes,
 		big.NewInt(0),
 		scAddress,
-		string(txData),
+		txData.ToString(),
 		integrationTests.AdditionalGasLimit+core.MinMetaTxExtraGasCost,
 	)
-
+	_ = logger.SetLogLevel("arwen:TRACE")
 	time.Sleep(time.Second)
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 1, nonce, round, idxProposers)
 	time.Sleep(time.Second)
 
 	esdtCommon.CheckAddressHasTokens(t, destAddress, nodes, []byte(tokenIdentifier), 0, amount)
