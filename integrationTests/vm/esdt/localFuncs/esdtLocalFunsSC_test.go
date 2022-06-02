@@ -3,6 +3,7 @@
 package localFuncs
 
 import (
+	"bytes"
 	"encoding/hex"
 	"math/big"
 	"testing"
@@ -249,7 +250,7 @@ func TestESDTSetTransferRoles(t *testing.T) {
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 	time.Sleep(time.Second)
 
-	destAddress := []byte{} // ???
+	destAddress := bytes.Repeat([]byte{1}, 32)
 
 	amount := int64(100)
 	txData = []byte("forwardPayments" + "@" + hex.EncodeToString(scAddress) +
