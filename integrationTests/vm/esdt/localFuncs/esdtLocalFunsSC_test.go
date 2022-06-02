@@ -193,3 +193,83 @@ func TestESDTSetRolesAndLocalMintAndBurnFromSC(t *testing.T) {
 
 	esdtCommon.CheckAddressHasTokens(t, scAddress, nodes, []byte(tokenIdentifier), 0, 101)
 }
+
+func TestESDTSetTransferRoles(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+	nodes, idxProposers := esdtCommon.CreateNodesAndPrepareBalances(1)
+
+	defer func() {
+		for _, n := range nodes {
+			n.Close()
+		}
+	}()
+
+	initialVal := big.NewInt(10000000000)
+	integrationTests.MintAllNodes(nodes, initialVal)
+
+	round := uint64(0)
+	nonce := uint64(0)
+	round = integrationTests.IncrementAndPrintRound(round)
+	nonce++
+
+	scAddress := esdtCommon.DeployNonPayableSmartContract(t, nodes, idxProposers, &nonce, &round, "../testdata/use-module.wasm")
+
+	issuePrice := big.NewInt(1000)
+	txData := []byte("issueFungibleToken" + "@" + hex.EncodeToString([]byte("TOKEN")) +
+		"@" + hex.EncodeToString([]byte("TKR")) + "@" + hex.EncodeToString(big.NewInt(1).Bytes()))
+	integrationTests.CreateAndSendTransaction(
+		nodes[0],
+		nodes,
+		issuePrice,
+		scAddress,
+		string(txData),
+		integrationTests.AdditionalGasLimit+core.MinMetaTxExtraGasCost,
+	)
+
+	time.Sleep(time.Second)
+	nrRoundsToPropagateMultiShard := 12
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	time.Sleep(time.Second)
+
+	tokenIdentifier := string(integrationTests.GetTokenIdentifier(nodes, []byte("TKR")))
+	txData = []byte("setLocalRoles" + "@" + hex.EncodeToString(scAddress) +
+		"@" + hex.EncodeToString([]byte(tokenIdentifier)) + "@" + "ESDTTransferRole")
+	integrationTests.CreateAndSendTransaction(
+		nodes[0],
+		nodes,
+		big.NewInt(0),
+		scAddress,
+		string(txData),
+		integrationTests.AdditionalGasLimit+core.MinMetaTxExtraGasCost,
+	)
+
+	time.Sleep(time.Second)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	time.Sleep(time.Second)
+
+	destAddress := []byte{} // ???
+
+	amount := int64(100)
+	txData = []byte("forwardPayments" + "@" + hex.EncodeToString(scAddress) +
+		"@" + "ESDTTransfer" +
+		"@" + hex.EncodeToString([]byte(tokenIdentifier)) +
+		"@" + hex.EncodeToString(big.NewInt(amount).Bytes()) +
+		"@" + hex.EncodeToString(destAddress) +
+		"@")
+	integrationTests.CreateAndSendTransaction(
+		nodes[0],
+		nodes,
+		big.NewInt(0),
+		scAddress,
+		string(txData),
+		integrationTests.AdditionalGasLimit+core.MinMetaTxExtraGasCost,
+	)
+
+	time.Sleep(time.Second)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	time.Sleep(time.Second)
+
+	esdtCommon.CheckAddressHasTokens(t, destAddress, nodes, []byte(tokenIdentifier), 0, amount)
+}
