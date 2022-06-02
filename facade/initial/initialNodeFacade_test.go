@@ -121,18 +121,18 @@ func TestDisabledNodeFacade_AllMethodsShouldNotPanic(t *testing.T) {
 	assert.Nil(t, th)
 	assert.False(t, b)
 
-	ab, err := inf.GetBlockByHash("", false)
+	ab, err := inf.GetBlockByHash("", api.BlockQueryOptions{})
 	assert.Nil(t, ab)
 	assert.Equal(t, errNodeStarting, err)
 
 	c := inf.GetCode(nil)
 	assert.Nil(t, c)
 
-	ab, err = inf.GetBlockByNonce(0, false)
+	ab, err = inf.GetBlockByNonce(0, api.BlockQueryOptions{})
 	assert.Nil(t, ab)
 	assert.Equal(t, errNodeStarting, err)
 
-	ab, err = inf.GetBlockByRound(0, false)
+	ab, err = inf.GetBlockByRound(0, api.BlockQueryOptions{})
 	assert.Nil(t, ab)
 	assert.Equal(t, errNodeStarting, err)
 

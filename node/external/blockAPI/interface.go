@@ -15,9 +15,9 @@ type TransactionUnmarshaller interface {
 
 // APIBlockHandler defines the behavior of a component able to return api blocks
 type APIBlockHandler interface {
-	GetBlockByNonce(nonce uint64, withTxs bool) (*api.Block, error)
-	GetBlockByHash(hash []byte, withTxs bool) (*api.Block, error)
-	GetBlockByRound(round uint64, withTxs bool) (*api.Block, error)
+	GetBlockByNonce(nonce uint64, options api.BlockQueryOptions) (*api.Block, error)
+	GetBlockByHash(hash []byte, options api.BlockQueryOptions) (*api.Block, error)
+	GetBlockByRound(round uint64, options api.BlockQueryOptions) (*api.Block, error)
 	IsInterfaceNil() bool
 }
 
@@ -31,5 +31,11 @@ type APIInternalBlockHandler interface {
 	GetInternalMetaBlockByRound(format common.ApiOutputFormat, round uint64) (interface{}, error)
 	GetInternalStartOfEpochMetaBlock(format common.ApiOutputFormat, epoch uint32) (interface{}, error)
 	GetInternalMiniBlock(format common.ApiOutputFormat, hash []byte, epoch uint32) (interface{}, error)
+	IsInterfaceNil() bool
+}
+
+// LogsFacade defines the interface of a logs facade
+type LogsFacade interface {
+	IncludeLogsInTransactions(txs []*transaction.ApiTransactionResult, logsKeys [][]byte, epoch uint32) error
 	IsInterfaceNil() bool
 }

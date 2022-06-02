@@ -49,9 +49,9 @@ type FacadeStub struct {
 	GetESDTsWithRoleCalled                  func(address string, role string) ([]string, error)
 	GetESDTsRolesCalled                     func(address string) (map[string][]string, error)
 	GetNFTTokenIDsRegisteredByAddressCalled func(address string) ([]string, error)
-	GetBlockByHashCalled                    func(hash string, withTxs bool) (*api.Block, error)
-	GetBlockByNonceCalled                   func(nonce uint64, withTxs bool) (*api.Block, error)
-	GetBlockByRoundCalled                   func(round uint64, withTxs bool) (*api.Block, error)
+	GetBlockByHashCalled                    func(hash string, options api.BlockQueryOptions) (*api.Block, error)
+	GetBlockByNonceCalled                   func(nonce uint64, options api.BlockQueryOptions) (*api.Block, error)
+	GetBlockByRoundCalled                   func(round uint64, options api.BlockQueryOptions) (*api.Block, error)
 	GetInternalShardBlockByNonceCalled      func(format common.ApiOutputFormat, nonce uint64) (interface{}, error)
 	GetInternalShardBlockByHashCalled       func(format common.ApiOutputFormat, hash string) (interface{}, error)
 	GetInternalShardBlockByRoundCalled      func(format common.ApiOutputFormat, round uint64) (interface{}, error)
@@ -343,19 +343,19 @@ func (f *FacadeStub) GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error) {
 }
 
 // GetBlockByNonce -
-func (f *FacadeStub) GetBlockByNonce(nonce uint64, withTxs bool) (*api.Block, error) {
-	return f.GetBlockByNonceCalled(nonce, withTxs)
+func (f *FacadeStub) GetBlockByNonce(nonce uint64, options api.BlockQueryOptions) (*api.Block, error) {
+	return f.GetBlockByNonceCalled(nonce, options)
 }
 
 // GetBlockByHash -
-func (f *FacadeStub) GetBlockByHash(hash string, withTxs bool) (*api.Block, error) {
-	return f.GetBlockByHashCalled(hash, withTxs)
+func (f *FacadeStub) GetBlockByHash(hash string, options api.BlockQueryOptions) (*api.Block, error) {
+	return f.GetBlockByHashCalled(hash, options)
 }
 
 // GetBlockByRound -
-func (f *FacadeStub) GetBlockByRound(round uint64, withTxs bool) (*api.Block, error) {
+func (f *FacadeStub) GetBlockByRound(round uint64, options api.BlockQueryOptions) (*api.Block, error) {
 	if f.GetBlockByRoundCalled != nil {
-		return f.GetBlockByRoundCalled(round, withTxs)
+		return f.GetBlockByRoundCalled(round, options)
 	}
 	return nil, nil
 }

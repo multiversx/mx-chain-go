@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/facade"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/node/external/blockAPI"
+	"github.com/ElrondNetwork/elrond-go/node/external/logs"
 	"github.com/ElrondNetwork/elrond-go/node/external/timemachine/fee"
 	"github.com/ElrondNetwork/elrond-go/node/external/transactionAPI"
 	"github.com/ElrondNetwork/elrond-go/node/trieIterators"
@@ -199,6 +200,11 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		return nil, err
 	}
 
+	logsFacade, err := createLogsFacade(args)
+	if err != nil {
+		return nil, err
+	}
+
 	argsAPITransactionProc := &transactionAPI.ArgAPITransactionProcessor{
 		RoundDuration:            args.CoreComponents.GenesisNodesSetup().GetRoundDuration(),
 		GenesisTime:              args.CoreComponents.GenesisTime(),
@@ -211,6 +217,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		Uint64ByteSliceConverter: args.CoreComponents.Uint64ByteSliceConverter(),
 		FeeComputer:              feeComputer,
 		TxTypeHandler:            txTypeHandler,
+		LogsFacade:               logsFacade,
 	}
 	apiTransactionProcessor, err := transactionAPI.NewAPITransactionProcessor(argsAPITransactionProc)
 	if err != nil {
@@ -483,6 +490,11 @@ func createAPIBlockProcessorArgs(args *ApiResolverArgs, apiTransactionHandler ex
 		return nil, errors.New("error creating transaction status computer " + err.Error())
 	}
 
+	logsFacade, err := createLogsFacade(args)
+	if err != nil {
+		return nil, err
+	}
+
 	blockApiArgs := &blockAPI.ArgAPIBlockProcessor{
 		SelfShardID:              args.ProcessComponents.ShardCoordinator().SelfId(),
 		Store:                    args.DataComponents.StorageService(),
@@ -493,7 +505,16 @@ func createAPIBlockProcessorArgs(args *ApiResolverArgs, apiTransactionHandler ex
 		StatusComputer:           statusComputer,
 		AddressPubkeyConverter:   args.CoreComponents.AddressPubKeyConverter(),
 		Hasher:                   args.CoreComponents.Hasher(),
+		LogsFacade:               logsFacade,
 	}
 
 	return blockApiArgs, nil
+}
+
+func createLogsFacade(args *ApiResolverArgs) (LogsFacade, error) {
+	return logs.NewLogsFacade(logs.ArgsNewLogsFacade{
+		StorageService:  args.DataComponents.StorageService(),
+		Marshaller:      args.CoreComponents.InternalMarshalizer(),
+		PubKeyConverter: args.CoreComponents.AddressPubKeyConverter(),
+	})
 }

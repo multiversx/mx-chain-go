@@ -273,7 +273,7 @@ func TestNodeApiResolver_APIBlockHandler(t *testing.T) {
 		wasCalled := false
 		arg := createMockArgs()
 		arg.APIBlockHandler = &mock.BlockAPIHandlerStub{
-			GetBlockByNonceCalled: func(nonce uint64, withTxs bool) (*api.Block, error) {
+			GetBlockByNonceCalled: func(nonce uint64, options api.BlockQueryOptions) (*api.Block, error) {
 				wasCalled = true
 				return nil, nil
 			},
@@ -281,7 +281,7 @@ func TestNodeApiResolver_APIBlockHandler(t *testing.T) {
 
 		nar, _ := external.NewNodeApiResolver(arg)
 
-		_, _ = nar.GetBlockByNonce(10, true)
+		_, _ = nar.GetBlockByNonce(10, api.BlockQueryOptions{WithTransactions: true})
 		require.True(t, wasCalled)
 	})
 
@@ -291,7 +291,7 @@ func TestNodeApiResolver_APIBlockHandler(t *testing.T) {
 		wasCalled := false
 		arg := createMockArgs()
 		arg.APIBlockHandler = &mock.BlockAPIHandlerStub{
-			GetBlockByHashCalled: func(hash []byte, withTxs bool) (*api.Block, error) {
+			GetBlockByHashCalled: func(hash []byte, options api.BlockQueryOptions) (*api.Block, error) {
 				wasCalled = true
 				return nil, nil
 			},
@@ -299,7 +299,7 @@ func TestNodeApiResolver_APIBlockHandler(t *testing.T) {
 
 		nar, _ := external.NewNodeApiResolver(arg)
 
-		_, _ = nar.GetBlockByHash("0101", true)
+		_, _ = nar.GetBlockByHash("0101", api.BlockQueryOptions{WithTransactions: true})
 		require.True(t, wasCalled)
 	})
 
@@ -309,7 +309,7 @@ func TestNodeApiResolver_APIBlockHandler(t *testing.T) {
 		wasCalled := false
 		arg := createMockArgs()
 		arg.APIBlockHandler = &mock.BlockAPIHandlerStub{
-			GetBlockByRoundCalled: func(round uint64, withTxs bool) (*api.Block, error) {
+			GetBlockByRoundCalled: func(round uint64, options api.BlockQueryOptions) (*api.Block, error) {
 				wasCalled = true
 				return nil, nil
 			},
@@ -317,7 +317,7 @@ func TestNodeApiResolver_APIBlockHandler(t *testing.T) {
 
 		nar, _ := external.NewNodeApiResolver(arg)
 
-		_, _ = nar.GetBlockByRound(10, true)
+		_, _ = nar.GetBlockByRound(10, api.BlockQueryOptions{WithTransactions: true})
 		require.True(t, wasCalled)
 	})
 }

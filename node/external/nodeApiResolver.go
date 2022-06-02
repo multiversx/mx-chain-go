@@ -143,23 +143,23 @@ func (nar *nodeApiResolver) GetTransactionsPool() (*common.TransactionsPoolAPIRe
 }
 
 // GetBlockByHash will return the block with the given hash and optionally with transactions
-func (nar *nodeApiResolver) GetBlockByHash(hash string, withTxs bool) (*api.Block, error) {
+func (nar *nodeApiResolver) GetBlockByHash(hash string, options api.BlockQueryOptions) (*api.Block, error) {
 	decodedHash, err := hex.DecodeString(hash)
 	if err != nil {
 		return nil, err
 	}
 
-	return nar.apiBlockHandler.GetBlockByHash(decodedHash, withTxs)
+	return nar.apiBlockHandler.GetBlockByHash(decodedHash, options)
 }
 
 // GetBlockByNonce will return the block with the given nonce and optionally with transactions
-func (nar *nodeApiResolver) GetBlockByNonce(nonce uint64, withTxs bool) (*api.Block, error) {
-	return nar.apiBlockHandler.GetBlockByNonce(nonce, withTxs)
+func (nar *nodeApiResolver) GetBlockByNonce(nonce uint64, options api.BlockQueryOptions) (*api.Block, error) {
+	return nar.apiBlockHandler.GetBlockByNonce(nonce, options)
 }
 
 // GetBlockByRound will return the block with the given round and optionally with transactions
-func (nar *nodeApiResolver) GetBlockByRound(round uint64, withTxs bool) (*api.Block, error) {
-	return nar.apiBlockHandler.GetBlockByRound(round, withTxs)
+func (nar *nodeApiResolver) GetBlockByRound(round uint64, options api.BlockQueryOptions) (*api.Block, error) {
+	return nar.apiBlockHandler.GetBlockByRound(round, options)
 }
 
 // GetInternalMetaBlockByHash will return a meta block by hash

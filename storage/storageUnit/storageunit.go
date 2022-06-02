@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing/blake2b"
 	"github.com/ElrondNetwork/elrond-go-core/hashing/fnv"
 	"github.com/ElrondNetwork/elrond-go-core/hashing/keccak"
+	storageCore "github.com/ElrondNetwork/elrond-go-core/storage"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -185,8 +186,8 @@ func (u *Unit) GetFromEpoch(key []byte, _ uint32) ([]byte, error) {
 }
 
 // GetBulkFromEpoch will call the Get method for all keys as this storer doesn't handle epochs
-func (u *Unit) GetBulkFromEpoch(keys [][]byte, _ uint32) ([]common.KeyValuePair, error) {
-	results := make([]common.KeyValuePair, 0, len(keys))
+func (u *Unit) GetBulkFromEpoch(keys [][]byte, _ uint32) ([]storageCore.KeyValuePair, error) {
+	results := make([]storageCore.KeyValuePair, 0, len(keys))
 	for _, key := range keys {
 		value, err := u.Get(key)
 		if err != nil {
@@ -196,7 +197,7 @@ func (u *Unit) GetBulkFromEpoch(keys [][]byte, _ uint32) ([]common.KeyValuePair,
 			)
 			continue
 		}
-		keyValue := common.KeyValuePair{Key: key, Value: value}
+		keyValue := storageCore.KeyValuePair{Key: key, Value: value}
 		results = append(results, keyValue)
 	}
 	return results, nil
