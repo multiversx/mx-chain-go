@@ -21,7 +21,7 @@ func NewLogsFacade(args ArgsNewLogsFacade) (*logsFacade, error) {
 		return nil, fmt.Errorf("%w: %v", errCannotCreateLogsFacade, err)
 	}
 
-	repository := newLogsRepository(args.StorageService, args.Marshalizer)
+	repository := newLogsRepository(args.StorageService, args.Marshaller)
 	converter := newLogsConverter(args.PubKeyConverter)
 
 	return &logsFacade{

@@ -16,7 +16,7 @@ func TestNewLogsFacade(t *testing.T) {
 	t.Run("NilStorageService", func(t *testing.T) {
 		arguments := ArgsNewLogsFacade{
 			StorageService:  nil,
-			Marshalizer:     testscommon.MarshalizerMock{},
+			Marshaller:      testscommon.MarshalizerMock{},
 			PubKeyConverter: testscommon.NewPubkeyConverterMock(32),
 		}
 
@@ -26,10 +26,10 @@ func TestNewLogsFacade(t *testing.T) {
 		require.True(t, check.IfNil(facade))
 	})
 
-	t.Run("NilMarshalizer", func(t *testing.T) {
+	t.Run("NilMarshaller", func(t *testing.T) {
 		arguments := ArgsNewLogsFacade{
 			StorageService:  genericMocks.NewChainStorerMock(7),
-			Marshalizer:     nil,
+			Marshaller:      nil,
 			PubKeyConverter: testscommon.NewPubkeyConverterMock(32),
 		}
 
@@ -42,7 +42,7 @@ func TestNewLogsFacade(t *testing.T) {
 	t.Run("NilPubKeyConverter", func(t *testing.T) {
 		arguments := ArgsNewLogsFacade{
 			StorageService:  genericMocks.NewChainStorerMock(7),
-			Marshalizer:     testscommon.MarshalizerMock{},
+			Marshaller:      testscommon.MarshalizerMock{},
 			PubKeyConverter: nil,
 		}
 
@@ -55,11 +55,11 @@ func TestNewLogsFacade(t *testing.T) {
 
 func TestLogsFacade_GetLogShouldWork(t *testing.T) {
 	storageService := genericMocks.NewChainStorerMock(7)
-	marshalizer := &marshal.GogoProtoMarshalizer{}
+	marshaller := &marshal.GogoProtoMarshalizer{}
 
 	arguments := ArgsNewLogsFacade{
 		StorageService:  storageService,
-		Marshalizer:     marshalizer,
+		Marshaller:      marshaller,
 		PubKeyConverter: testscommon.NewPubkeyConverterMock(32),
 	}
 
@@ -76,7 +76,7 @@ func TestLogsFacade_GetLogShouldWork(t *testing.T) {
 	}
 
 	logKey := []byte("hello")
-	logBytes, err := marshalizer.Marshal(testLog)
+	logBytes, err := marshaller.Marshal(testLog)
 	require.Nil(t, err)
 	_ = storageService.Logs.Put(logKey, logBytes)
 
@@ -93,11 +93,11 @@ func TestLogsFacade_GetLogShouldWork(t *testing.T) {
 
 func TestLogsFacade_IncludeLogsInTransactionsShouldWork(t *testing.T) {
 	storageService := genericMocks.NewChainStorerMock(7)
-	marshalizer := &marshal.GogoProtoMarshalizer{}
+	marshaller := &marshal.GogoProtoMarshalizer{}
 
 	arguments := ArgsNewLogsFacade{
 		StorageService:  storageService,
-		Marshalizer:     marshalizer,
+		Marshaller:      marshaller,
 		PubKeyConverter: testscommon.NewPubkeyConverterMock(32),
 	}
 
@@ -130,9 +130,9 @@ func TestLogsFacade_IncludeLogsInTransactionsShouldWork(t *testing.T) {
 		},
 	}
 
-	logOfFirstBytes, _ := marshalizer.Marshal(logOfFirst)
-	logOfSecondBytes, _ := marshalizer.Marshal(logOfSecond)
-	logOfFourthBytes, _ := marshalizer.Marshal(logOfFourth)
+	logOfFirstBytes, _ := marshaller.Marshal(logOfFirst)
+	logOfSecondBytes, _ := marshaller.Marshal(logOfSecond)
+	logOfFourthBytes, _ := marshaller.Marshal(logOfFourth)
 	_ = storageService.Logs.Put([]byte{0xaa}, logOfFirstBytes)
 	_ = storageService.Logs.Put([]byte{0xbb}, logOfSecondBytes)
 	_ = storageService.Logs.Put([]byte{0xdd}, logOfFourthBytes)

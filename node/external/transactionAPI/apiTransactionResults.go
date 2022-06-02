@@ -118,8 +118,7 @@ func (arp *apiTransactionResultsProcessor) loadLogsIntoTransaction(hash []byte, 
 
 	tx.Logs, err = arp.logsFacade.GetLog(hash, epoch)
 	if err != nil {
-		// TODO: We should unwrap the error, reason about its type and possibly ignore "key not found in storage" errors.
-		log.Debug("loadLogsIntoTransaction()", "hash", hash, "epoch", epoch, "err", err)
+		log.Trace("loadLogsIntoTransaction()", "hash", hash, "epoch", epoch, "err", err)
 	}
 }
 

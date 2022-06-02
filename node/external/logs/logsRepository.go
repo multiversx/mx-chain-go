@@ -11,16 +11,16 @@ import (
 )
 
 type logsRepository struct {
-	storer      storage.Storer
-	marshalizer marshal.Marshalizer
+	storer     storage.Storer
+	marshaller marshal.Marshalizer
 }
 
-func newLogsRepository(storageService dataRetriever.StorageService, marshalizer marshal.Marshalizer) *logsRepository {
+func newLogsRepository(storageService dataRetriever.StorageService, marshaller marshal.Marshalizer) *logsRepository {
 	storer := storageService.GetStorer(dataRetriever.TxLogsUnit)
 
 	return &logsRepository{
-		storer:      storer,
-		marshalizer: marshalizer,
+		storer:     storer,
+		marshaller: marshaller,
 	}
 }
 
@@ -31,7 +31,7 @@ func (repository *logsRepository) getLog(logKey []byte, epoch uint32) (*transact
 	}
 
 	txLog := &transaction.Log{}
-	err = repository.marshalizer.Unmarshal(txLog, bytes)
+	err = repository.marshaller.Unmarshal(txLog, bytes)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %v, epoch = %d, key = %s", errCannotUnmarshalLog, err, epoch, hex.EncodeToString(logKey))
 	}
@@ -51,7 +51,7 @@ func (repository *logsRepository) getLogs(logsKeys [][]byte, epoch uint32) (map[
 
 	for _, pair := range keyValuePairs {
 		txLog := &transaction.Log{}
-		err = repository.marshalizer.Unmarshal(txLog, pair.Value)
+		err = repository.marshaller.Unmarshal(txLog, pair.Value)
 		if err != nil {
 			return nil, fmt.Errorf("%w: %v, epoch = %d, key = %s", errCannotUnmarshalLog, err, epoch, hex.EncodeToString(pair.Key))
 		}

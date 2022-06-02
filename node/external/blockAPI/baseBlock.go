@@ -58,7 +58,6 @@ func (bap *baseAPIBlockProcessor) getIntraMiniblocks(receiptsHash []byte, epoch 
 		return nil, fmt.Errorf("%w (receipts): %v, hash = %s", errCannotLoadMiniblocks, err, hex.EncodeToString(receiptsHash))
 	}
 
-	// TODO (important): define a separate proto-structure for "batch of miniblocks from receipts storage".
 	batchWithMbs := &batch.Batch{}
 	err = bap.marshalizer.Unmarshal(batchWithMbs, batchBytes)
 	if err != nil {

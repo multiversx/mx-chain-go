@@ -514,7 +514,7 @@ func createAPIBlockProcessorArgs(args *ApiResolverArgs, apiTransactionHandler ex
 func createLogsFacade(args *ApiResolverArgs) (LogsFacade, error) {
 	return logs.NewLogsFacade(logs.ArgsNewLogsFacade{
 		StorageService:  args.DataComponents.StorageService(),
-		Marshalizer:     args.CoreComponents.InternalMarshalizer(),
+		Marshaller:      args.CoreComponents.InternalMarshalizer(),
 		PubKeyConverter: args.CoreComponents.AddressPubKeyConverter(),
 	})
 }

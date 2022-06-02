@@ -13,17 +13,17 @@ func TestLogsRepository_GetLogsShouldWork(t *testing.T) {
 	epoch := uint32(7)
 
 	storageService := genericMocks.NewChainStorerMock(epoch)
-	marshalizer := &marshal.GogoProtoMarshalizer{}
+	marshaller := &marshal.GogoProtoMarshalizer{}
 
 	firstLog := &transaction.Log{Events: []*transaction.Event{{Identifier: []byte("first")}}}
 	secondLog := &transaction.Log{Events: []*transaction.Event{{Identifier: []byte("second")}}}
 
-	firstLogBytes, _ := marshalizer.Marshal(firstLog)
-	secondLogBytes, _ := marshalizer.Marshal(secondLog)
+	firstLogBytes, _ := marshaller.Marshal(firstLog)
+	secondLogBytes, _ := marshaller.Marshal(secondLog)
 	_ = storageService.Logs.Put([]byte{0xaa}, firstLogBytes)
 	_ = storageService.Logs.Put([]byte{0xbb}, secondLogBytes)
 
-	repository := newLogsRepository(storageService, marshalizer)
+	repository := newLogsRepository(storageService, marshaller)
 
 	firstLogFetched, err := repository.getLog([]byte{0xaa}, epoch)
 	require.Nil(t, err)
@@ -46,9 +46,9 @@ func TestLogsRepository_GetLogsShouldErr(t *testing.T) {
 	epoch := uint32(7)
 
 	storageService := genericMocks.NewChainStorerMock(epoch)
-	marshalizer := &marshal.GogoProtoMarshalizer{}
+	marshaller := &marshal.GogoProtoMarshalizer{}
 
-	repository := newLogsRepository(storageService, marshalizer)
+	repository := newLogsRepository(storageService, marshaller)
 
 	// Missing log
 	missingLog, err := repository.getLog([]byte{0xcc}, epoch)
