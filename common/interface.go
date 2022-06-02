@@ -145,6 +145,7 @@ type EnableEpochsHandler interface {
 	IsSwitchJailWaitingFlagEnabled() bool
 	IsBelowSignedThresholdFlagEnabled() bool
 	IsSwitchHysteresisForMinNodesFlagEnabled() bool
+	IsSwitchHysteresisForMinNodesFlagEnabledForCurrentEpoch() bool
 	IsTransactionSignedWithTxHashFlagEnabled() bool
 	IsMetaProtectionFlagEnabled() bool
 	IsAheadOfTimeGasUsageFlagEnabled() bool
@@ -164,6 +165,7 @@ type EnableEpochsHandler interface {
 	IsGovernanceFlagEnabledForCurrentEpoch() bool
 	IsDelegationManagerFlagEnabled() bool
 	IsDelegationSmartContractFlagEnabled() bool
+	IsDelegationSmartContractFlagEnabledForCurrentEpoch() bool
 	IsCorrectLastUnJailedFlagEnabled() bool
 	IsCorrectLastUnJailedFlagEnabledForCurrentEpoch() bool
 	IsRelayedTransactionsV2FlagEnabled() bool

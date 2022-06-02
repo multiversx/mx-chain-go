@@ -795,7 +795,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		NodesConfigProvider:     pcf.nodesCoordinator,
 		ShardCoordinator:        pcf.bootstrapComponents.ShardCoordinator(),
 		ESDTOwnerAddressBytes:   esdtOwnerAddress,
-		EpochConfig:             pcf.epochConfig,
+		EnableEpochsHandler:     pcf.coreData.EnableEpochsHandler(),
 	}
 	epochStartSystemSCProcessor, err := metachainEpochStart.NewSystemSCProcessor(argsEpochSystemSC)
 	if err != nil {
@@ -1100,6 +1100,7 @@ func (pcf *processComponentsFactory) createVMFactoryMeta(
 		EpochNotifier:       pcf.coreData.EpochNotifier(),
 		EpochConfig:         &pcf.epochConfig,
 		ShardCoordinator:    pcf.bootstrapComponents.ShardCoordinator(),
+		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
 	}
 	return metachain.NewVMContainerFactory(argsNewVMContainer)
 }

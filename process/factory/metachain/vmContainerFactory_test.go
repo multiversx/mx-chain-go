@@ -69,6 +69,9 @@ func createVmContainerMockArgument(gasSchedule core.GasScheduleNotifier) ArgsNew
 			},
 		},
 		ShardCoordinator: &mock.ShardCoordinatorStub{},
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
+			IsStakeFlagEnabledField: true,
+		},
 	}
 }
 
@@ -216,6 +219,18 @@ func TestNewVMContainerFactory_NilShardCoordinator(t *testing.T) {
 	assert.True(t, errors.Is(err, vm.ErrNilShardCoordinator))
 }
 
+func TestNewVMContainerFactory_NilEnableEpochsHandler(t *testing.T) {
+	t.Parallel()
+
+	gasSchedule := makeGasSchedule()
+	argsNewVmContainerFactory := createVmContainerMockArgument(gasSchedule)
+	argsNewVmContainerFactory.EnableEpochsHandler = nil
+	vmf, err := NewVMContainerFactory(argsNewVmContainerFactory)
+
+	assert.True(t, check.IfNil(vmf))
+	assert.True(t, errors.Is(err, vm.ErrNilEnableEpochsHandler))
+}
+
 func TestNewVMContainerFactory_OkValues(t *testing.T) {
 	t.Parallel()
 
@@ -326,14 +341,10 @@ func TestVmContainerFactory_Create(t *testing.T) {
 		ChanceComputer:      &mock.RaterMock{},
 		EpochNotifier:       &epochNotifier.EpochNotifierStub{},
 		EpochConfig: &config.EpochConfig{
-			EnableEpochs: config.EnableEpochs{
-				StakingV2EnableEpoch:               10,
-				StakeEnableEpoch:                   1,
-				DelegationManagerEnableEpoch:       0,
-				DelegationSmartContractEnableEpoch: 0,
-			},
+			EnableEpochs: config.EnableEpochs{},
 		},
-		ShardCoordinator: mock.NewMultiShardsCoordinatorMock(1),
+		ShardCoordinator:    mock.NewMultiShardsCoordinatorMock(1),
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
 	}
 	vmf, err := NewVMContainerFactory(argsNewVMContainerFactory)
 	assert.NotNil(t, vmf)

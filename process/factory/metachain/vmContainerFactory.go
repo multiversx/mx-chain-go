@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
@@ -43,6 +44,7 @@ type vmContainerFactory struct {
 	scFactory              vm.SystemSCContainerFactory
 	epochConfig            *config.EpochConfig
 	shardCoordinator       sharding.Coordinator
+	enableEpochsHandler    common.EnableEpochsHandler
 }
 
 // ArgsNewVMContainerFactory defines the arguments needed to create a new VM container factory
@@ -61,6 +63,7 @@ type ArgsNewVMContainerFactory struct {
 	ShardCoordinator    sharding.Coordinator
 	PubkeyConv          core.PubkeyConverter
 	BlockChainHook      process.BlockChainHookHandler
+	EnableEpochsHandler common.EnableEpochsHandler
 }
 
 // NewVMContainerFactory is responsible for creating a new virtual machine factory object
@@ -101,6 +104,9 @@ func NewVMContainerFactory(args ArgsNewVMContainerFactory) (*vmContainerFactory,
 	if check.IfNil(args.BlockChainHook) {
 		return nil, process.ErrNilBlockChainHook
 	}
+	if check.IfNil(args.EnableEpochsHandler) {
+		return nil, vm.ErrNilEnableEpochsHandler
+	}
 
 	cryptoHook := hooks.NewVMCryptoHook()
 
@@ -120,6 +126,7 @@ func NewVMContainerFactory(args ArgsNewVMContainerFactory) (*vmContainerFactory,
 		addressPubKeyConverter: args.PubkeyConv,
 		epochConfig:            args.EpochConfig,
 		shardCoordinator:       args.ShardCoordinator,
+		enableEpochsHandler:    args.EnableEpochsHandler,
 	}, nil
 }
 
@@ -191,6 +198,7 @@ func (vmf *vmContainerFactory) createSystemVMFactoryAndEEI() (vm.SystemSCContain
 		AddressPubKeyConverter: vmf.addressPubKeyConverter,
 		EpochConfig:            vmf.epochConfig,
 		ShardCoordinator:       vmf.shardCoordinator,
+		EnableEpochsHandler:    vmf.enableEpochsHandler,
 	}
 	scFactory, err := systemVMFactory.NewSystemSCFactory(argsNewSystemScFactory)
 	if err != nil {
