@@ -632,7 +632,7 @@ func isTrieSynced(storer pruningStorer, epoch uint32) bool {
 	isTrieSyncedThisEpoch := isTrieSyncedInEpoch(storer, epoch)
 
 	log.Debug("isTrieSynced",
-		"this epoch ", isTrieSyncedThisEpoch,
+		"this epoch", isTrieSyncedThisEpoch,
 		"epoch", epoch,
 	)
 	return isTrieSyncedThisEpoch
