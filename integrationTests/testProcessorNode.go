@@ -32,6 +32,7 @@ import (
 	mclsig "github.com/ElrondNetwork/elrond-go-crypto/signing/mcl/singlesig"
 	nodeFactory "github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/common/enableEpochs"
 	"github.com/ElrondNetwork/elrond-go/common/forking"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
@@ -329,11 +330,12 @@ type TestProcessorNode struct {
 	HistoryRepository        dblookupext.HistoryRepository
 	EpochNotifier            process.EpochNotifier
 	EnableEpochs             config.EnableEpochs
+	EnabledEpochsHandler     common.EnableEpochsHandler
 	UseValidVmBlsSigVerifier bool
 
-	TransactionLogProcessor        process.TransactionLogProcessor
-	PeersRatingHandler p2p.PeersRatingHandler
-	HardforkTrigger node.HardforkTrigger
+	TransactionLogProcessor process.TransactionLogProcessor
+	PeersRatingHandler      p2p.PeersRatingHandler
+	HardforkTrigger         node.HardforkTrigger
 }
 
 // CreatePkBytes creates 'numShards' public key-like byte slices
@@ -416,6 +418,15 @@ func newBaseTestProcessorNode(
 
 	messenger := CreateMessengerWithNoDiscoveryAndPeersRatingHandler(peersRatingHandler)
 
+	enabledEpochsConfig := config.EnableEpochs{
+		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: 10,
+		ScheduledMiniBlocksEnableEpoch:              1000000,
+		MiniBlockPartialExecutionEnableEpoch:        1000000,
+	}
+
+	genericEpochNotifier := forking.NewGenericEpochNotifier()
+	enabledEpochsHandler, _ := enableEpochs.NewEnableEpochsHandler(enabledEpochsConfig, genericEpochNotifier)
+
 	logsProcessor, _ := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{Marshalizer: TestMarshalizer})
 	tpn := &TestProcessorNode{
 		ShardCoordinator:        shardCoordinator,
@@ -427,7 +438,8 @@ func newBaseTestProcessorNode(
 		MinTransactionVersion:   MinTransactionVersion,
 		NodesSetup:              nodesSetup,
 		HistoryRepository:       &dblookupextMock.HistoryRepositoryStub{},
-		EpochNotifier:           forking.NewGenericEpochNotifier(),
+		EpochNotifier:           genericEpochNotifier,
+		EnabledEpochsHandler:    enabledEpochsHandler,
 		ArwenChangeLocker:       &sync.RWMutex{},
 		TransactionLogProcessor: logsProcessor,
 		Bootstrapper:            mock.NewTestBootstrapperMock(),
@@ -444,11 +456,7 @@ func newBaseTestProcessorNode(
 	tpn.StorageBootstrapper = &mock.StorageBootstrapperMock{}
 	tpn.BootstrapStorer = &mock.BoostrapStorerMock{}
 	tpn.initDataPools()
-	tpn.EnableEpochs = config.EnableEpochs{
-		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: 10,
-		ScheduledMiniBlocksEnableEpoch:              1000000,
-		MiniBlockPartialExecutionEnableEpoch:        1000000,
-	}
+	tpn.EnableEpochs = enabledEpochsConfig
 
 	return tpn
 }
@@ -1045,10 +1053,10 @@ func (tpn *TestProcessorNode) initChainHandler() {
 
 func (tpn *TestProcessorNode) initEconomicsData(economicsConfig *config.EconomicsConfig) {
 	argsNewEconomicsData := economics.ArgsNewEconomicsData{
-		Economics:                      economicsConfig,
-		PenalizedTooMuchGasEnableEpoch: 0,
-		EpochNotifier:                  &epochNotifier.EpochNotifierStub{},
-		BuiltInFunctionsCostHandler:    &mock.BuiltInCostHandlerStub{},
+		Economics:                   economicsConfig,
+		EpochNotifier:               &epochNotifier.EpochNotifierStub{},
+		EnableEpochsHandler:         &testscommon.EnableEpochsHandlerStub{},
+		BuiltInFunctionsCostHandler: &mock.BuiltInCostHandlerStub{},
 	}
 	economicsData, _ := economics.NewEconomicsData(argsNewEconomicsData)
 	tpn.EconomicsData = economics.NewTestEconomicsData(economicsData)
@@ -1592,23 +1600,21 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 
 	receiptsHandler, _ := tpn.InterimProcContainer.Get(dataBlock.ReceiptBlock)
 	argsNewTxProcessor := transaction.ArgsNewTxProcessor{
-		Accounts:                       tpn.AccntState,
-		Hasher:                         TestHasher,
-		PubkeyConv:                     TestAddressPubkeyConverter,
-		Marshalizer:                    TestMarshalizer,
-		SignMarshalizer:                TestTxSignMarshalizer,
-		ShardCoordinator:               tpn.ShardCoordinator,
-		ScProcessor:                    tpn.ScProcessor,
-		TxFeeHandler:                   tpn.FeeAccumulator,
-		TxTypeHandler:                  txTypeHandler,
-		EconomicsFee:                   tpn.EconomicsData,
-		ReceiptForwarder:               receiptsHandler,
-		BadTxForwarder:                 badBlocksHandler,
-		ArgsParser:                     tpn.ArgsParser,
-		ScrForwarder:                   tpn.ScrForwarder,
-		EpochNotifier:                  tpn.EpochNotifier,
-		RelayedTxEnableEpoch:           tpn.EnableEpochs.RelayedTransactionsEnableEpoch,
-		PenalizedTooMuchGasEnableEpoch: tpn.EnableEpochs.PenalizedTooMuchGasEnableEpoch,
+		Accounts:            tpn.AccntState,
+		Hasher:              TestHasher,
+		PubkeyConv:          TestAddressPubkeyConverter,
+		Marshalizer:         TestMarshalizer,
+		SignMarshalizer:     TestTxSignMarshalizer,
+		ShardCoordinator:    tpn.ShardCoordinator,
+		ScProcessor:         tpn.ScProcessor,
+		TxFeeHandler:        tpn.FeeAccumulator,
+		TxTypeHandler:       txTypeHandler,
+		EconomicsFee:        tpn.EconomicsData,
+		ReceiptForwarder:    receiptsHandler,
+		BadTxForwarder:      badBlocksHandler,
+		ArgsParser:          tpn.ArgsParser,
+		ScrForwarder:        tpn.ScrForwarder,
+		EnableEpochsHandler: tpn.EnabledEpochsHandler,
 	}
 	tpn.TxProcessor, _ = transaction.NewTxProcessor(argsNewTxProcessor)
 	scheduledTxsExecutionHandler, _ := preprocess.NewScheduledTxsExecution(
@@ -1844,17 +1850,15 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 	scProcessor, _ := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	tpn.ScProcessor = smartContract.NewTestScProcessor(scProcessor)
 	argsNewMetaTxProc := transaction.ArgsNewMetaTxProcessor{
-		Hasher:                                TestHasher,
-		Marshalizer:                           TestMarshalizer,
-		Accounts:                              tpn.AccntState,
-		PubkeyConv:                            TestAddressPubkeyConverter,
-		ShardCoordinator:                      tpn.ShardCoordinator,
-		ScProcessor:                           tpn.ScProcessor,
-		TxTypeHandler:                         txTypeHandler,
-		EconomicsFee:                          tpn.EconomicsData,
-		ESDTEnableEpoch:                       0,
-		EpochNotifier:                         tpn.EpochNotifier,
-		BuiltInFunctionOnMetachainEnableEpoch: tpn.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch,
+		Hasher:              TestHasher,
+		Marshalizer:         TestMarshalizer,
+		Accounts:            tpn.AccntState,
+		PubkeyConv:          TestAddressPubkeyConverter,
+		ShardCoordinator:    tpn.ShardCoordinator,
+		ScProcessor:         tpn.ScProcessor,
+		TxTypeHandler:       txTypeHandler,
+		EconomicsFee:        tpn.EconomicsData,
+		EnableEpochsHandler: tpn.EnabledEpochsHandler,
 	}
 	tpn.TxProcessor, _ = transaction.NewMetaTxProcessor(argsNewMetaTxProc)
 	scheduledTxsExecutionHandler, _ := preprocess.NewScheduledTxsExecution(
@@ -3049,6 +3053,7 @@ func GetDefaultCoreComponents() *mock.CoreComponentsStub {
 		RoundNotifierField:           &processMock.RoundNotifierStub{},
 		TxVersionCheckField:          versioning.NewTxVersionChecker(MinTransactionVersion),
 		ProcessStatusHandlerInternal: &testscommon.ProcessStatusHandlerStub{},
+		EnableEpochsHandlerField:     &testscommon.EnableEpochsHandlerStub{},
 	}
 }
 

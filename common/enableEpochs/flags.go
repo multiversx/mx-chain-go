@@ -65,6 +65,7 @@ type flagsHolder struct {
 	scheduledMiniBlocksFlag                    *atomic.Flag
 	correctJailedNotUnStakedEmptyQueueFlag     *atomic.Flag
 	doNotReturnOldBlockInBlockchainHookFlag    *atomic.Flag
+	addFailedRelayedTxToInvalidMBsFlag         *atomic.Flag
 	scrSizeInvariantOnBuiltInResultFlag        *atomic.Flag
 	checkCorrectTokenIDForTransferRoleFlag     *atomic.Flag
 	failExecutionOnEveryAPIErrorFlag           *atomic.Flag
@@ -136,6 +137,7 @@ func newFlagsHolder() *flagsHolder {
 		scheduledMiniBlocksFlag:                    &atomic.Flag{},
 		correctJailedNotUnStakedEmptyQueueFlag:     &atomic.Flag{},
 		doNotReturnOldBlockInBlockchainHookFlag:    &atomic.Flag{},
+		addFailedRelayedTxToInvalidMBsFlag:         &atomic.Flag{},
 		scrSizeInvariantOnBuiltInResultFlag:        &atomic.Flag{},
 		checkCorrectTokenIDForTransferRoleFlag:     &atomic.Flag{},
 		failExecutionOnEveryAPIErrorFlag:           &atomic.Flag{},
@@ -162,6 +164,11 @@ func (fh *flagsHolder) IsRelayedTransactionsFlagEnabled() bool {
 // IsPenalizedTooMuchGasFlagEnabled returns true if penalizedTooMuchGasFlag is enabled
 func (fh *flagsHolder) IsPenalizedTooMuchGasFlagEnabled() bool {
 	return fh.penalizedTooMuchGasFlag.IsSet()
+}
+
+// ResetPenalizedTooMuchGasFlag resets the penalizedTooMuchGasFlag
+func (fh *flagsHolder) ResetPenalizedTooMuchGasFlag() {
+	fh.penalizedTooMuchGasFlag.Reset()
 }
 
 // IsSwitchJailWaitingFlagEnabled returns true if switchJailWaitingFlag is enabled
@@ -452,6 +459,11 @@ func (fh *flagsHolder) IsCorrectJailedNotUnStakedEmptyQueueFlagEnabled() bool {
 // IsDoNotReturnOldBlockInBlockchainHookFlagEnabled returns true if doNotReturnOldBlockInBlockchainHookFlag is enabled
 func (fh *flagsHolder) IsDoNotReturnOldBlockInBlockchainHookFlagEnabled() bool {
 	return fh.doNotReturnOldBlockInBlockchainHookFlag.IsSet()
+}
+
+// IsAddFailedRelayedTxToInvalidMBsFlag returns true if addFailedRelayedTxToInvalidMBsFlag is enabled
+func (fh *flagsHolder) IsAddFailedRelayedTxToInvalidMBsFlag() bool {
+	return fh.addFailedRelayedTxToInvalidMBsFlag.IsSet()
 }
 
 // IsSCRSizeInvariantOnBuiltInResultFlagEnabled returns true if scrSizeInvariantOnBuiltInResultFlag is enabled

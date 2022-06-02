@@ -133,12 +133,12 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsGasPriceModifierFlagEnabled())
 		assert.True(t, handler.IsRepairCallbackFlagEnabled())
 		assert.True(t, handler.IsBalanceWaitingListsFlagEnabled())
-		assert.True(t, handler.IsReturnDataToLastTransferFlagEnabled()) // epoch > limit
+		assert.True(t, handler.IsReturnDataToLastTransferFlagEnabled())
 		assert.True(t, handler.IsSenderInOutTransferFlagEnabled())
 		assert.True(t, handler.IsStakeFlagEnabled())
 		assert.True(t, handler.IsStakingV2FlagEnabled())
-		assert.False(t, handler.IsStakingV2OwnerFlagEnabled())     // epoch == limit
-		assert.True(t, handler.IsStakingV2DelegationFlagEnabled()) // epoch > limit
+		assert.False(t, handler.IsStakingV2OwnerFlagEnabled()) // epoch == limit
+		assert.True(t, handler.IsStakingV2DelegationFlagEnabled())
 		assert.True(t, handler.IsDoubleKeyProtectionFlagEnabled())
 		assert.True(t, handler.IsESDTFlagEnabled())
 		assert.False(t, handler.IsESDTFlagEnabledForCurrentEpoch()) // epoch == limit
@@ -156,12 +156,12 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsWaitingListFixFlagEnabled())
 		assert.True(t, handler.IsIncrementSCRNonceInMultiTransferFlagEnabled())
 		assert.True(t, handler.IsESDTMultiTransferFlagEnabled())
-		assert.False(t, handler.IsGlobalMintBurnFlagEnabled()) // epoch < limit
+		assert.False(t, handler.IsGlobalMintBurnFlagEnabled())
 		assert.True(t, handler.IsESDTTransferRoleFlagEnabled())
 		assert.True(t, handler.IsBuiltInFunctionOnMetaFlagEnabled())
 		assert.True(t, handler.IsComputeRewardCheckpointFlagEnabled())
 		assert.True(t, handler.IsSCRSizeInvariantCheckFlagEnabled())
-		assert.False(t, handler.IsBackwardCompSaveKeyValueFlagEnabled()) // epoch < limit
+		assert.False(t, handler.IsBackwardCompSaveKeyValueFlagEnabled())
 		assert.True(t, handler.IsESDTNFTCreateOnMultiShardFlagEnabled())
 		assert.True(t, handler.IsMetaESDTSetFlagEnabled())
 		assert.True(t, handler.IsAddTokensToDelegationFlagEnabled())
@@ -182,6 +182,7 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsScheduledMiniBlocksFlagEnabled())
 		assert.True(t, handler.IsCorrectJailedNotUnStakedEmptyQueueFlagEnabled())
 		assert.True(t, handler.IsDoNotReturnOldBlockInBlockchainHookFlagEnabled())
+		assert.False(t, handler.IsAddFailedRelayedTxToInvalidMBsFlag())
 		assert.True(t, handler.IsSCRSizeInvariantOnBuiltInResultFlagEnabled())
 		assert.True(t, handler.IsCheckCorrectTokenIDForTransferRoleFlagEnabled())
 		assert.True(t, handler.IsFailExecutionOnEveryAPIErrorFlagEnabled())
@@ -217,12 +218,12 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsGasPriceModifierFlagEnabled())
 		assert.True(t, handler.IsRepairCallbackFlagEnabled())
 		assert.True(t, handler.IsBalanceWaitingListsFlagEnabled())
-		assert.True(t, handler.IsReturnDataToLastTransferFlagEnabled()) // epoch > limit
+		assert.True(t, handler.IsReturnDataToLastTransferFlagEnabled())
 		assert.True(t, handler.IsSenderInOutTransferFlagEnabled())
 		assert.True(t, handler.IsStakeFlagEnabled())
 		assert.True(t, handler.IsStakingV2FlagEnabled())
-		assert.True(t, handler.IsStakingV2OwnerFlagEnabled())       // epoch == limit
-		assert.False(t, handler.IsStakingV2DelegationFlagEnabled()) // epoch > limit
+		assert.True(t, handler.IsStakingV2OwnerFlagEnabled()) // epoch == limit
+		assert.False(t, handler.IsStakingV2DelegationFlagEnabled())
 		assert.True(t, handler.IsDoubleKeyProtectionFlagEnabled())
 		assert.True(t, handler.IsESDTFlagEnabled())
 		assert.True(t, handler.IsESDTFlagEnabledForCurrentEpoch()) // epoch == limit
@@ -240,12 +241,12 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsWaitingListFixFlagEnabled())
 		assert.True(t, handler.IsIncrementSCRNonceInMultiTransferFlagEnabled())
 		assert.True(t, handler.IsESDTMultiTransferFlagEnabled())
-		assert.False(t, handler.IsGlobalMintBurnFlagEnabled()) // epoch < limit
+		assert.False(t, handler.IsGlobalMintBurnFlagEnabled())
 		assert.True(t, handler.IsESDTTransferRoleFlagEnabled())
 		assert.True(t, handler.IsBuiltInFunctionOnMetaFlagEnabled())
 		assert.True(t, handler.IsComputeRewardCheckpointFlagEnabled())
 		assert.True(t, handler.IsSCRSizeInvariantCheckFlagEnabled())
-		assert.False(t, handler.IsBackwardCompSaveKeyValueFlagEnabled()) // epoch < limit
+		assert.False(t, handler.IsBackwardCompSaveKeyValueFlagEnabled())
 		assert.True(t, handler.IsESDTNFTCreateOnMultiShardFlagEnabled())
 		assert.True(t, handler.IsMetaESDTSetFlagEnabled())
 		assert.True(t, handler.IsAddTokensToDelegationFlagEnabled())
@@ -266,6 +267,7 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsScheduledMiniBlocksFlagEnabled())
 		assert.True(t, handler.IsCorrectJailedNotUnStakedEmptyQueueFlagEnabled())
 		assert.True(t, handler.IsDoNotReturnOldBlockInBlockchainHookFlagEnabled())
+		assert.False(t, handler.IsAddFailedRelayedTxToInvalidMBsFlag())
 		assert.True(t, handler.IsSCRSizeInvariantOnBuiltInResultFlagEnabled())
 		assert.True(t, handler.IsCheckCorrectTokenIDForTransferRoleFlagEnabled())
 		assert.True(t, handler.IsFailExecutionOnEveryAPIErrorFlagEnabled())
@@ -296,12 +298,12 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.False(t, handler.IsGasPriceModifierFlagEnabled())
 		assert.False(t, handler.IsRepairCallbackFlagEnabled())
 		assert.False(t, handler.IsBalanceWaitingListsFlagEnabled())
-		assert.False(t, handler.IsReturnDataToLastTransferFlagEnabled()) // epoch > limit
+		assert.False(t, handler.IsReturnDataToLastTransferFlagEnabled())
 		assert.False(t, handler.IsSenderInOutTransferFlagEnabled())
 		assert.False(t, handler.IsStakeFlagEnabled())
 		assert.False(t, handler.IsStakingV2FlagEnabled())
-		assert.False(t, handler.IsStakingV2OwnerFlagEnabled())      // epoch == limit
-		assert.False(t, handler.IsStakingV2DelegationFlagEnabled()) // epoch > limit
+		assert.False(t, handler.IsStakingV2OwnerFlagEnabled()) // epoch == limit
+		assert.False(t, handler.IsStakingV2DelegationFlagEnabled())
 		assert.False(t, handler.IsDoubleKeyProtectionFlagEnabled())
 		assert.False(t, handler.IsESDTFlagEnabled())
 		assert.False(t, handler.IsESDTFlagEnabledForCurrentEpoch()) // epoch == limit
@@ -319,12 +321,12 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.False(t, handler.IsWaitingListFixFlagEnabled())
 		assert.False(t, handler.IsIncrementSCRNonceInMultiTransferFlagEnabled())
 		assert.False(t, handler.IsESDTMultiTransferFlagEnabled())
-		assert.True(t, handler.IsGlobalMintBurnFlagEnabled()) // epoch < limit
+		assert.True(t, handler.IsGlobalMintBurnFlagEnabled())
 		assert.False(t, handler.IsESDTTransferRoleFlagEnabled())
 		assert.False(t, handler.IsBuiltInFunctionOnMetaFlagEnabled())
 		assert.False(t, handler.IsComputeRewardCheckpointFlagEnabled())
 		assert.False(t, handler.IsSCRSizeInvariantCheckFlagEnabled())
-		assert.True(t, handler.IsBackwardCompSaveKeyValueFlagEnabled()) // epoch < limit
+		assert.True(t, handler.IsBackwardCompSaveKeyValueFlagEnabled())
 		assert.False(t, handler.IsESDTNFTCreateOnMultiShardFlagEnabled())
 		assert.False(t, handler.IsMetaESDTSetFlagEnabled())
 		assert.False(t, handler.IsAddTokensToDelegationFlagEnabled())
@@ -345,6 +347,7 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.False(t, handler.IsScheduledMiniBlocksFlagEnabled())
 		assert.False(t, handler.IsCorrectJailedNotUnStakedEmptyQueueFlagEnabled())
 		assert.False(t, handler.IsDoNotReturnOldBlockInBlockchainHookFlagEnabled())
+		assert.True(t, handler.IsAddFailedRelayedTxToInvalidMBsFlag())
 		assert.False(t, handler.IsSCRSizeInvariantOnBuiltInResultFlagEnabled())
 		assert.False(t, handler.IsCheckCorrectTokenIDForTransferRoleFlagEnabled())
 		assert.False(t, handler.IsFailExecutionOnEveryAPIErrorFlagEnabled())

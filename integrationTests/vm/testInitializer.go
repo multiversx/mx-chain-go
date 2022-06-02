@@ -23,6 +23,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/common/enableEpochs"
 	"github.com/ElrondNetwork/elrond-go/common/forking"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -344,7 +345,7 @@ func CreateAccount(accnts state.AccountsAdapter, pubKey []byte, nonce uint64, ba
 	return hashCreated, nil
 }
 
-func createEconomicsData(penalizedTooMuchGasEnableEpoch uint32) (process.EconomicsDataHandler, error) {
+func createEconomicsData(enableEpochsConfig config.EnableEpochs) (process.EconomicsDataHandler, error) {
 	maxGasLimitPerBlock := strconv.FormatUint(math.MaxUint64, 10)
 	minGasPrice := strconv.FormatUint(1, 10)
 	minGasLimit := strconv.FormatUint(1, 10)
@@ -354,6 +355,9 @@ func createEconomicsData(penalizedTooMuchGasEnableEpoch uint32) (process.Economi
 		ArgsParser:  smartContract.NewArgumentParser(),
 		GasSchedule: mock.NewGasScheduleNotifierMock(defaults.FillGasMapInternal(map[string]map[string]uint64{}, 1)),
 	})
+
+	realEpochNotifier := forking.NewGenericEpochNotifier()
+	enableEpochsHandler, _ := enableEpochs.NewEnableEpochsHandler(enableEpochsConfig, realEpochNotifier)
 
 	argsNewEconomicsData := economics.ArgsNewEconomicsData{
 		Economics: &config.EconomicsConfig{
@@ -394,9 +398,9 @@ func createEconomicsData(penalizedTooMuchGasEnableEpoch uint32) (process.Economi
 				GasPriceModifier: 1.0,
 			},
 		},
-		PenalizedTooMuchGasEnableEpoch: penalizedTooMuchGasEnableEpoch,
-		EpochNotifier:                  &epochNotifier.EpochNotifierStub{},
-		BuiltInFunctionsCostHandler:    builtInCost,
+		EpochNotifier:               realEpochNotifier,
+		EnableEpochsHandler:         enableEpochsHandler,
+		BuiltInFunctionsCostHandler: builtInCost,
 	}
 
 	return economics.NewEconomicsData(argsNewEconomicsData)
@@ -406,7 +410,7 @@ func createEconomicsData(penalizedTooMuchGasEnableEpoch uint32) (process.Economi
 func CreateTxProcessorWithOneSCExecutorMockVM(
 	accnts state.AccountsAdapter,
 	opGas uint64,
-	enableEpochs config.EnableEpochs,
+	enableEpochsConfig config.EnableEpochs,
 	arwenChangeLocker common.Locker,
 ) (process.TransactionProcessor, error) {
 
@@ -451,7 +455,7 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 	gasSchedule := make(map[string]map[string]uint64)
 	defaults.FillGasMapInternal(gasSchedule, 1)
 
-	economicsData, err := createEconomicsData(enableEpochs.PenalizedTooMuchGasEnableEpoch)
+	economicsData, err := createEconomicsData(enableEpochsConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -477,31 +481,30 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 		GasSchedule:       mock.NewGasScheduleNotifierMock(gasSchedule),
 		TxLogsProcessor:   &mock.TxLogsProcessorStub{},
 		EpochNotifier:     forking.NewGenericEpochNotifier(),
-		EnableEpochs:      enableEpochs,
+		EnableEpochs:      enableEpochsConfig,
 		VMOutputCacher:    txcache.NewDisabledCache(),
 		ArwenChangeLocker: arwenChangeLocker,
 	}
 	scProcessor, _ := smartContract.NewSmartContractProcessor(argsNewSCProcessor)
 
+	enableEpochsHandler, _ := enableEpochs.NewEnableEpochsHandler(enableEpochsConfig, forking.NewGenericEpochNotifier())
+
 	argsNewTxProcessor := transaction.ArgsNewTxProcessor{
-		Accounts:                       accnts,
-		Hasher:                         testHasher,
-		PubkeyConv:                     pubkeyConv,
-		Marshalizer:                    testMarshalizer,
-		SignMarshalizer:                testMarshalizer,
-		ShardCoordinator:               oneShardCoordinator,
-		ScProcessor:                    scProcessor,
-		TxFeeHandler:                   &testscommon.UnsignedTxHandlerStub{},
-		TxTypeHandler:                  txTypeHandler,
-		EconomicsFee:                   economicsData,
-		ReceiptForwarder:               &mock.IntermediateTransactionHandlerMock{},
-		BadTxForwarder:                 &mock.IntermediateTransactionHandlerMock{},
-		ArgsParser:                     smartContract.NewArgumentParser(),
-		ScrForwarder:                   &mock.IntermediateTransactionHandlerMock{},
-		EpochNotifier:                  forking.NewGenericEpochNotifier(),
-		PenalizedTooMuchGasEnableEpoch: enableEpochs.PenalizedTooMuchGasEnableEpoch,
-		MetaProtectionEnableEpoch:      enableEpochs.MetaProtectionEnableEpoch,
-		RelayedTxEnableEpoch:           enableEpochs.RelayedTransactionsEnableEpoch,
+		Accounts:            accnts,
+		Hasher:              testHasher,
+		PubkeyConv:          pubkeyConv,
+		Marshalizer:         testMarshalizer,
+		SignMarshalizer:     testMarshalizer,
+		ShardCoordinator:    oneShardCoordinator,
+		ScProcessor:         scProcessor,
+		TxFeeHandler:        &testscommon.UnsignedTxHandlerStub{},
+		TxTypeHandler:       txTypeHandler,
+		EconomicsFee:        economicsData,
+		ReceiptForwarder:    &mock.IntermediateTransactionHandlerMock{},
+		BadTxForwarder:      &mock.IntermediateTransactionHandlerMock{},
+		ArgsParser:          smartContract.NewArgumentParser(),
+		ScrForwarder:        &mock.IntermediateTransactionHandlerMock{},
+		EnableEpochsHandler: enableEpochsHandler,
 	}
 
 	return transaction.NewTxProcessor(argsNewTxProcessor)
@@ -652,7 +655,7 @@ func CreateVMAndBlockchainHookMeta(
 		EpochNotifier:      &epochNotifier.EpochNotifierStub{},
 	}
 
-	economicsData, err := createEconomicsData(0)
+	economicsData, err := createEconomicsData(config.EnableEpochs{})
 	if err != nil {
 		log.LogIfError(err)
 	}
@@ -769,7 +772,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 	blockChainHook *hooks.BlockChainHookImpl,
 	feeAccumulator process.TransactionFeeHandler,
 	shardCoordinator sharding.Coordinator,
-	enableEpochs config.EnableEpochs,
+	enableEpochsConfig config.EnableEpochs,
 	arwenChangeLocker common.Locker,
 	poolsHolder dataRetriever.PoolsHolder,
 	epochNotifierInstance process.EpochNotifier,
@@ -791,12 +794,12 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 
 	gasSchedule := make(map[string]map[string]uint64)
 	defaults.FillGasMapInternal(gasSchedule, 1)
-	economicsData, err := createEconomicsData(enableEpochs.PenalizedTooMuchGasEnableEpoch)
+	economicsData, err := createEconomicsData(enableEpochsConfig)
 	if err != nil {
 		return nil, err
 	}
 
-	gasComp, err := preprocess.NewGasComputation(economicsData, txTypeHandler, forking.NewGenericEpochNotifier(), enableEpochs.SCDeployEnableEpoch)
+	gasComp, err := preprocess.NewGasComputation(economicsData, txTypeHandler, forking.NewGenericEpochNotifier(), enableEpochsConfig.SCDeployEnableEpoch)
 	if err != nil {
 		return nil, err
 	}
@@ -827,7 +830,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		EpochNotifier:     epochNotifierInstance,
 		ArwenChangeLocker: arwenChangeLocker,
 		VMOutputCacher:    txcache.NewDisabledCache(),
-		EnableEpochs:      enableEpochs,
+		EnableEpochs:      enableEpochsConfig,
 	}
 
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewSCProcessor)
@@ -836,27 +839,23 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 	}
 	testScProcessor := smartContract.NewTestScProcessor(scProcessor)
 
+	enableEpochsHandler, _ := enableEpochs.NewEnableEpochsHandler(enableEpochsConfig, epochNotifierInstance)
 	argsNewTxProcessor := transaction.ArgsNewTxProcessor{
-		Accounts:                              accnts,
-		Hasher:                                testHasher,
-		PubkeyConv:                            pubkeyConv,
-		Marshalizer:                           testMarshalizer,
-		SignMarshalizer:                       testMarshalizer,
-		ShardCoordinator:                      shardCoordinator,
-		ScProcessor:                           scProcessor,
-		TxFeeHandler:                          feeAccumulator,
-		TxTypeHandler:                         txTypeHandler,
-		EconomicsFee:                          economicsData,
-		ReceiptForwarder:                      intermediateTxHandler,
-		BadTxForwarder:                        intermediateTxHandler,
-		ArgsParser:                            smartContract.NewArgumentParser(),
-		ScrForwarder:                          intermediateTxHandler,
-		EpochNotifier:                         epochNotifierInstance,
-		PenalizedTooMuchGasEnableEpoch:        enableEpochs.PenalizedTooMuchGasEnableEpoch,
-		RelayedTxEnableEpoch:                  enableEpochs.RelayedTransactionsEnableEpoch,
-		MetaProtectionEnableEpoch:             enableEpochs.MetaProtectionEnableEpoch,
-		RelayedTxV2EnableEpoch:                enableEpochs.RelayedTransactionsV2EnableEpoch,
-		AddFailedRelayedToInvalidDisableEpoch: enableEpochs.AddFailedRelayedTxToInvalidMBsDisableEpoch,
+		Accounts:            accnts,
+		Hasher:              testHasher,
+		PubkeyConv:          pubkeyConv,
+		Marshalizer:         testMarshalizer,
+		SignMarshalizer:     testMarshalizer,
+		ShardCoordinator:    shardCoordinator,
+		ScProcessor:         scProcessor,
+		TxFeeHandler:        feeAccumulator,
+		TxTypeHandler:       txTypeHandler,
+		EconomicsFee:        economicsData,
+		ReceiptForwarder:    intermediateTxHandler,
+		BadTxForwarder:      intermediateTxHandler,
+		ArgsParser:          smartContract.NewArgumentParser(),
+		ScrForwarder:        intermediateTxHandler,
+		EnableEpochsHandler: enableEpochsHandler,
 	}
 	txProcessor, err := transaction.NewTxProcessor(argsNewTxProcessor)
 	if err != nil {

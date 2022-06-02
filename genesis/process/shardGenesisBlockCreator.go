@@ -13,6 +13,7 @@ import (
 	dataBlock "github.com/ElrondNetwork/elrond-go-core/data/block"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/common/enableEpochs"
 	"github.com/ElrondNetwork/elrond-go/common/forking"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/genesis"
@@ -347,9 +348,13 @@ func setBalanceToTrie(arg ArgsGenesisBlockCreator, accnt genesis.InitialAccountH
 	return arg.Accounts.SaveAccount(account)
 }
 
-func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpochs config.EnableEpochs) (*genesisProcessors, error) {
+func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpochsConfig config.EnableEpochs) (*genesisProcessors, error) {
 	genesisArwenLocker := &sync.RWMutex{} // use a local instance as to not run in concurrent issues when doing bootstrap
 	epochNotifier := forking.NewGenericEpochNotifier()
+	enableEpochsHandler, err := enableEpochs.NewEnableEpochsHandler(enableEpochsConfig, epochNotifier)
+	if err != nil {
+		return nil, err
+	}
 
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
 		GasSchedule:                    arg.GasSchedule,
@@ -359,12 +364,12 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		Accounts:                       arg.Accounts,
 		ShardCoordinator:               arg.ShardCoordinator,
 		EpochNotifier:                  epochNotifier,
-		ESDTMultiTransferEnableEpoch:   enableEpochs.ESDTMultiTransferEnableEpoch,
-		ESDTTransferRoleEnableEpoch:    enableEpochs.ESDTTransferRoleEnableEpoch,
-		GlobalMintBurnDisableEpoch:     enableEpochs.GlobalMintBurnDisableEpoch,
-		ESDTTransferMetaEnableEpoch:    enableEpochs.BuiltInFunctionOnMetaEnableEpoch,
-		OptimizeNFTStoreEnableEpoch:    enableEpochs.OptimizeNFTStoreEnableEpoch,
-		CheckCorrectTokenIDEnableEpoch: enableEpochs.CheckCorrectTokenIDForTransferRoleEnableEpoch,
+		ESDTMultiTransferEnableEpoch:   enableEpochsConfig.ESDTMultiTransferEnableEpoch,
+		ESDTTransferRoleEnableEpoch:    enableEpochsConfig.ESDTTransferRoleEnableEpoch,
+		GlobalMintBurnDisableEpoch:     enableEpochsConfig.GlobalMintBurnDisableEpoch,
+		ESDTTransferMetaEnableEpoch:    enableEpochsConfig.BuiltInFunctionOnMetaEnableEpoch,
+		OptimizeNFTStoreEnableEpoch:    enableEpochsConfig.OptimizeNFTStoreEnableEpoch,
+		CheckCorrectTokenIDEnableEpoch: enableEpochsConfig.CheckCorrectTokenIDForTransferRoleEnableEpoch,
 	}
 	builtInFuncs, nftStorageHandler, err := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
 	if err != nil {
@@ -385,7 +390,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		CompiledSCPool:     arg.Data.Datapool().SmartContracts(),
 		EpochNotifier:      epochNotifier,
 		NilCompiledSCStore: true,
-		EnableEpochs:       enableEpochs,
+		EnableEpochs:       enableEpochsConfig,
 	}
 	esdtTransferParser, err := parsers.NewESDTTransferParser(arg.Core.InternalMarshalizer())
 	if err != nil {
@@ -478,7 +483,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		return nil, err
 	}
 
-	gasHandler, err := preprocess.NewGasComputation(arg.Economics, txTypeHandler, epochNotifier, enableEpochs.SCDeployEnableEpoch)
+	gasHandler, err := preprocess.NewGasComputation(arg.Economics, txTypeHandler, epochNotifier, enableEpochsConfig.SCDeployEnableEpoch)
 	if err != nil {
 		return nil, err
 	}
@@ -505,7 +510,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		IsGenesisProcessing: true,
 		VMOutputCacher:      txcache.NewDisabledCache(),
 		ArwenChangeLocker:   genesisArwenLocker,
-		EnableEpochs:        enableEpochs,
+		EnableEpochs:        enableEpochsConfig,
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	if err != nil {
@@ -522,26 +527,21 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 	}
 
 	argsNewTxProcessor := transaction.ArgsNewTxProcessor{
-		Accounts:                              arg.Accounts,
-		Hasher:                                arg.Core.Hasher(),
-		PubkeyConv:                            arg.Core.AddressPubKeyConverter(),
-		Marshalizer:                           arg.Core.InternalMarshalizer(),
-		SignMarshalizer:                       arg.Core.TxMarshalizer(),
-		ShardCoordinator:                      arg.ShardCoordinator,
-		ScProcessor:                           scProcessor,
-		TxFeeHandler:                          genesisFeeHandler,
-		TxTypeHandler:                         txTypeHandler,
-		EconomicsFee:                          genesisFeeHandler,
-		ReceiptForwarder:                      receiptTxInterim,
-		BadTxForwarder:                        badTxInterim,
-		ArgsParser:                            smartContract.NewArgumentParser(),
-		ScrForwarder:                          scForwarder,
-		EpochNotifier:                         epochNotifier,
-		RelayedTxEnableEpoch:                  enableEpochs.RelayedTransactionsEnableEpoch,
-		PenalizedTooMuchGasEnableEpoch:        enableEpochs.PenalizedTooMuchGasEnableEpoch,
-		MetaProtectionEnableEpoch:             enableEpochs.MetaProtectionEnableEpoch,
-		RelayedTxV2EnableEpoch:                enableEpochs.RelayedTransactionsV2EnableEpoch,
-		AddFailedRelayedToInvalidDisableEpoch: enableEpochs.AddFailedRelayedTxToInvalidMBsDisableEpoch,
+		Accounts:            arg.Accounts,
+		Hasher:              arg.Core.Hasher(),
+		PubkeyConv:          arg.Core.AddressPubKeyConverter(),
+		Marshalizer:         arg.Core.InternalMarshalizer(),
+		SignMarshalizer:     arg.Core.TxMarshalizer(),
+		ShardCoordinator:    arg.ShardCoordinator,
+		ScProcessor:         scProcessor,
+		TxFeeHandler:        genesisFeeHandler,
+		TxTypeHandler:       txTypeHandler,
+		EconomicsFee:        genesisFeeHandler,
+		ReceiptForwarder:    receiptTxInterim,
+		BadTxForwarder:      badTxInterim,
+		ArgsParser:          smartContract.NewArgumentParser(),
+		ScrForwarder:        scForwarder,
+		EnableEpochsHandler: enableEpochsHandler,
 	}
 	transactionProcessor, err := transaction.NewTxProcessor(argsNewTxProcessor)
 	if err != nil {
@@ -574,9 +574,9 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		disabledBlockSizeComputationHandler,
 		disabledBalanceComputationHandler,
 		epochNotifier,
-		enableEpochs.OptimizeGasUsedInCrossMiniBlocksEnableEpoch,
-		enableEpochs.FrontRunningProtectionEnableEpoch,
-		enableEpochs.ScheduledMiniBlocksEnableEpoch,
+		enableEpochsConfig.OptimizeGasUsedInCrossMiniBlocksEnableEpoch,
+		enableEpochsConfig.FrontRunningProtectionEnableEpoch,
+		enableEpochsConfig.ScheduledMiniBlocksEnableEpoch,
 		txTypeHandler,
 		disabledScheduledTxsExecutionHandler,
 		disabledProcessedMiniBlocksTracker,
@@ -591,11 +591,9 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 	}
 
 	argsDetector := coordinator.ArgsPrintDoubleTransactionsDetector{
-		Marshaller:    arg.Core.InternalMarshalizer(),
-		Hasher:        arg.Core.Hasher(),
-		EpochNotifier: epochNotifier,
-
-		AddFailedRelayedTxToInvalidMBsDisableEpoch: enableEpochs.AddFailedRelayedTxToInvalidMBsDisableEpoch,
+		Marshaller:          arg.Core.InternalMarshalizer(),
+		Hasher:              arg.Core.Hasher(),
+		EnableEpochsHandler: enableEpochsHandler,
 	}
 	doubleTransactionsDetector, err := coordinator.NewPrintDoubleTransactionsDetector(argsDetector)
 	if err != nil {
@@ -617,13 +615,13 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		BalanceComputation:                   disabledBalanceComputationHandler,
 		EconomicsFee:                         genesisFeeHandler,
 		TxTypeHandler:                        txTypeHandler,
-		BlockGasAndFeesReCheckEnableEpoch:    enableEpochs.BlockGasAndFeesReCheckEnableEpoch,
+		BlockGasAndFeesReCheckEnableEpoch:    enableEpochsConfig.BlockGasAndFeesReCheckEnableEpoch,
 		TransactionsLogProcessor:             arg.TxLogsProcessor,
 		EpochNotifier:                        epochNotifier,
 		ScheduledTxsExecutionHandler:         disabledScheduledTxsExecutionHandler,
-		ScheduledMiniBlocksEnableEpoch:       enableEpochs.ScheduledMiniBlocksEnableEpoch,
+		ScheduledMiniBlocksEnableEpoch:       enableEpochsConfig.ScheduledMiniBlocksEnableEpoch,
 		DoubleTransactionsDetector:           doubleTransactionsDetector,
-		MiniBlockPartialExecutionEnableEpoch: enableEpochs.MiniBlockPartialExecutionEnableEpoch,
+		MiniBlockPartialExecutionEnableEpoch: enableEpochsConfig.MiniBlockPartialExecutionEnableEpoch,
 		ProcessedMiniBlocksTracker:           disabledProcessedMiniBlocksTracker,
 	}
 	txCoordinator, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)

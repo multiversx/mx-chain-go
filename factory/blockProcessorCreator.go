@@ -245,26 +245,21 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 	}
 
 	argsNewTxProcessor := transaction.ArgsNewTxProcessor{
-		Accounts:                              pcf.state.AccountsAdapter(),
-		Hasher:                                pcf.coreData.Hasher(),
-		PubkeyConv:                            pcf.coreData.AddressPubKeyConverter(),
-		Marshalizer:                           pcf.coreData.InternalMarshalizer(),
-		SignMarshalizer:                       pcf.coreData.TxMarshalizer(),
-		ShardCoordinator:                      pcf.bootstrapComponents.ShardCoordinator(),
-		ScProcessor:                           scProcessor,
-		TxFeeHandler:                          txFeeHandler,
-		TxTypeHandler:                         txTypeHandler,
-		EconomicsFee:                          pcf.coreData.EconomicsData(),
-		ReceiptForwarder:                      receiptTxInterim,
-		BadTxForwarder:                        badTxInterim,
-		ArgsParser:                            argsParser,
-		ScrForwarder:                          scForwarder,
-		RelayedTxEnableEpoch:                  enableEpochs.RelayedTransactionsEnableEpoch,
-		PenalizedTooMuchGasEnableEpoch:        enableEpochs.PenalizedTooMuchGasEnableEpoch,
-		MetaProtectionEnableEpoch:             enableEpochs.MetaProtectionEnableEpoch,
-		EpochNotifier:                         pcf.epochNotifier,
-		RelayedTxV2EnableEpoch:                enableEpochs.RelayedTransactionsV2EnableEpoch,
-		AddFailedRelayedToInvalidDisableEpoch: enableEpochs.AddFailedRelayedTxToInvalidMBsDisableEpoch,
+		Accounts:            pcf.state.AccountsAdapter(),
+		Hasher:              pcf.coreData.Hasher(),
+		PubkeyConv:          pcf.coreData.AddressPubKeyConverter(),
+		Marshalizer:         pcf.coreData.InternalMarshalizer(),
+		SignMarshalizer:     pcf.coreData.TxMarshalizer(),
+		ShardCoordinator:    pcf.bootstrapComponents.ShardCoordinator(),
+		ScProcessor:         scProcessor,
+		TxFeeHandler:        txFeeHandler,
+		TxTypeHandler:       txTypeHandler,
+		EconomicsFee:        pcf.coreData.EconomicsData(),
+		ReceiptForwarder:    receiptTxInterim,
+		BadTxForwarder:      badTxInterim,
+		ArgsParser:          argsParser,
+		ScrForwarder:        scForwarder,
+		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
 	}
 	transactionProcessor, err := transaction.NewTxProcessor(argsNewTxProcessor)
 	if err != nil {
@@ -336,11 +331,9 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 	}
 
 	argsDetector := coordinator.ArgsPrintDoubleTransactionsDetector{
-		Marshaller:    pcf.coreData.InternalMarshalizer(),
-		Hasher:        pcf.coreData.Hasher(),
-		EpochNotifier: pcf.epochNotifier,
-
-		AddFailedRelayedTxToInvalidMBsDisableEpoch: pcf.epochConfig.EnableEpochs.AddFailedRelayedTxToInvalidMBsDisableEpoch,
+		Marshaller:          pcf.coreData.InternalMarshalizer(),
+		Hasher:              pcf.coreData.Hasher(),
+		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
 	}
 	doubleTransactionsDetector, err := coordinator.NewPrintDoubleTransactionsDetector(argsDetector)
 	if err != nil {
@@ -553,17 +546,15 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	}
 
 	argsNewMetaTxProcessor := transaction.ArgsNewMetaTxProcessor{
-		Hasher:                                pcf.coreData.Hasher(),
-		Marshalizer:                           pcf.coreData.InternalMarshalizer(),
-		Accounts:                              pcf.state.AccountsAdapter(),
-		PubkeyConv:                            pcf.coreData.AddressPubKeyConverter(),
-		ShardCoordinator:                      pcf.bootstrapComponents.ShardCoordinator(),
-		ScProcessor:                           scProcessor,
-		TxTypeHandler:                         txTypeHandler,
-		EconomicsFee:                          pcf.coreData.EconomicsData(),
-		ESDTEnableEpoch:                       pcf.epochConfig.EnableEpochs.ESDTEnableEpoch,
-		BuiltInFunctionOnMetachainEnableEpoch: pcf.epochConfig.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch,
-		EpochNotifier:                         pcf.epochNotifier,
+		Hasher:              pcf.coreData.Hasher(),
+		Marshalizer:         pcf.coreData.InternalMarshalizer(),
+		Accounts:            pcf.state.AccountsAdapter(),
+		PubkeyConv:          pcf.coreData.AddressPubKeyConverter(),
+		ShardCoordinator:    pcf.bootstrapComponents.ShardCoordinator(),
+		ScProcessor:         scProcessor,
+		TxTypeHandler:       txTypeHandler,
+		EconomicsFee:        pcf.coreData.EconomicsData(),
+		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
 	}
 
 	transactionProcessor, err := transaction.NewMetaTxProcessor(argsNewMetaTxProcessor)
@@ -631,11 +622,9 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	}
 
 	argsDetector := coordinator.ArgsPrintDoubleTransactionsDetector{
-		Marshaller:    pcf.coreData.InternalMarshalizer(),
-		Hasher:        pcf.coreData.Hasher(),
-		EpochNotifier: pcf.epochNotifier,
-
-		AddFailedRelayedTxToInvalidMBsDisableEpoch: pcf.epochConfig.EnableEpochs.AddFailedRelayedTxToInvalidMBsDisableEpoch,
+		Marshaller:          pcf.coreData.InternalMarshalizer(),
+		Hasher:              pcf.coreData.Hasher(),
+		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
 	}
 	doubleTransactionsDetector, err := coordinator.NewPrintDoubleTransactionsDetector(argsDetector)
 	if err != nil {
@@ -1028,17 +1017,15 @@ func (pcf *processComponentsFactory) createMetaTxSimulatorProcessor(
 	}
 
 	argsNewMetaTx := transaction.ArgsNewMetaTxProcessor{
-		Hasher:                                pcf.coreData.Hasher(),
-		Marshalizer:                           pcf.coreData.InternalMarshalizer(),
-		Accounts:                              readOnlyAccountsDB,
-		PubkeyConv:                            pcf.coreData.AddressPubKeyConverter(),
-		ShardCoordinator:                      pcf.bootstrapComponents.ShardCoordinator(),
-		ScProcessor:                           scProcessor,
-		TxTypeHandler:                         txTypeHandler,
-		EconomicsFee:                          &processDisabled.FeeHandler{},
-		ESDTEnableEpoch:                       pcf.epochConfig.EnableEpochs.ESDTEnableEpoch,
-		BuiltInFunctionOnMetachainEnableEpoch: pcf.epochConfig.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch,
-		EpochNotifier:                         pcf.epochNotifier,
+		Hasher:              pcf.coreData.Hasher(),
+		Marshalizer:         pcf.coreData.InternalMarshalizer(),
+		Accounts:            readOnlyAccountsDB,
+		PubkeyConv:          pcf.coreData.AddressPubKeyConverter(),
+		ShardCoordinator:    pcf.bootstrapComponents.ShardCoordinator(),
+		ScProcessor:         scProcessor,
+		TxTypeHandler:       txTypeHandler,
+		EconomicsFee:        &processDisabled.FeeHandler{},
+		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
 	}
 
 	txSimulatorProcessorArgs.TransactionProcessor, err = transaction.NewMetaTxProcessor(argsNewMetaTx)

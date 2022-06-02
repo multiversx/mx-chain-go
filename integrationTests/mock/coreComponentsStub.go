@@ -54,6 +54,7 @@ type CoreComponentsStub struct {
 	ArwenChangeLockerInternal          common.Locker
 	ProcessStatusHandlerInternal       common.ProcessStatusHandler
 	HardforkTriggerPubKeyField         []byte
+	EnableEpochsHandlerField           common.EnableEpochsHandler
 }
 
 // Create -
@@ -257,6 +258,11 @@ func (ccs *CoreComponentsStub) String() string {
 // HardforkTriggerPubKey -
 func (ccs *CoreComponentsStub) HardforkTriggerPubKey() []byte {
 	return ccs.HardforkTriggerPubKeyField
+}
+
+// EnableEpochsHandler -
+func (ccs *CoreComponentsStub) EnableEpochsHandler() common.EnableEpochsHandler {
+	return ccs.EnableEpochsHandlerField
 }
 
 // IsInterfaceNil -

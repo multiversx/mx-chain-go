@@ -5,7 +5,6 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
-	"math"
 	"math/big"
 	"testing"
 
@@ -30,8 +29,6 @@ import (
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 	"github.com/stretchr/testify/assert"
 )
-
-const maxEpoch = math.MaxUint32
 
 func generateRandomByteSlice(size int) []byte {
 	buff := make([]byte, size)
@@ -87,7 +84,9 @@ func createArgsForTxProcessor() txproc.ArgsNewTxProcessor {
 		BadTxForwarder:   &mock.IntermediateTransactionHandlerMock{},
 		ArgsParser:       &mock.ArgumentParserMock{},
 		ScrForwarder:     &mock.IntermediateTransactionHandlerMock{},
-		EpochNotifier:    &epochNotifier.EpochNotifierStub{},
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
+			IsPenalizedTooMuchGasFlagEnabledField: true,
+		},
 	}
 	return args
 }
@@ -253,14 +252,14 @@ func TestNewTxProcessor_NilSignMarshalizerShouldErr(t *testing.T) {
 	assert.Nil(t, txProc)
 }
 
-func TestNewTxProcessor_NilEpochNotifierShouldErr(t *testing.T) {
+func TestNewTxProcessor_NilEnableEpochsHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := createArgsForTxProcessor()
-	args.EpochNotifier = nil
+	args.EnableEpochsHandler = nil
 	txProc, err := txproc.NewTxProcessor(args)
 
-	assert.Equal(t, process.ErrNilEpochNotifier, err)
+	assert.Equal(t, process.ErrNilEnableEpochsHandler, err)
 	assert.Nil(t, txProc)
 }
 
@@ -1558,6 +1557,9 @@ func TestTxProcessor_ProcessTransactionShouldReturnErrForInvalidMetaTx(t *testin
 			return process.MoveBalance, process.MoveBalance
 		},
 	}
+	args.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+		IsMetaProtectionFlagEnabledField: true,
+	}
 	execTx, _ := txproc.NewTxProcessor(args)
 
 	_, err = execTx.ProcessTransaction(&tx)
@@ -1686,7 +1688,7 @@ func TestTxProcessor_ProcessRelayedTransactionV2NotActiveShouldErr(t *testing.T)
 	args.ShardCoordinator = shardC
 	args.TxTypeHandler = txTypeHandler
 	args.PubkeyConv = pubKeyConverter
-	args.RelayedTxV2EnableEpoch = 1
+	args.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{}
 	args.ArgsParser = smartContract.NewArgumentParser()
 	execTx, _ := txproc.NewTxProcessor(args)
 
@@ -2015,6 +2017,9 @@ func TestTxProcessor_ProcessRelayedTransactionV2(t *testing.T) {
 	args.TxTypeHandler = txTypeHandler
 	args.PubkeyConv = pubKeyConverter
 	args.ArgsParser = smartContract.NewArgumentParser()
+	args.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+		IsRelayedTransactionsV2FlagEnabledField: true,
+	}
 	execTx, _ := txproc.NewTxProcessor(args)
 
 	returnCode, err := execTx.ProcessTransaction(&tx)
@@ -2090,6 +2095,9 @@ func TestTxProcessor_ProcessRelayedTransaction(t *testing.T) {
 	args.TxTypeHandler = txTypeHandler
 	args.PubkeyConv = pubKeyConverter
 	args.ArgsParser = smartContract.NewArgumentParser()
+	args.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+		IsRelayedTransactionsFlagEnabledField: true,
+	}
 	execTx, _ := txproc.NewTxProcessor(args)
 
 	returnCode, err := execTx.ProcessTransaction(&tx)
@@ -2618,7 +2626,7 @@ func TestTxProcessor_ProcessRelayedTransactionDisabled(t *testing.T) {
 	args.TxTypeHandler = txTypeHandler
 	args.PubkeyConv = pubKeyConverter
 	args.ArgsParser = smartContract.NewArgumentParser()
-	args.RelayedTxEnableEpoch = maxEpoch
+	args.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{}
 	called := false
 	args.BadTxForwarder = &mock.IntermediateTransactionHandlerMock{
 		AddIntermediateTransactionsCalled: func(txs []data.TransactionHandler) error {

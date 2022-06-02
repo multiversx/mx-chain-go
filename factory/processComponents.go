@@ -1615,6 +1615,9 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 	if check.IfNil(args.CoreData.EpochNotifier()) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilEpochNotifier)
 	}
+	if check.IfNil(args.CoreData.EnableEpochsHandler()) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilEnableEpochsHandler)
+	}
 	if check.IfNil(args.BootstrapComponents) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilBootstrapComponentsHolder)
 	}

@@ -6,25 +6,25 @@ import (
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
 )
 
 type baseTxProcessor struct {
-	accounts                state.AccountsAdapter
-	shardCoordinator        sharding.Coordinator
-	pubkeyConv              core.PubkeyConverter
-	economicsFee            process.FeeHandler
-	hasher                  hashing.Hasher
-	marshalizer             marshal.Marshalizer
-	scProcessor             process.SmartContractProcessor
-	flagPenalizedTooMuchGas atomic.Flag
+	accounts            state.AccountsAdapter
+	shardCoordinator    sharding.Coordinator
+	pubkeyConv          core.PubkeyConverter
+	economicsFee        process.FeeHandler
+	hasher              hashing.Hasher
+	marshalizer         marshal.Marshalizer
+	scProcessor         process.SmartContractProcessor
+	enableEpochsHandler common.EnableEpochsHandler
 }
 
 func (txProc *baseTxProcessor) getAccounts(
@@ -153,7 +153,7 @@ func (txProc *baseTxProcessor) checkTxValues(
 		)
 	}
 
-	if !txProc.flagPenalizedTooMuchGas.IsSet() {
+	if !txProc.enableEpochsHandler.IsPenalizedTooMuchGasFlagEnabled() {
 		// backwards compatibility issue when provided gas limit and gas price exceeds the available balance before the
 		// activation of the penalize too much gas flag
 		txFee = core.SafeMul(tx.GasLimit, tx.GasPrice)

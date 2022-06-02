@@ -146,6 +146,9 @@ func (mcc *managedCoreComponents) CheckSubcomponents() error {
 	if check.IfNil(mcc.processStatusHandler) {
 		return errors.ErrNilProcessStatusHandler
 	}
+	if check.IfNil(mcc.enableEpochsHandler) {
+		return errors.ErrNilEnableEpochsHandler
+	}
 	if len(mcc.chainID) == 0 {
 		return errors.ErrInvalidChainID
 	}
@@ -576,6 +579,18 @@ func (mcc *managedCoreComponents) HardforkTriggerPubKey() []byte {
 	}
 
 	return mcc.coreComponents.hardforkTriggerPubKey
+}
+
+// EnableEpochsHandler returns the enable epochs handler
+func (mcc *managedCoreComponents) EnableEpochsHandler() common.EnableEpochsHandler {
+	mcc.mutCoreComponents.RLock()
+	defer mcc.mutCoreComponents.RUnlock()
+
+	if mcc.coreComponents == nil {
+		return nil
+	}
+
+	return mcc.coreComponents.enableEpochsHandler
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
