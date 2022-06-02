@@ -234,7 +234,9 @@ func TestESDTSetTransferRoles(t *testing.T) {
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 	time.Sleep(time.Second)
 
-	tokenIdentifier := string(integrationTests.GetTokenIdentifier(nodes, []byte("TKR")))
+	// tokenIdentifier := string(integrationTests.GetTokenIdentifier(nodes, []byte("TKR")))
+	tokenIdentifier := esdtCommon.PrepareFungibleTokensWithLocalBurnAndMint(t, nodes, scAddress, idxProposers, &nonce, &round)
+
 	txData = []byte("setLocalRoles" + "@" + hex.EncodeToString(scAddress) +
 		"@" + hex.EncodeToString([]byte(tokenIdentifier)) + "@" + "ESDTTransferRole")
 	integrationTests.CreateAndSendTransaction(
