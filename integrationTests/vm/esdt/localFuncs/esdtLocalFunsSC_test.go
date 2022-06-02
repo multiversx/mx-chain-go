@@ -3,7 +3,6 @@
 package localFuncs
 
 import (
-	"bytes"
 	"encoding/hex"
 	"math/big"
 	"testing"
@@ -201,7 +200,7 @@ func TestESDTSetTransferRoles(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
-	nodes, idxProposers := esdtCommon.CreateNodesAndPrepareBalances(1)
+	nodes, idxProposers := esdtCommon.CreateNodesAndPrepareBalances(2)
 
 	defer func() {
 		for _, n := range nodes {
@@ -227,7 +226,7 @@ func TestESDTSetTransferRoles(t *testing.T) {
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 	time.Sleep(time.Second)
 
-	destAddress := bytes.Repeat([]byte{1}, 32)
+	destAddress := nodes[1].OwnAccount.Address
 
 	amount := int64(100)
 	txData := txDataBuilder.NewBuilder()
@@ -243,7 +242,7 @@ func TestESDTSetTransferRoles(t *testing.T) {
 	)
 	_ = logger.SetLogLevel("arwen:TRACE")
 	time.Sleep(time.Second)
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 1, nonce, round, idxProposers)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 10, nonce, round, idxProposers)
 	time.Sleep(time.Second)
 
 	esdtCommon.CheckAddressHasTokens(t, destAddress, nodes, []byte(tokenIdentifier), 0, amount)
