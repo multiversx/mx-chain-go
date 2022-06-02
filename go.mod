@@ -54,4 +54,4 @@ replace github.com/ElrondNetwork/arwen-wasm-vm/v1_2 v1.2.35 => github.com/Elrond
 
 replace github.com/ElrondNetwork/arwen-wasm-vm/v1_3 v1.3.35 => github.com/ElrondNetwork/arwen-wasm-vm v1.3.35
 
-replace github.com/ElrondNetwork/arwen-wasm-vm/v1_4 v1.4.34-rc9 => github.com/ElrondNetwork/arwen-wasm-vm v1.4.34-rc9
+replace github.com/ElrondNetwork/arwen-wasm-vm/v1_4 v1.4.34-rc9 => github.com/ElrondNetwork/arwen-wasm-vm v1.4.35-0.20220602074000-c62a9780265b
