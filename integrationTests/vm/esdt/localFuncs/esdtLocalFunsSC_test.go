@@ -216,28 +216,28 @@ func TestESDTSetTransferRoles(t *testing.T) {
 	nonce++
 
 	scAddress := esdtCommon.DeployNonPayableSmartContract(t, nodes, idxProposers, &nonce, &round, "../testdata/use-module.wasm")
-
-	issuePrice := big.NewInt(1000)
-	txData := []byte("issueFungibleToken" + "@" + hex.EncodeToString([]byte("TOKEN")) +
-		"@" + hex.EncodeToString([]byte("TKR")) + "@" + hex.EncodeToString(big.NewInt(1).Bytes()))
-	integrationTests.CreateAndSendTransaction(
-		nodes[0],
-		nodes,
-		issuePrice,
-		scAddress,
-		string(txData),
-		integrationTests.AdditionalGasLimit+core.MinMetaTxExtraGasCost,
-	)
-
-	time.Sleep(time.Second)
 	nrRoundsToPropagateMultiShard := 12
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
-	time.Sleep(time.Second)
+
+	// issuePrice := big.NewInt(1000)
+	// txData := []byte("issueFungibleToken" + "@" + hex.EncodeToString([]byte("TOKEN")) +
+	// 	"@" + hex.EncodeToString([]byte("TKR")) + "@" + hex.EncodeToString(big.NewInt(1).Bytes()))
+	// integrationTests.CreateAndSendTransaction(
+	// 	nodes[0],
+	// 	nodes,
+	// 	issuePrice,
+	// 	scAddress,
+	// 	string(txData),
+	// 	integrationTests.AdditionalGasLimit+core.MinMetaTxExtraGasCost,
+	// )
+
+	// time.Sleep(time.Second)
+	// nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	// time.Sleep(time.Second)
 
 	// tokenIdentifier := string(integrationTests.GetTokenIdentifier(nodes, []byte("TKR")))
 	tokenIdentifier := esdtCommon.PrepareFungibleTokensWithLocalBurnAndMint(t, nodes, scAddress, idxProposers, &nonce, &round)
 
-	txData = []byte("setLocalRoles" + "@" + hex.EncodeToString(scAddress) +
+	txData := []byte("setLocalRoles" + "@" + hex.EncodeToString(scAddress) +
 		"@" + hex.EncodeToString([]byte(tokenIdentifier)) + "@" + "ESDTTransferRole")
 	integrationTests.CreateAndSendTransaction(
 		nodes[0],
