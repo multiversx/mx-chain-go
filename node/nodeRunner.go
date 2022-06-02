@@ -176,6 +176,7 @@ func printEnableEpochs(configs *config.Configs) {
 	log.Debug(readEpochFor("do not return old block in blockchain hook"), "epoch", enableEpochs.DoNotReturnOldBlockInBlockchainHookEnableEpoch)
 	log.Debug(readEpochFor("scr size invariant check on built in"), "epoch", enableEpochs.SCRSizeInvariantOnBuiltInResultEnableEpoch)
 	log.Debug(readEpochFor("correct check on tokenID for transfer role"), "epoch", enableEpochs.CheckCorrectTokenIDForTransferRoleEnableEpoch)
+	log.Debug(readEpochFor("check value on exec by caller"), "epoch", enableEpochs.CheckValueOnExecByCallerEnableEpoch)
 
 	gasSchedule := configs.EpochConfig.GasSchedule
 
