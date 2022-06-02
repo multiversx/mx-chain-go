@@ -16,7 +16,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/trie/hashesHolder"
 	"github.com/stretchr/testify/assert"
@@ -38,30 +37,19 @@ func createMemUnit() storage.Storer {
 }
 
 // CreateTrieStorageManager creates the trie storage manager for the tests
-func createTrieStorageManager(t *testing.T, store storage.Storer) (common.StorageManager, storage.Storer) {
-	cfg := config.DBConfig{
-		FilePath:          t.TempDir(),
-		Type:              string(storageUnit.LvlDBSerial),
-		BatchDelaySeconds: 4,
-		MaxBatchSize:      10000,
-		MaxOpenFiles:      10,
-	}
+func createTrieStorageManager(store storage.Storer) (common.StorageManager, storage.Storer) {
 	generalCfg := config.TrieStorageManagerConfig{
 		PruningBufferLen:      1000,
 		SnapshotsBufferLen:    10,
-		MaxSnapshots:          2,
 		SnapshotsGoroutineNum: 1,
 	}
 	args := NewTrieStorageManagerArgs{
-		DB:                     store,
 		MainStorer:             store,
 		CheckpointsStorer:      store,
 		Marshalizer:            marshalizer,
 		Hasher:                 hasherMock,
-		SnapshotDbConfig:       cfg,
 		GeneralConfig:          generalCfg,
 		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10000000, uint64(hasherMock.Size())),
-		EpochNotifier:          &epochNotifier.EpochNotifierStub{},
 		IdleProvider:           &testscommon.ProcessStatusHandlerStub{},
 	}
 	tsm, _ := NewTrieStorageManager(args)
@@ -69,22 +57,22 @@ func createTrieStorageManager(t *testing.T, store storage.Storer) (common.Storag
 	return tsm, store
 }
 
-func createInMemoryTrie(t *testing.T) (common.Trie, storage.Storer) {
+func createInMemoryTrie() (common.Trie, storage.Storer) {
 	memUnit := createMemUnit()
-	tsm, _ := createTrieStorageManager(t, memUnit)
+	tsm, _ := createTrieStorageManager(memUnit)
 	tr, _ := NewTrie(tsm, marshalizer, hasherMock, 6)
 
 	return tr, memUnit
 }
 
-func createInMemoryTrieFromDB(t *testing.T, db storage.Persister) (common.Trie, storage.Storer) {
+func createInMemoryTrieFromDB(db storage.Persister) (common.Trie, storage.Storer) {
 	capacity := uint32(10)
 	shards := uint32(1)
 	sizeInBytes := uint64(0)
 	cache, _ := storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: capacity, Shards: shards, SizeInBytes: sizeInBytes})
 	unit, _ := storageUnit.NewStorageUnit(cache, db)
 
-	tsm, _ := createTrieStorageManager(t, unit)
+	tsm, _ := createTrieStorageManager(unit)
 	tr, _ := NewTrie(tsm, marshalizer, hasherMock, 6)
 
 	return tr, unit
@@ -184,7 +172,7 @@ func TestDoubleListTrieSyncer_StartSyncingNilContextShouldErr(t *testing.T) {
 
 func TestDoubleListTrieSyncer_StartSyncingCanTimeout(t *testing.T) {
 	numKeysValues := 10
-	trSource, _ := createInMemoryTrie(t)
+	trSource, _ := createInMemoryTrie()
 	addDataToTrie(numKeysValues, trSource)
 	_ = trSource.Commit()
 	roothash, _ := trSource.RootHash()
@@ -202,7 +190,7 @@ func TestDoubleListTrieSyncer_StartSyncingCanTimeout(t *testing.T) {
 
 func TestDoubleListTrieSyncer_StartSyncingTimeoutNoNodesReceived(t *testing.T) {
 	numKeysValues := 10
-	trSource, _ := createInMemoryTrie(t)
+	trSource, _ := createInMemoryTrie()
 	addDataToTrie(numKeysValues, trSource)
 	_ = trSource.Commit()
 	roothash, _ := trSource.RootHash()
@@ -218,7 +206,7 @@ func TestDoubleListTrieSyncer_StartSyncingTimeoutNoNodesReceived(t *testing.T) {
 
 func TestDoubleListTrieSyncer_StartSyncingNewTrieShouldWork(t *testing.T) {
 	numKeysValues := 100
-	trSource, _ := createInMemoryTrie(t)
+	trSource, _ := createInMemoryTrie()
 	addDataToTrie(numKeysValues, trSource)
 	_ = trSource.Commit()
 	roothash, _ := trSource.RootHash()
@@ -234,7 +222,7 @@ func TestDoubleListTrieSyncer_StartSyncingNewTrieShouldWork(t *testing.T) {
 	err := d.StartSyncing(roothash, ctx)
 	require.Nil(t, err)
 
-	trie, _ := createInMemoryTrieFromDB(t, arg.DB.(*testscommon.MemDbMock))
+	trie, _ := createInMemoryTrieFromDB(arg.DB.(*testscommon.MemDbMock))
 	trie, _ = trie.Recreate(roothash)
 	require.False(t, check.IfNil(trie))
 
@@ -259,7 +247,7 @@ func TestDoubleListTrieSyncer_StartSyncingNewTrieShouldWork(t *testing.T) {
 
 func TestDoubleListTrieSyncer_StartSyncingPartiallyFilledTrieShouldWork(t *testing.T) {
 	numKeysValues := 100
-	trSource, memUnitSource := createInMemoryTrie(t)
+	trSource, memUnitSource := createInMemoryTrie()
 	addDataToTrie(numKeysValues, trSource)
 	_ = trSource.Commit()
 	roothash, _ := trSource.RootHash()
@@ -291,7 +279,7 @@ func TestDoubleListTrieSyncer_StartSyncingPartiallyFilledTrieShouldWork(t *testi
 	err := d.StartSyncing(roothash, ctx)
 	require.Nil(t, err)
 
-	trie, _ := createInMemoryTrieFromDB(t, arg.DB.(*testscommon.MemDbMock))
+	trie, _ := createInMemoryTrieFromDB(arg.DB.(*testscommon.MemDbMock))
 	trie, _ = trie.Recreate(roothash)
 	require.False(t, check.IfNil(trie))
 

@@ -13,11 +13,24 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/stretchr/testify/require"
 )
 
 func Benchmark_VmDeployWithFibbonacciAndExecute(b *testing.B) {
 	runWASMVMBenchmark(b, "../testdata/misc/fib_arwen/output/fib_arwen.wasm", 32, "_main", nil, b.N, nil)
+}
+
+func Benchmark_searchingForPanic(b *testing.B) {
+	for i := 0; i < 10; i++ {
+		runWASMVMBenchmark(b, "../testdata/misc/fib_arwen/output/fib_arwen.wasm", 100, "_main", nil, b.N, nil)
+	}
+}
+
+func Test_searchingForPanic(t *testing.T) {
+	for i := 0; i < 10; i++ {
+		runWASMVMBenchmark(t, "../testdata/misc/fib_arwen/output/fib_arwen.wasm", 100, "_main", nil, 1, nil)
+	}
 }
 
 func Benchmark_VmDeployWithBadContractAndExecute(b *testing.B) {
@@ -143,184 +156,64 @@ func Benchmark_TestEllipticCurveInitialVariablesAndCalls(b *testing.B) {
 
 // elliptic curves
 
-func Benchmark_TestEllipticCurveAddP224(b *testing.B) {
-	gasSchedule, _ := common.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
-	runWASMVMBenchmark(b, "../testdata/c-api-tests/ecBenchmark/output/ecBenchmark.wasm", 0, "p224AddEcTest", getNumberOfRepsArgument(), b.N, gasSchedule)
-}
-
-func Benchmark_TestEllipticCurveAddP256(b *testing.B) {
-	gasSchedule, _ := common.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
-	runWASMVMBenchmark(b, "../testdata/c-api-tests/ecBenchmark/output/ecBenchmark.wasm", 0, "p256AddEcTest", getNumberOfRepsArgument(), b.N, gasSchedule)
-}
-
-func Benchmark_TestEllipticCurveAddP384(b *testing.B) {
-	gasSchedule, _ := common.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
-	runWASMVMBenchmark(b, "../testdata/c-api-tests/ecBenchmark/output/ecBenchmark.wasm", 0, "p384AddEcTest", getNumberOfRepsArgument(), b.N, gasSchedule)
-}
-
-func Benchmark_TestEllipticCurveAddP521(b *testing.B) {
-	gasSchedule, _ := common.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
-	runWASMVMBenchmark(b, "../testdata/c-api-tests/ecBenchmark/output/ecBenchmark.wasm", 0, "p521AddEcTest", getNumberOfRepsArgument(), b.N, gasSchedule)
-}
-
-func Benchmark_TestEllipticCurveDoubleP224(b *testing.B) {
-	gasSchedule, _ := common.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
-	runWASMVMBenchmark(b, "../testdata/c-api-tests/ecBenchmark/output/ecBenchmark.wasm", 0, "p224DoubleEcTest", getNumberOfRepsArgument(), b.N, gasSchedule)
-}
-
-func Benchmark_TestEllipticCurveDoubleP256(b *testing.B) {
-	gasSchedule, _ := common.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
-	runWASMVMBenchmark(b, "../testdata/c-api-tests/ecBenchmark/output/ecBenchmark.wasm", 0, "p256DoubleEcTest", getNumberOfRepsArgument(), b.N, gasSchedule)
-}
-
-func Benchmark_TestEllipticCurveDoubleP384(b *testing.B) {
-	gasSchedule, _ := common.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
-	runWASMVMBenchmark(b, "../testdata/c-api-tests/ecBenchmark/output/ecBenchmark.wasm", 0, "p384DoubleEcTest", getNumberOfRepsArgument(), b.N, gasSchedule)
-}
-
-func Benchmark_TestEllipticCurveDoubleP521(b *testing.B) {
-	gasSchedule, _ := common.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
-	runWASMVMBenchmark(b, "../testdata/c-api-tests/ecBenchmark/output/ecBenchmark.wasm", 0, "p521DoubleEcTest", getNumberOfRepsArgument(), b.N, gasSchedule)
-}
-
-func Benchmark_TestEllipticCurveIsOnCurveP224(b *testing.B) {
-	gasSchedule, _ := common.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
-	runWASMVMBenchmark(b, "../testdata/c-api-tests/ecBenchmark/output/ecBenchmark.wasm", 0, "p224IsOnCurveEcTest", getNumberOfRepsArgument(), b.N, gasSchedule)
-}
-
-func Benchmark_TestEllipticCurveIsOnCurveP256(b *testing.B) {
-	gasSchedule, _ := common.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
-	runWASMVMBenchmark(b, "../testdata/c-api-tests/ecBenchmark/output/ecBenchmark.wasm", 0, "p256IsOnCurveEcTest", getNumberOfRepsArgument(), b.N, gasSchedule)
-}
-
-func Benchmark_TestEllipticCurveIsOnCurveP384(b *testing.B) {
-	gasSchedule, _ := common.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
-	runWASMVMBenchmark(b, "../testdata/c-api-tests/ecBenchmark/output/ecBenchmark.wasm", 0, "p384IsOnCurveEcTest", getNumberOfRepsArgument(), b.N, gasSchedule)
-}
-
-func Benchmark_TestEllipticCurveIsOnCurveP521(b *testing.B) {
-	gasSchedule, _ := common.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
-	runWASMVMBenchmark(b, "../testdata/c-api-tests/ecBenchmark/output/ecBenchmark.wasm", 0, "p521IsOnCurveEcTest", getNumberOfRepsArgument(), b.N, gasSchedule)
-}
-
-func Benchmark_TestEllipticCurveMarshalP224(b *testing.B) {
-	gasSchedule, _ := common.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
-	runWASMVMBenchmark(b, "../testdata/c-api-tests/ecBenchmark/output/ecBenchmark.wasm", 0, "p224MarshalEcTest", getNumberOfRepsArgument(), b.N, gasSchedule)
-}
-
-func Benchmark_TestEllipticCurveMarshalP256(b *testing.B) {
-	gasSchedule, _ := common.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
-	runWASMVMBenchmark(b, "../testdata/c-api-tests/ecBenchmark/output/ecBenchmark.wasm", 0, "p256MarshalEcTest", getNumberOfRepsArgument(), b.N, gasSchedule)
-}
-
-func Benchmark_TestEllipticCurveMarshalP384(b *testing.B) {
-	gasSchedule, _ := common.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
-	runWASMVMBenchmark(b, "../testdata/c-api-tests/ecBenchmark/output/ecBenchmark.wasm", 0, "p384MarshalEcTest", getNumberOfRepsArgument(), b.N, gasSchedule)
-}
-
-func Benchmark_TestEllipticCurveMarshalP521(b *testing.B) {
-	gasSchedule, _ := common.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
-	runWASMVMBenchmark(b, "../testdata/c-api-tests/ecBenchmark/output/ecBenchmark.wasm", 0, "p521MarshalEcTest", getNumberOfRepsArgument(), b.N, gasSchedule)
-}
-
-func Benchmark_TestEllipticCurveUnmarshalP224(b *testing.B) {
-	gasSchedule, _ := common.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
-	runWASMVMBenchmark(b, "../testdata/c-api-tests/ecBenchmark/output/ecBenchmark.wasm", 0, "p224UnmarshalEcTest", getNumberOfRepsArgument(), b.N, gasSchedule)
-}
-
-func Benchmark_TestEllipticCurveUnmarshalP256(b *testing.B) {
-	gasSchedule, _ := common.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
-	runWASMVMBenchmark(b, "../testdata/c-api-tests/ecBenchmark/output/ecBenchmark.wasm", 0, "p256UnmarshalEcTest", getNumberOfRepsArgument(), b.N, gasSchedule)
-}
-
-func Benchmark_TestEllipticCurveUnmarshalP384(b *testing.B) {
-	gasSchedule, _ := common.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
-	runWASMVMBenchmark(b, "../testdata/c-api-tests/ecBenchmark/output/ecBenchmark.wasm", 0, "p384UnmarshalEcTest", getNumberOfRepsArgument(), b.N, gasSchedule)
-}
-
-func Benchmark_TestEllipticCurveUnmarshalP521(b *testing.B) {
-	gasSchedule, _ := common.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
-	runWASMVMBenchmark(b, "../testdata/c-api-tests/ecBenchmark/output/ecBenchmark.wasm", 0, "p521UnmarshalEcTest", getNumberOfRepsArgument(), b.N, gasSchedule)
-}
-
-func Benchmark_TestEllipticCurveMarshalCompressedP224(b *testing.B) {
-	gasSchedule, _ := common.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
-	runWASMVMBenchmark(b, "../testdata/c-api-tests/ecBenchmark/output/ecBenchmark.wasm", 0, "p224MarshalCompressedEcTest", getNumberOfRepsArgument(), b.N, gasSchedule)
-}
-
-func Benchmark_TestEllipticCurveMarshalCompressedP256(b *testing.B) {
-	gasSchedule, _ := common.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
-	runWASMVMBenchmark(b, "../testdata/c-api-tests/ecBenchmark/output/ecBenchmark.wasm", 0, "p256MarshalCompressedEcTest", getNumberOfRepsArgument(), b.N, gasSchedule)
-}
-
-func Benchmark_TestEllipticCurveMarshalCompressedP384(b *testing.B) {
-	gasSchedule, _ := common.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
-	runWASMVMBenchmark(b, "../testdata/c-api-tests/ecBenchmark/output/ecBenchmark.wasm", 0, "p384MarshalCompressedEcTest", getNumberOfRepsArgument(), b.N, gasSchedule)
-}
-
-func Benchmark_TestEllipticCurveMarshalCompressedP521(b *testing.B) {
-	gasSchedule, _ := common.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
-	runWASMVMBenchmark(b, "../testdata/c-api-tests/ecBenchmark/output/ecBenchmark.wasm", 0, "p521MarshalCompressedEcTest", getNumberOfRepsArgument(), b.N, gasSchedule)
-}
-
-func Benchmark_TestEllipticCurveUnmarshalCompressedP224(b *testing.B) {
-	gasSchedule, _ := common.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
-	runWASMVMBenchmark(b, "../testdata/c-api-tests/ecBenchmark/output/ecBenchmark.wasm", 0, "p224UnmarshalCompressedEcTest", getNumberOfRepsArgument(), b.N, gasSchedule)
-}
-
-func Benchmark_TestEllipticCurveUnmarshalCompressedP256(b *testing.B) {
-	gasSchedule, _ := common.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
-	runWASMVMBenchmark(b, "../testdata/c-api-tests/ecBenchmark/output/ecBenchmark.wasm", 0, "p256UnmarshalCompressedEcTest", getNumberOfRepsArgument(), b.N, gasSchedule)
-}
-
-func Benchmark_TestEllipticCurveUnmarshalCompressedP384(b *testing.B) {
-	gasSchedule, _ := common.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
-	runWASMVMBenchmark(b, "../testdata/c-api-tests/ecBenchmark/output/ecBenchmark.wasm", 0, "p384UnmarshalCompressedEcTest", getNumberOfRepsArgument(), b.N, gasSchedule)
-}
-
-func Benchmark_TestEllipticCurveUnmarshalCompressedP521(b *testing.B) {
-	gasSchedule, _ := common.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
-	runWASMVMBenchmark(b, "../testdata/c-api-tests/ecBenchmark/output/ecBenchmark.wasm", 0, "p521UnmarshalCompressedEcTest", getNumberOfRepsArgument(), b.N, gasSchedule)
-}
-
-func Benchmark_TestEllipticCurveGenerateKeyP224(b *testing.B) {
-	gasSchedule, _ := common.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
-	runWASMVMBenchmark(b, "../testdata/c-api-tests/ecBenchmark/output/ecBenchmark.wasm", 0, "p224GenerateKeyEcTest", getNumberOfRepsArgument(), b.N, gasSchedule)
-}
-
-func Benchmark_TestEllipticCurveGenerateKeyP256(b *testing.B) {
-	gasSchedule, _ := common.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
-	runWASMVMBenchmark(b, "../testdata/c-api-tests/ecBenchmark/output/ecBenchmark.wasm", 0, "p256GenerateKeyEcTest", getNumberOfRepsArgument(), b.N, gasSchedule)
-}
-
-func Benchmark_TestEllipticCurveGenerateKeyP384(b *testing.B) {
-	gasSchedule, _ := common.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
-	runWASMVMBenchmark(b, "../testdata/c-api-tests/ecBenchmark/output/ecBenchmark.wasm", 0, "p384GenerateKeyEcTest", getNumberOfRepsArgument(), b.N, gasSchedule)
-}
-
-func Benchmark_TestEllipticCurveGenerateKeyP521(b *testing.B) {
-	gasSchedule, _ := common.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
-	runWASMVMBenchmark(b, "../testdata/c-api-tests/ecBenchmark/output/ecBenchmark.wasm", 0, "p521GenerateKeyEcTest", getNumberOfRepsArgument(), b.N, gasSchedule)
+func Benchmark_TestEllipticCurve(b *testing.B) {
+	testEllipticCurve(b, "p224Add")
+	testEllipticCurve(b, "p256Add")
+	testEllipticCurve(b, "p384Add")
+	testEllipticCurve(b, "p521Add")
+	testEllipticCurve(b, "p224Double")
+	testEllipticCurve(b, "p256Double")
+	testEllipticCurve(b, "p384Double")
+	testEllipticCurve(b, "p521Double")
+	testEllipticCurve(b, "p224IsOnCurve")
+	testEllipticCurve(b, "p256IsOnCurve")
+	testEllipticCurve(b, "p384IsOnCurve")
+	testEllipticCurve(b, "p521IsOnCurve")
+	testEllipticCurve(b, "p224Marshal")
+	testEllipticCurve(b, "p256Marshal")
+	testEllipticCurve(b, "p384Marshal")
+	testEllipticCurve(b, "p521Marshal")
+	testEllipticCurve(b, "p224Unmarshal")
+	testEllipticCurve(b, "p256Unmarshal")
+	testEllipticCurve(b, "p384Unmarshal")
+	testEllipticCurve(b, "p521Unmarshal")
+	testEllipticCurve(b, "p224MarshalCompressed")
+	testEllipticCurve(b, "p256MarshalCompressed")
+	testEllipticCurve(b, "p384MarshalCompressed")
+	testEllipticCurve(b, "p521MarshalCompressed")
+	testEllipticCurve(b, "p224UnmarshalCompressed")
+	testEllipticCurve(b, "p256UnmarshalCompressed")
+	testEllipticCurve(b, "p384UnmarshalCompressed")
+	testEllipticCurve(b, "p521UnmarshalCompressed")
+	testEllipticCurve(b, "p224GenerateKey")
+	testEllipticCurve(b, "p256GenerateKey")
+	testEllipticCurve(b, "p384GenerateKey")
+	testEllipticCurve(b, "p521GenerateKey")
 }
 
 func Benchmark_TestEllipticCurveScalarMultP224(b *testing.B) {
-	gasSchedule, _ := common.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
+	gasSchedule, _ := common.LoadGasScheduleConfig(integrationTests.GasSchedulePath)
 	runWASMVMBenchmark(b, "../testdata/c-api-tests/ecBenchmark/output/ecBenchmark.wasm", 0, "p224ScalarMultEcTest", getNumberOfRepsAndScalarLengthArgs(10), b.N, gasSchedule)
 }
 
 func Benchmark_TestEllipticCurveScalarMultP256(b *testing.B) {
-	gasSchedule, _ := common.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
+	gasSchedule, _ := common.LoadGasScheduleConfig(integrationTests.GasSchedulePath)
 	runWASMVMBenchmark(b, "../testdata/c-api-tests/ecBenchmark/output/ecBenchmark.wasm", 0, "p256ScalarMultEcTest", getNumberOfRepsAndScalarLengthArgs(10), b.N, gasSchedule)
 }
 
 func Benchmark_TestEllipticCurveScalarMultP384(b *testing.B) {
-	gasSchedule, _ := common.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
+	gasSchedule, _ := common.LoadGasScheduleConfig(integrationTests.GasSchedulePath)
 	runWASMVMBenchmark(b, "../testdata/c-api-tests/ecBenchmark/output/ecBenchmark.wasm", 0, "p384ScalarMultEcTest", getNumberOfRepsAndScalarLengthArgs(10), b.N, gasSchedule)
 }
 
 func Benchmark_TestEllipticCurveScalarMultP521(b *testing.B) {
-	gasSchedule, _ := common.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
+	gasSchedule, _ := common.LoadGasScheduleConfig(integrationTests.GasSchedulePath)
 	runWASMVMBenchmark(b, "../testdata/c-api-tests/ecBenchmark/output/ecBenchmark.wasm", 0, "p521ScalarMultEcTest", getNumberOfRepsAndScalarLengthArgs(10), b.N, gasSchedule)
+}
+
+func testEllipticCurve(b *testing.B, function string) {
+	gasSchedule, _ := common.LoadGasScheduleConfig(integrationTests.GasSchedulePath)
+	runWASMVMBenchmark(b, "../testdata/c-api-tests/ecBenchmark/output/ecBenchmark.wasm", 0, function+"EcTest", getNumberOfRepsArgument(), b.N, gasSchedule)
 }
 
 func Benchmark_TestCryptoDoNothing(b *testing.B) {
@@ -328,7 +221,7 @@ func Benchmark_TestCryptoDoNothing(b *testing.B) {
 }
 
 func Benchmark_TestStorageRust(b *testing.B) {
-	gasSchedule, _ := common.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
+	gasSchedule, _ := common.LoadGasScheduleConfig(integrationTests.GasSchedulePath)
 	buff := make([]byte, 100)
 	_, _ = rand.Read(buff)
 	arguments := [][]byte{buff, big.NewInt(100).Bytes()}
@@ -336,7 +229,7 @@ func Benchmark_TestStorageRust(b *testing.B) {
 }
 
 func TestGasModel(t *testing.T) {
-	gasSchedule, _ := common.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
+	gasSchedule, _ := common.LoadGasScheduleConfig(integrationTests.GasSchedulePath)
 
 	totalOp := uint64(0)
 	for _, opCodeClass := range gasSchedule {

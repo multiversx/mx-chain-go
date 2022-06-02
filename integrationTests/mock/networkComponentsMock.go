@@ -8,12 +8,13 @@ import (
 
 // NetworkComponentsStub -
 type NetworkComponentsStub struct {
-	Messenger            p2p.Messenger
-	InputAntiFlood       factory.P2PAntifloodHandler
-	OutputAntiFlood      factory.P2PAntifloodHandler
-	PeerBlackList        process.PeerBlackListCacher
-	PeerHonesty          factory.PeerHonestyHandler
-	PreferredPeersHolder factory.PreferredPeersHolderHandler
+	Messenger               p2p.Messenger
+	InputAntiFlood          factory.P2PAntifloodHandler
+	OutputAntiFlood         factory.P2PAntifloodHandler
+	PeerBlackList           process.PeerBlackListCacher
+	PeerHonesty             factory.PeerHonestyHandler
+	PreferredPeersHolder    factory.PreferredPeersHolderHandler
+	PeersRatingHandlerField p2p.PeersRatingHandler
 }
 
 // PubKeyCacher -
@@ -64,6 +65,11 @@ func (ncs *NetworkComponentsStub) PeerBlackListHandler() process.PeerBlackListCa
 // PreferredPeersHolderHandler -
 func (ncs *NetworkComponentsStub) PreferredPeersHolderHandler() factory.PreferredPeersHolderHandler {
 	return ncs.PreferredPeersHolder
+}
+
+// PeersRatingHandler -
+func (ncs *NetworkComponentsStub) PeersRatingHandler() p2p.PeersRatingHandler {
+	return ncs.PeersRatingHandlerField
 }
 
 // String -

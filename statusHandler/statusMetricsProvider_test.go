@@ -123,7 +123,7 @@ func TestStatusMetrics_StatusMetricsWithoutP2PPrometheusStringShouldPutDefaultSh
 	sm.SetUInt64Value(key1, value1)
 	sm.SetStringValue(key2, value2)
 
-	strRes := sm.StatusMetricsWithoutP2PPrometheusString()
+	strRes, _ := sm.StatusMetricsWithoutP2PPrometheusString()
 
 	expectedMetricOutput := fmt.Sprintf("%s{%s=\"%d\"} %v", key1, common.MetricShardId, 0, value1)
 	assert.True(t, strings.Contains(strRes, expectedMetricOutput))
@@ -141,7 +141,7 @@ func TestStatusMetrics_StatusMetricsWithoutP2PPrometheusStringShouldPutCorrectSh
 	sm.SetStringValue(key2, value2)
 	sm.SetUInt64Value(key3, uint64(value3))
 
-	strRes := sm.StatusMetricsWithoutP2PPrometheusString()
+	strRes, _ := sm.StatusMetricsWithoutP2PPrometheusString()
 
 	expectedMetricOutput := fmt.Sprintf("%s{%s=\"%d\"} %v", key1, common.MetricShardId, shardID, value1)
 	assert.True(t, strings.Contains(strRes, expectedMetricOutput))
@@ -171,6 +171,8 @@ func TestStatusMetrics_NetworkConfig(t *testing.T) {
 	sm.SetStringValue(common.MetricTopUpFactor, fmt.Sprintf("%g", 12.134))
 	sm.SetStringValue(common.MetricGasPriceModifier, fmt.Sprintf("%g", 0.5))
 	sm.SetUInt64Value(common.MetricRoundsPerEpoch, uint64(144))
+	sm.SetStringValue(common.MetricAdaptivity, fmt.Sprintf("%t", true))
+	sm.SetStringValue(common.MetricHysteresis, fmt.Sprintf("%f", 0.0))
 
 	expectedConfig := map[string]interface{}{
 		"erd_chain_id":                      "local-id",
@@ -192,9 +194,11 @@ func TestStatusMetrics_NetworkConfig(t *testing.T) {
 		"erd_gas_price_modifier":            "0.5",
 		"erd_rounds_per_epoch":              uint64(144),
 		"erd_max_gas_per_transaction":       uint64(15000),
+		"erd_adaptivity":                    "true",
+		"erd_hysteresis":                    "0.000000",
 	}
 
-	configMetrics := sm.ConfigMetrics()
+	configMetrics, _ := sm.ConfigMetrics()
 	assert.Equal(t, expectedConfig, configMetrics)
 }
 
@@ -224,14 +228,14 @@ func TestStatusMetrics_NetworkMetrics(t *testing.T) {
 	}
 
 	t.Run("no cross check value", func(t *testing.T) {
-		configMetrics := sm.NetworkMetrics()
+		configMetrics, _ := sm.NetworkMetrics()
 		assert.Equal(t, expectedConfig, configMetrics)
 	})
 	t.Run("with cross check value", func(t *testing.T) {
 		crossCheckValue := "0: 9169897, 1: 9166353, 2: 9170524, "
 		sm.SetStringValue(common.MetricCrossCheckBlockHeight, crossCheckValue)
 
-		configMetrics := sm.NetworkMetrics()
+		configMetrics, _ := sm.NetworkMetrics()
 		expectedConfig[common.MetricCrossCheckBlockHeight] = crossCheckValue
 		assert.Equal(t, expectedConfig, configMetrics)
 	})
@@ -263,34 +267,164 @@ func TestStatusMetrics_EnableEpochMetrics(t *testing.T) {
 	sm.SetUInt64Value(common.MetricDelegationManagerEnableEpoch, 1)
 	sm.SetUInt64Value(common.MetricDelegationSmartContractEnableEpoch, 2)
 	sm.SetUInt64Value(common.MetricIncrementSCRNonceInMultiTransferEnableEpoch, 3)
+	sm.SetUInt64Value(common.MetricBalanceWaitingListsEnableEpoch, 4)
+	sm.SetUInt64Value(common.MetricWaitingListFixEnableEpoch, 1)
+
+	maxNodesChangeConfig := []map[string]uint64{
+		{
+			"EpochEnable":            0,
+			"MaxNumNodes":            1,
+			"NodesToShufflePerShard": 2,
+		},
+		{
+			"EpochEnable":            3,
+			"MaxNumNodes":            4,
+			"NodesToShufflePerShard": 5,
+		},
+	}
+	for i, nodesChangeConfig := range maxNodesChangeConfig {
+		epochEnable := fmt.Sprintf("%s%d%s", common.MetricMaxNodesChangeEnableEpoch, i, common.EpochEnableSuffix)
+		sm.SetUInt64Value(epochEnable, uint64(nodesChangeConfig["EpochEnable"]))
+
+		maxNumNodes := fmt.Sprintf("%s%d%s", common.MetricMaxNodesChangeEnableEpoch, i, common.MaxNumNodesSuffix)
+		sm.SetUInt64Value(maxNumNodes, uint64(nodesChangeConfig["MaxNumNodes"]))
+
+		nodesToShufflePerShard := fmt.Sprintf("%s%d%s", common.MetricMaxNodesChangeEnableEpoch, i, common.NodesToShufflePerShardSuffix)
+		sm.SetUInt64Value(nodesToShufflePerShard, uint64(nodesChangeConfig["NodesToShufflePerShard"]))
+	}
+	sm.SetUInt64Value(common.MetricMaxNodesChangeEnableEpoch+"_count", uint64(len(maxNodesChangeConfig)))
 
 	expectedMetrics := map[string]interface{}{
-		common.MetricScDeployEnableEpoch:                    uint64(4),
-		common.MetricBuiltInFunctionsEnableEpoch:            uint64(2),
-		common.MetricRelayedTransactionsEnableEpoch:         uint64(4),
-		common.MetricPenalizedTooMuchGasEnableEpoch:         uint64(2),
-		common.MetricSwitchJailWaitingEnableEpoch:           uint64(2),
-		common.MetricSwitchHysteresisForMinNodesEnableEpoch: uint64(4),
-		common.MetricBelowSignedThresholdEnableEpoch:        uint64(2),
-		common.MetricTransactionSignedWithTxHashEnableEpoch: uint64(4),
-		common.MetricMetaProtectionEnableEpoch:              uint64(6),
-		common.MetricAheadOfTimeGasUsageEnableEpoch:         uint64(2),
-		common.MetricGasPriceModifierEnableEpoch:            uint64(2),
-		common.MetricRepairCallbackEnableEpoch:              uint64(2),
-		common.MetricBlockGasAndFreeRecheckEnableEpoch:      uint64(2),
-		common.MetricStakingV2EnableEpoch:                   uint64(2),
-		common.MetricStakeEnableEpoch:                       uint64(2),
-		common.MetricDoubleKeyProtectionEnableEpoch:         uint64(2),
-		common.MetricEsdtEnableEpoch:                        uint64(4),
-		common.MetricGovernanceEnableEpoch:                  uint64(3),
-		common.MetricDelegationManagerEnableEpoch:           uint64(1),
-		common.MetricDelegationSmartContractEnableEpoch:     uint64(2),
-
+		common.MetricScDeployEnableEpoch:                         uint64(4),
+		common.MetricBuiltInFunctionsEnableEpoch:                 uint64(2),
+		common.MetricRelayedTransactionsEnableEpoch:              uint64(4),
+		common.MetricPenalizedTooMuchGasEnableEpoch:              uint64(2),
+		common.MetricSwitchJailWaitingEnableEpoch:                uint64(2),
+		common.MetricSwitchHysteresisForMinNodesEnableEpoch:      uint64(4),
+		common.MetricBelowSignedThresholdEnableEpoch:             uint64(2),
+		common.MetricTransactionSignedWithTxHashEnableEpoch:      uint64(4),
+		common.MetricMetaProtectionEnableEpoch:                   uint64(6),
+		common.MetricAheadOfTimeGasUsageEnableEpoch:              uint64(2),
+		common.MetricGasPriceModifierEnableEpoch:                 uint64(2),
+		common.MetricRepairCallbackEnableEpoch:                   uint64(2),
+		common.MetricBlockGasAndFreeRecheckEnableEpoch:           uint64(2),
+		common.MetricStakingV2EnableEpoch:                        uint64(2),
+		common.MetricStakeEnableEpoch:                            uint64(2),
+		common.MetricDoubleKeyProtectionEnableEpoch:              uint64(2),
+		common.MetricEsdtEnableEpoch:                             uint64(4),
+		common.MetricGovernanceEnableEpoch:                       uint64(3),
+		common.MetricDelegationManagerEnableEpoch:                uint64(1),
+		common.MetricDelegationSmartContractEnableEpoch:          uint64(2),
 		common.MetricIncrementSCRNonceInMultiTransferEnableEpoch: uint64(3),
+		common.MetricBalanceWaitingListsEnableEpoch:              uint64(4),
+		common.MetricWaitingListFixEnableEpoch:                   uint64(1),
+
+		common.MetricMaxNodesChangeEnableEpoch: []map[string]interface{}{
+			{
+				common.MetricEpochEnable:            uint64(0),
+				common.MetricMaxNumNodes:            uint64(1),
+				common.MetricNodesToShufflePerShard: uint64(2),
+			},
+			{
+				common.MetricEpochEnable:            uint64(3),
+				common.MetricMaxNumNodes:            uint64(4),
+				common.MetricNodesToShufflePerShard: uint64(5),
+			},
+		},
 	}
 
-	epochsMetrics := sm.EnableEpochsMetrics()
+	epochsMetrics, _ := sm.EnableEpochsMetrics()
 	assert.Equal(t, expectedMetrics, epochsMetrics)
+}
+
+func TestStatusMetrics_RatingsConfig(t *testing.T) {
+	t.Parallel()
+
+	sm := statusHandler.NewStatusMetrics()
+
+	sm.SetUInt64Value(common.MetricRatingsGeneralStartRating, uint64(5001))
+	sm.SetUInt64Value(common.MetricRatingsGeneralMaxRating, uint64(10000))
+	sm.SetUInt64Value(common.MetricRatingsGeneralMinRating, uint64(1))
+	sm.SetStringValue(common.MetricRatingsGeneralSignedBlocksThreshold, "0.01")
+
+	selectionChances := []map[string]uint64{
+		{
+			"MaxThreshold":  0,
+			"ChancePercent": 5,
+		},
+		{
+			"MaxThreshold":  1000,
+			"ChancePercent": 10,
+		},
+	}
+
+	for i, selectionChance := range selectionChances {
+		maxThresholdStr := fmt.Sprintf("%s%d%s", common.MetricRatingsGeneralSelectionChances, i, common.SelectionChancesMaxThresholdSuffix)
+		sm.SetUInt64Value(maxThresholdStr, selectionChance["MaxThreshold"])
+		chancePercentStr := fmt.Sprintf("%s%d%s", common.MetricRatingsGeneralSelectionChances, i, common.SelectionChancesChancePercentSuffix)
+		sm.SetUInt64Value(chancePercentStr, selectionChance["ChancePercent"])
+	}
+	sm.SetUInt64Value(common.MetricRatingsGeneralSelectionChances+"_count", uint64(len(selectionChances)))
+
+	sm.SetUInt64Value(common.MetricRatingsShardChainHoursToMaxRatingFromStartRating, uint64(72))
+	sm.SetStringValue(common.MetricRatingsShardChainProposerValidatorImportance, "1.0")
+	sm.SetStringValue(common.MetricRatingsShardChainProposerDecreaseFactor, "-4.0")
+	sm.SetStringValue(common.MetricRatingsShardChainValidatorDecreaseFactor, "-4.0")
+	sm.SetStringValue(common.MetricRatingsShardChainConsecutiveMissedBlocksPenalty, "1.50")
+
+	sm.SetUInt64Value(common.MetricRatingsMetaChainHoursToMaxRatingFromStartRating, uint64(55))
+	sm.SetStringValue(common.MetricRatingsMetaChainProposerValidatorImportance, "1.0")
+	sm.SetStringValue(common.MetricRatingsMetaChainProposerDecreaseFactor, "-4.0")
+	sm.SetStringValue(common.MetricRatingsMetaChainValidatorDecreaseFactor, "-4.0")
+	sm.SetStringValue(common.MetricRatingsMetaChainConsecutiveMissedBlocksPenalty, "1.50")
+
+	sm.SetStringValue(common.MetricRatingsPeerHonestyDecayCoefficient, "0.97")
+	sm.SetUInt64Value(common.MetricRatingsPeerHonestyDecayUpdateIntervalInSeconds, uint64(10))
+	sm.SetStringValue(common.MetricRatingsPeerHonestyMaxScore, "100.0")
+	sm.SetStringValue(common.MetricRatingsPeerHonestyMinScore, "-100.0")
+	sm.SetStringValue(common.MetricRatingsPeerHonestyBadPeerThreshold, "-80.0")
+	sm.SetStringValue(common.MetricRatingsPeerHonestyUnitValue, "1.0")
+
+	expectedConfig := map[string]interface{}{
+		common.MetricRatingsGeneralStartRating:           uint64(5001),
+		common.MetricRatingsGeneralMaxRating:             uint64(10000),
+		common.MetricRatingsGeneralMinRating:             uint64(1),
+		common.MetricRatingsGeneralSignedBlocksThreshold: "0.01",
+
+		common.MetricRatingsGeneralSelectionChances: []map[string]uint64{
+			{
+				common.MetricSelectionChancesMaxThreshold:  uint64(0),
+				common.MetricSelectionChancesChancePercent: uint64(5),
+			},
+			{
+				common.MetricSelectionChancesMaxThreshold:  uint64(1000),
+				common.MetricSelectionChancesChancePercent: uint64(10),
+			},
+		},
+
+		common.MetricRatingsShardChainHoursToMaxRatingFromStartRating: uint64(72),
+		common.MetricRatingsShardChainProposerValidatorImportance:     "1.0",
+		common.MetricRatingsShardChainProposerDecreaseFactor:          "-4.0",
+		common.MetricRatingsShardChainValidatorDecreaseFactor:         "-4.0",
+		common.MetricRatingsShardChainConsecutiveMissedBlocksPenalty:  "1.50",
+
+		common.MetricRatingsMetaChainHoursToMaxRatingFromStartRating: uint64(55),
+		common.MetricRatingsMetaChainProposerValidatorImportance:     "1.0",
+		common.MetricRatingsMetaChainProposerDecreaseFactor:          "-4.0",
+		common.MetricRatingsMetaChainValidatorDecreaseFactor:         "-4.0",
+		common.MetricRatingsMetaChainConsecutiveMissedBlocksPenalty:  "1.50",
+
+		common.MetricRatingsPeerHonestyDecayCoefficient:             "0.97",
+		common.MetricRatingsPeerHonestyDecayUpdateIntervalInSeconds: uint64(10),
+		common.MetricRatingsPeerHonestyMaxScore:                     "100.0",
+		common.MetricRatingsPeerHonestyMinScore:                     "-100.0",
+		common.MetricRatingsPeerHonestyBadPeerThreshold:             "-80.0",
+		common.MetricRatingsPeerHonestyUnitValue:                    "1.0",
+	}
+
+	configMetrics, err := sm.RatingsMetrics()
+	assert.NoError(t, err)
+	assert.Equal(t, expectedConfig, configMetrics)
 }
 
 func TestStatusMetrics_IncrementConcurrentOperations(t *testing.T) {
@@ -382,19 +516,19 @@ func TestStatusMetrics_ConcurrentOperations(t *testing.T) {
 			case 5:
 				sm.SetStringValue("test str", "test val")
 			case 6:
-				_ = sm.NetworkMetrics()
+				_, _ = sm.NetworkMetrics()
 			case 7:
-				_ = sm.ConfigMetrics()
+				_, _ = sm.ConfigMetrics()
 			case 8:
-				_ = sm.EconomicsMetrics()
+				_, _ = sm.EconomicsMetrics()
 			case 9:
 				_ = sm.StatusMetricsMap()
 			case 10:
-				_ = sm.StatusMetricsMapWithoutP2P()
+				_, _ = sm.StatusMetricsMapWithoutP2P()
 			case 11:
-				_ = sm.StatusMetricsWithoutP2PPrometheusString()
+				_, _ = sm.StatusMetricsWithoutP2PPrometheusString()
 			case 12:
-				_ = sm.StatusP2pMetricsMap()
+				_, _ = sm.StatusP2pMetricsMap()
 			}
 			wg.Done()
 		}(i)

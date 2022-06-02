@@ -1,7 +1,6 @@
 package leveldb
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"os"
@@ -151,11 +150,12 @@ func (s *DB) Get(key []byte) ([]byte, error) {
 		return nil, storage.ErrDBIsClosed
 	}
 
+	if s.batch.IsRemoved(key) {
+		return nil, storage.ErrKeyNotFound
+	}
+
 	data := s.batch.Get(key)
 	if data != nil {
-		if bytes.Equal(data, []byte(removed)) {
-			return nil, storage.ErrKeyNotFound
-		}
 		return data, nil
 	}
 
@@ -177,11 +177,12 @@ func (s *DB) Has(key []byte) error {
 		return storage.ErrDBIsClosed
 	}
 
+	if s.batch.IsRemoved(key) {
+		return storage.ErrKeyNotFound
+	}
+
 	data := s.batch.Get(key)
 	if data != nil {
-		if bytes.Equal(data, []byte(removed)) {
-			return storage.ErrKeyNotFound
-		}
 		return nil
 	}
 

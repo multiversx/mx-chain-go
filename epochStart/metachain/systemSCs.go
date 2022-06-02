@@ -2,6 +2,7 @@ package metachain
 
 import (
 	"bytes"
+	"context"
 	"encoding/hex"
 	"fmt"
 	"math"
@@ -20,6 +21,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
@@ -34,7 +36,7 @@ type ArgsNewEpochStartSystemSCProcessing struct {
 	Marshalizer          marshal.Marshalizer
 	StartRating          uint32
 	ValidatorInfoCreator epochStart.ValidatorInfoCreator
-	ChanceComputer       sharding.ChanceComputer
+	ChanceComputer       nodesCoordinator.ChanceComputer
 	ShardCoordinator     sharding.Coordinator
 	EpochConfig          config.EpochConfig
 
@@ -54,7 +56,7 @@ type systemSCProcessor struct {
 	userAccountsDB                 state.AccountsAdapter
 	marshalizer                    marshal.Marshalizer
 	peerAccountsDB                 state.AccountsAdapter
-	chanceComputer                 sharding.ChanceComputer
+	chanceComputer                 nodesCoordinator.ChanceComputer
 	shardCoordinator               sharding.Coordinator
 	startRating                    uint32
 	validatorInfoCreator           epochStart.ValidatorInfoCreator
@@ -1127,7 +1129,8 @@ func (s *systemSCProcessor) getArgumentsForSetOwnerFunctionality(userValidatorAc
 		return nil, err
 	}
 
-	chLeaves, err := userValidatorAccount.DataTrie().GetAllLeavesOnChannel(rootHash)
+	chLeaves := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
+	err = userValidatorAccount.DataTrie().GetAllLeavesOnChannel(chLeaves, context.Background(), rootHash)
 	if err != nil {
 		return nil, err
 	}

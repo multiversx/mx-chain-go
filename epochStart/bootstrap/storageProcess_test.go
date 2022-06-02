@@ -16,7 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	epochStartMocks "github.com/ElrondNetwork/elrond-go/testscommon/bootstrapMocks/epochStart"
@@ -225,27 +225,27 @@ func testRequestAndProcessFromStorageByShardId(t *testing.T, shardId uint32) {
 		Epoch:       0,
 		SelfShardId: shardId,
 		NumOfShards: 1,
-		NodesConfig: &sharding.NodesCoordinatorRegistry{
-			EpochsConfig: map[string]*sharding.EpochValidators{
+		NodesConfig: &nodesCoordinator.NodesCoordinatorRegistry{
+			EpochsConfig: map[string]*nodesCoordinator.EpochValidators{
 				"0": {
-					EligibleValidators: map[string][]*sharding.SerializableValidator{
+					EligibleValidators: map[string][]*nodesCoordinator.SerializableValidator{
 						"0": {
-							&sharding.SerializableValidator{
+							&nodesCoordinator.SerializableValidator{
 								PubKey:  pksBytes[0],
 								Chances: 1,
 								Index:   0,
 							},
 						},
 						"4294967295": {
-							&sharding.SerializableValidator{
+							&nodesCoordinator.SerializableValidator{
 								PubKey:  pksBytes[core.MetachainShardId],
 								Chances: 1,
 								Index:   0,
 							},
 						},
 					},
-					WaitingValidators: map[string][]*sharding.SerializableValidator{},
-					LeavingValidators: map[string][]*sharding.SerializableValidator{},
+					WaitingValidators: map[string][]*nodesCoordinator.SerializableValidator{},
+					LeavingValidators: map[string][]*nodesCoordinator.SerializableValidator{},
 				},
 			},
 			CurrentEpoch: 0,
@@ -418,27 +418,27 @@ func TestStorageEpochStartBootstrap_processNodesConfig(t *testing.T) {
 	}
 
 	pksBytes := createPkBytes(1)
-	expectedNodesConfig := &sharding.NodesCoordinatorRegistry{
-		EpochsConfig: map[string]*sharding.EpochValidators{
+	expectedNodesConfig := &nodesCoordinator.NodesCoordinatorRegistry{
+		EpochsConfig: map[string]*nodesCoordinator.EpochValidators{
 			"0": {
-				EligibleValidators: map[string][]*sharding.SerializableValidator{
+				EligibleValidators: map[string][]*nodesCoordinator.SerializableValidator{
 					"0": {
-						&sharding.SerializableValidator{
+						&nodesCoordinator.SerializableValidator{
 							PubKey:  pksBytes[0],
 							Chances: 1,
 							Index:   0,
 						},
 					},
 					"4294967295": {
-						&sharding.SerializableValidator{
+						&nodesCoordinator.SerializableValidator{
 							PubKey:  pksBytes[core.MetachainShardId],
 							Chances: 1,
 							Index:   0,
 						},
 					},
 				},
-				WaitingValidators: map[string][]*sharding.SerializableValidator{},
-				LeavingValidators: map[string][]*sharding.SerializableValidator{},
+				WaitingValidators: map[string][]*nodesCoordinator.SerializableValidator{},
+				LeavingValidators: map[string][]*nodesCoordinator.SerializableValidator{},
 			},
 		},
 		CurrentEpoch: 0,

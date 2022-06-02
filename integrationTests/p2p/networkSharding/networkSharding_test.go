@@ -16,7 +16,8 @@ var p2pBootstrapStepDelay = 2 * time.Second
 func createDefaultConfig() config.P2PConfig {
 	return config.P2PConfig{
 		Node: config.NodeConfig{
-			Port: "0",
+			Port:                  "0",
+			ConnectionWatcherType: "print",
 		},
 		KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
 			Enabled:                          true,

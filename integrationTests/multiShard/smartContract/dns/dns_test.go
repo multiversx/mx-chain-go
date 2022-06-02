@@ -29,7 +29,7 @@ func TestSCCallingDNSUserNames(t *testing.T) {
 	nodes, players, idxProposers := prepareNodesAndPlayers()
 	defer func() {
 		for _, n := range nodes {
-			_ = n.Messenger.Close()
+			n.Close()
 		}
 	}()
 
@@ -57,7 +57,7 @@ func TestSCCallingDNSUserNamesTwice(t *testing.T) {
 	nodes, players, idxProposers := prepareNodesAndPlayers()
 	defer func() {
 		for _, n := range nodes {
-			_ = n.Messenger.Close()
+			n.Close()
 		}
 	}()
 
@@ -91,7 +91,7 @@ func TestDNSandRelayedTxNormal(t *testing.T) {
 	nodes, players, idxProposers := prepareNodesAndPlayers()
 	defer func() {
 		for _, n := range nodes {
-			_ = n.Messenger.Close()
+			n.Close()
 		}
 	}()
 

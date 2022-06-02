@@ -20,14 +20,14 @@ import (
 	outportDriverFactory "github.com/ElrondNetwork/elrond-go/outport/factory"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	notifierFactory "github.com/ElrondNetwork/notifier-go/factory"
 )
 
 // TODO: move app status handler initialization here
 
 type statusComponents struct {
-	nodesCoordinator sharding.NodesCoordinator
+	nodesCoordinator nodesCoordinator.NodesCoordinator
 	statusHandler    core.AppStatusHandler
 	outportHandler   outport.OutportHandler
 	softwareVersion  statistics.SoftwareVersionChecker
@@ -41,7 +41,7 @@ type StatusComponentsFactoryArgs struct {
 	ExternalConfig     config.ExternalConfig
 	EconomicsConfig    config.EconomicsConfig
 	ShardCoordinator   sharding.Coordinator
-	NodesCoordinator   sharding.NodesCoordinator
+	NodesCoordinator   nodesCoordinator.NodesCoordinator
 	EpochStartNotifier EpochStartNotifier
 	CoreComponents     CoreComponentsHolder
 	DataComponents     DataComponentsHolder
@@ -55,7 +55,7 @@ type statusComponentsFactory struct {
 	externalConfig     config.ExternalConfig
 	economicsConfig    config.EconomicsConfig
 	shardCoordinator   sharding.Coordinator
-	nodesCoordinator   sharding.NodesCoordinator
+	nodesCoordinator   nodesCoordinator.NodesCoordinator
 	epochStartNotifier EpochStartNotifier
 	forkDetector       process.ForkDetector
 	coreComponents     CoreComponentsHolder
@@ -240,16 +240,17 @@ func (scf *statusComponentsFactory) makeElasticIndexerArgs() *indexerFactory.Arg
 	}
 }
 
-func (scf *statusComponentsFactory) makeEventNotifierArgs() *notifierFactory.EventNotifierFactoryArgs {
+func (scf *statusComponentsFactory) makeEventNotifierArgs() *outportDriverFactory.EventNotifierFactoryArgs {
 	eventNotifierConfig := scf.externalConfig.EventNotifierConnector
-	return &notifierFactory.EventNotifierFactoryArgs{
+	return &outportDriverFactory.EventNotifierFactoryArgs{
 		Enabled:          eventNotifierConfig.Enabled,
 		UseAuthorization: eventNotifierConfig.UseAuthorization,
 		ProxyUrl:         eventNotifierConfig.ProxyUrl,
 		Username:         eventNotifierConfig.Username,
 		Password:         eventNotifierConfig.Password,
-		Marshalizer:      scf.coreComponents.InternalMarshalizer(),
+		Marshaller:       scf.coreComponents.InternalMarshalizer(),
 		Hasher:           scf.coreComponents.Hasher(),
+		PubKeyConverter:  scf.coreComponents.AddressPubKeyConverter(),
 	}
 }
 

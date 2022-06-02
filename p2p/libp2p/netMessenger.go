@@ -19,13 +19,16 @@ import (
 	p2pDebug "github.com/ElrondNetwork/elrond-go/debug/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/data"
-	connMonitorFactory "github.com/ElrondNetwork/elrond-go/p2p/libp2p/connectionMonitor/factory"
+	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/connectionMonitor"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/disabled"
 	discoveryFactory "github.com/ElrondNetwork/elrond-go/p2p/libp2p/discovery/factory"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/metrics"
+	metricsFactory "github.com/ElrondNetwork/elrond-go/p2p/libp2p/metrics/factory"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/networksharding/factory"
 	randFactory "github.com/ElrondNetwork/elrond-go/p2p/libp2p/rand/factory"
 	"github.com/ElrondNetwork/elrond-go/p2p/loadBalancer"
+	pubsub "github.com/ElrondNetwork/go-libp2p-pubsub"
+	pubsubPb "github.com/ElrondNetwork/go-libp2p-pubsub/pb"
 	"github.com/btcsuite/btcd/btcec"
 	logging "github.com/ipfs/go-log"
 	"github.com/libp2p/go-libp2p"
@@ -33,10 +36,9 @@ import (
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
-	pubsub "github.com/libp2p/go-libp2p-pubsub"
-	pubsubPb "github.com/libp2p/go-libp2p-pubsub/pb"
-	stream "github.com/libp2p/go-libp2p-transport-upgrader"
 	"github.com/libp2p/go-tcp-transport"
+
+	stream "github.com/libp2p/go-libp2p-transport-upgrader"
 )
 
 const (
@@ -53,8 +55,10 @@ const (
 	durationCheckConnections        = time.Second
 	refreshPeersOnTopic             = time.Second * 3
 	ttlPeersOnTopic                 = time.Second * 10
+	ttlConnectionsWatcher           = time.Hour * 2
 	pubsubTimeCacheDuration         = 10 * time.Minute
 	acceptMessagesInAdvanceDuration = 20 * time.Second // we are accepting the messages with timestamp in the future only for this delta
+	pollWaitForConnectionsInterval  = time.Second
 	broadcastGoRoutines             = 1000
 	timeBetweenPeerPrints           = time.Second * 20
 	timeBetweenExternalLoggersCheck = time.Second * 20
@@ -117,12 +121,13 @@ type networkMessenger struct {
 	outgoingPLB          p2p.ChannelLoadBalancer
 	poc                  *peersOnChannel
 	goRoutinesThrottler  *throttler.NumGoRoutinesThrottler
-	ip                   *identityProvider
 	connectionsMetric    *metrics.Connections
 	debugger             p2p.Debugger
 	marshalizer          p2p.Marshalizer
 	syncTimer            p2p.SyncTimer
 	preferredPeersHolder p2p.PreferredPeersHolderHandler
+	connectionsWatcher   p2p.ConnectionsWatcher
+	peersRatingHandler   p2p.PeersRatingHandler
 }
 
 // ArgsNetworkMessenger defines the options used to create a p2p wrapper
@@ -133,6 +138,7 @@ type ArgsNetworkMessenger struct {
 	SyncTimer            p2p.SyncTimer
 	PreferredPeersHolder p2p.PreferredPeersHolderHandler
 	NodeOperationMode    p2p.NodeOperation
+	PeersRatingHandler   p2p.PeersRatingHandler
 }
 
 // NewNetworkMessenger creates a libP2P messenger by opening a port on the current machine
@@ -149,6 +155,9 @@ func newNetworkMessenger(args ArgsNetworkMessenger, messageSigning messageSignin
 	}
 	if check.IfNil(args.PreferredPeersHolder) {
 		return nil, fmt.Errorf("%w when creating a new network messenger", p2p.ErrNilPreferredPeersHolder)
+	}
+	if check.IfNil(args.PeersRatingHandler) {
+		return nil, fmt.Errorf("%w when creating a new network messenger", p2p.ErrNilPeersRatingHandler)
 	}
 
 	p2pPrivKey, err := createP2PPrivKey(args.P2pConfig.Node.Seed)
@@ -193,6 +202,11 @@ func constructNode(
 		})
 	}
 
+	connWatcher, err := metricsFactory.NewConnectionsWatcher(args.P2pConfig.Node.ConnectionWatcherType, ttlConnectionsWatcher)
+	if err != nil {
+		return nil, err
+	}
+
 	address := fmt.Sprintf(args.ListenAddress+"%d", port)
 	opts := []libp2p.Option{
 		libp2p.ListenAddrStrings(address),
@@ -213,10 +227,12 @@ func constructNode(
 	}
 
 	p2pNode := &networkMessenger{
-		ctx:        ctx,
-		cancelFunc: cancelFunc,
-		p2pHost:    NewConnectableHost(h),
-		port:       port,
+		ctx:                ctx,
+		cancelFunc:         cancelFunc,
+		p2pHost:            NewConnectableHost(h),
+		port:               port,
+		connectionsWatcher: connWatcher,
+		peersRatingHandler: args.PeersRatingHandler,
 	}
 
 	return p2pNode, nil
@@ -285,6 +301,7 @@ func addComponentsToNode(
 	p2pNode.syncTimer = args.SyncTimer
 	p2pNode.preferredPeersHolder = args.PreferredPeersHolder
 	p2pNode.debugger = p2pDebug.NewP2PDebugger(core.PeerID(p2pNode.p2pHost.ID()))
+	p2pNode.peersRatingHandler = args.PeersRatingHandler
 
 	err = p2pNode.createPubSub(messageSigning)
 	if err != nil {
@@ -337,6 +354,7 @@ func (netMes *networkMessenger) createPubSub(messageSigning messageSigningConfig
 	}
 
 	netMes.poc, err = newPeersOnChannel(
+		netMes.peersRatingHandler,
 		netMes.pb.ListPeers,
 		refreshPeersOnTopic,
 		ttlPeersOnTopic)
@@ -418,12 +436,16 @@ func (netMes *networkMessenger) createSharder(argsNetMes ArgsNetworkMessenger) e
 
 func (netMes *networkMessenger) createDiscoverer(p2pConfig config.P2PConfig) error {
 	var err error
-	netMes.peerDiscoverer, err = discoveryFactory.NewPeerDiscoverer(
-		netMes.ctx,
-		netMes.p2pHost,
-		netMes.sharder,
-		p2pConfig,
-	)
+
+	args := discoveryFactory.ArgsPeerDiscoverer{
+		Context:            netMes.ctx,
+		Host:               netMes.p2pHost,
+		Sharder:            netMes.sharder,
+		P2pConfig:          p2pConfig,
+		ConnectionsWatcher: netMes.connectionsWatcher,
+	}
+
+	netMes.peerDiscoverer, err = discoveryFactory.NewPeerDiscoverer(args)
 
 	return err
 }
@@ -434,15 +456,20 @@ func (netMes *networkMessenger) createConnectionMonitor(p2pConfig config.P2PConf
 		return fmt.Errorf("%w when converting peerDiscoverer to reconnecter interface", p2p.ErrWrongTypeAssertion)
 	}
 
-	args := connMonitorFactory.ArgsConnectionMonitorFactory{
+	sharder, ok := netMes.sharder.(connectionMonitor.Sharder)
+	if !ok {
+		return fmt.Errorf("%w in networkMessenger.createConnectionMonitor", p2p.ErrWrongTypeAssertions)
+	}
+
+	args := connectionMonitor.ArgsConnectionMonitorSimple{
 		Reconnecter:                reconnecter,
-		Sharder:                    netMes.sharder,
+		Sharder:                    sharder,
 		ThresholdMinConnectedPeers: p2pConfig.Node.ThresholdMinConnectedPeers,
-		TargetCount:                int(p2pConfig.Sharding.TargetPeerCount),
 		PreferredPeersHolder:       netMes.preferredPeersHolder,
+		ConnectionsWatcher:         netMes.connectionsWatcher,
 	}
 	var err error
-	netMes.connMonitor, err = connMonitorFactory.NewConnectionMonitor(args)
+	netMes.connMonitor, err = connectionMonitor.NewLibp2pConnectionMonitorSimple(args)
 	if err != nil {
 		return err
 	}
@@ -566,17 +593,6 @@ func (netMes *networkMessenger) checkExternalLoggers() {
 	}
 }
 
-// ApplyOptions can set up different configurable options of a networkMessenger instance
-func (netMes *networkMessenger) ApplyOptions(opts ...Option) error {
-	for _, opt := range opts {
-		err := opt(netMes)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 // Close closes the host, connections and streams
 func (netMes *networkMessenger) Close() error {
 	log.Debug("closing network messenger's host...")
@@ -590,8 +606,16 @@ func (netMes *networkMessenger) Close() error {
 			"error", err)
 	}
 
-	log.Debug("closing network messenger's outgoing load balancer...")
+	log.Debug("closing network messenger's connection watcher...")
+	errConnWatcher := netMes.connectionsWatcher.Close()
+	if errConnWatcher != nil {
+		err = errConnWatcher
+		log.Warn("networkMessenger.Close",
+			"component", "connectionsWatcher",
+			"error", err)
+	}
 
+	log.Debug("closing network messenger's outgoing load balancer...")
 	errOplb := netMes.outgoingPLB.Close()
 	if errOplb != nil {
 		err = errOplb
@@ -684,6 +708,47 @@ func (netMes *networkMessenger) Bootstrap() error {
 		log.Info("started the network discovery process...")
 	}
 	return err
+}
+
+// WaitForConnections will wait the maxWaitingTime duration or until the target connected peers was achieved
+func (netMes *networkMessenger) WaitForConnections(maxWaitingTime time.Duration, minNumOfPeers uint32) {
+	startTime := time.Now()
+	defer func() {
+		log.Debug("networkMessenger.WaitForConnections",
+			"waited", time.Since(startTime), "num connected peers", len(netMes.ConnectedPeers()))
+	}()
+
+	if minNumOfPeers == 0 {
+		log.Debug("networkMessenger.WaitForConnections", "waiting", maxWaitingTime)
+		time.Sleep(maxWaitingTime)
+		return
+	}
+
+	netMes.waitForConnections(maxWaitingTime, minNumOfPeers)
+}
+
+func (netMes *networkMessenger) waitForConnections(maxWaitingTime time.Duration, minNumOfPeers uint32) {
+	log.Debug("networkMessenger.WaitForConnections", "waiting", maxWaitingTime, "min num of peers", minNumOfPeers)
+	ctxMaxWaitingTime, cancel := context.WithTimeout(context.Background(), maxWaitingTime)
+	defer cancel()
+
+	for {
+		if netMes.shouldStopWaiting(ctxMaxWaitingTime, minNumOfPeers) {
+			return
+		}
+	}
+}
+
+func (netMes *networkMessenger) shouldStopWaiting(ctxMaxWaitingTime context.Context, minNumOfPeers uint32) bool {
+	ctx, cancel := context.WithTimeout(context.Background(), pollWaitForConnectionsInterval)
+	defer cancel()
+
+	select {
+	case <-ctxMaxWaitingTime.Done():
+		return true
+	case <-ctx.Done():
+		return int(minNumOfPeers) <= len(netMes.ConnectedPeers())
+	}
 }
 
 // IsConnected returns true if current node is connected to provided peer
@@ -930,6 +995,10 @@ func (netMes *networkMessenger) pubsubCallback(topicProcs *topicProcessors, topi
 		}
 		netMes.processDebugMessage(topic, fromConnectedPeer, uint64(len(message.Data)), !messageOk)
 
+		if messageOk {
+			netMes.peersRatingHandler.IncreaseRating(fromConnectedPeer)
+		}
+
 		return messageOk
 	}
 }
@@ -1157,6 +1226,10 @@ func (netMes *networkMessenger) directMessageHandler(message *pubsub.Message, fr
 		}
 
 		netMes.debugger.AddIncomingMessage(msg.Topic(), uint64(len(msg.Data())), !messageOk)
+
+		if messageOk {
+			netMes.peersRatingHandler.IncreaseRating(fromConnectedPeer)
+		}
 	}(msg)
 
 	return nil

@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/outport"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
 )
 
@@ -59,7 +60,7 @@ type ArgBaseProcessor struct {
 	Config                         config.Config
 	AccountsDB                     map[state.AccountsDbIdentifier]state.AccountsAdapter
 	ForkDetector                   process.ForkDetector
-	NodesCoordinator               sharding.NodesCoordinator
+	NodesCoordinator               nodesCoordinator.NodesCoordinator
 	FeeHandler                     process.TransactionFeeHandler
 	RequestHandler                 process.RequestHandler
 	BlockChainHook                 process.BlockChainHookHandler

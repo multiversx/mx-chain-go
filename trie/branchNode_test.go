@@ -5,7 +5,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
@@ -14,10 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	elrondErrors "github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
-	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	"github.com/ElrondNetwork/elrond-go/trie/hashesHolder"
@@ -50,36 +46,23 @@ func getBnAndCollapsedBn(marshalizer marshal.Marshalizer, hasher hashing.Hasher)
 }
 
 func newEmptyTrie() (*patriciaMerkleTrie, *trieStorageManager) {
-	db := memorydb.New()
 	marsh, hsh := getTestMarshalizerAndHasher()
 
 	// TODO change this initialization of the persister  (and everywhere in this package)
 	// by using a persister factory
-	tempDir, _ := ioutil.TempDir("", "leveldb_temp")
-	cfg := config.DBConfig{
-		FilePath:          tempDir,
-		Type:              string(storageUnit.LvlDBSerial),
-		BatchDelaySeconds: 1,
-		MaxBatchSize:      1,
-		MaxOpenFiles:      10,
-	}
 	generalCfg := config.TrieStorageManagerConfig{
 		PruningBufferLen:      1000,
 		SnapshotsBufferLen:    10,
-		MaxSnapshots:          2,
 		SnapshotsGoroutineNum: 1,
 	}
 
 	args := NewTrieStorageManagerArgs{
-		DB:                     db,
 		MainStorer:             createMemUnit(),
 		CheckpointsStorer:      createMemUnit(),
 		Marshalizer:            marsh,
 		Hasher:                 hsh,
-		SnapshotDbConfig:       cfg,
 		GeneralConfig:          generalCfg,
 		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10000000, uint64(hsh.Size())),
-		EpochNotifier:          &epochNotifier.EpochNotifierStub{},
 		IdleProvider:           &testscommon.ProcessStatusHandlerStub{},
 	}
 	trieStorage, _ := NewTrieStorageManager(args)
@@ -200,32 +183,24 @@ func TestBranchNode_setHash(t *testing.T) {
 func TestBranchNode_setRootHash(t *testing.T) {
 	t.Parallel()
 
-	cfg := config.DBConfig{}
-	db := testscommon.NewMemDbMock()
 	marsh, hsh := getTestMarshalizerAndHasher()
 	args := NewTrieStorageManagerArgs{
-		DB:                     db,
 		MainStorer:             createMemUnit(),
 		CheckpointsStorer:      createMemUnit(),
 		Marshalizer:            marsh,
 		Hasher:                 hsh,
-		SnapshotDbConfig:       cfg,
 		GeneralConfig:          config.TrieStorageManagerConfig{SnapshotsGoroutineNum: 1},
 		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10, uint64(hsh.Size())),
-		EpochNotifier:          &epochNotifier.EpochNotifierStub{},
 		IdleProvider:           &testscommon.ProcessStatusHandlerStub{},
 	}
 	trieStorage1, _ := NewTrieStorageManager(args)
 	args = NewTrieStorageManagerArgs{
-		DB:                     db,
 		MainStorer:             createMemUnit(),
 		CheckpointsStorer:      createMemUnit(),
 		Marshalizer:            marsh,
 		Hasher:                 hsh,
-		SnapshotDbConfig:       cfg,
 		GeneralConfig:          config.TrieStorageManagerConfig{SnapshotsGoroutineNum: 1},
 		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10, uint64(hsh.Size())),
-		EpochNotifier:          &epochNotifier.EpochNotifierStub{},
 		IdleProvider:           &testscommon.ProcessStatusHandlerStub{},
 	}
 	trieStorage2, _ := NewTrieStorageManager(args)

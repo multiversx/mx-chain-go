@@ -327,6 +327,20 @@ func (txPool *shardedTxPool) GetCounts() counting.CountsWithSize {
 	return counts
 }
 
+// Keys returns all the keys contained in shard caches
+func (txPool *shardedTxPool) Keys() [][]byte {
+	txPool.mutexBackingMap.RLock()
+	defer txPool.mutexBackingMap.RUnlock()
+
+	keys := make([][]byte, 0)
+	for _, shard := range txPool.backingMap {
+		cache := shard.Cache
+		keys = append(keys, cache.Keys()...)
+	}
+
+	return keys
+}
+
 // Diagnose diagnoses the internal caches
 func (txPool *shardedTxPool) Diagnose(deep bool) {
 	log.Trace("shardedTxPool.Diagnose()", "counts", txPool.GetCounts().String())

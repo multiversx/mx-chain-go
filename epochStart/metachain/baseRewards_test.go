@@ -21,9 +21,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/state/factory"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
-	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
@@ -1140,7 +1141,7 @@ func getBaseRewardsArguments() BaseRewardsCreatorArgs {
 		Marshalizer:                   &mock.MarshalizerMock{},
 		DataPool:                      dataRetrieverMock.NewPoolsHolderMock(),
 		ProtocolSustainabilityAddress: "11", // string hex => 17 decimal
-		NodesConfigProvider: &mock.NodesCoordinatorStub{
+		NodesConfigProvider: &shardingMocks.NodesCoordinatorStub{
 			ConsensusGroupSizeCalled: func(shardID uint32) int {
 				if shardID == core.MetachainShardId {
 					return 400

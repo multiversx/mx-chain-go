@@ -1073,3 +1073,15 @@ var ErrNumOfMiniBlocksAndMiniBlocksHeadersMismatch = errors.New("num of mini blo
 
 // ErrNilDoubleTransactionsDetector signals that a nil double transactions detector has been provided
 var ErrNilDoubleTransactionsDetector = errors.New("nil double transactions detector")
+
+// ErrNoTxToProcess signals that no transaction were sent for processing
+var ErrNoTxToProcess = errors.New("no transaction to process")
+
+// ErrInvalidProcessWaitTime signals that an invalid process wait time was provided
+var ErrInvalidProcessWaitTime = errors.New("invalid process wait time")
+
+// ErrMetaHeaderEpochOutOfRange signals that the given header is out of accepted range
+var ErrMetaHeaderEpochOutOfRange = errors.New("epoch out of range for meta block header")
+
+// ErrNilESDTGlobalSettingsHandler signals that nil global settings handler was provided
+var ErrNilESDTGlobalSettingsHandler = errors.New("nil esdt global settings handler")

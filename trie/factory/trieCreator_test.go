@@ -6,10 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/trie/factory"
@@ -28,22 +25,12 @@ func getArgs() factory.TrieFactoryArgs {
 
 func getCreateArgs() factory.TrieCreateArgs {
 	return factory.TrieCreateArgs{
-		TrieStorageConfig:  createTrieStorageCfg(),
 		MainStorer:         testscommon.CreateMemUnit(),
 		CheckpointsStorer:  testscommon.CreateMemUnit(),
-		ShardID:            "0",
 		PruningEnabled:     false,
 		CheckpointsEnabled: false,
 		MaxTrieLevelInMem:  5,
-		EpochStartNotifier: &epochNotifier.EpochNotifierStub{},
 		IdleProvider:       &testscommon.ProcessStatusHandlerStub{},
-	}
-}
-
-func createTrieStorageCfg() config.StorageConfig {
-	return config.StorageConfig{
-		Cache: config.CacheConfig{Type: "LRU", Capacity: 1000},
-		DB:    config.DBConfig{Type: string(storageUnit.MemoryDB)},
 	}
 }
 
@@ -88,19 +75,6 @@ func TestNewTrieFactory_ShouldWork(t *testing.T) {
 	tf, err := factory.NewTrieFactory(args)
 	require.Nil(t, err)
 	require.False(t, check.IfNil(tf))
-}
-
-func TestTrieFactory_CreateNotSupportedCacheType(t *testing.T) {
-	t.Parallel()
-
-	args := getArgs()
-	tf, _ := factory.NewTrieFactory(args)
-
-	createArgs := getCreateArgs()
-	createArgs.TrieStorageConfig = config.StorageConfig{}
-	_, tr, err := tf.Create(createArgs)
-	require.Nil(t, tr)
-	require.Equal(t, storage.ErrNotSupportedCacheType, err)
 }
 
 func TestTrieFactory_CreateWithoutPruningShouldWork(t *testing.T) {

@@ -4,17 +4,11 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io/ioutil"
-	"os"
-	"path"
-	"sort"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/core/closing"
 	"github.com/ElrondNetwork/elrond-go-core/core/throttler"
@@ -24,7 +18,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
 
 // trieStorageManager manages all the storage operations of the trie (commit, snapshot, checkpoint, pruning)
@@ -39,17 +32,6 @@ type trieStorageManager struct {
 	cancelFunc             context.CancelFunc
 	closer                 core.SafeCloser
 	closed                 bool
-
-	// TODO remove these fields after the new implementation is in production
-	db                     common.DBWriteCacher
-	snapshots              []common.SnapshotDbHandler
-	snapshotId             int
-	snapshotDbCfg          config.DBConfig
-	maxSnapshots           uint32
-	keepSnapshots          bool
-	flagDisableOldStorage  atomic.Flag
-	disableOldStorageEpoch uint32
-	oldStorageClosed       bool
 	idleProvider           IdleNodeProvider
 }
 
@@ -63,24 +45,17 @@ type snapshotsQueueEntry struct {
 
 // NewTrieStorageManagerArgs holds the arguments needed for creating a new trieStorageManager
 type NewTrieStorageManagerArgs struct {
-	EpochNotifier              EpochNotifier
-	DisableOldTrieStorageEpoch uint32
-	DB                         common.DBWriteCacher
-	MainStorer                 common.DBWriteCacher
-	CheckpointsStorer          common.DBWriteCacher
-	Marshalizer                marshal.Marshalizer
-	Hasher                     hashing.Hasher
-	SnapshotDbConfig           config.DBConfig
-	GeneralConfig              config.TrieStorageManagerConfig
-	CheckpointHashesHolder     CheckpointHashesHolder
-	IdleProvider               IdleNodeProvider
+	MainStorer             common.DBWriteCacher
+	CheckpointsStorer      common.DBWriteCacher
+	Marshalizer            marshal.Marshalizer
+	Hasher                 hashing.Hasher
+	GeneralConfig          config.TrieStorageManagerConfig
+	CheckpointHashesHolder CheckpointHashesHolder
+	IdleProvider           IdleNodeProvider
 }
 
 // NewTrieStorageManager creates a new instance of trieStorageManager
 func NewTrieStorageManager(args NewTrieStorageManagerArgs) (*trieStorageManager, error) {
-	if check.IfNil(args.DB) {
-		return nil, ErrNilDatabase
-	}
 	if check.IfNil(args.MainStorer) {
 		return nil, fmt.Errorf("%w for main storer", ErrNilStorer)
 	}
@@ -96,9 +71,6 @@ func NewTrieStorageManager(args NewTrieStorageManagerArgs) (*trieStorageManager,
 	if check.IfNil(args.CheckpointHashesHolder) {
 		return nil, ErrNilCheckpointHashesHolder
 	}
-	if check.IfNil(args.EpochNotifier) {
-		return nil, ErrNilEpochNotifier
-	}
 	if check.IfNil(args.IdleProvider) {
 		return nil, ErrNilIdleNodeProvider
 	}
@@ -106,48 +78,20 @@ func NewTrieStorageManager(args NewTrieStorageManagerArgs) (*trieStorageManager,
 	ctx, cancelFunc := context.WithCancel(context.Background())
 
 	tsm := &trieStorageManager{
-		db:                     args.DB,
 		mainStorer:             args.MainStorer,
 		checkpointsStorer:      args.CheckpointsStorer,
-		snapshotDbCfg:          args.SnapshotDbConfig,
 		snapshotReq:            make(chan *snapshotsQueueEntry, args.GeneralConfig.SnapshotsBufferLen),
 		checkpointReq:          make(chan *snapshotsQueueEntry, args.GeneralConfig.SnapshotsBufferLen),
 		pruningBlockingOps:     0,
-		maxSnapshots:           args.GeneralConfig.MaxSnapshots,
-		keepSnapshots:          args.GeneralConfig.KeepSnapshots,
 		cancelFunc:             cancelFunc,
 		checkpointHashesHolder: args.CheckpointHashesHolder,
 		closer:                 closing.NewSafeChanCloser(),
-		disableOldStorageEpoch: args.DisableOldTrieStorageEpoch,
-		oldStorageClosed:       false,
 		idleProvider:           args.IdleProvider,
 	}
 	goRoutinesThrottler, err := throttler.NewNumGoRoutinesThrottler(int32(args.GeneralConfig.SnapshotsGoroutineNum))
 	if err != nil {
 		return nil, err
 	}
-
-	log.Debug("epoch for disabling old trie storage", "epoch", tsm.disableOldStorageEpoch)
-	args.EpochNotifier.RegisterNotifyHandler(tsm)
-
-	if tsm.flagDisableOldStorage.IsSet() {
-		err = tsm.db.Close()
-		if err != nil {
-			return nil, err
-		}
-		tsm.oldStorageClosed = true
-
-		go tsm.doCheckpointsAndSnapshots(ctx, args.Marshalizer, args.Hasher, goRoutinesThrottler)
-		return tsm, nil
-	}
-
-	snapshots, snapshotId, err := getSnapshotsAndSnapshotId(args.SnapshotDbConfig)
-	if err != nil {
-		log.Debug("get snapshot", "error", err.Error())
-	}
-
-	tsm.snapshots = snapshots
-	tsm.snapshotId = snapshotId
 
 	go tsm.doCheckpointsAndSnapshots(ctx, args.Marshalizer, args.Hasher, goRoutinesThrottler)
 	return tsm, nil
@@ -223,79 +167,6 @@ func (tsm *trieStorageManager) cleanupChans() {
 	}
 }
 
-func getOrderedSnapshots(snapshotsMap map[int]common.SnapshotDbHandler) []common.SnapshotDbHandler {
-	snapshots := make([]common.SnapshotDbHandler, 0)
-	keys := make([]int, 0)
-
-	for key := range snapshotsMap {
-		keys = append(keys, key)
-	}
-
-	sort.Ints(keys)
-	for _, key := range keys {
-		snapshots = append(snapshots, snapshotsMap[key])
-	}
-
-	return snapshots
-}
-
-func getSnapshotsAndSnapshotId(snapshotDbCfg config.DBConfig) ([]common.SnapshotDbHandler, int, error) {
-	snapshotsMap := make(map[int]common.SnapshotDbHandler)
-	snapshotId := 0
-
-	if !directoryExists(snapshotDbCfg.FilePath) {
-		return getOrderedSnapshots(snapshotsMap), snapshotId, nil
-	}
-
-	files, err := ioutil.ReadDir(snapshotDbCfg.FilePath)
-	if err != nil {
-		log.Debug("there is no snapshot in path", "path", snapshotDbCfg.FilePath)
-		return getOrderedSnapshots(snapshotsMap), snapshotId, err
-	}
-
-	for _, f := range files {
-		if !f.IsDir() {
-			continue
-		}
-
-		var snapshotName int
-		snapshotName, err = strconv.Atoi(f.Name())
-		if err != nil {
-			return getOrderedSnapshots(snapshotsMap), snapshotId, err
-		}
-
-		var db storage.Persister
-		arg := storageUnit.ArgDB{
-			DBType:            storageUnit.DBType(snapshotDbCfg.Type),
-			Path:              path.Join(snapshotDbCfg.FilePath, f.Name()),
-			BatchDelaySeconds: snapshotDbCfg.BatchDelaySeconds,
-			MaxBatchSize:      snapshotDbCfg.MaxBatchSize,
-			MaxOpenFiles:      snapshotDbCfg.MaxOpenFiles,
-		}
-		db, err = storageUnit.NewDB(arg)
-		if err != nil {
-			return getOrderedSnapshots(snapshotsMap), snapshotId, err
-		}
-
-		if snapshotName > snapshotId {
-			snapshotId = snapshotName
-		}
-
-		newSnapshot := &snapshotDb{
-			DBWriteCacher: db,
-		}
-
-		log.Debug("restored snapshot", "snapshot ID", snapshotName)
-		snapshotsMap[snapshotName] = newSnapshot
-	}
-
-	if len(snapshotsMap) != 0 {
-		snapshotId++
-	}
-
-	return getOrderedSnapshots(snapshotsMap), snapshotId, nil
-}
-
 // Get checks all the storers for the given key, and returns it if it is found
 func (tsm *trieStorageManager) Get(key []byte) ([]byte, error) {
 	tsm.storageOperationMutex.Lock()
@@ -346,25 +217,6 @@ func (tsm *trieStorageManager) getFromOtherStorers(key []byte) ([]byte, error) {
 	}
 	if len(val) != 0 {
 		return val, nil
-	}
-
-	if tsm.flagDisableOldStorage.IsSet() {
-		return nil, ErrKeyNotFound
-	}
-
-	val, err = tsm.db.Get(key)
-	if isClosingError(err) {
-		return nil, err
-	}
-	if len(val) != 0 {
-		return val, nil
-	}
-
-	for i := len(tsm.snapshots) - 1; i >= 0; i-- {
-		val, _ = tsm.snapshots[i].Get(key)
-		if len(val) != 0 {
-			return val, nil
-		}
 	}
 
 	return nil, ErrKeyNotFound
@@ -634,11 +486,6 @@ func newSnapshotNode(
 	return newRoot, nil
 }
 
-func directoryExists(path string) bool {
-	_, err := os.Stat(path)
-	return !os.IsNotExist(err)
-}
-
 // IsPruningEnabled returns true if the trie pruning is enabled
 func (tsm *trieStorageManager) IsPruningEnabled() bool {
 	return true
@@ -650,11 +497,6 @@ func (tsm *trieStorageManager) IsPruningBlocked() bool {
 	defer tsm.storageOperationMutex.RUnlock()
 
 	return tsm.pruningBlockingOps != 0
-}
-
-// GetSnapshotDbBatchDelay returns the batch write delay in seconds
-func (tsm *trieStorageManager) GetSnapshotDbBatchDelay() int {
-	return tsm.snapshotDbCfg.BatchDelaySeconds
 }
 
 // AddDirtyCheckpointHashes adds the given hashes to the checkpoint hashes holder
@@ -696,9 +538,6 @@ func (tsm *trieStorageManager) Close() error {
 	defer tsm.closer.Close()
 
 	var err error
-	if !tsm.flagDisableOldStorage.IsSet() {
-		err = tsm.closeOldTrieStorage()
-	}
 
 	errMainStorerClose := tsm.mainStorer.Close()
 	if errMainStorerClose != nil {
@@ -717,21 +556,6 @@ func (tsm *trieStorageManager) Close() error {
 	}
 
 	return nil
-}
-
-func (tsm *trieStorageManager) closeOldTrieStorage() error {
-	err := tsm.db.Close()
-
-	for _, sdb := range tsm.snapshots {
-		errSnapshotClose := sdb.Close()
-		if errSnapshotClose != nil {
-			log.Error("trieStorageManager.Close snapshotClose", "error", errSnapshotClose)
-			err = errSnapshotClose
-		}
-	}
-
-	tsm.oldStorageClosed = true
-	return err
 }
 
 // SetEpochForPutOperation will set the storer for the given epoch as the current storer
@@ -790,19 +614,6 @@ func isTrieSynced(stsm *snapshotTrieStorageManager) bool {
 
 	log.Debug("isTrieSynced invalid value", "value", val)
 	return false
-}
-
-// EpochConfirmed is called whenever a new epoch is confirmed
-func (tsm *trieStorageManager) EpochConfirmed(epoch uint32, _ uint64) {
-	tsm.flagDisableOldStorage.SetValue(epoch >= tsm.disableOldStorageEpoch)
-	log.Debug("old trie storage", "disabled", tsm.flagDisableOldStorage.IsSet())
-
-	if tsm.flagDisableOldStorage.IsSet() && !tsm.oldStorageClosed {
-		err := tsm.closeOldTrieStorage()
-		if err != nil {
-			log.Error("could not close old trie storage", "error", err.Error())
-		}
-	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

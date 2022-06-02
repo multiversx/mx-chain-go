@@ -35,6 +35,7 @@ import (
 
 // waitTime defines the time in milliseconds until node waits the requested info from the network
 const waitTime = 100 * time.Millisecond
+const testProcessWaitTime = time.Second
 
 type removedFlags struct {
 	flagHdrRemovedFromHeaders      bool
@@ -122,7 +123,7 @@ func createBlockProcessor(blk data.ChainHandler) *mock.BlockProcessorMock {
 	return blockProcessorMock
 }
 
-func createForkDetector(removedNonce uint64, remFlags *removedFlags) process.ForkDetector {
+func createForkDetector(removedNonce uint64, removedHash []byte, remFlags *removedFlags) process.ForkDetector {
 	return &mock.ForkDetectorMock{
 		RemoveHeaderCalled: func(nonce uint64, hash []byte) {
 			if nonce == removedNonce {
@@ -131,6 +132,9 @@ func createForkDetector(removedNonce uint64, remFlags *removedFlags) process.For
 		},
 		GetHighestFinalBlockNonceCalled: func() uint64 {
 			return removedNonce
+		},
+		GetHighestFinalBlockHashCalled: func() []byte {
+			return removedHash
 		},
 		ProbableHighestNonceCalled: func() uint64 {
 			return uint64(0)
@@ -205,6 +209,7 @@ func CreateShardBootstrapMockArguments() sync.ArgShardBootstrapper {
 		CurrentEpochProvider:         &testscommon.CurrentEpochProviderStub{},
 		HistoryRepo:                  &dblookupext.HistoryRepositoryStub{},
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
+		ProcessWaitTime:              testProcessWaitTime,
 	}
 
 	argsShardBootstrapper := sync.ArgShardBootstrapper{
@@ -416,6 +421,18 @@ func TestNewShardBootstrap_NilBlackListHandlerShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilBlackListCacher, err)
 }
 
+func TestNewShardBootstrap_InvalidProcessTimeShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := CreateShardBootstrapMockArguments()
+	args.ProcessWaitTime = time.Millisecond*100 - 1
+
+	bs, err := sync.NewShardBootstrap(args)
+
+	assert.Nil(t, bs)
+	assert.True(t, errors.Is(err, process.ErrInvalidProcessWaitTime))
+}
+
 func TestNewShardBootstrap_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -459,6 +476,7 @@ func TestNewShardBootstrap_OkValsShouldWork(t *testing.T) {
 	assert.NotNil(t, bs)
 	assert.Nil(t, err)
 	assert.False(t, bs.IsInImportMode())
+	assert.Equal(t, testProcessWaitTime, bs.ProcessWaitTime())
 }
 
 // ------- processing
@@ -901,6 +919,9 @@ func TestBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testing.T
 	}
 	forkDetector.GetHighestFinalBlockNonceCalled = func() uint64 {
 		return hdr.Nonce
+	}
+	forkDetector.GetHighestFinalBlockHashCalled = func() []byte {
+		return []byte("hash")
 	}
 	forkDetector.ProbableHighestNonceCalled = func() uint64 {
 		return 2
@@ -1385,8 +1406,11 @@ func TestBootstrap_RollBackIsNotEmptyShouldErr(t *testing.T) {
 			Nonce:         newHdrNonce,
 		}
 	}
+	blkc.GetCurrentBlockHeaderHashCalled = func() []byte {
+		return newHdrHash
+	}
 	args.ChainHandler = blkc
-	args.ForkDetector = createForkDetector(newHdrNonce, remFlags)
+	args.ForkDetector = createForkDetector(newHdrNonce, newHdrHash, remFlags)
 
 	bs, _ := sync.NewShardBootstrap(args)
 	err := bs.RollBack(false)
@@ -1512,7 +1536,7 @@ func TestBootstrap_RollBackIsEmptyCallRollBackOneBlockOkValsShouldWork(t *testin
 			return nil
 		},
 	}
-	args.ForkDetector = createForkDetector(currentHdrNonce, remFlags)
+	args.ForkDetector = createForkDetector(currentHdrNonce, currentHdrHash, remFlags)
 	args.Accounts = &stateMock.AccountsStub{
 		RecreateTrieCalled: func(rootHash []byte) error {
 			return nil
@@ -1655,7 +1679,7 @@ func TestBootstrap_RollbackIsEmptyCallRollBackOneBlockToGenesisShouldWork(t *tes
 			return nil
 		},
 	}
-	args.ForkDetector = createForkDetector(currentHdrNonce, remFlags)
+	args.ForkDetector = createForkDetector(currentHdrNonce, currentHdrHash, remFlags)
 	args.Accounts = &stateMock.AccountsStub{
 		RecreateTrieCalled: func(rootHash []byte) error {
 			return nil
@@ -1990,6 +2014,9 @@ func TestShardBootstrap_DoJobOnSyncBlockFailShouldResetProbableHighestNonce(t *t
 		GetHighestFinalBlockNonceCalled: func() uint64 {
 			return 1
 		},
+		GetHighestFinalBlockHashCalled: func() []byte {
+			return []byte("hash")
+		},
 		ResetProbableHighestNonceCalled: func() {
 			wasCalled = true
 		},
@@ -2099,6 +2126,9 @@ func TestShardBootstrap_SyncBlockGetNodeDBErrorShouldSync(t *testing.T) {
 	}
 	forkDetector.GetHighestFinalBlockNonceCalled = func() uint64 {
 		return hdr.Nonce
+	}
+	forkDetector.GetHighestFinalBlockHashCalled = func() []byte {
+		return []byte("hash")
 	}
 	forkDetector.ProbableHighestNonceCalled = func() uint64 {
 		return 2

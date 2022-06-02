@@ -5,7 +5,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
+	"github.com/ElrondNetwork/elrond-go/common"
 	dataMock "github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
@@ -541,7 +543,8 @@ func TestPatriciaMerkleTrie_GetAllLeavesCollapsedTrie(t *testing.T) {
 	}
 	tr.root = root
 
-	leavesChannel, err := tr.GetAllLeavesOnChannel(tr.root.getHash())
+	leavesChannel := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
+	err := tr.GetAllLeavesOnChannel(leavesChannel, context.Background(), tr.root.getHash())
 	assert.Nil(t, err)
 	leaves := make(map[string][]byte)
 

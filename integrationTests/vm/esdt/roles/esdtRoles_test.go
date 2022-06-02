@@ -47,7 +47,7 @@ func TestESDTRolesIssueAndTransactionsOnMultiShardEnvironment(t *testing.T) {
 
 	defer func() {
 		for _, n := range nodes {
-			_ = n.Messenger.Close()
+			n.Close()
 		}
 	}()
 
@@ -153,7 +153,7 @@ func TestESDTRolesSetRolesAndUnsetRolesIssueAndTransactionsOnMultiShardEnvironme
 
 	defer func() {
 		for _, n := range nodes {
-			_ = n.Messenger.Close()
+			n.Close()
 		}
 	}()
 
@@ -285,7 +285,7 @@ func TestESDTMintTransferAndExecute(t *testing.T) {
 
 	defer func() {
 		for _, n := range nodes {
-			_ = n.Messenger.Close()
+			n.Close()
 		}
 	}()
 
@@ -306,8 +306,7 @@ func TestESDTMintTransferAndExecute(t *testing.T) {
 	txIssueData := txDataBuilder.NewBuilder()
 	txIssueData.Func("issueWrappedEgld").
 		Str(name).
-		Str(ticker).
-		BigInt(big.NewInt(1))
+		Str(ticker)
 	integrationTests.CreateAndSendTransaction(
 		nodes[0],
 		nodes,
@@ -328,7 +327,7 @@ func TestESDTMintTransferAndExecute(t *testing.T) {
 		nodes,
 		big.NewInt(0),
 		scAddress,
-		"setLocalMintRole",
+		"setLocalRoles",
 		integrationTests.AdditionalGasLimit,
 	)
 	time.Sleep(time.Second)
