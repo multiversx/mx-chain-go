@@ -639,16 +639,15 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	scheduledTxsExecutionHandler.SetTransactionCoordinator(txCoordinator)
 
 	argsStaking := scToProtocol.ArgStakingToPeer{
-		PubkeyConv:       pcf.coreData.ValidatorPubKeyConverter(),
-		Hasher:           pcf.coreData.Hasher(),
-		Marshalizer:      pcf.coreData.InternalMarshalizer(),
-		PeerState:        pcf.state.PeerAccounts(),
-		BaseState:        pcf.state.AccountsAdapter(),
-		ArgParser:        argsParser,
-		CurrTxs:          pcf.data.Datapool().CurrentBlockTxs(),
-		RatingsData:      pcf.coreData.RatingsData(),
-		EpochNotifier:    pcf.coreData.EpochNotifier(),
-		StakeEnableEpoch: pcf.epochConfig.EnableEpochs.StakeEnableEpoch,
+		PubkeyConv:          pcf.coreData.ValidatorPubKeyConverter(),
+		Hasher:              pcf.coreData.Hasher(),
+		Marshalizer:         pcf.coreData.InternalMarshalizer(),
+		PeerState:           pcf.state.PeerAccounts(),
+		BaseState:           pcf.state.AccountsAdapter(),
+		ArgParser:           argsParser,
+		CurrTxs:             pcf.data.Datapool().CurrentBlockTxs(),
+		RatingsData:         pcf.coreData.RatingsData(),
+		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
 	}
 	smartContractToProtocol, err := scToProtocol.NewStakingToPeer(argsStaking)
 	if err != nil {
