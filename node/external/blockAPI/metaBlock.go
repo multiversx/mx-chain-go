@@ -115,6 +115,8 @@ func (mbp *metaAPIBlockProcessor) convertMetaBlockBytesToAPIBlock(hash []byte, b
 		miniblocks = append(miniblocks, intraMb...)
 	}
 
+	miniblocks = filterOutDuplicatedMiniblocks(miniblocks)
+
 	notarizedBlocks := make([]*api.NotarizedBlock, 0, len(blockHeader.ShardInfo))
 	for _, shardData := range blockHeader.ShardInfo {
 		notarizedBlock := &api.NotarizedBlock{
