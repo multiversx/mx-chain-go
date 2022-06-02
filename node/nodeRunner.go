@@ -10,6 +10,7 @@ import (
 	"path"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -457,10 +458,11 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	log.Info("application is now running")
 
 	// TODO: remove this and treat better the VM versions switching
-	go func() {
+	go func(statusHandler core.AppStatusHandler) {
 		time.Sleep(delayBeforeScQueriesStart)
 		close(allowExternalVMQueriesChan)
-	}()
+		statusHandler.SetStringValue(common.MetricAreVMQueriesReady, strconv.FormatBool(true))
+	}(managedCoreComponents.StatusHandler())
 
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
