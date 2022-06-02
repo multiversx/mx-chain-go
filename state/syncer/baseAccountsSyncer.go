@@ -139,7 +139,7 @@ func (b *baseAccountsSyncer) printStatistics(ssh common.SizeSyncStatisticsHandle
 				"num missing", ssh.NumMissing(),
 				"state data size", core.ConvertBytes(ssh.NumBytesReceived()),
 				"total iterations", ssh.NumIterations(),
-				"total CPU time", ssh.ProcessorTime(),
+				"total CPU time", ssh.ProcessingTime(),
 				"peak processing speed", peakSpeed,
 				"average processing speed", averageSpeed,
 			)
@@ -168,7 +168,7 @@ func (b *baseAccountsSyncer) printStatistics(ssh common.SizeSyncStatisticsHandle
 				"num of intercepted trie nodes", b.cacher.Len(),
 				"state data size", core.ConvertBytes(ssh.NumBytesReceived()),
 				"iterations", ssh.NumIterations(),
-				"CPU time", ssh.ProcessorTime(),
+				"CPU time", ssh.ProcessingTime(),
 				"processing speed", speed)
 		}
 	}

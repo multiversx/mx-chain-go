@@ -114,9 +114,9 @@ type SizeSyncStatisticsHandler interface {
 	AddNumBytesReceived(bytes uint64)
 	NumBytesReceived() uint64
 	NumTries() int
-	AddProcessorTime(duration time.Duration)
+	AddProcessingTime(duration time.Duration)
 	IncrementIteration()
-	ProcessorTime() time.Duration
+	ProcessingTime() time.Duration
 	NumIterations() int
 }
 

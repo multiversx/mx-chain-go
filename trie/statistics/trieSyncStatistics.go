@@ -13,7 +13,7 @@ type trieSyncStatistics struct {
 	missingMap       map[string]int
 	numBytesReceived uint64
 	numIterations    int
-	processorTime    time.Duration
+	processingTime   time.Duration
 }
 
 // NewTrieSyncStatistics returns a structure able to collect sync statistics from a trie and store them
@@ -32,7 +32,7 @@ func (tss *trieSyncStatistics) Reset() {
 	tss.numBytesReceived = 0
 	tss.missingMap = make(map[string]int)
 	tss.numIterations = 0
-	tss.processorTime = time.Duration(0)
+	tss.processingTime = time.Duration(0)
 	tss.Unlock()
 }
 
@@ -77,10 +77,10 @@ func (tss *trieSyncStatistics) SetNumMissing(rootHash []byte, value int) {
 	tss.missingMap[string(rootHash)] = value
 }
 
-// AddProcessorTime will add the processor time to the existing value
-func (tss *trieSyncStatistics) AddProcessorTime(duration time.Duration) {
+// AddProcessingTime will add the processing time to the existing value
+func (tss *trieSyncStatistics) AddProcessingTime(duration time.Duration) {
 	tss.Lock()
-	tss.processorTime += duration
+	tss.processingTime += duration
 	tss.Unlock()
 }
 
@@ -131,12 +131,12 @@ func (tss *trieSyncStatistics) NumTries() int {
 	return len(tss.missingMap)
 }
 
-// ProcessorTime will return the cumulative processor time used in tries synchronization (sum of all go routines used in trie sync processes)
-func (tss *trieSyncStatistics) ProcessorTime() time.Duration {
+// ProcessingTime will return the cumulative processing time used in tries synchronization (sum of all go routines used in trie sync processes)
+func (tss *trieSyncStatistics) ProcessingTime() time.Duration {
 	tss.RLock()
 	defer tss.RUnlock()
 
-	return tss.processorTime
+	return tss.processingTime
 }
 
 // NumIterations returns the total iterations done by all go routines used in the trie sync processes

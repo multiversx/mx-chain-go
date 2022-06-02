@@ -1,6 +1,8 @@
 package statistics
 
 import (
+	"fmt"
+	"sync"
 	"testing"
 	"time"
 
@@ -125,19 +127,95 @@ func TestTrieSyncStatistics_IncrementIteration(t *testing.T) {
 	assert.Equal(t, 0, tss.NumIterations())
 }
 
-func TestTrieSyncStatistics_AddProcessorTime(t *testing.T) {
+func TestTrieSyncStatistics_AddProcessingTime(t *testing.T) {
 	t.Parallel()
 
+	t.Run("one go routine", func(t *testing.T) {
+		tss := NewTrieSyncStatistics()
+
+		assert.Equal(t, time.Duration(0), tss.ProcessingTime())
+
+		tss.AddProcessingTime(time.Second)
+		assert.Equal(t, time.Second, tss.ProcessingTime())
+
+		tss.AddProcessingTime(time.Millisecond)
+		assert.Equal(t, time.Second+time.Millisecond, tss.ProcessingTime())
+
+		tss.Reset()
+		assert.Equal(t, time.Duration(0), tss.ProcessingTime())
+	})
+	t.Run("more go routines", func(t *testing.T) {
+		wg := &sync.WaitGroup{}
+		tss := NewTrieSyncStatistics()
+
+		numGoRoutines := 10
+		processingTime := time.Millisecond * 50
+		wg.Add(numGoRoutines)
+		for i := 0; i < numGoRoutines; i++ {
+			go func() {
+				time.Sleep(time.Millisecond * 10)
+
+				tss.AddProcessingTime(processingTime)
+				wg.Done()
+			}()
+		}
+
+		wg.Wait()
+
+		assert.Equal(t, time.Duration(numGoRoutines)*processingTime, tss.ProcessingTime())
+	})
+}
+
+func TestParallelOperationsShouldNotPanic(t *testing.T) {
+	t.Parallel()
+
+	defer func() {
+		r := recover()
+		if r != nil {
+			assert.Fail(t, fmt.Sprintf("should have not panicked: %v", r))
+		}
+	}()
+
 	tss := NewTrieSyncStatistics()
+	numIterations := 10000
+	wg := sync.WaitGroup{}
+	wg.Add(numIterations)
+	for i := 0; i < numIterations; i++ {
+		go func(idx int) {
+			switch idx {
+			case 0:
+				tss.Reset()
+			case 1:
+				tss.AddNumReceived(1)
+			case 2:
+				tss.AddNumBytesReceived(2)
+			case 3:
+				tss.AddNumLarge(3)
+			case 4:
+				tss.SetNumMissing([]byte("root hash"), 4)
+			case 5:
+				tss.AddProcessingTime(time.Millisecond)
+			case 6:
+				tss.IncrementIteration()
+			case 7:
+				_ = tss.NumReceived()
+			case 8:
+				_ = tss.NumLarge()
+			case 9:
+				_ = tss.NumMissing()
+			case 10:
+				_ = tss.NumBytesReceived()
+			case 11:
+				_ = tss.NumTries()
+			case 12:
+				_ = tss.ProcessingTime()
+			case 13:
+				_ = tss.NumIterations()
+			}
 
-	assert.Equal(t, time.Duration(0), tss.ProcessorTime())
+			wg.Done()
+		}(i % 14)
+	}
 
-	tss.AddProcessorTime(time.Second)
-	assert.Equal(t, time.Second, tss.ProcessorTime())
-
-	tss.AddProcessorTime(time.Millisecond)
-	assert.Equal(t, time.Second+time.Millisecond, tss.ProcessorTime())
-
-	tss.Reset()
-	assert.Equal(t, time.Duration(0), tss.ProcessorTime())
+	wg.Wait()
 }
