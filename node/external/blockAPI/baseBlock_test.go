@@ -276,9 +276,6 @@ func TestExtractExecutedTxHashes(t *testing.T) {
 	res = extractExecutedTxHashes(array, 0, int32(len(array))+1)
 	require.Equal(t, res, array)
 
-	res = extractExecutedTxHashes(array, 0, int32(len(array))+1)
-	require.Equal(t, res, array)
-
 	array = make([][]byte, 0, 10)
 	for idx := 0; idx < 10; idx++ {
 		array = append(array, []byte{byte(idx)})

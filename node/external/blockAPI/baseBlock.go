@@ -301,7 +301,7 @@ func (bap *baseAPIBlockProcessor) getBlockHeaderHashAndBytesByRound(round uint64
 func extractExecutedTxHashes(mbTxHashes [][]byte, firstProcessed, lastProcessed int32) [][]byte {
 	invalidIndexes := firstProcessed < 0 || lastProcessed >= int32(len(mbTxHashes)) || firstProcessed > lastProcessed
 	if invalidIndexes {
-		log.Warn("extractExecutedTxHashes encountered invalid indexes", "firstProcessed", firstProcessed,
+		log.Warn("extractExecutedTxHashes encountered invalid indices", "firstProcessed", firstProcessed,
 			"lastProcessed", lastProcessed,
 			"len(mbTxHashes)", len(mbTxHashes),
 		)
