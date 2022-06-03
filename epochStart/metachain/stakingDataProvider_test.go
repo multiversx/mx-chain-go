@@ -89,15 +89,15 @@ func TestStakingDataProvider_PrepareDataForBlsKeyGetBlsKeyOwnerErrorsShouldErr(t
 	}
 	sdp, _ := NewStakingDataProvider(args)
 
-	err := sdp.loadDataForBlsKey([]byte("bls key"))
+	err := sdp.loadDataForBlsKey(&state.ValidatorInfo{PublicKey: []byte("bls key")})
 	assert.Equal(t, expectedErr, err)
 
-	err = sdp.loadDataForBlsKey([]byte("bls key"))
+	err = sdp.loadDataForBlsKey(&state.ValidatorInfo{PublicKey: []byte("bls key")})
 	assert.NotNil(t, err)
 	assert.True(t, strings.Contains(err.Error(), epochStart.ErrExecutingSystemScCode.Error()))
 	assert.True(t, strings.Contains(err.Error(), vmcommon.UserError.String()))
 
-	err = sdp.loadDataForBlsKey([]byte("bls key"))
+	err = sdp.loadDataForBlsKey(&state.ValidatorInfo{PublicKey: []byte("bls key")})
 	assert.NotNil(t, err)
 	assert.True(t, strings.Contains(err.Error(), epochStart.ErrExecutingSystemScCode.Error()))
 	assert.True(t, strings.Contains(err.Error(), "returned exactly one value: the owner address"))
@@ -137,15 +137,15 @@ func TestStakingDataProvider_PrepareDataForBlsKeyLoadOwnerDataErrorsShouldErr(t 
 	}
 	sdp, _ := NewStakingDataProvider(args)
 
-	err := sdp.loadDataForBlsKey([]byte("bls key"))
+	err := sdp.loadDataForBlsKey(&state.ValidatorInfo{PublicKey: []byte("bls key")})
 	assert.Equal(t, expectedErr, err)
 
-	err = sdp.loadDataForBlsKey([]byte("bls key"))
+	err = sdp.loadDataForBlsKey(&state.ValidatorInfo{PublicKey: []byte("bls key")})
 	assert.NotNil(t, err)
 	assert.True(t, strings.Contains(err.Error(), epochStart.ErrExecutingSystemScCode.Error()))
 	assert.True(t, strings.Contains(err.Error(), vmcommon.UserError.String()))
 
-	err = sdp.loadDataForBlsKey([]byte("bls key"))
+	err = sdp.loadDataForBlsKey(&state.ValidatorInfo{PublicKey: []byte("bls key")})
 	assert.NotNil(t, err)
 	assert.True(t, strings.Contains(err.Error(), epochStart.ErrExecutingSystemScCode.Error()))
 	assert.True(t, strings.Contains(err.Error(), "getTotalStakedTopUpStakedBlsKeys function should have at least three values"))
@@ -162,12 +162,12 @@ func TestStakingDataProvider_PrepareDataForBlsKeyFromSCShouldWork(t *testing.T) 
 
 	sdp := createStakingDataProviderWithMockArgs(t, owner, topUpVal, stakeVal, &numRunContractCalls)
 
-	err := sdp.loadDataForBlsKey([]byte("bls key"))
+	err := sdp.loadDataForBlsKey(&state.ValidatorInfo{PublicKey: []byte("bls key")})
 	assert.Nil(t, err)
 	assert.Equal(t, 2, numRunContractCalls)
 	ownerData := sdp.GetFromCache(owner)
 	require.NotNil(t, ownerData)
-	assert.Equal(t, topUpVal, ownerData.topUpValue)
+	assert.Equal(t, topUpVal, ownerData.totalTopUp)
 	assert.Equal(t, 1, ownerData.numEligible)
 }
 
@@ -182,16 +182,16 @@ func TestStakingDataProvider_PrepareDataForBlsKeyCachedResponseShouldWork(t *tes
 
 	sdp := createStakingDataProviderWithMockArgs(t, owner, topUpVal, stakeVal, &numRunContractCalls)
 
-	err := sdp.loadDataForBlsKey([]byte("bls key"))
+	err := sdp.loadDataForBlsKey(&state.ValidatorInfo{PublicKey: []byte("bls key")})
 	assert.Nil(t, err)
 
-	err = sdp.loadDataForBlsKey([]byte("bls key2"))
+	err = sdp.loadDataForBlsKey(&state.ValidatorInfo{PublicKey: []byte("bls key2")})
 	assert.Nil(t, err)
 
 	assert.Equal(t, 3, numRunContractCalls)
 	ownerData := sdp.GetFromCache(owner)
 	require.NotNil(t, ownerData)
-	assert.Equal(t, topUpVal, ownerData.topUpValue)
+	assert.Equal(t, topUpVal, ownerData.totalTopUp)
 	assert.Equal(t, 2, ownerData.numEligible)
 }
 
@@ -203,11 +203,11 @@ func TestStakingDataProvider_PrepareDataForBlsKeyWithRealSystemVmShouldWork(t *t
 	blsKey := []byte("bls key")
 
 	sdp := createStakingDataProviderWithRealArgs(t, owner, blsKey, topUpVal)
-	err := sdp.loadDataForBlsKey(blsKey)
+	err := sdp.loadDataForBlsKey(&state.ValidatorInfo{PublicKey: blsKey})
 	assert.Nil(t, err)
 	ownerData := sdp.GetFromCache(owner)
 	require.NotNil(t, ownerData)
-	assert.Equal(t, topUpVal, ownerData.topUpValue)
+	assert.Equal(t, topUpVal, ownerData.totalTopUp)
 	assert.Equal(t, 1, ownerData.numEligible)
 }
 
@@ -435,13 +435,13 @@ func TestStakingDataProvider_GetNodeStakedTopUpShouldWork(t *testing.T) {
 	sdp := createStakingDataProviderWithMockArgs(t, owner, topUpVal, stakeVal, &numRunContractCalls)
 
 	expectedOwnerStats := &ownerStats{
-		topUpPerNode: big.NewInt(37),
+		eligibleTopUpPerNode: big.NewInt(37),
 	}
 	sdp.SetInCache(owner, expectedOwnerStats)
 
 	res, err := sdp.GetNodeStakedTopUp(owner)
 	require.NoError(t, err)
-	require.Equal(t, expectedOwnerStats.topUpPerNode, res)
+	require.Equal(t, expectedOwnerStats.eligibleTopUpPerNode, res)
 }
 
 func TestStakingDataProvider_PrepareStakingDataForRewards(t *testing.T) {
@@ -455,9 +455,9 @@ func TestStakingDataProvider_PrepareStakingDataForRewards(t *testing.T) {
 
 	sdp := createStakingDataProviderWithMockArgs(t, owner, topUpVal, stakeVal, &numRunContractCalls)
 
-	keys := make(map[uint32][][]byte)
-	keys[0] = append(keys[0], []byte("owner"))
-	err := sdp.PrepareStakingData(keys)
+	validatorsMap := state.NewShardValidatorsInfoMap()
+	_ = validatorsMap.Add(&state.ValidatorInfo{PublicKey: owner, ShardId: 0})
+	err := sdp.PrepareStakingData(validatorsMap)
 	require.NoError(t, err)
 }
 
@@ -472,7 +472,7 @@ func TestStakingDataProvider_FillValidatorInfo(t *testing.T) {
 
 	sdp := createStakingDataProviderWithMockArgs(t, owner, topUpVal, stakeVal, &numRunContractCalls)
 
-	err := sdp.FillValidatorInfo([]byte("owner"))
+	err := sdp.FillValidatorInfo(&state.ValidatorInfo{PublicKey: []byte("bls key")})
 	require.NoError(t, err)
 }
 
@@ -587,14 +587,14 @@ func updateCache(sdp *stakingDataProvider, ownerAddress []byte, blsKey []byte, l
 
 	if owner == nil {
 		owner = &ownerStats{
-			numEligible:        0,
-			numStakedNodes:     0,
-			topUpValue:         big.NewInt(0),
-			totalStaked:        big.NewInt(0),
-			eligibleBaseStake:  big.NewInt(0),
-			eligibleTopUpStake: big.NewInt(0),
-			topUpPerNode:       big.NewInt(0),
-			blsKeys:            nil,
+			numEligible:          0,
+			numStakedNodes:       0,
+			totalTopUp:           big.NewInt(0),
+			totalStaked:          big.NewInt(0),
+			eligibleBaseStake:    big.NewInt(0),
+			eligibleTopUpStake:   big.NewInt(0),
+			eligibleTopUpPerNode: big.NewInt(0),
+			blsKeys:              nil,
 		}
 	}
 

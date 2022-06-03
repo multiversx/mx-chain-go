@@ -1783,7 +1783,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4EnabledCannotPrepa
 
 	errProcessStakingData := errors.New("error processing staking data")
 	args.StakingDataProvider = &mock.StakingDataProviderStub{
-		PrepareStakingDataCalled: func(keys map[uint32][][]byte) error {
+		PrepareStakingDataCalled: func(validatorsMap state.ShardValidatorsInfoMapHandler) error {
 			return errProcessStakingData
 		},
 	}

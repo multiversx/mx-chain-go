@@ -3,17 +3,18 @@ package mock
 import (
 	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/state"
 )
 
 // StakingDataProviderStub -
 type StakingDataProviderStub struct {
 	CleanCalled                           func()
-	PrepareStakingDataCalled              func(keys map[uint32][][]byte) error
+	PrepareStakingDataCalled              func(validatorsMap state.ShardValidatorsInfoMapHandler) error
 	GetTotalStakeEligibleNodesCalled      func() *big.Int
 	GetTotalTopUpStakeEligibleNodesCalled func() *big.Int
 	GetNodeStakedTopUpCalled              func(blsKey []byte) (*big.Int, error)
-	FillValidatorInfoCalled               func(blsKey []byte) error
+	FillValidatorInfoCalled               func(validator state.ValidatorInfoHandler) error
 	ComputeUnQualifiedNodesCalled         func(validatorInfos state.ShardValidatorsInfoMapHandler) ([][]byte, map[string][][]byte, error)
 	GetBlsKeyOwnerCalled                  func(blsKey []byte) (string, error)
 	GetNumStakedNodesCalled               func(owner []byte) (int64, error)
@@ -21,9 +22,9 @@ type StakingDataProviderStub struct {
 }
 
 // FillValidatorInfo -
-func (sdps *StakingDataProviderStub) FillValidatorInfo(blsKey []byte) error {
+func (sdps *StakingDataProviderStub) FillValidatorInfo(validator state.ValidatorInfoHandler) error {
 	if sdps.FillValidatorInfoCalled != nil {
-		return sdps.FillValidatorInfoCalled(blsKey)
+		return sdps.FillValidatorInfoCalled(validator)
 	}
 	return nil
 }
@@ -77,9 +78,9 @@ func (sdps *StakingDataProviderStub) GetTotalTopUp(owner []byte) (*big.Int, erro
 }
 
 // PrepareStakingData -
-func (sdps *StakingDataProviderStub) PrepareStakingData(keys map[uint32][][]byte) error {
+func (sdps *StakingDataProviderStub) PrepareStakingData(validatorsMap state.ShardValidatorsInfoMapHandler) error {
 	if sdps.PrepareStakingDataCalled != nil {
-		return sdps.PrepareStakingDataCalled(keys)
+		return sdps.PrepareStakingDataCalled(validatorsMap)
 	}
 	return nil
 }
@@ -97,6 +98,15 @@ func (sdps *StakingDataProviderStub) GetBlsKeyOwner(blsKey []byte) (string, erro
 		return sdps.GetBlsKeyOwnerCalled(blsKey)
 	}
 	return "", nil
+}
+
+// GetNumOfValidatorsInCurrentEpoch -
+func (sdps *StakingDataProviderStub) GetNumOfValidatorsInCurrentEpoch() uint32 {
+	return 0
+}
+
+func (sdps *StakingDataProviderStub) GetOwnersStats() map[string]*epochStart.OwnerData {
+	return nil
 }
 
 // EpochConfirmed -

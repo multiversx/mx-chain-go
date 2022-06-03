@@ -77,7 +77,7 @@ func getPrettyValue(val *big.Int, denominator *big.Int) string {
 	return first + "." + second
 }
 
-func (als *auctionListSelector) displayOwnersData(ownersData map[string]*ownerData) {
+func (als *auctionListSelector) displayOwnersData(ownersData map[string]*ownerAuctionData) {
 	if log.GetLevel() > logger.LogDebug {
 		return
 	}
@@ -109,7 +109,7 @@ func (als *auctionListSelector) displayOwnersData(ownersData map[string]*ownerDa
 	displayTable(tableHeader, lines, "Initial nodes config in auction list")
 }
 
-func (als *auctionListSelector) displayOwnersSelectedNodes(ownersData map[string]*ownerData) {
+func (als *auctionListSelector) displayOwnersSelectedNodes(ownersData map[string]*ownerAuctionData) {
 	if log.GetLevel() > logger.LogDebug {
 		return
 	}
@@ -147,7 +147,7 @@ func (als *auctionListSelector) displayOwnersSelectedNodes(ownersData map[string
 
 func (als *auctionListSelector) displayAuctionList(
 	auctionList []state.ValidatorInfoHandler,
-	ownersData map[string]*ownerData,
+	ownersData map[string]*ownerAuctionData,
 	numOfSelectedNodes uint32,
 ) {
 	if log.GetLevel() > logger.LogDebug {
@@ -179,7 +179,7 @@ func (als *auctionListSelector) displayAuctionList(
 	displayTable(tableHeader, lines, "Final selected nodes from auction list")
 }
 
-func getBlsKeyOwnerMap(ownersData map[string]*ownerData) map[string]string {
+func getBlsKeyOwnerMap(ownersData map[string]*ownerAuctionData) map[string]string {
 	ret := make(map[string]string)
 	for ownerPubKey, owner := range ownersData {
 		for _, blsKey := range owner.auctionList {

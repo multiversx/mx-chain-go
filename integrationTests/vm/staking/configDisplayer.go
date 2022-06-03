@@ -6,7 +6,7 @@ import (
 	"strconv"
 
 	"github.com/ElrondNetwork/elrond-go-core/display"
-	"github.com/ElrondNetwork/elrond-go/epochStart/metachain"
+	"github.com/ElrondNetwork/elrond-go/state"
 )
 
 const (
@@ -37,10 +37,10 @@ func getShortPubKeysList(pubKeys [][]byte) [][]byte {
 	return pubKeysToDisplay
 }
 
-func (tmp *TestMetaProcessor) getAllNodeKeys() map[uint32][][]byte {
+func (tmp *TestMetaProcessor) getAllNodeKeys() state.ShardValidatorsInfoMapHandler {
 	rootHash, _ := tmp.ValidatorStatistics.RootHash()
 	validatorsMap, _ := tmp.ValidatorStatistics.GetValidatorInfoForRootHash(rootHash)
-	return metachain.GetAllNodeKeys(validatorsMap)
+	return validatorsMap
 }
 
 func (tmp *TestMetaProcessor) displayConfig(config nodesConfig) {
