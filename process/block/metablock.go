@@ -1486,6 +1486,7 @@ func (mp *metaProcessor) updateState(lastMetaBlock data.MetaHeaderHandler, _ []b
 	)
 
 	mp.setFinalizedHeaderHashInIndexer(lastMetaBlock.GetPrevHash())
+	mp.blockChain.SetHighestFinalBlockCoordinates(prevMetaBlock.GetNonce(), prevMetaBlockHash, prevMetaBlock.GetRootHash())
 }
 
 func (mp *metaProcessor) getLastSelfNotarizedHeaderByShard(

@@ -15,8 +15,8 @@ type ChainHandlerStub struct {
 	GetCurrentBlockHeaderHashCalled        func() []byte
 	SetCurrentBlockHeaderHashCalled        func([]byte)
 	GetCurrentBlockRootHashCalled          func() []byte
-	SetHighestFinalBlockAndRootHashCalled  func(header data.HeaderHandler, headerHash []byte, rootHash []byte)
-	GetHighestFinalCoordinatesCalled       func() (nonce uint64, blockHash []byte, rootHash []byte)
+	SetHighestFinalBlockCoordinatesCalled  func(nonce uint64, headerHash []byte, rootHash []byte)
+	GetHighestFinalBlockCoordinatesCalled  func() (nonce uint64, blockHash []byte, rootHash []byte)
 }
 
 // GetGenesisHeader -
@@ -90,17 +90,17 @@ func (stub *ChainHandlerStub) GetCurrentBlockRootHash() []byte {
 	return nil
 }
 
-// SetHighestFinalBlockAndRootHashCalled -
-func (stub *ChainHandlerStub) SetHighestFinalBlockAndRootHash(header data.HeaderHandler, headerHash []byte, rootHash []byte) {
-	if stub.SetHighestFinalBlockAndRootHashCalled != nil {
-		stub.SetHighestFinalBlockAndRootHashCalled(header, headerHash, rootHash)
+// SetHighestFinalBlockCoordinatesCalled -
+func (stub *ChainHandlerStub) SetHighestFinalBlockCoordinates(nonce uint64, headerHash []byte, rootHash []byte) {
+	if stub.SetHighestFinalBlockCoordinatesCalled != nil {
+		stub.SetHighestFinalBlockCoordinatesCalled(nonce, headerHash, rootHash)
 	}
 }
 
-// GetHighestFinalCoordinates -
-func (stub *ChainHandlerStub) GetHighestFinalCoordinates() (nonce uint64, blockHash []byte, rootHash []byte) {
-	if stub.GetHighestFinalCoordinatesCalled != nil {
-		return stub.GetHighestFinalCoordinatesCalled()
+// GetHighestFinalBlockCoordinates -
+func (stub *ChainHandlerStub) GetHighestFinalBlockCoordinates() (nonce uint64, blockHash []byte, rootHash []byte) {
+	if stub.GetHighestFinalBlockCoordinatesCalled != nil {
+		return stub.GetHighestFinalBlockCoordinatesCalled()
 	}
 
 	return 0, nil, nil

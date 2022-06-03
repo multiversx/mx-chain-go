@@ -16,7 +16,6 @@ type blockChain struct {
 	*baseBlockChain
 	// Question for review: perhaps move this to baseBlockchain?
 	currentBlockRootHash []byte
-	finalCoordinates     *finalCoordinates
 }
 
 // NewBlockChain returns an initialized blockchain
@@ -27,8 +26,8 @@ func NewBlockChain(appStatusHandler core.AppStatusHandler) (*blockChain, error) 
 	return &blockChain{
 		baseBlockChain: &baseBlockChain{
 			appStatusHandler: appStatusHandler,
+			finalCoordinates: &finalCoordinates{},
 		},
-		finalCoordinates: &finalCoordinates{},
 	}, nil
 }
 
@@ -94,28 +93,6 @@ func (bc *blockChain) GetCurrentBlockRootHash() []byte {
 	copy(cloned, rootHash)
 
 	return cloned
-}
-
-func (bc *blockChain) SetHighestFinalBlockAndRootHash(header data.HeaderHandler, headerHash []byte, rootHash []byte) {
-	bc.mut.Lock()
-
-	bc.finalCoordinates.blockNonce = header.GetNonce()
-	bc.finalCoordinates.blockHash = headerHash
-	bc.finalCoordinates.blockRootHash = rootHash
-
-	bc.mut.Unlock()
-}
-
-func (bc *blockChain) GetHighestFinalCoordinates() (nonce uint64, hash []byte, rootHash []byte) {
-	bc.mut.RLock()
-
-	nonce = bc.finalCoordinates.blockNonce
-	hash = bc.finalCoordinates.blockHash
-	rootHash = bc.finalCoordinates.blockRootHash
-
-	bc.mut.RUnlock()
-
-	return
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

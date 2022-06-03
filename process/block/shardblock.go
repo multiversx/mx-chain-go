@@ -968,7 +968,6 @@ func (sp *shardProcessor) CommitBlock(
 	}
 
 	sp.blockChain.SetCurrentBlockHeaderHash(headerHash)
-	sp.blockChain.SetHighestFinalBlockNonce(highestFinalBlockNonce)
 
 	sp.indexBlockIfNeeded(bodyHandler, headerHash, headerHandler, lastBlockHeader)
 	sp.recordBlockInHistory(headerHash, headerHandler, bodyHandler)
@@ -1154,6 +1153,7 @@ func (sp *shardProcessor) updateState(headers []data.HeaderHandler, currentHeade
 		)
 
 		sp.setFinalizedHeaderHashInIndexer(header.GetPrevHash())
+		sp.blockChain.SetHighestFinalBlockCoordinates(prevHeader.GetNonce(), prevHeaderHash, prevHeaderRootHashForPruning)
 	}
 }
 

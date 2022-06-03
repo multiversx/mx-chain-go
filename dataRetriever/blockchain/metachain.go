@@ -17,7 +17,6 @@ type metaChain struct {
 	*baseBlockChain
 	// Question for review: perhaps move this to baseBlockchain?
 	currentBlockRootHash []byte
-	finalCoordinates     *finalCoordinates
 }
 
 // NewMetaChain will initialize a new metachain instance
@@ -29,8 +28,8 @@ func NewMetaChain(appStatusHandler core.AppStatusHandler) (*metaChain, error) {
 	return &metaChain{
 		baseBlockChain: &baseBlockChain{
 			appStatusHandler: appStatusHandler,
+			finalCoordinates: &finalCoordinates{},
 		},
-		finalCoordinates: &finalCoordinates{},
 	}, nil
 }
 
@@ -94,28 +93,6 @@ func (mc *metaChain) GetCurrentBlockRootHash() []byte {
 	copy(cloned, rootHash)
 
 	return cloned
-}
-
-func (mc *metaChain) SetHighestFinalBlockAndRootHash(header data.HeaderHandler, headerHash []byte, rootHash []byte) {
-	mc.mut.Lock()
-
-	mc.finalCoordinates.blockNonce = header.GetNonce()
-	mc.finalCoordinates.blockHash = headerHash
-	mc.finalCoordinates.blockRootHash = rootHash
-
-	mc.mut.Unlock()
-}
-
-func (mc *metaChain) GetHighestFinalCoordinates() (nonce uint64, hash []byte, rootHash []byte) {
-	mc.mut.RLock()
-
-	nonce = mc.finalCoordinates.blockNonce
-	hash = mc.finalCoordinates.blockHash
-	rootHash = mc.finalCoordinates.blockRootHash
-
-	mc.mut.RUnlock()
-
-	return
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

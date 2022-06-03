@@ -15,6 +15,7 @@ type baseBlockChain struct {
 	genesisHeaderHash      []byte
 	currentBlockHeader     data.HeaderHandler
 	currentBlockHeaderHash []byte
+	finalCoordinates       *finalCoordinates
 }
 
 // GetGenesisHeader returns the genesis block header pointer
@@ -69,4 +70,26 @@ func (bbc *baseBlockChain) SetCurrentBlockHeaderHash(hash []byte) {
 	bbc.mut.Lock()
 	bbc.currentBlockHeaderHash = hash
 	bbc.mut.Unlock()
+}
+
+func (bbc *baseBlockChain) SetHighestFinalBlockCoordinates(nonce uint64, headerHash []byte, rootHash []byte) {
+	bbc.mut.Lock()
+
+	bbc.finalCoordinates.blockNonce = nonce
+	bbc.finalCoordinates.blockHash = headerHash
+	bbc.finalCoordinates.blockRootHash = rootHash
+
+	bbc.mut.Unlock()
+}
+
+func (bbc *baseBlockChain) GetHighestFinalBlockCoordinates() (nonce uint64, hash []byte, rootHash []byte) {
+	bbc.mut.RLock()
+
+	nonce = bbc.finalCoordinates.blockNonce
+	hash = bbc.finalCoordinates.blockHash
+	rootHash = bbc.finalCoordinates.blockRootHash
+
+	bbc.mut.RUnlock()
+
+	return
 }
