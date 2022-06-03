@@ -127,6 +127,12 @@ type AccountsAdapter interface {
 	IsInterfaceNil() bool
 }
 
+// AccountsRepository allows one to load accounts using a specific rootHash
+type AccountsRepository interface {
+	GetExistingAccount(address []byte, rootHash []byte) (vmcommon.AccountHandler, error)
+	IsInterfaceNil() bool
+}
+
 // JournalEntry will be used to implement different state changes to be able to easily revert them
 type JournalEntry interface {
 	Revert() (vmcommon.AccountHandler, error)

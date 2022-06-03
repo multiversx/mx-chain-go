@@ -45,6 +45,7 @@ type stateComponents struct {
 	peerAccounts        state.AccountsAdapter
 	accountsAdapter     state.AccountsAdapter
 	accountsAdapterAPI  state.AccountsAdapter
+	accountsRepository  state.AccountsRepository
 	triesContainer      common.TriesHolder
 	trieStorageManagers map[string]common.StorageManager
 }
@@ -95,7 +96,7 @@ func (scf *stateComponentsFactory) Create() (*stateComponents, error) {
 		return nil, err
 	}
 
-	accountsAdapter, accountsAdapterAPI, err := scf.createAccountsAdapters(triesContainer)
+	accountsAdapter, accountsAdapterAPI, accountsRepository, err := scf.createAccountsAdapters(triesContainer)
 	if err != nil {
 		return nil, err
 	}
@@ -109,17 +110,18 @@ func (scf *stateComponentsFactory) Create() (*stateComponents, error) {
 		peerAccounts:        peerAdapter,
 		accountsAdapter:     accountsAdapter,
 		accountsAdapterAPI:  accountsAdapterAPI,
+		accountsRepository:  accountsRepository,
 		triesContainer:      triesContainer,
 		trieStorageManagers: trieStorageManagers,
 	}, nil
 }
 
-func (scf *stateComponentsFactory) createAccountsAdapters(triesContainer common.TriesHolder) (state.AccountsAdapter, state.AccountsAdapter, error) {
+func (scf *stateComponentsFactory) createAccountsAdapters(triesContainer common.TriesHolder) (state.AccountsAdapter, state.AccountsAdapter, state.AccountsRepository, error) {
 	accountFactory := factoryState.NewAccountCreator()
 	merkleTrie := triesContainer.Get([]byte(trieFactory.UserAccountTrie))
 	storagePruning, err := scf.newStoragePruningManager()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	argsProcessingAccountsDB := state.ArgsAccountsDB{
@@ -133,7 +135,7 @@ func (scf *stateComponentsFactory) createAccountsAdapters(triesContainer common.
 	}
 	accountsAdapter, err := state.NewAccountsDB(argsProcessingAccountsDB)
 	if err != nil {
-		return nil, nil, fmt.Errorf("%w: %s", errors.ErrAccountsAdapterCreation, err.Error())
+		return nil, nil, nil, fmt.Errorf("%w: %s", errors.ErrAccountsAdapterCreation, err.Error())
 	}
 
 	argsAPIAccountsDB := state.ArgsAccountsDB{
@@ -147,15 +149,25 @@ func (scf *stateComponentsFactory) createAccountsAdapters(triesContainer common.
 	}
 	accountsAdapterAPI, err := state.NewAccountsDB(argsAPIAccountsDB)
 	if err != nil {
-		return nil, nil, fmt.Errorf("accounts adapter API: %w: %s", errors.ErrAccountsAdapterCreation, err.Error())
+		return nil, nil, nil, fmt.Errorf("accounts adapter API: %w: %s", errors.ErrAccountsAdapterCreation, err.Error())
 	}
 
 	wrapper, err := state.NewAccountsDBApi(accountsAdapterAPI, scf.chainHandler)
 	if err != nil {
-		return nil, nil, fmt.Errorf("accounts adapter API: %w: %s", errors.ErrAccountsAdapterCreation, err.Error())
+		return nil, nil, nil, fmt.Errorf("accounts adapter API: %w: %s", errors.ErrAccountsAdapterCreation, err.Error())
 	}
 
-	return accountsAdapter, wrapper, nil
+	accountsAdapterForRepository, err := state.NewAccountsDB(argsAPIAccountsDB)
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("accounts adapter for repository: %w: %s", errors.ErrAccountsAdapterCreation, err.Error())
+	}
+
+	accountsRepository, err := state.NewAccountsRepository(accountsAdapterForRepository)
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("accountsRepository: %w", err)
+	}
+
+	return accountsAdapter, wrapper, accountsRepository, nil
 }
 
 func (scf *stateComponentsFactory) createPeerAdapter(triesContainer common.TriesHolder) (state.AccountsAdapter, error) {

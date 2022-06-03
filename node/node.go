@@ -168,6 +168,48 @@ func (n *Node) GetBalance(address string, options api.AccountQueryOptions) (*big
 	return userAccount.GetBalance(), nil
 }
 
+func (n *Node) loadUserAccountHandler(address string, options api.AccountQueryOptions) (state.UserAccountHandler, api.BlockInfo, error) {
+	var account vmcommon.AccountHandler
+	var blockNonce uint64
+	var blockHash []byte
+	var blockRootHash []byte
+
+	publicKey, err := n.coreComponents.AddressPubKeyConverter().Decode(address)
+	if err != nil {
+		return nil, api.BlockInfo{}, err
+	}
+
+	if options.OnFinalBlock {
+		blockNonce, blockHash, blockRootHash = n.dataComponents.Blockchain().GetFinalBlockInfo()
+	} else if options.OnStartOfEpoch != 0 {
+		// TBD
+	} else {
+		// TODO: Fix possible race conditions (blockchain.go does not provide a load x 3 method; the following loads do not take place in a critical section).
+		blockNonce = n.dataComponents.Blockchain().GetCurrentBlockHeader().GetNonce()
+		blockHash = n.dataComponents.Blockchain().GetCurrentBlockHeaderHash()
+		blockRootHash = n.dataComponents.Blockchain().GetCurrentBlockRootHash()
+	}
+
+	account, err = n.stateComponents.AccountsRepository().GetExistingAccount(publicKey, blockRootHash)
+	if err != nil {
+		return nil, api.BlockInfo{}, err
+	}
+
+	userAccount, ok := n.castAccountToUserAccount(account)
+	if !ok {
+		return nil, api.BlockInfo{}, ErrCannotCastAccountHandlerToUserAccountHandler
+	}
+
+	blockInfo := api.BlockInfo{
+		// TODO: use integer in elrond-go-core
+		Nonce:    fmt.Sprint(blockNonce),
+		Hash:     hex.EncodeToString(blockHash),
+		RootHash: hex.EncodeToString(blockRootHash),
+	}
+
+	return userAccount, blockInfo, nil
+}
+
 // GetUsername gets the username for a specific address
 func (n *Node) GetUsername(address string, options api.AccountQueryOptions) (string, error) {
 	userAccount, err := n.getAccountHandlerAPIAccounts(address)
@@ -547,6 +589,7 @@ func adjustNftTokenIdentifier(token string, nonce uint64) string {
 }
 
 func (n *Node) getAccountHandlerAPIAccounts(address string) (state.UserAccountHandler, error) {
+	// TODO: Do we require this special lazy initialization logic? Other functions seem to not care about this (and directly use the converter). E.g. GetESDTsRoles()
 	componentsNotInitialized := check.IfNil(n.coreComponents.AddressPubKeyConverter()) ||
 		check.IfNil(n.stateComponents.AccountsAdapterAPI())
 	if componentsNotInitialized {
