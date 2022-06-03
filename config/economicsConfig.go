@@ -44,10 +44,11 @@ type GasLimitSetting struct {
 
 // FeeSettings will hold economics fee settings
 type FeeSettings struct {
-	GasLimitSettings []GasLimitSetting
-	GasPerDataByte   string
-	MinGasPrice      string
-	GasPriceModifier float64
+	GasLimitSettings       []GasLimitSetting
+	GasPerDataByte         string
+	MinGasPrice            string
+	GasPriceModifier       float64
+	ExtraGasLimitGuardedTx string
 }
 
 // EconomicsConfig will hold economics config

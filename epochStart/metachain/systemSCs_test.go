@@ -1069,6 +1069,7 @@ func createEconomicsData() process.EconomicsDataHandler {
 				MinGasPrice:      minGasPrice,
 				GasPerDataByte:   "1",
 				GasPriceModifier: 1.0,
+				ExtraGasLimitGuardedTx: "50000",
 			},
 		},
 		PenalizedTooMuchGasEnableEpoch: 0,

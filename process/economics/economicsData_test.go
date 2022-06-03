@@ -62,9 +62,10 @@ func feeSettingsDummy(gasModifier float64) config.FeeSettings {
 				MinGasLimit:                 "500",
 			},
 		},
-		MinGasPrice:      "18446744073709551615",
-		GasPerDataByte:   "1",
-		GasPriceModifier: gasModifier,
+		MinGasPrice:            "18446744073709551615",
+		GasPerDataByte:         "1",
+		GasPriceModifier:       gasModifier,
+		ExtraGasLimitGuardedTx: "50000",
 	}
 }
 
@@ -80,9 +81,10 @@ func feeSettingsReal() config.FeeSettings {
 				MinGasLimit:                 "50000",
 			},
 		},
-		MinGasPrice:      "1000000000",
-		GasPerDataByte:   "1500",
-		GasPriceModifier: 0.01,
+		MinGasPrice:            "1000000000",
+		GasPerDataByte:         "1500",
+		GasPriceModifier:       0.01,
+		ExtraGasLimitGuardedTx: "50000",
 	}
 }
 
