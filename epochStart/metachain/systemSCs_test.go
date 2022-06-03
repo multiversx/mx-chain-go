@@ -923,8 +923,7 @@ func createFullArgumentsForSystemSCProcessing(enableEpochsConfig config.EnableEp
 		NodesSetup:                           &mock.NodesSetupStub{},
 		MaxComputableRounds:                  1,
 		MaxConsecutiveRoundsOfRatingDecrease: 2000,
-		EpochNotifier:                        en,
-		StakingV2EnableEpoch:                 enableEpochsConfig.StakingV2EnableEpoch,
+		EnableEpochsHandler:                  enableEpochsHandler,
 	}
 	vCreator, _ := peer.NewValidatorStatisticsProcessor(argsValidatorsProcessor)
 

@@ -727,8 +727,7 @@ func (tpn *TestProcessorNode) initValidatorStatistics() {
 		RewardsHandler:                       tpn.EconomicsData,
 		NodesSetup:                           tpn.NodesSetup,
 		GenesisNonce:                         tpn.BlockChain.GetGenesisHeader().GetNonce(),
-		EpochNotifier:                        &epochNotifier.EpochNotifierStub{},
-		StakingV2EnableEpoch:                 StakingV2Epoch,
+		EnableEpochsHandler:                  tpn.EnableEpochsHandler,
 	}
 
 	tpn.ValidatorStatisticsProcessor, _ = peer.NewValidatorStatisticsProcessor(arguments)
