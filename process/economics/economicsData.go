@@ -138,6 +138,7 @@ func NewEconomicsData(args ArgsNewEconomicsData) (*economicsData, error) {
 		statusHandler:                    statusHandler.NewNilStatusHandler(),
 		builtInFunctionsCostHandler:      args.BuiltInFunctionsCostHandler,
 		txVersionHandler:                 args.TxVersionChecker,
+		extraGasLimitGuardedTx:           convertedData.extraGasLimitGuardedTx,
 	}
 	log.Debug("economicsData: enable epoch for penalized too much gas", "epoch", ed.penalizedTooMuchGasEnableEpoch)
 	log.Debug("economicsData: enable epoch for gas price modifier", "epoch", ed.gasPriceModifierEnableEpoch)
@@ -181,10 +182,16 @@ func convertValues(economics *config.EconomicsConfig) (*economicsData, error) {
 		return nil, process.ErrInvalidGenesisTotalSupply
 	}
 
+	extraGasLimitGuardedTx, err := strconv.ParseUint(economics.FeeSettings.ExtraGasLimitGuardedTx, conversionBase, bitConversionSize)
+	if err != nil {
+		return nil, process.ErrInvalidExtraGasLimitGuardedTx
+	}
+
 	return &economicsData{
-		minGasPrice:        minGasPrice,
-		gasPerDataByte:     gasPerDataByte,
-		genesisTotalSupply: genesisTotalSupply,
+		minGasPrice:            minGasPrice,
+		gasPerDataByte:         gasPerDataByte,
+		genesisTotalSupply:     genesisTotalSupply,
+		extraGasLimitGuardedTx: extraGasLimitGuardedTx,
 	}, nil
 }
 
@@ -388,6 +395,11 @@ func (ed *economicsData) GasPriceModifier() float64 {
 // MinGasLimit will return min gas limit
 func (ed *economicsData) MinGasLimit() uint64 {
 	return ed.minGasLimit
+}
+
+// ExtraGasLimitGuardedTx returns the extra gas limit required by the guarded transactions
+func (ed *economicsData) ExtraGasLimitGuardedTx() uint64 {
+	return ed.extraGasLimitGuardedTx
 }
 
 // GasPerDataByte will return the gas required for a economicsData byte
@@ -741,7 +753,6 @@ func (ed *economicsData) setGasLimitConfig(currentEpoch uint32) {
 		"maxGasLimitPerMetaMiniBlock", ed.maxGasLimitPerMetaMiniBlock,
 		"maxGasLimitPerTx", ed.maxGasLimitPerTx,
 		"minGasLimit", ed.minGasLimit,
-		"extraGasLimitGuardedTx", ed.extraGasLimitGuardedTx,
 	)
 
 	ed.statusHandler.SetUInt64Value(common.MetricMaxGasPerTransaction, ed.maxGasLimitPerTx)

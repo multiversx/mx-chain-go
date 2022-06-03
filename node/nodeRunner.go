@@ -589,6 +589,7 @@ func (nr *nodeRunner) createMetrics(
 	metrics.SaveUint64Metric(coreComponents.StatusHandler(), common.MetricGasPerDataByte, coreComponents.EconomicsData().GasPerDataByte())
 	metrics.SaveUint64Metric(coreComponents.StatusHandler(), common.MetricMinGasPrice, coreComponents.EconomicsData().MinGasPrice())
 	metrics.SaveUint64Metric(coreComponents.StatusHandler(), common.MetricMinGasLimit, coreComponents.EconomicsData().MinGasLimit())
+	metrics.SaveUint64Metric(coreComponents.StatusHandler(), common.MetricExtraGasLimitGuardedTx, coreComponents.EconomicsData().ExtraGasLimitGuardedTx())
 	metrics.SaveStringMetric(coreComponents.StatusHandler(), common.MetricRewardsTopUpGradientPoint, coreComponents.EconomicsData().RewardsTopUpGradientPoint().String())
 	metrics.SaveStringMetric(coreComponents.StatusHandler(), common.MetricTopUpFactor, fmt.Sprintf("%g", coreComponents.EconomicsData().RewardsTopUpFactor()))
 	metrics.SaveStringMetric(coreComponents.StatusHandler(), common.MetricGasPriceModifier, fmt.Sprintf("%g", coreComponents.EconomicsData().GasPriceModifier()))

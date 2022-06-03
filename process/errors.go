@@ -525,6 +525,9 @@ var ErrMaxGasLimitUsedForDestMeTxsIsReached = errors.New("max gas limit used for
 // ErrInvalidMinimumGasPrice signals that an invalid gas price has been read from config file
 var ErrInvalidMinimumGasPrice = errors.New("invalid minimum gas price")
 
+// ErrInvalidExtraGasLimitGuardedTx signals that an invalid gas limit has been provided in the config file
+var ErrInvalidExtraGasLimitGuardedTx = errors.New("invalid extra gas limit for guarded transactions")
+
 // ErrInvalidMinimumGasLimitForTx signals that an invalid minimum gas limit for transactions has been read from config file
 var ErrInvalidMinimumGasLimitForTx = errors.New("invalid minimum gas limit for transactions")
 

@@ -95,8 +95,8 @@ func (sc *scProcessor) createVMCallInput(
 	vmCallInput.CurrentTxHash = txHash
 	vmCallInput.GasLocked = gasLocked
 
-	gtx, isGuardedTx := tx.(data.GuardedTransactionHandler)
-	if isGuardedTx {
+	gtx, ok := tx.(data.GuardedTransactionHandler)
+	if ok {
 		vmCallInput.TxGuardian = gtx.GetGuardianAddr()
 	}
 
