@@ -12,7 +12,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -356,7 +355,7 @@ func (sdp *stakingDataProvider) checkAndFillOwnerValidatorAuctionData(
 	}
 	if validatorInAuction && !sdp.flagStakingV4Enable.IsSet() {
 		return fmt.Errorf("stakingDataProvider.checkAndFillOwnerValidatorAuctionData for validator in auction error: %w, owner: %s, node: %s",
-			nodesCoordinator.ErrReceivedAuctionValidatorsBeforeStakingV4,
+			epochStart.ErrReceivedAuctionValidatorsBeforeStakingV4,
 			hex.EncodeToString(ownerPubKey),
 			hex.EncodeToString(validator.GetPublicKey()),
 		)
