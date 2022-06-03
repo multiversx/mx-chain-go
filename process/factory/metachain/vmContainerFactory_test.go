@@ -274,6 +274,7 @@ func TestVmContainerFactory_Create(t *testing.T) {
 		PenalizedTooMuchGasEnableEpoch: 0,
 		EpochNotifier:                  &epochNotifier.EpochNotifierStub{},
 		BuiltInFunctionsCostHandler:    &mock.BuiltInCostHandlerStub{},
+		TxVersionChecker:               &testscommon.TxVersionCheckerStub{},
 	}
 	economicsData, _ := economics.NewEconomicsData(argsNewEconomicsData)
 

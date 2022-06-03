@@ -4051,6 +4051,7 @@ func createRealEconomicsDataArgs() *economics.ArgsNewEconomicsData {
 		PenalizedTooMuchGasEnableEpoch: 0,
 		GasPriceModifierEnableEpoch:    0,
 		BuiltInFunctionsCostHandler:    &mock.BuiltInCostHandlerStub{},
+		TxVersionChecker:               &testscommon.TxVersionCheckerStub{},
 	}
 }
 

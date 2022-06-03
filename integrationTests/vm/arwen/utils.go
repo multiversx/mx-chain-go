@@ -223,6 +223,7 @@ func (context *TestContext) initFeeHandlers() {
 		PenalizedTooMuchGasEnableEpoch: 0,
 		EpochNotifier:                  context.EpochNotifier,
 		BuiltInFunctionsCostHandler:    &mock.BuiltInCostHandlerStub{},
+		TxVersionChecker:               &testscommon.TxVersionCheckerStub{},
 	}
 	economicsData, _ := economics.NewEconomicsData(argsNewEconomicsData)
 

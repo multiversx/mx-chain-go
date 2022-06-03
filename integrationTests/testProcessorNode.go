@@ -1026,6 +1026,7 @@ func (tpn *TestProcessorNode) initEconomicsData(economicsConfig *config.Economic
 		PenalizedTooMuchGasEnableEpoch: 0,
 		EpochNotifier:                  &epochNotifier.EpochNotifierStub{},
 		BuiltInFunctionsCostHandler:    &mock.BuiltInCostHandlerStub{},
+		TxVersionChecker:               &testscommon.TxVersionCheckerStub{},
 	}
 	economicsData, _ := economics.NewEconomicsData(argsNewEconomicsData)
 	tpn.EconomicsData = economics.NewTestEconomicsData(economicsData)
@@ -1070,9 +1071,9 @@ func (tpn *TestProcessorNode) createDefaultEconomicsConfig() *config.EconomicsCo
 					MinGasLimit:                 minGasLimit,
 				},
 			},
-			MinGasPrice:      minGasPrice,
-			GasPerDataByte:   "1",
-			GasPriceModifier: 0.01,
+			MinGasPrice:            minGasPrice,
+			GasPerDataByte:         "1",
+			GasPriceModifier:       0.01,
 			ExtraGasLimitGuardedTx: "50000",
 		},
 	}

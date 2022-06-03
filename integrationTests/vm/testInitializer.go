@@ -398,6 +398,7 @@ func createEconomicsData(penalizedTooMuchGasEnableEpoch uint32) (process.Economi
 		PenalizedTooMuchGasEnableEpoch: penalizedTooMuchGasEnableEpoch,
 		EpochNotifier:                  &epochNotifier.EpochNotifierStub{},
 		BuiltInFunctionsCostHandler:    builtInCost,
+		TxVersionChecker:               &testscommon.TxVersionCheckerStub{},
 	}
 
 	return economics.NewEconomicsData(argsNewEconomicsData)

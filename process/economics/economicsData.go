@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
+	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -64,10 +65,12 @@ type economicsData struct {
 	gasPriceModifierEnableEpoch      uint32
 	statusHandler                    core.AppStatusHandler
 	builtInFunctionsCostHandler      BuiltInFunctionsCostHandler
+	txVersionHandler                 process.TxVersionCheckerHandler
 }
 
 // ArgsNewEconomicsData defines the arguments needed for new economics economicsData
 type ArgsNewEconomicsData struct {
+	TxVersionChecker               process.TxVersionCheckerHandler
 	BuiltInFunctionsCostHandler    BuiltInFunctionsCostHandler
 	Economics                      *config.EconomicsConfig
 	EpochNotifier                  process.EpochNotifier
@@ -79,6 +82,9 @@ type ArgsNewEconomicsData struct {
 func NewEconomicsData(args ArgsNewEconomicsData) (*economicsData, error) {
 	if check.IfNil(args.BuiltInFunctionsCostHandler) {
 		return nil, process.ErrNilBuiltInFunctionsCostHandler
+	}
+	if check.IfNil(args.TxVersionChecker) {
+		return nil, process.ErrNilTransactionVersionChecker
 	}
 
 	err := checkValues(args.Economics)
@@ -131,6 +137,7 @@ func NewEconomicsData(args ArgsNewEconomicsData) (*economicsData, error) {
 		gasPriceModifier:                 args.Economics.FeeSettings.GasPriceModifier,
 		statusHandler:                    statusHandler.NewNilStatusHandler(),
 		builtInFunctionsCostHandler:      args.BuiltInFunctionsCostHandler,
+		txVersionHandler:                 args.TxVersionChecker,
 	}
 	log.Debug("economicsData: enable epoch for penalized too much gas", "epoch", ed.penalizedTooMuchGasEnableEpoch)
 	log.Debug("economicsData: enable epoch for gas price modifier", "epoch", ed.gasPriceModifierEnableEpoch)
@@ -581,6 +588,10 @@ func (ed *economicsData) ComputeGasLimit(tx data.TransactionWithFeeHandler) uint
 
 	dataLen := uint64(len(tx.GetData()))
 	gasLimit += dataLen * ed.gasPerDataByte
+	txInstance, ok := tx.(*transaction.Transaction)
+	if ok && ed.txVersionHandler.IsGuardedTransaction(txInstance) {
+		gasLimit += ed.extraGasLimitGuardedTx
+	}
 
 	return gasLimit
 }
@@ -730,6 +741,7 @@ func (ed *economicsData) setGasLimitConfig(currentEpoch uint32) {
 		"maxGasLimitPerMetaMiniBlock", ed.maxGasLimitPerMetaMiniBlock,
 		"maxGasLimitPerTx", ed.maxGasLimitPerTx,
 		"minGasLimit", ed.minGasLimit,
+		"extraGasLimitGuardedTx", ed.extraGasLimitGuardedTx,
 	)
 
 	ed.statusHandler.SetUInt64Value(common.MetricMaxGasPerTransaction, ed.maxGasLimitPerTx)
