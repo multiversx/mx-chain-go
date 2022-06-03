@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	esdtCommon "github.com/ElrondNetwork/elrond-go/integrationTests/vm/esdt"
 	"github.com/ElrondNetwork/elrond-go/testscommon/txDataBuilder"
@@ -247,11 +248,15 @@ func TestESDTSetTransferRoles(t *testing.T) {
 	esdtCommon.CheckAddressHasTokens(t, destAddress, nodes, []byte(tokenIdentifier), 0, amount)
 }
 
-func TestESDTSetTransferRolesForwardAsyncCallFails(t *testing.T) {
+func TestESDTSetTransferRolesForwardAsyncCallFailsIntra(t *testing.T) {
+	testESDTWithTransferRoleAndForwarder(t, 1)
+}
+
+func testESDTWithTransferRoleAndForwarder(t *testing.T, numShards int) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
-	nodes, idxProposers := esdtCommon.CreateNodesAndPrepareBalances(1)
+	nodes, idxProposers := esdtCommon.CreateNodesAndPrepareBalances(numShards)
 
 	defer func() {
 		for _, n := range nodes {
@@ -268,7 +273,7 @@ func TestESDTSetTransferRolesForwardAsyncCallFails(t *testing.T) {
 	nonce++
 
 	scAddressA := esdtCommon.DeployNonPayableSmartContract(t, nodes, idxProposers, &nonce, &round, "../testdata/use-module.wasm")
-	scAddressB := esdtCommon.DeployNonPayableSmartContract(t, nodes, idxProposers, &nonce, &round, "../testdata/use-module.wasm")
+	scAddressB := esdtCommon.DeployNonPayableSmartContractFromNode(t, nodes, 1, idxProposers, &nonce, &round, "../testdata/use-module.wasm")
 	nrRoundsToPropagateMultiShard := 12
 	tokenIdentifier := esdtCommon.PrepareFungibleTokensWithLocalBurnAndMint(t, nodes, scAddressA, idxProposers, &nonce, &round)
 
@@ -291,8 +296,13 @@ func TestESDTSetTransferRolesForwardAsyncCallFails(t *testing.T) {
 		integrationTests.AdditionalGasLimit+core.MinMetaTxExtraGasCost,
 	)
 	time.Sleep(time.Second)
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 1, nonce, round, idxProposers)
+	_ = logger.SetLogLevel("gasTrace:TRACE,arwen:TRACE")
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 15, nonce, round, idxProposers)
 	time.Sleep(time.Second)
 
 	esdtCommon.CheckAddressHasTokens(t, nodes[0].OwnAccount.Address, nodes, []byte(tokenIdentifier), 0, amount)
+}
+
+func TestESDTSetTransferRolesForwardAsyncCallFailsCross(t *testing.T) {
+	testESDTWithTransferRoleAndForwarder(t, 2)
 }
