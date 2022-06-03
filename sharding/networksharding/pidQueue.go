@@ -61,7 +61,7 @@ func (pq *pidQueue) remove(pid core.PeerID) {
 	pq.data = newData
 }
 
-func (pq *pidQueue) size() int {
+func (pq *pidQueue) dataSizeInBytes() int {
 	sum := 0
 	for _, pid := range pq.data {
 		sum += len(pid)

@@ -16,8 +16,8 @@ import (
 	vmData "github.com/ElrondNetwork/elrond-go-core/data/vm"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
-	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/mock"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -4592,9 +4592,16 @@ func TestEsdt_ExecuteRegisterAndSetSemiFungible(t *testing.T) {
 	assert.Equal(t, token.TokenType, []byte(core.SemiFungibleESDT))
 }
 
-func TestEsdt_ExecuteRegisterAndSetMetaESDT(t *testing.T) {
+func TestEsdt_ExecuteRegisterAndSetMetaESDTShouldSetType(t *testing.T) {
 	t.Parallel()
 
+	registerAndSetAllRolesWithTypeCheck(t, []byte("NFT"), []byte(core.NonFungibleESDT))
+	registerAndSetAllRolesWithTypeCheck(t, []byte("SFT"), []byte(core.SemiFungibleESDT))
+	registerAndSetAllRolesWithTypeCheck(t, []byte("META"), []byte(metaESDT))
+	registerAndSetAllRolesWithTypeCheck(t, []byte("FNG"), []byte(core.FungibleESDT))
+}
+
+func registerAndSetAllRolesWithTypeCheck(t *testing.T, typeArgument []byte, expectedType []byte) {
 	args := createMockArgumentsForESDT()
 	eei, _ := NewVMContext(
 		&mock.BlockChainHookStub{},
@@ -4608,7 +4615,7 @@ func TestEsdt_ExecuteRegisterAndSetMetaESDT(t *testing.T) {
 	vmInput := getDefaultVmInputForFunc("registerAndSetAllRoles", nil)
 	vmInput.CallValue = big.NewInt(0).Set(e.baseIssuingCost)
 
-	vmInput.Arguments = [][]byte{[]byte("tokenName"), []byte("TICKER"), []byte("META"), big.NewInt(10).Bytes()}
+	vmInput.Arguments = [][]byte{[]byte("tokenName"), []byte("TICKER"), typeArgument, big.NewInt(10).Bytes()}
 	eei.gasRemaining = 9999
 	eei.returnMessage = ""
 	output := e.Execute(vmInput)
@@ -4617,5 +4624,5 @@ func TestEsdt_ExecuteRegisterAndSetMetaESDT(t *testing.T) {
 	assert.True(t, strings.Contains(string(eei.output[0]), "TICKER-"))
 
 	token, _ := e.getExistingToken(eei.output[0])
-	assert.Equal(t, token.TokenType, []byte(metaESDT))
+	assert.Equal(t, expectedType, token.TokenType)
 }

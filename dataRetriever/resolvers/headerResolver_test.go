@@ -17,17 +17,23 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func createMockArgBaseResolver() resolvers.ArgBaseResolver {
+	return resolvers.ArgBaseResolver{
+		SenderResolver:   &mock.TopicResolverSenderStub{},
+		Marshaller:       &mock.MarshalizerMock{},
+		AntifloodHandler: &mock.P2PAntifloodHandlerStub{},
+		Throttler:        &mock.ThrottlerStub{},
+	}
+}
+
 func createMockArgHeaderResolver() resolvers.ArgHeaderResolver {
 	return resolvers.ArgHeaderResolver{
-		SenderResolver:       &mock.TopicResolverSenderStub{},
+		ArgBaseResolver:      createMockArgBaseResolver(),
 		Headers:              &mock.HeadersCacherStub{},
 		HdrStorage:           &storageStubs.StorerStub{},
 		HeadersNoncesStorage: &storageStubs.StorerStub{},
-		Marshalizer:          &mock.MarshalizerMock{},
 		NonceConverter:       mock.NewNonceHashConverterMock(),
 		ShardCoordinator:     mock.NewOneShardCoordinatorMock(),
-		AntifloodHandler:     &mock.P2PAntifloodHandlerStub{},
-		Throttler:            &mock.ThrottlerStub{},
 	}
 }
 
@@ -83,7 +89,7 @@ func TestNewHeaderResolver_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockArgHeaderResolver()
-	arg.Marshalizer = nil
+	arg.Marshaller = nil
 	hdrRes, err := resolvers.NewHeaderResolver(arg)
 
 	assert.Equal(t, dataRetriever.ErrNilMarshalizer, err)
@@ -312,7 +318,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestHashTypeFoundInHdrPoolMarsh
 			return nil
 		},
 	}
-	arg.Marshalizer = marshalizerStub
+	arg.Marshaller = marshalizerStub
 	arg.Headers = headers
 	hdrRes, _ := resolvers.NewHeaderResolver(arg)
 
@@ -394,7 +400,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceShouldCallWithTheCorre
 	}
 	hdrRes, _ := resolvers.NewHeaderResolver(arg)
 
-	buff, _ := arg.Marshalizer.Marshal(
+	buff, _ := arg.Marshaller.Marshal(
 		&dataRetriever.RequestData{
 			Type:  dataRetriever.NonceType,
 			Value: []byte("aaa"),
