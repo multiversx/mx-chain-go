@@ -159,6 +159,7 @@ func TestStatusMetrics_NetworkConfig(t *testing.T) {
 	sm.SetUInt64Value(common.MetricMetaConsensusGroupSize, 25)
 	sm.SetUInt64Value(common.MetricMinGasPrice, 1000)
 	sm.SetUInt64Value(common.MetricMinGasLimit, 50000)
+	sm.SetUInt64Value(common.MetricExtraGasLimitGuardedTx, 50000)
 	sm.SetStringValue(common.MetricRewardsTopUpGradientPoint, "12345")
 	sm.SetUInt64Value(common.MetricGasPerDataByte, 1500)
 	sm.SetStringValue(common.MetricChainId, "local-id")

@@ -38,12 +38,12 @@ import (
 
 const MaxGasLimitPerBlock = uint64(100000)
 
-func feeHandlerMock() *mock.FeeHandlerStub {
-	return &mock.FeeHandlerStub{
+func feeHandlerMock() *economicsmocks.EconomicsHandlerStub {
+	return &economicsmocks.EconomicsHandlerStub{
 		ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 			return 0
 		},
-		MaxGasLimitPerBlockCalled: func() uint64 {
+		MaxGasLimitPerBlockCalled: func(_ uint32) uint64 {
 			return MaxGasLimitPerBlock
 		},
 		MaxGasLimitPerMiniBlockCalled: func() uint64 {
@@ -1270,8 +1270,8 @@ func TestTransactionsPreprocessor_ComputeGasProvidedShouldWork(t *testing.T) {
 	txGasLimitInSender := maxGasLimit + 1
 	txGasLimitInReceiver := maxGasLimit
 	args := createDefaultTransactionsProcessorArgs()
-	args.EconomicsFee = &mock.FeeHandlerStub{
-		MaxGasLimitPerBlockCalled: func() uint64 {
+	args.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
+		MaxGasLimitPerBlockCalled: func(_ uint32) uint64 {
 			return maxGasLimit
 		},
 	}
@@ -1314,7 +1314,7 @@ func TestTransactionsPreprocessor_SplitMiniBlocksIfNeededShouldWork(t *testing.T
 	txGasLimit := uint64(100)
 
 	args := createDefaultTransactionsProcessorArgs()
-	args.EconomicsFee = &mock.FeeHandlerStub{
+	args.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
 		MaxGasLimitPerMiniBlockForSafeCrossShardCalled: func() uint64 {
 			return gasLimitPerMiniBlock
 		},
