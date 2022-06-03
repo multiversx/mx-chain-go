@@ -1430,7 +1430,7 @@ func (mp *metaProcessor) displayPoolsInfo() {
 	mp.displayMiniBlocksPool()
 }
 
-func (mp *metaProcessor) updateState(lastMetaBlock data.MetaHeaderHandler, _ []byte) {
+func (mp *metaProcessor) updateState(lastMetaBlock data.MetaHeaderHandler, lastMetaBlockHash []byte) {
 	if check.IfNil(lastMetaBlock) {
 		log.Debug("updateState nil header")
 		return
@@ -1487,6 +1487,7 @@ func (mp *metaProcessor) updateState(lastMetaBlock data.MetaHeaderHandler, _ []b
 	)
 
 	mp.setFinalizedHeaderHashInIndexer(lastMetaBlock.GetPrevHash())
+	mp.blockChain.SetFinalBlockInfo(lastMetaBlock.GetNonce(), lastMetaBlockHash, lastMetaBlock.GetRootHash())
 }
 
 func (mp *metaProcessor) getLastSelfNotarizedHeaderByShard(
