@@ -1305,7 +1305,6 @@ func (mp *metaProcessor) CommitBlock(
 	}
 
 	mp.blockChain.SetCurrentBlockHeaderHash(headerHash)
-	mp.blockChain.SetHighestFinalBlockNonce(highestFinalBlockNonce)
 
 	if !check.IfNil(lastMetaBlock) && lastMetaBlock.IsStartOfEpochBlock() {
 		mp.blockTracker.CleanupInvalidCrossHeaders(header.Epoch, header.Round)

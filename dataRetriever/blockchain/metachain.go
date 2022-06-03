@@ -17,7 +17,7 @@ type metaChain struct {
 	*baseBlockChain
 	// Question for review: perhaps move this to baseBlockchain?
 	currentBlockRootHash []byte
-	finalTracker         *highestFinalTracker
+	finalCoordinates     *finalCoordinates
 }
 
 // NewMetaChain will initialize a new metachain instance
@@ -30,7 +30,7 @@ func NewMetaChain(appStatusHandler core.AppStatusHandler) (*metaChain, error) {
 		baseBlockChain: &baseBlockChain{
 			appStatusHandler: appStatusHandler,
 		},
-		finalTracker: newHighestFinalTracker(),
+		finalCoordinates: &finalCoordinates{},
 	}, nil
 }
 
@@ -96,22 +96,24 @@ func (mc *metaChain) GetCurrentBlockRootHash() []byte {
 	return cloned
 }
 
-func (mc *metaChain) SetHighestFinalBlockNonce(nonce uint64) {
+func (mc *metaChain) SetHighestFinalBlockAndRootHash(header data.HeaderHandler, headerHash []byte, rootHash []byte) {
 	mc.mut.Lock()
-	mc.finalTracker.trackCoordinates(currentCoordinates{
-		highestFinalNonce: nonce,
-		// TODO: Maybe check for nil?
-		currentBlockNonce:    mc.currentBlockHeader.GetNonce(),
-		currentBlockHash:     mc.currentBlockHeaderHash,
-		currentBlockRootHash: mc.currentBlockRootHash,
-	})
+
+	mc.finalCoordinates.blockNonce = header.GetNonce()
+	mc.finalCoordinates.blockHash = headerHash
+	mc.finalCoordinates.blockRootHash = rootHash
+
 	mc.mut.Unlock()
 }
 
 func (mc *metaChain) GetHighestFinalCoordinates() (nonce uint64, hash []byte, rootHash []byte) {
-	nonce = mc.finalTracker.highestFinalRecord.blockNonce
-	hash = mc.finalTracker.highestFinalRecord.blockHash
-	rootHash = mc.finalTracker.highestFinalRecord.blockRootHash
+	mc.mut.RLock()
+
+	nonce = mc.finalCoordinates.blockNonce
+	hash = mc.finalCoordinates.blockHash
+	rootHash = mc.finalCoordinates.blockRootHash
+
+	mc.mut.RUnlock()
 
 	return
 }

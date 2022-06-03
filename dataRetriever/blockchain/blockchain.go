@@ -16,7 +16,7 @@ type blockChain struct {
 	*baseBlockChain
 	// Question for review: perhaps move this to baseBlockchain?
 	currentBlockRootHash []byte
-	finalTracker         *highestFinalTracker
+	finalCoordinates     *finalCoordinates
 }
 
 // NewBlockChain returns an initialized blockchain
@@ -28,7 +28,7 @@ func NewBlockChain(appStatusHandler core.AppStatusHandler) (*blockChain, error) 
 		baseBlockChain: &baseBlockChain{
 			appStatusHandler: appStatusHandler,
 		},
-		finalTracker: newHighestFinalTracker(),
+		finalCoordinates: &finalCoordinates{},
 	}, nil
 }
 
@@ -96,22 +96,24 @@ func (bc *blockChain) GetCurrentBlockRootHash() []byte {
 	return cloned
 }
 
-func (bc *blockChain) SetHighestFinalBlockNonce(nonce uint64) {
+func (bc *blockChain) SetHighestFinalBlockAndRootHash(header data.HeaderHandler, headerHash []byte, rootHash []byte) {
 	bc.mut.Lock()
-	bc.finalTracker.trackCoordinates(currentCoordinates{
-		highestFinalNonce: nonce,
-		// TODO: Maybe check for nil?
-		currentBlockNonce:    bc.currentBlockHeader.GetNonce(),
-		currentBlockHash:     bc.currentBlockHeaderHash,
-		currentBlockRootHash: bc.currentBlockRootHash,
-	})
+
+	bc.finalCoordinates.blockNonce = header.GetNonce()
+	bc.finalCoordinates.blockHash = headerHash
+	bc.finalCoordinates.blockRootHash = rootHash
+
 	bc.mut.Unlock()
 }
 
 func (bc *blockChain) GetHighestFinalCoordinates() (nonce uint64, hash []byte, rootHash []byte) {
-	nonce = bc.finalTracker.highestFinalRecord.blockNonce
-	hash = bc.finalTracker.highestFinalRecord.blockHash
-	rootHash = bc.finalTracker.highestFinalRecord.blockRootHash
+	bc.mut.RLock()
+
+	nonce = bc.finalCoordinates.blockNonce
+	hash = bc.finalCoordinates.blockHash
+	rootHash = bc.finalCoordinates.blockRootHash
+
+	bc.mut.RUnlock()
 
 	return
 }
