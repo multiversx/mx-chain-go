@@ -1152,7 +1152,7 @@ func TestTrieDbPruning_GetAccountAfterPruning(t *testing.T) {
 	_ = account.(state.UserAccountHandler).AddToBalance(big.NewInt(1))
 	_ = adb.SaveAccount(account)
 	rootHash2, _ := adb.Commit()
-	adb.PruneTrie(rootHash1, state.OldRoot)
+	adb.PruneTrie(rootHash1, state.OldRoot, state.NewPruningHandler(true))
 
 	err := adb.RecreateTrie(rootHash2)
 	require.Nil(t, err)
@@ -1244,7 +1244,7 @@ func TestTrieDbPruning_GetDataTrieTrackerAfterPruning(t *testing.T) {
 	_ = adb.SaveAccount(stateMock)
 
 	newRootHash, _ := adb.Commit()
-	adb.PruneTrie(oldRootHash, state.OldRoot)
+	adb.PruneTrie(oldRootHash, state.OldRoot, state.NewPruningHandler(true))
 
 	err := adb.RecreateTrie(newRootHash)
 	require.Nil(t, err)
@@ -1610,7 +1610,7 @@ func TestSnapshotOnEpochChange(t *testing.T) {
 		stateCheckpointModulus,
 	)
 
-	roundsPerEpoch := uint64(10)
+	roundsPerEpoch := uint64(17)
 	for _, node := range nodes {
 		node.EpochStartTrigger.SetRoundsPerEpoch(roundsPerEpoch)
 	}
@@ -1696,6 +1696,7 @@ func collectSnapshotAndCheckpointHashes(
 ) {
 	pruningQueueSize := uint64(5)
 	finality := uint64(2)
+	pruningDelayMultiplier := uint64(2)
 
 	for j := 0; j < numShardNodes; j++ {
 		currentBlockHeader := nodes[j].BlockChain.GetCurrentBlockHeader()
@@ -1710,6 +1711,10 @@ func collectSnapshotAndCheckpointHashes(
 		}
 
 		if currentBlockHeader.GetNonce() > roundsPerEpoch-pruningQueueSize-finality {
+			continue
+		}
+
+		if currentBlockHeader.GetNonce() < pruningQueueSize*pruningDelayMultiplier {
 			continue
 		}
 
@@ -1743,23 +1748,23 @@ func testNodeStateCheckpointSnapshotAndPruning(
 ) {
 
 	stateTrie := node.TrieContainer.Get([]byte(trieFactory.UserAccountTrie))
-	require.Equal(t, 6, len(checkpointsRootHashes))
+	assert.Equal(t, 6, len(checkpointsRootHashes))
 	for i := range checkpointsRootHashes {
 		tr, err := stateTrie.Recreate(checkpointsRootHashes[i])
 		require.Nil(t, err)
 		require.NotNil(t, tr)
 	}
 
-	require.Equal(t, 1, len(snapshotsRootHashes))
+	assert.Equal(t, 1, len(snapshotsRootHashes))
 	for i := range snapshotsRootHashes {
 		tr, err := stateTrie.Recreate(snapshotsRootHashes[i])
 		require.Nil(t, err)
 		require.NotNil(t, tr)
 	}
 
-	require.Equal(t, 2, len(prunedRootHashes))
+	assert.Equal(t, 1, len(prunedRootHashes))
 	// if pruning is called for a root hash in a different epoch than the commit, then recreate trie should work
-	for i := range prunedRootHashes {
+	for i := 0; i < len(prunedRootHashes)-1; i++ {
 		tr, err := stateTrie.Recreate(prunedRootHashes[i])
 		require.Nil(t, tr)
 		require.NotNil(t, err)
@@ -2168,7 +2173,7 @@ func TestTrieDBPruning_PruningOldData(t *testing.T) {
 		rootHash, err = decreaseBalanceForAccountsStartingWithIndex(100, 1000, 10, adb)
 		require.Nil(t, err)
 		rootHashes = append(rootHashes, rootHash)
-		adb.PruneTrie(rootHashes[len(rootHashes)-2], state.OldRoot)
+		adb.PruneTrie(rootHashes[len(rootHashes)-2], state.OldRoot, state.NewPruningHandler(true))
 		checkAccountsBalances(t, 100, 1000, 100, adb)
 	}
 }
@@ -2202,7 +2207,7 @@ func TestTrieDBPruning_PruningOldDataWithDataTries(t *testing.T) {
 		rootHash, err = removeKeysFromAccountsStartingWithIndex(10, numAccountsChances, 10, adb)
 		require.Nil(t, err)
 		rootHashes = append(rootHashes, rootHash)
-		adb.PruneTrie(rootHashes[len(rootHashes)-2], state.OldRoot)
+		adb.PruneTrie(rootHashes[len(rootHashes)-2], state.OldRoot, state.NewPruningHandler(true))
 		checkAccountsDataTries(t, 10, numAccountsChances, 10, adb)
 	}
 }

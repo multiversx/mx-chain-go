@@ -1321,7 +1321,7 @@ func TestBlockProcessor_PruneStateOnRollbackPrunesPeerTrieIfAccPruneIsDisabled(t
 
 	pruningCalled := 0
 	peerAccDb := &stateMock.AccountsStub{
-		PruneTrieCalled: func(rootHash []byte, identifier state.TriePruningIdentifier) {
+		PruneTrieCalled: func(rootHash []byte, identifier state.TriePruningIdentifier, _ state.PruningHandler) {
 			pruningCalled++
 		},
 		CancelPruneCalled: func(rootHash []byte, identifier state.TriePruningIdentifier) {
@@ -1354,7 +1354,7 @@ func TestBlockProcessor_PruneStateOnRollbackPrunesPeerTrieIfSameRootHashButDiffe
 
 	pruningCalled := 0
 	peerAccDb := &stateMock.AccountsStub{
-		PruneTrieCalled: func(rootHash []byte, identifier state.TriePruningIdentifier) {
+		PruneTrieCalled: func(rootHash []byte, identifier state.TriePruningIdentifier, _ state.PruningHandler) {
 			pruningCalled++
 		},
 		CancelPruneCalled: func(rootHash []byte, identifier state.TriePruningIdentifier) {
@@ -1366,7 +1366,7 @@ func TestBlockProcessor_PruneStateOnRollbackPrunesPeerTrieIfSameRootHashButDiffe
 	}
 
 	accDb := &stateMock.AccountsStub{
-		PruneTrieCalled: func(rootHash []byte, identifier state.TriePruningIdentifier) {
+		PruneTrieCalled: func(rootHash []byte, identifier state.TriePruningIdentifier, _ state.PruningHandler) {
 			pruningCalled++
 		},
 		CancelPruneCalled: func(rootHash []byte, identifier state.TriePruningIdentifier) {
@@ -1810,7 +1810,7 @@ func TestBaseProcessor_updateState(t *testing.T) {
 		IsPruningEnabledCalled: func() bool {
 			return true
 		},
-		PruneTrieCalled: func(rootHashParam []byte, identifier state.TriePruningIdentifier) {
+		PruneTrieCalled: func(rootHashParam []byte, identifier state.TriePruningIdentifier, _ state.PruningHandler) {
 			pruneRootHash = rootHashParam
 		},
 		CancelPruneCalled: func(rootHash []byte, identifier state.TriePruningIdentifier) {
@@ -2640,4 +2640,27 @@ func TestMetaProcessor_RestoreBlockBodyIntoPoolsShouldWork(t *testing.T) {
 
 	err := mp.RestoreBlockBodyIntoPools(&block.Body{})
 	assert.Nil(t, err)
+}
+
+func TestBaseProcessor_getPruningHandler(t *testing.T) {
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+	arguments.Config = config.Config{
+		StateTriesConfig: config.StateTriesConfig{
+			UserStatePruningQueueSize: 4,
+		},
+	}
+	bp, _ := blproc.NewShardProcessor(arguments)
+
+	bp.SetBlocksSinceLastRestartCounter(7)
+	ph := bp.GetPruningHandler()
+	assert.False(t, ph.IsPruningEnabled())
+
+	bp.SetBlocksSinceLastRestartCounter(8)
+	ph = bp.GetPruningHandler()
+	assert.False(t, ph.IsPruningEnabled())
+
+	bp.SetBlocksSinceLastRestartCounter(9)
+	ph = bp.GetPruningHandler()
+	assert.True(t, ph.IsPruningEnabled())
 }

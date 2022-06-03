@@ -1693,7 +1693,7 @@ func TestAccountsDB_TrieDatabasePruning(t *testing.T) {
 	assert.Nil(t, err)
 
 	adb.CancelPrune(rootHash, state.NewRoot)
-	adb.PruneTrie(rootHash, state.OldRoot)
+	adb.PruneTrie(rootHash, state.OldRoot, state.NewPruningHandler(true))
 	time.Sleep(trieDbOperationDelay)
 
 	for i := range oldHashes {
@@ -1741,7 +1741,7 @@ func TestAccountsDB_PruningAndPruningCancellingOnTrieRollback(t *testing.T) {
 }
 
 func finalizeTrieState(t *testing.T, index int, tr common.Trie, adb state.AccountsAdapter, rootHashes [][]byte) {
-	adb.PruneTrie(rootHashes[index-1], state.OldRoot)
+	adb.PruneTrie(rootHashes[index-1], state.OldRoot, state.NewPruningHandler(true))
 	adb.CancelPrune(rootHashes[index], state.NewRoot)
 	time.Sleep(trieDbOperationDelay)
 
@@ -1750,7 +1750,7 @@ func finalizeTrieState(t *testing.T, index int, tr common.Trie, adb state.Accoun
 }
 
 func rollbackTrieState(t *testing.T, index int, tr common.Trie, adb state.AccountsAdapter, rootHashes [][]byte) {
-	adb.PruneTrie(rootHashes[index], state.NewRoot)
+	adb.PruneTrie(rootHashes[index], state.NewRoot, state.NewPruningHandler(true))
 	adb.CancelPrune(rootHashes[index-1], state.OldRoot)
 	time.Sleep(trieDbOperationDelay)
 
@@ -1772,7 +1772,7 @@ func TestAccountsDB_Prune(t *testing.T) {
 	_, _ = adb.Commit()
 
 	adb.CancelPrune(rootHash, state.NewRoot)
-	adb.PruneTrie(rootHash, state.OldRoot)
+	adb.PruneTrie(rootHash, state.OldRoot, state.NewPruningHandler(true))
 
 	val, err := tr.GetStorageManager().Get(rootHash)
 	assert.Nil(t, val)
@@ -2003,7 +2003,7 @@ func TestAccountsDB_PruneRemovesDataFromCheckpointHashesHolder(t *testing.T) {
 	assert.Nil(t, err)
 
 	adb.CancelPrune(rootHash, state.NewRoot)
-	adb.PruneTrie(rootHash, state.OldRoot)
+	adb.PruneTrie(rootHash, state.OldRoot, state.NewPruningHandler(true))
 	assert.True(t, removeCalled > 0)
 }
 

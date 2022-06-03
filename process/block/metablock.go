@@ -86,6 +86,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		return nil, process.ErrNilEpochStartSystemSCProcessor
 	}
 
+	pruningDelay := uint32(arguments.Config.StateTriesConfig.PeerStatePruningQueueSize * pruningDelayMultiplier)
 	genesisHdr := arguments.DataComponents.Blockchain().GetGenesisHeader()
 	base := &baseProcessor{
 		accountsDB:                     arguments.AccountsDB,
@@ -124,6 +125,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		economicsData:                  arguments.CoreComponents.EconomicsData(),
 		scheduledTxsExecutionHandler:   arguments.ScheduledTxsExecutionHandler,
 		scheduledMiniBlocksEnableEpoch: arguments.ScheduledMiniBlocksEnableEpoch,
+		pruningDelay:                   pruningDelay,
 	}
 
 	mp := metaProcessor{
@@ -1363,6 +1365,7 @@ func (mp *metaProcessor) CommitBlock(
 	}
 
 	mp.cleanupPools(headerHandler)
+	mp.blocksSinceLastRestart++
 
 	return nil
 }

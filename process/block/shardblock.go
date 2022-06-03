@@ -24,7 +24,10 @@ import (
 
 var _ process.BlockProcessor = (*shardProcessor)(nil)
 
-const timeBetweenCheckForEpochStart = 100 * time.Millisecond
+const (
+	timeBetweenCheckForEpochStart = 100 * time.Millisecond
+	pruningDelayMultiplier        = 2
+)
 
 type createMbsAndProcessTxsDestMeInfo struct {
 	currMetaHdr               data.HeaderHandler
@@ -71,6 +74,8 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		return nil, fmt.Errorf("%w for genesis header in DataComponents.Blockchain", process.ErrNilHeaderHandler)
 	}
 
+	pruningDelay := uint32(arguments.Config.StateTriesConfig.UserStatePruningQueueSize * pruningDelayMultiplier)
+
 	base := &baseProcessor{
 		accountsDB:                     arguments.AccountsDB,
 		blockSizeThrottler:             arguments.BlockSizeThrottler,
@@ -108,6 +113,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		economicsData:                  arguments.CoreComponents.EconomicsData(),
 		scheduledTxsExecutionHandler:   arguments.ScheduledTxsExecutionHandler,
 		scheduledMiniBlocksEnableEpoch: arguments.ScheduledMiniBlocksEnableEpoch,
+		pruningDelay:                   pruningDelay,
 	}
 
 	sp := shardProcessor{
@@ -1029,6 +1035,7 @@ func (sp *shardProcessor) CommitBlock(
 	}
 
 	sp.cleanupPools(headerHandler)
+	sp.blocksSinceLastRestart++
 
 	return nil
 }

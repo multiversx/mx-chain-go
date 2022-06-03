@@ -48,6 +48,14 @@ func (bp *baseProcessor) RemoveHeadersBehindNonceFromPools(
 	bp.removeHeadersBehindNonceFromPools(shouldRemoveBlockBody, shardId, nonce)
 }
 
+func (bp *baseProcessor) GetPruningHandler() state.PruningHandler {
+	return bp.getPruningHandler()
+}
+
+func (bp *baseProcessor) SetBlocksSinceLastRestartCounter(numBlocks uint32) {
+	bp.blocksSinceLastRestart = numBlocks
+}
+
 func (bp *baseProcessor) CommitTrieEpochRootHashIfNeeded(metaBlock *block.MetaBlock, rootHash []byte) error {
 	return bp.commitTrieEpochRootHashIfNeeded(metaBlock, rootHash)
 }
