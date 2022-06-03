@@ -1,7 +1,6 @@
 package metachain
 
 import (
-	"encoding/hex"
 	"fmt"
 	"math"
 	"math/big"
@@ -143,17 +142,14 @@ func (als *auctionListSelector) SelectNodesFromAuctionList(
 		return process.ErrNilRandSeed
 	}
 
-	ownersData, auctionListSize, err := als.getAuctionData()
-	currNumOfValidators := als.stakingDataProvider.GetNumOfValidatorsInCurrentEpoch()
-	if err != nil {
-		return err
-	}
+	ownersData, auctionListSize := als.getAuctionData()
 	if auctionListSize == 0 {
 		log.Info("auctionListSelector.SelectNodesFromAuctionList: empty auction list; skip selection")
 		return nil
 	}
 
 	currNodesConfig := als.nodesConfigProvider.GetCurrentNodesConfig()
+	currNumOfValidators := als.stakingDataProvider.GetNumOfValidatorsInCurrentEpoch()
 	numOfShuffledNodes := currNodesConfig.NodesToShufflePerShard * (als.shardCoordinator.NumberOfShards() + 1)
 	numOfValidatorsAfterShuffling, err := safeSub(currNumOfValidators, numOfShuffledNodes)
 	if err != nil {
@@ -198,7 +194,7 @@ func (als *auctionListSelector) SelectNodesFromAuctionList(
 	return als.sortAuctionList(ownersData, numOfAvailableNodeSlots, validatorsInfoMap, randomness)
 }
 
-func (als *auctionListSelector) getAuctionData() (map[string]*ownerAuctionData, uint32, error) {
+func (als *auctionListSelector) getAuctionData() (map[string]*ownerAuctionData, uint32) {
 	ownersData := make(map[string]*ownerAuctionData)
 	numOfNodesInAuction := uint32(0)
 
@@ -219,67 +215,11 @@ func (als *auctionListSelector) getAuctionData() (map[string]*ownerAuctionData, 
 		}
 	}
 
-	return ownersData, numOfNodesInAuction, nil
+	return ownersData, numOfNodesInAuction
 }
 
 func isInAuction(validator state.ValidatorInfoHandler) bool {
 	return validator.GetList() == string(common.AuctionList)
-}
-
-func (als *auctionListSelector) addOwnerData(
-	owner string,
-	validator state.ValidatorInfoHandler,
-	ownersData map[string]*ownerAuctionData,
-) error {
-	ownerPubKey := []byte(owner)
-	validatorPubKey := validator.GetPublicKey()
-	stakedNodes, err := als.stakingDataProvider.GetNumStakedNodes(ownerPubKey)
-	if err != nil {
-		return fmt.Errorf("auctionListSelector.addOwnerData: error getting num staked nodes: %w, owner: %s, node: %s",
-			err,
-			hex.EncodeToString(ownerPubKey),
-			hex.EncodeToString(validatorPubKey),
-		)
-	}
-	if stakedNodes == 0 {
-		return fmt.Errorf("auctionListSelector.addOwnerData error: %w, owner: %s, node: %s",
-			epochStart.ErrOwnerHasNoStakedNode,
-			hex.EncodeToString(ownerPubKey),
-			hex.EncodeToString(validatorPubKey),
-		)
-	}
-
-	totalTopUp, err := als.stakingDataProvider.GetTotalTopUp(ownerPubKey)
-	if err != nil {
-		return fmt.Errorf("auctionListSelector.addOwnerData: error getting total top up: %w, owner: %s, node: %s",
-			err,
-			hex.EncodeToString(ownerPubKey),
-			hex.EncodeToString(validatorPubKey),
-		)
-	}
-
-	data, exists := ownersData[owner]
-	if exists {
-		data.numAuctionNodes++
-		data.numQualifiedAuctionNodes++
-		data.numActiveNodes--
-		data.auctionList = append(data.auctionList, validator)
-	} else {
-		stakedNodesBigInt := big.NewInt(stakedNodes)
-		topUpPerNode := big.NewInt(0).Div(totalTopUp, stakedNodesBigInt)
-		ownersData[owner] = &ownerAuctionData{
-			numAuctionNodes:          1,
-			numQualifiedAuctionNodes: 1,
-			numActiveNodes:           stakedNodes - 1,
-			numStakedNodes:           stakedNodes,
-			totalTopUp:               big.NewInt(0).SetBytes(totalTopUp.Bytes()),
-			topUpPerNode:             topUpPerNode,
-			qualifiedTopUpPerNode:    topUpPerNode,
-			auctionList:              []state.ValidatorInfoHandler{validator},
-		}
-	}
-
-	return nil
 }
 
 // TODO: Move this in elrond-go-core
