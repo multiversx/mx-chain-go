@@ -26,22 +26,22 @@ func TestDisabledNodeFacade_AllMethodsShouldNotPanic(t *testing.T) {
 	assert.False(t, b)
 	s1 := inf.RestApiInterface()
 	assert.Equal(t, apiInterface, s1)
-	s1, s2, err := inf.GetESDTBalance("", "")
+	s1, s2, err := inf.GetESDTBalance("", "", api.AccountQueryOptions{})
 	assert.Equal(t, emptyString, s1+s2)
 	assert.Equal(t, errNodeStarting, err)
-	v, err := inf.GetBalance("")
+	v, err := inf.GetBalance("", api.AccountQueryOptions{})
 	assert.Nil(t, v)
 	assert.Equal(t, errNodeStarting, err)
 
-	s1, err = inf.GetUsername("")
+	s1, err = inf.GetUsername("", api.AccountQueryOptions{})
 	assert.Equal(t, emptyString, s1)
 	assert.Equal(t, errNodeStarting, err)
 
-	s1, err = inf.GetValueForKey("", "")
+	s1, err = inf.GetValueForKey("", "", api.AccountQueryOptions{})
 	assert.Equal(t, emptyString, s1)
 	assert.Equal(t, errNodeStarting, err)
 
-	s3, err := inf.GetAllESDTTokens("")
+	s3, err := inf.GetAllESDTTokens("", api.AccountQueryOptions{})
 	assert.Nil(t, s3)
 	assert.Equal(t, errNodeStarting, err)
 
@@ -77,7 +77,7 @@ func TestDisabledNodeFacade_AllMethodsShouldNotPanic(t *testing.T) {
 	assert.Nil(t, resp)
 	assert.Equal(t, errNodeStarting, err)
 
-	uac, err := inf.GetAccount("")
+	uac, err := inf.GetAccount("", api.AccountQueryOptions{})
 	assert.Equal(t, api.AccountResponse{}, uac)
 	assert.Equal(t, errNodeStarting, err)
 
@@ -125,7 +125,7 @@ func TestDisabledNodeFacade_AllMethodsShouldNotPanic(t *testing.T) {
 	assert.Nil(t, ab)
 	assert.Equal(t, errNodeStarting, err)
 
-	c := inf.GetCode(nil)
+	c := inf.GetCode(nil, api.AccountQueryOptions{})
 	assert.Nil(t, c)
 
 	ab, err = inf.GetBlockByNonce(0, api.BlockQueryOptions{})
@@ -151,11 +151,11 @@ func TestDisabledNodeFacade_AllMethodsShouldNotPanic(t *testing.T) {
 	assert.False(t, b)
 	assert.Equal(t, errNodeStarting, err)
 
-	sa, err := inf.GetNFTTokenIDsRegisteredByAddress("")
+	sa, err := inf.GetNFTTokenIDsRegisteredByAddress("", api.AccountQueryOptions{})
 	assert.Nil(t, sa)
 	assert.Equal(t, errNodeStarting, err)
 
-	sa, err = inf.GetESDTsWithRole("", "")
+	sa, err = inf.GetESDTsWithRole("", "", api.AccountQueryOptions{})
 	assert.Nil(t, sa)
 	assert.Equal(t, errNodeStarting, err)
 
@@ -166,7 +166,7 @@ func TestDisabledNodeFacade_AllMethodsShouldNotPanic(t *testing.T) {
 	assert.Nil(t, asv)
 	assert.Equal(t, errNodeStarting, err)
 
-	mss, err := inf.GetKeyValuePairs("")
+	mss, err := inf.GetKeyValuePairs("", api.AccountQueryOptions{})
 	assert.Nil(t, mss)
 	assert.Equal(t, errNodeStarting, err)
 
@@ -174,7 +174,7 @@ func TestDisabledNodeFacade_AllMethodsShouldNotPanic(t *testing.T) {
 	assert.Nil(t, ds)
 	assert.Equal(t, errNodeStarting, err)
 
-	mssa, err := inf.GetESDTsRoles("")
+	mssa, err := inf.GetESDTsRoles("", api.AccountQueryOptions{})
 	assert.Nil(t, mssa)
 	assert.Equal(t, errNodeStarting, err)
 

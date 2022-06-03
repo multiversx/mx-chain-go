@@ -387,11 +387,11 @@ func TestGetBlockByRound_WithBadBlockQueryOptionsShouldErr(t *testing.T) {
 
 	response, code := httpGetBlock(ws, "/block/by-round/37?withTxs=bad")
 	require.Equal(t, http.StatusBadRequest, code)
-	require.Contains(t, response.Error, apiErrors.ErrInvalidQueryParameter.Error())
+	require.Contains(t, response.Error, apiErrors.ErrBadUrlParams.Error())
 
 	response, code = httpGetBlock(ws, "/block/by-round/37?withLogs=bad")
 	require.Equal(t, http.StatusBadRequest, code)
-	require.Contains(t, response.Error, apiErrors.ErrInvalidQueryParameter.Error())
+	require.Contains(t, response.Error, apiErrors.ErrBadUrlParams.Error())
 }
 
 func TestGetBlockByRound_WithBlockQueryOptionsShouldWork(t *testing.T) {

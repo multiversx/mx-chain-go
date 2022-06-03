@@ -136,7 +136,7 @@ func TestGetBalance_NoAddrConverterShouldError(t *testing.T) {
 		node.WithCoreComponents(coreComponents),
 		node.WithStateComponents(stateComponents),
 	)
-	_, err := n.GetBalance("address")
+	_, err := n.GetBalance("address", api.AccountQueryOptions{})
 	assert.NotNil(t, err)
 	assert.Equal(t, "initialize AccountsAdapterAPI, PubkeyConverter first", err.Error())
 }
@@ -151,7 +151,7 @@ func TestGetBalance_NoAccAdapterShouldError(t *testing.T) {
 	n, _ := node.NewNode(
 		node.WithCoreComponents(coreComponents),
 	)
-	_, err := n.GetBalance("address")
+	_, err := n.GetBalance("address", api.AccountQueryOptions{})
 	assert.NotNil(t, err)
 	assert.Equal(t, "initialize AccountsAdapterAPI, PubkeyConverter first", err.Error())
 }
@@ -181,7 +181,7 @@ func TestGetBalance_GetAccountFailsShouldError(t *testing.T) {
 		node.WithCoreComponents(coreComponents),
 		node.WithStateComponents(stateComponents),
 	)
-	_, err := n.GetBalance(createDummyHexAddress(64))
+	_, err := n.GetBalance(createDummyHexAddress(64), api.AccountQueryOptions{})
 	assert.Equal(t, expectedErr, err)
 }
 
@@ -220,7 +220,7 @@ func TestGetBalance_GetAccountReturnsNil(t *testing.T) {
 		node.WithCoreComponents(coreComponents),
 		node.WithStateComponents(stateComponents),
 	)
-	balance, err := n.GetBalance(createDummyHexAddress(64))
+	balance, err := n.GetBalance(createDummyHexAddress(64), api.AccountQueryOptions{})
 	assert.Nil(t, err)
 	assert.Equal(t, big.NewInt(0), balance)
 }
@@ -243,7 +243,7 @@ func TestGetBalance(t *testing.T) {
 		node.WithCoreComponents(coreComponents),
 		node.WithStateComponents(stateComponents),
 	)
-	balance, err := n.GetBalance(createDummyHexAddress(64))
+	balance, err := n.GetBalance(createDummyHexAddress(64), api.AccountQueryOptions{})
 	assert.Nil(t, err)
 	assert.Equal(t, big.NewInt(100), balance)
 }
@@ -277,7 +277,7 @@ func TestGetUsername(t *testing.T) {
 		node.WithCoreComponents(coreComponents),
 		node.WithStateComponents(stateComponents),
 	)
-	username, err := n.GetUsername(createDummyHexAddress(64))
+	username, err := n.GetUsername(createDummyHexAddress(64), api.AccountQueryOptions{})
 	assert.Nil(t, err)
 	assert.Equal(t, string(expectedUsername), username)
 }
@@ -333,7 +333,7 @@ func TestNode_GetKeyValuePairs(t *testing.T) {
 		node.WithDataComponents(dataComponents),
 	)
 
-	pairs, err := n.GetKeyValuePairs(createDummyHexAddress(64), context.Background())
+	pairs, err := n.GetKeyValuePairs(createDummyHexAddress(64), api.AccountQueryOptions{}, context.Background())
 	assert.Nil(t, err)
 	resV1, ok := pairs[hex.EncodeToString(k1)]
 	assert.True(t, ok)
@@ -389,7 +389,7 @@ func TestNode_GetKeyValuePairsContextShouldTimeout(t *testing.T) {
 	ctxWithTimeout, cancel := context.WithTimeout(context.Background(), time.Millisecond)
 	defer cancel()
 
-	pairs, err := n.GetKeyValuePairs(createDummyHexAddress(64), ctxWithTimeout)
+	pairs, err := n.GetKeyValuePairs(createDummyHexAddress(64), api.AccountQueryOptions{}, ctxWithTimeout)
 	assert.Nil(t, pairs)
 	assert.Equal(t, node.ErrTrieOperationsTimeout, err)
 }
@@ -424,7 +424,7 @@ func TestNode_GetValueForKey(t *testing.T) {
 		node.WithStateComponents(stateComponents),
 	)
 
-	value, err := n.GetValueForKey(createDummyHexAddress(64), hex.EncodeToString(k1))
+	value, err := n.GetValueForKey(createDummyHexAddress(64), hex.EncodeToString(k1), api.AccountQueryOptions{})
 	assert.NoError(t, err)
 	assert.Equal(t, hex.EncodeToString(v1), value)
 }
@@ -464,7 +464,7 @@ func TestNode_GetESDTData(t *testing.T) {
 		node.WithESDTNFTStorageHandler(esdtStorageStub),
 	)
 
-	esdtTokenData, err := n.GetESDTData(createDummyHexAddress(64), esdtToken, 0)
+	esdtTokenData, err := n.GetESDTData(createDummyHexAddress(64), esdtToken, 0, api.AccountQueryOptions{})
 	assert.Nil(t, err)
 	assert.Equal(t, esdtData.Value.String(), esdtTokenData.Value.String())
 }
@@ -499,7 +499,7 @@ func TestNode_GetESDTDataForNFT(t *testing.T) {
 		node.WithESDTNFTStorageHandler(esdtStorageStub),
 	)
 
-	esdtTokenData, err := n.GetESDTData(createDummyHexAddress(64), esdtToken, uint64(nonce))
+	esdtTokenData, err := n.GetESDTData(createDummyHexAddress(64), esdtToken, uint64(nonce), api.AccountQueryOptions{})
 	assert.Nil(t, err)
 	assert.Equal(t, esdtData.Value.String(), esdtTokenData.Value.String())
 }
@@ -561,7 +561,7 @@ func TestNode_GetAllESDTTokens(t *testing.T) {
 		node.WithESDTNFTStorageHandler(esdtStorageStub),
 	)
 
-	value, err := n.GetAllESDTTokens(hexAddress, context.Background())
+	value, err := n.GetAllESDTTokens(hexAddress, api.AccountQueryOptions{}, context.Background())
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(value))
 	assert.Equal(t, esdtData, value[esdtToken])
@@ -615,7 +615,7 @@ func TestNode_GetAllESDTTokensContextShouldTimeout(t *testing.T) {
 	ctxWithTimeout, cancel := context.WithTimeout(context.Background(), time.Millisecond)
 	defer cancel()
 
-	value, err := n.GetAllESDTTokens(hexAddress, ctxWithTimeout)
+	value, err := n.GetAllESDTTokens(hexAddress, api.AccountQueryOptions{}, ctxWithTimeout)
 	assert.Nil(t, value)
 	assert.Equal(t, node.ErrTrieOperationsTimeout, err)
 }
@@ -699,7 +699,7 @@ func TestNode_GetAllESDTTokensShouldReturnEsdtAndFormattedNft(t *testing.T) {
 		node.WithESDTNFTStorageHandler(esdtStorageStub),
 	)
 
-	tokens, err := n.GetAllESDTTokens(hexAddress, context.Background())
+	tokens, err := n.GetAllESDTTokens(hexAddress, api.AccountQueryOptions{}, context.Background())
 	assert.Nil(t, err)
 	assert.Equal(t, 2, len(tokens))
 	assert.Equal(t, esdtData, tokens[esdtToken])
@@ -857,17 +857,17 @@ func TestNode_GetESDTsWithRole(t *testing.T) {
 		node.WithProcessComponents(processComponents),
 	)
 
-	tokenResult, err := n.GetESDTsWithRole(hex.EncodeToString(addrBytes), core.ESDTRoleNFTAddQuantity, context.Background())
+	tokenResult, err := n.GetESDTsWithRole(hex.EncodeToString(addrBytes), core.ESDTRoleNFTAddQuantity, api.AccountQueryOptions{}, context.Background())
 	require.NoError(t, err)
 	require.Equal(t, 1, len(tokenResult))
 	require.Equal(t, string(esdtToken), tokenResult[0])
 
-	tokenResult, err = n.GetESDTsWithRole(hex.EncodeToString(addrBytes), core.ESDTRoleLocalMint, context.Background())
+	tokenResult, err = n.GetESDTsWithRole(hex.EncodeToString(addrBytes), core.ESDTRoleLocalMint, api.AccountQueryOptions{}, context.Background())
 	require.NoError(t, err)
 	require.Equal(t, 1, len(tokenResult))
 	require.Equal(t, string(esdtToken), tokenResult[0])
 
-	tokenResult, err = n.GetESDTsWithRole(hex.EncodeToString(addrBytes), core.ESDTRoleNFTCreate, context.Background())
+	tokenResult, err = n.GetESDTsWithRole(hex.EncodeToString(addrBytes), core.ESDTRoleNFTCreate, api.AccountQueryOptions{}, context.Background())
 	require.NoError(t, err)
 	require.Len(t, tokenResult, 0)
 }
@@ -930,7 +930,7 @@ func TestNode_GetESDTsRoles(t *testing.T) {
 		node.WithProcessComponents(processComponents),
 	)
 
-	tokenResult, err := n.GetESDTsRoles(hex.EncodeToString(addrBytes), context.Background())
+	tokenResult, err := n.GetESDTsRoles(hex.EncodeToString(addrBytes), api.AccountQueryOptions{}, context.Background())
 	require.NoError(t, err)
 	require.Equal(t, map[string][]string{
 		string(esdtToken): {core.ESDTRoleNFTAddQuantity, core.ESDTRoleLocalMint},
@@ -989,7 +989,7 @@ func TestNode_GetNFTTokenIDsRegisteredByAddress(t *testing.T) {
 		node.WithProcessComponents(processComponents),
 	)
 
-	tokenResult, err := n.GetNFTTokenIDsRegisteredByAddress(hex.EncodeToString(addrBytes), context.Background())
+	tokenResult, err := n.GetNFTTokenIDsRegisteredByAddress(hex.EncodeToString(addrBytes), api.AccountQueryOptions{}, context.Background())
 	require.NoError(t, err)
 	require.Equal(t, 1, len(tokenResult))
 	require.Equal(t, string(esdtToken), tokenResult[0])
@@ -1042,7 +1042,7 @@ func TestNode_GetNFTTokenIDsRegisteredByAddressContextShouldTimeout(t *testing.T
 	ctxWithTimeout, cancel := context.WithTimeout(context.Background(), time.Millisecond)
 	defer cancel()
 
-	tokens, err := n.GetNFTTokenIDsRegisteredByAddress(hex.EncodeToString(addrBytes), ctxWithTimeout)
+	tokens, err := n.GetNFTTokenIDsRegisteredByAddress(hex.EncodeToString(addrBytes), api.AccountQueryOptions{}, ctxWithTimeout)
 	require.Nil(t, tokens)
 	require.Equal(t, node.ErrTrieOperationsTimeout, err)
 }
@@ -2637,7 +2637,7 @@ func TestNode_GetAccountWithNilAccountsAdapterShouldErr(t *testing.T) {
 	)
 
 	stateComponents.AccountsAPI = nil
-	recovAccnt, err := n.GetAccount(createDummyHexAddress(64))
+	recovAccnt, err := n.GetAccount(createDummyHexAddress(64), api.AccountQueryOptions{})
 
 	assert.Empty(t, recovAccnt)
 	assert.Equal(t, node.ErrNilAccountsAdapter, err)
@@ -2661,7 +2661,7 @@ func TestNode_GetAccountWithNilPubkeyConverterShouldErr(t *testing.T) {
 	)
 
 	coreComponents.AddrPubKeyConv = nil
-	recovAccnt, err := n.GetAccount(createDummyHexAddress(64))
+	recovAccnt, err := n.GetAccount(createDummyHexAddress(64), api.AccountQueryOptions{})
 
 	assert.Empty(t, recovAccnt)
 	assert.Equal(t, node.ErrNilPubkeyConverter, err)
@@ -2691,7 +2691,7 @@ func TestNode_GetAccountPubkeyConverterFailsShouldErr(t *testing.T) {
 		node.WithCoreComponents(coreComponents),
 	)
 
-	recovAccnt, err := n.GetAccount(createDummyHexAddress(64))
+	recovAccnt, err := n.GetAccount(createDummyHexAddress(64), api.AccountQueryOptions{})
 
 	assert.Empty(t, recovAccnt)
 	assert.Equal(t, errExpected, err)
@@ -2715,7 +2715,7 @@ func TestNode_GetAccountAccountDoesNotExistsShouldRetEmpty(t *testing.T) {
 		node.WithStateComponents(stateComponents),
 	)
 
-	recovAccnt, err := n.GetAccount(createDummyHexAddress(64))
+	recovAccnt, err := n.GetAccount(createDummyHexAddress(64), api.AccountQueryOptions{})
 
 	assert.Nil(t, err)
 	assert.Equal(t, uint64(0), recovAccnt.Nonce)
@@ -2744,7 +2744,7 @@ func TestNode_GetAccountAccountsAdapterFailsShouldErr(t *testing.T) {
 		node.WithStateComponents(stateComponents),
 	)
 
-	recovAccnt, err := n.GetAccount(createDummyHexAddress(64))
+	recovAccnt, err := n.GetAccount(createDummyHexAddress(64), api.AccountQueryOptions{})
 
 	assert.Empty(t, recovAccnt)
 	assert.NotNil(t, err)
@@ -2778,7 +2778,7 @@ func TestNode_GetAccountAccountExistsShouldReturn(t *testing.T) {
 		node.WithStateComponents(stateComponents),
 	)
 
-	recovAccnt, err := n.GetAccount(createDummyHexAddress(64))
+	recovAccnt, err := n.GetAccount(createDummyHexAddress(64), api.AccountQueryOptions{})
 
 	assert.Nil(t, err)
 	assert.Equal(t, uint64(2), recovAccnt.Nonce)
@@ -3227,7 +3227,7 @@ func TestGetKeyValuePairs_CannotDecodeAddress(t *testing.T) {
 		node.WithCoreComponents(coreComponents),
 	)
 
-	res, err := n.GetKeyValuePairs("addr", context.Background())
+	res, err := n.GetKeyValuePairs("addr", api.AccountQueryOptions{}, context.Background())
 	require.Nil(t, res)
 	require.True(t, strings.Contains(fmt.Sprintf("%v", err), expectedErr.Error()))
 }

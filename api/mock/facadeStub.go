@@ -23,8 +23,8 @@ type FacadeStub struct {
 	ShouldErrorStart           bool
 	ShouldErrorStop            bool
 	GetHeartbeatsHandler       func() ([]data.PubKeyHeartbeat, error)
-	BalanceHandler             func(string) (*big.Int, error)
-	GetAccountHandler          func(address string) (api.AccountResponse, error)
+	BalanceHandler             func(address string, options api.AccountQueryOptions) (*big.Int, error)
+	GetAccountHandler          func(address string, options api.AccountQueryOptions) (api.AccountResponse, error)
 	GenerateTransactionHandler func(sender string, receiver string, value *big.Int, code string) (*transaction.Transaction, error)
 	GetTransactionHandler      func(hash string, withResults bool) (*transaction.ApiTransactionResult, error)
 	CreateTransactionHandler   func(nonce uint64, value string, receiver string, receiverUsername []byte, sender string, senderUsername []byte, gasPrice uint64,
@@ -38,17 +38,17 @@ type FacadeStub struct {
 	ComputeTransactionGasLimitHandler       func(tx *transaction.Transaction) (*transaction.CostResponse, error)
 	NodeConfigCalled                        func() map[string]interface{}
 	GetQueryHandlerCalled                   func(name string) (debug.QueryHandler, error)
-	GetValueForKeyCalled                    func(address string, key string) (string, error)
+	GetValueForKeyCalled                    func(address string, key string, options api.AccountQueryOptions) (string, error)
 	GetPeerInfoCalled                       func(pid string) ([]core.QueryP2PPeerInfo, error)
 	GetThrottlerForEndpointCalled           func(endpoint string) (core.Throttler, bool)
-	GetUsernameCalled                       func(address string) (string, error)
-	GetKeyValuePairsCalled                  func(address string) (map[string]string, error)
+	GetUsernameCalled                       func(address string, options api.AccountQueryOptions) (string, error)
+	GetKeyValuePairsCalled                  func(address string, options api.AccountQueryOptions) (map[string]string, error)
 	SimulateTransactionExecutionHandler     func(tx *transaction.Transaction) (*txSimData.SimulationResults, error)
-	GetESDTDataCalled                       func(address string, key string, nonce uint64) (*esdt.ESDigitalToken, error)
-	GetAllESDTTokensCalled                  func(address string) (map[string]*esdt.ESDigitalToken, error)
-	GetESDTsWithRoleCalled                  func(address string, role string) ([]string, error)
-	GetESDTsRolesCalled                     func(address string) (map[string][]string, error)
-	GetNFTTokenIDsRegisteredByAddressCalled func(address string) ([]string, error)
+	GetESDTDataCalled                       func(address string, key string, nonce uint64, options api.AccountQueryOptions) (*esdt.ESDigitalToken, error)
+	GetAllESDTTokensCalled                  func(address string, options api.AccountQueryOptions) (map[string]*esdt.ESDigitalToken, error)
+	GetESDTsWithRoleCalled                  func(address string, role string, options api.AccountQueryOptions) ([]string, error)
+	GetESDTsRolesCalled                     func(address string, options api.AccountQueryOptions) (map[string][]string, error)
+	GetNFTTokenIDsRegisteredByAddressCalled func(address string, options api.AccountQueryOptions) ([]string, error)
 	GetBlockByHashCalled                    func(hash string, options api.BlockQueryOptions) (*api.Block, error)
 	GetBlockByNonceCalled                   func(nonce uint64, options api.BlockQueryOptions) (*api.Block, error)
 	GetBlockByRoundCalled                   func(round uint64, options api.BlockQueryOptions) (*api.Block, error)
@@ -119,9 +119,9 @@ func (f *FacadeStub) VerifyProof(rootHash string, address string, proof [][]byte
 }
 
 // GetUsername -
-func (f *FacadeStub) GetUsername(address string) (string, error) {
+func (f *FacadeStub) GetUsername(address string, options api.AccountQueryOptions) (string, error) {
 	if f.GetUsernameCalled != nil {
-		return f.GetUsernameCalled(address)
+		return f.GetUsernameCalled(address, options)
 	}
 
 	return "", nil
@@ -157,68 +157,68 @@ func (f *FacadeStub) GetHeartbeats() ([]data.PubKeyHeartbeat, error) {
 }
 
 // GetBalance is the mock implementation of a handler's GetBalance method
-func (f *FacadeStub) GetBalance(address string) (*big.Int, error) {
-	return f.BalanceHandler(address)
+func (f *FacadeStub) GetBalance(address string, options api.AccountQueryOptions) (*big.Int, error) {
+	return f.BalanceHandler(address, options)
 }
 
 // GetValueForKey is the mock implementation of a handler's GetValueForKey method
-func (f *FacadeStub) GetValueForKey(address string, key string) (string, error) {
+func (f *FacadeStub) GetValueForKey(address string, key string, options api.AccountQueryOptions) (string, error) {
 	if f.GetValueForKeyCalled != nil {
-		return f.GetValueForKeyCalled(address, key)
+		return f.GetValueForKeyCalled(address, key, options)
 	}
 
 	return "", nil
 }
 
 // GetKeyValuePairs -
-func (f *FacadeStub) GetKeyValuePairs(address string) (map[string]string, error) {
+func (f *FacadeStub) GetKeyValuePairs(address string, options api.AccountQueryOptions) (map[string]string, error) {
 	if f.GetKeyValuePairsCalled != nil {
-		return f.GetKeyValuePairsCalled(address)
+		return f.GetKeyValuePairsCalled(address, options)
 	}
 
 	return nil, nil
 }
 
 // GetESDTData -
-func (f *FacadeStub) GetESDTData(address string, key string, nonce uint64) (*esdt.ESDigitalToken, error) {
+func (f *FacadeStub) GetESDTData(address string, key string, nonce uint64, options api.AccountQueryOptions) (*esdt.ESDigitalToken, error) {
 	if f.GetESDTDataCalled != nil {
-		return f.GetESDTDataCalled(address, key, nonce)
+		return f.GetESDTDataCalled(address, key, nonce, options)
 	}
 
 	return &esdt.ESDigitalToken{Value: big.NewInt(0)}, nil
 }
 
 // GetESDTsRoles -
-func (f *FacadeStub) GetESDTsRoles(address string) (map[string][]string, error) {
+func (f *FacadeStub) GetESDTsRoles(address string, options api.AccountQueryOptions) (map[string][]string, error) {
 	if f.GetESDTsRolesCalled != nil {
-		return f.GetESDTsRolesCalled(address)
+		return f.GetESDTsRolesCalled(address, options)
 	}
 
 	return map[string][]string{}, nil
 }
 
 // GetAllESDTTokens -
-func (f *FacadeStub) GetAllESDTTokens(address string) (map[string]*esdt.ESDigitalToken, error) {
+func (f *FacadeStub) GetAllESDTTokens(address string, options api.AccountQueryOptions) (map[string]*esdt.ESDigitalToken, error) {
 	if f.GetAllESDTTokensCalled != nil {
-		return f.GetAllESDTTokensCalled(address)
+		return f.GetAllESDTTokensCalled(address, options)
 	}
 
 	return make(map[string]*esdt.ESDigitalToken), nil
 }
 
 // GetNFTTokenIDsRegisteredByAddress -
-func (f *FacadeStub) GetNFTTokenIDsRegisteredByAddress(address string) ([]string, error) {
+func (f *FacadeStub) GetNFTTokenIDsRegisteredByAddress(address string, options api.AccountQueryOptions) ([]string, error) {
 	if f.GetNFTTokenIDsRegisteredByAddressCalled != nil {
-		return f.GetNFTTokenIDsRegisteredByAddressCalled(address)
+		return f.GetNFTTokenIDsRegisteredByAddressCalled(address, options)
 	}
 
 	return make([]string, 0), nil
 }
 
 // GetESDTsWithRole -
-func (f *FacadeStub) GetESDTsWithRole(address string, role string) ([]string, error) {
+func (f *FacadeStub) GetESDTsWithRole(address string, role string, options api.AccountQueryOptions) ([]string, error) {
 	if f.GetESDTsWithRoleCalled != nil {
-		return f.GetESDTsWithRoleCalled(address, role)
+		return f.GetESDTsWithRoleCalled(address, role, options)
 	}
 
 	return make([]string, 0), nil
@@ -234,8 +234,8 @@ func (f *FacadeStub) GetAllIssuedESDTs(tokenType string) ([]string, error) {
 }
 
 // GetAccount -
-func (f *FacadeStub) GetAccount(address string) (api.AccountResponse, error) {
-	return f.GetAccountHandler(address)
+func (f *FacadeStub) GetAccount(address string, options api.AccountQueryOptions) (api.AccountResponse, error) {
+	return f.GetAccountHandler(address, options)
 }
 
 // CreateTransaction is  mock implementation of a handler's CreateTransaction method

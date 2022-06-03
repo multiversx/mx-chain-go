@@ -18,6 +18,8 @@ const (
 	getBlockByNoncePath = "/by-nonce/:nonce"
 	getBlockByHashPath  = "/by-hash/:hash"
 	getBlockByRoundPath = "/by-round/:round"
+	urlParamWithTxs     = "withTxs"
+	urlParamWithLogs    = "withLogs"
 )
 
 // blockFacadeHandler defines the methods to be implemented by a facade for handling block requests
@@ -70,17 +72,13 @@ func NewBlockGroup(facade blockFacadeHandler) (*blockGroup, error) {
 func (bg *blockGroup) getBlockByNonce(c *gin.Context) {
 	nonce, err := getQueryParamNonce(c)
 	if err != nil {
-		shared.RespondWithValidationError(
-			c, fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrInvalidBlockNonce.Error()),
-		)
+		shared.RespondWithValidationError(c, errors.ErrGetBlock, errors.ErrInvalidBlockNonce)
 		return
 	}
 
 	options, err := parseBlockQueryOptions(c)
 	if err != nil {
-		shared.RespondWithValidationError(
-			c, fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrInvalidQueryParameter.Error()),
-		)
+		shared.RespondWithValidationError(c, errors.ErrGetBlock, errors.ErrBadUrlParams)
 		return
 	}
 
@@ -88,14 +86,7 @@ func (bg *blockGroup) getBlockByNonce(c *gin.Context) {
 	block, err := bg.getFacade().GetBlockByNonce(nonce, options)
 	log.Debug(fmt.Sprintf("GetBlockByNonce took %s", time.Since(start)))
 	if err != nil {
-		shared.RespondWith(
-			c,
-			http.StatusInternalServerError,
-			nil,
-			fmt.Sprintf("%s: %s", errors.ErrGetBlock.Error(), err.Error()),
-			shared.ReturnCodeInternalError,
-		)
-		return
+		shared.RespondWithInternalError(c, errors.ErrGetBlock, err)
 	}
 
 	shared.RespondWith(c, http.StatusOK, gin.H{"block": block}, "", shared.ReturnCodeSuccess)
@@ -105,17 +96,13 @@ func (bg *blockGroup) getBlockByNonce(c *gin.Context) {
 func (bg *blockGroup) getBlockByHash(c *gin.Context) {
 	hash := c.Param("hash")
 	if hash == "" {
-		shared.RespondWithValidationError(
-			c, fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrValidationEmptyBlockHash.Error()),
-		)
+		shared.RespondWithValidationError(c, errors.ErrGetBlock, errors.ErrValidationEmptyBlockHash)
 		return
 	}
 
 	options, err := parseBlockQueryOptions(c)
 	if err != nil {
-		shared.RespondWithValidationError(
-			c, fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrInvalidBlockNonce.Error()),
-		)
+		shared.RespondWithValidationError(c, errors.ErrGetBlock, errors.ErrBadUrlParams)
 		return
 	}
 
@@ -123,13 +110,7 @@ func (bg *blockGroup) getBlockByHash(c *gin.Context) {
 	block, err := bg.getFacade().GetBlockByHash(hash, options)
 	log.Debug(fmt.Sprintf("GetBlockByHash took %s", time.Since(start)))
 	if err != nil {
-		shared.RespondWith(
-			c,
-			http.StatusInternalServerError,
-			nil,
-			fmt.Sprintf("%s: %s", errors.ErrGetBlock.Error(), err.Error()),
-			shared.ReturnCodeInternalError,
-		)
+		shared.RespondWithInternalError(c, errors.ErrGetBlock, err)
 		return
 	}
 
@@ -139,17 +120,13 @@ func (bg *blockGroup) getBlockByHash(c *gin.Context) {
 func (bg *blockGroup) getBlockByRound(c *gin.Context) {
 	round, err := getQueryParamRound(c)
 	if err != nil {
-		shared.RespondWithValidationError(
-			c, fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrInvalidBlockRound.Error()),
-		)
+		shared.RespondWithValidationError(c, errors.ErrGetBlock, errors.ErrInvalidBlockRound)
 		return
 	}
 
 	options, err := parseBlockQueryOptions(c)
 	if err != nil {
-		shared.RespondWithValidationError(
-			c, fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrInvalidQueryParameter.Error()),
-		)
+		shared.RespondWithValidationError(c, errors.ErrGetBlock, errors.ErrBadUrlParams)
 		return
 	}
 
@@ -157,13 +134,7 @@ func (bg *blockGroup) getBlockByRound(c *gin.Context) {
 	block, err := bg.getFacade().GetBlockByRound(round, options)
 	log.Debug(fmt.Sprintf("GetBlockByRound took %s", time.Since(start)))
 	if err != nil {
-		shared.RespondWith(
-			c,
-			http.StatusInternalServerError,
-			nil,
-			fmt.Sprintf("%s: %s", errors.ErrGetBlock.Error(), err.Error()),
-			shared.ReturnCodeInternalError,
-		)
+		shared.RespondWithInternalError(c, errors.ErrGetBlock, err)
 		return
 	}
 
@@ -171,12 +142,12 @@ func (bg *blockGroup) getBlockByRound(c *gin.Context) {
 }
 
 func parseBlockQueryOptions(c *gin.Context) (api.BlockQueryOptions, error) {
-	withTxs, err := parseBoolUrlParam(c, "withTxs")
+	withTxs, err := parseBoolUrlParam(c, urlParamWithTxs)
 	if err != nil {
 		return api.BlockQueryOptions{}, err
 	}
 
-	withLogs, err := parseBoolUrlParam(c, "withLogs")
+	withLogs, err := parseBoolUrlParam(c, urlParamWithLogs)
 	if err != nil {
 		return api.BlockQueryOptions{}, err
 	}
@@ -184,16 +155,6 @@ func parseBlockQueryOptions(c *gin.Context) (api.BlockQueryOptions, error) {
 	options := api.BlockQueryOptions{WithTransactions: withTxs, WithLogs: withLogs}
 	return options, nil
 }
-
-func parseBoolUrlParam(c *gin.Context, name string) (bool, error) {
-	param := c.Request.URL.Query().Get(name)
-	if param == "" {
-		return false, nil
-	}
-
-	return strconv.ParseBool(param)
-}
-
 func getQueryParamNonce(c *gin.Context) (uint64, error) {
 	nonceStr := c.Param("nonce")
 	return strconv.ParseUint(nonceStr, 10, 64)

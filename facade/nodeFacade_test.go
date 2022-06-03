@@ -158,7 +158,7 @@ func TestNodeFacade_GetBalanceWithValidAddressShouldReturnBalance(t *testing.T) 
 	balance := big.NewInt(10)
 	addr := "testAddress"
 	node := &mock.NodeStub{
-		GetBalanceHandler: func(address string) (*big.Int, error) {
+		GetBalanceHandler: func(address string, _ api.AccountQueryOptions) (*big.Int, error) {
 			if addr == address {
 				return balance, nil
 			}
@@ -170,7 +170,7 @@ func TestNodeFacade_GetBalanceWithValidAddressShouldReturnBalance(t *testing.T) 
 	arg.Node = node
 	nf, _ := NewNodeFacade(arg)
 
-	amount, err := nf.GetBalance(addr)
+	amount, err := nf.GetBalance(addr, api.AccountQueryOptions{})
 
 	assert.Nil(t, err)
 	assert.Equal(t, balance, amount)
@@ -185,7 +185,7 @@ func TestNodeFacade_GetBalanceWithUnknownAddressShouldReturnZeroBalance(t *testi
 	zeroBalance := big.NewInt(0)
 
 	node := &mock.NodeStub{
-		GetBalanceHandler: func(address string) (*big.Int, error) {
+		GetBalanceHandler: func(address string, _ api.AccountQueryOptions) (*big.Int, error) {
 			if addr == address {
 				return balance, nil
 			}
@@ -197,7 +197,7 @@ func TestNodeFacade_GetBalanceWithUnknownAddressShouldReturnZeroBalance(t *testi
 	arg.Node = node
 	nf, _ := NewNodeFacade(arg)
 
-	amount, err := nf.GetBalance(unknownAddr)
+	amount, err := nf.GetBalance(unknownAddr, api.AccountQueryOptions{})
 	assert.Nil(t, err)
 	assert.Equal(t, zeroBalance, amount)
 }
@@ -209,7 +209,7 @@ func TestNodeFacade_GetBalanceWithErrorOnNodeShouldReturnZeroBalanceAndError(t *
 	zeroBalance := big.NewInt(0)
 
 	node := &mock.NodeStub{
-		GetBalanceHandler: func(address string) (*big.Int, error) {
+		GetBalanceHandler: func(address string, _ api.AccountQueryOptions) (*big.Int, error) {
 			return big.NewInt(0), errors.New("error on getBalance on node")
 		},
 	}
@@ -218,7 +218,7 @@ func TestNodeFacade_GetBalanceWithErrorOnNodeShouldReturnZeroBalanceAndError(t *
 	arg.Node = node
 	nf, _ := NewNodeFacade(arg)
 
-	amount, err := nf.GetBalance(addr)
+	amount, err := nf.GetBalance(addr, api.AccountQueryOptions{})
 	assert.NotNil(t, err)
 	assert.Equal(t, zeroBalance, amount)
 }
@@ -284,7 +284,7 @@ func TestNodeFacade_GetAccount(t *testing.T) {
 
 	getAccountCalled := false
 	node := &mock.NodeStub{}
-	node.GetAccountHandler = func(address string) (api.AccountResponse, error) {
+	node.GetAccountHandler = func(address string, _ api.AccountQueryOptions) (api.AccountResponse, error) {
 		getAccountCalled = true
 		return api.AccountResponse{}, nil
 	}
@@ -293,7 +293,7 @@ func TestNodeFacade_GetAccount(t *testing.T) {
 	arg.Node = node
 	nf, _ := NewNodeFacade(arg)
 
-	_, _ = nf.GetAccount("test")
+	_, _ = nf.GetAccount("test", api.AccountQueryOptions{})
 	assert.True(t, getAccountCalled)
 }
 
@@ -302,7 +302,7 @@ func TestNodeFacade_GetUsername(t *testing.T) {
 
 	expectedUsername := "username"
 	node := &mock.NodeStub{}
-	node.GetUsernameCalled = func(address string) (string, error) {
+	node.GetUsernameCalled = func(address string, _ api.AccountQueryOptions) (string, error) {
 		return expectedUsername, nil
 	}
 
@@ -310,7 +310,7 @@ func TestNodeFacade_GetUsername(t *testing.T) {
 	arg.Node = node
 	nf, _ := NewNodeFacade(arg)
 
-	username, err := nf.GetUsername("test")
+	username, err := nf.GetUsername("test", api.AccountQueryOptions{})
 	assert.NoError(t, err)
 	assert.Equal(t, expectedUsername, username)
 }
@@ -664,14 +664,14 @@ func TestNodeFacade_GetKeyValuePairs(t *testing.T) {
 	expectedPairs := map[string]string{"k": "v"}
 	arg := createMockArguments()
 	arg.Node = &mock.NodeStub{
-		GetKeyValuePairsCalled: func(address string, _ context.Context) (map[string]string, error) {
+		GetKeyValuePairsCalled: func(address string, _ api.AccountQueryOptions, _ context.Context) (map[string]string, error) {
 			return expectedPairs, nil
 		},
 	}
 
 	nf, _ := NewNodeFacade(arg)
 
-	res, err := nf.GetKeyValuePairs("addr")
+	res, err := nf.GetKeyValuePairs("addr", api.AccountQueryOptions{})
 	assert.NoError(t, err)
 	assert.Equal(t, expectedPairs, res)
 }
@@ -685,14 +685,14 @@ func TestNodeFacade_GetAllESDTTokens(t *testing.T) {
 	}
 	arg := createMockArguments()
 	arg.Node = &mock.NodeStub{
-		GetAllESDTTokensCalled: func(_ string, _ context.Context) (map[string]*esdt.ESDigitalToken, error) {
+		GetAllESDTTokensCalled: func(_ string, _ api.AccountQueryOptions, _ context.Context) (map[string]*esdt.ESDigitalToken, error) {
 			return expectedTokens, nil
 		},
 	}
 
 	nf, _ := NewNodeFacade(arg)
 
-	res, err := nf.GetAllESDTTokens("addr")
+	res, err := nf.GetAllESDTTokens("addr", api.AccountQueryOptions{})
 	assert.NoError(t, err)
 	assert.Equal(t, expectedTokens, res)
 }
@@ -705,14 +705,14 @@ func TestNodeFacade_GetESDTData(t *testing.T) {
 	}
 	arg := createMockArguments()
 	arg.Node = &mock.NodeStub{
-		GetESDTDataCalled: func(_ string, _ string, _ uint64) (*esdt.ESDigitalToken, error) {
+		GetESDTDataCalled: func(_ string, _ string, _ uint64, _ api.AccountQueryOptions) (*esdt.ESDigitalToken, error) {
 			return expectedData, nil
 		},
 	}
 
 	nf, _ := NewNodeFacade(arg)
 
-	res, err := nf.GetESDTData("addr", "tkn", 0)
+	res, err := nf.GetESDTData("addr", "tkn", 0, api.AccountQueryOptions{})
 	assert.NoError(t, err)
 	assert.Equal(t, expectedData, res)
 }
@@ -723,14 +723,14 @@ func TestNodeFacade_GetValueForKey(t *testing.T) {
 	expectedValue := "value"
 	arg := createMockArguments()
 	arg.Node = &mock.NodeStub{
-		GetValueForKeyCalled: func(_ string, _ string) (string, error) {
+		GetValueForKeyCalled: func(_ string, _ string, _ api.AccountQueryOptions) (string, error) {
 			return expectedValue, nil
 		},
 	}
 
 	nf, _ := NewNodeFacade(arg)
 
-	res, err := nf.GetValueForKey("addr", "key")
+	res, err := nf.GetValueForKey("addr", "key", api.AccountQueryOptions{})
 	assert.NoError(t, err)
 	assert.Equal(t, expectedValue, res)
 }
@@ -760,14 +760,14 @@ func TestNodeFacade_GetESDTsWithRole(t *testing.T) {
 	args := createMockArguments()
 
 	args.Node = &mock.NodeStub{
-		GetESDTsWithRoleCalled: func(address string, role string, _ context.Context) ([]string, error) {
+		GetESDTsWithRoleCalled: func(address string, role string, _ api.AccountQueryOptions, _ context.Context) ([]string, error) {
 			return expectedResponse, nil
 		},
 	}
 
 	nf, _ := NewNodeFacade(args)
 
-	res, err := nf.GetESDTsWithRole("address", "role")
+	res, err := nf.GetESDTsWithRole("address", "role", api.AccountQueryOptions{})
 	require.NoError(t, err)
 	require.Equal(t, expectedResponse, res)
 }
@@ -779,14 +779,14 @@ func TestNodeFacade_GetNFTTokenIDsRegisteredByAddress(t *testing.T) {
 	args := createMockArguments()
 
 	args.Node = &mock.NodeStub{
-		GetNFTTokenIDsRegisteredByAddressCalled: func(address string, _ context.Context) ([]string, error) {
+		GetNFTTokenIDsRegisteredByAddressCalled: func(address string, _ api.AccountQueryOptions, _ context.Context) ([]string, error) {
 			return expectedResponse, nil
 		},
 	}
 
 	nf, _ := NewNodeFacade(args)
 
-	res, err := nf.GetNFTTokenIDsRegisteredByAddress("address")
+	res, err := nf.GetNFTTokenIDsRegisteredByAddress("address", api.AccountQueryOptions{})
 	require.NoError(t, err)
 	require.Equal(t, expectedResponse, res)
 }

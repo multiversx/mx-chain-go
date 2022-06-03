@@ -156,7 +156,7 @@ func (n *Node) GetConsensusGroupSize() int {
 }
 
 // GetBalance gets the balance for a specific address
-func (n *Node) GetBalance(address string) (*big.Int, error) {
+func (n *Node) GetBalance(address string, options api.AccountQueryOptions) (*big.Int, error) {
 	userAccount, err := n.getAccountHandlerAPIAccounts(address)
 	if err != nil {
 		if err == ErrCannotCastAccountHandlerToUserAccountHandler {
@@ -169,7 +169,7 @@ func (n *Node) GetBalance(address string) (*big.Int, error) {
 }
 
 // GetUsername gets the username for a specific address
-func (n *Node) GetUsername(address string) (string, error) {
+func (n *Node) GetUsername(address string, options api.AccountQueryOptions) (string, error) {
 	userAccount, err := n.getAccountHandlerAPIAccounts(address)
 	if err != nil {
 		return "", err
@@ -253,7 +253,7 @@ func (n *Node) getEsdtDataFromLeaf(leaf core.KeyValueHolder, userAccount state.U
 }
 
 // GetKeyValuePairs returns all the key-value pairs under the address
-func (n *Node) GetKeyValuePairs(address string, ctx context.Context) (map[string]string, error) {
+func (n *Node) GetKeyValuePairs(address string, options api.AccountQueryOptions, ctx context.Context) (map[string]string, error) {
 	userAccount, err := n.getAccountHandlerAPIAccounts(address)
 	if err != nil {
 		return nil, err
@@ -294,7 +294,7 @@ func (n *Node) GetKeyValuePairs(address string, ctx context.Context) (map[string
 }
 
 // GetValueForKey will return the value for a key from a given account
-func (n *Node) GetValueForKey(address string, key string) (string, error) {
+func (n *Node) GetValueForKey(address string, key string, options api.AccountQueryOptions) (string, error) {
 	keyBytes, err := hex.DecodeString(key)
 	if err != nil {
 		return "", fmt.Errorf("invalid key: %w", err)
@@ -314,7 +314,7 @@ func (n *Node) GetValueForKey(address string, key string) (string, error) {
 }
 
 // GetESDTData returns the esdt balance and properties from a given account
-func (n *Node) GetESDTData(address, tokenID string, nonce uint64) (*esdt.ESDigitalToken, error) {
+func (n *Node) GetESDTData(address, tokenID string, nonce uint64, options api.AccountQueryOptions) (*esdt.ESDigitalToken, error) {
 	userAccount, err := n.getAccountHandlerAPIAccounts(address)
 	if err != nil {
 		return nil, err
@@ -391,7 +391,7 @@ func (n *Node) getTokensIDsWithFilter(
 }
 
 // GetNFTTokenIDsRegisteredByAddress returns all the token identifiers for semi or non fungible tokens registered by the address
-func (n *Node) GetNFTTokenIDsRegisteredByAddress(address string, ctx context.Context) ([]string, error) {
+func (n *Node) GetNFTTokenIDsRegisteredByAddress(address string, options api.AccountQueryOptions, ctx context.Context) ([]string, error) {
 	addressBytes, err := n.coreComponents.AddressPubKeyConverter().Decode(address)
 	if err != nil {
 		return nil, err
@@ -404,7 +404,7 @@ func (n *Node) GetNFTTokenIDsRegisteredByAddress(address string, ctx context.Con
 }
 
 // GetESDTsWithRole returns all the tokens with the given role for the given address
-func (n *Node) GetESDTsWithRole(address string, role string, ctx context.Context) ([]string, error) {
+func (n *Node) GetESDTsWithRole(address string, role string, options api.AccountQueryOptions, ctx context.Context) ([]string, error) {
 	if !core.IsValidESDTRole(role) {
 		return nil, ErrInvalidESDTRole
 	}
@@ -422,7 +422,7 @@ func (n *Node) GetESDTsWithRole(address string, role string, ctx context.Context
 }
 
 // GetESDTsRoles returns all the tokens identifiers and roles for the given address
-func (n *Node) GetESDTsRoles(address string, ctx context.Context) (map[string][]string, error) {
+func (n *Node) GetESDTsRoles(address string, options api.AccountQueryOptions, ctx context.Context) (map[string][]string, error) {
 	addressBytes, err := n.coreComponents.AddressPubKeyConverter().Decode(address)
 	if err != nil {
 		return nil, err
@@ -464,7 +464,7 @@ func bigToString(bigValue *big.Int) string {
 }
 
 // GetAllESDTTokens returns all the ESDTs that the given address interacted with
-func (n *Node) GetAllESDTTokens(address string, ctx context.Context) (map[string]*esdt.ESDigitalToken, error) {
+func (n *Node) GetAllESDTTokens(address string, options api.AccountQueryOptions, ctx context.Context) (map[string]*esdt.ESDigitalToken, error) {
 	userAccount, err := n.getAccountHandlerAPIAccounts(address)
 	if err != nil {
 		return nil, err
@@ -792,7 +792,7 @@ func (n *Node) CreateTransaction(
 }
 
 // GetAccount will return account details for a given address
-func (n *Node) GetAccount(address string) (api.AccountResponse, error) {
+func (n *Node) GetAccount(address string, options api.AccountQueryOptions) (api.AccountResponse, error) {
 	if check.IfNil(n.coreComponents.AddressPubKeyConverter()) {
 		return api.AccountResponse{}, ErrNilPubkeyConverter
 	}
@@ -842,7 +842,7 @@ func (n *Node) GetAccount(address string) (api.AccountResponse, error) {
 }
 
 // GetCode returns the code for the given code hash
-func (n *Node) GetCode(codeHash []byte) []byte {
+func (n *Node) GetCode(codeHash []byte, options api.AccountQueryOptions) []byte {
 	return n.stateComponents.AccountsAdapterAPI().GetCode(codeHash)
 }
 
