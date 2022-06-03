@@ -332,29 +332,8 @@ func (als *auctionListSelector) calcSoftAuctionNodesConfig(
 	topUp := big.NewInt(0).SetBytes(minTopUp.Bytes())
 	previousConfig := copyOwnersData(ownersData)
 	for ; topUp.Cmp(maxTopUp) < 0; topUp.Add(topUp, als.softAuctionConfig.step) {
-		numNodesQualifyingForTopUp := int64(0)
 		previousConfig = copyOwnersData(ownersData)
-
-		for ownerPubKey, owner := range ownersData {
-			activeNodes := big.NewInt(owner.numActiveNodes)
-			topUpActiveNodes := big.NewInt(0).Mul(topUp, activeNodes)
-			validatorTopUpForAuction := big.NewInt(0).Sub(owner.totalTopUp, topUpActiveNodes)
-			if validatorTopUpForAuction.Cmp(topUp) < 0 {
-				delete(ownersData, ownerPubKey)
-				continue
-			}
-
-			qualifiedNodes := big.NewInt(0).Div(validatorTopUpForAuction, topUp).Int64()
-			if qualifiedNodes > owner.numAuctionNodes {
-				numNodesQualifyingForTopUp += owner.numAuctionNodes
-			} else {
-				numNodesQualifyingForTopUp += qualifiedNodes
-				owner.numQualifiedAuctionNodes = qualifiedNodes
-
-				ownerRemainingNodes := big.NewInt(owner.numActiveNodes + owner.numQualifiedAuctionNodes)
-				owner.qualifiedTopUpPerNode = big.NewInt(0).Div(owner.totalTopUp, ownerRemainingNodes)
-			}
-		}
+		numNodesQualifyingForTopUp := calcNodesConfig(ownersData, topUp)
 
 		if numNodesQualifyingForTopUp < int64(numAvailableSlots) {
 			break
@@ -405,6 +384,33 @@ func copyOwnersData(ownersData map[string]*ownerData) map[string]*ownerData {
 	}
 
 	return ret
+}
+
+func calcNodesConfig(ownersData map[string]*ownerData, topUp *big.Int) int64 {
+	numNodesQualifyingForTopUp := int64(0)
+
+	for ownerPubKey, owner := range ownersData {
+		activeNodes := big.NewInt(owner.numActiveNodes)
+		topUpActiveNodes := big.NewInt(0).Mul(topUp, activeNodes)
+		validatorTopUpForAuction := big.NewInt(0).Sub(owner.totalTopUp, topUpActiveNodes)
+		if validatorTopUpForAuction.Cmp(topUp) < 0 {
+			delete(ownersData, ownerPubKey)
+			continue
+		}
+
+		qualifiedNodes := big.NewInt(0).Div(validatorTopUpForAuction, topUp).Int64()
+		if qualifiedNodes > owner.numAuctionNodes {
+			numNodesQualifyingForTopUp += owner.numAuctionNodes
+		} else {
+			numNodesQualifyingForTopUp += qualifiedNodes
+			owner.numQualifiedAuctionNodes = qualifiedNodes
+
+			ownerRemainingNodes := big.NewInt(owner.numActiveNodes + owner.numQualifiedAuctionNodes)
+			owner.qualifiedTopUpPerNode = big.NewInt(0).Div(owner.totalTopUp, ownerRemainingNodes)
+		}
+	}
+
+	return numNodesQualifyingForTopUp
 }
 
 func markAuctionNodesAsSelected(
