@@ -24,8 +24,8 @@ func NewBlockChain(appStatusHandler core.AppStatusHandler) (*blockChain, error) 
 	}
 	return &blockChain{
 		baseBlockChain: &baseBlockChain{
-			appStatusHandler:         appStatusHandler,
-			previousToFinalBlockInfo: &blockInfo{},
+			appStatusHandler: appStatusHandler,
+			finalBlockInfo:   &blockInfo{},
 		},
 	}, nil
 }

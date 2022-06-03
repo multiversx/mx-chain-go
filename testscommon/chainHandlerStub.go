@@ -15,8 +15,8 @@ type ChainHandlerStub struct {
 	GetCurrentBlockHeaderHashCalled        func() []byte
 	SetCurrentBlockHeaderHashCalled        func([]byte)
 	GetCurrentBlockRootHashCalled          func() []byte
-	SetPreviousToFinalBlockInfoCalled      func(nonce uint64, headerHash []byte, rootHash []byte)
-	GetPreviousToFinalBlockInfoCalled      func() (nonce uint64, blockHash []byte, rootHash []byte)
+	SetFinalBlockInfoCalled                func(nonce uint64, headerHash []byte, rootHash []byte)
+	GetFinalBlockInfoCalled                func() (nonce uint64, blockHash []byte, rootHash []byte)
 }
 
 // GetGenesisHeader -
@@ -90,17 +90,17 @@ func (stub *ChainHandlerStub) GetCurrentBlockRootHash() []byte {
 	return nil
 }
 
-// SetPreviousToFinalBlockInfoCalled -
-func (stub *ChainHandlerStub) SetPreviousToFinalBlockInfo(nonce uint64, headerHash []byte, rootHash []byte) {
-	if stub.SetPreviousToFinalBlockInfoCalled != nil {
-		stub.SetPreviousToFinalBlockInfoCalled(nonce, headerHash, rootHash)
+// SetFinalBlockInfoCalled -
+func (stub *ChainHandlerStub) SetFinalBlockInfo(nonce uint64, headerHash []byte, rootHash []byte) {
+	if stub.SetFinalBlockInfoCalled != nil {
+		stub.SetFinalBlockInfoCalled(nonce, headerHash, rootHash)
 	}
 }
 
-// GetPreviousToFinalBlockInfo -
-func (stub *ChainHandlerStub) GetPreviousToFinalBlockInfo() (nonce uint64, blockHash []byte, rootHash []byte) {
-	if stub.GetPreviousToFinalBlockInfoCalled != nil {
-		return stub.GetPreviousToFinalBlockInfoCalled()
+// GetFinalBlockInfo -
+func (stub *ChainHandlerStub) GetFinalBlockInfo() (nonce uint64, blockHash []byte, rootHash []byte) {
+	if stub.GetFinalBlockInfoCalled != nil {
+		return stub.GetFinalBlockInfoCalled()
 	}
 
 	return 0, nil, nil

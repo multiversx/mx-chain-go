@@ -26,8 +26,8 @@ func NewMetaChain(appStatusHandler core.AppStatusHandler) (*metaChain, error) {
 
 	return &metaChain{
 		baseBlockChain: &baseBlockChain{
-			appStatusHandler:         appStatusHandler,
-			previousToFinalBlockInfo: &blockInfo{},
+			appStatusHandler: appStatusHandler,
+			finalBlockInfo:   &blockInfo{},
 		},
 	}, nil
 }

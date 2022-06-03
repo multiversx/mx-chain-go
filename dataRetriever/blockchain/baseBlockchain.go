@@ -9,13 +9,13 @@ import (
 )
 
 type baseBlockChain struct {
-	mut                      sync.RWMutex
-	appStatusHandler         core.AppStatusHandler
-	genesisHeader            data.HeaderHandler
-	genesisHeaderHash        []byte
-	currentBlockHeader       data.HeaderHandler
-	currentBlockHeaderHash   []byte
-	previousToFinalBlockInfo *blockInfo
+	mut                    sync.RWMutex
+	appStatusHandler       core.AppStatusHandler
+	genesisHeader          data.HeaderHandler
+	genesisHeaderHash      []byte
+	currentBlockHeader     data.HeaderHandler
+	currentBlockHeaderHash []byte
+	finalBlockInfo         *blockInfo
 }
 
 type blockInfo struct {
@@ -78,25 +78,25 @@ func (bbc *baseBlockChain) SetCurrentBlockHeaderHash(hash []byte) {
 	bbc.mut.Unlock()
 }
 
-// SetPreviousToFinalBlockInfo sets the nonce, hash and rootHash associated with the previous-to-final block
-func (bbc *baseBlockChain) SetPreviousToFinalBlockInfo(nonce uint64, headerHash []byte, rootHash []byte) {
+// SetFinalBlockInfo sets the nonce, hash and rootHash associated with the previous-to-final block
+func (bbc *baseBlockChain) SetFinalBlockInfo(nonce uint64, headerHash []byte, rootHash []byte) {
 	bbc.mut.Lock()
 
-	bbc.previousToFinalBlockInfo.nonce = nonce
-	bbc.previousToFinalBlockInfo.hash = headerHash
-	bbc.previousToFinalBlockInfo.committedRootHash = rootHash
+	bbc.finalBlockInfo.nonce = nonce
+	bbc.finalBlockInfo.hash = headerHash
+	bbc.finalBlockInfo.committedRootHash = rootHash
 
 	bbc.mut.Unlock()
 }
 
-// GetPreviousToFinalBlockInfo returns the nonce, hash and rootHash associated with the previous-to-final block
-func (bbc *baseBlockChain) GetPreviousToFinalBlockInfo() (uint64, []byte, []byte) {
+// GetFinalBlockInfo returns the nonce, hash and rootHash associated with the previous-to-final block
+func (bbc *baseBlockChain) GetFinalBlockInfo() (uint64, []byte, []byte) {
 	bbc.mut.RLock()
 	defer bbc.mut.RUnlock()
 
-	nonce := bbc.previousToFinalBlockInfo.nonce
-	hash := bbc.previousToFinalBlockInfo.hash
-	rootHash := bbc.previousToFinalBlockInfo.committedRootHash
+	nonce := bbc.finalBlockInfo.nonce
+	hash := bbc.finalBlockInfo.hash
+	rootHash := bbc.finalBlockInfo.committedRootHash
 
 	return nonce, hash, rootHash
 }
