@@ -128,16 +128,6 @@ func (sdp *stakingDataProvider) GetNodeStakedTopUp(blsKey []byte) (*big.Int, err
 	return ownerInfo.eligibleTopUpPerNode, nil
 }
 
-// GetTotalTopUp returns owner's total top up
-func (sdp *stakingDataProvider) GetTotalTopUp(owner []byte) (*big.Int, error) {
-	ownerInfo, ok := sdp.cache[string(owner)]
-	if !ok {
-		return nil, epochStart.ErrOwnerDoesntHaveNodesInEpoch
-	}
-
-	return ownerInfo.totalTopUp, nil
-}
-
 // PrepareStakingData prepares the staking data for the given map of node keys per shard
 func (sdp *stakingDataProvider) PrepareStakingData(validatorsMap state.ShardValidatorsInfoMapHandler) error {
 	sdp.Clean()
@@ -433,7 +423,7 @@ func (sdp *stakingDataProvider) ComputeUnQualifiedNodes(validatorsInfo state.Sha
 		sortedKeys := sdp.arrangeBlsKeysByStatus(mapBLSKeyStatus, stakingInfo.blsKeys)
 
 		numKeysToUnStake := stakingInfo.numStakedNodes - maxQualified.Int64()
-		selectedKeys, selectedKeysByStatus := sdp.selectKeysToUnStake(sortedKeys, numKeysToUnStake)
+		selectedKeys, removedValidators := sdp.selectKeysToUnStake(sortedKeys, numKeysToUnStake)
 		if len(selectedKeys) == 0 {
 			continue
 		}
@@ -442,11 +432,9 @@ func (sdp *stakingDataProvider) ComputeUnQualifiedNodes(validatorsInfo state.Sha
 
 		mapOwnersKeys[ownerAddress] = make([][]byte, len(selectedKeys))
 		copy(mapOwnersKeys[ownerAddress], selectedKeys)
-		stakingInfo.numStakedNodes -= int64(len(selectedKeys))
 
-		sdp.numOfValidatorsInCurrEpoch -= uint32(len(selectedKeysByStatus[string(common.WaitingList)]))
-		sdp.numOfValidatorsInCurrEpoch -= uint32(len(selectedKeysByStatus[string(common.EligibleList)]))
 		stakingInfo.qualified = false
+		sdp.numOfValidatorsInCurrEpoch -= uint32(removedValidators)
 	}
 
 	return keysToUnStake, mapOwnersKeys, nil
@@ -471,45 +459,42 @@ func (sdp *stakingDataProvider) createMapBLSKeyStatus(validatorsInfo state.Shard
 	return mapBLSKeyStatus, nil
 }
 
-func (sdp *stakingDataProvider) selectKeysToUnStake(sortedKeys map[string][][]byte, numToSelect int64) ([][]byte, map[string][][]byte) {
+func (sdp *stakingDataProvider) selectKeysToUnStake(sortedKeys map[string][][]byte, numToSelect int64) ([][]byte, int) {
 	selectedKeys := make([][]byte, 0)
 	newNodesList := sdp.getNewNodesList()
-	selectedKeysByStatus := make(map[string][][]byte)
 
 	newKeys := sortedKeys[newNodesList]
 	if len(newKeys) > 0 {
-		selectedKeysByStatus[newNodesList] = newKeys
 		selectedKeys = append(selectedKeys, newKeys...)
 	}
 
 	if int64(len(selectedKeys)) >= numToSelect {
-		selectedKeysByStatus[newNodesList] = selectedKeysByStatus[newNodesList][:numToSelect]
-		return selectedKeys[:numToSelect], selectedKeysByStatus
+		return selectedKeys[:numToSelect], 0
 	}
 
 	waitingKeys := sortedKeys[string(common.WaitingList)]
 	if len(waitingKeys) > 0 {
-		selectedKeysByStatus[string(common.WaitingList)] = waitingKeys
 		selectedKeys = append(selectedKeys, waitingKeys...)
 	}
 
 	if int64(len(selectedKeys)) >= numToSelect {
-		selectedKeysByStatus[string(common.WaitingList)] = selectedKeysByStatus[string(common.WaitingList)][:numToSelect]
-		return selectedKeys[:numToSelect], selectedKeysByStatus
+		overFlowKeys := len(selectedKeys) - int(numToSelect)
+		removedWaiting := len(waitingKeys) - overFlowKeys
+		return selectedKeys[:numToSelect], removedWaiting
 	}
 
 	eligibleKeys := sortedKeys[string(common.EligibleList)]
 	if len(eligibleKeys) > 0 {
-		selectedKeysByStatus[string(common.EligibleList)] = eligibleKeys
 		selectedKeys = append(selectedKeys, eligibleKeys...)
 	}
 
 	if int64(len(selectedKeys)) >= numToSelect {
-		selectedKeysByStatus[string(common.EligibleList)] = selectedKeysByStatus[string(common.EligibleList)][:numToSelect]
-		return selectedKeys[:numToSelect], selectedKeysByStatus
+		overFlowKeys := len(selectedKeys) - int(numToSelect)
+		removedEligible := len(eligibleKeys) - overFlowKeys
+		return selectedKeys[:numToSelect], removedEligible + len(waitingKeys)
 	}
 
-	return selectedKeys, selectedKeysByStatus
+	return selectedKeys, len(eligibleKeys) + len(waitingKeys)
 }
 
 func (sdp *stakingDataProvider) arrangeBlsKeysByStatus(mapBlsKeyStatus map[string]string, blsKeys [][]byte) map[string][][]byte {

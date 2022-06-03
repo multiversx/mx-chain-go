@@ -151,7 +151,6 @@ type StakingDataProvider interface {
 	GetTotalStakeEligibleNodes() *big.Int
 	GetTotalTopUpStakeEligibleNodes() *big.Int
 	GetNodeStakedTopUp(blsKey []byte) (*big.Int, error)
-	GetTotalTopUp(owner []byte) (*big.Int, error)
 	PrepareStakingData(validatorsMap state.ShardValidatorsInfoMapHandler) error
 	FillValidatorInfo(validator state.ValidatorInfoHandler) error
 	ComputeUnQualifiedNodes(validatorInfos state.ShardValidatorsInfoMapHandler) ([][]byte, map[string][][]byte, error)

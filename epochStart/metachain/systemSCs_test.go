@@ -2061,9 +2061,7 @@ func requireTopUpPerNodes(t *testing.T, s epochStart.StakingDataProvider, staked
 		owner, err := s.GetBlsKeyOwner(pubKey)
 		require.Nil(t, err)
 
-		totalTopUp, err := s.GetTotalTopUp([]byte(owner))
-		require.Nil(t, err)
-
+		totalTopUp := s.GetOwnersData()[owner].TotalTopUp
 		topUpPerNode := big.NewInt(0).Div(totalTopUp, big.NewInt(int64(len(stakedPubKeys))))
 		require.Equal(t, topUp, topUpPerNode)
 	}
