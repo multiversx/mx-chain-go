@@ -498,6 +498,7 @@ func TestCheckAndFillOwnerValidatorAuctionData(t *testing.T) {
 		owner := []byte("owner")
 		ownerData := &ownerStats{numStakedNodes: 0}
 		validator := &state.ValidatorInfo{PublicKey: []byte("validatorPubKey"), List: string(common.AuctionList)}
+
 		err := sdp.checkAndFillOwnerValidatorAuctionData(owner, ownerData, validator)
 		require.Error(t, err)
 		require.True(t, strings.Contains(err.Error(), epochStart.ErrOwnerHasNoStakedNode.Error()))
@@ -514,6 +515,7 @@ func TestCheckAndFillOwnerValidatorAuctionData(t *testing.T) {
 		owner := []byte("owner")
 		ownerData := &ownerStats{numStakedNodes: 1}
 		validator := &state.ValidatorInfo{PublicKey: []byte("validatorPubKey"), List: string(common.AuctionList)}
+
 		err := sdp.checkAndFillOwnerValidatorAuctionData(owner, ownerData, validator)
 		require.Error(t, err)
 		require.True(t, strings.Contains(err.Error(), epochStart.ErrReceivedAuctionValidatorsBeforeStakingV4.Error()))
@@ -531,6 +533,7 @@ func TestCheckAndFillOwnerValidatorAuctionData(t *testing.T) {
 		owner := []byte("owner")
 		ownerData := &ownerStats{numStakedNodes: 3, numActiveNodes: 3, numAuctionNodes: 0}
 		validator := &state.ValidatorInfo{PublicKey: []byte("validatorPubKey"), List: string(common.AuctionList)}
+
 		err := sdp.checkAndFillOwnerValidatorAuctionData(owner, ownerData, validator)
 		require.Nil(t, err)
 		require.Equal(t, &ownerStats{

@@ -305,10 +305,10 @@ func (sdp *stakingDataProvider) getAndFillOwnerDataFromSC(owner string, validato
 	topUpPerNode := big.NewInt(0)
 	numStakedNodes := numStakedWaiting.Int64()
 	if numStakedNodes == 0 {
-		log.Debug("stakingDataProvider.fillOwnerData: owner has no staked node %w, owner: %s, node: %s",
-			epochStart.ErrOwnerHasNoStakedNode,
-			hex.EncodeToString([]byte(owner)),
-			hex.EncodeToString(validator.GetPublicKey()),
+		log.Debug("stakingDataProvider.fillOwnerData",
+			"message", epochStart.ErrOwnerHasNoStakedNode,
+			"owner", hex.EncodeToString([]byte(owner)),
+			"validator", hex.EncodeToString(validator.GetPublicKey()),
 		)
 	} else {
 		topUpPerNode = big.NewInt(0).Div(topUpValue, numStakedWaiting)
