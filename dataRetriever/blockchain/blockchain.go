@@ -14,7 +14,6 @@ var _ data.ChainHandler = (*blockChain)(nil)
 // The BlockChain also holds pointers to the Genesis block header and the current block
 type blockChain struct {
 	*baseBlockChain
-	// Question for review: perhaps move this to baseBlockchain?
 	currentBlockRootHash []byte
 }
 
@@ -53,8 +52,7 @@ func (bc *blockChain) SetGenesisHeader(genesisBlock data.HeaderHandler) error {
 }
 
 // SetCurrentBlockHeaderAndRootHash sets current block header pointer and the root hash
-// Question for review: perhaps also receive the blockHash as a parameter
-// (since SetCurrentBlockHeaderAndRootHash and SetCurrentBlockHeaderHash are always called in pair)?
+// Question for review: perhaps also receive the blockHash as a parameter (since SetCurrentBlockHeaderAndRootHash and SetCurrentBlockHeaderHash are always called in pair, so that we set all of them in the same critical section)?
 func (bc *blockChain) SetCurrentBlockHeaderAndRootHash(header data.HeaderHandler, rootHash []byte) error {
 	if check.IfNil(header) {
 		bc.mut.Lock()
