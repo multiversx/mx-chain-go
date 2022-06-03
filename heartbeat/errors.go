@@ -132,8 +132,8 @@ var ErrNilCacher = errors.New("nil cacher")
 // ErrNilPeerShardMapper signals that a nil peer shard mapper has been provided
 var ErrNilPeerShardMapper = errors.New("nil peer shard mapper")
 
-// ErrNilEpochNotifier signals that a nil epoch notifier has been provided
-var ErrNilEpochNotifier = errors.New("nil epoch notifier")
+// ErrNilEnableEpochsHandler signals that a nil enable epochs handler has been provided
+var ErrNilEnableEpochsHandler = errors.New("nil enable epochs handler")
 
 // ErrShouldSkipValidator signals that the validator should be skipped
 var ErrShouldSkipValidator = errors.New("validator should be skipped")

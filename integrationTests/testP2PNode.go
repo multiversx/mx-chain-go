@@ -216,16 +216,15 @@ func (tP2pNode *TestP2PNode) initNode() {
 		Config: config.Config{
 			Heartbeat: hbConfig,
 		},
-		HeartbeatDisableEpoch: 10,
-		Prefs:                 config.Preferences{},
-		AppVersion:            "test",
-		GenesisTime:           time.Time{},
-		RedundancyHandler:     redundancyHandler,
-		CoreComponents:        coreComponents,
-		DataComponents:        dataComponents,
-		NetworkComponents:     networkComponents,
-		CryptoComponents:      cryptoComponents,
-		ProcessComponents:     processComponents,
+		Prefs:             config.Preferences{},
+		AppVersion:        "test",
+		GenesisTime:       time.Time{},
+		RedundancyHandler: redundancyHandler,
+		CoreComponents:    coreComponents,
+		DataComponents:    dataComponents,
+		NetworkComponents: networkComponents,
+		CryptoComponents:  cryptoComponents,
+		ProcessComponents: processComponents,
 	}
 	heartbeatComponentsFactory, _ := factory.NewHeartbeatComponentsFactory(hbCompArgs)
 	managedHBComponents, err := factory.NewManagedHeartbeatComponents(heartbeatComponentsFactory)

@@ -695,17 +695,16 @@ func (nr *nodeRunner) CreateManagedHeartbeatComponents(
 	genesisTime := time.Unix(coreComponents.GenesisNodesSetup().GetStartTime(), 0)
 
 	heartbeatArgs := mainFactory.HeartbeatComponentsFactoryArgs{
-		Config:                *nr.configs.GeneralConfig,
-		Prefs:                 *nr.configs.PreferencesConfig,
-		AppVersion:            nr.configs.FlagsConfig.Version,
-		GenesisTime:           genesisTime,
-		RedundancyHandler:     redundancyHandler,
-		CoreComponents:        coreComponents,
-		DataComponents:        dataComponents,
-		NetworkComponents:     networkComponents,
-		CryptoComponents:      cryptoComponents,
-		ProcessComponents:     processComponents,
-		HeartbeatDisableEpoch: nr.configs.EpochConfig.EnableEpochs.HeartbeatDisableEpoch,
+		Config:            *nr.configs.GeneralConfig,
+		Prefs:             *nr.configs.PreferencesConfig,
+		AppVersion:        nr.configs.FlagsConfig.Version,
+		GenesisTime:       genesisTime,
+		RedundancyHandler: redundancyHandler,
+		CoreComponents:    coreComponents,
+		DataComponents:    dataComponents,
+		NetworkComponents: networkComponents,
+		CryptoComponents:  cryptoComponents,
+		ProcessComponents: processComponents,
 	}
 
 	heartbeatComponentsFactory, err := mainFactory.NewHeartbeatComponentsFactory(heartbeatArgs)

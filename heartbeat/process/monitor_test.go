@@ -17,7 +17,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/heartbeat/storage"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/assert"
 )
@@ -79,8 +78,7 @@ func createMockArgHeartbeatMonitor() process.ArgHeartbeatMonitor {
 		HeartbeatRefreshIntervalInSec:      1,
 		HideInactiveValidatorIntervalInSec: 600,
 		AppStatusHandler:                   &statusHandlerMock.AppStatusHandlerStub{},
-		EpochNotifier:                      &epochNotifier.EpochNotifierStub{},
-		HeartbeatDisableEpoch:              1,
+		EnableEpochsHandler:                &testscommon.EnableEpochsHandlerStub{},
 	}
 }
 
@@ -207,15 +205,15 @@ func TestNewMonitor_ZeroHideInactiveVlidatorIntervalInHoursShouldErr(t *testing.
 	assert.True(t, errors.Is(err, heartbeat.ErrZeroHideInactiveValidatorIntervalInSec))
 }
 
-func TestNewMonitor_NilEpochNotifierShouldErr(t *testing.T) {
+func TestNewMonitor_NilEnableEpochsHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockArgHeartbeatMonitor()
-	arg.EpochNotifier = nil
+	arg.EnableEpochsHandler = nil
 	mon, err := process.NewMonitor(arg)
 
 	assert.Nil(t, mon)
-	assert.Equal(t, heartbeat.ErrNilEpochNotifier, err)
+	assert.Equal(t, heartbeat.ErrNilEnableEpochsHandler, err)
 }
 
 func TestNewMonitor_OkValsShouldCreatePubkeyMap(t *testing.T) {
@@ -548,7 +546,7 @@ func TestMonitor_RemoveInactiveValidatorsIfIntervalExceeded(t *testing.T) {
 		HeartbeatRefreshIntervalInSec:      1,
 		HideInactiveValidatorIntervalInSec: 600,
 		AppStatusHandler:                   &statusHandlerMock.AppStatusHandlerStub{},
-		EpochNotifier:                      &epochNotifier.EpochNotifierStub{},
+		EnableEpochsHandler:                &testscommon.EnableEpochsHandlerStub{},
 	}
 	mon, _ := process.NewMonitor(arg)
 	mon.SendHeartbeatMessage(&data.Heartbeat{Pubkey: []byte(pkValidator)})
@@ -638,9 +636,9 @@ func sendHbMessageFromPubKey(pubKey string, mon *process.Monitor) error {
 func TestMonitor_ProcessReceivedMessageShouldNotProcessAfterEpoch(t *testing.T) {
 	t.Parallel()
 
-	providedEpoch := uint32(210)
 	args := createMockArgHeartbeatMonitor()
-	args.HeartbeatDisableEpoch = providedEpoch
+	stub, _ := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
+	stub.IsHeartbeatDisableFlagEnabledField = true
 
 	wasCanProcessMessageCalled := false
 	args.AntifloodHandler = &mock.P2PAntifloodHandlerStub{
@@ -656,13 +654,13 @@ func TestMonitor_ProcessReceivedMessageShouldNotProcessAfterEpoch(t *testing.T) 
 
 	message := &mock.P2PMessageStub{DataField: []byte("data field")}
 
-	mon.EpochConfirmed(providedEpoch-1, 0)
+	stub.IsHeartbeatDisableFlagEnabledField = false
 	err = mon.ProcessReceivedMessage(message, "pid")
 	assert.Nil(t, err)
 	assert.True(t, wasCanProcessMessageCalled)
 
 	wasCanProcessMessageCalled = false
-	mon.EpochConfirmed(providedEpoch, 0)
+	stub.IsHeartbeatDisableFlagEnabledField = true
 	err = mon.ProcessReceivedMessage(message, "pid")
 	assert.Nil(t, err)
 	assert.False(t, wasCanProcessMessageCalled)
