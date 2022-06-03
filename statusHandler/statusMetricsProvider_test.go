@@ -179,6 +179,7 @@ func TestStatusMetrics_NetworkConfig(t *testing.T) {
 		"erd_latest_tag_software_version":   "version1.0",
 		"erd_meta_consensus_group_size":     uint64(25),
 		"erd_min_gas_limit":                 uint64(50000),
+		"erd_extra_gas_limit_guarded_tx":    uint64(50000),
 		"erd_min_gas_price":                 uint64(1000),
 		"erd_min_transaction_version":       uint64(2),
 		"erd_num_metachain_nodes":           uint64(50),
@@ -393,5 +394,5 @@ func TestStatusMetrics_ConcurrentOperations(t *testing.T) {
 	wg.Wait()
 
 	elapsedTime := time.Since(startTime)
-	require.True(t, elapsedTime < 10 * time.Second, "if the test isn't finished within 10 seconds, there might be a deadlock somewhere")
+	require.True(t, elapsedTime < 10*time.Second, "if the test isn't finished within 10 seconds, there might be a deadlock somewhere")
 }

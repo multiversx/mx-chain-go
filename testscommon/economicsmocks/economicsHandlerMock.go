@@ -80,6 +80,11 @@ func (ehm *EconomicsHandlerMock) MinGasLimit() uint64 {
 	return 0
 }
 
+// ExtraGasLimitGuardedTx -
+func (ehm *EconomicsHandlerMock) ExtraGasLimitGuardedTx() uint64 {
+	return 0
+}
+
 // GasPerDataByte -
 func (ehm *EconomicsHandlerMock) GasPerDataByte() uint64 {
 	return 0

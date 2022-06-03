@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/assert"
@@ -52,7 +53,7 @@ func createMockPubkeyConverter() core.PubkeyConverter {
 }
 
 func createMockFeeHandler() process.FeeHandler {
-	return &mock.FeeHandlerStub{}
+	return &economicsmocks.EconomicsHandlerStub{}
 }
 
 func createMockComponentHolders() (*mock.CoreComponentsMock, *mock.CryptoComponentsMock) {

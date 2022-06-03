@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/guardianMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
@@ -643,7 +644,7 @@ func getArgumentsShard(
 		Store:                   createShardStore(),
 		DataPool:                createShardDataPools(),
 		MaxTxNonceDeltaAllowed:  maxTxNonceDeltaAllowed,
-		TxFeeHandler:            &mock.FeeHandlerStub{},
+		TxFeeHandler:            &economicsmocks.EconomicsHandlerStub{},
 		BlockBlackList:          &mock.BlackListHandlerStub{},
 		HeaderSigVerifier:       &mock.HeaderSigVerifierStub{},
 		HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},

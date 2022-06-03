@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/assert"
 )
@@ -25,7 +26,7 @@ func TestNewIntermediateProcessorsContainerFactory_NilShardCoord(t *testing.T) {
 		createMockPubkeyConverter(),
 		&mock.ChainStorerMock{},
 		dataRetrieverMock.NewPoolsHolderMock(),
-		&mock.FeeHandlerStub{},
+		&economicsmocks.EconomicsHandlerStub{},
 	)
 
 	assert.Nil(t, ipcf)
@@ -42,7 +43,7 @@ func TestNewIntermediateProcessorsContainerFactory_NilMarshalizer(t *testing.T) 
 		createMockPubkeyConverter(),
 		&mock.ChainStorerMock{},
 		dataRetrieverMock.NewPoolsHolderMock(),
-		&mock.FeeHandlerStub{},
+		&economicsmocks.EconomicsHandlerStub{},
 	)
 
 	assert.Nil(t, ipcf)
@@ -59,7 +60,7 @@ func TestNewIntermediateProcessorsContainerFactory_NilHasher(t *testing.T) {
 		createMockPubkeyConverter(),
 		&mock.ChainStorerMock{},
 		dataRetrieverMock.NewPoolsHolderMock(),
-		&mock.FeeHandlerStub{},
+		&economicsmocks.EconomicsHandlerStub{},
 	)
 
 	assert.Nil(t, ipcf)
@@ -76,7 +77,7 @@ func TestNewIntermediateProcessorsContainerFactory_NilAdrConv(t *testing.T) {
 		nil,
 		&mock.ChainStorerMock{},
 		dataRetrieverMock.NewPoolsHolderMock(),
-		&mock.FeeHandlerStub{},
+		&economicsmocks.EconomicsHandlerStub{},
 	)
 
 	assert.Nil(t, ipcf)
@@ -93,7 +94,7 @@ func TestNewIntermediateProcessorsContainerFactory_NilStorer(t *testing.T) {
 		createMockPubkeyConverter(),
 		nil,
 		dataRetrieverMock.NewPoolsHolderMock(),
-		&mock.FeeHandlerStub{},
+		&economicsmocks.EconomicsHandlerStub{},
 	)
 
 	assert.Nil(t, ipcf)
@@ -110,7 +111,7 @@ func TestNewIntermediateProcessorsContainerFactory_NilPoolsHolder(t *testing.T) 
 		createMockPubkeyConverter(),
 		&mock.ChainStorerMock{},
 		nil,
-		&mock.FeeHandlerStub{},
+		&economicsmocks.EconomicsHandlerStub{},
 	)
 
 	assert.Nil(t, ipcf)
@@ -144,7 +145,7 @@ func TestNewIntermediateProcessorsContainerFactory(t *testing.T) {
 		createMockPubkeyConverter(),
 		&mock.ChainStorerMock{},
 		dataRetrieverMock.NewPoolsHolderMock(),
-		&mock.FeeHandlerStub{},
+		&economicsmocks.EconomicsHandlerStub{},
 	)
 
 	assert.Nil(t, err)
@@ -162,7 +163,7 @@ func TestIntermediateProcessorsContainerFactory_Create(t *testing.T) {
 		createMockPubkeyConverter(),
 		&mock.ChainStorerMock{},
 		dataRetrieverMock.NewPoolsHolderMock(),
-		&mock.FeeHandlerStub{},
+		&economicsmocks.EconomicsHandlerStub{},
 	)
 
 	assert.Nil(t, err)

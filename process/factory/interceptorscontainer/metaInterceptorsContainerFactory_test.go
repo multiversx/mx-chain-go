@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/guardianMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
@@ -565,7 +566,7 @@ func getArgumentsMeta(
 		DataPool:                createMetaDataPools(),
 		Accounts:                &stateMock.AccountsStub{},
 		MaxTxNonceDeltaAllowed:  maxTxNonceDeltaAllowed,
-		TxFeeHandler:            &mock.FeeHandlerStub{},
+		TxFeeHandler:            &economicsmocks.EconomicsHandlerStub{},
 		BlockBlackList:          &mock.BlackListHandlerStub{},
 		HeaderSigVerifier:       &mock.HeaderSigVerifierStub{},
 		HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
