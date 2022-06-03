@@ -9,13 +9,19 @@ import (
 )
 
 type baseBlockChain struct {
-	mut                    sync.RWMutex
-	appStatusHandler       core.AppStatusHandler
-	genesisHeader          data.HeaderHandler
-	genesisHeaderHash      []byte
-	currentBlockHeader     data.HeaderHandler
-	currentBlockHeaderHash []byte
-	finalCoordinates       *finalCoordinates
+	mut                      sync.RWMutex
+	appStatusHandler         core.AppStatusHandler
+	genesisHeader            data.HeaderHandler
+	genesisHeaderHash        []byte
+	currentBlockHeader       data.HeaderHandler
+	currentBlockHeaderHash   []byte
+	previousToFinalBlockInfo *blockInfo
+}
+
+type blockInfo struct {
+	nonce             uint64
+	hash              []byte
+	committedRootHash []byte
 }
 
 // GetGenesisHeader returns the genesis block header pointer
@@ -72,22 +78,24 @@ func (bbc *baseBlockChain) SetCurrentBlockHeaderHash(hash []byte) {
 	bbc.mut.Unlock()
 }
 
-func (bbc *baseBlockChain) SetHighestFinalBlockCoordinates(nonce uint64, headerHash []byte, rootHash []byte) {
+// SetPreviousToFinalBlockInfo sets the nonce, hash and rootHash associated with the previous-to-final block
+func (bbc *baseBlockChain) SetPreviousToFinalBlockInfo(nonce uint64, headerHash []byte, rootHash []byte) {
 	bbc.mut.Lock()
 
-	bbc.finalCoordinates.blockNonce = nonce
-	bbc.finalCoordinates.blockHash = headerHash
-	bbc.finalCoordinates.blockRootHash = rootHash
+	bbc.previousToFinalBlockInfo.nonce = nonce
+	bbc.previousToFinalBlockInfo.hash = headerHash
+	bbc.previousToFinalBlockInfo.committedRootHash = rootHash
 
 	bbc.mut.Unlock()
 }
 
-func (bbc *baseBlockChain) GetHighestFinalBlockCoordinates() (nonce uint64, hash []byte, rootHash []byte) {
+// GetPreviousToFinalBlockInfo returns the nonce, hash and rootHash associated with the previous-to-final block
+func (bbc *baseBlockChain) GetPreviousToFinalBlockInfo() (nonce uint64, hash []byte, rootHash []byte) {
 	bbc.mut.RLock()
 
-	nonce = bbc.finalCoordinates.blockNonce
-	hash = bbc.finalCoordinates.blockHash
-	rootHash = bbc.finalCoordinates.blockRootHash
+	nonce = bbc.previousToFinalBlockInfo.nonce
+	hash = bbc.previousToFinalBlockInfo.hash
+	rootHash = bbc.previousToFinalBlockInfo.committedRootHash
 
 	bbc.mut.RUnlock()
 

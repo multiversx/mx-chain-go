@@ -24,8 +24,8 @@ func NewBlockChain(appStatusHandler core.AppStatusHandler) (*blockChain, error) 
 	}
 	return &blockChain{
 		baseBlockChain: &baseBlockChain{
-			appStatusHandler: appStatusHandler,
-			finalCoordinates: &finalCoordinates{},
+			appStatusHandler:         appStatusHandler,
+			previousToFinalBlockInfo: &blockInfo{},
 		},
 	}, nil
 }
@@ -52,7 +52,6 @@ func (bc *blockChain) SetGenesisHeader(genesisBlock data.HeaderHandler) error {
 }
 
 // SetCurrentBlockHeaderAndRootHash sets current block header pointer and the root hash
-// Question for review: perhaps also receive the blockHash as a parameter (since SetCurrentBlockHeaderAndRootHash and SetCurrentBlockHeaderHash are always called in pair, so that we set all of them in the same critical section)?
 func (bc *blockChain) SetCurrentBlockHeaderAndRootHash(header data.HeaderHandler, rootHash []byte) error {
 	if check.IfNil(header) {
 		bc.mut.Lock()
