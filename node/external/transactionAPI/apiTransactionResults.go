@@ -20,6 +20,7 @@ type apiTransactionResultsProcessor struct {
 	marshalizer            marshal.Marshalizer
 	selfShardID            uint32
 	refundDetector         *refundDetector
+	logsFacade             LogsFacade
 }
 
 func newAPITransactionResultProcessor(
@@ -28,6 +29,7 @@ func newAPITransactionResultProcessor(
 	storageService dataRetriever.StorageService,
 	marshalizer marshal.Marshalizer,
 	txUnmarshaller *txUnmarshaller,
+	logsFacade LogsFacade,
 	selfShardID uint32,
 ) *apiTransactionResultsProcessor {
 	refundDetector := newRefundDetector()
@@ -40,11 +42,12 @@ func newAPITransactionResultProcessor(
 		marshalizer:            marshalizer,
 		selfShardID:            selfShardID,
 		refundDetector:         refundDetector,
+		logsFacade:             logsFacade,
 	}
 }
 
 func (arp *apiTransactionResultsProcessor) putResultsInTransaction(hash []byte, tx *transaction.ApiTransactionResult, epoch uint32) {
-	arp.putLogsInTransaction(hash, tx, epoch)
+	arp.loadLogsIntoTransaction(hash, tx, epoch)
 
 	resultsHashes, err := arp.historyRepository.GetResultsHashesByTxHash(hash, epoch)
 	if err != nil {
@@ -104,30 +107,28 @@ func (arp *apiTransactionResultsProcessor) putSmartContractResultsInTransactionB
 		}
 
 		scrAPI := arp.adaptSmartContractResult(scrHash, scr)
-		arp.putLogsInSCR(scrHash, epoch, scrAPI)
+		arp.loadLogsIntoContractResults(scrHash, epoch, scrAPI)
 
 		tx.SmartContractResults = append(tx.SmartContractResults, scrAPI)
 	}
 }
 
-func (arp *apiTransactionResultsProcessor) putLogsInTransaction(hash []byte, tx *transaction.ApiTransactionResult, epoch uint32) {
-	logsAndEvents, err := arp.getLogsAndEvents(hash, epoch)
-	if err != nil || logsAndEvents == nil {
-		return
-	}
+func (arp *apiTransactionResultsProcessor) loadLogsIntoTransaction(hash []byte, tx *transaction.ApiTransactionResult, epoch uint32) {
+	var err error
 
-	logsAPI := arp.prepareLogsAndEvents(logsAndEvents)
-	tx.Logs = logsAPI
+	tx.Logs, err = arp.logsFacade.GetLog(hash, epoch)
+	if err != nil {
+		log.Trace("loadLogsIntoTransaction()", "hash", hash, "epoch", epoch, "err", err)
+	}
 }
 
-func (arp *apiTransactionResultsProcessor) putLogsInSCR(scrHash []byte, epoch uint32, scr *transaction.ApiSmartContractResult) {
-	logsAndEvents, err := arp.getLogsAndEvents(scrHash, epoch)
-	if err != nil {
-		return
-	}
+func (arp *apiTransactionResultsProcessor) loadLogsIntoContractResults(scrHash []byte, epoch uint32, scr *transaction.ApiSmartContractResult) {
+	var err error
 
-	logsAPI := arp.prepareLogsAndEvents(logsAndEvents)
-	scr.Logs = logsAPI
+	scr.Logs, err = arp.logsFacade.GetLog(scrHash, epoch)
+	if err != nil {
+		log.Trace("loadLogsIntoContractResults()", "hash", scrHash, "epoch", epoch, "err", err)
+	}
 }
 
 func (arp *apiTransactionResultsProcessor) getScrFromStorage(hash []byte, epoch uint32) (*smartContractResult.SmartContractResult, error) {
@@ -188,40 +189,4 @@ func (arp *apiTransactionResultsProcessor) adaptSmartContractResult(scrHash []by
 	}
 
 	return apiSCR
-}
-
-func (arp *apiTransactionResultsProcessor) prepareLogsAndEvents(logsAndEvents *transaction.Log) *transaction.ApiLogs {
-	addrEncoded := arp.addressPubKeyConverter.Encode(logsAndEvents.Address)
-
-	logsAPI := &transaction.ApiLogs{
-		Address: addrEncoded,
-		Events:  make([]*transaction.Events, 0, len(logsAndEvents.Events)),
-	}
-
-	for _, event := range logsAndEvents.Events {
-		logsAPI.Events = append(logsAPI.Events, &transaction.Events{
-			Address:    arp.addressPubKeyConverter.Encode(event.Address),
-			Identifier: string(event.Identifier),
-			Topics:     event.Topics,
-			Data:       event.Data,
-		})
-	}
-
-	return logsAPI
-}
-
-func (arp *apiTransactionResultsProcessor) getLogsAndEvents(hash []byte, epoch uint32) (*transaction.Log, error) {
-	logsAndEventsStorer := arp.storageService.GetStorer(dataRetriever.TxLogsUnit)
-	logsAndEventsBytes, err := logsAndEventsStorer.GetFromEpoch(hash, epoch)
-	if err != nil {
-		return nil, err
-	}
-
-	txLog := &transaction.Log{}
-	err = arp.marshalizer.Unmarshal(txLog, logsAndEventsBytes)
-	if err != nil {
-		return nil, err
-	}
-
-	return txLog, nil
 }

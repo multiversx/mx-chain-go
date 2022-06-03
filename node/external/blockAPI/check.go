@@ -2,6 +2,7 @@ package blockAPI
 
 import (
 	"errors"
+
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
@@ -9,6 +10,7 @@ import (
 var (
 	errNilArgAPIBlockProcessor   = errors.New("nil arg api block processor")
 	errNilTransactionUnmarshaler = errors.New("nil transaction unmarshaler")
+	errNilLogsFacade             = errors.New("nil logs facade")
 )
 
 func checkNilArg(arg *ArgAPIBlockProcessor) error {
@@ -35,6 +37,9 @@ func checkNilArg(arg *ArgAPIBlockProcessor) error {
 	}
 	if check.IfNil(arg.AddressPubkeyConverter) {
 		return process.ErrNilPubkeyConverter
+	}
+	if check.IfNil(arg.LogsFacade) {
+		return errNilLogsFacade
 	}
 
 	return nil

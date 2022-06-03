@@ -464,3 +464,10 @@ type EconomicsHandler interface {
 	ComputeFeeForProcessing(tx data.TransactionWithFeeHandler, gasToUse uint64) *big.Int
 	IsInterfaceNil() bool
 }
+
+// LogsFacade defines the interface of a logs facade
+type LogsFacade interface {
+	GetLog(logKey []byte, epoch uint32) (*transaction.ApiLogs, error)
+	IncludeLogsInTransactions(txs []*transaction.ApiTransactionResult, logsKeys [][]byte, epoch uint32) error
+	IsInterfaceNil() bool
+}

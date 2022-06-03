@@ -237,17 +237,17 @@ func (inf *initialNodeFacade) GetThrottlerForEndpoint(_ string) (core.Throttler,
 }
 
 // GetBlockByHash return nil and error
-func (inf *initialNodeFacade) GetBlockByHash(_ string, _ bool) (*api.Block, error) {
+func (inf *initialNodeFacade) GetBlockByHash(_ string, _ api.BlockQueryOptions) (*api.Block, error) {
 	return nil, errNodeStarting
 }
 
 // GetBlockByNonce returns nil and error
-func (inf *initialNodeFacade) GetBlockByNonce(_ uint64, _ bool) (*api.Block, error) {
+func (inf *initialNodeFacade) GetBlockByNonce(_ uint64, _ api.BlockQueryOptions) (*api.Block, error) {
 	return nil, errNodeStarting
 }
 
 // GetBlockByRound returns nil and error
-func (inf *initialNodeFacade) GetBlockByRound(_ uint64, _ bool) (*api.Block, error) {
+func (inf *initialNodeFacade) GetBlockByRound(_ uint64, _ api.BlockQueryOptions) (*api.Block, error) {
 	return nil, errNodeStarting
 }
 

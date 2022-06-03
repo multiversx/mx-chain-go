@@ -22,9 +22,9 @@ const (
 
 // blockFacadeHandler defines the methods to be implemented by a facade for handling block requests
 type blockFacadeHandler interface {
-	GetBlockByHash(hash string, withTxs bool) (*api.Block, error)
-	GetBlockByNonce(nonce uint64, withTxs bool) (*api.Block, error)
-	GetBlockByRound(round uint64, withTxs bool) (*api.Block, error)
+	GetBlockByHash(hash string, options api.BlockQueryOptions) (*api.Block, error)
+	GetBlockByNonce(nonce uint64, options api.BlockQueryOptions) (*api.Block, error)
+	GetBlockByRound(round uint64, options api.BlockQueryOptions) (*api.Block, error)
 	IsInterfaceNil() bool
 }
 
@@ -76,7 +76,7 @@ func (bg *blockGroup) getBlockByNonce(c *gin.Context) {
 		return
 	}
 
-	withTxs, err := getQueryParamWithTxs(c)
+	options, err := parseBlockQueryOptions(c)
 	if err != nil {
 		shared.RespondWithValidationError(
 			c, fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrInvalidQueryParameter.Error()),
@@ -85,7 +85,7 @@ func (bg *blockGroup) getBlockByNonce(c *gin.Context) {
 	}
 
 	start := time.Now()
-	block, err := bg.getFacade().GetBlockByNonce(nonce, withTxs)
+	block, err := bg.getFacade().GetBlockByNonce(nonce, options)
 	log.Debug(fmt.Sprintf("GetBlockByNonce took %s", time.Since(start)))
 	if err != nil {
 		shared.RespondWith(
@@ -111,7 +111,7 @@ func (bg *blockGroup) getBlockByHash(c *gin.Context) {
 		return
 	}
 
-	withTxs, err := getQueryParamWithTxs(c)
+	options, err := parseBlockQueryOptions(c)
 	if err != nil {
 		shared.RespondWithValidationError(
 			c, fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrInvalidBlockNonce.Error()),
@@ -120,7 +120,7 @@ func (bg *blockGroup) getBlockByHash(c *gin.Context) {
 	}
 
 	start := time.Now()
-	block, err := bg.getFacade().GetBlockByHash(hash, withTxs)
+	block, err := bg.getFacade().GetBlockByHash(hash, options)
 	log.Debug(fmt.Sprintf("GetBlockByHash took %s", time.Since(start)))
 	if err != nil {
 		shared.RespondWith(
@@ -145,7 +145,7 @@ func (bg *blockGroup) getBlockByRound(c *gin.Context) {
 		return
 	}
 
-	withTxs, err := getQueryParamWithTxs(c)
+	options, err := parseBlockQueryOptions(c)
 	if err != nil {
 		shared.RespondWithValidationError(
 			c, fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrInvalidQueryParameter.Error()),
@@ -154,7 +154,7 @@ func (bg *blockGroup) getBlockByRound(c *gin.Context) {
 	}
 
 	start := time.Now()
-	block, err := bg.getFacade().GetBlockByRound(round, withTxs)
+	block, err := bg.getFacade().GetBlockByRound(round, options)
 	log.Debug(fmt.Sprintf("GetBlockByRound took %s", time.Since(start)))
 	if err != nil {
 		shared.RespondWith(
@@ -170,13 +170,28 @@ func (bg *blockGroup) getBlockByRound(c *gin.Context) {
 	shared.RespondWith(c, http.StatusOK, gin.H{"block": block}, "", shared.ReturnCodeSuccess)
 }
 
-func getQueryParamWithTxs(c *gin.Context) (bool, error) {
-	withTxsStr := c.Request.URL.Query().Get("withTxs")
-	if withTxsStr == "" {
+func parseBlockQueryOptions(c *gin.Context) (api.BlockQueryOptions, error) {
+	withTxs, err := parseBoolUrlParam(c, "withTxs")
+	if err != nil {
+		return api.BlockQueryOptions{}, err
+	}
+
+	withLogs, err := parseBoolUrlParam(c, "withLogs")
+	if err != nil {
+		return api.BlockQueryOptions{}, err
+	}
+
+	options := api.BlockQueryOptions{WithTransactions: withTxs, WithLogs: withLogs}
+	return options, nil
+}
+
+func parseBoolUrlParam(c *gin.Context, name string) (bool, error) {
+	param := c.Request.URL.Query().Get(name)
+	if param == "" {
 		return false, nil
 	}
 
-	return strconv.ParseBool(withTxsStr)
+	return strconv.ParseBool(param)
 }
 
 func getQueryParamNonce(c *gin.Context) (uint64, error) {

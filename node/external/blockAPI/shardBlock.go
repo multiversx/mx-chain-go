@@ -32,12 +32,13 @@ func newShardApiBlockProcessor(arg *ArgAPIBlockProcessor, emptyReceiptsHash []by
 			hasher:                   arg.Hasher,
 			addressPubKeyConverter:   arg.AddressPubkeyConverter,
 			emptyReceiptsHash:        emptyReceiptsHash,
+			logsFacade:               arg.LogsFacade,
 		},
 	}
 }
 
 // GetBlockByNonce will return a shard APIBlock by nonce
-func (sbp *shardAPIBlockProcessor) GetBlockByNonce(nonce uint64, withTxs bool) (*api.Block, error) {
+func (sbp *shardAPIBlockProcessor) GetBlockByNonce(nonce uint64, options api.BlockQueryOptions) (*api.Block, error) {
 	storerUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(sbp.selfShardID)
 
 	nonceToByteSlice := sbp.uint64ByteSliceConverter.ToByteSlice(nonce)
@@ -51,17 +52,17 @@ func (sbp *shardAPIBlockProcessor) GetBlockByNonce(nonce uint64, withTxs bool) (
 		return nil, err
 	}
 
-	return sbp.convertShardBlockBytesToAPIBlock(headerHash, blockBytes, withTxs)
+	return sbp.convertShardBlockBytesToAPIBlock(headerHash, blockBytes, options)
 }
 
 // GetBlockByHash will return a shard APIBlock by hash
-func (sbp *shardAPIBlockProcessor) GetBlockByHash(hash []byte, withTxs bool) (*api.Block, error) {
+func (sbp *shardAPIBlockProcessor) GetBlockByHash(hash []byte, options api.BlockQueryOptions) (*api.Block, error) {
 	blockBytes, err := sbp.getFromStorer(dataRetriever.BlockHeaderUnit, hash)
 	if err != nil {
 		return nil, err
 	}
 
-	blockAPI, err := sbp.convertShardBlockBytesToAPIBlock(hash, blockBytes, withTxs)
+	blockAPI, err := sbp.convertShardBlockBytesToAPIBlock(hash, blockBytes, options)
 	if err != nil {
 		return nil, err
 	}
@@ -72,16 +73,16 @@ func (sbp *shardAPIBlockProcessor) GetBlockByHash(hash []byte, withTxs bool) (*a
 }
 
 // GetBlockByRound will return a shard APIBlock by round
-func (sbp *shardAPIBlockProcessor) GetBlockByRound(round uint64, withTxs bool) (*api.Block, error) {
+func (sbp *shardAPIBlockProcessor) GetBlockByRound(round uint64, options api.BlockQueryOptions) (*api.Block, error) {
 	headerHash, blockBytes, err := sbp.getBlockHeaderHashAndBytesByRound(round, dataRetriever.BlockHeaderUnit)
 	if err != nil {
 		return nil, err
 	}
 
-	return sbp.convertShardBlockBytesToAPIBlock(headerHash, blockBytes, withTxs)
+	return sbp.convertShardBlockBytesToAPIBlock(headerHash, blockBytes, options)
 }
 
-func (sbp *shardAPIBlockProcessor) convertShardBlockBytesToAPIBlock(hash []byte, blockBytes []byte, withTxs bool) (*api.Block, error) {
+func (sbp *shardAPIBlockProcessor) convertShardBlockBytesToAPIBlock(hash []byte, blockBytes []byte, options api.BlockQueryOptions) (*api.Block, error) {
 	blockHeader, err := process.CreateShardHeader(sbp.marshalizer, blockBytes)
 	if err != nil {
 		return nil, err
@@ -104,15 +105,22 @@ func (sbp *shardAPIBlockProcessor) convertShardBlockBytesToAPIBlock(hash []byte,
 			SourceShard:      mb.GetSenderShardID(),
 			DestinationShard: mb.GetReceiverShardID(),
 		}
-		if withTxs {
+		if options.WithTransactions {
 			miniBlockCopy := mb
-			sbp.getAndAttachTxsToMb(miniBlockCopy, headerEpoch, miniblockAPI)
+			err := sbp.getAndAttachTxsToMb(miniBlockCopy, headerEpoch, miniblockAPI, options)
+			if err != nil {
+				return nil, err
+			}
 		}
 
 		miniblocks = append(miniblocks, miniblockAPI)
 	}
 
-	intraMb := sbp.getIntraMiniblocks(blockHeader.GetReceiptsHash(), headerEpoch, withTxs)
+	intraMb, err := sbp.getIntraMiniblocks(blockHeader.GetReceiptsHash(), headerEpoch, options)
+	if err != nil {
+		return nil, err
+	}
+
 	if len(intraMb) > 0 {
 		miniblocks = append(miniblocks, intraMb...)
 	}
@@ -136,23 +144,6 @@ func (sbp *shardAPIBlockProcessor) convertShardBlockBytesToAPIBlock(hash []byte,
 		Timestamp:       time.Duration(blockHeader.GetTimeStamp()),
 		Status:          BlockStatusOnChain,
 	}, nil
-}
-
-func filterOutDuplicatedMiniblocks(miniblocks []*api.MiniBlock) []*api.MiniBlock {
-	filteredMiniblocks := make([]*api.MiniBlock, 0, len(miniblocks))
-	seenMiniblocks := make(map[string]struct{})
-
-	for _, miniblock := range miniblocks {
-		_, ok := seenMiniblocks[miniblock.Hash]
-		if ok {
-			continue
-		}
-
-		filteredMiniblocks = append(filteredMiniblocks, miniblock)
-		seenMiniblocks[miniblock.Hash] = struct{}{}
-	}
-
-	return filteredMiniblocks
 }
 
 // IsInterfaceNil returns true if underlying object is nil

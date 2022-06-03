@@ -4,6 +4,7 @@ import (
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	dataApi "github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
@@ -63,9 +64,9 @@ type Facade interface {
 	GetAllESDTTokens(address string) (map[string]*esdt.ESDigitalToken, error)
 	GetESDTsRoles(address string) (map[string][]string, error)
 	GetKeyValuePairs(address string) (map[string]string, error)
-	GetBlockByHash(hash string, withTxs bool) (*dataApi.Block, error)
-	GetBlockByNonce(nonce uint64, withTxs bool) (*dataApi.Block, error)
-	GetBlockByRound(round uint64, withTxs bool) (*dataApi.Block, error)
+	GetBlockByHash(hash string, options api.BlockQueryOptions) (*dataApi.Block, error)
+	GetBlockByNonce(nonce uint64, options api.BlockQueryOptions) (*dataApi.Block, error)
+	GetBlockByRound(round uint64, options api.BlockQueryOptions) (*dataApi.Block, error)
 	Trigger(epoch uint32, withEarlyEndOfEpoch bool) error
 	IsSelfTrigger() bool
 	GetTotalStakedValue() (*dataApi.StakeValues, error)

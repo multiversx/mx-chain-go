@@ -43,60 +43,54 @@ type baseAPIBlockProcessor struct {
 	addressPubKeyConverter   core.PubkeyConverter
 	txStatusComputer         transaction.StatusComputerHandler
 	txUnmarshaller           TransactionUnmarshaller
+	logsFacade               LogsFacade
 }
 
 var log = logger.GetOrCreate("node/blockAPI")
 
-func (bap *baseAPIBlockProcessor) getIntraMiniblocks(receiptsHash []byte, epoch uint32, withTxs bool) []*api.MiniBlock {
+func (bap *baseAPIBlockProcessor) getIntraMiniblocks(receiptsHash []byte, epoch uint32, options api.BlockQueryOptions) ([]*api.MiniBlock, error) {
 	if bytes.Equal(bap.emptyReceiptsHash, receiptsHash) {
-		return nil
+		return nil, nil
 	}
 
 	batchBytes, err := bap.getFromStorerWithEpoch(dataRetriever.ReceiptsUnit, receiptsHash, epoch)
 	if err != nil {
-		log.Warn("cannot get miniblock from receipts storage",
-			"hash", receiptsHash,
-			"error", err.Error())
-		return nil
+		return nil, fmt.Errorf("%w (receipts): %v, hash = %s", errCannotLoadMiniblocks, err, hex.EncodeToString(receiptsHash))
 	}
 
 	batchWithMbs := &batch.Batch{}
 	err = bap.marshalizer.Unmarshal(batchWithMbs, batchBytes)
 	if err != nil {
-		log.Warn("cannot unmarshal batch",
-			"hash", receiptsHash,
-			"error", err.Error())
-		return nil
+		return nil, fmt.Errorf("%w (receipts): %v, hash = %s", errCannotUnmarshalMiniblocks, err, hex.EncodeToString(receiptsHash))
 	}
 
-	return bap.extractMbsFromBatch(batchWithMbs, epoch, withTxs)
+	return bap.extractMbsFromBatch(batchWithMbs, epoch, options)
 }
 
-func (bap *baseAPIBlockProcessor) extractMbsFromBatch(batchWithMbs *batch.Batch, epoch uint32, withTxs bool) []*api.MiniBlock {
+func (bap *baseAPIBlockProcessor) extractMbsFromBatch(batchWithMbs *batch.Batch, epoch uint32, options api.BlockQueryOptions) ([]*api.MiniBlock, error) {
 	mbs := make([]*api.MiniBlock, 0)
 	for _, mbBytes := range batchWithMbs.Data {
 		miniBlock := &block.MiniBlock{}
 		err := bap.marshalizer.Unmarshal(miniBlock, mbBytes)
 		if err != nil {
-			continue
+			return nil, fmt.Errorf("%w: %v", errCannotUnmarshalMiniblocks, err)
 		}
 
-		miniblockAPI, ok := bap.prepareAPIMiniblock(miniBlock, epoch, withTxs)
-		if !ok {
-			continue
+		miniblockAPI, err := bap.prepareAPIMiniblock(miniBlock, epoch, options)
+		if err != nil {
+			return nil, err
 		}
 
 		mbs = append(mbs, miniblockAPI)
 	}
 
-	return mbs
+	return mbs, nil
 }
 
-func (bap *baseAPIBlockProcessor) prepareAPIMiniblock(miniblock *block.MiniBlock, epoch uint32, withTxs bool) (*api.MiniBlock, bool) {
+func (bap *baseAPIBlockProcessor) prepareAPIMiniblock(miniblock *block.MiniBlock, epoch uint32, options api.BlockQueryOptions) (*api.MiniBlock, error) {
 	mbHash, err := core.CalculateHash(bap.marshalizer, bap.hasher, miniblock)
 	if err != nil {
-		log.Warn("cannot compute miniblock's hash", "error", err.Error())
-		return nil, false
+		return nil, err
 	}
 
 	miniblockAPI := &api.MiniBlock{
@@ -105,76 +99,83 @@ func (bap *baseAPIBlockProcessor) prepareAPIMiniblock(miniblock *block.MiniBlock
 		SourceShard:      miniblock.SenderShardID,
 		DestinationShard: miniblock.ReceiverShardID,
 	}
-	if withTxs {
-		bap.getAndAttachTxsToMbByEpoch(mbHash, miniblock, epoch, miniblockAPI)
+
+	if options.WithTransactions {
+		err = bap.getAndAttachTxsToMbByEpoch(mbHash, miniblock, epoch, miniblockAPI, options)
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	return miniblockAPI, true
+	return miniblockAPI, nil
 }
 
-func (bap *baseAPIBlockProcessor) getAndAttachTxsToMb(mbHeader data.MiniBlockHeaderHandler, epoch uint32, apiMiniblock *api.MiniBlock) {
+func (bap *baseAPIBlockProcessor) getAndAttachTxsToMb(mbHeader data.MiniBlockHeaderHandler, epoch uint32, apiMiniblock *api.MiniBlock, options api.BlockQueryOptions) error {
 	miniblockHash := mbHeader.GetHash()
 	mbBytes, err := bap.getFromStorerWithEpoch(dataRetriever.MiniBlockUnit, miniblockHash, epoch)
 	if err != nil {
-		log.Warn("cannot get miniblock from storage",
-			"hash", hex.EncodeToString(miniblockHash),
-			"error", err.Error())
-		return
+		return fmt.Errorf("%w: %v, hash = %s", errCannotLoadMiniblocks, err, hex.EncodeToString(miniblockHash))
 	}
 
 	miniBlock := &block.MiniBlock{}
 	err = bap.marshalizer.Unmarshal(miniBlock, mbBytes)
 	if err != nil {
-		log.Warn("cannot unmarshal miniblock",
-			"hash", miniblockHash,
-			"error", err.Error())
-		return
+		return fmt.Errorf("%w: %v, hash = %s", errCannotUnmarshalMiniblocks, err, hex.EncodeToString(miniblockHash))
 	}
 
-	bap.getAndAttachTxsToMbByEpoch(miniblockHash, miniBlock, epoch, apiMiniblock)
+	return bap.getAndAttachTxsToMbByEpoch(miniblockHash, miniBlock, epoch, apiMiniblock, options)
 }
 
-func (bap *baseAPIBlockProcessor) getAndAttachTxsToMbByEpoch(miniblockHash []byte, miniBlock *block.MiniBlock, epoch uint32, apiMiniblock *api.MiniBlock) {
+func (bap *baseAPIBlockProcessor) getAndAttachTxsToMbByEpoch(miniblockHash []byte, miniBlock *block.MiniBlock, epoch uint32, apiMiniblock *api.MiniBlock, options api.BlockQueryOptions) error {
+	var err error
+
 	switch miniBlock.Type {
 	case block.TxBlock:
-		apiMiniblock.Transactions = bap.getTxsFromMiniblock(miniBlock, miniblockHash, epoch, transaction.TxTypeNormal, dataRetriever.TransactionUnit)
+		apiMiniblock.Transactions, err = bap.getTxsFromMiniblock(miniBlock, miniblockHash, epoch, transaction.TxTypeNormal, dataRetriever.TransactionUnit)
 	case block.RewardsBlock:
-		apiMiniblock.Transactions = bap.getTxsFromMiniblock(miniBlock, miniblockHash, epoch, transaction.TxTypeReward, dataRetriever.RewardTransactionUnit)
+		apiMiniblock.Transactions, err = bap.getTxsFromMiniblock(miniBlock, miniblockHash, epoch, transaction.TxTypeReward, dataRetriever.RewardTransactionUnit)
 	case block.SmartContractResultBlock:
-		apiMiniblock.Transactions = bap.getTxsFromMiniblock(miniBlock, miniblockHash, epoch, transaction.TxTypeUnsigned, dataRetriever.UnsignedTransactionUnit)
+		apiMiniblock.Transactions, err = bap.getTxsFromMiniblock(miniBlock, miniblockHash, epoch, transaction.TxTypeUnsigned, dataRetriever.UnsignedTransactionUnit)
 	case block.InvalidBlock:
-		apiMiniblock.Transactions = bap.getTxsFromMiniblock(miniBlock, miniblockHash, epoch, transaction.TxTypeInvalid, dataRetriever.TransactionUnit)
+		apiMiniblock.Transactions, err = bap.getTxsFromMiniblock(miniBlock, miniblockHash, epoch, transaction.TxTypeInvalid, dataRetriever.TransactionUnit)
 	case block.ReceiptBlock:
-		apiMiniblock.Receipts = bap.getReceiptsFromMiniblock(miniBlock, epoch)
-	default:
-		return
+		apiMiniblock.Receipts, err = bap.getReceiptsFromMiniblock(miniBlock, epoch)
 	}
+
+	if err != nil {
+		return err
+	}
+
+	if options.WithLogs {
+		err := bap.logsFacade.IncludeLogsInTransactions(apiMiniblock.Transactions, miniBlock.TxHashes, epoch)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
-func (bap *baseAPIBlockProcessor) getReceiptsFromMiniblock(miniblock *block.MiniBlock, epoch uint32) []*transaction.ApiReceipt {
+func (bap *baseAPIBlockProcessor) getReceiptsFromMiniblock(miniblock *block.MiniBlock, epoch uint32) ([]*transaction.ApiReceipt, error) {
 	storer := bap.store.GetStorer(dataRetriever.UnsignedTransactionUnit)
 	start := time.Now()
 	marshalledReceipts, err := storer.GetBulkFromEpoch(miniblock.TxHashes, epoch)
 	if err != nil {
-		log.Warn("cannot get receipts from storage", "error", err.Error())
-		return []*transaction.ApiReceipt{}
+		return nil, fmt.Errorf("%w: %v", errCannotLoadReceipts, err)
 	}
 	log.Debug(fmt.Sprintf("GetBulkFromEpoch took %s", time.Since(start)))
 
 	apiReceipts := make([]*transaction.ApiReceipt, 0)
 	for _, pair := range marshalledReceipts {
-		receipt, errUnmarshal := bap.txUnmarshaller.UnmarshalReceipt(pair.Value)
-		if errUnmarshal != nil {
-			log.Warn("cannot unmarshal receipt",
-				"hash", pair.Key,
-				"error", errUnmarshal.Error())
-			continue
+		receipt, err := bap.txUnmarshaller.UnmarshalReceipt(pair.Value)
+		if err != nil {
+			return nil, fmt.Errorf("%w: %v, hash = %s", errCannotUnmarshalReceipts, err, hex.EncodeToString(pair.Key))
 		}
 
 		apiReceipts = append(apiReceipts, receipt)
 	}
 
-	return apiReceipts
+	return apiReceipts, nil
 }
 
 func (bap *baseAPIBlockProcessor) getTxsFromMiniblock(
@@ -183,14 +184,12 @@ func (bap *baseAPIBlockProcessor) getTxsFromMiniblock(
 	epoch uint32,
 	txType transaction.TxType,
 	unit dataRetriever.UnitType,
-) []*transaction.ApiTransactionResult {
+) ([]*transaction.ApiTransactionResult, error) {
 	storer := bap.store.GetStorer(unit)
 	start := time.Now()
 	marshalledTxs, err := storer.GetBulkFromEpoch(miniblock.TxHashes, epoch)
 	if err != nil {
-		log.Warn("cannot get from storage transactions",
-			"error", err.Error())
-		return []*transaction.ApiTransactionResult{}
+		return nil, fmt.Errorf("%w: %v, miniblock = %s", errCannotLoadTransactions, err, hex.EncodeToString(miniblockHash))
 	}
 	log.Debug(fmt.Sprintf("GetBulkFromEpoch took %s", time.Since(start)))
 
@@ -199,12 +198,10 @@ func (bap *baseAPIBlockProcessor) getTxsFromMiniblock(
 	for _, pair := range marshalledTxs {
 		tx, errUnmarshalTx := bap.txUnmarshaller.UnmarshalTransaction(pair.Value, txType)
 		if errUnmarshalTx != nil {
-			log.Warn("cannot unmarshal transaction",
-				"hash", pair.Key,
-				"error", errUnmarshalTx.Error())
-			continue
+			return nil, fmt.Errorf("%w: %v, miniblock = %s", errCannotUnmarshalTransactions, err, hex.EncodeToString(miniblockHash))
 		}
 		tx.Hash = hex.EncodeToString(pair.Key)
+		tx.HashBytes = pair.Key
 		tx.MiniBlockType = miniblock.Type.String()
 		tx.MiniBlockHash = hex.EncodeToString(miniblockHash)
 		tx.SourceShard = miniblock.SenderShardID
@@ -217,7 +214,7 @@ func (bap *baseAPIBlockProcessor) getTxsFromMiniblock(
 	}
 	log.Debug(fmt.Sprintf("UnmarshalTransactions took %s", time.Since(start)))
 
-	return txs
+	return txs, nil
 }
 
 func (bap *baseAPIBlockProcessor) getFromStorer(unit dataRetriever.UnitType, key []byte) ([]byte, error) {

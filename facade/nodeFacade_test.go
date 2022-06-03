@@ -1030,13 +1030,13 @@ func TestNodeFacade_GetBlockByRoundShouldWork(t *testing.T) {
 	}
 
 	arg.ApiResolver = &mock.ApiResolverStub{
-		GetBlockByRoundCalled: func(_ uint64, _ bool) (*api.Block, error) {
+		GetBlockByRoundCalled: func(_ uint64, _ api.BlockQueryOptions) (*api.Block, error) {
 			return blk, nil
 		},
 	}
 
 	nf, _ := NewNodeFacade(arg)
-	ret, err := nf.GetBlockByRound(0, false)
+	ret, err := nf.GetBlockByRound(0, api.BlockQueryOptions{})
 
 	assert.Nil(t, err)
 	assert.Equal(t, ret, blk)

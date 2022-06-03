@@ -1,7 +1,7 @@
 package storageUnit
 
 import (
-	"github.com/ElrondNetwork/elrond-go/common"
+	storageCore "github.com/ElrondNetwork/elrond-go-core/storage"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -20,7 +20,7 @@ func (ns *NilStorer) GetFromEpoch(_ []byte, _ uint32) ([]byte, error) {
 }
 
 // GetBulkFromEpoch will do nothing
-func (ns *NilStorer) GetBulkFromEpoch(_ [][]byte, _ uint32) ([]common.KeyValuePair, error) {
+func (ns *NilStorer) GetBulkFromEpoch(_ [][]byte, _ uint32) ([]storageCore.KeyValuePair, error) {
 	return nil, nil
 }
 

@@ -7,7 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 )
 
-// ArgsNewFeeComputer holds the arguments for constructing a feeComputer.
+// ArgsNewFeeComputer holds the arguments for constructing a feeComputer
 type ArgsNewFeeComputer struct {
 	BuiltInFunctionsCostHandler    economics.BuiltInFunctionsCostHandler
 	EconomicsConfig                config.EconomicsConfig

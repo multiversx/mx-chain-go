@@ -14,7 +14,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func createMockShardAPIProcessor(
@@ -67,7 +66,7 @@ func TestShardAPIBlockProcessor_GetBlockByHashInvalidHashShouldErr(t *testing.T)
 		false,
 	)
 
-	blk, err := shardAPIBlockProcessor.GetBlockByHash([]byte("invalidHash"), false)
+	blk, err := shardAPIBlockProcessor.GetBlockByHash([]byte("invalidHash"), api.BlockQueryOptions{})
 	assert.Nil(t, blk)
 	assert.Error(t, err)
 }
@@ -88,7 +87,7 @@ func TestShardAPIBlockProcessor_GetBlockByNonceInvalidNonceShouldErr(t *testing.
 		false,
 	)
 
-	blk, err := shardAPIBlockProcessor.GetBlockByNonce(100, false)
+	blk, err := shardAPIBlockProcessor.GetBlockByNonce(100, api.BlockQueryOptions{})
 	assert.Nil(t, blk)
 	assert.Error(t, err)
 }
@@ -109,7 +108,7 @@ func TestShardAPIBlockProcessor_GetBlockByRoundInvalidRoundShouldErr(t *testing.
 		true,
 	)
 
-	blk, err := shardAPIBlockProcessor.GetBlockByRound(100, false)
+	blk, err := shardAPIBlockProcessor.GetBlockByRound(100, api.BlockQueryOptions{})
 	assert.Nil(t, blk)
 	assert.Error(t, err)
 }
@@ -169,7 +168,7 @@ func TestShardAPIBlockProcessor_GetBlockByHashFromNormalNode(t *testing.T) {
 		Status:          BlockStatusOnChain,
 	}
 
-	blk, err := shardAPIBlockProcessor.GetBlockByHash(headerHash, false)
+	blk, err := shardAPIBlockProcessor.GetBlockByHash(headerHash, api.BlockQueryOptions{})
 	assert.Nil(t, err)
 	assert.Equal(t, expectedBlock, blk)
 }
@@ -225,7 +224,7 @@ func TestShardAPIBlockProcessor_GetBlockByNonceFromHistoryNode(t *testing.T) {
 		Status:          BlockStatusOnChain,
 	}
 
-	blk, err := shardAPIBlockProcessor.GetBlockByNonce(1, false)
+	blk, err := shardAPIBlockProcessor.GetBlockByNonce(1, api.BlockQueryOptions{})
 	assert.Nil(t, err)
 	assert.Equal(t, expectedBlock, blk)
 }
@@ -287,7 +286,7 @@ func TestShardAPIBlockProcessor_GetBlockByRoundFromStorer(t *testing.T) {
 		Status:          BlockStatusOnChain,
 	}
 
-	blk, err := shardAPIBlockProcessor.GetBlockByRound(round, false)
+	blk, err := shardAPIBlockProcessor.GetBlockByRound(round, api.BlockQueryOptions{})
 	assert.Nil(t, err)
 	assert.Equal(t, expectedBlock, blk)
 }
@@ -348,26 +347,7 @@ func TestShardAPIBlockProcessor_GetBlockByHashFromHistoryNodeStatusReverted(t *t
 		Status:          BlockStatusReverted,
 	}
 
-	blk, err := shardAPIBlockProcessor.GetBlockByHash(headerHash, false)
+	blk, err := shardAPIBlockProcessor.GetBlockByHash(headerHash, api.BlockQueryOptions{})
 	assert.Nil(t, err)
 	assert.Equal(t, expectedBlock, blk)
-}
-
-func TestFilterOutDuplicatedMiniblocks(t *testing.T) {
-	miniblocks := []*api.MiniBlock{
-		{Hash: "abba"},
-		{Hash: "aabb"},
-		{Hash: "aaaa"},
-		{Hash: "abba"},
-	}
-
-	filteredMiniblocks := filterOutDuplicatedMiniblocks(miniblocks)
-
-	expectedFilteredMiniblocks := []*api.MiniBlock{
-		{Hash: "abba"},
-		{Hash: "aabb"},
-		{Hash: "aaaa"},
-	}
-
-	require.Equal(t, expectedFilteredMiniblocks, filteredMiniblocks)
 }

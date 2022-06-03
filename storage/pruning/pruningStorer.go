@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	storageCore "github.com/ElrondNetwork/elrond-go-core/storage"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
@@ -485,11 +486,10 @@ func (ps *PruningStorer) GetFromEpoch(key []byte, epoch uint32) ([]byte, error) 
 
 	return nil, fmt.Errorf("key %s not found in %s",
 		hex.EncodeToString(key), ps.identifier)
-
 }
 
 // GetBulkFromEpoch will return a slice of keys only in the persister for the given epoch
-func (ps *PruningStorer) GetBulkFromEpoch(keys [][]byte, epoch uint32) ([]common.KeyValuePair, error) {
+func (ps *PruningStorer) GetBulkFromEpoch(keys [][]byte, epoch uint32) ([]storageCore.KeyValuePair, error) {
 	ps.lock.RLock()
 	pd, exists := ps.persistersMapByEpoch[epoch]
 	ps.lock.RUnlock()
@@ -506,11 +506,11 @@ func (ps *PruningStorer) GetBulkFromEpoch(keys [][]byte, epoch uint32) ([]common
 	}
 	defer closePersister()
 
-	results := make([]common.KeyValuePair, 0, len(keys))
+	results := make([]storageCore.KeyValuePair, 0, len(keys))
 	for _, key := range keys {
 		v, ok := ps.cacher.Get(key)
 		if ok {
-			keyValue := common.KeyValuePair{Key: key, Value: v.([]byte)}
+			keyValue := storageCore.KeyValuePair{Key: key, Value: v.([]byte)}
 			results = append(results, keyValue)
 			continue
 		}
@@ -524,7 +524,7 @@ func (ps *PruningStorer) GetBulkFromEpoch(keys [][]byte, epoch uint32) ([]common
 			continue
 		}
 
-		keyValue := common.KeyValuePair{Key: key, Value: res}
+		keyValue := storageCore.KeyValuePair{Key: key, Value: res}
 		results = append(results, keyValue)
 	}
 

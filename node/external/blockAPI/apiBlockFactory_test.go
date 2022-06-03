@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/txstatus"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
 	"github.com/stretchr/testify/assert"
@@ -21,6 +22,7 @@ import (
 
 func createMockArgsAPIBlockProc() *ArgAPIBlockProcessor {
 	statusComputer, _ := txstatus.NewStatusComputer(0, mock.NewNonceHashConverterMock(), &mock.ChainStorerStub{})
+
 	return &ArgAPIBlockProcessor{
 		Store:                    &mock.ChainStorerStub{},
 		Marshalizer:              &mock.MarshalizerFake{},
@@ -30,6 +32,7 @@ func createMockArgsAPIBlockProc() *ArgAPIBlockProcessor {
 		StatusComputer:           statusComputer,
 		Hasher:                   &mock.HasherMock{},
 		AddressPubkeyConverter:   &mock.PubkeyConverterMock{},
+		LogsFacade:               &testscommon.LogsFacadeStub{},
 	}
 }
 
@@ -112,6 +115,16 @@ func TestCreateAPIBlockProcessorNilArgs(t *testing.T) {
 		_, err := CreateAPIBlockProcessor(arguments)
 		assert.Equal(t, process.ErrNilPubkeyConverter, err)
 	})
+
+	t.Run("NilLogsFacade", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createMockArgsAPIBlockProc()
+		arguments.LogsFacade = nil
+
+		_, err := CreateAPIBlockProcessor(arguments)
+		assert.Equal(t, errNilLogsFacade, err)
+	})
 }
 
 func TestGetBlockByHash_KeyNotFound(t *testing.T) {
@@ -140,7 +153,7 @@ func TestGetBlockByHash_KeyNotFound(t *testing.T) {
 	}
 	apiBlockProc, _ := CreateAPIBlockProcessor(args)
 
-	blk, err := apiBlockProc.GetBlockByHash(headerHash, false)
+	blk, err := apiBlockProc.GetBlockByHash(headerHash, api.BlockQueryOptions{})
 	assert.Equal(t, "StorerMock: not found; key = 64303830383966326162373339353230353938666437616565643038633432373436306665393466323836333833303437663366363139353161666334653030, epoch = 1", err.Error())
 	assert.Nil(t, blk)
 }
@@ -212,7 +225,7 @@ func TestGetBlockByHashFromHistoryNode(t *testing.T) {
 		Status:          BlockStatusOnChain,
 	}
 
-	blk, err := apiBlockProc.GetBlockByHash(headerHash, false)
+	blk, err := apiBlockProc.GetBlockByHash(headerHash, api.BlockQueryOptions{})
 	assert.Nil(t, err)
 	assert.Equal(t, expectedBlock, blk)
 }
@@ -281,7 +294,7 @@ func TestGetBlockByHashFromNormalNode(t *testing.T) {
 		DeveloperFeesInEpoch:   "49",
 	}
 
-	blk, err := apiBlockProc.GetBlockByHash(headerHash, false)
+	blk, err := apiBlockProc.GetBlockByHash(headerHash, api.BlockQueryOptions{})
 	assert.Nil(t, err)
 	assert.Equal(t, expectedBlock, blk)
 }
@@ -349,7 +362,7 @@ func TestGetBlockByNonceFromHistoryNode(t *testing.T) {
 		Status:          BlockStatusOnChain,
 	}
 
-	blk, err := apiBlockProc.GetBlockByNonce(1, false)
+	blk, err := apiBlockProc.GetBlockByNonce(1, api.BlockQueryOptions{})
 	assert.Nil(t, err)
 	assert.Equal(t, expectedBlock, blk)
 }
@@ -410,11 +423,11 @@ func TestGetBlockByNonce_GetBlockByRound_FromNormalNode(t *testing.T) {
 		Status:          BlockStatusOnChain,
 	}
 
-	blk, err := apiBlockProc.GetBlockByNonce(nonce, false)
+	blk, err := apiBlockProc.GetBlockByNonce(nonce, api.BlockQueryOptions{})
 	assert.Nil(t, err)
 	assert.Equal(t, expectedBlock, blk)
 
-	blk, err = apiBlockProc.GetBlockByRound(round, false)
+	blk, err = apiBlockProc.GetBlockByRound(round, api.BlockQueryOptions{})
 	assert.Nil(t, err)
 	assert.Equal(t, expectedBlock, blk)
 }
@@ -486,7 +499,7 @@ func TestGetBlockByHashFromHistoryNode_StatusReverted(t *testing.T) {
 		Status:          BlockStatusReverted,
 	}
 
-	blk, err := apiBlockProc.GetBlockByHash([]byte(headerHash), false)
+	blk, err := apiBlockProc.GetBlockByHash([]byte(headerHash), api.BlockQueryOptions{})
 	assert.Nil(t, err)
 	assert.Equal(t, expectedBlock, blk)
 }
