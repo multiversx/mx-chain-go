@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -127,16 +128,6 @@ func (sdp *stakingDataProvider) GetNodeStakedTopUp(blsKey []byte) (*big.Int, err
 	return ownerInfo.eligibleTopUpPerNode, nil
 }
 
-// GetNumStakedNodes returns the total number of owner's staked nodes
-func (sdp *stakingDataProvider) GetNumStakedNodes(owner []byte) (int64, error) {
-	ownerInfo, ok := sdp.cache[string(owner)]
-	if !ok {
-		return 0, epochStart.ErrOwnerDoesntHaveNodesInEpoch
-	}
-
-	return ownerInfo.numStakedNodes, nil
-}
-
 // GetTotalTopUp returns owner's total top up
 func (sdp *stakingDataProvider) GetTotalTopUp(owner []byte) (*big.Int, error) {
 	ownerInfo, ok := sdp.cache[string(owner)]
@@ -210,10 +201,14 @@ func (sdp *stakingDataProvider) getAndFillOwnerStats(validator state.ValidatorIn
 		return nil, err
 	}
 
-	ownerData, err := sdp.addOwnerData(owner, validator)
+	ownerData, err := sdp.fillOwnerData(owner, validator)
 	if err != nil {
 		log.Debug("error fill owner stats", "step", "get owner data", "key", hex.EncodeToString(blsKey), "owner", hex.EncodeToString([]byte(owner)), "error", err)
 		return nil, err
+	}
+
+	if isValidator(validator) {
+		sdp.numOfValidatorsInCurrEpoch++
 	}
 
 	return ownerData, nil
@@ -239,8 +234,8 @@ func (sdp *stakingDataProvider) loadDataForBlsKey(validator state.ValidatorInfoH
 	return nil
 }
 
-// GetOwnersStats returns all owner stats
-func (sdp *stakingDataProvider) GetOwnersStats() map[string]*epochStart.OwnerData {
+// GetOwnersData returns all owner stats
+func (sdp *stakingDataProvider) GetOwnersData() map[string]*epochStart.OwnerData {
 	sdp.mutStakingData.RLock()
 	defer sdp.mutStakingData.RUnlock()
 
@@ -288,61 +283,100 @@ func (sdp *stakingDataProvider) GetBlsKeyOwner(blsKey []byte) (string, error) {
 	return string(data[0]), nil
 }
 
-func (sdp *stakingDataProvider) addOwnerData(owner string, validator state.ValidatorInfoHandler) (*ownerStats, error) {
+func (sdp *stakingDataProvider) fillOwnerData(owner string, validator state.ValidatorInfoHandler) (*ownerStats, error) {
+	var err error
 	ownerData, exists := sdp.cache[owner]
-	validatorInAuction := isInAuction(validator)
 	if exists {
-		if validatorInAuction {
-			ownerData.numAuctionNodes++
-			ownerData.numActiveNodes--
-			ownerData.auctionList = append(ownerData.auctionList, validator.ShallowClone())
-		}
+		updateOwnerData(ownerData, validator)
 	} else {
-		topUpValue, totalStakedValue, numStakedWaiting, blsKeys, err := sdp.getOwnerInfoFromSC(owner)
+		ownerData, err = sdp.getAndFillOwnerDataFromSC(owner, validator)
 		if err != nil {
 			return nil, err
 		}
-
-		topUpPerNode := big.NewInt(0)
-		if numStakedWaiting.Int64() == 0 {
-			log.Debug("stakingDataProvider.addOwnerData: owner has no staked node %w, owner: %s, node: %s",
-				epochStart.ErrOwnerHasNoStakedNode,
-				hex.EncodeToString([]byte(owner)),
-				hex.EncodeToString(validator.GetPublicKey()),
-			)
-		} else {
-			topUpPerNode = big.NewInt(0).Div(topUpValue, numStakedWaiting)
-		}
-
-		ownerData = &ownerStats{
-			numEligible:          0,
-			numStakedNodes:       numStakedWaiting.Int64(),
-			numActiveNodes:       numStakedWaiting.Int64(),
-			totalTopUp:           topUpValue,
-			topUpPerNode:         topUpPerNode,
-			totalStaked:          totalStakedValue,
-			eligibleBaseStake:    big.NewInt(0).Set(sdp.minNodePrice),
-			eligibleTopUpStake:   big.NewInt(0),
-			eligibleTopUpPerNode: big.NewInt(0),
-			qualified:            true,
-		}
-		if validatorInAuction {
-			ownerData.numActiveNodes -= 1
-			ownerData.numAuctionNodes = 1
-			ownerData.auctionList = []state.ValidatorInfoHandler{validator}
-		}
-
-		ownerData.blsKeys = make([][]byte, len(blsKeys))
-		copy(ownerData.blsKeys, blsKeys)
-
 		sdp.cache[owner] = ownerData
 	}
 
-	if isValidator(validator) {
-		sdp.numOfValidatorsInCurrEpoch++
+	return ownerData, nil
+}
+
+func updateOwnerData(ownerData *ownerStats, validator state.ValidatorInfoHandler) {
+	if isInAuction(validator) {
+		ownerData.numAuctionNodes++
+		ownerData.numActiveNodes--
+		ownerData.auctionList = append(ownerData.auctionList, validator.ShallowClone())
+	}
+}
+
+func (sdp *stakingDataProvider) getAndFillOwnerDataFromSC(owner string, validator state.ValidatorInfoHandler) (*ownerStats, error) {
+	topUpValue, totalStakedValue, numStakedWaiting, blsKeys, err := sdp.getOwnerInfoFromSC(owner)
+	if err != nil {
+		return nil, err
 	}
 
+	topUpPerNode := big.NewInt(0)
+	numStakedNodes := numStakedWaiting.Int64()
+	if numStakedNodes == 0 {
+		log.Debug("stakingDataProvider.fillOwnerData: owner has no staked node %w, owner: %s, node: %s",
+			epochStart.ErrOwnerHasNoStakedNode,
+			hex.EncodeToString([]byte(owner)),
+			hex.EncodeToString(validator.GetPublicKey()),
+		)
+	} else {
+		topUpPerNode = big.NewInt(0).Div(topUpValue, numStakedWaiting)
+	}
+
+	ownerData := &ownerStats{
+		numEligible:          0,
+		numStakedNodes:       numStakedNodes,
+		numActiveNodes:       numStakedNodes,
+		totalTopUp:           topUpValue,
+		topUpPerNode:         topUpPerNode,
+		totalStaked:          totalStakedValue,
+		eligibleBaseStake:    big.NewInt(0).Set(sdp.minNodePrice),
+		eligibleTopUpStake:   big.NewInt(0),
+		eligibleTopUpPerNode: big.NewInt(0),
+		qualified:            true,
+	}
+	err = sdp.checkAndFillOwnerValidatorAuctionData([]byte(owner), ownerData, validator)
+	if err != nil {
+		return nil, err
+	}
+
+	ownerData.blsKeys = make([][]byte, len(blsKeys))
+	copy(ownerData.blsKeys, blsKeys)
+
 	return ownerData, nil
+}
+
+func (sdp *stakingDataProvider) checkAndFillOwnerValidatorAuctionData(
+	ownerPubKey []byte,
+	ownerData *ownerStats,
+	validator state.ValidatorInfoHandler,
+) error {
+	validatorInAuction := isInAuction(validator)
+	if !validatorInAuction {
+		return nil
+	}
+	if validatorInAuction && ownerData.numStakedNodes == 0 {
+		return fmt.Errorf("stakingDataProvider.checkAndFillOwnerValidatorAuctionData for validator in auction error: %w, owner: %s, node: %s",
+			epochStart.ErrOwnerHasNoStakedNode,
+			hex.EncodeToString(ownerPubKey),
+			hex.EncodeToString(validator.GetPublicKey()),
+		)
+	}
+	if validatorInAuction && !sdp.flagStakingV4Enable.IsSet() {
+		return fmt.Errorf("stakingDataProvider.checkAndFillOwnerValidatorAuctionData for validator in auction error: %w, owner: %s, node: %s",
+			nodesCoordinator.ErrReceivedAuctionValidatorsBeforeStakingV4,
+			hex.EncodeToString(ownerPubKey),
+			hex.EncodeToString(validator.GetPublicKey()),
+		)
+	}
+
+	ownerData.numActiveNodes -= 1
+	ownerData.numAuctionNodes = 1
+	ownerData.auctionList = []state.ValidatorInfoHandler{validator}
+
+	return nil
 }
 
 func (sdp *stakingDataProvider) getOwnerInfoFromSC(owner string) (*big.Int, *big.Int, *big.Int, [][]byte, error) {
@@ -412,11 +446,6 @@ func (sdp *stakingDataProvider) ComputeUnQualifiedNodes(validatorsInfo state.Sha
 
 		sdp.numOfValidatorsInCurrEpoch -= uint32(len(selectedKeysByStatus[string(common.WaitingList)]))
 		sdp.numOfValidatorsInCurrEpoch -= uint32(len(selectedKeysByStatus[string(common.EligibleList)]))
-		stakingInfo.numActiveNodes -= int64(len(selectedKeysByStatus[string(common.WaitingList)]))
-		stakingInfo.numActiveNodes -= int64(len(selectedKeysByStatus[string(common.EligibleList)]))
-		if sdp.flagStakingV4Enable.IsSet() {
-			stakingInfo.numAuctionNodes -= int64(len(selectedKeysByStatus[string(common.AuctionList)]))
-		}
 		stakingInfo.qualified = false
 	}
 
@@ -511,6 +540,9 @@ func (sdp *stakingDataProvider) getNewNodesList() string {
 
 // GetNumOfValidatorsInCurrentEpoch returns the number of validators(eligible + waiting) in current epoch
 func (sdp *stakingDataProvider) GetNumOfValidatorsInCurrentEpoch() uint32 {
+	sdp.mutStakingData.RLock()
+	defer sdp.mutStakingData.RUnlock()
+
 	return sdp.numOfValidatorsInCurrEpoch
 }
 

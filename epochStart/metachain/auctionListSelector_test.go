@@ -47,6 +47,7 @@ func createFullAuctionListSelectorArgs(maxNodesChangeConfig []config.MaxNodesCha
 	nodesConfigProvider, _ := notifier.NewNodesConfigProvider(epochNotifier, maxNodesChangeConfig)
 
 	argsSystemSC, _ := createFullArgumentsForSystemSCProcessing(0, createMemUnit())
+	argsSystemSC.StakingDataProvider.EpochConfirmed(stakingV4EnableEpoch, 0)
 	argsSystemSC.MaxNodesChangeConfigProvider = nodesConfigProvider
 	return AuctionListSelectorArgs{
 		ShardCoordinator:             argsSystemSC.ShardCoordinator,

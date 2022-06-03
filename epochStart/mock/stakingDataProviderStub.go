@@ -17,7 +17,6 @@ type StakingDataProviderStub struct {
 	FillValidatorInfoCalled               func(validator state.ValidatorInfoHandler) error
 	ComputeUnQualifiedNodesCalled         func(validatorInfos state.ShardValidatorsInfoMapHandler) ([][]byte, map[string][][]byte, error)
 	GetBlsKeyOwnerCalled                  func(blsKey []byte) (string, error)
-	GetNumStakedNodesCalled               func(owner []byte) (int64, error)
 	GetTotalTopUpCalled                   func(owner []byte) (*big.Int, error)
 }
 
@@ -61,14 +60,6 @@ func (sdps *StakingDataProviderStub) GetNodeStakedTopUp(blsKey []byte) (*big.Int
 	return big.NewInt(0), nil
 }
 
-// GetNumStakedNodes -
-func (sdps *StakingDataProviderStub) GetNumStakedNodes(owner []byte) (int64, error) {
-	if sdps.GetNumStakedNodesCalled != nil {
-		return sdps.GetNumStakedNodesCalled(owner)
-	}
-	return 0, nil
-}
-
 // GetTotalTopUp -
 func (sdps *StakingDataProviderStub) GetTotalTopUp(owner []byte) (*big.Int, error) {
 	if sdps.GetTotalTopUpCalled != nil {
@@ -105,7 +96,8 @@ func (sdps *StakingDataProviderStub) GetNumOfValidatorsInCurrentEpoch() uint32 {
 	return 0
 }
 
-func (sdps *StakingDataProviderStub) GetOwnersStats() map[string]*epochStart.OwnerData {
+// GetOwnersData -
+func (sdps *StakingDataProviderStub) GetOwnersData() map[string]*epochStart.OwnerData {
 	return nil
 }
 

@@ -16,10 +16,10 @@ import (
 )
 
 type ownerAuctionData struct {
+	numStakedNodes           int64
 	numActiveNodes           int64
 	numAuctionNodes          int64
 	numQualifiedAuctionNodes int64
-	numStakedNodes           int64
 	totalTopUp               *big.Int
 	topUpPerNode             *big.Int
 	qualifiedTopUpPerNode    *big.Int
@@ -198,7 +198,7 @@ func (als *auctionListSelector) getAuctionData() (map[string]*ownerAuctionData, 
 	ownersData := make(map[string]*ownerAuctionData)
 	numOfNodesInAuction := uint32(0)
 
-	for owner, ownerData := range als.stakingDataProvider.GetOwnersStats() {
+	for owner, ownerData := range als.stakingDataProvider.GetOwnersData() {
 		if ownerData.Qualified && ownerData.NumAuctionNodes > 0 {
 			ownersData[owner] = &ownerAuctionData{
 				numActiveNodes:           ownerData.NumActiveNodes,

@@ -146,29 +146,18 @@ type TransactionCacher interface {
 	IsInterfaceNil() bool
 }
 
-type OwnerData struct {
-	NumActiveNodes  int64
-	NumAuctionNodes int64
-	NumStakedNodes  int64
-	TotalTopUp      *big.Int
-	TopUpPerNode    *big.Int
-	AuctionList     []state.ValidatorInfoHandler
-	Qualified       bool
-}
-
 // StakingDataProvider is able to provide staking data from the system smart contracts
 type StakingDataProvider interface {
 	GetTotalStakeEligibleNodes() *big.Int
 	GetTotalTopUpStakeEligibleNodes() *big.Int
 	GetNodeStakedTopUp(blsKey []byte) (*big.Int, error)
-	GetNumStakedNodes(owner []byte) (int64, error)
 	GetTotalTopUp(owner []byte) (*big.Int, error)
 	PrepareStakingData(validatorsMap state.ShardValidatorsInfoMapHandler) error
 	FillValidatorInfo(validator state.ValidatorInfoHandler) error
 	ComputeUnQualifiedNodes(validatorInfos state.ShardValidatorsInfoMapHandler) ([][]byte, map[string][][]byte, error)
 	GetBlsKeyOwner(blsKey []byte) (string, error)
 	GetNumOfValidatorsInCurrentEpoch() uint32
-	GetOwnersStats() map[string]*OwnerData
+	GetOwnersData() map[string]*OwnerData
 	Clean()
 	EpochConfirmed(epoch uint32, timestamp uint64)
 	IsInterfaceNil() bool
