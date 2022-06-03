@@ -4,6 +4,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"math/big"
 )
 
 // EsdtStorageHandlerStub -
@@ -13,6 +14,7 @@ type EsdtStorageHandlerStub struct {
 	GetESDTNFTTokenOnDestinationCalled                   func(acnt vmcommon.UserAccountHandler, esdtTokenKey []byte, nonce uint64) (*esdt.ESDigitalToken, bool, error)
 	WasAlreadySentToDestinationShardAndUpdateStateCalled func(tickerID []byte, nonce uint64, dstAddress []byte) (bool, error)
 	SaveNFTMetaDataToSystemAccountCalled                 func(tx data.TransactionHandler) error
+	AddToLiquiditySystemAccCalled                        func(esdtTokenKey []byte, nonce uint64, transferValue *big.Int) error
 }
 
 // SaveESDTNFTToken -
@@ -55,6 +57,15 @@ func (e *EsdtStorageHandlerStub) WasAlreadySentToDestinationShardAndUpdateState(
 func (e *EsdtStorageHandlerStub) SaveNFTMetaDataToSystemAccount(tx data.TransactionHandler) error {
 	if e.SaveNFTMetaDataToSystemAccountCalled != nil {
 		return e.SaveNFTMetaDataToSystemAccountCalled(tx)
+	}
+
+	return nil
+}
+
+// AddToLiquiditySystemAcc -
+func (e *EsdtStorageHandlerStub) AddToLiquiditySystemAcc(esdtTokenKey []byte, nonce uint64, transferValue *big.Int) error {
+	if e.AddToLiquiditySystemAccCalled != nil {
+		return e.AddToLiquiditySystemAccCalled(esdtTokenKey, nonce, transferValue)
 	}
 
 	return nil
