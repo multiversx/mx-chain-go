@@ -90,14 +90,13 @@ func (bbc *baseBlockChain) SetPreviousToFinalBlockInfo(nonce uint64, headerHash 
 }
 
 // GetPreviousToFinalBlockInfo returns the nonce, hash and rootHash associated with the previous-to-final block
-func (bbc *baseBlockChain) GetPreviousToFinalBlockInfo() (nonce uint64, hash []byte, rootHash []byte) {
+func (bbc *baseBlockChain) GetPreviousToFinalBlockInfo() (uint64, []byte, []byte) {
 	bbc.mut.RLock()
+	defer bbc.mut.RUnlock()
 
-	nonce = bbc.previousToFinalBlockInfo.nonce
-	hash = bbc.previousToFinalBlockInfo.hash
-	rootHash = bbc.previousToFinalBlockInfo.committedRootHash
+	nonce := bbc.previousToFinalBlockInfo.nonce
+	hash := bbc.previousToFinalBlockInfo.hash
+	rootHash := bbc.previousToFinalBlockInfo.committedRootHash
 
-	bbc.mut.RUnlock()
-
-	return
+	return nonce, hash, rootHash
 }
