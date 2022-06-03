@@ -243,8 +243,7 @@ func (scf *systemSCFactory) createGovernanceContract() (vm.SystemSmartContract, 
 		GovernanceSCAddress:         vm.GovernanceSCAddress,
 		DelegationMgrSCAddress:      vm.DelegationManagerSCAddress,
 		ValidatorSCAddress:          vm.ValidatorSCAddress,
-		EpochNotifier:               scf.epochNotifier,
-		EpochConfig:                 *scf.epochConfig,
+		EnableEpochsHandler:         scf.enableEpochsHandler,
 		InitialWhiteListedAddresses: [][]byte{firstWhitelistAddress},
 	}
 	governance, err := systemSmartContracts.NewGovernanceContract(argsGovernance)
