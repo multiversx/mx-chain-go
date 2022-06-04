@@ -21,7 +21,7 @@ import (
 // NodeHandler contains all functions that a node should contain.
 type NodeHandler interface {
 	// GetBalance returns the balance for a specific address
-	GetBalance(address string, options api.AccountQueryOptions) (*big.Int, error)
+	GetBalance(address string, options api.AccountQueryOptions) (*big.Int, api.BlockInfo, error)
 
 	// GetUsername returns the username for a specific address
 	GetUsername(address string, options api.AccountQueryOptions) (string, error)

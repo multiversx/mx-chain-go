@@ -156,58 +156,16 @@ func (n *Node) GetConsensusGroupSize() int {
 }
 
 // GetBalance gets the balance for a specific address
-func (n *Node) GetBalance(address string, options api.AccountQueryOptions) (*big.Int, error) {
-	userAccount, err := n.getAccountHandlerAPIAccounts(address)
+func (n *Node) GetBalance(address string, options api.AccountQueryOptions) (*big.Int, api.BlockInfo, error) {
+	userAccount, blockInfo, err := n.loadUserAccountHandler(address, options)
 	if err != nil {
 		if err == ErrCannotCastAccountHandlerToUserAccountHandler {
-			return big.NewInt(0), nil
+			return big.NewInt(0), api.BlockInfo{}, nil
 		}
-		return nil, err
-	}
-
-	return userAccount.GetBalance(), nil
-}
-
-func (n *Node) loadUserAccountHandler(address string, options api.AccountQueryOptions) (state.UserAccountHandler, api.BlockInfo, error) {
-	var account vmcommon.AccountHandler
-	var blockNonce uint64
-	var blockHash []byte
-	var blockRootHash []byte
-
-	publicKey, err := n.coreComponents.AddressPubKeyConverter().Decode(address)
-	if err != nil {
 		return nil, api.BlockInfo{}, err
 	}
 
-	if options.OnFinalBlock {
-		blockNonce, blockHash, blockRootHash = n.dataComponents.Blockchain().GetFinalBlockInfo()
-	} else if options.OnStartOfEpoch != 0 {
-		// TBD
-	} else {
-		// TODO: Fix possible race conditions (blockchain.go does not provide a load x 3 method; the following loads do not take place in a critical section).
-		blockNonce = n.dataComponents.Blockchain().GetCurrentBlockHeader().GetNonce()
-		blockHash = n.dataComponents.Blockchain().GetCurrentBlockHeaderHash()
-		blockRootHash = n.dataComponents.Blockchain().GetCurrentBlockRootHash()
-	}
-
-	account, err = n.stateComponents.AccountsRepository().GetExistingAccount(publicKey, blockRootHash)
-	if err != nil {
-		return nil, api.BlockInfo{}, err
-	}
-
-	userAccount, ok := n.castAccountToUserAccount(account)
-	if !ok {
-		return nil, api.BlockInfo{}, ErrCannotCastAccountHandlerToUserAccountHandler
-	}
-
-	blockInfo := api.BlockInfo{
-		// TODO: use integer in elrond-go-core
-		Nonce:    fmt.Sprint(blockNonce),
-		Hash:     hex.EncodeToString(blockHash),
-		RootHash: hex.EncodeToString(blockRootHash),
-	}
-
-	return userAccount, blockInfo, nil
+	return userAccount.GetBalance(), blockInfo, nil
 }
 
 // GetUsername gets the username for a specific address
@@ -589,19 +547,34 @@ func adjustNftTokenIdentifier(token string, nonce uint64) string {
 }
 
 func (n *Node) getAccountHandlerAPIAccounts(address string) (state.UserAccountHandler, error) {
-	// TODO: Do we require this special lazy initialization logic? Other functions seem to not care about this (and directly use the converter). E.g. GetESDTsRoles()
-	componentsNotInitialized := check.IfNil(n.coreComponents.AddressPubKeyConverter()) ||
-		check.IfNil(n.stateComponents.AccountsAdapterAPI())
+	// Question for review: do we require this special lazy initialization logic?
+	componentsNotInitialized := check.IfNil(n.stateComponents.AccountsAdapterAPI())
 	if componentsNotInitialized {
-		return nil, errors.New("initialize AccountsAdapterAPI, PubkeyConverter first")
+		return nil, errors.New("AccountsAdapterAPI not initialized")
 	}
 
-	addr, err := n.coreComponents.AddressPubKeyConverter().Decode(address)
+	pubkey, err := n.decodeAddressToPubKey(address)
+	if err != nil {
+		return nil, err
+	}
+
+	return n.getAccountHandlerForPubKey(pubkey)
+}
+
+func (n *Node) decodeAddressToPubKey(address string) ([]byte, error) {
+	// Question for review: do we still require the special lazy initialization logic?
+	// > other functions seem to not care about this (and directly use the converter). E.g. GetESDTsRoles()
+	componentsNotInitialized := check.IfNil(n.coreComponents.AddressPubKeyConverter())
+	if componentsNotInitialized {
+		return nil, errors.New("PubkeyConverter not initialized")
+	}
+
+	pubKey, err := n.coreComponents.AddressPubKeyConverter().Decode(address)
 	if err != nil {
 		return nil, errors.New("invalid address, could not decode from: " + err.Error())
 	}
 
-	return n.getAccountHandlerForPubKey(addr)
+	return pubKey, nil
 }
 
 func (n *Node) getAccountHandlerForPubKey(address []byte) (state.UserAccountHandler, error) {

@@ -48,7 +48,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
-	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	"github.com/ElrondNetwork/elrond-go/testscommon/txsSenderMock"
@@ -123,12 +122,12 @@ func TestNewNode_ApplyNilOptionShouldError(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
+// Question for review: is this test still relevant (can coreComponents be only partly initialized)?
 func TestGetBalance_NoAddrConverterShouldError(t *testing.T) {
 	coreComponents := getDefaultCoreComponents()
 	coreComponents.AddrPubKeyConv = nil
 	coreComponents.VmMarsh = getMarshalizer()
 	coreComponents.IntMarsh = getMarshalizer()
-	coreComponents.AddrPubKeyConv = nil
 	coreComponents.Hash = getHasher()
 	stateComponents := getDefaultStateComponents()
 
@@ -136,37 +135,34 @@ func TestGetBalance_NoAddrConverterShouldError(t *testing.T) {
 		node.WithCoreComponents(coreComponents),
 		node.WithStateComponents(stateComponents),
 	)
-	_, err := n.GetBalance("address", api.AccountQueryOptions{})
+	_, _, err := n.GetBalance("address", api.AccountQueryOptions{})
 	assert.NotNil(t, err)
-	assert.Equal(t, "initialize AccountsAdapterAPI, PubkeyConverter first", err.Error())
+	assert.Equal(t, "PubkeyConverter not initialized", err.Error())
 }
 
-func TestGetBalance_NoAccAdapterShouldError(t *testing.T) {
+// For review: is this test still relevant?
+func TestGetBalance_NoAccountsRepositoryShouldError(t *testing.T) {
 	coreComponents := getDefaultCoreComponents()
-	coreComponents.AddrPubKeyConv = nil
-	coreComponents.VmMarsh = getMarshalizer()
-	coreComponents.IntMarsh = getMarshalizer()
-	coreComponents.Hash = getHasher()
+	stateComponents := getDefaultStateComponents()
+	stateComponents.AccountsRepo = nil
 
 	n, _ := node.NewNode(
 		node.WithCoreComponents(coreComponents),
+		node.WithStateComponents(stateComponents),
 	)
-	_, err := n.GetBalance("address", api.AccountQueryOptions{})
+	_, _, err := n.GetBalance("address", api.AccountQueryOptions{})
 	assert.NotNil(t, err)
-	assert.Equal(t, "initialize AccountsAdapterAPI, PubkeyConverter first", err.Error())
+	assert.Equal(t, "AccountsRepository not initialized", err.Error())
 }
 
 func TestGetBalance_GetAccountFailsShouldError(t *testing.T) {
 	expectedErr := errors.New("error")
 
-	accAdapter := &stateMock.AccountsStub{
-		RecreateTrieCalled: func(_ []byte) error {
-			return nil
-		},
-		GetExistingAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
-			return nil, expectedErr
-		},
+	accountsRepository := testscommon.NewAccountsRepositoryStub()
+	accountsRepository.GetExistingAccountCalled = func(address, rootHash []byte) (vmcommon.AccountHandler, error) {
+		return nil, expectedErr
 	}
+
 	dataComponents := getDefaultDataComponents()
 	coreComponents := getDefaultCoreComponents()
 	coreComponents.IntMarsh = getMarshalizer()
@@ -174,14 +170,14 @@ func TestGetBalance_GetAccountFailsShouldError(t *testing.T) {
 	coreComponents.Hash = getHasher()
 	coreComponents.AddrPubKeyConv = createMockPubkeyConverter()
 	stateComponents := getDefaultStateComponents()
-	stateComponents.AccountsAPI = accAdapter
+	stateComponents.AccountsRepo = accountsRepository
 
 	n, _ := node.NewNode(
 		node.WithDataComponents(dataComponents),
 		node.WithCoreComponents(coreComponents),
 		node.WithStateComponents(stateComponents),
 	)
-	_, err := n.GetBalance(createDummyHexAddress(64), api.AccountQueryOptions{})
+	_, _, err := n.GetBalance(testscommon.AddressOfAlice, api.AccountQueryOptions{})
 	assert.Equal(t, expectedErr, err)
 }
 
@@ -196,15 +192,10 @@ func createDummyHexAddress(hexChars int) string {
 	return hex.EncodeToString(buff)
 }
 
-func TestGetBalance_GetAccountReturnsNil(t *testing.T) {
-
-	accAdapter := &stateMock.AccountsStub{
-		RecreateTrieCalled: func(_ []byte) error {
-			return nil
-		},
-		GetExistingAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
-			return nil, nil
-		},
+func TestGetBalance_AccountNotFoundShouldReturnZeroBalance(t *testing.T) {
+	accountsRepository := testscommon.NewAccountsRepositoryStub()
+	accountsRepository.GetExistingAccountCalled = func(address, rootHash []byte) (vmcommon.AccountHandler, error) {
+		return nil, nil
 	}
 
 	dataComponents := getDefaultDataComponents()
@@ -213,37 +204,38 @@ func TestGetBalance_GetAccountReturnsNil(t *testing.T) {
 	coreComponents.VmMarsh = getMarshalizer()
 	coreComponents.Hash = getHasher()
 	stateComponents := getDefaultStateComponents()
-	stateComponents.AccountsAPI = accAdapter
+	stateComponents.AccountsRepo = accountsRepository
 
 	n, _ := node.NewNode(
 		node.WithDataComponents(dataComponents),
 		node.WithCoreComponents(coreComponents),
 		node.WithStateComponents(stateComponents),
 	)
-	balance, err := n.GetBalance(createDummyHexAddress(64), api.AccountQueryOptions{})
+	balance, _, err := n.GetBalance(testscommon.AddressOfAlice, api.AccountQueryOptions{})
 	assert.Nil(t, err)
 	assert.Equal(t, big.NewInt(0), balance)
 }
 
 func TestGetBalance(t *testing.T) {
-
-	accAdapter := getAccAdapter(big.NewInt(100))
+	accountsRepository := testscommon.NewAccountsRepositoryStub()
+	accountsRepository.AddTestAccount(testscommon.PubKeyOfAlice, big.NewInt(100), 1)
 
 	dataComponents := getDefaultDataComponents()
 	coreComponents := getDefaultCoreComponents()
 	coreComponents.IntMarsh = getMarshalizer()
 	coreComponents.VmMarsh = getMarshalizer()
 	coreComponents.Hash = getHasher()
-	coreComponents.AddrPubKeyConv = createMockPubkeyConverter()
+	coreComponents.AddrPubKeyConv = testscommon.RealWorldBech32PubkeyConverter
 	stateComponents := getDefaultStateComponents()
-	stateComponents.AccountsAPI = accAdapter
+	stateComponents.AccountsRepo = accountsRepository
 
 	n, _ := node.NewNode(
 		node.WithDataComponents(dataComponents),
 		node.WithCoreComponents(coreComponents),
 		node.WithStateComponents(stateComponents),
 	)
-	balance, err := n.GetBalance(createDummyHexAddress(64), api.AccountQueryOptions{})
+
+	balance, _, err := n.GetBalance(testscommon.AddressOfAlice, api.AccountQueryOptions{})
 	assert.Nil(t, err)
 	assert.Equal(t, big.NewInt(100), balance)
 }
@@ -3645,7 +3637,7 @@ func getDefaultCoreComponents() *nodeMockFactory.CoreComponentsMock {
 		MinTransactionVersionCalled: func() uint32 {
 			return 1
 		},
-		AppStatusHdl:          &statusHandler.AppStatusHandlerStub{},
+		AppStatusHdl:          &statusHandlerMock.AppStatusHandlerStub{},
 		WDTimer:               &testscommon.WatchdogMock{},
 		Alarm:                 &testscommon.AlarmSchedulerStub{},
 		NtpTimer:              &testscommon.SyncTimerStub{},
@@ -3694,12 +3686,20 @@ func getDefaultProcessComponents() *factoryMock.ProcessComponentsMock {
 }
 
 func getDefaultDataComponents() *nodeMockFactory.DataComponentsMock {
-	return &nodeMockFactory.DataComponentsMock{
-		BlockChain: &testscommon.ChainHandlerStub{
-			GetCurrentBlockRootHashCalled: func() []byte {
-				return []byte("root hash")
-			},
+	chainHandler := &testscommon.ChainHandlerStub{
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{Nonce: 42}
 		},
+		GetCurrentBlockHeaderHashCalled: func() []byte {
+			return []byte("header hash")
+		},
+		GetCurrentBlockRootHashCalled: func() []byte {
+			return []byte("root hash")
+		},
+	}
+
+	return &nodeMockFactory.DataComponentsMock{
+		BlockChain: chainHandler,
 		Store:      &mock.ChainStorerStub{},
 		DataPool:   &dataRetrieverMock.PoolsHolderMock{},
 		MbProvider: &mock.MiniBlocksProviderStub{},

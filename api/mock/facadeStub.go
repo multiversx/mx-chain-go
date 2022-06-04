@@ -23,8 +23,8 @@ type FacadeStub struct {
 	ShouldErrorStart           bool
 	ShouldErrorStop            bool
 	GetHeartbeatsHandler       func() ([]data.PubKeyHeartbeat, error)
-	BalanceHandler             func(address string, options api.AccountQueryOptions) (*big.Int, error)
-	GetAccountHandler          func(address string, options api.AccountQueryOptions) (api.AccountResponse, error)
+	GetBalanceCalled           func(address string, options api.AccountQueryOptions) (*big.Int, api.BlockInfo, error)
+	GetAccountCalled           func(address string, options api.AccountQueryOptions) (api.AccountResponse, error)
 	GenerateTransactionHandler func(sender string, receiver string, value *big.Int, code string) (*transaction.Transaction, error)
 	GetTransactionHandler      func(hash string, withResults bool) (*transaction.ApiTransactionResult, error)
 	CreateTransactionHandler   func(nonce uint64, value string, receiver string, receiverUsername []byte, sender string, senderUsername []byte, gasPrice uint64,
@@ -157,8 +157,8 @@ func (f *FacadeStub) GetHeartbeats() ([]data.PubKeyHeartbeat, error) {
 }
 
 // GetBalance is the mock implementation of a handler's GetBalance method
-func (f *FacadeStub) GetBalance(address string, options api.AccountQueryOptions) (*big.Int, error) {
-	return f.BalanceHandler(address, options)
+func (f *FacadeStub) GetBalance(address string, options api.AccountQueryOptions) (*big.Int, api.BlockInfo, error) {
+	return f.GetBalanceCalled(address, options)
 }
 
 // GetValueForKey is the mock implementation of a handler's GetValueForKey method
@@ -235,7 +235,7 @@ func (f *FacadeStub) GetAllIssuedESDTs(tokenType string) ([]string, error) {
 
 // GetAccount -
 func (f *FacadeStub) GetAccount(address string, options api.AccountQueryOptions) (api.AccountResponse, error) {
-	return f.GetAccountHandler(address, options)
+	return f.GetAccountCalled(address, options)
 }
 
 // CreateTransaction is  mock implementation of a handler's CreateTransaction method

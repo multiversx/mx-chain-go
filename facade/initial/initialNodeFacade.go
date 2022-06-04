@@ -74,8 +74,8 @@ func (inf *initialNodeFacade) RestApiInterface() string {
 }
 
 // GetBalance returns nil and error
-func (inf *initialNodeFacade) GetBalance(_ string, _ api.AccountQueryOptions) (*big.Int, error) {
-	return nil, errNodeStarting
+func (inf *initialNodeFacade) GetBalance(_ string, _ api.AccountQueryOptions) (*big.Int, api.BlockInfo, error) {
+	return nil, api.BlockInfo{}, errNodeStarting
 }
 
 // GetUsername returns empty string and error

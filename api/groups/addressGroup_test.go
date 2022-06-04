@@ -182,8 +182,8 @@ func TestGetBalance_WithCorrectAddressShouldNotReturnError(t *testing.T) {
 	amount := big.NewInt(10)
 	addr := "testAddress"
 	facade := mock.FacadeStub{
-		BalanceHandler: func(s string, _ api.AccountQueryOptions) (i *big.Int, e error) {
-			return amount, nil
+		GetBalanceCalled: func(s string, _ api.AccountQueryOptions) (i *big.Int, info api.BlockInfo, e error) {
+			return amount, api.BlockInfo{}, nil
 		},
 	}
 
@@ -211,8 +211,8 @@ func TestGetBalance_WithWrongAddressShouldError(t *testing.T) {
 	t.Parallel()
 	otherAddress := "otherAddress"
 	facade := mock.FacadeStub{
-		BalanceHandler: func(s string, _ api.AccountQueryOptions) (i *big.Int, e error) {
-			return big.NewInt(0), nil
+		GetBalanceCalled: func(s string, _ api.AccountQueryOptions) (i *big.Int, info api.BlockInfo, e error) {
+			return big.NewInt(0), api.BlockInfo{}, nil
 		},
 	}
 
@@ -236,8 +236,8 @@ func TestGetBalance_NodeGetBalanceReturnsError(t *testing.T) {
 	addr := "addr"
 	balanceError := errors.New("error")
 	facade := mock.FacadeStub{
-		BalanceHandler: func(s string, _ api.AccountQueryOptions) (i *big.Int, e error) {
-			return nil, balanceError
+		GetBalanceCalled: func(s string, _ api.AccountQueryOptions) (i *big.Int, info api.BlockInfo, e error) {
+			return nil, api.BlockInfo{}, balanceError
 		},
 	}
 
@@ -259,8 +259,8 @@ func TestGetBalance_NodeGetBalanceReturnsError(t *testing.T) {
 func TestGetBalance_WithEmptyAddressShouldReturnError(t *testing.T) {
 	t.Parallel()
 	facade := mock.FacadeStub{
-		BalanceHandler: func(s string, _ api.AccountQueryOptions) (i *big.Int, e error) {
-			return big.NewInt(0), errors.New("address was empty")
+		GetBalanceCalled: func(s string, _ api.AccountQueryOptions) (i *big.Int, info api.BlockInfo, e error) {
+			return big.NewInt(0), api.BlockInfo{}, errors.New("address was empty")
 		},
 	}
 
@@ -393,7 +393,7 @@ func TestGetAccount_FailWhenFacadeStubGetAccountFails(t *testing.T) {
 
 	returnedError := "i am an error"
 	facade := mock.FacadeStub{
-		GetAccountHandler: func(address string, _ api.AccountQueryOptions) (api.AccountResponse, error) {
+		GetAccountCalled: func(address string, _ api.AccountQueryOptions) (api.AccountResponse, error) {
 			return api.AccountResponse{}, errors.New(returnedError)
 		},
 	}
@@ -419,7 +419,7 @@ func TestGetAccount_ReturnsSuccessfully(t *testing.T) {
 	t.Parallel()
 
 	facade := mock.FacadeStub{
-		GetAccountHandler: func(address string, _ api.AccountQueryOptions) (api.AccountResponse, error) {
+		GetAccountCalled: func(address string, _ api.AccountQueryOptions) (api.AccountResponse, error) {
 			return api.AccountResponse{
 				Address:         "1234",
 				Balance:         big.NewInt(100).String(),

@@ -158,11 +158,11 @@ func TestNodeFacade_GetBalanceWithValidAddressShouldReturnBalance(t *testing.T) 
 	balance := big.NewInt(10)
 	addr := "testAddress"
 	node := &mock.NodeStub{
-		GetBalanceHandler: func(address string, _ api.AccountQueryOptions) (*big.Int, error) {
+		GetBalanceCalled: func(address string, _ api.AccountQueryOptions) (*big.Int, api.BlockInfo, error) {
 			if addr == address {
-				return balance, nil
+				return balance, api.BlockInfo{}, nil
 			}
-			return big.NewInt(0), nil
+			return big.NewInt(0), api.BlockInfo{}, nil
 		},
 	}
 
@@ -170,7 +170,7 @@ func TestNodeFacade_GetBalanceWithValidAddressShouldReturnBalance(t *testing.T) 
 	arg.Node = node
 	nf, _ := NewNodeFacade(arg)
 
-	amount, err := nf.GetBalance(addr, api.AccountQueryOptions{})
+	amount, _, err := nf.GetBalance(addr, api.AccountQueryOptions{})
 
 	assert.Nil(t, err)
 	assert.Equal(t, balance, amount)
@@ -185,11 +185,11 @@ func TestNodeFacade_GetBalanceWithUnknownAddressShouldReturnZeroBalance(t *testi
 	zeroBalance := big.NewInt(0)
 
 	node := &mock.NodeStub{
-		GetBalanceHandler: func(address string, _ api.AccountQueryOptions) (*big.Int, error) {
+		GetBalanceCalled: func(address string, _ api.AccountQueryOptions) (*big.Int, api.BlockInfo, error) {
 			if addr == address {
-				return balance, nil
+				return balance, api.BlockInfo{}, nil
 			}
-			return big.NewInt(0), nil
+			return big.NewInt(0), api.BlockInfo{}, nil
 		},
 	}
 
@@ -197,7 +197,7 @@ func TestNodeFacade_GetBalanceWithUnknownAddressShouldReturnZeroBalance(t *testi
 	arg.Node = node
 	nf, _ := NewNodeFacade(arg)
 
-	amount, err := nf.GetBalance(unknownAddr, api.AccountQueryOptions{})
+	amount, _, err := nf.GetBalance(unknownAddr, api.AccountQueryOptions{})
 	assert.Nil(t, err)
 	assert.Equal(t, zeroBalance, amount)
 }
@@ -209,8 +209,8 @@ func TestNodeFacade_GetBalanceWithErrorOnNodeShouldReturnZeroBalanceAndError(t *
 	zeroBalance := big.NewInt(0)
 
 	node := &mock.NodeStub{
-		GetBalanceHandler: func(address string, _ api.AccountQueryOptions) (*big.Int, error) {
-			return big.NewInt(0), errors.New("error on getBalance on node")
+		GetBalanceCalled: func(address string, _ api.AccountQueryOptions) (*big.Int, api.BlockInfo, error) {
+			return big.NewInt(0), api.BlockInfo{}, errors.New("error on getBalance on node")
 		},
 	}
 
@@ -218,7 +218,7 @@ func TestNodeFacade_GetBalanceWithErrorOnNodeShouldReturnZeroBalanceAndError(t *
 	arg.Node = node
 	nf, _ := NewNodeFacade(arg)
 
-	amount, err := nf.GetBalance(addr, api.AccountQueryOptions{})
+	amount, _, err := nf.GetBalance(addr, api.AccountQueryOptions{})
 	assert.NotNil(t, err)
 	assert.Equal(t, zeroBalance, amount)
 }

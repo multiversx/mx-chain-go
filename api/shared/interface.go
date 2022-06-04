@@ -60,7 +60,7 @@ type GroupHandler interface {
 
 // FacadeHandler defines all the methods that a facade should implement
 type FacadeHandler interface {
-	GetBalance(address string, options api.AccountQueryOptions) (*big.Int, error)
+	GetBalance(address string, options api.AccountQueryOptions) (*big.Int, api.BlockInfo, error)
 	GetUsername(address string, options api.AccountQueryOptions) (string, error)
 	GetValueForKey(address string, key string, options api.AccountQueryOptions) (string, error)
 	GetAccount(address string, options api.AccountQueryOptions) (api.AccountResponse, error)

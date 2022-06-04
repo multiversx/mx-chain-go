@@ -54,7 +54,7 @@ type NetworkShardingUpdater interface {
 
 // Facade is the node facade used to decouple the node implementation with the web server. Used in integration tests
 type Facade interface {
-	GetBalance(address string, options api.AccountQueryOptions) (*big.Int, error)
+	GetBalance(address string, options api.AccountQueryOptions) (*big.Int, api.BlockInfo, error)
 	GetUsername(address string, options api.AccountQueryOptions) (string, error)
 	GetValueForKey(address string, key string, options api.AccountQueryOptions) (string, error)
 	GetAccount(address string, options api.AccountQueryOptions) (dataApi.AccountResponse, error)

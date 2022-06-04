@@ -166,7 +166,7 @@ func (nf *nodeFacade) RestApiInterface() string {
 }
 
 // GetBalance gets the current balance for a specified address
-func (nf *nodeFacade) GetBalance(address string, options apiData.AccountQueryOptions) (*big.Int, error) {
+func (nf *nodeFacade) GetBalance(address string, options apiData.AccountQueryOptions) (*big.Int, apiData.BlockInfo, error) {
 	return nf.node.GetBalance(address, apiData.AccountQueryOptions{})
 }
 

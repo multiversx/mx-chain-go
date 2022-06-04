@@ -34,7 +34,7 @@ const (
 
 // addressFacadeHandler defines the methods to be implemented by a facade for handling address requests
 type addressFacadeHandler interface {
-	GetBalance(address string, options api.AccountQueryOptions) (*big.Int, error)
+	GetBalance(address string, options api.AccountQueryOptions) (*big.Int, api.BlockInfo, error)
 	GetUsername(address string, options api.AccountQueryOptions) (string, error)
 	GetValueForKey(address string, key string, options api.AccountQueryOptions) (string, error)
 	GetAccount(address string, options api.AccountQueryOptions) (api.AccountResponse, error)
@@ -183,13 +183,13 @@ func (ag *addressGroup) getBalance(c *gin.Context) {
 		return
 	}
 
-	balance, err := ag.getFacade().GetBalance(addr, options)
+	balance, blockInfo, err := ag.getFacade().GetBalance(addr, options)
 	if err != nil {
 		shared.RespondWithInternalError(c, errors.ErrGetBalance, err)
 		return
 	}
 
-	shared.RespondWithSuccess(c, gin.H{"balance": balance.String()})
+	shared.RespondWithSuccess(c, gin.H{"balance": balance.String(), "blockInfo": blockInfo})
 }
 
 // getUsername returns the username for the address parameter

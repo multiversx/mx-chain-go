@@ -18,7 +18,7 @@ import (
 // NodeStub -
 type NodeStub struct {
 	ConnectToAddressesHandler  func([]string) error
-	GetBalanceHandler          func(address string, options api.AccountQueryOptions) (*big.Int, error)
+	GetBalanceCalled           func(address string, options api.AccountQueryOptions) (*big.Int, api.BlockInfo, error)
 	GenerateTransactionHandler func(sender string, receiver string, amount string, code string) (*transaction.Transaction, error)
 	CreateTransactionHandler   func(nonce uint64, value string, receiver string, receiverUsername []byte, sender string, senderUsername []byte, gasPrice uint64,
 		gasLimit uint64, data []byte, signatureHex string, chainID string, version, options uint32) (*transaction.Transaction, []byte, error)
@@ -115,8 +115,8 @@ func (ns *NodeStub) DecodeAddressPubkey(pk string) ([]byte, error) {
 }
 
 // GetBalance -
-func (ns *NodeStub) GetBalance(address string, options api.AccountQueryOptions) (*big.Int, error) {
-	return ns.GetBalanceHandler(address, options)
+func (ns *NodeStub) GetBalance(address string, options api.AccountQueryOptions) (*big.Int, api.BlockInfo, error) {
+	return ns.GetBalanceCalled(address, options)
 }
 
 // CreateTransaction -

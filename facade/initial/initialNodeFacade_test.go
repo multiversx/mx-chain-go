@@ -29,7 +29,7 @@ func TestDisabledNodeFacade_AllMethodsShouldNotPanic(t *testing.T) {
 	s1, s2, err := inf.GetESDTBalance("", "", api.AccountQueryOptions{})
 	assert.Equal(t, emptyString, s1+s2)
 	assert.Equal(t, errNodeStarting, err)
-	v, err := inf.GetBalance("", api.AccountQueryOptions{})
+	v, _, err := inf.GetBalance("", api.AccountQueryOptions{})
 	assert.Nil(t, v)
 	assert.Equal(t, errNodeStarting, err)
 
