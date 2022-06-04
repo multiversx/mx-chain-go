@@ -34,7 +34,7 @@ func TestNode_GetAccountAccountDoesNotExistsShouldRetEmpty(t *testing.T) {
 	coreComponents.AddressPubKeyConverterField = integrationTests.TestAddressPubkeyConverter
 
 	dataComponents := integrationTests.GetDefaultDataComponents()
-	dataComponents.BlockChain.SetCurrentBlockHeaderAndRootHash(&block.Header{Nonce: 42}, []byte("root hash"))
+	_ = dataComponents.BlockChain.SetCurrentBlockHeaderAndRootHash(&block.Header{Nonce: 42}, []byte("root hash"))
 	dataComponents.BlockChain.SetCurrentBlockHeaderHash([]byte("header hash"))
 
 	stateComponents := integrationTests.GetDefaultStateComponents()
@@ -75,7 +75,7 @@ func TestNode_GetAccountAccountExistsShouldReturn(t *testing.T) {
 	coreComponents.AddressPubKeyConverterField = testscommon.RealWorldBech32PubkeyConverter
 
 	dataComponents := integrationTests.GetDefaultDataComponents()
-	dataComponents.BlockChain.SetCurrentBlockHeaderAndRootHash(&block.Header{Nonce: 42}, []byte("root hash"))
+	_ = dataComponents.BlockChain.SetCurrentBlockHeaderAndRootHash(&block.Header{Nonce: 42}, []byte("root hash"))
 	dataComponents.BlockChain.SetCurrentBlockHeaderHash([]byte("header hash"))
 
 	stateComponents := integrationTests.GetDefaultStateComponents()

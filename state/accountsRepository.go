@@ -10,8 +10,8 @@ import (
 )
 
 // >> BEGIN notes for review
-// "accountsDBApi" could not be used because it only alows its creator (caller of constructor) to control the provisioning of the "targetRootHash".
-// Being constrained by the AccountsAdapter interface, it does not allow the caller of its methods to specifiy the "targetRootHash".
+// "accountsDBApi" could not be used because it only allows its creator (caller of constructor) to control the provisioning of the "targetRootHash".
+// Being constrained by the AccountsAdapter interface, it does not allow the caller of its methods to specify the "targetRootHash".
 // > Design constraint: we have to return the nonce & hash associated with the rootHash (on GET account?onFinalBlock=true), as well.
 // > Design constraint: the one that provides the "targetRootHash" must also access in a consistent manner (e.g. critical section) the block nonce & block hash associated with the rootHash,
 // so that they are paired (in a consistent manner) with the loaded account data.
