@@ -17,6 +17,14 @@ type ChainHandlerStub struct {
 	GetCurrentBlockRootHashCalled          func() []byte
 	SetFinalBlockInfoCalled                func(nonce uint64, headerHash []byte, rootHash []byte)
 	GetFinalBlockInfoCalled                func() (nonce uint64, blockHash []byte, rootHash []byte)
+
+	currentBlockHeader   data.HeaderHandler
+	currentBlockHash     []byte
+	currentBlockRootHash []byte
+
+	finalBlockNonce    uint64
+	finalBlockHash     []byte
+	finalBlockRootHash []byte
 }
 
 // GetGenesisHeader -
@@ -55,7 +63,7 @@ func (stub *ChainHandlerStub) GetCurrentBlockHeader() data.HeaderHandler {
 	if stub.GetCurrentBlockHeaderCalled != nil {
 		return stub.GetCurrentBlockHeaderCalled()
 	}
-	return nil
+	return stub.currentBlockHeader
 }
 
 // SetCurrentBlockHeaderAndRootHash -
@@ -63,6 +71,9 @@ func (stub *ChainHandlerStub) SetCurrentBlockHeaderAndRootHash(header data.Heade
 	if stub.SetCurrentBlockHeaderAndRootHashCalled != nil {
 		return stub.SetCurrentBlockHeaderAndRootHashCalled(header, rootHash)
 	}
+
+	stub.currentBlockHeader = header
+	stub.currentBlockRootHash = rootHash
 	return nil
 }
 
@@ -71,7 +82,7 @@ func (stub *ChainHandlerStub) GetCurrentBlockHeaderHash() []byte {
 	if stub.GetCurrentBlockHeaderHashCalled != nil {
 		return stub.GetCurrentBlockHeaderHashCalled()
 	}
-	return nil
+	return stub.currentBlockHash
 }
 
 // SetCurrentBlockHeaderHash -
@@ -79,6 +90,8 @@ func (stub *ChainHandlerStub) SetCurrentBlockHeaderHash(hash []byte) {
 	if stub.SetCurrentBlockHeaderHashCalled != nil {
 		stub.SetCurrentBlockHeaderHashCalled(hash)
 	}
+
+	stub.currentBlockHash = hash
 }
 
 // GetCurrentBlockRootHash -
@@ -86,8 +99,7 @@ func (stub *ChainHandlerStub) GetCurrentBlockRootHash() []byte {
 	if stub.GetCurrentBlockRootHashCalled != nil {
 		return stub.GetCurrentBlockRootHashCalled()
 	}
-
-	return nil
+	return stub.currentBlockRootHash
 }
 
 // SetFinalBlockInfoCalled -
@@ -95,6 +107,10 @@ func (stub *ChainHandlerStub) SetFinalBlockInfo(nonce uint64, headerHash []byte,
 	if stub.SetFinalBlockInfoCalled != nil {
 		stub.SetFinalBlockInfoCalled(nonce, headerHash, rootHash)
 	}
+
+	stub.finalBlockNonce = nonce
+	stub.finalBlockHash = headerHash
+	stub.finalBlockRootHash = rootHash
 }
 
 // GetFinalBlockInfo -
@@ -103,7 +119,7 @@ func (stub *ChainHandlerStub) GetFinalBlockInfo() (nonce uint64, blockHash []byt
 		return stub.GetFinalBlockInfoCalled()
 	}
 
-	return 0, nil, nil
+	return stub.finalBlockNonce, stub.finalBlockHash, stub.finalBlockRootHash
 }
 
 // IsInterfaceNil -

@@ -2291,6 +2291,7 @@ func (tpn *TestProcessorNode) initNode() {
 	stateComponents := GetDefaultStateComponents()
 	stateComponents.Accounts = tpn.AccntState
 	stateComponents.AccountsAPI = tpn.AccntState
+	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(tpn.AccntState)
 
 	networkComponents := GetDefaultNetworkComponents()
 	networkComponents.Messenger = tpn.Messenger
@@ -3030,9 +3031,10 @@ func GetDefaultCryptoComponents() *mock.CryptoComponentsStub {
 // GetDefaultStateComponents -
 func GetDefaultStateComponents() *testscommon.StateComponentsMock {
 	return &testscommon.StateComponentsMock{
-		PeersAcc: &stateMock.AccountsStub{},
-		Accounts: &stateMock.AccountsStub{},
-		Tries:    &mock.TriesHolderStub{},
+		PeersAcc:     &stateMock.AccountsStub{},
+		Accounts:     &stateMock.AccountsStub{},
+		AccountsRepo: testscommon.NewAccountsRepositoryStub(),
+		Tries:        &mock.TriesHolderStub{},
 		StorageManagers: map[string]common.StorageManager{
 			"0":                         &testscommon.StorageManagerStub{},
 			trieFactory.UserAccountTrie: &testscommon.StorageManagerStub{},
