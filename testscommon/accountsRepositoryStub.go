@@ -1,15 +1,14 @@
 package testscommon
 
 import (
-	"math/big"
-
-	"github.com/ElrondNetwork/elrond-go/state"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 type accountsRepositoryStub struct {
 	testAccounts             map[string]vmcommon.AccountHandler
 	GetExistingAccountCalled func(address []byte, rootHash []byte) (vmcommon.AccountHandler, error)
+	GetCodeCalled            func(codeHash []byte, rootHash []byte) []byte
+	CloseCalled              func() error
 }
 
 // NewAccountsRepositoryStub -
@@ -33,12 +32,27 @@ func (stub *accountsRepositoryStub) GetExistingAccount(address []byte, rootHash 
 	return nil, nil
 }
 
+// GetCode -
+func (stub *accountsRepositoryStub) GetCode(codeHash []byte, rootHash []byte) []byte {
+	if stub.GetCodeCalled != nil {
+		return stub.GetCodeCalled(codeHash, rootHash)
+	}
+
+	return nil
+}
+
+// Close -
+func (stub *accountsRepositoryStub) Close() error {
+	if stub.CloseCalled != nil {
+		return stub.CloseCalled()
+	}
+
+	return nil
+}
+
 // AddTestAccount -
-func (stub *accountsRepositoryStub) AddTestAccount(pubKey []byte, balance *big.Int, nonce uint64) {
-	account, _ := state.NewUserAccount(pubKey)
-	account.Balance = balance
-	account.Nonce = nonce
-	stub.testAccounts[string(pubKey)] = account
+func (stub *accountsRepositoryStub) AddTestAccount(account vmcommon.AccountHandler) {
+	stub.testAccounts[string(account.AddressBytes())] = account
 }
 
 // IsInterfaceNil -

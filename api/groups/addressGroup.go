@@ -32,18 +32,23 @@ const (
 	urlParamOnStartOfEpoch    = "onStartOfEpoch"
 )
 
+// Question for review: in this PR, node.go is responsible with providing the rootHash to be used on the "getAccount*" request.
+// Alternatively, we could have fetched the final / current block info here (at this layer) and only forward the rootHash to the node facade.
+// Also, the blockInfo object would have been constructed here (as opposed to being constructed by sub-modules of node.go).
+// Any feedback on this?
+
 // addressFacadeHandler defines the methods to be implemented by a facade for handling address requests
 type addressFacadeHandler interface {
 	GetBalance(address string, options api.AccountQueryOptions) (*big.Int, api.BlockInfo, error)
-	GetUsername(address string, options api.AccountQueryOptions) (string, error)
-	GetValueForKey(address string, key string, options api.AccountQueryOptions) (string, error)
-	GetAccount(address string, options api.AccountQueryOptions) (api.AccountResponse, error)
-	GetESDTData(address string, key string, nonce uint64, options api.AccountQueryOptions) (*esdt.ESDigitalToken, error)
-	GetESDTsRoles(address string, options api.AccountQueryOptions) (map[string][]string, error)
-	GetNFTTokenIDsRegisteredByAddress(address string, options api.AccountQueryOptions) ([]string, error)
-	GetESDTsWithRole(address string, role string, options api.AccountQueryOptions) ([]string, error)
-	GetAllESDTTokens(address string, options api.AccountQueryOptions) (map[string]*esdt.ESDigitalToken, error)
-	GetKeyValuePairs(address string, options api.AccountQueryOptions) (map[string]string, error)
+	GetUsername(address string, options api.AccountQueryOptions) (string, api.BlockInfo, error)
+	GetValueForKey(address string, key string, options api.AccountQueryOptions) (string, api.BlockInfo, error)
+	GetAccount(address string, options api.AccountQueryOptions) (api.AccountResponse, api.BlockInfo, error)
+	GetESDTData(address string, key string, nonce uint64, options api.AccountQueryOptions) (*esdt.ESDigitalToken, api.BlockInfo, error)
+	GetESDTsRoles(address string, options api.AccountQueryOptions) (map[string][]string, api.BlockInfo, error)
+	GetNFTTokenIDsRegisteredByAddress(address string, options api.AccountQueryOptions) ([]string, api.BlockInfo, error)
+	GetESDTsWithRole(address string, role string, options api.AccountQueryOptions) ([]string, api.BlockInfo, error)
+	GetAllESDTTokens(address string, options api.AccountQueryOptions) (map[string]*esdt.ESDigitalToken, api.BlockInfo, error)
+	GetKeyValuePairs(address string, options api.AccountQueryOptions) (map[string]string, api.BlockInfo, error)
 	IsInterfaceNil() bool
 }
 
@@ -159,14 +164,14 @@ func (ag *addressGroup) getAccount(c *gin.Context) {
 		return
 	}
 
-	accountResponse, err := ag.getFacade().GetAccount(addr, options)
+	accountResponse, blockInfo, err := ag.getFacade().GetAccount(addr, options)
 	if err != nil {
 		shared.RespondWithInternalError(c, errors.ErrCouldNotGetAccount, err)
 		return
 	}
 
 	accountResponse.Address = addr
-	shared.RespondWithSuccess(c, gin.H{"account": accountResponse})
+	shared.RespondWithSuccess(c, gin.H{"account": accountResponse, "blockInfo": blockInfo})
 }
 
 // getBalance returns the balance for the address parameter
@@ -206,13 +211,13 @@ func (ag *addressGroup) getUsername(c *gin.Context) {
 		return
 	}
 
-	userName, err := ag.getFacade().GetUsername(addr, options)
+	userName, blockInfo, err := ag.getFacade().GetUsername(addr, options)
 	if err != nil {
 		shared.RespondWithInternalError(c, errors.ErrGetUsername, err)
 		return
 	}
 
-	shared.RespondWithSuccess(c, gin.H{"username": userName})
+	shared.RespondWithSuccess(c, gin.H{"username": userName, "blockInfo": blockInfo})
 }
 
 // getValueForKey returns the value for the given address and key
@@ -235,13 +240,13 @@ func (ag *addressGroup) getValueForKey(c *gin.Context) {
 		return
 	}
 
-	value, err := ag.getFacade().GetValueForKey(addr, key, options)
+	value, blockInfo, err := ag.getFacade().GetValueForKey(addr, key, options)
 	if err != nil {
 		shared.RespondWithInternalError(c, errors.ErrGetValueForKey, err)
 		return
 	}
 
-	shared.RespondWithSuccess(c, gin.H{"value": value})
+	shared.RespondWithSuccess(c, gin.H{"value": value, "blockInfo": blockInfo})
 }
 
 // addressGroup returns all the key-value pairs for the given address
@@ -258,13 +263,13 @@ func (ag *addressGroup) getKeyValuePairs(c *gin.Context) {
 		return
 	}
 
-	value, err := ag.getFacade().GetKeyValuePairs(addr, options)
+	value, blockInfo, err := ag.getFacade().GetKeyValuePairs(addr, options)
 	if err != nil {
 		shared.RespondWithInternalError(c, errors.ErrGetKeyValuePairs, err)
 		return
 	}
 
-	shared.RespondWithSuccess(c, gin.H{"pairs": value})
+	shared.RespondWithSuccess(c, gin.H{"pairs": value, "blockInfo": blockInfo})
 }
 
 // getESDTBalance returns the balance for the given address and esdt token
@@ -287,7 +292,7 @@ func (ag *addressGroup) getESDTBalance(c *gin.Context) {
 		return
 	}
 
-	esdtData, err := ag.getFacade().GetESDTData(addr, tokenIdentifier, 0, options)
+	esdtData, blockInfo, err := ag.getFacade().GetESDTData(addr, tokenIdentifier, 0, options)
 	if err != nil {
 		shared.RespondWithInternalError(c, errors.ErrGetESDTBalance, err)
 		return
@@ -299,7 +304,7 @@ func (ag *addressGroup) getESDTBalance(c *gin.Context) {
 		Properties:      hex.EncodeToString(esdtData.Properties),
 	}
 
-	shared.RespondWithSuccess(c, gin.H{"tokenData": tokenData})
+	shared.RespondWithSuccess(c, gin.H{"tokenData": tokenData, "blockInfo": blockInfo})
 }
 
 // getESDTsRoles returns the token identifiers and roles for a given address
@@ -316,13 +321,13 @@ func (ag *addressGroup) getESDTsRoles(c *gin.Context) {
 		return
 	}
 
-	tokensRoles, err := ag.getFacade().GetESDTsRoles(addr, options)
+	tokensRoles, blockInfo, err := ag.getFacade().GetESDTsRoles(addr, options)
 	if err != nil {
 		shared.RespondWithInternalError(c, errors.ErrGetRolesForAccount, err)
 		return
 	}
 
-	shared.RespondWithSuccess(c, gin.H{"roles": tokensRoles})
+	shared.RespondWithSuccess(c, gin.H{"roles": tokensRoles, "blockInfo": blockInfo})
 }
 
 // getESDTTokensWithRole returns the token identifiers where a given address has the given role
@@ -350,13 +355,13 @@ func (ag *addressGroup) getESDTTokensWithRole(c *gin.Context) {
 		return
 	}
 
-	tokens, err := ag.getFacade().GetESDTsWithRole(addr, role, options)
+	tokens, blockInfo, err := ag.getFacade().GetESDTsWithRole(addr, role, options)
 	if err != nil {
 		shared.RespondWithInternalError(c, errors.ErrGetESDTBalance, err)
 		return
 	}
 
-	shared.RespondWithSuccess(c, gin.H{"tokens": tokens})
+	shared.RespondWithSuccess(c, gin.H{"tokens": tokens, "blockInfo": blockInfo})
 }
 
 // getNFTTokenIDsRegisteredByAddress returns the token identifiers of the tokens where a given address is the owner
@@ -373,13 +378,13 @@ func (ag *addressGroup) getNFTTokenIDsRegisteredByAddress(c *gin.Context) {
 		return
 	}
 
-	tokens, err := ag.getFacade().GetNFTTokenIDsRegisteredByAddress(addr, options)
+	tokens, blockInfo, err := ag.getFacade().GetNFTTokenIDsRegisteredByAddress(addr, options)
 	if err != nil {
 		shared.RespondWithInternalError(c, errors.ErrGetESDTBalance, err)
 		return
 	}
 
-	shared.RespondWithSuccess(c, gin.H{"tokens": tokens})
+	shared.RespondWithSuccess(c, gin.H{"tokens": tokens, "blockInfo": blockInfo})
 }
 
 // getESDTNFTData returns the nft data for the given token
@@ -414,14 +419,14 @@ func (ag *addressGroup) getESDTNFTData(c *gin.Context) {
 		return
 	}
 
-	esdtData, err := ag.getFacade().GetESDTData(addr, tokenIdentifier, nonceAsBigInt.Uint64(), options)
+	esdtData, blockInfo, err := ag.getFacade().GetESDTData(addr, tokenIdentifier, nonceAsBigInt.Uint64(), options)
 	if err != nil {
 		shared.RespondWithInternalError(c, errors.ErrGetESDTNFTData, err)
 		return
 	}
 
 	tokenData := buildTokenDataApiResponse(tokenIdentifier, esdtData)
-	shared.RespondWithSuccess(c, gin.H{"tokenData": tokenData})
+	shared.RespondWithSuccess(c, gin.H{"tokenData": tokenData, "blockInfo": blockInfo})
 }
 
 // getAllESDTData returns the tokens list from this account
@@ -438,7 +443,7 @@ func (ag *addressGroup) getAllESDTData(c *gin.Context) {
 		return
 	}
 
-	tokens, err := ag.getFacade().GetAllESDTTokens(addr, options)
+	tokens, blockInfo, err := ag.getFacade().GetAllESDTTokens(addr, options)
 	if err != nil {
 		shared.RespondWithInternalError(c, errors.ErrGetESDTNFTData, err)
 		return
@@ -451,7 +456,7 @@ func (ag *addressGroup) getAllESDTData(c *gin.Context) {
 		formattedTokens[tokenID] = tokenData
 	}
 
-	shared.RespondWithSuccess(c, gin.H{"esdts": formattedTokens})
+	shared.RespondWithSuccess(c, gin.H{"esdts": formattedTokens, "blockInfo": blockInfo})
 }
 
 func buildTokenDataApiResponse(tokenIdentifier string, esdtData *esdt.ESDigitalToken) *esdtNFTTokenData {

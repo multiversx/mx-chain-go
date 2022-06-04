@@ -230,6 +230,11 @@ func (pc *stateComponents) Close() error {
 		errString += fmt.Errorf("accountsAdapterAPI close failed: %w ", err).Error()
 	}
 
+	err = pc.accountsRepository.Close()
+	if err != nil {
+		errString += fmt.Errorf("accountsRepository close failed: %w ", err).Error()
+	}
+
 	err = pc.peerAccounts.Close()
 	if err != nil {
 		errString += fmt.Errorf("peerAccounts close failed: %w ", err).Error()

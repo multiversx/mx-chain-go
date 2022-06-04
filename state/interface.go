@@ -130,6 +130,8 @@ type AccountsAdapter interface {
 // AccountsRepository allows one to load accounts using a specific rootHash
 type AccountsRepository interface {
 	GetExistingAccount(address []byte, rootHash []byte) (vmcommon.AccountHandler, error)
+	GetCode(codeHash []byte, rootHash []byte) []byte
+	Close() error
 	IsInterfaceNil() bool
 }
 

@@ -123,7 +123,7 @@ func TestNewNode_ApplyNilOptionShouldError(t *testing.T) {
 }
 
 // Question for review: is this test still relevant (can coreComponents be only partly initialized)?
-func TestGetBalance_NoAddrConverterShouldError(t *testing.T) {
+func TestNode_AccountOperationsWithoutAddrConverterShouldError(t *testing.T) {
 	coreComponents := getDefaultCoreComponents()
 	coreComponents.AddrPubKeyConv = nil
 	coreComponents.VmMarsh = getMarshalizer()
@@ -136,23 +136,34 @@ func TestGetBalance_NoAddrConverterShouldError(t *testing.T) {
 		node.WithStateComponents(stateComponents),
 	)
 	_, _, err := n.GetBalance("address", api.AccountQueryOptions{})
-	assert.NotNil(t, err)
-	assert.Equal(t, "PubkeyConverter not initialized", err.Error())
+	require.NotNil(t, err)
+	require.Equal(t, "PubkeyConverter not initialized", err.Error())
+
+	_, _, err = n.GetAccount("address", api.AccountQueryOptions{})
+	require.NotNil(t, err)
+	require.Equal(t, "PubkeyConverter not initialized", err.Error())
 }
 
 // For review: is this test still relevant?
-func TestGetBalance_NoAccountsRepositoryShouldError(t *testing.T) {
+func TestNode_AccountOperationsWithoutAccountsRepositoryShouldError(t *testing.T) {
 	coreComponents := getDefaultCoreComponents()
+	dataComponents := getDefaultDataComponents()
 	stateComponents := getDefaultStateComponents()
 	stateComponents.AccountsRepo = nil
 
 	n, _ := node.NewNode(
 		node.WithCoreComponents(coreComponents),
+		node.WithDataComponents(dataComponents),
 		node.WithStateComponents(stateComponents),
 	)
-	_, _, err := n.GetBalance("address", api.AccountQueryOptions{})
-	assert.NotNil(t, err)
-	assert.Equal(t, "AccountsRepository not initialized", err.Error())
+
+	_, _, err := n.GetBalance(testscommon.AddressOfAlice, api.AccountQueryOptions{})
+	require.NotNil(t, err)
+	require.Equal(t, "AccountsRepository not initialized", err.Error())
+
+	_, _, err = n.GetAccount(testscommon.AddressOfAlice, api.AccountQueryOptions{})
+	require.NotNil(t, err)
+	require.Equal(t, "AccountsRepository not initialized", err.Error())
 }
 
 func TestGetBalance_GetAccountFailsShouldError(t *testing.T) {
@@ -168,7 +179,6 @@ func TestGetBalance_GetAccountFailsShouldError(t *testing.T) {
 	coreComponents.IntMarsh = getMarshalizer()
 	coreComponents.VmMarsh = getMarshalizer()
 	coreComponents.Hash = getHasher()
-	coreComponents.AddrPubKeyConv = createMockPubkeyConverter()
 	stateComponents := getDefaultStateComponents()
 	stateComponents.AccountsRepo = accountsRepository
 
@@ -218,14 +228,15 @@ func TestGetBalance_AccountNotFoundShouldReturnZeroBalance(t *testing.T) {
 
 func TestGetBalance(t *testing.T) {
 	accountsRepository := testscommon.NewAccountsRepositoryStub()
-	accountsRepository.AddTestAccount(testscommon.PubKeyOfAlice, big.NewInt(100), 1)
+	testAccount, _ := state.NewUserAccount(testscommon.PubKeyOfAlice)
+	testAccount.Balance = big.NewInt(100)
+	accountsRepository.AddTestAccount(testAccount)
 
 	dataComponents := getDefaultDataComponents()
 	coreComponents := getDefaultCoreComponents()
 	coreComponents.IntMarsh = getMarshalizer()
 	coreComponents.VmMarsh = getMarshalizer()
 	coreComponents.Hash = getHasher()
-	coreComponents.AddrPubKeyConv = testscommon.RealWorldBech32PubkeyConverter
 	stateComponents := getDefaultStateComponents()
 	stateComponents.AccountsRepo = accountsRepository
 
@@ -243,33 +254,27 @@ func TestGetBalance(t *testing.T) {
 func TestGetUsername(t *testing.T) {
 	expectedUsername := []byte("elrond")
 
-	accDB := &stateMock.AccountsStub{}
-	accDB.RecreateTrieCalled = func(_ []byte) error {
-		return nil
-	}
-	accDB.GetExistingAccountCalled = func(address []byte) (handler vmcommon.AccountHandler, e error) {
-		acc, _ := state.NewUserAccount(address)
-		acc.UserName = expectedUsername
-		acc.IncreaseNonce(1)
+	accountsRepository := testscommon.NewAccountsRepositoryStub()
+	testAccount, _ := state.NewUserAccount(testscommon.PubKeyOfAlice)
+	testAccount.UserName = expectedUsername
+	accountsRepository.AddTestAccount(testAccount)
 
-		return acc, nil
-	}
 	coreComponents := getDefaultCoreComponents()
 	coreComponents.IntMarsh = getMarshalizer()
 	coreComponents.VmMarsh = getMarshalizer()
 	coreComponents.Hash = getHasher()
-	coreComponents.AddrPubKeyConv = createMockPubkeyConverter()
 
 	dataComponents := getDefaultDataComponents()
 	stateComponents := getDefaultStateComponents()
-	stateComponents.AccountsAPI = accDB
+	stateComponents.AccountsRepo = accountsRepository
 
 	n, _ := node.NewNode(
 		node.WithDataComponents(dataComponents),
 		node.WithCoreComponents(coreComponents),
 		node.WithStateComponents(stateComponents),
 	)
-	username, err := n.GetUsername(createDummyHexAddress(64), api.AccountQueryOptions{})
+
+	username, _, err := n.GetUsername(testscommon.AddressOfAlice, api.AccountQueryOptions{})
 	assert.Nil(t, err)
 	assert.Equal(t, string(expectedUsername), username)
 }
@@ -315,7 +320,7 @@ func TestNode_GetKeyValuePairs(t *testing.T) {
 	coreComponents.Hash = getHasher()
 	coreComponents.AddrPubKeyConv = createMockPubkeyConverter()
 	stateComponents := getDefaultStateComponents()
-	stateComponents.AccountsAPI = accDB
+	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(accDB)
 
 	dataComponents := getDefaultDataComponents()
 
@@ -325,7 +330,7 @@ func TestNode_GetKeyValuePairs(t *testing.T) {
 		node.WithDataComponents(dataComponents),
 	)
 
-	pairs, err := n.GetKeyValuePairs(createDummyHexAddress(64), api.AccountQueryOptions{}, context.Background())
+	pairs, _, err := n.GetKeyValuePairs(createDummyHexAddress(64), api.AccountQueryOptions{}, context.Background())
 	assert.Nil(t, err)
 	resV1, ok := pairs[hex.EncodeToString(k1)]
 	assert.True(t, ok)
@@ -368,7 +373,7 @@ func TestNode_GetKeyValuePairsContextShouldTimeout(t *testing.T) {
 	coreComponents.Hash = getHasher()
 	coreComponents.AddrPubKeyConv = createMockPubkeyConverter()
 	stateComponents := getDefaultStateComponents()
-	stateComponents.AccountsAPI = accDB
+	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(accDB)
 
 	dataComponents := getDefaultDataComponents()
 
@@ -381,7 +386,7 @@ func TestNode_GetKeyValuePairsContextShouldTimeout(t *testing.T) {
 	ctxWithTimeout, cancel := context.WithTimeout(context.Background(), time.Millisecond)
 	defer cancel()
 
-	pairs, err := n.GetKeyValuePairs(createDummyHexAddress(64), api.AccountQueryOptions{}, ctxWithTimeout)
+	pairs, _, err := n.GetKeyValuePairs(createDummyHexAddress(64), api.AccountQueryOptions{}, ctxWithTimeout)
 	assert.Nil(t, pairs)
 	assert.Equal(t, node.ErrTrieOperationsTimeout, err)
 }
@@ -408,7 +413,7 @@ func TestNode_GetValueForKey(t *testing.T) {
 	coreComponents.Hash = getHasher()
 	coreComponents.AddrPubKeyConv = createMockPubkeyConverter()
 	stateComponents := getDefaultStateComponents()
-	stateComponents.AccountsAPI = accDB
+	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(accDB)
 
 	n, _ := node.NewNode(
 		node.WithDataComponents(dataComponents),
@@ -416,13 +421,13 @@ func TestNode_GetValueForKey(t *testing.T) {
 		node.WithStateComponents(stateComponents),
 	)
 
-	value, err := n.GetValueForKey(createDummyHexAddress(64), hex.EncodeToString(k1), api.AccountQueryOptions{})
+	value, _, err := n.GetValueForKey(createDummyHexAddress(64), hex.EncodeToString(k1), api.AccountQueryOptions{})
 	assert.NoError(t, err)
 	assert.Equal(t, hex.EncodeToString(v1), value)
 }
 
 func TestNode_GetESDTData(t *testing.T) {
-	acc, _ := state.NewUserAccount([]byte("newaddress"))
+	acc, _ := state.NewUserAccount(testscommon.PubKeyOfAlice)
 	esdtToken := "newToken"
 
 	esdtData := &esdt.ESDigitalToken{Value: big.NewInt(10)}
@@ -430,6 +435,9 @@ func TestNode_GetESDTData(t *testing.T) {
 	accDB := &stateMock.AccountsStub{
 		GetExistingAccountCalled: func(_ []byte) (vmcommon.AccountHandler, error) {
 			return acc, nil
+		},
+		RecreateTrieCalled: func(_ []byte) error {
+			return nil
 		},
 	}
 
@@ -444,10 +452,9 @@ func TestNode_GetESDTData(t *testing.T) {
 	coreComponents.IntMarsh = getMarshalizer()
 	coreComponents.VmMarsh = getMarshalizer()
 	coreComponents.Hash = getHasher()
-	coreComponents.AddrPubKeyConv = createMockPubkeyConverter()
 
 	stateComponents := getDefaultStateComponents()
-	stateComponents.AccountsAPI = accDB
+	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(accDB)
 
 	n, _ := node.NewNode(
 		node.WithDataComponents(dataComponents),
@@ -456,13 +463,13 @@ func TestNode_GetESDTData(t *testing.T) {
 		node.WithESDTNFTStorageHandler(esdtStorageStub),
 	)
 
-	esdtTokenData, err := n.GetESDTData(createDummyHexAddress(64), esdtToken, 0, api.AccountQueryOptions{})
-	assert.Nil(t, err)
-	assert.Equal(t, esdtData.Value.String(), esdtTokenData.Value.String())
+	esdtTokenData, _, err := n.GetESDTData(testscommon.AddressOfAlice, esdtToken, 0, api.AccountQueryOptions{})
+	require.Nil(t, err)
+	require.Equal(t, esdtData.Value.String(), esdtTokenData.Value.String())
 }
 
 func TestNode_GetESDTDataForNFT(t *testing.T) {
-	acc, _ := state.NewUserAccount([]byte("newaddress"))
+	acc, _ := state.NewUserAccount(testscommon.PubKeyOfAlice)
 	esdtToken := "newToken"
 	nonce := int64(100)
 
@@ -477,12 +484,15 @@ func TestNode_GetESDTDataForNFT(t *testing.T) {
 		GetExistingAccountCalled: func(address []byte) (handler vmcommon.AccountHandler, e error) {
 			return acc, nil
 		},
+		RecreateTrieCalled: func(_ []byte) error {
+			return nil
+		},
 	}
 
 	dataComponents := getDefaultDataComponents()
 	coreComponents := getDefaultCoreComponents()
 	stateComponents := getDefaultStateComponents()
-	stateComponents.AccountsAPI = accDB
+	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(accDB)
 
 	n, _ := node.NewNode(
 		node.WithDataComponents(dataComponents),
@@ -491,13 +501,13 @@ func TestNode_GetESDTDataForNFT(t *testing.T) {
 		node.WithESDTNFTStorageHandler(esdtStorageStub),
 	)
 
-	esdtTokenData, err := n.GetESDTData(createDummyHexAddress(64), esdtToken, uint64(nonce), api.AccountQueryOptions{})
-	assert.Nil(t, err)
-	assert.Equal(t, esdtData.Value.String(), esdtTokenData.Value.String())
+	esdtTokenData, _, err := n.GetESDTData(testscommon.AddressOfAlice, esdtToken, uint64(nonce), api.AccountQueryOptions{})
+	require.Nil(t, err)
+	require.Equal(t, esdtData.Value.String(), esdtTokenData.Value.String())
 }
 
 func TestNode_GetAllESDTTokens(t *testing.T) {
-	acc, _ := state.NewUserAccount([]byte("newaddress"))
+	acc, _ := state.NewUserAccount(testscommon.PubKeyOfAlice)
 	esdtToken := "newToken"
 	esdtKey := []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier + esdtToken)
 
@@ -508,7 +518,6 @@ func TestNode_GetAllESDTTokens(t *testing.T) {
 			return esdtData, false, nil
 		},
 	}
-	hexAddress := createDummyHexAddress(64)
 
 	acc.DataTrieTracker().SetDataTrie(
 		&trieMock.TrieStub{
@@ -539,10 +548,9 @@ func TestNode_GetAllESDTTokens(t *testing.T) {
 	coreComponents.IntMarsh = getMarshalizer()
 	coreComponents.VmMarsh = getMarshalizer()
 	coreComponents.Hash = getHasher()
-	coreComponents.AddrPubKeyConv = createMockPubkeyConverter()
 
 	stateComponents := getDefaultStateComponents()
-	stateComponents.AccountsAPI = accDB
+	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(accDB)
 
 	dataComponents := getDefaultDataComponents()
 
@@ -553,15 +561,14 @@ func TestNode_GetAllESDTTokens(t *testing.T) {
 		node.WithESDTNFTStorageHandler(esdtStorageStub),
 	)
 
-	value, err := n.GetAllESDTTokens(hexAddress, api.AccountQueryOptions{}, context.Background())
+	value, _, err := n.GetAllESDTTokens(testscommon.AddressOfAlice, api.AccountQueryOptions{}, context.Background())
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(value))
 	assert.Equal(t, esdtData, value[esdtToken])
 }
 
 func TestNode_GetAllESDTTokensContextShouldTimeout(t *testing.T) {
-	acc, _ := state.NewUserAccount([]byte("newaddress"))
-	hexAddress := createDummyHexAddress(64)
+	acc, _ := state.NewUserAccount(testscommon.PubKeyOfAlice)
 
 	acc.DataTrieTracker().SetDataTrie(
 		&trieMock.TrieStub{
@@ -591,10 +598,9 @@ func TestNode_GetAllESDTTokensContextShouldTimeout(t *testing.T) {
 	coreComponents.IntMarsh = getMarshalizer()
 	coreComponents.VmMarsh = getMarshalizer()
 	coreComponents.Hash = getHasher()
-	coreComponents.AddrPubKeyConv = createMockPubkeyConverter()
 
 	stateComponents := getDefaultStateComponents()
-	stateComponents.AccountsAPI = accDB
+	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(accDB)
 
 	dataComponents := getDefaultDataComponents()
 
@@ -607,13 +613,13 @@ func TestNode_GetAllESDTTokensContextShouldTimeout(t *testing.T) {
 	ctxWithTimeout, cancel := context.WithTimeout(context.Background(), time.Millisecond)
 	defer cancel()
 
-	value, err := n.GetAllESDTTokens(hexAddress, api.AccountQueryOptions{}, ctxWithTimeout)
+	value, _, err := n.GetAllESDTTokens(testscommon.AddressOfAlice, api.AccountQueryOptions{}, ctxWithTimeout)
 	assert.Nil(t, value)
 	assert.Equal(t, node.ErrTrieOperationsTimeout, err)
 }
 
 func TestNode_GetAllESDTTokensShouldReturnEsdtAndFormattedNft(t *testing.T) {
-	acc, _ := state.NewUserAccount([]byte("newaddress"))
+	acc, _ := state.NewUserAccount(testscommon.PubKeyOfAlice)
 
 	esdtToken := "TKKR-7q8w9e"
 	esdtKey := []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier + esdtToken)
@@ -621,7 +627,6 @@ func TestNode_GetAllESDTTokensShouldReturnEsdtAndFormattedNft(t *testing.T) {
 	esdtData := &esdt.ESDigitalToken{Value: big.NewInt(10)}
 	marshalledData, _ := getMarshalizer().Marshal(esdtData)
 
-	hexAddress := createDummyHexAddress(64)
 	suffix := append(esdtKey, acc.AddressBytes()...)
 
 	nftToken := "TCKR-67tgv3"
@@ -680,8 +685,7 @@ func TestNode_GetAllESDTTokensShouldReturnEsdtAndFormattedNft(t *testing.T) {
 
 	coreComponents := getDefaultCoreComponents()
 	stateComponents := getDefaultStateComponents()
-	stateComponents.AccountsAPI = accDB
-	stateComponents.AccountsAPI = accDB
+	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(accDB)
 	dataComponents := getDefaultDataComponents()
 
 	n, _ := node.NewNode(
@@ -691,7 +695,7 @@ func TestNode_GetAllESDTTokensShouldReturnEsdtAndFormattedNft(t *testing.T) {
 		node.WithESDTNFTStorageHandler(esdtStorageStub),
 	)
 
-	tokens, err := n.GetAllESDTTokens(hexAddress, api.AccountQueryOptions{}, context.Background())
+	tokens, _, err := n.GetAllESDTTokens(testscommon.AddressOfAlice, api.AccountQueryOptions{}, context.Background())
 	assert.Nil(t, err)
 	assert.Equal(t, 2, len(tokens))
 	assert.Equal(t, esdtData, tokens[esdtToken])
@@ -758,7 +762,6 @@ func TestNode_GetAllIssuedESDTs(t *testing.T) {
 	coreComponents := getDefaultCoreComponents()
 	stateComponents := getDefaultStateComponents()
 	stateComponents.AccountsAPI = accDB
-	stateComponents.AccountsAPI = accDB
 	dataComponents := getDefaultDataComponents()
 	processComponents := getDefaultProcessComponents()
 	processComponents.ShardCoord = &mock.ShardCoordinatorMock{
@@ -792,7 +795,7 @@ func TestNode_GetAllIssuedESDTs(t *testing.T) {
 }
 
 func TestNode_GetESDTsWithRole(t *testing.T) {
-	addrBytes := []byte("newaddress")
+	addrBytes := testscommon.PubKeyOfAlice
 	acc, _ := state.NewUserAccount(addrBytes)
 	esdtToken := []byte("TCK-RANDOM")
 
@@ -835,8 +838,7 @@ func TestNode_GetESDTsWithRole(t *testing.T) {
 	}
 	coreComponents := getDefaultCoreComponents()
 	stateComponents := getDefaultStateComponents()
-	stateComponents.AccountsAPI = accDB
-	stateComponents.AccountsAPI = accDB
+	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(accDB)
 	dataComponents := getDefaultDataComponents()
 	processComponents := getDefaultProcessComponents()
 	processComponents.ShardCoord = &mock.ShardCoordinatorMock{
@@ -849,23 +851,23 @@ func TestNode_GetESDTsWithRole(t *testing.T) {
 		node.WithProcessComponents(processComponents),
 	)
 
-	tokenResult, err := n.GetESDTsWithRole(hex.EncodeToString(addrBytes), core.ESDTRoleNFTAddQuantity, api.AccountQueryOptions{}, context.Background())
+	tokenResult, _, err := n.GetESDTsWithRole(testscommon.AddressOfAlice, core.ESDTRoleNFTAddQuantity, api.AccountQueryOptions{}, context.Background())
 	require.NoError(t, err)
 	require.Equal(t, 1, len(tokenResult))
 	require.Equal(t, string(esdtToken), tokenResult[0])
 
-	tokenResult, err = n.GetESDTsWithRole(hex.EncodeToString(addrBytes), core.ESDTRoleLocalMint, api.AccountQueryOptions{}, context.Background())
+	tokenResult, _, err = n.GetESDTsWithRole(testscommon.AddressOfAlice, core.ESDTRoleLocalMint, api.AccountQueryOptions{}, context.Background())
 	require.NoError(t, err)
 	require.Equal(t, 1, len(tokenResult))
 	require.Equal(t, string(esdtToken), tokenResult[0])
 
-	tokenResult, err = n.GetESDTsWithRole(hex.EncodeToString(addrBytes), core.ESDTRoleNFTCreate, api.AccountQueryOptions{}, context.Background())
+	tokenResult, _, err = n.GetESDTsWithRole(testscommon.AddressOfAlice, core.ESDTRoleNFTCreate, api.AccountQueryOptions{}, context.Background())
 	require.NoError(t, err)
 	require.Len(t, tokenResult, 0)
 }
 
 func TestNode_GetESDTsRoles(t *testing.T) {
-	addrBytes := []byte("newaddress")
+	addrBytes := testscommon.PubKeyOfAlice
 	acc, _ := state.NewUserAccount(addrBytes)
 	esdtToken := []byte("TCK-RANDOM")
 
@@ -908,8 +910,7 @@ func TestNode_GetESDTsRoles(t *testing.T) {
 	}
 	coreComponents := getDefaultCoreComponents()
 	stateComponents := getDefaultStateComponents()
-	stateComponents.AccountsAPI = accDB
-	stateComponents.AccountsAPI = accDB
+	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(accDB)
 	dataComponents := getDefaultDataComponents()
 	processComponents := getDefaultProcessComponents()
 	processComponents.ShardCoord = &mock.ShardCoordinatorMock{
@@ -922,7 +923,7 @@ func TestNode_GetESDTsRoles(t *testing.T) {
 		node.WithProcessComponents(processComponents),
 	)
 
-	tokenResult, err := n.GetESDTsRoles(hex.EncodeToString(addrBytes), api.AccountQueryOptions{}, context.Background())
+	tokenResult, _, err := n.GetESDTsRoles(testscommon.AddressOfAlice, api.AccountQueryOptions{}, context.Background())
 	require.NoError(t, err)
 	require.Equal(t, map[string][]string{
 		string(esdtToken): {core.ESDTRoleNFTAddQuantity, core.ESDTRoleLocalMint},
@@ -930,7 +931,7 @@ func TestNode_GetESDTsRoles(t *testing.T) {
 }
 
 func TestNode_GetNFTTokenIDsRegisteredByAddress(t *testing.T) {
-	addrBytes := []byte("newaddress")
+	addrBytes := testscommon.PubKeyOfAlice
 	acc, _ := state.NewUserAccount(addrBytes)
 	esdtToken := []byte("TCK-RANDOM")
 
@@ -967,8 +968,7 @@ func TestNode_GetNFTTokenIDsRegisteredByAddress(t *testing.T) {
 	}
 	coreComponents := getDefaultCoreComponents()
 	stateComponents := getDefaultStateComponents()
-	stateComponents.AccountsAPI = accDB
-	stateComponents.AccountsAPI = accDB
+	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(accDB)
 	dataComponents := getDefaultDataComponents()
 	processComponents := getDefaultProcessComponents()
 	processComponents.ShardCoord = &mock.ShardCoordinatorMock{
@@ -981,14 +981,14 @@ func TestNode_GetNFTTokenIDsRegisteredByAddress(t *testing.T) {
 		node.WithProcessComponents(processComponents),
 	)
 
-	tokenResult, err := n.GetNFTTokenIDsRegisteredByAddress(hex.EncodeToString(addrBytes), api.AccountQueryOptions{}, context.Background())
+	tokenResult, _, err := n.GetNFTTokenIDsRegisteredByAddress(testscommon.AddressOfAlice, api.AccountQueryOptions{}, context.Background())
 	require.NoError(t, err)
 	require.Equal(t, 1, len(tokenResult))
 	require.Equal(t, string(esdtToken), tokenResult[0])
 }
 
 func TestNode_GetNFTTokenIDsRegisteredByAddressContextShouldTimeout(t *testing.T) {
-	addrBytes := []byte("newaddress")
+	addrBytes := testscommon.PubKeyOfAlice
 	acc, _ := state.NewUserAccount(addrBytes)
 
 	acc.DataTrieTracker().SetDataTrie(
@@ -1017,8 +1017,7 @@ func TestNode_GetNFTTokenIDsRegisteredByAddressContextShouldTimeout(t *testing.T
 	}
 	coreComponents := getDefaultCoreComponents()
 	stateComponents := getDefaultStateComponents()
-	stateComponents.AccountsAPI = accDB
-	stateComponents.AccountsAPI = accDB
+	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(accDB)
 	dataComponents := getDefaultDataComponents()
 	processComponents := getDefaultProcessComponents()
 	processComponents.ShardCoord = &mock.ShardCoordinatorMock{
@@ -1034,7 +1033,7 @@ func TestNode_GetNFTTokenIDsRegisteredByAddressContextShouldTimeout(t *testing.T
 	ctxWithTimeout, cancel := context.WithTimeout(context.Background(), time.Millisecond)
 	defer cancel()
 
-	tokens, err := n.GetNFTTokenIDsRegisteredByAddress(hex.EncodeToString(addrBytes), api.AccountQueryOptions{}, ctxWithTimeout)
+	tokens, _, err := n.GetNFTTokenIDsRegisteredByAddress(testscommon.AddressOfAlice, api.AccountQueryOptions{}, ctxWithTimeout)
 	require.Nil(t, tokens)
 	require.Equal(t, node.ErrTrieOperationsTimeout, err)
 }
@@ -2616,49 +2615,6 @@ func TestNode_ValidatorStatisticsApi(t *testing.T) {
 
 // ------- GetAccount
 
-func TestNode_GetAccountWithNilAccountsAdapterShouldErr(t *testing.T) {
-	t.Parallel()
-
-	coreComponents := getDefaultCoreComponents()
-	coreComponents.AddrPubKeyConv = createMockPubkeyConverter()
-	stateComponents := getDefaultStateComponents()
-
-	n, _ := node.NewNode(
-		node.WithCoreComponents(coreComponents),
-		node.WithStateComponents(stateComponents),
-	)
-
-	stateComponents.AccountsAPI = nil
-	recovAccnt, err := n.GetAccount(createDummyHexAddress(64), api.AccountQueryOptions{})
-
-	assert.Empty(t, recovAccnt)
-	assert.Equal(t, node.ErrNilAccountsAdapter, err)
-}
-
-func TestNode_GetAccountWithNilPubkeyConverterShouldErr(t *testing.T) {
-	t.Parallel()
-
-	accDB := &stateMock.AccountsStub{
-		GetExistingAccountCalled: func(address []byte) (handler vmcommon.AccountHandler, e error) {
-			return nil, state.ErrAccNotFound
-		},
-	}
-	stateComponents := getDefaultStateComponents()
-	stateComponents.AccountsAPI = accDB
-	coreComponents := getDefaultCoreComponents()
-
-	n, _ := node.NewNode(
-		node.WithCoreComponents(coreComponents),
-		node.WithStateComponents(stateComponents),
-	)
-
-	coreComponents.AddrPubKeyConv = nil
-	recovAccnt, err := n.GetAccount(createDummyHexAddress(64), api.AccountQueryOptions{})
-
-	assert.Empty(t, recovAccnt)
-	assert.Equal(t, node.ErrNilPubkeyConverter, err)
-}
-
 func TestNode_GetAccountPubkeyConverterFailsShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -2683,33 +2639,34 @@ func TestNode_GetAccountPubkeyConverterFailsShouldErr(t *testing.T) {
 		node.WithCoreComponents(coreComponents),
 	)
 
-	recovAccnt, err := n.GetAccount(createDummyHexAddress(64), api.AccountQueryOptions{})
+	recovAccnt, _, err := n.GetAccount(createDummyHexAddress(64), api.AccountQueryOptions{})
 
 	assert.Empty(t, recovAccnt)
-	assert.Equal(t, errExpected, err)
+	assert.ErrorIs(t, err, errExpected)
 }
 
 func TestNode_GetAccountAccountDoesNotExistsShouldRetEmpty(t *testing.T) {
 	t.Parallel()
 
-	accDB := &stateMock.AccountsStub{
-		GetExistingAccountCalled: func(address []byte) (handler vmcommon.AccountHandler, e error) {
-			return nil, state.ErrAccNotFound
-		},
+	accountsRepostitory := testscommon.NewAccountsRepositoryStub()
+	accountsRepostitory.GetExistingAccountCalled = func(address []byte, rootHash []byte) (vmcommon.AccountHandler, error) {
+		return nil, state.ErrAccNotFound
 	}
 
 	coreComponents := getDefaultCoreComponents()
-	coreComponents.AddrPubKeyConv = createMockPubkeyConverter()
+	dataComponents := getDefaultDataComponents()
 	stateComponents := getDefaultStateComponents()
-	stateComponents.AccountsAPI = accDB
+	stateComponents.AccountsRepo = accountsRepostitory
+
 	n, _ := node.NewNode(
 		node.WithCoreComponents(coreComponents),
+		node.WithDataComponents(dataComponents),
 		node.WithStateComponents(stateComponents),
 	)
 
-	recovAccnt, err := n.GetAccount(createDummyHexAddress(64), api.AccountQueryOptions{})
+	recovAccnt, _, err := n.GetAccount(testscommon.AddressOfAlice, api.AccountQueryOptions{})
 
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	assert.Equal(t, uint64(0), recovAccnt.Nonce)
 	assert.Equal(t, "0", recovAccnt.Balance)
 	assert.Equal(t, "0", recovAccnt.DeveloperReward)
@@ -2717,68 +2674,74 @@ func TestNode_GetAccountAccountDoesNotExistsShouldRetEmpty(t *testing.T) {
 	assert.Nil(t, recovAccnt.RootHash)
 }
 
-func TestNode_GetAccountAccountsAdapterFailsShouldErr(t *testing.T) {
+func TestNode_GetAccountAccountsRepositoryFailsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	errExpected := errors.New("expected error")
-	accDB := &stateMock.AccountsStub{
-		GetExistingAccountCalled: func(address []byte) (handler vmcommon.AccountHandler, e error) {
-			return nil, errExpected
-		},
+
+	accountsRepostitory := testscommon.NewAccountsRepositoryStub()
+	accountsRepostitory.GetExistingAccountCalled = func(address []byte, rootHash []byte) (vmcommon.AccountHandler, error) {
+		return nil, errExpected
 	}
 
 	coreComponents := getDefaultCoreComponents()
-	coreComponents.AddrPubKeyConv = createMockPubkeyConverter()
+	dataComponents := getDefaultDataComponents()
 	stateComponents := getDefaultStateComponents()
-	stateComponents.AccountsAPI = accDB
+	stateComponents.AccountsRepo = accountsRepostitory
+
 	n, _ := node.NewNode(
 		node.WithCoreComponents(coreComponents),
+		node.WithDataComponents(dataComponents),
 		node.WithStateComponents(stateComponents),
 	)
 
-	recovAccnt, err := n.GetAccount(createDummyHexAddress(64), api.AccountQueryOptions{})
+	recovAccnt, _, err := n.GetAccount(testscommon.AddressOfAlice, api.AccountQueryOptions{})
 
 	assert.Empty(t, recovAccnt)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), errExpected.Error())
+	assert.ErrorIs(t, err, errExpected)
 }
 
 func TestNode_GetAccountAccountExistsShouldReturn(t *testing.T) {
 	t.Parallel()
 
-	accnt, _ := state.NewUserAccount([]byte("1234"))
+	accnt, _ := state.NewUserAccount(testscommon.PubKeyOfBob)
 	_ = accnt.AddToBalance(big.NewInt(1))
 	accnt.IncreaseNonce(2)
 	accnt.SetRootHash([]byte("root hash"))
 	accnt.SetCodeHash([]byte("code hash"))
 	accnt.AddToDeveloperReward(big.NewInt(37))
 	accnt.SetCodeMetadata([]byte("metadata"))
-	accnt.SetOwnerAddress([]byte("owner address"))
+	accnt.SetOwnerAddress(testscommon.PubKeyOfAlice)
 
 	accDB := &stateMock.AccountsStub{
 		GetExistingAccountCalled: func(address []byte) (handler vmcommon.AccountHandler, e error) {
 			return accnt, nil
 		},
+		RecreateTrieCalled: func(rootHash []byte) error {
+			return nil
+		},
 	}
 
 	coreComponents := getDefaultCoreComponents()
-	coreComponents.AddrPubKeyConv = createMockPubkeyConverter()
+	dataComponents := getDefaultDataComponents()
 	stateComponents := getDefaultStateComponents()
-	stateComponents.AccountsAPI = accDB
+	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(accDB)
 	n, _ := node.NewNode(
 		node.WithCoreComponents(coreComponents),
+		node.WithDataComponents(dataComponents),
 		node.WithStateComponents(stateComponents),
 	)
 
-	recovAccnt, err := n.GetAccount(createDummyHexAddress(64), api.AccountQueryOptions{})
+	recovAccnt, _, err := n.GetAccount(testscommon.AddressOfBob, api.AccountQueryOptions{})
 
-	assert.Nil(t, err)
-	assert.Equal(t, uint64(2), recovAccnt.Nonce)
-	assert.Equal(t, "1", recovAccnt.Balance)
-	assert.Equal(t, []byte("root hash"), recovAccnt.RootHash)
-	assert.Equal(t, []byte("code hash"), recovAccnt.CodeHash)
-	assert.Equal(t, []byte("metadata"), recovAccnt.CodeMetadata)
-	assert.Equal(t, hex.EncodeToString([]byte("owner address")), recovAccnt.OwnerAddress)
+	require.Nil(t, err)
+	require.Equal(t, uint64(2), recovAccnt.Nonce)
+	require.Equal(t, "1", recovAccnt.Balance)
+	require.Equal(t, []byte("root hash"), recovAccnt.RootHash)
+	require.Equal(t, []byte("code hash"), recovAccnt.CodeHash)
+	require.Equal(t, []byte("metadata"), recovAccnt.CodeMetadata)
+	require.Equal(t, testscommon.AddressOfAlice, recovAccnt.OwnerAddress)
 }
 
 func TestNode_AppStatusHandlersShouldIncrement(t *testing.T) {
@@ -3219,7 +3182,7 @@ func TestGetKeyValuePairs_CannotDecodeAddress(t *testing.T) {
 		node.WithCoreComponents(coreComponents),
 	)
 
-	res, err := n.GetKeyValuePairs("addr", api.AccountQueryOptions{}, context.Background())
+	res, _, err := n.GetKeyValuePairs("addr", api.AccountQueryOptions{}, context.Background())
 	require.Nil(t, res)
 	require.True(t, strings.Contains(fmt.Sprintf("%v", err), expectedErr.Error()))
 }
@@ -3628,7 +3591,7 @@ func getDefaultCoreComponents() *nodeMockFactory.CoreComponentsMock {
 		TxSignHasherField:   &testscommon.HasherStub{},
 		Hash:                &testscommon.HasherStub{},
 		UInt64ByteSliceConv: testscommon.NewNonceHashConverterMock(),
-		AddrPubKeyConv:      testscommon.NewPubkeyConverterMock(32),
+		AddrPubKeyConv:      testscommon.RealWorldBech32PubkeyConverter,
 		ValPubKeyConv:       testscommon.NewPubkeyConverterMock(32),
 		PathHdl:             &testscommon.PathManagerStub{},
 		ChainIdCalled: func() string {

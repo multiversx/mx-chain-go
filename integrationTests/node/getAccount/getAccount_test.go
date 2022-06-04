@@ -27,7 +27,7 @@ func TestNode_GetAccountAccountDoesNotExistsShouldRetEmpty(t *testing.T) {
 	)
 
 	encodedAddress := integrationTests.TestAddressPubkeyConverter.Encode(integrationTests.CreateRandomBytes(32))
-	recovAccnt, err := n.GetAccount(encodedAddress, api.AccountQueryOptions{})
+	recovAccnt, _, err := n.GetAccount(encodedAddress, api.AccountQueryOptions{})
 
 	assert.Nil(t, err)
 	assert.Equal(t, uint64(0), recovAccnt.Nonce)
@@ -62,7 +62,7 @@ func TestNode_GetAccountAccountExistsShouldReturn(t *testing.T) {
 		node.WithStateComponents(stateComponents),
 	)
 	encodedAddress := integrationTests.TestAddressPubkeyConverter.Encode(addressBytes)
-	recovAccnt, err := n.GetAccount(encodedAddress, api.AccountQueryOptions{})
+	recovAccnt, _, err := n.GetAccount(encodedAddress, api.AccountQueryOptions{})
 
 	assert.Nil(t, err)
 	assert.Equal(t, nonce, recovAccnt.Nonce)

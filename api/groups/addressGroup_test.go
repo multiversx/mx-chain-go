@@ -290,8 +290,8 @@ func TestGetValueForKey_NodeFailsShouldError(t *testing.T) {
 	testAddress := "address"
 	expectedErr := errors.New("expected error")
 	facade := mock.FacadeStub{
-		GetValueForKeyCalled: func(_ string, _ string, _ api.AccountQueryOptions) (string, error) {
-			return "", expectedErr
+		GetValueForKeyCalled: func(_ string, _ string, _ api.AccountQueryOptions) (string, api.BlockInfo, error) {
+			return "", api.BlockInfo{}, expectedErr
 		},
 	}
 
@@ -316,8 +316,8 @@ func TestGetValueForKey_ShouldWork(t *testing.T) {
 	testAddress := "address"
 	testValue := "value"
 	facade := mock.FacadeStub{
-		GetValueForKeyCalled: func(_ string, _ string, _ api.AccountQueryOptions) (string, error) {
-			return testValue, nil
+		GetValueForKeyCalled: func(_ string, _ string, _ api.AccountQueryOptions) (string, api.BlockInfo, error) {
+			return testValue, api.BlockInfo{}, nil
 		},
 	}
 
@@ -342,8 +342,8 @@ func TestGetUsername_NodeFailsShouldError(t *testing.T) {
 	testAddress := "address"
 	expectedErr := errors.New("expected error")
 	facade := mock.FacadeStub{
-		GetUsernameCalled: func(_ string, _ api.AccountQueryOptions) (string, error) {
-			return "", expectedErr
+		GetUsernameCalled: func(_ string, _ api.AccountQueryOptions) (string, api.BlockInfo, error) {
+			return "", api.BlockInfo{}, expectedErr
 		},
 	}
 
@@ -368,8 +368,8 @@ func TestGetUsername_ShouldWork(t *testing.T) {
 	testAddress := "address"
 	testUsername := "value"
 	facade := mock.FacadeStub{
-		GetUsernameCalled: func(_ string, _ api.AccountQueryOptions) (string, error) {
-			return testUsername, nil
+		GetUsernameCalled: func(_ string, _ api.AccountQueryOptions) (string, api.BlockInfo, error) {
+			return testUsername, api.BlockInfo{}, nil
 		},
 	}
 
@@ -393,8 +393,8 @@ func TestGetAccount_FailWhenFacadeStubGetAccountFails(t *testing.T) {
 
 	returnedError := "i am an error"
 	facade := mock.FacadeStub{
-		GetAccountCalled: func(address string, _ api.AccountQueryOptions) (api.AccountResponse, error) {
-			return api.AccountResponse{}, errors.New(returnedError)
+		GetAccountCalled: func(address string, _ api.AccountQueryOptions) (api.AccountResponse, api.BlockInfo, error) {
+			return api.AccountResponse{}, api.BlockInfo{}, errors.New(returnedError)
 		},
 	}
 
@@ -419,13 +419,13 @@ func TestGetAccount_ReturnsSuccessfully(t *testing.T) {
 	t.Parallel()
 
 	facade := mock.FacadeStub{
-		GetAccountCalled: func(address string, _ api.AccountQueryOptions) (api.AccountResponse, error) {
+		GetAccountCalled: func(address string, _ api.AccountQueryOptions) (api.AccountResponse, api.BlockInfo, error) {
 			return api.AccountResponse{
 				Address:         "1234",
 				Balance:         big.NewInt(100).String(),
 				Nonce:           1,
 				DeveloperReward: big.NewInt(120).String(),
-			}, nil
+			}, api.BlockInfo{}, nil
 		},
 	}
 
@@ -461,8 +461,8 @@ func TestGetESDTBalance_NodeFailsShouldError(t *testing.T) {
 	testAddress := "address"
 	expectedErr := errors.New("expected error")
 	facade := mock.FacadeStub{
-		GetESDTDataCalled: func(_ string, _ string, _ uint64, _ api.AccountQueryOptions) (*esdt.ESDigitalToken, error) {
-			return nil, expectedErr
+		GetESDTDataCalled: func(_ string, _ string, _ uint64, _ api.AccountQueryOptions) (*esdt.ESDigitalToken, api.BlockInfo, error) {
+			return nil, api.BlockInfo{}, expectedErr
 		},
 	}
 
@@ -488,8 +488,8 @@ func TestGetESDTBalance_ShouldWork(t *testing.T) {
 	testValue := big.NewInt(100).String()
 	testProperties := []byte{byte(0), byte(1), byte(0)}
 	facade := mock.FacadeStub{
-		GetESDTDataCalled: func(_ string, _ string, _ uint64, _ api.AccountQueryOptions) (*esdt.ESDigitalToken, error) {
-			return &esdt.ESDigitalToken{Value: big.NewInt(100), Properties: testProperties}, nil
+		GetESDTDataCalled: func(_ string, _ string, _ uint64, _ api.AccountQueryOptions) (*esdt.ESDigitalToken, api.BlockInfo, error) {
+			return &esdt.ESDigitalToken{Value: big.NewInt(100), Properties: testProperties}, api.BlockInfo{}, nil
 		},
 	}
 
@@ -515,8 +515,8 @@ func TestGetESDTNFTData_NodeFailsShouldError(t *testing.T) {
 	testAddress := "address"
 	expectedErr := errors.New("expected error")
 	facade := mock.FacadeStub{
-		GetESDTDataCalled: func(_ string, _ string, _ uint64, _ api.AccountQueryOptions) (*esdt.ESDigitalToken, error) {
-			return nil, expectedErr
+		GetESDTDataCalled: func(_ string, _ string, _ uint64, _ api.AccountQueryOptions) (*esdt.ESDigitalToken, api.BlockInfo, error) {
+			return nil, api.BlockInfo{}, expectedErr
 		},
 	}
 
@@ -543,11 +543,11 @@ func TestGetESDTNFTData_ShouldWork(t *testing.T) {
 	testNonce := uint64(37)
 	testProperties := []byte{byte(1), byte(0), byte(0)}
 	facade := mock.FacadeStub{
-		GetESDTDataCalled: func(_ string, _ string, _ uint64, _ api.AccountQueryOptions) (*esdt.ESDigitalToken, error) {
+		GetESDTDataCalled: func(_ string, _ string, _ uint64, _ api.AccountQueryOptions) (*esdt.ESDigitalToken, api.BlockInfo, error) {
 			return &esdt.ESDigitalToken{
 				Value:         big.NewInt(100),
 				Properties:    []byte(testProperties),
-				TokenMetaData: &esdt.MetaData{Nonce: testNonce, Creator: []byte(testAddress)}}, nil
+				TokenMetaData: &esdt.MetaData{Nonce: testNonce, Creator: []byte(testAddress)}}, api.BlockInfo{}, nil
 		},
 	}
 
@@ -575,8 +575,8 @@ func TestGetESDTTokensWithRole_InvalidRoleShouldError(t *testing.T) {
 	testAddress := "address"
 	expectedErr := errors.New("expected error")
 	facade := mock.FacadeStub{
-		GetESDTsWithRoleCalled: func(_ string, _ string, _ api.AccountQueryOptions) ([]string, error) {
-			return nil, expectedErr
+		GetESDTsWithRoleCalled: func(_ string, _ string, _ api.AccountQueryOptions) ([]string, api.BlockInfo, error) {
+			return nil, api.BlockInfo{}, expectedErr
 		},
 	}
 
@@ -601,8 +601,8 @@ func TestGetESDTTokensWithRole_NodeFailsShouldError(t *testing.T) {
 	testAddress := "address"
 	expectedErr := errors.New("expected error")
 	facade := mock.FacadeStub{
-		GetESDTsWithRoleCalled: func(_ string, _ string, _ api.AccountQueryOptions) ([]string, error) {
-			return nil, expectedErr
+		GetESDTsWithRoleCalled: func(_ string, _ string, _ api.AccountQueryOptions) ([]string, api.BlockInfo, error) {
+			return nil, api.BlockInfo{}, expectedErr
 		},
 	}
 
@@ -627,8 +627,8 @@ func TestGetESDTTokensWithRole_ShouldWork(t *testing.T) {
 	testAddress := "address"
 	expectedTokens := []string{"ABC-0o9i8u", "XYZ-r5y7i9"}
 	facade := mock.FacadeStub{
-		GetESDTsWithRoleCalled: func(address string, role string, _ api.AccountQueryOptions) ([]string, error) {
-			return expectedTokens, nil
+		GetESDTsWithRoleCalled: func(address string, role string, _ api.AccountQueryOptions) ([]string, api.BlockInfo, error) {
+			return expectedTokens, api.BlockInfo{}, nil
 		},
 	}
 
@@ -653,8 +653,8 @@ func TestGetNFTTokenIDsRegisteredByAddress_NodeFailsShouldError(t *testing.T) {
 	testAddress := "address"
 	expectedErr := errors.New("expected error")
 	facade := mock.FacadeStub{
-		GetNFTTokenIDsRegisteredByAddressCalled: func(_ string, _ api.AccountQueryOptions) ([]string, error) {
-			return nil, expectedErr
+		GetNFTTokenIDsRegisteredByAddressCalled: func(_ string, _ api.AccountQueryOptions) ([]string, api.BlockInfo, error) {
+			return nil, api.BlockInfo{}, expectedErr
 		},
 	}
 
@@ -679,8 +679,8 @@ func TestGetNFTTokenIDsRegisteredByAddress_ShouldWork(t *testing.T) {
 	testAddress := "address"
 	expectedTokens := []string{"ABC-0o9i8u", "XYZ-r5y7i9"}
 	facade := mock.FacadeStub{
-		GetNFTTokenIDsRegisteredByAddressCalled: func(address string, _ api.AccountQueryOptions) ([]string, error) {
-			return expectedTokens, nil
+		GetNFTTokenIDsRegisteredByAddressCalled: func(address string, _ api.AccountQueryOptions) ([]string, api.BlockInfo, error) {
+			return expectedTokens, api.BlockInfo{}, nil
 		},
 	}
 
@@ -705,8 +705,8 @@ func TestGetFullESDTTokens_NodeFailsShouldError(t *testing.T) {
 	testAddress := "address"
 	expectedErr := errors.New("expected error")
 	facade := mock.FacadeStub{
-		GetAllESDTTokensCalled: func(_ string, _ api.AccountQueryOptions) (map[string]*esdt.ESDigitalToken, error) {
-			return nil, expectedErr
+		GetAllESDTTokensCalled: func(_ string, _ api.AccountQueryOptions) (map[string]*esdt.ESDigitalToken, api.BlockInfo, error) {
+			return nil, api.BlockInfo{}, expectedErr
 		},
 	}
 
@@ -732,11 +732,11 @@ func TestGetFullESDTTokens_ShouldWork(t *testing.T) {
 	testValue1 := "token1"
 	testValue2 := "token2"
 	facade := mock.FacadeStub{
-		GetAllESDTTokensCalled: func(address string, _ api.AccountQueryOptions) (map[string]*esdt.ESDigitalToken, error) {
+		GetAllESDTTokensCalled: func(address string, _ api.AccountQueryOptions) (map[string]*esdt.ESDigitalToken, api.BlockInfo, error) {
 			tokens := make(map[string]*esdt.ESDigitalToken)
 			tokens[testValue1] = &esdt.ESDigitalToken{Value: big.NewInt(10)}
 			tokens[testValue2] = &esdt.ESDigitalToken{Value: big.NewInt(100)}
-			return tokens, nil
+			return tokens, api.BlockInfo{}, nil
 		},
 	}
 
@@ -785,8 +785,8 @@ func TestGetKeyValuePairs_NodeFailsShouldError(t *testing.T) {
 	testAddress := "address"
 	expectedErr := errors.New("expected error")
 	facade := mock.FacadeStub{
-		GetKeyValuePairsCalled: func(_ string, _ api.AccountQueryOptions) (map[string]string, error) {
-			return nil, expectedErr
+		GetKeyValuePairsCalled: func(_ string, _ api.AccountQueryOptions) (map[string]string, api.BlockInfo, error) {
+			return nil, api.BlockInfo{}, expectedErr
 		},
 	}
 
@@ -814,8 +814,8 @@ func TestGetKeyValuePairs_ShouldWork(t *testing.T) {
 	}
 	testAddress := "address"
 	facade := mock.FacadeStub{
-		GetKeyValuePairsCalled: func(_ string, _ api.AccountQueryOptions) (map[string]string, error) {
-			return pairs, nil
+		GetKeyValuePairsCalled: func(_ string, _ api.AccountQueryOptions) (map[string]string, api.BlockInfo, error) {
+			return pairs, api.BlockInfo{}, nil
 		},
 	}
 
@@ -864,8 +864,8 @@ func TestGetESDTsRoles_NodeFailsShouldError(t *testing.T) {
 	testAddress := "address"
 	expectedErr := errors.New("expected error")
 	facade := mock.FacadeStub{
-		GetESDTsRolesCalled: func(_ string, _ api.AccountQueryOptions) (map[string][]string, error) {
-			return nil, expectedErr
+		GetESDTsRolesCalled: func(_ string, _ api.AccountQueryOptions) (map[string][]string, api.BlockInfo, error) {
+			return nil, api.BlockInfo{}, expectedErr
 		},
 	}
 
@@ -893,8 +893,8 @@ func TestGetESDTsRoles_ShouldWork(t *testing.T) {
 	}
 	testAddress := "address"
 	facade := mock.FacadeStub{
-		GetESDTsRolesCalled: func(_ string, _ api.AccountQueryOptions) (map[string][]string, error) {
-			return roles, nil
+		GetESDTsRolesCalled: func(_ string, _ api.AccountQueryOptions) (map[string][]string, api.BlockInfo, error) {
+			return roles, api.BlockInfo{}, nil
 		},
 	}
 
@@ -922,8 +922,8 @@ func TestAddressGroup_UpdateFacadeStub(t *testing.T) {
 	}
 	testAddress := "address"
 	facade := mock.FacadeStub{
-		GetESDTsRolesCalled: func(_ string, _ api.AccountQueryOptions) (map[string][]string, error) {
-			return roles, nil
+		GetESDTsRolesCalled: func(_ string, _ api.AccountQueryOptions) (map[string][]string, api.BlockInfo, error) {
+			return roles, api.BlockInfo{}, nil
 		},
 	}
 
@@ -943,8 +943,8 @@ func TestAddressGroup_UpdateFacadeStub(t *testing.T) {
 
 	newErr := errors.New("new error")
 	newFacadeStub := mock.FacadeStub{
-		GetESDTsRolesCalled: func(_ string, _ api.AccountQueryOptions) (map[string][]string, error) {
-			return nil, newErr
+		GetESDTsRolesCalled: func(_ string, _ api.AccountQueryOptions) (map[string][]string, api.BlockInfo, error) {
+			return nil, api.BlockInfo{}, newErr
 		},
 	}
 	err = addrGroup.UpdateFacade(&newFacadeStub)

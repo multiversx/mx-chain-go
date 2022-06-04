@@ -6,7 +6,6 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/common"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
@@ -91,16 +90,6 @@ func (repository *accountsRepository) GetExistingAccount(address []byte, rootHas
 	return repository.innerAccountsAdapter.GetExistingAccount(address)
 }
 
-// GetAccountFromBytes will call the inner accountsAdapter method after trying to recreate the trie
-func (repository *accountsRepository) GetAccountFromBytes(address []byte, accountBytes []byte, rootHash []byte) (vmcommon.AccountHandler, error) {
-	err := repository.recreateTrieIfNecessary(rootHash)
-	if err != nil {
-		return nil, err
-	}
-
-	return repository.innerAccountsAdapter.GetAccountFromBytes(address, accountBytes)
-}
-
 // GetCode will call the inner accountsAdapter method after trying to recreate the trie
 func (repository *accountsRepository) GetCode(codeHash []byte, rootHash []byte) []byte {
 	err := repository.recreateTrieIfNecessary(rootHash)
@@ -109,11 +98,6 @@ func (repository *accountsRepository) GetCode(codeHash []byte, rootHash []byte) 
 	}
 
 	return repository.innerAccountsAdapter.GetCode(codeHash)
-}
-
-// GetTrie will call the inner accountsAdapter method
-func (repository *accountsRepository) GetTrie(rootHash []byte) (common.Trie, error) {
-	return repository.innerAccountsAdapter.GetTrie(rootHash)
 }
 
 // Close will handle the closing of the underlying components
