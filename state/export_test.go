@@ -56,12 +56,12 @@ func (accountsDB *accountsDBApi) RecreateTrieIfNecessary() error {
 
 // DoRecreateTrie -
 func (accountsDB *accountsDBApi) DoRecreateTrie(targetRootHash []byte) error {
-	return accountsDB.doRecreateTrie(targetRootHash)
+	return accountsDB.trieController.doRecreateTrie(targetRootHash)
 }
 
 // SetLastRootHash -
 func (accountsDB *accountsDBApi) SetLastRootHash(rootHash []byte) {
-	accountsDB.mutLastRootHash.Lock()
-	accountsDB.lastRootHash = rootHash
-	accountsDB.mutLastRootHash.Unlock()
+	accountsDB.trieController.mutex.Lock()
+	accountsDB.trieController.latestRootHash = rootHash
+	accountsDB.trieController.mutex.Unlock()
 }

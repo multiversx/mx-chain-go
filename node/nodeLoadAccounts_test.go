@@ -72,7 +72,7 @@ func TestNode_GetAccountWithOptionsOnCurrentBlockShouldWork(t *testing.T) {
 	}
 
 	chainHandler := &testscommon.ChainHandlerStub{}
-	chainHandler.SetCurrentBlockHeaderAndRootHash(&block.Header{Nonce: 7}, []byte{0xcc, 0xdd})
+	_ = chainHandler.SetCurrentBlockHeaderAndRootHash(&block.Header{Nonce: 7}, []byte{0xcc, 0xdd})
 	chainHandler.SetCurrentBlockHeaderHash([]byte{0xdd, 0xcc})
 
 	coreComponents := getDefaultCoreComponents()
