@@ -331,7 +331,11 @@ func (sr *subroundEndRound) verifyNodesOnAggSigVerificationFail(
 			log.Debug("verifyNodesOnAggSigVerificationFail.VerifySignatureShare", "error", err.Error())
 
 			invalidSigSharesNodes = append(invalidSigSharesNodes, i)
-			sr.setIndexInBitmap(uint16(i), bitmap)
+			err = sr.setIndexInBitmap(uint16(i), bitmap)
+			if err != nil {
+				return err
+			}
+
 			continue
 		}
 
@@ -340,6 +344,9 @@ func (sr *subroundEndRound) verifyNodesOnAggSigVerificationFail(
 	}
 
 	// TODO: handle slashing on invalid sig share nodes
+	if len(invalidSigSharesNodes) == 0 {
+		log.Debug("verifyNodesOnAggSigVerificationFail.VerifySignatureShare: no invalid signature share")
+	}
 
 	if len(validSigSharesNodes) >= threshold {
 		err := multiSigner.Verify(sr.GetData(), bitmap)
@@ -351,6 +358,7 @@ func (sr *subroundEndRound) verifyNodesOnAggSigVerificationFail(
 	return nil
 }
 
+// TODO: handle this separately, maybe in another component
 func (sr *subroundEndRound) isIndexInBitmap(index uint16, bitmap []byte) error {
 	indexOutOfBounds := index >= uint16(len(sr.ConsensusGroup()))
 	if indexOutOfBounds {
