@@ -554,7 +554,6 @@ func TestStakingV4_StakeNewNodes(t *testing.T) {
 	requireSliceContains(t, currNodesConfig.auction, newNodes0[newOwner0].BLSKeys)
 }
 
-// TODO: test unstake with 1 owner -> 1 bls key in auction => numStakedNodes = 0
 func TestStakingV4_UnStakeNodes(t *testing.T) {
 	pubKeys := generateAddresses(0, 20)
 
@@ -724,4 +723,26 @@ func TestStakingV4_UnStakeNodes(t *testing.T) {
 	requireMapContains(t, currNodesConfig.leaving, [][]byte{owner2Stats.EligibleBlsKeys[0][0]})
 	require.Empty(t, currNodesConfig.new)
 	require.Empty(t, currNodesConfig.queue)
+
+	// 4.1 NewOwner stakes 1 node, should be sent to auction
+	newOwner := "newOwner1"
+	newNode := map[string]*NodesRegisterData{
+		newOwner: {
+			BLSKeys:    [][]byte{generateAddress(444)},
+			TotalStake: big.NewInt(2 * nodePrice),
+		},
+	}
+	node.ProcessStake(t, newNode)
+	currNodesConfig = node.NodesConfig
+	requireSliceContains(t, currNodesConfig.auction, newNode[newOwner].BLSKeys)
+
+	// 4.2 NewOwner unStakes his node, he should not be in auction anymore + set to leaving
+	node.ProcessUnStake(t, map[string][][]byte{
+		newOwner: {newNode[newOwner].BLSKeys[0]},
+	})
+	currNodesConfig = node.NodesConfig
+	requireSliceContainsNumOfElements(t, currNodesConfig.auction, newNode[newOwner].BLSKeys, 0)
+	node.Process(t, 3)
+	currNodesConfig = node.NodesConfig
+	requireMapContains(t, currNodesConfig.leaving, newNode[newOwner].BLSKeys)
 }
