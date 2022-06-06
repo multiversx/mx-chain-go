@@ -209,7 +209,9 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 	if err != nil {
 		log.Debug("doEndRoundJobByLeader.Verify", "error", err.Error())
 
-		err = sr.verifyNodesOnAggSigVerificationFail(currentMultiSigner)
+		newBitmap := make([]byte, len(bitmap))
+		copy(newBitmap, bitmap)
+		err = sr.verifyNodesOnAggSigVerificationFail(currentMultiSigner, newBitmap)
 		if err != nil {
 			log.Debug("doEndRoundJobByLeader.verifyNodesOnAggSigVerificationFail", "error", err.Error())
 			return false
@@ -305,12 +307,19 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 
 func (sr *subroundEndRound) verifyNodesOnAggSigVerificationFail(
 	multiSigner crypto.MultiSigner,
+	bitmap []byte,
 ) error {
 	threshold := sr.Threshold(sr.Current())
 
 	invalidSigSharesNodes := make([]int, 0)
+	validSigSharesNodes := make([]int, 0)
 
 	for i, pk := range sr.ConsensusGroup() {
+		err := sr.isIndexInBitmap(uint16(i), bitmap)
+		if err != nil {
+			continue
+		}
+
 		sigShare, err := multiSigner.SignatureShare(uint16(i))
 		if err != nil {
 			log.Debug("verifyNodesOnAggSigVerificationFail.SignatureShare", "error", err.Error())
@@ -322,15 +331,48 @@ func (sr *subroundEndRound) verifyNodesOnAggSigVerificationFail(
 			log.Debug("verifyNodesOnAggSigVerificationFail.VerifySignatureShare", "error", err.Error())
 
 			invalidSigSharesNodes = append(invalidSigSharesNodes, i)
+			sr.setIndexInBitmap(uint16(i), bitmap)
 			continue
 		}
 
 		log.Debug("verifyNodesOnAggSigVerificationFail.VerifySignatureShare checked SUCCESSFULLY", "public key", pk)
+		validSigSharesNodes = append(validSigSharesNodes, i)
 	}
 
-	numValidSigShares := len(sr.ConsensusGroup()) - len(invalidSigSharesNodes)
-	if numValidSigShares >= threshold {
+	// TODO: handle slashing on invalid sig share nodes
+
+	if len(validSigSharesNodes) >= threshold {
+		err := multiSigner.Verify(sr.GetData(), bitmap)
+		if err != nil {
+			return err
+		}
 	}
+
+	return nil
+}
+
+func (sr *subroundEndRound) isIndexInBitmap(index uint16, bitmap []byte) error {
+	indexOutOfBounds := index >= uint16(len(sr.ConsensusGroup()))
+	if indexOutOfBounds {
+		return fmt.Errorf("bitmap index out of bounds")
+	}
+
+	indexNotInBitmap := bitmap[index/8]&(1<<uint8(index%8)) == 0
+	if indexNotInBitmap {
+		return fmt.Errorf("bitmap index not selected")
+	}
+
+	return nil
+}
+
+func (sr *subroundEndRound) setIndexInBitmap(index uint16, bitmap []byte) error {
+	indexOutOfBounds := index >= uint16(len(sr.ConsensusGroup()))
+	if indexOutOfBounds {
+		return fmt.Errorf("bitmap index out of bounds")
+	}
+
+	mask := ^(1 << uint8(index%8))
+	bitmap[index/8] = bitmap[index/8] & uint8(mask)
 
 	return nil
 }
