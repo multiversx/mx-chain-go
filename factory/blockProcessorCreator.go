@@ -1095,8 +1095,6 @@ func (pcf *processComponentsFactory) createVMFactoryMeta(
 		SystemSCConfig:      pcf.systemSCConfig,
 		ValidatorAccountsDB: pcf.state.PeerAccounts(),
 		ChanceComputer:      pcf.coreData.Rater(),
-		EpochNotifier:       pcf.coreData.EpochNotifier(),
-		EpochConfig:         &pcf.epochConfig,
 		ShardCoordinator:    pcf.bootstrapComponents.ShardCoordinator(),
 		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
 	}

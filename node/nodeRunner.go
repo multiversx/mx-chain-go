@@ -1129,7 +1129,6 @@ func (nr *nodeRunner) CreateManagedStateComponents(
 	}
 	stateArgs := mainFactory.StateComponentsFactoryArgs{
 		Config:           *nr.configs.GeneralConfig,
-		EnableEpochs:     nr.configs.EpochConfig.EnableEpochs,
 		ShardCoordinator: bootstrapComponents.ShardCoordinator(),
 		Core:             coreComponents,
 		StorageService:   dataComponents.StorageService(),

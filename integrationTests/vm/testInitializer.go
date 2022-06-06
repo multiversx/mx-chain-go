@@ -56,7 +56,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/txDataBuilder"
 	"github.com/ElrondNetwork/elrond-go/trie"
@@ -672,8 +671,6 @@ func CreateVMAndBlockchainHookMeta(
 		SystemSCConfig:      createSystemSCConfig(),
 		ValidatorAccountsDB: accnts,
 		ChanceComputer:      &shardingMocks.NodesCoordinatorMock{},
-		EpochNotifier:       &epochNotifier.EpochNotifierStub{},
-		EpochConfig:         createEpochConfig(enableEpochsConfig),
 		ShardCoordinator:    mock.NewMultiShardsCoordinatorMock(1),
 		EnableEpochsHandler: enableEpochsHandler,
 	}
@@ -691,12 +688,6 @@ func CreateVMAndBlockchainHookMeta(
 	_ = vmcommonBuiltInFunctions.SetPayableHandler(builtInFuncs, blockChainHook)
 
 	return vmContainer, blockChainHook
-}
-
-func createEpochConfig(enableEpochs config.EnableEpochs) *config.EpochConfig {
-	return &config.EpochConfig{
-		EnableEpochs: enableEpochs,
-	}
 }
 
 func createSystemSCConfig() *config.SystemSmartContractsConfig {

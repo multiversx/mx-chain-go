@@ -39,10 +39,8 @@ type vmContainerFactory struct {
 	hasher                 hashing.Hasher
 	marshalizer            marshal.Marshalizer
 	systemSCConfig         *config.SystemSmartContractsConfig
-	epochNotifier          process.EpochNotifier
 	addressPubKeyConverter core.PubkeyConverter
 	scFactory              vm.SystemSCContainerFactory
-	epochConfig            *config.EpochConfig
 	shardCoordinator       sharding.Coordinator
 	enableEpochsHandler    common.EnableEpochsHandler
 }
@@ -58,8 +56,6 @@ type ArgsNewVMContainerFactory struct {
 	SystemSCConfig      *config.SystemSmartContractsConfig
 	ValidatorAccountsDB state.AccountsAdapter
 	ChanceComputer      nodesCoordinator.ChanceComputer
-	EpochNotifier       process.EpochNotifier
-	EpochConfig         *config.EpochConfig
 	ShardCoordinator    sharding.Coordinator
 	PubkeyConv          core.PubkeyConverter
 	BlockChainHook      process.BlockChainHookHandler
@@ -122,9 +118,7 @@ func NewVMContainerFactory(args ArgsNewVMContainerFactory) (*vmContainerFactory,
 		systemSCConfig:         args.SystemSCConfig,
 		validatorAccountsDB:    args.ValidatorAccountsDB,
 		chanceComputer:         args.ChanceComputer,
-		epochNotifier:          args.EpochNotifier,
 		addressPubKeyConverter: args.PubkeyConv,
-		epochConfig:            args.EpochConfig,
 		shardCoordinator:       args.ShardCoordinator,
 		enableEpochsHandler:    args.EnableEpochsHandler,
 	}, nil
@@ -194,9 +188,7 @@ func (vmf *vmContainerFactory) createSystemVMFactoryAndEEI() (vm.SystemSCContain
 		Marshalizer:            vmf.marshalizer,
 		SystemSCConfig:         vmf.systemSCConfig,
 		Economics:              vmf.economics,
-		EpochNotifier:          vmf.epochNotifier,
 		AddressPubKeyConverter: vmf.addressPubKeyConverter,
-		EpochConfig:            vmf.epochConfig,
 		ShardCoordinator:       vmf.shardCoordinator,
 		EnableEpochsHandler:    vmf.enableEpochsHandler,
 	}

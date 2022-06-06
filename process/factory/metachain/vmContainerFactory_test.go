@@ -61,14 +61,7 @@ func createVmContainerMockArgument(gasSchedule core.GasScheduleNotifier) ArgsNew
 		},
 		ValidatorAccountsDB: &stateMock.AccountsStub{},
 		ChanceComputer:      &mock.RaterMock{},
-		EpochNotifier:       &epochNotifier.EpochNotifierStub{},
-		EpochConfig: &config.EpochConfig{
-			EnableEpochs: config.EnableEpochs{
-				StakingV2EnableEpoch: 10,
-				StakeEnableEpoch:     0,
-			},
-		},
-		ShardCoordinator: &mock.ShardCoordinatorStub{},
+		ShardCoordinator:    &mock.ShardCoordinatorStub{},
 		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
 			IsStakeFlagEnabledField: true,
 		},
@@ -339,10 +332,6 @@ func TestVmContainerFactory_Create(t *testing.T) {
 		},
 		ValidatorAccountsDB: &stateMock.AccountsStub{},
 		ChanceComputer:      &mock.RaterMock{},
-		EpochNotifier:       &epochNotifier.EpochNotifierStub{},
-		EpochConfig: &config.EpochConfig{
-			EnableEpochs: config.EnableEpochs{},
-		},
 		ShardCoordinator:    mock.NewMultiShardsCoordinatorMock(1),
 		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
 	}

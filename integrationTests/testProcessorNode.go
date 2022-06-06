@@ -939,10 +939,6 @@ func (tpn *TestProcessorNode) createFullSCQueryService() {
 			},
 			ValidatorAccountsDB: tpn.PeerState,
 			ChanceComputer:      tpn.NodesCoordinator,
-			EpochNotifier:       tpn.EpochNotifier,
-			EpochConfig: &config.EpochConfig{
-				EnableEpochs: config.EnableEpochs{},
-			},
 			ShardCoordinator:    tpn.ShardCoordinator,
 			EnableEpochsHandler: tpn.EnableEpochsHandler,
 		}
@@ -1777,10 +1773,6 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		},
 		ValidatorAccountsDB: tpn.PeerState,
 		ChanceComputer:      &mock.RaterMock{},
-		EpochNotifier:       tpn.EpochNotifier,
-		EpochConfig: &config.EpochConfig{
-			EnableEpochs: tpn.EnableEpochs,
-		},
 		ShardCoordinator:    tpn.ShardCoordinator,
 		EnableEpochsHandler: tpn.EnableEpochsHandler,
 	}
