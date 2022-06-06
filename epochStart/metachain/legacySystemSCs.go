@@ -1370,7 +1370,7 @@ func (s *legacySystemSCProcessor) legacyEpochConfirmed(epoch uint32) {
 
 	s.flagSetOwnerEnabled.SetValue(epoch == s.stakingV2EnableEpoch)
 	s.flagStakingV2Enabled.SetValue(epoch >= s.stakingV2EnableEpoch && epoch <= s.stakingV4InitEnableEpoch)
-	log.Debug("legacySystemSC: stakingV2", "enabled", epoch >= s.stakingV2EnableEpoch)
+	log.Debug("legacySystemSC: stakingV2", "enabled", s.flagStakingV2Enabled.IsSet())
 	log.Debug("legacySystemSC: change of maximum number of nodes and/or shuffling percentage",
 		"enabled", s.flagChangeMaxNodesEnabled.IsSet(),
 		"epoch", epoch,
