@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/display"
+	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
@@ -207,6 +208,13 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 	err = currentMultiSigner.Verify(sr.GetData(), bitmap)
 	if err != nil {
 		log.Debug("doEndRoundJobByLeader.Verify", "error", err.Error())
+
+		err = sr.verifyNodesOnAggSigVerificationFail(currentMultiSigner)
+		if err != nil {
+			log.Debug("doEndRoundJobByLeader.verifyNodesOnAggSigVerificationFail", "error", err.Error())
+			return false
+		}
+
 		return false
 	}
 	log.Debug("doEndRoundJobByLeader.Verify: TRIGERRED")
@@ -293,6 +301,38 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 	sr.updateMetricsForLeader()
 
 	return true
+}
+
+func (sr *subroundEndRound) verifyNodesOnAggSigVerificationFail(
+	multiSigner crypto.MultiSigner,
+) error {
+	threshold := sr.Threshold(sr.Current())
+
+	invalidSigSharesNodes := make([]int, 0)
+
+	for i, pk := range sr.ConsensusGroup() {
+		sigShare, err := multiSigner.SignatureShare(uint16(i))
+		if err != nil {
+			log.Debug("verifyNodesOnAggSigVerificationFail.SignatureShare", "error", err.Error())
+			return err
+		}
+
+		err = multiSigner.VerifySignatureShare(uint16(i), sigShare, sr.GetData(), nil)
+		if err != nil {
+			log.Debug("verifyNodesOnAggSigVerificationFail.VerifySignatureShare", "error", err.Error())
+
+			invalidSigSharesNodes = append(invalidSigSharesNodes, i)
+			continue
+		}
+
+		log.Debug("verifyNodesOnAggSigVerificationFail.VerifySignatureShare checked SUCCESSFULLY", "public key", pk)
+	}
+
+	numValidSigShares := len(sr.ConsensusGroup()) - len(invalidSigSharesNodes)
+	if numValidSigShares >= threshold {
+	}
+
+	return nil
 }
 
 func (sr *subroundEndRound) createAndBroadcastHeaderFinalInfo() {
