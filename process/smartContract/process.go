@@ -1224,14 +1224,15 @@ func (sc *scProcessor) createVMInputWithAsyncCallBackAfterBuiltIn(
 	vmOutput *vmcommon.VMOutput,
 	parsedTransfer *vmcommon.ParsedESDTTransfers,
 ) *vmcommon.ContractCallInput {
-	var arguments [][]byte
-	if !sc.flagDeleteWrongArgAsyncAfterBuiltIn.IsSet() {
-		arguments = append(arguments, big.NewInt(int64(vmOutput.ReturnCode)).Bytes())
-	}
+	arguments := [][]byte{big.NewInt(int64(vmOutput.ReturnCode)).Bytes()}
 	gasLimit := vmOutput.GasRemaining
 
 	outAcc, ok := vmOutput.OutputAccounts[string(vmInput.RecipientAddr)]
 	if ok && len(outAcc.OutputTransfers) == 1 {
+		if sc.flagDeleteWrongArgAsyncAfterBuiltIn.IsSet() {
+			arguments = [][]byte{}
+		}
+
 		gasLimit = outAcc.OutputTransfers[0].GasLimit
 		function, args, err := sc.argsParser.ParseCallData(string(outAcc.OutputTransfers[0].Data))
 		log.LogIfError(err, "function", "createVMInputWithAsyncCallBackAfterBuiltIn.ParseCallData")
