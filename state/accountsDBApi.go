@@ -1,10 +1,7 @@
 package state
 
 import (
-	"bytes"
 	"context"
-	"fmt"
-	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
@@ -16,8 +13,7 @@ import (
 type accountsDBApi struct {
 	innerAccountsAdapter AccountsAdapter
 	chainHandler         chainData.ChainHandler
-	mutLastRootHash      sync.RWMutex
-	lastRootHash         []byte
+	trieController       *accountsDBApiTrieController
 }
 
 // NewAccountsDBApi will create a new instance of type accountsDBApi
@@ -32,45 +28,13 @@ func NewAccountsDBApi(innerAccountsAdapter AccountsAdapter, chainHandler chainDa
 	return &accountsDBApi{
 		innerAccountsAdapter: innerAccountsAdapter,
 		chainHandler:         chainHandler,
+		trieController:       newAccountsDBApiTrieController(innerAccountsAdapter),
 	}, nil
 }
 
 func (accountsDB *accountsDBApi) recreateTrieIfNecessary() error {
 	targetRootHash := accountsDB.chainHandler.GetCurrentBlockRootHash()
-	if len(targetRootHash) == 0 {
-		return fmt.Errorf("%w in accountsDBApi when fetching GetCurrentBlockRootHash", ErrNilRootHash)
-	}
-
-	accountsDB.mutLastRootHash.RLock()
-	lastRootHash := accountsDB.lastRootHash
-	accountsDB.mutLastRootHash.RUnlock()
-
-	if bytes.Equal(lastRootHash, targetRootHash) {
-		return nil
-	}
-
-	return accountsDB.doRecreateTrie(targetRootHash)
-}
-
-func (accountsDB *accountsDBApi) doRecreateTrie(targetRootHash []byte) error {
-	accountsDB.mutLastRootHash.Lock()
-	defer accountsDB.mutLastRootHash.Unlock()
-
-	// early exit for possible multiple re-entrances here
-	lastRootHash := accountsDB.lastRootHash
-	if bytes.Equal(lastRootHash, targetRootHash) {
-		return nil
-	}
-
-	err := accountsDB.innerAccountsAdapter.RecreateTrie(targetRootHash)
-	if err != nil {
-		accountsDB.lastRootHash = nil
-		return err
-	}
-
-	accountsDB.lastRootHash = targetRootHash
-
-	return nil
+	return accountsDB.trieController.recreateTrieIfNecessary(targetRootHash)
 }
 
 // GetExistingAccount will call the inner accountsAdapter method after trying to recreate the trie
@@ -145,14 +109,7 @@ func (accountsDB *accountsDBApi) GetCode(codeHash []byte) []byte {
 
 // RootHash will return last loaded root hash
 func (accountsDB *accountsDBApi) RootHash() ([]byte, error) {
-	accountsDB.mutLastRootHash.RLock()
-	defer accountsDB.mutLastRootHash.RUnlock()
-
-	if accountsDB.lastRootHash == nil {
-		return nil, ErrNilRootHash
-	}
-
-	return accountsDB.lastRootHash, nil
+	return accountsDB.trieController.getLatestRootHash()
 }
 
 // RecreateTrie is a not permitted operation in this implementation and thus, will return an error
