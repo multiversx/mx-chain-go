@@ -594,6 +594,19 @@ func (nf *nodeFacade) GetGenesisNodesPubKeys() (map[uint32][]string, map[uint32]
 	return eligible, waiting, nil
 }
 
+// GetGenesisBalances will return the balances minted on the genesis block
+func (nf *nodeFacade) GetGenesisBalances() ([]*common.InitialAccountAPI, error) {
+	initialAccounts, err := nf.apiResolver.GetGenesisBalances()
+	if err != nil {
+		return nil, err
+	}
+	if len(initialAccounts) == 0 {
+		return nil, ErrNilGenesisBalances
+	}
+
+	return initialAccounts, nil
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (nf *nodeFacade) IsInterfaceNil() bool {
 	return nf == nil

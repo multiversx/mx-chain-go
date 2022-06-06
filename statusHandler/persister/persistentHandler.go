@@ -50,6 +50,7 @@ func NewPersistentStatusHandler(
 func (psh *PersistentStatusHandler) initMap() {
 	initUint := uint64(0)
 	zeroString := "0"
+	emptyString := ""
 
 	psh.persistentMetrics.Store(common.MetricCountConsensus, initUint)
 	psh.persistentMetrics.Store(common.MetricCountConsensusAcceptedBlocks, initUint)
@@ -64,6 +65,7 @@ func (psh *PersistentStatusHandler) initMap() {
 	psh.persistentMetrics.Store(common.MetricTotalSupply, zeroString)
 	psh.persistentMetrics.Store(common.MetricTotalFees, zeroString)
 	psh.persistentMetrics.Store(common.MetricDevRewardsInEpoch, zeroString)
+	psh.persistentMetrics.Store(common.MetricGenesisBlockHash, emptyString)
 	psh.persistentMetrics.Store(common.MetricInflation, zeroString)
 	psh.persistentMetrics.Store(common.MetricEpochForEconomicsData, initUint)
 }

@@ -90,6 +90,9 @@ const MetricNumConnectedPeersClassification = "erd_num_connected_peers_classific
 // MetricSynchronizedRound is the metric for monitoring the synchronized round of a node
 const MetricSynchronizedRound = "erd_synchronized_round"
 
+// MetricGenesisBlockHash is the metric that holds the hash of the genesis block
+const MetricGenesisBlockHash = "erd_genesis_block_hash"
+
 // MetricIsSyncing is the metric for monitoring if a node is syncing
 const MetricIsSyncing = "erd_is_syncing"
 
