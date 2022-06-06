@@ -1,6 +1,7 @@
 package mock
 
 import (
+	"errors"
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go-core/data"
@@ -8,12 +9,13 @@ import (
 
 // InterceptedTxHandlerStub -
 type InterceptedTxHandlerStub struct {
-	SenderShardIdCalled   func() uint32
-	ReceiverShardIdCalled func() uint32
-	NonceCalled           func() uint64
-	SenderAddressCalled   func() []byte
-	FeeCalled             func() *big.Int
-	TransactionCalled     func() data.TransactionHandler
+	SenderShardIdCalled              func() uint32
+	ReceiverShardIdCalled            func() uint32
+	NonceCalled                      func() uint64
+	SenderAddressCalled              func() []byte
+	FeeCalled                        func() *big.Int
+	TransactionCalled                func() data.TransactionHandler
+	GetUserTxSenderInRelayedTxCalled func() ([]byte, error)
 }
 
 // SenderShardId -
@@ -44,4 +46,12 @@ func (iths *InterceptedTxHandlerStub) Fee() *big.Int {
 // Transaction -
 func (iths *InterceptedTxHandlerStub) Transaction() data.TransactionHandler {
 	return iths.TransactionCalled()
+}
+
+// GetUserTxSenderInRelayedTx returns error as rewards cannot be relayed
+func (iths *InterceptedTxHandlerStub) GetUserTxSenderInRelayedTx() ([]byte, error) {
+	if iths.GetUserTxSenderInRelayedTxCalled != nil {
+		return iths.GetUserTxSenderInRelayedTxCalled()
+	}
+	return nil, errors.New("error")
 }

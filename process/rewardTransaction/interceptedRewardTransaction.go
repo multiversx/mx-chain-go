@@ -124,6 +124,11 @@ func (inRTx *InterceptedRewardTransaction) Transaction() data.TransactionHandler
 	return inRTx.rTx
 }
 
+// GetUserTxSenderInRelayedTx returns error as rewards cannot be relayed
+func(inRTx *InterceptedRewardTransaction) GetUserTxSenderInRelayedTx() ([]byte, error) {
+	return nil, process.ErrNotARelayedTx
+}
+
 // Hash gets the hash of this transaction
 func (inRTx *InterceptedRewardTransaction) Hash() []byte {
 	return inRTx.hash

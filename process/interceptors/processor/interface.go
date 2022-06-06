@@ -15,6 +15,7 @@ type InterceptedTransactionHandler interface {
 	SenderAddress() []byte
 	Fee() *big.Int
 	Transaction() data.TransactionHandler
+	GetUserTxSenderInRelayedTx() ([]byte, error)
 }
 
 // ShardedPool is a perspective of the sharded data pool

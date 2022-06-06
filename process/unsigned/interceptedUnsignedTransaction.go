@@ -140,6 +140,11 @@ func (inUTx *InterceptedUnsignedTransaction) Transaction() data.TransactionHandl
 	return inUTx.uTx
 }
 
+// GetUserTxSenderInRelayedTx returns error as an unsigned transaction cannot be relayed
+func (inUTx *InterceptedUnsignedTransaction) GetUserTxSenderInRelayedTx() ([]byte, error) {
+	return nil, process.ErrNotARelayedTx
+}
+
 // Fee represents the unsigned transaction fee. It is always 0
 func (inUTx *InterceptedUnsignedTransaction) Fee() *big.Int {
 	return big.NewInt(0)

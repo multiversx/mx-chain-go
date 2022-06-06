@@ -198,6 +198,21 @@ func (inTx *InterceptedTransaction) CheckValidity() error {
 	return nil
 }
 
+// GetUserTxSenderInRelayedTx returns the user tx sender in a relayed tx
+func (inTx *InterceptedTransaction) GetUserTxSenderInRelayedTx() ([]byte, error) {
+	funcName, _, err := inTx.argsParser.ParseCallData(string(inTx.tx.Data))
+	if err != nil {
+		return nil, err
+	}
+
+	if !isRelayedTx(funcName) {
+		return nil, process.ErrNotARelayedTx
+	}
+
+	// the user tx sender is the relayed tx receiver
+	return inTx.tx.RcvAddr, nil
+}
+
 func isRelayedTx(funcName string) bool {
 	return core.RelayedTransaction == funcName || core.RelayedTransactionV2 == funcName
 }

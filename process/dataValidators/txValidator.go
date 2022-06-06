@@ -61,12 +61,10 @@ func NewTxValidator(
 // CheckTxValidity will filter transactions that needs to be added in pools
 func (txv *txValidator) CheckTxValidity(interceptedTx process.TxValidatorHandler) error {
 	// TODO: Refactor, extract methods.
-	shardID := txv.shardCoordinator.SelfId()
-	txShardID := interceptedTx.SenderShardId()
-	senderIsInAnotherShard := shardID != txShardID
-	senderAddress := interceptedTx.SenderAddress()
-	if !senderIsInAnotherShard && txv.addrBlackListChecker.IsBlacklisted(senderAddress) {
-		return process.ErrBlacklistedAddress
+
+	err := txv.checkBlacklist(interceptedTx)
+	if err != nil {
+		return err
 	}
 
 	interceptedData, ok := interceptedTx.(process.InterceptedData)
@@ -76,10 +74,14 @@ func (txv *txValidator) CheckTxValidity(interceptedTx process.TxValidatorHandler
 		}
 	}
 
+	shardID := txv.shardCoordinator.SelfId()
+	txShardID := interceptedTx.SenderShardId()
+	senderIsInAnotherShard := shardID != txShardID
 	if senderIsInAnotherShard {
 		return nil
 	}
 
+	senderAddress := interceptedTx.SenderAddress()
 	accountHandler, err := txv.accounts.GetExistingAccount(senderAddress)
 	if err != nil {
 		return fmt.Errorf("%w for address %s and shard %d, err: %s",
@@ -120,6 +122,31 @@ func (txv *txValidator) CheckTxValidity(interceptedTx process.TxValidatorHandler
 			txFee,
 			accountBalance,
 		)
+	}
+
+	return nil
+}
+
+func (txv *txValidator) checkBlacklist(interceptedTx process.TxValidatorHandler) error {
+	shardID := txv.shardCoordinator.SelfId()
+	txShardID := interceptedTx.SenderShardId()
+	senderInShard := shardID == txShardID
+	senderAddress := interceptedTx.SenderAddress()
+
+	inTxHandler, ok := interceptedTx.(processor.InterceptedTransactionHandler)
+	if !ok {
+		return process.ErrWrongTypeAssertion
+	}
+
+	blacklist := txv.addrBlackListChecker.IsBlacklisted(senderAddress)
+	userTxSender, err := inTxHandler.GetUserTxSenderInRelayedTx()
+	if err == nil {
+		blacklist = blacklist || txv.addrBlackListChecker.IsBlacklisted(userTxSender)
+	}
+
+	// relayer is in the shard and either userTx sender or relayer are blacklisted
+	if senderInShard && blacklist {
+		return process.ErrBlacklistedAddress
 	}
 
 	return nil

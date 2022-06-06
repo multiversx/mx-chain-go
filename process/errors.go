@@ -1079,3 +1079,6 @@ var ErrNilAddrBlacklistChecker = errors.New("nil address black list checker")
 
 // ErrBlacklistedAddress signals that an address is blacklisted
 var ErrBlacklistedAddress = errors.New("address is blacklisted")
+
+// ErrNotARelayedTx signals that the error is not a relayed transaction
+var ErrNotARelayedTx = errors.New("the transaction is not a relayed transaction")

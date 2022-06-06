@@ -1,12 +1,15 @@
 package dataValidators_test
 
 import (
+	"bytes"
 	"errors"
 	"math/big"
 	"strconv"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/dataValidators"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
@@ -15,6 +18,7 @@ import (
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func getAccAdapter(nonce uint64, balance *big.Int) *stateMock.AccountsStub {
@@ -406,6 +410,116 @@ func TestTxValidator_CheckTxValidityTxIsOkShouldReturnTrue(t *testing.T) {
 	assert.Nil(t, result)
 }
 
+func TestTxValidator_checkBlacklist(t *testing.T) {
+	adb := getAccAdapter(0, big.NewInt(0))
+	shardCoordinator := createMockCoordinator("_", 0)
+	maxNonceDeltaAllowed := 100
+	blacklisted := []byte("blacklisted")
+	notBlacklisted := []byte("not Blacklisted")
+
+	txValidator, err := dataValidators.NewTxValidator(
+		adb,
+		shardCoordinator,
+		&testscommon.WhiteListHandlerStub{},
+		mock.NewPubkeyConverterMock(32),
+		&testscommon.AddressBlacklistCheckerStub{
+			IsBlacklistedCalled: func(addrBytes []byte) bool {
+				if bytes.Equal(addrBytes, blacklisted) {
+					return true
+				}
+				return false
+			},
+		},
+		maxNonceDeltaAllowed,
+	)
+	require.Nil(t, err)
+
+
+	t.Run("normal tx with blacklist, destination should allow", func(t *testing.T) {
+		inTx := createInterceptedTransactionHandler(&transaction.Transaction{SndAddr: blacklisted})
+		require.Nil(t, err)
+
+		inTx.SenderShardIdCalled = func() uint32 {
+			return 1
+		}
+
+		errCheck := txValidator.CheckBlacklist(inTx)
+		require.Nil(t, errCheck)
+	})
+	t.Run("normal tx with blacklist, source should block", func(t *testing.T) {
+		inTx := createInterceptedTransactionHandler(&transaction.Transaction{SndAddr: blacklisted})
+		inTx.SenderShardIdCalled = func() uint32 {
+			return 0
+		}
+
+		errCheck := txValidator.CheckBlacklist(inTx)
+		require.Equal(t, process.ErrBlacklistedAddress, errCheck)
+	})
+	t.Run("normal tx with no blacklist, should allow", func(t *testing.T) {
+		inTx := createInterceptedTransactionHandler(&transaction.Transaction{SndAddr: notBlacklisted})
+		inTx.SenderShardIdCalled = func() uint32 {
+			return 0
+		}
+
+		errCheck := txValidator.CheckBlacklist(inTx)
+		require.Nil(t, errCheck)
+	})
+	t.Run("relayed with blacklist relayer, on destination should allow", func(t *testing.T) {
+		inTx := createInterceptedTransactionHandler(&transaction.Transaction{SndAddr: blacklisted, Data: []byte("relayed")})
+		inTx.SenderShardIdCalled = func() uint32 {
+			return 1
+		}
+
+		errCheck := txValidator.CheckBlacklist(inTx)
+		require.Nil(t, errCheck)
+	})
+	t.Run("relayed with blacklist relayer, on source should block", func(t *testing.T) {
+		inTx := createInterceptedTransactionHandler(&transaction.Transaction{SndAddr: blacklisted, Data: []byte("relayed")})
+		inTx.SenderShardIdCalled = func() uint32 {
+			return 0
+		}
+
+		errCheck := txValidator.CheckBlacklist(inTx)
+		require.Equal(t, process.ErrBlacklistedAddress, errCheck)
+	})
+	t.Run("relayed with blacklist user, on destination should allow", func(t *testing.T) {
+		inTx := createInterceptedTransactionHandler(&transaction.Transaction{SndAddr: notBlacklisted, RcvAddr: blacklisted, Data: []byte("relayed")})
+		inTx.SenderShardIdCalled = func() uint32 {
+			return 1
+		}
+
+		errCheck := txValidator.CheckBlacklist(inTx)
+		require.Nil(t, errCheck)
+	})
+	t.Run("relayed with blacklist user, on source should block", func(t *testing.T) {
+		inTx := createInterceptedTransactionHandler(&transaction.Transaction{SndAddr: notBlacklisted, RcvAddr: blacklisted, Data: []byte("relayed")})
+		inTx.SenderShardIdCalled = func() uint32 {
+			return 0
+		}
+
+		errCheck := txValidator.CheckBlacklist(inTx)
+		require.Equal(t,process.ErrBlacklistedAddress, errCheck)
+	})
+	t.Run("relayed with no blacklist, on source should allow", func(t *testing.T) {
+		inTx := createInterceptedTransactionHandler(&transaction.Transaction{SndAddr: notBlacklisted, RcvAddr: notBlacklisted, Data: []byte("relayed")})
+		inTx.SenderShardIdCalled = func() uint32 {
+			return 0
+		}
+
+		errCheck := txValidator.CheckBlacklist(inTx)
+		require.Nil(t, errCheck)
+	})
+	t.Run("relayed with no blacklist, on destination should allow", func(t *testing.T) {
+		inTx := createInterceptedTransactionHandler(&transaction.Transaction{SndAddr: notBlacklisted, RcvAddr: notBlacklisted, Data: []byte("relayed")})
+		inTx.SenderShardIdCalled = func() uint32 {
+			return 1
+		}
+
+		errCheck := txValidator.CheckBlacklist(inTx)
+		require.Nil(t, errCheck)
+	})
+}
+
 //------- IsInterfaceNil
 
 func TestTxValidator_IsInterfaceNil(t *testing.T) {
@@ -425,4 +539,33 @@ func TestTxValidator_IsInterfaceNil(t *testing.T) {
 	txValidator = nil
 
 	assert.True(t, check.IfNil(txValidator))
+}
+
+func createInterceptedTransactionHandler(transaction *transaction.Transaction) *mock.InterceptedTxHandlerStub {
+	return &mock.InterceptedTxHandlerStub{
+		SenderShardIdCalled: func() uint32 {
+			return 0
+		},
+		ReceiverShardIdCalled: func() uint32 {
+			return 0
+		},
+		NonceCalled: func() uint64 {
+			return 0
+		},
+		SenderAddressCalled: func() []byte {
+			return transaction.SndAddr
+		},
+		FeeCalled: func() *big.Int {
+			return big.NewInt(0)
+		},
+		TransactionCalled: func() data.TransactionHandler {
+			return &*transaction
+		},
+		GetUserTxSenderInRelayedTxCalled: func() ([]byte, error) {
+			if bytes.Equal(transaction.Data, []byte("relayed")) {
+				return transaction.RcvAddr, nil
+			}
+			return nil, errors.New("error")
+		},
+	}
 }
