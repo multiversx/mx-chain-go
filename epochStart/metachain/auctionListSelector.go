@@ -309,7 +309,7 @@ func copyOwnersData(ownersData map[string]*ownerAuctionData) map[string]*ownerAu
 	return ret
 }
 
-func calcNodesConfig(ownersData map[string]*ownerData, topUp *big.Int) int64 {
+func calcNodesConfig(ownersData map[string]*ownerAuctionData, topUp *big.Int) int64 {
 	numNodesQualifyingForTopUp := int64(0)
 
 	for ownerPubKey, owner := range ownersData {
