@@ -746,3 +746,75 @@ func TestStakingV4_UnStakeNodes(t *testing.T) {
 	currNodesConfig = node.NodesConfig
 	requireMapContains(t, currNodesConfig.leaving, newNode[newOwner].BLSKeys)
 }
+
+func TestStakingV4_UnJailNodes(t *testing.T) {
+	pubKeys := generateAddresses(0, 20)
+
+	owner1 := "owner1"
+	owner1Stats := &OwnerStats{
+		EligibleBlsKeys: map[uint32][][]byte{
+			core.MetachainShardId: pubKeys[:2],
+		},
+		WaitingBlsKeys: map[uint32][][]byte{
+			0: pubKeys[2:4],
+		},
+		StakingQueueKeys: pubKeys[4:6],
+		TotalStake:       big.NewInt(10 * nodePrice),
+	}
+
+	owner2 := "owner2"
+	owner2Stats := &OwnerStats{
+		EligibleBlsKeys: map[uint32][][]byte{
+			0: pubKeys[6:8],
+		},
+		WaitingBlsKeys: map[uint32][][]byte{
+			core.MetachainShardId: pubKeys[8:12],
+		},
+		StakingQueueKeys: pubKeys[12:15],
+		TotalStake:       big.NewInt(10 * nodePrice),
+	}
+
+	owner3 := "owner3"
+	owner3Stats := &OwnerStats{
+		StakingQueueKeys: pubKeys[15:17],
+		TotalStake:       big.NewInt(6 * nodePrice),
+	}
+
+	cfg := &InitialNodesConfig{
+		MetaConsensusGroupSize:        1,
+		ShardConsensusGroupSize:       1,
+		MinNumberOfEligibleShardNodes: 2,
+		MinNumberOfEligibleMetaNodes:  2,
+		NumOfShards:                   1,
+		Owners: map[string]*OwnerStats{
+			owner1: owner1Stats,
+			owner2: owner2Stats,
+			owner3: owner3Stats,
+		},
+		MaxNodesChangeConfig: []config.MaxNodesChangeConfig{
+			{
+				EpochEnable:            0,
+				MaxNumNodes:            10,
+				NodesToShufflePerShard: 1,
+			},
+		},
+	}
+	node := NewTestMetaProcessorWithCustomNodes(cfg)
+	node.EpochStartTrigger.SetRoundsPerEpoch(4)
+
+	// 1. Check initial config is correct
+	currNodesConfig := node.NodesConfig
+	require.Len(t, getAllPubKeys(currNodesConfig.eligible), 4)
+	require.Len(t, getAllPubKeys(currNodesConfig.waiting), 6)
+	require.Len(t, currNodesConfig.eligible[core.MetachainShardId], 2)
+	require.Len(t, currNodesConfig.waiting[core.MetachainShardId], 4)
+	require.Len(t, currNodesConfig.eligible[0], 2)
+	require.Len(t, currNodesConfig.waiting[0], 2)
+	require.Empty(t, currNodesConfig.shuffledOut)
+	require.Empty(t, currNodesConfig.auction)
+	node.ProcessJail(t, owner1Stats.WaitingBlsKeys[0])
+
+	node.Process(t, 5)
+	currNodesConfig = node.NodesConfig
+	requireMapContains(t, currNodesConfig.leaving, owner1Stats.WaitingBlsKeys[0])
+}

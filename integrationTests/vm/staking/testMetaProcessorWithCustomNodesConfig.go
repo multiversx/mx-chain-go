@@ -220,6 +220,65 @@ func (tmp *TestMetaProcessor) doUnStake(
 	return createSCRsFromStakingSCOutput(vmOutput, marshaller)
 }
 
+// ProcessJail will create a block containing mini blocks with jail txs using provided nodes.
+// Block will be committed + call to validator system sc will be made to jail all nodes
+func (tmp *TestMetaProcessor) ProcessJail(t *testing.T, blsKeys [][]byte) {
+	header := tmp.createNewHeader(t, tmp.currentRound)
+	tmp.BlockChainHook.SetCurrentHeader(header)
+
+	scrs := tmp.doJail(t, vmcommon.VMInput{
+		CallerAddr:  vm.JailingAddress,
+		Arguments:   createJailArgs(blsKeys),
+		CallValue:   big.NewInt(0),
+		GasProvided: 10,
+	}, tmp.Marshaller)
+	_, err := tmp.AccountsAdapter.Commit()
+	require.Nil(t, err)
+
+	txHashes := tmp.addTxsToCacher(scrs)
+	miniBlocks := block.MiniBlockSlice{
+		{
+			TxHashes:        txHashes,
+			SenderShardID:   core.MetachainShardId,
+			ReceiverShardID: core.MetachainShardId,
+			Type:            block.SmartContractResultBlock,
+		},
+	}
+	tmp.TxCoordinator.AddTxsFromMiniBlocks(miniBlocks)
+	tmp.createAndCommitBlock(t, header, noTime)
+
+	tmp.currentRound += 1
+}
+
+func createJailArgs(blsKeys [][]byte) [][]byte {
+	argsUnStake := make([][]byte, 0)
+	for _, blsKey := range blsKeys {
+		argsUnStake = append(argsUnStake, blsKey)
+	}
+
+	return argsUnStake
+}
+
+func (tmp *TestMetaProcessor) doJail(
+	t *testing.T,
+	vmInput vmcommon.VMInput,
+	marshaller marshal.Marshalizer,
+) map[string]*smartContractResult.SmartContractResult {
+	arguments := &vmcommon.ContractCallInput{
+		VMInput:       vmInput,
+		RecipientAddr: vm.StakingSCAddress,
+		Function:      "jail",
+	}
+	vmOutput, err := tmp.SystemVM.RunSmartContractCall(arguments)
+	require.Nil(t, err)
+	require.Equal(t, vmcommon.Ok, vmOutput.ReturnCode)
+
+	err = integrationTests.ProcessSCOutputAccounts(vmOutput, tmp.AccountsAdapter)
+	require.Nil(t, err)
+
+	return createSCRsFromStakingSCOutput(vmOutput, marshaller)
+}
+
 func createSCRsFromStakingSCOutput(
 	vmOutput *vmcommon.VMOutput,
 	marshaller marshal.Marshalizer,
