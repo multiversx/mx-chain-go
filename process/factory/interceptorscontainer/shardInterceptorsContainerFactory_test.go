@@ -616,6 +616,7 @@ func createMockComponentHolders() (*mock.CoreComponentsMock, *mock.CryptoCompone
 		},
 		EpochNotifierField:  &epochNotifier.EpochNotifierStub{},
 		TxVersionCheckField: versioning.NewTxVersionChecker(1),
+		AddressBlacklistCheckerField: &testscommon.AddressBlacklistCheckerStub{},
 	}
 	cryptoComponents := &mock.CryptoComponentsMock{
 		BlockSig: &mock.SignerMock{},

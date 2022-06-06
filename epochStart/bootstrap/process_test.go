@@ -72,6 +72,7 @@ func createComponentsForEpochStart() (*mock.CoreComponentsMock, *mock.CryptoComp
 			TxVersionCheckField:          versioning.NewTxVersionChecker(1),
 			NodeTypeProviderField:        &nodeTypeProviderMock.NodeTypeProviderStub{},
 			ProcessStatusHandlerInstance: &testscommon.ProcessStatusHandlerStub{},
+			AddressBlacklistCheckerField: &testscommon.AddressBlacklistCheckerStub{},
 		},
 		&mock.CryptoComponentsMock{
 			PubKey:   &cryptoMocks.PublicKeyStub{},
