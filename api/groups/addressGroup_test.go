@@ -17,9 +17,16 @@ import (
 	"github.com/ElrondNetwork/elrond-go/api/mock"
 	"github.com/ElrondNetwork/elrond-go/api/shared"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+type wrappedAcountResponse struct {
+	Data  accountResponse `json:"data"`
+	Error string          `json:"error"`
+	Code  string          `json:"code"`
+}
 
 type accountResponse struct {
 	Account struct {
@@ -453,6 +460,65 @@ func TestGetAccount_ReturnsSuccessfully(t *testing.T) {
 	assert.Equal(t, "100", accountResponse.Account.Balance)
 	assert.Equal(t, "120", accountResponse.Account.DeveloperReward)
 	assert.Empty(t, response.Error)
+}
+
+func TestGetAccount_WithBadQueryOptionsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	facade := mock.FacadeStub{
+		GetAccountCalled: func(address string, _ api.AccountQueryOptions) (api.AccountResponse, api.BlockInfo, error) {
+			return api.AccountResponse{Nonce: 1}, api.BlockInfo{}, nil
+		},
+	}
+
+	addrGroup, err := groups.NewAddressGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(addrGroup, "address", getAddressRoutesConfig())
+
+	response, code := httpGetAccount(ws, "/address/alice?onFinalBlock=bad")
+	require.Equal(t, http.StatusBadRequest, code)
+	require.Contains(t, response.Error, apiErrors.ErrBadUrlParams.Error())
+
+	response, code = httpGetAccount(ws, "/address/alice?onStartOfEpoch=bad")
+	require.Equal(t, http.StatusBadRequest, code)
+	require.Contains(t, response.Error, apiErrors.ErrBadUrlParams.Error())
+}
+
+func TestGetAccount_WithQueryOptionsShouldWork(t *testing.T) {
+	t.Parallel()
+
+	var calledWithAddress string
+	var calledWithOptions api.AccountQueryOptions
+
+	facade := mock.FacadeStub{
+		GetAccountCalled: func(address string, options api.AccountQueryOptions) (api.AccountResponse, api.BlockInfo, error) {
+			calledWithAddress = address
+			calledWithOptions = options
+			return api.AccountResponse{Nonce: 1}, api.BlockInfo{}, nil
+		},
+	}
+
+	addrGroup, err := groups.NewAddressGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(addrGroup, "address", getAddressRoutesConfig())
+
+	response, code := httpGetAccount(ws, "/address/alice?onFinalBlock=true")
+	require.Equal(t, http.StatusOK, code)
+	require.NotNil(t, response)
+	require.Equal(t, "alice", calledWithAddress)
+	require.Equal(t, api.AccountQueryOptions{OnFinalBlock: true}, calledWithOptions)
+}
+
+func httpGetAccount(ws *gin.Engine, url string) (wrappedAcountResponse, int) {
+	httpRequest, _ := http.NewRequest("GET", url, nil)
+	httpResponse := httptest.NewRecorder()
+	ws.ServeHTTP(httpResponse, httpRequest)
+
+	accountResponse := wrappedAcountResponse{}
+	loadResponse(httpResponse.Body, &accountResponse)
+	return accountResponse, httpResponse.Code
 }
 
 func TestGetESDTBalance_NodeFailsShouldError(t *testing.T) {
