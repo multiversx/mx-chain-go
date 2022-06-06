@@ -228,7 +228,7 @@ func (tmp *TestMetaProcessor) ProcessJail(t *testing.T, blsKeys [][]byte) {
 
 	scrs := tmp.doJail(t, vmcommon.VMInput{
 		CallerAddr:  vm.JailingAddress,
-		Arguments:   createJailArgs(blsKeys),
+		Arguments:   blsKeys,
 		CallValue:   big.NewInt(0),
 		GasProvided: 10,
 	}, tmp.Marshaller)
@@ -248,15 +248,6 @@ func (tmp *TestMetaProcessor) ProcessJail(t *testing.T, blsKeys [][]byte) {
 	tmp.createAndCommitBlock(t, header, noTime)
 
 	tmp.currentRound += 1
-}
-
-func createJailArgs(blsKeys [][]byte) [][]byte {
-	argsUnStake := make([][]byte, 0)
-	for _, blsKey := range blsKeys {
-		argsUnStake = append(argsUnStake, blsKey)
-	}
-
-	return argsUnStake
 }
 
 func (tmp *TestMetaProcessor) doJail(
