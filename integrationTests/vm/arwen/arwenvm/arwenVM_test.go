@@ -159,9 +159,7 @@ func TestSCMoveBalanceBeforeSCDeploy(t *testing.T) {
 		ownerNonce,
 		ownerAddressBytes,
 		ownerBalance,
-		config.EnableEpochs{
-			PenalizedTooMuchGasEnableEpoch: 100,
-		},
+		config.EnableEpochs{},
 	)
 	require.Nil(t, err)
 	defer testContext.Close()
@@ -250,9 +248,7 @@ func TestWASMMetering(t *testing.T) {
 		ownerNonce,
 		ownerAddressBytes,
 		ownerBalance,
-		config.EnableEpochs{
-			PenalizedTooMuchGasEnableEpoch: 100,
-		},
+		config.EnableEpochs{},
 	)
 	require.Nil(t, err)
 	defer testContext.Close()

@@ -22,9 +22,7 @@ import (
 
 func TestRelayedBuildInFunctionChangeOwnerCallShouldWork(t *testing.T) {
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(
-		config.EnableEpochs{
-			PenalizedTooMuchGasEnableEpoch: 100,
-		})
+		config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContext.Close()
 
