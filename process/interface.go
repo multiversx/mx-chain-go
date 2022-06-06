@@ -1032,13 +1032,6 @@ type RoundSubscriberHandler interface {
 	IsInterfaceNil() bool
 }
 
-// RoundNotifier can notify upon round change in current processed block
-type RoundNotifier interface {
-	RegisterNotifyHandler(handler RoundSubscriberHandler)
-	CheckRound(round uint64)
-	IsInterfaceNil() bool
-}
-
 // ESDTPauseHandler provides IsPaused function for an ESDT token
 type ESDTPauseHandler interface {
 	IsPaused(token []byte) bool
