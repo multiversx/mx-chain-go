@@ -31,6 +31,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node/metrics"
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/dataValidators"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/rating"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
@@ -102,6 +103,7 @@ type coreComponents struct {
 	encodedAddressLen             uint32
 	arwenChangeLocker             common.Locker
 	processStatusHandler          common.ProcessStatusHandler
+	addressBlacklistChecker       process.AddressBlacklistChecker
 }
 
 // NewCoreComponentsFactory initializes the factory which is responsible to creating core components
@@ -326,6 +328,11 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 	// set as observer at first - it will be updated when creating the nodes coordinator
 	nodeTypeProvider := nodetype.NewNodeTypeProvider(core.NodeTypeObserver)
 
+	addressBlacklistChecker, err := dataValidators.NewAddressBlacklist(ccf.config.InterceptorBlacklist.Addresses, addressPubkeyConverter)
+	if err != nil {
+		return nil, err
+	}
+
 	return &coreComponents{
 		hasher:                        hasher,
 		txSignHasher:                  txSignHasher,
@@ -359,6 +366,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		nodeTypeProvider:              nodeTypeProvider,
 		arwenChangeLocker:             arwenChangeLocker,
 		processStatusHandler:          statusHandler.NewProcessStatusHandler(),
+		addressBlacklistChecker:       addressBlacklistChecker,
 	}, nil
 }
 

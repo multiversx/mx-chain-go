@@ -48,6 +48,10 @@ type PubkeyConfig struct {
 	SignatureLength int
 }
 
+type InterceptorBlacklistConfig struct {
+	Addresses []string
+}
+
 // TypeConfig will map the string type configuration
 type TypeConfig struct {
 	Type string
@@ -147,6 +151,7 @@ type Config struct {
 	SmartContractDataPool       CacheConfig
 	TrieSyncStorage             TrieSyncStorageConfig
 	EpochStartConfig            EpochStartConfig
+	InterceptorBlacklist        InterceptorBlacklistConfig
 	AddressPubkeyConverter      PubkeyConfig
 	ValidatorPubkeyConverter    PubkeyConfig
 	Hasher                      TypeConfig

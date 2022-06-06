@@ -67,6 +67,12 @@ type TxValidator interface {
 	IsInterfaceNil() bool
 }
 
+// AddressBlacklistChecker checks if address is blacklisted
+type AddressBlacklistChecker interface {
+	IsBlacklisted(addrBytes []byte) bool
+	IsInterfaceNil() bool
+}
+
 // TxValidatorHandler defines the functionality that is needed for a TxValidator to validate a transaction
 type TxValidatorHandler interface {
 	SenderShardId() uint32
@@ -1090,6 +1096,7 @@ type CoreComponentsHolder interface {
 	ChanStopNodeProcess() chan endProcess.ArgEndProcess
 	NodeTypeProvider() core.NodeTypeProviderHandler
 	ProcessStatusHandler() common.ProcessStatusHandler
+	AddressBlacklistChecker() AddressBlacklistChecker
 	IsInterfaceNil() bool
 }
 

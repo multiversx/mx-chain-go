@@ -46,6 +46,8 @@ func TestTomlParser(t *testing.T) {
 			{StartEpoch: 88, Version: "v1.2"},
 		},
 	}
+	addr1 := "xxxxxxx"
+	addr2 := "yyyyyyy"
 
 	cfgExpected := Config{
 		MiniBlocksStorage: StorageConfig{
@@ -88,6 +90,9 @@ func TestTomlParser(t *testing.T) {
 				FilePath: accountsStorageFile,
 				Type:     accountsStorageTypeDB,
 			},
+		},
+		InterceptorBlacklist: InterceptorBlacklistConfig{
+			Addresses: []string{addr1, addr2},
 		},
 		Hasher: TypeConfig{
 			Type: hasherType,
@@ -176,6 +181,9 @@ func TestTomlParser(t *testing.T) {
 
 [Consensus]
 	Type = "` + consensusType + `"
+
+[InterceptorBlacklist]
+    Addresses = [ "` + addr1 + `","` + addr2 + `"]
 
 [VirtualMachine]
     [VirtualMachine.Execution]

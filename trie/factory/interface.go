@@ -4,6 +4,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -12,4 +13,5 @@ type coreComponentsHandler interface {
 	Hasher() hashing.Hasher
 	PathHandler() storage.PathManagerHandler
 	ProcessStatusHandler() common.ProcessStatusHandler
+	AddressBlacklistChecker() process.AddressBlacklistChecker
 }

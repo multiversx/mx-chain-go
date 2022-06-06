@@ -128,6 +128,7 @@ type CoreComponentsHolder interface {
 	NodeTypeProvider() core.NodeTypeProviderHandler
 	ArwenChangeLocker() common.Locker
 	ProcessStatusHandler() common.ProcessStatusHandler
+	AddressBlacklistChecker() process.AddressBlacklistChecker
 	IsInterfaceNil() bool
 }
 

@@ -23,6 +23,7 @@ type interceptedDataCoreComponentsHolder interface {
 	MinTransactionVersion() uint32
 	IsInterfaceNil() bool
 	EpochNotifier() process.EpochNotifier
+	AddressBlacklistChecker() process.AddressBlacklistChecker
 }
 
 // interceptedDataCryptoComponentsHolder holds the crypto components required by the intercepted data factory

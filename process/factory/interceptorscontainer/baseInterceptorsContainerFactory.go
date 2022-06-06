@@ -207,6 +207,7 @@ func (bicf *baseInterceptorsContainerFactory) createOneTxInterceptor(topic strin
 		bicf.shardCoordinator,
 		bicf.whiteListHandler,
 		addrPubKeyConverter,
+		bicf.argInterceptorFactory.CoreComponents.AddressBlacklistChecker(),
 		bicf.maxTxNonceDeltaAllowed,
 	)
 	if err != nil {

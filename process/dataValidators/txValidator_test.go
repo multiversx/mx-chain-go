@@ -77,6 +77,7 @@ func TestNewTxValidator_NilAccountsShouldErr(t *testing.T) {
 		shardCoordinator,
 		&testscommon.WhiteListHandlerStub{},
 		mock.NewPubkeyConverterMock(32),
+		&testscommon.AddressBlacklistCheckerStub{},
 		maxNonceDeltaAllowed,
 	)
 
@@ -94,6 +95,7 @@ func TestNewTxValidator_NilShardCoordinatorShouldErr(t *testing.T) {
 		nil,
 		&testscommon.WhiteListHandlerStub{},
 		mock.NewPubkeyConverterMock(32),
+		&testscommon.AddressBlacklistCheckerStub{},
 		maxNonceDeltaAllowed,
 	)
 
@@ -112,6 +114,7 @@ func TestTxValidator_NewValidatorNilWhiteListHandlerShouldErr(t *testing.T) {
 		shardCoordinator,
 		nil,
 		mock.NewPubkeyConverterMock(32),
+		&testscommon.AddressBlacklistCheckerStub{},
 		maxNonceDeltaAllowed,
 	)
 
@@ -130,11 +133,31 @@ func TestNewTxValidator_NilPubkeyConverterShouldErr(t *testing.T) {
 		shardCoordinator,
 		&testscommon.WhiteListHandlerStub{},
 		nil,
+		&testscommon.AddressBlacklistCheckerStub{},
 		maxNonceDeltaAllowed,
 	)
 
 	assert.Nil(t, txValidator)
 	assert.True(t, errors.Is(err, process.ErrNilPubkeyConverter))
+}
+
+func TestTxValidator_CheckTxValidityNilAddressBlackListCheckerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	adb := getAccAdapter(0, big.NewInt(0))
+	maxNonceDeltaAllowed := 100
+	shardCoordinator := createMockCoordinator("_", 0)
+	txValidator, err := dataValidators.NewTxValidator(
+		adb,
+		shardCoordinator,
+		&testscommon.WhiteListHandlerStub{},
+		mock.NewPubkeyConverterMock(32),
+		nil,
+		maxNonceDeltaAllowed,
+	)
+
+	assert.Nil(t, txValidator)
+	assert.True(t, errors.Is(err, process.ErrNilAddrBlacklistChecker))
 }
 
 func TestNewTxValidator_ShouldWork(t *testing.T) {
@@ -148,6 +171,7 @@ func TestNewTxValidator_ShouldWork(t *testing.T) {
 		shardCoordinator,
 		&testscommon.WhiteListHandlerStub{},
 		mock.NewPubkeyConverterMock(32),
+		&testscommon.AddressBlacklistCheckerStub{},
 		maxNonceDeltaAllowed,
 	)
 
@@ -170,6 +194,7 @@ func TestTxValidator_CheckTxValidityTxCrossShardShouldWork(t *testing.T) {
 		shardCoordinator,
 		&testscommon.WhiteListHandlerStub{},
 		mock.NewPubkeyConverterMock(32),
+		&testscommon.AddressBlacklistCheckerStub{},
 		maxNonceDeltaAllowed,
 	)
 	assert.Nil(t, err)
@@ -195,6 +220,7 @@ func TestTxValidator_CheckTxValidityAccountNonceIsGreaterThanTxNonceShouldReturn
 		shardCoordinator,
 		&testscommon.WhiteListHandlerStub{},
 		mock.NewPubkeyConverterMock(32),
+		&testscommon.AddressBlacklistCheckerStub{},
 		maxNonceDeltaAllowed,
 	)
 	assert.Nil(t, err)
@@ -221,6 +247,7 @@ func TestTxValidator_CheckTxValidityTxNonceIsTooHigh(t *testing.T) {
 		shardCoordinator,
 		&testscommon.WhiteListHandlerStub{},
 		mock.NewPubkeyConverterMock(32),
+		&testscommon.AddressBlacklistCheckerStub{},
 		maxNonceDeltaAllowed,
 	)
 	assert.Nil(t, err)
@@ -249,6 +276,7 @@ func TestTxValidator_CheckTxValidityAccountBalanceIsLessThanTxTotalValueShouldRe
 		shardCoordinator,
 		&testscommon.WhiteListHandlerStub{},
 		mock.NewPubkeyConverterMock(32),
+		&testscommon.AddressBlacklistCheckerStub{},
 		maxNonceDeltaAllowed,
 	)
 	assert.Nil(t, err)
@@ -276,6 +304,7 @@ func TestTxValidator_CheckTxValidityAccountNotExitsShouldReturnFalse(t *testing.
 		shardCoordinator,
 		&testscommon.WhiteListHandlerStub{},
 		mock.NewPubkeyConverterMock(32),
+		&testscommon.AddressBlacklistCheckerStub{},
 		maxNonceDeltaAllowed,
 	)
 
@@ -305,6 +334,7 @@ func TestTxValidator_CheckTxValidityAccountNotExitsButWhiteListedShouldReturnTru
 			},
 		},
 		mock.NewPubkeyConverterMock(32),
+		&testscommon.AddressBlacklistCheckerStub{},
 		maxNonceDeltaAllowed,
 	)
 
@@ -339,6 +369,7 @@ func TestTxValidator_CheckTxValidityWrongAccountTypeShouldReturnFalse(t *testing
 		shardCoordinator,
 		&testscommon.WhiteListHandlerStub{},
 		mock.NewPubkeyConverterMock(32),
+		&testscommon.AddressBlacklistCheckerStub{},
 		maxNonceDeltaAllowed,
 	)
 
@@ -363,6 +394,7 @@ func TestTxValidator_CheckTxValidityTxIsOkShouldReturnTrue(t *testing.T) {
 		shardCoordinator,
 		&testscommon.WhiteListHandlerStub{},
 		mock.NewPubkeyConverterMock(32),
+		&testscommon.AddressBlacklistCheckerStub{},
 		maxNonceDeltaAllowed,
 	)
 
@@ -386,6 +418,7 @@ func TestTxValidator_IsInterfaceNil(t *testing.T) {
 		shardCoordinator,
 		&testscommon.WhiteListHandlerStub{},
 		mock.NewPubkeyConverterMock(32),
+		&testscommon.AddressBlacklistCheckerStub{},
 		100,
 	)
 	_ = txValidator

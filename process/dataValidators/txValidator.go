@@ -19,6 +19,7 @@ type txValidator struct {
 	shardCoordinator     sharding.Coordinator
 	whiteListHandler     process.WhiteListHandler
 	pubkeyConverter      core.PubkeyConverter
+	addrBlackListChecker process.AddressBlacklistChecker
 	maxNonceDeltaAllowed int
 }
 
@@ -28,6 +29,7 @@ func NewTxValidator(
 	shardCoordinator sharding.Coordinator,
 	whiteListHandler process.WhiteListHandler,
 	pubkeyConverter core.PubkeyConverter,
+	addrBlacklistChecker process.AddressBlacklistChecker,
 	maxNonceDeltaAllowed int,
 ) (*txValidator, error) {
 	if check.IfNil(accounts) {
@@ -42,19 +44,30 @@ func NewTxValidator(
 	if check.IfNil(pubkeyConverter) {
 		return nil, fmt.Errorf("%w in NewTxValidator", process.ErrNilPubkeyConverter)
 	}
+	if check.IfNil(addrBlacklistChecker) {
+		return nil, fmt.Errorf("%w in NewTxValidator", process.ErrNilAddrBlacklistChecker)
 
+	}
 	return &txValidator{
 		accounts:             accounts,
 		shardCoordinator:     shardCoordinator,
 		whiteListHandler:     whiteListHandler,
 		maxNonceDeltaAllowed: maxNonceDeltaAllowed,
 		pubkeyConverter:      pubkeyConverter,
+		addrBlackListChecker: addrBlacklistChecker,
 	}, nil
 }
 
 // CheckTxValidity will filter transactions that needs to be added in pools
 func (txv *txValidator) CheckTxValidity(interceptedTx process.TxValidatorHandler) error {
 	// TODO: Refactor, extract methods.
+	shardID := txv.shardCoordinator.SelfId()
+	txShardID := interceptedTx.SenderShardId()
+	senderIsInAnotherShard := shardID != txShardID
+	senderAddress := interceptedTx.SenderAddress()
+	if !senderIsInAnotherShard && txv.addrBlackListChecker.IsBlacklisted(senderAddress) {
+		return process.ErrBlacklistedAddress
+	}
 
 	interceptedData, ok := interceptedTx.(process.InterceptedData)
 	if ok {
@@ -63,14 +76,10 @@ func (txv *txValidator) CheckTxValidity(interceptedTx process.TxValidatorHandler
 		}
 	}
 
-	shardID := txv.shardCoordinator.SelfId()
-	txShardID := interceptedTx.SenderShardId()
-	senderIsInAnotherShard := shardID != txShardID
 	if senderIsInAnotherShard {
 		return nil
 	}
 
-	senderAddress := interceptedTx.SenderAddress()
 	accountHandler, err := txv.accounts.GetExistingAccount(senderAddress)
 	if err != nil {
 		return fmt.Errorf("%w for address %s and shard %d, err: %s",

@@ -602,6 +602,9 @@
         # clutter the network exactly in the same moment
         MaxDeviationTimeInMilliseconds = 25
 
+[InterceptorBlacklist]
+    Addresses = ["erd17rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rcqqkhty3"]
+
 [AddressPubkeyConverter]
     Length = 32
     Type = "bech32"

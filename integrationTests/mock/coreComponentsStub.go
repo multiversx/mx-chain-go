@@ -52,6 +52,7 @@ type CoreComponentsStub struct {
 	NodeTypeProviderField              core.NodeTypeProviderHandler
 	ArwenChangeLockerInternal          common.Locker
 	ProcessStatusHandlerInternal       common.ProcessStatusHandler
+	AddressBlacklistCheckerField       process.AddressBlacklistChecker
 }
 
 // Create -
@@ -245,6 +246,11 @@ func (ccs *CoreComponentsStub) ArwenChangeLocker() common.Locker {
 // ProcessStatusHandler -
 func (ccs *CoreComponentsStub) ProcessStatusHandler() common.ProcessStatusHandler {
 	return ccs.ProcessStatusHandlerInternal
+}
+
+// AddressBlacklistChecker -
+func (ccs *CoreComponentsStub) AddressBlacklistChecker() process.AddressBlacklistChecker {
+	return ccs.AddressBlacklistCheckerField
 }
 
 // String -

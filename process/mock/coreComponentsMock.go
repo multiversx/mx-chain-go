@@ -17,25 +17,26 @@ import (
 
 // CoreComponentsMock -
 type CoreComponentsMock struct {
-	IntMarsh                    marshal.Marshalizer
-	TxMarsh                     marshal.Marshalizer
-	Hash                        hashing.Hasher
-	TxSignHasherField           hashing.Hasher
-	UInt64ByteSliceConv         typeConverters.Uint64ByteSliceConverter
-	AddrPubKeyConv              core.PubkeyConverter
-	ValPubKeyConv               core.PubkeyConverter
-	PathHdl                     storage.PathManagerHandler
-	ChainIdCalled               func() string
-	MinTransactionVersionCalled func() uint32
-	GenesisNodesSetupCalled     func() sharding.GenesisNodesSetupHandler
-	TxVersionCheckField         process.TxVersionCheckerHandler
-	EpochNotifierField          process.EpochNotifier
-	RoundField                  consensus.RoundHandler
-	StatusField                 core.AppStatusHandler
-	ChanStopNode                chan endProcess.ArgEndProcess
-	NodeTypeProviderField       core.NodeTypeProviderHandler
-	EconomicsDataField          process.EconomicsDataHandler
-	ProcessStatusHandlerField   common.ProcessStatusHandler
+	IntMarsh                     marshal.Marshalizer
+	TxMarsh                      marshal.Marshalizer
+	Hash                         hashing.Hasher
+	TxSignHasherField            hashing.Hasher
+	UInt64ByteSliceConv          typeConverters.Uint64ByteSliceConverter
+	AddrPubKeyConv               core.PubkeyConverter
+	ValPubKeyConv                core.PubkeyConverter
+	PathHdl                      storage.PathManagerHandler
+	ChainIdCalled                func() string
+	MinTransactionVersionCalled  func() uint32
+	GenesisNodesSetupCalled      func() sharding.GenesisNodesSetupHandler
+	TxVersionCheckField          process.TxVersionCheckerHandler
+	EpochNotifierField           process.EpochNotifier
+	RoundField                   consensus.RoundHandler
+	StatusField                  core.AppStatusHandler
+	ChanStopNode                 chan endProcess.ArgEndProcess
+	NodeTypeProviderField        core.NodeTypeProviderHandler
+	EconomicsDataField           process.EconomicsDataHandler
+	ProcessStatusHandlerField    common.ProcessStatusHandler
+	AddressBlacklistCheckerField process.AddressBlacklistChecker
 }
 
 // ChanStopNodeProcess -
@@ -154,6 +155,11 @@ func (ccm *CoreComponentsMock) EconomicsData() process.EconomicsDataHandler {
 // ProcessStatusHandler -
 func (ccm *CoreComponentsMock) ProcessStatusHandler() common.ProcessStatusHandler {
 	return ccm.ProcessStatusHandlerField
+}
+
+// AddressBlacklistChecker -
+func (ccm *CoreComponentsMock) AddressBlacklistChecker() process.AddressBlacklistChecker {
+	return ccm.AddressBlacklistCheckerField
 }
 
 // IsInterfaceNil -

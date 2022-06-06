@@ -26,6 +26,7 @@ type coreComponentsHolder interface {
 	StatusHandler() core.AppStatusHandler
 	EconomicsData() process.EconomicsDataHandler
 	ProcessStatusHandler() common.ProcessStatusHandler
+	AddressBlacklistChecker() process.AddressBlacklistChecker
 	IsInterfaceNil() bool
 }
 

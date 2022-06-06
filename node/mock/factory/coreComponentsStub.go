@@ -52,6 +52,7 @@ type CoreComponentsMock struct {
 	NodeTypeProviderField        core.NodeTypeProviderHandler
 	ArwenChangeLockerInternal    common.Locker
 	ProcessStatusHandlerInternal common.ProcessStatusHandler
+	AddressBlacklistCheckerField process.AddressBlacklistChecker
 }
 
 // Create -
@@ -245,6 +246,11 @@ func (ccm *CoreComponentsMock) ArwenChangeLocker() common.Locker {
 // ProcessStatusHandler -
 func (ccm *CoreComponentsMock) ProcessStatusHandler() common.ProcessStatusHandler {
 	return ccm.ProcessStatusHandlerInternal
+}
+
+// AddressBlacklistChecker -
+func (ccm *CoreComponentsMock) AddressBlacklistChecker() process.AddressBlacklistChecker {
+	return ccm.AddressBlacklistCheckerField
 }
 
 // String -

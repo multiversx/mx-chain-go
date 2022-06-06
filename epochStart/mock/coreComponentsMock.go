@@ -33,6 +33,7 @@ type CoreComponentsMock struct {
 	ChanStopNode                 chan endProcess.ArgEndProcess
 	NodeTypeProviderField        core.NodeTypeProviderHandler
 	ProcessStatusHandlerInstance common.ProcessStatusHandler
+	AddressBlacklistCheckerField process.AddressBlacklistChecker
 	mutCore                      sync.RWMutex
 }
 
@@ -150,6 +151,11 @@ func (ccm *CoreComponentsMock) GenesisNodesSetup() sharding.GenesisNodesSetupHan
 // ProcessStatusHandler -
 func (ccm *CoreComponentsMock) ProcessStatusHandler() common.ProcessStatusHandler {
 	return ccm.ProcessStatusHandlerInstance
+}
+
+// AddressBlacklistChecker -
+func (ccm *CoreComponentsMock) AddressBlacklistChecker() process.AddressBlacklistChecker {
+	return ccm.AddressBlacklistCheckerField
 }
 
 // IsInterfaceNil -
