@@ -552,3 +552,5 @@ func TestStakingV4_StakeNewNodes(t *testing.T) {
 	requireSliceContains(t, currNodesConfig.auction, owner1StakingQueue)
 	requireSliceContains(t, currNodesConfig.auction, newNodes0[newOwner0].BLSKeys)
 }
+
+// TODO: test unstake with 1 owner -> 1 bls key in auction => numStakedNodes = 0

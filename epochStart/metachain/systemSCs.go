@@ -141,12 +141,12 @@ func (s *systemSCProcessor) processWithNewFlags(
 			return err
 		}
 
-		unqualifiedOwners, err := s.unStakeNodesWithNotEnoughFundsWithStakingV4(validatorsInfoMap, header.GetEpoch())
+		err = s.unStakeNodesWithNotEnoughFundsWithStakingV4(validatorsInfoMap, header.GetEpoch())
 		if err != nil {
 			return err
 		}
 
-		err = s.auctionListSelector.SelectNodesFromAuctionList(validatorsInfoMap, unqualifiedOwners, header.GetPrevRandSeed())
+		err = s.auctionListSelector.SelectNodesFromAuctionList(validatorsInfoMap, header.GetPrevRandSeed())
 		if err != nil {
 			return err
 		}
@@ -158,10 +158,10 @@ func (s *systemSCProcessor) processWithNewFlags(
 func (s *systemSCProcessor) unStakeNodesWithNotEnoughFundsWithStakingV4(
 	validatorsInfoMap state.ShardValidatorsInfoMapHandler,
 	epoch uint32,
-) (map[string]struct{}, error) {
+) error {
 	nodesToUnStake, mapOwnersKeys, err := s.stakingDataProvider.ComputeUnQualifiedNodes(validatorsInfoMap)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	log.Debug("unStake nodes with not enough funds", "num", len(nodesToUnStake))
@@ -169,12 +169,12 @@ func (s *systemSCProcessor) unStakeNodesWithNotEnoughFundsWithStakingV4(
 		log.Debug("unStake at end of epoch for node", "blsKey", blsKey)
 		err = s.unStakeOneNode(blsKey, epoch)
 		if err != nil {
-			return nil, err
+			return err
 		}
 
 		validatorInfo := validatorsInfoMap.GetValidator(blsKey)
 		if validatorInfo == nil {
-			return nil, fmt.Errorf(
+			return fmt.Errorf(
 				"%w in systemSCProcessor.unStakeNodesWithNotEnoughFundsWithStakingV4 because validator might be in additional queue after staking v4",
 				epochStart.ErrNilValidatorInfo)
 		}
@@ -183,24 +183,11 @@ func (s *systemSCProcessor) unStakeNodesWithNotEnoughFundsWithStakingV4(
 		validatorLeaving.SetList(string(common.LeavingList))
 		err = validatorsInfoMap.Replace(validatorInfo, validatorLeaving)
 		if err != nil {
-			return nil, err
+			return err
 		}
 	}
-	err = s.updateDelegationContracts(mapOwnersKeys)
-	if err != nil {
-		return nil, err
-	}
 
-	return copyOwnerKeysInMap(mapOwnersKeys), nil
-}
-
-func copyOwnerKeysInMap(mapOwnersKeys map[string][][]byte) map[string]struct{} {
-	ret := make(map[string]struct{})
-	for owner := range mapOwnersKeys {
-		ret[owner] = struct{}{}
-	}
-
-	return ret
+	return s.updateDelegationContracts(mapOwnersKeys)
 }
 
 func (s *systemSCProcessor) updateToGovernanceV2() error {
