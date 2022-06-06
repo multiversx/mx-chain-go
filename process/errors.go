@@ -1074,8 +1074,8 @@ var ErrNumOfMiniBlocksAndMiniBlocksHeadersMismatch = errors.New("num of mini blo
 // ErrNilDoubleTransactionsDetector signals that a nil double transactions detector has been provided
 var ErrNilDoubleTransactionsDetector = errors.New("nil double transactions detector")
 
-// ErrNilAddrBlacklistChecker signals that a nil address black list checker was provided
-var ErrNilAddrBlacklistChecker = errors.New("nil address black list checker")
+// ErrNilAddrBlacklistChecker signals that a nil address blacklist checker was provided
+var ErrNilAddrBlacklistChecker = errors.New("nil address blacklist checker")
 
 // ErrBlacklistedAddress signals that an address is blacklisted
 var ErrBlacklistedAddress = errors.New("address is blacklisted")

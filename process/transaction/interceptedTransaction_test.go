@@ -1631,3 +1631,82 @@ func TestInterceptedTransaction_String(t *testing.T) {
 
 	assert.Equal(t, expectedFormat, txin.String())
 }
+
+func TestInterceptedTransaction_GetUserTxSenderInRelayedTx(t *testing.T) {
+	t.Parallel()
+	t.Run("ParseCallData with error should err", func(t *testing.T) {
+		expectedError := errors.New("expected err")
+		argsParser := &mock.ArgumentParserMock{
+			ParseCallDataCalled: func(data string) (string, [][]byte, error) {
+				return "", nil, expectedError
+			},
+		}
+
+		txin := createInterceptedTx(&dataTransaction.Transaction{}, argsParser)
+		userTxSender, err := txin.GetUserTxSenderInRelayedTx()
+		require.Equal(t, expectedError, err)
+		require.Nil(t, userTxSender)
+	})
+	t.Run("normal tx should err", func(t *testing.T) {
+		argsParser := &mock.ArgumentParserMock{
+			ParseCallDataCalled: func(data string) (string, [][]byte, error) {
+				return "not a relayed tx", nil, nil
+			},
+		}
+
+		txin := createInterceptedTx(&dataTransaction.Transaction{}, argsParser)
+		userTxSender, err := txin.GetUserTxSenderInRelayedTx()
+		require.Nil(t, userTxSender)
+		require.Equal(t, process.ErrNotARelayedTx, err)
+	})
+	t.Run("relayed v1 should return tx receiver (userTx sender)", func(t *testing.T) {
+		argsParser := &mock.ArgumentParserMock{
+			ParseCallDataCalled: func(data string) (string, [][]byte, error) {
+				return core.RelayedTransaction, nil, nil
+			},
+		}
+
+		expectedUserTxSender := []byte("expected sender")
+		txin := createInterceptedTx(&dataTransaction.Transaction{RcvAddr: expectedUserTxSender}, argsParser)
+		userTxSender, err := txin.GetUserTxSenderInRelayedTx()
+		require.Nil(t, err)
+		require.Equal(t, expectedUserTxSender, userTxSender)
+	})
+	t.Run("relayed v2 should return tx receiver (userTx sender)", func(t *testing.T) {
+		argsParser := &mock.ArgumentParserMock{
+			ParseCallDataCalled: func(data string) (string, [][]byte, error) {
+				return core.RelayedTransactionV2, nil, nil
+			},
+		}
+
+		expectedUserTxSender := []byte("expected sender")
+		txin := createInterceptedTx(&dataTransaction.Transaction{RcvAddr: expectedUserTxSender}, argsParser)
+		userTxSender, err := txin.GetUserTxSenderInRelayedTx()
+		require.Nil(t, err)
+		require.Equal(t, expectedUserTxSender, userTxSender)
+	})
+}
+
+func createInterceptedTx(tx *dataTransaction.Transaction, argsParser process.ArgumentsParser) *transaction.InterceptedTransaction {
+	marshalizer := &mock.MarshalizerMock{}
+	txBuff, _ := marshalizer.Marshal(tx)
+
+	inTx, _ := transaction.NewInterceptedTransaction(
+		txBuff,
+		marshalizer,
+		marshalizer,
+		&hashingMocks.HasherMock{},
+		createKeyGenMock(),
+		createDummySigner(),
+		&mock.PubkeyConverterStub{},
+		mock.NewMultipleShardsCoordinatorMock(),
+		createFreeTxFeeHandler(),
+		&testscommon.WhiteListHandlerStub{},
+		argsParser,
+		[]byte("T"),
+		false,
+		&hashingMocks.HasherMock{},
+		versioning.NewTxVersionChecker(0),
+	)
+	return inTx
+}
