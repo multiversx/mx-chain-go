@@ -168,16 +168,16 @@ func TestNewInterceptedTxDataFactory_NilEconomicsFeeHandlerShouldErr(t *testing.
 	assert.Equal(t, process.ErrNilEconomicsFeeHandler, err)
 }
 
-func TestNewInterceptedTxDataFactory_NilEpochNotifierShouldErr(t *testing.T) {
+func TestNewInterceptedTxDataFactory_NilEnableEpochsHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	coreComponents, cryptoComponents := createMockComponentHolders()
-	coreComponents.EpochNotifierField = nil
+	coreComponents.EnableEpochsHandlerField = nil
 	arg := createMockArgument(coreComponents, cryptoComponents)
 
 	imh, err := NewInterceptedTxDataFactory(arg)
 	assert.Nil(t, imh)
-	assert.Equal(t, process.ErrNilEpochNotifier, err)
+	assert.Equal(t, process.ErrNilEnableEpochsHandler, err)
 }
 
 func TestInterceptedTxDataFactory_ShouldWorkAndCreate(t *testing.T) {

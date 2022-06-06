@@ -110,6 +110,11 @@ func (handler *enableEpochsHandler) setFlagValue(value bool, flag *atomic.Flag, 
 	log.Debug("EpochConfirmed", "flag", flagName, "enabled", flag.IsSet())
 }
 
+// ScheduledMiniBlocksEnableEpoch returns the epoch for scheduled mini blocks
+func (handler *enableEpochsHandler) ScheduledMiniBlocksEnableEpoch() uint32 {
+	return handler.enableEpochsConfig.ScheduledMiniBlocksEnableEpoch
+}
+
 // BlockGasAndFeesReCheckEnableEpoch returns the epoch for block gas and fees recheck
 func (handler *enableEpochsHandler) BlockGasAndFeesReCheckEnableEpoch() uint32 {
 	return handler.enableEpochsConfig.BlockGasAndFeesReCheckEnableEpoch

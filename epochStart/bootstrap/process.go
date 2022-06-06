@@ -98,7 +98,6 @@ type epochStartBootstrap struct {
 	roundHandler               epochStart.RoundHandler
 	statusHandler              core.AppStatusHandler
 	headerIntegrityVerifier    process.HeaderIntegrityVerifier
-	epochNotifier              process.EpochNotifier
 	numConcurrentTrieSyncers   int
 	maxHardCapForMissingNodes  int
 	trieSyncerVersion          int
@@ -117,7 +116,6 @@ type epochStartBootstrap struct {
 	storageOpenerHandler      storage.UnitOpenerHandler
 	latestStorageDataProvider storage.LatestStorageDataProviderHandler
 	argumentsParser           process.ArgumentsParser
-	enableEpochs              config.EnableEpochs
 	dataSyncerFactory         types.ScheduledDataSyncerCreator
 	dataSyncerWithScheduled   types.ScheduledDataSyncer
 	storageService            dataRetriever.StorageService
@@ -201,17 +199,13 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		nodeType:                   core.NodeTypeObserver,
 		argumentsParser:            args.ArgumentsParser,
 		headerIntegrityVerifier:    args.HeaderIntegrityVerifier,
-		epochNotifier:              args.CoreComponentsHolder.EpochNotifier(),
 		numConcurrentTrieSyncers:   args.GeneralConfig.TrieSync.NumConcurrentTrieSyncers,
 		maxHardCapForMissingNodes:  args.GeneralConfig.TrieSync.MaxHardCapForMissingNodes,
 		trieSyncerVersion:          args.GeneralConfig.TrieSync.TrieSyncerVersion,
-		enableEpochs:               args.EnableEpochs,
 		dataSyncerFactory:          args.DataSyncerCreator,
 		storerScheduledSCRs:        args.ScheduledSCRsStorer,
 		shardCoordinator:           args.GenesisShardCoordinator,
 	}
-
-	log.Debug("process: enable epoch for transaction signed with tx hash", "epoch", epochStartProvider.enableEpochs.TransactionSignedWithTxHashEnableEpoch)
 
 	whiteListCache, err := storageUnit.NewCache(storageFactory.GetCacherFromConfig(epochStartProvider.generalConfig.WhiteListPool))
 	if err != nil {
@@ -516,20 +510,18 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 func (e *epochStartBootstrap) createSyncers() error {
 	var err error
 	args := factoryInterceptors.ArgsEpochStartInterceptorContainer{
-		CoreComponents:            e.coreComponentsHolder,
-		CryptoComponents:          e.cryptoComponentsHolder,
-		Config:                    e.generalConfig,
-		ShardCoordinator:          e.shardCoordinator,
-		Messenger:                 e.messenger,
-		DataPool:                  e.dataPool,
-		WhiteListHandler:          e.whiteListHandler,
-		WhiteListerVerifiedTxs:    e.whiteListerVerifiedTxs,
-		ArgumentsParser:           e.argumentsParser,
-		HeaderIntegrityVerifier:   e.headerIntegrityVerifier,
-		EnableSignTxWithHashEpoch: e.enableEpochs.TransactionSignedWithTxHashEnableEpoch,
-		EpochNotifier:             e.epochNotifier,
-		RequestHandler:            e.requestHandler,
-		SignaturesHandler:         e.messenger,
+		CoreComponents:          e.coreComponentsHolder,
+		CryptoComponents:        e.cryptoComponentsHolder,
+		Config:                  e.generalConfig,
+		ShardCoordinator:        e.shardCoordinator,
+		Messenger:               e.messenger,
+		DataPool:                e.dataPool,
+		WhiteListHandler:        e.whiteListHandler,
+		WhiteListerVerifiedTxs:  e.whiteListerVerifiedTxs,
+		ArgumentsParser:         e.argumentsParser,
+		HeaderIntegrityVerifier: e.headerIntegrityVerifier,
+		RequestHandler:          e.requestHandler,
+		SignaturesHandler:       e.messenger,
 	}
 
 	e.interceptorContainer, err = factoryInterceptors.NewEpochStartInterceptorsContainer(args)
@@ -694,19 +686,18 @@ func (e *epochStartBootstrap) processNodesConfig(pubKey []byte) error {
 		shardId = e.genesisShardCoordinator.SelfId()
 	}
 	argsNewValidatorStatusSyncers := ArgsNewSyncValidatorStatus{
-		DataPool:                  e.dataPool,
-		Marshalizer:               e.coreComponentsHolder.InternalMarshalizer(),
-		RequestHandler:            e.requestHandler,
-		ChanceComputer:            e.rater,
-		GenesisNodesConfig:        e.genesisNodesConfig,
-		NodeShuffler:              e.nodeShuffler,
-		Hasher:                    e.coreComponentsHolder.Hasher(),
-		PubKey:                    pubKey,
-		ShardIdAsObserver:         shardId,
-		WaitingListFixEnableEpoch: e.enableEpochs.WaitingListFixEnableEpoch,
-		ChanNodeStop:              e.coreComponentsHolder.ChanStopNodeProcess(),
-		NodeTypeProvider:          e.coreComponentsHolder.NodeTypeProvider(),
-		IsFullArchive:             e.prefsConfig.FullArchive,
+		DataPool:           e.dataPool,
+		Marshalizer:        e.coreComponentsHolder.InternalMarshalizer(),
+		RequestHandler:     e.requestHandler,
+		ChanceComputer:     e.rater,
+		GenesisNodesConfig: e.genesisNodesConfig,
+		NodeShuffler:       e.nodeShuffler,
+		Hasher:             e.coreComponentsHolder.Hasher(),
+		PubKey:             pubKey,
+		ShardIdAsObserver:  shardId,
+		ChanNodeStop:       e.coreComponentsHolder.ChanStopNodeProcess(),
+		NodeTypeProvider:   e.coreComponentsHolder.NodeTypeProvider(),
+		IsFullArchive:      e.prefsConfig.FullArchive,
 	}
 
 	e.nodesConfigHandler, err = NewSyncValidatorStatus(argsNewValidatorStatusSyncers)
@@ -990,7 +981,7 @@ func (e *epochStartBootstrap) updateDataForScheduled(
 		HeadersSyncer:        e.headersSyncer,
 		MiniBlocksSyncer:     e.miniBlocksSyncer,
 		TxSyncer:             e.txSyncerForScheduled,
-		ScheduledEnableEpoch: e.enableEpochs.ScheduledMiniBlocksEnableEpoch,
+		ScheduledEnableEpoch: e.coreComponentsHolder.EnableEpochsHandler().ScheduledMiniBlocksEnableEpoch(),
 	}
 
 	e.dataSyncerWithScheduled, err = e.dataSyncerFactory.Create(argsScheduledDataSyncer)
@@ -1126,22 +1117,22 @@ func (e *epochStartBootstrap) createRequestHandler() error {
 	//  this one should only be used before determining the correct shard where the node should reside
 	log.Debug("epochStartBootstrap.createRequestHandler", "shard", e.shardCoordinator.SelfId())
 	resolversContainerArgs := resolverscontainer.FactoryArgs{
-		ShardCoordinator:            e.shardCoordinator,
-		Messenger:                   e.messenger,
-		Store:                       storageService,
-		Marshalizer:                 e.coreComponentsHolder.InternalMarshalizer(),
-		DataPools:                   e.dataPool,
-		Uint64ByteSliceConverter:    uint64ByteSlice.NewBigEndianConverter(),
-		NumConcurrentResolvingJobs:  10,
-		DataPacker:                  dataPacker,
-		TriesContainer:              e.trieContainer,
-		SizeCheckDelta:              0,
-		InputAntifloodHandler:       disabled.NewAntiFloodHandler(),
-		OutputAntifloodHandler:      disabled.NewAntiFloodHandler(),
-		CurrentNetworkEpochProvider: disabled.NewCurrentNetworkEpochProviderHandler(),
-		PreferredPeersHolder:        disabled.NewPreferredPeersHolder(),
-		ResolverConfig:              e.generalConfig.Resolvers,
-		PeersRatingHandler:          disabled.NewDisabledPeersRatingHandler(),
+		ShardCoordinator:                     e.shardCoordinator,
+		Messenger:                            e.messenger,
+		Store:                                storageService,
+		Marshalizer:                          e.coreComponentsHolder.InternalMarshalizer(),
+		DataPools:                            e.dataPool,
+		Uint64ByteSliceConverter:             uint64ByteSlice.NewBigEndianConverter(),
+		NumConcurrentResolvingJobs:           10,
+		DataPacker:                           dataPacker,
+		TriesContainer:                       e.trieContainer,
+		SizeCheckDelta:                       0,
+		InputAntifloodHandler:                disabled.NewAntiFloodHandler(),
+		OutputAntifloodHandler:               disabled.NewAntiFloodHandler(),
+		CurrentNetworkEpochProvider:          disabled.NewCurrentNetworkEpochProviderHandler(),
+		PreferredPeersHolder:                 disabled.NewPreferredPeersHolder(),
+		ResolverConfig:                       e.generalConfig.Resolvers,
+		PeersRatingHandler:                   disabled.NewDisabledPeersRatingHandler(),
 		NodesCoordinator:                     disabled.NewNodesCoordinator(),
 		MaxNumOfPeerAuthenticationInResponse: e.generalConfig.HeartbeatV2.MaxNumOfPeerAuthenticationInResponse,
 		PeerShardMapper:                      disabled.NewPeerShardMapper(),

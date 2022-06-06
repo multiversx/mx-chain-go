@@ -5,6 +5,7 @@ type EnableEpochsHandlerStub struct {
 	ResetPenalizedTooMuchGasFlagCalled                           func()
 	BlockGasAndFeesReCheckEnableEpochField                       uint32
 	StakingV2EnableEpochField                                    uint32
+	ScheduledMiniBlocksEnableEpochField                          uint32
 	IsSCDeployFlagEnabledField                                   bool
 	IsBuiltInFunctionsFlagEnabledField                           bool
 	IsRelayedTransactionsFlagEnabledField                        bool
@@ -85,6 +86,11 @@ func (stub *EnableEpochsHandlerStub) BlockGasAndFeesReCheckEnableEpoch() uint32 
 // StakingV2EnableEpoch -
 func (stub *EnableEpochsHandlerStub) StakingV2EnableEpoch() uint32 {
 	return stub.StakingV2EnableEpochField
+}
+
+// ScheduledMiniBlocksEnableEpoch -
+func (stub *EnableEpochsHandlerStub) ScheduledMiniBlocksEnableEpoch() uint32 {
+	return stub.ScheduledMiniBlocksEnableEpochField
 }
 
 // ResetPenalizedTooMuchGasFlag -
