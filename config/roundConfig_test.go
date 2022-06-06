@@ -7,36 +7,62 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestRoundConfigSave(t *testing.T) {
+	t.Parallel()
+
+	expectedConfig := &RoundConfig{
+		RoundActivations: map[string]ActivationRoundByName{
+			"test1": {
+				Round:   0,
+				Options: []string{"option1", "option2"},
+			},
+			"test2": {
+				Round:   1,
+				Options: []string{"option3", "option4"},
+			},
+		},
+	}
+
+	expectedString := `
+[RoundActivations]
+
+  [RoundActivations.test1]
+    Options = ["option1", "option2"]
+    Round = 0
+
+  [RoundActivations.test2]
+    Options = ["option3", "option4"]
+    Round = 1
+`
+
+	bytes, err := toml.Marshal(expectedConfig)
+
+	assert.Nil(t, err)
+	assert.Equal(t, expectedString, string(bytes))
+}
+
 func TestRoundConfigLoad(t *testing.T) {
 	t.Parallel()
 
 	testString := `
-[[RoundActivations]]
-	Name = "test1"
-    Round = 0
-    Options = [
-		"option1",
-		"option2",
-	]
+[RoundActivations]
 
-[[RoundActivations]]
-    Name = "test2"
-    Round = 1
-    Options = [
-		"option3",
-		"option4",
-	]
+    [RoundActivations.test1]
+        Options = ["option1", "option2"]
+        Round = 0
+
+    [RoundActivations.test2]
+        Options = ["option3", "option4"]
+        Round = 1
 `
 
 	expectedConfig := &RoundConfig{
-		RoundActivations: []ActivationRoundByName{
-			{
-				Name:    "test1",
+		RoundActivations: map[string]ActivationRoundByName{
+			"test1": {
 				Round:   0,
 				Options: []string{"option1", "option2"},
 			},
-			{
-				Name:    "test2",
+			"test2": {
 				Round:   1,
 				Options: []string{"option3", "option4"},
 			},

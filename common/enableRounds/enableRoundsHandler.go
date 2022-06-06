@@ -28,17 +28,16 @@ func NewEnableRoundsHandler(args config.RoundConfig) (*enableRoundsHandler, erro
 }
 
 func getRoundConfig(args config.RoundConfig, configName string) (*roundFlag, error) {
-	for _, activationRound := range args.RoundActivations {
-		if activationRound.Name == configName {
-			return &roundFlag{
-				round:   activationRound.Round,
-				flag:    &atomic.Flag{},
-				options: activationRound.Options,
-			}, nil
-		}
+	activationRound, found := args.RoundActivations[configName]
+	if !found {
+		return nil, fmt.Errorf("%w for config %s", errMissingRoundActivation, configName)
 	}
 
-	return nil, fmt.Errorf("%w for config %s", errMissingRoundActivation, configName)
+	return &roundFlag{
+		round:   activationRound.Round,
+		flag:    &atomic.Flag{},
+		options: activationRound.Options,
+	}, nil
 }
 
 // CheckRound should be called whenever a new round is known. It will trigger the updating of all containing round flags

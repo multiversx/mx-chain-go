@@ -67,7 +67,6 @@ import (
 	metaProcess "github.com/ElrondNetwork/elrond-go/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
-	processMock "github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/peer"
 	"github.com/ElrondNetwork/elrond-go/process/rating"
 	"github.com/ElrondNetwork/elrond-go/process/rewardTransaction"
@@ -320,6 +319,7 @@ type TestProcessorNode struct {
 	HistoryRepository        dblookupext.HistoryRepository
 	EpochNotifier            process.EpochNotifier
 	EnableEpochs             config.EnableEpochs
+	EnableRoundsHandler      process.EnableRoundsHandler
 	UseValidVmBlsSigVerifier bool
 
 	TransactionLogProcessor        process.TransactionLogProcessor
@@ -415,6 +415,7 @@ func newBaseTestProcessorNode(
 		ArwenChangeLocker:       &sync.RWMutex{},
 		TransactionLogProcessor: logsProcessor,
 		Bootstrapper:            mock.NewTestBootstrapperMock(),
+		EnableRoundsHandler:     &testscommon.EnableRoundsHandlerMock{},
 	}
 
 	tpn.ScheduledMiniBlocksEnableEpoch = uint32(1000000)
@@ -599,6 +600,7 @@ func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32
 		EpochNotifier:           forking.NewGenericEpochNotifier(),
 		ArwenChangeLocker:       &sync.RWMutex{},
 		TransactionLogProcessor: logsProcessor,
+		EnableRoundsHandler:     &testscommon.EnableRoundsHandlerMock{},
 	}
 
 	tpn.NodeKeys = &TestKeyPair{
@@ -925,13 +927,14 @@ func (tpn *TestProcessorNode) createFullSCQueryService() {
 					{StartEpoch: 0, Version: "*"},
 				},
 			},
-			BlockGasLimit:      tpn.EconomicsData.MaxGasLimitPerBlock(tpn.ShardCoordinator.SelfId()),
-			GasSchedule:        gasSchedule,
-			ArgBlockChainHook:  argsHook,
-			EpochNotifier:      tpn.EpochNotifier,
-			EpochConfig:        tpn.EnableEpochs,
-			ArwenChangeLocker:  tpn.ArwenChangeLocker,
-			ESDTTransferParser: esdtTransferParser,
+			BlockGasLimit:       tpn.EconomicsData.MaxGasLimitPerBlock(tpn.ShardCoordinator.SelfId()),
+			GasSchedule:         gasSchedule,
+			ArgBlockChainHook:   argsHook,
+			EpochNotifier:       tpn.EpochNotifier,
+			EpochConfig:         tpn.EnableEpochs,
+			ArwenChangeLocker:   tpn.ArwenChangeLocker,
+			ESDTTransferParser:  esdtTransferParser,
+			EnableRoundsHandler: tpn.EnableRoundsHandler,
 		}
 		vmFactory, _ = shard.NewVMContainerFactory(argsNewVMFactory)
 	}
@@ -1441,13 +1444,14 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 				{StartEpoch: 0, Version: "*"},
 			},
 		},
-		BlockGasLimit:      maxGasLimitPerBlock,
-		GasSchedule:        gasSchedule,
-		ArgBlockChainHook:  argsHook,
-		EpochNotifier:      tpn.EpochNotifier,
-		EpochConfig:        tpn.EnableEpochs,
-		ArwenChangeLocker:  tpn.ArwenChangeLocker,
-		ESDTTransferParser: esdtTransferParser,
+		BlockGasLimit:       maxGasLimitPerBlock,
+		GasSchedule:         gasSchedule,
+		ArgBlockChainHook:   argsHook,
+		EpochNotifier:       tpn.EpochNotifier,
+		EpochConfig:         tpn.EnableEpochs,
+		ArwenChangeLocker:   tpn.ArwenChangeLocker,
+		ESDTTransferParser:  esdtTransferParser,
+		EnableRoundsHandler: tpn.EnableRoundsHandler,
 	}
 	vmFactory, _ := shard.NewVMContainerFactory(argsNewVMFactory)
 
@@ -1951,6 +1955,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 	coreComponents.HasherField = TestHasher
 	coreComponents.Uint64ByteSliceConverterField = TestUint64Converter
 	coreComponents.RoundHandlerField = tpn.RoundHandler
+	coreComponents.EnableRoundsHandlerField = tpn.EnableRoundsHandler
 
 	dataComponents := GetDefaultDataComponents()
 	dataComponents.Store = tpn.Storage
@@ -1992,7 +1997,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		BlockSizeThrottler:             TestBlockSizeThrottler,
 		HistoryRepository:              tpn.HistoryRepository,
 		EpochNotifier:                  tpn.EpochNotifier,
-		RoundNotifier:                  coreComponents.RoundNotifier(),
+		EnableRoundsHandler:            coreComponents.EnableRoundsHandler(),
 		GasHandler:                     tpn.GasHandler,
 		ScheduledTxsExecutionHandler:   &testscommon.ScheduledTxsExecutionStub{},
 		ScheduledMiniBlocksEnableEpoch: ScheduledMiniBlocksEnableEpoch,
@@ -2911,7 +2916,7 @@ func GetDefaultCoreComponents() *mock.CoreComponentsStub {
 		GenesisNodesSetupField:       &testscommon.NodesSetupStub{},
 		GenesisTimeField:             time.Time{},
 		EpochNotifierField:           &epochNotifier.EpochNotifierStub{},
-		RoundNotifierField:           &processMock.RoundNotifierStub{},
+		EnableRoundsHandlerField:     &testscommon.EnableRoundsHandlerMock{},
 		TxVersionCheckField:          versioning.NewTxVersionChecker(MinTransactionVersion),
 		ProcessStatusHandlerInternal: &testscommon.ProcessStatusHandlerStub{},
 	}

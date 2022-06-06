@@ -1026,17 +1026,8 @@ var ErrNodeIsNotSynced = errors.New("node is not synced")
 // ErrStateChangedWhileExecutingVmQuery signals that the state has been changed while executing a vm query and the request required not to
 var ErrStateChangedWhileExecutingVmQuery = errors.New("state changed while executing vm query")
 
-// ErrDuplicateRoundActivationName signals a round activation name is already taken
-var ErrDuplicateRoundActivationName = errors.New("round activation name already exists in config file")
-
-// ErrNilActivationRoundName signals an empty activation round name has been set in config file
-var ErrNilActivationRoundName = errors.New("round activation name is empty in config file")
-
-// ErrInvalidRoundActivationConfig signals that RoundConfig struct is invalid
-var ErrInvalidRoundActivationConfig = errors.New("invalid round config struct; should be of type config.ActivationRoundByName")
-
-// ErrNilRoundNotifier signals a nil round notifier has been provided
-var ErrNilRoundNotifier = errors.New("nil round notifier has been provided")
+// ErrNilEnableRoundsHandler signals a nil enable rounds handler has been provided
+var ErrNilEnableRoundsHandler = errors.New("nil enable rounds handler has been provided")
 
 // ErrNilScheduledTxsExecutionHandler signals that scheduled txs execution handler is nil
 var ErrNilScheduledTxsExecutionHandler = errors.New("nil scheduled txs execution handler")

@@ -130,7 +130,7 @@ func createMockMetaArguments(
 			BlockSizeThrottler:             &mock.BlockSizeThrottlerStub{},
 			HistoryRepository:              &dblookupext.HistoryRepositoryStub{},
 			EpochNotifier:                  &epochNotifier.EpochNotifierStub{},
-			RoundNotifier:                  &mock.RoundNotifierStub{},
+			EnableRoundsHandler:            &testscommon.EnableRoundsHandlerMock{},
 			ScheduledTxsExecutionHandler:   &testscommon.ScheduledTxsExecutionStub{},
 			ScheduledMiniBlocksEnableEpoch: 2,
 		},
@@ -468,10 +468,10 @@ func TestNewMetaProcessor_NilRoundNotifierShouldErr(t *testing.T) {
 	t.Parallel()
 
 	arguments := createMockMetaArguments(createMockComponentHolders())
-	arguments.RoundNotifier = nil
+	arguments.EnableRoundsHandler = nil
 
 	be, err := blproc.NewMetaProcessor(arguments)
-	assert.Equal(t, process.ErrNilRoundNotifier, err)
+	assert.Equal(t, process.ErrNilEnableRoundsHandler, err)
 	assert.Nil(t, be)
 }
 
@@ -2700,7 +2700,7 @@ func TestMetaProcess_CreateNewBlockHeaderProcessHeaderExpectCheckRoundCalled(t *
 	round := uint64(4)
 	checkRoundCt := atomic.Counter{}
 
-	roundNotifier := &mock.RoundNotifierStub{
+	enableRoundsHandler := &testscommon.EnableRoundsHandlerMock{
 		CheckRoundCalled: func(r uint64) {
 			checkRoundCt.Increment()
 			require.Equal(t, round, r)
@@ -2710,7 +2710,7 @@ func TestMetaProcess_CreateNewBlockHeaderProcessHeaderExpectCheckRoundCalled(t *
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
 	arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 
-	arguments.RoundNotifier = roundNotifier
+	arguments.EnableRoundsHandler = enableRoundsHandler
 
 	metaProcessor, _ := blproc.NewMetaProcessor(arguments)
 	metaHeader := &block.MetaBlock{Round: round}

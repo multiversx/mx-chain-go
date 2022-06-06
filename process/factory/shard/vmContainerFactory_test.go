@@ -54,14 +54,15 @@ func TestNewVMContainerFactory_NilGasScheduleShouldErr(t *testing.T) {
 
 	esdtTransferParser, _ := parsers.NewESDTTransferParser(&mock.MarshalizerMock{})
 	argsNewVMFactory := ArgVMContainerFactory{
-		Config:             config.VirtualMachineConfig{},
-		BlockGasLimit:      10000,
-		GasSchedule:        nil,
-		ArgBlockChainHook:  createMockVMAccountsArguments(),
-		EpochConfig:        config.EnableEpochs{},
-		ArwenChangeLocker:  &sync.RWMutex{},
-		EpochNotifier:      &epochNotifier.EpochNotifierStub{},
-		ESDTTransferParser: esdtTransferParser,
+		Config:              config.VirtualMachineConfig{},
+		BlockGasLimit:       10000,
+		GasSchedule:         nil,
+		ArgBlockChainHook:   createMockVMAccountsArguments(),
+		EpochConfig:         config.EnableEpochs{},
+		ArwenChangeLocker:   &sync.RWMutex{},
+		EpochNotifier:       &epochNotifier.EpochNotifierStub{},
+		ESDTTransferParser:  esdtTransferParser,
+		EnableRoundsHandler: &testscommon.EnableRoundsHandlerMock{},
 	}
 	vmf, err := NewVMContainerFactory(argsNewVMFactory)
 
@@ -73,14 +74,15 @@ func TestNewVMContainerFactory_NilESDTTransferParserShouldErr(t *testing.T) {
 	t.Parallel()
 
 	argsNewVMFactory := ArgVMContainerFactory{
-		Config:             config.VirtualMachineConfig{},
-		BlockGasLimit:      10000,
-		GasSchedule:        mock.NewGasScheduleNotifierMock(arwenConfig.MakeGasMapForTests()),
-		ArgBlockChainHook:  createMockVMAccountsArguments(),
-		EpochConfig:        config.EnableEpochs{},
-		ArwenChangeLocker:  &sync.RWMutex{},
-		EpochNotifier:      &epochNotifier.EpochNotifierStub{},
-		ESDTTransferParser: nil,
+		Config:              config.VirtualMachineConfig{},
+		BlockGasLimit:       10000,
+		GasSchedule:         mock.NewGasScheduleNotifierMock(arwenConfig.MakeGasMapForTests()),
+		ArgBlockChainHook:   createMockVMAccountsArguments(),
+		EpochConfig:         config.EnableEpochs{},
+		ArwenChangeLocker:   &sync.RWMutex{},
+		EpochNotifier:       &epochNotifier.EpochNotifierStub{},
+		ESDTTransferParser:  nil,
+		EnableRoundsHandler: &testscommon.EnableRoundsHandlerMock{},
 	}
 	vmf, err := NewVMContainerFactory(argsNewVMFactory)
 
@@ -93,14 +95,15 @@ func TestNewVMContainerFactory_NilLockerShouldErr(t *testing.T) {
 
 	esdtTransferParser, _ := parsers.NewESDTTransferParser(&mock.MarshalizerMock{})
 	argsNewVMFactory := ArgVMContainerFactory{
-		Config:             config.VirtualMachineConfig{},
-		BlockGasLimit:      10000,
-		GasSchedule:        mock.NewGasScheduleNotifierMock(arwenConfig.MakeGasMapForTests()),
-		ArgBlockChainHook:  createMockVMAccountsArguments(),
-		EpochConfig:        config.EnableEpochs{},
-		ArwenChangeLocker:  nil,
-		EpochNotifier:      &epochNotifier.EpochNotifierStub{},
-		ESDTTransferParser: esdtTransferParser,
+		Config:              config.VirtualMachineConfig{},
+		BlockGasLimit:       10000,
+		GasSchedule:         mock.NewGasScheduleNotifierMock(arwenConfig.MakeGasMapForTests()),
+		ArgBlockChainHook:   createMockVMAccountsArguments(),
+		EpochConfig:         config.EnableEpochs{},
+		ArwenChangeLocker:   nil,
+		EpochNotifier:       &epochNotifier.EpochNotifierStub{},
+		ESDTTransferParser:  esdtTransferParser,
+		EnableRoundsHandler: &testscommon.EnableRoundsHandlerMock{},
 	}
 	vmf, err := NewVMContainerFactory(argsNewVMFactory)
 
@@ -108,19 +111,41 @@ func TestNewVMContainerFactory_NilLockerShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilLocker, err)
 }
 
+func TestNewVMContainerFactory_NilEnableRoundsHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	esdtTransferParser, _ := parsers.NewESDTTransferParser(&mock.MarshalizerMock{})
+	argsNewVMFactory := ArgVMContainerFactory{
+		Config:              config.VirtualMachineConfig{},
+		BlockGasLimit:       10000,
+		GasSchedule:         mock.NewGasScheduleNotifierMock(arwenConfig.MakeGasMapForTests()),
+		ArgBlockChainHook:   createMockVMAccountsArguments(),
+		EpochConfig:         config.EnableEpochs{},
+		ArwenChangeLocker:   &sync.RWMutex{},
+		EpochNotifier:       &epochNotifier.EpochNotifierStub{},
+		ESDTTransferParser:  esdtTransferParser,
+		EnableRoundsHandler: nil,
+	}
+	vmf, err := NewVMContainerFactory(argsNewVMFactory)
+
+	assert.Nil(t, vmf)
+	assert.Equal(t, process.ErrNilEnableRoundsHandler, err)
+}
+
 func TestNewVMContainerFactory_OkValues(t *testing.T) {
 	t.Parallel()
 
 	esdtTransferParser, _ := parsers.NewESDTTransferParser(&mock.MarshalizerMock{})
 	argsNewVMFactory := ArgVMContainerFactory{
-		Config:             makeVMConfig(),
-		BlockGasLimit:      10000,
-		GasSchedule:        mock.NewGasScheduleNotifierMock(arwenConfig.MakeGasMapForTests()),
-		ArgBlockChainHook:  createMockVMAccountsArguments(),
-		EpochConfig:        config.EnableEpochs{},
-		ArwenChangeLocker:  &sync.RWMutex{},
-		EpochNotifier:      &epochNotifier.EpochNotifierStub{},
-		ESDTTransferParser: esdtTransferParser,
+		Config:              makeVMConfig(),
+		BlockGasLimit:       10000,
+		GasSchedule:         mock.NewGasScheduleNotifierMock(arwenConfig.MakeGasMapForTests()),
+		ArgBlockChainHook:   createMockVMAccountsArguments(),
+		EpochConfig:         config.EnableEpochs{},
+		ArwenChangeLocker:   &sync.RWMutex{},
+		EpochNotifier:       &epochNotifier.EpochNotifierStub{},
+		ESDTTransferParser:  esdtTransferParser,
+		EnableRoundsHandler: &testscommon.EnableRoundsHandlerMock{},
 	}
 	vmf, err := NewVMContainerFactory(argsNewVMFactory)
 
@@ -134,14 +159,15 @@ func TestVmContainerFactory_Create(t *testing.T) {
 
 	esdtTransferParser, _ := parsers.NewESDTTransferParser(&mock.MarshalizerMock{})
 	argsNewVMFactory := ArgVMContainerFactory{
-		Config:             makeVMConfig(),
-		BlockGasLimit:      10000,
-		GasSchedule:        mock.NewGasScheduleNotifierMock(arwenConfig.MakeGasMapForTests()),
-		ArgBlockChainHook:  createMockVMAccountsArguments(),
-		EpochConfig:        config.EnableEpochs{},
-		ArwenChangeLocker:  &sync.RWMutex{},
-		EpochNotifier:      &epochNotifier.EpochNotifierStub{},
-		ESDTTransferParser: esdtTransferParser,
+		Config:              makeVMConfig(),
+		BlockGasLimit:       10000,
+		GasSchedule:         mock.NewGasScheduleNotifierMock(arwenConfig.MakeGasMapForTests()),
+		ArgBlockChainHook:   createMockVMAccountsArguments(),
+		EpochConfig:         config.EnableEpochs{},
+		ArwenChangeLocker:   &sync.RWMutex{},
+		EpochNotifier:       &epochNotifier.EpochNotifierStub{},
+		ESDTTransferParser:  esdtTransferParser,
+		EnableRoundsHandler: &testscommon.EnableRoundsHandlerMock{},
 	}
 	vmf, err := NewVMContainerFactory(argsNewVMFactory)
 	require.NotNil(t, vmf)
@@ -176,14 +202,15 @@ func TestVmContainerFactory_ResolveArwenVersion(t *testing.T) {
 	}
 	esdtTransferParser, _ := parsers.NewESDTTransferParser(&mock.MarshalizerMock{})
 	argsNewVMFactory := ArgVMContainerFactory{
-		Config:             makeVMConfig(),
-		BlockGasLimit:      10000,
-		GasSchedule:        gasScheduleNotifier,
-		ArgBlockChainHook:  createMockVMAccountsArguments(),
-		EpochConfig:        config.EnableEpochs{},
-		ArwenChangeLocker:  &sync.RWMutex{},
-		EpochNotifier:      epochNotifierInstance,
-		ESDTTransferParser: esdtTransferParser,
+		Config:              makeVMConfig(),
+		BlockGasLimit:       10000,
+		GasSchedule:         gasScheduleNotifier,
+		ArgBlockChainHook:   createMockVMAccountsArguments(),
+		EpochConfig:         config.EnableEpochs{},
+		ArwenChangeLocker:   &sync.RWMutex{},
+		EpochNotifier:       epochNotifierInstance,
+		ESDTTransferParser:  esdtTransferParser,
+		EnableRoundsHandler: &testscommon.EnableRoundsHandlerMock{},
 	}
 
 	vmf, err := NewVMContainerFactory(argsNewVMFactory)

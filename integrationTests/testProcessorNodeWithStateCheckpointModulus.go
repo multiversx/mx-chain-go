@@ -79,6 +79,7 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 		EpochNotifier:           forking.NewGenericEpochNotifier(),
 		ArwenChangeLocker:       &sync.RWMutex{},
 		TransactionLogProcessor: logsProcessor,
+		EnableRoundsHandler:     &testscommon.EnableRoundsHandlerMock{},
 	}
 	tpn.NodesSetup = nodesSetup
 

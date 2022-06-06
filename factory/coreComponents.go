@@ -21,6 +21,7 @@ import (
 	marshalizerFactory "github.com/ElrondNetwork/elrond-go-core/marshal/factory"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/common/enableRounds"
 	commonFactory "github.com/ElrondNetwork/elrond-go/common/factory"
 	"github.com/ElrondNetwork/elrond-go/common/forking"
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -48,6 +49,7 @@ type CoreComponentsFactoryArgs struct {
 	RatingsConfig         config.RatingsConfig
 	EconomicsConfig       config.EconomicsConfig
 	ImportDbConfig        config.ImportDbConfig
+	RoundsConfig          config.RoundConfig
 	NodesFilename         string
 	WorkingDirectory      string
 	ChanStopNodeProcess   chan endProcess.ArgEndProcess
@@ -62,6 +64,7 @@ type coreComponentsFactory struct {
 	ratingsConfig         config.RatingsConfig
 	economicsConfig       config.EconomicsConfig
 	importDbConfig        config.ImportDbConfig
+	roundsConfig          config.RoundConfig
 	nodesFilename         string
 	workingDir            string
 	chanStopNodeProcess   chan endProcess.ArgEndProcess
@@ -95,7 +98,7 @@ type coreComponents struct {
 	chainID                       string
 	minTransactionVersion         uint32
 	epochNotifier                 process.EpochNotifier
-	roundNotifier                 process.RoundNotifier
+	enableRoundsHandler           process.EnableRoundsHandler
 	epochStartNotifierWithConfirm EpochStartNotifierWithConfirm
 	chanStopNodeProcess           chan endProcess.ArgEndProcess
 	nodeTypeProvider              core.NodeTypeProviderHandler
@@ -117,6 +120,7 @@ func NewCoreComponentsFactory(args CoreComponentsFactoryArgs) (*coreComponentsFa
 		chanStopNodeProcess:   args.ChanStopNodeProcess,
 		nodesFilename:         args.NodesFilename,
 		statusHandlersFactory: args.StatusHandlersFactory,
+		roundsConfig:          args.RoundsConfig,
 	}, nil
 }
 
@@ -225,7 +229,10 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 	}
 
 	epochNotifier := forking.NewGenericEpochNotifier()
-	roundNotifier := forking.NewRoundNotifier()
+	enableRoundsHandler, err := enableRounds.NewEnableRoundsHandler(ccf.roundsConfig)
+	if err != nil {
+		return nil, err
+	}
 
 	arwenChangeLocker := &sync.RWMutex{}
 	gasScheduleConfigurationFolderName := ccf.configPathsHolder.GasScheduleDirectoryName
@@ -352,7 +359,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		chainID:                       ccf.config.GeneralSettings.ChainID,
 		minTransactionVersion:         ccf.config.GeneralSettings.MinTransactionVersion,
 		epochNotifier:                 epochNotifier,
-		roundNotifier:                 roundNotifier,
+		enableRoundsHandler:           enableRoundsHandler,
 		epochStartNotifierWithConfirm: notifier.NewEpochStartSubscriptionHandler(),
 		chanStopNodeProcess:           ccf.chanStopNodeProcess,
 		encodedAddressLen:             computeEncodedAddressLen(addressPubkeyConverter),

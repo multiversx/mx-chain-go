@@ -116,7 +116,6 @@ func createGenesisConfig() config.EnableEpochs {
 		AddFailedRelayedTxToInvalidMBsDisableEpoch:        unreachableEpoch,
 		SCRSizeInvariantOnBuiltInResultEnableEpoch:        unreachableEpoch,
 		CheckCorrectTokenIDForTransferRoleEnableEpoch:     unreachableEpoch,
-		CheckValueOnExecByCallerEnableEpoch:               unreachableEpoch,
 	}
 }
 
@@ -392,14 +391,15 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 	}
 
 	argsNewVMFactory := shard.ArgVMContainerFactory{
-		Config:             arg.VirtualMachineConfig,
-		BlockGasLimit:      math.MaxUint64,
-		GasSchedule:        arg.GasSchedule,
-		ArgBlockChainHook:  argsHook,
-		EpochNotifier:      epochNotifier,
-		EpochConfig:        arg.EpochConfig.EnableEpochs,
-		ArwenChangeLocker:  genesisArwenLocker,
-		ESDTTransferParser: esdtTransferParser,
+		Config:              arg.VirtualMachineConfig,
+		BlockGasLimit:       math.MaxUint64,
+		GasSchedule:         arg.GasSchedule,
+		ArgBlockChainHook:   argsHook,
+		EpochNotifier:       epochNotifier,
+		EpochConfig:         arg.EpochConfig.EnableEpochs,
+		ArwenChangeLocker:   genesisArwenLocker,
+		ESDTTransferParser:  esdtTransferParser,
+		EnableRoundsHandler: arg.Core.EnableRoundsHandler(),
 	}
 	vmFactoryImpl, err := shard.NewVMContainerFactory(argsNewVMFactory)
 	if err != nil {

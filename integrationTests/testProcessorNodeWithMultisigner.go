@@ -68,6 +68,7 @@ func NewTestProcessorNodeWithCustomNodesCoordinator(
 		ArwenChangeLocker:       &sync.RWMutex{},
 		TransactionLogProcessor: logsProcessor,
 		Bootstrapper:            mock.NewTestBootstrapperMock(),
+		EnableRoundsHandler:     &testscommon.EnableRoundsHandlerMock{},
 	}
 
 	tpn.ScheduledMiniBlocksEnableEpoch = uint32(1000000)
@@ -254,6 +255,7 @@ func CreateNodeWithBLSAndTxKeys(
 		EpochNotifier:           forking.NewGenericEpochNotifier(),
 		ArwenChangeLocker:       &sync.RWMutex{},
 		TransactionLogProcessor: logsProcessor,
+		EnableRoundsHandler:     &testscommon.EnableRoundsHandlerMock{},
 	}
 
 	tpn.ScheduledMiniBlocksEnableEpoch = uint32(1000000)

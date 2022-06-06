@@ -18,6 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 )
 
 type nodeKeys struct {
@@ -210,6 +211,7 @@ func newTestProcessorNodeWithCustomNodesCoordinator(
 		ChainID:                 ChainID,
 		NodesSetup:              nodesSetup,
 		ArwenChangeLocker:       &sync.RWMutex{},
+		EnableRoundsHandler:     &testscommon.EnableRoundsHandlerMock{},
 	}
 
 	tpn.NodeKeys = &TestKeyPair{

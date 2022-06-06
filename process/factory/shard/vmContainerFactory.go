@@ -28,30 +28,32 @@ var _ process.VirtualMachinesContainerFactory = (*vmContainerFactory)(nil)
 var logVMContainerFactory = logger.GetOrCreate("vmContainerFactory")
 
 type vmContainerFactory struct {
-	config             config.VirtualMachineConfig
-	blockChainHookImpl *hooks.BlockChainHookImpl
-	cryptoHook         vmcommon.CryptoHook
-	blockGasLimit      uint64
-	gasSchedule        core.GasScheduleNotifier
-	builtinFunctions   vmcommon.BuiltInFunctionContainer
-	epochNotifier      process.EpochNotifier
-	epochConfig        config.EnableEpochs
-	container          process.VirtualMachinesContainer
-	arwenVersions      []config.ArwenVersionByEpoch
-	arwenChangeLocker  common.Locker
-	esdtTransferParser vmcommon.ESDTTransferParser
+	config              config.VirtualMachineConfig
+	blockChainHookImpl  *hooks.BlockChainHookImpl
+	cryptoHook          vmcommon.CryptoHook
+	blockGasLimit       uint64
+	gasSchedule         core.GasScheduleNotifier
+	builtinFunctions    vmcommon.BuiltInFunctionContainer
+	epochNotifier       process.EpochNotifier
+	epochConfig         config.EnableEpochs
+	container           process.VirtualMachinesContainer
+	arwenVersions       []config.ArwenVersionByEpoch
+	arwenChangeLocker   common.Locker
+	esdtTransferParser  vmcommon.ESDTTransferParser
+	enableRoundsHandler process.EnableRoundsHandler
 }
 
 // ArgVMContainerFactory defines the arguments needed to the new VM factory
 type ArgVMContainerFactory struct {
-	Config             config.VirtualMachineConfig
-	BlockGasLimit      uint64
-	GasSchedule        core.GasScheduleNotifier
-	ArgBlockChainHook  hooks.ArgBlockChainHook
-	EpochNotifier      process.EpochNotifier
-	EpochConfig        config.EnableEpochs
-	ArwenChangeLocker  common.Locker
-	ESDTTransferParser vmcommon.ESDTTransferParser
+	Config              config.VirtualMachineConfig
+	BlockGasLimit       uint64
+	GasSchedule         core.GasScheduleNotifier
+	ArgBlockChainHook   hooks.ArgBlockChainHook
+	EpochNotifier       process.EpochNotifier
+	EpochConfig         config.EnableEpochs
+	ArwenChangeLocker   common.Locker
+	ESDTTransferParser  vmcommon.ESDTTransferParser
+	EnableRoundsHandler process.EnableRoundsHandler
 }
 
 // NewVMContainerFactory is responsible for creating a new virtual machine factory object
@@ -68,6 +70,9 @@ func NewVMContainerFactory(args ArgVMContainerFactory) (*vmContainerFactory, err
 	if check.IfNil(args.ESDTTransferParser) {
 		return nil, process.ErrNilESDTTransferParser
 	}
+	if check.IfNil(args.EnableRoundsHandler) {
+		return nil, process.ErrNilEnableRoundsHandler
+	}
 
 	blockChainHookImpl, err := hooks.NewBlockChainHookImpl(args.ArgBlockChainHook)
 	if err != nil {
@@ -77,17 +82,18 @@ func NewVMContainerFactory(args ArgVMContainerFactory) (*vmContainerFactory, err
 	cryptoHook := hooks.NewVMCryptoHook()
 
 	vmf := &vmContainerFactory{
-		config:             args.Config,
-		blockChainHookImpl: blockChainHookImpl,
-		cryptoHook:         cryptoHook,
-		blockGasLimit:      args.BlockGasLimit,
-		gasSchedule:        args.GasSchedule,
-		builtinFunctions:   args.ArgBlockChainHook.BuiltInFunctions,
-		epochNotifier:      args.EpochNotifier,
-		epochConfig:        args.EpochConfig,
-		container:          nil,
-		arwenChangeLocker:  args.ArwenChangeLocker,
-		esdtTransferParser: args.ESDTTransferParser,
+		config:              args.Config,
+		blockChainHookImpl:  blockChainHookImpl,
+		cryptoHook:          cryptoHook,
+		blockGasLimit:       args.BlockGasLimit,
+		gasSchedule:         args.GasSchedule,
+		builtinFunctions:    args.ArgBlockChainHook.BuiltInFunctions,
+		epochNotifier:       args.EpochNotifier,
+		epochConfig:         args.EpochConfig,
+		container:           nil,
+		arwenChangeLocker:   args.ArwenChangeLocker,
+		esdtTransferParser:  args.ESDTTransferParser,
+		enableRoundsHandler: args.EnableRoundsHandler,
 	}
 
 	vmf.arwenVersions = args.Config.ArwenVersions
@@ -302,12 +308,12 @@ func (vmf *vmContainerFactory) createInProcessArwenVMV14() (vmcommon.VMExecution
 		ElrondProtectedKeyPrefix: []byte(core.ElrondProtectedKeyPrefix),
 		ESDTTransferParser:       vmf.esdtTransferParser,
 		EpochNotifier:            vmf.epochNotifier,
+		EnableRoundsHandler:      vmf.enableRoundsHandler,
 		MultiESDTTransferAsyncCallBackEnableEpoch:       vmf.epochConfig.MultiESDTTransferFixOnCallBackOnEnableEpoch,
 		FixOOGReturnCodeEnableEpoch:                     vmf.epochConfig.FixOOGReturnCodeEnableEpoch,
 		RemoveNonUpdatedStorageEnableEpoch:              vmf.epochConfig.RemoveNonUpdatedStorageEnableEpoch,
 		CreateNFTThroughExecByCallerEnableEpoch:         vmf.epochConfig.CreateNFTThroughExecByCallerEnableEpoch,
 		UseDifferentGasCostForReadingCachedStorageEpoch: vmf.epochConfig.StorageAPICostOptimizationEnableEpoch,
-		CheckValueOnExecByCallerEnableEpoch:             vmf.epochConfig.CheckValueOnExecByCallerEnableEpoch,
 	}
 	return arwenHost14.NewArwenVM(vmf.blockChainHookImpl, hostParameters)
 }

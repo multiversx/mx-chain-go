@@ -310,14 +310,15 @@ func createScQueryElement(
 			return nil, err
 		}
 		argsNewVMFactory := shard.ArgVMContainerFactory{
-			Config:             queryVirtualMachineConfig,
-			BlockGasLimit:      args.coreComponents.EconomicsData().MaxGasLimitPerBlock(args.processComponents.ShardCoordinator().SelfId()),
-			GasSchedule:        args.gasScheduleNotifier,
-			ArgBlockChainHook:  argsHook,
-			EpochNotifier:      args.coreComponents.EpochNotifier(),
-			EpochConfig:        args.epochConfig.EnableEpochs,
-			ArwenChangeLocker:  args.coreComponents.ArwenChangeLocker(),
-			ESDTTransferParser: esdtTransferParser,
+			Config:              queryVirtualMachineConfig,
+			BlockGasLimit:       args.coreComponents.EconomicsData().MaxGasLimitPerBlock(args.processComponents.ShardCoordinator().SelfId()),
+			GasSchedule:         args.gasScheduleNotifier,
+			ArgBlockChainHook:   argsHook,
+			EpochNotifier:       args.coreComponents.EpochNotifier(),
+			EpochConfig:         args.epochConfig.EnableEpochs,
+			ArwenChangeLocker:   args.coreComponents.ArwenChangeLocker(),
+			ESDTTransferParser:  esdtTransferParser,
+			EnableRoundsHandler: args.coreComponents.EnableRoundsHandler(),
 		}
 
 		log.Debug("apiResolver: enable epoch for sc deploy", "epoch", args.epochConfig.EnableEpochs.SCDeployEnableEpoch)

@@ -343,6 +343,13 @@ func getCoreArgs() factory.CoreComponentsFactoryArgs {
 				},
 			},
 		},
+		RoundsConfig: config.RoundConfig{
+			RoundActivations: map[string]config.ActivationRoundByName{
+				"CheckValueOnExecByCaller": {
+					Round: 600,
+				},
+			},
+		},
 	}
 }
 

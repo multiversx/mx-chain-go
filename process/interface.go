@@ -1056,10 +1056,10 @@ type FallbackHeaderValidator interface {
 	IsInterfaceNil() bool
 }
 
-// RoundActivationHandler is a component which can be queried to check for round activation features/fixes
-type RoundActivationHandler interface {
-	IsEnabledInRound(name string, round uint64) bool
-	IsEnabled(name string) bool
+// EnableRoundsHandler is a component which can be queried to check for round activation features/fixes
+type EnableRoundsHandler interface {
+	CheckRound(round uint64)
+	IsCheckValueOnExecByCallerEnabled() bool
 	IsInterfaceNil() bool
 }
 

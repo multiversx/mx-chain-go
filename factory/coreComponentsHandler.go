@@ -493,8 +493,8 @@ func (mcc *managedCoreComponents) EpochNotifier() process.EpochNotifier {
 	return mcc.coreComponents.epochNotifier
 }
 
-// RoundNotifier returns the round notifier
-func (mcc *managedCoreComponents) RoundNotifier() process.RoundNotifier {
+// EnableRoundsHandler returns the enable rounds activation handler
+func (mcc *managedCoreComponents) EnableRoundsHandler() process.EnableRoundsHandler {
 	mcc.mutCoreComponents.RLock()
 	defer mcc.mutCoreComponents.RUnlock()
 
@@ -502,7 +502,7 @@ func (mcc *managedCoreComponents) RoundNotifier() process.RoundNotifier {
 		return nil
 	}
 
-	return mcc.coreComponents.roundNotifier
+	return mcc.coreComponents.enableRoundsHandler
 }
 
 // EpochStartNotifierWithConfirm returns the epoch notifier with confirm

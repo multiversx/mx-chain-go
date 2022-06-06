@@ -26,9 +26,8 @@ func TestNewEnableRoundsHandler(t *testing.T) {
 		t.Parallel()
 
 		cfg := config.RoundConfig{
-			RoundActivations: []config.ActivationRoundByName{
-				{
-					Name:    "CheckValueOnExecByCaller",
+			RoundActivations: map[string]config.ActivationRoundByName{
+				"CheckValueOnExecByCaller": {
 					Round:   0,
 					Options: nil,
 				},
@@ -44,9 +43,8 @@ func TestNewEnableRoundsHandler(t *testing.T) {
 		t.Parallel()
 
 		cfg := config.RoundConfig{
-			RoundActivations: []config.ActivationRoundByName{
-				{
-					Name:    "CheckValueOnExecByCaller",
+			RoundActivations: map[string]config.ActivationRoundByName{
+				checkValueOnExecByCallerName: {
 					Round:   445,
 					Options: nil,
 				},
@@ -67,9 +65,8 @@ func TestFlagsHolder_IsCheckValueOnExecByCallerEnabled(t *testing.T) {
 		t.Parallel()
 
 		cfg := config.RoundConfig{
-			RoundActivations: []config.ActivationRoundByName{
-				{
-					Name:    "CheckValueOnExecByCaller",
+			RoundActivations: map[string]config.ActivationRoundByName{
+				"CheckValueOnExecByCaller": {
 					Round:   0,
 					Options: nil,
 				},
@@ -89,9 +86,8 @@ func TestFlagsHolder_IsCheckValueOnExecByCallerEnabled(t *testing.T) {
 		t.Parallel()
 
 		cfg := config.RoundConfig{
-			RoundActivations: []config.ActivationRoundByName{
-				{
-					Name:    "CheckValueOnExecByCaller",
+			RoundActivations: map[string]config.ActivationRoundByName{
+				checkValueOnExecByCallerName: {
 					Round:   1,
 					Options: nil,
 				},

@@ -390,7 +390,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		BlockSizeThrottler:             blockSizeThrottler,
 		HistoryRepository:              pcf.historyRepo,
 		EpochNotifier:                  pcf.epochNotifier,
-		RoundNotifier:                  pcf.coreData.RoundNotifier(),
+		EnableRoundsHandler:            pcf.coreData.EnableRoundsHandler(),
 		VMContainersFactory:            vmFactory,
 		VmContainer:                    vmContainer,
 		GasHandler:                     gasHandler,
@@ -777,7 +777,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		BlockSizeThrottler:             blockSizeThrottler,
 		HistoryRepository:              pcf.historyRepo,
 		EpochNotifier:                  pcf.epochNotifier,
-		RoundNotifier:                  pcf.coreData.RoundNotifier(),
+		EnableRoundsHandler:            pcf.coreData.EnableRoundsHandler(),
 		VMContainersFactory:            vmFactory,
 		VmContainer:                    vmContainer,
 		GasHandler:                     gasHandler,
@@ -1048,14 +1048,15 @@ func (pcf *processComponentsFactory) createVMFactoryShard(
 	}
 
 	argsNewVMFactory := shard.ArgVMContainerFactory{
-		Config:             pcf.config.VirtualMachine.Execution,
-		BlockGasLimit:      pcf.coreData.EconomicsData().MaxGasLimitPerBlock(pcf.bootstrapComponents.ShardCoordinator().SelfId()),
-		GasSchedule:        pcf.gasSchedule,
-		ArgBlockChainHook:  argsHook,
-		EpochNotifier:      pcf.coreData.EpochNotifier(),
-		EpochConfig:        pcf.epochConfig.EnableEpochs,
-		ArwenChangeLocker:  arwenChangeLocker,
-		ESDTTransferParser: esdtTransferParser,
+		Config:              pcf.config.VirtualMachine.Execution,
+		BlockGasLimit:       pcf.coreData.EconomicsData().MaxGasLimitPerBlock(pcf.bootstrapComponents.ShardCoordinator().SelfId()),
+		GasSchedule:         pcf.gasSchedule,
+		ArgBlockChainHook:   argsHook,
+		EpochNotifier:       pcf.coreData.EpochNotifier(),
+		EpochConfig:         pcf.epochConfig.EnableEpochs,
+		ArwenChangeLocker:   arwenChangeLocker,
+		ESDTTransferParser:  esdtTransferParser,
+		EnableRoundsHandler: pcf.coreData.EnableRoundsHandler(),
 	}
 
 	return shard.NewVMContainerFactory(argsNewVMFactory)
