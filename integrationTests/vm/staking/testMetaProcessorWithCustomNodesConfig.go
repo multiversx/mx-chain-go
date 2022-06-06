@@ -103,8 +103,6 @@ func (tmp *TestMetaProcessor) ProcessStake(t *testing.T, nodes map[string]*Nodes
 	tmp.commitBlockTxs(t, txHashes, header)
 }
 
-//TODO:
-// - Do the same for unJail
 func (tmp *TestMetaProcessor) doStake(
 	t *testing.T,
 	owner []byte,
@@ -171,6 +169,35 @@ func (tmp *TestMetaProcessor) doUnStake(
 	return tmp.runSC(t, arguments)
 }
 
+// ProcessJail will create a block containing mini blocks with jail txs using provided nodes.
+// Block will be committed + call to validator system sc will be made to jail all nodes
+func (tmp *TestMetaProcessor) ProcessJail(t *testing.T, blsKeys [][]byte) {
+	header := tmp.createNewHeader(t, tmp.currentRound)
+	tmp.BlockChainHook.SetCurrentHeader(header)
+
+	scrs := tmp.doJail(t, blsKeys)
+	txHashes := tmp.addTxsToCacher(scrs)
+	tmp.commitBlockTxs(t, txHashes, header)
+}
+
+func (tmp *TestMetaProcessor) doJail(
+	t *testing.T,
+	blsKeys [][]byte,
+) map[string]*smartContractResult.SmartContractResult {
+	arguments := &vmcommon.ContractCallInput{
+		VMInput: vmcommon.VMInput{
+			CallerAddr:  vm.JailingAddress,
+			Arguments:   blsKeys,
+			CallValue:   big.NewInt(0),
+			GasProvided: 10,
+		},
+		RecipientAddr: vm.StakingSCAddress,
+		Function:      "jail",
+	}
+
+	return tmp.runSC(t, arguments)
+}
+
 func (tmp *TestMetaProcessor) addTxsToCacher(scrs map[string]*smartContractResult.SmartContractResult) [][]byte {
 	txHashes := make([][]byte, 0)
 	for scrHash, scr := range scrs {
@@ -207,56 +234,6 @@ func (tmp *TestMetaProcessor) runSC(t *testing.T, arguments *vmcommon.ContractCa
 	require.Nil(t, err)
 
 	return createSCRsFromStakingSCOutput(vmOutput, tmp.Marshaller)
-}
-
-// ProcessJail will create a block containing mini blocks with jail txs using provided nodes.
-// Block will be committed + call to validator system sc will be made to jail all nodes
-func (tmp *TestMetaProcessor) ProcessJail(t *testing.T, blsKeys [][]byte) {
-	header := tmp.createNewHeader(t, tmp.currentRound)
-	tmp.BlockChainHook.SetCurrentHeader(header)
-
-	scrs := tmp.doJail(t, vmcommon.VMInput{
-		CallerAddr:  vm.JailingAddress,
-		Arguments:   blsKeys,
-		CallValue:   big.NewInt(0),
-		GasProvided: 10,
-	}, tmp.Marshaller)
-	_, err := tmp.AccountsAdapter.Commit()
-	require.Nil(t, err)
-
-	txHashes := tmp.addTxsToCacher(scrs)
-	miniBlocks := block.MiniBlockSlice{
-		{
-			TxHashes:        txHashes,
-			SenderShardID:   core.MetachainShardId,
-			ReceiverShardID: core.MetachainShardId,
-			Type:            block.SmartContractResultBlock,
-		},
-	}
-	tmp.TxCoordinator.AddTxsFromMiniBlocks(miniBlocks)
-	tmp.createAndCommitBlock(t, header, noTime)
-
-	tmp.currentRound += 1
-}
-
-func (tmp *TestMetaProcessor) doJail(
-	t *testing.T,
-	vmInput vmcommon.VMInput,
-	marshaller marshal.Marshalizer,
-) map[string]*smartContractResult.SmartContractResult {
-	arguments := &vmcommon.ContractCallInput{
-		VMInput:       vmInput,
-		RecipientAddr: vm.StakingSCAddress,
-		Function:      "jail",
-	}
-	vmOutput, err := tmp.SystemVM.RunSmartContractCall(arguments)
-	require.Nil(t, err)
-	require.Equal(t, vmcommon.Ok, vmOutput.ReturnCode)
-
-	err = integrationTests.ProcessSCOutputAccounts(vmOutput, tmp.AccountsAdapter)
-	require.Nil(t, err)
-
-	return createSCRsFromStakingSCOutput(vmOutput, marshaller)
 }
 
 func createSCRsFromStakingSCOutput(
