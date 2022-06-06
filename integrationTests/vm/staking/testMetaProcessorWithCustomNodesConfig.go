@@ -102,10 +102,7 @@ func (tmp *TestMetaProcessor) ProcessStake(t *testing.T, nodes map[string]*Nodes
 			GasProvided: 10,
 		}, tmp.Marshaller)
 
-		for scrHash, scr := range scrs {
-			txHashes = append(txHashes, []byte(scrHash))
-			tmp.TxCacher.AddTx([]byte(scrHash), scr)
-		}
+		txHashes = append(txHashes, tmp.addTxsToCacher(scrs)...)
 	}
 	_, err := tmp.AccountsAdapter.Commit()
 	require.Nil(t, err)
@@ -174,10 +171,7 @@ func (tmp *TestMetaProcessor) ProcessUnStake(t *testing.T, nodes map[string][][]
 			GasProvided: 10,
 		}, tmp.Marshaller)
 
-		for scrHash, scr := range scrs {
-			txHashes = append(txHashes, []byte(scrHash))
-			tmp.TxCacher.AddTx([]byte(scrHash), scr)
-		}
+		txHashes = append(txHashes, tmp.addTxsToCacher(scrs)...)
 	}
 
 	_, err := tmp.AccountsAdapter.Commit()
@@ -250,4 +244,14 @@ func createSCRsFromStakingSCOutput(
 	}
 
 	return allSCR
+}
+
+func (tmp *TestMetaProcessor) addTxsToCacher(scrs map[string]*smartContractResult.SmartContractResult) [][]byte {
+	txHashes := make([][]byte, 0)
+	for scrHash, scr := range scrs {
+		txHashes = append(txHashes, []byte(scrHash))
+		tmp.TxCacher.AddTx([]byte(scrHash), scr)
+	}
+
+	return txHashes
 }
