@@ -5,7 +5,6 @@ package localFuncs
 
 import (
 	"encoding/hex"
-	"github.com/ElrondNetwork/elrond-go/testscommon/txDataBuilder"
 	"math/big"
 	"testing"
 	"time"
@@ -13,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	esdtCommon "github.com/ElrondNetwork/elrond-go/integrationTests/vm/esdt"
+	"github.com/ElrondNetwork/elrond-go/testscommon/txDataBuilder"
 )
 
 func TestESDTLocalMintAndBurnFromSC(t *testing.T) {
