@@ -138,6 +138,7 @@ type EnableEpochsHandler interface {
 	BlockGasAndFeesReCheckEnableEpoch() uint32
 	StakingV2EnableEpoch() uint32
 	ScheduledMiniBlocksEnableEpoch() uint32
+	SwitchJailWaitingEnableEpoch() uint32
 	IsSCDeployFlagEnabled() bool
 	IsBuiltInFunctionsFlagEnabled() bool
 	IsRelayedTransactionsFlagEnabled() bool

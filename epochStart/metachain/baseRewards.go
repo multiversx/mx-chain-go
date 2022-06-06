@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
@@ -37,9 +38,8 @@ type BaseRewardsCreatorArgs struct {
 	DataPool                      dataRetriever.PoolsHolder
 	ProtocolSustainabilityAddress string
 	NodesConfigProvider           epochStart.NodesConfigProvider
-	DelegationSystemSCEnableEpoch uint32
 	UserAccountsDB                state.AccountsAdapter
-	RewardsFix1EpochEnable        uint32
+	EnableEpochsHandler           common.EnableEpochsHandler
 }
 
 type baseRewardsCreator struct {
@@ -57,10 +57,9 @@ type baseRewardsCreator struct {
 	accumulatedRewards                 *big.Int
 	protocolSustainabilityValue        *big.Int
 	flagDelegationSystemSCEnabled      atomic.Flag //nolint
-	delegationSystemSCEnableEpoch      uint32
 	userAccountsDB                     state.AccountsAdapter
+	enableEpochsHandler                common.EnableEpochsHandler
 	mutRewardsData                     sync.RWMutex
-	rewardsFix1EnableEpoch             uint32
 }
 
 // NewBaseRewardsCreator will create a new base rewards creator instance
@@ -95,10 +94,9 @@ func NewBaseRewardsCreator(args BaseRewardsCreatorArgs) (*baseRewardsCreator, er
 		nodesConfigProvider:                args.NodesConfigProvider,
 		accumulatedRewards:                 big.NewInt(0),
 		protocolSustainabilityValue:        big.NewInt(0),
-		delegationSystemSCEnableEpoch:      args.DelegationSystemSCEnableEpoch,
 		userAccountsDB:                     args.UserAccountsDB,
 		mapBaseRewardsPerBlockPerValidator: make(map[uint32]*big.Int),
-		rewardsFix1EnableEpoch:             args.RewardsFix1EpochEnable,
+		enableEpochsHandler:                args.EnableEpochsHandler,
 	}
 
 	return brc, nil
@@ -306,6 +304,9 @@ func checkBaseArgs(args BaseRewardsCreatorArgs) error {
 	}
 	if check.IfNil(args.UserAccountsDB) {
 		return epochStart.ErrNilAccountsDB
+	}
+	if check.IfNil(args.EnableEpochsHandler) {
+		return epochStart.ErrNilEnableEpochsHandler
 	}
 
 	return nil

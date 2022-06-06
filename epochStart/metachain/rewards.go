@@ -59,7 +59,7 @@ func (rc *rewardsCreator) CreateRewardsMiniBlocks(
 	defer rc.mutRewardsData.Unlock()
 
 	rc.clean()
-	rc.flagDelegationSystemSCEnabled.SetValue(metaBlock.GetEpoch() >= rc.delegationSystemSCEnableEpoch)
+	rc.flagDelegationSystemSCEnabled.SetValue(metaBlock.GetEpoch() >= rc.enableEpochsHandler.StakingV2EnableEpoch())
 
 	economicsData := metaBlock.GetEpochStartHandler().GetEconomicsHandler()
 	log.Debug("rewardsCreator.CreateRewardsMiniBlocks",
@@ -225,5 +225,5 @@ func (rc *rewardsCreator) IsInterfaceNil() bool {
 }
 
 func (rc *rewardsCreator) isRewardsFix1Enabled(epoch uint32) bool {
-	return epoch > rc.rewardsFix1EnableEpoch
+	return epoch > rc.enableEpochsHandler.SwitchJailWaitingEnableEpoch()
 }

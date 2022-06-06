@@ -125,6 +125,11 @@ func (handler *enableEpochsHandler) StakingV2EnableEpoch() uint32 {
 	return handler.enableEpochsConfig.StakingV2EnableEpoch
 }
 
+// SwitchJailWaitingEnableEpoch returns the epoch for switch jail waiting
+func (handler *enableEpochsHandler) SwitchJailWaitingEnableEpoch() uint32 {
+	return handler.enableEpochsConfig.SwitchJailWaitingEnableEpoch
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (handler *enableEpochsHandler) IsInterfaceNil() bool {
 	return handler == nil

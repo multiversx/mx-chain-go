@@ -20,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/state/factory"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
@@ -1149,8 +1150,10 @@ func getBaseRewardsArguments() BaseRewardsCreatorArgs {
 				return 63
 			},
 		},
-		UserAccountsDB:         userAccountsDB,
-		RewardsFix1EpochEnable: 0,
+		UserAccountsDB: userAccountsDB,
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
+			SwitchJailWaitingEnableEpochField: 0,
+		},
 	}
 }
 
