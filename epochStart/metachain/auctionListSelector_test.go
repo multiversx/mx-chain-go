@@ -1,8 +1,6 @@
 package metachain
 
 import (
-	"encoding/hex"
-	"errors"
 	"math/big"
 	"strings"
 	"testing"
@@ -12,7 +10,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common/forking"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
-	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -50,6 +47,7 @@ func createFullAuctionListSelectorArgs(maxNodesChangeConfig []config.MaxNodesCha
 	nodesConfigProvider, _ := notifier.NewNodesConfigProvider(epochNotifier, maxNodesChangeConfig)
 
 	argsSystemSC, _ := createFullArgumentsForSystemSCProcessing(0, createMemUnit())
+	argsSystemSC.StakingDataProvider.EpochConfirmed(stakingV4EnableEpoch, 0)
 	argsSystemSC.MaxNodesChangeConfigProvider = nodesConfigProvider
 	return AuctionListSelectorArgs{
 		ShardCoordinator:             argsSystemSC.ShardCoordinator,
@@ -61,7 +59,7 @@ func createFullAuctionListSelectorArgs(maxNodesChangeConfig []config.MaxNodesCha
 
 func fillValidatorsInfo(t *testing.T, validatorsMap state.ShardValidatorsInfoMapHandler, sdp epochStart.StakingDataProvider) {
 	for _, validator := range validatorsMap.GetAllValidatorsInfo() {
-		err := sdp.FillValidatorInfo(validator.GetPublicKey())
+		err := sdp.FillValidatorInfo(validator)
 		require.Nil(t, err)
 	}
 }
@@ -216,7 +214,7 @@ func TestGetAuctionConfig(t *testing.T) {
 	})
 }
 
-func TestAuctionListSelector_SelectNodesFromAuctionErrorCases(t *testing.T) {
+func TestAuctionListSelector_SelectNodesFromAuction(t *testing.T) {
 	t.Parallel()
 
 	t.Run("nil randomness, expect error", func(t *testing.T) {
@@ -224,124 +222,9 @@ func TestAuctionListSelector_SelectNodesFromAuctionErrorCases(t *testing.T) {
 
 		args := createAuctionListSelectorArgs(nil)
 		als, _ := NewAuctionListSelector(args)
-		err := als.SelectNodesFromAuctionList(state.NewShardValidatorsInfoMap(), nil, nil)
+		err := als.SelectNodesFromAuctionList(state.NewShardValidatorsInfoMap(), nil)
 		require.Equal(t, process.ErrNilRandSeed, err)
 	})
-
-	t.Run("cannot get bls key owner, expect error", func(t *testing.T) {
-		t.Parallel()
-
-		stakedKey := []byte("pubKey0")
-		validatorsInfo := state.NewShardValidatorsInfoMap()
-		_ = validatorsInfo.Add(createValidatorInfo(stakedKey, common.AuctionList, []byte("owner1"), 0))
-
-		args := createAuctionListSelectorArgs(nil)
-		errGetOwner := errors.New("error getting owner")
-		args.StakingDataProvider = &mock.StakingDataProviderStub{
-			GetBlsKeyOwnerCalled: func(blsKey []byte) (string, error) {
-				require.Equal(t, stakedKey, blsKey)
-				return "", errGetOwner
-			},
-		}
-
-		als, _ := NewAuctionListSelector(args)
-		err := als.SelectNodesFromAuctionList(validatorsInfo, nil, []byte("rand"))
-		require.Equal(t, errGetOwner, err)
-	})
-
-	t.Run("cannot get owner's staked nodes, expect error", func(t *testing.T) {
-		t.Parallel()
-
-		expectedOwner := []byte("owner")
-		stakedKey := []byte("pubKey0")
-		validatorsInfo := state.NewShardValidatorsInfoMap()
-		_ = validatorsInfo.Add(createValidatorInfo([]byte("pubKey0"), common.AuctionList, expectedOwner, 0))
-
-		args := createAuctionListSelectorArgs(nil)
-		errGetNumStakedNodes := errors.New("error getting number of staked nodes")
-		args.StakingDataProvider = &mock.StakingDataProviderStub{
-			GetBlsKeyOwnerCalled: func(blsKey []byte) (string, error) {
-				require.Equal(t, stakedKey, blsKey)
-				return string(expectedOwner), nil
-			},
-			GetNumStakedNodesCalled: func(owner []byte) (int64, error) {
-				require.Equal(t, expectedOwner, owner)
-				return 1, errGetNumStakedNodes
-			},
-		}
-
-		als, _ := NewAuctionListSelector(args)
-		err := als.SelectNodesFromAuctionList(validatorsInfo, nil, []byte("rand"))
-		require.Error(t, err)
-		require.True(t, strings.Contains(err.Error(), errGetNumStakedNodes.Error()))
-		require.True(t, strings.Contains(err.Error(), hex.EncodeToString(expectedOwner)))
-		require.True(t, strings.Contains(err.Error(), hex.EncodeToString(stakedKey)))
-	})
-
-	t.Run("owner has one node in auction, but 0 staked nodes, expect error", func(t *testing.T) {
-		t.Parallel()
-
-		expectedOwner := []byte("owner")
-		stakedKey := []byte("pubKey0")
-		validatorsInfo := state.NewShardValidatorsInfoMap()
-		_ = validatorsInfo.Add(createValidatorInfo([]byte("pubKey0"), common.AuctionList, expectedOwner, 0))
-
-		args := createAuctionListSelectorArgs(nil)
-		args.StakingDataProvider = &mock.StakingDataProviderStub{
-			GetBlsKeyOwnerCalled: func(blsKey []byte) (string, error) {
-				require.Equal(t, stakedKey, blsKey)
-				return string(expectedOwner), nil
-			},
-			GetNumStakedNodesCalled: func(owner []byte) (int64, error) {
-				require.Equal(t, expectedOwner, owner)
-				return 0, nil
-			},
-		}
-
-		als, _ := NewAuctionListSelector(args)
-		err := als.SelectNodesFromAuctionList(validatorsInfo, nil, []byte("rand"))
-		require.Error(t, err)
-		require.True(t, strings.Contains(err.Error(), epochStart.ErrOwnerHasNoStakedNode.Error()))
-		require.True(t, strings.Contains(err.Error(), hex.EncodeToString(expectedOwner)))
-		require.True(t, strings.Contains(err.Error(), hex.EncodeToString(stakedKey)))
-	})
-
-	t.Run("cannot get owner's total top up, expect error", func(t *testing.T) {
-		t.Parallel()
-
-		expectedOwner := []byte("owner")
-		stakedKey := []byte("pubKey0")
-		validatorsInfo := state.NewShardValidatorsInfoMap()
-		_ = validatorsInfo.Add(createValidatorInfo([]byte("pubKey0"), common.AuctionList, expectedOwner, 0))
-
-		args := createAuctionListSelectorArgs(nil)
-		errGetTotalTopUp := errors.New("error getting total top up")
-		args.StakingDataProvider = &mock.StakingDataProviderStub{
-			GetBlsKeyOwnerCalled: func(blsKey []byte) (string, error) {
-				require.Equal(t, stakedKey, blsKey)
-				return string(expectedOwner), nil
-			},
-			GetNumStakedNodesCalled: func(owner []byte) (int64, error) {
-				require.Equal(t, expectedOwner, owner)
-				return 1, nil
-			},
-			GetTotalTopUpCalled: func(owner []byte) (*big.Int, error) {
-				require.Equal(t, expectedOwner, owner)
-				return nil, errGetTotalTopUp
-			},
-		}
-
-		als, _ := NewAuctionListSelector(args)
-		err := als.SelectNodesFromAuctionList(validatorsInfo, nil, []byte("rand"))
-		require.Error(t, err)
-		require.True(t, strings.Contains(err.Error(), errGetTotalTopUp.Error()))
-		require.True(t, strings.Contains(err.Error(), hex.EncodeToString(expectedOwner)))
-		require.True(t, strings.Contains(err.Error(), hex.EncodeToString(stakedKey)))
-	})
-}
-
-func TestAuctionListSelector_SelectNodesFromAuction(t *testing.T) {
-	t.Parallel()
 
 	t.Run("empty auction list", func(t *testing.T) {
 		t.Parallel()
@@ -357,7 +240,7 @@ func TestAuctionListSelector_SelectNodesFromAuction(t *testing.T) {
 		fillValidatorsInfo(t, validatorsInfo, argsSystemSC.StakingDataProvider)
 
 		als, _ := NewAuctionListSelector(args)
-		err := als.SelectNodesFromAuctionList(state.NewShardValidatorsInfoMap(), nil, []byte("rand"))
+		err := als.SelectNodesFromAuctionList(state.NewShardValidatorsInfoMap(), []byte("rand"))
 		require.Nil(t, err)
 		expectedValidatorsInfo := map[uint32][]state.ValidatorInfoHandler{
 			0: {
@@ -385,7 +268,7 @@ func TestAuctionListSelector_SelectNodesFromAuction(t *testing.T) {
 		fillValidatorsInfo(t, validatorsInfo, argsSystemSC.StakingDataProvider)
 
 		als, _ := NewAuctionListSelector(args)
-		err := als.SelectNodesFromAuctionList(validatorsInfo, nil, []byte("rnd"))
+		err := als.SelectNodesFromAuctionList(validatorsInfo, []byte("rnd"))
 		require.Nil(t, err)
 		expectedValidatorsInfo := map[uint32][]state.ValidatorInfoHandler{
 			0: {
@@ -414,7 +297,7 @@ func TestAuctionListSelector_SelectNodesFromAuction(t *testing.T) {
 		fillValidatorsInfo(t, validatorsInfo, argsSystemSC.StakingDataProvider)
 
 		als, _ := NewAuctionListSelector(args)
-		err := als.SelectNodesFromAuctionList(validatorsInfo, nil, []byte("rnd"))
+		err := als.SelectNodesFromAuctionList(validatorsInfo, []byte("rnd"))
 		require.Nil(t, err)
 		expectedValidatorsInfo := map[uint32][]state.ValidatorInfoHandler{
 			0: {
@@ -438,7 +321,7 @@ func TestAuctionListSelector_SelectNodesFromAuction(t *testing.T) {
 		fillValidatorsInfo(t, validatorsInfo, argsSystemSC.StakingDataProvider)
 
 		als, _ := NewAuctionListSelector(args)
-		err := als.SelectNodesFromAuctionList(validatorsInfo, nil, []byte("rnd"))
+		err := als.SelectNodesFromAuctionList(validatorsInfo, []byte("rnd"))
 		require.Nil(t, err)
 		expectedValidatorsInfo := map[uint32][]state.ValidatorInfoHandler{
 			0: {
@@ -464,7 +347,7 @@ func TestAuctionListSelector_calcSoftAuctionNodesConfigEdgeCases(t *testing.T) {
 
 		owner1 := "owner1"
 		owner2 := "owner2"
-		ownersData := map[string]*ownerData{
+		ownersData := map[string]*ownerAuctionData{
 			owner1: {
 				numActiveNodes:           0,
 				numAuctionNodes:          1,
@@ -512,7 +395,7 @@ func TestAuctionListSelector_calcSoftAuctionNodesConfigEdgeCases(t *testing.T) {
 		owner1 := "owner1"
 		owner2 := "owner2"
 		owner3 := "owner3"
-		ownersData := map[string]*ownerData{
+		ownersData := map[string]*ownerAuctionData{
 			owner1: {
 				numActiveNodes:           0,
 				numAuctionNodes:          1,
@@ -574,7 +457,7 @@ func TestAuctionListSelector_calcSoftAuctionNodesConfigEdgeCases(t *testing.T) {
 
 		owner1 := "owner1"
 		owner2 := "owner2"
-		ownersData := map[string]*ownerData{
+		ownersData := map[string]*ownerAuctionData{
 			owner1: {
 				numActiveNodes:           0,
 				numAuctionNodes:          1,
@@ -618,7 +501,7 @@ func TestAuctionListSelector_calcSoftAuctionNodesConfigEdgeCases(t *testing.T) {
 
 		owner1 := "owner1"
 		owner2 := "owner2"
-		ownersData := map[string]*ownerData{
+		ownersData := map[string]*ownerAuctionData{
 			owner1: {
 				numActiveNodes:           0,
 				numAuctionNodes:          1,
@@ -663,7 +546,7 @@ func TestAuctionListSelector_calcSoftAuctionNodesConfigEdgeCases(t *testing.T) {
 
 		owner1 := "owner1"
 		owner2 := "owner2"
-		ownersData := map[string]*ownerData{
+		ownersData := map[string]*ownerAuctionData{
 			owner1: {
 				numActiveNodes:           0,
 				numAuctionNodes:          1,
@@ -728,7 +611,7 @@ func TestAuctionListSelector_calcSoftAuctionNodesConfig(t *testing.T) {
 	owner2 := "owner2"
 	owner3 := "owner3"
 	owner4 := "owner4"
-	ownersData := map[string]*ownerData{
+	ownersData := map[string]*ownerAuctionData{
 		owner1: {
 			numActiveNodes:           2,
 			numAuctionNodes:          2,

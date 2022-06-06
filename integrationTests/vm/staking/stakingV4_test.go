@@ -554,6 +554,7 @@ func TestStakingV4_StakeNewNodes(t *testing.T) {
 	requireSliceContains(t, currNodesConfig.auction, newNodes0[newOwner0].BLSKeys)
 }
 
+// TODO: test unstake with 1 owner -> 1 bls key in auction => numStakedNodes = 0
 func TestStakingV4_UnStakeNodes(t *testing.T) {
 	pubKeys := generateAddresses(0, 20)
 
