@@ -5,10 +5,10 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/go-libp2p-pubsub"
+	pb "github.com/ElrondNetwork/go-libp2p-pubsub/pb"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
-	pubsub "github.com/libp2p/go-libp2p-pubsub"
-	"github.com/libp2p/go-libp2p-pubsub/pb"
 	"github.com/whyrusleeping/timecache"
 )
 
@@ -60,7 +60,7 @@ func (netMes *networkMessenger) GetOption(handlerFunc func() error) Option {
 }
 
 // ProcessReceivedDirectMessage -
-func (ds *directSender) ProcessReceivedDirectMessage(message *pubsub_pb.Message, fromConnectedPeer peer.ID) error {
+func (ds *directSender) ProcessReceivedDirectMessage(message *pb.Message, fromConnectedPeer peer.ID) error {
 	return ds.processReceivedDirectMessage(message, fromConnectedPeer)
 }
 
@@ -87,10 +87,4 @@ func (ip *identityProvider) HandleStreams(s network.Stream) {
 // ProcessReceivedData -
 func (ip *identityProvider) ProcessReceivedData(recvBuff []byte) error {
 	return ip.processReceivedData(recvBuff)
-}
-
-// NewNetworkMessengerWithoutPortReuse creates a libP2P messenger by opening a port on the current machine but is
-// not able to reuse ports
-func NewNetworkMessengerWithoutPortReuse(args ArgsNetworkMessenger) (*networkMessenger, error) {
-	return newNetworkMessenger(args, withMessageSigning, preventReusePorts)
 }

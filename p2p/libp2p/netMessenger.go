@@ -26,6 +26,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/networksharding/factory"
 	randFactory "github.com/ElrondNetwork/elrond-go/p2p/libp2p/rand/factory"
 	"github.com/ElrondNetwork/elrond-go/p2p/loadBalancer"
+	pubsub "github.com/ElrondNetwork/go-libp2p-pubsub"
+	pubsubPb "github.com/ElrondNetwork/go-libp2p-pubsub/pb"
 	"github.com/btcsuite/btcd/btcec"
 	logging "github.com/ipfs/go-log"
 	"github.com/libp2p/go-libp2p"
@@ -33,10 +35,6 @@ import (
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
-	pubsub "github.com/libp2p/go-libp2p-pubsub"
-	pubsubPb "github.com/libp2p/go-libp2p-pubsub/pb"
-	stream "github.com/libp2p/go-libp2p-transport-upgrader"
-	"github.com/libp2p/go-tcp-transport"
 )
 
 const (
@@ -69,13 +67,6 @@ type messageSigningConfig bool
 const (
 	withMessageSigning    messageSigningConfig = true
 	withoutMessageSigning messageSigningConfig = false
-)
-
-type reusePortsConfig bool
-
-const (
-	allowReusePorts   reusePortsConfig = true
-	preventReusePorts reusePortsConfig = false
 )
 
 // TODO remove the header size of the message when commit d3c5ecd3a3e884206129d9f2a9a4ddfd5e7c8951 from
@@ -137,10 +128,10 @@ type ArgsNetworkMessenger struct {
 
 // NewNetworkMessenger creates a libP2P messenger by opening a port on the current machine
 func NewNetworkMessenger(args ArgsNetworkMessenger) (*networkMessenger, error) {
-	return newNetworkMessenger(args, withMessageSigning, allowReusePorts)
+	return newNetworkMessenger(args, withMessageSigning)
 }
 
-func newNetworkMessenger(args ArgsNetworkMessenger, messageSigning messageSigningConfig, reusePort reusePortsConfig) (*networkMessenger, error) {
+func newNetworkMessenger(args ArgsNetworkMessenger, messageSigning messageSigningConfig) (*networkMessenger, error) {
 	if check.IfNil(args.Marshalizer) {
 		return nil, fmt.Errorf("%w when creating a new network messenger", p2p.ErrNilMarshalizer)
 	}
@@ -158,7 +149,7 @@ func newNetworkMessenger(args ArgsNetworkMessenger, messageSigning messageSignin
 
 	setupExternalP2PLoggers()
 
-	p2pNode, err := constructNodeWithPortRetry(args, p2pPrivKey, reusePort)
+	p2pNode, err := constructNodeWithPortRetry(args, p2pPrivKey)
 	if err != nil {
 		return nil, err
 	}
@@ -175,22 +166,11 @@ func newNetworkMessenger(args ArgsNetworkMessenger, messageSigning messageSignin
 func constructNode(
 	args ArgsNetworkMessenger,
 	p2pPrivKey *libp2pCrypto.Secp256k1PrivateKey,
-	portReuse reusePortsConfig,
 ) (*networkMessenger, error) {
 
 	port, err := getPort(args.P2pConfig.Node.Port, checkFreePort)
 	if err != nil {
 		return nil, err
-	}
-
-	transportOption := libp2p.DefaultTransports
-	if portReuse == preventReusePorts {
-		log.Warn("port reuse is turned off in network messenger instance. NOT recommended in production environment")
-		transportOption = libp2p.Transport(func(u *stream.Upgrader) *tcp.TcpTransport {
-			tpt := tcp.NewTCPTransport(u)
-			tpt.DisableReuseport = true
-			return tpt
-		})
 	}
 
 	address := fmt.Sprintf(args.ListenAddress+"%d", port)
@@ -199,14 +179,14 @@ func constructNode(
 		libp2p.Identity(p2pPrivKey),
 		libp2p.DefaultMuxers,
 		libp2p.DefaultSecurity,
-		transportOption,
+		libp2p.DefaultTransports,
 		// we need the disable relay option in order to save the node's bandwidth as much as possible
 		libp2p.DisableRelay(),
 		libp2p.NATPortMap(),
 	}
 
 	ctx, cancelFunc := context.WithCancel(context.Background())
-	h, err := libp2p.New(ctx, opts...)
+	h, err := libp2p.New(opts...)
 	if err != nil {
 		cancelFunc()
 		return nil, err
@@ -225,12 +205,11 @@ func constructNode(
 func constructNodeWithPortRetry(
 	args ArgsNetworkMessenger,
 	p2pPrivKey *libp2pCrypto.Secp256k1PrivateKey,
-	portReuse reusePortsConfig,
 ) (*networkMessenger, error) {
 
 	var lastErr error
 	for i := 0; i < maxRetriesIfBindError; i++ {
-		p2pNode, err := constructNode(args, p2pPrivKey, portReuse)
+		p2pNode, err := constructNode(args, p2pPrivKey)
 		if err == nil {
 			return p2pNode, nil
 		}
