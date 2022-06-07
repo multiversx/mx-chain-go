@@ -1690,33 +1690,6 @@ func TestNetworkMessenger_mapHistogram(t *testing.T) {
 	require.Equal(t, output, netMes.MapHistogram(inp))
 }
 
-func TestNetworkMessenger_ApplyOptionsShouldErr(t *testing.T) {
-	t.Parallel()
-
-	expectedErr := errors.New("expected option err")
-	args := createMockNetworkArgs()
-	netMes, _ := libp2p.NewNetworkMessenger(args)
-
-	opt := netMes.GetOption(func() error {
-		return expectedErr
-	})
-	err := netMes.ApplyOptions(opt)
-	require.Equal(t, expectedErr, err)
-}
-
-func TestNetworkMessenger_ApplyOptionsShouldWork(t *testing.T) {
-	t.Parallel()
-
-	args := createMockNetworkArgs()
-	netMes, _ := libp2p.NewNetworkMessenger(args)
-
-	opt := netMes.GetOption(func() error {
-		return nil
-	})
-	err := netMes.ApplyOptions(opt)
-	require.NoError(t, err)
-}
-
 func TestNetworkMessenger_Bootstrap(t *testing.T) {
 	t.Skip("long test used to debug go routines closing on the netMessenger")
 

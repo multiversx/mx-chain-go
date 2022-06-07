@@ -7,7 +7,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/go-libp2p-pubsub"
 	pb "github.com/ElrondNetwork/go-libp2p-pubsub/pb"
-	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/whyrusleeping/timecache"
 )
@@ -71,14 +70,4 @@ func (ds *directSender) Counter() uint64 {
 // Mutexes -
 func (mh *MutexHolder) Mutexes() storage.Cacher {
 	return mh.mutexes
-}
-
-// HandleStreams -
-func (ip *identityProvider) HandleStreams(s network.Stream) {
-	ip.handleStreams(s)
-}
-
-// ProcessReceivedData -
-func (ip *identityProvider) ProcessReceivedData(recvBuff []byte) error {
-	return ip.processReceivedData(recvBuff)
 }

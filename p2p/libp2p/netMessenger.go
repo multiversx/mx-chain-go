@@ -181,6 +181,11 @@ func constructNode(
 		return nil, err
 	}
 
+	connWatcher, err := metricsFactory.NewConnectionsWatcher(args.P2pConfig.Node.ConnectionWatcherType, ttlConnectionsWatcher)
+	if err != nil {
+		return nil, err
+	}
+
 	address := fmt.Sprintf(args.ListenAddress+"%d", port)
 	opts := []libp2p.Option{
 		libp2p.ListenAddrStrings(address),

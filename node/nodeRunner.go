@@ -177,7 +177,7 @@ func printEnableEpochs(configs *config.Configs) {
 	log.Debug(readEpochFor("do not return old block in blockchain hook"), "epoch", enableEpochs.DoNotReturnOldBlockInBlockchainHookEnableEpoch)
 	log.Debug(readEpochFor("scr size invariant check on built in"), "epoch", enableEpochs.SCRSizeInvariantOnBuiltInResultEnableEpoch)
 	log.Debug(readEpochFor("correct check on tokenID for transfer role"), "epoch", enableEpochs.CheckCorrectTokenIDForTransferRoleEnableEpoch)
-	log.Debug(readEpochFor("check value on exec by caller"), "epoch", enableEpochs.CheckValueOnExecByCallerEnableEpoch)
+	log.Debug(readEpochFor("disable check value on exec by caller"), "epoch", enableEpochs.DisableExecByCallerEnableEpoch)
 	log.Debug(readEpochFor("fail execution on every wrong API call"), "epoch", enableEpochs.FailExecutionOnEveryAPIErrorEnableEpoch)
 	log.Debug(readEpochFor("managed crypto API in wasm vm"), "epoch", enableEpochs.ManagedCryptoAPIsEnableEpoch)
 

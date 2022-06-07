@@ -41,6 +41,7 @@ require (
 	github.com/syndtr/goleveldb v1.0.1-0.20190318030020-c3a204f8e965
 	github.com/urfave/cli v1.22.9
 	github.com/whyrusleeping/timecache v0.0.0-20160911033111-cfcb2f1abfee
+	github.com/yusufpapurcu/wmi v1.2.2 // indirect
 	golang.org/x/crypto v0.0.0-20220411220226-7b82a4e95df4
 	golang.org/x/net v0.0.0-20220418201149-a630d4f3e7a2
 	gopkg.in/go-playground/validator.v8 v8.18.2

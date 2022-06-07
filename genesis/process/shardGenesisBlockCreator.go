@@ -117,7 +117,7 @@ func createGenesisConfig() config.EnableEpochs {
 		SCRSizeInvariantOnBuiltInResultEnableEpoch:        unreachableEpoch,
 		ManagedCryptoAPIsEnableEpoch:                      unreachableEpoch,
 		CheckCorrectTokenIDForTransferRoleEnableEpoch:     unreachableEpoch,
-		CheckValueOnExecByCallerEnableEpoch:               unreachableEpoch,
+		DisableExecByCallerEnableEpoch:                    unreachableEpoch,
 	}
 }
 
