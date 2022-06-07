@@ -7,7 +7,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/metachain"
 	"github.com/ElrondNetwork/elrond-go/factory"
@@ -16,7 +15,10 @@ import (
 	blproc "github.com/ElrondNetwork/elrond-go/process/block"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/process/block/postprocess"
+	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/process/scToProtocol"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
@@ -37,14 +39,16 @@ func createMetaBlockProcessor(
 	metaVMFactory process.VirtualMachinesContainerFactory,
 	epochStartHandler process.EpochStartTriggerHandler,
 	vmContainer process.VirtualMachinesContainer,
+	txCoordinator process.TransactionCoordinator,
 ) process.BlockProcessor {
-	shardCoordiantor := bootstrapComponents.ShardCoordinator()
-
-	blockTracker := createBlockTracker(dataComponents.Blockchain().GetGenesisHeader(), shardCoordiantor)
+	blockTracker := createBlockTracker(
+		dataComponents.Blockchain().GetGenesisHeader(),
+		bootstrapComponents.ShardCoordinator(),
+	)
 	epochStartDataCreator := createEpochStartDataCreator(
 		coreComponents,
 		dataComponents,
-		shardCoordiantor,
+		bootstrapComponents.ShardCoordinator(),
 		epochStartHandler,
 		blockTracker,
 	)
@@ -59,7 +63,9 @@ func createMetaBlockProcessor(
 	)
 
 	headerValidator := createHeaderValidator(coreComponents)
-	valInfoCreator := createValidatorInfoCreator(coreComponents, dataComponents, shardCoordiantor)
+	valInfoCreator := createValidatorInfoCreator(coreComponents, dataComponents, bootstrapComponents.ShardCoordinator())
+	stakingToPeer := createSCToProtocol(coreComponents, stateComponents, dataComponents.Datapool().CurrentBlockTxs())
+
 	args := blproc.ArgMetaProcessor{
 		ArgBaseProcessor: blproc.ArgBaseProcessor{
 			CoreComponents:                 coreComponents,
@@ -72,7 +78,7 @@ func createMetaBlockProcessor(
 			FeeHandler:                     postprocess.NewFeeAccumulator(),
 			RequestHandler:                 &testscommon.RequestHandlerStub{},
 			BlockChainHook:                 blockChainHook,
-			TxCoordinator:                  &mock.TransactionCoordinatorMock{},
+			TxCoordinator:                  txCoordinator,
 			EpochStartTrigger:              epochStartHandler,
 			HeaderValidator:                headerValidator,
 			GasHandler:                     &mock.GasHandlerMock{},
@@ -86,14 +92,15 @@ func createMetaBlockProcessor(
 			ScheduledMiniBlocksEnableEpoch: 10000,
 			VMContainersFactory:            metaVMFactory,
 			VmContainer:                    vmContainer,
+			ProcessedMiniBlocksTracker:     processedMb.NewProcessedMiniBlocksTracker(),
 		},
-		SCToProtocol:             &mock.SCToProtocolStub{},
+		SCToProtocol:             stakingToPeer,
 		PendingMiniBlocksHandler: &mock.PendingMiniBlocksHandlerStub{},
 		EpochStartDataCreator:    epochStartDataCreator,
 		EpochEconomics:           &mock.EpochEconomicsStub{},
 		EpochRewardsCreator: &testscommon.RewardsCreatorStub{
 			GetLocalTxCacheCalled: func() epochStart.TransactionCacher {
-				return dataPool.NewCurrentBlockPool()
+				return dataComponents.Datapool().CurrentBlockTxs()
 			},
 		},
 		EpochValidatorInfoCreator:    valInfoCreator,
@@ -199,4 +206,25 @@ func createHeaderValidator(coreComponents factory.CoreComponentsHolder) epochSta
 	}
 	headerValidator, _ := blproc.NewHeaderValidator(argsHeaderValidator)
 	return headerValidator
+}
+
+func createSCToProtocol(
+	coreComponents factory.CoreComponentsHolder,
+	stateComponents factory.StateComponentsHandler,
+	txCacher dataRetriever.TransactionCacher,
+) process.SmartContractToProtocolHandler {
+	args := scToProtocol.ArgStakingToPeer{
+		PubkeyConv:         coreComponents.AddressPubKeyConverter(),
+		Hasher:             coreComponents.Hasher(),
+		Marshalizer:        coreComponents.InternalMarshalizer(),
+		PeerState:          stateComponents.PeerAccounts(),
+		BaseState:          stateComponents.AccountsAdapter(),
+		ArgParser:          smartContract.NewArgumentParser(),
+		CurrTxs:            txCacher,
+		RatingsData:        &mock.RatingsInfoMock{},
+		EpochNotifier:      coreComponents.EpochNotifier(),
+		StakingV4InitEpoch: stakingV4InitEpoch,
+	}
+	stakingToPeer, _ := scToProtocol.NewStakingToPeer(args)
+	return stakingToPeer
 }

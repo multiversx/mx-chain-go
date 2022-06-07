@@ -284,7 +284,7 @@ func Test_SelectTransactionsWithBandwidth_Dummy(t *testing.T) {
 	cache.AddTx(createTxWithGasLimit([]byte("hash-carol-1"), "carol", 1, 50000))
 
 	sorted := cache.SelectTransactionsWithBandwidth(5, 2, 200000)
-	numSelected := 1+1+3 // 1 alice, 1 carol, 3 bob
+	numSelected := 1 + 1 + 3 // 1 alice, 1 carol, 3 bob
 
 	require.Len(t, sorted, numSelected)
 }

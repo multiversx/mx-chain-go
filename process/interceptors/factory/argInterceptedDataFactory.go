@@ -24,6 +24,7 @@ type interceptedDataCoreComponentsHolder interface {
 	MinTransactionVersion() uint32
 	IsInterfaceNil() bool
 	EpochNotifier() process.EpochNotifier
+	HardforkTriggerPubKey() []byte
 }
 
 // interceptedDataCryptoComponentsHolder holds the crypto components required by the intercepted data factory
@@ -40,16 +41,20 @@ type interceptedDataCryptoComponentsHolder interface {
 // ArgInterceptedDataFactory holds all dependencies required by the shard and meta intercepted data factory in order to create
 // new instances
 type ArgInterceptedDataFactory struct {
-	CoreComponents            interceptedDataCoreComponentsHolder
-	CryptoComponents          interceptedDataCryptoComponentsHolder
-	ShardCoordinator          sharding.Coordinator
-	NodesCoordinator          nodesCoordinator.NodesCoordinator
-	FeeHandler                process.FeeHandler
-	WhiteListerVerifiedTxs    process.WhiteListHandler
-	HeaderSigVerifier         process.InterceptedHeaderSigVerifier
-	ValidityAttester          process.ValidityAttester
-	HeaderIntegrityVerifier   process.HeaderIntegrityVerifier
-	EpochStartTrigger         process.EpochStartTriggerHandler
-	ArgsParser                process.ArgumentsParser
-	EnableSignTxWithHashEpoch uint32
+	CoreComponents               interceptedDataCoreComponentsHolder
+	CryptoComponents             interceptedDataCryptoComponentsHolder
+	ShardCoordinator             sharding.Coordinator
+	NodesCoordinator             nodesCoordinator.NodesCoordinator
+	FeeHandler                   process.FeeHandler
+	WhiteListerVerifiedTxs       process.WhiteListHandler
+	HeaderSigVerifier            process.InterceptedHeaderSigVerifier
+	ValidityAttester             process.ValidityAttester
+	HeaderIntegrityVerifier      process.HeaderIntegrityVerifier
+	EpochStartTrigger            process.EpochStartTriggerHandler
+	ArgsParser                   process.ArgumentsParser
+	EnableSignTxWithHashEpoch    uint32
+	PeerSignatureHandler         crypto.PeerSignatureHandler
+	SignaturesHandler            process.SignaturesHandler
+	HeartbeatExpiryTimespanInSec int64
+	PeerID                       core.PeerID
 }

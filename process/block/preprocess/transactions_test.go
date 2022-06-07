@@ -232,6 +232,7 @@ func createDefaultTransactionsProcessorArgs() ArgsTransactionPreProcessor {
 		ScheduledMiniBlocksEnableEpoch:              2,
 		TxTypeHandler:                               &testscommon.TxTypeHandlerMock{},
 		ScheduledTxsExecutionHandler:                &testscommon.ScheduledTxsExecutionStub{},
+		ProcessedMiniBlocksTracker:                  &testscommon.ProcessedMiniBlocksTrackerStub{},
 	}
 }
 
@@ -417,6 +418,16 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilScheduledTxsExecutionHandl
 	txs, err := NewTransactionPreprocessor(args)
 	assert.Nil(t, txs)
 	assert.Equal(t, process.ErrNilScheduledTxsExecutionHandler, err)
+}
+
+func TestTxsPreprocessor_NewTransactionPreprocessorNilProcessedMiniBlocksTracker(t *testing.T) {
+	t.Parallel()
+
+	args := createDefaultTransactionsProcessorArgs()
+	args.ProcessedMiniBlocksTracker = nil
+	txs, err := NewTransactionPreprocessor(args)
+	assert.Nil(t, txs)
+	assert.Equal(t, process.ErrNilProcessedMiniBlocksTracker, err)
 }
 
 func TestTxsPreprocessor_NewTransactionPreprocessorOkValsShouldWork(t *testing.T) {
@@ -1113,15 +1124,15 @@ func TestTransactionPreprocessor_ProcessTxsToMeShouldUseCorrectSenderAndReceiver
 
 	tx := transaction.Transaction{SndAddr: []byte("2"), RcvAddr: []byte("0")}
 	txHash, _ := core.CalculateHash(preprocessor.marshalizer, preprocessor.hasher, tx)
+	miniBlock := &block.MiniBlock{
+		TxHashes:        [][]byte{txHash},
+		SenderShardID:   1,
+		ReceiverShardID: 0,
+		Type:            block.TxBlock,
+	}
+	miniBlockHash, _ := core.CalculateHash(preprocessor.marshalizer, preprocessor.hasher, miniBlock)
 	body := block.Body{
-		MiniBlocks: []*block.MiniBlock{
-			{
-				TxHashes:        [][]byte{txHash},
-				SenderShardID:   1,
-				ReceiverShardID: 0,
-				Type:            block.TxBlock,
-			},
-		},
+		MiniBlocks: []*block.MiniBlock{miniBlock},
 	}
 
 	preprocessor.AddTxForCurrentBlock(txHash, &tx, 1, 0)
@@ -1130,7 +1141,7 @@ func TestTransactionPreprocessor_ProcessTxsToMeShouldUseCorrectSenderAndReceiver
 	assert.Equal(t, uint32(1), senderShardID)
 	assert.Equal(t, uint32(0), receiverShardID)
 
-	_ = preprocessor.ProcessTxsToMe(&block.Header{}, &body, haveTimeTrue)
+	_ = preprocessor.ProcessTxsToMe(&block.Header{MiniBlockHeaders: []block.MiniBlockHeader{{Hash: miniBlockHash, TxCount: 1}}}, &body, haveTimeTrue)
 
 	_, senderShardID, receiverShardID = preprocessor.GetTxInfoForCurrentBlock(txHash)
 	assert.Equal(t, uint32(2), senderShardID)
@@ -1198,11 +1209,14 @@ func TestTransactionsPreprocessor_ProcessMiniBlockShouldWork(t *testing.T) {
 		}
 		return nbTxsProcessed + 1, nbTxsProcessed * common.AdditionalScrForEachScCallOrSpecialTx
 	}
-	txsToBeReverted, numTxsProcessed, err := txs.ProcessMiniBlock(miniBlock, haveTimeTrue, haveAdditionalTimeFalse, f, false)
+	preProcessorExecutionInfoHandlerMock := &testscommon.PreProcessorExecutionInfoHandlerMock{
+		GetNumOfCrossInterMbsAndTxsCalled: f,
+	}
+	txsToBeReverted, indexOfLastTxProcessed, _, err := txs.ProcessMiniBlock(miniBlock, haveTimeTrue, haveAdditionalTimeFalse, false, false, -1, preProcessorExecutionInfoHandlerMock)
 
 	assert.Equal(t, process.ErrMaxBlockSizeReached, err)
 	assert.Equal(t, 3, len(txsToBeReverted))
-	assert.Equal(t, 3, numTxsProcessed)
+	assert.Equal(t, 2, indexOfLastTxProcessed)
 
 	f = func() (int, int) {
 		if nbTxsProcessed == 0 {
@@ -1210,11 +1224,14 @@ func TestTransactionsPreprocessor_ProcessMiniBlockShouldWork(t *testing.T) {
 		}
 		return nbTxsProcessed, nbTxsProcessed * common.AdditionalScrForEachScCallOrSpecialTx
 	}
-	txsToBeReverted, numTxsProcessed, err = txs.ProcessMiniBlock(miniBlock, haveTimeTrue, haveAdditionalTimeFalse, f, false)
+	preProcessorExecutionInfoHandlerMock = &testscommon.PreProcessorExecutionInfoHandlerMock{
+		GetNumOfCrossInterMbsAndTxsCalled: f,
+	}
+	txsToBeReverted, indexOfLastTxProcessed, _, err = txs.ProcessMiniBlock(miniBlock, haveTimeTrue, haveAdditionalTimeFalse, false, false, -1, preProcessorExecutionInfoHandlerMock)
 
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(txsToBeReverted))
-	assert.Equal(t, 3, numTxsProcessed)
+	assert.Equal(t, 2, indexOfLastTxProcessed)
 }
 
 func TestTransactionsPreprocessor_ProcessMiniBlockShouldErrMaxGasLimitUsedForDestMeTxsIsReached(t *testing.T) {
@@ -1261,19 +1278,23 @@ func TestTransactionsPreprocessor_ProcessMiniBlockShouldErrMaxGasLimitUsedForDes
 		Type:            block.TxBlock,
 	}
 
-	txsToBeReverted, numTxsProcessed, err := txs.ProcessMiniBlock(miniBlock, haveTimeTrue, haveAdditionalTimeFalse, getNumOfCrossInterMbsAndTxsZero, false)
+	preProcessorExecutionInfoHandlerMock := &testscommon.PreProcessorExecutionInfoHandlerMock{
+		GetNumOfCrossInterMbsAndTxsCalled: getNumOfCrossInterMbsAndTxsZero,
+	}
+
+	txsToBeReverted, indexOfLastTxProcessed, _, err := txs.ProcessMiniBlock(miniBlock, haveTimeTrue, haveAdditionalTimeFalse, false, false, -1, preProcessorExecutionInfoHandlerMock)
 
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(txsToBeReverted))
-	assert.Equal(t, 1, numTxsProcessed)
+	assert.Equal(t, 0, indexOfLastTxProcessed)
 
 	txs.EpochConfirmed(2, 0)
 
-	txsToBeReverted, numTxsProcessed, err = txs.ProcessMiniBlock(miniBlock, haveTimeTrue, haveAdditionalTimeFalse, getNumOfCrossInterMbsAndTxsZero, false)
+	txsToBeReverted, indexOfLastTxProcessed, _, err = txs.ProcessMiniBlock(miniBlock, haveTimeTrue, haveAdditionalTimeFalse, false, false, -1, preProcessorExecutionInfoHandlerMock)
 
 	assert.Equal(t, process.ErrMaxGasLimitUsedForDestMeTxsIsReached, err)
-	assert.Equal(t, 1, len(txsToBeReverted))
-	assert.Equal(t, 0, numTxsProcessed)
+	assert.Equal(t, 0, len(txsToBeReverted))
+	assert.Equal(t, -1, indexOfLastTxProcessed)
 }
 
 func TestTransactionsPreprocessor_ComputeGasProvidedShouldWork(t *testing.T) {
@@ -2020,6 +2041,26 @@ func TestTransactions_RestoreBlockDataIntoPools(t *testing.T) {
 	})
 }
 
+func TestTransactions_getMiniBlockHeaderOfMiniBlock(t *testing.T) {
+	t.Parallel()
+
+	mbHash := []byte("mb_hash")
+	mbHeader := block.MiniBlockHeader{
+		Hash: mbHash,
+	}
+	header := &block.Header{
+		MiniBlockHeaders: []block.MiniBlockHeader{mbHeader},
+	}
+
+	miniBlockHeader, err := getMiniBlockHeaderOfMiniBlock(header, []byte("mb_hash_missing"))
+	assert.Nil(t, miniBlockHeader)
+	assert.Equal(t, process.ErrMissingMiniBlockHeader, err)
+
+	miniBlockHeader, err = getMiniBlockHeaderOfMiniBlock(header, mbHash)
+	assert.Nil(t, err)
+	assert.Equal(t, &mbHeader, miniBlockHeader)
+}
+
 func createMockBlockBody() (*block.Body, []*txInfoHolder) {
 	txsShard1 := createMockTransactions(2, 1, 1, 1000)
 	txsShard2to1 := createMockTransactions(2, 2, 1, 2000)
@@ -2095,4 +2136,69 @@ func createMockTransactions(numTxs int, sndShId byte, rcvShId byte, startNonce u
 	}
 
 	return txs
+}
+
+func TestTransactions_getIndexesOfLastTxProcessed(t *testing.T) {
+	t.Parallel()
+
+	t.Run("calculating hash error should not get indexes", func(t *testing.T) {
+		t.Parallel()
+
+		args := createDefaultTransactionsProcessorArgs()
+		args.Marshalizer = &testscommon.MarshalizerMock{
+			Fail: true,
+		}
+		txs, _ := NewTransactionPreprocessor(args)
+
+		miniBlock := &block.MiniBlock{}
+		headerHandler := &block.Header{}
+
+		pi, err := txs.getIndexesOfLastTxProcessed(miniBlock, headerHandler)
+		assert.Nil(t, pi)
+		assert.Equal(t, testscommon.ErrMockMarshalizer, err)
+	})
+
+	t.Run("missing mini block header should not get indexes", func(t *testing.T) {
+		t.Parallel()
+
+		args := createDefaultTransactionsProcessorArgs()
+		args.Marshalizer = &testscommon.MarshalizerMock{
+			Fail: false,
+		}
+		txs, _ := NewTransactionPreprocessor(args)
+
+		miniBlock := &block.MiniBlock{}
+		headerHandler := &block.Header{}
+
+		pi, err := txs.getIndexesOfLastTxProcessed(miniBlock, headerHandler)
+		assert.Nil(t, pi)
+		assert.Equal(t, process.ErrMissingMiniBlockHeader, err)
+	})
+
+	t.Run("should get indexes", func(t *testing.T) {
+		t.Parallel()
+
+		args := createDefaultTransactionsProcessorArgs()
+		args.Marshalizer = &testscommon.MarshalizerMock{
+			Fail: false,
+		}
+		txs, _ := NewTransactionPreprocessor(args)
+
+		miniBlock := &block.MiniBlock{}
+		miniBlockHash, _ := core.CalculateHash(txs.marshalizer, txs.hasher, miniBlock)
+		mbh := block.MiniBlockHeader{
+			Hash:    miniBlockHash,
+			TxCount: 6,
+		}
+		_ = mbh.SetIndexOfFirstTxProcessed(2)
+		_ = mbh.SetIndexOfLastTxProcessed(4)
+		headerHandler := &block.Header{
+			MiniBlockHeaders: []block.MiniBlockHeader{mbh},
+		}
+
+		pi, err := txs.getIndexesOfLastTxProcessed(miniBlock, headerHandler)
+		assert.Nil(t, err)
+		assert.Equal(t, int32(-1), pi.indexOfLastTxProcessed)
+		assert.Equal(t, mbh.GetIndexOfLastTxProcessed(), pi.indexOfLastTxProcessedByProposer)
+	})
 }

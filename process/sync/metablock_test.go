@@ -746,6 +746,9 @@ func TestMetaBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testi
 	forkDetector.GetHighestFinalBlockNonceCalled = func() uint64 {
 		return hdr.Nonce
 	}
+	forkDetector.GetHighestFinalBlockHashCalled = func() []byte {
+		return []byte("hash")
+	}
 	forkDetector.ProbableHighestNonceCalled = func() uint64 {
 		return 2
 	}
@@ -800,6 +803,9 @@ func TestMetaBootstrap_GetNodeStateShouldReturnNotSynchronizedWhenCurrentBlockIs
 	}
 	forkDetector.ProbableHighestNonceCalled = func() uint64 {
 		return 1
+	}
+	forkDetector.GetHighestFinalBlockHashCalled = func() []byte {
+		return []byte("hash")
 	}
 	args.ForkDetector = forkDetector
 	args.RoundHandler, _ = round.NewRound(time.Now(), time.Now().Add(100*time.Millisecond), 100*time.Millisecond, &mock.SyncTimerMock{}, 0)
@@ -1243,8 +1249,11 @@ func TestMetaBootstrap_RollBackIsNotEmptyShouldErr(t *testing.T) {
 			Nonce:         newHdrNonce,
 		}
 	}
+	blkc.GetCurrentBlockHeaderHashCalled = func() []byte {
+		return newHdrHash
+	}
 	args.ChainHandler = blkc
-	args.ForkDetector = createForkDetector(newHdrNonce, remFlags)
+	args.ForkDetector = createForkDetector(newHdrNonce, newHdrHash, remFlags)
 
 	bs, _ := sync.NewMetaBootstrap(args)
 	err := bs.RollBack(false)
@@ -1370,7 +1379,7 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockOkValsShouldWork(t *te
 			return nil
 		},
 	}
-	args.ForkDetector = createForkDetector(currentHdrNonce, remFlags)
+	args.ForkDetector = createForkDetector(currentHdrNonce, currentHdrHash, remFlags)
 	args.Accounts = &stateMock.AccountsStub{
 		RecreateTrieCalled: func(rootHash []byte) error {
 			return nil
@@ -1511,7 +1520,7 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockToGenesisShouldWork(t 
 			return nil
 		},
 	}
-	args.ForkDetector = createForkDetector(currentHdrNonce, remFlags)
+	args.ForkDetector = createForkDetector(currentHdrNonce, currentHdrHash, remFlags)
 	args.Accounts = &stateMock.AccountsStub{
 		RecreateTrieCalled: func(rootHash []byte) error {
 			return nil
@@ -1654,6 +1663,9 @@ func TestMetaBootstrap_SyncBlockErrGetNodeDBShouldSyncAccounts(t *testing.T) {
 	}
 	forkDetector.GetHighestFinalBlockNonceCalled = func() uint64 {
 		return hdr.Nonce
+	}
+	forkDetector.GetHighestFinalBlockHashCalled = func() []byte {
+		return []byte("hash")
 	}
 	forkDetector.ProbableHighestNonceCalled = func() uint64 {
 		return 2

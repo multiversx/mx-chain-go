@@ -2,22 +2,14 @@ package mock
 
 import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go/p2p"
 )
 
 // MessengerStub -
 type MessengerStub struct {
-	IDCalled                         func() core.PeerID
-	CloseCalled                      func() error
-	CreateTopicCalled                func(name string, createChannelForTopic bool) error
-	HasTopicCalled                   func(name string) bool
-	BroadcastOnChannelCalled         func(channel string, topic string, buff []byte)
-	BroadcastCalled                  func(topic string, buff []byte)
-	RegisterMessageProcessorCalled   func(topic string, identifier string, handler p2p.MessageProcessor) error
-	BootstrapCalled                  func() error
-	PeerAddressesCalled              func(pid core.PeerID) []string
-	BroadcastOnChannelBlockingCalled func(channel string, topic string, buff []byte) error
-	IsConnectedToTheNetworkCalled    func() bool
+	IDCalled        func() core.PeerID
+	BroadcastCalled func(topic string, buff []byte)
+	SignCalled      func(payload []byte) ([]byte, error)
+	VerifyCalled    func(payload []byte, pid core.PeerID, signature []byte) error
 }
 
 // ID -
@@ -29,14 +21,6 @@ func (ms *MessengerStub) ID() core.PeerID {
 	return ""
 }
 
-// RegisterMessageProcessor -
-func (ms *MessengerStub) RegisterMessageProcessor(topic string, identifier string, handler p2p.MessageProcessor) error {
-	if ms.RegisterMessageProcessorCalled != nil {
-		return ms.RegisterMessageProcessorCalled(topic, identifier, handler)
-	}
-	return nil
-}
-
 // Broadcast -
 func (ms *MessengerStub) Broadcast(topic string, buff []byte) {
 	if ms.BroadcastCalled != nil {
@@ -44,56 +28,22 @@ func (ms *MessengerStub) Broadcast(topic string, buff []byte) {
 	}
 }
 
-// Close -
-func (ms *MessengerStub) Close() error {
-	if ms.CloseCalled != nil {
-		return ms.CloseCalled()
+// Sign -
+func (ms *MessengerStub) Sign(payload []byte) ([]byte, error) {
+	if ms.SignCalled != nil {
+		return ms.SignCalled(payload)
+	}
+
+	return make([]byte, 0), nil
+}
+
+// Verify -
+func (ms *MessengerStub) Verify(payload []byte, pid core.PeerID, signature []byte) error {
+	if ms.VerifyCalled != nil {
+		return ms.VerifyCalled(payload, pid, signature)
 	}
 
 	return nil
-}
-
-// CreateTopic -
-func (ms *MessengerStub) CreateTopic(name string, createChannelForTopic bool) error {
-	if ms.CreateTopicCalled != nil {
-		return ms.CreateTopicCalled(name, createChannelForTopic)
-	}
-
-	return nil
-}
-
-// HasTopic -
-func (ms *MessengerStub) HasTopic(name string) bool {
-	if ms.HasTopicCalled != nil {
-		return ms.HasTopicCalled(name)
-	}
-
-	return false
-}
-
-// BroadcastOnChannel -
-func (ms *MessengerStub) BroadcastOnChannel(channel string, topic string, buff []byte) {
-	ms.BroadcastOnChannelCalled(channel, topic, buff)
-}
-
-// Bootstrap -
-func (ms *MessengerStub) Bootstrap() error {
-	return ms.BootstrapCalled()
-}
-
-// PeerAddresses -
-func (ms *MessengerStub) PeerAddresses(pid core.PeerID) []string {
-	return ms.PeerAddressesCalled(pid)
-}
-
-// BroadcastOnChannelBlocking -
-func (ms *MessengerStub) BroadcastOnChannelBlocking(channel string, topic string, buff []byte) error {
-	return ms.BroadcastOnChannelBlockingCalled(channel, topic, buff)
-}
-
-// IsConnectedToTheNetwork -
-func (ms *MessengerStub) IsConnectedToTheNetwork() bool {
-	return ms.IsConnectedToTheNetworkCalled()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

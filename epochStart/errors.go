@@ -328,3 +328,12 @@ var ErrSortAuctionList = errors.New("error while trying to sort auction list")
 
 // ErrReceivedNewListNodeInStakingV4 signals that a new node has been assigned in common.NewList instead of common.AuctionList after staking v4
 var ErrReceivedNewListNodeInStakingV4 = errors.New("new node has been assigned in common.NewList instead of common.AuctionList after staking v4")
+
+// ErrNilMaxNodesChangeConfigProvider signals that a nil nodes config provider has been provided
+var ErrNilMaxNodesChangeConfigProvider = errors.New("nil nodes config provider has been provided")
+
+// ErrNilAuctionListSelector signals that a nil auction list selector has been provided
+var ErrNilAuctionListSelector = errors.New("nil auction list selector has been provided")
+
+// ErrUint32SubtractionOverflow signals uint32 subtraction overflowed
+var ErrUint32SubtractionOverflow = errors.New("uint32 subtraction overflowed")

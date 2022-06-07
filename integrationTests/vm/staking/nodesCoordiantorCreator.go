@@ -24,27 +24,18 @@ const (
 )
 
 func createNodesCoordinator(
+	eligibleMap map[uint32][]nodesCoordinator.Validator,
+	waitingMap map[uint32][]nodesCoordinator.Validator,
 	numOfMetaNodes uint32,
 	numOfShards uint32,
 	numOfEligibleNodesPerShard uint32,
-	numOfWaitingNodesPerShard uint32,
 	shardConsensusGroupSize int,
 	metaConsensusGroupSize int,
 	coreComponents factory.CoreComponentsHolder,
 	bootStorer storage.Storer,
-	stateComponents factory.StateComponentsHandler,
 	nodesCoordinatorRegistryFactory nodesCoordinator.NodesCoordinatorRegistryFactory,
 	maxNodesConfig []config.MaxNodesChangeConfig,
 ) nodesCoordinator.NodesCoordinator {
-	eligibleMap, waitingMap := createGenesisNodes(
-		numOfMetaNodes,
-		numOfShards,
-		numOfEligibleNodesPerShard,
-		numOfWaitingNodesPerShard,
-		coreComponents.InternalMarshalizer(),
-		stateComponents,
-	)
-
 	shufflerArgs := &nodesCoordinator.NodesShufflerArgs{
 		NodesShard:           numOfEligibleNodesPerShard,
 		NodesMeta:            numOfMetaNodes,
@@ -110,6 +101,42 @@ func createGenesisNodes(
 	return eligibleValidators, waitingValidators
 }
 
+func createGenesisNodesWithCustomConfig(
+	owners map[string]*OwnerStats,
+	marshaller marshal.Marshalizer,
+	stateComponents factory.StateComponentsHandler,
+) (map[uint32][]nodesCoordinator.Validator, map[uint32][]nodesCoordinator.Validator) {
+	eligibleGenesis := make(map[uint32][]nodesCoordinator.GenesisNodeInfoHandler)
+	waitingGenesis := make(map[uint32][]nodesCoordinator.GenesisNodeInfoHandler)
+
+	for owner, ownerStats := range owners {
+		registerOwnerKeys(
+			[]byte(owner),
+			ownerStats.EligibleBlsKeys,
+			ownerStats.TotalStake,
+			stateComponents,
+			marshaller,
+			common.EligibleList,
+			eligibleGenesis,
+		)
+
+		registerOwnerKeys(
+			[]byte(owner),
+			ownerStats.WaitingBlsKeys,
+			ownerStats.TotalStake,
+			stateComponents,
+			marshaller,
+			common.WaitingList,
+			waitingGenesis,
+		)
+	}
+
+	eligible, _ := nodesCoordinator.NodesInfoToValidators(eligibleGenesis)
+	waiting, _ := nodesCoordinator.NodesInfoToValidators(waitingGenesis)
+
+	return eligible, waiting
+}
+
 func generateGenesisNodeInfoMap(
 	numOfMetaNodes uint32,
 	numOfShards uint32,
@@ -137,6 +164,33 @@ func generateGenesisNodeInfoMap(
 	return validatorsMap
 }
 
+func registerOwnerKeys(
+	owner []byte,
+	ownerPubKeys map[uint32][][]byte,
+	totalStake *big.Int,
+	stateComponents factory.StateComponentsHolder,
+	marshaller marshal.Marshalizer,
+	list common.PeerType,
+	allNodes map[uint32][]nodesCoordinator.GenesisNodeInfoHandler,
+) {
+	for shardID, pubKeysInShard := range ownerPubKeys {
+		for _, pubKey := range pubKeysInShard {
+			validator := integrationMocks.NewNodeInfo(pubKey, pubKey, shardID, initialRating)
+			allNodes[shardID] = append(allNodes[shardID], validator)
+
+			savePeerAcc(stateComponents, pubKey, shardID, list)
+		}
+		stakingcommon.RegisterValidatorKeys(
+			stateComponents.AccountsAdapter(),
+			owner,
+			owner,
+			pubKeysInShard,
+			totalStake,
+			marshaller,
+		)
+	}
+}
+
 func registerValidators(
 	validators map[uint32][]nodesCoordinator.Validator,
 	stateComponents factory.StateComponentsHolder,
@@ -146,13 +200,7 @@ func registerValidators(
 	for shardID, validatorsInShard := range validators {
 		for _, val := range validatorsInShard {
 			pubKey := val.PubKey()
-
-			peerAccount, _ := state.NewPeerAccount(pubKey)
-			peerAccount.SetTempRating(initialRating)
-			peerAccount.ShardId = shardID
-			peerAccount.BLSPublicKey = pubKey
-			peerAccount.List = string(list)
-			_ = stateComponents.PeerAccounts().SaveAccount(peerAccount)
+			savePeerAcc(stateComponents, pubKey, shardID, list)
 
 			stakingcommon.RegisterValidatorKeys(
 				stateComponents.AccountsAdapter(),
@@ -164,4 +212,18 @@ func registerValidators(
 			)
 		}
 	}
+}
+
+func savePeerAcc(
+	stateComponents factory.StateComponentsHolder,
+	pubKey []byte,
+	shardID uint32,
+	list common.PeerType,
+) {
+	peerAccount, _ := state.NewPeerAccount(pubKey)
+	peerAccount.SetTempRating(initialRating)
+	peerAccount.ShardId = shardID
+	peerAccount.BLSPublicKey = pubKey
+	peerAccount.List = string(list)
+	_ = stateComponents.PeerAccounts().SaveAccount(peerAccount)
 }

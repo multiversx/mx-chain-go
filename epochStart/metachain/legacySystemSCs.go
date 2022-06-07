@@ -17,7 +17,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
 	vInfo "github.com/ElrondNetwork/elrond-go/common/validatorInfo"
-	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -29,25 +28,24 @@ import (
 )
 
 type legacySystemSCProcessor struct {
-	systemVM                 vmcommon.VMExecutionHandler
-	userAccountsDB           state.AccountsAdapter
-	marshalizer              marshal.Marshalizer
-	peerAccountsDB           state.AccountsAdapter
-	chanceComputer           nodesCoordinator.ChanceComputer
-	shardCoordinator         sharding.Coordinator
-	startRating              uint32
-	validatorInfoCreator     epochStart.ValidatorInfoCreator
-	genesisNodesConfig       sharding.GenesisNodesSetupHandler
-	nodesConfigProvider      epochStart.NodesConfigProvider
-	stakingDataProvider      epochStart.StakingDataProvider
-	endOfEpochCallerAddress  []byte
-	stakingSCAddress         []byte
-	esdtOwnerAddressBytes    []byte
-	mapNumSwitchedPerShard   map[uint32]uint32
-	mapNumSwitchablePerShard map[uint32]uint32
-	maxNodesEnableConfig     []config.MaxNodesChangeConfig
-	currentNodesEnableConfig config.MaxNodesChangeConfig
-	maxNodes                 uint32
+	systemVM                     vmcommon.VMExecutionHandler
+	userAccountsDB               state.AccountsAdapter
+	marshalizer                  marshal.Marshalizer
+	peerAccountsDB               state.AccountsAdapter
+	chanceComputer               nodesCoordinator.ChanceComputer
+	shardCoordinator             sharding.Coordinator
+	startRating                  uint32
+	validatorInfoCreator         epochStart.ValidatorInfoCreator
+	genesisNodesConfig           sharding.GenesisNodesSetupHandler
+	nodesConfigProvider          epochStart.NodesConfigProvider
+	stakingDataProvider          epochStart.StakingDataProvider
+	maxNodesChangeConfigProvider epochStart.MaxNodesChangeConfigProvider
+	endOfEpochCallerAddress      []byte
+	stakingSCAddress             []byte
+	esdtOwnerAddressBytes        []byte
+	mapNumSwitchedPerShard       map[uint32]uint32
+	mapNumSwitchablePerShard     map[uint32]uint32
+	maxNodes                     uint32
 
 	switchEnableEpoch           uint32
 	hystNodesEnableEpoch        uint32
@@ -78,30 +76,31 @@ func newLegacySystemSCProcessor(args ArgsNewEpochStartSystemSCProcessing) (*lega
 	}
 
 	legacy := &legacySystemSCProcessor{
-		systemVM:                    args.SystemVM,
-		userAccountsDB:              args.UserAccountsDB,
-		peerAccountsDB:              args.PeerAccountsDB,
-		marshalizer:                 args.Marshalizer,
-		startRating:                 args.StartRating,
-		validatorInfoCreator:        args.ValidatorInfoCreator,
-		genesisNodesConfig:          args.GenesisNodesConfig,
-		endOfEpochCallerAddress:     args.EndOfEpochCallerAddress,
-		stakingSCAddress:            args.StakingSCAddress,
-		chanceComputer:              args.ChanceComputer,
-		mapNumSwitchedPerShard:      make(map[uint32]uint32),
-		mapNumSwitchablePerShard:    make(map[uint32]uint32),
-		switchEnableEpoch:           args.EpochConfig.EnableEpochs.SwitchJailWaitingEnableEpoch,
-		hystNodesEnableEpoch:        args.EpochConfig.EnableEpochs.SwitchHysteresisForMinNodesEnableEpoch,
-		delegationEnableEpoch:       args.EpochConfig.EnableEpochs.DelegationSmartContractEnableEpoch,
-		stakingV2EnableEpoch:        args.EpochConfig.EnableEpochs.StakingV2EnableEpoch,
-		esdtEnableEpoch:             args.EpochConfig.EnableEpochs.ESDTEnableEpoch,
-		stakingDataProvider:         args.StakingDataProvider,
-		nodesConfigProvider:         args.NodesConfigProvider,
-		shardCoordinator:            args.ShardCoordinator,
-		correctLastUnJailEpoch:      args.EpochConfig.EnableEpochs.CorrectLastUnjailedEnableEpoch,
-		esdtOwnerAddressBytes:       args.ESDTOwnerAddressBytes,
-		saveJailedAlwaysEnableEpoch: args.EpochConfig.EnableEpochs.SaveJailedAlwaysEnableEpoch,
-		stakingV4InitEnableEpoch:    args.EpochConfig.EnableEpochs.StakingV4InitEnableEpoch,
+		systemVM:                     args.SystemVM,
+		userAccountsDB:               args.UserAccountsDB,
+		peerAccountsDB:               args.PeerAccountsDB,
+		marshalizer:                  args.Marshalizer,
+		startRating:                  args.StartRating,
+		validatorInfoCreator:         args.ValidatorInfoCreator,
+		genesisNodesConfig:           args.GenesisNodesConfig,
+		endOfEpochCallerAddress:      args.EndOfEpochCallerAddress,
+		stakingSCAddress:             args.StakingSCAddress,
+		chanceComputer:               args.ChanceComputer,
+		mapNumSwitchedPerShard:       make(map[uint32]uint32),
+		mapNumSwitchablePerShard:     make(map[uint32]uint32),
+		switchEnableEpoch:            args.EpochConfig.EnableEpochs.SwitchJailWaitingEnableEpoch,
+		hystNodesEnableEpoch:         args.EpochConfig.EnableEpochs.SwitchHysteresisForMinNodesEnableEpoch,
+		delegationEnableEpoch:        args.EpochConfig.EnableEpochs.DelegationSmartContractEnableEpoch,
+		stakingV2EnableEpoch:         args.EpochConfig.EnableEpochs.StakingV2EnableEpoch,
+		esdtEnableEpoch:              args.EpochConfig.EnableEpochs.ESDTEnableEpoch,
+		stakingDataProvider:          args.StakingDataProvider,
+		nodesConfigProvider:          args.NodesConfigProvider,
+		shardCoordinator:             args.ShardCoordinator,
+		correctLastUnJailEpoch:       args.EpochConfig.EnableEpochs.CorrectLastUnjailedEnableEpoch,
+		esdtOwnerAddressBytes:        args.ESDTOwnerAddressBytes,
+		saveJailedAlwaysEnableEpoch:  args.EpochConfig.EnableEpochs.SaveJailedAlwaysEnableEpoch,
+		stakingV4InitEnableEpoch:     args.EpochConfig.EnableEpochs.StakingV4InitEnableEpoch,
+		maxNodesChangeConfigProvider: args.MaxNodesChangeConfigProvider,
 	}
 
 	log.Debug("legacySystemSC: enable epoch for switch jail waiting", "epoch", legacy.switchEnableEpoch)
@@ -112,12 +111,6 @@ func newLegacySystemSCProcessor(args ArgsNewEpochStartSystemSCProcessing) (*lega
 	log.Debug("legacySystemSC: enable epoch for correct last unjailed", "epoch", legacy.correctLastUnJailEpoch)
 	log.Debug("legacySystemSC: enable epoch for save jailed always", "epoch", legacy.saveJailedAlwaysEnableEpoch)
 	log.Debug("legacySystemSC: enable epoch for initializing staking v4", "epoch", legacy.stakingV4InitEnableEpoch)
-
-	legacy.maxNodesEnableConfig = make([]config.MaxNodesChangeConfig, len(args.MaxNodesEnableConfig))
-	copy(legacy.maxNodesEnableConfig, args.MaxNodesEnableConfig)
-	sort.Slice(legacy.maxNodesEnableConfig, func(i, j int) bool {
-		return legacy.maxNodesEnableConfig[i].EpochEnable < legacy.maxNodesEnableConfig[j].EpochEnable
-	})
 
 	return legacy, nil
 }
@@ -158,6 +151,9 @@ func checkLegacyArgs(args ArgsNewEpochStartSystemSCProcessing) error {
 	}
 	if check.IfNil(args.ShardCoordinator) {
 		return epochStart.ErrNilShardCoordinator
+	}
+	if check.IfNil(args.MaxNodesChangeConfigProvider) {
+		return epochStart.ErrNilMaxNodesChangeConfigProvider
 	}
 	if len(args.ESDTOwnerAddressBytes) == 0 {
 		return epochStart.ErrEmptyESDTOwnerAddress
@@ -1357,15 +1353,13 @@ func (s *legacySystemSCProcessor) legacyEpochConfirmed(epoch uint32) {
 	s.flagHystNodesEnabled.SetValue(epoch == s.hystNodesEnableEpoch)
 
 	s.flagChangeMaxNodesEnabled.SetValue(false)
-	for _, maxNodesConfig := range s.maxNodesEnableConfig {
+	for _, maxNodesConfig := range s.maxNodesChangeConfigProvider.GetAllNodesConfig() {
 		if epoch == maxNodesConfig.EpochEnable {
 			s.flagChangeMaxNodesEnabled.SetValue(true)
-		}
-		if epoch >= maxNodesConfig.EpochEnable {
-			s.maxNodes = maxNodesConfig.MaxNumNodes
-			s.currentNodesEnableConfig = maxNodesConfig
+			break
 		}
 	}
+	s.maxNodes = s.maxNodesChangeConfigProvider.GetCurrentNodesConfig().MaxNumNodes
 
 	log.Debug("legacySystemSC: consider also (minimum) hysteresis nodes for minimum number of nodes",
 		"enabled", epoch >= s.hystNodesEnableEpoch)

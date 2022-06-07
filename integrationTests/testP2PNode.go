@@ -181,6 +181,7 @@ func (tP2pNode *TestP2PNode) initNode() {
 	processComponents.EpochNotifier = epochStartNotifier
 	processComponents.EpochTrigger = &mock.EpochStartTriggerStub{}
 	processComponents.PeerMapper = tP2pNode.NetworkShardingUpdater
+	processComponents.HardforkTriggerField = hardforkTrigger
 
 	networkComponents := GetDefaultNetworkComponents()
 	networkComponents.Messenger = tP2pNode.Messenger
@@ -200,7 +201,6 @@ func (tP2pNode *TestP2PNode) initNode() {
 		node.WithNetworkComponents(networkComponents),
 		node.WithDataComponents(dataComponents),
 		node.WithInitialNodesPubKeys(pubkeys),
-		node.WithHardforkTrigger(hardforkTrigger),
 		node.WithPeerDenialEvaluator(&mock.PeerDenialEvaluatorStub{}),
 	)
 	log.LogIfError(err)
@@ -217,16 +217,16 @@ func (tP2pNode *TestP2PNode) initNode() {
 		Config: config.Config{
 			Heartbeat: hbConfig,
 		},
-		Prefs:             config.Preferences{},
-		AppVersion:        "test",
-		GenesisTime:       time.Time{},
-		HardforkTrigger:   hardforkTrigger,
-		RedundancyHandler: redundancyHandler,
-		CoreComponents:    coreComponents,
-		DataComponents:    dataComponents,
-		NetworkComponents: networkComponents,
-		CryptoComponents:  cryptoComponents,
-		ProcessComponents: processComponents,
+		HeartbeatDisableEpoch: 10,
+		Prefs:                 config.Preferences{},
+		AppVersion:            "test",
+		GenesisTime:           time.Time{},
+		RedundancyHandler:     redundancyHandler,
+		CoreComponents:        coreComponents,
+		DataComponents:        dataComponents,
+		NetworkComponents:     networkComponents,
+		CryptoComponents:      cryptoComponents,
+		ProcessComponents:     processComponents,
 	}
 	heartbeatComponentsFactory, _ := factory.NewHeartbeatComponentsFactory(hbCompArgs)
 	managedHBComponents, err := factory.NewManagedHeartbeatComponents(heartbeatComponentsFactory)

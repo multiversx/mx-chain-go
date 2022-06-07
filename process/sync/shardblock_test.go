@@ -123,7 +123,7 @@ func createBlockProcessor(blk data.ChainHandler) *mock.BlockProcessorMock {
 	return blockProcessorMock
 }
 
-func createForkDetector(removedNonce uint64, remFlags *removedFlags) process.ForkDetector {
+func createForkDetector(removedNonce uint64, removedHash []byte, remFlags *removedFlags) process.ForkDetector {
 	return &mock.ForkDetectorMock{
 		RemoveHeaderCalled: func(nonce uint64, hash []byte) {
 			if nonce == removedNonce {
@@ -132,6 +132,9 @@ func createForkDetector(removedNonce uint64, remFlags *removedFlags) process.For
 		},
 		GetHighestFinalBlockNonceCalled: func() uint64 {
 			return removedNonce
+		},
+		GetHighestFinalBlockHashCalled: func() []byte {
+			return removedHash
 		},
 		ProbableHighestNonceCalled: func() uint64 {
 			return uint64(0)
@@ -917,6 +920,9 @@ func TestBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testing.T
 	forkDetector.GetHighestFinalBlockNonceCalled = func() uint64 {
 		return hdr.Nonce
 	}
+	forkDetector.GetHighestFinalBlockHashCalled = func() []byte {
+		return []byte("hash")
+	}
 	forkDetector.ProbableHighestNonceCalled = func() uint64 {
 		return 2
 	}
@@ -1400,8 +1406,11 @@ func TestBootstrap_RollBackIsNotEmptyShouldErr(t *testing.T) {
 			Nonce:         newHdrNonce,
 		}
 	}
+	blkc.GetCurrentBlockHeaderHashCalled = func() []byte {
+		return newHdrHash
+	}
 	args.ChainHandler = blkc
-	args.ForkDetector = createForkDetector(newHdrNonce, remFlags)
+	args.ForkDetector = createForkDetector(newHdrNonce, newHdrHash, remFlags)
 
 	bs, _ := sync.NewShardBootstrap(args)
 	err := bs.RollBack(false)
@@ -1527,7 +1536,7 @@ func TestBootstrap_RollBackIsEmptyCallRollBackOneBlockOkValsShouldWork(t *testin
 			return nil
 		},
 	}
-	args.ForkDetector = createForkDetector(currentHdrNonce, remFlags)
+	args.ForkDetector = createForkDetector(currentHdrNonce, currentHdrHash, remFlags)
 	args.Accounts = &stateMock.AccountsStub{
 		RecreateTrieCalled: func(rootHash []byte) error {
 			return nil
@@ -1670,7 +1679,7 @@ func TestBootstrap_RollbackIsEmptyCallRollBackOneBlockToGenesisShouldWork(t *tes
 			return nil
 		},
 	}
-	args.ForkDetector = createForkDetector(currentHdrNonce, remFlags)
+	args.ForkDetector = createForkDetector(currentHdrNonce, currentHdrHash, remFlags)
 	args.Accounts = &stateMock.AccountsStub{
 		RecreateTrieCalled: func(rootHash []byte) error {
 			return nil
@@ -2005,6 +2014,9 @@ func TestShardBootstrap_DoJobOnSyncBlockFailShouldResetProbableHighestNonce(t *t
 		GetHighestFinalBlockNonceCalled: func() uint64 {
 			return 1
 		},
+		GetHighestFinalBlockHashCalled: func() []byte {
+			return []byte("hash")
+		},
 		ResetProbableHighestNonceCalled: func() {
 			wasCalled = true
 		},
@@ -2114,6 +2126,9 @@ func TestShardBootstrap_SyncBlockGetNodeDBErrorShouldSync(t *testing.T) {
 	}
 	forkDetector.GetHighestFinalBlockNonceCalled = func() uint64 {
 		return hdr.Nonce
+	}
+	forkDetector.GetHighestFinalBlockHashCalled = func() []byte {
+		return []byte("hash")
 	}
 	forkDetector.ProbableHighestNonceCalled = func() uint64 {
 		return 2

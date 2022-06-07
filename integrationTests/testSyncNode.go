@@ -12,8 +12,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/provider"
+	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
+	"github.com/ElrondNetwork/elrond-go/p2p/rating"
 	"github.com/ElrondNetwork/elrond-go/process/block"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
@@ -54,7 +56,7 @@ func NewTestSyncNode(
 		},
 	}
 
-	nodesCoordinator := &shardingMocks.NodesCoordinatorStub{
+	nodesCoordinatorInstance := &shardingMocks.NodesCoordinatorStub{
 		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []nodesCoordinator.Validator, err error) {
 			v, _ := nodesCoordinator.NewValidator(pkBytes, 1, defaultChancesSelection)
 			return []nodesCoordinator.Validator{v}, nil
@@ -71,13 +73,19 @@ func NewTestSyncNode(
 		},
 	}
 
-	messenger := CreateMessengerWithNoDiscovery()
+	peersRatingHandler, _ := rating.NewPeersRatingHandler(
+		rating.ArgPeersRatingHandler{
+			TopRatedCache: testscommon.NewCacherMock(),
+			BadRatedCache: testscommon.NewCacherMock(),
+		})
+
+	messenger := CreateMessengerWithNoDiscoveryAndPeersRatingHandler(peersRatingHandler)
 
 	logsProcessor, _ := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{Marshalizer: TestMarshalizer})
 	tpn := &TestProcessorNode{
 		ShardCoordinator: shardCoordinator,
 		Messenger:        messenger,
-		NodesCoordinator: nodesCoordinator,
+		NodesCoordinator: nodesCoordinatorInstance,
 		BootstrapStorer: &mock.BoostrapStorerMock{
 			PutCalled: func(round int64, bootData bootstrapStorage.BootstrapData) error {
 				return nil
@@ -94,6 +102,8 @@ func NewTestSyncNode(
 		EpochNotifier:           forking.NewGenericEpochNotifier(),
 		ArwenChangeLocker:       &syncGo.RWMutex{},
 		TransactionLogProcessor: logsProcessor,
+		PeersRatingHandler:      peersRatingHandler,
+		PeerShardMapper:         disabled.NewPeerShardMapper(),
 	}
 
 	kg := &mock.KeyGenMock{}
@@ -125,7 +135,7 @@ func (tpn *TestProcessorNode) initTestNodeWithSync() {
 	tpn.initRequestedItemsHandler()
 	tpn.initResolvers()
 	tpn.initBlockTracker()
-	tpn.initInterceptors()
+	tpn.initInterceptors("")
 	tpn.initInnerProcessors(arwenConfig.MakeGasMapForTests())
 	tpn.initBlockProcessorWithSync()
 	tpn.BroadcastMessenger, _ = sposFactory.GetBroadcastMessenger(
@@ -226,6 +236,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		GasHandler:                     tpn.GasHandler,
 		ScheduledTxsExecutionHandler:   &testscommon.ScheduledTxsExecutionStub{},
 		ScheduledMiniBlocksEnableEpoch: ScheduledMiniBlocksEnableEpoch,
+		ProcessedMiniBlocksTracker:     &testscommon.ProcessedMiniBlocksTrackerStub{},
 	}
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {

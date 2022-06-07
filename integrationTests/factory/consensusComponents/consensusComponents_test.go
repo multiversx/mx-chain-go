@@ -111,13 +111,10 @@ func TestConsensusComponents_Close_ShouldWork(t *testing.T) {
 		managedCoreComponents,
 		managedNetworkComponents,
 		managedCryptoComponents,
-		managedBootstrapComponents,
 		managedDataComponents,
 		managedStateComponents,
 		managedStatusComponents,
 		managedProcessComponents,
-		nodesCoordinator,
-		nodesShufflerOut,
 	)
 	require.Nil(t, err)
 	require.NotNil(t, managedConsensusComponents)
