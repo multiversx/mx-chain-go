@@ -67,7 +67,7 @@ func TestNode_GetAccountAccountExistsShouldReturn(t *testing.T) {
 
 	accountsRepository := testscommon.NewAccountsRepositoryStub()
 	testNonce := uint64(2233)
-	testAccount, _ := state.NewUserAccount(testscommon.PubKeyOfAlice)
+	testAccount, _ := state.NewUserAccount(testscommon.TestPubKeyAlice)
 	testAccount.Nonce = testNonce
 	accountsRepository.AddTestAccount(testAccount)
 
@@ -87,7 +87,7 @@ func TestNode_GetAccountAccountExistsShouldReturn(t *testing.T) {
 		node.WithStateComponents(stateComponents),
 	)
 
-	recovAccnt, _, err := n.GetAccount(testscommon.AddressOfAlice, api.AccountQueryOptions{})
+	recovAccnt, _, err := n.GetAccount(testscommon.TestAddressAlice, api.AccountQueryOptions{})
 
 	assert.Nil(t, err)
 	assert.Equal(t, testNonce, recovAccnt.Nonce)

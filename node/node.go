@@ -185,7 +185,7 @@ func (n *Node) GetAllIssuedESDTs(tokenType string, ctx context.Context) ([]strin
 		return nil, ErrMetachainOnlyEndpoint
 	}
 
-	userAccount, err := n.getAccountHandlerForPubKey(vm.ESDTSCAddress)
+	userAccount, _, err := n.loadUserAccountHandlerByPubKey(vm.ESDTSCAddress, api.AccountQueryOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -548,13 +548,6 @@ func adjustNftTokenIdentifier(token string, nonce uint64) string {
 }
 
 func (n *Node) decodeAddressToPubKey(address string) ([]byte, error) {
-	// Question for review: do we still require the special lazy initialization logic?
-	// > other functions seem to not care about this (and directly use the converter). E.g. GetESDTsRoles()
-	componentsNotInitialized := check.IfNil(n.coreComponents.AddressPubKeyConverter())
-	if componentsNotInitialized {
-		return nil, errors.New("PubkeyConverter not initialized")
-	}
-
 	pubKey, err := n.coreComponents.AddressPubKeyConverter().Decode(address)
 	if err != nil {
 		return nil, fmt.Errorf("invalid address (%w): %s", err, address)
@@ -563,28 +556,19 @@ func (n *Node) decodeAddressToPubKey(address string) ([]byte, error) {
 	return pubKey, nil
 }
 
-// Question for review: this is only used for GetAllIssuedESDTs. Change that ones, as well, then remove this and the dependency on "AccountsAdapterAPI"?
-func (n *Node) getAccountHandlerForPubKey(address []byte) (state.UserAccountHandler, error) {
-	account, err := n.stateComponents.AccountsAdapterAPI().GetExistingAccount(address)
-	if err != nil {
-		return nil, err
-	}
-
-	userAccount, ok := n.castAccountToUserAccount(account)
-	if !ok {
+func (n *Node) castAccountToUserAccount(ah vmcommon.AccountHandler) (state.UserAccountHandler, error) {
+	if check.IfNil(ah) {
+		log.Error("node.castAccountToUserAccount(): unexpected nil account")
 		return nil, ErrCannotCastAccountHandlerToUserAccountHandler
 	}
 
-	return userAccount, nil
-}
-
-func (n *Node) castAccountToUserAccount(ah vmcommon.AccountHandler) (state.UserAccountHandler, bool) {
-	if check.IfNil(ah) {
-		return nil, false
+	account, ok := ah.(state.UserAccountHandler)
+	if !ok {
+		log.Error("node.castAccountToUserAccount(): unexpected type of account")
+		return nil, ErrCannotCastAccountHandlerToUserAccountHandler
 	}
 
-	account, ok := ah.(state.UserAccountHandler)
-	return account, ok
+	return account, nil
 }
 
 // SendBulkTransactions sends the provided transactions as a bulk, optimizing transfer between nodes
@@ -806,7 +790,7 @@ func (n *Node) GetAccount(address string, options api.AccountQueryOptions) (api.
 			}, api.BlockInfo{}, nil
 		}
 		if err == ErrCannotCastAccountHandlerToUserAccountHandler {
-			return api.AccountResponse{}, api.BlockInfo{}, errors.New("account is not of type with balance and nonce")
+			return api.AccountResponse{}, api.BlockInfo{}, err
 		}
 
 		return api.AccountResponse{}, api.BlockInfo{}, err

@@ -32,11 +32,6 @@ const (
 	urlParamOnStartOfEpoch    = "onStartOfEpoch"
 )
 
-// Question for review: in this PR, node.go is responsible with providing the rootHash to be used on the "getAccount*" request.
-// Alternatively, we could have fetched the final / current block info here (at this layer) and only forward the rootHash to the node facade.
-// Also, the blockInfo object would have been constructed here (as opposed to being constructed by sub-modules of node.go).
-// Any feedback on this?
-
 // addressFacadeHandler defines the methods to be implemented by a facade for handling address requests
 type addressFacadeHandler interface {
 	GetBalance(address string, options api.AccountQueryOptions) (*big.Int, api.BlockInfo, error)

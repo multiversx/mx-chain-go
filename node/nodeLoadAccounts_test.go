@@ -16,7 +16,7 @@ import (
 func TestNode_GetAccountWithOptionsOnFinalBlockShouldWork(t *testing.T) {
 	t.Parallel()
 
-	alice, _ := state.NewUserAccount(testscommon.PubKeyOfAlice)
+	alice, _ := state.NewUserAccount(testscommon.TestPubKeyAlice)
 	alice.Balance = big.NewInt(100)
 
 	var calledWithPubkey []byte
@@ -44,11 +44,11 @@ func TestNode_GetAccountWithOptionsOnFinalBlockShouldWork(t *testing.T) {
 		node.WithStateComponents(stateComponents),
 	)
 
-	account, blockInfo, err := n.GetAccount(testscommon.AddressOfAlice, api.AccountQueryOptions{OnFinalBlock: true})
+	account, blockInfo, err := n.GetAccount(testscommon.TestAddressAlice, api.AccountQueryOptions{OnFinalBlock: true})
 
 	require.Nil(t, err)
 	require.Equal(t, "100", account.Balance)
-	require.Equal(t, testscommon.PubKeyOfAlice, calledWithPubkey)
+	require.Equal(t, testscommon.TestPubKeyAlice, calledWithPubkey)
 	require.Equal(t, []byte{0xbb, 0xaa}, calledWithRootHash)
 	require.Equal(t, uint64(1), blockInfo.Nonce)
 	require.Equal(t, "aabb", blockInfo.Hash)
@@ -58,7 +58,7 @@ func TestNode_GetAccountWithOptionsOnFinalBlockShouldWork(t *testing.T) {
 func TestNode_GetAccountWithOptionsOnCurrentBlockShouldWork(t *testing.T) {
 	t.Parallel()
 
-	alice, _ := state.NewUserAccount(testscommon.PubKeyOfAlice)
+	alice, _ := state.NewUserAccount(testscommon.TestPubKeyAlice)
 	alice.Balance = big.NewInt(100)
 
 	var calledWithPubkey []byte
@@ -87,11 +87,11 @@ func TestNode_GetAccountWithOptionsOnCurrentBlockShouldWork(t *testing.T) {
 		node.WithStateComponents(stateComponents),
 	)
 
-	account, blockInfo, err := n.GetAccount(testscommon.AddressOfAlice, api.AccountQueryOptions{OnFinalBlock: false})
+	account, blockInfo, err := n.GetAccount(testscommon.TestAddressAlice, api.AccountQueryOptions{OnFinalBlock: false})
 
 	require.Nil(t, err)
 	require.Equal(t, "100", account.Balance)
-	require.Equal(t, testscommon.PubKeyOfAlice, calledWithPubkey)
+	require.Equal(t, testscommon.TestPubKeyAlice, calledWithPubkey)
 	require.Equal(t, []byte{0xcc, 0xdd}, calledWithRootHash)
 	require.Equal(t, uint64(7), blockInfo.Nonce)
 	require.Equal(t, "ddcc", blockInfo.Hash)

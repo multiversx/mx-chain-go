@@ -177,7 +177,6 @@ func CreateNode(
 	}
 
 	esdtNftStorage, err := builtInFunctions.NewESDTDataStorage(builtInFunctions.ArgsNewESDTDataStorage{
-		// TODO: Check if this is all right (not passing AccountsAdapter).
 		Accounts:                stateComponents.AccountsAdapterAPI(),
 		GlobalSettingsHandler:   nodeDisabled.NewDisabledGlobalSettingHandler(),
 		Marshalizer:             coreComponents.InternalMarshalizer(),

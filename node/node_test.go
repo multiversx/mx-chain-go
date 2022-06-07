@@ -122,50 +122,6 @@ func TestNewNode_ApplyNilOptionShouldError(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
-// Question for review: is this test still relevant (can coreComponents be only partly initialized)?
-func TestNode_AccountOperationsWithoutAddrConverterShouldError(t *testing.T) {
-	coreComponents := getDefaultCoreComponents()
-	coreComponents.AddrPubKeyConv = nil
-	coreComponents.VmMarsh = getMarshalizer()
-	coreComponents.IntMarsh = getMarshalizer()
-	coreComponents.Hash = getHasher()
-	stateComponents := getDefaultStateComponents()
-
-	n, _ := node.NewNode(
-		node.WithCoreComponents(coreComponents),
-		node.WithStateComponents(stateComponents),
-	)
-	_, _, err := n.GetBalance("address", api.AccountQueryOptions{})
-	require.NotNil(t, err)
-	require.Equal(t, "PubkeyConverter not initialized", err.Error())
-
-	_, _, err = n.GetAccount("address", api.AccountQueryOptions{})
-	require.NotNil(t, err)
-	require.Equal(t, "PubkeyConverter not initialized", err.Error())
-}
-
-// For review: is this test still relevant?
-func TestNode_AccountOperationsWithoutAccountsRepositoryShouldError(t *testing.T) {
-	coreComponents := getDefaultCoreComponents()
-	dataComponents := getDefaultDataComponents()
-	stateComponents := getDefaultStateComponents()
-	stateComponents.AccountsRepo = nil
-
-	n, _ := node.NewNode(
-		node.WithCoreComponents(coreComponents),
-		node.WithDataComponents(dataComponents),
-		node.WithStateComponents(stateComponents),
-	)
-
-	_, _, err := n.GetBalance(testscommon.AddressOfAlice, api.AccountQueryOptions{})
-	require.NotNil(t, err)
-	require.Equal(t, "AccountsRepository not initialized", err.Error())
-
-	_, _, err = n.GetAccount(testscommon.AddressOfAlice, api.AccountQueryOptions{})
-	require.NotNil(t, err)
-	require.Equal(t, "AccountsRepository not initialized", err.Error())
-}
-
 func TestGetBalance_GetAccountFailsShouldError(t *testing.T) {
 	expectedErr := errors.New("error")
 
@@ -187,7 +143,7 @@ func TestGetBalance_GetAccountFailsShouldError(t *testing.T) {
 		node.WithCoreComponents(coreComponents),
 		node.WithStateComponents(stateComponents),
 	)
-	_, _, err := n.GetBalance(testscommon.AddressOfAlice, api.AccountQueryOptions{})
+	_, _, err := n.GetBalance(testscommon.TestAddressAlice, api.AccountQueryOptions{})
 	assert.Equal(t, expectedErr, err)
 }
 
@@ -221,14 +177,14 @@ func TestGetBalance_AccountNotFoundShouldReturnZeroBalance(t *testing.T) {
 		node.WithCoreComponents(coreComponents),
 		node.WithStateComponents(stateComponents),
 	)
-	balance, _, err := n.GetBalance(testscommon.AddressOfAlice, api.AccountQueryOptions{})
+	balance, _, err := n.GetBalance(testscommon.TestAddressAlice, api.AccountQueryOptions{})
 	assert.Nil(t, err)
 	assert.Equal(t, big.NewInt(0), balance)
 }
 
 func TestGetBalance(t *testing.T) {
 	accountsRepository := testscommon.NewAccountsRepositoryStub()
-	testAccount, _ := state.NewUserAccount(testscommon.PubKeyOfAlice)
+	testAccount, _ := state.NewUserAccount(testscommon.TestPubKeyAlice)
 	testAccount.Balance = big.NewInt(100)
 	accountsRepository.AddTestAccount(testAccount)
 
@@ -246,7 +202,7 @@ func TestGetBalance(t *testing.T) {
 		node.WithStateComponents(stateComponents),
 	)
 
-	balance, _, err := n.GetBalance(testscommon.AddressOfAlice, api.AccountQueryOptions{})
+	balance, _, err := n.GetBalance(testscommon.TestAddressAlice, api.AccountQueryOptions{})
 	assert.Nil(t, err)
 	assert.Equal(t, big.NewInt(100), balance)
 }
@@ -255,7 +211,7 @@ func TestGetUsername(t *testing.T) {
 	expectedUsername := []byte("elrond")
 
 	accountsRepository := testscommon.NewAccountsRepositoryStub()
-	testAccount, _ := state.NewUserAccount(testscommon.PubKeyOfAlice)
+	testAccount, _ := state.NewUserAccount(testscommon.TestPubKeyAlice)
 	testAccount.UserName = expectedUsername
 	accountsRepository.AddTestAccount(testAccount)
 
@@ -274,7 +230,7 @@ func TestGetUsername(t *testing.T) {
 		node.WithStateComponents(stateComponents),
 	)
 
-	username, _, err := n.GetUsername(testscommon.AddressOfAlice, api.AccountQueryOptions{})
+	username, _, err := n.GetUsername(testscommon.TestAddressAlice, api.AccountQueryOptions{})
 	assert.Nil(t, err)
 	assert.Equal(t, string(expectedUsername), username)
 }
@@ -427,7 +383,7 @@ func TestNode_GetValueForKey(t *testing.T) {
 }
 
 func TestNode_GetESDTData(t *testing.T) {
-	acc, _ := state.NewUserAccount(testscommon.PubKeyOfAlice)
+	acc, _ := state.NewUserAccount(testscommon.TestPubKeyAlice)
 	esdtToken := "newToken"
 
 	esdtData := &esdt.ESDigitalToken{Value: big.NewInt(10)}
@@ -463,13 +419,13 @@ func TestNode_GetESDTData(t *testing.T) {
 		node.WithESDTNFTStorageHandler(esdtStorageStub),
 	)
 
-	esdtTokenData, _, err := n.GetESDTData(testscommon.AddressOfAlice, esdtToken, 0, api.AccountQueryOptions{})
+	esdtTokenData, _, err := n.GetESDTData(testscommon.TestAddressAlice, esdtToken, 0, api.AccountQueryOptions{})
 	require.Nil(t, err)
 	require.Equal(t, esdtData.Value.String(), esdtTokenData.Value.String())
 }
 
 func TestNode_GetESDTDataForNFT(t *testing.T) {
-	acc, _ := state.NewUserAccount(testscommon.PubKeyOfAlice)
+	acc, _ := state.NewUserAccount(testscommon.TestPubKeyAlice)
 	esdtToken := "newToken"
 	nonce := int64(100)
 
@@ -501,13 +457,13 @@ func TestNode_GetESDTDataForNFT(t *testing.T) {
 		node.WithESDTNFTStorageHandler(esdtStorageStub),
 	)
 
-	esdtTokenData, _, err := n.GetESDTData(testscommon.AddressOfAlice, esdtToken, uint64(nonce), api.AccountQueryOptions{})
+	esdtTokenData, _, err := n.GetESDTData(testscommon.TestAddressAlice, esdtToken, uint64(nonce), api.AccountQueryOptions{})
 	require.Nil(t, err)
 	require.Equal(t, esdtData.Value.String(), esdtTokenData.Value.String())
 }
 
 func TestNode_GetAllESDTTokens(t *testing.T) {
-	acc, _ := state.NewUserAccount(testscommon.PubKeyOfAlice)
+	acc, _ := state.NewUserAccount(testscommon.TestPubKeyAlice)
 	esdtToken := "newToken"
 	esdtKey := []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier + esdtToken)
 
@@ -561,14 +517,14 @@ func TestNode_GetAllESDTTokens(t *testing.T) {
 		node.WithESDTNFTStorageHandler(esdtStorageStub),
 	)
 
-	value, _, err := n.GetAllESDTTokens(testscommon.AddressOfAlice, api.AccountQueryOptions{}, context.Background())
+	value, _, err := n.GetAllESDTTokens(testscommon.TestAddressAlice, api.AccountQueryOptions{}, context.Background())
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(value))
 	assert.Equal(t, esdtData, value[esdtToken])
 }
 
 func TestNode_GetAllESDTTokensContextShouldTimeout(t *testing.T) {
-	acc, _ := state.NewUserAccount(testscommon.PubKeyOfAlice)
+	acc, _ := state.NewUserAccount(testscommon.TestPubKeyAlice)
 
 	acc.DataTrieTracker().SetDataTrie(
 		&trieMock.TrieStub{
@@ -613,13 +569,13 @@ func TestNode_GetAllESDTTokensContextShouldTimeout(t *testing.T) {
 	ctxWithTimeout, cancel := context.WithTimeout(context.Background(), time.Millisecond)
 	defer cancel()
 
-	value, _, err := n.GetAllESDTTokens(testscommon.AddressOfAlice, api.AccountQueryOptions{}, ctxWithTimeout)
+	value, _, err := n.GetAllESDTTokens(testscommon.TestAddressAlice, api.AccountQueryOptions{}, ctxWithTimeout)
 	assert.Nil(t, value)
 	assert.Equal(t, node.ErrTrieOperationsTimeout, err)
 }
 
 func TestNode_GetAllESDTTokensShouldReturnEsdtAndFormattedNft(t *testing.T) {
-	acc, _ := state.NewUserAccount(testscommon.PubKeyOfAlice)
+	acc, _ := state.NewUserAccount(testscommon.TestPubKeyAlice)
 
 	esdtToken := "TKKR-7q8w9e"
 	esdtKey := []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier + esdtToken)
@@ -695,7 +651,7 @@ func TestNode_GetAllESDTTokensShouldReturnEsdtAndFormattedNft(t *testing.T) {
 		node.WithESDTNFTStorageHandler(esdtStorageStub),
 	)
 
-	tokens, _, err := n.GetAllESDTTokens(testscommon.AddressOfAlice, api.AccountQueryOptions{}, context.Background())
+	tokens, _, err := n.GetAllESDTTokens(testscommon.TestAddressAlice, api.AccountQueryOptions{}, context.Background())
 	assert.Nil(t, err)
 	assert.Equal(t, 2, len(tokens))
 	assert.Equal(t, esdtData, tokens[esdtToken])
@@ -761,7 +717,7 @@ func TestNode_GetAllIssuedESDTs(t *testing.T) {
 
 	coreComponents := getDefaultCoreComponents()
 	stateComponents := getDefaultStateComponents()
-	stateComponents.AccountsAPI = accDB
+	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(accDB)
 	dataComponents := getDefaultDataComponents()
 	processComponents := getDefaultProcessComponents()
 	processComponents.ShardCoord = &mock.ShardCoordinatorMock{
@@ -795,7 +751,7 @@ func TestNode_GetAllIssuedESDTs(t *testing.T) {
 }
 
 func TestNode_GetESDTsWithRole(t *testing.T) {
-	addrBytes := testscommon.PubKeyOfAlice
+	addrBytes := testscommon.TestPubKeyAlice
 	acc, _ := state.NewUserAccount(addrBytes)
 	esdtToken := []byte("TCK-RANDOM")
 
@@ -851,23 +807,23 @@ func TestNode_GetESDTsWithRole(t *testing.T) {
 		node.WithProcessComponents(processComponents),
 	)
 
-	tokenResult, _, err := n.GetESDTsWithRole(testscommon.AddressOfAlice, core.ESDTRoleNFTAddQuantity, api.AccountQueryOptions{}, context.Background())
+	tokenResult, _, err := n.GetESDTsWithRole(testscommon.TestAddressAlice, core.ESDTRoleNFTAddQuantity, api.AccountQueryOptions{}, context.Background())
 	require.NoError(t, err)
 	require.Equal(t, 1, len(tokenResult))
 	require.Equal(t, string(esdtToken), tokenResult[0])
 
-	tokenResult, _, err = n.GetESDTsWithRole(testscommon.AddressOfAlice, core.ESDTRoleLocalMint, api.AccountQueryOptions{}, context.Background())
+	tokenResult, _, err = n.GetESDTsWithRole(testscommon.TestAddressAlice, core.ESDTRoleLocalMint, api.AccountQueryOptions{}, context.Background())
 	require.NoError(t, err)
 	require.Equal(t, 1, len(tokenResult))
 	require.Equal(t, string(esdtToken), tokenResult[0])
 
-	tokenResult, _, err = n.GetESDTsWithRole(testscommon.AddressOfAlice, core.ESDTRoleNFTCreate, api.AccountQueryOptions{}, context.Background())
+	tokenResult, _, err = n.GetESDTsWithRole(testscommon.TestAddressAlice, core.ESDTRoleNFTCreate, api.AccountQueryOptions{}, context.Background())
 	require.NoError(t, err)
 	require.Len(t, tokenResult, 0)
 }
 
 func TestNode_GetESDTsRoles(t *testing.T) {
-	addrBytes := testscommon.PubKeyOfAlice
+	addrBytes := testscommon.TestPubKeyAlice
 	acc, _ := state.NewUserAccount(addrBytes)
 	esdtToken := []byte("TCK-RANDOM")
 
@@ -923,7 +879,7 @@ func TestNode_GetESDTsRoles(t *testing.T) {
 		node.WithProcessComponents(processComponents),
 	)
 
-	tokenResult, _, err := n.GetESDTsRoles(testscommon.AddressOfAlice, api.AccountQueryOptions{}, context.Background())
+	tokenResult, _, err := n.GetESDTsRoles(testscommon.TestAddressAlice, api.AccountQueryOptions{}, context.Background())
 	require.NoError(t, err)
 	require.Equal(t, map[string][]string{
 		string(esdtToken): {core.ESDTRoleNFTAddQuantity, core.ESDTRoleLocalMint},
@@ -931,7 +887,7 @@ func TestNode_GetESDTsRoles(t *testing.T) {
 }
 
 func TestNode_GetNFTTokenIDsRegisteredByAddress(t *testing.T) {
-	addrBytes := testscommon.PubKeyOfAlice
+	addrBytes := testscommon.TestPubKeyAlice
 	acc, _ := state.NewUserAccount(addrBytes)
 	esdtToken := []byte("TCK-RANDOM")
 
@@ -981,14 +937,14 @@ func TestNode_GetNFTTokenIDsRegisteredByAddress(t *testing.T) {
 		node.WithProcessComponents(processComponents),
 	)
 
-	tokenResult, _, err := n.GetNFTTokenIDsRegisteredByAddress(testscommon.AddressOfAlice, api.AccountQueryOptions{}, context.Background())
+	tokenResult, _, err := n.GetNFTTokenIDsRegisteredByAddress(testscommon.TestAddressAlice, api.AccountQueryOptions{}, context.Background())
 	require.NoError(t, err)
 	require.Equal(t, 1, len(tokenResult))
 	require.Equal(t, string(esdtToken), tokenResult[0])
 }
 
 func TestNode_GetNFTTokenIDsRegisteredByAddressContextShouldTimeout(t *testing.T) {
-	addrBytes := testscommon.PubKeyOfAlice
+	addrBytes := testscommon.TestPubKeyAlice
 	acc, _ := state.NewUserAccount(addrBytes)
 
 	acc.DataTrieTracker().SetDataTrie(
@@ -1033,7 +989,7 @@ func TestNode_GetNFTTokenIDsRegisteredByAddressContextShouldTimeout(t *testing.T
 	ctxWithTimeout, cancel := context.WithTimeout(context.Background(), time.Millisecond)
 	defer cancel()
 
-	tokens, _, err := n.GetNFTTokenIDsRegisteredByAddress(testscommon.AddressOfAlice, api.AccountQueryOptions{}, ctxWithTimeout)
+	tokens, _, err := n.GetNFTTokenIDsRegisteredByAddress(testscommon.TestAddressAlice, api.AccountQueryOptions{}, ctxWithTimeout)
 	require.Nil(t, tokens)
 	require.Equal(t, node.ErrTrieOperationsTimeout, err)
 }
@@ -2664,7 +2620,7 @@ func TestNode_GetAccountAccountDoesNotExistsShouldRetEmpty(t *testing.T) {
 		node.WithStateComponents(stateComponents),
 	)
 
-	recovAccnt, _, err := n.GetAccount(testscommon.AddressOfAlice, api.AccountQueryOptions{})
+	recovAccnt, _, err := n.GetAccount(testscommon.TestAddressAlice, api.AccountQueryOptions{})
 
 	require.Nil(t, err)
 	assert.Equal(t, uint64(0), recovAccnt.Nonce)
@@ -2695,7 +2651,7 @@ func TestNode_GetAccountAccountsRepositoryFailsShouldErr(t *testing.T) {
 		node.WithStateComponents(stateComponents),
 	)
 
-	recovAccnt, _, err := n.GetAccount(testscommon.AddressOfAlice, api.AccountQueryOptions{})
+	recovAccnt, _, err := n.GetAccount(testscommon.TestAddressAlice, api.AccountQueryOptions{})
 
 	assert.Empty(t, recovAccnt)
 	assert.NotNil(t, err)
@@ -2705,14 +2661,14 @@ func TestNode_GetAccountAccountsRepositoryFailsShouldErr(t *testing.T) {
 func TestNode_GetAccountAccountExistsShouldReturn(t *testing.T) {
 	t.Parallel()
 
-	accnt, _ := state.NewUserAccount(testscommon.PubKeyOfBob)
+	accnt, _ := state.NewUserAccount(testscommon.TestPubKeyBob)
 	_ = accnt.AddToBalance(big.NewInt(1))
 	accnt.IncreaseNonce(2)
 	accnt.SetRootHash([]byte("root hash"))
 	accnt.SetCodeHash([]byte("code hash"))
 	accnt.AddToDeveloperReward(big.NewInt(37))
 	accnt.SetCodeMetadata([]byte("metadata"))
-	accnt.SetOwnerAddress(testscommon.PubKeyOfAlice)
+	accnt.SetOwnerAddress(testscommon.TestPubKeyAlice)
 
 	accDB := &stateMock.AccountsStub{
 		GetExistingAccountCalled: func(address []byte) (handler vmcommon.AccountHandler, e error) {
@@ -2733,7 +2689,7 @@ func TestNode_GetAccountAccountExistsShouldReturn(t *testing.T) {
 		node.WithStateComponents(stateComponents),
 	)
 
-	recovAccnt, _, err := n.GetAccount(testscommon.AddressOfBob, api.AccountQueryOptions{})
+	recovAccnt, _, err := n.GetAccount(testscommon.TestAddressBob, api.AccountQueryOptions{})
 
 	require.Nil(t, err)
 	require.Equal(t, uint64(2), recovAccnt.Nonce)
@@ -2741,7 +2697,7 @@ func TestNode_GetAccountAccountExistsShouldReturn(t *testing.T) {
 	require.Equal(t, []byte("root hash"), recovAccnt.RootHash)
 	require.Equal(t, []byte("code hash"), recovAccnt.CodeHash)
 	require.Equal(t, []byte("metadata"), recovAccnt.CodeMetadata)
-	require.Equal(t, testscommon.AddressOfAlice, recovAccnt.OwnerAddress)
+	require.Equal(t, testscommon.TestAddressAlice, recovAccnt.OwnerAddress)
 }
 
 func TestNode_AppStatusHandlersShouldIncrement(t *testing.T) {

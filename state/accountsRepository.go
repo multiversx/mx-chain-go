@@ -17,7 +17,6 @@ import (
 // call accountsRepository with the returned rootHash etc.
 // << END notes for review
 
-// Question for review: perhaps rename to "accountsByRootHashRepository"?
 type accountsRepository struct {
 	innerAccountsAdapter AccountsAdapter
 	trieController       *accountsDBApiTrieController

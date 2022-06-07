@@ -2,7 +2,6 @@ package node
 
 import (
 	"encoding/hex"
-	"errors"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
@@ -44,20 +43,16 @@ func (n *Node) loadUserAccountHandlerByPubKey(pubKey []byte, options api.Account
 		return nil, api.BlockInfo{}, err
 	}
 
-	userAccount, ok := n.castAccountToUserAccount(account)
-	if !ok {
-		return nil, api.BlockInfo{}, ErrCannotCastAccountHandlerToUserAccountHandler
+	userAccount, err := n.castAccountToUserAccount(account)
+	if err != nil {
+		return nil, api.BlockInfo{}, err
 	}
 
 	return userAccount, blockInfo.toApiResource(), nil
 }
 
 func (n *Node) loadUserAccountOnRootHash(pubKey []byte, rootHash []byte) (vmcommon.AccountHandler, error) {
-	repository, err := n.getAccountsRepository()
-	if err != nil {
-		return nil, err
-	}
-
+	repository := n.stateComponents.AccountsRepository()
 	account, err := repository.GetExistingAccount(pubKey, rootHash)
 	if err != nil {
 		return nil, err
@@ -72,23 +67,9 @@ func (n *Node) loadAccountCode(codeHash []byte, options api.AccountQueryOptions)
 		return nil, api.BlockInfo{}
 	}
 
-	repository, err := n.getAccountsRepository()
-	if err != nil {
-		return nil, api.BlockInfo{}
-	}
-
+	repository := n.stateComponents.AccountsRepository()
 	code := repository.GetCode(codeHash, blockInfo.rootHash)
 	return code, blockInfo.toApiResource()
-}
-
-func (n *Node) getAccountsRepository() (state.AccountsRepository, error) {
-	// Question for review: do we still require the special lazy initialization logic (used on some components in node.go)?
-	notInitialized := check.IfNil(n.stateComponents.AccountsRepository())
-	if notInitialized {
-		return nil, errors.New("AccountsRepository not initialized")
-	}
-
-	return n.stateComponents.AccountsRepository(), nil
 }
 
 func (n *Node) getBlockInfoGivenOptions(options api.AccountQueryOptions) (blockInfo, error) {
@@ -121,12 +102,6 @@ func (n *Node) getFinalBlockInfo() (blockInfo, error) {
 }
 
 func (n *Node) getCurrentBlockInfo() (blockInfo, error) {
-	// Question for review: do we still require the special lazy initialization logic (used on some components in node.go)?
-	notInitialized := check.IfNil(n.dataComponents.Blockchain())
-	if notInitialized {
-		return blockInfo{}, errors.New("blockchain (chain handler) not initialized")
-	}
-
 	// TODO: Fix possible race conditions (blockchain.go does not provide a load x 3 method; the following loads do not take place in a critical section).
 	// A possible fix would be to add a function such as blockchain.GetCurrentBlockInfo().
 	block := n.dataComponents.Blockchain().GetCurrentBlockHeader()
