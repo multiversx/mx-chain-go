@@ -10,12 +10,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/txsFee/utils"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/testscommon/stakingcommon"
 	vmAddr "github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -55,7 +55,7 @@ func TestValidatorsSC_DoStakePutInQueueUnStakeAndUnBondShouldRefund(t *testing.T
 	require.Nil(t, err)
 	defer testContextMeta.Close()
 
-	saveNodesConfig(t, testContextMeta, 1, 1, 1)
+	stakingcommon.SaveNodesConfig(testContextMeta.Accounts, testContextMeta.Marshalizer, 1, 1, 1)
 	testContextMeta.BlockchainHook.(*hooks.BlockChainHookImpl).SetCurrentHeader(&block.MetaBlock{Epoch: 1})
 	saveDelegationManagerConfig(testContextMeta)
 
@@ -118,7 +118,7 @@ func TestValidatorsSC_DoStakePutInQueueUnStakeAndUnBondTokensShouldRefund(t *tes
 	require.Nil(t, err)
 	defer testContextMeta.Close()
 
-	saveNodesConfig(t, testContextMeta, 1, 1, 1)
+	stakingcommon.SaveNodesConfig(testContextMeta.Accounts, testContextMeta.Marshalizer, 1, 1, 1)
 	saveDelegationManagerConfig(testContextMeta)
 	testContextMeta.BlockchainHook.(*hooks.BlockChainHookImpl).SetCurrentHeader(&block.MetaBlock{Epoch: 1})
 
@@ -165,7 +165,7 @@ func testValidatorsSCDoStakeWithTopUpValueTryToUnStakeTokensAndUnBondTokens(t *t
 	require.Nil(t, err)
 	defer testContextMeta.Close()
 
-	saveNodesConfig(t, testContextMeta, 1, 1, 1)
+	stakingcommon.SaveNodesConfig(testContextMeta.Accounts, testContextMeta.Marshalizer, 1, 1, 1)
 	saveDelegationManagerConfig(testContextMeta)
 	testContextMeta.BlockchainHook.(*hooks.BlockChainHookImpl).SetCurrentHeader(&block.MetaBlock{Epoch: 0})
 
@@ -199,7 +199,7 @@ func TestValidatorsSC_ToStakePutInQueueUnStakeAndUnBondShouldRefundUnBondTokens(
 	require.Nil(t, err)
 	defer testContextMeta.Close()
 
-	saveNodesConfig(t, testContextMeta, 1, 1, 1)
+	stakingcommon.SaveNodesConfig(testContextMeta.Accounts, testContextMeta.Marshalizer, 1, 1, 1)
 	saveDelegationManagerConfig(testContextMeta)
 	testContextMeta.BlockchainHook.(*hooks.BlockChainHookImpl).SetCurrentHeader(&block.MetaBlock{Epoch: 1})
 
@@ -252,7 +252,7 @@ func TestValidatorsSC_ToStakePutInQueueUnStakeNodesAndUnBondNodesShouldRefund(t 
 	require.Nil(t, err)
 	defer testContextMeta.Close()
 
-	saveNodesConfig(t, testContextMeta, 1, 1, 1)
+	stakingcommon.SaveNodesConfig(testContextMeta.Accounts, testContextMeta.Marshalizer, 1, 1, 1)
 	saveDelegationManagerConfig(testContextMeta)
 	testContextMeta.BlockchainHook.(*hooks.BlockChainHookImpl).SetCurrentHeader(&block.MetaBlock{Epoch: 1})
 
@@ -305,23 +305,4 @@ func executeTxAndCheckResults(
 	recCode, err := testContext.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, vmCodeExpected, recCode)
 	require.Equal(t, expectedErr, err)
-}
-
-func saveNodesConfig(t *testing.T, testContext *vm.VMTestContext, stakedNodes, minNumNodes, maxNumNodes int64) {
-	protoMarshalizer := &marshal.GogoProtoMarshalizer{}
-
-	account, err := testContext.Accounts.LoadAccount(vmAddr.StakingSCAddress)
-	require.Nil(t, err)
-	userAccount, _ := account.(state.UserAccountHandler)
-
-	nodesConfigData := &systemSmartContracts.StakingNodesConfig{
-		StakedNodes: stakedNodes,
-		MinNumNodes: minNumNodes,
-		MaxNumNodes: maxNumNodes,
-	}
-	nodesDataBytes, _ := protoMarshalizer.Marshal(nodesConfigData)
-
-	_ = userAccount.DataTrieTracker().SaveKeyValue([]byte("nodesConfig"), nodesDataBytes)
-	_ = testContext.Accounts.SaveAccount(account)
-	_, _ = testContext.Accounts.Commit()
 }

@@ -1,16 +1,21 @@
 package staking
 
 import (
+	"bytes"
 	"encoding/hex"
 	"math/big"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
+	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/require"
@@ -90,35 +95,153 @@ func (tmp *TestMetaProcessor) ProcessStake(t *testing.T, nodes map[string]*Nodes
 	tmp.BlockChainHook.SetCurrentHeader(header)
 
 	txHashes := make([][]byte, 0)
-	for owner, nodesData := range nodes {
-		numBLSKeys := int64(len(nodesData.BLSKeys))
-		numBLSKeysBytes := big.NewInt(numBLSKeys).Bytes()
-
-		txData := hex.EncodeToString([]byte("stake")) + "@" + hex.EncodeToString(numBLSKeysBytes)
-		argsStake := [][]byte{numBLSKeysBytes}
-
-		for _, blsKey := range nodesData.BLSKeys {
-			signature := append([]byte("signature-"), blsKey...)
-
-			argsStake = append(argsStake, blsKey, signature)
-			txData += "@" + hex.EncodeToString(blsKey) + "@" + hex.EncodeToString(signature)
-		}
-
-		txHash := append([]byte("txHash-stake-"), []byte(owner)...)
-		txHashes = append(txHashes, txHash)
-
-		tmp.TxCacher.AddTx(txHash, &smartContractResult.SmartContractResult{
-			RcvAddr: vm.StakingSCAddress,
-			Data:    []byte(txData),
-		})
-
-		tmp.doStake(t, vmcommon.VMInput{
-			CallerAddr:  []byte(owner),
-			Arguments:   argsStake,
-			CallValue:   nodesData.TotalStake,
-			GasProvided: 10,
-		})
+	for owner, registerData := range nodes {
+		scrs := tmp.doStake(t, []byte(owner), registerData)
+		txHashes = append(txHashes, tmp.addTxsToCacher(scrs)...)
 	}
+
+	tmp.commitBlockTxs(t, txHashes, header)
+}
+
+func (tmp *TestMetaProcessor) doStake(
+	t *testing.T,
+	owner []byte,
+	registerData *NodesRegisterData,
+) map[string]*smartContractResult.SmartContractResult {
+	arguments := &vmcommon.ContractCallInput{
+		VMInput: vmcommon.VMInput{
+			CallerAddr:  owner,
+			Arguments:   createStakeArgs(registerData.BLSKeys),
+			CallValue:   registerData.TotalStake,
+			GasProvided: 10,
+		},
+		RecipientAddr: vm.ValidatorSCAddress,
+		Function:      "stake",
+	}
+
+	return tmp.runSC(t, arguments)
+}
+
+func createStakeArgs(blsKeys [][]byte) [][]byte {
+	numBLSKeys := int64(len(blsKeys))
+	numBLSKeysBytes := big.NewInt(numBLSKeys).Bytes()
+	argsStake := [][]byte{numBLSKeysBytes}
+
+	for _, blsKey := range blsKeys {
+		signature := append([]byte("signature-"), blsKey...)
+		argsStake = append(argsStake, blsKey, signature)
+	}
+
+	return argsStake
+}
+
+// ProcessUnStake will create a block containing mini blocks with unStaking txs using provided nodes.
+// Block will be committed + call to validator system sc will be made to unStake all nodes
+func (tmp *TestMetaProcessor) ProcessUnStake(t *testing.T, nodes map[string][][]byte) {
+	header := tmp.createNewHeader(t, tmp.currentRound)
+	tmp.BlockChainHook.SetCurrentHeader(header)
+
+	txHashes := make([][]byte, 0)
+	for owner, blsKeys := range nodes {
+		scrs := tmp.doUnStake(t, []byte(owner), blsKeys)
+		txHashes = append(txHashes, tmp.addTxsToCacher(scrs)...)
+	}
+
+	tmp.commitBlockTxs(t, txHashes, header)
+}
+
+func (tmp *TestMetaProcessor) doUnStake(
+	t *testing.T,
+	owner []byte,
+	blsKeys [][]byte,
+) map[string]*smartContractResult.SmartContractResult {
+	arguments := &vmcommon.ContractCallInput{
+		VMInput: vmcommon.VMInput{
+			CallerAddr:  owner,
+			Arguments:   blsKeys,
+			CallValue:   big.NewInt(0),
+			GasProvided: 10,
+		},
+		RecipientAddr: vm.ValidatorSCAddress,
+		Function:      "unStake",
+	}
+
+	return tmp.runSC(t, arguments)
+}
+
+// ProcessJail will create a block containing mini blocks with jail txs using provided nodes.
+// Block will be committed + call to validator system sc will be made to jail all nodes
+func (tmp *TestMetaProcessor) ProcessJail(t *testing.T, blsKeys [][]byte) {
+	header := tmp.createNewHeader(t, tmp.currentRound)
+	tmp.BlockChainHook.SetCurrentHeader(header)
+
+	scrs := tmp.doJail(t, blsKeys)
+	txHashes := tmp.addTxsToCacher(scrs)
+	tmp.commitBlockTxs(t, txHashes, header)
+}
+
+func (tmp *TestMetaProcessor) doJail(
+	t *testing.T,
+	blsKeys [][]byte,
+) map[string]*smartContractResult.SmartContractResult {
+	arguments := &vmcommon.ContractCallInput{
+		VMInput: vmcommon.VMInput{
+			CallerAddr:  vm.JailingAddress,
+			Arguments:   blsKeys,
+			CallValue:   big.NewInt(0),
+			GasProvided: 10,
+		},
+		RecipientAddr: vm.StakingSCAddress,
+		Function:      "jail",
+	}
+
+	return tmp.runSC(t, arguments)
+}
+
+// ProcessUnJail will create a block containing mini blocks with unJail txs using provided nodes.
+// Block will be committed + call to validator system sc will be made to unJail all nodes
+func (tmp *TestMetaProcessor) ProcessUnJail(t *testing.T, blsKeys [][]byte) {
+	header := tmp.createNewHeader(t, tmp.currentRound)
+	tmp.BlockChainHook.SetCurrentHeader(header)
+
+	txHashes := make([][]byte, 0)
+	for _, blsKey := range blsKeys {
+		scrs := tmp.doUnJail(t, blsKey)
+		txHashes = append(txHashes, tmp.addTxsToCacher(scrs)...)
+	}
+
+	tmp.commitBlockTxs(t, txHashes, header)
+}
+
+func (tmp *TestMetaProcessor) doUnJail(
+	t *testing.T,
+	blsKey []byte,
+) map[string]*smartContractResult.SmartContractResult {
+	arguments := &vmcommon.ContractCallInput{
+		VMInput: vmcommon.VMInput{
+			CallerAddr:  vm.ValidatorSCAddress,
+			Arguments:   [][]byte{blsKey},
+			CallValue:   big.NewInt(0),
+			GasProvided: 10,
+		},
+		RecipientAddr: vm.StakingSCAddress,
+		Function:      "unJail",
+	}
+
+	return tmp.runSC(t, arguments)
+}
+
+func (tmp *TestMetaProcessor) addTxsToCacher(scrs map[string]*smartContractResult.SmartContractResult) [][]byte {
+	txHashes := make([][]byte, 0)
+	for scrHash, scr := range scrs {
+		txHashes = append(txHashes, []byte(scrHash))
+		tmp.TxCacher.AddTx([]byte(scrHash), scr)
+	}
+
+	return txHashes
+}
+
+func (tmp *TestMetaProcessor) commitBlockTxs(t *testing.T, txHashes [][]byte, header data.HeaderHandler) {
 	_, err := tmp.AccountsAdapter.Commit()
 	require.Nil(t, err)
 
@@ -132,22 +255,42 @@ func (tmp *TestMetaProcessor) ProcessStake(t *testing.T, nodes map[string]*Nodes
 	}
 	tmp.TxCoordinator.AddTxsFromMiniBlocks(miniBlocks)
 	tmp.createAndCommitBlock(t, header, noTime)
-
 	tmp.currentRound += 1
 }
 
-//TODO:
-// 1. Do the same for unStake/unJail
-// 2. Use this func to stake initial nodes instead of hard coding them
-func (tmp *TestMetaProcessor) doStake(t *testing.T, vmInput vmcommon.VMInput) {
-	arguments := &vmcommon.ContractCallInput{
-		VMInput:       vmInput,
-		RecipientAddr: vm.ValidatorSCAddress,
-		Function:      "stake",
-	}
+func (tmp *TestMetaProcessor) runSC(t *testing.T, arguments *vmcommon.ContractCallInput) map[string]*smartContractResult.SmartContractResult {
 	vmOutput, err := tmp.SystemVM.RunSmartContractCall(arguments)
 	require.Nil(t, err)
+	require.Equal(t, vmcommon.Ok, vmOutput.ReturnCode)
 
 	err = integrationTests.ProcessSCOutputAccounts(vmOutput, tmp.AccountsAdapter)
 	require.Nil(t, err)
+
+	return createSCRsFromStakingSCOutput(vmOutput, tmp.Marshaller)
+}
+
+func createSCRsFromStakingSCOutput(
+	vmOutput *vmcommon.VMOutput,
+	marshaller marshal.Marshalizer,
+) map[string]*smartContractResult.SmartContractResult {
+	allSCR := make(map[string]*smartContractResult.SmartContractResult)
+	parser := smartContract.NewArgumentParser()
+	outputAccounts := process.SortVMOutputInsideData(vmOutput)
+	for _, outAcc := range outputAccounts {
+		storageUpdates := process.GetSortedStorageUpdates(outAcc)
+
+		if bytes.Equal(outAcc.Address, vm.StakingSCAddress) {
+			scrData := parser.CreateDataFromStorageUpdate(storageUpdates)
+			scr := &smartContractResult.SmartContractResult{
+				RcvAddr: vm.StakingSCAddress,
+				Data:    []byte(scrData),
+			}
+			scrBytes, _ := marshaller.Marshal(scr)
+			scrHash := hex.EncodeToString(scrBytes)
+
+			allSCR[scrHash] = scr
+		}
+	}
+
+	return allSCR
 }

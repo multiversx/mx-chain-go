@@ -121,6 +121,7 @@ type ProcessComponentsFactoryArgs struct {
 	EpochConfig            config.EpochConfig
 	PrefConfigs            config.PreferencesConfig
 	ImportDBConfig         config.ImportDbConfig
+	EconomicsConfig        config.EconomicsConfig
 	AccountsParser         genesis.AccountsParser
 	SmartContractParser    genesis.InitialSmartContractParser
 	GasSchedule            core.GasScheduleNotifier
@@ -149,6 +150,7 @@ type processComponentsFactory struct {
 	epochConfig            config.EpochConfig
 	prefConfigs            config.PreferencesConfig
 	importDBConfig         config.ImportDbConfig
+	economicsConfig        config.EconomicsConfig
 	accountsParser         genesis.AccountsParser
 	smartContractParser    genesis.InitialSmartContractParser
 	gasSchedule            core.GasScheduleNotifier
@@ -188,6 +190,7 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 		epochConfig:            args.EpochConfig,
 		prefConfigs:            args.PrefConfigs,
 		importDBConfig:         args.ImportDBConfig,
+		economicsConfig:        args.EconomicsConfig,
 		accountsParser:         args.AccountsParser,
 		smartContractParser:    args.SmartContractParser,
 		gasSchedule:            args.GasSchedule,

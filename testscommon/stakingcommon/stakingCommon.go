@@ -278,3 +278,53 @@ func CreateEconomicsData() process.EconomicsDataHandler {
 	economicsData, _ := economicsHandler.NewEconomicsData(argsNewEconomicsData)
 	return economicsData
 }
+
+// SaveNodesConfig saves the nodes config in accounts db under "nodesConfig" key with provided params
+func SaveNodesConfig(
+	accountsDB state.AccountsAdapter,
+	marshaller marshal.Marshalizer,
+	stakedNodes,
+	minNumNodes,
+	maxNumNodes int64,
+) {
+	nodesConfigData := &systemSmartContracts.StakingNodesConfig{
+		StakedNodes: stakedNodes,
+		MinNumNodes: minNumNodes,
+		MaxNumNodes: maxNumNodes,
+	}
+	nodesDataBytes, err := marshaller.Marshal(nodesConfigData)
+	log.LogIfError(err)
+
+	account, err := accountsDB.LoadAccount(vm.StakingSCAddress)
+	log.LogIfError(err)
+
+	userAccount, _ := account.(state.UserAccountHandler)
+	err = userAccount.DataTrieTracker().SaveKeyValue([]byte("nodesConfig"), nodesDataBytes)
+	log.LogIfError(err)
+	err = accountsDB.SaveAccount(account)
+	log.LogIfError(err)
+	_, err = accountsDB.Commit()
+	log.LogIfError(err)
+}
+
+// SaveDelegationManagerConfig will save a mock configuration for the delegation manager SC
+func SaveDelegationManagerConfig(accountsDB state.AccountsAdapter, marshaller marshal.Marshalizer) {
+	managementData := &systemSmartContracts.DelegationManagement{
+		MinDeposit:          big.NewInt(100),
+		LastAddress:         vm.FirstDelegationSCAddress,
+		MinDelegationAmount: big.NewInt(1),
+	}
+	marshaledData, err := marshaller.Marshal(managementData)
+	log.LogIfError(err)
+
+	acc, err := accountsDB.LoadAccount(vm.DelegationManagerSCAddress)
+	log.LogIfError(err)
+	delegationAcc, _ := acc.(state.UserAccountHandler)
+
+	err = delegationAcc.DataTrieTracker().SaveKeyValue([]byte("delegationManagement"), marshaledData)
+	log.LogIfError(err)
+	err = accountsDB.SaveAccount(delegationAcc)
+	log.LogIfError(err)
+	_, err = accountsDB.Commit()
+	log.LogIfError(err)
+}

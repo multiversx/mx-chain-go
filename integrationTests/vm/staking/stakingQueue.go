@@ -55,14 +55,6 @@ func createStakingQueueCustomNodes(
 	queue := make([][]byte, 0)
 
 	for owner, ownerStats := range owners {
-		stakingcommon.AddKeysToWaitingList(
-			accountsAdapter,
-			ownerStats.StakingQueueKeys,
-			marshaller,
-			[]byte(owner),
-			[]byte(owner),
-		)
-
 		stakingcommon.RegisterValidatorKeys(
 			accountsAdapter,
 			[]byte(owner),
@@ -70,6 +62,14 @@ func createStakingQueueCustomNodes(
 			ownerStats.StakingQueueKeys,
 			ownerStats.TotalStake,
 			marshaller,
+		)
+
+		stakingcommon.AddKeysToWaitingList(
+			accountsAdapter,
+			ownerStats.StakingQueueKeys,
+			marshaller,
+			[]byte(owner),
+			[]byte(owner),
 		)
 
 		queue = append(queue, ownerStats.StakingQueueKeys...)
@@ -103,7 +103,7 @@ func (tmp *TestMetaProcessor) getWaitingListKeys() [][]byte {
 
 	allPubKeys := make([][]byte, 0)
 	for len(nextKey) != 0 && index <= waitingList.Length {
-		allPubKeys = append(allPubKeys, nextKey)
+		allPubKeys = append(allPubKeys, nextKey[2:]) // remove "w_" prefix
 
 		element, errGet := stakingcommon.GetWaitingListElement(stakingSCAcc, tmp.Marshaller, nextKey)
 		if errGet != nil {

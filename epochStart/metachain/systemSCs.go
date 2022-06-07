@@ -131,7 +131,7 @@ func (s *systemSCProcessor) processWithNewFlags(
 	}
 
 	if s.flagStakingV4Enabled.IsSet() {
-		err := s.prepareStakingDataForAllNodes(validatorsInfoMap)
+		err := s.prepareStakingDataForEligibleNodes(validatorsInfoMap)
 		if err != nil {
 			return err
 		}
@@ -188,11 +188,6 @@ func (s *systemSCProcessor) unStakeNodesWithNotEnoughFundsWithStakingV4(
 	}
 
 	return s.updateDelegationContracts(mapOwnersKeys)
-}
-
-func (s *systemSCProcessor) prepareStakingDataForAllNodes(validatorsInfoMap state.ShardValidatorsInfoMapHandler) error {
-	allNodes := GetAllNodeKeys(validatorsInfoMap)
-	return s.prepareStakingData(allNodes)
 }
 
 func (s *systemSCProcessor) updateToGovernanceV2() error {

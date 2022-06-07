@@ -151,10 +151,12 @@ type StakingDataProvider interface {
 	GetTotalStakeEligibleNodes() *big.Int
 	GetTotalTopUpStakeEligibleNodes() *big.Int
 	GetNodeStakedTopUp(blsKey []byte) (*big.Int, error)
-	PrepareStakingData(keys map[uint32][][]byte) error
-	FillValidatorInfo(blsKey []byte) error
+	PrepareStakingData(validatorsMap state.ShardValidatorsInfoMapHandler) error
+	FillValidatorInfo(validator state.ValidatorInfoHandler) error
 	ComputeUnQualifiedNodes(validatorInfos state.ShardValidatorsInfoMapHandler) ([][]byte, map[string][][]byte, error)
 	GetBlsKeyOwner(blsKey []byte) (string, error)
+	GetNumOfValidatorsInCurrentEpoch() uint32
+	GetOwnersData() map[string]*OwnerData
 	Clean()
 	EpochConfirmed(epoch uint32, timestamp uint64)
 	IsInterfaceNil() bool
@@ -212,6 +214,9 @@ type MaxNodesChangeConfigProvider interface {
 
 // AuctionListSelector handles selection of nodes from auction list to be sent to waiting list, based on their top up
 type AuctionListSelector interface {
-	SelectNodesFromAuctionList(validatorsInfoMap state.ShardValidatorsInfoMapHandler, randomness []byte) error
+	SelectNodesFromAuctionList(
+		validatorsInfoMap state.ShardValidatorsInfoMapHandler,
+		randomness []byte,
+	) error
 	IsInterfaceNil() bool
 }

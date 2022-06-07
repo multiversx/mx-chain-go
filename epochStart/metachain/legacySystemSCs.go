@@ -438,7 +438,7 @@ func (s *legacySystemSCProcessor) fillStakingDataForNonEligible(validatorsInfoMa
 				continue
 			}
 
-			err := s.stakingDataProvider.FillValidatorInfo(validatorInfo.GetPublicKey())
+			err := s.stakingDataProvider.FillValidatorInfo(validatorInfo)
 			if err != nil {
 				deleteCalled = true
 
@@ -470,11 +470,15 @@ func (s *legacySystemSCProcessor) fillStakingDataForNonEligible(validatorsInfoMa
 }
 
 func (s *legacySystemSCProcessor) prepareStakingDataForEligibleNodes(validatorsInfoMap state.ShardValidatorsInfoMapHandler) error {
-	eligibleNodes := s.getEligibleNodeKeys(validatorsInfoMap)
+	eligibleNodes, err := getEligibleNodeKeys(validatorsInfoMap)
+	if err != nil {
+		return err
+	}
+
 	return s.prepareStakingData(eligibleNodes)
 }
 
-func (s *legacySystemSCProcessor) prepareStakingData(nodeKeys map[uint32][][]byte) error {
+func (s *legacySystemSCProcessor) prepareStakingData(validatorsInfoMap state.ShardValidatorsInfoMapHandler) error {
 	sw := core.NewStopWatch()
 	sw.Start("prepareStakingDataForRewards")
 	defer func() {
@@ -482,23 +486,24 @@ func (s *legacySystemSCProcessor) prepareStakingData(nodeKeys map[uint32][][]byt
 		log.Debug("systemSCProcessor.prepareStakingDataForRewards time measurements", sw.GetMeasurements()...)
 	}()
 
-	return s.stakingDataProvider.PrepareStakingData(nodeKeys)
+	return s.stakingDataProvider.PrepareStakingData(validatorsInfoMap)
 }
 
-func (s *legacySystemSCProcessor) getEligibleNodeKeys(
+func getEligibleNodeKeys(
 	validatorsInfoMap state.ShardValidatorsInfoMapHandler,
-) map[uint32][][]byte {
-	eligibleNodesKeys := make(map[uint32][][]byte)
-	for shardID, validatorsInfoSlice := range validatorsInfoMap.GetShardValidatorsInfoMap() {
-		eligibleNodesKeys[shardID] = make([][]byte, 0, s.nodesConfigProvider.ConsensusGroupSize(shardID))
-		for _, validatorInfo := range validatorsInfoSlice {
-			if vInfo.WasEligibleInCurrentEpoch(validatorInfo) {
-				eligibleNodesKeys[shardID] = append(eligibleNodesKeys[shardID], validatorInfo.GetPublicKey())
+) (state.ShardValidatorsInfoMapHandler, error) {
+	eligibleNodesKeys := state.NewShardValidatorsInfoMap()
+	for _, validatorInfo := range validatorsInfoMap.GetAllValidatorsInfo() {
+		if vInfo.WasEligibleInCurrentEpoch(validatorInfo) {
+			err := eligibleNodesKeys.Add(validatorInfo.ShallowClone())
+			if err != nil {
+				log.Error("getEligibleNodeKeys: could not add validator info in map", "error", err)
+				return nil, err
 			}
 		}
 	}
 
-	return eligibleNodesKeys
+	return eligibleNodesKeys, nil
 }
 
 // ProcessDelegationRewards will process the rewards which are directed towards the delegation system smart contracts
@@ -1370,7 +1375,7 @@ func (s *legacySystemSCProcessor) legacyEpochConfirmed(epoch uint32) {
 
 	s.flagSetOwnerEnabled.SetValue(epoch == s.stakingV2EnableEpoch)
 	s.flagStakingV2Enabled.SetValue(epoch >= s.stakingV2EnableEpoch && epoch <= s.stakingV4InitEnableEpoch)
-	log.Debug("legacySystemSC: stakingV2", "enabled", epoch >= s.stakingV2EnableEpoch)
+	log.Debug("legacySystemSC: stakingV2", "enabled", s.flagStakingV2Enabled.IsSet())
 	log.Debug("legacySystemSC: change of maximum number of nodes and/or shuffling percentage",
 		"enabled", s.flagChangeMaxNodesEnabled.IsSet(),
 		"epoch", epoch,

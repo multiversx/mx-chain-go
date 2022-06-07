@@ -215,6 +215,7 @@ type Config struct {
 	VMOutputCacher        CacheConfig
 
 	PeersRatingConfig PeersRatingConfig
+	SoftAuctionConfig SoftAuctionConfig
 }
 
 // PeersRatingConfig will hold settings related to peers rating
@@ -588,4 +589,11 @@ type ResolverConfig struct {
 	NumCrossShardPeers  uint32
 	NumTotalPeers       uint32
 	NumFullHistoryPeers uint32
+}
+
+// SoftAuctionConfig represents the config options for soft auction selecting used in staking v4
+type SoftAuctionConfig struct {
+	TopUpStep string
+	MinTopUp  string
+	MaxTopUp  string
 }

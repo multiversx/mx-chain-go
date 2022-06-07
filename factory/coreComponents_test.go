@@ -253,6 +253,11 @@ func getEpochStartConfig() config.EpochStartConfig {
 func getCoreArgs() factory.CoreComponentsFactoryArgs {
 	return factory.CoreComponentsFactoryArgs{
 		Config: config.Config{
+			SoftAuctionConfig: config.SoftAuctionConfig{
+				TopUpStep: "10",
+				MinTopUp:  "1",
+				MaxTopUp:  "32000000",
+			},
 			EpochStartConfig: getEpochStartConfig(),
 			PublicKeyPeerId: config.CacheConfig{
 				Type:     "LRU",

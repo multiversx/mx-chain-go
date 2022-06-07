@@ -926,3 +926,9 @@
         Capacity = 1000
         Type = "SizeLRU"
         SizeInBytes = 314572800 #300MB
+
+# Changing this config is not backwards compatible
+[SoftAuctionConfig]
+    TopUpStep = "10000000000000000000" # 10 EGLD
+    MinTopUp = "1" # 0.00...01 EGLD , should be very low, but != zero
+    MaxTopUp = "32000000000000000000000000" # 32 mil EGLD
