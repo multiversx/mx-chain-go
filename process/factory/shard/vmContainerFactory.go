@@ -325,6 +325,7 @@ func (vmf *vmContainerFactory) createInProcessArwenVMV14() (vmcommon.VMExecution
 		RemoveNonUpdatedStorageEnableEpoch:              vmf.epochConfig.RemoveNonUpdatedStorageEnableEpoch,
 		CreateNFTThroughExecByCallerEnableEpoch:         vmf.epochConfig.CreateNFTThroughExecByCallerEnableEpoch,
 		UseDifferentGasCostForReadingCachedStorageEpoch: vmf.epochConfig.StorageAPICostOptimizationEnableEpoch,
+		CheckValueOnExecByCallerEnableEpoch:             vmf.epochConfig.CheckValueOnExecByCallerEnableEpoch,
 		FixFailExecutionOnErrorEnableEpoch:              vmf.epochConfig.FailExecutionOnEveryAPIErrorEnableEpoch,
 		ManagedCryptoAPIEnableEpoch:                     vmf.epochConfig.ManagedCryptoAPIsEnableEpoch,
 	}
