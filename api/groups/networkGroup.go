@@ -399,7 +399,7 @@ func (ng *networkGroup) getRatingsConfig(c *gin.Context) {
 func (ng *networkGroup) getGenesisNodesConfig(c *gin.Context) {
 	start := time.Now()
 	eligibleNodesConfig, waitingNodesConfig, err := ng.getFacade().GetGenesisNodesPubKeys()
-	log.Debug(fmt.Sprintf("GetGenesisNodesPubKeys took %s", time.Since(start)))
+	log.Debug("API call: GetGenesisNodesPubKeys", "duration", time.Since(start))
 
 	if err != nil {
 		c.JSON(
@@ -425,7 +425,7 @@ func (ng *networkGroup) getGenesisNodesConfig(c *gin.Context) {
 func (ng *networkGroup) getGenesisBalances(c *gin.Context) {
 	start := time.Now()
 	genesisBalances, err := ng.getFacade().GetGenesisBalances()
-	log.Debug(fmt.Sprintf("GetGenesisBalances took %s", time.Since(start)))
+	log.Debug("API call: GetGenesisBalances", "duration", time.Since(start))
 
 	if err != nil {
 		c.JSON(

@@ -236,7 +236,6 @@ func InitMetrics(
 	appStatusHandler.SetStringValue(common.MetricAppVersion, version)
 	appStatusHandler.SetUInt64Value(common.MetricRoundsPerEpoch, uint64(roundsPerEpoch))
 	appStatusHandler.SetStringValue(common.MetricCrossCheckBlockHeight, "0")
-	appStatusHandler.SetStringValue(common.MetricGenesisBlockHash, "")
 	appStatusHandler.SetUInt64Value(common.MetricIsSyncing, isSyncing)
 	// TODO: add all other rewards parameters
 	appStatusHandler.SetStringValue(common.MetricLeaderPercentage, fmt.Sprintf("%f", leaderPercentage))
