@@ -11,10 +11,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common/forking"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
-	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/testscommon/stakingcommon"
 	"github.com/stretchr/testify/require"
 )
 
@@ -106,7 +106,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4EnabledErrSortingA
 	args := createAuctionListSelectorArgs([]config.MaxNodesChangeConfig{{MaxNumNodes: 10}})
 
 	errGetNodeTopUp := errors.New("error getting top up per node")
-	args.StakingDataProvider = &mock.StakingDataProviderStub{
+	args.StakingDataProvider = &stakingcommon.StakingDataProviderStub{
 		GetNodeStakedTopUpCalled: func(blsKey []byte) (*big.Int, error) {
 			switch string(blsKey) {
 			case "pubKey0", "pubKey1":
