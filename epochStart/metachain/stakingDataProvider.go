@@ -236,7 +236,7 @@ func (sdp *stakingDataProvider) GetOwnersData() map[string]*epochStart.OwnerData
 			NumStakedNodes:  ownerData.numStakedNodes,
 			TotalTopUp:      big.NewInt(0).SetBytes(ownerData.totalTopUp.Bytes()),
 			TopUpPerNode:    big.NewInt(0).SetBytes(ownerData.topUpPerNode.Bytes()),
-			AuctionList:     ownerData.auctionList,
+			AuctionList:     make([]state.ValidatorInfoHandler, ownerData.numAuctionNodes),
 			Qualified:       ownerData.qualified,
 		}
 		copy(ret[owner].AuctionList, ownerData.auctionList)
