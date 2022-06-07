@@ -1,6 +1,7 @@
 package node
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -458,6 +459,40 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 
 	log.Info("application is now running")
 
+	ctx, cancel := context.WithCancel(context.Background())
+	go func() {
+		log.Info("starting JLS watchdog")
+		lastNonce := uint64(0)
+		for {
+			hdr := managedDataComponents.Blockchain().GetCurrentBlockHeader()
+			if hdr != nil {
+				lastNonce = hdr.GetNonce()
+			} else {
+				log.Error("JLS error getting header")
+			}
+
+			select {
+			case <-ctx.Done():
+				log.Debug("ending JLS watchdog")
+				return
+			case <-time.After(time.Minute * 5):
+			}
+
+			log.Info("JLS watchdog check")
+
+			hdr = managedDataComponents.Blockchain().GetCurrentBlockHeader()
+			if hdr != nil {
+				if lastNonce == hdr.GetNonce() {
+					log.Error("JLS STALLED! switching log level")
+					errLog := logger.SetLogLevel("*:DEBUG,intercept:TRACE,p2p:TRACE,etriever:TRACE,external:TRACE")
+					log.LogIfError(errLog)
+				}
+			} else {
+				log.Error("JLS error getting header")
+			}
+		}
+	}()
+
 	// TODO: remove this and treat better the VM versions switching
 	go func() {
 		time.Sleep(delayBeforeScQueriesStart)
@@ -476,6 +511,10 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		currentNode,
 		goRoutinesNumberStart,
 	)
+
+	cancel()
+	time.Sleep(time.Second * 5)
+
 	if err != nil {
 		return true, nil
 	}
