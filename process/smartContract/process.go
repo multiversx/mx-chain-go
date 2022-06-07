@@ -557,7 +557,7 @@ func (sc *scProcessor) addToDevRewardsV2(address []byte, gasUsed uint64, tx data
 
 	consumedFee := sc.economicsFee.ComputeFeeForProcessing(tx, gasUsed)
 	var devRwd *big.Int
-	if sc.enableEpochsHandler.IsStakingV2DelegationFlagEnabled() {
+	if sc.enableEpochsHandler.IsStakingV2FlagEnabledForActivationEpochCompleted() {
 		devRwd = core.GetIntTrimmedPercentageOfValue(consumedFee, sc.economicsFee.DeveloperPercentage())
 	} else {
 		devRwd = core.GetApproximatePercentageOfValue(consumedFee, sc.economicsFee.DeveloperPercentage())
@@ -718,7 +718,7 @@ func (sc *scProcessor) computeTotalConsumedFeeAndDevRwd(
 	totalFeeMinusBuiltIn := sc.economicsFee.ComputeFeeForProcessing(tx, consumedGasWithoutBuiltin)
 
 	var totalDevRwd *big.Int
-	if sc.enableEpochsHandler.IsStakingV2DelegationFlagEnabled() {
+	if sc.enableEpochsHandler.IsStakingV2FlagEnabledForActivationEpochCompleted() {
 		totalDevRwd = core.GetIntTrimmedPercentageOfValue(totalFeeMinusBuiltIn, sc.economicsFee.DeveloperPercentage())
 	} else {
 		totalDevRwd = core.GetApproximatePercentageOfValue(totalFeeMinusBuiltIn, sc.economicsFee.DeveloperPercentage())
@@ -2189,7 +2189,8 @@ func (sc *scProcessor) createSmartContractResults(
 
 		isCrossShard := sc.shardCoordinator.ComputeId(outAcc.Address) != sc.shardCoordinator.SelfId()
 		if result.CallType == vmData.AsynchronousCallBack {
-			if !sc.enableEpochsHandler.IsMultiESDTTransferFixOnCallBackFlagEnabled() || isCrossShard {
+			isCreatedCallBackCrossShardOnlyFlagSet := sc.enableEpochsHandler.IsMultiESDTTransferFixOnCallBackFlagEnabled()
+			if !isCreatedCallBackCrossShardOnlyFlagSet || isCrossShard {
 				// backward compatibility
 				createdAsyncCallBack = true
 				result.GasLimit, _ = core.SafeAddUint64(result.GasLimit, vmOutput.GasRemaining)
@@ -2212,7 +2213,8 @@ func (sc *scProcessor) createSmartContractResults(
 		}
 
 		if result.CallType == vmData.AsynchronousCall {
-			if !sc.enableEpochsHandler.IsMultiESDTTransferFixOnCallBackFlagEnabled() || isCrossShard {
+			isCreatedCallBackCrossShardOnlyFlagSet := sc.enableEpochsHandler.IsMultiESDTTransferFixOnCallBackFlagEnabled()
+			if !isCreatedCallBackCrossShardOnlyFlagSet || isCrossShard {
 				result.GasLimit += outputTransfer.GasLocked
 				lastArgAsGasLocked := "@" + hex.EncodeToString(big.NewInt(0).SetUint64(outputTransfer.GasLocked).Bytes())
 				result.Data = append(result.Data, []byte(lastArgAsGasLocked)...)
@@ -2244,7 +2246,8 @@ func (sc *scProcessor) useLastTransferAsAsyncCallBackWhenNeeded(
 		return false
 	}
 
-	if sc.enableEpochsHandler.IsMultiESDTTransferFixOnCallBackFlagEnabled() && !isCrossShard {
+	isCreatedCallBackCrossShardOnlyFlagSet := sc.enableEpochsHandler.IsMultiESDTTransferFixOnCallBackFlagEnabled()
+	if isCreatedCallBackCrossShardOnlyFlagSet && !isCrossShard {
 		return false
 	}
 
@@ -2411,7 +2414,8 @@ func (sc *scProcessor) processSCOutputAccounts(
 		for _, storeUpdate := range outAcc.StorageUpdates {
 			if !process.IsAllowedToSaveUnderKey(storeUpdate.Offset) {
 				log.Trace("storeUpdate is not allowed", "acc", outAcc.Address, "key", storeUpdate.Offset, "data", storeUpdate.Data)
-				if sc.enableEpochsHandler.IsRemoveNonUpdatedStorageFlagEnabled() {
+				isSaveKeyValueUnderProtectedErrorFlagSet := sc.enableEpochsHandler.IsRemoveNonUpdatedStorageFlagEnabled()
+				if isSaveKeyValueUnderProtectedErrorFlagSet {
 					return false, nil, process.ErrNotAllowedToWriteUnderProtectedKey
 				}
 

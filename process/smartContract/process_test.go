@@ -3703,8 +3703,8 @@ func TestSmartContractProcessor_computeTotalConsumedFeeAndDevRwdWithDifferentSCC
 		},
 	}
 	arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
-		IsSCDeployFlagEnabledField:            true,
-		IsStakingV2DelegationFlagEnabledField: true,
+		IsSCDeployFlagEnabledField:                             true,
+		IsStakingV2FlagEnabledForActivationEpochCompletedField: true,
 	}
 
 	sc, err := NewSmartContractProcessor(arguments)
@@ -3793,8 +3793,8 @@ func TestSmartContractProcessor_finishSCExecutionV2(t *testing.T) {
 				},
 			}
 			arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
-				IsSCDeployFlagEnabledField:            true,
-				IsStakingV2DelegationFlagEnabledField: true,
+				IsSCDeployFlagEnabledField:                             true,
+				IsStakingV2FlagEnabledForActivationEpochCompletedField: true,
 			}
 
 			sc, err := NewSmartContractProcessor(arguments)
