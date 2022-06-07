@@ -3,6 +3,7 @@ package disabled
 import (
 	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/state"
 )
 
@@ -32,12 +33,12 @@ func (s *stakingDataProvider) GetNodeStakedTopUp(_ []byte) (*big.Int, error) {
 }
 
 // PrepareStakingData returns a nil error
-func (s *stakingDataProvider) PrepareStakingData(_ map[uint32][][]byte) error {
+func (s *stakingDataProvider) PrepareStakingData(state.ShardValidatorsInfoMapHandler) error {
 	return nil
 }
 
 // FillValidatorInfo returns a nil error
-func (s *stakingDataProvider) FillValidatorInfo(_ []byte) error {
+func (s *stakingDataProvider) FillValidatorInfo(state.ValidatorInfoHandler) error {
 	return nil
 }
 
@@ -49,6 +50,16 @@ func (s *stakingDataProvider) ComputeUnQualifiedNodes(_ state.ShardValidatorsInf
 // GetBlsKeyOwner returns an empty key and a nil error
 func (s *stakingDataProvider) GetBlsKeyOwner(_ []byte) (string, error) {
 	return "", nil
+}
+
+// GetNumOfValidatorsInCurrentEpoch returns 0
+func (s *stakingDataProvider) GetNumOfValidatorsInCurrentEpoch() uint32 {
+	return 0
+}
+
+// GetOwnersData returns nil
+func (s *stakingDataProvider) GetOwnersData() map[string]*epochStart.OwnerData {
+	return nil
 }
 
 // Clean does nothing
