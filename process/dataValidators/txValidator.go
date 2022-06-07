@@ -1,7 +1,6 @@
 package dataValidators
 
 import (
-	"bytes"
 	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -165,7 +164,7 @@ func (txv *txValidator) checkPermission(interceptedTx process.InterceptedTransac
 // Setting a guardian is allowed with regular transactions on a frozen account
 // but in this case is set with the default epochs delay
 func checkOperationAllowedToBypassGuardian(txData []byte) error {
-	if isBuiltinFuncCallWithParam(txData, core.BuiltInFunctionSetGuardian) {
+	if process.IsBuiltinFuncCallWithParam(txData, core.BuiltInFunctionSetGuardian) {
 		return nil
 	}
 
@@ -245,10 +244,7 @@ func getTxData(interceptedTx process.InterceptedTransactionHandler) ([]byte, err
 	return tx.GetData(), nil
 }
 
-func isBuiltinFuncCallWithParam(txData []byte, function string) bool {
-	expectedTxDataPrefix := []byte(function + "@")
-	return bytes.HasPrefix(txData, expectedTxDataPrefix)
-}
+
 
 // CheckTxWhiteList will check if the cross shard transactions are whitelisted and could be added in pools
 func (txv *txValidator) CheckTxWhiteList(data process.InterceptedData) error {

@@ -637,6 +637,7 @@ type feeHandler interface {
 	CheckValidityTxValues(tx data.TransactionWithFeeHandler) error
 	ComputeFeeForProcessing(tx data.TransactionWithFeeHandler, gasToUse uint64) *big.Int
 	MinGasPrice() uint64
+	MaxGasPriceSetGuardian() uint64
 	GasPriceModifier() float64
 	MinGasLimit() uint64
 	ExtraGasLimitGuardedTx() uint64

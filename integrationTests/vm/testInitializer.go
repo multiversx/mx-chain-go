@@ -394,7 +394,7 @@ func createEconomicsData(penalizedTooMuchGasEnableEpoch uint32) (process.Economi
 				GasPerDataByte:   "1",
 				GasPriceModifier: 1.0,
 				ExtraGasLimitGuardedTx: "50000",
-				MaxGasPriceSetGuardian: "100000",
+				MaxGasPriceSetGuardian: "40000000000",
 			},
 		},
 		PenalizedTooMuchGasEnableEpoch: penalizedTooMuchGasEnableEpoch,

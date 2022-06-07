@@ -1109,3 +1109,6 @@ var ErrTransactionAndAccountGuardianMismatch = errors.New("mismatch between tran
 
 // ErrInvalidSetGuardianEpochsDelay signals an invalid configuration for the epochs delay
 var ErrInvalidSetGuardianEpochsDelay = errors.New("incorrect setting for set guardian epochs delay")
+
+// ErrGasPriceTooHigh signals a too high gas price
+var ErrGasPriceTooHigh = errors.New("gas price is too high for the transaction")

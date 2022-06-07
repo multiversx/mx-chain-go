@@ -4,11 +4,12 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
 	"math"
 	"math/big"
 	"sort"
 	"time"
+
+	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
@@ -812,4 +813,10 @@ func GetMiniBlockHeaderWithHash(header data.HeaderHandler, miniBlockHash []byte)
 		}
 	}
 	return nil
+}
+
+// IsBuiltinFuncCallWithParam checks if the given transaction data represents a builtin function call with parameters
+func IsBuiltinFuncCallWithParam(txData []byte, function string) bool {
+	expectedTxDataPrefix := []byte(function + "@")
+	return bytes.HasPrefix(txData, expectedTxDataPrefix)
 }
