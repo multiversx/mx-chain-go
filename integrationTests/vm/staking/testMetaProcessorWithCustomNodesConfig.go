@@ -198,6 +198,39 @@ func (tmp *TestMetaProcessor) doJail(
 	return tmp.runSC(t, arguments)
 }
 
+// ProcessUnJail will create a block containing mini blocks with unJail txs using provided nodes.
+// Block will be committed + call to validator system sc will be made to unJail all nodes
+func (tmp *TestMetaProcessor) ProcessUnJail(t *testing.T, blsKeys [][]byte) {
+	header := tmp.createNewHeader(t, tmp.currentRound)
+	tmp.BlockChainHook.SetCurrentHeader(header)
+
+	txHashes := make([][]byte, 0)
+	for _, blsKey := range blsKeys {
+		scrs := tmp.doUnJail(t, blsKey)
+		txHashes = append(txHashes, tmp.addTxsToCacher(scrs)...)
+	}
+
+	tmp.commitBlockTxs(t, txHashes, header)
+}
+
+func (tmp *TestMetaProcessor) doUnJail(
+	t *testing.T,
+	blsKey []byte,
+) map[string]*smartContractResult.SmartContractResult {
+	arguments := &vmcommon.ContractCallInput{
+		VMInput: vmcommon.VMInput{
+			CallerAddr:  vm.ValidatorSCAddress,
+			Arguments:   [][]byte{blsKey},
+			CallValue:   big.NewInt(0),
+			GasProvided: 10,
+		},
+		RecipientAddr: vm.StakingSCAddress,
+		Function:      "unJail",
+	}
+
+	return tmp.runSC(t, arguments)
+}
+
 func (tmp *TestMetaProcessor) addTxsToCacher(scrs map[string]*smartContractResult.SmartContractResult) [][]byte {
 	txHashes := make([][]byte, 0)
 	for scrHash, scr := range scrs {

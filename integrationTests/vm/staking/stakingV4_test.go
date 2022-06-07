@@ -812,9 +812,78 @@ func TestStakingV4_UnJailNodes(t *testing.T) {
 	require.Len(t, currNodesConfig.waiting[0], 2)
 	require.Empty(t, currNodesConfig.shuffledOut)
 	require.Empty(t, currNodesConfig.auction)
-	node.ProcessJail(t, owner1Stats.WaitingBlsKeys[0])
 
-	node.Process(t, 5)
+	owner1StakingQueue := owner1Stats.StakingQueueKeys
+	owner2StakingQueue := owner2Stats.StakingQueueKeys
+	owner3StakingQueue := owner3Stats.StakingQueueKeys
+	queue := make([][]byte, 0)
+	queue = append(queue, owner1StakingQueue...)
+	queue = append(queue, owner2StakingQueue...)
+	queue = append(queue, owner3StakingQueue...)
+	require.Len(t, currNodesConfig.queue, 7)
+	requireSameSliceDifferentOrder(t, currNodesConfig.queue, queue)
+
+	jailedNodes := make([][]byte, 0)
+	jailedNodes = append(jailedNodes, owner1Stats.WaitingBlsKeys[0]...)
+	jailedNodes = append(jailedNodes, owner2Stats.WaitingBlsKeys[core.MetachainShardId][:2]...)
+	node.ProcessJail(t, jailedNodes)
+
+	unJailedNodes := make([][]byte, 0)
+	unJailedNodes = append(unJailedNodes, owner1Stats.WaitingBlsKeys[0][0])
+	unJailedNodes = append(unJailedNodes, owner2Stats.WaitingBlsKeys[core.MetachainShardId][0])
+	node.ProcessUnJail(t, unJailedNodes)
+
+	jailedNodes = remove(jailedNodes, unJailedNodes[0])
+	jailedNodes = remove(jailedNodes, unJailedNodes[1])
+	node.Process(t, 3)
 	currNodesConfig = node.NodesConfig
-	requireMapContains(t, currNodesConfig.leaving, owner1Stats.WaitingBlsKeys[0])
+	require.Len(t, getAllPubKeys(currNodesConfig.eligible), 4)
+	require.Len(t, getAllPubKeys(currNodesConfig.waiting), 4)
+	require.Empty(t, currNodesConfig.queue)
+	requireSameSliceDifferentOrder(t, currNodesConfig.auction, queue)
+	requireMapContains(t, currNodesConfig.leaving, jailedNodes)
+	requireMapContains(t, currNodesConfig.waiting, unJailedNodes)
+
+	node.ProcessUnJail(t, jailedNodes[:1])
+	currNodesConfig = node.NodesConfig
+	queue = append(queue, jailedNodes[0])
+	require.Empty(t, currNodesConfig.queue)
+	requireSameSliceDifferentOrder(t, currNodesConfig.auction, queue)
+
+	node.Process(t, 4)
+	node.ProcessUnJail(t, jailedNodes[1:])
+	currNodesConfig = node.NodesConfig
+	queue = append(queue, jailedNodes[1])
+	require.Empty(t, currNodesConfig.queue)
+	requireSliceContains(t, currNodesConfig.auction, queue)
+
+	// jail a random nodes
+	newJailed := getAllPubKeys(currNodesConfig.waiting)[:1]
+
+	node.ProcessJail(t, newJailed)
+	node.Process(t, 4)
+	currNodesConfig = node.NodesConfig
+	requireMapContains(t, currNodesConfig.leaving, newJailed)
+
+	node.ProcessUnJail(t, newJailed)
+	currNodesConfig = node.NodesConfig
+	requireSliceContains(t, currNodesConfig.auction, newJailed)
+
+	node.Process(t, 4)
+
+	currNodesConfig = node.NodesConfig
+	queue = currNodesConfig.auction
+	newJailed = queue[:1]
+	newUnjailed := newJailed[0]
+	node.ProcessJail(t, newJailed)
+	queue = remove(queue, newJailed[0])
+	currNodesConfig = node.NodesConfig
+	requireSameSliceDifferentOrder(t, queue, currNodesConfig.auction)
+
+	node.ProcessUnJail(t, [][]byte{newUnjailed})
+	queue = append(queue, newUnjailed)
+	currNodesConfig = node.NodesConfig
+	requireSameSliceDifferentOrder(t, queue, currNodesConfig.auction)
+
+	//node.Process(t, 10)
 }
