@@ -218,6 +218,7 @@ func (context *TestContext) initFeeHandlers() {
 				GasPerDataByte:         "1",
 				GasPriceModifier:       1.0,
 				ExtraGasLimitGuardedTx: "50000",
+				MaxGasPriceSetGuardian: "40000000000",
 			},
 		},
 		PenalizedTooMuchGasEnableEpoch: 0,

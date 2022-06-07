@@ -54,6 +54,7 @@ type economicsData struct {
 	gasPerDataByte                   uint64
 	minGasPrice                      uint64
 	extraGasLimitGuardedTx           uint64
+	maxGasPriceSetGuardian           uint64
 	gasPriceModifier                 float64
 	genesisTotalSupply               *big.Int
 	minInflation                     float64
@@ -187,11 +188,17 @@ func convertValues(economics *config.EconomicsConfig) (*economicsData, error) {
 		return nil, process.ErrInvalidExtraGasLimitGuardedTx
 	}
 
+	maxGasPriceSetGuardian, err := strconv.ParseUint(economics.FeeSettings.MaxGasPriceSetGuardian, conversionBase, bitConversionSize)
+	if err != nil {
+		return nil, process.ErrInvalidMaxGasPriceSetGuardian
+	}
+
 	return &economicsData{
 		minGasPrice:            minGasPrice,
 		gasPerDataByte:         gasPerDataByte,
 		genesisTotalSupply:     genesisTotalSupply,
 		extraGasLimitGuardedTx: extraGasLimitGuardedTx,
+		maxGasPriceSetGuardian: maxGasPriceSetGuardian,
 	}, nil
 }
 
@@ -400,6 +407,11 @@ func (ed *economicsData) MinGasLimit() uint64 {
 // ExtraGasLimitGuardedTx returns the extra gas limit required by the guarded transactions
 func (ed *economicsData) ExtraGasLimitGuardedTx() uint64 {
 	return ed.extraGasLimitGuardedTx
+}
+
+// MaxGasPriceSetGuardian returns the maximum gas price for set guardian transactions
+func (ed *economicsData) MaxGasPriceSetGuardian() uint64 {
+	return ed.maxGasPriceSetGuardian
 }
 
 // GasPerDataByte will return the gas required for a economicsData byte

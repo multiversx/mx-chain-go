@@ -269,6 +269,7 @@ func TestVmContainerFactory_Create(t *testing.T) {
 				GasPerDataByte:   "1",
 				GasPriceModifier: 1.0,
 				ExtraGasLimitGuardedTx: "50000",
+				MaxGasPriceSetGuardian: "100000",
 			},
 		},
 		PenalizedTooMuchGasEnableEpoch: 0,

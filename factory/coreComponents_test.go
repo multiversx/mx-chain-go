@@ -385,6 +385,7 @@ func createDummyEconomicsConfig() config.EconomicsConfig {
 			GasPerDataByte:   "1500",
 			GasPriceModifier: 1,
 			ExtraGasLimitGuardedTx: "50000",
+			MaxGasPriceSetGuardian: "100000",
 		},
 	}
 }

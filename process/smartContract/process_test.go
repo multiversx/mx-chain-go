@@ -4045,6 +4045,7 @@ func createRealEconomicsDataArgs() *economics.ArgsNewEconomicsData {
 				MinGasPrice:            "1000000000",
 				GasPriceModifier:       0.01,
 				ExtraGasLimitGuardedTx: "50000",
+				MaxGasPriceSetGuardian: "100000",
 			},
 		},
 		EpochNotifier:                  &epochNotifier.EpochNotifierStub{},

@@ -67,6 +67,7 @@ func feeSettingsDummy(gasModifier float64) config.FeeSettings {
 		GasPerDataByte:         "1",
 		GasPriceModifier:       gasModifier,
 		ExtraGasLimitGuardedTx: "50000",
+		MaxGasPriceSetGuardian: "200000",
 	}
 }
 
@@ -86,6 +87,7 @@ func feeSettingsReal() config.FeeSettings {
 		GasPerDataByte:         "1500",
 		GasPriceModifier:       0.01,
 		ExtraGasLimitGuardedTx: "50000",
+		MaxGasPriceSetGuardian: "200000",
 	}
 }
 

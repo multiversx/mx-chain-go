@@ -49,6 +49,7 @@ type FeeSettings struct {
 	MinGasPrice            string
 	GasPriceModifier       float64
 	ExtraGasLimitGuardedTx string
+	MaxGasPriceSetGuardian string
 }
 
 // EconomicsConfig will hold economics config

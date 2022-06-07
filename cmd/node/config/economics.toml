@@ -48,3 +48,4 @@
     GasPerDataByte          = "1500"
     DataLimitForBaseCalc    = "10000"
     ExtraGasLimitGuardedTx  = "50000"
+    MaxGasPriceSetGuardian  = "2000000000"
