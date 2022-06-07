@@ -69,6 +69,7 @@ func (tpn *IndexHashedNodesCoordinatorFactory) CreateNodesCoordinator(arg ArgInd
 		ChanStopNode:            endProcess.GetDummyEndProcessChannel(),
 		NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
 		IsFullArchive:           false,
+		EnableEpochsHandler:     &testscommon.EnableEpochsHandlerStub{},
 	}
 	nodesCoord, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 	if err != nil {

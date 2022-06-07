@@ -92,6 +92,7 @@ type indexHashedNodesCoordinator struct {
 	chanStopNode                  chan endProcess.ArgEndProcess
 	flagWaitingListFix            atomicFlags.Flag
 	nodeTypeProvider              NodeTypeProviderHandler
+	enableEpochsHandler           common.EnableEpochsHandler
 }
 
 // NewIndexHashedNodesCoordinator creates a new index hashed group selector
@@ -135,6 +136,7 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 		chanStopNode:                  arguments.ChanStopNode,
 		nodeTypeProvider:              arguments.NodeTypeProvider,
 		isFullArchive:                 arguments.IsFullArchive,
+		enableEpochsHandler:           arguments.EnableEpochsHandler,
 	}
 
 	ihnc.loadingFromDisk.Store(false)
@@ -210,6 +212,9 @@ func checkArguments(arguments ArgNodesCoordinator) error {
 	}
 	if nil == arguments.ChanStopNode {
 		return ErrNilNodeStopChannel
+	}
+	if check.IfNil(arguments.EnableEpochsHandler) {
+		return ErrNilEnableEpochsHandler
 	}
 
 	return nil
@@ -557,6 +562,8 @@ func (ihnc *indexHashedNodesCoordinator) EpochStartPrepare(metaHdr data.HeaderHa
 		log.Error("could not create validator info from body - do nothing on nodesCoordinator epochStartPrepare")
 		return
 	}
+
+	ihnc.updateEpochFlags(newEpoch)
 
 	ihnc.mutNodesConfig.RLock()
 	previousConfig := ihnc.nodesConfig[ihnc.currentEpoch]
@@ -1185,4 +1192,9 @@ func createValidatorInfoFromBody(
 	}
 
 	return allValidatorInfo, nil
+}
+
+func (ihnc *indexHashedNodesCoordinator) updateEpochFlags(epoch uint32) {
+	ihnc.flagWaitingListFix.SetValue(epoch >= ihnc.enableEpochsHandler.WaitingListFixEnableEpoch())
+	log.Debug("indexHashedNodesCoordinator: waiting list fix", "enabled", ihnc.flagWaitingListFix.IsSet())
 }

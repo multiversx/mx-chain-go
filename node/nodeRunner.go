@@ -330,6 +330,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		managedBootstrapComponents.EpochBootstrapParams().Epoch(),
 		managedCoreComponents.ChanStopNodeProcess(),
 		managedCoreComponents.NodeTypeProvider(),
+		managedCoreComponents.EnableEpochsHandler(),
 	)
 	if err != nil {
 		return true, err

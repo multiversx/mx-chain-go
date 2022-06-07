@@ -296,6 +296,7 @@ func CreateNodesWithTestHeartbeatNode(
 			ChanStopNode:            endProcess.GetDummyEndProcessChannel(),
 			NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
 			IsFullArchive:           false,
+			EnableEpochsHandler:     &testscommon.EnableEpochsHandlerStub{},
 		}
 		nodesCoordinatorInstance, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 		log.LogIfError(err)
@@ -340,6 +341,7 @@ func CreateNodesWithTestHeartbeatNode(
 				ChanStopNode:            endProcess.GetDummyEndProcessChannel(),
 				NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
 				IsFullArchive:           false,
+				EnableEpochsHandler:     &testscommon.EnableEpochsHandlerStub{},
 			}
 			nodesCoordinatorInstance, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 			log.LogIfError(err)

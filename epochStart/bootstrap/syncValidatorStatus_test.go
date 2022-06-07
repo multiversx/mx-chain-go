@@ -292,11 +292,12 @@ func getSyncValidatorStatusArgs() ArgsNewSyncValidatorStatus {
 				return 2
 			},
 		},
-		NodeShuffler:      &shardingMocks.NodeShufflerMock{},
-		PubKey:            []byte("public key"),
-		ShardIdAsObserver: 0,
-		ChanNodeStop:      endProcess.GetDummyEndProcessChannel(),
-		NodeTypeProvider:  &nodeTypeProviderMock.NodeTypeProviderStub{},
-		IsFullArchive:     false,
+		NodeShuffler:        &shardingMocks.NodeShufflerMock{},
+		PubKey:              []byte("public key"),
+		ShardIdAsObserver:   0,
+		ChanNodeStop:        endProcess.GetDummyEndProcessChannel(),
+		NodeTypeProvider:    &nodeTypeProviderMock.NodeTypeProviderStub{},
+		IsFullArchive:       false,
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
 	}
 }

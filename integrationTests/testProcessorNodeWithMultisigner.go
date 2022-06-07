@@ -527,6 +527,7 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 			ChanStopNode:            endProcess.GetDummyEndProcessChannel(),
 			NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
 			IsFullArchive:           false,
+			EnableEpochsHandler:     &testscommon.EnableEpochsHandlerStub{},
 		}
 		nodesCoordinatorInstance, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 
@@ -625,6 +626,7 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 			ChanStopNode:            endProcess.GetDummyEndProcessChannel(),
 			NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
 			IsFullArchive:           false,
+			EnableEpochsHandler:     &testscommon.EnableEpochsHandlerStub{},
 		}
 		nodesCoord, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 
