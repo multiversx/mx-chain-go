@@ -1312,3 +1312,44 @@ func TestNodeFacade_GetTransactionsPool(t *testing.T) {
 		require.Equal(t, expectedPool, res)
 	})
 }
+
+func TestNodeFacade_GetGenesisBalances(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should return error", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArguments()
+		expectedErr := errors.New("expected error")
+		arg.ApiResolver = &mock.ApiResolverStub{
+			GetGenesisBalancesCalled: func() ([]*common.InitialAccountAPI, error) {
+				return nil, expectedErr
+			},
+		}
+
+		nf, _ := NewNodeFacade(arg)
+		res, err := nf.GetGenesisBalances()
+		require.Nil(t, res)
+		require.Equal(t, expectedErr, err)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArguments()
+		expectedBalances := []*common.InitialAccountAPI{
+			{
+				Address: "addr",
+			},
+		}
+		arg.ApiResolver = &mock.ApiResolverStub{
+			GetGenesisBalancesCalled: func() ([]*common.InitialAccountAPI, error) {
+				return expectedBalances, nil
+			},
+		}
+
+		nf, _ := NewNodeFacade(arg)
+		res, err := nf.GetGenesisBalances()
+		require.NoError(t, err)
+		require.Equal(t, expectedBalances, res)
+	})
+}

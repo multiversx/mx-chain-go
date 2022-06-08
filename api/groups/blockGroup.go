@@ -86,7 +86,7 @@ func (bg *blockGroup) getBlockByNonce(c *gin.Context) {
 
 	start := time.Now()
 	block, err := bg.getFacade().GetBlockByNonce(nonce, options)
-	log.Debug(fmt.Sprintf("GetBlockByNonce took %s", time.Since(start)))
+	log.Debug("API call: GetBlockByNonce", "duration", time.Since(start))
 	if err != nil {
 		shared.RespondWith(
 			c,
@@ -121,7 +121,7 @@ func (bg *blockGroup) getBlockByHash(c *gin.Context) {
 
 	start := time.Now()
 	block, err := bg.getFacade().GetBlockByHash(hash, options)
-	log.Debug(fmt.Sprintf("GetBlockByHash took %s", time.Since(start)))
+	log.Debug("API call: GetBlockByHash", "duration", time.Since(start))
 	if err != nil {
 		shared.RespondWith(
 			c,
@@ -155,7 +155,7 @@ func (bg *blockGroup) getBlockByRound(c *gin.Context) {
 
 	start := time.Now()
 	block, err := bg.getFacade().GetBlockByRound(round, options)
-	log.Debug(fmt.Sprintf("GetBlockByRound took %s", time.Since(start)))
+	log.Debug("API call: GetBlockByRound", "duration", time.Since(start))
 	if err != nil {
 		shared.RespondWith(
 			c,

@@ -106,6 +106,7 @@ type processComponents struct {
 	vmFactoryForProcessing       process.VirtualMachinesContainerFactory
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 	txsSender                    process.TxsSenderHandler
+	accountsParser               genesis.AccountsParser
 }
 
 // ProcessComponentsFactoryArgs holds the arguments needed to create a process components factory
@@ -608,6 +609,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		vmFactoryForProcessing:       blockProcessorComponents.vmFactoryForProcessing,
 		scheduledTxsExecutionHandler: scheduledTxsExecutionHandler,
 		txsSender:                    txsSenderWithAccumulator,
+		accountsParser:               pcf.accountsParser,
 	}, nil
 }
 

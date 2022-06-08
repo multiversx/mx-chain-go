@@ -70,6 +70,7 @@ type FacadeStub struct {
 	VerifyProofCalled                       func(string, string, [][]byte) (bool, error)
 	GetTokenSupplyCalled                    func(token string) (*api.ESDTSupply, error)
 	GetGenesisNodesPubKeysCalled            func() (map[uint32][]string, map[uint32][]string, error)
+	GetGenesisBalancesCalled                func() ([]*common.InitialAccountAPI, error)
 	GetTransactionsPoolCalled               func() (*common.TransactionsPoolAPIResponse, error)
 }
 
@@ -430,6 +431,15 @@ func (f *FacadeStub) GetGenesisNodesPubKeys() (map[uint32][]string, map[uint32][
 		return f.GetGenesisNodesPubKeysCalled()
 	}
 	return nil, nil, nil
+}
+
+// GetGenesisBalances -
+func (f *FacadeStub) GetGenesisBalances() ([]*common.InitialAccountAPI, error) {
+	if f.GetGenesisBalancesCalled != nil {
+		return f.GetGenesisBalancesCalled()
+	}
+
+	return nil, nil
 }
 
 // GetTransactionsPool -
