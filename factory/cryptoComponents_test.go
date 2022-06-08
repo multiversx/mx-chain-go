@@ -391,6 +391,11 @@ func getCryptoArgs(coreComponents factory.CoreComponentsHolder) factory.CryptoCo
 			Consensus: config.ConsensusConfig{
 				Type: "bls",
 			},
+			SoftAuctionConfig: config.SoftAuctionConfig{
+				TopUpStep: "10",
+				MinTopUp:  "1",
+				MaxTopUp:  "32000000",
+			},
 			MultisigHasher: config.TypeConfig{Type: "blake2b"},
 			PublicKeyPIDSignature: config.CacheConfig{
 				Capacity: 1000,

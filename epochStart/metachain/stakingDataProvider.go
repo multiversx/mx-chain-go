@@ -120,6 +120,26 @@ func (sdp *stakingDataProvider) GetNodeStakedTopUp(blsKey []byte) (*big.Int, err
 	return ownerInfo.topUpPerNode, nil
 }
 
+// GetNumStakedNodes returns the total number of owner's staked nodes
+func (sdp *stakingDataProvider) GetNumStakedNodes(owner []byte) (int64, error) {
+	ownerInfo, ok := sdp.cache[string(owner)]
+	if !ok {
+		return 0, epochStart.ErrOwnerDoesntHaveNodesInEpoch
+	}
+
+	return ownerInfo.numStakedNodes, nil
+}
+
+// GetTotalTopUp returns owner's total top up
+func (sdp *stakingDataProvider) GetTotalTopUp(owner []byte) (*big.Int, error) {
+	ownerInfo, ok := sdp.cache[string(owner)]
+	if !ok {
+		return nil, epochStart.ErrOwnerDoesntHaveNodesInEpoch
+	}
+
+	return ownerInfo.topUpValue, nil
+}
+
 // PrepareStakingData prepares the staking data for the given map of node keys per shard
 func (sdp *stakingDataProvider) PrepareStakingData(keys map[uint32][][]byte) error {
 	sdp.Clean()
@@ -340,9 +360,9 @@ func (sdp *stakingDataProvider) ComputeUnQualifiedNodes(validatorsInfo state.Sha
 
 func (sdp *stakingDataProvider) createMapBLSKeyStatus(validatorsInfo state.ShardValidatorsInfoMapHandler) (map[string]string, error) {
 	mapBLSKeyStatus := make(map[string]string)
-	for _, validatorInfo := range validatorsInfo.GetAllValidatorsInfo() {
-		list := validatorInfo.GetList()
-		pubKey := validatorInfo.GetPublicKey()
+	for _, validator := range validatorsInfo.GetAllValidatorsInfo() {
+		list := validator.GetList()
+		pubKey := validator.GetPublicKey()
 
 		if sdp.flagStakingV4Enable.IsSet() && list == string(common.NewList) {
 			return nil, fmt.Errorf("%w, bls key = %s",
