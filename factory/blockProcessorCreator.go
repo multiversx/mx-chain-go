@@ -425,6 +425,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 	}
 
 	pcf.stakingDataProvider = factoryDisabled.NewDisabledStakingDataProvider()
+	pcf.auctionListSelector = factoryDisabled.NewDisabledAuctionListSelector()
 
 	return blockProcessorComponents, nil
 }
@@ -841,6 +842,8 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	if err != nil {
 		return nil, err
 	}
+
+	pcf.auctionListSelector = auctionListSelector
 
 	argsEpochSystemSC := metachainEpochStart.ArgsNewEpochStartSystemSCProcessing{
 		SystemVM:                     systemVM,

@@ -168,6 +168,7 @@ type processComponentsFactory struct {
 	epochNotifier          process.EpochNotifier
 	importHandler          update.ImportHandler
 	stakingDataProvider    epochStart.StakingDataProvider
+	auctionListSelector    epochStart.AuctionListSelector
 
 	data                DataComponentsHolder
 	coreData            CoreComponentsHolder

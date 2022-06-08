@@ -21,19 +21,25 @@ var _ process.ValidatorsProvider = (*validatorsProvider)(nil)
 
 // validatorsProvider is the main interface for validators' provider
 type validatorsProvider struct {
-	nodesCoordinator             process.NodesCoordinator
-	validatorStatistics          process.ValidatorStatisticsProcessor
-	cache                        map[string]*state.ValidatorApiResponse
-	cacheRefreshIntervalDuration time.Duration
-	refreshCache                 chan uint32
-	lastCacheUpdate              time.Time
-	lock                         sync.RWMutex
-	cancelFunc                   func()
-	validatorPubKeyConverter     core.PubkeyConverter
-	addressPubKeyConverter       core.PubkeyConverter
-	stakingDataProvider          epochStart.StakingDataProvider
-	maxRating                    uint32
-	currentEpoch                 uint32
+	nodesCoordinator              process.NodesCoordinator
+	validatorStatistics           process.ValidatorStatisticsProcessor
+	cache                         map[string]*state.ValidatorApiResponse
+	cachedValidatorsMap           state.ShardValidatorsInfoMapHandler
+	cachedRandomness              []byte
+	cacheRefreshIntervalDuration  time.Duration
+	refreshCache                  chan uint32
+	lastCacheUpdate               time.Time
+	lastValidatorsInfoCacheUpdate time.Time
+	lock                          sync.RWMutex
+	auctionLock                   sync.RWMutex
+	cancelFunc                    func()
+	validatorPubKeyConverter      core.PubkeyConverter
+	addressPubKeyConverter        core.PubkeyConverter
+	stakingDataProvider           epochStart.StakingDataProvider
+	auctionListSelector           epochStart.AuctionListSelector
+
+	maxRating    uint32
+	currentEpoch uint32
 }
 
 // ArgValidatorsProvider contains all parameters needed for creating a validatorsProvider
@@ -45,6 +51,7 @@ type ArgValidatorsProvider struct {
 	ValidatorPubKeyConverter          core.PubkeyConverter
 	AddressPubKeyConverter            core.PubkeyConverter
 	StakingDataProvider               epochStart.StakingDataProvider
+	AuctionListSelector               epochStart.AuctionListSelector
 	StartEpoch                        uint32
 	MaxRating                         uint32
 }
@@ -72,6 +79,9 @@ func NewValidatorsProvider(
 	if check.IfNil(args.StakingDataProvider) {
 		return nil, process.ErrNilStakingDataProvider
 	}
+	if check.IfNil(args.AuctionListSelector) {
+		return nil, epochStart.ErrNilAuctionListSelector
+	}
 	if args.MaxRating == 0 {
 		return nil, process.ErrMaxRatingZero
 	}
@@ -86,14 +96,18 @@ func NewValidatorsProvider(
 		validatorStatistics:          args.ValidatorStatistics,
 		stakingDataProvider:          args.StakingDataProvider,
 		cache:                        make(map[string]*state.ValidatorApiResponse),
+		cachedValidatorsMap:          state.NewShardValidatorsInfoMap(),
+		cachedRandomness:             make([]byte, 0),
 		cacheRefreshIntervalDuration: args.CacheRefreshIntervalDurationInSec,
 		refreshCache:                 make(chan uint32),
 		lock:                         sync.RWMutex{},
+		auctionLock:                  sync.RWMutex{},
 		cancelFunc:                   cancelfunc,
 		maxRating:                    args.MaxRating,
 		validatorPubKeyConverter:     args.ValidatorPubKeyConverter,
 		addressPubKeyConverter:       args.AddressPubKeyConverter,
 		currentEpoch:                 args.StartEpoch,
+		auctionListSelector:          args.AuctionListSelector,
 	}
 
 	go valProvider.startRefreshProcess(currentContext)
@@ -105,44 +119,6 @@ func NewValidatorsProvider(
 // GetLatestValidators gets the latest configuration of validators from the peerAccountsTrie
 func (vp *validatorsProvider) GetLatestValidators() map[string]*state.ValidatorApiResponse {
 	return vp.getValidators()
-}
-
-// GetAuctionList returns an array containing the validators that are currently in the auction list
-func (vp *validatorsProvider) GetAuctionList() []*common.AuctionListValidatorAPIResponse {
-	validators := vp.getValidators()
-
-	auctionListValidators := make([]*common.AuctionListValidatorAPIResponse, 0)
-	for pubKey, val := range validators {
-		if string(common.AuctionList) != val.ValidatorStatus {
-			continue
-		}
-
-		pubKeyBytes, err := vp.validatorPubKeyConverter.Decode(pubKey)
-		if err != nil {
-			log.Error("validatorsProvider.GetAuctionList: cannot decode public key of a node", "error", err)
-			continue
-		}
-
-		owner, err := vp.stakingDataProvider.GetBlsKeyOwner(pubKeyBytes)
-		if err != nil {
-			log.Error("validatorsProvider.GetAuctionList: cannot get bls key owner", "public key", pubKey, "error", err)
-			continue
-		}
-
-		topUp, err := vp.stakingDataProvider.GetNodeStakedTopUp(pubKeyBytes)
-		if err != nil {
-			log.Error("validatorsProvider.GetAuctionList: cannot get node top up", "public key", pubKey, "error", err)
-			continue
-		}
-
-		auctionListValidators = append(auctionListValidators, &common.AuctionListValidatorAPIResponse{
-			Owner:   vp.addressPubKeyConverter.Encode([]byte(owner)),
-			NodeKey: pubKey,
-			TopUp:   topUp.String(),
-		})
-	}
-
-	return auctionListValidators
 }
 
 func (vp *validatorsProvider) getValidators() map[string]*state.ValidatorApiResponse {
@@ -295,7 +271,6 @@ func (vp *validatorsProvider) createValidatorApiResponseMapFromValidatorInfoMap(
 			ShardId:                            validatorInfo.GetShardId(),
 			ValidatorStatus:                    validatorInfo.GetList(),
 		}
-
 	}
 
 	return newCache
