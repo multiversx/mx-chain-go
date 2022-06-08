@@ -138,8 +138,10 @@ func (b *baseAccountsSyncer) printStatistics(ssh common.SizeSyncStatisticsHandle
 				"num large nodes", ssh.NumLarge(),
 				"num missing", ssh.NumMissing(),
 				"state data size", core.ConvertBytes(ssh.NumBytesReceived()),
-				"peak network speed", peakSpeed,
-				"average network speed", averageSpeed,
+				"total iterations", ssh.NumIterations(),
+				"total CPU time", ssh.ProcessingTime(),
+				"peak processing speed", peakSpeed,
+				"average processing speed", averageSpeed,
 			)
 			return
 		case <-time.After(timeBetweenStatisticsPrints):
@@ -165,7 +167,9 @@ func (b *baseAccountsSyncer) printStatistics(ssh common.SizeSyncStatisticsHandle
 				"intercepted trie nodes cache size", core.ConvertBytes(b.cacher.SizeInBytesContained()),
 				"num of intercepted trie nodes", b.cacher.Len(),
 				"state data size", core.ConvertBytes(ssh.NumBytesReceived()),
-				"network speed", speed)
+				"iterations", ssh.NumIterations(),
+				"CPU time", ssh.ProcessingTime(),
+				"processing speed", speed)
 		}
 	}
 }

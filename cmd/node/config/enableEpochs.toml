@@ -190,6 +190,9 @@
     # CheckCorrectTokenIDForTransferRoleEnableEpoch represents the epoch when the correct token ID check is applied for transfer role verification
     CheckCorrectTokenIDForTransferRoleEnableEpoch = 2
 
+    # DisableExecByCallerEnableEpoch represents the epoch when the check on value is disabled on exec by caller
+    DisableExecByCallerEnableEpoch = 3
+
    	# FailExecutionOnEveryAPIErrorEnableEpoch represent the epoch when new protection in VM is enabled to fail all wrong API calls
    	FailExecutionOnEveryAPIErrorEnableEpoch = 3
 
