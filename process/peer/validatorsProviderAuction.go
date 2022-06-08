@@ -13,9 +13,9 @@ import (
 
 // GetAuctionList returns an array containing the validators that are currently in the auction list
 func (vp *validatorsProvider) GetAuctionList() ([]*common.AuctionListValidatorAPIResponse, error) {
-	vp.auctionLock.RLock()
-	shouldUpdate := time.Since(vp.lastValidatorsInfoCacheUpdate) > vp.cacheRefreshIntervalDuration
-	vp.auctionLock.RUnlock()
+	vp.auctionMutex.RLock()
+	shouldUpdate := time.Since(vp.lastAuctionCacheUpdate) > vp.cacheRefreshIntervalDuration
+	vp.auctionMutex.RUnlock()
 
 	if shouldUpdate {
 		err := vp.updateAuctionListCache()
@@ -24,10 +24,10 @@ func (vp *validatorsProvider) GetAuctionList() ([]*common.AuctionListValidatorAP
 		}
 	}
 
-	vp.auctionLock.RLock()
+	vp.auctionMutex.RLock()
 	ret := make([]*common.AuctionListValidatorAPIResponse, len(vp.cachedAuctionValidators))
 	copy(ret, vp.cachedAuctionValidators)
-	vp.auctionLock.RUnlock()
+	vp.auctionMutex.RUnlock()
 
 	return ret, nil
 }
@@ -43,25 +43,26 @@ func (vp *validatorsProvider) updateAuctionListCache() error {
 		return err
 	}
 
-	vp.auctionLock.Lock()
+	vp.auctionMutex.Lock()
 	vp.cachedRandomness = rootHash
-	vp.auctionLock.Unlock()
+	vp.auctionMutex.Unlock()
 
 	newCache, err := vp.createValidatorsAuctionCache(validatorsMap)
 	if err != nil {
 		return err
 	}
 
-	vp.auctionLock.Lock()
-	vp.lastValidatorsInfoCacheUpdate = time.Now()
+	vp.auctionMutex.Lock()
+	vp.lastAuctionCacheUpdate = time.Now()
 	vp.cachedAuctionValidators = newCache
-	vp.auctionLock.Unlock()
+	vp.auctionMutex.Unlock()
 
 	return nil
 }
 
 func (vp *validatorsProvider) createValidatorsAuctionCache(validatorsMap state.ShardValidatorsInfoMapHandler) ([]*common.AuctionListValidatorAPIResponse, error) {
 	defer vp.stakingDataProvider.Clean()
+
 	err := vp.fillAllValidatorsInfo(validatorsMap)
 	if err != nil {
 		return nil, err
@@ -89,9 +90,9 @@ func (vp *validatorsProvider) fillAllValidatorsInfo(validatorsMap state.ShardVal
 }
 
 func (vp *validatorsProvider) getSelectedNodesFromAuction(validatorsMap state.ShardValidatorsInfoMapHandler) ([]state.ValidatorInfoHandler, error) {
-	vp.auctionLock.RLock()
+	vp.auctionMutex.RLock()
 	randomness := vp.cachedRandomness
-	vp.auctionLock.RUnlock()
+	vp.auctionMutex.RUnlock()
 
 	err := vp.auctionListSelector.SelectNodesFromAuctionList(validatorsMap, randomness)
 	if err != nil {

@@ -21,22 +21,22 @@ var _ process.ValidatorsProvider = (*validatorsProvider)(nil)
 
 // validatorsProvider is the main interface for validators' provider
 type validatorsProvider struct {
-	nodesCoordinator              process.NodesCoordinator
-	validatorStatistics           process.ValidatorStatisticsProcessor
-	cache                         map[string]*state.ValidatorApiResponse
-	cachedAuctionValidators       []*common.AuctionListValidatorAPIResponse
-	cachedRandomness              []byte
-	cacheRefreshIntervalDuration  time.Duration
-	refreshCache                  chan uint32
-	lastCacheUpdate               time.Time
-	lastValidatorsInfoCacheUpdate time.Time
-	lock                          sync.RWMutex
-	auctionLock                   sync.RWMutex
-	cancelFunc                    func()
-	validatorPubKeyConverter      core.PubkeyConverter
-	addressPubKeyConverter        core.PubkeyConverter
-	stakingDataProvider           epochStart.StakingDataProvider
-	auctionListSelector           epochStart.AuctionListSelector
+	nodesCoordinator             process.NodesCoordinator
+	validatorStatistics          process.ValidatorStatisticsProcessor
+	cache                        map[string]*state.ValidatorApiResponse
+	cachedAuctionValidators      []*common.AuctionListValidatorAPIResponse
+	cachedRandomness             []byte
+	cacheRefreshIntervalDuration time.Duration
+	refreshCache                 chan uint32
+	lastCacheUpdate              time.Time
+	lastAuctionCacheUpdate       time.Time
+	lock                         sync.RWMutex
+	auctionMutex                 sync.RWMutex
+	cancelFunc                   func()
+	validatorPubKeyConverter     core.PubkeyConverter
+	addressPubKeyConverter       core.PubkeyConverter
+	stakingDataProvider          epochStart.StakingDataProvider
+	auctionListSelector          epochStart.AuctionListSelector
 
 	maxRating    uint32
 	currentEpoch uint32
@@ -101,7 +101,7 @@ func NewValidatorsProvider(
 		cacheRefreshIntervalDuration: args.CacheRefreshIntervalDurationInSec,
 		refreshCache:                 make(chan uint32),
 		lock:                         sync.RWMutex{},
-		auctionLock:                  sync.RWMutex{},
+		auctionMutex:                 sync.RWMutex{},
 		cancelFunc:                   cancelfunc,
 		maxRating:                    args.MaxRating,
 		validatorPubKeyConverter:     args.ValidatorPubKeyConverter,

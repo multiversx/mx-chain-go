@@ -45,7 +45,7 @@ func TestNewValidatorsProvider_WithMaxRatingZeroShouldErr(t *testing.T) {
 	assert.Nil(t, vp)
 }
 
-func TestNewValidatorsProvider_WithNilValidatorPubkeyConverterShouldErr(t *testing.T) {
+func TestNewValidatorsProvider_WithNilValidatorPubKeyConverterShouldErr(t *testing.T) {
 	arg := createDefaultValidatorsProviderArg()
 	arg.ValidatorPubKeyConverter = nil
 	vp, err := NewValidatorsProvider(arg)
@@ -74,7 +74,7 @@ func TestNewValidatorsProvider_WithNilStakingDataProviderShouldErr(t *testing.T)
 	assert.True(t, check.IfNil(vp))
 }
 
-func TestNewValidatorsProvider_WithNilNodesCoordinatorrShouldErr(t *testing.T) {
+func TestNewValidatorsProvider_WithNilNodesCoordinatorShouldErr(t *testing.T) {
 	arg := createDefaultValidatorsProviderArg()
 	arg.NodesCoordinator = nil
 	vp, err := NewValidatorsProvider(arg)
@@ -92,13 +92,22 @@ func TestNewValidatorsProvider_WithNilStartOfEpochTriggerShouldErr(t *testing.T)
 	assert.True(t, check.IfNil(vp))
 }
 
-func TestNewValidatorsProvider_WithNilRefresCacheIntervalInSecShouldErr(t *testing.T) {
+func TestNewValidatorsProvider_WithZeroRefreshCacheIntervalInSecShouldErr(t *testing.T) {
 	arg := createDefaultValidatorsProviderArg()
 	arg.CacheRefreshIntervalDurationInSec = 0
 	vp, err := NewValidatorsProvider(arg)
 
 	assert.Equal(t, process.ErrInvalidCacheRefreshIntervalInSec, err)
 	assert.True(t, check.IfNil(vp))
+}
+
+func TestNewValidatorsProvider_WithNilAuctionListSelectorShouldErr(t *testing.T) {
+	arg := createDefaultValidatorsProviderArg()
+	arg.AuctionListSelector = nil
+	vp, err := NewValidatorsProvider(arg)
+
+	require.Nil(t, vp)
+	require.Equal(t, epochStart.ErrNilAuctionListSelector, err)
 }
 
 func TestValidatorsProvider_GetLatestValidatorsSecondHashDoesNotExist(t *testing.T) {
