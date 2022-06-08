@@ -3,6 +3,7 @@ package node
 import (
 	"encoding/hex"
 
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go/state"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -61,6 +62,10 @@ func (n *Node) loadAccountCode(codeHash []byte, options api.AccountQueryOptions)
 }
 
 func accountBlockInfoToApiResource(info state.AccountBlockInfo) api.BlockInfo {
+	if check.IfNil(info) {
+		return api.BlockInfo{}
+	}
+
 	return api.BlockInfo{
 		Nonce:    info.GetNonce(),
 		Hash:     hex.EncodeToString(info.GetHash()),
