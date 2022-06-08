@@ -4,17 +4,21 @@ import (
 	"context"
 	"encoding/hex"
 	"errors"
+	"math/big"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/genesis"
+	"github.com/ElrondNetwork/elrond-go/genesis/data"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/genesisMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
@@ -34,6 +38,7 @@ func createMockArgs() external.ArgNodeApiResolver {
 		APIInternalBlockHandler:  &mock.InternalBlockApiHandlerStub{},
 		GenesisNodesSetupHandler: &testscommon.NodesSetupStub{},
 		ValidatorPubKeyConverter: &testscommon.PubkeyConverterMock{},
+		AccountsParser:           &genesisMocks.AccountsParserStub{},
 	}
 }
 
@@ -417,4 +422,62 @@ func TestNodeApiResolver_GetGenesisNodesPubKeys(t *testing.T) {
 	el, wt := nar.GetGenesisNodesPubKeys()
 	assert.Equal(t, expectedEligible, el)
 	assert.Equal(t, expectedWaiting, wt)
+}
+
+func TestNodeApiResolver_GetGenesisBalances(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should return empty slice", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgs()
+		args.AccountsParser = &genesisMocks.AccountsParserStub{
+			InitialAccountsCalled: func() []genesis.InitialAccountHandler {
+				return nil
+			},
+		}
+
+		nar, _ := external.NewNodeApiResolver(args)
+
+		res, err := nar.GetGenesisBalances()
+		require.NoError(t, err)
+		require.Empty(t, res)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		initialAccount := &data.InitialAccount{
+			Address:      "addr",
+			Supply:       big.NewInt(100),
+			Balance:      big.NewInt(110),
+			StakingValue: big.NewInt(120),
+			Delegation: &data.DelegationData{
+				Address: "addr2",
+				Value:   big.NewInt(130),
+			},
+		}
+		args := createMockArgs()
+		args.AccountsParser = &genesisMocks.AccountsParserStub{
+			InitialAccountsCalled: func() []genesis.InitialAccountHandler {
+				return []genesis.InitialAccountHandler{initialAccount}
+			},
+		}
+
+		nar, _ := external.NewNodeApiResolver(args)
+
+		res, err := nar.GetGenesisBalances()
+		require.NoError(t, err)
+		require.Equal(t, []*common.InitialAccountAPI{
+			{
+				Address:      initialAccount.Address,
+				Supply:       "100",
+				Balance:      "110",
+				StakingValue: "120",
+				Delegation: common.DelegationDataAPI{
+					Address: initialAccount.Delegation.Address,
+					Value:   "130",
+				},
+			},
+		}, res)
+	})
 }
