@@ -25,6 +25,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/stakingcommon"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewValidatorsProvider_WithNilValidatorStatisticsShouldErr(t *testing.T) {
@@ -635,197 +636,58 @@ func TestValidatorsProvider_DoesntCallUpdateUpdateCacheWithoutRequests(t *testin
 func TestValidatorsProvider_GetAuctionList(t *testing.T) {
 	t.Parallel()
 
-	/*
-		t.Run("no entry, should return entry map", func(t *testing.T) {
-			t.Parallel()
+	t.Run("empty list, check normal flow is executed", func(t *testing.T) {
+		args := createDefaultValidatorsProviderArg()
 
-			arg := createDefaultValidatorsProviderArg()
-			vp, err := NewValidatorsProvider(arg)
-			require.NoError(t, err)
+		expectedRootHash := []byte("rootHash")
+		ctRootHashCalled := uint32(0)
+		ctGetValidatorsInfoForRootHash := uint32(0)
+		ctSelectNodesFromAuctionList := uint32(0)
+		ctFillValidatorInfoCalled := uint32(0)
+		ctGetOwnersDataCalled := uint32(0)
 
-			response := vp.GetAuctionList()
-			require.Empty(t, response)
-		})
+		args.ValidatorStatistics = &testscommon.ValidatorStatisticsProcessorStub{
+			RootHashCalled: func() ([]byte, error) {
+				atomic.AddUint32(&ctRootHashCalled, 1)
+				return expectedRootHash, nil
+			},
+			GetValidatorInfoForRootHashCalled: func(rootHash []byte) (state.ShardValidatorsInfoMapHandler, error) {
+				atomic.AddUint32(&ctGetValidatorsInfoForRootHash, 1)
+				require.Equal(t, expectedRootHash, rootHash)
+				return state.NewShardValidatorsInfoMap(), nil
+			},
+		}
+		args.AuctionListSelector = &stakingcommon.AuctionListSelectorStub{
+			SelectNodesFromAuctionListCalled: func(validatorsInfoMap state.ShardValidatorsInfoMapHandler, randomness []byte) error {
+				atomic.AddUint32(&ctSelectNodesFromAuctionList, 1)
+				require.Equal(t, expectedRootHash, randomness)
+				return nil
+			},
+		}
+		args.StakingDataProvider = &stakingcommon.StakingDataProviderStub{
+			FillValidatorInfoCalled: func(validator state.ValidatorInfoHandler) error {
+				atomic.AddUint32(&ctFillValidatorInfoCalled, 1)
+				return nil
+			},
+			GetOwnersDataCalled: func() map[string]*epochStart.OwnerData {
+				atomic.AddUint32(&ctGetOwnersDataCalled, 1)
+				return nil
+			},
+		}
+		vp, _ := NewValidatorsProvider(args)
+		time.Sleep(args.CacheRefreshIntervalDurationInSec)
 
-		t.Run("cannot get owner of key, should not fill it", func(t *testing.T) {
-			t.Parallel()
+		list, err := vp.GetAuctionList()
+		require.Nil(t, err)
+		require.Empty(t, list)
+		require.Equal(t, ctRootHashCalled, uint32(2))
+		require.Equal(t, ctGetValidatorsInfoForRootHash, uint32(2))
+		require.Equal(t, ctFillValidatorInfoCalled, uint32(0))
+		require.Equal(t, ctGetOwnersDataCalled, uint32(2))
+		require.Equal(t, expectedRootHash, vp.cachedRandomness)
 
-			callNumber := 0
-			arg := createDefaultValidatorsProviderArg()
-			validatorStatisticsProcessor := &testscommon.ValidatorStatisticsProcessorStub{
-				LastFinalizedRootHashCalled: func() []byte {
-					return []byte("rootHash")
-				},
-			}
-			validatorStatisticsProcessor.GetValidatorInfoForRootHashCalled = func(rootHash []byte) (state.ShardValidatorsInfoMapHandler, error) {
-				callNumber++
-				// first call comes from the constructor
-				if callNumber == 1 {
-					return state.NewShardValidatorsInfoMap(), nil
-				}
-				validatorsMap := state.NewShardValidatorsInfoMap()
-				_ = validatorsMap.Add(&state.ValidatorInfo{
-					ShardId:   0,
-					PublicKey: []byte("pubkey0-auction"),
-					List:      string(common.AuctionList),
-				})
-				return validatorsMap, nil
-			}
-			arg.ValidatorStatistics = validatorStatisticsProcessor
+	})
 
-			arg.StakingDataProvider = &stakingcommon.StakingDataProviderStub{
-				GetBlsKeyOwnerCalled: func(key []byte) (string, error) {
-					return "", errors.New("cannot get owner")
-				},
-				GetNodeStakedTopUpCalled: func(key []byte) (*big.Int, error) {
-					return big.NewInt(10), nil
-				},
-			}
-
-			vp, err := NewValidatorsProvider(arg)
-			require.NoError(t, err)
-
-			time.Sleep(arg.CacheRefreshIntervalDurationInSec)
-
-			response := vp.GetAuctionList()
-			require.Empty(t, response)
-		})
-
-		t.Run("cannot get top up for node, should not fill it", func(t *testing.T) {
-			t.Parallel()
-
-			callNumber := 0
-			arg := createDefaultValidatorsProviderArg()
-			validatorStatisticsProcessor := &testscommon.ValidatorStatisticsProcessorStub{
-				LastFinalizedRootHashCalled: func() []byte {
-					return []byte("rootHash")
-				},
-			}
-			validatorStatisticsProcessor.GetValidatorInfoForRootHashCalled = func(rootHash []byte) (state.ShardValidatorsInfoMapHandler, error) {
-				callNumber++
-				// first call comes from the constructor
-				if callNumber == 1 {
-					return state.NewShardValidatorsInfoMap(), nil
-				}
-				validatorsMap := state.NewShardValidatorsInfoMap()
-				_ = validatorsMap.Add(&state.ValidatorInfo{
-					ShardId:   0,
-					PublicKey: []byte("pubkey0-auction"),
-					List:      string(common.AuctionList),
-				})
-				return validatorsMap, nil
-			}
-			arg.ValidatorStatistics = validatorStatisticsProcessor
-
-			arg.StakingDataProvider = &stakingcommon.StakingDataProviderStub{
-				GetBlsKeyOwnerCalled: func(key []byte) (string, error) {
-					return "", nil
-				},
-				GetNodeStakedTopUpCalled: func(key []byte) (*big.Int, error) {
-					return nil, errors.New("cannot get top up")
-				},
-			}
-
-			vp, err := NewValidatorsProvider(arg)
-			require.NoError(t, err)
-
-			time.Sleep(arg.CacheRefreshIntervalDurationInSec)
-
-			response := vp.GetAuctionList()
-			require.Empty(t, response)
-		})
-
-		t.Run("should work", func(t *testing.T) {
-			t.Parallel()
-
-			callNumber := 0
-			arg := createDefaultValidatorsProviderArg()
-			validatorStatisticsProcessor := &testscommon.ValidatorStatisticsProcessorStub{
-				LastFinalizedRootHashCalled: func() []byte {
-					return []byte("rootHash")
-				},
-			}
-			validatorStatisticsProcessor.GetValidatorInfoForRootHashCalled = func(rootHash []byte) (state.ShardValidatorsInfoMapHandler, error) {
-				callNumber++
-				// first call comes from the constructor
-				if callNumber == 1 {
-					return state.NewShardValidatorsInfoMap(), nil
-				}
-				validatorsMap := state.NewShardValidatorsInfoMap()
-				_ = validatorsMap.Add(&state.ValidatorInfo{
-					ShardId:   0,
-					PublicKey: []byte("pubkey-eligible"),
-					List:      string(common.EligibleList),
-				})
-				_ = validatorsMap.Add(&state.ValidatorInfo{
-					ShardId:   0,
-					PublicKey: []byte("pubkey-waiting"),
-					List:      string(common.WaitingList),
-				})
-				_ = validatorsMap.Add(&state.ValidatorInfo{
-					ShardId:   0,
-					PublicKey: []byte("pubkey-leaving"),
-					List:      string(common.LeavingList),
-				})
-				_ = validatorsMap.Add(&state.ValidatorInfo{
-					ShardId:   0,
-					PublicKey: []byte("pubkey0-auction"),
-					List:      string(common.AuctionList),
-				})
-				_ = validatorsMap.Add(&state.ValidatorInfo{
-					ShardId:   0,
-					PublicKey: []byte("pubkey1-auction"),
-					List:      string(common.AuctionList),
-				})
-				return validatorsMap, nil
-			}
-			arg.ValidatorStatistics = validatorStatisticsProcessor
-
-			arg.StakingDataProvider = &stakingcommon.StakingDataProviderStub{
-				GetBlsKeyOwnerCalled: func(key []byte) (string, error) {
-					if "pubkey0-auction" == string(key) {
-						return "owner0", nil
-					}
-					if "pubkey1-auction" == string(key) {
-						return "owner1", nil
-					}
-					return "", nil
-				},
-				GetNodeStakedTopUpCalled: func(key []byte) (*big.Int, error) {
-					if "pubkey0-auction" == string(key) {
-						return big.NewInt(100), nil
-					}
-					if "pubkey1-auction" == string(key) {
-						return big.NewInt(110), nil
-					}
-					return big.NewInt(0), nil
-				},
-			}
-
-			vp, err := NewValidatorsProvider(arg)
-			require.NoError(t, err)
-
-			time.Sleep(arg.CacheRefreshIntervalDurationInSec)
-
-			response := vp.GetAuctionList()
-
-			// the result should contain only auction list validators with the correct owner and top up
-			expectedResponse := []*common.AuctionListValidatorAPIResponse{
-				{
-					Owner:   arg.AddressPubKeyConverter.Encode([]byte("owner0")),
-					NodeKey: hex.EncodeToString([]byte("pubkey0-auction")),
-					TopUp:   "100",
-				},
-				{
-					Owner:   arg.AddressPubKeyConverter.Encode([]byte("owner1")),
-					NodeKey: hex.EncodeToString([]byte("pubkey1-auction")),
-					TopUp:   "110",
-				},
-			}
-			require.Equal(t, expectedResponse, response)
-		})
-
-	*/
 }
 
 func createMockValidatorInfo() *state.ValidatorInfo {

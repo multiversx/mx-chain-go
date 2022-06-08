@@ -43,6 +43,10 @@ func (vp *validatorsProvider) updateAuctionListCache() error {
 		return err
 	}
 
+	vp.auctionLock.Lock()
+	vp.cachedRandomness = rootHash
+	vp.auctionLock.Unlock()
+
 	newCache, err := vp.createValidatorsAuctionCache(validatorsMap)
 	if err != nil {
 		return err
@@ -51,7 +55,6 @@ func (vp *validatorsProvider) updateAuctionListCache() error {
 	vp.auctionLock.Lock()
 	vp.lastValidatorsInfoCacheUpdate = time.Now()
 	vp.cachedAuctionValidators = newCache
-	vp.cachedRandomness = rootHash
 	vp.auctionLock.Unlock()
 
 	return nil
@@ -118,7 +121,7 @@ func (vp *validatorsProvider) getAuctionListValidatorsAPIResponse(selectedNodes 
 	auctionListValidators := make([]*common.AuctionListValidatorAPIResponse, 0)
 
 	for ownerPubKey, ownerData := range vp.stakingDataProvider.GetOwnersData() {
-		if ownerData.Qualified && ownerData.NumAuctionNodes > 0 {
+		if ownerData.NumAuctionNodes > 0 {
 			auctionValidator := &common.AuctionListValidatorAPIResponse{
 				Owner:          vp.addressPubKeyConverter.Encode([]byte(ownerPubKey)),
 				NumStakedNodes: ownerData.NumStakedNodes,

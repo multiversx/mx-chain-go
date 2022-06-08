@@ -17,6 +17,7 @@ type StakingDataProviderStub struct {
 	FillValidatorInfoCalled               func(validator state.ValidatorInfoHandler) error
 	ComputeUnQualifiedNodesCalled         func(validatorInfos state.ShardValidatorsInfoMapHandler) ([][]byte, map[string][][]byte, error)
 	GetBlsKeyOwnerCalled                  func(blsKey []byte) (string, error)
+	GetOwnersDataCalled                   func() map[string]*epochStart.OwnerData
 }
 
 // FillValidatorInfo -
@@ -89,6 +90,9 @@ func (sdps *StakingDataProviderStub) GetNumOfValidatorsInCurrentEpoch() uint32 {
 
 // GetOwnersData -
 func (sdps *StakingDataProviderStub) GetOwnersData() map[string]*epochStart.OwnerData {
+	if sdps.GetOwnersDataCalled != nil {
+		return sdps.GetOwnersDataCalled()
+	}
 	return nil
 }
 
