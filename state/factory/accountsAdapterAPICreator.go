@@ -41,7 +41,7 @@ func CreateAccountsAdapterAPIOnCurrent(args state.ArgsAccountsDB, chainHandler c
 func createAccountsDB(args state.ArgsAccountsDB, provider state.BlockInfoProvider) (state.AccountsAdapterAPI, error) {
 	accounts, err := state.NewAccountsDB(args)
 	if err != nil {
-		return nil, fmt.Errorf("%w in CreateAccountsAdapterAPIOnFinal", err)
+		return nil, fmt.Errorf("%w in CreateAccountsAdapterAPI/createAccountsDB", err)
 	}
 
 	return state.NewAccountsDBApi(accounts, provider)

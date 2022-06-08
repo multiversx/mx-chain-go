@@ -87,6 +87,7 @@ func (bg *blockGroup) getBlockByNonce(c *gin.Context) {
 	log.Debug("API call: GetBlockByNonce", "duration", time.Since(start))
 	if err != nil {
 		shared.RespondWithInternalError(c, errors.ErrGetBlock, err)
+		return
 	}
 
 	shared.RespondWith(c, http.StatusOK, gin.H{"block": block}, "", shared.ReturnCodeSuccess)
