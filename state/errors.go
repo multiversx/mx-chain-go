@@ -119,11 +119,14 @@ var ErrInvalidKey = errors.New("invalid key")
 // ErrNilRootHash signals that a nil root hash was provided
 var ErrNilRootHash = errors.New("nil root hash")
 
-// ErrNilChainHandler signals that a nil chain handler was provided
-var ErrNilChainHandler = errors.New("nil chain handler")
-
 // ErrNilProcessStatusHandler signals that a nil process status handler was provided
 var ErrNilProcessStatusHandler = errors.New("nil process status handler")
 
-// ErrBlockInfoNotAvailable signals that "block info" is not yet available
-var ErrBlockInfoNotAvailable = errors.New("block info not yet available")
+// ErrNilBlockInfo signals that a nil block info was provided
+var ErrNilBlockInfo = errors.New("nil block info")
+
+// ErrNilBlockInfoProvider signals that a nil block info provider was provided
+var ErrNilBlockInfoProvider = errors.New("nil block info")
+
+// ErrFunctionalityNotImplemented signals that the functionality has not been implemented yet
+var ErrFunctionalityNotImplemented = errors.New("functionality not implemented yet")

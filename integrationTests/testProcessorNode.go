@@ -84,6 +84,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/state/blockInfoProviders"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
@@ -2291,7 +2292,18 @@ func (tpn *TestProcessorNode) initNode() {
 	stateComponents := GetDefaultStateComponents()
 	stateComponents.Accounts = tpn.AccntState
 	stateComponents.AccountsAPI = tpn.AccntState
-	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(dataComponents.BlockChain, tpn.AccntState, tpn.AccntState)
+
+	finalProvider, _ := blockInfoProviders.NewFinalBlockInfo(dataComponents.BlockChain)
+	finalAccountsApi, _ := state.NewAccountsDBApi(tpn.AccntState, finalProvider)
+
+	currentProvider, _ := blockInfoProviders.NewCurrentBlockInfo(dataComponents.BlockChain)
+	currentAccountsApi, _ := state.NewAccountsDBApi(tpn.AccntState, currentProvider)
+
+	argsAccountsRepo := state.ArgsAccountsRepository{
+		FinalStateAccountsWrapper:   finalAccountsApi,
+		CurrentStateAccountsWrapper: currentAccountsApi,
+	}
+	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(argsAccountsRepo)
 
 	networkComponents := GetDefaultNetworkComponents()
 	networkComponents.Messenger = tpn.Messenger
@@ -3033,7 +3045,7 @@ func GetDefaultStateComponents() *testscommon.StateComponentsMock {
 	return &testscommon.StateComponentsMock{
 		PeersAcc:     &stateMock.AccountsStub{},
 		Accounts:     &stateMock.AccountsStub{},
-		AccountsRepo: testscommon.NewAccountsRepositoryStub(),
+		AccountsRepo: &stateMock.AccountsRepositoryStub{},
 		Tries:        &mock.TriesHolderStub{},
 		StorageManagers: map[string]common.StorageManager{
 			"0":                         &testscommon.StorageManagerStub{},

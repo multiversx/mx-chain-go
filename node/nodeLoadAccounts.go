@@ -5,8 +5,8 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/state"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 func (n *Node) loadUserAccountHandlerByAddress(address string, options api.AccountQueryOptions) (state.UserAccountHandler, api.BlockInfo, error) {
@@ -21,17 +21,7 @@ func (n *Node) loadUserAccountHandlerByAddress(address string, options api.Accou
 func (n *Node) loadUserAccountHandlerByPubKey(pubKey []byte, options api.AccountQueryOptions) (state.UserAccountHandler, api.BlockInfo, error) {
 	repository := n.stateComponents.AccountsRepository()
 
-	var account vmcommon.AccountHandler
-	var accountBlockInfo state.AccountBlockInfo
-	var err error
-
-	if options.OnFinalBlock {
-		account, accountBlockInfo, err = repository.GetAccountOnFinal(pubKey)
-	} else if options.OnStartOfEpoch != 0 {
-		return nil, api.BlockInfo{}, ErrNotImplemented
-	} else {
-		account, accountBlockInfo, err = repository.GetAccountOnCurrent(pubKey)
-	}
+	account, blockInfo, err := repository.GetAccountWithBlockInfo(pubKey, options)
 	if err != nil {
 		return nil, api.BlockInfo{}, err
 	}
@@ -41,27 +31,22 @@ func (n *Node) loadUserAccountHandlerByPubKey(pubKey []byte, options api.Account
 		return nil, api.BlockInfo{}, err
 	}
 
-	return userAccount, accountBlockInfoToApiResource(accountBlockInfo), nil
+	return userAccount, accountBlockInfoToApiResource(blockInfo), nil
 }
 
 func (n *Node) loadAccountCode(codeHash []byte, options api.AccountQueryOptions) ([]byte, api.BlockInfo) {
 	repository := n.stateComponents.AccountsRepository()
 
-	var code []byte
-	var accountBlockInfo state.AccountBlockInfo
-
-	if options.OnFinalBlock {
-		code, accountBlockInfo = repository.GetCodeOnFinal(codeHash)
-	} else if options.OnStartOfEpoch != 0 {
+	code, blockInfo, err := repository.GetCodeWithBlockInfo(codeHash, options)
+	if err != nil {
+		log.Warn("Node.loadAccountCode", "error", err)
 		return nil, api.BlockInfo{}
-	} else {
-		code, accountBlockInfo = repository.GetCodeOnCurrent(codeHash)
 	}
 
-	return code, accountBlockInfoToApiResource(accountBlockInfo)
+	return code, accountBlockInfoToApiResource(blockInfo)
 }
 
-func accountBlockInfoToApiResource(info state.AccountBlockInfo) api.BlockInfo {
+func accountBlockInfoToApiResource(info common.BlockInfo) api.BlockInfo {
 	if check.IfNil(info) {
 		return api.BlockInfo{}
 	}

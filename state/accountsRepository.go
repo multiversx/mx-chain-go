@@ -1,110 +1,88 @@
 package state
 
 import (
+	"fmt"
+
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	chainData "github.com/ElrondNetwork/elrond-go-core/data"
+	// chainData "github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/api"
+	"github.com/ElrondNetwork/elrond-go/common"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 type accountsRepository struct {
-	chainHandler       chainData.ChainHandler
-	strategyForFinal   *accountsRepositoryStrategy
-	strategyForCurrent *accountsRepositoryStrategy
+	finalStateAccountsWrapper   AccountsAdapterAPI
+	currentStateAccountsWrapper AccountsAdapterAPI
 }
 
-// NewAccountsRepository creates a new accountsRepository
-func NewAccountsRepository(
-	chainHandler chainData.ChainHandler,
-	innerAccountsAdapterForFinal AccountsAdapter,
-	innerAccountsAdapterForCurrent AccountsAdapter,
-) (*accountsRepository, error) {
-	if check.IfNil(chainHandler) {
-		return nil, ErrNilChainHandler
-	}
-	if check.IfNil(innerAccountsAdapterForFinal) {
-		return nil, ErrNilAccountsAdapter
-	}
-	if check.IfNil(innerAccountsAdapterForCurrent) {
-		return nil, ErrNilAccountsAdapter
-	}
-
-	repository := &accountsRepository{chainHandler: chainHandler}
-	repository.strategyForFinal = newAccountsRepositoryStrategy(repository.getFinalBlockInfo, innerAccountsAdapterForFinal)
-	repository.strategyForCurrent = newAccountsRepositoryStrategy(repository.getCurrentBlockInfo, innerAccountsAdapterForCurrent)
-
-	return repository, nil
+// ArgsAccountsRepository is the DTO for the NewAccountsRepository constructor function
+type ArgsAccountsRepository struct {
+	FinalStateAccountsWrapper   AccountsAdapterAPI
+	CurrentStateAccountsWrapper AccountsAdapterAPI
 }
 
-func (repository *accountsRepository) getFinalBlockInfo() (*accountBlockInfo, error) {
-	nonce, hash, rootHash := repository.chainHandler.GetFinalBlockInfo()
-	if len(hash) == 0 || len(rootHash) == 0 {
-		return nil, ErrBlockInfoNotAvailable
+// NewAccountsRepository creates a new accountsRepository instance
+func NewAccountsRepository(args ArgsAccountsRepository) (*accountsRepository, error) {
+	if check.IfNil(args.CurrentStateAccountsWrapper) {
+		return nil, fmt.Errorf("%w for CurrentStateAccountsWrapper", ErrNilAccountsAdapter)
+	}
+	if check.IfNil(args.FinalStateAccountsWrapper) {
+		return nil, fmt.Errorf("%w for FinalStateAccountsWrapper", ErrNilAccountsAdapter)
 	}
 
-	return &accountBlockInfo{
-		nonce:    nonce,
-		hash:     hash,
-		rootHash: rootHash,
+	return &accountsRepository{
+		finalStateAccountsWrapper:   args.FinalStateAccountsWrapper,
+		currentStateAccountsWrapper: args.CurrentStateAccountsWrapper,
 	}, nil
 }
 
-func (repository *accountsRepository) getCurrentBlockInfo() (*accountBlockInfo, error) {
-	block := repository.chainHandler.GetCurrentBlockHeader()
-	if check.IfNil(block) {
-		return nil, ErrBlockInfoNotAvailable
+// GetAccountWithBlockInfo will return the account handler with the block info providing the address and the query option
+func (repository *accountsRepository) GetAccountWithBlockInfo(address []byte, options api.AccountQueryOptions) (vmcommon.AccountHandler, common.BlockInfo, error) {
+	accountsAdapter, err := repository.selectStateAccounts(options)
+	if err != nil {
+		return nil, nil, err
 	}
 
-	hash := repository.chainHandler.GetCurrentBlockHeaderHash()
-	if len(hash) == 0 {
-		return nil, ErrBlockInfoNotAvailable
+	return accountsAdapter.GetAccountWithBlockInfo(address)
+}
+
+// GetCodeWithBlockInfo will return the code with the block info providing the code hash and the query option
+func (repository *accountsRepository) GetCodeWithBlockInfo(codeHash []byte, options api.AccountQueryOptions) ([]byte, common.BlockInfo, error) {
+	accountsAdapter, err := repository.selectStateAccounts(options)
+	if err != nil {
+		return nil, nil, err
 	}
 
-	rootHash := repository.chainHandler.GetCurrentBlockRootHash()
-	if len(rootHash) == 0 {
-		return nil, ErrBlockInfoNotAvailable
+	return accountsAdapter.GetCodeWithBlockInfo(codeHash)
+}
+
+func (repository *accountsRepository) selectStateAccounts(options api.AccountQueryOptions) (AccountsAdapterAPI, error) {
+	if options.OnFinalBlock {
+		return repository.finalStateAccountsWrapper, nil
+	}
+	if options.OnStartOfEpoch > 0 {
+		// TODO implement this
+		return nil, ErrFunctionalityNotImplemented
 	}
 
-	return &accountBlockInfo{
-		nonce:    block.GetNonce(),
-		hash:     hash,
-		rootHash: rootHash,
-	}, nil
+	return repository.currentStateAccountsWrapper, nil
 }
 
-// GetAccountOnFinal returns the account data as found on the latest final rootHash
-func (repository *accountsRepository) GetAccountOnFinal(address []byte) (vmcommon.AccountHandler, AccountBlockInfo, error) {
-	return repository.strategyForFinal.getAccount(address)
-}
-
-// GetCodeOnFinal returns the code as found on the latest final rootHash
-func (repository *accountsRepository) GetCodeOnFinal(codeHash []byte) ([]byte, AccountBlockInfo) {
-	return repository.strategyForFinal.getCode(codeHash)
-}
-
-// GetAccountOnCurrent returns the account data as found on the current rootHash
-func (repository *accountsRepository) GetAccountOnCurrent(address []byte) (vmcommon.AccountHandler, AccountBlockInfo, error) {
-	return repository.strategyForCurrent.getAccount(address)
-}
-
-// GetCodeOnCurrent returns the code as found on the the current rootHash
-func (repository *accountsRepository) GetCodeOnCurrent(codeHash []byte) ([]byte, AccountBlockInfo) {
-	return repository.strategyForCurrent.getCode(codeHash)
+// GetCurrentStateAccountsWrapper gets the current state accounts wrapper
+func (repository *accountsRepository) GetCurrentStateAccountsWrapper() AccountsAdapterAPI {
+	return repository.currentStateAccountsWrapper
 }
 
 // Close will handle the closing of the underlying components
 func (repository *accountsRepository) Close() error {
-	// Question for review: is it all right?
-	errFinal := repository.strategyForFinal.close()
-	errCurrent := repository.strategyForCurrent.close()
+	errFinal := repository.finalStateAccountsWrapper.Close()
+	errCurrent := repository.currentStateAccountsWrapper.Close()
 
 	if errFinal != nil {
 		return errFinal
 	}
-	if errCurrent != nil {
-		return errCurrent
-	}
 
-	return nil
+	return errCurrent
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

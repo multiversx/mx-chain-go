@@ -147,36 +147,28 @@ func (scf *stateComponentsFactory) createAccountsAdapters(triesContainer common.
 		ProcessingMode:        scf.processingMode,
 		ProcessStatusHandler:  scf.core.ProcessStatusHandler(),
 	}
-	accountsAdapterAPI, err := state.NewAccountsDB(argsAPIAccountsDB)
+
+	accountsAdapterApiOnFinal, err := factoryState.CreateAccountsAdapterAPIOnFinal(argsAPIAccountsDB, scf.chainHandler)
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("accounts adapter API: %w: %s", errors.ErrAccountsAdapterCreation, err.Error())
+		return nil, nil, nil, fmt.Errorf("accounts adapter API on final: %w: %s", errors.ErrAccountsAdapterCreation, err.Error())
 	}
 
-	wrapper, err := state.NewAccountsDBApi(accountsAdapterAPI, scf.chainHandler)
+	accountsAdapterApiOnCurrent, err := factoryState.CreateAccountsAdapterAPIOnCurrent(argsAPIAccountsDB, scf.chainHandler)
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("accounts adapter API: %w: %s", errors.ErrAccountsAdapterCreation, err.Error())
+		return nil, nil, nil, fmt.Errorf("accounts adapter API on current: %w: %s", errors.ErrAccountsAdapterCreation, err.Error())
 	}
 
-	accountsAdapterForRepositoryOnFinal, err := state.NewAccountsDB(argsAPIAccountsDB)
-	if err != nil {
-		return nil, nil, nil, fmt.Errorf("accounts adapter for repository: %w: %s", errors.ErrAccountsAdapterCreation, err.Error())
+	argsAccountsRepository := state.ArgsAccountsRepository{
+		FinalStateAccountsWrapper:   accountsAdapterApiOnFinal,
+		CurrentStateAccountsWrapper: accountsAdapterApiOnCurrent,
 	}
 
-	accountsAdapterForRepositoryOnCurrent, err := state.NewAccountsDB(argsAPIAccountsDB)
-	if err != nil {
-		return nil, nil, nil, fmt.Errorf("accounts adapter for repository: %w: %s", errors.ErrAccountsAdapterCreation, err.Error())
-	}
-
-	accountsRepository, err := state.NewAccountsRepository(
-		scf.chainHandler,
-		accountsAdapterForRepositoryOnFinal,
-		accountsAdapterForRepositoryOnCurrent,
-	)
+	accountsRepository, err := state.NewAccountsRepository(argsAccountsRepository)
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("accountsRepository: %w", err)
 	}
 
-	return accountsAdapter, wrapper, accountsRepository, nil
+	return accountsAdapter, accountsRepository.GetCurrentStateAccountsWrapper(), accountsRepository, nil
 }
 
 func (scf *stateComponentsFactory) createPeerAdapter(triesContainer common.TriesHolder) (state.AccountsAdapter, error) {

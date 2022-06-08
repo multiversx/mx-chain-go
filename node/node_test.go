@@ -125,8 +125,8 @@ func TestNewNode_ApplyNilOptionShouldError(t *testing.T) {
 func TestGetBalance_GetAccountFailsShouldError(t *testing.T) {
 	expectedErr := errors.New("error")
 
-	accountsRepository := testscommon.NewAccountsRepositoryStub()
-	accountsRepository.GetAccountOnCurrentCalled = func(address []byte) (vmcommon.AccountHandler, state.AccountBlockInfo, error) {
+	accountsRepository := &stateMock.AccountsRepositoryStub{}
+	accountsRepository.GetAccountWithBlockInfoCalled = func(address []byte, options api.AccountQueryOptions) (vmcommon.AccountHandler, common.BlockInfo, error) {
 		return nil, nil, expectedErr
 	}
 
@@ -159,10 +159,7 @@ func createDummyHexAddress(hexChars int) string {
 }
 
 func TestGetBalance_AccountNotFoundShouldReturnZeroBalance(t *testing.T) {
-	accountsRepository := testscommon.NewAccountsRepositoryStub()
-	accountsRepository.GetAccountOnCurrentCalled = func(address []byte) (vmcommon.AccountHandler, state.AccountBlockInfo, error) {
-		return nil, nil, nil
-	}
+	accountsRepository := &stateMock.AccountsRepositoryStub{}
 
 	dataComponents := getDefaultDataComponents()
 	coreComponents := getDefaultCoreComponents()
@@ -183,10 +180,14 @@ func TestGetBalance_AccountNotFoundShouldReturnZeroBalance(t *testing.T) {
 }
 
 func TestGetBalance(t *testing.T) {
-	accountsRepository := testscommon.NewAccountsRepositoryStub()
 	testAccount, _ := state.NewUserAccount(testscommon.TestPubKeyAlice)
 	testAccount.Balance = big.NewInt(100)
-	accountsRepository.AddTestAccount(testAccount)
+
+	accountsRepository := &stateMock.AccountsRepositoryStub{
+		GetAccountWithBlockInfoCalled: func(address []byte, options api.AccountQueryOptions) (vmcommon.AccountHandler, common.BlockInfo, error) {
+			return testAccount, nil, nil
+		},
+	}
 
 	dataComponents := getDefaultDataComponents()
 	coreComponents := getDefaultCoreComponents()
@@ -210,10 +211,13 @@ func TestGetBalance(t *testing.T) {
 func TestGetUsername(t *testing.T) {
 	expectedUsername := []byte("elrond")
 
-	accountsRepository := testscommon.NewAccountsRepositoryStub()
 	testAccount, _ := state.NewUserAccount(testscommon.TestPubKeyAlice)
 	testAccount.UserName = expectedUsername
-	accountsRepository.AddTestAccount(testAccount)
+	accountsRepository := &stateMock.AccountsRepositoryStub{
+		GetAccountWithBlockInfoCalled: func(address []byte, options api.AccountQueryOptions) (vmcommon.AccountHandler, common.BlockInfo, error) {
+			return testAccount, nil, nil
+		},
+	}
 
 	coreComponents := getDefaultCoreComponents()
 	coreComponents.IntMarsh = getMarshalizer()
@@ -263,8 +267,8 @@ func TestNode_GetKeyValuePairs(t *testing.T) {
 			},
 		})
 
-	accDB.GetExistingAccountCalled = func(address []byte) (handler vmcommon.AccountHandler, e error) {
-		return acc, nil
+	accDB.GetAccountWithBlockInfoCalled = func(address []byte) (vmcommon.AccountHandler, common.BlockInfo, error) {
+		return acc, nil, nil
 	}
 	accDB.RecreateTrieCalled = func(rootHash []byte) error {
 		return nil
@@ -277,7 +281,11 @@ func TestNode_GetKeyValuePairs(t *testing.T) {
 	coreComponents.AddrPubKeyConv = createMockPubkeyConverter()
 	dataComponents := getDefaultDataComponents()
 	stateComponents := getDefaultStateComponents()
-	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(dataComponents.BlockChain, accDB, accDB)
+	args := state.ArgsAccountsRepository{
+		FinalStateAccountsWrapper:   accDB,
+		CurrentStateAccountsWrapper: accDB,
+	}
+	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(args)
 	n, _ := node.NewNode(
 		node.WithCoreComponents(coreComponents),
 		node.WithStateComponents(stateComponents),
@@ -314,8 +322,8 @@ func TestNode_GetKeyValuePairsContextShouldTimeout(t *testing.T) {
 			},
 		})
 
-	accDB.GetExistingAccountCalled = func(address []byte) (handler vmcommon.AccountHandler, e error) {
-		return acc, nil
+	accDB.GetAccountWithBlockInfoCalled = func(address []byte) (vmcommon.AccountHandler, common.BlockInfo, error) {
+		return acc, nil, nil
 	}
 	accDB.RecreateTrieCalled = func(rootHash []byte) error {
 		return nil
@@ -328,7 +336,11 @@ func TestNode_GetKeyValuePairsContextShouldTimeout(t *testing.T) {
 	coreComponents.AddrPubKeyConv = createMockPubkeyConverter()
 	dataComponents := getDefaultDataComponents()
 	stateComponents := getDefaultStateComponents()
-	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(dataComponents.BlockChain, accDB, accDB)
+	args := state.ArgsAccountsRepository{
+		FinalStateAccountsWrapper:   accDB,
+		CurrentStateAccountsWrapper: accDB,
+	}
+	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(args)
 
 	n, _ := node.NewNode(
 		node.WithCoreComponents(coreComponents),
@@ -351,8 +363,8 @@ func TestNode_GetValueForKey(t *testing.T) {
 	_ = acc.DataTrieTracker().SaveKeyValue(k1, v1)
 
 	accDB := &stateMock.AccountsStub{
-		GetExistingAccountCalled: func(_ []byte) (vmcommon.AccountHandler, error) {
-			return acc, nil
+		GetAccountWithBlockInfoCalled: func(address []byte) (vmcommon.AccountHandler, common.BlockInfo, error) {
+			return acc, nil, nil
 		},
 		RecreateTrieCalled: func(_ []byte) error {
 			return nil
@@ -366,7 +378,11 @@ func TestNode_GetValueForKey(t *testing.T) {
 	coreComponents.Hash = getHasher()
 	coreComponents.AddrPubKeyConv = createMockPubkeyConverter()
 	stateComponents := getDefaultStateComponents()
-	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(dataComponents.BlockChain, accDB, accDB)
+	args := state.ArgsAccountsRepository{
+		FinalStateAccountsWrapper:   accDB,
+		CurrentStateAccountsWrapper: accDB,
+	}
+	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(args)
 
 	n, _ := node.NewNode(
 		node.WithDataComponents(dataComponents),
@@ -386,8 +402,8 @@ func TestNode_GetESDTData(t *testing.T) {
 	esdtData := &esdt.ESDigitalToken{Value: big.NewInt(10)}
 
 	accDB := &stateMock.AccountsStub{
-		GetExistingAccountCalled: func(_ []byte) (vmcommon.AccountHandler, error) {
-			return acc, nil
+		GetAccountWithBlockInfoCalled: func(address []byte) (vmcommon.AccountHandler, common.BlockInfo, error) {
+			return acc, nil, nil
 		},
 		RecreateTrieCalled: func(_ []byte) error {
 			return nil
@@ -407,7 +423,11 @@ func TestNode_GetESDTData(t *testing.T) {
 	coreComponents.Hash = getHasher()
 
 	stateComponents := getDefaultStateComponents()
-	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(dataComponents.BlockChain, accDB, accDB)
+	args := state.ArgsAccountsRepository{
+		FinalStateAccountsWrapper:   accDB,
+		CurrentStateAccountsWrapper: accDB,
+	}
+	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(args)
 
 	n, _ := node.NewNode(
 		node.WithDataComponents(dataComponents),
@@ -434,8 +454,8 @@ func TestNode_GetESDTDataForNFT(t *testing.T) {
 		},
 	}
 	accDB := &stateMock.AccountsStub{
-		GetExistingAccountCalled: func(address []byte) (handler vmcommon.AccountHandler, e error) {
-			return acc, nil
+		GetAccountWithBlockInfoCalled: func(address []byte) (vmcommon.AccountHandler, common.BlockInfo, error) {
+			return acc, nil, nil
 		},
 		RecreateTrieCalled: func(_ []byte) error {
 			return nil
@@ -445,7 +465,11 @@ func TestNode_GetESDTDataForNFT(t *testing.T) {
 	dataComponents := getDefaultDataComponents()
 	coreComponents := getDefaultCoreComponents()
 	stateComponents := getDefaultStateComponents()
-	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(dataComponents.BlockChain, accDB, accDB)
+	args := state.ArgsAccountsRepository{
+		FinalStateAccountsWrapper:   accDB,
+		CurrentStateAccountsWrapper: accDB,
+	}
+	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(args)
 
 	n, _ := node.NewNode(
 		node.WithDataComponents(dataComponents),
@@ -493,8 +517,8 @@ func TestNode_GetAllESDTTokens(t *testing.T) {
 			return nil
 		},
 	}
-	accDB.GetExistingAccountCalled = func(address []byte) (handler vmcommon.AccountHandler, e error) {
-		return acc, nil
+	accDB.GetAccountWithBlockInfoCalled = func(address []byte) (vmcommon.AccountHandler, common.BlockInfo, error) {
+		return acc, nil, nil
 	}
 
 	coreComponents := getDefaultCoreComponents()
@@ -504,7 +528,11 @@ func TestNode_GetAllESDTTokens(t *testing.T) {
 
 	dataComponents := getDefaultDataComponents()
 	stateComponents := getDefaultStateComponents()
-	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(dataComponents.BlockChain, accDB, accDB)
+	args := state.ArgsAccountsRepository{
+		FinalStateAccountsWrapper:   accDB,
+		CurrentStateAccountsWrapper: accDB,
+	}
+	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(args)
 
 	n, _ := node.NewNode(
 		node.WithCoreComponents(coreComponents),
@@ -542,8 +570,8 @@ func TestNode_GetAllESDTTokensContextShouldTimeout(t *testing.T) {
 			return nil
 		},
 	}
-	accDB.GetExistingAccountCalled = func(address []byte) (handler vmcommon.AccountHandler, e error) {
-		return acc, nil
+	accDB.GetAccountWithBlockInfoCalled = func(address []byte) (vmcommon.AccountHandler, common.BlockInfo, error) {
+		return acc, nil, nil
 	}
 
 	coreComponents := getDefaultCoreComponents()
@@ -553,7 +581,11 @@ func TestNode_GetAllESDTTokensContextShouldTimeout(t *testing.T) {
 
 	dataComponents := getDefaultDataComponents()
 	stateComponents := getDefaultStateComponents()
-	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(dataComponents.BlockChain, accDB, accDB)
+	args := state.ArgsAccountsRepository{
+		FinalStateAccountsWrapper:   accDB,
+		CurrentStateAccountsWrapper: accDB,
+	}
+	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(args)
 
 	n, _ := node.NewNode(
 		node.WithCoreComponents(coreComponents),
@@ -630,14 +662,18 @@ func TestNode_GetAllESDTTokensShouldReturnEsdtAndFormattedNft(t *testing.T) {
 			return nil
 		},
 	}
-	accDB.GetExistingAccountCalled = func(address []byte) (handler vmcommon.AccountHandler, e error) {
-		return acc, nil
+	accDB.GetAccountWithBlockInfoCalled = func(address []byte) (vmcommon.AccountHandler, common.BlockInfo, error) {
+		return acc, nil, nil
 	}
 
 	coreComponents := getDefaultCoreComponents()
 	dataComponents := getDefaultDataComponents()
 	stateComponents := getDefaultStateComponents()
-	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(dataComponents.BlockChain, accDB, accDB)
+	args := state.ArgsAccountsRepository{
+		FinalStateAccountsWrapper:   accDB,
+		CurrentStateAccountsWrapper: accDB,
+	}
+	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(args)
 
 	n, _ := node.NewNode(
 		node.WithCoreComponents(coreComponents),
@@ -706,14 +742,18 @@ func TestNode_GetAllIssuedESDTs(t *testing.T) {
 			return nil
 		},
 	}
-	accDB.GetExistingAccountCalled = func(address []byte) (handler vmcommon.AccountHandler, e error) {
-		return acc, nil
+	accDB.GetAccountWithBlockInfoCalled = func(address []byte) (vmcommon.AccountHandler, common.BlockInfo, error) {
+		return acc, nil, nil
 	}
 
 	coreComponents := getDefaultCoreComponents()
 	dataComponents := getDefaultDataComponents()
 	stateComponents := getDefaultStateComponents()
-	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(dataComponents.BlockChain, accDB, accDB)
+	args := state.ArgsAccountsRepository{
+		FinalStateAccountsWrapper:   accDB,
+		CurrentStateAccountsWrapper: accDB,
+	}
+	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(args)
 	processComponents := getDefaultProcessComponents()
 	processComponents.ShardCoord = &mock.ShardCoordinatorMock{
 		SelfShardId: core.MetachainShardId,
@@ -784,13 +824,17 @@ func TestNode_GetESDTsWithRole(t *testing.T) {
 			return nil
 		},
 	}
-	accDB.GetExistingAccountCalled = func(address []byte) (handler vmcommon.AccountHandler, e error) {
-		return acc, nil
+	accDB.GetAccountWithBlockInfoCalled = func(address []byte) (vmcommon.AccountHandler, common.BlockInfo, error) {
+		return acc, nil, nil
 	}
 	coreComponents := getDefaultCoreComponents()
 	dataComponents := getDefaultDataComponents()
 	stateComponents := getDefaultStateComponents()
-	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(dataComponents.BlockChain, accDB, accDB)
+	args := state.ArgsAccountsRepository{
+		FinalStateAccountsWrapper:   accDB,
+		CurrentStateAccountsWrapper: accDB,
+	}
+	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(args)
 	processComponents := getDefaultProcessComponents()
 	processComponents.ShardCoord = &mock.ShardCoordinatorMock{
 		SelfShardId: core.MetachainShardId,
@@ -856,13 +900,17 @@ func TestNode_GetESDTsRoles(t *testing.T) {
 			return nil
 		},
 	}
-	accDB.GetExistingAccountCalled = func(address []byte) (handler vmcommon.AccountHandler, e error) {
-		return acc, nil
+	accDB.GetAccountWithBlockInfoCalled = func(address []byte) (vmcommon.AccountHandler, common.BlockInfo, error) {
+		return acc, nil, nil
 	}
 	coreComponents := getDefaultCoreComponents()
 	stateComponents := getDefaultStateComponents()
 	dataComponents := getDefaultDataComponents()
-	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(dataComponents.BlockChain, accDB, accDB)
+	args := state.ArgsAccountsRepository{
+		FinalStateAccountsWrapper:   accDB,
+		CurrentStateAccountsWrapper: accDB,
+	}
+	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(args)
 	processComponents := getDefaultProcessComponents()
 	processComponents.ShardCoord = &mock.ShardCoordinatorMock{
 		SelfShardId: core.MetachainShardId,
@@ -914,13 +962,17 @@ func TestNode_GetNFTTokenIDsRegisteredByAddress(t *testing.T) {
 			return nil
 		},
 	}
-	accDB.GetExistingAccountCalled = func(address []byte) (handler vmcommon.AccountHandler, e error) {
-		return acc, nil
+	accDB.GetAccountWithBlockInfoCalled = func(address []byte) (vmcommon.AccountHandler, common.BlockInfo, error) {
+		return acc, nil, nil
 	}
 	coreComponents := getDefaultCoreComponents()
 	stateComponents := getDefaultStateComponents()
 	dataComponents := getDefaultDataComponents()
-	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(dataComponents.BlockChain, accDB, accDB)
+	args := state.ArgsAccountsRepository{
+		FinalStateAccountsWrapper:   accDB,
+		CurrentStateAccountsWrapper: accDB,
+	}
+	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(args)
 	processComponents := getDefaultProcessComponents()
 	processComponents.ShardCoord = &mock.ShardCoordinatorMock{
 		SelfShardId: core.MetachainShardId,
@@ -963,13 +1015,17 @@ func TestNode_GetNFTTokenIDsRegisteredByAddressContextShouldTimeout(t *testing.T
 			return nil
 		},
 	}
-	accDB.GetExistingAccountCalled = func(address []byte) (handler vmcommon.AccountHandler, e error) {
-		return acc, nil
+	accDB.GetAccountWithBlockInfoCalled = func(address []byte) (vmcommon.AccountHandler, common.BlockInfo, error) {
+		return acc, nil, nil
 	}
 	coreComponents := getDefaultCoreComponents()
 	stateComponents := getDefaultStateComponents()
 	dataComponents := getDefaultDataComponents()
-	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(dataComponents.BlockChain, accDB, accDB)
+	args := state.ArgsAccountsRepository{
+		FinalStateAccountsWrapper:   accDB,
+		CurrentStateAccountsWrapper: accDB,
+	}
+	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(args)
 	processComponents := getDefaultProcessComponents()
 	processComponents.ShardCoord = &mock.ShardCoordinatorMock{
 		SelfShardId: core.MetachainShardId,
@@ -2599,9 +2655,10 @@ func TestNode_GetAccountPubkeyConverterFailsShouldErr(t *testing.T) {
 func TestNode_GetAccountAccountDoesNotExistsShouldRetEmpty(t *testing.T) {
 	t.Parallel()
 
-	accountsRepostitory := testscommon.NewAccountsRepositoryStub()
-	accountsRepostitory.GetAccountOnCurrentCalled = func(address []byte) (vmcommon.AccountHandler, state.AccountBlockInfo, error) {
-		return nil, nil, state.ErrAccNotFound
+	accountsRepostitory := &stateMock.AccountsRepositoryStub{
+		GetAccountWithBlockInfoCalled: func(address []byte, options api.AccountQueryOptions) (vmcommon.AccountHandler, common.BlockInfo, error) {
+			return nil, nil, state.ErrAccNotFound
+		},
 	}
 
 	coreComponents := getDefaultCoreComponents()
@@ -2630,9 +2687,10 @@ func TestNode_GetAccountAccountsRepositoryFailsShouldErr(t *testing.T) {
 
 	errExpected := errors.New("expected error")
 
-	accountsRepostitory := testscommon.NewAccountsRepositoryStub()
-	accountsRepostitory.GetAccountOnCurrentCalled = func(address []byte) (vmcommon.AccountHandler, state.AccountBlockInfo, error) {
-		return nil, nil, errExpected
+	accountsRepostitory := &stateMock.AccountsRepositoryStub{
+		GetAccountWithBlockInfoCalled: func(address []byte, options api.AccountQueryOptions) (vmcommon.AccountHandler, common.BlockInfo, error) {
+			return nil, nil, errExpected
+		},
 	}
 
 	coreComponents := getDefaultCoreComponents()
@@ -2666,8 +2724,8 @@ func TestNode_GetAccountAccountExistsShouldReturn(t *testing.T) {
 	accnt.SetOwnerAddress(testscommon.TestPubKeyAlice)
 
 	accDB := &stateMock.AccountsStub{
-		GetExistingAccountCalled: func(address []byte) (handler vmcommon.AccountHandler, e error) {
-			return accnt, nil
+		GetAccountWithBlockInfoCalled: func(address []byte) (vmcommon.AccountHandler, common.BlockInfo, error) {
+			return accnt, nil, nil
 		},
 		RecreateTrieCalled: func(rootHash []byte) error {
 			return nil
@@ -2677,7 +2735,11 @@ func TestNode_GetAccountAccountExistsShouldReturn(t *testing.T) {
 	coreComponents := getDefaultCoreComponents()
 	dataComponents := getDefaultDataComponents()
 	stateComponents := getDefaultStateComponents()
-	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(dataComponents.BlockChain, accDB, accDB)
+	args := state.ArgsAccountsRepository{
+		FinalStateAccountsWrapper:   accDB,
+		CurrentStateAccountsWrapper: accDB,
+	}
+	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(args)
 	n, _ := node.NewNode(
 		node.WithCoreComponents(coreComponents),
 		node.WithDataComponents(dataComponents),

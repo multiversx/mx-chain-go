@@ -5,6 +5,7 @@ import (
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go/common"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
@@ -127,22 +128,12 @@ type AccountsAdapter interface {
 	IsInterfaceNil() bool
 }
 
-// AccountsRepository allows one to load accounts using a specific rootHash
+// AccountsRepository handles the defined execution based ont the query options
 type AccountsRepository interface {
-	GetAccountOnFinal(address []byte) (vmcommon.AccountHandler, AccountBlockInfo, error)
-	GetAccountOnCurrent(address []byte) (vmcommon.AccountHandler, AccountBlockInfo, error)
-	GetCodeOnFinal(codeHash []byte) ([]byte, AccountBlockInfo)
-	GetCodeOnCurrent(codeHash []byte) ([]byte, AccountBlockInfo)
+	GetAccountWithBlockInfo(address []byte, options api.AccountQueryOptions) (vmcommon.AccountHandler, common.BlockInfo, error)
+	GetCodeWithBlockInfo(codeHash []byte, options api.AccountQueryOptions) ([]byte, common.BlockInfo, error)
+	GetCurrentStateAccountsWrapper() AccountsAdapterAPI
 	Close() error
-	IsInterfaceNil() bool
-}
-
-// AccountBlockInfo holds information about the block at which an account is loaded from the accounts repository
-// Question for review: or use a struct called "AccountBlockInfo" instead (and export it), similar to how "SignRate" (struct) is used above?
-type AccountBlockInfo interface {
-	GetNonce() uint64
-	GetHash() []byte
-	GetRootHash() []byte
 	IsInterfaceNil() bool
 }
 
@@ -200,4 +191,17 @@ type StoragePruningManager interface {
 	CancelPrune(rootHash []byte, identifier TriePruningIdentifier, tsm common.StorageManager)
 	Close() error
 	IsInterfaceNil() bool
+}
+
+// BlockInfoProvider defines the behavior of a struct able to provide the block information used in state tries
+type BlockInfoProvider interface {
+	GetBlockInfo() common.BlockInfo
+	IsInterfaceNil() bool
+}
+
+// AccountsAdapterAPI defines the extension of the AccountsAdapter that should be used in API calls
+type AccountsAdapterAPI interface {
+	AccountsAdapter
+	GetAccountWithBlockInfo(address []byte) (vmcommon.AccountHandler, common.BlockInfo, error)
+	GetCodeWithBlockInfo(codeHash []byte) ([]byte, common.BlockInfo, error)
 }
