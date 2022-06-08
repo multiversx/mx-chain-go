@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	coreAtomic "github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/common"
@@ -636,7 +637,99 @@ func TestValidatorsProvider_DoesntCallUpdateUpdateCacheWithoutRequests(t *testin
 func TestValidatorsProvider_GetAuctionList(t *testing.T) {
 	t.Parallel()
 
+	t.Run("error getting root hash", func(t *testing.T) {
+		t.Parallel()
+		args := createDefaultValidatorsProviderArg()
+		expectedErr := errors.New("local error")
+		args.ValidatorStatistics = &testscommon.ValidatorStatisticsProcessorStub{
+			RootHashCalled: func() ([]byte, error) {
+				return nil, expectedErr
+			},
+		}
+		vp, _ := NewValidatorsProvider(args)
+		time.Sleep(args.CacheRefreshIntervalDurationInSec)
+
+		list, err := vp.GetAuctionList()
+		require.Nil(t, list)
+		require.Equal(t, expectedErr, err)
+	})
+
+	t.Run("error getting validators info for root hash", func(t *testing.T) {
+		t.Parallel()
+		args := createDefaultValidatorsProviderArg()
+		expectedErr := errors.New("local error")
+		args.ValidatorStatistics = &testscommon.ValidatorStatisticsProcessorStub{
+			GetValidatorInfoForRootHashCalled: func(rootHash []byte) (state.ShardValidatorsInfoMapHandler, error) {
+				return nil, expectedErr
+			},
+		}
+		vp, _ := NewValidatorsProvider(args)
+		time.Sleep(args.CacheRefreshIntervalDurationInSec)
+
+		list, err := vp.GetAuctionList()
+		require.Nil(t, list)
+		require.Equal(t, expectedErr, err)
+	})
+
+	t.Run("error filling validator info, staking data provider cache should be cleaned", func(t *testing.T) {
+		t.Parallel()
+		args := createDefaultValidatorsProviderArg()
+
+		cleanCalled := &coreAtomic.Flag{}
+		expectedValidator := &state.ValidatorInfo{PublicKey: []byte("pubKey"), List: string(common.AuctionList)}
+		expectedErr := errors.New("local error")
+		args.ValidatorStatistics = &testscommon.ValidatorStatisticsProcessorStub{
+			GetValidatorInfoForRootHashCalled: func(rootHash []byte) (state.ShardValidatorsInfoMapHandler, error) {
+				validatorsMap := state.NewShardValidatorsInfoMap()
+				_ = validatorsMap.Add(expectedValidator)
+				return validatorsMap, nil
+			},
+		}
+		args.StakingDataProvider = &stakingcommon.StakingDataProviderStub{
+			FillValidatorInfoCalled: func(validator state.ValidatorInfoHandler) error {
+				require.Equal(t, expectedValidator, validator)
+				return expectedErr
+			},
+			CleanCalled: func() {
+				cleanCalled.SetValue(true)
+			},
+		}
+		vp, _ := NewValidatorsProvider(args)
+		time.Sleep(args.CacheRefreshIntervalDurationInSec)
+
+		list, err := vp.GetAuctionList()
+		require.Nil(t, list)
+		require.Equal(t, expectedErr, err)
+		require.True(t, cleanCalled.IsSet())
+	})
+
+	t.Run("error selecting nodes from auction, staking data provider cache should be cleaned", func(t *testing.T) {
+		t.Parallel()
+		args := createDefaultValidatorsProviderArg()
+
+		cleanCalled := &coreAtomic.Flag{}
+		expectedErr := errors.New("local error")
+		args.AuctionListSelector = &stakingcommon.AuctionListSelectorStub{
+			SelectNodesFromAuctionListCalled: func(validatorsInfoMap state.ShardValidatorsInfoMapHandler, randomness []byte) error {
+				return expectedErr
+			},
+		}
+		args.StakingDataProvider = &stakingcommon.StakingDataProviderStub{
+			CleanCalled: func() {
+				cleanCalled.SetValue(true)
+			},
+		}
+		vp, _ := NewValidatorsProvider(args)
+		time.Sleep(args.CacheRefreshIntervalDurationInSec)
+
+		list, err := vp.GetAuctionList()
+		require.Nil(t, list)
+		require.Equal(t, expectedErr, err)
+		require.True(t, cleanCalled.IsSet())
+	})
+
 	t.Run("empty list, check normal flow is executed", func(t *testing.T) {
+		t.Parallel()
 		args := createDefaultValidatorsProviderArg()
 
 		expectedRootHash := []byte("rootHash")
@@ -675,11 +768,12 @@ func TestValidatorsProvider_GetAuctionList(t *testing.T) {
 			},
 		}
 		vp, _ := NewValidatorsProvider(args)
-		time.Sleep(args.CacheRefreshIntervalDurationInSec)
+		time.Sleep(2 * args.CacheRefreshIntervalDurationInSec)
 
 		list, err := vp.GetAuctionList()
 		require.Nil(t, err)
 		require.Empty(t, list)
+		// updateCache is called on constructor, that's why the expected counter is 2
 		require.Equal(t, ctRootHashCalled, uint32(2))
 		require.Equal(t, ctGetValidatorsInfoForRootHash, uint32(2))
 		require.Equal(t, ctFillValidatorInfoCalled, uint32(0))
@@ -688,6 +782,7 @@ func TestValidatorsProvider_GetAuctionList(t *testing.T) {
 	})
 
 	t.Run("normal flow, check data is correctly computed", func(t *testing.T) {
+		t.Parallel()
 		args := createDefaultValidatorsProviderArg()
 
 		v1 := &state.ValidatorInfo{PublicKey: []byte("pk1"), List: string(common.AuctionList)}
@@ -819,7 +914,6 @@ func TestValidatorsProvider_GetAuctionList(t *testing.T) {
 					},
 				},
 			},
-
 			{
 				Owner:          args.AddressPubKeyConverter.Encode([]byte(owner1)),
 				NumStakedNodes: 3,
@@ -837,7 +931,6 @@ func TestValidatorsProvider_GetAuctionList(t *testing.T) {
 					},
 				},
 			},
-
 			{
 				Owner:          args.AddressPubKeyConverter.Encode([]byte(owner2)),
 				NumStakedNodes: 3,
@@ -855,7 +948,6 @@ func TestValidatorsProvider_GetAuctionList(t *testing.T) {
 					},
 				},
 			},
-
 			{
 				Owner:          args.AddressPubKeyConverter.Encode([]byte(owner4)),
 				NumStakedNodes: 3,
@@ -874,7 +966,6 @@ func TestValidatorsProvider_GetAuctionList(t *testing.T) {
 		list, err := vp.GetAuctionList()
 		require.Nil(t, err)
 		require.Equal(t, expectedList, list)
-
 	})
 
 }
