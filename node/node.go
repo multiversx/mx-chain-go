@@ -887,8 +887,9 @@ func (n *Node) ValidatorStatisticsApi() (map[string]*state.ValidatorApiResponse,
 	return n.processComponents.ValidatorsProvider().GetLatestValidators(), nil
 }
 
+// AuctionListApi will return the auction list config along with qualified nodes
 func (n *Node) AuctionListApi() ([]*common.AuctionListValidatorAPIResponse, error) {
-	return n.processComponents.ValidatorsProvider().GetAuctionList(), nil
+	return n.processComponents.ValidatorsProvider().GetAuctionList()
 }
 
 // DirectTrigger will start the hardfork trigger

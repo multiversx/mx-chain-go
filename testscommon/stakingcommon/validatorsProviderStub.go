@@ -8,7 +8,7 @@ import (
 // ValidatorsProviderStub -
 type ValidatorsProviderStub struct {
 	GetLatestValidatorsCalled func() map[string]*state.ValidatorApiResponse
-	GetAuctionListCalled      func() []*common.AuctionListValidatorAPIResponse
+	GetAuctionListCalled      func() ([]*common.AuctionListValidatorAPIResponse, error)
 }
 
 // GetLatestValidators -
@@ -21,12 +21,12 @@ func (vp *ValidatorsProviderStub) GetLatestValidators() map[string]*state.Valida
 }
 
 // GetAuctionList -
-func (vp *ValidatorsProviderStub) GetAuctionList() []*common.AuctionListValidatorAPIResponse {
+func (vp *ValidatorsProviderStub) GetAuctionList() ([]*common.AuctionListValidatorAPIResponse, error) {
 	if vp.GetAuctionListCalled != nil {
 		return vp.GetAuctionListCalled()
 	}
 
-	return nil
+	return nil, nil
 }
 
 // Close -

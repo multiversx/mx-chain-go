@@ -1,38 +1,136 @@
 package peer
 
 import (
+	"bytes"
+	"math/big"
+	"sort"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/state"
 )
 
 // GetAuctionList returns an array containing the validators that are currently in the auction list
-func (vp *validatorsProvider) GetAuctionList() []*common.AuctionListValidatorAPIResponse {
-	validatorsMap, _ := vp.getValidatorsInfo() //todo: error
-	defer vp.stakingDataProvider.Clean()
-
-	for _, validator := range validatorsMap.GetAllValidatorsInfo() {
-		_ = vp.stakingDataProvider.FillValidatorInfo(validator) // todo: error
+func (vp *validatorsProvider) GetAuctionList() ([]*common.AuctionListValidatorAPIResponse, error) {
+	validatorsMap, err := vp.getValidatorsInfo()
+	if err != nil {
+		return nil, err
 	}
 
+	defer vp.stakingDataProvider.Clean()
+	err = vp.fillAllValidatorsInfo(validatorsMap)
+	if err != nil {
+		return nil, err
+	}
+
+	selectedNodes, err := vp.getSelectedNodesFromAuction(validatorsMap)
+	if err != nil {
+		return nil, err
+	}
+
+	auctionListValidators := vp.getAuctionListValidatorsAPIResponse(selectedNodes)
+	sortList(auctionListValidators)
+	return auctionListValidators, nil
+}
+
+func (vp *validatorsProvider) fillAllValidatorsInfo(validatorsMap state.ShardValidatorsInfoMapHandler) error {
+	for _, validator := range validatorsMap.GetAllValidatorsInfo() {
+		err := vp.stakingDataProvider.FillValidatorInfo(validator)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func sortList(list []*common.AuctionListValidatorAPIResponse) {
+	sort.SliceStable(list, func(i, j int) bool {
+		qualifiedTopUpValidator1, _ := big.NewInt(0).SetString(list[i].QualifiedTopUp, 10)
+		qualifiedTopUpValidator2, _ := big.NewInt(0).SetString(list[j].QualifiedTopUp, 10)
+
+		return qualifiedTopUpValidator1.Cmp(qualifiedTopUpValidator2) > 0
+	})
+}
+
+func (vp *validatorsProvider) getSelectedNodesFromAuction(validatorsMap state.ShardValidatorsInfoMapHandler) ([]state.ValidatorInfoHandler, error) {
 	vp.auctionLock.RLock()
 	randomness := vp.cachedRandomness
 	vp.auctionLock.RUnlock()
-	_ = vp.auctionListSelector.SelectNodesFromAuctionList(validatorsMap, randomness) //todo : error + randomness
 
+	err := vp.auctionListSelector.SelectNodesFromAuctionList(validatorsMap, randomness)
+	if err != nil {
+		return nil, err
+	}
+
+	selectedNodes := make([]state.ValidatorInfoHandler, 0)
+	for _, validator := range validatorsMap.GetAllValidatorsInfo() {
+		if validator.GetList() == string(common.SelectedFromAuctionList) {
+			selectedNodes = append(selectedNodes, validator.ShallowClone())
+		}
+	}
+
+	return selectedNodes, nil
+}
+
+func (vp *validatorsProvider) getAuctionListValidatorsAPIResponse(selectedNodes []state.ValidatorInfoHandler) []*common.AuctionListValidatorAPIResponse {
 	auctionListValidators := make([]*common.AuctionListValidatorAPIResponse, 0)
 
 	for ownerPubKey, ownerData := range vp.stakingDataProvider.GetOwnersData() {
 		if ownerData.Qualified && ownerData.NumAuctionNodes > 0 {
-			auctionListValidators = append(auctionListValidators, &common.AuctionListValidatorAPIResponse{
-				Owner: vp.addressPubKeyConverter.Encode([]byte(ownerPubKey)),
-				// todo: if his node from auction is selected, add necessary data
-			})
+			auctionValidator := &common.AuctionListValidatorAPIResponse{
+				Owner:          vp.addressPubKeyConverter.Encode([]byte(ownerPubKey)),
+				NumStakedNodes: ownerData.NumStakedNodes,
+				TotalTopUp:     ownerData.TotalTopUp.String(),
+				TopUpPerNode:   ownerData.TopUpPerNode.String(),
+				QualifiedTopUp: ownerData.TopUpPerNode.String(),
+				AuctionList:    make([]common.AuctionNode, 0, ownerData.NumAuctionNodes),
+			}
+
+			vp.fillAuctionQualifiedValidatorAPIData(selectedNodes, ownerData, auctionValidator)
+			auctionListValidators = append(auctionListValidators, auctionValidator)
 		}
 	}
 
 	return auctionListValidators
+}
+
+func (vp *validatorsProvider) fillAuctionQualifiedValidatorAPIData(
+	selectedNodes []state.ValidatorInfoHandler,
+	ownerData *epochStart.OwnerData,
+	auctionValidatorAPI *common.AuctionListValidatorAPIResponse,
+) {
+	auctionValidatorAPI.AuctionList = make([]common.AuctionNode, 0, ownerData.NumAuctionNodes)
+	numOwnerQualifiedNodes := int64(0)
+	for _, nodeInAuction := range ownerData.AuctionList {
+		auctionNode := common.AuctionNode{
+			BlsKey:    vp.addressPubKeyConverter.Encode(nodeInAuction.GetPublicKey()),
+			Qualified: false,
+		}
+		if contains(selectedNodes, nodeInAuction) {
+			auctionNode.Qualified = true
+			numOwnerQualifiedNodes++
+		}
+
+		auctionValidatorAPI.AuctionList = append(auctionValidatorAPI.AuctionList, auctionNode)
+	}
+
+	if numOwnerQualifiedNodes > 0 {
+		activeNodes := big.NewInt(ownerData.NumActiveNodes)
+		qualifiedNodes := big.NewInt(numOwnerQualifiedNodes)
+		ownerRemainingNodes := big.NewInt(0).Add(activeNodes, qualifiedNodes)
+		auctionValidatorAPI.QualifiedTopUp = big.NewInt(0).Div(ownerData.TotalTopUp, ownerRemainingNodes).String()
+	}
+}
+
+func contains(list []state.ValidatorInfoHandler, validator state.ValidatorInfoHandler) bool {
+	for _, val := range list {
+		if bytes.Equal(val.GetPublicKey(), validator.GetPublicKey()) {
+			return true
+		}
+	}
+	return false
 }
 
 func (vp *validatorsProvider) getValidatorsInfo() (state.ShardValidatorsInfoMapHandler, error) {
