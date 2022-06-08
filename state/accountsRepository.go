@@ -2,61 +2,109 @@ package state
 
 import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	chainData "github.com/ElrondNetwork/elrond-go-core/data"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
-// >> BEGIN notes for review
-// "accountsDBApi" could not be used because it only allows its creator (caller of constructor) to control the provisioning of the "targetRootHash".
-// Being constrained by the AccountsAdapter interface, it does not allow the caller of its methods to specify the "targetRootHash".
-// > Design constraint: we have to return the nonce & hash associated with the rootHash (on GET account?onFinalBlock=true), as well.
-// > Design constraint: the one that provides the "targetRootHash" must also access in a consistent manner (e.g. critical section) the block nonce & block hash associated with the rootHash,
-// so that they are paired (in a consistent manner) with the loaded account data.
-//
-// Having "accountsDBApi" to use blockchain.GetFinalBlockInfo().rootHash to load the account data, then having the "nodeFacade" to return the block nonce and block hash (also from the chainHandler)
-// would have possibly resulted in occasional inconsistencies. Instead, we'll make the "nodeFacade" responsible to call blockchain.GetFinalBlockInfo(), hold the results,
-// call accountsRepository with the returned rootHash etc.
-// << END notes for review
-
 type accountsRepository struct {
-	innerAccountsAdapter AccountsAdapter
-	trieController       *accountsDBApiTrieController
+	chainHandler       chainData.ChainHandler
+	strategyForFinal   *accountsRepositoryStrategy
+	strategyForCurrent *accountsRepositoryStrategy
 }
 
 // NewAccountsRepository creates a new accountsRepository
-func NewAccountsRepository(innerAccountsAdapter AccountsAdapter) (*accountsRepository, error) {
-	if check.IfNil(innerAccountsAdapter) {
+func NewAccountsRepository(
+	chainHandler chainData.ChainHandler,
+	innerAccountsAdapterForFinal AccountsAdapter,
+	innerAccountsAdapterForCurrent AccountsAdapter,
+) (*accountsRepository, error) {
+	if check.IfNil(chainHandler) {
+		return nil, ErrNilChainHandler
+	}
+	if check.IfNil(innerAccountsAdapterForFinal) {
+		return nil, ErrNilAccountsAdapter
+	}
+	if check.IfNil(innerAccountsAdapterForCurrent) {
 		return nil, ErrNilAccountsAdapter
 	}
 
-	return &accountsRepository{
-		innerAccountsAdapter: innerAccountsAdapter,
-		trieController:       newAccountsDBApiTrieController(innerAccountsAdapter),
+	repository := &accountsRepository{chainHandler: chainHandler}
+	repository.strategyForFinal = newAccountsRepositoryStrategy(repository.getFinalBlockInfo, innerAccountsAdapterForFinal)
+	repository.strategyForCurrent = newAccountsRepositoryStrategy(repository.getCurrentBlockInfo, innerAccountsAdapterForCurrent)
+
+	return repository, nil
+}
+
+func (repository *accountsRepository) getFinalBlockInfo() (*accountBlockInfo, error) {
+	nonce, hash, rootHash := repository.chainHandler.GetFinalBlockInfo()
+	if len(hash) == 0 || len(rootHash) == 0 {
+		return nil, ErrBlockInfoNotAvailable
+	}
+
+	return &accountBlockInfo{
+		nonce:    nonce,
+		hash:     hash,
+		rootHash: rootHash,
 	}, nil
 }
 
-// GetExistingAccount will call the inner accountsAdapter method after trying to recreate the trie
-func (repository *accountsRepository) GetExistingAccount(address []byte, rootHash []byte) (vmcommon.AccountHandler, error) {
-	err := repository.trieController.recreateTrieIfNecessary(rootHash)
-	if err != nil {
-		return nil, err
+func (repository *accountsRepository) getCurrentBlockInfo() (*accountBlockInfo, error) {
+	block := repository.chainHandler.GetCurrentBlockHeader()
+	if check.IfNil(block) {
+		return nil, ErrBlockInfoNotAvailable
 	}
 
-	return repository.innerAccountsAdapter.GetExistingAccount(address)
+	hash := repository.chainHandler.GetCurrentBlockHeaderHash()
+	if len(hash) == 0 {
+		return nil, ErrBlockInfoNotAvailable
+	}
+
+	rootHash := repository.chainHandler.GetCurrentBlockRootHash()
+	if len(rootHash) == 0 {
+		return nil, ErrBlockInfoNotAvailable
+	}
+
+	return &accountBlockInfo{
+		nonce:    block.GetNonce(),
+		hash:     hash,
+		rootHash: rootHash,
+	}, nil
 }
 
-// GetCode will call the inner accountsAdapter method after trying to recreate the trie
-func (repository *accountsRepository) GetCode(codeHash []byte, rootHash []byte) []byte {
-	err := repository.trieController.recreateTrieIfNecessary(rootHash)
-	if err != nil {
-		return nil
-	}
+// GetAccountOnFinal returns the account data as found on the latest final rootHash
+func (repository *accountsRepository) GetAccountOnFinal(address []byte) (vmcommon.AccountHandler, AccountBlockInfo, error) {
+	return repository.strategyForFinal.getAccount(address)
+}
 
-	return repository.innerAccountsAdapter.GetCode(codeHash)
+// GetCodeOnFinal returns the code as found on the latest final rootHash
+func (repository *accountsRepository) GetCodeOnFinal(codeHash []byte) ([]byte, AccountBlockInfo) {
+	return repository.strategyForFinal.getCode(codeHash)
+}
+
+// GetAccountOnCurrent returns the account data as found on the current rootHash
+func (repository *accountsRepository) GetAccountOnCurrent(address []byte) (vmcommon.AccountHandler, AccountBlockInfo, error) {
+	return repository.strategyForCurrent.getAccount(address)
+}
+
+// GetCodeOnCurrent returns the code as found on the the current rootHash
+func (repository *accountsRepository) GetCodeOnCurrent(codeHash []byte) ([]byte, AccountBlockInfo) {
+	return repository.strategyForCurrent.getCode(codeHash)
 }
 
 // Close will handle the closing of the underlying components
 func (repository *accountsRepository) Close() error {
-	return repository.innerAccountsAdapter.Close()
+	// Question for review: is it all right?
+	errFinal := repository.strategyForFinal.close()
+	errCurrent := repository.strategyForCurrent.close()
+
+	if errFinal != nil {
+		return errFinal
+	}
+	if errCurrent != nil {
+		return errCurrent
+	}
+
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

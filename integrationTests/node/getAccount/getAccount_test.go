@@ -26,8 +26,8 @@ func TestNode_GetAccountAccountDoesNotExistsShouldRetEmpty(t *testing.T) {
 	// accDB, _ := integrationTests.CreateAccountsDB(0, trieStorage)
 
 	accountsRepository := testscommon.NewAccountsRepositoryStub()
-	accountsRepository.GetExistingAccountCalled = func(address, rootHash []byte) (vmcommon.AccountHandler, error) {
-		return nil, state.ErrAccNotFound
+	accountsRepository.GetAccountOnCurrentCalled = func(address []byte) (vmcommon.AccountHandler, state.AccountBlockInfo, error) {
+		return nil, nil, state.ErrAccNotFound
 	}
 
 	coreComponents := integrationTests.GetDefaultCoreComponents()

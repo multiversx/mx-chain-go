@@ -1,14 +1,17 @@
 package testscommon
 
 import (
+	"github.com/ElrondNetwork/elrond-go/state"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 type accountsRepositoryStub struct {
-	testAccounts             map[string]vmcommon.AccountHandler
-	GetExistingAccountCalled func(address []byte, rootHash []byte) (vmcommon.AccountHandler, error)
-	GetCodeCalled            func(codeHash []byte, rootHash []byte) []byte
-	CloseCalled              func() error
+	testAccounts              map[string]vmcommon.AccountHandler
+	GetAccountOnFinalCalled   func(address []byte) (vmcommon.AccountHandler, state.AccountBlockInfo, error)
+	GetAccountOnCurrentCalled func(address []byte) (vmcommon.AccountHandler, state.AccountBlockInfo, error)
+	GetCodeOnFinalCalled      func(codeHash []byte) ([]byte, state.AccountBlockInfo)
+	GetCodeOnCurrentCalled    func(codeHash []byte) ([]byte, state.AccountBlockInfo)
+	CloseCalled               func() error
 }
 
 // NewAccountsRepositoryStub -
@@ -18,27 +21,50 @@ func NewAccountsRepositoryStub() *accountsRepositoryStub {
 	}
 }
 
-// GetExistingAccount -
-func (stub *accountsRepositoryStub) GetExistingAccount(address []byte, rootHash []byte) (vmcommon.AccountHandler, error) {
-	if stub.GetExistingAccountCalled != nil {
-		return stub.GetExistingAccountCalled(address, rootHash)
+// GetAccountOnFinal -
+func (stub *accountsRepositoryStub) GetAccountOnFinal(address []byte) (vmcommon.AccountHandler, state.AccountBlockInfo, error) {
+	if stub.GetAccountOnFinalCalled != nil {
+		return stub.GetAccountOnFinalCalled(address)
 	}
 
 	value, ok := stub.testAccounts[string(address)]
 	if ok {
-		return value, nil
+		return value, &AccountBlockInfoStub{}, nil
+	}
+
+	return nil, nil, nil
+}
+
+// GetAccountOnCurrent -
+func (stub *accountsRepositoryStub) GetAccountOnCurrent(address []byte) (vmcommon.AccountHandler, state.AccountBlockInfo, error) {
+	if stub.GetAccountOnCurrentCalled != nil {
+		return stub.GetAccountOnCurrentCalled(address)
+	}
+
+	value, ok := stub.testAccounts[string(address)]
+	if ok {
+		return value, &AccountBlockInfoStub{}, nil
+	}
+
+	return nil, nil, nil
+}
+
+// GetCodeOnFinal -
+func (stub *accountsRepositoryStub) GetCodeOnFinal(codeHash []byte) ([]byte, state.AccountBlockInfo) {
+	if stub.GetCodeOnFinalCalled != nil {
+		return stub.GetCodeOnFinalCalled(codeHash)
 	}
 
 	return nil, nil
 }
 
-// GetCode -
-func (stub *accountsRepositoryStub) GetCode(codeHash []byte, rootHash []byte) []byte {
-	if stub.GetCodeCalled != nil {
-		return stub.GetCodeCalled(codeHash, rootHash)
+// GetCodeOnCurrent -
+func (stub *accountsRepositoryStub) GetCodeOnCurrent(codeHash []byte) ([]byte, state.AccountBlockInfo) {
+	if stub.GetCodeOnCurrentCalled != nil {
+		return stub.GetCodeOnCurrentCalled(codeHash)
 	}
 
-	return nil
+	return nil, nil
 }
 
 // Close -

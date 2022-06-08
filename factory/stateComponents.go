@@ -157,12 +157,21 @@ func (scf *stateComponentsFactory) createAccountsAdapters(triesContainer common.
 		return nil, nil, nil, fmt.Errorf("accounts adapter API: %w: %s", errors.ErrAccountsAdapterCreation, err.Error())
 	}
 
-	accountsAdapterForRepository, err := state.NewAccountsDB(argsAPIAccountsDB)
+	accountsAdapterForRepositoryOnFinal, err := state.NewAccountsDB(argsAPIAccountsDB)
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("accounts adapter for repository: %w: %s", errors.ErrAccountsAdapterCreation, err.Error())
 	}
 
-	accountsRepository, err := state.NewAccountsRepository(accountsAdapterForRepository)
+	accountsAdapterForRepositoryOnCurrent, err := state.NewAccountsDB(argsAPIAccountsDB)
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("accounts adapter for repository: %w: %s", errors.ErrAccountsAdapterCreation, err.Error())
+	}
+
+	accountsRepository, err := state.NewAccountsRepository(
+		scf.chainHandler,
+		accountsAdapterForRepositoryOnFinal,
+		accountsAdapterForRepositoryOnCurrent,
+	)
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("accountsRepository: %w", err)
 	}

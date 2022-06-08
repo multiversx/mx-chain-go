@@ -2291,7 +2291,7 @@ func (tpn *TestProcessorNode) initNode() {
 	stateComponents := GetDefaultStateComponents()
 	stateComponents.Accounts = tpn.AccntState
 	stateComponents.AccountsAPI = tpn.AccntState
-	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(tpn.AccntState)
+	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(dataComponents.BlockChain, tpn.AccntState, tpn.AccntState)
 
 	networkComponents := GetDefaultNetworkComponents()
 	networkComponents.Messenger = tpn.Messenger

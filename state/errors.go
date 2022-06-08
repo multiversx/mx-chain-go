@@ -124,3 +124,6 @@ var ErrNilChainHandler = errors.New("nil chain handler")
 
 // ErrNilProcessStatusHandler signals that a nil process status handler was provided
 var ErrNilProcessStatusHandler = errors.New("nil process status handler")
+
+// ErrBlockInfoNotAvailable signals that "block info" is not yet available
+var ErrBlockInfoNotAvailable = errors.New("block info not yet available")

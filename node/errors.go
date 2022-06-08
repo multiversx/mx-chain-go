@@ -133,8 +133,5 @@ var ErrCannotCastUserAccountHandlerToVmCommonUserAccountHandler = errors.New("ca
 // ErrTrieOperationsTimeout signals that a trie operation took too long
 var ErrTrieOperationsTimeout = errors.New("trie operations timeout")
 
-// ErrBlockInfoNotAvailable signals that "block info" is not yet available
-var ErrBlockInfoNotAvailable = errors.New("block info not yet available")
-
 // ErrNotImplemented signals that a feature is not yet implemented
 var ErrNotImplemented = errors.New("feature not implemented")

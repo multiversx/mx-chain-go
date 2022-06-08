@@ -126,8 +126,8 @@ func TestGetBalance_GetAccountFailsShouldError(t *testing.T) {
 	expectedErr := errors.New("error")
 
 	accountsRepository := testscommon.NewAccountsRepositoryStub()
-	accountsRepository.GetExistingAccountCalled = func(address, rootHash []byte) (vmcommon.AccountHandler, error) {
-		return nil, expectedErr
+	accountsRepository.GetAccountOnCurrentCalled = func(address []byte) (vmcommon.AccountHandler, state.AccountBlockInfo, error) {
+		return nil, nil, expectedErr
 	}
 
 	dataComponents := getDefaultDataComponents()
@@ -160,8 +160,8 @@ func createDummyHexAddress(hexChars int) string {
 
 func TestGetBalance_AccountNotFoundShouldReturnZeroBalance(t *testing.T) {
 	accountsRepository := testscommon.NewAccountsRepositoryStub()
-	accountsRepository.GetExistingAccountCalled = func(address, rootHash []byte) (vmcommon.AccountHandler, error) {
-		return nil, nil
+	accountsRepository.GetAccountOnCurrentCalled = func(address []byte) (vmcommon.AccountHandler, state.AccountBlockInfo, error) {
+		return nil, nil, nil
 	}
 
 	dataComponents := getDefaultDataComponents()
@@ -275,11 +275,9 @@ func TestNode_GetKeyValuePairs(t *testing.T) {
 	coreComponents.VmMarsh = getMarshalizer()
 	coreComponents.Hash = getHasher()
 	coreComponents.AddrPubKeyConv = createMockPubkeyConverter()
-	stateComponents := getDefaultStateComponents()
-	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(accDB)
-
 	dataComponents := getDefaultDataComponents()
-
+	stateComponents := getDefaultStateComponents()
+	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(dataComponents.BlockChain, accDB, accDB)
 	n, _ := node.NewNode(
 		node.WithCoreComponents(coreComponents),
 		node.WithStateComponents(stateComponents),
@@ -328,10 +326,9 @@ func TestNode_GetKeyValuePairsContextShouldTimeout(t *testing.T) {
 	coreComponents.VmMarsh = getMarshalizer()
 	coreComponents.Hash = getHasher()
 	coreComponents.AddrPubKeyConv = createMockPubkeyConverter()
-	stateComponents := getDefaultStateComponents()
-	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(accDB)
-
 	dataComponents := getDefaultDataComponents()
+	stateComponents := getDefaultStateComponents()
+	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(dataComponents.BlockChain, accDB, accDB)
 
 	n, _ := node.NewNode(
 		node.WithCoreComponents(coreComponents),
@@ -369,7 +366,7 @@ func TestNode_GetValueForKey(t *testing.T) {
 	coreComponents.Hash = getHasher()
 	coreComponents.AddrPubKeyConv = createMockPubkeyConverter()
 	stateComponents := getDefaultStateComponents()
-	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(accDB)
+	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(dataComponents.BlockChain, accDB, accDB)
 
 	n, _ := node.NewNode(
 		node.WithDataComponents(dataComponents),
@@ -410,7 +407,7 @@ func TestNode_GetESDTData(t *testing.T) {
 	coreComponents.Hash = getHasher()
 
 	stateComponents := getDefaultStateComponents()
-	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(accDB)
+	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(dataComponents.BlockChain, accDB, accDB)
 
 	n, _ := node.NewNode(
 		node.WithDataComponents(dataComponents),
@@ -448,7 +445,7 @@ func TestNode_GetESDTDataForNFT(t *testing.T) {
 	dataComponents := getDefaultDataComponents()
 	coreComponents := getDefaultCoreComponents()
 	stateComponents := getDefaultStateComponents()
-	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(accDB)
+	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(dataComponents.BlockChain, accDB, accDB)
 
 	n, _ := node.NewNode(
 		node.WithDataComponents(dataComponents),
@@ -505,10 +502,9 @@ func TestNode_GetAllESDTTokens(t *testing.T) {
 	coreComponents.VmMarsh = getMarshalizer()
 	coreComponents.Hash = getHasher()
 
-	stateComponents := getDefaultStateComponents()
-	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(accDB)
-
 	dataComponents := getDefaultDataComponents()
+	stateComponents := getDefaultStateComponents()
+	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(dataComponents.BlockChain, accDB, accDB)
 
 	n, _ := node.NewNode(
 		node.WithCoreComponents(coreComponents),
@@ -555,10 +551,9 @@ func TestNode_GetAllESDTTokensContextShouldTimeout(t *testing.T) {
 	coreComponents.VmMarsh = getMarshalizer()
 	coreComponents.Hash = getHasher()
 
-	stateComponents := getDefaultStateComponents()
-	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(accDB)
-
 	dataComponents := getDefaultDataComponents()
+	stateComponents := getDefaultStateComponents()
+	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(dataComponents.BlockChain, accDB, accDB)
 
 	n, _ := node.NewNode(
 		node.WithCoreComponents(coreComponents),
@@ -640,9 +635,9 @@ func TestNode_GetAllESDTTokensShouldReturnEsdtAndFormattedNft(t *testing.T) {
 	}
 
 	coreComponents := getDefaultCoreComponents()
-	stateComponents := getDefaultStateComponents()
-	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(accDB)
 	dataComponents := getDefaultDataComponents()
+	stateComponents := getDefaultStateComponents()
+	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(dataComponents.BlockChain, accDB, accDB)
 
 	n, _ := node.NewNode(
 		node.WithCoreComponents(coreComponents),
@@ -716,9 +711,9 @@ func TestNode_GetAllIssuedESDTs(t *testing.T) {
 	}
 
 	coreComponents := getDefaultCoreComponents()
-	stateComponents := getDefaultStateComponents()
-	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(accDB)
 	dataComponents := getDefaultDataComponents()
+	stateComponents := getDefaultStateComponents()
+	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(dataComponents.BlockChain, accDB, accDB)
 	processComponents := getDefaultProcessComponents()
 	processComponents.ShardCoord = &mock.ShardCoordinatorMock{
 		SelfShardId: core.MetachainShardId,
@@ -793,9 +788,9 @@ func TestNode_GetESDTsWithRole(t *testing.T) {
 		return acc, nil
 	}
 	coreComponents := getDefaultCoreComponents()
-	stateComponents := getDefaultStateComponents()
-	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(accDB)
 	dataComponents := getDefaultDataComponents()
+	stateComponents := getDefaultStateComponents()
+	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(dataComponents.BlockChain, accDB, accDB)
 	processComponents := getDefaultProcessComponents()
 	processComponents.ShardCoord = &mock.ShardCoordinatorMock{
 		SelfShardId: core.MetachainShardId,
@@ -866,8 +861,8 @@ func TestNode_GetESDTsRoles(t *testing.T) {
 	}
 	coreComponents := getDefaultCoreComponents()
 	stateComponents := getDefaultStateComponents()
-	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(accDB)
 	dataComponents := getDefaultDataComponents()
+	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(dataComponents.BlockChain, accDB, accDB)
 	processComponents := getDefaultProcessComponents()
 	processComponents.ShardCoord = &mock.ShardCoordinatorMock{
 		SelfShardId: core.MetachainShardId,
@@ -924,8 +919,8 @@ func TestNode_GetNFTTokenIDsRegisteredByAddress(t *testing.T) {
 	}
 	coreComponents := getDefaultCoreComponents()
 	stateComponents := getDefaultStateComponents()
-	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(accDB)
 	dataComponents := getDefaultDataComponents()
+	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(dataComponents.BlockChain, accDB, accDB)
 	processComponents := getDefaultProcessComponents()
 	processComponents.ShardCoord = &mock.ShardCoordinatorMock{
 		SelfShardId: core.MetachainShardId,
@@ -973,8 +968,8 @@ func TestNode_GetNFTTokenIDsRegisteredByAddressContextShouldTimeout(t *testing.T
 	}
 	coreComponents := getDefaultCoreComponents()
 	stateComponents := getDefaultStateComponents()
-	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(accDB)
 	dataComponents := getDefaultDataComponents()
+	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(dataComponents.BlockChain, accDB, accDB)
 	processComponents := getDefaultProcessComponents()
 	processComponents.ShardCoord = &mock.ShardCoordinatorMock{
 		SelfShardId: core.MetachainShardId,
@@ -2605,8 +2600,8 @@ func TestNode_GetAccountAccountDoesNotExistsShouldRetEmpty(t *testing.T) {
 	t.Parallel()
 
 	accountsRepostitory := testscommon.NewAccountsRepositoryStub()
-	accountsRepostitory.GetExistingAccountCalled = func(address []byte, rootHash []byte) (vmcommon.AccountHandler, error) {
-		return nil, state.ErrAccNotFound
+	accountsRepostitory.GetAccountOnCurrentCalled = func(address []byte) (vmcommon.AccountHandler, state.AccountBlockInfo, error) {
+		return nil, nil, state.ErrAccNotFound
 	}
 
 	coreComponents := getDefaultCoreComponents()
@@ -2636,8 +2631,8 @@ func TestNode_GetAccountAccountsRepositoryFailsShouldErr(t *testing.T) {
 	errExpected := errors.New("expected error")
 
 	accountsRepostitory := testscommon.NewAccountsRepositoryStub()
-	accountsRepostitory.GetExistingAccountCalled = func(address []byte, rootHash []byte) (vmcommon.AccountHandler, error) {
-		return nil, errExpected
+	accountsRepostitory.GetAccountOnCurrentCalled = func(address []byte) (vmcommon.AccountHandler, state.AccountBlockInfo, error) {
+		return nil, nil, errExpected
 	}
 
 	coreComponents := getDefaultCoreComponents()
@@ -2682,7 +2677,7 @@ func TestNode_GetAccountAccountExistsShouldReturn(t *testing.T) {
 	coreComponents := getDefaultCoreComponents()
 	dataComponents := getDefaultDataComponents()
 	stateComponents := getDefaultStateComponents()
-	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(accDB)
+	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(dataComponents.BlockChain, accDB, accDB)
 	n, _ := node.NewNode(
 		node.WithCoreComponents(coreComponents),
 		node.WithDataComponents(dataComponents),

@@ -129,9 +129,20 @@ type AccountsAdapter interface {
 
 // AccountsRepository allows one to load accounts using a specific rootHash
 type AccountsRepository interface {
-	GetExistingAccount(address []byte, rootHash []byte) (vmcommon.AccountHandler, error)
-	GetCode(codeHash []byte, rootHash []byte) []byte
+	GetAccountOnFinal(address []byte) (vmcommon.AccountHandler, AccountBlockInfo, error)
+	GetAccountOnCurrent(address []byte) (vmcommon.AccountHandler, AccountBlockInfo, error)
+	GetCodeOnFinal(codeHash []byte) ([]byte, AccountBlockInfo)
+	GetCodeOnCurrent(codeHash []byte) ([]byte, AccountBlockInfo)
 	Close() error
+	IsInterfaceNil() bool
+}
+
+// AccountBlockInfo holds information about the block at which an account is loaded from the accounts repository
+// Question for review: or use a struct called "AccountBlockInfo" instead (and export it), similar to how "SignRate" (struct) is used above?
+type AccountBlockInfo interface {
+	GetNonce() uint64
+	GetHash() []byte
+	GetRootHash() []byte
 	IsInterfaceNil() bool
 }
 
