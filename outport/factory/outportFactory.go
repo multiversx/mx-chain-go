@@ -6,14 +6,13 @@ import (
 	covalentFactory "github.com/ElrondNetwork/covalent-indexer-go/factory"
 	indexerFactory "github.com/ElrondNetwork/elastic-indexer-go/factory"
 	"github.com/ElrondNetwork/elrond-go/outport"
-	notifierFactory "github.com/ElrondNetwork/notifier-go/factory"
 )
 
 // OutportFactoryArgs holds the factory arguments of different outport drivers
 type OutportFactoryArgs struct {
 	RetrialInterval            time.Duration
 	ElasticIndexerFactoryArgs  *indexerFactory.ArgsIndexerFactory
-	EventNotifierFactoryArgs   *notifierFactory.EventNotifierFactoryArgs
+	EventNotifierFactoryArgs   *EventNotifierFactoryArgs
 	CovalentIndexerFactoryArgs *covalentFactory.ArgsCovalentIndexerFactory
 }
 
@@ -90,13 +89,13 @@ func createAndSubscribeElasticDriverIfNeeded(
 
 func createAndSubscribeEventNotifierIfNeeded(
 	outport outport.OutportHandler,
-	args *notifierFactory.EventNotifierFactoryArgs,
+	args *EventNotifierFactoryArgs,
 ) error {
 	if !args.Enabled {
 		return nil
 	}
 
-	eventNotifier, err := notifierFactory.CreateEventNotifier(args)
+	eventNotifier, err := CreateEventNotifier(args)
 	if err != nil {
 		return err
 	}

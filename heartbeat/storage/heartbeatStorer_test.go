@@ -21,7 +21,7 @@ func TestNewHeartbeatStorer_NilStorerShouldErr(t *testing.T) {
 
 	hs, err := storage.NewHeartbeatDbStorer(
 		nil,
-		&mock.MarshalizerStub{},
+		&mock.MarshallerStub{},
 	)
 	assert.Nil(t, hs)
 	assert.Equal(t, heartbeat.ErrNilMonitorDb, err)
@@ -35,7 +35,7 @@ func TestNewHeartbeatStorer_NilMarshalizerShouldErr(t *testing.T) {
 		nil,
 	)
 	assert.Nil(t, hs)
-	assert.Equal(t, heartbeat.ErrNilMarshalizer, err)
+	assert.Equal(t, heartbeat.ErrNilMarshaller, err)
 }
 
 func TestNewHeartbeatStorer_OkValsShouldWork(t *testing.T) {
@@ -43,7 +43,7 @@ func TestNewHeartbeatStorer_OkValsShouldWork(t *testing.T) {
 
 	hs, err := storage.NewHeartbeatDbStorer(
 		&storageStubs.StorerStub{},
-		&mock.MarshalizerStub{},
+		&mock.MarshallerStub{},
 	)
 	assert.Nil(t, err)
 	assert.False(t, check.IfNil(hs))
@@ -54,7 +54,7 @@ func TestHeartbeatDbStorer_LoadKeysEntryNotFoundShouldErr(t *testing.T) {
 
 	hs, _ := storage.NewHeartbeatDbStorer(
 		mock.NewStorerMock(),
-		&mock.MarshalizerMock{},
+		&mock.MarshallerMock{},
 	)
 
 	restoredKeys, err := hs.LoadKeys()
@@ -72,7 +72,7 @@ func TestHeartbeatDbStorer_LoadKeysUnmarshalInvalidShouldErr(t *testing.T) {
 
 	hs, _ := storage.NewHeartbeatDbStorer(
 		storer,
-		&mock.MarshalizerMock{},
+		&mock.MarshallerMock{},
 	)
 
 	restoredKeys, err := hs.LoadKeys()
@@ -85,13 +85,13 @@ func TestHeartbeatDbStorer_LoadKeysShouldWork(t *testing.T) {
 
 	storer := mock.NewStorerMock()
 	keys := [][]byte{[]byte("key1"), []byte("key2")}
-	msr := &mock.MarshalizerMock{}
+	msr := &mock.MarshallerMock{}
 	keysBytes, _ := msr.Marshal(&batch.Batch{Data: keys})
 	_ = storer.Put([]byte("keys"), keysBytes)
 
 	hs, _ := storage.NewHeartbeatDbStorer(
 		storer,
-		&mock.MarshalizerMock{},
+		&mock.MarshallerMock{},
 	)
 
 	restoredKeys, err := hs.LoadKeys()
@@ -105,7 +105,7 @@ func TestHeartbeatDbStorer_SaveKeys(t *testing.T) {
 	keys := [][]byte{[]byte("key1"), []byte("key2")}
 	hs, _ := storage.NewHeartbeatDbStorer(
 		mock.NewStorerMock(),
-		&mock.MarshalizerMock{},
+		&mock.MarshallerMock{},
 	)
 
 	err := hs.SaveKeys(keys)
@@ -120,7 +120,7 @@ func TestHeartbeatDbStorer_LoadGenesisTimeNotFoundInDbShouldErr(t *testing.T) {
 
 	hs, _ := storage.NewHeartbeatDbStorer(
 		mock.NewStorerMock(),
-		&mock.MarshalizerMock{},
+		&mock.MarshallerMock{},
 	)
 
 	_, err := hs.LoadGenesisTime()
@@ -135,7 +135,7 @@ func TestHeartbeatDbStorer_LoadGenesisUnmarshalIssueShouldErr(t *testing.T) {
 
 	hs, _ := storage.NewHeartbeatDbStorer(
 		storer,
-		&mock.MarshalizerMock{},
+		&mock.MarshallerMock{},
 	)
 
 	_, err := hs.LoadGenesisTime()
@@ -146,7 +146,7 @@ func TestHeartbeatDbStorer_LoadGenesisTimeShouldWork(t *testing.T) {
 	t.Parallel()
 
 	storer := mock.NewStorerMock()
-	msr := &mock.MarshalizerMock{}
+	msr := &mock.MarshallerMock{}
 
 	dbt := &data.DbTimeStamp{
 		Timestamp: time.Now().UnixNano(),
@@ -170,7 +170,7 @@ func TestHeartbeatDbStorer_UpdateGenesisTimeShouldFindAndReplace(t *testing.T) {
 	t.Parallel()
 
 	storer := mock.NewStorerMock()
-	msr := &mock.MarshalizerMock{}
+	msr := &mock.MarshallerMock{}
 
 	dbt := &data.DbTimeStamp{
 		Timestamp: time.Now().UnixNano(),
@@ -197,7 +197,7 @@ func TestHeartbeatDbStorer_UpdateGenesisTimeShouldAddNewEntry(t *testing.T) {
 
 	hs, _ := storage.NewHeartbeatDbStorer(
 		mock.NewStorerMock(),
-		&mock.MarshalizerMock{},
+		&mock.MarshallerMock{},
 	)
 
 	genesisTime := time.Now()
@@ -214,7 +214,7 @@ func TestHeartbeatDbSnorer_SavePubkeyDataDataMarshalNotSucceededShouldErr(t *tes
 	expectedErr := errors.New("error marshal")
 	hs, _ := storage.NewHeartbeatDbStorer(
 		mock.NewStorerMock(),
-		&mock.MarshalizerStub{
+		&mock.MarshallerStub{
 			MarshalHandler: func(obj interface{}) ([]byte, error) {
 				return nil, expectedErr
 			},
@@ -238,7 +238,7 @@ func TestHeartbeatDbSnorer_SavePubkeyDataPutNotSucceededShouldErr(t *testing.T) 
 				return expectedErr
 			},
 		},
-		&mock.MarshalizerMock{},
+		&mock.MarshallerMock{},
 	)
 
 	hb := data.HeartbeatDTO{
@@ -253,7 +253,7 @@ func TestHeartbeatDbSnorer_SavePubkeyDataPutShouldWork(t *testing.T) {
 
 	hs, _ := storage.NewHeartbeatDbStorer(
 		mock.NewStorerMock(),
-		&mock.MarshalizerMock{},
+		&mock.MarshallerMock{},
 	)
 
 	hb := data.HeartbeatDTO{
@@ -268,7 +268,7 @@ func TestHeartbeatDbStorer_LoadHeartBeatDTOShouldWork(t *testing.T) {
 
 	hs, _ := storage.NewHeartbeatDbStorer(
 		mock.NewStorerMock(),
-		&mock.MarshalizerMock{},
+		&mock.MarshallerMock{},
 	)
 
 	hb := data.HeartbeatDTO{

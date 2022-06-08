@@ -27,6 +27,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/blockchain"
 	"github.com/ElrondNetwork/elrond-go/process"
 	blproc "github.com/ElrondNetwork/elrond-go/process/block"
+	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
@@ -277,7 +278,7 @@ func TestShardProcess_CreateNewBlockHeaderProcessHeaderExpectCheckRoundCalled(t 
 
 	shardProcessor, _ := blproc.NewShardProcessor(arguments)
 	header := &block.Header{Round: round}
-	bodyHandler, _ := shardProcessor.CreateBlockBody(header, func() bool { return true })
+	bodyHandler, _, _ := shardProcessor.CreateBlockBody(header, func() bool { return true })
 
 	headerHandler, err := shardProcessor.CreateNewHeader(round, 1)
 	require.Nil(t, err)
@@ -474,6 +475,7 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 	container, _ := factory.Create()
 
@@ -697,6 +699,7 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 	container, _ := factory.Create()
 
@@ -2273,7 +2276,7 @@ func TestShardProcessor_CreateTxBlockBodyWithDirtyAccStateShouldReturnEmptyBody(
 
 	sp, _ := blproc.NewShardProcessor(arguments)
 
-	bl, err := sp.CreateBlockBody(&block.Header{PrevRandSeed: []byte("randSeed")}, func() bool { return true })
+	bl, _, err := sp.CreateBlockBody(&block.Header{PrevRandSeed: []byte("randSeed")}, func() bool { return true })
 	assert.Nil(t, err)
 	assert.Equal(t, &block.Body{}, bl)
 }
@@ -2299,7 +2302,7 @@ func TestShardProcessor_CreateTxBlockBodyWithNoTimeShouldReturnEmptyBody(t *test
 	haveTimeTrue := func() bool {
 		return false
 	}
-	bl, err := sp.CreateBlockBody(&block.Header{PrevRandSeed: []byte("randSeed")}, haveTimeTrue)
+	bl, _, err := sp.CreateBlockBody(&block.Header{PrevRandSeed: []byte("randSeed")}, haveTimeTrue)
 	assert.Nil(t, err)
 	assert.Equal(t, &block.Body{}, bl)
 }
@@ -2323,7 +2326,7 @@ func TestShardProcessor_CreateTxBlockBodyOK(t *testing.T) {
 	}
 
 	sp, _ := blproc.NewShardProcessor(arguments)
-	blk, err := sp.CreateBlockBody(&block.Header{PrevRandSeed: []byte("randSeed")}, haveTimeTrue)
+	blk, _, err := sp.CreateBlockBody(&block.Header{PrevRandSeed: []byte("randSeed")}, haveTimeTrue)
 	assert.NotNil(t, blk)
 	assert.Nil(t, err)
 }
@@ -2445,7 +2448,7 @@ func TestBlockProcessor_ApplyBodyToHeaderNilBodyError(t *testing.T) {
 
 	bp, _ := blproc.NewShardProcessor(arguments)
 	hdr := &block.Header{}
-	_, err := bp.ApplyBodyToHeader(hdr, nil)
+	_, err := bp.ApplyBodyToHeader(hdr, nil, nil)
 	assert.Equal(t, process.ErrNilBlockBody, err)
 }
 
@@ -2457,7 +2460,7 @@ func TestBlockProcessor_ApplyBodyToHeaderShouldNotReturnNil(t *testing.T) {
 
 	bp, _ := blproc.NewShardProcessor(arguments)
 	hdr := &block.Header{}
-	_, err := bp.ApplyBodyToHeader(hdr, &block.Body{})
+	_, err := bp.ApplyBodyToHeader(hdr, &block.Body{}, make(map[string]*processedMb.ProcessedMiniBlockInfo))
 	assert.Nil(t, err)
 	assert.NotNil(t, hdr)
 }
@@ -2488,7 +2491,7 @@ func TestShardProcessor_ApplyBodyToHeaderShouldErrWhenMarshalizerErrors(t *testi
 		},
 	}
 	hdr := &block.Header{}
-	_, err := bp.ApplyBodyToHeader(hdr, body)
+	_, err := bp.ApplyBodyToHeader(hdr, body, make(map[string]*processedMb.ProcessedMiniBlockInfo))
 	assert.NotNil(t, err)
 }
 
@@ -2518,7 +2521,7 @@ func TestShardProcessor_ApplyBodyToHeaderReturnsOK(t *testing.T) {
 		},
 	}
 	hdr := &block.Header{}
-	_, err := bp.ApplyBodyToHeader(hdr, body)
+	_, err := bp.ApplyBodyToHeader(hdr, body, make(map[string]*processedMb.ProcessedMiniBlockInfo))
 	assert.Nil(t, err)
 	assert.Equal(t, len(body.MiniBlocks), len(hdr.MiniBlockHeaders))
 }
@@ -2591,6 +2594,7 @@ func TestShardProcessor_MarshalizedDataToBroadcastShouldWork(t *testing.T) {
 		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 	container, _ := factory.Create()
 
@@ -2701,6 +2705,7 @@ func TestShardProcessor_MarshalizedDataMarshalWithoutSuccess(t *testing.T) {
 		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 	container, _ := factory.Create()
 
@@ -3095,6 +3100,7 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 	container, _ := factory.Create()
 
@@ -3112,7 +3118,7 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 	bp, err := blproc.NewShardProcessor(arguments)
 	require.Nil(t, err)
 
-	blockBody, err := bp.CreateMiniBlocks(func() bool { return true })
+	blockBody, _, err := bp.CreateMiniBlocks(func() bool { return true })
 
 	assert.Nil(t, err)
 	// testing execution
@@ -3278,6 +3284,7 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 	container, _ := factory.Create()
 
@@ -4089,7 +4096,7 @@ func TestShardProcessor_RestoreMetaBlockIntoPoolShouldPass(t *testing.T) {
 	assert.Equal(t, nil, metaBlockRestored)
 	assert.Error(t, err)
 
-	err = sp.RestoreMetaBlockIntoPool(miniblockHashes, metablockHashes)
+	err = sp.RestoreMetaBlockIntoPool(miniblockHashes, metablockHashes, &block.Header{})
 
 	metaBlockRestored, _ = poolFake.Headers().GetHeaderByHash(metaHash)
 
@@ -4444,7 +4451,7 @@ func TestShardProcessor_RestoreMetaBlockIntoPoolVerifyMiniblocks(t *testing.T) {
 		}
 	}
 
-	err = sp.RestoreMetaBlockIntoPool(miniblockHashes, metablockHashes)
+	err = sp.RestoreMetaBlockIntoPool(miniblockHashes, metablockHashes, &block.Header{})
 
 	metaBlockRestored, _ = poolMock.Headers().GetHeaderByHash(metaHash)
 
@@ -5063,7 +5070,185 @@ func TestShardProcessor_createMiniBlocks(t *testing.T) {
 	require.Nil(t, err)
 
 	sp.EpochConfirmed(1, 0)
-	_, err = sp.CreateMiniBlocks(func() bool { return false })
+	_, _, err = sp.CreateMiniBlocks(func() bool { return false })
 	require.Nil(t, err)
 	require.True(t, called.IsSet())
+}
+
+func TestShardProcessor_RollBackProcessedMiniBlockInfo(t *testing.T) {
+	t.Parallel()
+
+	arguments := CreateMockArguments(createComponentHolderMocks())
+	processedMiniBlocksTracker := processedMb.NewProcessedMiniBlocksTracker()
+	arguments.ProcessedMiniBlocksTracker = processedMiniBlocksTracker
+	sp, _ := blproc.NewShardProcessor(arguments)
+
+	metaHash := []byte("meta_hash")
+	mbHash := []byte("mb_hash")
+	mbInfo := &processedMb.ProcessedMiniBlockInfo{
+		FullyProcessed:         true,
+		IndexOfLastTxProcessed: 69,
+	}
+	miniBlockHeader := &block.MiniBlockHeader{}
+
+	processedMiniBlocksTracker.SetProcessedMiniBlockInfo(metaHash, mbHash, mbInfo)
+	assert.Equal(t, 1, len(processedMiniBlocksTracker.GetProcessedMiniBlocksInfo(metaHash)))
+
+	sp.RollBackProcessedMiniBlockInfo(miniBlockHeader, mbHash)
+	assert.Equal(t, 0, len(processedMiniBlocksTracker.GetProcessedMiniBlocksInfo(metaHash)))
+
+	processedMiniBlocksTracker.SetProcessedMiniBlockInfo(metaHash, mbHash, mbInfo)
+	assert.Equal(t, 1, len(processedMiniBlocksTracker.GetProcessedMiniBlocksInfo(metaHash)))
+
+	_ = miniBlockHeader.SetIndexOfFirstTxProcessed(2)
+
+	sp.RollBackProcessedMiniBlockInfo(miniBlockHeader, []byte("mb_hash_missing"))
+	assert.Equal(t, 1, len(processedMiniBlocksTracker.GetProcessedMiniBlocksInfo(metaHash)))
+
+	processedMbInfo, processedMetaHash := processedMiniBlocksTracker.GetProcessedMiniBlockInfo(mbHash)
+	assert.Equal(t, metaHash, processedMetaHash)
+	assert.Equal(t, mbInfo.FullyProcessed, processedMbInfo.FullyProcessed)
+	assert.Equal(t, mbInfo.IndexOfLastTxProcessed, processedMbInfo.IndexOfLastTxProcessed)
+
+	sp.RollBackProcessedMiniBlockInfo(miniBlockHeader, mbHash)
+	assert.Equal(t, 1, len(processedMiniBlocksTracker.GetProcessedMiniBlocksInfo(metaHash)))
+
+	processedMbInfo, processedMetaHash = processedMiniBlocksTracker.GetProcessedMiniBlockInfo(mbHash)
+	assert.Equal(t, metaHash, processedMetaHash)
+	assert.False(t, processedMbInfo.FullyProcessed)
+	assert.Equal(t, int32(1), processedMbInfo.IndexOfLastTxProcessed)
+}
+
+func TestShardProcessor_SetProcessedMiniBlocksInfo(t *testing.T) {
+	t.Parallel()
+
+	arguments := CreateMockArguments(createComponentHolderMocks())
+	processedMiniBlocksTracker := processedMb.NewProcessedMiniBlocksTracker()
+	arguments.ProcessedMiniBlocksTracker = processedMiniBlocksTracker
+	sp, _ := blproc.NewShardProcessor(arguments)
+
+	mbHash1 := []byte("mbHash1")
+	mbHash2 := []byte("mbHash2")
+	mbHash3 := []byte("mbHash3")
+	miniBlockHashes := [][]byte{mbHash1, mbHash2, mbHash3}
+	metaHash := "metaHash"
+	mbh1 := block.MiniBlockHeader{
+		TxCount: 3,
+		Hash:    mbHash1,
+	}
+	mbh2 := block.MiniBlockHeader{
+		TxCount: 5,
+		Hash:    mbHash2,
+	}
+	mbh3 := block.MiniBlockHeader{
+		TxCount: 5,
+		Hash:    mbHash3,
+	}
+	metaBlock := &block.MetaBlock{
+		MiniBlockHeaders: []block.MiniBlockHeader{mbh1, mbh2, mbh3},
+	}
+
+	sp.SetProcessedMiniBlocksInfo(miniBlockHashes, metaHash, metaBlock)
+	mapProcessedMiniBlocksInfo := processedMiniBlocksTracker.GetProcessedMiniBlocksInfo([]byte(metaHash))
+	assert.Equal(t, 3, len(mapProcessedMiniBlocksInfo))
+
+	mbi, ok := mapProcessedMiniBlocksInfo[string(mbHash1)]
+	assert.True(t, ok)
+	assert.True(t, mbi.FullyProcessed)
+	assert.Equal(t, int32(mbh1.TxCount-1), mbi.IndexOfLastTxProcessed)
+
+	mbi, ok = mapProcessedMiniBlocksInfo[string(mbHash2)]
+	assert.True(t, ok)
+	assert.True(t, mbi.FullyProcessed)
+	assert.Equal(t, int32(mbh2.TxCount-1), mbi.IndexOfLastTxProcessed)
+
+	mbi, ok = mapProcessedMiniBlocksInfo[string(mbHash3)]
+	assert.True(t, ok)
+	assert.True(t, mbi.FullyProcessed)
+	assert.Equal(t, int32(mbh3.TxCount-1), mbi.IndexOfLastTxProcessed)
+}
+
+func TestShardProcessor_GetIndexOfLastTxProcessedInMiniBlock(t *testing.T) {
+	t.Parallel()
+
+	arguments := CreateMockArguments(createComponentHolderMocks())
+	sp, _ := blproc.NewShardProcessor(arguments)
+
+	mbHash1 := []byte("mbHash1")
+	mbHash2 := []byte("mbHash2")
+	mbHash3 := []byte("mbHash3")
+
+	mbh1 := block.MiniBlockHeader{
+		TxCount: 3,
+		Hash:    mbHash1,
+	}
+	mbh2 := block.MiniBlockHeader{
+		TxCount: 5,
+		Hash:    mbHash2,
+	}
+	metaBlock := &block.MetaBlock{
+		MiniBlockHeaders: []block.MiniBlockHeader{mbh1},
+		ShardInfo: []block.ShardData{
+			{ShardMiniBlockHeaders: []block.MiniBlockHeader{mbh2}},
+		},
+	}
+
+	index := sp.GetIndexOfLastTxProcessedInMiniBlock(mbHash1, metaBlock)
+	assert.Equal(t, int32(mbh1.TxCount-1), index)
+
+	index = sp.GetIndexOfLastTxProcessedInMiniBlock(mbHash2, metaBlock)
+	assert.Equal(t, int32(mbh2.TxCount-1), index)
+
+	index = sp.GetIndexOfLastTxProcessedInMiniBlock(mbHash3, metaBlock)
+	assert.Equal(t, common.MaxIndexOfTxInMiniBlock, index)
+}
+
+func TestShardProcessor_RollBackProcessedMiniBlocksInfo(t *testing.T) {
+	t.Parallel()
+
+	arguments := CreateMockArguments(createComponentHolderMocks())
+	processedMiniBlocksTracker := processedMb.NewProcessedMiniBlocksTracker()
+	arguments.ProcessedMiniBlocksTracker = processedMiniBlocksTracker
+	sp, _ := blproc.NewShardProcessor(arguments)
+
+	metaHash := []byte("metaHash")
+	mbHash1 := []byte("mbHash1")
+	mbHash2 := []byte("mbHash2")
+	mbHash3 := []byte("mbHash3")
+
+	mbInfo := &processedMb.ProcessedMiniBlockInfo{
+		FullyProcessed:         true,
+		IndexOfLastTxProcessed: 69,
+	}
+
+	processedMiniBlocksTracker.SetProcessedMiniBlockInfo(metaHash, mbHash3, mbInfo)
+
+	mbh2 := block.MiniBlockHeader{
+		SenderShardID: 0,
+		TxCount:       5,
+		Hash:          mbHash2,
+	}
+	mbh3 := block.MiniBlockHeader{
+		SenderShardID: 2,
+		TxCount:       5,
+		Hash:          mbHash3,
+	}
+	indexOfFirstTxProcessed := int32(3)
+	_ = mbh3.SetIndexOfFirstTxProcessed(indexOfFirstTxProcessed)
+
+	mapMiniBlockHashes := make(map[string]uint32)
+	mapMiniBlockHashes[string(mbHash1)] = 1
+	mapMiniBlockHashes[string(mbHash2)] = 0
+	mapMiniBlockHashes[string(mbHash3)] = 2
+
+	header := &block.Header{
+		MiniBlockHeaders: []block.MiniBlockHeader{mbh2, mbh3},
+	}
+
+	sp.RollBackProcessedMiniBlocksInfo(header, mapMiniBlockHashes)
+
+	processedMbInfo, processedMetaHash := processedMiniBlocksTracker.GetProcessedMiniBlockInfo(mbHash3)
+	assert.Equal(t, metaHash, processedMetaHash)
+	assert.False(t, processedMbInfo.FullyProcessed)
+	assert.Equal(t, indexOfFirstTxProcessed-1, processedMbInfo.IndexOfLastTxProcessed)
 }

@@ -45,6 +45,8 @@ func TestESDTIssueAndTransactionsOnMultiShardEnvironment(t *testing.T) {
 		GlobalMintBurnDisableEpoch:                  10,
 		BuiltInFunctionOnMetaEnableEpoch:            10,
 		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: 10,
+		ScheduledMiniBlocksEnableEpoch:              10,
+		MiniBlockPartialExecutionEnableEpoch:        10,
 	}
 	nodes := integrationTests.CreateNodesWithEnableEpochs(
 		numOfShards,

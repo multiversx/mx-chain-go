@@ -839,17 +839,17 @@ func TestPruningStorer_ClosePersisters(t *testing.T) {
 		ps, _ := pruning.NewPruningStorer(args)
 		ps.ClearPersisters()
 
-		ps.AddMockActivePersisters([]uint32{0, 1}, true,true)
+		ps.AddMockActivePersisters([]uint32{0, 1}, true, true)
 		err := ps.ClosePersisters(1)
 		require.NoError(t, err)
 		require.Equal(t, []uint32{0, 1}, ps.PersistersMapByEpochToSlice())
 
-		ps.AddMockActivePersisters([]uint32{2, 3}, true,true)
+		ps.AddMockActivePersisters([]uint32{2, 3}, true, true)
 		err = ps.ClosePersisters(3)
 		require.NoError(t, err)
 		require.Equal(t, []uint32{1, 2, 3}, ps.PersistersMapByEpochToSlice())
 
-		ps.AddMockActivePersisters([]uint32{4, 5, 6}, true,true)
+		ps.AddMockActivePersisters([]uint32{4, 5, 6}, true, true)
 		err = ps.ClosePersisters(6)
 		require.NoError(t, err)
 		require.Equal(t, []uint32{4, 5, 6}, ps.PersistersMapByEpochToSlice())
