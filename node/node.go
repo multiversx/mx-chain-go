@@ -789,9 +789,6 @@ func (n *Node) GetAccount(address string, options api.AccountQueryOptions) (api.
 				DeveloperReward: "0",
 			}, api.BlockInfo{}, nil
 		}
-		if err == ErrCannotCastAccountHandlerToUserAccountHandler {
-			return api.AccountResponse{}, api.BlockInfo{}, err
-		}
 
 		return api.AccountResponse{}, api.BlockInfo{}, err
 	}
