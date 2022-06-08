@@ -25,7 +25,7 @@ func (vp *validatorsProvider) GetAuctionList() ([]*common.AuctionListValidatorAP
 	}
 
 	vp.auctionLock.RLock()
-	ret := make([]*common.AuctionListValidatorAPIResponse, 0, len(vp.cachedAuctionValidators))
+	ret := make([]*common.AuctionListValidatorAPIResponse, len(vp.cachedAuctionValidators))
 	copy(ret, vp.cachedAuctionValidators)
 	vp.auctionLock.RUnlock()
 
@@ -151,7 +151,7 @@ func (vp *validatorsProvider) fillAuctionQualifiedValidatorAPIData(
 			BlsKey:    vp.addressPubKeyConverter.Encode(nodeInAuction.GetPublicKey()),
 			Qualified: false,
 		}
-		if contains(selectedNodes, nodeInAuction) {
+		if ownerData.Qualified && contains(selectedNodes, nodeInAuction) {
 			auctionNode.Qualified = true
 			numOwnerQualifiedNodes++
 		}

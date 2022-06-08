@@ -685,6 +685,195 @@ func TestValidatorsProvider_GetAuctionList(t *testing.T) {
 		require.Equal(t, ctFillValidatorInfoCalled, uint32(0))
 		require.Equal(t, ctGetOwnersDataCalled, uint32(2))
 		require.Equal(t, expectedRootHash, vp.cachedRandomness)
+	})
+
+	t.Run("normal flow, check data is correctly computed", func(t *testing.T) {
+		args := createDefaultValidatorsProviderArg()
+
+		v1 := &state.ValidatorInfo{PublicKey: []byte("pk1"), List: string(common.AuctionList)}
+		v2 := &state.ValidatorInfo{PublicKey: []byte("pk2"), List: string(common.AuctionList)}
+		v3 := &state.ValidatorInfo{PublicKey: []byte("pk3"), List: string(common.AuctionList)}
+		v4 := &state.ValidatorInfo{PublicKey: []byte("pk4"), List: string(common.AuctionList)}
+		v5 := &state.ValidatorInfo{PublicKey: []byte("pk5"), List: string(common.AuctionList)}
+		v6 := &state.ValidatorInfo{PublicKey: []byte("pk6"), List: string(common.AuctionList)}
+		v7 := &state.ValidatorInfo{PublicKey: []byte("pk7"), List: string(common.EligibleList)}
+		v8 := &state.ValidatorInfo{PublicKey: []byte("pk8"), List: string(common.WaitingList)}
+		v9 := &state.ValidatorInfo{PublicKey: []byte("pk9"), List: string(common.LeavingList)}
+		v10 := &state.ValidatorInfo{PublicKey: []byte("pk10"), List: string(common.JailedList)}
+
+		owner1 := "owner1"
+		owner2 := "owner2"
+		owner3 := "owner3"
+		owner4 := "owner4"
+		owner5 := "owner5"
+		ownersData := map[string]*epochStart.OwnerData{
+			owner1: {
+				NumStakedNodes:  3,
+				NumActiveNodes:  1,
+				NumAuctionNodes: 2,
+				TotalTopUp:      big.NewInt(7500),
+				TopUpPerNode:    big.NewInt(2500),
+				AuctionList:     []state.ValidatorInfoHandler{v1, v2}, // owner1 will have v1 & v2 selected
+				Qualified:       true,                                 // with qualifiedTopUp = 2500
+			},
+			owner2: {
+				NumStakedNodes:  3,
+				NumActiveNodes:  1,
+				NumAuctionNodes: 2,
+				TotalTopUp:      big.NewInt(3000),
+				TopUpPerNode:    big.NewInt(1000),
+				AuctionList:     []state.ValidatorInfoHandler{v3, v4}, // owner2 will have v3 selected
+				Qualified:       true,                                 // with qualifiedTopUp = 1500
+			},
+			owner3: {
+				NumStakedNodes:  2,
+				NumActiveNodes:  0,
+				NumAuctionNodes: 2,
+				TotalTopUp:      big.NewInt(4000),
+				TopUpPerNode:    big.NewInt(2000),
+				AuctionList:     []state.ValidatorInfoHandler{v5, v6}, // owner3 will have v5 selected
+				Qualified:       true,                                 // with qualifiedTopUp = 4000
+			},
+			owner4: {
+				NumStakedNodes:  3,
+				NumActiveNodes:  2,
+				NumAuctionNodes: 1,
+				TotalTopUp:      big.NewInt(0),
+				TopUpPerNode:    big.NewInt(0),
+				AuctionList:     []state.ValidatorInfoHandler{v7},
+				Qualified:       false,
+			},
+			owner5: {
+				NumStakedNodes:  5,
+				NumActiveNodes:  5,
+				NumAuctionNodes: 0,
+				TotalTopUp:      big.NewInt(5000),
+				TopUpPerNode:    big.NewInt(1000),
+				AuctionList:     []state.ValidatorInfoHandler{},
+				Qualified:       true,
+			},
+		}
+
+		validatorsMap := state.NewShardValidatorsInfoMap()
+		_ = validatorsMap.Add(v1)
+		_ = validatorsMap.Add(v2)
+		_ = validatorsMap.Add(v3)
+		_ = validatorsMap.Add(v4)
+		_ = validatorsMap.Add(v5)
+		_ = validatorsMap.Add(v6)
+		_ = validatorsMap.Add(v7)
+		_ = validatorsMap.Add(v8)
+		_ = validatorsMap.Add(v9)
+		_ = validatorsMap.Add(v10)
+
+		args.ValidatorStatistics = &testscommon.ValidatorStatisticsProcessorStub{
+			GetValidatorInfoForRootHashCalled: func(rootHash []byte) (state.ShardValidatorsInfoMapHandler, error) {
+				return validatorsMap, nil
+			},
+		}
+		args.AuctionListSelector = &stakingcommon.AuctionListSelectorStub{
+			SelectNodesFromAuctionListCalled: func(validatorsInfoMap state.ShardValidatorsInfoMapHandler, randomness []byte) error {
+				selectedV1 := v1.ShallowClone()
+				selectedV1.SetList(string(common.SelectedFromAuctionList))
+				_ = validatorsInfoMap.Replace(v1, selectedV1)
+
+				selectedV2 := v2.ShallowClone()
+				selectedV2.SetList(string(common.SelectedFromAuctionList))
+				_ = validatorsInfoMap.Replace(v2, selectedV2)
+
+				selectedV3 := v3.ShallowClone()
+				selectedV3.SetList(string(common.SelectedFromAuctionList))
+				_ = validatorsInfoMap.Replace(v3, selectedV3)
+
+				selectedV5 := v5.ShallowClone()
+				selectedV5.SetList(string(common.SelectedFromAuctionList))
+				_ = validatorsInfoMap.Replace(v5, selectedV5)
+
+				return nil
+			},
+		}
+		args.StakingDataProvider = &stakingcommon.StakingDataProviderStub{
+			GetOwnersDataCalled: func() map[string]*epochStart.OwnerData {
+				return ownersData
+			},
+		}
+
+		vp, _ := NewValidatorsProvider(args)
+		time.Sleep(args.CacheRefreshIntervalDurationInSec)
+
+		expectedList := []*common.AuctionListValidatorAPIResponse{
+			{
+				Owner:          args.AddressPubKeyConverter.Encode([]byte(owner3)),
+				NumStakedNodes: 2,
+				TotalTopUp:     "4000",
+				TopUpPerNode:   "2000",
+				QualifiedTopUp: "4000",
+				AuctionList: []common.AuctionNode{
+					{
+						BlsKey:    args.ValidatorPubKeyConverter.Encode(v5.PublicKey),
+						Qualified: true,
+					},
+					{
+						BlsKey:    args.ValidatorPubKeyConverter.Encode(v6.PublicKey),
+						Qualified: false,
+					},
+				},
+			},
+
+			{
+				Owner:          args.AddressPubKeyConverter.Encode([]byte(owner1)),
+				NumStakedNodes: 3,
+				TotalTopUp:     "7500",
+				TopUpPerNode:   "2500",
+				QualifiedTopUp: "2500",
+				AuctionList: []common.AuctionNode{
+					{
+						BlsKey:    args.ValidatorPubKeyConverter.Encode(v1.PublicKey),
+						Qualified: true,
+					},
+					{
+						BlsKey:    args.ValidatorPubKeyConverter.Encode(v2.PublicKey),
+						Qualified: true,
+					},
+				},
+			},
+
+			{
+				Owner:          args.AddressPubKeyConverter.Encode([]byte(owner2)),
+				NumStakedNodes: 3,
+				TotalTopUp:     "3000",
+				TopUpPerNode:   "1000",
+				QualifiedTopUp: "1500",
+				AuctionList: []common.AuctionNode{
+					{
+						BlsKey:    args.ValidatorPubKeyConverter.Encode(v3.PublicKey),
+						Qualified: true,
+					},
+					{
+						BlsKey:    args.ValidatorPubKeyConverter.Encode(v4.PublicKey),
+						Qualified: false,
+					},
+				},
+			},
+
+			{
+				Owner:          args.AddressPubKeyConverter.Encode([]byte(owner4)),
+				NumStakedNodes: 3,
+				TotalTopUp:     "0",
+				TopUpPerNode:   "0",
+				QualifiedTopUp: "0",
+				AuctionList: []common.AuctionNode{
+					{
+						BlsKey:    args.ValidatorPubKeyConverter.Encode(v7.PublicKey),
+						Qualified: false,
+					},
+				},
+			},
+		}
+
+		list, err := vp.GetAuctionList()
+		require.Nil(t, err)
+		require.Equal(t, expectedList, list)
 
 	})
 
