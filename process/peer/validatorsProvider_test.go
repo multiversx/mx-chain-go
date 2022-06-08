@@ -201,7 +201,7 @@ func TestValidatorsProvider_CallsPopulateAndRegister(t *testing.T) {
 
 	time.Sleep(time.Millisecond)
 
-	assert.Equal(t, int32(1), atomic.LoadInt32(&numPopulateCacheCalled))
+	assert.Equal(t, int32(2), atomic.LoadInt32(&numPopulateCacheCalled))
 	assert.Equal(t, int32(1), atomic.LoadInt32(&numRegisterHandlerCalled))
 }
 
@@ -253,6 +253,8 @@ func TestValidatorsProvider_Cancel_startRefreshProcess(t *testing.T) {
 		cacheRefreshIntervalDuration: arg.CacheRefreshIntervalDurationInSec,
 		refreshCache:                 make(chan uint32),
 		lock:                         sync.RWMutex{},
+		stakingDataProvider:          &stakingcommon.StakingDataProviderStub{},
+		auctionListSelector:          &stakingcommon.AuctionListSelectorStub{},
 	}
 
 	ctx, cancelFunc := context.WithCancel(context.Background())

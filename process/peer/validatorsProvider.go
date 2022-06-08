@@ -24,7 +24,7 @@ type validatorsProvider struct {
 	nodesCoordinator              process.NodesCoordinator
 	validatorStatistics           process.ValidatorStatisticsProcessor
 	cache                         map[string]*state.ValidatorApiResponse
-	cachedValidatorsMap           state.ShardValidatorsInfoMapHandler
+	cachedAuctionValidators       []*common.AuctionListValidatorAPIResponse
 	cachedRandomness              []byte
 	cacheRefreshIntervalDuration  time.Duration
 	refreshCache                  chan uint32
@@ -96,7 +96,7 @@ func NewValidatorsProvider(
 		validatorStatistics:          args.ValidatorStatistics,
 		stakingDataProvider:          args.StakingDataProvider,
 		cache:                        make(map[string]*state.ValidatorApiResponse),
-		cachedValidatorsMap:          state.NewShardValidatorsInfoMap(),
+		cachedAuctionValidators:      make([]*common.AuctionListValidatorAPIResponse, 0),
 		cachedRandomness:             make([]byte, 0),
 		cacheRefreshIntervalDuration: args.CacheRefreshIntervalDurationInSec,
 		refreshCache:                 make(chan uint32),
@@ -192,6 +192,11 @@ func (vp *validatorsProvider) epochStartEventHandler() nodesCoordinator.EpochSta
 func (vp *validatorsProvider) startRefreshProcess(ctx context.Context) {
 	for {
 		vp.updateCache()
+		err := vp.updateAuctionListCache()
+		if err != nil {
+			log.Error("could not update validators auction info cache", "error", err)
+		}
+
 		select {
 		case epoch := <-vp.refreshCache:
 			vp.lock.Lock()

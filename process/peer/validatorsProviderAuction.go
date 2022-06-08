@@ -13,13 +13,53 @@ import (
 
 // GetAuctionList returns an array containing the validators that are currently in the auction list
 func (vp *validatorsProvider) GetAuctionList() ([]*common.AuctionListValidatorAPIResponse, error) {
-	validatorsMap, err := vp.getValidatorsInfo()
-	if err != nil {
-		return nil, err
+	vp.auctionLock.RLock()
+	shouldUpdate := time.Since(vp.lastValidatorsInfoCacheUpdate) > vp.cacheRefreshIntervalDuration
+	vp.auctionLock.RUnlock()
+
+	if shouldUpdate {
+		err := vp.updateAuctionListCache()
+		if err != nil {
+			return nil, err
+		}
 	}
 
+	vp.auctionLock.RLock()
+	ret := make([]*common.AuctionListValidatorAPIResponse, 0, len(vp.cachedAuctionValidators))
+	copy(ret, vp.cachedAuctionValidators)
+	vp.auctionLock.RUnlock()
+
+	return ret, nil
+}
+
+func (vp *validatorsProvider) updateAuctionListCache() error {
+	rootHash, err := vp.validatorStatistics.RootHash()
+	if err != nil {
+		return err
+	}
+
+	validatorsMap, err := vp.validatorStatistics.GetValidatorInfoForRootHash(rootHash)
+	if err != nil {
+		return err
+	}
+
+	newCache, err := vp.createValidatorsAuctionCache(validatorsMap)
+	if err != nil {
+		return err
+	}
+
+	vp.auctionLock.Lock()
+	vp.lastValidatorsInfoCacheUpdate = time.Now()
+	vp.cachedAuctionValidators = newCache
+	vp.cachedRandomness = rootHash
+	vp.auctionLock.Unlock()
+
+	return nil
+}
+
+func (vp *validatorsProvider) createValidatorsAuctionCache(validatorsMap state.ShardValidatorsInfoMapHandler) ([]*common.AuctionListValidatorAPIResponse, error) {
 	defer vp.stakingDataProvider.Clean()
-	err = vp.fillAllValidatorsInfo(validatorsMap)
+	err := vp.fillAllValidatorsInfo(validatorsMap)
 	if err != nil {
 		return nil, err
 	}
@@ -45,15 +85,6 @@ func (vp *validatorsProvider) fillAllValidatorsInfo(validatorsMap state.ShardVal
 	return nil
 }
 
-func sortList(list []*common.AuctionListValidatorAPIResponse) {
-	sort.SliceStable(list, func(i, j int) bool {
-		qualifiedTopUpValidator1, _ := big.NewInt(0).SetString(list[i].QualifiedTopUp, 10)
-		qualifiedTopUpValidator2, _ := big.NewInt(0).SetString(list[j].QualifiedTopUp, 10)
-
-		return qualifiedTopUpValidator1.Cmp(qualifiedTopUpValidator2) > 0
-	})
-}
-
 func (vp *validatorsProvider) getSelectedNodesFromAuction(validatorsMap state.ShardValidatorsInfoMapHandler) ([]state.ValidatorInfoHandler, error) {
 	vp.auctionLock.RLock()
 	randomness := vp.cachedRandomness
@@ -72,6 +103,15 @@ func (vp *validatorsProvider) getSelectedNodesFromAuction(validatorsMap state.Sh
 	}
 
 	return selectedNodes, nil
+}
+
+func sortList(list []*common.AuctionListValidatorAPIResponse) {
+	sort.SliceStable(list, func(i, j int) bool {
+		qualifiedTopUpValidator1, _ := big.NewInt(0).SetString(list[i].QualifiedTopUp, 10)
+		qualifiedTopUpValidator2, _ := big.NewInt(0).SetString(list[j].QualifiedTopUp, 10)
+
+		return qualifiedTopUpValidator1.Cmp(qualifiedTopUpValidator2) > 0
+	})
 }
 
 func (vp *validatorsProvider) getAuctionListValidatorsAPIResponse(selectedNodes []state.ValidatorInfoHandler) []*common.AuctionListValidatorAPIResponse {
@@ -131,58 +171,4 @@ func contains(list []state.ValidatorInfoHandler, validator state.ValidatorInfoHa
 		}
 	}
 	return false
-}
-
-func (vp *validatorsProvider) getValidatorsInfo() (state.ShardValidatorsInfoMapHandler, error) {
-	vp.auctionLock.RLock()
-	shouldUpdate := time.Since(vp.lastValidatorsInfoCacheUpdate) > vp.cacheRefreshIntervalDuration
-	vp.auctionLock.RUnlock()
-
-	if shouldUpdate {
-		err := vp.updateValidatorsInfoCache()
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	vp.auctionLock.RLock()
-	defer vp.auctionLock.RUnlock()
-
-	return cloneValidatorsMap(vp.cachedValidatorsMap)
-}
-
-func (vp *validatorsProvider) updateValidatorsInfoCache() error {
-	rootHash, err := vp.validatorStatistics.RootHash()
-	if err != nil {
-		return err
-	}
-
-	validatorsMap, err := vp.validatorStatistics.GetValidatorInfoForRootHash(rootHash)
-	if err != nil {
-		return err
-	}
-
-	vp.auctionLock.Lock()
-	defer vp.auctionLock.Unlock()
-
-	vp.lastValidatorsInfoCacheUpdate = time.Now()
-	vp.cachedValidatorsMap, err = cloneValidatorsMap(validatorsMap)
-	vp.cachedRandomness = rootHash
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func cloneValidatorsMap(validatorsMap state.ShardValidatorsInfoMapHandler) (state.ShardValidatorsInfoMapHandler, error) {
-	ret := state.NewShardValidatorsInfoMap()
-	for _, validator := range validatorsMap.GetAllValidatorsInfo() {
-		err := ret.Add(validator.ShallowClone())
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return ret, nil
 }
