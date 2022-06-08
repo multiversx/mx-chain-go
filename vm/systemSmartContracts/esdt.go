@@ -70,6 +70,8 @@ type esdt struct {
 	flagTransformToMultiShardCreate        atomic.Flag
 	registerAndSetAllRolesEnableEpoch      uint32
 	flagRegisterAndSetAllRoles             atomic.Flag
+	burnForAllEnableEpoch                  uint32
+	flagBurnForAll                         atomic.Flag
 }
 
 // ArgsNewESDTSmartContract defines the arguments needed for the esdt contract
@@ -128,6 +130,7 @@ func NewESDTSmartContract(args ArgsNewESDTSmartContract) (*esdt, error) {
 		nftCreateONMultiShardEnableEpoch:  args.EpochConfig.EnableEpochs.ESDTNFTCreateOnMultiShardEnableEpoch,
 		metaESDTEnableEpoch:               args.EpochConfig.EnableEpochs.MetaESDTSetEnableEpoch,
 		registerAndSetAllRolesEnableEpoch: args.EpochConfig.EnableEpochs.ESDTRegisterAndSetAllRolesEnableEpoch,
+		burnForAllEnableEpoch:             args.EpochConfig.EnableEpochs.ESDTMetadataContinuousCleanupEnableEpoch,
 		endOfEpochSCAddress:               args.EndOfEpochSCAddress,
 		addressPubKeyConverter:            args.AddressPubKeyConverter,
 	}
@@ -138,6 +141,7 @@ func NewESDTSmartContract(args ArgsNewESDTSmartContract) (*esdt, error) {
 	log.Debug("esdt: enable epoch for meta tokens, financial SFTs", "epoch", e.metaESDTEnableEpoch)
 	log.Debug("esdt: enable epoch for transferm to multi shard create", "epoch", e.transformToMultiShardCreateEnableEpoch)
 	log.Debug("esdt: enable epoch for esdt register and set all roles function", "epoch", e.registerAndSetAllRolesEnableEpoch)
+	log.Debug("esdt: enable epoch for esdt burn for all role", "epoch", e.burnForAllEnableEpoch)
 
 	args.EpochNotifier.RegisterNotifyHandler(e)
 
@@ -221,6 +225,10 @@ func (e *esdt) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 		return e.getContractConfig(args)
 	case "changeToMultiShardCreate":
 		return e.changeToMultiShardCreate(args)
+	case "setBurnForAll":
+		return e.setBurnForAll(args)
+	case "unsetBurnForAll":
+		return e.unSetBurnForAll(args)
 	}
 
 	e.eei.AddReturnMessage("invalid method to call")
@@ -1073,6 +1081,68 @@ func (e *esdt) togglePause(args *vmcommon.ContractCallInput, builtInFunc string)
 	return vmcommon.Ok
 }
 
+func (e *esdt) checkInputReturnDataBurnForAll(args *vmcommon.ContractCallInput) (*ESDTDataV2, vmcommon.ReturnCode) {
+	if !e.flagBurnForAll.IsSet() {
+		e.eei.AddReturnMessage("invalid method to call")
+		return nil, vmcommon.FunctionNotFound
+	}
+	if len(args.Arguments) != 1 {
+		e.eei.AddReturnMessage("invalid number of arguments, wanted 1")
+		return nil, vmcommon.FunctionWrongSignature
+	}
+	return e.basicOwnershipChecks(args)
+}
+
+func (e *esdt) saveTokenAndSendForAll(token *ESDTDataV2, tokenID []byte, builtInCall string) vmcommon.ReturnCode {
+	err := e.saveToken(tokenID, token)
+	if err != nil {
+		e.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	esdtTransferData := builtInCall + "@" + hex.EncodeToString(tokenID)
+	e.eei.SendGlobalSettingToAll(e.eSDTSCAddress, []byte(esdtTransferData))
+
+	return vmcommon.Ok
+}
+
+func (e *esdt) setBurnForAll(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	token, returnCode := e.checkInputReturnDataBurnForAll(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+
+	burnForAllExists := checkIfDefinedRoleExistsInToken(token, []byte(vmcommon.ESDTRoleBurnForAll))
+	if burnForAllExists {
+		e.eei.AddReturnMessage("cannot set burn  for all as it was already set")
+		return vmcommon.UserError
+	}
+
+	burnForAllRole := &ESDTRoles{Roles: [][]byte{[]byte(vmcommon.ESDTRoleBurnForAll)}, Address: []byte{}}
+	token.SpecialRoles = append(token.SpecialRoles, burnForAllRole)
+
+	returnCode = e.saveTokenAndSendForAll(token, args.Arguments[0], vmcommon.BuiltInFunctionESDTSetBurnRoleForAll)
+	return returnCode
+}
+
+func (e *esdt) unSetBurnForAll(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	token, returnCode := e.checkInputReturnDataBurnForAll(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+
+	burnForAllExists := checkIfDefinedRoleExistsInToken(token, []byte(vmcommon.ESDTRoleBurnForAll))
+	if !burnForAllExists {
+		e.eei.AddReturnMessage("cannot un set burn for all as it was not set")
+		return vmcommon.UserError
+	}
+
+	deleteRoleFromToken(token, []byte(vmcommon.ESDTRoleBurnForAll))
+
+	returnCode = e.saveTokenAndSendForAll(token, args.Arguments[0], vmcommon.BuiltInFunctionESDTSetBurnRoleForAll)
+	return returnCode
+}
+
 func (e *esdt) configChange(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	owner, err := e.getEsdtOwner()
 	if err != nil {
@@ -1363,6 +1433,10 @@ func checkIfDefinedRoleExistsInArgsAndToken(args [][]byte, token *ESDTDataV2, de
 		return false
 	}
 
+	return checkIfDefinedRoleExistsInToken(token, definedRole)
+}
+
+func checkIfDefinedRoleExistsInToken(token *ESDTDataV2, definedRole []byte) bool {
 	for _, esdtRole := range token.SpecialRoles {
 		for _, role := range esdtRole.Roles {
 			if bytes.Equal(role, definedRole) {
@@ -1370,8 +1444,26 @@ func checkIfDefinedRoleExistsInArgsAndToken(args [][]byte, token *ESDTDataV2, de
 			}
 		}
 	}
-
 	return false
+}
+
+func deleteRoleFromToken(token *ESDTDataV2, definedRole []byte) {
+	var newRoles []*ESDTRoles
+	for _, esdtRole := range token.SpecialRoles {
+		index := getRoleIndex(esdtRole, definedRole)
+		if index < 0 {
+			newRoles = append(newRoles, esdtRole)
+			continue
+		}
+
+		copy(esdtRole.Roles[index:], esdtRole.Roles[index+1:])
+		esdtRole.Roles[len(esdtRole.Roles)-1] = nil
+		esdtRole.Roles = esdtRole.Roles[:len(esdtRole.Roles)-1]
+
+		if len(esdtRole.Roles) > 0 {
+			newRoles = append(newRoles, esdtRole)
+		}
+	}
 }
 
 func (e *esdt) isSpecialRoleValidForFungible(argument string) error {
@@ -2050,6 +2142,9 @@ func (e *esdt) EpochConfirmed(epoch uint32, _ uint64) {
 
 	e.flagRegisterAndSetAllRoles.SetValue(epoch >= e.registerAndSetAllRolesEnableEpoch)
 	log.Debug("ESDT register and set all roles", "enabled", e.flagRegisterAndSetAllRoles.IsSet())
+
+	e.flagBurnForAll.SetValue(epoch >= e.burnForAllEnableEpoch)
+	log.Debug("ESDT register and set all roles", "enabled", e.flagBurnForAll.IsSet())
 }
 
 // SetNewGasCost is called whenever a gas cost was changed
