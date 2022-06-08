@@ -1,6 +1,9 @@
 package statistics
 
-import "sync"
+import (
+	"sync"
+	"time"
+)
 
 type trieSyncStatistics struct {
 	sync.RWMutex
@@ -9,6 +12,8 @@ type trieSyncStatistics struct {
 	numLarge         int
 	missingMap       map[string]int
 	numBytesReceived uint64
+	numIterations    int
+	processingTime   time.Duration
 }
 
 // NewTrieSyncStatistics returns a structure able to collect sync statistics from a trie and store them
@@ -26,6 +31,8 @@ func (tss *trieSyncStatistics) Reset() {
 	tss.numLarge = 0
 	tss.numBytesReceived = 0
 	tss.missingMap = make(map[string]int)
+	tss.numIterations = 0
+	tss.processingTime = time.Duration(0)
 	tss.Unlock()
 }
 
@@ -70,6 +77,20 @@ func (tss *trieSyncStatistics) SetNumMissing(rootHash []byte, value int) {
 	tss.missingMap[string(rootHash)] = value
 }
 
+// AddProcessingTime will add the processing time to the existing value
+func (tss *trieSyncStatistics) AddProcessingTime(duration time.Duration) {
+	tss.Lock()
+	tss.processingTime += duration
+	tss.Unlock()
+}
+
+// IncrementIteration will increment the iterations done on all trie syncers
+func (tss *trieSyncStatistics) IncrementIteration() {
+	tss.Lock()
+	tss.numIterations++
+	tss.Unlock()
+}
+
 // NumReceived returns the received nodes
 func (tss *trieSyncStatistics) NumReceived() int {
 	tss.RLock()
@@ -108,6 +129,22 @@ func (tss *trieSyncStatistics) NumTries() int {
 	defer tss.RUnlock()
 
 	return len(tss.missingMap)
+}
+
+// ProcessingTime will return the cumulative processing time used in tries synchronization (sum of all go routines used in trie sync processes)
+func (tss *trieSyncStatistics) ProcessingTime() time.Duration {
+	tss.RLock()
+	defer tss.RUnlock()
+
+	return tss.processingTime
+}
+
+// NumIterations returns the total iterations done by all go routines used in the trie sync processes
+func (tss *trieSyncStatistics) NumIterations() int {
+	tss.RLock()
+	defer tss.RUnlock()
+
+	return tss.numIterations
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
