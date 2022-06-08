@@ -331,9 +331,9 @@ type TestProcessorNode struct {
 	EnableEpochs             config.EnableEpochs
 	UseValidVmBlsSigVerifier bool
 
-	TransactionLogProcessor        process.TransactionLogProcessor
-	PeersRatingHandler p2p.PeersRatingHandler
-	HardforkTrigger node.HardforkTrigger
+	TransactionLogProcessor process.TransactionLogProcessor
+	PeersRatingHandler      p2p.PeersRatingHandler
+	HardforkTrigger         node.HardforkTrigger
 }
 
 // CreatePkBytes creates 'numShards' public key-like byte slices
@@ -858,6 +858,7 @@ func (tpn *TestProcessorNode) createFullSCQueryService() {
 		ShardCoordinator:           tpn.ShardCoordinator,
 		EpochNotifier:              tpn.EpochNotifier,
 		GlobalMintBurnDisableEpoch: tpn.EnableEpochs.GlobalMintBurnDisableEpoch,
+		AutomaticCrawlerAddress:    bytes.Repeat([]byte{1}, 32),
 	}
 	builtInFuncs, nftStorageHandler, globalSettingsHandler, _ := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
 
@@ -1493,6 +1494,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		ShardCoordinator:           tpn.ShardCoordinator,
 		EpochNotifier:              tpn.EpochNotifier,
 		GlobalMintBurnDisableEpoch: tpn.EnableEpochs.GlobalMintBurnDisableEpoch,
+		AutomaticCrawlerAddress:    bytes.Repeat([]byte{1}, 32),
 	}
 	builtInFuncs, nftStorageHandler, globalSettingsHandler, _ := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
 
@@ -1716,6 +1718,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		ShardCoordinator:           tpn.ShardCoordinator,
 		EpochNotifier:              tpn.EpochNotifier,
 		GlobalMintBurnDisableEpoch: tpn.EnableEpochs.GlobalMintBurnDisableEpoch,
+		AutomaticCrawlerAddress:    bytes.Repeat([]byte{1}, 32),
 	}
 	builtInFuncs, nftStorageHandler, globalSettingsHandler, _ := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
 	argsHook := hooks.ArgBlockChainHook{
