@@ -1,10 +1,11 @@
 package mock
 
 import (
+	"math/big"
+
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
-	"math/big"
 )
 
 // EsdtStorageHandlerStub -
