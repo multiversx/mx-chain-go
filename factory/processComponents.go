@@ -543,6 +543,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		MaxRating:                         pcf.maxRating,
 		ValidatorPubKeyConverter:          pcf.coreData.ValidatorPubKeyConverter(),
 		AddressPubKeyConverter:            pcf.coreData.AddressPubKeyConverter(),
+		AuctionListSelector:               pcf.auctionListSelector,
 	}
 
 	validatorsProvider, err := peer.NewValidatorsProvider(argVSP)
