@@ -40,6 +40,7 @@ const canAddSpecialRoles = "canAddSpecialRoles"
 const canTransferNFTCreateRole = "canTransferNFTCreateRole"
 const upgradable = "canUpgrade"
 const canCreateMultiShard = "canCreateMultiShard"
+const upgradeProperties = "upgradeProperties"
 
 const conversionBase = 10
 const metaESDT = "MetaESDT"
@@ -337,7 +338,7 @@ func (e *esdt) issue(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	logEntry := &vmcommon.LogEntry{
 		Identifier: []byte(args.Function),
 		Address:    args.CallerAddr,
-		Topics:     [][]byte{tokenIdentifier, args.Arguments[0], args.Arguments[1], []byte(core.FungibleESDT)},
+		Topics:     [][]byte{tokenIdentifier, args.Arguments[0], args.Arguments[1], []byte(core.FungibleESDT), big.NewInt(int64(numOfDecimals)).Bytes()},
 	}
 	e.eei.AddLogEntry(logEntry)
 
@@ -371,7 +372,7 @@ func (e *esdt) registerNonFungible(args *vmcommon.ContractCallInput) vmcommon.Re
 	logEntry := &vmcommon.LogEntry{
 		Identifier: []byte(args.Function),
 		Address:    args.CallerAddr,
-		Topics:     [][]byte{tokenIdentifier, args.Arguments[0], args.Arguments[1], []byte(core.NonFungibleESDT)},
+		Topics:     [][]byte{tokenIdentifier, args.Arguments[0], args.Arguments[1], []byte(core.NonFungibleESDT), big.NewInt(0).Bytes()},
 	}
 	e.eei.AddLogEntry(logEntry)
 
@@ -406,7 +407,7 @@ func (e *esdt) registerSemiFungible(args *vmcommon.ContractCallInput) vmcommon.R
 	logEntry := &vmcommon.LogEntry{
 		Identifier: []byte(args.Function),
 		Address:    args.CallerAddr,
-		Topics:     [][]byte{tokenIdentifier, args.Arguments[0], args.Arguments[1], []byte(core.SemiFungibleESDT)},
+		Topics:     [][]byte{tokenIdentifier, args.Arguments[0], args.Arguments[1], []byte(core.SemiFungibleESDT), big.NewInt(0).Bytes()},
 	}
 	e.eei.AddLogEntry(logEntry)
 
@@ -535,7 +536,7 @@ func (e *esdt) registerAndSetRoles(args *vmcommon.ContractCallInput) vmcommon.Re
 	logEntry := &vmcommon.LogEntry{
 		Identifier: []byte(args.Function),
 		Address:    args.CallerAddr,
-		Topics:     [][]byte{tokenIdentifier, args.Arguments[0], args.Arguments[1], tokenType},
+		Topics:     [][]byte{tokenIdentifier, args.Arguments[0], args.Arguments[1], tokenType, big.NewInt(int64(numOfDecimals)).Bytes()},
 	}
 	e.eei.Finish(tokenIdentifier)
 	e.eei.AddLogEntry(logEntry)
@@ -611,7 +612,7 @@ func (e *esdt) changeSFTToMetaESDT(args *vmcommon.ContractCallInput) vmcommon.Re
 	logEntry := &vmcommon.LogEntry{
 		Identifier: []byte(args.Function),
 		Address:    args.CallerAddr,
-		Topics:     [][]byte{args.Arguments[0], token.TokenName, token.TickerName, []byte(metaESDT)},
+		Topics:     [][]byte{args.Arguments[0], token.TokenName, token.TickerName, []byte(metaESDT), args.Arguments[1]},
 	}
 	e.eei.AddLogEntry(logEntry)
 
@@ -650,7 +651,7 @@ func (e *esdt) createNewToken(
 		Upgradable:         true,
 		CanAddSpecialRoles: true,
 	}
-	err = e.upgradeProperties(newESDTToken, properties, true)
+	err = e.upgradeProperties(tokenIdentifier, newESDTToken, properties, true, owner)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -714,7 +715,7 @@ func (e *esdt) createNewTokenIdentifier(caller []byte, ticker []byte) ([]byte, e
 	return nil, vm.ErrCouldNotCreateNewTokenIdentifier
 }
 
-func (e *esdt) upgradeProperties(token *ESDTDataV2, args [][]byte, isCreate bool) error {
+func (e *esdt) upgradeProperties(tokenIdentifier []byte, token *ESDTDataV2, args [][]byte, isCreate bool, callerAddr []byte) error {
 	mintBurnable := true
 	if string(token.TokenType) != core.FungibleESDT {
 		mintBurnable = false
@@ -773,6 +774,17 @@ func (e *esdt) upgradeProperties(token *ESDTDataV2, args [][]byte, isCreate bool
 			return vm.ErrInvalidArgument
 		}
 	}
+
+	topics := make([][]byte, 0)
+	nonce := big.NewInt(0)
+	topics = append(topics, tokenIdentifier, nonce.Bytes())
+	topics = append(topics, args...)
+	logEntry := &vmcommon.LogEntry{
+		Identifier: []byte(upgradeProperties),
+		Address:    callerAddr,
+		Topics:     topics,
+	}
+	e.eei.AddLogEntry(logEntry)
 
 	return nil
 }
@@ -1321,7 +1333,7 @@ func (e *esdt) controlChanges(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		return vmcommon.UserError
 	}
 
-	err := e.upgradeProperties(token, args.Arguments[1:], false)
+	err := e.upgradeProperties(args.Arguments[0], token, args.Arguments[1:], false, args.CallerAddr)
 	if err != nil {
 		e.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
