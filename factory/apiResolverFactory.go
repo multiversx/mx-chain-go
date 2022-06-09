@@ -146,8 +146,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		args.ProcessComponents.TransactionSimulatorProcessor(),
 		args.StateComponents.AccountsAdapterAPI(),
 		args.ProcessComponents.ShardCoordinator(),
-		args.CoreComponents.EpochNotifier(),
-		args.Configs.EpochConfig.EnableEpochs.CleanUpInformativeSCRsEnableEpoch,
+		args.CoreComponents.EnableEpochsHandler(),
 	)
 	if err != nil {
 		return nil, err
@@ -300,22 +299,21 @@ func createScQueryElement(
 	scStorage := args.generalConfig.SmartContractsStorageForSCQuery
 	scStorage.DB.FilePath += fmt.Sprintf("%d", args.index)
 	argsHook := hooks.ArgBlockChainHook{
-		Accounts:           args.stateComponents.AccountsAdapterAPI(),
-		PubkeyConv:         args.coreComponents.AddressPubKeyConverter(),
-		StorageService:     args.dataComponents.StorageService(),
-		BlockChain:         args.dataComponents.Blockchain(),
-		ShardCoordinator:   args.processComponents.ShardCoordinator(),
-		Marshalizer:        args.coreComponents.InternalMarshalizer(),
-		Uint64Converter:    args.coreComponents.Uint64ByteSliceConverter(),
-		BuiltInFunctions:   builtInFuncs,
-		NFTStorageHandler:  nftStorageHandler,
-		DataPool:           args.dataComponents.Datapool(),
-		ConfigSCStorage:    scStorage,
-		CompiledSCPool:     smartContractsCache,
-		WorkingDir:         args.workingDir,
-		EpochNotifier:      args.coreComponents.EpochNotifier(),
-		EnableEpochs:       args.epochConfig.EnableEpochs,
-		NilCompiledSCStore: true,
+		Accounts:            args.stateComponents.AccountsAdapterAPI(),
+		PubkeyConv:          args.coreComponents.AddressPubKeyConverter(),
+		StorageService:      args.dataComponents.StorageService(),
+		BlockChain:          args.dataComponents.Blockchain(),
+		ShardCoordinator:    args.processComponents.ShardCoordinator(),
+		Marshalizer:         args.coreComponents.InternalMarshalizer(),
+		Uint64Converter:     args.coreComponents.Uint64ByteSliceConverter(),
+		BuiltInFunctions:    builtInFuncs,
+		NFTStorageHandler:   nftStorageHandler,
+		DataPool:            args.dataComponents.Datapool(),
+		ConfigSCStorage:     scStorage,
+		CompiledSCPool:      smartContractsCache,
+		WorkingDir:          args.workingDir,
+		EnableEpochsHandler: args.coreComponents.EnableEpochsHandler(),
+		NilCompiledSCStore:  true,
 	}
 
 	if args.processComponents.ShardCoordinator().SelfId() == core.MetachainShardId {

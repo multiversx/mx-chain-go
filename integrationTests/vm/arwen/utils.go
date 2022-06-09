@@ -84,11 +84,12 @@ type TestContext struct {
 	GasLimit    uint64
 	GasSchedule map[string]map[string]uint64
 
-	EpochNotifier     process.EpochNotifier
-	UnsignexTxHandler process.TransactionFeeHandler
-	EconomicsFee      process.FeeHandler
-	LastConsumedFee   uint64
-	ArwenChangeLocker common.Locker
+	EpochNotifier       process.EpochNotifier
+	EnableEpochsHandler common.EnableEpochsHandler
+	UnsignexTxHandler   process.TransactionFeeHandler
+	EconomicsFee        process.FeeHandler
+	LastConsumedFee     uint64
+	ArwenChangeLocker   common.Locker
 
 	ScAddress        []byte
 	ScCodeMetadata   vmcommon.CodeMetadata
@@ -134,6 +135,7 @@ func SetupTestContextWithGasSchedulePath(t *testing.T, gasScheduleConfigPath str
 	context.T = t
 	context.Round = 500
 	context.EpochNotifier = &epochNotifier.EpochNotifierStub{}
+	context.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{}
 	context.ArwenChangeLocker = &sync.RWMutex{}
 
 	context.initAccounts()
@@ -243,19 +245,19 @@ func (context *TestContext) initVMAndBlockchainHook() {
 	chainStorer := &mock.ChainStorerMock{}
 	datapool := dataRetrieverMock.NewPoolsHolderMock()
 	args := hooks.ArgBlockChainHook{
-		Accounts:           context.Accounts,
-		PubkeyConv:         pkConverter,
-		StorageService:     chainStorer,
-		BlockChain:         blockchainMock,
-		ShardCoordinator:   oneShardCoordinator,
-		Marshalizer:        marshalizer,
-		Uint64Converter:    &mock.Uint64ByteSliceConverterMock{},
-		BuiltInFunctions:   builtInFuncs,
-		NFTStorageHandler:  nftStorageHandler,
-		DataPool:           datapool,
-		CompiledSCPool:     datapool.SmartContracts(),
-		EpochNotifier:      context.EpochNotifier,
-		NilCompiledSCStore: true,
+		Accounts:            context.Accounts,
+		PubkeyConv:          pkConverter,
+		StorageService:      chainStorer,
+		BlockChain:          blockchainMock,
+		ShardCoordinator:    oneShardCoordinator,
+		Marshalizer:         marshalizer,
+		Uint64Converter:     &mock.Uint64ByteSliceConverterMock{},
+		BuiltInFunctions:    builtInFuncs,
+		NFTStorageHandler:   nftStorageHandler,
+		DataPool:            datapool,
+		CompiledSCPool:      datapool.SmartContracts(),
+		EnableEpochsHandler: context.EnableEpochsHandler,
+		NilCompiledSCStore:  true,
 		ConfigSCStorage: config.StorageConfig{
 			Cache: config.CacheConfig{
 				Name:     "SmartContractsStorage",
@@ -338,11 +340,11 @@ func (context *TestContext) initTxProcessorWithOneSCExecutorWithVMs() {
 		GasHandler: &testscommon.GasHandlerStub{
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
-		GasSchedule:       mock.NewGasScheduleNotifierMock(gasSchedule),
-		TxLogsProcessor:   logsProcessor,
-		EpochNotifier:     forking.NewGenericEpochNotifier(),
-		ArwenChangeLocker: context.ArwenChangeLocker,
-		VMOutputCacher:    txcache.NewDisabledCache(),
+		GasSchedule:         mock.NewGasScheduleNotifierMock(gasSchedule),
+		TxLogsProcessor:     logsProcessor,
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+		ArwenChangeLocker:   context.ArwenChangeLocker,
+		VMOutputCacher:      txcache.NewDisabledCache(),
 	}
 	sc, err := smartContract.NewSmartContractProcessor(argsNewSCProcessor)
 	context.ScProcessor = smartContract.NewTestScProcessor(sc)

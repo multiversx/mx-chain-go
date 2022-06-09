@@ -155,7 +155,7 @@ type EnableEpochsHandler interface {
 	IsStakeFlagEnabled() bool
 	IsStakingV2FlagEnabled() bool
 	IsStakingV2OwnerFlagEnabled() bool
-	IsStakingV2DelegationFlagEnabled() bool
+	IsStakingV2FlagEnabledForActivationEpochCompleted() bool
 	IsDoubleKeyProtectionFlagEnabled() bool
 	IsESDTFlagEnabled() bool
 	IsESDTFlagEnabledForCurrentEpoch() bool

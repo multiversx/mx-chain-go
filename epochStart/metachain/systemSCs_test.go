@@ -915,19 +915,19 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieS
 	blockChain, _ := blockchain.NewMetaChain(&statusHandlerMock.AppStatusHandlerStub{})
 	testDataPool := dataRetrieverMock.NewPoolsHolderMock()
 	argsHook := hooks.ArgBlockChainHook{
-		Accounts:           userAccountsDB,
-		PubkeyConv:         &mock.PubkeyConverterMock{},
-		StorageService:     &mock.ChainStorerStub{},
-		BlockChain:         blockChain,
-		ShardCoordinator:   &mock.ShardCoordinatorStub{},
-		Marshalizer:        marshalizer,
-		Uint64Converter:    &mock.Uint64ByteSliceConverterMock{},
-		BuiltInFunctions:   vmcommonBuiltInFunctions.NewBuiltInFunctionContainer(),
-		NFTStorageHandler:  &testscommon.SimpleNFTStorageHandlerStub{},
-		DataPool:           testDataPool,
-		CompiledSCPool:     testDataPool.SmartContracts(),
-		EpochNotifier:      &epochNotifier.EpochNotifierStub{},
-		NilCompiledSCStore: true,
+		Accounts:            userAccountsDB,
+		PubkeyConv:          &mock.PubkeyConverterMock{},
+		StorageService:      &mock.ChainStorerStub{},
+		BlockChain:          blockChain,
+		ShardCoordinator:    &mock.ShardCoordinatorStub{},
+		Marshalizer:         marshalizer,
+		Uint64Converter:     &mock.Uint64ByteSliceConverterMock{},
+		BuiltInFunctions:    vmcommonBuiltInFunctions.NewBuiltInFunctionContainer(),
+		NFTStorageHandler:   &testscommon.SimpleNFTStorageHandlerStub{},
+		DataPool:            testDataPool,
+		CompiledSCPool:      testDataPool.SmartContracts(),
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+		NilCompiledSCStore:  true,
 	}
 
 	gasSchedule := arwenConfig.MakeGasMapForTests()

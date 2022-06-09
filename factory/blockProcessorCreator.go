@@ -225,10 +225,9 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		TxTypeHandler:       txTypeHandler,
 		IsGenesisProcessing: false,
 		BadTxForwarder:      badTxInterim,
-		EpochNotifier:       pcf.epochNotifier,
+		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
 		VMOutputCacher:      txcache.NewDisabledCache(),
 		ArwenChangeLocker:   arwenChangeLocker,
-		EnableEpochs:        enableEpochs,
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	if err != nil {
@@ -535,10 +534,9 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		TxLogsProcessor:     pcf.txLogsProcessor,
 		IsGenesisProcessing: false,
 		BadTxForwarder:      badTxForwarder,
-		EpochNotifier:       pcf.epochNotifier,
+		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
 		VMOutputCacher:      txcache.NewDisabledCache(),
 		ArwenChangeLocker:   arwenChangeLocker,
-		EnableEpochs:        enableEpochs,
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	if err != nil {
@@ -1047,22 +1045,21 @@ func (pcf *processComponentsFactory) createVMFactoryShard(
 	nftStorageHandler vmcommon.SimpleESDTNFTStorageHandler,
 ) (process.VirtualMachinesContainerFactory, error) {
 	argsHook := hooks.ArgBlockChainHook{
-		Accounts:           accounts,
-		PubkeyConv:         pcf.coreData.AddressPubKeyConverter(),
-		StorageService:     pcf.data.StorageService(),
-		BlockChain:         pcf.data.Blockchain(),
-		ShardCoordinator:   pcf.bootstrapComponents.ShardCoordinator(),
-		Marshalizer:        pcf.coreData.InternalMarshalizer(),
-		Uint64Converter:    pcf.coreData.Uint64ByteSliceConverter(),
-		BuiltInFunctions:   builtInFuncs,
-		DataPool:           pcf.data.Datapool(),
-		CompiledSCPool:     pcf.data.Datapool().SmartContracts(),
-		WorkingDir:         pcf.workingDir,
-		NFTStorageHandler:  nftStorageHandler,
-		EpochNotifier:      pcf.coreData.EpochNotifier(),
-		NilCompiledSCStore: false,
-		ConfigSCStorage:    configSCStorage,
-		EnableEpochs:       pcf.epochConfig.EnableEpochs,
+		Accounts:            accounts,
+		PubkeyConv:          pcf.coreData.AddressPubKeyConverter(),
+		StorageService:      pcf.data.StorageService(),
+		BlockChain:          pcf.data.Blockchain(),
+		ShardCoordinator:    pcf.bootstrapComponents.ShardCoordinator(),
+		Marshalizer:         pcf.coreData.InternalMarshalizer(),
+		Uint64Converter:     pcf.coreData.Uint64ByteSliceConverter(),
+		BuiltInFunctions:    builtInFuncs,
+		DataPool:            pcf.data.Datapool(),
+		CompiledSCPool:      pcf.data.Datapool().SmartContracts(),
+		WorkingDir:          pcf.workingDir,
+		NFTStorageHandler:   nftStorageHandler,
+		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
+		NilCompiledSCStore:  false,
+		ConfigSCStorage:     configSCStorage,
 	}
 
 	blockChainHookImpl, err := hooks.NewBlockChainHookImpl(argsHook)
@@ -1092,22 +1089,21 @@ func (pcf *processComponentsFactory) createVMFactoryMeta(
 	nftStorageHandler vmcommon.SimpleESDTNFTStorageHandler,
 ) (process.VirtualMachinesContainerFactory, error) {
 	argsHook := hooks.ArgBlockChainHook{
-		Accounts:           accounts,
-		PubkeyConv:         pcf.coreData.AddressPubKeyConverter(),
-		StorageService:     pcf.data.StorageService(),
-		BlockChain:         pcf.data.Blockchain(),
-		ShardCoordinator:   pcf.bootstrapComponents.ShardCoordinator(),
-		Marshalizer:        pcf.coreData.InternalMarshalizer(),
-		Uint64Converter:    pcf.coreData.Uint64ByteSliceConverter(),
-		BuiltInFunctions:   builtInFuncs,
-		DataPool:           pcf.data.Datapool(),
-		CompiledSCPool:     pcf.data.Datapool().SmartContracts(),
-		ConfigSCStorage:    configSCStorage,
-		WorkingDir:         pcf.workingDir,
-		NFTStorageHandler:  nftStorageHandler,
-		EpochNotifier:      pcf.coreData.EpochNotifier(),
-		NilCompiledSCStore: false,
-		EnableEpochs:       pcf.epochConfig.EnableEpochs,
+		Accounts:            accounts,
+		PubkeyConv:          pcf.coreData.AddressPubKeyConverter(),
+		StorageService:      pcf.data.StorageService(),
+		BlockChain:          pcf.data.Blockchain(),
+		ShardCoordinator:    pcf.bootstrapComponents.ShardCoordinator(),
+		Marshalizer:         pcf.coreData.InternalMarshalizer(),
+		Uint64Converter:     pcf.coreData.Uint64ByteSliceConverter(),
+		BuiltInFunctions:    builtInFuncs,
+		DataPool:            pcf.data.Datapool(),
+		CompiledSCPool:      pcf.data.Datapool().SmartContracts(),
+		ConfigSCStorage:     configSCStorage,
+		WorkingDir:          pcf.workingDir,
+		NFTStorageHandler:   nftStorageHandler,
+		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
+		NilCompiledSCStore:  false,
 	}
 
 	blockChainHookImpl, err := hooks.NewBlockChainHookImpl(argsHook)

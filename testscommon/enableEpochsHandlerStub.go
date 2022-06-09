@@ -22,7 +22,7 @@ type EnableEpochsHandlerStub struct {
 	IsStakeFlagEnabledField                                  bool
 	IsStakingV2FlagEnabledField                              bool
 	IsStakingV2OwnerFlagEnabledField                         bool
-	IsStakingV2DelegationFlagEnabledField                    bool
+	IsStakingV2FlagEnabledForActivationEpochCompletedField   bool
 	IsDoubleKeyProtectionFlagEnabledField                    bool
 	IsESDTFlagEnabledField                                   bool
 	IsESDTFlagEnabledForCurrentEpochField                    bool
@@ -176,9 +176,9 @@ func (stub *EnableEpochsHandlerStub) IsStakingV2OwnerFlagEnabled() bool {
 	return stub.IsStakingV2OwnerFlagEnabledField
 }
 
-// IsStakingV2DelegationFlagEnabled -
-func (stub *EnableEpochsHandlerStub) IsStakingV2DelegationFlagEnabled() bool {
-	return stub.IsStakingV2DelegationFlagEnabledField
+// IsStakingV2FlagEnabledForActivationEpochCompleted -
+func (stub *EnableEpochsHandlerStub) IsStakingV2FlagEnabledForActivationEpochCompleted() bool {
+	return stub.IsStakingV2FlagEnabledForActivationEpochCompletedField
 }
 
 // IsDoubleKeyProtectionFlagEnabled -

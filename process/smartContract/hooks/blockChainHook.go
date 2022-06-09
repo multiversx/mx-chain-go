@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
@@ -19,6 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing/keccak"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -40,35 +40,35 @@ const executeDurationAlarmThreshold = time.Duration(50) * time.Millisecond
 
 // ArgBlockChainHook represents the arguments structure for the blockchain hook
 type ArgBlockChainHook struct {
-	Accounts           state.AccountsAdapter
-	PubkeyConv         core.PubkeyConverter
-	StorageService     dataRetriever.StorageService
-	DataPool           dataRetriever.PoolsHolder
-	BlockChain         data.ChainHandler
-	ShardCoordinator   sharding.Coordinator
-	Marshalizer        marshal.Marshalizer
-	Uint64Converter    typeConverters.Uint64ByteSliceConverter
-	BuiltInFunctions   vmcommon.BuiltInFunctionContainer
-	NFTStorageHandler  vmcommon.SimpleESDTNFTStorageHandler
-	CompiledSCPool     storage.Cacher
-	ConfigSCStorage    config.StorageConfig
-	EnableEpochs       config.EnableEpochs
-	EpochNotifier      vmcommon.EpochNotifier
-	WorkingDir         string
-	NilCompiledSCStore bool
+	Accounts            state.AccountsAdapter
+	PubkeyConv          core.PubkeyConverter
+	StorageService      dataRetriever.StorageService
+	DataPool            dataRetriever.PoolsHolder
+	BlockChain          data.ChainHandler
+	ShardCoordinator    sharding.Coordinator
+	Marshalizer         marshal.Marshalizer
+	Uint64Converter     typeConverters.Uint64ByteSliceConverter
+	BuiltInFunctions    vmcommon.BuiltInFunctionContainer
+	NFTStorageHandler   vmcommon.SimpleESDTNFTStorageHandler
+	CompiledSCPool      storage.Cacher
+	ConfigSCStorage     config.StorageConfig
+	EnableEpochsHandler common.EnableEpochsHandler
+	WorkingDir          string
+	NilCompiledSCStore  bool
 }
 
 // BlockChainHookImpl is a wrapper over AccountsAdapter that satisfy vmcommon.BlockchainHook interface
 type BlockChainHookImpl struct {
-	accounts          state.AccountsAdapter
-	pubkeyConv        core.PubkeyConverter
-	storageService    dataRetriever.StorageService
-	blockChain        data.ChainHandler
-	shardCoordinator  sharding.Coordinator
-	marshalizer       marshal.Marshalizer
-	uint64Converter   typeConverters.Uint64ByteSliceConverter
-	builtInFunctions  vmcommon.BuiltInFunctionContainer
-	nftStorageHandler vmcommon.SimpleESDTNFTStorageHandler
+	accounts            state.AccountsAdapter
+	pubkeyConv          core.PubkeyConverter
+	storageService      dataRetriever.StorageService
+	blockChain          data.ChainHandler
+	shardCoordinator    sharding.Coordinator
+	marshalizer         marshal.Marshalizer
+	uint64Converter     typeConverters.Uint64ByteSliceConverter
+	builtInFunctions    vmcommon.BuiltInFunctionContainer
+	nftStorageHandler   vmcommon.SimpleESDTNFTStorageHandler
+	enableEpochsHandler common.EnableEpochsHandler
 
 	mutCurrentHdr sync.RWMutex
 	currentHdr    data.HeaderHandler
@@ -78,15 +78,6 @@ type BlockChainHookImpl struct {
 	configSCStorage    config.StorageConfig
 	workingDir         string
 	nilCompiledSCStore bool
-
-	isPayableBySCEnableEpoch          uint32
-	flagIsPayableBySC                 atomic.Flag
-	optimizeNFTStoreEnableEpoch       uint32
-	flagOptimizeNFTStore              atomic.Flag
-	doNotReturnOldBlockEnableEpoch    uint32
-	flagDoNotReturnOldBlock           atomic.Flag
-	filterCodeMetadataEnableEpoch     uint32
-	flagFilterCodeMetadataEnableEpoch atomic.Flag
 }
 
 // NewBlockChainHookImpl creates a new BlockChainHookImpl instance
@@ -99,29 +90,21 @@ func NewBlockChainHookImpl(
 	}
 
 	blockChainHookImpl := &BlockChainHookImpl{
-		accounts:                       args.Accounts,
-		pubkeyConv:                     args.PubkeyConv,
-		storageService:                 args.StorageService,
-		blockChain:                     args.BlockChain,
-		shardCoordinator:               args.ShardCoordinator,
-		marshalizer:                    args.Marshalizer,
-		uint64Converter:                args.Uint64Converter,
-		builtInFunctions:               args.BuiltInFunctions,
-		compiledScPool:                 args.CompiledSCPool,
-		configSCStorage:                args.ConfigSCStorage,
-		workingDir:                     args.WorkingDir,
-		nilCompiledSCStore:             args.NilCompiledSCStore,
-		nftStorageHandler:              args.NFTStorageHandler,
-		isPayableBySCEnableEpoch:       args.EnableEpochs.IsPayableBySCEnableEpoch,
-		optimizeNFTStoreEnableEpoch:    args.EnableEpochs.OptimizeNFTStoreEnableEpoch,
-		doNotReturnOldBlockEnableEpoch: args.EnableEpochs.DoNotReturnOldBlockInBlockchainHookEnableEpoch,
-		filterCodeMetadataEnableEpoch:  args.EnableEpochs.IsPayableBySCEnableEpoch,
+		accounts:            args.Accounts,
+		pubkeyConv:          args.PubkeyConv,
+		storageService:      args.StorageService,
+		blockChain:          args.BlockChain,
+		shardCoordinator:    args.ShardCoordinator,
+		marshalizer:         args.Marshalizer,
+		uint64Converter:     args.Uint64Converter,
+		builtInFunctions:    args.BuiltInFunctions,
+		compiledScPool:      args.CompiledSCPool,
+		configSCStorage:     args.ConfigSCStorage,
+		workingDir:          args.WorkingDir,
+		nilCompiledSCStore:  args.NilCompiledSCStore,
+		nftStorageHandler:   args.NFTStorageHandler,
+		enableEpochsHandler: args.EnableEpochsHandler,
 	}
-
-	log.Debug("blockchainHook: payable by SC", "epoch", blockChainHookImpl.isPayableBySCEnableEpoch)
-	log.Debug("blockchainHook: optimize nft metadata store", "epoch", blockChainHookImpl.optimizeNFTStoreEnableEpoch)
-	log.Debug("blockchainHook: do not return old block", "epoch", blockChainHookImpl.doNotReturnOldBlockEnableEpoch)
-	log.Debug("blockchainHook: filter code metadata", "epoch", blockChainHookImpl.filterCodeMetadataEnableEpoch)
 
 	err = blockChainHookImpl.makeCompiledSCStorage()
 	if err != nil {
@@ -130,8 +113,6 @@ func NewBlockChainHookImpl(
 
 	blockChainHookImpl.ClearCompiledCodes()
 	blockChainHookImpl.currentHdr = &block.Header{}
-
-	args.EpochNotifier.RegisterNotifyHandler(blockChainHookImpl)
 
 	return blockChainHookImpl, nil
 }
@@ -167,8 +148,8 @@ func checkForNil(args ArgBlockChainHook) error {
 	if check.IfNil(args.NFTStorageHandler) {
 		return process.ErrNilNFTStorageHandler
 	}
-	if check.IfNil(args.EpochNotifier) {
-		return process.ErrNilEpochNotifier
+	if check.IfNil(args.EnableEpochsHandler) {
+		return process.ErrNilEnableEpochsHandler
 	}
 
 	return nil
@@ -251,7 +232,7 @@ func (bh *BlockChainHookImpl) GetBlockhash(nonce uint64) ([]byte, error) {
 	if nonce == hdr.GetNonce() {
 		return bh.blockChain.GetCurrentBlockHeaderHash(), nil
 	}
-	if bh.flagDoNotReturnOldBlock.IsSet() {
+	if bh.enableEpochsHandler.IsDoNotReturnOldBlockInBlockchainHookFlagEnabled() {
 		return nil, process.ErrInvalidNonceRequest
 	}
 
@@ -465,7 +446,7 @@ func (bh *BlockChainHookImpl) IsPayable(sndAddress []byte, recvAddress []byte) (
 	}
 
 	metadata := vmcommon.CodeMetadataFromBytes(userAcc.GetCodeMetadata())
-	if bh.flagIsPayableBySC.IsSet() && bh.IsSmartContract(sndAddress) {
+	if bh.enableEpochsHandler.IsPayableBySCFlagEnabled() && bh.IsSmartContract(sndAddress) {
 		return metadata.Payable || metadata.PayableBySC, nil
 	}
 
@@ -475,7 +456,8 @@ func (bh *BlockChainHookImpl) IsPayable(sndAddress []byte, recvAddress []byte) (
 // FilterCodeMetadataForUpgrade will filter the provided input bytes as a correctly constructed vmcommon.CodeMetadata bytes
 // taking into account the activation flags for the future flags. This should be used in the upgrade SC process
 func (bh *BlockChainHookImpl) FilterCodeMetadataForUpgrade(input []byte) ([]byte, error) {
-	if !bh.flagFilterCodeMetadataEnableEpoch.IsSet() {
+	isFilterCodeMetadataFlagSet := bh.enableEpochsHandler.IsPayableBySCFlagEnabled()
+	if !isFilterCodeMetadataFlagSet {
 		// return the raw bytes unconditioned here for backwards compatibility reasons
 		return input, nil
 	}
@@ -491,7 +473,7 @@ func (bh *BlockChainHookImpl) FilterCodeMetadataForUpgrade(input []byte) ([]byte
 
 // ApplyFiltersOnCodeMetadata will apply all known filters on the provided code metadata value
 func (bh *BlockChainHookImpl) ApplyFiltersOnCodeMetadata(codeMetadata vmcommon.CodeMetadata) vmcommon.CodeMetadata {
-	codeMetadata.PayableBySC = codeMetadata.PayableBySC && bh.flagIsPayableBySC.IsSet()
+	codeMetadata.PayableBySC = codeMetadata.PayableBySC && bh.enableEpochsHandler.IsPayableBySCFlagEnabled()
 
 	return codeMetadata
 }
@@ -564,7 +546,7 @@ func (bh *BlockChainHookImpl) GetESDTToken(address []byte, tokenID []byte, nonce
 	}
 
 	esdtTokenKey := []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier + string(tokenID))
-	if !bh.flagOptimizeNFTStore.IsSet() {
+	if !bh.enableEpochsHandler.IsOptimizeNFTStoreFlagEnabled() {
 		return bh.returnESDTTokenByLegacyMethod(userAcc, esdtData, esdtTokenKey, nonce)
 	}
 
@@ -726,21 +708,6 @@ func (bh *BlockChainHookImpl) GetSnapshot() int {
 // RevertToSnapshot reverts snapshots up to the specified one
 func (bh *BlockChainHookImpl) RevertToSnapshot(snapshot int) error {
 	return bh.accounts.RevertToSnapshot(snapshot)
-}
-
-// EpochConfirmed is called whenever a new epoch is confirmed
-func (bh *BlockChainHookImpl) EpochConfirmed(epoch uint32, _ uint64) {
-	bh.flagIsPayableBySC.SetValue(epoch >= bh.isPayableBySCEnableEpoch)
-	log.Debug("blockchainHookImpl is payable by SC", "enabled", bh.flagIsPayableBySC.IsSet())
-
-	bh.flagOptimizeNFTStore.SetValue(epoch >= bh.optimizeNFTStoreEnableEpoch)
-	log.Debug("blockchainHookImpl optimize nft metadata store", "enabled", bh.flagOptimizeNFTStore.IsSet())
-
-	bh.flagDoNotReturnOldBlock.SetValue(epoch >= bh.doNotReturnOldBlockEnableEpoch)
-	log.Debug("blockchainHookImpl: do not return old block", "enabled", bh.flagDoNotReturnOldBlock.IsSet())
-
-	bh.flagFilterCodeMetadataEnableEpoch.SetValue(epoch >= bh.filterCodeMetadataEnableEpoch)
-	log.Debug("blockchainHookImpl: filter code metadata", "enabled", bh.flagFilterCodeMetadataEnableEpoch.IsSet())
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

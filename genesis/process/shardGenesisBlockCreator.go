@@ -377,20 +377,19 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 	}
 
 	argsHook := hooks.ArgBlockChainHook{
-		Accounts:           arg.Accounts,
-		PubkeyConv:         arg.Core.AddressPubKeyConverter(),
-		StorageService:     arg.Data.StorageService(),
-		BlockChain:         arg.Data.Blockchain(),
-		ShardCoordinator:   arg.ShardCoordinator,
-		Marshalizer:        arg.Core.InternalMarshalizer(),
-		Uint64Converter:    arg.Core.Uint64ByteSliceConverter(),
-		BuiltInFunctions:   builtInFuncs,
-		NFTStorageHandler:  nftStorageHandler,
-		DataPool:           arg.Data.Datapool(),
-		CompiledSCPool:     arg.Data.Datapool().SmartContracts(),
-		EpochNotifier:      epochNotifier,
-		NilCompiledSCStore: true,
-		EnableEpochs:       enableEpochsConfig,
+		Accounts:            arg.Accounts,
+		PubkeyConv:          arg.Core.AddressPubKeyConverter(),
+		StorageService:      arg.Data.StorageService(),
+		BlockChain:          arg.Data.Blockchain(),
+		ShardCoordinator:    arg.ShardCoordinator,
+		Marshalizer:         arg.Core.InternalMarshalizer(),
+		Uint64Converter:     arg.Core.Uint64ByteSliceConverter(),
+		BuiltInFunctions:    builtInFuncs,
+		NFTStorageHandler:   nftStorageHandler,
+		DataPool:            arg.Data.Datapool(),
+		CompiledSCPool:      arg.Data.Datapool().SmartContracts(),
+		EnableEpochsHandler: enableEpochsHandler,
+		NilCompiledSCStore:  true,
 	}
 	esdtTransferParser, err := parsers.NewESDTTransferParser(arg.Core.InternalMarshalizer())
 	if err != nil {
@@ -506,11 +505,10 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		GasSchedule:         arg.GasSchedule,
 		TxLogsProcessor:     arg.TxLogsProcessor,
 		BadTxForwarder:      badTxInterim,
-		EpochNotifier:       epochNotifier,
+		EnableEpochsHandler: enableEpochsHandler,
 		IsGenesisProcessing: true,
 		VMOutputCacher:      txcache.NewDisabledCache(),
 		ArwenChangeLocker:   genesisArwenLocker,
-		EnableEpochs:        enableEpochsConfig,
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	if err != nil {
