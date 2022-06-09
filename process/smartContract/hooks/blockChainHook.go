@@ -456,7 +456,8 @@ func (bh *BlockChainHookImpl) IsPayable(sndAddress []byte, recvAddress []byte) (
 // FilterCodeMetadataForUpgrade will filter the provided input bytes as a correctly constructed vmcommon.CodeMetadata bytes
 // taking into account the activation flags for the future flags. This should be used in the upgrade SC process
 func (bh *BlockChainHookImpl) FilterCodeMetadataForUpgrade(input []byte) ([]byte, error) {
-	if !bh.enableEpochsHandler.IsPayableBySCFlagEnabled() {
+	isFilterCodeMetadataFlagSet := bh.enableEpochsHandler.IsPayableBySCFlagEnabled()
+	if !isFilterCodeMetadataFlagSet {
 		// return the raw bytes unconditioned here for backwards compatibility reasons
 		return input, nil
 	}
