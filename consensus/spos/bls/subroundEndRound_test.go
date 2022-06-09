@@ -8,7 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-crypto"
+	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
@@ -936,4 +936,98 @@ func TestSubroundEndRound_IsBlockHeaderFinalInfoValidShouldReturnTrue(t *testing
 	sr.Header = &block.Header{}
 	isValid := sr.IsBlockHeaderFinalInfoValid(cnsDta)
 	assert.True(t, isValid)
+}
+
+func TestVerifyNodesOnAggSigVerificationFail(t *testing.T) {
+	t.Parallel()
+
+	t.Run("fail to get signature share", func(t *testing.T) {
+		t.Parallel()
+
+		container := mock.InitConsensusCore()
+		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
+		multiSignerMock := mock.InitMultiSignerMock()
+
+		expectedErr := errors.New("exptected error")
+		multiSignerMock.SignatureShareCalled = func(index uint16) ([]byte, error) {
+			return nil, expectedErr
+		}
+
+		_ = sr.SetJobDone(sr.ConsensusGroup()[0], bls.SrSignature, true)
+
+		err := sr.VerifyNodesOnAggSigVerificationFail(multiSignerMock)
+		require.Equal(t, expectedErr, err)
+	})
+
+	t.Run("fail to verify signature share, job done will be set to false", func(t *testing.T) {
+		t.Parallel()
+
+		container := mock.InitConsensusCore()
+		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
+		multiSignerMock := mock.InitMultiSignerMock()
+
+		expectedErr := errors.New("exptected error")
+		multiSignerMock.SignatureShareCalled = func(index uint16) ([]byte, error) {
+			return nil, nil
+		}
+		multiSignerMock.VerifySignatureShareCalled = func(index uint16, sig, msg, bitmap []byte) error {
+			return expectedErr
+		}
+
+		_ = sr.SetJobDone(sr.ConsensusGroup()[0], bls.SrSignature, true)
+
+		err := sr.VerifyNodesOnAggSigVerificationFail(multiSignerMock)
+		require.Nil(t, err)
+
+		isJobDone, err := sr.JobDone(sr.ConsensusGroup()[0], bls.SrSignature)
+		require.Nil(t, err)
+		require.False(t, isJobDone)
+	})
+
+	t.Run("fail to verify aggregated sig share", func(t *testing.T) {
+		t.Parallel()
+
+		container := mock.InitConsensusCore()
+		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
+		multiSignerMock := mock.InitMultiSignerMock()
+
+		expectedErr := errors.New("exptected error")
+		multiSignerMock.SignatureShareCalled = func(index uint16) ([]byte, error) {
+			return nil, nil
+		}
+		multiSignerMock.VerifySignatureShareCalled = func(index uint16, sig, msg, bitmap []byte) error {
+			return nil
+		}
+		multiSignerMock.VerifyCalled = func(msg, bitmap []byte) error {
+			return expectedErr
+		}
+
+		_ = sr.SetJobDone(sr.ConsensusGroup()[0], bls.SrSignature, true)
+
+		err := sr.VerifyNodesOnAggSigVerificationFail(multiSignerMock)
+		require.Equal(t, expectedErr, err)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		container := mock.InitConsensusCore()
+		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
+		multiSignerMock := mock.InitMultiSignerMock()
+		multiSignerMock.SignatureShareCalled = func(index uint16) ([]byte, error) {
+			return nil, nil
+		}
+		multiSignerMock.VerifySignatureShareCalled = func(index uint16, sig, msg, bitmap []byte) error {
+			return nil
+		}
+		multiSignerMock.VerifyCalled = func(msg, bitmap []byte) error {
+			return nil
+		}
+
+		_ = sr.SetJobDone(sr.ConsensusGroup()[0], bls.SrSignature, true)
+		_ = sr.SetJobDone(sr.ConsensusGroup()[1], bls.SrSignature, true)
+
+		err := sr.VerifyNodesOnAggSigVerificationFail(multiSignerMock)
+		require.Nil(t, err)
+	})
 }

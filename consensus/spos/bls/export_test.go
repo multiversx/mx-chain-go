@@ -293,6 +293,10 @@ func (sr *subroundEndRound) IsOutOfTime() bool {
 	return sr.isOutOfTime()
 }
 
+func (sr *subroundEndRound) VerifyNodesOnAggSigVerificationFail(multiSigner crypto.MultiSigner) error {
+	return sr.verifyNodesOnAggSigVerificationFail(multiSigner)
+}
+
 // GetStringValue gets the name of the message type
 func GetStringValue(messageType consensus.MessageType) string {
 	return getStringValue(messageType)
