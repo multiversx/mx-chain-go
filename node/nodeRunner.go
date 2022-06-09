@@ -484,7 +484,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 			if hdr != nil {
 				if lastNonce == hdr.GetNonce() {
 					log.Error("JLS STALLED! switching log level")
-					errLog := logger.SetLogLevel("*:DEBUG,intercept:TRACE,p2p:TRACE,etriever:TRACE,external:TRACE")
+					errLog := logger.SetLogLevel("*:DEBUG,intercept:TRACE,p2p:TRACE,trie:TRACE,external:TRACE,process:TRACE,debug:DEBUG")
 					log.LogIfError(errLog)
 				}
 			} else {
