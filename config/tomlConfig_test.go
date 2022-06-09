@@ -660,6 +660,9 @@ func TestEnableEpochConfig(t *testing.T) {
     # HeartbeatDisableEpoch represents the epoch when heartbeat v1 messages stop being sent and processed
     HeartbeatDisableEpoch = 55
 
+	# ESDTMetadataContinuousCleanupEnableEpoch represents the epoch when esdt metadata is automatically deleted according to inshard liquidity
+	ESDTMetadataContinuousCleanupEnableEpoch = 56
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 44, MaxNumNodes = 2169, NodesToShufflePerShard = 80 },
@@ -742,6 +745,7 @@ func TestEnableEpochConfig(t *testing.T) {
 			FailExecutionOnEveryAPIErrorEnableEpoch:     53,
 			ManagedCryptoAPIsEnableEpoch:                54,
 			HeartbeatDisableEpoch:                       55,
+			ESDTMetadataContinuousCleanupEnableEpoch:    56,
 		},
 		GasSchedule: GasScheduleConfig{
 			GasScheduleByEpochs: []GasScheduleByEpochs{
