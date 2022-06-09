@@ -45,7 +45,6 @@ import (
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/stakingcommon"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/vm"
@@ -753,19 +752,20 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieS
 
 	testDataPool := dataRetrieverMock.NewPoolsHolderMock()
 	argsHook := hooks.ArgBlockChainHook{
-		Accounts:           userAccountsDB,
-		PubkeyConv:         &mock.PubkeyConverterMock{},
-		StorageService:     &mock.ChainStorerStub{},
-		BlockChain:         blockChain,
-		ShardCoordinator:   &mock.ShardCoordinatorStub{},
-		Marshalizer:        marshalizer,
-		Uint64Converter:    &mock.Uint64ByteSliceConverterMock{},
-		NFTStorageHandler:  &testscommon.SimpleNFTStorageHandlerStub{},
-		BuiltInFunctions:   builtInFuncs,
-		DataPool:           testDataPool,
-		CompiledSCPool:     testDataPool.SmartContracts(),
-		EpochNotifier:      &epochNotifier.EpochNotifierStub{},
-		NilCompiledSCStore: true,
+		Accounts:              userAccountsDB,
+		PubkeyConv:            &mock.PubkeyConverterMock{},
+		StorageService:        &mock.ChainStorerStub{},
+		BlockChain:            blockChain,
+		ShardCoordinator:      &mock.ShardCoordinatorStub{},
+		Marshalizer:           marshalizer,
+		Uint64Converter:       &mock.Uint64ByteSliceConverterMock{},
+		NFTStorageHandler:     &testscommon.SimpleNFTStorageHandlerStub{},
+		BuiltInFunctions:      builtInFuncs,
+		DataPool:              testDataPool,
+		GlobalSettingsHandler: &testscommon.ESDTGlobalSettingsHandlerStub{},
+		CompiledSCPool:        testDataPool.SmartContracts(),
+		EpochNotifier:         &epochNotifier.EpochNotifierStub{},
+		NilCompiledSCStore:    true,
 	}
 
 	defaults.FillGasMapInternal(gasSchedule, 1)
