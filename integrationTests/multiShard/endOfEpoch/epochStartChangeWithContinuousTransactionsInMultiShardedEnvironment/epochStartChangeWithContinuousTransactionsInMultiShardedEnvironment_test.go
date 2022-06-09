@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/multiShard/endOfEpoch"
 )
@@ -18,10 +19,17 @@ func TestEpochStartChangeWithContinuousTransactionsInMultiShardedEnvironment(t *
 	nodesPerShard := 3
 	numMetachainNodes := 3
 
-	nodes := integrationTests.CreateNodes(
+	enabledEpochsConfig := config.EnableEpochs{
+		StakingV2EnableEpoch:                 100,
+		ScheduledMiniBlocksEnableEpoch:       100,
+		MiniBlockPartialExecutionEnableEpoch: 100,
+	}
+
+	nodes := integrationTests.CreateNodesWithEnableEpochs(
 		numOfShards,
 		nodesPerShard,
 		numMetachainNodes,
+		enabledEpochsConfig,
 	)
 
 	roundsPerEpoch := uint64(10)

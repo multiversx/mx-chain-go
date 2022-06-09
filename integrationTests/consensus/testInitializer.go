@@ -527,7 +527,10 @@ func createNodes(
 			ChanStopNode:            endProcess.GetDummyEndProcessChannel(),
 			NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
 			IsFullArchive:           false,
-			EnableEpochsHandler:     &testscommon.EnableEpochsHandlerStub{},
+			EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
+				WaitingListFixEnableEpochField:   0,
+				IsWaitingListFixFlagEnabledField: true,
+			},
 		}
 		nodesCoord, _ := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 

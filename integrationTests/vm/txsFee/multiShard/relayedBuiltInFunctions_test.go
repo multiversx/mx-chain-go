@@ -23,13 +23,17 @@ func TestRelayedBuiltInFunctionExecuteOnRelayerAndDstShardShouldWork(t *testing.
 
 	testContextRelayer, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(
 		2,
-		config.EnableEpochs{})
+		config.EnableEpochs{
+			PenalizedTooMuchGasEnableEpoch: 100,
+		})
 	require.Nil(t, err)
 	defer testContextRelayer.Close()
 
 	testContextInner, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(
 		1,
-		config.EnableEpochs{})
+		config.EnableEpochs{
+			PenalizedTooMuchGasEnableEpoch: 100,
+		})
 	require.Nil(t, err)
 	defer testContextInner.Close()
 

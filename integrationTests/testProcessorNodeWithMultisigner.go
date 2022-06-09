@@ -18,6 +18,7 @@ import (
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	mclmultisig "github.com/ElrondNetwork/elrond-go-crypto/signing/mcl/multisig"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/multisig"
+	"github.com/ElrondNetwork/elrond-go/common/enableEpochs"
 	"github.com/ElrondNetwork/elrond-go/common/forking"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
@@ -73,13 +74,18 @@ func NewTestProcessorNodeWithCustomNodesCoordinator(
 		RatingsData:             ratingsData,
 		MinTransactionVersion:   MinTransactionVersion,
 		HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
-		EpochNotifier:           forking.NewGenericEpochNotifier(),
 		ArwenChangeLocker:       &sync.RWMutex{},
 		TransactionLogProcessor: logsProcessor,
 		Bootstrapper:            mock.NewTestBootstrapperMock(),
 		PeersRatingHandler:      peersRatingHandler,
 		PeerShardMapper:         mock.NewNetworkShardingCollectorMock(),
 	}
+
+	tpn.EnableEpochs.StakingV2EnableEpoch = uint32(1000000)
+	tpn.EnableEpochs.ScheduledMiniBlocksEnableEpoch = uint32(1000000)
+	tpn.EnableEpochs.MiniBlockPartialExecutionEnableEpoch = uint32(1000000)
+	tpn.EpochNotifier = forking.NewGenericEpochNotifier()
+	tpn.EnableEpochsHandler, _ = enableEpochs.NewEnableEpochsHandler(tpn.EnableEpochs, tpn.EpochNotifier)
 
 	tpn.NodeKeys = cp.Keys[nodeShardId][keyIndex]
 	blsHasher, _ := blake2b.NewBlake2bWithSize(hashing.BlsHashSize)
@@ -266,12 +272,17 @@ func CreateNodeWithBLSAndTxKeys(
 		RatingsData:             ratingsData,
 		MinTransactionVersion:   MinTransactionVersion,
 		HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
-		EpochNotifier:           forking.NewGenericEpochNotifier(),
 		ArwenChangeLocker:       &sync.RWMutex{},
 		TransactionLogProcessor: logsProcessor,
 		PeersRatingHandler:      peersRatingHandler,
 		PeerShardMapper:         disabled.NewPeerShardMapper(),
 	}
+
+	tpn.EnableEpochs.StakingV2EnableEpoch = uint32(UnreachableEpoch)
+	tpn.EnableEpochs.ScheduledMiniBlocksEnableEpoch = uint32(1000000)
+	tpn.EnableEpochs.MiniBlockPartialExecutionEnableEpoch = uint32(1000000)
+	tpn.EpochNotifier = forking.NewGenericEpochNotifier()
+	tpn.EnableEpochsHandler, _ = enableEpochs.NewEnableEpochsHandler(tpn.EnableEpochs, tpn.EpochNotifier)
 
 	tpn.NodeKeys = cp.Keys[shardId][keyIndex]
 	blsHasher, _ := blake2b.NewBlake2bWithSize(hashing.BlsHashSize)

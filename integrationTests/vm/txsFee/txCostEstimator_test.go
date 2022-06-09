@@ -108,7 +108,9 @@ func TestBuiltInFunctionTransactionCost(t *testing.T) {
 	}
 
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(
-		config.EnableEpochs{})
+		config.EnableEpochs{
+			PenalizedTooMuchGasEnableEpoch: 100,
+		})
 	require.Nil(t, err)
 	defer testContext.Close()
 

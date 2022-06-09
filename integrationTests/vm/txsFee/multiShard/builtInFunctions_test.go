@@ -40,13 +40,17 @@ func TestBuiltInFunctionExecuteOnSourceAndDestinationShouldWork(t *testing.T) {
 
 	testContextSource, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(
 		0,
-		config.EnableEpochs{})
+		config.EnableEpochs{
+			PenalizedTooMuchGasEnableEpoch: 100,
+		})
 	require.Nil(t, err)
 	defer testContextSource.Close()
 
 	testContextDst, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(
 		1,
-		config.EnableEpochs{})
+		config.EnableEpochs{
+			PenalizedTooMuchGasEnableEpoch: 100,
+		})
 	require.Nil(t, err)
 	defer testContextDst.Close()
 

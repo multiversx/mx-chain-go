@@ -97,7 +97,6 @@ import (
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	dblookupextMock "github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/mainFactoryMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
@@ -209,6 +208,12 @@ const stateCheckpointModulus = 100
 
 // StakingV2Epoch defines the epoch for integration tests when stakingV2 is enabled
 const StakingV2Epoch = 1000
+
+// ScheduledMiniBlocksEnableEpoch defines the epoch for integration tests when scheduled nini blocks are enabled
+const ScheduledMiniBlocksEnableEpoch = 1000
+
+// UnreachableEpoch defines an unreachable epoch for integration tests
+const UnreachableEpoch = uint32(1000000)
 
 // TestKeyPair holds a pair of private/public Keys
 type TestKeyPair struct {
@@ -356,6 +361,7 @@ func newBaseTestProcessorNode(
 	maxShards uint32,
 	nodeShardId uint32,
 	txSignPrivKeyShardId uint32,
+	enableEpochsConfig config.EnableEpochs,
 ) *TestProcessorNode {
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(maxShards, nodeShardId)
 
@@ -415,10 +421,8 @@ func newBaseTestProcessorNode(
 
 	messenger := CreateMessengerWithNoDiscoveryAndPeersRatingHandler(peersRatingHandler)
 
-	enabledEpochsConfig := config.EnableEpochs{}
-
 	genericEpochNotifier := forking.NewGenericEpochNotifier()
-	enabledEpochsHandler, _ := enableEpochs.NewEnableEpochsHandler(enabledEpochsConfig, genericEpochNotifier)
+	enabledEpochsHandler, _ := enableEpochs.NewEnableEpochsHandler(enableEpochsConfig, genericEpochNotifier)
 
 	logsProcessor, _ := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{Marshalizer: TestMarshalizer})
 	tpn := &TestProcessorNode{
@@ -438,6 +442,7 @@ func newBaseTestProcessorNode(
 		Bootstrapper:            mock.NewTestBootstrapperMock(),
 		PeersRatingHandler:      peersRatingHandler,
 		PeerShardMapper:         mock.NewNetworkShardingCollectorMock(),
+		EnableEpochs:            enableEpochsConfig,
 	}
 
 	tpn.NodeKeys = &TestKeyPair{
@@ -449,7 +454,6 @@ func newBaseTestProcessorNode(
 	tpn.StorageBootstrapper = &mock.StorageBootstrapperMock{}
 	tpn.BootstrapStorer = &mock.BoostrapStorerMock{}
 	tpn.initDataPools()
-	tpn.EnableEpochs = enabledEpochsConfig
 
 	return tpn
 }
@@ -460,7 +464,13 @@ func NewTestProcessorNode(
 	nodeShardId uint32,
 	txSignPrivKeyShardId uint32,
 ) *TestProcessorNode {
-	tpn := newBaseTestProcessorNode(maxShards, nodeShardId, txSignPrivKeyShardId)
+
+	enableEpochsConfig := config.EnableEpochs{
+		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: UnreachableEpoch,
+		ScheduledMiniBlocksEnableEpoch:              UnreachableEpoch,
+		MiniBlockPartialExecutionEnableEpoch:        UnreachableEpoch,
+	}
+	tpn := newBaseTestProcessorNode(maxShards, nodeShardId, txSignPrivKeyShardId, enableEpochsConfig)
 	tpn.initTestNode()
 
 	return tpn
@@ -475,7 +485,13 @@ func NewTestProcessorNodeWithStorageTrieAndGasModel(
 	trieStore storage.Storer,
 	gasMap map[string]map[string]uint64,
 ) *TestProcessorNode {
-	tpn := newBaseTestProcessorNode(maxShards, nodeShardId, txSignPrivKeyShardId)
+
+	enableEpochsConfig := config.EnableEpochs{
+		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: UnreachableEpoch,
+		ScheduledMiniBlocksEnableEpoch:              UnreachableEpoch,
+		MiniBlockPartialExecutionEnableEpoch:        UnreachableEpoch,
+	}
+	tpn := newBaseTestProcessorNode(maxShards, nodeShardId, txSignPrivKeyShardId, enableEpochsConfig)
 	tpn.initTestNodeWithTrieDBAndGasModel(trieStore, gasMap)
 
 	return tpn
@@ -489,7 +505,12 @@ func NewTestProcessorNodeWithBLSSigVerifier(
 	txSignPrivKeyShardId uint32,
 ) *TestProcessorNode {
 
-	tpn := newBaseTestProcessorNode(maxShards, nodeShardId, txSignPrivKeyShardId)
+	enableEpochsConfig := config.EnableEpochs{
+		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: UnreachableEpoch,
+		ScheduledMiniBlocksEnableEpoch:              UnreachableEpoch,
+		MiniBlockPartialExecutionEnableEpoch:        UnreachableEpoch,
+	}
+	tpn := newBaseTestProcessorNode(maxShards, nodeShardId, txSignPrivKeyShardId, enableEpochsConfig)
 	tpn.UseValidVmBlsSigVerifier = true
 	tpn.initTestNode()
 
@@ -504,8 +525,7 @@ func NewTestProcessorNodeWithEnableEpochs(
 	enableEpochs config.EnableEpochs,
 ) *TestProcessorNode {
 
-	tpn := newBaseTestProcessorNode(maxShards, nodeShardId, txSignPrivKeyShardId)
-	tpn.EnableEpochs = enableEpochs
+	tpn := newBaseTestProcessorNode(maxShards, nodeShardId, txSignPrivKeyShardId, enableEpochs)
 	tpn.initTestNode()
 
 	return tpn
@@ -521,7 +541,13 @@ func NewTestProcessorNodeWithFullGenesis(
 	heartbeatPk string,
 ) *TestProcessorNode {
 
-	tpn := newBaseTestProcessorNode(maxShards, nodeShardId, txSignPrivKeyShardId)
+	enableEpochsConfig := config.EnableEpochs{
+		StakingV2EnableEpoch:                        UnreachableEpoch,
+		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: UnreachableEpoch,
+		ScheduledMiniBlocksEnableEpoch:              UnreachableEpoch,
+		MiniBlockPartialExecutionEnableEpoch:        UnreachableEpoch,
+	}
+	tpn := newBaseTestProcessorNode(maxShards, nodeShardId, txSignPrivKeyShardId, enableEpochsConfig)
 	tpn.initChainHandler()
 	tpn.initHeaderValidator()
 	tpn.initRoundHandler()
@@ -556,6 +582,7 @@ func NewTestProcessorNodeWithFullGenesis(
 		tpn.EconomicsData,
 		accountParser,
 		smartContractParser,
+		tpn.EnableEpochs,
 	)
 	tpn.initBlockTracker()
 	tpn.initInterceptors(heartbeatPk)
@@ -607,6 +634,10 @@ func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32
 	kg := &mock.KeyGenMock{}
 	sk, pk := kg.GeneratePair()
 
+	enabledEpochsConfig := CreateEnableEpochsConfig()
+	genericEpochNotifier := forking.NewGenericEpochNotifier()
+	enabledEpochsHandler, _ := enableEpochs.NewEnableEpochsHandler(enabledEpochsConfig, genericEpochNotifier)
+
 	logsProcessor, _ := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{Marshalizer: TestMarshalizer})
 	tpn := &TestProcessorNode{
 		ShardCoordinator:        shardCoordinator,
@@ -622,11 +653,13 @@ func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32
 		},
 		MinTransactionVersion:   MinTransactionVersion,
 		HistoryRepository:       &dblookupextMock.HistoryRepositoryStub{},
-		EpochNotifier:           forking.NewGenericEpochNotifier(),
+		EpochNotifier:           genericEpochNotifier,
 		ArwenChangeLocker:       &sync.RWMutex{},
 		TransactionLogProcessor: logsProcessor,
 		PeersRatingHandler:      peersRatingHandler,
 		PeerShardMapper:         disabledBootstrap.NewPeerShardMapper(),
+		EnableEpochs:            enabledEpochsConfig,
+		EnableEpochsHandler:     enabledEpochsHandler,
 	}
 
 	tpn.NodeKeys = &TestKeyPair{
@@ -734,6 +767,10 @@ func (tpn *TestProcessorNode) initValidatorStatistics() {
 }
 
 func (tpn *TestProcessorNode) initTestNode() {
+	if tpn.EnableEpochsHandler == nil {
+		tpn.EpochNotifier = forking.NewGenericEpochNotifier()
+		tpn.EnableEpochsHandler, _ = enableEpochs.NewEnableEpochsHandler(tpn.EnableEpochs, tpn.EpochNotifier)
+	}
 	tpn.initChainHandler()
 	tpn.initHeaderValidator()
 	tpn.initRoundHandler()
@@ -763,6 +800,7 @@ func (tpn *TestProcessorNode) initTestNode() {
 		TestUint64Converter,
 		tpn.DataPool,
 		tpn.EconomicsData,
+		tpn.EnableEpochs,
 	)
 	tpn.initBlockTracker()
 	tpn.initInterceptors("")
@@ -822,6 +860,7 @@ func (tpn *TestProcessorNode) initTestNodeWithTrieDBAndGasModel(trieStore storag
 		TestUint64Converter,
 		tpn.DataPool,
 		tpn.EconomicsData,
+		tpn.EnableEpochs,
 	)
 	tpn.initBlockTracker()
 	tpn.initInterceptors("")
@@ -880,6 +919,7 @@ func (tpn *TestProcessorNode) createFullSCQueryService() {
 	}
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
+		tpn.EnableEpochs = config.EnableEpochs{}
 		sigVerifier, _ := disabled.NewMessageSignVerifier(&mock.KeyGenMock{})
 
 		blockChainHookImpl, _ := hooks.NewBlockChainHookImpl(argsHook)
@@ -942,6 +982,9 @@ func (tpn *TestProcessorNode) createFullSCQueryService() {
 			ShardCoordinator:    tpn.ShardCoordinator,
 			EnableEpochsHandler: tpn.EnableEpochsHandler,
 		}
+		tpn.EpochNotifier.CheckEpoch(&testscommon.HeaderHandlerStub{
+			EpochField: tpn.EnableEpochs.DelegationSmartContractEnableEpoch,
+		})
 		vmFactory, _ = metaProcess.NewVMContainerFactory(argsNewVmFactory)
 	} else {
 		esdtTransferParser, _ := parsers.NewESDTTransferParser(TestMarshalizer)
@@ -1036,10 +1079,11 @@ func (tpn *TestProcessorNode) initChainHandler() {
 }
 
 func (tpn *TestProcessorNode) initEconomicsData(economicsConfig *config.EconomicsConfig) {
+	tpn.EnableEpochs.PenalizedTooMuchGasEnableEpoch = 0
 	argsNewEconomicsData := economics.ArgsNewEconomicsData{
 		Economics:                   economicsConfig,
-		EpochNotifier:               &epochNotifier.EpochNotifierStub{},
-		EnableEpochsHandler:         &testscommon.EnableEpochsHandlerStub{},
+		EpochNotifier:               tpn.EpochNotifier,
+		EnableEpochsHandler:         tpn.EnableEpochsHandler,
 		BuiltInFunctionsCostHandler: &mock.BuiltInCostHandlerStub{},
 	}
 	economicsData, _ := economics.NewEconomicsData(argsNewEconomicsData)
@@ -1205,7 +1249,9 @@ func (tpn *TestProcessorNode) initInterceptors(heartbeatPk string) {
 		return tpn.MinTransactionVersion
 	}
 	coreComponents.TxVersionCheckField = versioning.NewTxVersionChecker(tpn.MinTransactionVersion)
-	coreComponents.EpochNotifierField = &epochNotifier.EpochNotifierStub{}
+	coreComponents.EnableEpochsHandlerField = tpn.EnableEpochsHandler
+	coreComponents.EpochNotifierField = tpn.EpochNotifier
+	coreComponents.EconomicsDataField = tpn.EconomicsData
 
 	cryptoComponents := GetDefaultCryptoComponents()
 	cryptoComponents.PubKey = nil
@@ -2006,6 +2052,11 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		tpn.ForkDetector, _ = processSync.NewMetaForkDetector(tpn.RoundHandler, tpn.BlockBlackListHandler, tpn.BlockTracker, tpn.NodesSetup.GetStartTime())
 	}
 
+	tpn.EnableEpochs = config.EnableEpochs{
+		StakingV2EnableEpoch: StakingV2Epoch,
+		ESDTEnableEpoch:      0,
+	}
+
 	accountsDb := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
 	accountsDb[state.UserAccountsState] = tpn.AccntState
 	accountsDb[state.PeerAccountsState] = tpn.PeerState
@@ -2015,6 +2066,9 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 	coreComponents.HasherField = TestHasher
 	coreComponents.Uint64ByteSliceConverterField = TestUint64Converter
 	coreComponents.RoundHandlerField = tpn.RoundHandler
+	coreComponents.EnableEpochsHandlerField = tpn.EnableEpochsHandler
+	coreComponents.EpochNotifierField = tpn.EpochNotifier
+	coreComponents.EconomicsDataField = tpn.EconomicsData
 
 	dataComponents := GetDefaultDataComponents()
 	dataComponents.Store = tpn.Storage
@@ -2135,8 +2189,9 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 			log.Error("initBlockProcessor NewRewardsStakingProvider", "error", errRsp)
 		}
 
-		enableEpochsStub, _ := tpn.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
-		enableEpochsStub.IsESDTFlagEnabledForCurrentEpochField = true
+		tpn.EpochNotifier.CheckEpoch(&testscommon.HeaderHandlerStub{
+			EpochField: tpn.EnableEpochs.ESDTEnableEpoch,
+		})
 		rewardsStorage := tpn.Storage.GetStorer(dataRetriever.RewardTransactionUnit)
 		miniBlockStorage := tpn.Storage.GetStorer(dataRetriever.MiniBlockUnit)
 		argsEpochRewards := metachain.RewardsCreatorProxyArgs{
@@ -2151,7 +2206,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 				ProtocolSustainabilityAddress: testProtocolSustainabilityAddress,
 				NodesConfigProvider:           tpn.NodesCoordinator,
 				UserAccountsDB:                tpn.AccntState,
-				EnableEpochsHandler:           enableEpochsStub,
+				EnableEpochsHandler:           tpn.EnableEpochsHandler,
 			},
 			StakingDataProvider:   stakingDataProvider,
 			RewardsHandler:        tpn.EconomicsData,
@@ -2183,7 +2238,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 			NodesConfigProvider:     tpn.NodesCoordinator,
 			ShardCoordinator:        tpn.ShardCoordinator,
 			ESDTOwnerAddressBytes:   vm.EndOfEpochAddress,
-			EnableEpochsHandler:     enableEpochsStub,
+			EnableEpochsHandler:     tpn.EnableEpochsHandler,
 		}
 		epochStartSystemSCProcessor, _ := metachain.NewSystemSCProcessor(argsEpochSystemSC)
 		tpn.EpochStartSystemSCProcessor = epochStartSystemSCProcessor
@@ -2278,6 +2333,7 @@ func (tpn *TestProcessorNode) initNode() {
 	coreComponents.EconomicsDataField = tpn.EconomicsData
 	coreComponents.APIEconomicsHandler = tpn.EconomicsData
 	coreComponents.SyncTimerField = &mock.SyncTimerMock{}
+	coreComponents.EnableEpochsHandlerField = tpn.EnableEpochsHandler
 	coreComponents.EpochNotifierField = tpn.EpochNotifier
 	coreComponents.ArwenChangeLockerInternal = tpn.ArwenChangeLocker
 	hardforkPubKeyBytes, _ := coreComponents.ValidatorPubKeyConverterField.Decode(hardforkPubKey)
@@ -2512,11 +2568,13 @@ func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.Bod
 		return nil, nil, nil
 	}
 
-	blockHeader, blockBody, err := tpn.BlockProcessor.CreateBlock(blockHeader, haveTime)
+	bh, blockBody, err := tpn.BlockProcessor.CreateBlock(blockHeader, haveTime)
 	if err != nil {
 		log.Warn("createBlockBody", "error", err.Error())
 		return nil, nil, nil
 	}
+
+	blockHeader = bh
 
 	shardBlockBody, ok := blockBody.(*dataBlock.Body)
 	txHashes := make([][]byte, 0)
@@ -2979,8 +3037,81 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger() {
 	log.LogIfError(err)
 }
 
+func CreateEnableEpochsConfig() config.EnableEpochs {
+	return config.EnableEpochs{
+		SCDeployEnableEpoch:                               UnreachableEpoch,
+		BuiltInFunctionsEnableEpoch:                       0,
+		RelayedTransactionsEnableEpoch:                    UnreachableEpoch,
+		PenalizedTooMuchGasEnableEpoch:                    UnreachableEpoch,
+		SwitchJailWaitingEnableEpoch:                      UnreachableEpoch,
+		SwitchHysteresisForMinNodesEnableEpoch:            UnreachableEpoch,
+		BelowSignedThresholdEnableEpoch:                   UnreachableEpoch,
+		TransactionSignedWithTxHashEnableEpoch:            UnreachableEpoch,
+		MetaProtectionEnableEpoch:                         UnreachableEpoch,
+		AheadOfTimeGasUsageEnableEpoch:                    UnreachableEpoch,
+		GasPriceModifierEnableEpoch:                       UnreachableEpoch,
+		RepairCallbackEnableEpoch:                         UnreachableEpoch,
+		BlockGasAndFeesReCheckEnableEpoch:                 UnreachableEpoch,
+		StakingV2EnableEpoch:                              UnreachableEpoch,
+		StakeEnableEpoch:                                  0,
+		DoubleKeyProtectionEnableEpoch:                    0,
+		ESDTEnableEpoch:                                   UnreachableEpoch,
+		GovernanceEnableEpoch:                             UnreachableEpoch,
+		DelegationManagerEnableEpoch:                      UnreachableEpoch,
+		DelegationSmartContractEnableEpoch:                UnreachableEpoch,
+		CorrectLastUnjailedEnableEpoch:                    UnreachableEpoch,
+		BalanceWaitingListsEnableEpoch:                    UnreachableEpoch,
+		ReturnDataToLastTransferEnableEpoch:               UnreachableEpoch,
+		SenderInOutTransferEnableEpoch:                    UnreachableEpoch,
+		RelayedTransactionsV2EnableEpoch:                  UnreachableEpoch,
+		UnbondTokensV2EnableEpoch:                         UnreachableEpoch,
+		SaveJailedAlwaysEnableEpoch:                       UnreachableEpoch,
+		ValidatorToDelegationEnableEpoch:                  UnreachableEpoch,
+		ReDelegateBelowMinCheckEnableEpoch:                UnreachableEpoch,
+		WaitingListFixEnableEpoch:                         UnreachableEpoch,
+		IncrementSCRNonceInMultiTransferEnableEpoch:       UnreachableEpoch,
+		ESDTMultiTransferEnableEpoch:                      UnreachableEpoch,
+		GlobalMintBurnDisableEpoch:                        UnreachableEpoch,
+		ESDTTransferRoleEnableEpoch:                       UnreachableEpoch,
+		BuiltInFunctionOnMetaEnableEpoch:                  UnreachableEpoch,
+		ComputeRewardCheckpointEnableEpoch:                UnreachableEpoch,
+		SCRSizeInvariantCheckEnableEpoch:                  UnreachableEpoch,
+		BackwardCompSaveKeyValueEnableEpoch:               UnreachableEpoch,
+		ESDTNFTCreateOnMultiShardEnableEpoch:              UnreachableEpoch,
+		MetaESDTSetEnableEpoch:                            UnreachableEpoch,
+		AddTokensToDelegationEnableEpoch:                  UnreachableEpoch,
+		MultiESDTTransferFixOnCallBackOnEnableEpoch:       UnreachableEpoch,
+		OptimizeGasUsedInCrossMiniBlocksEnableEpoch:       UnreachableEpoch,
+		CorrectFirstQueuedEpoch:                           UnreachableEpoch,
+		CorrectJailedNotUnstakedEmptyQueueEpoch:           UnreachableEpoch,
+		FixOOGReturnCodeEnableEpoch:                       UnreachableEpoch,
+		RemoveNonUpdatedStorageEnableEpoch:                UnreachableEpoch,
+		DeleteDelegatorAfterClaimRewardsEnableEpoch:       UnreachableEpoch,
+		OptimizeNFTStoreEnableEpoch:                       UnreachableEpoch,
+		CreateNFTThroughExecByCallerEnableEpoch:           UnreachableEpoch,
+		StopDecreasingValidatorRatingWhenStuckEnableEpoch: UnreachableEpoch,
+		FrontRunningProtectionEnableEpoch:                 UnreachableEpoch,
+		IsPayableBySCEnableEpoch:                          UnreachableEpoch,
+		CleanUpInformativeSCRsEnableEpoch:                 UnreachableEpoch,
+		StorageAPICostOptimizationEnableEpoch:             UnreachableEpoch,
+		TransformToMultiShardCreateEnableEpoch:            UnreachableEpoch,
+		ESDTRegisterAndSetAllRolesEnableEpoch:             UnreachableEpoch,
+		ScheduledMiniBlocksEnableEpoch:                    UnreachableEpoch,
+		FailExecutionOnEveryAPIErrorEnableEpoch:           UnreachableEpoch,
+		AddFailedRelayedTxToInvalidMBsDisableEpoch:        UnreachableEpoch,
+		SCRSizeInvariantOnBuiltInResultEnableEpoch:        UnreachableEpoch,
+		CheckCorrectTokenIDForTransferRoleEnableEpoch:     UnreachableEpoch,
+		HeartbeatDisableEpoch:                             UnreachableEpoch,
+		MiniBlockPartialExecutionEnableEpoch:              UnreachableEpoch,
+	}
+}
+
 // GetDefaultCoreComponents -
 func GetDefaultCoreComponents() *mock.CoreComponentsStub {
+	enableEpochsCfg := CreateEnableEpochsConfig()
+	genericEpochNotifier := forking.NewGenericEpochNotifier()
+	enableEpochsHandler, _ := enableEpochs.NewEnableEpochsHandler(enableEpochsCfg, genericEpochNotifier)
+
 	return &mock.CoreComponentsStub{
 		InternalMarshalizerField:      TestMarshalizer,
 		TxMarshalizerField:            TestTxSignMarshalizer,
@@ -3007,11 +3138,11 @@ func GetDefaultCoreComponents() *mock.CoreComponentsStub {
 		RaterField:                   &testscommon.RaterMock{},
 		GenesisNodesSetupField:       &testscommon.NodesSetupStub{},
 		GenesisTimeField:             time.Time{},
-		EpochNotifierField:           &epochNotifier.EpochNotifierStub{},
+		EpochNotifierField:           genericEpochNotifier,
 		RoundNotifierField:           &processMock.RoundNotifierStub{},
 		TxVersionCheckField:          versioning.NewTxVersionChecker(MinTransactionVersion),
 		ProcessStatusHandlerInternal: &testscommon.ProcessStatusHandlerStub{},
-		EnableEpochsHandlerField:     &testscommon.EnableEpochsHandlerStub{},
+		EnableEpochsHandlerField:     enableEpochsHandler,
 	}
 }
 

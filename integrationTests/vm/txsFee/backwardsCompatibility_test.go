@@ -17,7 +17,13 @@ import (
 
 // minGasPrice = 1, gasPerDataByte = 1, minGasLimit = 1
 func TestMoveBalanceSelfShouldWorkAndConsumeTxFeeWhenAllFlagsAreDisabled(t *testing.T) {
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
+		PenalizedTooMuchGasEnableEpoch:   100,
+		BuiltInFunctionOnMetaEnableEpoch: 100,
+		SCDeployEnableEpoch:              100,
+		MetaProtectionEnableEpoch:        100,
+		RelayedTransactionsEnableEpoch:   100,
+	})
 	require.Nil(t, err)
 	defer testContext.Close()
 
@@ -60,7 +66,13 @@ func TestMoveBalanceSelfShouldWorkAndConsumeTxFeeWhenAllFlagsAreDisabled(t *test
 
 // minGasPrice = 1, gasPerDataByte = 1, minGasLimit = 1
 func TestMoveBalanceAllFlagsDisabledLessBalanceThanGasLimitMulGasPrice(t *testing.T) {
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
+		PenalizedTooMuchGasEnableEpoch: 100,
+		BuiltInFunctionsEnableEpoch:    100,
+		SCDeployEnableEpoch:            100,
+		MetaProtectionEnableEpoch:      100,
+		RelayedTransactionsEnableEpoch: 100,
+	})
 	require.Nil(t, err)
 	defer testContext.Close()
 
@@ -80,7 +92,11 @@ func TestMoveBalanceAllFlagsDisabledLessBalanceThanGasLimitMulGasPrice(t *testin
 func TestMoveBalanceSelfShouldWorkAndConsumeTxFeeWhenSomeFlagsAreDisabled(t *testing.T) {
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(
 		config.EnableEpochs{
-			PenalizedTooMuchGasEnableEpoch: 0,
+			PenalizedTooMuchGasEnableEpoch:   0,
+			BuiltInFunctionsEnableEpoch:      100,
+			SCDeployEnableEpoch:              100,
+			MetaProtectionEnableEpoch:        100,
+			RelayedTransactionsV2EnableEpoch: 100,
 		})
 	require.Nil(t, err)
 	defer testContext.Close()

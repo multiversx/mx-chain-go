@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon/txDataBuilder"
@@ -392,10 +393,18 @@ func (net *TestNetwork) RequireWalletNoncesInSyncWithState() {
 // }
 
 func (net *TestNetwork) createNodes() {
-	net.Nodes = CreateNodes(
+	enabledEpochsConfig := config.EnableEpochs{
+		StakingV2EnableEpoch:                 100,
+		ScheduledMiniBlocksEnableEpoch:       100,
+		MiniBlockPartialExecutionEnableEpoch: 100,
+	}
+
+	net.Nodes = CreateNodesWithEnableEpochs(
 		net.NumShards,
 		net.NodesPerShard,
-		net.NodesInMetashard)
+		net.NodesInMetashard,
+		enabledEpochsConfig,
+	)
 }
 
 func (net *TestNetwork) indexProposers() {

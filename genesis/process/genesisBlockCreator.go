@@ -420,11 +420,11 @@ func (gbc *genesisBlockCreator) computeDNSAddresses(enableEpochsConfig config.En
 		Epoch:     gbc.arg.StartEpochNum,
 		TimeStamp: gbc.arg.GenesisTime,
 	}
-	epochNotifier.CheckEpoch(temporaryMetaHeader)
 	enableEpochsHandler, err := enableEpochs.NewEnableEpochsHandler(enableEpochsConfig, epochNotifier)
 	if err != nil {
 		return err
 	}
+	epochNotifier.CheckEpoch(temporaryMetaHeader)
 
 	builtInFuncs := vmcommonBuiltInFunctions.NewBuiltInFunctionContainer()
 	argsHook := hooks.ArgBlockChainHook{

@@ -7,6 +7,7 @@ import (
 	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/v1_4/config"
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/common/enableEpochs"
 	"github.com/ElrondNetwork/elrond-go/common/forking"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
@@ -122,6 +123,8 @@ func NewTestSyncNode(
 }
 
 func (tpn *TestProcessorNode) initTestNodeWithSync() {
+	tpn.EnableEpochs.ScheduledMiniBlocksEnableEpoch = ScheduledMiniBlocksEnableEpoch
+	tpn.EnableEpochsHandler, _ = enableEpochs.NewEnableEpochsHandler(tpn.EnableEpochs, tpn.EpochNotifier)
 	tpn.NetworkShardingCollector = mock.NewNetworkShardingCollectorMock()
 	tpn.initChainHandler()
 	tpn.initHeaderValidator()

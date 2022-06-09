@@ -99,7 +99,12 @@ func (ihncrf *IndexHashedNodesCoordinatorWithRaterFactory) CreateNodesCoordinato
 		Adaptivity:           adaptivity,
 		ShuffleBetweenShards: shuffleBetweenShards,
 		MaxNodesEnableConfig: nil,
-		EnableEpochsHandler:  &testscommon.EnableEpochsHandlerStub{},
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
+			WaitingListFixEnableEpochField:        0,
+			IsWaitingListFixFlagEnabledField:      true,
+			BalanceWaitingListsEnableEpochField:   0,
+			IsBalanceWaitingListsFlagEnabledField: true,
+		},
 	}
 	nodeShuffler, _ := nodesCoordinator.NewHashValidatorsShuffler(shufflerArgs)
 	argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
@@ -120,6 +125,10 @@ func (ihncrf *IndexHashedNodesCoordinatorWithRaterFactory) CreateNodesCoordinato
 		ChanStopNode:            endProcess.GetDummyEndProcessChannel(),
 		NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
 		IsFullArchive:           false,
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
+			WaitingListFixEnableEpochField:   0,
+			IsWaitingListFixFlagEnabledField: true,
+		},
 	}
 
 	baseCoordinator, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
