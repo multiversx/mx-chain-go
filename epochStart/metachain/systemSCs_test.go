@@ -749,23 +749,24 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieS
 		}},
 		EpochNotifier: &epochNotifier.EpochNotifierStub{},
 	}
-	builtInFuncs, _, _ := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
+	builtInFuncs, _, _, _ := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
 
 	testDataPool := dataRetrieverMock.NewPoolsHolderMock()
 	argsHook := hooks.ArgBlockChainHook{
-		Accounts:           userAccountsDB,
-		PubkeyConv:         &mock.PubkeyConverterMock{},
-		StorageService:     &mock.ChainStorerStub{},
-		BlockChain:         blockChain,
-		ShardCoordinator:   &mock.ShardCoordinatorStub{},
-		Marshalizer:        marshalizer,
-		Uint64Converter:    &mock.Uint64ByteSliceConverterMock{},
-		NFTStorageHandler:  &testscommon.SimpleNFTStorageHandlerStub{},
-		BuiltInFunctions:   builtInFuncs,
-		DataPool:           testDataPool,
-		CompiledSCPool:     testDataPool.SmartContracts(),
-		EpochNotifier:      &epochNotifier.EpochNotifierStub{},
-		NilCompiledSCStore: true,
+		Accounts:              userAccountsDB,
+		PubkeyConv:            &mock.PubkeyConverterMock{},
+		StorageService:        &mock.ChainStorerStub{},
+		BlockChain:            blockChain,
+		ShardCoordinator:      &mock.ShardCoordinatorStub{},
+		Marshalizer:           marshalizer,
+		Uint64Converter:       &mock.Uint64ByteSliceConverterMock{},
+		NFTStorageHandler:     &testscommon.SimpleNFTStorageHandlerStub{},
+		BuiltInFunctions:      builtInFuncs,
+		DataPool:              testDataPool,
+		GlobalSettingsHandler: &testscommon.ESDTGlobalSettingsHandlerStub{},
+		CompiledSCPool:        testDataPool.SmartContracts(),
+		EpochNotifier:         &epochNotifier.EpochNotifierStub{},
+		NilCompiledSCStore:    true,
 	}
 
 	defaults.FillGasMapInternal(gasSchedule, 1)
