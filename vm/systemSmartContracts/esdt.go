@@ -658,6 +658,8 @@ func (e *esdt) createNewToken(
 	if err != nil {
 		return nil, nil, err
 	}
+	e.addBurnRoleAndSendToAllShards(newESDTToken, tokenIdentifier)
+
 	err = e.saveToken(tokenIdentifier, newESDTToken)
 	if err != nil {
 		return nil, nil, err
@@ -1118,11 +1120,14 @@ func (e *esdt) setBurnForAll(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 		return vmcommon.UserError
 	}
 
-	burnForAllRole := &ESDTRoles{Roles: [][]byte{[]byte(vmcommon.ESDTRoleBurnForAll)}, Address: []byte{}}
-	token.SpecialRoles = append(token.SpecialRoles, burnForAllRole)
+	e.addBurnRoleAndSendToAllShards(token, args.Arguments[0])
+	err := e.saveToken(args.Arguments[0], token)
+	if err != nil {
+		e.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
 
-	returnCode = e.saveTokenAndSendForAll(token, args.Arguments[0], vmcommon.BuiltInFunctionESDTSetBurnRoleForAll)
-	return returnCode
+	return vmcommon.Ok
 }
 
 func (e *esdt) unSetBurnForAll(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
@@ -1139,8 +1144,20 @@ func (e *esdt) unSetBurnForAll(args *vmcommon.ContractCallInput) vmcommon.Return
 
 	deleteRoleFromToken(token, []byte(vmcommon.ESDTRoleBurnForAll))
 
-	returnCode = e.saveTokenAndSendForAll(token, args.Arguments[0], vmcommon.BuiltInFunctionESDTSetBurnRoleForAll)
+	returnCode = e.saveTokenAndSendForAll(token, args.Arguments[0], vmcommon.BuiltInFunctionESDTUnSetBurnRoleForAll)
 	return returnCode
+}
+
+func (e *esdt) addBurnRoleAndSendToAllShards(token *ESDTDataV2, tokenID []byte) {
+	if !e.flagBurnForAll.IsSet() {
+		return
+	}
+
+	burnForAllRole := &ESDTRoles{Roles: [][]byte{[]byte(vmcommon.ESDTRoleBurnForAll)}, Address: []byte{}}
+	token.SpecialRoles = append(token.SpecialRoles, burnForAllRole)
+
+	esdtTransferData := vmcommon.BuiltInFunctionESDTSetBurnRoleForAll + "@" + hex.EncodeToString(tokenID)
+	e.eei.SendGlobalSettingToAll(e.eSDTSCAddress, []byte(esdtTransferData))
 }
 
 func (e *esdt) configChange(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
