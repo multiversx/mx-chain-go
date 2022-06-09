@@ -141,9 +141,11 @@ func TestAuctionList_ReturnsSuccessfully(t *testing.T) {
 
 	auctionListToReturn := []*common.AuctionListValidatorAPIResponse{
 		{
-			Owner:   "owner",
-			NodeKey: "nodeKey",
-			TopUp:   "112233",
+			Owner:          "owner",
+			NumStakedNodes: 4,
+			TotalTopUp:     "1234",
+			TopUpPerNode:   "4321",
+			QualifiedTopUp: "4444",
 		},
 	}
 	facade := mock.FacadeStub{

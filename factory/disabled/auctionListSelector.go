@@ -10,7 +10,7 @@ func NewDisabledAuctionListSelector() *auctionListSelector {
 	return &auctionListSelector{}
 }
 
-// SelectNodesFromAuctionList returns il
+// SelectNodesFromAuctionList returns nil
 func (als *auctionListSelector) SelectNodesFromAuctionList(state.ShardValidatorsInfoMapHandler, []byte) error {
 	return nil
 }

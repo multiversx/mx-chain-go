@@ -192,7 +192,6 @@ func (vp *validatorsProvider) epochStartEventHandler() nodesCoordinator.EpochSta
 func (vp *validatorsProvider) startRefreshProcess(ctx context.Context) {
 	for {
 		vp.updateCache()
-
 		select {
 		case epoch := <-vp.refreshCache:
 			vp.lock.Lock()

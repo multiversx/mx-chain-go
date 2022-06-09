@@ -777,7 +777,7 @@ func TestValidatorsProvider_GetAuctionList(t *testing.T) {
 			},
 		}
 		vp, _ := NewValidatorsProvider(args)
-		time.Sleep(2 * args.CacheRefreshIntervalDurationInSec)
+		time.Sleep(args.CacheRefreshIntervalDurationInSec)
 
 		list, err := vp.GetAuctionList()
 		require.Nil(t, err)
