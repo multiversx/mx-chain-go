@@ -139,7 +139,7 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsStakeFlagEnabled())
 		assert.True(t, handler.IsStakingV2FlagEnabled())
 		assert.False(t, handler.IsStakingV2OwnerFlagEnabled()) // epoch == limit
-		assert.True(t, handler.IsStakingV2DelegationFlagEnabled())
+		assert.True(t, handler.IsStakingV2FlagEnabledForActivationEpochCompleted())
 		assert.True(t, handler.IsDoubleKeyProtectionFlagEnabled())
 		assert.True(t, handler.IsESDTFlagEnabled())
 		assert.False(t, handler.IsESDTFlagEnabledForCurrentEpoch()) // epoch == limit
@@ -226,7 +226,7 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsStakeFlagEnabled())
 		assert.True(t, handler.IsStakingV2FlagEnabled())
 		assert.True(t, handler.IsStakingV2OwnerFlagEnabled()) // epoch == limit
-		assert.False(t, handler.IsStakingV2DelegationFlagEnabled())
+		assert.False(t, handler.IsStakingV2FlagEnabledForActivationEpochCompleted())
 		assert.True(t, handler.IsDoubleKeyProtectionFlagEnabled())
 		assert.True(t, handler.IsESDTFlagEnabled())
 		assert.True(t, handler.IsESDTFlagEnabledForCurrentEpoch()) // epoch == limit
@@ -308,7 +308,7 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.False(t, handler.IsStakeFlagEnabled())
 		assert.False(t, handler.IsStakingV2FlagEnabled())
 		assert.False(t, handler.IsStakingV2OwnerFlagEnabled()) // epoch == limit
-		assert.False(t, handler.IsStakingV2DelegationFlagEnabled())
+		assert.False(t, handler.IsStakingV2FlagEnabledForActivationEpochCompleted())
 		assert.False(t, handler.IsDoubleKeyProtectionFlagEnabled())
 		assert.False(t, handler.IsESDTFlagEnabled())
 		assert.False(t, handler.IsESDTFlagEnabledForCurrentEpoch()) // epoch == limit
