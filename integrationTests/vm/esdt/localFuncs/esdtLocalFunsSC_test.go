@@ -5,10 +5,11 @@ package localFuncs
 
 import (
 	"encoding/hex"
-	"github.com/stretchr/testify/assert"
 	"math/big"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
@@ -334,11 +335,11 @@ func testAsyncCallAndCallBacksArguments(t *testing.T, numShards int) {
 	round = integrationTests.IncrementAndPrintRound(round)
 	nonce++
 
-	scAddressA := esdtCommon.DeployNonPayableSmartContractFromNode(t, nodes, 0, idxProposers, &nonce, &round, "../forwarder.wasm")
-	scAddressB := esdtCommon.DeployNonPayableSmartContractFromNode(t, nodes, 1, idxProposers, &nonce, &round, "../vault.wasm")
+	scAddressA := esdtCommon.DeployNonPayableSmartContractFromNode(t, nodes, 0, idxProposers, &nonce, &round, "forwarder.wasm")
+	scAddressB := esdtCommon.DeployNonPayableSmartContractFromNode(t, nodes, 1, idxProposers, &nonce, &round, "vault.wasm")
 
 	txData := txDataBuilder.NewBuilder()
-	txData.Clear().Str("echo_args_async").Bytes(scAddressB).Str("AA").Str("BB")
+	txData.Clear().Func("echo_args_async").Bytes(scAddressB).Str("AA").Str("BB")
 
 	integrationTests.CreateAndSendTransaction(
 		nodes[0],
@@ -354,7 +355,7 @@ func testAsyncCallAndCallBacksArguments(t *testing.T, numShards int) {
 
 	checkDataFromAccountAndKey(t, nodes, scAddressA, []byte("callbackStorage"), []byte("successAABB"))
 
-	txData.Clear().Str("echo_args_async").Bytes(scAddressB)
+	txData.Clear().Func("echo_args_async").Bytes(scAddressB)
 	integrationTests.CreateAndSendTransaction(
 		nodes[0],
 		nodes,
