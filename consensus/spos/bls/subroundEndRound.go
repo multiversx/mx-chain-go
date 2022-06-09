@@ -216,8 +216,6 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 			log.Debug("doEndRoundJobByLeader.verifyNodesOnAggSigVerificationFail", "error", err.Error())
 			return false
 		}
-
-		return false
 	}
 	log.Debug("doEndRoundJobByLeader.Verify: TRIGERRED")
 
@@ -311,9 +309,18 @@ func (sr *subroundEndRound) verifyNodesOnAggSigVerificationFail(
 	threshold := sr.Threshold(sr.Current())
 	pubKeys := sr.ConsensusGroup()
 
-	invalidSigSharesNodes := make([]int, 0)
+	sigShares := make([][]byte, 0, len(pubKeys))
+	for i := range pubKeys {
+		sigShare, err := multiSigner.SignatureShare(uint16(i))
+		if err != nil {
+			log.Debug("verifyNodesOnAggSigVerificationFail.SignatureShare", "error", err.Error())
+			return err
+		}
 
-	newMultiSigner := multiSigner
+		sigShares = append(sigShares, sigShare)
+	}
+
+	invalidSigSharesNodes := make([]int, 0)
 
 	// TODO: analize better error handling and logs
 	selfIndex, err := sr.SelfConsensusGroupIndex()
@@ -322,7 +329,7 @@ func (sr *subroundEndRound) verifyNodesOnAggSigVerificationFail(
 		return err
 	}
 
-	newMultiSigner.Reset(pubKeys, uint16(selfIndex))
+	multiSigner.Reset(pubKeys, uint16(selfIndex))
 	if err != nil {
 		log.Debug("verifyNodesOnAggSigVerificationFail.MultiSigner.Reset", "error", err.Error())
 		return err
@@ -334,13 +341,7 @@ func (sr *subroundEndRound) verifyNodesOnAggSigVerificationFail(
 			continue
 		}
 
-		sigShare, err := multiSigner.SignatureShare(uint16(i))
-		if err != nil {
-			log.Debug("verifyNodesOnAggSigVerificationFail.SignatureShare", "error", err.Error())
-			return err
-		}
-
-		err = multiSigner.VerifySignatureShare(uint16(i), sigShare, sr.GetData(), nil)
+		err = multiSigner.VerifySignatureShare(uint16(i), sigShares[i], sr.GetData(), nil)
 		if err != nil {
 			log.Debug("verifyNodesOnAggSigVerificationFail.VerifySignatureShare", "error", err.Error())
 
@@ -355,7 +356,7 @@ func (sr *subroundEndRound) verifyNodesOnAggSigVerificationFail(
 
 		nodeIndex, err := sr.ConsensusGroupIndex(pk)
 
-		err = newMultiSigner.StoreSignatureShare(uint16(nodeIndex), sigShare)
+		err = multiSigner.StoreSignatureShare(uint16(nodeIndex), sigShares[i])
 		if err != nil {
 			log.Debug("receivedSignature.StoreSignatureShare",
 				"node", pk,
@@ -380,8 +381,20 @@ func (sr *subroundEndRound) verifyNodesOnAggSigVerificationFail(
 	log.Debug("verifyNodesOnAggSigVerificationFail", "threshold", threshold)
 	log.Debug("verifyNodesOnAggSigVerificationFail", "numValidSigShares", numValidSigShares)
 
+	sig, err := multiSigner.AggregateSigs(bitmap)
+	if err != nil {
+		log.Debug("doEndRoundJobByLeader.AggregateSigs", "error", err.Error())
+		return err
+	}
+
+	err = multiSigner.SetAggregatedSig(sig)
+	if err != nil {
+		log.Debug("doEndRoundJobByLeader.SetAggregatedSig", "error", err.Error())
+		return err
+	}
+
 	if numValidSigShares >= threshold {
-		err := newMultiSigner.Verify(sr.GetData(), bitmap)
+		err := multiSigner.Verify(sr.GetData(), bitmap)
 		if err != nil {
 			return err
 		}
