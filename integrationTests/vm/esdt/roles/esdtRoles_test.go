@@ -458,7 +458,7 @@ func TestESDTLocalBurnFromAnyoneOfThisToken(t *testing.T) {
 	}
 
 	esdt.CheckAddressHasTokens(t, tokenIssuer.OwnAccount.Address, nodes, []byte(tokenIdentifier), 0, finalSupply)
-	txData.Clear().LocalBurnESDT(tokenIdentifier, valueToSend)
+	txData.Clear().LocalBurnESDT(tokenIdentifier, finalSupply)
 	integrationTests.CreateAndSendTransaction(tokenIssuer, nodes, big.NewInt(0), tokenIssuer.OwnAccount.Address, txData.ToString(), integrationTests.AdditionalGasLimit)
 
 	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
