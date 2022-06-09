@@ -2244,7 +2244,7 @@ func TestValidatorStatistics_ProcessValidatorInfosEndOfEpochV2ComputesEligibleLe
 	stub, _ := arguments.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
 
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
-	stub.IsStakingV2DelegationFlagEnabledField = true
+	stub.IsStakingV2FlagEnabledForActivationEpochCompletedField = true
 
 	tempRating1 := uint32(5000)
 	tempRating2 := uint32(8000)
