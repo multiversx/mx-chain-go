@@ -21,7 +21,7 @@ import (
 	marshalizerFactory "github.com/ElrondNetwork/elrond-go-core/marshal/factory"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/common/enableEpochs"
+	"github.com/ElrondNetwork/elrond-go/common/enablers"
 	commonFactory "github.com/ElrondNetwork/elrond-go/common/factory"
 	"github.com/ElrondNetwork/elrond-go/common/forking"
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -47,6 +47,7 @@ type CoreComponentsFactoryArgs struct {
 	Config                config.Config
 	ConfigPathsHolder     config.ConfigurationPathsHolder
 	EpochConfig           config.EpochConfig
+	RoundConfig           config.RoundConfig
 	RatingsConfig         config.RatingsConfig
 	EconomicsConfig       config.EconomicsConfig
 	ImportDbConfig        config.ImportDbConfig
@@ -61,6 +62,7 @@ type coreComponentsFactory struct {
 	config                config.Config
 	configPathsHolder     config.ConfigurationPathsHolder
 	epochConfig           config.EpochConfig
+	roundConfig           config.RoundConfig
 	ratingsConfig         config.RatingsConfig
 	economicsConfig       config.EconomicsConfig
 	importDbConfig        config.ImportDbConfig
@@ -97,7 +99,7 @@ type coreComponents struct {
 	chainID                       string
 	minTransactionVersion         uint32
 	epochNotifier                 process.EpochNotifier
-	roundNotifier                 process.RoundNotifier
+	enableRoundsHandler           process.EnableRoundsHandler
 	epochStartNotifierWithConfirm EpochStartNotifierWithConfirm
 	chanStopNodeProcess           chan endProcess.ArgEndProcess
 	nodeTypeProvider              core.NodeTypeProviderHandler
@@ -114,6 +116,7 @@ func NewCoreComponentsFactory(args CoreComponentsFactoryArgs) (*coreComponentsFa
 		config:                args.Config,
 		configPathsHolder:     args.ConfigPathsHolder,
 		epochConfig:           args.EpochConfig,
+		roundConfig:           args.RoundConfig,
 		ratingsConfig:         args.RatingsConfig,
 		importDbConfig:        args.ImportDbConfig,
 		economicsConfig:       args.EconomicsConfig,
@@ -229,9 +232,12 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 	}
 
 	epochNotifier := forking.NewGenericEpochNotifier()
-	roundNotifier := forking.NewRoundNotifier()
+	enableRoundsHandler, err := enablers.NewEnableRoundsHandler(ccf.roundConfig)
+	if err != nil {
+		return nil, err
+	}
 
-	enableEpochsHandler, err := enableEpochs.NewEnableEpochsHandler(ccf.epochConfig.EnableEpochs, epochNotifier)
+	enableEpochsHandler, err := enablers.NewEnableEpochsHandler(ccf.epochConfig.EnableEpochs, epochNotifier)
 	if err != nil {
 		return nil, err
 	}
@@ -371,7 +377,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		chainID:                       ccf.config.GeneralSettings.ChainID,
 		minTransactionVersion:         ccf.config.GeneralSettings.MinTransactionVersion,
 		epochNotifier:                 epochNotifier,
-		roundNotifier:                 roundNotifier,
+		enableRoundsHandler:           enableRoundsHandler,
 		epochStartNotifierWithConfirm: notifier.NewEpochStartSubscriptionHandler(),
 		chanStopNodeProcess:           ccf.chanStopNodeProcess,
 		encodedAddressLen:             computeEncodedAddressLen(addressPubkeyConverter),

@@ -350,6 +350,7 @@ func getCoreArgs() factory.CoreComponentsFactoryArgs {
 				},
 			},
 		},
+		RoundConfig: config.RoundConfig{},
 	}
 }
 

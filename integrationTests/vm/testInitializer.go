@@ -23,7 +23,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/common/enableEpochs"
+	"github.com/ElrondNetwork/elrond-go/common/enablers"
 	"github.com/ElrondNetwork/elrond-go/common/forking"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -357,7 +357,7 @@ func createEconomicsData(enableEpochsConfig config.EnableEpochs) (process.Econom
 	})
 
 	realEpochNotifier := forking.NewGenericEpochNotifier()
-	enableEpochsHandler, _ := enableEpochs.NewEnableEpochsHandler(enableEpochsConfig, realEpochNotifier)
+	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(enableEpochsConfig, realEpochNotifier)
 
 	argsNewEconomicsData := economics.ArgsNewEconomicsData{
 		Economics: &config.EconomicsConfig{
@@ -487,7 +487,7 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 	}
 	scProcessor, _ := smartContract.NewSmartContractProcessor(argsNewSCProcessor)
 
-	enableEpochsHandler, _ := enableEpochs.NewEnableEpochsHandler(enableEpochsConfig, forking.NewGenericEpochNotifier())
+	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(enableEpochsConfig, forking.NewGenericEpochNotifier())
 
 	argsNewTxProcessor := transaction.ArgsNewTxProcessor{
 		Accounts:            accnts,
@@ -839,7 +839,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 	}
 	testScProcessor := smartContract.NewTestScProcessor(scProcessor)
 
-	enableEpochsHandler, _ := enableEpochs.NewEnableEpochsHandler(enableEpochsConfig, epochNotifierInstance)
+	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(enableEpochsConfig, epochNotifierInstance)
 	argsNewTxProcessor := transaction.ArgsNewTxProcessor{
 		Accounts:            accnts,
 		Hasher:              testHasher,

@@ -8,13 +8,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/common/enablers"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap"
 	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/factory/block"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/headerCheck"
-	"github.com/ElrondNetwork/elrond-go/process/roundActivation"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -57,7 +57,7 @@ type bootstrapComponents struct {
 	headerVersionHandler    factory.HeaderVersionHandler
 	versionedHeaderFactory  factory.VersionedHeaderFactory
 	headerIntegrityVerifier factory.HeaderIntegrityVerifierHandler
-	roundActivationHandler  process.RoundActivationHandler
+	enableRoundsHandler     process.EnableRoundsHandler
 }
 
 // NewBootstrapComponentsFactory creates an instance of bootstrapComponentsFactory
@@ -221,13 +221,10 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		return nil, err
 	}
 
-	roundActivationHandler, err := roundActivation.NewRoundActivation(bcf.roundConfig)
+	enableRoundsHandler, err := enablers.NewEnableRoundsHandler(bcf.roundConfig)
 	if err != nil {
 		return nil, err
 	}
-
-	roundNotifier := bcf.coreComponents.RoundNotifier()
-	roundNotifier.RegisterNotifyHandler(roundActivationHandler)
 
 	versionedHeaderFactory, err := bcf.createHeaderFactory(headerVersionHandler, bootstrapParameters.SelfShardId)
 	if err != nil {
@@ -244,7 +241,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		headerVersionHandler:    headerVersionHandler,
 		headerIntegrityVerifier: headerIntegrityVerifier,
 		versionedHeaderFactory:  versionedHeaderFactory,
-		roundActivationHandler:  roundActivationHandler,
+		enableRoundsHandler:     enableRoundsHandler,
 	}, nil
 }
 

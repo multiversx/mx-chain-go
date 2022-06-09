@@ -105,8 +105,8 @@ func (mbf *managedBootstrapComponents) EpochBootstrapParams() BootstrapParamsHol
 	return mbf.bootstrapComponents.bootstrapParamsHolder
 }
 
-// RoundActivationHandler returns the round activation handler
-func (mbf *managedBootstrapComponents) RoundActivationHandler() process.RoundActivationHandler {
+// EnableRoundsHandler returns the round activation handler
+func (mbf *managedBootstrapComponents) EnableRoundsHandler() process.EnableRoundsHandler {
 	mbf.mutBootstrapComponents.RLock()
 	defer mbf.mutBootstrapComponents.RUnlock()
 
@@ -114,7 +114,7 @@ func (mbf *managedBootstrapComponents) RoundActivationHandler() process.RoundAct
 		return nil
 	}
 
-	return mbf.bootstrapComponents.roundActivationHandler
+	return mbf.bootstrapComponents.enableRoundsHandler
 }
 
 // IsInterfaceNil returns true if the underlying object is nil

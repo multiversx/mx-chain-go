@@ -119,7 +119,7 @@ type CoreComponentsHolder interface {
 	GenesisNodesSetup() sharding.GenesisNodesSetupHandler
 	NodesShuffler() nodesCoordinator.NodesShuffler
 	EpochNotifier() process.EpochNotifier
-	RoundNotifier() process.RoundNotifier
+	EnableRoundsHandler() process.EnableRoundsHandler
 	EpochStartNotifierWithConfirm() EpochStartNotifierWithConfirm
 	ChanStopNodeProcess() chan endProcess.ArgEndProcess
 	GenesisTime() time.Time
@@ -444,7 +444,7 @@ type EpochStartBootstrapper interface {
 
 // BootstrapComponentsHolder holds the bootstrap components
 type BootstrapComponentsHolder interface {
-	RoundActivationHandler() process.RoundActivationHandler
+	EnableRoundsHandler() process.EnableRoundsHandler
 	EpochStartBootstrapper() EpochStartBootstrapper
 	EpochBootstrapParams() BootstrapParamsHolder
 	NodeType() core.NodeType

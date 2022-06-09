@@ -32,7 +32,7 @@ import (
 	mclsig "github.com/ElrondNetwork/elrond-go-crypto/signing/mcl/singlesig"
 	nodeFactory "github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/common/enableEpochs"
+	"github.com/ElrondNetwork/elrond-go/common/enablers"
 	"github.com/ElrondNetwork/elrond-go/common/forking"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
@@ -425,7 +425,7 @@ func newBaseTestProcessorNode(
 	}
 
 	genericEpochNotifier := forking.NewGenericEpochNotifier()
-	enabledEpochsHandler, _ := enableEpochs.NewEnableEpochsHandler(enabledEpochsConfig, genericEpochNotifier)
+	enabledEpochsHandler, _ := enablers.NewEnableEpochsHandler(enabledEpochsConfig, genericEpochNotifier)
 
 	logsProcessor, _ := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{Marshalizer: TestMarshalizer})
 	tpn := &TestProcessorNode{
@@ -614,6 +614,9 @@ func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32
 	kg := &mock.KeyGenMock{}
 	sk, pk := kg.GeneratePair()
 
+	genericEpochNotifier := forking.NewGenericEpochNotifier()
+	enabledEpochsHandler, _ := enablers.NewEnableEpochsHandler(config.EnableEpochs{}, genericEpochNotifier)
+
 	logsProcessor, _ := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{Marshalizer: TestMarshalizer})
 	tpn := &TestProcessorNode{
 		ShardCoordinator:        shardCoordinator,
@@ -634,6 +637,7 @@ func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32
 		TransactionLogProcessor: logsProcessor,
 		PeersRatingHandler:      peersRatingHandler,
 		PeerShardMapper:         disabledBootstrap.NewPeerShardMapper(),
+		EnabledEpochsHandler:    enabledEpochsHandler,
 	}
 
 	tpn.NodeKeys = &TestKeyPair{
@@ -2091,7 +2095,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		BlockSizeThrottler:             TestBlockSizeThrottler,
 		HistoryRepository:              tpn.HistoryRepository,
 		EpochNotifier:                  tpn.EpochNotifier,
-		RoundNotifier:                  coreComponents.RoundNotifier(),
+		EnableRoundsHandler:            coreComponents.EnableRoundsHandler(),
 		GasHandler:                     tpn.GasHandler,
 		ScheduledTxsExecutionHandler:   &testscommon.ScheduledTxsExecutionStub{},
 		ScheduledMiniBlocksEnableEpoch: ScheduledMiniBlocksEnableEpoch,
@@ -3050,7 +3054,7 @@ func GetDefaultCoreComponents() *mock.CoreComponentsStub {
 		GenesisNodesSetupField:       &testscommon.NodesSetupStub{},
 		GenesisTimeField:             time.Time{},
 		EpochNotifierField:           &epochNotifier.EpochNotifierStub{},
-		RoundNotifierField:           &processMock.RoundNotifierStub{},
+		EnableRoundsHandlerField:     &testscommon.EnableRoundsHandlerStub{},
 		TxVersionCheckField:          versioning.NewTxVersionChecker(MinTransactionVersion),
 		ProcessStatusHandlerInternal: &testscommon.ProcessStatusHandlerStub{},
 		EnableEpochsHandlerField:     &testscommon.EnableEpochsHandlerStub{},

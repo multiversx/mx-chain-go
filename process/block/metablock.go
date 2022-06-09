@@ -116,7 +116,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		headerIntegrityVerifier:        arguments.BootstrapComponents.HeaderIntegrityVerifier(),
 		historyRepo:                    arguments.HistoryRepository,
 		epochNotifier:                  arguments.EpochNotifier,
-		roundNotifier:                  arguments.RoundNotifier,
+		enableRoundsHandler:            arguments.EnableRoundsHandler,
 		vmContainerFactory:             arguments.VMContainersFactory,
 		vmContainer:                    arguments.VmContainer,
 		processDataTriesOnCommitEpoch:  arguments.Config.Debug.EpochStart.ProcessDataTrieOnCommitEpoch,
@@ -201,7 +201,7 @@ func (mp *metaProcessor) ProcessBlock(
 		return err
 	}
 
-	mp.roundNotifier.CheckRound(headerHandler.GetRound())
+	mp.enableRoundsHandler.CheckRound(headerHandler.GetRound())
 	mp.epochNotifier.CheckEpoch(headerHandler)
 	mp.requestHandler.SetEpoch(headerHandler.GetEpoch())
 
@@ -2287,7 +2287,7 @@ func (mp *metaProcessor) waitForBlockHeaders(waitTime time.Duration) error {
 
 // CreateNewHeader creates a new header
 func (mp *metaProcessor) CreateNewHeader(round uint64, nonce uint64) (data.HeaderHandler, error) {
-	mp.roundNotifier.CheckRound(round)
+	mp.enableRoundsHandler.CheckRound(round)
 
 	mp.epochStartTrigger.Update(round, nonce)
 	epoch := mp.epochStartTrigger.Epoch()

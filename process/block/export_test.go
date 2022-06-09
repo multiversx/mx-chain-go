@@ -1,9 +1,10 @@
 package block
 
 import (
-	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 	"sync"
 	"time"
+
+	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
@@ -141,7 +142,7 @@ func NewShardProcessorEmptyWith3shards(
 			Version:                        "softwareVersion",
 			HistoryRepository:              &dblookupext.HistoryRepositoryStub{},
 			EpochNotifier:                  &epochNotifier.EpochNotifierStub{},
-			RoundNotifier:                  &mock.RoundNotifierStub{},
+			EnableRoundsHandler:            &testscommon.EnableRoundsHandlerStub{},
 			GasHandler:                     &mock.GasHandlerMock{},
 			ScheduledTxsExecutionHandler:   &testscommon.ScheduledTxsExecutionStub{},
 			ScheduledMiniBlocksEnableEpoch: 2,

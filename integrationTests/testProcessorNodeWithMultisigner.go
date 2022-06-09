@@ -18,7 +18,9 @@ import (
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	mclmultisig "github.com/ElrondNetwork/elrond-go-crypto/signing/mcl/multisig"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/multisig"
+	"github.com/ElrondNetwork/elrond-go/common/enablers"
 	"github.com/ElrondNetwork/elrond-go/common/forking"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/factory/peerSignatureHandler"
@@ -62,6 +64,9 @@ func NewTestProcessorNodeWithCustomNodesCoordinator(
 			BadRatedCache: testscommon.NewCacherMock(),
 		})
 	messenger := CreateMessengerWithNoDiscoveryAndPeersRatingHandler(peersRatingHandler)
+	genericEpochNotifier := forking.NewGenericEpochNotifier()
+	enabledEpochsHandler, _ := enablers.NewEnableEpochsHandler(config.EnableEpochs{}, genericEpochNotifier)
+
 	tpn := &TestProcessorNode{
 		ShardCoordinator:        shardCoordinator,
 		Messenger:               messenger,
@@ -79,6 +84,7 @@ func NewTestProcessorNodeWithCustomNodesCoordinator(
 		Bootstrapper:            mock.NewTestBootstrapperMock(),
 		PeersRatingHandler:      peersRatingHandler,
 		PeerShardMapper:         mock.NewNetworkShardingCollectorMock(),
+		EnabledEpochsHandler:    enabledEpochsHandler,
 	}
 
 	tpn.EnableEpochs.ScheduledMiniBlocksEnableEpoch = uint32(1000000)
@@ -250,6 +256,9 @@ func CreateNodeWithBLSAndTxKeys(
 
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(nbShards), shardId)
 
+	genericEpochNotifier := forking.NewGenericEpochNotifier()
+	enabledEpochsHandler, _ := enablers.NewEnableEpochsHandler(config.EnableEpochs{}, genericEpochNotifier)
+
 	logsProcessor, _ := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{Marshalizer: TestMarshalizer})
 	peersRatingHandler, _ := p2pRating.NewPeersRatingHandler(
 		p2pRating.ArgPeersRatingHandler{
@@ -273,6 +282,7 @@ func CreateNodeWithBLSAndTxKeys(
 		TransactionLogProcessor: logsProcessor,
 		PeersRatingHandler:      peersRatingHandler,
 		PeerShardMapper:         disabled.NewPeerShardMapper(),
+		EnabledEpochsHandler:    enabledEpochsHandler,
 	}
 
 	tpn.EnableEpochs.ScheduledMiniBlocksEnableEpoch = uint32(1000000)

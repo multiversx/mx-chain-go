@@ -1,4 +1,4 @@
-package enableEpochs
+package enablers
 
 import (
 	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
@@ -8,10 +8,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
-var log = logger.GetOrCreate("enableEpochsHandler")
+var log = logger.GetOrCreate("common/enablers")
 
 type enableEpochsHandler struct {
-	*flagsHolder
+	*epochFlagsHolder
 	enableEpochsConfig config.EnableEpochs
 }
 
@@ -22,7 +22,7 @@ func NewEnableEpochsHandler(enableEpochsConfig config.EnableEpochs, epochNotifie
 	}
 
 	handler := &enableEpochsHandler{
-		flagsHolder:        newFlagsHolder(),
+		epochFlagsHolder:   newEpochFlagsHolder(),
 		enableEpochsConfig: enableEpochsConfig,
 	}
 

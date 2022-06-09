@@ -11,7 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go/common/enableEpochs"
+	"github.com/ElrondNetwork/elrond-go/common/enablers"
 	"github.com/ElrondNetwork/elrond-go/common/forking"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -421,7 +421,7 @@ func (gbc *genesisBlockCreator) computeDNSAddresses(enableEpochsConfig config.En
 		TimeStamp: gbc.arg.GenesisTime,
 	}
 	epochNotifier.CheckEpoch(temporaryMetaHeader)
-	_, err := enableEpochs.NewEnableEpochsHandler(enableEpochsConfig, epochNotifier)
+	_, err := enablers.NewEnableEpochsHandler(enableEpochsConfig, epochNotifier)
 	if err != nil {
 		return err
 	}

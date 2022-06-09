@@ -10,14 +10,14 @@ import (
 
 // BootstrapComponentsStub -
 type BootstrapComponentsStub struct {
-	Bootstrapper                factory.EpochStartBootstrapper
-	BootstrapParams             factory.BootstrapParamsHolder
-	NodeRole                    core.NodeType
-	ShCoordinator               sharding.Coordinator
-	HdrVersionHandler           nodeFactory.HeaderVersionHandler
-	VersionedHdrFactory         nodeFactory.VersionedHeaderFactory
-	HdrIntegrityVerifier        nodeFactory.HeaderIntegrityVerifierHandler
-	RoundActivationHandlerField process.RoundActivationHandler
+	Bootstrapper             factory.EpochStartBootstrapper
+	BootstrapParams          factory.BootstrapParamsHolder
+	NodeRole                 core.NodeType
+	ShCoordinator            sharding.Coordinator
+	HdrVersionHandler        nodeFactory.HeaderVersionHandler
+	VersionedHdrFactory      nodeFactory.VersionedHeaderFactory
+	HdrIntegrityVerifier     nodeFactory.HeaderIntegrityVerifierHandler
+	EnableRoundsHandlerField process.EnableRoundsHandler
 }
 
 // Create -
@@ -61,8 +61,8 @@ func (bcs *BootstrapComponentsStub) HeaderVersionHandler() nodeFactory.HeaderVer
 }
 
 // VersionedHeaderFactory -
-func (bc *BootstrapComponentsStub) VersionedHeaderFactory() nodeFactory.VersionedHeaderFactory {
-	return bc.VersionedHdrFactory
+func (bcs *BootstrapComponentsStub) VersionedHeaderFactory() nodeFactory.VersionedHeaderFactory {
+	return bcs.VersionedHdrFactory
 }
 
 // HeaderIntegrityVerifier -
@@ -70,9 +70,9 @@ func (bcs *BootstrapComponentsStub) HeaderIntegrityVerifier() nodeFactory.Header
 	return bcs.HdrIntegrityVerifier
 }
 
-// RoundActivationHandler -
-func (bcs *BootstrapComponentsStub) RoundActivationHandler() process.RoundActivationHandler {
-	return bcs.RoundActivationHandlerField
+// EnableRoundsHandler -
+func (bcs *BootstrapComponentsStub) EnableRoundsHandler() process.EnableRoundsHandler {
+	return bcs.EnableRoundsHandlerField
 }
 
 // String -

@@ -89,7 +89,7 @@ type baseProcessor struct {
 	outportHandler      outport.OutportHandler
 	historyRepo         dblookupext.HistoryRepository
 	epochNotifier       process.EpochNotifier
-	roundNotifier       process.RoundNotifier
+	enableRoundsHandler process.EnableRoundsHandler
 	vmContainerFactory  process.VirtualMachinesContainerFactory
 	vmContainer         process.VirtualMachinesContainer
 	gasConsumedProvider gasConsumedProvider
@@ -488,8 +488,8 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 	if check.IfNil(arguments.EpochNotifier) {
 		return process.ErrNilEpochNotifier
 	}
-	if check.IfNil(arguments.RoundNotifier) {
-		return process.ErrNilRoundNotifier
+	if check.IfNil(arguments.EnableRoundsHandler) {
+		return process.ErrNilEnableRoundsHandler
 	}
 	if check.IfNil(arguments.CoreComponents.StatusHandler()) {
 		return process.ErrNilAppStatusHandler

@@ -1069,16 +1069,10 @@ type EpochNotifier interface {
 	IsInterfaceNil() bool
 }
 
-// RoundSubscriberHandler defines the behavior of a component that can be notified if a new round was confirmed
-type RoundSubscriberHandler interface {
-	RoundConfirmed(round uint64)
-	IsInterfaceNil() bool
-}
-
-// RoundNotifier can notify upon round change in current processed block
-type RoundNotifier interface {
-	RegisterNotifyHandler(handler RoundSubscriberHandler)
+// EnableRoundsHandler is a component which can be queried to check for round activation features/fixes
+type EnableRoundsHandler interface {
 	CheckRound(round uint64)
+	// TODO add here the flag checks like: "IsExample() bool"
 	IsInterfaceNil() bool
 }
 
@@ -1103,13 +1097,6 @@ type PayableHandler interface {
 // FallbackHeaderValidator defines the behaviour of a component able to signal when a fallback header validation could be applied
 type FallbackHeaderValidator interface {
 	ShouldApplyFallbackValidation(headerHandler data.HeaderHandler) bool
-	IsInterfaceNil() bool
-}
-
-// RoundActivationHandler is a component which can be queried to check for round activation features/fixes
-type RoundActivationHandler interface {
-	IsEnabledInRound(name string, round uint64) bool
-	IsEnabled(name string) bool
 	IsInterfaceNil() bool
 }
 
