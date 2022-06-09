@@ -707,6 +707,9 @@
         # If set to 0, then MaxUInt64 will be used
         MaxGasPerVmQuery = 1500000000  #1.5b
 
+[BuiltInFunctions]
+    AutomaticCrawlerAddress = "erd1fpkcgel4gcmh8zqqdt043yfcn5tyx8373kg6q2qmkxzu4dqamc0swts65c"
+
 [Hardfork]
     EnableTrigger = true
     EnableTriggerFromP2P = true

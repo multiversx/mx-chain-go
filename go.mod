@@ -3,16 +3,16 @@ module github.com/ElrondNetwork/elrond-go
 go 1.15
 
 require (
-	github.com/ElrondNetwork/arwen-wasm-vm/v1_2 v1.2.39
-	github.com/ElrondNetwork/arwen-wasm-vm/v1_3 v1.3.39
-	github.com/ElrondNetwork/arwen-wasm-vm/v1_4 v1.4.49
+	github.com/ElrondNetwork/arwen-wasm-vm/v1_2 v1.2.40
+	github.com/ElrondNetwork/arwen-wasm-vm/v1_3 v1.3.40
+	github.com/ElrondNetwork/arwen-wasm-vm/v1_4 v1.4.51
 	github.com/ElrondNetwork/concurrent-map v0.1.3
 	github.com/ElrondNetwork/covalent-indexer-go v1.0.6
-	github.com/ElrondNetwork/elastic-indexer-go v1.2.25
+	github.com/ElrondNetwork/elastic-indexer-go v1.2.31
 	github.com/ElrondNetwork/elrond-go-core v1.1.16-0.20220523150518-f1519c41d352
 	github.com/ElrondNetwork/elrond-go-crypto v1.0.1
 	github.com/ElrondNetwork/elrond-go-logger v1.0.7
-	github.com/ElrondNetwork/elrond-vm-common v1.3.3
+	github.com/ElrondNetwork/elrond-vm-common v1.3.7-0.20220602122113-1f938c4d517a
 	github.com/ElrondNetwork/go-libp2p-pubsub v0.5.5-rc2
 	github.com/beevik/ntp v0.3.0
 	github.com/btcsuite/btcd v0.22.0-beta
@@ -39,7 +39,7 @@ require (
 	github.com/pelletier/go-toml v1.9.3
 	github.com/pkg/errors v0.9.1
 	github.com/shirou/gopsutil v3.21.11+incompatible
-	github.com/stretchr/testify v1.7.0
+	github.com/stretchr/testify v1.7.1
 	github.com/syndtr/goleveldb v1.0.1-0.20190318030020-c3a204f8e965
 	github.com/urfave/cli v1.22.5
 	github.com/whyrusleeping/timecache v0.0.0-20160911033111-cfcb2f1abfee
@@ -52,8 +52,8 @@ require (
 
 replace github.com/gogo/protobuf => github.com/ElrondNetwork/protobuf v1.3.2
 
-replace github.com/ElrondNetwork/arwen-wasm-vm/v1_2 v1.2.39 => github.com/ElrondNetwork/arwen-wasm-vm v1.2.39
+replace github.com/ElrondNetwork/arwen-wasm-vm/v1_2 v1.2.40 => github.com/ElrondNetwork/arwen-wasm-vm v1.2.40
 
-replace github.com/ElrondNetwork/arwen-wasm-vm/v1_3 v1.3.39 => github.com/ElrondNetwork/arwen-wasm-vm v1.3.39
+replace github.com/ElrondNetwork/arwen-wasm-vm/v1_3 v1.3.40 => github.com/ElrondNetwork/arwen-wasm-vm v1.3.40
 
-replace github.com/ElrondNetwork/arwen-wasm-vm/v1_4 v1.4.49 => github.com/ElrondNetwork/arwen-wasm-vm v1.4.49
+replace github.com/ElrondNetwork/arwen-wasm-vm/v1_4 v1.4.51 => github.com/ElrondNetwork/arwen-wasm-vm v1.4.51
