@@ -212,7 +212,7 @@ func TestValidatorsProvider_CallsPopulateAndRegister(t *testing.T) {
 
 	time.Sleep(time.Millisecond)
 
-	assert.Equal(t, int32(2), atomic.LoadInt32(&numPopulateCacheCalled))
+	assert.Equal(t, int32(1), atomic.LoadInt32(&numPopulateCacheCalled))
 	assert.Equal(t, int32(1), atomic.LoadInt32(&numRegisterHandlerCalled))
 }
 
@@ -782,11 +782,10 @@ func TestValidatorsProvider_GetAuctionList(t *testing.T) {
 		list, err := vp.GetAuctionList()
 		require.Nil(t, err)
 		require.Empty(t, list)
-		// updateCache is called on constructor, that's why the expected counter is 2
-		require.Equal(t, ctRootHashCalled, uint32(2))
-		require.Equal(t, ctGetValidatorsInfoForRootHash, uint32(2))
+		require.Equal(t, ctRootHashCalled, uint32(1))
+		require.Equal(t, ctGetValidatorsInfoForRootHash, uint32(1))
 		require.Equal(t, ctFillValidatorInfoCalled, uint32(0))
-		require.Equal(t, ctGetOwnersDataCalled, uint32(2))
+		require.Equal(t, ctGetOwnersDataCalled, uint32(1))
 		require.Equal(t, expectedRootHash, vp.cachedRandomness)
 	})
 

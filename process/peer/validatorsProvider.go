@@ -192,10 +192,6 @@ func (vp *validatorsProvider) epochStartEventHandler() nodesCoordinator.EpochSta
 func (vp *validatorsProvider) startRefreshProcess(ctx context.Context) {
 	for {
 		vp.updateCache()
-		err := vp.updateAuctionListCache()
-		if err != nil {
-			log.Error("could not update validators auction info cache", "error", err)
-		}
 
 		select {
 		case epoch := <-vp.refreshCache:
