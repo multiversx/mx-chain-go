@@ -9,9 +9,9 @@ import (
 func TestNewPruningHandler(t *testing.T) {
 	t.Parallel()
 
-	ph := NewPruningHandler(true)
+	ph := NewPruningHandler(EnableDataRemoval)
 	assert.True(t, ph.IsPruningEnabled())
 
-	ph = NewPruningHandler(false)
+	ph = NewPruningHandler(DisableDataRemoval)
 	assert.False(t, ph.IsPruningEnabled())
 }

@@ -91,7 +91,7 @@ func TestReadOnlyAccountsDB_WriteOperationsShouldNotCalled(t *testing.T) {
 	err = roAccDb.RecreateTrie(nil)
 	require.NoError(t, err)
 
-	roAccDb.PruneTrie(nil, state.NewRoot, state.NewPruningHandler(true))
+	roAccDb.PruneTrie(nil, state.NewRoot, state.NewPruningHandler(state.EnableDataRemoval))
 
 	roAccDb.CancelPrune(nil, state.NewRoot)
 

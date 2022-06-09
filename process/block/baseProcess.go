@@ -1446,10 +1446,10 @@ func (bp *baseProcessor) getPruningHandler() state.PruningHandler {
 			"blocks since last restart", bp.blocksSinceLastRestart,
 			"num blocks for pruning delay", bp.pruningDelay,
 		)
-		return state.NewPruningHandler(false)
+		return state.NewPruningHandler(state.DisableDataRemoval)
 	}
 
-	return state.NewPruningHandler(true)
+	return state.NewPruningHandler(state.EnableDataRemoval)
 }
 
 func (bp *baseProcessor) getRootHashes(currHeader data.HeaderHandler, prevHeader data.HeaderHandler, identifier state.AccountsDbIdentifier) ([]byte, []byte) {

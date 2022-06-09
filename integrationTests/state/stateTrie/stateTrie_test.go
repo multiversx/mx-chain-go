@@ -1152,7 +1152,7 @@ func TestTrieDbPruning_GetAccountAfterPruning(t *testing.T) {
 	_ = account.(state.UserAccountHandler).AddToBalance(big.NewInt(1))
 	_ = adb.SaveAccount(account)
 	rootHash2, _ := adb.Commit()
-	adb.PruneTrie(rootHash1, state.OldRoot, state.NewPruningHandler(true))
+	adb.PruneTrie(rootHash1, state.OldRoot, state.NewPruningHandler(state.EnableDataRemoval))
 
 	err := adb.RecreateTrie(rootHash2)
 	require.Nil(t, err)
@@ -1244,7 +1244,7 @@ func TestTrieDbPruning_GetDataTrieTrackerAfterPruning(t *testing.T) {
 	_ = adb.SaveAccount(stateMock)
 
 	newRootHash, _ := adb.Commit()
-	adb.PruneTrie(oldRootHash, state.OldRoot, state.NewPruningHandler(true))
+	adb.PruneTrie(oldRootHash, state.OldRoot, state.NewPruningHandler(state.EnableDataRemoval))
 
 	err := adb.RecreateTrie(newRootHash)
 	require.Nil(t, err)
@@ -2173,7 +2173,7 @@ func TestTrieDBPruning_PruningOldData(t *testing.T) {
 		rootHash, err = decreaseBalanceForAccountsStartingWithIndex(100, 1000, 10, adb)
 		require.Nil(t, err)
 		rootHashes = append(rootHashes, rootHash)
-		adb.PruneTrie(rootHashes[len(rootHashes)-2], state.OldRoot, state.NewPruningHandler(true))
+		adb.PruneTrie(rootHashes[len(rootHashes)-2], state.OldRoot, state.NewPruningHandler(state.EnableDataRemoval))
 		checkAccountsBalances(t, 100, 1000, 100, adb)
 	}
 }
@@ -2207,7 +2207,7 @@ func TestTrieDBPruning_PruningOldDataWithDataTries(t *testing.T) {
 		rootHash, err = removeKeysFromAccountsStartingWithIndex(10, numAccountsChances, 10, adb)
 		require.Nil(t, err)
 		rootHashes = append(rootHashes, rootHash)
-		adb.PruneTrie(rootHashes[len(rootHashes)-2], state.OldRoot, state.NewPruningHandler(true))
+		adb.PruneTrie(rootHashes[len(rootHashes)-2], state.OldRoot, state.NewPruningHandler(state.EnableDataRemoval))
 		checkAccountsDataTries(t, 10, numAccountsChances, 10, adb)
 	}
 }
