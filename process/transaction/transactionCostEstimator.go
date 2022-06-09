@@ -169,7 +169,8 @@ func (tce *transactionCostEstimator) computeGasUnitsBasedOnVMOutput(tx *transact
 		return tx.GasLimit - vmOutput.GasRemaining
 	}
 
-	if tce.enableEpochsHandler.IsCleanUpInformativeSCRsFlagEnabled() {
+	isTooMuchGasV2MsgFlagSet := tce.enableEpochsHandler.IsCleanUpInformativeSCRsFlagEnabled()
+	if isTooMuchGasV2MsgFlagSet {
 		gasNeededForProcessing := extractGasRemainedFromMessage(vmOutput.ReturnMessage, gasUsedSlitString)
 		return tce.feeHandler.ComputeGasLimit(tx) + gasNeededForProcessing
 	}
