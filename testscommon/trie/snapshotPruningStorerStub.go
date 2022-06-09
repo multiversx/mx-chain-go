@@ -1,10 +1,12 @@
 package trie
 
-import "github.com/ElrondNetwork/elrond-go/storage/memorydb"
+import (
+	"github.com/ElrondNetwork/elrond-go/testscommon"
+)
 
 // SnapshotPruningStorerStub -
 type SnapshotPruningStorerStub struct {
-	*memorydb.DB
+	*testscommon.MemDbMock
 	GetFromOldEpochsWithoutAddingToCacheCalled func(key []byte, epochOffset int) ([]byte, error)
 	GetFromEpochWithoutCacheCalled             func(key []byte, epoch uint32) ([]byte, error)
 	PutInEpochWithoutCacheCalled               func(key []byte, data []byte, epoch uint32) error

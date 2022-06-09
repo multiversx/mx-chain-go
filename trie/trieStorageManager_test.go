@@ -8,7 +8,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/errors"
-	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
@@ -201,7 +200,7 @@ func TestTrieStorageManager_PutInEpoch(t *testing.T) {
 	putInEpochCalled := false
 	args := getNewTrieStorageManagerArgs()
 	args.MainStorer = &trieMock.SnapshotPruningStorerStub{
-		DB: memorydb.New(),
+		MemDbMock: testscommon.NewMemDbMock(),
 		PutInEpochWithoutCacheCalled: func(key []byte, data []byte, epoch uint32) error {
 			putInEpochCalled = true
 			return nil
@@ -233,7 +232,7 @@ func TestTrieStorageManager_GetLatestStorageEpoch(t *testing.T) {
 	getLatestSorageCalled := false
 	args := getNewTrieStorageManagerArgs()
 	args.MainStorer = &trieMock.SnapshotPruningStorerStub{
-		DB: memorydb.New(),
+		MemDbMock: testscommon.NewMemDbMock(),
 		GetLatestStorageEpochCalled: func() (uint32, error) {
 			getLatestSorageCalled = true
 			return 4, nil
@@ -303,7 +302,7 @@ func TestTrieStorageManager_ShouldTakeSnapshotIsTrieSynced(t *testing.T) {
 
 	args := getNewTrieStorageManagerArgs()
 	args.MainStorer = &trieMock.SnapshotPruningStorerStub{
-		DB: memorydb.New(),
+		MemDbMock: testscommon.NewMemDbMock(),
 		GetFromEpochWithoutCacheCalled: func(_ []byte, _ uint32) ([]byte, error) {
 			return []byte(common.TrieSyncedVal), nil
 		},
@@ -320,9 +319,9 @@ func TestTrieStorageManager_ShouldTakeSnapshotWithActiveDb(t *testing.T) {
 	t.Parallel()
 
 	args := getNewTrieStorageManagerArgs()
-	db := memorydb.New()
+	db := testscommon.NewMemDbMock()
 	args.MainStorer = &trieMock.SnapshotPruningStorerStub{
-		DB: db,
+		MemDbMock: db,
 	}
 	ts, _ := trie.NewTrieStorageManager(args)
 

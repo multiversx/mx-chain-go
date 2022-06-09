@@ -448,7 +448,7 @@ func CreateTrieStorageManager(store storage.Storer) (common.StorageManager, stor
 		SnapshotsGoroutineNum: 1,
 	}
 	args := trie.NewTrieStorageManagerArgs{
-		MainStorer:             CreateMemUnit(),
+		MainStorer:             store,
 		CheckpointsStorer:      CreateMemUnit(),
 		Marshalizer:            TestMarshalizer,
 		Hasher:                 TestHasher,
