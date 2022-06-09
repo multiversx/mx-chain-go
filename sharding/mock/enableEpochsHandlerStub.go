@@ -133,8 +133,8 @@ func (stub *EnableEpochsHandlerStub) IsStakingV2OwnerFlagEnabled() bool {
 	return false
 }
 
-// IsStakingV2DelegationFlagEnabled returns false
-func (stub *EnableEpochsHandlerStub) IsStakingV2DelegationFlagEnabled() bool {
+// IsStakingV2FlagEnabledForActivationEpochCompleted returns false
+func (stub *EnableEpochsHandlerStub) IsStakingV2FlagEnabledForActivationEpochCompleted() bool {
 	return false
 }
 
