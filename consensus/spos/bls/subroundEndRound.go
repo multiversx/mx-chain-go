@@ -205,6 +205,8 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 		return false
 	}
 
+	log.Debug("doEndRoundJobByLeader.Verify", "bitmap", bitmap)
+
 	err = currentMultiSigner.Verify(sr.GetData(), bitmap)
 	if err != nil {
 		log.Debug("doEndRoundJobByLeader.Verify", "error", err.Error())
@@ -311,6 +313,21 @@ func (sr *subroundEndRound) verifyNodesOnAggSigVerificationFail(
 
 	invalidSigSharesNodes := make([]int, 0)
 
+	newMultiSigner := multiSigner
+
+	// TODO: analize better error handling and logs
+	selfIndex, err := sr.SelfConsensusGroupIndex()
+	if err != nil {
+		log.Debug("verifyNodesOnAggSigVerificationFail.SelfConsensusGroupIndex", "error", err.Error())
+		return err
+	}
+
+	newMultiSigner.Reset(pubKeys, uint16(selfIndex))
+	if err != nil {
+		log.Debug("verifyNodesOnAggSigVerificationFail.MultiSigner.Reset", "error", err.Error())
+		return err
+	}
+
 	for i, pk := range pubKeys {
 		isJobDone, err := sr.JobDone(pk, SrSignature)
 		if err != nil || !isJobDone {
@@ -336,19 +353,35 @@ func (sr *subroundEndRound) verifyNodesOnAggSigVerificationFail(
 			continue
 		}
 
+		nodeIndex, err := sr.ConsensusGroupIndex(pk)
+
+		err = newMultiSigner.StoreSignatureShare(uint16(nodeIndex), sigShare)
+		if err != nil {
+			log.Debug("receivedSignature.StoreSignatureShare",
+				"node", pk,
+				"index", nodeIndex,
+				"error", err.Error())
+			return err
+		}
 		log.Debug("verifyNodesOnAggSigVerificationFail.VerifySignatureShare checked SUCCESSFULLY", "public key", pk)
 	}
 
 	// TODO: handle slashing on invalid sig share nodes
 	if len(invalidSigSharesNodes) == 0 {
 		log.Debug("verifyNodesOnAggSigVerificationFail.VerifySignatureShare: no invalid signature share")
+	} else {
+		log.Debug("verifyNodesOnAggSigVerificationFail.VerifySignatureShare: num invalid signature shares", "numInvalidSigShares", len(invalidSigSharesNodes))
 	}
 
 	bitmap := sr.GenerateBitmap(SrSignature)
 	numValidSigShares := sr.ComputeSize(SrSignature)
 
+	log.Debug("verifyNodesOnAggSigVerificationFail: bitmap after", "bitmap", bitmap)
+	log.Debug("verifyNodesOnAggSigVerificationFail", "threshold", threshold)
+	log.Debug("verifyNodesOnAggSigVerificationFail", "numValidSigShares", numValidSigShares)
+
 	if numValidSigShares >= threshold {
-		err := multiSigner.Verify(sr.GetData(), bitmap)
+		err := newMultiSigner.Verify(sr.GetData(), bitmap)
 		if err != nil {
 			return err
 		}
