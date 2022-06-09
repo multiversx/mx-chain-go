@@ -22,7 +22,7 @@ type flagsHolder struct {
 	stakeFlag                                   *atomic.Flag
 	stakingV2Flag                               *atomic.Flag
 	stakingV2OwnerFlag                          *atomic.Flag
-	stakingV2DelegationFlag                     *atomic.Flag
+	stakingV2GreaterEpochFlag                     *atomic.Flag
 	doubleKeyProtectionFlag                     *atomic.Flag
 	esdtFlag                                    *atomic.Flag
 	esdtCurrentEpochFlag                        *atomic.Flag
@@ -96,7 +96,7 @@ func newFlagsHolder() *flagsHolder {
 		stakeFlag:                                   &atomic.Flag{},
 		stakingV2Flag:                               &atomic.Flag{},
 		stakingV2OwnerFlag:                          &atomic.Flag{},
-		stakingV2DelegationFlag:                     &atomic.Flag{},
+		stakingV2GreaterEpochFlag:                     &atomic.Flag{},
 		doubleKeyProtectionFlag:                     &atomic.Flag{},
 		esdtFlag:                                    &atomic.Flag{},
 		esdtCurrentEpochFlag:                        &atomic.Flag{},
@@ -250,9 +250,9 @@ func (fh *flagsHolder) IsStakingV2OwnerFlagEnabled() bool {
 	return fh.stakingV2OwnerFlag.IsSet()
 }
 
-// IsStakingV2DelegationFlagEnabled returns true if stakingV2DelegationFlag is enabled
-func (fh *flagsHolder) IsStakingV2DelegationFlagEnabled() bool {
-	return fh.stakingV2DelegationFlag.IsSet()
+// IsStakingV2FlagEnabledForActivationEpochCompleted returns true if stakingV2GreaterEpochFlag is enabled (epoch is greater than the one used for staking v2 activation)
+func (fh *flagsHolder) IsStakingV2FlagEnabledForActivationEpochCompleted() bool {
+	return fh.stakingV2GreaterEpochFlag.IsSet()
 }
 
 // IsDoubleKeyProtectionFlagEnabled returns true if doubleKeyProtectionFlag is enabled

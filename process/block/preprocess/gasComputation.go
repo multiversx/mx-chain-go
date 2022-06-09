@@ -350,7 +350,8 @@ func (gc *gasComputation) ComputeGasProvidedByTx(
 		return 0, 0, process.ErrNilTransaction
 	}
 
-	if !gc.enableEpochsHandler.IsSCDeployFlagEnabled() {
+	isGasComputeV2FlagEnabled := gc.enableEpochsHandler.IsSCDeployFlagEnabled()
+	if !isGasComputeV2FlagEnabled {
 		return gc.computeGasProvidedByTxV1(txSenderShardId, txReceiverShardId, txHandler)
 	}
 

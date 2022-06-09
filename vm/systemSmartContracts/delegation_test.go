@@ -46,13 +46,13 @@ func createMockArgumentsForDelegation() ArgsNewDelegation {
 		GovernanceSCAddress:    vm.GovernanceSCAddress,
 		AddTokensAddress:       bytes.Repeat([]byte{1}, 32),
 		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
-			IsDelegationSmartContractFlagEnabledField:          true,
-			IsStakingV2DelegationFlagEnabledField:              true,
-			IsAddTokensToDelegationFlagEnabledField:            true,
-			IsDeleteDelegatorAfterClaimRewardsFlagEnabledField: true,
-			IsComputeRewardCheckpointFlagEnabledField:          true,
-			IsValidatorToDelegationFlagEnabledField:            true,
-			IsReDelegateBelowMinCheckFlagEnabledField:          true,
+			IsDelegationSmartContractFlagEnabledField:              true,
+			IsStakingV2FlagEnabledForActivationEpochCompletedField: true,
+			IsAddTokensToDelegationFlagEnabledField:                true,
+			IsDeleteDelegatorAfterClaimRewardsFlagEnabledField:     true,
+			IsComputeRewardCheckpointFlagEnabledField:              true,
+			IsValidatorToDelegationFlagEnabledField:                true,
+			IsReDelegateBelowMinCheckFlagEnabledField:              true,
 		},
 	}
 }
