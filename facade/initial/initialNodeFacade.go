@@ -74,38 +74,38 @@ func (inf *initialNodeFacade) RestApiInterface() string {
 }
 
 // GetBalance returns nil and error
-func (inf *initialNodeFacade) GetBalance(_ string) (*big.Int, error) {
-	return nil, errNodeStarting
+func (inf *initialNodeFacade) GetBalance(_ string, _ api.AccountQueryOptions) (*big.Int, api.BlockInfo, error) {
+	return nil, api.BlockInfo{}, errNodeStarting
 }
 
 // GetUsername returns empty string and error
-func (inf *initialNodeFacade) GetUsername(_ string) (string, error) {
-	return emptyString, errNodeStarting
+func (inf *initialNodeFacade) GetUsername(_ string, _ api.AccountQueryOptions) (string, api.BlockInfo, error) {
+	return emptyString, api.BlockInfo{}, errNodeStarting
 }
 
 // GetValueForKey returns an empty string and error
-func (inf *initialNodeFacade) GetValueForKey(_ string, _ string) (string, error) {
-	return emptyString, errNodeStarting
+func (inf *initialNodeFacade) GetValueForKey(_ string, _ string, _ api.AccountQueryOptions) (string, api.BlockInfo, error) {
+	return emptyString, api.BlockInfo{}, errNodeStarting
 }
 
 // GetESDTBalance returns empty strings and error
-func (inf *initialNodeFacade) GetESDTBalance(_ string, _ string) (string, string, error) {
-	return emptyString, emptyString, errNodeStarting
+func (inf *initialNodeFacade) GetESDTBalance(_ string, _ string, _ api.AccountQueryOptions) (string, string, api.BlockInfo, error) {
+	return emptyString, emptyString, api.BlockInfo{}, errNodeStarting
 }
 
 // GetAllESDTTokens returns nil and error
-func (inf *initialNodeFacade) GetAllESDTTokens(_ string) (map[string]*esdt.ESDigitalToken, error) {
-	return nil, errNodeStarting
+func (inf *initialNodeFacade) GetAllESDTTokens(_ string, _ api.AccountQueryOptions) (map[string]*esdt.ESDigitalToken, api.BlockInfo, error) {
+	return nil, api.BlockInfo{}, errNodeStarting
 }
 
 // GetNFTTokenIDsRegisteredByAddress returns nil and error
-func (inf *initialNodeFacade) GetNFTTokenIDsRegisteredByAddress(_ string) ([]string, error) {
-	return nil, errNodeStarting
+func (inf *initialNodeFacade) GetNFTTokenIDsRegisteredByAddress(_ string, _ api.AccountQueryOptions) ([]string, api.BlockInfo, error) {
+	return nil, api.BlockInfo{}, errNodeStarting
 }
 
 // GetESDTsWithRole returns nil and error
-func (inf *initialNodeFacade) GetESDTsWithRole(_ string, _ string) ([]string, error) {
-	return nil, errNodeStarting
+func (inf *initialNodeFacade) GetESDTsWithRole(_ string, _ string, _ api.AccountQueryOptions) ([]string, api.BlockInfo, error) {
+	return nil, api.BlockInfo{}, errNodeStarting
 }
 
 // CreateTransaction return nil and error
@@ -162,12 +162,12 @@ func (inf *initialNodeFacade) ComputeTransactionGasLimit(_ *transaction.Transact
 }
 
 // GetAccount returns nil and error
-func (inf *initialNodeFacade) GetAccount(_ string) (api.AccountResponse, error) {
-	return api.AccountResponse{}, errNodeStarting
+func (inf *initialNodeFacade) GetAccount(_ string, _ api.AccountQueryOptions) (api.AccountResponse, api.BlockInfo, error) {
+	return api.AccountResponse{}, api.BlockInfo{}, errNodeStarting
 }
 
 // GetCode returns nil and error
-func (inf *initialNodeFacade) GetCode(_ []byte) []byte {
+func (inf *initialNodeFacade) GetCode(_ []byte, _ api.AccountQueryOptions) []byte {
 	return nil
 }
 
@@ -297,8 +297,8 @@ func (inf *initialNodeFacade) Close() error {
 }
 
 // GetKeyValuePairs nil map
-func (inf *initialNodeFacade) GetKeyValuePairs(_ string) (map[string]string, error) {
-	return nil, errNodeStarting
+func (inf *initialNodeFacade) GetKeyValuePairs(_ string, _ api.AccountQueryOptions) (map[string]string, api.BlockInfo, error) {
+	return nil, api.BlockInfo{}, errNodeStarting
 }
 
 // GetDirectStakedList returns empty slice
@@ -312,13 +312,13 @@ func (inf *initialNodeFacade) GetDelegatorsList() ([]*api.Delegator, error) {
 }
 
 // GetESDTData returns nil and error
-func (inf *initialNodeFacade) GetESDTData(_ string, _ string, _ uint64) (*esdt.ESDigitalToken, error) {
-	return nil, errNodeStarting
+func (inf *initialNodeFacade) GetESDTData(_ string, _ string, _ uint64, _ api.AccountQueryOptions) (*esdt.ESDigitalToken, api.BlockInfo, error) {
+	return nil, api.BlockInfo{}, errNodeStarting
 }
 
 // GetESDTsRoles return nil and error
-func (inf *initialNodeFacade) GetESDTsRoles(_ string) (map[string][]string, error) {
-	return nil, errNodeStarting
+func (inf *initialNodeFacade) GetESDTsRoles(_ string, _ api.AccountQueryOptions) (map[string][]string, api.BlockInfo, error) {
+	return nil, api.BlockInfo{}, errNodeStarting
 }
 
 // GetAllIssuedESDTs returns nil and error

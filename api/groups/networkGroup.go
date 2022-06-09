@@ -341,9 +341,7 @@ func (ng *networkGroup) delegatedInfo(c *gin.Context) {
 func (ng *networkGroup) getESDTTokenSupply(c *gin.Context) {
 	token := c.Param("token")
 	if token == "" {
-		shared.RespondWithValidationError(
-			c, fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrValidationEmptyToken.Error()),
-		)
+		shared.RespondWithValidationError(c, errors.ErrValidation, errors.ErrBadUrlParams)
 		return
 	}
 

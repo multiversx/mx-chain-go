@@ -63,6 +63,7 @@ func (stub *ChainHandlerStub) SetCurrentBlockHeaderAndRootHash(header data.Heade
 	if stub.SetCurrentBlockHeaderAndRootHashCalled != nil {
 		return stub.SetCurrentBlockHeaderAndRootHashCalled(header, rootHash)
 	}
+
 	return nil
 }
 
@@ -86,7 +87,6 @@ func (stub *ChainHandlerStub) GetCurrentBlockRootHash() []byte {
 	if stub.GetCurrentBlockRootHashCalled != nil {
 		return stub.GetCurrentBlockRootHashCalled()
 	}
-
 	return nil
 }
 
