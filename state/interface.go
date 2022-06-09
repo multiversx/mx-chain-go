@@ -128,7 +128,7 @@ type AccountsAdapter interface {
 	IsInterfaceNil() bool
 }
 
-// AccountsRepository handles the defined execution based ont the query options
+// AccountsRepository handles the defined execution based on the query options
 type AccountsRepository interface {
 	GetAccountWithBlockInfo(address []byte, options api.AccountQueryOptions) (vmcommon.AccountHandler, common.BlockInfo, error)
 	GetCodeWithBlockInfo(codeHash []byte, options api.AccountQueryOptions) ([]byte, common.BlockInfo, error)

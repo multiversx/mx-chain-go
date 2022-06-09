@@ -126,7 +126,7 @@ var ErrNilProcessStatusHandler = errors.New("nil process status handler")
 var ErrNilBlockInfo = errors.New("nil block info")
 
 // ErrNilBlockInfoProvider signals that a nil block info provider was provided
-var ErrNilBlockInfoProvider = errors.New("nil block info")
+var ErrNilBlockInfoProvider = errors.New("nil block info provider")
 
 // ErrFunctionalityNotImplemented signals that the functionality has not been implemented yet
 var ErrFunctionalityNotImplemented = errors.New("functionality not implemented yet")
