@@ -62,7 +62,7 @@ func TestStatusComponents_Create_Close_ShouldWork(t *testing.T) {
 		managedCoreComponents.NodesShuffler(),
 		managedBootstrapComponents.ShardCoordinator().SelfId(),
 		managedBootstrapComponents.EpochBootstrapParams(),
-		configs.EpochConfig.EnableEpochs.WaitingListFixEnableEpoch,
+		managedBootstrapComponents.EpochBootstrapParams().Epoch(),
 		managedCoreComponents.ChanStopNodeProcess(),
 		managedCoreComponents.NodeTypeProvider(),
 		managedCoreComponents.EnableEpochsHandler(),

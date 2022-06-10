@@ -28,7 +28,7 @@ type EnableEpochsHandlerStub struct {
 	IsStakeFlagEnabledField                                      bool
 	IsStakingV2FlagEnabledField                                  bool
 	IsStakingV2OwnerFlagEnabledField                             bool
-	IsStakingV2FlagEnabledForActivationEpochCompletedField                        bool
+	IsStakingV2FlagEnabledForActivationEpochCompletedField       bool
 	IsDoubleKeyProtectionFlagEnabledField                        bool
 	IsESDTFlagEnabledField                                       bool
 	IsESDTFlagEnabledForCurrentEpochField                        bool

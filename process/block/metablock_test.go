@@ -3095,6 +3095,8 @@ func TestMetaProcessor_CreateNewHeaderValsOK(t *testing.T) {
 func TestMetaProcessor_ProcessEpochStartMetaBlock(t *testing.T) {
 	t.Parallel()
 
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+
 	header := &block.MetaBlock{
 		Nonce:           1,
 		Round:           1,
@@ -3106,11 +3108,10 @@ func TestMetaProcessor_ProcessEpochStartMetaBlock(t *testing.T) {
 	t.Run("rewards V2 enabled", func(t *testing.T) {
 		t.Parallel()
 
-		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
-		coreComponents.EnableEpochsHandlerField = &testscommon.EnableEpochsHandlerStub{
-			IsScheduledMiniBlocksFlagEnabledField: true,
-		}
-		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		coreC, dataC, bootstrapC, statusC := createMockComponentHolders()
+		enableEpochsHandler, _ := coreC.EnableEpochsHandlerField.(*testscommon.EnableEpochsHandlerStub)
+		enableEpochsHandler.StakingV2EnableEpochField = 0
+		arguments := createMockMetaArguments(coreC, dataC, bootstrapC, statusC)
 
 		wasCalled := false
 		arguments.EpochRewardsCreator = &mock.EpochRewardsCreatorStub{
@@ -3342,11 +3343,10 @@ func TestMetaProcessor_CreateEpochStartBodyShouldWork(t *testing.T) {
 	t.Run("rewards V2 enabled", func(t *testing.T) {
 		t.Parallel()
 
-		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
-		coreComponents.EnableEpochsHandlerField = &testscommon.EnableEpochsHandlerStub{
-			IsScheduledMiniBlocksFlagEnabledField: true,
-		}
-		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		coreC, dataC, bootstrapC, statusC := createMockComponentHolders()
+		enableEpochsHandler, _ := coreC.EnableEpochsHandlerField.(*testscommon.EnableEpochsHandlerStub)
+		enableEpochsHandler.StakingV2EnableEpochField = 0
+		arguments := createMockMetaArguments(coreC, dataC, bootstrapC, statusC)
 
 		mb := &block.MetaBlock{
 			Nonce: 1,
@@ -3498,14 +3498,13 @@ func TestMetaProcessor_getFinalMiniBlockHashes(t *testing.T) {
 
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
 		enableEpochsHandlerStub := &testscommon.EnableEpochsHandlerStub{
-			IsScheduledMiniBlocksFlagEnabledField: true,
+			IsScheduledMiniBlocksFlagEnabledField: false,
 		}
 		coreComponents.EnableEpochsHandlerField = enableEpochsHandlerStub
 		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 
 		mp, _ := blproc.NewMetaProcessor(arguments)
 
-		enableEpochsHandlerStub.IsScheduledMiniBlocksFlagEnabledField = false
 		expectedMbHeaders := make([]data.MiniBlockHeaderHandler, 1)
 
 		mbHeaders := mp.GetFinalMiniBlockHeaders(expectedMbHeaders)
@@ -3517,14 +3516,13 @@ func TestMetaProcessor_getFinalMiniBlockHashes(t *testing.T) {
 
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
 		enableEpochsHandlerStub := &testscommon.EnableEpochsHandlerStub{
-			IsScheduledMiniBlocksFlagEnabledField: false,
+			IsScheduledMiniBlocksFlagEnabledField: true,
 		}
 		coreComponents.EnableEpochsHandlerField = enableEpochsHandlerStub
 		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 
 		mp, _ := blproc.NewMetaProcessor(arguments)
 
-		enableEpochsHandlerStub.IsScheduledMiniBlocksFlagEnabledField = true
 		mbh1 := &block.MiniBlockHeader{
 			Hash: []byte("hash1"),
 		}
