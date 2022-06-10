@@ -22,7 +22,7 @@ type flagsHolder struct {
 	stakeFlag                                   *atomic.Flag
 	stakingV2Flag                               *atomic.Flag
 	stakingV2OwnerFlag                          *atomic.Flag
-	stakingV2GreaterEpochFlag                     *atomic.Flag
+	stakingV2GreaterEpochFlag                   *atomic.Flag
 	doubleKeyProtectionFlag                     *atomic.Flag
 	esdtFlag                                    *atomic.Flag
 	esdtCurrentEpochFlag                        *atomic.Flag
@@ -96,7 +96,7 @@ func newFlagsHolder() *flagsHolder {
 		stakeFlag:                                   &atomic.Flag{},
 		stakingV2Flag:                               &atomic.Flag{},
 		stakingV2OwnerFlag:                          &atomic.Flag{},
-		stakingV2GreaterEpochFlag:                     &atomic.Flag{},
+		stakingV2GreaterEpochFlag:                   &atomic.Flag{},
 		doubleKeyProtectionFlag:                     &atomic.Flag{},
 		esdtFlag:                                    &atomic.Flag{},
 		esdtCurrentEpochFlag:                        &atomic.Flag{},
