@@ -9,9 +9,9 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -23,29 +23,25 @@ const delegationContractsList = "delegationContracts"
 var nextAddressAdd = big.NewInt(1 << 24)
 
 type delegationManager struct {
-	eei                              vm.SystemEI
-	delegationMgrSCAddress           []byte
-	stakingSCAddr                    []byte
-	validatorSCAddr                  []byte
-	configChangeAddr                 []byte
-	gasCost                          vm.GasCost
-	marshalizer                      marshal.Marshalizer
-	delegationMgrEnabled             atomic.Flag
-	enableDelegationMgrEpoch         uint32
-	minCreationDeposit               *big.Int
-	minDelegationAmount              *big.Int
-	minFee                           uint64
-	maxFee                           uint64
-	mutExecution                     sync.RWMutex
-	flagValidatorToDelegation        atomic.Flag
-	validatorToDelegationEnableEpoch uint32
+	eei                    vm.SystemEI
+	delegationMgrSCAddress []byte
+	stakingSCAddr          []byte
+	validatorSCAddr        []byte
+	configChangeAddr       []byte
+	gasCost                vm.GasCost
+	marshalizer            marshal.Marshalizer
+	minCreationDeposit     *big.Int
+	minDelegationAmount    *big.Int
+	minFee                 uint64
+	maxFee                 uint64
+	enableEpochsHandler    common.EnableEpochsHandler
+	mutExecution           sync.RWMutex
 }
 
 // ArgsNewDelegationManager defines the arguments to create the delegation manager system smart contract
 type ArgsNewDelegationManager struct {
 	DelegationMgrSCConfig  config.DelegationManagerSystemSCConfig
 	DelegationSCConfig     config.DelegationSystemSCConfig
-	EpochConfig            config.EpochConfig
 	Eei                    vm.SystemEI
 	DelegationMgrSCAddress []byte
 	StakingSCAddress       []byte
@@ -53,7 +49,7 @@ type ArgsNewDelegationManager struct {
 	ConfigChangeAddress    []byte
 	GasCost                vm.GasCost
 	Marshalizer            marshal.Marshalizer
-	EpochNotifier          vm.EpochNotifier
+	EnableEpochsHandler    common.EnableEpochsHandler
 }
 
 // NewDelegationManagerSystemSC creates a new delegation manager system SC
@@ -76,8 +72,8 @@ func NewDelegationManagerSystemSC(args ArgsNewDelegationManager) (*delegationMan
 	if check.IfNil(args.Marshalizer) {
 		return nil, vm.ErrNilMarshalizer
 	}
-	if check.IfNil(args.EpochNotifier) {
-		return nil, vm.ErrNilEpochNotifier
+	if check.IfNil(args.EnableEpochsHandler) {
+		return nil, vm.ErrNilEnableEpochsHandler
 	}
 
 	minCreationDeposit, okConvert := big.NewInt(0).SetString(args.DelegationMgrSCConfig.MinCreationDeposit, conversionBase)
@@ -91,25 +87,19 @@ func NewDelegationManagerSystemSC(args ArgsNewDelegationManager) (*delegationMan
 	}
 
 	d := &delegationManager{
-		eei:                              args.Eei,
-		stakingSCAddr:                    args.StakingSCAddress,
-		validatorSCAddr:                  args.ValidatorSCAddress,
-		delegationMgrSCAddress:           args.DelegationMgrSCAddress,
-		configChangeAddr:                 args.ConfigChangeAddress,
-		gasCost:                          args.GasCost,
-		marshalizer:                      args.Marshalizer,
-		delegationMgrEnabled:             atomic.Flag{},
-		enableDelegationMgrEpoch:         args.EpochConfig.EnableEpochs.DelegationManagerEnableEpoch,
-		minCreationDeposit:               minCreationDeposit,
-		minDelegationAmount:              minDelegationAmount,
-		minFee:                           args.DelegationSCConfig.MinServiceFee,
-		maxFee:                           args.DelegationSCConfig.MaxServiceFee,
-		validatorToDelegationEnableEpoch: args.EpochConfig.EnableEpochs.ValidatorToDelegationEnableEpoch,
+		eei:                    args.Eei,
+		stakingSCAddr:          args.StakingSCAddress,
+		validatorSCAddr:        args.ValidatorSCAddress,
+		delegationMgrSCAddress: args.DelegationMgrSCAddress,
+		configChangeAddr:       args.ConfigChangeAddress,
+		gasCost:                args.GasCost,
+		marshalizer:            args.Marshalizer,
+		minCreationDeposit:     minCreationDeposit,
+		minDelegationAmount:    minDelegationAmount,
+		minFee:                 args.DelegationSCConfig.MinServiceFee,
+		maxFee:                 args.DelegationSCConfig.MaxServiceFee,
+		enableEpochsHandler:    args.EnableEpochsHandler,
 	}
-	log.Debug("delegationManager: enable epoch for delegation manager", "epoch", d.enableDelegationMgrEpoch)
-	log.Debug("delegationManager: enable epoch for validator to delegation", "epoch", d.validatorToDelegationEnableEpoch)
-
-	args.EpochNotifier.RegisterNotifyHandler(d)
 
 	return d, nil
 }
@@ -125,7 +115,7 @@ func (d *delegationManager) Execute(args *vmcommon.ContractCallInput) vmcommon.R
 		return vmcommon.UserError
 	}
 
-	if !d.delegationMgrEnabled.IsSet() {
+	if !d.enableEpochsHandler.IsDelegationManagerFlagEnabled() {
 		d.eei.AddReturnMessage("delegation manager contract is not enabled")
 		return vmcommon.UserError
 	}
@@ -290,7 +280,7 @@ func (d *delegationManager) makeNewContractFromValidatorData(args *vmcommon.Cont
 }
 
 func (d *delegationManager) checkValidatorToDelegationInput(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !d.flagValidatorToDelegation.IsSet() {
+	if !d.enableEpochsHandler.IsValidatorToDelegationFlagEnabled() {
 		d.eei.AddReturnMessage("invalid function to call")
 		return vmcommon.UserError
 	}
@@ -586,18 +576,9 @@ func (d *delegationManager) SetNewGasCost(gasCost vm.GasCost) {
 	d.mutExecution.Unlock()
 }
 
-// EpochConfirmed is called whenever a new epoch is confirmed
-func (d *delegationManager) EpochConfirmed(epoch uint32, _ uint64) {
-	d.delegationMgrEnabled.SetValue(epoch >= d.enableDelegationMgrEpoch)
-	log.Debug("delegationManagerSC: delegationManager", "enabled", d.delegationMgrEnabled.IsSet())
-
-	d.flagValidatorToDelegation.SetValue(epoch >= d.validatorToDelegationEnableEpoch)
-	log.Debug("delegationManagerSC: validator to delegation", "enabled", d.flagValidatorToDelegation.IsSet())
-}
-
 // CanUseContract returns true if contract can be used
 func (d *delegationManager) CanUseContract() bool {
-	return d.delegationMgrEnabled.IsSet()
+	return d.enableEpochsHandler.IsDelegationManagerFlagEnabled()
 }
 
 // IsInterfaceNil returns true if underlying object is nil

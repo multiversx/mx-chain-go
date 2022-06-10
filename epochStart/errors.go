@@ -331,3 +331,6 @@ var ErrNilScheduledTxsHandler = errors.New("nil scheduled transactions handler")
 
 // ErrNilScheduledDataSyncerFactory signals that a nil scheduled data syncer factory was provided
 var ErrNilScheduledDataSyncerFactory = errors.New("nil scheduled data syncer factory")
+
+// ErrNilEnableEpochsHandler signals that a nil enable epochs handler has been provided
+var ErrNilEnableEpochsHandler = errors.New("nil enable epochs handler")

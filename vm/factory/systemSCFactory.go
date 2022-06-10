@@ -32,6 +32,7 @@ type systemSCFactory struct {
 	addressPubKeyConverter core.PubkeyConverter
 	epochConfig            *config.EpochConfig
 	shardCoordinator       sharding.Coordinator
+	enableEpochsHandler    common.EnableEpochsHandler
 }
 
 // ArgsNewSystemSCFactory defines the arguments struct needed to create the system SCs
@@ -48,6 +49,7 @@ type ArgsNewSystemSCFactory struct {
 	AddressPubKeyConverter core.PubkeyConverter
 	EpochConfig            *config.EpochConfig
 	ShardCoordinator       sharding.Coordinator
+	EnableEpochsHandler    common.EnableEpochsHandler
 }
 
 // NewSystemSCFactory creates a factory which will instantiate the system smart contracts
@@ -82,6 +84,9 @@ func NewSystemSCFactory(args ArgsNewSystemSCFactory) (*systemSCFactory, error) {
 	if check.IfNil(args.ShardCoordinator) {
 		return nil, fmt.Errorf("%w in NewSystemSCFactory", vm.ErrNilShardCoordinator)
 	}
+	if check.IfNil(args.EnableEpochsHandler) {
+		return nil, fmt.Errorf("%w in NewSystemSCFactory", vm.ErrNilEnableEpochsHandler)
+	}
 
 	scf := &systemSCFactory{
 		systemEI:               args.SystemEI,
@@ -95,6 +100,7 @@ func NewSystemSCFactory(args ArgsNewSystemSCFactory) (*systemSCFactory, error) {
 		addressPubKeyConverter: args.AddressPubKeyConverter,
 		epochConfig:            args.EpochConfig,
 		shardCoordinator:       args.ShardCoordinator,
+		enableEpochsHandler:    args.EnableEpochsHandler,
 	}
 
 	err := scf.createGasConfig(args.GasSchedule.LatestGasSchedule())
@@ -178,8 +184,7 @@ func (scf *systemSCFactory) createStakingContract() (vm.SystemSmartContract, err
 		EndOfEpochAccessAddr: vm.EndOfEpochAddress,
 		GasCost:              scf.gasCost,
 		Marshalizer:          scf.marshalizer,
-		EpochNotifier:        scf.epochNotifier,
-		EpochConfig:          *scf.epochConfig,
+		EnableEpochsHandler:  scf.enableEpochsHandler,
 	}
 	staking, err := systemSmartContracts.NewStakingSmartContract(argsStaking)
 	return staking, err
@@ -187,22 +192,20 @@ func (scf *systemSCFactory) createStakingContract() (vm.SystemSmartContract, err
 
 func (scf *systemSCFactory) createValidatorContract() (vm.SystemSmartContract, error) {
 	args := systemSmartContracts.ArgsValidatorSmartContract{
-		Eei:                      scf.systemEI,
-		SigVerifier:              scf.sigVerifier,
-		StakingSCConfig:          scf.systemSCConfig.StakingSystemSCConfig,
-		StakingSCAddress:         vm.StakingSCAddress,
-		EndOfEpochAddress:        vm.EndOfEpochAddress,
-		ValidatorSCAddress:       vm.ValidatorSCAddress,
-		GasCost:                  scf.gasCost,
-		Marshalizer:              scf.marshalizer,
-		GenesisTotalSupply:       scf.economics.GenesisTotalSupply(),
-		EpochNotifier:            scf.epochNotifier,
-		MinDeposit:               scf.systemSCConfig.DelegationManagerSystemSCConfig.MinCreationDeposit,
-		DelegationMgrEnableEpoch: scf.epochConfig.EnableEpochs.DelegationManagerEnableEpoch,
-		DelegationMgrSCAddress:   vm.DelegationManagerSCAddress,
-		GovernanceSCAddress:      vm.GovernanceSCAddress,
-		EpochConfig:              *scf.epochConfig,
-		ShardCoordinator:         scf.shardCoordinator,
+		Eei:                    scf.systemEI,
+		SigVerifier:            scf.sigVerifier,
+		StakingSCConfig:        scf.systemSCConfig.StakingSystemSCConfig,
+		StakingSCAddress:       vm.StakingSCAddress,
+		EndOfEpochAddress:      vm.EndOfEpochAddress,
+		ValidatorSCAddress:     vm.ValidatorSCAddress,
+		GasCost:                scf.gasCost,
+		Marshalizer:            scf.marshalizer,
+		GenesisTotalSupply:     scf.economics.GenesisTotalSupply(),
+		MinDeposit:             scf.systemSCConfig.DelegationManagerSystemSCConfig.MinCreationDeposit,
+		DelegationMgrSCAddress: vm.DelegationManagerSCAddress,
+		GovernanceSCAddress:    vm.GovernanceSCAddress,
+		ShardCoordinator:       scf.shardCoordinator,
+		EnableEpochsHandler:    scf.enableEpochsHandler,
 	}
 	validatorSC, err := systemSmartContracts.NewValidatorSmartContract(args)
 	return validatorSC, err
@@ -216,10 +219,9 @@ func (scf *systemSCFactory) createESDTContract() (vm.SystemSmartContract, error)
 		Marshalizer:            scf.marshalizer,
 		Hasher:                 scf.hasher,
 		ESDTSCConfig:           scf.systemSCConfig.ESDTSystemSCConfig,
-		EpochNotifier:          scf.epochNotifier,
 		AddressPubKeyConverter: scf.addressPubKeyConverter,
 		EndOfEpochSCAddress:    vm.EndOfEpochAddress,
-		EpochConfig:            *scf.epochConfig,
+		EnableEpochsHandler:    scf.enableEpochsHandler,
 	}
 	esdt, err := systemSmartContracts.NewESDTSmartContract(argsESDT)
 	return esdt, err
@@ -240,8 +242,7 @@ func (scf *systemSCFactory) createGovernanceContract() (vm.SystemSmartContract, 
 		GovernanceSCAddress:         vm.GovernanceSCAddress,
 		DelegationMgrSCAddress:      vm.DelegationManagerSCAddress,
 		ValidatorSCAddress:          vm.ValidatorSCAddress,
-		EpochNotifier:               scf.epochNotifier,
-		EpochConfig:                 *scf.epochConfig,
+		EnableEpochsHandler:         scf.enableEpochsHandler,
 		InitialWhiteListedAddresses: [][]byte{firstWhitelistAddress},
 	}
 	governance, err := systemSmartContracts.NewGovernanceContract(argsGovernance)
@@ -264,11 +265,10 @@ func (scf *systemSCFactory) createDelegationContract() (vm.SystemSmartContract, 
 		ValidatorSCAddress:     vm.ValidatorSCAddress,
 		GasCost:                scf.gasCost,
 		Marshalizer:            scf.marshalizer,
-		EpochNotifier:          scf.epochNotifier,
 		EndOfEpochAddress:      vm.EndOfEpochAddress,
 		GovernanceSCAddress:    vm.GovernanceSCAddress,
-		EpochConfig:            *scf.epochConfig,
 		AddTokensAddress:       addTokensAddress,
+		EnableEpochsHandler:    scf.enableEpochsHandler,
 	}
 	delegation, err := systemSmartContracts.NewDelegationSystemSC(argsDelegation)
 	return delegation, err
@@ -290,8 +290,7 @@ func (scf *systemSCFactory) createDelegationManagerContract() (vm.SystemSmartCon
 		ConfigChangeAddress:    configChangeAddres,
 		GasCost:                scf.gasCost,
 		Marshalizer:            scf.marshalizer,
-		EpochNotifier:          scf.epochNotifier,
-		EpochConfig:            *scf.epochConfig,
+		EnableEpochsHandler:    scf.enableEpochsHandler,
 	}
 	delegationManager, err := systemSmartContracts.NewDelegationManagerSystemSC(argsDelegationManager)
 	return delegationManager, err

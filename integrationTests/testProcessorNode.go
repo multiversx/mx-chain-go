@@ -942,14 +942,10 @@ func (tpn *TestProcessorNode) createFullSCQueryService() {
 			ChanceComputer:      tpn.NodesCoordinator,
 			EpochNotifier:       tpn.EpochNotifier,
 			EpochConfig: &config.EpochConfig{
-				EnableEpochs: config.EnableEpochs{
-					StakingV2EnableEpoch:               0,
-					StakeEnableEpoch:                   0,
-					DelegationSmartContractEnableEpoch: 0,
-					DelegationManagerEnableEpoch:       0,
-				},
+				EnableEpochs: config.EnableEpochs{},
 			},
-			ShardCoordinator: tpn.ShardCoordinator,
+			ShardCoordinator:    tpn.ShardCoordinator,
+			EnableEpochsHandler: tpn.EnableEpochsHandler,
 		}
 		vmFactory, _ = metaProcess.NewVMContainerFactory(argsNewVmFactory)
 	} else {
@@ -1786,7 +1782,8 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		EpochConfig: &config.EpochConfig{
 			EnableEpochs: tpn.EnableEpochs,
 		},
-		ShardCoordinator: tpn.ShardCoordinator,
+		ShardCoordinator:    tpn.ShardCoordinator,
+		EnableEpochsHandler: tpn.EnableEpochsHandler,
 	}
 	vmFactory, _ := metaProcess.NewVMContainerFactory(argsVMContainerFactory)
 
@@ -2176,7 +2173,8 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 			Marshalizer:      TestMarshalizer,
 			DataPool:         tpn.DataPool,
 		}
-
+		enableEpochsStub, _ := tpn.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
+		enableEpochsStub.IsESDTFlagEnabledForCurrentEpochField = true
 		epochStartValidatorInfo, _ := metachain.NewValidatorInfoCreator(argsEpochValidatorInfo)
 		argsEpochSystemSC := metachain.ArgsNewEpochStartSystemSCProcessing{
 			SystemVM:                systemVM,
@@ -2194,12 +2192,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 			NodesConfigProvider:     tpn.NodesCoordinator,
 			ShardCoordinator:        tpn.ShardCoordinator,
 			ESDTOwnerAddressBytes:   vm.EndOfEpochAddress,
-			EpochConfig: config.EpochConfig{
-				EnableEpochs: config.EnableEpochs{
-					StakingV2EnableEpoch: StakingV2Epoch,
-					ESDTEnableEpoch:      0,
-				},
-			},
+			EnableEpochsHandler:     enableEpochsStub,
 		}
 		epochStartSystemSCProcessor, _ := metachain.NewSystemSCProcessor(argsEpochSystemSC)
 		tpn.EpochStartSystemSCProcessor = epochStartSystemSCProcessor

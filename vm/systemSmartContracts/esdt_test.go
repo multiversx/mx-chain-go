@@ -1,7 +1,6 @@
 package systemSmartContracts
 
 import (
-	"bytes"
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
@@ -16,6 +15,7 @@ import (
 	vmData "github.com/ElrondNetwork/elrond-go-core/data/vm"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/ElrondNetwork/elrond-go/vm"
@@ -35,10 +35,16 @@ func createMockArgumentsForESDT() ArgsNewESDTSmartContract {
 		ESDTSCAddress:          []byte("address"),
 		Marshalizer:            &mock.MarshalizerMock{},
 		Hasher:                 &hashingMocks.HasherMock{},
-		EpochNotifier:          &mock.EpochNotifierStub{},
 		AddressPubKeyConverter: mock.NewPubkeyConverterMock(32),
 		EndOfEpochSCAddress:    vm.EndOfEpochAddress,
-		EpochConfig:            config.EpochConfig{EnableEpochs: config.EnableEpochs{GlobalMintBurnDisableEpoch: 10}},
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
+			IsESDTFlagEnabledField:                       true,
+			IsGlobalMintBurnFlagEnabledField:             true,
+			IsMetaESDTSetFlagEnabledField:                true,
+			IsESDTRegisterAndSetAllRolesFlagEnabledField: true,
+			IsESDTNFTCreateOnMultiShardFlagEnabledField:  true,
+			IsESDTTransferRoleFlagEnabledField:           true,
+		},
 	}
 }
 
@@ -87,15 +93,15 @@ func TestNewESDTSmartContract_NilHasherShouldErr(t *testing.T) {
 	assert.Equal(t, vm.ErrNilHasher, err)
 }
 
-func TestNewESDTSmartContract_NilEpochNotifierShouldErr(t *testing.T) {
+func TestNewESDTSmartContract_NilEnableEpochsHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
-	args.EpochNotifier = nil
+	args.EnableEpochsHandler = nil
 
 	e, err := NewESDTSmartContract(args)
 	assert.Nil(t, e)
-	assert.Equal(t, vm.ErrNilEpochNotifier, err)
+	assert.Equal(t, vm.ErrNilEnableEpochsHandler, err)
 }
 
 func TestNewESDTSmartContract_NilPubKeyConverterShouldErr(t *testing.T) {
@@ -194,6 +200,7 @@ func TestEsdt_ExecuteIssueWithMultiNFTCreate(t *testing.T) {
 		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
+	enableEpochsHandler, _ := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
 	e, _ := NewESDTSmartContract(args)
 
 	vmInput := &vmcommon.ContractCallInput{
@@ -211,11 +218,11 @@ func TestEsdt_ExecuteIssueWithMultiNFTCreate(t *testing.T) {
 	ticker := []byte("TICKER")
 	vmInput.Arguments = [][]byte{[]byte("name"), ticker, []byte(canCreateMultiShard), []byte("true")}
 
-	e.flagNFTCreateONMultiShard.Reset()
+	enableEpochsHandler.IsESDTNFTCreateOnMultiShardFlagEnabledField = false
 	returnCode := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, returnCode)
 
-	_ = e.flagNFTCreateONMultiShard.SetReturningPrevious()
+	enableEpochsHandler.IsESDTNFTCreateOnMultiShardFlagEnabledField = true
 	returnCode = e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, returnCode)
 
@@ -281,6 +288,7 @@ func TestEsdt_ExecuteIssueWithZero(t *testing.T) {
 		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
+	enableEpochsHandler, _ := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
 	e, _ := NewESDTSmartContract(args)
 
 	vmInput := &vmcommon.ContractCallInput{
@@ -299,8 +307,8 @@ func TestEsdt_ExecuteIssueWithZero(t *testing.T) {
 	vmInput.CallValue, _ = big.NewInt(0).SetString(args.ESDTSCConfig.BaseIssuingCost, 10)
 	vmInput.GasProvided = args.GasCost.MetaChainSystemSCsCost.ESDTIssue
 
-	e.flagGlobalMintBurn.Reset()
-	e.flagNFTCreateONMultiShard.Reset()
+	enableEpochsHandler.IsGlobalMintBurnFlagEnabledField = false
+	enableEpochsHandler.IsESDTNFTCreateOnMultiShardFlagEnabledField = false
 	output := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.Ok, output)
 }
@@ -524,7 +532,8 @@ func TestEsdt_ExecuteBurnAndMintDisabled(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
-	args.EpochConfig.EnableEpochs.GlobalMintBurnDisableEpoch = 0
+	enableEpochsHandler, _ := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
+	enableEpochsHandler.IsGlobalMintBurnFlagEnabledField = false
 	eei, _ := NewVMContext(
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
@@ -1000,7 +1009,8 @@ func TestEsdt_ExecuteIssueDisabled(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
-	args.EpochConfig.EnableEpochs.ESDTEnableEpoch = 1
+	enableEpochsHandler, _ := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
+	enableEpochsHandler.IsESDTFlagEnabledField = false
 	e, _ := NewESDTSmartContract(args)
 
 	callValue, _ := big.NewInt(0).SetString(args.ESDTSCConfig.BaseIssuingCost, 10)
@@ -3348,7 +3358,8 @@ func TestEsdt_SetSpecialRoleTransferNotEnabledShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
-	args.EpochConfig.EnableEpochs.ESDTTransferRoleEnableEpoch = 10
+	enableEpochsHandler, _ := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
+	enableEpochsHandler.IsESDTTransferRoleFlagEnabledField = false
 
 	token := &ESDTDataV2{
 		OwnerAddress: []byte("caller123"),
@@ -3395,7 +3406,7 @@ func TestEsdt_SetSpecialRoleTransferNotEnabledShouldErr(t *testing.T) {
 	retCode = e.Execute(vmInput)
 	require.Equal(t, vmcommon.UserError, retCode)
 
-	_ = e.flagTransferRole.SetReturningPrevious()
+	enableEpochsHandler.IsESDTTransferRoleFlagEnabledField = true
 	called = false
 	token.TokenType = []byte(core.NonFungibleESDT)
 	retCode = e.Execute(vmInput)
@@ -4231,9 +4242,10 @@ func TestEsdt_ExecuteIssueMetaESDT(t *testing.T) {
 		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
+	enableEpochsHandler, _ := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
 	e, _ := NewESDTSmartContract(args)
 
-	e.flagMetaESDT.Reset()
+	enableEpochsHandler.IsMetaESDTSetFlagEnabledField = false
 	vmInput := getDefaultVmInputForFunc("registerMetaESDT", nil)
 	output := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
@@ -4241,7 +4253,7 @@ func TestEsdt_ExecuteIssueMetaESDT(t *testing.T) {
 
 	eei.returnMessage = ""
 	eei.gasRemaining = 9999
-	_ = e.flagMetaESDT.SetReturningPrevious()
+	enableEpochsHandler.IsMetaESDTSetFlagEnabledField = true
 	output = e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
 	assert.Equal(t, eei.returnMessage, "not enough arguments")
@@ -4284,9 +4296,10 @@ func TestEsdt_ExecuteChangeSFTToMetaESDT(t *testing.T) {
 		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
+	enableEpochsHandler, _ := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
 	e, _ := NewESDTSmartContract(args)
 
-	e.flagMetaESDT.Reset()
+	enableEpochsHandler.IsMetaESDTSetFlagEnabledField = false
 	vmInput := getDefaultVmInputForFunc("changeSFTToMetaESDT", nil)
 	output := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
@@ -4294,7 +4307,7 @@ func TestEsdt_ExecuteChangeSFTToMetaESDT(t *testing.T) {
 
 	eei.returnMessage = ""
 	eei.gasRemaining = 9999
-	_ = e.flagMetaESDT.SetReturningPrevious()
+	enableEpochsHandler.IsMetaESDTSetFlagEnabledField = true
 	output = e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
 	assert.Equal(t, eei.returnMessage, "not enough arguments")
@@ -4341,7 +4354,6 @@ func TestEsdt_ExecuteIssueSFTAndChangeSFTToMetaESDT(t *testing.T) {
 
 	eei.returnMessage = ""
 	eei.gasRemaining = 9999
-	_ = e.flagMetaESDT.SetReturningPrevious()
 
 	vmInput := getDefaultVmInputForFunc("issueSemiFungible", nil)
 	vmInput.CallValue = e.baseIssuingCost
@@ -4370,92 +4382,6 @@ func TestEsdt_ExecuteIssueSFTAndChangeSFTToMetaESDT(t *testing.T) {
 	assert.True(t, strings.Contains(eei.returnMessage, "change can happen to semi fungible tokens only"))
 }
 
-func TestEsdt_ExecuteTransformToMultiShardCreate(t *testing.T) {
-	t.Parallel()
-
-	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
-	args.Eei = eei
-	e, _ := NewESDTSmartContract(args)
-
-	e.flagTransformToMultiShardCreate.Reset()
-	vmInput := getDefaultVmInputForFunc("changeToMultiShardCreate", nil)
-	output := e.Execute(vmInput)
-	assert.Equal(t, vmcommon.FunctionNotFound, output)
-	assert.Equal(t, eei.returnMessage, "invalid method to call")
-
-	eei.returnMessage = ""
-	eei.gasRemaining = 9999
-	_ = e.flagTransformToMultiShardCreate.SetReturningPrevious()
-	output = e.Execute(vmInput)
-	assert.Equal(t, vmcommon.UserError, output)
-	assert.Equal(t, eei.returnMessage, "invalid number of arguments")
-
-	vmInput.Arguments = [][]byte{[]byte("tokenName")}
-	eei.returnMessage = ""
-	output = e.Execute(vmInput)
-	assert.Equal(t, vmcommon.UserError, output)
-	assert.True(t, strings.Contains(eei.returnMessage, "no ticker with given name"))
-
-	token := &ESDTDataV2{TokenType: []byte(metaESDT), OwnerAddress: vmInput.CallerAddr, CanAddSpecialRoles: false}
-	_ = e.saveToken(vmInput.Arguments[0], token)
-	eei.returnMessage = ""
-	output = e.Execute(vmInput)
-	assert.Equal(t, vmcommon.UserError, output)
-	assert.True(t, strings.Contains(eei.returnMessage, "cannot add special roles"))
-
-	token.CanAddSpecialRoles = true
-	token.CanCreateMultiShard = true
-	_ = e.saveToken(vmInput.Arguments[0], token)
-	eei.returnMessage = ""
-	output = e.Execute(vmInput)
-	assert.Equal(t, vmcommon.UserError, output)
-	assert.True(t, strings.Contains(eei.returnMessage, "it is already multi shard create"))
-
-	token.CanCreateMultiShard = false
-	_ = e.saveToken(vmInput.Arguments[0], token)
-	eei.returnMessage = ""
-	output = e.Execute(vmInput)
-	assert.Equal(t, vmcommon.UserError, output)
-	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrElementNotFound.Error()))
-
-	token.SpecialRoles = []*ESDTRoles{{Address: bytes.Repeat([]byte{0}, 32), Roles: [][]byte{[]byte(core.ESDTRoleNFTCreate)}}}
-	_ = e.saveToken(vmInput.Arguments[0], token)
-	eei.returnMessage = ""
-	output = e.Execute(vmInput)
-	assert.Equal(t, vmcommon.Ok, output)
-
-	for _, outAcc := range eei.outputAccounts {
-		assert.Equal(t, len(outAcc.OutputTransfers), 0)
-	}
-	token, _ = e.getExistingToken(vmInput.Arguments[0])
-	assert.True(t, token.CanCreateMultiShard)
-
-	token.CanCreateMultiShard = false
-	token.SpecialRoles = []*ESDTRoles{{Address: bytes.Repeat([]byte{1}, 32), Roles: [][]byte{[]byte(core.ESDTRoleNFTCreate)}}}
-	_ = e.saveToken(vmInput.Arguments[0], token)
-	eei.returnMessage = ""
-	output = e.Execute(vmInput)
-	assert.Equal(t, vmcommon.Ok, output)
-
-	expectedData := core.BuiltInFunctionSetESDTRole + "@" + hex.EncodeToString(vmInput.Arguments[0]) + "@" + hex.EncodeToString([]byte(core.ESDTRoleNFTCreateMultiShard))
-	foundTransfer := false
-	for _, outAcc := range eei.outputAccounts {
-		for _, transfer := range outAcc.OutputTransfers {
-			assert.Equal(t, transfer.Data, []byte(expectedData))
-			foundTransfer = true
-		}
-	}
-	assert.True(t, foundTransfer)
-	token, _ = e.getExistingToken(vmInput.Arguments[0])
-	assert.True(t, token.CanCreateMultiShard)
-}
-
 func TestEsdt_ExecuteRegisterAndSetErrors(t *testing.T) {
 	t.Parallel()
 
@@ -4467,9 +4393,10 @@ func TestEsdt_ExecuteRegisterAndSetErrors(t *testing.T) {
 		&stateMock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
+	enableEpochsHandler, _ := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
 	e, _ := NewESDTSmartContract(args)
 
-	e.flagRegisterAndSetAllRoles.Reset()
+	enableEpochsHandler.IsESDTRegisterAndSetAllRolesFlagEnabledField = false
 	vmInput := getDefaultVmInputForFunc("registerAndSetAllRoles", nil)
 	output := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.FunctionNotFound, output)
@@ -4477,7 +4404,7 @@ func TestEsdt_ExecuteRegisterAndSetErrors(t *testing.T) {
 
 	eei.returnMessage = ""
 	eei.gasRemaining = 9999
-	_ = e.flagRegisterAndSetAllRoles.SetReturningPrevious()
+	enableEpochsHandler.IsESDTRegisterAndSetAllRolesFlagEnabledField = true
 	output = e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
 	assert.Equal(t, eei.returnMessage, "not enough arguments")

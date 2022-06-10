@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/mock"
@@ -69,14 +70,10 @@ func createMockNewSystemScFactoryArgs() ArgsNewSystemSCFactory {
 		EpochNotifier:          &mock.EpochNotifierStub{},
 		AddressPubKeyConverter: &mock.PubkeyConverterMock{},
 		EpochConfig: &config.EpochConfig{
-			EnableEpochs: config.EnableEpochs{
-				StakingV2EnableEpoch:               1,
-				StakeEnableEpoch:                   0,
-				DelegationSmartContractEnableEpoch: 0,
-				DelegationManagerEnableEpoch:       0,
-			},
+			EnableEpochs: config.EnableEpochs{},
 		},
-		ShardCoordinator: &mock.ShardCoordinatorStub{},
+		ShardCoordinator:    &mock.ShardCoordinatorStub{},
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
 	}
 }
 

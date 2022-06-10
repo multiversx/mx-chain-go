@@ -127,6 +127,7 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsSwitchJailWaitingFlagEnabled())
 		assert.True(t, handler.IsBelowSignedThresholdFlagEnabled())
 		assert.True(t, handler.IsSwitchHysteresisForMinNodesFlagEnabled())
+		assert.False(t, handler.IsSwitchHysteresisForMinNodesFlagEnabledForCurrentEpoch()) // epoch == limit
 		assert.True(t, handler.IsTransactionSignedWithTxHashFlagEnabled())
 		assert.True(t, handler.IsMetaProtectionFlagEnabled())
 		assert.True(t, handler.IsAheadOfTimeGasUsageFlagEnabled())
@@ -146,6 +147,7 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.False(t, handler.IsGovernanceFlagEnabledForCurrentEpoch()) // epoch == limit
 		assert.True(t, handler.IsDelegationManagerFlagEnabled())
 		assert.True(t, handler.IsDelegationSmartContractFlagEnabled())
+		assert.False(t, handler.IsDelegationSmartContractFlagEnabledForCurrentEpoch()) // epoch == limit
 		assert.True(t, handler.IsCorrectLastUnJailedFlagEnabled())
 		assert.False(t, handler.IsCorrectLastUnJailedFlagEnabledForCurrentEpoch()) // epoch == limit
 		assert.True(t, handler.IsRelayedTransactionsV2FlagEnabled())
@@ -212,6 +214,7 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsSwitchJailWaitingFlagEnabled())
 		assert.True(t, handler.IsBelowSignedThresholdFlagEnabled())
 		assert.True(t, handler.IsSwitchHysteresisForMinNodesFlagEnabled())
+		assert.False(t, handler.IsSwitchHysteresisForMinNodesFlagEnabledForCurrentEpoch()) // epoch == limit
 		assert.True(t, handler.IsTransactionSignedWithTxHashFlagEnabled())
 		assert.True(t, handler.IsMetaProtectionFlagEnabled())
 		assert.True(t, handler.IsAheadOfTimeGasUsageFlagEnabled())
@@ -231,6 +234,7 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsGovernanceFlagEnabledForCurrentEpoch()) // epoch == limit
 		assert.True(t, handler.IsDelegationManagerFlagEnabled())
 		assert.True(t, handler.IsDelegationSmartContractFlagEnabled())
+		assert.False(t, handler.IsDelegationSmartContractFlagEnabledForCurrentEpoch()) // epoch == limit
 		assert.True(t, handler.IsCorrectLastUnJailedFlagEnabled())
 		assert.True(t, handler.IsCorrectLastUnJailedFlagEnabledForCurrentEpoch()) // epoch == limit
 		assert.True(t, handler.IsRelayedTransactionsV2FlagEnabled())
@@ -292,6 +296,7 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.False(t, handler.IsSwitchJailWaitingFlagEnabled())
 		assert.False(t, handler.IsBelowSignedThresholdFlagEnabled())
 		assert.False(t, handler.IsSwitchHysteresisForMinNodesFlagEnabled())
+		assert.False(t, handler.IsSwitchHysteresisForMinNodesFlagEnabledForCurrentEpoch()) // epoch == limit
 		assert.False(t, handler.IsTransactionSignedWithTxHashFlagEnabled())
 		assert.False(t, handler.IsMetaProtectionFlagEnabled())
 		assert.False(t, handler.IsAheadOfTimeGasUsageFlagEnabled())
@@ -311,6 +316,7 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.False(t, handler.IsGovernanceFlagEnabledForCurrentEpoch()) // epoch == limit
 		assert.False(t, handler.IsDelegationManagerFlagEnabled())
 		assert.False(t, handler.IsDelegationSmartContractFlagEnabled())
+		assert.False(t, handler.IsDelegationSmartContractFlagEnabledForCurrentEpoch()) // epoch == limit
 		assert.False(t, handler.IsCorrectLastUnJailedFlagEnabled())
 		assert.False(t, handler.IsCorrectLastUnJailedFlagEnabledForCurrentEpoch()) // epoch == limit
 		assert.False(t, handler.IsRelayedTransactionsV2FlagEnabled())
