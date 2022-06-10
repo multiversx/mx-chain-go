@@ -86,7 +86,7 @@ func createArguments() ArgNodesCoordinator {
 		Adaptivity:           adaptivity,
 		ShuffleBetweenShards: shuffleBetweenShards,
 		MaxNodesEnableConfig: nil,
-		EnableEpochsHandler:  &mock.EnableEpochsHandlerStub{},
+		EnableEpochsHandler:  &mock.EnableEpochsHandlerMock{},
 	}
 	nodeShuffler, _ := NewHashValidatorsShuffler(shufflerArgs)
 
@@ -110,7 +110,7 @@ func createArguments() ArgNodesCoordinator {
 		IsFullArchive:           false,
 		ChanStopNode:            make(chan endProcess.ArgEndProcess),
 		NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
-		EnableEpochsHandler:     &mock.EnableEpochsHandlerStub{},
+		EnableEpochsHandler:     &mock.EnableEpochsHandlerMock{},
 	}
 	return arguments
 }
@@ -235,7 +235,7 @@ func TestIndexHashedNodesCoordinator_OkValShouldWork(t *testing.T) {
 		Adaptivity:           adaptivity,
 		ShuffleBetweenShards: shuffleBetweenShards,
 		MaxNodesEnableConfig: nil,
-		EnableEpochsHandler:  &mock.EnableEpochsHandlerStub{},
+		EnableEpochsHandler:  &mock.EnableEpochsHandlerMock{},
 	}
 	nodeShuffler, err := NewHashValidatorsShuffler(shufflerArgs)
 	require.Nil(t, err)
@@ -259,7 +259,7 @@ func TestIndexHashedNodesCoordinator_OkValShouldWork(t *testing.T) {
 		ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
 		ChanStopNode:            make(chan endProcess.ArgEndProcess),
 		NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
-		EnableEpochsHandler:     &mock.EnableEpochsHandlerStub{},
+		EnableEpochsHandler:     &mock.EnableEpochsHandlerMock{},
 	}
 
 	ihnc, err := NewIndexHashedNodesCoordinator(arguments)
@@ -294,7 +294,7 @@ func TestIndexHashedNodesCoordinator_NewCoordinatorTooFewNodesShouldErr(t *testi
 		Adaptivity:           adaptivity,
 		ShuffleBetweenShards: shuffleBetweenShards,
 		MaxNodesEnableConfig: nil,
-		EnableEpochsHandler:  &mock.EnableEpochsHandlerStub{},
+		EnableEpochsHandler:  &mock.EnableEpochsHandlerMock{},
 	}
 	nodeShuffler, err := NewHashValidatorsShuffler(shufflerArgs)
 	require.Nil(t, err)
@@ -318,7 +318,7 @@ func TestIndexHashedNodesCoordinator_NewCoordinatorTooFewNodesShouldErr(t *testi
 		ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
 		ChanStopNode:            make(chan endProcess.ArgEndProcess),
 		NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
-		EnableEpochsHandler:     &mock.EnableEpochsHandlerStub{},
+		EnableEpochsHandler:     &mock.EnableEpochsHandlerMock{},
 	}
 	ihnc, err := NewIndexHashedNodesCoordinator(arguments)
 
@@ -367,7 +367,7 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroup1ValidatorShouldRetur
 		Adaptivity:           adaptivity,
 		ShuffleBetweenShards: shuffleBetweenShards,
 		MaxNodesEnableConfig: nil,
-		EnableEpochsHandler:  &mock.EnableEpochsHandlerStub{},
+		EnableEpochsHandler:  &mock.EnableEpochsHandlerMock{},
 	}
 	nodeShuffler, err := NewHashValidatorsShuffler(shufflerArgs)
 	require.Nil(t, err)
@@ -391,7 +391,7 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroup1ValidatorShouldRetur
 		ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
 		ChanStopNode:            make(chan endProcess.ArgEndProcess),
 		NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
-		EnableEpochsHandler:     &mock.EnableEpochsHandlerStub{},
+		EnableEpochsHandler:     &mock.EnableEpochsHandlerMock{},
 	}
 	ihnc, _ := NewIndexHashedNodesCoordinator(arguments)
 	list2, err := ihnc.ComputeConsensusGroup([]byte("randomness"), 0, 0, 0)
@@ -412,7 +412,7 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroup400of400For10locksNoM
 		Adaptivity:           adaptivity,
 		ShuffleBetweenShards: shuffleBetweenShards,
 		MaxNodesEnableConfig: nil,
-		EnableEpochsHandler:  &mock.EnableEpochsHandlerStub{},
+		EnableEpochsHandler:  &mock.EnableEpochsHandlerMock{},
 	}
 	nodeShuffler, err := NewHashValidatorsShuffler(shufflerArgs)
 	require.Nil(t, err)
@@ -450,7 +450,7 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroup400of400For10locksNoM
 		ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
 		ChanStopNode:            make(chan endProcess.ArgEndProcess),
 		NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
-		EnableEpochsHandler:     &mock.EnableEpochsHandlerStub{},
+		EnableEpochsHandler:     &mock.EnableEpochsHandlerMock{},
 	}
 
 	ihnc, err := NewIndexHashedNodesCoordinator(arguments)
@@ -486,7 +486,7 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroup400of400For10BlocksMe
 		Adaptivity:           false,
 		ShuffleBetweenShards: false,
 		MaxNodesEnableConfig: nil,
-		EnableEpochsHandler:  &mock.EnableEpochsHandlerStub{},
+		EnableEpochsHandler:  &mock.EnableEpochsHandlerMock{},
 	}
 	nodeShuffler, err := NewHashValidatorsShuffler(shufflerArgs)
 	require.Nil(t, err)
@@ -537,7 +537,7 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroup400of400For10BlocksMe
 		ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
 		ChanStopNode:            make(chan endProcess.ArgEndProcess),
 		NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
-		EnableEpochsHandler:     &mock.EnableEpochsHandlerStub{},
+		EnableEpochsHandler:     &mock.EnableEpochsHandlerMock{},
 	}
 
 	ihnc, err := NewIndexHashedNodesCoordinator(arguments)
@@ -584,7 +584,7 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroup63of400TestEqualSameP
 		Adaptivity:           adaptivity,
 		ShuffleBetweenShards: shuffleBetweenShards,
 		MaxNodesEnableConfig: nil,
-		EnableEpochsHandler:  &mock.EnableEpochsHandlerStub{},
+		EnableEpochsHandler:  &mock.EnableEpochsHandlerMock{},
 	}
 	nodeShuffler, err := NewHashValidatorsShuffler(shufflerArgs)
 	require.Nil(t, err)
@@ -607,7 +607,7 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroup63of400TestEqualSameP
 		ConsensusGroupCache:     cache,
 		ChanStopNode:            make(chan endProcess.ArgEndProcess),
 		NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
-		EnableEpochsHandler:     &mock.EnableEpochsHandlerStub{},
+		EnableEpochsHandler:     &mock.EnableEpochsHandlerMock{},
 	}
 
 	ihnc, err := NewIndexHashedNodesCoordinator(arguments)
@@ -646,7 +646,7 @@ func BenchmarkIndexHashedGroupSelector_ComputeValidatorsGroup21of400(b *testing.
 		Adaptivity:           adaptivity,
 		ShuffleBetweenShards: shuffleBetweenShards,
 		MaxNodesEnableConfig: nil,
-		EnableEpochsHandler:  &mock.EnableEpochsHandlerStub{},
+		EnableEpochsHandler:  &mock.EnableEpochsHandlerMock{},
 	}
 	nodeShuffler, err := NewHashValidatorsShuffler(shufflerArgs)
 	require.Nil(b, err)
@@ -670,7 +670,7 @@ func BenchmarkIndexHashedGroupSelector_ComputeValidatorsGroup21of400(b *testing.
 		ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
 		ChanStopNode:            make(chan endProcess.ArgEndProcess),
 		NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
-		EnableEpochsHandler:     &mock.EnableEpochsHandlerStub{},
+		EnableEpochsHandler:     &mock.EnableEpochsHandlerMock{},
 	}
 	ihnc, _ := NewIndexHashedNodesCoordinator(arguments)
 
@@ -718,7 +718,7 @@ func runBenchmark(consensusGroupCache Cacher, consensusGroupSize int, nodesMap m
 		Adaptivity:           adaptivity,
 		ShuffleBetweenShards: shuffleBetweenShards,
 		MaxNodesEnableConfig: nil,
-		EnableEpochsHandler:  &mock.EnableEpochsHandlerStub{},
+		EnableEpochsHandler:  &mock.EnableEpochsHandlerMock{},
 	}
 	nodeShuffler, err := NewHashValidatorsShuffler(shufflerArgs)
 	require.Nil(b, err)
@@ -742,7 +742,7 @@ func runBenchmark(consensusGroupCache Cacher, consensusGroupSize int, nodesMap m
 		ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
 		ChanStopNode:            make(chan endProcess.ArgEndProcess),
 		NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
-		EnableEpochsHandler:     &mock.EnableEpochsHandlerStub{},
+		EnableEpochsHandler:     &mock.EnableEpochsHandlerMock{},
 	}
 	ihnc, _ := NewIndexHashedNodesCoordinator(arguments)
 
@@ -767,7 +767,7 @@ func computeMemoryRequirements(consensusGroupCache Cacher, consensusGroupSize in
 		Adaptivity:           adaptivity,
 		ShuffleBetweenShards: shuffleBetweenShards,
 		MaxNodesEnableConfig: nil,
-		EnableEpochsHandler:  &mock.EnableEpochsHandlerStub{},
+		EnableEpochsHandler:  &mock.EnableEpochsHandlerMock{},
 	}
 	nodeShuffler, err := NewHashValidatorsShuffler(shufflerArgs)
 	require.Nil(b, err)
@@ -791,7 +791,7 @@ func computeMemoryRequirements(consensusGroupCache Cacher, consensusGroupSize in
 		ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
 		ChanStopNode:            make(chan endProcess.ArgEndProcess),
 		NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
-		EnableEpochsHandler:     &mock.EnableEpochsHandlerStub{},
+		EnableEpochsHandler:     &mock.EnableEpochsHandlerMock{},
 	}
 	ihnc, err := NewIndexHashedNodesCoordinator(arguments)
 	require.Nil(b, err)
@@ -906,7 +906,7 @@ func TestIndexHashedNodesCoordinator_GetValidatorWithPublicKeyShouldWork(t *test
 		Adaptivity:           adaptivity,
 		ShuffleBetweenShards: shuffleBetweenShards,
 		MaxNodesEnableConfig: nil,
-		EnableEpochsHandler:  &mock.EnableEpochsHandlerStub{},
+		EnableEpochsHandler:  &mock.EnableEpochsHandlerMock{},
 	}
 	nodeShuffler, err := NewHashValidatorsShuffler(shufflerArgs)
 	require.Nil(t, err)
@@ -930,7 +930,7 @@ func TestIndexHashedNodesCoordinator_GetValidatorWithPublicKeyShouldWork(t *test
 		ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
 		ChanStopNode:            make(chan endProcess.ArgEndProcess),
 		NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
-		EnableEpochsHandler:     &mock.EnableEpochsHandlerStub{},
+		EnableEpochsHandler:     &mock.EnableEpochsHandlerMock{},
 	}
 	ihnc, _ := NewIndexHashedNodesCoordinator(arguments)
 
@@ -988,7 +988,7 @@ func TestIndexHashedGroupSelector_GetAllEligibleValidatorsPublicKeys(t *testing.
 		Adaptivity:           adaptivity,
 		ShuffleBetweenShards: shuffleBetweenShards,
 		MaxNodesEnableConfig: nil,
-		EnableEpochsHandler:  &mock.EnableEpochsHandlerStub{},
+		EnableEpochsHandler:  &mock.EnableEpochsHandlerMock{},
 	}
 	nodeShuffler, err := NewHashValidatorsShuffler(shufflerArgs)
 	require.Nil(t, err)
@@ -1013,7 +1013,7 @@ func TestIndexHashedGroupSelector_GetAllEligibleValidatorsPublicKeys(t *testing.
 		ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
 		ChanStopNode:            make(chan endProcess.ArgEndProcess),
 		NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
-		EnableEpochsHandler:     &mock.EnableEpochsHandlerStub{},
+		EnableEpochsHandler:     &mock.EnableEpochsHandlerMock{},
 	}
 
 	ihnc, _ := NewIndexHashedNodesCoordinator(arguments)
@@ -1062,7 +1062,7 @@ func TestIndexHashedGroupSelector_GetAllWaitingValidatorsPublicKeys(t *testing.T
 		Adaptivity:           adaptivity,
 		ShuffleBetweenShards: shuffleBetweenShards,
 		MaxNodesEnableConfig: nil,
-		EnableEpochsHandler:  &mock.EnableEpochsHandlerStub{},
+		EnableEpochsHandler:  &mock.EnableEpochsHandlerMock{},
 	}
 	nodeShuffler, err := NewHashValidatorsShuffler(shufflerArgs)
 	require.Nil(t, err)
@@ -1091,7 +1091,7 @@ func TestIndexHashedGroupSelector_GetAllWaitingValidatorsPublicKeys(t *testing.T
 		ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
 		ChanStopNode:            make(chan endProcess.ArgEndProcess),
 		NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
-		EnableEpochsHandler:     &mock.EnableEpochsHandlerStub{},
+		EnableEpochsHandler:     &mock.EnableEpochsHandlerMock{},
 	}
 
 	ihnc, _ := NewIndexHashedNodesCoordinator(arguments)
@@ -1413,7 +1413,7 @@ func TestIndexHashedNodesCoordinator_EpochStart_EligibleSortedAscendingByIndex(t
 		Adaptivity:           adaptivity,
 		ShuffleBetweenShards: shuffleBetweenShards,
 		MaxNodesEnableConfig: nil,
-		EnableEpochsHandler:  &mock.EnableEpochsHandlerStub{},
+		EnableEpochsHandler:  &mock.EnableEpochsHandlerMock{},
 	}
 	nodeShuffler, err := NewHashValidatorsShuffler(shufflerArgs)
 	require.Nil(t, err)
@@ -1437,7 +1437,7 @@ func TestIndexHashedNodesCoordinator_EpochStart_EligibleSortedAscendingByIndex(t
 		ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
 		ChanStopNode:            make(chan endProcess.ArgEndProcess),
 		NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
-		EnableEpochsHandler:     &mock.EnableEpochsHandlerStub{},
+		EnableEpochsHandler:     &mock.EnableEpochsHandlerMock{},
 	}
 
 	ihnc, err := NewIndexHashedNodesCoordinator(arguments)

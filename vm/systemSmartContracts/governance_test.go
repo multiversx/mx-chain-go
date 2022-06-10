@@ -231,16 +231,16 @@ func TestGovernanceContract_ExecuteInitV2(t *testing.T) {
 	t.Parallel()
 
 	args := createMockGovernanceArgs()
-	stub, _ := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
+	enableEpochsHandler, _ := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
 	gsc, _ := NewGovernanceContract(args)
 
 	callInput := createVMInput(big.NewInt(0), "initV2", vm.GovernanceSCAddress, []byte("addr2"), nil)
 
-	stub.IsGovernanceFlagEnabledField = false
+	enableEpochsHandler.IsGovernanceFlagEnabledField = false
 	retCode := gsc.Execute(callInput)
 	require.Equal(t, vmcommon.UserError, retCode)
 
-	stub.IsGovernanceFlagEnabledField = true
+	enableEpochsHandler.IsGovernanceFlagEnabledField = true
 
 	retCode = gsc.Execute(callInput)
 	require.Equal(t, vmcommon.Ok, retCode)

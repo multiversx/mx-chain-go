@@ -52,7 +52,7 @@ func (handler *enableEpochsHandler) EpochConfirmed(epoch uint32, _ uint64) {
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.StakeEnableEpoch, handler.stakeFlag, "stakeFlag")
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.StakingV2EnableEpoch, handler.stakingV2Flag, "stakingV2Flag")
 	handler.setFlagValue(epoch == handler.enableEpochsConfig.StakingV2EnableEpoch, handler.stakingV2OwnerFlag, "stakingV2OwnerFlag")
-	handler.setFlagValue(epoch > handler.enableEpochsConfig.StakingV2EnableEpoch, handler.stakingV2DelegationFlag, "stakingV2DelegationFlag")
+	handler.setFlagValue(epoch > handler.enableEpochsConfig.StakingV2EnableEpoch, handler.stakingV2GreaterEpochFlag, "stakingV2GreaterEpochFlag")
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.DoubleKeyProtectionEnableEpoch, handler.doubleKeyProtectionFlag, "doubleKeyProtectionFlag")
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.ESDTEnableEpoch, handler.esdtFlag, "esdtFlag")
 	handler.setFlagValue(epoch == handler.enableEpochsConfig.ESDTEnableEpoch, handler.esdtCurrentEpochFlag, "esdtCurrentEpochFlag")
@@ -110,17 +110,17 @@ func (handler *enableEpochsHandler) setFlagValue(value bool, flag *atomic.Flag, 
 	log.Debug("EpochConfirmed", "flag", flagName, "enabled", flag.IsSet())
 }
 
-// ScheduledMiniBlocksEnableEpoch returns the epoch for scheduled mini blocks
+// ScheduledMiniBlocksEnableEpoch returns the epoch when scheduled mini blocks becomes active
 func (handler *enableEpochsHandler) ScheduledMiniBlocksEnableEpoch() uint32 {
 	return handler.enableEpochsConfig.ScheduledMiniBlocksEnableEpoch
 }
 
-// BlockGasAndFeesReCheckEnableEpoch returns the epoch for block gas and fees recheck
+// BlockGasAndFeesReCheckEnableEpoch returns the epoch when block gas and fees recheck becomes active
 func (handler *enableEpochsHandler) BlockGasAndFeesReCheckEnableEpoch() uint32 {
 	return handler.enableEpochsConfig.BlockGasAndFeesReCheckEnableEpoch
 }
 
-// StakingV2EnableEpoch returns the epoch for staking v2
+// StakingV2EnableEpoch returns the epoch when staking v2 becomes active
 func (handler *enableEpochsHandler) StakingV2EnableEpoch() uint32 {
 	return handler.enableEpochsConfig.StakingV2EnableEpoch
 }

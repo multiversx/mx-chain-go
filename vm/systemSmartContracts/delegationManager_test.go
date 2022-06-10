@@ -197,10 +197,10 @@ func TestDelegationManagerSystemSC_ExecuteWithDelegationManagerDisabled(t *testi
 		&mock.RaterMock{},
 	)
 	args.Eei = eei
-	stub, _ := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
+	enableEpochsHandler, _ := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
 
 	dm, _ := NewDelegationManagerSystemSC(args)
-	stub.IsDelegationManagerFlagEnabledField = false
+	enableEpochsHandler.IsDelegationManagerFlagEnabledField = false
 	vmInput := getDefaultVmInputForDelegationManager("createNewDelegationContract", [][]byte{})
 
 	output := dm.Execute(vmInput)
@@ -766,16 +766,16 @@ func TestDelegationManagerSystemSC_checkValidatorToDelegationInput(t *testing.T)
 
 	args.Eei = eei
 	args.GasCost.MetaChainSystemSCsCost.ValidatorToDelegation = 100
-	stub, _ := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
+	enableEpochsHandler, _ := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
 	d, _ := NewDelegationManagerSystemSC(args)
 	vmInput := getDefaultVmInputForDelegationManager("createNewDelegationContract", [][]byte{maxDelegationCap, serviceFee})
 
-	stub.IsValidatorToDelegationFlagEnabledField = false
+	enableEpochsHandler.IsValidatorToDelegationFlagEnabledField = false
 	returnCode := d.checkValidatorToDelegationInput(vmInput)
 	assert.Equal(t, vmcommon.UserError, returnCode)
 	assert.Equal(t, eei.returnMessage, "invalid function to call")
 
-	stub.IsValidatorToDelegationFlagEnabledField = true
+	enableEpochsHandler.IsValidatorToDelegationFlagEnabledField = true
 	eei.returnMessage = ""
 	vmInput.CallValue.SetUint64(10)
 	returnCode = d.checkValidatorToDelegationInput(vmInput)
@@ -814,17 +814,17 @@ func TestDelegationManagerSystemSC_MakeNewContractFromValidatorData(t *testing.T
 
 	args.Eei = eei
 	args.GasCost.MetaChainSystemSCsCost.ValidatorToDelegation = 100
-	stub, _ := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
+	enableEpochsHandler, _ := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
 	d, _ := NewDelegationManagerSystemSC(args)
 	vmInput := getDefaultVmInputForDelegationManager("makeNewContractFromValidatorData", [][]byte{maxDelegationCap, serviceFee})
 	_ = d.init(&vmcommon.ContractCallInput{VMInput: vmcommon.VMInput{CallValue: big.NewInt(0)}})
 
-	stub.IsValidatorToDelegationFlagEnabledField = false
+	enableEpochsHandler.IsValidatorToDelegationFlagEnabledField = false
 	returnCode := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, returnCode)
 	assert.Equal(t, eei.returnMessage, "invalid function to call")
 
-	stub.IsValidatorToDelegationFlagEnabledField = true
+	enableEpochsHandler.IsValidatorToDelegationFlagEnabledField = true
 
 	eei.returnMessage = ""
 	vmInput.CallValue.SetUint64(0)
@@ -859,17 +859,17 @@ func TestDelegationManagerSystemSC_mergeValidatorToDelegationSameOwner(t *testin
 
 	args.Eei = eei
 	args.GasCost.MetaChainSystemSCsCost.ValidatorToDelegation = 100
-	stub, _ := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
+	enableEpochsHandler, _ := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
 	d, _ := NewDelegationManagerSystemSC(args)
 	vmInput := getDefaultVmInputForDelegationManager("mergeValidatorToDelegationSameOwner", [][]byte{maxDelegationCap, serviceFee})
 	_ = d.init(&vmcommon.ContractCallInput{VMInput: vmcommon.VMInput{CallValue: big.NewInt(0)}})
 
-	stub.IsValidatorToDelegationFlagEnabledField = false
+	enableEpochsHandler.IsValidatorToDelegationFlagEnabledField = false
 	returnCode := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, returnCode)
 	assert.Equal(t, eei.returnMessage, "invalid function to call")
 
-	stub.IsValidatorToDelegationFlagEnabledField = true
+	enableEpochsHandler.IsValidatorToDelegationFlagEnabledField = true
 
 	eei.returnMessage = ""
 	vmInput.CallValue.SetUint64(0)
@@ -950,8 +950,8 @@ func TestDelegationManagerSystemSC_mergeValidatorToDelegationWithWhiteListInvali
 	serviceFee := []byte{10}
 	eei.returnMessage = ""
 	vmInput := getDefaultVmInputForDelegationManager("mergeValidatorToDelegationWithWhitelist", [][]byte{maxDelegationCap, serviceFee})
-	stub, _ := d.enableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
-	stub.IsValidatorToDelegationFlagEnabledField = false
+	enableEpochsHandler, _ := d.enableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
+	enableEpochsHandler.IsValidatorToDelegationFlagEnabledField = false
 	returnCode := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, returnCode)
 	assert.Equal(t, eei.returnMessage, "invalid function to call")
