@@ -1688,7 +1688,6 @@ func TestTxProcessor_ProcessRelayedTransactionV2NotActiveShouldErr(t *testing.T)
 	args.ShardCoordinator = shardC
 	args.TxTypeHandler = txTypeHandler
 	args.PubkeyConv = pubKeyConverter
-	args.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{}
 	args.ArgsParser = smartContract.NewArgumentParser()
 	execTx, _ := txproc.NewTxProcessor(args)
 
@@ -2626,7 +2625,6 @@ func TestTxProcessor_ProcessRelayedTransactionDisabled(t *testing.T) {
 	args.TxTypeHandler = txTypeHandler
 	args.PubkeyConv = pubKeyConverter
 	args.ArgsParser = smartContract.NewArgumentParser()
-	args.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{}
 	called := false
 	args.BadTxForwarder = &mock.IntermediateTransactionHandlerMock{
 		AddIntermediateTransactionsCalled: func(txs []data.TransactionHandler) error {

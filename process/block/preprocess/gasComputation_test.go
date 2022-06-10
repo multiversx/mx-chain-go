@@ -8,14 +8,20 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func createEnableEpochsHandler() common.EnableEpochsHandler {
+	return &testscommon.EnableEpochsHandlerStub{
+		IsSCDeployFlagEnabledField: true,
+	}
+}
 
 func TestNewGasComputation_NilEconomicsFeeHandlerShouldErr(t *testing.T) {
 	t.Parallel()
@@ -23,12 +29,24 @@ func TestNewGasComputation_NilEconomicsFeeHandlerShouldErr(t *testing.T) {
 	gc, err := preprocess.NewGasComputation(
 		nil,
 		&testscommon.TxTypeHandlerMock{},
-		&epochNotifier.EpochNotifierStub{},
-		0,
+		createEnableEpochsHandler(),
 	)
 
 	assert.Nil(t, gc)
 	assert.Equal(t, process.ErrNilEconomicsFeeHandler, err)
+}
+
+func TestNewGasComputation_NilEnableEpochsHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	gc, err := preprocess.NewGasComputation(
+		&mock.FeeHandlerStub{},
+		&testscommon.TxTypeHandlerMock{},
+		nil,
+	)
+
+	assert.Nil(t, gc)
+	assert.Equal(t, process.ErrNilEnableEpochsHandler, err)
 }
 
 func TestNewGasComputation_ShouldWork(t *testing.T) {
@@ -37,8 +55,7 @@ func TestNewGasComputation_ShouldWork(t *testing.T) {
 	gc, err := preprocess.NewGasComputation(
 		&mock.FeeHandlerStub{},
 		&testscommon.TxTypeHandlerMock{},
-		&epochNotifier.EpochNotifierStub{},
-		0,
+		createEnableEpochsHandler(),
 	)
 
 	assert.NotNil(t, gc)
@@ -51,8 +68,7 @@ func TestGasProvided_ShouldWork(t *testing.T) {
 	gc, _ := preprocess.NewGasComputation(
 		&mock.FeeHandlerStub{},
 		&testscommon.TxTypeHandlerMock{},
-		&epochNotifier.EpochNotifierStub{},
-		0,
+		createEnableEpochsHandler(),
 	)
 
 	key := []byte("key")
@@ -84,8 +100,7 @@ func TestGasRefunded_ShouldWork(t *testing.T) {
 	gc, _ := preprocess.NewGasComputation(
 		&mock.FeeHandlerStub{},
 		&testscommon.TxTypeHandlerMock{},
-		&epochNotifier.EpochNotifierStub{},
-		0,
+		createEnableEpochsHandler(),
 	)
 
 	key := []byte("key")
@@ -117,8 +132,7 @@ func TestGasPenalized_ShouldWork(t *testing.T) {
 	gc, _ := preprocess.NewGasComputation(
 		&mock.FeeHandlerStub{},
 		&testscommon.TxTypeHandlerMock{},
-		&epochNotifier.EpochNotifierStub{},
-		0,
+		createEnableEpochsHandler(),
 	)
 
 	key := []byte("key")
@@ -150,8 +164,7 @@ func TestComputeGasProvidedByTx_ShouldErrWrongTypeAssertion(t *testing.T) {
 	gc, _ := preprocess.NewGasComputation(
 		&mock.FeeHandlerStub{},
 		&testscommon.TxTypeHandlerMock{},
-		&epochNotifier.EpochNotifierStub{},
-		0,
+		createEnableEpochsHandler(),
 	)
 
 	_, _, err := gc.ComputeGasProvidedByTx(0, 1, nil)
@@ -168,8 +181,7 @@ func TestComputeGasProvidedByTx_ShouldWorkWhenTxReceiverAddressIsNotASmartContra
 			},
 		},
 		&testscommon.TxTypeHandlerMock{},
-		&epochNotifier.EpochNotifierStub{},
-		0,
+		createEnableEpochsHandler(),
 	)
 
 	tx := transaction.Transaction{GasLimit: 7}
@@ -192,8 +204,7 @@ func TestComputeGasProvidedByTx_ShouldWorkWhenTxReceiverAddressIsASmartContractI
 			ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
 				return process.SCInvoking, process.SCInvoking
 			}},
-		&epochNotifier.EpochNotifierStub{},
-		0,
+		createEnableEpochsHandler(),
 	)
 
 	tx := transaction.Transaction{GasLimit: 7, RcvAddr: make([]byte, core.NumInitCharactersForScAddress+1)}
@@ -216,8 +227,7 @@ func TestComputeGasProvidedByTx_ShouldWorkWhenTxReceiverAddressIsASmartContractC
 			ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
 				return process.MoveBalance, process.SCInvoking
 			}},
-		&epochNotifier.EpochNotifierStub{},
-		0,
+		createEnableEpochsHandler(),
 	)
 
 	tx := transaction.Transaction{GasLimit: 7, RcvAddr: make([]byte, core.NumInitCharactersForScAddress+1)}
@@ -240,8 +250,7 @@ func TestComputeGasProvidedByTx_ShouldReturnZeroIf0GasLimit(t *testing.T) {
 			ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
 				return process.MoveBalance, process.SCInvoking
 			}},
-		&epochNotifier.EpochNotifierStub{},
-		0,
+		createEnableEpochsHandler(),
 	)
 
 	scr := smartContractResult.SmartContractResult{GasLimit: 0, RcvAddr: make([]byte, core.NumInitCharactersForScAddress+1)}
@@ -264,8 +273,7 @@ func TestComputeGasProvidedByTx_ShouldReturnGasLimitIfLessThanMoveBalance(t *tes
 			ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
 				return process.MoveBalance, process.SCInvoking
 			}},
-		&epochNotifier.EpochNotifierStub{},
-		0,
+		createEnableEpochsHandler(),
 	)
 
 	scr := smartContractResult.SmartContractResult{GasLimit: 3, RcvAddr: make([]byte, core.NumInitCharactersForScAddress+1)}
@@ -288,8 +296,7 @@ func TestComputeGasProvidedByTx_ShouldReturnGasLimitWhenRelayed(t *testing.T) {
 			ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
 				return process.RelayedTx, process.RelayedTx
 			}},
-		&epochNotifier.EpochNotifierStub{},
-		0,
+		createEnableEpochsHandler(),
 	)
 
 	scr := smartContractResult.SmartContractResult{GasLimit: 3, RcvAddr: make([]byte, core.NumInitCharactersForScAddress+1)}
@@ -312,8 +319,7 @@ func TestComputeGasProvidedByTx_ShouldReturnGasLimitWhenRelayedV2(t *testing.T) 
 			ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
 				return process.RelayedTxV2, process.RelayedTxV2
 			}},
-		&epochNotifier.EpochNotifierStub{},
-		0,
+		createEnableEpochsHandler(),
 	)
 
 	scr := smartContractResult.SmartContractResult{GasLimit: 3, RcvAddr: make([]byte, core.NumInitCharactersForScAddress+1)}
@@ -333,8 +339,7 @@ func TestComputeGasProvidedByMiniBlock_ShouldErrMissingTransaction(t *testing.T)
 			},
 		},
 		&testscommon.TxTypeHandlerMock{},
-		&epochNotifier.EpochNotifierStub{},
-		0,
+		createEnableEpochsHandler(),
 	)
 
 	txHashes := make([][]byte, 0)
@@ -363,8 +368,7 @@ func TestComputeGasProvidedByMiniBlock_ShouldReturnZeroWhenOneTxIsMissing(t *tes
 			},
 		},
 		&testscommon.TxTypeHandlerMock{},
-		&epochNotifier.EpochNotifierStub{},
-		0,
+		createEnableEpochsHandler(),
 	)
 
 	txHashes := make([][]byte, 0)
@@ -402,8 +406,7 @@ func TestComputeGasProvidedByMiniBlock_ShouldWork(t *testing.T) {
 				}
 				return process.MoveBalance, process.MoveBalance
 			}},
-		&epochNotifier.EpochNotifierStub{},
-		0,
+		createEnableEpochsHandler(),
 	)
 
 	txHashes := make([][]byte, 0)
@@ -443,8 +446,7 @@ func TestComputeGasProvidedByMiniBlock_ShouldWorkV1(t *testing.T) {
 				}
 				return process.MoveBalance, process.MoveBalance
 			}},
-		&epochNotifier.EpochNotifierStub{},
-		10,
+		&testscommon.EnableEpochsHandlerStub{},
 	)
 
 	txHashes := make([][]byte, 0)
@@ -478,8 +480,7 @@ func TestComputeGasProvidedByTx_ShouldWorkWhenTxReceiverAddressIsNotASmartContra
 			},
 		},
 		&testscommon.TxTypeHandlerMock{},
-		&epochNotifier.EpochNotifierStub{},
-		10,
+		createEnableEpochsHandler(),
 	)
 
 	tx := transaction.Transaction{GasLimit: 7}
@@ -502,8 +503,7 @@ func TestComputeGasProvidedByTx_ShouldWorkWhenTxReceiverAddressIsASmartContractI
 			ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
 				return process.SCInvoking, process.SCInvoking
 			}},
-		&epochNotifier.EpochNotifierStub{},
-		10,
+		createEnableEpochsHandler(),
 	)
 
 	tx := transaction.Transaction{GasLimit: 7, RcvAddr: make([]byte, core.NumInitCharactersForScAddress+1)}
@@ -526,8 +526,7 @@ func TestComputeGasProvidedByTx_ShouldWorkWhenTxReceiverAddressIsASmartContractC
 			ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
 				return process.SCInvoking, process.SCInvoking
 			}},
-		&epochNotifier.EpochNotifierStub{},
-		10,
+		&testscommon.EnableEpochsHandlerStub{},
 	)
 
 	tx := transaction.Transaction{GasLimit: 7, RcvAddr: make([]byte, core.NumInitCharactersForScAddress+1)}
@@ -543,8 +542,7 @@ func TestReset_ShouldWork(t *testing.T) {
 	gc, _ := preprocess.NewGasComputation(
 		&mock.FeeHandlerStub{},
 		&testscommon.TxTypeHandlerMock{},
-		&epochNotifier.EpochNotifierStub{},
-		0,
+		createEnableEpochsHandler(),
 	)
 
 	key := []byte("key")
@@ -581,8 +579,7 @@ func TestRestoreGasSinceLastReset_ShouldWork(t *testing.T) {
 	gc, _ := preprocess.NewGasComputation(
 		&mock.FeeHandlerStub{},
 		&testscommon.TxTypeHandlerMock{},
-		&epochNotifier.EpochNotifierStub{},
-		0,
+		createEnableEpochsHandler(),
 	)
 
 	gc.SetGasProvided(5, []byte("hash1"))

@@ -72,43 +72,43 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 	}
 
 	base := &baseProcessor{
-		accountsDB:                     arguments.AccountsDB,
-		blockSizeThrottler:             arguments.BlockSizeThrottler,
-		forkDetector:                   arguments.ForkDetector,
-		hasher:                         arguments.CoreComponents.Hasher(),
-		marshalizer:                    arguments.CoreComponents.InternalMarshalizer(),
-		store:                          arguments.DataComponents.StorageService(),
-		shardCoordinator:               arguments.BootstrapComponents.ShardCoordinator(),
-		nodesCoordinator:               arguments.NodesCoordinator,
-		uint64Converter:                arguments.CoreComponents.Uint64ByteSliceConverter(),
-		requestHandler:                 arguments.RequestHandler,
-		appStatusHandler:               arguments.CoreComponents.StatusHandler(),
-		blockChainHook:                 arguments.BlockChainHook,
-		txCoordinator:                  arguments.TxCoordinator,
-		roundHandler:                   arguments.CoreComponents.RoundHandler(),
-		epochStartTrigger:              arguments.EpochStartTrigger,
-		headerValidator:                arguments.HeaderValidator,
-		bootStorer:                     arguments.BootStorer,
-		blockTracker:                   arguments.BlockTracker,
-		dataPool:                       arguments.DataComponents.Datapool(),
-		stateCheckpointModulus:         arguments.Config.StateTriesConfig.CheckpointRoundsModulus,
-		blockChain:                     arguments.DataComponents.Blockchain(),
-		feeHandler:                     arguments.FeeHandler,
-		outportHandler:                 arguments.StatusComponents.OutportHandler(),
-		genesisNonce:                   genesisHdr.GetNonce(),
-		versionedHeaderFactory:         arguments.BootstrapComponents.VersionedHeaderFactory(),
-		headerIntegrityVerifier:        arguments.BootstrapComponents.HeaderIntegrityVerifier(),
-		historyRepo:                    arguments.HistoryRepository,
-		epochNotifier:                  arguments.EpochNotifier,
-		roundNotifier:                  arguments.RoundNotifier,
-		vmContainerFactory:             arguments.VMContainersFactory,
-		vmContainer:                    arguments.VmContainer,
-		processDataTriesOnCommitEpoch:  arguments.Config.Debug.EpochStart.ProcessDataTrieOnCommitEpoch,
-		gasConsumedProvider:            arguments.GasHandler,
-		economicsData:                  arguments.CoreComponents.EconomicsData(),
-		scheduledTxsExecutionHandler:   arguments.ScheduledTxsExecutionHandler,
-		scheduledMiniBlocksEnableEpoch: arguments.ScheduledMiniBlocksEnableEpoch,
-		processedMiniBlocksTracker:     arguments.ProcessedMiniBlocksTracker,
+		accountsDB:                    arguments.AccountsDB,
+		blockSizeThrottler:            arguments.BlockSizeThrottler,
+		forkDetector:                  arguments.ForkDetector,
+		hasher:                        arguments.CoreComponents.Hasher(),
+		marshalizer:                   arguments.CoreComponents.InternalMarshalizer(),
+		store:                         arguments.DataComponents.StorageService(),
+		shardCoordinator:              arguments.BootstrapComponents.ShardCoordinator(),
+		nodesCoordinator:              arguments.NodesCoordinator,
+		uint64Converter:               arguments.CoreComponents.Uint64ByteSliceConverter(),
+		requestHandler:                arguments.RequestHandler,
+		appStatusHandler:              arguments.CoreComponents.StatusHandler(),
+		blockChainHook:                arguments.BlockChainHook,
+		txCoordinator:                 arguments.TxCoordinator,
+		roundHandler:                  arguments.CoreComponents.RoundHandler(),
+		epochStartTrigger:             arguments.EpochStartTrigger,
+		headerValidator:               arguments.HeaderValidator,
+		bootStorer:                    arguments.BootStorer,
+		blockTracker:                  arguments.BlockTracker,
+		dataPool:                      arguments.DataComponents.Datapool(),
+		stateCheckpointModulus:        arguments.Config.StateTriesConfig.CheckpointRoundsModulus,
+		blockChain:                    arguments.DataComponents.Blockchain(),
+		feeHandler:                    arguments.FeeHandler,
+		outportHandler:                arguments.StatusComponents.OutportHandler(),
+		genesisNonce:                  genesisHdr.GetNonce(),
+		versionedHeaderFactory:        arguments.BootstrapComponents.VersionedHeaderFactory(),
+		headerIntegrityVerifier:       arguments.BootstrapComponents.HeaderIntegrityVerifier(),
+		historyRepo:                   arguments.HistoryRepository,
+		epochNotifier:                 arguments.CoreComponents.EpochNotifier(),
+		enableEpochsHandler:           arguments.CoreComponents.EnableEpochsHandler(),
+		roundNotifier:                 arguments.RoundNotifier,
+		vmContainerFactory:            arguments.VMContainersFactory,
+		vmContainer:                   arguments.VmContainer,
+		processDataTriesOnCommitEpoch: arguments.Config.Debug.EpochStart.ProcessDataTrieOnCommitEpoch,
+		gasConsumedProvider:           arguments.GasHandler,
+		economicsData:                 arguments.CoreComponents.EconomicsData(),
+		scheduledTxsExecutionHandler:  arguments.ScheduledTxsExecutionHandler,
+		processedMiniBlocksTracker:    arguments.ProcessedMiniBlocksTracker,
 	}
 
 	sp := shardProcessor{
@@ -133,8 +133,6 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 
 	sp.metaBlockFinality = process.BlockFinality
 	sp.userStatePruningQueue = queue.NewSliceQueue(arguments.Config.StateTriesConfig.UserStatePruningQueueSize)
-
-	sp.epochNotifier.RegisterNotifyHandler(&sp)
 
 	return &sp, nil
 }
@@ -1977,7 +1975,7 @@ func (sp *shardProcessor) createMbsAndProcessCrossShardTransactionsDstMe(
 			"num mbs added", len(currMiniBlocksAdded),
 			"num txs added", currNumTxsAdded)
 
-		if sp.flagScheduledMiniBlocks.IsSet() && !createAndProcessInfo.scheduledMode {
+		if sp.enableEpochsHandler.IsScheduledMiniBlocksFlagEnabled() && !createAndProcessInfo.scheduledMode {
 			createAndProcessInfo.scheduledMode = true
 			createAndProcessInfo.haveAdditionalTime = process.HaveAdditionalTime()
 			return sp.createMbsAndProcessCrossShardTransactionsDstMe(createAndProcessInfo)
@@ -2011,7 +2009,7 @@ func (sp *shardProcessor) createMiniBlocks(haveTime func() bool, randomness []by
 	var miniBlocks block.MiniBlockSlice
 	processedMiniBlocksDestMeInfo := make(map[string]*processedMb.ProcessedMiniBlockInfo)
 
-	if sp.flagScheduledMiniBlocks.IsSet() {
+	if sp.enableEpochsHandler.IsScheduledMiniBlocksFlagEnabled() {
 		miniBlocks = sp.scheduledTxsExecutionHandler.GetScheduledMiniBlocks()
 		sp.txCoordinator.AddTxsFromMiniBlocks(miniBlocks)
 

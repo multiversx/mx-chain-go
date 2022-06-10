@@ -4,6 +4,7 @@ package testscommon
 type EnableEpochsHandlerStub struct {
 	ResetPenalizedTooMuchGasFlagCalled                       func()
 	BlockGasAndFeesReCheckEnableEpochField                   uint32
+	StakingV2EnableEpochField                                uint32
 	IsSCDeployFlagEnabledField                               bool
 	IsBuiltInFunctionsFlagEnabledField                       bool
 	IsRelayedTransactionsFlagEnabledField                    bool
@@ -77,6 +78,11 @@ type EnableEpochsHandlerStub struct {
 // BlockGasAndFeesReCheckEnableEpoch -
 func (stub *EnableEpochsHandlerStub) BlockGasAndFeesReCheckEnableEpoch() uint32 {
 	return stub.BlockGasAndFeesReCheckEnableEpochField
+}
+
+// StakingV2EnableEpoch -
+func (stub *EnableEpochsHandlerStub) StakingV2EnableEpoch() uint32 {
+	return stub.StakingV2EnableEpochField
 }
 
 // ResetPenalizedTooMuchGasFlag -

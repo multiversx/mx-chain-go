@@ -798,7 +798,8 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		return nil, err
 	}
 
-	gasComp, err := preprocess.NewGasComputation(economicsData, txTypeHandler, forking.NewGenericEpochNotifier(), enableEpochsConfig.SCDeployEnableEpoch)
+	enableEpochsHandler, _ := enableEpochs.NewEnableEpochsHandler(enableEpochsConfig, epochNotifierInstance)
+	gasComp, err := preprocess.NewGasComputation(economicsData, txTypeHandler, enableEpochsHandler)
 	if err != nil {
 		return nil, err
 	}
@@ -808,7 +809,6 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		Marshalizer:          testMarshalizer,
 	})
 
-	enableEpochsHandler, _ := enableEpochs.NewEnableEpochsHandler(enableEpochsConfig, epochNotifierInstance)
 	intermediateTxHandler := &mock.IntermediateTransactionHandlerMock{}
 	argsNewSCProcessor := smartContract.ArgsNewSmartContractProcessor{
 		VmContainer:         vmContainer,

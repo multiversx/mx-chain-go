@@ -210,9 +210,6 @@ const stateCheckpointModulus = 100
 // StakingV2Epoch defines the epoch for integration tests when stakingV2 is enabled
 const StakingV2Epoch = 1000
 
-// ScheduledMiniBlocksEnableEpoch defines the epoch for integration tests when scheduled nini blocks are enabled
-const ScheduledMiniBlocksEnableEpoch = 1000
-
 // TestKeyPair holds a pair of private/public Keys
 type TestKeyPair struct {
 	Sk crypto.PrivateKey
@@ -330,7 +327,7 @@ type TestProcessorNode struct {
 	HistoryRepository        dblookupext.HistoryRepository
 	EpochNotifier            process.EpochNotifier
 	EnableEpochs             config.EnableEpochs
-	EnabledEpochsHandler     common.EnableEpochsHandler
+	EnableEpochsHandler      common.EnableEpochsHandler
 	UseValidVmBlsSigVerifier bool
 
 	TransactionLogProcessor process.TransactionLogProcessor
@@ -419,9 +416,8 @@ func newBaseTestProcessorNode(
 	messenger := CreateMessengerWithNoDiscoveryAndPeersRatingHandler(peersRatingHandler)
 
 	enabledEpochsConfig := config.EnableEpochs{
-		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: 10,
-		ScheduledMiniBlocksEnableEpoch:              1000000,
-		MiniBlockPartialExecutionEnableEpoch:        1000000,
+		ScheduledMiniBlocksEnableEpoch:       1000000,
+		MiniBlockPartialExecutionEnableEpoch: 1000000,
 	}
 
 	genericEpochNotifier := forking.NewGenericEpochNotifier()
@@ -439,7 +435,7 @@ func newBaseTestProcessorNode(
 		NodesSetup:              nodesSetup,
 		HistoryRepository:       &dblookupextMock.HistoryRepositoryStub{},
 		EpochNotifier:           genericEpochNotifier,
-		EnabledEpochsHandler:    enabledEpochsHandler,
+		EnableEpochsHandler:     enabledEpochsHandler,
 		ArwenChangeLocker:       &sync.RWMutex{},
 		TransactionLogProcessor: logsProcessor,
 		Bootstrapper:            mock.NewTestBootstrapperMock(),
@@ -883,7 +879,7 @@ func (tpn *TestProcessorNode) createFullSCQueryService() {
 		NFTStorageHandler:   nftStorageHandler,
 		DataPool:            tpn.DataPool,
 		CompiledSCPool:      smartContractsCache,
-		EnableEpochsHandler: tpn.EnabledEpochsHandler,
+		EnableEpochsHandler: tpn.EnableEpochsHandler,
 		NilCompiledSCStore:  true,
 	}
 
@@ -1520,7 +1516,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		NFTStorageHandler:   nftStorageHandler,
 		DataPool:            tpn.DataPool,
 		CompiledSCPool:      tpn.DataPool.SmartContracts(),
-		EnableEpochsHandler: tpn.EnabledEpochsHandler,
+		EnableEpochsHandler: tpn.EnableEpochsHandler,
 		NilCompiledSCStore:  true,
 	}
 	esdtTransferParser, _ := parsers.NewESDTTransferParser(TestMarshalizer)
@@ -1569,7 +1565,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		ESDTTransferParser: esdtTransferParser,
 	}
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
-	tpn.GasHandler, _ = preprocess.NewGasComputation(tpn.EconomicsData, txTypeHandler, tpn.EpochNotifier, tpn.EnableEpochs.SCDeployEnableEpoch)
+	tpn.GasHandler, _ = preprocess.NewGasComputation(tpn.EconomicsData, txTypeHandler, tpn.EnableEpochsHandler)
 	badBlocksHandler, _ := tpn.InterimProcContainer.Get(dataBlock.InvalidBlock)
 
 	argsNewScProcessor := smartContract.ArgsNewSmartContractProcessor{
@@ -1590,7 +1586,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		GasSchedule:         gasSchedule,
 		TxLogsProcessor:     tpn.TransactionLogProcessor,
 		BadTxForwarder:      badBlocksHandler,
-		EnableEpochsHandler: tpn.EnabledEpochsHandler,
+		EnableEpochsHandler: tpn.EnableEpochsHandler,
 		VMOutputCacher:      txcache.NewDisabledCache(),
 		ArwenChangeLocker:   tpn.ArwenChangeLocker,
 	}
@@ -1613,7 +1609,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		BadTxForwarder:      badBlocksHandler,
 		ArgsParser:          tpn.ArgsParser,
 		ScrForwarder:        tpn.ScrForwarder,
-		EnableEpochsHandler: tpn.EnabledEpochsHandler,
+		EnableEpochsHandler: tpn.EnableEpochsHandler,
 	}
 	tpn.TxProcessor, _ = transaction.NewTxProcessor(argsNewTxProcessor)
 	scheduledTxsExecutionHandler, _ := preprocess.NewScheduledTxsExecution(
@@ -1644,10 +1640,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		tpn.BlockTracker,
 		TestBlockSizeComputationHandler,
 		TestBalanceComputationHandler,
-		tpn.EpochNotifier,
-		tpn.EnableEpochs.OptimizeGasUsedInCrossMiniBlocksEnableEpoch,
-		tpn.EnableEpochs.FrontRunningProtectionEnableEpoch,
-		tpn.EnableEpochs.ScheduledMiniBlocksEnableEpoch,
+		tpn.EnableEpochsHandler,
 		txTypeHandler,
 		scheduledTxsExecutionHandler,
 		processedMiniBlocksTracker,
@@ -1733,7 +1726,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		NFTStorageHandler:   nftStorageHandler,
 		DataPool:            tpn.DataPool,
 		CompiledSCPool:      tpn.DataPool.SmartContracts(),
-		EnableEpochsHandler: tpn.EnabledEpochsHandler,
+		EnableEpochsHandler: tpn.EnableEpochsHandler,
 		NilCompiledSCStore:  true,
 	}
 
@@ -1821,7 +1814,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		ESDTTransferParser: esdtTransferParser,
 	}
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
-	tpn.GasHandler, _ = preprocess.NewGasComputation(tpn.EconomicsData, txTypeHandler, tpn.EpochNotifier, tpn.EnableEpochs.SCDeployEnableEpoch)
+	tpn.GasHandler, _ = preprocess.NewGasComputation(tpn.EconomicsData, txTypeHandler, tpn.EnableEpochsHandler)
 	badBlocksHandler, _ := tpn.InterimProcContainer.Get(dataBlock.InvalidBlock)
 	argsNewScProcessor := smartContract.ArgsNewSmartContractProcessor{
 		VmContainer:         tpn.VMContainer,
@@ -1841,7 +1834,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		GasSchedule:         gasSchedule,
 		TxLogsProcessor:     tpn.TransactionLogProcessor,
 		BadTxForwarder:      badBlocksHandler,
-		EnableEpochsHandler: tpn.EnabledEpochsHandler,
+		EnableEpochsHandler: tpn.EnableEpochsHandler,
 		VMOutputCacher:      txcache.NewDisabledCache(),
 		ArwenChangeLocker:   tpn.ArwenChangeLocker,
 	}
@@ -1856,7 +1849,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		ScProcessor:         tpn.ScProcessor,
 		TxTypeHandler:       txTypeHandler,
 		EconomicsFee:        tpn.EconomicsData,
-		EnableEpochsHandler: tpn.EnabledEpochsHandler,
+		EnableEpochsHandler: tpn.EnableEpochsHandler,
 	}
 	tpn.TxProcessor, _ = transaction.NewMetaTxProcessor(argsNewMetaTxProc)
 	scheduledTxsExecutionHandler, _ := preprocess.NewScheduledTxsExecution(
@@ -1884,10 +1877,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		TestAddressPubkeyConverter,
 		TestBlockSizeComputationHandler,
 		TestBalanceComputationHandler,
-		tpn.EpochNotifier,
-		tpn.EnableEpochs.OptimizeGasUsedInCrossMiniBlocksEnableEpoch,
-		tpn.EnableEpochs.FrontRunningProtectionEnableEpoch,
-		tpn.EnableEpochs.ScheduledMiniBlocksEnableEpoch,
+		tpn.EnableEpochsHandler,
 		txTypeHandler,
 		scheduledTxsExecutionHandler,
 		processedMiniBlocksTracker,
@@ -2085,15 +2075,13 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 				return nil
 			},
 		},
-		BlockTracker:                   tpn.BlockTracker,
-		BlockSizeThrottler:             TestBlockSizeThrottler,
-		HistoryRepository:              tpn.HistoryRepository,
-		EpochNotifier:                  tpn.EpochNotifier,
-		RoundNotifier:                  coreComponents.RoundNotifier(),
-		GasHandler:                     tpn.GasHandler,
-		ScheduledTxsExecutionHandler:   &testscommon.ScheduledTxsExecutionStub{},
-		ScheduledMiniBlocksEnableEpoch: ScheduledMiniBlocksEnableEpoch,
-		ProcessedMiniBlocksTracker:     &testscommon.ProcessedMiniBlocksTrackerStub{},
+		BlockTracker:                 tpn.BlockTracker,
+		BlockSizeThrottler:           TestBlockSizeThrottler,
+		HistoryRepository:            tpn.HistoryRepository,
+		RoundNotifier:                coreComponents.RoundNotifier(),
+		GasHandler:                   tpn.GasHandler,
+		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
+		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 	}
 
 	if check.IfNil(tpn.EpochStartNotifier) {

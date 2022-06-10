@@ -35,7 +35,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
@@ -469,10 +468,7 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 		&mock.BlockTrackerMock{},
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
-		&epochNotifier.EpochNotifierStub{},
-		2,
-		2,
-		2,
+		&testscommon.EnableEpochsHandlerStub{},
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
@@ -693,10 +689,7 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 		&mock.BlockTrackerMock{},
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
-		&epochNotifier.EpochNotifierStub{},
-		2,
-		2,
-		2,
+		&testscommon.EnableEpochsHandlerStub{},
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
@@ -2588,10 +2581,7 @@ func TestShardProcessor_MarshalizedDataToBroadcastShouldWork(t *testing.T) {
 		&mock.BlockTrackerMock{},
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
-		&epochNotifier.EpochNotifierStub{},
-		2,
-		2,
-		2,
+		&testscommon.EnableEpochsHandlerStub{},
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
@@ -2699,10 +2689,7 @@ func TestShardProcessor_MarshalizedDataMarshalWithoutSuccess(t *testing.T) {
 		&mock.BlockTrackerMock{},
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
-		&epochNotifier.EpochNotifierStub{},
-		2,
-		2,
-		2,
+		&testscommon.EnableEpochsHandlerStub{},
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
@@ -3094,10 +3081,7 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 		&mock.BlockTrackerMock{},
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
-		&epochNotifier.EpochNotifierStub{},
-		2,
-		2,
-		2,
+		&testscommon.EnableEpochsHandlerStub{},
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
@@ -3278,10 +3262,7 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 		&mock.BlockTrackerMock{},
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
-		&epochNotifier.EpochNotifierStub{},
-		2,
-		2,
-		2,
+		&testscommon.EnableEpochsHandlerStub{},
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
@@ -5043,6 +5024,9 @@ func TestShardProcessor_createMiniBlocks(t *testing.T) {
 	tx2 := &transaction.Transaction{Nonce: 1}
 	txs := []data.TransactionHandler{tx1, tx2}
 
+	coreComponents.EnableEpochsHandlerField = &testscommon.EnableEpochsHandlerStub{
+		IsScheduledMiniBlocksFlagEnabledField: true,
+	}
 	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents, boostrapComponents, statusComponents)
 	arguments.ScheduledTxsExecutionHandler = &testscommon.ScheduledTxsExecutionStub{
 		GetScheduledMiniBlocksCalled: func() block.MiniBlockSlice {
@@ -5064,12 +5048,10 @@ func TestShardProcessor_createMiniBlocks(t *testing.T) {
 		},
 	}
 	arguments.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{}
-	arguments.ScheduledMiniBlocksEnableEpoch = 0
 
 	sp, err := blproc.NewShardProcessor(arguments)
 	require.Nil(t, err)
 
-	sp.EpochConfirmed(1, 0)
 	_, _, err = sp.CreateMiniBlocks(func() bool { return false })
 	require.Nil(t, err)
 	require.True(t, called.IsSet())

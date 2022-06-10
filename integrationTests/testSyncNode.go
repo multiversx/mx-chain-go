@@ -192,6 +192,8 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 	coreComponents.InternalMarshalizerField = TestMarshalizer
 	coreComponents.HasherField = TestHasher
 	coreComponents.Uint64ByteSliceConverterField = TestUint64Converter
+	coreComponents.EpochNotifierField = tpn.EpochNotifier
+	coreComponents.EnableEpochsHandlerField = &testscommon.EnableEpochsHandlerStub{}
 
 	dataComponents := GetDefaultDataComponents()
 	dataComponents.Store = tpn.Storage
@@ -228,15 +230,13 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 				return nil
 			},
 		},
-		BlockTracker:                   tpn.BlockTracker,
-		BlockSizeThrottler:             TestBlockSizeThrottler,
-		HistoryRepository:              tpn.HistoryRepository,
-		EpochNotifier:                  tpn.EpochNotifier,
-		RoundNotifier:                  coreComponents.RoundNotifier(),
-		GasHandler:                     tpn.GasHandler,
-		ScheduledTxsExecutionHandler:   &testscommon.ScheduledTxsExecutionStub{},
-		ScheduledMiniBlocksEnableEpoch: ScheduledMiniBlocksEnableEpoch,
-		ProcessedMiniBlocksTracker:     &testscommon.ProcessedMiniBlocksTrackerStub{},
+		BlockTracker:                 tpn.BlockTracker,
+		BlockSizeThrottler:           TestBlockSizeThrottler,
+		HistoryRepository:            tpn.HistoryRepository,
+		RoundNotifier:                coreComponents.RoundNotifier(),
+		GasHandler:                   tpn.GasHandler,
+		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
+		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 	}
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {

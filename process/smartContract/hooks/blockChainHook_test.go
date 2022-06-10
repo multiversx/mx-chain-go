@@ -757,8 +757,9 @@ func TestBlockChainHookImpl_GettersFromBlockchainCurrentHeader(t *testing.T) {
 		}
 
 		args := createMockBlockChainHookArgs()
-		// reset IsDoNotReturnOldBlockInBlockchainHookFlagEnabledCalled to return true
-		args.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{}
+		args.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+			IsDoNotReturnOldBlockInBlockchainHookFlagEnabledField: true,
+		}
 		args.BlockChain = &testscommon.ChainHandlerStub{
 			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 				return hdrToRet

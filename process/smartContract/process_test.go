@@ -529,7 +529,9 @@ func TestScProcessor_DeploySmartContractDisabled(t *testing.T) {
 	}}
 	arguments.VmContainer = vmContainer
 	arguments.ArgsParser = argParser
-	arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{}
+	arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+		IsBuiltInFunctionsFlagEnabledField: true,
+	}
 
 	sc, err := NewSmartContractProcessor(arguments)
 	require.NotNil(t, sc)

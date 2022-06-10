@@ -165,7 +165,7 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 		},
 		tpn.AccntState,
 		tpn.ShardCoordinator,
-		tpn.EnabledEpochsHandler,
+		tpn.EnableEpochsHandler,
 	)
 	log.LogIfError(err)
 
