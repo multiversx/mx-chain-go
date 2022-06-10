@@ -162,6 +162,18 @@ func TestBaseRewardsCreator_NilUserAccountsDB(t *testing.T) {
 	assert.Equal(t, epochStart.ErrNilAccountsDB, err)
 }
 
+func TestBaseRewardsCreator_NilEnableEpochsHandler(t *testing.T) {
+	t.Parallel()
+
+	args := getBaseRewardsArguments()
+	args.EnableEpochsHandler = nil
+
+	rwd, err := NewBaseRewardsCreator(args)
+
+	assert.True(t, check.IfNil(rwd))
+	assert.Equal(t, epochStart.ErrNilEnableEpochsHandler, err)
+}
+
 func TestBaseRewardsCreator_clean(t *testing.T) {
 	t.Parallel()
 
