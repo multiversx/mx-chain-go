@@ -177,6 +177,7 @@ func printEnableEpochs(configs *config.Configs) {
 	log.Debug(readEpochFor("scr size invariant check on built in"), "epoch", enableEpochs.SCRSizeInvariantOnBuiltInResultEnableEpoch)
 	log.Debug(readEpochFor("correct check on tokenID for transfer role"), "epoch", enableEpochs.CheckCorrectTokenIDForTransferRoleEnableEpoch)
 	log.Debug(readEpochFor("check value on exec by caller"), "epoch", enableEpochs.CheckValueOnExecByCallerEnableEpoch)
+	log.Debug(readEpochFor("refactor contexts"), "epoch", enableEpochs.RefactorContextEnableEpoch)
 
 	gasSchedule := configs.EpochConfig.GasSchedule
 
