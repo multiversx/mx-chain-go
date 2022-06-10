@@ -88,7 +88,6 @@ type indexHashedNodesCoordinator struct {
 	shuffledOutHandler            ShuffledOutHandler
 	startEpoch                    uint32
 	publicKeyToValidatorMap       map[string]*validatorWithShardID
-	waitingListFixEnableEpoch     uint32
 	isFullArchive                 bool
 	chanStopNode                  chan endProcess.ArgEndProcess
 	flagWaitingListFix            atomicFlags.Flag
@@ -133,12 +132,10 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 		shuffledOutHandler:            arguments.ShuffledOutHandler,
 		startEpoch:                    arguments.StartEpoch,
 		publicKeyToValidatorMap:       make(map[string]*validatorWithShardID),
-		waitingListFixEnableEpoch:     arguments.WaitingListFixEnabledEpoch,
 		chanStopNode:                  arguments.ChanStopNode,
 		nodeTypeProvider:              arguments.NodeTypeProvider,
 		isFullArchive:                 arguments.IsFullArchive,
 	}
-	log.Debug("indexHashedNodesCoordinator: enable epoch for waiting waiting list", "epoch", ihnc.waitingListFixEnableEpoch)
 
 	ihnc.loadingFromDisk.Store(false)
 
@@ -560,8 +557,6 @@ func (ihnc *indexHashedNodesCoordinator) EpochStartPrepare(metaHdr data.HeaderHa
 		log.Error("could not create validator info from body - do nothing on nodesCoordinator epochStartPrepare")
 		return
 	}
-
-	ihnc.updateEpochFlags(newEpoch)
 
 	ihnc.mutNodesConfig.RLock()
 	previousConfig := ihnc.nodesConfig[ihnc.currentEpoch]
@@ -1190,9 +1185,4 @@ func createValidatorInfoFromBody(
 	}
 
 	return allValidatorInfo, nil
-}
-
-func (ihnc *indexHashedNodesCoordinator) updateEpochFlags(epoch uint32) {
-	ihnc.flagWaitingListFix.SetValue(epoch >= ihnc.waitingListFixEnableEpoch)
-	log.Debug("indexHashedNodesCoordinator: waiting list fix", "enabled", ihnc.flagWaitingListFix.IsSet())
 }

@@ -118,9 +118,10 @@ func createMockArguments() peer.ArgValidatorStatisticsProcessor {
 		MaxComputableRounds:                  1000,
 		MaxConsecutiveRoundsOfRatingDecrease: 2000,
 		NodesSetup:                           &mock.NodesSetupStub{},
-		EpochNotifier:                        &epochNotifier.EpochNotifierStub{},
-		StakingV2EnableEpoch:                 5,
-		StopDecreasingValidatorRatingWhenStuckEnableEpoch: 1500,
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
+			IsSwitchJailWaitingFlagEnabledField:    true,
+			IsBelowSignedThresholdFlagEnabledField: true,
+		},
 	}
 	return arguments
 }
@@ -1379,7 +1380,8 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksMissedRoundsGreaterTha
 	arguments.PeerAdapter = peerAdapter
 	arguments.NodesCoordinator = nodesCoordinatorMock
 	arguments.MaxComputableRounds = 1
-	arguments.StopDecreasingValidatorRatingWhenStuckEnableEpoch = 2
+	enableEpochsHandler, _ := arguments.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
+	enableEpochsHandler.IsStopDecreasingValidatorRatingWhenStuckFlagEnabledField = false
 	arguments.MaxConsecutiveRoundsOfRatingDecrease = 4
 
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
@@ -1390,7 +1392,7 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksMissedRoundsGreaterTha
 	require.Equal(t, 99, validatorRating)
 
 	// Flag to stop decreasing validator rating is set, but NOT enough missed rounds to stop decreasing ratings => decrease validator rating again
-	validatorStatistics.EpochConfirmed(2, 0)
+	enableEpochsHandler.IsStopDecreasingValidatorRatingWhenStuckFlagEnabledField = true
 	err = validatorStatistics.CheckForMissedBlocks(4, 0, []byte("prev"), 0, 0)
 	require.Nil(t, err)
 	require.Equal(t, 98, validatorRating)
@@ -2239,9 +2241,10 @@ func TestValidatorStatistics_ProcessValidatorInfosEndOfEpochV2ComputesEligibleLe
 	arguments.Rater = rater
 
 	updateArgumentsWithNeeded(arguments)
+	enableEpochsHandler, _ := arguments.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
 
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
-	validatorStatistics.EpochConfirmed(10, 0)
+	enableEpochsHandler.IsStakingV2FlagEnabledForActivationEpochCompletedField = true
 
 	tempRating1 := uint32(5000)
 	tempRating2 := uint32(8000)

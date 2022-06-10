@@ -727,8 +727,7 @@ func (tpn *TestProcessorNode) initValidatorStatistics() {
 		RewardsHandler:                       tpn.EconomicsData,
 		NodesSetup:                           tpn.NodesSetup,
 		GenesisNonce:                         tpn.BlockChain.GetGenesisHeader().GetNonce(),
-		EpochNotifier:                        &epochNotifier.EpochNotifierStub{},
-		StakingV2EnableEpoch:                 StakingV2Epoch,
+		EnableEpochsHandler:                  tpn.EnableEpochsHandler,
 	}
 
 	tpn.ValidatorStatisticsProcessor, _ = peer.NewValidatorStatisticsProcessor(arguments)
@@ -2906,14 +2905,13 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger() {
 		Config: config.Config{
 			Heartbeat: hbConfig,
 		},
-		HeartbeatDisableEpoch: 10,
-		Prefs:                 config.Preferences{},
-		RedundancyHandler:     redundancyHandler,
-		CoreComponents:        tpn.Node.GetCoreComponents(),
-		DataComponents:        tpn.Node.GetDataComponents(),
-		NetworkComponents:     tpn.Node.GetNetworkComponents(),
-		CryptoComponents:      tpn.Node.GetCryptoComponents(),
-		ProcessComponents:     tpn.Node.GetProcessComponents(),
+		Prefs:             config.Preferences{},
+		RedundancyHandler: redundancyHandler,
+		CoreComponents:    tpn.Node.GetCoreComponents(),
+		DataComponents:    tpn.Node.GetDataComponents(),
+		NetworkComponents: tpn.Node.GetNetworkComponents(),
+		CryptoComponents:  tpn.Node.GetCryptoComponents(),
+		ProcessComponents: tpn.Node.GetProcessComponents(),
 	}
 
 	heartbeatFactory, err := mainFactory.NewHeartbeatComponentsFactory(hbFactoryArgs)
