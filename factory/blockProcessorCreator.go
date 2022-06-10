@@ -176,13 +176,11 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 	}
 
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
-		PubkeyConverter:        pcf.coreData.AddressPubKeyConverter(),
-		ShardCoordinator:       pcf.bootstrapComponents.ShardCoordinator(),
-		BuiltInFunctions:       builtInFuncs,
-		ArgumentParser:         parsers.NewCallArgsParser(),
-		EpochNotifier:          pcf.coreData.EpochNotifier(),
-		RelayedTxV2EnableEpoch: pcf.epochConfig.EnableEpochs.RelayedTransactionsV2EnableEpoch,
-		ESDTTransferParser:     esdtTransferParser,
+		PubkeyConverter:    pcf.coreData.AddressPubKeyConverter(),
+		ShardCoordinator:   pcf.bootstrapComponents.ShardCoordinator(),
+		BuiltInFunctions:   builtInFuncs,
+		ArgumentParser:     parsers.NewCallArgsParser(),
+		ESDTTransferParser: esdtTransferParser,
 	}
 	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	if err != nil {
@@ -202,8 +200,6 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 	if err != nil {
 		return nil, err
 	}
-
-	enableEpochs := pcf.epochConfig.EnableEpochs
 
 	argsNewScProcessor := smartContract.ArgsNewSmartContractProcessor{
 		VmContainer:         vmContainer,
@@ -336,28 +332,25 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 	}
 
 	argsTransactionCoordinator := coordinator.ArgTransactionCoordinator{
-		Hasher:                               pcf.coreData.Hasher(),
-		Marshalizer:                          pcf.coreData.InternalMarshalizer(),
-		ShardCoordinator:                     pcf.bootstrapComponents.ShardCoordinator(),
-		Accounts:                             pcf.state.AccountsAdapter(),
-		MiniBlockPool:                        pcf.data.Datapool().MiniBlocks(),
-		RequestHandler:                       requestHandler,
-		PreProcessors:                        preProcContainer,
-		InterProcessors:                      interimProcContainer,
-		GasHandler:                           gasHandler,
-		FeeHandler:                           txFeeHandler,
-		BlockSizeComputation:                 blockSizeComputationHandler,
-		BalanceComputation:                   balanceComputationHandler,
-		EconomicsFee:                         pcf.coreData.EconomicsData(),
-		TxTypeHandler:                        txTypeHandler,
-		BlockGasAndFeesReCheckEnableEpoch:    pcf.epochConfig.EnableEpochs.BlockGasAndFeesReCheckEnableEpoch,
-		TransactionsLogProcessor:             pcf.txLogsProcessor,
-		EpochNotifier:                        pcf.epochNotifier,
-		ScheduledTxsExecutionHandler:         scheduledTxsExecutionHandler,
-		ScheduledMiniBlocksEnableEpoch:       enableEpochs.ScheduledMiniBlocksEnableEpoch,
-		DoubleTransactionsDetector:           doubleTransactionsDetector,
-		MiniBlockPartialExecutionEnableEpoch: enableEpochs.MiniBlockPartialExecutionEnableEpoch,
-		ProcessedMiniBlocksTracker:           processedMiniBlocksTracker,
+		Hasher:                       pcf.coreData.Hasher(),
+		Marshalizer:                  pcf.coreData.InternalMarshalizer(),
+		ShardCoordinator:             pcf.bootstrapComponents.ShardCoordinator(),
+		Accounts:                     pcf.state.AccountsAdapter(),
+		MiniBlockPool:                pcf.data.Datapool().MiniBlocks(),
+		RequestHandler:               requestHandler,
+		PreProcessors:                preProcContainer,
+		InterProcessors:              interimProcContainer,
+		GasHandler:                   gasHandler,
+		FeeHandler:                   txFeeHandler,
+		BlockSizeComputation:         blockSizeComputationHandler,
+		BalanceComputation:           balanceComputationHandler,
+		EconomicsFee:                 pcf.coreData.EconomicsData(),
+		TxTypeHandler:                txTypeHandler,
+		TransactionsLogProcessor:     pcf.txLogsProcessor,
+		EnableEpochsHandler:          pcf.coreData.EnableEpochsHandler(),
+		ScheduledTxsExecutionHandler: scheduledTxsExecutionHandler,
+		DoubleTransactionsDetector:   doubleTransactionsDetector,
+		ProcessedMiniBlocksTracker:   processedMiniBlocksTracker,
 	}
 	txCoordinator, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	if err != nil {
@@ -480,13 +473,11 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	}
 
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
-		PubkeyConverter:        pcf.coreData.AddressPubKeyConverter(),
-		ShardCoordinator:       pcf.bootstrapComponents.ShardCoordinator(),
-		BuiltInFunctions:       builtInFuncs,
-		ArgumentParser:         parsers.NewCallArgsParser(),
-		EpochNotifier:          pcf.coreData.EpochNotifier(),
-		RelayedTxV2EnableEpoch: pcf.epochConfig.EnableEpochs.RelayedTransactionsV2EnableEpoch,
-		ESDTTransferParser:     esdtTransferParser,
+		PubkeyConverter:    pcf.coreData.AddressPubKeyConverter(),
+		ShardCoordinator:   pcf.bootstrapComponents.ShardCoordinator(),
+		BuiltInFunctions:   builtInFuncs,
+		ArgumentParser:     parsers.NewCallArgsParser(),
+		ESDTTransferParser: esdtTransferParser,
 	}
 	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	if err != nil {
@@ -620,28 +611,25 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	}
 
 	argsTransactionCoordinator := coordinator.ArgTransactionCoordinator{
-		Hasher:                               pcf.coreData.Hasher(),
-		Marshalizer:                          pcf.coreData.InternalMarshalizer(),
-		ShardCoordinator:                     pcf.bootstrapComponents.ShardCoordinator(),
-		Accounts:                             pcf.state.AccountsAdapter(),
-		MiniBlockPool:                        pcf.data.Datapool().MiniBlocks(),
-		RequestHandler:                       requestHandler,
-		PreProcessors:                        preProcContainer,
-		InterProcessors:                      interimProcContainer,
-		GasHandler:                           gasHandler,
-		FeeHandler:                           txFeeHandler,
-		BlockSizeComputation:                 blockSizeComputationHandler,
-		BalanceComputation:                   balanceComputationHandler,
-		EconomicsFee:                         pcf.coreData.EconomicsData(),
-		TxTypeHandler:                        txTypeHandler,
-		BlockGasAndFeesReCheckEnableEpoch:    enableEpochs.BlockGasAndFeesReCheckEnableEpoch,
-		TransactionsLogProcessor:             pcf.txLogsProcessor,
-		EpochNotifier:                        pcf.epochNotifier,
-		ScheduledTxsExecutionHandler:         scheduledTxsExecutionHandler,
-		ScheduledMiniBlocksEnableEpoch:       enableEpochs.ScheduledMiniBlocksEnableEpoch,
-		DoubleTransactionsDetector:           doubleTransactionsDetector,
-		MiniBlockPartialExecutionEnableEpoch: enableEpochs.MiniBlockPartialExecutionEnableEpoch,
-		ProcessedMiniBlocksTracker:           processedMiniBlocksTracker,
+		Hasher:                       pcf.coreData.Hasher(),
+		Marshalizer:                  pcf.coreData.InternalMarshalizer(),
+		ShardCoordinator:             pcf.bootstrapComponents.ShardCoordinator(),
+		Accounts:                     pcf.state.AccountsAdapter(),
+		MiniBlockPool:                pcf.data.Datapool().MiniBlocks(),
+		RequestHandler:               requestHandler,
+		PreProcessors:                preProcContainer,
+		InterProcessors:              interimProcContainer,
+		GasHandler:                   gasHandler,
+		FeeHandler:                   txFeeHandler,
+		BlockSizeComputation:         blockSizeComputationHandler,
+		BalanceComputation:           balanceComputationHandler,
+		EconomicsFee:                 pcf.coreData.EconomicsData(),
+		TxTypeHandler:                txTypeHandler,
+		TransactionsLogProcessor:     pcf.txLogsProcessor,
+		EnableEpochsHandler:          pcf.coreData.EnableEpochsHandler(),
+		ScheduledTxsExecutionHandler: scheduledTxsExecutionHandler,
+		DoubleTransactionsDetector:   doubleTransactionsDetector,
+		ProcessedMiniBlocksTracker:   processedMiniBlocksTracker,
 	}
 	txCoordinator, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	if err != nil {
@@ -651,16 +639,15 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	scheduledTxsExecutionHandler.SetTransactionCoordinator(txCoordinator)
 
 	argsStaking := scToProtocol.ArgStakingToPeer{
-		PubkeyConv:       pcf.coreData.ValidatorPubKeyConverter(),
-		Hasher:           pcf.coreData.Hasher(),
-		Marshalizer:      pcf.coreData.InternalMarshalizer(),
-		PeerState:        pcf.state.PeerAccounts(),
-		BaseState:        pcf.state.AccountsAdapter(),
-		ArgParser:        argsParser,
-		CurrTxs:          pcf.data.Datapool().CurrentBlockTxs(),
-		RatingsData:      pcf.coreData.RatingsData(),
-		EpochNotifier:    pcf.coreData.EpochNotifier(),
-		StakeEnableEpoch: pcf.epochConfig.EnableEpochs.StakeEnableEpoch,
+		PubkeyConv:          pcf.coreData.ValidatorPubKeyConverter(),
+		Hasher:              pcf.coreData.Hasher(),
+		Marshalizer:         pcf.coreData.InternalMarshalizer(),
+		PeerState:           pcf.state.PeerAccounts(),
+		BaseState:           pcf.state.AccountsAdapter(),
+		ArgParser:           argsParser,
+		CurrTxs:             pcf.data.Datapool().CurrentBlockTxs(),
+		RatingsData:         pcf.coreData.RatingsData(),
+		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
 	}
 	smartContractToProtocol, err := scToProtocol.NewStakingToPeer(argsStaking)
 	if err != nil {

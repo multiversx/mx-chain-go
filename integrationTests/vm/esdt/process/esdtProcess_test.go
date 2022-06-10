@@ -42,10 +42,8 @@ func TestESDTIssueAndTransactionsOnMultiShardEnvironment(t *testing.T) {
 	numMetachainNodes := 2
 
 	enableEpochs := config.EnableEpochs{
-		GlobalMintBurnDisableEpoch:           10,
-		BuiltInFunctionOnMetaEnableEpoch:     10,
-		ScheduledMiniBlocksEnableEpoch:       10,
-		MiniBlockPartialExecutionEnableEpoch: 10,
+		GlobalMintBurnDisableEpoch:       10,
+		BuiltInFunctionOnMetaEnableEpoch: 10,
 	}
 	nodes := integrationTests.CreateNodesWithEnableEpochs(
 		numOfShards,

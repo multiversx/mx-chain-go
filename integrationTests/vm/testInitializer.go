@@ -415,6 +415,8 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 	arwenChangeLocker common.Locker,
 ) (process.TransactionProcessor, error) {
 
+	enableEpochsHandler, _ := enableEpochs.NewEnableEpochsHandler(enableEpochsConfig, forking.NewGenericEpochNotifier())
+
 	builtInFuncs := vmcommonBuiltInFunctions.NewBuiltInFunctionContainer()
 	datapool := dataRetrieverMock.NewPoolsHolderMock()
 	args := hooks.ArgBlockChainHook{
@@ -431,7 +433,7 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 		CompiledSCPool:      datapool.SmartContracts(),
 		NilCompiledSCStore:  true,
 		ConfigSCStorage:     *defaultStorageConfig(),
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+		EnableEpochsHandler: enableEpochsHandler,
 	}
 
 	blockChainHook, _ := hooks.NewBlockChainHookImpl(args)
@@ -449,7 +451,6 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 		ShardCoordinator:   oneShardCoordinator,
 		BuiltInFunctions:   builtInFuncs,
 		ArgumentParser:     parsers.NewCallArgsParser(),
-		EpochNotifier:      forking.NewGenericEpochNotifier(),
 		ESDTTransferParser: esdtTransferParser,
 	}
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
@@ -460,8 +461,6 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 	if err != nil {
 		return nil, err
 	}
-
-	enableEpochsHandler, _ := enableEpochs.NewEnableEpochsHandler(enableEpochsConfig, forking.NewGenericEpochNotifier())
 
 	argsNewSCProcessor := smartContract.ArgsNewSmartContractProcessor{
 		VmContainer:      vmContainer,
@@ -780,13 +779,14 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		poolsHolder = dataRetrieverMock.NewPoolsHolderMock()
 	}
 
+	enableEpochsHandler, _ := enableEpochs.NewEnableEpochsHandler(enableEpochsConfig, epochNotifierInstance)
+
 	esdtTransferParser, _ := parsers.NewESDTTransferParser(testMarshalizer)
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
 		PubkeyConverter:    pubkeyConv,
 		ShardCoordinator:   shardCoordinator,
 		BuiltInFunctions:   blockChainHook.GetBuiltinFunctionsContainer(),
 		ArgumentParser:     parsers.NewCallArgsParser(),
-		EpochNotifier:      forking.NewGenericEpochNotifier(),
 		ESDTTransferParser: esdtTransferParser,
 	}
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
@@ -798,7 +798,6 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		return nil, err
 	}
 
-	enableEpochsHandler, _ := enableEpochs.NewEnableEpochsHandler(enableEpochsConfig, epochNotifierInstance)
 	gasComp, err := preprocess.NewGasComputation(economicsData, txTypeHandler, enableEpochsHandler)
 	if err != nil {
 		return nil, err
