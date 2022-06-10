@@ -108,12 +108,12 @@ func (handler *enableEpochsHandler) setFlagValue(value bool, flag *atomic.Flag, 
 	log.Debug("EpochConfirmed", "flag", flagName, "enabled", flag.IsSet())
 }
 
-// BlockGasAndFeesReCheckEnableEpoch returns the epoch for block gas and fees recheck
+// BlockGasAndFeesReCheckEnableEpoch returns the epoch when block gas and fees recheck becomes active
 func (handler *enableEpochsHandler) BlockGasAndFeesReCheckEnableEpoch() uint32 {
 	return handler.enableEpochsConfig.BlockGasAndFeesReCheckEnableEpoch
 }
 
-// StakingV2EnableEpoch returns the epoch for staking v2
+// StakingV2EnableEpoch returns the epoch when staking v2 becomes active
 func (handler *enableEpochsHandler) StakingV2EnableEpoch() uint32 {
 	return handler.enableEpochsConfig.StakingV2EnableEpoch
 }
