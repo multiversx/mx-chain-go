@@ -87,7 +87,7 @@ func TestIndexHashedNodesCoordinator_SetNodesConfigFromValidatorsInfo(t *testing
 	shufflerArgs := &NodesShufflerArgs{
 		NodesShard:          3,
 		NodesMeta:           3,
-		EnableEpochsHandler: &mock.EnableEpochsHandlerStub{},
+		EnableEpochsHandler: &mock.EnableEpochsHandlerMock{},
 	}
 	nodeShuffler, _ := NewHashValidatorsShuffler(shufflerArgs)
 	arguments.Shuffler = nodeShuffler
@@ -111,7 +111,7 @@ func TestIndexHashedNodesCoordinator_SetNodesConfigFromValidatorsInfoMultipleEpo
 	shufflerArgs := &NodesShufflerArgs{
 		NodesShard:          3,
 		NodesMeta:           3,
-		EnableEpochsHandler: &mock.EnableEpochsHandlerStub{},
+		EnableEpochsHandler: &mock.EnableEpochsHandlerMock{},
 	}
 	nodeShuffler, _ := NewHashValidatorsShuffler(shufflerArgs)
 	arguments.Shuffler = nodeShuffler
