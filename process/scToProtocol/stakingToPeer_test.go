@@ -134,6 +134,17 @@ func TestNewStakingToPeerNilCurrentBlockHeaderShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilTxForCurrentBlockHandler, err)
 }
 
+func TestNewStakingToPeerNilEnableEpochsHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockArgumentsNewStakingToPeer()
+	arguments.EnableEpochsHandler = nil
+
+	stp, err := NewStakingToPeer(arguments)
+	assert.Nil(t, stp)
+	assert.Equal(t, process.ErrNilEnableEpochsHandler, err)
+}
+
 func TestNewStakingToPeer_ShouldWork(t *testing.T) {
 	t.Parallel()
 
