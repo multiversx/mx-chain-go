@@ -218,6 +218,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		FeeComputer:              feeComputer,
 		TxTypeHandler:            txTypeHandler,
 		LogsFacade:               logsFacade,
+		Hasher:                   args.CoreComponents.Hasher(),
 	}
 	apiTransactionProcessor, err := transactionAPI.NewAPITransactionProcessor(argsAPITransactionProc)
 	if err != nil {

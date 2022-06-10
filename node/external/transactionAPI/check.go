@@ -39,6 +39,9 @@ func checkNilArgs(arg *ArgAPITransactionProcessor) error {
 	if check.IfNil(arg.LogsFacade) {
 		return ErrNilLogsFacade
 	}
+	if check.IfNil(arg.Hasher) {
+		return process.ErrNilHasher
+	}
 
 	return nil
 }

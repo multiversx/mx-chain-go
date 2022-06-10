@@ -2,23 +2,27 @@ package transactionAPI
 
 import (
 	"encoding/hex"
+
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/receipt"
 	rewardTxData "github.com/ElrondNetwork/elrond-go-core/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 )
 
 type txUnmarshaller struct {
 	addressPubKeyConverter core.PubkeyConverter
 	marshalizer            marshal.Marshalizer
+	hasher                 hashing.Hasher
 }
 
-func newTransactionUnmarshaller(marshalizer marshal.Marshalizer, addressPubKeyConverter core.PubkeyConverter) *txUnmarshaller {
+func newTransactionUnmarshaller(marshalizer marshal.Marshalizer, addressPubKeyConverter core.PubkeyConverter, hasher hashing.Hasher) *txUnmarshaller {
 	return &txUnmarshaller{
 		marshalizer:            marshalizer,
 		addressPubKeyConverter: addressPubKeyConverter,
+		hasher:                 hasher,
 	}
 }
 
@@ -29,7 +33,10 @@ func (tu *txUnmarshaller) unmarshalReceipt(receiptBytes []byte) (*transaction.Ap
 		return nil, err
 	}
 
+	receiptHash, err := core.CalculateHash(tu.marshalizer, tu.hasher, rec)
+
 	return &transaction.ApiReceipt{
+		Hash:    hex.EncodeToString(receiptHash),
 		Value:   rec.Value,
 		SndAddr: tu.addressPubKeyConverter.Encode(rec.SndAddr),
 		Data:    string(rec.Data),
