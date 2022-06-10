@@ -217,6 +217,7 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 			return false
 		}
 	}
+
 	log.Debug("doEndRoundJobByLeader.Verify: TRIGERRED")
 
 	err = sr.Header.SetPubKeysBitmap(bitmap)
@@ -309,31 +310,9 @@ func (sr *subroundEndRound) verifyNodesOnAggSigVerificationFail(
 	threshold := sr.Threshold(sr.Current())
 	pubKeys := sr.ConsensusGroup()
 
-	sigShares := make([][]byte, 0, len(pubKeys))
-	for i := range pubKeys {
-		sigShare, err := multiSigner.SignatureShare(uint16(i))
-		if err != nil {
-			log.Debug("verifyNodesOnAggSigVerificationFail.SignatureShare", "error", err.Error())
-			return err
-		}
-
-		sigShares = append(sigShares, sigShare)
-	}
-
 	invalidSigSharesNodes := make([]int, 0)
 
 	// TODO: analize better error handling and logs
-	selfIndex, err := sr.SelfConsensusGroupIndex()
-	if err != nil {
-		log.Debug("verifyNodesOnAggSigVerificationFail.SelfConsensusGroupIndex", "error", err.Error())
-		return err
-	}
-
-	multiSigner.Reset(pubKeys, uint16(selfIndex))
-	if err != nil {
-		log.Debug("verifyNodesOnAggSigVerificationFail.MultiSigner.Reset", "error", err.Error())
-		return err
-	}
 
 	for i, pk := range pubKeys {
 		isJobDone, err := sr.JobDone(pk, SrSignature)
@@ -341,7 +320,13 @@ func (sr *subroundEndRound) verifyNodesOnAggSigVerificationFail(
 			continue
 		}
 
-		err = multiSigner.VerifySignatureShare(uint16(i), sigShares[i], sr.GetData(), nil)
+		sigShare, err := multiSigner.SignatureShare(uint16(i))
+		if err != nil {
+			log.Debug("verifyNodesOnAggSigVerificationFail.SignatureShare", "error", err.Error())
+			return err
+		}
+
+		err = multiSigner.VerifySignatureShare(uint16(i), sigShare, sr.GetData(), nil)
 		if err != nil {
 			log.Debug("verifyNodesOnAggSigVerificationFail.VerifySignatureShare", "error", err.Error())
 
@@ -356,7 +341,7 @@ func (sr *subroundEndRound) verifyNodesOnAggSigVerificationFail(
 
 		nodeIndex, err := sr.ConsensusGroupIndex(pk)
 
-		err = multiSigner.StoreSignatureShare(uint16(nodeIndex), sigShares[i])
+		err = multiSigner.StoreSignatureShare(uint16(nodeIndex), sigShare)
 		if err != nil {
 			log.Debug("receivedSignature.StoreSignatureShare",
 				"node", pk,
