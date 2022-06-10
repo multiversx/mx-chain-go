@@ -22,7 +22,6 @@ import (
 // StateComponentsFactoryArgs holds the arguments needed for creating a state components factory
 type StateComponentsFactoryArgs struct {
 	Config           config.Config
-	EnableEpochs     config.EnableEpochs
 	ShardCoordinator sharding.Coordinator
 	Core             CoreComponentsHolder
 	StorageService   dataRetriever.StorageService
@@ -35,7 +34,6 @@ type stateComponentsFactory struct {
 	shardCoordinator sharding.Coordinator
 	core             CoreComponentsHolder
 	storageService   dataRetriever.StorageService
-	enableEpochs     config.EnableEpochs
 	processingMode   common.NodeProcessingMode
 	chainHandler     chainData.ChainHandler
 }
@@ -78,7 +76,6 @@ func NewStateComponentsFactory(args StateComponentsFactoryArgs) (*stateComponent
 		shardCoordinator: args.ShardCoordinator,
 		core:             args.Core,
 		storageService:   args.StorageService,
-		enableEpochs:     args.EnableEpochs,
 		processingMode:   args.ProcessingMode,
 		chainHandler:     args.ChainHandler,
 	}, nil

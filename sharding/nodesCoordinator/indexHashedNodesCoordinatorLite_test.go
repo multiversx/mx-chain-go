@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go/sharding/mock"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -84,8 +85,9 @@ func TestIndexHashedNodesCoordinator_SetNodesConfigFromValidatorsInfo(t *testing
 	arguments := createArguments()
 
 	shufflerArgs := &NodesShufflerArgs{
-		NodesShard: 3,
-		NodesMeta:  3,
+		NodesShard:          3,
+		NodesMeta:           3,
+		EnableEpochsHandler: &mock.EnableEpochsHandlerMock{},
 	}
 	nodeShuffler, _ := NewHashValidatorsShuffler(shufflerArgs)
 	arguments.Shuffler = nodeShuffler
@@ -107,8 +109,9 @@ func TestIndexHashedNodesCoordinator_SetNodesConfigFromValidatorsInfoMultipleEpo
 	arguments := createArguments()
 
 	shufflerArgs := &NodesShufflerArgs{
-		NodesShard: 3,
-		NodesMeta:  3,
+		NodesShard:          3,
+		NodesMeta:           3,
+		EnableEpochsHandler: &mock.EnableEpochsHandlerMock{},
 	}
 	nodeShuffler, _ := NewHashValidatorsShuffler(shufflerArgs)
 	arguments.Shuffler = nodeShuffler

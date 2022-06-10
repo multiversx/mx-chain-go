@@ -330,6 +330,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		managedBootstrapComponents.EpochBootstrapParams().Epoch(),
 		managedCoreComponents.ChanStopNodeProcess(),
 		managedCoreComponents.NodeTypeProvider(),
+		managedCoreComponents.EnableEpochsHandler(),
 	)
 	if err != nil {
 		return true, err
@@ -1129,7 +1130,6 @@ func (nr *nodeRunner) CreateManagedStateComponents(
 	}
 	stateArgs := mainFactory.StateComponentsFactoryArgs{
 		Config:           *nr.configs.GeneralConfig,
-		EnableEpochs:     nr.configs.EpochConfig.EnableEpochs,
 		ShardCoordinator: bootstrapComponents.ShardCoordinator(),
 		Core:             coreComponents,
 		StorageService:   dataComponents.StorageService(),

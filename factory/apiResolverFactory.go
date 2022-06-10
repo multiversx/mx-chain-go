@@ -332,8 +332,6 @@ func createScQueryElement(
 			SystemSCConfig:      args.systemSCConfig,
 			ValidatorAccountsDB: args.stateComponents.PeerAccounts(),
 			ChanceComputer:      args.coreComponents.Rater(),
-			EpochNotifier:       args.coreComponents.EpochNotifier(),
-			EpochConfig:         args.epochConfig,
 			ShardCoordinator:    args.processComponents.ShardCoordinator(),
 			EnableEpochsHandler: args.coreComponents.EnableEpochsHandler(),
 		}

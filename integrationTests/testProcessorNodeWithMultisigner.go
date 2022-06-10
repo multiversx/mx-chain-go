@@ -490,14 +490,13 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 	nodesMap := make(map[uint32][]*TestProcessorNode)
 
 	shufflerArgs := &nodesCoordinator.NodesShufflerArgs{
-		NodesShard:                     uint32(nodesPerShard),
-		NodesMeta:                      uint32(nbMetaNodes),
-		Hysteresis:                     hysteresis,
-		Adaptivity:                     adaptivity,
-		ShuffleBetweenShards:           shuffleBetweenShards,
-		MaxNodesEnableConfig:           nil,
-		WaitingListFixEnableEpoch:      0,
-		BalanceWaitingListsEnableEpoch: 0,
+		NodesShard:           uint32(nodesPerShard),
+		NodesMeta:            uint32(nbMetaNodes),
+		Hysteresis:           hysteresis,
+		Adaptivity:           adaptivity,
+		ShuffleBetweenShards: shuffleBetweenShards,
+		MaxNodesEnableConfig: nil,
+		EnableEpochsHandler:  &testscommon.EnableEpochsHandlerStub{},
 	}
 	nodeShuffler, _ := nodesCoordinator.NewHashValidatorsShuffler(shufflerArgs)
 	epochStartSubscriber := notifier.NewEpochStartSubscriptionHandler()
@@ -528,6 +527,7 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 			ChanStopNode:            endProcess.GetDummyEndProcessChannel(),
 			NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
 			IsFullArchive:           false,
+			EnableEpochsHandler:     &testscommon.EnableEpochsHandlerStub{},
 		}
 		nodesCoordinatorInstance, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 
@@ -626,6 +626,7 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 			ChanStopNode:            endProcess.GetDummyEndProcessChannel(),
 			NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
 			IsFullArchive:           false,
+			EnableEpochsHandler:     &testscommon.EnableEpochsHandlerStub{},
 		}
 		nodesCoord, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 

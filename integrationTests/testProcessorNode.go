@@ -939,10 +939,6 @@ func (tpn *TestProcessorNode) createFullSCQueryService() {
 			},
 			ValidatorAccountsDB: tpn.PeerState,
 			ChanceComputer:      tpn.NodesCoordinator,
-			EpochNotifier:       tpn.EpochNotifier,
-			EpochConfig: &config.EpochConfig{
-				EnableEpochs: config.EnableEpochs{},
-			},
 			ShardCoordinator:    tpn.ShardCoordinator,
 			EnableEpochsHandler: tpn.EnableEpochsHandler,
 		}
@@ -1777,10 +1773,6 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		},
 		ValidatorAccountsDB: tpn.PeerState,
 		ChanceComputer:      &mock.RaterMock{},
-		EpochNotifier:       tpn.EpochNotifier,
-		EpochConfig: &config.EpochConfig{
-			EnableEpochs: tpn.EnableEpochs,
-		},
 		ShardCoordinator:    tpn.ShardCoordinator,
 		EnableEpochsHandler: tpn.EnableEpochsHandler,
 	}
@@ -2143,6 +2135,8 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 			log.Error("initBlockProcessor NewRewardsStakingProvider", "error", errRsp)
 		}
 
+		enableEpochsStub, _ := tpn.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
+		enableEpochsStub.IsESDTFlagEnabledForCurrentEpochField = true
 		rewardsStorage := tpn.Storage.GetStorer(dataRetriever.RewardTransactionUnit)
 		miniBlockStorage := tpn.Storage.GetStorer(dataRetriever.MiniBlockUnit)
 		argsEpochRewards := metachain.RewardsCreatorProxyArgs{
@@ -2157,11 +2151,11 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 				ProtocolSustainabilityAddress: testProtocolSustainabilityAddress,
 				NodesConfigProvider:           tpn.NodesCoordinator,
 				UserAccountsDB:                tpn.AccntState,
+				EnableEpochsHandler:           enableEpochsStub,
 			},
 			StakingDataProvider:   stakingDataProvider,
 			RewardsHandler:        tpn.EconomicsData,
 			EconomicsDataProvider: economicsDataProvider,
-			EpochEnableV2:         StakingV2Epoch,
 		}
 		epochStartRewards, _ := metachain.NewRewardsCreatorProxy(argsEpochRewards)
 
@@ -2172,8 +2166,6 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 			Marshalizer:      TestMarshalizer,
 			DataPool:         tpn.DataPool,
 		}
-		enableEpochsStub, _ := tpn.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
-		enableEpochsStub.IsESDTFlagEnabledForCurrentEpochField = true
 		epochStartValidatorInfo, _ := metachain.NewValidatorInfoCreator(argsEpochValidatorInfo)
 		argsEpochSystemSC := metachain.ArgsNewEpochStartSystemSCProcessing{
 			SystemVM:                systemVM,

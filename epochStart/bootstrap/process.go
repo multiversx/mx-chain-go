@@ -686,18 +686,19 @@ func (e *epochStartBootstrap) processNodesConfig(pubKey []byte) error {
 		shardId = e.genesisShardCoordinator.SelfId()
 	}
 	argsNewValidatorStatusSyncers := ArgsNewSyncValidatorStatus{
-		DataPool:           e.dataPool,
-		Marshalizer:        e.coreComponentsHolder.InternalMarshalizer(),
-		RequestHandler:     e.requestHandler,
-		ChanceComputer:     e.rater,
-		GenesisNodesConfig: e.genesisNodesConfig,
-		NodeShuffler:       e.nodeShuffler,
-		Hasher:             e.coreComponentsHolder.Hasher(),
-		PubKey:             pubKey,
-		ShardIdAsObserver:  shardId,
-		ChanNodeStop:       e.coreComponentsHolder.ChanStopNodeProcess(),
-		NodeTypeProvider:   e.coreComponentsHolder.NodeTypeProvider(),
-		IsFullArchive:      e.prefsConfig.FullArchive,
+		DataPool:            e.dataPool,
+		Marshalizer:         e.coreComponentsHolder.InternalMarshalizer(),
+		RequestHandler:      e.requestHandler,
+		ChanceComputer:      e.rater,
+		GenesisNodesConfig:  e.genesisNodesConfig,
+		NodeShuffler:        e.nodeShuffler,
+		Hasher:              e.coreComponentsHolder.Hasher(),
+		PubKey:              pubKey,
+		ShardIdAsObserver:   shardId,
+		ChanNodeStop:        e.coreComponentsHolder.ChanStopNodeProcess(),
+		NodeTypeProvider:    e.coreComponentsHolder.NodeTypeProvider(),
+		IsFullArchive:       e.prefsConfig.FullArchive,
+		EnableEpochsHandler: e.coreComponentsHolder.EnableEpochsHandler(),
 	}
 
 	e.nodesConfigHandler, err = NewSyncValidatorStatus(argsNewValidatorStatusSyncers)

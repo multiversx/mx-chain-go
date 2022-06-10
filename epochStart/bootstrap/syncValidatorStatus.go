@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
@@ -34,18 +35,19 @@ type syncValidatorStatus struct {
 
 // ArgsNewSyncValidatorStatus holds the arguments needed for creating a new validator status process component
 type ArgsNewSyncValidatorStatus struct {
-	DataPool           dataRetriever.PoolsHolder
-	Marshalizer        marshal.Marshalizer
-	Hasher             hashing.Hasher
-	RequestHandler     process.RequestHandler
-	ChanceComputer     nodesCoordinator.ChanceComputer
-	GenesisNodesConfig sharding.GenesisNodesSetupHandler
-	NodeShuffler       nodesCoordinator.NodesShuffler
-	PubKey             []byte
-	ShardIdAsObserver  uint32
-	ChanNodeStop       chan endProcess.ArgEndProcess
-	NodeTypeProvider   NodeTypeProviderHandler
-	IsFullArchive      bool
+	DataPool            dataRetriever.PoolsHolder
+	Marshalizer         marshal.Marshalizer
+	Hasher              hashing.Hasher
+	RequestHandler      process.RequestHandler
+	ChanceComputer      nodesCoordinator.ChanceComputer
+	GenesisNodesConfig  sharding.GenesisNodesSetupHandler
+	NodeShuffler        nodesCoordinator.NodesShuffler
+	PubKey              []byte
+	ShardIdAsObserver   uint32
+	ChanNodeStop        chan endProcess.ArgEndProcess
+	NodeTypeProvider    NodeTypeProviderHandler
+	IsFullArchive       bool
+	EnableEpochsHandler common.EnableEpochsHandler
 }
 
 // NewSyncValidatorStatus creates a new validator status process component
@@ -109,6 +111,7 @@ func NewSyncValidatorStatus(args ArgsNewSyncValidatorStatus) (*syncValidatorStat
 		ChanStopNode:            args.ChanNodeStop,
 		NodeTypeProvider:        args.NodeTypeProvider,
 		IsFullArchive:           args.IsFullArchive,
+		EnableEpochsHandler:     args.EnableEpochsHandler,
 	}
 	baseNodesCoordinator, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argsNodesCoordinator)
 	if err != nil {

@@ -6,6 +6,9 @@ type EnableEpochsHandlerStub struct {
 	BlockGasAndFeesReCheckEnableEpochField                       uint32
 	StakingV2EnableEpochField                                    uint32
 	ScheduledMiniBlocksEnableEpochField                          uint32
+	SwitchJailWaitingEnableEpochField                            uint32
+	BalanceWaitingListsEnableEpochField                          uint32
+	WaitingListFixEnableEpochField                               uint32
 	IsSCDeployFlagEnabledField                                   bool
 	IsBuiltInFunctionsFlagEnabledField                           bool
 	IsRelayedTransactionsFlagEnabledField                        bool
@@ -91,6 +94,21 @@ func (stub *EnableEpochsHandlerStub) StakingV2EnableEpoch() uint32 {
 // ScheduledMiniBlocksEnableEpoch -
 func (stub *EnableEpochsHandlerStub) ScheduledMiniBlocksEnableEpoch() uint32 {
 	return stub.ScheduledMiniBlocksEnableEpochField
+}
+
+// SwitchJailWaitingEnableEpoch -
+func (stub *EnableEpochsHandlerStub) SwitchJailWaitingEnableEpoch() uint32 {
+	return stub.SwitchJailWaitingEnableEpochField
+}
+
+// BalanceWaitingListsEnableEpoch -
+func (stub *EnableEpochsHandlerStub) BalanceWaitingListsEnableEpoch() uint32 {
+	return stub.BalanceWaitingListsEnableEpochField
+}
+
+// WaitingListFixEnableEpoch -
+func (stub *EnableEpochsHandlerStub) WaitingListFixEnableEpoch() uint32 {
+	return stub.WaitingListFixEnableEpochField
 }
 
 // ResetPenalizedTooMuchGasFlag -

@@ -683,7 +683,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		GenesisEpoch:          genesisHdr.GetEpoch(),
 		GenesisTotalSupply:    pcf.coreData.EconomicsData().GenesisTotalSupply(),
 		EconomicsDataNotified: economicsDataProvider,
-		StakingV2EnableEpoch:  pcf.epochConfig.EnableEpochs.StakingV2EnableEpoch,
+		StakingV2EnableEpoch:  pcf.coreData.EnableEpochsHandler().StakingV2EnableEpoch(),
 	}
 	epochEconomics, err := metachainEpochStart.NewEndOfEpochEconomicsDataCreator(argsEpochEconomics)
 	if err != nil {
@@ -715,13 +715,11 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 			ProtocolSustainabilityAddress: pcf.coreData.EconomicsData().ProtocolSustainabilityAddress(),
 			NodesConfigProvider:           pcf.nodesCoordinator,
 			UserAccountsDB:                pcf.state.AccountsAdapter(),
-			RewardsFix1EpochEnable:        enableEpochs.SwitchJailWaitingEnableEpoch,
-			DelegationSystemSCEnableEpoch: pcf.epochConfig.EnableEpochs.StakingV2EnableEpoch,
+			EnableEpochsHandler:           pcf.coreData.EnableEpochsHandler(),
 		},
 		StakingDataProvider:   stakingDataProvider,
 		RewardsHandler:        pcf.coreData.EconomicsData(),
 		EconomicsDataProvider: economicsDataProvider,
-		EpochEnableV2:         pcf.epochConfig.EnableEpochs.StakingV2EnableEpoch,
 	}
 	epochRewards, err := metachainEpochStart.NewRewardsCreatorProxy(argsEpochRewards)
 	if err != nil {
@@ -1097,8 +1095,6 @@ func (pcf *processComponentsFactory) createVMFactoryMeta(
 		SystemSCConfig:      pcf.systemSCConfig,
 		ValidatorAccountsDB: pcf.state.PeerAccounts(),
 		ChanceComputer:      pcf.coreData.Rater(),
-		EpochNotifier:       pcf.coreData.EpochNotifier(),
-		EpochConfig:         &pcf.epochConfig,
 		ShardCoordinator:    pcf.bootstrapComponents.ShardCoordinator(),
 		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
 	}

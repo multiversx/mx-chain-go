@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
 )
 
@@ -41,14 +42,13 @@ func (tpn *IndexHashedNodesCoordinatorFactory) CreateNodesCoordinator(arg ArgInd
 	pubKeyBytes, _ := keys.Pk.ToByteArray()
 
 	nodeShufflerArgs := &nodesCoordinator.NodesShufflerArgs{
-		NodesShard:                     uint32(arg.nodesPerShard),
-		NodesMeta:                      uint32(arg.nbMetaNodes),
-		Hysteresis:                     hysteresis,
-		Adaptivity:                     adaptivity,
-		ShuffleBetweenShards:           shuffleBetweenShards,
-		MaxNodesEnableConfig:           nil,
-		WaitingListFixEnableEpoch:      0,
-		BalanceWaitingListsEnableEpoch: 0,
+		NodesShard:           uint32(arg.nodesPerShard),
+		NodesMeta:            uint32(arg.nbMetaNodes),
+		Hysteresis:           hysteresis,
+		Adaptivity:           adaptivity,
+		ShuffleBetweenShards: shuffleBetweenShards,
+		MaxNodesEnableConfig: nil,
+		EnableEpochsHandler:  &testscommon.EnableEpochsHandlerStub{},
 	}
 	nodeShuffler, _ := nodesCoordinator.NewHashValidatorsShuffler(nodeShufflerArgs)
 	argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
@@ -69,6 +69,7 @@ func (tpn *IndexHashedNodesCoordinatorFactory) CreateNodesCoordinator(arg ArgInd
 		ChanStopNode:            endProcess.GetDummyEndProcessChannel(),
 		NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
 		IsFullArchive:           false,
+		EnableEpochsHandler:     &testscommon.EnableEpochsHandlerStub{},
 	}
 	nodesCoord, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 	if err != nil {
@@ -92,14 +93,13 @@ func (ihncrf *IndexHashedNodesCoordinatorWithRaterFactory) CreateNodesCoordinato
 	pubKeyBytes, _ := keys.Pk.ToByteArray()
 
 	shufflerArgs := &nodesCoordinator.NodesShufflerArgs{
-		NodesShard:                     uint32(arg.nodesPerShard),
-		NodesMeta:                      uint32(arg.nbMetaNodes),
-		Hysteresis:                     hysteresis,
-		Adaptivity:                     adaptivity,
-		ShuffleBetweenShards:           shuffleBetweenShards,
-		MaxNodesEnableConfig:           nil,
-		BalanceWaitingListsEnableEpoch: 0,
-		WaitingListFixEnableEpoch:      0,
+		NodesShard:           uint32(arg.nodesPerShard),
+		NodesMeta:            uint32(arg.nbMetaNodes),
+		Hysteresis:           hysteresis,
+		Adaptivity:           adaptivity,
+		ShuffleBetweenShards: shuffleBetweenShards,
+		MaxNodesEnableConfig: nil,
+		EnableEpochsHandler:  &testscommon.EnableEpochsHandlerStub{},
 	}
 	nodeShuffler, _ := nodesCoordinator.NewHashValidatorsShuffler(shufflerArgs)
 	argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{

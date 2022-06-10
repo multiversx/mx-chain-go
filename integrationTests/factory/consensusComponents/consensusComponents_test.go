@@ -64,6 +64,7 @@ func TestConsensusComponents_Close_ShouldWork(t *testing.T) {
 		managedBootstrapComponents.EpochBootstrapParams().Epoch(),
 		managedCoreComponents.ChanStopNodeProcess(),
 		managedCoreComponents.NodeTypeProvider(),
+		managedCoreComponents.EnableEpochsHandler(),
 	)
 	require.Nil(t, err)
 	managedStatusComponents, err := nr.CreateManagedStatusComponents(

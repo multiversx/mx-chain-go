@@ -1000,8 +1000,6 @@ func createFullArgumentsForSystemSCProcessing(enableEpochsConfig config.EnableEp
 		},
 		ValidatorAccountsDB: peerAccountsDB,
 		ChanceComputer:      &mock.ChanceComputerStub{},
-		EpochNotifier:       en,
-		EpochConfig:         epochsConfig,
 		ShardCoordinator:    &mock.ShardCoordinatorStub{},
 		EnableEpochsHandler: enableEpochsHandler,
 	}

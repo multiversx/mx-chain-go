@@ -93,6 +93,7 @@ func CreateProcessorNodesWithNodesCoordinator(
 				ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
 				ChanStopNode:            endProcess.GetDummyEndProcessChannel(),
 				IsFullArchive:           false,
+				EnableEpochsHandler:     &testscommon.EnableEpochsHandlerStub{},
 			}
 
 			nodesCoordinatorInstance, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
