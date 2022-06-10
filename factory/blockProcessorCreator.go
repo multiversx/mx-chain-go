@@ -424,7 +424,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		vmFactoryForProcessing: vmFactory,
 	}
 
-	pcf.stakingDataProvider = factoryDisabled.NewDisabledStakingDataProvider()
+	pcf.stakingDataProviderAPI = factoryDisabled.NewDisabledStakingDataProvider()
 	pcf.auctionListSelector = factoryDisabled.NewDisabledAuctionListSelector()
 
 	return blockProcessorComponents, nil
@@ -742,7 +742,12 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		return nil, err
 	}
 
-	pcf.stakingDataProvider = stakingDataProvider
+	stakingDataProviderAPI, err := metachainEpochStart.NewStakingDataProvider(argsStakingDataProvider)
+	if err != nil {
+		return nil, err
+	}
+
+	pcf.stakingDataProviderAPI = stakingDataProviderAPI
 
 	rewardsStorage := pcf.data.StorageService().GetStorer(dataRetriever.RewardTransactionUnit)
 	miniBlockStorage := pcf.data.StorageService().GetStorer(dataRetriever.MiniBlockUnit)

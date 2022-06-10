@@ -35,7 +35,7 @@ type validatorsProvider struct {
 	cancelFunc                   func()
 	validatorPubKeyConverter     core.PubkeyConverter
 	addressPubKeyConverter       core.PubkeyConverter
-	stakingDataProvider          epochStart.StakingDataProvider
+	stakingDataProvider          StakingDataProviderAPI
 	auctionListSelector          epochStart.AuctionListSelector
 
 	maxRating    uint32
@@ -50,7 +50,7 @@ type ArgValidatorsProvider struct {
 	ValidatorStatistics               process.ValidatorStatisticsProcessor
 	ValidatorPubKeyConverter          core.PubkeyConverter
 	AddressPubKeyConverter            core.PubkeyConverter
-	StakingDataProvider               epochStart.StakingDataProvider
+	StakingDataProvider               StakingDataProviderAPI
 	AuctionListSelector               epochStart.AuctionListSelector
 	StartEpoch                        uint32
 	MaxRating                         uint32
@@ -118,10 +118,16 @@ func NewValidatorsProvider(
 
 // GetLatestValidators gets the latest configuration of validators from the peerAccountsTrie
 func (vp *validatorsProvider) GetLatestValidators() map[string]*state.ValidatorApiResponse {
-	return vp.getValidators()
+	vp.updateCacheIfNeeded()
+
+	vp.lock.RLock()
+	clonedMap := cloneMap(vp.cache)
+	vp.lock.RUnlock()
+
+	return clonedMap
 }
 
-func (vp *validatorsProvider) getValidators() map[string]*state.ValidatorApiResponse {
+func (vp *validatorsProvider) updateCacheIfNeeded() {
 	vp.lock.RLock()
 	shouldUpdate := time.Since(vp.lastCacheUpdate) > vp.cacheRefreshIntervalDuration
 	vp.lock.RUnlock()
@@ -129,12 +135,6 @@ func (vp *validatorsProvider) getValidators() map[string]*state.ValidatorApiResp
 	if shouldUpdate {
 		vp.updateCache()
 	}
-
-	vp.lock.RLock()
-	clonedMap := cloneMap(vp.cache)
-	vp.lock.RUnlock()
-
-	return clonedMap
 }
 
 func cloneMap(cache map[string]*state.ValidatorApiResponse) map[string]*state.ValidatorApiResponse {

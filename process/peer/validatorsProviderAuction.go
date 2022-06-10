@@ -13,15 +13,9 @@ import (
 
 // GetAuctionList returns an array containing the validators that are currently in the auction list
 func (vp *validatorsProvider) GetAuctionList() ([]*common.AuctionListValidatorAPIResponse, error) {
-	vp.auctionMutex.RLock()
-	shouldUpdate := time.Since(vp.lastAuctionCacheUpdate) > vp.cacheRefreshIntervalDuration
-	vp.auctionMutex.RUnlock()
-
-	if shouldUpdate {
-		err := vp.updateAuctionListCache()
-		if err != nil {
-			return nil, err
-		}
+	err := vp.updateAuctionListCacheIfNeeded()
+	if err != nil {
+		return nil, err
 	}
 
 	vp.auctionMutex.RLock()
@@ -30,6 +24,18 @@ func (vp *validatorsProvider) GetAuctionList() ([]*common.AuctionListValidatorAP
 	vp.auctionMutex.RUnlock()
 
 	return ret, nil
+}
+
+func (vp *validatorsProvider) updateAuctionListCacheIfNeeded() error {
+	vp.auctionMutex.RLock()
+	shouldUpdate := time.Since(vp.lastAuctionCacheUpdate) > vp.cacheRefreshIntervalDuration
+	vp.auctionMutex.RUnlock()
+
+	if shouldUpdate {
+		return vp.updateAuctionListCache()
+	}
+
+	return nil
 }
 
 func (vp *validatorsProvider) updateAuctionListCache() error {
@@ -86,7 +92,8 @@ func (vp *validatorsProvider) fillAllValidatorsInfo(validatorsMap state.ShardVal
 		}
 	}
 
-	return nil
+	_, _, err := vp.stakingDataProvider.ComputeUnQualifiedNodes(validatorsMap)
+	return err
 }
 
 func (vp *validatorsProvider) getSelectedNodesFromAuction(validatorsMap state.ShardValidatorsInfoMapHandler) ([]state.ValidatorInfoHandler, error) {
@@ -129,7 +136,7 @@ func (vp *validatorsProvider) getAuctionListValidatorsAPIResponse(selectedNodes 
 				TotalTopUp:     ownerData.TotalTopUp.String(),
 				TopUpPerNode:   ownerData.TopUpPerNode.String(),
 				QualifiedTopUp: ownerData.TopUpPerNode.String(),
-				AuctionList:    make([]common.AuctionNode, 0, ownerData.NumAuctionNodes),
+				AuctionList:    make([]*common.AuctionNode, 0, ownerData.NumAuctionNodes),
 			}
 
 			vp.fillAuctionQualifiedValidatorAPIData(selectedNodes, ownerData, auctionValidator)
@@ -145,10 +152,10 @@ func (vp *validatorsProvider) fillAuctionQualifiedValidatorAPIData(
 	ownerData *epochStart.OwnerData,
 	auctionValidatorAPI *common.AuctionListValidatorAPIResponse,
 ) {
-	auctionValidatorAPI.AuctionList = make([]common.AuctionNode, 0, ownerData.NumAuctionNodes)
+	auctionValidatorAPI.AuctionList = make([]*common.AuctionNode, 0, ownerData.NumAuctionNodes)
 	numOwnerQualifiedNodes := int64(0)
 	for _, nodeInAuction := range ownerData.AuctionList {
-		auctionNode := common.AuctionNode{
+		auctionNode := &common.AuctionNode{
 			BlsKey:    vp.addressPubKeyConverter.Encode(nodeInAuction.GetPublicKey()),
 			Qualified: false,
 		}

@@ -747,6 +747,7 @@ func TestValidatorsProvider_GetAuctionList(t *testing.T) {
 		ctSelectNodesFromAuctionList := uint32(0)
 		ctFillValidatorInfoCalled := uint32(0)
 		ctGetOwnersDataCalled := uint32(0)
+		ctComputeUnqualifiedNodes := uint32(0)
 
 		args.ValidatorStatistics = &testscommon.ValidatorStatisticsProcessorStub{
 			RootHashCalled: func() ([]byte, error) {
@@ -775,6 +776,10 @@ func TestValidatorsProvider_GetAuctionList(t *testing.T) {
 				atomic.AddUint32(&ctGetOwnersDataCalled, 1)
 				return nil
 			},
+			ComputeUnQualifiedNodesCalled: func(validatorInfos state.ShardValidatorsInfoMapHandler) ([][]byte, map[string][][]byte, error) {
+				atomic.AddUint32(&ctComputeUnqualifiedNodes, 1)
+				return nil, nil, nil
+			},
 		}
 		vp, _ := NewValidatorsProvider(args)
 		time.Sleep(args.CacheRefreshIntervalDurationInSec)
@@ -786,6 +791,7 @@ func TestValidatorsProvider_GetAuctionList(t *testing.T) {
 		require.Equal(t, ctGetValidatorsInfoForRootHash, uint32(1))
 		require.Equal(t, ctFillValidatorInfoCalled, uint32(0))
 		require.Equal(t, ctGetOwnersDataCalled, uint32(1))
+		require.Equal(t, ctComputeUnqualifiedNodes, uint32(1))
 		require.Equal(t, expectedRootHash, vp.cachedRandomness)
 	})
 
@@ -911,7 +917,7 @@ func TestValidatorsProvider_GetAuctionList(t *testing.T) {
 				TotalTopUp:     "4000",
 				TopUpPerNode:   "2000",
 				QualifiedTopUp: "4000",
-				AuctionList: []common.AuctionNode{
+				AuctionList: []*common.AuctionNode{
 					{
 						BlsKey:    args.ValidatorPubKeyConverter.Encode(v5.PublicKey),
 						Qualified: true,
@@ -928,7 +934,7 @@ func TestValidatorsProvider_GetAuctionList(t *testing.T) {
 				TotalTopUp:     "7500",
 				TopUpPerNode:   "2500",
 				QualifiedTopUp: "2500",
-				AuctionList: []common.AuctionNode{
+				AuctionList: []*common.AuctionNode{
 					{
 						BlsKey:    args.ValidatorPubKeyConverter.Encode(v1.PublicKey),
 						Qualified: true,
@@ -945,7 +951,7 @@ func TestValidatorsProvider_GetAuctionList(t *testing.T) {
 				TotalTopUp:     "3000",
 				TopUpPerNode:   "1000",
 				QualifiedTopUp: "1500",
-				AuctionList: []common.AuctionNode{
+				AuctionList: []*common.AuctionNode{
 					{
 						BlsKey:    args.ValidatorPubKeyConverter.Encode(v3.PublicKey),
 						Qualified: true,
@@ -962,7 +968,7 @@ func TestValidatorsProvider_GetAuctionList(t *testing.T) {
 				TotalTopUp:     "0",
 				TopUpPerNode:   "0",
 				QualifiedTopUp: "0",
-				AuctionList: []common.AuctionNode{
+				AuctionList: []*common.AuctionNode{
 					{
 						BlsKey:    args.ValidatorPubKeyConverter.Encode(v7.PublicKey),
 						Qualified: false,
