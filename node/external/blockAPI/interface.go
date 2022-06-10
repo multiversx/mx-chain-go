@@ -8,7 +8,7 @@ import (
 
 // TransactionUnmarshaller defines what a transaction unmarshaler should do
 type TransactionUnmarshaller interface {
-	UnmarshalTransaction(txBytes []byte, txType transaction.TxType) (*transaction.ApiTransactionResult, error)
+	UnmarshalTransaction(epoch uint32, txBytes []byte, txType transaction.TxType) (*transaction.ApiTransactionResult, error)
 	UnmarshalReceipt(receiptBytes []byte) (*transaction.ApiReceipt, error)
 	IsInterfaceNil() bool
 }

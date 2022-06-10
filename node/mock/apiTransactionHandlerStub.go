@@ -32,7 +32,7 @@ func (tas *TransactionAPIHandlerStub) GetTransactionsPool() (*common.Transaction
 }
 
 // UnmarshalTransaction -
-func (tas *TransactionAPIHandlerStub) UnmarshalTransaction(txBytes []byte, txType transaction.TxType) (*transaction.ApiTransactionResult, error) {
+func (tas *TransactionAPIHandlerStub) UnmarshalTransaction(epoch uint32, txBytes []byte, txType transaction.TxType) (*transaction.ApiTransactionResult, error) {
 	if tas.UnmarshalTransactionCalled != nil {
 		return tas.UnmarshalTransactionCalled(txBytes, txType)
 	}

@@ -196,7 +196,7 @@ func (bap *baseAPIBlockProcessor) getTxsFromMiniblock(
 	start = time.Now()
 	txs := make([]*transaction.ApiTransactionResult, 0)
 	for _, pair := range marshalledTxs {
-		tx, errUnmarshalTx := bap.txUnmarshaller.UnmarshalTransaction(pair.Value, txType)
+		tx, errUnmarshalTx := bap.txUnmarshaller.UnmarshalTransaction(epoch, pair.Value, txType)
 		if errUnmarshalTx != nil {
 			return nil, fmt.Errorf("%w: %v, miniblock = %s", errCannotUnmarshalTransactions, err, hex.EncodeToString(miniblockHash))
 		}
