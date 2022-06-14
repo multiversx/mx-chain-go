@@ -27,7 +27,6 @@ import (
 const wasmerSIGSEGVPassthrough = false
 
 var _ process.VirtualMachinesContainerFactory = (*vmContainerFactory)(nil)
-
 var logVMContainerFactory = logger.GetOrCreate("vmContainerFactory")
 
 type vmContainerFactory struct {
@@ -313,6 +312,11 @@ func (vmf *vmContainerFactory) createInProcessArwenVMV13() (vmcommon.VMExecution
 }
 
 func (vmf *vmContainerFactory) createInProcessArwenVMV14() (vmcommon.VMExecutionHandler, error) {
+	if wasmerSIGSEGVPassthrough {
+		logVMContainerFactory.Warn("createInProcessArwenVMV14: WasmerSIGSEGVPassthrough option is active and must be used only in testing environment",
+			"WasmerSIGSEGVPassthrough", wasmerSIGSEGVPassthrough)
+	}
+
 	hostParameters := &arwen14.VMHostParameters{
 		VMType:                              factory.ArwenVirtualMachine,
 		BlockGasLimit:                       vmf.blockGasLimit,
