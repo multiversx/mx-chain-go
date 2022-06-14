@@ -23,7 +23,7 @@ import (
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
-// for production environments, this should be set to false
+// for production environments, this must be set to false
 const wasmerSIGSEGVPassthrough = false
 
 var _ process.VirtualMachinesContainerFactory = (*vmContainerFactory)(nil)
