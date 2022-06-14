@@ -86,8 +86,10 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		return nil, process.ErrNilEpochStartSystemSCProcessor
 	}
 
-	pruningDelay := uint32(arguments.Config.StateTriesConfig.PeerStatePruningQueueSize * pruningDelayMultiplier)
+	pruningQueueSize := arguments.Config.StateTriesConfig.PeerStatePruningQueueSize
+	pruningDelay := uint32(pruningQueueSize * pruningDelayMultiplier)
 	if pruningDelay < defaultPruningDelay {
+		log.Warn("using default pruning delay", "peer state pruning queue size", pruningQueueSize)
 		pruningDelay = defaultPruningDelay
 	}
 

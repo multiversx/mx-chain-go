@@ -75,8 +75,10 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		return nil, fmt.Errorf("%w for genesis header in DataComponents.Blockchain", process.ErrNilHeaderHandler)
 	}
 
-	pruningDelay := uint32(arguments.Config.StateTriesConfig.UserStatePruningQueueSize * pruningDelayMultiplier)
+	pruningQueueSize := arguments.Config.StateTriesConfig.UserStatePruningQueueSize
+	pruningDelay := uint32(pruningQueueSize * pruningDelayMultiplier)
 	if pruningDelay < defaultPruningDelay {
+		log.Warn("using default pruning delay", "user state pruning queue size", pruningQueueSize)
 		pruningDelay = defaultPruningDelay
 	}
 
