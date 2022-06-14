@@ -117,6 +117,7 @@ func createGenesisConfig() config.EnableEpochs {
 		SCRSizeInvariantOnBuiltInResultEnableEpoch:        unreachableEpoch,
 		CheckCorrectTokenIDForTransferRoleEnableEpoch:     unreachableEpoch,
 		CheckValueOnExecByCallerEnableEpoch:               unreachableEpoch,
+		RefactorContextEnableEpoch:                        unreachableEpoch,
 	}
 }
 

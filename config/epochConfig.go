@@ -78,6 +78,7 @@ type EnableEpochs struct {
 	SCRSizeInvariantOnBuiltInResultEnableEpoch        uint32
 	CheckCorrectTokenIDForTransferRoleEnableEpoch     uint32
 	CheckValueOnExecByCallerEnableEpoch               uint32
+	RefactorContextEnableEpoch                        uint32
 }
 
 // GasScheduleByEpochs represents a gas schedule toml entry that will be applied from the provided epoch

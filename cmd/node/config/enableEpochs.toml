@@ -196,6 +196,9 @@
     # CheckValueOnExecByCallerEnableEpoch represents the epoch when the check on value is enabled on exec by caller
     CheckValueOnExecByCallerEnableEpoch = 1
 
+    # RefactorContextEnableEpoch represents the epoch when refactoring/simplifying is enabled in contexts
+    RefactorContextEnableEpoch = 2
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 0, MaxNumNodes = 36, NodesToShufflePerShard = 4 },
