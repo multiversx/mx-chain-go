@@ -367,7 +367,6 @@ type VirtualMachineServicesConfig struct {
 type VirtualMachineConfig struct {
 	ArwenVersions                       []ArwenVersionByEpoch
 	TimeOutForSCExecutionInMilliseconds uint32
-	WasmerSIGSEGVPassthrough            bool
 }
 
 // ArwenVersionByEpoch represents the Arwen version to be used starting with an epoch

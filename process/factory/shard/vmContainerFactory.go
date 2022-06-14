@@ -23,6 +23,9 @@ import (
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
+// for production environments, this should be set to false
+const wasmerSIGSEGVPassthrough = false
+
 var _ process.VirtualMachinesContainerFactory = (*vmContainerFactory)(nil)
 
 var logVMContainerFactory = logger.GetOrCreate("vmContainerFactory")
@@ -318,7 +321,7 @@ func (vmf *vmContainerFactory) createInProcessArwenVMV14() (vmcommon.VMExecution
 		ElrondProtectedKeyPrefix:            []byte(core.ElrondProtectedKeyPrefix),
 		ESDTTransferParser:                  vmf.esdtTransferParser,
 		EpochNotifier:                       vmf.epochNotifier,
-		WasmerSIGSEGVPassthrough:            vmf.config.WasmerSIGSEGVPassthrough,
+		WasmerSIGSEGVPassthrough:            wasmerSIGSEGVPassthrough,
 		TimeOutForSCExecutionInMilliseconds: vmf.config.TimeOutForSCExecutionInMilliseconds,
 		MultiESDTTransferAsyncCallBackEnableEpoch:       vmf.epochConfig.MultiESDTTransferFixOnCallBackOnEnableEpoch,
 		FixOOGReturnCodeEnableEpoch:                     vmf.epochConfig.FixOOGReturnCodeEnableEpoch,

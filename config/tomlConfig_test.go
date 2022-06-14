@@ -100,7 +100,6 @@ func TestTomlParser(t *testing.T) {
 			Execution: VirtualMachineConfig{
 				ArwenVersions:                       arwenVersions,
 				TimeOutForSCExecutionInMilliseconds: 10000,
-				WasmerSIGSEGVPassthrough:            true,
 			},
 			Querying: QueryVirtualMachineConfig{
 				NumConcurrentVMs:     16,
@@ -182,7 +181,6 @@ func TestTomlParser(t *testing.T) {
 [VirtualMachine]
     [VirtualMachine.Execution]
         TimeOutForSCExecutionInMilliseconds = 10000 # 10 seconds = 10000 milliseconds
-        WasmerSIGSEGVPassthrough            = true
         ArwenVersions = [
             { StartEpoch = 12, Version = "v0.3" },
             { StartEpoch = 88, Version = "v1.2" },
