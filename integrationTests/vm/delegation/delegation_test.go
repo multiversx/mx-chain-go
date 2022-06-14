@@ -1,3 +1,4 @@
+//go:build !race
 // +build !race
 
 package delegation
@@ -238,7 +239,7 @@ func checkRewardsUpdatedInDelegationSC(t *testing.T, nodes []*integrationTests.T
 		assert.Nil(t, err)
 		assert.NotNil(t, vmOutput)
 
-		require.Equal(t, len(vmOutput.ReturnData), 3)
+		require.Equal(t, 3, len(vmOutput.ReturnData))
 		rwdInBigInt := big.NewInt(0).SetBytes(vmOutput.ReturnData[0])
 		assert.True(t, rwdInBigInt.Cmp(big.NewInt(0)) > 0)
 	}

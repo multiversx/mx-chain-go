@@ -39,6 +39,9 @@ func TestDelegationSystemNodesOperations(t *testing.T) {
 	totalNumNodes := 7
 	numDelegators := 4
 	delegationVal := int64(1000)
+	tpn.EpochNotifier.CheckEpoch(&testscommon.HeaderHandlerStub{
+		EpochField: 100000001,
+	})
 
 	tpn.BlockchainHook.SetCurrentHeader(&block.MetaBlock{Nonce: 1})
 
@@ -113,6 +116,9 @@ func TestDelegationSystemReStakeNodes(t *testing.T) {
 	totalNumNodes := 7
 	numDelegators := 4
 	delegationVal := int64(1000)
+	tpn.EpochNotifier.CheckEpoch(&testscommon.HeaderHandlerStub{
+		EpochField: 100000001,
+	})
 
 	tpn.BlockchainHook.SetCurrentHeader(&block.MetaBlock{Nonce: 1})
 
@@ -172,6 +178,9 @@ func TestDelegationChangeConfig(t *testing.T) {
 	serviceFee := big.NewInt(1000)
 	numDelegators := 4
 	initialDelegationValue := int64(100)
+	tpn.EpochNotifier.CheckEpoch(&testscommon.HeaderHandlerStub{
+		EpochField: 100000001,
+	})
 
 	tpn.BlockchainHook.SetCurrentHeader(&block.MetaBlock{Nonce: 1})
 
@@ -338,6 +347,9 @@ func TestDelegationSystemMultipleDelegationContractsAndSameBlsKeysShouldNotWork(
 	totalNumNodes := 3
 	numDelegators := 4
 	delegationVal := int64(1000)
+	tpn.EpochNotifier.CheckEpoch(&testscommon.HeaderHandlerStub{
+		EpochField: 100000001,
+	})
 	tpn.BlockchainHook.SetCurrentHeader(&block.MetaBlock{Nonce: 1})
 
 	ownerAddresses := getAddresses(numContracts)
@@ -467,6 +479,9 @@ func TestDelegationRewardsComputationAfterChangeServiceFee(t *testing.T) {
 	serviceFee := big.NewInt(10000) // 10%
 	totalNumNodes := 5
 	numDelegators := 4
+	tpn.EpochNotifier.CheckEpoch(&testscommon.HeaderHandlerStub{
+		EpochField: 100000001,
+	})
 	tpn.BlockchainHook.SetCurrentHeader(&block.MetaBlock{Nonce: 1})
 
 	// create new delegation contract
@@ -564,6 +579,9 @@ func TestDelegationUnJail(t *testing.T) {
 	serviceFee := big.NewInt(10000) // 10%
 	totalNumNodes := 5
 	numDelegators := 4
+	tpn.EpochNotifier.CheckEpoch(&testscommon.HeaderHandlerStub{
+		EpochField: 100000001,
+	})
 	tpn.BlockchainHook.SetCurrentHeader(&block.MetaBlock{Nonce: 1})
 
 	// create new delegation contract
@@ -959,6 +977,9 @@ func TestDelegationSystemCleanUpContract(t *testing.T) {
 	serviceFee := big.NewInt(1000)
 	totalNumNodes := 7
 	numDelegators := 4
+	tpn.EpochNotifier.CheckEpoch(&testscommon.HeaderHandlerStub{
+		EpochField: 100000001,
+	})
 	delegationVal := int64(1000)
 
 	tpn.BlockchainHook.SetCurrentHeader(&block.MetaBlock{Nonce: 1})

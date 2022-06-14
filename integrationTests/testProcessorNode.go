@@ -206,9 +206,6 @@ const sizeCheckDelta = 100
 
 const stateCheckpointModulus = 100
 
-// StakingV2Epoch defines the epoch for integration tests when stakingV2 is enabled
-const StakingV2Epoch = 1000
-
 // ScheduledMiniBlocksEnableEpoch defines the epoch for integration tests when scheduled nini blocks are enabled
 const ScheduledMiniBlocksEnableEpoch = 1000
 
@@ -2052,11 +2049,6 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		tpn.ForkDetector, _ = processSync.NewMetaForkDetector(tpn.RoundHandler, tpn.BlockBlackListHandler, tpn.BlockTracker, tpn.NodesSetup.GetStartTime())
 	}
 
-	tpn.EnableEpochs = config.EnableEpochs{
-		StakingV2EnableEpoch: StakingV2Epoch,
-		ESDTEnableEpoch:      0,
-	}
-
 	accountsDb := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
 	accountsDb[state.UserAccountsState] = tpn.AccntState
 	accountsDb[state.PeerAccountsState] = tpn.PeerState
@@ -2177,6 +2169,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 			RoundTime:             tpn.RoundHandler,
 			GenesisTotalSupply:    tpn.EconomicsData.GenesisTotalSupply(),
 			EconomicsDataNotified: economicsDataProvider,
+			StakingV2EnableEpoch:  tpn.EnableEpochs.StakingV2EnableEpoch,
 		}
 		epochEconomics, _ := metachain.NewEndOfEpochEconomicsDataCreator(argsEpochEconomics)
 
@@ -2189,9 +2182,6 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 			log.Error("initBlockProcessor NewRewardsStakingProvider", "error", errRsp)
 		}
 
-		tpn.EpochNotifier.CheckEpoch(&testscommon.HeaderHandlerStub{
-			EpochField: tpn.EnableEpochs.ESDTEnableEpoch,
-		})
 		rewardsStorage := tpn.Storage.GetStorer(dataRetriever.RewardTransactionUnit)
 		miniBlockStorage := tpn.Storage.GetStorer(dataRetriever.MiniBlockUnit)
 		argsEpochRewards := metachain.RewardsCreatorProxyArgs{
