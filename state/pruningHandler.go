@@ -3,11 +3,13 @@ package state
 // PruningHandlerOperation defines the options that can be activated on pruning
 type PruningHandlerOperation bool
 
-// EnableDataRemoval enables trie pruning
-const EnableDataRemoval PruningHandlerOperation = true
+const (
+	// EnableDataRemoval enables trie pruning
+	EnableDataRemoval PruningHandlerOperation = true
 
-// DisableDataRemoval stops trie pruning
-const DisableDataRemoval PruningHandlerOperation = false
+	// DisableDataRemoval stops trie pruning
+	DisableDataRemoval PruningHandlerOperation = false
+)
 
 type pruningHandler struct {
 	isPruningEnabled PruningHandlerOperation

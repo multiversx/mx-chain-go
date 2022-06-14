@@ -97,7 +97,7 @@ type baseProcessor struct {
 	processDataTriesOnCommitEpoch  bool
 	scheduledMiniBlocksEnableEpoch uint32
 	flagScheduledMiniBlocks        atomic.Flag
-	blocksSinceLastRestart         uint32
+	lastRestartNonce               uint64
 	pruningDelay                   uint32
 }
 
@@ -1300,7 +1300,7 @@ func (bp *baseProcessor) updateStateStorage(
 	}
 
 	accounts.CancelPrune(rootHashToBePruned, state.NewRoot)
-	accounts.PruneTrie(rootHashToBePruned, state.OldRoot, bp.getPruningHandler())
+	accounts.PruneTrie(rootHashToBePruned, state.OldRoot, bp.getPruningHandler(finalHeader.GetNonce()))
 }
 
 // RevertCurrentBlock reverts the current block for cleanup failed process
@@ -1436,14 +1436,15 @@ func (bp *baseProcessor) PruneStateOnRollback(currHeader data.HeaderHandler, cur
 		}
 
 		bp.accountsDB[key].CancelPrune(prevRootHash, state.OldRoot)
-		bp.accountsDB[key].PruneTrie(rootHash, state.NewRoot, bp.getPruningHandler())
+		bp.accountsDB[key].PruneTrie(rootHash, state.NewRoot, bp.getPruningHandler(currHeader.GetNonce()))
 	}
 }
 
-func (bp *baseProcessor) getPruningHandler() state.PruningHandler {
-	if bp.blocksSinceLastRestart <= bp.pruningDelay {
+func (bp *baseProcessor) getPruningHandler(finalHeaderNonce uint64) state.PruningHandler {
+	if finalHeaderNonce-bp.lastRestartNonce <= uint64(bp.pruningDelay) {
 		log.Debug("will skip pruning",
-			"blocks since last restart", bp.blocksSinceLastRestart,
+			"finalHeaderNonce", finalHeaderNonce,
+			"last restart nonce", bp.lastRestartNonce,
 			"num blocks for pruning delay", bp.pruningDelay,
 		)
 		return state.NewPruningHandler(state.DisableDataRemoval)

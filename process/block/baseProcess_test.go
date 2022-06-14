@@ -2647,20 +2647,35 @@ func TestBaseProcessor_getPruningHandler(t *testing.T) {
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 	arguments.Config = config.Config{
 		StateTriesConfig: config.StateTriesConfig{
+			UserStatePruningQueueSize: 6,
+		},
+	}
+	bp, _ := blproc.NewShardProcessor(arguments)
+
+	bp.SetLastRestartNonce(1)
+	ph := bp.GetPruningHandler(12)
+	assert.False(t, ph.IsPruningEnabled())
+
+	bp.SetLastRestartNonce(1)
+	ph = bp.GetPruningHandler(13)
+	assert.False(t, ph.IsPruningEnabled())
+
+	bp.SetLastRestartNonce(1)
+	ph = bp.GetPruningHandler(14)
+	assert.True(t, ph.IsPruningEnabled())
+}
+
+func TestBaseProcessor_getPruningHandlerSetsDefaulPruningDelay(t *testing.T) {
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+	arguments.Config = config.Config{
+		StateTriesConfig: config.StateTriesConfig{
 			UserStatePruningQueueSize: 4,
 		},
 	}
 	bp, _ := blproc.NewShardProcessor(arguments)
 
-	bp.SetBlocksSinceLastRestartCounter(7)
-	ph := bp.GetPruningHandler()
+	bp.SetLastRestartNonce(0)
+	ph := bp.GetPruningHandler(9)
 	assert.False(t, ph.IsPruningEnabled())
-
-	bp.SetBlocksSinceLastRestartCounter(8)
-	ph = bp.GetPruningHandler()
-	assert.False(t, ph.IsPruningEnabled())
-
-	bp.SetBlocksSinceLastRestartCounter(9)
-	ph = bp.GetPruningHandler()
-	assert.True(t, ph.IsPruningEnabled())
 }

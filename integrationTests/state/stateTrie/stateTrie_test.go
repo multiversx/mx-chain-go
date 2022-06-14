@@ -1320,6 +1320,11 @@ func TestRollbackBlockAndCheckThatPruningIsCancelledOnAccountsTrie(t *testing.T)
 	require.Equal(t, uint64(1), nodes[0].BlockChain.GetCurrentBlockHeader().GetNonce())
 	require.Equal(t, uint64(1), nodes[1].BlockChain.GetCurrentBlockHeader().GetNonce())
 
+	delayRounds := 10
+	for i := 0; i < delayRounds; i++ {
+		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+	}
+
 	fmt.Println("Generating transactions...")
 	integrationTests.GenerateAndDisseminateTxs(
 		shardNode,
@@ -1339,16 +1344,16 @@ func TestRollbackBlockAndCheckThatPruningIsCancelledOnAccountsTrie(t *testing.T)
 
 	rootHashOfRollbackedBlock, _ := shardNode.AccntState.RootHash()
 
-	require.Equal(t, uint64(2), nodes[0].BlockChain.GetCurrentBlockHeader().GetNonce())
-	require.Equal(t, uint64(2), nodes[1].BlockChain.GetCurrentBlockHeader().GetNonce())
+	require.Equal(t, uint64(12), nodes[0].BlockChain.GetCurrentBlockHeader().GetNonce())
+	require.Equal(t, uint64(12), nodes[1].BlockChain.GetCurrentBlockHeader().GetNonce())
 
 	shardIdToRollbackLastBlock := uint32(0)
 	integrationTests.ForkChoiceOneBlock(nodes, shardIdToRollbackLastBlock)
 	integrationTests.ResetHighestProbableNonce(nodes, shardIdToRollbackLastBlock, 1)
 	integrationTests.EmptyDataPools(nodes, shardIdToRollbackLastBlock)
 
-	require.Equal(t, uint64(1), nodes[0].BlockChain.GetCurrentBlockHeader().GetNonce())
-	require.Equal(t, uint64(2), nodes[1].BlockChain.GetCurrentBlockHeader().GetNonce())
+	require.Equal(t, uint64(11), nodes[0].BlockChain.GetCurrentBlockHeader().GetNonce())
+	require.Equal(t, uint64(12), nodes[1].BlockChain.GetCurrentBlockHeader().GetNonce())
 
 	rootHash, err := shardNode.AccntState.RootHash()
 	require.Nil(t, err)
@@ -1375,8 +1380,8 @@ func TestRollbackBlockAndCheckThatPruningIsCancelledOnAccountsTrie(t *testing.T)
 
 	err = shardNode.AccntState.RecreateTrie(rootHashOfFirstBlock)
 	require.Nil(t, err)
-	require.Equal(t, uint64(3), nodes[0].BlockChain.GetCurrentBlockHeader().GetNonce())
-	require.Equal(t, uint64(4), nodes[1].BlockChain.GetCurrentBlockHeader().GetNonce())
+	require.Equal(t, uint64(11), nodes[0].BlockChain.GetCurrentBlockHeader().GetNonce())
+	require.Equal(t, uint64(12), nodes[1].BlockChain.GetCurrentBlockHeader().GetNonce())
 }
 
 func TestRollbackBlockWithSameRootHashAsPreviousAndCheckThatPruningIsNotDone(t *testing.T) {
@@ -1484,8 +1489,13 @@ func TestTriePruningWhenBlockIsFinal(t *testing.T) {
 	nonce++
 	round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 
-	require.Equal(t, uint64(1), nodes[0].BlockChain.GetCurrentBlockHeader().GetNonce())
-	require.Equal(t, uint64(1), nodes[1].BlockChain.GetCurrentBlockHeader().GetNonce())
+	delayRounds := 10
+	for i := 0; i < delayRounds; i++ {
+		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+	}
+
+	require.Equal(t, uint64(11), nodes[0].BlockChain.GetCurrentBlockHeader().GetNonce())
+	require.Equal(t, uint64(11), nodes[1].BlockChain.GetCurrentBlockHeader().GetNonce())
 
 	rootHashOfFirstBlock, _ := shardNode.AccntState.RootHash()
 
@@ -1508,8 +1518,8 @@ func TestTriePruningWhenBlockIsFinal(t *testing.T) {
 		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 	}
 
-	require.Equal(t, uint64(7), nodes[0].BlockChain.GetCurrentBlockHeader().GetNonce())
-	require.Equal(t, uint64(7), nodes[1].BlockChain.GetCurrentBlockHeader().GetNonce())
+	require.Equal(t, uint64(17), nodes[0].BlockChain.GetCurrentBlockHeader().GetNonce())
+	require.Equal(t, uint64(17), nodes[1].BlockChain.GetCurrentBlockHeader().GetNonce())
 
 	err := shardNode.AccntState.RecreateTrie(rootHashOfFirstBlock)
 	require.True(t, errors.Is(err, trie.ErrKeyNotFound))
@@ -1563,6 +1573,11 @@ func TestStatePruningIsBuffered(t *testing.T) {
 
 	rootHash := shardNode.BlockChain.GetCurrentBlockHeader().GetRootHash()
 	stateTrie := shardNode.TrieContainer.Get([]byte(trieFactory.UserAccountTrie))
+
+	delayRounds := 10
+	for i := 0; i < delayRounds; i++ {
+		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+	}
 
 	numRounds := 10
 	for i := 0; i < numRounds; i++ {
@@ -1993,6 +2008,11 @@ func TestAccountRemoval(t *testing.T) {
 	numAccountsToRemove := 2
 	roundsToWait := 50
 
+	delayRounds := 10
+	for i := 0; i < delayRounds; i++ {
+		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+	}
+
 	removedAccounts := make(map[int]struct{})
 	for i := 0; i < roundsToWait; i++ {
 		for j := 0; j < numAccountsToRemove; j++ {
@@ -2014,7 +2034,7 @@ func TestAccountRemoval(t *testing.T) {
 		checkCodeConsistency(t, shardNode, codeMap)
 	}
 
-	delayRounds := 5
+	delayRounds = 5
 	for i := 0; i < delayRounds; i++ {
 		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 	}
@@ -2073,7 +2093,7 @@ func checkDataTrieConsistency(
 		_, ok := removedAccounts[i]
 		if ok {
 			err := adb.RecreateTrie(rootHash)
-			require.NotNil(t, err)
+			assert.NotNil(t, err)
 		} else {
 			err := adb.RecreateTrie(rootHash)
 			require.Nil(t, err)

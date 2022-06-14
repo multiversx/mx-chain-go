@@ -27,6 +27,7 @@ var _ process.BlockProcessor = (*shardProcessor)(nil)
 const (
 	timeBetweenCheckForEpochStart = 100 * time.Millisecond
 	pruningDelayMultiplier        = 2
+	defaultPruningDelay           = 10
 )
 
 type createMbsAndProcessTxsDestMeInfo struct {
@@ -75,6 +76,9 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 	}
 
 	pruningDelay := uint32(arguments.Config.StateTriesConfig.UserStatePruningQueueSize * pruningDelayMultiplier)
+	if pruningDelay < defaultPruningDelay {
+		pruningDelay = defaultPruningDelay
+	}
 
 	base := &baseProcessor{
 		accountsDB:                     arguments.AccountsDB,
@@ -953,6 +957,10 @@ func (sp *shardProcessor) CommitBlock(
 
 	sp.notifyFinalMetaHdrs(processedMetaHdrs)
 
+	if sp.lastRestartNonce == 0 {
+		sp.lastRestartNonce = header.GetNonce()
+	}
+
 	sp.updateState(selfNotarizedHeaders, header)
 
 	highestFinalBlockNonce := sp.forkDetector.GetHighestFinalBlockNonce()
@@ -1035,7 +1043,6 @@ func (sp *shardProcessor) CommitBlock(
 	}
 
 	sp.cleanupPools(headerHandler)
-	sp.blocksSinceLastRestart++
 
 	return nil
 }
