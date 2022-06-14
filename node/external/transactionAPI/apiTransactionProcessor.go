@@ -129,8 +129,10 @@ func (atp *apiTransactionProcessor) populateComputedFieldInitiallyPaidFee(tx *tr
 	}
 
 	fee := atp.feeComputer.ComputeTransactionFee(tx.Tx, int(tx.Epoch))
+	feeForMoveBalance := atp.feeComputer.ComputeTransactionFee(tx.Tx, int(tx.Epoch))
 	// For user-initiated transactions, we can assume the fee is always strictly positive (note: BigInt(0) is stringified as "").
 	tx.InitiallyPaidFee = fee.String()
+	tx.InitiallyPaidFeeForMoveBalance = feeForMoveBalance.String()
 }
 
 func (atp *apiTransactionProcessor) populateComputedFieldIsRefund(tx *transaction.ApiTransactionResult) {

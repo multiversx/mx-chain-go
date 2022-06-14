@@ -9,6 +9,7 @@ import (
 
 type feeComputer interface {
 	ComputeTransactionFee(tx data.TransactionWithFeeHandler, epoch int) *big.Int
+	ComputeTransactionFeeForMoveBalance(tx data.TransactionWithFeeHandler, epoch int) *big.Int
 	IsInterfaceNil() bool
 }
 

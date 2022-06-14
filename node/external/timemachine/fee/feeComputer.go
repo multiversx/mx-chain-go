@@ -69,6 +69,18 @@ func (computer *feeComputer) ComputeTransactionFee(tx data.TransactionWithFeeHan
 	return fee
 }
 
+// ComputeTransactionFeeForMoveBalance computes the "move balance" component of the transaction fee, at a given epoch
+func (computer *feeComputer) ComputeTransactionFeeForMoveBalance(tx data.TransactionWithFeeHandler, epoch int) *big.Int {
+	instance, err := computer.getOrCreateInstance(epoch)
+	if err != nil {
+		log.Error("ComputeTransactionFeeForMoveBalance(): unexpected error when creating an economicsData instance", "epoch", epoch, "error", err)
+		return big.NewInt(0)
+	}
+
+	fee := instance.ComputeMoveBalanceFee(tx)
+	return fee
+}
+
 // getOrCreateInstance gets or lazily creates a fee computer (using "double-checked locking" pattern)
 func (computer *feeComputer) getOrCreateInstance(epoch int) (economicsDataWithComputeFee, error) {
 	computer.mutex.RLock()
