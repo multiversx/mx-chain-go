@@ -76,6 +76,7 @@ type EnableEpochs struct {
 	AddFailedRelayedTxToInvalidMBsDisableEpoch        uint32
 	SCRSizeInvariantOnBuiltInResultEnableEpoch        uint32
 	CheckCorrectTokenIDForTransferRoleEnableEpoch     uint32
+	DisableExecByCallerEnableEpoch                    uint32
 	FailExecutionOnEveryAPIErrorEnableEpoch           uint32
 	ManagedCryptoAPIsEnableEpoch                      uint32
 }
