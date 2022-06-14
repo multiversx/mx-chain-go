@@ -4,7 +4,7 @@ import (
 	"math/big"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/node/external/timemachine"
@@ -18,7 +18,7 @@ type feeComputer struct {
 	economicsConfig                config.EconomicsConfig
 	penalizedTooMuchGasEnableEpoch uint32
 	gasPriceModifierEnableEpoch    uint32
-	economicsInstances             map[int]economicsDataWithComputeFee
+	economicsInstances             map[uint32]economicsDataWithComputeFee
 	mutex                          sync.RWMutex
 }
 
@@ -35,7 +35,7 @@ func NewFeeComputer(args ArgsNewFeeComputer) (*feeComputer, error) {
 		penalizedTooMuchGasEnableEpoch: args.PenalizedTooMuchGasEnableEpoch,
 		gasPriceModifierEnableEpoch:    args.GasPriceModifierEnableEpoch,
 		// TODO: use a LRU cache instead
-		economicsInstances: make(map[int]economicsDataWithComputeFee),
+		economicsInstances: make(map[uint32]economicsDataWithComputeFee),
 	}
 
 	// Create some economics data instance (but do not save them) in order to validate the arguments:
@@ -44,12 +44,12 @@ func NewFeeComputer(args ArgsNewFeeComputer) (*feeComputer, error) {
 		return nil, err
 	}
 
-	_, err = computer.createEconomicsInstance(int(args.PenalizedTooMuchGasEnableEpoch))
+	_, err = computer.createEconomicsInstance(args.PenalizedTooMuchGasEnableEpoch)
 	if err != nil {
 		return nil, err
 	}
 
-	_, err = computer.createEconomicsInstance(int(args.GasPriceModifierEnableEpoch))
+	_, err = computer.createEconomicsInstance(args.GasPriceModifierEnableEpoch)
 	if err != nil {
 		return nil, err
 	}
@@ -58,31 +58,18 @@ func NewFeeComputer(args ArgsNewFeeComputer) (*feeComputer, error) {
 }
 
 // ComputeTransactionFee computes a transaction fee, at a given epoch
-func (computer *feeComputer) ComputeTransactionFee(tx data.TransactionWithFeeHandler, epoch int) *big.Int {
-	instance, err := computer.getOrCreateInstance(epoch)
+func (computer *feeComputer) ComputeTransactionFee(tx *transaction.ApiTransactionResult) *big.Int {
+	instance, err := computer.getOrCreateInstance(tx.Epoch)
 	if err != nil {
-		log.Error("ComputeTransactionFee(): unexpected error when creating an economicsData instance", "epoch", epoch, "error", err)
+		log.Error("ComputeTransactionFee(): unexpected error when creating an economicsData instance", "epoch", tx.Epoch, "error", err)
 		return big.NewInt(0)
 	}
 
-	fee := instance.ComputeTxFee(tx)
-	return fee
-}
-
-// ComputeTransactionFeeForMoveBalance computes the "move balance" component of the transaction fee, at a given epoch
-func (computer *feeComputer) ComputeTransactionFeeForMoveBalance(tx data.TransactionWithFeeHandler, epoch int) *big.Int {
-	instance, err := computer.getOrCreateInstance(epoch)
-	if err != nil {
-		log.Error("ComputeTransactionFeeForMoveBalance(): unexpected error when creating an economicsData instance", "epoch", epoch, "error", err)
-		return big.NewInt(0)
-	}
-
-	fee := instance.ComputeMoveBalanceFee(tx)
-	return fee
+	return instance.ComputeTxFee(tx.Tx)
 }
 
 // getOrCreateInstance gets or lazily creates a fee computer (using "double-checked locking" pattern)
-func (computer *feeComputer) getOrCreateInstance(epoch int) (economicsDataWithComputeFee, error) {
+func (computer *feeComputer) getOrCreateInstance(epoch uint32) (economicsDataWithComputeFee, error) {
 	computer.mutex.RLock()
 	instance, ok := computer.economicsInstances[epoch]
 	computer.mutex.RUnlock()
@@ -107,7 +94,7 @@ func (computer *feeComputer) getOrCreateInstance(epoch int) (economicsDataWithCo
 	return newInstance, nil
 }
 
-func (computer *feeComputer) createEconomicsInstance(epoch int) (economicsDataWithComputeFee, error) {
+func (computer *feeComputer) createEconomicsInstance(epoch uint32) (economicsDataWithComputeFee, error) {
 	args := economics.ArgsNewEconomicsData{
 		Economics:                      &computer.economicsConfig,
 		PenalizedTooMuchGasEnableEpoch: computer.penalizedTooMuchGasEnableEpoch,

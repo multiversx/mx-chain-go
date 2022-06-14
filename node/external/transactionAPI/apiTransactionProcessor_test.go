@@ -394,7 +394,7 @@ func TestNode_GetTransactionWithResultsFromStorage(t *testing.T) {
 	}
 
 	feeComputer := &testscommon.FeeComputerStub{
-		ComputeTransactionFeeCalled: func(tx data.TransactionWithFeeHandler, epoch int) *big.Int {
+		ComputeTransactionFeeCalled: func(tx *transaction.ApiTransactionResult) *big.Int {
 			return big.NewInt(1000)
 		},
 	}
@@ -434,8 +434,7 @@ func TestNode_GetTransactionWithResultsFromStorage(t *testing.T) {
 				OriginalTxHash: txHash,
 			},
 		},
-		InitiallyPaidFee:               "1000",
-		InitiallyPaidFeeForMoveBalance: "1000",
+		InitiallyPaidFee: "1000",
 	}
 
 	apiTx, err := apiTransactionProc.GetTransaction(txHash, true)
@@ -818,7 +817,7 @@ func TestApiTransactionProcessor_GetTransactionPopulatesComputedFields(t *testin
 	require.NotNil(t, processor)
 
 	t.Run("InitiallyPaidFee", func(t *testing.T) {
-		feeComputer.ComputeTransactionFeeCalled = func(tx data.TransactionWithFeeHandler, epoch int) *big.Int {
+		feeComputer.ComputeTransactionFeeCalled = func(tx *transaction.ApiTransactionResult) *big.Int {
 			return big.NewInt(1000)
 		}
 
@@ -830,7 +829,7 @@ func TestApiTransactionProcessor_GetTransactionPopulatesComputedFields(t *testin
 	})
 
 	t.Run("InitiallyPaidFee (missing on unsigned transaction)", func(t *testing.T) {
-		feeComputer.ComputeTransactionFeeCalled = func(tx data.TransactionWithFeeHandler, epoch int) *big.Int {
+		feeComputer.ComputeTransactionFeeCalled = func(tx *transaction.ApiTransactionResult) *big.Int {
 			return big.NewInt(1000)
 		}
 
@@ -888,7 +887,7 @@ func TestApiTransactionProcessor_UnmarshalTransactionPopulatesComputedFields(t *
 	require.NotNil(t, processor)
 
 	t.Run("InitiallyPaidFee", func(t *testing.T) {
-		feeComputer.ComputeTransactionFeeCalled = func(tx data.TransactionWithFeeHandler, epoch int) *big.Int {
+		feeComputer.ComputeTransactionFeeCalled = func(tx *transaction.ApiTransactionResult) *big.Int {
 			return big.NewInt(1000)
 		}
 
@@ -901,7 +900,7 @@ func TestApiTransactionProcessor_UnmarshalTransactionPopulatesComputedFields(t *
 	})
 
 	t.Run("InitiallyPaidFee (missing on unsigned transaction)", func(t *testing.T) {
-		feeComputer.ComputeTransactionFeeCalled = func(tx data.TransactionWithFeeHandler, epoch int) *big.Int {
+		feeComputer.ComputeTransactionFeeCalled = func(tx *transaction.ApiTransactionResult) *big.Int {
 			return big.NewInt(1000)
 		}
 
