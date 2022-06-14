@@ -352,7 +352,9 @@ func testAsyncCallAndCallBacksArguments(t *testing.T, numShards int) {
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 15, nonce, round, idxProposers)
 	time.Sleep(time.Second)
 
-	checkDataFromAccountAndKey(t, nodes, scAddressA, []byte("callbackStorage"), []byte("successAABB"))
+	callbackArgs := append([]byte("success"), []byte{0}...)
+	callbackArgs = append(callbackArgs, []byte("AABB")...)
+	checkDataFromAccountAndKey(t, nodes, scAddressA, []byte("callbackStorage"), callbackArgs)
 
 	txData.Clear().Func("echo_args_async").Bytes(scAddressB)
 	integrationTests.CreateAndSendTransaction(
@@ -367,7 +369,7 @@ func testAsyncCallAndCallBacksArguments(t *testing.T, numShards int) {
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 15, nonce, round, idxProposers)
 	time.Sleep(time.Second)
 
-	checkDataFromAccountAndKey(t, nodes, scAddressA, []byte("callbackStorage"), []byte("success"))
+	checkDataFromAccountAndKey(t, nodes, scAddressA, []byte("callbackStorage"), append([]byte("success"), []byte{0}...))
 }
 
 func checkDataFromAccountAndKey(
