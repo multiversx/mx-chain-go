@@ -98,6 +98,7 @@ func (bap *baseAPIBlockProcessor) prepareAPIMiniblock(miniblock *block.MiniBlock
 		Type:             miniblock.Type.String(),
 		SourceShard:      miniblock.SenderShardID,
 		DestinationShard: miniblock.ReceiverShardID,
+		IsScheduled:      miniblock.IsScheduledMiniBlock(),
 	}
 
 	if options.WithTransactions {
