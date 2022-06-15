@@ -113,6 +113,12 @@ func (d *doubleListTrieSyncer) checkIsSyncedWhileProcessingMissingAndExisting() 
 		return false, ErrTrieSyncTimeout
 	}
 
+	start := time.Now()
+	defer func() {
+		d.trieSyncStatistics.AddProcessingTime(time.Since(start))
+		d.trieSyncStatistics.IncrementIteration()
+	}()
+
 	err := d.processMissingAndExisting()
 	if err != nil {
 		return false, err

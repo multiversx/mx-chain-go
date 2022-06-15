@@ -116,6 +116,8 @@ func createGenesisConfig() config.EnableEpochs {
 		AddFailedRelayedTxToInvalidMBsDisableEpoch:        unreachableEpoch,
 		SCRSizeInvariantOnBuiltInResultEnableEpoch:        unreachableEpoch,
 		CheckCorrectTokenIDForTransferRoleEnableEpoch:     unreachableEpoch,
+		CheckValueOnExecByCallerEnableEpoch:               unreachableEpoch,
+		RefactorContextEnableEpoch:                        unreachableEpoch,
 	}
 }
 

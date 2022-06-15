@@ -176,6 +176,8 @@ func printEnableEpochs(configs *config.Configs) {
 	log.Debug(readEpochFor("do not return old block in blockchain hook"), "epoch", enableEpochs.DoNotReturnOldBlockInBlockchainHookEnableEpoch)
 	log.Debug(readEpochFor("scr size invariant check on built in"), "epoch", enableEpochs.SCRSizeInvariantOnBuiltInResultEnableEpoch)
 	log.Debug(readEpochFor("correct check on tokenID for transfer role"), "epoch", enableEpochs.CheckCorrectTokenIDForTransferRoleEnableEpoch)
+	log.Debug(readEpochFor("check value on exec by caller"), "epoch", enableEpochs.CheckValueOnExecByCallerEnableEpoch)
+	log.Debug(readEpochFor("refactor contexts"), "epoch", enableEpochs.RefactorContextEnableEpoch)
 
 	gasSchedule := configs.EpochConfig.GasSchedule
 
@@ -242,6 +244,9 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	flagsConfig := configs.FlagsConfig
 	configurationPaths := configs.ConfigurationPathsHolder
 
+	log.Debug("creating healthService")
+	healthService := nr.createHealthService(flagsConfig)
+
 	log.Debug("creating core components")
 	managedCoreComponents, err := nr.CreateManagedCoreComponents(
 		chanStopNodeProcess,
@@ -299,8 +304,8 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		return true, err
 	}
 
-	log.Debug("creating healthService")
-	healthService := nr.createHealthService(flagsConfig, managedDataComponents)
+	log.Debug("registering components in healthService")
+	nr.registerDataComponentsInHealthService(healthService, managedDataComponents)
 
 	nodesShufflerOut, err := mainFactory.CreateNodesShuffleOut(
 		managedCoreComponents.GenesisNodesSetup(),
@@ -601,16 +606,19 @@ func (nr *nodeRunner) createMetrics(
 	return nil
 }
 
-func (nr *nodeRunner) createHealthService(flagsConfig *config.ContextFlagsConfig, dataComponents mainFactory.DataComponentsHolder) closing.Closer {
+func (nr *nodeRunner) createHealthService(flagsConfig *config.ContextFlagsConfig) HealthService {
 	healthService := health.NewHealthService(nr.configs.GeneralConfig.Health, flagsConfig.WorkingDir)
 	if flagsConfig.UseHealthService {
 		healthService.Start()
 	}
 
+	return healthService
+}
+
+func (nr *nodeRunner) registerDataComponentsInHealthService(healthService HealthService, dataComponents mainFactory.DataComponentsHolder) {
 	healthService.RegisterComponent(dataComponents.Datapool().Transactions())
 	healthService.RegisterComponent(dataComponents.Datapool().UnsignedTransactions())
 	healthService.RegisterComponent(dataComponents.Datapool().RewardTransactions())
-	return healthService
 }
 
 // CreateManagedConsensusComponents is the managed consensus components factory

@@ -8,8 +8,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/data"
 	"github.com/ElrondNetwork/elrond-go/p2p/message"
+	pubsub "github.com/ElrondNetwork/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/libp2p/go-libp2p-pubsub"
 )
 
 const currentTopicMessageVersion = uint32(1)
