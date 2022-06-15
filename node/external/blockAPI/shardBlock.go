@@ -104,6 +104,7 @@ func (sbp *shardAPIBlockProcessor) convertShardBlockBytesToAPIBlock(hash []byte,
 			Type:             block.Type(mb.GetTypeInt32()).String(),
 			SourceShard:      mb.GetSenderShardID(),
 			DestinationShard: mb.GetReceiverShardID(),
+			IsScheduled:      mb.GetProcessingType() == int32(block.Scheduled),
 		}
 		if options.WithTransactions {
 			miniBlockCopy := mb
