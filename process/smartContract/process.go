@@ -84,6 +84,7 @@ type scProcessor struct {
 	isPayableBySCEnableEpoch                    uint32
 	fixCodeMetadataOnUpgradeContract            uint32
 	scrSizeInvariantOnBuiltInResultEnableEpoch  uint32
+	deleteWrongArgAsyncAfterBuiltInEnableEpoch  uint32
 	flagStakingV2                               atomic.Flag
 	flagDeploy                                  atomic.Flag
 	flagBuiltin                                 atomic.Flag
@@ -104,6 +105,7 @@ type scProcessor struct {
 	flagIsPayableBySC                           atomic.Flag
 	flagFixCodeMetadataOnUpgradeContract        atomic.Flag
 	flagSCRSizeInvariantOnBuiltInResult         atomic.Flag
+	flagDeleteWrongArgAsyncAfterBuiltIn         atomic.Flag
 
 	badTxForwarder process.IntermediateTransactionHandler
 	scrForwarder   process.IntermediateTransactionHandler
@@ -254,6 +256,7 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 		isPayableBySCEnableEpoch:                    args.EnableEpochs.IsPayableBySCEnableEpoch,
 		fixCodeMetadataOnUpgradeContract:            args.EnableEpochs.IsPayableBySCEnableEpoch,
 		scrSizeInvariantOnBuiltInResultEnableEpoch:  args.EnableEpochs.SCRSizeInvariantOnBuiltInResultEnableEpoch,
+		deleteWrongArgAsyncAfterBuiltInEnableEpoch:  args.EnableEpochs.ManagedCryptoAPIsEnableEpoch,
 	}
 
 	var err error
@@ -278,6 +281,7 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 	log.Debug("smartContract/process: enable epoch for payable by SC", "epoch", sc.isPayableBySCEnableEpoch)
 	log.Debug("smartContract/process: enable epoch for fix code metadata on upgrade contract", "epoch", sc.fixCodeMetadataOnUpgradeContract)
 	log.Debug("smartContract/process: enable epoch for scr size invariant on built in", "epoch", sc.scrSizeInvariantOnBuiltInResultEnableEpoch)
+	log.Debug("smartContract/process: enable epoch for delete wrong arg on async callback after built in", "epoch", sc.deleteWrongArgAsyncAfterBuiltInEnableEpoch)
 
 	args.EpochNotifier.RegisterNotifyHandler(sc)
 	args.GasSchedule.RegisterNotifyHandler(sc)
@@ -1169,7 +1173,7 @@ func (sc *scProcessor) isSCExecutionAfterBuiltInFunc(
 
 	callType := determineCallType(tx)
 	if callType == vmData.AsynchronousCallBack {
-		newVMInput := sc.createVMInputWithAsyncCallBack(vmInput, vmOutput, parsedTransfer)
+		newVMInput := sc.createVMInputWithAsyncCallBackAfterBuiltIn(vmInput, vmOutput, parsedTransfer)
 		return true, newVMInput, nil
 	}
 
@@ -1215,21 +1219,23 @@ func (sc *scProcessor) isSCExecutionAfterBuiltInFunc(
 	return true, newVMInput, nil
 }
 
-func (sc *scProcessor) createVMInputWithAsyncCallBack(
+func (sc *scProcessor) createVMInputWithAsyncCallBackAfterBuiltIn(
 	vmInput *vmcommon.ContractCallInput,
 	vmOutput *vmcommon.VMOutput,
 	parsedTransfer *vmcommon.ParsedESDTTransfers,
 ) *vmcommon.ContractCallInput {
-	arguments := [][]byte{
-		big.NewInt(int64(vmOutput.ReturnCode)).Bytes(),
-	}
+	arguments := [][]byte{big.NewInt(int64(vmOutput.ReturnCode)).Bytes()}
 	gasLimit := vmOutput.GasRemaining
 
 	outAcc, ok := vmOutput.OutputAccounts[string(vmInput.RecipientAddr)]
 	if ok && len(outAcc.OutputTransfers) == 1 {
+		if sc.flagDeleteWrongArgAsyncAfterBuiltIn.IsSet() {
+			arguments = [][]byte{}
+		}
+
 		gasLimit = outAcc.OutputTransfers[0].GasLimit
 		function, args, err := sc.argsParser.ParseCallData(string(outAcc.OutputTransfers[0].Data))
-		log.LogIfError(err, "function", "createVMInputWithAsyncCallBack.ParseCallData")
+		log.LogIfError(err, "function", "createVMInputWithAsyncCallBackAfterBuiltIn.ParseCallData")
 		if len(function) > 0 {
 			arguments = append(arguments, []byte(function))
 		}
@@ -2910,10 +2916,13 @@ func (sc *scProcessor) EpochConfirmed(epoch uint32, _ uint64) {
 	log.Debug("scProcessor: fix code metadata on upgrade contract", "enabled", sc.flagFixCodeMetadataOnUpgradeContract.IsSet())
 
 	sc.flagIsPayableBySC.SetValue(epoch >= sc.isPayableBySCEnableEpoch)
-	log.Debug("smartContract/process: enable epoch for payable by SC", "enabled", sc.flagIsPayableBySC.IsSet())
+	log.Debug("smartContract: enable epoch for payable by SC", "enabled", sc.flagIsPayableBySC.IsSet())
 
 	sc.flagSCRSizeInvariantOnBuiltInResult.SetValue(epoch >= sc.scrSizeInvariantOnBuiltInResultEnableEpoch)
 	log.Debug("scProcessor: scr size invariant check on build in result", "enabled", sc.flagSCRSizeInvariantOnBuiltInResult.IsSet())
+
+	sc.flagDeleteWrongArgAsyncAfterBuiltIn.SetValue(epoch >= sc.deleteWrongArgAsyncAfterBuiltInEnableEpoch)
+	log.Debug("scProcessor: delete wrong argument on async callback after builtin", "enabled", sc.flagDeleteWrongArgAsyncAfterBuiltIn.IsSet())
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
