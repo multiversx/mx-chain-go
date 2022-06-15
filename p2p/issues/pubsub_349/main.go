@@ -35,9 +35,9 @@ func newMessenger() *messenger {
 		libp2p.NATPortMap(),
 	}
 
-	h, _ := libp2p.New(context.Background(), opts...)
-
-	pb, _ := pubsub.NewGossipSub(context.Background(), h)
+	h, _ := libp2p.New(opts...)
+	optsPS := make([]pubsub.Option, 0)
+	pb, _ := pubsub.NewGossipSub(context.Background(), h, optsPS...)
 
 	return &messenger{
 		host: h,
