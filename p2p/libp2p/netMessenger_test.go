@@ -24,8 +24,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
-	pubsub "github.com/ElrondNetwork/go-libp2p-pubsub"
-	pubsubPb "github.com/ElrondNetwork/go-libp2p-pubsub/pb"
+	"github.com/ElrondNetwork/go-libp2p-pubsub"
+	pb "github.com/ElrondNetwork/go-libp2p-pubsub/pb"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/peerstore"
@@ -97,7 +97,7 @@ func createMockNetworkArgs() libp2p.ArgsNetworkMessenger {
 }
 
 func createMockNetworkOf2() (mocknet.Mocknet, p2p.Messenger, p2p.Messenger) {
-	netw := mocknet.New(context.Background())
+	netw := mocknet.New()
 
 	mes1, _ := libp2p.NewMockMessenger(createMockNetworkArgs(), netw)
 	mes2, _ := libp2p.NewMockMessenger(createMockNetworkArgs(), netw)
@@ -108,7 +108,7 @@ func createMockNetworkOf2() (mocknet.Mocknet, p2p.Messenger, p2p.Messenger) {
 }
 
 func createMockNetworkOf3() (p2p.Messenger, p2p.Messenger, p2p.Messenger) {
-	netw := mocknet.New(context.Background())
+	netw := mocknet.New()
 
 	mes1, _ := libp2p.NewMockMessenger(createMockNetworkArgs(), netw)
 	mes2, _ := libp2p.NewMockMessenger(createMockNetworkArgs(), netw)
@@ -138,7 +138,7 @@ func createMockNetworkOf3() (p2p.Messenger, p2p.Messenger, p2p.Messenger) {
 }
 
 func createMockMessenger() p2p.Messenger {
-	netw := mocknet.New(context.Background())
+	netw := mocknet.New()
 
 	mes, _ := libp2p.NewMockMessenger(createMockNetworkArgs(), netw)
 
@@ -165,7 +165,7 @@ func TestNewMemoryLibp2pMessenger_NilMockNetShouldErr(t *testing.T) {
 }
 
 func TestNewMemoryLibp2pMessenger_OkValsWithoutDiscoveryShouldWork(t *testing.T) {
-	netw := mocknet.New(context.Background())
+	netw := mocknet.New()
 
 	mes, err := libp2p.NewMockMessenger(createMockNetworkArgs(), netw)
 
@@ -267,7 +267,7 @@ func TestNewNetworkMessenger_WithKadDiscovererListSharderShouldWork(t *testing.T
 // ------- Messenger functionality
 
 func TestLibp2pMessenger_ConnectToPeerShouldCallUpgradedHost(t *testing.T) {
-	netw := mocknet.New(context.Background())
+	netw := mocknet.New()
 
 	mes, _ := libp2p.NewMockMessenger(createMockNetworkArgs(), netw)
 	_ = mes.Close()
@@ -752,7 +752,7 @@ func TestLibp2pMessenger_PeerAddressConnectedPeerShouldWork(t *testing.T) {
 }
 
 func TestLibp2pMessenger_PeerAddressNotConnectedShouldReturnFromPeerstore(t *testing.T) {
-	netw := mocknet.New(context.Background())
+	netw := mocknet.New()
 	mes, _ := libp2p.NewMockMessenger(createMockNetworkArgs(), netw)
 
 	networkHandler := &mock.NetworkStub{
@@ -1041,7 +1041,7 @@ func TestLibp2pMessenger_ConnectedPeersShouldReturnUniquePeers(t *testing.T) {
 		},
 	}
 
-	netw := mocknet.New(context.Background())
+	netw := mocknet.New()
 	mes, _ := libp2p.NewMockMessenger(createMockNetworkArgs(), netw)
 	// we can safely close the host as the next operations will be done on a mock
 	_ = mes.Close()
@@ -1187,7 +1187,7 @@ func TestLibp2pMessenger_SendDirectWithRealNetToSelfShouldWork(t *testing.T) {
 func TestNetworkMessenger_BootstrapPeerDiscoveryShouldCallPeerBootstrapper(t *testing.T) {
 	wasCalled := false
 
-	netw := mocknet.New(context.Background())
+	netw := mocknet.New()
 	pdm := &mock.PeerDiscovererStub{
 		BootstrapCalled: func() error {
 			wasCalled = true
@@ -1339,7 +1339,7 @@ func TestNetworkMessenger_PreventReprocessingShouldWork(t *testing.T) {
 	}
 	buff, _ := args.Marshalizer.Marshal(innerMessage)
 	msg := &pubsub.Message{
-		Message: &pubsubPb.Message{
+		Message: &pb.Message{
 			From:                 []byte(pid),
 			Data:                 buff,
 			Seqno:                []byte{0, 0, 0, 1},
@@ -1412,7 +1412,7 @@ func TestNetworkMessenger_PubsubCallbackNotMessageNotValidShouldNotCallHandler(t
 	}
 	buff, _ := args.Marshalizer.Marshal(innerMessage)
 	msg := &pubsub.Message{
-		Message: &pubsubPb.Message{
+		Message: &pb.Message{
 			From:                 []byte("not a valid pid"),
 			Data:                 buff,
 			Seqno:                []byte{0, 0, 0, 1},
@@ -1477,7 +1477,7 @@ func TestNetworkMessenger_PubsubCallbackReturnsFalseIfHandlerErrors(t *testing.T
 	buff, _ := args.Marshalizer.Marshal(innerMessage)
 	topic := "topic"
 	msg := &pubsub.Message{
-		Message: &pubsubPb.Message{
+		Message: &pb.Message{
 			From:                 []byte(mes.ID()),
 			Data:                 buff,
 			Seqno:                []byte{0, 0, 0, 1},
@@ -1598,7 +1598,7 @@ func TestNetworkMessenger_ValidMessageByTimestampMessageAtUpperLimitShouldWork(t
 }
 
 func TestNetworkMessenger_GetConnectedPeersInfo(t *testing.T) {
-	netw := mocknet.New(context.Background())
+	netw := mocknet.New()
 
 	peers := []peer.ID{
 		"valI1",
@@ -1688,49 +1688,6 @@ func TestNetworkMessenger_mapHistogram(t *testing.T) {
 	output := `shard 0: 5, shard 1: 7, shard 2: 9, meta: 11`
 
 	require.Equal(t, output, netMes.MapHistogram(inp))
-}
-
-func TestNetworkMessenger_ChooseAnotherPortIfBindFails(t *testing.T) {
-	t.Skip("complex test used to debug port reuse mechanism on netMessenger")
-
-	port := "37000-37010"
-	mutMessengers := sync.Mutex{}
-	messengers := make([]p2p.Messenger, 0)
-
-	numMessengers := 10
-	for i := 0; i < numMessengers; i++ {
-		go func() {
-			time.Sleep(time.Millisecond)
-			args := createMockNetworkArgs()
-			args.P2pConfig.Node.Port = port
-
-			netMes, err := libp2p.NewNetworkMessengerWithoutPortReuse(args)
-			assert.Nil(t, err)
-			require.False(t, check.IfNil(netMes))
-
-			mutMessengers.Lock()
-			messengers = append(messengers, netMes)
-			mutMessengers.Unlock()
-		}()
-	}
-
-	time.Sleep(time.Second)
-
-	mutMessengers.Lock()
-	for index1, mes1 := range messengers {
-		for index2, mes2 := range messengers {
-			if index1 == index2 {
-				continue
-			}
-
-			assert.NotEqual(t, mes1.Port(), mes2.Port())
-		}
-	}
-
-	for _, mes := range messengers {
-		_ = mes.Close()
-	}
-	mutMessengers.Unlock()
 }
 
 func TestNetworkMessenger_Bootstrap(t *testing.T) {
