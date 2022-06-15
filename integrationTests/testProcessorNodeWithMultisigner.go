@@ -278,7 +278,9 @@ func CreateNodeWithBLSAndTxKeys(
 		PeerShardMapper:         disabled.NewPeerShardMapper(),
 	}
 
-	tpn.EnableEpochs.StakingV2EnableEpoch = UnreachableEpoch
+	tpn.EnableEpochs.StakingV2EnableEpoch = 1
+	tpn.EnableEpochs.DelegationManagerEnableEpoch = 1
+	tpn.EnableEpochs.DelegationSmartContractEnableEpoch = 1
 	tpn.EnableEpochs.ScheduledMiniBlocksEnableEpoch = UnreachableEpoch
 	tpn.EnableEpochs.MiniBlockPartialExecutionEnableEpoch = UnreachableEpoch
 	tpn.EpochNotifier = forking.NewGenericEpochNotifier()
