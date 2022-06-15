@@ -105,6 +105,11 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		return nil, err
 	}
 
+	pubKeyConverter := args.CoreComponents.AddressPubKeyConverter()
+	convertedAddress, err := pubKeyConverter.Decode(args.Configs.GeneralConfig.BuiltInFunctions.AutomaticCrawlerAddress)
+	if err != nil {
+		return nil, err
+	}
 	builtInFuncs, _, _, err := createBuiltinFuncs(
 		args.GasScheduleNotifier,
 		args.CoreComponents.InternalMarshalizer(),
@@ -117,6 +122,8 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		args.Configs.EpochConfig.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch,
 		args.Configs.EpochConfig.EnableEpochs.OptimizeNFTStoreEnableEpoch,
 		args.Configs.EpochConfig.EnableEpochs.CheckCorrectTokenIDForTransferRoleEnableEpoch,
+		args.Configs.EpochConfig.EnableEpochs.ESDTMetadataContinuousCleanupEnableEpoch,
+		convertedAddress,
 	)
 	if err != nil {
 		return nil, err
@@ -286,6 +293,11 @@ func createScQueryElement(
 	var vmFactory process.VirtualMachinesContainerFactory
 	var err error
 
+	pubKeyConverter := args.coreComponents.AddressPubKeyConverter()
+	convertedAddress, err := pubKeyConverter.Decode(args.generalConfig.BuiltInFunctions.AutomaticCrawlerAddress)
+	if err != nil {
+		return nil, err
+	}
 	builtInFuncs, nftStorageHandler, globalSettingsHandler, err := createBuiltinFuncs(
 		args.gasScheduleNotifier,
 		args.coreComponents.InternalMarshalizer(),
@@ -298,6 +310,8 @@ func createScQueryElement(
 		args.epochConfig.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch,
 		args.epochConfig.EnableEpochs.OptimizeNFTStoreEnableEpoch,
 		args.epochConfig.EnableEpochs.CheckCorrectTokenIDForTransferRoleEnableEpoch,
+		args.epochConfig.EnableEpochs.ESDTMetadataContinuousCleanupEnableEpoch,
+		convertedAddress,
 	)
 	if err != nil {
 		return nil, err
@@ -427,20 +441,24 @@ func createBuiltinFuncs(
 	transferToMetaEnableEpoch uint32,
 	optimizeNFTStoreEnableEpoch uint32,
 	checkCorrectTokenIDEnableEpoch uint32,
+	esdtMetadataContinuousCleanupEnableEpoch uint32,
+	automaticCrawlerAddress []byte,
 ) (vmcommon.BuiltInFunctionContainer, vmcommon.SimpleESDTNFTStorageHandler, vmcommon.ESDTGlobalSettingsHandler, error) {
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:                    gasScheduleNotifier,
-		MapDNSAddresses:                make(map[string]struct{}),
-		Marshalizer:                    marshalizer,
-		Accounts:                       accnts,
-		ShardCoordinator:               shardCoordinator,
-		EpochNotifier:                  epochNotifier,
-		ESDTMultiTransferEnableEpoch:   esdtMultiTransferEnableEpoch,
-		ESDTTransferRoleEnableEpoch:    esdtTransferRoleEnableEpoch,
-		GlobalMintBurnDisableEpoch:     esdtGlobalMintBurnDisableEpoch,
-		ESDTTransferMetaEnableEpoch:    transferToMetaEnableEpoch,
-		OptimizeNFTStoreEnableEpoch:    optimizeNFTStoreEnableEpoch,
-		CheckCorrectTokenIDEnableEpoch: checkCorrectTokenIDEnableEpoch,
+		GasSchedule:                              gasScheduleNotifier,
+		MapDNSAddresses:                          make(map[string]struct{}),
+		Marshalizer:                              marshalizer,
+		Accounts:                                 accnts,
+		ShardCoordinator:                         shardCoordinator,
+		EpochNotifier:                            epochNotifier,
+		ESDTMultiTransferEnableEpoch:             esdtMultiTransferEnableEpoch,
+		ESDTTransferRoleEnableEpoch:              esdtTransferRoleEnableEpoch,
+		GlobalMintBurnDisableEpoch:               esdtGlobalMintBurnDisableEpoch,
+		ESDTTransferMetaEnableEpoch:              transferToMetaEnableEpoch,
+		OptimizeNFTStoreEnableEpoch:              optimizeNFTStoreEnableEpoch,
+		CheckCorrectTokenIDEnableEpoch:           checkCorrectTokenIDEnableEpoch,
+		ESDTMetadataContinuousCleanupEnableEpoch: esdtMetadataContinuousCleanupEnableEpoch,
+		AutomaticCrawlerAddress:                  automaticCrawlerAddress,
 	}
 	return builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
 }
