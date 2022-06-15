@@ -55,7 +55,7 @@ func TestReadOnlyAccountsDB_WriteOperationsShouldNotCalled(t *testing.T) {
 			t.Errorf(failErrMsg)
 			return nil
 		},
-		PruneTrieCalled: func(_ []byte, _ state.TriePruningIdentifier) {
+		PruneTrieCalled: func(_ []byte, _ state.TriePruningIdentifier, _ state.PruningHandler) {
 			t.Errorf(failErrMsg)
 		},
 		CancelPruneCalled: func(_ []byte, _ state.TriePruningIdentifier) {
@@ -91,7 +91,7 @@ func TestReadOnlyAccountsDB_WriteOperationsShouldNotCalled(t *testing.T) {
 	err = roAccDb.RecreateTrie(nil)
 	require.NoError(t, err)
 
-	roAccDb.PruneTrie(nil, state.NewRoot)
+	roAccDb.PruneTrie(nil, state.NewRoot, state.NewPruningHandler(state.EnableDataRemoval))
 
 	roAccDb.CancelPrune(nil, state.NewRoot)
 
