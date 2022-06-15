@@ -206,9 +206,6 @@ const sizeCheckDelta = 100
 
 const stateCheckpointModulus = 100
 
-// ScheduledMiniBlocksEnableEpoch defines the epoch for integration tests when scheduled nini blocks are enabled
-const ScheduledMiniBlocksEnableEpoch = 1000
-
 // UnreachableEpoch defines an unreachable epoch for integration tests
 const UnreachableEpoch = uint32(1000000)
 

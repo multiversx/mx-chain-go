@@ -79,7 +79,7 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 		})
 
 	enableEpochsConfig := config.EnableEpochs{
-		StakingV2EnableEpoch: 100,
+		StakingV2EnableEpoch: UnreachableEpoch,
 	}
 	epochNotifierInstance := forking.NewGenericEpochNotifier()
 	enableEpochsHandler, _ := enableEpochs.NewEnableEpochsHandler(enableEpochsConfig, epochNotifierInstance)

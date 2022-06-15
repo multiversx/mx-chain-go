@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/receipt"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/process"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -67,11 +68,11 @@ func TestMoveBalanceSelfShouldWorkAndConsumeTxFeeWhenAllFlagsAreDisabled(t *test
 // minGasPrice = 1, gasPerDataByte = 1, minGasLimit = 1
 func TestMoveBalanceAllFlagsDisabledLessBalanceThanGasLimitMulGasPrice(t *testing.T) {
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
-		PenalizedTooMuchGasEnableEpoch: 100,
-		BuiltInFunctionsEnableEpoch:    100,
-		SCDeployEnableEpoch:            100,
-		MetaProtectionEnableEpoch:      100,
-		RelayedTransactionsEnableEpoch: 100,
+		PenalizedTooMuchGasEnableEpoch: integrationTests.UnreachableEpoch,
+		BuiltInFunctionsEnableEpoch:    integrationTests.UnreachableEpoch,
+		SCDeployEnableEpoch:            integrationTests.UnreachableEpoch,
+		MetaProtectionEnableEpoch:      integrationTests.UnreachableEpoch,
+		RelayedTransactionsEnableEpoch: integrationTests.UnreachableEpoch,
 	})
 	require.Nil(t, err)
 	defer testContext.Close()

@@ -123,7 +123,7 @@ func NewTestSyncNode(
 }
 
 func (tpn *TestProcessorNode) initTestNodeWithSync() {
-	tpn.EnableEpochs.ScheduledMiniBlocksEnableEpoch = ScheduledMiniBlocksEnableEpoch
+	tpn.EnableEpochs.ScheduledMiniBlocksEnableEpoch = UnreachableEpoch
 	tpn.EnableEpochsHandler, _ = enableEpochs.NewEnableEpochsHandler(tpn.EnableEpochs, tpn.EpochNotifier)
 	tpn.NetworkShardingCollector = mock.NewNetworkShardingCollectorMock()
 	tpn.initChainHandler()

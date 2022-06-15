@@ -160,7 +160,7 @@ func (tP2pNode *TestP2PNode) initNode() {
 	coreComponents.HasherField = TestHasher
 	coreComponents.ValidatorPubKeyConverterField = TestValidatorPubkeyConverter
 	cfg := config.EnableEpochs{
-		HeartbeatDisableEpoch: 100,
+		HeartbeatDisableEpoch: UnreachableEpoch,
 	}
 	coreComponents.EnableEpochsHandlerField, _ = enableEpochs.NewEnableEpochsHandler(cfg, coreComponents.EpochNotifierField)
 
@@ -353,9 +353,7 @@ func CreateNodesWithTestP2PNodes(
 			ChanStopNode:            endProcess.GetDummyEndProcessChannel(),
 			NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
 			IsFullArchive:           false,
-			EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
-				WaitingListFixEnableEpochField: 0,
-			},
+			EnableEpochsHandler:     &testscommon.EnableEpochsHandlerStub{},
 		}
 		nodesCoord, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 		log.LogIfError(err)
@@ -400,9 +398,7 @@ func CreateNodesWithTestP2PNodes(
 				ChanStopNode:            endProcess.GetDummyEndProcessChannel(),
 				NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
 				IsFullArchive:           false,
-				EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
-					WaitingListFixEnableEpochField: 0,
-				},
+				EnableEpochsHandler:     &testscommon.EnableEpochsHandlerStub{},
 			}
 			nodesCoord, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 			log.LogIfError(err)

@@ -528,7 +528,6 @@ func createNodes(
 			NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
 			IsFullArchive:           false,
 			EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
-				WaitingListFixEnableEpochField:   0,
 				IsWaitingListFixFlagEnabledField: true,
 			},
 		}

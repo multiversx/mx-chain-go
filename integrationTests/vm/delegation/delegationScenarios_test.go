@@ -40,7 +40,7 @@ func TestDelegationSystemNodesOperations(t *testing.T) {
 	numDelegators := 4
 	delegationVal := int64(1000)
 	tpn.EpochNotifier.CheckEpoch(&testscommon.HeaderHandlerStub{
-		EpochField: 100000001,
+		EpochField: integrationTests.UnreachableEpoch + 1,
 	})
 
 	tpn.BlockchainHook.SetCurrentHeader(&block.MetaBlock{Nonce: 1})
@@ -117,7 +117,7 @@ func TestDelegationSystemReStakeNodes(t *testing.T) {
 	numDelegators := 4
 	delegationVal := int64(1000)
 	tpn.EpochNotifier.CheckEpoch(&testscommon.HeaderHandlerStub{
-		EpochField: 100000001,
+		EpochField: integrationTests.UnreachableEpoch + 1,
 	})
 
 	tpn.BlockchainHook.SetCurrentHeader(&block.MetaBlock{Nonce: 1})
@@ -179,7 +179,7 @@ func TestDelegationChangeConfig(t *testing.T) {
 	numDelegators := 4
 	initialDelegationValue := int64(100)
 	tpn.EpochNotifier.CheckEpoch(&testscommon.HeaderHandlerStub{
-		EpochField: 100000001,
+		EpochField: integrationTests.UnreachableEpoch + 1,
 	})
 
 	tpn.BlockchainHook.SetCurrentHeader(&block.MetaBlock{Nonce: 1})
@@ -234,7 +234,7 @@ func TestDelegationSystemDelegateUnDelegateFromTopUpWithdraw(t *testing.T) {
 	numDelegators := 4
 	delegationVal := int64(1000)
 	tpn.EpochNotifier.CheckEpoch(&testscommon.HeaderHandlerStub{
-		EpochField: 100000001,
+		EpochField: integrationTests.UnreachableEpoch + 1,
 	})
 	tpn.BlockchainHook.SetCurrentHeader(&block.MetaBlock{Nonce: 1})
 
@@ -290,7 +290,7 @@ func TestDelegationSystemDelegateUnDelegateOnlyPartOfDelegation(t *testing.T) {
 	numDelegators := 4
 	delegationVal := int64(1000)
 	tpn.EpochNotifier.CheckEpoch(&testscommon.HeaderHandlerStub{
-		EpochField: 100000001,
+		EpochField: integrationTests.UnreachableEpoch + 1,
 	})
 	tpn.BlockchainHook.SetCurrentHeader(&block.MetaBlock{Nonce: 1})
 
@@ -348,7 +348,7 @@ func TestDelegationSystemMultipleDelegationContractsAndSameBlsKeysShouldNotWork(
 	numDelegators := 4
 	delegationVal := int64(1000)
 	tpn.EpochNotifier.CheckEpoch(&testscommon.HeaderHandlerStub{
-		EpochField: 100000001,
+		EpochField: integrationTests.UnreachableEpoch + 1,
 	})
 	tpn.BlockchainHook.SetCurrentHeader(&block.MetaBlock{Nonce: 1})
 
@@ -418,7 +418,7 @@ func TestDelegationSystemMultipleDelegationContractsAndSameDelegators(t *testing
 	numDelegators := 4
 	delegationVal := int64(1000)
 	tpn.EpochNotifier.CheckEpoch(&testscommon.HeaderHandlerStub{
-		EpochField: 100000001,
+		EpochField: integrationTests.UnreachableEpoch + 1,
 	})
 	tpn.BlockchainHook.SetCurrentHeader(&block.MetaBlock{Nonce: 1})
 
@@ -480,7 +480,7 @@ func TestDelegationRewardsComputationAfterChangeServiceFee(t *testing.T) {
 	totalNumNodes := 5
 	numDelegators := 4
 	tpn.EpochNotifier.CheckEpoch(&testscommon.HeaderHandlerStub{
-		EpochField: 100000001,
+		EpochField: integrationTests.UnreachableEpoch + 1,
 	})
 	tpn.BlockchainHook.SetCurrentHeader(&block.MetaBlock{Nonce: 1})
 
@@ -580,7 +580,7 @@ func TestDelegationUnJail(t *testing.T) {
 	totalNumNodes := 5
 	numDelegators := 4
 	tpn.EpochNotifier.CheckEpoch(&testscommon.HeaderHandlerStub{
-		EpochField: 100000001,
+		EpochField: integrationTests.UnreachableEpoch + 1,
 	})
 	tpn.BlockchainHook.SetCurrentHeader(&block.MetaBlock{Nonce: 1})
 
@@ -640,7 +640,7 @@ func TestDelegationSystemDelegateSameUsersAFewTimes(t *testing.T) {
 	numDelegators := 2
 	delegationVal := int64(5000)
 	tpn.EpochNotifier.CheckEpoch(&testscommon.HeaderHandlerStub{
-		EpochField: 100000001,
+		EpochField: integrationTests.UnreachableEpoch + 1,
 	})
 	tpn.BlockchainHook.SetCurrentHeader(&block.MetaBlock{Nonce: 1})
 
@@ -698,7 +698,7 @@ func TestDelegationSystemMultipleDelegationContractsAndSameDelegatorsClaimReward
 	numDelegators := 4
 	delegationVal := int64(1000)
 	tpn.EpochNotifier.CheckEpoch(&testscommon.HeaderHandlerStub{
-		EpochField: 100000001,
+		EpochField: integrationTests.UnreachableEpoch + 1,
 	})
 	tpn.BlockchainHook.SetCurrentHeader(&block.MetaBlock{Nonce: 1})
 
@@ -845,7 +845,7 @@ func TestDelegationSystemDelegateUnDelegateReceiveRewardsWhenAllIsUndelegated(t 
 	numDelegators := 2
 	delegationVal := int64(1000)
 	tpn.EpochNotifier.CheckEpoch(&testscommon.HeaderHandlerStub{
-		EpochField: 100000001,
+		EpochField: integrationTests.UnreachableEpoch + 1,
 	})
 	tpn.BlockchainHook.SetCurrentHeader(&block.MetaBlock{Nonce: 1})
 
@@ -978,7 +978,7 @@ func TestDelegationSystemCleanUpContract(t *testing.T) {
 	totalNumNodes := 7
 	numDelegators := 4
 	tpn.EpochNotifier.CheckEpoch(&testscommon.HeaderHandlerStub{
-		EpochField: 100000001,
+		EpochField: integrationTests.UnreachableEpoch + 1,
 	})
 	delegationVal := int64(1000)
 

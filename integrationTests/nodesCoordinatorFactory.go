@@ -100,9 +100,7 @@ func (ihncrf *IndexHashedNodesCoordinatorWithRaterFactory) CreateNodesCoordinato
 		ShuffleBetweenShards: shuffleBetweenShards,
 		MaxNodesEnableConfig: nil,
 		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
-			WaitingListFixEnableEpochField:        0,
 			IsWaitingListFixFlagEnabledField:      true,
-			BalanceWaitingListsEnableEpochField:   0,
 			IsBalanceWaitingListsFlagEnabledField: true,
 		},
 	}
@@ -126,7 +124,6 @@ func (ihncrf *IndexHashedNodesCoordinatorWithRaterFactory) CreateNodesCoordinato
 		NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
 		IsFullArchive:           false,
 		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
-			WaitingListFixEnableEpochField:   0,
 			IsWaitingListFixFlagEnabledField: true,
 		},
 	}
