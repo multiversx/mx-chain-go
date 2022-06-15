@@ -2,6 +2,7 @@ package peer
 
 import (
 	"bytes"
+	"encoding/hex"
 	"math/big"
 	"sort"
 	"time"
@@ -39,14 +40,16 @@ func (vp *validatorsProvider) updateAuctionListCacheIfNeeded() error {
 }
 
 func (vp *validatorsProvider) updateAuctionListCache() error {
-	rootHash, err := vp.validatorStatistics.RootHash()
-	if err != nil {
-		return err
+	rootHash := vp.validatorStatistics.LastFinalizedRootHash()
+	if len(rootHash) == 0 {
+		log.Warn("Finalize roothash is 0")
+		return nil
 	}
 
 	validatorsMap, err := vp.validatorStatistics.GetValidatorInfoForRootHash(rootHash)
 	if err != nil {
-		return err
+		validatorsMap = state.NewShardValidatorsInfoMap()
+		log.Error("Error getting validators for roothash", "error", err, "roothash", hex.EncodeToString(rootHash))
 	}
 
 	vp.auctionMutex.Lock()
