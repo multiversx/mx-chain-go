@@ -1,6 +1,7 @@
 package vm
 
 import (
+	"bytes"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -555,10 +556,11 @@ func CreateVMAndBlockchainHookAndDataPool(
 		MapDNSAddresses: map[string]struct{}{
 			string(dnsAddr): {},
 		},
-		Marshalizer:      testMarshalizer,
-		Accounts:         accnts,
-		ShardCoordinator: shardCoordinator,
-		EpochNotifier:    epochNotifierInstance,
+		Marshalizer:             testMarshalizer,
+		Accounts:                accnts,
+		ShardCoordinator:        shardCoordinator,
+		EpochNotifier:           epochNotifierInstance,
+		AutomaticCrawlerAddress: bytes.Repeat([]byte{1}, 32),
 	}
 	builtInFuncs, nftStorageHandler, globalSettingsHandler, _ := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
 
@@ -630,10 +632,11 @@ func CreateVMAndBlockchainHookMeta(
 		MapDNSAddresses: map[string]struct{}{
 			string(dnsAddr): {},
 		},
-		Marshalizer:      testMarshalizer,
-		Accounts:         accnts,
-		ShardCoordinator: shardCoordinator,
-		EpochNotifier:    globalEpochNotifier,
+		Marshalizer:             testMarshalizer,
+		Accounts:                accnts,
+		ShardCoordinator:        shardCoordinator,
+		EpochNotifier:           globalEpochNotifier,
+		AutomaticCrawlerAddress: bytes.Repeat([]byte{1}, 32),
 	}
 	builtInFuncs, nftStorageHandler, globalSettingsHandler, _ := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
 
