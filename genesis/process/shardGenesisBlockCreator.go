@@ -118,6 +118,7 @@ func createGenesisConfig() config.EnableEpochs {
 		ManagedCryptoAPIsEnableEpoch:                      unreachableEpoch,
 		CheckCorrectTokenIDForTransferRoleEnableEpoch:     unreachableEpoch,
 		DisableExecByCallerEnableEpoch:                    unreachableEpoch,
+		RefactorContextEnableEpoch:                        unreachableEpoch,
 	}
 }
 

@@ -180,6 +180,7 @@ func printEnableEpochs(configs *config.Configs) {
 	log.Debug(readEpochFor("disable check value on exec by caller"), "epoch", enableEpochs.DisableExecByCallerEnableEpoch)
 	log.Debug(readEpochFor("fail execution on every wrong API call"), "epoch", enableEpochs.FailExecutionOnEveryAPIErrorEnableEpoch)
 	log.Debug(readEpochFor("managed crypto API in wasm vm"), "epoch", enableEpochs.ManagedCryptoAPIsEnableEpoch)
+	log.Debug(readEpochFor("refactor contexts"), "epoch", enableEpochs.RefactorContextEnableEpoch)
 
 	gasSchedule := configs.EpochConfig.GasSchedule
 
