@@ -8,5 +8,4 @@ import (
 
 type economicsDataWithComputeFee interface {
 	ComputeTxFee(tx data.TransactionWithFeeHandler) *big.Int
-	ComputeMoveBalanceFee(tx data.TransactionWithFeeHandler) *big.Int
 }

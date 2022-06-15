@@ -34,6 +34,9 @@ func (tu *txUnmarshaller) unmarshalReceipt(receiptBytes []byte) (*transaction.Ap
 	}
 
 	receiptHash, err := core.CalculateHash(tu.marshalizer, tu.hasher, rec)
+	if err != nil {
+		return nil, err
+	}
 
 	return &transaction.ApiReceipt{
 		Hash:    hex.EncodeToString(receiptHash),
