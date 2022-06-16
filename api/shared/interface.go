@@ -107,6 +107,7 @@ type FacadeHandler interface {
 	ComputeTransactionGasLimit(tx *transaction.Transaction) (*transaction.CostResponse, error)
 	EncodeAddressPubkey(pk []byte) (string, error)
 	ValidatorStatisticsApi() (map[string]*state.ValidatorApiResponse, error)
+	AuctionListApi() ([]*common.AuctionListValidatorAPIResponse, error)
 	ExecuteSCQuery(*process.SCQuery) (*vm.VMOutputApi, error)
 	DecodeAddressPubkey(pk string) ([]byte, error)
 	RestApiInterface() string

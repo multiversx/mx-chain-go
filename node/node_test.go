@@ -50,6 +50,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/mainFactoryMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/stakingcommon"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
@@ -2595,15 +2596,16 @@ func TestNode_ValidatorStatisticsApi(t *testing.T) {
 		},
 	}
 
-	validatorProvider := &mock.ValidatorsProviderStub{GetLatestValidatorsCalled: func() map[string]*state.ValidatorApiResponse {
-		apiResponses := make(map[string]*state.ValidatorApiResponse)
+	validatorProvider := &stakingcommon.ValidatorsProviderStub{
+		GetLatestValidatorsCalled: func() map[string]*state.ValidatorApiResponse {
+			apiResponses := make(map[string]*state.ValidatorApiResponse)
 
-		for _, vi := range validatorsInfo.GetAllValidatorsInfo() {
-			apiResponses[hex.EncodeToString(vi.GetPublicKey())] = &state.ValidatorApiResponse{}
-		}
+			for _, vi := range validatorsInfo.GetAllValidatorsInfo() {
+				apiResponses[hex.EncodeToString(vi.GetPublicKey())] = &state.ValidatorApiResponse{}
+			}
 
-		return apiResponses
-	},
+			return apiResponses
+		},
 	}
 
 	processComponents := getDefaultProcessComponents()
@@ -3928,7 +3930,7 @@ func getDefaultProcessComponents() *factoryMock.ProcessComponentsMock {
 		HeaderSigVerif:                 &mock.HeaderSigVerifierStub{},
 		HeaderIntegrVerif:              &mock.HeaderIntegrityVerifierStub{},
 		ValidatorStatistics:            &testscommon.ValidatorStatisticsProcessorStub{},
-		ValidatorProvider:              &mock.ValidatorsProviderStub{},
+		ValidatorProvider:              &stakingcommon.ValidatorsProviderStub{},
 		BlockTrack:                     &mock.BlockTrackerStub{},
 		PendingMiniBlocksHdl:           &mock.PendingMiniBlocksHandlerStub{},
 		ReqHandler:                     &testscommon.RequestHandlerStub{},

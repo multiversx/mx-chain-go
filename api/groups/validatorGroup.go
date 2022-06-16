@@ -8,15 +8,20 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/shared"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/gin-gonic/gin"
 )
 
-const statisticsPath = "/statistics"
+const (
+	statisticsPath = "/statistics"
+	auctionPath    = "/auction"
+)
 
 // validatorFacadeHandler defines the methods to be implemented by a facade for validator requests
 type validatorFacadeHandler interface {
 	ValidatorStatisticsApi() (map[string]*state.ValidatorApiResponse, error)
+	AuctionListApi() ([]*common.AuctionListValidatorAPIResponse, error)
 	IsInterfaceNil() bool
 }
 
@@ -43,6 +48,11 @@ func NewValidatorGroup(facade validatorFacadeHandler) (*validatorGroup, error) {
 			Method:  http.MethodGet,
 			Handler: ng.statistics,
 		},
+		{
+			Path:    auctionPath,
+			Method:  http.MethodGet,
+			Handler: ng.auction,
+		},
 	}
 	ng.endpoints = endpoints
 
@@ -68,6 +78,31 @@ func (vg *validatorGroup) statistics(c *gin.Context) {
 		http.StatusOK,
 		shared.GenericAPIResponse{
 			Data:  gin.H{"statistics": valStats},
+			Error: "",
+			Code:  shared.ReturnCodeSuccess,
+		},
+	)
+}
+
+// auction will return the list of the validators in the auction list
+func (vg *validatorGroup) auction(c *gin.Context) {
+	valStats, err := vg.getFacade().AuctionListApi()
+	if err != nil {
+		c.JSON(
+			http.StatusBadRequest,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: err.Error(),
+				Code:  shared.ReturnCodeRequestError,
+			},
+		)
+		return
+	}
+
+	c.JSON(
+		http.StatusOK,
+		shared.GenericAPIResponse{
+			Data:  gin.H{"auctionList": valStats},
 			Error: "",
 			Code:  shared.ReturnCodeSuccess,
 		},

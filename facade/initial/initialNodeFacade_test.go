@@ -61,6 +61,10 @@ func TestDisabledNodeFacade_AllMethodsShouldNotPanic(t *testing.T) {
 	assert.Nil(t, v1)
 	assert.Equal(t, errNodeStarting, err)
 
+	v2, err := inf.AuctionListApi()
+	assert.Nil(t, v2)
+	assert.Equal(t, errNodeStarting, err)
+
 	u1, err := inf.SendBulkTransactions(nil)
 	assert.Equal(t, uint64(0), u1)
 	assert.Equal(t, errNodeStarting, err)

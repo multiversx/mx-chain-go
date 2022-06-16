@@ -13,3 +13,10 @@ type TransactionsPoolAPIResponse struct {
 	SmartContractResults []string `json:"smartContractResults"`
 	Rewards              []string `json:"rewards"`
 }
+
+// AuctionListValidatorAPIResponse holds the data needed for an auction node validator for responding to API calls
+type AuctionListValidatorAPIResponse struct {
+	Owner   string `json:"owner"`
+	NodeKey string `json:"nodeKey"`
+	TopUp   string `json:"topUp"`
+}

@@ -1,4 +1,4 @@
-package mock
+package stakingcommon
 
 import (
 	"math/big"

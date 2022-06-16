@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -21,8 +22,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/stakingcommon"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewValidatorsProvider_WithNilValidatorStatisticsShouldErr(t *testing.T) {
@@ -43,10 +46,30 @@ func TestNewValidatorsProvider_WithMaxRatingZeroShouldErr(t *testing.T) {
 
 func TestNewValidatorsProvider_WithNilValidatorPubkeyConverterShouldErr(t *testing.T) {
 	arg := createDefaultValidatorsProviderArg()
-	arg.PubKeyConverter = nil
+	arg.ValidatorPubKeyConverter = nil
 	vp, err := NewValidatorsProvider(arg)
 
-	assert.Equal(t, process.ErrNilPubkeyConverter, err)
+	assert.True(t, errors.Is(err, process.ErrNilPubkeyConverter))
+	assert.True(t, strings.Contains(err.Error(), "validator"))
+	assert.True(t, check.IfNil(vp))
+}
+
+func TestNewValidatorsProvider_WithNilAddressPubkeyConverterShouldErr(t *testing.T) {
+	arg := createDefaultValidatorsProviderArg()
+	arg.AddressPubKeyConverter = nil
+	vp, err := NewValidatorsProvider(arg)
+
+	assert.True(t, errors.Is(err, process.ErrNilPubkeyConverter))
+	assert.True(t, strings.Contains(err.Error(), "address"))
+	assert.True(t, check.IfNil(vp))
+}
+
+func TestNewValidatorsProvider_WithNilStakingDataProviderShouldErr(t *testing.T) {
+	arg := createDefaultValidatorsProviderArg()
+	arg.StakingDataProvider = nil
+	vp, err := NewValidatorsProvider(arg)
+
+	assert.Equal(t, process.ErrNilStakingDataProvider, err)
 	assert.True(t, check.IfNil(vp))
 }
 
@@ -211,7 +234,7 @@ func TestValidatorsProvider_UpdateCache_WithError(t *testing.T) {
 		cacheRefreshIntervalDuration: arg.CacheRefreshIntervalDurationInSec,
 		refreshCache:                 nil,
 		lock:                         sync.RWMutex{},
-		pubkeyConverter:              mock.NewPubkeyConverterMock(32),
+		validatorPubKeyConverter:     mock.NewPubkeyConverterMock(32),
 	}
 
 	vsp.updateCache()
@@ -285,7 +308,7 @@ func TestValidatorsProvider_UpdateCache(t *testing.T) {
 		cache:                        nil,
 		cacheRefreshIntervalDuration: arg.CacheRefreshIntervalDurationInSec,
 		refreshCache:                 nil,
-		pubkeyConverter:              mock.NewPubkeyConverterMock(32),
+		validatorPubKeyConverter:     mock.NewPubkeyConverterMock(32),
 		lock:                         sync.RWMutex{},
 	}
 
@@ -293,7 +316,7 @@ func TestValidatorsProvider_UpdateCache(t *testing.T) {
 
 	assert.NotNil(t, vsp.cache)
 	assert.Equal(t, len(validatorsMap.GetShardValidatorsInfoMap()[initialShardId]), len(vsp.cache))
-	encodedKey := arg.PubKeyConverter.Encode(pk)
+	encodedKey := arg.ValidatorPubKeyConverter.Encode(pk)
 	assert.NotNil(t, vsp.cache[encodedKey])
 	assert.Equal(t, initialList, vsp.cache[encodedKey].ValidatorStatus)
 	assert.Equal(t, initialShardId, vsp.cache[encodedKey].ShardId)
@@ -328,7 +351,7 @@ func TestValidatorsProvider_aggregatePType_equal(t *testing.T) {
 	}
 
 	vp := validatorsProvider{
-		pubkeyConverter: pubKeyConverter,
+		validatorPubKeyConverter: pubKeyConverter,
 	}
 
 	vp.aggregateLists(cache, validatorsMap, common.EligibleList)
@@ -398,7 +421,7 @@ func TestValidatorsProvider_createCache(t *testing.T) {
 		validatorStatistics:          arg.ValidatorStatistics,
 		cache:                        nil,
 		cacheRefreshIntervalDuration: arg.CacheRefreshIntervalDurationInSec,
-		pubkeyConverter:              pubKeyConverter,
+		validatorPubKeyConverter:     pubKeyConverter,
 		lock:                         sync.RWMutex{},
 	}
 
@@ -468,7 +491,7 @@ func TestValidatorsProvider_createCache_combined(t *testing.T) {
 	vsp := validatorsProvider{
 		nodesCoordinator:             nodesCoordinator,
 		validatorStatistics:          arg.ValidatorStatistics,
-		pubkeyConverter:              arg.PubKeyConverter,
+		validatorPubKeyConverter:     arg.ValidatorPubKeyConverter,
 		cache:                        nil,
 		cacheRefreshIntervalDuration: arg.CacheRefreshIntervalDurationInSec,
 		lock:                         sync.RWMutex{},
@@ -476,12 +499,12 @@ func TestValidatorsProvider_createCache_combined(t *testing.T) {
 
 	cache := vsp.createNewCache(0, validatorsMap)
 
-	encodedPkEligible := arg.PubKeyConverter.Encode(pkEligibleInTrie)
+	encodedPkEligible := arg.ValidatorPubKeyConverter.Encode(pkEligibleInTrie)
 	assert.NotNil(t, cache[encodedPkEligible])
 	assert.Equal(t, eligibleList, cache[encodedPkEligible].ValidatorStatus)
 	assert.Equal(t, nodesCoordinatorEligibleShardId, cache[encodedPkEligible].ShardId)
 
-	encodedPkLeavingInTrie := arg.PubKeyConverter.Encode(pkLeavingInTrie)
+	encodedPkLeavingInTrie := arg.ValidatorPubKeyConverter.Encode(pkLeavingInTrie)
 	computedPeerType := fmt.Sprintf(common.CombinedPeerType, common.EligibleList, common.LeavingList)
 	assert.NotNil(t, cache[encodedPkLeavingInTrie])
 	assert.Equal(t, computedPeerType, cache[encodedPkLeavingInTrie].ValidatorStatus)
@@ -557,7 +580,7 @@ func TestValidatorsProvider_CallsUpdateCacheOnEpochChange(t *testing.T) {
 	arg.ValidatorStatistics = validatorStatisticsProcessor
 
 	vsp, _ := NewValidatorsProvider(arg)
-	encodedEligible := arg.PubKeyConverter.Encode(pkEligibleInTrie)
+	encodedEligible := arg.ValidatorPubKeyConverter.Encode(pkEligibleInTrie)
 	assert.Equal(t, 0, len(vsp.GetCache())) // nothing in cache
 	epochStartNotifier.NotifyAll(&block.Header{Nonce: 1, ShardID: 2, Round: 3})
 	time.Sleep(arg.CacheRefreshIntervalDurationInSec)
@@ -595,7 +618,7 @@ func TestValidatorsProvider_DoesntCallUpdateUpdateCacheWithoutRequests(t *testin
 	arg.ValidatorStatistics = validatorStatisticsProcessor
 
 	vsp, _ := NewValidatorsProvider(arg)
-	encodedEligible := arg.PubKeyConverter.Encode(pkEligibleInTrie)
+	encodedEligible := arg.ValidatorPubKeyConverter.Encode(pkEligibleInTrie)
 	assert.Equal(t, 0, len(vsp.GetCache())) // nothing in cache
 	time.Sleep(arg.CacheRefreshIntervalDurationInSec)
 	assert.Equal(t, 0, len(vsp.GetCache())) // nothing in cache
@@ -607,6 +630,200 @@ func TestValidatorsProvider_DoesntCallUpdateUpdateCacheWithoutRequests(t *testin
 	assert.Equal(t, 1, len(resp))
 	assert.NotNil(t, vsp.GetCache()[encodedEligible])
 }
+
+func TestValidatorsProvider_GetAuctionList(t *testing.T) {
+	t.Parallel()
+
+	t.Run("no entry, should return entry map", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createDefaultValidatorsProviderArg()
+		vp, err := NewValidatorsProvider(arg)
+		require.NoError(t, err)
+
+		response := vp.GetAuctionList()
+		require.Empty(t, response)
+	})
+
+	t.Run("cannot get owner of key, should not fill it", func(t *testing.T) {
+		t.Parallel()
+
+		callNumber := 0
+		arg := createDefaultValidatorsProviderArg()
+		validatorStatisticsProcessor := &testscommon.ValidatorStatisticsProcessorStub{
+			LastFinalizedRootHashCalled: func() []byte {
+				return []byte("rootHash")
+			},
+		}
+		validatorStatisticsProcessor.GetValidatorInfoForRootHashCalled = func(rootHash []byte) (state.ShardValidatorsInfoMapHandler, error) {
+			callNumber++
+			// first call comes from the constructor
+			if callNumber == 1 {
+				return state.NewShardValidatorsInfoMap(), nil
+			}
+			validatorsMap := state.NewShardValidatorsInfoMap()
+			_ = validatorsMap.Add(&state.ValidatorInfo{
+				ShardId:   0,
+				PublicKey: []byte("pubkey0-auction"),
+				List:      string(common.AuctionList),
+			})
+			return validatorsMap, nil
+		}
+		arg.ValidatorStatistics = validatorStatisticsProcessor
+
+		arg.StakingDataProvider = &stakingcommon.StakingDataProviderStub{
+			GetBlsKeyOwnerCalled: func(key []byte) (string, error) {
+				return "", errors.New("cannot get owner")
+			},
+			GetNodeStakedTopUpCalled: func(key []byte) (*big.Int, error) {
+				return big.NewInt(10), nil
+			},
+		}
+
+		vp, err := NewValidatorsProvider(arg)
+		require.NoError(t, err)
+
+		time.Sleep(arg.CacheRefreshIntervalDurationInSec)
+
+		response := vp.GetAuctionList()
+		require.Empty(t, response)
+	})
+
+	t.Run("cannot get top up for node, should not fill it", func(t *testing.T) {
+		t.Parallel()
+
+		callNumber := 0
+		arg := createDefaultValidatorsProviderArg()
+		validatorStatisticsProcessor := &testscommon.ValidatorStatisticsProcessorStub{
+			LastFinalizedRootHashCalled: func() []byte {
+				return []byte("rootHash")
+			},
+		}
+		validatorStatisticsProcessor.GetValidatorInfoForRootHashCalled = func(rootHash []byte) (state.ShardValidatorsInfoMapHandler, error) {
+			callNumber++
+			// first call comes from the constructor
+			if callNumber == 1 {
+				return state.NewShardValidatorsInfoMap(), nil
+			}
+			validatorsMap := state.NewShardValidatorsInfoMap()
+			_ = validatorsMap.Add(&state.ValidatorInfo{
+				ShardId:   0,
+				PublicKey: []byte("pubkey0-auction"),
+				List:      string(common.AuctionList),
+			})
+			return validatorsMap, nil
+		}
+		arg.ValidatorStatistics = validatorStatisticsProcessor
+
+		arg.StakingDataProvider = &stakingcommon.StakingDataProviderStub{
+			GetBlsKeyOwnerCalled: func(key []byte) (string, error) {
+				return "", nil
+			},
+			GetNodeStakedTopUpCalled: func(key []byte) (*big.Int, error) {
+				return nil, errors.New("cannot get top up")
+			},
+		}
+
+		vp, err := NewValidatorsProvider(arg)
+		require.NoError(t, err)
+
+		time.Sleep(arg.CacheRefreshIntervalDurationInSec)
+
+		response := vp.GetAuctionList()
+		require.Empty(t, response)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		callNumber := 0
+		arg := createDefaultValidatorsProviderArg()
+		validatorStatisticsProcessor := &testscommon.ValidatorStatisticsProcessorStub{
+			LastFinalizedRootHashCalled: func() []byte {
+				return []byte("rootHash")
+			},
+		}
+		validatorStatisticsProcessor.GetValidatorInfoForRootHashCalled = func(rootHash []byte) (state.ShardValidatorsInfoMapHandler, error) {
+			callNumber++
+			// first call comes from the constructor
+			if callNumber == 1 {
+				return state.NewShardValidatorsInfoMap(), nil
+			}
+			validatorsMap := state.NewShardValidatorsInfoMap()
+			_ = validatorsMap.Add(&state.ValidatorInfo{
+				ShardId:   0,
+				PublicKey: []byte("pubkey-eligible"),
+				List:      string(common.EligibleList),
+			})
+			_ = validatorsMap.Add(&state.ValidatorInfo{
+				ShardId:   0,
+				PublicKey: []byte("pubkey-waiting"),
+				List:      string(common.WaitingList),
+			})
+			_ = validatorsMap.Add(&state.ValidatorInfo{
+				ShardId:   0,
+				PublicKey: []byte("pubkey-leaving"),
+				List:      string(common.LeavingList),
+			})
+			_ = validatorsMap.Add(&state.ValidatorInfo{
+				ShardId:   0,
+				PublicKey: []byte("pubkey0-auction"),
+				List:      string(common.AuctionList),
+			})
+			_ = validatorsMap.Add(&state.ValidatorInfo{
+				ShardId:   0,
+				PublicKey: []byte("pubkey1-auction"),
+				List:      string(common.AuctionList),
+			})
+			return validatorsMap, nil
+		}
+		arg.ValidatorStatistics = validatorStatisticsProcessor
+
+		arg.StakingDataProvider = &stakingcommon.StakingDataProviderStub{
+			GetBlsKeyOwnerCalled: func(key []byte) (string, error) {
+				if "pubkey0-auction" == string(key) {
+					return "owner0", nil
+				}
+				if "pubkey1-auction" == string(key) {
+					return "owner1", nil
+				}
+				return "", nil
+			},
+			GetNodeStakedTopUpCalled: func(key []byte) (*big.Int, error) {
+				if "pubkey0-auction" == string(key) {
+					return big.NewInt(100), nil
+				}
+				if "pubkey1-auction" == string(key) {
+					return big.NewInt(110), nil
+				}
+				return big.NewInt(0), nil
+			},
+		}
+
+		vp, err := NewValidatorsProvider(arg)
+		require.NoError(t, err)
+
+		time.Sleep(arg.CacheRefreshIntervalDurationInSec)
+
+		response := vp.GetAuctionList()
+
+		// the result should contain only auction list validators with the correct owner and top up
+		expectedResponse := []*common.AuctionListValidatorAPIResponse{
+			{
+				Owner:   arg.AddressPubKeyConverter.Encode([]byte("owner0")),
+				NodeKey: hex.EncodeToString([]byte("pubkey0-auction")),
+				TopUp:   "100",
+			},
+			{
+				Owner:   arg.AddressPubKeyConverter.Encode([]byte("owner1")),
+				NodeKey: hex.EncodeToString([]byte("pubkey1-auction")),
+				TopUp:   "110",
+			},
+		}
+		require.Equal(t, expectedResponse, response)
+	})
+}
+
 func createMockValidatorInfo() *state.ValidatorInfo {
 	initialInfo := &state.ValidatorInfo{
 		PublicKey:                  []byte("a1"),
@@ -635,13 +852,15 @@ func createDefaultValidatorsProviderArg() ArgValidatorsProvider {
 		NodesCoordinator:                  &shardingMocks.NodesCoordinatorMock{},
 		StartEpoch:                        1,
 		EpochStartEventNotifier:           &mock.EpochStartNotifierStub{},
+		StakingDataProvider:               &stakingcommon.StakingDataProviderStub{},
 		CacheRefreshIntervalDurationInSec: 1 * time.Millisecond,
 		ValidatorStatistics: &testscommon.ValidatorStatisticsProcessorStub{
 			LastFinalizedRootHashCalled: func() []byte {
 				return []byte("rootHash")
 			},
 		},
-		MaxRating:       100,
-		PubKeyConverter: mock.NewPubkeyConverterMock(32),
+		MaxRating:                100,
+		ValidatorPubKeyConverter: mock.NewPubkeyConverterMock(32),
+		AddressPubKeyConverter:   mock.NewPubkeyConverterMock(32),
 	}
 }

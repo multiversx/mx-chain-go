@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/stakingcommon"
 	"github.com/stretchr/testify/require"
 )
 
@@ -367,7 +368,7 @@ func createDefaultRewardsCreatorProxyArgs() RewardsCreatorProxyArgs {
 
 	return RewardsCreatorProxyArgs{
 		BaseRewardsCreatorArgs: getBaseRewardsArguments(),
-		StakingDataProvider:    &mock.StakingDataProviderStub{},
+		StakingDataProvider:    &stakingcommon.StakingDataProviderStub{},
 		EconomicsDataProvider:  NewEpochEconomicsStatistics(),
 		RewardsHandler:         rewardsHandler,
 	}

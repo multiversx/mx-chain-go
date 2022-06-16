@@ -101,6 +101,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/mainFactoryMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/stakingcommon"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
@@ -3003,7 +3004,7 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger() {
 			return ret, nil
 		},
 	}
-	processComponents.ValidatorProvider = &mock.ValidatorsProviderStub{}
+	processComponents.ValidatorProvider = &stakingcommon.ValidatorsProviderStub{}
 	processComponents.EpochTrigger = tpn.EpochStartTrigger
 	processComponents.EpochNotifier = tpn.EpochStartNotifier
 	processComponents.WhiteListerVerifiedTxsInternal = tpn.WhiteListerVerifiedTxs
@@ -3173,7 +3174,7 @@ func GetDefaultProcessComponents() *mock.ProcessComponentsStub {
 		HeaderSigVerif:           &mock.HeaderSigVerifierStub{},
 		HeaderIntegrVerif:        &mock.HeaderIntegrityVerifierStub{},
 		ValidatorStatistics:      &testscommon.ValidatorStatisticsProcessorStub{},
-		ValidatorProvider:        &mock.ValidatorsProviderStub{},
+		ValidatorProvider:        &stakingcommon.ValidatorsProviderStub{},
 		BlockTrack:               &mock.BlockTrackerStub{},
 		PendingMiniBlocksHdl:     &mock.PendingMiniBlocksHandlerStub{},
 		ReqHandler:               &testscommon.RequestHandlerStub{},

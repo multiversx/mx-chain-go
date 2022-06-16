@@ -19,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/stakingcommon"
 	"github.com/stretchr/testify/require"
 )
 
@@ -126,7 +127,7 @@ func TestNewRewardsCreatorV2_getTopUpForAllEligibleNodes(t *testing.T) {
 
 	args := getRewardsCreatorV2Arguments()
 	topUpVal, _ := big.NewInt(0).SetString("100000000000000000000", 10)
-	args.StakingDataProvider = &mock.StakingDataProviderStub{
+	args.StakingDataProvider = &stakingcommon.StakingDataProviderStub{
 		GetNodeStakedTopUpCalled: func(blsKey []byte) (*big.Int, error) {
 			topUp := big.NewInt(0).Set(topUpVal)
 			return topUp, nil
@@ -155,7 +156,7 @@ func TestNewRewardsCreatorV2_getTopUpForAllEligibleSomeBLSKeysNotFoundZeroed(t *
 	args := getRewardsCreatorV2Arguments()
 	topUpVal, _ := big.NewInt(0).SetString("100000000000000000000", 10)
 	notFoundKey := []byte("notFound")
-	args.StakingDataProvider = &mock.StakingDataProviderStub{
+	args.StakingDataProvider = &stakingcommon.StakingDataProviderStub{
 		GetNodeStakedTopUpCalled: func(blsKey []byte) (*big.Int, error) {
 			if bytes.Equal(blsKey, notFoundKey) {
 				return nil, fmt.Errorf("not found")
@@ -607,7 +608,7 @@ func TestNewRewardsCreatorV2_computeTopUpRewardsPerNode(t *testing.T) {
 	nodesRewardInfo := dummyRwd.initNodesRewardsInfo(vInfo)
 	_, _ = setDummyValuesInNodesRewardInfo(nodesRewardInfo, nbEligiblePerShard, tuStake, 0)
 
-	args.StakingDataProvider = &mock.StakingDataProviderStub{
+	args.StakingDataProvider = &stakingcommon.StakingDataProviderStub{
 		GetNodeStakedTopUpCalled: func(blsKey []byte) (*big.Int, error) {
 			for shardID, vList := range vInfo.GetShardValidatorsInfoMap() {
 				for i, v := range vList {
@@ -653,7 +654,7 @@ func TestNewRewardsCreatorV2_computeTopUpRewardsPerNodeNotFoundBLSKeys(t *testin
 	args := getRewardsCreatorV2Arguments()
 	nbEligiblePerShard := uint32(400)
 	vInfo := createDefaultValidatorInfo(nbEligiblePerShard, args.ShardCoordinator, args.NodesConfigProvider, 100, defaultBlocksPerShard)
-	args.StakingDataProvider = &mock.StakingDataProviderStub{
+	args.StakingDataProvider = &stakingcommon.StakingDataProviderStub{
 		GetNodeStakedTopUpCalled: func(blsKey []byte) (*big.Int, error) {
 			return nil, fmt.Errorf("not found")
 		},
@@ -737,7 +738,7 @@ func TestNewRewardsCreatorV2_computeRewardsPerNode(t *testing.T) {
 	nodesRewardInfo := dummyRwd.initNodesRewardsInfo(vInfo)
 	_, totalTopUpStake := setDummyValuesInNodesRewardInfo(nodesRewardInfo, nbEligiblePerShard, tuStake, 0)
 
-	args.StakingDataProvider = &mock.StakingDataProviderStub{
+	args.StakingDataProvider = &stakingcommon.StakingDataProviderStub{
 		GetTotalTopUpStakeEligibleNodesCalled: func() *big.Int {
 			topUpStake := big.NewInt(0).Set(totalTopUpStake)
 			return topUpStake
@@ -1042,7 +1043,7 @@ func TestNewRewardsCreatorV35_computeRewardsPer3200NodesWithDifferentTopups(t *t
 			nodesRewardInfo, _ := setupNodeRewardInfo(setupResult, vInfo, topupStakePerNode, tt.validatorTopupStake)
 
 			setupResult.EconomicsDataProvider.SetRewardsToBeDistributedForBlocks(setupResult.rewardsForBlocks)
-			setupResult.RewardsCreatorArgsV2.StakingDataProvider = &mock.StakingDataProviderStub{
+			setupResult.RewardsCreatorArgsV2.StakingDataProvider = &stakingcommon.StakingDataProviderStub{
 				GetTotalTopUpStakeEligibleNodesCalled: func() *big.Int {
 					return topupEligibleStake
 				},
@@ -1149,7 +1150,7 @@ func TestNewRewardsCreatorV2_computeRewardsPer3200NodesWithDifferentTopups(t *te
 			nodesRewardInfo, _ := setupNodeRewardInfo(setupResult, vInfo, topupStakePerNode, tt.validatorTopupStake)
 
 			setupResult.EconomicsDataProvider.SetRewardsToBeDistributedForBlocks(setupResult.rewardsForBlocks)
-			setupResult.RewardsCreatorArgsV2.StakingDataProvider = &mock.StakingDataProviderStub{
+			setupResult.RewardsCreatorArgsV2.StakingDataProvider = &stakingcommon.StakingDataProviderStub{
 				GetTotalTopUpStakeEligibleNodesCalled: func() *big.Int {
 					return topupEligibleStake
 				},
@@ -1267,7 +1268,7 @@ func computeRewardsAndDust(nbEligiblePerShard uint32, args SetupRewardsResult, t
 
 	totalEligibleStake, _ := big.NewInt(0).SetString("4000000"+"000000000000000000", 10)
 
-	args.StakingDataProvider = &mock.StakingDataProviderStub{
+	args.StakingDataProvider = &stakingcommon.StakingDataProviderStub{
 		GetTotalTopUpStakeEligibleNodesCalled: func() *big.Int {
 			return totalTopUpStake
 		},
@@ -1583,7 +1584,7 @@ func TestNewRewardsCreatorV2_CreateRewardsMiniBlocks(t *testing.T) {
 	nodesRewardInfo := dummyRwd.initNodesRewardsInfo(vInfo)
 	_, _ = setDummyValuesInNodesRewardInfo(nodesRewardInfo, nbEligiblePerShard, tuStake, 0)
 
-	args.StakingDataProvider = &mock.StakingDataProviderStub{
+	args.StakingDataProvider = &stakingcommon.StakingDataProviderStub{
 		GetTotalTopUpStakeEligibleNodesCalled: func() *big.Int {
 			totalTopUpStake, _ := big.NewInt(0).SetString("3000000000000000000000000", 10)
 			return totalTopUpStake
@@ -1679,7 +1680,7 @@ func TestNewRewardsCreatorV2_CreateRewardsMiniBlocks2169Nodes(t *testing.T) {
 	topupValue.Mul(topupValue, multiplier)
 	_, totalTopupStake := setValuesInNodesRewardInfo(nodesRewardInfo, topupValue, tuStake)
 
-	args.StakingDataProvider = &mock.StakingDataProviderStub{
+	args.StakingDataProvider = &stakingcommon.StakingDataProviderStub{
 		GetTotalTopUpStakeEligibleNodesCalled: func() *big.Int {
 			return totalTopupStake
 		},
@@ -1775,7 +1776,7 @@ func getRewardsCreatorV2Arguments() RewardsCreatorArgsV2 {
 	}
 	return RewardsCreatorArgsV2{
 		BaseRewardsCreatorArgs: getBaseRewardsArguments(),
-		StakingDataProvider:    &mock.StakingDataProviderStub{},
+		StakingDataProvider:    &stakingcommon.StakingDataProviderStub{},
 		EconomicsDataProvider:  NewEpochEconomicsStatistics(),
 		RewardsHandler:         rewardsHandler,
 	}
@@ -1795,7 +1796,7 @@ func getRewardsCreatorV35Arguments() RewardsCreatorArgsV2 {
 	}
 	return RewardsCreatorArgsV2{
 		BaseRewardsCreatorArgs: getBaseRewardsArguments(),
-		StakingDataProvider:    &mock.StakingDataProviderStub{},
+		StakingDataProvider:    &stakingcommon.StakingDataProviderStub{},
 		EconomicsDataProvider:  NewEpochEconomicsStatistics(),
 		RewardsHandler:         rewardsHandler,
 	}

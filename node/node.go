@@ -887,6 +887,10 @@ func (n *Node) ValidatorStatisticsApi() (map[string]*state.ValidatorApiResponse,
 	return n.processComponents.ValidatorsProvider().GetLatestValidators(), nil
 }
 
+func (n *Node) AuctionListApi() ([]*common.AuctionListValidatorAPIResponse, error) {
+	return n.processComponents.ValidatorsProvider().GetAuctionList(), nil
+}
+
 // DirectTrigger will start the hardfork trigger
 func (n *Node) DirectTrigger(epoch uint32, withEarlyEndOfEpoch bool) error {
 	return n.processComponents.HardforkTrigger().Trigger(epoch, withEarlyEndOfEpoch)

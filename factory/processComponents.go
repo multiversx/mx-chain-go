@@ -167,6 +167,7 @@ type processComponentsFactory struct {
 	historyRepo            dblookupext.HistoryRepository
 	epochNotifier          process.EpochNotifier
 	importHandler          update.ImportHandler
+	stakingDataProvider    epochStart.StakingDataProvider
 
 	data                DataComponentsHolder
 	coreData            CoreComponentsHolder
@@ -327,22 +328,6 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 	}
 
 	validatorStatisticsProcessor, err := pcf.newValidatorStatisticsProcessor()
-	if err != nil {
-		return nil, err
-	}
-
-	cacheRefreshDuration := time.Duration(pcf.config.ValidatorStatistics.CacheRefreshIntervalInSec) * time.Second
-	argVSP := peer.ArgValidatorsProvider{
-		NodesCoordinator:                  pcf.nodesCoordinator,
-		StartEpoch:                        startEpochNum,
-		EpochStartEventNotifier:           pcf.coreData.EpochStartNotifierWithConfirm(),
-		CacheRefreshIntervalDurationInSec: cacheRefreshDuration,
-		ValidatorStatistics:               validatorStatisticsProcessor,
-		MaxRating:                         pcf.maxRating,
-		PubKeyConverter:                   pcf.coreData.ValidatorPubKeyConverter(),
-	}
-
-	validatorsProvider, err := peer.NewValidatorsProvider(argVSP)
 	if err != nil {
 		return nil, err
 	}
@@ -546,6 +531,24 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
+	cacheRefreshDuration := time.Duration(pcf.config.ValidatorStatistics.CacheRefreshIntervalInSec) * time.Second
+	argVSP := peer.ArgValidatorsProvider{
+		NodesCoordinator:                  pcf.nodesCoordinator,
+		StartEpoch:                        startEpochNum,
+		EpochStartEventNotifier:           pcf.coreData.EpochStartNotifierWithConfirm(),
+		CacheRefreshIntervalDurationInSec: cacheRefreshDuration,
+		ValidatorStatistics:               validatorStatisticsProcessor,
+		StakingDataProvider:               pcf.stakingDataProvider,
+		MaxRating:                         pcf.maxRating,
+		ValidatorPubKeyConverter:          pcf.coreData.ValidatorPubKeyConverter(),
+		AddressPubKeyConverter:            pcf.coreData.AddressPubKeyConverter(),
+	}
+
+	validatorsProvider, err := peer.NewValidatorsProvider(argVSP)
+	if err != nil {
+		return nil, err
+	}
+
 	conversionBase := 10
 	genesisNodePrice, ok := big.NewInt(0).SetString(pcf.systemSCConfig.StakingSystemSCConfig.GenesisNodePrice, conversionBase)
 	if !ok {
@@ -651,7 +654,6 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 }
 
 func (pcf *processComponentsFactory) newValidatorStatisticsProcessor() (process.ValidatorStatisticsProcessor, error) {
-
 	storageService := pcf.data.StorageService()
 
 	var peerDataPool peer.DataPool = pcf.data.Datapool()
