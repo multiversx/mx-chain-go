@@ -328,6 +328,7 @@ func (vmf *vmContainerFactory) createInProcessArwenVMV14() (vmcommon.VMExecution
 		DisableExecByCallerEnableEpoch:                  vmf.epochConfig.DisableExecByCallerEnableEpoch,
 		FixFailExecutionOnErrorEnableEpoch:              vmf.epochConfig.FailExecutionOnEveryAPIErrorEnableEpoch,
 		ManagedCryptoAPIEnableEpoch:                     vmf.epochConfig.ManagedCryptoAPIsEnableEpoch,
+		RefactorContextEnableEpoch:                      vmf.epochConfig.RefactorContextEnableEpoch,
 	}
 	return arwenHost14.NewArwenVM(vmf.blockChainHook, hostParameters)
 }
