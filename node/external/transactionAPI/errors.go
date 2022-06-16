@@ -13,3 +13,6 @@ var ErrNilStatusComputer = errors.New("nil transaction status computer")
 
 // ErrNilAPITransactionProcessorArg signals that a nil arguments structure has been provided
 var ErrNilAPITransactionProcessorArg = errors.New("nil api transaction processor arg")
+
+// ErrNilDataFieldParser signals that a nil data field parser has been provided
+var ErrNilDataFieldParser = errors.New("nil data field parser")

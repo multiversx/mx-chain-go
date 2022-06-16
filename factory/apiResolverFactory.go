@@ -33,6 +33,7 @@ import (
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	vmcommonBuiltInFunctions "github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
+	datafield "github.com/ElrondNetwork/elrond-vm-common/parsers/dataField"
 )
 
 // ApiResolverArgs holds the argument needed to create an API resolver
@@ -134,13 +135,11 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 	}
 
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
-		PubkeyConverter:        args.CoreComponents.AddressPubKeyConverter(),
-		ShardCoordinator:       args.ProcessComponents.ShardCoordinator(),
-		BuiltInFunctions:       builtInFuncs,
-		ArgumentParser:         parsers.NewCallArgsParser(),
-		EpochNotifier:          args.CoreComponents.EpochNotifier(),
-		RelayedTxV2EnableEpoch: args.Configs.EpochConfig.EnableEpochs.RelayedTransactionsV2EnableEpoch,
-		ESDTTransferParser:     esdtTransferParser,
+		PubkeyConverter:    args.CoreComponents.AddressPubKeyConverter(),
+		ShardCoordinator:   args.ProcessComponents.ShardCoordinator(),
+		BuiltInFunctions:   builtInFuncs,
+		ArgumentParser:     parsers.NewCallArgsParser(),
+		ESDTTransferParser: esdtTransferParser,
 	}
 	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	if err != nil {
@@ -186,6 +185,16 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		return nil, err
 	}
 
+	argsDataFieldParser := &datafield.ArgsOperationDataFieldParser{
+		AddressLength:    args.CoreComponents.AddressPubKeyConverter().Len(),
+		Marshalizer:      args.CoreComponents.InternalMarshalizer(),
+		ShardCoordinator: args.ProcessComponents.ShardCoordinator(),
+	}
+	dataFieldParser, err := datafield.NewOperationDataFieldParser(argsDataFieldParser)
+	if err != nil {
+		return nil, err
+	}
+
 	argsAPITransactionProc := &transactionAPI.ArgAPITransactionProcessor{
 		RoundDuration:            args.CoreComponents.GenesisNodesSetup().GetRoundDuration(),
 		GenesisTime:              args.CoreComponents.GenesisTime(),
@@ -196,6 +205,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		StorageService:           args.DataComponents.StorageService(),
 		DataPool:                 args.DataComponents.Datapool(),
 		Uint64ByteSliceConverter: args.CoreComponents.Uint64ByteSliceConverter(),
+		DataFieldParser:          dataFieldParser,
 	}
 	apiTransactionProcessor, err := transactionAPI.NewAPITransactionProcessor(argsAPITransactionProc)
 	if err != nil {

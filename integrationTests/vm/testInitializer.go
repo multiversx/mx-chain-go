@@ -446,7 +446,6 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 		ShardCoordinator:   oneShardCoordinator,
 		BuiltInFunctions:   builtInFuncs,
 		ArgumentParser:     parsers.NewCallArgsParser(),
-		EpochNotifier:      forking.NewGenericEpochNotifier(),
 		ESDTTransferParser: esdtTransferParser,
 	}
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
@@ -791,7 +790,6 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		ShardCoordinator:   shardCoordinator,
 		BuiltInFunctions:   blockChainHook.GetBuiltinFunctionsContainer(),
 		ArgumentParser:     parsers.NewCallArgsParser(),
-		EpochNotifier:      forking.NewGenericEpochNotifier(),
 		ESDTTransferParser: esdtTransferParser,
 	}
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
