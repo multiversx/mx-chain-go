@@ -1169,7 +1169,12 @@ func (sp *shardProcessor) updateState(headers []data.HeaderHandler, currentHeade
 
 		sp.setFinalizedHeaderHashInIndexer(header.GetPrevHash())
 
-		sp.blockChain.SetFinalBlockInfo(header.GetNonce(), headerHash, scheduledHeaderRootHash)
+		finalRootHash := scheduledHeaderRootHash
+		if len(finalRootHash) == 0 {
+			finalRootHash = header.GetRootHash()
+		}
+
+		sp.blockChain.SetFinalBlockInfo(header.GetNonce(), headerHash, finalRootHash)
 	}
 }
 
