@@ -55,8 +55,6 @@ func main() {
 	_ = logger.SetDisplayByteSlice(logger.ToHexShort)
 	log := logger.GetOrCreate("main")
 
-	log.Info("THIS IS THE FIX")
-
 	// test point 2 for custom profiler
 
 	app := cli.NewApp()
