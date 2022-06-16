@@ -389,6 +389,16 @@ func (mock *EnableEpochsHandlerMock) IsMiniBlockPartialExecutionFlagEnabled() bo
 	return false
 }
 
+// IsManagedCryptoAPIsFlagEnabled returns false
+func (mock *EnableEpochsHandlerMock) IsManagedCryptoAPIsFlagEnabled() bool {
+	return false
+}
+
+// IsESDTMetadataContinuousCleanupFlagEnabled returns false
+func (mock *EnableEpochsHandlerMock) IsESDTMetadataContinuousCleanupFlagEnabled() bool {
+	return false
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (mock *EnableEpochsHandlerMock) IsInterfaceNil() bool {
 	return mock == nil

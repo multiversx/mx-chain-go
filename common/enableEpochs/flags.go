@@ -73,6 +73,8 @@ type flagsHolder struct {
 	failExecutionOnEveryAPIErrorFlag            *atomic.Flag
 	heartbeatDisableFlag                        *atomic.Flag
 	isMiniBlockPartialExecutionFlag             *atomic.Flag
+	managedCryptoAPIsFlag                       *atomic.Flag
+	esdtMetadataContinuousCleanupFlag           *atomic.Flag
 }
 
 func newFlagsHolder() *flagsHolder {
@@ -147,6 +149,8 @@ func newFlagsHolder() *flagsHolder {
 		failExecutionOnEveryAPIErrorFlag:            &atomic.Flag{},
 		heartbeatDisableFlag:                        &atomic.Flag{},
 		isMiniBlockPartialExecutionFlag:             &atomic.Flag{},
+		managedCryptoAPIsFlag:                       &atomic.Flag{},
+		esdtMetadataContinuousCleanupFlag:           &atomic.Flag{},
 	}
 }
 
@@ -503,4 +507,14 @@ func (fh *flagsHolder) IsHeartbeatDisableFlagEnabled() bool {
 // IsMiniBlockPartialExecutionFlagEnabled returns true if isMiniBlockPartialExecutionFlag is enabled
 func (fh *flagsHolder) IsMiniBlockPartialExecutionFlagEnabled() bool {
 	return fh.isMiniBlockPartialExecutionFlag.IsSet()
+}
+
+// IsManagedCryptoAPIsFlagEnabled returns true if managedCryptoAPIsFlag is enabled
+func (fh *flagsHolder) IsManagedCryptoAPIsFlagEnabled() bool {
+	return fh.managedCryptoAPIsFlag.IsSet()
+}
+
+// IsESDTMetadataContinuousCleanupFlagEnabled returns true if esdtMetadataContinuousCleanupFlag is enabled
+func (fh *flagsHolder) IsESDTMetadataContinuousCleanupFlagEnabled() bool {
+	return fh.esdtMetadataContinuousCleanupFlag.IsSet()
 }

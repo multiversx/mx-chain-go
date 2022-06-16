@@ -79,6 +79,8 @@ func createEnableEpochsConfig() config.EnableEpochs {
 		FailExecutionOnEveryAPIErrorEnableEpoch:           63,
 		HeartbeatDisableEpoch:                             64,
 		MiniBlockPartialExecutionEnableEpoch:              65,
+		ManagedCryptoAPIsEnableEpoch:                      66,
+		ESDTMetadataContinuousCleanupEnableEpoch:          67,
 	}
 }
 
@@ -190,6 +192,8 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsFailExecutionOnEveryAPIErrorFlagEnabled())
 		assert.True(t, handler.IsHeartbeatDisableFlagEnabled())
 		assert.True(t, handler.IsMiniBlockPartialExecutionFlagEnabled())
+		assert.True(t, handler.IsManagedCryptoAPIsFlagEnabled())
+		assert.True(t, handler.IsESDTMetadataContinuousCleanupFlagEnabled())
 	})
 	t.Run("flags with == condition should be set, along with all >=", func(t *testing.T) {
 		t.Parallel()
@@ -277,6 +281,8 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsFailExecutionOnEveryAPIErrorFlagEnabled())
 		assert.True(t, handler.IsHeartbeatDisableFlagEnabled())
 		assert.True(t, handler.IsMiniBlockPartialExecutionFlagEnabled())
+		assert.True(t, handler.IsManagedCryptoAPIsFlagEnabled())
+		assert.True(t, handler.IsESDTMetadataContinuousCleanupFlagEnabled())
 	})
 	t.Run("flags with < should be set", func(t *testing.T) {
 		t.Parallel()
@@ -359,5 +365,7 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.False(t, handler.IsFailExecutionOnEveryAPIErrorFlagEnabled())
 		assert.False(t, handler.IsHeartbeatDisableFlagEnabled())
 		assert.False(t, handler.IsMiniBlockPartialExecutionFlagEnabled())
+		assert.False(t, handler.IsManagedCryptoAPIsFlagEnabled())
+		assert.False(t, handler.IsESDTMetadataContinuousCleanupFlagEnabled())
 	})
 }

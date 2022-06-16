@@ -212,6 +212,8 @@ type EnableEpochsHandler interface {
 	IsFailExecutionOnEveryAPIErrorFlagEnabled() bool
 	IsHeartbeatDisableFlagEnabled() bool
 	IsMiniBlockPartialExecutionFlagEnabled() bool
+	IsManagedCryptoAPIsFlagEnabled() bool
+	IsESDTMetadataContinuousCleanupFlagEnabled() bool
 
 	IsInterfaceNil() bool
 }
