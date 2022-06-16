@@ -775,16 +775,6 @@ func (bh *BlockChainHookImpl) IsInterfaceNil() bool {
 	return bh == nil
 }
 
-// IsLimitedTransfer returns false as this is a disabled components
-func (bh *BlockChainHookImpl) IsLimitedTransfer(_ []byte) bool {
-	return false
-}
-
-// IsPaused returns true if the tokenID is paused globally
-func (bh *BlockChainHookImpl) IsPaused(tokenID []byte) bool {
-	return false
-}
-
 func startMeasure(hook string) (string, *core.StopWatch) {
 	sw := core.NewStopWatch()
 	sw.Start(hook)
