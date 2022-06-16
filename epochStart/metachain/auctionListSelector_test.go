@@ -240,7 +240,7 @@ func TestAuctionListSelector_SelectNodesFromAuction(t *testing.T) {
 		fillValidatorsInfo(t, validatorsInfo, argsSystemSC.StakingDataProvider)
 
 		als, _ := NewAuctionListSelector(args)
-		err := als.SelectNodesFromAuctionList(state.NewShardValidatorsInfoMap(), []byte("rand"))
+		err := als.SelectNodesFromAuctionList(state.NewShardValidatorsInfoMap(), []byte("rnd"))
 		require.Nil(t, err)
 		expectedValidatorsInfo := map[uint32][]state.ValidatorInfoHandler{
 			0: {
