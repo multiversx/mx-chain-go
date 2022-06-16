@@ -30,7 +30,7 @@ func (als *auctionListSelector) displayMinRequiredTopUp(topUp *big.Int, startTop
 	iterations++
 
 	log.Debug("auctionListSelector: found min required",
-		"topUp", topUp.String(),
+		"topUp", getPrettyValue(topUp, als.softAuctionConfig.denominator),
 		"after num of iterations", iterations,
 	)
 }
