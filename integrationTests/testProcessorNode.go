@@ -761,10 +761,6 @@ func (tpn *TestProcessorNode) initValidatorStatistics() {
 }
 
 func (tpn *TestProcessorNode) initTestNode() {
-	if tpn.EnableEpochsHandler == nil {
-		tpn.EpochNotifier = forking.NewGenericEpochNotifier()
-		tpn.EnableEpochsHandler, _ = enableEpochs.NewEnableEpochsHandler(tpn.EnableEpochs, tpn.EpochNotifier)
-	}
 	tpn.initChainHandler()
 	tpn.initHeaderValidator()
 	tpn.initRoundHandler()
@@ -2555,13 +2551,11 @@ func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.Bod
 		return nil, nil, nil
 	}
 
-	bh, blockBody, err := tpn.BlockProcessor.CreateBlock(blockHeader, haveTime)
+	blockHeader, blockBody, err := tpn.BlockProcessor.CreateBlock(blockHeader, haveTime)
 	if err != nil {
 		log.Warn("createBlockBody", "error", err.Error())
 		return nil, nil, nil
 	}
-
-	blockHeader = bh
 
 	shardBlockBody, ok := blockBody.(*dataBlock.Body)
 	txHashes := make([][]byte, 0)
