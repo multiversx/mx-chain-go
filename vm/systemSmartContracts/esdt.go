@@ -500,7 +500,7 @@ func (e *esdt) registerAndSetRoles(args *vmcommon.ContractCallInput) vmcommon.Re
 	logEntry := &vmcommon.LogEntry{
 		Identifier: []byte(args.Function),
 		Address:    args.CallerAddr,
-		Topics:     [][]byte{tokenIdentifier, args.Arguments[0], args.Arguments[1], []byte(metaESDT)},
+		Topics:     [][]byte{tokenIdentifier, args.Arguments[0], args.Arguments[1], tokenType},
 	}
 	e.eei.Finish(tokenIdentifier)
 	e.eei.AddLogEntry(logEntry)
@@ -522,6 +522,7 @@ func getAllRolesForTokenType(tokenType string) ([][]byte, error) {
 }
 
 func getTokenType(compressed []byte) (bool, []byte, error) {
+	// TODO: might extract the compressed constants to core, alongside metaESDT
 	switch string(compressed) {
 	case "NFT":
 		return false, []byte(core.NonFungibleESDT), nil

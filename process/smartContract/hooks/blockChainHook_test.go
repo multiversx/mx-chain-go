@@ -43,18 +43,19 @@ func createMockBlockChainHookArgs() hooks.ArgBlockChainHook {
 				return &mock.AccountWrapMock{}, nil
 			},
 		},
-		PubkeyConv:          mock.NewPubkeyConverterMock(32),
-		StorageService:      &mock.ChainStorerMock{},
-		BlockChain:          &testscommon.ChainHandlerStub{},
-		ShardCoordinator:    mock.NewOneShardCoordinatorMock(),
-		Marshalizer:         &mock.MarshalizerMock{},
-		Uint64Converter:     &mock.Uint64ByteSliceConverterMock{},
-		BuiltInFunctions:    vmcommonBuiltInFunctions.NewBuiltInFunctionContainer(),
-		NFTStorageHandler:   &testscommon.SimpleNFTStorageHandlerStub{},
-		DataPool:            datapool,
-		CompiledSCPool:      datapool.SmartContracts(),
+		PubkeyConv:            mock.NewPubkeyConverterMock(32),
+		StorageService:        &mock.ChainStorerMock{},
+		BlockChain:            &testscommon.ChainHandlerStub{},
+		ShardCoordinator:      mock.NewOneShardCoordinatorMock(),
+		Marshalizer:           &mock.MarshalizerMock{},
+		Uint64Converter:       &mock.Uint64ByteSliceConverterMock{},
+		BuiltInFunctions:      vmcommonBuiltInFunctions.NewBuiltInFunctionContainer(),
+		NFTStorageHandler:     &testscommon.SimpleNFTStorageHandlerStub{},
+		GlobalSettingsHandler: &testscommon.ESDTGlobalSettingsHandlerStub{},
+		DataPool:              datapool,
+		CompiledSCPool:        datapool.SmartContracts(),
 		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
-		NilCompiledSCStore:  true,
+		NilCompiledSCStore:    true,
 	}
 	return arguments
 }
@@ -155,6 +156,14 @@ func TestNewBlockChainHookImpl(t *testing.T) {
 				return args
 			},
 			expectedErr: process.ErrNilNFTStorageHandler,
+		},
+		{
+			args: func() hooks.ArgBlockChainHook {
+				args := createMockBlockChainHookArgs()
+				args.GlobalSettingsHandler = nil
+				return args
+			},
+			expectedErr: process.ErrNilESDTGlobalSettingsHandler,
 		},
 		{
 			args: func() hooks.ArgBlockChainHook {

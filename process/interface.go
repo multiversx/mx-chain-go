@@ -488,6 +488,8 @@ type BlockChainHookHandler interface {
 	GetBuiltinFunctionsContainer() vmcommon.BuiltInFunctionContainer
 	GetAllState(_ []byte) (map[string][]byte, error)
 	GetESDTToken(address []byte, tokenID []byte, nonce uint64) (*esdt.ESDigitalToken, error)
+	IsPaused(tokenID []byte) bool
+	IsLimitedTransfer(tokenID []byte) bool
 	NumberOfShards() uint32
 	SetCurrentHeader(hdr data.HeaderHandler)
 	SaveCompiledCode(codeHash []byte, code []byte)

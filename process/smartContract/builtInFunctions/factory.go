@@ -13,45 +13,47 @@ import (
 
 // ArgsCreateBuiltInFunctionContainer defines the argument structure to create new built in function container
 type ArgsCreateBuiltInFunctionContainer struct {
-	GasSchedule                    core.GasScheduleNotifier
-	MapDNSAddresses                map[string]struct{}
-	EnableUserNameChange           bool
-	Marshalizer                    marshal.Marshalizer
-	Accounts                       state.AccountsAdapter
-	ShardCoordinator               sharding.Coordinator
-	EpochNotifier                  vmcommon.EpochNotifier
-	ESDTMultiTransferEnableEpoch   uint32
-	ESDTTransferRoleEnableEpoch    uint32
-	GlobalMintBurnDisableEpoch     uint32
-	ESDTTransferMetaEnableEpoch    uint32
-	OptimizeNFTStoreEnableEpoch    uint32
-	CheckCorrectTokenIDEnableEpoch uint32
+	GasSchedule                              core.GasScheduleNotifier
+	MapDNSAddresses                          map[string]struct{}
+	EnableUserNameChange                     bool
+	Marshalizer                              marshal.Marshalizer
+	Accounts                                 state.AccountsAdapter
+	ShardCoordinator                         sharding.Coordinator
+	EpochNotifier                            vmcommon.EpochNotifier
+	ESDTMultiTransferEnableEpoch             uint32
+	ESDTTransferRoleEnableEpoch              uint32
+	GlobalMintBurnDisableEpoch               uint32
+	ESDTTransferMetaEnableEpoch              uint32
+	OptimizeNFTStoreEnableEpoch              uint32
+	CheckCorrectTokenIDEnableEpoch           uint32
+	ESDTMetadataContinuousCleanupEnableEpoch uint32
+	AutomaticCrawlerAddress                  []byte
 }
 
 // CreateBuiltInFuncContainerAndNFTStorageHandler creates a container that will hold all the available built in functions
-func CreateBuiltInFuncContainerAndNFTStorageHandler(args ArgsCreateBuiltInFunctionContainer) (vmcommon.BuiltInFunctionContainer, vmcommon.SimpleESDTNFTStorageHandler, error) {
+func CreateBuiltInFuncContainerAndNFTStorageHandler(args ArgsCreateBuiltInFunctionContainer) (vmcommon.BuiltInFunctionContainer, vmcommon.SimpleESDTNFTStorageHandler, vmcommon.ESDTGlobalSettingsHandler, error) {
 	if check.IfNil(args.GasSchedule) {
-		return nil, nil, process.ErrNilGasSchedule
+		return nil, nil, nil, process.ErrNilGasSchedule
 	}
 	if check.IfNil(args.Marshalizer) {
-		return nil, nil, process.ErrNilMarshalizer
+		return nil, nil, nil, process.ErrNilMarshalizer
 	}
 	if check.IfNil(args.Accounts) {
-		return nil, nil, process.ErrNilAccountsAdapter
+		return nil, nil, nil, process.ErrNilAccountsAdapter
 	}
 	if args.MapDNSAddresses == nil {
-		return nil, nil, process.ErrNilDnsAddresses
+		return nil, nil, nil, process.ErrNilDnsAddresses
 	}
 	if check.IfNil(args.ShardCoordinator) {
-		return nil, nil, process.ErrNilShardCoordinator
+		return nil, nil, nil, process.ErrNilShardCoordinator
 	}
 	if check.IfNil(args.EpochNotifier) {
-		return nil, nil, process.ErrNilEpochNotifier
+		return nil, nil, nil, process.ErrNilEpochNotifier
 	}
 
 	vmcommonAccounts, ok := args.Accounts.(vmcommon.AccountsAdapter)
 	if !ok {
-		return nil, nil, process.ErrWrongTypeAssertion
+		return nil, nil, nil, process.ErrWrongTypeAssertion
 	}
 
 	modifiedArgs := vmcommonBuiltInFunctions.ArgsCreateBuiltInFunctionContainer{
@@ -68,19 +70,21 @@ func CreateBuiltInFuncContainerAndNFTStorageHandler(args ArgsCreateBuiltInFuncti
 		GlobalMintBurnDisableEpoch:          args.GlobalMintBurnDisableEpoch,
 		SaveNFTToSystemAccountEnableEpoch:   args.OptimizeNFTStoreEnableEpoch,
 		CheckCorrectTokenIDEnableEpoch:      args.CheckCorrectTokenIDEnableEpoch,
+		SendESDTMetadataAlwaysEnableEpoch:   args.ESDTMetadataContinuousCleanupEnableEpoch,
+		ConfigAddress:                       args.AutomaticCrawlerAddress,
 	}
 
 	bContainerFactory, err := vmcommonBuiltInFunctions.NewBuiltInFunctionsCreator(modifiedArgs)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	container, err := bContainerFactory.CreateBuiltInFunctionContainer()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	args.GasSchedule.RegisterNotifyHandler(bContainerFactory)
 
-	return container, bContainerFactory.NFTStorageHandler(), nil
+	return container, bContainerFactory.NFTStorageHandler(), bContainerFactory.ESDTGlobalSettingsHandler(), nil
 }

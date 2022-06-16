@@ -428,19 +428,20 @@ func (gbc *genesisBlockCreator) computeDNSAddresses(enableEpochsConfig config.En
 
 	builtInFuncs := vmcommonBuiltInFunctions.NewBuiltInFunctionContainer()
 	argsHook := hooks.ArgBlockChainHook{
-		Accounts:            gbc.arg.Accounts,
-		PubkeyConv:          gbc.arg.Core.AddressPubKeyConverter(),
-		StorageService:      gbc.arg.Data.StorageService(),
-		BlockChain:          gbc.arg.Data.Blockchain(),
-		ShardCoordinator:    gbc.arg.ShardCoordinator,
-		Marshalizer:         gbc.arg.Core.InternalMarshalizer(),
-		Uint64Converter:     gbc.arg.Core.Uint64ByteSliceConverter(),
-		BuiltInFunctions:    builtInFuncs,
-		NFTStorageHandler:   &disabled.SimpleNFTStorage{},
-		DataPool:            gbc.arg.Data.Datapool(),
-		CompiledSCPool:      gbc.arg.Data.Datapool().SmartContracts(),
+		Accounts:              gbc.arg.Accounts,
+		PubkeyConv:            gbc.arg.Core.AddressPubKeyConverter(),
+		StorageService:        gbc.arg.Data.StorageService(),
+		BlockChain:            gbc.arg.Data.Blockchain(),
+		ShardCoordinator:      gbc.arg.ShardCoordinator,
+		Marshalizer:           gbc.arg.Core.InternalMarshalizer(),
+		Uint64Converter:       gbc.arg.Core.Uint64ByteSliceConverter(),
+		BuiltInFunctions:      builtInFuncs,
+		NFTStorageHandler:     &disabled.SimpleNFTStorage{},
+		GlobalSettingsHandler: &disabled.ESDTGlobalSettingsHandler{},
+		DataPool:              gbc.arg.Data.Datapool(),
+		CompiledSCPool:        gbc.arg.Data.Datapool().SmartContracts(),
 		EnableEpochsHandler: enableEpochsHandler,
-		NilCompiledSCStore:  true,
+		NilCompiledSCStore:    true,
 	}
 	blockChainHook, err := hooks.NewBlockChainHookImpl(argsHook)
 	if err != nil {
