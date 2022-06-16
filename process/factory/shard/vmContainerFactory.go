@@ -11,6 +11,8 @@ import (
 	arwenHost13 "github.com/ElrondNetwork/arwen-wasm-vm/v1_3/arwen/host"
 	arwen14 "github.com/ElrondNetwork/arwen-wasm-vm/v1_4/arwen"
 	arwenHost14 "github.com/ElrondNetwork/arwen-wasm-vm/v1_4/arwen/host"
+	arwen15 "github.com/ElrondNetwork/arwen-wasm-vm/v1_5/arwen"
+	arwenHost15 "github.com/ElrondNetwork/arwen-wasm-vm/v1_5/arwen/host"
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -274,8 +276,10 @@ func (vmf *vmContainerFactory) createInProcessArwenVMByVersion(version config.Ar
 		return vmf.createInProcessArwenVMV12()
 	case "v1.3":
 		return vmf.createInProcessArwenVMV13()
-	default:
+	case "v1.4":
 		return vmf.createInProcessArwenVMV14()
+	default:
+		return vmf.createInProcessArwenVMV15()
 	}
 }
 
@@ -329,6 +333,21 @@ func (vmf *vmContainerFactory) createInProcessArwenVMV14() (vmcommon.VMExecution
 		ManagedCryptoAPIEnableEpoch:                     vmf.epochConfig.ManagedCryptoAPIsEnableEpoch,
 	}
 	return arwenHost14.NewArwenVM(vmf.blockChainHook, hostParameters)
+}
+
+func (vmf *vmContainerFactory) createInProcessArwenVMV15() (vmcommon.VMExecutionHandler, error) {
+	hostParameters := &arwen15.VMHostParameters{
+		VMType:                              factory.ArwenVirtualMachine,
+		BlockGasLimit:                       vmf.blockGasLimit,
+		GasSchedule:                         vmf.gasSchedule.LatestGasSchedule(),
+		BuiltInFuncContainer:                vmf.builtinFunctions,
+		ElrondProtectedKeyPrefix:            []byte(core.ElrondProtectedKeyPrefix),
+		ESDTTransferParser:                  vmf.esdtTransferParser,
+		EpochNotifier:                       vmf.epochNotifier,
+		WasmerSIGSEGVPassthrough:            vmf.config.WasmerSIGSEGVPassthrough,
+		TimeOutForSCExecutionInMilliseconds: vmf.config.TimeOutForSCExecutionInMilliseconds,
+	}
+	return arwenHost15.NewArwenVM(vmf.blockChainHook, hostParameters)
 }
 
 func (vmf *vmContainerFactory) closePreviousVM(vm vmcommon.VMExecutionHandler) {
