@@ -746,3 +746,158 @@ func TestStakingV4_UnStakeNodes(t *testing.T) {
 	currNodesConfig = node.NodesConfig
 	requireMapContains(t, currNodesConfig.leaving, newNode[newOwner].BLSKeys)
 }
+
+func TestStakingV4_JailAndUnJailNodes(t *testing.T) {
+	pubKeys := generateAddresses(0, 20)
+
+	owner1 := "owner1"
+	owner1Stats := &OwnerStats{
+		EligibleBlsKeys: map[uint32][][]byte{
+			core.MetachainShardId: pubKeys[:2],
+		},
+		WaitingBlsKeys: map[uint32][][]byte{
+			0: pubKeys[2:4],
+		},
+		StakingQueueKeys: pubKeys[4:6],
+		TotalStake:       big.NewInt(10 * nodePrice),
+	}
+
+	owner2 := "owner2"
+	owner2Stats := &OwnerStats{
+		EligibleBlsKeys: map[uint32][][]byte{
+			0: pubKeys[6:8],
+		},
+		WaitingBlsKeys: map[uint32][][]byte{
+			core.MetachainShardId: pubKeys[8:12],
+		},
+		StakingQueueKeys: pubKeys[12:15],
+		TotalStake:       big.NewInt(10 * nodePrice),
+	}
+
+	cfg := &InitialNodesConfig{
+		MetaConsensusGroupSize:        1,
+		ShardConsensusGroupSize:       1,
+		MinNumberOfEligibleShardNodes: 2,
+		MinNumberOfEligibleMetaNodes:  2,
+		NumOfShards:                   1,
+		Owners: map[string]*OwnerStats{
+			owner1: owner1Stats,
+			owner2: owner2Stats,
+		},
+		MaxNodesChangeConfig: []config.MaxNodesChangeConfig{
+			{
+				EpochEnable:            0,
+				MaxNumNodes:            10,
+				NodesToShufflePerShard: 1,
+			},
+			{
+				EpochEnable:            stakingV4DistributeAuctionToWaitingEpoch,
+				MaxNumNodes:            4,
+				NodesToShufflePerShard: 1,
+			},
+		},
+	}
+	node := NewTestMetaProcessorWithCustomNodes(cfg)
+	node.EpochStartTrigger.SetRoundsPerEpoch(4)
+
+	// 1. Check initial config is correct
+	currNodesConfig := node.NodesConfig
+	require.Len(t, getAllPubKeys(currNodesConfig.eligible), 4)
+	require.Len(t, getAllPubKeys(currNodesConfig.waiting), 6)
+	require.Len(t, currNodesConfig.eligible[core.MetachainShardId], 2)
+	require.Len(t, currNodesConfig.waiting[core.MetachainShardId], 4)
+	require.Len(t, currNodesConfig.eligible[0], 2)
+	require.Len(t, currNodesConfig.waiting[0], 2)
+	require.Empty(t, currNodesConfig.shuffledOut)
+	require.Empty(t, currNodesConfig.auction)
+
+	owner1StakingQueue := owner1Stats.StakingQueueKeys
+	owner2StakingQueue := owner2Stats.StakingQueueKeys
+	queue := make([][]byte, 0)
+	queue = append(queue, owner1StakingQueue...)
+	queue = append(queue, owner2StakingQueue...)
+	require.Len(t, currNodesConfig.queue, 5)
+	requireSameSliceDifferentOrder(t, currNodesConfig.queue, queue)
+
+	// 1.1 Jail 4 nodes:
+	// - 2 nodes from waiting list shard = 0
+	// - 2 nodes from waiting list shard = meta chain
+	jailedNodes := make([][]byte, 0)
+	jailedNodes = append(jailedNodes, owner1Stats.WaitingBlsKeys[0]...)
+	jailedNodes = append(jailedNodes, owner2Stats.WaitingBlsKeys[core.MetachainShardId][:2]...)
+	node.ProcessJail(t, jailedNodes)
+
+	// 1.2 UnJail 2 nodes from initial jailed nodes:
+	// - 1 node from waiting list shard = 0
+	// - 1 node from waiting list shard = meta chain
+	unJailedNodes := make([][]byte, 0)
+	unJailedNodes = append(unJailedNodes, owner1Stats.WaitingBlsKeys[0][0])
+	unJailedNodes = append(unJailedNodes, owner2Stats.WaitingBlsKeys[core.MetachainShardId][0])
+	jailedNodes = remove(jailedNodes, unJailedNodes[0])
+	jailedNodes = remove(jailedNodes, unJailedNodes[1])
+	node.ProcessUnJail(t, unJailedNodes)
+
+	// 2. Two jailed nodes are now leaving; the other two unJailed nodes are re-staked and distributed on waiting list
+	node.Process(t, 3)
+	currNodesConfig = node.NodesConfig
+	requireMapContains(t, currNodesConfig.leaving, jailedNodes)
+	requireMapContains(t, currNodesConfig.waiting, unJailedNodes)
+	requireSameSliceDifferentOrder(t, currNodesConfig.auction, queue)
+	require.Len(t, getAllPubKeys(currNodesConfig.eligible), 4)
+	require.Len(t, getAllPubKeys(currNodesConfig.waiting), 4)
+	require.Empty(t, currNodesConfig.queue)
+
+	// 2.1 Epoch = stakingV4Init; unJail one of the jailed nodes and expect it is sent to auction
+	node.ProcessUnJail(t, jailedNodes[:1])
+	currNodesConfig = node.NodesConfig
+	queue = append(queue, jailedNodes[0])
+	require.Empty(t, currNodesConfig.queue)
+	requireSameSliceDifferentOrder(t, currNodesConfig.auction, queue)
+
+	// 3. Epoch = stakingV4; unJail the other jailed node and expect it is sent to auction
+	node.Process(t, 4)
+	node.ProcessUnJail(t, jailedNodes[1:])
+	currNodesConfig = node.NodesConfig
+	queue = append(queue, jailedNodes[1])
+	queue = append(queue, getAllPubKeys(currNodesConfig.shuffledOut)...)
+	require.Empty(t, currNodesConfig.queue)
+	requireSameSliceDifferentOrder(t, currNodesConfig.auction, queue)
+
+	// 3.1 Jail a random node from waiting list
+	newJailed := getAllPubKeys(currNodesConfig.waiting)[:1]
+	node.ProcessJail(t, newJailed)
+
+	// 4. Epoch = stakingV4DistributeAuctionToWaiting;
+	// 4.1 Expect jailed node from waiting list is now leaving
+	node.Process(t, 4)
+	currNodesConfig = node.NodesConfig
+	requireMapContains(t, currNodesConfig.leaving, newJailed)
+	requireSliceContainsNumOfElements(t, currNodesConfig.auction, newJailed, 0)
+	require.Empty(t, currNodesConfig.queue)
+
+	// 4.2 	UnJail previous node and expect it is sent to auction
+	node.ProcessUnJail(t, newJailed)
+	currNodesConfig = node.NodesConfig
+	requireSliceContains(t, currNodesConfig.auction, newJailed)
+	require.Empty(t, currNodesConfig.queue)
+
+	// 5. Epoch is now after whole staking v4 chain is activated
+	node.Process(t, 4)
+	currNodesConfig = node.NodesConfig
+	queue = currNodesConfig.auction
+	newJailed = queue[:1]
+	newUnJailed := newJailed[0]
+
+	// 5.1 Take a random node from auction and jail it; expect it is removed from auction list
+	node.ProcessJail(t, newJailed)
+	queue = remove(queue, newJailed[0])
+	currNodesConfig = node.NodesConfig
+	requireSameSliceDifferentOrder(t, queue, currNodesConfig.auction)
+
+	// 5.2 UnJail previous node; expect it is sent back to auction
+	node.ProcessUnJail(t, [][]byte{newUnJailed})
+	queue = append(queue, newUnJailed)
+	currNodesConfig = node.NodesConfig
+	requireSameSliceDifferentOrder(t, queue, currNodesConfig.auction)
+	require.Empty(t, node.NodesConfig.queue)
+}
