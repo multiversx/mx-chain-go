@@ -79,6 +79,8 @@ type EnableEpochsHandlerStub struct {
 	IsFailExecutionOnEveryAPIErrorFlagEnabledField               bool
 	IsHeartbeatDisableFlagEnabledField                           bool
 	IsMiniBlockPartialExecutionFlagEnabledField                  bool
+	IsManagedCryptoAPIsFlagEnabledField                          bool
+	IsESDTMetadataContinuousCleanupFlagEnabledField              bool
 }
 
 // BlockGasAndFeesReCheckEnableEpoch -
@@ -466,6 +468,16 @@ func (stub *EnableEpochsHandlerStub) IsHeartbeatDisableFlagEnabled() bool {
 // IsMiniBlockPartialExecutionFlagEnabled -
 func (stub *EnableEpochsHandlerStub) IsMiniBlockPartialExecutionFlagEnabled() bool {
 	return stub.IsMiniBlockPartialExecutionFlagEnabledField
+}
+
+// IsManagedCryptoAPIsFlagEnabled -
+func (stub *EnableEpochsHandlerStub) IsManagedCryptoAPIsFlagEnabled() bool {
+	return stub.IsManagedCryptoAPIsFlagEnabledField
+}
+
+// IsESDTMetadataContinuousCleanupFlagEnabled -
+func (stub *EnableEpochsHandlerStub) IsESDTMetadataContinuousCleanupFlagEnabled() bool {
+	return stub.IsESDTMetadataContinuousCleanupFlagEnabledField
 }
 
 // IsInterfaceNil -
