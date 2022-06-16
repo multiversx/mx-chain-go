@@ -50,6 +50,7 @@ type nodesConfig struct {
 	shuffledOut map[uint32][][]byte
 	queue       [][]byte
 	auction     [][]byte
+	new         [][]byte
 }
 
 // TestMetaProcessor -
@@ -86,6 +87,11 @@ func newTestMetaProcessor(
 		coreComponents.InternalMarshalizer(),
 		nc,
 		maxNodesConfig,
+	)
+
+	stakingcommon.SaveDelegationManagerConfig(
+		stateComponents.AccountsAdapter(),
+		coreComponents.InternalMarshalizer(),
 	)
 
 	gasScheduleNotifier := createGasScheduleNotifier()
@@ -174,6 +180,30 @@ func newTestMetaProcessor(
 		BlockChainHook:      blockChainHook,
 		StakingDataProvider: stakingDataProvider,
 	}
+}
+
+func saveNodesConfig(
+	accountsDB state.AccountsAdapter,
+	marshaller marshal.Marshalizer,
+	nc nodesCoordinator.NodesCoordinator,
+	maxNodesConfig []config.MaxNodesChangeConfig,
+) {
+	eligibleMap, _ := nc.GetAllEligibleValidatorsPublicKeys(0)
+	waitingMap, _ := nc.GetAllWaitingValidatorsPublicKeys(0)
+	allStakedNodes := int64(len(getAllPubKeys(eligibleMap)) + len(getAllPubKeys(waitingMap)))
+
+	maxNumNodes := allStakedNodes
+	if len(maxNodesConfig) > 0 {
+		maxNumNodes = int64(maxNodesConfig[0].MaxNumNodes)
+	}
+
+	stakingcommon.SaveNodesConfig(
+		accountsDB,
+		marshaller,
+		allStakedNodes,
+		1,
+		maxNumNodes,
+	)
 }
 
 func createGasScheduleNotifier() core.GasScheduleNotifier {
@@ -325,9 +355,13 @@ func (tmp *TestMetaProcessor) updateNodesConfig(epoch uint32) {
 	validatorsInfoMap, _ := tmp.ValidatorStatistics.GetValidatorInfoForRootHash(rootHash)
 
 	auction := make([][]byte, 0)
+	newList := make([][]byte, 0)
 	for _, validator := range validatorsInfoMap.GetAllValidatorsInfo() {
 		if validator.GetList() == string(common.AuctionList) {
 			auction = append(auction, validator.GetPublicKey())
+		}
+		if validator.GetList() == string(common.NewList) {
+			newList = append(newList, validator.GetPublicKey())
 		}
 	}
 
@@ -336,6 +370,7 @@ func (tmp *TestMetaProcessor) updateNodesConfig(epoch uint32) {
 	tmp.NodesConfig.shuffledOut = shuffledOut
 	tmp.NodesConfig.leaving = leaving
 	tmp.NodesConfig.auction = auction
+	tmp.NodesConfig.new = newList
 	tmp.NodesConfig.queue = tmp.getWaitingListKeys()
 }
 
@@ -352,28 +387,4 @@ func generateAddresses(startIdx, n uint32) [][]byte {
 func generateAddress(identifier uint32) []byte {
 	uniqueIdentifier := fmt.Sprintf("address-%d", identifier)
 	return []byte(strings.Repeat("0", addressLength-len(uniqueIdentifier)) + uniqueIdentifier)
-}
-
-func saveNodesConfig(
-	accountsDB state.AccountsAdapter,
-	marshaller marshal.Marshalizer,
-	nc nodesCoordinator.NodesCoordinator,
-	maxNodesConfig []config.MaxNodesChangeConfig,
-) {
-	eligibleMap, _ := nc.GetAllEligibleValidatorsPublicKeys(0)
-	waitingMap, _ := nc.GetAllWaitingValidatorsPublicKeys(0)
-	allStakedNodes := int64(len(getAllPubKeys(eligibleMap)) + len(getAllPubKeys(waitingMap)))
-
-	maxNumNodes := allStakedNodes
-	if len(maxNodesConfig) > 0 {
-		maxNumNodes = int64(maxNodesConfig[0].MaxNumNodes)
-	}
-
-	stakingcommon.SaveNodesConfig(
-		accountsDB,
-		marshaller,
-		allStakedNodes,
-		1,
-		maxNumNodes,
-	)
 }

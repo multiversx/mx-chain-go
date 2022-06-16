@@ -306,3 +306,25 @@ func SaveNodesConfig(
 	_, err = accountsDB.Commit()
 	log.LogIfError(err)
 }
+
+// SaveDelegationManagerConfig will save a mock configuration for the delegation manager SC
+func SaveDelegationManagerConfig(accountsDB state.AccountsAdapter, marshaller marshal.Marshalizer) {
+	managementData := &systemSmartContracts.DelegationManagement{
+		MinDeposit:          big.NewInt(100),
+		LastAddress:         vm.FirstDelegationSCAddress,
+		MinDelegationAmount: big.NewInt(1),
+	}
+	marshaledData, err := marshaller.Marshal(managementData)
+	log.LogIfError(err)
+
+	acc, err := accountsDB.LoadAccount(vm.DelegationManagerSCAddress)
+	log.LogIfError(err)
+	delegationAcc, _ := acc.(state.UserAccountHandler)
+
+	err = delegationAcc.DataTrieTracker().SaveKeyValue([]byte("delegationManagement"), marshaledData)
+	log.LogIfError(err)
+	err = accountsDB.SaveAccount(delegationAcc)
+	log.LogIfError(err)
+	_, err = accountsDB.Commit()
+	log.LogIfError(err)
+}

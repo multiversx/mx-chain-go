@@ -66,6 +66,7 @@ func (tmp *TestMetaProcessor) displayConfig(config nodesConfig) {
 	headline := display.Headline("Nodes config", "", delimiter)
 	fmt.Printf("%s\n%s\n", headline, table)
 
+	tmp.displayValidators("New", config.new)
 	tmp.displayValidators("Auction", config.auction)
 	tmp.displayValidators("Queue", config.queue)
 
