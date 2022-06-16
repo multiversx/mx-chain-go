@@ -416,7 +416,7 @@ func newBaseTestProcessorNode(
 	messenger := CreateMessengerWithNoDiscoveryAndPeersRatingHandler(peersRatingHandler)
 
 	genericEpochNotifier := forking.NewGenericEpochNotifier()
-	enabledEpochsHandler, _ := enablers.NewEnableEpochsHandler(enableEpochsConfig, genericEpochNotifier)
+	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(enableEpochsConfig, genericEpochNotifier)
 
 	logsProcessor, _ := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{Marshalizer: TestMarshalizer})
 	tpn := &TestProcessorNode{
@@ -430,7 +430,7 @@ func newBaseTestProcessorNode(
 		NodesSetup:              nodesSetup,
 		HistoryRepository:       &dblookupextMock.HistoryRepositoryStub{},
 		EpochNotifier:           genericEpochNotifier,
-		EnableEpochsHandler:     enabledEpochsHandler,
+		EnableEpochsHandler:     enableEpochsHandler,
 		ArwenChangeLocker:       &sync.RWMutex{},
 		TransactionLogProcessor: logsProcessor,
 		Bootstrapper:            mock.NewTestBootstrapperMock(),
@@ -628,9 +628,9 @@ func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32
 	kg := &mock.KeyGenMock{}
 	sk, pk := kg.GeneratePair()
 
-	enabledEpochsConfig := CreateEnableEpochsConfig()
+	enableEpochsConfig := CreateEnableEpochsConfig()
 	genericEpochNotifier := forking.NewGenericEpochNotifier()
-	enabledEpochsHandler, _ := enablers.NewEnableEpochsHandler(enabledEpochsConfig, genericEpochNotifier)
+	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(enableEpochsConfig, genericEpochNotifier)
 
 	logsProcessor, _ := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{Marshalizer: TestMarshalizer})
 	tpn := &TestProcessorNode{
@@ -652,8 +652,8 @@ func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32
 		TransactionLogProcessor: logsProcessor,
 		PeersRatingHandler:      peersRatingHandler,
 		PeerShardMapper:         disabledBootstrap.NewPeerShardMapper(),
-		EnableEpochs:            enabledEpochsConfig,
-		EnableEpochsHandler:     enabledEpochsHandler,
+		EnableEpochs:            enableEpochsConfig,
+		EnableEpochsHandler:     enableEpochsHandler,
 	}
 
 	tpn.NodeKeys = &TestKeyPair{
