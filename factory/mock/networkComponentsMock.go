@@ -8,11 +8,12 @@ import (
 
 // NetworkComponentsMock -
 type NetworkComponentsMock struct {
-	Messenger            p2p.Messenger
-	InputAntiFlood       factory.P2PAntifloodHandler
-	OutputAntiFlood      factory.P2PAntifloodHandler
-	PeerBlackList        process.PeerBlackListCacher
-	PreferredPeersHolder factory.PreferredPeersHolderHandler
+	Messenger               p2p.Messenger
+	InputAntiFlood          factory.P2PAntifloodHandler
+	OutputAntiFlood         factory.P2PAntifloodHandler
+	PeerBlackList           process.PeerBlackListCacher
+	PreferredPeersHolder    factory.PreferredPeersHolderHandler
+	PeersRatingHandlerField p2p.PeersRatingHandler
 }
 
 // PubKeyCacher -
@@ -63,6 +64,11 @@ func (ncm *NetworkComponentsMock) PeerBlackListHandler() process.PeerBlackListCa
 // PreferredPeersHolderHandler -
 func (ncm *NetworkComponentsMock) PreferredPeersHolderHandler() factory.PreferredPeersHolderHandler {
 	return ncm.PreferredPeersHolder
+}
+
+// PeersRatingHandler -
+func (ncm *NetworkComponentsMock) PeersRatingHandler() p2p.PeersRatingHandler {
+	return ncm.PeersRatingHandlerField
 }
 
 // IsInterfaceNil -

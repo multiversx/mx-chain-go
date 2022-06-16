@@ -89,12 +89,24 @@ func DeployNonPayableSmartContract(
 	round *uint64,
 	fileName string,
 ) []byte {
-	// deploy Smart Contract which can do local mint and local burn
+	return DeployNonPayableSmartContractFromNode(t, nodes, 0, idxProposers, nonce, round, fileName)
+}
+
+// DeployNonPayableSmartContractFromNode -
+func DeployNonPayableSmartContractFromNode(
+	t *testing.T,
+	nodes []*integrationTests.TestProcessorNode,
+	idDeployer int,
+	idxProposers []int,
+	nonce *uint64,
+	round *uint64,
+	fileName string,
+) []byte {
 	scCode := arwen.GetSCCode(fileName)
-	scAddress, _ := nodes[0].BlockchainHook.NewAddress(nodes[0].OwnAccount.Address, nodes[0].OwnAccount.Nonce, vmFactory.ArwenVirtualMachine)
+	scAddress, _ := nodes[idDeployer].BlockchainHook.NewAddress(nodes[idDeployer].OwnAccount.Address, nodes[idDeployer].OwnAccount.Nonce, vmFactory.ArwenVirtualMachine)
 
 	integrationTests.CreateAndSendTransaction(
-		nodes[0],
+		nodes[idDeployer],
 		nodes,
 		big.NewInt(0),
 		testVm.CreateEmptyAddress(),
@@ -103,8 +115,15 @@ func DeployNonPayableSmartContract(
 	)
 
 	*nonce, *round = integrationTests.WaitOperationToBeDone(t, nodes, 4, *nonce, *round, idxProposers)
-	_, err := nodes[0].AccntState.GetExistingAccount(scAddress)
-	require.Nil(t, err)
+
+	scShardID := nodes[0].ShardCoordinator.ComputeId(scAddress)
+	for _, node := range nodes {
+		if node.ShardCoordinator.SelfId() != scShardID {
+			continue
+		}
+		_, err := node.AccntState.GetExistingAccount(scAddress)
+		require.Nil(t, err)
+	}
 
 	return scAddress
 }

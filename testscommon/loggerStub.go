@@ -1,8 +1,6 @@
 package testscommon
 
-import (
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-)
+import logger "github.com/ElrondNetwork/elrond-go-logger"
 
 // LoggerStub -
 type LoggerStub struct {
@@ -11,8 +9,8 @@ type LoggerStub struct {
 	InfoCalled       func(message string, args ...interface{})
 	WarnCalled       func(message string, args ...interface{})
 	ErrorCalled      func(message string, args ...interface{})
-	LogCalled        func(logLevel logger.LogLevel, message string, args ...interface{})
 	LogIfErrorCalled func(err error, args ...interface{})
+	LogCalled        func(logLevel logger.LogLevel, message string, args ...interface{})
 	LogLineCalled    func(line *logger.LogLine)
 	SetLevelCalled   func(logLevel logger.LogLevel)
 	GetLevelCalled   func() logger.LogLevel

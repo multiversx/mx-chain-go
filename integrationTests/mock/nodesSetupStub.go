@@ -1,11 +1,11 @@
 package mock
 
-import "github.com/ElrondNetwork/elrond-go/sharding"
+import "github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 
 // NodesSetupStub -
 type NodesSetupStub struct {
-	InitialNodesInfoForShardCalled            func(shardId uint32) ([]sharding.GenesisNodeInfoHandler, []sharding.GenesisNodeInfoHandler, error)
-	InitialNodesInfoCalled                    func() (map[uint32][]sharding.GenesisNodeInfoHandler, map[uint32][]sharding.GenesisNodeInfoHandler)
+	InitialNodesInfoForShardCalled            func(shardId uint32) ([]nodesCoordinator.GenesisNodeInfoHandler, []nodesCoordinator.GenesisNodeInfoHandler, error)
+	InitialNodesInfoCalled                    func() (map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, map[uint32][]nodesCoordinator.GenesisNodeInfoHandler)
 	GetStartTimeCalled                        func() int64
 	GetRoundDurationCalled                    func() uint64
 	GetChainIdCalled                          func() string
@@ -18,7 +18,7 @@ type NodesSetupStub struct {
 	MinNumberOfMetaNodesCalled                func() uint32
 	GetHysteresisCalled                       func() float32
 	GetAdaptivityCalled                       func() bool
-	AllInitialNodesCalled                     func() []sharding.GenesisNodeInfoHandler
+	AllInitialNodesCalled                     func() []nodesCoordinator.GenesisNodeInfoHandler
 	GetShardIDForPubKeyCalled                 func(pubkey []byte) (uint32, error)
 	InitialEligibleNodesPubKeysForShardCalled func(shardId uint32) ([]string, error)
 	InitialNodesPubKeysCalled                 func() map[uint32][]string
@@ -126,7 +126,7 @@ func (n *NodesSetupStub) NumberOfShards() uint32 {
 }
 
 // InitialNodesInfoForShard -
-func (n *NodesSetupStub) InitialNodesInfoForShard(shardId uint32) ([]sharding.GenesisNodeInfoHandler, []sharding.GenesisNodeInfoHandler, error) {
+func (n *NodesSetupStub) InitialNodesInfoForShard(shardId uint32) ([]nodesCoordinator.GenesisNodeInfoHandler, []nodesCoordinator.GenesisNodeInfoHandler, error) {
 	if n.InitialNodesInfoForShardCalled != nil {
 		return n.InitialNodesInfoForShardCalled(shardId)
 	}
@@ -134,7 +134,7 @@ func (n *NodesSetupStub) InitialNodesInfoForShard(shardId uint32) ([]sharding.Ge
 }
 
 // InitialNodesInfo -
-func (n *NodesSetupStub) InitialNodesInfo() (map[uint32][]sharding.GenesisNodeInfoHandler, map[uint32][]sharding.GenesisNodeInfoHandler) {
+func (n *NodesSetupStub) InitialNodesInfo() (map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, map[uint32][]nodesCoordinator.GenesisNodeInfoHandler) {
 	if n.InitialNodesInfoCalled != nil {
 		return n.InitialNodesInfoCalled()
 	}
@@ -142,7 +142,7 @@ func (n *NodesSetupStub) InitialNodesInfo() (map[uint32][]sharding.GenesisNodeIn
 }
 
 // AllInitialNodes -
-func (n *NodesSetupStub) AllInitialNodes() []sharding.GenesisNodeInfoHandler {
+func (n *NodesSetupStub) AllInitialNodes() []nodesCoordinator.GenesisNodeInfoHandler {
 	if n.AllInitialNodesCalled != nil {
 		return n.AllInitialNodesCalled()
 	}

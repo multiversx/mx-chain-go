@@ -1,6 +1,7 @@
 package state
 
 import (
+	"context"
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -110,16 +111,15 @@ type AccountsAdapter interface {
 	Commit() ([]byte, error)
 	JournalLen() int
 	RevertToSnapshot(snapshot int) error
-	GetNumCheckpoints() uint32
 	GetCode(codeHash []byte) []byte
 	RootHash() ([]byte, error)
 	RecreateTrie(rootHash []byte) error
-	PruneTrie(rootHash []byte, identifier TriePruningIdentifier)
+	PruneTrie(rootHash []byte, identifier TriePruningIdentifier, handler PruningHandler)
 	CancelPrune(rootHash []byte, identifier TriePruningIdentifier)
 	SnapshotState(rootHash []byte)
 	SetStateCheckpoint(rootHash []byte)
 	IsPruningEnabled() bool
-	GetAllLeaves(rootHash []byte) (chan core.KeyValueHolder, error)
+	GetAllLeaves(leavesChannel chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error
 	RecreateAllTries(rootHash []byte) (map[string]common.Trie, error)
 	GetTrie(rootHash []byte) (common.Trie, error)
 	GetStackDebugFirstEntry() []byte
@@ -177,8 +177,13 @@ type AtomicBuffer interface {
 // StoragePruningManager is used to manage all state pruning operations
 type StoragePruningManager interface {
 	MarkForEviction([]byte, []byte, common.ModifiedHashes, common.ModifiedHashes) error
-	PruneTrie(rootHash []byte, identifier TriePruningIdentifier, tsm common.StorageManager)
+	PruneTrie(rootHash []byte, identifier TriePruningIdentifier, tsm common.StorageManager, handler PruningHandler)
 	CancelPrune(rootHash []byte, identifier TriePruningIdentifier, tsm common.StorageManager)
 	Close() error
 	IsInterfaceNil() bool
+}
+
+// PruningHandler defines different options for pruning
+type PruningHandler interface {
+	IsPruningEnabled() bool
 }

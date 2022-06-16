@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -249,26 +248,6 @@ func WithRequestedItemsHandler(requestedItemsHandler dataRetriever.RequestedItem
 			return ErrNilRequestedItemsHandler
 		}
 		n.requestedItemsHandler = requestedItemsHandler
-		return nil
-	}
-}
-
-// WithTxAccumulator sets up a transaction accumulator handler for the Node
-func WithTxAccumulator(accumulator core.Accumulator) Option {
-	return func(n *Node) error {
-		if check.IfNil(accumulator) {
-			return ErrNilTxAccumulator
-		}
-		if !check.IfNil(n.txAcumulator) {
-			log.LogIfError(n.txAcumulator.Close())
-		}
-		n.txAcumulator = accumulator
-
-		n.closableComponents = append(n.closableComponents, accumulator)
-
-		go n.sendFromTxAccumulator(n.ctx)
-		go n.printTxSentCounter(n.ctx)
-
 		return nil
 	}
 }

@@ -56,6 +56,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
+	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/txDataBuilder"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/trie/hashesHolder"
@@ -286,30 +287,19 @@ func CreateMemUnit() storage.Storer {
 // CreateInMemoryShardAccountsDB -
 func CreateInMemoryShardAccountsDB() *state.AccountsDB {
 	marshaller := &marshal.GogoProtoMarshalizer{}
-	store := CreateMemUnit()
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, memorydb.New(), marshaller)
 	generalCfg := config.TrieStorageManagerConfig{
 		PruningBufferLen:      1000,
 		SnapshotsBufferLen:    10,
-		MaxSnapshots:          2,
 		SnapshotsGoroutineNum: 1,
 	}
 	args := trie.NewTrieStorageManagerArgs{
-		DB:                store,
-		MainStorer:        CreateMemUnit(),
-		CheckpointsStorer: CreateMemUnit(),
-		Marshalizer:       marshaller,
-		Hasher:            testHasher,
-		SnapshotDbConfig: config.DBConfig{
-			FilePath:          "TrieStorage",
-			Type:              "MemoryDB",
-			BatchDelaySeconds: 30,
-			MaxBatchSize:      6,
-			MaxOpenFiles:      10,
-		},
+		MainStorer:             CreateMemUnit(),
+		CheckpointsStorer:      CreateMemUnit(),
+		Marshalizer:            marshaller,
+		Hasher:                 testHasher,
 		GeneralConfig:          generalCfg,
 		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10000000, uint64(testHasher.Size())),
-		EpochNotifier:          &epochNotifier.EpochNotifierStub{},
 		IdleProvider:           &testscommon.ProcessStatusHandlerStub{},
 	}
 	trieStorage, _ := trie.NewTrieStorageManager(args)
@@ -423,20 +413,21 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 	builtInFuncs := vmcommonBuiltInFunctions.NewBuiltInFunctionContainer()
 	datapool := dataRetrieverMock.NewPoolsHolderMock()
 	args := hooks.ArgBlockChainHook{
-		Accounts:           accnts,
-		PubkeyConv:         pubkeyConv,
-		StorageService:     &mock.ChainStorerMock{},
-		BlockChain:         &testscommon.ChainHandlerStub{},
-		ShardCoordinator:   oneShardCoordinator,
-		Marshalizer:        testMarshalizer,
-		Uint64Converter:    &mock.Uint64ByteSliceConverterMock{},
-		BuiltInFunctions:   builtInFuncs,
-		NFTStorageHandler:  &testscommon.SimpleNFTStorageHandlerStub{},
-		DataPool:           datapool,
-		CompiledSCPool:     datapool.SmartContracts(),
-		NilCompiledSCStore: true,
-		ConfigSCStorage:    *defaultStorageConfig(),
-		EpochNotifier:      &epochNotifier.EpochNotifierStub{},
+		Accounts:              accnts,
+		PubkeyConv:            pubkeyConv,
+		StorageService:        &mock.ChainStorerMock{},
+		BlockChain:            &testscommon.ChainHandlerStub{},
+		ShardCoordinator:      oneShardCoordinator,
+		Marshalizer:           testMarshalizer,
+		Uint64Converter:       &mock.Uint64ByteSliceConverterMock{},
+		BuiltInFunctions:      builtInFuncs,
+		NFTStorageHandler:     &testscommon.SimpleNFTStorageHandlerStub{},
+		GlobalSettingsHandler: &testscommon.ESDTGlobalSettingsHandlerStub{},
+		DataPool:              datapool,
+		CompiledSCPool:        datapool.SmartContracts(),
+		NilCompiledSCStore:    true,
+		ConfigSCStorage:       *defaultStorageConfig(),
+		EpochNotifier:         &epochNotifier.EpochNotifierStub{},
 	}
 
 	blockChainHook, _ := hooks.NewBlockChainHookImpl(args)
@@ -521,21 +512,22 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 func CreateOneSCExecutorMockVM(accnts state.AccountsAdapter, enableEpochs config.EnableEpochs) vmcommon.VMExecutionHandler {
 	datapool := dataRetrieverMock.NewPoolsHolderMock()
 	args := hooks.ArgBlockChainHook{
-		Accounts:           accnts,
-		PubkeyConv:         pubkeyConv,
-		StorageService:     &mock.ChainStorerMock{},
-		BlockChain:         &testscommon.ChainHandlerStub{},
-		ShardCoordinator:   oneShardCoordinator,
-		Marshalizer:        testMarshalizer,
-		Uint64Converter:    &mock.Uint64ByteSliceConverterMock{},
-		BuiltInFunctions:   vmcommonBuiltInFunctions.NewBuiltInFunctionContainer(),
-		NFTStorageHandler:  &testscommon.SimpleNFTStorageHandlerStub{},
-		DataPool:           datapool,
-		CompiledSCPool:     datapool.SmartContracts(),
-		NilCompiledSCStore: true,
-		ConfigSCStorage:    *defaultStorageConfig(),
-		EpochNotifier:      &epochNotifier.EpochNotifierStub{},
-		EnableEpochs:       enableEpochs,
+		Accounts:              accnts,
+		PubkeyConv:            pubkeyConv,
+		StorageService:        &mock.ChainStorerMock{},
+		BlockChain:            &testscommon.ChainHandlerStub{},
+		ShardCoordinator:      oneShardCoordinator,
+		Marshalizer:           testMarshalizer,
+		Uint64Converter:       &mock.Uint64ByteSliceConverterMock{},
+		BuiltInFunctions:      vmcommonBuiltInFunctions.NewBuiltInFunctionContainer(),
+		NFTStorageHandler:     &testscommon.SimpleNFTStorageHandlerStub{},
+		GlobalSettingsHandler: &testscommon.ESDTGlobalSettingsHandlerStub{},
+		DataPool:              datapool,
+		CompiledSCPool:        datapool.SmartContracts(),
+		NilCompiledSCStore:    true,
+		ConfigSCStorage:       *defaultStorageConfig(),
+		EpochNotifier:         &epochNotifier.EpochNotifierStub{},
+		EnableEpochs:          enableEpochs,
 	}
 	blockChainHook, _ := hooks.NewBlockChainHookImpl(args)
 	vm, _ := mock.NewOneSCExecutorMockVM(blockChainHook, testHasher)
@@ -569,34 +561,37 @@ func CreateVMAndBlockchainHookAndDataPool(
 		ShardCoordinator: shardCoordinator,
 		EpochNotifier:    epochNotifierInstance,
 	}
-	builtInFuncs, nftStorageHandler, _ := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
+	builtInFuncs, nftStorageHandler, globalSettingsHandler, _ := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
 
 	datapool := dataRetrieverMock.NewPoolsHolderMock()
 	args := hooks.ArgBlockChainHook{
-		Accounts:           accnts,
-		PubkeyConv:         pubkeyConv,
-		StorageService:     &mock.ChainStorerMock{},
-		BlockChain:         &testscommon.ChainHandlerStub{},
-		ShardCoordinator:   shardCoordinator,
-		Marshalizer:        testMarshalizer,
-		Uint64Converter:    &mock.Uint64ByteSliceConverterMock{},
-		BuiltInFunctions:   builtInFuncs,
-		NFTStorageHandler:  nftStorageHandler,
-		DataPool:           datapool,
-		CompiledSCPool:     datapool.SmartContracts(),
-		NilCompiledSCStore: true,
-		ConfigSCStorage:    *defaultStorageConfig(),
-		EpochNotifier:      epochNotifierInstance,
-		EnableEpochs:       enableEpochs,
+		Accounts:              accnts,
+		PubkeyConv:            pubkeyConv,
+		StorageService:        &mock.ChainStorerMock{},
+		BlockChain:            &testscommon.ChainHandlerStub{},
+		ShardCoordinator:      shardCoordinator,
+		Marshalizer:           testMarshalizer,
+		Uint64Converter:       &mock.Uint64ByteSliceConverterMock{},
+		BuiltInFunctions:      builtInFuncs,
+		NFTStorageHandler:     nftStorageHandler,
+		GlobalSettingsHandler: globalSettingsHandler,
+		DataPool:              datapool,
+		CompiledSCPool:        datapool.SmartContracts(),
+		NilCompiledSCStore:    true,
+		ConfigSCStorage:       *defaultStorageConfig(),
+		EpochNotifier:         epochNotifierInstance,
+		EnableEpochs:          enableEpochs,
 	}
 
 	esdtTransferParser, _ := parsers.NewESDTTransferParser(testMarshalizer)
 	maxGasLimitPerBlock := uint64(0xFFFFFFFFFFFFFFFF)
+	blockChainHookImpl, _ := hooks.NewBlockChainHookImpl(args)
 	argsNewVMFactory := shard.ArgVMContainerFactory{
 		Config:             *vmConfig,
 		BlockGasLimit:      maxGasLimitPerBlock,
 		GasSchedule:        gasSchedule,
-		ArgBlockChainHook:  args,
+		BlockChainHook:     blockChainHookImpl,
+		BuiltInFunctions:   args.BuiltInFunctions,
 		EpochNotifier:      epochNotifierInstance,
 		EpochConfig:        enableEpochs,
 		ArwenChangeLocker:  arwenChangeLocker,
@@ -641,23 +636,24 @@ func CreateVMAndBlockchainHookMeta(
 		ShardCoordinator: shardCoordinator,
 		EpochNotifier:    globalEpochNotifier,
 	}
-	builtInFuncs, nftStorageHandler, _ := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
+	builtInFuncs, nftStorageHandler, globalSettingsHandler, _ := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
 
 	datapool := dataRetrieverMock.NewPoolsHolderMock()
 	args := hooks.ArgBlockChainHook{
-		Accounts:           accnts,
-		PubkeyConv:         pubkeyConv,
-		StorageService:     &mock.ChainStorerMock{},
-		BlockChain:         &testscommon.ChainHandlerStub{},
-		ShardCoordinator:   shardCoordinator,
-		Marshalizer:        testMarshalizer,
-		Uint64Converter:    &mock.Uint64ByteSliceConverterMock{},
-		BuiltInFunctions:   builtInFuncs,
-		NFTStorageHandler:  nftStorageHandler,
-		DataPool:           datapool,
-		CompiledSCPool:     datapool.SmartContracts(),
-		NilCompiledSCStore: true,
-		EpochNotifier:      &epochNotifier.EpochNotifierStub{},
+		Accounts:              accnts,
+		PubkeyConv:            pubkeyConv,
+		StorageService:        &mock.ChainStorerMock{},
+		BlockChain:            &testscommon.ChainHandlerStub{},
+		ShardCoordinator:      shardCoordinator,
+		Marshalizer:           testMarshalizer,
+		Uint64Converter:       &mock.Uint64ByteSliceConverterMock{},
+		BuiltInFunctions:      builtInFuncs,
+		NFTStorageHandler:     nftStorageHandler,
+		GlobalSettingsHandler: globalSettingsHandler,
+		DataPool:              datapool,
+		CompiledSCPool:        datapool.SmartContracts(),
+		NilCompiledSCStore:    true,
+		EpochNotifier:         &epochNotifier.EpochNotifierStub{},
 	}
 
 	economicsData, err := createEconomicsData(0)
@@ -665,8 +661,10 @@ func CreateVMAndBlockchainHookMeta(
 		log.LogIfError(err)
 	}
 
+	blockChainHookImpl, _ := hooks.NewBlockChainHookImpl(args)
 	argVMContainer := metachain.ArgsNewVMContainerFactory{
-		ArgBlockChainHook:   args,
+		BlockChainHook:      blockChainHookImpl,
+		PubkeyConv:          args.PubkeyConv,
 		Economics:           economicsData,
 		MessageSignVerifier: &mock.MessageSignVerifierMock{},
 		GasSchedule:         gasSchedule,
@@ -675,7 +673,7 @@ func CreateVMAndBlockchainHookMeta(
 		Marshalizer:         testMarshalizer,
 		SystemSCConfig:      createSystemSCConfig(),
 		ValidatorAccountsDB: accnts,
-		ChanceComputer:      &mock.NodesCoordinatorMock{},
+		ChanceComputer:      &shardingMocks.NodesCoordinatorMock{},
 		EpochNotifier:       &epochNotifier.EpochNotifierStub{},
 		EpochConfig:         createEpochConfig(enableEpochs),
 		ShardCoordinator:    mock.NewMultiShardsCoordinatorMock(1),

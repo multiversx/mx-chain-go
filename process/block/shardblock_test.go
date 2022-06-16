@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math/big"
 	"reflect"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -135,193 +136,88 @@ func CreateMockArgumentsMultiShard(
 
 // ------- NewBlockProcessor
 
-func TestNewBlockProcessor_NilDataPoolShouldErr(t *testing.T) {
+func TestNewShardProcessor(t *testing.T) {
 	t.Parallel()
 
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
-	dataComponents.DataPool = nil
-	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-	sp, err := blproc.NewShardProcessor(arguments)
 
-	assert.Equal(t, process.ErrNilDataPoolHolder, err)
-	assert.Nil(t, sp)
-}
+	tests := []struct {
+		args        func() blproc.ArgShardProcessor
+		expectedErr error
+	}{
+		{
+			args: func() blproc.ArgShardProcessor {
+				return CreateMockArgumentsMultiShard(coreComponents, nil, bootstrapComponents, statusComponents)
+			},
+			expectedErr: process.ErrNilDataComponentsHolder,
+		},
+		{
+			args: func() blproc.ArgShardProcessor {
+				dataCompCopy := *dataComponents
+				dataCompCopy.DataPool = nil
 
-func TestNewBlockProcessor_NilHeadersDataPoolShouldErr(t *testing.T) {
-	t.Parallel()
-
-	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
-	dataComponents.DataPool = &dataRetrieverMock.PoolsHolderStub{
-		HeadersCalled: func() dataRetriever.HeadersPool {
-			return nil
+				return CreateMockArgumentsMultiShard(coreComponents, &dataCompCopy, bootstrapComponents, statusComponents)
+			},
+			expectedErr: process.ErrNilDataPoolHolder,
+		},
+		{
+			args: func() blproc.ArgShardProcessor {
+				dataCompCopy := *dataComponents
+				dataCompCopy.DataPool = &dataRetrieverMock.PoolsHolderStub{
+					HeadersCalled: func() dataRetriever.HeadersPool {
+						return nil
+					},
+				}
+				return CreateMockArgumentsMultiShard(coreComponents, &dataCompCopy, bootstrapComponents, statusComponents)
+			},
+			expectedErr: process.ErrNilHeadersDataPool,
+		},
+		{
+			args: func() blproc.ArgShardProcessor {
+				dataCompCopy := *dataComponents
+				dataCompCopy.DataPool = &dataRetrieverMock.PoolsHolderStub{
+					HeadersCalled: func() dataRetriever.HeadersPool {
+						return &mock.HeadersCacherStub{}
+					},
+					TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+						return nil
+					},
+				}
+				return CreateMockArgumentsMultiShard(coreComponents, &dataCompCopy, bootstrapComponents, statusComponents)
+			},
+			expectedErr: process.ErrNilTransactionPool,
+		},
+		{
+			args: func() blproc.ArgShardProcessor {
+				dataCompCopy := *dataComponents
+				dataCompCopy.BlockChain = &testscommon.ChainHandlerStub{
+					GetGenesisHeaderCalled: func() data.HeaderHandler {
+						return nil
+					},
+				}
+				return CreateMockArgumentsMultiShard(coreComponents, &dataCompCopy, bootstrapComponents, statusComponents)
+			},
+			expectedErr: process.ErrNilHeaderHandler,
+		},
+		{
+			args: func() blproc.ArgShardProcessor {
+				return CreateMockArgumentsMultiShard(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+			},
+			expectedErr: nil,
 		},
 	}
-	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-	sp, err := blproc.NewShardProcessor(arguments)
 
-	assert.Equal(t, process.ErrNilHeadersDataPool, err)
-	assert.Nil(t, sp)
-}
-
-func TestNewShardProcessor_NilStoreShouldErr(t *testing.T) {
-	t.Parallel()
-
-	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
-	dataComponents.Storage = nil
-	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-	sp, err := blproc.NewShardProcessor(arguments)
-
-	assert.Equal(t, process.ErrNilStorage, err)
-	assert.Nil(t, sp)
-}
-
-func TestNewShardProcessor_NilHasherShouldErr(t *testing.T) {
-	t.Parallel()
-
-	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
-	coreComponents.Hash = nil
-	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-	sp, err := blproc.NewShardProcessor(arguments)
-
-	assert.Equal(t, process.ErrNilHasher, err)
-	assert.Nil(t, sp)
-}
-
-func TestNewShardProcessor_NilMarshalizerShouldErr(t *testing.T) {
-	t.Parallel()
-
-	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
-	coreComponents.IntMarsh = nil
-	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-	sp, err := blproc.NewShardProcessor(arguments)
-
-	assert.Equal(t, process.ErrNilMarshalizer, err)
-	assert.Nil(t, sp)
-}
-
-func TestNewShardProcessor_NilAccountsAdapterShouldErr(t *testing.T) {
-	t.Parallel()
-
-	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
-	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-	arguments.AccountsDB[state.UserAccountsState] = nil
-	sp, err := blproc.NewShardProcessor(arguments)
-
-	assert.Equal(t, process.ErrNilAccountsAdapter, err)
-	assert.Nil(t, sp)
-}
-
-func TestNewShardProcessor_NilShardCoordinatorShouldErr(t *testing.T) {
-	t.Parallel()
-
-	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
-	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-	bootstrapComponents.Coordinator = nil
-	sp, err := blproc.NewShardProcessor(arguments)
-
-	assert.Equal(t, process.ErrNilShardCoordinator, err)
-	assert.Nil(t, sp)
-}
-
-func TestNewShardProcessor_NilForkDetectorShouldErr(t *testing.T) {
-	t.Parallel()
-
-	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
-	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-	arguments.ForkDetector = nil
-	sp, err := blproc.NewShardProcessor(arguments)
-
-	assert.Equal(t, process.ErrNilForkDetector, err)
-	assert.Nil(t, sp)
-}
-
-func TestNewShardProcessor_NilRequestTransactionHandlerShouldErr(t *testing.T) {
-	t.Parallel()
-
-	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
-	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-	arguments.RequestHandler = nil
-	sp, err := blproc.NewShardProcessor(arguments)
-
-	assert.Equal(t, process.ErrNilRequestHandler, err)
-	assert.Nil(t, sp)
-}
-
-func TestNewShardProcessor_NilTransactionPoolShouldErr(t *testing.T) {
-	t.Parallel()
-
-	tdp := initDataPool([]byte("tx_hash1"))
-	tdp.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
-		return nil
+	for _, test := range tests {
+		sp, err := blproc.NewShardProcessor(test.args())
+		if test.expectedErr != nil {
+			require.Nil(t, sp)
+			require.Error(t, err)
+			require.True(t, strings.Contains(err.Error(), test.expectedErr.Error()))
+		} else {
+			require.NotNil(t, sp)
+			require.Nil(t, err)
+		}
 	}
-	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
-	dataComponents.DataPool = tdp
-	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-
-	sp, err := blproc.NewShardProcessor(arguments)
-
-	assert.Equal(t, process.ErrNilTransactionPool, err)
-	assert.Nil(t, sp)
-}
-
-func TestNewShardProcessor_NilTxCoordinatorShouldErr(t *testing.T) {
-	t.Parallel()
-
-	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
-	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-	arguments.TxCoordinator = nil
-	sp, err := blproc.NewShardProcessor(arguments)
-
-	assert.Equal(t, process.ErrNilTransactionCoordinator, err)
-	assert.Nil(t, sp)
-}
-
-func TestNewShardProcessor_NilUint64ConverterShouldErr(t *testing.T) {
-	t.Parallel()
-
-	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
-	coreComponents.UInt64ByteSliceConv = nil
-	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-
-	sp, err := blproc.NewShardProcessor(arguments)
-
-	assert.Equal(t, process.ErrNilUint64Converter, err)
-	assert.Nil(t, sp)
-}
-
-func TestNewShardProcessor_NilBlockSizeThrottlerShouldErr(t *testing.T) {
-	t.Parallel()
-
-	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
-	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-	arguments.BlockSizeThrottler = nil
-	sp, err := blproc.NewShardProcessor(arguments)
-
-	assert.Equal(t, process.ErrNilBlockSizeThrottler, err)
-	assert.Nil(t, sp)
-}
-
-func TestNewShardProcessor_NilScheduledTxsExecutionHandlerShouldErr(t *testing.T) {
-	t.Parallel()
-
-	arguments := CreateMockArguments(createComponentHolderMocks())
-	arguments.ScheduledTxsExecutionHandler = nil
-	sp, err := blproc.NewShardProcessor(arguments)
-
-	assert.Equal(t, process.ErrNilScheduledTxsExecutionHandler, err)
-	assert.Nil(t, sp)
-}
-
-func TestNewShardProcessor_OkValsShouldWork(t *testing.T) {
-	t.Parallel()
-
-	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
-	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-	sp, err := blproc.NewShardProcessor(arguments)
-
-	assert.Nil(t, err)
-	assert.NotNil(t, sp)
-	assert.False(t, sp.IsInterfaceNil())
 }
 
 // ------- ProcessBlock
@@ -1377,6 +1273,311 @@ func TestShardProcessor_ProcessBlockWithWrongMiniBlockHeaderShouldErr(t *testing
 	// should return err
 	err := sp.ProcessBlock(&hdr, body, haveTime)
 	assert.Equal(t, process.ErrHeaderBodyMismatch, err)
+}
+
+// ------- requestEpochStartInfo
+func TestShardProcessor_RequestEpochStartInfo(t *testing.T) {
+	t.Parallel()
+
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+
+	headerHash := []byte("hash")
+	headerEpoch := uint32(101)
+	blockStartOfEpoch := &block.Header{
+		Epoch:              headerEpoch,
+		EpochStartMetaHash: headerHash,
+	}
+	errGetHeader := errors.New("error getting headers")
+
+	t.Run("header is not start of epoch, should not request any header", func(t *testing.T) {
+		t.Parallel()
+
+		args := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		args.RequestHandler = &testscommon.RequestHandlerStub{
+			RequestMetaHeaderCalled: func(hash []byte) {
+				require.Fail(t, "should not try to request meta header")
+			},
+		}
+
+		shardProc, _ := blproc.NewShardProcessor(args)
+		header := &testscommon.HeaderHandlerStub{
+			IsStartOfEpochBlockCalled: func() bool {
+				return false
+			},
+		}
+		err := shardProc.RequestEpochStartInfo(header, haveTime)
+		time.Sleep(time.Second)
+		require.Nil(t, err)
+	})
+
+	t.Run("meta epoch greater than header epoch, should not request any header", func(t *testing.T) {
+		t.Parallel()
+
+		args := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		args.RequestHandler = &testscommon.RequestHandlerStub{
+			RequestMetaHeaderCalled: func(hash []byte) {
+				require.Fail(t, "should not try to request meta header")
+			},
+		}
+		args.EpochStartTrigger = &testscommon.EpochStartTriggerStub{
+			MetaEpochCalled: func() uint32 {
+				return headerEpoch + 1
+			},
+		}
+
+		shardProc, _ := blproc.NewShardProcessor(args)
+
+		err := shardProc.RequestEpochStartInfo(blockStartOfEpoch, haveTime)
+		time.Sleep(time.Second)
+		require.Nil(t, err)
+	})
+
+	t.Run("is epoch start, should not request meta header", func(t *testing.T) {
+		t.Parallel()
+
+		args := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		args.EpochStartTrigger = &testscommon.EpochStartTriggerStub{
+			IsEpochStartCalled: func() bool {
+				return true
+			},
+		}
+		args.RequestHandler = &testscommon.RequestHandlerStub{
+			RequestMetaHeaderCalled: func(hash []byte) {
+				require.Fail(t, "should not try to request meta header")
+			},
+		}
+
+		shardProc, _ := blproc.NewShardProcessor(args)
+		err := shardProc.RequestEpochStartInfo(blockStartOfEpoch, haveTime)
+		time.Sleep(time.Second)
+		require.Nil(t, err)
+	})
+
+	t.Run("epoch start triggered while trying to request header from pool", func(t *testing.T) {
+		t.Parallel()
+
+		args := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+
+		flag := &atomicCore.Flag{}
+		args.EpochStartTrigger = &testscommon.EpochStartTriggerStub{
+			IsEpochStartCalled: func() bool {
+				if flag.IsSet() {
+					return true
+				}
+
+				flag.SetValue(true)
+				return false
+			},
+		}
+		requestsCt := &atomicCore.Counter{}
+		args.RequestHandler = &testscommon.RequestHandlerStub{
+			RequestMetaHeaderCalled: func(hash []byte) {
+				require.Equal(t, headerHash, hash)
+				requestsCt.Increment()
+			},
+		}
+
+		shardProc, _ := blproc.NewShardProcessor(args)
+		err := shardProc.RequestEpochStartInfo(blockStartOfEpoch, haveTime)
+		time.Sleep(time.Second)
+		require.Nil(t, err)
+		require.Equal(t, int64(1), requestsCt.Get())
+	})
+
+	t.Run("no time left", func(t *testing.T) {
+		t.Parallel()
+
+		args := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		shardProc, _ := blproc.NewShardProcessor(args)
+		noTimeFunc := func() time.Duration {
+			return -1 * time.Millisecond
+		}
+		err := shardProc.RequestEpochStartInfo(blockStartOfEpoch, noTimeFunc)
+		time.Sleep(time.Second)
+		require.Equal(t, process.ErrTimeIsOut, err)
+	})
+
+	t.Run("cannot get meta header by hash first time, expect second time is returned", func(t *testing.T) {
+		t.Parallel()
+
+		metaHeaderNonce := uint64(1)
+		requestsCt := &atomicCore.Counter{}
+		headersPool := &mock.HeadersCacherStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				require.Equal(t, headerHash, hash)
+
+				switch requestsCt.Get() {
+				case 1:
+					return nil, errGetHeader
+				case 2:
+					return &block.Header{Nonce: metaHeaderNonce, ShardID: core.MetachainShardId}, nil
+				default:
+					require.Fail(t, "should not try to get header from pool more than 2 times")
+					return nil, nil
+				}
+			},
+			GetHeaderByNonceAndShardIdCalled: func(hdrNonce uint64, shardId uint32) ([]data.HeaderHandler, [][]byte, error) {
+				require.Equal(t, metaHeaderNonce+1, hdrNonce)
+				require.Equal(t, core.MetachainShardId, shardId)
+
+				return nil, nil, nil
+			},
+		}
+		poolsHolder := &dataRetrieverMock.PoolsHolderStub{
+			HeadersCalled: func() dataRetriever.HeadersPool {
+				return headersPool
+			},
+			TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+				return &testscommon.ShardedDataStub{}
+			},
+		}
+
+		args := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		args.DataComponents = &mock.DataComponentsMock{
+			Storage:  &mock.ChainStorerMock{},
+			DataPool: poolsHolder,
+			BlockChain: &testscommon.ChainHandlerStub{
+				GetGenesisHeaderCalled: func() data.HeaderHandler {
+					return &block.Header{}
+				},
+			},
+		}
+
+		args.RequestHandler = &testscommon.RequestHandlerStub{
+			RequestMetaHeaderByNonceCalled: func(nonce uint64) {
+				require.Fail(t, "should not try to request meta header by nonce, expect we have it in pool")
+			},
+			RequestMetaHeaderCalled: func(hash []byte) {
+				require.Equal(t, headerHash, hash)
+				requestsCt.Increment()
+			},
+		}
+
+		shardProc, _ := blproc.NewShardProcessor(args)
+		err := shardProc.RequestEpochStartInfo(blockStartOfEpoch, haveTime)
+		time.Sleep(time.Second)
+		require.Nil(t, err)
+		require.Equal(t, int64(2), requestsCt.Get())
+	})
+
+	t.Run("get headers by nonce and shard id from headers pool should work without any additional requests", func(t *testing.T) {
+		t.Parallel()
+
+		headerNonce := uint64(1)
+		headersPool := &mock.HeadersCacherStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				require.Equal(t, headerHash, hash)
+				return &block.Header{Nonce: headerNonce, ShardID: core.MetachainShardId}, nil
+			},
+			GetHeaderByNonceAndShardIdCalled: func(hdrNonce uint64, shardId uint32) ([]data.HeaderHandler, [][]byte, error) {
+				require.Equal(t, headerNonce+1, hdrNonce)
+				require.Equal(t, core.MetachainShardId, shardId)
+				return nil, nil, nil
+			},
+		}
+		poolsHolder := &dataRetrieverMock.PoolsHolderStub{
+			HeadersCalled: func() dataRetriever.HeadersPool {
+				return headersPool
+			},
+			TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+				return &testscommon.ShardedDataStub{}
+			},
+		}
+
+		args := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		args.DataComponents = &mock.DataComponentsMock{
+			Storage:  &mock.ChainStorerMock{},
+			DataPool: poolsHolder,
+			BlockChain: &testscommon.ChainHandlerStub{
+				GetGenesisHeaderCalled: func() data.HeaderHandler {
+					return &block.Header{}
+				},
+			},
+		}
+
+		requestMetaHeaderCt := &atomicCore.Counter{}
+		args.RequestHandler = &testscommon.RequestHandlerStub{
+			RequestMetaHeaderByNonceCalled: func(nonce uint64) {
+				require.Fail(t, "should have this header in pool")
+			},
+			RequestMetaHeaderCalled: func(hash []byte) {
+				requestMetaHeaderCt.Increment()
+				require.Equal(t, headerHash, hash)
+			},
+		}
+
+		shardProc, _ := blproc.NewShardProcessor(args)
+		err := shardProc.RequestEpochStartInfo(blockStartOfEpoch, haveTime)
+		time.Sleep(time.Second)
+		require.Nil(t, err)
+		require.Equal(t, int64(1), requestMetaHeaderCt.Get())
+	})
+
+	t.Run("cannot get header by nonce and shard id from headers pool from first try, request it and expect we get it", func(t *testing.T) {
+		t.Parallel()
+
+		metaHeaderNonce := uint64(1)
+		wasMetaHeaderRequested := &atomicCore.Flag{}
+		headersPool := &mock.HeadersCacherStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				require.Equal(t, headerHash, hash)
+				return &block.Header{Nonce: metaHeaderNonce, ShardID: core.MetachainShardId}, nil
+			},
+			GetHeaderByNonceAndShardIdCalled: func(hdrNonce uint64, shardId uint32) ([]data.HeaderHandler, [][]byte, error) {
+				require.Equal(t, metaHeaderNonce+1, hdrNonce)
+				require.Equal(t, core.MetachainShardId, shardId)
+				if wasMetaHeaderRequested.IsSet() {
+					return nil, nil, nil
+				}
+
+				return nil, nil, errGetHeader
+			},
+		}
+		poolsHolder := &dataRetrieverMock.PoolsHolderStub{
+			HeadersCalled: func() dataRetriever.HeadersPool {
+				return headersPool
+			},
+			TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+				return &testscommon.ShardedDataStub{}
+			},
+		}
+
+		args := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		args.DataComponents = &mock.DataComponentsMock{
+			Storage:  &mock.ChainStorerMock{},
+			DataPool: poolsHolder,
+			BlockChain: &testscommon.ChainHandlerStub{
+				GetGenesisHeaderCalled: func() data.HeaderHandler {
+					return &block.Header{}
+				},
+			},
+		}
+		args.RequestHandler = &testscommon.RequestHandlerStub{
+			RequestMetaHeaderByNonceCalled: func(nonce uint64) {
+				wasMetaHeaderRequested.SetValue(true)
+				require.Equal(t, metaHeaderNonce+1, nonce)
+			},
+		}
+
+		ct := &atomicCore.Counter{}
+		timeLeft := func() time.Duration {
+			ct.Increment()
+			switch ct.Get() {
+			case 1, 2:
+				return time.Millisecond
+			default:
+				require.Fail(t, "should only try to get header twice")
+				return -time.Millisecond
+			}
+		}
+
+		shardProc, _ := blproc.NewShardProcessor(args)
+		err := shardProc.RequestEpochStartInfo(blockStartOfEpoch, timeLeft)
+		time.Sleep(time.Second)
+		require.Nil(t, err)
+		require.Equal(t, int64(2), ct.Get())
+	})
+
 }
 
 // ------- checkAndRequestIfMetaHeadersMissing
@@ -4292,7 +4493,7 @@ func TestShardProcessor_updateStateStorage(t *testing.T) {
 		IsPruningEnabledCalled: func() bool {
 			return true
 		},
-		PruneTrieCalled: func(rootHashParam []byte, identifier state.TriePruningIdentifier) {
+		PruneTrieCalled: func(rootHashParam []byte, identifier state.TriePruningIdentifier, _ state.PruningHandler) {
 			pruneTrieWasCalled = true
 			assert.Equal(t, rootHash, rootHashParam)
 		},

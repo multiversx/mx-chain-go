@@ -1,7 +1,6 @@
 package peerDisconnecting
 
 import (
-	"context"
 	"testing"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -23,7 +22,7 @@ func TestSeedersDisconnectionWith2AdvertiserAnd3Peers(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	netw := mocknet.New(context.Background())
+	netw := mocknet.New()
 	p2pConfig := createDefaultConfig()
 	p2pConfig.KadDhtPeerDiscovery.RefreshIntervalInSec = 1
 
@@ -46,7 +45,7 @@ func TestSeedersDisconnectionWith2AdvertiserAnd3Peers(t *testing.T) {
 
 	integrationTests.WaitForBootstrapAndShowConnected(seeders, integrationTests.P2pBootstrapDelay)
 
-	//Step 2. Create noOfPeers instances of messenger type and call bootstrap
+	// Step 2. Create noOfPeers instances of messenger type and call bootstrap
 	p2pConfig.KadDhtPeerDiscovery.InitialPeerList = seedersList
 	peers := make([]p2p.Messenger, numOfPeers)
 	for i := 0; i < numOfPeers; i++ {
@@ -57,13 +56,14 @@ func TestSeedersDisconnectionWith2AdvertiserAnd3Peers(t *testing.T) {
 			NodeOperationMode:    p2p.NormalOperation,
 			Marshalizer:          &testscommon.MarshalizerMock{},
 			SyncTimer:            &testscommon.SyncTimerStub{},
+			PeersRatingHandler:   &p2pmocks.PeersRatingHandlerStub{},
 		}
 		node, err := libp2p.NewMockMessenger(arg, netw)
 		require.Nil(t, err)
 		peers[i] = node
 	}
 
-	//cleanup function that closes all messengers
+	// cleanup function that closes all messengers
 	defer func() {
 		for i := 0; i < numOfPeers; i++ {
 			if peers[i] != nil {
@@ -78,16 +78,16 @@ func TestSeedersDisconnectionWith2AdvertiserAnd3Peers(t *testing.T) {
 		}
 	}()
 
-	//link all peers so they can connect to each other
+	// link all peers so they can connect to each other
 	_ = netw.LinkAll()
 
-	//Step 3. Call bootstrap on all peers
+	// Step 3. Call bootstrap on all peers
 	for _, p := range peers {
 		_ = p.Bootstrap()
 	}
 	integrationTests.WaitForBootstrapAndShowConnected(append(seeders, peers...), integrationTests.P2pBootstrapDelay)
 
-	//Step 4. Disconnect the seeders
+	// Step 4. Disconnect the seeders
 	log.Info("--- Disconnecting seeders: %v ---\n", seeders)
 	disconnectSeedersFromPeers(seeders, peers, netw)
 
@@ -95,7 +95,7 @@ func TestSeedersDisconnectionWith2AdvertiserAnd3Peers(t *testing.T) {
 		integrationTests.WaitForBootstrapAndShowConnected(append(seeders, peers...), integrationTests.P2pBootstrapDelay)
 	}
 
-	//Step 4.1. Test that the peers are disconnected
+	// Step 4.1. Test that the peers are disconnected
 	for _, p := range peers {
 		assert.Equal(t, numOfPeers-1, len(p.ConnectedPeers()))
 	}
@@ -104,14 +104,14 @@ func TestSeedersDisconnectionWith2AdvertiserAnd3Peers(t *testing.T) {
 		assert.Equal(t, len(seeders)-1, len(s.ConnectedPeers()))
 	}
 
-	//Step 5. Re-link and test connections
+	// Step 5. Re-link and test connections
 	log.Info("--- Re-linking ---")
 	_ = netw.LinkAll()
 	for i := 0; i < 2; i++ {
 		integrationTests.WaitForBootstrapAndShowConnected(append(seeders, peers...), integrationTests.P2pBootstrapDelay)
 	}
 
-	//Step 5.1. Test that the peers got reconnected
+	// Step 5.1. Test that the peers got reconnected
 	for _, p := range append(peers, seeders...) {
 		assert.Equal(t, numOfPeers+len(seeders)-1, len(p.ConnectedPeers()))
 	}
@@ -129,6 +129,7 @@ func createBootstrappedSeeders(baseP2PConfig config.P2PConfig, numSeeders int, n
 		NodeOperationMode:    p2p.NormalOperation,
 		Marshalizer:          &testscommon.MarshalizerMock{},
 		SyncTimer:            &testscommon.SyncTimerStub{},
+		PeersRatingHandler:   &p2pmocks.PeersRatingHandlerStub{},
 	}
 	seeders[0], _ = libp2p.NewMockMessenger(argSeeder, netw)
 	_ = seeders[0].Bootstrap()
@@ -144,6 +145,7 @@ func createBootstrappedSeeders(baseP2PConfig config.P2PConfig, numSeeders int, n
 			NodeOperationMode:    p2p.NormalOperation,
 			Marshalizer:          &testscommon.MarshalizerMock{},
 			SyncTimer:            &testscommon.SyncTimerStub{},
+			PeersRatingHandler:   &p2pmocks.PeersRatingHandlerStub{},
 		}
 		seeders[i], _ = libp2p.NewMockMessenger(argSeeder, netw)
 		_ = netw.LinkAll()

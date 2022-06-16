@@ -40,11 +40,9 @@ func TestTomlParser(t *testing.T) {
 
 	consensusType := "bls"
 
-	vmConfig := VirtualMachineConfig{
-		ArwenVersions: []ArwenVersionByEpoch{
-			{StartEpoch: 12, Version: "v0.3"},
-			{StartEpoch: 88, Version: "v1.2"},
-		},
+	arwenVersions := []ArwenVersionByEpoch{
+		{StartEpoch: 12, Version: "v0.3"},
+		{StartEpoch: 88, Version: "v1.2"},
 	}
 
 	cfgExpected := Config{
@@ -99,10 +97,14 @@ func TestTomlParser(t *testing.T) {
 			Type: consensusType,
 		},
 		VirtualMachine: VirtualMachineServicesConfig{
-			Execution: vmConfig,
+			Execution: VirtualMachineConfig{
+				ArwenVersions:                       arwenVersions,
+				TimeOutForSCExecutionInMilliseconds: 10000,
+				WasmerSIGSEGVPassthrough:            true,
+			},
 			Querying: QueryVirtualMachineConfig{
 				NumConcurrentVMs:     16,
-				VirtualMachineConfig: vmConfig,
+				VirtualMachineConfig: VirtualMachineConfig{ArwenVersions: arwenVersions},
 			},
 			GasConfig: VirtualMachineGasConfig{
 				MaxGasPerVmQuery: 1_500_000_000,
@@ -179,6 +181,8 @@ func TestTomlParser(t *testing.T) {
 
 [VirtualMachine]
     [VirtualMachine.Execution]
+        TimeOutForSCExecutionInMilliseconds = 10000 # 10 seconds = 10000 milliseconds
+        WasmerSIGSEGVPassthrough            = true
         ArwenVersions = [
             { StartEpoch = 12, Version = "v0.3" },
             { StartEpoch = 88, Version = "v1.2" },
@@ -647,6 +651,12 @@ func TestEnableEpochConfig(t *testing.T) {
     # ESDTRegisterAndSetAllRolesEnableEpoch represents the epoch when new function to register tickerID and set all roles is enabled
     ESDTRegisterAndSetAllRolesEnableEpoch = 52
 
+	# FailExecutionOnEveryAPIErrorEnableEpoch represent the epoch when new protection in VM is enabled to fail all wrong API calls
+	FailExecutionOnEveryAPIErrorEnableEpoch = 53
+
+	# ManagedCryptoAPIsEnableEpoch represents the epoch when the new managed crypto APIs are enabled
+	ManagedCryptoAPIsEnableEpoch = 54
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 44, MaxNumNodes = 2169, NodesToShufflePerShard = 80 },
@@ -726,6 +736,8 @@ func TestEnableEpochConfig(t *testing.T) {
 			StorageAPICostOptimizationEnableEpoch:       50,
 			TransformToMultiShardCreateEnableEpoch:      51,
 			ESDTRegisterAndSetAllRolesEnableEpoch:       52,
+			FailExecutionOnEveryAPIErrorEnableEpoch:     53,
+			ManagedCryptoAPIsEnableEpoch:                54,
 		},
 		GasSchedule: GasScheduleConfig{
 			GasScheduleByEpochs: []GasScheduleByEpochs{

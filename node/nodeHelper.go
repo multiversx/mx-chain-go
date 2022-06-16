@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/accumulator"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/factory"
@@ -17,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/blackList"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/update"
 	updateFactory "github.com/ElrondNetwork/elrond-go/update/factory"
@@ -30,7 +30,7 @@ func CreateHardForkTrigger(
 	config *config.Config,
 	epochConfig *config.EpochConfig,
 	shardCoordinator sharding.Coordinator,
-	nodesCoordinator sharding.NodesCoordinator,
+	nodesCoordinator nodesCoordinator.NodesCoordinator,
 	nodesShuffledOut update.Closer,
 	coreData factory.CoreComponentsHolder,
 	stateComponents factory.StateComponentsHolder,
@@ -80,6 +80,7 @@ func CreateHardForkTrigger(
 		InputAntifloodHandler:     network.InputAntiFloodHandler(),
 		OutputAntifloodHandler:    network.OutputAntiFloodHandler(),
 		RoundHandler:              process.RoundHandler(),
+		PeersRatingHandler:        network.PeersRatingHandler(),
 		InterceptorDebugConfig:    config.Debug.InterceptorResolver,
 		EnableSignTxWithHashEpoch: epochConfig.EnableEpochs.TransactionSignedWithTxHashEnableEpoch,
 		MaxHardCapForMissingNodes: config.TrieSync.MaxHardCapForMissingNodes,
@@ -152,19 +153,6 @@ func CreateNode(
 	bootstrapRoundIndex uint64,
 	isInImportMode bool,
 ) (*Node, error) {
-	var err error
-
-	var txAccumulator core.Accumulator
-	txAccumulatorConfig := config.Antiflood.TxAccumulator
-	txAccumulator, err = accumulator.NewTimeAccumulator(
-		time.Duration(txAccumulatorConfig.MaxAllowedTimeInMilliseconds)*time.Millisecond,
-		time.Duration(txAccumulatorConfig.MaxDeviationTimeInMilliseconds)*time.Millisecond,
-		log,
-	)
-	if err != nil {
-		return nil, err
-	}
-
 	prepareOpenTopics(networkComponents.InputAntiFloodHandler(), processComponents.ShardCoordinator())
 
 	peerDenialEvaluator, err := blackList.NewPeerDenialEvaluator(
@@ -204,7 +192,6 @@ func CreateNode(
 	nd, err = NewNode(
 		WithCoreComponents(coreComponents),
 		WithCryptoComponents(cryptoComponents),
-		WithNetworkComponents(networkComponents),
 		WithBootstrapComponents(bootstrapComponents),
 		WithStateComponents(stateComponents),
 		WithDataComponents(dataComponents),
@@ -212,6 +199,7 @@ func CreateNode(
 		WithProcessComponents(processComponents),
 		WithHeartbeatComponents(heartbeatComponents),
 		WithConsensusComponents(consensusComponents),
+		WithNetworkComponents(networkComponents),
 		WithInitialNodesPubKeys(coreComponents.GenesisNodesSetup().InitialNodesPubKeys()),
 		WithRoundDuration(coreComponents.GenesisNodesSetup().GetRoundDuration()),
 		WithConsensusGroupSize(consensusGroupSize),
@@ -220,7 +208,6 @@ func CreateNode(
 		WithBootstrapRoundIndex(bootstrapRoundIndex),
 		WithPeerDenialEvaluator(peerDenialEvaluator),
 		WithRequestedItemsHandler(processComponents.RequestedItemsHandler()),
-		WithTxAccumulator(txAccumulator),
 		WithHardforkTrigger(consensusComponents.HardforkTrigger()),
 		WithAddressSignatureSize(config.AddressPubkeyConverter.SignatureLength),
 		WithValidatorSignatureSize(config.ValidatorPubkeyConverter.SignatureLength),

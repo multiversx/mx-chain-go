@@ -3,7 +3,6 @@ package consensus
 import (
 	"encoding/hex"
 	"fmt"
-	"io/ioutil"
 	"strconv"
 	"time"
 
@@ -38,6 +37,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	syncFork "github.com/ElrondNetwork/elrond-go/process/sync"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager"
 	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager/evictionWaitingList"
@@ -49,8 +49,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
+	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/trie/hashesHolder"
@@ -86,13 +86,13 @@ type cryptoParams struct {
 	singleSigner   crypto.SingleSigner
 }
 
-func genValidatorsFromPubKeys(pubKeysMap map[uint32][]string) map[uint32][]sharding.Validator {
-	validatorsMap := make(map[uint32][]sharding.Validator)
+func genValidatorsFromPubKeys(pubKeysMap map[uint32][]string) map[uint32][]nodesCoordinator.Validator {
+	validatorsMap := make(map[uint32][]nodesCoordinator.Validator)
 
 	for shardId, shardNodesPks := range pubKeysMap {
-		shardValidators := make([]sharding.Validator, 0)
+		shardValidators := make([]nodesCoordinator.Validator, 0)
 		for i := 0; i < len(shardNodesPks); i++ {
-			v, _ := sharding.NewValidator([]byte(shardNodesPks[i]), 1, uint32(i))
+			v, _ := nodesCoordinator.NewValidator([]byte(shardNodesPks[i]), 1, uint32(i))
 			shardValidators = append(shardValidators, v)
 		}
 		validatorsMap[shardId] = shardValidators
@@ -160,35 +160,22 @@ func createTestStore() dataRetriever.StorageService {
 func createAccountsDB(marshaller marshal.Marshalizer) state.AccountsAdapter {
 	marsh := &marshal.GogoProtoMarshalizer{}
 	hasher := sha256.NewSha256()
-	store := createMemUnit()
 	evictionWaitListSize := uint(100)
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(evictionWaitListSize, memorydb.New(), marsh)
 
 	// TODO change this implementation with a factory
-	tempDir, _ := ioutil.TempDir("", "integrationTests")
-	cfg := config.DBConfig{
-		FilePath:          tempDir,
-		Type:              string(storageUnit.LvlDBSerial),
-		BatchDelaySeconds: 4,
-		MaxBatchSize:      10000,
-		MaxOpenFiles:      10,
-	}
 	generalCfg := config.TrieStorageManagerConfig{
 		PruningBufferLen:      1000,
 		SnapshotsBufferLen:    10,
-		MaxSnapshots:          2,
 		SnapshotsGoroutineNum: 1,
 	}
 	args := trie.NewTrieStorageManagerArgs{
-		DB:                     store,
 		MainStorer:             createMemUnit(),
 		CheckpointsStorer:      createMemUnit(),
 		Marshalizer:            marshaller,
 		Hasher:                 hasher,
-		SnapshotDbConfig:       cfg,
 		GeneralConfig:          generalCfg,
 		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10000000, uint64(hasher.Size())),
-		EpochNotifier:          &epochNotifier.EpochNotifierStub{},
 		IdleProvider:           &testscommon.ProcessStatusHandlerStub{},
 	}
 	trieStorage, _ := trie.NewTrieStorageManager(args)
@@ -263,7 +250,7 @@ func createHasher(consensusType string) hashing.Hasher {
 
 func createConsensusOnlyNode(
 	shardCoordinator sharding.Coordinator,
-	nodesCoordinator sharding.NodesCoordinator,
+	nodesCoordinator nodesCoordinator.NodesCoordinator,
 	shardId uint32,
 	selfId uint32,
 	consensusSize uint32,
@@ -501,11 +488,11 @@ func createNodes(
 	cp := createCryptoParams(nodesPerShard, 1, 1)
 	keysMap := pubKeysMapFromKeysMap(cp.keys)
 	eligibleMap := genValidatorsFromPubKeys(keysMap)
-	waitingMap := make(map[uint32][]sharding.Validator)
+	waitingMap := make(map[uint32][]nodesCoordinator.Validator)
 	nodesList := make([]*testNode, nodesPerShard)
 	connectableNodes := make([]integrationTests.Connectable, 0)
 
-	nodeShuffler := &mock.NodeShufflerMock{}
+	nodeShuffler := &shardingMocks.NodeShufflerMock{}
 
 	pubKeys := make([]crypto.PublicKey, len(cp.keys[0]))
 	for idx, keyPairShard := range cp.keys[0] {
@@ -523,7 +510,7 @@ func createNodes(
 		bootStorer := integrationTests.CreateMemUnit()
 		consensusCache, _ := lrucache.NewCache(10000)
 
-		argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
+		argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
 			ShardConsensusGroupSize:    consensusSize,
 			MetaConsensusGroupSize:     1,
 			Marshalizer:                integrationTests.TestMarshalizer,
@@ -542,11 +529,11 @@ func createNodes(
 			NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
 			IsFullArchive:              false,
 		}
-		nodesCoordinator, _ := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
+		nodesCoord, _ := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 
 		n, mes, blkProcessor, blkc := createConsensusOnlyNode(
 			shardCoordinator,
-			nodesCoordinator,
+			nodesCoord,
 			testNodeObject.shardId,
 			uint32(i),
 			uint32(consensusSize),

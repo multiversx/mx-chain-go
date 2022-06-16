@@ -12,7 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
 )
 
@@ -139,7 +139,7 @@ func cloneValidatorAPIResponse(v *state.ValidatorApiResponse) *state.ValidatorAp
 	}
 }
 
-func (vp *validatorsProvider) epochStartEventHandler() sharding.EpochStartActionHandler {
+func (vp *validatorsProvider) epochStartEventHandler() nodesCoordinator.EpochStartActionHandler {
 	subscribeHandler := notifier.NewHandlerForEpochStart(
 		func(hdr data.HeaderHandler) {
 			log.Trace("epochStartEventHandler - refreshCache forced",

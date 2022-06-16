@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"os"
+	"runtime"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -468,6 +469,10 @@ func applyCompatibleConfigs(log logger.Logger, configs *config.Configs) error {
 		return processConfigFullArchiveMode(log, configs)
 	}
 
+	if configs.FlagsConfig.EnablePprof {
+		runtime.SetMutexProfileFraction(5)
+	}
+
 	return nil
 }
 
@@ -489,7 +494,6 @@ func processConfigImportDBMode(log logger.Logger, configs *config.Configs) error
 	}
 
 	generalConfigs.StoragePruning.NumActivePersisters = generalConfigs.StoragePruning.NumEpochsToKeep
-	generalConfigs.TrieStorageManagerConfig.KeepSnapshots = true
 	generalConfigs.StateTriesConfig.CheckpointsEnabled = false
 	generalConfigs.StateTriesConfig.CheckpointRoundsModulus = 100000000
 	p2pConfigs.Node.ThresholdMinConnectedPeers = 0
@@ -510,7 +514,6 @@ func processConfigImportDBMode(log logger.Logger, configs *config.Configs) error
 		"StateTriesConfig.CheckpointsEnabled", generalConfigs.StateTriesConfig.CheckpointsEnabled,
 		"StateTriesConfig.CheckpointRoundsModulus", generalConfigs.StateTriesConfig.CheckpointRoundsModulus,
 		"StoragePruning.NumActivePersisters", generalConfigs.StoragePruning.NumEpochsToKeep,
-		"TrieStorageManagerConfig.KeepSnapshots", generalConfigs.TrieStorageManagerConfig.KeepSnapshots,
 		"p2p.ThresholdMinConnectedPeers", p2pConfigs.Node.ThresholdMinConnectedPeers,
 		"no sig check", importDbFlags.ImportDbNoSigCheckFlag,
 		"import save trie epoch root hash", importDbFlags.ImportDbSaveTrieEpochRootHash,

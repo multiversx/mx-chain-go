@@ -364,6 +364,11 @@ func makeOutputAccountsMap(accounts ...*vmcommon.OutputAccount) map[string]*vmco
 	return accountsMap
 }
 
+// Close -
+func (vm *OneSCExecutorMockVM) Close() error {
+	return nil
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (vm *OneSCExecutorMockVM) IsInterfaceNil() bool {
 	return vm == nil

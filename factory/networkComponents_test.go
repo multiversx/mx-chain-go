@@ -78,8 +78,9 @@ func TestNetworkComponents_Close_ShouldWork(t *testing.T) {
 func getNetworkArgs() factory.NetworkComponentsFactoryArgs {
 	p2pConfig := config.P2PConfig{
 		Node: config.NodeConfig{
-			Port: "0",
-			Seed: "seed",
+			Port:                  "0",
+			Seed:                  "seed",
+			ConnectionWatcherType: "print",
 		},
 		KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
 			Enabled:                          false,
@@ -116,6 +117,10 @@ func getNetworkArgs() factory.NetworkComponentsFactoryArgs {
 				CacheSize:                  100,
 				IntervalAutoPrintInSeconds: 1,
 			},
+		},
+		PeersRatingConfig: config.PeersRatingConfig{
+			TopRatedCacheCapacity: 1000,
+			BadRatedCacheCapacity: 1000,
 		},
 	}
 

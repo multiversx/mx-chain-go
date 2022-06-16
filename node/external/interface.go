@@ -1,8 +1,11 @@
 package external
 
 import (
+	"context"
+
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/process"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
@@ -17,13 +20,14 @@ type SCQueryService interface {
 
 // StatusMetricsHandler is the interface that defines what a node details handler/provider should do
 type StatusMetricsHandler interface {
-	StatusMetricsMapWithoutP2P() map[string]interface{}
-	StatusP2pMetricsMap() map[string]interface{}
-	StatusMetricsWithoutP2PPrometheusString() string
-	EconomicsMetrics() map[string]interface{}
-	ConfigMetrics() map[string]interface{}
-	EnableEpochsMetrics() map[string]interface{}
-	NetworkMetrics() map[string]interface{}
+	StatusMetricsMapWithoutP2P() (map[string]interface{}, error)
+	StatusP2pMetricsMap() (map[string]interface{}, error)
+	StatusMetricsWithoutP2PPrometheusString() (string, error)
+	EconomicsMetrics() (map[string]interface{}, error)
+	ConfigMetrics() (map[string]interface{}, error)
+	EnableEpochsMetrics() (map[string]interface{}, error)
+	NetworkMetrics() (map[string]interface{}, error)
+	RatingsMetrics() (map[string]interface{}, error)
 	IsInterfaceNil() bool
 }
 
@@ -35,18 +39,27 @@ type TransactionCostHandler interface {
 
 // TotalStakedValueHandler defines the behavior of a component able to return total staked value
 type TotalStakedValueHandler interface {
-	GetTotalStakedValue() (*api.StakeValues, error)
+	GetTotalStakedValue(ctx context.Context) (*api.StakeValues, error)
 	IsInterfaceNil() bool
 }
 
 // DirectStakedListHandler defines the behavior of a component able to return the direct stake list
 type DirectStakedListHandler interface {
-	GetDirectStakedList() ([]*api.DirectStakedValue, error)
+	GetDirectStakedList(ctx context.Context) ([]*api.DirectStakedValue, error)
 	IsInterfaceNil() bool
 }
 
 // DelegatedListHandler defines the behavior of a component able to return the complete delegated list
 type DelegatedListHandler interface {
-	GetDelegatorsList() ([]*api.Delegator, error)
+	GetDelegatorsList(ctx context.Context) ([]*api.Delegator, error)
+	IsInterfaceNil() bool
+}
+
+// APITransactionHandler defines what an API transaction handler should be able to do
+type APITransactionHandler interface {
+	GetTransaction(txHash string, withResults bool) (*transaction.ApiTransactionResult, error)
+	GetTransactionsPool() (*common.TransactionsPoolAPIResponse, error)
+	UnmarshalTransaction(txBytes []byte, txType transaction.TxType) (*transaction.ApiTransactionResult, error)
+	UnmarshalReceipt(receiptBytes []byte) (*transaction.ApiReceipt, error)
 	IsInterfaceNil() bool
 }

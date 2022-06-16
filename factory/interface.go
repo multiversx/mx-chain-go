@@ -13,7 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go-crypto"
+	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/common/statistics"
@@ -30,6 +30,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	txSimData "github.com/ElrondNetwork/elrond-go/process/txsimulator/data"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/update"
@@ -115,7 +116,7 @@ type CoreComponentsHolder interface {
 	RatingsData() process.RatingsInfoHandler
 	Rater() sharding.PeerAccountListAndRatingHandler
 	GenesisNodesSetup() sharding.GenesisNodesSetupHandler
-	NodesShuffler() sharding.NodesShuffler
+	NodesShuffler() nodesCoordinator.NodesShuffler
 	EpochNotifier() process.EpochNotifier
 	RoundNotifier() process.RoundNotifier
 	EpochStartNotifierWithConfirm() EpochStartNotifierWithConfirm
@@ -214,6 +215,7 @@ type NetworkComponentsHolder interface {
 	PeerBlackListHandler() process.PeerBlackListCacher
 	PeerHonestyHandler() PeerHonestyHandler
 	PreferredPeersHolderHandler() PreferredPeersHolderHandler
+	PeersRatingHandler() p2p.PeersRatingHandler
 	IsInterfaceNil() bool
 }
 
@@ -231,7 +233,7 @@ type TransactionSimulatorProcessor interface {
 
 // ProcessComponentsHolder holds the process components
 type ProcessComponentsHolder interface {
-	NodesCoordinator() sharding.NodesCoordinator
+	NodesCoordinator() nodesCoordinator.NodesCoordinator
 	ShardCoordinator() sharding.Coordinator
 	InterceptorsContainer() process.InterceptorsContainer
 	ResolversFinder() dataRetriever.ResolversFinder
@@ -262,6 +264,7 @@ type ProcessComponentsHolder interface {
 	NodeRedundancyHandler() consensus.NodeRedundancyHandler
 	CurrentEpochProvider() process.CurrentNetworkEpochProviderHandler
 	ScheduledTxsExecutionHandler() process.ScheduledTxsExecutionHandler
+	TxsSenderHandler() process.TxsSenderHandler
 	IsInterfaceNil() bool
 }
 
@@ -404,7 +407,7 @@ type BootstrapParamsHolder interface {
 	Epoch() uint32
 	SelfShardID() uint32
 	NumOfShards() uint32
-	NodesConfig() *sharding.NodesCoordinatorRegistry
+	NodesConfig() *nodesCoordinator.NodesCoordinatorRegistry
 	IsInterfaceNil() bool
 }
 

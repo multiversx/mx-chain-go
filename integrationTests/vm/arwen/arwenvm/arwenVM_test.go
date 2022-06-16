@@ -313,7 +313,7 @@ func TestMultipleTimesERC20BigIntInBatches(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	gasSchedule, _ := common.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
+	gasSchedule, _ := common.LoadGasScheduleConfig(integrationTests.GasSchedulePath)
 	durations, err := DeployAndExecuteERC20WithBigInt(3, 1000, gasSchedule, "../testdata/erc20-c-03/wrc20_arwen.wasm", "transferToken")
 	require.Nil(t, err)
 	displayBenchmarksResults(durations)
@@ -327,7 +327,7 @@ func TestMultipleTimesERC20RustBigIntInBatches(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
-	gasSchedule, _ := common.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
+	gasSchedule, _ := common.LoadGasScheduleConfig(integrationTests.GasSchedulePath)
 	durations, err := DeployAndExecuteERC20WithBigInt(3, 1000, gasSchedule, "../testdata/erc20-c-03/rust-simple-erc20.wasm", "transfer")
 	require.Nil(t, err)
 	displayBenchmarksResults(durations)
@@ -365,7 +365,7 @@ func displayBenchmarksResults(durations []time.Duration) {
 }
 
 func TestDeployERC20WithNotEnoughGasShouldReturnOutOfGas(t *testing.T) {
-	gasSchedule, _ := common.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
+	gasSchedule, _ := common.LoadGasScheduleConfig(integrationTests.GasSchedulePath)
 	ownerAddressBytes := []byte("12345678901234567890123456789011")
 	ownerNonce := uint64(11)
 	ownerBalance := big.NewInt(1000000000000000)
@@ -720,15 +720,15 @@ func TestAndCatchTrieError(t *testing.T) {
 		require.Nil(t, err)
 		log.Info("finished a set - commit and recreate trie", "index", i)
 		if i%10 == 5 {
-			testContext.Accounts.PruneTrie(extraNewRootHash, state.NewRoot)
+			testContext.Accounts.PruneTrie(extraNewRootHash, state.NewRoot, state.NewPruningHandler(state.EnableDataRemoval))
 			_ = testContext.Accounts.RecreateTrie(rootHash)
 			continue
 		}
 
 		ownerNonce++
 		transferNonce++
-		testContext.Accounts.PruneTrie(rootHash, state.OldRoot)
-		testContext.Accounts.PruneTrie(newRootHash, state.OldRoot)
+		testContext.Accounts.PruneTrie(rootHash, state.OldRoot, state.NewPruningHandler(state.EnableDataRemoval))
+		testContext.Accounts.PruneTrie(newRootHash, state.OldRoot, state.NewPruningHandler(state.EnableDataRemoval))
 	}
 }
 

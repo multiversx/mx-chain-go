@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
 )
 
@@ -38,7 +39,7 @@ type AccountsParser interface {
 
 // InitialNodesHandler contains the initial nodes setup
 type InitialNodesHandler interface {
-	InitialNodesInfo() (map[uint32][]sharding.GenesisNodeInfoHandler, map[uint32][]sharding.GenesisNodeInfoHandler)
+	InitialNodesInfo() (map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, map[uint32][]nodesCoordinator.GenesisNodeInfoHandler)
 	MinNumberOfNodes() uint32
 	MinNumberOfNodesWithHysteresis() uint32
 	IsInterfaceNil() bool
@@ -103,8 +104,8 @@ type TxExecutionProcessor interface {
 
 // NodesListSplitter is able to split de initial nodes based on some criteria
 type NodesListSplitter interface {
-	GetAllNodes() []sharding.GenesisNodeInfoHandler
-	GetDelegatedNodes(delegationScAddress []byte) []sharding.GenesisNodeInfoHandler
+	GetAllNodes() []nodesCoordinator.GenesisNodeInfoHandler
+	GetDelegatedNodes(delegationScAddress []byte) []nodesCoordinator.GenesisNodeInfoHandler
 	IsInterfaceNil() bool
 }
 

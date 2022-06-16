@@ -24,7 +24,7 @@ func TestESDTNFTIssueCreateBurnSendViaAsyncViaExecuteOnSC(t *testing.T) {
 
 	defer func() {
 		for _, n := range nodes {
-			_ = n.Messenger.Close()
+			n.Close()
 		}
 	}()
 
@@ -143,7 +143,7 @@ func TestESDTSemiFTIssueCreateBurnSendViaAsyncViaExecuteOnSC(t *testing.T) {
 
 	defer func() {
 		for _, n := range nodes {
-			_ = n.Messenger.Close()
+			n.Close()
 		}
 	}()
 
@@ -252,7 +252,7 @@ func TestESDTTransferNFTBetweenContractsAcceptAndNotAcceptWithRevert(t *testing.
 
 	defer func() {
 		for _, n := range nodes {
-			_ = n.Messenger.Close()
+			n.Close()
 		}
 	}()
 
@@ -368,7 +368,7 @@ func TestESDTTransferNFTToSCIntraShard(t *testing.T) {
 
 	defer func() {
 		for _, n := range nodes {
-			_ = n.Messenger.Close()
+			n.Close()
 		}
 	}()
 
@@ -425,7 +425,7 @@ func TestESDTTransferNFTToSCCrossShard(t *testing.T) {
 
 	defer func() {
 		for _, n := range nodes {
-			_ = n.Messenger.Close()
+			n.Close()
 		}
 	}()
 

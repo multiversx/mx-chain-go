@@ -39,7 +39,7 @@ func TestVmGetShouldReturnValue(t *testing.T) {
 				return uint64(math.MaxUint64)
 			},
 		},
-		BlockChainHook:           &mock.BlockChainHookHandlerMock{},
+		BlockChainHook:           &testscommon.BlockChainHookStub{},
 		BlockChain:               &testscommon.ChainHandlerStub{},
 		ArwenChangeLocker:        &sync.RWMutex{},
 		Bootstrapper:             disabled.NewDisabledBootstrapper(),

@@ -2,6 +2,7 @@ package block_test
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"math/big"
@@ -40,6 +41,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/mainFactoryMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
@@ -49,6 +52,60 @@ import (
 
 func haveTime() time.Duration {
 	return 2000 * time.Millisecond
+}
+
+func createArgBaseProcessor(
+	coreComponents *mock.CoreComponentsMock,
+	dataComponents *mock.DataComponentsMock,
+	bootstrapComponents *mock.BootstrapComponentsMock,
+	statusComponents *mock.StatusComponentsMock,
+) blproc.ArgBaseProcessor {
+	nodesCoordinator := shardingMocks.NewNodesCoordinatorMock()
+	argsHeaderValidator := blproc.ArgsHeaderValidator{
+		Hasher:      &hashingMocks.HasherMock{},
+		Marshalizer: &mock.MarshalizerMock{},
+	}
+	headerValidator, _ := blproc.NewHeaderValidator(argsHeaderValidator)
+
+	startHeaders := createGenesisBlocks(mock.NewOneShardCoordinatorMock())
+
+	accountsDb := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
+	accountsDb[state.UserAccountsState] = &stateMock.AccountsStub{
+		RootHashCalled: func() ([]byte, error) {
+			return nil, nil
+		},
+	}
+
+	return blproc.ArgBaseProcessor{
+		CoreComponents:      coreComponents,
+		DataComponents:      dataComponents,
+		BootstrapComponents: bootstrapComponents,
+		StatusComponents:    statusComponents,
+		Config:              config.Config{},
+		AccountsDB:          accountsDb,
+		ForkDetector:        &mock.ForkDetectorMock{},
+		NodesCoordinator:    nodesCoordinator,
+		FeeHandler:          &mock.FeeAccumulatorStub{},
+		RequestHandler:      &testscommon.RequestHandlerStub{},
+		BlockChainHook:      &testscommon.BlockChainHookStub{},
+		TxCoordinator:       &mock.TransactionCoordinatorMock{},
+		EpochStartTrigger:   &mock.EpochStartTriggerStub{},
+		HeaderValidator:     headerValidator,
+		BootStorer: &mock.BoostrapStorerMock{
+			PutCalled: func(round int64, bootData bootstrapStorage.BootstrapData) error {
+				return nil
+			},
+		},
+		BlockTracker:                   mock.NewBlockTrackerMock(bootstrapComponents.ShardCoordinator(), startHeaders),
+		BlockSizeThrottler:             &mock.BlockSizeThrottlerStub{},
+		Version:                        "softwareVersion",
+		HistoryRepository:              &dblookupext.HistoryRepositoryStub{},
+		EpochNotifier:                  &epochNotifier.EpochNotifierStub{},
+		RoundNotifier:                  &mock.RoundNotifierStub{},
+		GasHandler:                     &mock.GasHandlerMock{},
+		ScheduledTxsExecutionHandler:   &testscommon.ScheduledTxsExecutionStub{},
+		ScheduledMiniBlocksEnableEpoch: 2,
+	}
 }
 
 func createTestBlockchain() *testscommon.ChainHandlerStub {
@@ -337,56 +394,9 @@ func CreateMockArguments(
 	bootstrapComponents *mock.BootstrapComponentsMock,
 	statusComponents *mock.StatusComponentsMock,
 ) blproc.ArgShardProcessor {
-	nodesCoordinator := mock.NewNodesCoordinatorMock()
-	argsHeaderValidator := blproc.ArgsHeaderValidator{
-		Hasher:      &hashingMocks.HasherMock{},
-		Marshalizer: &mock.MarshalizerMock{},
+	return blproc.ArgShardProcessor{
+		ArgBaseProcessor: createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents),
 	}
-	headerValidator, _ := blproc.NewHeaderValidator(argsHeaderValidator)
-
-	startHeaders := createGenesisBlocks(mock.NewOneShardCoordinatorMock())
-
-	accountsDb := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
-	accountsDb[state.UserAccountsState] = &stateMock.AccountsStub{
-		RootHashCalled: func() ([]byte, error) {
-			return nil, nil
-		},
-	}
-
-	arguments := blproc.ArgShardProcessor{
-		ArgBaseProcessor: blproc.ArgBaseProcessor{
-			CoreComponents:      coreComponents,
-			DataComponents:      dataComponents,
-			BootstrapComponents: bootstrapComponents,
-			StatusComponents:    statusComponents,
-			Config:              config.Config{},
-			AccountsDB:          accountsDb,
-			ForkDetector:        &mock.ForkDetectorMock{},
-			NodesCoordinator:    nodesCoordinator,
-			FeeHandler:          &mock.FeeAccumulatorStub{},
-			RequestHandler:      &testscommon.RequestHandlerStub{},
-			BlockChainHook:      &mock.BlockChainHookHandlerMock{},
-			TxCoordinator:       &mock.TransactionCoordinatorMock{},
-			EpochStartTrigger:   &mock.EpochStartTriggerStub{},
-			HeaderValidator:     headerValidator,
-			BootStorer: &mock.BoostrapStorerMock{
-				PutCalled: func(round int64, bootData bootstrapStorage.BootstrapData) error {
-					return nil
-				},
-			},
-			BlockTracker:                   mock.NewBlockTrackerMock(bootstrapComponents.ShardCoordinator(), startHeaders),
-			BlockSizeThrottler:             &mock.BlockSizeThrottlerStub{},
-			Version:                        "softwareVersion",
-			HistoryRepository:              &dblookupext.HistoryRepositoryStub{},
-			EpochNotifier:                  &epochNotifier.EpochNotifierStub{},
-			RoundNotifier:                  &mock.RoundNotifierStub{},
-			GasHandler:                     &mock.GasHandlerMock{},
-			ScheduledTxsExecutionHandler:   &testscommon.ScheduledTxsExecutionStub{},
-			ScheduledMiniBlocksEnableEpoch: 2,
-		},
-	}
-
-	return arguments
 }
 
 func createMockTransactionCoordinatorArguments(
@@ -422,6 +432,285 @@ func createMockTransactionCoordinatorArguments(
 	}
 
 	return argsTransactionCoordinator
+}
+
+func TestCheckProcessorNilParameters(t *testing.T) {
+	t.Parallel()
+
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+
+	tests := []struct {
+		args        func() blproc.ArgBaseProcessor
+		expectedErr error
+	}{
+		{
+			args: func() blproc.ArgBaseProcessor {
+				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+				args.AccountsDB[state.UserAccountsState] = nil
+				return args
+			},
+			expectedErr: process.ErrNilAccountsAdapter,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				return createArgBaseProcessor(coreComponents, nil, bootstrapComponents, statusComponents)
+			},
+			expectedErr: process.ErrNilDataComponentsHolder,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				return createArgBaseProcessor(nil, dataComponents, bootstrapComponents, statusComponents)
+			},
+			expectedErr: process.ErrNilCoreComponentsHolder,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+				args.BootstrapComponents = nil
+				return args
+			},
+			expectedErr: process.ErrNilBootstrapComponentsHolder,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				return createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, nil)
+			},
+			expectedErr: process.ErrNilStatusComponentsHolder,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+				args.ForkDetector = nil
+				return args
+			},
+			expectedErr: process.ErrNilForkDetector,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				coreCompCopy := *coreComponents
+				coreCompCopy.Hash = nil
+				args := createArgBaseProcessor(&coreCompCopy, dataComponents, bootstrapComponents, statusComponents)
+				return args
+			},
+			expectedErr: process.ErrNilHasher,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				coreCompCopy := *coreComponents
+				coreCompCopy.IntMarsh = nil
+				args := createArgBaseProcessor(&coreCompCopy, dataComponents, bootstrapComponents, statusComponents)
+				return args
+			},
+			expectedErr: process.ErrNilMarshalizer,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				dataCompCopy := *dataComponents
+				dataCompCopy.Storage = nil
+				args := createArgBaseProcessor(coreComponents, &dataCompCopy, bootstrapComponents, statusComponents)
+				return args
+			},
+			expectedErr: process.ErrNilStorage,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+				args.BootstrapComponents = &mainFactoryMocks.BootstrapComponentsStub{ShCoordinator: nil}
+				return args
+			},
+			expectedErr: process.ErrNilShardCoordinator,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+				args.NodesCoordinator = nil
+				return args
+			},
+			expectedErr: process.ErrNilNodesCoordinator,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				coreCompCopy := *coreComponents
+				coreCompCopy.UInt64ByteSliceConv = nil
+				return createArgBaseProcessor(&coreCompCopy, dataComponents, bootstrapComponents, statusComponents)
+			},
+			expectedErr: process.ErrNilUint64Converter,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+				args.RequestHandler = nil
+				return args
+			},
+			expectedErr: process.ErrNilRequestHandler,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+				args.EpochStartTrigger = nil
+				return args
+			},
+			expectedErr: process.ErrNilEpochStartTrigger,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				coreCompCopy := *coreComponents
+				coreCompCopy.RoundField = nil
+				return createArgBaseProcessor(&coreCompCopy, dataComponents, bootstrapComponents, statusComponents)
+			},
+			expectedErr: process.ErrNilRoundHandler,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+				args.BootStorer = nil
+				return args
+			},
+			expectedErr: process.ErrNilStorage,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+				args.BlockChainHook = nil
+				return args
+			},
+			expectedErr: process.ErrNilBlockChainHook,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+				args.TxCoordinator = nil
+				return args
+			},
+			expectedErr: process.ErrNilTransactionCoordinator,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+				args.HeaderValidator = nil
+				return args
+			},
+			expectedErr: process.ErrNilHeaderValidator,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+				args.BlockTracker = nil
+				return args
+			},
+			expectedErr: process.ErrNilBlockTracker,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+				args.FeeHandler = nil
+				return args
+			},
+			expectedErr: process.ErrNilEconomicsFeeHandler,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				dataComp := &mock.DataComponentsMock{
+					Storage:    dataComponents.Storage,
+					DataPool:   dataComponents.DataPool,
+					BlockChain: nil,
+				}
+				return createArgBaseProcessor(coreComponents, dataComp, bootstrapComponents, statusComponents)
+			},
+			expectedErr: process.ErrNilBlockChain,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+				args.BlockSizeThrottler = nil
+				return args
+			},
+			expectedErr: process.ErrNilBlockSizeThrottler,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				statusCompCopy := *statusComponents
+				statusCompCopy.Outport = nil
+				return createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, &statusCompCopy)
+			},
+			expectedErr: process.ErrNilOutportHandler,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+				args.HistoryRepository = nil
+				return args
+			},
+			expectedErr: process.ErrNilHistoryRepository,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				bootStrapCopy := *bootstrapComponents
+				bootStrapCopy.HdrIntegrityVerifier = nil
+				return createArgBaseProcessor(coreComponents, dataComponents, &bootStrapCopy, statusComponents)
+			},
+			expectedErr: process.ErrNilHeaderIntegrityVerifier,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+				args.EpochNotifier = nil
+				return args
+			},
+			expectedErr: process.ErrNilEpochNotifier,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+				args.RoundNotifier = nil
+				return args
+			},
+			expectedErr: process.ErrNilRoundNotifier,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				coreCompCopy := *coreComponents
+				coreCompCopy.StatusField = nil
+				return createArgBaseProcessor(&coreCompCopy, dataComponents, bootstrapComponents, statusComponents)
+			},
+			expectedErr: process.ErrNilAppStatusHandler,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+				args.GasHandler = nil
+				return args
+			},
+			expectedErr: process.ErrNilGasHandler,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+				args.ScheduledTxsExecutionHandler = nil
+				return args
+			},
+			expectedErr: process.ErrNilScheduledTxsExecutionHandler,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				bootstrapCopy := *bootstrapComponents
+				bootstrapCopy.VersionedHdrFactory = nil
+				return createArgBaseProcessor(coreComponents, dataComponents, &bootstrapCopy, statusComponents)
+			},
+			expectedErr: process.ErrNilVersionedHeaderFactory,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				return createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+			},
+			expectedErr: nil,
+		},
+	}
+
+	for _, test := range tests {
+		err := blproc.CheckProcessorNilParameters(test.args())
+		require.Equal(t, test.expectedErr, err)
+	}
 }
 
 func TestBlockProcessor_CheckBlockValidity(t *testing.T) {
@@ -1032,7 +1321,7 @@ func TestBlockProcessor_PruneStateOnRollbackPrunesPeerTrieIfAccPruneIsDisabled(t
 
 	pruningCalled := 0
 	peerAccDb := &stateMock.AccountsStub{
-		PruneTrieCalled: func(rootHash []byte, identifier state.TriePruningIdentifier) {
+		PruneTrieCalled: func(rootHash []byte, identifier state.TriePruningIdentifier, _ state.PruningHandler) {
 			pruningCalled++
 		},
 		CancelPruneCalled: func(rootHash []byte, identifier state.TriePruningIdentifier) {
@@ -1065,7 +1354,7 @@ func TestBlockProcessor_PruneStateOnRollbackPrunesPeerTrieIfSameRootHashButDiffe
 
 	pruningCalled := 0
 	peerAccDb := &stateMock.AccountsStub{
-		PruneTrieCalled: func(rootHash []byte, identifier state.TriePruningIdentifier) {
+		PruneTrieCalled: func(rootHash []byte, identifier state.TriePruningIdentifier, _ state.PruningHandler) {
 			pruningCalled++
 		},
 		CancelPruneCalled: func(rootHash []byte, identifier state.TriePruningIdentifier) {
@@ -1077,7 +1366,7 @@ func TestBlockProcessor_PruneStateOnRollbackPrunesPeerTrieIfSameRootHashButDiffe
 	}
 
 	accDb := &stateMock.AccountsStub{
-		PruneTrieCalled: func(rootHash []byte, identifier state.TriePruningIdentifier) {
+		PruneTrieCalled: func(rootHash []byte, identifier state.TriePruningIdentifier, _ state.PruningHandler) {
 			pruningCalled++
 		},
 		CancelPruneCalled: func(rootHash []byte, identifier state.TriePruningIdentifier) {
@@ -1392,10 +1681,9 @@ func TestBaseProcessor_commitTrieEpochRootHashIfNeededShouldWork(t *testing.T) {
 			RootHashCalled: func() ([]byte, error) {
 				return rootHash, nil
 			},
-			GetAllLeavesCalled: func(_ []byte) (chan core.KeyValueHolder, error) {
-				channel := make(chan core.KeyValueHolder)
+			GetAllLeavesCalled: func(channel chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error {
 				close(channel)
-				return channel, nil
+				return nil
 			},
 		},
 	}
@@ -1448,12 +1736,11 @@ func TestBaseProcessor_commitTrieEpochRootHashIfNeededShouldUseDataTrieIfNeededW
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 		arguments.AccountsDB = map[state.AccountsDbIdentifier]state.AccountsAdapter{
 			state.UserAccountsState: &stateMock.AccountsStub{
-				GetAllLeavesCalled: func(rh []byte) (chan core.KeyValueHolder, error) {
-					channel := make(chan core.KeyValueHolder)
+				GetAllLeavesCalled: func(channel chan core.KeyValueHolder, ctx context.Context, rh []byte) error {
 					if bytes.Equal(rootHash, rh) {
 						calledWithUserAccountRootHash = true
 						close(channel)
-						return channel, nil
+						return nil
 					}
 
 					go func() {
@@ -1461,7 +1748,7 @@ func TestBaseProcessor_commitTrieEpochRootHashIfNeededShouldUseDataTrieIfNeededW
 						close(channel)
 					}()
 
-					return channel, nil
+					return nil
 				},
 			},
 		}
@@ -1523,7 +1810,7 @@ func TestBaseProcessor_updateState(t *testing.T) {
 		IsPruningEnabledCalled: func() bool {
 			return true
 		},
-		PruneTrieCalled: func(rootHashParam []byte, identifier state.TriePruningIdentifier) {
+		PruneTrieCalled: func(rootHashParam []byte, identifier state.TriePruningIdentifier, _ state.PruningHandler) {
 			pruneRootHash = rootHashParam
 		},
 		CancelPruneCalled: func(rootHash []byte, identifier state.TriePruningIdentifier) {
@@ -2353,4 +2640,42 @@ func TestMetaProcessor_RestoreBlockBodyIntoPoolsShouldWork(t *testing.T) {
 
 	err := mp.RestoreBlockBodyIntoPools(&block.Body{})
 	assert.Nil(t, err)
+}
+
+func TestBaseProcessor_getPruningHandler(t *testing.T) {
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+	arguments.Config = config.Config{
+		StateTriesConfig: config.StateTriesConfig{
+			UserStatePruningQueueSize: 6,
+		},
+	}
+	bp, _ := blproc.NewShardProcessor(arguments)
+
+	bp.SetLastRestartNonce(1)
+	ph := bp.GetPruningHandler(12)
+	assert.False(t, ph.IsPruningEnabled())
+
+	bp.SetLastRestartNonce(1)
+	ph = bp.GetPruningHandler(13)
+	assert.False(t, ph.IsPruningEnabled())
+
+	bp.SetLastRestartNonce(1)
+	ph = bp.GetPruningHandler(14)
+	assert.True(t, ph.IsPruningEnabled())
+}
+
+func TestBaseProcessor_getPruningHandlerSetsDefaulPruningDelay(t *testing.T) {
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+	arguments.Config = config.Config{
+		StateTriesConfig: config.StateTriesConfig{
+			UserStatePruningQueueSize: 4,
+		},
+	}
+	bp, _ := blproc.NewShardProcessor(arguments)
+
+	bp.SetLastRestartNonce(0)
+	ph := bp.GetPruningHandler(9)
+	assert.False(t, ph.IsPruningEnabled())
 }

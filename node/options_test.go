@@ -183,17 +183,6 @@ func TestWithPeerDenialEvaluator_OkHandlerShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestWithTxAccumulator_NilAccumulatorShouldErr(t *testing.T) {
-	t.Parallel()
-
-	node, _ := NewNode()
-
-	opt := WithTxAccumulator(nil)
-	err := opt(node)
-
-	assert.Equal(t, ErrNilTxAccumulator, err)
-}
-
 func TestWithHardforkTrigger_NilHardforkTriggerShouldErr(t *testing.T) {
 	t.Parallel()
 

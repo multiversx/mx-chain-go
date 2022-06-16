@@ -21,7 +21,8 @@ type ConnStub struct {
 	RemoteMultiaddrCalled func() multiaddr.Multiaddr
 	NewStreamCalled       func(ctx context.Context) (network.Stream, error)
 	GetStreamsCalled      func() []network.Stream
-	StatCalled            func() network.Stat
+	StatCalled            func() network.ConnStats
+	ScopeCalled           func() network.ConnScope
 }
 
 // ID -
@@ -65,7 +66,12 @@ func (cs *ConnStub) LocalMultiaddr() multiaddr.Multiaddr {
 
 // RemoteMultiaddr -
 func (cs *ConnStub) RemoteMultiaddr() multiaddr.Multiaddr {
-	return cs.RemoteMultiaddrCalled()
+	if cs.RemoteMultiaddrCalled != nil {
+		return cs.RemoteMultiaddrCalled()
+	}
+
+	ma, _ := multiaddr.NewMultiaddr("/ip4/127.0.0.1/tcp/9999/p2p/16Uiu2HAkw5SNNtSvH1zJiQ6Gc3WoGNSxiyNueRKe6fuAuh57G3Bk")
+	return ma
 }
 
 // NewStream -
@@ -79,6 +85,19 @@ func (cs *ConnStub) GetStreams() []network.Stream {
 }
 
 // Stat -
-func (cs *ConnStub) Stat() network.Stat {
-	return cs.StatCalled()
+func (cs *ConnStub) Stat() network.ConnStats {
+	if cs.StatCalled != nil {
+		return cs.StatCalled()
+	}
+
+	return network.ConnStats{}
+}
+
+// Scope -
+func (cs *ConnStub) Scope() network.ConnScope {
+	if cs.ScopeCalled != nil {
+		cs.ScopeCalled()
+	}
+
+	return network.NullScope
 }

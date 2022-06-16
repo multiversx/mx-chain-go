@@ -36,7 +36,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
@@ -49,15 +48,12 @@ const denomination = "000000000000000000"
 
 func getNewTrieStorageManagerArgs() trie.NewTrieStorageManagerArgs {
 	return trie.NewTrieStorageManagerArgs{
-		DB:                     memorydb.New(),
 		MainStorer:             integrationTests.CreateMemUnit(),
 		CheckpointsStorer:      integrationTests.CreateMemUnit(),
 		Marshalizer:            integrationTests.TestMarshalizer,
 		Hasher:                 integrationTests.TestHasher,
-		SnapshotDbConfig:       config.DBConfig{},
 		GeneralConfig:          config.TrieStorageManagerConfig{SnapshotsGoroutineNum: 1},
 		CheckpointHashesHolder: &trieMock.CheckpointHashesHolderStub{},
-		EpochNotifier:          &epochNotifier.EpochNotifierStub{},
 		IdleProvider:           &testscommon.ProcessStatusHandlerStub{},
 	}
 }
@@ -274,7 +270,7 @@ func TestTrieDB_RecreateFromStorageShouldWork(t *testing.T) {
 	hasher := integrationTests.TestHasher
 	store := integrationTests.CreateMemUnit()
 	args := getNewTrieStorageManagerArgs()
-	args.DB = store
+	args.MainStorer = store
 	args.Hasher = hasher
 	trieStorage, _ := trie.NewTrieStorageManager(args)
 
@@ -1055,7 +1051,7 @@ func createAccounts(
 
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(evictionWaitListSize, memorydb.New(), integrationTests.TestMarshalizer)
 	args := getNewTrieStorageManagerArgs()
-	args.DB = store
+	args.MainStorer = store
 	trieStorage, _ := trie.NewTrieStorageManager(args)
 	maxTrieLevelInMemory := uint(5)
 	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher, maxTrieLevelInMemory)
@@ -1156,7 +1152,7 @@ func TestTrieDbPruning_GetAccountAfterPruning(t *testing.T) {
 	_ = account.(state.UserAccountHandler).AddToBalance(big.NewInt(1))
 	_ = adb.SaveAccount(account)
 	rootHash2, _ := adb.Commit()
-	adb.PruneTrie(rootHash1, state.OldRoot)
+	adb.PruneTrie(rootHash1, state.OldRoot, state.NewPruningHandler(state.EnableDataRemoval))
 
 	err := adb.RecreateTrie(rootHash2)
 	require.Nil(t, err)
@@ -1248,7 +1244,7 @@ func TestTrieDbPruning_GetDataTrieTrackerAfterPruning(t *testing.T) {
 	_ = adb.SaveAccount(stateMock)
 
 	newRootHash, _ := adb.Commit()
-	adb.PruneTrie(oldRootHash, state.OldRoot)
+	adb.PruneTrie(oldRootHash, state.OldRoot, state.NewPruningHandler(state.EnableDataRemoval))
 
 	err := adb.RecreateTrie(newRootHash)
 	require.Nil(t, err)
@@ -1324,6 +1320,11 @@ func TestRollbackBlockAndCheckThatPruningIsCancelledOnAccountsTrie(t *testing.T)
 	require.Equal(t, uint64(1), nodes[0].BlockChain.GetCurrentBlockHeader().GetNonce())
 	require.Equal(t, uint64(1), nodes[1].BlockChain.GetCurrentBlockHeader().GetNonce())
 
+	delayRounds := 10
+	for i := 0; i < delayRounds; i++ {
+		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+	}
+
 	fmt.Println("Generating transactions...")
 	integrationTests.GenerateAndDisseminateTxs(
 		shardNode,
@@ -1343,16 +1344,16 @@ func TestRollbackBlockAndCheckThatPruningIsCancelledOnAccountsTrie(t *testing.T)
 
 	rootHashOfRollbackedBlock, _ := shardNode.AccntState.RootHash()
 
-	require.Equal(t, uint64(2), nodes[0].BlockChain.GetCurrentBlockHeader().GetNonce())
-	require.Equal(t, uint64(2), nodes[1].BlockChain.GetCurrentBlockHeader().GetNonce())
+	require.Equal(t, uint64(12), nodes[0].BlockChain.GetCurrentBlockHeader().GetNonce())
+	require.Equal(t, uint64(12), nodes[1].BlockChain.GetCurrentBlockHeader().GetNonce())
 
 	shardIdToRollbackLastBlock := uint32(0)
 	integrationTests.ForkChoiceOneBlock(nodes, shardIdToRollbackLastBlock)
 	integrationTests.ResetHighestProbableNonce(nodes, shardIdToRollbackLastBlock, 1)
 	integrationTests.EmptyDataPools(nodes, shardIdToRollbackLastBlock)
 
-	require.Equal(t, uint64(1), nodes[0].BlockChain.GetCurrentBlockHeader().GetNonce())
-	require.Equal(t, uint64(2), nodes[1].BlockChain.GetCurrentBlockHeader().GetNonce())
+	require.Equal(t, uint64(11), nodes[0].BlockChain.GetCurrentBlockHeader().GetNonce())
+	require.Equal(t, uint64(12), nodes[1].BlockChain.GetCurrentBlockHeader().GetNonce())
 
 	rootHash, err := shardNode.AccntState.RootHash()
 	require.Nil(t, err)
@@ -1379,8 +1380,8 @@ func TestRollbackBlockAndCheckThatPruningIsCancelledOnAccountsTrie(t *testing.T)
 
 	err = shardNode.AccntState.RecreateTrie(rootHashOfFirstBlock)
 	require.Nil(t, err)
-	require.Equal(t, uint64(3), nodes[0].BlockChain.GetCurrentBlockHeader().GetNonce())
-	require.Equal(t, uint64(4), nodes[1].BlockChain.GetCurrentBlockHeader().GetNonce())
+	require.Equal(t, uint64(11), nodes[0].BlockChain.GetCurrentBlockHeader().GetNonce())
+	require.Equal(t, uint64(12), nodes[1].BlockChain.GetCurrentBlockHeader().GetNonce())
 }
 
 func TestRollbackBlockWithSameRootHashAsPreviousAndCheckThatPruningIsNotDone(t *testing.T) {
@@ -1488,8 +1489,13 @@ func TestTriePruningWhenBlockIsFinal(t *testing.T) {
 	nonce++
 	round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 
-	require.Equal(t, uint64(1), nodes[0].BlockChain.GetCurrentBlockHeader().GetNonce())
-	require.Equal(t, uint64(1), nodes[1].BlockChain.GetCurrentBlockHeader().GetNonce())
+	delayRounds := 10
+	for i := 0; i < delayRounds; i++ {
+		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+	}
+
+	require.Equal(t, uint64(11), nodes[0].BlockChain.GetCurrentBlockHeader().GetNonce())
+	require.Equal(t, uint64(11), nodes[1].BlockChain.GetCurrentBlockHeader().GetNonce())
 
 	rootHashOfFirstBlock, _ := shardNode.AccntState.RootHash()
 
@@ -1512,8 +1518,8 @@ func TestTriePruningWhenBlockIsFinal(t *testing.T) {
 		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 	}
 
-	require.Equal(t, uint64(7), nodes[0].BlockChain.GetCurrentBlockHeader().GetNonce())
-	require.Equal(t, uint64(7), nodes[1].BlockChain.GetCurrentBlockHeader().GetNonce())
+	require.Equal(t, uint64(17), nodes[0].BlockChain.GetCurrentBlockHeader().GetNonce())
+	require.Equal(t, uint64(17), nodes[1].BlockChain.GetCurrentBlockHeader().GetNonce())
 
 	err := shardNode.AccntState.RecreateTrie(rootHashOfFirstBlock)
 	require.True(t, errors.Is(err, trie.ErrKeyNotFound))
@@ -1546,7 +1552,7 @@ func TestStatePruningIsBuffered(t *testing.T) {
 
 	defer func() {
 		for _, n := range nodes {
-			_ = n.Messenger.Close()
+			n.Close()
 		}
 	}()
 
@@ -1567,6 +1573,11 @@ func TestStatePruningIsBuffered(t *testing.T) {
 
 	rootHash := shardNode.BlockChain.GetCurrentBlockHeader().GetRootHash()
 	stateTrie := shardNode.TrieContainer.Get([]byte(trieFactory.UserAccountTrie))
+
+	delayRounds := 10
+	for i := 0; i < delayRounds; i++ {
+		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+	}
 
 	numRounds := 10
 	for i := 0; i < numRounds; i++ {
@@ -1614,7 +1625,7 @@ func TestSnapshotOnEpochChange(t *testing.T) {
 		stateCheckpointModulus,
 	)
 
-	roundsPerEpoch := uint64(10)
+	roundsPerEpoch := uint64(17)
 	for _, node := range nodes {
 		node.EpochStartTrigger.SetRoundsPerEpoch(roundsPerEpoch)
 	}
@@ -1629,7 +1640,7 @@ func TestSnapshotOnEpochChange(t *testing.T) {
 
 	defer func() {
 		for _, n := range nodes {
-			_ = n.Messenger.Close()
+			n.Close()
 		}
 	}()
 
@@ -1700,6 +1711,7 @@ func collectSnapshotAndCheckpointHashes(
 ) {
 	pruningQueueSize := uint64(5)
 	finality := uint64(2)
+	pruningDelayMultiplier := uint64(2)
 
 	for j := 0; j < numShardNodes; j++ {
 		currentBlockHeader := nodes[j].BlockChain.GetCurrentBlockHeader()
@@ -1714,6 +1726,10 @@ func collectSnapshotAndCheckpointHashes(
 		}
 
 		if currentBlockHeader.GetNonce() > roundsPerEpoch-pruningQueueSize-finality {
+			continue
+		}
+
+		if currentBlockHeader.GetNonce() < pruningQueueSize*pruningDelayMultiplier {
 			continue
 		}
 
@@ -1747,23 +1763,23 @@ func testNodeStateCheckpointSnapshotAndPruning(
 ) {
 
 	stateTrie := node.TrieContainer.Get([]byte(trieFactory.UserAccountTrie))
-	require.Equal(t, 6, len(checkpointsRootHashes))
+	assert.Equal(t, 6, len(checkpointsRootHashes))
 	for i := range checkpointsRootHashes {
 		tr, err := stateTrie.Recreate(checkpointsRootHashes[i])
 		require.Nil(t, err)
 		require.NotNil(t, tr)
 	}
 
-	require.Equal(t, 1, len(snapshotsRootHashes))
+	assert.Equal(t, 1, len(snapshotsRootHashes))
 	for i := range snapshotsRootHashes {
 		tr, err := stateTrie.Recreate(snapshotsRootHashes[i])
 		require.Nil(t, err)
 		require.NotNil(t, tr)
 	}
 
-	require.Equal(t, 2, len(prunedRootHashes))
+	assert.Equal(t, 1, len(prunedRootHashes))
 	// if pruning is called for a root hash in a different epoch than the commit, then recreate trie should work
-	for i := range prunedRootHashes {
+	for i := 0; i < len(prunedRootHashes)-1; i++ {
 		tr, err := stateTrie.Recreate(prunedRootHashes[i])
 		require.Nil(t, tr)
 		require.NotNil(t, err)
@@ -1992,6 +2008,11 @@ func TestAccountRemoval(t *testing.T) {
 	numAccountsToRemove := 2
 	roundsToWait := 50
 
+	delayRounds := 10
+	for i := 0; i < delayRounds; i++ {
+		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+	}
+
 	removedAccounts := make(map[int]struct{})
 	for i := 0; i < roundsToWait; i++ {
 		for j := 0; j < numAccountsToRemove; j++ {
@@ -2013,7 +2034,7 @@ func TestAccountRemoval(t *testing.T) {
 		checkCodeConsistency(t, shardNode, codeMap)
 	}
 
-	delayRounds := 5
+	delayRounds = 5
 	for i := 0; i < delayRounds; i++ {
 		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 	}
@@ -2072,7 +2093,7 @@ func checkDataTrieConsistency(
 		_, ok := removedAccounts[i]
 		if ok {
 			err := adb.RecreateTrie(rootHash)
-			require.NotNil(t, err)
+			assert.NotNil(t, err)
 		} else {
 			err := adb.RecreateTrie(rootHash)
 			require.Nil(t, err)
@@ -2134,15 +2155,15 @@ func TestProofAndVerifyProofDataTrie(t *testing.T) {
 		key := hex.EncodeToString(keyBytes)
 		value := []byte("value" + index)
 
-		mainTrieProof, dataTrieProof, err := shardNode.Node.GetProofDataTrie(rootHashHex, encodedAddr, key)
-		assert.Nil(t, err)
+		mainTrieProof, dataTrieProof, errProof := shardNode.Node.GetProofDataTrie(rootHashHex, encodedAddr, key)
+		assert.Nil(t, errProof)
 
-		response, err := mainTrie.VerifyProof(rootHash, address, mainTrieProof.Proof)
-		assert.Nil(t, err)
+		response, errVerify := mainTrie.VerifyProof(rootHash, address, mainTrieProof.Proof)
+		assert.Nil(t, errVerify)
 		assert.True(t, response)
 
-		response, err = mainTrie.VerifyProof(dataTrieRootHashBytes, keyBytes, dataTrieProof.Proof)
-		assert.Nil(t, err)
+		response, errVerify = mainTrie.VerifyProof(dataTrieRootHashBytes, keyBytes, dataTrieProof.Proof)
+		assert.Nil(t, errVerify)
 		assert.True(t, response)
 		assert.Equal(t, value, dataTrieProof.Value)
 	}
@@ -2172,7 +2193,7 @@ func TestTrieDBPruning_PruningOldData(t *testing.T) {
 		rootHash, err = decreaseBalanceForAccountsStartingWithIndex(100, 1000, 10, adb)
 		require.Nil(t, err)
 		rootHashes = append(rootHashes, rootHash)
-		adb.PruneTrie(rootHashes[len(rootHashes)-2], state.OldRoot)
+		adb.PruneTrie(rootHashes[len(rootHashes)-2], state.OldRoot, state.NewPruningHandler(state.EnableDataRemoval))
 		checkAccountsBalances(t, 100, 1000, 100, adb)
 	}
 }
@@ -2206,7 +2227,7 @@ func TestTrieDBPruning_PruningOldDataWithDataTries(t *testing.T) {
 		rootHash, err = removeKeysFromAccountsStartingWithIndex(10, numAccountsChances, 10, adb)
 		require.Nil(t, err)
 		rootHashes = append(rootHashes, rootHash)
-		adb.PruneTrie(rootHashes[len(rootHashes)-2], state.OldRoot)
+		adb.PruneTrie(rootHashes[len(rootHashes)-2], state.OldRoot, state.NewPruningHandler(state.EnableDataRemoval))
 		checkAccountsDataTries(t, 10, numAccountsChances, 10, adb)
 	}
 }
@@ -2368,7 +2389,6 @@ func createAccountsDBTestSetup() *state.AccountsDB {
 	generalCfg := config.TrieStorageManagerConfig{
 		PruningBufferLen:      1000,
 		SnapshotsBufferLen:    10,
-		MaxSnapshots:          2,
 		SnapshotsGoroutineNum: 1,
 	}
 	evictionWaitListSize := uint(100)

@@ -33,6 +33,7 @@ func NewOneNodeNetwork() *oneNodeNetwork {
 // Stop stops the test network
 func (n *oneNodeNetwork) Stop() {
 	_ = n.Node.Messenger.Close()
+	_ = n.Node.VMContainer.Close()
 }
 
 // Mint mints the given address

@@ -74,3 +74,9 @@ type HeartbeatHandler interface {
 	Sender() *process.Sender
 	IsInterfaceNil() bool
 }
+
+// HealthService defines the behavior of a service able to keep track of the node's health
+type HealthService interface {
+	io.Closer
+	RegisterComponent(component interface{})
+}

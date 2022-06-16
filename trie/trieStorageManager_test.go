@@ -1,7 +1,6 @@
 package trie_test
 
 import (
-	"strconv"
 	"strings"
 	"testing"
 
@@ -10,7 +9,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
@@ -21,21 +19,17 @@ import (
 )
 
 const (
-	checkpointHashesHolderMaxSize = 10000000
-	hashSize                      = 32
+	hashSize = 32
 )
 
 func getNewTrieStorageManagerArgs() trie.NewTrieStorageManagerArgs {
 	return trie.NewTrieStorageManagerArgs{
-		DB:                     testscommon.NewMemDbMock(),
 		MainStorer:             testscommon.CreateMemUnit(),
 		CheckpointsStorer:      testscommon.CreateMemUnit(),
 		Marshalizer:            &mock.MarshalizerMock{},
 		Hasher:                 &hashingMocks.HasherMock{},
-		SnapshotDbConfig:       config.DBConfig{},
 		GeneralConfig:          config.TrieStorageManagerConfig{SnapshotsGoroutineNum: 1},
 		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10, hashSize),
-		EpochNotifier:          &mock.EpochNotifierStub{},
 		IdleProvider:           &testscommon.ProcessStatusHandlerStub{},
 	}
 }
@@ -43,15 +37,6 @@ func getNewTrieStorageManagerArgs() trie.NewTrieStorageManagerArgs {
 func TestNewTrieStorageManager(t *testing.T) {
 	t.Parallel()
 
-	t.Run("nil DB", func(t *testing.T) {
-		t.Parallel()
-
-		args := getNewTrieStorageManagerArgs()
-		args.DB = nil
-		ts, err := trie.NewTrieStorageManager(args)
-		assert.Nil(t, ts)
-		assert.Equal(t, trie.ErrNilDatabase, err)
-	})
 	t.Run("nil marshaller", func(t *testing.T) {
 		t.Parallel()
 
@@ -87,93 +72,6 @@ func TestNewTrieStorageManager(t *testing.T) {
 		assert.Nil(t, err)
 		assert.NotNil(t, ts)
 	})
-}
-
-func TestNewTrieStorageManagerWithExistingSnapshot(t *testing.T) {
-	t.Parallel()
-
-	cfg := config.DBConfig{
-		FilePath:          t.TempDir(),
-		Type:              string(storageUnit.LvlDBSerial),
-		BatchDelaySeconds: 1,
-		MaxBatchSize:      1,
-		MaxOpenFiles:      10,
-	}
-	generalCfg := config.TrieStorageManagerConfig{
-		PruningBufferLen:      1000,
-		SnapshotsBufferLen:    10,
-		MaxSnapshots:          2,
-		SnapshotsGoroutineNum: 1,
-	}
-
-	args := getNewTrieStorageManagerArgs()
-	args.SnapshotDbConfig = cfg
-	args.DisableOldTrieStorageEpoch = 1
-	args.GeneralConfig = generalCfg
-	args.CheckpointHashesHolder = hashesHolder.NewCheckpointHashesHolder(checkpointHashesHolderMaxSize, hashSize)
-	trieStorage, _ := trie.NewTrieStorageManager(args)
-
-	snapshotDb, err := trieStorage.NewSnapshotDb()
-	assert.Nil(t, err)
-	assert.NotNil(t, snapshotDb)
-
-	key := []byte("key")
-	value := []byte("value")
-	err = snapshotDb.Put(key, value)
-	assert.Nil(t, err)
-	err = snapshotDb.Close()
-	assert.Nil(t, err)
-
-	args.CheckpointHashesHolder = hashesHolder.NewCheckpointHashesHolder(checkpointHashesHolderMaxSize, hashSize)
-	newTrieStorage, _ := trie.NewTrieStorageManager(args)
-	foundSnapshot := newTrieStorage.GetSnapshotThatContainsHash(key)
-	assert.NotNil(t, foundSnapshot)
-	assert.Equal(t, 1, newTrieStorage.SnapshotId())
-}
-
-func TestNewTrieStorageManagerLoadsSnapshotsInOrder(t *testing.T) {
-	t.Parallel()
-
-	cfg := config.DBConfig{
-		FilePath:          t.TempDir(),
-		Type:              string(storageUnit.LvlDBSerial),
-		BatchDelaySeconds: 1,
-		MaxBatchSize:      1,
-		MaxOpenFiles:      10,
-	}
-	generalCfg := config.TrieStorageManagerConfig{
-		PruningBufferLen:      1000,
-		SnapshotsBufferLen:    10,
-		MaxSnapshots:          2,
-		SnapshotsGoroutineNum: 1,
-	}
-
-	args := getNewTrieStorageManagerArgs()
-	args.SnapshotDbConfig = cfg
-	args.DisableOldTrieStorageEpoch = 1
-	args.GeneralConfig = generalCfg
-	args.CheckpointHashesHolder = hashesHolder.NewCheckpointHashesHolder(checkpointHashesHolderMaxSize, hashSize)
-	trieStorage, _ := trie.NewTrieStorageManager(args)
-
-	numSnapshots := 10
-	for i := 0; i < numSnapshots; i++ {
-		snapshotDb, _ := trieStorage.NewSnapshotDb()
-		err := snapshotDb.Put([]byte(strconv.Itoa(i)), []byte(strconv.Itoa(i)))
-		assert.Nil(t, err)
-		_ = snapshotDb.Close()
-	}
-
-	args.CheckpointHashesHolder = hashesHolder.NewCheckpointHashesHolder(checkpointHashesHolderMaxSize, hashSize)
-	newTrieStorage, _ := trie.NewTrieStorageManager(args)
-
-	snapshots := newTrieStorage.GetSnapshots()
-	for i := 0; i < numSnapshots; i++ {
-		val, err := snapshots[i].Get([]byte(strconv.Itoa(i)))
-		assert.Nil(t, err)
-		assert.NotNil(t, val)
-	}
-
-	assert.Equal(t, 10, newTrieStorage.SnapshotId())
 }
 
 func TestTrieCheckpoint(t *testing.T) {
@@ -237,19 +135,6 @@ func TestTrieStorageManager_IsPruningBlocked(t *testing.T) {
 	ts.ExitPruningBufferingMode()
 
 	assert.False(t, ts.IsPruningBlocked())
-}
-
-func TestTrieStorageManager_GetSnapshotDbBatchDelay(t *testing.T) {
-	t.Parallel()
-
-	batchDelay := 5
-	args := getNewTrieStorageManagerArgs()
-	args.SnapshotDbConfig = config.DBConfig{
-		BatchDelaySeconds: batchDelay,
-	}
-	ts, _ := trie.NewTrieStorageManager(args)
-
-	assert.Equal(t, batchDelay, ts.GetSnapshotDbBatchDelay())
 }
 
 func TestTrieStorageManager_Remove(t *testing.T) {

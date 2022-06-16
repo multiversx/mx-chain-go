@@ -2,6 +2,7 @@ package block
 
 import (
 	"bytes"
+	"context"
 	"encoding/hex"
 	"fmt"
 	"math/big"
@@ -28,6 +29,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
@@ -51,7 +53,7 @@ type hdrInfo struct {
 
 type baseProcessor struct {
 	shardCoordinator        sharding.Coordinator
-	nodesCoordinator        sharding.NodesCoordinator
+	nodesCoordinator        nodesCoordinator.NodesCoordinator
 	accountsDB              map[state.AccountsDbIdentifier]state.AccountsAdapter
 	forkDetector            process.ForkDetector
 	hasher                  hashing.Hasher
@@ -95,6 +97,8 @@ type baseProcessor struct {
 	processDataTriesOnCommitEpoch  bool
 	scheduledMiniBlocksEnableEpoch uint32
 	flagScheduledMiniBlocks        atomic.Flag
+	lastRestartNonce               uint64
+	pruningDelay                   uint32
 }
 
 type bootStorerDataArgs struct {
@@ -1296,7 +1300,7 @@ func (bp *baseProcessor) updateStateStorage(
 	}
 
 	accounts.CancelPrune(rootHashToBePruned, state.NewRoot)
-	accounts.PruneTrie(rootHashToBePruned, state.OldRoot)
+	accounts.PruneTrie(rootHashToBePruned, state.OldRoot, bp.getPruningHandler(finalHeader.GetNonce()))
 }
 
 // RevertCurrentBlock reverts the current block for cleanup failed process
@@ -1432,8 +1436,21 @@ func (bp *baseProcessor) PruneStateOnRollback(currHeader data.HeaderHandler, cur
 		}
 
 		bp.accountsDB[key].CancelPrune(prevRootHash, state.OldRoot)
-		bp.accountsDB[key].PruneTrie(rootHash, state.NewRoot)
+		bp.accountsDB[key].PruneTrie(rootHash, state.NewRoot, bp.getPruningHandler(currHeader.GetNonce()))
 	}
+}
+
+func (bp *baseProcessor) getPruningHandler(finalHeaderNonce uint64) state.PruningHandler {
+	if finalHeaderNonce-bp.lastRestartNonce <= uint64(bp.pruningDelay) {
+		log.Debug("will skip pruning",
+			"finalHeaderNonce", finalHeaderNonce,
+			"last restart nonce", bp.lastRestartNonce,
+			"num blocks for pruning delay", bp.pruningDelay,
+		)
+		return state.NewPruningHandler(state.DisableDataRemoval)
+	}
+
+	return state.NewPruningHandler(state.EnableDataRemoval)
 }
 
 func (bp *baseProcessor) getRootHashes(currHeader data.HeaderHandler, prevHeader data.HeaderHandler, identifier state.AccountsDbIdentifier) ([]byte, []byte) {
@@ -1601,7 +1618,8 @@ func (bp *baseProcessor) commitTrieEpochRootHashIfNeeded(metaBlock *block.MetaBl
 		return err
 	}
 
-	allLeavesChan, err := userAccountsDb.GetAllLeaves(rootHash)
+	allLeavesChan := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
+	err = userAccountsDb.GetAllLeaves(allLeavesChan, context.Background(), rootHash)
 	if err != nil {
 		return err
 	}
@@ -1626,7 +1644,8 @@ func (bp *baseProcessor) commitTrieEpochRootHashIfNeeded(metaBlock *block.MetaBl
 		if processDataTries {
 			rh := userAccount.GetRootHash()
 			if len(rh) != 0 {
-				dataTrie, errDataTrieGet := userAccountsDb.GetAllLeaves(rh)
+				dataTrie := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
+				errDataTrieGet := userAccountsDb.GetAllLeaves(dataTrie, context.Background(), rh)
 				if errDataTrieGet != nil {
 					continue
 				}

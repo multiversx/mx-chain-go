@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 )
 
 // baseStorageHandler handles the storage functions for saving bootstrap data
@@ -47,7 +48,7 @@ func (bsh *baseStorageHandler) groupMiniBlocksByShard(miniBlocks map[string]*blo
 
 func (bsh *baseStorageHandler) saveNodesCoordinatorRegistry(
 	metaBlock data.HeaderHandler,
-	nodesConfig *sharding.NodesCoordinatorRegistry,
+	nodesConfig *nodesCoordinator.NodesCoordinatorRegistry,
 ) ([]byte, error) {
 	key := append([]byte(common.NodesCoordinatorRegistryKeyPrefix), metaBlock.GetPrevRandSeed()...)
 
