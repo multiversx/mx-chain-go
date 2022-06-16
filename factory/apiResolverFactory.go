@@ -382,6 +382,8 @@ func createScQueryElement(
 		}
 	}
 
+	log.Debug("maximum gas per VM Query", "value", maxGasForVmQueries)
+
 	vmContainer, err := vmFactory.Create()
 	if err != nil {
 		return nil, err
