@@ -16,8 +16,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dbLookupExtMock "github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
+	datafield "github.com/ElrondNetwork/elrond-vm-common/parsers/dataField"
 	"github.com/stretchr/testify/require"
 )
 
@@ -53,8 +55,13 @@ func TestPutEventsInTransactionReceipt(t *testing.T) {
 	}
 
 	pubKeyConverter := &mock.PubkeyConverterMock{}
-	txUnmarshalerAndPreparer := newTransactionUnmarshaller(marshalizerdMock, pubKeyConverter)
-	n := newAPITransactionResultProcessor(pubKeyConverter, historyRepo, dataStore, marshalizerdMock, txUnmarshalerAndPreparer, 0)
+	dataFieldParser := &testscommon.DataFieldParserStub{
+		ParseCalled: func(dataField []byte, sender, receiver []byte) *datafield.ResponseParseData {
+			return &datafield.ResponseParseData{}
+		},
+	}
+	txUnmarshalerAndPreparer := newTransactionUnmarshaller(marshalizerdMock, pubKeyConverter, dataFieldParser)
+	n := newAPITransactionResultProcessor(pubKeyConverter, historyRepo, dataStore, marshalizerdMock, txUnmarshalerAndPreparer, 0, dataFieldParser)
 
 	epoch := uint32(0)
 
@@ -156,9 +163,14 @@ func TestPutEventsInTransactionSmartContractResults(t *testing.T) {
 		},
 	}
 
+	dataFieldParser := &testscommon.DataFieldParserStub{
+		ParseCalled: func(dataField []byte, sender, receiver []byte) *datafield.ResponseParseData {
+			return &datafield.ResponseParseData{}
+		},
+	}
 	pubKeyConverter := mock.NewPubkeyConverterMock(3)
-	txUnmarshalerAndPreparer := newTransactionUnmarshaller(marshalizerdMock, pubKeyConverter)
-	n := newAPITransactionResultProcessor(pubKeyConverter, historyRepo, dataStore, marshalizerdMock, txUnmarshalerAndPreparer, 0)
+	txUnmarshalerAndPreparer := newTransactionUnmarshaller(marshalizerdMock, pubKeyConverter, dataFieldParser)
+	n := newAPITransactionResultProcessor(pubKeyConverter, historyRepo, dataStore, marshalizerdMock, txUnmarshalerAndPreparer, 0, dataFieldParser)
 
 	expectedSCRS := []*transaction.ApiSmartContractResult{
 		{
@@ -190,11 +202,13 @@ func TestPutEventsInTransactionSmartContractResults(t *testing.T) {
 					},
 				},
 			},
+			Receivers: []string{},
 		},
 		{
 			Hash:           hex.EncodeToString(scrHash2),
 			OriginalTxHash: hex.EncodeToString(scr1.OriginalTxHash),
 			Logs:           nil,
+			Receivers:      []string{},
 		},
 	}
 
@@ -249,9 +263,14 @@ func TestPutLogsInTransaction(t *testing.T) {
 		},
 	}
 
+	dataFieldParser := &testscommon.DataFieldParserStub{
+		ParseCalled: func(dataField []byte, sender, receiver []byte) *datafield.ResponseParseData {
+			return &datafield.ResponseParseData{}
+		},
+	}
 	pubKeyConverter := &mock.PubkeyConverterMock{}
-	txUnmarshalerAndPreparer := newTransactionUnmarshaller(marshalizerMock, pubKeyConverter)
-	n := newAPITransactionResultProcessor(pubKeyConverter, historyRepo, dataStore, marshalizerMock, txUnmarshalerAndPreparer, 0)
+	txUnmarshalerAndPreparer := newTransactionUnmarshaller(marshalizerMock, pubKeyConverter, dataFieldParser)
+	n := newAPITransactionResultProcessor(pubKeyConverter, historyRepo, dataStore, marshalizerMock, txUnmarshalerAndPreparer, 0, dataFieldParser)
 	expectedLogs := &transaction.ApiLogs{
 		Address: pubKeyConverter.Encode(logsAndEvents.Address),
 		Events: []*transaction.Events{
