@@ -8,7 +8,7 @@ import (
 // StoragePruningManagerStub -
 type StoragePruningManagerStub struct {
 	MarkForEvictionCalled func(bytes []byte, bytes2 []byte, hashes common.ModifiedHashes, hashes2 common.ModifiedHashes) error
-	PruneTrieCalled       func(rootHash []byte, identifier state.TriePruningIdentifier, tsm common.StorageManager)
+	PruneTrieCalled       func(rootHash []byte, identifier state.TriePruningIdentifier, tsm common.StorageManager, handler state.PruningHandler)
 	CancelPruneCalled     func(rootHash []byte, identifier state.TriePruningIdentifier, tsm common.StorageManager)
 	CloseCalled           func() error
 }
@@ -23,9 +23,9 @@ func (stub *StoragePruningManagerStub) MarkForEviction(bytes []byte, bytes2 []by
 }
 
 // PruneTrie -
-func (stub *StoragePruningManagerStub) PruneTrie(rootHash []byte, identifier state.TriePruningIdentifier, tsm common.StorageManager) {
+func (stub *StoragePruningManagerStub) PruneTrie(rootHash []byte, identifier state.TriePruningIdentifier, tsm common.StorageManager, handler state.PruningHandler) {
 	if stub.PruneTrieCalled != nil {
-		stub.PruneTrieCalled(rootHash, identifier, tsm)
+		stub.PruneTrieCalled(rootHash, identifier, tsm, handler)
 	}
 }
 
