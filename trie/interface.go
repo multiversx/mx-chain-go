@@ -100,6 +100,7 @@ type pruningStorer interface {
 	GetLatestStorageEpoch() (uint32, error)
 	PutInEpochWithoutCache(key []byte, data []byte, epoch uint32) error
 	RemoveFromCurrentEpoch(key []byte) error
+	PutInEpoch(key []byte, data []byte, epoch uint32) error
 }
 
 // EpochNotifier can notify upon an epoch change and provide the current epoch

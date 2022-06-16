@@ -21,7 +21,7 @@ func createMockArgument(timeout time.Duration) ArgTrieSyncer {
 	memDb := testscommon.NewMemDbMock()
 	trieStorage.mainStorer = &trie.SnapshotPruningStorerStub{
 		MemDbMock: memDb,
-		PutInEpochWithoutCacheCalled: func(key []byte, data []byte, epoch uint32) error {
+		PutInEpochCalled: func(key []byte, data []byte, epoch uint32) error {
 			return memDb.Put(key, data)
 		},
 	}

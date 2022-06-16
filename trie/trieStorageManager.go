@@ -264,7 +264,7 @@ func (tsm *trieStorageManager) PutInEpoch(key []byte, val []byte, epoch uint32) 
 		return fmt.Errorf("invalid storer type for PutInEpoch")
 	}
 
-	return storer.PutInEpochWithoutCache(key, val, epoch)
+	return storer.PutInEpoch(key, val, epoch)
 }
 
 // EnterPruningBufferingMode increases the counter that tracks how many operations

@@ -28,7 +28,7 @@ func TestNewSyncTrieStorageManager_PutInFirstEpoch(t *testing.T) {
 	_, trieStorage := newEmptyTrie()
 	putInEpochWithoutCacheCalled := false
 	trieStorage.mainStorer = &trie.SnapshotPruningStorerStub{
-		PutInEpochWithoutCacheCalled: func(_ []byte, _ []byte, _ uint32) error {
+		PutInEpochCalled: func(_ []byte, _ []byte, _ uint32) error {
 			putInEpochWithoutCacheCalled = true
 			return nil
 		},
@@ -47,7 +47,7 @@ func TestNewSyncTrieStorageManager_PutInEpoch(t *testing.T) {
 	_, trieStorage := newEmptyTrie()
 	putInEpochWithoutCacheCalled := false
 	trieStorage.mainStorer = &trie.SnapshotPruningStorerStub{
-		PutInEpochWithoutCacheCalled: func(_ []byte, _ []byte, _ uint32) error {
+		PutInEpochCalled: func(_ []byte, _ []byte, _ uint32) error {
 			putInEpochWithoutCacheCalled = true
 			return nil
 		},

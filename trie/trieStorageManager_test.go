@@ -201,7 +201,7 @@ func TestTrieStorageManager_PutInEpoch(t *testing.T) {
 	args := getNewTrieStorageManagerArgs()
 	args.MainStorer = &trieMock.SnapshotPruningStorerStub{
 		MemDbMock: testscommon.NewMemDbMock(),
-		PutInEpochWithoutCacheCalled: func(key []byte, data []byte, epoch uint32) error {
+		PutInEpochCalled: func(key []byte, data []byte, epoch uint32) error {
 			putInEpochCalled = true
 			return nil
 		},
