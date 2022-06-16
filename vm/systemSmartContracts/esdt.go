@@ -1481,6 +1481,7 @@ func deleteRoleFromToken(token *ESDTDataV2, definedRole []byte) {
 			newRoles = append(newRoles, esdtRole)
 		}
 	}
+	token.SpecialRoles = newRoles
 }
 
 func (e *esdt) isSpecialRoleValidForFungible(argument string) error {

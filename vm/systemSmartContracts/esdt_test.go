@@ -4766,6 +4766,10 @@ func TestEsdt_unsetBurnForAll(t *testing.T) {
 	assert.Equal(t, []byte(expectedInput), outputTransfer.Data)
 	assert.Equal(t, vmData.DirectCall, outputTransfer.CallType)
 
+	token, err := e.getExistingToken(tokenName)
+	assert.Nil(t, err)
+	assert.Equal(t, len(token.SpecialRoles), 0)
+
 	output = e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
 	assert.True(t, strings.Contains(eei.returnMessage, "cannot un set burn for all as it was not set"))
