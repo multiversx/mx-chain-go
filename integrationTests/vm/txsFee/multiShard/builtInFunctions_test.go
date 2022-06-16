@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/txsFee/utils"
 	"github.com/ElrondNetwork/elrond-go/state"
@@ -40,13 +41,17 @@ func TestBuiltInFunctionExecuteOnSourceAndDestinationShouldWork(t *testing.T) {
 
 	testContextSource, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(
 		0,
-		config.EnableEpochs{})
+		config.EnableEpochs{
+			PenalizedTooMuchGasEnableEpoch: integrationTests.UnreachableEpoch,
+		})
 	require.Nil(t, err)
 	defer testContextSource.Close()
 
 	testContextDst, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(
 		1,
-		config.EnableEpochs{})
+		config.EnableEpochs{
+			PenalizedTooMuchGasEnableEpoch: integrationTests.UnreachableEpoch,
+		})
 	require.Nil(t, err)
 	defer testContextDst.Close()
 

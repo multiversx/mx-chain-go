@@ -28,8 +28,8 @@ func TestBridgeSetupAndBurn(t *testing.T) {
 	numMetachainNodes := 1
 
 	enableEpochs := config.EnableEpochs{
-		GlobalMintBurnDisableEpoch:       10,
-		BuiltInFunctionOnMetaEnableEpoch: 10,
+		GlobalMintBurnDisableEpoch:       integrationTests.UnreachableEpoch,
+		BuiltInFunctionOnMetaEnableEpoch: integrationTests.UnreachableEpoch,
 	}
 	nodes := integrationTests.CreateNodesWithEnableEpochs(
 		numOfShards,

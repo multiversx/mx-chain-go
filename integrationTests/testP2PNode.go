@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-crypto/signing"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl"
 	mclsig "github.com/ElrondNetwork/elrond-go-crypto/signing/mcl/singlesig"
+	"github.com/ElrondNetwork/elrond-go/common/enableEpochs"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
@@ -158,6 +159,10 @@ func (tP2pNode *TestP2PNode) initNode() {
 	coreComponents.InternalMarshalizerField = TestMarshalizer
 	coreComponents.HasherField = TestHasher
 	coreComponents.ValidatorPubKeyConverterField = TestValidatorPubkeyConverter
+	cfg := config.EnableEpochs{
+		HeartbeatDisableEpoch: UnreachableEpoch,
+	}
+	coreComponents.EnableEpochsHandlerField, _ = enableEpochs.NewEnableEpochsHandler(cfg, coreComponents.EpochNotifierField)
 
 	cryptoComponents := GetDefaultCryptoComponents()
 	cryptoComponents.BlKeyGen = tP2pNode.KeyGen
@@ -348,6 +353,7 @@ func CreateNodesWithTestP2PNodes(
 			ChanStopNode:            endProcess.GetDummyEndProcessChannel(),
 			NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
 			IsFullArchive:           false,
+			EnableEpochsHandler:     &testscommon.EnableEpochsHandlerStub{},
 		}
 		nodesCoord, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 		log.LogIfError(err)
@@ -392,6 +398,7 @@ func CreateNodesWithTestP2PNodes(
 				ChanStopNode:            endProcess.GetDummyEndProcessChannel(),
 				NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
 				IsFullArchive:           false,
+				EnableEpochsHandler:     &testscommon.EnableEpochsHandlerStub{},
 			}
 			nodesCoord, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 			log.LogIfError(err)

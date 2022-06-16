@@ -143,7 +143,11 @@ func CreateNodesAndPrepareBalances(numOfShards int) ([]*integrationTests.TestPro
 	nodesPerShard := 1
 	numMetachainNodes := 1
 
-	enableEpochs := config.EnableEpochs{}
+	enableEpochs := config.EnableEpochs{
+		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: integrationTests.UnreachableEpoch,
+		ScheduledMiniBlocksEnableEpoch:              integrationTests.UnreachableEpoch,
+		MiniBlockPartialExecutionEnableEpoch:        integrationTests.UnreachableEpoch,
+	}
 
 	nodes := integrationTests.CreateNodesWithEnableEpochs(
 		numOfShards,

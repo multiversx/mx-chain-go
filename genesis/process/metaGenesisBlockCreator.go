@@ -277,11 +277,11 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		Epoch:     arg.StartEpochNum,
 		TimeStamp: arg.GenesisTime,
 	}
-	epochNotifier.CheckEpoch(temporaryMetaHeader)
 	enableEpochsHandler, err := enableEpochs.NewEnableEpochsHandler(enableEpochsConfig, epochNotifier)
 	if err != nil {
 		return nil, err
 	}
+	epochNotifier.CheckEpoch(temporaryMetaHeader)
 
 	builtInFuncs := vmcommonBuiltInFunctions.NewBuiltInFunctionContainer()
 	argsHook := hooks.ArgBlockChainHook{

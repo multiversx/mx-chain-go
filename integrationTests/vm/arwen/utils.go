@@ -23,6 +23,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/common/enableEpochs"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
@@ -134,7 +135,7 @@ func SetupTestContextWithGasSchedulePath(t *testing.T, gasScheduleConfigPath str
 	context.T = t
 	context.Round = 500
 	context.EpochNotifier = &epochNotifier.EpochNotifierStub{}
-	context.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{}
+	context.EnableEpochsHandler, _ = enableEpochs.NewEnableEpochsHandler(config.EnableEpochs{}, context.EpochNotifier)
 	context.ArwenChangeLocker = &sync.RWMutex{}
 
 	context.initAccounts()
@@ -220,7 +221,7 @@ func (context *TestContext) initFeeHandlers() {
 			},
 		},
 		EpochNotifier:               context.EpochNotifier,
-		EnableEpochsHandler:         &testscommon.EnableEpochsHandlerStub{},
+		EnableEpochsHandler:         context.EnableEpochsHandler,
 		BuiltInFunctionsCostHandler: &mock.BuiltInCostHandlerStub{},
 	}
 	economicsData, _ := economics.NewEconomicsData(argsNewEconomicsData)
@@ -340,7 +341,7 @@ func (context *TestContext) initTxProcessorWithOneSCExecutorWithVMs() {
 		},
 		GasSchedule:         mock.NewGasScheduleNotifierMock(gasSchedule),
 		TxLogsProcessor:     logsProcessor,
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+		EnableEpochsHandler: context.EnableEpochsHandler,
 		ArwenChangeLocker:   context.ArwenChangeLocker,
 		VMOutputCacher:      txcache.NewDisabledCache(),
 	}
@@ -363,7 +364,7 @@ func (context *TestContext) initTxProcessorWithOneSCExecutorWithVMs() {
 		BadTxForwarder:      &mock.IntermediateTransactionHandlerMock{},
 		ArgsParser:          smartContract.NewArgumentParser(),
 		ScrForwarder:        &mock.IntermediateTransactionHandlerMock{},
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+		EnableEpochsHandler: context.EnableEpochsHandler,
 	}
 
 	context.TxProcessor, err = processTransaction.NewTxProcessor(argsNewTxProcessor)

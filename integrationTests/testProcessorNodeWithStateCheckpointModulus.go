@@ -5,7 +5,9 @@ import (
 
 	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/v1_4/config"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/common/enableEpochs"
 	"github.com/ElrondNetwork/elrond-go/common/forking"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
@@ -76,6 +78,12 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 			BadRatedCache: testscommon.NewCacherMock(),
 		})
 
+	enableEpochsConfig := config.EnableEpochs{
+		StakingV2EnableEpoch: UnreachableEpoch,
+	}
+	epochNotifierInstance := forking.NewGenericEpochNotifier()
+	enableEpochsHandler, _ := enableEpochs.NewEnableEpochsHandler(enableEpochsConfig, epochNotifierInstance)
+
 	messenger := CreateMessengerWithNoDiscoveryAndPeersRatingHandler(peersRatingHandler)
 	tpn := &TestProcessorNode{
 		ShardCoordinator:        shardCoordinator,
@@ -86,11 +94,13 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 		ChainID:                 ChainID,
 		MinTransactionVersion:   MinTransactionVersion,
 		HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
-		EpochNotifier:           forking.NewGenericEpochNotifier(),
+		EpochNotifier:           epochNotifierInstance,
 		ArwenChangeLocker:       &sync.RWMutex{},
 		TransactionLogProcessor: logsProcessor,
 		PeersRatingHandler:      peersRatingHandler,
 		PeerShardMapper:         disabled.NewPeerShardMapper(),
+		EnableEpochsHandler:     enableEpochsHandler,
+		EnableEpochs:            enableEpochsConfig,
 	}
 	tpn.NodesSetup = nodesSetup
 
@@ -129,6 +139,7 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 		TestUint64Converter,
 		tpn.DataPool,
 		tpn.EconomicsData,
+		tpn.EnableEpochs,
 	)
 	tpn.initBlockTracker()
 	tpn.initInterceptors("")
