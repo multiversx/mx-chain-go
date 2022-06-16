@@ -25,6 +25,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	vmcommonMock "github.com/ElrondNetwork/elrond-vm-common/mock"
 )
 
 func createSystemSCProcessor(
@@ -142,22 +143,23 @@ func createBlockChainHook(
 		ShardCoordinator: shardCoordinator,
 		EpochNotifier:    coreComponents.EpochNotifier(),
 	}
-	builtInFunctionsContainer, _, _ := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
+	builtInFunctionsContainer, _, _, _ := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
 
 	argsHook := hooks.ArgBlockChainHook{
-		Accounts:           accountsAdapter,
-		PubkeyConv:         coreComponents.AddressPubKeyConverter(),
-		StorageService:     dataComponents.StorageService(),
-		BlockChain:         dataComponents.Blockchain(),
-		ShardCoordinator:   shardCoordinator,
-		Marshalizer:        coreComponents.InternalMarshalizer(),
-		Uint64Converter:    coreComponents.Uint64ByteSliceConverter(),
-		NFTStorageHandler:  &testscommon.SimpleNFTStorageHandlerStub{},
-		BuiltInFunctions:   builtInFunctionsContainer,
-		DataPool:           dataComponents.Datapool(),
-		CompiledSCPool:     dataComponents.Datapool().SmartContracts(),
-		EpochNotifier:      coreComponents.EpochNotifier(),
-		NilCompiledSCStore: true,
+		Accounts:              accountsAdapter,
+		PubkeyConv:            coreComponents.AddressPubKeyConverter(),
+		StorageService:        dataComponents.StorageService(),
+		BlockChain:            dataComponents.Blockchain(),
+		ShardCoordinator:      shardCoordinator,
+		Marshalizer:           coreComponents.InternalMarshalizer(),
+		Uint64Converter:       coreComponents.Uint64ByteSliceConverter(),
+		NFTStorageHandler:     &testscommon.SimpleNFTStorageHandlerStub{},
+		BuiltInFunctions:      builtInFunctionsContainer,
+		DataPool:              dataComponents.Datapool(),
+		CompiledSCPool:        dataComponents.Datapool().SmartContracts(),
+		EpochNotifier:         coreComponents.EpochNotifier(),
+		GlobalSettingsHandler: &vmcommonMock.GlobalSettingsHandlerStub{},
+		NilCompiledSCStore:    true,
 	}
 
 	blockChainHook, _ := hooks.NewBlockChainHookImpl(argsHook)

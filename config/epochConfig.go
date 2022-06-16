@@ -77,8 +77,10 @@ type EnableEpochs struct {
 	SCRSizeInvariantOnBuiltInResultEnableEpoch        uint32
 	CheckCorrectTokenIDForTransferRoleEnableEpoch     uint32
 	FailExecutionOnEveryAPIErrorEnableEpoch           uint32
+	ManagedCryptoAPIsEnableEpoch                      uint32
 	HeartbeatDisableEpoch                             uint32
 	MiniBlockPartialExecutionEnableEpoch              uint32
+	ESDTMetadataContinuousCleanupEnableEpoch          uint32
 	StakeLimitsEnableEpoch                            uint32
 	StakingV4InitEnableEpoch                          uint32
 	StakingV4EnableEpoch                              uint32
