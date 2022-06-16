@@ -199,6 +199,9 @@
     # ManagedCryptoAPIsEnableEpoch represents the epoch when new managed crypto APIs are enabled in the wasm VM
     ManagedCryptoAPIsEnableEpoch = 4
 
+    # RefactorContextEnableEpoch represents the epoch when refactoring/simplifying is enabled in contexts
+    RefactorContextEnableEpoch = 2
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 0, MaxNumNodes = 36, NodesToShufflePerShard = 4 },

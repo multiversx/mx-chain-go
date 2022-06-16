@@ -160,7 +160,7 @@ func (accountsDB *accountsDBApi) RecreateTrie(_ []byte) error {
 }
 
 // PruneTrie is a not permitted operation in this implementation and thus, does nothing
-func (accountsDB *accountsDBApi) PruneTrie(_ []byte, _ TriePruningIdentifier) {
+func (accountsDB *accountsDBApi) PruneTrie(_ []byte, _ TriePruningIdentifier, _ PruningHandler) {
 }
 
 // CancelPrune is a not permitted operation in this implementation and thus, does nothing

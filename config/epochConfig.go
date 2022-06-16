@@ -79,6 +79,7 @@ type EnableEpochs struct {
 	DisableExecByCallerEnableEpoch                    uint32
 	FailExecutionOnEveryAPIErrorEnableEpoch           uint32
 	ManagedCryptoAPIsEnableEpoch                      uint32
+	RefactorContextEnableEpoch                        uint32
 }
 
 // GasScheduleByEpochs represents a gas schedule toml entry that will be applied from the provided epoch
