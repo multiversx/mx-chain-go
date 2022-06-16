@@ -115,7 +115,7 @@ type AccountsAdapter interface {
 	GetCode(codeHash []byte) []byte
 	RootHash() ([]byte, error)
 	RecreateTrie(rootHash []byte) error
-	PruneTrie(rootHash []byte, identifier TriePruningIdentifier)
+	PruneTrie(rootHash []byte, identifier TriePruningIdentifier, handler PruningHandler)
 	CancelPrune(rootHash []byte, identifier TriePruningIdentifier)
 	SnapshotState(rootHash []byte)
 	SetStateCheckpoint(rootHash []byte)
@@ -187,10 +187,15 @@ type AtomicBuffer interface {
 // StoragePruningManager is used to manage all state pruning operations
 type StoragePruningManager interface {
 	MarkForEviction([]byte, []byte, common.ModifiedHashes, common.ModifiedHashes) error
-	PruneTrie(rootHash []byte, identifier TriePruningIdentifier, tsm common.StorageManager)
+	PruneTrie(rootHash []byte, identifier TriePruningIdentifier, tsm common.StorageManager, handler PruningHandler)
 	CancelPrune(rootHash []byte, identifier TriePruningIdentifier, tsm common.StorageManager)
 	Close() error
 	IsInterfaceNil() bool
+}
+
+// PruningHandler defines different options for pruning
+type PruningHandler interface {
+	IsPruningEnabled() bool
 }
 
 // BlockInfoProvider defines the behavior of a struct able to provide the block information used in state tries

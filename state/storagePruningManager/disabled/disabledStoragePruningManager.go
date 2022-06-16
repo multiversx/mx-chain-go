@@ -19,7 +19,7 @@ func (i *disabledStoragePruningManager) MarkForEviction(_ []byte, _ []byte, _ co
 }
 
 // PruneTrie does nothing for this implementation
-func (i *disabledStoragePruningManager) PruneTrie(_ []byte, _ state.TriePruningIdentifier, _ common.StorageManager) {
+func (i *disabledStoragePruningManager) PruneTrie(_ []byte, _ state.TriePruningIdentifier, _ common.StorageManager, _ state.PruningHandler) {
 }
 
 // CancelPrune does nothing for this implementation
