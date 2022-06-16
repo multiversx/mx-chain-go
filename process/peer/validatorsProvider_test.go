@@ -817,49 +817,44 @@ func TestValidatorsProvider_GetAuctionList(t *testing.T) {
 		owner5 := "owner5"
 		ownersData := map[string]*epochStart.OwnerData{
 			owner1: {
-				NumStakedNodes:  3,
-				NumActiveNodes:  1,
-				NumAuctionNodes: 2,
-				TotalTopUp:      big.NewInt(7500),
-				TopUpPerNode:    big.NewInt(2500),
-				AuctionList:     []state.ValidatorInfoHandler{v1, v2}, // owner1 will have v1 & v2 selected
-				Qualified:       true,                                 // with qualifiedTopUp = 2500
+				NumStakedNodes: 3,
+				NumActiveNodes: 1,
+				TotalTopUp:     big.NewInt(7500),
+				TopUpPerNode:   big.NewInt(2500),
+				AuctionList:    []state.ValidatorInfoHandler{v1, v2}, // owner1 will have v1 & v2 selected
+				Qualified:      true,                                 // with qualifiedTopUp = 2500
 			},
 			owner2: {
-				NumStakedNodes:  3,
-				NumActiveNodes:  1,
-				NumAuctionNodes: 2,
-				TotalTopUp:      big.NewInt(3000),
-				TopUpPerNode:    big.NewInt(1000),
-				AuctionList:     []state.ValidatorInfoHandler{v3, v4}, // owner2 will have v3 selected
-				Qualified:       true,                                 // with qualifiedTopUp = 1500
+				NumStakedNodes: 3,
+				NumActiveNodes: 1,
+				TotalTopUp:     big.NewInt(3000),
+				TopUpPerNode:   big.NewInt(1000),
+				AuctionList:    []state.ValidatorInfoHandler{v3, v4}, // owner2 will have v3 selected
+				Qualified:      true,                                 // with qualifiedTopUp = 1500
 			},
 			owner3: {
-				NumStakedNodes:  2,
-				NumActiveNodes:  0,
-				NumAuctionNodes: 2,
-				TotalTopUp:      big.NewInt(4000),
-				TopUpPerNode:    big.NewInt(2000),
-				AuctionList:     []state.ValidatorInfoHandler{v5, v6}, // owner3 will have v5 selected
-				Qualified:       true,                                 // with qualifiedTopUp = 4000
+				NumStakedNodes: 2,
+				NumActiveNodes: 0,
+				TotalTopUp:     big.NewInt(4000),
+				TopUpPerNode:   big.NewInt(2000),
+				AuctionList:    []state.ValidatorInfoHandler{v5, v6}, // owner3 will have v5 selected
+				Qualified:      true,                                 // with qualifiedTopUp = 4000
 			},
 			owner4: {
-				NumStakedNodes:  3,
-				NumActiveNodes:  2,
-				NumAuctionNodes: 1,
-				TotalTopUp:      big.NewInt(0),
-				TopUpPerNode:    big.NewInt(0),
-				AuctionList:     []state.ValidatorInfoHandler{v7},
-				Qualified:       false,
+				NumStakedNodes: 3,
+				NumActiveNodes: 2,
+				TotalTopUp:     big.NewInt(0),
+				TopUpPerNode:   big.NewInt(0),
+				AuctionList:    []state.ValidatorInfoHandler{v7},
+				Qualified:      false,
 			},
 			owner5: {
-				NumStakedNodes:  5,
-				NumActiveNodes:  5,
-				NumAuctionNodes: 0,
-				TotalTopUp:      big.NewInt(5000),
-				TopUpPerNode:    big.NewInt(1000),
-				AuctionList:     []state.ValidatorInfoHandler{},
-				Qualified:       true,
+				NumStakedNodes: 5,
+				NumActiveNodes: 5,
+				TotalTopUp:     big.NewInt(5000),
+				TopUpPerNode:   big.NewInt(1000),
+				AuctionList:    []state.ValidatorInfoHandler{},
+				Qualified:      true,
 			},
 		}
 

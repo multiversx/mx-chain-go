@@ -129,14 +129,15 @@ func (vp *validatorsProvider) getAuctionListValidatorsAPIResponse(selectedNodes 
 	auctionListValidators := make([]*common.AuctionListValidatorAPIResponse, 0)
 
 	for ownerPubKey, ownerData := range vp.stakingDataProvider.GetOwnersData() {
-		if ownerData.NumAuctionNodes > 0 {
+		numAuctionNodes := len(ownerData.AuctionList)
+		if numAuctionNodes > 0 {
 			auctionValidator := &common.AuctionListValidatorAPIResponse{
 				Owner:          vp.addressPubKeyConverter.Encode([]byte(ownerPubKey)),
 				NumStakedNodes: ownerData.NumStakedNodes,
 				TotalTopUp:     ownerData.TotalTopUp.String(),
 				TopUpPerNode:   ownerData.TopUpPerNode.String(),
 				QualifiedTopUp: ownerData.TopUpPerNode.String(),
-				AuctionList:    make([]*common.AuctionNode, 0, ownerData.NumAuctionNodes),
+				AuctionList:    make([]*common.AuctionNode, 0, numAuctionNodes),
 			}
 
 			vp.fillAuctionQualifiedValidatorAPIData(selectedNodes, ownerData, auctionValidator)
@@ -152,7 +153,7 @@ func (vp *validatorsProvider) fillAuctionQualifiedValidatorAPIData(
 	ownerData *epochStart.OwnerData,
 	auctionValidatorAPI *common.AuctionListValidatorAPIResponse,
 ) {
-	auctionValidatorAPI.AuctionList = make([]*common.AuctionNode, 0, ownerData.NumAuctionNodes)
+	auctionValidatorAPI.AuctionList = make([]*common.AuctionNode, 0, len(ownerData.AuctionList))
 	numOwnerQualifiedNodes := int64(0)
 	for _, nodeInAuction := range ownerData.AuctionList {
 		auctionNode := &common.AuctionNode{
