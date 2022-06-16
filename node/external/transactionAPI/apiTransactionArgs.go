@@ -22,4 +22,5 @@ type ArgAPITransactionProcessor struct {
 	StorageService           dataRetriever.StorageService
 	DataPool                 dataRetriever.PoolsHolder
 	Uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
+	DataFieldParser          DataFieldParser
 }
