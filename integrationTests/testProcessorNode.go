@@ -1588,7 +1588,6 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		ShardCoordinator:   tpn.ShardCoordinator,
 		BuiltInFunctions:   builtInFuncs,
 		ArgumentParser:     parsers.NewCallArgsParser(),
-		EpochNotifier:      tpn.EpochNotifier,
 		ESDTTransferParser: esdtTransferParser,
 	}
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
@@ -1850,7 +1849,6 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		ShardCoordinator:   tpn.ShardCoordinator,
 		BuiltInFunctions:   builtInFuncs,
 		ArgumentParser:     parsers.NewCallArgsParser(),
-		EpochNotifier:      tpn.EpochNotifier,
 		ESDTTransferParser: esdtTransferParser,
 	}
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)

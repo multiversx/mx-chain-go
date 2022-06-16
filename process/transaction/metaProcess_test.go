@@ -360,7 +360,6 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotI
 		ShardCoordinator:   shardCoordinator,
 		BuiltInFunctions:   builtInFunctions.NewBuiltInFunctionContainer(),
 		ArgumentParser:     parsers.NewCallArgsParser(),
-		EpochNotifier:      &epochNotifier.EpochNotifierStub{},
 		ESDTTransferParser: esdtTransferParser,
 	}
 	computeType, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
