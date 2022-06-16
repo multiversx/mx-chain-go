@@ -3,146 +3,154 @@ package enablers
 import "github.com/ElrondNetwork/elrond-go-core/core/atomic"
 
 type epochFlagsHolder struct {
-	scDeployFlag                               *atomic.Flag
-	builtInFunctionsFlag                       *atomic.Flag
-	relayedTransactionsFlag                    *atomic.Flag
-	penalizedTooMuchGasFlag                    *atomic.Flag
-	switchJailWaitingFlag                      *atomic.Flag
-	belowSignedThresholdFlag                   *atomic.Flag
-	switchHysteresisForMinNodesFlag            *atomic.Flag
-	transactionSignedWithTxHashFlag            *atomic.Flag
-	metaProtectionFlag                         *atomic.Flag
-	aheadOfTimeGasUsageFlag                    *atomic.Flag
-	gasPriceModifierFlag                       *atomic.Flag
-	repairCallbackFlag                         *atomic.Flag
-	balanceWaitingListsFlag                    *atomic.Flag
-	returnDataToLastTransferFlag               *atomic.Flag
-	senderInOutTransferFlag                    *atomic.Flag
-	stakeFlag                                  *atomic.Flag
-	stakingV2Flag                              *atomic.Flag
-	stakingV2OwnerFlag                         *atomic.Flag
-	stakingV2DelegationFlag                    *atomic.Flag
-	doubleKeyProtectionFlag                    *atomic.Flag
-	esdtFlag                                   *atomic.Flag
-	esdtCurrentEpochFlag                       *atomic.Flag
-	governanceFlag                             *atomic.Flag
-	governanceCurrentEpochFlag                 *atomic.Flag
-	delegationManagerFlag                      *atomic.Flag
-	delegationSmartContractFlag                *atomic.Flag
-	correctLastUnJailedFlag                    *atomic.Flag
-	correctLastUnJailedCurrentEpochFlag        *atomic.Flag
-	relayedTransactionsV2Flag                  *atomic.Flag
-	unBondTokensV2Flag                         *atomic.Flag
-	saveJailedAlwaysFlag                       *atomic.Flag
-	reDelegateBelowMinCheckFlag                *atomic.Flag
-	validatorToDelegationFlag                  *atomic.Flag
-	waitingListFixFlag                         *atomic.Flag
-	incrementSCRNonceInMultiTransferFlag       *atomic.Flag
-	esdtMultiTransferFlag                      *atomic.Flag
-	globalMintBurnFlag                         *atomic.Flag
-	esdtTransferRoleFlag                       *atomic.Flag
-	builtInFunctionOnMetaFlag                  *atomic.Flag
-	computeRewardCheckpointFlag                *atomic.Flag
-	scrSizeInvariantCheckFlag                  *atomic.Flag
-	backwardCompSaveKeyValueFlag               *atomic.Flag
-	esdtNFTCreateOnMultiShardFlag              *atomic.Flag
-	metaESDTSetFlag                            *atomic.Flag
-	addTokensToDelegationFlag                  *atomic.Flag
-	multiESDTTransferFixOnCallBackFlag         *atomic.Flag
-	optimizeGasUsedInCrossMiniBlocksFlag       *atomic.Flag
-	correctFirstQueuedFlag                     *atomic.Flag
-	deleteDelegatorAfterClaimRewardsFlag       *atomic.Flag
-	fixOOGReturnCodeFlag                       *atomic.Flag
-	removeNonUpdatedStorageFlag                *atomic.Flag
-	optimizeNFTStoreFlag                       *atomic.Flag
-	createNFTThroughExecByCallerFlag           *atomic.Flag
-	stopDecreasingValidatorRatingWhenStuckFlag *atomic.Flag
-	frontRunningProtectionFlag                 *atomic.Flag
-	isPayableBySCFlag                          *atomic.Flag
-	cleanUpInformativeSCRsFlag                 *atomic.Flag
-	storageAPICostOptimizationFlag             *atomic.Flag
-	esdtRegisterAndSetAllRolesFlag             *atomic.Flag
-	scheduledMiniBlocksFlag                    *atomic.Flag
-	correctJailedNotUnStakedEmptyQueueFlag     *atomic.Flag
-	doNotReturnOldBlockInBlockchainHookFlag    *atomic.Flag
-	addFailedRelayedTxToInvalidMBsFlag         *atomic.Flag
-	scrSizeInvariantOnBuiltInResultFlag        *atomic.Flag
-	checkCorrectTokenIDForTransferRoleFlag     *atomic.Flag
-	failExecutionOnEveryAPIErrorFlag           *atomic.Flag
-	heartbeatDisableFlag                       *atomic.Flag
-	isMiniBlockPartialExecutionFlag            *atomic.Flag
+	scDeployFlag                                *atomic.Flag
+	builtInFunctionsFlag                        *atomic.Flag
+	relayedTransactionsFlag                     *atomic.Flag
+	penalizedTooMuchGasFlag                     *atomic.Flag
+	switchJailWaitingFlag                       *atomic.Flag
+	belowSignedThresholdFlag                    *atomic.Flag
+	switchHysteresisForMinNodesFlag             *atomic.Flag
+	switchHysteresisForMinNodesCurrentEpochFlag *atomic.Flag
+	transactionSignedWithTxHashFlag             *atomic.Flag
+	metaProtectionFlag                          *atomic.Flag
+	aheadOfTimeGasUsageFlag                     *atomic.Flag
+	gasPriceModifierFlag                        *atomic.Flag
+	repairCallbackFlag                          *atomic.Flag
+	balanceWaitingListsFlag                     *atomic.Flag
+	returnDataToLastTransferFlag                *atomic.Flag
+	senderInOutTransferFlag                     *atomic.Flag
+	stakeFlag                                   *atomic.Flag
+	stakingV2Flag                               *atomic.Flag
+	stakingV2OwnerFlag                          *atomic.Flag
+	stakingV2GreaterEpochFlag                   *atomic.Flag
+	doubleKeyProtectionFlag                     *atomic.Flag
+	esdtFlag                                    *atomic.Flag
+	esdtCurrentEpochFlag                        *atomic.Flag
+	governanceFlag                              *atomic.Flag
+	governanceCurrentEpochFlag                  *atomic.Flag
+	delegationManagerFlag                       *atomic.Flag
+	delegationSmartContractFlag                 *atomic.Flag
+	delegationSmartContractCurrentEpochFlag     *atomic.Flag
+	correctLastUnJailedFlag                     *atomic.Flag
+	correctLastUnJailedCurrentEpochFlag         *atomic.Flag
+	relayedTransactionsV2Flag                   *atomic.Flag
+	unBondTokensV2Flag                          *atomic.Flag
+	saveJailedAlwaysFlag                        *atomic.Flag
+	reDelegateBelowMinCheckFlag                 *atomic.Flag
+	validatorToDelegationFlag                   *atomic.Flag
+	waitingListFixFlag                          *atomic.Flag
+	incrementSCRNonceInMultiTransferFlag        *atomic.Flag
+	esdtMultiTransferFlag                       *atomic.Flag
+	globalMintBurnFlag                          *atomic.Flag
+	esdtTransferRoleFlag                        *atomic.Flag
+	builtInFunctionOnMetaFlag                   *atomic.Flag
+	computeRewardCheckpointFlag                 *atomic.Flag
+	scrSizeInvariantCheckFlag                   *atomic.Flag
+	backwardCompSaveKeyValueFlag                *atomic.Flag
+	esdtNFTCreateOnMultiShardFlag               *atomic.Flag
+	metaESDTSetFlag                             *atomic.Flag
+	addTokensToDelegationFlag                   *atomic.Flag
+	multiESDTTransferFixOnCallBackFlag          *atomic.Flag
+	optimizeGasUsedInCrossMiniBlocksFlag        *atomic.Flag
+	correctFirstQueuedFlag                      *atomic.Flag
+	deleteDelegatorAfterClaimRewardsFlag        *atomic.Flag
+	fixOOGReturnCodeFlag                        *atomic.Flag
+	removeNonUpdatedStorageFlag                 *atomic.Flag
+	optimizeNFTStoreFlag                        *atomic.Flag
+	createNFTThroughExecByCallerFlag            *atomic.Flag
+	stopDecreasingValidatorRatingWhenStuckFlag  *atomic.Flag
+	frontRunningProtectionFlag                  *atomic.Flag
+	isPayableBySCFlag                           *atomic.Flag
+	cleanUpInformativeSCRsFlag                  *atomic.Flag
+	storageAPICostOptimizationFlag              *atomic.Flag
+	esdtRegisterAndSetAllRolesFlag              *atomic.Flag
+	scheduledMiniBlocksFlag                     *atomic.Flag
+	correctJailedNotUnStakedEmptyQueueFlag      *atomic.Flag
+	doNotReturnOldBlockInBlockchainHookFlag     *atomic.Flag
+	addFailedRelayedTxToInvalidMBsFlag          *atomic.Flag
+	scrSizeInvariantOnBuiltInResultFlag         *atomic.Flag
+	checkCorrectTokenIDForTransferRoleFlag      *atomic.Flag
+	failExecutionOnEveryAPIErrorFlag            *atomic.Flag
+	heartbeatDisableFlag                        *atomic.Flag
+	isMiniBlockPartialExecutionFlag             *atomic.Flag
+	managedCryptoAPIsFlag                       *atomic.Flag
+	esdtMetadataContinuousCleanupFlag           *atomic.Flag
 }
 
 func newEpochFlagsHolder() *epochFlagsHolder {
 	return &epochFlagsHolder{
-		scDeployFlag:                               &atomic.Flag{},
-		builtInFunctionsFlag:                       &atomic.Flag{},
-		relayedTransactionsFlag:                    &atomic.Flag{},
-		penalizedTooMuchGasFlag:                    &atomic.Flag{},
-		switchJailWaitingFlag:                      &atomic.Flag{},
-		belowSignedThresholdFlag:                   &atomic.Flag{},
-		switchHysteresisForMinNodesFlag:            &atomic.Flag{},
-		transactionSignedWithTxHashFlag:            &atomic.Flag{},
-		metaProtectionFlag:                         &atomic.Flag{},
-		aheadOfTimeGasUsageFlag:                    &atomic.Flag{},
-		gasPriceModifierFlag:                       &atomic.Flag{},
-		repairCallbackFlag:                         &atomic.Flag{},
-		balanceWaitingListsFlag:                    &atomic.Flag{},
-		returnDataToLastTransferFlag:               &atomic.Flag{},
-		senderInOutTransferFlag:                    &atomic.Flag{},
-		stakeFlag:                                  &atomic.Flag{},
-		stakingV2Flag:                              &atomic.Flag{},
-		stakingV2OwnerFlag:                         &atomic.Flag{},
-		stakingV2DelegationFlag:                    &atomic.Flag{},
-		doubleKeyProtectionFlag:                    &atomic.Flag{},
-		esdtFlag:                                   &atomic.Flag{},
-		esdtCurrentEpochFlag:                       &atomic.Flag{},
-		governanceFlag:                             &atomic.Flag{},
-		governanceCurrentEpochFlag:                 &atomic.Flag{},
-		delegationManagerFlag:                      &atomic.Flag{},
-		delegationSmartContractFlag:                &atomic.Flag{},
-		correctLastUnJailedFlag:                    &atomic.Flag{},
-		correctLastUnJailedCurrentEpochFlag:        &atomic.Flag{},
-		relayedTransactionsV2Flag:                  &atomic.Flag{},
-		unBondTokensV2Flag:                         &atomic.Flag{},
-		saveJailedAlwaysFlag:                       &atomic.Flag{},
-		reDelegateBelowMinCheckFlag:                &atomic.Flag{},
-		validatorToDelegationFlag:                  &atomic.Flag{},
-		waitingListFixFlag:                         &atomic.Flag{},
-		incrementSCRNonceInMultiTransferFlag:       &atomic.Flag{},
-		esdtMultiTransferFlag:                      &atomic.Flag{},
-		globalMintBurnFlag:                         &atomic.Flag{},
-		esdtTransferRoleFlag:                       &atomic.Flag{},
-		builtInFunctionOnMetaFlag:                  &atomic.Flag{},
-		computeRewardCheckpointFlag:                &atomic.Flag{},
-		scrSizeInvariantCheckFlag:                  &atomic.Flag{},
-		backwardCompSaveKeyValueFlag:               &atomic.Flag{},
-		esdtNFTCreateOnMultiShardFlag:              &atomic.Flag{},
-		metaESDTSetFlag:                            &atomic.Flag{},
-		addTokensToDelegationFlag:                  &atomic.Flag{},
-		multiESDTTransferFixOnCallBackFlag:         &atomic.Flag{},
-		optimizeGasUsedInCrossMiniBlocksFlag:       &atomic.Flag{},
-		correctFirstQueuedFlag:                     &atomic.Flag{},
-		deleteDelegatorAfterClaimRewardsFlag:       &atomic.Flag{},
-		fixOOGReturnCodeFlag:                       &atomic.Flag{},
-		removeNonUpdatedStorageFlag:                &atomic.Flag{},
-		optimizeNFTStoreFlag:                       &atomic.Flag{},
-		createNFTThroughExecByCallerFlag:           &atomic.Flag{},
-		stopDecreasingValidatorRatingWhenStuckFlag: &atomic.Flag{},
-		frontRunningProtectionFlag:                 &atomic.Flag{},
-		isPayableBySCFlag:                          &atomic.Flag{},
-		cleanUpInformativeSCRsFlag:                 &atomic.Flag{},
-		storageAPICostOptimizationFlag:             &atomic.Flag{},
-		esdtRegisterAndSetAllRolesFlag:             &atomic.Flag{},
-		scheduledMiniBlocksFlag:                    &atomic.Flag{},
-		correctJailedNotUnStakedEmptyQueueFlag:     &atomic.Flag{},
-		doNotReturnOldBlockInBlockchainHookFlag:    &atomic.Flag{},
-		addFailedRelayedTxToInvalidMBsFlag:         &atomic.Flag{},
-		scrSizeInvariantOnBuiltInResultFlag:        &atomic.Flag{},
-		checkCorrectTokenIDForTransferRoleFlag:     &atomic.Flag{},
-		failExecutionOnEveryAPIErrorFlag:           &atomic.Flag{},
-		heartbeatDisableFlag:                       &atomic.Flag{},
-		isMiniBlockPartialExecutionFlag:            &atomic.Flag{},
+		scDeployFlag:                                &atomic.Flag{},
+		builtInFunctionsFlag:                        &atomic.Flag{},
+		relayedTransactionsFlag:                     &atomic.Flag{},
+		penalizedTooMuchGasFlag:                     &atomic.Flag{},
+		switchJailWaitingFlag:                       &atomic.Flag{},
+		belowSignedThresholdFlag:                    &atomic.Flag{},
+		switchHysteresisForMinNodesFlag:             &atomic.Flag{},
+		switchHysteresisForMinNodesCurrentEpochFlag: &atomic.Flag{},
+		transactionSignedWithTxHashFlag:             &atomic.Flag{},
+		metaProtectionFlag:                          &atomic.Flag{},
+		aheadOfTimeGasUsageFlag:                     &atomic.Flag{},
+		gasPriceModifierFlag:                        &atomic.Flag{},
+		repairCallbackFlag:                          &atomic.Flag{},
+		balanceWaitingListsFlag:                     &atomic.Flag{},
+		returnDataToLastTransferFlag:                &atomic.Flag{},
+		senderInOutTransferFlag:                     &atomic.Flag{},
+		stakeFlag:                                   &atomic.Flag{},
+		stakingV2Flag:                               &atomic.Flag{},
+		stakingV2OwnerFlag:                          &atomic.Flag{},
+		stakingV2GreaterEpochFlag:                   &atomic.Flag{},
+		doubleKeyProtectionFlag:                     &atomic.Flag{},
+		esdtFlag:                                    &atomic.Flag{},
+		esdtCurrentEpochFlag:                        &atomic.Flag{},
+		governanceFlag:                              &atomic.Flag{},
+		governanceCurrentEpochFlag:                  &atomic.Flag{},
+		delegationManagerFlag:                       &atomic.Flag{},
+		delegationSmartContractFlag:                 &atomic.Flag{},
+		delegationSmartContractCurrentEpochFlag:     &atomic.Flag{},
+		correctLastUnJailedFlag:                     &atomic.Flag{},
+		correctLastUnJailedCurrentEpochFlag:         &atomic.Flag{},
+		relayedTransactionsV2Flag:                   &atomic.Flag{},
+		unBondTokensV2Flag:                          &atomic.Flag{},
+		saveJailedAlwaysFlag:                        &atomic.Flag{},
+		reDelegateBelowMinCheckFlag:                 &atomic.Flag{},
+		validatorToDelegationFlag:                   &atomic.Flag{},
+		waitingListFixFlag:                          &atomic.Flag{},
+		incrementSCRNonceInMultiTransferFlag:        &atomic.Flag{},
+		esdtMultiTransferFlag:                       &atomic.Flag{},
+		globalMintBurnFlag:                          &atomic.Flag{},
+		esdtTransferRoleFlag:                        &atomic.Flag{},
+		builtInFunctionOnMetaFlag:                   &atomic.Flag{},
+		computeRewardCheckpointFlag:                 &atomic.Flag{},
+		scrSizeInvariantCheckFlag:                   &atomic.Flag{},
+		backwardCompSaveKeyValueFlag:                &atomic.Flag{},
+		esdtNFTCreateOnMultiShardFlag:               &atomic.Flag{},
+		metaESDTSetFlag:                             &atomic.Flag{},
+		addTokensToDelegationFlag:                   &atomic.Flag{},
+		multiESDTTransferFixOnCallBackFlag:          &atomic.Flag{},
+		optimizeGasUsedInCrossMiniBlocksFlag:        &atomic.Flag{},
+		correctFirstQueuedFlag:                      &atomic.Flag{},
+		deleteDelegatorAfterClaimRewardsFlag:        &atomic.Flag{},
+		fixOOGReturnCodeFlag:                        &atomic.Flag{},
+		removeNonUpdatedStorageFlag:                 &atomic.Flag{},
+		optimizeNFTStoreFlag:                        &atomic.Flag{},
+		createNFTThroughExecByCallerFlag:            &atomic.Flag{},
+		stopDecreasingValidatorRatingWhenStuckFlag:  &atomic.Flag{},
+		frontRunningProtectionFlag:                  &atomic.Flag{},
+		isPayableBySCFlag:                           &atomic.Flag{},
+		cleanUpInformativeSCRsFlag:                  &atomic.Flag{},
+		storageAPICostOptimizationFlag:              &atomic.Flag{},
+		esdtRegisterAndSetAllRolesFlag:              &atomic.Flag{},
+		scheduledMiniBlocksFlag:                     &atomic.Flag{},
+		correctJailedNotUnStakedEmptyQueueFlag:      &atomic.Flag{},
+		doNotReturnOldBlockInBlockchainHookFlag:     &atomic.Flag{},
+		addFailedRelayedTxToInvalidMBsFlag:          &atomic.Flag{},
+		scrSizeInvariantOnBuiltInResultFlag:         &atomic.Flag{},
+		checkCorrectTokenIDForTransferRoleFlag:      &atomic.Flag{},
+		failExecutionOnEveryAPIErrorFlag:            &atomic.Flag{},
+		heartbeatDisableFlag:                        &atomic.Flag{},
+		isMiniBlockPartialExecutionFlag:             &atomic.Flag{},
+		managedCryptoAPIsFlag:                       &atomic.Flag{},
+		esdtMetadataContinuousCleanupFlag:           &atomic.Flag{},
 	}
 }
 
@@ -184,6 +192,11 @@ func (holder *epochFlagsHolder) IsBelowSignedThresholdFlagEnabled() bool {
 // IsSwitchHysteresisForMinNodesFlagEnabled returns true if switchHysteresisForMinNodesFlag is enabled
 func (holder *epochFlagsHolder) IsSwitchHysteresisForMinNodesFlagEnabled() bool {
 	return holder.switchHysteresisForMinNodesFlag.IsSet()
+}
+
+// IsSwitchHysteresisForMinNodesFlagEnabledForCurrentEpoch returns true if switchHysteresisForMinNodesCurrentEpochFlag is enabled
+func (fh *flagsHolder) IsSwitchHysteresisForMinNodesFlagEnabledForCurrentEpoch() bool {
+	return fh.switchHysteresisForMinNodesCurrentEpochFlag.IsSet()
 }
 
 // IsTransactionSignedWithTxHashFlagEnabled returns true if transactionSignedWithTxHashFlag is enabled
@@ -241,9 +254,9 @@ func (holder *epochFlagsHolder) IsStakingV2OwnerFlagEnabled() bool {
 	return holder.stakingV2OwnerFlag.IsSet()
 }
 
-// IsStakingV2DelegationFlagEnabled returns true if stakingV2DelegationFlag is enabled
-func (holder *epochFlagsHolder) IsStakingV2DelegationFlagEnabled() bool {
-	return holder.stakingV2DelegationFlag.IsSet()
+// IsStakingV2FlagEnabledForActivationEpochCompleted returns true if stakingV2GreaterEpochFlag is enabled (epoch is greater than the one used for staking v2 activation)
+func (holder *epochFlagsHolder) IsStakingV2FlagEnabledForActivationEpochCompleted() bool {
+	return holder.stakingV2GreaterEpochFlag.IsSet()
 }
 
 // IsDoubleKeyProtectionFlagEnabled returns true if doubleKeyProtectionFlag is enabled
@@ -279,6 +292,11 @@ func (holder *epochFlagsHolder) IsDelegationManagerFlagEnabled() bool {
 // IsDelegationSmartContractFlagEnabled returns true if delegationSmartContractFlag is enabled
 func (holder *epochFlagsHolder) IsDelegationSmartContractFlagEnabled() bool {
 	return holder.delegationSmartContractFlag.IsSet()
+}
+
+// IsDelegationSmartContractFlagEnabledForCurrentEpoch returns true if delegationSmartContractCurrentEpochFlag is enabled
+func (fh *flagsHolder) IsDelegationSmartContractFlagEnabledForCurrentEpoch() bool {
+	return fh.delegationSmartContractCurrentEpochFlag.IsSet()
 }
 
 // IsCorrectLastUnJailedFlagEnabled returns true if correctLastUnJailedFlag is enabled
@@ -489,4 +507,14 @@ func (holder *epochFlagsHolder) IsHeartbeatDisableFlagEnabled() bool {
 // IsMiniBlockPartialExecutionFlagEnabled returns true if isMiniBlockPartialExecutionFlag is enabled
 func (holder *epochFlagsHolder) IsMiniBlockPartialExecutionFlagEnabled() bool {
 	return holder.isMiniBlockPartialExecutionFlag.IsSet()
+}
+
+// IsManagedCryptoAPIsFlagEnabled returns true if managedCryptoAPIsFlag is enabled
+func (fh *flagsHolder) IsManagedCryptoAPIsFlagEnabled() bool {
+	return fh.managedCryptoAPIsFlag.IsSet()
+}
+
+// IsESDTMetadataContinuousCleanupFlagEnabled returns true if esdtMetadataContinuousCleanupFlag is enabled
+func (fh *flagsHolder) IsESDTMetadataContinuousCleanupFlagEnabled() bool {
+	return fh.esdtMetadataContinuousCleanupFlag.IsSet()
 }

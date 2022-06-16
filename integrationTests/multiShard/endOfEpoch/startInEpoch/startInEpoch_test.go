@@ -59,10 +59,17 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 	numNodesPerShard := 3
 	numMetachainNodes := 3
 
-	nodes := integrationTests.CreateNodes(
+	enabledEpochsConfig := config.EnableEpochs{
+		StakingV2EnableEpoch:                 integrationTests.UnreachableEpoch,
+		ScheduledMiniBlocksEnableEpoch:       integrationTests.UnreachableEpoch,
+		MiniBlockPartialExecutionEnableEpoch: integrationTests.UnreachableEpoch,
+	}
+
+	nodes := integrationTests.CreateNodesWithEnableEpochs(
 		numOfShards,
 		numNodesPerShard,
 		numMetachainNodes,
+		enabledEpochsConfig,
 	)
 
 	roundsPerEpoch := uint64(10)

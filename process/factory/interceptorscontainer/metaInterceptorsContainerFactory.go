@@ -93,7 +93,6 @@ func NewMetaInterceptorsContainerFactory(
 		HeaderIntegrityVerifier:      args.HeaderIntegrityVerifier,
 		EpochStartTrigger:            args.EpochStartTrigger,
 		ArgsParser:                   args.ArgumentsParser,
-		EnableSignTxWithHashEpoch:    args.EnableSignTxWithHashEpoch,
 		PeerSignatureHandler:         args.PeerSignatureHandler,
 		SignaturesHandler:            args.SignaturesHandler,
 		HeartbeatExpiryTimespanInSec: args.HeartbeatExpiryTimespanInSec,

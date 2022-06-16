@@ -26,15 +26,13 @@ type RewardsCreatorProxyArgs struct {
 	StakingDataProvider   epochStart.StakingDataProvider
 	EconomicsDataProvider epochStart.EpochEconomicsDataProvider
 	RewardsHandler        process.RewardsHandler
-	EpochEnableV2         uint32
 }
 
 type rewardsCreatorProxy struct {
-	rc            epochStart.RewardsCreator
-	epochEnableV2 uint32
-	configuredRC  configuredRewardsCreator
-	args          *RewardsCreatorProxyArgs
-	mutRc         sync.Mutex
+	rc           epochStart.RewardsCreator
+	configuredRC configuredRewardsCreator
+	args         *RewardsCreatorProxyArgs
+	mutRc        sync.Mutex
 }
 
 // NewRewardsCreatorProxy creates a rewards creator proxy instance
@@ -42,12 +40,9 @@ func NewRewardsCreatorProxy(args RewardsCreatorProxyArgs) (*rewardsCreatorProxy,
 	var err error
 
 	rcProxy := &rewardsCreatorProxy{
-		epochEnableV2: args.EpochEnableV2,
-		configuredRC:  rCreatorV1,
-		args:          &args,
+		configuredRC: rCreatorV1,
+		args:         &args,
 	}
-	log.Debug("rewardsProxy: enable epoch for switch jail waiting", "epoch", args.BaseRewardsCreatorArgs.RewardsFix1EpochEnable)
-	log.Debug("rewardsProxy: enable epoch for staking v2", "epoch", args.EpochEnableV2)
 
 	rcProxy.rc, err = rcProxy.createRewardsCreatorV1()
 	if err != nil {
@@ -135,7 +130,7 @@ func (rcp *rewardsCreatorProxy) changeRewardCreatorIfNeeded(epoch uint32) error 
 	rcp.mutRc.Lock()
 	defer rcp.mutRc.Unlock()
 
-	if epoch > rcp.epochEnableV2 {
+	if epoch > rcp.args.EnableEpochsHandler.StakingV2EnableEpoch() {
 		if rcp.configuredRC != rCreatorV2 {
 			return rcp.switchToRewardsCreatorV2()
 		}

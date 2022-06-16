@@ -511,23 +511,25 @@ func createNodes(
 		consensusCache, _ := lrucache.NewCache(10000)
 
 		argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
-			ShardConsensusGroupSize:    consensusSize,
-			MetaConsensusGroupSize:     1,
-			Marshalizer:                integrationTests.TestMarshalizer,
-			Hasher:                     createHasher(consensusType),
-			Shuffler:                   nodeShuffler,
-			EpochStartNotifier:         epochStartRegistrationHandler,
-			BootStorer:                 bootStorer,
-			NbShards:                   1,
-			EligibleNodes:              eligibleMap,
-			WaitingNodes:               waitingMap,
-			SelfPublicKey:              []byte(strconv.Itoa(i)),
-			ConsensusGroupCache:        consensusCache,
-			ShuffledOutHandler:         &mock.ShuffledOutHandlerStub{},
-			WaitingListFixEnabledEpoch: 0,
-			ChanStopNode:               endProcess.GetDummyEndProcessChannel(),
-			NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
-			IsFullArchive:              false,
+			ShardConsensusGroupSize: consensusSize,
+			MetaConsensusGroupSize:  1,
+			Marshalizer:             integrationTests.TestMarshalizer,
+			Hasher:                  createHasher(consensusType),
+			Shuffler:                nodeShuffler,
+			EpochStartNotifier:      epochStartRegistrationHandler,
+			BootStorer:              bootStorer,
+			NbShards:                1,
+			EligibleNodes:           eligibleMap,
+			WaitingNodes:            waitingMap,
+			SelfPublicKey:           []byte(strconv.Itoa(i)),
+			ConsensusGroupCache:     consensusCache,
+			ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
+			ChanStopNode:            endProcess.GetDummyEndProcessChannel(),
+			NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
+			IsFullArchive:           false,
+			EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
+				IsWaitingListFixFlagEnabledField: true,
+			},
 		}
 		nodesCoord, _ := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 

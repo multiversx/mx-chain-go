@@ -1,6 +1,7 @@
 package integrationTests
 
 import (
+	"bytes"
 	"net/http"
 	"net/http/httptest"
 	"sync"
@@ -45,7 +46,7 @@ func NewTestProcessorNodeWithTestWebServer(
 	txSignPrivKeyShardId uint32,
 ) *TestProcessorNodeWithTestWebServer {
 
-	tpn := newBaseTestProcessorNode(maxShards, nodeShardId, txSignPrivKeyShardId)
+	tpn := newBaseTestProcessorNode(maxShards, nodeShardId, txSignPrivKeyShardId, config.EnableEpochs{})
 	tpn.initTestNode()
 
 	argFacade := createFacadeArg(tpn)
@@ -134,14 +135,15 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 	defaults.FillGasMapInternal(gasMap, 1)
 	gasScheduleNotifier := mock.NewGasScheduleNotifierMock(gasMap)
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:      gasScheduleNotifier,
-		MapDNSAddresses:  make(map[string]struct{}),
-		Marshalizer:      TestMarshalizer,
-		Accounts:         tpn.AccntState,
-		ShardCoordinator: tpn.ShardCoordinator,
-		EpochNotifier:    tpn.EpochNotifier,
+		GasSchedule:             gasScheduleNotifier,
+		MapDNSAddresses:         make(map[string]struct{}),
+		Marshalizer:             TestMarshalizer,
+		Accounts:                tpn.AccntState,
+		ShardCoordinator:        tpn.ShardCoordinator,
+		EpochNotifier:           tpn.EpochNotifier,
+		AutomaticCrawlerAddress: bytes.Repeat([]byte{1}, 32),
 	}
-	builtInFuncs, _, err := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
+	builtInFuncs, _, _, err := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
 	log.LogIfError(err)
 	esdtTransferParser, _ := parsers.NewESDTTransferParser(TestMarshalizer)
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
@@ -149,7 +151,6 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 		ShardCoordinator:   tpn.ShardCoordinator,
 		BuiltInFunctions:   builtInFuncs,
 		ArgumentParser:     parsers.NewCallArgsParser(),
-		EpochNotifier:      tpn.EpochNotifier,
 		ESDTTransferParser: esdtTransferParser,
 	}
 	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
@@ -165,8 +166,7 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 		},
 		tpn.AccntState,
 		tpn.ShardCoordinator,
-		tpn.EpochNotifier,
-		0,
+		tpn.EnableEpochsHandler,
 	)
 	log.LogIfError(err)
 

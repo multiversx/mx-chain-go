@@ -15,7 +15,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/txsimulator"
 	txSimData "github.com/ElrondNetwork/elrond-go/process/txsimulator/data"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/require"
@@ -30,8 +29,7 @@ func TestTransactionCostEstimator_NilTxTypeHandler(t *testing.T) {
 		&mock.TransactionSimulatorStub{},
 		&stateMock.AccountsStub{},
 		&mock.ShardCoordinatorStub{},
-		&epochNotifier.EpochNotifierStub{},
-		0)
+		&testscommon.EnableEpochsHandlerStub{})
 
 	require.Nil(t, tce)
 	require.Equal(t, process.ErrNilTxTypeHandler, err)
@@ -46,8 +44,7 @@ func TestTransactionCostEstimator_NilFeeHandlerShouldErr(t *testing.T) {
 		&mock.TransactionSimulatorStub{},
 		&stateMock.AccountsStub{},
 		&mock.ShardCoordinatorStub{},
-		&epochNotifier.EpochNotifierStub{},
-		0)
+		&testscommon.EnableEpochsHandlerStub{})
 
 	require.Nil(t, tce)
 	require.Equal(t, process.ErrNilEconomicsFeeHandler, err)
@@ -62,14 +59,13 @@ func TestTransactionCostEstimator_NilTransactionSimulatorShouldErr(t *testing.T)
 		nil,
 		&stateMock.AccountsStub{},
 		&mock.ShardCoordinatorStub{},
-		&epochNotifier.EpochNotifierStub{},
-		0)
+		&testscommon.EnableEpochsHandlerStub{})
 
 	require.Nil(t, tce)
 	require.Equal(t, txsimulator.ErrNilTxSimulatorProcessor, err)
 }
 
-func TestTransactionCostEstimator_NilEpochNotifierShouldErr(t *testing.T) {
+func TestTransactionCostEstimator_NilEnableEpochsHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	tce, err := NewTransactionCostEstimator(
@@ -78,11 +74,10 @@ func TestTransactionCostEstimator_NilEpochNotifierShouldErr(t *testing.T) {
 		&mock.TransactionSimulatorStub{},
 		&stateMock.AccountsStub{},
 		&mock.ShardCoordinatorStub{},
-		nil,
-		0)
+		nil)
 
 	require.Nil(t, tce)
-	require.Equal(t, process.ErrNilEpochNotifier, err)
+	require.Equal(t, process.ErrNilEnableEpochsHandler, err)
 }
 
 func TestTransactionCostEstimator_Ok(t *testing.T) {
@@ -94,8 +89,7 @@ func TestTransactionCostEstimator_Ok(t *testing.T) {
 		&mock.TransactionSimulatorStub{},
 		&stateMock.AccountsStub{},
 		&mock.ShardCoordinatorStub{},
-		&epochNotifier.EpochNotifierStub{},
-		0)
+		&testscommon.EnableEpochsHandlerStub{})
 
 	require.Nil(t, err)
 	require.False(t, check.IfNil(tce))
@@ -125,8 +119,7 @@ func TestComputeTransactionGasLimit_MoveBalance(t *testing.T) {
 			return &stateMock.UserAccountStub{Balance: big.NewInt(100000)}, nil
 		},
 	}, &mock.ShardCoordinatorStub{},
-		&epochNotifier.EpochNotifierStub{},
-		0)
+		&testscommon.EnableEpochsHandlerStub{})
 
 	tx := &transaction.Transaction{}
 	cost, err := tce.ComputeTransactionGasLimit(tx)
@@ -159,8 +152,7 @@ func TestComputeTransactionGasLimit_MoveBalanceInvalidNonceShouldStillComputeCos
 			return &stateMock.UserAccountStub{Balance: big.NewInt(100000)}, nil
 		},
 	}, &mock.ShardCoordinatorStub{},
-		&epochNotifier.EpochNotifierStub{},
-		0)
+		&testscommon.EnableEpochsHandlerStub{})
 
 	tx := &transaction.Transaction{}
 	cost, err := tce.ComputeTransactionGasLimit(tx)
@@ -193,8 +185,7 @@ func TestComputeTransactionGasLimit_BuiltInFunction(t *testing.T) {
 				return &stateMock.UserAccountStub{Balance: big.NewInt(100000)}, nil
 			},
 		}, &mock.ShardCoordinatorStub{},
-		&epochNotifier.EpochNotifierStub{},
-		0)
+		&testscommon.EnableEpochsHandlerStub{})
 
 	tx := &transaction.Transaction{}
 	cost, err := tce.ComputeTransactionGasLimit(tx)
@@ -222,8 +213,7 @@ func TestComputeTransactionGasLimit_BuiltInFunctionShouldErr(t *testing.T) {
 				return &stateMock.UserAccountStub{Balance: big.NewInt(100000)}, nil
 			},
 		}, &mock.ShardCoordinatorStub{},
-		&epochNotifier.EpochNotifierStub{},
-		0)
+		&testscommon.EnableEpochsHandlerStub{})
 
 	tx := &transaction.Transaction{}
 	cost, err := tce.ComputeTransactionGasLimit(tx)
@@ -250,8 +240,7 @@ func TestComputeTransactionGasLimit_NilVMOutput(t *testing.T) {
 				return &stateMock.UserAccountStub{Balance: big.NewInt(100000)}, nil
 			},
 		}, &mock.ShardCoordinatorStub{},
-		&epochNotifier.EpochNotifierStub{},
-		0)
+		&testscommon.EnableEpochsHandlerStub{})
 
 	tx := &transaction.Transaction{}
 	cost, err := tce.ComputeTransactionGasLimit(tx)
@@ -282,8 +271,7 @@ func TestComputeTransactionGasLimit_RetCodeNotOk(t *testing.T) {
 				return &stateMock.UserAccountStub{Balance: big.NewInt(100000)}, nil
 			},
 		}, &mock.ShardCoordinatorStub{},
-		&epochNotifier.EpochNotifierStub{},
-		0)
+		&testscommon.EnableEpochsHandlerStub{})
 
 	tx := &transaction.Transaction{}
 	cost, err := tce.ComputeTransactionGasLimit(tx)
@@ -304,8 +292,7 @@ func TestTransactionCostEstimator_RelayedTxShouldErr(t *testing.T) {
 		&mock.TransactionSimulatorStub{},
 		&stateMock.AccountsStub{},
 		&mock.ShardCoordinatorStub{},
-		&epochNotifier.EpochNotifierStub{},
-		0)
+		&testscommon.EnableEpochsHandlerStub{})
 
 	tx := &transaction.Transaction{}
 	cost, err := tce.ComputeTransactionGasLimit(tx)

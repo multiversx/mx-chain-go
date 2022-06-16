@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/txsFee/utils"
@@ -109,7 +110,7 @@ func TestBuiltInFunctionTransactionCost(t *testing.T) {
 
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(
 		config.EnableEpochs{
-			PenalizedTooMuchGasEnableEpoch: 100,
+			PenalizedTooMuchGasEnableEpoch: integrationTests.UnreachableEpoch,
 		})
 	require.Nil(t, err)
 	defer testContext.Close()

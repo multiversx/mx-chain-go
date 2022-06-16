@@ -2,81 +2,115 @@ package testscommon
 
 // EnableEpochsHandlerStub -
 type EnableEpochsHandlerStub struct {
-	ResetPenalizedTooMuchGasFlagCalled                       func()
-	BlockGasAndFeesReCheckEnableEpochField                   uint32
-	IsSCDeployFlagEnabledField                               bool
-	IsBuiltInFunctionsFlagEnabledField                       bool
-	IsRelayedTransactionsFlagEnabledField                    bool
-	IsPenalizedTooMuchGasFlagEnabledField                    bool
-	IsSwitchJailWaitingFlagEnabledField                      bool
-	IsBelowSignedThresholdFlagEnabledField                   bool
-	IsSwitchHysteresisForMinNodesFlagEnabledField            bool
-	IsTransactionSignedWithTxHashFlagEnabledField            bool
-	IsMetaProtectionFlagEnabledField                         bool
-	IsAheadOfTimeGasUsageFlagEnabledField                    bool
-	IsGasPriceModifierFlagEnabledField                       bool
-	IsRepairCallbackFlagEnabledField                         bool
-	IsBalanceWaitingListsFlagEnabledField                    bool
-	IsReturnDataToLastTransferFlagEnabledField               bool
-	IsSenderInOutTransferFlagEnabledField                    bool
-	IsStakeFlagEnabledField                                  bool
-	IsStakingV2FlagEnabledField                              bool
-	IsStakingV2OwnerFlagEnabledField                         bool
-	IsStakingV2DelegationFlagEnabledField                    bool
-	IsDoubleKeyProtectionFlagEnabledField                    bool
-	IsESDTFlagEnabledField                                   bool
-	IsESDTFlagEnabledForCurrentEpochField                    bool
-	IsGovernanceFlagEnabledField                             bool
-	IsGovernanceFlagEnabledForCurrentEpochField              bool
-	IsDelegationManagerFlagEnabledField                      bool
-	IsDelegationSmartContractFlagEnabledField                bool
-	IsCorrectLastUnJailedFlagEnabledField                    bool
-	IsCorrectLastUnJailedFlagEnabledForCurrentEpochField     bool
-	IsRelayedTransactionsV2FlagEnabledField                  bool
-	IsUnBondTokensV2FlagEnabledField                         bool
-	IsSaveJailedAlwaysFlagEnabledField                       bool
-	IsReDelegateBelowMinCheckFlagEnabledField                bool
-	IsValidatorToDelegationFlagEnabledField                  bool
-	IsWaitingListFixFlagEnabledField                         bool
-	IsIncrementSCRNonceInMultiTransferFlagEnabledField       bool
-	IsESDTMultiTransferFlagEnabledField                      bool
-	IsGlobalMintBurnFlagEnabledField                         bool
-	IsESDTTransferRoleFlagEnabledField                       bool
-	IsBuiltInFunctionOnMetaFlagEnabledField                  bool
-	IsComputeRewardCheckpointFlagEnabledField                bool
-	IsSCRSizeInvariantCheckFlagEnabledField                  bool
-	IsBackwardCompSaveKeyValueFlagEnabledField               bool
-	IsESDTNFTCreateOnMultiShardFlagEnabledField              bool
-	IsMetaESDTSetFlagEnabledField                            bool
-	IsAddTokensToDelegationFlagEnabledField                  bool
-	IsMultiESDTTransferFixOnCallBackFlagEnabledField         bool
-	IsOptimizeGasUsedInCrossMiniBlocksFlagEnabledField       bool
-	IsCorrectFirstQueuedFlagEnabledField                     bool
-	IsDeleteDelegatorAfterClaimRewardsFlagEnabledField       bool
-	IsFixOOGReturnCodeFlagEnabledField                       bool
-	IsRemoveNonUpdatedStorageFlagEnabledField                bool
-	IsOptimizeNFTStoreFlagEnabledField                       bool
-	IsCreateNFTThroughExecByCallerFlagEnabledField           bool
-	IsStopDecreasingValidatorRatingWhenStuckFlagEnabledField bool
-	IsFrontRunningProtectionFlagEnabledField                 bool
-	IsPayableBySCFlagEnabledField                            bool
-	IsCleanUpInformativeSCRsFlagEnabledField                 bool
-	IsStorageAPICostOptimizationFlagEnabledField             bool
-	IsESDTRegisterAndSetAllRolesFlagEnabledField             bool
-	IsScheduledMiniBlocksFlagEnabledField                    bool
-	IsCorrectJailedNotUnStakedEmptyQueueFlagEnabledField     bool
-	IsDoNotReturnOldBlockInBlockchainHookFlagEnabledField    bool
-	IsAddFailedRelayedTxToInvalidMBsFlagField                bool
-	IsSCRSizeInvariantOnBuiltInResultFlagEnabledField        bool
-	IsCheckCorrectTokenIDForTransferRoleFlagEnabledField     bool
-	IsFailExecutionOnEveryAPIErrorFlagEnabledField           bool
-	IsHeartbeatDisableFlagEnabledField                       bool
-	IsMiniBlockPartialExecutionFlagEnabledField              bool
+	ResetPenalizedTooMuchGasFlagCalled                           func()
+	BlockGasAndFeesReCheckEnableEpochField                       uint32
+	StakingV2EnableEpochField                                    uint32
+	ScheduledMiniBlocksEnableEpochField                          uint32
+	SwitchJailWaitingEnableEpochField                            uint32
+	BalanceWaitingListsEnableEpochField                          uint32
+	WaitingListFixEnableEpochField                               uint32
+	IsSCDeployFlagEnabledField                                   bool
+	IsBuiltInFunctionsFlagEnabledField                           bool
+	IsRelayedTransactionsFlagEnabledField                        bool
+	IsPenalizedTooMuchGasFlagEnabledField                        bool
+	IsSwitchJailWaitingFlagEnabledField                          bool
+	IsBelowSignedThresholdFlagEnabledField                       bool
+	IsSwitchHysteresisForMinNodesFlagEnabledField                bool
+	IsSwitchHysteresisForMinNodesFlagEnabledForCurrentEpochField bool
+	IsTransactionSignedWithTxHashFlagEnabledField                bool
+	IsMetaProtectionFlagEnabledField                             bool
+	IsAheadOfTimeGasUsageFlagEnabledField                        bool
+	IsGasPriceModifierFlagEnabledField                           bool
+	IsRepairCallbackFlagEnabledField                             bool
+	IsBalanceWaitingListsFlagEnabledField                        bool
+	IsReturnDataToLastTransferFlagEnabledField                   bool
+	IsSenderInOutTransferFlagEnabledField                        bool
+	IsStakeFlagEnabledField                                      bool
+	IsStakingV2FlagEnabledField                                  bool
+	IsStakingV2OwnerFlagEnabledField                             bool
+	IsStakingV2FlagEnabledForActivationEpochCompletedField       bool
+	IsDoubleKeyProtectionFlagEnabledField                        bool
+	IsESDTFlagEnabledField                                       bool
+	IsESDTFlagEnabledForCurrentEpochField                        bool
+	IsGovernanceFlagEnabledField                                 bool
+	IsGovernanceFlagEnabledForCurrentEpochField                  bool
+	IsDelegationManagerFlagEnabledField                          bool
+	IsDelegationSmartContractFlagEnabledField                    bool
+	IsDelegationSmartContractFlagForCurrentEpochEnabledField     bool
+	IsCorrectLastUnJailedFlagEnabledField                        bool
+	IsCorrectLastUnJailedFlagEnabledForCurrentEpochField         bool
+	IsRelayedTransactionsV2FlagEnabledField                      bool
+	IsUnBondTokensV2FlagEnabledField                             bool
+	IsSaveJailedAlwaysFlagEnabledField                           bool
+	IsReDelegateBelowMinCheckFlagEnabledField                    bool
+	IsValidatorToDelegationFlagEnabledField                      bool
+	IsWaitingListFixFlagEnabledField                             bool
+	IsIncrementSCRNonceInMultiTransferFlagEnabledField           bool
+	IsESDTMultiTransferFlagEnabledField                          bool
+	IsGlobalMintBurnFlagEnabledField                             bool
+	IsESDTTransferRoleFlagEnabledField                           bool
+	IsBuiltInFunctionOnMetaFlagEnabledField                      bool
+	IsComputeRewardCheckpointFlagEnabledField                    bool
+	IsSCRSizeInvariantCheckFlagEnabledField                      bool
+	IsBackwardCompSaveKeyValueFlagEnabledField                   bool
+	IsESDTNFTCreateOnMultiShardFlagEnabledField                  bool
+	IsMetaESDTSetFlagEnabledField                                bool
+	IsAddTokensToDelegationFlagEnabledField                      bool
+	IsMultiESDTTransferFixOnCallBackFlagEnabledField             bool
+	IsOptimizeGasUsedInCrossMiniBlocksFlagEnabledField           bool
+	IsCorrectFirstQueuedFlagEnabledField                         bool
+	IsDeleteDelegatorAfterClaimRewardsFlagEnabledField           bool
+	IsFixOOGReturnCodeFlagEnabledField                           bool
+	IsRemoveNonUpdatedStorageFlagEnabledField                    bool
+	IsOptimizeNFTStoreFlagEnabledField                           bool
+	IsCreateNFTThroughExecByCallerFlagEnabledField               bool
+	IsStopDecreasingValidatorRatingWhenStuckFlagEnabledField     bool
+	IsFrontRunningProtectionFlagEnabledField                     bool
+	IsPayableBySCFlagEnabledField                                bool
+	IsCleanUpInformativeSCRsFlagEnabledField                     bool
+	IsStorageAPICostOptimizationFlagEnabledField                 bool
+	IsESDTRegisterAndSetAllRolesFlagEnabledField                 bool
+	IsScheduledMiniBlocksFlagEnabledField                        bool
+	IsCorrectJailedNotUnStakedEmptyQueueFlagEnabledField         bool
+	IsDoNotReturnOldBlockInBlockchainHookFlagEnabledField        bool
+	IsAddFailedRelayedTxToInvalidMBsFlagField                    bool
+	IsSCRSizeInvariantOnBuiltInResultFlagEnabledField            bool
+	IsCheckCorrectTokenIDForTransferRoleFlagEnabledField         bool
+	IsFailExecutionOnEveryAPIErrorFlagEnabledField               bool
+	IsHeartbeatDisableFlagEnabledField                           bool
+	IsMiniBlockPartialExecutionFlagEnabledField                  bool
+	IsManagedCryptoAPIsFlagEnabledField                          bool
+	IsESDTMetadataContinuousCleanupFlagEnabledField              bool
 }
 
 // BlockGasAndFeesReCheckEnableEpoch -
 func (stub *EnableEpochsHandlerStub) BlockGasAndFeesReCheckEnableEpoch() uint32 {
 	return stub.BlockGasAndFeesReCheckEnableEpochField
+}
+
+// StakingV2EnableEpoch -
+func (stub *EnableEpochsHandlerStub) StakingV2EnableEpoch() uint32 {
+	return stub.StakingV2EnableEpochField
+}
+
+// ScheduledMiniBlocksEnableEpoch -
+func (stub *EnableEpochsHandlerStub) ScheduledMiniBlocksEnableEpoch() uint32 {
+	return stub.ScheduledMiniBlocksEnableEpochField
+}
+
+// SwitchJailWaitingEnableEpoch -
+func (stub *EnableEpochsHandlerStub) SwitchJailWaitingEnableEpoch() uint32 {
+	return stub.SwitchJailWaitingEnableEpochField
+}
+
+// BalanceWaitingListsEnableEpoch -
+func (stub *EnableEpochsHandlerStub) BalanceWaitingListsEnableEpoch() uint32 {
+	return stub.BalanceWaitingListsEnableEpochField
+}
+
+// WaitingListFixEnableEpoch -
+func (stub *EnableEpochsHandlerStub) WaitingListFixEnableEpoch() uint32 {
+	return stub.WaitingListFixEnableEpochField
 }
 
 // ResetPenalizedTooMuchGasFlag -
@@ -119,6 +153,11 @@ func (stub *EnableEpochsHandlerStub) IsBelowSignedThresholdFlagEnabled() bool {
 // IsSwitchHysteresisForMinNodesFlagEnabled -
 func (stub *EnableEpochsHandlerStub) IsSwitchHysteresisForMinNodesFlagEnabled() bool {
 	return stub.IsSwitchHysteresisForMinNodesFlagEnabledField
+}
+
+// IsSwitchHysteresisForMinNodesFlagEnabledForCurrentEpoch -
+func (stub *EnableEpochsHandlerStub) IsSwitchHysteresisForMinNodesFlagEnabledForCurrentEpoch() bool {
+	return stub.IsSwitchHysteresisForMinNodesFlagEnabledForCurrentEpochField
 }
 
 // IsTransactionSignedWithTxHashFlagEnabled -
@@ -176,9 +215,9 @@ func (stub *EnableEpochsHandlerStub) IsStakingV2OwnerFlagEnabled() bool {
 	return stub.IsStakingV2OwnerFlagEnabledField
 }
 
-// IsStakingV2DelegationFlagEnabled -
-func (stub *EnableEpochsHandlerStub) IsStakingV2DelegationFlagEnabled() bool {
-	return stub.IsStakingV2DelegationFlagEnabledField
+// IsStakingV2FlagEnabledForActivationEpochCompleted -
+func (stub *EnableEpochsHandlerStub) IsStakingV2FlagEnabledForActivationEpochCompleted() bool {
+	return stub.IsStakingV2FlagEnabledForActivationEpochCompletedField
 }
 
 // IsDoubleKeyProtectionFlagEnabled -
@@ -214,6 +253,11 @@ func (stub *EnableEpochsHandlerStub) IsDelegationManagerFlagEnabled() bool {
 // IsDelegationSmartContractFlagEnabled -
 func (stub *EnableEpochsHandlerStub) IsDelegationSmartContractFlagEnabled() bool {
 	return stub.IsDelegationSmartContractFlagEnabledField
+}
+
+// IsDelegationSmartContractFlagEnabledForCurrentEpoch -
+func (stub *EnableEpochsHandlerStub) IsDelegationSmartContractFlagEnabledForCurrentEpoch() bool {
+	return stub.IsDelegationSmartContractFlagForCurrentEpochEnabledField
 }
 
 // IsCorrectLastUnJailedFlagEnabled -
@@ -424,6 +468,16 @@ func (stub *EnableEpochsHandlerStub) IsHeartbeatDisableFlagEnabled() bool {
 // IsMiniBlockPartialExecutionFlagEnabled -
 func (stub *EnableEpochsHandlerStub) IsMiniBlockPartialExecutionFlagEnabled() bool {
 	return stub.IsMiniBlockPartialExecutionFlagEnabledField
+}
+
+// IsManagedCryptoAPIsFlagEnabled -
+func (stub *EnableEpochsHandlerStub) IsManagedCryptoAPIsFlagEnabled() bool {
+	return stub.IsManagedCryptoAPIsFlagEnabledField
+}
+
+// IsESDTMetadataContinuousCleanupFlagEnabled -
+func (stub *EnableEpochsHandlerStub) IsESDTMetadataContinuousCleanupFlagEnabled() bool {
+	return stub.IsESDTMetadataContinuousCleanupFlagEnabledField
 }
 
 // IsInterfaceNil -

@@ -33,7 +33,6 @@ type CommonInterceptorsContainerFactoryArgs struct {
 	ArgumentsParser              process.ArgumentsParser
 	PreferredPeersHolder         process.PreferredPeersHolderHandler
 	SizeCheckDelta               uint32
-	EnableSignTxWithHashEpoch    uint32
 	RequestHandler               process.RequestHandler
 	PeerSignatureHandler         crypto.PeerSignatureHandler
 	SignaturesHandler            process.SignaturesHandler

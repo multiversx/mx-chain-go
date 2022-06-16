@@ -676,11 +676,7 @@ func (pcf *processComponentsFactory) newValidatorStatisticsProcessor() (process.
 		NodesSetup:                           pcf.coreData.GenesisNodesSetup(),
 		RatingEnableEpoch:                    ratingEnabledEpoch,
 		GenesisNonce:                         pcf.data.Blockchain().GetGenesisHeader().GetNonce(),
-		EpochNotifier:                        pcf.coreData.EpochNotifier(),
-		SwitchJailWaitingEnableEpoch:         pcf.epochConfig.EnableEpochs.SwitchJailWaitingEnableEpoch,
-		BelowSignedThresholdEnableEpoch:      pcf.epochConfig.EnableEpochs.BelowSignedThresholdEnableEpoch,
-		StakingV2EnableEpoch:                 pcf.epochConfig.EnableEpochs.StakingV2EnableEpoch,
-		StopDecreasingValidatorRatingWhenStuckEnableEpoch: pcf.epochConfig.EnableEpochs.StopDecreasingValidatorRatingWhenStuckEnableEpoch,
+		EnableEpochsHandler:                  pcf.coreData.EnableEpochsHandler(),
 	}
 
 	validatorStatisticsProcessor, err := peer.NewValidatorStatisticsProcessor(arguments)
@@ -1318,7 +1314,6 @@ func (pcf *processComponentsFactory) newShardInterceptorContainerFactory(
 		ArgumentsParser:              smartContract.NewArgumentParser(),
 		PreferredPeersHolder:         pcf.network.PreferredPeersHolderHandler(),
 		SizeCheckDelta:               pcf.config.Marshalizer.SizeCheckDelta,
-		EnableSignTxWithHashEpoch:    pcf.epochConfig.EnableEpochs.TransactionSignedWithTxHashEnableEpoch,
 		RequestHandler:               requestHandler,
 		PeerSignatureHandler:         pcf.crypto.PeerSignatureHandler(),
 		SignaturesHandler:            pcf.network.NetworkMessenger(),
@@ -1326,7 +1321,6 @@ func (pcf *processComponentsFactory) newShardInterceptorContainerFactory(
 		PeerShardMapper:              peerShardMapper,
 		HardforkTrigger:              hardforkTrigger,
 	}
-	log.Debug("shardInterceptor: enable epoch for transaction signed with tx hash", "epoch", shardInterceptorsContainerFactoryArgs.EnableSignTxWithHashEpoch)
 
 	interceptorContainerFactory, err := interceptorscontainer.NewShardInterceptorsContainerFactory(shardInterceptorsContainerFactoryArgs)
 	if err != nil {
@@ -1367,7 +1361,6 @@ func (pcf *processComponentsFactory) newMetaInterceptorContainerFactory(
 		AntifloodHandler:             pcf.network.InputAntiFloodHandler(),
 		ArgumentsParser:              smartContract.NewArgumentParser(),
 		SizeCheckDelta:               pcf.config.Marshalizer.SizeCheckDelta,
-		EnableSignTxWithHashEpoch:    pcf.epochConfig.EnableEpochs.TransactionSignedWithTxHashEnableEpoch,
 		PreferredPeersHolder:         pcf.network.PreferredPeersHolderHandler(),
 		RequestHandler:               requestHandler,
 		PeerSignatureHandler:         pcf.crypto.PeerSignatureHandler(),
@@ -1376,7 +1369,6 @@ func (pcf *processComponentsFactory) newMetaInterceptorContainerFactory(
 		PeerShardMapper:              peerShardMapper,
 		HardforkTrigger:              hardforkTrigger,
 	}
-	log.Debug("metaInterceptor: enable epoch for transaction signed with tx hash", "epoch", metaInterceptorsContainerFactoryArgs.EnableSignTxWithHashEpoch)
 
 	interceptorContainerFactory, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(metaInterceptorsContainerFactoryArgs)
 	if err != nil {
@@ -1470,7 +1462,6 @@ func (pcf *processComponentsFactory) createExportFactoryHandler(
 		OutputAntifloodHandler:    pcf.network.OutputAntiFloodHandler(),
 		RoundHandler:              pcf.coreData.RoundHandler(),
 		InterceptorDebugConfig:    pcf.config.Debug.InterceptorResolver,
-		EnableSignTxWithHashEpoch: pcf.epochConfig.EnableEpochs.TransactionSignedWithTxHashEnableEpoch,
 		MaxHardCapForMissingNodes: pcf.config.TrieSync.MaxHardCapForMissingNodes,
 		NumConcurrentTrieSyncers:  pcf.config.TrieSync.NumConcurrentTrieSyncers,
 		TrieSyncerVersion:         pcf.config.TrieSync.TrieSyncerVersion,
