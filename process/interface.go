@@ -504,8 +504,6 @@ type BlockChainHookHandler interface {
 	ApplyFiltersOnCodeMetadata(codeMetadata vmcommon.CodeMetadata) vmcommon.CodeMetadata
 	IsInterfaceNil() bool
 	IsBuiltinFunctionName(functionName string) bool
-	IsPaused(_ []byte) bool
-	IsLimitedTransfer(_ []byte) bool
 }
 
 // Interceptor defines what a data interceptor should do
