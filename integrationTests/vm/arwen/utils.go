@@ -1,6 +1,7 @@
 package arwen
 
 import (
+	"bytes"
 	"encoding/binary"
 	"encoding/hex"
 	"errors"
@@ -239,7 +240,7 @@ func (context *TestContext) initVMAndBlockchainHook() {
 		EpochNotifier:           context.EpochNotifier,
 		AutomaticCrawlerAddress: bytes.Repeat([]byte{1}, 32),
 	}
-	builtInFuncs, nftStorageHandler, err := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
+	builtInFuncs, nftStorageHandler, globalSettingsHandler, err := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
 	require.Nil(context.T, err)
 
 	blockchainMock := &testscommon.ChainHandlerStub{}
@@ -258,7 +259,7 @@ func (context *TestContext) initVMAndBlockchainHook() {
 		GlobalSettingsHandler: globalSettingsHandler,
 		DataPool:              datapool,
 		CompiledSCPool:        datapool.SmartContracts(),
-		EnableEpochsHandler: context.EnableEpochsHandler,
+		EnableEpochsHandler:   context.EnableEpochsHandler,
 		NilCompiledSCStore:    true,
 		ConfigSCStorage: config.StorageConfig{
 			Cache: config.CacheConfig{

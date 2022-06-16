@@ -1,6 +1,7 @@
 package vm
 
 import (
+	"bytes"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -56,7 +57,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/txDataBuilder"
 	"github.com/ElrondNetwork/elrond-go/trie"
@@ -434,7 +434,7 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 		CompiledSCPool:        datapool.SmartContracts(),
 		NilCompiledSCStore:    true,
 		ConfigSCStorage:       *defaultStorageConfig(),
-		EnableEpochsHandler: enableEpochsHandler,
+		EnableEpochsHandler:   enableEpochsHandler,
 	}
 
 	blockChainHook, _ := hooks.NewBlockChainHookImpl(args)
@@ -528,7 +528,7 @@ func CreateOneSCExecutorMockVM(accnts state.AccountsAdapter) vmcommon.VMExecutio
 		CompiledSCPool:        datapool.SmartContracts(),
 		NilCompiledSCStore:    true,
 		ConfigSCStorage:       *defaultStorageConfig(),
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+		EnableEpochsHandler:   &testscommon.EnableEpochsHandlerStub{},
 	}
 	blockChainHook, _ := hooks.NewBlockChainHookImpl(args)
 	vm, _ := mock.NewOneSCExecutorMockVM(blockChainHook, testHasher)
@@ -582,7 +582,7 @@ func CreateVMAndBlockchainHookAndDataPool(
 		CompiledSCPool:        datapool.SmartContracts(),
 		NilCompiledSCStore:    true,
 		ConfigSCStorage:       *defaultStorageConfig(),
-		EnableEpochsHandler: enableEpochsHandler,
+		EnableEpochsHandler:   enableEpochsHandler,
 	}
 
 	esdtTransferParser, _ := parsers.NewESDTTransferParser(testMarshalizer)
@@ -657,7 +657,7 @@ func CreateVMAndBlockchainHookMeta(
 		DataPool:              datapool,
 		CompiledSCPool:        datapool.SmartContracts(),
 		NilCompiledSCStore:    true,
-		EnableEpochsHandler: enableEpochsHandler,
+		EnableEpochsHandler:   enableEpochsHandler,
 	}
 
 	economicsData, err := createEconomicsData(config.EnableEpochs{})

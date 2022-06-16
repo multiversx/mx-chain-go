@@ -942,7 +942,7 @@ func createFullArgumentsForSystemSCProcessing(enableEpochsConfig config.EnableEp
 		GlobalSettingsHandler: &testscommon.ESDTGlobalSettingsHandlerStub{},
 		DataPool:              testDataPool,
 		CompiledSCPool:        testDataPool.SmartContracts(),
-		EnableEpochsHandler: enableEpochsHandler,
+		EnableEpochsHandler:   enableEpochsHandler,
 		NilCompiledSCStore:    true,
 	}
 
@@ -1289,7 +1289,6 @@ func TestSystemSCProcessor_ProcessSystemSmartContractMaxNodesStakedFromQueueOwne
 		StakingV2EnableEpoch: 10,
 	}, createMemUnit())
 	args.MaxNodesEnableConfig = []config.MaxNodesChangeConfig{{EpochEnable: 10, MaxNumNodes: 10}}
-	args.EpochConfig.EnableEpochs.StakingV2EnableEpoch = 10
 	s, _ := NewSystemSCProcessor(args)
 
 	prepareStakingContractWithData(
