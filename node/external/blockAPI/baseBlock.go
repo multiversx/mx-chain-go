@@ -98,7 +98,8 @@ func (bap *baseAPIBlockProcessor) prepareAPIMiniblock(miniblock *block.MiniBlock
 		Type:             miniblock.Type.String(),
 		SourceShard:      miniblock.SenderShardID,
 		DestinationShard: miniblock.ReceiverShardID,
-		IsScheduled:      miniblock.IsScheduledMiniBlock(),
+		// TODO: Question for review: also return processing type?
+		// TODO: Question for review: also return construction state?
 	}
 
 	if options.WithTransactions {
