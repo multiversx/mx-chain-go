@@ -4700,7 +4700,7 @@ func TestEsdt_setBurnForAll(t *testing.T) {
 
 	output = e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
-	assert.True(t, strings.Contains(eei.returnMessage, "cannot set burn  for all as it was already set"))
+	assert.True(t, strings.Contains(eei.returnMessage, "cannot set burn for all as it was already set"))
 }
 
 func TestEsdt_unsetBurnForAll(t *testing.T) {

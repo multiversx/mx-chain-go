@@ -1116,7 +1116,7 @@ func (e *esdt) setBurnForAll(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 
 	burnForAllExists := checkIfDefinedRoleExistsInToken(token, []byte(vmcommon.ESDTRoleBurnForAll))
 	if burnForAllExists {
-		e.eei.AddReturnMessage("cannot set burn  for all as it was already set")
+		e.eei.AddReturnMessage("cannot set burn for all as it was already set")
 		return vmcommon.UserError
 	}
 
