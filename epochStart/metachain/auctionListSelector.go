@@ -199,19 +199,21 @@ func (als *auctionListSelector) getAuctionData() (map[string]*ownerAuctionData, 
 	numOfNodesInAuction := uint32(0)
 
 	for owner, ownerData := range als.stakingDataProvider.GetOwnersData() {
-		if ownerData.Qualified && ownerData.NumAuctionNodes > 0 {
+		if ownerData.Qualified && len(ownerData.AuctionList) > 0 {
+			numAuctionNodes := len(ownerData.AuctionList)
+
 			ownersData[owner] = &ownerAuctionData{
 				numActiveNodes:           ownerData.NumActiveNodes,
-				numAuctionNodes:          ownerData.NumAuctionNodes,
-				numQualifiedAuctionNodes: ownerData.NumAuctionNodes,
+				numAuctionNodes:          int64(numAuctionNodes),
+				numQualifiedAuctionNodes: int64(numAuctionNodes),
 				numStakedNodes:           ownerData.NumStakedNodes,
 				totalTopUp:               ownerData.TotalTopUp,
 				topUpPerNode:             ownerData.TopUpPerNode,
 				qualifiedTopUpPerNode:    ownerData.TopUpPerNode,
-				auctionList:              make([]state.ValidatorInfoHandler, len(ownerData.AuctionList)),
+				auctionList:              make([]state.ValidatorInfoHandler, numAuctionNodes),
 			}
 			copy(ownersData[owner].auctionList, ownerData.AuctionList)
-			numOfNodesInAuction += uint32(ownerData.NumAuctionNodes)
+			numOfNodesInAuction += uint32(numAuctionNodes)
 		}
 	}
 
@@ -248,8 +250,8 @@ func (als *auctionListSelector) calcSoftAuctionNodesConfig(
 	ownersData := copyOwnersData(data)
 	minTopUp, maxTopUp := als.getMinMaxPossibleTopUp(ownersData)
 	log.Debug("auctionListSelector: calc min and max possible top up",
-		"min top up per node", minTopUp.String(),
-		"max top up per node", maxTopUp.String(),
+		"min top up per node", getPrettyValue(minTopUp, als.softAuctionConfig.denominator),
+		"max top up per node", getPrettyValue(maxTopUp, als.softAuctionConfig.denominator),
 	)
 
 	topUp := big.NewInt(0).SetBytes(minTopUp.Bytes())

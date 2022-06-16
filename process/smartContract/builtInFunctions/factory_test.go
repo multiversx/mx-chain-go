@@ -1,6 +1,7 @@
 package builtInFunctions
 
 import (
+	"bytes"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/common"
@@ -19,13 +20,14 @@ func createMockArguments() ArgsCreateBuiltInFunctionContainer {
 
 	gasScheduleNotifier := mock.NewGasScheduleNotifierMock(gasMap)
 	args := ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:          gasScheduleNotifier,
-		MapDNSAddresses:      make(map[string]struct{}),
-		EnableUserNameChange: false,
-		Marshalizer:          &mock.MarshalizerMock{},
-		Accounts:             &stateMock.AccountsStub{},
-		ShardCoordinator:     mock.NewMultiShardsCoordinatorMock(1),
-		EpochNotifier:        &epochNotifier.EpochNotifierStub{},
+		GasSchedule:             gasScheduleNotifier,
+		MapDNSAddresses:         make(map[string]struct{}),
+		EnableUserNameChange:    false,
+		Marshalizer:             &mock.MarshalizerMock{},
+		Accounts:                &stateMock.AccountsStub{},
+		ShardCoordinator:        mock.NewMultiShardsCoordinatorMock(1),
+		EpochNotifier:           &epochNotifier.EpochNotifierStub{},
+		AutomaticCrawlerAddress: bytes.Repeat([]byte{1}, 32),
 	}
 
 	return args
@@ -83,24 +85,25 @@ func TestCreateBuiltInFunctionContainer_Errors(t *testing.T) {
 
 	args := createMockArguments()
 	args.GasSchedule = nil
-	container, _, err := CreateBuiltInFuncContainerAndNFTStorageHandler(args)
+	container, _, _, err := CreateBuiltInFuncContainerAndNFTStorageHandler(args)
 	assert.NotNil(t, err)
 	assert.Nil(t, container)
 
 	args = createMockArguments()
 	args.MapDNSAddresses = nil
-	container, _, err = CreateBuiltInFuncContainerAndNFTStorageHandler(args)
+	container, _, _, err = CreateBuiltInFuncContainerAndNFTStorageHandler(args)
 	assert.Equal(t, process.ErrNilDnsAddresses, err)
 	assert.Nil(t, container)
 
 	args = createMockArguments()
-	container, nftStorageHandler, err := CreateBuiltInFuncContainerAndNFTStorageHandler(args)
+	container, nftStorageHandler, globalSettingsHandler, err := CreateBuiltInFuncContainerAndNFTStorageHandler(args)
 	assert.Nil(t, err)
-	assert.Equal(t, len(container.Keys()), 25)
+	assert.Equal(t, len(container.Keys()), 27)
 
 	err = vmcommonBuiltInFunctions.SetPayableHandler(container, &testscommon.BlockChainHookStub{})
 	assert.Nil(t, err)
 
 	assert.False(t, container.IsInterfaceNil())
 	assert.False(t, nftStorageHandler.IsInterfaceNil())
+	assert.False(t, globalSettingsHandler.IsInterfaceNil())
 }

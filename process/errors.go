@@ -1133,3 +1133,6 @@ var ErrIndexDoesNotMatchWithFullyExecutedMiniBlock = errors.New("index does not 
 
 // ErrNilProcessedMiniBlocksTracker signals that a nil processed mini blocks tracker has been provided
 var ErrNilProcessedMiniBlocksTracker = errors.New("nil processed mini blocks tracker")
+
+// ErrNilESDTGlobalSettingsHandler signals that nil global settings handler was provided
+var ErrNilESDTGlobalSettingsHandler = errors.New("nil esdt global settings handler")
