@@ -340,3 +340,6 @@ var ErrOwnerHasNoStakedNode = errors.New("owner has no staked node")
 
 // ErrUint32SubtractionOverflow signals uint32 subtraction overflowed
 var ErrUint32SubtractionOverflow = errors.New("uint32 subtraction overflowed")
+
+// ErrReceivedAuctionValidatorsBeforeStakingV4 signals that an auction node has been provided before enabling staking v4
+var ErrReceivedAuctionValidatorsBeforeStakingV4 = errors.New("auction node has been provided before enabling staking v4")

@@ -9,7 +9,7 @@ import (
 )
 
 func (als *auctionListSelector) selectNodes(
-	ownersData map[string]*ownerData,
+	ownersData map[string]*ownerAuctionData,
 	numAvailableSlots uint32,
 	randomness []byte,
 ) []state.ValidatorInfoHandler {
@@ -32,7 +32,7 @@ func (als *auctionListSelector) selectNodes(
 	return selectedFromAuction[:numAvailableSlots]
 }
 
-func getPubKeyLen(ownersData map[string]*ownerData) int {
+func getPubKeyLen(ownersData map[string]*ownerAuctionData) int {
 	for _, owner := range ownersData {
 		return len(owner.auctionList[0].GetPublicKey())
 	}
@@ -62,7 +62,7 @@ func sortListByPubKey(list []state.ValidatorInfoHandler) {
 	})
 }
 
-func addQualifiedValidatorsTopUpInMap(owner *ownerData, validatorTopUpMap map[string]*big.Int) {
+func addQualifiedValidatorsTopUpInMap(owner *ownerAuctionData, validatorTopUpMap map[string]*big.Int) {
 	for i := int64(0); i < owner.numQualifiedAuctionNodes; i++ {
 		validatorPubKey := string(owner.auctionList[i].GetPublicKey())
 		validatorTopUpMap[validatorPubKey] = big.NewInt(0).SetBytes(owner.qualifiedTopUpPerNode.Bytes())
