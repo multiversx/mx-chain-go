@@ -26,6 +26,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/testscommon/stakingcommon"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/require"
@@ -80,6 +81,13 @@ func newTestMetaProcessor(
 	maxNodesConfig []config.MaxNodesChangeConfig,
 	queue [][]byte,
 ) *TestMetaProcessor {
+	saveNodesConfig(
+		stateComponents.AccountsAdapter(),
+		coreComponents.InternalMarshalizer(),
+		nc,
+		maxNodesConfig,
+	)
+
 	gasScheduleNotifier := createGasScheduleNotifier()
 	blockChainHook := createBlockChainHook(
 		dataComponents,
@@ -344,4 +352,28 @@ func generateAddresses(startIdx, n uint32) [][]byte {
 func generateAddress(identifier uint32) []byte {
 	uniqueIdentifier := fmt.Sprintf("address-%d", identifier)
 	return []byte(strings.Repeat("0", addressLength-len(uniqueIdentifier)) + uniqueIdentifier)
+}
+
+func saveNodesConfig(
+	accountsDB state.AccountsAdapter,
+	marshaller marshal.Marshalizer,
+	nc nodesCoordinator.NodesCoordinator,
+	maxNodesConfig []config.MaxNodesChangeConfig,
+) {
+	eligibleMap, _ := nc.GetAllEligibleValidatorsPublicKeys(0)
+	waitingMap, _ := nc.GetAllWaitingValidatorsPublicKeys(0)
+	allStakedNodes := int64(len(getAllPubKeys(eligibleMap)) + len(getAllPubKeys(waitingMap)))
+
+	maxNumNodes := allStakedNodes
+	if len(maxNodesConfig) > 0 {
+		maxNumNodes = int64(maxNodesConfig[0].MaxNumNodes)
+	}
+
+	stakingcommon.SaveNodesConfig(
+		accountsDB,
+		marshaller,
+		allStakedNodes,
+		1,
+		maxNumNodes,
+	)
 }

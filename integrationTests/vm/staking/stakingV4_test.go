@@ -471,7 +471,7 @@ func TestStakingV4_StakeNewNodes(t *testing.T) {
 	node := NewTestMetaProcessorWithCustomNodes(cfg)
 	node.EpochStartTrigger.SetRoundsPerEpoch(4)
 
-	// 1. Check initial config is correct
+	// 1.1 Check initial config is correct
 	currNodesConfig := node.NodesConfig
 	require.Len(t, getAllPubKeys(currNodesConfig.eligible), 4)
 	require.Len(t, getAllPubKeys(currNodesConfig.waiting), 4)
@@ -491,6 +491,21 @@ func TestStakingV4_StakeNewNodes(t *testing.T) {
 	require.Empty(t, currNodesConfig.shuffledOut)
 	require.Empty(t, currNodesConfig.auction)
 
+	// NewOwner0 stakes 1 node with top up = 0 before staking v4; should be sent to staking queue
+	newOwner0 := "newOwner0"
+	newNodes0 := map[string]*NodesRegisterData{
+		newOwner0: {
+			BLSKeys:    [][]byte{generateAddress(333)},
+			TotalStake: big.NewInt(nodePrice),
+		},
+	}
+
+	// 1.2 Check staked node before staking v4 is sent to staking queue
+	node.ProcessStake(t, newNodes0)
+	queue = append(queue, newNodes0[newOwner0].BLSKeys...)
+	currNodesConfig = node.NodesConfig
+	require.Len(t, currNodesConfig.queue, 4)
+
 	// NewOwner1 stakes 1 node with top up = 2*node price; should be sent to auction list
 	newOwner1 := "newOwner1"
 	newNodes1 := map[string]*NodesRegisterData{
@@ -500,13 +515,13 @@ func TestStakingV4_StakeNewNodes(t *testing.T) {
 		},
 	}
 	// 2. Check config after staking v4 init when a new node is staked
-	node.Process(t, 5)
+	node.Process(t, 4)
 	node.ProcessStake(t, newNodes1)
 	currNodesConfig = node.NodesConfig
 	queue = append(queue, newNodes1[newOwner1].BLSKeys...)
 	require.Empty(t, currNodesConfig.queue)
 	require.Empty(t, currNodesConfig.leaving)
-	require.Len(t, currNodesConfig.auction, 4)
+	require.Len(t, currNodesConfig.auction, 5)
 	requireSameSliceDifferentOrder(t, currNodesConfig.auction, queue)
 
 	// NewOwner2 stakes 2 node with top up = 2*node price; should be sent to auction list
@@ -523,11 +538,11 @@ func TestStakingV4_StakeNewNodes(t *testing.T) {
 	currNodesConfig = node.NodesConfig
 	queue = append(queue, newNodes2[newOwner2].BLSKeys...)
 	require.Empty(t, currNodesConfig.queue)
-	requireSliceContainsNumOfElements(t, currNodesConfig.auction, queue, 6)
+	requireSliceContainsNumOfElements(t, currNodesConfig.auction, queue, 7)
 
 	// 3. Epoch =  staking v4 distribute auction to waiting
 	// Only the new 2 owners + owner3 had enough top up to be distributed to waiting.
-	// Meanwhile; owner1 which had 0 top up, still has his bls keys in auction
+	// Meanwhile; owner1 which had 0 top up, still has his bls keys in auction, along with newOwner0
 	node.Process(t, 5)
 	currNodesConfig = node.NodesConfig
 	require.Empty(t, currNodesConfig.queue)
@@ -535,6 +550,7 @@ func TestStakingV4_StakeNewNodes(t *testing.T) {
 	requireMapContains(t, currNodesConfig.waiting, newNodes2[newOwner2].BLSKeys)
 	requireMapContains(t, currNodesConfig.waiting, owner3StakingQueue)
 	requireSliceContains(t, currNodesConfig.auction, owner1StakingQueue)
+	requireSliceContains(t, currNodesConfig.auction, newNodes0[newOwner0].BLSKeys)
 }
 
 // TODO: test unstake with 1 owner -> 1 bls key in auction => numStakedNodes = 0
