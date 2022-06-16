@@ -42,8 +42,8 @@ github.com/ElrondNetwork/elrond-vm-common v1.1.0/go.mod h1:w3i6f8uiuRkE68Ie/gebR
 github.com/ElrondNetwork/elrond-vm-common v1.2.9/go.mod h1:B/Y8WiqHyDd7xsjNYsaYbVMp1jQgQ+z4jTJkFvj/EWI=
 github.com/ElrondNetwork/elrond-vm-common v1.3.4/go.mod h1:B/Y8WiqHyDd7xsjNYsaYbVMp1jQgQ+z4jTJkFvj/EWI=
 github.com/ElrondNetwork/elrond-vm-common v1.3.6/go.mod h1:seROQuR7RJCoCS7mgRXVAlvjztltY1c+UroAgWr/USE=
-github.com/ElrondNetwork/elrond-vm-common v1.3.7-0.20220608102023-4d69462c0574 h1:dU3lMdOIzAghOORfFcSH3jZHpPGzQ/xjVbqCFN6pvKA=
-github.com/ElrondNetwork/elrond-vm-common v1.3.7-0.20220608102023-4d69462c0574/go.mod h1:seROQuR7RJCoCS7mgRXVAlvjztltY1c+UroAgWr/USE=
+github.com/ElrondNetwork/elrond-vm-common v1.3.8-0.20220616131325-fea491e11bba h1:Z/ad1l5HsPZ/hxCQpTJgmhq6lBqzZd8wUlXE0ochNPA=
+github.com/ElrondNetwork/elrond-vm-common v1.3.8-0.20220616131325-fea491e11bba/go.mod h1:seROQuR7RJCoCS7mgRXVAlvjztltY1c+UroAgWr/USE=
 github.com/ElrondNetwork/go-libp2p-pubsub v0.5.5-rc2 h1:Eyi2JlK0Eg6D8XNOiK0dLffpKy2ExQ0mXt+xm1cpKHk=
 github.com/ElrondNetwork/go-libp2p-pubsub v0.5.5-rc2/go.mod h1:3VSrYfPnRU8skcNAJNCPSyzM0dkazQHTdBMWyn/oAIA=
 github.com/ElrondNetwork/protobuf v1.3.2 h1:qoCSYiO+8GtXBEZWEjw0WPcZfM3g7QuuJrwpN+y6Mvg=
