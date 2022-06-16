@@ -14,7 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	vmData "github.com/ElrondNetwork/elrond-go-core/data/vm"
 	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/common/enableEpochs"
+	"github.com/ElrondNetwork/elrond-go/common/enablers"
 	"github.com/ElrondNetwork/elrond-go/common/forking"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -3470,7 +3470,7 @@ func TestScProcessor_penalizeUserIfNeededShouldWorkOnFlagActivation(t *testing.T
 	cfg := config.EnableEpochs{
 		PenalizedTooMuchGasEnableEpoch: 1,
 	}
-	arguments.EnableEpochsHandler, _ = enableEpochs.NewEnableEpochsHandler(cfg, genericEpochNotifier)
+	arguments.EnableEpochsHandler, _ = enablers.NewEnableEpochsHandler(cfg, genericEpochNotifier)
 	sc, _ := NewSmartContractProcessor(arguments)
 
 	gasProvided := uint64(1000)
@@ -4108,8 +4108,8 @@ func TestProcess_createCompletedTxEvent(t *testing.T) {
 	arguments.ShardCoordinator = shardCoordinator
 	completedLogSaved := false
 	arguments.TxLogsProcessor = &mock.TxLogsProcessorStub{SaveLogCalled: func(txHash []byte, tx data.TransactionHandler, vmLogs []*vmcommon.LogEntry) error {
-		for _, log := range vmLogs {
-			if string(log.Identifier) == completedTxEvent {
+		for _, vmLog := range vmLogs {
+			if string(vmLog.Identifier) == completedTxEvent {
 				completedLogSaved = true
 			}
 		}

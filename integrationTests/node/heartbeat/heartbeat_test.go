@@ -14,7 +14,7 @@ import (
 	mclsig "github.com/ElrondNetwork/elrond-go-crypto/signing/mcl/singlesig"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/common/enableEpochs"
+	"github.com/ElrondNetwork/elrond-go/common/enablers"
 	"github.com/ElrondNetwork/elrond-go/common/forking"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
@@ -150,7 +150,7 @@ func TestHeartbeatV2_DeactivationOfHeartbeat(t *testing.T) {
 	}
 
 	epochNotifierInstance := forking.NewGenericEpochNotifier()
-	enableEpochsHandler, _ := enableEpochs.NewEnableEpochsHandler(config.EnableEpochs{HeartbeatDisableEpoch: providedEpoch}, epochNotifierInstance)
+	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(config.EnableEpochs{HeartbeatDisableEpoch: providedEpoch}, epochNotifierInstance)
 	maxUnresposiveTime := time.Second * 10
 	monitor := createMonitor(maxUnresposiveTime, enableEpochsHandler)
 	senders, _ := prepareNodes(messengers, monitor, interactingNodes, "nodeName", enableEpochsHandler)
@@ -164,7 +164,7 @@ func TestHeartbeatV2_DeactivationOfHeartbeat(t *testing.T) {
 	time.Sleep(time.Second * 6)
 
 	heartbeats := monitor.GetHeartbeats()
-	assert.False(t, heartbeats[0].IsActive) //first one is the monitor which is inactive
+	assert.False(t, heartbeats[0].IsActive) // first one is the monitor which is inactive
 
 	for _, hb := range heartbeats[1:] {
 		assert.True(t, hb.IsActive)

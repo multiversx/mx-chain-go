@@ -906,7 +906,7 @@ func (tpn *TestProcessorNode) createFullSCQueryService() {
 		GlobalSettingsHandler: globalSettingsHandler,
 		DataPool:              tpn.DataPool,
 		CompiledSCPool:        smartContractsCache,
-		EnableEpochsHandler: tpn.EnableEpochsHandler,
+		EnableEpochsHandler:   tpn.EnableEpochsHandler,
 		NilCompiledSCStore:    true,
 	}
 
@@ -1544,7 +1544,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		GlobalSettingsHandler: globalSettingsHandler,
 		DataPool:              tpn.DataPool,
 		CompiledSCPool:        tpn.DataPool.SmartContracts(),
-		EnableEpochsHandler: tpn.EnableEpochsHandler,
+		EnableEpochsHandler:   tpn.EnableEpochsHandler,
 		NilCompiledSCStore:    true,
 	}
 	esdtTransferParser, _ := parsers.NewESDTTransferParser(TestMarshalizer)
@@ -1752,7 +1752,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		GlobalSettingsHandler: globalSettingsHandler,
 		DataPool:              tpn.DataPool,
 		CompiledSCPool:        tpn.DataPool.SmartContracts(),
-		EnableEpochsHandler: tpn.EnableEpochsHandler,
+		EnableEpochsHandler:   tpn.EnableEpochsHandler,
 		NilCompiledSCStore:    true,
 	}
 
@@ -3097,7 +3097,7 @@ func CreateEnableEpochsConfig() config.EnableEpochs {
 func GetDefaultCoreComponents() *mock.CoreComponentsStub {
 	enableEpochsCfg := CreateEnableEpochsConfig()
 	genericEpochNotifier := forking.NewGenericEpochNotifier()
-	enableEpochsHandler, _ := enableEpochs.NewEnableEpochsHandler(enableEpochsCfg, genericEpochNotifier)
+	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(enableEpochsCfg, genericEpochNotifier)
 
 	return &mock.CoreComponentsStub{
 		InternalMarshalizerField:      TestMarshalizer,

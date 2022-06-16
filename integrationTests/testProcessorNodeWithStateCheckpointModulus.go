@@ -82,12 +82,9 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 		StakingV2EnableEpoch: UnreachableEpoch,
 	}
 	epochNotifierInstance := forking.NewGenericEpochNotifier()
-	enableEpochsHandler, _ := enableEpochs.NewEnableEpochsHandler(enableEpochsConfig, epochNotifierInstance)
+	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(enableEpochsConfig, epochNotifierInstance)
 
 	messenger := CreateMessengerWithNoDiscoveryAndPeersRatingHandler(peersRatingHandler)
-	genericEpochNotifier := forking.NewGenericEpochNotifier()
-	enabledEpochsHandler, _ := enablers.NewEnableEpochsHandler(config.EnableEpochs{}, genericEpochNotifier)
-
 	tpn := &TestProcessorNode{
 		ShardCoordinator:        shardCoordinator,
 		Messenger:               messenger,

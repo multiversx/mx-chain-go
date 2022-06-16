@@ -82,7 +82,7 @@ func NewTestSyncNode(
 
 	messenger := CreateMessengerWithNoDiscoveryAndPeersRatingHandler(peersRatingHandler)
 	genericEpochNotifier := forking.NewGenericEpochNotifier()
-	enabledEpochsHandler, _ := enablers.NewEnableEpochsHandler(config.EnableEpochs{}, genericEpochNotifier)
+	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(config.EnableEpochs{}, genericEpochNotifier)
 
 	logsProcessor, _ := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{Marshalizer: TestMarshalizer})
 	tpn := &TestProcessorNode{
@@ -107,7 +107,7 @@ func NewTestSyncNode(
 		TransactionLogProcessor: logsProcessor,
 		PeersRatingHandler:      peersRatingHandler,
 		PeerShardMapper:         disabled.NewPeerShardMapper(),
-		EnabledEpochsHandler:    enabledEpochsHandler,
+		EnableEpochsHandler:     enableEpochsHandler,
 	}
 
 	kg := &mock.KeyGenMock{}
@@ -127,7 +127,7 @@ func NewTestSyncNode(
 
 func (tpn *TestProcessorNode) initTestNodeWithSync() {
 	tpn.EnableEpochs.ScheduledMiniBlocksEnableEpoch = UnreachableEpoch
-	tpn.EnableEpochsHandler, _ = enableEpochs.NewEnableEpochsHandler(tpn.EnableEpochs, tpn.EpochNotifier)
+	tpn.EnableEpochsHandler, _ = enablers.NewEnableEpochsHandler(tpn.EnableEpochs, tpn.EpochNotifier)
 	tpn.NetworkShardingCollector = mock.NewNetworkShardingCollectorMock()
 	tpn.initChainHandler()
 	tpn.initHeaderValidator()

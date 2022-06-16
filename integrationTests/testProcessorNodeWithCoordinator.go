@@ -213,7 +213,7 @@ func newTestProcessorNodeWithCustomNodesCoordinator(
 		})
 
 	genericEpochNotifier := forking.NewGenericEpochNotifier()
-	enabledEpochsHandler, _ := enablers.NewEnableEpochsHandler(config.EnableEpochs{}, genericEpochNotifier)
+	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(config.EnableEpochs{}, genericEpochNotifier)
 
 	messenger := CreateMessengerWithNoDiscoveryAndPeersRatingHandler(peersRatingHandler)
 	tpn := &TestProcessorNode{
@@ -226,7 +226,7 @@ func newTestProcessorNodeWithCustomNodesCoordinator(
 		NodesSetup:              nodesSetup,
 		ArwenChangeLocker:       &sync.RWMutex{},
 		PeersRatingHandler:      peersRatingHandler,
-		EnabledEpochsHandler:    enabledEpochsHandler,
+		EnableEpochsHandler:     enableEpochsHandler,
 	}
 
 	tpn.NodeKeys = &TestKeyPair{

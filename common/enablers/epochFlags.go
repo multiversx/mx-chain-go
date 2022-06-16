@@ -195,8 +195,8 @@ func (holder *epochFlagsHolder) IsSwitchHysteresisForMinNodesFlagEnabled() bool 
 }
 
 // IsSwitchHysteresisForMinNodesFlagEnabledForCurrentEpoch returns true if switchHysteresisForMinNodesCurrentEpochFlag is enabled
-func (fh *flagsHolder) IsSwitchHysteresisForMinNodesFlagEnabledForCurrentEpoch() bool {
-	return fh.switchHysteresisForMinNodesCurrentEpochFlag.IsSet()
+func (holder *epochFlagsHolder) IsSwitchHysteresisForMinNodesFlagEnabledForCurrentEpoch() bool {
+	return holder.switchHysteresisForMinNodesCurrentEpochFlag.IsSet()
 }
 
 // IsTransactionSignedWithTxHashFlagEnabled returns true if transactionSignedWithTxHashFlag is enabled
@@ -295,8 +295,8 @@ func (holder *epochFlagsHolder) IsDelegationSmartContractFlagEnabled() bool {
 }
 
 // IsDelegationSmartContractFlagEnabledForCurrentEpoch returns true if delegationSmartContractCurrentEpochFlag is enabled
-func (fh *flagsHolder) IsDelegationSmartContractFlagEnabledForCurrentEpoch() bool {
-	return fh.delegationSmartContractCurrentEpochFlag.IsSet()
+func (holder *epochFlagsHolder) IsDelegationSmartContractFlagEnabledForCurrentEpoch() bool {
+	return holder.delegationSmartContractCurrentEpochFlag.IsSet()
 }
 
 // IsCorrectLastUnJailedFlagEnabled returns true if correctLastUnJailedFlag is enabled
@@ -510,11 +510,11 @@ func (holder *epochFlagsHolder) IsMiniBlockPartialExecutionFlagEnabled() bool {
 }
 
 // IsManagedCryptoAPIsFlagEnabled returns true if managedCryptoAPIsFlag is enabled
-func (fh *flagsHolder) IsManagedCryptoAPIsFlagEnabled() bool {
-	return fh.managedCryptoAPIsFlag.IsSet()
+func (holder *epochFlagsHolder) IsManagedCryptoAPIsFlagEnabled() bool {
+	return holder.managedCryptoAPIsFlag.IsSet()
 }
 
 // IsESDTMetadataContinuousCleanupFlagEnabled returns true if esdtMetadataContinuousCleanupFlag is enabled
-func (fh *flagsHolder) IsESDTMetadataContinuousCleanupFlagEnabled() bool {
-	return fh.esdtMetadataContinuousCleanupFlag.IsSet()
+func (holder *epochFlagsHolder) IsESDTMetadataContinuousCleanupFlagEnabled() bool {
+	return holder.esdtMetadataContinuousCleanupFlag.IsSet()
 }

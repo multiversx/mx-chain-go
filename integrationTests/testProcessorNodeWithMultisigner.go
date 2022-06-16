@@ -65,7 +65,7 @@ func NewTestProcessorNodeWithCustomNodesCoordinator(
 		})
 	messenger := CreateMessengerWithNoDiscoveryAndPeersRatingHandler(peersRatingHandler)
 	genericEpochNotifier := forking.NewGenericEpochNotifier()
-	enabledEpochsHandler, _ := enablers.NewEnableEpochsHandler(config.EnableEpochs{}, genericEpochNotifier)
+	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(config.EnableEpochs{}, genericEpochNotifier)
 
 	tpn := &TestProcessorNode{
 		ShardCoordinator:        shardCoordinator,
@@ -83,14 +83,14 @@ func NewTestProcessorNodeWithCustomNodesCoordinator(
 		Bootstrapper:            mock.NewTestBootstrapperMock(),
 		PeersRatingHandler:      peersRatingHandler,
 		PeerShardMapper:         mock.NewNetworkShardingCollectorMock(),
-		EnabledEpochsHandler:    enabledEpochsHandler,
+		EnableEpochsHandler:     enableEpochsHandler,
 	}
 
 	tpn.EnableEpochs.StakingV2EnableEpoch = UnreachableEpoch
 	tpn.EnableEpochs.ScheduledMiniBlocksEnableEpoch = UnreachableEpoch
 	tpn.EnableEpochs.MiniBlockPartialExecutionEnableEpoch = UnreachableEpoch
 	tpn.EpochNotifier = forking.NewGenericEpochNotifier()
-	tpn.EnableEpochsHandler, _ = enableEpochs.NewEnableEpochsHandler(tpn.EnableEpochs, tpn.EpochNotifier)
+	tpn.EnableEpochsHandler, _ = enablers.NewEnableEpochsHandler(tpn.EnableEpochs, tpn.EpochNotifier)
 
 	tpn.NodeKeys = cp.Keys[nodeShardId][keyIndex]
 	blsHasher, _ := blake2b.NewBlake2bWithSize(hashing.BlsHashSize)
@@ -260,7 +260,7 @@ func CreateNodeWithBLSAndTxKeys(
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(nbShards), shardId)
 
 	genericEpochNotifier := forking.NewGenericEpochNotifier()
-	enabledEpochsHandler, _ := enablers.NewEnableEpochsHandler(config.EnableEpochs{}, genericEpochNotifier)
+	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(config.EnableEpochs{}, genericEpochNotifier)
 
 	logsProcessor, _ := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{Marshalizer: TestMarshalizer})
 	peersRatingHandler, _ := p2pRating.NewPeersRatingHandler(
@@ -284,7 +284,7 @@ func CreateNodeWithBLSAndTxKeys(
 		TransactionLogProcessor: logsProcessor,
 		PeersRatingHandler:      peersRatingHandler,
 		PeerShardMapper:         disabled.NewPeerShardMapper(),
-		EnabledEpochsHandler:    enabledEpochsHandler,
+		EnableEpochsHandler:     enableEpochsHandler,
 	}
 
 	tpn.EnableEpochs.StakingV2EnableEpoch = 1
@@ -293,7 +293,7 @@ func CreateNodeWithBLSAndTxKeys(
 	tpn.EnableEpochs.ScheduledMiniBlocksEnableEpoch = UnreachableEpoch
 	tpn.EnableEpochs.MiniBlockPartialExecutionEnableEpoch = UnreachableEpoch
 	tpn.EpochNotifier = forking.NewGenericEpochNotifier()
-	tpn.EnableEpochsHandler, _ = enableEpochs.NewEnableEpochsHandler(tpn.EnableEpochs, tpn.EpochNotifier)
+	tpn.EnableEpochsHandler, _ = enablers.NewEnableEpochsHandler(tpn.EnableEpochs, tpn.EpochNotifier)
 
 	tpn.NodeKeys = cp.Keys[shardId][keyIndex]
 	blsHasher, _ := blake2b.NewBlake2bWithSize(hashing.BlsHashSize)
