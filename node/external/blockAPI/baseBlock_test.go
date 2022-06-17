@@ -109,6 +109,7 @@ func TestBaseBlockGetIntraMiniblocksSCRS(t *testing.T) {
 				MiniBlockHash: "7630a217810d1ad3ea67e32dbff0e8f3ea6d970191f03d3c71761b3b60e57b91",
 			},
 		},
+		ProcessingType: "Normal",
 	}, intraMbs[0])
 }
 
@@ -181,6 +182,7 @@ func TestBaseBlockGetIntraMiniblocksReceipts(t *testing.T) {
 				Value:   big.NewInt(1000),
 			},
 		},
+		ProcessingType: "Normal",
 	}, intraMbs[0])
 }
 

@@ -216,8 +216,10 @@ func TestGetBlockByHashFromHistoryNode(t *testing.T) {
 		Hash:  hex.EncodeToString(headerHash),
 		MiniBlocks: []*api.MiniBlock{
 			{
-				Hash: hex.EncodeToString(miniblockHeader),
-				Type: block.TxBlock.String(),
+				Hash:              hex.EncodeToString(miniblockHeader),
+				Type:              block.TxBlock.String(),
+				ProcessingType:    "Normal",
+				ConstructionState: "Final",
 			},
 		},
 		AccumulatedFees: "0",
@@ -353,8 +355,10 @@ func TestGetBlockByNonceFromHistoryNode(t *testing.T) {
 		Hash:  headerHash,
 		MiniBlocks: []*api.MiniBlock{
 			{
-				Hash: hex.EncodeToString(miniblockHeader),
-				Type: block.TxBlock.String(),
+				Hash:              hex.EncodeToString(miniblockHeader),
+				Type:              block.TxBlock.String(),
+				ProcessingType:    "Normal",
+				ConstructionState: "Final",
 			},
 		},
 		AccumulatedFees: "1000",
@@ -414,8 +418,10 @@ func TestGetBlockByNonce_GetBlockByRound_FromNormalNode(t *testing.T) {
 		Hash:  headerHash,
 		MiniBlocks: []*api.MiniBlock{
 			{
-				Hash: hex.EncodeToString(miniblockHeader),
-				Type: block.TxBlock.String(),
+				Hash:              hex.EncodeToString(miniblockHeader),
+				Type:              block.TxBlock.String(),
+				ProcessingType:    "Normal",
+				ConstructionState: "Final",
 			},
 		},
 		AccumulatedFees: "1000",
@@ -490,8 +496,10 @@ func TestGetBlockByHashFromHistoryNode_StatusReverted(t *testing.T) {
 		Hash:  hex.EncodeToString([]byte(headerHash)),
 		MiniBlocks: []*api.MiniBlock{
 			{
-				Hash: hex.EncodeToString(miniblockHeader),
-				Type: block.TxBlock.String(),
+				Hash:              hex.EncodeToString(miniblockHeader),
+				Type:              block.TxBlock.String(),
+				ProcessingType:    "Normal",
+				ConstructionState: "Final",
 			},
 		},
 		AccumulatedFees: "500",
