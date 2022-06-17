@@ -113,6 +113,7 @@ func (vp *validatorsProvider) getSelectedNodesFromAuction(validatorsMap state.Sh
 	for _, validator := range validatorsMap.GetAllValidatorsInfo() {
 		if validator.GetList() == string(common.SelectedFromAuctionList) {
 			selectedNodes = append(selectedNodes, validator.ShallowClone())
+			log.Debug("validatorsProvider.getSelectedNodesFromAuction selected node from auction", "pub key", vp.validatorPubKeyConverter.Encode(validator.GetPublicKey()))
 		}
 	}
 
@@ -141,6 +142,14 @@ func (vp *validatorsProvider) getAuctionListValidatorsAPIResponse(selectedNodes 
 				TopUpPerNode:   ownerData.TopUpPerNode.String(),
 				QualifiedTopUp: ownerData.TopUpPerNode.String(),
 				AuctionList:    make([]*common.AuctionNode, 0, numAuctionNodes),
+			}
+
+			for _, auction := range ownerData.AuctionList {
+				log.Debug("validatorsProvider.getAuctionListValidatorsAPIResponse",
+					"owner", vp.addressPubKeyConverter.Encode([]byte(ownerPubKey)),
+					"auction node bls key", vp.validatorPubKeyConverter.Encode(auction.GetPublicKey()),
+					"qualified", ownerData.Qualified,
+				)
 			}
 
 			vp.fillAuctionQualifiedValidatorAPIData(selectedNodes, ownerData, auctionValidator)

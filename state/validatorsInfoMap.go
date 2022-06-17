@@ -104,12 +104,23 @@ func (vi *shardValidatorsInfoMap) Replace(old ValidatorInfoHandler, new Validato
 
 	vi.mutex.Lock()
 	defer vi.mutex.Unlock()
-
+	log.Debug("shardValidatorsInfoMap.Replace",
+		"old validator", hex.EncodeToString(old.GetPublicKey()), "shard", old.GetShardId(),
+		"with new validator", hex.EncodeToString(new.GetPublicKey()), "shard", new.GetShardId(),
+	)
 	for idx, validator := range vi.valInfoMap[shardID] {
 		if bytes.Equal(validator.GetPublicKey(), old.GetPublicKey()) {
 			vi.valInfoMap[shardID][idx] = new
+			log.Debug("shardValidatorsInfoMap.Replace successful")
 			return nil
 		}
+	}
+
+	for shard, validators := range vi.valInfoMap {
+		for _, val := range validators {
+			log.Error("shardValidatorsInfoMap.Replace ERROR", "shardID", shard, "validator pk", hex.EncodeToString(val.GetPublicKey()))
+		}
+
 	}
 
 	return fmt.Errorf("old %w: %s when trying to replace it with %s",
