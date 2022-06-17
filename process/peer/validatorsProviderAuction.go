@@ -157,7 +157,7 @@ func (vp *validatorsProvider) fillAuctionQualifiedValidatorAPIData(
 	numOwnerQualifiedNodes := int64(0)
 	for _, nodeInAuction := range ownerData.AuctionList {
 		auctionNode := &common.AuctionNode{
-			BlsKey:    vp.addressPubKeyConverter.Encode(nodeInAuction.GetPublicKey()),
+			BlsKey:    vp.validatorPubKeyConverter.Encode(nodeInAuction.GetPublicKey()),
 			Qualified: false,
 		}
 		if ownerData.Qualified && contains(selectedNodes, nodeInAuction) {
