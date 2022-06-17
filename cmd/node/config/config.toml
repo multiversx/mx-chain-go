@@ -28,8 +28,8 @@
     # than this value, then the validators rating decrease should stop so they won't get jailed
     MaxConsecutiveRoundsOfRatingDecrease = 600
 
-   # SyncProcessTimeInMillis is the value in milliseconds used when processing blocks while synchronizing blocks
-   SyncProcessTimeInMillis = 12000
+    # SyncProcessTimeInMillis is the value in milliseconds used when processing blocks while synchronizing blocks
+    SyncProcessTimeInMillis = 12000
 
 [Versions]
     DefaultVersion = "default"
