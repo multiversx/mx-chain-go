@@ -297,19 +297,19 @@ func (ps *PruningStorer) onEvicted(key interface{}, value interface{}) {
 func (ps *PruningStorer) Put(key, data []byte) error {
 	ps.cacher.Put(key, data, len(data))
 
-	ps.logKey(key, "Put")
-
 	persisterToUse := ps.getPersisterToUse()
+
+	ps.logKey(key, "Put", persisterToUse.path)
 	return ps.doPutInPersister(key, data, persisterToUse.getPersister())
 }
 
 // TODO remove this
-func (ps *PruningStorer) logKey(key []byte, operation string) {
-	if !strings.Contains(ps.dbPath, "MiniBlocks") {
+func (ps *PruningStorer) logKey(key []byte, operation string, path string) {
+	if !strings.Contains(path, "MiniBlocks") {
 		return
 	}
 
-	log.Debug("BUGHUNT PruningStorer."+operation, "db path", ps.dbPath, "key", key)
+	log.Debug("BUGHUNT PruningStorer."+operation, "db path", path, "key", key)
 }
 
 func (ps *PruningStorer) getPersisterToUse() *persisterData {
@@ -355,14 +355,14 @@ func (ps *PruningStorer) doPutInPersister(key, data []byte, persister storage.Pe
 func (ps *PruningStorer) PutInEpoch(key, data []byte, epoch uint32) error {
 	ps.cacher.Put(key, data, len(data))
 
-	ps.logKey(key, fmt.Sprintf("PutInEpoch %d", epoch))
-
 	ps.lock.RLock()
 	pd, exists := ps.persistersMapByEpoch[epoch]
 	ps.lock.RUnlock()
 	if !exists {
 		return fmt.Errorf("put in epoch: persister for epoch %d not found", epoch)
 	}
+
+	ps.logKey(key, fmt.Sprintf("PutInEpoch %d", epoch), pd.path)
 
 	persister, closePersister, err := ps.createAndInitPersisterIfClosedProtected(pd)
 	if err != nil {
@@ -611,8 +611,6 @@ func (ps *PruningStorer) SetEpochForPutOperation(epoch uint32) {
 func (ps *PruningStorer) RemoveFromCurrentEpoch(key []byte) error {
 	ps.cacher.Remove(key)
 
-	ps.logKey(key, "RemoveFromCurrentEpoch")
-
 	ps.lock.RLock()
 	defer ps.lock.RUnlock()
 	if len(ps.activePersisters) == 0 {
@@ -620,6 +618,8 @@ func (ps *PruningStorer) RemoveFromCurrentEpoch(key []byte) error {
 	}
 
 	persisterToUse := ps.activePersisters[0]
+
+	ps.logKey(key, "RemoveFromCurrentEpoch", persisterToUse.path)
 
 	return persisterToUse.persister.Remove(key)
 }
@@ -629,11 +629,11 @@ func (ps *PruningStorer) Remove(key []byte) error {
 	var err error
 	ps.cacher.Remove(key)
 
-	ps.logKey(key, "Remove")
-
 	ps.lock.RLock()
 	defer ps.lock.RUnlock()
 	for _, pd := range ps.activePersisters {
+		ps.logKey(key, "Remove", pd.path)
+
 		err = pd.persister.Remove(key)
 		if err == nil {
 			return nil
