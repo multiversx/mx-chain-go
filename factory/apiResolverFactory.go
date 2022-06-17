@@ -319,7 +319,10 @@ func createScQueryElement(
 		NilCompiledSCStore:    true,
 	}
 
+	maxGasForVmQueries := args.generalConfig.VirtualMachine.GasConfig.ShardMaxGasPerVmQuery
 	if args.processComponents.ShardCoordinator().SelfId() == core.MetachainShardId {
+		maxGasForVmQueries = args.generalConfig.VirtualMachine.GasConfig.MetaMaxGasPerVmQuery
+
 		blockChainHookImpl, errBlockChainHook := hooks.NewBlockChainHookImpl(argsHook)
 		if errBlockChainHook != nil {
 			return nil, errBlockChainHook
@@ -379,6 +382,8 @@ func createScQueryElement(
 		}
 	}
 
+	log.Debug("maximum gas per VM Query", "value", maxGasForVmQueries)
+
 	vmContainer, err := vmFactory.Create()
 	if err != nil {
 		return nil, err
@@ -397,7 +402,7 @@ func createScQueryElement(
 		ArwenChangeLocker:        args.coreComponents.ArwenChangeLocker(),
 		Bootstrapper:             args.bootstrapper,
 		AllowExternalQueriesChan: args.allowVMQueriesChan,
-		MaxGasLimitPerQuery:      args.generalConfig.VirtualMachine.GasConfig.MaxGasPerVmQuery,
+		MaxGasLimitPerQuery:      maxGasForVmQueries,
 	}
 
 	return smartContract.NewSCQueryService(argsNewSCQueryService)
