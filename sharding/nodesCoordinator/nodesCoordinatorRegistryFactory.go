@@ -34,10 +34,10 @@ func NewNodesCoordinatorRegistryFactory(
 func (ncf *nodesCoordinatorRegistryFactory) CreateNodesCoordinatorRegistry(buff []byte) (NodesCoordinatorRegistryHandler, error) {
 	registry, err := ncf.createRegistryWithAuction(buff)
 	if err == nil {
-		log.Debug("nodesCoordinatorRegistryFactory.CreateNodesCoordinatorRegistry created registry with auction")
+		log.Debug("nodesCoordinatorRegistryFactory.CreateNodesCoordinatorRegistry created registry with auction", "epoch", registry.CurrentEpoch)
 		return registry, nil
 	}
-	log.Debug("nodesCoordinatorRegistryFactory.CreateNodesCoordinatorRegistry created old registry")
+
 	return createOldRegistry(buff)
 }
 
@@ -47,7 +47,7 @@ func (ncf *nodesCoordinatorRegistryFactory) createRegistryWithAuction(buff []byt
 	if err != nil {
 		return nil, err
 	}
-
+	log.Debug("nodesCoordinatorRegistryFactory.CreateNodesCoordinatorRegistry created old registry", "epoch", registry.CurrentEpoch)
 	return registry, nil
 }
 

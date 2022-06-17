@@ -599,7 +599,7 @@ func (ihnc *indexHashedNodesCoordinator) EpochStartPrepare(metaHdr data.HeaderHa
 
 	allValidatorInfo, err := createValidatorInfoFromBody(body, ihnc.marshalizer, ihnc.numTotalEligible)
 	if err != nil {
-		log.Error("could not create validator info from body - do nothing on nodesCoordinator epochStartPrepare")
+		log.Error("could not create validator info from body - do nothing on nodesCoordinator epochStartPrepare", "error", err)
 		return
 	}
 

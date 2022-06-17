@@ -112,7 +112,7 @@ func (bsh *baseStorageHandler) saveNodesCoordinatorRegistry(
 		return nil, err
 	}
 
-	log.Debug("saving nodes coordinator config", "key", key)
+	log.Debug("saving nodes coordinator config", "key", key, "epoch", metaBlock.GetEpoch())
 
 	return metaBlock.GetPrevRandSeed(), nil
 }
