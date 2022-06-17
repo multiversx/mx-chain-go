@@ -699,9 +699,10 @@
         ]
 
     [VirtualMachine.GasConfig]
-        # MaxGasPerVmQuery defines the maximum amount of gas to be allocated for VM Queries coming from API
+        # The following values define the maximum amount of gas to be allocated for VM Queries coming from API
         # If set to 0, then MaxUInt64 will be used
-        MaxGasPerVmQuery = 1500000000  #1.5b
+        ShardMaxGasPerVmQuery = 1500000000  #1.5b
+        MetaMaxGasPerVmQuery = 0  #unlimited
 
 [Hardfork]
     EnableTrigger = true
