@@ -240,7 +240,10 @@ func (atp *apiTransactionProcessor) lookupHistoricalTransaction(hash []byte, wit
 		block.Type(miniblockMetadata.Type), tx)
 
 	if withResults {
-		atp.transactionResultsProcessor.putResultsInTransaction(hash, tx, miniblockMetadata.Epoch)
+		err = atp.transactionResultsProcessor.putResultsInTransaction(hash, tx, miniblockMetadata.Epoch)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return tx, nil
