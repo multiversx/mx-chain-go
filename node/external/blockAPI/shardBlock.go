@@ -123,8 +123,19 @@ func (sbp *shardAPIBlockProcessor) convertShardBlockBytesToAPIBlock(hash []byte,
 		return nil, err
 	}
 
-	if len(intraMb) > 0 {
-		miniblocks = append(miniblocks, intraMb...)
+	miniblocks = append(miniblocks, intraMb...)
+
+	if options.WithTransactions {
+		// We only create "artificial" miniblocks if the response should include transactions, as well
+		artificialMiniblocks, err := sbp.recoverArtificialIntrashardMiniblocksHoldingContractResultsOfPreviouslyScheduledMiniblocks(
+			blockHeader,
+			options,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		miniblocks = append(miniblocks, artificialMiniblocks...)
 	}
 
 	miniblocks = filterOutDuplicatedMiniblocks(miniblocks)
