@@ -57,6 +57,11 @@ func (nhr *nilHistoryRepository) GetResultsHashesByTxHash(_ []byte, _ uint32) (*
 	return nil, nil
 }
 
+// GetResultsHashesByTxsHashes -
+func (nhr *nilHistoryRepository) GetResultsHashesByTxsHashes(txsHashes [][]byte, epoch uint32) ([]*dblookupext.ResultsHashesByTxHashPair, error) {
+	return nil, nil
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (nhr *nilHistoryRepository) IsInterfaceNil() bool {
 	return nhr == nil

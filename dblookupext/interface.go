@@ -12,6 +12,7 @@ type HistoryRepositoryFactory interface {
 }
 
 // HistoryRepository provides methods needed for the history data processing
+// TODO: Move interface where it's needed, not in the package where it's implemented
 type HistoryRepository interface {
 	RecordBlock(blockHeaderHash []byte,
 		blockHeader data.HeaderHandler,
@@ -23,6 +24,7 @@ type HistoryRepository interface {
 	GetMiniblockMetadataByTxHash(hash []byte) (*MiniblockMetadata, error)
 	GetEpochByHash(hash []byte) (uint32, error)
 	GetResultsHashesByTxHash(txHash []byte, epoch uint32) (*ResultsHashesByTxHash, error)
+	GetResultsHashesByTxsHashes(txsHashes [][]byte, epoch uint32) ([]*ResultsHashesByTxHashPair, error)
 	RevertBlock(blockHeader data.HeaderHandler, blockBody data.BodyHandler) error
 	GetESDTSupply(token string) (*esdtSupply.SupplyESDT, error)
 	IsEnabled() bool

@@ -15,6 +15,7 @@ type HistoryRepositoryStub struct {
 	GetMiniblockMetadataByTxHashCalled func(hash []byte) (*dblookupext.MiniblockMetadata, error)
 	GetEpochByHashCalled               func(hash []byte) (uint32, error)
 	GetEventsHashesByTxHashCalled      func(hash []byte, epoch uint32) (*dblookupext.ResultsHashesByTxHash, error)
+	GetEventsHashesByTxsHashesCalled   func(hashes [][]byte, epoch uint32) ([]*dblookupext.ResultsHashesByTxHashPair, error)
 	GetESDTSupplyCalled                func(token string) (*esdtSupply.SupplyESDT, error)
 	IsEnabledCalled                    func() bool
 }
@@ -69,6 +70,14 @@ func (hp *HistoryRepositoryStub) IsEnabled() bool {
 func (hp *HistoryRepositoryStub) GetResultsHashesByTxHash(hash []byte, epoch uint32) (*dblookupext.ResultsHashesByTxHash, error) {
 	if hp.GetEventsHashesByTxHashCalled != nil {
 		return hp.GetEventsHashesByTxHashCalled(hash, epoch)
+	}
+	return nil, nil
+}
+
+// GetResultsHashesByTxsHashes -
+func (hp *HistoryRepositoryStub) GetResultsHashesByTxsHashes(hashes [][]byte, epoch uint32) ([]*dblookupext.ResultsHashesByTxHashPair, error) {
+	if hp.GetEventsHashesByTxsHashesCalled != nil {
+		return hp.GetEventsHashesByTxsHashesCalled(hashes, epoch)
 	}
 	return nil, nil
 }
