@@ -114,18 +114,27 @@ func (bap *baseAPIBlockProcessor) prepareAPIMiniblock(miniblock *block.MiniBlock
 
 func (bap *baseAPIBlockProcessor) getAndAttachTxsToMb(mbHeader data.MiniBlockHeaderHandler, epoch uint32, apiMiniblock *api.MiniBlock, options api.BlockQueryOptions) error {
 	miniblockHash := mbHeader.GetHash()
-	mbBytes, err := bap.getFromStorerWithEpoch(dataRetriever.MiniBlockUnit, miniblockHash, epoch)
+	miniBlock, err := bap.getMiniblockByHash(miniblockHash, epoch)
 	if err != nil {
-		return fmt.Errorf("%w: %v, hash = %s", errCannotLoadMiniblocks, err, hex.EncodeToString(miniblockHash))
-	}
-
-	miniBlock := &block.MiniBlock{}
-	err = bap.marshalizer.Unmarshal(miniBlock, mbBytes)
-	if err != nil {
-		return fmt.Errorf("%w: %v, hash = %s", errCannotUnmarshalMiniblocks, err, hex.EncodeToString(miniblockHash))
+		return err
 	}
 
 	return bap.getAndAttachTxsToMbByEpoch(miniblockHash, miniBlock, epoch, apiMiniblock, options)
+}
+
+func (bap *baseAPIBlockProcessor) getMiniblockByHash(miniblockHash []byte, epoch uint32) (*block.MiniBlock, error) {
+	bytes, err := bap.getFromStorerWithEpoch(dataRetriever.MiniBlockUnit, miniblockHash, epoch)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %v, hash = %s", errCannotLoadMiniblocks, err, hex.EncodeToString(miniblockHash))
+	}
+
+	miniBlock := &block.MiniBlock{}
+	err = bap.marshalizer.Unmarshal(miniBlock, bytes)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %v, hash = %s", errCannotUnmarshalMiniblocks, err, hex.EncodeToString(miniblockHash))
+	}
+
+	return miniBlock, nil
 }
 
 func (bap *baseAPIBlockProcessor) getAndAttachTxsToMbByEpoch(miniblockHash []byte, miniBlock *block.MiniBlock, epoch uint32, apiMiniblock *api.MiniBlock, options api.BlockQueryOptions) error {
