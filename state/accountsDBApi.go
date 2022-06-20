@@ -218,6 +218,9 @@ func (accountsDB *accountsDBApi) GetAccountWithBlockInfo(address []byte) (vmcomm
 	}
 
 	account, err := accountsDB.innerAccountsAdapter.GetExistingAccount(address)
+	if err == ErrAccNotFound {
+		return nil, nil, newErrAccountNotFoundAtBlock(blockInfo)
+	}
 	if err != nil {
 		return nil, nil, err
 	}

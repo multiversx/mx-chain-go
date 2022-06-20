@@ -3,6 +3,9 @@ package state
 import (
 	"encoding/hex"
 	"errors"
+	"fmt"
+
+	"github.com/ElrondNetwork/elrond-go/common"
 )
 
 // ErrMissingTrie is an error-compatible struct holding the root hash of the trie that is missing
@@ -12,7 +15,7 @@ type ErrMissingTrie struct {
 
 // ------- ErrMissingTrie
 
-// NewErrMissingTrie  returns a new instantiated struct
+// NewErrMissingTrie returns a new instantiated struct
 func NewErrMissingTrie(rootHash []byte) *ErrMissingTrie {
 	return &ErrMissingTrie{rootHash: rootHash}
 }
@@ -20,6 +23,20 @@ func NewErrMissingTrie(rootHash []byte) *ErrMissingTrie {
 // Error returns the error as string
 func (e *ErrMissingTrie) Error() string {
 	return "trie was not found for hash " + hex.EncodeToString(e.rootHash)
+}
+
+// ErrAccountNotFoundAtBlock is an error-compatible struct holding the block info at which an account was not found
+type ErrAccountNotFoundAtBlock struct {
+	BlockInfo common.BlockInfo
+}
+
+func newErrAccountNotFoundAtBlock(blockInfo common.BlockInfo) *ErrAccountNotFoundAtBlock {
+	return &ErrAccountNotFoundAtBlock{BlockInfo: blockInfo}
+}
+
+// Error returns the error as string
+func (e *ErrAccountNotFoundAtBlock) Error() string {
+	return fmt.Sprintf("account was not found at block = %d", e.BlockInfo.GetNonce())
 }
 
 // ErrNilAccountsAdapter defines the error when trying to revert on nil accounts

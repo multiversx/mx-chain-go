@@ -780,14 +780,18 @@ func (n *Node) CreateTransaction(
 
 // GetAccount will return account details for a given address
 func (n *Node) GetAccount(address string, options api.AccountQueryOptions) (api.AccountResponse, api.BlockInfo, error) {
+	var accountNotFoundErr *state.ErrAccountNotFoundAtBlock
+
 	account, blockInfo, err := n.loadUserAccountHandlerByAddress(address, options)
 	if err != nil {
-		if err == state.ErrAccNotFound {
+		if errors.As(err, &accountNotFoundErr) {
+			blockInfo := accountBlockInfoToApiResource(accountNotFoundErr.BlockInfo)
+
 			return api.AccountResponse{
 				Address:         address,
 				Balance:         "0",
 				DeveloperReward: "0",
-			}, api.BlockInfo{}, nil
+			}, blockInfo, nil
 		}
 
 		return api.AccountResponse{}, api.BlockInfo{}, err
