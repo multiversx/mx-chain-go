@@ -168,7 +168,7 @@ type processComponentsFactory struct {
 	epochNotifier          process.EpochNotifier
 	importHandler          update.ImportHandler
 	stakingDataProviderAPI peer.StakingDataProviderAPI
-	auctionListSelector    epochStart.AuctionListSelector
+	auctionListSelectorAPI epochStart.AuctionListSelector
 
 	data                DataComponentsHolder
 	coreData            CoreComponentsHolder
@@ -543,7 +543,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		MaxRating:                         pcf.maxRating,
 		ValidatorPubKeyConverter:          pcf.coreData.ValidatorPubKeyConverter(),
 		AddressPubKeyConverter:            pcf.coreData.AddressPubKeyConverter(),
-		AuctionListSelector:               pcf.auctionListSelector,
+		AuctionListSelector:               pcf.auctionListSelectorAPI,
 	}
 
 	validatorsProvider, err := peer.NewValidatorsProvider(argVSP)

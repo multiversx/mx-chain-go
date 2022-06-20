@@ -423,7 +423,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 	}
 
 	pcf.stakingDataProviderAPI = factoryDisabled.NewDisabledStakingDataProvider()
-	pcf.auctionListSelector = factoryDisabled.NewDisabledAuctionListSelector()
+	pcf.auctionListSelectorAPI = factoryDisabled.NewDisabledAuctionListSelector()
 
 	return blockProcessorComponents, nil
 }
@@ -844,7 +844,19 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		return nil, err
 	}
 
-	pcf.auctionListSelector = auctionListSelector
+	argsAuctionListSelectorAPI := metachainEpochStart.AuctionListSelectorArgs{
+		ShardCoordinator:             pcf.bootstrapComponents.ShardCoordinator(),
+		StakingDataProvider:          stakingDataProviderAPI,
+		MaxNodesChangeConfigProvider: maxNodesChangeConfigProvider,
+		SoftAuctionConfig:            pcf.config.SoftAuctionConfig,
+		Denomination:                 pcf.economicsConfig.GlobalSettings.Denomination,
+	}
+	auctionListSelectorAPI, err := metachainEpochStart.NewAuctionListSelector(argsAuctionListSelectorAPI)
+	if err != nil {
+		return nil, err
+	}
+
+	pcf.auctionListSelectorAPI = auctionListSelectorAPI
 
 	argsEpochSystemSC := metachainEpochStart.ArgsNewEpochStartSystemSCProcessing{
 		SystemVM:                     systemVM,
