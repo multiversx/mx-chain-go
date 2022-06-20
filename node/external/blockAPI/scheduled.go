@@ -70,30 +70,38 @@ func (sbp *shardAPIBlockProcessor) recoverArtificialMiniblocksHoldingResults(
 
 	scrsHashes, receiptsHashes := groupResultsIntoSCRsAndReceipts(resultsByTx)
 
+	artificialMiniblockType := "Artificial"
+	miniblockHash := hex.EncodeToString(miniblockHeader.GetHash())
+	// Set on purpose, to not be mistaken as "0" (actual shard not recoverable without extra grouping, not necessary)
+	artificialSenderShard := uint32(math.MaxUint16)
+	artificialReceiverShard := uint32(math.MaxUint16 + 1)
+
 	artificialMiniblockOfSCRs := &block.MiniBlock{
-		TxHashes: scrsHashes,
-		Type:     block.SmartContractResultBlock,
-		// Set on purpose, to not be mistaken as "0" (actual shard not recoverable without extra grouping, not necessary)
-		SenderShardID:   math.MaxUint16,
-		ReceiverShardID: math.MaxUint16 + 1,
+		TxHashes:        scrsHashes,
+		Type:            block.SmartContractResultBlock,
+		SenderShardID:   artificialSenderShard,
+		ReceiverShardID: artificialReceiverShard,
 	}
 
 	artificialMiniblockOfReceipts := &block.MiniBlock{
-		TxHashes: receiptsHashes,
-		Type:     block.ReceiptBlock,
-		// Set on purpose, to not be mistaken as "0" (actual shard not recoverable without extra grouping, not necessary)
-		SenderShardID:   math.MaxUint16,
-		ReceiverShardID: math.MaxUint16 + 1,
+		TxHashes:        receiptsHashes,
+		Type:            block.ReceiptBlock,
+		SenderShardID:   artificialSenderShard,
+		ReceiverShardID: artificialReceiverShard,
 	}
 
 	artificialApiMiniblockOfSCRs := &api.MiniBlock{
-		Hash: fmt.Sprintf("SCRs of %s", hex.EncodeToString(miniblockHeader.GetHash())),
-		Type: block.SmartContractResultBlock.String(),
+		Type:             artificialMiniblockType,
+		Hash:             fmt.Sprintf("SCRS/%s", miniblockHash),
+		SourceShard:      artificialSenderShard,
+		DestinationShard: artificialReceiverShard,
 	}
 
 	artificialApiMiniblockOfReceipts := &api.MiniBlock{
-		Hash: fmt.Sprintf("Receipts of %s", hex.EncodeToString(miniblockHeader.GetHash())),
-		Type: block.ReceiptBlock.String(),
+		Type:             artificialMiniblockType,
+		Hash:             fmt.Sprintf("Receipts/%s", miniblockHash),
+		SourceShard:      artificialSenderShard,
+		DestinationShard: artificialReceiverShard,
 	}
 
 	err = sbp.getAndAttachTxsToMbByEpoch([]byte{}, artificialMiniblockOfSCRs, epoch, artificialApiMiniblockOfSCRs, options)
@@ -112,13 +120,26 @@ func (sbp *shardAPIBlockProcessor) recoverArtificialMiniblocksHoldingResults(
 func groupResultsIntoSCRsAndReceipts(results []*dblookupext.ResultsHashesByTxHashPair) ([][]byte, [][]byte) {
 	scrsHashes := make([][]byte, 0)
 	receiptsHashes := make([][]byte, 0)
+	deduplicationMap := make(map[string]struct{})
 
 	for _, item := range results {
-		for _, innerItem := range item.ScResultsHashesAndEpoch {
-			scrsHashes = append(scrsHashes, innerItem.ScResultsHashes...)
+		for _, scrsAndEpoch := range item.ScResultsHashesAndEpoch {
+			for _, scr := range scrsAndEpoch.ScResultsHashes {
+				_, alreadyAdded := deduplicationMap[string(scr)]
+				if !alreadyAdded {
+					scrsHashes = append(scrsHashes, scr)
+				}
+
+				deduplicationMap[string(scr)] = struct{}{}
+			}
 		}
 
-		receiptsHashes = append(receiptsHashes, item.ReceiptsHash)
+		_, alreadyAdded := deduplicationMap[string(item.ReceiptsHash)]
+		if !alreadyAdded {
+			receiptsHashes = append(receiptsHashes, item.ReceiptsHash)
+		}
+
+		deduplicationMap[string(item.ReceiptsHash)] = struct{}{}
 	}
 
 	return scrsHashes, receiptsHashes
