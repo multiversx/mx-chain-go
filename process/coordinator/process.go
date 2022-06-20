@@ -17,7 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go-logger"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
@@ -1265,6 +1265,8 @@ func (tc *transactionCoordinator) CreateMarshalizedReceipts() ([]byte, error) {
 		if !ok {
 			continue
 		}
+
+		_ = interProc.CreateAllInterMiniBlocks()
 
 		miniBlock := interProc.GetCreatedInShardMiniBlock()
 		if miniBlock == nil {
