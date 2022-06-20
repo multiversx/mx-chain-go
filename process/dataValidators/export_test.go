@@ -39,8 +39,3 @@ func CheckOperationAllowedToBypassGuardian(txData []byte) error {
 func GetTxData(interceptedTx process.InterceptedTransactionHandler) ([]byte, error) {
 	return getTxData(interceptedTx)
 }
-
-// IsBuiltInFuncCallWithParam -
-func IsBuiltInFuncCallWithParam(txData []byte, function string) bool {
-	return isBuiltinFuncCallWithParam(txData, function)
-}

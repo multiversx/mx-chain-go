@@ -790,13 +790,13 @@ func Test_isBuiltinFuncCallWithParam(t *testing.T) {
 	txDataNonTargetFunc := []byte(nonTargetFunction + suffix)
 
 	t.Run("no function", func(t *testing.T) {
-		require.False(t, dataValidators.IsBuiltInFuncCallWithParam(txDataNoFunction, targetFunction))
+		require.False(t, process.IsBuiltinFuncCallWithParam(txDataNoFunction, targetFunction))
 	})
 	t.Run("non target function", func(t *testing.T) {
-		require.False(t, dataValidators.IsBuiltInFuncCallWithParam(txDataNonTargetFunc, targetFunction))
+		require.False(t, process.IsBuiltinFuncCallWithParam(txDataNonTargetFunc, targetFunction))
 	})
 	t.Run("target function", func(t *testing.T) {
-		require.True(t, dataValidators.IsBuiltInFuncCallWithParam(txDataWithFunc, targetFunction))
+		require.True(t, process.IsBuiltinFuncCallWithParam(txDataWithFunc, targetFunction))
 	})
 }
 
