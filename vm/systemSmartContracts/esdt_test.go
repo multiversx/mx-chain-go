@@ -4639,7 +4639,7 @@ func registerAndSetAllRolesWithTypeCheck(t *testing.T, typeArgument []byte, expe
 	assert.Equal(t, lenOutTransfer, 1)
 }
 
-func TestEsdt_setBurnForAll(t *testing.T) {
+func TestEsdt_setBurnRoleGlobally(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
@@ -4652,7 +4652,7 @@ func TestEsdt_setBurnForAll(t *testing.T) {
 	args.Eei = eei
 
 	e, _ := NewESDTSmartContract(args)
-	vmInput := getDefaultVmInputForFunc("setBurnForAll", [][]byte{})
+	vmInput := getDefaultVmInputForFunc("setBurnRoleGlobally", [][]byte{})
 
 	e.flagBurnForAll.Reset()
 	output := e.Execute(vmInput)
@@ -4700,10 +4700,10 @@ func TestEsdt_setBurnForAll(t *testing.T) {
 
 	output = e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
-	assert.True(t, strings.Contains(eei.returnMessage, "cannot set burn for all as it was already set"))
+	assert.True(t, strings.Contains(eei.returnMessage, "cannot set burn role globally as it was already set"))
 }
 
-func TestEsdt_unsetBurnForAll(t *testing.T) {
+func TestEsdt_unsetBurnRoleGlobally(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
@@ -4716,7 +4716,7 @@ func TestEsdt_unsetBurnForAll(t *testing.T) {
 	args.Eei = eei
 
 	e, _ := NewESDTSmartContract(args)
-	vmInput := getDefaultVmInputForFunc("unsetBurnForAll", [][]byte{})
+	vmInput := getDefaultVmInputForFunc("unsetBurnRoleGlobally", [][]byte{})
 
 	e.flagBurnForAll.Reset()
 	output := e.Execute(vmInput)
@@ -4748,7 +4748,7 @@ func TestEsdt_unsetBurnForAll(t *testing.T) {
 	vmInput.CallerAddr = owner
 	vmInput.Arguments = [][]byte{tokenName}
 	output = e.Execute(vmInput)
-
+	assert.Equal(t, vmcommon.Ok, output)
 	vmOutput := eei.CreateVMOutput()
 
 	systemAddress := make([]byte, len(core.SystemAccountAddress))
@@ -4772,5 +4772,5 @@ func TestEsdt_unsetBurnForAll(t *testing.T) {
 
 	output = e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
-	assert.True(t, strings.Contains(eei.returnMessage, "cannot un set burn for all as it was not set"))
+	assert.True(t, strings.Contains(eei.returnMessage, "cannot unset burn role globally as it was not set"))
 }

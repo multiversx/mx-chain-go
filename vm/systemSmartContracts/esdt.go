@@ -225,10 +225,10 @@ func (e *esdt) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 		return e.getContractConfig(args)
 	case "changeToMultiShardCreate":
 		return e.changeToMultiShardCreate(args)
-	case "setBurnForAll":
-		return e.setBurnForAll(args)
-	case "unsetBurnForAll":
-		return e.unSetBurnForAll(args)
+	case "setBurnRoleGlobally":
+		return e.setBurnRoleGlobally(args)
+	case "unsetBurnRoleGlobally":
+		return e.unsetBurnRoleGlobally(args)
 	}
 
 	e.eei.AddReturnMessage("invalid method to call")
@@ -1108,7 +1108,7 @@ func (e *esdt) saveTokenAndSendForAll(token *ESDTDataV2, tokenID []byte, builtIn
 	return vmcommon.Ok
 }
 
-func (e *esdt) setBurnForAll(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+func (e *esdt) setBurnRoleGlobally(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	token, returnCode := e.checkInputReturnDataBurnForAll(args)
 	if returnCode != vmcommon.Ok {
 		return returnCode
@@ -1116,7 +1116,7 @@ func (e *esdt) setBurnForAll(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 
 	burnForAllExists := checkIfDefinedRoleExistsInToken(token, []byte(vmcommon.ESDTRoleBurnForAll))
 	if burnForAllExists {
-		e.eei.AddReturnMessage("cannot set burn for all as it was already set")
+		e.eei.AddReturnMessage("cannot set burn role globally as it was already set")
 		return vmcommon.UserError
 	}
 
@@ -1130,7 +1130,7 @@ func (e *esdt) setBurnForAll(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 	return vmcommon.Ok
 }
 
-func (e *esdt) unSetBurnForAll(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+func (e *esdt) unsetBurnRoleGlobally(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	token, returnCode := e.checkInputReturnDataBurnForAll(args)
 	if returnCode != vmcommon.Ok {
 		return returnCode
@@ -1138,7 +1138,7 @@ func (e *esdt) unSetBurnForAll(args *vmcommon.ContractCallInput) vmcommon.Return
 
 	burnForAllExists := checkIfDefinedRoleExistsInToken(token, []byte(vmcommon.ESDTRoleBurnForAll))
 	if !burnForAllExists {
-		e.eei.AddReturnMessage("cannot un set burn for all as it was not set")
+		e.eei.AddReturnMessage("cannot unset burn role globally as it was not set")
 		return vmcommon.UserError
 	}
 
@@ -2162,7 +2162,7 @@ func (e *esdt) EpochConfirmed(epoch uint32, _ uint64) {
 	log.Debug("ESDT register and set all roles", "enabled", e.flagRegisterAndSetAllRoles.IsSet())
 
 	e.flagBurnForAll.SetValue(epoch >= e.burnForAllEnableEpoch)
-	log.Debug("ESDT register and set all roles", "enabled", e.flagBurnForAll.IsSet())
+	log.Debug("ESDT burn for all", "enabled", e.flagBurnForAll.IsSet())
 }
 
 // SetNewGasCost is called whenever a gas cost was changed
