@@ -189,7 +189,7 @@ var (
 		Value: "",
 	}
 
-	//useLogView is a deprecated flag, but kept for backwards compatibility
+	// useLogView is a deprecated flag, but kept for backwards compatibility
 	useLogView = cli.BoolFlag{
 		Name: "use-log-view",
 		Usage: "Deprecated flag. This flag's value is not used anymore as the only way the node starts now is within " +
@@ -212,17 +212,17 @@ var (
 			" log level.",
 		Value: "*:" + logger.LogInfo.String(),
 	}
-	//logFile is used when the log output needs to be logged in a file
+	// logFile is used when the log output needs to be logged in a file
 	logSaveFile = cli.BoolFlag{
 		Name:  "log-save",
 		Usage: "Boolean option for enabling log saving. If set, it will automatically save all the logs into a file.",
 	}
-	//logWithCorrelation is used to enable log correlation elements
+	// logWithCorrelation is used to enable log correlation elements
 	logWithCorrelation = cli.BoolFlag{
 		Name:  "log-correlation",
 		Usage: "Boolean option for enabling log correlation elements.",
 	}
-	//logWithLoggerName is used to enable log correlation elements
+	// logWithLoggerName is used to enable log correlation elements
 	logWithLoggerName = cli.BoolFlag{
 		Name:  "log-logger-name",
 		Usage: "Boolean option for logger name in the logs.",
@@ -498,14 +498,6 @@ func processConfigImportDBMode(log logger.Logger, configs *config.Configs) error
 	generalConfigs.StateTriesConfig.CheckpointRoundsModulus = 100000000
 	p2pConfigs.Node.ThresholdMinConnectedPeers = 0
 	p2pConfigs.KadDhtPeerDiscovery.Enabled = false
-
-	defaultSecondsToCheckHealth := 300                   // 5minutes
-	defaultDiagnoseMemoryLimit := 6 * 1024 * 1024 * 1024 // 6GB
-
-	generalConfigs.Health.IntervalDiagnoseComponentsDeeplyInSeconds = defaultSecondsToCheckHealth
-	generalConfigs.Health.IntervalDiagnoseComponentsInSeconds = defaultSecondsToCheckHealth
-	generalConfigs.Health.IntervalVerifyMemoryInSeconds = defaultSecondsToCheckHealth
-	generalConfigs.Health.MemoryUsageToCreateProfiles = defaultDiagnoseMemoryLimit
 
 	alterStorageConfigsForDBImport(generalConfigs)
 
