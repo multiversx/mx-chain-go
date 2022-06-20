@@ -343,7 +343,7 @@ func markAuctionNodesAsSelected(
 	validatorsInfoMap state.ShardValidatorsInfoMapHandler,
 ) error {
 	for _, node := range selectedNodes {
-		newNode := node
+		newNode := node.ShallowClone()
 		newNode.SetList(string(common.SelectedFromAuctionList))
 
 		err := validatorsInfoMap.Replace(node, newNode)

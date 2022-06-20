@@ -357,7 +357,7 @@ func (sdp *stakingDataProvider) checkAndFillOwnerValidatorAuctionData(
 			hex.EncodeToString(validator.GetPublicKey()),
 		)
 	}
-	if validatorInAuction && !sdp.flagStakingV4Enable.IsSet() {
+	if validatorInAuction && !sdp.flagStakingV4Enable.IsSet() { // todo: here starting staking v4 init + remove if validatorInAuction check
 		return fmt.Errorf("stakingDataProvider.checkAndFillOwnerValidatorAuctionData for validator in auction error: %w, owner: %s, node: %s",
 			epochStart.ErrReceivedAuctionValidatorsBeforeStakingV4,
 			hex.EncodeToString(ownerPubKey),
