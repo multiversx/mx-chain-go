@@ -40,15 +40,15 @@ type GasLimitSetting struct {
 	MaxGasLimitPerMetaMiniBlock string
 	MaxGasLimitPerTx            string
 	MinGasLimit                 string
+	ExtraGasLimitGuardedTx      string
 }
 
 // FeeSettings will hold economics fee settings
 type FeeSettings struct {
-	GasLimitSettings       []GasLimitSetting
-	GasPerDataByte         string
-	MinGasPrice            string
-	GasPriceModifier       float64
-	ExtraGasLimitGuardedTx string
+	GasLimitSettings []GasLimitSetting
+	GasPerDataByte   string
+	MinGasPrice      string
+	GasPriceModifier float64
 }
 
 // EconomicsConfig will hold economics config

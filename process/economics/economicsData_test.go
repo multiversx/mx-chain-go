@@ -61,12 +61,12 @@ func feeSettingsDummy(gasModifier float64) config.FeeSettings {
 				MaxGasLimitPerMetaMiniBlock: "1000000",
 				MaxGasLimitPerTx:            "100000",
 				MinGasLimit:                 "500",
+				ExtraGasLimitGuardedTx:      "50000",
 			},
 		},
-		MinGasPrice:            "18446744073709551615",
-		GasPerDataByte:         "1",
-		GasPriceModifier:       gasModifier,
-		ExtraGasLimitGuardedTx: "50000",
+		MinGasPrice:      "18446744073709551615",
+		GasPerDataByte:   "1",
+		GasPriceModifier: gasModifier,
 	}
 }
 
@@ -80,12 +80,12 @@ func feeSettingsReal() config.FeeSettings {
 				MaxGasLimitPerMetaMiniBlock: "15000000000",
 				MaxGasLimitPerTx:            "1500000000",
 				MinGasLimit:                 "50000",
+				ExtraGasLimitGuardedTx:      "50000",
 			},
 		},
-		MinGasPrice:            "1000000000",
-		GasPerDataByte:         "1500",
-		GasPriceModifier:       0.01,
-		ExtraGasLimitGuardedTx: "50000",
+		MinGasPrice:      "1000000000",
+		GasPerDataByte:   "1500",
+		GasPriceModifier: 0.01,
 	}
 }
 
@@ -495,6 +495,7 @@ func TestEconomicsData_ConfirmedGasLimitSettingsChangeOrderedConfigs(t *testing.
 			MaxGasLimitPerMetaMiniBlock: "15000000000",
 			MaxGasLimitPerTx:            "1500000000",
 			MinGasLimit:                 "50000",
+			ExtraGasLimitGuardedTx:      "50000",
 		},
 		{
 			EnableEpoch:                 2,
@@ -504,6 +505,7 @@ func TestEconomicsData_ConfirmedGasLimitSettingsChangeOrderedConfigs(t *testing.
 			MaxGasLimitPerMetaMiniBlock: "5000000000",
 			MaxGasLimitPerTx:            "500000000",
 			MinGasLimit:                 "50000",
+			ExtraGasLimitGuardedTx:      "50000",
 		},
 	}
 
@@ -583,6 +585,7 @@ func TestEconomicsData_ConfirmedGasLimitSettingsChangeUnOrderedConfigs(t *testin
 			MaxGasLimitPerMetaMiniBlock: "5000000000",
 			MaxGasLimitPerTx:            "500000000",
 			MinGasLimit:                 "50000",
+			ExtraGasLimitGuardedTx:      "50000",
 		},
 		{
 			EnableEpoch:                 0,
@@ -592,6 +595,7 @@ func TestEconomicsData_ConfirmedGasLimitSettingsChangeUnOrderedConfigs(t *testin
 			MaxGasLimitPerMetaMiniBlock: "15000000000",
 			MaxGasLimitPerTx:            "1500000000",
 			MinGasLimit:                 "50000",
+			ExtraGasLimitGuardedTx:      "50000",
 		},
 	}
 

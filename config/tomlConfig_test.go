@@ -253,12 +253,12 @@ func TestTomlEconomicsParser(t *testing.T) {
 		FeeSettings: FeeSettings{
 			GasLimitSettings: []GasLimitSetting{
 				{
-					MaxGasLimitPerBlock: maxGasLimitPerBlock,
-					MinGasLimit:         minGasLimit,
+					MaxGasLimitPerBlock:    maxGasLimitPerBlock,
+					MinGasLimit:            minGasLimit,
+					ExtraGasLimitGuardedTx: extraGasLimitGuardedTx,
 				},
 			},
-			MinGasPrice:            minGasPrice,
-			ExtraGasLimitGuardedTx: extraGasLimitGuardedTx,
+			MinGasPrice: minGasPrice,
 		},
 	}
 
@@ -281,9 +281,8 @@ func TestTomlEconomicsParser(t *testing.T) {
     ProtocolSustainabilityAddress = "` + protocolSustainabilityAddress + `"
 
 [FeeSettings]
-	GasLimitSettings = [{EnableEpoch = 0, MaxGasLimitPerBlock = "` + maxGasLimitPerBlock + `", MaxGasLimitPerMiniBlock = "", MaxGasLimitPerMetaBlock = "", MaxGasLimitPerMetaMiniBlock = "", MaxGasLimitPerTx = "", MinGasLimit = "` + minGasLimit + `"}] 
+	GasLimitSettings = [{EnableEpoch = 0, MaxGasLimitPerBlock = "` + maxGasLimitPerBlock + `", MaxGasLimitPerMiniBlock = "", MaxGasLimitPerMetaBlock = "", MaxGasLimitPerMetaMiniBlock = "", MaxGasLimitPerTx = "", MinGasLimit = "` + minGasLimit + `", ExtraGasLimitGuardedTx = "` + extraGasLimitGuardedTx + `"}] 
     MinGasPrice = "` + minGasPrice + `"
-	ExtraGasLimitGuardedTx = "` + extraGasLimitGuardedTx + `"
 `
 	cfg := EconomicsConfig{}
 
