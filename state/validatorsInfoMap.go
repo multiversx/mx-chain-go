@@ -105,8 +105,8 @@ func (vi *shardValidatorsInfoMap) Replace(old ValidatorInfoHandler, new Validato
 	vi.mutex.Lock()
 	defer vi.mutex.Unlock()
 	log.Debug("shardValidatorsInfoMap.Replace",
-		"old validator", hex.EncodeToString(old.GetPublicKey()), "shard", old.GetShardId(),
-		"with new validator", hex.EncodeToString(new.GetPublicKey()), "shard", new.GetShardId(),
+		"old validator", hex.EncodeToString(old.GetPublicKey()), "shard", old.GetShardId(), "list", old.GetList(),
+		"with new validator", hex.EncodeToString(new.GetPublicKey()), "shard", new.GetShardId(), "list", new.GetList(),
 	)
 	for idx, validator := range vi.valInfoMap[shardID] {
 		if bytes.Equal(validator.GetPublicKey(), old.GetPublicKey()) {
@@ -118,7 +118,7 @@ func (vi *shardValidatorsInfoMap) Replace(old ValidatorInfoHandler, new Validato
 
 	for shard, validators := range vi.valInfoMap {
 		for _, val := range validators {
-			log.Error("shardValidatorsInfoMap.Replace ERROR", "shardID", shard, "validator pk", hex.EncodeToString(val.GetPublicKey()))
+			log.Error("shardValidatorsInfoMap.Replace ERROR", "shardID", shard, "validator pk", hex.EncodeToString(val.GetPublicKey()), "list", val.GetList())
 		}
 
 	}

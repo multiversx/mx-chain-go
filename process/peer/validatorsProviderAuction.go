@@ -109,11 +109,17 @@ func (vp *validatorsProvider) getSelectedNodesFromAuction(validatorsMap state.Sh
 		return nil, err
 	}
 
+	for _, validator := range validatorsMap.GetAllValidatorsInfo() {
+		if validator.GetList() == string(common.AuctionList) {
+			log.Debug("validatorsProvider.getSelectedNodesFromAuction AUCTION NODE", "pub key", vp.validatorPubKeyConverter.Encode(validator.GetPublicKey()))
+		}
+	}
+
 	selectedNodes := make([]state.ValidatorInfoHandler, 0)
 	for _, validator := range validatorsMap.GetAllValidatorsInfo() {
 		if validator.GetList() == string(common.SelectedFromAuctionList) {
 			selectedNodes = append(selectedNodes, validator.ShallowClone())
-			log.Debug("validatorsProvider.getSelectedNodesFromAuction selected node from auction", "pub key", vp.validatorPubKeyConverter.Encode(validator.GetPublicKey()))
+			log.Debug("validatorsProvider.getSelectedNodesFromAuction SELECTED AUCTION NODE", "pub key", vp.validatorPubKeyConverter.Encode(validator.GetPublicKey()))
 		}
 	}
 
