@@ -39,9 +39,9 @@ func (vp *validatorsProvider) updateAuctionListCacheIfNeeded() error {
 }
 
 func (vp *validatorsProvider) updateAuctionListCache() error {
-	rootHash, err := vp.validatorStatistics.RootHash()
-	if err != nil {
-		return err
+	rootHash := vp.validatorStatistics.LastFinalizedRootHash()
+	if len(rootHash) == 0 {
+		return state.ErrNilRootHash
 	}
 
 	validatorsMap, err := vp.validatorStatistics.GetValidatorInfoForRootHash(rootHash)
