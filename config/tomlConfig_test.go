@@ -106,7 +106,8 @@ func TestTomlParser(t *testing.T) {
 				VirtualMachineConfig: VirtualMachineConfig{ArwenVersions: arwenVersions},
 			},
 			GasConfig: VirtualMachineGasConfig{
-				MaxGasPerVmQuery: 1_500_000_000,
+				ShardMaxGasPerVmQuery: 1_500_000_000,
+				MetaMaxGasPerVmQuery:  0,
 			},
 		},
 		Debug: DebugConfig{
@@ -194,7 +195,8 @@ func TestTomlParser(t *testing.T) {
         ]
 
 	[VirtualMachine.GasConfig]
-		MaxGasPerVmQuery = 1500000000
+		ShardMaxGasPerVmQuery = 1500000000
+		MetaMaxGasPerVmQuery = 0
 
 [Debug]
     [Debug.InterceptorResolver]
