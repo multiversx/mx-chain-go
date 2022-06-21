@@ -293,7 +293,7 @@ func (sr *subroundEndRound) IsOutOfTime() bool {
 	return sr.isOutOfTime()
 }
 
-func (sr *subroundEndRound) VerifyNodesOnAggSigVerificationFail(multiSigner crypto.MultiSigner) error {
+func (sr *subroundEndRound) VerifyNodesOnAggSigVerificationFail(multiSigner crypto.MultiSigner) ([]byte, []byte, error) {
 	return sr.verifyNodesOnAggSigVerificationFail(multiSigner)
 }
 
