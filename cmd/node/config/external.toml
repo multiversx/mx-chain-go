@@ -14,6 +14,7 @@
     # EnabledIndexes represents a slice of indexes that will be enabled for indexing. Full list is:
     # ["rating", "transactions", "blocks", "validators", "miniblocks", "rounds", "accounts", "accountshistory", "receipts", "scresults", "accountsesdt", "accountsesdthistory", "epochinfo", "scdeploys", "tokens", "tags", "logs", "delegators", "operations"]
     EnabledIndexes    = ["rating", "transactions", "blocks", "validators", "miniblocks", "rounds", "accounts", "accountshistory", "receipts", "scresults", "accountsesdt", "accountsesdthistory", "epochinfo", "scdeploys", "tokens", "tags", "logs", "delegators", "operations"]
+
 # EventNotifierConnector defines settings needed to configure and launch the event notifier component
 [EventNotifierConnector]
     # Enabled will turn on or off the event notifier connector

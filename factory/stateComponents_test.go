@@ -218,6 +218,10 @@ func getGeneralConfig() config.Config {
 					{StartEpoch: 0, Version: "v0.3"},
 				},
 			},
+			GasConfig: config.VirtualMachineGasConfig{
+				ShardMaxGasPerVmQuery: 1_500_000_000,
+				MetaMaxGasPerVmQuery:  0,
+			},
 		},
 		SmartContractsStorageForSCQuery: config.StorageConfig{
 			Cache: config.CacheConfig{
