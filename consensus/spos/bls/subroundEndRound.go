@@ -337,16 +337,6 @@ func (sr *subroundEndRound) verifyNodesOnAggSigVerificationFail(
 			continue
 		}
 
-		nodeIndex, err := sr.ConsensusGroupIndex(pk)
-
-		err = multiSigner.StoreSignatureShare(uint16(nodeIndex), sigShare)
-		if err != nil {
-			log.Debug("receivedSignature.StoreSignatureShare",
-				"node", pk,
-				"index", nodeIndex,
-				"error", err.Error())
-			return nil, nil, err
-		}
 		log.Debug("verifyNodesOnAggSigVerificationFail.VerifySignatureShare checked SUCCESSFULLY", "public key", pk)
 	}
 
