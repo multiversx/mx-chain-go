@@ -74,14 +74,6 @@ func (hp *HistoryRepositoryStub) GetResultsHashesByTxHash(hash []byte, epoch uin
 	return nil, nil
 }
 
-// GetResultsHashesByTxsHashes -
-func (hp *HistoryRepositoryStub) GetResultsHashesByTxsHashes(hashes [][]byte, epoch uint32) ([]*dblookupext.ResultsHashesByTxHashPair, error) {
-	if hp.GetEventsHashesByTxsHashesCalled != nil {
-		return hp.GetEventsHashesByTxsHashesCalled(hashes, epoch)
-	}
-	return nil, nil
-}
-
 // RevertBlock -
 func (hp *HistoryRepositoryStub) RevertBlock(_ data.HeaderHandler, _ data.BodyHandler) error {
 	return nil

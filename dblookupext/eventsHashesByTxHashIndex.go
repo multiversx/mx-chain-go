@@ -131,28 +131,3 @@ func (eht *eventsHashesByTxHash) getEventsHashesByTxHash(txHash []byte, epoch ui
 
 	return record, nil
 }
-
-func (eht *eventsHashesByTxHash) getEventsHashesByTxsHashes(txsHashes [][]byte, epoch uint32) ([]*ResultsHashesByTxHashPair, error) {
-	rawRecords, err := eht.storer.GetBulkFromEpoch(txsHashes, epoch)
-	if err != nil {
-		return nil, err
-	}
-
-	pairs := make([]*ResultsHashesByTxHashPair, 0, len(txsHashes))
-
-	for _, rawRecord := range rawRecords {
-		record := &ResultsHashesByTxHash{}
-		err = eht.marshalizer.Unmarshal(record, rawRecord.Value)
-		if err != nil {
-			return nil, err
-		}
-
-		pairs = append(pairs, &ResultsHashesByTxHashPair{
-			TxHash:                  rawRecord.Key,
-			ReceiptsHash:            record.ReceiptsHash,
-			ScResultsHashesAndEpoch: record.ScResultsHashesAndEpoch,
-		})
-	}
-
-	return pairs, nil
-}

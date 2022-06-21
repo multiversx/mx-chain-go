@@ -459,11 +459,6 @@ func (hr *historyRepository) GetResultsHashesByTxHash(txHash []byte, epoch uint3
 	return hr.eventsHashesByTxHashIndex.getEventsHashesByTxHash(txHash, epoch)
 }
 
-// GetResultsHashesByTxsHashes will return results hashes by transactions hashes
-func (hr *historyRepository) GetResultsHashesByTxsHashes(txsHashes [][]byte, epoch uint32) ([]*ResultsHashesByTxHashPair, error) {
-	return hr.eventsHashesByTxHashIndex.getEventsHashesByTxsHashes(txsHashes, epoch)
-}
-
 // IsEnabled will always return true
 func (hr *historyRepository) IsEnabled() bool {
 	return true
