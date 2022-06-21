@@ -8,12 +8,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/common/enablers"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap"
 	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/factory/block"
-	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/headerCheck"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -28,7 +26,6 @@ import (
 type BootstrapComponentsFactoryArgs struct {
 	Config            config.Config
 	EpochConfig       config.EpochConfig
-	RoundConfig       config.RoundConfig
 	PrefConfig        config.Preferences
 	ImportDbConfig    config.ImportDbConfig
 	WorkingDir        string
@@ -40,7 +37,6 @@ type BootstrapComponentsFactoryArgs struct {
 type bootstrapComponentsFactory struct {
 	config            config.Config
 	epochConfig       config.EpochConfig
-	roundConfig       config.RoundConfig
 	prefConfig        config.Preferences
 	importDbConfig    config.ImportDbConfig
 	workingDir        string
@@ -57,7 +53,6 @@ type bootstrapComponents struct {
 	headerVersionHandler    factory.HeaderVersionHandler
 	versionedHeaderFactory  factory.VersionedHeaderFactory
 	headerIntegrityVerifier factory.HeaderIntegrityVerifierHandler
-	enableRoundsHandler     process.EnableRoundsHandler
 }
 
 // NewBootstrapComponentsFactory creates an instance of bootstrapComponentsFactory
@@ -78,7 +73,6 @@ func NewBootstrapComponentsFactory(args BootstrapComponentsFactoryArgs) (*bootst
 	return &bootstrapComponentsFactory{
 		config:            args.Config,
 		epochConfig:       args.EpochConfig,
-		roundConfig:       args.RoundConfig,
 		prefConfig:        args.PrefConfig,
 		importDbConfig:    args.ImportDbConfig,
 		workingDir:        args.WorkingDir,
@@ -221,11 +215,6 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		return nil, err
 	}
 
-	enableRoundsHandler, err := enablers.NewEnableRoundsHandler(bcf.roundConfig)
-	if err != nil {
-		return nil, err
-	}
-
 	versionedHeaderFactory, err := bcf.createHeaderFactory(headerVersionHandler, bootstrapParameters.SelfShardId)
 	if err != nil {
 		return nil, err
@@ -241,7 +230,6 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		headerVersionHandler:    headerVersionHandler,
 		headerIntegrityVerifier: headerIntegrityVerifier,
 		versionedHeaderFactory:  versionedHeaderFactory,
-		enableRoundsHandler:     enableRoundsHandler,
 	}, nil
 }
 

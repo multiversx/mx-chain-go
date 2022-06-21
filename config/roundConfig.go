@@ -7,6 +7,6 @@ type RoundConfig struct {
 
 // ActivationRoundByName contains information related to a round activation event
 type ActivationRoundByName struct {
-	Round   uint64
+	Round   string
 	Options []string
 }

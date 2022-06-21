@@ -4,20 +4,18 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	nodeFactory "github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/factory"
-	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 // BootstrapComponentsStub -
 type BootstrapComponentsStub struct {
-	Bootstrapper             factory.EpochStartBootstrapper
-	BootstrapParams          factory.BootstrapParamsHolder
-	NodeRole                 core.NodeType
-	ShCoordinator            sharding.Coordinator
-	HdrVersionHandler        nodeFactory.HeaderVersionHandler
-	VersionedHdrFactory      nodeFactory.VersionedHeaderFactory
-	HdrIntegrityVerifier     nodeFactory.HeaderIntegrityVerifierHandler
-	EnableRoundsHandlerField process.EnableRoundsHandler
+	Bootstrapper         factory.EpochStartBootstrapper
+	BootstrapParams      factory.BootstrapParamsHolder
+	NodeRole             core.NodeType
+	ShCoordinator        sharding.Coordinator
+	HdrVersionHandler    nodeFactory.HeaderVersionHandler
+	VersionedHdrFactory  nodeFactory.VersionedHeaderFactory
+	HdrIntegrityVerifier nodeFactory.HeaderIntegrityVerifierHandler
 }
 
 // Create -
@@ -68,11 +66,6 @@ func (bcs *BootstrapComponentsStub) VersionedHeaderFactory() nodeFactory.Version
 // HeaderIntegrityVerifier -
 func (bcs *BootstrapComponentsStub) HeaderIntegrityVerifier() nodeFactory.HeaderIntegrityVerifierHandler {
 	return bcs.HdrIntegrityVerifier
-}
-
-// EnableRoundsHandler -
-func (bcs *BootstrapComponentsStub) EnableRoundsHandler() process.EnableRoundsHandler {
-	return bcs.EnableRoundsHandlerField
 }
 
 // String -

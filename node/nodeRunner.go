@@ -314,7 +314,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	}
 
 	log.Debug("creating nodes coordinator")
-	nodesCoordinator, err := mainFactory.CreateNodesCoordinator(
+	nodesCoordinatorInstance, err := mainFactory.CreateNodesCoordinator(
 		nodesShufflerOut,
 		managedCoreComponents.GenesisNodesSetup(),
 		configs.PreferencesConfig.Preferences,
@@ -343,7 +343,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		managedBootstrapComponents,
 		managedDataComponents,
 		managedStateComponents,
-		nodesCoordinator,
+		nodesCoordinatorInstance,
 		configs.ImportDbConfig.IsImportDBMode,
 	)
 	if err != nil {
@@ -371,7 +371,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		managedDataComponents,
 		managedStatusComponents,
 		gasScheduleNotifier,
-		nodesCoordinator,
+		nodesCoordinatorInstance,
 	)
 	if err != nil {
 		return true, err
@@ -456,7 +456,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		log.Debug("activating nodesCoordinator's validators indexing")
 		indexValidatorsListIfNeeded(
 			managedStatusComponents.OutportHandler(),
-			nodesCoordinator,
+			nodesCoordinatorInstance,
 			managedProcessComponents.EpochStartTrigger().Epoch(),
 		)
 	}
@@ -1166,7 +1166,6 @@ func (nr *nodeRunner) CreateManagedBootstrapComponents(
 	bootstrapComponentsFactoryArgs := mainFactory.BootstrapComponentsFactoryArgs{
 		Config:            *nr.configs.GeneralConfig,
 		EpochConfig:       *nr.configs.EpochConfig,
-		RoundConfig:       *nr.configs.RoundConfig,
 		PrefConfig:        *nr.configs.PreferencesConfig,
 		ImportDbConfig:    *nr.configs.ImportDbConfig,
 		WorkingDir:        nr.configs.FlagsConfig.WorkingDir,

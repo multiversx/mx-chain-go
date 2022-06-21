@@ -444,7 +444,6 @@ type EpochStartBootstrapper interface {
 
 // BootstrapComponentsHolder holds the bootstrap components
 type BootstrapComponentsHolder interface {
-	EnableRoundsHandler() process.EnableRoundsHandler
 	EpochStartBootstrapper() EpochStartBootstrapper
 	EpochBootstrapParams() BootstrapParamsHolder
 	NodeType() core.NodeType

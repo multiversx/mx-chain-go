@@ -1,11 +1,10 @@
 package enablers
 
 type roundFlagsHolder struct {
-	// TODO add flags like
-	// example *roundFlag
+	example *roundFlag
 }
 
-// TODO add here getter functions like
-// func (holder *roundFlagsHolder) IsExampleEnabled() bool {
-//	return holder.example.IsSet()
-// }
+// IsExampleEnabled provides an example how to use this component. Replace this getter with the first use case
+func (holder *roundFlagsHolder) IsExampleEnabled() bool {
+	return holder.example.IsSet()
+}

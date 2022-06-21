@@ -1,8 +1,12 @@
-# Since we do not have yet any round based enable flag, this file contains an empty definition
-# To add a new round activation flag, add beyond L9 a defintion like:
+# All activation rounds need to be declared as strings containing valid uint64 numbers. All values will be checked in the
+# enableRoundsHandler for correctness. The toml parser library can not correctly parse uint64, currently.
 
-# [RoundActivations.Example]
-#     Options = []
-#     Round = 600
+# Each activation round definition contains an optional slice of strings. These are useful, for example, when we have
+# some execptions to process in a different manner at a special round (say a block, a transaction, a smart contract result and such)
 
 [RoundActivations]
+    # RoundActivations.Example represents an example how to use the round activation
+    # mechanism. Replace this with the first real use case
+    [RoundActivations.Example]
+        Options = ["test string1", "test string 2"]
+        Round = "18446744073709551614"
