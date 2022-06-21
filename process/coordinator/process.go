@@ -1266,8 +1266,6 @@ func (tc *transactionCoordinator) CreateMarshalizedReceipts() ([]byte, error) {
 			continue
 		}
 
-		_ = interProc.CreateAllInterMiniBlocks()
-
 		miniBlock := interProc.GetCreatedInShardMiniBlock()
 		if miniBlock == nil {
 			continue
