@@ -1069,12 +1069,12 @@ func (tpn *TestProcessorNode) createDefaultEconomicsConfig() *config.EconomicsCo
 					MaxGasLimitPerMetaMiniBlock: maxGasLimitPerBlock,
 					MaxGasLimitPerTx:            maxGasLimitPerBlock,
 					MinGasLimit:                 minGasLimit,
+					ExtraGasLimitGuardedTx:      "50000",
 				},
 			},
 			MinGasPrice:            minGasPrice,
 			GasPerDataByte:         "1",
 			GasPriceModifier:       0.01,
-			ExtraGasLimitGuardedTx: "50000",
 			MaxGasPriceSetGuardian: "100000",
 		},
 	}
