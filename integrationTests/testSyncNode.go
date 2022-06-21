@@ -81,8 +81,6 @@ func NewTestSyncNode(
 		})
 
 	messenger := CreateMessengerWithNoDiscoveryAndPeersRatingHandler(peersRatingHandler)
-	genericEpochNotifier := forking.NewGenericEpochNotifier()
-	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(config.EnableEpochs{}, genericEpochNotifier)
 
 	logsProcessor, _ := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{Marshalizer: TestMarshalizer})
 	tpn := &TestProcessorNode{
@@ -107,7 +105,6 @@ func NewTestSyncNode(
 		TransactionLogProcessor: logsProcessor,
 		PeersRatingHandler:      peersRatingHandler,
 		PeerShardMapper:         disabled.NewPeerShardMapper(),
-		EnableEpochsHandler:     enableEpochsHandler,
 	}
 
 	kg := &mock.KeyGenMock{}

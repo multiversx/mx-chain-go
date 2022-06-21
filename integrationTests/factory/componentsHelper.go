@@ -48,8 +48,7 @@ func CreateDefaultConfig() *config.Configs {
 	externalConfig, _ := common.LoadExternalConfig(configPathsHolder.External)
 	systemSCConfig, _ := common.LoadSystemSmartContractsConfig(configPathsHolder.SystemSC)
 	epochConfig, _ := common.LoadEpochConfig(configPathsHolder.Epoch)
-	roundConfig, err := common.LoadRoundConfig(configPathsHolder.RoundActivation)
-	_ = err
+	roundConfig, _ := common.LoadRoundConfig(configPathsHolder.RoundActivation)
 
 	p2pConfig.KadDhtPeerDiscovery.Enabled = false
 	prefsConfig.Preferences.DestinationShardAsObserver = "0"

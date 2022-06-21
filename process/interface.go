@@ -1071,10 +1071,10 @@ type EpochNotifier interface {
 	IsInterfaceNil() bool
 }
 
-// EnableRoundsHandler is a component which can be queried to check for round activation features/fixes
+// EnableRoundsHandler is an interface which can be queried to check for round activation features/fixes
 type EnableRoundsHandler interface {
 	CheckRound(round uint64)
-	// TODO add here the flag checks like: "IsExample() bool"
+	IsExampleEnabled() bool
 	IsInterfaceNil() bool
 }
 

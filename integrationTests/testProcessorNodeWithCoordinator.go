@@ -15,9 +15,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl"
 	multisig2 "github.com/ElrondNetwork/elrond-go-crypto/signing/mcl/multisig"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/multisig"
-	"github.com/ElrondNetwork/elrond-go/common/enablers"
-	"github.com/ElrondNetwork/elrond-go/common/forking"
-	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	p2pRating "github.com/ElrondNetwork/elrond-go/p2p/rating"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -212,9 +209,6 @@ func newTestProcessorNodeWithCustomNodesCoordinator(
 			BadRatedCache: testscommon.NewCacherMock(),
 		})
 
-	genericEpochNotifier := forking.NewGenericEpochNotifier()
-	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(config.EnableEpochs{}, genericEpochNotifier)
-
 	messenger := CreateMessengerWithNoDiscoveryAndPeersRatingHandler(peersRatingHandler)
 	tpn := &TestProcessorNode{
 		ShardCoordinator:        shardCoordinator,
@@ -226,7 +220,6 @@ func newTestProcessorNodeWithCustomNodesCoordinator(
 		NodesSetup:              nodesSetup,
 		ArwenChangeLocker:       &sync.RWMutex{},
 		PeersRatingHandler:      peersRatingHandler,
-		EnableEpochsHandler:     enableEpochsHandler,
 	}
 
 	tpn.NodeKeys = &TestKeyPair{
