@@ -643,6 +643,7 @@ func CreateGenesisBlocks(
 	uint64Converter typeConverters.Uint64ByteSliceConverter,
 	dataPool dataRetriever.PoolsHolder,
 	economics process.EconomicsDataHandler,
+	enableEpochsConfig config.EnableEpochs,
 ) map[uint32]data.HeaderHandler {
 
 	genesisBlocks := make(map[uint32]data.HeaderHandler)
@@ -664,6 +665,7 @@ func CreateGenesisBlocks(
 		uint64Converter,
 		dataPool,
 		economics,
+		enableEpochsConfig,
 	)
 
 	return genesisBlocks
@@ -682,6 +684,7 @@ func CreateFullGenesisBlocks(
 	economics process.EconomicsDataHandler,
 	accountsParser genesis.AccountsParser,
 	smartContractParser genesis.InitialSmartContractParser,
+	enableEpochsConfig config.EnableEpochs,
 ) map[uint32]data.HeaderHandler {
 	gasSchedule := arwenConfig.MakeGasMapForTests()
 	defaults.FillGasMapInternal(gasSchedule, 1)
@@ -768,16 +771,7 @@ func CreateFullGenesisBlocks(
 			},
 		},
 		EpochConfig: &config.EpochConfig{
-			EnableEpochs: config.EnableEpochs{
-				BuiltInFunctionsEnableEpoch:        0,
-				SCDeployEnableEpoch:                0,
-				RelayedTransactionsEnableEpoch:     0,
-				PenalizedTooMuchGasEnableEpoch:     0,
-				StakingV2EnableEpoch:               StakingV2Epoch,
-				StakeEnableEpoch:                   0,
-				DelegationSmartContractEnableEpoch: 0,
-				DelegationManagerEnableEpoch:       0,
-			},
+			EnableEpochs: enableEpochsConfig,
 		},
 	}
 
@@ -802,6 +796,7 @@ func CreateGenesisMetaBlock(
 	uint64Converter typeConverters.Uint64ByteSliceConverter,
 	dataPool dataRetriever.PoolsHolder,
 	economics process.EconomicsDataHandler,
+	enableEpochsConfig config.EnableEpochs,
 ) data.MetaHeaderHandler {
 	gasSchedule := arwenConfig.MakeGasMapForTests()
 	defaults.FillGasMapInternal(gasSchedule, 1)
@@ -876,16 +871,7 @@ func CreateGenesisMetaBlock(
 		ImportStartHandler: &mock.ImportStartHandlerStub{},
 		GenesisNodePrice:   big.NewInt(1000),
 		EpochConfig: &config.EpochConfig{
-			EnableEpochs: config.EnableEpochs{
-				BuiltInFunctionsEnableEpoch:        0,
-				SCDeployEnableEpoch:                0,
-				RelayedTransactionsEnableEpoch:     0,
-				PenalizedTooMuchGasEnableEpoch:     0,
-				StakingV2EnableEpoch:               StakingV2Epoch,
-				StakeEnableEpoch:                   0,
-				DelegationManagerEnableEpoch:       0,
-				DelegationSmartContractEnableEpoch: 0,
-			},
+			EnableEpochs: enableEpochsConfig,
 		},
 	}
 

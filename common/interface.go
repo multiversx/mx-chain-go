@@ -136,6 +136,11 @@ type ProcessStatusHandler interface {
 // EnableEpochsHandler is used to verify the which flags are set in the current epoch based on EnableEpochs config
 type EnableEpochsHandler interface {
 	BlockGasAndFeesReCheckEnableEpoch() uint32
+	StakingV2EnableEpoch() uint32
+	ScheduledMiniBlocksEnableEpoch() uint32
+	SwitchJailWaitingEnableEpoch() uint32
+	BalanceWaitingListsEnableEpoch() uint32
+	WaitingListFixEnableEpoch() uint32
 	IsSCDeployFlagEnabled() bool
 	IsBuiltInFunctionsFlagEnabled() bool
 	IsRelayedTransactionsFlagEnabled() bool
@@ -144,6 +149,7 @@ type EnableEpochsHandler interface {
 	IsSwitchJailWaitingFlagEnabled() bool
 	IsBelowSignedThresholdFlagEnabled() bool
 	IsSwitchHysteresisForMinNodesFlagEnabled() bool
+	IsSwitchHysteresisForMinNodesFlagEnabledForCurrentEpoch() bool
 	IsTransactionSignedWithTxHashFlagEnabled() bool
 	IsMetaProtectionFlagEnabled() bool
 	IsAheadOfTimeGasUsageFlagEnabled() bool
@@ -155,7 +161,7 @@ type EnableEpochsHandler interface {
 	IsStakeFlagEnabled() bool
 	IsStakingV2FlagEnabled() bool
 	IsStakingV2OwnerFlagEnabled() bool
-	IsStakingV2DelegationFlagEnabled() bool
+	IsStakingV2FlagEnabledForActivationEpochCompleted() bool
 	IsDoubleKeyProtectionFlagEnabled() bool
 	IsESDTFlagEnabled() bool
 	IsESDTFlagEnabledForCurrentEpoch() bool
@@ -163,6 +169,7 @@ type EnableEpochsHandler interface {
 	IsGovernanceFlagEnabledForCurrentEpoch() bool
 	IsDelegationManagerFlagEnabled() bool
 	IsDelegationSmartContractFlagEnabled() bool
+	IsDelegationSmartContractFlagEnabledForCurrentEpoch() bool
 	IsCorrectLastUnJailedFlagEnabled() bool
 	IsCorrectLastUnJailedFlagEnabledForCurrentEpoch() bool
 	IsRelayedTransactionsV2FlagEnabled() bool
@@ -205,6 +212,8 @@ type EnableEpochsHandler interface {
 	IsFailExecutionOnEveryAPIErrorFlagEnabled() bool
 	IsHeartbeatDisableFlagEnabled() bool
 	IsMiniBlockPartialExecutionFlagEnabled() bool
+	IsManagedCryptoAPIsFlagEnabled() bool
+	IsESDTMetadataContinuousCleanupFlagEnabled() bool
 
 	IsInterfaceNil() bool
 }

@@ -25,23 +25,21 @@ const timeSpanForBadHeaders = time.Minute
 // ArgsEpochStartInterceptorContainer holds the arguments needed for creating a new epoch start interceptors
 // container factory
 type ArgsEpochStartInterceptorContainer struct {
-	CoreComponents            process.CoreComponentsHolder
-	CryptoComponents          process.CryptoComponentsHolder
-	Config                    config.Config
-	ShardCoordinator          sharding.Coordinator
-	Messenger                 process.TopicHandler
-	DataPool                  dataRetriever.PoolsHolder
-	WhiteListHandler          update.WhiteListHandler
-	WhiteListerVerifiedTxs    update.WhiteListHandler
-	AddressPubkeyConv         core.PubkeyConverter
-	NonceConverter            typeConverters.Uint64ByteSliceConverter
-	ChainID                   []byte
-	ArgumentsParser           process.ArgumentsParser
-	HeaderIntegrityVerifier   process.HeaderIntegrityVerifier
-	EnableSignTxWithHashEpoch uint32
-	EpochNotifier             process.EpochNotifier
-	RequestHandler            process.RequestHandler
-	SignaturesHandler         process.SignaturesHandler
+	CoreComponents          process.CoreComponentsHolder
+	CryptoComponents        process.CryptoComponentsHolder
+	Config                  config.Config
+	ShardCoordinator        sharding.Coordinator
+	Messenger               process.TopicHandler
+	DataPool                dataRetriever.PoolsHolder
+	WhiteListHandler        update.WhiteListHandler
+	WhiteListerVerifiedTxs  update.WhiteListHandler
+	AddressPubkeyConv       core.PubkeyConverter
+	NonceConverter          typeConverters.Uint64ByteSliceConverter
+	ChainID                 []byte
+	ArgumentsParser         process.ArgumentsParser
+	HeaderIntegrityVerifier process.HeaderIntegrityVerifier
+	RequestHandler          process.RequestHandler
+	SignaturesHandler       process.SignaturesHandler
 }
 
 // NewEpochStartInterceptorsContainer will return a real interceptors container factory, but with many disabled components
@@ -99,7 +97,6 @@ func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer)
 		ArgumentsParser:              args.ArgumentsParser,
 		PreferredPeersHolder:         disabled.NewPreferredPeersHolder(),
 		SizeCheckDelta:               uint32(sizeCheckDelta),
-		EnableSignTxWithHashEpoch:    args.EnableSignTxWithHashEpoch,
 		RequestHandler:               args.RequestHandler,
 		PeerSignatureHandler:         cryptoComponents.PeerSignatureHandler(),
 		SignaturesHandler:            args.SignaturesHandler,

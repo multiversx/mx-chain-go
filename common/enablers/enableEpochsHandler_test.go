@@ -79,6 +79,8 @@ func createEnableEpochsConfig() config.EnableEpochs {
 		FailExecutionOnEveryAPIErrorEnableEpoch:           63,
 		HeartbeatDisableEpoch:                             64,
 		MiniBlockPartialExecutionEnableEpoch:              65,
+		ManagedCryptoAPIsEnableEpoch:                      66,
+		ESDTMetadataContinuousCleanupEnableEpoch:          67,
 	}
 }
 
@@ -127,6 +129,7 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsSwitchJailWaitingFlagEnabled())
 		assert.True(t, handler.IsBelowSignedThresholdFlagEnabled())
 		assert.True(t, handler.IsSwitchHysteresisForMinNodesFlagEnabled())
+		assert.False(t, handler.IsSwitchHysteresisForMinNodesFlagEnabledForCurrentEpoch()) // epoch == limit
 		assert.True(t, handler.IsTransactionSignedWithTxHashFlagEnabled())
 		assert.True(t, handler.IsMetaProtectionFlagEnabled())
 		assert.True(t, handler.IsAheadOfTimeGasUsageFlagEnabled())
@@ -138,7 +141,7 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsStakeFlagEnabled())
 		assert.True(t, handler.IsStakingV2FlagEnabled())
 		assert.False(t, handler.IsStakingV2OwnerFlagEnabled()) // epoch == limit
-		assert.True(t, handler.IsStakingV2DelegationFlagEnabled())
+		assert.True(t, handler.IsStakingV2FlagEnabledForActivationEpochCompleted())
 		assert.True(t, handler.IsDoubleKeyProtectionFlagEnabled())
 		assert.True(t, handler.IsESDTFlagEnabled())
 		assert.False(t, handler.IsESDTFlagEnabledForCurrentEpoch()) // epoch == limit
@@ -146,6 +149,7 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.False(t, handler.IsGovernanceFlagEnabledForCurrentEpoch()) // epoch == limit
 		assert.True(t, handler.IsDelegationManagerFlagEnabled())
 		assert.True(t, handler.IsDelegationSmartContractFlagEnabled())
+		assert.False(t, handler.IsDelegationSmartContractFlagEnabledForCurrentEpoch()) // epoch == limit
 		assert.True(t, handler.IsCorrectLastUnJailedFlagEnabled())
 		assert.False(t, handler.IsCorrectLastUnJailedFlagEnabledForCurrentEpoch()) // epoch == limit
 		assert.True(t, handler.IsRelayedTransactionsV2FlagEnabled())
@@ -188,6 +192,8 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsFailExecutionOnEveryAPIErrorFlagEnabled())
 		assert.True(t, handler.IsHeartbeatDisableFlagEnabled())
 		assert.True(t, handler.IsMiniBlockPartialExecutionFlagEnabled())
+		assert.True(t, handler.IsManagedCryptoAPIsFlagEnabled())
+		assert.True(t, handler.IsESDTMetadataContinuousCleanupFlagEnabled())
 	})
 	t.Run("flags with == condition should be set, along with all >=", func(t *testing.T) {
 		t.Parallel()
@@ -212,6 +218,7 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsSwitchJailWaitingFlagEnabled())
 		assert.True(t, handler.IsBelowSignedThresholdFlagEnabled())
 		assert.True(t, handler.IsSwitchHysteresisForMinNodesFlagEnabled())
+		assert.False(t, handler.IsSwitchHysteresisForMinNodesFlagEnabledForCurrentEpoch()) // epoch == limit
 		assert.True(t, handler.IsTransactionSignedWithTxHashFlagEnabled())
 		assert.True(t, handler.IsMetaProtectionFlagEnabled())
 		assert.True(t, handler.IsAheadOfTimeGasUsageFlagEnabled())
@@ -223,7 +230,7 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsStakeFlagEnabled())
 		assert.True(t, handler.IsStakingV2FlagEnabled())
 		assert.True(t, handler.IsStakingV2OwnerFlagEnabled()) // epoch == limit
-		assert.False(t, handler.IsStakingV2DelegationFlagEnabled())
+		assert.False(t, handler.IsStakingV2FlagEnabledForActivationEpochCompleted())
 		assert.True(t, handler.IsDoubleKeyProtectionFlagEnabled())
 		assert.True(t, handler.IsESDTFlagEnabled())
 		assert.True(t, handler.IsESDTFlagEnabledForCurrentEpoch()) // epoch == limit
@@ -231,6 +238,7 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsGovernanceFlagEnabledForCurrentEpoch()) // epoch == limit
 		assert.True(t, handler.IsDelegationManagerFlagEnabled())
 		assert.True(t, handler.IsDelegationSmartContractFlagEnabled())
+		assert.False(t, handler.IsDelegationSmartContractFlagEnabledForCurrentEpoch()) // epoch == limit
 		assert.True(t, handler.IsCorrectLastUnJailedFlagEnabled())
 		assert.True(t, handler.IsCorrectLastUnJailedFlagEnabledForCurrentEpoch()) // epoch == limit
 		assert.True(t, handler.IsRelayedTransactionsV2FlagEnabled())
@@ -273,6 +281,8 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsFailExecutionOnEveryAPIErrorFlagEnabled())
 		assert.True(t, handler.IsHeartbeatDisableFlagEnabled())
 		assert.True(t, handler.IsMiniBlockPartialExecutionFlagEnabled())
+		assert.True(t, handler.IsManagedCryptoAPIsFlagEnabled())
+		assert.True(t, handler.IsESDTMetadataContinuousCleanupFlagEnabled())
 	})
 	t.Run("flags with < should be set", func(t *testing.T) {
 		t.Parallel()
@@ -292,6 +302,7 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.False(t, handler.IsSwitchJailWaitingFlagEnabled())
 		assert.False(t, handler.IsBelowSignedThresholdFlagEnabled())
 		assert.False(t, handler.IsSwitchHysteresisForMinNodesFlagEnabled())
+		assert.False(t, handler.IsSwitchHysteresisForMinNodesFlagEnabledForCurrentEpoch()) // epoch == limit
 		assert.False(t, handler.IsTransactionSignedWithTxHashFlagEnabled())
 		assert.False(t, handler.IsMetaProtectionFlagEnabled())
 		assert.False(t, handler.IsAheadOfTimeGasUsageFlagEnabled())
@@ -303,7 +314,7 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.False(t, handler.IsStakeFlagEnabled())
 		assert.False(t, handler.IsStakingV2FlagEnabled())
 		assert.False(t, handler.IsStakingV2OwnerFlagEnabled()) // epoch == limit
-		assert.False(t, handler.IsStakingV2DelegationFlagEnabled())
+		assert.False(t, handler.IsStakingV2FlagEnabledForActivationEpochCompleted())
 		assert.False(t, handler.IsDoubleKeyProtectionFlagEnabled())
 		assert.False(t, handler.IsESDTFlagEnabled())
 		assert.False(t, handler.IsESDTFlagEnabledForCurrentEpoch()) // epoch == limit
@@ -311,6 +322,7 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.False(t, handler.IsGovernanceFlagEnabledForCurrentEpoch()) // epoch == limit
 		assert.False(t, handler.IsDelegationManagerFlagEnabled())
 		assert.False(t, handler.IsDelegationSmartContractFlagEnabled())
+		assert.False(t, handler.IsDelegationSmartContractFlagEnabledForCurrentEpoch()) // epoch == limit
 		assert.False(t, handler.IsCorrectLastUnJailedFlagEnabled())
 		assert.False(t, handler.IsCorrectLastUnJailedFlagEnabledForCurrentEpoch()) // epoch == limit
 		assert.False(t, handler.IsRelayedTransactionsV2FlagEnabled())
@@ -353,5 +365,7 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.False(t, handler.IsFailExecutionOnEveryAPIErrorFlagEnabled())
 		assert.False(t, handler.IsHeartbeatDisableFlagEnabled())
 		assert.False(t, handler.IsMiniBlockPartialExecutionFlagEnabled())
+		assert.False(t, handler.IsManagedCryptoAPIsFlagEnabled())
+		assert.False(t, handler.IsESDTMetadataContinuousCleanupFlagEnabled())
 	})
 }

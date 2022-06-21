@@ -9,10 +9,10 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -41,8 +41,7 @@ type ArgsNewGovernanceContract struct {
 	DelegationMgrSCAddress      []byte
 	ValidatorSCAddress          []byte
 	InitialWhiteListedAddresses [][]byte
-	EpochNotifier               vm.EpochNotifier
-	EpochConfig                 config.EpochConfig
+	EnableEpochsHandler         common.EnableEpochsHandler
 }
 
 type governanceContract struct {
@@ -57,8 +56,7 @@ type governanceContract struct {
 	hasher                      hashing.Hasher
 	governanceConfig            config.GovernanceSystemSCConfig
 	initialWhiteListedAddresses [][]byte
-	enabledEpoch                uint32
-	flagEnabled                 atomic.Flag
+	enableEpochsHandler         common.EnableEpochsHandler
 	mutExecution                sync.RWMutex
 }
 
@@ -73,8 +71,8 @@ func NewGovernanceContract(args ArgsNewGovernanceContract) (*governanceContract,
 	if check.IfNil(args.Hasher) {
 		return nil, vm.ErrNilHasher
 	}
-	if check.IfNil(args.EpochNotifier) {
-		return nil, vm.ErrNilEpochNotifier
+	if check.IfNil(args.EnableEpochsHandler) {
+		return nil, vm.ErrNilEnableEpochsHandler
 	}
 
 	activeConfig := args.GovernanceConfig.Active
@@ -104,17 +102,14 @@ func NewGovernanceContract(args ArgsNewGovernanceContract) (*governanceContract,
 		marshalizer:            args.Marshalizer,
 		hasher:                 args.Hasher,
 		governanceConfig:       args.GovernanceConfig,
-		enabledEpoch:           args.EpochConfig.EnableEpochs.GovernanceEnableEpoch,
+		enableEpochsHandler:    args.EnableEpochsHandler,
 	}
-	log.Debug("governance: enable epoch for governance", "epoch", g.enabledEpoch)
 
 	err := g.validateInitialWhiteListedAddresses(args.InitialWhiteListedAddresses)
 	if err != nil {
 		return nil, err
 	}
 	g.initialWhiteListedAddresses = args.InitialWhiteListedAddresses
-
-	args.EpochNotifier.RegisterNotifyHandler(g)
 
 	return g, nil
 }
@@ -131,7 +126,7 @@ func (g *governanceContract) Execute(args *vmcommon.ContractCallInput) vmcommon.
 		return g.init(args)
 	}
 
-	if !g.flagEnabled.IsSet() {
+	if !g.enableEpochsHandler.IsGovernanceFlagEnabled() {
 		g.eei.AddReturnMessage("Governance SC disabled")
 		return vmcommon.UserError
 	}
@@ -1435,12 +1430,6 @@ func (g *governanceContract) convertV2Config(config config.GovernanceSystemSCCon
 		MinVetoThreshold: minVeto,
 		ProposalFee:      proposalFee,
 	}, nil
-}
-
-// EpochConfirmed is called whenever a new epoch is confirmed
-func (g *governanceContract) EpochConfirmed(epoch uint32, _ uint64) {
-	g.flagEnabled.SetValue(epoch >= g.enabledEpoch)
-	log.Debug("governance contract", "enabled", g.flagEnabled.IsSet())
 }
 
 // CanUseContract returns true if contract is enabled

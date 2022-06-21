@@ -1,6 +1,7 @@
 package arwen
 
 import (
+	"bytes"
 	"encoding/binary"
 	"encoding/hex"
 	"errors"
@@ -23,7 +24,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/common/forking"
+	"github.com/ElrondNetwork/elrond-go/common/enablers"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
@@ -84,11 +85,12 @@ type TestContext struct {
 	GasLimit    uint64
 	GasSchedule map[string]map[string]uint64
 
-	EpochNotifier     process.EpochNotifier
-	UnsignexTxHandler process.TransactionFeeHandler
-	EconomicsFee      process.FeeHandler
-	LastConsumedFee   uint64
-	ArwenChangeLocker common.Locker
+	EpochNotifier       process.EpochNotifier
+	EnableEpochsHandler common.EnableEpochsHandler
+	UnsignexTxHandler   process.TransactionFeeHandler
+	EconomicsFee        process.FeeHandler
+	LastConsumedFee     uint64
+	ArwenChangeLocker   common.Locker
 
 	ScAddress        []byte
 	ScCodeMetadata   vmcommon.CodeMetadata
@@ -134,6 +136,7 @@ func SetupTestContextWithGasSchedulePath(t *testing.T, gasScheduleConfigPath str
 	context.T = t
 	context.Round = 500
 	context.EpochNotifier = &epochNotifier.EpochNotifierStub{}
+	context.EnableEpochsHandler, _ = enablers.NewEnableEpochsHandler(config.EnableEpochs{}, context.EpochNotifier)
 	context.ArwenChangeLocker = &sync.RWMutex{}
 
 	context.initAccounts()
@@ -219,7 +222,7 @@ func (context *TestContext) initFeeHandlers() {
 			},
 		},
 		EpochNotifier:               context.EpochNotifier,
-		EnableEpochsHandler:         &testscommon.EnableEpochsHandlerStub{},
+		EnableEpochsHandler:         context.EnableEpochsHandler,
 		BuiltInFunctionsCostHandler: &mock.BuiltInCostHandlerStub{},
 	}
 	economicsData, _ := economics.NewEconomicsData(argsNewEconomicsData)
@@ -229,33 +232,35 @@ func (context *TestContext) initFeeHandlers() {
 
 func (context *TestContext) initVMAndBlockchainHook() {
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:      mock.NewGasScheduleNotifierMock(context.GasSchedule),
-		MapDNSAddresses:  DNSAddresses,
-		Marshalizer:      marshalizer,
-		Accounts:         context.Accounts,
-		ShardCoordinator: oneShardCoordinator,
-		EpochNotifier:    context.EpochNotifier,
+		GasSchedule:             mock.NewGasScheduleNotifierMock(context.GasSchedule),
+		MapDNSAddresses:         DNSAddresses,
+		Marshalizer:             marshalizer,
+		Accounts:                context.Accounts,
+		ShardCoordinator:        oneShardCoordinator,
+		EpochNotifier:           context.EpochNotifier,
+		AutomaticCrawlerAddress: bytes.Repeat([]byte{1}, 32),
 	}
-	builtInFuncs, nftStorageHandler, err := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
+	builtInFuncs, nftStorageHandler, globalSettingsHandler, err := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
 	require.Nil(context.T, err)
 
 	blockchainMock := &testscommon.ChainHandlerStub{}
 	chainStorer := &mock.ChainStorerMock{}
 	datapool := dataRetrieverMock.NewPoolsHolderMock()
 	args := hooks.ArgBlockChainHook{
-		Accounts:           context.Accounts,
-		PubkeyConv:         pkConverter,
-		StorageService:     chainStorer,
-		BlockChain:         blockchainMock,
-		ShardCoordinator:   oneShardCoordinator,
-		Marshalizer:        marshalizer,
-		Uint64Converter:    &mock.Uint64ByteSliceConverterMock{},
-		BuiltInFunctions:   builtInFuncs,
-		NFTStorageHandler:  nftStorageHandler,
-		DataPool:           datapool,
-		CompiledSCPool:     datapool.SmartContracts(),
-		EpochNotifier:      context.EpochNotifier,
-		NilCompiledSCStore: true,
+		Accounts:              context.Accounts,
+		PubkeyConv:            pkConverter,
+		StorageService:        chainStorer,
+		BlockChain:            blockchainMock,
+		ShardCoordinator:      oneShardCoordinator,
+		Marshalizer:           marshalizer,
+		Uint64Converter:       &mock.Uint64ByteSliceConverterMock{},
+		BuiltInFunctions:      builtInFuncs,
+		NFTStorageHandler:     nftStorageHandler,
+		GlobalSettingsHandler: globalSettingsHandler,
+		DataPool:              datapool,
+		CompiledSCPool:        datapool.SmartContracts(),
+		EnableEpochsHandler:   context.EnableEpochsHandler,
+		NilCompiledSCStore:    true,
 		ConfigSCStorage: config.StorageConfig{
 			Cache: config.CacheConfig{
 				Name:     "SmartContractsStorage",
@@ -307,7 +312,6 @@ func (context *TestContext) initTxProcessorWithOneSCExecutorWithVMs() {
 		ShardCoordinator:   oneShardCoordinator,
 		BuiltInFunctions:   context.BlockchainHook.GetBuiltinFunctionsContainer(),
 		ArgumentParser:     parsers.NewCallArgsParser(),
-		EpochNotifier:      forking.NewGenericEpochNotifier(),
 		ESDTTransferParser: esdtTransferParser,
 	}
 
@@ -338,11 +342,11 @@ func (context *TestContext) initTxProcessorWithOneSCExecutorWithVMs() {
 		GasHandler: &testscommon.GasHandlerStub{
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
-		GasSchedule:       mock.NewGasScheduleNotifierMock(gasSchedule),
-		TxLogsProcessor:   logsProcessor,
-		EpochNotifier:     forking.NewGenericEpochNotifier(),
-		ArwenChangeLocker: context.ArwenChangeLocker,
-		VMOutputCacher:    txcache.NewDisabledCache(),
+		GasSchedule:         mock.NewGasScheduleNotifierMock(gasSchedule),
+		TxLogsProcessor:     logsProcessor,
+		EnableEpochsHandler: context.EnableEpochsHandler,
+		ArwenChangeLocker:   context.ArwenChangeLocker,
+		VMOutputCacher:      txcache.NewDisabledCache(),
 	}
 	sc, err := smartContract.NewSmartContractProcessor(argsNewSCProcessor)
 	context.ScProcessor = smartContract.NewTestScProcessor(sc)
@@ -363,7 +367,7 @@ func (context *TestContext) initTxProcessorWithOneSCExecutorWithVMs() {
 		BadTxForwarder:      &mock.IntermediateTransactionHandlerMock{},
 		ArgsParser:          smartContract.NewArgumentParser(),
 		ScrForwarder:        &mock.IntermediateTransactionHandlerMock{},
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+		EnableEpochsHandler: context.EnableEpochsHandler,
 	}
 
 	context.TxProcessor, err = processTransaction.NewTxProcessor(argsNewTxProcessor)
@@ -657,28 +661,28 @@ func (context *TestContext) UpdateLastSCResults() error {
 
 // QuerySCInt -
 func (context *TestContext) QuerySCInt(function string, args [][]byte) uint64 {
-	bytes := context.querySC(function, args)
-	result := big.NewInt(0).SetBytes(bytes).Uint64()
+	bytesData := context.querySC(function, args)
+	result := big.NewInt(0).SetBytes(bytesData).Uint64()
 
 	return result
 }
 
 // QuerySCString -
 func (context *TestContext) QuerySCString(function string, args [][]byte) string {
-	bytes := context.querySC(function, args)
-	return string(bytes)
+	bytesData := context.querySC(function, args)
+	return string(bytesData)
 }
 
 // QuerySCBytes -
 func (context *TestContext) QuerySCBytes(function string, args [][]byte) []byte {
-	bytes := context.querySC(function, args)
-	return bytes
+	bytesData := context.querySC(function, args)
+	return bytesData
 }
 
 // QuerySCBigInt -
 func (context *TestContext) QuerySCBigInt(function string, args [][]byte) *big.Int {
-	bytes := context.querySC(function, args)
-	return big.NewInt(0).SetBytes(bytes)
+	bytesData := context.querySC(function, args)
+	return big.NewInt(0).SetBytes(bytesData)
 }
 
 func (context *TestContext) querySC(function string, args [][]byte) []byte {
@@ -708,8 +712,8 @@ func (context *TestContext) GetCompositeTestError() error {
 
 // FormatHexNumber -
 func FormatHexNumber(number uint64) string {
-	bytes := big.NewInt(0).SetUint64(number).Bytes()
-	str := hex.EncodeToString(bytes)
+	bytesData := big.NewInt(0).SetUint64(number).Bytes()
+	str := hex.EncodeToString(bytesData)
 
 	return str
 }

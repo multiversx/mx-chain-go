@@ -65,7 +65,7 @@ func NewTestProcessorNodeWithCustomNodesCoordinator(
 		})
 	messenger := CreateMessengerWithNoDiscoveryAndPeersRatingHandler(peersRatingHandler)
 	genericEpochNotifier := forking.NewGenericEpochNotifier()
-	enabledEpochsHandler, _ := enablers.NewEnableEpochsHandler(config.EnableEpochs{}, genericEpochNotifier)
+	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(config.EnableEpochs{}, genericEpochNotifier)
 
 	tpn := &TestProcessorNode{
 		ShardCoordinator:        shardCoordinator,
@@ -78,17 +78,20 @@ func NewTestProcessorNodeWithCustomNodesCoordinator(
 		RatingsData:             ratingsData,
 		MinTransactionVersion:   MinTransactionVersion,
 		HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
-		EpochNotifier:           forking.NewGenericEpochNotifier(),
 		ArwenChangeLocker:       &sync.RWMutex{},
 		TransactionLogProcessor: logsProcessor,
 		Bootstrapper:            mock.NewTestBootstrapperMock(),
 		PeersRatingHandler:      peersRatingHandler,
 		PeerShardMapper:         mock.NewNetworkShardingCollectorMock(),
-		EnabledEpochsHandler:    enabledEpochsHandler,
+		EnableEpochsHandler:     enableEpochsHandler,
 	}
 
-	tpn.EnableEpochs.ScheduledMiniBlocksEnableEpoch = uint32(1000000)
-	tpn.EnableEpochs.MiniBlockPartialExecutionEnableEpoch = uint32(1000000)
+	tpn.EnableEpochs.StakingV2EnableEpoch = UnreachableEpoch
+	tpn.EnableEpochs.ScheduledMiniBlocksEnableEpoch = UnreachableEpoch
+	tpn.EnableEpochs.MiniBlockPartialExecutionEnableEpoch = UnreachableEpoch
+	tpn.EpochNotifier = forking.NewGenericEpochNotifier()
+	tpn.EnableEpochsHandler, _ = enablers.NewEnableEpochsHandler(tpn.EnableEpochs, tpn.EpochNotifier)
+
 	tpn.NodeKeys = cp.Keys[nodeShardId][keyIndex]
 	blsHasher, _ := blake2b.NewBlake2bWithSize(hashing.BlsHashSize)
 	llsig := &mclmultisig.BlsMultiSigner{Hasher: blsHasher}
@@ -257,7 +260,7 @@ func CreateNodeWithBLSAndTxKeys(
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(nbShards), shardId)
 
 	genericEpochNotifier := forking.NewGenericEpochNotifier()
-	enabledEpochsHandler, _ := enablers.NewEnableEpochsHandler(config.EnableEpochs{}, genericEpochNotifier)
+	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(config.EnableEpochs{}, genericEpochNotifier)
 
 	logsProcessor, _ := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{Marshalizer: TestMarshalizer})
 	peersRatingHandler, _ := p2pRating.NewPeersRatingHandler(
@@ -277,16 +280,21 @@ func CreateNodeWithBLSAndTxKeys(
 		RatingsData:             ratingsData,
 		MinTransactionVersion:   MinTransactionVersion,
 		HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
-		EpochNotifier:           forking.NewGenericEpochNotifier(),
 		ArwenChangeLocker:       &sync.RWMutex{},
 		TransactionLogProcessor: logsProcessor,
 		PeersRatingHandler:      peersRatingHandler,
 		PeerShardMapper:         disabled.NewPeerShardMapper(),
-		EnabledEpochsHandler:    enabledEpochsHandler,
+		EnableEpochsHandler:     enableEpochsHandler,
 	}
 
-	tpn.EnableEpochs.ScheduledMiniBlocksEnableEpoch = uint32(1000000)
-	tpn.EnableEpochs.MiniBlockPartialExecutionEnableEpoch = uint32(1000000)
+	tpn.EnableEpochs.StakingV2EnableEpoch = 1
+	tpn.EnableEpochs.DelegationManagerEnableEpoch = 1
+	tpn.EnableEpochs.DelegationSmartContractEnableEpoch = 1
+	tpn.EnableEpochs.ScheduledMiniBlocksEnableEpoch = UnreachableEpoch
+	tpn.EnableEpochs.MiniBlockPartialExecutionEnableEpoch = UnreachableEpoch
+	tpn.EpochNotifier = forking.NewGenericEpochNotifier()
+	tpn.EnableEpochsHandler, _ = enablers.NewEnableEpochsHandler(tpn.EnableEpochs, tpn.EpochNotifier)
+
 	tpn.NodeKeys = cp.Keys[shardId][keyIndex]
 	blsHasher, _ := blake2b.NewBlake2bWithSize(hashing.BlsHashSize)
 	llsig := &mclmultisig.BlsMultiSigner{Hasher: blsHasher}
@@ -504,14 +512,13 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 	nodesMap := make(map[uint32][]*TestProcessorNode)
 
 	shufflerArgs := &nodesCoordinator.NodesShufflerArgs{
-		NodesShard:                     uint32(nodesPerShard),
-		NodesMeta:                      uint32(nbMetaNodes),
-		Hysteresis:                     hysteresis,
-		Adaptivity:                     adaptivity,
-		ShuffleBetweenShards:           shuffleBetweenShards,
-		MaxNodesEnableConfig:           nil,
-		WaitingListFixEnableEpoch:      0,
-		BalanceWaitingListsEnableEpoch: 0,
+		NodesShard:           uint32(nodesPerShard),
+		NodesMeta:            uint32(nbMetaNodes),
+		Hysteresis:           hysteresis,
+		Adaptivity:           adaptivity,
+		ShuffleBetweenShards: shuffleBetweenShards,
+		MaxNodesEnableConfig: nil,
+		EnableEpochsHandler:  &testscommon.EnableEpochsHandlerStub{},
 	}
 	nodeShuffler, _ := nodesCoordinator.NewHashValidatorsShuffler(shufflerArgs)
 	epochStartSubscriber := notifier.NewEpochStartSubscriptionHandler()
@@ -525,24 +532,24 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 	for shardId, validatorList := range validatorsMap {
 		consensusCache, _ := lrucache.NewCache(10000)
 		argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
-			ShardConsensusGroupSize:    shardConsensusGroupSize,
-			MetaConsensusGroupSize:     metaConsensusGroupSize,
-			Marshalizer:                TestMarshalizer,
-			Hasher:                     TestHasher,
-			Shuffler:                   nodeShuffler,
-			BootStorer:                 bootStorer,
-			EpochStartNotifier:         epochStartSubscriber,
-			ShardIDAsObserver:          shardId,
-			NbShards:                   uint32(nbShards),
-			EligibleNodes:              validatorsMapForNodesCoordinator,
-			WaitingNodes:               make(map[uint32][]nodesCoordinator.Validator),
-			SelfPublicKey:              []byte(strconv.Itoa(int(shardId))),
-			ConsensusGroupCache:        consensusCache,
-			ShuffledOutHandler:         &mock.ShuffledOutHandlerStub{},
-			WaitingListFixEnabledEpoch: 0,
-			ChanStopNode:               endProcess.GetDummyEndProcessChannel(),
-			NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
-			IsFullArchive:              false,
+			ShardConsensusGroupSize: shardConsensusGroupSize,
+			MetaConsensusGroupSize:  metaConsensusGroupSize,
+			Marshalizer:             TestMarshalizer,
+			Hasher:                  TestHasher,
+			Shuffler:                nodeShuffler,
+			BootStorer:              bootStorer,
+			EpochStartNotifier:      epochStartSubscriber,
+			ShardIDAsObserver:       shardId,
+			NbShards:                uint32(nbShards),
+			EligibleNodes:           validatorsMapForNodesCoordinator,
+			WaitingNodes:            make(map[uint32][]nodesCoordinator.Validator),
+			SelfPublicKey:           []byte(strconv.Itoa(int(shardId))),
+			ConsensusGroupCache:     consensusCache,
+			ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
+			ChanStopNode:            endProcess.GetDummyEndProcessChannel(),
+			NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
+			IsFullArchive:           false,
+			EnableEpochsHandler:     &testscommon.EnableEpochsHandlerStub{},
 		}
 		nodesCoordinatorInstance, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 
@@ -624,24 +631,24 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 		bootStorer := CreateMemUnit()
 		cache, _ := lrucache.NewCache(10000)
 		argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
-			ShardConsensusGroupSize:    shardConsensusGroupSize,
-			MetaConsensusGroupSize:     metaConsensusGroupSize,
-			Marshalizer:                TestMarshalizer,
-			Hasher:                     TestHasher,
-			Shuffler:                   nodeShuffler,
-			EpochStartNotifier:         epochStartSubscriber,
-			BootStorer:                 bootStorer,
-			ShardIDAsObserver:          shardId,
-			NbShards:                   uint32(nbShards),
-			EligibleNodes:              validatorsMapForNodesCoordinator,
-			WaitingNodes:               waitingMapForNodesCoordinator,
-			SelfPublicKey:              []byte(strconv.Itoa(int(shardId))),
-			ConsensusGroupCache:        cache,
-			ShuffledOutHandler:         &mock.ShuffledOutHandlerStub{},
-			WaitingListFixEnabledEpoch: 0,
-			ChanStopNode:               endProcess.GetDummyEndProcessChannel(),
-			NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
-			IsFullArchive:              false,
+			ShardConsensusGroupSize: shardConsensusGroupSize,
+			MetaConsensusGroupSize:  metaConsensusGroupSize,
+			Marshalizer:             TestMarshalizer,
+			Hasher:                  TestHasher,
+			Shuffler:                nodeShuffler,
+			EpochStartNotifier:      epochStartSubscriber,
+			BootStorer:              bootStorer,
+			ShardIDAsObserver:       shardId,
+			NbShards:                uint32(nbShards),
+			EligibleNodes:           validatorsMapForNodesCoordinator,
+			WaitingNodes:            waitingMapForNodesCoordinator,
+			SelfPublicKey:           []byte(strconv.Itoa(int(shardId))),
+			ConsensusGroupCache:     cache,
+			ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
+			ChanStopNode:            endProcess.GetDummyEndProcessChannel(),
+			NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
+			IsFullArchive:           false,
+			EnableEpochsHandler:     &testscommon.EnableEpochsHandlerStub{},
 		}
 		nodesCoord, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 

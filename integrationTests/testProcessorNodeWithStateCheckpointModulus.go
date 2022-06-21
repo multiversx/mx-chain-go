@@ -78,10 +78,13 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 			BadRatedCache: testscommon.NewCacherMock(),
 		})
 
-	messenger := CreateMessengerWithNoDiscoveryAndPeersRatingHandler(peersRatingHandler)
-	genericEpochNotifier := forking.NewGenericEpochNotifier()
-	enabledEpochsHandler, _ := enablers.NewEnableEpochsHandler(config.EnableEpochs{}, genericEpochNotifier)
+	enableEpochsConfig := config.EnableEpochs{
+		StakingV2EnableEpoch: UnreachableEpoch,
+	}
+	epochNotifierInstance := forking.NewGenericEpochNotifier()
+	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(enableEpochsConfig, epochNotifierInstance)
 
+	messenger := CreateMessengerWithNoDiscoveryAndPeersRatingHandler(peersRatingHandler)
 	tpn := &TestProcessorNode{
 		ShardCoordinator:        shardCoordinator,
 		Messenger:               messenger,
@@ -91,12 +94,13 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 		ChainID:                 ChainID,
 		MinTransactionVersion:   MinTransactionVersion,
 		HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
-		EpochNotifier:           forking.NewGenericEpochNotifier(),
+		EpochNotifier:           epochNotifierInstance,
 		ArwenChangeLocker:       &sync.RWMutex{},
 		TransactionLogProcessor: logsProcessor,
 		PeersRatingHandler:      peersRatingHandler,
 		PeerShardMapper:         disabled.NewPeerShardMapper(),
-		EnabledEpochsHandler:    enabledEpochsHandler,
+		EnableEpochsHandler:     enableEpochsHandler,
+		EnableEpochs:            enableEpochsConfig,
 	}
 	tpn.NodesSetup = nodesSetup
 
@@ -135,6 +139,7 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 		TestUint64Converter,
 		tpn.DataPool,
 		tpn.EconomicsData,
+		tpn.EnableEpochs,
 	)
 	tpn.initBlockTracker()
 	tpn.initInterceptors("")

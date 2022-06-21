@@ -83,23 +83,23 @@ func CreateProcessorNodesWithNodesCoordinator(
 		for i, v := range validatorList {
 			cache, _ := lrucache.NewCache(10000)
 			argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
-				ShardConsensusGroupSize:    shardConsensusGroupSize,
-				MetaConsensusGroupSize:     metaConsensusGroupSize,
-				Marshalizer:                TestMarshalizer,
-				Hasher:                     TestHasher,
-				ShardIDAsObserver:          shardId,
-				NbShards:                   numShards,
-				EligibleNodes:              validatorsMapForNodesCoordinator,
-				WaitingNodes:               waitingMapForNodesCoordinator,
-				SelfPublicKey:              v.PubKeyBytes(),
-				ConsensusGroupCache:        cache,
-				ShuffledOutHandler:         &mock.ShuffledOutHandlerStub{},
-				WaitingListFixEnabledEpoch: 0,
-				ChanStopNode:               endProcess.GetDummyEndProcessChannel(),
-				IsFullArchive:              false,
+				ShardConsensusGroupSize: shardConsensusGroupSize,
+				MetaConsensusGroupSize:  metaConsensusGroupSize,
+				Marshalizer:             TestMarshalizer,
+				Hasher:                  TestHasher,
+				ShardIDAsObserver:       shardId,
+				NbShards:                numShards,
+				EligibleNodes:           validatorsMapForNodesCoordinator,
+				WaitingNodes:            waitingMapForNodesCoordinator,
+				SelfPublicKey:           v.PubKeyBytes(),
+				ConsensusGroupCache:     cache,
+				ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
+				ChanStopNode:            endProcess.GetDummyEndProcessChannel(),
+				IsFullArchive:           false,
+				EnableEpochsHandler:     &testscommon.EnableEpochsHandlerStub{},
 			}
 
-			nodesCoordinator, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
+			nodesCoordinatorInstance, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 			if err != nil {
 				fmt.Println("error creating node coordinator")
 			}
@@ -107,7 +107,7 @@ func CreateProcessorNodesWithNodesCoordinator(
 			tpn := newTestProcessorNodeWithCustomNodesCoordinator(
 				numShards,
 				shardId,
-				nodesCoordinator,
+				nodesCoordinatorInstance,
 				i,
 				ncp,
 				nodesSetup,
@@ -213,7 +213,7 @@ func newTestProcessorNodeWithCustomNodesCoordinator(
 		})
 
 	genericEpochNotifier := forking.NewGenericEpochNotifier()
-	enabledEpochsHandler, _ := enablers.NewEnableEpochsHandler(config.EnableEpochs{}, genericEpochNotifier)
+	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(config.EnableEpochs{}, genericEpochNotifier)
 
 	messenger := CreateMessengerWithNoDiscoveryAndPeersRatingHandler(peersRatingHandler)
 	tpn := &TestProcessorNode{
@@ -226,7 +226,7 @@ func newTestProcessorNodeWithCustomNodesCoordinator(
 		NodesSetup:              nodesSetup,
 		ArwenChangeLocker:       &sync.RWMutex{},
 		PeersRatingHandler:      peersRatingHandler,
-		EnabledEpochsHandler:    enabledEpochsHandler,
+		EnableEpochsHandler:     enableEpochsHandler,
 	}
 
 	tpn.NodeKeys = &TestKeyPair{

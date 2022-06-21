@@ -92,7 +92,6 @@ func NewShardInterceptorsContainerFactory(
 		EpochStartTrigger:            args.EpochStartTrigger,
 		WhiteListerVerifiedTxs:       args.WhiteListerVerifiedTxs,
 		ArgsParser:                   args.ArgumentsParser,
-		EnableSignTxWithHashEpoch:    args.EnableSignTxWithHashEpoch,
 		PeerSignatureHandler:         args.PeerSignatureHandler,
 		SignaturesHandler:            args.SignaturesHandler,
 		HeartbeatExpiryTimespanInSec: args.HeartbeatExpiryTimespanInSec,

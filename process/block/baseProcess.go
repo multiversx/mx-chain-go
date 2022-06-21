@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
@@ -89,16 +88,15 @@ type baseProcessor struct {
 	outportHandler      outport.OutportHandler
 	historyRepo         dblookupext.HistoryRepository
 	epochNotifier       process.EpochNotifier
+	enableEpochsHandler common.EnableEpochsHandler
 	enableRoundsHandler process.EnableRoundsHandler
 	vmContainerFactory  process.VirtualMachinesContainerFactory
 	vmContainer         process.VirtualMachinesContainer
 	gasConsumedProvider gasConsumedProvider
 	economicsData       process.EconomicsDataHandler
 
-	processDataTriesOnCommitEpoch  bool
-	scheduledMiniBlocksEnableEpoch uint32
-	flagScheduledMiniBlocks        atomic.Flag
-	processedMiniBlocksTracker     process.ProcessedMiniBlocksTracker
+	processDataTriesOnCommitEpoch bool
+	processedMiniBlocksTracker    process.ProcessedMiniBlocksTracker
 }
 
 type bootStorerDataArgs struct {
@@ -201,7 +199,7 @@ func (bp *baseProcessor) checkBlockValidity(
 
 // checkScheduledRootHash checks if the scheduled root hash from the given header is the same with the current user accounts state root hash
 func (bp *baseProcessor) checkScheduledRootHash(headerHandler data.HeaderHandler) error {
-	if !bp.flagScheduledMiniBlocks.IsSet() {
+	if !bp.enableEpochsHandler.IsScheduledMiniBlocksFlagEnabled() {
 		return nil
 	}
 
@@ -485,8 +483,11 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 	if check.IfNil(arguments.BootstrapComponents.HeaderIntegrityVerifier()) {
 		return process.ErrNilHeaderIntegrityVerifier
 	}
-	if check.IfNil(arguments.EpochNotifier) {
+	if check.IfNil(arguments.CoreComponents.EpochNotifier()) {
 		return process.ErrNilEpochNotifier
+	}
+	if check.IfNil(arguments.CoreComponents.EnableEpochsHandler()) {
+		return process.ErrNilEnableEpochsHandler
 	}
 	if check.IfNil(arguments.EnableRoundsHandler) {
 		return process.ErrNilEnableRoundsHandler
@@ -635,7 +636,7 @@ func (bp *baseProcessor) setMiniBlockHeaderReservedField(
 	miniBlockHeaderHandler data.MiniBlockHeaderHandler,
 	processedMiniBlocksDestMeInfo map[string]*processedMb.ProcessedMiniBlockInfo,
 ) error {
-	if !bp.flagScheduledMiniBlocks.IsSet() {
+	if !bp.enableEpochsHandler.IsScheduledMiniBlocksFlagEnabled() {
 		return nil
 	}
 
@@ -811,7 +812,7 @@ func checkConstructionStateAndIndexesCorrectness(mbh data.MiniBlockHeaderHandler
 }
 
 func (bp *baseProcessor) checkScheduledMiniBlocksValidity(headerHandler data.HeaderHandler) error {
-	if !bp.flagScheduledMiniBlocks.IsSet() {
+	if !bp.enableEpochsHandler.IsScheduledMiniBlocksFlagEnabled() {
 		return nil
 	}
 
@@ -1008,7 +1009,7 @@ func (bp *baseProcessor) removeTxsFromPools(header data.HeaderHandler, body *blo
 }
 
 func (bp *baseProcessor) getFinalMiniBlocks(header data.HeaderHandler, body *block.Body) (*block.Body, error) {
-	if !bp.flagScheduledMiniBlocks.IsSet() {
+	if !bp.enableEpochsHandler.IsScheduledMiniBlocksFlagEnabled() {
 		return body, nil
 	}
 
@@ -1926,7 +1927,7 @@ func gasAndFeesDelta(initialGasAndFees, finalGasAndFees scheduled.GasAndFees) sc
 }
 
 func (bp *baseProcessor) getIndexOfFirstMiniBlockToBeExecuted(header data.HeaderHandler) int {
-	if !bp.flagScheduledMiniBlocks.IsSet() {
+	if !bp.enableEpochsHandler.IsScheduledMiniBlocksFlagEnabled() {
 		return 0
 	}
 
@@ -1942,12 +1943,6 @@ func (bp *baseProcessor) getIndexOfFirstMiniBlockToBeExecuted(header data.Header
 	}
 
 	return len(header.GetMiniBlockHeaderHandlers())
-}
-
-// EpochConfirmed is called whenever a new epoch is confirmed
-func (bp *baseProcessor) EpochConfirmed(epoch uint32, _ uint64) {
-	bp.flagScheduledMiniBlocks.SetValue(epoch >= bp.scheduledMiniBlocksEnableEpoch)
-	log.Debug("baseProcessor: scheduled mini blocks", "enabled", bp.flagScheduledMiniBlocks.IsSet())
 }
 
 func displayCleanupErrorMessage(message string, shardID uint32, noncesToPrevFinal uint64, err error) {

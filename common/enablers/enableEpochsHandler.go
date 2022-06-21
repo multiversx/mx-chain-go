@@ -40,6 +40,7 @@ func (handler *enableEpochsHandler) EpochConfirmed(epoch uint32, _ uint64) {
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.SwitchJailWaitingEnableEpoch, handler.switchJailWaitingFlag, "switchJailWaitingFlag")
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.BelowSignedThresholdEnableEpoch, handler.belowSignedThresholdFlag, "belowSignedThresholdFlag")
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.SwitchHysteresisForMinNodesEnableEpoch, handler.switchHysteresisForMinNodesFlag, "switchHysteresisForMinNodesFlag")
+	handler.setFlagValue(epoch == handler.enableEpochsConfig.SwitchHysteresisForMinNodesEnableEpoch, handler.switchHysteresisForMinNodesCurrentEpochFlag, "switchHysteresisForMinNodesCurrentEpochFlag")
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.TransactionSignedWithTxHashEnableEpoch, handler.transactionSignedWithTxHashFlag, "transactionSignedWithTxHashFlag")
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.MetaProtectionEnableEpoch, handler.metaProtectionFlag, "metaProtectionFlag")
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.AheadOfTimeGasUsageEnableEpoch, handler.aheadOfTimeGasUsageFlag, "aheadOfTimeGasUsageFlag")
@@ -51,7 +52,7 @@ func (handler *enableEpochsHandler) EpochConfirmed(epoch uint32, _ uint64) {
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.StakeEnableEpoch, handler.stakeFlag, "stakeFlag")
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.StakingV2EnableEpoch, handler.stakingV2Flag, "stakingV2Flag")
 	handler.setFlagValue(epoch == handler.enableEpochsConfig.StakingV2EnableEpoch, handler.stakingV2OwnerFlag, "stakingV2OwnerFlag")
-	handler.setFlagValue(epoch > handler.enableEpochsConfig.StakingV2EnableEpoch, handler.stakingV2DelegationFlag, "stakingV2DelegationFlag")
+	handler.setFlagValue(epoch > handler.enableEpochsConfig.StakingV2EnableEpoch, handler.stakingV2GreaterEpochFlag, "stakingV2GreaterEpochFlag")
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.DoubleKeyProtectionEnableEpoch, handler.doubleKeyProtectionFlag, "doubleKeyProtectionFlag")
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.ESDTEnableEpoch, handler.esdtFlag, "esdtFlag")
 	handler.setFlagValue(epoch == handler.enableEpochsConfig.ESDTEnableEpoch, handler.esdtCurrentEpochFlag, "esdtCurrentEpochFlag")
@@ -59,6 +60,7 @@ func (handler *enableEpochsHandler) EpochConfirmed(epoch uint32, _ uint64) {
 	handler.setFlagValue(epoch == handler.enableEpochsConfig.GovernanceEnableEpoch, handler.governanceCurrentEpochFlag, "governanceCurrentEpochFlag")
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.DelegationManagerEnableEpoch, handler.delegationManagerFlag, "delegationManagerFlag")
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.DelegationSmartContractEnableEpoch, handler.delegationSmartContractFlag, "delegationSmartContractFlag")
+	handler.setFlagValue(epoch == handler.enableEpochsConfig.DelegationSmartContractEnableEpoch, handler.delegationSmartContractCurrentEpochFlag, "delegationSmartContractCurrentEpochFlag")
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.CorrectLastUnjailedEnableEpoch, handler.correctLastUnJailedFlag, "correctLastUnJailedFlag")
 	handler.setFlagValue(epoch == handler.enableEpochsConfig.CorrectLastUnjailedEnableEpoch, handler.correctLastUnJailedCurrentEpochFlag, "correctLastUnJailedCurrentEpochFlag")
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.RelayedTransactionsV2EnableEpoch, handler.relayedTransactionsV2Flag, "relayedTransactionsV2Flag")
@@ -101,6 +103,8 @@ func (handler *enableEpochsHandler) EpochConfirmed(epoch uint32, _ uint64) {
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.FailExecutionOnEveryAPIErrorEnableEpoch, handler.failExecutionOnEveryAPIErrorFlag, "failExecutionOnEveryAPIErrorFlag")
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.HeartbeatDisableEpoch, handler.heartbeatDisableFlag, "heartbeatDisableFlag")
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.MiniBlockPartialExecutionEnableEpoch, handler.isMiniBlockPartialExecutionFlag, "isMiniBlockPartialExecutionFlag")
+	handler.setFlagValue(epoch >= handler.enableEpochsConfig.ManagedCryptoAPIsEnableEpoch, handler.managedCryptoAPIsFlag, "managedCryptoAPIsFlag")
+	handler.setFlagValue(epoch >= handler.enableEpochsConfig.ESDTMetadataContinuousCleanupEnableEpoch, handler.esdtMetadataContinuousCleanupFlag, "esdtMetadataContinuousCleanupFlag")
 }
 
 func (handler *enableEpochsHandler) setFlagValue(value bool, flag *atomic.Flag, flagName string) {
@@ -108,9 +112,34 @@ func (handler *enableEpochsHandler) setFlagValue(value bool, flag *atomic.Flag, 
 	log.Debug("EpochConfirmed", "flag", flagName, "enabled", flag.IsSet())
 }
 
-// BlockGasAndFeesReCheckEnableEpoch returns the epoch for block gas and fees recheck
+// ScheduledMiniBlocksEnableEpoch returns the epoch when scheduled mini blocks becomes active
+func (handler *enableEpochsHandler) ScheduledMiniBlocksEnableEpoch() uint32 {
+	return handler.enableEpochsConfig.ScheduledMiniBlocksEnableEpoch
+}
+
+// BlockGasAndFeesReCheckEnableEpoch returns the epoch when block gas and fees recheck becomes active
 func (handler *enableEpochsHandler) BlockGasAndFeesReCheckEnableEpoch() uint32 {
 	return handler.enableEpochsConfig.BlockGasAndFeesReCheckEnableEpoch
+}
+
+// StakingV2EnableEpoch returns the epoch when staking v2 becomes active
+func (handler *enableEpochsHandler) StakingV2EnableEpoch() uint32 {
+	return handler.enableEpochsConfig.StakingV2EnableEpoch
+}
+
+// SwitchJailWaitingEnableEpoch returns the epoch for switch jail waiting
+func (handler *enableEpochsHandler) SwitchJailWaitingEnableEpoch() uint32 {
+	return handler.enableEpochsConfig.SwitchJailWaitingEnableEpoch
+}
+
+// BalanceWaitingListsEnableEpoch returns the epoch for balance waiting lists
+func (handler *enableEpochsHandler) BalanceWaitingListsEnableEpoch() uint32 {
+	return handler.enableEpochsConfig.BalanceWaitingListsEnableEpoch
+}
+
+// WaitingListFixEnableEpoch returns the epoch for waiting list fix
+func (handler *enableEpochsHandler) WaitingListFixEnableEpoch() uint32 {
+	return handler.enableEpochsConfig.WaitingListFixEnableEpoch
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
