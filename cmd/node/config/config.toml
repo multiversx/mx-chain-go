@@ -28,8 +28,8 @@
     # than this value, then the validators rating decrease should stop so they won't get jailed
     MaxConsecutiveRoundsOfRatingDecrease = 600
 
-   # SyncProcessTimeInMillis is the value in milliseconds used when processing blocks while synchronizing blocks
-   SyncProcessTimeInMillis = 12000
+    # SyncProcessTimeInMillis is the value in milliseconds used when processing blocks while synchronizing blocks
+    SyncProcessTimeInMillis = 12000
 
 [Versions]
     DefaultVersion = "default"
@@ -699,9 +699,10 @@
         ]
 
     [VirtualMachine.GasConfig]
-        # MaxGasPerVmQuery defines the maximum amount of gas to be allocated for VM Queries coming from API
+        # The following values define the maximum amount of gas to be allocated for VM Queries coming from API
         # If set to 0, then MaxUInt64 will be used
-        MaxGasPerVmQuery = 1500000000  #1.5b
+        ShardMaxGasPerVmQuery = 1500000000  #1.5b
+        MetaMaxGasPerVmQuery = 0  #unlimited
 
 [Hardfork]
     EnableTrigger = true
