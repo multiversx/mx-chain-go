@@ -101,6 +101,10 @@ func (vi *shardValidatorsInfoMap) Replace(old ValidatorInfoHandler, new Validato
 	}
 
 	shardID := old.GetShardId()
+	log.Debug("shardValidatorsInfoMap.Replace",
+		"old validator", hex.EncodeToString(old.GetPublicKey()), "shard", old.GetShardId(), "list", old.GetList(),
+		"with new validator", hex.EncodeToString(new.GetPublicKey()), "shard", new.GetShardId(), "list", new.GetList(),
+	)
 
 	vi.mutex.Lock()
 	defer vi.mutex.Unlock()

@@ -649,10 +649,9 @@ func TestValidatorsProvider_GetAuctionList(t *testing.T) {
 	t.Run("error getting root hash", func(t *testing.T) {
 		t.Parallel()
 		args := createDefaultValidatorsProviderArg()
-		expectedErr := errors.New("local error")
 		args.ValidatorStatistics = &testscommon.ValidatorStatisticsProcessorStub{
-			RootHashCalled: func() ([]byte, error) {
-				return nil, expectedErr
+			LastFinalizedRootHashCalled: func() []byte {
+				return nil
 			},
 		}
 		vp, _ := NewValidatorsProvider(args)
@@ -660,15 +659,20 @@ func TestValidatorsProvider_GetAuctionList(t *testing.T) {
 
 		list, err := vp.GetAuctionList()
 		require.Nil(t, list)
-		require.Equal(t, expectedErr, err)
+		require.Equal(t, state.ErrNilRootHash, err)
 	})
 
 	t.Run("error getting validators info for root hash", func(t *testing.T) {
 		t.Parallel()
 		args := createDefaultValidatorsProviderArg()
 		expectedErr := errors.New("local error")
+		expectedRootHash := []byte("root hash")
 		args.ValidatorStatistics = &testscommon.ValidatorStatisticsProcessorStub{
+			LastFinalizedRootHashCalled: func() []byte {
+				return expectedRootHash
+			},
 			GetValidatorInfoForRootHashCalled: func(rootHash []byte) (state.ShardValidatorsInfoMapHandler, error) {
+				require.Equal(t, expectedRootHash, rootHash)
 				return nil, expectedErr
 			},
 		}
@@ -687,8 +691,13 @@ func TestValidatorsProvider_GetAuctionList(t *testing.T) {
 		cleanCalled := &coreAtomic.Flag{}
 		expectedValidator := &state.ValidatorInfo{PublicKey: []byte("pubKey"), List: string(common.AuctionList)}
 		expectedErr := errors.New("local error")
+		expectedRootHash := []byte("root hash")
 		args.ValidatorStatistics = &testscommon.ValidatorStatisticsProcessorStub{
+			LastFinalizedRootHashCalled: func() []byte {
+				return expectedRootHash
+			},
 			GetValidatorInfoForRootHashCalled: func(rootHash []byte) (state.ShardValidatorsInfoMapHandler, error) {
+				require.Equal(t, expectedRootHash, rootHash)
 				validatorsMap := state.NewShardValidatorsInfoMap()
 				_ = validatorsMap.Add(expectedValidator)
 				return validatorsMap, nil
@@ -741,7 +750,7 @@ func TestValidatorsProvider_GetAuctionList(t *testing.T) {
 		t.Parallel()
 		args := createDefaultValidatorsProviderArg()
 
-		expectedRootHash := []byte("rootHash")
+		expectedRootHash := []byte("root hash")
 		ctRootHashCalled := uint32(0)
 		ctGetValidatorsInfoForRootHash := uint32(0)
 		ctSelectNodesFromAuctionList := uint32(0)
@@ -750,9 +759,9 @@ func TestValidatorsProvider_GetAuctionList(t *testing.T) {
 		ctComputeUnqualifiedNodes := uint32(0)
 
 		args.ValidatorStatistics = &testscommon.ValidatorStatisticsProcessorStub{
-			RootHashCalled: func() ([]byte, error) {
+			LastFinalizedRootHashCalled: func() []byte {
 				atomic.AddUint32(&ctRootHashCalled, 1)
-				return expectedRootHash, nil
+				return expectedRootHash
 			},
 			GetValidatorInfoForRootHashCalled: func(rootHash []byte) (state.ShardValidatorsInfoMapHandler, error) {
 				atomic.AddUint32(&ctGetValidatorsInfoForRootHash, 1)
@@ -787,8 +796,8 @@ func TestValidatorsProvider_GetAuctionList(t *testing.T) {
 		list, err := vp.GetAuctionList()
 		require.Nil(t, err)
 		require.Empty(t, list)
-		require.Equal(t, ctRootHashCalled, uint32(1))
-		require.Equal(t, ctGetValidatorsInfoForRootHash, uint32(1))
+		require.Equal(t, ctRootHashCalled, uint32(2))               // another call is from constructor in startRefreshProcess.updateCache
+		require.Equal(t, ctGetValidatorsInfoForRootHash, uint32(2)) // another call is from constructor in startRefreshProcess.updateCache
 		require.Equal(t, ctFillValidatorInfoCalled, uint32(0))
 		require.Equal(t, ctGetOwnersDataCalled, uint32(1))
 		require.Equal(t, ctComputeUnqualifiedNodes, uint32(1))
@@ -870,7 +879,11 @@ func TestValidatorsProvider_GetAuctionList(t *testing.T) {
 		_ = validatorsMap.Add(v9)
 		_ = validatorsMap.Add(v10)
 
+		rootHash := []byte("root hash")
 		args.ValidatorStatistics = &testscommon.ValidatorStatisticsProcessorStub{
+			LastFinalizedRootHashCalled: func() []byte {
+				return rootHash
+			},
 			GetValidatorInfoForRootHashCalled: func(rootHash []byte) (state.ShardValidatorsInfoMapHandler, error) {
 				return validatorsMap, nil
 			},

@@ -42,14 +42,12 @@ func (vp *validatorsProvider) updateAuctionListCacheIfNeeded() error {
 func (vp *validatorsProvider) updateAuctionListCache() error {
 	rootHash := vp.validatorStatistics.LastFinalizedRootHash()
 	if len(rootHash) == 0 {
-		log.Warn("Finalize roothash is 0")
-		return nil
+		return state.ErrNilRootHash
 	}
 
 	validatorsMap, err := vp.validatorStatistics.GetValidatorInfoForRootHash(rootHash)
 	if err != nil {
-		validatorsMap = state.NewShardValidatorsInfoMap()
-		log.Error("Error getting validators for roothash", "error", err, "roothash", hex.EncodeToString(rootHash))
+		return err
 	}
 
 	vp.auctionMutex.Lock()
