@@ -29,7 +29,8 @@
    MaxConsecutiveRoundsOfRatingDecrease = 600
 
    # SetGuardianEpochsDelay represents the delay in epochs between the execution time of the SetGuardian transaction and
-   # the activation of the configured guardian
+   # the activation of the configured guardian.
+   # Make sure that this is greater than the unbonding period!
    SetGuardianEpochsDelay = 20
 
 [Versions]
