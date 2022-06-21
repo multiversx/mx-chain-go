@@ -1171,7 +1171,7 @@ func (sp *shardProcessor) updateState(headers []data.HeaderHandler, currentHeade
 
 		finalRootHash := scheduledHeaderRootHash
 		if len(finalRootHash) == 0 {
-			finalRootHash = headerRootHashForPruning
+			finalRootHash = header.GetRootHash()
 		}
 
 		sp.blockChain.SetFinalBlockInfo(header.GetNonce(), headerHash, finalRootHash)
