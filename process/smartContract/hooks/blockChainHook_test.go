@@ -1287,7 +1287,7 @@ func TestBlockChainHookImpl_ProcessBuiltInFunction(t *testing.T) {
 
 			LoadAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
 				require.Equal(t, addrReceiver, addressContainer)
-				return &stateMock.UserAccountStub{}, nil
+				return &stateMock.AccountWrapMock{}, nil
 			},
 		}
 

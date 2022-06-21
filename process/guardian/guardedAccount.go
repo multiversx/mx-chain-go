@@ -1,6 +1,7 @@
 package guardian
 
 import (
+	"bytes"
 	"fmt"
 	"sync"
 
@@ -15,29 +16,34 @@ import (
 
 var guardianKey = []byte(core.ElrondProtectedKeyPrefix + core.GuardiansKeyIdentifier)
 
-const epochsForActivation = 10 // TODO: take from config
-
 type guardedAccount struct {
-	marshaller               marshal.Marshalizer
-	epochNotifier            vmcommon.EpochNotifier
-	mutEpoch                 sync.RWMutex
-	currentEpoch             uint32
-	guardianActivationEpochs uint32
+	marshaller                    marshal.Marshalizer
+	epochNotifier                 vmcommon.EpochNotifier
+	mutEpoch                      sync.RWMutex
+	guardianActivationEpochsDelay uint32
+	currentEpoch                  uint32
 }
 
 // NewGuardedAccount creates a new guarded account
-func NewGuardedAccount(marshaller marshal.Marshalizer, epochNotifier vmcommon.EpochNotifier) (*guardedAccount, error) {
+func NewGuardedAccount(
+	marshaller marshal.Marshalizer,
+	epochNotifier vmcommon.EpochNotifier,
+	setGuardianEpochsDelay uint32,
+) (*guardedAccount, error) {
 	if check.IfNil(marshaller) {
 		return nil, process.ErrNilMarshalizer
 	}
 	if check.IfNil(epochNotifier) {
 		return nil, process.ErrNilEpochNotifier
 	}
+	if setGuardianEpochsDelay == 0 {
+		return nil, process.ErrInvalidSetGuardianEpochsDelay
+	}
 
 	agc := &guardedAccount{
-		marshaller:               marshaller,
-		epochNotifier:            epochNotifier,
-		guardianActivationEpochs: epochsForActivation,
+		marshaller:                    marshaller,
+		epochNotifier:                 epochNotifier,
+		guardianActivationEpochsDelay: setGuardianEpochsDelay,
 	}
 
 	epochNotifier.RegisterNotifyHandler(agc)
@@ -69,15 +75,19 @@ func (agc *guardedAccount) GetActiveGuardian(uah vmcommon.UserAccountHandler) ([
 }
 
 // SetGuardian sets a guardian for an account
-func (agc *guardedAccount) SetGuardian(uah vmcommon.UserAccountHandler, guardianAddress []byte) error {
-	guardian := &guardians.Guardian{
-		Address:         guardianAddress,
-		ActivationEpoch: agc.currentEpoch + agc.guardianActivationEpochs,
-	}
-
+func (agc *guardedAccount) SetGuardian(uah vmcommon.UserAccountHandler, guardianAddress []byte, txGuardianAddress []byte) error {
 	stateUserAccount, ok := uah.(state.UserAccountHandler)
 	if !ok {
 		return process.ErrWrongTypeAssertion
+	}
+
+	if len(txGuardianAddress) > 0 {
+		return agc.instantSetGuardian(stateUserAccount, guardianAddress, txGuardianAddress)
+	}
+
+	guardian := &guardians.Guardian{
+		Address:         guardianAddress,
+		ActivationEpoch: agc.currentEpoch + agc.guardianActivationEpochsDelay,
 	}
 
 	return agc.setAccountGuardian(stateUserAccount, guardian)
@@ -88,6 +98,7 @@ func (agc *guardedAccount) setAccountGuardian(uah state.UserAccountHandler, guar
 	if err != nil {
 		return err
 	}
+
 	newGuardians, err := agc.updateGuardians(guardian, configuredGuardians)
 	if err != nil {
 		return err
@@ -101,6 +112,43 @@ func (agc *guardedAccount) setAccountGuardian(uah state.UserAccountHandler, guar
 	return agc.saveAccountGuardians(accHandler, newGuardians)
 }
 
+func (agc *guardedAccount) instantSetGuardian(
+	uah state.UserAccountHandler,
+	guardianAddress []byte,
+	txGuardianAddress []byte,
+) error {
+	accountGuardians, err := agc.getConfiguredGuardians(uah)
+	if err != nil {
+		return err
+	}
+
+	activeGuardian, err := agc.getActiveGuardian(accountGuardians)
+	if err != nil {
+		return err
+	}
+
+	if !bytes.Equal(activeGuardian.Address, txGuardianAddress) {
+		return process.ErrTransactionAndAccountGuardianMismatch
+	}
+
+	// immediately set the new guardian
+	guardian := &guardians.Guardian{
+		Address:         guardianAddress,
+		ActivationEpoch: agc.currentEpoch,
+	}
+
+	accountGuardians.Slice = []*guardians.Guardian{guardian}
+	accHandler, ok := uah.(vmcommon.UserAccountHandler)
+	if !ok {
+		return process.ErrWrongTypeAssertion
+	}
+
+	return agc.saveAccountGuardians(accHandler, accountGuardians)
+}
+
+// TODO: add constraints on not co-signed txs on interceptor, for setGuardian
+// 1. Gas price cannot exceed a preconfigured limit
+// 2. If there is already one guardian pending, do not allow setting another one
 func (agc *guardedAccount) updateGuardians(newGuardian *guardians.Guardian, accountGuardians *guardians.Guardians) (*guardians.Guardians, error) {
 	numSetGuardians := len(accountGuardians.Slice)
 
@@ -115,7 +163,7 @@ func (agc *guardedAccount) updateGuardians(newGuardian *guardians.Guardian, acco
 		return nil, fmt.Errorf("%w in updateGuardians, with %d configured guardians", err, numSetGuardians)
 	}
 
-	if activeGuardian.Equal(newGuardian) {
+	if bytes.Equal(activeGuardian.Address, newGuardian.Address) {
 		accountGuardians.Slice = []*guardians.Guardian{activeGuardian}
 	} else {
 		accountGuardians.Slice = []*guardians.Guardian{activeGuardian, newGuardian}
@@ -175,7 +223,7 @@ func (agc *guardedAccount) getActiveGuardian(gs *guardians.Guardians) (*guardian
 	}
 
 	if selectedGuardian == nil {
-		return nil, process.ErrActiveHasNoActiveGuardian
+		return nil, process.ErrAccountHasNoActiveGuardian
 	}
 
 	return selectedGuardian, nil

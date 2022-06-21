@@ -6,16 +6,19 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/state"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 var _ state.UserAccountHandler = (*UserAccountStub)(nil)
 
 // UserAccountStub -
 type UserAccountStub struct {
-	Balance               *big.Int
-	AddToBalanceCalled    func(value *big.Int) error
-	DataTrieTrackerCalled func() state.DataTrieTracker
-	IsFrozenCalled        func() bool
+	Balance                                *big.Int
+	AddToBalanceCalled                     func(value *big.Int) error
+	DataTrieTrackerCalled                  func() state.DataTrieTracker
+	IsFrozenCalled                         func() bool
+	RetrieveValueFromDataTrieTrackerCalled func(key []byte) ([]byte, error)
+	AccountDataHandlerCalled               func() vmcommon.AccountDataHandler
 }
 
 // HasNewCode -
@@ -139,7 +142,10 @@ func (u *UserAccountStub) DataTrie() common.Trie {
 }
 
 // RetrieveValueFromDataTrieTracker -
-func (u *UserAccountStub) RetrieveValueFromDataTrieTracker(_ []byte) ([]byte, error) {
+func (u *UserAccountStub) RetrieveValueFromDataTrieTracker(key []byte) ([]byte, error) {
+	if u.RetrieveValueFromDataTrieTrackerCalled != nil {
+		return u.RetrieveValueFromDataTrieTrackerCalled(key)
+	}
 	return nil, nil
 }
 
@@ -162,4 +168,12 @@ func (u *UserAccountStub) IsFrozen() bool {
 // IsInterfaceNil -
 func (u *UserAccountStub) IsInterfaceNil() bool {
 	return false
+}
+
+// AccountDataHandler -
+func (u *UserAccountStub) AccountDataHandler() vmcommon.AccountDataHandler {
+	if u.AccountDataHandlerCalled != nil {
+		return u.AccountDataHandlerCalled()
+	}
+	return nil
 }
