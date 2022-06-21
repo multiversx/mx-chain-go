@@ -114,14 +114,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		args.CoreComponents.InternalMarshalizer(),
 		args.StateComponents.AccountsAdapterAPI(),
 		args.BootstrapComponents.ShardCoordinator(),
-		args.CoreComponents.EpochNotifier(),
-		args.Configs.EpochConfig.EnableEpochs.ESDTMultiTransferEnableEpoch,
-		args.Configs.EpochConfig.EnableEpochs.GlobalMintBurnDisableEpoch,
-		args.Configs.EpochConfig.EnableEpochs.ESDTTransferRoleEnableEpoch,
-		args.Configs.EpochConfig.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch,
-		args.Configs.EpochConfig.EnableEpochs.OptimizeNFTStoreEnableEpoch,
-		args.Configs.EpochConfig.EnableEpochs.CheckCorrectTokenIDForTransferRoleEnableEpoch,
-		args.Configs.EpochConfig.EnableEpochs.ESDTMetadataContinuousCleanupEnableEpoch,
+		args.CoreComponents.EnableEpochsHandler(),
 		convertedAddress,
 	)
 	if err != nil {
@@ -288,14 +281,7 @@ func createScQueryElement(
 		args.coreComponents.InternalMarshalizer(),
 		args.stateComponents.AccountsAdapterAPI(),
 		args.processComponents.ShardCoordinator(),
-		args.coreComponents.EpochNotifier(),
-		args.epochConfig.EnableEpochs.ESDTMultiTransferEnableEpoch,
-		args.epochConfig.EnableEpochs.GlobalMintBurnDisableEpoch,
-		args.epochConfig.EnableEpochs.ESDTTransferRoleEnableEpoch,
-		args.epochConfig.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch,
-		args.epochConfig.EnableEpochs.OptimizeNFTStoreEnableEpoch,
-		args.epochConfig.EnableEpochs.CheckCorrectTokenIDForTransferRoleEnableEpoch,
-		args.epochConfig.EnableEpochs.ESDTMetadataContinuousCleanupEnableEpoch,
+		args.coreComponents.EnableEpochsHandler(),
 		convertedAddress,
 	)
 	if err != nil {
@@ -367,15 +353,15 @@ func createScQueryElement(
 		}
 
 		argsNewVMFactory := shard.ArgVMContainerFactory{
-			BlockChainHook:     blockChainHookImpl,
-			BuiltInFunctions:   argsHook.BuiltInFunctions,
-			Config:             queryVirtualMachineConfig,
-			BlockGasLimit:      args.coreComponents.EconomicsData().MaxGasLimitPerBlock(args.processComponents.ShardCoordinator().SelfId()),
-			GasSchedule:        args.gasScheduleNotifier,
-			EpochNotifier:      args.coreComponents.EpochNotifier(),
-			EpochConfig:        args.epochConfig.EnableEpochs,
-			ArwenChangeLocker:  args.coreComponents.ArwenChangeLocker(),
-			ESDTTransferParser: esdtTransferParser,
+			BlockChainHook:      blockChainHookImpl,
+			BuiltInFunctions:    argsHook.BuiltInFunctions,
+			Config:              queryVirtualMachineConfig,
+			BlockGasLimit:       args.coreComponents.EconomicsData().MaxGasLimitPerBlock(args.processComponents.ShardCoordinator().SelfId()),
+			GasSchedule:         args.gasScheduleNotifier,
+			EpochNotifier:       args.coreComponents.EpochNotifier(),
+			EnableEpochsHandler: args.coreComponents.EnableEpochsHandler(),
+			ArwenChangeLocker:   args.coreComponents.ArwenChangeLocker(),
+			ESDTTransferParser:  esdtTransferParser,
 		}
 
 		log.Debug("apiResolver: enable epoch for sc deploy", "epoch", args.epochConfig.EnableEpochs.SCDeployEnableEpoch)
@@ -417,31 +403,17 @@ func createBuiltinFuncs(
 	marshalizer marshal.Marshalizer,
 	accnts state.AccountsAdapter,
 	shardCoordinator sharding.Coordinator,
-	epochNotifier vmcommon.EpochNotifier,
-	esdtMultiTransferEnableEpoch uint32,
-	esdtGlobalMintBurnDisableEpoch uint32,
-	esdtTransferRoleEnableEpoch uint32,
-	transferToMetaEnableEpoch uint32,
-	optimizeNFTStoreEnableEpoch uint32,
-	checkCorrectTokenIDEnableEpoch uint32,
-	esdtMetadataContinuousCleanupEnableEpoch uint32,
+	enableEpochsHandler vmcommon.EnableEpochsHandler,
 	automaticCrawlerAddress []byte,
 ) (vmcommon.BuiltInFunctionContainer, vmcommon.SimpleESDTNFTStorageHandler, vmcommon.ESDTGlobalSettingsHandler, error) {
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:                              gasScheduleNotifier,
-		MapDNSAddresses:                          make(map[string]struct{}),
-		Marshalizer:                              marshalizer,
-		Accounts:                                 accnts,
-		ShardCoordinator:                         shardCoordinator,
-		EpochNotifier:                            epochNotifier,
-		ESDTMultiTransferEnableEpoch:             esdtMultiTransferEnableEpoch,
-		ESDTTransferRoleEnableEpoch:              esdtTransferRoleEnableEpoch,
-		GlobalMintBurnDisableEpoch:               esdtGlobalMintBurnDisableEpoch,
-		ESDTTransferMetaEnableEpoch:              transferToMetaEnableEpoch,
-		OptimizeNFTStoreEnableEpoch:              optimizeNFTStoreEnableEpoch,
-		CheckCorrectTokenIDEnableEpoch:           checkCorrectTokenIDEnableEpoch,
-		ESDTMetadataContinuousCleanupEnableEpoch: esdtMetadataContinuousCleanupEnableEpoch,
-		AutomaticCrawlerAddress:                  automaticCrawlerAddress,
+		GasSchedule:             gasScheduleNotifier,
+		MapDNSAddresses:         make(map[string]struct{}),
+		Marshalizer:             marshalizer,
+		Accounts:                accnts,
+		ShardCoordinator:        shardCoordinator,
+		EnableEpochsHandler:     enableEpochsHandler,
+		AutomaticCrawlerAddress: automaticCrawlerAddress,
 	}
 	return builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
 }

@@ -214,6 +214,8 @@ type EnableEpochsHandler interface {
 	IsMiniBlockPartialExecutionFlagEnabled() bool
 	IsManagedCryptoAPIsFlagEnabled() bool
 	IsESDTMetadataContinuousCleanupFlagEnabled() bool
+	IsDisableExecByCallerFlagEnabled() bool
+	IsRefactorContextFlagEnabled() bool
 
 	IsInterfaceNil() bool
 }

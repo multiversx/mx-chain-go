@@ -3,16 +3,16 @@ module github.com/ElrondNetwork/elrond-go
 go 1.15
 
 require (
-	github.com/ElrondNetwork/arwen-wasm-vm/v1_2 v1.2.40
-	github.com/ElrondNetwork/arwen-wasm-vm/v1_3 v1.3.40
-	github.com/ElrondNetwork/arwen-wasm-vm/v1_4 v1.4.51
+	github.com/ElrondNetwork/arwen-wasm-vm/v1_2 v1.2.41-0.20220621100014-6a34a507796c
+	github.com/ElrondNetwork/arwen-wasm-vm/v1_3 v1.3.41-0.20220621073204-9d6bcb548302
+	github.com/ElrondNetwork/arwen-wasm-vm/v1_4 v1.4.54-0.20220620125053-8d932cf489ea
 	github.com/ElrondNetwork/concurrent-map v0.1.3
 	github.com/ElrondNetwork/covalent-indexer-go v1.0.6
 	github.com/ElrondNetwork/elastic-indexer-go v1.2.31
 	github.com/ElrondNetwork/elrond-go-core v1.1.16-0.20220523150518-f1519c41d352
 	github.com/ElrondNetwork/elrond-go-crypto v1.0.1
 	github.com/ElrondNetwork/elrond-go-logger v1.0.7
-	github.com/ElrondNetwork/elrond-vm-common v1.3.7-0.20220602122113-1f938c4d517a
+	github.com/ElrondNetwork/elrond-vm-common v1.3.9-0.20220621065603-f9ef373a9795
 	github.com/ElrondNetwork/go-libp2p-pubsub v0.5.5-rc2
 	github.com/beevik/ntp v0.3.0
 	github.com/btcsuite/btcd v0.22.0-beta
@@ -52,8 +52,8 @@ require (
 
 replace github.com/gogo/protobuf => github.com/ElrondNetwork/protobuf v1.3.2
 
-replace github.com/ElrondNetwork/arwen-wasm-vm/v1_2 v1.2.40 => github.com/ElrondNetwork/arwen-wasm-vm v1.2.40
+replace github.com/ElrondNetwork/arwen-wasm-vm/v1_2 v1.2.41-0.20220621100014-6a34a507796c => github.com/ElrondNetwork/arwen-wasm-vm v1.2.41-0.20220621100014-6a34a507796c
 
-replace github.com/ElrondNetwork/arwen-wasm-vm/v1_3 v1.3.40 => github.com/ElrondNetwork/arwen-wasm-vm v1.3.40
+replace github.com/ElrondNetwork/arwen-wasm-vm/v1_3 v1.3.41-0.20220621073204-9d6bcb548302 => github.com/ElrondNetwork/arwen-wasm-vm v1.3.41-0.20220621073204-9d6bcb548302
 
-replace github.com/ElrondNetwork/arwen-wasm-vm/v1_4 v1.4.51 => github.com/ElrondNetwork/arwen-wasm-vm v1.4.51
+replace github.com/ElrondNetwork/arwen-wasm-vm/v1_4 v1.4.54-0.20220620125053-8d932cf489ea => github.com/ElrondNetwork/arwen-wasm-vm v1.4.54-0.20220620125053-8d932cf489ea

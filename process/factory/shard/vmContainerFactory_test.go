@@ -35,15 +35,15 @@ func makeVMConfig() config.VirtualMachineConfig {
 func createMockVMAccountsArguments() ArgVMContainerFactory {
 	esdtTransferParser, _ := parsers.NewESDTTransferParser(&mock.MarshalizerMock{})
 	return ArgVMContainerFactory{
-		Config:             makeVMConfig(),
-		BlockGasLimit:      10000,
-		GasSchedule:        mock.NewGasScheduleNotifierMock(arwenConfig.MakeGasMapForTests()),
-		EpochNotifier:      &epochNotifier.EpochNotifierStub{},
-		EpochConfig:        config.EnableEpochs{},
-		ArwenChangeLocker:  &sync.RWMutex{},
-		ESDTTransferParser: esdtTransferParser,
-		BuiltInFunctions:   vmcommonBuiltInFunctions.NewBuiltInFunctionContainer(),
-		BlockChainHook:     &testscommon.BlockChainHookStub{},
+		Config:              makeVMConfig(),
+		BlockGasLimit:       10000,
+		GasSchedule:         mock.NewGasScheduleNotifierMock(arwenConfig.MakeGasMapForTests()),
+		EpochNotifier:       &epochNotifier.EpochNotifierStub{},
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+		ArwenChangeLocker:   &sync.RWMutex{},
+		ESDTTransferParser:  esdtTransferParser,
+		BuiltInFunctions:    vmcommonBuiltInFunctions.NewBuiltInFunctionContainer(),
+		BlockChainHook:      &testscommon.BlockChainHookStub{},
 	}
 }
 

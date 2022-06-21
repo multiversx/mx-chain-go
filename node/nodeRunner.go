@@ -445,7 +445,6 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		managedHeartbeatComponents,
 		managedHeartbeatV2Components,
 		managedConsensusComponents,
-		*configs.EpochConfig,
 		flagsConfig.BootstrapRoundIndex,
 		configs.ImportDbConfig.IsImportDBMode,
 	)

@@ -13,21 +13,14 @@ import (
 
 // ArgsCreateBuiltInFunctionContainer defines the argument structure to create new built in function container
 type ArgsCreateBuiltInFunctionContainer struct {
-	GasSchedule                              core.GasScheduleNotifier
-	MapDNSAddresses                          map[string]struct{}
-	EnableUserNameChange                     bool
-	Marshalizer                              marshal.Marshalizer
-	Accounts                                 state.AccountsAdapter
-	ShardCoordinator                         sharding.Coordinator
-	EpochNotifier                            vmcommon.EpochNotifier
-	ESDTMultiTransferEnableEpoch             uint32
-	ESDTTransferRoleEnableEpoch              uint32
-	GlobalMintBurnDisableEpoch               uint32
-	ESDTTransferMetaEnableEpoch              uint32
-	OptimizeNFTStoreEnableEpoch              uint32
-	CheckCorrectTokenIDEnableEpoch           uint32
-	ESDTMetadataContinuousCleanupEnableEpoch uint32
-	AutomaticCrawlerAddress                  []byte
+	GasSchedule             core.GasScheduleNotifier
+	MapDNSAddresses         map[string]struct{}
+	EnableUserNameChange    bool
+	Marshalizer             marshal.Marshalizer
+	Accounts                state.AccountsAdapter
+	ShardCoordinator        sharding.Coordinator
+	EnableEpochsHandler     vmcommon.EnableEpochsHandler
+	AutomaticCrawlerAddress []byte
 }
 
 // CreateBuiltInFuncContainerAndNFTStorageHandler creates a container that will hold all the available built in functions
@@ -47,8 +40,8 @@ func CreateBuiltInFuncContainerAndNFTStorageHandler(args ArgsCreateBuiltInFuncti
 	if check.IfNil(args.ShardCoordinator) {
 		return nil, nil, nil, process.ErrNilShardCoordinator
 	}
-	if check.IfNil(args.EpochNotifier) {
-		return nil, nil, nil, process.ErrNilEpochNotifier
+	if check.IfNil(args.EnableEpochsHandler) {
+		return nil, nil, nil, process.ErrNilEnableEpochsHandler
 	}
 
 	vmcommonAccounts, ok := args.Accounts.(vmcommon.AccountsAdapter)
@@ -57,21 +50,14 @@ func CreateBuiltInFuncContainerAndNFTStorageHandler(args ArgsCreateBuiltInFuncti
 	}
 
 	modifiedArgs := vmcommonBuiltInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasMap:                              args.GasSchedule.LatestGasSchedule(),
-		MapDNSAddresses:                     args.MapDNSAddresses,
-		EnableUserNameChange:                args.EnableUserNameChange,
-		Marshalizer:                         args.Marshalizer,
-		Accounts:                            vmcommonAccounts,
-		ShardCoordinator:                    args.ShardCoordinator,
-		EpochNotifier:                       args.EpochNotifier,
-		ESDTNFTImprovementV1ActivationEpoch: args.ESDTMultiTransferEnableEpoch,
-		ESDTTransferToMetaEnableEpoch:       args.ESDTTransferMetaEnableEpoch,
-		ESDTTransferRoleEnableEpoch:         args.ESDTTransferRoleEnableEpoch,
-		GlobalMintBurnDisableEpoch:          args.GlobalMintBurnDisableEpoch,
-		SaveNFTToSystemAccountEnableEpoch:   args.OptimizeNFTStoreEnableEpoch,
-		CheckCorrectTokenIDEnableEpoch:      args.CheckCorrectTokenIDEnableEpoch,
-		SendESDTMetadataAlwaysEnableEpoch:   args.ESDTMetadataContinuousCleanupEnableEpoch,
-		ConfigAddress:                       args.AutomaticCrawlerAddress,
+		GasMap:               args.GasSchedule.LatestGasSchedule(),
+		MapDNSAddresses:      args.MapDNSAddresses,
+		EnableUserNameChange: args.EnableUserNameChange,
+		Marshalizer:          args.Marshalizer,
+		Accounts:             vmcommonAccounts,
+		ShardCoordinator:     args.ShardCoordinator,
+		EnableEpochsHandler:  args.EnableEpochsHandler,
+		ConfigAddress:        args.AutomaticCrawlerAddress,
 	}
 
 	bContainerFactory, err := vmcommonBuiltInFunctions.NewBuiltInFunctionsCreator(modifiedArgs)

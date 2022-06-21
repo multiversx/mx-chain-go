@@ -1031,7 +1031,7 @@ func (pcf *processComponentsFactory) createVMFactoryShard(
 		WorkingDir:            pcf.workingDir,
 		NFTStorageHandler:     nftStorageHandler,
 		GlobalSettingsHandler: globalSettingsHandler,
-		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
+		EnableEpochsHandler:   pcf.coreData.EnableEpochsHandler(),
 		NilCompiledSCStore:    false,
 		ConfigSCStorage:       configSCStorage,
 	}
@@ -1042,15 +1042,15 @@ func (pcf *processComponentsFactory) createVMFactoryShard(
 	}
 
 	argsNewVMFactory := shard.ArgVMContainerFactory{
-		BlockChainHook:     blockChainHookImpl,
-		BuiltInFunctions:   argsHook.BuiltInFunctions,
-		Config:             pcf.config.VirtualMachine.Execution,
-		BlockGasLimit:      pcf.coreData.EconomicsData().MaxGasLimitPerBlock(pcf.bootstrapComponents.ShardCoordinator().SelfId()),
-		GasSchedule:        pcf.gasSchedule,
-		EpochNotifier:      pcf.coreData.EpochNotifier(),
-		EpochConfig:        pcf.epochConfig.EnableEpochs,
-		ArwenChangeLocker:  arwenChangeLocker,
-		ESDTTransferParser: esdtTransferParser,
+		BlockChainHook:      blockChainHookImpl,
+		BuiltInFunctions:    argsHook.BuiltInFunctions,
+		Config:              pcf.config.VirtualMachine.Execution,
+		BlockGasLimit:       pcf.coreData.EconomicsData().MaxGasLimitPerBlock(pcf.bootstrapComponents.ShardCoordinator().SelfId()),
+		GasSchedule:         pcf.gasSchedule,
+		EpochNotifier:       pcf.coreData.EpochNotifier(),
+		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
+		ArwenChangeLocker:   arwenChangeLocker,
+		ESDTTransferParser:  esdtTransferParser,
 	}
 
 	return shard.NewVMContainerFactory(argsNewVMFactory)
@@ -1078,7 +1078,7 @@ func (pcf *processComponentsFactory) createVMFactoryMeta(
 		WorkingDir:            pcf.workingDir,
 		NFTStorageHandler:     nftStorageHandler,
 		GlobalSettingsHandler: globalSettingsHandler,
-		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
+		EnableEpochsHandler:   pcf.coreData.EnableEpochsHandler(),
 		NilCompiledSCStore:    false,
 	}
 
@@ -1116,20 +1116,13 @@ func (pcf *processComponentsFactory) createBuiltInFunctionContainer(
 	}
 
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:                              pcf.gasSchedule,
-		MapDNSAddresses:                          mapDNSAddresses,
-		Marshalizer:                              pcf.coreData.InternalMarshalizer(),
-		Accounts:                                 accounts,
-		ShardCoordinator:                         pcf.bootstrapComponents.ShardCoordinator(),
-		EpochNotifier:                            pcf.epochNotifier,
-		ESDTMultiTransferEnableEpoch:             pcf.epochConfig.EnableEpochs.ESDTMultiTransferEnableEpoch,
-		ESDTTransferRoleEnableEpoch:              pcf.epochConfig.EnableEpochs.ESDTTransferRoleEnableEpoch,
-		GlobalMintBurnDisableEpoch:               pcf.epochConfig.EnableEpochs.GlobalMintBurnDisableEpoch,
-		ESDTTransferMetaEnableEpoch:              pcf.epochConfig.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch,
-		OptimizeNFTStoreEnableEpoch:              pcf.epochConfig.EnableEpochs.OptimizeNFTStoreEnableEpoch,
-		CheckCorrectTokenIDEnableEpoch:           pcf.epochConfig.EnableEpochs.CheckCorrectTokenIDForTransferRoleEnableEpoch,
-		ESDTMetadataContinuousCleanupEnableEpoch: pcf.epochConfig.EnableEpochs.ESDTMetadataContinuousCleanupEnableEpoch,
-		AutomaticCrawlerAddress:                  convertedAddress,
+		GasSchedule:             pcf.gasSchedule,
+		MapDNSAddresses:         mapDNSAddresses,
+		Marshalizer:             pcf.coreData.InternalMarshalizer(),
+		Accounts:                accounts,
+		ShardCoordinator:        pcf.bootstrapComponents.ShardCoordinator(),
+		EnableEpochsHandler:     pcf.coreData.EnableEpochsHandler(),
+		AutomaticCrawlerAddress: convertedAddress,
 	}
 
 	return builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)

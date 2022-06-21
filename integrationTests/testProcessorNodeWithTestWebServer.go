@@ -140,7 +140,7 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 		Marshalizer:             TestMarshalizer,
 		Accounts:                tpn.AccntState,
 		ShardCoordinator:        tpn.ShardCoordinator,
-		EpochNotifier:           tpn.EpochNotifier,
+		EnableEpochsHandler:     tpn.EnableEpochsHandler,
 		AutomaticCrawlerAddress: bytes.Repeat([]byte{1}, 32),
 	}
 	builtInFuncs, _, _, err := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
