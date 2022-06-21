@@ -205,13 +205,11 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 		return false
 	}
 
-	log.Debug("doEndRoundJobByLeader.Verify", "bitmap", bitmap)
-
 	err = currentMultiSigner.Verify(sr.GetData(), bitmap)
 	if err != nil {
 		log.Debug("doEndRoundJobByLeader.Verify", "error", err.Error())
 
-		err = sr.verifyNodesOnAggSigVerificationFail(currentMultiSigner)
+		bitmap, sig, err = sr.verifyNodesOnAggSigVerificationFail(currentMultiSigner)
 		if err != nil {
 			log.Debug("doEndRoundJobByLeader.verifyNodesOnAggSigVerificationFail", "error", err.Error())
 			return false
@@ -306,7 +304,7 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 
 func (sr *subroundEndRound) verifyNodesOnAggSigVerificationFail(
 	multiSigner crypto.MultiSigner,
-) error {
+) ([]byte, []byte, error) {
 	threshold := sr.Threshold(sr.Current())
 	pubKeys := sr.ConsensusGroup()
 
@@ -323,7 +321,7 @@ func (sr *subroundEndRound) verifyNodesOnAggSigVerificationFail(
 		sigShare, err := multiSigner.SignatureShare(uint16(i))
 		if err != nil {
 			log.Debug("verifyNodesOnAggSigVerificationFail.SignatureShare", "error", err.Error())
-			return err
+			return nil, nil, err
 		}
 
 		err = multiSigner.VerifySignatureShare(uint16(i), sigShare, sr.GetData(), nil)
@@ -333,7 +331,7 @@ func (sr *subroundEndRound) verifyNodesOnAggSigVerificationFail(
 			invalidSigSharesNodes = append(invalidSigSharesNodes, i)
 			err = sr.SetJobDone(pk, SrSignature, false)
 			if err != nil {
-				return err
+				return nil, nil, err
 			}
 
 			continue
@@ -347,7 +345,7 @@ func (sr *subroundEndRound) verifyNodesOnAggSigVerificationFail(
 				"node", pk,
 				"index", nodeIndex,
 				"error", err.Error())
-			return err
+			return nil, nil, err
 		}
 		log.Debug("verifyNodesOnAggSigVerificationFail.VerifySignatureShare checked SUCCESSFULLY", "public key", pk)
 	}
@@ -369,23 +367,23 @@ func (sr *subroundEndRound) verifyNodesOnAggSigVerificationFail(
 	sig, err := multiSigner.AggregateSigs(bitmap)
 	if err != nil {
 		log.Debug("doEndRoundJobByLeader.AggregateSigs", "error", err.Error())
-		return err
+		return nil, nil, err
 	}
 
 	err = multiSigner.SetAggregatedSig(sig)
 	if err != nil {
 		log.Debug("doEndRoundJobByLeader.SetAggregatedSig", "error", err.Error())
-		return err
+		return nil, nil, err
 	}
 
 	if numValidSigShares >= threshold {
 		err := multiSigner.Verify(sr.GetData(), bitmap)
 		if err != nil {
-			return err
+			return nil, nil, err
 		}
 	}
 
-	return nil
+	return bitmap, sig, nil
 }
 
 func (sr *subroundEndRound) createAndBroadcastHeaderFinalInfo() {
