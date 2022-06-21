@@ -90,7 +90,7 @@ func createArgsForTxProcessor() txproc.ArgsNewTxProcessor {
 		ArgsParser:       &mock.ArgumentParserMock{},
 		ScrForwarder:     &mock.IntermediateTransactionHandlerMock{},
 		EpochNotifier:    &epochNotifier.EpochNotifierStub{},
-		GuardianChecker:  &guardianMocks.GuardianCheckerStub{},
+		GuardianChecker:  &guardianMocks.GuardedAccountHandlerStub{},
 		TxVersionChecker: &testscommon.TxVersionCheckerStub{},
 	}
 	return args

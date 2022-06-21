@@ -28,7 +28,7 @@ import (
 func TestNewGuardedTxSigVerifier(t *testing.T) {
 	args := GuardedTxSigVerifierArgs{
 		SigVerifier:     &cryptoMocks.SingleSignerStub{},
-		GuardianChecker: &guardianMocks.GuardianCheckerStub{},
+		GuardianChecker: &guardianMocks.GuardedAccountHandlerStub{},
 		PubKeyConverter: &testscommon.PubkeyConverterMock{},
 		Marshaller:      &testscommon.MarshalizerMock{},
 		KeyGen:          &cryptoMocks.KeyGenStub{},
@@ -77,7 +77,7 @@ func TestNewGuardedTxSigVerifier(t *testing.T) {
 }
 
 func TestGuardedTxSigVerifier_IsInterfaceNil(t *testing.T) {
-	var gsv GuardianSigVerifier
+	var gsv process.GuardianSigVerifier
 	require.True(t, check.IfNil(gsv))
 
 	var gsvNilPtr *guardedTxSigVerifier
@@ -98,7 +98,7 @@ func TestGuardedTxSigVerifier_VerifyGuardianSignature(t *testing.T) {
 	signer := &singlesig.Ed25519Signer{}
 
 	acc := &vmcommonMocks.UserAccountStub{}
-	guardianChecker := &guardianMocks.GuardianCheckerStub{
+	guardianChecker := &guardianMocks.GuardedAccountHandlerStub{
 		GetActiveGuardianCalled: func(handler vmcommon.UserAccountHandler) ([]byte, error) {
 			return pubKeyGuardianBytes, nil
 		},

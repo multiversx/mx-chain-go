@@ -1052,7 +1052,7 @@ func CreateSimpleTxProcessor(accnts state.AccountsAdapter) process.TransactionPr
 		ScrForwarder:     &mock.IntermediateTransactionHandlerMock{},
 		EpochNotifier:    forking.NewGenericEpochNotifier(),
 		TxVersionChecker: &testscommon.TxVersionCheckerStub{},
-		GuardianChecker:  &guardianMocks.GuardianCheckerStub{},
+		GuardianChecker:  &guardianMocks.GuardedAccountHandlerStub{},
 	}
 	txProcessor, _ := txProc.NewTxProcessor(argsNewTxProcessor)
 

@@ -35,7 +35,7 @@ func createMockNewMetaTxArgs() txproc.ArgsNewMetaTxProcessor {
 		EconomicsFee:     createFreeTxFeeHandler(),
 		ESDTEnableEpoch:  0,
 		EpochNotifier:    &epochNotifier.EpochNotifierStub{},
-		GuardianChecker:  &guardianMocks.GuardianCheckerStub{},
+		GuardianChecker:  &guardianMocks.GuardedAccountHandlerStub{},
 		TxVersionChecker: &testscommon.TxVersionCheckerStub{},
 	}
 	return args

@@ -1098,6 +1098,9 @@ var ErrAccountHasNoGuardianSet = errors.New("account has no guardian set")
 // ErrAccountHasNoActiveGuardian signals that the account has no active guardian
 var ErrAccountHasNoActiveGuardian = errors.New("account has no active guardian")
 
+// ErrAccountHasNoPendingGuardian signals that the account has no pending guardian
+var ErrAccountHasNoPendingGuardian = errors.New("account has no pending guardian")
+
 // ErrNilGuardedAccountHandler signals that a nil guarded account handler was provided
 var ErrNilGuardedAccountHandler = errors.New("nil guarded account handler")
 
@@ -1109,6 +1112,9 @@ var ErrTransactionAndAccountGuardianMismatch = errors.New("mismatch between tran
 
 // ErrInvalidSetGuardianEpochsDelay signals an invalid configuration for the epochs delay
 var ErrInvalidSetGuardianEpochsDelay = errors.New("incorrect setting for set guardian epochs delay")
+
+// ErrCannotReplaceFrozenAccountPendingGuardian signals that a pending guardian on a frozen account cannot be replaced
+var ErrCannotReplaceFrozenAccountPendingGuardian = errors.New("cannot replace pending guardian on frozen account")
 
 // ErrGasPriceTooHigh signals a too high gas price
 var ErrGasPriceTooHigh = errors.New("gas price is too high for the transaction")
