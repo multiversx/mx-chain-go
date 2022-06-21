@@ -22,6 +22,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
@@ -85,6 +86,7 @@ func createMockArguments() peer.ArgValidatorStatisticsProcessor {
 						MaxGasLimitPerMetaMiniBlock: "10000000",
 						MaxGasLimitPerTx:            "10000000",
 						MinGasLimit:                 "10",
+						ExtraGasLimitGuardedTx:      "50000",
 					},
 				},
 				MinGasPrice:      "10",
@@ -95,6 +97,7 @@ func createMockArguments() peer.ArgValidatorStatisticsProcessor {
 		PenalizedTooMuchGasEnableEpoch: 0,
 		EpochNotifier:                  &epochNotifier.EpochNotifierStub{},
 		BuiltInFunctionsCostHandler:    &mock.BuiltInCostHandlerStub{},
+		TxVersionChecker:               &testscommon.TxVersionCheckerStub{},
 	}
 	economicsData, _ := economics.NewEconomicsData(argsNewEconomicsData)
 

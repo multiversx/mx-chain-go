@@ -38,6 +38,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
+	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/mainFactoryMocks"
@@ -418,7 +419,7 @@ func createMockTransactionCoordinatorArguments(
 		FeeHandler:                        &mock.FeeAccumulatorStub{},
 		BlockSizeComputation:              &testscommon.BlockSizeComputationStub{},
 		BalanceComputation:                &testscommon.BalanceComputationStub{},
-		EconomicsFee:                      &mock.FeeHandlerStub{},
+		EconomicsFee:                      &economicsmocks.EconomicsHandlerStub{},
 		TxTypeHandler:                     &testscommon.TxTypeHandlerMock{},
 		BlockGasAndFeesReCheckEnableEpoch: 0,
 		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},

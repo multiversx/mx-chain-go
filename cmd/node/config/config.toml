@@ -71,7 +71,6 @@
    # it is a good idea to increase the maximum number of opened files allowed by the operating system
    FullArchiveNumActivePersisters = 10
 
-
 [MiniBlocksStorage]
     [MiniBlocksStorage.Cache]
         Name = "MiniBlocksStorage"

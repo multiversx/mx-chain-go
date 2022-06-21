@@ -263,6 +263,7 @@ func TestVmContainerFactory_Create(t *testing.T) {
 						MaxGasLimitPerMetaMiniBlock: "10000000000",
 						MaxGasLimitPerTx:            "10000000000",
 						MinGasLimit:                 "10",
+						ExtraGasLimitGuardedTx:      "50000",
 					},
 				},
 				MinGasPrice:      "10",
@@ -273,6 +274,7 @@ func TestVmContainerFactory_Create(t *testing.T) {
 		PenalizedTooMuchGasEnableEpoch: 0,
 		EpochNotifier:                  &epochNotifier.EpochNotifierStub{},
 		BuiltInFunctionsCostHandler:    &mock.BuiltInCostHandlerStub{},
+		TxVersionChecker:               &testscommon.TxVersionCheckerStub{},
 	}
 	economicsData, _ := economics.NewEconomicsData(argsNewEconomicsData)
 

@@ -212,6 +212,7 @@ func (context *TestContext) initFeeHandlers() {
 						MaxGasLimitPerMetaMiniBlock: maxGasLimitPerBlock,
 						MaxGasLimitPerTx:            maxGasLimitPerBlock,
 						MinGasLimit:                 minGasLimit,
+						ExtraGasLimitGuardedTx:      "50000",
 					},
 				},
 				MinGasPrice:      minGasPrice,
@@ -222,6 +223,7 @@ func (context *TestContext) initFeeHandlers() {
 		PenalizedTooMuchGasEnableEpoch: 0,
 		EpochNotifier:                  context.EpochNotifier,
 		BuiltInFunctionsCostHandler:    &mock.BuiltInCostHandlerStub{},
+		TxVersionChecker:               &testscommon.TxVersionCheckerStub{},
 	}
 	economicsData, _ := economics.NewEconomicsData(argsNewEconomicsData)
 

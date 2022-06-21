@@ -55,6 +55,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/guardianMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/txDataBuilder"
@@ -222,8 +223,8 @@ func (vmTestContext *VMTestContext) GetIntValueFromSCWithTransientVM(funcName st
 // GetVMOutputWithTransientVM -
 func (vmTestContext *VMTestContext) GetVMOutputWithTransientVM(funcName string, args ...[]byte) *vmcommon.VMOutput {
 	scAddressBytes := vmTestContext.Contract.Address
-	feeHandler := &mock.FeeHandlerStub{
-		MaxGasLimitPerBlockCalled: func() uint64 {
+	feeHandler := &economicsmocks.EconomicsHandlerStub{
+		MaxGasLimitPerBlockCalled: func(_ uint32) uint64 {
 			return uint64(math.MaxUint64)
 		},
 	}
@@ -387,6 +388,7 @@ func createEconomicsData(penalizedTooMuchGasEnableEpoch uint32) (process.Economi
 						MaxGasLimitPerMetaMiniBlock: maxGasLimitPerBlock,
 						MaxGasLimitPerTx:            maxGasLimitPerBlock,
 						MinGasLimit:                 minGasLimit,
+						ExtraGasLimitGuardedTx:      "50000",
 					},
 				},
 				MinGasPrice:      minGasPrice,
@@ -397,6 +399,7 @@ func createEconomicsData(penalizedTooMuchGasEnableEpoch uint32) (process.Economi
 		PenalizedTooMuchGasEnableEpoch: penalizedTooMuchGasEnableEpoch,
 		EpochNotifier:                  &epochNotifier.EpochNotifierStub{},
 		BuiltInFunctionsCostHandler:    builtInCost,
+		TxVersionChecker:               &testscommon.TxVersionCheckerStub{},
 	}
 
 	return economics.NewEconomicsData(argsNewEconomicsData)
@@ -1358,8 +1361,8 @@ func GetVmOutput(gasSchedule map[string]map[string]uint64, accnts state.Accounts
 		_ = vmContainer.Close()
 	}()
 
-	feeHandler := &mock.FeeHandlerStub{
-		MaxGasLimitPerBlockCalled: func() uint64 {
+	feeHandler := &economicsmocks.EconomicsHandlerStub{
+		MaxGasLimitPerBlockCalled: func(_ uint32) uint64 {
 			return uint64(math.MaxUint64)
 		},
 	}

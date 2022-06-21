@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	"github.com/stretchr/testify/assert"
@@ -60,6 +61,7 @@ func feeSettingsDummy(gasModifier float64) config.FeeSettings {
 				MaxGasLimitPerMetaMiniBlock: "1000000",
 				MaxGasLimitPerTx:            "100000",
 				MinGasLimit:                 "500",
+				ExtraGasLimitGuardedTx:      "50000",
 			},
 		},
 		MinGasPrice:      "18446744073709551615",
@@ -78,6 +80,7 @@ func feeSettingsReal() config.FeeSettings {
 				MaxGasLimitPerMetaMiniBlock: "15000000000",
 				MaxGasLimitPerTx:            "1500000000",
 				MinGasLimit:                 "50000",
+				ExtraGasLimitGuardedTx:      "50000",
 			},
 		},
 		MinGasPrice:      "1000000000",
@@ -93,6 +96,7 @@ func createArgsForEconomicsData(gasModifier float64) economics.ArgsNewEconomicsD
 		PenalizedTooMuchGasEnableEpoch: 0,
 		EpochNotifier:                  &epochNotifier.EpochNotifierStub{},
 		BuiltInFunctionsCostHandler:    &mock.BuiltInCostHandlerStub{},
+		TxVersionChecker:               &testscommon.TxVersionCheckerStub{},
 	}
 	return args
 }
@@ -104,6 +108,7 @@ func createArgsForEconomicsDataRealFees(handler economics.BuiltInFunctionsCostHa
 		PenalizedTooMuchGasEnableEpoch: 0,
 		EpochNotifier:                  &epochNotifier.EpochNotifierStub{},
 		BuiltInFunctionsCostHandler:    handler,
+		TxVersionChecker:               &testscommon.TxVersionCheckerStub{},
 	}
 	return args
 }
@@ -490,6 +495,7 @@ func TestEconomicsData_ConfirmedGasLimitSettingsChangeOrderedConfigs(t *testing.
 			MaxGasLimitPerMetaMiniBlock: "15000000000",
 			MaxGasLimitPerTx:            "1500000000",
 			MinGasLimit:                 "50000",
+			ExtraGasLimitGuardedTx:      "50000",
 		},
 		{
 			EnableEpoch:                 2,
@@ -499,6 +505,7 @@ func TestEconomicsData_ConfirmedGasLimitSettingsChangeOrderedConfigs(t *testing.
 			MaxGasLimitPerMetaMiniBlock: "5000000000",
 			MaxGasLimitPerTx:            "500000000",
 			MinGasLimit:                 "50000",
+			ExtraGasLimitGuardedTx:      "50000",
 		},
 	}
 
@@ -578,6 +585,7 @@ func TestEconomicsData_ConfirmedGasLimitSettingsChangeUnOrderedConfigs(t *testin
 			MaxGasLimitPerMetaMiniBlock: "5000000000",
 			MaxGasLimitPerTx:            "500000000",
 			MinGasLimit:                 "50000",
+			ExtraGasLimitGuardedTx:      "50000",
 		},
 		{
 			EnableEpoch:                 0,
@@ -587,6 +595,7 @@ func TestEconomicsData_ConfirmedGasLimitSettingsChangeUnOrderedConfigs(t *testin
 			MaxGasLimitPerMetaMiniBlock: "15000000000",
 			MaxGasLimitPerTx:            "1500000000",
 			MinGasLimit:                 "50000",
+			ExtraGasLimitGuardedTx:      "50000",
 		},
 	}
 

@@ -10,8 +10,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
-	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -35,7 +35,7 @@ func TestNewGasComputation_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	gc, err := preprocess.NewGasComputation(
-		&mock.FeeHandlerStub{},
+		&economicsmocks.EconomicsHandlerStub{},
 		&testscommon.TxTypeHandlerMock{},
 		&epochNotifier.EpochNotifierStub{},
 		0,
@@ -49,7 +49,7 @@ func TestGasProvided_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	gc, _ := preprocess.NewGasComputation(
-		&mock.FeeHandlerStub{},
+		&economicsmocks.EconomicsHandlerStub{},
 		&testscommon.TxTypeHandlerMock{},
 		&epochNotifier.EpochNotifierStub{},
 		0,
@@ -79,7 +79,7 @@ func TestGasRefunded_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	gc, _ := preprocess.NewGasComputation(
-		&mock.FeeHandlerStub{},
+		&economicsmocks.EconomicsHandlerStub{},
 		&testscommon.TxTypeHandlerMock{},
 		&epochNotifier.EpochNotifierStub{},
 		0,
@@ -109,7 +109,7 @@ func TestGasPenalized_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	gc, _ := preprocess.NewGasComputation(
-		&mock.FeeHandlerStub{},
+		&economicsmocks.EconomicsHandlerStub{},
 		&testscommon.TxTypeHandlerMock{},
 		&epochNotifier.EpochNotifierStub{},
 		0,
@@ -139,7 +139,7 @@ func TestComputeGasProvidedByTx_ShouldErrWrongTypeAssertion(t *testing.T) {
 	t.Parallel()
 
 	gc, _ := preprocess.NewGasComputation(
-		&mock.FeeHandlerStub{},
+		&economicsmocks.EconomicsHandlerStub{},
 		&testscommon.TxTypeHandlerMock{},
 		&epochNotifier.EpochNotifierStub{},
 		0,
@@ -153,7 +153,7 @@ func TestComputeGasProvidedByTx_ShouldWorkWhenTxReceiverAddressIsNotASmartContra
 	t.Parallel()
 
 	gc, _ := preprocess.NewGasComputation(
-		&mock.FeeHandlerStub{
+		&economicsmocks.EconomicsHandlerStub{
 			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 				return 6
 			},
@@ -174,7 +174,7 @@ func TestComputeGasProvidedByTx_ShouldWorkWhenTxReceiverAddressIsASmartContractI
 	t.Parallel()
 
 	gc, _ := preprocess.NewGasComputation(
-		&mock.FeeHandlerStub{
+		&economicsmocks.EconomicsHandlerStub{
 			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 				return 6
 			},
@@ -198,7 +198,7 @@ func TestComputeGasProvidedByTx_ShouldWorkWhenTxReceiverAddressIsASmartContractC
 	t.Parallel()
 
 	gc, _ := preprocess.NewGasComputation(
-		&mock.FeeHandlerStub{
+		&economicsmocks.EconomicsHandlerStub{
 			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 				return 6
 			},
@@ -222,7 +222,7 @@ func TestComputeGasProvidedByTx_ShouldReturnZeroIf0GasLimit(t *testing.T) {
 	t.Parallel()
 
 	gc, _ := preprocess.NewGasComputation(
-		&mock.FeeHandlerStub{
+		&economicsmocks.EconomicsHandlerStub{
 			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 				return 6
 			},
@@ -246,7 +246,7 @@ func TestComputeGasProvidedByTx_ShouldReturnGasLimitIfLessThanMoveBalance(t *tes
 	t.Parallel()
 
 	gc, _ := preprocess.NewGasComputation(
-		&mock.FeeHandlerStub{
+		&economicsmocks.EconomicsHandlerStub{
 			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 				return 6
 			},
@@ -270,7 +270,7 @@ func TestComputeGasProvidedByTx_ShouldReturnGasLimitWhenRelayed(t *testing.T) {
 	t.Parallel()
 
 	gc, _ := preprocess.NewGasComputation(
-		&mock.FeeHandlerStub{
+		&economicsmocks.EconomicsHandlerStub{
 			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 				return 0
 			},
@@ -294,7 +294,7 @@ func TestComputeGasProvidedByTx_ShouldReturnGasLimitWhenRelayedV2(t *testing.T) 
 	t.Parallel()
 
 	gc, _ := preprocess.NewGasComputation(
-		&mock.FeeHandlerStub{
+		&economicsmocks.EconomicsHandlerStub{
 			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 				return 0
 			},
@@ -318,7 +318,7 @@ func TestComputeGasProvidedByMiniBlock_ShouldErrMissingTransaction(t *testing.T)
 	t.Parallel()
 
 	gc, _ := preprocess.NewGasComputation(
-		&mock.FeeHandlerStub{
+		&economicsmocks.EconomicsHandlerStub{
 			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 				return 6
 			},
@@ -348,7 +348,7 @@ func TestComputeGasProvidedByMiniBlock_ShouldReturnZeroWhenOneTxIsMissing(t *tes
 	t.Parallel()
 
 	gc, _ := preprocess.NewGasComputation(
-		&mock.FeeHandlerStub{
+		&economicsmocks.EconomicsHandlerStub{
 			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 				return 6
 			},
@@ -381,7 +381,7 @@ func TestComputeGasProvidedByMiniBlock_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	gc, _ := preprocess.NewGasComputation(
-		&mock.FeeHandlerStub{
+		&economicsmocks.EconomicsHandlerStub{
 			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 				return 6
 			},
@@ -422,7 +422,7 @@ func TestComputeGasProvidedByMiniBlock_ShouldWorkV1(t *testing.T) {
 	t.Parallel()
 
 	gc, _ := preprocess.NewGasComputation(
-		&mock.FeeHandlerStub{
+		&economicsmocks.EconomicsHandlerStub{
 			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 				return 6
 			},
@@ -463,7 +463,7 @@ func TestComputeGasProvidedByTx_ShouldWorkWhenTxReceiverAddressIsNotASmartContra
 	t.Parallel()
 
 	gc, _ := preprocess.NewGasComputation(
-		&mock.FeeHandlerStub{
+		&economicsmocks.EconomicsHandlerStub{
 			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 				return 6
 			},
@@ -484,7 +484,7 @@ func TestComputeGasProvidedByTx_ShouldWorkWhenTxReceiverAddressIsASmartContractI
 	t.Parallel()
 
 	gc, _ := preprocess.NewGasComputation(
-		&mock.FeeHandlerStub{
+		&economicsmocks.EconomicsHandlerStub{
 			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 				return 6
 			},
@@ -508,7 +508,7 @@ func TestComputeGasProvidedByTx_ShouldWorkWhenTxReceiverAddressIsASmartContractC
 	t.Parallel()
 
 	gc, _ := preprocess.NewGasComputation(
-		&mock.FeeHandlerStub{
+		&economicsmocks.EconomicsHandlerStub{
 			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 				return 6
 			},
@@ -532,7 +532,7 @@ func TestReset_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	gc, _ := preprocess.NewGasComputation(
-		&mock.FeeHandlerStub{},
+		&economicsmocks.EconomicsHandlerStub{},
 		&testscommon.TxTypeHandlerMock{},
 		&epochNotifier.EpochNotifierStub{},
 		0,
@@ -567,7 +567,7 @@ func TestRestoreGasSinceLastReset_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	gc, _ := preprocess.NewGasComputation(
-		&mock.FeeHandlerStub{},
+		&economicsmocks.EconomicsHandlerStub{},
 		&testscommon.TxTypeHandlerMock{},
 		&epochNotifier.EpochNotifierStub{},
 		0,
