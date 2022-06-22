@@ -263,7 +263,7 @@ func TestShardProcess_CreateNewBlockHeaderProcessHeaderExpectCheckRoundCalled(t 
 	round := uint64(4)
 	checkRoundCt := atomicCore.Counter{}
 
-	roundNotifier := &mock.RoundNotifierStub{
+	enableRoundsHandler := &testscommon.EnableRoundsHandlerStub{
 		CheckRoundCalled: func(r uint64) {
 			checkRoundCt.Increment()
 			require.Equal(t, round, r)
@@ -273,7 +273,7 @@ func TestShardProcess_CreateNewBlockHeaderProcessHeaderExpectCheckRoundCalled(t 
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 
-	arguments.RoundNotifier = roundNotifier
+	arguments.EnableRoundsHandler = enableRoundsHandler
 
 	shardProcessor, _ := blproc.NewShardProcessor(arguments)
 	header := &block.Header{Round: round}

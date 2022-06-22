@@ -30,7 +30,7 @@ func TestStakingUnstakingAndUnbondingOnMultiShardEnvironment(t *testing.T) {
 	nodesPerShard := 2
 	numMetachainNodes := 2
 
-	enabledEpochsConfig := config.EnableEpochs{
+	enableEpochsConfig := config.EnableEpochs{
 		StakingV2EnableEpoch:                 integrationTests.UnreachableEpoch,
 		ScheduledMiniBlocksEnableEpoch:       integrationTests.UnreachableEpoch,
 		MiniBlockPartialExecutionEnableEpoch: integrationTests.UnreachableEpoch,
@@ -40,7 +40,7 @@ func TestStakingUnstakingAndUnbondingOnMultiShardEnvironment(t *testing.T) {
 		numOfShards,
 		nodesPerShard,
 		numMetachainNodes,
-		enabledEpochsConfig,
+		enableEpochsConfig,
 	)
 
 	idxProposers := make([]int, numOfShards+1)

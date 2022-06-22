@@ -1,4 +1,4 @@
-package enableEpochs
+package enablers
 
 import (
 	"testing"
@@ -9,7 +9,7 @@ import (
 func TestNewFlagsHolder_NilFlagShouldPanic(t *testing.T) {
 	t.Parallel()
 
-	fh := newFlagsHolder()
+	fh := newEpochFlagsHolder()
 	require.NotNil(t, fh)
 
 	fh.scDeployFlag = nil
@@ -19,7 +19,7 @@ func TestNewFlagsHolder_NilFlagShouldPanic(t *testing.T) {
 func TestFlagsHolder_ResetPenalizedTooMuchGasFlag(t *testing.T) {
 	t.Parallel()
 
-	fh := newFlagsHolder()
+	fh := newEpochFlagsHolder()
 	require.NotNil(t, fh)
 
 	fh.penalizedTooMuchGasFlag.SetValue(true)
