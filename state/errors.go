@@ -37,7 +37,11 @@ func NewErrAccountNotFoundAtBlock(blockInfo common.BlockInfo) *ErrAccountNotFoun
 
 // Error returns the error as string
 func (e *ErrAccountNotFoundAtBlock) Error() string {
-	return fmt.Sprintf("account was not found at block = %d", e.BlockInfo.GetNonce())
+	return fmt.Sprintf("account was not found at block: nonce = %d, hash = %s, rootHash = %s",
+		e.BlockInfo.GetNonce(),
+		hex.EncodeToString(e.BlockInfo.GetHash()),
+		hex.EncodeToString(e.BlockInfo.GetRootHash()),
+	)
 }
 
 // ErrNilAccountsAdapter defines the error when trying to revert on nil accounts

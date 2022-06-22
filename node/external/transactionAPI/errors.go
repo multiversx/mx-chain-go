@@ -21,4 +21,4 @@ var ErrNilFeeComputer = errors.New("nil fee computer")
 var ErrNilLogsFacade = errors.New("nil logs facade")
 
 var errCannotLoadReceipts = errors.New("cannot load receipt(s)")
-var errCannotContractResults = errors.New("cannot load contract result(s)")
+var errCannotLoadContractResults = errors.New("cannot load contract result(s)")

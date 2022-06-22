@@ -59,7 +59,6 @@ func (arp *apiTransactionResultsProcessor) putResultsInTransaction(hash []byte, 
 		return arp.putReceiptInTransaction(tx, resultsHashes.ReceiptsHash, epoch)
 	}
 
-	// Question for review: if there's a receipt, why cannot there by any SCRs, as well?
 	return arp.putSmartContractResultsInTransaction(tx, resultsHashes.ScResultsHashesAndEpoch)
 }
 
@@ -103,7 +102,7 @@ func (arp *apiTransactionResultsProcessor) putSmartContractResultsInTransactionB
 	for _, scrHash := range scrsHashes {
 		scr, err := arp.getScrFromStorage(scrHash, epoch)
 		if err != nil {
-			return fmt.Errorf("%w: %v, hash = %s", errCannotContractResults, err, hex.EncodeToString(scrHash))
+			return fmt.Errorf("%w: %v, hash = %s", errCannotLoadContractResults, err, hex.EncodeToString(scrHash))
 		}
 
 		scrAPI := arp.adaptSmartContractResult(scrHash, scr)
