@@ -269,6 +269,10 @@ func (sr *subroundEndRound) DoEndRoundJobByParticipant(cnsDta *consensus.Message
 	return sr.doEndRoundJobByParticipant(cnsDta)
 }
 
+func (sr *subroundEndRound) DoEndRoundJobByLeader() bool {
+	return sr.doEndRoundJobByLeader()
+}
+
 func (sr *subroundEndRound) HaveConsensusHeaderWithFullInfo(cnsDta *consensus.Message) (bool, data.HeaderHandler) {
 	return sr.haveConsensusHeaderWithFullInfo(cnsDta)
 }
