@@ -101,7 +101,7 @@ func createArgBaseProcessor(
 		BlockSizeThrottler:           &mock.BlockSizeThrottlerStub{},
 		Version:                      "softwareVersion",
 		HistoryRepository:            &dblookupext.HistoryRepositoryStub{},
-		RoundNotifier:                &mock.RoundNotifierStub{},
+		EnableRoundsHandler:          &testscommon.EnableRoundsHandlerStub{},
 		GasHandler:                   &mock.GasHandlerMock{},
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
@@ -655,10 +655,10 @@ func TestCheckProcessorNilParameters(t *testing.T) {
 		{
 			args: func() blproc.ArgBaseProcessor {
 				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-				args.RoundNotifier = nil
+				args.EnableRoundsHandler = nil
 				return args
 			},
-			expectedErr: process.ErrNilRoundNotifier,
+			expectedErr: process.ErrNilEnableRoundsHandler,
 		},
 		{
 			args: func() blproc.ArgBaseProcessor {

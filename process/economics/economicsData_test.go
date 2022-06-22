@@ -10,7 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/common/enableEpochs"
+	"github.com/ElrondNetwork/elrond-go/common/enablers"
 	"github.com/ElrondNetwork/elrond-go/common/forking"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -418,7 +418,7 @@ func TestEconomicsData_ComputeTxFeeShouldWork(t *testing.T) {
 	args.Economics.FeeSettings.GasLimitSettings[0].MinGasLimit = strconv.FormatUint(minGasLimit, 10)
 	args.Economics.FeeSettings.GasPriceModifier = 0.01
 	args.EpochNotifier = forking.NewGenericEpochNotifier()
-	args.EnableEpochsHandler, _ = enableEpochs.NewEnableEpochsHandler(config.EnableEpochs{
+	args.EnableEpochsHandler, _ = enablers.NewEnableEpochsHandler(config.EnableEpochs{
 		PenalizedTooMuchGasEnableEpoch: 1,
 		GasPriceModifierEnableEpoch:    2,
 	}, args.EpochNotifier)
@@ -1027,7 +1027,7 @@ func TestEconomicsData_ComputeGasUsedAndFeeBasedOnRefundValueStakeTx(t *testing.
 
 	args := createArgsForEconomicsDataRealFees(builtInCostHandler)
 	args.EpochNotifier = forking.NewGenericEpochNotifier()
-	args.EnableEpochsHandler, _ = enableEpochs.NewEnableEpochsHandler(config.EnableEpochs{
+	args.EnableEpochsHandler, _ = enablers.NewEnableEpochsHandler(config.EnableEpochs{
 		PenalizedTooMuchGasEnableEpoch: 1000,
 		GasPriceModifierEnableEpoch:    1000,
 	}, args.EpochNotifier)
@@ -1092,7 +1092,7 @@ func TestEconomicsData_ComputeGasLimitBasedOnBalance(t *testing.T) {
 
 	args := createArgsForEconomicsDataRealFees(&mock.BuiltInCostHandlerStub{})
 	args.EpochNotifier = forking.NewGenericEpochNotifier()
-	args.EnableEpochsHandler, _ = enableEpochs.NewEnableEpochsHandler(config.EnableEpochs{
+	args.EnableEpochsHandler, _ = enablers.NewEnableEpochsHandler(config.EnableEpochs{
 		GasPriceModifierEnableEpoch: 1,
 	}, args.EpochNotifier)
 	economicData, _ := economics.NewEconomicsData(args)

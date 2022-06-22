@@ -32,7 +32,7 @@ import (
 	mclsig "github.com/ElrondNetwork/elrond-go-crypto/signing/mcl/singlesig"
 	nodeFactory "github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/common/enableEpochs"
+	"github.com/ElrondNetwork/elrond-go/common/enablers"
 	"github.com/ElrondNetwork/elrond-go/common/forking"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
@@ -416,7 +416,7 @@ func newBaseTestProcessorNode(
 	messenger := CreateMessengerWithNoDiscoveryAndPeersRatingHandler(peersRatingHandler)
 
 	genericEpochNotifier := forking.NewGenericEpochNotifier()
-	enabledEpochsHandler, _ := enableEpochs.NewEnableEpochsHandler(enableEpochsConfig, genericEpochNotifier)
+	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(enableEpochsConfig, genericEpochNotifier)
 
 	logsProcessor, _ := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{Marshalizer: TestMarshalizer})
 	tpn := &TestProcessorNode{
@@ -430,7 +430,7 @@ func newBaseTestProcessorNode(
 		NodesSetup:              nodesSetup,
 		HistoryRepository:       &dblookupextMock.HistoryRepositoryStub{},
 		EpochNotifier:           genericEpochNotifier,
-		EnableEpochsHandler:     enabledEpochsHandler,
+		EnableEpochsHandler:     enableEpochsHandler,
 		ArwenChangeLocker:       &sync.RWMutex{},
 		TransactionLogProcessor: logsProcessor,
 		Bootstrapper:            mock.NewTestBootstrapperMock(),
@@ -628,9 +628,9 @@ func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32
 	kg := &mock.KeyGenMock{}
 	sk, pk := kg.GeneratePair()
 
-	enabledEpochsConfig := CreateEnableEpochsConfig()
+	enableEpochsConfig := CreateEnableEpochsConfig()
 	genericEpochNotifier := forking.NewGenericEpochNotifier()
-	enabledEpochsHandler, _ := enableEpochs.NewEnableEpochsHandler(enabledEpochsConfig, genericEpochNotifier)
+	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(enableEpochsConfig, genericEpochNotifier)
 
 	logsProcessor, _ := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{Marshalizer: TestMarshalizer})
 	tpn := &TestProcessorNode{
@@ -652,8 +652,8 @@ func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32
 		TransactionLogProcessor: logsProcessor,
 		PeersRatingHandler:      peersRatingHandler,
 		PeerShardMapper:         disabledBootstrap.NewPeerShardMapper(),
-		EnableEpochs:            enabledEpochsConfig,
-		EnableEpochsHandler:     enabledEpochsHandler,
+		EnableEpochs:            enableEpochsConfig,
+		EnableEpochsHandler:     enableEpochsHandler,
 	}
 
 	tpn.NodeKeys = &TestKeyPair{
@@ -906,7 +906,7 @@ func (tpn *TestProcessorNode) createFullSCQueryService() {
 		GlobalSettingsHandler: globalSettingsHandler,
 		DataPool:              tpn.DataPool,
 		CompiledSCPool:        smartContractsCache,
-		EnableEpochsHandler: tpn.EnableEpochsHandler,
+		EnableEpochsHandler:   tpn.EnableEpochsHandler,
 		NilCompiledSCStore:    true,
 	}
 
@@ -1544,7 +1544,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		GlobalSettingsHandler: globalSettingsHandler,
 		DataPool:              tpn.DataPool,
 		CompiledSCPool:        tpn.DataPool.SmartContracts(),
-		EnableEpochsHandler: tpn.EnableEpochsHandler,
+		EnableEpochsHandler:   tpn.EnableEpochsHandler,
 		NilCompiledSCStore:    true,
 	}
 	esdtTransferParser, _ := parsers.NewESDTTransferParser(TestMarshalizer)
@@ -1752,7 +1752,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		GlobalSettingsHandler: globalSettingsHandler,
 		DataPool:              tpn.DataPool,
 		CompiledSCPool:        tpn.DataPool.SmartContracts(),
-		EnableEpochsHandler: tpn.EnableEpochsHandler,
+		EnableEpochsHandler:   tpn.EnableEpochsHandler,
 		NilCompiledSCStore:    true,
 	}
 
@@ -2100,7 +2100,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		BlockTracker:                 tpn.BlockTracker,
 		BlockSizeThrottler:           TestBlockSizeThrottler,
 		HistoryRepository:            tpn.HistoryRepository,
-		RoundNotifier:                coreComponents.RoundNotifier(),
+		EnableRoundsHandler:          coreComponents.EnableRoundsHandler(),
 		GasHandler:                   tpn.GasHandler,
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
@@ -3097,7 +3097,7 @@ func CreateEnableEpochsConfig() config.EnableEpochs {
 func GetDefaultCoreComponents() *mock.CoreComponentsStub {
 	enableEpochsCfg := CreateEnableEpochsConfig()
 	genericEpochNotifier := forking.NewGenericEpochNotifier()
-	enableEpochsHandler, _ := enableEpochs.NewEnableEpochsHandler(enableEpochsCfg, genericEpochNotifier)
+	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(enableEpochsCfg, genericEpochNotifier)
 
 	return &mock.CoreComponentsStub{
 		InternalMarshalizerField:      TestMarshalizer,
@@ -3126,7 +3126,7 @@ func GetDefaultCoreComponents() *mock.CoreComponentsStub {
 		GenesisNodesSetupField:       &testscommon.NodesSetupStub{},
 		GenesisTimeField:             time.Time{},
 		EpochNotifierField:           genericEpochNotifier,
-		RoundNotifierField:           &processMock.RoundNotifierStub{},
+		EnableRoundsHandlerField:     &testscommon.EnableRoundsHandlerStub{},
 		TxVersionCheckField:          versioning.NewTxVersionChecker(MinTransactionVersion),
 		ProcessStatusHandlerInternal: &testscommon.ProcessStatusHandlerStub{},
 		EnableEpochsHandlerField:     enableEpochsHandler,

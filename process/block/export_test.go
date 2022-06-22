@@ -151,7 +151,7 @@ func NewShardProcessorEmptyWith3shards(
 			BlockSizeThrottler:           &mock.BlockSizeThrottlerStub{},
 			Version:                      "softwareVersion",
 			HistoryRepository:            &dblookupext.HistoryRepositoryStub{},
-			RoundNotifier:                &mock.RoundNotifierStub{},
+			EnableRoundsHandler:          &testscommon.EnableRoundsHandlerStub{},
 			GasHandler:                   &mock.GasHandlerMock{},
 			ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 			ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},

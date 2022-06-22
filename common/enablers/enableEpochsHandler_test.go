@@ -1,4 +1,4 @@
-package enableEpochs
+package enablers
 
 import (
 	"testing"

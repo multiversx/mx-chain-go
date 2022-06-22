@@ -18,7 +18,7 @@ func TestEpochStartChangeWithoutTransactionInMultiShardedEnvironment(t *testing.
 	nodesPerShard := 2
 	numMetachainNodes := 2
 
-	enabledEpochsConfig := config.EnableEpochs{
+	enableEpochsConfig := config.EnableEpochs{
 		StakingV2EnableEpoch:                 integrationTests.UnreachableEpoch,
 		ScheduledMiniBlocksEnableEpoch:       integrationTests.UnreachableEpoch,
 		MiniBlockPartialExecutionEnableEpoch: integrationTests.UnreachableEpoch,
@@ -28,7 +28,7 @@ func TestEpochStartChangeWithoutTransactionInMultiShardedEnvironment(t *testing.
 		numOfShards,
 		nodesPerShard,
 		numMetachainNodes,
-		enabledEpochsConfig,
+		enableEpochsConfig,
 	)
 
 	roundsPerEpoch := uint64(10)

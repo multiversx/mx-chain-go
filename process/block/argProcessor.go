@@ -74,7 +74,7 @@ type ArgBaseProcessor struct {
 	BlockSizeThrottler           process.BlockSizeThrottler
 	Version                      string
 	HistoryRepository            dblookupext.HistoryRepository
-	RoundNotifier                process.RoundNotifier
+	EnableRoundsHandler          process.EnableRoundsHandler
 	VMContainersFactory          process.VirtualMachinesContainerFactory
 	VmContainer                  process.VirtualMachinesContainer
 	GasHandler                   gasConsumedProvider
