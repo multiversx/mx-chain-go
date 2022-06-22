@@ -204,7 +204,6 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 		FeeComputer:              &testscommon.FeeComputerStub{},
 		TxTypeHandler:            txTypeHandler,
 		LogsFacade:               logsFacade,
-		Hasher:                   TestHasher,
 	}
 	apiTransactionHandler, err := transactionAPI.NewAPITransactionProcessor(argsApiTransactionProc)
 	log.LogIfError(err)
