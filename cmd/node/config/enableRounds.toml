@@ -2,7 +2,7 @@
 # enableRoundsHandler for correctness. The toml parser library can not correctly parse uint64, currently.
 
 # Each activation round definition contains an optional slice of strings. These are useful, for example, when we have
-# some execptions to process in a different manner at a special round (say a block, a transaction, a smart contract result and such)
+# some exceptions to process in a different manner at a special round (say a block, a transaction, a smart contract result and such)
 
 [RoundActivations]
     # RoundActivations.Example represents an example how to use the round activation
