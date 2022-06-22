@@ -86,3 +86,7 @@ func (txProc *txProcessor) ExecuteFailedRelayedTransaction(
 func (txProc *metaTxProcessor) SetValueFlagMetaBuiltIn(set bool) {
 	txProc.flagBuiltInFunction.SetValue(set)
 }
+
+func (inTx *InterceptedTransaction) CheckMaxGasPrice() error {
+	return inTx.checkMaxGasPrice()
+}

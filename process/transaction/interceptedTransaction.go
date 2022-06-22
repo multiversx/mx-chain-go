@@ -339,7 +339,7 @@ func (inTx *InterceptedTransaction) checkMaxGasPrice() error {
 	}
 
 	txData := tx.GetData()
-	if !process.IsBuiltinFuncCallWithParam(txData, core.BuiltInFunctionSetGuardian) {
+	if !process.IsSetGuardianCall(txData) {
 		return nil
 	}
 
