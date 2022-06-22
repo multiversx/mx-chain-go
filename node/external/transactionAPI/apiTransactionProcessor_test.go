@@ -859,7 +859,7 @@ func TestApiTransactionProcessor_GetTransactionPopulatesComputedFields(t *testin
 	})
 }
 
-func TestApiTransactionProcessor_UnmarshalTransactionPopulatesComputedFields(t *testing.T) {
+func TestApiTransactionProcessor_PopulateComputedFields(t *testing.T) {
 	feeComputer := &testscommon.FeeComputerStub{}
 	txTypeHandler := &testscommon.TxTypeHandlerMock{}
 
@@ -872,61 +872,18 @@ func TestApiTransactionProcessor_UnmarshalTransactionPopulatesComputedFields(t *
 	require.Nil(t, err)
 	require.NotNil(t, processor)
 
-	t.Run("InitiallyPaidFee", func(t *testing.T) {
-		feeComputer.ComputeTransactionFeeCalled = func(tx *transaction.ApiTransactionResult) *big.Int {
-			return big.NewInt(1000)
-		}
+	txTypeHandler.ComputeTransactionTypeCalled = func(data.TransactionHandler) (process.TransactionType, process.TransactionType) {
+		return process.MoveBalance, process.SCDeployment
+	}
 
-		txBytes, err := hex.DecodeString("08061209000de0b6b3a76400001a208049d639e5a6980d1cd2392abcce41029cda74a1563523a202f09641cc2618f82a200139472eff6886771a982f3083da5d421f24c29181e63888228dc81ca60d69e1388094ebdc0340a08d06520d6c6f63616c2d746573746e657458016240e011a7ab7788e40e61348445e2ccb55b0c61ab81d2ba88fda9d2d23b0a7512a627e2dc9b88bebcfdc4c49e9eaa2f65c016bc62ec3155dc3f60628cc7260e150d")
-		require.Nil(t, err)
+	feeComputer.ComputeTransactionFeeCalled = func(tx *transaction.ApiTransactionResult) *big.Int {
+		return big.NewInt(1000)
+	}
 
-		tx, err := processor.UnmarshalTransaction(0, txBytes, transaction.TxTypeNormal)
-		require.Nil(t, err)
-		require.Equal(t, "1000", tx.InitiallyPaidFee)
-	})
+	apiTx := &transaction.ApiTransactionResult{Type: string(transaction.TxTypeNormal)}
+	processor.PopulateComputedFields(apiTx)
 
-	t.Run("InitiallyPaidFee (missing on unsigned transaction)", func(t *testing.T) {
-		feeComputer.ComputeTransactionFeeCalled = func(tx *transaction.ApiTransactionResult) *big.Int {
-			return big.NewInt(1000)
-		}
-
-		txBytes, err := hex.DecodeString("080712070021eca426ba801a200139472eff6886771a982f3083da5d421f24c29181e63888228dc81ca60d69e12220000000000000000005004888d06daef6d4ce8a01d72812d08617b4b504a369e1320100420540366636624a205be93498d366ab14a6794c5c5661c06e70cfef2fbfbd460911c6c924703594ef52205be93498d366ab14a6794c5c5661c06e70cfef2fbfbd460911c6c924703594ef608094ebdc03")
-		require.Nil(t, err)
-
-		tx, err := processor.UnmarshalTransaction(0, txBytes, transaction.TxTypeUnsigned)
-		require.Nil(t, err)
-		require.Equal(t, "", tx.InitiallyPaidFee)
-	})
-
-	t.Run("ProcessingType", func(t *testing.T) {
-		txTypeHandler.ComputeTransactionTypeCalled = func(data.TransactionHandler) (process.TransactionType, process.TransactionType) {
-			return process.MoveBalance, process.SCDeployment
-		}
-
-		txBytes, err := hex.DecodeString("08061209000de0b6b3a76400001a208049d639e5a6980d1cd2392abcce41029cda74a1563523a202f09641cc2618f82a200139472eff6886771a982f3083da5d421f24c29181e63888228dc81ca60d69e1388094ebdc0340a08d06520d6c6f63616c2d746573746e657458016240e011a7ab7788e40e61348445e2ccb55b0c61ab81d2ba88fda9d2d23b0a7512a627e2dc9b88bebcfdc4c49e9eaa2f65c016bc62ec3155dc3f60628cc7260e150d")
-		require.Nil(t, err)
-
-		tx, err := processor.UnmarshalTransaction(0, txBytes, transaction.TxTypeNormal)
-		require.Nil(t, err)
-		require.Equal(t, process.MoveBalance.String(), tx.ProcessingTypeOnSource)
-		require.Equal(t, process.SCDeployment.String(), tx.ProcessingTypeOnDestination)
-	})
-
-	t.Run("IsRefund (false)", func(t *testing.T) {
-		txBytes, err := hex.DecodeString("08061209000de0b6b3a76400001a208049d639e5a6980d1cd2392abcce41029cda74a1563523a202f09641cc2618f82a200139472eff6886771a982f3083da5d421f24c29181e63888228dc81ca60d69e1388094ebdc0340a08d06520d6c6f63616c2d746573746e657458016240e011a7ab7788e40e61348445e2ccb55b0c61ab81d2ba88fda9d2d23b0a7512a627e2dc9b88bebcfdc4c49e9eaa2f65c016bc62ec3155dc3f60628cc7260e150d")
-		require.Nil(t, err)
-
-		tx, err := processor.UnmarshalTransaction(0, txBytes, transaction.TxTypeNormal)
-		require.Nil(t, err)
-		require.Equal(t, false, tx.IsRefund)
-	})
-
-	t.Run("IsRefund (true)", func(t *testing.T) {
-		txBytes, err := hex.DecodeString("080712070021eca426ba801a200139472eff6886771a982f3083da5d421f24c29181e63888228dc81ca60d69e12220000000000000000005004888d06daef6d4ce8a01d72812d08617b4b504a369e1320100420540366636624a205be93498d366ab14a6794c5c5661c06e70cfef2fbfbd460911c6c924703594ef52205be93498d366ab14a6794c5c5661c06e70cfef2fbfbd460911c6c924703594ef608094ebdc03")
-		require.Nil(t, err)
-
-		tx, err := processor.UnmarshalTransaction(0, txBytes, transaction.TxTypeUnsigned)
-		require.Nil(t, err)
-		require.Equal(t, true, tx.IsRefund)
-	})
+	require.Equal(t, "MoveBalance", apiTx.ProcessingTypeOnSource)
+	require.Equal(t, "SCDeployment", apiTx.ProcessingTypeOnDestination)
+	require.Equal(t, "1000", apiTx.InitiallyPaidFee)
 }

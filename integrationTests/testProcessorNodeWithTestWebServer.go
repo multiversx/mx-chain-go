@@ -217,7 +217,7 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 		Marshalizer:              TestMarshalizer,
 		Uint64ByteSliceConverter: TestUint64Converter,
 		HistoryRepo:              tpn.HistoryRepository,
-		TxUnmarshaller:           apiTransactionHandler,
+		APITransactionHandler:    apiTransactionHandler,
 		StatusComputer:           statusCom,
 		Hasher:                   TestHasher,
 		AddressPubkeyConverter:   TestAddressPubkeyConverter,

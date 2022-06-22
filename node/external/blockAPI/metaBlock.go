@@ -26,7 +26,7 @@ func newMetaApiBlockProcessor(arg *ArgAPIBlockProcessor, emptyReceiptsHash []byt
 			marshalizer:              arg.Marshalizer,
 			uint64ByteSliceConverter: arg.Uint64ByteSliceConverter,
 			historyRepo:              arg.HistoryRepo,
-			txUnmarshaller:           arg.TxUnmarshaller,
+			apiTransactionHandler:    arg.APITransactionHandler,
 			txStatusComputer:         arg.StatusComputer,
 			hasher:                   arg.Hasher,
 			addressPubKeyConverter:   arg.AddressPubkeyConverter,

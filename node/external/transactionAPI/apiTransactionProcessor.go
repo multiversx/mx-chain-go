@@ -93,9 +93,7 @@ func (atp *apiTransactionProcessor) GetTransaction(txHash string, withResults bo
 	}
 
 	tx.Hash = txHash
-	atp.populateComputedFieldsProcessingType(tx)
-	atp.populateComputedFieldInitiallyPaidFee(tx)
-	atp.populateComputedFieldIsRefund(tx)
+	atp.PopulateComputedFields(tx)
 
 	return tx, nil
 }
@@ -114,6 +112,13 @@ func (atp *apiTransactionProcessor) doGetTransaction(hash []byte, withResults bo
 	}
 
 	return atp.getTransactionFromStorage(hash)
+}
+
+// PopulateComputedFields populates (computes) transaction fields such as processing type(s), initially paid fee etc.
+func (atp *apiTransactionProcessor) PopulateComputedFields(tx *transaction.ApiTransactionResult) {
+	atp.populateComputedFieldsProcessingType(tx)
+	atp.populateComputedFieldInitiallyPaidFee(tx)
+	atp.populateComputedFieldIsRefund(tx)
 }
 
 func (atp *apiTransactionProcessor) populateComputedFieldsProcessingType(tx *transaction.ApiTransactionResult) {
@@ -385,16 +390,11 @@ func (atp *apiTransactionProcessor) castObjToTransaction(txObj interface{}, txTy
 }
 
 // UnmarshalTransaction will try to unmarshal the transaction bytes based on the transaction type
-func (atp *apiTransactionProcessor) UnmarshalTransaction(epoch uint32, txBytes []byte, txType transaction.TxType) (*transaction.ApiTransactionResult, error) {
+func (atp *apiTransactionProcessor) UnmarshalTransaction(txBytes []byte, txType transaction.TxType) (*transaction.ApiTransactionResult, error) {
 	tx, err := atp.txUnmarshaller.unmarshalTransaction(txBytes, txType)
 	if err != nil {
 		return nil, err
 	}
-
-	tx.Epoch = epoch
-	atp.populateComputedFieldsProcessingType(tx)
-	atp.populateComputedFieldInitiallyPaidFee(tx)
-	atp.populateComputedFieldIsRefund(tx)
 
 	return tx, nil
 }

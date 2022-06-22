@@ -28,7 +28,7 @@ func createMockArgsAPIBlockProc() *ArgAPIBlockProcessor {
 		Marshalizer:              &mock.MarshalizerFake{},
 		Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
 		HistoryRepo:              &dblookupext.HistoryRepositoryStub{},
-		TxUnmarshaller:           &mock.TransactionAPIHandlerStub{},
+		APITransactionHandler:    &mock.TransactionAPIHandlerStub{},
 		StatusComputer:           statusComputer,
 		Hasher:                   &mock.HasherMock{},
 		AddressPubkeyConverter:   &mock.PubkeyConverterMock{},
@@ -86,14 +86,14 @@ func TestCreateAPIBlockProcessorNilArgs(t *testing.T) {
 		assert.Equal(t, process.ErrNilHistoryRepository, err)
 	})
 
-	t.Run("NilUnmarshalTxHandler", func(t *testing.T) {
+	t.Run("NilTxHandler", func(t *testing.T) {
 		t.Parallel()
 
 		arguments := createMockArgsAPIBlockProc()
-		arguments.TxUnmarshaller = nil
+		arguments.APITransactionHandler = nil
 
 		_, err := CreateAPIBlockProcessor(arguments)
-		assert.Equal(t, errNilTransactionUnmarshaler, err)
+		assert.Equal(t, errNilTransactionHandler, err)
 	})
 
 	t.Run("NilHasher", func(t *testing.T) {

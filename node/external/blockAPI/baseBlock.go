@@ -42,7 +42,7 @@ type baseAPIBlockProcessor struct {
 	hasher                   hashing.Hasher
 	addressPubKeyConverter   core.PubkeyConverter
 	txStatusComputer         transaction.StatusComputerHandler
-	txUnmarshaller           TransactionUnmarshaller
+	apiTransactionHandler    APITransactionHandler
 	logsFacade               LogsFacade
 }
 
@@ -99,7 +99,7 @@ func (bap *baseAPIBlockProcessor) prepareAPIMiniblock(miniblock *block.MiniBlock
 		SourceShard:      miniblock.SenderShardID,
 		DestinationShard: miniblock.ReceiverShardID,
 		ProcessingType:   block.ProcessingType(miniblock.GetProcessingType()).String(),
-		// TODO: Question for review: can / should we also return construction state?
+		// It's a bit more complex (and not necessary at this point) to also set the construction state here.
 	}
 
 	if options.WithTransactions {
@@ -178,7 +178,7 @@ func (bap *baseAPIBlockProcessor) getReceiptsFromMiniblock(miniblock *block.Mini
 
 	apiReceipts := make([]*transaction.ApiReceipt, 0)
 	for _, pair := range marshalledReceipts {
-		receipt, err := bap.txUnmarshaller.UnmarshalReceipt(pair.Value)
+		receipt, err := bap.apiTransactionHandler.UnmarshalReceipt(pair.Value)
 		if err != nil {
 			return nil, fmt.Errorf("%w: %v, hash = %s", errCannotUnmarshalReceipts, err, hex.EncodeToString(pair.Key))
 		}
@@ -207,7 +207,7 @@ func (bap *baseAPIBlockProcessor) getTxsFromMiniblock(
 	start = time.Now()
 	txs := make([]*transaction.ApiTransactionResult, 0)
 	for _, pair := range marshalledTxs {
-		tx, errUnmarshalTx := bap.txUnmarshaller.UnmarshalTransaction(epoch, pair.Value, txType)
+		tx, errUnmarshalTx := bap.apiTransactionHandler.UnmarshalTransaction(pair.Value, txType)
 		if errUnmarshalTx != nil {
 			return nil, fmt.Errorf("%w: %v, miniblock = %s", errCannotUnmarshalTransactions, err, hex.EncodeToString(miniblockHash))
 		}
@@ -217,6 +217,8 @@ func (bap *baseAPIBlockProcessor) getTxsFromMiniblock(
 		tx.MiniBlockHash = hex.EncodeToString(miniblockHash)
 		tx.SourceShard = miniblock.SenderShardID
 		tx.DestinationShard = miniblock.ReceiverShardID
+		tx.Epoch = epoch
+		bap.apiTransactionHandler.PopulateComputedFields(tx)
 
 		// TODO : should check if tx is reward reverted
 		tx.Status, _ = bap.txStatusComputer.ComputeStatusWhenInStorageKnowingMiniblock(miniblock.Type, tx)
