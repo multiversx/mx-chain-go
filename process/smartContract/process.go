@@ -1149,7 +1149,8 @@ func (sc *scProcessor) createVMInputWithAsyncCallBackAfterBuiltIn(
 
 	outAcc, ok := vmOutput.OutputAccounts[string(vmInput.RecipientAddr)]
 	if ok && len(outAcc.OutputTransfers) == 1 {
-		if sc.flagDeleteWrongArgAsyncAfterBuiltIn.IsSet() {
+		isDeleteWrongArgAsyncAfterBuiltInFlagEnabled := sc.enableEpochsHandler.IsManagedCryptoAPIsFlagEnabled()
+		if isDeleteWrongArgAsyncAfterBuiltInFlagEnabled {
 			arguments = [][]byte{}
 		}
 
@@ -2148,7 +2149,7 @@ func (sc *scProcessor) preprocessOutTransferToSCR(
 	txHash []byte,
 ) *smartContractResult.SmartContractResult {
 	transferNonce := uint64(0)
-	if sc.flagIncrementSCRNonceInMultiTransfer.IsSet() {
+	if sc.enableEpochsHandler.IsIncrementSCRNonceInMultiTransferFlagEnabled() {
 		transferNonce = uint64(index)
 	}
 	result := createBaseSCR(outAcc, tx, txHash, transferNonce)

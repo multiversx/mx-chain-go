@@ -1424,7 +1424,8 @@ func (e *esdt) checkSpecialRolesAccordingToTokenType(args [][]byte, token *ESDTD
 	case core.SemiFungibleESDT:
 		return validateRoles(args, e.isSpecialRoleValidForSemiFungible)
 	case metaESDT:
-		if e.flagCheckMetaESDTOnRolesEnableEpoch.IsSet() {
+		isCheckMetaESDTOnRolesFlagEnabled := e.enableEpochsHandler.IsManagedCryptoAPIsFlagEnabled()
+		if isCheckMetaESDTOnRolesFlagEnabled {
 			return validateRoles(args, e.isSpecialRoleValidForSemiFungible)
 		}
 	}

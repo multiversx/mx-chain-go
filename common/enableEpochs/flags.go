@@ -75,6 +75,8 @@ type flagsHolder struct {
 	isMiniBlockPartialExecutionFlag             *atomic.Flag
 	managedCryptoAPIsFlag                       *atomic.Flag
 	esdtMetadataContinuousCleanupFlag           *atomic.Flag
+	disableExecByCallerFlag                     *atomic.Flag
+	refactorContextFlag                         *atomic.Flag
 }
 
 func newFlagsHolder() *flagsHolder {
@@ -151,6 +153,8 @@ func newFlagsHolder() *flagsHolder {
 		isMiniBlockPartialExecutionFlag:             &atomic.Flag{},
 		managedCryptoAPIsFlag:                       &atomic.Flag{},
 		esdtMetadataContinuousCleanupFlag:           &atomic.Flag{},
+		disableExecByCallerFlag:                     &atomic.Flag{},
+		refactorContextFlag:                         &atomic.Flag{},
 	}
 }
 
@@ -517,4 +521,14 @@ func (fh *flagsHolder) IsManagedCryptoAPIsFlagEnabled() bool {
 // IsESDTMetadataContinuousCleanupFlagEnabled returns true if esdtMetadataContinuousCleanupFlag is enabled
 func (fh *flagsHolder) IsESDTMetadataContinuousCleanupFlagEnabled() bool {
 	return fh.esdtMetadataContinuousCleanupFlag.IsSet()
+}
+
+// IsDisableExecByCallerFlagEnabled returns true if disableExecByCallerFlag is enabled
+func (fh *flagsHolder) IsDisableExecByCallerFlagEnabled() bool {
+	return fh.disableExecByCallerFlag.IsSet()
+}
+
+// IsRefactorContextFlagEnabled returns true if refactorContextFlag is enabled
+func (fh *flagsHolder) IsRefactorContextFlagEnabled() bool {
+	return fh.refactorContextFlag.IsSet()
 }

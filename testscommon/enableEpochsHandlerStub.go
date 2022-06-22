@@ -81,6 +81,8 @@ type EnableEpochsHandlerStub struct {
 	IsMiniBlockPartialExecutionFlagEnabledField                  bool
 	IsManagedCryptoAPIsFlagEnabledField                          bool
 	IsESDTMetadataContinuousCleanupFlagEnabledField              bool
+	IsDisableExecByCallerFlagEnabledField                        bool
+	IsRefactorContextFlagEnabledField                            bool
 }
 
 // BlockGasAndFeesReCheckEnableEpoch -
@@ -478,6 +480,16 @@ func (stub *EnableEpochsHandlerStub) IsManagedCryptoAPIsFlagEnabled() bool {
 // IsESDTMetadataContinuousCleanupFlagEnabled -
 func (stub *EnableEpochsHandlerStub) IsESDTMetadataContinuousCleanupFlagEnabled() bool {
 	return stub.IsESDTMetadataContinuousCleanupFlagEnabledField
+}
+
+// IsDisableExecByCallerFlagEnabled -
+func (stub *EnableEpochsHandlerStub) IsDisableExecByCallerFlagEnabled() bool {
+	return stub.IsDisableExecByCallerFlagEnabledField
+}
+
+// IsRefactorContextFlagEnabled -
+func (stub *EnableEpochsHandlerStub) IsRefactorContextFlagEnabled() bool {
+	return stub.IsRefactorContextFlagEnabledField
 }
 
 // IsInterfaceNil -

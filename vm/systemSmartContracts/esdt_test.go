@@ -4558,6 +4558,7 @@ func TestEsdt_CheckRolesOnMetaESDT(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
+	enableEpochsHandler, _ := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
 	eei, _ := NewVMContext(
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
@@ -4567,11 +4568,11 @@ func TestEsdt_CheckRolesOnMetaESDT(t *testing.T) {
 	args.Eei = eei
 	e, _ := NewESDTSmartContract(args)
 
-	e.flagCheckMetaESDTOnRolesEnableEpoch.Reset()
+	enableEpochsHandler.IsManagedCryptoAPIsFlagEnabledField = false
 	err := e.checkSpecialRolesAccordingToTokenType([][]byte{[]byte("random")}, &ESDTDataV2{TokenType: []byte(metaESDT)})
 	assert.Nil(t, err)
 
-	e.flagCheckMetaESDTOnRolesEnableEpoch.SetValue(true)
+	enableEpochsHandler.IsManagedCryptoAPIsFlagEnabledField = true
 	err = e.checkSpecialRolesAccordingToTokenType([][]byte{[]byte("random")}, &ESDTDataV2{TokenType: []byte(metaESDT)})
 	assert.Equal(t, err, vm.ErrInvalidArgument)
 }
