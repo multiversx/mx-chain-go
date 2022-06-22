@@ -1075,7 +1075,7 @@ func (tpn *TestProcessorNode) createDefaultEconomicsConfig() *config.EconomicsCo
 			MinGasPrice:            minGasPrice,
 			GasPerDataByte:         "1",
 			GasPriceModifier:       0.01,
-			MaxGasPriceSetGuardian: "100000",
+			MaxGasPriceSetGuardian: "2000000000",
 		},
 	}
 }

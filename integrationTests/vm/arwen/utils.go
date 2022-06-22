@@ -218,7 +218,7 @@ func (context *TestContext) initFeeHandlers() {
 				MinGasPrice:            minGasPrice,
 				GasPerDataByte:         "1",
 				GasPriceModifier:       1.0,
-				MaxGasPriceSetGuardian: "40000000000",
+				MaxGasPriceSetGuardian: "2000000000",
 			},
 		},
 		PenalizedTooMuchGasEnableEpoch: 0,
