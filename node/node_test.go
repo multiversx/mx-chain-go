@@ -29,6 +29,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/common/holders"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dblookupext/esdtSupply"
 	"github.com/ElrondNetwork/elrond-go/factory"
@@ -2657,7 +2658,8 @@ func TestNode_GetAccountAccountDoesNotExistsShouldRetEmpty(t *testing.T) {
 
 	accountsRepostitory := &stateMock.AccountsRepositoryStub{
 		GetAccountWithBlockInfoCalled: func(address []byte, options api.AccountQueryOptions) (vmcommon.AccountHandler, common.BlockInfo, error) {
-			return nil, nil, state.ErrAccNotFound
+			blockInfo := holders.NewBlockInfo([]byte{0xaa}, 7, []byte{0xbb})
+			return nil, nil, state.NewErrAccountNotFoundAtBlock(blockInfo)
 		},
 	}
 
@@ -2672,14 +2674,17 @@ func TestNode_GetAccountAccountDoesNotExistsShouldRetEmpty(t *testing.T) {
 		node.WithStateComponents(stateComponents),
 	)
 
-	recovAccnt, _, err := n.GetAccount(testscommon.TestAddressAlice, api.AccountQueryOptions{})
+	account, blockInfo, err := n.GetAccount(testscommon.TestAddressAlice, api.AccountQueryOptions{})
 
 	require.Nil(t, err)
-	assert.Equal(t, uint64(0), recovAccnt.Nonce)
-	assert.Equal(t, "0", recovAccnt.Balance)
-	assert.Equal(t, "0", recovAccnt.DeveloperReward)
-	assert.Nil(t, recovAccnt.CodeHash)
-	assert.Nil(t, recovAccnt.RootHash)
+	require.Equal(t, uint64(0), account.Nonce)
+	require.Equal(t, "0", account.Balance)
+	require.Equal(t, "0", account.DeveloperReward)
+	require.Nil(t, account.CodeHash)
+	require.Nil(t, account.RootHash)
+	require.Equal(t, uint64(7), blockInfo.Nonce)
+	require.Equal(t, "aa", blockInfo.Hash)
+	require.Equal(t, "bb", blockInfo.RootHash)
 }
 
 func TestNode_GetAccountAccountsRepositoryFailsShouldErr(t *testing.T) {

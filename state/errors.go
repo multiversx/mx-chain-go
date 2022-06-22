@@ -30,7 +30,8 @@ type ErrAccountNotFoundAtBlock struct {
 	BlockInfo common.BlockInfo
 }
 
-func newErrAccountNotFoundAtBlock(blockInfo common.BlockInfo) *ErrAccountNotFoundAtBlock {
+// NewErrAccountNotFoundAtBlock returns a new error (custom struct)
+func NewErrAccountNotFoundAtBlock(blockInfo common.BlockInfo) *ErrAccountNotFoundAtBlock {
 	return &ErrAccountNotFoundAtBlock{BlockInfo: blockInfo}
 }
 
