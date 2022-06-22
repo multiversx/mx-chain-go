@@ -209,9 +209,15 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 	if err != nil {
 		log.Debug("doEndRoundJobByLeader.Verify", "error", err.Error())
 
-		bitmap, sig, err = sr.verifyNodesOnAggSigVerificationFail(currentMultiSigner)
+		err = sr.verifyNodesOnAggSigVerificationFail(currentMultiSigner)
 		if err != nil {
 			log.Debug("doEndRoundJobByLeader.verifyNodesOnAggSigVerificationFail", "error", err.Error())
+			return false
+		}
+
+		bitmap, sig, err = sr.computeAggSigOnValidNodes(currentMultiSigner)
+		if err != nil {
+			log.Debug("doEndRoundJobByLeader.computeAggSigOnValidNodes", "error", err.Error())
 			return false
 		}
 	}
@@ -304,8 +310,7 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 
 func (sr *subroundEndRound) verifyNodesOnAggSigVerificationFail(
 	multiSigner crypto.MultiSigner,
-) ([]byte, []byte, error) {
-	threshold := sr.Threshold(sr.Current())
+) error {
 	pubKeys := sr.ConsensusGroup()
 
 	invalidSigSharesNodes := make([]int, 0)
@@ -321,23 +326,23 @@ func (sr *subroundEndRound) verifyNodesOnAggSigVerificationFail(
 		sigShare, err := multiSigner.SignatureShare(uint16(i))
 		if err != nil {
 			log.Debug("verifyNodesOnAggSigVerificationFail.SignatureShare", "error", err.Error())
-			return nil, nil, err
+			return err
 		}
 
+		isSuccessfull := true
 		err = multiSigner.VerifySignatureShare(uint16(i), sigShare, sr.GetData(), nil)
 		if err != nil {
+			isSuccessfull = false
 			log.Debug("verifyNodesOnAggSigVerificationFail.VerifySignatureShare", "error", err.Error())
 
 			invalidSigSharesNodes = append(invalidSigSharesNodes, i)
 			err = sr.SetJobDone(pk, SrSignature, false)
 			if err != nil {
-				return nil, nil, err
+				return err
 			}
-
-			continue
 		}
 
-		log.Debug("verifyNodesOnAggSigVerificationFail.VerifySignatureShare checked SUCCESSFULLY", "public key", pk)
+		log.Trace("verifyNodesOnAggSigVerificationFail: verifying signature share", "public key", pk, "is successfull", isSuccessfull)
 	}
 
 	// TODO: handle slashing on invalid sig share nodes
@@ -347,12 +352,15 @@ func (sr *subroundEndRound) verifyNodesOnAggSigVerificationFail(
 		log.Debug("verifyNodesOnAggSigVerificationFail.VerifySignatureShare: num invalid signature shares", "numInvalidSigShares", len(invalidSigSharesNodes))
 	}
 
+	return nil
+}
+
+func (sr *subroundEndRound) computeAggSigOnValidNodes(
+	multiSigner crypto.MultiSigner,
+) ([]byte, []byte, error) {
+	threshold := sr.Threshold(sr.Current())
 	bitmap := sr.GenerateBitmap(SrSignature)
 	numValidSigShares := sr.ComputeSize(SrSignature)
-
-	log.Debug("verifyNodesOnAggSigVerificationFail: bitmap after", "bitmap", bitmap)
-	log.Debug("verifyNodesOnAggSigVerificationFail", "threshold", threshold)
-	log.Debug("verifyNodesOnAggSigVerificationFail", "numValidSigShares", numValidSigShares)
 
 	sig, err := multiSigner.AggregateSigs(bitmap)
 	if err != nil {
