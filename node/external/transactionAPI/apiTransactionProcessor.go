@@ -47,7 +47,7 @@ func NewAPITransactionProcessor(args *ArgAPITransactionProcessor) (*apiTransacti
 		return nil, err
 	}
 
-	txUnmarshalerAndPreparer := newTransactionUnmarshaller(args.Marshalizer, args.AddressPubKeyConverter, args.Hasher)
+	txUnmarshalerAndPreparer := newTransactionUnmarshaller(args.Marshalizer, args.AddressPubKeyConverter)
 
 	txResultsProc := newAPITransactionResultProcessor(
 		args.AddressPubKeyConverter,

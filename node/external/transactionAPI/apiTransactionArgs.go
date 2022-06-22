@@ -5,7 +5,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dblookupext"
@@ -27,5 +26,4 @@ type ArgAPITransactionProcessor struct {
 	FeeComputer              feeComputer
 	TxTypeHandler            process.TxTypeHandler
 	LogsFacade               LogsFacade
-	Hasher                   hashing.Hasher
 }

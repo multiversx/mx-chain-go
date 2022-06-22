@@ -18,7 +18,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go-core/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dblookupext"
@@ -48,7 +47,6 @@ func createMockArgAPITransactionProcessor() *ArgAPITransactionProcessor {
 		FeeComputer:              &testscommon.FeeComputerStub{},
 		TxTypeHandler:            &testscommon.TxTypeHandlerMock{},
 		LogsFacade:               &testscommon.LogsFacadeStub{},
-		Hasher:                   sha256.NewSha256(),
 	}
 }
 
@@ -160,16 +158,6 @@ func TestNewAPITransactionProcessor(t *testing.T) {
 
 		_, err := NewAPITransactionProcessor(arguments)
 		require.Equal(t, ErrNilLogsFacade, err)
-	})
-
-	t.Run("NilHasher", func(t *testing.T) {
-		t.Parallel()
-
-		arguments := createMockArgAPITransactionProcessor()
-		arguments.Hasher = nil
-
-		_, err := NewAPITransactionProcessor(arguments)
-		require.Equal(t, process.ErrNilHasher, err)
 	})
 }
 
@@ -412,7 +400,6 @@ func TestNode_GetTransactionWithResultsFromStorage(t *testing.T) {
 		FeeComputer:              feeComputer,
 		TxTypeHandler:            &testscommon.TxTypeHandlerMock{},
 		LogsFacade:               &testscommon.LogsFacadeStub{},
-		Hasher:                   testHasher,
 	}
 	apiTransactionProc, _ := NewAPITransactionProcessor(args)
 
@@ -680,7 +667,6 @@ func createAPITransactionProc(t *testing.T, epoch uint32, withDbLookupExt bool) 
 		FeeComputer:              &testscommon.FeeComputerStub{},
 		TxTypeHandler:            &testscommon.TxTypeHandlerMock{},
 		LogsFacade:               &testscommon.LogsFacadeStub{},
-		Hasher:                   testHasher,
 	}
 	apiTransactionProc, err := NewAPITransactionProcessor(args)
 	require.Nil(t, err)

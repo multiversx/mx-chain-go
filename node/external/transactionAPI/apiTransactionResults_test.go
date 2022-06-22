@@ -11,7 +11,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/receipt"
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go-core/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
@@ -22,8 +21,6 @@ import (
 	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/stretchr/testify/require"
 )
-
-var testHasher = sha256.NewSha256()
 
 func TestPutEventsInTransactionReceipt(t *testing.T) {
 	t.Parallel()
@@ -57,7 +54,7 @@ func TestPutEventsInTransactionReceipt(t *testing.T) {
 	}
 
 	pubKeyConverter := &mock.PubkeyConverterMock{}
-	txUnmarshalerAndPreparer := newTransactionUnmarshaller(marshalizerdMock, pubKeyConverter, testHasher)
+	txUnmarshalerAndPreparer := newTransactionUnmarshaller(marshalizerdMock, pubKeyConverter)
 	logsFacade := &testscommon.LogsFacadeStub{}
 
 	n := newAPITransactionResultProcessor(pubKeyConverter, historyRepo, dataStore, marshalizerdMock, txUnmarshalerAndPreparer, logsFacade, 0)
@@ -67,7 +64,6 @@ func TestPutEventsInTransactionReceipt(t *testing.T) {
 	tx := &transaction.ApiTransactionResult{}
 
 	expectedRecAPI := &transaction.ApiReceipt{
-		Hash:    "aa1e3bf122cf7df74a6e562975edebbbac3f0d50ba07f08a6e895b194e197f68",
 		Value:   rec.Value,
 		Data:    string(rec.Data),
 		TxHash:  hex.EncodeToString(txHash),
@@ -160,7 +156,7 @@ func TestPutEventsInTransactionSmartContractResults(t *testing.T) {
 	}
 
 	pubKeyConverter := mock.NewPubkeyConverterMock(3)
-	txUnmarshalerAndPreparer := newTransactionUnmarshaller(marshalizerdMock, pubKeyConverter, testHasher)
+	txUnmarshalerAndPreparer := newTransactionUnmarshaller(marshalizerdMock, pubKeyConverter)
 
 	logsFacade := &testscommon.LogsFacadeStub{
 		GetLogCalled: func(txHash []byte, epoch uint32) (*transaction.ApiLogs, error) {
@@ -241,7 +237,7 @@ func TestPutLogsInTransaction(t *testing.T) {
 	}
 
 	pubKeyConverter := &mock.PubkeyConverterMock{}
-	txUnmarshalerAndPreparer := newTransactionUnmarshaller(marshalizerMock, pubKeyConverter, testHasher)
+	txUnmarshalerAndPreparer := newTransactionUnmarshaller(marshalizerMock, pubKeyConverter)
 	logsFacade := &testscommon.LogsFacadeStub{
 		GetLogCalled: func(txHash []byte, epoch uint32) (*transaction.ApiLogs, error) {
 			if bytes.Equal(txHash, testTxHash) && epoch == testEpoch {
