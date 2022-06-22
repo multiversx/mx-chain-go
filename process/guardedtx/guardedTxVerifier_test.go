@@ -16,10 +16,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/ed25519"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/ed25519/singlesig"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/guardianMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/interceptedTxMocks"
+	stateMocks "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon/vmcommonMocks"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/require"
@@ -219,4 +221,37 @@ func signAndGuardTx(
 	guardianSignature, _ := signer.Sign(skGuardian, buff)
 
 	return signature, guardianSignature
+}
+
+func TestGuardedTxSigVerifier_HasPendingGuardian(t *testing.T) {
+
+	acc := &stateMocks.UserAccountStub{}
+	args := GuardedTxSigVerifierArgs{
+		SigVerifier:     &cryptoMocks.SingleSignerStub{},
+		PubKeyConverter: &testscommon.PubkeyConverterMock{},
+		Marshaller:      &testscommon.MarshalizerMock{},
+		KeyGen:          &cryptoMocks.KeyGenStub{},
+	}
+	t.Run("no pending guardian", func(t *testing.T) {
+		guardianChecker := &guardianMocks.GuardedAccountHandlerStub{
+			HasPendingGuardianCalled: func(handler state.UserAccountHandler) bool {
+				return false
+			},
+		}
+		arg := args
+		arg.GuardianChecker = guardianChecker
+		gtxSigVerifier, _ := NewGuardedTxSigVerifier(arg)
+		require.False(t, gtxSigVerifier.HasPendingGuardian(acc))
+	})
+	t.Run("with pending guardian", func(t *testing.T) {
+		guardianChecker := &guardianMocks.GuardedAccountHandlerStub{
+			HasPendingGuardianCalled: func(handler state.UserAccountHandler) bool {
+				return true
+			},
+		}
+		arg := args
+		arg.GuardianChecker = guardianChecker
+		gtxSigVerifier, _ := NewGuardedTxSigVerifier(arg)
+		require.True(t, gtxSigVerifier.HasPendingGuardian(acc))
+	})
 }

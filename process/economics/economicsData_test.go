@@ -1118,3 +1118,16 @@ func TestEconomicsData_ComputeGasLimitBasedOnBalance(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, uint64(11894070000), gasLimit)
 }
+
+func TestEconomicsData_MaxGasPriceSetGuardian(t *testing.T) {
+	t.Parallel()
+
+	args := createArgsForEconomicsDataRealFees(&mock.BuiltInCostHandlerStub{})
+	maxGasPriceSetGuardianString := "2000000"
+	expectedMaxGasPriceSetGuardian, err := strconv.ParseUint(maxGasPriceSetGuardianString, 10, 64)
+	require.Nil(t, err)
+	args.Economics.FeeSettings.MaxGasPriceSetGuardian = maxGasPriceSetGuardianString
+	economicData, _ := economics.NewEconomicsData(args)
+
+	require.Equal(t, expectedMaxGasPriceSetGuardian, economicData.MaxGasPriceSetGuardian())
+}

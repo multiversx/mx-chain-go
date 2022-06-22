@@ -130,6 +130,7 @@ func NewEconomicsData(args ArgsNewEconomicsData) (*economicsData, error) {
 		topUpGradientPoint:               topUpGradientPoint,
 		gasLimitSettings:                 gasLimitSettings,
 		minGasPrice:                      convertedData.minGasPrice,
+		maxGasPriceSetGuardian:           convertedData.maxGasPriceSetGuardian,
 		gasPerDataByte:                   convertedData.gasPerDataByte,
 		minInflation:                     args.Economics.GlobalSettings.MinimumInflation,
 		genesisTotalSupply:               convertedData.genesisTotalSupply,

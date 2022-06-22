@@ -68,6 +68,10 @@ func (agc *guardedAccount) GetActiveGuardian(uah vmcommon.UserAccountHandler) ([
 
 // HasActiveGuardian returns true if the account has an active guardian configured, false otherwise
 func (agc *guardedAccount) HasActiveGuardian(uah state.UserAccountHandler) bool {
+	if check.IfNil(uah) {
+		return false
+	}
+
 	configuredGuardians, err := agc.getConfiguredGuardians(uah)
 	if err != nil {
 		return false
@@ -81,6 +85,10 @@ func (agc *guardedAccount) HasActiveGuardian(uah state.UserAccountHandler) bool 
 
 // HasPendingGuardian return true if the account has a pending guardian, false otherwise
 func (agc *guardedAccount) HasPendingGuardian(uah state.UserAccountHandler) bool {
+	if check.IfNil(uah) {
+		return false
+	}
+
 	configuredGuardians, err := agc.getConfiguredGuardians(uah)
 	if err != nil {
 		return false

@@ -167,7 +167,7 @@ func (u *UserAccountStub) IsFrozen() bool {
 
 // IsInterfaceNil -
 func (u *UserAccountStub) IsInterfaceNil() bool {
-	return false
+	return u == nil
 }
 
 // AccountDataHandler -
