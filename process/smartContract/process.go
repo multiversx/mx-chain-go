@@ -1093,7 +1093,7 @@ func (sc *scProcessor) isSCExecutionAfterBuiltInFunc(
 
 	callType := determineCallType(tx)
 	if callType == vmData.AsynchronousCallBack {
-		newVMInput := sc.createVMInputWithAsyncCallBack(vmInput, vmOutput, parsedTransfer)
+		newVMInput := sc.createVMInputWithAsyncCallBackAfterBuiltIn(vmInput, vmOutput, parsedTransfer)
 		return true, newVMInput, nil
 	}
 
@@ -1139,21 +1139,23 @@ func (sc *scProcessor) isSCExecutionAfterBuiltInFunc(
 	return true, newVMInput, nil
 }
 
-func (sc *scProcessor) createVMInputWithAsyncCallBack(
+func (sc *scProcessor) createVMInputWithAsyncCallBackAfterBuiltIn(
 	vmInput *vmcommon.ContractCallInput,
 	vmOutput *vmcommon.VMOutput,
 	parsedTransfer *vmcommon.ParsedESDTTransfers,
 ) *vmcommon.ContractCallInput {
-	arguments := [][]byte{
-		big.NewInt(int64(vmOutput.ReturnCode)).Bytes(),
-	}
+	arguments := [][]byte{big.NewInt(int64(vmOutput.ReturnCode)).Bytes()}
 	gasLimit := vmOutput.GasRemaining
 
 	outAcc, ok := vmOutput.OutputAccounts[string(vmInput.RecipientAddr)]
 	if ok && len(outAcc.OutputTransfers) == 1 {
+		if sc.flagDeleteWrongArgAsyncAfterBuiltIn.IsSet() {
+			arguments = [][]byte{}
+		}
+
 		gasLimit = outAcc.OutputTransfers[0].GasLimit
 		function, args, err := sc.argsParser.ParseCallData(string(outAcc.OutputTransfers[0].Data))
-		log.LogIfError(err, "function", "createVMInputWithAsyncCallBack.ParseCallData")
+		log.LogIfError(err, "function", "createVMInputWithAsyncCallBackAfterBuiltIn.ParseCallData")
 		if len(function) > 0 {
 			arguments = append(arguments, []byte(function))
 		}
@@ -2146,7 +2148,7 @@ func (sc *scProcessor) preprocessOutTransferToSCR(
 	txHash []byte,
 ) *smartContractResult.SmartContractResult {
 	transferNonce := uint64(0)
-	if sc.enableEpochsHandler.IsIncrementSCRNonceInMultiTransferFlagEnabled() {
+	if sc.flagIncrementSCRNonceInMultiTransfer.IsSet() {
 		transferNonce = uint64(index)
 	}
 	result := createBaseSCR(outAcc, tx, txHash, transferNonce)

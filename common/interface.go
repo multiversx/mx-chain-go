@@ -2,6 +2,7 @@ package common
 
 import (
 	"context"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
@@ -113,6 +114,10 @@ type SizeSyncStatisticsHandler interface {
 	AddNumBytesReceived(bytes uint64)
 	NumBytesReceived() uint64
 	NumTries() int
+	AddProcessingTime(duration time.Duration)
+	IncrementIteration()
+	ProcessingTime() time.Duration
+	NumIterations() int
 }
 
 // SnapshotStatisticsHandler is used to measure different statistics for the trie snapshot

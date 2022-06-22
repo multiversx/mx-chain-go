@@ -27,6 +27,7 @@ import (
 	dblookupextMock "github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
 	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
+	datafield "github.com/ElrondNetwork/elrond-vm-common/parsers/dataField"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -42,6 +43,11 @@ func createMockArgAPIBlockProcessor() *ArgAPITransactionProcessor {
 		StorageService:           &mock.ChainStorerMock{},
 		DataPool:                 &dataRetrieverMock.PoolsHolderMock{},
 		Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
+		DataFieldParser: &testscommon.DataFieldParserStub{
+			ParseCalled: func(dataField []byte, sender, receiver []byte) *datafield.ResponseParseData {
+				return &datafield.ResponseParseData{}
+			},
+		},
 	}
 }
 
@@ -123,6 +129,16 @@ func TestNewAPITransactionProcessor(t *testing.T) {
 
 		_, err := NewAPITransactionProcessor(arguments)
 		require.Equal(t, process.ErrNilUint64Converter, err)
+	})
+
+	t.Run("NilDataFieldParser", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createMockArgAPIBlockProcessor()
+		arguments.DataFieldParser = nil
+
+		_, err := NewAPITransactionProcessor(arguments)
+		require.Equal(t, ErrNilDataFieldParser, err)
 	})
 }
 
@@ -355,6 +371,11 @@ func TestNode_GetTransactionWithResultsFromStorage(t *testing.T) {
 		StorageService:           chainStorer,
 		DataPool:                 dataRetrieverMock.NewPoolsHolderMock(),
 		Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
+		DataFieldParser: &testscommon.DataFieldParserStub{
+			ParseCalled: func(dataField []byte, sender, receiver []byte) *datafield.ResponseParseData {
+				return &datafield.ResponseParseData{}
+			},
+		},
 	}
 	apiTransactionProc, _ := NewAPITransactionProcessor(args)
 
@@ -371,8 +392,10 @@ func TestNode_GetTransactionWithResultsFromStorage(t *testing.T) {
 			{
 				Hash:           hex.EncodeToString(scResultHash),
 				OriginalTxHash: txHash,
+				Receivers:      []string{},
 			},
 		},
+		Receivers: []string{},
 	}
 
 	apiTx, err := apiTransactionProc.GetTransaction(txHash, true)
@@ -604,6 +627,11 @@ func createAPITransactionProc(t *testing.T, epoch uint32, withDbLookupExt bool) 
 			return withDbLookupExt
 		},
 	}
+	dataFieldParser := &testscommon.DataFieldParserStub{
+		ParseCalled: func(dataField []byte, sender, receiver []byte) *datafield.ResponseParseData {
+			return &datafield.ResponseParseData{}
+		},
+	}
 
 	args := &ArgAPITransactionProcessor{
 		RoundDuration:            0,
@@ -615,6 +643,7 @@ func createAPITransactionProc(t *testing.T, epoch uint32, withDbLookupExt bool) 
 		StorageService:           chainStorer,
 		DataPool:                 dataPool,
 		Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
+		DataFieldParser:          dataFieldParser,
 	}
 	apiTransactionProc, err := NewAPITransactionProcessor(args)
 	require.Nil(t, err)

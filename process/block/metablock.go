@@ -85,6 +85,13 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		return nil, process.ErrNilEpochStartSystemSCProcessor
 	}
 
+	pruningQueueSize := arguments.Config.StateTriesConfig.PeerStatePruningQueueSize
+	pruningDelay := uint32(pruningQueueSize * pruningDelayMultiplier)
+	if pruningDelay < defaultPruningDelay {
+		log.Warn("using default pruning delay", "pruning queue size", pruningQueueSize)
+		pruningDelay = defaultPruningDelay
+	}
+
 	genesisHdr := arguments.DataComponents.Blockchain().GetGenesisHeader()
 	base := &baseProcessor{
 		accountsDB:                    arguments.AccountsDB,
@@ -123,6 +130,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		gasConsumedProvider:           arguments.GasHandler,
 		economicsData:                 arguments.CoreComponents.EconomicsData(),
 		scheduledTxsExecutionHandler:  arguments.ScheduledTxsExecutionHandler,
+		pruningDelay:                  pruningDelay,
 		processedMiniBlocksTracker:    arguments.ProcessedMiniBlocksTracker,
 	}
 
@@ -1287,6 +1295,10 @@ func (mp *metaProcessor) CommitBlock(
 		}
 	}
 	lastMetaBlockHash := mp.blockChain.GetCurrentBlockHeaderHash()
+	if mp.lastRestartNonce == 0 {
+		mp.lastRestartNonce = header.GetNonce()
+	}
+
 	mp.updateState(lastMetaBlock, lastMetaBlockHash)
 
 	committedRootHash, err := mp.accountsDB[state.UserAccountsState].RootHash()

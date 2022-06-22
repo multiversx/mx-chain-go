@@ -718,15 +718,15 @@ func TestAndCatchTrieError(t *testing.T) {
 		require.Nil(t, err)
 		log.Info("finished a set - commit and recreate trie", "index", i)
 		if i%10 == 5 {
-			testContext.Accounts.PruneTrie(extraNewRootHash, state.NewRoot)
+			testContext.Accounts.PruneTrie(extraNewRootHash, state.NewRoot, state.NewPruningHandler(state.EnableDataRemoval))
 			_ = testContext.Accounts.RecreateTrie(rootHash)
 			continue
 		}
 
 		ownerNonce++
 		transferNonce++
-		testContext.Accounts.PruneTrie(rootHash, state.OldRoot)
-		testContext.Accounts.PruneTrie(newRootHash, state.OldRoot)
+		testContext.Accounts.PruneTrie(rootHash, state.OldRoot, state.NewPruningHandler(state.EnableDataRemoval))
+		testContext.Accounts.PruneTrie(newRootHash, state.OldRoot, state.NewPruningHandler(state.EnableDataRemoval))
 	}
 }
 
