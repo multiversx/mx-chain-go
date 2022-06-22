@@ -818,12 +818,16 @@ func TestValidatorsProvider_GetAuctionList(t *testing.T) {
 		v8 := &state.ValidatorInfo{PublicKey: []byte("pk8"), List: string(common.WaitingList)}
 		v9 := &state.ValidatorInfo{PublicKey: []byte("pk9"), List: string(common.LeavingList)}
 		v10 := &state.ValidatorInfo{PublicKey: []byte("pk10"), List: string(common.JailedList)}
+		v11 := &state.ValidatorInfo{PublicKey: []byte("pk11"), List: string(common.AuctionList)}
+		v12 := &state.ValidatorInfo{PublicKey: []byte("pk12"), List: string(common.AuctionList)}
 
 		owner1 := "owner1"
 		owner2 := "owner2"
 		owner3 := "owner3"
 		owner4 := "owner4"
 		owner5 := "owner5"
+		owner6 := "owner6"
+		owner7 := "owner7"
 		ownersData := map[string]*epochStart.OwnerData{
 			owner1: {
 				NumStakedNodes: 3,
@@ -854,15 +858,32 @@ func TestValidatorsProvider_GetAuctionList(t *testing.T) {
 				NumActiveNodes: 2,
 				TotalTopUp:     big.NewInt(0),
 				TopUpPerNode:   big.NewInt(0),
-				AuctionList:    []state.ValidatorInfoHandler{v7},
-				Qualified:      false,
+				AuctionList:    []state.ValidatorInfoHandler{v7}, // owner4 has one node in auction, but is not qualified
+				Qualified:      false,                            // should be sent at the bottom of the list
 			},
 			owner5: {
 				NumStakedNodes: 5,
 				NumActiveNodes: 5,
 				TotalTopUp:     big.NewInt(5000),
 				TopUpPerNode:   big.NewInt(1000),
-				AuctionList:    []state.ValidatorInfoHandler{},
+				AuctionList:    []state.ValidatorInfoHandler{}, // owner5 has no nodes in auction, will not appear in API list
+				Qualified:      true,
+			},
+			// owner6 has same stats as owner7. After selection, owner7 will have its node selected => should be listed above owner 6
+			owner6: {
+				NumStakedNodes: 1,
+				NumActiveNodes: 0,
+				TotalTopUp:     big.NewInt(0),
+				TopUpPerNode:   big.NewInt(0),
+				AuctionList:    []state.ValidatorInfoHandler{v11},
+				Qualified:      true, // should be added
+			},
+			owner7: {
+				NumStakedNodes: 1,
+				NumActiveNodes: 0,
+				TotalTopUp:     big.NewInt(0),
+				TopUpPerNode:   big.NewInt(0),
+				AuctionList:    []state.ValidatorInfoHandler{v12},
 				Qualified:      true,
 			},
 		}
@@ -878,6 +899,8 @@ func TestValidatorsProvider_GetAuctionList(t *testing.T) {
 		_ = validatorsMap.Add(v8)
 		_ = validatorsMap.Add(v9)
 		_ = validatorsMap.Add(v10)
+		_ = validatorsMap.Add(v11)
+		_ = validatorsMap.Add(v12)
 
 		rootHash := []byte("root hash")
 		args.ValidatorStatistics = &testscommon.ValidatorStatisticsProcessorStub{
@@ -905,6 +928,10 @@ func TestValidatorsProvider_GetAuctionList(t *testing.T) {
 				selectedV5 := v5.ShallowClone()
 				selectedV5.SetList(string(common.SelectedFromAuctionList))
 				_ = validatorsInfoMap.Replace(v5, selectedV5)
+
+				selectedV12 := v12.ShallowClone()
+				selectedV12.SetList(string(common.SelectedFromAuctionList))
+				_ = validatorsInfoMap.Replace(v12, selectedV12)
 
 				return nil
 			},
@@ -966,6 +993,32 @@ func TestValidatorsProvider_GetAuctionList(t *testing.T) {
 					},
 					{
 						BlsKey:    args.ValidatorPubKeyConverter.Encode(v4.PublicKey),
+						Qualified: false,
+					},
+				},
+			},
+			{
+				Owner:          args.AddressPubKeyConverter.Encode([]byte(owner7)),
+				NumStakedNodes: 1,
+				TotalTopUp:     "0",
+				TopUpPerNode:   "0",
+				QualifiedTopUp: "0",
+				AuctionList: []*common.AuctionNode{
+					{
+						BlsKey:    args.ValidatorPubKeyConverter.Encode(v12.PublicKey),
+						Qualified: true,
+					},
+				},
+			},
+			{
+				Owner:          args.AddressPubKeyConverter.Encode([]byte(owner6)),
+				NumStakedNodes: 1,
+				TotalTopUp:     "0",
+				TopUpPerNode:   "0",
+				QualifiedTopUp: "0",
+				AuctionList: []*common.AuctionNode{
+					{
+						BlsKey:    args.ValidatorPubKeyConverter.Encode(v11.PublicKey),
 						Qualified: false,
 					},
 				},

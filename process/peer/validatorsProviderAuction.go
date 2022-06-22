@@ -79,8 +79,8 @@ func (vp *validatorsProvider) createValidatorsAuctionCache(validatorsMap state.S
 		return nil, err
 	}
 
-	auctionListValidators := vp.getAuctionListValidatorsAPIResponse(selectedNodes)
-	sortList(auctionListValidators)
+	auctionListValidators, qualifiedOwners := vp.getAuctionListValidatorsAPIResponse(selectedNodes)
+	sortList(auctionListValidators, qualifiedOwners)
 	return auctionListValidators, nil
 }
 
@@ -123,23 +123,56 @@ func (vp *validatorsProvider) getSelectedNodesFromAuction(validatorsMap state.Sh
 	return selectedNodes, nil
 }
 
-func sortList(list []*common.AuctionListValidatorAPIResponse) {
+func sortList(list []*common.AuctionListValidatorAPIResponse, qualifiedOwners map[string]bool) {
 	sort.SliceStable(list, func(i, j int) bool {
 		qualifiedTopUpValidator1, _ := big.NewInt(0).SetString(list[i].QualifiedTopUp, 10)
 		qualifiedTopUpValidator2, _ := big.NewInt(0).SetString(list[j].QualifiedTopUp, 10)
+		if qualifiedTopUpValidator1.Cmp(qualifiedTopUpValidator2) == 0 {
+			return compareByNumQualified(list[i], list[j], qualifiedOwners)
+		}
 
 		return qualifiedTopUpValidator1.Cmp(qualifiedTopUpValidator2) > 0
 	})
 }
 
-func (vp *validatorsProvider) getAuctionListValidatorsAPIResponse(selectedNodes []state.ValidatorInfoHandler) []*common.AuctionListValidatorAPIResponse {
+func compareByNumQualified(owner1Nodes, owner2Nodes *common.AuctionListValidatorAPIResponse, qualifiedOwners map[string]bool) bool {
+	owner1Qualified := qualifiedOwners[owner1Nodes.Owner]
+	owner2Qualified := qualifiedOwners[owner2Nodes.Owner]
+
+	bothQualified := owner1Qualified && owner2Qualified
+	if !bothQualified {
+		return owner1Qualified
+	}
+
+	owner1NumQualified := getNumQualified(owner1Nodes.AuctionList)
+	owner2NumQualified := getNumQualified(owner2Nodes.AuctionList)
+
+	return owner1NumQualified > owner2NumQualified
+}
+
+func getNumQualified(nodes []*common.AuctionNode) uint32 {
+	numQualified := uint32(0)
+	for _, node := range nodes {
+		if node.Qualified {
+			numQualified++
+		}
+	}
+
+	return numQualified
+}
+
+func (vp *validatorsProvider) getAuctionListValidatorsAPIResponse(
+	selectedNodes []state.ValidatorInfoHandler,
+) ([]*common.AuctionListValidatorAPIResponse, map[string]bool) {
 	auctionListValidators := make([]*common.AuctionListValidatorAPIResponse, 0)
+	qualifiedOwners := make(map[string]bool)
 
 	for ownerPubKey, ownerData := range vp.stakingDataProvider.GetOwnersData() {
 		numAuctionNodes := len(ownerData.AuctionList)
 		if numAuctionNodes > 0 {
+			ownerEncodedPubKey := vp.addressPubKeyConverter.Encode([]byte(ownerPubKey))
 			auctionValidator := &common.AuctionListValidatorAPIResponse{
-				Owner:          vp.addressPubKeyConverter.Encode([]byte(ownerPubKey)),
+				Owner:          ownerEncodedPubKey,
 				NumStakedNodes: ownerData.NumStakedNodes,
 				TotalTopUp:     ownerData.TotalTopUp.String(),
 				TopUpPerNode:   ownerData.TopUpPerNode.String(),
@@ -157,10 +190,12 @@ func (vp *validatorsProvider) getAuctionListValidatorsAPIResponse(selectedNodes 
 
 			vp.fillAuctionQualifiedValidatorAPIData(selectedNodes, ownerData, auctionValidator)
 			auctionListValidators = append(auctionListValidators, auctionValidator)
+
+			qualifiedOwners[ownerEncodedPubKey] = ownerData.Qualified
 		}
 	}
 
-	return auctionListValidators
+	return auctionListValidators, qualifiedOwners
 }
 
 func (vp *validatorsProvider) fillAuctionQualifiedValidatorAPIData(
