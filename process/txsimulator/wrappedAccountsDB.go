@@ -80,7 +80,7 @@ func (r *readOnlyAccountsDB) RecreateTrie(_ []byte) error {
 }
 
 // PruneTrie won't do anything as write operations are disabled on this component
-func (r *readOnlyAccountsDB) PruneTrie(_ []byte, _ state.TriePruningIdentifier) {
+func (r *readOnlyAccountsDB) PruneTrie(_ []byte, _ state.TriePruningIdentifier, _ state.PruningHandler) {
 }
 
 // CancelPrune won't do anything as write operations are disabled on this component
