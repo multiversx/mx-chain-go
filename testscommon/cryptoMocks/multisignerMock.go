@@ -1,7 +1,7 @@
 package cryptoMocks
 
 import (
-	"github.com/ElrondNetwork/elrond-go-crypto"
+	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 )
 
 const signatureSize = 48
@@ -20,6 +20,7 @@ type MultisignerMock struct {
 	AggregateSigsCalled                    func(bitmap []byte) ([]byte, error)
 	SignatureShareCalled                   func(index uint16) ([]byte, error)
 	CreateCalled                           func(pubKeys []string, index uint16) (crypto.MultiSigner, error)
+	SetAggregatedSigCalled                 func(sig []byte) error
 	ResetCalled                            func(pubKeys []string, index uint16) error
 	CreateAndAddSignatureShareForKeyCalled func(message []byte, privateKey crypto.PrivateKey, pubKeyBytes []byte) ([]byte, error)
 	StoreSignatureShareCalled              func(index uint16, sig []byte) error
@@ -74,6 +75,10 @@ func (mm *MultisignerMock) Reset(pubKeys []string, index uint16) error {
 
 // SetAggregatedSig -
 func (mm *MultisignerMock) SetAggregatedSig(aggSig []byte) error {
+	if mm.SetAggregatedSigCalled != nil {
+		return mm.SetAggregatedSigCalled(aggSig)
+	}
+
 	mm.aggSig = aggSig
 
 	return nil

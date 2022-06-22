@@ -297,6 +297,12 @@ func (sr *subroundEndRound) VerifyNodesOnAggSigVerificationFail(multiSigner cryp
 	return sr.verifyNodesOnAggSigVerificationFail(multiSigner)
 }
 
+func (sr *subroundEndRound) ComputeAggSigOnValidNodes(
+	multiSigner crypto.MultiSigner,
+) ([]byte, []byte, error) {
+	return sr.computeAggSigOnValidNodes(multiSigner)
+}
+
 // GetStringValue gets the name of the message type
 func GetStringValue(messageType consensus.MessageType) string {
 	return getStringValue(messageType)
