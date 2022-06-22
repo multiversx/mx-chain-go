@@ -222,8 +222,6 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 		}
 	}
 
-	log.Debug("doEndRoundJobByLeader.Verify: TRIGERRED")
-
 	err = sr.Header.SetPubKeysBitmap(bitmap)
 	if err != nil {
 		log.Debug("doEndRoundJobByLeader.SetPubKeysBitmap", "error", err.Error())
@@ -313,10 +311,6 @@ func (sr *subroundEndRound) verifyNodesOnAggSigVerificationFail(
 ) error {
 	pubKeys := sr.ConsensusGroup()
 
-	invalidSigSharesNodes := make([]int, 0)
-
-	// TODO: analize better error handling and logs
-
 	for i, pk := range pubKeys {
 		isJobDone, err := sr.JobDone(pk, SrSignature)
 		if err != nil || !isJobDone {
@@ -333,7 +327,6 @@ func (sr *subroundEndRound) verifyNodesOnAggSigVerificationFail(
 		if err != nil {
 			isSuccessfull = false
 
-			invalidSigSharesNodes = append(invalidSigSharesNodes, i)
 			err = sr.SetJobDone(pk, SrSignature, false)
 			if err != nil {
 				return err
@@ -341,13 +334,6 @@ func (sr *subroundEndRound) verifyNodesOnAggSigVerificationFail(
 		}
 
 		log.Trace("verifyNodesOnAggSigVerificationFail: verifying signature share", "public key", pk, "is successfull", isSuccessfull)
-	}
-
-	// TODO: handle slashing on invalid sig share nodes
-	if len(invalidSigSharesNodes) == 0 {
-		log.Debug("verifyNodesOnAggSigVerificationFail.VerifySignatureShare: no invalid signature share")
-	} else {
-		log.Debug("verifyNodesOnAggSigVerificationFail.VerifySignatureShare: num invalid signature shares", "numInvalidSigShares", len(invalidSigSharesNodes))
 	}
 
 	return nil
