@@ -25,7 +25,7 @@ type AccountsStub struct {
 	RevertToSnapshotCalled        func(snapshot int) error
 	RootHashCalled                func() ([]byte, error)
 	RecreateTrieCalled            func(rootHash []byte) error
-	PruneTrieCalled               func(rootHash []byte, identifier state.TriePruningIdentifier)
+	PruneTrieCalled               func(rootHash []byte, identifier state.TriePruningIdentifier, handler state.PruningHandler)
 	CancelPruneCalled             func(rootHash []byte, identifier state.TriePruningIdentifier)
 	SnapshotStateCalled           func(rootHash []byte)
 	SetStateCheckpointCalled      func(rootHash []byte)
@@ -160,8 +160,8 @@ func (as *AccountsStub) RecreateTrie(rootHash []byte) error {
 }
 
 // PruneTrie -
-func (as *AccountsStub) PruneTrie(rootHash []byte, identifier state.TriePruningIdentifier) {
-	as.PruneTrieCalled(rootHash, identifier)
+func (as *AccountsStub) PruneTrie(rootHash []byte, identifier state.TriePruningIdentifier, handler state.PruningHandler) {
+	as.PruneTrieCalled(rootHash, identifier, handler)
 }
 
 // CancelPrune -
