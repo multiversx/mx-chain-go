@@ -1981,3 +1981,25 @@ func Test_IsBuiltinFuncCallWithParam(t *testing.T) {
 		require.True(t, process.IsBuiltinFuncCallWithParam(txDataWithFunc, targetFunction))
 	})
 }
+
+func Test_IsSetGuardianCall(t *testing.T) {
+	t.Parallel()
+
+	setGuardianTxData := []byte("SetGuardian@xxxxxxxx")
+	t.Run("should return false for tx with other builtin function call or random data", func(t *testing.T) {
+		require.False(t, process.IsSetGuardianCall([]byte(core.BuiltInFunctionClaimDeveloperRewards+"@...")))
+		require.False(t, process.IsSetGuardianCall([]byte("some random data")))
+	})
+	t.Run("should return false for tx with setGuardian without params (no builtin function call)", func(t *testing.T) {
+		require.False(t, process.IsSetGuardianCall([]byte("SetGuardian")))
+	})
+	t.Run("should return true for setGuardian call with invalid num of params", func(t *testing.T) {
+		require.True(t, process.IsSetGuardianCall([]byte("SetGuardian@xxx@xxx@xxx")))
+	})
+	t.Run("should return true for setGuardian call with empty param", func(t *testing.T) {
+		require.True(t, process.IsSetGuardianCall([]byte("SetGuardian@")))
+	})
+	t.Run("should return true for setGuardian call", func(t *testing.T) {
+		require.True(t, process.IsSetGuardianCall(setGuardianTxData))
+	})
+}

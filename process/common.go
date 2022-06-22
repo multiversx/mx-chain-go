@@ -820,3 +820,8 @@ func IsBuiltinFuncCallWithParam(txData []byte, function string) bool {
 	expectedTxDataPrefix := []byte(function + "@")
 	return bytes.HasPrefix(txData, expectedTxDataPrefix)
 }
+
+// IsSetGuardianCall checks if the given transaction data represents the set guardian builtin function call
+func IsSetGuardianCall(txData []byte) bool {
+	return IsBuiltinFuncCallWithParam(txData, core.BuiltInFunctionSetGuardian)
+}

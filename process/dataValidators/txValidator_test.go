@@ -520,7 +520,7 @@ func TestTxValidator_checkPermission(t *testing.T) {
 		err = txV.CheckPermission(inTx, acc)
 		require.True(t, errors.Is(err, process.ErrOperationNotPermitted))
 	})
-	t.Run("frozen account with no guarded tx and bypass permission should allow", func(t *testing.T) {
+	t.Run("frozen account with no guarded tx and bypass permission should allow if no pending guardian", func(t *testing.T) {
 		inTx := getDefaultInterceptedTx()
 		inTx.TransactionCalled = func() data.TransactionHandler {
 			return &transaction.Transaction{
@@ -538,6 +538,9 @@ func TestTxValidator_checkPermission(t *testing.T) {
 				VerifyGuardianSignatureCalled: func(account vmcommon.UserAccountHandler, inTx process.InterceptedTransactionHandler) error {
 					return errors.New("error")
 				},
+				HasPendingGuardianCalled: func(uah state.UserAccountHandler) bool {
+					return false
+				},
 			},
 			&testscommon.TxVersionCheckerStub{
 				IsGuardedTransactionCalled: func(tx *transaction.Transaction) bool {
@@ -550,6 +553,40 @@ func TestTxValidator_checkPermission(t *testing.T) {
 
 		err = txV.CheckPermission(inTx, acc)
 		require.Nil(t, err)
+	})
+	t.Run("frozen account with no guarded tx and bypass permission with pending guardian should block", func(t *testing.T) {
+		inTx := getDefaultInterceptedTx()
+		inTx.TransactionCalled = func() data.TransactionHandler {
+			return &transaction.Transaction{
+				Data: []byte("SetGuardian@..."),
+			}
+		}
+
+		acc := createDummyFrozenAccount()
+		txV, err := dataValidators.NewTxValidator(
+			adb,
+			shardCoordinator,
+			&testscommon.WhiteListHandlerStub{},
+			mock.NewPubkeyConverterMock(32),
+			&guardianMocks.GuardianSigVerifierStub{
+				VerifyGuardianSignatureCalled: func(account vmcommon.UserAccountHandler, inTx process.InterceptedTransactionHandler) error {
+					return errors.New("error")
+				},
+				HasPendingGuardianCalled: func(uah state.UserAccountHandler) bool {
+					return true
+				},
+			},
+			&testscommon.TxVersionCheckerStub{
+				IsGuardedTransactionCalled: func(tx *transaction.Transaction) bool {
+					return false
+				},
+			},
+			maxNonceDeltaAllowed,
+		)
+		require.Nil(t, err)
+
+		err = txV.CheckPermission(inTx, acc)
+		require.Equal(t, process.ErrCannotReplaceFrozenAccountPendingGuardian, err)
 	})
 	t.Run("frozen account with guarded Tx should allow", func(t *testing.T) {
 		inTx := getDefaultInterceptedTx()
