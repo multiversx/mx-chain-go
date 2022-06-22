@@ -114,7 +114,7 @@ func (bap *baseAPIBlockProcessor) prepareAPIMiniblock(miniblock *block.MiniBlock
 
 func (bap *baseAPIBlockProcessor) getAndAttachTxsToMb(mbHeader data.MiniBlockHeaderHandler, epoch uint32, apiMiniblock *api.MiniBlock, options api.BlockQueryOptions) error {
 	miniblockHash := mbHeader.GetHash()
-	miniBlock, err := bap.getMiniblockByHash(miniblockHash, epoch)
+	miniBlock, err := bap.getMiniblockByHashAndEpoch(miniblockHash, epoch)
 	if err != nil {
 		return err
 	}
@@ -122,7 +122,7 @@ func (bap *baseAPIBlockProcessor) getAndAttachTxsToMb(mbHeader data.MiniBlockHea
 	return bap.getAndAttachTxsToMbByEpoch(miniblockHash, miniBlock, epoch, apiMiniblock, options)
 }
 
-func (bap *baseAPIBlockProcessor) getMiniblockByHash(miniblockHash []byte, epoch uint32) (*block.MiniBlock, error) {
+func (bap *baseAPIBlockProcessor) getMiniblockByHashAndEpoch(miniblockHash []byte, epoch uint32) (*block.MiniBlock, error) {
 	bytes, err := bap.getFromStorerWithEpoch(dataRetriever.MiniBlockUnit, miniblockHash, epoch)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %v, hash = %s", errCannotLoadMiniblocks, err, hex.EncodeToString(miniblockHash))
