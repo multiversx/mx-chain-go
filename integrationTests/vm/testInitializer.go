@@ -24,7 +24,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/common/enableEpochs"
+	"github.com/ElrondNetwork/elrond-go/common/enablers"
 	"github.com/ElrondNetwork/elrond-go/common/forking"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -358,7 +358,7 @@ func createEconomicsData(enableEpochsConfig config.EnableEpochs) (process.Econom
 	})
 
 	realEpochNotifier := forking.NewGenericEpochNotifier()
-	enableEpochsHandler, _ := enableEpochs.NewEnableEpochsHandler(enableEpochsConfig, realEpochNotifier)
+	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(enableEpochsConfig, realEpochNotifier)
 
 	argsNewEconomicsData := economics.ArgsNewEconomicsData{
 		Economics: &config.EconomicsConfig{
@@ -415,7 +415,7 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 	arwenChangeLocker common.Locker,
 ) (process.TransactionProcessor, error) {
 
-	enableEpochsHandler, _ := enableEpochs.NewEnableEpochsHandler(enableEpochsConfig, forking.NewGenericEpochNotifier())
+	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(enableEpochsConfig, forking.NewGenericEpochNotifier())
 
 	builtInFuncs := vmcommonBuiltInFunctions.NewBuiltInFunctionContainer()
 	datapool := dataRetrieverMock.NewPoolsHolderMock()
@@ -627,7 +627,7 @@ func CreateVMAndBlockchainHookMeta(
 		gasSchedule = mock.NewGasScheduleNotifierMock(testGasSchedule)
 	}
 
-	enableEpochsHandler, _ := enableEpochs.NewEnableEpochsHandler(enableEpochsConfig, globalEpochNotifier)
+	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(enableEpochsConfig, globalEpochNotifier)
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
 		GasSchedule: gasSchedule,
 		MapDNSAddresses: map[string]struct{}{
@@ -778,7 +778,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		poolsHolder = dataRetrieverMock.NewPoolsHolderMock()
 	}
 
-	enableEpochsHandler, _ := enableEpochs.NewEnableEpochsHandler(enableEpochsConfig, epochNotifierInstance)
+	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(enableEpochsConfig, epochNotifierInstance)
 
 	esdtTransferParser, _ := parsers.NewESDTTransferParser(testMarshalizer)
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
@@ -1020,7 +1020,7 @@ func CreatePreparedTxProcessorAndAccountsWithVMs(
 	vmConfig := createDefaultVMConfig()
 	arwenChangeLocker := &sync.RWMutex{}
 	epochNotifierInstance := forking.NewGenericEpochNotifier()
-	enableEpochsHandler, _ := enableEpochs.NewEnableEpochsHandler(enableEpochsConfig, epochNotifierInstance)
+	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(enableEpochsConfig, epochNotifierInstance)
 	vmContainer, blockchainHook, pool := CreateVMAndBlockchainHookAndDataPool(
 		accounts,
 		nil,
@@ -1074,7 +1074,7 @@ func CreatePreparedTxProcessorWithVMsWithShardCoordinator(enableEpochsConfig con
 	defaults.FillGasMapInternal(testGasSchedule, 1)
 	gasSchedule := mock.NewGasScheduleNotifierMock(testGasSchedule)
 	epochNotifierInstance := forking.NewGenericEpochNotifier()
-	enableEpochsHandler, _ := enableEpochs.NewEnableEpochsHandler(enableEpochsConfig, epochNotifierInstance)
+	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(enableEpochsConfig, epochNotifierInstance)
 	vmContainer, blockchainHook, pool := CreateVMAndBlockchainHookAndDataPool(
 		accounts,
 		gasSchedule,
@@ -1133,7 +1133,7 @@ func CreateTxProcessorArwenVMWithGasSchedule(
 
 	gasScheduleNotifier := mock.NewGasScheduleNotifierMock(gasScheduleMap)
 	epochNotifierInstance := forking.NewGenericEpochNotifier()
-	enableEpochsHandler, _ := enableEpochs.NewEnableEpochsHandler(enableEpochsConfig, epochNotifierInstance)
+	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(enableEpochsConfig, epochNotifierInstance)
 	vmContainer, blockchainHook, pool := CreateVMAndBlockchainHookAndDataPool(
 		accounts,
 		gasScheduleNotifier,
@@ -1183,7 +1183,7 @@ func CreateTxProcessorArwenWithVMConfig(
 	arwenChangeLocker := &sync.RWMutex{}
 	gasScheduleNotifier := mock.NewGasScheduleNotifierMock(gasSchedule)
 	epochNotifierInstance := forking.NewGenericEpochNotifier()
-	enableEpochsHandler, _ := enableEpochs.NewEnableEpochsHandler(enableEpochsConfig, epochNotifierInstance)
+	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(enableEpochsConfig, epochNotifierInstance)
 	vmContainer, blockchainHook, pool := CreateVMAndBlockchainHookAndDataPool(
 		accounts,
 		gasScheduleNotifier,
@@ -1345,7 +1345,7 @@ func GetVmOutput(gasSchedule map[string]map[string]uint64, accnts state.Accounts
 	vmConfig := createDefaultVMConfig()
 	gasScheduleNotifier := mock.NewGasScheduleNotifierMock(gasSchedule)
 	epochNotifierInstance := forking.NewGenericEpochNotifier()
-	enableEpochsHandler, _ := enableEpochs.NewEnableEpochsHandler(config.EnableEpochs{}, epochNotifierInstance)
+	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(config.EnableEpochs{}, epochNotifierInstance)
 	vmContainer, blockChainHook, _ := CreateVMAndBlockchainHookAndDataPool(
 		accnts,
 		gasScheduleNotifier,
@@ -1497,7 +1497,7 @@ func CreatePreparedTxProcessorWithVMsMultiShard(selfShardID uint32, enableEpochs
 	var vmContainer process.VirtualMachinesContainer
 	var blockchainHook *hooks.BlockChainHookImpl
 	epochNotifierInstance := forking.NewGenericEpochNotifier()
-	enableEpochsHandler, _ := enableEpochs.NewEnableEpochsHandler(enableEpochsConfig, epochNotifierInstance)
+	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(enableEpochsConfig, epochNotifierInstance)
 	if selfShardID == core.MetachainShardId {
 		vmContainer, blockchainHook = CreateVMAndBlockchainHookMeta(accounts, nil, shardCoordinator, enableEpochsConfig)
 	} else {

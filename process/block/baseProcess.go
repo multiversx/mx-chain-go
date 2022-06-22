@@ -89,14 +89,16 @@ type baseProcessor struct {
 	historyRepo         dblookupext.HistoryRepository
 	epochNotifier       process.EpochNotifier
 	enableEpochsHandler common.EnableEpochsHandler
-	roundNotifier       process.RoundNotifier
+	enableRoundsHandler process.EnableRoundsHandler
 	vmContainerFactory  process.VirtualMachinesContainerFactory
 	vmContainer         process.VirtualMachinesContainer
 	gasConsumedProvider gasConsumedProvider
 	economicsData       process.EconomicsDataHandler
 
-	processDataTriesOnCommitEpoch bool
-	processedMiniBlocksTracker    process.ProcessedMiniBlocksTracker
+	processDataTriesOnCommitEpoch  bool
+	lastRestartNonce               uint64
+	pruningDelay                   uint32
+	processedMiniBlocksTracker     process.ProcessedMiniBlocksTracker
 }
 
 type bootStorerDataArgs struct {
@@ -489,8 +491,8 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 	if check.IfNil(arguments.CoreComponents.EnableEpochsHandler()) {
 		return process.ErrNilEnableEpochsHandler
 	}
-	if check.IfNil(arguments.RoundNotifier) {
-		return process.ErrNilRoundNotifier
+	if check.IfNil(arguments.EnableRoundsHandler) {
+		return process.ErrNilEnableRoundsHandler
 	}
 	if check.IfNil(arguments.CoreComponents.StatusHandler()) {
 		return process.ErrNilAppStatusHandler
@@ -1380,7 +1382,7 @@ func (bp *baseProcessor) updateStateStorage(
 	}
 
 	accounts.CancelPrune(rootHashToBePruned, state.NewRoot)
-	accounts.PruneTrie(rootHashToBePruned, state.OldRoot)
+	accounts.PruneTrie(rootHashToBePruned, state.OldRoot, bp.getPruningHandler(finalHeader.GetNonce()))
 }
 
 // RevertCurrentBlock reverts the current block for cleanup failed process
@@ -1516,8 +1518,21 @@ func (bp *baseProcessor) PruneStateOnRollback(currHeader data.HeaderHandler, cur
 		}
 
 		bp.accountsDB[key].CancelPrune(prevRootHash, state.OldRoot)
-		bp.accountsDB[key].PruneTrie(rootHash, state.NewRoot)
+		bp.accountsDB[key].PruneTrie(rootHash, state.NewRoot, bp.getPruningHandler(currHeader.GetNonce()))
 	}
+}
+
+func (bp *baseProcessor) getPruningHandler(finalHeaderNonce uint64) state.PruningHandler {
+	if finalHeaderNonce-bp.lastRestartNonce <= uint64(bp.pruningDelay) {
+		log.Debug("will skip pruning",
+			"finalHeaderNonce", finalHeaderNonce,
+			"last restart nonce", bp.lastRestartNonce,
+			"num blocks for pruning delay", bp.pruningDelay,
+		)
+		return state.NewPruningHandler(state.DisableDataRemoval)
+	}
+
+	return state.NewPruningHandler(state.EnableDataRemoval)
 }
 
 func (bp *baseProcessor) getRootHashes(currHeader data.HeaderHandler, prevHeader data.HeaderHandler, identifier state.AccountsDbIdentifier) ([]byte, []byte) {

@@ -49,7 +49,7 @@ type CoreComponentsMock struct {
 	NodesConfig                  sharding.GenesisNodesSetupHandler
 	Shuffler                     nodesCoordinator.NodesShuffler
 	EpochChangeNotifier          process.EpochNotifier
-	RoundChangeNotifier          process.RoundNotifier
+	EnableRoundsHandlerField     process.EnableRoundsHandler
 	EpochNotifierWithConfirm     factory.EpochStartNotifierWithConfirm
 	TxVersionCheckHandler        process.TxVersionCheckerHandler
 	ChanStopProcess              chan endProcess.ArgEndProcess
@@ -220,9 +220,9 @@ func (ccm *CoreComponentsMock) EpochNotifier() process.EpochNotifier {
 	return ccm.EpochChangeNotifier
 }
 
-// RoundNotifier -
-func (ccm *CoreComponentsMock) RoundNotifier() process.RoundNotifier {
-	return ccm.RoundChangeNotifier
+// EnableRoundsHandler -
+func (ccm *CoreComponentsMock) EnableRoundsHandler() process.EnableRoundsHandler {
+	return ccm.EnableRoundsHandlerField
 }
 
 // EpochStartNotifierWithConfirm -

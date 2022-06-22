@@ -202,7 +202,7 @@ func TestAccountsDBApi_EmptyMethodsShouldNotPanic(t *testing.T) {
 
 	accountsApi, _ := state.NewAccountsDBApi(&mockState.AccountsStub{}, &testscommon.ChainHandlerStub{})
 
-	accountsApi.PruneTrie(nil, 0)
+	accountsApi.PruneTrie(nil, 0, state.NewPruningHandler(state.EnableDataRemoval))
 	accountsApi.CancelPrune(nil, 0)
 	accountsApi.SnapshotState(nil)
 	accountsApi.SetStateCheckpoint(nil)

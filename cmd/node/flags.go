@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"os"
+	"runtime"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -466,6 +467,10 @@ func applyCompatibleConfigs(log logger.Logger, configs *config.Configs) error {
 	// if FullArchive is enabled, we override the conflicting StoragePruning settings and StartInEpoch as well
 	if configs.PreferencesConfig.Preferences.FullArchive {
 		return processConfigFullArchiveMode(log, configs)
+	}
+
+	if configs.FlagsConfig.EnablePprof {
+		runtime.SetMutexProfileFraction(5)
 	}
 
 	return nil

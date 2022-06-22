@@ -24,7 +24,11 @@ import (
 
 var _ process.BlockProcessor = (*shardProcessor)(nil)
 
-const timeBetweenCheckForEpochStart = 100 * time.Millisecond
+const (
+	timeBetweenCheckForEpochStart = 100 * time.Millisecond
+	pruningDelayMultiplier        = 2
+	defaultPruningDelay           = 10
+)
 
 type createAndProcessMiniBlocksDestMeInfo struct {
 	currMetaHdr                 data.HeaderHandler
@@ -71,6 +75,13 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		return nil, fmt.Errorf("%w for genesis header in DataComponents.Blockchain", process.ErrNilHeaderHandler)
 	}
 
+	pruningQueueSize := arguments.Config.StateTriesConfig.UserStatePruningQueueSize
+	pruningDelay := uint32(pruningQueueSize * pruningDelayMultiplier)
+	if pruningDelay < defaultPruningDelay {
+		log.Warn("using default pruning delay", "user state pruning queue size", pruningQueueSize)
+		pruningDelay = defaultPruningDelay
+	}
+
 	base := &baseProcessor{
 		accountsDB:                    arguments.AccountsDB,
 		blockSizeThrottler:            arguments.BlockSizeThrottler,
@@ -101,13 +112,14 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		historyRepo:                   arguments.HistoryRepository,
 		epochNotifier:                 arguments.CoreComponents.EpochNotifier(),
 		enableEpochsHandler:           arguments.CoreComponents.EnableEpochsHandler(),
-		roundNotifier:                 arguments.RoundNotifier,
+		enableRoundsHandler:           arguments.EnableRoundsHandler,
 		vmContainerFactory:            arguments.VMContainersFactory,
 		vmContainer:                   arguments.VmContainer,
 		processDataTriesOnCommitEpoch: arguments.Config.Debug.EpochStart.ProcessDataTrieOnCommitEpoch,
 		gasConsumedProvider:           arguments.GasHandler,
 		economicsData:                 arguments.CoreComponents.EconomicsData(),
 		scheduledTxsExecutionHandler:  arguments.ScheduledTxsExecutionHandler,
+		pruningDelay:                   pruningDelay,
 		processedMiniBlocksTracker:    arguments.ProcessedMiniBlocksTracker,
 	}
 
@@ -164,7 +176,7 @@ func (sp *shardProcessor) ProcessBlock(
 		return err
 	}
 
-	sp.roundNotifier.CheckRound(headerHandler.GetRound())
+	sp.enableRoundsHandler.CheckRound(headerHandler.GetRound())
 	sp.epochNotifier.CheckEpoch(headerHandler)
 	sp.requestHandler.SetEpoch(headerHandler.GetEpoch())
 
@@ -1022,6 +1034,10 @@ func (sp *shardProcessor) CommitBlock(
 
 	sp.notifyFinalMetaHdrs(processedMetaHdrs)
 
+	if sp.lastRestartNonce == 0 {
+		sp.lastRestartNonce = header.GetNonce()
+	}
+
 	sp.updateState(selfNotarizedHeaders, header)
 
 	highestFinalBlockNonce := sp.forkDetector.GetHighestFinalBlockNonce()
@@ -1384,7 +1400,7 @@ func (sp *shardProcessor) saveLastNotarizedHeader(shardId uint32, processedHdrs 
 
 // CreateNewHeader creates a new header
 func (sp *shardProcessor) CreateNewHeader(round uint64, nonce uint64) (data.HeaderHandler, error) {
-	sp.roundNotifier.CheckRound(round)
+	sp.enableRoundsHandler.CheckRound(round)
 	epoch := sp.epochStartTrigger.MetaEpoch()
 	header := sp.versionedHeaderFactory.Create(epoch)
 

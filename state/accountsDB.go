@@ -1051,13 +1051,13 @@ func (adb *AccountsDB) GetStackDebugFirstEntry() []byte {
 }
 
 // PruneTrie removes old values from the trie database
-func (adb *AccountsDB) PruneTrie(rootHash []byte, identifier TriePruningIdentifier) {
+func (adb *AccountsDB) PruneTrie(rootHash []byte, identifier TriePruningIdentifier, handler PruningHandler) {
 	adb.mutOp.Lock()
 	defer adb.mutOp.Unlock()
 
 	log.Trace("accountsDB.PruneTrie", "root hash", rootHash)
 
-	adb.storagePruningManager.PruneTrie(rootHash, identifier, adb.mainTrie.GetStorageManager())
+	adb.storagePruningManager.PruneTrie(rootHash, identifier, adb.mainTrie.GetStorageManager(), handler)
 }
 
 // CancelPrune clears the trie's evictionWaitingList

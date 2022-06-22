@@ -1,4 +1,4 @@
-package enableEpochs
+package enablers
 
 import (
 	"testing"
@@ -81,6 +81,8 @@ func createEnableEpochsConfig() config.EnableEpochs {
 		MiniBlockPartialExecutionEnableEpoch:              65,
 		ManagedCryptoAPIsEnableEpoch:                      66,
 		ESDTMetadataContinuousCleanupEnableEpoch:          67,
+		DisableExecByCallerEnableEpoch:                    68,
+		RefactorContextEnableEpoch:                        69,
 	}
 }
 
@@ -194,6 +196,8 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsMiniBlockPartialExecutionFlagEnabled())
 		assert.True(t, handler.IsManagedCryptoAPIsFlagEnabled())
 		assert.True(t, handler.IsESDTMetadataContinuousCleanupFlagEnabled())
+		assert.True(t, handler.IsDisableExecByCallerFlagEnabled())
+		assert.True(t, handler.IsRefactorContextFlagEnabled())
 	})
 	t.Run("flags with == condition should be set, along with all >=", func(t *testing.T) {
 		t.Parallel()
@@ -283,6 +287,8 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsMiniBlockPartialExecutionFlagEnabled())
 		assert.True(t, handler.IsManagedCryptoAPIsFlagEnabled())
 		assert.True(t, handler.IsESDTMetadataContinuousCleanupFlagEnabled())
+		assert.True(t, handler.IsDisableExecByCallerFlagEnabled())
+		assert.True(t, handler.IsRefactorContextFlagEnabled())
 	})
 	t.Run("flags with < should be set", func(t *testing.T) {
 		t.Parallel()
@@ -367,5 +373,7 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.False(t, handler.IsMiniBlockPartialExecutionFlagEnabled())
 		assert.False(t, handler.IsManagedCryptoAPIsFlagEnabled())
 		assert.False(t, handler.IsESDTMetadataContinuousCleanupFlagEnabled())
+		assert.False(t, handler.IsDisableExecByCallerFlagEnabled())
+		assert.False(t, handler.IsRefactorContextFlagEnabled())
 	})
 }

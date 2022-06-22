@@ -10,6 +10,7 @@ import (
 	"path"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -175,10 +176,11 @@ func printEnableEpochs(configs *config.Configs) {
 	log.Debug(readEpochFor("do not return old block in blockchain hook"), "epoch", enableEpochs.DoNotReturnOldBlockInBlockchainHookEnableEpoch)
 	log.Debug(readEpochFor("scr size invariant check on built in"), "epoch", enableEpochs.SCRSizeInvariantOnBuiltInResultEnableEpoch)
 	log.Debug(readEpochFor("correct check on tokenID for transfer role"), "epoch", enableEpochs.CheckCorrectTokenIDForTransferRoleEnableEpoch)
+	log.Debug(readEpochFor("disable check value on exec by caller"), "epoch", enableEpochs.DisableExecByCallerEnableEpoch)
 	log.Debug(readEpochFor("fail execution on every wrong API call"), "epoch", enableEpochs.FailExecutionOnEveryAPIErrorEnableEpoch)
 	log.Debug(readEpochFor("managed crypto API in wasm vm"), "epoch", enableEpochs.ManagedCryptoAPIsEnableEpoch)
+	log.Debug(readEpochFor("refactor contexts"), "epoch", enableEpochs.RefactorContextEnableEpoch)
 	log.Debug(readEpochFor("disable heartbeat v1"), "epoch", enableEpochs.HeartbeatDisableEpoch)
-
 	log.Debug(readEpochFor("mini block partial execution"), "epoch", enableEpochs.MiniBlockPartialExecutionEnableEpoch)
 	gasSchedule := configs.EpochConfig.GasSchedule
 
@@ -245,6 +247,9 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	flagsConfig := configs.FlagsConfig
 	configurationPaths := configs.ConfigurationPathsHolder
 
+	log.Debug("creating healthService")
+	healthService := nr.createHealthService(flagsConfig)
+
 	log.Debug("creating core components")
 	managedCoreComponents, err := nr.CreateManagedCoreComponents(
 		chanStopNodeProcess,
@@ -302,8 +307,8 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		return true, err
 	}
 
-	log.Debug("creating healthService")
-	healthService := nr.createHealthService(flagsConfig, managedDataComponents)
+	log.Debug("registering components in healthService")
+	nr.registerDataComponentsInHealthService(healthService, managedDataComponents)
 
 	nodesShufflerOut, err := mainFactory.CreateNodesShuffleOut(
 		managedCoreComponents.GenesisNodesSetup(),
@@ -315,7 +320,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	}
 
 	log.Debug("creating nodes coordinator")
-	nodesCoord, err := mainFactory.CreateNodesCoordinator(
+	nodesCoordinatorInstance, err := mainFactory.CreateNodesCoordinator(
 		nodesShufflerOut,
 		managedCoreComponents.GenesisNodesSetup(),
 		configs.PreferencesConfig.Preferences,
@@ -344,7 +349,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		managedBootstrapComponents,
 		managedDataComponents,
 		managedStateComponents,
-		nodesCoord,
+		nodesCoordinatorInstance,
 		configs.ImportDbConfig.IsImportDBMode,
 	)
 	if err != nil {
@@ -372,7 +377,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		managedDataComponents,
 		managedStatusComponents,
 		gasScheduleNotifier,
-		nodesCoord,
+		nodesCoordinatorInstance,
 	)
 	if err != nil {
 		return true, err
@@ -453,10 +458,10 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	}
 
 	if managedBootstrapComponents.ShardCoordinator().SelfId() == core.MetachainShardId {
-		log.Debug("activating nodesCoord's validators indexing")
+		log.Debug("activating nodesCoordinator's validators indexing")
 		indexValidatorsListIfNeeded(
 			managedStatusComponents.OutportHandler(),
-			nodesCoord,
+			nodesCoordinatorInstance,
 			managedProcessComponents.EpochStartTrigger().Epoch(),
 		)
 	}
@@ -473,10 +478,11 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	log.Info("application is now running")
 
 	// TODO: remove this and treat better the VM versions switching
-	go func() {
+	go func(statusHandler core.AppStatusHandler) {
 		time.Sleep(delayBeforeScQueriesStart)
 		close(allowExternalVMQueriesChan)
-	}()
+		statusHandler.SetStringValue(common.MetricAreVMQueriesReady, strconv.FormatBool(true))
+	}(managedCoreComponents.StatusHandler())
 
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
@@ -619,16 +625,19 @@ func (nr *nodeRunner) createMetrics(
 	return nil
 }
 
-func (nr *nodeRunner) createHealthService(flagsConfig *config.ContextFlagsConfig, dataComponents mainFactory.DataComponentsHolder) closing.Closer {
+func (nr *nodeRunner) createHealthService(flagsConfig *config.ContextFlagsConfig) HealthService {
 	healthService := health.NewHealthService(nr.configs.GeneralConfig.Health, flagsConfig.WorkingDir)
 	if flagsConfig.UseHealthService {
 		healthService.Start()
 	}
 
+	return healthService
+}
+
+func (nr *nodeRunner) registerDataComponentsInHealthService(healthService HealthService, dataComponents mainFactory.DataComponentsHolder) {
 	healthService.RegisterComponent(dataComponents.Datapool().Transactions())
 	healthService.RegisterComponent(dataComponents.Datapool().UnsignedTransactions())
 	healthService.RegisterComponent(dataComponents.Datapool().RewardTransactions())
-	return healthService
 }
 
 // CreateManagedConsensusComponents is the managed consensus components factory
@@ -1164,7 +1173,6 @@ func (nr *nodeRunner) CreateManagedBootstrapComponents(
 	bootstrapComponentsFactoryArgs := mainFactory.BootstrapComponentsFactoryArgs{
 		Config:            *nr.configs.GeneralConfig,
 		EpochConfig:       *nr.configs.EpochConfig,
-		RoundConfig:       *nr.configs.RoundConfig,
 		PrefConfig:        *nr.configs.PreferencesConfig,
 		ImportDbConfig:    *nr.configs.ImportDbConfig,
 		WorkingDir:        nr.configs.FlagsConfig.WorkingDir,
@@ -1247,6 +1255,7 @@ func (nr *nodeRunner) CreateManagedCoreComponents(
 		Config:                *nr.configs.GeneralConfig,
 		ConfigPathsHolder:     *nr.configs.ConfigurationPathsHolder,
 		EpochConfig:           *nr.configs.EpochConfig,
+		RoundConfig:           *nr.configs.RoundConfig,
 		ImportDbConfig:        *nr.configs.ImportDbConfig,
 		RatingsConfig:         *nr.configs.RatingsConfig,
 		EconomicsConfig:       *nr.configs.EconomicsConfig,

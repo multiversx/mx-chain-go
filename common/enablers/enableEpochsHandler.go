@@ -1,4 +1,4 @@
-package enableEpochs
+package enablers
 
 import (
 	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
@@ -8,10 +8,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
-var log = logger.GetOrCreate("enableEpochsHandler")
+var log = logger.GetOrCreate("common/enablers")
 
 type enableEpochsHandler struct {
-	*flagsHolder
+	*epochFlagsHolder
 	enableEpochsConfig config.EnableEpochs
 }
 
@@ -22,7 +22,7 @@ func NewEnableEpochsHandler(enableEpochsConfig config.EnableEpochs, epochNotifie
 	}
 
 	handler := &enableEpochsHandler{
-		flagsHolder:        newFlagsHolder(),
+		epochFlagsHolder:   newEpochFlagsHolder(),
 		enableEpochsConfig: enableEpochsConfig,
 	}
 
@@ -105,6 +105,8 @@ func (handler *enableEpochsHandler) EpochConfirmed(epoch uint32, _ uint64) {
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.MiniBlockPartialExecutionEnableEpoch, handler.isMiniBlockPartialExecutionFlag, "isMiniBlockPartialExecutionFlag")
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.ManagedCryptoAPIsEnableEpoch, handler.managedCryptoAPIsFlag, "managedCryptoAPIsFlag")
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.ESDTMetadataContinuousCleanupEnableEpoch, handler.esdtMetadataContinuousCleanupFlag, "esdtMetadataContinuousCleanupFlag")
+	handler.setFlagValue(epoch >= handler.enableEpochsConfig.DisableExecByCallerEnableEpoch, handler.disableExecByCallerFlag, "disableExecByCallerFlag")
+	handler.setFlagValue(epoch >= handler.enableEpochsConfig.RefactorContextEnableEpoch, handler.refactorContextFlag, "refactorContextFlag")
 }
 
 func (handler *enableEpochsHandler) setFlagValue(value bool, flag *atomic.Flag, flagName string) {

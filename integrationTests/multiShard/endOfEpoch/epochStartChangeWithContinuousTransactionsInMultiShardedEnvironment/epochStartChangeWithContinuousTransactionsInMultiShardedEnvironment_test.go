@@ -19,7 +19,7 @@ func TestEpochStartChangeWithContinuousTransactionsInMultiShardedEnvironment(t *
 	nodesPerShard := 3
 	numMetachainNodes := 3
 
-	enabledEpochsConfig := config.EnableEpochs{
+	enableEpochsConfig := config.EnableEpochs{
 		StakingV2EnableEpoch:                 integrationTests.UnreachableEpoch,
 		ScheduledMiniBlocksEnableEpoch:       integrationTests.UnreachableEpoch,
 		MiniBlockPartialExecutionEnableEpoch: integrationTests.UnreachableEpoch,
@@ -29,7 +29,7 @@ func TestEpochStartChangeWithContinuousTransactionsInMultiShardedEnvironment(t *
 		numOfShards,
 		nodesPerShard,
 		numMetachainNodes,
-		enabledEpochsConfig,
+		enableEpochsConfig,
 	)
 
 	roundsPerEpoch := uint64(10)

@@ -85,6 +85,13 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		return nil, process.ErrNilEpochStartSystemSCProcessor
 	}
 
+	pruningQueueSize := arguments.Config.StateTriesConfig.PeerStatePruningQueueSize
+	pruningDelay := uint32(pruningQueueSize * pruningDelayMultiplier)
+	if pruningDelay < defaultPruningDelay {
+		log.Warn("using default pruning delay", "pruning queue size", pruningQueueSize)
+		pruningDelay = defaultPruningDelay
+	}
+
 	genesisHdr := arguments.DataComponents.Blockchain().GetGenesisHeader()
 	base := &baseProcessor{
 		accountsDB:                    arguments.AccountsDB,
@@ -116,13 +123,14 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		historyRepo:                   arguments.HistoryRepository,
 		epochNotifier:                 arguments.CoreComponents.EpochNotifier(),
 		enableEpochsHandler:           arguments.CoreComponents.EnableEpochsHandler(),
-		roundNotifier:                 arguments.RoundNotifier,
+		enableRoundsHandler:            arguments.EnableRoundsHandler,
 		vmContainerFactory:            arguments.VMContainersFactory,
 		vmContainer:                   arguments.VmContainer,
 		processDataTriesOnCommitEpoch: arguments.Config.Debug.EpochStart.ProcessDataTrieOnCommitEpoch,
 		gasConsumedProvider:           arguments.GasHandler,
 		economicsData:                 arguments.CoreComponents.EconomicsData(),
 		scheduledTxsExecutionHandler:  arguments.ScheduledTxsExecutionHandler,
+		pruningDelay:                  pruningDelay,
 		processedMiniBlocksTracker:    arguments.ProcessedMiniBlocksTracker,
 	}
 
@@ -195,7 +203,7 @@ func (mp *metaProcessor) ProcessBlock(
 		return err
 	}
 
-	mp.roundNotifier.CheckRound(headerHandler.GetRound())
+	mp.enableRoundsHandler.CheckRound(headerHandler.GetRound())
 	mp.epochNotifier.CheckEpoch(headerHandler)
 	mp.requestHandler.SetEpoch(headerHandler.GetEpoch())
 
@@ -1287,6 +1295,10 @@ func (mp *metaProcessor) CommitBlock(
 		}
 	}
 	lastMetaBlockHash := mp.blockChain.GetCurrentBlockHeaderHash()
+	if mp.lastRestartNonce == 0 {
+		mp.lastRestartNonce = header.GetNonce()
+	}
+
 	mp.updateState(lastMetaBlock, lastMetaBlockHash)
 
 	committedRootHash, err := mp.accountsDB[state.UserAccountsState].RootHash()
@@ -2281,7 +2293,7 @@ func (mp *metaProcessor) waitForBlockHeaders(waitTime time.Duration) error {
 
 // CreateNewHeader creates a new header
 func (mp *metaProcessor) CreateNewHeader(round uint64, nonce uint64) (data.HeaderHandler, error) {
-	mp.roundNotifier.CheckRound(round)
+	mp.enableRoundsHandler.CheckRound(round)
 
 	mp.epochStartTrigger.Update(round, nonce)
 	epoch := mp.epochStartTrigger.Epoch()

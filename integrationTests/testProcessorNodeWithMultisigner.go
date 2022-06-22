@@ -18,7 +18,7 @@ import (
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	mclmultisig "github.com/ElrondNetwork/elrond-go-crypto/signing/mcl/multisig"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/multisig"
-	"github.com/ElrondNetwork/elrond-go/common/enableEpochs"
+	"github.com/ElrondNetwork/elrond-go/common/enablers"
 	"github.com/ElrondNetwork/elrond-go/common/forking"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
@@ -63,6 +63,7 @@ func NewTestProcessorNodeWithCustomNodesCoordinator(
 			BadRatedCache: testscommon.NewCacherMock(),
 		})
 	messenger := CreateMessengerWithNoDiscoveryAndPeersRatingHandler(peersRatingHandler)
+
 	tpn := &TestProcessorNode{
 		ShardCoordinator:        shardCoordinator,
 		Messenger:               messenger,
@@ -85,7 +86,7 @@ func NewTestProcessorNodeWithCustomNodesCoordinator(
 	tpn.EnableEpochs.ScheduledMiniBlocksEnableEpoch = UnreachableEpoch
 	tpn.EnableEpochs.MiniBlockPartialExecutionEnableEpoch = UnreachableEpoch
 	tpn.EpochNotifier = forking.NewGenericEpochNotifier()
-	tpn.EnableEpochsHandler, _ = enableEpochs.NewEnableEpochsHandler(tpn.EnableEpochs, tpn.EpochNotifier)
+	tpn.EnableEpochsHandler, _ = enablers.NewEnableEpochsHandler(tpn.EnableEpochs, tpn.EpochNotifier)
 
 	tpn.NodeKeys = cp.Keys[nodeShardId][keyIndex]
 	blsHasher, _ := blake2b.NewBlake2bWithSize(hashing.BlsHashSize)
@@ -284,7 +285,7 @@ func CreateNodeWithBLSAndTxKeys(
 	tpn.EnableEpochs.ScheduledMiniBlocksEnableEpoch = UnreachableEpoch
 	tpn.EnableEpochs.MiniBlockPartialExecutionEnableEpoch = UnreachableEpoch
 	tpn.EpochNotifier = forking.NewGenericEpochNotifier()
-	tpn.EnableEpochsHandler, _ = enableEpochs.NewEnableEpochsHandler(tpn.EnableEpochs, tpn.EpochNotifier)
+	tpn.EnableEpochsHandler, _ = enablers.NewEnableEpochsHandler(tpn.EnableEpochs, tpn.EpochNotifier)
 
 	tpn.NodeKeys = cp.Keys[shardId][keyIndex]
 	blsHasher, _ := blake2b.NewBlake2bWithSize(hashing.BlsHashSize)

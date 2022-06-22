@@ -7,7 +7,7 @@ import (
 	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/v1_4/config"
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/common/enableEpochs"
+	"github.com/ElrondNetwork/elrond-go/common/enablers"
 	"github.com/ElrondNetwork/elrond-go/common/forking"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
@@ -124,7 +124,7 @@ func NewTestSyncNode(
 
 func (tpn *TestProcessorNode) initTestNodeWithSync() {
 	tpn.EnableEpochs.ScheduledMiniBlocksEnableEpoch = UnreachableEpoch
-	tpn.EnableEpochsHandler, _ = enableEpochs.NewEnableEpochsHandler(tpn.EnableEpochs, tpn.EpochNotifier)
+	tpn.EnableEpochsHandler, _ = enablers.NewEnableEpochsHandler(tpn.EnableEpochs, tpn.EpochNotifier)
 	tpn.NetworkShardingCollector = mock.NewNetworkShardingCollectorMock()
 	tpn.initChainHandler()
 	tpn.initHeaderValidator()
@@ -236,7 +236,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		BlockTracker:                 tpn.BlockTracker,
 		BlockSizeThrottler:           TestBlockSizeThrottler,
 		HistoryRepository:            tpn.HistoryRepository,
-		RoundNotifier:                coreComponents.RoundNotifier(),
+		EnableRoundsHandler:          coreComponents.EnableRoundsHandler(),
 		GasHandler:                   tpn.GasHandler,
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
