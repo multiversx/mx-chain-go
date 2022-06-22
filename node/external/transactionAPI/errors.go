@@ -19,3 +19,6 @@ var ErrNilFeeComputer = errors.New("nil fee computer")
 
 // ErrNilLogsFacade signals that the logs facade is nil
 var ErrNilLogsFacade = errors.New("nil logs facade")
+
+var errCannotLoadReceipts = errors.New("cannot load receipt(s)")
+var errCannotLoadContractResults = errors.New("cannot load contract result(s)")

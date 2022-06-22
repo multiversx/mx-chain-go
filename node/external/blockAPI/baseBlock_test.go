@@ -34,7 +34,7 @@ func createBaseBlockProcessor() *baseAPIBlockProcessor {
 		hasher:                   &mock.HasherFake{},
 		addressPubKeyConverter:   mock.NewPubkeyConverterMock(32),
 		txStatusComputer:         &mock.StatusComputerStub{},
-		txUnmarshaller:           &mock.TransactionAPIHandlerStub{},
+		apiTransactionHandler:    &mock.TransactionAPIHandlerStub{},
 		logsFacade:               &testscommon.LogsFacadeStub{},
 	}
 }
@@ -83,7 +83,7 @@ func TestBaseBlockGetIntraMiniblocksSCRS(t *testing.T) {
 		},
 	}
 
-	baseAPIBlockProc.txUnmarshaller = &mock.TransactionAPIHandlerStub{
+	baseAPIBlockProc.apiTransactionHandler = &mock.TransactionAPIHandlerStub{
 		UnmarshalTransactionCalled: func(txBytes []byte, txType transaction.TxType) (*transaction.ApiTransactionResult, error) {
 			return &transaction.ApiTransactionResult{
 				Sender:   hex.EncodeToString(scResult.SndAddr),
@@ -109,6 +109,7 @@ func TestBaseBlockGetIntraMiniblocksSCRS(t *testing.T) {
 				MiniBlockHash: "7630a217810d1ad3ea67e32dbff0e8f3ea6d970191f03d3c71761b3b60e57b91",
 			},
 		},
+		ProcessingType: "Normal",
 	}, intraMbs[0])
 }
 
@@ -144,7 +145,7 @@ func TestBaseBlockGetIntraMiniblocksReceipts(t *testing.T) {
 	recBytes, _ := baseAPIBlockProc.marshalizer.Marshal(rec)
 	_ = unsignedStorer.Put(recHash, recBytes)
 
-	baseAPIBlockProc.txUnmarshaller = &mock.TransactionAPIHandlerStub{
+	baseAPIBlockProc.apiTransactionHandler = &mock.TransactionAPIHandlerStub{
 		UnmarshalReceiptCalled: func(receiptBytes []byte) (*transaction.ApiReceipt, error) {
 			return &transaction.ApiReceipt{
 				Value:   rec.Value,
@@ -181,6 +182,7 @@ func TestBaseBlockGetIntraMiniblocksReceipts(t *testing.T) {
 				Value:   big.NewInt(1000),
 			},
 		},
+		ProcessingType: "Normal",
 	}, intraMbs[0])
 }
 
@@ -224,7 +226,7 @@ func TestBaseBlock_getAndAttachTxsToMb_MiniblockTxBlock(t *testing.T) {
 		},
 	}
 
-	baseAPIBlockProc.txUnmarshaller = &mock.TransactionAPIHandlerStub{
+	baseAPIBlockProc.apiTransactionHandler = &mock.TransactionAPIHandlerStub{
 		UnmarshalTransactionCalled: func(txBytes []byte, txType transaction.TxType) (*transaction.ApiTransactionResult, error) {
 			return &transaction.ApiTransactionResult{
 				Sender:   hex.EncodeToString(tx.SndAddr),
@@ -271,7 +273,7 @@ func TestBaseBlock_getAndAttachTxsToMbShouldIncludeLogsAsSpecified(t *testing.T)
 	processor.store = storageService
 
 	// Setup a dummy transformer for "txBytes" -> "ApiTransactionResult" (only "Nonce" is handled)
-	processor.txUnmarshaller = &mock.TransactionAPIHandlerStub{
+	processor.apiTransactionHandler = &mock.TransactionAPIHandlerStub{
 		UnmarshalTransactionCalled: func(txBytes []byte, txType transaction.TxType) (*transaction.ApiTransactionResult, error) {
 			tx := &transaction.Transaction{}
 			err := marshalizer.Unmarshal(tx, txBytes)

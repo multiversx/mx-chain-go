@@ -3,18 +3,18 @@ package testscommon
 import (
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 )
 
 // FeeComputerStub -
 type FeeComputerStub struct {
-	ComputeTransactionFeeCalled func(tx data.TransactionWithFeeHandler, epoch int) *big.Int
+	ComputeTransactionFeeCalled func(tx *transaction.ApiTransactionResult) *big.Int
 }
 
 // ComputeTransactionFee -
-func (stub *FeeComputerStub) ComputeTransactionFee(tx data.TransactionWithFeeHandler, epoch int) *big.Int {
+func (stub *FeeComputerStub) ComputeTransactionFee(tx *transaction.ApiTransactionResult) *big.Int {
 	if stub.ComputeTransactionFeeCalled != nil {
-		return stub.ComputeTransactionFeeCalled(tx, epoch)
+		return stub.ComputeTransactionFeeCalled(tx)
 	}
 
 	return big.NewInt(0)

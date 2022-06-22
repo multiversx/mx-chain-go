@@ -507,7 +507,7 @@ func createAPIBlockProcessorArgs(args *ApiResolverArgs, apiTransactionHandler ex
 		Marshalizer:              args.CoreComponents.InternalMarshalizer(),
 		Uint64ByteSliceConverter: args.CoreComponents.Uint64ByteSliceConverter(),
 		HistoryRepo:              args.ProcessComponents.HistoryRepository(),
-		TxUnmarshaller:           apiTransactionHandler,
+		APITransactionHandler:    apiTransactionHandler,
 		StatusComputer:           statusComputer,
 		AddressPubkeyConverter:   args.CoreComponents.AddressPubKeyConverter(),
 		Hasher:                   args.CoreComponents.Hasher(),

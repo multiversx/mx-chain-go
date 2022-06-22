@@ -60,13 +60,16 @@ func TestFeeComputer_ComputeTransactionFeeShouldWorkForDifferentEpochs(t *testin
 }
 
 func checkComputedFee(t *testing.T, expectedFee string, computer *feeComputer, epoch int, gasLimit uint64, gasPrice uint64, data string, receiver []byte) {
-	tx := &transaction.Transaction{
-		RcvAddr:  receiver,
-		Data:     []byte(data),
-		GasLimit: gasLimit,
-		GasPrice: gasPrice,
+	tx := &transaction.ApiTransactionResult{
+		Epoch: uint32(epoch),
+		Tx: &transaction.Transaction{
+			RcvAddr:  receiver,
+			Data:     []byte(data),
+			GasLimit: gasLimit,
+			GasPrice: gasPrice,
+		},
 	}
 
-	fee := computer.ComputeTransactionFee(tx, epoch)
+	fee := computer.ComputeTransactionFee(tx)
 	require.Equal(t, expectedFee, fee.String())
 }

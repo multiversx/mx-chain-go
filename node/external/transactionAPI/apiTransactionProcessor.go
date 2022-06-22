@@ -93,9 +93,7 @@ func (atp *apiTransactionProcessor) GetTransaction(txHash string, withResults bo
 	}
 
 	tx.Hash = txHash
-	atp.populateComputedFieldsProcessingType(tx)
-	atp.populateComputedFieldInitiallyPaidFee(tx)
-	atp.populateComputedFieldIsRefund(tx)
+	atp.PopulateComputedFields(tx)
 
 	return tx, nil
 }
@@ -116,6 +114,13 @@ func (atp *apiTransactionProcessor) doGetTransaction(hash []byte, withResults bo
 	return atp.getTransactionFromStorage(hash)
 }
 
+// PopulateComputedFields populates (computes) transaction fields such as processing type(s), initially paid fee etc.
+func (atp *apiTransactionProcessor) PopulateComputedFields(tx *transaction.ApiTransactionResult) {
+	atp.populateComputedFieldsProcessingType(tx)
+	atp.populateComputedFieldInitiallyPaidFee(tx)
+	atp.populateComputedFieldIsRefund(tx)
+}
+
 func (atp *apiTransactionProcessor) populateComputedFieldsProcessingType(tx *transaction.ApiTransactionResult) {
 	typeOnSource, typeOnDestination := atp.txTypeHandler.ComputeTransactionType(tx.Tx)
 	tx.ProcessingTypeOnSource = typeOnSource.String()
@@ -128,7 +133,7 @@ func (atp *apiTransactionProcessor) populateComputedFieldInitiallyPaidFee(tx *tr
 		return
 	}
 
-	fee := atp.feeComputer.ComputeTransactionFee(tx.Tx, int(tx.Epoch))
+	fee := atp.feeComputer.ComputeTransactionFee(tx)
 	// For user-initiated transactions, we can assume the fee is always strictly positive (note: BigInt(0) is stringified as "").
 	tx.InitiallyPaidFee = fee.String()
 }
@@ -240,7 +245,10 @@ func (atp *apiTransactionProcessor) lookupHistoricalTransaction(hash []byte, wit
 		block.Type(miniblockMetadata.Type), tx)
 
 	if withResults {
-		atp.transactionResultsProcessor.putResultsInTransaction(hash, tx, miniblockMetadata.Epoch)
+		err = atp.transactionResultsProcessor.putResultsInTransaction(hash, tx, miniblockMetadata.Epoch)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return tx, nil
@@ -387,10 +395,6 @@ func (atp *apiTransactionProcessor) UnmarshalTransaction(txBytes []byte, txType 
 	if err != nil {
 		return nil, err
 	}
-
-	atp.populateComputedFieldsProcessingType(tx)
-	atp.populateComputedFieldInitiallyPaidFee(tx)
-	atp.populateComputedFieldIsRefund(tx)
 
 	return tx, nil
 }

@@ -29,13 +29,18 @@ func TestFeeComputer_MemoryFootprint(t *testing.T) {
 	}
 
 	for i := 0; i < numEpochs; i++ {
-		_ = computer.ComputeTransactionFee(tx, i)
+		apiTx := &transaction.ApiTransactionResult{
+			Epoch: uint32(i),
+			Tx:    tx,
+		}
+
+		_ = computer.ComputeTransactionFee(apiTx)
 	}
 
 	journal.after = getMemStats()
 
 	// This line protects the fee computer from being garbage-collected (for the purpose of the test).
-	_ = computer.ComputeTransactionFee(tx, 0)
+	_ = computer.ComputeTransactionFee(&transaction.ApiTransactionResult{Epoch: uint32(0), Tx: tx})
 
 	journal.display()
 	require.Len(t, computer.economicsInstances, numEpochs)

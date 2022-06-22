@@ -8,9 +8,9 @@ import (
 )
 
 var (
-	errNilArgAPIBlockProcessor   = errors.New("nil arg api block processor")
-	errNilTransactionUnmarshaler = errors.New("nil transaction unmarshaler")
-	errNilLogsFacade             = errors.New("nil logs facade")
+	errNilArgAPIBlockProcessor = errors.New("nil arg api block processor")
+	errNilTransactionHandler   = errors.New("nil API transaction handler")
+	errNilLogsFacade           = errors.New("nil logs facade")
 )
 
 func checkNilArg(arg *ArgAPIBlockProcessor) error {
@@ -29,8 +29,8 @@ func checkNilArg(arg *ArgAPIBlockProcessor) error {
 	if check.IfNil(arg.HistoryRepo) {
 		return process.ErrNilHistoryRepository
 	}
-	if check.IfNil(arg.TxUnmarshaller) {
-		return errNilTransactionUnmarshaler
+	if check.IfNil(arg.APITransactionHandler) {
+		return errNilTransactionHandler
 	}
 	if check.IfNil(arg.Hasher) {
 		return process.ErrNilHasher

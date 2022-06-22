@@ -24,9 +24,9 @@ func createMockShardAPIProcessor(
 	withKey bool,
 ) *shardAPIBlockProcessor {
 	return newShardApiBlockProcessor(&ArgAPIBlockProcessor{
-		TxUnmarshaller: &mock.TransactionAPIHandlerStub{},
-		SelfShardID:    shardID,
-		Marshalizer:    &mock.MarshalizerFake{},
+		APITransactionHandler: &mock.TransactionAPIHandlerStub{},
+		SelfShardID:           shardID,
+		Marshalizer:           &mock.MarshalizerFake{},
 		Store: &mock.ChainStorerMock{
 			GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 				return storerMock
@@ -159,8 +159,10 @@ func TestShardAPIBlockProcessor_GetBlockByHashFromNormalNode(t *testing.T) {
 		Hash:  hex.EncodeToString(headerHash),
 		MiniBlocks: []*api.MiniBlock{
 			{
-				Hash: hex.EncodeToString(miniblockHeader),
-				Type: block.TxBlock.String(),
+				Hash:              hex.EncodeToString(miniblockHeader),
+				Type:              block.TxBlock.String(),
+				ProcessingType:    "Normal",
+				ConstructionState: "Final",
 			},
 		},
 		AccumulatedFees: "0",
@@ -215,8 +217,10 @@ func TestShardAPIBlockProcessor_GetBlockByNonceFromHistoryNode(t *testing.T) {
 		Hash:  hex.EncodeToString(headerHash),
 		MiniBlocks: []*api.MiniBlock{
 			{
-				Hash: hex.EncodeToString(miniblockHeader),
-				Type: block.TxBlock.String(),
+				Hash:              hex.EncodeToString(miniblockHeader),
+				Type:              block.TxBlock.String(),
+				ProcessingType:    "Normal",
+				ConstructionState: "Final",
 			},
 		},
 		AccumulatedFees: "100",
@@ -277,8 +281,10 @@ func TestShardAPIBlockProcessor_GetBlockByRoundFromStorer(t *testing.T) {
 		Hash:  hex.EncodeToString(headerHash),
 		MiniBlocks: []*api.MiniBlock{
 			{
-				Hash: hex.EncodeToString(miniblockHeader),
-				Type: block.TxBlock.String(),
+				Hash:              hex.EncodeToString(miniblockHeader),
+				Type:              block.TxBlock.String(),
+				ProcessingType:    "Normal",
+				ConstructionState: "Final",
 			},
 		},
 		AccumulatedFees: "100",
@@ -338,8 +344,10 @@ func TestShardAPIBlockProcessor_GetBlockByHashFromHistoryNodeStatusReverted(t *t
 		Hash:  hex.EncodeToString(headerHash),
 		MiniBlocks: []*api.MiniBlock{
 			{
-				Hash: hex.EncodeToString(miniblockHeader),
-				Type: block.TxBlock.String(),
+				Hash:              hex.EncodeToString(miniblockHeader),
+				Type:              block.TxBlock.String(),
+				ProcessingType:    "Normal",
+				ConstructionState: "Final",
 			},
 		},
 		AccumulatedFees: "100",

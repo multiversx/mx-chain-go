@@ -27,7 +27,7 @@ func newShardApiBlockProcessor(arg *ArgAPIBlockProcessor, emptyReceiptsHash []by
 			marshalizer:              arg.Marshalizer,
 			uint64ByteSliceConverter: arg.Uint64ByteSliceConverter,
 			historyRepo:              arg.HistoryRepo,
-			txUnmarshaller:           arg.TxUnmarshaller,
+			apiTransactionHandler:    arg.APITransactionHandler,
 			txStatusComputer:         arg.StatusComputer,
 			hasher:                   arg.Hasher,
 			addressPubKeyConverter:   arg.AddressPubkeyConverter,
@@ -100,10 +100,12 @@ func (sbp *shardAPIBlockProcessor) convertShardBlockBytesToAPIBlock(hash []byte,
 		numOfTxs += mb.GetTxCount()
 
 		miniblockAPI := &api.MiniBlock{
-			Hash:             hex.EncodeToString(mb.GetHash()),
-			Type:             block.Type(mb.GetTypeInt32()).String(),
-			SourceShard:      mb.GetSenderShardID(),
-			DestinationShard: mb.GetReceiverShardID(),
+			Hash:              hex.EncodeToString(mb.GetHash()),
+			Type:              block.Type(mb.GetTypeInt32()).String(),
+			SourceShard:       mb.GetSenderShardID(),
+			DestinationShard:  mb.GetReceiverShardID(),
+			ProcessingType:    block.ProcessingType(mb.GetProcessingType()).String(),
+			ConstructionState: block.MiniBlockState(mb.GetConstructionState()).String(),
 		}
 		if options.WithTransactions {
 			miniBlockCopy := mb
@@ -121,10 +123,7 @@ func (sbp *shardAPIBlockProcessor) convertShardBlockBytesToAPIBlock(hash []byte,
 		return nil, err
 	}
 
-	if len(intraMb) > 0 {
-		miniblocks = append(miniblocks, intraMb...)
-	}
-
+	miniblocks = append(miniblocks, intraMb...)
 	miniblocks = filterOutDuplicatedMiniblocks(miniblocks)
 
 	statusFilters := filters.NewStatusFilters(sbp.selfShardID)

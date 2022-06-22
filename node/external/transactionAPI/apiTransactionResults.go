@@ -2,6 +2,7 @@ package transactionAPI
 
 import (
 	"encoding/hex"
+	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
@@ -46,32 +47,29 @@ func newAPITransactionResultProcessor(
 	}
 }
 
-func (arp *apiTransactionResultsProcessor) putResultsInTransaction(hash []byte, tx *transaction.ApiTransactionResult, epoch uint32) {
+func (arp *apiTransactionResultsProcessor) putResultsInTransaction(hash []byte, tx *transaction.ApiTransactionResult, epoch uint32) error {
 	arp.loadLogsIntoTransaction(hash, tx, epoch)
 
 	resultsHashes, err := arp.historyRepository.GetResultsHashesByTxHash(hash, epoch)
 	if err != nil {
-		return
+		return err
 	}
 
 	if len(resultsHashes.ReceiptsHash) > 0 {
-		arp.putReceiptInTransaction(tx, resultsHashes.ReceiptsHash, epoch)
-		return
+		return arp.putReceiptInTransaction(tx, resultsHashes.ReceiptsHash, epoch)
 	}
 
-	arp.putSmartContractResultsInTransaction(tx, resultsHashes.ScResultsHashesAndEpoch)
+	return arp.putSmartContractResultsInTransaction(tx, resultsHashes.ScResultsHashesAndEpoch)
 }
 
-func (arp *apiTransactionResultsProcessor) putReceiptInTransaction(tx *transaction.ApiTransactionResult, receiptHash []byte, epoch uint32) {
+func (arp *apiTransactionResultsProcessor) putReceiptInTransaction(tx *transaction.ApiTransactionResult, receiptHash []byte, epoch uint32) error {
 	rec, err := arp.getReceiptFromStorage(receiptHash, epoch)
 	if err != nil {
-		log.Warn("nodeTransactionEvents.putReceiptInTransaction() cannot get receipt from storage",
-			"hash", receiptHash,
-			"error", err.Error())
-		return
+		return fmt.Errorf("%w: %v, hash = %s", errCannotLoadReceipts, err, hex.EncodeToString(receiptHash))
 	}
 
 	tx.Receipt = rec
+	return nil
 }
 
 func (arp *apiTransactionResultsProcessor) getReceiptFromStorage(hash []byte, epoch uint32) (*transaction.ApiReceipt, error) {
@@ -87,23 +85,24 @@ func (arp *apiTransactionResultsProcessor) getReceiptFromStorage(hash []byte, ep
 func (arp *apiTransactionResultsProcessor) putSmartContractResultsInTransaction(
 	tx *transaction.ApiTransactionResult,
 	scrHashesEpoch []*dblookupext.ScResultsHashesAndEpoch,
-) {
+) error {
 	for _, scrHashesE := range scrHashesEpoch {
-		arp.putSmartContractResultsInTransactionByHashesAndEpoch(tx, scrHashesE.ScResultsHashes, scrHashesE.Epoch)
+		err := arp.putSmartContractResultsInTransactionByHashesAndEpoch(tx, scrHashesE.ScResultsHashes, scrHashesE.Epoch)
+		if err != nil {
+			return err
+		}
 	}
 
 	statusFilters := filters.NewStatusFilters(arp.selfShardID)
 	statusFilters.SetStatusIfIsFailedESDTTransfer(tx)
+	return nil
 }
 
-func (arp *apiTransactionResultsProcessor) putSmartContractResultsInTransactionByHashesAndEpoch(tx *transaction.ApiTransactionResult, scrsHashes [][]byte, epoch uint32) {
+func (arp *apiTransactionResultsProcessor) putSmartContractResultsInTransactionByHashesAndEpoch(tx *transaction.ApiTransactionResult, scrsHashes [][]byte, epoch uint32) error {
 	for _, scrHash := range scrsHashes {
 		scr, err := arp.getScrFromStorage(scrHash, epoch)
 		if err != nil {
-			log.Warn("putSmartContractResultsInTransaction cannot get result from storage",
-				"hash", scrHash,
-				"error", err.Error())
-			continue
+			return fmt.Errorf("%w: %v, hash = %s", errCannotLoadContractResults, err, hex.EncodeToString(scrHash))
 		}
 
 		scrAPI := arp.adaptSmartContractResult(scrHash, scr)
@@ -111,6 +110,8 @@ func (arp *apiTransactionResultsProcessor) putSmartContractResultsInTransactionB
 
 		tx.SmartContractResults = append(tx.SmartContractResults, scrAPI)
 	}
+
+	return nil
 }
 
 func (arp *apiTransactionResultsProcessor) loadLogsIntoTransaction(hash []byte, tx *transaction.ApiTransactionResult, epoch uint32) {
