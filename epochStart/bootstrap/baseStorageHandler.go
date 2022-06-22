@@ -163,7 +163,7 @@ func (bsh *baseStorageHandler) saveMiniblock(hash []byte, mb *block.MiniBlock) e
 }
 
 func (bsh *baseStorageHandler) saveMiniblocksFromComponents(components *ComponentsNeededForBootstrap) {
-	log.Debug("saving pending miniblocks", "num pending pending miniblocks", len(components.PendingMiniBlocks))
+	log.Debug("saving pending miniblocks", "num pending miniblocks", len(components.PendingMiniBlocks))
 	bsh.saveMiniblocks(components.PendingMiniBlocks)
 
 	peerMiniblocksMap := bsh.convertPeerMiniblocks(components.PeerMiniBlocks)
