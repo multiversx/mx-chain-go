@@ -224,6 +224,7 @@ func signAndGuardTx(
 }
 
 func TestGuardedTxSigVerifier_HasPendingGuardian(t *testing.T) {
+	t.Parallel()
 
 	acc := &stateMocks.UserAccountStub{}
 	args := GuardedTxSigVerifierArgs{

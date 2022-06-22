@@ -522,7 +522,7 @@ func TestGuardedAccount_GetActiveGuardian(t *testing.T) {
 			ActivationEpoch: currentEpoch - 1,
 		}
 		oldGuardian := &guardians.Guardian{
-			Address:         []byte("pending guardian address"),
+			Address:         []byte("old guardian address"),
 			ActivationEpoch: currentEpoch - 5,
 		}
 
@@ -594,7 +594,7 @@ func TestGuardedAccount_getPendingGuardian(t *testing.T){
 			ActivationEpoch: currentEpoch - 1,
 		}
 		oldGuardian := &guardians.Guardian{
-			Address:         []byte("pending guardian address"),
+			Address:         []byte("old guardian address"),
 			ActivationEpoch: currentEpoch - 5,
 		}
 
@@ -685,6 +685,8 @@ func TestGuardedAccount_SetGuardian(t *testing.T) {
 }
 
 func TestGuardedAccount_HasActiveGuardian(t *testing.T) {
+	t.Parallel()
+
 	currentEpoch := uint32(10)
 	ga := createGuardedAccountWithEpoch(currentEpoch)
 
@@ -764,7 +766,7 @@ func TestGuardedAccount_HasActiveGuardian(t *testing.T) {
 			ActivationEpoch: currentEpoch - 1,
 		}
 		oldGuardian := &guardians.Guardian{
-			Address:         []byte("pending guardian address"),
+			Address:         []byte("old guardian address"),
 			ActivationEpoch: currentEpoch - 5,
 		}
 
@@ -780,6 +782,8 @@ func TestGuardedAccount_HasActiveGuardian(t *testing.T) {
 }
 
 func TestGuardedAccount_HasPendingGuardian(t *testing.T) {
+	t.Parallel()
+
 	currentEpoch := uint32(10)
 	ga := createGuardedAccountWithEpoch(currentEpoch)
 
@@ -859,7 +863,7 @@ func TestGuardedAccount_HasPendingGuardian(t *testing.T) {
 			ActivationEpoch: currentEpoch - 1,
 		}
 		oldGuardian := &guardians.Guardian{
-			Address:         []byte("pending guardian address"),
+			Address:         []byte("old guardian address"),
 			ActivationEpoch: currentEpoch - 5,
 		}
 

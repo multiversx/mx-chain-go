@@ -1677,6 +1677,8 @@ func TestInterceptedTransaction_String(t *testing.T) {
 }
 
 func TestInterceptedTransaction_checkMaxGasPrice(t *testing.T) {
+	t.Parallel()
+
 	maxAllowedGasPriceSetGuardian := uint64(2000000)
 	feeHandler := &economicsmocks.EconomicsHandlerStub{
 		MaxGasPriceSetGuardianCalled: func() uint64 {
@@ -1710,7 +1712,7 @@ func TestInterceptedTransaction_checkMaxGasPrice(t *testing.T) {
 		errMaxGasPrice = inTx2.CheckMaxGasPrice()
 		require.Nil(t, errMaxGasPrice)
 	})
-	t.Run("not guarded Tx, not setGuardian always OK, ", func(t *testing.T) {
+	t.Run("not guarded Tx, not setGuardian always OK", func(t *testing.T) {
 		tx1 := *tx1
 		tx1.Data = []byte("dummy")
 		tx2 := *tx2

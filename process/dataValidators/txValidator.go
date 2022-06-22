@@ -158,7 +158,7 @@ func (txv *txValidator) checkPermission(interceptedTx process.InterceptedTransac
 
 		// block non guarded setGuardian Txs if there is a pending guardian
 		hasPendingGuardian := txv.guardianSigVerifier.HasPendingGuardian(account)
-		if process.IsSetGuardianCall(txData) &&  hasPendingGuardian {
+		if process.IsSetGuardianCall(txData) && hasPendingGuardian {
 			return process.ErrCannotReplaceFrozenAccountPendingGuardian
 		}
 	}

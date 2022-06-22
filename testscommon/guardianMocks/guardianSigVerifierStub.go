@@ -20,7 +20,7 @@ func (gsvs *GuardianSigVerifierStub) VerifyGuardianSignature(account vmcommon.Us
 	return nil
 }
 
-// HasPendingGuardian returns true if the given account has a pending guardian
+// HasPendingGuardian -
 func (gsvs *GuardianSigVerifierStub) HasPendingGuardian(uah state.UserAccountHandler) bool {
 	if gsvs.HasPendingGuardianCalled != nil {
 		return gsvs.HasPendingGuardianCalled(uah)
