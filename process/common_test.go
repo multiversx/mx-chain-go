@@ -18,6 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestGetShardHeaderShouldErrNilCacher(t *testing.T) {
@@ -1959,5 +1960,24 @@ func TestGetMiniBlockHeaderWithHash(t *testing.T) {
 
 		mbh := process.GetMiniBlockHeaderWithHash(header, []byte(hash1))
 		assert.Equal(t, expectedMbh, mbh)
+	})
+}
+
+func Test_IsBuiltinFuncCallWithParam(t *testing.T) {
+	txDataNoFunction := []byte("dummy data")
+	targetFunction := "function"
+	nonTargetFunction := "differentFunction"
+	suffix := "@dummy@params"
+	txDataWithFunc := []byte(targetFunction + suffix)
+	txDataNonTargetFunc := []byte(nonTargetFunction + suffix)
+
+	t.Run("no function", func(t *testing.T) {
+		require.False(t, process.IsBuiltinFuncCallWithParam(txDataNoFunction, targetFunction))
+	})
+	t.Run("non target function", func(t *testing.T) {
+		require.False(t, process.IsBuiltinFuncCallWithParam(txDataNonTargetFunc, targetFunction))
+	})
+	t.Run("target function", func(t *testing.T) {
+		require.True(t, process.IsBuiltinFuncCallWithParam(txDataWithFunc, targetFunction))
 	})
 }

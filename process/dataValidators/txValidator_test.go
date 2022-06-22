@@ -781,25 +781,6 @@ func Test_getTxData(t *testing.T) {
 	})
 }
 
-func Test_isBuiltinFuncCallWithParam(t *testing.T) {
-	txDataNoFunction := []byte("dummy data")
-	targetFunction := "function"
-	nonTargetFunction := "differentFunction"
-	suffix := "@dummy@params"
-	txDataWithFunc := []byte(targetFunction + suffix)
-	txDataNonTargetFunc := []byte(nonTargetFunction + suffix)
-
-	t.Run("no function", func(t *testing.T) {
-		require.False(t, process.IsBuiltinFuncCallWithParam(txDataNoFunction, targetFunction))
-	})
-	t.Run("non target function", func(t *testing.T) {
-		require.False(t, process.IsBuiltinFuncCallWithParam(txDataNonTargetFunc, targetFunction))
-	})
-	t.Run("target function", func(t *testing.T) {
-		require.True(t, process.IsBuiltinFuncCallWithParam(txDataWithFunc, targetFunction))
-	})
-}
-
 //------- IsInterfaceNil
 
 func TestTxValidator_IsInterfaceNil(t *testing.T) {
