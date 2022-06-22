@@ -200,7 +200,7 @@
     ManagedCryptoAPIsEnableEpoch = 4
 
     # RefactorContextEnableEpoch represents the epoch when refactoring/simplifying is enabled in contexts
-    RefactorContextEnableEpoch = 2
+    RefactorContextEnableEpoch = 1
 
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
