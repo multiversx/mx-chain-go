@@ -524,11 +524,11 @@ func (holder *epochFlagsHolder) IsESDTMetadataContinuousCleanupFlagEnabled() boo
 }
 
 // IsDisableExecByCallerFlagEnabled returns true if disableExecByCallerFlag is enabled
-func (fh *flagsHolder) IsDisableExecByCallerFlagEnabled() bool {
-	return fh.disableExecByCallerFlag.IsSet()
+func (holder *epochFlagsHolder) IsDisableExecByCallerFlagEnabled() bool {
+	return holder.disableExecByCallerFlag.IsSet()
 }
 
 // IsRefactorContextFlagEnabled returns true if refactorContextFlag is enabled
-func (fh *flagsHolder) IsRefactorContextFlagEnabled() bool {
-	return fh.refactorContextFlag.IsSet()
+func (holder *epochFlagsHolder) IsRefactorContextFlagEnabled() bool {
+	return holder.refactorContextFlag.IsSet()
 }
