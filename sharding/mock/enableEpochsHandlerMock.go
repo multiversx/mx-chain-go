@@ -399,6 +399,16 @@ func (mock *EnableEpochsHandlerMock) IsESDTMetadataContinuousCleanupFlagEnabled(
 	return false
 }
 
+// IsDisableExecByCallerFlagEnabled returns false
+func (mock *EnableEpochsHandlerMock) IsDisableExecByCallerFlagEnabled() bool {
+	return false
+}
+
+// IsRefactorContextFlagEnabled returns false
+func (mock *EnableEpochsHandlerMock) IsRefactorContextFlagEnabled() bool {
+	return false
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (mock *EnableEpochsHandlerMock) IsInterfaceNil() bool {
 	return mock == nil

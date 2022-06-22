@@ -38,7 +38,7 @@ func (a *accountsAdapter) SaveAccount(_ vmcommon.AccountHandler) error {
 }
 
 // PruneTrie -
-func (a *accountsAdapter) PruneTrie(_ []byte, _ state.TriePruningIdentifier) {
+func (a *accountsAdapter) PruneTrie(_ []byte, _ state.TriePruningIdentifier, _ state.PruningHandler) {
 }
 
 // GetExistingAccount -
