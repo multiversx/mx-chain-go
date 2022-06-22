@@ -539,6 +539,72 @@ func TestGuardedAccount_GetActiveGuardian(t *testing.T) {
 	})
 }
 
+func TestGuardedAccount_getPendingGuardian(t *testing.T){
+	currentEpoch := uint32(10)
+	ga := createGuardedAccountWithEpoch(currentEpoch)
+
+	t.Run("nil guardians/empty guardians should err", func(t *testing.T) {
+		pendingGuardian, err := ga.getPendingGuardian(nil)
+		require.Nil(t, pendingGuardian)
+		require.Equal(t, process.ErrAccountHasNoPendingGuardian, err)
+
+		configuredGuardians := &guardians.Guardians{}
+		pendingGuardian, err = ga.getPendingGuardian(configuredGuardians)
+		require.Nil(t, pendingGuardian)
+		require.Equal(t, process.ErrAccountHasNoPendingGuardian, err)
+	})
+	t.Run("one pending guardian should return it", func(t *testing.T) {
+		pendingGuardian := &guardians.Guardian{
+			Address:         []byte("guardian address"),
+			ActivationEpoch: currentEpoch + 1,
+		}
+		configuredGuardians := &guardians.Guardians{Slice: []*guardians.Guardian{pendingGuardian}}
+		pGuardian, err := ga.getPendingGuardian(configuredGuardians)
+		require.Nil(t, err)
+		require.Equal(t, pendingGuardian, pGuardian)
+	})
+	t.Run("one active guardian should err", func(t *testing.T) {
+		activeGuardian := &guardians.Guardian{
+			Address:         []byte("guardian address"),
+			ActivationEpoch: currentEpoch - 1,
+		}
+		configuredGuardians := &guardians.Guardians{Slice: []*guardians.Guardian{activeGuardian}}
+		guardian, err := ga.getPendingGuardian(configuredGuardians)
+		require.Nil(t,guardian)
+		require.Equal(t, process.ErrAccountHasNoPendingGuardian, err)
+	})
+	t.Run("one active guardian and one pending new guardian", func(t *testing.T) {
+		activeGuardian := &guardians.Guardian{
+			Address:         []byte("guardian address"),
+			ActivationEpoch: currentEpoch - 1,
+		}
+		pendingGuardian := &guardians.Guardian{
+			Address:         []byte("pending guardian address"),
+			ActivationEpoch: currentEpoch + 1,
+		}
+
+		configuredGuardians := &guardians.Guardians{Slice: []*guardians.Guardian{activeGuardian, pendingGuardian}}
+		guardian, err := ga.getPendingGuardian(configuredGuardians)
+		require.Equal(t, pendingGuardian, guardian)
+		require.Nil(t, err)
+	})
+	t.Run("one active guardian and one disabled (old) guardian should err", func(t *testing.T) {
+		activeGuardian := &guardians.Guardian{
+			Address:         []byte("guardian address"),
+			ActivationEpoch: currentEpoch - 1,
+		}
+		oldGuardian := &guardians.Guardian{
+			Address:         []byte("pending guardian address"),
+			ActivationEpoch: currentEpoch - 5,
+		}
+
+		configuredGuardians := &guardians.Guardians{Slice: []*guardians.Guardian{activeGuardian, oldGuardian}}
+		guardian, err := ga.getPendingGuardian(configuredGuardians)
+		require.Nil(t, guardian)
+		require.Equal(t, process.ErrAccountHasNoPendingGuardian, err)
+	})
+}
+
 func TestGuardedAccount_SetGuardian(t *testing.T) {
 	currentEpoch := uint32(10)
 	ga := createGuardedAccountWithEpoch(currentEpoch)

@@ -274,6 +274,10 @@ func (agc *guardedAccount) getActiveGuardian(gs *guardians.Guardians) (*guardian
 }
 
 func (agc *guardedAccount) getPendingGuardian(gs *guardians.Guardians) (*guardians.Guardian, error) {
+	if gs == nil {
+		return nil, process.ErrAccountHasNoPendingGuardian
+	}
+
 	agc.mutEpoch.RLock()
 	defer agc.mutEpoch.RUnlock()
 
