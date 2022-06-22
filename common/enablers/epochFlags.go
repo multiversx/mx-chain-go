@@ -532,13 +532,3 @@ func (holder *epochFlagsHolder) IsDisableExecByCallerFlagEnabled() bool {
 func (holder *epochFlagsHolder) IsRefactorContextFlagEnabled() bool {
 	return holder.refactorContextFlag.IsSet()
 }
-
-// IsDisableExecByCallerFlagEnabled returns true if disableExecByCallerFlag is enabled
-func (fh *flagsHolder) IsDisableExecByCallerFlagEnabled() bool {
-	return fh.disableExecByCallerFlag.IsSet()
-}
-
-// IsRefactorContextFlagEnabled returns true if refactorContextFlag is enabled
-func (fh *flagsHolder) IsRefactorContextFlagEnabled() bool {
-	return fh.refactorContextFlag.IsSet()
-}
