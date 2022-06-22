@@ -2,7 +2,6 @@ package peer
 
 import (
 	"bytes"
-	"encoding/hex"
 	"math/big"
 	"sort"
 	"time"
