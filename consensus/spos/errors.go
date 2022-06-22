@@ -219,3 +219,6 @@ var ErrNilNodeRedundancyHandler = errors.New("nil node redundancy handler")
 
 // ErrNilScheduledProcessor signals that the provided scheduled processor is nil
 var ErrNilScheduledProcessor = errors.New("nil scheduled processor")
+
+// ErrInvalidNumSigShares signals that an invalid number of signature shares has been provided
+var ErrInvalidNumSigShares = errors.New("invalid number of sig shares")

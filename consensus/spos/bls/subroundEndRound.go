@@ -325,7 +325,6 @@ func (sr *subroundEndRound) verifyNodesOnAggSigVerificationFail(
 
 		sigShare, err := multiSigner.SignatureShare(uint16(i))
 		if err != nil {
-			log.Debug("verifyNodesOnAggSigVerificationFail.SignatureShare", "error", err.Error())
 			return err
 		}
 
@@ -333,7 +332,6 @@ func (sr *subroundEndRound) verifyNodesOnAggSigVerificationFail(
 		err = multiSigner.VerifySignatureShare(uint16(i), sigShare, sr.GetData(), nil)
 		if err != nil {
 			isSuccessfull = false
-			log.Debug("verifyNodesOnAggSigVerificationFail.VerifySignatureShare", "error", err.Error())
 
 			invalidSigSharesNodes = append(invalidSigSharesNodes, i)
 			err = sr.SetJobDone(pk, SrSignature, false)
@@ -359,26 +357,32 @@ func (sr *subroundEndRound) computeAggSigOnValidNodes(
 	multiSigner crypto.MultiSigner,
 ) ([]byte, []byte, error) {
 	threshold := sr.Threshold(sr.Current())
-	bitmap := sr.GenerateBitmap(SrSignature)
 	numValidSigShares := sr.ComputeSize(SrSignature)
+
+	if numValidSigShares < threshold {
+		return nil, nil, fmt.Errorf("%w: number of valid sig shares lower than threshold, numSigShares: %d, threshold: %d",
+			spos.ErrInvalidNumSigShares, numValidSigShares, threshold)
+	}
+
+	bitmap := sr.GenerateBitmap(SrSignature)
+	err := sr.checkSignaturesValidity(bitmap)
+	if err != nil {
+		return nil, nil, err
+	}
 
 	sig, err := multiSigner.AggregateSigs(bitmap)
 	if err != nil {
-		log.Debug("doEndRoundJobByLeader.AggregateSigs", "error", err.Error())
 		return nil, nil, err
 	}
 
 	err = multiSigner.SetAggregatedSig(sig)
 	if err != nil {
-		log.Debug("doEndRoundJobByLeader.SetAggregatedSig", "error", err.Error())
 		return nil, nil, err
 	}
 
-	if numValidSigShares >= threshold {
-		err := multiSigner.Verify(sr.GetData(), bitmap)
-		if err != nil {
-			return nil, nil, err
-		}
+	err = multiSigner.Verify(sr.GetData(), bitmap)
+	if err != nil {
+		return nil, nil, err
 	}
 
 	return bitmap, sig, nil
