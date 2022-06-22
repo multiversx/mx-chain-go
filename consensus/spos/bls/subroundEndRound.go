@@ -306,6 +306,9 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 	return true
 }
 
+// TODO:
+//	- slashing for invalid sig shares
+//	- handle sig share verifications concurrently
 func (sr *subroundEndRound) verifyNodesOnAggSigVerificationFail(
 	multiSigner crypto.MultiSigner,
 ) error {
