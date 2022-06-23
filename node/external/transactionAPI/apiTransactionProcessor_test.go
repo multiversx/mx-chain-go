@@ -413,7 +413,7 @@ func TestNode_GetTransactionWithResultsFromStorage(t *testing.T) {
 		Sender:                      hex.EncodeToString(tx.SndAddr),
 		Status:                      transaction.TxStatusSuccess,
 		MiniBlockType:               block.TxBlock.String(),
-		Type:                        string(transaction.TxTypeNormal)
+		Type:                        string(transaction.TxTypeNormal),
 		Value:                       "<nil>",
 		SmartContractResults: []*transaction.ApiSmartContractResult{
 			{
