@@ -53,17 +53,9 @@ func NewGuardedAccount(
 
 // GetActiveGuardian returns the active guardian
 func (agc *guardedAccount) GetActiveGuardian(uah vmcommon.UserAccountHandler) ([]byte, error) {
-	stateUserAccount, ok := uah.(state.UserAccountHandler)
-	if !ok {
-		return nil, process.ErrWrongTypeAssertion
-	}
-
-	configuredGuardians, err := agc.getConfiguredGuardians(stateUserAccount)
+	configuredGuardians, err := agc.getVmUserAccountConfiguredGuardian(uah)
 	if err != nil {
 		return nil, err
-	}
-	if len(configuredGuardians.Slice) == 0 {
-		return nil, process.ErrAccountHasNoGuardianSet
 	}
 
 	guardian, err := agc.getActiveGuardian(configuredGuardians)
@@ -72,6 +64,41 @@ func (agc *guardedAccount) GetActiveGuardian(uah vmcommon.UserAccountHandler) ([
 	}
 
 	return guardian.Address, nil
+}
+
+// HasActiveGuardian returns true if the account has an active guardian configured, false otherwise
+func (agc *guardedAccount) HasActiveGuardian(uah state.UserAccountHandler) bool {
+	if check.IfNil(uah) {
+		return false
+	}
+
+	configuredGuardians, err := agc.getConfiguredGuardians(uah)
+	if err != nil {
+		return false
+	}
+	_, err = agc.getActiveGuardian(configuredGuardians)
+	if err != nil {
+		return false
+	}
+	return true
+}
+
+// HasPendingGuardian return true if the account has a pending guardian, false otherwise
+func (agc *guardedAccount) HasPendingGuardian(uah state.UserAccountHandler) bool {
+	if check.IfNil(uah) {
+		return false
+	}
+
+	configuredGuardians, err := agc.getConfiguredGuardians(uah)
+	if err != nil {
+		return false
+	}
+
+	_, err = agc.getPendingGuardian(configuredGuardians)
+	if err != nil {
+		return false
+	}
+	return true
 }
 
 // SetGuardian sets a guardian for an account
@@ -91,6 +118,23 @@ func (agc *guardedAccount) SetGuardian(uah vmcommon.UserAccountHandler, guardian
 	}
 
 	return agc.setAccountGuardian(stateUserAccount, guardian)
+}
+
+func (agc *guardedAccount) getVmUserAccountConfiguredGuardian(uah vmcommon.UserAccountHandler) (*guardians.Guardians, error) {
+	stateUserAccount, ok := uah.(state.UserAccountHandler)
+	if !ok {
+		return nil, process.ErrWrongTypeAssertion
+	}
+
+	configuredGuardians, err := agc.getConfiguredGuardians(stateUserAccount)
+	if err != nil {
+		return nil, err
+	}
+	if len(configuredGuardians.Slice) == 0 {
+		return nil, process.ErrAccountHasNoGuardianSet
+	}
+
+	return configuredGuardians, nil
 }
 
 func (agc *guardedAccount) setAccountGuardian(uah state.UserAccountHandler, guardian *guardians.Guardian) error {
@@ -227,6 +271,27 @@ func (agc *guardedAccount) getActiveGuardian(gs *guardians.Guardians) (*guardian
 	}
 
 	return selectedGuardian, nil
+}
+
+func (agc *guardedAccount) getPendingGuardian(gs *guardians.Guardians) (*guardians.Guardian, error) {
+	if gs == nil {
+		return nil, process.ErrAccountHasNoPendingGuardian
+	}
+
+	agc.mutEpoch.RLock()
+	defer agc.mutEpoch.RUnlock()
+
+	for _, guardian := range gs.Slice {
+		if guardian == nil {
+			continue
+		}
+		if guardian.ActivationEpoch < agc.currentEpoch {
+			continue
+		}
+		return guardian, nil
+	}
+
+	return nil, process.ErrAccountHasNoPendingGuardian
 }
 
 // EpochConfirmed is the registered callback function for the epoch change notifier

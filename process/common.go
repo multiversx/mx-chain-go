@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
 	"math"
 	"math/big"
 	"sort"
@@ -14,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
@@ -812,4 +812,15 @@ func GetMiniBlockHeaderWithHash(header data.HeaderHandler, miniBlockHash []byte)
 		}
 	}
 	return nil
+}
+
+// IsBuiltinFuncCallWithParam checks if the given transaction data represents a builtin function call with parameters
+func IsBuiltinFuncCallWithParam(txData []byte, function string) bool {
+	expectedTxDataPrefix := []byte(function + "@")
+	return bytes.HasPrefix(txData, expectedTxDataPrefix)
+}
+
+// IsSetGuardianCall checks if the given transaction data represents the set guardian builtin function call
+func IsSetGuardianCall(txData []byte) bool {
+	return IsBuiltinFuncCallWithParam(txData, core.BuiltInFunctionSetGuardian)
 }

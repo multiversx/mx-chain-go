@@ -1072,9 +1072,10 @@ func (tpn *TestProcessorNode) createDefaultEconomicsConfig() *config.EconomicsCo
 					ExtraGasLimitGuardedTx:      "50000",
 				},
 			},
-			MinGasPrice:      minGasPrice,
-			GasPerDataByte:   "1",
-			GasPriceModifier: 0.01,
+			MinGasPrice:            minGasPrice,
+			GasPerDataByte:         "1",
+			GasPriceModifier:       0.01,
+			MaxGasPriceSetGuardian: "2000000000",
 		},
 	}
 }
@@ -1546,7 +1547,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		EpochNotifier:                  tpn.EpochNotifier,
 		RelayedTxEnableEpoch:           tpn.EnableEpochs.RelayedTransactionsEnableEpoch,
 		PenalizedTooMuchGasEnableEpoch: tpn.EnableEpochs.PenalizedTooMuchGasEnableEpoch,
-		GuardianChecker:                &guardianMocks.GuardianCheckerStub{},
+		GuardianChecker:                &guardianMocks.GuardedAccountHandlerStub{},
 		TxVersionChecker:               &testscommon.TxVersionCheckerStub{},
 	}
 	tpn.TxProcessor, _ = transaction.NewTxProcessor(argsNewTxProcessor)
@@ -1791,7 +1792,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		ESDTEnableEpoch:                       0,
 		EpochNotifier:                         tpn.EpochNotifier,
 		BuiltInFunctionOnMetachainEnableEpoch: tpn.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch,
-		GuardianChecker:                       &guardianMocks.GuardianCheckerStub{},
+		GuardianChecker:                       &guardianMocks.GuardedAccountHandlerStub{},
 		TxVersionChecker:                      &testscommon.TxVersionCheckerStub{},
 	}
 	tpn.TxProcessor, _ = transaction.NewMetaTxProcessor(argsNewMetaTxProc)

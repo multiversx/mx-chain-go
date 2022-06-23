@@ -47,3 +47,4 @@
     GasPriceModifier        = 0.01
     GasPerDataByte          = "1500"
     DataLimitForBaseCalc    = "10000"
+    MaxGasPriceSetGuardian  = "2000000000"

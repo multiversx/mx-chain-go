@@ -1,13 +1,16 @@
 package guardianMocks
 
 import (
+	"github.com/ElrondNetwork/elrond-go/state"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // GuardedAccountHandlerStub -
 type GuardedAccountHandlerStub struct {
-	GetActiveGuardianCalled func(handler vmcommon.UserAccountHandler) ([]byte, error)
-	SetGuardianCalled       func(uah vmcommon.UserAccountHandler, guardianAddress []byte, txGuardianAddress []byte) error
+	GetActiveGuardianCalled  func(handler vmcommon.UserAccountHandler) ([]byte, error)
+	SetGuardianCalled        func(uah vmcommon.UserAccountHandler, guardianAddress []byte, txGuardianAddress []byte) error
+	HasPendingGuardianCalled func(uah state.UserAccountHandler) bool
+	HasActiveGuardianCalled  func(uah state.UserAccountHandler) bool
 }
 
 // GetActiveGuardian -
@@ -16,6 +19,22 @@ func (gahs *GuardedAccountHandlerStub) GetActiveGuardian(handler vmcommon.UserAc
 		return gahs.GetActiveGuardianCalled(handler)
 	}
 	return nil, nil
+}
+
+// HasActiveGuardian -
+func (gahs *GuardedAccountHandlerStub) HasActiveGuardian(uah state.UserAccountHandler) bool {
+	if gahs.HasActiveGuardianCalled != nil {
+		return gahs.HasActiveGuardianCalled(uah)
+	}
+	return false
+}
+
+// HasPendingGuardian -
+func (gahs *GuardedAccountHandlerStub) HasPendingGuardian(uah state.UserAccountHandler) bool {
+	if gahs.HasPendingGuardianCalled != nil {
+		return gahs.HasPendingGuardianCalled(uah)
+	}
+	return false
 }
 
 // SetGuardian -

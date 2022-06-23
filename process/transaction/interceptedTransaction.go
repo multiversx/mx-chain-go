@@ -323,7 +323,31 @@ func (inTx *InterceptedTransaction) integrity(tx *transaction.Transaction) error
 		return process.ErrInvalidSndAddr
 	}
 
+	err = inTx.checkMaxGasPrice()
+	if err != nil {
+		return err
+	}
+
 	return inTx.feeHandler.CheckValidityTxValues(tx)
+}
+
+func (inTx *InterceptedTransaction) checkMaxGasPrice() error {
+	tx := inTx.tx
+	// no need to check max gas for guarded transactions as they are co-signed
+	if inTx.txVersionChecker.IsGuardedTransaction(tx) {
+		return nil
+	}
+
+	txData := tx.GetData()
+	if !process.IsSetGuardianCall(txData) {
+		return nil
+	}
+
+	if tx.GetGasPrice() > inTx.feeHandler.MaxGasPriceSetGuardian() {
+		return process.ErrGasPriceTooHigh
+	}
+
+	return nil
 }
 
 // verifySig checks if the tx is correctly signed

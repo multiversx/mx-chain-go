@@ -54,6 +54,7 @@ type economicsData struct {
 	mutGasLimitSettings              sync.RWMutex
 	gasPerDataByte                   uint64
 	minGasPrice                      uint64
+	maxGasPriceSetGuardian           uint64
 	gasPriceModifier                 float64
 	genesisTotalSupply               *big.Int
 	minInflation                     float64
@@ -129,6 +130,7 @@ func NewEconomicsData(args ArgsNewEconomicsData) (*economicsData, error) {
 		topUpGradientPoint:               topUpGradientPoint,
 		gasLimitSettings:                 gasLimitSettings,
 		minGasPrice:                      convertedData.minGasPrice,
+		maxGasPriceSetGuardian:           convertedData.maxGasPriceSetGuardian,
 		gasPerDataByte:                   convertedData.gasPerDataByte,
 		minInflation:                     args.Economics.GlobalSettings.MinimumInflation,
 		genesisTotalSupply:               convertedData.genesisTotalSupply,
@@ -181,10 +183,16 @@ func convertValues(economics *config.EconomicsConfig) (*economicsData, error) {
 		return nil, process.ErrInvalidGenesisTotalSupply
 	}
 
+	maxGasPriceSetGuardian, err := strconv.ParseUint(economics.FeeSettings.MaxGasPriceSetGuardian, conversionBase, bitConversionSize)
+	if err != nil {
+		return nil, process.ErrInvalidMaxGasPriceSetGuardian
+	}
+
 	return &economicsData{
-		minGasPrice:        minGasPrice,
-		gasPerDataByte:     gasPerDataByte,
-		genesisTotalSupply: genesisTotalSupply,
+		minGasPrice:            minGasPrice,
+		gasPerDataByte:         gasPerDataByte,
+		genesisTotalSupply:     genesisTotalSupply,
+		maxGasPriceSetGuardian: maxGasPriceSetGuardian,
 	}, nil
 }
 
@@ -398,6 +406,11 @@ func (ed *economicsData) MinGasLimit() uint64 {
 // ExtraGasLimitGuardedTx returns the extra gas limit required by the guarded transactions
 func (ed *economicsData) ExtraGasLimitGuardedTx() uint64 {
 	return ed.extraGasLimitGuardedTx
+}
+
+// MaxGasPriceSetGuardian returns the maximum gas price for set guardian transactions
+func (ed *economicsData) MaxGasPriceSetGuardian() uint64 {
+	return ed.maxGasPriceSetGuardian
 }
 
 // GasPerDataByte will return the gas required for a economicsData byte

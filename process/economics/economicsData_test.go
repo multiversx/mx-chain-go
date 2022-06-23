@@ -64,9 +64,10 @@ func feeSettingsDummy(gasModifier float64) config.FeeSettings {
 				ExtraGasLimitGuardedTx:      "50000",
 			},
 		},
-		MinGasPrice:      "18446744073709551615",
-		GasPerDataByte:   "1",
-		GasPriceModifier: gasModifier,
+		MinGasPrice:            "18446744073709551615",
+		GasPerDataByte:         "1",
+		GasPriceModifier:       gasModifier,
+		MaxGasPriceSetGuardian: "200000",
 	}
 }
 
@@ -83,9 +84,10 @@ func feeSettingsReal() config.FeeSettings {
 				ExtraGasLimitGuardedTx:      "50000",
 			},
 		},
-		MinGasPrice:      "1000000000",
-		GasPerDataByte:   "1500",
-		GasPriceModifier: 0.01,
+		MinGasPrice:            "1000000000",
+		GasPerDataByte:         "1500",
+		GasPriceModifier:       0.01,
+		MaxGasPriceSetGuardian: "200000",
 	}
 }
 
@@ -1115,4 +1117,17 @@ func TestEconomicsData_ComputeGasLimitBasedOnBalance(t *testing.T) {
 	gasLimit, err = economicData.ComputeGasLimitBasedOnBalance(tx, senderBalance)
 	require.Nil(t, err)
 	require.Equal(t, uint64(11894070000), gasLimit)
+}
+
+func TestEconomicsData_MaxGasPriceSetGuardian(t *testing.T) {
+	t.Parallel()
+
+	args := createArgsForEconomicsDataRealFees(&mock.BuiltInCostHandlerStub{})
+	maxGasPriceSetGuardianString := "2000000"
+	expectedMaxGasPriceSetGuardian, err := strconv.ParseUint(maxGasPriceSetGuardianString, 10, 64)
+	require.Nil(t, err)
+	args.Economics.FeeSettings.MaxGasPriceSetGuardian = maxGasPriceSetGuardianString
+	economicData, _ := economics.NewEconomicsData(args)
+
+	require.Equal(t, expectedMaxGasPriceSetGuardian, economicData.MaxGasPriceSetGuardian())
 }

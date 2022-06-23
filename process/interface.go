@@ -637,6 +637,7 @@ type feeHandler interface {
 	CheckValidityTxValues(tx data.TransactionWithFeeHandler) error
 	ComputeFeeForProcessing(tx data.TransactionWithFeeHandler, gasToUse uint64) *big.Int
 	MinGasPrice() uint64
+	MaxGasPriceSetGuardian() uint64
 	GasPriceModifier() float64
 	MinGasLimit() uint64
 	ExtraGasLimitGuardedTx() uint64
@@ -1208,18 +1209,23 @@ type ShardedPool interface {
 // GuardianSigVerifier allows the verification of the guardian signatures for guarded transactions
 type GuardianSigVerifier interface {
 	VerifyGuardianSignature(account vmcommon.UserAccountHandler, inTx InterceptedTransactionHandler) error
+	HasPendingGuardian(uah state.UserAccountHandler) bool
 	IsInterfaceNil() bool
 }
 
 // GuardianChecker can check an account guardian
 type GuardianChecker interface {
 	GetActiveGuardian(handler vmcommon.UserAccountHandler) ([]byte, error)
+	HasActiveGuardian(uah state.UserAccountHandler) bool
+	HasPendingGuardian(uah state.UserAccountHandler) bool
 	IsInterfaceNil() bool
 }
 
 // GuardedAccountHandler allows setting and getting the configured account guardian
 type GuardedAccountHandler interface {
 	GetActiveGuardian(handler vmcommon.UserAccountHandler) ([]byte, error)
+	HasActiveGuardian(uah state.UserAccountHandler) bool
+	HasPendingGuardian(uah state.UserAccountHandler) bool
 	SetGuardian(uah vmcommon.UserAccountHandler, guardianAddress []byte, txGuardianAddress []byte) error
 	IsInterfaceNil() bool
 }

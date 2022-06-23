@@ -1,14 +1,12 @@
 package dataValidators
 
 import (
-	"bytes"
 	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/guardedtx"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -22,7 +20,7 @@ type txValidator struct {
 	shardCoordinator     sharding.Coordinator
 	whiteListHandler     process.WhiteListHandler
 	pubKeyConverter      core.PubkeyConverter
-	guardianSigVerifier  guardedtx.GuardianSigVerifier
+	guardianSigVerifier  process.GuardianSigVerifier
 	txVersionChecker     process.TxVersionCheckerHandler
 	maxNonceDeltaAllowed int
 }
@@ -33,7 +31,7 @@ func NewTxValidator(
 	shardCoordinator sharding.Coordinator,
 	whiteListHandler process.WhiteListHandler,
 	pubKeyConverter core.PubkeyConverter,
-	guardianSigVerifier guardedtx.GuardianSigVerifier,
+	guardianSigVerifier process.GuardianSigVerifier,
 	txVersionChecker process.TxVersionCheckerHandler,
 	maxNonceDeltaAllowed int,
 ) (*txValidator, error) {
@@ -157,6 +155,12 @@ func (txv *txValidator) checkPermission(interceptedTx process.InterceptedTransac
 		if err != nil {
 			return err
 		}
+
+		// block non guarded setGuardian Txs if there is a pending guardian
+		hasPendingGuardian := txv.guardianSigVerifier.HasPendingGuardian(account)
+		if process.IsSetGuardianCall(txData) && hasPendingGuardian {
+			return process.ErrCannotReplaceFrozenAccountPendingGuardian
+		}
 	}
 
 	return nil
@@ -165,7 +169,7 @@ func (txv *txValidator) checkPermission(interceptedTx process.InterceptedTransac
 // Setting a guardian is allowed with regular transactions on a frozen account
 // but in this case is set with the default epochs delay
 func checkOperationAllowedToBypassGuardian(txData []byte) error {
-	if isBuiltinFuncCallWithParam(txData, core.BuiltInFunctionSetGuardian) {
+	if process.IsSetGuardianCall(txData) {
 		return nil
 	}
 
@@ -243,11 +247,6 @@ func getTxData(interceptedTx process.InterceptedTransactionHandler) ([]byte, err
 	}
 
 	return tx.GetData(), nil
-}
-
-func isBuiltinFuncCallWithParam(txData []byte, function string) bool {
-	expectedTxDataPrefix := []byte(function + "@")
-	return bytes.HasPrefix(txData, expectedTxDataPrefix)
 }
 
 // CheckTxWhiteList will check if the cross shard transactions are whitelisted and could be added in pools

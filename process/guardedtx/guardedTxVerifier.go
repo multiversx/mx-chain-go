@@ -6,14 +6,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/state"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
-
-// GuardianSigVerifier allows the verification of the guardian signatures for guarded transactions
-type GuardianSigVerifier interface {
-	VerifyGuardianSignature(account vmcommon.UserAccountHandler, inTx process.InterceptedTransactionHandler) error
-	IsInterfaceNil() bool
-}
 
 // GuardedTxSigVerifierArgs holds the argument to instantiate a guarded tx signature verifier
 type GuardedTxSigVerifierArgs struct {
@@ -96,6 +91,11 @@ func (gtx *guardedTxSigVerifier) GetGuardianPublicKey(account vmcommon.UserAccou
 	}
 
 	return gtx.keyGen.PublicKeyFromByteArray(guardianPubKeyBytes)
+}
+
+// HasPendingGuardian true if the given account has a pending guardian set
+func (gtx *guardedTxSigVerifier) HasPendingGuardian(uah state.UserAccountHandler) bool {
+	return gtx.guardianChecker.HasPendingGuardian(uah)
 }
 
 // IsInterfaceNil returns nil if the receiver is nil
