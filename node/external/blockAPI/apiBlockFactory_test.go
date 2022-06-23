@@ -218,8 +218,8 @@ func TestGetBlockByHashFromHistoryNode(t *testing.T) {
 			{
 				Hash:              hex.EncodeToString(miniblockHeader),
 				Type:              block.TxBlock.String(),
-				ProcessingType:    "Normal",
-				ConstructionState: "Final",
+				ProcessingType:    block.Normal.String(),
+				ConstructionState: block.Final.String(),
 			},
 		},
 		AccumulatedFees: "0",
@@ -357,8 +357,8 @@ func TestGetBlockByNonceFromHistoryNode(t *testing.T) {
 			{
 				Hash:              hex.EncodeToString(miniblockHeader),
 				Type:              block.TxBlock.String(),
-				ProcessingType:    "Normal",
-				ConstructionState: "Final",
+				ProcessingType:    block.Normal.String(),
+				ConstructionState: block.Final.String(),
 			},
 		},
 		AccumulatedFees: "1000",
@@ -420,8 +420,8 @@ func TestGetBlockByNonce_GetBlockByRound_FromNormalNode(t *testing.T) {
 			{
 				Hash:              hex.EncodeToString(miniblockHeader),
 				Type:              block.TxBlock.String(),
-				ProcessingType:    "Normal",
-				ConstructionState: "Final",
+				ProcessingType:    block.Normal.String(),
+				ConstructionState: block.Final.String(),
 			},
 		},
 		AccumulatedFees: "1000",
@@ -498,8 +498,8 @@ func TestGetBlockByHashFromHistoryNode_StatusReverted(t *testing.T) {
 			{
 				Hash:              hex.EncodeToString(miniblockHeader),
 				Type:              block.TxBlock.String(),
-				ProcessingType:    "Normal",
-				ConstructionState: "Final",
+				ProcessingType:    block.Normal.String(),
+				ConstructionState: block.Final.String(),
 			},
 		},
 		AccumulatedFees: "500",
