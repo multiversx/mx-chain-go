@@ -54,6 +54,8 @@ func NewFeeComputer(args ArgsNewFeeComputer) (*feeComputer, error) {
 		return nil, err
 	}
 
+	// TODO: Handle fees for guarded transactions, when enabled.
+
 	return computer, nil
 }
 

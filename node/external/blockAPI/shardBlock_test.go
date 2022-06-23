@@ -161,8 +161,8 @@ func TestShardAPIBlockProcessor_GetBlockByHashFromNormalNode(t *testing.T) {
 			{
 				Hash:              hex.EncodeToString(miniblockHeader),
 				Type:              block.TxBlock.String(),
-				ProcessingType:    "Normal",
-				ConstructionState: "Final",
+				ProcessingType:    block.Normal.String(),
+				ConstructionState: block.Final.String(),
 			},
 		},
 		AccumulatedFees: "0",
@@ -219,8 +219,8 @@ func TestShardAPIBlockProcessor_GetBlockByNonceFromHistoryNode(t *testing.T) {
 			{
 				Hash:              hex.EncodeToString(miniblockHeader),
 				Type:              block.TxBlock.String(),
-				ProcessingType:    "Normal",
-				ConstructionState: "Final",
+				ProcessingType:    block.Normal.String(),
+				ConstructionState: block.Final.String(),
 			},
 		},
 		AccumulatedFees: "100",
@@ -283,8 +283,8 @@ func TestShardAPIBlockProcessor_GetBlockByRoundFromStorer(t *testing.T) {
 			{
 				Hash:              hex.EncodeToString(miniblockHeader),
 				Type:              block.TxBlock.String(),
-				ProcessingType:    "Normal",
-				ConstructionState: "Final",
+				ProcessingType:    block.Normal.String(),
+				ConstructionState: block.Final.String(),
 			},
 		},
 		AccumulatedFees: "100",
@@ -346,8 +346,8 @@ func TestShardAPIBlockProcessor_GetBlockByHashFromHistoryNodeStatusReverted(t *t
 			{
 				Hash:              hex.EncodeToString(miniblockHeader),
 				Type:              block.TxBlock.String(),
-				ProcessingType:    "Normal",
-				ConstructionState: "Final",
+				ProcessingType:    block.Normal.String(),
+				ConstructionState: block.Final.String(),
 			},
 		},
 		AccumulatedFees: "100",

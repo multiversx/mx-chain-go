@@ -57,6 +57,7 @@ func TestFeeComputer_ComputeTransactionFeeShouldWorkForDifferentEpochs(t *testin
 	checkComputedFee(t, "66925000000000", computer, 180, 1000000, 1000000000, "hello", contract)
 	checkComputedFee(t, "66925000000000", computer, 180, 1000000, 1000000000, "hello", contract)
 	checkComputedFee(t, "107000000000000", computer, 180, 404000, 1000000000, "ESDTTransfer@464f4f2d653962643235@0a", contract)
+	// TODO: Add tests for guarded transactions, when enabled.
 }
 
 func checkComputedFee(t *testing.T, expectedFee string, computer *feeComputer, epoch int, gasLimit uint64, gasPrice uint64, data string, receiver []byte) {
