@@ -20,6 +20,9 @@ import (
 
 func TestNewStateComponentsFactory_NilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	coreComponents := getCoreComponents()
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
@@ -33,6 +36,9 @@ func TestNewStateComponentsFactory_NilShardCoordinatorShouldErr(t *testing.T) {
 
 func TestNewStateComponentsFactory_NilCoreComponents(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	coreComponents := getCoreComponents()
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
@@ -46,6 +52,9 @@ func TestNewStateComponentsFactory_NilCoreComponents(t *testing.T) {
 
 func TestNewStateComponentsFactory_ShouldWork(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	coreComponents := getCoreComponents()
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
@@ -56,8 +65,11 @@ func TestNewStateComponentsFactory_ShouldWork(t *testing.T) {
 	require.NotNil(t, scf)
 }
 
-func TestStateComponentsFactory_Create_ShouldWork(t *testing.T) {
+func TestStateComponentsFactory_CreateShouldWork(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	coreComponents := getCoreComponents()
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
@@ -71,8 +83,11 @@ func TestStateComponentsFactory_Create_ShouldWork(t *testing.T) {
 }
 
 // ------------ Test StateComponents --------------------
-func TestStateComponents_Close_ShouldWork(t *testing.T) {
+func TestStateComponents_CloseShouldWork(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	coreComponents := getCoreComponents()
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
