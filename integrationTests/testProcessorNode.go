@@ -464,6 +464,13 @@ func NewTestProcessorNode(
 		ScheduledMiniBlocksEnableEpoch:              UnreachableEpoch,
 		MiniBlockPartialExecutionEnableEpoch:        UnreachableEpoch,
 	}
+	enableEpochsConfig = config.EnableEpochs{
+		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: UnreachableEpoch,
+		ScheduledMiniBlocksEnableEpoch:              UnreachableEpoch,
+		MiniBlockPartialExecutionEnableEpoch:        UnreachableEpoch,
+		FailExecutionOnEveryAPIErrorEnableEpoch:     UnreachableEpoch,
+		ManagedCryptoAPIsEnableEpoch:                UnreachableEpoch,
+	}
 	tpn := newBaseTestProcessorNode(maxShards, nodeShardId, txSignPrivKeyShardId, enableEpochsConfig)
 	tpn.initTestNode()
 
