@@ -32,6 +32,9 @@ func (dga *disabledGuardedAccount) SetGuardian(_ vmcommon.UserAccountHandler, _ 
 	return nil
 }
 
+// CleanOtherThanActive does nothing as this is a disabled implementation
+func (dga *disabledGuardedAccount) CleanOtherThanActive(_ vmcommon.UserAccountHandler) {}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (dga *disabledGuardedAccount) IsInterfaceNil() bool {
 	return dga == nil
