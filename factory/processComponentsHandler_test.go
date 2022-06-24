@@ -11,8 +11,11 @@ import (
 )
 
 // ------------ Test TestManagedProcessComponents --------------------
-func TestManagedProcessComponents_CreateWithInvalidArgs_ShouldErr(t *testing.T) {
+func TestManagedProcessComponents_CreateWithInvalidArgsShouldErr(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	processArgs := getProcessComponentsArgs(shardCoordinator)
@@ -25,8 +28,11 @@ func TestManagedProcessComponents_CreateWithInvalidArgs_ShouldErr(t *testing.T) 
 	require.Nil(t, managedProcessComponents.NodesCoordinator())
 }
 
-func TestManagedProcessComponents_Create_ShouldWork(t *testing.T) {
+func TestManagedProcessComponents_CreateShouldWork(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	coreComponents := getCoreComponents()
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(1)
@@ -136,6 +142,9 @@ func TestManagedProcessComponents_Create_ShouldWork(t *testing.T) {
 
 func TestManagedProcessComponents_Close(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	processArgs := getProcessComponentsArgs(shardCoordinator)

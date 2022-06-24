@@ -1752,6 +1752,8 @@ func (bp *baseProcessor) ProcessScheduledBlock(headerHandler data.HeaderHandler,
 		return err
 	}
 
+	_ = bp.txCoordinator.CreatePostProcessMiniBlocks()
+
 	finalProcessingGasAndFees := bp.getGasAndFeesWithScheduled()
 
 	scheduledProcessingGasAndFees := gasAndFeesDelta(normalProcessingGasAndFees, finalProcessingGasAndFees)
