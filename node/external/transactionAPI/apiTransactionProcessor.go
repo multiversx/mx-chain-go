@@ -18,6 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/process/txstatus"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 )
 
 var log = logger.GetOrCreate("node/transactionAPI")
@@ -101,6 +102,27 @@ func (atp *apiTransactionProcessor) GetTransactionsPool() (*common.TransactionsP
 	}
 
 	return txsPoolResponse, nil
+}
+
+// GetTransactionsForSender will return a structure containing the transactions for sender that is to be returned on API calls
+func (atp *apiTransactionProcessor) GetTransactionsForSender(sender string) (*common.TransactionsForSenderApiResponse, error) {
+	senderAddr, err := atp.addressPubKeyConverter.Decode(sender)
+	if err != nil {
+		return nil, fmt.Errorf("%s, %w", ErrInvalidAddress.Error(), err)
+	}
+
+	senderShard := atp.shardCoordinator.ComputeId(senderAddr)
+	cacheId := fmt.Sprintf("%d", senderShard)
+	shardCache := atp.dataPool.Transactions().ShardDataStore(cacheId)
+	txCache, ok := shardCache.(*txcache.TxCache)
+	if !ok {
+		return nil, ErrCannotRetrieveTransactions
+	}
+
+	return &common.TransactionsForSenderApiResponse{
+		Sender:       sender,
+		Transactions: txsHashesBytesToString(txCache.GetTransactionsForSender(sender)),
+	}, nil
 }
 
 func txsHashesBytesToString(input [][]byte) []string {

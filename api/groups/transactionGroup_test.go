@@ -98,6 +98,16 @@ type txsPoolResponse struct {
 	Code  string              `json:"code"`
 }
 
+type txsForSenderResponseData struct {
+	TransactionsForSender common.TransactionsForSenderApiResponse `json:"transactionsForSender"`
+}
+
+type txsForSenderResponse struct {
+	Data  txsForSenderResponseData `json:"data"`
+	Error string                   `json:"error"`
+	Code  string                   `json:"code"`
+}
+
 func TestGetTransaction_WithCorrectHashShouldReturnTransaction(t *testing.T) {
 	sender := "sender"
 	receiver := "receiver"
@@ -891,6 +901,65 @@ func TestGetTransactionsPoolShouldWork(t *testing.T) {
 	assert.Equal(t, *expectedTxPool, txsPoolResp.Data.TxPool)
 }
 
+func TestGetTransactionsForSenderShouldError(t *testing.T) {
+	t.Parallel()
+
+	expectedErr := errors.New("expected error")
+	facade := mock.FacadeStub{
+		GetTransactionsForSenderCalled: func(sender string) (*common.TransactionsForSenderApiResponse, error) {
+			return nil, expectedErr
+		},
+	}
+
+	transactionGroup, err := groups.NewTransactionGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(transactionGroup, "transaction", getTransactionRoutesConfig())
+
+	req, _ := http.NewRequest("GET", "/transaction/for-sender/sender", nil)
+
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	txsForSenderResp := txsForSenderResponse{}
+	loadResponse(resp.Body, &txsForSenderResp)
+
+	assert.Equal(t, http.StatusInternalServerError, resp.Code)
+	assert.True(t, strings.Contains(txsForSenderResp.Error, expectedErr.Error()))
+}
+
+func TestGetTransactionsForSenderShouldWork(t *testing.T) {
+	t.Parallel()
+
+	expectedSender := "sender"
+	expectedResp := &common.TransactionsForSenderApiResponse{
+		Sender:       expectedSender,
+		Transactions: []string{"txHash1", "txHash2"},
+	}
+	facade := mock.FacadeStub{
+		GetTransactionsForSenderCalled: func(sender string) (*common.TransactionsForSenderApiResponse, error) {
+			return expectedResp, nil
+		},
+	}
+
+	transactionGroup, err := groups.NewTransactionGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(transactionGroup, "transaction", getTransactionRoutesConfig())
+
+	req, _ := http.NewRequest("GET", "/transaction/for-sender/"+expectedSender, nil)
+
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	txsForSenderResp := txsForSenderResponse{}
+	loadResponse(resp.Body, &txsForSenderResp)
+
+	assert.Equal(t, http.StatusOK, resp.Code)
+	assert.Empty(t, txsForSenderResp.Error)
+	assert.Equal(t, *expectedResp, txsForSenderResp.Data.TransactionsForSender)
+}
+
 func getTransactionRoutesConfig() config.ApiRoutesConfig {
 	return config.ApiRoutesConfig{
 		APIPackages: map[string]config.APIPackageConfig{
@@ -903,6 +972,7 @@ func getTransactionRoutesConfig() config.ApiRoutesConfig {
 					{Name: "/:txhash", Open: true},
 					{Name: "/:txhash/status", Open: true},
 					{Name: "/simulate", Open: true},
+					{Name: "/for-sender/:sender", Open: true},
 				},
 			},
 		},

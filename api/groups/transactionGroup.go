@@ -30,6 +30,7 @@ const (
 	sendMultiplePath                 = "/send-multiple"
 	getTransactionPath               = "/:txhash"
 	getTransactionsPool              = "/pool"
+	getTransactionsForSender         = "/for-sender/:sender"
 
 	queryParamWithResults    = "withResults"
 	queryParamCheckSignature = "checkSignature"
@@ -45,6 +46,7 @@ type transactionFacadeHandler interface {
 	SimulateTransactionExecution(tx *transaction.Transaction) (*txSimData.SimulationResults, error)
 	GetTransaction(hash string, withResults bool) (*transaction.ApiTransactionResult, error)
 	GetTransactionsPool() (*common.TransactionsPoolAPIResponse, error)
+	GetTransactionsForSender(sender string) (*common.TransactionsForSenderApiResponse, error)
 	ComputeTransactionGasLimit(tx *transaction.Transaction) (*transaction.CostResponse, error)
 	EncodeAddressPubkey(pk []byte) (string, error)
 	GetThrottlerForEndpoint(endpoint string) (core.Throttler, bool)
@@ -100,6 +102,11 @@ func NewTransactionGroup(facade transactionFacadeHandler) (*transactionGroup, er
 			Path:    getTransactionsPool,
 			Method:  http.MethodGet,
 			Handler: tg.getTransactionsPool,
+		},
+		{
+			Path:    getTransactionsForSender,
+			Method:  http.MethodGet,
+			Handler: tg.getTransactionsForSender,
 		},
 		{
 			Path:    sendMultiplePath,
@@ -558,6 +565,32 @@ func (tg *transactionGroup) getTransactionsPool(c *gin.Context) {
 		http.StatusOK,
 		shared.GenericAPIResponse{
 			Data:  gin.H{"txPool": txsHashes},
+			Error: "",
+			Code:  shared.ReturnCodeSuccess,
+		},
+	)
+}
+
+// getTransactionsForSender returns the transactions hashes for the sender
+func (tg *transactionGroup) getTransactionsForSender(c *gin.Context) {
+	sender := c.Param("sender")
+	txs, err := tg.getFacade().GetTransactionsForSender(sender)
+	if err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: err.Error(),
+				Code:  shared.ReturnCodeInternalError,
+			},
+		)
+		return
+	}
+
+	c.JSON(
+		http.StatusOK,
+		shared.GenericAPIResponse{
+			Data:  gin.H{"transactionsForSender": txs},
 			Error: "",
 			Code:  shared.ReturnCodeSuccess,
 		},

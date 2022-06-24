@@ -16,3 +16,9 @@ var ErrNilAPITransactionProcessorArg = errors.New("nil api transaction processor
 
 // ErrNilDataFieldParser signals that a nil data field parser has been provided
 var ErrNilDataFieldParser = errors.New("nil data field parser")
+
+// ErrCannotRetrieveTransactions signals that transactions cannot be retrieved
+var ErrCannotRetrieveTransactions = errors.New("transactions cannot be retrieved")
+
+// ErrInvalidAddress signals that the address is invalid
+var ErrInvalidAddress = errors.New("invalid address")

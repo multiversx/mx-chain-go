@@ -33,6 +33,7 @@ type ApiResolverStub struct {
 	GetInternalStartOfEpochMetaBlockCalled func(format common.ApiOutputFormat, epoch uint32) (interface{}, error)
 	GetGenesisNodesPubKeysCalled           func() (map[uint32][]string, map[uint32][]string)
 	GetTransactionsPoolCalled              func() (*common.TransactionsPoolAPIResponse, error)
+	GetTransactionsForSenderCalled         func(sender string) (*common.TransactionsForSenderApiResponse, error)
 }
 
 // GetTransaction -
@@ -161,6 +162,15 @@ func (ars *ApiResolverStub) GetInternalMetaBlockByNonce(format common.ApiOutputF
 func (ars *ApiResolverStub) GetTransactionsPool() (*common.TransactionsPoolAPIResponse, error) {
 	if ars.GetTransactionsPoolCalled != nil {
 		return ars.GetTransactionsPoolCalled()
+	}
+
+	return nil, nil
+}
+
+// GetTransactionsForSender -
+func (ars *ApiResolverStub) GetTransactionsForSender(sender string) (*common.TransactionsForSenderApiResponse, error) {
+	if ars.GetTransactionsForSenderCalled != nil {
+		return ars.GetTransactionsForSenderCalled(sender)
 	}
 
 	return nil, nil

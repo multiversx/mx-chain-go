@@ -218,6 +218,22 @@ func (cache *TxCache) ForEachTransaction(function ForEachTransaction) {
 	cache.txByHash.forEach(function)
 }
 
+// GetTransactionsForSender returns the list of transaction hashes for the sender
+func (cache *TxCache) GetTransactionsForSender(sender string) [][]byte {
+	listForSender, ok := cache.txListBySender.getListForSender(sender)
+	if !ok {
+		return nil
+	}
+
+	txsHashes := make([][]byte, listForSender.items.Len())
+	for element, i := listForSender.items.Front(), 0; element != nil; element, i = element.Next(), i+1 {
+		tx := element.Value.(*WrappedTransaction)
+		txsHashes[i] = tx.TxHash
+	}
+
+	return txsHashes
+}
+
 // Clear clears the cache
 func (cache *TxCache) Clear() {
 	cache.mutTxOperation.Lock()
@@ -233,7 +249,7 @@ func (cache *TxCache) Put(_ []byte, _ interface{}, _ int) (evicted bool) {
 }
 
 // Get gets a transaction (unwrapped) by hash
-// Implemented for compatibiltiy reasons (see txPoolsCleaner.go).
+// Implemented for compatibility reasons (see txPoolsCleaner.go).
 func (cache *TxCache) Get(key []byte) (value interface{}, ok bool) {
 	tx, ok := cache.GetByTxHash(key)
 	if ok {
