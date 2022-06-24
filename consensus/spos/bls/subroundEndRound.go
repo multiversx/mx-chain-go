@@ -332,6 +332,12 @@ func (sr *subroundEndRound) verifyNodesOnAggSigVerificationFail() error {
 			if err != nil {
 				return err
 			}
+
+			sr.PeerHonestyHandler().ChangeScore(
+				pk,
+				spos.GetConsensusTopicID(sr.ShardCoordinator()),
+				spos.ValidatorPeerHonestyDecreaseFactor,
+			)
 		}
 
 		log.Trace("verifyNodesOnAggSigVerificationFail: verifying signature share", "public key", pk, "is successfull", isSuccessfull)
