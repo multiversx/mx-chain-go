@@ -297,14 +297,12 @@ func (sr *subroundEndRound) IsOutOfTime() bool {
 	return sr.isOutOfTime()
 }
 
-func (sr *subroundEndRound) VerifyNodesOnAggSigVerificationFail(multiSigner crypto.MultiSigner) error {
-	return sr.verifyNodesOnAggSigVerificationFail(multiSigner)
+func (sr *subroundEndRound) VerifyNodesOnAggSigVerificationFail() error {
+	return sr.verifyNodesOnAggSigVerificationFail()
 }
 
-func (sr *subroundEndRound) ComputeAggSigOnValidNodes(
-	multiSigner crypto.MultiSigner,
-) ([]byte, []byte, error) {
-	return sr.computeAggSigOnValidNodes(multiSigner)
+func (sr *subroundEndRound) ComputeAggSigOnValidNodes() ([]byte, []byte, error) {
+	return sr.computeAggSigOnValidNodes()
 }
 
 // GetStringValue gets the name of the message type

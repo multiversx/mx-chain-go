@@ -11,7 +11,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/display"
-	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
@@ -209,13 +208,13 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 	if err != nil {
 		log.Debug("doEndRoundJobByLeader.Verify", "error", err.Error())
 
-		err = sr.verifyNodesOnAggSigVerificationFail(currentMultiSigner)
+		err = sr.verifyNodesOnAggSigVerificationFail()
 		if err != nil {
 			log.Debug("doEndRoundJobByLeader.verifyNodesOnAggSigVerificationFail", "error", err.Error())
 			return false
 		}
 
-		bitmap, sig, err = sr.computeAggSigOnValidNodes(currentMultiSigner)
+		bitmap, sig, err = sr.computeAggSigOnValidNodes()
 		if err != nil {
 			log.Debug("doEndRoundJobByLeader.computeAggSigOnValidNodes", "error", err.Error())
 			return false
@@ -309,9 +308,8 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 // TODO:
 //	- slashing for invalid sig shares
 //	- handle sig share verifications concurrently
-func (sr *subroundEndRound) verifyNodesOnAggSigVerificationFail(
-	multiSigner crypto.MultiSigner,
-) error {
+func (sr *subroundEndRound) verifyNodesOnAggSigVerificationFail() error {
+	multiSigner := sr.MultiSigner()
 	pubKeys := sr.ConsensusGroup()
 
 	for i, pk := range pubKeys {
@@ -342,9 +340,8 @@ func (sr *subroundEndRound) verifyNodesOnAggSigVerificationFail(
 	return nil
 }
 
-func (sr *subroundEndRound) computeAggSigOnValidNodes(
-	multiSigner crypto.MultiSigner,
-) ([]byte, []byte, error) {
+func (sr *subroundEndRound) computeAggSigOnValidNodes() ([]byte, []byte, error) {
+	multiSigner := sr.MultiSigner()
 	threshold := sr.Threshold(sr.Current())
 	numValidSigShares := sr.ComputeSize(SrSignature)
 
@@ -365,11 +362,6 @@ func (sr *subroundEndRound) computeAggSigOnValidNodes(
 	}
 
 	err = multiSigner.SetAggregatedSig(sig)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	err = multiSigner.Verify(sr.GetData(), bitmap)
 	if err != nil {
 		return nil, nil, err
 	}
