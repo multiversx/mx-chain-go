@@ -1104,13 +1104,14 @@ func TestSubroundEndRound_DoEndRoundJobByLeaderVerificationFail(t *testing.T) {
 			return nil, nil
 		}
 
-		verifySigShareFirstCall := true
+		verifySigShareNumCalls := 0
 		multiSignerMock.VerifySignatureShareCalled = func(index uint16, sig, msg, bitmap []byte) error {
-			if verifySigShareFirstCall {
-				verifySigShareFirstCall = false
+			if verifySigShareNumCalls == 0 {
+				verifySigShareNumCalls++
 				return errors.New("expected error")
 			}
 
+			verifySigShareNumCalls++
 			return nil
 		}
 
@@ -1137,7 +1138,7 @@ func TestSubroundEndRound_DoEndRoundJobByLeaderVerificationFail(t *testing.T) {
 		require.False(t, r)
 
 		assert.False(t, verifyFirstCall)
-		assert.False(t, verifySigShareFirstCall)
+		assert.Equal(t, 2, verifySigShareNumCalls)
 	})
 
 	t.Run("should work", func(t *testing.T) {
@@ -1150,13 +1151,14 @@ func TestSubroundEndRound_DoEndRoundJobByLeaderVerificationFail(t *testing.T) {
 			return nil, nil
 		}
 
-		verifySigShareFirstCall := true
+		verifySigShareNumCalls := 0
 		multiSignerMock.VerifySignatureShareCalled = func(index uint16, sig, msg, bitmap []byte) error {
-			if verifySigShareFirstCall {
-				verifySigShareFirstCall = false
+			if verifySigShareNumCalls == 0 {
+				verifySigShareNumCalls++
 				return errors.New("expected error")
 			}
 
+			verifySigShareNumCalls++
 			return nil
 		}
 
@@ -1184,6 +1186,6 @@ func TestSubroundEndRound_DoEndRoundJobByLeaderVerificationFail(t *testing.T) {
 		require.True(t, r)
 
 		assert.False(t, verifyFirstCall)
-		assert.False(t, verifySigShareFirstCall)
+		assert.Equal(t, 3, verifySigShareNumCalls)
 	})
 }
