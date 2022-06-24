@@ -333,10 +333,12 @@ func (sr *subroundEndRound) verifyNodesOnAggSigVerificationFail() error {
 				return err
 			}
 
+			// include also increase factor since it was added optimistically, and it was wrong
+			decreaseFactor := spos.ValidatorPeerHonestyDecreaseFactor - spos.ValidatorPeerHonestyIncreaseFactor
 			sr.PeerHonestyHandler().ChangeScore(
 				pk,
 				spos.GetConsensusTopicID(sr.ShardCoordinator()),
-				spos.ValidatorPeerHonestyDecreaseFactor,
+				decreaseFactor,
 			)
 		}
 
