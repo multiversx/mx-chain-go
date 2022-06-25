@@ -107,7 +107,7 @@ func createTestApiConfig() config.ApiRoutesConfig {
 		"log":         {"/log"},
 		"validator":   {"/statistics"},
 		"vm-values":   {"/hex", "/string", "/int", "/query"},
-		"transaction": {"/send", "/simulate", "/send-multiple", "/cost", "/:txhash"},
+		"transaction": {"/send", "/simulate", "/send-multiple", "/cost", "/:txhash", "/for-sender/:sender"},
 		"block":       {"/by-nonce/:nonce", "/by-hash/:hash", "/by-round/:round"},
 	}
 
