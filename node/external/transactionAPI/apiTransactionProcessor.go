@@ -116,7 +116,7 @@ func (atp *apiTransactionProcessor) GetTransactionsPoolForSender(sender string) 
 	senderShard := atp.shardCoordinator.ComputeId(senderAddr)
 	txsForSender := atp.fetchTxsForSender(string(senderAddr), senderShard)
 	if len(txsForSender) == 0 {
-		return nil, ErrCannotRetrieveTransactions
+		return nil, fmt.Errorf("%w, no transaction in pool for sender", ErrCannotRetrieveTransactions)
 	}
 
 	return &common.TransactionsPoolForSenderApiResponse{
@@ -135,7 +135,7 @@ func (atp *apiTransactionProcessor) GetLastPoolNonceForSender(sender string) (ui
 	senderShard := atp.shardCoordinator.ComputeId(senderAddr)
 	lastNonce, found := atp.fetchLastNonceForSender(string(senderAddr), senderShard)
 	if !found {
-		return 0, ErrCannotRetrieveNonce
+		return 0, fmt.Errorf("%w, no transaction in pool for sender", ErrCannotRetrieveNonce)
 	}
 
 	return lastNonce, nil
