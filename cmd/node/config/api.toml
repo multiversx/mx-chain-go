@@ -116,7 +116,10 @@
         { Name = "/ratings", Open = true },
 
         # /network/genesis-nodes will return the genesis nodes public keys
-        { Name = "/genesis-nodes", Open = true }
+        { Name = "/genesis-nodes", Open = true },
+
+        # /network/gas-configs will return currently scheduled gas configs
+        { Name = "/gas-configs", Open = true }
     ]
 
 [APIPackages.log]

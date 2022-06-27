@@ -594,6 +594,10 @@ func (nf *nodeFacade) GetGenesisNodesPubKeys() (map[uint32][]string, map[uint32]
 	return eligible, waiting, nil
 }
 
+func (nf *nodeFacade) GetGasConfigs() map[string]map[string]uint64 {
+	return nf.apiResolver.GetGasConfigs()
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (nf *nodeFacade) IsInterfaceNil() bool {
 	return nf == nil

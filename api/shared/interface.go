@@ -113,6 +113,7 @@ type FacadeHandler interface {
 	RestAPIServerDebugMode() bool
 	PprofEnabled() bool
 	GetGenesisNodesPubKeys() (map[uint32][]string, map[uint32][]string, error)
+	GetGasConfigs() map[string]map[string]uint64
 	GetTransactionsPool() (*common.TransactionsPoolAPIResponse, error)
 	IsInterfaceNil() bool
 }

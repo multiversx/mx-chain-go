@@ -30,6 +30,7 @@ const (
 	delegatedInfoPath      = "/delegated-info"
 	ratingsPath            = "/ratings"
 	genesisNodesConfigPath = "/genesis-nodes"
+	gasConfigPath          = "/gas-configs"
 )
 
 // networkFacadeHandler defines the methods to be implemented by a facade for handling network requests
@@ -41,6 +42,7 @@ type networkFacadeHandler interface {
 	GetAllIssuedESDTs(tokenType string) ([]string, error)
 	GetTokenSupply(token string) (*api.ESDTSupply, error)
 	GetGenesisNodesPubKeys() (map[uint32][]string, map[uint32][]string, error)
+	GetGasConfigs() map[string]map[string]uint64
 	IsInterfaceNil() bool
 }
 
@@ -48,6 +50,12 @@ type networkFacadeHandler interface {
 type GenesisNodesConfig struct {
 	Eligible map[uint32][]string `json:"eligible"`
 	Waiting  map[uint32][]string `json:"waiting"`
+}
+
+// GasConfig defines the gas config sections to be exposed
+type GasConfig struct {
+	BuiltInCost            map[string]uint64 `json:"builtInCost"`
+	MetaChainSystemSCsCost map[string]uint64 `json:"metaSystemSCCost"`
 }
 
 type networkGroup struct {
@@ -132,6 +140,11 @@ func NewNetworkGroup(facade networkFacadeHandler) (*networkGroup, error) {
 			Path:    genesisNodesConfigPath,
 			Method:  http.MethodGet,
 			Handler: ng.getGenesisNodesConfig,
+		},
+		{
+			Path:    gasConfigPath,
+			Method:  http.MethodGet,
+			Handler: ng.getGasConfig,
 		},
 	}
 	ng.endpoints = endpoints
@@ -412,6 +425,19 @@ func (ng *networkGroup) getGenesisNodesConfig(c *gin.Context) {
 	}
 
 	shared.RespondWith(c, http.StatusOK, gin.H{"nodes": nc}, "", shared.ReturnCodeSuccess)
+}
+
+func (ng *networkGroup) getGasConfig(c *gin.Context) {
+	start := time.Now()
+	gasConfigMap := ng.getFacade().GetGasConfigs()
+	log.Debug(fmt.Sprintf("GetGasConfigs took %s", time.Since(start)))
+
+	nc := GasConfig{
+		BuiltInCost:            gasConfigMap[common.BuiltInCost],
+		MetaChainSystemSCsCost: gasConfigMap[common.MetaChainSystemSCsCost],
+	}
+
+	shared.RespondWith(c, http.StatusOK, gin.H{"gasConfig": nc}, "", shared.ReturnCodeSuccess)
 }
 
 func (ng *networkGroup) getFacade() networkFacadeHandler {
