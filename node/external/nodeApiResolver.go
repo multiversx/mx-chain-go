@@ -281,6 +281,7 @@ func (nar *nodeApiResolver) getInitialNodesPubKeysBytes(nodesInfo map[uint32][]n
 	return nodesInfoPubkeys
 }
 
+// GetGasConfigs return currently used gas schedule config
 func (nar *nodeApiResolver) GetGasConfigs() map[string]map[string]uint64 {
 	return nar.gasScheduleNotifier.LatestGasSchedule()
 }
