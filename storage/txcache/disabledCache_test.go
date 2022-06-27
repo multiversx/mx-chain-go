@@ -29,7 +29,7 @@ func TestDisabledCache_DoesNothing(t *testing.T) {
 
 	require.NotPanics(t, func() { cache.ForEachTransaction(func(_ []byte, _ *WrappedTransaction) {}) })
 
-	txs := cache.GetTransactionsForSender("")
+	txs := cache.GetTransactionsPoolForSender("")
 	require.Equal(t, make([][]byte, 0), txs)
 
 	cache.Clear()

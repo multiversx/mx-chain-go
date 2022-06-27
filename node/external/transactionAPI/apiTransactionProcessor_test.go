@@ -635,7 +635,7 @@ func createTx(hash []byte, sender string, nonce uint64) *txcache.WrappedTransact
 	}
 }
 
-func TestApiTransactionProcessor_GetTransactionsForSender(t *testing.T) {
+func TestApiTransactionProcessor_GetTransactionsPoolForSender(t *testing.T) {
 	t.Parallel()
 
 	txHash0, txHash1, txHash2 := []byte("txHash0"), []byte("txHash1"), []byte("txHash2")
@@ -699,7 +699,7 @@ func TestApiTransactionProcessor_GetTransactionsForSender(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, atp)
 
-	res, err := atp.GetTransactionsForSender(sender)
+	res, err := atp.GetTransactionsPoolForSender(sender)
 	require.NoError(t, err)
 	require.Equal(t, sender, res.Sender)
 	expectedHashes := []string{hex.EncodeToString(txHash0), hex.EncodeToString(txHash1), hex.EncodeToString(txHash2), hex.EncodeToString(txHash3), hex.EncodeToString(txHash4)}

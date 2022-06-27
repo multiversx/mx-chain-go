@@ -256,7 +256,7 @@ func Test_ForEachTransaction(t *testing.T) {
 	require.Equal(t, 2, counter)
 }
 
-func Test_GetTransactionsForSender(t *testing.T) {
+func Test_GetTransactionsPoolForSender(t *testing.T) {
 	cache := newUnconstrainedCacheToTest()
 
 	txHashes1 := [][]byte{[]byte("hash-1"), []byte("hash-2")}
@@ -270,15 +270,15 @@ func Test_GetTransactionsForSender(t *testing.T) {
 	cache.AddTx(createTx(txHashes2[0], txSender2, 3))
 	cache.AddTx(createTx(txHashes2[2], txSender2, 5))
 
-	txs := cache.GetTransactionsForSender(txSender1)
+	txs := cache.GetTransactionsPoolForSender(txSender1)
 	require.Equal(t, txHashes1, txs)
 
-	txs = cache.GetTransactionsForSender(txSender2)
+	txs = cache.GetTransactionsPoolForSender(txSender2)
 	require.Equal(t, txHashes2, txs)
 
 	cache.RemoveTxByHash(txHashes2[0])
 	expectedHashes := txHashes2[1:]
-	txs = cache.GetTransactionsForSender(txSender2)
+	txs = cache.GetTransactionsPoolForSender(txSender2)
 	require.Equal(t, expectedHashes, txs)
 }
 

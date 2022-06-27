@@ -382,7 +382,7 @@ func TestNodeApiResolver_GetTransactionsPool(t *testing.T) {
 	})
 }
 
-func TestNodeApiResolver_GetTransactionsForSender(t *testing.T) {
+func TestNodeApiResolver_GetTransactionsPoolForSender(t *testing.T) {
 	t.Parallel()
 
 	t.Run("should error", func(t *testing.T) {
@@ -391,13 +391,13 @@ func TestNodeApiResolver_GetTransactionsForSender(t *testing.T) {
 		expectedErr := errors.New("expected error")
 		arg := createMockArgs()
 		arg.APITransactionHandler = &mock.TransactionAPIHandlerStub{
-			GetTransactionsForSenderCalled: func(sender string) (*common.TransactionsForSenderApiResponse, error) {
+			GetTransactionsPoolForSenderCalled: func(sender string) (*common.TransactionsPoolForSenderApiResponse, error) {
 				return nil, expectedErr
 			},
 		}
 
 		nar, _ := external.NewNodeApiResolver(arg)
-		res, err := nar.GetTransactionsForSender("sender")
+		res, err := nar.GetTransactionsPoolForSender("sender")
 		require.Nil(t, res)
 		require.Equal(t, expectedErr, err)
 	})
@@ -406,20 +406,20 @@ func TestNodeApiResolver_GetTransactionsForSender(t *testing.T) {
 		t.Parallel()
 
 		expectedSender := "alice"
-		expectedResponse := &common.TransactionsForSenderApiResponse{
+		expectedResponse := &common.TransactionsPoolForSenderApiResponse{
 			Sender:       expectedSender,
 			Transactions: []string{"txhash1", "txhash2"},
 		}
 		arg := createMockArgs()
 		arg.APITransactionHandler = &mock.TransactionAPIHandlerStub{
-			GetTransactionsForSenderCalled: func(sender string) (*common.TransactionsForSenderApiResponse, error) {
+			GetTransactionsPoolForSenderCalled: func(sender string) (*common.TransactionsPoolForSenderApiResponse, error) {
 				require.Equal(t, expectedSender, sender)
 				return expectedResponse, nil
 			},
 		}
 
 		nar, _ := external.NewNodeApiResolver(arg)
-		res, err := nar.GetTransactionsForSender(expectedSender)
+		res, err := nar.GetTransactionsPoolForSender(expectedSender)
 		require.NoError(t, err)
 		require.Equal(t, expectedResponse, res)
 	})

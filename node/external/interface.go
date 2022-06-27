@@ -59,7 +59,7 @@ type DelegatedListHandler interface {
 type APITransactionHandler interface {
 	GetTransaction(txHash string, withResults bool) (*transaction.ApiTransactionResult, error)
 	GetTransactionsPool() (*common.TransactionsPoolAPIResponse, error)
-	GetTransactionsForSender(sender string) (*common.TransactionsForSenderApiResponse, error)
+	GetTransactionsPoolForSender(sender string) (*common.TransactionsPoolForSenderApiResponse, error)
 	UnmarshalTransaction(txBytes []byte, txType transaction.TxType) (*transaction.ApiTransactionResult, error)
 	UnmarshalReceipt(receiptBytes []byte) (*transaction.ApiReceipt, error)
 	IsInterfaceNil() bool

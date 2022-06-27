@@ -218,8 +218,8 @@ func (cache *TxCache) ForEachTransaction(function ForEachTransaction) {
 	cache.txByHash.forEach(function)
 }
 
-// GetTransactionsForSender returns the list of transaction hashes for the sender
-func (cache *TxCache) GetTransactionsForSender(sender string) [][]byte {
+// GetTransactionsPoolForSender returns the list of transaction hashes for the sender
+func (cache *TxCache) GetTransactionsPoolForSender(sender string) [][]byte {
 	listForSender, ok := cache.txListBySender.getListForSender(sender)
 	if !ok {
 		return nil

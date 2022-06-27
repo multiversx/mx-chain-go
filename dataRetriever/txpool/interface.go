@@ -15,5 +15,5 @@ type txCache interface {
 	ForEachTransaction(function txcache.ForEachTransaction)
 	NumBytes() int
 	Diagnose(deep bool)
-	GetTransactionsForSender(sender string) [][]byte
+	GetTransactionsPoolForSender(sender string) [][]byte
 }

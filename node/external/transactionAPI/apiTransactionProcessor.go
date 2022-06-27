@@ -105,8 +105,8 @@ func (atp *apiTransactionProcessor) GetTransactionsPool() (*common.TransactionsP
 	return txsPoolResponse, nil
 }
 
-// GetTransactionsForSender will return a structure containing the transactions for sender that is to be returned on API calls
-func (atp *apiTransactionProcessor) GetTransactionsForSender(sender string) (*common.TransactionsForSenderApiResponse, error) {
+// GetTransactionsPoolForSender will return a structure containing the transactions for sender that is to be returned on API calls
+func (atp *apiTransactionProcessor) GetTransactionsPoolForSender(sender string) (*common.TransactionsPoolForSenderApiResponse, error) {
 	senderAddr, err := atp.addressPubKeyConverter.Decode(sender)
 	if err != nil {
 		return nil, fmt.Errorf("%s, %w", ErrInvalidAddress.Error(), err)
@@ -118,7 +118,7 @@ func (atp *apiTransactionProcessor) GetTransactionsForSender(sender string) (*co
 		return nil, ErrCannotRetrieveTransactions
 	}
 
-	return &common.TransactionsForSenderApiResponse{
+	return &common.TransactionsPoolForSenderApiResponse{
 		Sender:       sender,
 		Transactions: txsHashesBytesToString(txsForSender),
 	}, nil
@@ -147,7 +147,7 @@ func (atp *apiTransactionProcessor) fetchTxsFromCache(sender, cacheId string) []
 		return nil
 	}
 
-	return txCache.GetTransactionsForSender(sender)
+	return txCache.GetTransactionsPoolForSender(sender)
 }
 
 func txsHashesBytesToString(input [][]byte) []string {

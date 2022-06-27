@@ -99,6 +99,6 @@ type Facade interface {
 	VerifyProof(rootHash string, address string, proof [][]byte) (bool, error)
 	GetGenesisNodesPubKeys() (map[uint32][]string, map[uint32][]string, error)
 	GetTransactionsPool() (*common.TransactionsPoolAPIResponse, error)
-	GetTransactionsForSender(sender string) (*common.TransactionsForSenderApiResponse, error)
+	GetTransactionsPoolForSender(sender string) (*common.TransactionsPoolForSenderApiResponse, error)
 	IsInterfaceNil() bool
 }

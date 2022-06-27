@@ -341,8 +341,8 @@ func (inf *initialNodeFacade) GetTransactionsPool() (*common.TransactionsPoolAPI
 	return nil, errNodeStarting
 }
 
-// GetTransactionsForSender returns a nil structure and error
-func (inf *initialNodeFacade) GetTransactionsForSender(_ string) (*common.TransactionsForSenderApiResponse, error) {
+// GetTransactionsPoolForSender returns a nil structure and error
+func (inf *initialNodeFacade) GetTransactionsPoolForSender(_ string) (*common.TransactionsPoolForSenderApiResponse, error) {
 	return nil, errNodeStarting
 }
 

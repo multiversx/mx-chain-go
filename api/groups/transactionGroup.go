@@ -30,7 +30,7 @@ const (
 	sendMultiplePath                 = "/send-multiple"
 	getTransactionPath               = "/:txhash"
 	getTransactionsPool              = "/pool"
-	getTransactionsForSender         = "/for-sender/:sender"
+	getTransactionsPoolForSender     = "/pool/:sender"
 
 	queryParamWithResults    = "withResults"
 	queryParamCheckSignature = "checkSignature"
@@ -46,7 +46,7 @@ type transactionFacadeHandler interface {
 	SimulateTransactionExecution(tx *transaction.Transaction) (*txSimData.SimulationResults, error)
 	GetTransaction(hash string, withResults bool) (*transaction.ApiTransactionResult, error)
 	GetTransactionsPool() (*common.TransactionsPoolAPIResponse, error)
-	GetTransactionsForSender(sender string) (*common.TransactionsForSenderApiResponse, error)
+	GetTransactionsPoolForSender(sender string) (*common.TransactionsPoolForSenderApiResponse, error)
 	ComputeTransactionGasLimit(tx *transaction.Transaction) (*transaction.CostResponse, error)
 	EncodeAddressPubkey(pk []byte) (string, error)
 	GetThrottlerForEndpoint(endpoint string) (core.Throttler, bool)
@@ -104,9 +104,9 @@ func NewTransactionGroup(facade transactionFacadeHandler) (*transactionGroup, er
 			Handler: tg.getTransactionsPool,
 		},
 		{
-			Path:    getTransactionsForSender,
+			Path:    getTransactionsPoolForSender,
 			Method:  http.MethodGet,
-			Handler: tg.getTransactionsForSender,
+			Handler: tg.getTransactionsPoolForSender,
 		},
 		{
 			Path:    sendMultiplePath,
@@ -571,10 +571,10 @@ func (tg *transactionGroup) getTransactionsPool(c *gin.Context) {
 	)
 }
 
-// getTransactionsForSender returns the transactions hashes for the sender
-func (tg *transactionGroup) getTransactionsForSender(c *gin.Context) {
+// getTransactionsPoolForSender returns the transactions hashes for the sender
+func (tg *transactionGroup) getTransactionsPoolForSender(c *gin.Context) {
 	sender := c.Param("sender")
-	txs, err := tg.getFacade().GetTransactionsForSender(sender)
+	txs, err := tg.getFacade().GetTransactionsPoolForSender(sender)
 	if err != nil {
 		c.JSON(
 			http.StatusInternalServerError,
@@ -590,7 +590,7 @@ func (tg *transactionGroup) getTransactionsForSender(c *gin.Context) {
 	c.JSON(
 		http.StatusOK,
 		shared.GenericAPIResponse{
-			Data:  gin.H{"transactionsForSender": txs},
+			Data:  gin.H{"pool": txs},
 			Error: "",
 			Code:  shared.ReturnCodeSuccess,
 		},

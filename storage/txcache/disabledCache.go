@@ -117,8 +117,8 @@ func (cache *DisabledCache) ImmunizeTxsAgainstEviction(_ [][]byte) {
 func (cache *DisabledCache) Diagnose(_ bool) {
 }
 
-// GetTransactionsForSender returns an empty slice
-func (cache *DisabledCache) GetTransactionsForSender(_ string) [][]byte {
+// GetTransactionsPoolForSender returns an empty slice
+func (cache *DisabledCache) GetTransactionsPoolForSender(_ string) [][]byte {
 	return make([][]byte, 0)
 }
 

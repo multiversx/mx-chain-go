@@ -108,8 +108,8 @@ func (cache *CrossTxCache) ForEachTransaction(function ForEachTransaction) {
 	})
 }
 
-// GetTransactionsForSender returns an empty slice
-func (cache *CrossTxCache) GetTransactionsForSender(_ string) [][]byte {
+// GetTransactionsPoolForSender returns an empty slice
+func (cache *CrossTxCache) GetTransactionsPoolForSender(_ string) [][]byte {
 	return make([][]byte, 0)
 }
 
