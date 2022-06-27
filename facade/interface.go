@@ -122,6 +122,7 @@ type ApiResolver interface {
 	GetInternalMiniBlock(format common.ApiOutputFormat, txHash string, epoch uint32) (interface{}, error)
 	GetGenesisNodesPubKeys() (map[uint32][]string, map[uint32][]string)
 	GetGenesisBalances() ([]*common.InitialAccountAPI, error)
+	GetGasConfigs() map[string]map[string]uint64
 	Close() error
 	IsInterfaceNil() bool
 }

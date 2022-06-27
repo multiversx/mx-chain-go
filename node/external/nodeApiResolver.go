@@ -32,6 +32,7 @@ type ArgNodeApiResolver struct {
 	GenesisNodesSetupHandler sharding.GenesisNodesSetupHandler
 	ValidatorPubKeyConverter core.PubkeyConverter
 	AccountsParser           genesis.AccountsParser
+	GasScheduler             core.GasScheduleNotifier
 }
 
 // nodeApiResolver can resolve API requests
@@ -48,6 +49,7 @@ type nodeApiResolver struct {
 	genesisNodesSetupHandler sharding.GenesisNodesSetupHandler
 	validatorPubKeyConverter core.PubkeyConverter
 	accountsParser           genesis.AccountsParser
+	gasScheduler             core.GasScheduleNotifier
 }
 
 // NewNodeApiResolver creates a new nodeApiResolver instance
@@ -102,6 +104,7 @@ func NewNodeApiResolver(arg ArgNodeApiResolver) (*nodeApiResolver, error) {
 		genesisNodesSetupHandler: arg.GenesisNodesSetupHandler,
 		validatorPubKeyConverter: arg.ValidatorPubKeyConverter,
 		accountsParser:           arg.AccountsParser,
+		gasScheduler:             arg.GasScheduler,
 	}, nil
 }
 
@@ -273,6 +276,10 @@ func (nar *nodeApiResolver) getInitialNodesPubKeysBytes(nodesInfo map[uint32][]n
 	}
 
 	return nodesInfoPubkeys
+}
+
+func (nar *nodeApiResolver) GetGasConfigs() map[string]map[string]uint64 {
+	return nar.gasScheduler.LatestGasSchedule()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

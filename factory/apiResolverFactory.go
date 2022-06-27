@@ -264,6 +264,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		GenesisNodesSetupHandler: args.CoreComponents.GenesisNodesSetup(),
 		ValidatorPubKeyConverter: args.CoreComponents.ValidatorPubKeyConverter(),
 		AccountsParser:           args.ProcessComponents.AccountsParser(),
+		GasScheduler:             args.GasScheduleNotifier,
 	}
 
 	return external.NewNodeApiResolver(argsApiResolver)

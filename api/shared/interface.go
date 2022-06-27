@@ -114,6 +114,7 @@ type FacadeHandler interface {
 	PprofEnabled() bool
 	GetGenesisNodesPubKeys() (map[uint32][]string, map[uint32][]string, error)
 	GetGenesisBalances() ([]*common.InitialAccountAPI, error)
+	GetGasConfigs() map[string]map[string]uint64
 	GetTransactionsPool() (*common.TransactionsPoolAPIResponse, error)
 	IsInterfaceNil() bool
 }
