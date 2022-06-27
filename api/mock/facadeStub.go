@@ -72,6 +72,7 @@ type FacadeStub struct {
 	GetGenesisNodesPubKeysCalled            func() (map[uint32][]string, map[uint32][]string, error)
 	GetTransactionsPoolCalled               func() (*common.TransactionsPoolAPIResponse, error)
 	GetTransactionsPoolForSenderCalled      func(sender string) (*common.TransactionsPoolForSenderApiResponse, error)
+	GetLastPoolNonceForSenderCalled         func(sender string) (uint64, error)
 }
 
 // GetTokenSupply -
@@ -449,6 +450,15 @@ func (f *FacadeStub) GetTransactionsPoolForSender(sender string) (*common.Transa
 	}
 
 	return nil, nil
+}
+
+// GetLastPoolNonceForSender -
+func (f *FacadeStub) GetLastPoolNonceForSender(sender string) (uint64, error) {
+	if f.GetLastPoolNonceForSenderCalled != nil {
+		return f.GetLastPoolNonceForSenderCalled(sender)
+	}
+
+	return 0, nil
 }
 
 // Trigger -

@@ -425,6 +425,45 @@ func TestNodeApiResolver_GetTransactionsPoolForSender(t *testing.T) {
 	})
 }
 
+func TestNodeApiResolver_GetLastPoolNonceForSender(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should error", func(t *testing.T) {
+		t.Parallel()
+
+		expectedErr := errors.New("expected error")
+		arg := createMockArgs()
+		arg.APITransactionHandler = &mock.TransactionAPIHandlerStub{
+			GetLastPoolNonceForSenderCalled: func(sender string) (uint64, error) {
+				return 0, expectedErr
+			},
+		}
+
+		nar, _ := external.NewNodeApiResolver(arg)
+		res, err := nar.GetLastPoolNonceForSender("sender")
+		require.Equal(t, uint64(0), res)
+		require.Equal(t, expectedErr, err)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		expectedSender := "alice"
+		expectedNonce := uint64(33)
+		arg := createMockArgs()
+		arg.APITransactionHandler = &mock.TransactionAPIHandlerStub{
+			GetLastPoolNonceForSenderCalled: func(sender string) (uint64, error) {
+				return expectedNonce, nil
+			},
+		}
+
+		nar, _ := external.NewNodeApiResolver(arg)
+		res, err := nar.GetLastPoolNonceForSender(expectedSender)
+		require.NoError(t, err)
+		require.Equal(t, expectedNonce, res)
+	})
+}
+
 func TestNodeApiResolver_GetGenesisNodesPubKeys(t *testing.T) {
 	t.Parallel()
 

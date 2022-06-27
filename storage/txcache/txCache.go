@@ -234,6 +234,22 @@ func (cache *TxCache) GetTransactionsPoolForSender(sender string) [][]byte {
 	return txsHashes
 }
 
+// GetLastPoolNonceForSender returns the last nonce from pool for the sender
+func (cache *TxCache) GetLastPoolNonceForSender(sender string) (uint64, bool) {
+	listForSender, ok := cache.txListBySender.getListForSender(sender)
+	if !ok {
+		return 0, ok
+	}
+
+	lastTxElement := listForSender.items.Back()
+	lastTx, ok := lastTxElement.Value.(*WrappedTransaction)
+	if !ok {
+		return 0, ok
+	}
+
+	return lastTx.Tx.GetNonce(), ok
+}
+
 // Clear clears the cache
 func (cache *TxCache) Clear() {
 	cache.mutTxOperation.Lock()

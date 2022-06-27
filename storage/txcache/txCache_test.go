@@ -282,6 +282,31 @@ func Test_GetTransactionsPoolForSender(t *testing.T) {
 	require.Equal(t, expectedHashes, txs)
 }
 
+func Test_GetLastPoolNonceForSender(t *testing.T) {
+	cache := newUnconstrainedCacheToTest()
+
+	txSender := "alice"
+
+	nonce, ok := cache.GetLastPoolNonceForSender(txSender)
+	assert.False(t, ok)
+	require.Equal(t, uint64(0), nonce)
+
+	txHashes := [][]byte{[]byte("hash-1"), []byte("hash-2"), []byte("hash-3")}
+	lastNonce := uint64(33)
+	cache.AddTx(createTx(txHashes[1], txSender, lastNonce))
+	cache.AddTx(createTx(txHashes[0], txSender, 1))
+	cache.AddTx(createTx(txHashes[2], txSender, 3))
+
+	nonce, ok = cache.GetLastPoolNonceForSender(txSender)
+	assert.True(t, ok)
+	require.Equal(t, lastNonce, nonce)
+
+	cache.RemoveTxByHash(txHashes[1])
+	nonce, ok = cache.GetLastPoolNonceForSender(txSender)
+	assert.True(t, ok)
+	require.Equal(t, uint64(3), nonce)
+}
+
 func Test_SelectTransactions_Dummy(t *testing.T) {
 	cache := newUnconstrainedCacheToTest()
 

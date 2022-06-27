@@ -113,6 +113,11 @@ func (cache *CrossTxCache) GetTransactionsPoolForSender(_ string) [][]byte {
 	return make([][]byte, 0)
 }
 
+// GetLastPoolNonceForSender returns 0 and false
+func (cache *CrossTxCache) GetLastPoolNonceForSender(_ string) (uint64, bool) {
+	return 0, false
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (cache *CrossTxCache) IsInterfaceNil() bool {
 	return cache == nil

@@ -122,6 +122,11 @@ func (cache *DisabledCache) GetTransactionsPoolForSender(_ string) [][]byte {
 	return make([][]byte, 0)
 }
 
+// GetLastPoolNonceForSender returns 0 and false
+func (cache *DisabledCache) GetLastPoolNonceForSender(_ string) (uint64, bool) {
+	return 0, false
+}
+
 // Close does nothing
 func (cache *DisabledCache) Close() error {
 	return nil

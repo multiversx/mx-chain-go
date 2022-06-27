@@ -34,6 +34,7 @@ type ApiResolverStub struct {
 	GetGenesisNodesPubKeysCalled           func() (map[uint32][]string, map[uint32][]string)
 	GetTransactionsPoolCalled              func() (*common.TransactionsPoolAPIResponse, error)
 	GetTransactionsPoolForSenderCalled     func(sender string) (*common.TransactionsPoolForSenderApiResponse, error)
+	GetLastPoolNonceForSenderCalled        func(sender string) (uint64, error)
 }
 
 // GetTransaction -
@@ -174,6 +175,15 @@ func (ars *ApiResolverStub) GetTransactionsPoolForSender(sender string) (*common
 	}
 
 	return nil, nil
+}
+
+// GetLastPoolNonceForSender -
+func (ars *ApiResolverStub) GetLastPoolNonceForSender(sender string) (uint64, error) {
+	if ars.GetLastPoolNonceForSenderCalled != nil {
+		return ars.GetLastPoolNonceForSenderCalled(sender)
+	}
+
+	return 0, nil
 }
 
 // GetInternalMetaBlockByHash -

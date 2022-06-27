@@ -16,4 +16,5 @@ type txCache interface {
 	NumBytes() int
 	Diagnose(deep bool)
 	GetTransactionsPoolForSender(sender string) [][]byte
+	GetLastPoolNonceForSender(sender string) (uint64, bool)
 }

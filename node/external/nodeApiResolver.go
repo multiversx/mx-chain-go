@@ -147,6 +147,11 @@ func (nar *nodeApiResolver) GetTransactionsPoolForSender(sender string) (*common
 	return nar.apiTransactionHandler.GetTransactionsPoolForSender(sender)
 }
 
+// GetLastPoolNonceForSender will return the last nonce from pool for sender that is to be returned on API calls
+func (nar *nodeApiResolver) GetLastPoolNonceForSender(sender string) (uint64, error) {
+	return nar.apiTransactionHandler.GetLastPoolNonceForSender(sender)
+}
+
 // GetBlockByHash will return the block with the given hash and optionally with transactions
 func (nar *nodeApiResolver) GetBlockByHash(hash string, withTxs bool) (*api.Block, error) {
 	decodedHash, err := hex.DecodeString(hash)

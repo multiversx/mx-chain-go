@@ -19,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/txstatus"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 )
 
@@ -124,30 +125,76 @@ func (atp *apiTransactionProcessor) GetTransactionsPoolForSender(sender string) 
 	}, nil
 }
 
-func (atp *apiTransactionProcessor) fetchTxsForSender(sender string, senderShard uint32) [][]byte {
-	txsForSender := make([][]byte, 0)
+// GetLastPoolNonceForSender will return the last nonce from pool for sender that is to be returned on API calls
+func (atp *apiTransactionProcessor) GetLastPoolNonceForSender(sender string) (uint64, error) {
+	senderAddr, err := atp.addressPubKeyConverter.Decode(sender)
+	if err != nil {
+		return 0, fmt.Errorf("%s, %w", ErrInvalidAddress.Error(), err)
+	}
+
+	senderShard := atp.shardCoordinator.ComputeId(senderAddr)
+	lastNonce, found := atp.fetchLastNonceForSender(string(senderAddr), senderShard)
+	if !found {
+		return 0, ErrCannotRetrieveNonce
+	}
+
+	return lastNonce, nil
+}
+
+func (atp *apiTransactionProcessor) getDataStoresForSender(senderShard uint32) []storage.Cacher {
+	cachers := make([]storage.Cacher, 0)
 	numOfShards := atp.shardCoordinator.NumberOfShards()
 	for shard := uint32(0); shard < numOfShards; shard++ {
 		cacheId := process.ShardCacherIdentifier(senderShard, shard)
-		txs := atp.fetchTxsFromCache(sender, cacheId)
-		txsForSender = append(txsForSender, txs...)
+		shardCache := atp.dataPool.Transactions().ShardDataStore(cacheId)
+		cachers = append(cachers, shardCache)
 	}
 
 	cacheId := process.ShardCacherIdentifier(senderShard, common.MetachainShardId)
-	txsForMeta := atp.fetchTxsFromCache(sender, cacheId)
-	txsForSender = append(txsForSender, txsForMeta...)
+	shardCache := atp.dataPool.Transactions().ShardDataStore(cacheId)
+	cachers = append(cachers, shardCache)
+
+	return cachers
+}
+
+func (atp *apiTransactionProcessor) fetchTxsForSender(sender string, senderShard uint32) [][]byte {
+	txsForSender := make([][]byte, 0)
+	cachers := atp.getDataStoresForSender(senderShard)
+	for _, cache := range cachers {
+		txCache, ok := cache.(*txcache.TxCache)
+		if !ok {
+			continue
+		}
+
+		txs := txCache.GetTransactionsPoolForSender(sender)
+		txsForSender = append(txsForSender, txs...)
+	}
 
 	return txsForSender
 }
 
-func (atp *apiTransactionProcessor) fetchTxsFromCache(sender, cacheId string) [][]byte {
-	shardCache := atp.dataPool.Transactions().ShardDataStore(cacheId)
-	txCache, ok := shardCache.(*txcache.TxCache)
-	if !ok {
-		return nil
+func (atp *apiTransactionProcessor) fetchLastNonceForSender(sender string, senderShard uint32) (uint64, bool) {
+	lastNonce := uint64(0)
+	found := false
+	cachers := atp.getDataStoresForSender(senderShard)
+	for _, cache := range cachers {
+		txCache, ok := cache.(*txcache.TxCache)
+		if !ok {
+			continue
+		}
+
+		lastShardNonce, ok := txCache.GetLastPoolNonceForSender(sender)
+		if !ok {
+			continue
+		}
+
+		if lastShardNonce > lastNonce {
+			lastNonce = lastShardNonce
+			found = true
+		}
 	}
 
-	return txCache.GetTransactionsPoolForSender(sender)
+	return lastNonce, found
 }
 
 func txsHashesBytesToString(input [][]byte) []string {

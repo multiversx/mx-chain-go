@@ -194,5 +194,9 @@ func TestDisabledNodeFacade_AllMethodsShouldNotPanic(t *testing.T) {
 	assert.Nil(t, txs)
 	assert.Equal(t, errNodeStarting, err)
 
+	nonce, err := inf.GetLastPoolNonceForSender("")
+	assert.Equal(t, uint64(0), nonce)
+	assert.Equal(t, errNodeStarting, err)
+
 	assert.False(t, check.IfNil(inf))
 }
