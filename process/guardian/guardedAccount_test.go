@@ -539,7 +539,7 @@ func TestGuardedAccount_GetActiveGuardian(t *testing.T) {
 	})
 }
 
-func TestGuardedAccount_getPendingGuardian(t *testing.T){
+func TestGuardedAccount_getPendingGuardian(t *testing.T) {
 	currentEpoch := uint32(10)
 	ga := createGuardedAccountWithEpoch(currentEpoch)
 
@@ -570,7 +570,7 @@ func TestGuardedAccount_getPendingGuardian(t *testing.T){
 		}
 		configuredGuardians := &guardians.Guardians{Slice: []*guardians.Guardian{activeGuardian}}
 		guardian, err := ga.getPendingGuardian(configuredGuardians)
-		require.Nil(t,guardian)
+		require.Nil(t, guardian)
 		require.Equal(t, process.ErrAccountHasNoPendingGuardian, err)
 	})
 	t.Run("one active guardian and one pending new guardian", func(t *testing.T) {
@@ -875,6 +875,134 @@ func TestGuardedAccount_HasPendingGuardian(t *testing.T) {
 		}
 
 		require.False(t, ga.HasPendingGuardian(uah))
+	})
+}
+
+func TestGuardedAccount_CleanOtherThanActive(t *testing.T) {
+	t.Parallel()
+
+	currentEpoch := uint32(10)
+	g0 :=  &guardians.Guardian{
+		Address:         []byte("old guardian"),
+		ActivationEpoch: currentEpoch - 4,
+	}
+	g1 := &guardians.Guardian{
+		Address:         []byte("active guardian"),
+		ActivationEpoch: currentEpoch - 2,
+	}
+	g2 := &guardians.Guardian{
+		Address:         []byte("pending guardian"),
+		ActivationEpoch: currentEpoch + 2,
+	}
+
+	t.Run("no configured guardians does not change the guardians", func(t *testing.T) {
+		configuredGuardians := &guardians.Guardians{Slice: []*guardians.Guardian{}}
+		ga := createGuardedAccountWithEpoch(currentEpoch)
+
+		acc := &stateMocks.UserAccountStub{
+			RetrieveValueFromDataTrieTrackerCalled: func(key []byte) ([]byte, error) {
+				return ga.marshaller.Marshal(configuredGuardians)
+			},
+			AccountDataHandlerCalled: func() vmcommon.AccountDataHandler {
+				return &trie.DataTrieTrackerStub{
+					SaveKeyValueCalled: func(key []byte, value []byte) error {
+						require.Fail(t, "should not save anything")
+						return nil
+					},
+				}
+			},
+		}
+
+		ga.CleanOtherThanActive(acc)
+	})
+	t.Run("one pending guardian should clean the pending", func(t *testing.T) {
+		configuredGuardians := &guardians.Guardians{Slice: []*guardians.Guardian{g2}}
+		ga := createGuardedAccountWithEpoch(currentEpoch)
+		expectedConfig := &guardians.Guardians{Slice: []*guardians.Guardian{}}
+		expectedValue, _ := ga.marshaller.Marshal(expectedConfig)
+
+		acc := &stateMocks.UserAccountStub{
+			RetrieveValueFromDataTrieTrackerCalled: func(key []byte) ([]byte, error) {
+				return ga.marshaller.Marshal(configuredGuardians)
+			},
+			AccountDataHandlerCalled: func() vmcommon.AccountDataHandler {
+				return &trie.DataTrieTrackerStub{
+					SaveKeyValueCalled: func(key []byte, value []byte) error {
+						require.Equal(t, guardianKey, key)
+						require.Equal(t, value, expectedValue)
+						return nil
+					},
+				}
+			},
+		}
+
+		ga.CleanOtherThanActive(acc)
+	})
+	t.Run("one active guardian should set again the active", func(t *testing.T) {
+		configuredGuardians := &guardians.Guardians{Slice: []*guardians.Guardian{g1}}
+		ga := createGuardedAccountWithEpoch(currentEpoch)
+
+		acc := &stateMocks.UserAccountStub{
+			RetrieveValueFromDataTrieTrackerCalled: func(key []byte) ([]byte, error) {
+				return ga.marshaller.Marshal(configuredGuardians)
+			},
+			AccountDataHandlerCalled: func() vmcommon.AccountDataHandler {
+				return &trie.DataTrieTrackerStub{
+					SaveKeyValueCalled: func(key []byte, value []byte) error {
+						require.Equal(t, guardianKey, key)
+						expectedMarshalledGuardians, _ := ga.marshaller.Marshal(configuredGuardians)
+						require.Equal(t, expectedMarshalledGuardians, value)
+						return nil
+					},
+				}
+			},
+		}
+
+		ga.CleanOtherThanActive(acc)
+	})
+	t.Run("one active and one pending should set again the active (effect is cleaning the pending)", func(t *testing.T) {
+		configuredGuardians := &guardians.Guardians{Slice: []*guardians.Guardian{g1, g2}}
+		ga := createGuardedAccountWithEpoch(currentEpoch)
+
+		acc := &stateMocks.UserAccountStub{
+			RetrieveValueFromDataTrieTrackerCalled: func(key []byte) ([]byte, error) {
+				return ga.marshaller.Marshal(configuredGuardians)
+			},
+			AccountDataHandlerCalled: func() vmcommon.AccountDataHandler {
+				return &trie.DataTrieTrackerStub{
+					SaveKeyValueCalled: func(key []byte, value []byte) error {
+						require.Equal(t, guardianKey, key)
+						expectedMarshalledGuardians, _ := ga.marshaller.Marshal(&guardians.Guardians{Slice: []*guardians.Guardian{g1}})
+						require.Equal(t, expectedMarshalledGuardians, value)
+						return nil
+					},
+				}
+			},
+		}
+
+		ga.CleanOtherThanActive(acc)
+	})
+	t.Run("one active and one disabled should set again the active (effect is cleaning the disabled)", func(t *testing.T) {
+		configuredGuardians := &guardians.Guardians{Slice: []*guardians.Guardian{g0, g1}}
+		ga := createGuardedAccountWithEpoch(currentEpoch)
+
+		acc := &stateMocks.UserAccountStub{
+			RetrieveValueFromDataTrieTrackerCalled: func(key []byte) ([]byte, error) {
+				return ga.marshaller.Marshal(configuredGuardians)
+			},
+			AccountDataHandlerCalled: func() vmcommon.AccountDataHandler {
+				return &trie.DataTrieTrackerStub{
+					SaveKeyValueCalled: func(key []byte, value []byte) error {
+						require.Equal(t, guardianKey, key)
+						expectedMarshalledGuardians, _ := ga.marshaller.Marshal(&guardians.Guardians{Slice: []*guardians.Guardian{g1}})
+						require.Equal(t, expectedMarshalledGuardians, value)
+						return nil
+					},
+				}
+			},
+		}
+
+		ga.CleanOtherThanActive(acc)
 	})
 }
 

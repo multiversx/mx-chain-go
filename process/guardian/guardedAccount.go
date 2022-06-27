@@ -66,6 +66,23 @@ func (agc *guardedAccount) GetActiveGuardian(uah vmcommon.UserAccountHandler) ([
 	return guardian.Address, nil
 }
 
+// CleanOtherThanActive cleans the pending guardian or old/disabled guardian, if any
+func (agc *guardedAccount) CleanOtherThanActive(uah vmcommon.UserAccountHandler) {
+	configuredGuardians, err := agc.getVmUserAccountConfiguredGuardian(uah)
+	if err != nil {
+		return
+	}
+
+	activeGuardian, err := agc.getActiveGuardian(configuredGuardians)
+	if err != nil {
+		configuredGuardians.Slice = []*guardians.Guardian{}
+	} else {
+		configuredGuardians.Slice = []*guardians.Guardian{activeGuardian}
+	}
+
+	_ = agc.saveAccountGuardians(uah, configuredGuardians)
+}
+
 // HasActiveGuardian returns true if the account has an active guardian configured, false otherwise
 func (agc *guardedAccount) HasActiveGuardian(uah state.UserAccountHandler) bool {
 	if check.IfNil(uah) {

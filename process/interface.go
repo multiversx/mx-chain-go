@@ -1227,6 +1227,7 @@ type GuardedAccountHandler interface {
 	HasActiveGuardian(uah state.UserAccountHandler) bool
 	HasPendingGuardian(uah state.UserAccountHandler) bool
 	SetGuardian(uah vmcommon.UserAccountHandler, guardianAddress []byte, txGuardianAddress []byte) error
+	CleanOtherThanActive(uah vmcommon.UserAccountHandler)
 	IsInterfaceNil() bool
 }
 
