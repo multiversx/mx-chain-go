@@ -32,13 +32,14 @@ import (
 var log = logger.GetOrCreate("integrationtests/state/statetriesync")
 
 func createTestProcessorNodeAndTrieStorage(
+	t *testing.T,
 	numOfShards uint32,
 	shardID uint32,
 	txSignPrivKeyShardId uint32,
 ) (*integrationTests.TestProcessorNode, storage.Storer) {
 	mainStorer, _, err := testStorage.CreateTestingTriePruningStorer(&testscommon.ShardsCoordinatorMock{}, notifier.NewEpochStartSubscriptionHandler())
 	if err != nil {
-		fmt.Println("err creating main storer" + err.Error())
+		assert.Nil(t, err)
 	}
 
 	node := integrationTests.NewTestProcessorNodeWithStorageTrieAndGasModel(numOfShards, shardID, txSignPrivKeyShardId, mainStorer, createTestGasMap())
@@ -57,10 +58,10 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 	var txSignPrivKeyShardId uint32 = 0
 
 	fmt.Println("Requester:	")
-	nRequester, trieStorageRequester := createTestProcessorNodeAndTrieStorage(nrOfShards, shardID, txSignPrivKeyShardId)
+	nRequester, trieStorageRequester := createTestProcessorNodeAndTrieStorage(t, nrOfShards, shardID, txSignPrivKeyShardId)
 
 	fmt.Println("Resolver:")
-	nResolver, trieStorageResolver := createTestProcessorNodeAndTrieStorage(nrOfShards, shardID, txSignPrivKeyShardId)
+	nResolver, trieStorageResolver := createTestProcessorNodeAndTrieStorage(t, nrOfShards, shardID, txSignPrivKeyShardId)
 
 	defer func() {
 		_ = trieStorageRequester.DestroyUnit()
@@ -188,10 +189,10 @@ func TestNode_RequestInterceptTrieNodesWithMessengerNotSyncingShouldErr(t *testi
 	var txSignPrivKeyShardId uint32 = 0
 
 	fmt.Println("Requester:	")
-	nRequester, trieStorageRequester := createTestProcessorNodeAndTrieStorage(nrOfShards, shardID, txSignPrivKeyShardId)
+	nRequester, trieStorageRequester := createTestProcessorNodeAndTrieStorage(t, nrOfShards, shardID, txSignPrivKeyShardId)
 
 	fmt.Println("Resolver:")
-	nResolver, trieStorageResolver := createTestProcessorNodeAndTrieStorage(nrOfShards, shardID, txSignPrivKeyShardId)
+	nResolver, trieStorageResolver := createTestProcessorNodeAndTrieStorage(t, nrOfShards, shardID, txSignPrivKeyShardId)
 
 	defer func() {
 		_ = trieStorageRequester.DestroyUnit()
@@ -300,10 +301,10 @@ func testMultipleDataTriesSync(t *testing.T, numAccounts int, numDataTrieLeaves 
 	var txSignPrivKeyShardId uint32 = 0
 
 	fmt.Println("Requester:	")
-	nRequester, trieStorageRequester := createTestProcessorNodeAndTrieStorage(nrOfShards, shardID, txSignPrivKeyShardId)
+	nRequester, trieStorageRequester := createTestProcessorNodeAndTrieStorage(t, nrOfShards, shardID, txSignPrivKeyShardId)
 
 	fmt.Println("Resolver:")
-	nResolver, trieStorageResolver := createTestProcessorNodeAndTrieStorage(nrOfShards, shardID, txSignPrivKeyShardId)
+	nResolver, trieStorageResolver := createTestProcessorNodeAndTrieStorage(t, nrOfShards, shardID, txSignPrivKeyShardId)
 
 	defer func() {
 		_ = trieStorageRequester.DestroyUnit()
