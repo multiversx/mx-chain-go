@@ -22,7 +22,7 @@ func NewSyncTrieStorageManager(tsm common.StorageManager) (*syncTrieStorageManag
 	}, nil
 }
 
-// Put adds the given value to the previous epoch storer if available, else it adds it to the current storer
+// Put adds the given value to the previous epoch storer if available, otherwise it adds it to the current storer
 func (stsm *syncTrieStorageManager) Put(key []byte, val []byte) error {
 	if stsm.epoch == 0 {
 		return stsm.PutInEpoch(key, val, stsm.epoch)
