@@ -75,10 +75,10 @@ func (agc *guardedAccount) CleanOtherThanActive(uah vmcommon.UserAccountHandler)
 
 	activeGuardian, err := agc.getActiveGuardian(configuredGuardians)
 	if err != nil {
-		return
+		configuredGuardians.Slice = []*guardians.Guardian{}
+	} else {
+		configuredGuardians.Slice = []*guardians.Guardian{activeGuardian}
 	}
-
-	configuredGuardians.Slice = []*guardians.Guardian{activeGuardian}
 
 	_ = agc.saveAccountGuardians(uah, configuredGuardians)
 }
