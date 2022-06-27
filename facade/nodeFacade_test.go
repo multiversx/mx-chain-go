@@ -1353,3 +1353,49 @@ func TestNodeFacade_GetGenesisBalances(t *testing.T) {
 		require.Equal(t, expectedBalances, res)
 	})
 }
+
+func TestGetGasConfigs(t *testing.T) {
+	t.Parallel()
+
+	t.Run("empty gas configs map", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArguments()
+
+		wasCalled := false
+		arg.ApiResolver = &mock.ApiResolverStub{
+			GetGasConfigsCalled: func() map[string]map[string]uint64 {
+				wasCalled = true
+				return make(map[string]map[string]uint64)
+			},
+		}
+
+		nf, _ := NewNodeFacade(arg)
+		_, err := nf.GetGasConfigs()
+		require.Equal(t, ErrEmptyGasConfigs, err)
+		require.True(t, wasCalled)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArguments()
+
+		wasCalled := false
+		arg.ApiResolver = &mock.ApiResolverStub{
+			GetGasConfigsCalled: func() map[string]map[string]uint64 {
+				wasCalled = true
+				return map[string]map[string]uint64{
+					"map1": {
+						"test1": 1,
+					},
+				}
+			},
+		}
+
+		nf, _ := NewNodeFacade(arg)
+		_, err := nf.GetGasConfigs()
+		require.NoError(t, err)
+		require.True(t, wasCalled)
+	})
+}

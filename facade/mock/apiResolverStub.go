@@ -34,6 +34,7 @@ type ApiResolverStub struct {
 	GetGenesisNodesPubKeysCalled           func() (map[uint32][]string, map[uint32][]string)
 	GetTransactionsPoolCalled              func() (*common.TransactionsPoolAPIResponse, error)
 	GetGenesisBalancesCalled               func() ([]*common.InitialAccountAPI, error)
+	GetGasConfigsCalled                    func() map[string]map[string]uint64
 }
 
 // GetTransaction -
@@ -214,6 +215,15 @@ func (ars *ApiResolverStub) GetGenesisBalances() ([]*common.InitialAccountAPI, e
 	}
 
 	return nil, nil
+}
+
+// GetGasConfigs -
+func (ars *ApiResolverStub) GetGasConfigs() map[string]map[string]uint64 {
+	if ars.GetGasConfigsCalled != nil {
+		return ars.GetGasConfigsCalled()
+	}
+
+	return nil
 }
 
 // Close -
