@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/factory/mock"
 	"github.com/ElrondNetwork/elrond-go/process/sync/disabled"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/require"
 )
 
@@ -44,7 +45,7 @@ func TestCreateApiResolver(t *testing.T) {
 		BootstrapComponents: mbc,
 		CryptoComponents:    cryptoComponents,
 		ProcessComponents:   processComponents,
-		GasScheduleNotifier: &mock.GasScheduleNotifierMock{
+		GasScheduleNotifier: &testscommon.GasScheduleNotifierMock{
 			GasSchedule: gasSchedule,
 		},
 		Bootstrapper:       disabled.NewDisabledBootstrapper(),
