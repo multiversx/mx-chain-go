@@ -468,12 +468,12 @@ func (ng *networkGroup) getGasConfig(c *gin.Context) {
 		return
 	}
 
-	nc := GasConfig{
+	gc := GasConfig{
 		BuiltInCost:            gasConfigMap[common.BuiltInCost],
 		MetaChainSystemSCsCost: gasConfigMap[common.MetaChainSystemSCsCost],
 	}
 
-	shared.RespondWith(c, http.StatusOK, gin.H{"gasConfigs": nc}, "", shared.ReturnCodeSuccess)
+	shared.RespondWith(c, http.StatusOK, gin.H{"gasConfigs": gc}, "", shared.ReturnCodeSuccess)
 }
 
 func (ng *networkGroup) getFacade() networkFacadeHandler {

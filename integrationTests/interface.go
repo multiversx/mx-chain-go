@@ -100,6 +100,7 @@ type Facade interface {
 	VerifyProof(rootHash string, address string, proof [][]byte) (bool, error)
 	GetGenesisNodesPubKeys() (map[uint32][]string, map[uint32][]string, error)
 	GetGenesisBalances() ([]*common.InitialAccountAPI, error)
+	GetGasConfigs() (map[string]map[string]uint64, error)
 	GetTransactionsPool() (*common.TransactionsPoolAPIResponse, error)
 	IsInterfaceNil() bool
 }
