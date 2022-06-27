@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	"github.com/stretchr/testify/require"
 )
@@ -31,7 +32,7 @@ func TestNewBuiltInFunctionsCost(t *testing.T) {
 			args: func() *economics.ArgsBuiltInFunctionCost {
 				return &economics.ArgsBuiltInFunctionCost{
 					ArgsParser:  nil,
-					GasSchedule: mock.NewGasScheduleNotifierMock(nil),
+					GasSchedule: testscommon.NewGasScheduleNotifierMock(nil),
 				}
 			},
 			exErr: process.ErrNilArgumentParser,
@@ -51,7 +52,7 @@ func TestNewBuiltInFunctionsCost(t *testing.T) {
 			args: func() *economics.ArgsBuiltInFunctionCost {
 				return &economics.ArgsBuiltInFunctionCost{
 					ArgsParser:  &mock.ArgumentParserMock{},
-					GasSchedule: mock.NewGasScheduleNotifierMock(defaults.FillGasMapInternal(map[string]map[string]uint64{}, 1)),
+					GasSchedule: testscommon.NewGasScheduleNotifierMock(defaults.FillGasMapInternal(map[string]map[string]uint64{}, 1)),
 				}
 			},
 			exErr: nil,
@@ -69,7 +70,7 @@ func TestNewBuiltInFunctionsCost_GasConfig(t *testing.T) {
 
 	args := &economics.ArgsBuiltInFunctionCost{
 		ArgsParser:  &mock.ArgumentParserMock{},
-		GasSchedule: mock.NewGasScheduleNotifierMock(defaults.FillGasMapInternal(map[string]map[string]uint64{}, 0)),
+		GasSchedule: testscommon.NewGasScheduleNotifierMock(defaults.FillGasMapInternal(map[string]map[string]uint64{}, 0)),
 	}
 
 	builtInCostHandler, err := economics.NewBuiltInFunctionsCost(args)
