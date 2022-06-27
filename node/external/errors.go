@@ -40,3 +40,6 @@ var ErrNilGenesisNodesSetupHandler = errors.New("nil genesis nodes setup handler
 
 // ErrNilValidatorPubKeyConverter signals that a nil validator pubkey converter has been provided
 var ErrNilValidatorPubKeyConverter = errors.New("nil validator public key converter")
+
+// ErrNilGasScheduler signals that a nil gas scheduler has been provided
+var ErrNilGasScheduler = errors.New("nil gas scheduler")

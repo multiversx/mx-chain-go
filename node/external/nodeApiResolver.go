@@ -83,6 +83,9 @@ func NewNodeApiResolver(arg ArgNodeApiResolver) (*nodeApiResolver, error) {
 	if check.IfNil(arg.ValidatorPubKeyConverter) {
 		return nil, ErrNilValidatorPubKeyConverter
 	}
+	if check.IfNil(arg.GasScheduler) {
+		return nil, ErrNilGasScheduler
+	}
 
 	return &nodeApiResolver{
 		scQueryService:           arg.SCQueryService,
