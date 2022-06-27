@@ -257,7 +257,7 @@ func (en *extensionNode) saveChildToStorage(
 		return fmt.Errorf("saveChildToStorage error %w", err)
 	}
 
-	childBytes, saveChildToStorage, err := getNodeBytesForSnapshot(db, en.EncodedChild)
+	childBytes, shouldSaveChildToStorage, err := getNodeBytesForSnapshot(db, en.EncodedChild)
 	if err != nil {
 		return err
 	}
@@ -272,7 +272,7 @@ func (en *extensionNode) saveChildToStorage(
 		return err
 	}
 
-	if saveChildToStorage {
+	if shouldSaveChildToStorage {
 		err = en.child.saveToStorage(db, stats)
 		if err != nil {
 			return err

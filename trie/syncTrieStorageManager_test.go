@@ -9,6 +9,8 @@ import (
 )
 
 func TestNewSyncTrieStorageManagerInvalidStorerType(t *testing.T) {
+	t.Parallel()
+
 	_, trieStorage := newEmptyTrie()
 
 	stsm, err := NewSyncTrieStorageManager(trieStorage)
@@ -17,6 +19,8 @@ func TestNewSyncTrieStorageManagerInvalidStorerType(t *testing.T) {
 }
 
 func TestNewSyncTrieStorageManager(t *testing.T) {
+	t.Parallel()
+
 	_, trieStorage := newEmptyTrie()
 	trieStorage.mainStorer = &trie.SnapshotPruningStorerStub{}
 	stsm, err := NewSyncTrieStorageManager(trieStorage)
@@ -25,6 +29,8 @@ func TestNewSyncTrieStorageManager(t *testing.T) {
 }
 
 func TestNewSyncTrieStorageManager_PutInFirstEpoch(t *testing.T) {
+	t.Parallel()
+
 	_, trieStorage := newEmptyTrie()
 	putInEpochWithoutCacheCalled := false
 	trieStorage.mainStorer = &trie.SnapshotPruningStorerStub{
@@ -44,6 +50,8 @@ func TestNewSyncTrieStorageManager_PutInFirstEpoch(t *testing.T) {
 }
 
 func TestNewSyncTrieStorageManager_PutInEpoch(t *testing.T) {
+	t.Parallel()
+
 	_, trieStorage := newEmptyTrie()
 	putInEpochWithoutCacheCalled := false
 	trieStorage.mainStorer = &trie.SnapshotPruningStorerStub{

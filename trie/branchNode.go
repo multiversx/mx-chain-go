@@ -356,7 +356,7 @@ func (bn *branchNode) saveChildToStorage(
 			continue
 		}
 
-		childBytes, saveChildToStorage, err := getNodeBytesForSnapshot(db, childHash)
+		childBytes, shouldSaveChildToStorage, err := getNodeBytesForSnapshot(db, childHash)
 		if err != nil {
 			return err
 		}
@@ -376,7 +376,7 @@ func (bn *branchNode) saveChildToStorage(
 			return err
 		}
 
-		if !saveChildToStorage {
+		if !shouldSaveChildToStorage {
 			continue
 		}
 
