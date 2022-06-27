@@ -90,6 +90,9 @@ func NewNodeApiResolver(arg ArgNodeApiResolver) (*nodeApiResolver, error) {
 	if check.IfNil(arg.AccountsParser) {
 		return nil, ErrNilAccountsParser
 	}
+	if check.IfNil(arg.GasScheduler) {
+		return nil, ErrNilGasScheduler
+	}
 
 	return &nodeApiResolver{
 		scQueryService:           arg.SCQueryService,
