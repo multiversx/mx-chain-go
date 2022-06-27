@@ -71,6 +71,7 @@ type FacadeStub struct {
 	GetTokenSupplyCalled                    func(token string) (*api.ESDTSupply, error)
 	GetGenesisNodesPubKeysCalled            func() (map[uint32][]string, map[uint32][]string, error)
 	GetTransactionsPoolCalled               func() (*common.TransactionsPoolAPIResponse, error)
+	GetGasConfigsCalled                     func() (map[string]map[string]uint64, error)
 }
 
 // GetTokenSupply -
@@ -436,6 +437,15 @@ func (f *FacadeStub) GetGenesisNodesPubKeys() (map[uint32][]string, map[uint32][
 func (f *FacadeStub) GetTransactionsPool() (*common.TransactionsPoolAPIResponse, error) {
 	if f.GetTransactionsPoolCalled != nil {
 		return f.GetTransactionsPoolCalled()
+	}
+
+	return nil, nil
+}
+
+// GetGasConfigs -
+func (f *FacadeStub) GetGasConfigs() (map[string]map[string]uint64, error) {
+	if f.GetGasConfigsCalled != nil {
+		return f.GetGasConfigsCalled()
 	}
 
 	return nil, nil

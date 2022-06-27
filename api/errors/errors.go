@@ -121,5 +121,8 @@ var ErrNilFacadeHandler = errors.New("nil facade handler")
 // ErrFacadeWrongTypeAssertion signals that a type conversion to a facade type failed
 var ErrFacadeWrongTypeAssertion = errors.New("facade - wrong type assertion")
 
-// ErrGetGenesisNodes signals that an error happened when trying to feth genesis nodes config
+// ErrGetGenesisNodes signals that an error occurred wile trying to fetch genesis nodes config
 var ErrGetGenesisNodes = errors.New("getting genesis nodes failed")
+
+// ErrGetGasConfigs signals that an error occurred while trying to fetch gas configs
+var ErrGetGasConfigs = errors.New("getting gas configs failed")
