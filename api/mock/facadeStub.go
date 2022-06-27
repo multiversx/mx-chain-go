@@ -72,6 +72,7 @@ type FacadeStub struct {
 	GetGenesisNodesPubKeysCalled            func() (map[uint32][]string, map[uint32][]string, error)
 	GetGenesisBalancesCalled                func() ([]*common.InitialAccountAPI, error)
 	GetTransactionsPoolCalled               func() (*common.TransactionsPoolAPIResponse, error)
+	GetGasConfigsCalled                     func() (map[string]map[string]uint64, error)
 }
 
 // GetTokenSupply -
@@ -446,6 +447,15 @@ func (f *FacadeStub) GetGenesisBalances() ([]*common.InitialAccountAPI, error) {
 func (f *FacadeStub) GetTransactionsPool() (*common.TransactionsPoolAPIResponse, error) {
 	if f.GetTransactionsPoolCalled != nil {
 		return f.GetTransactionsPoolCalled()
+	}
+
+	return nil, nil
+}
+
+// GetGasConfigs -
+func (f *FacadeStub) GetGasConfigs() (map[string]map[string]uint64, error) {
+	if f.GetGasConfigsCalled != nil {
+		return f.GetGasConfigsCalled()
 	}
 
 	return nil, nil

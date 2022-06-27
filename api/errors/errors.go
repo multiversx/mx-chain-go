@@ -126,3 +126,6 @@ var ErrGetGenesisBalances = errors.New("getting genesis balances failed")
 
 // ErrBadUrlParams signals one or more incorrectly provided URL params (generic error)
 var ErrBadUrlParams = errors.New("bad url parameter(s)")
+
+// ErrGetGasConfigs signals that an error occurred while trying to fetch gas configs
+var ErrGetGasConfigs = errors.New("getting gas configs failed")

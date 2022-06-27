@@ -45,7 +45,7 @@ type networkFacadeHandler interface {
 	GetTokenSupply(token string) (*api.ESDTSupply, error)
 	GetGenesisNodesPubKeys() (map[uint32][]string, map[uint32][]string, error)
 	GetGenesisBalances() ([]*common.InitialAccountAPI, error)
-	GetGasConfigs() map[string]map[string]uint64
+	GetGasConfigs() (map[string]map[string]uint64, error)
 	IsInterfaceNil() bool
 }
 
@@ -455,16 +455,25 @@ func (ng *networkGroup) getGenesisBalances(c *gin.Context) {
 }
 
 func (ng *networkGroup) getGasConfig(c *gin.Context) {
-	start := time.Now()
-	gasConfigMap := ng.getFacade().GetGasConfigs()
-	log.Debug(fmt.Sprintf("GetGasConfigs took %s", time.Since(start)))
+	gasConfigMap, err := ng.getFacade().GetGasConfigs()
+	if err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: fmt.Sprintf("%s: %s", errors.ErrGetGasConfigs.Error(), err.Error()),
+				Code:  shared.ReturnCodeInternalError,
+			},
+		)
+		return
+	}
 
 	nc := GasConfig{
 		BuiltInCost:            gasConfigMap[common.BuiltInCost],
 		MetaChainSystemSCsCost: gasConfigMap[common.MetaChainSystemSCsCost],
 	}
 
-	shared.RespondWith(c, http.StatusOK, gin.H{"gasConfig": nc}, "", shared.ReturnCodeSuccess)
+	shared.RespondWith(c, http.StatusOK, gin.H{"gasConfigs": nc}, "", shared.ReturnCodeSuccess)
 }
 
 func (ng *networkGroup) getFacade() networkFacadeHandler {
