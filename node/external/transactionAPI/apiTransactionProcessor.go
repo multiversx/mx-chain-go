@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dblookupext"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/txstatus"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
@@ -112,17 +113,41 @@ func (atp *apiTransactionProcessor) GetTransactionsForSender(sender string) (*co
 	}
 
 	senderShard := atp.shardCoordinator.ComputeId(senderAddr)
-	cacheId := fmt.Sprintf("%d", senderShard)
-	shardCache := atp.dataPool.Transactions().ShardDataStore(cacheId)
-	txCache, ok := shardCache.(*txcache.TxCache)
-	if !ok {
+	txsForSender := atp.fetchTxsForSender(string(senderAddr), senderShard)
+	if len(txsForSender) == 0 {
 		return nil, ErrCannotRetrieveTransactions
 	}
 
 	return &common.TransactionsForSenderApiResponse{
 		Sender:       sender,
-		Transactions: txsHashesBytesToString(txCache.GetTransactionsForSender(sender)),
+		Transactions: txsHashesBytesToString(txsForSender),
 	}, nil
+}
+
+func (atp *apiTransactionProcessor) fetchTxsForSender(sender string, senderShard uint32) [][]byte {
+	txsForSender := make([][]byte, 0)
+	numOfShards := atp.shardCoordinator.NumberOfShards()
+	for shard := uint32(0); shard < numOfShards; shard++ {
+		cacheId := process.ShardCacherIdentifier(senderShard, shard)
+		txs := atp.fetchTxsFromCache(sender, cacheId)
+		txsForSender = append(txsForSender, txs...)
+	}
+
+	cacheId := process.ShardCacherIdentifier(senderShard, common.MetachainShardId)
+	txsForMeta := atp.fetchTxsFromCache(sender, cacheId)
+	txsForSender = append(txsForSender, txsForMeta...)
+
+	return txsForSender
+}
+
+func (atp *apiTransactionProcessor) fetchTxsFromCache(sender, cacheId string) [][]byte {
+	shardCache := atp.dataPool.Transactions().ShardDataStore(cacheId)
+	txCache, ok := shardCache.(*txcache.TxCache)
+	if !ok {
+		return nil
+	}
+
+	return txCache.GetTransactionsForSender(sender)
 }
 
 func txsHashesBytesToString(input [][]byte) []string {

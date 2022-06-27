@@ -22,6 +22,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
+	processMocks "github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
@@ -639,7 +640,7 @@ func TestApiTransactionProcessor_GetTransactionsForSender(t *testing.T) {
 
 	txHash0, txHash1, txHash2 := []byte("txHash0"), []byte("txHash1"), []byte("txHash2")
 	sender := "alice"
-	txCache, _ := txcache.NewTxCache(txcache.ConfigSourceMe{
+	txCacheIntraShard, _ := txcache.NewTxCache(txcache.ConfigSourceMe{
 		Name:                       "test",
 		NumChunks:                  4,
 		NumBytesPerSenderThreshold: 1_048_576, // 1 MB
@@ -649,16 +650,34 @@ func TestApiTransactionProcessor_GetTransactionsForSender(t *testing.T) {
 		MinimumGasPrice:      1,
 		GasProcessingDivisor: 1,
 	})
-	txCache.AddTx(createTx(txHash2, sender, 3))
-	txCache.AddTx(createTx(txHash0, sender, 1))
-	txCache.AddTx(createTx(txHash1, sender, 2))
+	txCacheIntraShard.AddTx(createTx(txHash2, sender, 3))
+	txCacheIntraShard.AddTx(createTx(txHash0, sender, 1))
+	txCacheIntraShard.AddTx(createTx(txHash1, sender, 2))
+
+	txHash3, txHash4 := []byte("txHash3"), []byte("txHash4")
+	txCacheWithMeta, _ := txcache.NewTxCache(txcache.ConfigSourceMe{
+		Name:                       "test-meta",
+		NumChunks:                  4,
+		NumBytesPerSenderThreshold: 1_048_576, // 1 MB
+		CountPerSenderThreshold:    math.MaxUint32,
+	}, &txcachemocks.TxGasHandlerMock{
+		MinimumGasMove:       1,
+		MinimumGasPrice:      1,
+		GasProcessingDivisor: 1,
+	})
+	txCacheWithMeta.AddTx(createTx(txHash3, sender, 4))
+	txCacheWithMeta.AddTx(createTx(txHash4, sender, 5))
 
 	args := createMockArgAPIBlockProcessor()
 	args.DataPool = &dataRetrieverMock.PoolsHolderStub{
 		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 			return &testscommon.ShardedDataStub{
 				ShardDataStoreCalled: func(cacheID string) storage.Cacher {
-					return txCache
+					if len(cacheID) == 1 { // self shard
+						return txCacheIntraShard
+					}
+
+					return txCacheWithMeta
 				},
 			}
 		},
@@ -671,6 +690,11 @@ func TestApiTransactionProcessor_GetTransactionsForSender(t *testing.T) {
 			return string(pkBytes)
 		},
 	}
+	args.ShardCoordinator = &processMocks.ShardCoordinatorStub{
+		NumberOfShardsCalled: func() uint32 {
+			return 1
+		},
+	}
 	atp, err := NewAPITransactionProcessor(args)
 	require.NoError(t, err)
 	require.NotNil(t, atp)
@@ -678,7 +702,7 @@ func TestApiTransactionProcessor_GetTransactionsForSender(t *testing.T) {
 	res, err := atp.GetTransactionsForSender(sender)
 	require.NoError(t, err)
 	require.Equal(t, sender, res.Sender)
-	expectedHashes := []string{hex.EncodeToString(txHash0), hex.EncodeToString(txHash1), hex.EncodeToString(txHash2)}
+	expectedHashes := []string{hex.EncodeToString(txHash0), hex.EncodeToString(txHash1), hex.EncodeToString(txHash2), hex.EncodeToString(txHash3), hex.EncodeToString(txHash4)}
 	require.Equal(t, expectedHashes, res.Transactions)
 }
 
