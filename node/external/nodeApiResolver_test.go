@@ -39,7 +39,7 @@ func createMockArgs() external.ArgNodeApiResolver {
 		GenesisNodesSetupHandler: &testscommon.NodesSetupStub{},
 		ValidatorPubKeyConverter: &testscommon.PubkeyConverterMock{},
 		AccountsParser:           &genesisMocks.AccountsParserStub{},
-		GasScheduler:             &testscommon.GasScheduleNotifierMock{},
+		GasScheduleNotifier:      &testscommon.GasScheduleNotifierMock{},
 	}
 }
 
@@ -113,7 +113,7 @@ func TestNewNodeApiResolver_NilGasSchedules(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockArgs()
-	arg.GasScheduler = nil
+	arg.GasScheduleNotifier = nil
 	nar, err := external.NewNodeApiResolver(arg)
 
 	assert.Nil(t, nar)
@@ -500,7 +500,7 @@ func TestNodeApiResolver_GetGasConfigs(t *testing.T) {
 	args := createMockArgs()
 
 	wasCalled := false
-	args.GasScheduler = &testscommon.GasScheduleNotifierMock{
+	args.GasScheduleNotifier = &testscommon.GasScheduleNotifierMock{
 		LatestGasScheduleCalled: func() map[string]map[string]uint64 {
 			wasCalled = true
 			return nil
