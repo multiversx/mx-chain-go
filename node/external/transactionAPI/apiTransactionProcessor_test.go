@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"math"
 	"math/big"
 	"strconv"
 	"testing"
@@ -21,12 +22,15 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
+	processMocks "github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	dblookupextMock "github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
 	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
+	"github.com/ElrondNetwork/elrond-go/testscommon/txcachemocks"
 	datafield "github.com/ElrondNetwork/elrond-vm-common/parsers/dataField"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -616,6 +620,90 @@ func TestApiTransactionProcessor_GetTransactionsPool(t *testing.T) {
 	require.Equal(t, []string{hex.EncodeToString(txHash0), hex.EncodeToString(txHash1)}, res.RegularTransactions)
 	require.Equal(t, []string{hex.EncodeToString(txHash2)}, res.SmartContractResults)
 	require.Equal(t, []string{hex.EncodeToString(txHash3)}, res.Rewards)
+}
+
+func createTx(hash []byte, sender string, nonce uint64) *txcache.WrappedTransaction {
+	tx := &transaction.Transaction{
+		SndAddr: []byte(sender),
+		Nonce:   nonce,
+	}
+
+	return &txcache.WrappedTransaction{
+		Tx:     tx,
+		TxHash: hash,
+		Size:   128,
+	}
+}
+
+func TestApiTransactionProcessor_GetTransactionsPoolForSender(t *testing.T) {
+	t.Parallel()
+
+	txHash0, txHash1, txHash2 := []byte("txHash0"), []byte("txHash1"), []byte("txHash2")
+	sender := "alice"
+	txCacheIntraShard, _ := txcache.NewTxCache(txcache.ConfigSourceMe{
+		Name:                       "test",
+		NumChunks:                  4,
+		NumBytesPerSenderThreshold: 1_048_576, // 1 MB
+		CountPerSenderThreshold:    math.MaxUint32,
+	}, &txcachemocks.TxGasHandlerMock{
+		MinimumGasMove:       1,
+		MinimumGasPrice:      1,
+		GasProcessingDivisor: 1,
+	})
+	txCacheIntraShard.AddTx(createTx(txHash2, sender, 3))
+	txCacheIntraShard.AddTx(createTx(txHash0, sender, 1))
+	txCacheIntraShard.AddTx(createTx(txHash1, sender, 2))
+
+	txHash3, txHash4 := []byte("txHash3"), []byte("txHash4")
+	txCacheWithMeta, _ := txcache.NewTxCache(txcache.ConfigSourceMe{
+		Name:                       "test-meta",
+		NumChunks:                  4,
+		NumBytesPerSenderThreshold: 1_048_576, // 1 MB
+		CountPerSenderThreshold:    math.MaxUint32,
+	}, &txcachemocks.TxGasHandlerMock{
+		MinimumGasMove:       1,
+		MinimumGasPrice:      1,
+		GasProcessingDivisor: 1,
+	})
+	txCacheWithMeta.AddTx(createTx(txHash3, sender, 4))
+	txCacheWithMeta.AddTx(createTx(txHash4, sender, 5))
+
+	args := createMockArgAPIBlockProcessor()
+	args.DataPool = &dataRetrieverMock.PoolsHolderStub{
+		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+			return &testscommon.ShardedDataStub{
+				ShardDataStoreCalled: func(cacheID string) storage.Cacher {
+					if len(cacheID) == 1 { // self shard
+						return txCacheIntraShard
+					}
+
+					return txCacheWithMeta
+				},
+			}
+		},
+	}
+	args.AddressPubKeyConverter = &mock.PubkeyConverterStub{
+		DecodeCalled: func(humanReadable string) ([]byte, error) {
+			return []byte(humanReadable), nil
+		},
+		EncodeCalled: func(pkBytes []byte) string {
+			return string(pkBytes)
+		},
+	}
+	args.ShardCoordinator = &processMocks.ShardCoordinatorStub{
+		NumberOfShardsCalled: func() uint32 {
+			return 1
+		},
+	}
+	atp, err := NewAPITransactionProcessor(args)
+	require.NoError(t, err)
+	require.NotNil(t, atp)
+
+	res, err := atp.GetTransactionsPoolForSender(sender)
+	require.NoError(t, err)
+	require.Equal(t, sender, res.Sender)
+	expectedHashes := []string{hex.EncodeToString(txHash0), hex.EncodeToString(txHash1), hex.EncodeToString(txHash2), hex.EncodeToString(txHash3), hex.EncodeToString(txHash4)}
+	require.Equal(t, expectedHashes, res.Transactions)
 }
 
 func createAPITransactionProc(t *testing.T, epoch uint32, withDbLookupExt bool) (*apiTransactionProcessor, *genericMocks.ChainStorerMock, *dataRetrieverMock.PoolsHolderMock, *dblookupextMock.HistoryRepositoryStub) {

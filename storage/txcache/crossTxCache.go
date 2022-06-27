@@ -75,7 +75,7 @@ func (cache *CrossTxCache) GetByTxHash(txHash []byte) (*WrappedTransaction, bool
 }
 
 // Get returns the unwrapped payload of a TransactionWrapper
-// Implemented for compatibiltiy reasons (see txPoolsCleaner.go).
+// Implemented for compatibility reasons (see txPoolsCleaner.go).
 func (cache *CrossTxCache) Get(key []byte) (value interface{}, ok bool) {
 	wrapped, ok := cache.GetByTxHash(key)
 	if !ok {
@@ -86,7 +86,7 @@ func (cache *CrossTxCache) Get(key []byte) (value interface{}, ok bool) {
 }
 
 // Peek returns the unwrapped payload of a TransactionWrapper
-// Implemented for compatibiltiy reasons (see transactions.go, common.go).
+// Implemented for compatibility reasons (see transactions.go, common.go).
 func (cache *CrossTxCache) Peek(key []byte) (value interface{}, ok bool) {
 	return cache.Get(key)
 }
@@ -106,6 +106,11 @@ func (cache *CrossTxCache) ForEachTransaction(function ForEachTransaction) {
 
 		function(key, tx)
 	})
+}
+
+// GetTransactionsPoolForSender returns an empty slice
+func (cache *CrossTxCache) GetTransactionsPoolForSender(_ string) [][]byte {
+	return make([][]byte, 0)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

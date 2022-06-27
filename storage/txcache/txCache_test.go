@@ -256,6 +256,32 @@ func Test_ForEachTransaction(t *testing.T) {
 	require.Equal(t, 2, counter)
 }
 
+func Test_GetTransactionsPoolForSender(t *testing.T) {
+	cache := newUnconstrainedCacheToTest()
+
+	txHashes1 := [][]byte{[]byte("hash-1"), []byte("hash-2")}
+	txSender1 := "alice"
+	cache.AddTx(createTx(txHashes1[1], txSender1, 2))
+	cache.AddTx(createTx(txHashes1[0], txSender1, 1))
+
+	txHashes2 := [][]byte{[]byte("hash-3"), []byte("hash-4"), []byte("hash-5")}
+	txSender2 := "bob"
+	cache.AddTx(createTx(txHashes2[1], txSender2, 4))
+	cache.AddTx(createTx(txHashes2[0], txSender2, 3))
+	cache.AddTx(createTx(txHashes2[2], txSender2, 5))
+
+	txs := cache.GetTransactionsPoolForSender(txSender1)
+	require.Equal(t, txHashes1, txs)
+
+	txs = cache.GetTransactionsPoolForSender(txSender2)
+	require.Equal(t, txHashes2, txs)
+
+	cache.RemoveTxByHash(txHashes2[0])
+	expectedHashes := txHashes2[1:]
+	txs = cache.GetTransactionsPoolForSender(txSender2)
+	require.Equal(t, expectedHashes, txs)
+}
+
 func Test_SelectTransactions_Dummy(t *testing.T) {
 	cache := newUnconstrainedCacheToTest()
 

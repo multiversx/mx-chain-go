@@ -1312,3 +1312,46 @@ func TestNodeFacade_GetTransactionsPool(t *testing.T) {
 		require.Equal(t, expectedPool, res)
 	})
 }
+
+func TestNodeFacade_GetTransactionsPoolForSender(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should error", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArguments()
+		expectedErr := errors.New("expected error")
+		arg.ApiResolver = &mock.ApiResolverStub{
+			GetTransactionsPoolForSenderCalled: func(sender string) (*common.TransactionsPoolForSenderApiResponse, error) {
+				return nil, expectedErr
+			},
+		}
+
+		nf, _ := NewNodeFacade(arg)
+		res, err := nf.GetTransactionsPoolForSender("")
+		require.Nil(t, res)
+		require.Equal(t, expectedErr, err)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArguments()
+		expectedSender := "alice"
+		expectedResponse := &common.TransactionsPoolForSenderApiResponse{
+			Sender:       expectedSender,
+			Transactions: []string{"txhash1", "txhash2"},
+		}
+		arg.ApiResolver = &mock.ApiResolverStub{
+			GetTransactionsPoolForSenderCalled: func(sender string) (*common.TransactionsPoolForSenderApiResponse, error) {
+				require.Equal(t, expectedSender, sender)
+				return expectedResponse, nil
+			},
+		}
+
+		nf, _ := NewNodeFacade(arg)
+		res, err := nf.GetTransactionsPoolForSender(expectedSender)
+		require.NoError(t, err)
+		require.Equal(t, expectedResponse, res)
+	})
+}

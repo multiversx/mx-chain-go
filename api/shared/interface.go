@@ -114,5 +114,6 @@ type FacadeHandler interface {
 	PprofEnabled() bool
 	GetGenesisNodesPubKeys() (map[uint32][]string, map[uint32][]string, error)
 	GetTransactionsPool() (*common.TransactionsPoolAPIResponse, error)
+	GetTransactionsPoolForSender(sender string) (*common.TransactionsPoolForSenderApiResponse, error)
 	IsInterfaceNil() bool
 }

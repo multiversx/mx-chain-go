@@ -299,6 +299,11 @@ func (nf *nodeFacade) GetTransactionsPool() (*common.TransactionsPoolAPIResponse
 	return nf.apiResolver.GetTransactionsPool()
 }
 
+// GetTransactionsPoolForSender will return a structure containing the transactions for sender that is to be returned on API calls
+func (nf *nodeFacade) GetTransactionsPoolForSender(sender string) (*common.TransactionsPoolForSenderApiResponse, error) {
+	return nf.apiResolver.GetTransactionsPoolForSender(sender)
+}
+
 // ComputeTransactionGasLimit will estimate how many gas a transaction will consume
 func (nf *nodeFacade) ComputeTransactionGasLimit(tx *transaction.Transaction) (*transaction.CostResponse, error) {
 	return nf.apiResolver.ComputeTransactionGasLimit(tx)

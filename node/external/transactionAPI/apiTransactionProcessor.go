@@ -16,8 +16,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dblookupext"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/txstatus"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 )
 
 var log = logger.GetOrCreate("node/transactionAPI")
@@ -101,6 +103,51 @@ func (atp *apiTransactionProcessor) GetTransactionsPool() (*common.TransactionsP
 	}
 
 	return txsPoolResponse, nil
+}
+
+// GetTransactionsPoolForSender will return a structure containing the transactions for sender that is to be returned on API calls
+func (atp *apiTransactionProcessor) GetTransactionsPoolForSender(sender string) (*common.TransactionsPoolForSenderApiResponse, error) {
+	senderAddr, err := atp.addressPubKeyConverter.Decode(sender)
+	if err != nil {
+		return nil, fmt.Errorf("%s, %w", ErrInvalidAddress.Error(), err)
+	}
+
+	senderShard := atp.shardCoordinator.ComputeId(senderAddr)
+	txsForSender := atp.fetchTxsForSender(string(senderAddr), senderShard)
+	if len(txsForSender) == 0 {
+		return nil, ErrCannotRetrieveTransactions
+	}
+
+	return &common.TransactionsPoolForSenderApiResponse{
+		Sender:       sender,
+		Transactions: txsHashesBytesToString(txsForSender),
+	}, nil
+}
+
+func (atp *apiTransactionProcessor) fetchTxsForSender(sender string, senderShard uint32) [][]byte {
+	txsForSender := make([][]byte, 0)
+	numOfShards := atp.shardCoordinator.NumberOfShards()
+	for shard := uint32(0); shard < numOfShards; shard++ {
+		cacheId := process.ShardCacherIdentifier(senderShard, shard)
+		txs := atp.fetchTxsFromCache(sender, cacheId)
+		txsForSender = append(txsForSender, txs...)
+	}
+
+	cacheId := process.ShardCacherIdentifier(senderShard, common.MetachainShardId)
+	txsForMeta := atp.fetchTxsFromCache(sender, cacheId)
+	txsForSender = append(txsForSender, txsForMeta...)
+
+	return txsForSender
+}
+
+func (atp *apiTransactionProcessor) fetchTxsFromCache(sender, cacheId string) [][]byte {
+	shardCache := atp.dataPool.Transactions().ShardDataStore(cacheId)
+	txCache, ok := shardCache.(*txcache.TxCache)
+	if !ok {
+		return nil
+	}
+
+	return txCache.GetTransactionsPoolForSender(sender)
 }
 
 func txsHashesBytesToString(input [][]byte) []string {

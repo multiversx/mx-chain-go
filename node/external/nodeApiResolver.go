@@ -142,6 +142,11 @@ func (nar *nodeApiResolver) GetTransactionsPool() (*common.TransactionsPoolAPIRe
 	return nar.apiTransactionHandler.GetTransactionsPool()
 }
 
+// GetTransactionsPoolForSender will return a structure containing the transactions for sender that is to be returned on API calls
+func (nar *nodeApiResolver) GetTransactionsPoolForSender(sender string) (*common.TransactionsPoolForSenderApiResponse, error) {
+	return nar.apiTransactionHandler.GetTransactionsPoolForSender(sender)
+}
+
 // GetBlockByHash will return the block with the given hash and optionally with transactions
 func (nar *nodeApiResolver) GetBlockByHash(hash string, withTxs bool) (*api.Block, error) {
 	decodedHash, err := hex.DecodeString(hash)

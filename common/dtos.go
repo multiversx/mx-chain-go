@@ -13,3 +13,9 @@ type TransactionsPoolAPIResponse struct {
 	SmartContractResults []string `json:"smartContractResults"`
 	Rewards              []string `json:"rewards"`
 }
+
+// TransactionsPoolForSenderApiResponse is a struct that holds the data to be returned when getting the transactions for a sender from an API call
+type TransactionsPoolForSenderApiResponse struct {
+	Sender       string   `json:"sender"`
+	Transactions []string `json:"transactions"`
+}

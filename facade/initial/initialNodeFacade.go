@@ -341,6 +341,11 @@ func (inf *initialNodeFacade) GetTransactionsPool() (*common.TransactionsPoolAPI
 	return nil, errNodeStarting
 }
 
+// GetTransactionsPoolForSender returns a nil structure and error
+func (inf *initialNodeFacade) GetTransactionsPoolForSender(_ string) (*common.TransactionsPoolForSenderApiResponse, error) {
+	return nil, errNodeStarting
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (inf *initialNodeFacade) IsInterfaceNil() bool {
 	return inf == nil
