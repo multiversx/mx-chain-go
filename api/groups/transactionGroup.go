@@ -30,7 +30,7 @@ const (
 	sendMultiplePath                 = "/send-multiple"
 	getTransactionPath               = "/:txhash"
 	getTransactionsPool              = "/pool"
-	getTransactionsPoolForSender     = "/pool/:sender"
+	getTransactionsPoolForSender     = "/pool/by-sender/:sender"
 
 	queryParamWithResults    = "withResults"
 	queryParamCheckSignature = "checkSignature"
@@ -590,7 +590,7 @@ func (tg *transactionGroup) getTransactionsPoolForSender(c *gin.Context) {
 	c.JSON(
 		http.StatusOK,
 		shared.GenericAPIResponse{
-			Data:  gin.H{"pool": txs},
+			Data:  gin.H{"transactions": txs},
 			Error: "",
 			Code:  shared.ReturnCodeSuccess,
 		},

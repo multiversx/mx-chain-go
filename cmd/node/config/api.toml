@@ -169,8 +169,8 @@
         # /transaction/:txhash will return the transaction in JSON format based on its hash
         { Name = "/:txhash", Open = true },
 
-        # /transaction/pool/:sender will return the transactions in JSON format for the sender
-        { Name = "/pool/:sender", Open = true },
+        # /transaction/pool/by-sender/:sender will return the transactions in JSON format for the sender
+        { Name = "/pool/by-sender/:sender", Open = true },
     ]
 
 [APIPackages.block]

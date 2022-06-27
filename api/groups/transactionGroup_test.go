@@ -99,7 +99,7 @@ type txsPoolResponse struct {
 }
 
 type poolForSenderResponseData struct {
-	Pool common.TransactionsPoolForSenderApiResponse `json:"pool"`
+	Transactions common.TransactionsPoolForSenderApiResponse `json:"transactions"`
 }
 
 type poolForSenderResponse struct {
@@ -916,7 +916,7 @@ func TestGetTransactionsPoolForSenderShouldError(t *testing.T) {
 
 	ws := startWebServer(transactionGroup, "transaction", getTransactionRoutesConfig())
 
-	req, _ := http.NewRequest("GET", "/transaction/pool/sender", nil)
+	req, _ := http.NewRequest("GET", "/transaction/pool/by-sender/sender", nil)
 
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
@@ -947,7 +947,7 @@ func TestGetTransactionsPoolForSenderShouldWork(t *testing.T) {
 
 	ws := startWebServer(transactionGroup, "transaction", getTransactionRoutesConfig())
 
-	req, _ := http.NewRequest("GET", "/transaction/pool/"+expectedSender, nil)
+	req, _ := http.NewRequest("GET", "/transaction/pool/by-sender/"+expectedSender, nil)
 
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
@@ -957,7 +957,7 @@ func TestGetTransactionsPoolForSenderShouldWork(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, resp.Code)
 	assert.Empty(t, txsForSenderResp.Error)
-	assert.Equal(t, *expectedResp, txsForSenderResp.Data.Pool)
+	assert.Equal(t, *expectedResp, txsForSenderResp.Data.Transactions)
 }
 
 func getTransactionRoutesConfig() config.ApiRoutesConfig {
@@ -972,7 +972,7 @@ func getTransactionRoutesConfig() config.ApiRoutesConfig {
 					{Name: "/:txhash", Open: true},
 					{Name: "/:txhash/status", Open: true},
 					{Name: "/simulate", Open: true},
-					{Name: "/pool/:sender", Open: true},
+					{Name: "/pool/by-sender/:sender", Open: true},
 				},
 			},
 		},
