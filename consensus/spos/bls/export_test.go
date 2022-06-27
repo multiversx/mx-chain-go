@@ -269,6 +269,10 @@ func (sr *subroundEndRound) DoEndRoundJobByParticipant(cnsDta *consensus.Message
 	return sr.doEndRoundJobByParticipant(cnsDta)
 }
 
+func (sr *subroundEndRound) DoEndRoundJobByLeader() bool {
+	return sr.doEndRoundJobByLeader()
+}
+
 func (sr *subroundEndRound) HaveConsensusHeaderWithFullInfo(cnsDta *consensus.Message) (bool, data.HeaderHandler) {
 	return sr.haveConsensusHeaderWithFullInfo(cnsDta)
 }
@@ -291,6 +295,14 @@ func (sr *subroundEndRound) IsConsensusHeaderReceived() (bool, data.HeaderHandle
 
 func (sr *subroundEndRound) IsOutOfTime() bool {
 	return sr.isOutOfTime()
+}
+
+func (sr *subroundEndRound) VerifyNodesOnAggSigVerificationFail() error {
+	return sr.verifyNodesOnAggSigVerificationFail()
+}
+
+func (sr *subroundEndRound) ComputeAggSigOnValidNodes() ([]byte, []byte, error) {
+	return sr.computeAggSigOnValidNodes()
 }
 
 // GetStringValue gets the name of the message type

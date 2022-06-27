@@ -197,6 +197,30 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 		return false
 	}
 
+	currentMultiSigner := sr.MultiSigner()
+	err = currentMultiSigner.SetAggregatedSig(sig)
+	if err != nil {
+		log.Debug("doEndRoundJobByLeader.SetAggregatedSig", "error", err.Error())
+		return false
+	}
+
+	err = currentMultiSigner.Verify(sr.GetData(), bitmap)
+	if err != nil {
+		log.Debug("doEndRoundJobByLeader.Verify", "error", err.Error())
+
+		err = sr.verifyNodesOnAggSigVerificationFail()
+		if err != nil {
+			log.Debug("doEndRoundJobByLeader.verifyNodesOnAggSigVerificationFail", "error", err.Error())
+			return false
+		}
+
+		bitmap, sig, err = sr.computeAggSigOnValidNodes()
+		if err != nil {
+			log.Debug("doEndRoundJobByLeader.computeAggSigOnValidNodes", "error", err.Error())
+			return false
+		}
+	}
+
 	err = sr.Header.SetPubKeysBitmap(bitmap)
 	if err != nil {
 		log.Debug("doEndRoundJobByLeader.SetPubKeysBitmap", "error", err.Error())
@@ -279,6 +303,78 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 	sr.updateMetricsForLeader()
 
 	return true
+}
+
+// TODO:
+//	- slashing for invalid sig shares
+//	- handle sig share verifications concurrently
+func (sr *subroundEndRound) verifyNodesOnAggSigVerificationFail() error {
+	multiSigner := sr.MultiSigner()
+	pubKeys := sr.ConsensusGroup()
+
+	for i, pk := range pubKeys {
+		isJobDone, err := sr.JobDone(pk, SrSignature)
+		if err != nil || !isJobDone {
+			continue
+		}
+
+		sigShare, err := multiSigner.SignatureShare(uint16(i))
+		if err != nil {
+			return err
+		}
+
+		isSuccessfull := true
+		err = multiSigner.VerifySignatureShare(uint16(i), sigShare, sr.GetData(), nil)
+		if err != nil {
+			isSuccessfull = false
+
+			err = sr.SetJobDone(pk, SrSignature, false)
+			if err != nil {
+				return err
+			}
+
+			// use increase factor since it was added optimistically, and it proved to be wrong
+			decreaseFactor := -spos.ValidatorPeerHonestyIncreaseFactor
+			sr.PeerHonestyHandler().ChangeScore(
+				pk,
+				spos.GetConsensusTopicID(sr.ShardCoordinator()),
+				decreaseFactor,
+			)
+		}
+
+		log.Trace("verifyNodesOnAggSigVerificationFail: verifying signature share", "public key", pk, "is successfull", isSuccessfull)
+	}
+
+	return nil
+}
+
+func (sr *subroundEndRound) computeAggSigOnValidNodes() ([]byte, []byte, error) {
+	multiSigner := sr.MultiSigner()
+	threshold := sr.Threshold(sr.Current())
+	numValidSigShares := sr.ComputeSize(SrSignature)
+
+	if numValidSigShares < threshold {
+		return nil, nil, fmt.Errorf("%w: number of valid sig shares lower than threshold, numSigShares: %d, threshold: %d",
+			spos.ErrInvalidNumSigShares, numValidSigShares, threshold)
+	}
+
+	bitmap := sr.GenerateBitmap(SrSignature)
+	err := sr.checkSignaturesValidity(bitmap)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	sig, err := multiSigner.AggregateSigs(bitmap)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	err = multiSigner.SetAggregatedSig(sig)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return bitmap, sig, nil
 }
 
 func (sr *subroundEndRound) createAndBroadcastHeaderFinalInfo() {
