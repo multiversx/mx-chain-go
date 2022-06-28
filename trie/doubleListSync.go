@@ -14,7 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
-const deltaReRequest = 4 * int64(time.Second)
+const deltaReRequest = 5 * int64(time.Second)
 
 type request struct {
 	t int64
@@ -134,12 +134,9 @@ func (d *doubleListTrieSyncer) checkIsSyncedWhileProcessingMissingAndExisting() 
 		return false, err
 	}
 
-	numMissing := len(d.missingHashes)
-	numParsed := 0
-	if numMissing > 0 {
+	if len(d.missingHashes) > 0 {
 		marginSlice := make([][]byte, 0, maxNumRequestedNodesPerBatch)
 		for hash := range d.missingHashes {
-			numParsed++
 			n, errGet := d.getNodeFromCache([]byte(hash))
 			if errGet == nil {
 				d.existingNodes[hash] = n
@@ -158,13 +155,6 @@ func (d *doubleListTrieSyncer) checkIsSyncedWhileProcessingMissingAndExisting() 
 				if delta > deltaReRequest {
 					marginSlice = append(marginSlice, []byte(hash))
 					r.t = time.Now().UnixNano()
-				}
-			}
-			if len(marginSlice) >= maxNumRequestedNodesPerBatch {
-				d.request(marginSlice)
-				marginSlice = make([][]byte, 0, maxNumRequestedNodesPerBatch)
-				if numMissing-numParsed > maxNumRequestedNodesPerBatch {
-					time.Sleep(d.waitTimeBetweenChecks)
 				}
 			}
 		}
