@@ -33,9 +33,9 @@ type SaveBlockData struct {
 type Event struct {
 	Address    string   `json:"address"`
 	Identifier string   `json:"identifier"`
+	TxHash     string   `json:"txHash"`
 	Topics     [][]byte `json:"topics"`
 	Data       []byte   `json:"data"`
-	TxHash     string   `json:"txHash"`
 }
 
 // RevertBlock holds revert event data
@@ -58,7 +58,7 @@ type eventNotifier struct {
 	pubKeyConverter core.PubkeyConverter
 }
 
-// logEvent defines a log event associated with coresponding tx hash
+// logEvent defines a log event associated with corresponding tx hash
 type logEvent struct {
 	eventHandler nodeData.EventHandler
 	txHash       string
@@ -135,7 +135,7 @@ func (en *eventNotifier) getLogEventsFromTransactionsPool(logs []*nodeData.LogDa
 		return nil
 	}
 
-	var events []Event
+	events := make([]Event, 0, len(logEvents))
 	for _, event := range logEvents {
 		if event == nil || event.eventHandler.IsInterfaceNil() {
 			continue
