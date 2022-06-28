@@ -19,3 +19,17 @@ type TransactionsPoolForSenderApiResponse struct {
 	Sender       string   `json:"sender"`
 	Transactions []string `json:"transactions"`
 }
+
+// NonceGapApiResponse is a struct that holds a nonce gap from transactions pool
+// From - last known nonce
+// To   - next known nonce
+type NonceGapApiResponse struct {
+	From string `json:"from"`
+	To   string `json:"to"`
+}
+
+// TransactionsPoolNonceGapsForSenderApiResponse is a struct that holds the data to be returned when getting the nonce gaps from transactions pool for a sender from an API call
+type TransactionsPoolNonceGapsForSenderApiResponse struct {
+	Sender string                `json:"sender"`
+	Gaps   []NonceGapApiResponse `json:"gaps"`
+}

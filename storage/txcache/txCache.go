@@ -219,35 +219,19 @@ func (cache *TxCache) ForEachTransaction(function ForEachTransaction) {
 }
 
 // GetTransactionsPoolForSender returns the list of transaction hashes for the sender
-func (cache *TxCache) GetTransactionsPoolForSender(sender string) [][]byte {
+func (cache *TxCache) GetTransactionsPoolForSender(sender string) []*WrappedTransaction {
 	listForSender, ok := cache.txListBySender.getListForSender(sender)
 	if !ok {
 		return nil
 	}
 
-	txsHashes := make([][]byte, listForSender.items.Len())
+	wrappedTxs := make([]*WrappedTransaction, listForSender.items.Len())
 	for element, i := listForSender.items.Front(), 0; element != nil; element, i = element.Next(), i+1 {
 		tx := element.Value.(*WrappedTransaction)
-		txsHashes[i] = tx.TxHash
+		wrappedTxs[i] = tx
 	}
 
-	return txsHashes
-}
-
-// GetLastPoolNonceForSender returns the last nonce from pool for the sender
-func (cache *TxCache) GetLastPoolNonceForSender(sender string) (uint64, bool) {
-	listForSender, ok := cache.txListBySender.getListForSender(sender)
-	if !ok {
-		return 0, ok
-	}
-
-	lastTxElement := listForSender.items.Back()
-	lastTx, ok := lastTxElement.Value.(*WrappedTransaction)
-	if !ok {
-		return 0, ok
-	}
-
-	return lastTx.Tx.GetNonce(), ok
+	return wrappedTxs
 }
 
 // Clear clears the cache

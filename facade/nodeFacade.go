@@ -309,6 +309,11 @@ func (nf *nodeFacade) GetLastPoolNonceForSender(sender string) (uint64, error) {
 	return nf.apiResolver.GetLastPoolNonceForSender(sender)
 }
 
+// GetTransactionsPoolNonceGapsForSender will return the nonce gaps from pool for sender, if exists, that is to be returned on API calls
+func (nf *nodeFacade) GetTransactionsPoolNonceGapsForSender(sender string) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error) {
+	return nf.apiResolver.GetTransactionsPoolNonceGapsForSender(sender)
+}
+
 // ComputeTransactionGasLimit will estimate how many gas a transaction will consume
 func (nf *nodeFacade) ComputeTransactionGasLimit(tx *transaction.Transaction) (*transaction.CostResponse, error) {
 	return nf.apiResolver.ComputeTransactionGasLimit(tx)

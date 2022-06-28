@@ -174,6 +174,9 @@
 
         # /transaction/pool/by-sender/last-nonce/:sender will return the last pool nonce in JSON format for the sender
         { Name = "/pool/by-sender/last-nonce/:sender", Open = true },
+
+        # /transaction/pool/by-sender/nonce-gaps/:sender will return the nonce gaps from pool in JSON format for the sender
+        { Name = "/pool/by-sender/nonce-gaps/:sender", Open = true },
     ]
 
 [APIPackages.block]

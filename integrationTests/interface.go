@@ -101,5 +101,6 @@ type Facade interface {
 	GetTransactionsPool() (*common.TransactionsPoolAPIResponse, error)
 	GetTransactionsPoolForSender(sender string) (*common.TransactionsPoolForSenderApiResponse, error)
 	GetLastPoolNonceForSender(sender string) (uint64, error)
+	GetTransactionsPoolNonceGapsForSender(sender string) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error)
 	IsInterfaceNil() bool
 }

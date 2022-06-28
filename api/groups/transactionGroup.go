@@ -20,18 +20,19 @@ import (
 )
 
 const (
-	sendTransactionEndpoint          = "/transaction/send"
-	simulateTransactionEndpoint      = "/transaction/simulate"
-	sendMultipleTransactionsEndpoint = "/transaction/send-multiple"
-	getTransactionEndpoint           = "/transaction/:hash"
-	sendTransactionPath              = "/send"
-	simulateTransactionPath          = "/simulate"
-	costPath                         = "/cost"
-	sendMultiplePath                 = "/send-multiple"
-	getTransactionPath               = "/:txhash"
-	getTransactionsPool              = "/pool"
-	getTransactionsPoolForSender     = "/pool/by-sender/:sender"
-	getLastPoolNonceForSender        = "/pool/by-sender/last-nonce/:sender"
+	sendTransactionEndpoint               = "/transaction/send"
+	simulateTransactionEndpoint           = "/transaction/simulate"
+	sendMultipleTransactionsEndpoint      = "/transaction/send-multiple"
+	getTransactionEndpoint                = "/transaction/:hash"
+	sendTransactionPath                   = "/send"
+	simulateTransactionPath               = "/simulate"
+	costPath                              = "/cost"
+	sendMultiplePath                      = "/send-multiple"
+	getTransactionPath                    = "/:txhash"
+	getTransactionsPool                   = "/pool"
+	getTransactionsPoolForSender          = "/pool/by-sender/:sender"
+	getLastPoolNonceForSender             = "/pool/by-sender/last-nonce/:sender"
+	getTransactionsPoolNonceGapsForSender = "/pool/by-sender/nonce-gaps/:sender"
 
 	queryParamWithResults    = "withResults"
 	queryParamCheckSignature = "checkSignature"
@@ -49,6 +50,7 @@ type transactionFacadeHandler interface {
 	GetTransactionsPool() (*common.TransactionsPoolAPIResponse, error)
 	GetTransactionsPoolForSender(sender string) (*common.TransactionsPoolForSenderApiResponse, error)
 	GetLastPoolNonceForSender(sender string) (uint64, error)
+	GetTransactionsPoolNonceGapsForSender(sender string) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error)
 	ComputeTransactionGasLimit(tx *transaction.Transaction) (*transaction.CostResponse, error)
 	EncodeAddressPubkey(pk []byte) (string, error)
 	GetThrottlerForEndpoint(endpoint string) (core.Throttler, bool)
@@ -114,6 +116,11 @@ func NewTransactionGroup(facade transactionFacadeHandler) (*transactionGroup, er
 			Path:    getLastPoolNonceForSender,
 			Method:  http.MethodGet,
 			Handler: tg.getLastPoolNonceForSender,
+		},
+		{
+			Path:    getTransactionsPoolNonceGapsForSender,
+			Method:  http.MethodGet,
+			Handler: tg.getTransactionsPoolNonceGapsForSender,
 		},
 		{
 			Path:    sendMultiplePath,
@@ -624,6 +631,32 @@ func (tg *transactionGroup) getLastPoolNonceForSender(c *gin.Context) {
 		http.StatusOK,
 		shared.GenericAPIResponse{
 			Data:  gin.H{"nonce": nonce},
+			Error: "",
+			Code:  shared.ReturnCodeSuccess,
+		},
+	)
+}
+
+// getTransactionsPoolNonceGapsForSender returns the nonce gaps in pool for sender
+func (tg *transactionGroup) getTransactionsPoolNonceGapsForSender(c *gin.Context) {
+	sender := c.Param("sender")
+	gaps, err := tg.getFacade().GetTransactionsPoolNonceGapsForSender(sender)
+	if err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: err.Error(),
+				Code:  shared.ReturnCodeInternalError,
+			},
+		)
+		return
+	}
+
+	c.JSON(
+		http.StatusOK,
+		shared.GenericAPIResponse{
+			Data:  gin.H{"nonceGaps": gaps},
 			Error: "",
 			Code:  shared.ReturnCodeSuccess,
 		},

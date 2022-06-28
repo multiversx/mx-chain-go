@@ -18,6 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
@@ -774,6 +775,93 @@ func TestApiTransactionProcessor_GetLastPoolNonceForSender(t *testing.T) {
 	res, err := atp.GetLastPoolNonceForSender(sender)
 	require.NoError(t, err)
 	require.Equal(t, lastNonce, res)
+}
+
+func TestApiTransactionProcessor_GetTransactionsPoolNonceGapsForSender(t *testing.T) {
+	t.Parallel()
+
+	txHash0, txHash1, txHash2, txHash3, txHash4 := []byte("txHash0"), []byte("txHash1"), []byte("txHash2"), []byte("txHash3"), []byte("txHash4")
+	sender := "alice"
+	txCacheIntraShard, _ := txcache.NewTxCache(txcache.ConfigSourceMe{
+		Name:                       "test",
+		NumChunks:                  4,
+		NumBytesPerSenderThreshold: 1_048_576, // 1 MB
+		CountPerSenderThreshold:    math.MaxUint32,
+	}, &txcachemocks.TxGasHandlerMock{
+		MinimumGasMove:       1,
+		MinimumGasPrice:      1,
+		GasProcessingDivisor: 1,
+	})
+
+	txCacheWithMeta, _ := txcache.NewTxCache(txcache.ConfigSourceMe{
+		Name:                       "test-meta",
+		NumChunks:                  4,
+		NumBytesPerSenderThreshold: 1_048_576, // 1 MB
+		CountPerSenderThreshold:    math.MaxUint32,
+	}, &txcachemocks.TxGasHandlerMock{
+		MinimumGasMove:       1,
+		MinimumGasPrice:      1,
+		GasProcessingDivisor: 1,
+	})
+
+	// final sorted nonces 1, 2, 5, 6, 15
+	gap1FirstNonce := uint64(2)
+	gap1LasttNonce := uint64(5)
+	gap2FirstNonce := uint64(6)
+	gap2LasttNonce := uint64(15)
+	txCacheIntraShard.AddTx(createTx(txHash0, sender, 1))
+	txCacheIntraShard.AddTx(createTx(txHash1, sender, gap1LasttNonce))
+	txCacheIntraShard.AddTx(createTx(txHash2, sender, gap2FirstNonce))
+	txCacheIntraShard.AddTx(createTx(txHash3, sender, gap1FirstNonce))
+	txCacheIntraShard.AddTx(createTx(txHash4, sender, gap2LasttNonce))
+
+	args := createMockArgAPIBlockProcessor()
+	args.DataPool = &dataRetrieverMock.PoolsHolderStub{
+		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+			return &testscommon.ShardedDataStub{
+				ShardDataStoreCalled: func(cacheID string) storage.Cacher {
+					if len(cacheID) == 1 { // self shard
+						return txCacheIntraShard
+					}
+
+					return txCacheWithMeta
+				},
+			}
+		},
+	}
+	args.AddressPubKeyConverter = &mock.PubkeyConverterStub{
+		DecodeCalled: func(humanReadable string) ([]byte, error) {
+			return []byte(humanReadable), nil
+		},
+		EncodeCalled: func(pkBytes []byte) string {
+			return string(pkBytes)
+		},
+	}
+	args.ShardCoordinator = &processMocks.ShardCoordinatorStub{
+		NumberOfShardsCalled: func() uint32 {
+			return 1
+		},
+	}
+	atp, err := NewAPITransactionProcessor(args)
+	require.NoError(t, err)
+	require.NotNil(t, atp)
+
+	expectedResponse := &common.TransactionsPoolNonceGapsForSenderApiResponse{
+		Sender: sender,
+		Gaps: []common.NonceGapApiResponse{
+			{
+				From: fmt.Sprintf("%d", gap1FirstNonce),
+				To:   fmt.Sprintf("%d", gap1LasttNonce),
+			},
+			{
+				From: fmt.Sprintf("%d", gap2FirstNonce),
+				To:   fmt.Sprintf("%d", gap2LasttNonce),
+			},
+		},
+	}
+	res, err := atp.GetTransactionsPoolNonceGapsForSender(sender)
+	require.NoError(t, err)
+	require.Equal(t, expectedResponse, res)
 }
 
 func createAPITransactionProc(t *testing.T, epoch uint32, withDbLookupExt bool) (*apiTransactionProcessor, *genericMocks.ChainStorerMock, *dataRetrieverMock.PoolsHolderMock, *dblookupextMock.HistoryRepositoryStub) {

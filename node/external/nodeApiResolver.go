@@ -152,6 +152,11 @@ func (nar *nodeApiResolver) GetLastPoolNonceForSender(sender string) (uint64, er
 	return nar.apiTransactionHandler.GetLastPoolNonceForSender(sender)
 }
 
+// GetTransactionsPoolNonceGapsForSender will return the nonce gaps from pool for sender, if exists, that is to be returned on API calls
+func (nar *nodeApiResolver) GetTransactionsPoolNonceGapsForSender(sender string) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error) {
+	return nar.apiTransactionHandler.GetTransactionsPoolNonceGapsForSender(sender)
+}
+
 // GetBlockByHash will return the block with the given hash and optionally with transactions
 func (nar *nodeApiResolver) GetBlockByHash(hash string, withTxs bool) (*api.Block, error) {
 	decodedHash, err := hex.DecodeString(hash)

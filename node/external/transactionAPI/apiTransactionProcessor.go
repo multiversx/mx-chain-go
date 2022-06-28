@@ -3,6 +3,7 @@ package transactionAPI
 import (
 	"encoding/hex"
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -114,14 +115,14 @@ func (atp *apiTransactionProcessor) GetTransactionsPoolForSender(sender string) 
 	}
 
 	senderShard := atp.shardCoordinator.ComputeId(senderAddr)
-	txsForSender := atp.fetchTxsForSender(string(senderAddr), senderShard)
-	if len(txsForSender) == 0 {
-		return nil, fmt.Errorf("%w, no transaction in pool for sender", ErrCannotRetrieveTransactions)
+	txHashes, err := atp.fetchTxsHashesForSender(string(senderAddr), senderShard)
+	if err != nil {
+		return nil, err
 	}
 
 	return &common.TransactionsPoolForSenderApiResponse{
 		Sender:       sender,
-		Transactions: txsHashesBytesToString(txsForSender),
+		Transactions: txsHashesBytesToString(txHashes),
 	}, nil
 }
 
@@ -133,12 +134,31 @@ func (atp *apiTransactionProcessor) GetLastPoolNonceForSender(sender string) (ui
 	}
 
 	senderShard := atp.shardCoordinator.ComputeId(senderAddr)
-	lastNonce, found := atp.fetchLastNonceForSender(string(senderAddr), senderShard)
-	if !found {
-		return 0, fmt.Errorf("%w, no transaction in pool for sender", ErrCannotRetrieveNonce)
+	lastNonce, err := atp.fetchLastNonceForSender(string(senderAddr), senderShard)
+	if err != nil {
+		return 0, err
 	}
 
 	return lastNonce, nil
+}
+
+// GetTransactionsPoolNonceGapsForSender will return the nonce gaps from pool for sender, if exists, that is to be returned on API calls
+func (atp *apiTransactionProcessor) GetTransactionsPoolNonceGapsForSender(sender string) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error) {
+	senderAddr, err := atp.addressPubKeyConverter.Decode(sender)
+	if err != nil {
+		return nil, fmt.Errorf("%s, %w", ErrInvalidAddress.Error(), err)
+	}
+
+	senderShard := atp.shardCoordinator.ComputeId(senderAddr)
+	nonceGaps, err := atp.extractNonceGaps(string(senderAddr), senderShard)
+	if err != nil {
+		return nil, err
+	}
+
+	return &common.TransactionsPoolNonceGapsForSenderApiResponse{
+		Sender: sender,
+		Gaps:   nonceGaps,
+	}, nil
 }
 
 func (atp *apiTransactionProcessor) getDataStoresForSender(senderShard uint32) []storage.Cacher {
@@ -157,8 +177,22 @@ func (atp *apiTransactionProcessor) getDataStoresForSender(senderShard uint32) [
 	return cachers
 }
 
-func (atp *apiTransactionProcessor) fetchTxsForSender(sender string, senderShard uint32) [][]byte {
-	txsForSender := make([][]byte, 0)
+func (atp *apiTransactionProcessor) fetchTxsHashesForSender(sender string, senderShard uint32) ([][]byte, error) {
+	wrappedTxs := atp.fetchTxsForSender(sender, senderShard)
+	if len(wrappedTxs) == 0 {
+		return nil, fmt.Errorf("%w, no transaction in pool for sender", ErrCannotRetrieveTransactions)
+	}
+
+	txHashes := make([][]byte, len(wrappedTxs))
+	for idx, wrappedTx := range wrappedTxs {
+		txHashes[idx] = wrappedTx.TxHash
+	}
+
+	return txHashes, nil
+}
+
+func (atp *apiTransactionProcessor) fetchTxsForSender(sender string, senderShard uint32) []*txcache.WrappedTransaction {
+	txsForSender := make([]*txcache.WrappedTransaction, 0)
 	cachers := atp.getDataStoresForSender(senderShard)
 	for _, cache := range cachers {
 		txCache, ok := cache.(*txcache.TxCache)
@@ -170,31 +204,44 @@ func (atp *apiTransactionProcessor) fetchTxsForSender(sender string, senderShard
 		txsForSender = append(txsForSender, txs...)
 	}
 
+	sort.Slice(txsForSender, func(i, j int) bool {
+		return txsForSender[i].Tx.GetNonce() < txsForSender[j].Tx.GetNonce()
+	})
+
 	return txsForSender
 }
 
-func (atp *apiTransactionProcessor) fetchLastNonceForSender(sender string, senderShard uint32) (uint64, bool) {
-	lastNonce := uint64(0)
-	found := false
-	cachers := atp.getDataStoresForSender(senderShard)
-	for _, cache := range cachers {
-		txCache, ok := cache.(*txcache.TxCache)
-		if !ok {
-			continue
-		}
+func (atp *apiTransactionProcessor) fetchLastNonceForSender(sender string, senderShard uint32) (uint64, error) {
+	wrappedTxs := atp.fetchTxsForSender(sender, senderShard)
+	if len(wrappedTxs) == 0 {
+		return 0, fmt.Errorf("%w, no transaction in pool for sender", ErrCannotRetrieveTransactions)
+	}
 
-		lastShardNonce, ok := txCache.GetLastPoolNonceForSender(sender)
-		if !ok {
-			continue
-		}
+	lastTx := wrappedTxs[len(wrappedTxs)-1]
+	return lastTx.Tx.GetNonce(), nil
+}
 
-		if lastShardNonce > lastNonce {
-			lastNonce = lastShardNonce
-			found = true
+func (atp *apiTransactionProcessor) extractNonceGaps(sender string, senderShard uint32) ([]common.NonceGapApiResponse, error) {
+	wrappedTxs := atp.fetchTxsForSender(sender, senderShard)
+	if len(wrappedTxs) == 0 {
+		return nil, fmt.Errorf("%w, no transaction in pool for sender", ErrCannotRetrieveTransactions)
+	}
+
+	nonceGaps := make([]common.NonceGapApiResponse, 0)
+	for i := 0; i < len(wrappedTxs)-1; i++ {
+		nextNonce := wrappedTxs[i+1].Tx.GetNonce()
+		currentNonce := wrappedTxs[i].Tx.GetNonce()
+		nonceDiff := nextNonce - currentNonce
+		if nonceDiff > 1 {
+			nonceGap := common.NonceGapApiResponse{
+				From: fmt.Sprintf("%d", currentNonce),
+				To:   fmt.Sprintf("%d", nextNonce),
+			}
+			nonceGaps = append(nonceGaps, nonceGap)
 		}
 	}
 
-	return lastNonce, found
+	return nonceGaps, nil
 }
 
 func txsHashesBytesToString(input [][]byte) []string {
