@@ -346,6 +346,7 @@ func (inf *initialNodeFacade) GetTransactionsPool() (*common.TransactionsPoolAPI
 	return nil, errNodeStarting
 }
 
+// GetGasConfigs return a nil map and error
 func (inf *initialNodeFacade) GetGasConfigs() (map[string]map[string]uint64, error) {
 	return nil, errNodeStarting
 }

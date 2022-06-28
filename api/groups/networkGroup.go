@@ -454,6 +454,7 @@ func (ng *networkGroup) getGenesisBalances(c *gin.Context) {
 	shared.RespondWith(c, http.StatusOK, gin.H{"balances": genesisBalances}, "", shared.ReturnCodeSuccess)
 }
 
+// getGasConfig returns currently used gas configs configuration
 func (ng *networkGroup) getGasConfig(c *gin.Context) {
 	gasConfigMap, err := ng.getFacade().GetGasConfigs()
 	if err != nil {

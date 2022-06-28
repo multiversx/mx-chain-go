@@ -1381,21 +1381,23 @@ func TestGetGasConfigs(t *testing.T) {
 
 		arg := createMockArguments()
 
+		providedMap := map[string]map[string]uint64{
+			"map1": {
+				"test1": 1,
+			},
+		}
 		wasCalled := false
 		arg.ApiResolver = &mock.ApiResolverStub{
 			GetGasConfigsCalled: func() map[string]map[string]uint64 {
 				wasCalled = true
-				return map[string]map[string]uint64{
-					"map1": {
-						"test1": 1,
-					},
-				}
+				return providedMap
 			},
 		}
 
 		nf, _ := NewNodeFacade(arg)
-		_, err := nf.GetGasConfigs()
+		gasConfigMap, err := nf.GetGasConfigs()
 		require.NoError(t, err)
+		require.Equal(t, providedMap, gasConfigMap)
 		require.True(t, wasCalled)
 	})
 }
