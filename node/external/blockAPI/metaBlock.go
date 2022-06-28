@@ -114,7 +114,7 @@ func (mbp *metaAPIBlockProcessor) convertMetaBlockBytesToAPIBlock(hash []byte, b
 		miniblocks = append(miniblocks, miniblockAPI)
 	}
 
-	intraMb, err := mbp.getIntraMiniblocks(blockHeader.GetReceiptsHash(), headerEpoch, options)
+	intraMb, err := mbp.getIntrashardMiniblocksFromReceiptsStorage(blockHeader.GetReceiptsHash(), headerEpoch, options)
 	if err != nil {
 		return nil, err
 	}
