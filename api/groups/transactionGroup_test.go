@@ -1097,7 +1097,7 @@ func TestGetTransactionsPoolNonceGapsForSenderShouldWork(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, resp.Code)
 	assert.Empty(t, nonceGapsResp.Error)
-	assert.Equal(t, expectedNonceGaps, nonceGapsResp.Data.NonceGaps)
+	assert.Equal(t, *expectedNonceGaps, nonceGapsResp.Data.NonceGaps)
 }
 
 func getTransactionRoutesConfig() config.ApiRoutesConfig {
