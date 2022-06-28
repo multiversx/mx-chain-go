@@ -13,6 +13,10 @@ var ErrNotFoundInStorage = errors.New("not found in storage")
 // Currently, "item not found" storage errors are untyped (thus not distinguishable from others). E.g. see "pruningStorer.go".
 // As a workaround, we test the error message for a match.
 func isNotFoundInStorageErr(err error) bool {
+	if err == nil {
+		return false
+	}
+
 	return strings.Contains(err.Error(), "not found")
 }
 
