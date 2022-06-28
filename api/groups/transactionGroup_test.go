@@ -108,6 +108,16 @@ type poolForSenderResponse struct {
 	Code  string                    `json:"code"`
 }
 
+type lastPoolNonceForSenderResponseData struct {
+	Nonce uint64 `json:"nonce"`
+}
+
+type lastPoolNonceForSenderResponse struct {
+	Data  lastPoolNonceForSenderResponseData `json:"data"`
+	Error string                             `json:"error"`
+	Code  string                             `json:"code"`
+}
+
 func TestGetTransaction_WithCorrectHashShouldReturnTransaction(t *testing.T) {
 	sender := "sender"
 	receiver := "receiver"
@@ -960,6 +970,62 @@ func TestGetTransactionsPoolForSenderShouldWork(t *testing.T) {
 	assert.Equal(t, *expectedResp, txsForSenderResp.Data.Transactions)
 }
 
+func TestGetLastPoolNonceForSenderShouldError(t *testing.T) {
+	t.Parallel()
+
+	expectedErr := errors.New("expected error")
+	facade := mock.FacadeStub{
+		GetLastPoolNonceForSenderCalled: func(sender string) (uint64, error) {
+			return 0, expectedErr
+		},
+	}
+
+	transactionGroup, err := groups.NewTransactionGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(transactionGroup, "transaction", getTransactionRoutesConfig())
+
+	req, _ := http.NewRequest("GET", "/transaction/pool/by-sender/last-nonce/sender", nil)
+
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	lastPoolNonceResp := lastPoolNonceForSenderResponse{}
+	loadResponse(resp.Body, &lastPoolNonceResp)
+
+	assert.Equal(t, http.StatusInternalServerError, resp.Code)
+	assert.True(t, strings.Contains(lastPoolNonceResp.Error, expectedErr.Error()))
+}
+
+func TestGetLastPoolNonceForSenderShouldWork(t *testing.T) {
+	t.Parallel()
+
+	expectedSender := "sender"
+	expectedNonce := uint64(33)
+	facade := mock.FacadeStub{
+		GetLastPoolNonceForSenderCalled: func(sender string) (uint64, error) {
+			return expectedNonce, nil
+		},
+	}
+
+	transactionGroup, err := groups.NewTransactionGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(transactionGroup, "transaction", getTransactionRoutesConfig())
+
+	req, _ := http.NewRequest("GET", "/transaction/pool/by-sender/last-nonce/"+expectedSender, nil)
+
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	lastPoolNonceResp := lastPoolNonceForSenderResponse{}
+	loadResponse(resp.Body, &lastPoolNonceResp)
+
+	assert.Equal(t, http.StatusOK, resp.Code)
+	assert.Empty(t, lastPoolNonceResp.Error)
+	assert.Equal(t, expectedNonce, lastPoolNonceResp.Data.Nonce)
+}
+
 func getTransactionRoutesConfig() config.ApiRoutesConfig {
 	return config.ApiRoutesConfig{
 		APIPackages: map[string]config.APIPackageConfig{
@@ -973,6 +1039,7 @@ func getTransactionRoutesConfig() config.ApiRoutesConfig {
 					{Name: "/:txhash/status", Open: true},
 					{Name: "/simulate", Open: true},
 					{Name: "/pool/by-sender/:sender", Open: true},
+					{Name: "/pool/by-sender/last-nonce/:sender", Open: true},
 				},
 			},
 		},

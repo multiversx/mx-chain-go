@@ -108,9 +108,18 @@ func (cache *CrossTxCache) ForEachTransaction(function ForEachTransaction) {
 	})
 }
 
-// GetTransactionsPoolForSender returns an empty slice
+// GetTransactionsPoolForSender returns an empty slice, only to respect the intrface
+// CrossTxCache does not support transaction selection (not applicable, since transactions are already half-executed),
+// thus does not handle nonces, nonce gaps etc.
 func (cache *CrossTxCache) GetTransactionsPoolForSender(_ string) [][]byte {
 	return make([][]byte, 0)
+}
+
+// GetLastPoolNonceForSender returns 0 and false, only to respect the intrface
+// CrossTxCache does not support transaction selection (not applicable, since transactions are already half-executed),
+// thus does not handle nonces, nonce gaps etc.
+func (cache *CrossTxCache) GetLastPoolNonceForSender(_ string) (uint64, bool) {
+	return 0, false
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
