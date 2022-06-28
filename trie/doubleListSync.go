@@ -14,13 +14,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
-const deltaReRequest = int64(time.Second)
+const deltaReRequest = 4 * int64(time.Second)
 
 type request struct {
 	t int64
 }
 
-const maxNumRequestedNodesPerBatch = 500
+const maxNumRequestedNodesPerBatch = 1000
 
 type doubleListTrieSyncer struct {
 	baseSyncTrie
@@ -158,12 +158,13 @@ func (d *doubleListTrieSyncer) checkIsSyncedWhileProcessingMissingAndExisting() 
 				}
 			}
 			if len(marginSlice) >= maxNumRequestedNodesPerBatch {
-				break
+				d.request(marginSlice)
+				marginSlice = make([][]byte, 0, maxNumRequestedNodesPerBatch)
+				time.Sleep(d.waitTimeBetweenChecks)
 			}
 		}
 
 		d.request(marginSlice)
-
 		return false, nil
 	}
 
