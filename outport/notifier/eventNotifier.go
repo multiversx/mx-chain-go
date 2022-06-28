@@ -112,7 +112,7 @@ func (en *eventNotifier) SaveBlock(args *indexer.ArgsSaveBlockData) error {
 }
 
 func (en *eventNotifier) getLogEventsFromTransactionsPool(logs []*nodeData.LogData) []Event {
-	var logEvents []logEvent
+	var logEvents []*logEvent
 	for _, logData := range logs {
 		if logData == nil {
 			continue
@@ -122,7 +122,7 @@ func (en *eventNotifier) getLogEventsFromTransactionsPool(logs []*nodeData.LogDa
 		}
 
 		for _, eventHandler := range logData.LogHandler.GetLogEvents() {
-			le := logEvent{
+			le := &logEvent{
 				eventHandler: eventHandler,
 				txHash:       logData.TxHash,
 			}
@@ -137,23 +137,25 @@ func (en *eventNotifier) getLogEventsFromTransactionsPool(logs []*nodeData.LogDa
 
 	var events []Event
 	for _, event := range logEvents {
-		if !event.eventHandler.IsInterfaceNil() {
-			bech32Address := en.pubKeyConverter.Encode(event.eventHandler.GetAddress())
-			eventIdentifier := string(event.eventHandler.GetIdentifier())
-
-			log.Debug("eventNotifier: received event from address",
-				"address", bech32Address,
-				"identifier", eventIdentifier,
-			)
-
-			events = append(events, Event{
-				Address:    bech32Address,
-				Identifier: eventIdentifier,
-				Topics:     event.eventHandler.GetTopics(),
-				Data:       event.eventHandler.GetData(),
-				TxHash:     event.txHash,
-			})
+		if event == nil || event.eventHandler.IsInterfaceNil() {
+			continue
 		}
+
+		bech32Address := en.pubKeyConverter.Encode(event.eventHandler.GetAddress())
+		eventIdentifier := string(event.eventHandler.GetIdentifier())
+
+		log.Debug("eventNotifier: received event from address",
+			"address", bech32Address,
+			"identifier", eventIdentifier,
+		)
+
+		events = append(events, Event{
+			Address:    bech32Address,
+			Identifier: eventIdentifier,
+			Topics:     event.eventHandler.GetTopics(),
+			Data:       event.eventHandler.GetData(),
+			TxHash:     event.txHash,
+		})
 	}
 
 	return events
