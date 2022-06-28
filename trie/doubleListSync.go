@@ -134,9 +134,12 @@ func (d *doubleListTrieSyncer) checkIsSyncedWhileProcessingMissingAndExisting() 
 		return false, err
 	}
 
-	if len(d.missingHashes) > 0 {
+	numMissing := len(d.missingHashes)
+	numParsed := 0
+	if numMissing > 0 {
 		marginSlice := make([][]byte, 0, maxNumRequestedNodesPerBatch)
 		for hash := range d.missingHashes {
+			numParsed++
 			n, errGet := d.getNodeFromCache([]byte(hash))
 			if errGet == nil {
 				d.existingNodes[hash] = n
@@ -160,7 +163,9 @@ func (d *doubleListTrieSyncer) checkIsSyncedWhileProcessingMissingAndExisting() 
 			if len(marginSlice) >= maxNumRequestedNodesPerBatch {
 				d.request(marginSlice)
 				marginSlice = make([][]byte, 0, maxNumRequestedNodesPerBatch)
-				time.Sleep(d.waitTimeBetweenChecks)
+				if numMissing-numParsed > maxNumRequestedNodesPerBatch {
+					time.Sleep(d.waitTimeBetweenChecks)
+				}
 			}
 		}
 
