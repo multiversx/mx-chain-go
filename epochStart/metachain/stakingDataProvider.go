@@ -49,14 +49,17 @@ type stakingDataProvider struct {
 	numOfValidatorsInCurrEpoch uint32
 	stakingV4EnableEpoch       uint32
 	flagStakingV4Enable        atomic.Flag
+	stakingV4InitEpoch         uint32
+	flagStakingV4Initialized   atomic.Flag
 }
 
 // StakingDataProviderArgs is a struct placeholder for all arguments required to create a NewStakingDataProvider
 type StakingDataProviderArgs struct {
-	EpochNotifier        process.EpochNotifier
-	SystemVM             vmcommon.VMExecutionHandler
-	MinNodePrice         string
-	StakingV4EnableEpoch uint32
+	EpochNotifier            process.EpochNotifier
+	SystemVM                 vmcommon.VMExecutionHandler
+	MinNodePrice             string
+	StakingV4InitEnableEpoch uint32
+	StakingV4EnableEpoch     uint32
 }
 
 // NewStakingDataProvider will create a new instance of a staking data provider able to aid in the final rewards
@@ -81,8 +84,11 @@ func NewStakingDataProvider(args StakingDataProviderArgs) (*stakingDataProvider,
 		totalEligibleStake:      big.NewInt(0),
 		totalEligibleTopUpStake: big.NewInt(0),
 		stakingV4EnableEpoch:    args.StakingV4EnableEpoch,
+		stakingV4InitEpoch:      args.StakingV4InitEnableEpoch,
 	}
+	log.Debug("stakingDataProvider: enable epoch for staking v4 init", "epoch", sdp.stakingV4InitEpoch)
 	log.Debug("stakingDataProvider: enable epoch for staking v4", "epoch", sdp.stakingV4EnableEpoch)
+
 	args.EpochNotifier.RegisterNotifyHandler(sdp)
 
 	return sdp, nil
@@ -350,14 +356,14 @@ func (sdp *stakingDataProvider) checkAndFillOwnerValidatorAuctionData(
 	if !validatorInAuction {
 		return nil
 	}
-	if validatorInAuction && ownerData.numStakedNodes == 0 {
+	if ownerData.numStakedNodes == 0 {
 		return fmt.Errorf("stakingDataProvider.checkAndFillOwnerValidatorAuctionData for validator in auction error: %w, owner: %s, node: %s",
 			epochStart.ErrOwnerHasNoStakedNode,
 			hex.EncodeToString(ownerPubKey),
 			hex.EncodeToString(validator.GetPublicKey()),
 		)
 	}
-	if validatorInAuction && !sdp.flagStakingV4Enable.IsSet() {
+	if !sdp.flagStakingV4Initialized.IsSet() {
 		return fmt.Errorf("stakingDataProvider.checkAndFillOwnerValidatorAuctionData for validator in auction error: %w, owner: %s, node: %s",
 			epochStart.ErrReceivedAuctionValidatorsBeforeStakingV4,
 			hex.EncodeToString(ownerPubKey),
@@ -542,6 +548,9 @@ func (sdp *stakingDataProvider) GetNumOfValidatorsInCurrentEpoch() uint32 {
 func (sdp *stakingDataProvider) EpochConfirmed(epoch uint32, _ uint64) {
 	sdp.flagStakingV4Enable.SetValue(epoch >= sdp.stakingV4EnableEpoch)
 	log.Debug("stakingDataProvider: staking v4 enable epoch", "enabled", sdp.flagStakingV4Enable.IsSet())
+
+	sdp.flagStakingV4Initialized.SetValue(epoch >= sdp.stakingV4InitEpoch)
+	log.Debug("stakingDataProvider: staking v4 initialized", "enabled", sdp.flagStakingV4Initialized.IsSet())
 }
 
 // IsInterfaceNil return true if underlying object is nil

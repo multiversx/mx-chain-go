@@ -153,7 +153,7 @@ func (als *auctionListSelector) SelectNodesFromAuctionList(
 	numOfShuffledNodes := currNodesConfig.NodesToShufflePerShard * (als.shardCoordinator.NumberOfShards() + 1)
 	numOfValidatorsAfterShuffling, err := safeSub(currNumOfValidators, numOfShuffledNodes)
 	if err != nil {
-		log.Warn(fmt.Sprintf("%v when trying to compute numOfValidatorsAfterShuffling = %v - %v (currNumOfValidators - numOfShuffledNodes)",
+		log.Warn(fmt.Sprintf("auctionListSelector.SelectNodesFromAuctionList: %v when trying to compute numOfValidatorsAfterShuffling = %v - %v (currNumOfValidators - numOfShuffledNodes)",
 			err,
 			currNumOfValidators,
 			numOfShuffledNodes,
@@ -164,7 +164,7 @@ func (als *auctionListSelector) SelectNodesFromAuctionList(
 	maxNumNodes := currNodesConfig.MaxNumNodes
 	availableSlots, err := safeSub(maxNumNodes, numOfValidatorsAfterShuffling)
 	if availableSlots == 0 || err != nil {
-		log.Info(fmt.Sprintf("%v or zero value when trying to compute availableSlots = %v - %v (maxNodes - numOfValidatorsAfterShuffling); skip selecting nodes from auction list",
+		log.Info(fmt.Sprintf("auctionListSelector.SelectNodesFromAuctionList: %v or zero value when trying to compute availableSlots = %v - %v (maxNodes - numOfValidatorsAfterShuffling); skip selecting nodes from auction list",
 			err,
 			maxNumNodes,
 			numOfValidatorsAfterShuffling,
@@ -343,7 +343,7 @@ func markAuctionNodesAsSelected(
 	validatorsInfoMap state.ShardValidatorsInfoMapHandler,
 ) error {
 	for _, node := range selectedNodes {
-		newNode := node
+		newNode := node.ShallowClone()
 		newNode.SetList(string(common.SelectedFromAuctionList))
 
 		err := validatorsInfoMap.Replace(node, newNode)

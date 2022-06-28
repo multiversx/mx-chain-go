@@ -90,10 +90,11 @@ func createStakingDataProvider(
 	systemVM vmcommon.VMExecutionHandler,
 ) epochStart.StakingDataProvider {
 	argsStakingDataProvider := metachain.StakingDataProviderArgs{
-		EpochNotifier:        epochNotifier,
-		SystemVM:             systemVM,
-		MinNodePrice:         strconv.Itoa(nodePrice),
-		StakingV4EnableEpoch: stakingV4EnableEpoch,
+		EpochNotifier:            epochNotifier,
+		SystemVM:                 systemVM,
+		MinNodePrice:             strconv.Itoa(nodePrice),
+		StakingV4InitEnableEpoch: stakingV4InitEpoch,
+		StakingV4EnableEpoch:     stakingV4EnableEpoch,
 	}
 	stakingSCProvider, _ := metachain.NewStakingDataProvider(argsStakingDataProvider)
 

@@ -422,7 +422,8 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		vmFactoryForProcessing: vmFactory,
 	}
 
-	pcf.stakingDataProvider = factoryDisabled.NewDisabledStakingDataProvider()
+	pcf.stakingDataProviderAPI = factoryDisabled.NewDisabledStakingDataProvider()
+	pcf.auctionListSelectorAPI = factoryDisabled.NewDisabledAuctionListSelector()
 
 	return blockProcessorComponents, nil
 }
@@ -725,10 +726,11 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	}
 
 	argsStakingDataProvider := metachainEpochStart.StakingDataProviderArgs{
-		EpochNotifier:        pcf.coreData.EpochNotifier(),
-		SystemVM:             systemVM,
-		MinNodePrice:         pcf.systemSCConfig.StakingSystemSCConfig.GenesisNodePrice,
-		StakingV4EnableEpoch: pcf.epochConfig.EnableEpochs.StakingV4EnableEpoch,
+		EpochNotifier:            pcf.coreData.EpochNotifier(),
+		SystemVM:                 systemVM,
+		MinNodePrice:             pcf.systemSCConfig.StakingSystemSCConfig.GenesisNodePrice,
+		StakingV4InitEnableEpoch: pcf.epochConfig.EnableEpochs.StakingV4InitEnableEpoch,
+		StakingV4EnableEpoch:     pcf.epochConfig.EnableEpochs.StakingV4EnableEpoch,
 	}
 
 	// TODO: in case of changing the minimum node price, make sure to update the staking data provider
@@ -737,7 +739,12 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		return nil, err
 	}
 
-	pcf.stakingDataProvider = stakingDataProvider
+	stakingDataProviderAPI, err := metachainEpochStart.NewStakingDataProvider(argsStakingDataProvider)
+	if err != nil {
+		return nil, err
+	}
+
+	pcf.stakingDataProviderAPI = stakingDataProviderAPI
 
 	rewardsStorage := pcf.data.StorageService().GetStorer(dataRetriever.RewardTransactionUnit)
 	miniBlockStorage := pcf.data.StorageService().GetStorer(dataRetriever.MiniBlockUnit)
@@ -837,6 +844,20 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	if err != nil {
 		return nil, err
 	}
+
+	argsAuctionListSelectorAPI := metachainEpochStart.AuctionListSelectorArgs{
+		ShardCoordinator:             pcf.bootstrapComponents.ShardCoordinator(),
+		StakingDataProvider:          stakingDataProviderAPI,
+		MaxNodesChangeConfigProvider: maxNodesChangeConfigProvider,
+		SoftAuctionConfig:            pcf.config.SoftAuctionConfig,
+		Denomination:                 pcf.economicsConfig.GlobalSettings.Denomination,
+	}
+	auctionListSelectorAPI, err := metachainEpochStart.NewAuctionListSelector(argsAuctionListSelectorAPI)
+	if err != nil {
+		return nil, err
+	}
+
+	pcf.auctionListSelectorAPI = auctionListSelectorAPI
 
 	argsEpochSystemSC := metachainEpochStart.ArgsNewEpochStartSystemSCProcessing{
 		SystemVM:                     systemVM,

@@ -2236,10 +2236,11 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		}
 
 		argsStakingDataProvider := metachain.StakingDataProviderArgs{
-			EpochNotifier:        coreComponents.EpochNotifier(),
-			SystemVM:             systemVM,
-			MinNodePrice:         "1000",
-			StakingV4EnableEpoch: StakingV4Epoch,
+			EpochNotifier:            coreComponents.EpochNotifier(),
+			SystemVM:                 systemVM,
+			MinNodePrice:             "1000",
+			StakingV4InitEnableEpoch: StakingV4InitEpoch,
+			StakingV4EnableEpoch:     StakingV4Epoch,
 		}
 		stakingDataProvider, errRsp := metachain.NewStakingDataProvider(argsStakingDataProvider)
 		if errRsp != nil {

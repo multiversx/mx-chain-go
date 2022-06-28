@@ -23,14 +23,16 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const stakingV4EInitEnableEpoch = 444
 const stakingV4EnableEpoch = 444
 
 func createStakingDataProviderArgs() StakingDataProviderArgs {
 	return StakingDataProviderArgs{
-		EpochNotifier:        &epochNotifier.EpochNotifierStub{},
-		SystemVM:             &mock.VMExecutionHandlerStub{},
-		MinNodePrice:         "2500",
-		StakingV4EnableEpoch: stakingV4EnableEpoch,
+		EpochNotifier:            &epochNotifier.EpochNotifierStub{},
+		SystemVM:                 &mock.VMExecutionHandlerStub{},
+		MinNodePrice:             "2500",
+		StakingV4InitEnableEpoch: stakingV4EInitEnableEpoch,
+		StakingV4EnableEpoch:     stakingV4EnableEpoch,
 	}
 }
 
@@ -528,7 +530,7 @@ func TestCheckAndFillOwnerValidatorAuctionData(t *testing.T) {
 		t.Parallel()
 		args := createStakingDataProviderArgs()
 		sdp, _ := NewStakingDataProvider(args)
-		sdp.EpochConfirmed(stakingV4EnableEpoch, 0)
+		sdp.EpochConfirmed(stakingV4EInitEnableEpoch, 0)
 
 		owner := []byte("owner")
 		ownerData := &ownerStats{numStakedNodes: 3, numActiveNodes: 3}

@@ -24,16 +24,22 @@ type validatorsProvider struct {
 	nodesCoordinator             process.NodesCoordinator
 	validatorStatistics          process.ValidatorStatisticsProcessor
 	cache                        map[string]*state.ValidatorApiResponse
+	cachedAuctionValidators      []*common.AuctionListValidatorAPIResponse
+	cachedRandomness             []byte
 	cacheRefreshIntervalDuration time.Duration
 	refreshCache                 chan uint32
 	lastCacheUpdate              time.Time
+	lastAuctionCacheUpdate       time.Time
 	lock                         sync.RWMutex
+	auctionMutex                 sync.RWMutex
 	cancelFunc                   func()
 	validatorPubKeyConverter     core.PubkeyConverter
 	addressPubKeyConverter       core.PubkeyConverter
-	stakingDataProvider          epochStart.StakingDataProvider
-	maxRating                    uint32
-	currentEpoch                 uint32
+	stakingDataProvider          StakingDataProviderAPI
+	auctionListSelector          epochStart.AuctionListSelector
+
+	maxRating    uint32
+	currentEpoch uint32
 }
 
 // ArgValidatorsProvider contains all parameters needed for creating a validatorsProvider
@@ -44,7 +50,8 @@ type ArgValidatorsProvider struct {
 	ValidatorStatistics               process.ValidatorStatisticsProcessor
 	ValidatorPubKeyConverter          core.PubkeyConverter
 	AddressPubKeyConverter            core.PubkeyConverter
-	StakingDataProvider               epochStart.StakingDataProvider
+	StakingDataProvider               StakingDataProviderAPI
+	AuctionListSelector               epochStart.AuctionListSelector
 	StartEpoch                        uint32
 	MaxRating                         uint32
 }
@@ -72,6 +79,9 @@ func NewValidatorsProvider(
 	if check.IfNil(args.StakingDataProvider) {
 		return nil, process.ErrNilStakingDataProvider
 	}
+	if check.IfNil(args.AuctionListSelector) {
+		return nil, epochStart.ErrNilAuctionListSelector
+	}
 	if args.MaxRating == 0 {
 		return nil, process.ErrMaxRatingZero
 	}
@@ -86,14 +96,18 @@ func NewValidatorsProvider(
 		validatorStatistics:          args.ValidatorStatistics,
 		stakingDataProvider:          args.StakingDataProvider,
 		cache:                        make(map[string]*state.ValidatorApiResponse),
+		cachedAuctionValidators:      make([]*common.AuctionListValidatorAPIResponse, 0),
+		cachedRandomness:             make([]byte, 0),
 		cacheRefreshIntervalDuration: args.CacheRefreshIntervalDurationInSec,
 		refreshCache:                 make(chan uint32),
 		lock:                         sync.RWMutex{},
+		auctionMutex:                 sync.RWMutex{},
 		cancelFunc:                   cancelfunc,
 		maxRating:                    args.MaxRating,
 		validatorPubKeyConverter:     args.ValidatorPubKeyConverter,
 		addressPubKeyConverter:       args.AddressPubKeyConverter,
 		currentEpoch:                 args.StartEpoch,
+		auctionListSelector:          args.AuctionListSelector,
 	}
 
 	go valProvider.startRefreshProcess(currentContext)
@@ -104,48 +118,16 @@ func NewValidatorsProvider(
 
 // GetLatestValidators gets the latest configuration of validators from the peerAccountsTrie
 func (vp *validatorsProvider) GetLatestValidators() map[string]*state.ValidatorApiResponse {
-	return vp.getValidators()
+	vp.updateCacheIfNeeded()
+
+	vp.lock.RLock()
+	clonedMap := cloneMap(vp.cache)
+	vp.lock.RUnlock()
+
+	return clonedMap
 }
 
-// GetAuctionList returns an array containing the validators that are currently in the auction list
-func (vp *validatorsProvider) GetAuctionList() []*common.AuctionListValidatorAPIResponse {
-	validators := vp.getValidators()
-
-	auctionListValidators := make([]*common.AuctionListValidatorAPIResponse, 0)
-	for pubKey, val := range validators {
-		if string(common.AuctionList) != val.ValidatorStatus {
-			continue
-		}
-
-		pubKeyBytes, err := vp.validatorPubKeyConverter.Decode(pubKey)
-		if err != nil {
-			log.Error("validatorsProvider.GetAuctionList: cannot decode public key of a node", "error", err)
-			continue
-		}
-
-		owner, err := vp.stakingDataProvider.GetBlsKeyOwner(pubKeyBytes)
-		if err != nil {
-			log.Error("validatorsProvider.GetAuctionList: cannot get bls key owner", "public key", pubKey, "error", err)
-			continue
-		}
-
-		topUp, err := vp.stakingDataProvider.GetNodeStakedTopUp(pubKeyBytes)
-		if err != nil {
-			log.Error("validatorsProvider.GetAuctionList: cannot get node top up", "public key", pubKey, "error", err)
-			continue
-		}
-
-		auctionListValidators = append(auctionListValidators, &common.AuctionListValidatorAPIResponse{
-			Owner:   vp.addressPubKeyConverter.Encode([]byte(owner)),
-			NodeKey: pubKey,
-			TopUp:   topUp.String(),
-		})
-	}
-
-	return auctionListValidators
-}
-
-func (vp *validatorsProvider) getValidators() map[string]*state.ValidatorApiResponse {
+func (vp *validatorsProvider) updateCacheIfNeeded() {
 	vp.lock.RLock()
 	shouldUpdate := time.Since(vp.lastCacheUpdate) > vp.cacheRefreshIntervalDuration
 	vp.lock.RUnlock()
@@ -153,12 +135,6 @@ func (vp *validatorsProvider) getValidators() map[string]*state.ValidatorApiResp
 	if shouldUpdate {
 		vp.updateCache()
 	}
-
-	vp.lock.RLock()
-	clonedMap := cloneMap(vp.cache)
-	vp.lock.RUnlock()
-
-	return clonedMap
 }
 
 func cloneMap(cache map[string]*state.ValidatorApiResponse) map[string]*state.ValidatorApiResponse {
@@ -260,13 +236,13 @@ func (vp *validatorsProvider) createNewCache(
 
 	nodesMapEligible, err := vp.nodesCoordinator.GetAllEligibleValidatorsPublicKeys(epoch)
 	if err != nil {
-		log.Debug("validatorsProvider - GetAllEligibleValidatorsPublicKeys failed", "epoch", epoch)
+		log.Debug("validatorsProvider - GetAllEligibleValidatorsPublicKeys failed", "epoch", epoch, "error", err)
 	}
 	vp.aggregateLists(newCache, nodesMapEligible, common.EligibleList)
 
 	nodesMapWaiting, err := vp.nodesCoordinator.GetAllWaitingValidatorsPublicKeys(epoch)
 	if err != nil {
-		log.Debug("validatorsProvider - GetAllWaitingValidatorsPublicKeys failed", "epoch", epoch)
+		log.Debug("validatorsProvider - GetAllWaitingValidatorsPublicKeys failed", "epoch", epoch, "error", err)
 	}
 	vp.aggregateLists(newCache, nodesMapWaiting, common.WaitingList)
 
@@ -295,7 +271,6 @@ func (vp *validatorsProvider) createValidatorApiResponseMapFromValidatorInfoMap(
 			ShardId:                            validatorInfo.GetShardId(),
 			ValidatorStatus:                    validatorInfo.GetList(),
 		}
-
 	}
 
 	return newCache
