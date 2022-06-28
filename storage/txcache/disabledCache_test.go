@@ -30,7 +30,7 @@ func TestDisabledCache_DoesNothing(t *testing.T) {
 	require.NotPanics(t, func() { cache.ForEachTransaction(func(_ []byte, _ *WrappedTransaction) {}) })
 
 	txs := cache.GetTransactionsPoolForSender("")
-	require.Equal(t, make([][]byte, 0), txs)
+	require.Equal(t, make([]*WrappedTransaction, 0), txs)
 
 	cache.Clear()
 
@@ -62,8 +62,6 @@ func TestDisabledCache_DoesNothing(t *testing.T) {
 
 	require.NotPanics(t, func() { cache.RegisterHandler(func(_ []byte, _ interface{}) {}, "") })
 	require.False(t, cache.IsInterfaceNil())
-
-	require.Equal(t, make([][]byte, 0), cache.GetTransactionsPoolForSender(""))
 
 	err := cache.Close()
 	require.Nil(t, err)
