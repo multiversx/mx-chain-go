@@ -2,6 +2,7 @@ package transactionAPI
 
 import (
 	"encoding/hex"
+	"errors"
 	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -48,10 +49,16 @@ func newAPITransactionResultProcessor(
 }
 
 func (arp *apiTransactionResultsProcessor) putResultsInTransaction(hash []byte, tx *transaction.ApiTransactionResult, epoch uint32) error {
+	// TODO: Note that the following call produces an effect even if the function "putResultsInTransaction" results in an error.
+	// TODO: Refactor this package to use less functions with side-effects.
 	arp.loadLogsIntoTransaction(hash, tx, epoch)
 
 	resultsHashes, err := arp.historyRepository.GetResultsHashesByTxHash(hash, epoch)
 	if err != nil {
+		// It's perfectly normal to have transactions without SCRs.
+		if errors.Is(err, dblookupext.ErrNotFoundInStorage) {
+			return nil
+		}
 		return err
 	}
 
