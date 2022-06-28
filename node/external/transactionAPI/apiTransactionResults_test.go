@@ -70,8 +70,35 @@ func TestPutEventsInTransactionReceipt(t *testing.T) {
 		SndAddr: pubKeyConverter.Encode(rec.SndAddr),
 	}
 
-	n.putResultsInTransaction(txHash, tx, epoch)
+	err := n.putResultsInTransaction(txHash, tx, epoch)
+	require.Nil(t, err)
 	require.Equal(t, expectedRecAPI, tx.Receipt)
+}
+
+func TestApiTransactionProcessor_PutResultsInTransactionWhenNoResultsShouldWork(t *testing.T) {
+	t.Parallel()
+
+	epoch := uint32(0)
+	historyRepo := &dbLookupExtMock.HistoryRepositoryStub{
+		GetEventsHashesByTxHashCalled: func(hash []byte, epoch uint32) (*dblookupext.ResultsHashesByTxHash, error) {
+			return nil, dblookupext.ErrNotFoundInStorage
+		},
+	}
+
+	n := newAPITransactionResultProcessor(
+		testscommon.RealWorldBech32PubkeyConverter,
+		historyRepo,
+		genericMocks.NewChainStorerMock(epoch),
+		&testscommon.MarshalizerMock{},
+		newTransactionUnmarshaller(&testscommon.MarshalizerMock{}, testscommon.RealWorldBech32PubkeyConverter),
+		&testscommon.LogsFacadeStub{},
+		0,
+	)
+
+	tx := &transaction.ApiTransactionResult{}
+	err := n.putResultsInTransaction([]byte("txHash"), tx, epoch)
+	require.Nil(t, err)
+	require.Empty(t, tx.SmartContractResults)
 }
 
 func TestPutEventsInTransactionSmartContractResults(t *testing.T) {
@@ -199,7 +226,8 @@ func TestPutEventsInTransactionSmartContractResults(t *testing.T) {
 	}
 
 	tx := &transaction.ApiTransactionResult{}
-	n.putResultsInTransaction(testTxHash, tx, testEpoch)
+	err := n.putResultsInTransaction(testTxHash, tx, testEpoch)
+	require.Nil(t, err)
 	require.Equal(t, expectedSCRS, tx.SmartContractResults)
 }
 
@@ -250,6 +278,9 @@ func TestPutLogsInTransaction(t *testing.T) {
 
 	n := newAPITransactionResultProcessor(pubKeyConverter, historyRepo, dataStore, marshalizerMock, txUnmarshalerAndPreparer, logsFacade, 0)
 	tx := &transaction.ApiTransactionResult{}
-	n.putResultsInTransaction(testTxHash, tx, testEpoch)
+	err := n.putResultsInTransaction(testTxHash, tx, testEpoch)
+	// TODO: Note that "putResultsInTransaction" produces an effect on "tx" even if it returns an error.
+	// TODO: Refactor this package to use less functions with side-effects.
+	require.Errorf(t, err, "local err")
 	require.Equal(t, logs, tx.Logs)
 }

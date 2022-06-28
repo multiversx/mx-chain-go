@@ -24,7 +24,7 @@ func TestGetResultsHashesByTxHashShouldErr(t *testing.T) {
 
 	eventsHashes, err := eventsHashesIndex.getEventsHashesByTxHash([]byte("hash"), 0)
 	require.Nil(t, eventsHashes)
-	require.Error(t, err)
+	require.ErrorIs(t, err, ErrNotFoundInStorage)
 }
 
 func TestSaveAndGetResultsSCRSHashesByTxHash(t *testing.T) {
