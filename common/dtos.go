@@ -17,7 +17,7 @@ type TransactionsPoolAPIResponse struct {
 // AuctionNode holds data needed for a node in auction to respond to API calls
 type AuctionNode struct {
 	BlsKey    string `json:"blsKey"`
-	Qualified bool   `json:"selected"`
+	Qualified bool   `json:"qualified"`
 }
 
 // AuctionListValidatorAPIResponse holds the data needed for an auction node validator for responding to API calls
