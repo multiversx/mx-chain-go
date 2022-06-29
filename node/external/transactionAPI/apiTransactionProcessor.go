@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -108,22 +109,37 @@ func (atp *apiTransactionProcessor) GetTransactionsPool() (*common.TransactionsP
 }
 
 // GetTransactionsPoolForSender will return a structure containing the transactions for sender that is to be returned on API calls
-func (atp *apiTransactionProcessor) GetTransactionsPoolForSender(sender string) (*common.TransactionsPoolForSenderApiResponse, error) {
+func (atp *apiTransactionProcessor) GetTransactionsPoolForSender(sender, parameters string) (*common.TransactionsPoolForSenderApiResponse, error) {
+	if len(parameters) == 0 {
+		return &common.TransactionsPoolForSenderApiResponse{}, nil
+	}
+
+	return atp.extractResponseForParameters(sender, parameters)
+}
+
+func (atp *apiTransactionProcessor) extractResponseForParameters(sender, parameters string) (*common.TransactionsPoolForSenderApiResponse, error) {
 	senderAddr, err := atp.addressPubKeyConverter.Decode(sender)
 	if err != nil {
 		return nil, fmt.Errorf("%s, %w", ErrInvalidAddress.Error(), err)
 	}
 
 	senderShard := atp.shardCoordinator.ComputeId(senderAddr)
-	txHashes, err := atp.fetchTxsHashesForSender(string(senderAddr), senderShard)
-	if err != nil {
-		return nil, err
+
+	parameters = strings.Trim(parameters, " ")
+	parameters = strings.ToLower(parameters)
+	transactions := &common.TransactionsPoolForSenderApiResponse{}
+	wrappedTxs := atp.fetchTxsForSender(sender, senderShard)
+	if len(wrappedTxs) == 0 {
+		return nil, fmt.Errorf("%w, no transaction in pool for sender", ErrCannotRetrieveTransactions)
 	}
 
-	return &common.TransactionsPoolForSenderApiResponse{
-		Sender:       sender,
-		Transactions: txsHashesBytesToString(txHashes),
-	}, nil
+	paramsHandler := newParametersHandler(parameters)
+	for _, wrappedTx := range wrappedTxs {
+		tx := atp.extractRequestedTxInfo(wrappedTx, paramsHandler)
+		transactions.Transactions = append(transactions.Transactions, tx)
+	}
+
+	return transactions, nil
 }
 
 // GetLastPoolNonceForSender will return the last nonce from pool for sender that is to be returned on API calls
@@ -161,6 +177,30 @@ func (atp *apiTransactionProcessor) GetTransactionsPoolNonceGapsForSender(sender
 	}, nil
 }
 
+func (atp *apiTransactionProcessor) extractRequestedTxInfo(wrappedTx *txcache.WrappedTransaction, paramsHandler parametersHandler) common.Transaction {
+	tx := common.Transaction{}
+	if paramsHandler.HasHash {
+		tx.Hash = hex.EncodeToString(wrappedTx.TxHash)
+	}
+	if paramsHandler.HasNonce {
+		tx.Nonce = wrappedTx.Tx.GetNonce()
+	}
+	if paramsHandler.HasSender {
+		tx.Sender = atp.addressPubKeyConverter.Encode(wrappedTx.Tx.GetSndAddr())
+	}
+	if paramsHandler.HasReceiver {
+		tx.Receiver = atp.addressPubKeyConverter.Encode(wrappedTx.Tx.GetRcvAddr())
+	}
+	if paramsHandler.HasGasLimit {
+		tx.GasLimit = wrappedTx.Tx.GetGasLimit()
+	}
+	if paramsHandler.HasGasPrice {
+		tx.GasPrice = wrappedTx.Tx.GetGasPrice()
+	}
+
+	return tx
+}
+
 func (atp *apiTransactionProcessor) getDataStoresForSender(senderShard uint32) []storage.Cacher {
 	cachers := make([]storage.Cacher, 0)
 	numOfShards := atp.shardCoordinator.NumberOfShards()
@@ -175,20 +215,6 @@ func (atp *apiTransactionProcessor) getDataStoresForSender(senderShard uint32) [
 	cachers = append(cachers, shardCache)
 
 	return cachers
-}
-
-func (atp *apiTransactionProcessor) fetchTxsHashesForSender(sender string, senderShard uint32) ([][]byte, error) {
-	wrappedTxs := atp.fetchTxsForSender(sender, senderShard)
-	if len(wrappedTxs) == 0 {
-		return nil, fmt.Errorf("%w, no transaction in pool for sender", ErrCannotRetrieveTransactions)
-	}
-
-	txHashes := make([][]byte, len(wrappedTxs))
-	for idx, wrappedTx := range wrappedTxs {
-		txHashes[idx] = wrappedTx.TxHash
-	}
-
-	return txHashes, nil
 }
 
 func (atp *apiTransactionProcessor) fetchTxsForSender(sender string, senderShard uint32) []*txcache.WrappedTransaction {

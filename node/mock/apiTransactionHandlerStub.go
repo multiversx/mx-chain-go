@@ -10,7 +10,7 @@ type TransactionAPIHandlerStub struct {
 	GetTransactionCalled                        func(hash string, withResults bool) (*transaction.ApiTransactionResult, error)
 	GetTransactionsPoolCalled                   func() (*common.TransactionsPoolAPIResponse, error)
 	UnmarshalTransactionCalled                  func(txBytes []byte, txType transaction.TxType) (*transaction.ApiTransactionResult, error)
-	GetTransactionsPoolForSenderCalled          func(sender string) (*common.TransactionsPoolForSenderApiResponse, error)
+	GetTransactionsPoolForSenderCalled          func(sender, parameters string) (*common.TransactionsPoolForSenderApiResponse, error)
 	GetLastPoolNonceForSenderCalled             func(sender string) (uint64, error)
 	GetTransactionsPoolNonceGapsForSenderCalled func(sender string) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error)
 	UnmarshalReceiptCalled                      func(receiptBytes []byte) (*transaction.ApiReceipt, error)
@@ -35,9 +35,9 @@ func (tas *TransactionAPIHandlerStub) GetTransactionsPool() (*common.Transaction
 }
 
 // GetTransactionsPoolForSender -
-func (tas *TransactionAPIHandlerStub) GetTransactionsPoolForSender(sender string) (*common.TransactionsPoolForSenderApiResponse, error) {
+func (tas *TransactionAPIHandlerStub) GetTransactionsPoolForSender(sender, parameters string) (*common.TransactionsPoolForSenderApiResponse, error) {
 	if tas.GetTransactionsPoolForSenderCalled != nil {
-		return tas.GetTransactionsPoolForSenderCalled(sender)
+		return tas.GetTransactionsPoolForSenderCalled(sender, parameters)
 	}
 
 	return nil, nil

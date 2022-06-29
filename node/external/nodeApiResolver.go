@@ -143,8 +143,8 @@ func (nar *nodeApiResolver) GetTransactionsPool() (*common.TransactionsPoolAPIRe
 }
 
 // GetTransactionsPoolForSender will return a structure containing the transactions for sender that is to be returned on API calls
-func (nar *nodeApiResolver) GetTransactionsPoolForSender(sender string) (*common.TransactionsPoolForSenderApiResponse, error) {
-	return nar.apiTransactionHandler.GetTransactionsPoolForSender(sender)
+func (nar *nodeApiResolver) GetTransactionsPoolForSender(sender, parameters string) (*common.TransactionsPoolForSenderApiResponse, error) {
+	return nar.apiTransactionHandler.GetTransactionsPoolForSender(sender, parameters)
 }
 
 // GetLastPoolNonceForSender will return the last nonce from pool for sender that is to be returned on API calls

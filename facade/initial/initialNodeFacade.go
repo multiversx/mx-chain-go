@@ -352,7 +352,7 @@ func (inf *initialNodeFacade) GetTransactionsPoolNonceGapsForSender(_ string) (*
 }
 
 // GetTransactionsPoolForSender returns a nil structure and error
-func (inf *initialNodeFacade) GetTransactionsPoolForSender(_ string) (*common.TransactionsPoolForSenderApiResponse, error) {
+func (inf *initialNodeFacade) GetTransactionsPoolForSender(_, _ string) (*common.TransactionsPoolForSenderApiResponse, error) {
 	return nil, errNodeStarting
 }
 

@@ -926,7 +926,7 @@ func TestGetTransactionsPoolForSenderShouldError(t *testing.T) {
 
 	expectedErr := errors.New("expected error")
 	facade := mock.FacadeStub{
-		GetTransactionsPoolForSenderCalled: func(sender string) (*common.TransactionsPoolForSenderApiResponse, error) {
+		GetTransactionsPoolForSenderCalled: func(sender, parameters string) (*common.TransactionsPoolForSenderApiResponse, error) {
 			return nil, expectedErr
 		},
 	}
@@ -936,7 +936,7 @@ func TestGetTransactionsPoolForSenderShouldError(t *testing.T) {
 
 	ws := startWebServer(transactionGroup, "transaction", getTransactionRoutesConfig())
 
-	req, _ := http.NewRequest("GET", "/transaction/pool/by-sender/sender", nil)
+	req, _ := http.NewRequest("GET", "/transaction/pool/by-sender/sender/parameters/parameters", nil)
 
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
@@ -952,12 +952,23 @@ func TestGetTransactionsPoolForSenderShouldWork(t *testing.T) {
 	t.Parallel()
 
 	expectedSender := "sender"
+	providedParameters := "hash,sender,RECEIVER"
 	expectedResp := &common.TransactionsPoolForSenderApiResponse{
-		Sender:       expectedSender,
-		Transactions: []string{"txHash1", "txHash2"},
+		Transactions: []common.Transaction{
+			{
+				Hash:     "txHash1",
+				Sender:   expectedSender,
+				Receiver: "receiver1",
+			},
+			{
+				Hash:     "txHash2",
+				Sender:   expectedSender,
+				Receiver: "receiver2",
+			},
+		},
 	}
 	facade := mock.FacadeStub{
-		GetTransactionsPoolForSenderCalled: func(sender string) (*common.TransactionsPoolForSenderApiResponse, error) {
+		GetTransactionsPoolForSenderCalled: func(sender, parameters string) (*common.TransactionsPoolForSenderApiResponse, error) {
 			return expectedResp, nil
 		},
 	}
@@ -967,7 +978,7 @@ func TestGetTransactionsPoolForSenderShouldWork(t *testing.T) {
 
 	ws := startWebServer(transactionGroup, "transaction", getTransactionRoutesConfig())
 
-	req, _ := http.NewRequest("GET", "/transaction/pool/by-sender/"+expectedSender, nil)
+	req, _ := http.NewRequest("GET", "/transaction/pool/by-sender/"+expectedSender+"/parameters/"+providedParameters, nil)
 
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
@@ -1112,7 +1123,7 @@ func getTransactionRoutesConfig() config.ApiRoutesConfig {
 					{Name: "/:txhash", Open: true},
 					{Name: "/:txhash/status", Open: true},
 					{Name: "/simulate", Open: true},
-					{Name: "/pool/by-sender/:sender", Open: true},
+					{Name: "/pool/by-sender/:sender/parameters/:parameters", Open: true},
 					{Name: "/pool/by-sender/last-nonce/:sender", Open: true},
 					{Name: "/pool/by-sender/nonce-gaps/:sender", Open: true},
 				},

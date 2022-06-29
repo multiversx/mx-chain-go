@@ -190,7 +190,7 @@ func TestDisabledNodeFacade_AllMethodsShouldNotPanic(t *testing.T) {
 	assert.Nil(t, txPool)
 	assert.Equal(t, errNodeStarting, err)
 
-	txs, err := inf.GetTransactionsPoolForSender("")
+	txs, err := inf.GetTransactionsPoolForSender("", "")
 	assert.Nil(t, txs)
 	assert.Equal(t, errNodeStarting, err)
 

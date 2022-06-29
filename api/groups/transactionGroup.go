@@ -30,7 +30,7 @@ const (
 	sendMultiplePath                      = "/send-multiple"
 	getTransactionPath                    = "/:txhash"
 	getTransactionsPool                   = "/pool"
-	getTransactionsPoolForSender          = "/pool/by-sender/:sender"
+	getTransactionsPoolForSender          = "/pool/by-sender/:sender/parameters/:parameters"
 	getLastPoolNonceForSender             = "/pool/by-sender/last-nonce/:sender"
 	getTransactionsPoolNonceGapsForSender = "/pool/by-sender/nonce-gaps/:sender"
 
@@ -48,7 +48,7 @@ type transactionFacadeHandler interface {
 	SimulateTransactionExecution(tx *transaction.Transaction) (*txSimData.SimulationResults, error)
 	GetTransaction(hash string, withResults bool) (*transaction.ApiTransactionResult, error)
 	GetTransactionsPool() (*common.TransactionsPoolAPIResponse, error)
-	GetTransactionsPoolForSender(sender string) (*common.TransactionsPoolForSenderApiResponse, error)
+	GetTransactionsPoolForSender(sender, parameters string) (*common.TransactionsPoolForSenderApiResponse, error)
 	GetLastPoolNonceForSender(sender string) (uint64, error)
 	GetTransactionsPoolNonceGapsForSender(sender string) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error)
 	ComputeTransactionGasLimit(tx *transaction.Transaction) (*transaction.CostResponse, error)
@@ -588,7 +588,8 @@ func (tg *transactionGroup) getTransactionsPool(c *gin.Context) {
 // getTransactionsPoolForSender returns the transactions hashes for the sender
 func (tg *transactionGroup) getTransactionsPoolForSender(c *gin.Context) {
 	sender := c.Param("sender")
-	txs, err := tg.getFacade().GetTransactionsPoolForSender(sender)
+	parameters := c.Param("parameters")
+	txs, err := tg.getFacade().GetTransactionsPoolForSender(sender, parameters)
 	if err != nil {
 		c.JSON(
 			http.StatusInternalServerError,

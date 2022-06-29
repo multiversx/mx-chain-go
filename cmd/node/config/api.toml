@@ -169,8 +169,8 @@
         # /transaction/:txhash will return the transaction in JSON format based on its hash
         { Name = "/:txhash", Open = true },
 
-        # /transaction/pool/by-sender/:sender will return the transactions in JSON format for the sender
-        { Name = "/pool/by-sender/:sender", Open = true },
+        # /transaction/pool/by-sender/:sender/parameters/:parameters will return the transactions parameters in JSON format for the sender
+        { Name = "/pool/by-sender/:sender/parameters/:parameters", Open = true },
 
         # /transaction/pool/by-sender/last-nonce/:sender will return the last pool nonce in JSON format for the sender
         { Name = "/pool/by-sender/last-nonce/:sender", Open = true },

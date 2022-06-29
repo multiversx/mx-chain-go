@@ -391,13 +391,13 @@ func TestNodeApiResolver_GetTransactionsPoolForSender(t *testing.T) {
 		expectedErr := errors.New("expected error")
 		arg := createMockArgs()
 		arg.APITransactionHandler = &mock.TransactionAPIHandlerStub{
-			GetTransactionsPoolForSenderCalled: func(sender string) (*common.TransactionsPoolForSenderApiResponse, error) {
+			GetTransactionsPoolForSenderCalled: func(sender, parameters string) (*common.TransactionsPoolForSenderApiResponse, error) {
 				return nil, expectedErr
 			},
 		}
 
 		nar, _ := external.NewNodeApiResolver(arg)
-		res, err := nar.GetTransactionsPoolForSender("sender")
+		res, err := nar.GetTransactionsPoolForSender("sender", "")
 		require.Nil(t, res)
 		require.Equal(t, expectedErr, err)
 	})
@@ -406,20 +406,32 @@ func TestNodeApiResolver_GetTransactionsPoolForSender(t *testing.T) {
 		t.Parallel()
 
 		expectedSender := "alice"
+		providedParameters := "sender,hash,receiver"
 		expectedResponse := &common.TransactionsPoolForSenderApiResponse{
-			Sender:       expectedSender,
-			Transactions: []string{"txhash1", "txhash2"},
+			Transactions: []common.Transaction{
+				{
+					Hash:     "txHash1",
+					Sender:   expectedSender,
+					Receiver: "receiver1",
+				},
+				{
+					Hash:     "txHash2",
+					Sender:   expectedSender,
+					Receiver: "receiver2",
+				},
+			},
 		}
 		arg := createMockArgs()
 		arg.APITransactionHandler = &mock.TransactionAPIHandlerStub{
-			GetTransactionsPoolForSenderCalled: func(sender string) (*common.TransactionsPoolForSenderApiResponse, error) {
+			GetTransactionsPoolForSenderCalled: func(sender, parameters string) (*common.TransactionsPoolForSenderApiResponse, error) {
 				require.Equal(t, expectedSender, sender)
+				require.Equal(t, providedParameters, parameters)
 				return expectedResponse, nil
 			},
 		}
 
 		nar, _ := external.NewNodeApiResolver(arg)
-		res, err := nar.GetTransactionsPoolForSender(expectedSender)
+		res, err := nar.GetTransactionsPoolForSender(expectedSender, providedParameters)
 		require.NoError(t, err)
 		require.Equal(t, expectedResponse, res)
 	})

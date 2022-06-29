@@ -14,10 +14,19 @@ type TransactionsPoolAPIResponse struct {
 	Rewards              []string `json:"rewards"`
 }
 
+// Transaction is a struct that holds transaction data to be returned when getting the transactions from pool
+type Transaction struct {
+	Hash     string `json:"hash,omitempty"`
+	Nonce    uint64 `json:"nonce,omitempty"`
+	Sender   string `json:"sender,omitempty"`
+	Receiver string `json:"receiver,omitempty"`
+	GasLimit uint64 `json:"gasLimit,omitempty"`
+	GasPrice uint64 `json:"gasPrice,omitempty"`
+}
+
 // TransactionsPoolForSenderApiResponse is a struct that holds the data to be returned when getting the transactions for a sender from an API call
 type TransactionsPoolForSenderApiResponse struct {
-	Sender       string   `json:"sender"`
-	Transactions []string `json:"transactions"`
+	Transactions []Transaction `json:"transactions"`
 }
 
 // NonceGapApiResponse is a struct that holds a nonce gap from transactions pool

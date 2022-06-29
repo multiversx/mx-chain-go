@@ -700,11 +700,13 @@ func TestApiTransactionProcessor_GetTransactionsPoolForSender(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, atp)
 
-	res, err := atp.GetTransactionsPoolForSender(sender)
+	res, err := atp.GetTransactionsPoolForSender(sender, "hash,sender")
 	require.NoError(t, err)
-	require.Equal(t, sender, res.Sender)
 	expectedHashes := []string{hex.EncodeToString(txHash0), hex.EncodeToString(txHash1), hex.EncodeToString(txHash2), hex.EncodeToString(txHash3), hex.EncodeToString(txHash4)}
-	require.Equal(t, expectedHashes, res.Transactions)
+	for i, tx := range res.Transactions {
+		require.Equal(t, expectedHashes[i], tx.Hash)
+		require.Equal(t, sender, tx.Sender)
+	}
 }
 
 func TestApiTransactionProcessor_GetLastPoolNonceForSender(t *testing.T) {
