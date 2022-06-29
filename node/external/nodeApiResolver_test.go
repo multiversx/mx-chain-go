@@ -464,6 +464,53 @@ func TestNodeApiResolver_GetLastPoolNonceForSender(t *testing.T) {
 	})
 }
 
+func TestNodeApiResolver_GetTransactionsPoolNonceGapsForSender(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should error", func(t *testing.T) {
+		t.Parallel()
+
+		expectedErr := errors.New("expected error")
+		arg := createMockArgs()
+		arg.APITransactionHandler = &mock.TransactionAPIHandlerStub{
+			GetTransactionsPoolNonceGapsForSenderCalled: func(sender string) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error) {
+				return nil, expectedErr
+			},
+		}
+
+		nar, _ := external.NewNodeApiResolver(arg)
+		res, err := nar.GetTransactionsPoolNonceGapsForSender("sender")
+		require.Nil(t, res)
+		require.Equal(t, expectedErr, err)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		expectedSender := "alice"
+		expectedNonceGaps := &common.TransactionsPoolNonceGapsForSenderApiResponse{
+			Sender: expectedSender,
+			Gaps: []common.NonceGapApiResponse{
+				{
+					From: 33,
+					To:   60,
+				},
+			},
+		}
+		arg := createMockArgs()
+		arg.APITransactionHandler = &mock.TransactionAPIHandlerStub{
+			GetTransactionsPoolNonceGapsForSenderCalled: func(sender string) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error) {
+				return expectedNonceGaps, nil
+			},
+		}
+
+		nar, _ := external.NewNodeApiResolver(arg)
+		res, err := nar.GetTransactionsPoolNonceGapsForSender(expectedSender)
+		require.NoError(t, err)
+		require.Equal(t, expectedNonceGaps, res)
+	})
+}
+
 func TestNodeApiResolver_GetGenesisNodesPubKeys(t *testing.T) {
 	t.Parallel()
 

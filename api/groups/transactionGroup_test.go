@@ -118,6 +118,16 @@ type lastPoolNonceForSenderResponse struct {
 	Code  string                             `json:"code"`
 }
 
+type txPoolNonceGapsForSenderResponseData struct {
+	NonceGaps common.TransactionsPoolNonceGapsForSenderApiResponse `json:"nonceGaps"`
+}
+
+type txPoolNonceGapsForSenderResponse struct {
+	Data  txPoolNonceGapsForSenderResponseData `json:"data"`
+	Error string                               `json:"error"`
+	Code  string                               `json:"code"`
+}
+
 func TestGetTransaction_WithCorrectHashShouldReturnTransaction(t *testing.T) {
 	sender := "sender"
 	receiver := "receiver"
@@ -1026,6 +1036,70 @@ func TestGetLastPoolNonceForSenderShouldWork(t *testing.T) {
 	assert.Equal(t, expectedNonce, lastPoolNonceResp.Data.Nonce)
 }
 
+func TestGetTransactionsPoolNonceGapsForSenderShouldError(t *testing.T) {
+	t.Parallel()
+
+	expectedErr := errors.New("expected error")
+	facade := mock.FacadeStub{
+		GetTransactionsPoolNonceGapsForSenderCalled: func(sender string) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error) {
+			return nil, expectedErr
+		},
+	}
+
+	transactionGroup, err := groups.NewTransactionGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(transactionGroup, "transaction", getTransactionRoutesConfig())
+
+	req, _ := http.NewRequest("GET", "/transaction/pool/by-sender/nonce-gaps/:sender", nil)
+
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	nonceGapsResp := txPoolNonceGapsForSenderResponse{}
+	loadResponse(resp.Body, &nonceGapsResp)
+
+	assert.Equal(t, http.StatusInternalServerError, resp.Code)
+	assert.True(t, strings.Contains(nonceGapsResp.Error, expectedErr.Error()))
+}
+
+func TestGetTransactionsPoolNonceGapsForSenderShouldWork(t *testing.T) {
+	t.Parallel()
+
+	expectedSender := "sender"
+	expectedNonceGaps := &common.TransactionsPoolNonceGapsForSenderApiResponse{
+		Sender: expectedSender,
+		Gaps: []common.NonceGapApiResponse{
+			{
+				From: 33,
+				To:   60,
+			},
+		},
+	}
+	facade := mock.FacadeStub{
+		GetTransactionsPoolNonceGapsForSenderCalled: func(sender string) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error) {
+			return expectedNonceGaps, nil
+		},
+	}
+
+	transactionGroup, err := groups.NewTransactionGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(transactionGroup, "transaction", getTransactionRoutesConfig())
+
+	req, _ := http.NewRequest("GET", "/transaction/pool/by-sender/nonce-gaps/"+expectedSender, nil)
+
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	nonceGapsResp := txPoolNonceGapsForSenderResponse{}
+	loadResponse(resp.Body, &nonceGapsResp)
+
+	assert.Equal(t, http.StatusOK, resp.Code)
+	assert.Empty(t, nonceGapsResp.Error)
+	assert.Equal(t, *expectedNonceGaps, nonceGapsResp.Data.NonceGaps)
+}
+
 func getTransactionRoutesConfig() config.ApiRoutesConfig {
 	return config.ApiRoutesConfig{
 		APIPackages: map[string]config.APIPackageConfig{
@@ -1040,6 +1114,7 @@ func getTransactionRoutesConfig() config.ApiRoutesConfig {
 					{Name: "/simulate", Open: true},
 					{Name: "/pool/by-sender/:sender", Open: true},
 					{Name: "/pool/by-sender/last-nonce/:sender", Open: true},
+					{Name: "/pool/by-sender/nonce-gaps/:sender", Open: true},
 				},
 			},
 		},

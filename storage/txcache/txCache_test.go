@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"sort"
 	"sync"
 	"testing"
 	"time"
@@ -261,50 +262,39 @@ func Test_GetTransactionsPoolForSender(t *testing.T) {
 
 	txHashes1 := [][]byte{[]byte("hash-1"), []byte("hash-2")}
 	txSender1 := "alice"
-	cache.AddTx(createTx(txHashes1[1], txSender1, 2))
-	cache.AddTx(createTx(txHashes1[0], txSender1, 1))
-
+	wrappedTxs1 := []*WrappedTransaction{
+		createTx(txHashes1[1], txSender1, 2),
+		createTx(txHashes1[0], txSender1, 1),
+	}
 	txHashes2 := [][]byte{[]byte("hash-3"), []byte("hash-4"), []byte("hash-5")}
 	txSender2 := "bob"
-	cache.AddTx(createTx(txHashes2[1], txSender2, 4))
-	cache.AddTx(createTx(txHashes2[0], txSender2, 3))
-	cache.AddTx(createTx(txHashes2[2], txSender2, 5))
+	wrappedTxs2 := []*WrappedTransaction{
+		createTx(txHashes2[1], txSender2, 4),
+		createTx(txHashes2[0], txSender2, 3),
+		createTx(txHashes2[2], txSender2, 5),
+	}
+	cache.AddTx(wrappedTxs1[0])
+	cache.AddTx(wrappedTxs1[1])
+	cache.AddTx(wrappedTxs2[0])
+	cache.AddTx(wrappedTxs2[1])
+	cache.AddTx(wrappedTxs2[2])
 
+	sort.Slice(wrappedTxs1, func(i, j int) bool {
+		return wrappedTxs1[i].Tx.GetNonce() < wrappedTxs1[j].Tx.GetNonce()
+	})
 	txs := cache.GetTransactionsPoolForSender(txSender1)
-	require.Equal(t, txHashes1, txs)
+	require.Equal(t, wrappedTxs1, txs)
 
+	sort.Slice(wrappedTxs2, func(i, j int) bool {
+		return wrappedTxs2[i].Tx.GetNonce() < wrappedTxs2[j].Tx.GetNonce()
+	})
 	txs = cache.GetTransactionsPoolForSender(txSender2)
-	require.Equal(t, txHashes2, txs)
+	require.Equal(t, wrappedTxs2, txs)
 
 	cache.RemoveTxByHash(txHashes2[0])
-	expectedHashes := txHashes2[1:]
+	expectedTxs := wrappedTxs2[1:]
 	txs = cache.GetTransactionsPoolForSender(txSender2)
-	require.Equal(t, expectedHashes, txs)
-}
-
-func Test_GetLastPoolNonceForSender(t *testing.T) {
-	cache := newUnconstrainedCacheToTest()
-
-	txSender := "alice"
-
-	nonce, ok := cache.GetLastPoolNonceForSender(txSender)
-	assert.False(t, ok)
-	require.Equal(t, uint64(0), nonce)
-
-	txHashes := [][]byte{[]byte("hash-1"), []byte("hash-2"), []byte("hash-3")}
-	lastNonce := uint64(33)
-	cache.AddTx(createTx(txHashes[1], txSender, lastNonce))
-	cache.AddTx(createTx(txHashes[0], txSender, 1))
-	cache.AddTx(createTx(txHashes[2], txSender, 3))
-
-	nonce, ok = cache.GetLastPoolNonceForSender(txSender)
-	assert.True(t, ok)
-	require.Equal(t, lastNonce, nonce)
-
-	cache.RemoveTxByHash(txHashes[1])
-	nonce, ok = cache.GetLastPoolNonceForSender(txSender)
-	assert.True(t, ok)
-	require.Equal(t, uint64(3), nonce)
+	require.Equal(t, expectedTxs, txs)
 }
 
 func Test_SelectTransactions_Dummy(t *testing.T) {

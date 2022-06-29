@@ -118,13 +118,8 @@ func (cache *DisabledCache) Diagnose(_ bool) {
 }
 
 // GetTransactionsPoolForSender returns an empty slice
-func (cache *DisabledCache) GetTransactionsPoolForSender(_ string) [][]byte {
-	return make([][]byte, 0)
-}
-
-// GetLastPoolNonceForSender returns 0 and false
-func (cache *DisabledCache) GetLastPoolNonceForSender(_ string) (uint64, bool) {
-	return 0, false
+func (cache *DisabledCache) GetTransactionsPoolForSender(_ string) []*WrappedTransaction {
+	return make([]*WrappedTransaction, 0)
 }
 
 // Close does nothing
