@@ -1,10 +1,12 @@
 package trieIterators
 
 import (
+	"context"
 	"errors"
 	"math/big"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/keyValStorage"
@@ -116,7 +118,7 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue_CannotGetAccount(t *testi
 	}
 	totalStakedProc, _ := NewTotalStakedValueProcessor(arg)
 
-	resTotalStaked, err := totalStakedProc.GetTotalStakedValue()
+	resTotalStaked, err := totalStakedProc.GetTotalStakedValue(context.Background())
 	require.Nil(t, resTotalStaked)
 	require.Equal(t, expectedErr, err)
 }
@@ -135,7 +137,7 @@ func TestTotalStakedValueProcessor_GetTotalStakedValueAccountsAdapterErrors(t *t
 
 	require.False(t, totalStakedProc.IsInterfaceNil())
 
-	resTotalStaked, err := totalStakedProc.GetTotalStakedValue()
+	resTotalStaked, err := totalStakedProc.GetTotalStakedValue(context.Background())
 	require.Nil(t, resTotalStaked)
 	require.Equal(t, expectedErr, err)
 }
@@ -154,7 +156,7 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue_CannotCastAccount(t *test
 	}
 	totalStakedProc, _ := NewTotalStakedValueProcessor(arg)
 
-	resTotalStaked, err := totalStakedProc.GetTotalStakedValue()
+	resTotalStaked, err := totalStakedProc.GetTotalStakedValue(context.Background())
 	require.Nil(t, resTotalStaked)
 	require.Equal(t, ErrCannotCastAccountHandlerToUserAccount, err)
 }
@@ -181,9 +183,43 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue_CannotGetRootHash(t *test
 	}
 	totalStakedProc, _ := NewTotalStakedValueProcessor(arg)
 
-	resTotalStaked, err := totalStakedProc.GetTotalStakedValue()
+	resTotalStaked, err := totalStakedProc.GetTotalStakedValue(context.Background())
 	require.Nil(t, resTotalStaked)
 	require.Equal(t, expectedErr, err)
+}
+
+func TestTotalStakedValueProcessor_GetTotalStakedValue_ContextShouldTimeout(t *testing.T) {
+	t.Parallel()
+
+	acc, _ := state.NewUserAccount([]byte("newaddress"))
+	acc.SetDataTrie(&trieMock.TrieStub{
+		GetAllLeavesOnChannelCalled: func(chLeaves chan core.KeyValueHolder, _ context.Context, _ []byte) error {
+			time.Sleep(time.Second)
+			close(chLeaves)
+			return nil
+		},
+		RootCalled: func() ([]byte, error) {
+			return nil, nil
+		},
+	})
+
+	arg := createMockArgs()
+	arg.Accounts.AccountsAdapter = &stateMock.AccountsStub{
+		GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
+			return acc, nil
+		},
+		RecreateTrieCalled: func(rootHash []byte) error {
+			return nil
+		},
+	}
+	totalStakedProc, _ := NewTotalStakedValueProcessor(arg)
+
+	ctxWithTimeout, cancel := context.WithTimeout(context.Background(), time.Millisecond)
+	defer cancel()
+
+	resTotalStaked, err := totalStakedProc.GetTotalStakedValue(ctxWithTimeout)
+	require.Nil(t, resTotalStaked)
+	require.Equal(t, ErrTrieOperationsTimeout, err)
 }
 
 func TestTotalStakedValueProcessor_GetTotalStakedValue_CannotGetAllLeaves(t *testing.T) {
@@ -192,8 +228,8 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue_CannotGetAllLeaves(t *tes
 	expectedErr := errors.New("expected error")
 	acc, _ := state.NewUserAccount([]byte("newaddress"))
 	acc.SetDataTrie(&trieMock.TrieStub{
-		GetAllLeavesOnChannelCalled: func(rootHash []byte) (chan core.KeyValueHolder, error) {
-			return nil, expectedErr
+		GetAllLeavesOnChannelCalled: func(_ chan core.KeyValueHolder, _ context.Context, _ []byte) error {
+			return expectedErr
 		},
 		RootCalled: func() ([]byte, error) {
 			return nil, nil
@@ -211,7 +247,7 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue_CannotGetAllLeaves(t *tes
 	}
 	totalStakedProc, _ := NewTotalStakedValueProcessor(arg)
 
-	resTotalStaked, err := totalStakedProc.GetTotalStakedValue()
+	resTotalStaked, err := totalStakedProc.GetTotalStakedValue(context.Background())
 	require.Nil(t, resTotalStaked)
 	require.Equal(t, expectedErr, err)
 }
@@ -240,9 +276,7 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue(t *testing.T) {
 		RootCalled: func() ([]byte, error) {
 			return rootHash, nil
 		},
-		GetAllLeavesOnChannelCalled: func(hash []byte) (chan core.KeyValueHolder, error) {
-			ch := make(chan core.KeyValueHolder)
-
+		GetAllLeavesOnChannelCalled: func(ch chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error {
 			go func() {
 				leaf1 := keyValStorage.NewKeyValStorage(rootHash, append(marshalledData, suffix...))
 				ch <- leaf1
@@ -265,7 +299,7 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue(t *testing.T) {
 				close(ch)
 			}()
 
-			return ch, nil
+			return nil
 		},
 	})
 
@@ -312,7 +346,7 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue(t *testing.T) {
 	arg.PublicKeyConverter = mock.NewPubkeyConverterMock(10)
 	totalStakedProc, _ := NewTotalStakedValueProcessor(arg)
 
-	stakeValues, err := totalStakedProc.GetTotalStakedValue()
+	stakeValues, err := totalStakedProc.GetTotalStakedValue(context.Background())
 	require.Equal(t, &api.StakeValues{
 		BaseStaked: big.NewInt(490),
 		TopUp:      big.NewInt(110),

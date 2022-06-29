@@ -4,11 +4,11 @@ import (
 	"sort"
 
 	"github.com/ElrondNetwork/elrond-go/genesis"
-	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 )
 
 type nodesHandlerMock struct {
-	allNodes []sharding.GenesisNodeInfoHandler
+	allNodes []nodesCoordinator.GenesisNodeInfoHandler
 }
 
 // NewNodesHandlerMock -
@@ -18,7 +18,7 @@ func NewNodesHandlerMock(
 
 	eligible, waiting := initialNodesSetup.InitialNodesInfo()
 
-	allNodes := make([]sharding.GenesisNodeInfoHandler, 0)
+	allNodes := make([]nodesCoordinator.GenesisNodeInfoHandler, 0)
 	keys := make([]uint32, 0)
 	for shard := range eligible {
 		keys = append(keys, shard)
@@ -40,16 +40,16 @@ func NewNodesHandlerMock(
 }
 
 // GetAllNodes -
-func (nhm *nodesHandlerMock) GetAllNodes() []sharding.GenesisNodeInfoHandler {
-	stakedNodes := make([]sharding.GenesisNodeInfoHandler, 0)
+func (nhm *nodesHandlerMock) GetAllNodes() []nodesCoordinator.GenesisNodeInfoHandler {
+	stakedNodes := make([]nodesCoordinator.GenesisNodeInfoHandler, 0)
 	stakedNodes = append(stakedNodes, nhm.allNodes...)
 
 	return stakedNodes
 }
 
 // GetDelegatedNodes -
-func (nhm *nodesHandlerMock) GetDelegatedNodes(_ []byte) []sharding.GenesisNodeInfoHandler {
-	return make([]sharding.GenesisNodeInfoHandler, 0)
+func (nhm *nodesHandlerMock) GetDelegatedNodes(_ []byte) []nodesCoordinator.GenesisNodeInfoHandler {
+	return make([]nodesCoordinator.GenesisNodeInfoHandler, 0)
 }
 
 // IsInterfaceNil returns if underlying object is true

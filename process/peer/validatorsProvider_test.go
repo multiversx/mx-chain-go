@@ -19,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
@@ -105,7 +106,7 @@ func TestValidatorsProvider_GetLatestValidatorsSecondHashDoesNotExist(t *testing
 		},
 	}
 
-	nc := &mock.NodesCoordinatorMock{GetAllEligibleValidatorsPublicKeysCalled: func() (map[uint32][][]byte, error) {
+	nc := &shardingMocks.NodesCoordinatorMock{GetAllEligibleValidatorsPublicKeysCalled: func(epoch uint32) (map[uint32][][]byte, error) {
 		return map[uint32][][]byte{0: {initialInfo.PublicKey}}, nil
 	}}
 
@@ -196,8 +197,8 @@ func TestValidatorsProvider_UpdateCache_WithError(t *testing.T) {
 	}
 
 	pk := []byte("pk")
-	nodesCoordinator := mock.NewNodesCoordinatorMock()
-	nodesCoordinator.GetAllEligibleValidatorsPublicKeysCalled = func() (map[uint32][][]byte, error) {
+	nodesCoordinator := shardingMocks.NewNodesCoordinatorMock()
+	nodesCoordinator.GetAllEligibleValidatorsPublicKeysCalled = func(epoch uint32) (map[uint32][][]byte, error) {
 		return map[uint32][][]byte{
 			0: {pk},
 		}, nil
@@ -467,10 +468,10 @@ func TestValidatorsProvider_createCache_combined(t *testing.T) {
 		},
 	}
 	arg := createDefaultValidatorsProviderArg()
-	nodesCoordinator := mock.NewNodesCoordinatorMock()
+	nodesCoordinator := shardingMocks.NewNodesCoordinatorMock()
 	nodesCoordinatorEligibleShardId := uint32(5)
 	nodesCoordinatorLeavingShardId := uint32(6)
-	nodesCoordinator.GetAllEligibleValidatorsPublicKeysCalled = func() (map[uint32][][]byte, error) {
+	nodesCoordinator.GetAllEligibleValidatorsPublicKeysCalled = func(epoch uint32) (map[uint32][][]byte, error) {
 		return map[uint32][][]byte{
 			nodesCoordinatorEligibleShardId: {pkEligibleInTrie},
 			nodesCoordinatorLeavingShardId:  {pkLeavingInTrie},
@@ -646,7 +647,7 @@ func createMockValidatorInfo() *state.ValidatorInfo {
 
 func createDefaultValidatorsProviderArg() ArgValidatorsProvider {
 	return ArgValidatorsProvider{
-		NodesCoordinator:                  &mock.NodesCoordinatorMock{},
+		NodesCoordinator:                  &shardingMocks.NodesCoordinatorMock{},
 		StartEpoch:                        1,
 		EpochStartEventNotifier:           &mock.EpochStartNotifierStub{},
 		CacheRefreshIntervalDurationInSec: 1 * time.Millisecond,

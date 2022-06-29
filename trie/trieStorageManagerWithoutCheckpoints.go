@@ -39,10 +39,5 @@ func (tsm *trieStorageManagerWithoutCheckpoints) AddDirtyCheckpointHashes(_ []by
 
 // Remove removes the given hash form the storage
 func (tsm *trieStorageManagerWithoutCheckpoints) Remove(hash []byte, priority common.StorageAccessType) error {
-	err := tsm.mainStorer.Remove(hash, priority)
-	if err == nil {
-		return nil
-	}
-
-	return tsm.db.Remove(hash, priority)
+	return tsm.mainStorer.Remove(hash, priority)
 }

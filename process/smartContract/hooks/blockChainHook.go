@@ -41,37 +41,39 @@ const executeDurationAlarmThreshold = time.Duration(50) * time.Millisecond
 
 // ArgBlockChainHook represents the arguments structure for the blockchain hook
 type ArgBlockChainHook struct {
-	Accounts           state.AccountsAdapter
-	PubkeyConv         core.PubkeyConverter
-	StorageService     dataRetriever.StorageService
-	DataPool           dataRetriever.PoolsHolder
-	BlockChain         data.ChainHandler
-	ShardCoordinator   sharding.Coordinator
-	Marshalizer        marshal.Marshalizer
-	Uint64Converter    typeConverters.Uint64ByteSliceConverter
-	BuiltInFunctions   vmcommon.BuiltInFunctionContainer
-	NFTStorageHandler  vmcommon.SimpleESDTNFTStorageHandler
-	CompiledSCPool     storage.Cacher
-	ConfigSCStorage    config.StorageConfig
-	EnableEpochs       config.EnableEpochs
-	EpochNotifier      vmcommon.EpochNotifier
-	WorkingDir         string
-	NilCompiledSCStore bool
+	Accounts              state.AccountsAdapter
+	PubkeyConv            core.PubkeyConverter
+	StorageService        dataRetriever.StorageService
+	DataPool              dataRetriever.PoolsHolder
+	BlockChain            data.ChainHandler
+	ShardCoordinator      sharding.Coordinator
+	Marshalizer           marshal.Marshalizer
+	Uint64Converter       typeConverters.Uint64ByteSliceConverter
+	BuiltInFunctions      vmcommon.BuiltInFunctionContainer
+	NFTStorageHandler     vmcommon.SimpleESDTNFTStorageHandler
+	GlobalSettingsHandler vmcommon.ESDTGlobalSettingsHandler
+	CompiledSCPool        storage.Cacher
+	ConfigSCStorage       config.StorageConfig
+	EnableEpochs          config.EnableEpochs
+	EpochNotifier         vmcommon.EpochNotifier
+	WorkingDir            string
+	NilCompiledSCStore    bool
 	Priority           common.StorageAccessType
 }
 
 // BlockChainHookImpl is a wrapper over AccountsAdapter that satisfy vmcommon.BlockchainHook interface
 type BlockChainHookImpl struct {
-	accounts          state.AccountsAdapter
-	pubkeyConv        core.PubkeyConverter
-	storageService    dataRetriever.StorageService
-	blockChain        data.ChainHandler
-	shardCoordinator  sharding.Coordinator
-	marshalizer       marshal.Marshalizer
-	uint64Converter   typeConverters.Uint64ByteSliceConverter
-	builtInFunctions  vmcommon.BuiltInFunctionContainer
-	nftStorageHandler vmcommon.SimpleESDTNFTStorageHandler
-	priority          common.StorageAccessType
+	accounts              state.AccountsAdapter
+	pubkeyConv            core.PubkeyConverter
+	storageService        dataRetriever.StorageService
+	blockChain            data.ChainHandler
+	shardCoordinator      sharding.Coordinator
+	marshalizer           marshal.Marshalizer
+	uint64Converter       typeConverters.Uint64ByteSliceConverter
+	builtInFunctions      vmcommon.BuiltInFunctionContainer
+	nftStorageHandler     vmcommon.SimpleESDTNFTStorageHandler
+	globalSettingsHandler vmcommon.ESDTGlobalSettingsHandler
+	priority              common.StorageAccessType
 
 	mutCurrentHdr sync.RWMutex
 	currentHdr    data.HeaderHandler
@@ -115,6 +117,7 @@ func NewBlockChainHookImpl(
 		workingDir:                     args.WorkingDir,
 		nilCompiledSCStore:             args.NilCompiledSCStore,
 		nftStorageHandler:              args.NFTStorageHandler,
+		globalSettingsHandler:          args.GlobalSettingsHandler,
 		isPayableBySCEnableEpoch:       args.EnableEpochs.IsPayableBySCEnableEpoch,
 		optimizeNFTStoreEnableEpoch:    args.EnableEpochs.OptimizeNFTStoreEnableEpoch,
 		doNotReturnOldBlockEnableEpoch: args.EnableEpochs.DoNotReturnOldBlockInBlockchainHookEnableEpoch,
@@ -173,6 +176,9 @@ func checkArgs(args ArgBlockChainHook) error {
 	}
 	if check.IfNil(args.EpochNotifier) {
 		return process.ErrNilEpochNotifier
+	}
+	if check.IfNil(args.GlobalSettingsHandler) {
+		return process.ErrNilESDTGlobalSettingsHandler
 	}
 	if !common.IsStorageAccessValid(args.Priority) {
 		return fmt.Errorf("%w: %s in NewBlockChainHookImpl", ErrInvalidPriorityType, args.Priority)
@@ -581,6 +587,18 @@ func (bh *BlockChainHookImpl) GetESDTToken(address []byte, tokenID []byte, nonce
 	}
 
 	return esdtData, nil
+}
+
+// IsPaused returns true if the transfers for the given token ID are paused
+func (bh *BlockChainHookImpl) IsPaused(tokenID []byte) bool {
+	esdtTokenKey := []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier + string(tokenID))
+	return bh.globalSettingsHandler.IsPaused(esdtTokenKey)
+}
+
+// IsLimitedTransfer returns true if the transfers
+func (bh *BlockChainHookImpl) IsLimitedTransfer(tokenID []byte) bool {
+	esdtTokenKey := []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier + string(tokenID))
+	return bh.globalSettingsHandler.IsLimitedTransfer(esdtTokenKey)
 }
 
 func (bh *BlockChainHookImpl) returnESDTTokenByLegacyMethod(

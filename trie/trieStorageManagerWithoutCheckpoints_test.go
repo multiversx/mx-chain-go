@@ -10,16 +10,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNewTrieStorageManagerWithoutCheckpointsNilDb(t *testing.T) {
-	t.Parallel()
-
-	args := getNewTrieStorageManagerArgs()
-	args.DB = nil
-	ts, err := trie.NewTrieStorageManagerWithoutCheckpoints(args)
-	assert.Nil(t, ts)
-	assert.Equal(t, trie.ErrNilDatabase, err)
-}
-
 func TestNewTrieStorageManagerWithoutCheckpointsNilMarshalizer(t *testing.T) {
 	t.Parallel()
 

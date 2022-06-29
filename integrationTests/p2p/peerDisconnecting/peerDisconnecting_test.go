@@ -1,7 +1,6 @@
 package peerDisconnecting
 
 import (
-	"context"
 	"fmt"
 	"testing"
 
@@ -19,6 +18,9 @@ import (
 
 func createDefaultConfig() config.P2PConfig {
 	return config.P2PConfig{
+		Node: config.NodeConfig{
+			ConnectionWatcherType: "print",
+		},
 		KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
 			Enabled:                          true,
 			Type:                             "optimized",
@@ -56,7 +58,7 @@ func testPeerDisconnectionWithOneAdvertiser(t *testing.T, p2pConfig config.P2PCo
 	}
 
 	numOfPeers := 20
-	netw := mocknet.New(context.Background())
+	netw := mocknet.New()
 
 	p2pConfigSeeder := p2pConfig
 	argSeeder := libp2p.ArgsNetworkMessenger{
@@ -66,13 +68,14 @@ func testPeerDisconnectionWithOneAdvertiser(t *testing.T, p2pConfig config.P2PCo
 		NodeOperationMode:    p2p.NormalOperation,
 		Marshalizer:          &testscommon.MarshalizerMock{},
 		SyncTimer:            &testscommon.SyncTimerStub{},
+		PeersRatingHandler:   &p2pmocks.PeersRatingHandlerStub{},
 	}
-	//Step 1. Create advertiser
+	// Step 1. Create advertiser
 	advertiser, err := libp2p.NewMockMessenger(argSeeder, netw)
 	require.Nil(t, err)
 	p2pConfig.KadDhtPeerDiscovery.InitialPeerList = []string{integrationTests.GetConnectableAddress(advertiser)}
 
-	//Step 2. Create noOfPeers instances of messenger type and call bootstrap
+	// Step 2. Create noOfPeers instances of messenger type and call bootstrap
 	peers := make([]p2p.Messenger, numOfPeers)
 	for i := 0; i < numOfPeers; i++ {
 		arg := libp2p.ArgsNetworkMessenger{
@@ -82,13 +85,14 @@ func testPeerDisconnectionWithOneAdvertiser(t *testing.T, p2pConfig config.P2PCo
 			NodeOperationMode:    p2p.NormalOperation,
 			Marshalizer:          &testscommon.MarshalizerMock{},
 			SyncTimer:            &testscommon.SyncTimerStub{},
+			PeersRatingHandler:   &p2pmocks.PeersRatingHandlerStub{},
 		}
 		node, errCreate := libp2p.NewMockMessenger(arg, netw)
 		require.Nil(t, errCreate)
 		peers[i] = node
 	}
 
-	//cleanup function that closes all messengers
+	// cleanup function that closes all messengers
 	defer func() {
 		for i := 0; i < numOfPeers; i++ {
 			if peers[i] != nil {
@@ -101,17 +105,17 @@ func testPeerDisconnectionWithOneAdvertiser(t *testing.T, p2pConfig config.P2PCo
 		}
 	}()
 
-	//link all peers so they can connect to each other
+	// link all peers so they can connect to each other
 	_ = netw.LinkAll()
 
-	//Step 3. Call bootstrap on all peers
+	// Step 3. Call bootstrap on all peers
 	_ = advertiser.Bootstrap()
 	for _, p := range peers {
 		_ = p.Bootstrap()
 	}
 	integrationTests.WaitForBootstrapAndShowConnected(peers, integrationTests.P2pBootstrapDelay)
 
-	//Step 4. Disconnect one peer
+	// Step 4. Disconnect one peer
 	disconnectedPeer := peers[5]
 	fmt.Printf("--- Diconnecting peer: %v ---\n", disconnectedPeer.ID().Pretty())
 	_ = netw.UnlinkPeers(getPeerId(advertiser), getPeerId(disconnectedPeer))
@@ -128,7 +132,7 @@ func testPeerDisconnectionWithOneAdvertiser(t *testing.T, p2pConfig config.P2PCo
 		integrationTests.WaitForBootstrapAndShowConnected(peers, integrationTests.P2pBootstrapDelay)
 	}
 
-	//Step 4.1. Test that the peer is disconnected
+	// Step 4.1. Test that the peer is disconnected
 	for _, p := range peers {
 		if p != disconnectedPeer {
 			assert.Equal(t, numOfPeers-1, len(p.ConnectedPeers()))
@@ -137,14 +141,14 @@ func testPeerDisconnectionWithOneAdvertiser(t *testing.T, p2pConfig config.P2PCo
 		}
 	}
 
-	//Step 5. Re-link and test connections
+	// Step 5. Re-link and test connections
 	fmt.Println("--- Re-linking ---")
 	_ = netw.LinkAll()
 	for i := 0; i < 5; i++ {
 		integrationTests.WaitForBootstrapAndShowConnected(peers, integrationTests.P2pBootstrapDelay)
 	}
 
-	//Step 5.1. Test that the peer is reconnected
+	// Step 5.1. Test that the peer is reconnected
 	for _, p := range peers {
 		assert.Equal(t, numOfPeers, len(p.ConnectedPeers()))
 	}

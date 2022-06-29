@@ -2,12 +2,11 @@ package state
 
 import (
 	"bytes"
-	"encoding/binary"
+	"context"
 	"encoding/hex"
 	"fmt"
 	"runtime/debug"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -24,8 +23,6 @@ const (
 	leavesChannelSize   = 100
 	lastSnapshotStarted = "lastSnapshot"
 )
-
-var numCheckpointsKey = []byte("state checkpoint")
 
 type loadingMeasurements struct {
 	sync.Mutex
@@ -84,7 +81,6 @@ type AccountsDB struct {
 	// TODO use mutOp only for critical sections, and refactor to parallelize as much as possible
 	mutOp                sync.RWMutex
 	processingMode       common.NodeProcessingMode
-	numCheckpoints       uint32
 	loadCodeMeasurements *loadingMeasurements
 	processStatusHandler common.ProcessStatusHandler
 
@@ -115,8 +111,6 @@ func NewAccountsDB(args ArgsAccountsDB) (*AccountsDB, error) {
 		return nil, fmt.Errorf("%w: %s in NewAccountsDB", ErrInvalidPriorityType, args.StartingPriority)
 	}
 
-	trieStorageManager := args.Trie.GetStorageManager()
-	numCheckpoints := getNumCheckpoints(trieStorageManager)
 	adb := &AccountsDB{
 		mainTrie:               args.Trie,
 		hasher:                 args.Hasher,
@@ -127,7 +121,6 @@ func NewAccountsDB(args ArgsAccountsDB) (*AccountsDB, error) {
 		mutOp:                  sync.RWMutex{},
 		dataTries:              NewDataTriesHolder(),
 		obsoleteDataTrieHashes: make(map[string][][]byte),
-		numCheckpoints:         numCheckpoints,
 		loadCodeMeasurements: &loadingMeasurements{
 			identifier: "load code",
 		},
@@ -137,6 +130,7 @@ func NewAccountsDB(args ArgsAccountsDB) (*AccountsDB, error) {
 		priority:             args.StartingPriority,
 	}
 
+	trieStorageManager := adb.mainTrie.GetStorageManager()
 	val, err := trieStorageManager.GetFromCurrentEpoch([]byte(common.ActiveDBKey), common.SnapshotPriority)
 	if err != nil || !bytes.Equal(val, []byte(common.ActiveDBVal)) {
 		startSnapshotAfterRestart(adb, trieStorageManager)
@@ -202,20 +196,6 @@ func handleLoggingWhenError(message string, err error, extraArguments ...interfa
 
 	args := []interface{}{"error", err}
 	log.Warn(message, append(args, extraArguments...)...)
-}
-
-func getNumCheckpoints(trieStorageManager common.StorageManager) uint32 {
-	val, err := trieStorageManager.Get(numCheckpointsKey, common.SnapshotPriority)
-	if err != nil {
-		return 0
-	}
-
-	bytesForUint32 := 4
-	if len(val) < bytesForUint32 {
-		return 0
-	}
-
-	return binary.BigEndian.Uint32(val)
 }
 
 // GetCode returns the code for the given account
@@ -1012,7 +992,8 @@ func (adb *AccountsDB) recreateTrie(rootHash []byte, priority common.StorageAcce
 
 // RecreateAllTries recreates all the tries from the accounts DB
 func (adb *AccountsDB) RecreateAllTries(rootHash []byte) (map[string]common.Trie, error) {
-	leavesChannel, err := adb.mainTrie.GetAllLeavesOnChannel(rootHash)
+	leavesChannel := make(chan core.KeyValueHolder, leavesChannelSize)
+	err := adb.mainTrie.GetAllLeavesOnChannel(leavesChannel, context.Background(), rootHash)
 	if err != nil {
 		return nil, err
 	}
@@ -1081,13 +1062,13 @@ func (adb *AccountsDB) GetStackDebugFirstEntry() []byte {
 }
 
 // PruneTrie removes old values from the trie database
-func (adb *AccountsDB) PruneTrie(rootHash []byte, identifier TriePruningIdentifier) {
+func (adb *AccountsDB) PruneTrie(rootHash []byte, identifier TriePruningIdentifier, handler PruningHandler) {
 	adb.mutOp.Lock()
 	defer adb.mutOp.Unlock()
 
 	log.Trace("accountsDB.PruneTrie", "root hash", rootHash)
 
-	adb.storagePruningManager.PruneTrie(rootHash, identifier, adb.mainTrie.GetStorageManager())
+	adb.storagePruningManager.PruneTrie(rootHash, identifier, adb.mainTrie.GetStorageManager(), handler)
 }
 
 // CancelPrune clears the trie's evictionWaitingList
@@ -1140,7 +1121,6 @@ func (adb *AccountsDB) SnapshotState(rootHash []byte) {
 		adb.snapshotUserAccountDataTrie(true, rootHash, leavesChannel, stats, epoch)
 		trieStorageManager.ExitPruningBufferingMode()
 
-		adb.increaseNumCheckpoints()
 		stats.wg.Done()
 	}()
 
@@ -1223,7 +1203,6 @@ func (adb *AccountsDB) setStateCheckpoint(rootHash []byte) {
 		adb.snapshotUserAccountDataTrie(false, rootHash, leavesChannel, stats, 0)
 		trieStorageManager.ExitPruningBufferingMode()
 
-		adb.increaseNumCheckpoints()
 		stats.wg.Done()
 	}()
 
@@ -1243,35 +1222,17 @@ func (adb *AccountsDB) waitForCompletionIfRunningInImportDB(stats common.Snapsho
 	stats.WaitForSnapshotsToFinish()
 }
 
-func (adb *AccountsDB) increaseNumCheckpoints() {
-	trieStorageManager := adb.mainTrie.GetStorageManager()
-	time.Sleep(time.Duration(trieStorageManager.GetSnapshotDbBatchDelay()) * time.Second)
-	atomic.AddUint32(&adb.numCheckpoints, 1)
-
-	numCheckpoints := atomic.LoadUint32(&adb.numCheckpoints)
-	numCheckpointsVal := make([]byte, 4)
-	binary.BigEndian.PutUint32(numCheckpointsVal, numCheckpoints)
-
-	err := trieStorageManager.Put(numCheckpointsKey, numCheckpointsVal, common.SnapshotPriority)
-	handleLoggingWhenError("could not add num checkpoints to database", err)
-}
-
 // IsPruningEnabled returns true if state pruning is enabled
 func (adb *AccountsDB) IsPruningEnabled() bool {
 	return adb.mainTrie.GetStorageManager().IsPruningEnabled()
 }
 
 // GetAllLeaves returns all the leaves from a given rootHash
-func (adb *AccountsDB) GetAllLeaves(rootHash []byte) (chan core.KeyValueHolder, error) {
+func (adb *AccountsDB) GetAllLeaves(leavesChannel chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error {
 	adb.mutOp.Lock()
 	defer adb.mutOp.Unlock()
 
-	return adb.mainTrie.GetAllLeavesOnChannel(rootHash)
-}
-
-// GetNumCheckpoints returns the total number of state checkpoints
-func (adb *AccountsDB) GetNumCheckpoints() uint32 {
-	return atomic.LoadUint32(&adb.numCheckpoints)
+	return adb.mainTrie.GetAllLeavesOnChannel(leavesChannel, ctx, rootHash)
 }
 
 // Close will handle the closing of the underlying components

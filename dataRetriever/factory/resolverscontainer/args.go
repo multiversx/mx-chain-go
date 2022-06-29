@@ -26,6 +26,7 @@ type FactoryArgs struct {
 	OutputAntifloodHandler      dataRetriever.P2PAntifloodHandler
 	CurrentNetworkEpochProvider dataRetriever.CurrentNetworkEpochProviderHandler
 	PreferredPeersHolder        p2p.PreferredPeersHolderHandler
+	PeersRatingHandler          dataRetriever.PeersRatingHandler
 	SizeCheckDelta              uint32
 	IsFullHistoryNode           bool
 }

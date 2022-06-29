@@ -5,10 +5,9 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/libp2p/go-libp2p-core/network"
+	"github.com/ElrondNetwork/go-libp2p-pubsub"
+	pb "github.com/ElrondNetwork/go-libp2p-pubsub/pb"
 	"github.com/libp2p/go-libp2p-core/peer"
-	pubsub "github.com/libp2p/go-libp2p-pubsub"
-	"github.com/libp2p/go-libp2p-pubsub/pb"
 	"github.com/whyrusleeping/timecache"
 )
 
@@ -18,6 +17,7 @@ var PubsubTimeCacheDuration = pubsubTimeCacheDuration
 var AcceptMessagesInAdvanceDuration = acceptMessagesInAdvanceDuration
 
 const CurrentTopicMessageVersion = currentTopicMessageVersion
+const PollWaitForConnectionsInterval = pollWaitForConnectionsInterval
 
 // SetHost -
 func (netMes *networkMessenger) SetHost(newHost ConnectableHost) {
@@ -52,15 +52,8 @@ func (netMes *networkMessenger) MapHistogram(input map[uint32]int) string {
 	return netMes.mapHistogram(input)
 }
 
-// GetOption -
-func (netMes *networkMessenger) GetOption(handlerFunc func() error) Option {
-	return func(messenger *networkMessenger) error {
-		return handlerFunc()
-	}
-}
-
 // ProcessReceivedDirectMessage -
-func (ds *directSender) ProcessReceivedDirectMessage(message *pubsub_pb.Message, fromConnectedPeer peer.ID) error {
+func (ds *directSender) ProcessReceivedDirectMessage(message *pb.Message, fromConnectedPeer peer.ID) error {
 	return ds.processReceivedDirectMessage(message, fromConnectedPeer)
 }
 
@@ -77,20 +70,4 @@ func (ds *directSender) Counter() uint64 {
 // Mutexes -
 func (mh *MutexHolder) Mutexes() storage.Cacher {
 	return mh.mutexes
-}
-
-// HandleStreams -
-func (ip *identityProvider) HandleStreams(s network.Stream) {
-	ip.handleStreams(s)
-}
-
-// ProcessReceivedData -
-func (ip *identityProvider) ProcessReceivedData(recvBuff []byte) error {
-	return ip.processReceivedData(recvBuff)
-}
-
-// NewNetworkMessengerWithoutPortReuse creates a libP2P messenger by opening a port on the current machine but is
-// not able to reuse ports
-func NewNetworkMessengerWithoutPortReuse(args ArgsNetworkMessenger) (*networkMessenger, error) {
-	return newNetworkMessenger(args, withMessageSigning, preventReusePorts)
 }

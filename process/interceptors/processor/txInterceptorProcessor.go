@@ -3,10 +3,12 @@ package processor
 import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
 var _ process.InterceptorProcessor = (*TxInterceptorProcessor)(nil)
+var txLog = logger.GetOrCreate("process/interceptors/processor/txlog")
 
 // TxInterceptorProcessor is the processor used when intercepting transactions
 // (smart contract results, receipts, transaction) structs which satisfy TransactionHandler interface.
@@ -44,7 +46,7 @@ func (txip *TxInterceptorProcessor) Validate(data process.InterceptedData, _ cor
 }
 
 // Save will save the received data into the cacher
-func (txip *TxInterceptorProcessor) Save(data process.InterceptedData, _ core.PeerID, _ string) error {
+func (txip *TxInterceptorProcessor) Save(data process.InterceptedData, peerOriginator core.PeerID, _ string) error {
 	interceptedTx, ok := data.(InterceptedTransactionHandler)
 	if !ok {
 		return process.ErrWrongTypeAssertion
@@ -62,6 +64,7 @@ func (txip *TxInterceptorProcessor) Save(data process.InterceptedData, _ core.Pe
 		return nil
 	}
 
+	txLog.Trace("received transaction", "pid", peerOriginator.Pretty(), "hash", data.Hash())
 	cacherIdentifier := process.ShardCacherIdentifier(interceptedTx.SenderShardId(), interceptedTx.ReceiverShardId())
 	txip.shardedPool.AddData(
 		data.Hash(),

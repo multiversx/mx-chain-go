@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 	"github.com/ElrondNetwork/elrond-go/update/sync"
@@ -37,9 +38,9 @@ type ArgsNewSyncValidatorStatus struct {
 	Marshalizer               marshal.Marshalizer
 	Hasher                    hashing.Hasher
 	RequestHandler            process.RequestHandler
-	ChanceComputer            sharding.ChanceComputer
+	ChanceComputer            nodesCoordinator.ChanceComputer
 	GenesisNodesConfig        sharding.GenesisNodesSetupHandler
-	NodeShuffler              sharding.NodesShuffler
+	NodeShuffler              nodesCoordinator.NodesShuffler
 	PubKey                    []byte
 	ShardIdAsObserver         uint32
 	WaitingListFixEnableEpoch uint32
@@ -51,7 +52,7 @@ type ArgsNewSyncValidatorStatus struct {
 // NewSyncValidatorStatus creates a new validator status process component
 func NewSyncValidatorStatus(args ArgsNewSyncValidatorStatus) (*syncValidatorStatus, error) {
 	if args.ChanNodeStop == nil {
-		return nil, sharding.ErrNilNodeStopChannel
+		return nil, nodesCoordinator.ErrNilNodeStopChannel
 	}
 
 	s := &syncValidatorStatus{
@@ -74,12 +75,12 @@ func NewSyncValidatorStatus(args ArgsNewSyncValidatorStatus) (*syncValidatorStat
 
 	eligibleNodesInfo, waitingNodesInfo := args.GenesisNodesConfig.InitialNodesInfo()
 
-	eligibleValidators, err := sharding.NodesInfoToValidators(eligibleNodesInfo)
+	eligibleValidators, err := nodesCoordinator.NodesInfoToValidators(eligibleNodesInfo)
 	if err != nil {
 		return nil, err
 	}
 
-	waitingValidators, err := sharding.NodesInfoToValidators(waitingNodesInfo)
+	waitingValidators, err := nodesCoordinator.NodesInfoToValidators(waitingNodesInfo)
 	if err != nil {
 		return nil, err
 	}
@@ -91,7 +92,7 @@ func NewSyncValidatorStatus(args ArgsNewSyncValidatorStatus) (*syncValidatorStat
 
 	s.memDB = disabled.CreateMemUnit()
 
-	argsNodesCoordinator := sharding.ArgNodesCoordinator{
+	argsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
 		ShardConsensusGroupSize:    int(args.GenesisNodesConfig.GetShardConsensusGroupSize()),
 		MetaConsensusGroupSize:     int(args.GenesisNodesConfig.GetMetaConsensusGroupSize()),
 		Marshalizer:                args.Marshalizer,
@@ -111,17 +112,17 @@ func NewSyncValidatorStatus(args ArgsNewSyncValidatorStatus) (*syncValidatorStat
 		NodeTypeProvider:           args.NodeTypeProvider,
 		IsFullArchive:              args.IsFullArchive,
 	}
-	baseNodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argsNodesCoordinator)
+	baseNodesCoordinator, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argsNodesCoordinator)
 	if err != nil {
 		return nil, err
 	}
 
-	nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinatorWithRater(baseNodesCoordinator, args.ChanceComputer)
+	nodesCoord, err := nodesCoordinator.NewIndexHashedNodesCoordinatorWithRater(baseNodesCoordinator, args.ChanceComputer)
 	if err != nil {
 		return nil, err
 	}
 
-	s.nodeCoordinator = nodesCoordinator
+	s.nodeCoordinator = nodesCoord
 
 	return s, nil
 }
@@ -130,7 +131,7 @@ func NewSyncValidatorStatus(args ArgsNewSyncValidatorStatus) (*syncValidatorStat
 func (s *syncValidatorStatus) NodesConfigFromMetaBlock(
 	currMetaBlock data.HeaderHandler,
 	prevMetaBlock data.HeaderHandler,
-) (*sharding.NodesCoordinatorRegistry, uint32, error) {
+) (*nodesCoordinator.NodesCoordinatorRegistry, uint32, error) {
 	if currMetaBlock.GetNonce() > 1 && !currMetaBlock.IsStartOfEpochBlock() {
 		return nil, 0, epochStart.ErrNotEpochStartBlock
 	}
@@ -176,7 +177,7 @@ func (s *syncValidatorStatus) processValidatorChangesFor(metaBlock data.HeaderHa
 func findPeerMiniBlockHeaders(metaBlock data.HeaderHandler) []data.MiniBlockHeaderHandler {
 	shardMBHeaderHandlers := make([]data.MiniBlockHeaderHandler, 0)
 	mbHeaderHandlers := metaBlock.GetMiniBlockHeaderHandlers()
-	for i, mbHeader := range  mbHeaderHandlers{
+	for i, mbHeader := range mbHeaderHandlers {
 		if mbHeader.GetTypeInt32() != int32(block.PeerBlock) {
 			continue
 		}

@@ -22,7 +22,7 @@ type statusComputer struct {
 	store                    dataRetriever.StorageService
 }
 
-// NewStatusComputer creates a new instance of statusComputer
+// NewStatusComputer will create a new instance of statusComputer
 func NewStatusComputer(
 	selfShardID uint32,
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter,
@@ -35,13 +35,11 @@ func NewStatusComputer(
 		return nil, ErrNiStorageService
 	}
 
-	statusComputer := &statusComputer{
+	return &statusComputer{
 		selfShardID:              selfShardID,
 		uint64ByteSliceConverter: uint64ByteSliceConverter,
 		store:                    store,
-	}
-
-	return statusComputer, nil
+	}, nil
 }
 
 // ComputeStatusWhenInStorageKnowingMiniblock computes the transaction status for a historical transaction

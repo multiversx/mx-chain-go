@@ -11,7 +11,7 @@ import (
 
 func TestConnectableHost_ConnectToPeerWrongAddressShouldErr(t *testing.T) {
 	uhs := &mock.ConnectableHostStub{}
-	//we can safely use an upgraded instead of a real host as to not create another (useless) stub
+	// we can safely use an upgraded instead of a real host as to not create another (useless) stub
 	uh := NewConnectableHost(uhs)
 
 	err := uh.ConnectToPeer(context.Background(), "invalid address")
@@ -28,7 +28,7 @@ func TestConnectableHost_ConnectToPeerShouldWork(t *testing.T) {
 			return nil
 		},
 	}
-	//we can safely use an upgraded instead of a real host as to not create another (useless) stub
+	// we can safely use an upgraded instead of a real host as to not create another (useless) stub
 	uh := NewConnectableHost(uhs)
 
 	validAddress := "/ip4/82.5.34.12/tcp/23000/p2p/16Uiu2HAkyqtHSEJDkYhVWTtm9j58Mq5xQJgrApBYXMwS6sdamXuE"

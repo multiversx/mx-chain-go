@@ -133,11 +133,6 @@ func (sms *StorageManagerStub) Remove(hash []byte, priority common.StorageAccess
 	return nil
 }
 
-// GetSnapshotDbBatchDelay -
-func (sms *StorageManagerStub) GetSnapshotDbBatchDelay() int {
-	return 0
-}
-
 // SetEpochForPutOperation -
 func (sms *StorageManagerStub) SetEpochForPutOperation(epoch uint32) {
 	if sms.SetEpochForPutOperationCalled != nil {

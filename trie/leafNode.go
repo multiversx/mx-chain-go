@@ -435,6 +435,7 @@ func (ln *leafNode) getAllLeavesOnChannel(
 	_ common.DBWriteCacher,
 	_ marshal.Marshalizer,
 	chanClose chan struct{},
+	ctx context.Context,
 	_ common.StorageAccessType,
 ) error {
 	err := ln.isEmptyOrNil()
@@ -452,7 +453,10 @@ func (ln *leafNode) getAllLeavesOnChannel(
 	for {
 		select {
 		case <-chanClose:
-			log.Trace("getAllLeavesOnChannel interrupted")
+			log.Trace("leafNode.getAllLeavesOnChannel interrupted")
+			return nil
+		case <-ctx.Done():
+			log.Trace("leafNode.getAllLeavesOnChannel: context done")
 			return nil
 		case leavesChannel <- trieLeaf:
 			return nil

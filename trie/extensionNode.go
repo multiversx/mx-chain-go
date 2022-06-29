@@ -642,6 +642,7 @@ func (en *extensionNode) getAllLeavesOnChannel(
 	key []byte, db common.DBWriteCacher,
 	marshalizer marshal.Marshalizer,
 	chanClose chan struct{},
+	ctx context.Context,
 	priority common.StorageAccessType,
 ) error {
 	err := en.isEmptyOrNil()
@@ -651,7 +652,10 @@ func (en *extensionNode) getAllLeavesOnChannel(
 
 	select {
 	case <-chanClose:
-		log.Trace("getAllLeavesOnChannel interrupted")
+		log.Trace("extensionNode.getAllLeavesOnChannel interrupted")
+		return nil
+	case <-ctx.Done():
+		log.Trace("extensionNode.getAllLeavesOnChannel: context done")
 		return nil
 	default:
 		err = resolveIfCollapsed(en, 0, db, priority)
@@ -660,7 +664,7 @@ func (en *extensionNode) getAllLeavesOnChannel(
 		}
 
 		childKey := append(key, en.Key...)
-		err = en.child.getAllLeavesOnChannel(leavesChannel, childKey, db, marshalizer, chanClose, priority)
+		err = en.child.getAllLeavesOnChannel(leavesChannel, childKey, db, marshalizer, chanClose, ctx, priority)
 		if err != nil {
 			return err
 		}

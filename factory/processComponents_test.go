@@ -2,6 +2,7 @@ package factory_test
 
 import (
 	"math/big"
+	"strings"
 	"sync"
 	"testing"
 
@@ -17,17 +18,22 @@ import (
 	"github.com/ElrondNetwork/elrond-go/factory/mock"
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/genesis/data"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/testscommon/mainFactoryMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 // ------------ Test TestProcessComponents --------------------
-func TestProcessComponents_Close_ShouldWork(t *testing.T) {
+func TestProcessComponents_CloseShouldWork(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	processArgs := getProcessComponentsArgs(shardCoordinator)
@@ -39,6 +45,24 @@ func TestProcessComponents_Close_ShouldWork(t *testing.T) {
 
 	err = pc.Close()
 	require.NoError(t, err)
+}
+
+func TestProcessComponentsFactory_CreateWithInvalidTxAccumulatorTimeExpectError(t *testing.T) {
+	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+	processArgs := getProcessComponentsArgs(shardCoordinator)
+	processArgs.Config.Antiflood.TxAccumulator.MaxAllowedTimeInMilliseconds = 0
+	pcf, err := factory.NewProcessComponentsFactory(processArgs)
+	require.Nil(t, err)
+
+	instance, err := pcf.Create()
+	require.Nil(t, instance)
+	require.Error(t, err)
+	require.True(t, strings.Contains(err.Error(), process.ErrInvalidValue.Error()))
 }
 
 func getProcessComponentsArgs(shardCoordinator sharding.Coordinator) factory.ProcessComponentsFactoryArgs {
@@ -79,7 +103,7 @@ func getProcessArgs(
 		GasSchedule: gasSchedule,
 	}
 
-	nodesCoordinator := &mock.NodesCoordinatorMock{}
+	nodesCoordinator := &shardingMocks.NodesCoordinatorMock{}
 	statusComponents := getStatusComponents(
 		coreComponents,
 		networkComponents,
@@ -251,6 +275,9 @@ func FillGasMapMetaChainSystemSCsCosts(value uint64) map[string]uint64 {
 
 func TestProcessComponents_IndexGenesisBlocks(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(1)
 	processArgs := getProcessComponentsArgs(shardCoordinator)

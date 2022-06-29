@@ -481,6 +481,113 @@ const (
 
 	// MetricBuiltInFunctionOnMetaEnableEpoch represents the epoch when the builtin functions on metachain are enabled
 	MetricBuiltInFunctionOnMetaEnableEpoch = "erd_builtin_function_on_meta_enable_epoch"
+
+	// MetricWaitingListFixEnableEpoch represents the epoch when the waiting list fix is enabled
+	MetricWaitingListFixEnableEpoch = "erd_waiting_list_fix_enable_epoch"
+
+	// MetricMaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
+	MetricMaxNodesChangeEnableEpoch = "erd_max_nodes_change_enable_epoch"
+
+	// MetricEpochEnable represents the epoch when the max nodes change configuration is applied
+	MetricEpochEnable = "erd_epoch_enable"
+
+	// EpochEnableSuffix represents the suffix for EpochEnable item in MaxNodesChangeEnableEpoch list
+	EpochEnableSuffix = "_epoch_enable"
+
+	// MetricMaxNumNodes represents the maximum number of nodes than can be enabled in a max nodes change configuration setup
+	MetricMaxNumNodes = "erd_max_num_nodes"
+
+	// MaxNumNodesSuffix represents the suffix for MaxNumNodes item in MaxNodesChangeEnableEpoch list
+	MaxNumNodesSuffix = "_max_num_nodes"
+
+	// MetricNodesToShufflePerShard represents the nodes to be shuffled per shard
+	MetricNodesToShufflePerShard = "erd_nodes_to_shuffle_per_shard"
+
+	// NodesToShufflePerShardSuffix represents the suffix for NodesToShufflePerShard item in MaxNodesChangeEnableEpoch list
+	NodesToShufflePerShardSuffix = "_nodes_to_shuffle_per_shard"
+
+	// MetricHysteresis represents the hysteresis threshold
+	MetricHysteresis = "erd_hysteresis"
+
+	// MetricAdaptivity represents a boolean to determine if adaptivity will be enabled or not
+	MetricAdaptivity = "erd_adaptivity"
+)
+
+const (
+	// MetricRatingsGeneralStartRating represents the starting rating used by the rater
+	MetricRatingsGeneralStartRating = "erd_ratings_general_start_rating"
+
+	// MetricRatingsGeneralMaxRating represents the maximum rating limit
+	MetricRatingsGeneralMaxRating = "erd_ratings_general_max_rating"
+
+	// MetricRatingsGeneralMinRating represents the minimum rating limit
+	MetricRatingsGeneralMinRating = "erd_ratings_general_min_rating"
+
+	// MetricRatingsGeneralSignedBlocksThreshold represents the signed blocks threshold
+	MetricRatingsGeneralSignedBlocksThreshold = "erd_ratings_general_signed_blocks_threshold"
+
+	// MetricRatingsGeneralSelectionChances represents the selection chances thresholds
+	MetricRatingsGeneralSelectionChances = "erd_ratings_general_selection_chances"
+
+	// MetricSelectionChancesMaxThreshold represents the max threshold for a selection chances item
+	MetricSelectionChancesMaxThreshold = "erd_max_threshold"
+
+	// SelectionChancesMaxThresholdSuffix represents the SelectionChances suffix for MaxThreshold
+	SelectionChancesMaxThresholdSuffix = "_max_threshold"
+
+	// MetricSelectionChancesChancePercent represents the chance percentage for a selection chances metric
+	MetricSelectionChancesChancePercent = "erd_chance_percent"
+
+	// SelectionChancesChancePercentSuffix represents the SelectionChances suffix for ChancePercent
+	SelectionChancesChancePercentSuffix = "_chance_percent"
+
+	// MetricRatingsShardChainHoursToMaxRatingFromStartRating represents the hours to max rating from start rating
+	MetricRatingsShardChainHoursToMaxRatingFromStartRating = "erd_ratings_shardchain_hours_to_max_rating_from_start_rating"
+
+	// MetricRatingsShardChainProposerValidatorImportance represents the proposer validator importance index
+	MetricRatingsShardChainProposerValidatorImportance = "erd_ratings_shardchain_proposer_validator_importance"
+
+	// MetricRatingsShardChainProposerDecreaseFactor represents the proposer decrease factor
+	MetricRatingsShardChainProposerDecreaseFactor = "erd_ratings_shardchain_proposer_decrease_factor"
+
+	// MetricRatingsShardChainValidatorDecreaseFactor represents the validator decrease factor
+	MetricRatingsShardChainValidatorDecreaseFactor = "erd_ratings_shardchain_validator_decrease_factor"
+
+	// MetricRatingsShardChainConsecutiveMissedBlocksPenalty represents the consecutive missed block penalty
+	MetricRatingsShardChainConsecutiveMissedBlocksPenalty = "erd_ratings_shardchain_consecutive_missed_blocks_penalty"
+
+	// MetricRatingsMetaChainHoursToMaxRatingFromStartRating represents the hours to max rating from start rating
+	MetricRatingsMetaChainHoursToMaxRatingFromStartRating = "erd_ratings_metachain_hours_to_max_rating_from_start_rating"
+
+	// MetricRatingsMetaChainProposerValidatorImportance represents the proposer validator importance index
+	MetricRatingsMetaChainProposerValidatorImportance = "erd_ratings_metachain_proposer_validator_importance"
+
+	// MetricRatingsMetaChainProposerDecreaseFactor represents the proposer decrease factor
+	MetricRatingsMetaChainProposerDecreaseFactor = "erd_ratings_metachain_proposer_decrease_factor"
+
+	// MetricRatingsMetaChainValidatorDecreaseFactor represents the validator decrease factor
+	MetricRatingsMetaChainValidatorDecreaseFactor = "erd_ratings_metachain_validator_decrease_factor"
+
+	// MetricRatingsMetaChainConsecutiveMissedBlocksPenalty represents the consecutive missed blocks penalty
+	MetricRatingsMetaChainConsecutiveMissedBlocksPenalty = "erd_ratings_metachain_consecutive_missed_blocks_penalty"
+
+	// MetricRatingsPeerHonestyDecayCoefficient represents the peer honesty decay coefficient
+	MetricRatingsPeerHonestyDecayCoefficient = "erd_ratings_peerhonesty_decay_coefficient"
+
+	// MetricRatingsPeerHonestyDecayUpdateIntervalInSeconds represents the decat update interval in seconds
+	MetricRatingsPeerHonestyDecayUpdateIntervalInSeconds = "erd_ratings_peerhonesty_decay_update_interval_inseconds"
+
+	// MetricRatingsPeerHonestyMaxScore represents the peer honesty max score allowed
+	MetricRatingsPeerHonestyMaxScore = "erd_ratings_peerhonesty_max_score"
+
+	// MetricRatingsPeerHonestyMinScore represents the peer honesty min score
+	MetricRatingsPeerHonestyMinScore = "erd_ratings_peerhonesty_min_score"
+
+	// MetricRatingsPeerHonestyBadPeerThreshold represents the peer honesty bad peer threshold
+	MetricRatingsPeerHonestyBadPeerThreshold = "erd_ratings_peerhonesty_bad_peer_threshold"
+
+	// MetricRatingsPeerHonestyUnitValue represents the peer honesty unit value
+	MetricRatingsPeerHonestyUnitValue = "erd_ratings_peerhonesty_unit_value"
 )
 
 const (
@@ -536,6 +643,10 @@ const MetricP2PUnknownPeers = "erd_p2p_unknown_shard_peers"
 // MetricP2PNumConnectedPeersClassification is the metric for monitoring the number of connected peers split on the connection type
 const MetricP2PNumConnectedPeersClassification = "erd_p2p_num_connected_peers_classification"
 
+// MetricAreVMQueriesReady will hold the string representation of the boolean that indicated if the node is ready
+// to process VM queries
+const MetricAreVMQueriesReady = "erd_are_vm_queries_ready"
+
 // HighestRoundFromBootStorage is the key for the highest round that is saved in storage
 const HighestRoundFromBootStorage = "highestRoundFromBootStorage"
 
@@ -584,8 +695,8 @@ const MetachainShardName = "metachain"
 // TemporaryPath is the default temporary path directory
 const TemporaryPath = "temp"
 
-// SecondsToWaitForP2PBootstrap is the wait time for the P2P to bootstrap
-const SecondsToWaitForP2PBootstrap = 20
+// TimeToWaitForP2PBootstrap is the wait time for the P2P to bootstrap
+const TimeToWaitForP2PBootstrap = 20 * time.Second
 
 // MaxSoftwareVersionLengthInBytes represents the maximum length for the software version to be saved in block header
 const MaxSoftwareVersionLengthInBytes = 10
@@ -696,4 +807,19 @@ const (
 
 	// TrieSyncedVal is the value that will be saved at TrieSyncedKey
 	TrieSyncedVal = "yes"
+
+	// TrieLeavesChannelDefaultCapacity represents the default value to be used as capacity for getting all trie leaves on
+	// a channel
+	TrieLeavesChannelDefaultCapacity = 100
+)
+
+// ApiOutputFormat represents the format type returned by api
+type ApiOutputFormat uint8
+
+const (
+	// ApiOutputFormatJSON outport format returns struct directly, will be serialized into JSON by gin
+	ApiOutputFormatJSON ApiOutputFormat = 0
+
+	// ApiOutputFormatProto outport format returns the bytes of the proto object
+	ApiOutputFormatProto ApiOutputFormat = 1
 )

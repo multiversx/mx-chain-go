@@ -1,7 +1,6 @@
 package leveldb
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"os"
@@ -171,16 +170,20 @@ func (s *SerialDB) Get(key []byte, priority common.StorageAccessType) ([]byte, e
 		return nil, storage.ErrDBIsClosed
 	}
 
+	s.mutBatch.RLock()
+	if s.batch.IsRemoved(key) {
+		s.mutBatch.RUnlock()
+		return nil, storage.ErrKeyNotFound
+	}
+
 	wrappedBatch, writeChan, err := s.getBatchWrapperAndChan(priority)
 	if err != nil {
 		return nil, fmt.Errorf("%w in SerialDB.Get", err)
 	}
+	s.mutBatch.RUnlock()
 
 	data := wrappedBatch.get(key)
 	if data != nil {
-		if bytes.Equal(data, []byte(removed)) {
-			return nil, storage.ErrKeyNotFound
-		}
 		return data, nil
 	}
 
@@ -208,16 +211,20 @@ func (s *SerialDB) Has(key []byte, priority common.StorageAccessType) error {
 		return storage.ErrDBIsClosed
 	}
 
+	s.mutBatch.RLock()
+	if s.batch.IsRemoved(key) {
+		s.mutBatch.RUnlock()
+		return storage.ErrKeyNotFound
+	}
+
 	wrappedBatch, writeChan, err := s.getBatchWrapperAndChan(priority)
 	if err != nil {
 		return fmt.Errorf("%w in SerialDB.Has", err)
 	}
+	s.mutBatch.RUnlock()
 
 	data := wrappedBatch.get(key)
 	if data != nil {
-		if bytes.Equal(data, []byte(removed)) {
-			return storage.ErrKeyNotFound
-		}
 		return nil
 	}
 

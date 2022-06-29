@@ -9,7 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
-	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -63,7 +63,7 @@ func TestGetLastBootstrapData(t *testing.T) {
 	roundBytes, _ := json.Marshal(&roundNum)
 	nodesCoordinatorConfigKey := []byte("key")
 
-	nodesConfigRegistry := sharding.NodesCoordinatorRegistry{
+	nodesConfigRegistry := nodesCoordinator.NodesCoordinatorRegistry{
 		CurrentEpoch: 10,
 	}
 	bootstrapData := bootstrapStorage.BootstrapData{
@@ -103,11 +103,11 @@ func TestCheckIfShuffledOut_ValidatorIsInWaitingList(t *testing.T) {
 	epochStartProvider.baseData.lastEpoch = 0
 
 	publicKey := []byte("pubKey")
-	nodesConfig := &sharding.NodesCoordinatorRegistry{
+	nodesConfig := &nodesCoordinator.NodesCoordinatorRegistry{
 		CurrentEpoch: 1,
-		EpochsConfig: map[string]*sharding.EpochValidators{
+		EpochsConfig: map[string]*nodesCoordinator.EpochValidators{
 			"0": {
-				WaitingValidators: map[string][]*sharding.SerializableValidator{
+				WaitingValidators: map[string][]*nodesCoordinator.SerializableValidator{
 					"0": {{PubKey: publicKey, Chances: 0, Index: 0}},
 				},
 			},
@@ -127,11 +127,11 @@ func TestCheckIfShuffledOut_ValidatorIsInEligibleList(t *testing.T) {
 	epochStartProvider.baseData.lastEpoch = 0
 
 	publicKey := []byte("pubKey")
-	nodesConfig := &sharding.NodesCoordinatorRegistry{
+	nodesConfig := &nodesCoordinator.NodesCoordinatorRegistry{
 		CurrentEpoch: 1,
-		EpochsConfig: map[string]*sharding.EpochValidators{
+		EpochsConfig: map[string]*nodesCoordinator.EpochValidators{
 			"0": {
-				EligibleValidators: map[string][]*sharding.SerializableValidator{
+				EligibleValidators: map[string][]*nodesCoordinator.SerializableValidator{
 					"0": {{PubKey: publicKey, Chances: 0, Index: 0}},
 				},
 			},
@@ -152,11 +152,11 @@ func TestCheckIfShuffledOut_ValidatorIsShuffledToEligibleList(t *testing.T) {
 	epochStartProvider.baseData.shardId = 1
 
 	publicKey := []byte("pubKey")
-	nodesConfig := &sharding.NodesCoordinatorRegistry{
+	nodesConfig := &nodesCoordinator.NodesCoordinatorRegistry{
 		CurrentEpoch: 1,
-		EpochsConfig: map[string]*sharding.EpochValidators{
+		EpochsConfig: map[string]*nodesCoordinator.EpochValidators{
 			"0": {
-				EligibleValidators: map[string][]*sharding.SerializableValidator{
+				EligibleValidators: map[string][]*nodesCoordinator.SerializableValidator{
 					"0": {{PubKey: publicKey, Chances: 0, Index: 0}},
 				},
 			},
@@ -176,12 +176,12 @@ func TestCheckIfShuffledOut_ValidatorNotInEligibleOrWaiting(t *testing.T) {
 	epochStartProvider.baseData.lastEpoch = 0
 
 	publicKey := []byte("pubKey")
-	nodesConfig := &sharding.NodesCoordinatorRegistry{
+	nodesConfig := &nodesCoordinator.NodesCoordinatorRegistry{
 		CurrentEpoch: 1,
-		EpochsConfig: map[string]*sharding.EpochValidators{
+		EpochsConfig: map[string]*nodesCoordinator.EpochValidators{
 			"0": {
-				EligibleValidators: map[string][]*sharding.SerializableValidator{},
-				WaitingValidators:  map[string][]*sharding.SerializableValidator{},
+				EligibleValidators: map[string][]*nodesCoordinator.SerializableValidator{},
+				WaitingValidators:  map[string][]*nodesCoordinator.SerializableValidator{},
 			},
 		},
 	}

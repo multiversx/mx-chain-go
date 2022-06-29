@@ -8,7 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/hashing/blake2b"
-	"github.com/ElrondNetwork/elrond-go-crypto"
+	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/ed25519"
 	ed25519SingleSig "github.com/ElrondNetwork/elrond-go-crypto/signing/ed25519/singlesig"
@@ -16,8 +16,11 @@ import (
 	multisig2 "github.com/ElrondNetwork/elrond-go-crypto/signing/mcl/multisig"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/multisig"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
+	p2pRating "github.com/ElrondNetwork/elrond-go/p2p/rating"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 )
 
 type nodeKeys struct {
@@ -57,14 +60,14 @@ func CreateProcessorNodesWithNodesCoordinator(
 	cp := CreateCryptoParams(len(ncp[0]), len(ncp[core.MetachainShardId]), nbShards)
 	pubKeys := PubKeysMapFromKeysMap(cp.Keys)
 	validatorsMap := GenValidatorsFromPubKeys(pubKeys, nbShards)
-	validatorsMapForNodesCoordinator, _ := sharding.NodesInfoToValidators(validatorsMap)
+	validatorsMapForNodesCoordinator, _ := nodesCoordinator.NodesInfoToValidators(validatorsMap)
 
 	cpWaiting := CreateCryptoParams(1, 1, nbShards)
 	pubKeysWaiting := PubKeysMapFromKeysMap(cpWaiting.Keys)
 	waitingMap := GenValidatorsFromPubKeys(pubKeysWaiting, nbShards)
-	waitingMapForNodesCoordinator, _ := sharding.NodesInfoToValidators(waitingMap)
+	waitingMapForNodesCoordinator, _ := nodesCoordinator.NodesInfoToValidators(waitingMap)
 
-	nodesSetup := &mock.NodesSetupStub{InitialNodesInfoCalled: func() (m map[uint32][]sharding.GenesisNodeInfoHandler, m2 map[uint32][]sharding.GenesisNodeInfoHandler) {
+	nodesSetup := &mock.NodesSetupStub{InitialNodesInfoCalled: func() (m map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, m2 map[uint32][]nodesCoordinator.GenesisNodeInfoHandler) {
 		return validatorsMap, waitingMap
 	}}
 
@@ -76,7 +79,7 @@ func CreateProcessorNodesWithNodesCoordinator(
 		nodesList := make([]*TestProcessorNode, len(validatorList))
 		for i, v := range validatorList {
 			cache, _ := lrucache.NewCache(10000)
-			argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
+			argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
 				ShardConsensusGroupSize:    shardConsensusGroupSize,
 				MetaConsensusGroupSize:     metaConsensusGroupSize,
 				Marshalizer:                TestMarshalizer,
@@ -93,7 +96,7 @@ func CreateProcessorNodesWithNodesCoordinator(
 				IsFullArchive:              false,
 			}
 
-			nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
+			nodesCoordinator, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 			if err != nil {
 				fmt.Println("error creating node coordinator")
 			}
@@ -192,7 +195,7 @@ func generateSkAndPkInShard(
 func newTestProcessorNodeWithCustomNodesCoordinator(
 	maxShards uint32,
 	nodeShardId uint32,
-	nodesCoordinator sharding.NodesCoordinator,
+	nodesCoordinator nodesCoordinator.NodesCoordinator,
 	keyIndex int,
 	ncp map[uint32][]*nodeKeys,
 	nodesSetup sharding.GenesisNodesSetupHandler,
@@ -200,7 +203,13 @@ func newTestProcessorNodeWithCustomNodesCoordinator(
 
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(maxShards, nodeShardId)
 
-	messenger := CreateMessengerWithNoDiscovery()
+	peersRatingHandler, _ := p2pRating.NewPeersRatingHandler(
+		p2pRating.ArgPeersRatingHandler{
+			TopRatedCache: testscommon.NewCacherMock(),
+			BadRatedCache: testscommon.NewCacherMock(),
+		})
+
+	messenger := CreateMessengerWithNoDiscoveryAndPeersRatingHandler(peersRatingHandler)
 	tpn := &TestProcessorNode{
 		ShardCoordinator:        shardCoordinator,
 		Messenger:               messenger,
@@ -210,6 +219,7 @@ func newTestProcessorNodeWithCustomNodesCoordinator(
 		ChainID:                 ChainID,
 		NodesSetup:              nodesSetup,
 		ArwenChangeLocker:       &sync.RWMutex{},
+		PeersRatingHandler:      peersRatingHandler,
 	}
 
 	tpn.NodeKeys = &TestKeyPair{

@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 )
 
 // ArgStandardDelegationProcessor is the argument used to construct a standard delegation processor
@@ -478,7 +479,7 @@ func (sdp *standardDelegationProcessor) verifyRegisteredNodes(sc genesis.Initial
 
 func (sdp *standardDelegationProcessor) verifyOneNode(
 	sc genesis.InitialSmartContractHandler,
-	node sharding.GenesisNodeInfoHandler,
+	node nodesCoordinator.GenesisNodeInfoHandler,
 ) error {
 
 	function := "getNodeSignature"

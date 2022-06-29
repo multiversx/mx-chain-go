@@ -26,6 +26,9 @@ import (
 
 func Test_newBlockProcessorCreatorForShard(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	pcf, _ := factory.NewProcessComponentsFactory(getProcessComponentsArgs(shardCoordinator))
@@ -57,6 +60,9 @@ func Test_newBlockProcessorCreatorForShard(t *testing.T) {
 
 func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	coreComponents := getCoreComponents()
 	shardC := mock.NewMultiShardsCoordinatorMock(1)
@@ -111,6 +117,9 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 					return state.NewEmptyPeerAccount(), nil
 				},
 			}
+		},
+		AccountsAdapterAPICalled: func() state.AccountsAdapter {
+			return accounts
 		},
 		AccountsAdapterCalled: func() state.AccountsAdapter {
 			return accounts
