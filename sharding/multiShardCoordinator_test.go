@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -31,12 +32,12 @@ func TestMultiShardCoordinator_NewMultiShardCoordinator(t *testing.T) {
 func TestMultiShardCoordinator_NewMultiShardCoordinatorInvalidNumberOfShards(t *testing.T) {
 	sr, err := NewMultiShardCoordinator(0, 0)
 	assert.Nil(t, sr)
-	assert.Equal(t, ErrInvalidNumberOfShards, err)
+	assert.Equal(t, nodesCoordinator.ErrInvalidNumberOfShards, err)
 }
 
 func TestMultiShardCoordinator_NewMultiShardCoordinatorSelfIdGraterThanNrOfShardsShouldError(t *testing.T) {
 	_, err := NewMultiShardCoordinator(1, 2)
-	assert.Equal(t, ErrInvalidShardId, err)
+	assert.Equal(t, nodesCoordinator.ErrInvalidShardId, err)
 }
 
 func TestMultiShardCoordinator_NewMultiShardCoordinatorCorrectSelfId(t *testing.T) {

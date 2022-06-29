@@ -1,6 +1,7 @@
 package factory
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"math/big"
@@ -47,10 +48,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/sync"
 	"github.com/ElrondNetwork/elrond-go/process/track"
 	"github.com/ElrondNetwork/elrond-go/process/transactionLog"
+	"github.com/ElrondNetwork/elrond-go/process/txsSender"
 	"github.com/ElrondNetwork/elrond-go/process/txsimulator"
 	"github.com/ElrondNetwork/elrond-go/redundancy"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/networksharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
@@ -66,7 +69,7 @@ var timeSpanForBadHeaders = time.Minute * 2
 
 // processComponents struct holds the process components
 type processComponents struct {
-	nodesCoordinator             sharding.NodesCoordinator
+	nodesCoordinator             nodesCoordinator.NodesCoordinator
 	shardCoordinator             sharding.Coordinator
 	interceptorsContainer        process.InterceptorsContainer
 	resolversFinder              dataRetriever.ResolversFinder
@@ -100,7 +103,9 @@ type processComponents struct {
 	nodeRedundancyHandler        consensus.NodeRedundancyHandler
 	currentEpochProvider         dataRetriever.CurrentNetworkEpochProviderHandler
 	vmFactoryForTxSimulator      process.VirtualMachinesContainerFactory
+	vmFactoryForProcessing       process.VirtualMachinesContainerFactory
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
+	txsSender                    process.TxsSenderHandler
 }
 
 // ProcessComponentsFactoryArgs holds the arguments needed to create a process components factory
@@ -112,7 +117,7 @@ type ProcessComponentsFactoryArgs struct {
 	AccountsParser         genesis.AccountsParser
 	SmartContractParser    genesis.InitialSmartContractParser
 	GasSchedule            core.GasScheduleNotifier
-	NodesCoordinator       sharding.NodesCoordinator
+	NodesCoordinator       nodesCoordinator.NodesCoordinator
 	RequestedItemsHandler  dataRetriever.RequestedItemsHandler
 	WhiteListHandler       process.WhiteListHandler
 	WhiteListerVerifiedTxs process.WhiteListHandler
@@ -140,7 +145,7 @@ type processComponentsFactory struct {
 	accountsParser         genesis.AccountsParser
 	smartContractParser    genesis.InitialSmartContractParser
 	gasSchedule            core.GasScheduleNotifier
-	nodesCoordinator       sharding.NodesCoordinator
+	nodesCoordinator       nodesCoordinator.NodesCoordinator
 	requestedItemsHandler  dataRetriever.RequestedItemsHandler
 	whiteListHandler       process.WhiteListHandler
 	whiteListerVerifiedTxs process.WhiteListHandler
@@ -198,6 +203,8 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 		epochNotifier:          args.CoreData.EpochNotifier(),
 	}, nil
 }
+
+//TODO: Think if it would make sense here to create an array of closable interfaces
 
 // Create will create and return a struct containing process components
 func (pcf *processComponentsFactory) Create() (*processComponents, error) {
@@ -479,7 +486,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
-	blockProcessor, vmFactoryTxSimulator, err := pcf.newBlockProcessor(
+	blockProcessorComponents, err := pcf.newBlockProcessor(
 		requestHandler,
 		forkDetector,
 		epochStartTrigger,
@@ -547,6 +554,22 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
+	dataPacker, err := partitioning.NewSimpleDataPacker(pcf.coreData.InternalMarshalizer())
+	if err != nil {
+		return nil, err
+	}
+	args := txsSender.ArgsTxsSenderWithAccumulator{
+		Marshaller:        pcf.coreData.InternalMarshalizer(),
+		ShardCoordinator:  pcf.bootstrapComponents.ShardCoordinator(),
+		NetworkMessenger:  pcf.network.NetworkMessenger(),
+		AccumulatorConfig: pcf.config.Antiflood.TxAccumulator,
+		DataPacker:        dataPacker,
+	}
+	txsSenderWithAccumulator, err := txsSender.NewTxsSenderWithAccumulator(args)
+	if err != nil {
+		return nil, err
+	}
+
 	return &processComponents{
 		nodesCoordinator:             pcf.nodesCoordinator,
 		shardCoordinator:             pcf.bootstrapComponents.ShardCoordinator(),
@@ -554,7 +577,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		resolversFinder:              resolversFinder,
 		roundHandler:                 pcf.coreData.RoundHandler(),
 		forkDetector:                 forkDetector,
-		blockProcessor:               blockProcessor,
+		blockProcessor:               blockProcessorComponents.blockProcessor,
 		epochStartTrigger:            epochStartTrigger,
 		epochStartNotifier:           pcf.coreData.EpochStartNotifierWithConfirm(),
 		blackListHandler:             blackListHandler,
@@ -581,8 +604,10 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		importHandler:                pcf.importHandler,
 		nodeRedundancyHandler:        nodeRedundancyHandler,
 		currentEpochProvider:         currentEpochProvider,
-		vmFactoryForTxSimulator:      vmFactoryTxSimulator,
+		vmFactoryForTxSimulator:      blockProcessorComponents.vmFactoryForTxSimulate,
+		vmFactoryForProcessing:       blockProcessorComponents.vmFactoryForProcessing,
 		scheduledTxsExecutionHandler: scheduledTxsExecutionHandler,
+		txsSender:                    txsSenderWithAccumulator,
 	}, nil
 }
 
@@ -757,7 +782,8 @@ func (pcf *processComponentsFactory) indexGenesisAccounts() error {
 		return err
 	}
 
-	leavesChannel, err := pcf.state.AccountsAdapter().GetAllLeaves(rootHash)
+	leavesChannel := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
+	err = pcf.state.AccountsAdapter().GetAllLeaves(leavesChannel, context.Background(), rootHash)
 	if err != nil {
 		return err
 	}
@@ -1015,6 +1041,7 @@ func (pcf *processComponentsFactory) newShardResolverContainerFactory(
 		CurrentNetworkEpochProvider: currentEpochProvider,
 		ResolverConfig:              pcf.config.Resolvers,
 		PreferredPeersHolder:        pcf.network.PreferredPeersHolderHandler(),
+		PeersRatingHandler:          pcf.network.PeersRatingHandler(),
 	}
 	resolversContainerFactory, err := resolverscontainer.NewShardResolversContainerFactory(resolversContainerFactoryArgs)
 	if err != nil {
@@ -1050,6 +1077,7 @@ func (pcf *processComponentsFactory) newMetaResolverContainerFactory(
 		CurrentNetworkEpochProvider: currentEpochProvider,
 		ResolverConfig:              pcf.config.Resolvers,
 		PreferredPeersHolder:        pcf.network.PreferredPeersHolderHandler(),
+		PeersRatingHandler:          pcf.network.PeersRatingHandler(),
 	}
 	resolversContainerFactory, err := resolverscontainer.NewMetaResolversContainerFactory(resolversContainerFactoryArgs)
 	if err != nil {
@@ -1153,21 +1181,19 @@ func (pcf *processComponentsFactory) createStorageResolversForMeta(
 	}
 
 	resolversContainerFactoryArgs := storageResolversContainers.FactoryArgs{
-		GeneralConfig:              pcf.config,
-		ShardIDForTries:            pcf.importDBConfig.ImportDBTargetShardID,
-		ChainID:                    pcf.coreData.ChainID(),
-		WorkingDirectory:           pcf.importDBConfig.ImportDBWorkingDir,
-		Hasher:                     pcf.coreData.Hasher(),
-		ShardCoordinator:           pcf.bootstrapComponents.ShardCoordinator(),
-		Messenger:                  pcf.network.NetworkMessenger(),
-		Store:                      store,
-		Marshalizer:                pcf.coreData.InternalMarshalizer(),
-		Uint64ByteSliceConverter:   pcf.coreData.Uint64ByteSliceConverter(),
-		DataPacker:                 dataPacker,
-		ManualEpochStartNotifier:   manualEpochStartNotifier,
-		ChanGracefullyClose:        pcf.coreData.ChanStopNodeProcess(),
-		DisableOldTrieStorageEpoch: pcf.epochConfig.EnableEpochs.DisableOldTrieStorageEpoch,
-		EpochNotifier:              pcf.epochNotifier,
+		GeneralConfig:            pcf.config,
+		ShardIDForTries:          pcf.importDBConfig.ImportDBTargetShardID,
+		ChainID:                  pcf.coreData.ChainID(),
+		WorkingDirectory:         pcf.importDBConfig.ImportDBWorkingDir,
+		Hasher:                   pcf.coreData.Hasher(),
+		ShardCoordinator:         pcf.bootstrapComponents.ShardCoordinator(),
+		Messenger:                pcf.network.NetworkMessenger(),
+		Store:                    store,
+		Marshalizer:              pcf.coreData.InternalMarshalizer(),
+		Uint64ByteSliceConverter: pcf.coreData.Uint64ByteSliceConverter(),
+		DataPacker:               dataPacker,
+		ManualEpochStartNotifier: manualEpochStartNotifier,
+		ChanGracefullyClose:      pcf.coreData.ChanStopNodeProcess(),
 	}
 	resolversContainerFactory, err := storageResolversContainers.NewMetaResolversContainerFactory(resolversContainerFactoryArgs)
 	if err != nil {
@@ -1187,21 +1213,19 @@ func (pcf *processComponentsFactory) createStorageResolversForShard(
 	}
 
 	resolversContainerFactoryArgs := storageResolversContainers.FactoryArgs{
-		GeneralConfig:              pcf.config,
-		ShardIDForTries:            pcf.importDBConfig.ImportDBTargetShardID,
-		ChainID:                    pcf.coreData.ChainID(),
-		WorkingDirectory:           pcf.importDBConfig.ImportDBWorkingDir,
-		Hasher:                     pcf.coreData.Hasher(),
-		ShardCoordinator:           pcf.bootstrapComponents.ShardCoordinator(),
-		Messenger:                  pcf.network.NetworkMessenger(),
-		Store:                      store,
-		Marshalizer:                pcf.coreData.InternalMarshalizer(),
-		Uint64ByteSliceConverter:   pcf.coreData.Uint64ByteSliceConverter(),
-		DataPacker:                 dataPacker,
-		ManualEpochStartNotifier:   manualEpochStartNotifier,
-		ChanGracefullyClose:        pcf.coreData.ChanStopNodeProcess(),
-		DisableOldTrieStorageEpoch: pcf.epochConfig.EnableEpochs.DisableOldTrieStorageEpoch,
-		EpochNotifier:              pcf.epochNotifier,
+		GeneralConfig:            pcf.config,
+		ShardIDForTries:          pcf.importDBConfig.ImportDBTargetShardID,
+		ChainID:                  pcf.coreData.ChainID(),
+		WorkingDirectory:         pcf.importDBConfig.ImportDBWorkingDir,
+		Hasher:                   pcf.coreData.Hasher(),
+		ShardCoordinator:         pcf.bootstrapComponents.ShardCoordinator(),
+		Messenger:                pcf.network.NetworkMessenger(),
+		Store:                    store,
+		Marshalizer:              pcf.coreData.InternalMarshalizer(),
+		Uint64ByteSliceConverter: pcf.coreData.Uint64ByteSliceConverter(),
+		DataPacker:               dataPacker,
+		ManualEpochStartNotifier: manualEpochStartNotifier,
+		ChanGracefullyClose:      pcf.coreData.ChanStopNodeProcess(),
 	}
 	resolversContainerFactory, err := storageResolversContainers.NewShardResolversContainerFactory(resolversContainerFactoryArgs)
 	if err != nil {
@@ -1342,7 +1366,7 @@ func (pcf *processComponentsFactory) prepareNetworkShardingCollector() (*network
 
 func createNetworkShardingCollector(
 	config *config.Config,
-	nodesCoordinator sharding.NodesCoordinator,
+	nodesCoordinator nodesCoordinator.NodesCoordinator,
 	epochStartRegistrationHandler epochStart.RegistrationHandler,
 	preferredPeersHolder PreferredPeersHolderHandler,
 	epochStart uint32,
@@ -1488,6 +1512,12 @@ func (pc *processComponents) Close() error {
 	}
 	if !check.IfNil(pc.vmFactoryForTxSimulator) {
 		log.LogIfError(pc.vmFactoryForTxSimulator.Close())
+	}
+	if !check.IfNil(pc.vmFactoryForProcessing) {
+		log.LogIfError(pc.vmFactoryForProcessing.Close())
+	}
+	if !check.IfNil(pc.txsSender) {
+		log.LogIfError(pc.txsSender.Close())
 	}
 
 	return nil

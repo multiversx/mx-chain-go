@@ -28,7 +28,7 @@ func createMockArgumentsForSCQuery() ArgsNewSCQueryService {
 	return ArgsNewSCQueryService{
 		VmContainer:              &mock.VMContainerMock{},
 		EconomicsFee:             &mock.FeeHandlerStub{},
-		BlockChainHook:           &mock.BlockChainHookHandlerMock{},
+		BlockChainHook:           &testscommon.BlockChainHookStub{},
 		BlockChain:               &testscommon.ChainHandlerStub{},
 		ArwenChangeLocker:        &sync.RWMutex{},
 		Bootstrapper:             &mock.BootstrapperStub{},
@@ -740,7 +740,7 @@ func TestNewSCQueryService_CloseShouldWork(t *testing.T) {
 			},
 		},
 		EconomicsFee:             &mock.FeeHandlerStub{},
-		BlockChainHook:           &mock.BlockChainHookHandlerMock{},
+		BlockChainHook:           &testscommon.BlockChainHookStub{},
 		BlockChain:               &testscommon.ChainHandlerStub{},
 		ArwenChangeLocker:        &sync.RWMutex{},
 		Bootstrapper:             &mock.BootstrapperStub{},

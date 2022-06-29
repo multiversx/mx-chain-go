@@ -2,6 +2,7 @@ package state
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"sync"
 
@@ -132,11 +133,6 @@ func (accountsDB *accountsDBApi) RevertToSnapshot(_ int) error {
 	return ErrOperationNotPermitted
 }
 
-// GetNumCheckpoints will always return 0
-func (accountsDB *accountsDBApi) GetNumCheckpoints() uint32 {
-	return 0
-}
-
 // GetCode will call the inner accountsAdapter method after trying to recreate the trie
 func (accountsDB *accountsDBApi) GetCode(codeHash []byte) []byte {
 	err := accountsDB.recreateTrieIfNecessary()
@@ -165,7 +161,7 @@ func (accountsDB *accountsDBApi) RecreateTrie(_ []byte) error {
 }
 
 // PruneTrie is a not permitted operation in this implementation and thus, does nothing
-func (accountsDB *accountsDBApi) PruneTrie(_ []byte, _ TriePruningIdentifier) {
+func (accountsDB *accountsDBApi) PruneTrie(_ []byte, _ TriePruningIdentifier, _ PruningHandler) {
 }
 
 // CancelPrune is a not permitted operation in this implementation and thus, does nothing
@@ -186,13 +182,13 @@ func (accountsDB *accountsDBApi) IsPruningEnabled() bool {
 }
 
 // GetAllLeaves will call the inner accountsAdapter method after trying to recreate the trie
-func (accountsDB *accountsDBApi) GetAllLeaves(rootHash []byte) (chan core.KeyValueHolder, error) {
+func (accountsDB *accountsDBApi) GetAllLeaves(leavesChannel chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error {
 	err := accountsDB.recreateTrieIfNecessary()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return accountsDB.innerAccountsAdapter.GetAllLeaves(rootHash)
+	return accountsDB.innerAccountsAdapter.GetAllLeaves(leavesChannel, ctx, rootHash)
 }
 
 // RecreateAllTries is a not permitted operation in this implementation and thus, will return an error

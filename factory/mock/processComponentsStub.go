@@ -8,12 +8,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/update"
 )
 
 // ProcessComponentsMock -
 type ProcessComponentsMock struct {
-	NodesCoord                           sharding.NodesCoordinator
+	NodesCoord                           nodesCoordinator.NodesCoordinator
 	ShardCoord                           sharding.Coordinator
 	IntContainer                         process.InterceptorsContainer
 	ResFinder                            dataRetriever.ResolversFinder
@@ -44,6 +45,7 @@ type ProcessComponentsMock struct {
 	NodeRedundancyHandlerInternal        consensus.NodeRedundancyHandler
 	CurrentEpochProviderInternal         process.CurrentNetworkEpochProviderHandler
 	ScheduledTxsExecutionHandlerInternal process.ScheduledTxsExecutionHandler
+	TxsSenderHandlerField                process.TxsSenderHandler
 }
 
 // Create -
@@ -62,7 +64,7 @@ func (pcm *ProcessComponentsMock) CheckSubcomponents() error {
 }
 
 // NodesCoordinator -
-func (pcm *ProcessComponentsMock) NodesCoordinator() sharding.NodesCoordinator {
+func (pcm *ProcessComponentsMock) NodesCoordinator() nodesCoordinator.NodesCoordinator {
 	return pcm.NodesCoord
 }
 
@@ -219,6 +221,11 @@ func (pcm *ProcessComponentsMock) String() string {
 // ScheduledTxsExecutionHandler -
 func (pcm *ProcessComponentsMock) ScheduledTxsExecutionHandler() process.ScheduledTxsExecutionHandler {
 	return pcm.ScheduledTxsExecutionHandlerInternal
+}
+
+// TxsSenderHandler -
+func (pcm *ProcessComponentsMock) TxsSenderHandler() process.TxsSenderHandler {
+	return pcm.TxsSenderHandlerField
 }
 
 // IsInterfaceNil -

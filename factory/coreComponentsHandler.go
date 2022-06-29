@@ -18,6 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -470,7 +471,7 @@ func (mcc *managedCoreComponents) RoundHandler() consensus.RoundHandler {
 }
 
 // NodesShuffler returns the nodes shuffler
-func (mcc *managedCoreComponents) NodesShuffler() sharding.NodesShuffler {
+func (mcc *managedCoreComponents) NodesShuffler() nodesCoordinator.NodesShuffler {
 	mcc.mutCoreComponents.RLock()
 	defer mcc.mutCoreComponents.RUnlock()
 

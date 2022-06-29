@@ -154,6 +154,11 @@ func (s *systemVM) GasScheduleChange(gasSchedule map[string]map[string]uint64) {
 	s.asyncCallbackGasLock = apiCosts[common.AsyncCallbackGasLockField]
 }
 
+// Close does nothing, only to implement interface
+func (s *systemVM) Close() error {
+	return nil
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (s *systemVM) IsInterfaceNil() bool {
 	return s == nil

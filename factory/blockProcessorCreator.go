@@ -38,6 +38,12 @@ import (
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 )
 
+type blockProcessorAndVmFactories struct {
+	blockProcessor         process.BlockProcessor
+	vmFactoryForTxSimulate process.VirtualMachinesContainerFactory
+	vmFactoryForProcessing process.VirtualMachinesContainerFactory
+}
+
 func (pcf *processComponentsFactory) newBlockProcessor(
 	requestHandler process.RequestHandler,
 	forkDetector process.ForkDetector,
@@ -50,7 +56,7 @@ func (pcf *processComponentsFactory) newBlockProcessor(
 	txSimulatorProcessorArgs *txsimulator.ArgsTxSimulator,
 	arwenChangeLocker common.Locker,
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler,
-) (process.BlockProcessor, process.VirtualMachinesContainerFactory, error) {
+) (*blockProcessorAndVmFactories, error) {
 	if pcf.bootstrapComponents.ShardCoordinator().SelfId() < pcf.bootstrapComponents.ShardCoordinator().NumberOfShards() {
 		return pcf.newShardBlockProcessor(
 			requestHandler,
@@ -81,7 +87,7 @@ func (pcf *processComponentsFactory) newBlockProcessor(
 		)
 	}
 
-	return nil, nil, errors.New("could not create block processor")
+	return nil, errors.New("could not create block processor")
 }
 
 func (pcf *processComponentsFactory) newShardBlockProcessor(
@@ -95,41 +101,41 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 	txSimulatorProcessorArgs *txsimulator.ArgsTxSimulator,
 	arwenChangeLocker common.Locker,
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler,
-) (process.BlockProcessor, process.VirtualMachinesContainerFactory, error) {
+) (*blockProcessorAndVmFactories, error) {
 	argsParser := smartContract.NewArgumentParser()
 
 	esdtTransferParser, err := parsers.NewESDTTransferParser(pcf.coreData.InternalMarshalizer())
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	mapDNSAddresses, err := smartContractParser.GetDeployedSCAddresses(genesis.DNSType)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	builtInFuncs, nftStorageHandler, err := pcf.createBuiltInFunctionContainer(pcf.state.AccountsAdapter(), mapDNSAddresses)
+	builtInFuncs, nftStorageHandler, globalSettingsHandler, err := pcf.createBuiltInFunctionContainer(pcf.state.AccountsAdapter(), mapDNSAddresses)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	log.Debug("blockProcessorCreator: enable epoch for sc deploy", "epoch", pcf.epochConfig.EnableEpochs.SCDeployEnableEpoch)
 	log.Debug("blockProcessorCreator: enable epoch for ahead of time gas usage", "epoch", pcf.epochConfig.EnableEpochs.AheadOfTimeGasUsageEnableEpoch)
 	log.Debug("blockProcessorCreator: enable epoch for repair callback", "epoch", pcf.epochConfig.EnableEpochs.RepairCallbackEnableEpoch)
 
-	vmFactory, err := pcf.createVMFactoryShard(pcf.state.AccountsAdapter(), builtInFuncs, esdtTransferParser, arwenChangeLocker, pcf.config.SmartContractsStorage, nftStorageHandler)
+	vmFactory, err := pcf.createVMFactoryShard(pcf.state.AccountsAdapter(), builtInFuncs, esdtTransferParser, arwenChangeLocker, pcf.config.SmartContractsStorage, nftStorageHandler, globalSettingsHandler)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	vmContainer, err := vmFactory.Create()
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	err = vmcommonBuiltInFunctions.SetPayableHandler(builtInFuncs, vmFactory.BlockChainHookImpl())
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	interimProcFactory, err := shard.NewIntermediateProcessorsContainerFactory(
@@ -142,27 +148,27 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		pcf.coreData.EconomicsData(),
 	)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	interimProcContainer, err := interimProcFactory.Create()
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	scForwarder, err := interimProcContainer.Get(dataBlock.SmartContractResultBlock)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	receiptTxInterim, err := interimProcContainer.Get(dataBlock.ReceiptBlock)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	badTxInterim, err := interimProcContainer.Get(dataBlock.InvalidBlock)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
@@ -176,7 +182,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 	}
 	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	gasHandler, err := preprocess.NewGasComputation(
@@ -186,12 +192,12 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		pcf.epochConfig.EnableEpochs.SCDeployEnableEpoch,
 	)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	txFeeHandler, err := postprocess.NewFeeAccumulator()
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	enableEpochs := pcf.epochConfig.EnableEpochs
@@ -222,7 +228,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	rewardsTxProcessor, err := rewardTransaction.NewRewardTxProcessor(
@@ -231,7 +237,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		pcf.bootstrapComponents.ShardCoordinator(),
 	)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	argsNewTxProcessor := transaction.ArgsNewTxProcessor{
@@ -258,14 +264,14 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 	}
 	transactionProcessor, err := transaction.NewTxProcessor(argsNewTxProcessor)
 	if err != nil {
-		return nil, nil, errors.New("could not create transaction statisticsProcessor: " + err.Error())
+		return nil, errors.New("could not create transaction statisticsProcessor: " + err.Error())
 	}
 
 	scheduledTxsExecutionHandler.SetTransactionProcessor(transactionProcessor)
 
-	vmContainerTxSimulator, err := pcf.createShardTxSimulatorProcessor(txSimulatorProcessorArgs, argsNewScProcessor, argsNewTxProcessor, esdtTransferParser, arwenChangeLocker, mapDNSAddresses)
+	vmFactoryTxSimulator, err := pcf.createShardTxSimulatorProcessor(txSimulatorProcessorArgs, argsNewScProcessor, argsNewTxProcessor, esdtTransferParser, arwenChangeLocker, mapDNSAddresses)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	blockSizeThrottler, err := throttle.NewBlockSizeThrottle(
@@ -273,7 +279,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		pcf.config.BlockSizeThrottleConfig.MaxSizeInBytes,
 	)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	blockSizeComputationHandler, err := preprocess.NewBlockSizeComputation(
@@ -282,12 +288,12 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		pcf.config.BlockSizeThrottleConfig.MaxSizeInBytes,
 	)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	balanceComputationHandler, err := preprocess.NewBalanceComputation()
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	preProcFactory, err := shard.NewPreProcessorsContainerFactory(
@@ -316,12 +322,12 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		scheduledTxsExecutionHandler,
 	)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	preProcContainer, err := preProcFactory.Create()
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	argsDetector := coordinator.ArgsPrintDoubleTransactionsDetector{
@@ -333,7 +339,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 	}
 	doubleTransactionsDetector, err := coordinator.NewPrintDoubleTransactionsDetector(argsDetector)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	argsTransactionCoordinator := coordinator.ArgTransactionCoordinator{
@@ -360,7 +366,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 	}
 	txCoordinator, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	scheduledTxsExecutionHandler.SetTransactionCoordinator(txCoordinator)
@@ -403,10 +409,16 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 
 	blockProcessor, err := block.NewShardProcessor(arguments)
 	if err != nil {
-		return nil, nil, errors.New("could not create block statisticsProcessor: " + err.Error())
+		return nil, errors.New("could not create block statisticsProcessor: " + err.Error())
 	}
 
-	return blockProcessor, vmContainerTxSimulator, nil
+	blockProcessorComponents := &blockProcessorAndVmFactories{
+		blockProcessor:         blockProcessor,
+		vmFactoryForTxSimulate: vmFactoryTxSimulator,
+		vmFactoryForProcessing: vmFactory,
+	}
+
+	return blockProcessorComponents, nil
 }
 
 func (pcf *processComponentsFactory) newMetaBlockProcessor(
@@ -421,22 +433,22 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	txSimulatorProcessorArgs *txsimulator.ArgsTxSimulator,
 	arwenChangeLocker common.Locker,
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler,
-) (process.BlockProcessor, process.VirtualMachinesContainerFactory, error) {
-	builtInFuncs, nftStorageHandler, err := pcf.createBuiltInFunctionContainer(pcf.state.AccountsAdapter(), make(map[string]struct{}))
+) (*blockProcessorAndVmFactories, error) {
+	builtInFuncs, nftStorageHandler, globalSettingsHandler, err := pcf.createBuiltInFunctionContainer(pcf.state.AccountsAdapter(), make(map[string]struct{}))
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	argsParser := smartContract.NewArgumentParser()
 
-	vmFactory, err := pcf.createVMFactoryMeta(pcf.state.AccountsAdapter(), builtInFuncs, pcf.config.SmartContractsStorage, nftStorageHandler)
+	vmFactory, err := pcf.createVMFactoryMeta(pcf.state.AccountsAdapter(), builtInFuncs, pcf.config.SmartContractsStorage, nftStorageHandler, globalSettingsHandler)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	vmContainer, err := vmFactory.Create()
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	interimProcFactory, err := metachain.NewIntermediateProcessorsContainerFactory(
@@ -449,27 +461,27 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		pcf.coreData.EconomicsData(),
 	)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	interimProcContainer, err := interimProcFactory.Create()
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	scForwarder, err := interimProcContainer.Get(dataBlock.SmartContractResultBlock)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	badTxForwarder, err := interimProcContainer.Get(dataBlock.InvalidBlock)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	esdtTransferParser, err := parsers.NewESDTTransferParser(pcf.coreData.InternalMarshalizer())
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
@@ -483,7 +495,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	}
 	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	gasHandler, err := preprocess.NewGasComputation(
@@ -493,12 +505,12 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		pcf.epochConfig.EnableEpochs.SCDeployEnableEpoch,
 	)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	txFeeHandler, err := postprocess.NewFeeAccumulator()
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	enableEpochs := pcf.epochConfig.EnableEpochs
@@ -528,7 +540,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	argsNewMetaTxProcessor := transaction.ArgsNewMetaTxProcessor{
@@ -547,19 +559,19 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 
 	transactionProcessor, err := transaction.NewMetaTxProcessor(argsNewMetaTxProcessor)
 	if err != nil {
-		return nil, nil, errors.New("could not create transaction processor: " + err.Error())
+		return nil, errors.New("could not create transaction processor: " + err.Error())
 	}
 
 	scheduledTxsExecutionHandler.SetTransactionProcessor(transactionProcessor)
 
 	vmFactoryTxSimulator, err := pcf.createMetaTxSimulatorProcessor(txSimulatorProcessorArgs, argsNewScProcessor, txTypeHandler)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	blockSizeThrottler, err := throttle.NewBlockSizeThrottle(pcf.config.BlockSizeThrottleConfig.MinSizeInBytes, pcf.config.BlockSizeThrottleConfig.MaxSizeInBytes)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	blockSizeComputationHandler, err := preprocess.NewBlockSizeComputation(
@@ -568,12 +580,12 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		pcf.config.BlockSizeThrottleConfig.MaxSizeInBytes,
 	)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	balanceComputationHandler, err := preprocess.NewBalanceComputation()
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	preProcFactory, err := metachain.NewPreProcessorsContainerFactory(
@@ -600,12 +612,12 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		scheduledTxsExecutionHandler,
 	)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	preProcContainer, err := preProcFactory.Create()
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	argsDetector := coordinator.ArgsPrintDoubleTransactionsDetector{
@@ -617,7 +629,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	}
 	doubleTransactionsDetector, err := coordinator.NewPrintDoubleTransactionsDetector(argsDetector)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	argsTransactionCoordinator := coordinator.ArgTransactionCoordinator{
@@ -644,7 +656,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	}
 	txCoordinator, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	scheduledTxsExecutionHandler.SetTransactionCoordinator(txCoordinator)
@@ -663,7 +675,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	}
 	smartContractToProtocol, err := scToProtocol.NewStakingToPeer(argsStaking)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	genesisHdr := pcf.data.Blockchain().GetGenesisHeader()
@@ -680,7 +692,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	}
 	epochStartDataCreator, err := metachainEpochStart.NewEpochStartData(argsEpochStartData)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	economicsDataProvider := metachainEpochStart.NewEpochEconomicsStatistics()
@@ -699,18 +711,18 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	}
 	epochEconomics, err := metachainEpochStart.NewEndOfEpochEconomicsDataCreator(argsEpochEconomics)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	systemVM, err := vmContainer.Get(factory.SystemVirtualMachine)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	// TODO: in case of changing the minimum node price, make sure to update the staking data provider
 	stakingDataProvider, err := metachainEpochStart.NewStakingDataProvider(systemVM, pcf.systemSCConfig.StakingSystemSCConfig.GenesisNodePrice)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	rewardsStorage := pcf.data.StorageService().GetStorer(dataRetriever.RewardTransactionUnit)
@@ -737,7 +749,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	}
 	epochRewards, err := metachainEpochStart.NewRewardsCreatorProxy(argsEpochRewards)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	argsEpochValidatorInfo := metachainEpochStart.ArgsNewValidatorInfoCreator{
@@ -749,7 +761,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	}
 	validatorInfoCreator, err := metachainEpochStart.NewValidatorInfoCreator(argsEpochValidatorInfo)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	accountsDb := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
@@ -787,7 +799,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 
 	esdtOwnerAddress, err := pcf.coreData.AddressPubKeyConverter().Decode(pcf.systemSCConfig.ESDTSystemSCConfig.OwnerAddress)
 	if err != nil {
-		return nil, nil, fmt.Errorf("%w while decoding systemSCConfig.ESDTSystemSCConfig.OwnerAddress "+
+		return nil, fmt.Errorf("%w while decoding systemSCConfig.ESDTSystemSCConfig.OwnerAddress "+
 			"in processComponentsFactory.newMetaBlockProcessor", err)
 	}
 
@@ -812,7 +824,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	}
 	epochStartSystemSCProcessor, err := metachainEpochStart.NewSystemSCProcessor(argsEpochSystemSC)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	arguments := block.ArgMetaProcessor{
@@ -830,10 +842,16 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 
 	metaProcessor, err := block.NewMetaProcessor(arguments)
 	if err != nil {
-		return nil, nil, errors.New("could not create block processor: " + err.Error())
+		return nil, errors.New("could not create block processor: " + err.Error())
 	}
 
-	return metaProcessor, vmFactoryTxSimulator, nil
+	blockProcessorComponents := &blockProcessorAndVmFactories{
+		blockProcessor:         metaProcessor,
+		vmFactoryForTxSimulate: vmFactoryTxSimulator,
+		vmFactoryForProcessing: vmFactory,
+	}
+
+	return blockProcessorComponents, nil
 }
 
 func (pcf *processComponentsFactory) createShardTxSimulatorProcessor(
@@ -844,7 +862,7 @@ func (pcf *processComponentsFactory) createShardTxSimulatorProcessor(
 	arwenChangeLocker common.Locker,
 	mapDNSAddresses map[string]struct{},
 ) (process.VirtualMachinesContainerFactory, error) {
-	readOnlyAccountsDB, err := txsimulator.NewReadOnlyAccountsDB(pcf.state.AccountsAdapter())
+	readOnlyAccountsDB, err := txsimulator.NewReadOnlyAccountsDB(pcf.state.AccountsAdapterAPI())
 	if err != nil {
 		return nil, err
 	}
@@ -862,13 +880,13 @@ func (pcf *processComponentsFactory) createShardTxSimulatorProcessor(
 		return nil, err
 	}
 
-	builtInFuncs, nftStorageHandler, err := pcf.createBuiltInFunctionContainer(readOnlyAccountsDB, mapDNSAddresses)
+	builtInFuncs, nftStorageHandler, globalSettingsHandler, err := pcf.createBuiltInFunctionContainer(readOnlyAccountsDB, mapDNSAddresses)
 	if err != nil {
 		return nil, err
 	}
 
 	smartContractStorageSimulate := pcf.config.SmartContractsStorageSimulate
-	vmFactory, err := pcf.createVMFactoryShard(readOnlyAccountsDB, builtInFuncs, esdtTransferParser, arwenChangeLocker, smartContractStorageSimulate, nftStorageHandler)
+	vmFactory, err := pcf.createVMFactoryShard(readOnlyAccountsDB, builtInFuncs, esdtTransferParser, arwenChangeLocker, smartContractStorageSimulate, nftStorageHandler, globalSettingsHandler)
 	if err != nil {
 		return nil, err
 	}
@@ -968,17 +986,17 @@ func (pcf *processComponentsFactory) createMetaTxSimulatorProcessor(
 
 	scProcArgs.VMOutputCacher = txSimulatorProcessorArgs.VMOutputCacher
 
-	readOnlyAccountsDB, err := txsimulator.NewReadOnlyAccountsDB(pcf.state.AccountsAdapter())
+	readOnlyAccountsDB, err := txsimulator.NewReadOnlyAccountsDB(pcf.state.AccountsAdapterAPI())
 	if err != nil {
 		return nil, err
 	}
 
-	builtInFuncs, nftStorageHandler, err := pcf.createBuiltInFunctionContainer(readOnlyAccountsDB, make(map[string]struct{}))
+	builtInFuncs, nftStorageHandler, globalSettingsHandler, err := pcf.createBuiltInFunctionContainer(readOnlyAccountsDB, make(map[string]struct{}))
 	if err != nil {
 		return nil, err
 	}
 
-	vmFactory, err := pcf.createVMFactoryMeta(readOnlyAccountsDB, builtInFuncs, pcf.config.SmartContractsStorageSimulate, nftStorageHandler)
+	vmFactory, err := pcf.createVMFactoryMeta(readOnlyAccountsDB, builtInFuncs, pcf.config.SmartContractsStorageSimulate, nftStorageHandler, globalSettingsHandler)
 	if err != nil {
 		return nil, err
 	}
@@ -1027,31 +1045,39 @@ func (pcf *processComponentsFactory) createVMFactoryShard(
 	arwenChangeLocker common.Locker,
 	configSCStorage config.StorageConfig,
 	nftStorageHandler vmcommon.SimpleESDTNFTStorageHandler,
+	globalSettingsHandler vmcommon.ESDTGlobalSettingsHandler,
 ) (process.VirtualMachinesContainerFactory, error) {
 	argsHook := hooks.ArgBlockChainHook{
-		Accounts:           accounts,
-		PubkeyConv:         pcf.coreData.AddressPubKeyConverter(),
-		StorageService:     pcf.data.StorageService(),
-		BlockChain:         pcf.data.Blockchain(),
-		ShardCoordinator:   pcf.bootstrapComponents.ShardCoordinator(),
-		Marshalizer:        pcf.coreData.InternalMarshalizer(),
-		Uint64Converter:    pcf.coreData.Uint64ByteSliceConverter(),
-		BuiltInFunctions:   builtInFuncs,
-		DataPool:           pcf.data.Datapool(),
-		CompiledSCPool:     pcf.data.Datapool().SmartContracts(),
-		WorkingDir:         pcf.workingDir,
-		NFTStorageHandler:  nftStorageHandler,
-		EpochNotifier:      pcf.coreData.EpochNotifier(),
-		NilCompiledSCStore: false,
-		ConfigSCStorage:    configSCStorage,
-		EnableEpochs:       pcf.epochConfig.EnableEpochs,
+		Accounts:              accounts,
+		PubkeyConv:            pcf.coreData.AddressPubKeyConverter(),
+		StorageService:        pcf.data.StorageService(),
+		BlockChain:            pcf.data.Blockchain(),
+		ShardCoordinator:      pcf.bootstrapComponents.ShardCoordinator(),
+		Marshalizer:           pcf.coreData.InternalMarshalizer(),
+		Uint64Converter:       pcf.coreData.Uint64ByteSliceConverter(),
+		BuiltInFunctions:      builtInFuncs,
+		DataPool:              pcf.data.Datapool(),
+		CompiledSCPool:        pcf.data.Datapool().SmartContracts(),
+		WorkingDir:            pcf.workingDir,
+		NFTStorageHandler:     nftStorageHandler,
+		GlobalSettingsHandler: globalSettingsHandler,
+		EpochNotifier:         pcf.coreData.EpochNotifier(),
+		NilCompiledSCStore:    false,
+		ConfigSCStorage:       configSCStorage,
+		EnableEpochs:          pcf.epochConfig.EnableEpochs,
+	}
+
+	blockChainHookImpl, err := hooks.NewBlockChainHookImpl(argsHook)
+	if err != nil {
+		return nil, err
 	}
 
 	argsNewVMFactory := shard.ArgVMContainerFactory{
+		BlockChainHook:     blockChainHookImpl,
+		BuiltInFunctions:   argsHook.BuiltInFunctions,
 		Config:             pcf.config.VirtualMachine.Execution,
 		BlockGasLimit:      pcf.coreData.EconomicsData().MaxGasLimitPerBlock(pcf.bootstrapComponents.ShardCoordinator().SelfId()),
 		GasSchedule:        pcf.gasSchedule,
-		ArgBlockChainHook:  argsHook,
 		EpochNotifier:      pcf.coreData.EpochNotifier(),
 		EpochConfig:        pcf.epochConfig.EnableEpochs,
 		ArwenChangeLocker:  arwenChangeLocker,
@@ -1066,28 +1092,36 @@ func (pcf *processComponentsFactory) createVMFactoryMeta(
 	builtInFuncs vmcommon.BuiltInFunctionContainer,
 	configSCStorage config.StorageConfig,
 	nftStorageHandler vmcommon.SimpleESDTNFTStorageHandler,
+	globalSettingsHandler vmcommon.ESDTGlobalSettingsHandler,
 ) (process.VirtualMachinesContainerFactory, error) {
 	argsHook := hooks.ArgBlockChainHook{
-		Accounts:           accounts,
-		PubkeyConv:         pcf.coreData.AddressPubKeyConverter(),
-		StorageService:     pcf.data.StorageService(),
-		BlockChain:         pcf.data.Blockchain(),
-		ShardCoordinator:   pcf.bootstrapComponents.ShardCoordinator(),
-		Marshalizer:        pcf.coreData.InternalMarshalizer(),
-		Uint64Converter:    pcf.coreData.Uint64ByteSliceConverter(),
-		BuiltInFunctions:   builtInFuncs,
-		DataPool:           pcf.data.Datapool(),
-		CompiledSCPool:     pcf.data.Datapool().SmartContracts(),
-		ConfigSCStorage:    configSCStorage,
-		WorkingDir:         pcf.workingDir,
-		NFTStorageHandler:  nftStorageHandler,
-		EpochNotifier:      pcf.coreData.EpochNotifier(),
-		NilCompiledSCStore: false,
-		EnableEpochs:       pcf.epochConfig.EnableEpochs,
+		Accounts:              accounts,
+		PubkeyConv:            pcf.coreData.AddressPubKeyConverter(),
+		StorageService:        pcf.data.StorageService(),
+		BlockChain:            pcf.data.Blockchain(),
+		ShardCoordinator:      pcf.bootstrapComponents.ShardCoordinator(),
+		Marshalizer:           pcf.coreData.InternalMarshalizer(),
+		Uint64Converter:       pcf.coreData.Uint64ByteSliceConverter(),
+		BuiltInFunctions:      builtInFuncs,
+		DataPool:              pcf.data.Datapool(),
+		CompiledSCPool:        pcf.data.Datapool().SmartContracts(),
+		ConfigSCStorage:       configSCStorage,
+		WorkingDir:            pcf.workingDir,
+		NFTStorageHandler:     nftStorageHandler,
+		GlobalSettingsHandler: globalSettingsHandler,
+		EpochNotifier:         pcf.coreData.EpochNotifier(),
+		NilCompiledSCStore:    false,
+		EnableEpochs:          pcf.epochConfig.EnableEpochs,
+	}
+
+	blockChainHookImpl, err := hooks.NewBlockChainHookImpl(argsHook)
+	if err != nil {
+		return nil, err
 	}
 
 	argsNewVMContainer := metachain.ArgsNewVMContainerFactory{
-		ArgBlockChainHook:   argsHook,
+		BlockChainHook:      blockChainHookImpl,
+		PubkeyConv:          argsHook.PubkeyConv,
 		Economics:           pcf.coreData.EconomicsData(),
 		MessageSignVerifier: pcf.crypto.MessageSignVerifier(),
 		GasSchedule:         pcf.gasSchedule,
@@ -1107,7 +1141,7 @@ func (pcf *processComponentsFactory) createVMFactoryMeta(
 func (pcf *processComponentsFactory) createBuiltInFunctionContainer(
 	accounts state.AccountsAdapter,
 	mapDNSAddresses map[string]struct{},
-) (vmcommon.BuiltInFunctionContainer, vmcommon.SimpleESDTNFTStorageHandler, error) {
+) (vmcommon.BuiltInFunctionContainer, vmcommon.SimpleESDTNFTStorageHandler, vmcommon.ESDTGlobalSettingsHandler, error) {
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
 		GasSchedule:                    pcf.gasSchedule,
 		MapDNSAddresses:                mapDNSAddresses,

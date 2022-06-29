@@ -71,6 +71,8 @@ type esdt struct {
 	flagTransformToMultiShardCreate        atomic.Flag
 	registerAndSetAllRolesEnableEpoch      uint32
 	flagRegisterAndSetAllRoles             atomic.Flag
+	checkMetaESDTOnRolesEnableEpoch        uint32
+	flagCheckMetaESDTOnRolesEnableEpoch    atomic.Flag
 }
 
 // ArgsNewESDTSmartContract defines the arguments needed for the esdt contract
@@ -129,6 +131,7 @@ func NewESDTSmartContract(args ArgsNewESDTSmartContract) (*esdt, error) {
 		nftCreateONMultiShardEnableEpoch:  args.EpochConfig.EnableEpochs.ESDTNFTCreateOnMultiShardEnableEpoch,
 		metaESDTEnableEpoch:               args.EpochConfig.EnableEpochs.MetaESDTSetEnableEpoch,
 		registerAndSetAllRolesEnableEpoch: args.EpochConfig.EnableEpochs.ESDTRegisterAndSetAllRolesEnableEpoch,
+		checkMetaESDTOnRolesEnableEpoch:   args.EpochConfig.EnableEpochs.ManagedCryptoAPIsEnableEpoch,
 		endOfEpochSCAddress:               args.EndOfEpochSCAddress,
 		addressPubKeyConverter:            args.AddressPubKeyConverter,
 	}
@@ -139,6 +142,7 @@ func NewESDTSmartContract(args ArgsNewESDTSmartContract) (*esdt, error) {
 	log.Debug("esdt: enable epoch for meta tokens, financial SFTs", "epoch", e.metaESDTEnableEpoch)
 	log.Debug("esdt: enable epoch for transferm to multi shard create", "epoch", e.transformToMultiShardCreateEnableEpoch)
 	log.Debug("esdt: enable epoch for esdt register and set all roles function", "epoch", e.registerAndSetAllRolesEnableEpoch)
+	log.Debug("esdt: enable epoch for check on roles for metaESDT", "epoch", e.checkMetaESDTOnRolesEnableEpoch)
 
 	args.EpochNotifier.RegisterNotifyHandler(e)
 
@@ -1454,6 +1458,10 @@ func (e *esdt) checkSpecialRolesAccordingToTokenType(args [][]byte, token *ESDTD
 		return validateRoles(args, e.isSpecialRoleValidForNonFungible)
 	case core.SemiFungibleESDT:
 		return validateRoles(args, e.isSpecialRoleValidForSemiFungible)
+	case metaESDT:
+		if e.flagCheckMetaESDTOnRolesEnableEpoch.IsSet() {
+			return validateRoles(args, e.isSpecialRoleValidForSemiFungible)
+		}
 	}
 	return nil
 }
@@ -2062,6 +2070,9 @@ func (e *esdt) EpochConfirmed(epoch uint32, _ uint64) {
 
 	e.flagRegisterAndSetAllRoles.SetValue(epoch >= e.registerAndSetAllRolesEnableEpoch)
 	log.Debug("ESDT register and set all roles", "enabled", e.flagRegisterAndSetAllRoles.IsSet())
+
+	e.flagCheckMetaESDTOnRolesEnableEpoch.SetValue(epoch >= e.checkMetaESDTOnRolesEnableEpoch)
+	log.Debug("ESDT check metaESDT on roles", "enabled", e.flagCheckMetaESDTOnRolesEnableEpoch.IsSet())
 }
 
 // SetNewGasCost is called whenever a gas cost was changed

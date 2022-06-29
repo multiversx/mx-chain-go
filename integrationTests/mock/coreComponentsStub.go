@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -42,7 +43,7 @@ type CoreComponentsStub struct {
 	RatingsDataField                   process.RatingsInfoHandler
 	RaterField                         sharding.PeerAccountListAndRatingHandler
 	GenesisNodesSetupField             sharding.GenesisNodesSetupHandler
-	NodesShufflerField                 sharding.NodesShuffler
+	NodesShufflerField                 nodesCoordinator.NodesShuffler
 	EpochNotifierField                 process.EpochNotifier
 	RoundNotifierField                 process.RoundNotifier
 	EpochStartNotifierWithConfirmField factory.EpochStartNotifierWithConfirm
@@ -131,7 +132,7 @@ func (ccs *CoreComponentsStub) GenesisNodesSetup() sharding.GenesisNodesSetupHan
 }
 
 // NodesShuffler -
-func (ccs *CoreComponentsStub) NodesShuffler() sharding.NodesShuffler {
+func (ccs *CoreComponentsStub) NodesShuffler() nodesCoordinator.NodesShuffler {
 	return ccs.NodesShufflerField
 }
 

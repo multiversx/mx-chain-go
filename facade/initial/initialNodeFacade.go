@@ -251,19 +251,49 @@ func (inf *initialNodeFacade) GetBlockByRound(_ uint64, _ bool) (*api.Block, err
 	return nil, errNodeStarting
 }
 
+// GetInternalMetaBlockByHash return nil and error
+func (inf *initialNodeFacade) GetInternalMetaBlockByHash(_ common.ApiOutputFormat, _ string) (interface{}, error) {
+	return nil, errNodeStarting
+}
+
+// GetInternalMetaBlockByNonce returns nil and error
+func (inf *initialNodeFacade) GetInternalMetaBlockByNonce(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
+	return nil, errNodeStarting
+}
+
+// GetInternalMetaBlockByRound returns nil and error
+func (inf *initialNodeFacade) GetInternalMetaBlockByRound(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
+	return nil, errNodeStarting
+}
+
+// GetInternalStartOfEpochMetaBlockByEpoch returns nil and error
+func (inf *initialNodeFacade) GetInternalStartOfEpochMetaBlock(format common.ApiOutputFormat, epoch uint32) (interface{}, error) {
+	return nil, errNodeStarting
+}
+
+// GetInternalShardBlockByHash return nil and error
+func (inf *initialNodeFacade) GetInternalShardBlockByHash(_ common.ApiOutputFormat, _ string) (interface{}, error) {
+	return nil, errNodeStarting
+}
+
+// GetInternalShardBlockByNonce returns nil and error
+func (inf *initialNodeFacade) GetInternalShardBlockByNonce(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
+	return nil, errNodeStarting
+}
+
+// GetInternalShardBlockByRound returns nil and error
+func (inf *initialNodeFacade) GetInternalShardBlockByRound(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
+	return nil, errNodeStarting
+}
+
+// GetInternalMiniBlockByHash return nil and error
+func (inf *initialNodeFacade) GetInternalMiniBlockByHash(_ common.ApiOutputFormat, _ string, _ uint32) (interface{}, error) {
+	return nil, errNodeStarting
+}
+
 // Close returns error
 func (inf *initialNodeFacade) Close() error {
 	return errNodeStarting
-}
-
-// GetNumCheckpointsFromAccountState returns 0
-func (inf *initialNodeFacade) GetNumCheckpointsFromAccountState() uint32 {
-	return uint32(0)
-}
-
-// GetNumCheckpointsFromPeerState returns 0
-func (inf *initialNodeFacade) GetNumCheckpointsFromPeerState() uint32 {
-	return uint32(0)
 }
 
 // GetKeyValuePairs nil map
@@ -298,6 +328,16 @@ func (inf *initialNodeFacade) GetAllIssuedESDTs(_ string) ([]string, error) {
 
 // GetTokenSupply returns nil and error
 func (inf *initialNodeFacade) GetTokenSupply(_ string) (*api.ESDTSupply, error) {
+	return nil, errNodeStarting
+}
+
+// GetGenesisNodesPubKeys returns nil and error
+func (inf *initialNodeFacade) GetGenesisNodesPubKeys() (map[uint32][]string, map[uint32][]string, error) {
+	return nil, nil, errNodeStarting
+}
+
+// GetTransactionsPool returns a nil structure and error
+func (inf *initialNodeFacade) GetTransactionsPool() (*common.TransactionsPoolAPIResponse, error) {
 	return nil, errNodeStarting
 }
 

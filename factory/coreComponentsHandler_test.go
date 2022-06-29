@@ -9,8 +9,11 @@ import (
 )
 
 // ------------ Test ManagedCoreComponents --------------------
-func TestManagedCoreComponents_CreateWithInvalidArgs_ShouldErr(t *testing.T) {
+func TestManagedCoreComponents_CreateWithInvalidArgsShouldErr(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	coreArgs := getCoreArgs()
 	coreArgs.Config.Marshalizer = config.MarshalizerConfig{
@@ -27,6 +30,9 @@ func TestManagedCoreComponents_CreateWithInvalidArgs_ShouldErr(t *testing.T) {
 
 func TestManagedCoreComponents_CreateShouldWork(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	coreArgs := getCoreArgs()
 	coreComponentsFactory, _ := factory.NewCoreComponentsFactory(coreArgs)
@@ -67,6 +73,9 @@ func TestManagedCoreComponents_CreateShouldWork(t *testing.T) {
 
 func TestManagedCoreComponents_Close(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	coreArgs := getCoreArgs()
 	coreComponentsFactory, _ := factory.NewCoreComponentsFactory(coreArgs)

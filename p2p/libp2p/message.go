@@ -41,7 +41,7 @@ func NewMessage(msg *pubsub.Message, marshalizer p2p.Marshalizer) (*message.Mess
 		return nil, fmt.Errorf("%w error: %s", p2p.ErrMessageUnmarshalError, err.Error())
 	}
 
-	//TODO change this area when new versions of the message will need to be implemented
+	// TODO change this area when new versions of the message will need to be implemented
 	if topicMessage.Version != currentTopicMessageVersion {
 		return nil, fmt.Errorf("%w, supported %d, got %d",
 			p2p.ErrUnsupportedMessageVersion, currentTopicMessageVersion, topicMessage.Version)

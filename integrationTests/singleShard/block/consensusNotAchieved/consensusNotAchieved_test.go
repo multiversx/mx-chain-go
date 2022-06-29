@@ -6,11 +6,11 @@ import (
 	"testing"
 	"time"
 
-	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-crypto"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	testBlock "github.com/ElrondNetwork/elrond-go/integrationTests/singleShard/block"
@@ -57,7 +57,7 @@ func TestConsensus_BlockWithoutTwoThirdsPlusOneSignaturesOrWrongBitmapShouldNotB
 	defer func() {
 		for _, nodes := range nodesMap {
 			for _, n := range nodes {
-				_ = n.Messenger.Close()
+				n.Close()
 			}
 		}
 	}()

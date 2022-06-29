@@ -1,6 +1,7 @@
 package state
 
 import (
+	"context"
 	"errors"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -24,14 +25,13 @@ type AccountsStub struct {
 	RevertToSnapshotCalled        func(snapshot int) error
 	RootHashCalled                func() ([]byte, error)
 	RecreateTrieCalled            func(rootHash []byte) error
-	PruneTrieCalled               func(rootHash []byte, identifier state.TriePruningIdentifier)
+	PruneTrieCalled               func(rootHash []byte, identifier state.TriePruningIdentifier, handler state.PruningHandler)
 	CancelPruneCalled             func(rootHash []byte, identifier state.TriePruningIdentifier)
 	SnapshotStateCalled           func(rootHash []byte)
 	SetStateCheckpointCalled      func(rootHash []byte)
 	IsPruningEnabledCalled        func() bool
-	GetAllLeavesCalled            func(rootHash []byte) (chan core.KeyValueHolder, error)
+	GetAllLeavesCalled            func(leavesChannel chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error
 	RecreateAllTriesCalled        func(rootHash []byte) (map[string]common.Trie, error)
-	GetNumCheckpointsCalled       func() uint32
 	GetCodeCalled                 func([]byte) []byte
 	GetTrieCalled                 func([]byte) (common.Trie, error)
 	GetStackDebugFirstEntryCalled func() []byte
@@ -80,11 +80,11 @@ func (as *AccountsStub) SaveAccount(account vmcommon.AccountHandler) error {
 }
 
 // GetAllLeaves -
-func (as *AccountsStub) GetAllLeaves(rootHash []byte) (chan core.KeyValueHolder, error) {
+func (as *AccountsStub) GetAllLeaves(leavesChannel chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error {
 	if as.GetAllLeavesCalled != nil {
-		return as.GetAllLeavesCalled(rootHash)
+		return as.GetAllLeavesCalled(leavesChannel, ctx, rootHash)
 	}
-	return nil, nil
+	return nil
 }
 
 // Commit -
@@ -160,8 +160,8 @@ func (as *AccountsStub) RecreateTrie(rootHash []byte) error {
 }
 
 // PruneTrie -
-func (as *AccountsStub) PruneTrie(rootHash []byte, identifier state.TriePruningIdentifier) {
-	as.PruneTrieCalled(rootHash, identifier)
+func (as *AccountsStub) PruneTrie(rootHash []byte, identifier state.TriePruningIdentifier, handler state.PruningHandler) {
+	as.PruneTrieCalled(rootHash, identifier, handler)
 }
 
 // CancelPrune -
@@ -192,15 +192,6 @@ func (as *AccountsStub) IsPruningEnabled() bool {
 	}
 
 	return false
-}
-
-// GetNumCheckpoints -
-func (as *AccountsStub) GetNumCheckpoints() uint32 {
-	if as.GetNumCheckpointsCalled != nil {
-		return as.GetNumCheckpointsCalled()
-	}
-
-	return 0
 }
 
 // CommitInEpoch -

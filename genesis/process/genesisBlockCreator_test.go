@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/genesis/mock"
 	"github.com/ElrondNetwork/elrond-go/genesis/parsing"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
 	factoryState "github.com/ElrondNetwork/elrond-go/state/factory"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -207,8 +208,8 @@ func TestGenesisBlockCreator_CreateGenesisBlockAfterHardForkShouldCreateSCResult
 
 	scAddressBytes, _ := hex.DecodeString("00000000000000000500761b8c4a25d3979359223208b412285f635e71300102")
 	initialNodesSetup := &mock.InitialNodesHandlerStub{
-		InitialNodesInfoCalled: func() (map[uint32][]sharding.GenesisNodeInfoHandler, map[uint32][]sharding.GenesisNodeInfoHandler) {
-			return map[uint32][]sharding.GenesisNodeInfoHandler{
+		InitialNodesInfoCalled: func() (map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, map[uint32][]nodesCoordinator.GenesisNodeInfoHandler) {
+			return map[uint32][]nodesCoordinator.GenesisNodeInfoHandler{
 				0: {
 					&mock.GenesisNodeInfoHandlerMock{
 						AddressBytesValue: scAddressBytes,
@@ -221,7 +222,7 @@ func TestGenesisBlockCreator_CreateGenesisBlockAfterHardForkShouldCreateSCResult
 						PubKeyBytesValue:  bytes.Repeat([]byte{3}, 96),
 					},
 				},
-			}, make(map[uint32][]sharding.GenesisNodeInfoHandler)
+			}, make(map[uint32][]nodesCoordinator.GenesisNodeInfoHandler)
 		},
 		MinNumberOfNodesCalled: func() uint32 {
 			return 1
@@ -273,8 +274,8 @@ func TestGenesisBlockCreator_CreateGenesisBlocksJustDelegationShouldWorkAndDNS(t
 	scAddressBytes, _ := hex.DecodeString("00000000000000000500761b8c4a25d3979359223208b412285f635e71300102")
 	stakedAddr, _ := hex.DecodeString("b00102030405060708090001020304050607080900010203040506070809000b")
 	initialNodesSetup := &mock.InitialNodesHandlerStub{
-		InitialNodesInfoCalled: func() (map[uint32][]sharding.GenesisNodeInfoHandler, map[uint32][]sharding.GenesisNodeInfoHandler) {
-			return map[uint32][]sharding.GenesisNodeInfoHandler{
+		InitialNodesInfoCalled: func() (map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, map[uint32][]nodesCoordinator.GenesisNodeInfoHandler) {
+			return map[uint32][]nodesCoordinator.GenesisNodeInfoHandler{
 				0: {
 					&mock.GenesisNodeInfoHandlerMock{
 						AddressBytesValue: scAddressBytes,
@@ -291,7 +292,7 @@ func TestGenesisBlockCreator_CreateGenesisBlocksJustDelegationShouldWorkAndDNS(t
 						PubKeyBytesValue:  bytes.Repeat([]byte{3}, 96),
 					},
 				},
-			}, make(map[uint32][]sharding.GenesisNodeInfoHandler)
+			}, make(map[uint32][]nodesCoordinator.GenesisNodeInfoHandler)
 		},
 		MinNumberOfNodesCalled: func() uint32 {
 			return 1
@@ -323,8 +324,8 @@ func TestGenesisBlockCreator_CreateGenesisBlocksStakingAndDelegationShouldWorkAn
 	stakedAddr, _ := hex.DecodeString("b00102030405060708090001020304050607080900010203040506070809000b")
 	stakedAddr2, _ := hex.DecodeString("d00102030405060708090001020304050607080900010203040506070809000d")
 	initialNodesSetup := &mock.InitialNodesHandlerStub{
-		InitialNodesInfoCalled: func() (map[uint32][]sharding.GenesisNodeInfoHandler, map[uint32][]sharding.GenesisNodeInfoHandler) {
-			return map[uint32][]sharding.GenesisNodeInfoHandler{
+		InitialNodesInfoCalled: func() (map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, map[uint32][]nodesCoordinator.GenesisNodeInfoHandler) {
+			return map[uint32][]nodesCoordinator.GenesisNodeInfoHandler{
 				0: {
 					&mock.GenesisNodeInfoHandlerMock{
 						AddressBytesValue: scAddressBytes,
@@ -361,7 +362,7 @@ func TestGenesisBlockCreator_CreateGenesisBlocksStakingAndDelegationShouldWorkAn
 						PubKeyBytesValue:  bytes.Repeat([]byte{7}, 96),
 					},
 				},
-			}, make(map[uint32][]sharding.GenesisNodeInfoHandler)
+			}, make(map[uint32][]nodesCoordinator.GenesisNodeInfoHandler)
 		},
 		MinNumberOfNodesCalled: func() uint32 {
 			return 1
@@ -402,7 +403,7 @@ func TestGenesisBlockCreator_GetIndexingDataShouldWork(t *testing.T) {
 	scAddressBytes, _ := hex.DecodeString("00000000000000000500761b8c4a25d3979359223208b412285f635e71300102")
 	stakedAddr, _ := hex.DecodeString("b00102030405060708090001020304050607080900010203040506070809000b")
 	stakedAddr2, _ := hex.DecodeString("d00102030405060708090001020304050607080900010203040506070809000d")
-	initialGenesisNodes := map[uint32][]sharding.GenesisNodeInfoHandler{
+	initialGenesisNodes := map[uint32][]nodesCoordinator.GenesisNodeInfoHandler{
 		0: {
 			&mock.GenesisNodeInfoHandlerMock{
 				AddressBytesValue: scAddressBytes,
@@ -441,8 +442,8 @@ func TestGenesisBlockCreator_GetIndexingDataShouldWork(t *testing.T) {
 		},
 	}
 	initialNodesSetup := &mock.InitialNodesHandlerStub{
-		InitialNodesInfoCalled: func() (map[uint32][]sharding.GenesisNodeInfoHandler, map[uint32][]sharding.GenesisNodeInfoHandler) {
-			return initialGenesisNodes, make(map[uint32][]sharding.GenesisNodeInfoHandler)
+		InitialNodesInfoCalled: func() (map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, map[uint32][]nodesCoordinator.GenesisNodeInfoHandler) {
+			return initialGenesisNodes, make(map[uint32][]nodesCoordinator.GenesisNodeInfoHandler)
 		},
 		MinNumberOfNodesCalled: func() uint32 {
 			return 1
@@ -529,8 +530,8 @@ func TestCreateArgsGenesisBlockCreator_ShouldWork(t *testing.T) {
 	mapArgsGenesisBlockCreator := make(map[uint32]ArgsGenesisBlockCreator)
 	scAddressBytes, _ := hex.DecodeString("00000000000000000500761b8c4a25d3979359223208b412285f635e71300102")
 	initialNodesSetup := &mock.InitialNodesHandlerStub{
-		InitialNodesInfoCalled: func() (map[uint32][]sharding.GenesisNodeInfoHandler, map[uint32][]sharding.GenesisNodeInfoHandler) {
-			return map[uint32][]sharding.GenesisNodeInfoHandler{
+		InitialNodesInfoCalled: func() (map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, map[uint32][]nodesCoordinator.GenesisNodeInfoHandler) {
+			return map[uint32][]nodesCoordinator.GenesisNodeInfoHandler{
 				0: {
 					&mock.GenesisNodeInfoHandlerMock{
 						AddressBytesValue: scAddressBytes,
@@ -543,7 +544,7 @@ func TestCreateArgsGenesisBlockCreator_ShouldWork(t *testing.T) {
 						PubKeyBytesValue:  bytes.Repeat([]byte{3}, 96),
 					},
 				},
-			}, make(map[uint32][]sharding.GenesisNodeInfoHandler)
+			}, make(map[uint32][]nodesCoordinator.GenesisNodeInfoHandler)
 		},
 		MinNumberOfNodesCalled: func() uint32 {
 			return 1
@@ -572,8 +573,8 @@ func TestCreateHardForkBlockProcessors_ShouldWork(t *testing.T) {
 	mapHardForkBlockProcessor := make(map[uint32]update.HardForkBlockProcessor)
 	scAddressBytes, _ := hex.DecodeString("00000000000000000500761b8c4a25d3979359223208b412285f635e71300102")
 	initialNodesSetup := &mock.InitialNodesHandlerStub{
-		InitialNodesInfoCalled: func() (map[uint32][]sharding.GenesisNodeInfoHandler, map[uint32][]sharding.GenesisNodeInfoHandler) {
-			return map[uint32][]sharding.GenesisNodeInfoHandler{
+		InitialNodesInfoCalled: func() (map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, map[uint32][]nodesCoordinator.GenesisNodeInfoHandler) {
+			return map[uint32][]nodesCoordinator.GenesisNodeInfoHandler{
 				0: {
 					&mock.GenesisNodeInfoHandlerMock{
 						AddressBytesValue: scAddressBytes,
@@ -586,7 +587,7 @@ func TestCreateHardForkBlockProcessors_ShouldWork(t *testing.T) {
 						PubKeyBytesValue:  bytes.Repeat([]byte{3}, 96),
 					},
 				},
-			}, make(map[uint32][]sharding.GenesisNodeInfoHandler)
+			}, make(map[uint32][]nodesCoordinator.GenesisNodeInfoHandler)
 		},
 		MinNumberOfNodesCalled: func() uint32 {
 			return 1
@@ -615,8 +616,8 @@ func TestCreateHardForkBlockProcessors_ShouldWork(t *testing.T) {
 
 func createDummyNodesHandler(scAddressBytes []byte) genesis.InitialNodesHandler {
 	return &mock.InitialNodesHandlerStub{
-		InitialNodesInfoCalled: func() (map[uint32][]sharding.GenesisNodeInfoHandler, map[uint32][]sharding.GenesisNodeInfoHandler) {
-			return map[uint32][]sharding.GenesisNodeInfoHandler{
+		InitialNodesInfoCalled: func() (map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, map[uint32][]nodesCoordinator.GenesisNodeInfoHandler) {
+			return map[uint32][]nodesCoordinator.GenesisNodeInfoHandler{
 				0: {
 					&mock.GenesisNodeInfoHandlerMock{
 						AddressBytesValue: scAddressBytes,
@@ -629,7 +630,7 @@ func createDummyNodesHandler(scAddressBytes []byte) genesis.InitialNodesHandler 
 						PubKeyBytesValue:  bytes.Repeat([]byte{3}, 96),
 					},
 				},
-			}, make(map[uint32][]sharding.GenesisNodeInfoHandler)
+			}, make(map[uint32][]nodesCoordinator.GenesisNodeInfoHandler)
 		},
 		MinNumberOfNodesCalled: func() uint32 {
 			return 1

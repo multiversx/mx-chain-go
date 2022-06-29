@@ -56,6 +56,7 @@ func TestSeedersDisconnectionWith2AdvertiserAnd3Peers(t *testing.T) {
 			NodeOperationMode:    p2p.NormalOperation,
 			Marshalizer:          &testscommon.MarshalizerMock{},
 			SyncTimer:            &testscommon.SyncTimerStub{},
+			PeersRatingHandler:   &p2pmocks.PeersRatingHandlerStub{},
 		}
 		node, err := libp2p.NewMockMessenger(arg, netw)
 		require.Nil(t, err)
@@ -128,6 +129,7 @@ func createBootstrappedSeeders(baseP2PConfig config.P2PConfig, numSeeders int, n
 		NodeOperationMode:    p2p.NormalOperation,
 		Marshalizer:          &testscommon.MarshalizerMock{},
 		SyncTimer:            &testscommon.SyncTimerStub{},
+		PeersRatingHandler:   &p2pmocks.PeersRatingHandlerStub{},
 	}
 	seeders[0], _ = libp2p.NewMockMessenger(argSeeder, netw)
 	_ = seeders[0].Bootstrap()
@@ -143,6 +145,7 @@ func createBootstrappedSeeders(baseP2PConfig config.P2PConfig, numSeeders int, n
 			NodeOperationMode:    p2p.NormalOperation,
 			Marshalizer:          &testscommon.MarshalizerMock{},
 			SyncTimer:            &testscommon.SyncTimerStub{},
+			PeersRatingHandler:   &p2pmocks.PeersRatingHandlerStub{},
 		}
 		seeders[i], _ = libp2p.NewMockMessenger(argSeeder, netw)
 		_ = netw.LinkAll()

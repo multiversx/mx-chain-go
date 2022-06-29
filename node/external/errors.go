@@ -25,3 +25,18 @@ var ErrNilVmContainer = errors.New("nil vm container")
 
 // ErrNilVmFactory signals that a nil vm factory has been provided
 var ErrNilVmFactory = errors.New("nil vm factory")
+
+// ErrNilAPITransactionHandler signals that a nil api transaction handler has been provided
+var ErrNilAPITransactionHandler = errors.New("nil api transaction handler")
+
+// ErrNilAPIBlockHandler signals that a nil api block handler has been provided
+var ErrNilAPIBlockHandler = errors.New("nil api block handler")
+
+// ErrNilAPIInternalBlockHandler signals that a nil api internal block handler has been provided
+var ErrNilAPIInternalBlockHandler = errors.New("nil api internal block handler")
+
+// ErrNilGenesisNodesSetupHandler signals that a nil genesis nodes setup handler has been provided
+var ErrNilGenesisNodesSetupHandler = errors.New("nil genesis nodes setup handler")
+
+// ErrNilValidatorPubKeyConverter signals that a nil validator pubkey converter has been provided
+var ErrNilValidatorPubKeyConverter = errors.New("nil validator public key converter")

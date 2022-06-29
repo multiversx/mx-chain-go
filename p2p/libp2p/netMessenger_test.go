@@ -80,7 +80,8 @@ func createMockNetworkArgs() libp2p.ArgsNetworkMessenger {
 		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
 		P2pConfig: config.P2PConfig{
 			Node: config.NodeConfig{
-				Port: "0",
+				Port:                  "0",
+				ConnectionWatcherType: "print",
 			},
 			KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
 				Enabled: false,
@@ -91,6 +92,7 @@ func createMockNetworkArgs() libp2p.ArgsNetworkMessenger {
 		},
 		SyncTimer:            &libp2p.LocalSyncTimer{},
 		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
+		PeersRatingHandler:   &p2pmocks.PeersRatingHandlerStub{},
 	}
 }
 
@@ -191,6 +193,15 @@ func TestNewNetworkMessenger_NilPreferredPeersHolderShouldErr(t *testing.T) {
 
 	assert.True(t, check.IfNil(mes))
 	assert.True(t, errors.Is(err, p2p.ErrNilPreferredPeersHolder))
+}
+
+func TestNewNetworkMessenger_NilPeersRatingHandlerShouldErr(t *testing.T) {
+	arg := createMockNetworkArgs()
+	arg.PeersRatingHandler = nil
+	mes, err := libp2p.NewNetworkMessenger(arg)
+
+	assert.True(t, check.IfNil(mes))
+	assert.True(t, errors.Is(err, p2p.ErrNilPeersRatingHandler))
 }
 
 func TestNewNetworkMessenger_NilSyncTimerShouldErr(t *testing.T) {
@@ -973,8 +984,8 @@ func TestLibp2pMessenger_ConnectedFullHistoryPeersOnTopicShouldWork(t *testing.T
 	_ = mes3.ConnectToPeer(adr2)
 	_ = mes1.ConnectToPeer(adr3)
 	// connected peers:  1 ----- 2
-	//                  |       |
-	//                  3 ------+
+	//                   |       |
+	//                   3 ------+
 
 	_ = mes1.CreateTopic("topic123", false)
 	_ = mes2.CreateTopic("topic123", false)
@@ -1290,7 +1301,8 @@ func TestNetworkMessenger_PreventReprocessingShouldWork(t *testing.T) {
 		Marshalizer:   &testscommon.ProtoMarshalizerMock{},
 		P2pConfig: config.P2PConfig{
 			Node: config.NodeConfig{
-				Port: "0",
+				Port:                  "0",
+				ConnectionWatcherType: "print",
 			},
 			KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
 				Enabled: false,
@@ -1301,6 +1313,7 @@ func TestNetworkMessenger_PreventReprocessingShouldWork(t *testing.T) {
 		},
 		SyncTimer:            &libp2p.LocalSyncTimer{},
 		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
+		PeersRatingHandler:   &p2pmocks.PeersRatingHandlerStub{},
 	}
 
 	mes, _ := libp2p.NewNetworkMessenger(args)
@@ -1354,7 +1367,8 @@ func TestNetworkMessenger_PubsubCallbackNotMessageNotValidShouldNotCallHandler(t
 		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
 		P2pConfig: config.P2PConfig{
 			Node: config.NodeConfig{
-				Port: "0",
+				Port:                  "0",
+				ConnectionWatcherType: "print",
 			},
 			KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
 				Enabled: false,
@@ -1365,6 +1379,7 @@ func TestNetworkMessenger_PubsubCallbackNotMessageNotValidShouldNotCallHandler(t
 		},
 		SyncTimer:            &libp2p.LocalSyncTimer{},
 		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
+		PeersRatingHandler:   &p2pmocks.PeersRatingHandlerStub{},
 	}
 
 	mes, _ := libp2p.NewNetworkMessenger(args)
@@ -1425,7 +1440,8 @@ func TestNetworkMessenger_PubsubCallbackReturnsFalseIfHandlerErrors(t *testing.T
 		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
 		P2pConfig: config.P2PConfig{
 			Node: config.NodeConfig{
-				Port: "0",
+				Port:                  "0",
+				ConnectionWatcherType: "print",
 			},
 			KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
 				Enabled: false,
@@ -1436,6 +1452,7 @@ func TestNetworkMessenger_PubsubCallbackReturnsFalseIfHandlerErrors(t *testing.T
 		},
 		SyncTimer:            &libp2p.LocalSyncTimer{},
 		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
+		PeersRatingHandler:   &p2pmocks.PeersRatingHandlerStub{},
 	}
 
 	mes, _ := libp2p.NewNetworkMessenger(args)
@@ -1487,7 +1504,8 @@ func TestNetworkMessenger_UnjoinAllTopicsShouldWork(t *testing.T) {
 		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
 		P2pConfig: config.P2PConfig{
 			Node: config.NodeConfig{
-				Port: "0",
+				Port:                  "0",
+				ConnectionWatcherType: "print",
 			},
 			KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
 				Enabled: false,
@@ -1498,6 +1516,7 @@ func TestNetworkMessenger_UnjoinAllTopicsShouldWork(t *testing.T) {
 		},
 		SyncTimer:            &libp2p.LocalSyncTimer{},
 		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
+		PeersRatingHandler:   &p2pmocks.PeersRatingHandlerStub{},
 	}
 
 	mes, _ := libp2p.NewNetworkMessenger(args)
@@ -1671,33 +1690,6 @@ func TestNetworkMessenger_mapHistogram(t *testing.T) {
 	require.Equal(t, output, netMes.MapHistogram(inp))
 }
 
-func TestNetworkMessenger_ApplyOptionsShouldErr(t *testing.T) {
-	t.Parallel()
-
-	expectedErr := errors.New("expected option err")
-	args := createMockNetworkArgs()
-	netMes, _ := libp2p.NewNetworkMessenger(args)
-
-	opt := netMes.GetOption(func() error {
-		return expectedErr
-	})
-	err := netMes.ApplyOptions(opt)
-	require.Equal(t, expectedErr, err)
-}
-
-func TestNetworkMessenger_ApplyOptionsShouldWork(t *testing.T) {
-	t.Parallel()
-
-	args := createMockNetworkArgs()
-	netMes, _ := libp2p.NewNetworkMessenger(args)
-
-	opt := netMes.GetOption(func() error {
-		return nil
-	})
-	err := netMes.ApplyOptions(opt)
-	require.NoError(t, err)
-}
-
 func TestNetworkMessenger_Bootstrap(t *testing.T) {
 	t.Skip("long test used to debug go routines closing on the netMessenger")
 
@@ -1715,6 +1707,7 @@ func TestNetworkMessenger_Bootstrap(t *testing.T) {
 				Seed:                       "",
 				MaximumExpectedPeerCount:   1,
 				ThresholdMinConnectedPeers: 1,
+				ConnectionWatcherType:      "print",
 			},
 			KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
 				Enabled:                          true,
@@ -1735,7 +1728,8 @@ func TestNetworkMessenger_Bootstrap(t *testing.T) {
 				Type:                    "NilListSharder",
 			},
 		},
-		SyncTimer: &mock.SyncTimerStub{},
+		SyncTimer:          &mock.SyncTimerStub{},
+		PeersRatingHandler: &p2pmocks.PeersRatingHandlerStub{},
 	}
 
 	netMes, err := libp2p.NewNetworkMessenger(args)
@@ -1755,4 +1749,70 @@ func TestNetworkMessenger_Bootstrap(t *testing.T) {
 
 	goRoutinesNumberStart := runtime.NumGoroutine()
 	core.DumpGoRoutinesToLog(goRoutinesNumberStart, log)
+}
+
+func TestNetworkMessenger_WaitForConnections(t *testing.T) {
+	t.Parallel()
+
+	t.Run("min num of peers is 0", func(t *testing.T) {
+		t.Parallel()
+
+		startTime := time.Now()
+		_, mes1, mes2 := createMockNetworkOf2()
+		_ = mes1.ConnectToPeer(mes2.Addresses()[0])
+
+		defer func() {
+			_ = mes1.Close()
+			_ = mes2.Close()
+		}()
+
+		timeToWait := time.Second * 3
+		mes1.WaitForConnections(timeToWait, 0)
+
+		assert.True(t, timeToWait <= time.Since(startTime))
+	})
+	t.Run("min num of peers is 2", func(t *testing.T) {
+		t.Parallel()
+
+		startTime := time.Now()
+		netw, mes1, mes2 := createMockNetworkOf2()
+		mes3, _ := libp2p.NewMockMessenger(createMockNetworkArgs(), netw)
+		_ = netw.LinkAll()
+
+		_ = mes1.ConnectToPeer(mes2.Addresses()[0])
+		go func() {
+			time.Sleep(time.Second * 2)
+			_ = mes1.ConnectToPeer(mes3.Addresses()[0])
+		}()
+
+		defer func() {
+			_ = mes1.Close()
+			_ = mes2.Close()
+			_ = mes3.Close()
+		}()
+
+		timeToWait := time.Second * 10
+		mes1.WaitForConnections(timeToWait, 2)
+
+		assert.True(t, timeToWait > time.Since(startTime))
+		assert.True(t, libp2p.PollWaitForConnectionsInterval <= time.Since(startTime))
+	})
+	t.Run("min num of peers is 2 but we only connected to 1 peer", func(t *testing.T) {
+		t.Parallel()
+
+		startTime := time.Now()
+		_, mes1, mes2 := createMockNetworkOf2()
+
+		_ = mes1.ConnectToPeer(mes2.Addresses()[0])
+
+		defer func() {
+			_ = mes1.Close()
+			_ = mes2.Close()
+		}()
+
+		timeToWait := time.Second * 10
+		mes1.WaitForConnections(timeToWait, 2)
+
+		assert.True(t, timeToWait < time.Since(startTime))
+	})
 }

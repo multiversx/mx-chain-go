@@ -20,6 +20,9 @@ const consecutiveMissedBlocksPenalty = 1.1
 
 func TestNewCoreComponentsFactory_OkValuesShouldWork(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	args := getCoreArgs()
 	ccf, _ := factory.NewCoreComponentsFactory(args)
@@ -27,8 +30,11 @@ func TestNewCoreComponentsFactory_OkValuesShouldWork(t *testing.T) {
 	require.NotNil(t, ccf)
 }
 
-func TestCoreComponentsFactory_CreateCoreComponents_NoHasherConfigShouldErr(t *testing.T) {
+func TestCoreComponentsFactory_CreateCoreComponentsNoHasherConfigShouldErr(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	args := getCoreArgs()
 	args.Config = config.Config{
@@ -44,8 +50,11 @@ func TestCoreComponentsFactory_CreateCoreComponents_NoHasherConfigShouldErr(t *t
 	require.True(t, errors.Is(err, errorsErd.ErrHasherCreation))
 }
 
-func TestCoreComponentsFactory_CreateCoreComponents_InvalidHasherConfigShouldErr(t *testing.T) {
+func TestCoreComponentsFactory_CreateCoreComponentsInvalidHasherConfigShouldErr(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	args := getCoreArgs()
 	args.Config = config.Config{
@@ -64,8 +73,11 @@ func TestCoreComponentsFactory_CreateCoreComponents_InvalidHasherConfigShouldErr
 	require.True(t, errors.Is(err, errorsErd.ErrHasherCreation))
 }
 
-func TestCoreComponentsFactory_CreateCoreComponents_NoInternalMarshalizerConfigShouldErr(t *testing.T) {
+func TestCoreComponentsFactory_CreateCoreComponentsNoInternalMarshallerConfigShouldErr(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	args := getCoreArgs()
 	args.Config = config.Config{
@@ -80,8 +92,11 @@ func TestCoreComponentsFactory_CreateCoreComponents_NoInternalMarshalizerConfigS
 	require.True(t, errors.Is(err, errorsErd.ErrMarshalizerCreation))
 }
 
-func TestCoreComponentsFactory_CreateCoreComponents_InvalidInternalMarshalizerConfigShouldErr(t *testing.T) {
+func TestCoreComponentsFactory_CreateCoreComponentsInvalidInternalMarshallerConfigShouldErr(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	args := getCoreArgs()
 	args.Config = config.Config{
@@ -100,8 +115,11 @@ func TestCoreComponentsFactory_CreateCoreComponents_InvalidInternalMarshalizerCo
 	require.True(t, errors.Is(err, errorsErd.ErrMarshalizerCreation))
 }
 
-func TestCoreComponentsFactory_CreateCoreComponents_NoVmMarshalizerConfigShouldErr(t *testing.T) {
+func TestCoreComponentsFactory_CreateCoreComponentsNoVmMarshallerConfigShouldErr(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	args := getCoreArgs()
 	args.Config = config.Config{
@@ -120,8 +138,11 @@ func TestCoreComponentsFactory_CreateCoreComponents_NoVmMarshalizerConfigShouldE
 	require.True(t, errors.Is(err, errorsErd.ErrMarshalizerCreation))
 }
 
-func TestCoreComponentsFactory_CreateCoreComponents_InvalidVmMarshalizerConfigShouldErr(t *testing.T) {
+func TestCoreComponentsFactory_CreateCoreComponentsInvalidVmMarshallerConfigShouldErr(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	args := getCoreArgs()
 	args.Config = config.Config{
@@ -143,8 +164,11 @@ func TestCoreComponentsFactory_CreateCoreComponents_InvalidVmMarshalizerConfigSh
 	require.True(t, errors.Is(err, errorsErd.ErrMarshalizerCreation))
 }
 
-func TestCoreComponentsFactory_CreateCoreComponents_NoTxSignMarshalizerConfigShouldErr(t *testing.T) {
+func TestCoreComponentsFactory_CreateCoreComponentsNoTxSignMarshallerConfigShouldErr(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	args := getCoreArgs()
 	args.Config = config.Config{
@@ -166,8 +190,11 @@ func TestCoreComponentsFactory_CreateCoreComponents_NoTxSignMarshalizerConfigSho
 	require.True(t, errors.Is(err, errorsErd.ErrMarshalizerCreation))
 }
 
-func TestCoreComponentsFactory_CreateCoreComponents_InvalidTxSignMarshalizerConfigShouldErr(t *testing.T) {
+func TestCoreComponentsFactory_CreateCoreComponentsInvalidTxSignMarshallerConfigShouldErr(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	args := getCoreArgs()
 	args.Config = config.Config{
@@ -194,6 +221,9 @@ func TestCoreComponentsFactory_CreateCoreComponents_InvalidTxSignMarshalizerConf
 
 func TestCoreComponentsFactory_CreateCoreComponentsInvalidValPubKeyConverterShouldErr(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	args := getCoreArgs()
 	args.Config.ValidatorPubkeyConverter.Type = "invalid"
@@ -206,6 +236,9 @@ func TestCoreComponentsFactory_CreateCoreComponentsInvalidValPubKeyConverterShou
 
 func TestCoreComponentsFactory_CreateCoreComponentsInvalidAddrPubKeyConverterShouldErr(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	args := getCoreArgs()
 	args.Config.AddressPubkeyConverter.Type = "invalid"
@@ -216,8 +249,11 @@ func TestCoreComponentsFactory_CreateCoreComponentsInvalidAddrPubKeyConverterSho
 	require.True(t, errors.Is(err, state.ErrInvalidPubkeyConverterType))
 }
 
-func TestCoreComponentsFactory_CreateCoreComponents_ShouldWork(t *testing.T) {
+func TestCoreComponentsFactory_CreateCoreComponentsShouldWork(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	args := getCoreArgs()
 	ccf, _ := factory.NewCoreComponentsFactory(args)
@@ -228,8 +264,11 @@ func TestCoreComponentsFactory_CreateCoreComponents_ShouldWork(t *testing.T) {
 }
 
 // ------------ Test CoreComponents --------------------
-func TestCoreComponents_Close_ShouldWork(t *testing.T) {
+func TestCoreComponents_CloseShouldWork(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	args := getCoreArgs()
 	ccf, _ := factory.NewCoreComponentsFactory(args)
@@ -322,6 +361,10 @@ func getCoreArgs() factory.CoreComponentsFactoryArgs {
 					Capacity: 1000,
 					Shards:   1,
 				},
+			},
+			PeersRatingConfig: config.PeersRatingConfig{
+				TopRatedCacheCapacity: 1000,
+				BadRatedCacheCapacity: 1000,
 			},
 		},
 		ConfigPathsHolder: config.ConfigurationPathsHolder{

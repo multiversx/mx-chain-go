@@ -97,12 +97,6 @@ var ErrNilSharder = errors.New("nil sharder")
 // ErrNilPeerShardResolver signals that the peer shard resolver provided is nil
 var ErrNilPeerShardResolver = errors.New("nil PeerShardResolver")
 
-// ErrNilNetworkShardingCollector signals that the network sharding collector provided is nil
-var ErrNilNetworkShardingCollector = errors.New("nil network sharding collector")
-
-// ErrNilSignerVerifier signals that the signer-verifier instance provided is nil
-var ErrNilSignerVerifier = errors.New("nil signer-verifier")
-
 // ErrNilMarshalizer signals that an operation has been attempted to or with a nil marshalizer implementation
 var ErrNilMarshalizer = errors.New("nil marshalizer")
 
@@ -152,3 +146,15 @@ var ErrMessageProcessorAlreadyDefined = errors.New("message processor already de
 
 // ErrMessageProcessorDoesNotExists signals that a message processor does not exist on the provided topic and identifier
 var ErrMessageProcessorDoesNotExists = errors.New("message processor does not exists")
+
+// ErrWrongTypeAssertions signals that a wrong type assertion occurred
+var ErrWrongTypeAssertions = errors.New("wrong type assertion")
+
+// ErrNilConnectionsWatcher signals that a nil connections watcher has been provided
+var ErrNilConnectionsWatcher = errors.New("nil connections watcher")
+
+// ErrNilPeersRatingHandler signals that a nil peers rating handler has been provided
+var ErrNilPeersRatingHandler = errors.New("nil peers rating handler")
+
+// ErrNilCacher signals that a nil cacher has been provided
+var ErrNilCacher = errors.New("nil cacher")

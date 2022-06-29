@@ -434,6 +434,7 @@ func (net *TestNetwork) closeNodes() {
 	for _, node := range net.Nodes {
 		err := node.Messenger.Close()
 		net.handleOrBypassError(err)
+		_ = node.VMContainer.Close()
 	}
 }
 

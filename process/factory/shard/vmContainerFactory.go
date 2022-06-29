@@ -29,7 +29,7 @@ var logVMContainerFactory = logger.GetOrCreate("vmContainerFactory")
 
 type vmContainerFactory struct {
 	config             config.VirtualMachineConfig
-	blockChainHookImpl *hooks.BlockChainHookImpl
+	blockChainHook     process.BlockChainHookHandler
 	cryptoHook         vmcommon.CryptoHook
 	blockGasLimit      uint64
 	gasSchedule        core.GasScheduleNotifier
@@ -47,11 +47,12 @@ type ArgVMContainerFactory struct {
 	Config             config.VirtualMachineConfig
 	BlockGasLimit      uint64
 	GasSchedule        core.GasScheduleNotifier
-	ArgBlockChainHook  hooks.ArgBlockChainHook
 	EpochNotifier      process.EpochNotifier
 	EpochConfig        config.EnableEpochs
 	ArwenChangeLocker  common.Locker
 	ESDTTransferParser vmcommon.ESDTTransferParser
+	BuiltInFunctions   vmcommon.BuiltInFunctionContainer
+	BlockChainHook     process.BlockChainHookHandler
 }
 
 // NewVMContainerFactory is responsible for creating a new virtual machine factory object
@@ -68,21 +69,22 @@ func NewVMContainerFactory(args ArgVMContainerFactory) (*vmContainerFactory, err
 	if check.IfNil(args.ESDTTransferParser) {
 		return nil, process.ErrNilESDTTransferParser
 	}
-
-	blockChainHookImpl, err := hooks.NewBlockChainHookImpl(args.ArgBlockChainHook)
-	if err != nil {
-		return nil, err
+	if check.IfNil(args.BuiltInFunctions) {
+		return nil, process.ErrNilBuiltInFunction
+	}
+	if check.IfNil(args.BlockChainHook) {
+		return nil, process.ErrNilBlockChainHook
 	}
 
 	cryptoHook := hooks.NewVMCryptoHook()
 
 	vmf := &vmContainerFactory{
 		config:             args.Config,
-		blockChainHookImpl: blockChainHookImpl,
+		blockChainHook:     args.BlockChainHook,
 		cryptoHook:         cryptoHook,
 		blockGasLimit:      args.BlockGasLimit,
 		gasSchedule:        args.GasSchedule,
-		builtinFunctions:   args.ArgBlockChainHook.BuiltInFunctions,
+		builtinFunctions:   args.BuiltInFunctions,
 		epochNotifier:      args.EpochNotifier,
 		epochConfig:        args.EpochConfig,
 		container:          nil,
@@ -92,7 +94,7 @@ func NewVMContainerFactory(args ArgVMContainerFactory) (*vmContainerFactory, err
 
 	vmf.arwenVersions = args.Config.ArwenVersions
 	vmf.sortArwenVersions()
-	err = vmf.validateArwenVersions()
+	err := vmf.validateArwenVersions()
 	if err != nil {
 		return nil, err
 	}
@@ -165,13 +167,27 @@ func (vmf *vmContainerFactory) Create() (process.VirtualMachinesContainer, error
 
 // Close closes the vm container factory
 func (vmf *vmContainerFactory) Close() error {
-	return vmf.blockChainHookImpl.Close()
+	errContainer := vmf.container.Close()
+	if errContainer != nil {
+		logVMContainerFactory.Error("cannot close container", "error", errContainer)
+	}
+
+	errBlockchain := vmf.blockChainHook.Close()
+	if errBlockchain != nil {
+		logVMContainerFactory.Error("cannot close blockchain hook implementation", "error", errBlockchain)
+	}
+
+	if errContainer != nil {
+		return errContainer
+	}
+
+	return errBlockchain
 }
 
 // GasScheduleChange updates the gas schedule map in all the components
 func (vmf *vmContainerFactory) GasScheduleChange(gasSchedule map[string]map[string]uint64) {
 	// clear compiled codes always before changing gasSchedule
-	vmf.blockChainHookImpl.ClearCompiledCodes()
+	vmf.blockChainHook.ClearCompiledCodes()
 	for _, key := range vmf.container.Keys() {
 		currentVM, err := vmf.container.Get(key)
 		if err != nil {
@@ -275,7 +291,7 @@ func (vmf *vmContainerFactory) createInProcessArwenVMV12() (vmcommon.VMExecution
 		DynGasLockEnableEpoch:    vmf.epochConfig.SCDeployEnableEpoch,
 		ArwenV3EnableEpoch:       vmf.epochConfig.RepairCallbackEnableEpoch,
 	}
-	return arwenHost12.NewArwenVM(vmf.blockChainHookImpl, hostParameters)
+	return arwenHost12.NewArwenVM(vmf.blockChainHook, hostParameters)
 }
 
 func (vmf *vmContainerFactory) createInProcessArwenVMV13() (vmcommon.VMExecutionHandler, error) {
@@ -290,31 +306,35 @@ func (vmf *vmContainerFactory) createInProcessArwenVMV13() (vmcommon.VMExecution
 		DynGasLockEnableEpoch:    vmf.epochConfig.SCDeployEnableEpoch,
 		ArwenV3EnableEpoch:       vmf.epochConfig.RepairCallbackEnableEpoch,
 	}
-	return arwenHost13.NewArwenVM(vmf.blockChainHookImpl, hostParameters)
+	return arwenHost13.NewArwenVM(vmf.blockChainHook, hostParameters)
 }
 
 func (vmf *vmContainerFactory) createInProcessArwenVMV14() (vmcommon.VMExecutionHandler, error) {
 	hostParameters := &arwen14.VMHostParameters{
-		VMType:                   factory.ArwenVirtualMachine,
-		BlockGasLimit:            vmf.blockGasLimit,
-		GasSchedule:              vmf.gasSchedule.LatestGasSchedule(),
-		BuiltInFuncContainer:     vmf.builtinFunctions,
-		ElrondProtectedKeyPrefix: []byte(core.ElrondProtectedKeyPrefix),
-		ESDTTransferParser:       vmf.esdtTransferParser,
-		EpochNotifier:            vmf.epochNotifier,
+		VMType:                              factory.ArwenVirtualMachine,
+		BlockGasLimit:                       vmf.blockGasLimit,
+		GasSchedule:                         vmf.gasSchedule.LatestGasSchedule(),
+		BuiltInFuncContainer:                vmf.builtinFunctions,
+		ElrondProtectedKeyPrefix:            []byte(core.ElrondProtectedKeyPrefix),
+		ESDTTransferParser:                  vmf.esdtTransferParser,
+		EpochNotifier:                       vmf.epochNotifier,
+		WasmerSIGSEGVPassthrough:            vmf.config.WasmerSIGSEGVPassthrough,
+		TimeOutForSCExecutionInMilliseconds: vmf.config.TimeOutForSCExecutionInMilliseconds,
 		MultiESDTTransferAsyncCallBackEnableEpoch:       vmf.epochConfig.MultiESDTTransferFixOnCallBackOnEnableEpoch,
 		FixOOGReturnCodeEnableEpoch:                     vmf.epochConfig.FixOOGReturnCodeEnableEpoch,
 		RemoveNonUpdatedStorageEnableEpoch:              vmf.epochConfig.RemoveNonUpdatedStorageEnableEpoch,
 		CreateNFTThroughExecByCallerEnableEpoch:         vmf.epochConfig.CreateNFTThroughExecByCallerEnableEpoch,
 		UseDifferentGasCostForReadingCachedStorageEpoch: vmf.epochConfig.StorageAPICostOptimizationEnableEpoch,
-		CheckValueOnExecByCallerEnableEpoch:             vmf.epochConfig.CheckValueOnExecByCallerEnableEpoch,
+		DisableExecByCallerEnableEpoch:                  vmf.epochConfig.DisableExecByCallerEnableEpoch,
+		FixFailExecutionOnErrorEnableEpoch:              vmf.epochConfig.FailExecutionOnEveryAPIErrorEnableEpoch,
+		ManagedCryptoAPIEnableEpoch:                     vmf.epochConfig.ManagedCryptoAPIsEnableEpoch,
 		RefactorContextEnableEpoch:                      vmf.epochConfig.RefactorContextEnableEpoch,
 	}
-	return arwenHost14.NewArwenVM(vmf.blockChainHookImpl, hostParameters)
+	return arwenHost14.NewArwenVM(vmf.blockChainHook, hostParameters)
 }
 
 func (vmf *vmContainerFactory) closePreviousVM(vm vmcommon.VMExecutionHandler) {
-	vmf.blockChainHookImpl.ClearCompiledCodes()
+	vmf.blockChainHook.ClearCompiledCodes()
 	logVMContainerFactory.Debug("AOT compilation cache cleared")
 
 	vmAsCloser, ok := vm.(io.Closer)
@@ -326,7 +346,7 @@ func (vmf *vmContainerFactory) closePreviousVM(vm vmcommon.VMExecutionHandler) {
 
 // BlockChainHookImpl returns the created blockChainHookImpl
 func (vmf *vmContainerFactory) BlockChainHookImpl() process.BlockChainHookHandler {
-	return vmf.blockChainHookImpl
+	return vmf.blockChainHook
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

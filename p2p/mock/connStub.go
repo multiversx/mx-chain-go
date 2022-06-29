@@ -66,7 +66,12 @@ func (cs *ConnStub) LocalMultiaddr() multiaddr.Multiaddr {
 
 // RemoteMultiaddr -
 func (cs *ConnStub) RemoteMultiaddr() multiaddr.Multiaddr {
-	return cs.RemoteMultiaddrCalled()
+	if cs.RemoteMultiaddrCalled != nil {
+		return cs.RemoteMultiaddrCalled()
+	}
+
+	ma, _ := multiaddr.NewMultiaddr("/ip4/127.0.0.1/tcp/9999/p2p/16Uiu2HAkw5SNNtSvH1zJiQ6Gc3WoGNSxiyNueRKe6fuAuh57G3Bk")
+	return ma
 }
 
 // NewStream -

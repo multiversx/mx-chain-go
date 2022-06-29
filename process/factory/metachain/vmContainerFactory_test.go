@@ -13,47 +13,20 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
-	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/ElrondNetwork/elrond-go/vm"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
-	vmcommonBuiltInFunctions "github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func createMockVMAccountsArguments() hooks.ArgBlockChainHook {
-	datapool := dataRetrieverMock.NewPoolsHolderMock()
-	arguments := hooks.ArgBlockChainHook{
-		Accounts: &stateMock.AccountsStub{
-			GetExistingAccountCalled: func(address []byte) (handler vmcommon.AccountHandler, e error) {
-				return &mock.AccountWrapMock{}, nil
-			},
-		},
-		PubkeyConv:         mock.NewPubkeyConverterMock(32),
-		StorageService:     &mock.ChainStorerMock{},
-		BlockChain:         &testscommon.ChainHandlerStub{},
-		ShardCoordinator:   mock.NewOneShardCoordinatorMock(),
-		Marshalizer:        &mock.MarshalizerMock{},
-		Uint64Converter:    &mock.Uint64ByteSliceConverterMock{},
-		BuiltInFunctions:   vmcommonBuiltInFunctions.NewBuiltInFunctionContainer(),
-		NFTStorageHandler:  &testscommon.SimpleNFTStorageHandlerStub{},
-		DataPool:           datapool,
-		CompiledSCPool:     datapool.SmartContracts(),
-		EpochNotifier:      &epochNotifier.EpochNotifierStub{},
-		NilCompiledSCStore: true,
-	}
-	return arguments
-}
-
 func createVmContainerMockArgument(gasSchedule core.GasScheduleNotifier) ArgsNewVMContainerFactory {
 	return ArgsNewVMContainerFactory{
-		ArgBlockChainHook:   createMockVMAccountsArguments(),
+		BlockChainHook:      &testscommon.BlockChainHookStub{},
+		PubkeyConv:          mock.NewPubkeyConverterMock(32),
 		Economics:           &economicsmocks.EconomicsHandlerStub{},
 		MessageSignVerifier: &mock.MessageSignVerifierMock{},
 		GasSchedule:         gasSchedule,
@@ -212,7 +185,7 @@ func TestNewVMContainerFactory_NilPubkeyConverter(t *testing.T) {
 
 	gasSchedule := makeGasSchedule()
 	argsNewVmContainerFactory := createVmContainerMockArgument(gasSchedule)
-	argsNewVmContainerFactory.ArgBlockChainHook.PubkeyConv = nil
+	argsNewVmContainerFactory.PubkeyConv = nil
 	vmf, err := NewVMContainerFactory(argsNewVmContainerFactory)
 
 	assert.True(t, check.IfNil(vmf))
@@ -224,11 +197,11 @@ func TestNewVMContainerFactory_NilBlockChainHookFails(t *testing.T) {
 
 	gasSchedule := makeGasSchedule()
 	argsNewVmContainerFactory := createVmContainerMockArgument(gasSchedule)
-	argsNewVmContainerFactory.ArgBlockChainHook.Accounts = nil
+	argsNewVmContainerFactory.BlockChainHook = nil
 	vmf, err := NewVMContainerFactory(argsNewVmContainerFactory)
 
 	assert.True(t, check.IfNil(vmf))
-	assert.True(t, errors.Is(err, process.ErrNilAccountsAdapter))
+	assert.True(t, errors.Is(err, process.ErrNilBlockChainHook))
 }
 
 func TestNewVMContainerFactory_NilShardCoordinator(t *testing.T) {
@@ -304,7 +277,8 @@ func TestVmContainerFactory_Create(t *testing.T) {
 	economicsData, _ := economics.NewEconomicsData(argsNewEconomicsData)
 
 	argsNewVMContainerFactory := ArgsNewVMContainerFactory{
-		ArgBlockChainHook:   createMockVMAccountsArguments(),
+		BlockChainHook:      &testscommon.BlockChainHookStub{},
+		PubkeyConv:          mock.NewPubkeyConverterMock(32),
 		Economics:           economicsData,
 		MessageSignVerifier: &mock.MessageSignVerifierMock{},
 		GasSchedule:         makeGasSchedule(),

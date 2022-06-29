@@ -1,6 +1,8 @@
 package p2pmocks
 
 import (
+	"time"
+
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 )
@@ -37,6 +39,7 @@ type MessengerStub struct {
 	GetConnectedPeersInfoCalled            func() *p2p.ConnectedPeersInfo
 	UnjoinAllTopicsCalled                  func() error
 	PortCalled                             func() int
+	WaitForConnectionsCalled               func(maxWaitingTime time.Duration, minNumOfPeers uint32)
 }
 
 // ConnectedFullHistoryPeersOnTopic -
@@ -303,6 +306,13 @@ func (ms *MessengerStub) Port() int {
 	}
 
 	return 0
+}
+
+// WaitForConnections -
+func (ms *MessengerStub) WaitForConnections(maxWaitingTime time.Duration, minNumOfPeers uint32) {
+	if ms.WaitForConnectionsCalled != nil {
+		ms.WaitForConnectionsCalled(maxWaitingTime, minNumOfPeers)
+	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

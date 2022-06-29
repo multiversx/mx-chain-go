@@ -67,7 +67,6 @@ type EnableEpochs struct {
 	CreateNFTThroughExecByCallerEnableEpoch           uint32
 	StopDecreasingValidatorRatingWhenStuckEnableEpoch uint32
 	FrontRunningProtectionEnableEpoch                 uint32
-	DisableOldTrieStorageEpoch                        uint32
 	IsPayableBySCEnableEpoch                          uint32
 	CleanUpInformativeSCRsEnableEpoch                 uint32
 	StorageAPICostOptimizationEnableEpoch             uint32
@@ -77,7 +76,9 @@ type EnableEpochs struct {
 	AddFailedRelayedTxToInvalidMBsDisableEpoch        uint32
 	SCRSizeInvariantOnBuiltInResultEnableEpoch        uint32
 	CheckCorrectTokenIDForTransferRoleEnableEpoch     uint32
-	CheckValueOnExecByCallerEnableEpoch               uint32
+	DisableExecByCallerEnableEpoch                    uint32
+	FailExecutionOnEveryAPIErrorEnableEpoch           uint32
+	ManagedCryptoAPIsEnableEpoch                      uint32
 	RefactorContextEnableEpoch                        uint32
 }
 
