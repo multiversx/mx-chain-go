@@ -93,7 +93,7 @@ func TestBaseBlockGetIntraMiniblocksSCRS(t *testing.T) {
 		},
 	}
 
-	intraMbs, err := baseAPIBlockProc.getIntraMiniblocks(receiptsHash, 0, api.BlockQueryOptions{WithTransactions: true})
+	intraMbs, err := baseAPIBlockProc.getIntrashardMiniblocksFromReceiptsStorage(receiptsHash, 0, api.BlockQueryOptions{WithTransactions: true})
 	require.Nil(t, err)
 	require.Equal(t, &api.MiniBlock{
 		Hash: "7630a217810d1ad3ea67e32dbff0e8f3ea6d970191f03d3c71761b3b60e57b91",
@@ -109,7 +109,8 @@ func TestBaseBlockGetIntraMiniblocksSCRS(t *testing.T) {
 				MiniBlockHash: "7630a217810d1ad3ea67e32dbff0e8f3ea6d970191f03d3c71761b3b60e57b91",
 			},
 		},
-		ProcessingType: block.Normal.String(),
+		ProcessingType:        block.Normal.String(),
+		IsFromReceiptsStorage: true,
 	}, intraMbs[0])
 }
 
@@ -169,7 +170,7 @@ func TestBaseBlockGetIntraMiniblocksReceipts(t *testing.T) {
 		},
 	}
 
-	intraMbs, err := baseAPIBlockProc.getIntraMiniblocks(receiptsHash, 0, api.BlockQueryOptions{WithTransactions: true})
+	intraMbs, err := baseAPIBlockProc.getIntrashardMiniblocksFromReceiptsStorage(receiptsHash, 0, api.BlockQueryOptions{WithTransactions: true})
 	require.Nil(t, err)
 	require.Equal(t, &api.MiniBlock{
 		Hash: "262b3023ca9ba61e90a60932b4db7f8b0d1dec7c2a00261cf0c5d43785f17f6f",
@@ -182,7 +183,8 @@ func TestBaseBlockGetIntraMiniblocksReceipts(t *testing.T) {
 				Value:   big.NewInt(1000),
 			},
 		},
-		ProcessingType: block.Normal.String(),
+		ProcessingType:        block.Normal.String(),
+		IsFromReceiptsStorage: true,
 	}, intraMbs[0])
 }
 

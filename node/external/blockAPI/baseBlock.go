@@ -48,7 +48,7 @@ type baseAPIBlockProcessor struct {
 
 var log = logger.GetOrCreate("node/blockAPI")
 
-func (bap *baseAPIBlockProcessor) getIntraMiniblocks(receiptsHash []byte, epoch uint32, options api.BlockQueryOptions) ([]*api.MiniBlock, error) {
+func (bap *baseAPIBlockProcessor) getIntrashardMiniblocksFromReceiptsStorage(receiptsHash []byte, epoch uint32, options api.BlockQueryOptions) ([]*api.MiniBlock, error) {
 	if bytes.Equal(bap.emptyReceiptsHash, receiptsHash) {
 		return nil, nil
 	}
@@ -64,10 +64,10 @@ func (bap *baseAPIBlockProcessor) getIntraMiniblocks(receiptsHash []byte, epoch 
 		return nil, fmt.Errorf("%w (receipts): %v, hash = %s", errCannotUnmarshalMiniblocks, err, hex.EncodeToString(receiptsHash))
 	}
 
-	return bap.extractMbsFromBatch(batchWithMbs, epoch, options)
+	return bap.convertReceiptsStorageBatchToApiMiniblocks(batchWithMbs, epoch, options)
 }
 
-func (bap *baseAPIBlockProcessor) extractMbsFromBatch(batchWithMbs *batch.Batch, epoch uint32, options api.BlockQueryOptions) ([]*api.MiniBlock, error) {
+func (bap *baseAPIBlockProcessor) convertReceiptsStorageBatchToApiMiniblocks(batchWithMbs *batch.Batch, epoch uint32, options api.BlockQueryOptions) ([]*api.MiniBlock, error) {
 	mbs := make([]*api.MiniBlock, 0)
 	for _, mbBytes := range batchWithMbs.Data {
 		miniBlock := &block.MiniBlock{}
@@ -76,7 +76,7 @@ func (bap *baseAPIBlockProcessor) extractMbsFromBatch(batchWithMbs *batch.Batch,
 			return nil, fmt.Errorf("%w: %v", errCannotUnmarshalMiniblocks, err)
 		}
 
-		miniblockAPI, err := bap.prepareAPIMiniblock(miniBlock, epoch, options)
+		miniblockAPI, err := bap.convertMiniblockFromReceiptsStorageToApiMiniblock(miniBlock, epoch, options)
 		if err != nil {
 			return nil, err
 		}
@@ -87,18 +87,19 @@ func (bap *baseAPIBlockProcessor) extractMbsFromBatch(batchWithMbs *batch.Batch,
 	return mbs, nil
 }
 
-func (bap *baseAPIBlockProcessor) prepareAPIMiniblock(miniblock *block.MiniBlock, epoch uint32, options api.BlockQueryOptions) (*api.MiniBlock, error) {
+func (bap *baseAPIBlockProcessor) convertMiniblockFromReceiptsStorageToApiMiniblock(miniblock *block.MiniBlock, epoch uint32, options api.BlockQueryOptions) (*api.MiniBlock, error) {
 	mbHash, err := core.CalculateHash(bap.marshalizer, bap.hasher, miniblock)
 	if err != nil {
 		return nil, err
 	}
 
 	miniblockAPI := &api.MiniBlock{
-		Hash:             hex.EncodeToString(mbHash),
-		Type:             miniblock.Type.String(),
-		SourceShard:      miniblock.SenderShardID,
-		DestinationShard: miniblock.ReceiverShardID,
-		ProcessingType:   block.ProcessingType(miniblock.GetProcessingType()).String(),
+		Hash:                  hex.EncodeToString(mbHash),
+		Type:                  miniblock.Type.String(),
+		SourceShard:           miniblock.SenderShardID,
+		DestinationShard:      miniblock.ReceiverShardID,
+		IsFromReceiptsStorage: true,
+		ProcessingType:        block.ProcessingType(miniblock.GetProcessingType()).String(),
 		// It's a bit more complex (and not necessary at this point) to also set the construction state here.
 	}
 
