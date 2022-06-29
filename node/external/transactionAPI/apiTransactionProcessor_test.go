@@ -806,11 +806,11 @@ func TestApiTransactionProcessor_GetTransactionsPoolNonceGapsForSender(t *testin
 
 	// final sorted nonces 1, 2, 5, 6, 15
 	gap1FirstNonce := uint64(2)
-	gap1LasttNonce := uint64(5)
+	gap1LastNonce := uint64(5)
 	gap2FirstNonce := uint64(6)
 	gap2LastNonce := uint64(15)
 	txCacheIntraShard.AddTx(createTx(txHash0, sender, 1))
-	txCacheIntraShard.AddTx(createTx(txHash1, sender, gap1LasttNonce))
+	txCacheIntraShard.AddTx(createTx(txHash1, sender, gap1LastNonce))
 	txCacheIntraShard.AddTx(createTx(txHash2, sender, gap2FirstNonce))
 	txCacheIntraShard.AddTx(createTx(txHash3, sender, gap1FirstNonce))
 	txCacheIntraShard.AddTx(createTx(txHash4, sender, gap2LastNonce))
@@ -851,7 +851,7 @@ func TestApiTransactionProcessor_GetTransactionsPoolNonceGapsForSender(t *testin
 		Gaps: []common.NonceGapApiResponse{
 			{
 				From: gap1FirstNonce,
-				To:   gap1LasttNonce,
+				To:   gap1LastNonce,
 			},
 			{
 				From: gap2FirstNonce,
