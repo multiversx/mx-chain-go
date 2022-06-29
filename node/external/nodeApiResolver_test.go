@@ -504,8 +504,8 @@ func TestNodeApiResolver_GetTransactionsPoolNonceGapsForSender(t *testing.T) {
 			Sender: expectedSender,
 			Gaps: []common.NonceGapApiResponse{
 				{
-					From: "33",
-					To:   "60",
+					From: 33,
+					To:   60,
 				},
 			},
 		}
