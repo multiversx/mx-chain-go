@@ -256,7 +256,7 @@ func createShardGenesisBlockAfterHardFork(
 		return nil, nil, nil, err
 	}
 
-	err = arg.Accounts.RecreateTrie(hdrHandler.GetRootHash(), common.ProcessPriority)
+	err = arg.Accounts.RecreateTrie(hdrHandler.GetRootHash())
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -388,7 +388,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		EpochNotifier:         epochNotifier,
 		NilCompiledSCStore:    true,
 		EnableEpochs:          enableEpochs,
-		Priority:           common.ProcessPriority,
+		Priority:              common.ProcessPriority,
 	}
 	esdtTransferParser, err := parsers.NewESDTTransferParser(arg.Core.InternalMarshalizer())
 	if err != nil {

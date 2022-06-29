@@ -129,7 +129,7 @@ func TestPutEventsInTransactionSmartContractResults(t *testing.T) {
 				}
 			case dataRetriever.TxLogsUnit:
 				return &storageStubs.StorerStub{
-					GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
+					GetFromEpochCalled: func(key []byte, epoch uint32, priority common.StorageAccessType) ([]byte, error) {
 						switch {
 						case bytes.Equal(key, scrHash1):
 							return marshalizerdMock.Marshal(logsAndEvents)

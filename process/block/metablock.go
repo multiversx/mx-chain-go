@@ -1604,7 +1604,7 @@ func (mp *metaProcessor) commitEpochStart(header *block.MetaBlock, body *block.B
 
 // RevertStateToBlock recreates the state tries to the root hashes indicated by the provided root hash and header
 func (mp *metaProcessor) RevertStateToBlock(header data.HeaderHandler, rootHash []byte) error {
-	err := mp.accountsDB[state.UserAccountsState].RecreateTrie(rootHash, common.ProcessPriority)
+	err := mp.accountsDB[state.UserAccountsState].RecreateTrie(rootHash)
 	if err != nil {
 		log.Debug("recreate trie with error for header",
 			"nonce", header.GetNonce(),

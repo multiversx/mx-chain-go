@@ -955,16 +955,15 @@ func (adb *AccountsDB) RootHash() ([]byte, error) {
 }
 
 // RecreateTrie is used to reload the trie based on an existing rootHash
-func (adb *AccountsDB) RecreateTrie(rootHash []byte, priority common.StorageAccessType) error {
+func (adb *AccountsDB) RecreateTrie(rootHash []byte) error {
 	adb.mutOp.Lock()
 	defer adb.mutOp.Unlock()
 
-	err := adb.recreateTrie(rootHash, priority)
+	err := adb.recreateTrie(rootHash, adb.priority)
 	if err != nil {
 		return err
 	}
 	adb.lastRootHash = rootHash
-	adb.priority = priority
 
 	return nil
 }

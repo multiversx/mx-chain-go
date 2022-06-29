@@ -113,7 +113,7 @@ type AccountsAdapter interface {
 	RevertToSnapshot(snapshot int) error
 	GetCode(codeHash []byte) []byte
 	RootHash() ([]byte, error)
-	RecreateTrie(rootHash []byte, priority common.StorageAccessType) error
+	RecreateTrie(rootHash []byte) error
 	PruneTrie(rootHash []byte, identifier TriePruningIdentifier, handler PruningHandler)
 	CancelPrune(rootHash []byte, identifier TriePruningIdentifier)
 	SnapshotState(rootHash []byte)

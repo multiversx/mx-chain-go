@@ -207,7 +207,7 @@ func TestNewAccountsDB(t *testing.T) {
 	})
 }
 
-//------- SaveAccount
+// ------- SaveAccount
 
 func TestAccountsDB_SaveAccountNilAccountShouldErr(t *testing.T) {
 	t.Parallel()
@@ -858,7 +858,7 @@ func TestAccountsDB_RecreateTrieMalfunctionTrieShouldErr(t *testing.T) {
 
 	adb := generateAccountDBFromTrie(trieStub)
 
-	err := adb.RecreateTrie(nil, common.TestPriority)
+	err := adb.RecreateTrie(nil)
 	assert.Equal(t, errExpected, err)
 	assert.True(t, wasCalled)
 }
@@ -879,7 +879,7 @@ func TestAccountsDB_RecreateTrieOutputsNilTrieShouldErr(t *testing.T) {
 	}
 
 	adb := generateAccountDBFromTrie(&trieStub)
-	err := adb.RecreateTrie(nil, common.TestPriority)
+	err := adb.RecreateTrie(nil)
 
 	assert.Equal(t, state.ErrNilTrie, err)
 	assert.True(t, wasCalled)
@@ -902,7 +902,7 @@ func TestAccountsDB_RecreateTrieOkValsShouldWork(t *testing.T) {
 	}
 
 	adb := generateAccountDBFromTrie(&trieStub)
-	err := adb.RecreateTrie(nil, common.TestPriority)
+	err := adb.RecreateTrie(nil)
 
 	assert.Nil(t, err)
 	assert.True(t, wasCalled)
@@ -1221,7 +1221,7 @@ func TestAccountsDB_RecreateTrieInvalidatesJournalEntries(t *testing.T) {
 	_ = adb.SaveAccount(acc)
 
 	assert.Equal(t, 5, adb.JournalLen())
-	err := adb.RecreateTrie(rootHash, common.TestPriority)
+	err := adb.RecreateTrie(rootHash)
 	assert.Nil(t, err)
 	assert.Equal(t, 0, adb.JournalLen())
 }

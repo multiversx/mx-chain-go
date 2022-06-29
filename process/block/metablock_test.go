@@ -1140,7 +1140,7 @@ func TestMetaProcessor_RevertStateRevertPeerStateFailsShouldErr(t *testing.T) {
 	arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 	arguments.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{}
 	arguments.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{
-		RecreateTrieCalled: func(rootHash []byte, priority common.StorageAccessType) error {
+		RecreateTrieCalled: func(rootHash []byte) error {
 			return nil
 		},
 	}
@@ -1168,7 +1168,7 @@ func TestMetaProcessor_RevertStateShouldWork(t *testing.T) {
 	arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 
 	arguments.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{
-		RecreateTrieCalled: func(rootHash []byte, priority common.StorageAccessType) error {
+		RecreateTrieCalled: func(rootHash []byte) error {
 			recreateTrieWasCalled = true
 			return nil
 		},

@@ -1,6 +1,8 @@
 package factory
 
 import (
+	"fmt"
+
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
@@ -22,7 +24,7 @@ type TrieCreateArgs struct {
 	CheckpointsEnabled bool
 	MaxTrieLevelInMem  uint
 	IdleProvider       trie.IdleNodeProvider
-	Priority                   common.StorageAccessType
+	Priority           common.StorageAccessType
 }
 
 type trieCreator struct {
@@ -173,7 +175,7 @@ func CreateTriesComponentsForShardId(
 		CheckpointsEnabled: generalConfig.StateTriesConfig.CheckpointsEnabled,
 		MaxTrieLevelInMem:  generalConfig.StateTriesConfig.MaxStateTrieLevelInMemory,
 		IdleProvider:       coreComponentsHolder.ProcessStatusHandler(),
-		Priority:                   priority,
+		Priority:           priority,
 	}
 	userStorageManager, userAccountTrie, err := trFactory.Create(args)
 	if err != nil {
@@ -193,7 +195,7 @@ func CreateTriesComponentsForShardId(
 		CheckpointsEnabled: generalConfig.StateTriesConfig.CheckpointsEnabled,
 		MaxTrieLevelInMem:  generalConfig.StateTriesConfig.MaxPeerTrieLevelInMemory,
 		IdleProvider:       coreComponentsHolder.ProcessStatusHandler(),
-		Priority:                   priority,
+		Priority:           priority,
 	}
 	peerStorageManager, peerAccountsTrie, err := trFactory.Create(args)
 	if err != nil {

@@ -173,7 +173,7 @@ func TestShardStorageBootstrapper_CleanupNotarizedStorageForHigherNoncesIfExist(
 	baseArgs.Store = &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 			return &storageMock.StorerStub{
-				RemoveCalled: func(key []byte) error {
+				RemoveCalled: func(key []byte, priority common.StorageAccessType) error {
 					if bForceError {
 						return errors.New("forced error")
 					}
@@ -189,7 +189,7 @@ func TestShardStorageBootstrapper_CleanupNotarizedStorageForHigherNoncesIfExist(
 
 					return errors.New("error")
 				},
-				GetCalled: func(key []byte) ([]byte, error) {
+				GetCalled: func(key []byte, priority common.StorageAccessType) ([]byte, error) {
 					if bytes.Equal(key, nonceToByteSlice) {
 						return metaHash, nil
 					}

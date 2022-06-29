@@ -13,7 +13,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/core/keyValStorage"
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
-	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/state"
@@ -122,7 +121,7 @@ func TestDirectStakedListProc_GetDelegatorsListShouldWork(t *testing.T) {
 		GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
 			return createValidatorScAccount(addressContainer, validators, addressContainer, 0), nil
 		},
-		RecreateTrieCalled: func(rootHash []byte, priority common.StorageAccessType) error {
+		RecreateTrieCalled: func(rootHash []byte) error {
 			return nil
 		},
 	}

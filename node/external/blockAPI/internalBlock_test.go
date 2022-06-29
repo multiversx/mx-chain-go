@@ -32,9 +32,9 @@ func createMockInternalBlockProcessor(
 				GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 					return storerMock
 				},
-				GetCalled: func(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
+				GetCalled: func(unitType dataRetriever.UnitType, key []byte, priority common.StorageAccessType) ([]byte, error) {
 					if withKey {
-						return storerMock.Get(key)
+						return storerMock.Get(key, priority)
 					}
 					return blockHeaderHash, nil
 				},
@@ -143,7 +143,7 @@ func TestInternalBlockProcessor_GetInternalShardBlockShouldFail(t *testing.T) {
 
 	expectedErr := errors.New("key not found err")
 	storerMock := &storageMocks.StorerStub{
-		GetCalled: func(_ []byte) ([]byte, error) {
+		GetCalled: func(key []byte, priority common.StorageAccessType) ([]byte, error) {
 			return nil, expectedErr
 		},
 	}
@@ -289,10 +289,10 @@ func preapreShardBlockProcessor(nonce uint64, round uint64, headerHash []byte) (
 		Round: round,
 	}
 	headerBytes, _ := json.Marshal(header)
-	_ = storerMock.Put(headerHash, headerBytes)
+	_ = storerMock.Put(headerHash, headerBytes, common.TestPriority)
 
 	nonceBytes := uint64Converter.ToByteSlice(nonce)
-	_ = storerMock.Put(nonceBytes, headerHash)
+	_ = storerMock.Put(nonceBytes, headerHash, common.TestPriority)
 
 	return ibp, headerBytes
 }
@@ -389,7 +389,7 @@ func TestInternalBlockProcessor_GetInternalMetaBlockShouldFail(t *testing.T) {
 
 	expectedErr := errors.New("key not found err")
 	storerMock := &storageMocks.StorerStub{
-		GetCalled: func(_ []byte) ([]byte, error) {
+		GetCalled: func(key []byte, priority common.StorageAccessType) ([]byte, error) {
 			return nil, expectedErr
 		},
 	}
@@ -535,10 +535,10 @@ func prepareMetaBlockProcessor(nonce uint64, round uint64, headerHash []byte) (*
 		Round: round,
 	}
 	headerBytes, _ := json.Marshal(header)
-	_ = storerMock.Put(headerHash, headerBytes)
+	_ = storerMock.Put(headerHash, headerBytes, common.TestPriority)
 
 	nonceBytes := uint64Converter.ToByteSlice(nonce)
-	_ = storerMock.Put(nonceBytes, headerHash)
+	_ = storerMock.Put(nonceBytes, headerHash, common.TestPriority)
 
 	return ibp, headerBytes
 }
@@ -557,7 +557,7 @@ func TestInternalBlockProcessor_GetInternalMiniBlockByHash(t *testing.T) {
 
 		expectedErr := errors.New("key not found err")
 		storerMock := &storageMocks.StorerStub{
-			GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
+			GetFromEpochCalled: func(key []byte, epoch uint32, priority common.StorageAccessType) ([]byte, error) {
 				return nil, expectedErr
 			},
 		}
@@ -588,7 +588,7 @@ func TestInternalBlockProcessor_GetInternalMiniBlockByHash(t *testing.T) {
 		}
 		mbBytes, _ := json.Marshal(mb)
 		storerMock := &storageMocks.StorerStub{
-			GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
+			GetFromEpochCalled: func(key []byte, epoch uint32, priority common.StorageAccessType) ([]byte, error) {
 				assert.Equal(t, miniBlockHash, key)
 				assert.Equal(t, expEpoch, epoch)
 				return mbBytes, nil
@@ -622,7 +622,7 @@ func TestInternalBlockProcessor_GetInternalMiniBlockByHash(t *testing.T) {
 		mbBytes, _ := json.Marshal(mb)
 
 		storerMock := &storageMocks.StorerStub{
-			GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
+			GetFromEpochCalled: func(key []byte, epoch uint32, priority common.StorageAccessType) ([]byte, error) {
 				assert.Equal(t, miniBlockHash, key)
 				assert.Equal(t, expEpoch, epoch)
 				return mbBytes, nil
@@ -680,7 +680,7 @@ func TestInternalBlockProcessor_GetInternalStartOfEpochMetaBlock(t *testing.T) {
 
 		expectedErr := errors.New("key not found err")
 		storerMock := &storageMocks.StorerStub{
-			GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
+			GetFromEpochCalled: func(key []byte, epoch uint32, priority common.StorageAccessType) ([]byte, error) {
 				return nil, expectedErr
 			},
 		}
@@ -707,7 +707,7 @@ func TestInternalBlockProcessor_GetInternalStartOfEpochMetaBlock(t *testing.T) {
 		t.Parallel()
 
 		storerMock := &storageMocks.StorerStub{
-			GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
+			GetFromEpochCalled: func(key []byte, epoch uint32, priority common.StorageAccessType) ([]byte, error) {
 				assert.Equal(t, expEpoch, epoch)
 				return headerBytes, nil
 			},
@@ -735,7 +735,7 @@ func TestInternalBlockProcessor_GetInternalStartOfEpochMetaBlock(t *testing.T) {
 		t.Parallel()
 
 		storerMock := &storageMocks.StorerStub{
-			GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
+			GetFromEpochCalled: func(key []byte, epoch uint32, priority common.StorageAccessType) ([]byte, error) {
 				assert.Equal(t, expEpoch, epoch)
 				return headerBytes, nil
 			},

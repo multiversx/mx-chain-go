@@ -174,7 +174,7 @@ func createMetaGenesisBlockAfterHardFork(
 		return nil, nil, nil, process.ErrWrongTypeAssertion
 	}
 
-	err = arg.Accounts.RecreateTrie(hdrHandler.GetRootHash(), common.ProcessPriority)
+	err = arg.Accounts.RecreateTrie(hdrHandler.GetRootHash())
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -295,7 +295,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		EpochNotifier:         epochNotifier,
 		NilCompiledSCStore:    true,
 		EnableEpochs:          enableEpochs,
-		Priority:           common.ProcessPriority,
+		Priority:              common.ProcessPriority,
 	}
 
 	pubKeyVerifier, err := disabled.NewMessageSignVerifier(arg.BlockSignKeyGen)

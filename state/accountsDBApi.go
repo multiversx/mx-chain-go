@@ -62,7 +62,7 @@ func (accountsDB *accountsDBApi) doRecreateTrie(targetRootHash []byte) error {
 		return nil
 	}
 
-	err := accountsDB.innerAccountsAdapter.RecreateTrie(targetRootHash, common.APIPriority)
+	err := accountsDB.innerAccountsAdapter.RecreateTrie(targetRootHash)
 	if err != nil {
 		accountsDB.lastRootHash = nil
 		return err
@@ -156,7 +156,7 @@ func (accountsDB *accountsDBApi) RootHash() ([]byte, error) {
 }
 
 // RecreateTrie is a not permitted operation in this implementation and thus, will return an error
-func (accountsDB *accountsDBApi) RecreateTrie(_ []byte, _ common.StorageAccessType) error {
+func (accountsDB *accountsDBApi) RecreateTrie(_ []byte) error {
 	return ErrOperationNotPermitted
 }
 

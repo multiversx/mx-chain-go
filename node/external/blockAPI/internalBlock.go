@@ -42,7 +42,7 @@ func (ibp *internalBlockProcessor) GetInternalShardBlockByNonce(format common.Ap
 	storerUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(ibp.selfShardID)
 
 	nonceToByteSlice := ibp.uint64ByteSliceConverter.ToByteSlice(nonce)
-	headerHash, err := ibp.store.Get(storerUnit, nonceToByteSlice)
+	headerHash, err := ibp.store.Get(storerUnit, nonceToByteSlice, common.APIPriority)
 	if err != nil {
 		return nil, err
 	}
@@ -107,7 +107,7 @@ func (ibp *internalBlockProcessor) GetInternalMetaBlockByNonce(format common.Api
 	storerUnit := dataRetriever.MetaHdrNonceHashDataUnit
 
 	nonceToByteSlice := ibp.uint64ByteSliceConverter.ToByteSlice(nonce)
-	headerHash, err := ibp.store.Get(storerUnit, nonceToByteSlice)
+	headerHash, err := ibp.store.Get(storerUnit, nonceToByteSlice, common.APIPriority)
 	if err != nil {
 		return nil, err
 	}
@@ -157,7 +157,7 @@ func (ibp *internalBlockProcessor) GetInternalStartOfEpochMetaBlock(format commo
 	storer := ibp.store.GetStorer(dataRetriever.MetaBlockUnit)
 
 	epochStartIdentifier := core.EpochStartIdentifier(epoch)
-	blockBytes, err := storer.GetFromEpoch([]byte(epochStartIdentifier), epoch)
+	blockBytes, err := storer.GetFromEpoch([]byte(epochStartIdentifier), epoch, common.APIPriority)
 	if err != nil {
 		return nil, err
 	}
@@ -189,7 +189,7 @@ func (ibp *internalBlockProcessor) convertMetaBlockBytesByOutputFormat(format co
 // GetInternalMiniBlock will return the miniblock based on the hash
 func (ibp *internalBlockProcessor) GetInternalMiniBlock(format common.ApiOutputFormat, hash []byte, epoch uint32) (interface{}, error) {
 	storer := ibp.store.GetStorer(dataRetriever.MiniBlockUnit)
-	blockBytes, err := storer.GetFromEpoch(hash, epoch)
+	blockBytes, err := storer.GetFromEpoch(hash, epoch, common.APIPriority)
 	if err != nil {
 		return nil, err
 	}

@@ -19,7 +19,7 @@ func createSerialLevelDb(tb testing.TB, batchDelaySeconds int, maxBatchSize int,
 	lvdb, err := leveldb.NewSerialDB(tb.TempDir(), batchDelaySeconds, maxBatchSize, maxOpenFiles)
 
 	assert.Nil(tb, err, "Failed creating leveldb database file")
-	assert.False(t, check.IfNil(lvdb))
+	assert.False(tb, check.IfNil(lvdb))
 	return lvdb
 }
 
@@ -275,49 +275,49 @@ func TestSerialDB_SpecialValueTest(t *testing.T) {
 	removedValue := []byte("removed") // in old implementations we had a check against this value
 	randomValue := []byte("random")
 	t.Run("operations: put -> get of 'removed' value", func(t *testing.T) {
-		err := ldb.Put(key, removedValue)
+		err := ldb.Put(key, removedValue, common.TestPriority)
 		require.Nil(t, err)
 
-		recovered, err := ldb.Get(key)
+		recovered, err := ldb.Get(key, common.TestPriority)
 		assert.Nil(t, err)
 		assert.Equal(t, removedValue, recovered)
 	})
 	t.Run("operations: put -> remove -> get of 'removed' value", func(t *testing.T) {
-		err := ldb.Put(key, removedValue)
+		err := ldb.Put(key, removedValue, common.TestPriority)
 		require.Nil(t, err)
 
-		err = ldb.Remove(key)
+		err = ldb.Remove(key, common.TestPriority)
 		require.Nil(t, err)
 
-		recovered, err := ldb.Get(key)
+		recovered, err := ldb.Get(key, common.TestPriority)
 		assert.Equal(t, storage.ErrKeyNotFound, err)
 		assert.Nil(t, recovered)
 	})
 	t.Run("operations: put -> remove -> put -> get of 'removed' value", func(t *testing.T) {
-		err := ldb.Put(key, removedValue)
+		err := ldb.Put(key, removedValue, common.TestPriority)
 		require.Nil(t, err)
 
-		err = ldb.Remove(key)
+		err = ldb.Remove(key, common.TestPriority)
 		require.Nil(t, err)
 
-		err = ldb.Put(key, removedValue)
+		err = ldb.Put(key, removedValue, common.TestPriority)
 		require.Nil(t, err)
 
-		recovered, err := ldb.Get(key)
+		recovered, err := ldb.Get(key, common.TestPriority)
 		assert.Nil(t, err)
 		assert.Equal(t, removedValue, recovered)
 	})
 	t.Run("operations: put -> remove -> put -> get of random value", func(t *testing.T) {
-		err := ldb.Put(key, randomValue)
+		err := ldb.Put(key, randomValue, common.TestPriority)
 		require.Nil(t, err)
 
-		err = ldb.Remove(key)
+		err = ldb.Remove(key, common.TestPriority)
 		require.Nil(t, err)
 
-		err = ldb.Put(key, randomValue)
+		err = ldb.Put(key, randomValue, common.TestPriority)
 		require.Nil(t, err)
 
-		recovered, err := ldb.Get(key)
+		recovered, err := ldb.Get(key, common.TestPriority)
 		assert.Nil(t, err)
 		assert.Equal(t, randomValue, recovered)
 	})
@@ -332,32 +332,32 @@ func BenchmarkSerialDB_SpecialValueTest(b *testing.B) {
 
 	b.Run("put -> remove -> get", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			_ = ldb.Put(key, removedValue)
-			_ = ldb.Remove(key)
-			_, _ = ldb.Get(key)
+			_ = ldb.Put(key, removedValue, common.TestPriority)
+			_ = ldb.Remove(key, common.TestPriority)
+			_, _ = ldb.Get(key, common.TestPriority)
 		}
 	})
 	b.Run("put -> get", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			_ = ldb.Put(key, removedValue)
-			_, _ = ldb.Get(key)
+			_ = ldb.Put(key, removedValue, common.TestPriority)
+			_, _ = ldb.Get(key, common.TestPriority)
 		}
 	})
 	b.Run("put -> remove -> get with different keys", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			testKey := append(key, big.NewInt(int64(i)).Bytes()...)
 
-			_ = ldb.Put(testKey, removedValue)
-			_ = ldb.Remove(testKey)
-			_, _ = ldb.Get(testKey)
+			_ = ldb.Put(testKey, removedValue, common.TestPriority)
+			_ = ldb.Remove(testKey, common.TestPriority)
+			_, _ = ldb.Get(testKey, common.TestPriority)
 		}
 	})
 	b.Run("put -> get with different keys", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			testKey := append(key, big.NewInt(int64(i)).Bytes()...)
 
-			_ = ldb.Put(testKey, removedValue)
-			_, _ = ldb.Get(testKey)
+			_ = ldb.Put(testKey, removedValue, common.TestPriority)
+			_, _ = ldb.Get(testKey, common.TestPriority)
 		}
 	})
 }

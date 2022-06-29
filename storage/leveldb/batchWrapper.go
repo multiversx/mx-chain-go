@@ -52,9 +52,14 @@ func (bw *batchWrapper) delete(key []byte) {
 	_ = bw.batch.Delete(key)
 }
 
-func (bw *batchWrapper) get(key []byte) []byte {
+func (bw *batchWrapper) getSignallingIfRemoved(key []byte) ([]byte, bool) {
 	bw.mut.RLock()
 	defer bw.mut.RUnlock()
 
-	return bw.batch.Get(key)
+	isRemoved := bw.batch.IsRemoved(key)
+	if isRemoved {
+		return nil, true
+	}
+
+	return bw.batch.Get(key), false
 }

@@ -1,7 +1,6 @@
 package factory_test
 
 import (
-	"errors"
 	"strings"
 	"testing"
 

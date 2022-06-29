@@ -51,7 +51,7 @@ func TestReadOnlyAccountsDB_WriteOperationsShouldNotCalled(t *testing.T) {
 			t.Errorf(failErrMsg)
 			return nil
 		},
-		RecreateTrieCalled: func(_ []byte, priority common.StorageAccessType) error {
+		RecreateTrieCalled: func(_ []byte) error {
 			t.Errorf(failErrMsg)
 			return nil
 		},
@@ -88,7 +88,7 @@ func TestReadOnlyAccountsDB_WriteOperationsShouldNotCalled(t *testing.T) {
 	err = roAccDb.RevertToSnapshot(0)
 	require.NoError(t, err)
 
-	err = roAccDb.RecreateTrie(nil, common.TestPriority)
+	err = roAccDb.RecreateTrie(nil)
 	require.NoError(t, err)
 
 	roAccDb.PruneTrie(nil, state.NewRoot, state.NewPruningHandler(state.EnableDataRemoval))

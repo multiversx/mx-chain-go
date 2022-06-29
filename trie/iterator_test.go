@@ -32,7 +32,7 @@ func TestNewIterator_NilTrieShouldErr(t *testing.T) {
 func TestNewIterator_InvalidPriorityShouldErr(t *testing.T) {
 	t.Parallel()
 
-	tr := initTrie(t)
+	tr := initTrie()
 
 	it, err := trie.NewIterator(tr, "invalid")
 	assert.Nil(t, it)

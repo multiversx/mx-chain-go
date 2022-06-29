@@ -71,7 +71,7 @@ func getAccAdapter(balance *big.Int) *stateMock.AccountsStub {
 
 		return acc, nil
 	}
-	accDB.RecreateTrieCalled = func(_ []byte, priority common.StorageAccessType) error {
+	accDB.RecreateTrieCalled = func(_ []byte) error {
 		return nil
 	}
 
@@ -160,7 +160,7 @@ func TestGetBalance_GetAccountFailsShouldError(t *testing.T) {
 	expectedErr := errors.New("error")
 
 	accAdapter := &stateMock.AccountsStub{
-		RecreateTrieCalled: func(_ []byte, priority common.StorageAccessType) error {
+		RecreateTrieCalled: func(_ []byte) error {
 			return nil
 		},
 		GetExistingAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
@@ -199,7 +199,7 @@ func createDummyHexAddress(hexChars int) string {
 func TestGetBalance_GetAccountReturnsNil(t *testing.T) {
 
 	accAdapter := &stateMock.AccountsStub{
-		RecreateTrieCalled: func(_ []byte, priority common.StorageAccessType) error {
+		RecreateTrieCalled: func(_ []byte) error {
 			return nil
 		},
 		GetExistingAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
@@ -252,7 +252,7 @@ func TestGetUsername(t *testing.T) {
 	expectedUsername := []byte("elrond")
 
 	accDB := &stateMock.AccountsStub{}
-	accDB.RecreateTrieCalled = func(_ []byte, priority common.StorageAccessType) error {
+	accDB.RecreateTrieCalled = func(_ []byte) error {
 		return nil
 	}
 	accDB.GetExistingAccountCalled = func(address []byte) (handler vmcommon.AccountHandler, e error) {
@@ -313,7 +313,7 @@ func TestNode_GetKeyValuePairs(t *testing.T) {
 	accDB.GetExistingAccountCalled = func(address []byte) (handler vmcommon.AccountHandler, e error) {
 		return acc, nil
 	}
-	accDB.RecreateTrieCalled = func(rootHash []byte, priority common.StorageAccessType) error {
+	accDB.RecreateTrieCalled = func(rootHash []byte) error {
 		return nil
 	}
 
@@ -404,7 +404,7 @@ func TestNode_GetValueForKey(t *testing.T) {
 		GetExistingAccountCalled: func(_ []byte) (vmcommon.AccountHandler, error) {
 			return acc, nil
 		},
-		RecreateTrieCalled: func(_ []byte, priority common.StorageAccessType) error {
+		RecreateTrieCalled: func(_ []byte) error {
 			return nil
 		},
 	}
@@ -535,7 +535,7 @@ func TestNode_GetAllESDTTokens(t *testing.T) {
 		})
 
 	accDB := &stateMock.AccountsStub{
-		RecreateTrieCalled: func(rootHash []byte, priority common.StorageAccessType) error {
+		RecreateTrieCalled: func(rootHash []byte) error {
 			return nil
 		},
 	}
@@ -678,7 +678,7 @@ func TestNode_GetAllESDTTokensShouldReturnEsdtAndFormattedNft(t *testing.T) {
 		})
 
 	accDB := &stateMock.AccountsStub{
-		RecreateTrieCalled: func(rootHash []byte, priority common.StorageAccessType) error {
+		RecreateTrieCalled: func(rootHash []byte) error {
 			return nil
 		},
 	}
@@ -755,7 +755,7 @@ func TestNode_GetAllIssuedESDTs(t *testing.T) {
 		})
 
 	accDB := &stateMock.AccountsStub{
-		RecreateTrieCalled: func(rootHash []byte, priority common.StorageAccessType) error {
+		RecreateTrieCalled: func(rootHash []byte) error {
 			return nil
 		},
 	}
@@ -834,7 +834,7 @@ func TestNode_GetESDTsWithRole(t *testing.T) {
 		})
 
 	accDB := &stateMock.AccountsStub{
-		RecreateTrieCalled: func(rootHash []byte, priority common.StorageAccessType) error {
+		RecreateTrieCalled: func(rootHash []byte) error {
 			return nil
 		},
 	}
@@ -907,7 +907,7 @@ func TestNode_GetESDTsRoles(t *testing.T) {
 		})
 
 	accDB := &stateMock.AccountsStub{
-		RecreateTrieCalled: func(rootHash []byte, priority common.StorageAccessType) error {
+		RecreateTrieCalled: func(rootHash []byte) error {
 			return nil
 		},
 	}
@@ -966,7 +966,7 @@ func TestNode_GetNFTTokenIDsRegisteredByAddress(t *testing.T) {
 	)
 
 	accDB := &stateMock.AccountsStub{
-		RecreateTrieCalled: func(rootHash []byte, priority common.StorageAccessType) error {
+		RecreateTrieCalled: func(rootHash []byte) error {
 			return nil
 		},
 	}
@@ -3390,7 +3390,7 @@ func TestNode_getProofErrWhenComputingProof(t *testing.T) {
 				},
 			}, nil
 		},
-		RecreateTrieCalled: func(_ []byte, priority common.StorageAccessType) error {
+		RecreateTrieCalled: func(_ []byte) error {
 			return nil
 		},
 	}

@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go-core/data/batch"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dblookupext"
 )
@@ -153,7 +154,7 @@ func (bap *baseAPIBlockProcessor) getAndAttachTxsToMbByEpoch(miniblockHash []byt
 func (bap *baseAPIBlockProcessor) getReceiptsFromMiniblock(miniblock *block.MiniBlock, epoch uint32) []*transaction.ApiReceipt {
 	storer := bap.store.GetStorer(dataRetriever.UnsignedTransactionUnit)
 	start := time.Now()
-	marshalizedReceipts, err := storer.GetBulkFromEpoch(miniblock.TxHashes, epoch)
+	marshalizedReceipts, err := storer.GetBulkFromEpoch(miniblock.TxHashes, epoch, common.APIPriority)
 	if err != nil {
 		log.Warn("cannot get receipts from storage", "error", err.Error())
 		return []*transaction.ApiReceipt{}

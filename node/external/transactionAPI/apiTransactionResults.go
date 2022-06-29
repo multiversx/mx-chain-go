@@ -2,10 +2,12 @@ package transactionAPI
 
 import (
 	"encoding/hex"
+
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/node/filters"
@@ -68,7 +70,7 @@ func (arp *apiTransactionResultsProcessor) putReceiptInTransaction(tx *transacti
 
 func (arp *apiTransactionResultsProcessor) getReceiptFromStorage(hash []byte, epoch uint32) (*transaction.ApiReceipt, error) {
 	receiptsStorer := arp.storageService.GetStorer(dataRetriever.UnsignedTransactionUnit)
-	receiptBytes, err := receiptsStorer.GetFromEpoch(hash, epoch)
+	receiptBytes, err := receiptsStorer.GetFromEpoch(hash, epoch, common.APIPriority)
 	if err != nil {
 		return nil, err
 	}
@@ -127,7 +129,7 @@ func (arp *apiTransactionResultsProcessor) putLogsInSCR(scrHash []byte, epoch ui
 
 func (arp *apiTransactionResultsProcessor) getScrFromStorage(hash []byte, epoch uint32) (*smartContractResult.SmartContractResult, error) {
 	unsignedTxsStorer := arp.storageService.GetStorer(dataRetriever.UnsignedTransactionUnit)
-	scrBytes, err := unsignedTxsStorer.GetFromEpoch(hash, epoch)
+	scrBytes, err := unsignedTxsStorer.GetFromEpoch(hash, epoch, common.APIPriority)
 	if err != nil {
 		return nil, err
 	}
@@ -199,7 +201,7 @@ func (arp *apiTransactionResultsProcessor) prepareLogsAndEvents(logsAndEvents *t
 
 func (arp *apiTransactionResultsProcessor) getLogsAndEvents(hash []byte, epoch uint32) (*transaction.Log, error) {
 	logsAndEventsStorer := arp.storageService.GetStorer(dataRetriever.TxLogsUnit)
-	logsAndEventsBytes, err := logsAndEventsStorer.GetFromEpoch(hash, epoch)
+	logsAndEventsBytes, err := logsAndEventsStorer.GetFromEpoch(hash, epoch, common.APIPriority)
 	if err != nil {
 		return nil, err
 	}

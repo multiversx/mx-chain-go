@@ -248,7 +248,7 @@ func TestAccountsDB_CommitTwoOkAccountsShouldWork(t *testing.T) {
 	// reloading a new trie to test if data is inside
 	rootHash, err = adb.RootHash()
 	require.Nil(t, err)
-	err = adb.RecreateTrie(rootHash, common.TestPriority)
+	err = adb.RecreateTrie(rootHash)
 	require.Nil(t, err)
 
 	// checking state1
@@ -335,7 +335,7 @@ func TestAccountsDB_CommitTwoOkAccountsWithRecreationFromStorageShouldWork(t *te
 	fmt.Printf("data committed! Root: %v\n", base64.StdEncoding.EncodeToString(rootHash))
 
 	// reloading a new trie to test if data is inside
-	err = adb.RecreateTrie(h, common.TestPriority)
+	err = adb.RecreateTrie(h)
 	require.Nil(t, err)
 
 	// checking state1
@@ -1035,7 +1035,7 @@ func BenchmarkCreateOneMillionAccounts(b *testing.B) {
 	rootHash, err := adb.RootHash()
 	require.Nil(b, err)
 
-	_ = adb.RecreateTrie(rootHash, common.TestPriority)
+	_ = adb.RecreateTrie(rootHash)
 	fmt.Println("Completely collapsed trie")
 	createAndExecTxs(b, addr, nrTxs, nrOfAccounts, txVal, adb)
 }
@@ -1155,7 +1155,7 @@ func TestTrieDbPruning_GetAccountAfterPruning(t *testing.T) {
 	rootHash2, _ := adb.Commit()
 	adb.PruneTrie(rootHash1, state.OldRoot, state.NewPruningHandler(state.EnableDataRemoval))
 
-	err := adb.RecreateTrie(rootHash2, common.TestPriority)
+	err := adb.RecreateTrie(rootHash2)
 	require.Nil(t, err)
 	acc, err := adb.GetExistingAccount(address1)
 	require.NotNil(t, acc)
@@ -1202,7 +1202,7 @@ func TestAccountsDB_RecreateTrieInvalidatesDataTriesCache(t *testing.T) {
 	err = adb.RevertToSnapshot(0)
 	require.Nil(t, err)
 
-	err = adb.RecreateTrie(rootHash, common.TestPriority)
+	err = adb.RecreateTrie(rootHash)
 	require.Nil(t, err)
 	acc1, _ = adb.LoadAccount(address1)
 	state1 = acc1.(state.UserAccountHandler)
@@ -1247,7 +1247,7 @@ func TestTrieDbPruning_GetDataTrieTrackerAfterPruning(t *testing.T) {
 	newRootHash, _ := adb.Commit()
 	adb.PruneTrie(oldRootHash, state.OldRoot, state.NewPruningHandler(state.EnableDataRemoval))
 
-	err := adb.RecreateTrie(newRootHash, common.TestPriority)
+	err := adb.RecreateTrie(newRootHash)
 	require.Nil(t, err)
 	acc, err := adb.GetExistingAccount(address1)
 	require.NotNil(t, acc)
@@ -1361,7 +1361,7 @@ func TestRollbackBlockAndCheckThatPruningIsCancelledOnAccountsTrie(t *testing.T)
 
 	if !bytes.Equal(rootHash, rootHashOfRollbackedBlock) {
 		time.Sleep(time.Second * 3)
-		err = shardNode.AccntState.RecreateTrie(rootHashOfRollbackedBlock, common.TestPriority)
+		err = shardNode.AccntState.RecreateTrie(rootHashOfRollbackedBlock)
 		require.True(t, errors.Is(err, trie.ErrKeyNotFound))
 	}
 
@@ -1379,7 +1379,7 @@ func TestRollbackBlockAndCheckThatPruningIsCancelledOnAccountsTrie(t *testing.T)
 	)
 	time.Sleep(time.Second * 5)
 
-	err = shardNode.AccntState.RecreateTrie(rootHashOfFirstBlock, common.TestPriority)
+	err = shardNode.AccntState.RecreateTrie(rootHashOfFirstBlock)
 	require.Nil(t, err)
 	require.Equal(t, uint64(11), nodes[0].BlockChain.GetCurrentBlockHeader().GetNonce())
 	require.Equal(t, uint64(12), nodes[1].BlockChain.GetCurrentBlockHeader().GetNonce())
@@ -1442,7 +1442,7 @@ func TestRollbackBlockWithSameRootHashAsPreviousAndCheckThatPruningIsNotDone(t *
 	require.Equal(t, uint64(1), nodes[0].BlockChain.GetCurrentBlockHeader().GetNonce())
 	require.Equal(t, uint64(2), nodes[1].BlockChain.GetCurrentBlockHeader().GetNonce())
 
-	err := shardNode.AccntState.RecreateTrie(rootHashOfFirstBlock, common.TestPriority)
+	err := shardNode.AccntState.RecreateTrie(rootHashOfFirstBlock)
 	require.Nil(t, err)
 }
 
@@ -1522,7 +1522,7 @@ func TestTriePruningWhenBlockIsFinal(t *testing.T) {
 	require.Equal(t, uint64(17), nodes[0].BlockChain.GetCurrentBlockHeader().GetNonce())
 	require.Equal(t, uint64(17), nodes[1].BlockChain.GetCurrentBlockHeader().GetNonce())
 
-	err := shardNode.AccntState.RecreateTrie(rootHashOfFirstBlock, common.TestPriority)
+	err := shardNode.AccntState.RecreateTrie(rootHashOfFirstBlock)
 	require.True(t, errors.Is(err, trie.ErrKeyNotFound))
 }
 
@@ -2093,10 +2093,10 @@ func checkDataTrieConsistency(
 	for i, rootHash := range dataTriesRootHashes {
 		_, ok := removedAccounts[i]
 		if ok {
-			err := adb.RecreateTrie(rootHash, common.TestPriority)
+			err := adb.RecreateTrie(rootHash)
 			assert.NotNil(t, err)
 		} else {
-			err := adb.RecreateTrie(rootHash, common.TestPriority)
+			err := adb.RecreateTrie(rootHash)
 			require.Nil(t, err)
 		}
 	}

@@ -796,7 +796,7 @@ func TestBaseProcessor_RevertStateRecreateTrieFailsShouldErr(t *testing.T) {
 	expectedErr := errors.New("err")
 	arguments := CreateMockArguments(createComponentHolderMocks())
 	arguments.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{
-		RecreateTrieCalled: func(rootHash []byte, priority common.StorageAccessType) error {
+		RecreateTrieCalled: func(rootHash []byte) error {
 			return expectedErr
 		},
 	}

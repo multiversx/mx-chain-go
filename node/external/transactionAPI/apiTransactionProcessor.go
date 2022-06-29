@@ -259,19 +259,19 @@ func (atp *apiTransactionProcessor) getTxObjFromDataPool(hash []byte) (interface
 func (atp *apiTransactionProcessor) getTxBytesFromStorage(hash []byte) ([]byte, transaction.TxType, bool) {
 	store := atp.storageService
 	txsStorer := store.GetStorer(dataRetriever.TransactionUnit)
-	txBytes, err := txsStorer.SearchFirst(hash)
+	txBytes, err := txsStorer.SearchFirst(hash, common.APIPriority)
 	if err == nil {
 		return txBytes, transaction.TxTypeNormal, true
 	}
 
 	rewardTxsStorer := store.GetStorer(dataRetriever.RewardTransactionUnit)
-	txBytes, err = rewardTxsStorer.SearchFirst(hash)
+	txBytes, err = rewardTxsStorer.SearchFirst(hash, common.APIPriority)
 	if err == nil {
 		return txBytes, transaction.TxTypeReward, true
 	}
 
 	unsignedTxsStorer := store.GetStorer(dataRetriever.UnsignedTransactionUnit)
-	txBytes, err = unsignedTxsStorer.SearchFirst(hash)
+	txBytes, err = unsignedTxsStorer.SearchFirst(hash, common.APIPriority)
 	if err == nil {
 		return txBytes, transaction.TxTypeUnsigned, true
 	}
@@ -282,19 +282,19 @@ func (atp *apiTransactionProcessor) getTxBytesFromStorage(hash []byte) ([]byte, 
 func (atp *apiTransactionProcessor) getTxBytesFromStorageByEpoch(hash []byte, epoch uint32) ([]byte, transaction.TxType, bool) {
 	store := atp.storageService
 	txsStorer := store.GetStorer(dataRetriever.TransactionUnit)
-	txBytes, err := txsStorer.GetFromEpoch(hash, epoch)
+	txBytes, err := txsStorer.GetFromEpoch(hash, epoch, common.APIPriority)
 	if err == nil {
 		return txBytes, transaction.TxTypeNormal, true
 	}
 
 	rewardTxsStorer := store.GetStorer(dataRetriever.RewardTransactionUnit)
-	txBytes, err = rewardTxsStorer.GetFromEpoch(hash, epoch)
+	txBytes, err = rewardTxsStorer.GetFromEpoch(hash, epoch, common.APIPriority)
 	if err == nil {
 		return txBytes, transaction.TxTypeReward, true
 	}
 
 	unsignedTxsStorer := store.GetStorer(dataRetriever.UnsignedTransactionUnit)
-	txBytes, err = unsignedTxsStorer.GetFromEpoch(hash, epoch)
+	txBytes, err = unsignedTxsStorer.GetFromEpoch(hash, epoch, common.APIPriority)
 	if err == nil {
 		return txBytes, transaction.TxTypeUnsigned, true
 	}

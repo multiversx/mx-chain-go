@@ -61,7 +61,7 @@ func TestAccountsDBAPi_recreateTrieIfNecessary(t *testing.T) {
 		t.Parallel()
 
 		accountsAdapter := &mockState.AccountsStub{
-			RecreateTrieCalled: func(rootHash []byte, priority common.StorageAccessType) error {
+			RecreateTrieCalled: func(rootHash []byte) error {
 				require.Fail(t, "should have not called RecreateAllTriesCalled")
 
 				return nil
@@ -88,7 +88,7 @@ func TestAccountsDBAPi_recreateTrieIfNecessary(t *testing.T) {
 		t.Parallel()
 
 		accountsAdapter := &mockState.AccountsStub{
-			RecreateTrieCalled: func(rootHash []byte, priority common.StorageAccessType) error {
+			RecreateTrieCalled: func(rootHash []byte) error {
 				require.Fail(t, "should have not called RecreateAllTriesCalled")
 
 				return nil
@@ -105,7 +105,7 @@ func TestAccountsDBAPi_recreateTrieIfNecessary(t *testing.T) {
 
 		oldRootHash := []byte("old root hash")
 		accountsAdapter := &mockState.AccountsStub{
-			RecreateTrieCalled: func(rootHash []byte, priority common.StorageAccessType) error {
+			RecreateTrieCalled: func(rootHash []byte) error {
 				assert.Equal(t, blockchainRootHash, rootHash)
 
 				return nil
@@ -125,7 +125,7 @@ func TestAccountsDBAPi_recreateTrieIfNecessary(t *testing.T) {
 
 		oldRootHash := []byte("old root hash")
 		accountsAdapter := &mockState.AccountsStub{
-			RecreateTrieCalled: func(rootHash []byte, priority common.StorageAccessType) error {
+			RecreateTrieCalled: func(rootHash []byte) error {
 				assert.Equal(t, blockchainRootHash, rootHash)
 
 				return expectedErr
@@ -148,7 +148,7 @@ func TestAccountsDBAPi_doRecreateTrieWhenReEntranceHappened(t *testing.T) {
 	targetRootHash := []byte("root hash")
 	numCalled := 0
 	accountsAdapter := &mockState.AccountsStub{
-		RecreateTrieCalled: func(rootHash []byte, priority common.StorageAccessType) error {
+		RecreateTrieCalled: func(rootHash []byte) error {
 			numCalled++
 			return nil
 		},
@@ -175,7 +175,7 @@ func TestAccountsDBApi_NotPermittedOperations(t *testing.T) {
 	assert.Equal(t, state.ErrOperationNotPermitted, accountsApi.SaveAccount(nil))
 	assert.Equal(t, state.ErrOperationNotPermitted, accountsApi.RemoveAccount(nil))
 	assert.Equal(t, state.ErrOperationNotPermitted, accountsApi.RevertToSnapshot(0))
-	assert.Equal(t, state.ErrOperationNotPermitted, accountsApi.RecreateTrie(nil, common.TestPriority))
+	assert.Equal(t, state.ErrOperationNotPermitted, accountsApi.RecreateTrie(nil))
 
 	buff, err := accountsApi.CommitInEpoch(0, 0)
 	assert.Nil(t, buff)
@@ -218,7 +218,7 @@ func TestAccountsDBApi_SimpleProxyMethodsShouldWork(t *testing.T) {
 	closeCalled := false
 	getTrieCalled := false
 	accountsAdapter := &mockState.AccountsStub{
-		RecreateTrieCalled: func(rootHash []byte, priority common.StorageAccessType) error {
+		RecreateTrieCalled: func(rootHash []byte) error {
 			require.Fail(t, "should have not called RecreateTrieCalled")
 
 			return nil
@@ -270,7 +270,7 @@ func TestAccountsDBApi_GetExistingAccount(t *testing.T) {
 		t.Parallel()
 
 		accountsAdapter := &mockState.AccountsStub{
-			RecreateTrieCalled: func(rootHash []byte, priority common.StorageAccessType) error {
+			RecreateTrieCalled: func(rootHash []byte) error {
 				return expectedErr
 			},
 			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
@@ -289,7 +289,7 @@ func TestAccountsDBApi_GetExistingAccount(t *testing.T) {
 
 		recreateTrieCalled := false
 		accountsAdapter := &mockState.AccountsStub{
-			RecreateTrieCalled: func(rootHash []byte, priority common.StorageAccessType) error {
+			RecreateTrieCalled: func(rootHash []byte) error {
 				recreateTrieCalled = true
 				return nil
 			},
@@ -319,7 +319,7 @@ func TestAccountsDBApi_GetAccountFromBytes(t *testing.T) {
 		t.Parallel()
 
 		accountsAdapter := &mockState.AccountsStub{
-			RecreateTrieCalled: func(rootHash []byte, priority common.StorageAccessType) error {
+			RecreateTrieCalled: func(rootHash []byte) error {
 				return expectedErr
 			},
 			GetAccountFromBytesCalled: func(address []byte, accountBytes []byte) (vmcommon.AccountHandler, error) {
@@ -338,7 +338,7 @@ func TestAccountsDBApi_GetAccountFromBytes(t *testing.T) {
 
 		recreateTrieCalled := false
 		accountsAdapter := &mockState.AccountsStub{
-			RecreateTrieCalled: func(rootHash []byte, priority common.StorageAccessType) error {
+			RecreateTrieCalled: func(rootHash []byte) error {
 				recreateTrieCalled = true
 				return nil
 			},
@@ -368,7 +368,7 @@ func TestAccountsDBApi_LoadAccount(t *testing.T) {
 		t.Parallel()
 
 		accountsAdapter := &mockState.AccountsStub{
-			RecreateTrieCalled: func(rootHash []byte, priority common.StorageAccessType) error {
+			RecreateTrieCalled: func(rootHash []byte) error {
 				return expectedErr
 			},
 			LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
@@ -387,7 +387,7 @@ func TestAccountsDBApi_LoadAccount(t *testing.T) {
 
 		recreateTrieCalled := false
 		accountsAdapter := &mockState.AccountsStub{
-			RecreateTrieCalled: func(rootHash []byte, priority common.StorageAccessType) error {
+			RecreateTrieCalled: func(rootHash []byte) error {
 				recreateTrieCalled = true
 				return nil
 			},
@@ -417,7 +417,7 @@ func TestAccountsDBApi_GetCode(t *testing.T) {
 		t.Parallel()
 
 		accountsAdapter := &mockState.AccountsStub{
-			RecreateTrieCalled: func(rootHash []byte, priority common.StorageAccessType) error {
+			RecreateTrieCalled: func(rootHash []byte) error {
 				return expectedErr
 			},
 			GetCodeCalled: func(codeHash []byte) []byte {
@@ -436,7 +436,7 @@ func TestAccountsDBApi_GetCode(t *testing.T) {
 		providedCode := []byte("code")
 		recreateTrieCalled := false
 		accountsAdapter := &mockState.AccountsStub{
-			RecreateTrieCalled: func(rootHash []byte, priority common.StorageAccessType) error {
+			RecreateTrieCalled: func(rootHash []byte) error {
 				recreateTrieCalled = true
 				return nil
 			},
@@ -465,7 +465,7 @@ func TestAccountsDBApi_GetAllLeaves(t *testing.T) {
 		t.Parallel()
 
 		accountsAdapter := &mockState.AccountsStub{
-			RecreateTrieCalled: func(rootHash []byte, priority common.StorageAccessType) error {
+			RecreateTrieCalled: func(rootHash []byte) error {
 				return expectedErr
 			},
 			GetAllLeavesCalled: func(_ chan core.KeyValueHolder, _ context.Context, _ []byte) error {
@@ -484,7 +484,7 @@ func TestAccountsDBApi_GetAllLeaves(t *testing.T) {
 		providedChan := make(chan core.KeyValueHolder)
 		recreateTrieCalled := false
 		accountsAdapter := &mockState.AccountsStub{
-			RecreateTrieCalled: func(rootHash []byte, priority common.StorageAccessType) error {
+			RecreateTrieCalled: func(rootHash []byte) error {
 				recreateTrieCalled = true
 				return nil
 			},

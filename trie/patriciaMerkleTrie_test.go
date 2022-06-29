@@ -123,7 +123,7 @@ func TestNewTrieWithInvalidMaxTrieLevelInMemory(t *testing.T) {
 func TestNewTrie_InvalidPriorityType(t *testing.T) {
 	t.Parallel()
 
-	trieStorage, marshalizer, hasher, maxTrieLevelInMemory, _ := getDefaultTrieParameters(t)
+	trieStorage, marshalizer, hasher, maxTrieLevelInMemory, _ := getDefaultTrieParameters()
 	tr, err := trie.NewTrie(trieStorage, marshalizer, hasher, maxTrieLevelInMemory, "invalid")
 
 	assert.True(t, check.IfNil(tr))

@@ -388,7 +388,7 @@ func testMultipleDataTriesSync(t *testing.T, numAccounts int, numDataTrieLeaves 
 	err = userAccSyncer.SyncAccounts(rootHash)
 	assert.Nil(t, err)
 
-	_ = nRequester.AccntState.RecreateTrie(rootHash, common.TestPriority)
+	_ = nRequester.AccntState.RecreateTrie(rootHash)
 
 	newRootHash, _ := nRequester.AccntState.RootHash()
 	assert.NotEqual(t, nilRootHash, newRootHash)
