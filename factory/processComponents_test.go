@@ -29,8 +29,11 @@ import (
 )
 
 // ------------ Test TestProcessComponents --------------------
-func TestProcessComponents_Close_ShouldWork(t *testing.T) {
+func TestProcessComponents_CloseShouldWork(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	processArgs := getProcessComponentsArgs(shardCoordinator)
@@ -46,6 +49,9 @@ func TestProcessComponents_Close_ShouldWork(t *testing.T) {
 
 func TestProcessComponentsFactory_CreateWithInvalidTxAccumulatorTimeExpectError(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	processArgs := getProcessComponentsArgs(shardCoordinator)
@@ -269,6 +275,9 @@ func FillGasMapMetaChainSystemSCsCosts(value uint64) map[string]uint64 {
 
 func TestProcessComponents_IndexGenesisBlocks(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(1)
 	processArgs := getProcessComponentsArgs(shardCoordinator)
