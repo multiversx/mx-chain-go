@@ -124,8 +124,6 @@ func (sbp *shardAPIBlockProcessor) convertShardBlockBytesToAPIBlock(hash []byte,
 	}
 
 	miniblocks = append(miniblocks, intraMb...)
-	// QUESTION FOR REVIEW: perhaps do not do any deduplication here, and let clients do it?
-	// (that is, return both the miniblock from header, and the miniblock from receipts storage)
 	miniblocks = filterOutDuplicatedMiniblocks(miniblocks)
 
 	statusFilters := filters.NewStatusFilters(sbp.selfShardID)
