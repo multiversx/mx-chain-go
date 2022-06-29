@@ -1071,8 +1071,8 @@ func TestGetTransactionsPoolNonceGapsForSenderShouldWork(t *testing.T) {
 		Sender: expectedSender,
 		Gaps: []common.NonceGapApiResponse{
 			{
-				From: "33",
-				To:   "60",
+				From: 33,
+				To:   60,
 			},
 		},
 	}
@@ -1087,7 +1087,7 @@ func TestGetTransactionsPoolNonceGapsForSenderShouldWork(t *testing.T) {
 
 	ws := startWebServer(transactionGroup, "transaction", getTransactionRoutesConfig())
 
-	req, _ := http.NewRequest("GET", "/transaction/pool/by-sender/nonce-gaps/:sender"+expectedSender, nil)
+	req, _ := http.NewRequest("GET", "/transaction/pool/by-sender/nonce-gaps/"+expectedSender, nil)
 
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
