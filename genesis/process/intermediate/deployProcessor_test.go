@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/genesis/data"
 	"github.com/ElrondNetwork/elrond-go/genesis/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 )
@@ -20,7 +21,7 @@ func createMockDeployArg() ArgDeployProcessor {
 	return ArgDeployProcessor{
 		Executor:       &mock.TxExecutionProcessorStub{},
 		PubkeyConv:     mock.NewPubkeyConverterMock(32),
-		BlockchainHook: &mock.BlockChainHookHandlerMock{},
+		BlockchainHook: &testscommon.BlockChainHookStub{},
 		QueryService:   &mock.QueryServiceStub{},
 	}
 }
@@ -123,7 +124,7 @@ func TestDeployProcessor_DeployNewAddressFailsShouldErr(t *testing.T) {
 
 	expectedErr := fmt.Errorf("expected error")
 	arg := createMockDeployArg()
-	arg.BlockchainHook = &mock.BlockChainHookHandlerMock{
+	arg.BlockchainHook = &testscommon.BlockChainHookStub{
 		NewAddressCalled: func(creatorAddress []byte, creatorNonce uint64, vmType []byte) ([]byte, error) {
 			return nil, expectedErr
 		},
@@ -188,7 +189,7 @@ func TestDeployProcessor_DeployShouldWork(t *testing.T) {
 		},
 	}
 	var scResulting []byte
-	arg.BlockchainHook = &mock.BlockChainHookHandlerMock{
+	arg.BlockchainHook = &testscommon.BlockChainHookStub{
 		NewAddressCalled: func(creatorAddress []byte, creatorNonce uint64, vmType []byte) ([]byte, error) {
 			buff := fmt.Sprintf("%s_%d_%s", string(creatorAddress), creatorNonce, hex.EncodeToString(vmType))
 			scResulting = []byte(buff)

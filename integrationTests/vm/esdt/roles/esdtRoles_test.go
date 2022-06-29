@@ -1,3 +1,4 @@
+//go:build !race
 // +build !race
 
 package roles
@@ -46,7 +47,7 @@ func TestESDTRolesIssueAndTransactionsOnMultiShardEnvironment(t *testing.T) {
 
 	defer func() {
 		for _, n := range nodes {
-			_ = n.Messenger.Close()
+			n.Close()
 		}
 	}()
 
@@ -58,7 +59,7 @@ func TestESDTRolesIssueAndTransactionsOnMultiShardEnvironment(t *testing.T) {
 	round = integrationTests.IncrementAndPrintRound(round)
 	nonce++
 
-	// /////////------- send token issue
+	// ------- send token issue
 
 	initialSupply := big.NewInt(10000000000)
 	esdt.IssueTestToken(nodes, initialSupply.Int64(), "FTT")
@@ -71,7 +72,7 @@ func TestESDTRolesIssueAndTransactionsOnMultiShardEnvironment(t *testing.T) {
 
 	tokenIdentifier := string(integrationTests.GetTokenIdentifier(nodes, []byte("FTT")))
 
-	// /////// ----- set special role
+	// ----- set special role
 	setRole(nodes, nodes[0].OwnAccount.Address, []byte(tokenIdentifier), []byte(core.ESDTRoleLocalMint))
 	setRole(nodes, nodes[0].OwnAccount.Address, []byte(tokenIdentifier), []byte(core.ESDTRoleLocalBurn))
 
@@ -152,7 +153,7 @@ func TestESDTRolesSetRolesAndUnsetRolesIssueAndTransactionsOnMultiShardEnvironme
 
 	defer func() {
 		for _, n := range nodes {
-			_ = n.Messenger.Close()
+			n.Close()
 		}
 	}()
 
@@ -164,7 +165,7 @@ func TestESDTRolesSetRolesAndUnsetRolesIssueAndTransactionsOnMultiShardEnvironme
 	round = integrationTests.IncrementAndPrintRound(round)
 	nonce++
 
-	// /////////------- send token issue
+	// ------- send token issue
 
 	initialSupply := big.NewInt(10000000000)
 	esdt.IssueTestToken(nodes, initialSupply.Int64(), "FTT")
@@ -177,7 +178,7 @@ func TestESDTRolesSetRolesAndUnsetRolesIssueAndTransactionsOnMultiShardEnvironme
 
 	tokenIdentifier := string(integrationTests.GetTokenIdentifier(nodes, []byte("FTT")))
 
-	// /////// ----- set special role
+	// ----- set special role
 	setRole(nodes, nodes[0].OwnAccount.Address, []byte(tokenIdentifier), []byte(core.ESDTRoleLocalMint))
 
 	time.Sleep(time.Second)
@@ -284,7 +285,7 @@ func TestESDTMintTransferAndExecute(t *testing.T) {
 
 	defer func() {
 		for _, n := range nodes {
-			_ = n.Messenger.Close()
+			n.Close()
 		}
 	}()
 
@@ -305,8 +306,7 @@ func TestESDTMintTransferAndExecute(t *testing.T) {
 	txIssueData := txDataBuilder.NewBuilder()
 	txIssueData.Func("issueWrappedEgld").
 		Str(name).
-		Str(ticker).
-		BigInt(big.NewInt(1))
+		Str(ticker)
 	integrationTests.CreateAndSendTransaction(
 		nodes[0],
 		nodes,
@@ -327,7 +327,7 @@ func TestESDTMintTransferAndExecute(t *testing.T) {
 		nodes,
 		big.NewInt(0),
 		scAddress,
-		"setLocalMintRole",
+		"setLocalRoles",
 		integrationTests.AdditionalGasLimit,
 	)
 	time.Sleep(time.Second)

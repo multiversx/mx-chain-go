@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	nodeFactory "github.com/ElrondNetwork/elrond-go/cmd/node/factory"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -14,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/outport"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
 )
 
@@ -24,6 +26,7 @@ type coreComponentsHolder interface {
 	RoundHandler() consensus.RoundHandler
 	StatusHandler() core.AppStatusHandler
 	EconomicsData() process.EconomicsDataHandler
+	ProcessStatusHandler() common.ProcessStatusHandler
 	IsInterfaceNil() bool
 }
 
@@ -57,7 +60,7 @@ type ArgBaseProcessor struct {
 	Config                         config.Config
 	AccountsDB                     map[state.AccountsDbIdentifier]state.AccountsAdapter
 	ForkDetector                   process.ForkDetector
-	NodesCoordinator               sharding.NodesCoordinator
+	NodesCoordinator               nodesCoordinator.NodesCoordinator
 	FeeHandler                     process.TransactionFeeHandler
 	RequestHandler                 process.RequestHandler
 	BlockChainHook                 process.BlockChainHookHandler

@@ -110,7 +110,13 @@
 
         # /network/delegated-info will return a list containing delegated list of addresses
         # and their staked values on the system delegation smart contracts
-        { Name = "/delegated-info", Open = true}
+        { Name = "/delegated-info", Open = true},
+
+        # /network/ratings will return metrics related to ratings config
+        { Name = "/ratings", Open = true },
+
+        # /network/genesis-nodes will return the genesis nodes public keys
+        { Name = "/genesis-nodes", Open = true }
     ]
 
 [APIPackages.log]
@@ -157,6 +163,9 @@
         # /transaction/cost will receive a single transaction in JSON format and will return the estimated cost of it
         { Name = "/cost", Open = true },
 
+        # /transaction/pool will return the hashes of the transactions that are currently in the pool
+        { Name = "/pool", Open = true },
+
         # /transaction/:txhash will return the transaction in JSON format based on its hash
         { Name = "/:txhash", Open = true },
     ]
@@ -173,6 +182,56 @@
         { Name = "/by-round/:round", Open = true },
     ]
 
+[APIPackages.internal]
+    Routes = [
+        # /internal/raw/metablock/by-nonce/:nonce will return the meta block in raw format based on its nonce
+        { Name = "/raw/metablock/by-nonce/:nonce", Open = true },
+
+        # /internal/raw/metablock/by-hash/:hash will return the meta block in raw format based on its hash
+        { Name = "/raw/metablock/by-hash/:hash", Open = true },
+
+        # /internal/raw/metablock/by-round/:round will return the meta block in raw format based on round
+        { Name = "/raw/metablock/by-round/:round", Open = true },
+
+        # /internal/raw/startofepoch/metablock/by-epoch/:epoch will return the start of epoch meta block in raw format based on epoch
+        { Name = "/raw/startofepoch/metablock/by-epoch/:epoch", Open = true },
+
+        # /internal/raw/shardblock/by-nonce/:nonce will return the shard block in raw format based on its nonce
+        { Name = "/raw/shardblock/by-nonce/:nonce", Open = true },
+
+        # /internal/raw/shardblock/by-hash/:hash will return the shard block in raw format based on its hash
+        { Name = "/raw/shardblock/by-hash/:hash", Open = true },
+
+        # /internal/raw/shardblock/by-round/:round will return the shard block in raw format based on round
+        { Name = "/raw/shardblock/by-round/:round", Open = true },
+
+        # /internal/json/metablock/by-round/:nonce will return the meta block in JSON format based on nonce
+        { Name = "/json/metablock/by-nonce/:nonce", Open = true },
+
+        # /internal/json/metablock/by-round/:hash will return the meta block in JSON format based on hash
+        { Name = "/json/metablock/by-hash/:hash", Open = true },
+
+        # /internal/json/metablock/by-round/:round will return the meta block in JSON format based on roud
+        { Name = "/json/metablock/by-round/:round", Open = true },
+
+        # /internal/json/startofepoch/metablock/by-epoch/:epoch will return the start of epoch meta block in json format based on epoch
+        { Name = "/json/startofepoch/metablock/by-epoch/:epoch", Open = true },
+
+        # /internal/json/shardblock/by-round/:nonce will return the shard block in JSON format based on nonce
+        { Name = "/json/shardblock/by-nonce/:nonce", Open = true },
+
+        # /internal/json/shardblock/by-round/:hash will return the shard block in JSON format based on hash
+        { Name = "/json/shardblock/by-hash/:hash", Open = true },
+
+        # /internal/json/shardblock/by-round/:round will return the shard block in JSON format based on round
+        { Name = "/json/shardblock/by-round/:round", Open = true },
+
+        # /internal/raw/miniblock/by-hash/:hash will return the miniblock in raw format based on hash for a specified epoch
+        { Name = "/raw/miniblock/by-hash/:hash/epoch/:epoch", Open = true },
+
+        # /internal/json/miniblock/by-hash/:hash will return the miniblock in JSON format based on hash for a specified epoch
+        { Name = "/json/miniblock/by-hash/:hash/epoch/:epoch", Open = true }
+    ]
 
 [APIPackages.proof]
     Routes = [

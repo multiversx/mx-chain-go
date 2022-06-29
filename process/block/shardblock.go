@@ -24,7 +24,11 @@ import (
 
 var _ process.BlockProcessor = (*shardProcessor)(nil)
 
-const timeBetweenCheckForEpochStart = 100 * time.Millisecond
+const (
+	timeBetweenCheckForEpochStart = 100 * time.Millisecond
+	pruningDelayMultiplier        = 2
+	defaultPruningDelay           = 10
+)
 
 type createMbsAndProcessTxsDestMeInfo struct {
 	currMetaHdr               data.HeaderHandler
@@ -47,6 +51,7 @@ type shardProcessor struct {
 
 	processedMiniBlocks   *processedMb.ProcessedMiniBlockTracker
 	userStatePruningQueue core.Queue
+	processStatusHandler  common.ProcessStatusHandler
 }
 
 // NewShardProcessor creates a new shardProcessor object
@@ -65,8 +70,18 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 	if check.IfNil(arguments.DataComponents.Datapool().Transactions()) {
 		return nil, process.ErrNilTransactionPool
 	}
-
 	genesisHdr := arguments.DataComponents.Blockchain().GetGenesisHeader()
+	if check.IfNil(genesisHdr) {
+		return nil, fmt.Errorf("%w for genesis header in DataComponents.Blockchain", process.ErrNilHeaderHandler)
+	}
+
+	pruningQueueSize := arguments.Config.StateTriesConfig.UserStatePruningQueueSize
+	pruningDelay := uint32(pruningQueueSize * pruningDelayMultiplier)
+	if pruningDelay < defaultPruningDelay {
+		log.Warn("using default pruning delay", "user state pruning queue size", pruningQueueSize)
+		pruningDelay = defaultPruningDelay
+	}
+
 	base := &baseProcessor{
 		accountsDB:                     arguments.AccountsDB,
 		blockSizeThrottler:             arguments.BlockSizeThrottler,
@@ -104,10 +119,12 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		economicsData:                  arguments.CoreComponents.EconomicsData(),
 		scheduledTxsExecutionHandler:   arguments.ScheduledTxsExecutionHandler,
 		scheduledMiniBlocksEnableEpoch: arguments.ScheduledMiniBlocksEnableEpoch,
+		pruningDelay:                   pruningDelay,
 	}
 
 	sp := shardProcessor{
-		baseProcessor: base,
+		baseProcessor:        base,
+		processStatusHandler: arguments.CoreComponents.ProcessStatusHandler(),
 	}
 
 	sp.txCounter, err = NewTransactionCounter(sp.hasher, sp.marshalizer)
@@ -140,10 +157,12 @@ func (sp *shardProcessor) ProcessBlock(
 	bodyHandler data.BodyHandler,
 	haveTime func() time.Duration,
 ) error {
-
 	if haveTime == nil {
 		return process.ErrNilHaveTimeHandler
 	}
+
+	sp.processStatusHandler.SetBusy("shardProcessor.ProcessBlock")
+	defer sp.processStatusHandler.SetIdle()
 
 	err := sp.checkBlockValidity(headerHandler, bodyHandler)
 	if err != nil {
@@ -359,6 +378,7 @@ func (sp *shardProcessor) requestEpochStartInfo(header data.ShardHeaderHandler, 
 
 		epochStartMetaHdr, err := headersPool.GetHeaderByHash(header.GetEpochStartMetaHash())
 		if err != nil {
+			go sp.requestHandler.RequestMetaHeader(header.GetEpochStartMetaHash())
 			continue
 		}
 
@@ -760,6 +780,9 @@ func (sp *shardProcessor) CreateBlock(
 		return nil, nil, process.ErrWrongTypeAssertion
 	}
 
+	sp.processStatusHandler.SetBusy("shardProcessor.CreateBlock")
+	defer sp.processStatusHandler.SetIdle()
+
 	err := sp.createBlockStarted()
 	if err != nil {
 		return nil, nil, err
@@ -831,10 +854,12 @@ func (sp *shardProcessor) CommitBlock(
 	defer common.CanStartSnapshot()
 
 	var err error
+	sp.processStatusHandler.SetBusy("shardProcessor.CommitBlock")
 	defer func() {
 		if err != nil {
 			sp.RevertCurrentBlock()
 		}
+		sp.processStatusHandler.SetIdle()
 	}()
 
 	err = checkForNils(headerHandler, bodyHandler)
@@ -938,6 +963,10 @@ func (sp *shardProcessor) CommitBlock(
 	sp.blockTracker.AddSelfNotarizedHeader(core.MetachainShardId, lastSelfNotarizedHeader, lastSelfNotarizedHeaderHash)
 
 	sp.notifyFinalMetaHdrs(processedMetaHdrs)
+
+	if sp.lastRestartNonce == 0 {
+		sp.lastRestartNonce = header.GetNonce()
+	}
 
 	sp.updateState(selfNotarizedHeaders, header)
 

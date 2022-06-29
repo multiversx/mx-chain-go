@@ -16,10 +16,12 @@ import (
 	apiErrors "github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/groups"
 	"github.com/ElrondNetwork/elrond-go/api/mock"
+	"github.com/ElrondNetwork/elrond-go/api/shared"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -47,7 +49,25 @@ type esdtTokensResponseData struct {
 type esdtTokensResponse struct {
 	Data  esdtTokensResponseData `json:"data"`
 	Error string                 `json:"error"`
-	Code  string
+	Code  string                 `json:"code"`
+}
+
+type genesisNodesConfigResponse struct {
+	Data  genesisNodesConfigData `json:"data"`
+	Error string                 `json:"error"`
+	Code  string                 `json:"code"`
+}
+
+type genesisNodesConfigData struct {
+	Nodes groups.GenesisNodesConfig `json:"nodes"`
+}
+
+type ratingsConfigResponse struct {
+	Data struct {
+		Config map[string]interface{} `json:"config"`
+	} `json:"data"`
+	Error string `json:"error"`
+	Code  string `json:"code"`
 }
 
 func TestNetworkConfigMetrics_ShouldWork(t *testing.T) {
@@ -78,6 +98,66 @@ func TestNetworkConfigMetrics_ShouldWork(t *testing.T) {
 
 	keyAndValueFoundInResponse := strings.Contains(respStr, key) && strings.Contains(respStr, fmt.Sprintf("%d", value))
 	assert.True(t, keyAndValueFoundInResponse)
+}
+
+func TestGetNetworkConfig_ShouldReturnErrorIfFacadeReturnsError(t *testing.T) {
+	expectedErr := errors.New("i am an error")
+
+	facade := mock.FacadeStub{
+		StatusMetricsHandler: func() external.StatusMetricsHandler {
+			return &testscommon.StatusMetricsStub{
+				ConfigMetricsCalled: func() (map[string]interface{}, error) {
+					return nil, expectedErr
+				},
+			}
+		},
+	}
+
+	networkGroup, err := groups.NewNetworkGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(networkGroup, "network", getNetworkRoutesConfig())
+
+	req, _ := http.NewRequest("GET", "/network/config", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	assert.Equal(t, http.StatusInternalServerError, resp.Code)
+
+	response := &shared.GenericAPIResponse{}
+	loadResponse(resp.Body, response)
+
+	assert.Equal(t, expectedErr.Error(), response.Error)
+}
+
+func TestGetNetworkStatus_ShouldReturnErrorIfFacadeReturnsError(t *testing.T) {
+	expectedErr := errors.New("i am an error")
+
+	facade := mock.FacadeStub{
+		StatusMetricsHandler: func() external.StatusMetricsHandler {
+			return &testscommon.StatusMetricsStub{
+				NetworkMetricsCalled: func() (map[string]interface{}, error) {
+					return nil, expectedErr
+				},
+			}
+		},
+	}
+
+	networkGroup, err := groups.NewNetworkGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(networkGroup, "network", getNetworkRoutesConfig())
+
+	req, _ := http.NewRequest("GET", "/network/status", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	assert.Equal(t, http.StatusInternalServerError, resp.Code)
+
+	response := &shared.GenericAPIResponse{}
+	loadResponse(resp.Body, response)
+
+	assert.Equal(t, expectedErr.Error(), response.Error)
 }
 
 func TestNetworkStatusMetrics_ShouldWork(t *testing.T) {
@@ -143,6 +223,39 @@ func TestEconomicsMetrics_ShouldWork(t *testing.T) {
 
 	keyAndValueFoundInResponse := strings.Contains(respStr, key) && strings.Contains(respStr, value)
 	assert.True(t, keyAndValueFoundInResponse)
+}
+
+func TestGetEconomicValues_ShouldReturnErrorIfFacadeReturnsError(t *testing.T) {
+	expectedErr := errors.New("i am an error")
+
+	facade := mock.FacadeStub{
+		StatusMetricsHandler: func() external.StatusMetricsHandler {
+			return &testscommon.StatusMetricsStub{
+				EconomicsMetricsCalled: func() (map[string]interface{}, error) {
+					return nil, expectedErr
+				},
+			}
+		},
+		GetTotalStakedValueHandler: func() (*api.StakeValues, error) {
+			return nil, nil
+		},
+	}
+
+	networkGroup, err := groups.NewNetworkGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(networkGroup, "network", getNetworkRoutesConfig())
+
+	req, _ := http.NewRequest("GET", "/network/economics", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	assert.Equal(t, http.StatusInternalServerError, resp.Code)
+
+	response := &shared.GenericAPIResponse{}
+	loadResponse(resp.Body, response)
+
+	assert.Equal(t, expectedErr.Error(), response.Error)
 }
 
 func TestEconomicsMetrics_CannotGetStakeValues(t *testing.T) {
@@ -377,6 +490,36 @@ func TestDelegatedInfo_CannotGetDelegatedList(t *testing.T) {
 	assert.True(t, strings.Contains(respStr, expectedError.Error()))
 }
 
+func TestGetEnableEpochs_ShouldReturnErrorIfFacadeReturnsError(t *testing.T) {
+	expectedErr := errors.New("i am an error")
+
+	facade := mock.FacadeStub{
+		StatusMetricsHandler: func() external.StatusMetricsHandler {
+			return &testscommon.StatusMetricsStub{
+				EnableEpochsMetricsCalled: func() (map[string]interface{}, error) {
+					return nil, expectedErr
+				},
+			}
+		},
+	}
+
+	networkGroup, err := groups.NewNetworkGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(networkGroup, "network", getNetworkRoutesConfig())
+
+	req, _ := http.NewRequest("GET", "/network/enable-epochs", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	assert.Equal(t, http.StatusInternalServerError, resp.Code)
+
+	response := &shared.GenericAPIResponse{}
+	loadResponse(resp.Body, response)
+
+	assert.Equal(t, expectedErr.Error(), response.Error)
+}
+
 func TestGetEnableEpochs_ShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -408,6 +551,8 @@ func TestGetEnableEpochs_ShouldWork(t *testing.T) {
 }
 
 func TestGetESDTTotalSupply_InternalError(t *testing.T) {
+	t.Parallel()
+
 	expectedErr := errors.New("expected error")
 	facade := mock.FacadeStub{
 		GetTokenSupplyCalled: func(token string) (*api.ESDTSupply, error) {
@@ -432,7 +577,71 @@ func TestGetESDTTotalSupply_InternalError(t *testing.T) {
 	require.True(t, keyAndValueInResponse)
 }
 
+func TestGetNetworkRatings_ShouldReturnErrorIfFacadeReturnsError(t *testing.T) {
+	expectedErr := errors.New("i am an error")
+
+	facade := mock.FacadeStub{
+		StatusMetricsHandler: func() external.StatusMetricsHandler {
+			return &testscommon.StatusMetricsStub{
+				RatingsMetricsCalled: func() (map[string]interface{}, error) {
+					return nil, expectedErr
+				},
+			}
+		},
+	}
+
+	networkGroup, err := groups.NewNetworkGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(networkGroup, "network", getNetworkRoutesConfig())
+
+	req, _ := http.NewRequest("GET", "/network/ratings", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	assert.Equal(t, http.StatusInternalServerError, resp.Code)
+
+	response := &shared.GenericAPIResponse{}
+	loadResponse(resp.Body, response)
+
+	assert.Equal(t, expectedErr.Error(), response.Error)
+}
+
+func TestGetNetworkRatings_ShouldWork(t *testing.T) {
+	expectedMap := map[string]interface{}{
+		"key0": "val0",
+	}
+
+	facade := mock.FacadeStub{
+		StatusMetricsHandler: func() external.StatusMetricsHandler {
+			return &testscommon.StatusMetricsStub{
+				RatingsMetricsCalled: func() (map[string]interface{}, error) {
+					return expectedMap, nil
+				},
+			}
+		},
+	}
+
+	networkGroup, err := groups.NewNetworkGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(networkGroup, "network", getNetworkRoutesConfig())
+
+	req, _ := http.NewRequest("GET", "/network/ratings", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	assert.Equal(t, http.StatusOK, resp.Code)
+
+	response := &ratingsConfigResponse{}
+	loadResponse(resp.Body, response)
+
+	assert.Equal(t, expectedMap, response.Data.Config)
+}
+
 func TestGetESDTTotalSupply(t *testing.T) {
+	t.Parallel()
+
 	type supplyResponse struct {
 		Data *api.ESDTSupply `json:"data"`
 	}
@@ -470,6 +679,74 @@ func TestGetESDTTotalSupply(t *testing.T) {
 	}}, respSupply)
 }
 
+func TestGetGenesisNodes(t *testing.T) {
+	t.Parallel()
+
+	t.Run("facade error, should fail", func(t *testing.T) {
+		t.Parallel()
+
+		expectedErr := errors.New("expected err")
+		facade := mock.FacadeStub{
+			GetGenesisNodesPubKeysCalled: func() (map[uint32][]string, map[uint32][]string, error) {
+				return nil, nil, expectedErr
+			},
+		}
+
+		networkGroup, err := groups.NewNetworkGroup(&facade)
+		require.NoError(t, err)
+
+		ws := startWebServer(networkGroup, "network", getNetworkRoutesConfig())
+
+		req, _ := http.NewRequest("GET", "/network/genesis-nodes", nil)
+		resp := httptest.NewRecorder()
+		ws.ServeHTTP(resp, req)
+
+		response := genesisNodesConfigResponse{}
+		loadResponse(resp.Body, &response)
+
+		assert.Equal(t, http.StatusInternalServerError, resp.Code)
+		assert.True(t, strings.Contains(response.Error, expectedErr.Error()))
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		eligible := map[uint32][]string{
+			1: {"pubkey1"},
+		}
+		waiting := map[uint32][]string{
+			1: {"pubkey2"},
+		}
+
+		expectedOutput := groups.GenesisNodesConfig{
+			Eligible: eligible,
+			Waiting:  waiting,
+		}
+
+		facade := mock.FacadeStub{
+			GetGenesisNodesPubKeysCalled: func() (map[uint32][]string, map[uint32][]string, error) {
+				return eligible, waiting, nil
+			},
+		}
+
+		networkGroup, err := groups.NewNetworkGroup(&facade)
+		require.NoError(t, err)
+
+		ws := startWebServer(networkGroup, "network", getNetworkRoutesConfig())
+
+		req, _ := http.NewRequest("GET", "/network/genesis-nodes", nil)
+		resp := httptest.NewRecorder()
+		ws.ServeHTTP(resp, req)
+
+		assert.Equal(t, resp.Code, http.StatusOK)
+
+		response := genesisNodesConfigResponse{}
+		loadResponse(resp.Body, &response)
+
+		assert.Equal(t, expectedOutput, response.Data.Nodes)
+	})
+}
+
 func getNetworkRoutesConfig() config.ApiRoutesConfig {
 	return config.ApiRoutesConfig{
 		APIPackages: map[string]config.APIPackageConfig{
@@ -484,6 +761,8 @@ func getNetworkRoutesConfig() config.ApiRoutesConfig {
 					{Name: "/direct-staked-info", Open: true},
 					{Name: "/delegated-info", Open: true},
 					{Name: "/esdt/supply/:token", Open: true},
+					{Name: "/genesis-nodes", Open: true},
+					{Name: "/ratings", Open: true},
 				},
 			},
 		},

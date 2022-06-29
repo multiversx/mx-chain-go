@@ -1,6 +1,9 @@
 package mock
 
-import "github.com/ElrondNetwork/elrond-go/process"
+import (
+	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
+)
 
 // VmMachinesContainerFactoryMock -
 type VmMachinesContainerFactoryMock struct {
@@ -18,7 +21,7 @@ func (v *VmMachinesContainerFactoryMock) Close() error {
 
 // BlockChainHookImpl -
 func (v *VmMachinesContainerFactoryMock) BlockChainHookImpl() process.BlockChainHookHandler {
-	return &BlockChainHookHandlerStub{}
+	return &testscommon.BlockChainHookStub{}
 }
 
 // IsInterfaceNil -

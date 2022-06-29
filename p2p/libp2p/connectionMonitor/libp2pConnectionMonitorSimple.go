@@ -24,40 +24,47 @@ type libp2pConnectionMonitorSimple struct {
 	sharder                    Sharder
 	preferredPeersHolder       p2p.PreferredPeersHolderHandler
 	cancelFunc                 context.CancelFunc
+	connectionsWatcher         p2p.ConnectionsWatcher
+}
+
+// ArgsConnectionMonitorSimple is the DTO used in the NewLibp2pConnectionMonitorSimple constructor function
+type ArgsConnectionMonitorSimple struct {
+	Reconnecter                p2p.Reconnecter
+	ThresholdMinConnectedPeers uint32
+	Sharder                    Sharder
+	PreferredPeersHolder       p2p.PreferredPeersHolderHandler
+	ConnectionsWatcher         p2p.ConnectionsWatcher
 }
 
 // NewLibp2pConnectionMonitorSimple creates a new connection monitor (version 2 that is more streamlined and does not care
-//about pausing and resuming the discovery process)
-func NewLibp2pConnectionMonitorSimple(
-	reconnecter p2p.Reconnecter,
-	thresholdMinConnectedPeers uint32,
-	sharder Sharder,
-	preferredPeersHolder p2p.PreferredPeersHolderHandler,
-) (*libp2pConnectionMonitorSimple, error) {
-	if check.IfNil(reconnecter) {
+// about pausing and resuming the discovery process)
+func NewLibp2pConnectionMonitorSimple(args ArgsConnectionMonitorSimple) (*libp2pConnectionMonitorSimple, error) {
+	if check.IfNil(args.Reconnecter) {
 		return nil, p2p.ErrNilReconnecter
 	}
-	if check.IfNil(sharder) {
+	if check.IfNil(args.Sharder) {
 		return nil, p2p.ErrNilSharder
 	}
-	if check.IfNil(preferredPeersHolder) {
+	if check.IfNil(args.PreferredPeersHolder) {
 		return nil, p2p.ErrNilPreferredPeersHolder
+	}
+	if check.IfNil(args.ConnectionsWatcher) {
+		return nil, p2p.ErrNilConnectionsWatcher
 	}
 
 	ctx, cancelFunc := context.WithCancel(context.Background())
 
 	cm := &libp2pConnectionMonitorSimple{
-		reconnecter:                reconnecter,
+		reconnecter:                args.Reconnecter,
 		chDoReconnect:              make(chan struct{}),
-		thresholdMinConnectedPeers: int(thresholdMinConnectedPeers),
-		sharder:                    sharder,
+		thresholdMinConnectedPeers: int(args.ThresholdMinConnectedPeers),
+		sharder:                    args.Sharder,
 		cancelFunc:                 cancelFunc,
-		preferredPeersHolder:       preferredPeersHolder,
+		preferredPeersHolder:       args.PreferredPeersHolder,
+		connectionsWatcher:         args.ConnectionsWatcher,
 	}
 
-	if reconnecter != nil {
-		go cm.doReconnection(ctx)
-	}
+	go cm.doReconnection(ctx)
 
 	return cm, nil
 }
@@ -77,9 +84,10 @@ func (lcms *libp2pConnectionMonitorSimple) doReconn() {
 }
 
 // Connected is called when a connection opened
-func (lcms *libp2pConnectionMonitorSimple) Connected(netw network.Network, _ network.Conn) {
+func (lcms *libp2pConnectionMonitorSimple) Connected(netw network.Network, conn network.Conn) {
 	allPeers := netw.Peers()
 
+	lcms.connectionsWatcher.NewKnownConnection(core.PeerID(conn.RemotePeer()), conn.RemoteMultiaddr().String())
 	evicted := lcms.sharder.ComputeEvictionList(allPeers)
 	for _, pid := range evicted {
 		_ = netw.ClosePeer(pid)

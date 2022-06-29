@@ -35,6 +35,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/rating"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
+	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 )
@@ -88,7 +90,7 @@ type coreComponents struct {
 	apiEconomicsData              process.EconomicsDataHandler
 	ratingsData                   process.RatingsInfoHandler
 	rater                         sharding.PeerAccountListAndRatingHandler
-	nodesShuffler                 sharding.NodesShuffler
+	nodesShuffler                 nodesCoordinator.NodesShuffler
 	txVersionChecker              process.TxVersionCheckerHandler
 	genesisTime                   time.Time
 	chainID                       string
@@ -100,6 +102,7 @@ type coreComponents struct {
 	nodeTypeProvider              core.NodeTypeProviderHandler
 	encodedAddressLen             uint32
 	arwenChangeLocker             common.Locker
+	processStatusHandler          common.ProcessStatusHandler
 }
 
 // NewCoreComponentsFactory initializes the factory which is responsible to creating core components
@@ -293,7 +296,12 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		return nil, err
 	}
 
-	err = metrics.InitConfigMetrics(statusHandlersInfo, ccf.epochConfig, ccf.economicsConfig)
+	err = metrics.InitConfigMetrics(statusHandlersInfo, ccf.epochConfig, ccf.economicsConfig, genesisNodesConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	err = metrics.InitRatingsMetrics(statusHandlersInfo, ccf.ratingsConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -303,7 +311,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		log.Debug("cannot set status handler to economicsData", "error", err)
 	}
 
-	argsNodesShuffler := &sharding.NodesShufflerArgs{
+	argsNodesShuffler := &nodesCoordinator.NodesShufflerArgs{
 		NodesShard:                     genesisNodesConfig.MinNumberOfShardNodes(),
 		NodesMeta:                      genesisNodesConfig.MinNumberOfMetaNodes(),
 		Hysteresis:                     genesisNodesConfig.GetHysteresis(),
@@ -314,7 +322,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		WaitingListFixEnableEpoch:      ccf.epochConfig.EnableEpochs.WaitingListFixEnableEpoch,
 	}
 
-	nodesShuffler, err := sharding.NewHashValidatorsShuffler(argsNodesShuffler)
+	nodesShuffler, err := nodesCoordinator.NewHashValidatorsShuffler(argsNodesShuffler)
 	if err != nil {
 		return nil, err
 	}
@@ -356,6 +364,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		encodedAddressLen:             computeEncodedAddressLen(addressPubkeyConverter),
 		nodeTypeProvider:              nodeTypeProvider,
 		arwenChangeLocker:             arwenChangeLocker,
+		processStatusHandler:          statusHandler.NewProcessStatusHandler(),
 	}, nil
 }
 

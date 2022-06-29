@@ -44,7 +44,7 @@ func TestValidatorToDelegationManagerWithNewContract(t *testing.T) {
 
 	defer func() {
 		for _, n := range nodes {
-			_ = n.Messenger.Close()
+			n.Close()
 		}
 	}()
 
@@ -58,7 +58,7 @@ func TestValidatorToDelegationManagerWithNewContract(t *testing.T) {
 	round = integrationTests.IncrementAndPrintRound(round)
 	nonce++
 
-	///////////------- send stake tx and check sender's balance
+	// ------- send stake tx and check sender's balance
 	genesisBlock := nodes[0].GenesisBlocks[core.MetachainShardId]
 	metaBlock := genesisBlock.(*block.MetaBlock)
 	nodePrice := big.NewInt(0).Set(metaBlock.EpochStart.Economics.NodePrice)
@@ -134,7 +134,7 @@ func testValidatorToDelegationWithMerge(t *testing.T, withJail bool) {
 
 	defer func() {
 		for _, n := range nodes {
-			_ = n.Messenger.Close()
+			n.Close()
 		}
 	}()
 
@@ -148,7 +148,7 @@ func testValidatorToDelegationWithMerge(t *testing.T, withJail bool) {
 	round = integrationTests.IncrementAndPrintRound(round)
 	nonce++
 
-	///////////------- send stake tx and check sender's balance
+	// ------- send stake tx and check sender's balance
 	var txData string
 	genesisBlock := nodes[0].GenesisBlocks[core.MetachainShardId]
 	metaBlock := genesisBlock.(*block.MetaBlock)
@@ -268,7 +268,7 @@ func TestValidatorToDelegationManagerWithWhiteListAndMerge(t *testing.T) {
 
 	defer func() {
 		for _, n := range nodes {
-			_ = n.Messenger.Close()
+			n.Close()
 		}
 	}()
 
@@ -282,7 +282,7 @@ func TestValidatorToDelegationManagerWithWhiteListAndMerge(t *testing.T) {
 	round = integrationTests.IncrementAndPrintRound(round)
 	nonce++
 
-	///////////------- send stake tx and check sender's balance
+	// ------- send stake tx and check sender's balance
 	var txData string
 	genesisBlock := nodes[0].GenesisBlocks[core.MetachainShardId]
 	metaBlock := genesisBlock.(*block.MetaBlock)

@@ -3,6 +3,7 @@ package storagePruningManager
 import (
 	"bytes"
 	"encoding/hex"
+	"strings"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
@@ -10,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager/pruningBuffer"
+	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 type pruningOperation byte
@@ -102,6 +104,7 @@ func (spm *storagePruningManager) PruneTrie(
 	rootHash []byte,
 	identifier state.TriePruningIdentifier,
 	tsm common.StorageManager,
+	handler state.PruningHandler,
 ) {
 	rootHash = append(rootHash, byte(identifier))
 
@@ -118,8 +121,8 @@ func (spm *storagePruningManager) PruneTrie(
 	}
 
 	oldHashes := spm.pruningBuffer.RemoveAll()
-	spm.resolveBufferedHashes(oldHashes, tsm)
-	spm.prune(rootHash, tsm)
+	spm.resolveBufferedHashes(oldHashes, tsm, handler)
+	spm.prune(rootHash, tsm, handler)
 }
 
 // CancelPrune clears the evictionWaitingList at the given hash
@@ -141,7 +144,7 @@ func (spm *storagePruningManager) cancelPrune(rootHash []byte) {
 	_, _ = spm.dbEvictionWaitingList.Evict(rootHash)
 }
 
-func (spm *storagePruningManager) resolveBufferedHashes(oldHashes [][]byte, tsm common.StorageManager) {
+func (spm *storagePruningManager) resolveBufferedHashes(oldHashes [][]byte, tsm common.StorageManager, handler state.PruningHandler) {
 	for _, rootHash := range oldHashes {
 		lastBytePos := len(rootHash) - 1
 		if lastBytePos < 0 {
@@ -153,7 +156,7 @@ func (spm *storagePruningManager) resolveBufferedHashes(oldHashes [][]byte, tsm 
 
 		switch pruneOperation {
 		case prune:
-			spm.prune(rootHash, tsm)
+			spm.prune(rootHash, tsm, handler)
 		case cancelPrune:
 			spm.cancelPrune(rootHash)
 		default:
@@ -162,11 +165,16 @@ func (spm *storagePruningManager) resolveBufferedHashes(oldHashes [][]byte, tsm 
 	}
 }
 
-func (spm *storagePruningManager) prune(rootHash []byte, tsm common.StorageManager) {
+func (spm *storagePruningManager) prune(rootHash []byte, tsm common.StorageManager, handler state.PruningHandler) {
 	log.Trace("trie storage manager prune", "root", rootHash)
 
-	err := spm.removeFromDb(rootHash, tsm)
+	err := spm.removeFromDb(rootHash, tsm, handler)
 	if err != nil {
+		if err == storage.ErrDBIsClosed || strings.Contains(err.Error(), storage.ErrDBIsClosed.Error()) {
+			log.Debug("did not remove hash", "rootHash", rootHash, "error", err)
+			return
+		}
+
 		log.Error("trie storage manager remove from db", "error", err, "rootHash", hex.EncodeToString(rootHash))
 	}
 }
@@ -174,10 +182,16 @@ func (spm *storagePruningManager) prune(rootHash []byte, tsm common.StorageManag
 func (spm *storagePruningManager) removeFromDb(
 	rootHash []byte,
 	tsm common.StorageManager,
+	handler state.PruningHandler,
 ) error {
 	hashes, err := spm.dbEvictionWaitingList.Evict(rootHash)
 	if err != nil {
 		return err
+	}
+
+	if !handler.IsPruningEnabled() {
+		log.Debug("trie removeFromDb", "skipping remove for rootHash", rootHash)
+		return nil
 	}
 
 	log.Debug("trie removeFromDb", "rootHash", rootHash)

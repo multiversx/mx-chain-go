@@ -24,6 +24,8 @@ type HeaderHandlerStub struct {
 	CheckChainIDCalled                     func(reference []byte) error
 	GetReservedCalled                      func() []byte
 	IsStartOfEpochBlockCalled              func() bool
+	HasScheduledMiniBlocksCalled           func() bool
+	GetNonceCalled                         func() uint64
 }
 
 // GetAccumulatedFees -
@@ -77,6 +79,9 @@ func (hhs *HeaderHandlerStub) GetShardID() uint32 {
 
 // GetNonce -
 func (hhs *HeaderHandlerStub) GetNonce() uint64 {
+	if hhs.GetNonceCalled != nil {
+		return hhs.GetNonceCalled()
+	}
 	return 1
 }
 
@@ -352,4 +357,12 @@ func (hhs *HeaderHandlerStub) HasScheduledSupport() bool {
 // MapMiniBlockHashesToShards -
 func (hhs *HeaderHandlerStub) MapMiniBlockHashesToShards() map[string]uint32 {
 	panic("implement me")
+}
+
+// HasScheduledMiniBlocks -
+func (hhs *HeaderHandlerStub) HasScheduledMiniBlocks() bool {
+	if hhs.HasScheduledMiniBlocksCalled != nil {
+		return hhs.HasScheduledMiniBlocksCalled()
+	}
+	return false
 }

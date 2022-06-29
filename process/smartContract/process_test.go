@@ -79,7 +79,7 @@ func createMockSmartContractProcessorArguments() ArgsNewSmartContractProcessor {
 				return nil
 			},
 		},
-		BlockChainHook:   &mock.BlockChainHookHandlerMock{},
+		BlockChainHook:   &testscommon.BlockChainHookStub{},
 		BuiltInFunctions: builtInFunctions.NewBuiltInFunctionContainer(),
 		PubkeyConv:       createMockPubkeyConverter(),
 		ShardCoordinator: mock.NewMultiShardsCoordinatorMock(5),
@@ -609,9 +609,11 @@ func TestScProcessor_BuiltInCallSmartContractSenderFailed(t *testing.T) {
 	arguments.EnableEpochs.BuiltInFunctionsEnableEpoch = maxEpoch
 	funcName := "builtIn"
 	localError := errors.New("failed built in call")
-	arguments.BlockChainHook = &mock.BlockChainHookHandlerMock{ProcessBuiltInFunctionCalled: func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
-		return nil, localError
-	}}
+	arguments.BlockChainHook = &testscommon.BlockChainHookStub{
+		ProcessBuiltInFunctionCalled: func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
+			return nil, localError
+		},
+	}
 
 	scrAdded := false
 	badTxAdded := false
@@ -836,9 +838,11 @@ func TestScProcessor_ExecuteBuiltInFunctionSCRTooBig(t *testing.T) {
 		return &vmcommon.VMOutput{ReturnCode: vmcommon.Ok, ReturnData: [][]byte{longData}}, nil
 	}}
 	_ = arguments.BuiltInFunctions.Add(funcName, builtInFunc)
-	arguments.BlockChainHook = &mock.BlockChainHookHandlerMock{ProcessBuiltInFunctionCalled: func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
-		return builtInFunc.ProcessBuiltinFunction(userAcc, nil, input)
-	}}
+	arguments.BlockChainHook = &testscommon.BlockChainHookStub{
+		ProcessBuiltInFunctionCalled: func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
+			return builtInFunc.ProcessBuiltinFunction(userAcc, nil, input)
+		},
+	}
 	sc, err := NewSmartContractProcessor(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
@@ -2966,8 +2970,8 @@ func TestScProcessor_ProcessSmartContractResultNotPayable(t *testing.T) {
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.AccountsDB = accountsDB
 	arguments.ShardCoordinator = shardCoordinator
-	arguments.BlockChainHook = &mock.BlockChainHookHandlerMock{
-		IsPayableCalled: func(_, _ []byte) (bool, error) {
+	arguments.BlockChainHook = &testscommon.BlockChainHookStub{
+		IsPayableCalled: func(_ []byte, _ []byte) (bool, error) {
 			return false, nil
 		},
 	}
@@ -4243,6 +4247,27 @@ func TestMergeVmOutputLogs(t *testing.T) {
 
 	mergeVMOutputLogs(vmOutput1, vmOutput2)
 	require.Len(t, vmOutput1.Logs, 2)
+
+	vmOutput1 = &vmcommon.VMOutput{
+		Logs: []*vmcommon.LogEntry{
+			{
+				Identifier: []byte("identifier2"),
+			},
+		},
+	}
+
+	vmOutput2 = &vmcommon.VMOutput{
+		Logs: []*vmcommon.LogEntry{
+			{
+				Identifier: []byte("identifier1"),
+			},
+		},
+	}
+
+	mergeVMOutputLogs(vmOutput1, vmOutput2)
+	require.Len(t, vmOutput1.Logs, 2)
+	require.Equal(t, []byte("identifier1"), vmOutput1.Logs[0].Identifier)
+	require.Equal(t, []byte("identifier2"), vmOutput1.Logs[1].Identifier)
 }
 
 func TestScProcessor_TooMuchGasProvidedMessage(t *testing.T) {

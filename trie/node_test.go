@@ -3,7 +3,11 @@ package trie
 import (
 	"context"
 	"testing"
+	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
+	"github.com/ElrondNetwork/elrond-go/common"
 	dataMock "github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
@@ -539,7 +543,8 @@ func TestPatriciaMerkleTrie_GetAllLeavesCollapsedTrie(t *testing.T) {
 	}
 	tr.root = root
 
-	leavesChannel, err := tr.GetAllLeavesOnChannel(tr.root.getHash())
+	leavesChannel := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
+	err := tr.GetAllLeavesOnChannel(leavesChannel, context.Background(), tr.root.getHash())
 	assert.Nil(t, err)
 	leaves := make(map[string][]byte)
 
@@ -592,13 +597,51 @@ func TestNode_NodeExtension(t *testing.T) {
 	assert.False(t, shouldTestNode(n, make([]byte, 0)))
 }
 
-func Test_ShouldStopIfContextDone(t *testing.T) {
+func TestShouldStopIfContextDone(t *testing.T) {
 	t.Parallel()
 
-	ctx, cancelFunc := context.WithCancel(context.Background())
-	assert.False(t, shouldStopIfContextDone(ctx))
-	cancelFunc()
-	assert.True(t, shouldStopIfContextDone(ctx))
+	t.Run("context done", func(t *testing.T) {
+		t.Parallel()
+
+		ctx, cancelFunc := context.WithCancel(context.Background())
+		assert.False(t, shouldStopIfContextDone(ctx, &testscommon.ProcessStatusHandlerStub{}))
+		cancelFunc()
+		assert.True(t, shouldStopIfContextDone(ctx, &testscommon.ProcessStatusHandlerStub{}))
+	})
+	t.Run("wait until idle", func(t *testing.T) {
+		t.Parallel()
+
+		ctx, cancelFunc := context.WithCancel(context.Background())
+		defer cancelFunc()
+
+		flag := atomic.Flag{} // default is false so the idleProvider will say it's not idle
+		idleProvider := &testscommon.ProcessStatusHandlerStub{
+			IsIdleCalled: func() bool {
+				return flag.IsSet()
+			},
+		}
+
+		chResult := make(chan bool, 1)
+		go func() {
+			chResult <- shouldStopIfContextDone(ctx, idleProvider)
+		}()
+
+		select {
+		case <-chResult:
+			// we should have not received any results now since the idle provider states it is not idle
+			assert.Fail(t, "should have not stop now")
+		case <-time.After(time.Second):
+		}
+
+		flag.SetValue(true)
+
+		select {
+		case result := <-chResult:
+			assert.False(t, result)
+		case <-time.After(time.Second):
+			assert.Fail(t, "timeout while waiting for the shouldStopIfContextDone call to write the result")
+		}
+	})
 }
 
 func Benchmark_ShouldStopIfContextDone(b *testing.B) {
@@ -606,6 +649,6 @@ func Benchmark_ShouldStopIfContextDone(b *testing.B) {
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		_ = shouldStopIfContextDone(ctx)
+		_ = shouldStopIfContextDone(ctx, &testscommon.ProcessStatusHandlerStub{})
 	}
 }

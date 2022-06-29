@@ -23,7 +23,8 @@ func createMessenger() p2p.Messenger {
 		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
 		P2pConfig: config.P2PConfig{
 			Node: config.NodeConfig{
-				Port: "0",
+				Port:                  "0",
+				ConnectionWatcherType: "print",
 			},
 			KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
 				Enabled: false,
@@ -35,6 +36,7 @@ func createMessenger() p2p.Messenger {
 		SyncTimer:            &libp2p.LocalSyncTimer{},
 		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
 		NodeOperationMode:    p2p.NormalOperation,
+		PeersRatingHandler:   &p2pmocks.PeersRatingHandlerStub{},
 	}
 
 	libP2PMes, err := libp2p.NewNetworkMessenger(args)
@@ -70,9 +72,9 @@ func TestIssueEN898_StreamResetError(t *testing.T) {
 	size4MB := 1 << 22
 	size4kB := 1 << 12
 
-	//a 4MB slice containing character A
+	// a 4MB slice containing character A
 	largePacket := bytes.Repeat([]byte{65}, size4MB)
-	//a 4kB slice containing character B
+	// a 4kB slice containing character B
 	smallPacket := bytes.Repeat([]byte{66}, size4kB)
 
 	largePacketReceived := &atomic.Value{}

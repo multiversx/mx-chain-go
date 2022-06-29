@@ -20,6 +20,7 @@ const (
 	nibbleMask           = 0x0f
 	pointerSizeInBytes   = 8
 	numNodeInnerPointers = 2 // each trie node contains a marshalizer and a hasher
+	pollingIdleNode      = time.Millisecond
 )
 
 type baseNode struct {
@@ -259,19 +260,22 @@ func prefixLen(a, b []byte) int {
 	return i
 }
 
-func shouldStopIfContextDone(ctx context.Context) bool {
+func shouldStopIfContextDone(ctx context.Context, idleProvider IdleNodeProvider) bool {
 	for {
 		select {
 		case <-ctx.Done():
 			return true
 		default:
-			shouldContinue := common.ShouldContinueSnapshot()
-			if !shouldContinue {
-				time.Sleep(time.Millisecond)
-				continue
-			}
+		}
 
+		if idleProvider.IsIdle() {
 			return false
+		}
+
+		select {
+		case <-ctx.Done():
+			return true
+		case <-time.After(pollingIdleNode):
 		}
 	}
 }

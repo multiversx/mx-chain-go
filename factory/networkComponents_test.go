@@ -16,6 +16,9 @@ import (
 
 func TestNewNetworkComponentsFactory_NilStatusHandlerShouldErr(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	args := getNetworkArgs()
 	args.StatusHandler = nil
@@ -26,6 +29,9 @@ func TestNewNetworkComponentsFactory_NilStatusHandlerShouldErr(t *testing.T) {
 
 func TestNewNetworkComponentsFactory_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	args := getNetworkArgs()
 	args.Marshalizer = nil
@@ -36,13 +42,22 @@ func TestNewNetworkComponentsFactory_NilMarshalizerShouldErr(t *testing.T) {
 
 func TestNewNetworkComponentsFactory_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	args := getNetworkArgs()
 	ncf, err := factory.NewNetworkComponentsFactory(args)
 	require.NoError(t, err)
 	require.NotNil(t, ncf)
 }
 
-func TestNetworkComponentsFactory_Create_ShouldErrDueToBadConfig(t *testing.T) {
+func TestNetworkComponentsFactory_CreateShouldErrDueToBadConfig(t *testing.T) {
+	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	args := getNetworkArgs()
 	args.MainConfig = config.Config{}
 	args.P2pConfig = config.P2PConfig{}
@@ -54,7 +69,12 @@ func TestNetworkComponentsFactory_Create_ShouldErrDueToBadConfig(t *testing.T) {
 	require.Nil(t, nc)
 }
 
-func TestNetworkComponentsFactory_Create_ShouldWork(t *testing.T) {
+func TestNetworkComponentsFactory_CreateShouldWork(t *testing.T) {
+	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	args := getNetworkArgs()
 	ncf, _ := factory.NewNetworkComponentsFactory(args)
 	ncf.SetListenAddress(libp2p.ListenLocalhostAddrWithIp4AndTcp)
@@ -65,7 +85,12 @@ func TestNetworkComponentsFactory_Create_ShouldWork(t *testing.T) {
 }
 
 // ------------ Test NetworkComponents --------------------
-func TestNetworkComponents_Close_ShouldWork(t *testing.T) {
+func TestNetworkComponents_CloseShouldWork(t *testing.T) {
+	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	args := getNetworkArgs()
 	ncf, _ := factory.NewNetworkComponentsFactory(args)
 
@@ -78,8 +103,9 @@ func TestNetworkComponents_Close_ShouldWork(t *testing.T) {
 func getNetworkArgs() factory.NetworkComponentsFactoryArgs {
 	p2pConfig := config.P2PConfig{
 		Node: config.NodeConfig{
-			Port: "0",
-			Seed: "seed",
+			Port:                  "0",
+			Seed:                  "seed",
+			ConnectionWatcherType: "print",
 		},
 		KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
 			Enabled:                          false,
@@ -116,6 +142,10 @@ func getNetworkArgs() factory.NetworkComponentsFactoryArgs {
 				CacheSize:                  100,
 				IntervalAutoPrintInSeconds: 1,
 			},
+		},
+		PeersRatingConfig: config.PeersRatingConfig{
+			TopRatedCacheCapacity: 1000,
+			BadRatedCacheCapacity: 1000,
 		},
 	}
 

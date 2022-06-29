@@ -38,6 +38,8 @@ type Batcher interface {
 	Delete(key []byte) error
 	// Reset clears the contents of the batch
 	Reset()
+	// IsRemoved returns true if the provided key is marked for deletion
+	IsRemoved(key []byte) bool
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }
@@ -223,4 +225,10 @@ type StoredDataFactory interface {
 type SerializedStoredData interface {
 	GetSerialized() []byte
 	SetSerialized([]byte)
+}
+
+// CustomDatabaseRemoverHandler defines the behaviour of a component that should tell if a database is removable or not
+type CustomDatabaseRemoverHandler interface {
+	ShouldRemove(dbIdentifier string, epoch uint32) bool
+	IsInterfaceNil() bool
 }

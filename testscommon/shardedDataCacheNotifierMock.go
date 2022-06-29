@@ -110,6 +110,19 @@ func (mock *ShardedDataCacheNotifierMock) GetCounts() counting.CountsWithSize {
 	return nil
 }
 
+// Keys -
+func (mock *ShardedDataCacheNotifierMock) Keys() [][]byte {
+	mock.mutCaches.Lock()
+	defer mock.mutCaches.Unlock()
+
+	keys := make([][]byte, 0)
+	for _, cache := range mock.caches {
+		keys = append(keys, cache.Keys()...)
+	}
+
+	return keys
+}
+
 // IsInterfaceNil -
 func (mock *ShardedDataCacheNotifierMock) IsInterfaceNil() bool {
 	return mock == nil

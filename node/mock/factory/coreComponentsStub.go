@@ -15,42 +15,44 @@ import (
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 // CoreComponentsMock -
 type CoreComponentsMock struct {
-	IntMarsh                    marshal.Marshalizer
-	TxMarsh                     marshal.Marshalizer
-	VmMarsh                     marshal.Marshalizer
-	Hash                        hashing.Hasher
-	TxSignHasherField           hashing.Hasher
-	UInt64ByteSliceConv         typeConverters.Uint64ByteSliceConverter
-	AddrPubKeyConv              core.PubkeyConverter
-	ValPubKeyConv               core.PubkeyConverter
-	PathHdl                     storage.PathManagerHandler
-	ChainIdCalled               func() string
-	MinTransactionVersionCalled func() uint32
-	StatusHdlUtils              nodeFactory.StatusHandlersUtils
-	AppStatusHdl                core.AppStatusHandler
-	WDTimer                     core.WatchdogTimer
-	Alarm                       core.TimersScheduler
-	NtpTimer                    ntp.SyncTimer
-	RoundHandlerField           consensus.RoundHandler
-	EconomicsHandler            process.EconomicsDataHandler
-	APIEconomicsHandler         process.EconomicsDataHandler
-	RatingsConfig               process.RatingsInfoHandler
-	RatingHandler               sharding.PeerAccountListAndRatingHandler
-	NodesConfig                 sharding.GenesisNodesSetupHandler
-	EpochChangeNotifier         process.EpochNotifier
-	RoundChangeNotifier         process.RoundNotifier
-	EpochNotifierWithConfirm    factory.EpochStartNotifierWithConfirm
-	ChanStopProcess             chan endProcess.ArgEndProcess
-	Shuffler                    sharding.NodesShuffler
-	TxVersionCheckHandler       process.TxVersionCheckerHandler
-	StartTime                   time.Time
-	NodeTypeProviderField       core.NodeTypeProviderHandler
-	ArwenChangeLockerInternal   common.Locker
+	IntMarsh                     marshal.Marshalizer
+	TxMarsh                      marshal.Marshalizer
+	VmMarsh                      marshal.Marshalizer
+	Hash                         hashing.Hasher
+	TxSignHasherField            hashing.Hasher
+	UInt64ByteSliceConv          typeConverters.Uint64ByteSliceConverter
+	AddrPubKeyConv               core.PubkeyConverter
+	ValPubKeyConv                core.PubkeyConverter
+	PathHdl                      storage.PathManagerHandler
+	ChainIdCalled                func() string
+	MinTransactionVersionCalled  func() uint32
+	StatusHdlUtils               nodeFactory.StatusHandlersUtils
+	AppStatusHdl                 core.AppStatusHandler
+	WDTimer                      core.WatchdogTimer
+	Alarm                        core.TimersScheduler
+	NtpTimer                     ntp.SyncTimer
+	RoundHandlerField            consensus.RoundHandler
+	EconomicsHandler             process.EconomicsDataHandler
+	APIEconomicsHandler          process.EconomicsDataHandler
+	RatingsConfig                process.RatingsInfoHandler
+	RatingHandler                sharding.PeerAccountListAndRatingHandler
+	NodesConfig                  sharding.GenesisNodesSetupHandler
+	EpochChangeNotifier          process.EpochNotifier
+	RoundChangeNotifier          process.RoundNotifier
+	EpochNotifierWithConfirm     factory.EpochStartNotifierWithConfirm
+	ChanStopProcess              chan endProcess.ArgEndProcess
+	Shuffler                     nodesCoordinator.NodesShuffler
+	TxVersionCheckHandler        process.TxVersionCheckerHandler
+	StartTime                    time.Time
+	NodeTypeProviderField        core.NodeTypeProviderHandler
+	ArwenChangeLockerInternal    common.Locker
+	ProcessStatusHandlerInternal common.ProcessStatusHandler
 }
 
 // Create -
@@ -130,7 +132,7 @@ func (ccm *CoreComponentsMock) GenesisNodesSetup() sharding.GenesisNodesSetupHan
 }
 
 // NodesShuffler -
-func (ccm *CoreComponentsMock) NodesShuffler() sharding.NodesShuffler {
+func (ccm *CoreComponentsMock) NodesShuffler() nodesCoordinator.NodesShuffler {
 	return ccm.Shuffler
 }
 
@@ -239,6 +241,11 @@ func (ccm *CoreComponentsMock) NodeTypeProvider() core.NodeTypeProviderHandler {
 // ArwenChangeLocker -
 func (ccm *CoreComponentsMock) ArwenChangeLocker() common.Locker {
 	return ccm.ArwenChangeLockerInternal
+}
+
+// ProcessStatusHandler -
+func (ccm *CoreComponentsMock) ProcessStatusHandler() common.ProcessStatusHandler {
+	return ccm.ProcessStatusHandlerInternal
 }
 
 // String -

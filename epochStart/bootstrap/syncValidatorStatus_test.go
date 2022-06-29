@@ -10,13 +10,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
-	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	epochStartMocks "github.com/ElrondNetwork/elrond-go/testscommon/bootstrapMocks/epochStart"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
+	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -134,7 +135,7 @@ func TestSyncValidatorStatus_processValidatorChangesFor(t *testing.T) {
 	svs, _ := NewSyncValidatorStatus(args)
 
 	wasCalled := false
-	svs.nodeCoordinator = &mock.NodesCoordinatorStub{
+	svs.nodeCoordinator = &shardingMocks.NodesCoordinatorStub{
 		EpochStartPrepareCalled: func(metaHdr data.HeaderHandler, body data.BodyHandler) {
 			wasCalled = true
 			assert.Equal(t, metaBlock, metaHdr)
@@ -248,29 +249,29 @@ func getSyncValidatorStatusArgs() ArgsNewSyncValidatorStatus {
 		Marshalizer:    &mock.MarshalizerMock{},
 		Hasher:         &hashingMocks.HasherMock{},
 		RequestHandler: &testscommon.RequestHandlerStub{},
-		ChanceComputer: &mock.NodesCoordinatorStub{},
+		ChanceComputer: &shardingMocks.NodesCoordinatorStub{},
 		GenesisNodesConfig: &mock.NodesSetupStub{
 			NumberOfShardsCalled: func() uint32 {
 				return 1
 			},
-			InitialNodesInfoForShardCalled: func(shardID uint32) ([]sharding.GenesisNodeInfoHandler, []sharding.GenesisNodeInfoHandler, error) {
+			InitialNodesInfoForShardCalled: func(shardID uint32) ([]nodesCoordinator.GenesisNodeInfoHandler, []nodesCoordinator.GenesisNodeInfoHandler, error) {
 				if shardID == core.MetachainShardId {
-					return []sharding.GenesisNodeInfoHandler{
+					return []nodesCoordinator.GenesisNodeInfoHandler{
 							mock.NewNodeInfo([]byte("addr0"), []byte("pubKey0"), core.MetachainShardId, initRating),
 							mock.NewNodeInfo([]byte("addr1"), []byte("pubKey1"), core.MetachainShardId, initRating),
 						},
-						[]sharding.GenesisNodeInfoHandler{&mock.NodeInfoMock{}},
+						[]nodesCoordinator.GenesisNodeInfoHandler{&mock.NodeInfoMock{}},
 						nil
 				}
-				return []sharding.GenesisNodeInfoHandler{
+				return []nodesCoordinator.GenesisNodeInfoHandler{
 						mock.NewNodeInfo([]byte("addr0"), []byte("pubKey0"), 0, initRating),
 						mock.NewNodeInfo([]byte("addr1"), []byte("pubKey1"), 0, initRating),
 					},
-					[]sharding.GenesisNodeInfoHandler{&mock.NodeInfoMock{}},
+					[]nodesCoordinator.GenesisNodeInfoHandler{&mock.NodeInfoMock{}},
 					nil
 			},
-			InitialNodesInfoCalled: func() (map[uint32][]sharding.GenesisNodeInfoHandler, map[uint32][]sharding.GenesisNodeInfoHandler) {
-				return map[uint32][]sharding.GenesisNodeInfoHandler{
+			InitialNodesInfoCalled: func() (map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, map[uint32][]nodesCoordinator.GenesisNodeInfoHandler) {
+				return map[uint32][]nodesCoordinator.GenesisNodeInfoHandler{
 						0: {
 							mock.NewNodeInfo([]byte("addr0"), []byte("pubKey0"), 0, initRating),
 							mock.NewNodeInfo([]byte("addr1"), []byte("pubKey1"), 0, initRating),
@@ -279,7 +280,7 @@ func getSyncValidatorStatusArgs() ArgsNewSyncValidatorStatus {
 							mock.NewNodeInfo([]byte("addr0"), []byte("pubKey0"), core.MetachainShardId, initRating),
 							mock.NewNodeInfo([]byte("addr1"), []byte("pubKey1"), core.MetachainShardId, initRating),
 						},
-					}, map[uint32][]sharding.GenesisNodeInfoHandler{0: {
+					}, map[uint32][]nodesCoordinator.GenesisNodeInfoHandler{0: {
 						mock.NewNodeInfo([]byte("addr2"), []byte("pubKey2"), 0, initRating),
 						mock.NewNodeInfo([]byte("addr3"), []byte("pubKey3"), 0, initRating),
 					}}
@@ -291,7 +292,7 @@ func getSyncValidatorStatusArgs() ArgsNewSyncValidatorStatus {
 				return 2
 			},
 		},
-		NodeShuffler:      &mock.NodeShufflerMock{},
+		NodeShuffler:      &shardingMocks.NodeShufflerMock{},
 		PubKey:            []byte("public key"),
 		ShardIdAsObserver: 0,
 		ChanNodeStop:      endProcess.GetDummyEndProcessChannel(),

@@ -10,12 +10,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go-crypto"
-	"github.com/ElrondNetwork/elrond-go-logger"
+	crypto "github.com/ElrondNetwork/elrond-go-crypto"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 )
@@ -95,18 +96,18 @@ func CreateNodesCoordinator(
 	pubKey crypto.PublicKey,
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
-	ratingAndListIndexHandler sharding.ChanceComputer,
+	ratingAndListIndexHandler nodesCoordinator.ChanceComputer,
 	bootStorer storage.Storer,
-	nodeShuffler sharding.NodesShuffler,
+	nodeShuffler nodesCoordinator.NodesShuffler,
 	currentShardID uint32,
 	bootstrapParameters BootstrapParamsHolder,
 	startEpoch uint32,
 	waitingListFixEnabledEpoch uint32,
 	chanNodeStop chan endProcess.ArgEndProcess,
 	nodeTypeProvider core.NodeTypeProviderHandler,
-) (sharding.NodesCoordinator, error) {
+) (nodesCoordinator.NodesCoordinator, error) {
 	if chanNodeStop == nil {
-		return nil, sharding.ErrNilNodeStopChannel
+		return nil, nodesCoordinator.ErrNilNodeStopChannel
 	}
 	shardIDAsObserver, err := common.ProcessDestinationShardAsObserver(prefsConfig.DestinationShardAsObserver)
 	if err != nil {
@@ -127,12 +128,12 @@ func CreateNodesCoordinator(
 	metaConsensusGroupSize := int(nodesConfig.GetMetaConsensusGroupSize())
 	eligibleNodesInfo, waitingNodesInfo := nodesConfig.InitialNodesInfo()
 
-	eligibleValidators, errEligibleValidators := sharding.NodesInfoToValidators(eligibleNodesInfo)
+	eligibleValidators, errEligibleValidators := nodesCoordinator.NodesInfoToValidators(eligibleNodesInfo)
 	if errEligibleValidators != nil {
 		return nil, errEligibleValidators
 	}
 
-	waitingValidators, errWaitingValidators := sharding.NodesInfoToValidators(waitingNodesInfo)
+	waitingValidators, errWaitingValidators := nodesCoordinator.NodesInfoToValidators(waitingNodesInfo)
 	if errWaitingValidators != nil {
 		return nil, errWaitingValidators
 	}
@@ -144,13 +145,13 @@ func CreateNodesCoordinator(
 		epochsConfig, ok := nodeRegistry.EpochsConfig[fmt.Sprintf("%d", currentEpoch)]
 		if ok {
 			eligibles := epochsConfig.EligibleValidators
-			eligibleValidators, err = sharding.SerializableValidatorsToValidators(eligibles)
+			eligibleValidators, err = nodesCoordinator.SerializableValidatorsToValidators(eligibles)
 			if err != nil {
 				return nil, err
 			}
 
 			waitings := epochsConfig.WaitingValidators
-			waitingValidators, err = sharding.SerializableValidatorsToValidators(waitings)
+			waitingValidators, err = nodesCoordinator.SerializableValidatorsToValidators(waitings)
 			if err != nil {
 				return nil, err
 			}
@@ -172,7 +173,7 @@ func CreateNodesCoordinator(
 		return nil, err
 	}
 
-	argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
+	argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
 		ShardConsensusGroupSize:    shardConsensusGroupSize,
 		MetaConsensusGroupSize:     metaConsensusGroupSize,
 		Marshalizer:                marshalizer,
@@ -195,17 +196,17 @@ func CreateNodesCoordinator(
 		IsFullArchive:              prefsConfig.FullArchive,
 	}
 
-	baseNodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
+	baseNodesCoordinator, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 	if err != nil {
 		return nil, err
 	}
 
-	nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinatorWithRater(baseNodesCoordinator, ratingAndListIndexHandler)
+	nodesCoord, err := nodesCoordinator.NewIndexHashedNodesCoordinatorWithRater(baseNodesCoordinator, ratingAndListIndexHandler)
 	if err != nil {
 		return nil, err
 	}
 
-	return nodesCoordinator, nil
+	return nodesCoord, nil
 }
 
 // CreateNodesShuffleOut is the nodes shuffler closer factory

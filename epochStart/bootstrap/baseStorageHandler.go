@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 )
 
 // baseStorageHandler handles the storage functions for saving bootstrap data
@@ -28,8 +29,8 @@ type baseStorageHandler struct {
 func (bsh *baseStorageHandler) groupMiniBlocksByShard(miniBlocks map[string]*block.MiniBlock) ([]bootstrapStorage.PendingMiniBlocksInfo, error) {
 	pendingMBsMap := make(map[uint32][][]byte)
 	for hash, miniBlock := range miniBlocks {
-		senderShId := miniBlock.SenderShardID
-		pendingMBsMap[senderShId] = append(pendingMBsMap[senderShId], []byte(hash))
+		receiverShId := miniBlock.ReceiverShardID // we need the receiver only on meta to properly load the pendingMiniBlocks structure
+		pendingMBsMap[receiverShId] = append(pendingMBsMap[receiverShId], []byte(hash))
 	}
 
 	sliceToRet := make([]bootstrapStorage.PendingMiniBlocksInfo, 0)
@@ -45,7 +46,7 @@ func (bsh *baseStorageHandler) groupMiniBlocksByShard(miniBlocks map[string]*blo
 
 func (bsh *baseStorageHandler) saveNodesCoordinatorRegistry(
 	metaBlock data.HeaderHandler,
-	nodesConfig *sharding.NodesCoordinatorRegistry,
+	nodesConfig *nodesCoordinator.NodesCoordinatorRegistry,
 ) ([]byte, error) {
 	key := append([]byte(common.NodesCoordinatorRegistryKeyPrefix), metaBlock.GetPrevRandSeed()...)
 

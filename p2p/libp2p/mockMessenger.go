@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/metrics/factory"
 	mocknet "github.com/libp2p/go-libp2p/p2p/net/mock"
 )
 
@@ -28,6 +29,10 @@ func NewMockMessenger(
 		p2pHost:    NewConnectableHost(h),
 		ctx:        ctx,
 		cancelFunc: cancelFunc,
+	}
+	p2pNode.connectionsWatcher, err = factory.NewConnectionsWatcher(args.P2pConfig.Node.ConnectionWatcherType, ttlConnectionsWatcher)
+	if err != nil {
+		return nil, err
 	}
 
 	err = addComponentsToNode(args, p2pNode, withoutMessageSigning)

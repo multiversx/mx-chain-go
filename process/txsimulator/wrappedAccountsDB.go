@@ -1,6 +1,8 @@
 package txsimulator
 
 import (
+	"context"
+
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/common"
@@ -67,11 +69,6 @@ func (r *readOnlyAccountsDB) RevertToSnapshot(_ int) error {
 	return nil
 }
 
-// GetNumCheckpoints will call the original accounts' function with the same name
-func (r *readOnlyAccountsDB) GetNumCheckpoints() uint32 {
-	return r.originalAccounts.GetNumCheckpoints()
-}
-
 // RootHash will call the original accounts' function with the same name
 func (r *readOnlyAccountsDB) RootHash() ([]byte, error) {
 	return r.originalAccounts.RootHash()
@@ -83,7 +80,7 @@ func (r *readOnlyAccountsDB) RecreateTrie(_ []byte) error {
 }
 
 // PruneTrie won't do anything as write operations are disabled on this component
-func (r *readOnlyAccountsDB) PruneTrie(_ []byte, _ state.TriePruningIdentifier) {
+func (r *readOnlyAccountsDB) PruneTrie(_ []byte, _ state.TriePruningIdentifier, _ state.PruningHandler) {
 }
 
 // CancelPrune won't do anything as write operations are disabled on this component
@@ -104,8 +101,8 @@ func (r *readOnlyAccountsDB) IsPruningEnabled() bool {
 }
 
 // GetAllLeaves will call the original accounts' function with the same name
-func (r *readOnlyAccountsDB) GetAllLeaves(rootHash []byte) (chan core.KeyValueHolder, error) {
-	return r.originalAccounts.GetAllLeaves(rootHash)
+func (r *readOnlyAccountsDB) GetAllLeaves(leavesChannel chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error {
+	return r.originalAccounts.GetAllLeaves(leavesChannel, ctx, rootHash)
 }
 
 // RecreateAllTries will return an error which indicates that this operation is not supported

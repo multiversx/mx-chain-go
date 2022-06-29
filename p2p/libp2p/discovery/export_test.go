@@ -11,7 +11,7 @@ const KadDhtName = kadDhtName
 const OptimizedKadDhtName = optimizedKadDhtName
 const NullName = nilName
 
-//------- ContinuousKadDhtDiscoverer
+// ------- ContinuousKadDhtDiscoverer
 
 func (ckdd *ContinuousKadDhtDiscoverer) ConnectToOnePeerFromInitialPeersList(
 	durationBetweenAttempts time.Duration,
@@ -57,7 +57,12 @@ func NewOptimizedKadDhtDiscovererWithInitFunc(
 	}
 
 	okdd.createKadDhtHandler = createFunc
-	okdd.hostConnManagement, err = NewHostWithConnectionManagement(arg.Host, okdd.sharder)
+	argConnectionManagement := ArgsHostWithConnectionManagement{
+		ConnectableHost:    arg.Host,
+		Sharder:            okdd.sharder,
+		ConnectionsWatcher: arg.ConnectionWatcher,
+	}
+	okdd.hostConnManagement, err = NewHostWithConnectionManagement(argConnectionManagement)
 	if err != nil {
 		return nil, err
 	}

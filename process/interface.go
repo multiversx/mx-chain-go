@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/batch"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
+	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
 	"github.com/ElrondNetwork/elrond-go-core/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
@@ -150,7 +151,7 @@ type TransactionCoordinator interface {
 	AddIntermediateTransactions(mapSCRs map[block.Type][]data.TransactionHandler) error
 	GetAllIntermediateTxs() map[block.Type]map[string]data.TransactionHandler
 	AddTxsFromMiniBlocks(miniBlocks block.MiniBlockSlice)
-	AddTransactions (txHandlers []data.TransactionHandler, blockType block.Type)
+	AddTransactions(txHandlers []data.TransactionHandler, blockType block.Type)
 	IsInterfaceNil() bool
 }
 
@@ -195,6 +196,7 @@ type TransactionFeeHandler interface {
 	GetAccumulatedFees() *big.Int
 	GetDeveloperFees() *big.Int
 	ProcessTransactionFee(cost *big.Int, devFee *big.Int, txHash []byte)
+	ProcessTransactionFeeRelayedUserTx(cost *big.Int, devFee *big.Int, userTxHash []byte, originalTxHash []byte)
 	RevertFees(txHashes [][]byte)
 	IsInterfaceNil() bool
 }
@@ -218,7 +220,7 @@ type PreProcessor interface {
 
 	GetAllCurrentUsedTxs() map[string]data.TransactionHandler
 	AddTxsFromMiniBlocks(miniBlocks block.MiniBlockSlice)
-	AddTransactions (txHandlers []data.TransactionHandler)
+	AddTransactions(txHandlers []data.TransactionHandler)
 	IsInterfaceNil() bool
 }
 
@@ -463,12 +465,42 @@ type PendingMiniBlocksHandler interface {
 
 // BlockChainHookHandler defines the actions which should be performed by implementation
 type BlockChainHookHandler interface {
-	IsPayable(sndAddress []byte, recvAddress []byte) (bool, error)
-	SetCurrentHeader(hdr data.HeaderHandler)
+	GetCode(account vmcommon.UserAccountHandler) []byte
+	GetUserAccount(address []byte) (vmcommon.UserAccountHandler, error)
+	GetStorageData(accountAddress []byte, index []byte) ([]byte, error)
+	GetBlockhash(nonce uint64) ([]byte, error)
+	LastNonce() uint64
+	LastRound() uint64
+	LastTimeStamp() uint64
+	LastRandomSeed() []byte
+	LastEpoch() uint32
+	GetStateRootHash() []byte
+	CurrentNonce() uint64
+	CurrentRound() uint64
+	CurrentTimeStamp() uint64
+	CurrentRandomSeed() []byte
+	CurrentEpoch() uint32
 	NewAddress(creatorAddress []byte, creatorNonce uint64, vmType []byte) ([]byte, error)
-	DeleteCompiledCode(codeHash []byte)
 	ProcessBuiltInFunction(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error)
 	SaveNFTMetaDataToSystemAccount(tx data.TransactionHandler) error
+	GetShardOfAddress(address []byte) uint32
+	IsSmartContract(address []byte) bool
+	GetBuiltinFunctionNames() vmcommon.FunctionNames
+	GetBuiltinFunctionsContainer() vmcommon.BuiltInFunctionContainer
+	GetAllState(_ []byte) (map[string][]byte, error)
+	GetESDTToken(address []byte, tokenID []byte, nonce uint64) (*esdt.ESDigitalToken, error)
+	IsPaused(tokenID []byte) bool
+	IsLimitedTransfer(tokenID []byte) bool
+	NumberOfShards() uint32
+	SetCurrentHeader(hdr data.HeaderHandler)
+	SaveCompiledCode(codeHash []byte, code []byte)
+	GetCompiledCode(codeHash []byte) (bool, []byte)
+	IsPayable(sndAddress []byte, recvAddress []byte) (bool, error)
+	DeleteCompiledCode(codeHash []byte)
+	ClearCompiledCodes()
+	GetSnapshot() int
+	RevertToSnapshot(snapshot int) error
+	Close() error
 	FilterCodeMetadataForUpgrade(input []byte) ([]byte, error)
 	ApplyFiltersOnCodeMetadata(codeMetadata vmcommon.CodeMetadata) vmcommon.CodeMetadata
 	IsInterfaceNil() bool
@@ -785,6 +817,7 @@ type BlockTracker interface {
 	GetTrackedHeadersForAllShards() map[uint32][]data.HeaderHandler
 	GetTrackedHeadersWithNonce(shardID uint32, nonce uint64) ([]data.HeaderHandler, [][]byte)
 	IsShardStuck(shardID uint32) bool
+	ShouldSkipMiniBlocksCreationFromSelf() bool
 	RegisterCrossNotarizedHeadersHandler(func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte))
 	RegisterSelfNotarizedFromCrossHeadersHandler(func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte))
 	RegisterSelfNotarizedHeadersHandler(func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte))
@@ -1087,6 +1120,7 @@ type CoreComponentsHolder interface {
 	EpochNotifier() EpochNotifier
 	ChanStopNodeProcess() chan endProcess.ArgEndProcess
 	NodeTypeProvider() core.NodeTypeProviderHandler
+	ProcessStatusHandler() common.ProcessStatusHandler
 	IsInterfaceNil() bool
 }
 
@@ -1163,5 +1197,12 @@ type ScheduledTxsExecutionHandler interface {
 // DoubleTransactionDetector is able to detect if a transaction hash is present more than once in a block body
 type DoubleTransactionDetector interface {
 	ProcessBlockBody(body *block.Body)
+	IsInterfaceNil() bool
+}
+
+// TxsSenderHandler handles transactions sending
+type TxsSenderHandler interface {
+	SendBulkTransactions(txs []*transaction.Transaction) (uint64, error)
+	Close() error
 	IsInterfaceNil() bool
 }
