@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/shared"
+	"github.com/ElrondNetwork/elrond-go/api/shared/logging"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/gin-gonic/gin"
 )
@@ -161,7 +162,7 @@ func (ib *internalBlockGroup) getRawMetaBlockByNonce(c *gin.Context) {
 
 	start := time.Now()
 	rawBlock, err := ib.getFacade().GetInternalMetaBlockByNonce(common.ApiOutputFormatProto, nonce)
-	log.Debug(fmt.Sprintf("GetInternalMetaBlockByNonce with proto took %s", time.Since(start)))
+	logging.LogAPIActionDurationIfNeeded(start, "GetInternalMetaBlockByNonce with proto")
 	if err != nil {
 		shared.RespondWith(
 			c,
@@ -187,7 +188,7 @@ func (ib *internalBlockGroup) getRawMetaBlockByHash(c *gin.Context) {
 
 	start := time.Now()
 	rawBlock, err := ib.getFacade().GetInternalMetaBlockByHash(common.ApiOutputFormatProto, hash)
-	log.Debug(fmt.Sprintf("GetInternalMetaBlockByHash with proto took %s", time.Since(start)))
+	logging.LogAPIActionDurationIfNeeded(start, "GetInternalMetaBlockByHash with proto")
 	if err != nil {
 		shared.RespondWith(
 			c,
@@ -213,7 +214,7 @@ func (ib *internalBlockGroup) getRawMetaBlockByRound(c *gin.Context) {
 
 	start := time.Now()
 	rawBlock, err := ib.getFacade().GetInternalMetaBlockByRound(common.ApiOutputFormatProto, round)
-	log.Debug(fmt.Sprintf("GetInternalMetaBlockByRound with proto took %s", time.Since(start)))
+	logging.LogAPIActionDurationIfNeeded(start, "GetInternalMetaBlockByRound with proto")
 	if err != nil {
 		shared.RespondWith(
 			c,
@@ -239,7 +240,7 @@ func (ib *internalBlockGroup) getRawStartOfEpochMetaBlock(c *gin.Context) {
 
 	start := time.Now()
 	rawBlock, err := ib.getFacade().GetInternalStartOfEpochMetaBlock(common.ApiOutputFormatProto, epoch)
-	log.Debug(fmt.Sprintf("GetInternalStartOfEpochMetaBlock with proto took %s", time.Since(start)))
+	logging.LogAPIActionDurationIfNeeded(start, "GetInternalStartOfEpochMetaBlock with proto")
 	if err != nil {
 		shared.RespondWith(
 			c,
@@ -265,7 +266,7 @@ func (ib *internalBlockGroup) getRawShardBlockByNonce(c *gin.Context) {
 
 	start := time.Now()
 	rawBlock, err := ib.getFacade().GetInternalShardBlockByNonce(common.ApiOutputFormatProto, nonce)
-	log.Debug(fmt.Sprintf("GetInternalShardBlockByNonce with proto took %s", time.Since(start)))
+	logging.LogAPIActionDurationIfNeeded(start, "GetInternalShardBlockByNonce with proto")
 	if err != nil {
 		shared.RespondWith(
 			c,
@@ -291,7 +292,7 @@ func (ib *internalBlockGroup) getRawShardBlockByHash(c *gin.Context) {
 
 	start := time.Now()
 	rawBlock, err := ib.getFacade().GetInternalShardBlockByHash(common.ApiOutputFormatProto, hash)
-	log.Debug(fmt.Sprintf("GetInternalShardBlockByHash with proto took %s", time.Since(start)))
+	logging.LogAPIActionDurationIfNeeded(start, "GetInternalShardBlockByHash with proto")
 	if err != nil {
 		shared.RespondWith(
 			c,
@@ -317,7 +318,7 @@ func (ib *internalBlockGroup) getRawShardBlockByRound(c *gin.Context) {
 
 	start := time.Now()
 	rawBlock, err := ib.getFacade().GetInternalShardBlockByRound(common.ApiOutputFormatProto, round)
-	log.Debug(fmt.Sprintf("GetInternalShardBlockByRound with proto took %s", time.Since(start)))
+	logging.LogAPIActionDurationIfNeeded(start, "GetInternalShardBlockByRound with proto")
 	if err != nil {
 		shared.RespondWith(
 			c,
@@ -343,7 +344,7 @@ func (ib *internalBlockGroup) getJSONMetaBlockByNonce(c *gin.Context) {
 
 	start := time.Now()
 	block, err := ib.getFacade().GetInternalMetaBlockByNonce(common.ApiOutputFormatJSON, nonce)
-	log.Debug(fmt.Sprintf("GetInternalMetaBlockByNonce took %s", time.Since(start)))
+	logging.LogAPIActionDurationIfNeeded(start, "GetInternalMetaBlockByNonce")
 	if err != nil {
 		shared.RespondWith(
 			c,
@@ -369,7 +370,7 @@ func (ib *internalBlockGroup) getJSONMetaBlockByHash(c *gin.Context) {
 
 	start := time.Now()
 	block, err := ib.getFacade().GetInternalMetaBlockByHash(common.ApiOutputFormatJSON, hash)
-	log.Debug(fmt.Sprintf("GetInternalMetaBlockByHash took %s", time.Since(start)))
+	logging.LogAPIActionDurationIfNeeded(start, "GetInternalMetaBlockByHash")
 	if err != nil {
 		shared.RespondWith(
 			c,
@@ -395,7 +396,7 @@ func (ib *internalBlockGroup) getJSONMetaBlockByRound(c *gin.Context) {
 
 	start := time.Now()
 	block, err := ib.getFacade().GetInternalMetaBlockByRound(common.ApiOutputFormatJSON, round)
-	log.Debug(fmt.Sprintf("GetInternalMetaBlockByRound took %s", time.Since(start)))
+	logging.LogAPIActionDurationIfNeeded(start, "GetInternalMetaBlockByRound")
 	if err != nil {
 		shared.RespondWith(
 			c,
@@ -421,7 +422,7 @@ func (ib *internalBlockGroup) getJSONStartOfEpochMetaBlock(c *gin.Context) {
 
 	start := time.Now()
 	block, err := ib.getFacade().GetInternalStartOfEpochMetaBlock(common.ApiOutputFormatJSON, epoch)
-	log.Debug(fmt.Sprintf("GetInternalStartOfEpochMetaBlock took %s", time.Since(start)))
+	logging.LogAPIActionDurationIfNeeded(start, "GetInternalStartOfEpochMetaBlock")
 	if err != nil {
 		shared.RespondWith(
 			c,
@@ -447,7 +448,7 @@ func (ib *internalBlockGroup) getJSONShardBlockByNonce(c *gin.Context) {
 
 	start := time.Now()
 	block, err := ib.getFacade().GetInternalShardBlockByNonce(common.ApiOutputFormatJSON, nonce)
-	log.Debug(fmt.Sprintf("GetInternalShardBlockByNonce took %s", time.Since(start)))
+	logging.LogAPIActionDurationIfNeeded(start, "GetInternalShardBlockByNonce")
 	if err != nil {
 		shared.RespondWith(
 			c,
@@ -473,7 +474,7 @@ func (ib *internalBlockGroup) getJSONShardBlockByHash(c *gin.Context) {
 
 	start := time.Now()
 	block, err := ib.getFacade().GetInternalShardBlockByHash(common.ApiOutputFormatJSON, hash)
-	log.Debug(fmt.Sprintf("GetInternalShardBlockByHash took %s", time.Since(start)))
+	logging.LogAPIActionDurationIfNeeded(start, "GetInternalShardBlockByHash")
 	if err != nil {
 		shared.RespondWith(
 			c,
@@ -499,7 +500,7 @@ func (ib *internalBlockGroup) getJSONShardBlockByRound(c *gin.Context) {
 
 	start := time.Now()
 	block, err := ib.getFacade().GetInternalShardBlockByRound(common.ApiOutputFormatJSON, round)
-	log.Debug(fmt.Sprintf("GetInternalShardBlockByRound took %s", time.Since(start)))
+	logging.LogAPIActionDurationIfNeeded(start, "GetInternalShardBlockByRound")
 	if err != nil {
 		shared.RespondWith(
 			c,
@@ -533,7 +534,7 @@ func (ib *internalBlockGroup) getRawMiniBlockByHash(c *gin.Context) {
 
 	start := time.Now()
 	miniBlock, err := ib.getFacade().GetInternalMiniBlockByHash(common.ApiOutputFormatProto, hash, epoch)
-	log.Debug(fmt.Sprintf("GetInternalMiniBlockByHash with proto took %s", time.Since(start)))
+	logging.LogAPIActionDurationIfNeeded(start, "GetInternalMiniBlockByHash")
 	if err != nil {
 		shared.RespondWith(
 			c,
@@ -567,7 +568,7 @@ func (ib *internalBlockGroup) getJSONMiniBlockByHash(c *gin.Context) {
 
 	start := time.Now()
 	miniBlock, err := ib.getFacade().GetInternalMiniBlockByHash(common.ApiOutputFormatJSON, hash, epoch)
-	log.Debug(fmt.Sprintf("GetInternalMiniBlockByHash took %s", time.Since(start)))
+	logging.LogAPIActionDurationIfNeeded(start, "GetInternalMiniBlockByHash")
 	if err != nil {
 		shared.RespondWith(
 			c,
