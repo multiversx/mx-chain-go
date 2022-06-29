@@ -159,7 +159,19 @@ func (g *gasScheduleNotifier) changeLatestGasSchedule(epoch uint32, oldEpoch uin
 func (g *gasScheduleNotifier) LatestGasSchedule() map[string]map[string]uint64 {
 	g.mutNotifier.RLock()
 	defer g.mutNotifier.RUnlock()
-	return g.lastGasSchedule
+	return copyLatestGasScheduleMap(g.lastGasSchedule)
+}
+
+func copyLatestGasScheduleMap(src map[string]map[string]uint64) map[string]map[string]uint64 {
+	newMap := make(map[string]map[string]uint64)
+	for key, innerMap := range src {
+		newMap[key] = make(map[string]uint64)
+		for innerKey, v := range innerMap {
+			newMap[key][innerKey] = v
+		}
+	}
+
+	return newMap
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
