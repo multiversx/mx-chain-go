@@ -337,7 +337,7 @@ func (inf *initialNodeFacade) GetGenesisNodesPubKeys() (map[uint32][]string, map
 }
 
 // GetTransactionsPool returns a nil structure and error
-func (inf *initialNodeFacade) GetTransactionsPool() (*common.TransactionsPoolAPIResponse, error) {
+func (inf *initialNodeFacade) GetTransactionsPool(_ string) (*common.TransactionsPoolAPIResponse, error) {
 	return nil, errNodeStarting
 }
 

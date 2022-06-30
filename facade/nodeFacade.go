@@ -295,13 +295,13 @@ func (nf *nodeFacade) GetTransaction(hash string, withResults bool) (*transactio
 }
 
 // GetTransactionsPool will return a structure containing the transactions pool that is to be returned on API calls
-func (nf *nodeFacade) GetTransactionsPool() (*common.TransactionsPoolAPIResponse, error) {
-	return nf.apiResolver.GetTransactionsPool()
+func (nf *nodeFacade) GetTransactionsPool(fields string) (*common.TransactionsPoolAPIResponse, error) {
+	return nf.apiResolver.GetTransactionsPool(fields)
 }
 
 // GetTransactionsPoolForSender will return a structure containing the transactions for sender that is to be returned on API calls
-func (nf *nodeFacade) GetTransactionsPoolForSender(sender, parameters string) (*common.TransactionsPoolForSenderApiResponse, error) {
-	return nf.apiResolver.GetTransactionsPoolForSender(sender, parameters)
+func (nf *nodeFacade) GetTransactionsPoolForSender(sender, fields string) (*common.TransactionsPoolForSenderApiResponse, error) {
+	return nf.apiResolver.GetTransactionsPoolForSender(sender, fields)
 }
 
 // GetLastPoolNonceForSender will return the last nonce from pool for sender that is to be returned on API calls

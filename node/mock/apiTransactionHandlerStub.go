@@ -8,9 +8,9 @@ import (
 // TransactionAPIHandlerStub -
 type TransactionAPIHandlerStub struct {
 	GetTransactionCalled                        func(hash string, withResults bool) (*transaction.ApiTransactionResult, error)
-	GetTransactionsPoolCalled                   func() (*common.TransactionsPoolAPIResponse, error)
+	GetTransactionsPoolCalled                   func(fields string) (*common.TransactionsPoolAPIResponse, error)
 	UnmarshalTransactionCalled                  func(txBytes []byte, txType transaction.TxType) (*transaction.ApiTransactionResult, error)
-	GetTransactionsPoolForSenderCalled          func(sender, parameters string) (*common.TransactionsPoolForSenderApiResponse, error)
+	GetTransactionsPoolForSenderCalled          func(sender, fields string) (*common.TransactionsPoolForSenderApiResponse, error)
 	GetLastPoolNonceForSenderCalled             func(sender string) (uint64, error)
 	GetTransactionsPoolNonceGapsForSenderCalled func(sender string) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error)
 	UnmarshalReceiptCalled                      func(receiptBytes []byte) (*transaction.ApiReceipt, error)
@@ -26,18 +26,18 @@ func (tas *TransactionAPIHandlerStub) GetTransaction(hash string, withResults bo
 }
 
 // GetTransactionsPool -
-func (tas *TransactionAPIHandlerStub) GetTransactionsPool() (*common.TransactionsPoolAPIResponse, error) {
+func (tas *TransactionAPIHandlerStub) GetTransactionsPool(fields string) (*common.TransactionsPoolAPIResponse, error) {
 	if tas.GetTransactionsPoolCalled != nil {
-		return tas.GetTransactionsPoolCalled()
+		return tas.GetTransactionsPoolCalled(fields)
 	}
 
 	return nil, nil
 }
 
 // GetTransactionsPoolForSender -
-func (tas *TransactionAPIHandlerStub) GetTransactionsPoolForSender(sender, parameters string) (*common.TransactionsPoolForSenderApiResponse, error) {
+func (tas *TransactionAPIHandlerStub) GetTransactionsPoolForSender(sender, fields string) (*common.TransactionsPoolForSenderApiResponse, error) {
 	if tas.GetTransactionsPoolForSenderCalled != nil {
-		return tas.GetTransactionsPoolForSenderCalled(sender, parameters)
+		return tas.GetTransactionsPoolForSenderCalled(sender, fields)
 	}
 
 	return nil, nil

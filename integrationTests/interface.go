@@ -98,8 +98,8 @@ type Facade interface {
 	GetProofCurrentRootHash(address string) (*common.GetProofResponse, error)
 	VerifyProof(rootHash string, address string, proof [][]byte) (bool, error)
 	GetGenesisNodesPubKeys() (map[uint32][]string, map[uint32][]string, error)
-	GetTransactionsPool() (*common.TransactionsPoolAPIResponse, error)
-	GetTransactionsPoolForSender(sender, parameters string) (*common.TransactionsPoolForSenderApiResponse, error)
+	GetTransactionsPool(fields string) (*common.TransactionsPoolAPIResponse, error)
+	GetTransactionsPoolForSender(sender, fields string) (*common.TransactionsPoolForSenderApiResponse, error)
 	GetLastPoolNonceForSender(sender string) (uint64, error)
 	GetTransactionsPoolNonceGapsForSender(sender string) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error)
 	IsInterfaceNil() bool

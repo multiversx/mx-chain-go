@@ -32,8 +32,8 @@ type ApiResolverStub struct {
 	GetInternalMiniBlockCalled                  func(format common.ApiOutputFormat, hash string, epoch uint32) (interface{}, error)
 	GetInternalStartOfEpochMetaBlockCalled      func(format common.ApiOutputFormat, epoch uint32) (interface{}, error)
 	GetGenesisNodesPubKeysCalled                func() (map[uint32][]string, map[uint32][]string)
-	GetTransactionsPoolCalled                   func() (*common.TransactionsPoolAPIResponse, error)
-	GetTransactionsPoolForSenderCalled          func(sender, parameters string) (*common.TransactionsPoolForSenderApiResponse, error)
+	GetTransactionsPoolCalled                   func(fields string) (*common.TransactionsPoolAPIResponse, error)
+	GetTransactionsPoolForSenderCalled          func(sender, fields string) (*common.TransactionsPoolForSenderApiResponse, error)
 	GetLastPoolNonceForSenderCalled             func(sender string) (uint64, error)
 	GetTransactionsPoolNonceGapsForSenderCalled func(sender string) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error)
 }
@@ -161,18 +161,18 @@ func (ars *ApiResolverStub) GetInternalMetaBlockByNonce(format common.ApiOutputF
 }
 
 // GetTransactionsPool -
-func (ars *ApiResolverStub) GetTransactionsPool() (*common.TransactionsPoolAPIResponse, error) {
+func (ars *ApiResolverStub) GetTransactionsPool(fields string) (*common.TransactionsPoolAPIResponse, error) {
 	if ars.GetTransactionsPoolCalled != nil {
-		return ars.GetTransactionsPoolCalled()
+		return ars.GetTransactionsPoolCalled(fields)
 	}
 
 	return nil, nil
 }
 
 // GetTransactionsPoolForSender -
-func (ars *ApiResolverStub) GetTransactionsPoolForSender(sender, parameters string) (*common.TransactionsPoolForSenderApiResponse, error) {
+func (ars *ApiResolverStub) GetTransactionsPoolForSender(sender, fields string) (*common.TransactionsPoolForSenderApiResponse, error) {
 	if ars.GetTransactionsPoolForSenderCalled != nil {
-		return ars.GetTransactionsPoolForSenderCalled(sender, parameters)
+		return ars.GetTransactionsPoolForSenderCalled(sender, fields)
 	}
 
 	return nil, nil

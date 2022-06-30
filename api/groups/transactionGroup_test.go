@@ -99,7 +99,7 @@ type txsPoolResponse struct {
 }
 
 type poolForSenderResponseData struct {
-	Transactions common.TransactionsPoolForSenderApiResponse `json:"transactions"`
+	TxPool common.TransactionsPoolForSenderApiResponse `json:"txPool"`
 }
 
 type poolForSenderResponse struct {
@@ -869,7 +869,7 @@ func TestGetTransactionsPoolShouldError(t *testing.T) {
 
 	expectedErr := errors.New("expected error")
 	facade := mock.FacadeStub{
-		GetTransactionsPoolCalled: func() (*common.TransactionsPoolAPIResponse, error) {
+		GetTransactionsPoolCalled: func(fields string) (*common.TransactionsPoolAPIResponse, error) {
 			return nil, expectedErr
 		},
 	}
@@ -895,10 +895,21 @@ func TestGetTransactionsPoolShouldWork(t *testing.T) {
 	t.Parallel()
 
 	expectedTxPool := &common.TransactionsPoolAPIResponse{
-		RegularTransactions: []string{"tx", "tx2"},
+		RegularTransactions: []common.Transaction{
+			{
+				TxFields: map[string]interface{}{
+					"hash": "tx",
+				},
+			},
+			{
+				TxFields: map[string]interface{}{
+					"hash": "tx2",
+				},
+			},
+		},
 	}
 	facade := mock.FacadeStub{
-		GetTransactionsPoolCalled: func() (*common.TransactionsPoolAPIResponse, error) {
+		GetTransactionsPoolCalled: func(fields string) (*common.TransactionsPoolAPIResponse, error) {
 			return expectedTxPool, nil
 		},
 	}
@@ -924,9 +935,10 @@ func TestGetTransactionsPoolShouldWork(t *testing.T) {
 func TestGetTransactionsPoolForSenderShouldError(t *testing.T) {
 	t.Parallel()
 
+	query := "?by-sender=sender"
 	expectedErr := errors.New("expected error")
 	facade := mock.FacadeStub{
-		GetTransactionsPoolForSenderCalled: func(sender, parameters string) (*common.TransactionsPoolForSenderApiResponse, error) {
+		GetTransactionsPoolForSenderCalled: func(sender, fields string) (*common.TransactionsPoolForSenderApiResponse, error) {
 			return nil, expectedErr
 		},
 	}
@@ -936,7 +948,7 @@ func TestGetTransactionsPoolForSenderShouldError(t *testing.T) {
 
 	ws := startWebServer(transactionGroup, "transaction", getTransactionRoutesConfig())
 
-	req, _ := http.NewRequest("GET", "/transaction/pool/by-sender/sender/parameters/parameters", nil)
+	req, _ := http.NewRequest("GET", "/transaction/pool"+query, nil)
 
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
@@ -952,23 +964,28 @@ func TestGetTransactionsPoolForSenderShouldWork(t *testing.T) {
 	t.Parallel()
 
 	expectedSender := "sender"
-	providedParameters := "hash,sender,RECEIVER"
+	providedFields := "sender,receiver"
+	query := "?by-sender=" + expectedSender + "&fields=" + providedFields
 	expectedResp := &common.TransactionsPoolForSenderApiResponse{
 		Transactions: []common.Transaction{
 			{
-				Hash:     "txHash1",
-				Sender:   expectedSender,
-				Receiver: "receiver1",
+				TxFields: map[string]interface{}{
+					"hash":     "txHash1",
+					"sender":   expectedSender,
+					"receiver": "receiver1",
+				},
 			},
 			{
-				Hash:     "txHash2",
-				Sender:   expectedSender,
-				Receiver: "receiver2",
+				TxFields: map[string]interface{}{
+					"hash":     "txHash2",
+					"sender":   expectedSender,
+					"receiver": "receiver2",
+				},
 			},
 		},
 	}
 	facade := mock.FacadeStub{
-		GetTransactionsPoolForSenderCalled: func(sender, parameters string) (*common.TransactionsPoolForSenderApiResponse, error) {
+		GetTransactionsPoolForSenderCalled: func(sender, fields string) (*common.TransactionsPoolForSenderApiResponse, error) {
 			return expectedResp, nil
 		},
 	}
@@ -978,7 +995,7 @@ func TestGetTransactionsPoolForSenderShouldWork(t *testing.T) {
 
 	ws := startWebServer(transactionGroup, "transaction", getTransactionRoutesConfig())
 
-	req, _ := http.NewRequest("GET", "/transaction/pool/by-sender/"+expectedSender+"/parameters/"+providedParameters, nil)
+	req, _ := http.NewRequest("GET", "/transaction/pool"+query, nil)
 
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
@@ -988,12 +1005,13 @@ func TestGetTransactionsPoolForSenderShouldWork(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, resp.Code)
 	assert.Empty(t, txsForSenderResp.Error)
-	assert.Equal(t, *expectedResp, txsForSenderResp.Data.Transactions)
+	assert.Equal(t, *expectedResp, txsForSenderResp.Data.TxPool)
 }
 
 func TestGetLastPoolNonceForSenderShouldError(t *testing.T) {
 	t.Parallel()
 
+	query := "?by-sender=sender&last-nonce=true"
 	expectedErr := errors.New("expected error")
 	facade := mock.FacadeStub{
 		GetLastPoolNonceForSenderCalled: func(sender string) (uint64, error) {
@@ -1006,7 +1024,7 @@ func TestGetLastPoolNonceForSenderShouldError(t *testing.T) {
 
 	ws := startWebServer(transactionGroup, "transaction", getTransactionRoutesConfig())
 
-	req, _ := http.NewRequest("GET", "/transaction/pool/by-sender/last-nonce/sender", nil)
+	req, _ := http.NewRequest("GET", "/transaction/pool"+query, nil)
 
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
@@ -1022,6 +1040,7 @@ func TestGetLastPoolNonceForSenderShouldWork(t *testing.T) {
 	t.Parallel()
 
 	expectedSender := "sender"
+	query := "?by-sender=" + expectedSender + "&last-nonce=true"
 	expectedNonce := uint64(33)
 	facade := mock.FacadeStub{
 		GetLastPoolNonceForSenderCalled: func(sender string) (uint64, error) {
@@ -1034,7 +1053,7 @@ func TestGetLastPoolNonceForSenderShouldWork(t *testing.T) {
 
 	ws := startWebServer(transactionGroup, "transaction", getTransactionRoutesConfig())
 
-	req, _ := http.NewRequest("GET", "/transaction/pool/by-sender/last-nonce/"+expectedSender, nil)
+	req, _ := http.NewRequest("GET", "/transaction/pool"+query, nil)
 
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
@@ -1050,6 +1069,7 @@ func TestGetLastPoolNonceForSenderShouldWork(t *testing.T) {
 func TestGetTransactionsPoolNonceGapsForSenderShouldError(t *testing.T) {
 	t.Parallel()
 
+	query := "?by-sender=sender&nonce-gaps=true"
 	expectedErr := errors.New("expected error")
 	facade := mock.FacadeStub{
 		GetTransactionsPoolNonceGapsForSenderCalled: func(sender string) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error) {
@@ -1062,7 +1082,7 @@ func TestGetTransactionsPoolNonceGapsForSenderShouldError(t *testing.T) {
 
 	ws := startWebServer(transactionGroup, "transaction", getTransactionRoutesConfig())
 
-	req, _ := http.NewRequest("GET", "/transaction/pool/by-sender/nonce-gaps/:sender", nil)
+	req, _ := http.NewRequest("GET", "/transaction/pool"+query, nil)
 
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
@@ -1078,6 +1098,7 @@ func TestGetTransactionsPoolNonceGapsForSenderShouldWork(t *testing.T) {
 	t.Parallel()
 
 	expectedSender := "sender"
+	query := "?by-sender=" + expectedSender + "&nonce-gaps=true"
 	expectedNonceGaps := &common.TransactionsPoolNonceGapsForSenderApiResponse{
 		Sender: expectedSender,
 		Gaps: []common.NonceGapApiResponse{
@@ -1098,7 +1119,7 @@ func TestGetTransactionsPoolNonceGapsForSenderShouldWork(t *testing.T) {
 
 	ws := startWebServer(transactionGroup, "transaction", getTransactionRoutesConfig())
 
-	req, _ := http.NewRequest("GET", "/transaction/pool/by-sender/nonce-gaps/"+expectedSender, nil)
+	req, _ := http.NewRequest("GET", "/transaction/pool"+query, nil)
 
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
@@ -1109,6 +1130,37 @@ func TestGetTransactionsPoolNonceGapsForSenderShouldWork(t *testing.T) {
 	assert.Equal(t, http.StatusOK, resp.Code)
 	assert.Empty(t, nonceGapsResp.Error)
 	assert.Equal(t, *expectedNonceGaps, nonceGapsResp.Data.NonceGaps)
+}
+
+func TestGetTransactionsPoolInvalidQueries(t *testing.T) {
+	t.Parallel()
+
+	t.Run("empty sender, requesting nonce gaps", testTxPoolWithInvalidQuery("?last-nonce=true"))
+	t.Run("empty sender, requesting nonce gaps", testTxPoolWithInvalidQuery("?nonce-gaps=true"))
+	t.Run("fields + nonce gaps", testTxPoolWithInvalidQuery("?fields=sender,receiver&last-nonce=true"))
+	t.Run("fields + nonce gaps", testTxPoolWithInvalidQuery("?fields=sender,receiver&nonce-gaps=true"))
+}
+
+func testTxPoolWithInvalidQuery(query string) func(t *testing.T) {
+	return func(t *testing.T) {
+		t.Parallel()
+
+		transactionGroup, err := groups.NewTransactionGroup(&mock.FacadeStub{})
+		require.NoError(t, err)
+
+		ws := startWebServer(transactionGroup, "transaction", getTransactionRoutesConfig())
+
+		req, _ := http.NewRequest("GET", "/transaction/pool"+query, nil)
+
+		resp := httptest.NewRecorder()
+		ws.ServeHTTP(resp, req)
+
+		txResp := &transactionResponse{}
+		loadResponse(resp.Body, txResp)
+
+		assert.Equal(t, http.StatusBadRequest, resp.Code)
+		assert.True(t, strings.Contains(txResp.Error, apiErrors.ErrValidation.Error()))
+	}
 }
 
 func getTransactionRoutesConfig() config.ApiRoutesConfig {
@@ -1123,9 +1175,6 @@ func getTransactionRoutesConfig() config.ApiRoutesConfig {
 					{Name: "/:txhash", Open: true},
 					{Name: "/:txhash/status", Open: true},
 					{Name: "/simulate", Open: true},
-					{Name: "/pool/by-sender/:sender/parameters/:parameters", Open: true},
-					{Name: "/pool/by-sender/last-nonce/:sender", Open: true},
-					{Name: "/pool/by-sender/nonce-gaps/:sender", Open: true},
 				},
 			},
 		},

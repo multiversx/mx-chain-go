@@ -9,19 +9,14 @@ type GetProofResponse struct {
 
 // TransactionsPoolAPIResponse is a struct that holds the data to be returned when getting the transaction pool from an API call
 type TransactionsPoolAPIResponse struct {
-	RegularTransactions  []string `json:"regularTransactions"`
-	SmartContractResults []string `json:"smartContractResults"`
-	Rewards              []string `json:"rewards"`
+	RegularTransactions  []Transaction `json:"regularTransactions"`
+	SmartContractResults []Transaction `json:"smartContractResults"`
+	Rewards              []Transaction `json:"rewards"`
 }
 
-// Transaction is a struct that holds transaction data to be returned when getting the transactions from pool
+// Transaction is a struct that holds transaction fields to be returned when getting the transactions from pool
 type Transaction struct {
-	Hash     string `json:"hash,omitempty"`
-	Nonce    uint64 `json:"nonce,omitempty"`
-	Sender   string `json:"sender,omitempty"`
-	Receiver string `json:"receiver,omitempty"`
-	GasLimit uint64 `json:"gasLimit,omitempty"`
-	GasPrice uint64 `json:"gasPrice,omitempty"`
+	TxFields map[string]interface{} `json:"txFields"`
 }
 
 // TransactionsPoolForSenderApiResponse is a struct that holds the data to be returned when getting the transactions for a sender from an API call

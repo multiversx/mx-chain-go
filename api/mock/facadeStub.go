@@ -70,8 +70,8 @@ type FacadeStub struct {
 	VerifyProofCalled                           func(string, string, [][]byte) (bool, error)
 	GetTokenSupplyCalled                        func(token string) (*api.ESDTSupply, error)
 	GetGenesisNodesPubKeysCalled                func() (map[uint32][]string, map[uint32][]string, error)
-	GetTransactionsPoolCalled                   func() (*common.TransactionsPoolAPIResponse, error)
-	GetTransactionsPoolForSenderCalled          func(sender, parameters string) (*common.TransactionsPoolForSenderApiResponse, error)
+	GetTransactionsPoolCalled                   func(fields string) (*common.TransactionsPoolAPIResponse, error)
+	GetTransactionsPoolForSenderCalled          func(sender, fields string) (*common.TransactionsPoolForSenderApiResponse, error)
 	GetLastPoolNonceForSenderCalled             func(sender string) (uint64, error)
 	GetTransactionsPoolNonceGapsForSenderCalled func(sender string) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error)
 }
@@ -436,18 +436,18 @@ func (f *FacadeStub) GetGenesisNodesPubKeys() (map[uint32][]string, map[uint32][
 }
 
 // GetTransactionsPool -
-func (f *FacadeStub) GetTransactionsPool() (*common.TransactionsPoolAPIResponse, error) {
+func (f *FacadeStub) GetTransactionsPool(fields string) (*common.TransactionsPoolAPIResponse, error) {
 	if f.GetTransactionsPoolCalled != nil {
-		return f.GetTransactionsPoolCalled()
+		return f.GetTransactionsPoolCalled(fields)
 	}
 
 	return nil, nil
 }
 
 // GetTransactionsPoolForSender -
-func (f *FacadeStub) GetTransactionsPoolForSender(sender, parameters string) (*common.TransactionsPoolForSenderApiResponse, error) {
+func (f *FacadeStub) GetTransactionsPoolForSender(sender, fields string) (*common.TransactionsPoolForSenderApiResponse, error) {
 	if f.GetTransactionsPoolForSenderCalled != nil {
-		return f.GetTransactionsPoolForSenderCalled(sender, parameters)
+		return f.GetTransactionsPoolForSenderCalled(sender, fields)
 	}
 
 	return nil, nil

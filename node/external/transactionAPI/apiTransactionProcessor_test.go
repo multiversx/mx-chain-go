@@ -595,12 +595,18 @@ func TestApiTransactionProcessor_GetTransactionsPool(t *testing.T) {
 				KeysCalled: func() [][]byte {
 					return expectedTxs
 				},
+				SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
+					return createTx(key, "alice", 1).Tx, true
+				},
 			}
 		},
 		UnsignedTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 			return &testscommon.ShardedDataStub{
 				KeysCalled: func() [][]byte {
 					return expectedScrs
+				},
+				SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
+					return &smartContractResult.SmartContractResult{}, true
 				},
 			}
 		},
@@ -609,6 +615,9 @@ func TestApiTransactionProcessor_GetTransactionsPool(t *testing.T) {
 				KeysCalled: func() [][]byte {
 					return expectedRwds
 				},
+				SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
+					return &rewardTx.RewardTx{}, true
+				},
 			}
 		},
 	}
@@ -616,11 +625,40 @@ func TestApiTransactionProcessor_GetTransactionsPool(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, atp)
 
-	res, err := atp.GetTransactionsPool()
+	res, err := atp.GetTransactionsPool("")
 	require.NoError(t, err)
-	require.Equal(t, []string{hex.EncodeToString(txHash0), hex.EncodeToString(txHash1)}, res.RegularTransactions)
-	require.Equal(t, []string{hex.EncodeToString(txHash2)}, res.SmartContractResults)
-	require.Equal(t, []string{hex.EncodeToString(txHash3)}, res.Rewards)
+
+	regularTxs := []common.Transaction{
+		{
+			TxFields: map[string]interface{}{
+				"hash": hex.EncodeToString(txHash0),
+			},
+		},
+		{
+			TxFields: map[string]interface{}{
+				"hash": hex.EncodeToString(txHash1),
+			},
+		},
+	}
+	require.Equal(t, regularTxs, res.RegularTransactions)
+
+	scrTxs := []common.Transaction{
+		{
+			TxFields: map[string]interface{}{
+				"hash": hex.EncodeToString(txHash2),
+			},
+		},
+	}
+	require.Equal(t, scrTxs, res.SmartContractResults)
+
+	rewardTxs := []common.Transaction{
+		{
+			TxFields: map[string]interface{}{
+				"hash": hex.EncodeToString(txHash3),
+			},
+		},
+	}
+	require.Equal(t, rewardTxs, res.Rewards)
 }
 
 func createTx(hash []byte, sender string, nonce uint64) *txcache.WrappedTransaction {
@@ -700,12 +738,12 @@ func TestApiTransactionProcessor_GetTransactionsPoolForSender(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, atp)
 
-	res, err := atp.GetTransactionsPoolForSender(sender, "hash,sender")
+	res, err := atp.GetTransactionsPoolForSender(sender, "sender")
 	require.NoError(t, err)
 	expectedHashes := []string{hex.EncodeToString(txHash0), hex.EncodeToString(txHash1), hex.EncodeToString(txHash2), hex.EncodeToString(txHash3), hex.EncodeToString(txHash4)}
 	for i, tx := range res.Transactions {
-		require.Equal(t, expectedHashes[i], tx.Hash)
-		require.Equal(t, sender, tx.Sender)
+		require.Equal(t, expectedHashes[i], tx.TxFields[hashField])
+		require.Equal(t, sender, tx.TxFields["sender"])
 	}
 }
 
