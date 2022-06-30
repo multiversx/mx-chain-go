@@ -48,7 +48,7 @@ type ApiResolverArgs struct {
 	BootstrapComponents BootstrapComponentsHolder
 	CryptoComponents    CryptoComponentsHolder
 	ProcessComponents   ProcessComponentsHolder
-	GasScheduleNotifier core.GasScheduleNotifier
+	GasScheduleNotifier common.GasScheduleNotifierAPI
 	Bootstrapper        process.Bootstrapper
 	AllowVMQueriesChan  chan struct{}
 }

@@ -501,7 +501,7 @@ func TestNodeApiResolver_GetGasConfigs(t *testing.T) {
 
 	wasCalled := false
 	args.GasScheduleNotifier = &testscommon.GasScheduleNotifierMock{
-		LatestGasScheduleCalled: func() map[string]map[string]uint64 {
+		LatestGasScheduleCopyCalled: func() map[string]map[string]uint64 {
 			wasCalled = true
 			return nil
 		},
