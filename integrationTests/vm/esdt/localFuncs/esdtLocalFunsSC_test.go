@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	esdtCommon "github.com/ElrondNetwork/elrond-go/integrationTests/vm/esdt"
 	"github.com/ElrondNetwork/elrond-go/testscommon/txDataBuilder"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestESDTLocalMintAndBurnFromSC(t *testing.T) {
@@ -303,4 +304,82 @@ func testESDTWithTransferRoleAndForwarder(t *testing.T, numShards int) {
 	time.Sleep(time.Second)
 
 	esdtCommon.CheckAddressHasTokens(t, nodes[0].OwnAccount.Address, nodes, []byte(tokenIdentifier), 0, amount)
+}
+
+func TestAsyncCallsAndCallBacksArgumentsIntra(t *testing.T) {
+	testAsyncCallAndCallBacksArguments(t, 1)
+}
+
+func TestAsyncCallsAndCallBacksArgumentsCross(t *testing.T) {
+	testAsyncCallAndCallBacksArguments(t, 2)
+}
+
+func testAsyncCallAndCallBacksArguments(t *testing.T, numShards int) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	nodes, idxProposers := esdtCommon.CreateNodesAndPrepareBalances(numShards)
+	defer func() {
+		for _, n := range nodes {
+			n.Close()
+		}
+	}()
+
+	initialVal := big.NewInt(10000000000)
+	integrationTests.MintAllNodes(nodes, initialVal)
+
+	round := uint64(0)
+	nonce := uint64(0)
+	round = integrationTests.IncrementAndPrintRound(round)
+	nonce++
+
+	scAddressA := esdtCommon.DeployNonPayableSmartContractFromNode(t, nodes, 0, idxProposers, &nonce, &round, "forwarder.wasm")
+	scAddressB := esdtCommon.DeployNonPayableSmartContractFromNode(t, nodes, 1, idxProposers, &nonce, &round, "vault.wasm")
+
+	txData := txDataBuilder.NewBuilder()
+	txData.Clear().Func("echo_args_async").Bytes(scAddressB).Str("AA").Str("BB")
+
+	integrationTests.CreateAndSendTransaction(
+		nodes[0],
+		nodes,
+		big.NewInt(0),
+		scAddressA,
+		txData.ToString(),
+		integrationTests.AdditionalGasLimit+core.MinMetaTxExtraGasCost,
+	)
+	time.Sleep(time.Second)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 15, nonce, round, idxProposers)
+	time.Sleep(time.Second)
+
+	callbackArgs := append([]byte("success"), []byte{0}...)
+	callbackArgs = append(callbackArgs, []byte("AABB")...)
+	checkDataFromAccountAndKey(t, nodes, scAddressA, []byte("callbackStorage"), callbackArgs)
+
+	txData.Clear().Func("echo_args_async").Bytes(scAddressB)
+	integrationTests.CreateAndSendTransaction(
+		nodes[0],
+		nodes,
+		big.NewInt(0),
+		scAddressA,
+		txData.ToString(),
+		integrationTests.AdditionalGasLimit+core.MinMetaTxExtraGasCost,
+	)
+	time.Sleep(time.Second)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 15, nonce, round, idxProposers)
+	time.Sleep(time.Second)
+
+	checkDataFromAccountAndKey(t, nodes, scAddressA, []byte("callbackStorage"), append([]byte("success"), []byte{0}...))
+}
+
+func checkDataFromAccountAndKey(
+	t *testing.T,
+	nodes []*integrationTests.TestProcessorNode,
+	address []byte,
+	key []byte,
+	expectedData []byte,
+) {
+	userAcc := esdtCommon.GetUserAccountWithAddress(t, address, nodes)
+	val, _ := userAcc.DataTrieTracker().RetrieveValue(key)
+	assert.Equal(t, expectedData, val)
 }
