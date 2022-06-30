@@ -61,7 +61,7 @@ func NewDoubleListTrieSyncer(arg ArgTrieSyncer) (*doubleListTrieSyncer, error) {
 		hasher:                    arg.Hasher,
 		topic:                     arg.Topic,
 		shardId:                   arg.ShardId,
-		waitTimeBetweenChecks:     time.Millisecond * 100, // -> check with different values
+		waitTimeBetweenChecks:     time.Millisecond * 100,
 		handlerID:                 core.UniqueIdentifier(),
 		trieSyncStatistics:        arg.TrieSyncStatistics,
 		timeoutHandler:            arg.TimeoutHandler,
