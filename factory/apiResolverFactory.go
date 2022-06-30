@@ -207,6 +207,9 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 	}
 
 	logsFacade, err := createLogsFacade(args)
+	if err != nil {
+		return nil, err
+	}
 
 	argsDataFieldParser := &datafield.ArgsOperationDataFieldParser{
 		AddressLength:    args.CoreComponents.AddressPubKeyConverter().Len(),
