@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/shared"
+	"github.com/ElrondNetwork/elrond-go/api/shared/logging"
 	"github.com/gin-gonic/gin"
 )
 
@@ -86,7 +87,7 @@ func (bg *blockGroup) getBlockByNonce(c *gin.Context) {
 
 	start := time.Now()
 	block, err := bg.getFacade().GetBlockByNonce(nonce, withTxs)
-	log.Debug(fmt.Sprintf("GetBlockByNonce took %s", time.Since(start)))
+	logging.LogAPIActionDurationIfNeeded(start, "GetBlockByNonce")
 	if err != nil {
 		shared.RespondWith(
 			c,
@@ -121,7 +122,7 @@ func (bg *blockGroup) getBlockByHash(c *gin.Context) {
 
 	start := time.Now()
 	block, err := bg.getFacade().GetBlockByHash(hash, withTxs)
-	log.Debug(fmt.Sprintf("GetBlockByHash took %s", time.Since(start)))
+	logging.LogAPIActionDurationIfNeeded(start, "GetBlockByHash")
 	if err != nil {
 		shared.RespondWith(
 			c,
@@ -155,7 +156,7 @@ func (bg *blockGroup) getBlockByRound(c *gin.Context) {
 
 	start := time.Now()
 	block, err := bg.getFacade().GetBlockByRound(round, withTxs)
-	log.Debug(fmt.Sprintf("GetBlockByRound took %s", time.Since(start)))
+	logging.LogAPIActionDurationIfNeeded(start, "GetBlockByRound")
 	if err != nil {
 		shared.RespondWith(
 			c,
