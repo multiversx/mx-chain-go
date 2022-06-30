@@ -15,12 +15,11 @@ import (
 )
 
 const deltaReRequest = 5 * int64(time.Second)
+const maxNumRequestedNodesPerBatch = 1000
 
 type request struct {
-	t int64
+	timestamp int64
 }
-
-const maxNumRequestedNodesPerBatch = 1000
 
 type doubleListTrieSyncer struct {
 	baseSyncTrie
@@ -149,12 +148,14 @@ func (d *doubleListTrieSyncer) checkIsSyncedWhileProcessingMissingAndExisting() 
 			r, ok := d.requestedHashes[hash]
 			if !ok {
 				marginSlice = append(marginSlice, []byte(hash))
-				d.requestedHashes[hash] = &request{t: time.Now().UnixNano()}
+				d.requestedHashes[hash] = &request{
+					timestamp: time.Now().UnixNano(),
+				}
 			} else {
-				delta := time.Now().UnixNano() - r.t
+				delta := time.Now().UnixNano() - r.timestamp
 				if delta > deltaReRequest {
 					marginSlice = append(marginSlice, []byte(hash))
-					r.t = time.Now().UnixNano()
+					r.timestamp = time.Now().UnixNano()
 				}
 			}
 		}
