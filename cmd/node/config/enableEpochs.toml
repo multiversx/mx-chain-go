@@ -194,14 +194,14 @@
     # DisableExecByCallerEnableEpoch represents the epoch when the check on value is disabled on exec by caller
     DisableExecByCallerEnableEpoch = 1
 
-   	# FailExecutionOnEveryAPIErrorEnableEpoch represent the epoch when new protection in VM is enabled to fail all wrong API calls
-   	FailExecutionOnEveryAPIErrorEnableEpoch = 3
+    # FailExecutionOnEveryAPIErrorEnableEpoch represent the epoch when new protection in VM is enabled to fail all wrong API calls
+    FailExecutionOnEveryAPIErrorEnableEpoch = 3
 
     # ManagedCryptoAPIsEnableEpoch represents the epoch when new managed crypto APIs are enabled in the wasm VM
     ManagedCryptoAPIsEnableEpoch = 4
 
     # RefactorContextEnableEpoch represents the epoch when refactoring/simplifying is enabled in contexts
-    RefactorContextEnableEpoch = 2
+    RefactorContextEnableEpoch = 1
 
     # ESDTMetadataContinuousCleanupEnableEpoch represents the epoch when esdt metadata is automatically deleted according to inshard liquidity
     ESDTMetadataContinuousCleanupEnableEpoch = 4

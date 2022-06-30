@@ -20,6 +20,9 @@ import (
 // ------------ Test BootstrapComponentsFactory --------------------
 func TestNewBootstrapComponentsFactory_OkValuesShouldWork(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	args := getBootStrapArgs()
 
@@ -31,6 +34,9 @@ func TestNewBootstrapComponentsFactory_OkValuesShouldWork(t *testing.T) {
 
 func TestNewBootstrapComponentsFactory_NilCoreComponents(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	args := getBootStrapArgs()
 	args.CoreComponents = nil
@@ -43,6 +49,9 @@ func TestNewBootstrapComponentsFactory_NilCoreComponents(t *testing.T) {
 
 func TestNewBootstrapComponentsFactory_NilCryptoComponents(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	args := getBootStrapArgs()
 	args.CryptoComponents = nil
@@ -55,6 +64,9 @@ func TestNewBootstrapComponentsFactory_NilCryptoComponents(t *testing.T) {
 
 func TestNewBootstrapComponentsFactory_NilNetworkComponents(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	args := getBootStrapArgs()
 	args.NetworkComponents = nil
@@ -67,6 +79,9 @@ func TestNewBootstrapComponentsFactory_NilNetworkComponents(t *testing.T) {
 
 func TestNewBootstrapComponentsFactory_NilWorkingDir(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	args := getBootStrapArgs()
 	args.WorkingDir = ""
@@ -77,8 +92,11 @@ func TestNewBootstrapComponentsFactory_NilWorkingDir(t *testing.T) {
 	require.Equal(t, errorsErd.ErrInvalidWorkingDir, err)
 }
 
-func TestBootstrapComponentsFactory_Create_ShouldWork(t *testing.T) {
+func TestBootstrapComponentsFactory_CreateShouldWork(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	args := getBootStrapArgs()
 
@@ -90,8 +108,11 @@ func TestBootstrapComponentsFactory_Create_ShouldWork(t *testing.T) {
 	require.NotNil(t, bc)
 }
 
-func TestBootstrapComponentsFactory_Create_BootstrapDataProviderCreationFail(t *testing.T) {
+func TestBootstrapComponentsFactory_CreateBootstrapDataProviderCreationFail(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	args := getBootStrapArgs()
 	coreComponents := getDefaultCoreComponents()
@@ -106,8 +127,11 @@ func TestBootstrapComponentsFactory_Create_BootstrapDataProviderCreationFail(t *
 	require.True(t, errors.Is(err, errorsErd.ErrNewBootstrapDataProvider))
 }
 
-func TestBootstrapComponentsFactory_Create_EpochStartBootstrapCreationFail(t *testing.T) {
+func TestBootstrapComponentsFactory_CreateEpochStartBootstrapCreationFail(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	args := getBootStrapArgs()
 	coreComponents := getDefaultCoreComponents()
