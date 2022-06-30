@@ -7,6 +7,7 @@ type GasScheduleNotifierMock struct {
 	GasSchedule                 map[string]map[string]uint64
 	RegisterNotifyHandlerCalled func(handler core.GasScheduleSubscribeHandler)
 	LatestGasScheduleCalled     func() map[string]map[string]uint64
+	LatestGasScheduleCopyCalled func() map[string]map[string]uint64
 }
 
 // NewGasScheduleNotifierMock -
@@ -31,6 +32,15 @@ func (g *GasScheduleNotifierMock) RegisterNotifyHandler(handler core.GasSchedule
 func (g *GasScheduleNotifierMock) LatestGasSchedule() map[string]map[string]uint64 {
 	if g.LatestGasScheduleCalled != nil {
 		return g.LatestGasScheduleCalled()
+	}
+
+	return g.GasSchedule
+}
+
+// LatestGasScheduleCopy -
+func (g *GasScheduleNotifierMock) LatestGasScheduleCopy() map[string]map[string]uint64 {
+	if g.LatestGasScheduleCopyCalled != nil {
+		return g.LatestGasScheduleCopyCalled()
 	}
 
 	return g.GasSchedule

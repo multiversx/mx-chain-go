@@ -29,7 +29,7 @@ type ArgNodeApiResolver struct {
 	APIInternalBlockHandler  blockAPI.APIInternalBlockHandler
 	GenesisNodesSetupHandler sharding.GenesisNodesSetupHandler
 	ValidatorPubKeyConverter core.PubkeyConverter
-	GasScheduleNotifier      core.GasScheduleNotifier
+	GasScheduleNotifier      common.GasScheduleNotifierAPI
 }
 
 // nodeApiResolver can resolve API requests
@@ -45,7 +45,7 @@ type nodeApiResolver struct {
 	apiInternalBlockHandler  blockAPI.APIInternalBlockHandler
 	genesisNodesSetupHandler sharding.GenesisNodesSetupHandler
 	validatorPubKeyConverter core.PubkeyConverter
-	gasScheduleNotifier      core.GasScheduleNotifier
+	gasScheduleNotifier      common.GasScheduleNotifierAPI
 }
 
 // NewNodeApiResolver creates a new nodeApiResolver instance
@@ -244,7 +244,7 @@ func (nar *nodeApiResolver) getInitialNodesPubKeysBytes(nodesInfo map[uint32][]n
 
 // GetGasConfigs return currently used gas schedule config
 func (nar *nodeApiResolver) GetGasConfigs() map[string]map[string]uint64 {
-	return nar.gasScheduleNotifier.LatestGasSchedule()
+	return nar.gasScheduleNotifier.LatestGasScheduleCopy()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

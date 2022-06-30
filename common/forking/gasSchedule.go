@@ -159,6 +159,15 @@ func (g *gasScheduleNotifier) changeLatestGasSchedule(epoch uint32, oldEpoch uin
 func (g *gasScheduleNotifier) LatestGasSchedule() map[string]map[string]uint64 {
 	g.mutNotifier.RLock()
 	defer g.mutNotifier.RUnlock()
+
+	return g.lastGasSchedule
+}
+
+// LatestGasScheduleCopy returns a copy of the latest gas schedule
+func (g *gasScheduleNotifier) LatestGasScheduleCopy() map[string]map[string]uint64 {
+	g.mutNotifier.RLock()
+	defer g.mutNotifier.RUnlock()
+
 	return copyLatestGasScheduleMap(g.lastGasSchedule)
 }
 
