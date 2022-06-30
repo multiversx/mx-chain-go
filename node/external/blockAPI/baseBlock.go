@@ -106,7 +106,11 @@ func (bap *baseAPIBlockProcessor) convertMiniblockFromReceiptsStorageToApiMinibl
 	if options.WithTransactions {
 		firstProcessed := int32(0)
 		lastProcessed := int32(len(miniblock.TxHashes) - 1)
-		bap.getAndAttachTxsToMbByEpoch(mbHash, miniblock, epoch, miniblockAPI, firstProcessed, lastProcessed, options)
+
+		err = bap.getAndAttachTxsToMbByEpoch(mbHash, miniblock, epoch, miniblockAPI, firstProcessed, lastProcessed, options)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return miniblockAPI, nil
