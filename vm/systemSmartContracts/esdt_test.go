@@ -4774,3 +4774,25 @@ func TestEsdt_unsetBurnRoleGlobally(t *testing.T) {
 	assert.Equal(t, vmcommon.UserError, output)
 	assert.True(t, strings.Contains(eei.returnMessage, "cannot unset burn role globally as it was not set"))
 }
+
+func TestEsdt_CheckRolesOnMetaESDT(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForESDT()
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&stateMock.AccountsStub{},
+		&mock.RaterMock{})
+	args.Eei = eei
+	e, _ := NewESDTSmartContract(args)
+
+	e.flagCheckMetaESDTOnRolesEnableEpoch.Reset()
+	err := e.checkSpecialRolesAccordingToTokenType([][]byte{[]byte("random")}, &ESDTDataV2{TokenType: []byte(metaESDT)})
+	assert.Nil(t, err)
+
+	e.flagCheckMetaESDTOnRolesEnableEpoch.SetValue(true)
+	err = e.checkSpecialRolesAccordingToTokenType([][]byte{[]byte("random")}, &ESDTDataV2{TokenType: []byte(metaESDT)})
+	assert.Equal(t, err, vm.ErrInvalidArgument)
+}
