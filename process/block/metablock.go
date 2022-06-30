@@ -132,6 +132,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		scheduledTxsExecutionHandler:   arguments.ScheduledTxsExecutionHandler,
 		scheduledMiniBlocksEnableEpoch: arguments.ScheduledMiniBlocksEnableEpoch,
 		pruningDelay:                   pruningDelay,
+		processedMiniBlocksTracker:     arguments.ProcessedMiniBlocksTracker,
 	}
 
 	mp := metaProcessor{
@@ -1572,10 +1573,6 @@ func (mp *metaProcessor) getLastSelfNotarizedHeaderByShard(
 	return lastNotarizedMetaHeader, lastNotarizedMetaHeaderHash
 }
 
-// ApplyProcessedMiniBlocks will do nothing on meta processor
-func (mp *metaProcessor) ApplyProcessedMiniBlocks(_ *processedMb.ProcessedMiniBlockTracker) {
-}
-
 // getRewardsTxs must be called before method commitEpoch start because when commit is done rewards txs are removed from pool and saved in storage
 func (mp *metaProcessor) getRewardsTxs(header *block.MetaBlock, body *block.Body) (rewardsTx map[string]data.TransactionHandler) {
 	if !mp.outportHandler.HasDrivers() {
@@ -2216,7 +2213,7 @@ func (mp *metaProcessor) applyBodyToHeader(metaHdr data.MetaHeaderHandler, bodyH
 		return nil, err
 	}
 
-	totalTxCount, miniBlockHeaderHandlers, err := mp.createMiniBlockHeaderHandlers(body)
+	totalTxCount, miniBlockHeaderHandlers, err := mp.createMiniBlockHeaderHandlers(body, make(map[string]*processedMb.ProcessedMiniBlockInfo))
 	if err != nil {
 		return nil, err
 	}

@@ -16,6 +16,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/heartbeat/process"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/storage"
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/assert"
@@ -56,7 +58,7 @@ func createMockStorer() heartbeat.HeartbeatStorageHandler {
 
 func createMockArgHeartbeatMonitor() process.ArgHeartbeatMonitor {
 	return process.ArgHeartbeatMonitor{
-		Marshalizer:                 &mock.MarshalizerStub{},
+		Marshalizer:                 &mock.MarshallerStub{},
 		MaxDurationPeerUnresponsive: 1,
 		PubKeysMap:                  map[uint32][]string{0: {""}},
 		GenesisTime:                 time.Now(),
@@ -73,17 +75,19 @@ func createMockArgHeartbeatMonitor() process.ArgHeartbeatMonitor {
 		},
 		Timer:                              mock.NewTimerMock(),
 		AntifloodHandler:                   createMockP2PAntifloodHandler(),
-		HardforkTrigger:                    &mock.HardforkTriggerStub{},
+		HardforkTrigger:                    &testscommon.HardforkTriggerStub{},
 		ValidatorPubkeyConverter:           mock.NewPubkeyConverterMock(96),
 		HeartbeatRefreshIntervalInSec:      1,
 		HideInactiveValidatorIntervalInSec: 600,
 		AppStatusHandler:                   &statusHandlerMock.AppStatusHandlerStub{},
+		EpochNotifier:                      &epochNotifier.EpochNotifierStub{},
+		HeartbeatDisableEpoch:              1,
 	}
 }
 
-//------- NewMonitor
+// ------- NewMonitor
 
-func TestNewMonitor_NilMarshalizerShouldErr(t *testing.T) {
+func TestNewMonitor_NilMarshallerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockArgHeartbeatMonitor()
@@ -91,7 +95,7 @@ func TestNewMonitor_NilMarshalizerShouldErr(t *testing.T) {
 	mon, err := process.NewMonitor(arg)
 
 	assert.Nil(t, mon)
-	assert.Equal(t, heartbeat.ErrNilMarshalizer, err)
+	assert.Equal(t, heartbeat.ErrNilMarshaller, err)
 }
 
 func TestNewMonitor_NilPublicKeyListShouldErr(t *testing.T) {
@@ -204,6 +208,17 @@ func TestNewMonitor_ZeroHideInactiveVlidatorIntervalInHoursShouldErr(t *testing.
 	assert.True(t, errors.Is(err, heartbeat.ErrZeroHideInactiveValidatorIntervalInSec))
 }
 
+func TestNewMonitor_NilEpochNotifierShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgHeartbeatMonitor()
+	arg.EpochNotifier = nil
+	mon, err := process.NewMonitor(arg)
+
+	assert.Nil(t, mon)
+	assert.Equal(t, heartbeat.ErrNilEpochNotifier, err)
+}
+
 func TestNewMonitor_OkValsShouldCreatePubkeyMap(t *testing.T) {
 	t.Parallel()
 
@@ -239,7 +254,7 @@ func TestNewMonitor_ShouldComputeShardId(t *testing.T) {
 	assert.Equal(t, uint32(1), hbStatus[1].ComputedShardID)
 }
 
-//------- ProcessReceivedMessage
+// ------- ProcessReceivedMessage
 
 func TestMonitor_ProcessReceivedMessageShouldWork(t *testing.T) {
 	t.Parallel()
@@ -247,7 +262,7 @@ func TestMonitor_ProcessReceivedMessageShouldWork(t *testing.T) {
 	pubKey := "pk1"
 
 	arg := createMockArgHeartbeatMonitor()
-	arg.Marshalizer = &mock.MarshalizerStub{
+	arg.Marshalizer = &mock.MarshallerStub{
 		UnmarshalHandler: func(obj interface{}, buff []byte) error {
 			(obj.(*data.Heartbeat)).Pubkey = []byte(pubKey)
 			return nil
@@ -271,7 +286,7 @@ func TestMonitor_ProcessReceivedMessageShouldWork(t *testing.T) {
 	err := mon.ProcessReceivedMessage(&mock.P2PMessageStub{DataField: hbBytes}, fromConnectedPeerId)
 	assert.Nil(t, err)
 
-	//a delay is mandatory for the go routine to finish its job
+	// a delay is mandatory for the go routine to finish its job
 	time.Sleep(time.Second)
 
 	hbStatus := mon.GetHeartbeats()
@@ -296,7 +311,7 @@ func TestMonitor_ProcessReceivedMessageProcessTriggerErrorShouldErr(t *testing.T
 			return &rcvHb, nil
 		},
 	}
-	arg.HardforkTrigger = &mock.HardforkTriggerStub{
+	arg.HardforkTrigger = &testscommon.HardforkTriggerStub{
 		TriggerReceivedCalled: func(payload []byte, data []byte, pkBytes []byte) (bool, error) {
 			triggerWasCalled = true
 
@@ -311,7 +326,7 @@ func TestMonitor_ProcessReceivedMessageProcessTriggerErrorShouldErr(t *testing.T
 	hbBytes, _ := json.Marshal(hb)
 	err := mon.ProcessReceivedMessage(&mock.P2PMessageStub{DataField: hbBytes}, fromConnectedPeerId)
 
-	//a delay is mandatory for the go routine to finish its job
+	// a delay is mandatory for the go routine to finish its job
 	time.Sleep(time.Second)
 
 	assert.Equal(t, expectedErr, err)
@@ -324,7 +339,7 @@ func TestMonitor_ProcessReceivedMessageWithNewPublicKey(t *testing.T) {
 	pubKey := "pk1"
 
 	arg := createMockArgHeartbeatMonitor()
-	arg.Marshalizer = &mock.MarshalizerStub{
+	arg.Marshalizer = &mock.MarshallerStub{
 		UnmarshalHandler: func(obj interface{}, buff []byte) error {
 			(obj.(*data.Heartbeat)).Pubkey = []byte(pubKey)
 			return nil
@@ -348,10 +363,10 @@ func TestMonitor_ProcessReceivedMessageWithNewPublicKey(t *testing.T) {
 	err := mon.ProcessReceivedMessage(&mock.P2PMessageStub{DataField: hbBytes}, fromConnectedPeerId)
 	assert.Nil(t, err)
 
-	//a delay is mandatory for the go routine to finish its job
+	// a delay is mandatory for the go routine to finish its job
 	time.Sleep(time.Second)
 
-	//there should be 2 heartbeats, because a new one should have been added with pk2
+	// there should be 2 heartbeats, because a new one should have been added with pk2
 	hbStatus := mon.GetHeartbeats()
 	assert.Equal(t, 2, len(hbStatus))
 	assert.Equal(t, hex.EncodeToString([]byte(pubKey)), hbStatus[0].PublicKey)
@@ -363,7 +378,7 @@ func TestMonitor_ProcessReceivedMessageWithNewShardID(t *testing.T) {
 	pubKey := []byte("pk1")
 
 	arg := createMockArgHeartbeatMonitor()
-	arg.Marshalizer = &mock.MarshalizerStub{
+	arg.Marshalizer = &mock.MarshallerStub{
 		UnmarshalHandler: func(obj interface{}, buff []byte) error {
 			var rcvdHb data.Heartbeat
 			_ = json.Unmarshal(buff, &rcvdHb)
@@ -396,7 +411,7 @@ func TestMonitor_ProcessReceivedMessageWithNewShardID(t *testing.T) {
 	err = mon.ProcessReceivedMessage(&mock.P2PMessageStub{DataField: buffToSend}, fromConnectedPeerId)
 	assert.Nil(t, err)
 
-	//a delay is mandatory for the go routine to finish its job
+	// a delay is mandatory for the go routine to finish its job
 	time.Sleep(time.Second)
 
 	hbStatus := mon.GetHeartbeats()
@@ -430,9 +445,9 @@ func TestMonitor_ProcessReceivedMessageShouldSetPeerInactive(t *testing.T) {
 	th := mock.NewTimerMock()
 	pubKey1 := "pk1-should-stay-online"
 	pubKey2 := "pk2-should-go-offline"
-	storer, _ := storage.NewHeartbeatDbStorer(genericMocks.NewStorerMock(), &mock.MarshalizerMock{})
+	storer, _ := storage.NewHeartbeatDbStorer(genericMocks.NewStorerMock(), &mock.MarshallerMock{})
 	arg := createMockArgHeartbeatMonitor()
-	arg.Marshalizer = &mock.MarshalizerStub{
+	arg.Marshalizer = &mock.MarshallerStub{
 		UnmarshalHandler: func(obj interface{}, buff []byte) error {
 			var rcvdHb data.Heartbeat
 			_ = json.Unmarshal(buff, &rcvdHb)
@@ -471,7 +486,6 @@ func TestMonitor_ProcessReceivedMessageShouldSetPeerInactive(t *testing.T) {
 	mon.RefreshHeartbeatMessageInfo()
 	hbStatus := mon.GetHeartbeats()
 	assert.Equal(t, 2, len(hbStatus))
-	//assert.False(t, hbStatus[1].IsActive)
 
 	// Now send a message from pk1 in order to see that pk2 is not active anymore
 	err = sendHbMessageFromPubKey(pubKey1, mon)
@@ -495,13 +509,13 @@ func TestMonitor_RemoveInactiveValidatorsIfIntervalExceeded(t *testing.T) {
 	pubKey3 := "pk3-observer"
 	pubKey4 := "pk4-inactive"
 
-	storer, _ := storage.NewHeartbeatDbStorer(genericMocks.NewStorerMock(), &mock.MarshalizerMock{})
+	storer, _ := storage.NewHeartbeatDbStorer(genericMocks.NewStorerMock(), &mock.MarshallerMock{})
 
 	timer := mock.NewTimerMock()
 	genesisTime := timer.Now()
 
 	arg := process.ArgHeartbeatMonitor{
-		Marshalizer:                 &mock.MarshalizerMock{},
+		Marshalizer:                 &mock.MarshallerMock{},
 		MaxDurationPeerUnresponsive: unresponsiveDuration,
 		PubKeysMap: map[uint32][]string{
 			0: {pkValidator},
@@ -530,11 +544,12 @@ func TestMonitor_RemoveInactiveValidatorsIfIntervalExceeded(t *testing.T) {
 		},
 		Timer:                              timer,
 		AntifloodHandler:                   createMockP2PAntifloodHandler(),
-		HardforkTrigger:                    &mock.HardforkTriggerStub{},
+		HardforkTrigger:                    &testscommon.HardforkTriggerStub{},
 		ValidatorPubkeyConverter:           mock.NewPubkeyConverterMock(32),
 		HeartbeatRefreshIntervalInSec:      1,
 		HideInactiveValidatorIntervalInSec: 600,
 		AppStatusHandler:                   &statusHandlerMock.AppStatusHandlerStub{},
+		EpochNotifier:                      &epochNotifier.EpochNotifierStub{},
 	}
 	mon, _ := process.NewMonitor(arg)
 	mon.SendHeartbeatMessage(&data.Heartbeat{Pubkey: []byte(pkValidator)})
@@ -568,7 +583,7 @@ func TestMonitor_ProcessReceivedMessageImpersonatedMessageShouldErr(t *testing.T
 	originator := core.PeerID("message originator")
 
 	arg := createMockArgHeartbeatMonitor()
-	arg.Marshalizer = &mock.MarshalizerStub{
+	arg.Marshalizer = &mock.MarshallerStub{
 		UnmarshalHandler: func(obj interface{}, buff []byte) error {
 			(obj.(*data.Heartbeat)).Pubkey = []byte(pubKey)
 			return nil
@@ -619,6 +634,40 @@ func sendHbMessageFromPubKey(pubKey string, mon *process.Monitor) error {
 	buffToSend, _ := json.Marshal(hb)
 	err := mon.ProcessReceivedMessage(&mock.P2PMessageStub{DataField: buffToSend}, fromConnectedPeerId)
 	return err
+}
+
+func TestMonitor_ProcessReceivedMessageShouldNotProcessAfterEpoch(t *testing.T) {
+	t.Parallel()
+
+	providedEpoch := uint32(210)
+	args := createMockArgHeartbeatMonitor()
+	args.HeartbeatDisableEpoch = providedEpoch
+
+	wasCanProcessMessageCalled := false
+	args.AntifloodHandler = &mock.P2PAntifloodHandlerStub{
+		CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
+			wasCanProcessMessageCalled = true
+			return nil
+		},
+	}
+
+	mon, err := process.NewMonitor(args)
+	assert.Nil(t, err)
+	assert.False(t, check.IfNil(mon))
+
+	message := &mock.P2PMessageStub{DataField: []byte("data field")}
+
+	mon.EpochConfirmed(providedEpoch-1, 0)
+	err = mon.ProcessReceivedMessage(message, "pid")
+	assert.Nil(t, err)
+	assert.True(t, wasCanProcessMessageCalled)
+
+	wasCanProcessMessageCalled = false
+	mon.EpochConfirmed(providedEpoch, 0)
+	err = mon.ProcessReceivedMessage(message, "pid")
+	assert.Nil(t, err)
+	assert.False(t, wasCanProcessMessageCalled)
+
 }
 
 func TestMonitor_AddAndGetDoubleSignerPeersShouldWork(t *testing.T) {

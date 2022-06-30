@@ -104,23 +104,29 @@ func (bap *baseAPIBlockProcessor) convertMiniblockFromReceiptsStorageToApiMinibl
 	}
 
 	if options.WithTransactions {
-		err = bap.getAndAttachTxsToMbByEpoch(mbHash, miniblock, epoch, miniblockAPI, options)
-		if err != nil {
-			return nil, err
-		}
+		firstProcessed := int32(0)
+		lastProcessed := int32(len(miniblock.TxHashes) - 1)
+		bap.getAndAttachTxsToMbByEpoch(mbHash, miniblock, epoch, miniblockAPI, firstProcessed, lastProcessed, options)
 	}
 
 	return miniblockAPI, nil
 }
 
-func (bap *baseAPIBlockProcessor) getAndAttachTxsToMb(mbHeader data.MiniBlockHeaderHandler, epoch uint32, apiMiniblock *api.MiniBlock, options api.BlockQueryOptions) error {
+func (bap *baseAPIBlockProcessor) getAndAttachTxsToMb(
+	mbHeader data.MiniBlockHeaderHandler,
+	epoch uint32,
+	apiMiniblock *api.MiniBlock,
+	options api.BlockQueryOptions,
+) error {
 	miniblockHash := mbHeader.GetHash()
 	miniBlock, err := bap.getMiniblockByHashAndEpoch(miniblockHash, epoch)
 	if err != nil {
 		return err
 	}
 
-	return bap.getAndAttachTxsToMbByEpoch(miniblockHash, miniBlock, epoch, apiMiniblock, options)
+	firstProcessed := mbHeader.GetIndexOfFirstTxProcessed()
+	lastProcessed := mbHeader.GetIndexOfLastTxProcessed()
+	return bap.getAndAttachTxsToMbByEpoch(miniblockHash, miniBlock, epoch, apiMiniblock, firstProcessed, lastProcessed, options)
 }
 
 func (bap *baseAPIBlockProcessor) getMiniblockByHashAndEpoch(miniblockHash []byte, epoch uint32) (*block.MiniBlock, error) {
@@ -138,18 +144,26 @@ func (bap *baseAPIBlockProcessor) getMiniblockByHashAndEpoch(miniblockHash []byt
 	return miniBlock, nil
 }
 
-func (bap *baseAPIBlockProcessor) getAndAttachTxsToMbByEpoch(miniblockHash []byte, miniBlock *block.MiniBlock, epoch uint32, apiMiniblock *api.MiniBlock, options api.BlockQueryOptions) error {
+func (bap *baseAPIBlockProcessor) getAndAttachTxsToMbByEpoch(
+	miniblockHash []byte,
+	miniBlock *block.MiniBlock,
+	epoch uint32,
+	apiMiniblock *api.MiniBlock,
+	firstProcessedTxIndex int32,
+	lastProcessedTxIndex int32,
+	options api.BlockQueryOptions,
+) error {
 	var err error
 
 	switch miniBlock.Type {
 	case block.TxBlock:
-		apiMiniblock.Transactions, err = bap.getTxsFromMiniblock(miniBlock, miniblockHash, epoch, transaction.TxTypeNormal, dataRetriever.TransactionUnit)
+		apiMiniblock.Transactions, err = bap.getTxsFromMiniblock(miniBlock, miniblockHash, epoch, transaction.TxTypeNormal, dataRetriever.TransactionUnit, firstProcessedTxIndex, lastProcessedTxIndex)
 	case block.RewardsBlock:
-		apiMiniblock.Transactions, err = bap.getTxsFromMiniblock(miniBlock, miniblockHash, epoch, transaction.TxTypeReward, dataRetriever.RewardTransactionUnit)
+		apiMiniblock.Transactions, err = bap.getTxsFromMiniblock(miniBlock, miniblockHash, epoch, transaction.TxTypeReward, dataRetriever.RewardTransactionUnit, firstProcessedTxIndex, lastProcessedTxIndex)
 	case block.SmartContractResultBlock:
-		apiMiniblock.Transactions, err = bap.getTxsFromMiniblock(miniBlock, miniblockHash, epoch, transaction.TxTypeUnsigned, dataRetriever.UnsignedTransactionUnit)
+		apiMiniblock.Transactions, err = bap.getTxsFromMiniblock(miniBlock, miniblockHash, epoch, transaction.TxTypeUnsigned, dataRetriever.UnsignedTransactionUnit, firstProcessedTxIndex, lastProcessedTxIndex)
 	case block.InvalidBlock:
-		apiMiniblock.Transactions, err = bap.getTxsFromMiniblock(miniBlock, miniblockHash, epoch, transaction.TxTypeInvalid, dataRetriever.TransactionUnit)
+		apiMiniblock.Transactions, err = bap.getTxsFromMiniblock(miniBlock, miniblockHash, epoch, transaction.TxTypeInvalid, dataRetriever.TransactionUnit, firstProcessedTxIndex, lastProcessedTxIndex)
 	case block.ReceiptBlock:
 		apiMiniblock.Receipts, err = bap.getReceiptsFromMiniblock(miniBlock, epoch)
 	}
@@ -196,10 +210,14 @@ func (bap *baseAPIBlockProcessor) getTxsFromMiniblock(
 	epoch uint32,
 	txType transaction.TxType,
 	unit dataRetriever.UnitType,
+	firstProcessedTxIndex int32,
+	lastProcessedTxIndex int32,
 ) ([]*transaction.ApiTransactionResult, error) {
 	storer := bap.store.GetStorer(unit)
 	start := time.Now()
-	marshalledTxs, err := storer.GetBulkFromEpoch(miniblock.TxHashes, epoch)
+
+	executedTxHashes := extractExecutedTxHashes(miniblock.TxHashes, firstProcessedTxIndex, lastProcessedTxIndex)
+	marshalledTxs, err := storer.GetBulkFromEpoch(executedTxHashes, epoch)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %v, miniblock = %s", errCannotLoadTransactions, err, hex.EncodeToString(miniblockHash))
 	}
@@ -288,4 +306,17 @@ func (bap *baseAPIBlockProcessor) getBlockHeaderHashAndBytesByRound(round uint64
 	}
 
 	return headerHash, blockBytes, nil
+}
+
+func extractExecutedTxHashes(mbTxHashes [][]byte, firstProcessed, lastProcessed int32) [][]byte {
+	invalidIndexes := firstProcessed < 0 || lastProcessed >= int32(len(mbTxHashes)) || firstProcessed > lastProcessed
+	if invalidIndexes {
+		log.Warn("extractExecutedTxHashes encountered invalid indices", "firstProcessed", firstProcessed,
+			"lastProcessed", lastProcessed,
+			"len(mbTxHashes)", len(mbTxHashes),
+		)
+		return mbTxHashes
+	}
+
+	return mbTxHashes[firstProcessed : lastProcessed+1]
 }

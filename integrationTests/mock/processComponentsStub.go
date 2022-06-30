@@ -48,6 +48,8 @@ type ProcessComponentsStub struct {
 	CurrentEpochProviderInternal         process.CurrentNetworkEpochProviderHandler
 	ScheduledTxsExecutionHandlerInternal process.ScheduledTxsExecutionHandler
 	TxsSenderHandlerField                process.TxsSenderHandler
+	HardforkTriggerField                 factory.HardforkTrigger
+	ProcessedMiniBlocksTrackerInternal   process.ProcessedMiniBlocksTracker
 }
 
 // Create -
@@ -233,6 +235,16 @@ func (pcs *ProcessComponentsStub) ScheduledTxsExecutionHandler() process.Schedul
 // TxsSenderHandler -
 func (pcs *ProcessComponentsStub) TxsSenderHandler() process.TxsSenderHandler {
 	return pcs.TxsSenderHandlerField
+}
+
+// HardforkTrigger -
+func (pcs *ProcessComponentsStub) HardforkTrigger() factory.HardforkTrigger {
+	return pcs.HardforkTriggerField
+}
+
+// ProcessedMiniBlocksTracker -
+func (pcs *ProcessComponentsStub) ProcessedMiniBlocksTracker() process.ProcessedMiniBlocksTracker {
+	return pcs.ProcessedMiniBlocksTrackerInternal
 }
 
 // IsInterfaceNil -

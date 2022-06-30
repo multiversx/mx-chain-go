@@ -26,4 +26,5 @@ type ArgAPITransactionProcessor struct {
 	FeeComputer              feeComputer
 	TxTypeHandler            process.TxTypeHandler
 	LogsFacade               LogsFacade
+	DataFieldParser          DataFieldParser
 }

@@ -47,8 +47,7 @@ func NewAPITransactionProcessor(args *ArgAPITransactionProcessor) (*apiTransacti
 		return nil, err
 	}
 
-	txUnmarshalerAndPreparer := newTransactionUnmarshaller(args.Marshalizer, args.AddressPubKeyConverter)
-
+	txUnmarshalerAndPreparer := newTransactionUnmarshaller(args.Marshalizer, args.AddressPubKeyConverter, args.DataFieldParser)
 	txResultsProc := newAPITransactionResultProcessor(
 		args.AddressPubKeyConverter,
 		args.HistoryRepository,
@@ -57,6 +56,7 @@ func NewAPITransactionProcessor(args *ArgAPITransactionProcessor) (*apiTransacti
 		txUnmarshalerAndPreparer,
 		args.LogsFacade,
 		args.ShardCoordinator.SelfId(),
+		args.DataFieldParser,
 	)
 
 	refundDetector := newRefundDetector()

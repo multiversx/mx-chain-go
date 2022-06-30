@@ -44,7 +44,6 @@ import (
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
-	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/update/trigger"
 	"github.com/google/gops/agent"
 )
@@ -181,7 +180,8 @@ func printEnableEpochs(configs *config.Configs) {
 	log.Debug(readEpochFor("fail execution on every wrong API call"), "epoch", enableEpochs.FailExecutionOnEveryAPIErrorEnableEpoch)
 	log.Debug(readEpochFor("managed crypto API in wasm vm"), "epoch", enableEpochs.ManagedCryptoAPIsEnableEpoch)
 	log.Debug(readEpochFor("refactor contexts"), "epoch", enableEpochs.RefactorContextEnableEpoch)
-
+	log.Debug(readEpochFor("disable heartbeat v1"), "epoch", enableEpochs.HeartbeatDisableEpoch)
+	log.Debug(readEpochFor("mini block partial execution"), "epoch", enableEpochs.MiniBlockPartialExecutionEnableEpoch)
 	gasSchedule := configs.EpochConfig.GasSchedule
 
 	log.Debug(readEpochFor("gas schedule directories paths"), "epoch", gasSchedule.GasScheduleByEpochs)
@@ -383,6 +383,12 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		return true, err
 	}
 
+	hardforkTrigger := managedProcessComponents.HardforkTrigger()
+	err = hardforkTrigger.AddCloser(nodesShufflerOut)
+	if err != nil {
+		return true, fmt.Errorf("%w when adding nodeShufflerOut in hardForkTrigger", err)
+	}
+
 	managedStatusComponents.SetForkDetector(managedProcessComponents.ForkDetector())
 	err = managedStatusComponents.StartPolling()
 	if err != nil {
@@ -395,13 +401,10 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		managedCoreComponents,
 		managedNetworkComponents,
 		managedCryptoComponents,
-		managedBootstrapComponents,
 		managedDataComponents,
 		managedStateComponents,
 		managedStatusComponents,
 		managedProcessComponents,
-		nodesCoord,
-		nodesShufflerOut,
 	)
 	if err != nil {
 		return true, err
@@ -413,8 +416,20 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		managedCryptoComponents,
 		managedDataComponents,
 		managedProcessComponents,
-		managedConsensusComponents.HardforkTrigger(),
 		managedProcessComponents.NodeRedundancyHandler(),
+	)
+
+	if err != nil {
+		return true, err
+	}
+
+	managedHeartbeatV2Components, err := nr.CreateManagedHeartbeatV2Components(
+		managedBootstrapComponents,
+		managedCoreComponents,
+		managedNetworkComponents,
+		managedCryptoComponents,
+		managedDataComponents,
+		managedProcessComponents,
 	)
 
 	if err != nil {
@@ -433,6 +448,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		managedStateComponents,
 		managedStatusComponents,
 		managedHeartbeatComponents,
+		managedHeartbeatV2Components,
 		managedConsensusComponents,
 		*configs.EpochConfig,
 		flagsConfig.BootstrapRoundIndex,
@@ -630,34 +646,11 @@ func (nr *nodeRunner) CreateManagedConsensusComponents(
 	coreComponents mainFactory.CoreComponentsHolder,
 	networkComponents mainFactory.NetworkComponentsHolder,
 	cryptoComponents mainFactory.CryptoComponentsHolder,
-	bootstrapComponents mainFactory.BootstrapComponentsHolder,
 	dataComponents mainFactory.DataComponentsHolder,
 	stateComponents mainFactory.StateComponentsHolder,
 	statusComponents mainFactory.StatusComponentsHolder,
 	processComponents mainFactory.ProcessComponentsHolder,
-	nodesCoordinator nodesCoordinator.NodesCoordinator,
-	nodesShuffledOut update.Closer,
 ) (mainFactory.ConsensusComponentsHandler, error) {
-	hardForkTrigger, err := CreateHardForkTrigger(
-		nr.configs.GeneralConfig,
-		nr.configs.EpochConfig,
-		bootstrapComponents.ShardCoordinator(),
-		nodesCoordinator,
-		nodesShuffledOut,
-		coreComponents,
-		stateComponents,
-		dataComponents,
-		cryptoComponents,
-		processComponents,
-		networkComponents,
-		coreComponents.EpochStartNotifierWithConfirm(),
-		processComponents.ImportStartHandler(),
-		nr.configs.FlagsConfig.WorkingDir,
-	)
-	if err != nil {
-		return nil, err
-	}
-
 	scheduledProcessorArgs := spos.ScheduledProcessorWrapperArgs{
 		SyncTimer:                coreComponents.SyncTimer(),
 		Processor:                processComponents.BlockProcessor(),
@@ -672,7 +665,6 @@ func (nr *nodeRunner) CreateManagedConsensusComponents(
 	consensusArgs := mainFactory.ConsensusComponentsFactoryArgs{
 		Config:              *nr.configs.GeneralConfig,
 		BootstrapRoundIndex: nr.configs.FlagsConfig.BootstrapRoundIndex,
-		HardforkTrigger:     hardForkTrigger,
 		CoreComponents:      coreComponents,
 		NetworkComponents:   networkComponents,
 		CryptoComponents:    cryptoComponents,
@@ -708,23 +700,22 @@ func (nr *nodeRunner) CreateManagedHeartbeatComponents(
 	cryptoComponents mainFactory.CryptoComponentsHolder,
 	dataComponents mainFactory.DataComponentsHolder,
 	processComponents mainFactory.ProcessComponentsHolder,
-	hardforkTrigger HardforkTrigger,
 	redundancyHandler consensus.NodeRedundancyHandler,
 ) (mainFactory.HeartbeatComponentsHandler, error) {
 	genesisTime := time.Unix(coreComponents.GenesisNodesSetup().GetStartTime(), 0)
 
 	heartbeatArgs := mainFactory.HeartbeatComponentsFactoryArgs{
-		Config:            *nr.configs.GeneralConfig,
-		Prefs:             *nr.configs.PreferencesConfig,
-		AppVersion:        nr.configs.FlagsConfig.Version,
-		GenesisTime:       genesisTime,
-		HardforkTrigger:   hardforkTrigger,
-		RedundancyHandler: redundancyHandler,
-		CoreComponents:    coreComponents,
-		DataComponents:    dataComponents,
-		NetworkComponents: networkComponents,
-		CryptoComponents:  cryptoComponents,
-		ProcessComponents: processComponents,
+		Config:                *nr.configs.GeneralConfig,
+		Prefs:                 *nr.configs.PreferencesConfig,
+		AppVersion:            nr.configs.FlagsConfig.Version,
+		GenesisTime:           genesisTime,
+		RedundancyHandler:     redundancyHandler,
+		CoreComponents:        coreComponents,
+		DataComponents:        dataComponents,
+		NetworkComponents:     networkComponents,
+		CryptoComponents:      cryptoComponents,
+		ProcessComponents:     processComponents,
+		HeartbeatDisableEpoch: nr.configs.EpochConfig.EnableEpochs.HeartbeatDisableEpoch,
 	}
 
 	heartbeatComponentsFactory, err := mainFactory.NewHeartbeatComponentsFactory(heartbeatArgs)
@@ -742,6 +733,44 @@ func (nr *nodeRunner) CreateManagedHeartbeatComponents(
 		return nil, err
 	}
 	return managedHeartbeatComponents, nil
+}
+
+// CreateManagedHeartbeatV2Components is the managed heartbeatV2 components factory
+func (nr *nodeRunner) CreateManagedHeartbeatV2Components(
+	bootstrapComponents mainFactory.BootstrapComponentsHolder,
+	coreComponents mainFactory.CoreComponentsHolder,
+	networkComponents mainFactory.NetworkComponentsHolder,
+	cryptoComponents mainFactory.CryptoComponentsHolder,
+	dataComponents mainFactory.DataComponentsHolder,
+	processComponents mainFactory.ProcessComponentsHolder,
+) (mainFactory.HeartbeatV2ComponentsHandler, error) {
+	heartbeatV2Args := mainFactory.ArgHeartbeatV2ComponentsFactory{
+		Config:             *nr.configs.GeneralConfig,
+		Prefs:              *nr.configs.PreferencesConfig,
+		AppVersion:         nr.configs.FlagsConfig.Version,
+		BoostrapComponents: bootstrapComponents,
+		CoreComponents:     coreComponents,
+		DataComponents:     dataComponents,
+		NetworkComponents:  networkComponents,
+		CryptoComponents:   cryptoComponents,
+		ProcessComponents:  processComponents,
+	}
+
+	heartbeatV2ComponentsFactory, err := mainFactory.NewHeartbeatV2ComponentsFactory(heartbeatV2Args)
+	if err != nil {
+		return nil, fmt.Errorf("NewHeartbeatV2ComponentsFactory failed: %w", err)
+	}
+
+	managedHeartbeatV2Components, err := mainFactory.NewManagedHeartbeatV2Components(heartbeatV2ComponentsFactory)
+	if err != nil {
+		return nil, err
+	}
+
+	err = managedHeartbeatV2Components.Create()
+	if err != nil {
+		return nil, err
+	}
+	return managedHeartbeatV2Components, nil
 }
 
 func waitForSignal(
@@ -1178,21 +1207,21 @@ func (nr *nodeRunner) CreateManagedBootstrapComponents(
 func (nr *nodeRunner) CreateManagedNetworkComponents(
 	coreComponents mainFactory.CoreComponentsHolder,
 ) (mainFactory.NetworkComponentsHandler, error) {
-	decodedPreferredPubKeys, err := decodeValidatorPubKeys(*nr.configs.PreferencesConfig, coreComponents.ValidatorPubKeyConverter())
+	decodedPreferredPeers, err := decodePreferredPeers(*nr.configs.PreferencesConfig, coreComponents.ValidatorPubKeyConverter())
 	if err != nil {
 		return nil, err
 	}
 
 	networkComponentsFactoryArgs := mainFactory.NetworkComponentsFactoryArgs{
-		P2pConfig:           *nr.configs.P2pConfig,
-		MainConfig:          *nr.configs.GeneralConfig,
-		RatingsConfig:       *nr.configs.RatingsConfig,
-		StatusHandler:       coreComponents.StatusHandler(),
-		Marshalizer:         coreComponents.InternalMarshalizer(),
-		Syncer:              coreComponents.SyncTimer(),
-		PreferredPublicKeys: decodedPreferredPubKeys,
-		BootstrapWaitTime:   common.TimeToWaitForP2PBootstrap,
-		NodeOperationMode:   p2p.NormalOperation,
+		P2pConfig:            *nr.configs.P2pConfig,
+		MainConfig:           *nr.configs.GeneralConfig,
+		RatingsConfig:        *nr.configs.RatingsConfig,
+		StatusHandler:        coreComponents.StatusHandler(),
+		Marshalizer:          coreComponents.InternalMarshalizer(),
+		Syncer:               coreComponents.SyncTimer(),
+		PreferredPeersSlices: decodedPreferredPeers,
+		BootstrapWaitTime:    common.TimeToWaitForP2PBootstrap,
+		NodeOperationMode:    p2p.NormalOperation,
 	}
 	if nr.configs.ImportDbConfig.IsImportDBMode {
 		networkComponentsFactoryArgs.BootstrapWaitTime = 0
@@ -1457,18 +1486,18 @@ func enableGopsIfNeeded(gopsEnabled bool) {
 	log.Trace("gops", "enabled", gopsEnabled)
 }
 
-func decodeValidatorPubKeys(prefConfig config.Preferences, validatorPubKeyConverter core.PubkeyConverter) ([][]byte, error) {
-	decodedPublicKeys := make([][]byte, 0)
-	for _, pubKey := range prefConfig.Preferences.PreferredConnections {
-		pubKeyBytes, err := validatorPubKeyConverter.Decode(pubKey)
+func decodePreferredPeers(prefConfig config.Preferences, validatorPubKeyConverter core.PubkeyConverter) ([]string, error) {
+	decodedPeers := make([]string, 0)
+	for _, connectionSlice := range prefConfig.Preferences.PreferredConnections {
+		peerBytes, err := validatorPubKeyConverter.Decode(connectionSlice)
 		if err != nil {
-			return nil, fmt.Errorf("cannot decode preferred public key(%s) : %w", pubKey, err)
+			return nil, fmt.Errorf("cannot decode preferred peer(%s) : %w", connectionSlice, err)
 		}
 
-		decodedPublicKeys = append(decodedPublicKeys, pubKeyBytes)
+		decodedPeers = append(decodedPeers, string(peerBytes))
 	}
 
-	return decodedPublicKeys, nil
+	return decodedPeers, nil
 }
 
 func createWhiteListerVerifiedTxs(generalConfig *config.Config) (process.WhiteListHandler, error) {

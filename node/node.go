@@ -62,7 +62,6 @@ type Node struct {
 	consensusGroupSize  int
 	genesisTime         time.Time
 	peerDenialEvaluator p2p.PeerDenialEvaluator
-	hardforkTrigger     HardforkTrigger
 	esdtStorageHandler  vmcommon.ESDTNFTStorageHandler
 
 	consensusType       string
@@ -77,18 +76,19 @@ type Node struct {
 
 	chanStopNodeProcess chan endProcess.ArgEndProcess
 
-	mutQueryHandlers    syncGo.RWMutex
-	queryHandlers       map[string]debug.QueryHandler
-	bootstrapComponents mainFactory.BootstrapComponentsHolder
-	consensusComponents mainFactory.ConsensusComponentsHolder
-	coreComponents      mainFactory.CoreComponentsHolder
-	cryptoComponents    mainFactory.CryptoComponentsHolder
-	dataComponents      mainFactory.DataComponentsHolder
-	heartbeatComponents mainFactory.HeartbeatComponentsHolder
-	networkComponents   mainFactory.NetworkComponentsHolder
-	processComponents   mainFactory.ProcessComponentsHolder
-	stateComponents     mainFactory.StateComponentsHolder
-	statusComponents    mainFactory.StatusComponentsHolder
+	mutQueryHandlers      syncGo.RWMutex
+	queryHandlers         map[string]debug.QueryHandler
+	bootstrapComponents   mainFactory.BootstrapComponentsHolder
+	consensusComponents   mainFactory.ConsensusComponentsHolder
+	coreComponents        mainFactory.CoreComponentsHolder
+	cryptoComponents      mainFactory.CryptoComponentsHolder
+	dataComponents        mainFactory.DataComponentsHolder
+	heartbeatComponents   mainFactory.HeartbeatComponentsHolder
+	heartbeatV2Components mainFactory.HeartbeatV2ComponentsHolder
+	networkComponents     mainFactory.NetworkComponentsHolder
+	processComponents     mainFactory.ProcessComponentsHolder
+	stateComponents       mainFactory.StateComponentsHolder
+	statusComponents      mainFactory.StatusComponentsHolder
 
 	closableComponents        []mainFactory.Closer
 	enableSignTxWithHashEpoch uint32
@@ -823,15 +823,38 @@ func (n *Node) GetCode(codeHash []byte, options api.AccountQueryOptions) ([]byte
 
 // GetHeartbeats returns the heartbeat status for each public key defined in genesis.json
 func (n *Node) GetHeartbeats() []heartbeatData.PubKeyHeartbeat {
-	if check.IfNil(n.heartbeatComponents) {
-		return make([]heartbeatData.PubKeyHeartbeat, 0)
-	}
-	mon := n.heartbeatComponents.Monitor()
-	if check.IfNil(mon) {
-		return make([]heartbeatData.PubKeyHeartbeat, 0)
+	dataMap := make(map[string]heartbeatData.PubKeyHeartbeat)
+
+	if !check.IfNil(n.heartbeatComponents) {
+		v1Monitor := n.heartbeatComponents.Monitor()
+		if !check.IfNil(v1Monitor) {
+			n.addHeartbeatDataToMap(v1Monitor.GetHeartbeats(), dataMap)
+		}
 	}
 
-	return mon.GetHeartbeats()
+	if !check.IfNil(n.heartbeatV2Components) {
+		v2Monitor := n.heartbeatV2Components.Monitor()
+		if !check.IfNil(v2Monitor) {
+			n.addHeartbeatDataToMap(v2Monitor.GetHeartbeats(), dataMap)
+		}
+	}
+
+	dataSlice := make([]heartbeatData.PubKeyHeartbeat, 0)
+	for _, hb := range dataMap {
+		dataSlice = append(dataSlice, hb)
+	}
+
+	sort.Slice(dataSlice, func(i, j int) bool {
+		return strings.Compare(dataSlice[i].PublicKey, dataSlice[j].PublicKey) < 0
+	})
+
+	return dataSlice
+}
+
+func (n *Node) addHeartbeatDataToMap(data []heartbeatData.PubKeyHeartbeat, dataMap map[string]heartbeatData.PubKeyHeartbeat) {
+	for _, hb := range data {
+		dataMap[hb.PublicKey] = hb
+	}
 }
 
 // ValidatorStatisticsApi will return the statistics for all the validators from the initial nodes pub keys
@@ -841,12 +864,12 @@ func (n *Node) ValidatorStatisticsApi() (map[string]*state.ValidatorApiResponse,
 
 // DirectTrigger will start the hardfork trigger
 func (n *Node) DirectTrigger(epoch uint32, withEarlyEndOfEpoch bool) error {
-	return n.hardforkTrigger.Trigger(epoch, withEarlyEndOfEpoch)
+	return n.processComponents.HardforkTrigger().Trigger(epoch, withEarlyEndOfEpoch)
 }
 
 // IsSelfTrigger returns true if the trigger's registered public key matches the self public key
 func (n *Node) IsSelfTrigger() bool {
-	return n.hardforkTrigger.IsSelfTrigger()
+	return n.processComponents.HardforkTrigger().IsSelfTrigger()
 }
 
 // EncodeAddressPubkey will encode the provided address public key bytes to string
@@ -929,11 +952,6 @@ func (n *Node) GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error) {
 	return peerInfoSlice, nil
 }
 
-// GetHardforkTrigger returns the hardfork trigger
-func (n *Node) GetHardforkTrigger() HardforkTrigger {
-	return n.hardforkTrigger
-}
-
 // GetCoreComponents returns the core components
 func (n *Node) GetCoreComponents() mainFactory.CoreComponentsHolder {
 	return n.coreComponents
@@ -962,6 +980,11 @@ func (n *Node) GetDataComponents() mainFactory.DataComponentsHolder {
 // GetHeartbeatComponents returns the heartbeat components
 func (n *Node) GetHeartbeatComponents() mainFactory.HeartbeatComponentsHolder {
 	return n.heartbeatComponents
+}
+
+// GetHeartbeatV2Components returns the heartbeatV2 components
+func (n *Node) GetHeartbeatV2Components() mainFactory.HeartbeatV2ComponentsHolder {
+	return n.heartbeatV2Components
 }
 
 // GetNetworkComponents returns the network components

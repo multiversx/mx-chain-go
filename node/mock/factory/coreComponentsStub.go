@@ -53,6 +53,7 @@ type CoreComponentsMock struct {
 	NodeTypeProviderField        core.NodeTypeProviderHandler
 	ArwenChangeLockerInternal    common.Locker
 	ProcessStatusHandlerInternal common.ProcessStatusHandler
+	HardforkTriggerPubKeyField  []byte
 }
 
 // Create -
@@ -251,6 +252,11 @@ func (ccm *CoreComponentsMock) ProcessStatusHandler() common.ProcessStatusHandle
 // String -
 func (ccm *CoreComponentsMock) String() string {
 	return "CoreComponentsMock"
+}
+
+// HardforkTriggerPubKey -
+func (ccm *CoreComponentsMock) HardforkTriggerPubKey() []byte {
+	return ccm.HardforkTriggerPubKeyField
 }
 
 // IsInterfaceNil -

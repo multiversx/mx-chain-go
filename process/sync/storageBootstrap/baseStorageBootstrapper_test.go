@@ -36,6 +36,7 @@ func createMockShardStorageBoostrapperArgs() ArgsBaseStorageBootstrapper {
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		MiniblocksProvider:           &mock.MiniBlocksProviderStub{},
 		EpochNotifier:                &epochNotifierMock.EpochNotifierStub{},
+		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 	}
 
 	return argsBaseBootstrapper
@@ -169,6 +170,16 @@ func TestBaseStorageBootstrapper_CheckBaseStorageBootstrapperArguments(t *testin
 
 		err := checkBaseStorageBootstrapperArguments(args)
 		assert.Equal(t, process.ErrNilEpochNotifier, err)
+	})
+
+	t.Run("nil processed mini blocks tracker should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockShardStorageBoostrapperArgs()
+		args.ProcessedMiniBlocksTracker = nil
+
+		err := checkBaseStorageBootstrapperArguments(args)
+		assert.Equal(t, process.ErrNilProcessedMiniBlocksTracker, err)
 	})
 }
 

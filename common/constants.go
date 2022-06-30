@@ -63,6 +63,15 @@ const GenesisTxSignatureString = "GENESISGENESISGENESISGENESISGENESISGENESISGENE
 // HeartbeatTopic is the topic used for heartbeat signaling
 const HeartbeatTopic = "heartbeat"
 
+// HeartbeatV2Topic is the topic used for heartbeatV2 signaling
+const HeartbeatV2Topic = "heartbeatV2"
+
+// PeerAuthenticationTopic is the topic used for peer authentication signaling
+const PeerAuthenticationTopic = "peerAuthentication"
+
+// ConnectionTopic represents the topic used when sending the new connection message data
+const ConnectionTopic = "connection"
+
 // PathShardPlaceholder represents the placeholder for the shard ID in paths
 const PathShardPlaceholder = "[S]"
 
@@ -485,6 +494,9 @@ const (
 	// MetricWaitingListFixEnableEpoch represents the epoch when the waiting list fix is enabled
 	MetricWaitingListFixEnableEpoch = "erd_waiting_list_fix_enable_epoch"
 
+	// MetricHeartbeatDisableEpoch represents the epoch when heartbeat v1 messages stop being sent and processed
+	MetricHeartbeatDisableEpoch = "erd_heartbeat_disable_epoch"
+
 	// MetricMaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
 	MetricMaxNodesChangeEnableEpoch = "erd_max_nodes_change_enable_epoch"
 
@@ -823,3 +835,6 @@ const (
 	// ApiOutputFormatProto outport format returns the bytes of the proto object
 	ApiOutputFormatProto ApiOutputFormat = 1
 )
+
+// MaxIndexOfTxInMiniBlock defines the maximum index of a tx inside one mini block
+const MaxIndexOfTxInMiniBlock = int32(29999)

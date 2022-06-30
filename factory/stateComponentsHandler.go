@@ -205,5 +205,5 @@ func (msc *managedStateComponents) IsInterfaceNil() bool {
 
 // String returns the name of the component
 func (msc *managedStateComponents) String() string {
-	return "managedStateComponents"
+	return stateComponentsName
 }
