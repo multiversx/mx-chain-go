@@ -30,7 +30,11 @@ type KeyGenMock struct {
 
 // ToByteArray -
 func (sspk *PublicKeyMock) ToByteArray() ([]byte, error) {
-	return sspk.ToByteArrayHandler()
+	if sspk.ToByteArrayHandler != nil {
+		return sspk.ToByteArrayHandler()
+	}
+
+	return make([]byte, 0), nil
 }
 
 // Suite -
@@ -50,7 +54,11 @@ func (sspk *PublicKeyMock) IsInterfaceNil() bool {
 
 // ToByteArray -
 func (sk *PrivateKeyStub) ToByteArray() ([]byte, error) {
-	return sk.ToByteArrayHandler()
+	if sk.ToByteArrayHandler != nil {
+		return sk.ToByteArrayHandler()
+	}
+
+	return make([]byte, 0), nil
 }
 
 // GeneratePublic -

@@ -9,17 +9,24 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	datafield "github.com/ElrondNetwork/elrond-vm-common/parsers/dataField"
 )
 
 type txUnmarshaller struct {
 	addressPubKeyConverter core.PubkeyConverter
 	marshalizer            marshal.Marshalizer
+	dataFieldParser        DataFieldParser
 }
 
-func newTransactionUnmarshaller(marshalizer marshal.Marshalizer, addressPubKeyConverter core.PubkeyConverter) *txUnmarshaller {
+func newTransactionUnmarshaller(
+	marshalizer marshal.Marshalizer,
+	addressPubKeyConverter core.PubkeyConverter,
+	dataFieldParser DataFieldParser,
+) *txUnmarshaller {
 	return &txUnmarshaller{
 		marshalizer:            marshalizer,
 		addressPubKeyConverter: addressPubKeyConverter,
+		dataFieldParser:        dataFieldParser,
 	}
 }
 
@@ -39,39 +46,54 @@ func (tu *txUnmarshaller) unmarshalReceipt(receiptBytes []byte) (*transaction.Ap
 }
 
 func (tu *txUnmarshaller) unmarshalTransaction(txBytes []byte, txType transaction.TxType) (*transaction.ApiTransactionResult, error) {
+	var apiTx *transaction.ApiTransactionResult
+	var err error
+
 	switch txType {
 	case transaction.TxTypeNormal:
 		var tx transaction.Transaction
-		err := tu.marshalizer.Unmarshal(&tx, txBytes)
+		err = tu.marshalizer.Unmarshal(&tx, txBytes)
 		if err != nil {
 			return nil, err
 		}
-		return tu.prepareNormalTx(&tx)
+		apiTx, err = tu.prepareNormalTx(&tx)
 	case transaction.TxTypeInvalid:
 		var tx transaction.Transaction
-		err := tu.marshalizer.Unmarshal(&tx, txBytes)
+		err = tu.marshalizer.Unmarshal(&tx, txBytes)
 		if err != nil {
 			return nil, err
 		}
-		return tu.prepareInvalidTx(&tx)
+		apiTx, err = tu.prepareInvalidTx(&tx)
 	case transaction.TxTypeReward:
 		var tx rewardTxData.RewardTx
-		err := tu.marshalizer.Unmarshal(&tx, txBytes)
+		err = tu.marshalizer.Unmarshal(&tx, txBytes)
 		if err != nil {
 			return nil, err
 		}
-		return tu.prepareRewardTx(&tx)
+		apiTx, err = tu.prepareRewardTx(&tx)
 
 	case transaction.TxTypeUnsigned:
 		var tx smartContractResult.SmartContractResult
-		err := tu.marshalizer.Unmarshal(&tx, txBytes)
+		err = tu.marshalizer.Unmarshal(&tx, txBytes)
 		if err != nil {
 			return nil, err
 		}
-		return tu.prepareUnsignedTx(&tx)
+		apiTx, err = tu.prepareUnsignedTx(&tx)
+	}
+	if err != nil {
+		return nil, err
 	}
 
-	return &transaction.ApiTransactionResult{Type: string(transaction.TxTypeInvalid)}, nil
+	res := tu.dataFieldParser.Parse(apiTx.Data, apiTx.Tx.GetSndAddr(), apiTx.Tx.GetRcvAddr())
+	apiTx.Operation = res.Operation
+	apiTx.Function = res.Function
+	apiTx.ESDTValues = res.ESDTValues
+	apiTx.Tokens = res.Tokens
+	apiTx.Receivers = datafield.EncodeBytesSlice(tu.addressPubKeyConverter.Encode, res.Receivers)
+	apiTx.ReceiversShardIDs = res.ReceiversShardID
+	apiTx.IsRelayed = res.IsRelayed
+
+	return apiTx, nil
 }
 
 func (tu *txUnmarshaller) prepareNormalTx(tx *transaction.Transaction) (*transaction.ApiTransactionResult, error) {

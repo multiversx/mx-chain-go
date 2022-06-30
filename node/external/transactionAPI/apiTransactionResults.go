@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/node/filters"
+	datafield "github.com/ElrondNetwork/elrond-vm-common/parsers/dataField"
 )
 
 type apiTransactionResultsProcessor struct {
@@ -20,6 +21,7 @@ type apiTransactionResultsProcessor struct {
 	historyRepository      dblookupext.HistoryRepository
 	storageService         dataRetriever.StorageService
 	marshalizer            marshal.Marshalizer
+	dataFieldParser        DataFieldParser
 	selfShardID            uint32
 	refundDetector         *refundDetector
 	logsFacade             LogsFacade
@@ -33,6 +35,7 @@ func newAPITransactionResultProcessor(
 	txUnmarshaller *txUnmarshaller,
 	logsFacade LogsFacade,
 	selfShardID uint32,
+	dataFieldParser DataFieldParser,
 ) *apiTransactionResultsProcessor {
 	refundDetector := newRefundDetector()
 
@@ -45,6 +48,7 @@ func newAPITransactionResultProcessor(
 		selfShardID:            selfShardID,
 		refundDetector:         refundDetector,
 		logsFacade:             logsFacade,
+		dataFieldParser:        dataFieldParser,
 	}
 }
 
@@ -195,6 +199,15 @@ func (arp *apiTransactionResultsProcessor) adaptSmartContractResult(scrHash []by
 	if len(scr.OriginalSender) == arp.addressPubKeyConverter.Len() {
 		apiSCR.OriginalSender = arp.addressPubKeyConverter.Encode(scr.OriginalSender)
 	}
+
+	res := arp.dataFieldParser.Parse(scr.Data, scr.GetSndAddr(), scr.GetRcvAddr())
+	apiSCR.Operation = res.Operation
+	apiSCR.Function = res.Function
+	apiSCR.ESDTValues = res.ESDTValues
+	apiSCR.Tokens = res.Tokens
+	apiSCR.Receivers = datafield.EncodeBytesSlice(arp.addressPubKeyConverter.Encode, res.Receivers)
+	apiSCR.ReceiversShardIDs = res.ReceiversShardID
+	apiSCR.IsRelayed = res.IsRelayed
 
 	return apiSCR
 }

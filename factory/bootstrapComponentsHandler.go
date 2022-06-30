@@ -124,5 +124,5 @@ func (mbf *managedBootstrapComponents) IsInterfaceNil() bool {
 
 // String returns the name of the component
 func (mbf *managedBootstrapComponents) String() string {
-	return "managedBootstrapComponents"
+	return bootstrapComponentsName
 }

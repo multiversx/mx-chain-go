@@ -515,7 +515,6 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 
 func (e *epochStartBootstrap) createSyncers() error {
 	var err error
-
 	args := factoryInterceptors.ArgsEpochStartInterceptorContainer{
 		CoreComponents:            e.coreComponentsHolder,
 		CryptoComponents:          e.cryptoComponentsHolder,
@@ -530,6 +529,7 @@ func (e *epochStartBootstrap) createSyncers() error {
 		EnableSignTxWithHashEpoch: e.enableEpochs.TransactionSignedWithTxHashEnableEpoch,
 		EpochNotifier:             e.epochNotifier,
 		RequestHandler:            e.requestHandler,
+		SignaturesHandler:         e.messenger,
 	}
 
 	e.interceptorContainer, err = factoryInterceptors.NewEpochStartInterceptorsContainer(args)
@@ -1142,6 +1142,9 @@ func (e *epochStartBootstrap) createRequestHandler() error {
 		PreferredPeersHolder:        disabled.NewPreferredPeersHolder(),
 		ResolverConfig:              e.generalConfig.Resolvers,
 		PeersRatingHandler:          disabled.NewDisabledPeersRatingHandler(),
+		NodesCoordinator:                     disabled.NewNodesCoordinator(),
+		MaxNumOfPeerAuthenticationInResponse: e.generalConfig.HeartbeatV2.MaxNumOfPeerAuthenticationInResponse,
+		PeerShardMapper:                      disabled.NewPeerShardMapper(),
 	}
 	resolverFactory, err := resolverscontainer.NewMetaResolversContainerFactory(resolversContainerArgs)
 	if err != nil {
@@ -1228,13 +1231,12 @@ func (e *epochStartBootstrap) Close() error {
 
 	e.closeTrieComponents()
 
-	if !check.IfNil(e.dataPool) && !check.IfNil(e.dataPool.TrieNodes()) {
-		log.Debug("closing trie nodes data pool....")
-		err := e.dataPool.TrieNodes().Close()
-		log.LogIfError(err)
+	var err error
+	if !check.IfNil(e.dataPool) {
+		err = e.dataPool.Close()
 	}
 
-	return nil
+	return err
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

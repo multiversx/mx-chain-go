@@ -239,8 +239,16 @@ func TestBaseBlock_getAndAttachTxsToMb_MiniblockTxBlock(t *testing.T) {
 		},
 	}
 
+	mbhr := &block.MiniBlockHeaderReserved{
+		IndexOfFirstTxProcessed: 0,
+		IndexOfLastTxProcessed:  1,
+	}
+	marshalizer := testscommon.ProtobufMarshalizerMock{}
+	mbhrBytes, _ := marshalizer.Marshal(mbhr)
+
 	mbHeader := &block.MiniBlockHeader{
-		Hash: mbHash,
+		Hash:     mbHash,
+		Reserved: mbhrBytes,
 	}
 
 	apiMB := &api.MiniBlock{}
@@ -354,4 +362,31 @@ func TestBaseBlock_getAndAttachTxsToMbShouldIncludeLogsAsSpecified(t *testing.T)
 	require.Equal(t, "first", miniblockOnApi.Transactions[0].Logs.Events[0].Identifier)
 	require.Nil(t, miniblockOnApi.Transactions[1].Logs)
 	require.Equal(t, "third", miniblockOnApi.Transactions[2].Logs.Events[0].Identifier)
+}
+
+func TestExtractExecutedTxHashes(t *testing.T) {
+	t.Parallel()
+
+	array := make([][]byte, 10)
+	res := extractExecutedTxHashes(array, 0, int32(len(array))-1)
+	require.Len(t, res, 10)
+
+	res = extractExecutedTxHashes(array, 0, int32(len(array)))
+	require.Equal(t, res, array)
+
+	res = extractExecutedTxHashes(array, -1, int32(len(array)))
+	require.Equal(t, res, array)
+
+	res = extractExecutedTxHashes(array, 20, int32(len(array)))
+	require.Equal(t, res, array)
+
+	res = extractExecutedTxHashes(array, 0, int32(len(array))+1)
+	require.Equal(t, res, array)
+
+	array = make([][]byte, 0, 10)
+	for idx := 0; idx < 10; idx++ {
+		array = append(array, []byte{byte(idx)})
+	}
+	res = extractExecutedTxHashes(array, 0, 5)
+	require.Equal(t, res, [][]byte{{byte(0)}, {byte(1)}, {byte(2)}, {byte(3)}, {byte(4)}, {byte(5)}})
 }

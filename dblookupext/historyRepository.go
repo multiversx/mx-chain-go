@@ -131,7 +131,7 @@ func (hr *historyRepository) RecordBlock(blockHeaderHash []byte,
 	hr.recordBlockMutex.Lock()
 	defer hr.recordBlockMutex.Unlock()
 
-	log.Debug("RecordBlock()", "nonce", blockHeader.GetNonce(), "blockHeaderHash", blockHeaderHash, "header type", fmt.Sprintf("%T", blockHeader))
+	log.Trace("RecordBlock()", "nonce", blockHeader.GetNonce(), "blockHeaderHash", blockHeaderHash, "header type", fmt.Sprintf("%T", blockHeader))
 
 	body, ok := blockBody.(*block.Body)
 	if !ok {
@@ -301,7 +301,7 @@ func (hr *historyRepository) OnNotarizedBlocks(shardID uint32, headers []data.He
 	for i, headerHandler := range headers {
 		headerHash := headersHashes[i]
 
-		log.Debug("onNotarizedBlocks():", "shardID", shardID, "nonce", headerHandler.GetNonce(), "headerHash", headerHash, "type", fmt.Sprintf("%T", headerHandler))
+		log.Trace("onNotarizedBlocks():", "shardID", shardID, "nonce", headerHandler.GetNonce(), "headerHash", headerHash, "type", fmt.Sprintf("%T", headerHandler))
 
 		metaBlock, isMetaBlock := headerHandler.(*block.MetaBlock)
 		if isMetaBlock {
@@ -347,7 +347,7 @@ func (hr *historyRepository) onNotarizedMiniblock(metaBlockNonce uint64, metaBlo
 		return
 	}
 
-	log.Debug("onNotarizedMiniblock()",
+	log.Trace("onNotarizedMiniblock()",
 		"metaBlockNonce", metaBlockNonce,
 		"metaBlockHash", metaBlockHash,
 		"shardOfContainingBlock", shardOfContainingBlock,
@@ -387,7 +387,7 @@ func (hr *historyRepository) consumePendingNotificationsWithLock() {
 		return
 	}
 
-	log.Debug("consumePendingNotificationsWithLock() begin",
+	log.Trace("consumePendingNotificationsWithLock() begin",
 		"len(source)", hr.pendingNotarizedAtSourceNotifications.Len(),
 		"len(destination)", hr.pendingNotarizedAtDestinationNotifications.Len(),
 		"len(both)", hr.pendingNotarizedAtBothNotifications.Len(),
@@ -410,7 +410,7 @@ func (hr *historyRepository) consumePendingNotificationsWithLock() {
 		metadata.NotarizedAtDestinationInMetaHash = notification.metaHash
 	})
 
-	log.Debug("consumePendingNotificationsWithLock() end",
+	log.Trace("consumePendingNotificationsWithLock() end",
 		"len(source)", hr.pendingNotarizedAtSourceNotifications.Len(),
 		"len(destination)", hr.pendingNotarizedAtDestinationNotifications.Len(),
 		"len(both)", hr.pendingNotarizedAtBothNotifications.Len(),

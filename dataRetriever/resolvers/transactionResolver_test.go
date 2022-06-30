@@ -23,13 +23,10 @@ var connectedPeerId = core.PeerID("connected peer id")
 
 func createMockArgTxResolver() resolvers.ArgTxResolver {
 	return resolvers.ArgTxResolver{
-		SenderResolver:   &mock.TopicResolverSenderStub{},
-		TxPool:           testscommon.NewShardedDataStub(),
-		TxStorage:        &storageStubs.StorerStub{},
-		Marshalizer:      &mock.MarshalizerMock{},
-		DataPacker:       &mock.DataPackerStub{},
-		AntifloodHandler: &mock.P2PAntifloodHandlerStub{},
-		Throttler:        &mock.ThrottlerStub{},
+		ArgBaseResolver: createMockArgBaseResolver(),
+		TxPool:          testscommon.NewShardedDataStub(),
+		TxStorage:       &storageStubs.StorerStub{},
+		DataPacker:      &mock.DataPackerStub{},
 	}
 }
 
@@ -72,7 +69,7 @@ func TestNewTxResolver_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockArgTxResolver()
-	arg.Marshalizer = nil
+	arg.Marshaller = nil
 	txRes, err := resolvers.NewTxResolver(arg)
 
 	assert.Equal(t, dataRetriever.ErrNilMarshalizer, err)
@@ -165,7 +162,7 @@ func TestTxResolver_ProcessReceivedMessageWrongTypeShouldErr(t *testing.T) {
 	arg := createMockArgTxResolver()
 	txRes, _ := resolvers.NewTxResolver(arg)
 
-	data, _ := arg.Marshalizer.Marshal(&dataRetriever.RequestData{Type: dataRetriever.NonceType, Value: []byte("aaa")})
+	data, _ := arg.Marshaller.Marshal(&dataRetriever.RequestData{Type: dataRetriever.NonceType, Value: []byte("aaa")})
 
 	msg := &mock.P2PMessageMock{DataField: data}
 
@@ -182,7 +179,7 @@ func TestTxResolver_ProcessReceivedMessageNilValueShouldErr(t *testing.T) {
 	arg := createMockArgTxResolver()
 	txRes, _ := resolvers.NewTxResolver(arg)
 
-	data, _ := arg.Marshalizer.Marshal(&dataRetriever.RequestData{Type: dataRetriever.HashType, Value: nil})
+	data, _ := arg.Marshaller.Marshal(&dataRetriever.RequestData{Type: dataRetriever.HashType, Value: nil})
 
 	msg := &mock.P2PMessageMock{DataField: data}
 
@@ -263,7 +260,7 @@ func TestTxResolver_ProcessReceivedMessageFoundInTxPoolMarshalizerFailShouldRetN
 
 	arg := createMockArgTxResolver()
 	arg.TxPool = txPool
-	arg.Marshalizer = marshalizerStub
+	arg.Marshaller = marshalizerStub
 	txRes, _ := resolvers.NewTxResolver(arg)
 
 	data, _ := marshalizerMock.Marshal(&dataRetriever.RequestData{Type: dataRetriever.HashType, Value: []byte("aaa")})
@@ -531,7 +528,7 @@ func TestTxResolver_RequestDataFromHashArrayShouldWork(t *testing.T) {
 
 	marshalizer := &marshal.GogoProtoMarshalizer{}
 	arg := createMockArgTxResolver()
-	arg.Marshalizer = marshalizer
+	arg.Marshaller = marshalizer
 	arg.SenderResolver = res
 	txRes, _ := resolvers.NewTxResolver(arg)
 

@@ -22,3 +22,6 @@ var ErrNilLogsFacade = errors.New("nil logs facade")
 
 var errCannotLoadReceipts = errors.New("cannot load receipt(s)")
 var errCannotLoadContractResults = errors.New("cannot load contract result(s)")
+
+// ErrNilDataFieldParser signals that a nil data field parser has been provided
+var ErrNilDataFieldParser = errors.New("nil data field parser")
