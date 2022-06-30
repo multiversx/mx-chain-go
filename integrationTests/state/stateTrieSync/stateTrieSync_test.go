@@ -100,7 +100,7 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 
 	resolverTrie := nResolver.TrieContainer.Get([]byte(trieFactory.UserAccountTrie))
 	// we have tested even with the 1000000 value and found out that it worked in a reasonable amount of time ~3.5 minutes
-	numTrieLeaves := 1000000
+	numTrieLeaves := 10000
 	for i := 0; i < numTrieLeaves; i++ {
 		_ = resolverTrie.Update([]byte(strconv.Itoa(i)), []byte(strconv.Itoa(i)))
 	}
