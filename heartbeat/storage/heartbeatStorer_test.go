@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/mock"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/storage"
+	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
 	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 )
@@ -53,7 +54,7 @@ func TestHeartbeatDbStorer_LoadKeysEntryNotFoundShouldErr(t *testing.T) {
 	t.Parallel()
 
 	hs, _ := storage.NewHeartbeatDbStorer(
-		mock.NewStorerMock(),
+		genericMocks.NewStorerMock(),
 		&mock.MarshallerMock{},
 	)
 
@@ -66,7 +67,7 @@ func TestHeartbeatDbStorer_LoadKeysEntryNotFoundShouldErr(t *testing.T) {
 func TestHeartbeatDbStorer_LoadKeysUnmarshalInvalidShouldErr(t *testing.T) {
 	t.Parallel()
 
-	storer := mock.NewStorerMock()
+	storer := genericMocks.NewStorerMock()
 	keysBytes := []byte("invalid keys slice")
 	_ = storer.Put([]byte("keys"), keysBytes)
 
@@ -83,7 +84,7 @@ func TestHeartbeatDbStorer_LoadKeysUnmarshalInvalidShouldErr(t *testing.T) {
 func TestHeartbeatDbStorer_LoadKeysShouldWork(t *testing.T) {
 	t.Parallel()
 
-	storer := mock.NewStorerMock()
+	storer := genericMocks.NewStorerMock()
 	keys := [][]byte{[]byte("key1"), []byte("key2")}
 	msr := &mock.MarshallerMock{}
 	keysBytes, _ := msr.Marshal(&batch.Batch{Data: keys})
@@ -104,7 +105,7 @@ func TestHeartbeatDbStorer_SaveKeys(t *testing.T) {
 
 	keys := [][]byte{[]byte("key1"), []byte("key2")}
 	hs, _ := storage.NewHeartbeatDbStorer(
-		mock.NewStorerMock(),
+		genericMocks.NewStorerMock(),
 		&mock.MarshallerMock{},
 	)
 
@@ -119,7 +120,7 @@ func TestHeartbeatDbStorer_LoadGenesisTimeNotFoundInDbShouldErr(t *testing.T) {
 	t.Parallel()
 
 	hs, _ := storage.NewHeartbeatDbStorer(
-		mock.NewStorerMock(),
+		genericMocks.NewStorerMock(),
 		&mock.MarshallerMock{},
 	)
 
@@ -130,7 +131,7 @@ func TestHeartbeatDbStorer_LoadGenesisTimeNotFoundInDbShouldErr(t *testing.T) {
 func TestHeartbeatDbStorer_LoadGenesisUnmarshalIssueShouldErr(t *testing.T) {
 	t.Parallel()
 
-	storer := mock.NewStorerMock()
+	storer := genericMocks.NewStorerMock()
 	_ = storer.Put([]byte("genesisTime"), []byte("wrong genesis time"))
 
 	hs, _ := storage.NewHeartbeatDbStorer(
@@ -145,7 +146,7 @@ func TestHeartbeatDbStorer_LoadGenesisUnmarshalIssueShouldErr(t *testing.T) {
 func TestHeartbeatDbStorer_LoadGenesisTimeShouldWork(t *testing.T) {
 	t.Parallel()
 
-	storer := mock.NewStorerMock()
+	storer := genericMocks.NewStorerMock()
 	msr := &mock.MarshallerMock{}
 
 	dbt := &data.DbTimeStamp{
@@ -169,7 +170,7 @@ func TestHeartbeatDbStorer_LoadGenesisTimeShouldWork(t *testing.T) {
 func TestHeartbeatDbStorer_UpdateGenesisTimeShouldFindAndReplace(t *testing.T) {
 	t.Parallel()
 
-	storer := mock.NewStorerMock()
+	storer := genericMocks.NewStorerMock()
 	msr := &mock.MarshallerMock{}
 
 	dbt := &data.DbTimeStamp{
@@ -196,7 +197,7 @@ func TestHeartbeatDbStorer_UpdateGenesisTimeShouldAddNewEntry(t *testing.T) {
 	t.Parallel()
 
 	hs, _ := storage.NewHeartbeatDbStorer(
-		mock.NewStorerMock(),
+		genericMocks.NewStorerMock(),
 		&mock.MarshallerMock{},
 	)
 
@@ -213,7 +214,7 @@ func TestHeartbeatDbSnorer_SavePubkeyDataDataMarshalNotSucceededShouldErr(t *tes
 
 	expectedErr := errors.New("error marshal")
 	hs, _ := storage.NewHeartbeatDbStorer(
-		mock.NewStorerMock(),
+		genericMocks.NewStorerMock(),
 		&mock.MarshallerStub{
 			MarshalHandler: func(obj interface{}) ([]byte, error) {
 				return nil, expectedErr
@@ -252,7 +253,7 @@ func TestHeartbeatDbSnorer_SavePubkeyDataPutShouldWork(t *testing.T) {
 	t.Parallel()
 
 	hs, _ := storage.NewHeartbeatDbStorer(
-		mock.NewStorerMock(),
+		genericMocks.NewStorerMock(),
 		&mock.MarshallerMock{},
 	)
 
@@ -267,7 +268,7 @@ func TestHeartbeatDbStorer_LoadHeartBeatDTOShouldWork(t *testing.T) {
 	t.Parallel()
 
 	hs, _ := storage.NewHeartbeatDbStorer(
-		mock.NewStorerMock(),
+		genericMocks.NewStorerMock(),
 		&mock.MarshallerMock{},
 	)
 
