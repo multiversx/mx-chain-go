@@ -2362,7 +2362,8 @@ func (sc *scProcessor) createSCRForSenderAndRelayer(
 	scTx.CallType = vmData.DirectCall
 	setOriginalTxHash(scTx, txHash, tx)
 	scTx.Data = []byte("@" + hex.EncodeToString([]byte(vmOutput.ReturnCode.String())))
-	if sc.flagDeleteWrongArgAsyncAfterBuiltIn.IsSet() && callType == vmData.AsynchronousCall {
+	isDeleteWrongArgAsyncAfterBuiltInFlagEnabled := sc.enableEpochsHandler.IsManagedCryptoAPIsFlagEnabled()
+	if isDeleteWrongArgAsyncAfterBuiltInFlagEnabled && callType == vmData.AsynchronousCall {
 		scTx.Data = []byte("@" + core.ConvertToEvenHex(int(vmOutput.ReturnCode)))
 	}
 
