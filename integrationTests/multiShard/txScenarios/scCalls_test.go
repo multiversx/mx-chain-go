@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
@@ -18,9 +17,6 @@ func TestTransaction_TransactionSCScenarios(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
-
-	// TODO remove this:
-	logger.SetLogLevel("*:DEBUG,process:TRACE")
 
 	initialBalance := uint64(1000000000000)
 	net := createGeneralTestnetForTxTest(t, initialBalance)
