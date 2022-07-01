@@ -19,9 +19,9 @@ type ApiResolverStub struct {
 	GetTotalStakedValueHandler             func(ctx context.Context) (*api.StakeValues, error)
 	GetDirectStakedListHandler             func(ctx context.Context) ([]*api.DirectStakedValue, error)
 	GetDelegatorsListHandler               func(ctx context.Context) ([]*api.Delegator, error)
-	GetBlockByHashCalled                   func(hash string, withTxs bool) (*api.Block, error)
-	GetBlockByNonceCalled                  func(nonce uint64, withTxs bool) (*api.Block, error)
-	GetBlockByRoundCalled                  func(round uint64, withTxs bool) (*api.Block, error)
+	GetBlockByHashCalled                   func(hash string, options api.BlockQueryOptions) (*api.Block, error)
+	GetBlockByNonceCalled                  func(nonce uint64, options api.BlockQueryOptions) (*api.Block, error)
+	GetBlockByRoundCalled                  func(round uint64, options api.BlockQueryOptions) (*api.Block, error)
 	GetTransactionHandler                  func(hash string, withEvents bool) (*transaction.ApiTransactionResult, error)
 	GetInternalShardBlockByNonceCalled     func(format common.ApiOutputFormat, nonce uint64) (interface{}, error)
 	GetInternalShardBlockByHashCalled      func(format common.ApiOutputFormat, hash string) (interface{}, error)
@@ -33,6 +33,7 @@ type ApiResolverStub struct {
 	GetInternalStartOfEpochMetaBlockCalled func(format common.ApiOutputFormat, epoch uint32) (interface{}, error)
 	GetGenesisNodesPubKeysCalled           func() (map[uint32][]string, map[uint32][]string)
 	GetTransactionsPoolCalled              func() (*common.TransactionsPoolAPIResponse, error)
+	GetGenesisBalancesCalled               func() ([]*common.InitialAccountAPI, error)
 }
 
 // GetTransaction -
@@ -45,27 +46,27 @@ func (ars *ApiResolverStub) GetTransaction(hash string, withEvents bool) (*trans
 }
 
 // GetBlockByHash -
-func (ars *ApiResolverStub) GetBlockByHash(hash string, withTxs bool) (*api.Block, error) {
+func (ars *ApiResolverStub) GetBlockByHash(hash string, options api.BlockQueryOptions) (*api.Block, error) {
 	if ars.GetBlockByHashCalled != nil {
-		return ars.GetBlockByHashCalled(hash, withTxs)
+		return ars.GetBlockByHashCalled(hash, options)
 	}
 
 	return nil, nil
 }
 
 // GetBlockByNonce -
-func (ars *ApiResolverStub) GetBlockByNonce(nonce uint64, withTxs bool) (*api.Block, error) {
+func (ars *ApiResolverStub) GetBlockByNonce(nonce uint64, options api.BlockQueryOptions) (*api.Block, error) {
 	if ars.GetBlockByNonceCalled != nil {
-		return ars.GetBlockByNonceCalled(nonce, withTxs)
+		return ars.GetBlockByNonceCalled(nonce, options)
 	}
 
 	return nil, nil
 }
 
 // GetBlockByRound -
-func (ars *ApiResolverStub) GetBlockByRound(round uint64, withTxs bool) (*api.Block, error) {
+func (ars *ApiResolverStub) GetBlockByRound(round uint64, options api.BlockQueryOptions) (*api.Block, error) {
 	if ars.GetBlockByRoundCalled != nil {
-		return ars.GetBlockByRoundCalled(round, withTxs)
+		return ars.GetBlockByRoundCalled(round, options)
 	}
 
 	return nil, nil
@@ -203,6 +204,15 @@ func (ars *ApiResolverStub) GetGenesisNodesPubKeys() (map[uint32][]string, map[u
 	if ars.GetGenesisNodesPubKeysCalled != nil {
 		return ars.GetGenesisNodesPubKeysCalled()
 	}
+	return nil, nil
+}
+
+// GetGenesisBalances -
+func (ars *ApiResolverStub) GetGenesisBalances() ([]*common.InitialAccountAPI, error) {
+	if ars.GetGenesisBalancesCalled != nil {
+		return ars.GetGenesisBalancesCalled()
+	}
+
 	return nil, nil
 }
 

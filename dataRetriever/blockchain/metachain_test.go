@@ -1,4 +1,4 @@
-package blockchain_test
+package blockchain
 
 import (
 	"fmt"
@@ -7,14 +7,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/mock"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/blockchain"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestNewMetaChain_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	mc, err := blockchain.NewMetaChain(&mock.AppStatusHandlerStub{})
+	mc, err := NewMetaChain(&mock.AppStatusHandlerStub{})
 
 	assert.Nil(t, err)
 	assert.False(t, check.IfNil(mc))
@@ -23,16 +22,16 @@ func TestNewMetaChain_ShouldWork(t *testing.T) {
 func TestMetaChain_NilAppStatusHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	mc, err := blockchain.NewMetaChain(nil)
+	mc, err := NewMetaChain(nil)
 
-	assert.Equal(t, blockchain.ErrNilAppStatusHandler, err)
+	assert.Equal(t, ErrNilAppStatusHandler, err)
 	assert.Nil(t, mc)
 }
 
 func TestMetaChain_SettersAndGetters(t *testing.T) {
 	t.Parallel()
 
-	mc, _ := blockchain.NewMetaChain(&mock.AppStatusHandlerStub{})
+	mc, _ := NewMetaChain(&mock.AppStatusHandlerStub{})
 
 	hdr := &block.MetaBlock{
 		Nonce: 4,
@@ -69,7 +68,7 @@ func TestMetaChain_SettersAndGetters(t *testing.T) {
 func TestMetaChain_SettersAndGettersNilValues(t *testing.T) {
 	t.Parallel()
 
-	mc, _ := blockchain.NewMetaChain(&mock.AppStatusHandlerStub{})
+	mc, _ := NewMetaChain(&mock.AppStatusHandlerStub{})
 	_ = mc.SetGenesisHeader(&block.MetaBlock{})
 	_ = mc.SetCurrentBlockHeaderAndRootHash(&block.MetaBlock{}, []byte("root hash"))
 
