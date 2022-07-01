@@ -11,8 +11,11 @@ import (
 )
 
 // ------------ Test ManagedStateComponents --------------------
-func TestManagedStateComponents_CreateWithInvalidArgs_ShouldErr(t *testing.T) {
+func TestManagedStateComponents_CreateWithInvalidArgsShouldErr(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	coreComponents := getCoreComponents()
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
@@ -26,8 +29,11 @@ func TestManagedStateComponents_CreateWithInvalidArgs_ShouldErr(t *testing.T) {
 	require.Nil(t, managedStateComponents.AccountsAdapter())
 }
 
-func TestManagedStateComponents_Create_ShouldWork(t *testing.T) {
+func TestManagedStateComponents_CreateShouldWork(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	coreComponents := getCoreComponents()
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
@@ -50,6 +56,9 @@ func TestManagedStateComponents_Create_ShouldWork(t *testing.T) {
 
 func TestManagedStateComponents_Close(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	coreComponents := getCoreComponents()
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
@@ -66,6 +75,9 @@ func TestManagedStateComponents_Close(t *testing.T) {
 
 func TestManagedStateComponents_CheckSubcomponents(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	coreComponents := getCoreComponents()
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
@@ -81,6 +93,9 @@ func TestManagedStateComponents_CheckSubcomponents(t *testing.T) {
 
 func TestManagedStateComponents_Setters(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	coreComponents := getCoreComponents()
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
