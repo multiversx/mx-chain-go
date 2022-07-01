@@ -1140,7 +1140,6 @@ func TestGetTransactionsPoolInvalidQueries(t *testing.T) {
 	t.Run("fields + latest nonce", testTxPoolWithInvalidQuery("?fields=sender,receiver&last-nonce=true", apiErrors.ErrFetchingLatestNonceCannotIncludeFields))
 	t.Run("fields + nonce gaps", testTxPoolWithInvalidQuery("?fields=sender,receiver&nonce-gaps=true", apiErrors.ErrFetchingNonceGapsCannotIncludeFields))
 	t.Run("fields has spaces", testTxPoolWithInvalidQuery("?fields=sender ,receiver", apiErrors.ErrInvalidFields))
-	t.Run("fields has uppercase", testTxPoolWithInvalidQuery("?fields=sender,RECeiver", apiErrors.ErrInvalidFields))
 	t.Run("fields has numbers", testTxPoolWithInvalidQuery("?fields=sender1", apiErrors.ErrInvalidFields))
 }
 

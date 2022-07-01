@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"strconv"
 	"sync"
-	"unicode"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
@@ -747,7 +746,9 @@ func validateFields(fields string) error {
 			continue
 		}
 
-		if !unicode.IsLetter(c) || !unicode.IsLower(c) {
+		isLowerLetter := c >= 'a' && c <= 'z'
+		isUpperLetter := c >= 'A' && c <= 'Z'
+		if !isLowerLetter && !isUpperLetter {
 			return errors.ErrInvalidFields
 		}
 	}
