@@ -208,6 +208,9 @@ func createMockEpochStartBootstrapArgs(
 				}, nil
 			},
 		},
+		FlagsConfig: config.ContextFlagsConfig{
+			ForceStartFromNetwork: false,
+		},
 	}
 }
 
