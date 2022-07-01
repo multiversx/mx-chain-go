@@ -110,12 +110,13 @@ func TestTransaction_TransactionSCScenarios(t *testing.T) {
 	sender := players[1]
 	txData = []byte("increment")
 	numIncrement := 10
+	gasLimitForTx := net.MaxGasLimit / 5
 	for i := 0; i < numIncrement; i++ {
-		tx := net.CreateTxUint64(sender, scAddress, 0, txData)
-		tx.GasLimit = net.MaxGasLimit
+		txToSend := net.CreateTxUint64(sender, scAddress, 0, txData)
+		txToSend.GasLimit = gasLimitForTx
 
-		net.SignTx(sender, tx)
-		net.SendTxFromNode(tx, net.Nodes[1])
+		net.SignTx(sender, txToSend)
+		net.SendTxFromNode(txToSend, net.Nodes[1])
 		time.Sleep(time.Millisecond)
 	}
 
