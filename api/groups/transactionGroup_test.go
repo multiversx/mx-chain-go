@@ -1135,13 +1135,16 @@ func TestGetTransactionsPoolNonceGapsForSenderShouldWork(t *testing.T) {
 func TestGetTransactionsPoolInvalidQueries(t *testing.T) {
 	t.Parallel()
 
-	t.Run("empty sender, requesting nonce gaps", testTxPoolWithInvalidQuery("?last-nonce=true"))
-	t.Run("empty sender, requesting nonce gaps", testTxPoolWithInvalidQuery("?nonce-gaps=true"))
-	t.Run("fields + nonce gaps", testTxPoolWithInvalidQuery("?fields=sender,receiver&last-nonce=true"))
-	t.Run("fields + nonce gaps", testTxPoolWithInvalidQuery("?fields=sender,receiver&nonce-gaps=true"))
+	t.Run("empty sender, requesting latest nonce", testTxPoolWithInvalidQuery("?last-nonce=true", apiErrors.ErrEmptySenderToGetLatestNonce))
+	t.Run("empty sender, requesting nonce gaps", testTxPoolWithInvalidQuery("?nonce-gaps=true", apiErrors.ErrEmptySenderToGetNonceGaps))
+	t.Run("fields + latest nonce", testTxPoolWithInvalidQuery("?fields=sender,receiver&last-nonce=true", apiErrors.ErrFetchingLatestNonceCannotIncludeFields))
+	t.Run("fields + nonce gaps", testTxPoolWithInvalidQuery("?fields=sender,receiver&nonce-gaps=true", apiErrors.ErrFetchingNonceGapsCannotIncludeFields))
+	t.Run("fields has spaces", testTxPoolWithInvalidQuery("?fields=sender ,receiver", apiErrors.ErrInvalidFields))
+	t.Run("fields has uppercase", testTxPoolWithInvalidQuery("?fields=sender,RECeiver", apiErrors.ErrInvalidFields))
+	t.Run("fields has numbers", testTxPoolWithInvalidQuery("?fields=sender1", apiErrors.ErrInvalidFields))
 }
 
-func testTxPoolWithInvalidQuery(query string) func(t *testing.T) {
+func testTxPoolWithInvalidQuery(query string, expectedErr error) func(t *testing.T) {
 	return func(t *testing.T) {
 		t.Parallel()
 
@@ -1160,6 +1163,7 @@ func testTxPoolWithInvalidQuery(query string) func(t *testing.T) {
 
 		assert.Equal(t, http.StatusBadRequest, resp.Code)
 		assert.True(t, strings.Contains(txResp.Error, apiErrors.ErrValidation.Error()))
+		assert.True(t, strings.Contains(txResp.Error, expectedErr.Error()))
 	}
 }
 

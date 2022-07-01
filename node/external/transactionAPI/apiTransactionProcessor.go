@@ -278,6 +278,15 @@ func (atp *apiTransactionProcessor) extractRequestedTxInfo(wrappedTx *txcache.Wr
 	if requestedFieldsHandler.HasGasPrice {
 		tx.TxFields[gasPriceField] = wrappedTx.Tx.GetGasPrice()
 	}
+	if requestedFieldsHandler.HasRcvUsername {
+		tx.TxFields[rcvUsernameField] = wrappedTx.Tx.GetRcvUserName()
+	}
+	if requestedFieldsHandler.HasData {
+		tx.TxFields[dataField] = wrappedTx.Tx.GetData()
+	}
+	if requestedFieldsHandler.HasValue {
+		tx.TxFields[valueField] = wrappedTx.Tx.GetValue()
+	}
 
 	return tx
 }

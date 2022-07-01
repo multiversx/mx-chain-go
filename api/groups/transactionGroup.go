@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strconv"
 	"sync"
+	"unicode"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
@@ -556,12 +557,25 @@ func (tg *transactionGroup) computeTransactionGasLimit(c *gin.Context) {
 func (tg *transactionGroup) getTransactionsPool(c *gin.Context) {
 	// extract and validate query parameters
 	sender, fields, lastNonce, nonceGaps, err := tg.extractQueryParameters(c)
-	if err != nil || invalidQuery(sender, fields, lastNonce, nonceGaps) {
+	if err != nil {
 		c.JSON(
 			http.StatusBadRequest,
 			shared.GenericAPIResponse{
 				Data:  nil,
 				Error: errors.ErrValidation.Error(),
+				Code:  shared.ReturnCodeRequestError,
+			},
+		)
+		return
+	}
+
+	err = validateQuery(sender, fields, lastNonce, nonceGaps)
+	if err != nil {
+		c.JSON(
+			http.StatusBadRequest,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), err.Error()),
 				Code:  shared.ReturnCodeRequestError,
 			},
 		)
@@ -703,17 +717,42 @@ func (tg *transactionGroup) getTransactionsPoolNonceGapsForSender(sender string,
 	)
 }
 
-func invalidQuery(sender, fields string, lastNonce, nonceGaps bool) bool {
-	queryForSender := lastNonce || nonceGaps
-	if sender == "" && queryForSender {
-		return true
+func validateQuery(sender, fields string, lastNonce, nonceGaps bool) error {
+	if fields != "" && lastNonce {
+		return errors.ErrFetchingLatestNonceCannotIncludeFields
 	}
 
-	if fields != "" && queryForSender {
-		return true
+	if fields != "" && nonceGaps {
+		return errors.ErrFetchingNonceGapsCannotIncludeFields
 	}
 
-	return false
+	if sender == "" && lastNonce {
+		return errors.ErrEmptySenderToGetLatestNonce
+	}
+
+	if sender == "" && nonceGaps {
+		return errors.ErrEmptySenderToGetNonceGaps
+	}
+
+	if fields != "" {
+		return validateFields(fields)
+	}
+
+	return nil
+}
+
+func validateFields(fields string) error {
+	for _, c := range fields {
+		if c == ',' {
+			continue
+		}
+
+		if !unicode.IsLetter(c) || !unicode.IsLower(c) {
+			return errors.ErrInvalidFields
+		}
+	}
+
+	return nil
 }
 
 func getQueryParamWithResults(c *gin.Context) (bool, error) {
