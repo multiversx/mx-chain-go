@@ -32,6 +32,7 @@ import (
 	"github.com/btcsuite/btcd/btcec"
 	logging "github.com/ipfs/go-log"
 	"github.com/libp2p/go-libp2p"
+	"github.com/libp2p/go-libp2p-core/crypto"
 	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -99,26 +100,26 @@ type networkMessenger struct {
 	pb         *pubsub.PubSub
 	ds         p2p.DirectSender
 	// TODO refactor this (connMonitor & connMonitorWrapper)
-	connMonitor          ConnectionMonitor
-	connMonitorWrapper   p2p.ConnectionMonitorWrapper
-	peerDiscoverer       p2p.PeerDiscoverer
-	sharder              p2p.Sharder
-	peerShardResolver    p2p.PeerShardResolver
-	mutPeerResolver      sync.RWMutex
-	mutTopics            sync.RWMutex
-	processors           map[string]*topicProcessors
-	topics               map[string]*pubsub.Topic
-	subscriptions        map[string]*pubsub.Subscription
-	outgoingPLB          p2p.ChannelLoadBalancer
-	poc                  *peersOnChannel
-	goRoutinesThrottler  *throttler.NumGoRoutinesThrottler
-	connectionsMetric    *metrics.Connections
-	debugger             p2p.Debugger
-	marshalizer          p2p.Marshalizer
-	syncTimer            p2p.SyncTimer
-	preferredPeersHolder p2p.PreferredPeersHolderHandler
-	printConnectionsWatcher   p2p.ConnectionsWatcher
-	peersRatingHandler   p2p.PeersRatingHandler
+	connMonitor             ConnectionMonitor
+	connMonitorWrapper      p2p.ConnectionMonitorWrapper
+	peerDiscoverer          p2p.PeerDiscoverer
+	sharder                 p2p.Sharder
+	peerShardResolver       p2p.PeerShardResolver
+	mutPeerResolver         sync.RWMutex
+	mutTopics               sync.RWMutex
+	processors              map[string]*topicProcessors
+	topics                  map[string]*pubsub.Topic
+	subscriptions           map[string]*pubsub.Subscription
+	outgoingPLB             p2p.ChannelLoadBalancer
+	poc                     *peersOnChannel
+	goRoutinesThrottler     *throttler.NumGoRoutinesThrottler
+	connectionsMetric       *metrics.Connections
+	debugger                p2p.Debugger
+	marshalizer             p2p.Marshalizer
+	syncTimer               p2p.SyncTimer
+	preferredPeersHolder    p2p.PreferredPeersHolderHandler
+	printConnectionsWatcher p2p.ConnectionsWatcher
+	peersRatingHandler      p2p.PeersRatingHandler
 }
 
 // ArgsNetworkMessenger defines the options used to create a p2p wrapper
@@ -215,7 +216,7 @@ func constructNode(
 		p2pHost:                 NewConnectableHost(h),
 		port:                    port,
 		printConnectionsWatcher: connWatcher,
-		peersRatingHandler: args.PeersRatingHandler,
+		peersRatingHandler:      args.PeersRatingHandler,
 	}
 
 	return p2pNode, nil
@@ -375,7 +376,7 @@ func (netMes *networkMessenger) createPubSub(messageSigning messageSigningConfig
 				continue
 			}
 
-			errPublish := topic.Publish(netMes.ctx, buffToSend)
+			errPublish := netMes.publish(topic, sendableData, buffToSend)
 			if errPublish != nil {
 				log.Trace("error sending data", "error", errPublish)
 			}
@@ -383,6 +384,14 @@ func (netMes *networkMessenger) createPubSub(messageSigning messageSigningConfig
 	}(netMes.outgoingPLB)
 
 	return nil
+}
+
+func (netMes *networkMessenger) publish(topic *pubsub.Topic, data *p2p.SendableData, buffToSend []byte) error {
+	if data.Sk == nil {
+		return topic.Publish(netMes.ctx, buffToSend)
+	}
+
+	return topic.PublishWithSk(netMes.ctx, buffToSend, data.Sk, data.ID)
 }
 
 func (netMes *networkMessenger) createMessageBytes(buff []byte) []byte {
@@ -892,6 +901,7 @@ func (netMes *networkMessenger) BroadcastOnChannelBlocking(channel string, topic
 	sendable := &p2p.SendableData{
 		Buff:  buff,
 		Topic: topic,
+		ID:    netMes.p2pHost.ID(),
 	}
 	netMes.outgoingPLB.GetChannelOrDefault(channel) <- sendable
 	netMes.goRoutinesThrottler.EndProcessing()
@@ -922,6 +932,92 @@ func (netMes *networkMessenger) BroadcastOnChannel(channel string, topic string,
 // Broadcast tries to send a byte buffer onto a topic using the topic name as channel
 func (netMes *networkMessenger) Broadcast(topic string, buff []byte) {
 	netMes.BroadcastOnChannel(topic, topic, buff)
+}
+
+// BroadcastOnChannelBlockingWithSk tries to send a byte buffer onto a topic using provided channel
+// It is a blocking method. It needs to be launched on a go routine
+func (netMes *networkMessenger) BroadcastOnChannelBlockingWithSk(
+	channel string,
+	topic string,
+	buff []byte,
+	pid core.PeerID,
+	skBytes []byte,
+) error {
+
+	id := peer.ID(pid)
+	sk, err := crypto.UnmarshalPrivateKey(skBytes)
+	if err != nil {
+		return err
+	}
+
+	err = netMes.checkSendableData(buff)
+	if err != nil {
+		return err
+	}
+
+	if !netMes.goRoutinesThrottler.CanProcess() {
+		return p2p.ErrTooManyGoroutines
+	}
+
+	netMes.goRoutinesThrottler.StartProcessing()
+
+	sendable := &p2p.SendableData{
+		Buff:  buff,
+		Topic: topic,
+		Sk:    sk,
+		ID:    id,
+	}
+	netMes.outgoingPLB.GetChannelOrDefault(channel) <- sendable
+	netMes.goRoutinesThrottler.EndProcessing()
+	return nil
+}
+
+// BroadcastOnChannelWithSk tries to send a byte buffer onto a topic using provided channel
+func (netMes *networkMessenger) BroadcastOnChannelWithSk(
+	channel string,
+	topic string,
+	buff []byte,
+	pid core.PeerID,
+	skBytes []byte,
+) {
+
+	go func() {
+		err := netMes.BroadcastOnChannelBlockingWithSk(channel, topic, buff, pid, skBytes)
+		if err != nil {
+			log.Warn("p2p broadcast", "error", err.Error())
+		}
+	}()
+}
+
+// BroadcastWithSk tries to send a byte buffer onto a topic using the topic name as channel
+func (netMes *networkMessenger) BroadcastWithSk(
+	topic string,
+	buff []byte,
+	pid core.PeerID,
+	skBytes []byte,
+) {
+
+	netMes.BroadcastOnChannelWithSk(topic, topic, buff, pid, skBytes)
+}
+
+// CreateP2PIndentity creates a valid p2p identity to sign messages on the behalf of other identity
+func CreateP2PIndentity(seed string) ([]byte, core.PeerID, error) {
+	sk, err := createP2PPrivKey(seed)
+	if err != nil {
+		return nil, "", err
+	}
+
+	skBuff, err := crypto.MarshalPrivateKey(sk)
+	if err != nil {
+		return nil, "", err
+	}
+
+	pid, err := peer.IDFromPublicKey(sk.GetPublic())
+	if err != nil {
+		return nil, "", err
+	}
+
+	return skBuff, core.PeerID(pid), nil
 }
 
 // RegisterMessageProcessor registers a message process on a topic. The function allows registering multiple handlers
