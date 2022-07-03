@@ -137,3 +137,12 @@ type ProcessStatusHandler interface {
 	IsIdle() bool
 	IsInterfaceNil() bool
 }
+
+// BlockInfo provides a block information such as nonce, hash, roothash and so on
+type BlockInfo interface {
+	GetNonce() uint64
+	GetHash() []byte
+	GetRootHash() []byte
+	Equal(blockInfo BlockInfo) bool
+	IsInterfaceNil() bool
+}
