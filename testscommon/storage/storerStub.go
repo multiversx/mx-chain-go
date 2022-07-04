@@ -1,5 +1,9 @@
 package storage
 
+import (
+	"github.com/ElrondNetwork/elrond-go-core/storage"
+)
+
 // StorerStub -
 type StorerStub struct {
 	PutCalled                    func(key, data []byte) error
@@ -12,7 +16,7 @@ type StorerStub struct {
 	ClearCacheCalled             func()
 	DestroyUnitCalled            func() error
 	GetFromEpochCalled           func(key []byte, epoch uint32) ([]byte, error)
-	GetBulkFromEpochCalled       func(keys [][]byte, epoch uint32) (map[string][]byte, error)
+	GetBulkFromEpochCalled       func(keys [][]byte, epoch uint32) ([]storage.KeyValuePair, error)
 	GetOldestEpochCalled         func() (uint32, error)
 	RangeKeysCalled              func(handler func(key []byte, val []byte) bool)
 	CloseCalled                  func() error
@@ -98,7 +102,7 @@ func (ss *StorerStub) GetFromEpoch(key []byte, epoch uint32) ([]byte, error) {
 }
 
 // GetBulkFromEpoch -
-func (ss *StorerStub) GetBulkFromEpoch(keys [][]byte, epoch uint32) (map[string][]byte, error) {
+func (ss *StorerStub) GetBulkFromEpoch(keys [][]byte, epoch uint32) ([]storage.KeyValuePair, error) {
 	if ss.GetBulkFromEpochCalled != nil {
 		return ss.GetBulkFromEpochCalled(keys, epoch)
 	}
