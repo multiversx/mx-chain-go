@@ -24,6 +24,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/ElrondNetwork/elrond-go/trie"
@@ -69,7 +70,7 @@ func createMockArgument(
 		Data: &mock.DataComponentsMock{
 			Storage: &mock.ChainStorerStub{
 				GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-					return mock.NewStorerMock()
+					return genericMocks.NewStorerMock()
 				},
 			},
 			Blkc:     &testscommon.ChainHandlerStub{},

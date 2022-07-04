@@ -3,6 +3,8 @@
 package dblookupext
 
 import (
+	"fmt"
+
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/receipt"
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
@@ -120,6 +122,10 @@ func (eht *eventsHashesByTxHash) mergeRecordsFromStorageIfExists(
 func (eht *eventsHashesByTxHash) getEventsHashesByTxHash(txHash []byte, epoch uint32) (*ResultsHashesByTxHash, error) {
 	rawBytes, err := eht.storer.GetFromEpoch(txHash, epoch)
 	if err != nil {
+		if isNotFoundInStorageErr(err) {
+			err = fmt.Errorf("%w: %v", ErrNotFoundInStorage, err)
+		}
+
 		return nil, err
 	}
 

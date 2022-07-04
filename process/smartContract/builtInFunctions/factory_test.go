@@ -98,7 +98,7 @@ func TestCreateBuiltInFunctionContainer_Errors(t *testing.T) {
 	args = createMockArguments()
 	container, nftStorageHandler, globalSettingsHandler, err := CreateBuiltInFuncContainerAndNFTStorageHandler(args)
 	assert.Nil(t, err)
-	assert.Equal(t, len(container.Keys()), 27)
+	assert.Equal(t, len(container.Keys()), 29)
 
 	err = vmcommonBuiltInFunctions.SetPayableHandler(container, &testscommon.BlockChainHookStub{})
 	assert.Nil(t, err)
