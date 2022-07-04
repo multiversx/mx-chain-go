@@ -128,7 +128,7 @@ var ErrGetGenesisNodes = errors.New("getting genesis nodes failed")
 var ErrEmptySenderToGetLatestNonce = errors.New("empty sender to get latest nonce")
 
 // ErrEmptySenderToGetNonceGaps signals that an error happened when trying to fetch nonce gaps
-var ErrEmptySenderToGetNonceGaps = errors.New("fetching nonce gaps cannot include fields")
+var ErrEmptySenderToGetNonceGaps = errors.New("empty sender to get nonce gaps")
 
 // ErrFetchingLatestNonceCannotIncludeFields signals that an error happened when trying to fetch latest nonce
 var ErrFetchingLatestNonceCannotIncludeFields = errors.New("fetching latest nonce cannot include fields")
