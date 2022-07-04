@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/libp2p/go-libp2p-core/peer"
 )
 
 const displayLastPidChars = 12
@@ -41,6 +43,8 @@ type MessageProcessor interface {
 type SendableData struct {
 	Buff  []byte
 	Topic string
+	Sk    crypto.PrivKey
+	ID    peer.ID
 }
 
 // PeerDiscoverer defines the behaviour of a peer discovery mechanism
@@ -135,6 +139,9 @@ type Messenger interface {
 	// BroadcastOnChannel asynchronously sends a message on a given topic
 	// through a specified channel.
 	BroadcastOnChannel(channel string, topic string, buff []byte)
+
+	// BroadcastWithSk tries to send a byte buffer onto a topic using the topic name as channel
+	BroadcastWithSk(topic string, buff []byte, pid core.PeerID, skBytes []byte)
 
 	// Broadcast is a convenience function that calls BroadcastOnChannelBlocking,
 	// but implicitly sets the channel to be identical to the specified topic.

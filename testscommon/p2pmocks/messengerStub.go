@@ -42,6 +42,7 @@ type MessengerStub struct {
 	WaitForConnectionsCalled               func(maxWaitingTime time.Duration, minNumOfPeers uint32)
 	SignCalled                             func(payload []byte) ([]byte, error)
 	VerifyCalled                           func(payload []byte, pid core.PeerID, signature []byte) error
+	BroadcastWithSkCalled                  func(topic string, buff []byte, pid core.PeerID, skBytes []byte)
 }
 
 // ConnectedFullHistoryPeersOnTopic -
@@ -333,6 +334,13 @@ func (ms *MessengerStub) Verify(payload []byte, pid core.PeerID, signature []byt
 	}
 
 	return nil
+}
+
+// BroadcastWithSk -
+func (ms *MessengerStub) BroadcastWithSk(topic string, buff []byte, pid core.PeerID, skBytes []byte) {
+	if ms.BroadcastWithSkCalled != nil {
+		ms.BroadcastWithSkCalled(topic, buff, pid, skBytes)
+	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
