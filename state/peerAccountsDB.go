@@ -101,7 +101,7 @@ func (adb *PeerAccountsDB) SnapshotState(rootHash []byte) {
 	trieStorageManager.ExitPruningBufferingMode()
 
 	go func() {
-		printStats(stats, "snapshotState peer trie", rootHash)
+		stats.PrintStats("snapshotState peer trie", rootHash)
 
 		err = trieStorageManager.PutInEpoch([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal), epoch)
 		handleLoggingWhenError("error while putting active DB value into main storer", err)
@@ -122,7 +122,7 @@ func (adb *PeerAccountsDB) SetStateCheckpoint(rootHash []byte) {
 	trieStorageManager.SetCheckpoint(rootHash, rootHash, nil, stats)
 	trieStorageManager.ExitPruningBufferingMode()
 
-	go printStats(stats, "snapshotState peer trie", rootHash)
+	go stats.PrintStats("setStateCheckpoint peer trie", rootHash)
 
 	adb.waitForCompletionIfRunningInImportDB(stats)
 }
