@@ -1,4 +1,4 @@
-package libp2p
+package crypto
 
 import (
 	"fmt"
@@ -11,6 +11,17 @@ import (
 
 type p2pSigner struct {
 	privateKey *libp2pCrypto.Secp256k1PrivateKey
+}
+
+// NewP2PSigner creates a new p2pSigner instance
+func NewP2PSigner(privateKey *libp2pCrypto.Secp256k1PrivateKey) (*p2pSigner, error) {
+	if privateKey == nil {
+		return nil, errNilPrivateKey
+	}
+
+	return &p2pSigner{
+		privateKey: privateKey,
+	}, nil
 }
 
 // Sign will sign a payload with the internal private key

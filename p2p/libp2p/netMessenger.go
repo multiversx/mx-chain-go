@@ -2,7 +2,6 @@ package libp2p
 
 import (
 	"context"
-	"crypto/ecdsa"
 	"encoding/hex"
 	"fmt"
 	"sort"
@@ -18,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	p2pDebug "github.com/ElrondNetwork/elrond-go/debug/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	p2pCrypto "github.com/ElrondNetwork/elrond-go/p2p/crypto"
 	"github.com/ElrondNetwork/elrond-go/p2p/data"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/connectionMonitor"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/disabled"
@@ -25,15 +25,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/metrics"
 	metricsFactory "github.com/ElrondNetwork/elrond-go/p2p/libp2p/metrics/factory"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/networksharding/factory"
-	randFactory "github.com/ElrondNetwork/elrond-go/p2p/libp2p/rand/factory"
 	"github.com/ElrondNetwork/elrond-go/p2p/loadBalancer"
 	pubsub "github.com/ElrondNetwork/go-libp2p-pubsub"
 	pubsubPb "github.com/ElrondNetwork/go-libp2p-pubsub/pb"
-	"github.com/btcsuite/btcd/btcec"
 	logging "github.com/ipfs/go-log"
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-core/crypto"
-	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
@@ -92,7 +89,7 @@ func init() {
 
 // TODO refactor this struct to have be a wrapper (with logic) over a glue code
 type networkMessenger struct {
-	*p2pSigner
+	p2pSigner
 	ctx        context.Context
 	cancelFunc context.CancelFunc
 	p2pHost    ConnectableHost
@@ -152,7 +149,8 @@ func newNetworkMessenger(args ArgsNetworkMessenger, messageSigning messageSignin
 		return nil, fmt.Errorf("%w when creating a new network messenger", p2p.ErrNilPeersRatingHandler)
 	}
 
-	p2pPrivKey, err := createP2PPrivKey(args.P2pConfig.Node.Seed)
+	keyGen := p2pCrypto.NewIdentityGenerator()
+	p2pPrivKey, err := keyGen.CreateP2PPrivateKey(args.P2pConfig.Node.Seed)
 	if err != nil {
 		return nil, err
 	}
@@ -175,7 +173,7 @@ func newNetworkMessenger(args ArgsNetworkMessenger, messageSigning messageSignin
 
 func constructNode(
 	args ArgsNetworkMessenger,
-	p2pPrivKey *libp2pCrypto.Secp256k1PrivateKey,
+	p2pPrivKey *crypto.Secp256k1PrivateKey,
 ) (*networkMessenger, error) {
 
 	port, err := getPort(args.P2pConfig.Node.Port, checkFreePort)
@@ -184,6 +182,11 @@ func constructNode(
 	}
 
 	connWatcher, err := metricsFactory.NewConnectionsWatcher(args.P2pConfig.Node.ConnectionWatcherType, ttlConnectionsWatcher)
+	if err != nil {
+		return nil, err
+	}
+
+	p2pSignerInstance, err := p2pCrypto.NewP2PSigner(p2pPrivKey)
 	if err != nil {
 		return nil, err
 	}
@@ -208,9 +211,7 @@ func constructNode(
 	}
 
 	p2pNode := &networkMessenger{
-		p2pSigner: &p2pSigner{
-			privateKey: p2pPrivKey,
-		},
+		p2pSigner:               p2pSignerInstance,
 		ctx:                     ctx,
 		cancelFunc:              cancelFunc,
 		p2pHost:                 NewConnectableHost(h),
@@ -224,7 +225,7 @@ func constructNode(
 
 func constructNodeWithPortRetry(
 	args ArgsNetworkMessenger,
-	p2pPrivKey *libp2pCrypto.Secp256k1PrivateKey,
+	p2pPrivKey *crypto.Secp256k1PrivateKey,
 ) (*networkMessenger, error) {
 
 	var lastErr error
@@ -255,17 +256,6 @@ func setupExternalP2PLoggers() {
 
 		_ = logging.SetLogLevel(external, "DEBUG")
 	}
-}
-
-func createP2PPrivKey(seed string) (*libp2pCrypto.Secp256k1PrivateKey, error) {
-	randReader, err := randFactory.NewRandFactory(seed)
-	if err != nil {
-		return nil, err
-	}
-
-	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), randReader)
-
-	return (*libp2pCrypto.Secp256k1PrivateKey)(prvKey), nil
 }
 
 func addComponentsToNode(
@@ -995,26 +985,6 @@ func (netMes *networkMessenger) BroadcastWithSk(
 	skBytes []byte,
 ) {
 	netMes.BroadcastOnChannelWithSk(topic, topic, buff, pid, skBytes)
-}
-
-// CreateP2PIndentity creates a valid p2p identity to sign messages on the behalf of other identity
-func CreateP2PIndentity(seed string) ([]byte, core.PeerID, error) {
-	sk, err := createP2PPrivKey(seed)
-	if err != nil {
-		return nil, "", err
-	}
-
-	skBuff, err := crypto.MarshalPrivateKey(sk)
-	if err != nil {
-		return nil, "", err
-	}
-
-	pid, err := peer.IDFromPublicKey(sk.GetPublic())
-	if err != nil {
-		return nil, "", err
-	}
-
-	return skBuff, core.PeerID(pid), nil
 }
 
 // RegisterMessageProcessor registers a message process on a topic. The function allows registering multiple handlers

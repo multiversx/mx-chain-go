@@ -19,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/ElrondNetwork/elrond-go/p2p/crypto"
 	"github.com/ElrondNetwork/elrond-go/p2p/data"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/message"
@@ -1964,7 +1965,8 @@ func TestNetworkMessenger_BroadcastWithSk(t *testing.T) {
 
 	time.Sleep(time.Second * 2)
 
-	skBuff, pid, err := libp2p.CreateP2PIndentity("")
+	keyGen := crypto.NewIdentityGenerator()
+	skBuff, pid, err := keyGen.CreateRandomP2PIdentity()
 	assert.Nil(t, err)
 	fmt.Printf("new identity: %s\n", pid.Pretty())
 

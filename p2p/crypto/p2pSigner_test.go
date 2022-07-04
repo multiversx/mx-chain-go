@@ -1,4 +1,4 @@
-package libp2p
+package crypto
 
 import (
 	"crypto/ecdsa"
@@ -21,12 +21,31 @@ func generatePrivateKey() *libp2pCrypto.Secp256k1PrivateKey {
 	return (*libp2pCrypto.Secp256k1PrivateKey)(prvKey)
 }
 
+func TestNewP2PSigner(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nil private key should error", func(t *testing.T) {
+		t.Parallel()
+
+		signer, err := NewP2PSigner(nil)
+
+		assert.Nil(t, signer)
+		assert.Equal(t, errNilPrivateKey, err)
+	})
+	t.Run("valid private key should work", func(t *testing.T) {
+		t.Parallel()
+
+		signer, err := NewP2PSigner(generatePrivateKey())
+
+		assert.NotNil(t, signer)
+		assert.Nil(t, err)
+	})
+}
+
 func TestP2pSigner_Sign(t *testing.T) {
 	t.Parallel()
 
-	signer := &p2pSigner{
-		privateKey: generatePrivateKey(),
-	}
+	signer, _ := NewP2PSigner(generatePrivateKey())
 
 	sig, err := signer.Sign([]byte("payload"))
 	assert.Nil(t, err)
@@ -39,9 +58,7 @@ func TestP2pSigner_Verify(t *testing.T) {
 	sk := generatePrivateKey()
 	pk := sk.GetPublic()
 	payload := []byte("payload")
-	signer := &p2pSigner{
-		privateKey: sk,
-	}
+	signer, _ := NewP2PSigner(sk)
 	libp2pPid, _ := peer.IDFromPublicKey(pk)
 
 	t.Run("invalid public key should error", func(t *testing.T) {
@@ -99,9 +116,7 @@ func TestP2pSigner_ConcurrentOperations(t *testing.T) {
 	pk := sk.GetPublic()
 	payload1 := []byte("payload1")
 	payload2 := []byte("payload2")
-	signer := &p2pSigner{
-		privateKey: sk,
-	}
+	signer, _ := NewP2PSigner(sk)
 	libp2pPid, _ := peer.IDFromPublicKey(pk)
 	pid := core.PeerID(libp2pPid)
 
