@@ -55,6 +55,7 @@ type ArgTrieSyncer struct {
 	Topic                     string
 	TrieSyncStatistics        common.SizeSyncStatisticsHandler
 	MaxHardCapForMissingNodes int
+	CheckNodesOnDisk          bool
 	TimeoutHandler            TimeoutHandler
 }
 

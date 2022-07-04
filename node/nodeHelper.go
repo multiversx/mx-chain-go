@@ -86,6 +86,7 @@ func CreateHardForkTrigger(
 		MaxHardCapForMissingNodes: config.TrieSync.MaxHardCapForMissingNodes,
 		NumConcurrentTrieSyncers:  config.TrieSync.NumConcurrentTrieSyncers,
 		TrieSyncerVersion:         config.TrieSync.TrieSyncerVersion,
+		CheckNodesOnDisk:          config.TrieSync.CheckNodesOnDisk,
 	}
 	hardForkExportFactory, err := updateFactory.NewExportHandlerFactory(argsExporter)
 	if err != nil {

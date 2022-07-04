@@ -158,6 +158,7 @@ func createMockEpochStartBootstrapArgs(
 				NumConcurrentTrieSyncers:  50,
 				MaxHardCapForMissingNodes: 500,
 				TrieSyncerVersion:         2,
+				CheckNodesOnDisk:          false,
 			},
 			ScheduledSCRsStorage: config.StorageConfig{
 				Cache: config.CacheConfig{

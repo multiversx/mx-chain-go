@@ -38,6 +38,7 @@ type doubleListTrieSyncer struct {
 	trieSyncStatistics        common.SizeSyncStatisticsHandler
 	timeoutHandler            TimeoutHandler
 	maxHardCapForMissingNodes int
+	checkNodesOnDisk          bool
 	existingNodes             map[string]node
 	missingHashes             map[string]struct{}
 	requestedHashes           map[string]*request
@@ -65,6 +66,7 @@ func NewDoubleListTrieSyncer(arg ArgTrieSyncer) (*doubleListTrieSyncer, error) {
 		trieSyncStatistics:        arg.TrieSyncStatistics,
 		timeoutHandler:            arg.TimeoutHandler,
 		maxHardCapForMissingNodes: arg.MaxHardCapForMissingNodes,
+		checkNodesOnDisk:          arg.CheckNodesOnDisk,
 	}
 
 	return d, nil
@@ -203,7 +205,7 @@ func (d *doubleListTrieSyncer) processExistingNodes() error {
 
 		var children []node
 		var missingChildrenHashes [][]byte
-		missingChildrenHashes, children, err = element.loadChildren(d.getNodeFromCache)
+		missingChildrenHashes, children, err = element.loadChildren(d.getNode)
 		if err != nil {
 			return err
 		}
@@ -234,13 +236,16 @@ func (d *doubleListTrieSyncer) processExistingNodes() error {
 }
 
 func (d *doubleListTrieSyncer) getNode(hash []byte) (node, error) {
-	return getNodeFromCacheOrStorage(
-		hash,
-		d.interceptedNodesCacher,
-		d.db,
-		d.marshalizer,
-		d.hasher,
-	)
+	if d.checkNodesOnDisk {
+		return getNodeFromCacheOrStorage(
+			hash,
+			d.interceptedNodesCacher,
+			d.db,
+			d.marshalizer,
+			d.hasher,
+		)
+	}
+	return d.getNodeFromCache(hash)
 }
 
 func (d *doubleListTrieSyncer) getNodeFromCache(hash []byte) (node, error) {
