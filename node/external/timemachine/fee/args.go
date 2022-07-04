@@ -9,10 +9,9 @@ import (
 
 // ArgsNewFeeComputer holds the arguments for constructing a feeComputer
 type ArgsNewFeeComputer struct {
-	BuiltInFunctionsCostHandler    economics.BuiltInFunctionsCostHandler
-	EconomicsConfig                config.EconomicsConfig
-	PenalizedTooMuchGasEnableEpoch uint32
-	GasPriceModifierEnableEpoch    uint32
+	BuiltInFunctionsCostHandler economics.BuiltInFunctionsCostHandler
+	EconomicsConfig             config.EconomicsConfig
+	EnableEpochsConfig          config.EnableEpochs
 }
 
 func (args *ArgsNewFeeComputer) check() error {

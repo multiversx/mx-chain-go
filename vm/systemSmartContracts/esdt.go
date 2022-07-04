@@ -98,7 +98,7 @@ func NewESDTSmartContract(args ArgsNewESDTSmartContract) (*esdt, error) {
 		return nil, vm.ErrInvalidBaseIssuingCost
 	}
 
-	e := &esdt{
+	return &esdt{
 		eei:             args.Eei,
 		gasCost:         args.GasCost,
 		baseIssuingCost: baseIssuingCost,
@@ -191,6 +191,10 @@ func (e *esdt) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 		return e.getContractConfig(args)
 	case "changeToMultiShardCreate":
 		return e.changeToMultiShardCreate(args)
+	case "setBurnRoleGlobally":
+		return e.setBurnRoleGlobally(args)
+	case "unsetBurnRoleGlobally":
+		return e.unsetBurnRoleGlobally(args)
 	}
 
 	e.eei.AddReturnMessage("invalid method to call")

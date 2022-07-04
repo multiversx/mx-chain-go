@@ -1,6 +1,7 @@
 package systemSmartContracts
 
 import (
+	"bytes"
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
@@ -38,12 +39,13 @@ func createMockArgumentsForESDT() ArgsNewESDTSmartContract {
 		AddressPubKeyConverter: mock.NewPubkeyConverterMock(32),
 		EndOfEpochSCAddress:    vm.EndOfEpochAddress,
 		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
-			IsESDTFlagEnabledField:                       true,
-			IsGlobalMintBurnFlagEnabledField:             true,
-			IsMetaESDTSetFlagEnabledField:                true,
-			IsESDTRegisterAndSetAllRolesFlagEnabledField: true,
-			IsESDTNFTCreateOnMultiShardFlagEnabledField:  true,
-			IsESDTTransferRoleFlagEnabledField:           true,
+			IsESDTFlagEnabledField:                          true,
+			IsGlobalMintBurnFlagEnabledField:                true,
+			IsMetaESDTSetFlagEnabledField:                   true,
+			IsESDTRegisterAndSetAllRolesFlagEnabledField:    true,
+			IsESDTNFTCreateOnMultiShardFlagEnabledField:     true,
+			IsESDTTransferRoleFlagEnabledField:              true,
+			IsESDTMetadataContinuousCleanupFlagEnabledField: true,
 		},
 	}
 }
@@ -4535,6 +4537,7 @@ func TestEsdt_ExecuteRegisterAndSetMetaESDTShouldSetType(t *testing.T) {
 
 func registerAndSetAllRolesWithTypeCheck(t *testing.T, typeArgument []byte, expectedType []byte) {
 	args := createMockArgumentsForESDT()
+	enableEpochsHandler, _ := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
 	eei, _ := NewVMContext(
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
@@ -4544,7 +4547,7 @@ func registerAndSetAllRolesWithTypeCheck(t *testing.T, typeArgument []byte, expe
 	args.Eei = eei
 	e, _ := NewESDTSmartContract(args)
 
-	e.flagBurnForAll.Reset()
+	enableEpochsHandler.IsESDTMetadataContinuousCleanupFlagEnabledField = false
 	vmInput := getDefaultVmInputForFunc("registerAndSetAllRoles", nil)
 	vmInput.CallValue = big.NewInt(0).Set(e.baseIssuingCost)
 
@@ -4570,6 +4573,7 @@ func TestEsdt_setBurnRoleGlobally(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
+	enableEpochsHandler, _ := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
 	eei, _ := NewVMContext(
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
@@ -4581,12 +4585,12 @@ func TestEsdt_setBurnRoleGlobally(t *testing.T) {
 	e, _ := NewESDTSmartContract(args)
 	vmInput := getDefaultVmInputForFunc("setBurnRoleGlobally", [][]byte{})
 
-	e.flagBurnForAll.Reset()
+	enableEpochsHandler.IsESDTMetadataContinuousCleanupFlagEnabledField = false
 	output := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.FunctionNotFound, output)
 	assert.True(t, strings.Contains(eei.returnMessage, "invalid method to call"))
 
-	e.flagBurnForAll.SetValue(true)
+	enableEpochsHandler.IsESDTMetadataContinuousCleanupFlagEnabledField = true
 	output = e.Execute(vmInput)
 	assert.Equal(t, vmcommon.FunctionWrongSignature, output)
 	assert.True(t, strings.Contains(eei.returnMessage, "invalid number of arguments, wanted 1"))
@@ -4634,6 +4638,7 @@ func TestEsdt_unsetBurnRoleGlobally(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
+	enableEpochsHandler, _ := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
 	eei, _ := NewVMContext(
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
@@ -4645,12 +4650,12 @@ func TestEsdt_unsetBurnRoleGlobally(t *testing.T) {
 	e, _ := NewESDTSmartContract(args)
 	vmInput := getDefaultVmInputForFunc("unsetBurnRoleGlobally", [][]byte{})
 
-	e.flagBurnForAll.Reset()
+	enableEpochsHandler.IsESDTMetadataContinuousCleanupFlagEnabledField = false
 	output := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.FunctionNotFound, output)
 	assert.True(t, strings.Contains(eei.returnMessage, "invalid method to call"))
 
-	e.flagBurnForAll.SetValue(true)
+	enableEpochsHandler.IsESDTMetadataContinuousCleanupFlagEnabledField = true
 	output = e.Execute(vmInput)
 	assert.Equal(t, vmcommon.FunctionWrongSignature, output)
 	assert.True(t, strings.Contains(eei.returnMessage, "invalid number of arguments, wanted 1"))
