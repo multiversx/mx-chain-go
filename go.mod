@@ -5,14 +5,14 @@ go 1.15
 require (
 	github.com/ElrondNetwork/arwen-wasm-vm/v1_2 v1.2.41-0.20220621160127-7b9c244dc52e
 	github.com/ElrondNetwork/arwen-wasm-vm/v1_3 v1.3.41-0.20220621155325-a4d6b7050561
-	github.com/ElrondNetwork/arwen-wasm-vm/v1_4 v1.4.54-0.20220621155343-f2af333c15c7
+	github.com/ElrondNetwork/arwen-wasm-vm/v1_4 v1.4.55-0.20220622143807-b1fff71b5619
 	github.com/ElrondNetwork/concurrent-map v0.1.3
 	github.com/ElrondNetwork/covalent-indexer-go v1.0.6
 	github.com/ElrondNetwork/elastic-indexer-go v1.2.34-partial-execution
 	github.com/ElrondNetwork/elrond-go-core v1.1.16-0.20220630104220-f27fa634b2a2
 	github.com/ElrondNetwork/elrond-go-crypto v1.0.1
 	github.com/ElrondNetwork/elrond-go-logger v1.0.7
-	github.com/ElrondNetwork/elrond-vm-common v1.3.9
+	github.com/ElrondNetwork/elrond-vm-common v1.3.10-0.20220621135526-c1ee53a8468e
 	github.com/ElrondNetwork/go-libp2p-pubsub v0.6.1-rc1
 	github.com/beevik/ntp v0.3.0
 	github.com/btcsuite/btcd v0.22.0-beta
@@ -54,4 +54,4 @@ replace github.com/ElrondNetwork/arwen-wasm-vm/v1_2 v1.2.41-0.20220621160127-7b9
 
 replace github.com/ElrondNetwork/arwen-wasm-vm/v1_3 v1.3.41-0.20220621155325-a4d6b7050561 => github.com/ElrondNetwork/arwen-wasm-vm v1.3.41-0.20220621155325-a4d6b7050561
 
-replace github.com/ElrondNetwork/arwen-wasm-vm/v1_4 v1.4.54-0.20220621155343-f2af333c15c7 => github.com/ElrondNetwork/arwen-wasm-vm v1.4.54-0.20220621155343-f2af333c15c7
+replace github.com/ElrondNetwork/arwen-wasm-vm/v1_4 v1.4.55-0.20220622143807-b1fff71b5619 => github.com/ElrondNetwork/arwen-wasm-vm v1.4.55-0.20220622143807-b1fff71b5619
