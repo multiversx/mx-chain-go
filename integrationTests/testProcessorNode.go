@@ -459,13 +459,7 @@ func NewTestProcessorNode(
 	nodeShardId uint32,
 	txSignPrivKeyShardId uint32,
 ) *TestProcessorNode {
-
 	enableEpochsConfig := config.EnableEpochs{
-		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: UnreachableEpoch,
-		ScheduledMiniBlocksEnableEpoch:              UnreachableEpoch,
-		MiniBlockPartialExecutionEnableEpoch:        UnreachableEpoch,
-	}
-	enableEpochsConfig = config.EnableEpochs{
 		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: UnreachableEpoch,
 		ScheduledMiniBlocksEnableEpoch:              UnreachableEpoch,
 		MiniBlockPartialExecutionEnableEpoch:        UnreachableEpoch,
