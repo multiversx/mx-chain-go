@@ -389,7 +389,9 @@ func TestESDTLocalBurnFromAnyoneOfThisToken(t *testing.T) {
 	nodesPerShard := 2
 	numMetachainNodes := 2
 
-	enableEpochs := config.EnableEpochs{}
+	enableEpochs := config.EnableEpochs{
+		ScheduledMiniBlocksEnableEpoch: integrationTests.UnreachableEpoch,
+	}
 	nodes := integrationTests.CreateNodesWithEnableEpochs(
 		numOfShards,
 		nodesPerShard,
