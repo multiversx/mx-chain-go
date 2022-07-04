@@ -19,6 +19,7 @@ import (
 	mclmultisig "github.com/ElrondNetwork/elrond-go-crypto/signing/mcl/multisig"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/multisig"
 	"github.com/ElrondNetwork/elrond-go/common/forking"
+	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/factory/peerSignatureHandler"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
@@ -77,9 +78,11 @@ func NewTestProcessorNodeWithCustomNodesCoordinator(
 		TransactionLogProcessor: logsProcessor,
 		Bootstrapper:            mock.NewTestBootstrapperMock(),
 		PeersRatingHandler:      peersRatingHandler,
+		PeerShardMapper:         mock.NewNetworkShardingCollectorMock(),
 	}
 
-	tpn.ScheduledMiniBlocksEnableEpoch = uint32(1000000)
+	tpn.EnableEpochs.ScheduledMiniBlocksEnableEpoch = uint32(1000000)
+	tpn.EnableEpochs.MiniBlockPartialExecutionEnableEpoch = uint32(1000000)
 	tpn.NodeKeys = cp.Keys[nodeShardId][keyIndex]
 	blsHasher, _ := blake2b.NewBlake2bWithSize(hashing.BlsHashSize)
 	llsig := &mclmultisig.BlsMultiSigner{Hasher: blsHasher}
@@ -243,7 +246,7 @@ func CreateNodeWithBLSAndTxKeys(
 		consensusGroupCache:     cache,
 		bootStorer:              bootStorer,
 	}
-	nodesCoordinator := coordinatorFactory.CreateNodesCoordinator(argFactory)
+	nodesCoordinatorInstance := coordinatorFactory.CreateNodesCoordinator(argFactory)
 
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(nbShards), shardId)
 
@@ -257,7 +260,7 @@ func CreateNodeWithBLSAndTxKeys(
 	tpn := &TestProcessorNode{
 		ShardCoordinator:        shardCoordinator,
 		Messenger:               messenger,
-		NodesCoordinator:        nodesCoordinator,
+		NodesCoordinator:        nodesCoordinatorInstance,
 		HeaderSigVerifier:       &mock.HeaderSigVerifierStub{},
 		HeaderIntegrityVerifier: CreateHeaderIntegrityVerifier(),
 		ChainID:                 ChainID,
@@ -269,9 +272,11 @@ func CreateNodeWithBLSAndTxKeys(
 		ArwenChangeLocker:       &sync.RWMutex{},
 		TransactionLogProcessor: logsProcessor,
 		PeersRatingHandler:      peersRatingHandler,
+		PeerShardMapper:         disabled.NewPeerShardMapper(),
 	}
 
-	tpn.ScheduledMiniBlocksEnableEpoch = uint32(1000000)
+	tpn.EnableEpochs.ScheduledMiniBlocksEnableEpoch = uint32(1000000)
+	tpn.EnableEpochs.MiniBlockPartialExecutionEnableEpoch = uint32(1000000)
 	tpn.NodeKeys = cp.Keys[shardId][keyIndex]
 	blsHasher, _ := blake2b.NewBlake2bWithSize(hashing.BlsHashSize)
 	llsig := &mclmultisig.BlsMultiSigner{Hasher: blsHasher}
@@ -445,13 +450,13 @@ func CreateNode(
 		consensusGroupCache:     cache,
 		bootStorer:              bootStorer,
 	}
-	nodesCoordinator := coordinatorFactory.CreateNodesCoordinator(argFactory)
+	nodesCoordinatorInstance := coordinatorFactory.CreateNodesCoordinator(argFactory)
 
 	return NewTestProcessorNodeWithCustomNodesCoordinator(
 		uint32(nbShards),
 		shardId,
 		epochStartSubscriber,
-		nodesCoordinator,
+		nodesCoordinatorInstance,
 		ratingsData,
 		cp,
 		keyIndex,
@@ -529,7 +534,7 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 			NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
 			IsFullArchive:              false,
 		}
-		nodesCoordinator, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
+		nodesCoordinatorInstance, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 
 		if err != nil {
 			fmt.Println("Error creating node coordinator: " + err.Error())
@@ -539,7 +544,7 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 		args := headerCheck.ArgsHeaderSigVerifier{
 			Marshalizer:             TestMarshalizer,
 			Hasher:                  TestHasher,
-			NodesCoordinator:        nodesCoordinator,
+			NodesCoordinator:        nodesCoordinatorInstance,
 			MultiSigVerifier:        TestMultiSig,
 			SingleSigVerifier:       signer,
 			KeyGen:                  keyGen,
@@ -552,7 +557,7 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 				uint32(nbShards),
 				shardId,
 				epochStartSubscriber,
-				nodesCoordinator,
+				nodesCoordinatorInstance,
 				nil,
 				cp,
 				i,
@@ -688,9 +693,9 @@ func ProposeBlockWithConsensusSignature(
 	randomness []byte,
 	epoch uint32,
 ) (data.BodyHandler, data.HeaderHandler, [][]byte, []*TestProcessorNode) {
-	nodesCoordinator := nodesMap[shardId][0].NodesCoordinator
+	nodesCoordinatorInstance := nodesMap[shardId][0].NodesCoordinator
 
-	pubKeys, err := nodesCoordinator.GetConsensusValidatorsPublicKeys(randomness, round, shardId, epoch)
+	pubKeys, err := nodesCoordinatorInstance.GetConsensusValidatorsPublicKeys(randomness, round, shardId, epoch)
 	if err != nil {
 		log.Error("nodesCoordinator.GetConsensusValidatorsPublicKeys", "error", err)
 	}

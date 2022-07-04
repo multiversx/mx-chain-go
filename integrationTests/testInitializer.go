@@ -238,9 +238,9 @@ func CreateMessengerFromConfigWithPeersRatingHandler(p2pConfig config.P2PConfig,
 	return libP2PMes
 }
 
-// CreateMessengerWithNoDiscovery creates a new libp2p messenger with no peer discovery
-func CreateMessengerWithNoDiscovery() p2p.Messenger {
-	p2pConfig := config.P2PConfig{
+// CreateP2PConfigWithNoDiscovery creates a new libp2p messenger with no peer discovery
+func CreateP2PConfigWithNoDiscovery() config.P2PConfig {
+	return config.P2PConfig{
 		Node: config.NodeConfig{
 			Port:                  "0",
 			Seed:                  "",
@@ -253,6 +253,11 @@ func CreateMessengerWithNoDiscovery() p2p.Messenger {
 			Type: p2p.NilListSharder,
 		},
 	}
+}
+
+// CreateMessengerWithNoDiscovery creates a new libp2p messenger with no peer discovery
+func CreateMessengerWithNoDiscovery() p2p.Messenger {
+	p2pConfig := CreateP2PConfigWithNoDiscovery()
 
 	return CreateMessengerFromConfig(p2pConfig)
 }

@@ -2,8 +2,6 @@ package node
 
 import (
 	"errors"
-	"fmt"
-	"path/filepath"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -13,113 +11,10 @@ import (
 	nodeDisabled "github.com/ElrondNetwork/elrond-go/node/disabled"
 	"github.com/ElrondNetwork/elrond-go/node/nodeDebugFactory"
 	procFactory "github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/blackList"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/update"
-	updateFactory "github.com/ElrondNetwork/elrond-go/update/factory"
-	"github.com/ElrondNetwork/elrond-go/update/trigger"
 	"github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
 )
-
-// CreateHardForkTrigger is the hard fork trigger factory
-// TODO: move this to process components
-func CreateHardForkTrigger(
-	config *config.Config,
-	epochConfig *config.EpochConfig,
-	shardCoordinator sharding.Coordinator,
-	nodesCoordinator nodesCoordinator.NodesCoordinator,
-	nodesShuffledOut update.Closer,
-	coreData factory.CoreComponentsHolder,
-	stateComponents factory.StateComponentsHolder,
-	data factory.DataComponentsHolder,
-	crypto factory.CryptoComponentsHolder,
-	process factory.ProcessComponentsHolder,
-	network factory.NetworkComponentsHolder,
-	epochStartNotifier factory.EpochStartNotifierWithConfirm,
-	importStartHandler update.ImportStartHandler,
-	workingDir string,
-) (HardforkTrigger, error) {
-
-	selfPubKeyBytes := crypto.PublicKeyBytes()
-	triggerPubKeyBytes, err := coreData.ValidatorPubKeyConverter().Decode(config.Hardfork.PublicKeyToListenFrom)
-	if err != nil {
-		return nil, fmt.Errorf("%w while decoding HardforkConfig.PublicKeyToListenFrom", err)
-	}
-
-	accountsDBs := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
-	accountsDBs[state.UserAccountsState] = stateComponents.AccountsAdapter()
-	accountsDBs[state.PeerAccountsState] = stateComponents.PeerAccounts()
-	hardForkConfig := config.Hardfork
-	exportFolder := filepath.Join(workingDir, hardForkConfig.ImportFolder)
-	argsExporter := updateFactory.ArgsExporter{
-		CoreComponents:            coreData,
-		CryptoComponents:          crypto,
-		HeaderValidator:           process.HeaderConstructionValidator(),
-		DataPool:                  data.Datapool(),
-		StorageService:            data.StorageService(),
-		RequestHandler:            process.RequestHandler(),
-		ShardCoordinator:          shardCoordinator,
-		Messenger:                 network.NetworkMessenger(),
-		ActiveAccountsDBs:         accountsDBs,
-		ExistingResolvers:         process.ResolversFinder(),
-		ExportFolder:              exportFolder,
-		ExportTriesStorageConfig:  hardForkConfig.ExportTriesStorageConfig,
-		ExportStateStorageConfig:  hardForkConfig.ExportStateStorageConfig,
-		ExportStateKeysConfig:     hardForkConfig.ExportKeysStorageConfig,
-		MaxTrieLevelInMemory:      config.StateTriesConfig.MaxStateTrieLevelInMemory,
-		WhiteListHandler:          process.WhiteListHandler(),
-		WhiteListerVerifiedTxs:    process.WhiteListerVerifiedTxs(),
-		InterceptorsContainer:     process.InterceptorsContainer(),
-		NodesCoordinator:          nodesCoordinator,
-		HeaderSigVerifier:         process.HeaderSigVerifier(),
-		HeaderIntegrityVerifier:   process.HeaderIntegrityVerifier(),
-		ValidityAttester:          process.BlockTracker(),
-		InputAntifloodHandler:     network.InputAntiFloodHandler(),
-		OutputAntifloodHandler:    network.OutputAntiFloodHandler(),
-		RoundHandler:              process.RoundHandler(),
-		PeersRatingHandler:        network.PeersRatingHandler(),
-		InterceptorDebugConfig:    config.Debug.InterceptorResolver,
-		EnableSignTxWithHashEpoch: epochConfig.EnableEpochs.TransactionSignedWithTxHashEnableEpoch,
-		MaxHardCapForMissingNodes: config.TrieSync.MaxHardCapForMissingNodes,
-		NumConcurrentTrieSyncers:  config.TrieSync.NumConcurrentTrieSyncers,
-		TrieSyncerVersion:         config.TrieSync.TrieSyncerVersion,
-		CheckNodesOnDisk:          config.TrieSync.CheckNodesOnDisk,
-	}
-	hardForkExportFactory, err := updateFactory.NewExportHandlerFactory(argsExporter)
-	if err != nil {
-		return nil, err
-	}
-
-	atArgumentParser := smartContract.NewArgumentParser()
-	argTrigger := trigger.ArgHardforkTrigger{
-		TriggerPubKeyBytes:        triggerPubKeyBytes,
-		SelfPubKeyBytes:           selfPubKeyBytes,
-		Enabled:                   config.Hardfork.EnableTrigger,
-		EnabledAuthenticated:      config.Hardfork.EnableTriggerFromP2P,
-		ArgumentParser:            atArgumentParser,
-		EpochProvider:             process.EpochStartTrigger(),
-		ExportFactoryHandler:      hardForkExportFactory,
-		ChanStopNodeProcess:       coreData.ChanStopNodeProcess(),
-		EpochConfirmedNotifier:    epochStartNotifier,
-		CloseAfterExportInMinutes: config.Hardfork.CloseAfterExportInMinutes,
-		ImportStartHandler:        importStartHandler,
-		RoundHandler:              process.RoundHandler(),
-	}
-	hardforkTrigger, err := trigger.NewTrigger(argTrigger)
-	if err != nil {
-		return nil, err
-	}
-
-	err = hardforkTrigger.AddCloser(nodesShuffledOut)
-	if err != nil {
-		return nil, fmt.Errorf("%w when adding nodeShufflerOut in hardForkTrigger", err)
-	}
-
-	return hardforkTrigger, nil
-}
 
 // prepareOpenTopics will set to the anti flood handler the topics for which
 // the node can receive messages from others than validators
@@ -128,13 +23,14 @@ func prepareOpenTopics(
 	shardCoordinator sharding.Coordinator,
 ) {
 	selfID := shardCoordinator.SelfId()
+	selfShardHeartbeatV2Topic := common.HeartbeatV2Topic + core.CommunicationIdentifierBetweenShards(selfID, selfID)
 	if selfID == core.MetachainShardId {
-		antiflood.SetTopicsForAll(common.HeartbeatTopic)
+		antiflood.SetTopicsForAll(common.HeartbeatTopic, common.PeerAuthenticationTopic, selfShardHeartbeatV2Topic, common.ConnectionTopic)
 		return
 	}
 
 	selfShardTxTopic := procFactory.TransactionTopic + core.CommunicationIdentifierBetweenShards(selfID, selfID)
-	antiflood.SetTopicsForAll(common.HeartbeatTopic, selfShardTxTopic)
+	antiflood.SetTopicsForAll(common.HeartbeatTopic, common.PeerAuthenticationTopic, selfShardHeartbeatV2Topic, common.ConnectionTopic, selfShardTxTopic)
 }
 
 // CreateNode is the node factory
@@ -149,6 +45,7 @@ func CreateNode(
 	stateComponents factory.StateComponentsHandler,
 	statusComponents factory.StatusComponentsHandler,
 	heartbeatComponents factory.HeartbeatComponentsHandler,
+	heartbeatV2Components factory.HeartbeatV2ComponentsHandler,
 	consensusComponents factory.ConsensusComponentsHandler,
 	epochConfig config.EpochConfig,
 	bootstrapRoundIndex uint64,
@@ -199,6 +96,7 @@ func CreateNode(
 		WithStatusComponents(statusComponents),
 		WithProcessComponents(processComponents),
 		WithHeartbeatComponents(heartbeatComponents),
+		WithHeartbeatV2Components(heartbeatV2Components),
 		WithConsensusComponents(consensusComponents),
 		WithNetworkComponents(networkComponents),
 		WithInitialNodesPubKeys(coreComponents.GenesisNodesSetup().InitialNodesPubKeys()),
@@ -209,7 +107,6 @@ func CreateNode(
 		WithBootstrapRoundIndex(bootstrapRoundIndex),
 		WithPeerDenialEvaluator(peerDenialEvaluator),
 		WithRequestedItemsHandler(processComponents.RequestedItemsHandler()),
-		WithHardforkTrigger(consensusComponents.HardforkTrigger()),
 		WithAddressSignatureSize(config.AddressPubkeyConverter.SignatureLength),
 		WithValidatorSignatureSize(config.ValidatorPubkeyConverter.SignatureLength),
 		WithPublicKeySize(config.ValidatorPubkeyConverter.Length),

@@ -559,6 +559,7 @@ func createHardForkExporter(
 		coreComponents.ChainIdCalled = func() string {
 			return string(node.ChainID)
 		}
+		coreComponents.HardforkTriggerPubKeyField = []byte("provided hardfork pub key")
 
 		cryptoComponents := integrationTests.GetDefaultCryptoComponents()
 		cryptoComponents.BlockSig = node.OwnAccount.BlockSingleSigner

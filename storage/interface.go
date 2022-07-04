@@ -3,6 +3,7 @@ package storage
 import (
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/storage"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 )
@@ -95,7 +96,7 @@ type Storer interface {
 	ClearCache()
 	DestroyUnit() error
 	GetFromEpoch(key []byte, epoch uint32) ([]byte, error)
-	GetBulkFromEpoch(keys [][]byte, epoch uint32) (map[string][]byte, error)
+	GetBulkFromEpoch(keys [][]byte, epoch uint32) ([]storage.KeyValuePair, error)
 	GetOldestEpoch() (uint32, error)
 	RangeKeys(handler func(key []byte, val []byte) bool)
 	Close() error
@@ -202,10 +203,17 @@ type SizedLRUCacheHandler interface {
 
 // TimeCacher defines the cache that can keep a record for a bounded time
 type TimeCacher interface {
+	Add(key string) error
 	Upsert(key string, span time.Duration) error
 	Has(key string) bool
 	Sweep()
+	RegisterEvictionHandler(handler EvictionHandler)
 	IsInterfaceNil() bool
+}
+
+// EvictionHandler defines a component which can be registered on TimeCaher
+type EvictionHandler interface {
+	Evicted(key []byte)
 }
 
 // AdaptedSizedLRUCache defines a cache that returns the evicted value
