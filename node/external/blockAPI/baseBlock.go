@@ -3,6 +3,7 @@ package blockAPI
 import (
 	"bytes"
 	"encoding/hex"
+	"fmt"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/data"
