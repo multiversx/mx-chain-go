@@ -25,8 +25,8 @@ type TransactionsPoolForSenderApiResponse struct {
 }
 
 // NonceGapApiResponse is a struct that holds a nonce gap from transactions pool
-// From - last known nonce
-// To   - next known nonce
+// From - first unknown nonce
+// To   - last unknown nonce
 type NonceGapApiResponse struct {
 	From uint64 `json:"from"`
 	To   uint64 `json:"to"`

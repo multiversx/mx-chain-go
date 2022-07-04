@@ -844,16 +844,16 @@ func TestApiTransactionProcessor_GetTransactionsPoolNonceGapsForSender(t *testin
 		GasProcessingDivisor: 1,
 	})
 
-	// final sorted nonces 1, 2, 5, 6, 15
-	gap1FirstNonce := uint64(2)
-	gap1LastNonce := uint64(5)
-	gap2FirstNonce := uint64(6)
-	gap2LastNonce := uint64(15)
+	// expected nonce gaps: 3-3, 5-7
+	lastNonceBeforeGap1 := uint64(2)
+	firstNonceAfterGap1 := uint64(4)
+	lastNonceBeforeGap2 := uint64(5)
+	firstNonceAfterGap2 := uint64(9)
 	txCacheIntraShard.AddTx(createTx(txHash0, sender, 1))
-	txCacheIntraShard.AddTx(createTx(txHash1, sender, gap1LastNonce))
-	txCacheIntraShard.AddTx(createTx(txHash2, sender, gap2FirstNonce))
-	txCacheIntraShard.AddTx(createTx(txHash3, sender, gap1FirstNonce))
-	txCacheIntraShard.AddTx(createTx(txHash4, sender, gap2LastNonce))
+	txCacheIntraShard.AddTx(createTx(txHash1, sender, lastNonceBeforeGap1))
+	txCacheIntraShard.AddTx(createTx(txHash2, sender, firstNonceAfterGap1))
+	txCacheIntraShard.AddTx(createTx(txHash3, sender, lastNonceBeforeGap2))
+	txCacheIntraShard.AddTx(createTx(txHash4, sender, firstNonceAfterGap2))
 
 	args := createMockArgAPIBlockProcessor()
 	args.DataPool = &dataRetrieverMock.PoolsHolderStub{
@@ -890,12 +890,12 @@ func TestApiTransactionProcessor_GetTransactionsPoolNonceGapsForSender(t *testin
 		Sender: sender,
 		Gaps: []common.NonceGapApiResponse{
 			{
-				From: gap1FirstNonce,
-				To:   gap1LastNonce,
+				From: lastNonceBeforeGap1 + 1,
+				To:   firstNonceAfterGap1 - 1,
 			},
 			{
-				From: gap2FirstNonce,
-				To:   gap2LastNonce,
+				From: lastNonceBeforeGap2 + 1,
+				To:   firstNonceAfterGap2 - 1,
 			},
 		},
 	}

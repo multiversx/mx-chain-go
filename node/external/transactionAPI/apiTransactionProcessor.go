@@ -350,8 +350,8 @@ func (atp *apiTransactionProcessor) extractNonceGaps(sender string, senderShard 
 		nonceDiff := nextNonce - currentNonce
 		if nonceDiff > 1 {
 			nonceGap := common.NonceGapApiResponse{
-				From: currentNonce,
-				To:   nextNonce,
+				From: currentNonce + 1,
+				To:   nextNonce - 1,
 			}
 			nonceGaps = append(nonceGaps, nonceGap)
 		}
