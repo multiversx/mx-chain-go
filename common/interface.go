@@ -138,6 +138,15 @@ type ProcessStatusHandler interface {
 	IsInterfaceNil() bool
 }
 
+// BlockInfo provides a block information such as nonce, hash, roothash and so on
+type BlockInfo interface {
+	GetNonce() uint64
+	GetHash() []byte
+	GetRootHash() []byte
+	Equal(blockInfo BlockInfo) bool
+	IsInterfaceNil() bool
+}
+
 // EnableEpochsHandler is used to verify the which flags are set in the current epoch based on EnableEpochs config
 type EnableEpochsHandler interface {
 	BlockGasAndFeesReCheckEnableEpoch() uint32

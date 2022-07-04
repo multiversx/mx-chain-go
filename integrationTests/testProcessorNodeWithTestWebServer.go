@@ -25,6 +25,7 @@ import (
 	txSimData "github.com/ElrondNetwork/elrond-go/process/txsimulator/data"
 	"github.com/ElrondNetwork/elrond-go/process/txstatus"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/genesisMocks"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 	datafield "github.com/ElrondNetwork/elrond-vm-common/parsers/dataField"
@@ -191,6 +192,8 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 	delegatedListHandler, err := factory.CreateDelegatedListHandler(args)
 	log.LogIfError(err)
 
+	logsFacade := &testscommon.LogsFacadeStub{}
+
 	argsDataFieldParser := &datafield.ArgsOperationDataFieldParser{
 		AddressLength:    TestAddressPubkeyConverter.Len(),
 		Marshalizer:      TestMarshalizer,
@@ -207,6 +210,9 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 		StorageService:           tpn.Storage,
 		DataPool:                 tpn.DataPool,
 		Uint64ByteSliceConverter: TestUint64Converter,
+		FeeComputer:              &testscommon.FeeComputerStub{},
+		TxTypeHandler:            txTypeHandler,
+		LogsFacade:               logsFacade,
 		DataFieldParser:          dataFieldParser,
 	}
 	apiTransactionHandler, err := transactionAPI.NewAPITransactionProcessor(argsApiTransactionProc)
@@ -221,10 +227,11 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 		Marshalizer:              TestMarshalizer,
 		Uint64ByteSliceConverter: TestUint64Converter,
 		HistoryRepo:              tpn.HistoryRepository,
-		TxUnmarshaller:           apiTransactionHandler,
+		APITransactionHandler:    apiTransactionHandler,
 		StatusComputer:           statusCom,
 		Hasher:                   TestHasher,
 		AddressPubkeyConverter:   TestAddressPubkeyConverter,
+		LogsFacade:               logsFacade,
 	}
 	blockAPIHandler, err := blockAPI.CreateAPIBlockProcessor(argsBlockAPI)
 	log.LogIfError(err)
@@ -244,6 +251,7 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 		APIInternalBlockHandler:  apiInternalBlockProcessor,
 		GenesisNodesSetupHandler: &mock.NodesSetupStub{},
 		ValidatorPubKeyConverter: &testscommon.PubkeyConverterMock{},
+		AccountsParser:           &genesisMocks.AccountsParserStub{},
 	}
 
 	apiResolver, err := external.NewNodeApiResolver(argsApiResolver)

@@ -113,6 +113,7 @@ type processComponents struct {
 	txsSender                    process.TxsSenderHandler
 	hardforkTrigger              HardforkTrigger
 	processedMiniBlocksTracker   process.ProcessedMiniBlocksTracker
+	accountsParser               genesis.AccountsParser
 }
 
 // ProcessComponentsFactoryArgs holds the arguments needed to create a process components factory
@@ -644,6 +645,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		txsSender:                    txsSenderWithAccumulator,
 		hardforkTrigger:              hardforkTrigger,
 		processedMiniBlocksTracker:   processedMiniBlocksTracker,
+		accountsParser:               pcf.accountsParser,
 	}, nil
 }
 

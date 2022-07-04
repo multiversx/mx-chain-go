@@ -21,34 +21,34 @@ import (
 // NodeHandler contains all functions that a node should contain.
 type NodeHandler interface {
 	// GetBalance returns the balance for a specific address
-	GetBalance(address string) (*big.Int, error)
+	GetBalance(address string, options api.AccountQueryOptions) (*big.Int, api.BlockInfo, error)
 
 	// GetUsername returns the username for a specific address
-	GetUsername(address string) (string, error)
+	GetUsername(address string, options api.AccountQueryOptions) (string, api.BlockInfo, error)
 
 	// GetValueForKey returns the value of a key from a given account
-	GetValueForKey(address string, key string) (string, error)
+	GetValueForKey(address string, key string, options api.AccountQueryOptions) (string, api.BlockInfo, error)
 
 	// GetKeyValuePairs returns the key-value pairs under a given address
-	GetKeyValuePairs(address string, ctx context.Context) (map[string]string, error)
+	GetKeyValuePairs(address string, options api.AccountQueryOptions, ctx context.Context) (map[string]string, api.BlockInfo, error)
 
 	// GetAllIssuedESDTs returns all the issued esdt tokens from esdt system smart contract
 	GetAllIssuedESDTs(tokenType string, ctx context.Context) ([]string, error)
 
 	// GetESDTData returns the esdt data from a given account, given key and given nonce
-	GetESDTData(address, tokenID string, nonce uint64) (*esdt.ESDigitalToken, error)
+	GetESDTData(address, tokenID string, nonce uint64, options api.AccountQueryOptions) (*esdt.ESDigitalToken, api.BlockInfo, error)
 
 	// GetESDTsRoles returns the the token identifiers and the roles for a given address
-	GetESDTsRoles(address string, ctx context.Context) (map[string][]string, error)
+	GetESDTsRoles(address string, options api.AccountQueryOptions, ctx context.Context) (map[string][]string, api.BlockInfo, error)
 
 	// GetNFTTokenIDsRegisteredByAddress returns all the token identifiers for semi or non fungible tokens registered by the address
-	GetNFTTokenIDsRegisteredByAddress(address string, ctx context.Context) ([]string, error)
+	GetNFTTokenIDsRegisteredByAddress(address string, options api.AccountQueryOptions, ctx context.Context) ([]string, api.BlockInfo, error)
 
 	// GetESDTsWithRole returns the token identifiers where the specified address has the given role
-	GetESDTsWithRole(address string, role string, ctx context.Context) ([]string, error)
+	GetESDTsWithRole(address string, role string, options api.AccountQueryOptions, ctx context.Context) ([]string, api.BlockInfo, error)
 
 	// GetAllESDTTokens returns the value of a key from a given account
-	GetAllESDTTokens(address string, ctx context.Context) (map[string]*esdt.ESDigitalToken, error)
+	GetAllESDTTokens(address string, options api.AccountQueryOptions, ctx context.Context) (map[string]*esdt.ESDigitalToken, api.BlockInfo, error)
 
 	// GetTokenSupply returns the provided token supply from current shard
 	GetTokenSupply(token string) (*api.ESDTSupply, error)
@@ -66,10 +66,10 @@ type NodeHandler interface {
 
 	// GetAccount returns an accountResponse containing information
 	//  about the account correlated with provided address
-	GetAccount(address string) (api.AccountResponse, error)
+	GetAccount(address string, options api.AccountQueryOptions) (api.AccountResponse, api.BlockInfo, error)
 
 	// GetCode returns the code for the given code hash
-	GetCode(codeHash []byte) []byte
+	GetCode(codeHash []byte, options api.AccountQueryOptions) ([]byte, api.BlockInfo)
 
 	// GetHeartbeats returns the heartbeat status for each public key defined in genesis.json
 	GetHeartbeats() []data.PubKeyHeartbeat
@@ -109,9 +109,9 @@ type ApiResolver interface {
 	GetDelegatorsList(ctx context.Context) ([]*api.Delegator, error)
 	GetTransaction(hash string, withResults bool) (*transaction.ApiTransactionResult, error)
 	GetTransactionsPool() (*common.TransactionsPoolAPIResponse, error)
-	GetBlockByHash(hash string, withTxs bool) (*api.Block, error)
-	GetBlockByNonce(nonce uint64, withTxs bool) (*api.Block, error)
-	GetBlockByRound(round uint64, withTxs bool) (*api.Block, error)
+	GetBlockByHash(hash string, options api.BlockQueryOptions) (*api.Block, error)
+	GetBlockByNonce(nonce uint64, options api.BlockQueryOptions) (*api.Block, error)
+	GetBlockByRound(round uint64, options api.BlockQueryOptions) (*api.Block, error)
 	GetInternalShardBlockByNonce(format common.ApiOutputFormat, nonce uint64) (interface{}, error)
 	GetInternalShardBlockByHash(format common.ApiOutputFormat, hash string) (interface{}, error)
 	GetInternalShardBlockByRound(format common.ApiOutputFormat, round uint64) (interface{}, error)
@@ -121,6 +121,7 @@ type ApiResolver interface {
 	GetInternalStartOfEpochMetaBlock(format common.ApiOutputFormat, epoch uint32) (interface{}, error)
 	GetInternalMiniBlock(format common.ApiOutputFormat, txHash string, epoch uint32) (interface{}, error)
 	GetGenesisNodesPubKeys() (map[uint32][]string, map[uint32][]string)
+	GetGenesisBalances() ([]*common.InitialAccountAPI, error)
 	Close() error
 	IsInterfaceNil() bool
 }

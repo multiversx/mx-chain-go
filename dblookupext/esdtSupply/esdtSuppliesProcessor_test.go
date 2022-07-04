@@ -310,13 +310,13 @@ func TestProcessLogs_RevertChangesShouldWorkForRevertingMinting(t *testing.T) {
 
 	marshalizer := testscommon.MarshalizerMock{}
 
-	logsStorer := genericMocks.NewStorerMockWithErrKeyNotFound("", 0)
+	logsStorer := genericMocks.NewStorerMockWithErrKeyNotFound(0)
 	mintLogToBeRevertedBytes, err := marshalizer.Marshal(mintLogToBeReverted)
 	require.NoError(t, err)
 	err = logsStorer.Put([]byte("txHash3"), mintLogToBeRevertedBytes)
 	require.NoError(t, err)
 
-	suppliesStorer := genericMocks.NewStorerMockWithErrKeyNotFound("", 0)
+	suppliesStorer := genericMocks.NewStorerMockWithErrKeyNotFound(0)
 
 	suppliesProc, err := NewSuppliesProcessor(marshalizer, suppliesStorer, logsStorer)
 	require.Nil(t, err)
@@ -401,13 +401,13 @@ func TestProcessLogs_RevertChangesShouldWorkForRevertingBurning(t *testing.T) {
 
 	marshalizer := testscommon.MarshalizerMock{}
 
-	logsStorer := genericMocks.NewStorerMockWithErrKeyNotFound("", 0)
+	logsStorer := genericMocks.NewStorerMockWithErrKeyNotFound(0)
 	mintLogToBeRevertedBytes, err := marshalizer.Marshal(mintLogToBeReverted)
 	require.NoError(t, err)
 	err = logsStorer.Put([]byte("txHash3"), mintLogToBeRevertedBytes)
 	require.NoError(t, err)
 
-	suppliesStorer := genericMocks.NewStorerMockWithErrKeyNotFound("", 0)
+	suppliesStorer := genericMocks.NewStorerMockWithErrKeyNotFound(0)
 
 	suppliesProc, err := NewSuppliesProcessor(marshalizer, suppliesStorer, logsStorer)
 	require.Nil(t, err)

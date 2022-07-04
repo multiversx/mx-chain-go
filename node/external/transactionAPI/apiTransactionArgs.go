@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dblookupext"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
@@ -22,5 +23,8 @@ type ArgAPITransactionProcessor struct {
 	StorageService           dataRetriever.StorageService
 	DataPool                 dataRetriever.PoolsHolder
 	Uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
+	FeeComputer              feeComputer
+	TxTypeHandler            process.TxTypeHandler
+	LogsFacade               LogsFacade
 	DataFieldParser          DataFieldParser
 }
