@@ -3,6 +3,7 @@ package blockAPI
 import (
 	"bytes"
 	"encoding/hex"
+	"fmt"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/data"
@@ -134,13 +135,13 @@ func (bap *baseAPIBlockProcessor) getAndAttachTxsToMb(
 }
 
 func (bap *baseAPIBlockProcessor) getMiniblockByHashAndEpoch(miniblockHash []byte, epoch uint32) (*block.MiniBlock, error) {
-	bytes, err := bap.getFromStorerWithEpoch(dataRetriever.MiniBlockUnit, miniblockHash, epoch)
+	buff, err := bap.getFromStorerWithEpoch(dataRetriever.MiniBlockUnit, miniblockHash, epoch)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %v, hash = %s", errCannotLoadMiniblocks, err, hex.EncodeToString(miniblockHash))
 	}
 
 	miniBlock := &block.MiniBlock{}
-	err = bap.marshalizer.Unmarshal(miniBlock, bytes)
+	err = bap.marshalizer.Unmarshal(miniBlock, buff)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %v, hash = %s", errCannotUnmarshalMiniblocks, err, hex.EncodeToString(miniblockHash))
 	}
@@ -177,7 +178,7 @@ func (bap *baseAPIBlockProcessor) getAndAttachTxsToMbByEpoch(
 	}
 
 	if options.WithLogs {
-		err := bap.logsFacade.IncludeLogsInTransactions(apiMiniblock.Transactions, miniBlock.TxHashes, epoch)
+		err = bap.logsFacade.IncludeLogsInTransactions(apiMiniblock.Transactions, miniBlock.TxHashes, epoch)
 		if err != nil {
 			return err
 		}
@@ -197,9 +198,9 @@ func (bap *baseAPIBlockProcessor) getReceiptsFromMiniblock(miniblock *block.Mini
 
 	apiReceipts := make([]*transaction.ApiReceipt, 0)
 	for _, pair := range marshalledReceipts {
-		receipt, err := bap.apiTransactionHandler.UnmarshalReceipt(pair.Value)
-		if err != nil {
-			return nil, fmt.Errorf("%w: %v, hash = %s", errCannotUnmarshalReceipts, err, hex.EncodeToString(pair.Key))
+		receipt, errUnmarshal := bap.apiTransactionHandler.UnmarshalReceipt(pair.Value)
+		if errUnmarshal != nil {
+			return nil, fmt.Errorf("%w: %v, hash = %s", errCannotUnmarshalReceipts, errUnmarshal, hex.EncodeToString(pair.Key))
 		}
 
 		apiReceipts = append(apiReceipts, receipt)
