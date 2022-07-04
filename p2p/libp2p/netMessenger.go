@@ -371,12 +371,12 @@ func (netMes *networkMessenger) createPubSub(messageSigning messageSigningConfig
 				continue
 			}
 
-			buffToSend := netMes.createMessageBytes(sendableData.Buff)
-			if len(buffToSend) == 0 {
+			packedSendableDataBuff := netMes.createMessageBytes(sendableData.Buff)
+			if len(packedSendableDataBuff) == 0 {
 				continue
 			}
 
-			errPublish := netMes.publish(topic, sendableData, buffToSend)
+			errPublish := netMes.publish(topic, sendableData, packedSendableDataBuff)
 			if errPublish != nil {
 				log.Trace("error sending data", "error", errPublish)
 			}
@@ -386,12 +386,12 @@ func (netMes *networkMessenger) createPubSub(messageSigning messageSigningConfig
 	return nil
 }
 
-func (netMes *networkMessenger) publish(topic *pubsub.Topic, data *p2p.SendableData, buffToSend []byte) error {
+func (netMes *networkMessenger) publish(topic *pubsub.Topic, data *p2p.SendableData, packedSendableDataBuff []byte) error {
 	if data.Sk == nil {
-		return topic.Publish(netMes.ctx, buffToSend)
+		return topic.Publish(netMes.ctx, packedSendableDataBuff)
 	}
 
-	return topic.PublishWithSk(netMes.ctx, buffToSend, data.Sk, data.ID)
+	return topic.PublishWithSk(netMes.ctx, packedSendableDataBuff, data.Sk, data.ID)
 }
 
 func (netMes *networkMessenger) createMessageBytes(buff []byte) []byte {
@@ -943,7 +943,6 @@ func (netMes *networkMessenger) BroadcastOnChannelBlockingWithSk(
 	pid core.PeerID,
 	skBytes []byte,
 ) error {
-
 	id := peer.ID(pid)
 	sk, err := crypto.UnmarshalPrivateKey(skBytes)
 	if err != nil {
@@ -980,7 +979,6 @@ func (netMes *networkMessenger) BroadcastOnChannelWithSk(
 	pid core.PeerID,
 	skBytes []byte,
 ) {
-
 	go func() {
 		err := netMes.BroadcastOnChannelBlockingWithSk(channel, topic, buff, pid, skBytes)
 		if err != nil {
@@ -996,7 +994,6 @@ func (netMes *networkMessenger) BroadcastWithSk(
 	pid core.PeerID,
 	skBytes []byte,
 ) {
-
 	netMes.BroadcastOnChannelWithSk(topic, topic, buff, pid, skBytes)
 }
 
