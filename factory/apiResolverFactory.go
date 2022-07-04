@@ -13,11 +13,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go/facade"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/node/external/blockAPI"
+	"github.com/ElrondNetwork/elrond-go/node/external/logs"
+	"github.com/ElrondNetwork/elrond-go/node/external/timemachine/fee"
 	"github.com/ElrondNetwork/elrond-go/node/external/transactionAPI"
 	"github.com/ElrondNetwork/elrond-go/node/trieIterators"
 	trieIteratorsFactory "github.com/ElrondNetwork/elrond-go/node/trieIterators/factory"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
+	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
@@ -177,6 +180,28 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		return nil, err
 	}
 
+	builtInCostHandler, err := economics.NewBuiltInFunctionsCost(&economics.ArgsBuiltInFunctionCost{
+		ArgsParser:  smartContract.NewArgumentParser(),
+		GasSchedule: args.GasScheduleNotifier,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	feeComputer, err := fee.NewFeeComputer(fee.ArgsNewFeeComputer{
+		BuiltInFunctionsCostHandler: builtInCostHandler,
+		EconomicsConfig:             *args.Configs.EconomicsConfig,
+		EnableEpochsConfig:          args.Configs.EpochConfig.EnableEpochs,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	logsFacade, err := createLogsFacade(args)
+	if err != nil {
+		return nil, err
+	}
+
 	argsDataFieldParser := &datafield.ArgsOperationDataFieldParser{
 		AddressLength:    args.CoreComponents.AddressPubKeyConverter().Len(),
 		Marshalizer:      args.CoreComponents.InternalMarshalizer(),
@@ -197,6 +222,9 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		StorageService:           args.DataComponents.StorageService(),
 		DataPool:                 args.DataComponents.Datapool(),
 		Uint64ByteSliceConverter: args.CoreComponents.Uint64ByteSliceConverter(),
+		FeeComputer:              feeComputer,
+		TxTypeHandler:            txTypeHandler,
+		LogsFacade:               logsFacade,
 		DataFieldParser:          dataFieldParser,
 	}
 	apiTransactionProcessor, err := transactionAPI.NewAPITransactionProcessor(argsAPITransactionProc)
@@ -226,6 +254,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		APIInternalBlockHandler:  apiInternalBlockProcessor,
 		GenesisNodesSetupHandler: args.CoreComponents.GenesisNodesSetup(),
 		ValidatorPubKeyConverter: args.CoreComponents.ValidatorPubKeyConverter(),
+		AccountsParser:           args.ProcessComponents.AccountsParser(),
 	}
 
 	return external.NewNodeApiResolver(argsApiResolver)
@@ -327,7 +356,10 @@ func createScQueryElement(
 		NilCompiledSCStore:    true,
 	}
 
+	maxGasForVmQueries := args.generalConfig.VirtualMachine.GasConfig.ShardMaxGasPerVmQuery
 	if args.processComponents.ShardCoordinator().SelfId() == core.MetachainShardId {
+		maxGasForVmQueries = args.generalConfig.VirtualMachine.GasConfig.MetaMaxGasPerVmQuery
+
 		blockChainHookImpl, errBlockChainHook := hooks.NewBlockChainHookImpl(argsHook)
 		if errBlockChainHook != nil {
 			return nil, errBlockChainHook
@@ -386,6 +418,8 @@ func createScQueryElement(
 		}
 	}
 
+	log.Debug("maximum gas per VM Query", "value", maxGasForVmQueries)
+
 	vmContainer, err := vmFactory.Create()
 	if err != nil {
 		return nil, err
@@ -404,7 +438,7 @@ func createScQueryElement(
 		ArwenChangeLocker:        args.coreComponents.ArwenChangeLocker(),
 		Bootstrapper:             args.bootstrapper,
 		AllowExternalQueriesChan: args.allowVMQueriesChan,
-		MaxGasLimitPerQuery:      args.generalConfig.VirtualMachine.GasConfig.MaxGasPerVmQuery,
+		MaxGasLimitPerQuery:      maxGasForVmQueries,
 	}
 
 	return smartContract.NewSCQueryService(argsNewSCQueryService)
@@ -458,17 +492,31 @@ func createAPIBlockProcessorArgs(args *ApiResolverArgs, apiTransactionHandler ex
 		return nil, errors.New("error creating transaction status computer " + err.Error())
 	}
 
+	logsFacade, err := createLogsFacade(args)
+	if err != nil {
+		return nil, err
+	}
+
 	blockApiArgs := &blockAPI.ArgAPIBlockProcessor{
 		SelfShardID:              args.ProcessComponents.ShardCoordinator().SelfId(),
 		Store:                    args.DataComponents.StorageService(),
 		Marshalizer:              args.CoreComponents.InternalMarshalizer(),
 		Uint64ByteSliceConverter: args.CoreComponents.Uint64ByteSliceConverter(),
 		HistoryRepo:              args.ProcessComponents.HistoryRepository(),
-		TxUnmarshaller:           apiTransactionHandler,
+		APITransactionHandler:    apiTransactionHandler,
 		StatusComputer:           statusComputer,
 		AddressPubkeyConverter:   args.CoreComponents.AddressPubKeyConverter(),
 		Hasher:                   args.CoreComponents.Hasher(),
+		LogsFacade:               logsFacade,
 	}
 
 	return blockApiArgs, nil
+}
+
+func createLogsFacade(args *ApiResolverArgs) (LogsFacade, error) {
+	return logs.NewLogsFacade(logs.ArgsNewLogsFacade{
+		StorageService:  args.DataComponents.StorageService(),
+		Marshaller:      args.CoreComponents.InternalMarshalizer(),
+		PubKeyConverter: args.CoreComponents.AddressPubKeyConverter(),
+	})
 }

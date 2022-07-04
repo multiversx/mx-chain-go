@@ -249,7 +249,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 				}, nil
 			},
 		},
-		ScheduledSCRsStorer: genericMocks.NewStorerMock("path", 0),
+		ScheduledSCRsStorer: genericMocks.NewStorerMock(),
 	}
 
 	epochStartBootstrap, err := bootstrap.NewEpochStartBootstrap(argsBootstrapHandler)
