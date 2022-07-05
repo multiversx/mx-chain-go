@@ -28,6 +28,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/outport"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
+	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
@@ -99,6 +100,7 @@ type baseProcessor struct {
 	flagScheduledMiniBlocks        atomic.Flag
 	lastRestartNonce               uint64
 	pruningDelay                   uint32
+	processedMiniBlocksTracker     process.ProcessedMiniBlocksTracker
 }
 
 type bootStorerDataArgs struct {
@@ -506,6 +508,9 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 	if check.IfNil(arguments.BootstrapComponents.VersionedHeaderFactory()) {
 		return process.ErrNilVersionedHeaderFactory
 	}
+	if check.IfNil(arguments.ProcessedMiniBlocksTracker) {
+		return process.ErrNilProcessedMiniBlocksTracker
+	}
 
 	return nil
 }
@@ -590,7 +595,10 @@ func (bp *baseProcessor) sortHeaderHashesForCurrentBlockByNonce(usedInBlock bool
 	return hdrsHashesForCurrentBlock
 }
 
-func (bp *baseProcessor) createMiniBlockHeaderHandlers(body *block.Body) (int, []data.MiniBlockHeaderHandler, error) {
+func (bp *baseProcessor) createMiniBlockHeaderHandlers(
+	body *block.Body,
+	processedMiniBlocksDestMeInfo map[string]*processedMb.ProcessedMiniBlockInfo,
+) (int, []data.MiniBlockHeaderHandler, error) {
 	if len(body.MiniBlocks) == 0 {
 		return 0, nil, nil
 	}
@@ -615,7 +623,7 @@ func (bp *baseProcessor) createMiniBlockHeaderHandlers(body *block.Body) (int, [
 			Type:            body.MiniBlocks[i].Type,
 		}
 
-		err = bp.setMiniBlockHeaderReservedField(body.MiniBlocks[i], miniBlockHash, miniBlockHeaderHandlers[i])
+		err = bp.setMiniBlockHeaderReservedField(body.MiniBlocks[i], miniBlockHeaderHandlers[i], processedMiniBlocksDestMeInfo)
 		if err != nil {
 			return 0, nil, err
 		}
@@ -626,24 +634,52 @@ func (bp *baseProcessor) createMiniBlockHeaderHandlers(body *block.Body) (int, [
 
 func (bp *baseProcessor) setMiniBlockHeaderReservedField(
 	miniBlock *block.MiniBlock,
-	miniBlockHash []byte,
 	miniBlockHeaderHandler data.MiniBlockHeaderHandler,
+	processedMiniBlocksDestMeInfo map[string]*processedMb.ProcessedMiniBlockInfo,
 ) error {
 	if !bp.flagScheduledMiniBlocks.IsSet() {
 		return nil
 	}
 
+	err := bp.setIndexOfFirstTxProcessed(miniBlockHeaderHandler)
+	if err != nil {
+		return err
+	}
+
+	err = bp.setIndexOfLastTxProcessed(miniBlockHeaderHandler, processedMiniBlocksDestMeInfo)
+	if err != nil {
+		return err
+	}
+
 	notEmpty := len(miniBlock.TxHashes) > 0
 	isScheduledMiniBlock := notEmpty && bp.scheduledTxsExecutionHandler.IsScheduledTx(miniBlock.TxHashes[0])
 	if isScheduledMiniBlock {
-		return bp.setProcessingTypeAndConstructionStateForScheduledMb(miniBlockHeaderHandler)
+		return bp.setProcessingTypeAndConstructionStateForScheduledMb(miniBlockHeaderHandler, processedMiniBlocksDestMeInfo)
 	}
 
-	return bp.setProcessingTypeAndConstructionStateForNormalMb(miniBlockHeaderHandler, miniBlockHash)
+	return bp.setProcessingTypeAndConstructionStateForNormalMb(miniBlockHeaderHandler, processedMiniBlocksDestMeInfo)
+}
+
+func (bp *baseProcessor) setIndexOfFirstTxProcessed(miniBlockHeaderHandler data.MiniBlockHeaderHandler) error {
+	processedMiniBlockInfo, _ := bp.processedMiniBlocksTracker.GetProcessedMiniBlockInfo(miniBlockHeaderHandler.GetHash())
+	return miniBlockHeaderHandler.SetIndexOfFirstTxProcessed(processedMiniBlockInfo.IndexOfLastTxProcessed + 1)
+}
+
+func (bp *baseProcessor) setIndexOfLastTxProcessed(
+	miniBlockHeaderHandler data.MiniBlockHeaderHandler,
+	processedMiniBlocksDestMeInfo map[string]*processedMb.ProcessedMiniBlockInfo,
+) error {
+	processedMiniBlockInfo := processedMiniBlocksDestMeInfo[string(miniBlockHeaderHandler.GetHash())]
+	if processedMiniBlockInfo != nil {
+		return miniBlockHeaderHandler.SetIndexOfLastTxProcessed(processedMiniBlockInfo.IndexOfLastTxProcessed)
+	}
+
+	return miniBlockHeaderHandler.SetIndexOfLastTxProcessed(int32(miniBlockHeaderHandler.GetTxCount()) - 1)
 }
 
 func (bp *baseProcessor) setProcessingTypeAndConstructionStateForScheduledMb(
 	miniBlockHeaderHandler data.MiniBlockHeaderHandler,
+	processedMiniBlocksDestMeInfo map[string]*processedMb.ProcessedMiniBlockInfo,
 ) error {
 	err := miniBlockHeaderHandler.SetProcessingType(int32(block.Scheduled))
 	if err != nil {
@@ -656,7 +692,8 @@ func (bp *baseProcessor) setProcessingTypeAndConstructionStateForScheduledMb(
 			return err
 		}
 	} else {
-		err = miniBlockHeaderHandler.SetConstructionState(int32(block.Final))
+		constructionState := getConstructionState(miniBlockHeaderHandler, processedMiniBlocksDestMeInfo)
+		err = miniBlockHeaderHandler.SetConstructionState(constructionState)
 		if err != nil {
 			return err
 		}
@@ -666,9 +703,9 @@ func (bp *baseProcessor) setProcessingTypeAndConstructionStateForScheduledMb(
 
 func (bp *baseProcessor) setProcessingTypeAndConstructionStateForNormalMb(
 	miniBlockHeaderHandler data.MiniBlockHeaderHandler,
-	miniBlockHash []byte,
+	processedMiniBlocksDestMeInfo map[string]*processedMb.ProcessedMiniBlockInfo,
 ) error {
-	if bp.scheduledTxsExecutionHandler.IsMiniBlockExecuted(miniBlockHash) {
+	if bp.scheduledTxsExecutionHandler.IsMiniBlockExecuted(miniBlockHeaderHandler.GetHash()) {
 		err := miniBlockHeaderHandler.SetProcessingType(int32(block.Processed))
 		if err != nil {
 			return err
@@ -680,12 +717,34 @@ func (bp *baseProcessor) setProcessingTypeAndConstructionStateForNormalMb(
 		}
 	}
 
-	err := miniBlockHeaderHandler.SetConstructionState(int32(block.Final))
+	constructionState := getConstructionState(miniBlockHeaderHandler, processedMiniBlocksDestMeInfo)
+	err := miniBlockHeaderHandler.SetConstructionState(constructionState)
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func getConstructionState(
+	miniBlockHeaderHandler data.MiniBlockHeaderHandler,
+	processedMiniBlocksDestMeInfo map[string]*processedMb.ProcessedMiniBlockInfo,
+) int32 {
+	constructionState := int32(block.Final)
+	if isPartiallyExecuted(miniBlockHeaderHandler, processedMiniBlocksDestMeInfo) {
+		constructionState = int32(block.PartialExecuted)
+	}
+
+	return constructionState
+}
+
+func isPartiallyExecuted(
+	miniBlockHeaderHandler data.MiniBlockHeaderHandler,
+	processedMiniBlocksDestMeInfo map[string]*processedMb.ProcessedMiniBlockInfo,
+) bool {
+	processedMiniBlockInfo := processedMiniBlocksDestMeInfo[string(miniBlockHeaderHandler.GetHash())]
+	return processedMiniBlockInfo != nil && !processedMiniBlockInfo.FullyProcessed
+
 }
 
 // check if header has the same miniblocks as presented in body
@@ -726,6 +785,28 @@ func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []data.Mini
 		if mbHdr.GetSenderShardID() != miniBlock.SenderShardID {
 			return process.ErrHeaderBodyMismatch
 		}
+
+		err = process.CheckIfIndexesAreOutOfBound(mbHdr.GetIndexOfFirstTxProcessed(), mbHdr.GetIndexOfLastTxProcessed(), miniBlock)
+		if err != nil {
+			return err
+		}
+
+		err = checkConstructionStateAndIndexesCorrectness(mbHdr)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func checkConstructionStateAndIndexesCorrectness(mbh data.MiniBlockHeaderHandler) error {
+	if mbh.GetConstructionState() == int32(block.PartialExecuted) && mbh.GetIndexOfLastTxProcessed() == int32(mbh.GetTxCount())-1 {
+		return process.ErrIndexDoesNotMatchWithPartialExecutedMiniBlock
+
+	}
+	if mbh.GetConstructionState() != int32(block.PartialExecuted) && mbh.GetIndexOfLastTxProcessed() != int32(mbh.GetTxCount())-1 {
+		return process.ErrIndexDoesNotMatchWithFullyExecutedMiniBlock
 	}
 
 	return nil
