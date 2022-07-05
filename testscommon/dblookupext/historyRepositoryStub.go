@@ -4,13 +4,14 @@ import (
 	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/dblookupext/esdtSupply"
 )
 
 // HistoryRepositoryStub -
 type HistoryRepositoryStub struct {
-	RecordBlockCalled                  func(blockHeaderHash []byte, blockHeader data.HeaderHandler, blockBody data.BodyHandler, scrsPool map[string]data.TransactionHandler, receipts map[string]data.TransactionHandler, logs []*data.LogData) error
+	RecordBlockCalled                  func(blockHeaderHash []byte, blockHeader data.HeaderHandler, blockBody data.BodyHandler, scrsPool map[string]data.TransactionHandler, receipts map[string]data.TransactionHandler, intraMiniblocks []*block.MiniBlock, logs []*data.LogData) error
 	OnNotarizedBlocksCalled            func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte)
 	GetMiniblockMetadataByTxHashCalled func(hash []byte) (*dblookupext.MiniblockMetadata, error)
 	GetEpochByHashCalled               func(hash []byte) (uint32, error)
@@ -26,10 +27,11 @@ func (hp *HistoryRepositoryStub) RecordBlock(
 	blockBody data.BodyHandler,
 	scrsPool map[string]data.TransactionHandler,
 	receipts map[string]data.TransactionHandler,
+	intraMiniBlocks []*block.MiniBlock,
 	logs []*data.LogData,
 ) error {
 	if hp.RecordBlockCalled != nil {
-		return hp.RecordBlockCalled(blockHeaderHash, blockHeader, blockBody, scrsPool, receipts, logs)
+		return hp.RecordBlockCalled(blockHeaderHash, blockHeader, blockBody, scrsPool, receipts, intraMiniBlocks, logs)
 	}
 	return nil
 }
