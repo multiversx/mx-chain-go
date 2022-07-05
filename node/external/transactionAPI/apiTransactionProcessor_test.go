@@ -756,7 +756,7 @@ func TestApiTransactionProcessor_GetTransactionsPoolForSender(t *testing.T) {
 	txCacheWithMeta.AddTx(createTx(txHash3, sender, 4))
 	txCacheWithMeta.AddTx(createTx(txHash4, sender, 5))
 
-	args := createMockArgAPIBlockProcessor()
+	args := createMockArgAPITransactionProcessor()
 	args.DataPool = &dataRetrieverMock.PoolsHolderStub{
 		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 			return &testscommon.ShardedDataStub{
@@ -830,7 +830,7 @@ func TestApiTransactionProcessor_GetLastPoolNonceForSender(t *testing.T) {
 	txCacheWithMeta.AddTx(createTx(txHash3, sender, lastNonce))
 	txCacheWithMeta.AddTx(createTx(txHash4, sender, 5))
 
-	args := createMockArgAPIBlockProcessor()
+	args := createMockArgAPITransactionProcessor()
 	args.DataPool = &dataRetrieverMock.PoolsHolderStub{
 		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 			return &testscommon.ShardedDataStub{
@@ -904,7 +904,7 @@ func TestApiTransactionProcessor_GetTransactionsPoolNonceGapsForSender(t *testin
 	txCacheIntraShard.AddTx(createTx(txHash3, sender, lastNonceBeforeGap2))
 	txCacheIntraShard.AddTx(createTx(txHash4, sender, firstNonceAfterGap2))
 
-	args := createMockArgAPIBlockProcessor()
+	args := createMockArgAPITransactionProcessor()
 	args.DataPool = &dataRetrieverMock.PoolsHolderStub{
 		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 			return &testscommon.ShardedDataStub{
