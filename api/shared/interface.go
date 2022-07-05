@@ -60,19 +60,19 @@ type GroupHandler interface {
 
 // FacadeHandler defines all the methods that a facade should implement
 type FacadeHandler interface {
-	GetBalance(address string) (*big.Int, error)
-	GetUsername(address string) (string, error)
-	GetValueForKey(address string, key string) (string, error)
-	GetAccount(address string) (api.AccountResponse, error)
-	GetESDTData(address string, key string, nonce uint64) (*esdt.ESDigitalToken, error)
-	GetESDTsRoles(address string) (map[string][]string, error)
-	GetNFTTokenIDsRegisteredByAddress(address string) ([]string, error)
-	GetESDTsWithRole(address string, role string) ([]string, error)
-	GetAllESDTTokens(address string) (map[string]*esdt.ESDigitalToken, error)
-	GetKeyValuePairs(address string) (map[string]string, error)
-	GetBlockByHash(hash string, withTxs bool) (*api.Block, error)
-	GetBlockByNonce(nonce uint64, withTxs bool) (*api.Block, error)
-	GetBlockByRound(round uint64, withTxs bool) (*api.Block, error)
+	GetBalance(address string, options api.AccountQueryOptions) (*big.Int, api.BlockInfo, error)
+	GetUsername(address string, options api.AccountQueryOptions) (string, api.BlockInfo, error)
+	GetValueForKey(address string, key string, options api.AccountQueryOptions) (string, api.BlockInfo, error)
+	GetAccount(address string, options api.AccountQueryOptions) (api.AccountResponse, api.BlockInfo, error)
+	GetESDTData(address string, key string, nonce uint64, options api.AccountQueryOptions) (*esdt.ESDigitalToken, api.BlockInfo, error)
+	GetESDTsRoles(address string, options api.AccountQueryOptions) (map[string][]string, api.BlockInfo, error)
+	GetNFTTokenIDsRegisteredByAddress(address string, options api.AccountQueryOptions) ([]string, api.BlockInfo, error)
+	GetESDTsWithRole(address string, role string, options api.AccountQueryOptions) ([]string, api.BlockInfo, error)
+	GetAllESDTTokens(address string, options api.AccountQueryOptions) (map[string]*esdt.ESDigitalToken, api.BlockInfo, error)
+	GetKeyValuePairs(address string, options api.AccountQueryOptions) (map[string]string, api.BlockInfo, error)
+	GetBlockByHash(hash string, options api.BlockQueryOptions) (*api.Block, error)
+	GetBlockByNonce(nonce uint64, options api.BlockQueryOptions) (*api.Block, error)
+	GetBlockByRound(round uint64, options api.BlockQueryOptions) (*api.Block, error)
 	GetInternalShardBlockByNonce(format common.ApiOutputFormat, nonce uint64) (interface{}, error)
 	GetInternalShardBlockByHash(format common.ApiOutputFormat, hash string) (interface{}, error)
 	GetInternalShardBlockByRound(format common.ApiOutputFormat, round uint64) (interface{}, error)
@@ -113,6 +113,7 @@ type FacadeHandler interface {
 	RestAPIServerDebugMode() bool
 	PprofEnabled() bool
 	GetGenesisNodesPubKeys() (map[uint32][]string, map[uint32][]string, error)
+	GetGenesisBalances() ([]*common.InitialAccountAPI, error)
 	GetTransactionsPool() (*common.TransactionsPoolAPIResponse, error)
 	IsInterfaceNil() bool
 }

@@ -12,20 +12,21 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
+	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
 	"github.com/stretchr/testify/assert"
 )
 
 func createMockShardAPIProcessor(
 	shardID uint32,
 	blockHeaderHash []byte,
-	storerMock *mock.StorerMock,
+	storerMock *genericMocks.StorerMock,
 	withHistory bool,
 	withKey bool,
 ) *shardAPIBlockProcessor {
 	return newShardApiBlockProcessor(&ArgAPIBlockProcessor{
-		TxUnmarshaller: &mock.TransactionAPIHandlerStub{},
-		SelfShardID:    shardID,
-		Marshalizer:    &mock.MarshalizerFake{},
+		APITransactionHandler: &mock.TransactionAPIHandlerStub{},
+		SelfShardID:           shardID,
+		Marshalizer:           &mock.MarshalizerFake{},
 		Store: &mock.ChainStorerMock{
 			GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 				return storerMock
@@ -55,7 +56,7 @@ func TestShardAPIBlockProcessor_GetBlockByHashInvalidHashShouldErr(t *testing.T)
 	shardID := uint32(3)
 	headerHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
 
-	storerMock := mock.NewStorerMock()
+	storerMock := genericMocks.NewStorerMock()
 
 	shardAPIBlockProcessor := createMockShardAPIProcessor(
 		shardID,
@@ -65,7 +66,7 @@ func TestShardAPIBlockProcessor_GetBlockByHashInvalidHashShouldErr(t *testing.T)
 		false,
 	)
 
-	blk, err := shardAPIBlockProcessor.GetBlockByHash([]byte("invalidHash"), false)
+	blk, err := shardAPIBlockProcessor.GetBlockByHash([]byte("invalidHash"), api.BlockQueryOptions{})
 	assert.Nil(t, blk)
 	assert.Error(t, err)
 }
@@ -76,7 +77,7 @@ func TestShardAPIBlockProcessor_GetBlockByNonceInvalidNonceShouldErr(t *testing.
 	shardID := uint32(3)
 	headerHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
 
-	storerMock := mock.NewStorerMock()
+	storerMock := genericMocks.NewStorerMock()
 
 	shardAPIBlockProcessor := createMockShardAPIProcessor(
 		shardID,
@@ -86,7 +87,7 @@ func TestShardAPIBlockProcessor_GetBlockByNonceInvalidNonceShouldErr(t *testing.
 		false,
 	)
 
-	blk, err := shardAPIBlockProcessor.GetBlockByNonce(100, false)
+	blk, err := shardAPIBlockProcessor.GetBlockByNonce(100, api.BlockQueryOptions{})
 	assert.Nil(t, blk)
 	assert.Error(t, err)
 }
@@ -97,7 +98,7 @@ func TestShardAPIBlockProcessor_GetBlockByRoundInvalidRoundShouldErr(t *testing.
 	shardID := uint32(3)
 	headerHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
 
-	storerMock := mock.NewStorerMock()
+	storerMock := genericMocks.NewStorerMock()
 
 	shardAPIBlockProcessor := createMockShardAPIProcessor(
 		shardID,
@@ -107,7 +108,7 @@ func TestShardAPIBlockProcessor_GetBlockByRoundInvalidRoundShouldErr(t *testing.
 		true,
 	)
 
-	blk, err := shardAPIBlockProcessor.GetBlockByRound(100, false)
+	blk, err := shardAPIBlockProcessor.GetBlockByRound(100, api.BlockQueryOptions{})
 	assert.Nil(t, blk)
 	assert.Error(t, err)
 }
@@ -122,7 +123,7 @@ func TestShardAPIBlockProcessor_GetBlockByHashFromNormalNode(t *testing.T) {
 	miniblockHeader := []byte("miniBlockHash")
 	headerHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
 
-	storerMock := mock.NewStorerMock()
+	storerMock := genericMocks.NewStorerMock()
 	uint64Converter := mock.NewNonceHashConverterMock()
 
 	shardAPIBlockProcessor := createMockShardAPIProcessor(
@@ -158,8 +159,10 @@ func TestShardAPIBlockProcessor_GetBlockByHashFromNormalNode(t *testing.T) {
 		Hash:  hex.EncodeToString(headerHash),
 		MiniBlocks: []*api.MiniBlock{
 			{
-				Hash: hex.EncodeToString(miniblockHeader),
-				Type: block.TxBlock.String(),
+				Hash:              hex.EncodeToString(miniblockHeader),
+				Type:              block.TxBlock.String(),
+				ProcessingType:    block.Normal.String(),
+				ConstructionState: block.Final.String(),
 			},
 		},
 		AccumulatedFees: "0",
@@ -167,7 +170,7 @@ func TestShardAPIBlockProcessor_GetBlockByHashFromNormalNode(t *testing.T) {
 		Status:          BlockStatusOnChain,
 	}
 
-	blk, err := shardAPIBlockProcessor.GetBlockByHash(headerHash, false)
+	blk, err := shardAPIBlockProcessor.GetBlockByHash(headerHash, api.BlockQueryOptions{})
 	assert.Nil(t, err)
 	assert.Equal(t, expectedBlock, blk)
 }
@@ -182,7 +185,7 @@ func TestShardAPIBlockProcessor_GetBlockByNonceFromHistoryNode(t *testing.T) {
 	miniblockHeader := []byte("miniBlockHash")
 	headerHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
 
-	storerMock := mock.NewStorerMock()
+	storerMock := genericMocks.NewStorerMockWithEpoch(epoch)
 
 	shardAPIBlockProcessor := createMockShardAPIProcessor(
 		shardID,
@@ -214,8 +217,10 @@ func TestShardAPIBlockProcessor_GetBlockByNonceFromHistoryNode(t *testing.T) {
 		Hash:  hex.EncodeToString(headerHash),
 		MiniBlocks: []*api.MiniBlock{
 			{
-				Hash: hex.EncodeToString(miniblockHeader),
-				Type: block.TxBlock.String(),
+				Hash:              hex.EncodeToString(miniblockHeader),
+				Type:              block.TxBlock.String(),
+				ProcessingType:    block.Normal.String(),
+				ConstructionState: block.Final.String(),
 			},
 		},
 		AccumulatedFees: "100",
@@ -223,7 +228,7 @@ func TestShardAPIBlockProcessor_GetBlockByNonceFromHistoryNode(t *testing.T) {
 		Status:          BlockStatusOnChain,
 	}
 
-	blk, err := shardAPIBlockProcessor.GetBlockByNonce(1, false)
+	blk, err := shardAPIBlockProcessor.GetBlockByNonce(1, api.BlockQueryOptions{})
 	assert.Nil(t, err)
 	assert.Equal(t, expectedBlock, blk)
 }
@@ -238,7 +243,7 @@ func TestShardAPIBlockProcessor_GetBlockByRoundFromStorer(t *testing.T) {
 	miniblockHeader := []byte("miniBlockHash")
 	headerHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
 
-	storerMock := mock.NewStorerMock()
+	storerMock := genericMocks.NewStorerMockWithEpoch(epoch)
 
 	shardAPIBlockProcessor := createMockShardAPIProcessor(
 		shardID,
@@ -276,8 +281,10 @@ func TestShardAPIBlockProcessor_GetBlockByRoundFromStorer(t *testing.T) {
 		Hash:  hex.EncodeToString(headerHash),
 		MiniBlocks: []*api.MiniBlock{
 			{
-				Hash: hex.EncodeToString(miniblockHeader),
-				Type: block.TxBlock.String(),
+				Hash:              hex.EncodeToString(miniblockHeader),
+				Type:              block.TxBlock.String(),
+				ProcessingType:    block.Normal.String(),
+				ConstructionState: block.Final.String(),
 			},
 		},
 		AccumulatedFees: "100",
@@ -285,7 +292,7 @@ func TestShardAPIBlockProcessor_GetBlockByRoundFromStorer(t *testing.T) {
 		Status:          BlockStatusOnChain,
 	}
 
-	blk, err := shardAPIBlockProcessor.GetBlockByRound(round, false)
+	blk, err := shardAPIBlockProcessor.GetBlockByRound(round, api.BlockQueryOptions{})
 	assert.Nil(t, err)
 	assert.Equal(t, expectedBlock, blk)
 }
@@ -300,7 +307,7 @@ func TestShardAPIBlockProcessor_GetBlockByHashFromHistoryNodeStatusReverted(t *t
 	miniblockHeader := []byte("miniBlockHash")
 	headerHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
 
-	storerMock := mock.NewStorerMock()
+	storerMock := genericMocks.NewStorerMockWithEpoch(1)
 	uint64Converter := mock.NewNonceHashConverterMock()
 
 	shardAPIBlockProcessor := createMockShardAPIProcessor(
@@ -337,8 +344,10 @@ func TestShardAPIBlockProcessor_GetBlockByHashFromHistoryNodeStatusReverted(t *t
 		Hash:  hex.EncodeToString(headerHash),
 		MiniBlocks: []*api.MiniBlock{
 			{
-				Hash: hex.EncodeToString(miniblockHeader),
-				Type: block.TxBlock.String(),
+				Hash:              hex.EncodeToString(miniblockHeader),
+				Type:              block.TxBlock.String(),
+				ProcessingType:    block.Normal.String(),
+				ConstructionState: block.Final.String(),
 			},
 		},
 		AccumulatedFees: "100",
@@ -346,7 +355,7 @@ func TestShardAPIBlockProcessor_GetBlockByHashFromHistoryNodeStatusReverted(t *t
 		Status:          BlockStatusReverted,
 	}
 
-	blk, err := shardAPIBlockProcessor.GetBlockByHash(headerHash, false)
+	blk, err := shardAPIBlockProcessor.GetBlockByHash(headerHash, api.BlockQueryOptions{})
 	assert.Nil(t, err)
 	assert.Equal(t, expectedBlock, blk)
 }

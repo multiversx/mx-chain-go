@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 )
 
 // BlockProcessorStub mocks the implementation for a blockProcessor
@@ -107,10 +106,6 @@ func (bps *BlockProcessorStub) AddLastNotarizedHdr(shardId uint32, processedHdr 
 // CreateNewHeader creates a new header
 func (bps *BlockProcessorStub) CreateNewHeader(round uint64, nonce uint64) (data.HeaderHandler, error) {
 	return bps.CreateNewHeaderCalled(round, nonce)
-}
-
-// ApplyProcessedMiniBlocks -
-func (bps *BlockProcessorStub) ApplyProcessedMiniBlocks(_ *processedMb.ProcessedMiniBlockTracker) {
 }
 
 // Close -

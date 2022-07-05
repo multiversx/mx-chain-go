@@ -34,3 +34,6 @@ var ErrEmptyRootHash = errors.New("empty current root hash")
 
 // ErrNilGenesisNodes signals that the provided genesis nodes configuration is nil
 var ErrNilGenesisNodes = errors.New("nil genesis nodes")
+
+// ErrNilGenesisBalances signals that the provided genesis balances slice is nil
+var ErrNilGenesisBalances = errors.New("nil genesis balances slice")

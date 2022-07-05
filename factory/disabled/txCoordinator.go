@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 )
 
 // TxCoordinator implements the TransactionCoordinator interface but does nothing as it is disabled
@@ -71,7 +72,7 @@ func (txCoordinator *TxCoordinator) CreateBlockStarted() {
 // CreateMbsAndProcessCrossShardTransactionsDstMe does nothing as it is disabled
 func (txCoordinator *TxCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe(
 	_ data.HeaderHandler,
-	_ map[string]struct{},
+	_ map[string]*processedMb.ProcessedMiniBlockInfo,
 	_ func() bool,
 	_ func() bool,
 	_ bool,

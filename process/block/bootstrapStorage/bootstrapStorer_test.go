@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
 	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 )
@@ -36,7 +37,7 @@ func TestNewBootstrapStorer_NilMarshalizerShouldErr(t *testing.T) {
 func TestNewBootstrapStorer_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	storer := &mock.StorerMock{}
+	storer := genericMocks.NewStorerMock()
 	bt, err := bootstrapStorage.NewBootstrapStorer(testMarshalizer, storer)
 
 	assert.NotNil(t, bt)
@@ -49,7 +50,7 @@ func TestBootstrapStorer_PutAndGet(t *testing.T) {
 
 	numRounds := int64(10)
 	round := int64(0)
-	storer := mock.NewStorerMock()
+	storer := genericMocks.NewStorerMock()
 	bt, _ := bootstrapStorage.NewBootstrapStorer(testMarshalizer, storer)
 
 	headerInfo := bootstrapStorage.BootstrapHeaderInfo{ShardId: 2, Nonce: 3, Hash: []byte("Hash")}

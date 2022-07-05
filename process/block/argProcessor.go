@@ -79,6 +79,7 @@ type ArgBaseProcessor struct {
 	GasHandler                     gasConsumedProvider
 	ScheduledTxsExecutionHandler   process.ScheduledTxsExecutionHandler
 	ScheduledMiniBlocksEnableEpoch uint32
+	ProcessedMiniBlocksTracker     process.ProcessedMiniBlocksTracker
 }
 
 // ArgShardProcessor holds all dependencies required by the process data factory in order to create
