@@ -22,6 +22,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap"
+	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
 	heartbeatData "github.com/ElrondNetwork/elrond-go/heartbeat/data"
 	"github.com/ElrondNetwork/elrond-go/ntp"
@@ -269,6 +270,7 @@ type ProcessComponentsHolder interface {
 	TxsSenderHandler() process.TxsSenderHandler
 	HardforkTrigger() HardforkTrigger
 	ProcessedMiniBlocksTracker() process.ProcessedMiniBlocksTracker
+	AccountsParser() genesis.AccountsParser
 	IsInterfaceNil() bool
 }
 
@@ -289,6 +291,7 @@ type StateComponentsHolder interface {
 	PeerAccounts() state.AccountsAdapter
 	AccountsAdapter() state.AccountsAdapter
 	AccountsAdapterAPI() state.AccountsAdapter
+	AccountsRepository() state.AccountsRepository
 	TriesContainer() common.TriesHolder
 	TrieStorageManagers() map[string]common.StorageManager
 	IsInterfaceNil() bool
@@ -485,5 +488,12 @@ type EconomicsHandler interface {
 	GasPerDataByte() uint64
 	GasPriceModifier() float64
 	ComputeFeeForProcessing(tx data.TransactionWithFeeHandler, gasToUse uint64) *big.Int
+	IsInterfaceNil() bool
+}
+
+// LogsFacade defines the interface of a logs facade
+type LogsFacade interface {
+	GetLog(logKey []byte, epoch uint32) (*transaction.ApiLogs, error)
+	IncludeLogsInTransactions(txs []*transaction.ApiTransactionResult, logsKeys [][]byte, epoch uint32) error
 	IsInterfaceNil() bool
 }

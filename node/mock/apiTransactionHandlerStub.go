@@ -9,11 +9,12 @@ import (
 type TransactionAPIHandlerStub struct {
 	GetTransactionCalled                        func(hash string, withResults bool) (*transaction.ApiTransactionResult, error)
 	GetTransactionsPoolCalled                   func(fields string) (*common.TransactionsPoolAPIResponse, error)
-	UnmarshalTransactionCalled                  func(txBytes []byte, txType transaction.TxType) (*transaction.ApiTransactionResult, error)
 	GetTransactionsPoolForSenderCalled          func(sender, fields string) (*common.TransactionsPoolForSenderApiResponse, error)
 	GetLastPoolNonceForSenderCalled             func(sender string) (uint64, error)
 	GetTransactionsPoolNonceGapsForSenderCalled func(sender string) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error)
+	UnmarshalTransactionCalled                  func(txBytes []byte, txType transaction.TxType) (*transaction.ApiTransactionResult, error)
 	UnmarshalReceiptCalled                      func(receiptBytes []byte) (*transaction.ApiReceipt, error)
+	PopulateComputedFieldsCalled                func(tx *transaction.ApiTransactionResult)
 }
 
 // GetTransaction -
@@ -76,6 +77,13 @@ func (tas *TransactionAPIHandlerStub) UnmarshalReceipt(receiptBytes []byte) (*tr
 	}
 
 	return nil, nil
+}
+
+// PopulateComputedFields -
+func (tas *TransactionAPIHandlerStub) PopulateComputedFields(tx *transaction.ApiTransactionResult) {
+	if tas.PopulateComputedFieldsCalled != nil {
+		tas.PopulateComputedFieldsCalled(tx)
+	}
 }
 
 // IsInterfaceNil -

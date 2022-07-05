@@ -12,6 +12,9 @@ import (
 // ------------ Test ManagedBootstrapComponents --------------------
 func TestNewManagedBootstrapComponents(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	args := getBootStrapArgs()
 	bcf, _ := factory.NewBootstrapComponentsFactory(args)
@@ -23,6 +26,9 @@ func TestNewManagedBootstrapComponents(t *testing.T) {
 
 func TestNewBootstrapComponentsFactory_NilFactory(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	mbc, err := factory.NewManagedBootstrapComponents(nil)
 
@@ -30,8 +36,11 @@ func TestNewBootstrapComponentsFactory_NilFactory(t *testing.T) {
 	require.Equal(t, errorsErd.ErrNilBootstrapComponentsFactory, err)
 }
 
-func TestManagedBootstrapComponents_CheckSubcomponents_NoCreate(t *testing.T) {
+func TestManagedBootstrapComponents_CheckSubcomponentsNoCreate(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	args := getBootStrapArgs()
 	bcf, _ := factory.NewBootstrapComponentsFactory(args)
@@ -43,6 +52,9 @@ func TestManagedBootstrapComponents_CheckSubcomponents_NoCreate(t *testing.T) {
 
 func TestManagedBootstrapComponents_Create(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	args := getBootStrapArgs()
 	bcf, _ := factory.NewBootstrapComponentsFactory(args)
@@ -55,8 +67,11 @@ func TestManagedBootstrapComponents_Create(t *testing.T) {
 	require.Nil(t, err)
 }
 
-func TestManagedBootstrapComponents_Create_NilInternalMarshalizer(t *testing.T) {
+func TestManagedBootstrapComponents_CreateNilInternalMarshalizer(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	args := getBootStrapArgs()
 	coreComponents := getDefaultCoreComponents()
@@ -71,6 +86,10 @@ func TestManagedBootstrapComponents_Create_NilInternalMarshalizer(t *testing.T) 
 
 func TestManagedBootstrapComponents_Close(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	args := getBootStrapArgs()
 
 	bcf, _ := factory.NewBootstrapComponentsFactory(args)
