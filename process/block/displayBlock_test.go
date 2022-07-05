@@ -89,3 +89,19 @@ func TestDisplayBlock_DisplayTxBlockBody(t *testing.T) {
 	assert.NotNil(t, lines)
 	assert.Equal(t, len(miniblock.TxHashes), len(lines))
 }
+
+func TestDisplayBlock_GetConstructionStateAsString(t *testing.T) {
+	miniBlockHeader := &block.MiniBlockHeader{}
+
+	_ = miniBlockHeader.SetConstructionState(int32(block.Proposed))
+	str := getConstructionStateAsString(miniBlockHeader)
+	assert.Equal(t, "Proposed_", str)
+
+	_ = miniBlockHeader.SetConstructionState(int32(block.PartialExecuted))
+	str = getConstructionStateAsString(miniBlockHeader)
+	assert.Equal(t, "Partial_", str)
+
+	_ = miniBlockHeader.SetConstructionState(int32(block.Final))
+	str = getConstructionStateAsString(miniBlockHeader)
+	assert.Equal(t, "", str)
+}

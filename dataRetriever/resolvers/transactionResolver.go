@@ -6,7 +6,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data/batch"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/requestHandlers"
@@ -25,19 +24,16 @@ const maxBuffToSendBulkMiniblocks = 1 << 18 // 256KB
 
 // ArgTxResolver is the argument structure used to create new TxResolver instance
 type ArgTxResolver struct {
-	SenderResolver    dataRetriever.TopicResolverSender
+	ArgBaseResolver
 	TxPool            dataRetriever.ShardedDataCacherNotifier
 	TxStorage         storage.Storer
-	Marshalizer       marshal.Marshalizer
 	DataPacker        dataRetriever.DataPacker
-	AntifloodHandler  dataRetriever.P2PAntifloodHandler
-	Throttler         dataRetriever.ResolverThrottler
 	IsFullHistoryNode bool
 }
 
 // TxResolver is a wrapper over Resolver that is specialized in resolving transaction requests
 type TxResolver struct {
-	dataRetriever.TopicResolverSender
+	*baseResolver
 	messageProcessor
 	baseStorageResolver
 	txPool     dataRetriever.ShardedDataCacherNotifier
@@ -46,35 +42,20 @@ type TxResolver struct {
 
 // NewTxResolver creates a new transaction resolver
 func NewTxResolver(arg ArgTxResolver) (*TxResolver, error) {
-	if check.IfNil(arg.SenderResolver) {
-		return nil, dataRetriever.ErrNilResolverSender
-	}
-	if check.IfNil(arg.TxPool) {
-		return nil, dataRetriever.ErrNilTxDataPool
-	}
-	if check.IfNil(arg.TxStorage) {
-		return nil, dataRetriever.ErrNilTxStorage
-	}
-	if check.IfNil(arg.Marshalizer) {
-		return nil, dataRetriever.ErrNilMarshalizer
-	}
-	if check.IfNil(arg.DataPacker) {
-		return nil, dataRetriever.ErrNilDataPacker
-	}
-	if check.IfNil(arg.AntifloodHandler) {
-		return nil, dataRetriever.ErrNilAntifloodHandler
-	}
-	if check.IfNil(arg.Throttler) {
-		return nil, dataRetriever.ErrNilThrottler
+	err := checkArgTxResolver(arg)
+	if err != nil {
+		return nil, err
 	}
 
 	txResolver := &TxResolver{
-		TopicResolverSender: arg.SenderResolver,
+		baseResolver: &baseResolver{
+			TopicResolverSender: arg.SenderResolver,
+		},
 		txPool:              arg.TxPool,
 		baseStorageResolver: createBaseStorageResolver(arg.TxStorage, arg.IsFullHistoryNode),
 		dataPacker:          arg.DataPacker,
 		messageProcessor: messageProcessor{
-			marshalizer:      arg.Marshalizer,
+			marshalizer:      arg.Marshaller,
 			antifloodHandler: arg.AntifloodHandler,
 			topic:            arg.SenderResolver.RequestTopic(),
 			throttler:        arg.Throttler,
@@ -82,6 +63,23 @@ func NewTxResolver(arg ArgTxResolver) (*TxResolver, error) {
 	}
 
 	return txResolver, nil
+}
+
+func checkArgTxResolver(arg ArgTxResolver) error {
+	err := checkArgBase(arg.ArgBaseResolver)
+	if err != nil {
+		return err
+	}
+	if check.IfNil(arg.TxPool) {
+		return dataRetriever.ErrNilTxDataPool
+	}
+	if check.IfNil(arg.TxStorage) {
+		return dataRetriever.ErrNilTxStorage
+	}
+	if check.IfNil(arg.DataPacker) {
+		return dataRetriever.ErrNilDataPacker
+	}
+	return nil
 }
 
 // ProcessReceivedMessage will be the callback func from the p2p.Messenger and will be called each time a new message was received
@@ -247,26 +245,6 @@ func (txRes *TxResolver) printHashArray(hashes [][]byte) {
 	for _, hash := range hashes {
 		log.Trace("TxResolver.RequestDataFromHashArray", "hash", hash, "topic", txRes.RequestTopic())
 	}
-}
-
-// SetNumPeersToQuery will set the number of intra shard and cross shard number of peer to query
-func (txRes *TxResolver) SetNumPeersToQuery(intra int, cross int) {
-	txRes.TopicResolverSender.SetNumPeersToQuery(intra, cross)
-}
-
-// NumPeersToQuery will return the number of intra shard and cross shard number of peer to query
-func (txRes *TxResolver) NumPeersToQuery() (int, int) {
-	return txRes.TopicResolverSender.NumPeersToQuery()
-}
-
-// SetResolverDebugHandler will set a resolver debug handler
-func (txRes *TxResolver) SetResolverDebugHandler(handler dataRetriever.ResolverDebugHandler) error {
-	return txRes.TopicResolverSender.SetResolverDebugHandler(handler)
-}
-
-// Close returns nil
-func (txRes *TxResolver) Close() error {
-	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

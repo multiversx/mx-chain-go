@@ -29,11 +29,11 @@ func createMockHistoryRepoArgs(epoch uint32) HistoryRepositoryArguments {
 
 	args := HistoryRepositoryArguments{
 		SelfShardID:                 0,
-		MiniblocksMetadataStorer:    genericMocks.NewStorerMock("MiniblocksMetadata", epoch),
-		MiniblockHashByTxHashStorer: genericMocks.NewStorerMock("MiniblockHashByTxHash", epoch),
-		EpochByHashStorer:           genericMocks.NewStorerMock("EpochByHash", epoch),
-		EventsHashesByTxHashStorer:  genericMocks.NewStorerMock("EventsHashesByTxHash", epoch),
-		BlockHashByRound:            genericMocks.NewStorerMock("BlockHashByRound", epoch),
+		MiniblocksMetadataStorer:    genericMocks.NewStorerMockWithEpoch(epoch),
+		MiniblockHashByTxHashStorer: genericMocks.NewStorerMockWithEpoch(epoch),
+		EpochByHashStorer:           genericMocks.NewStorerMockWithEpoch(epoch),
+		EventsHashesByTxHashStorer:  genericMocks.NewStorerMockWithEpoch(epoch),
+		BlockHashByRound:            genericMocks.NewStorerMockWithEpoch(epoch),
 		Marshalizer:                 &mock.MarshalizerMock{},
 		Hasher:                      &hashingMocks.HasherMock{},
 		ESDTSuppliesHandler:         sp,

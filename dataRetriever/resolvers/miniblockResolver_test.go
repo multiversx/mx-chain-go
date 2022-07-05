@@ -23,12 +23,9 @@ var fromConnectedPeerId = core.PeerID("from connected peer Id")
 
 func createMockArgMiniblockResolver() resolvers.ArgMiniblockResolver {
 	return resolvers.ArgMiniblockResolver{
-		SenderResolver:   &mock.TopicResolverSenderStub{},
+		ArgBaseResolver:  createMockArgBaseResolver(),
 		MiniBlockPool:    testscommon.NewCacherStub(),
 		MiniBlockStorage: &storageStubs.StorerStub{},
-		Marshalizer:      &mock.MarshalizerMock{},
-		AntifloodHandler: &mock.P2PAntifloodHandlerStub{},
-		Throttler:        &mock.ThrottlerStub{},
 		DataPacker:       &mock.DataPackerStub{},
 	}
 }
@@ -72,7 +69,7 @@ func TestNewMiniblockResolver_NilBlockMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockArgMiniblockResolver()
-	arg.Marshalizer = nil
+	arg.Marshaller = nil
 	mbRes, err := resolvers.NewMiniblockResolver(arg)
 
 	assert.Equal(t, dataRetriever.ErrNilMarshalizer, err)
@@ -115,7 +112,7 @@ func TestMiniblockResolver_RequestDataFromHashArrayMarshalErr(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockArgMiniblockResolver()
-	arg.Marshalizer.(*mock.MarshalizerMock).Fail = true
+	arg.Marshaller.(*mock.MarshalizerMock).Fail = true
 	mbRes, err := resolvers.NewMiniblockResolver(arg)
 	assert.Nil(t, err)
 
@@ -277,7 +274,7 @@ func TestMiniblockResolver_ProcessReceivedMessageFoundInPoolMarshalizerFailShoul
 			return buff, nil
 		},
 	}
-	arg.Marshalizer = marshalizer
+	arg.Marshaller = marshalizer
 	mbRes, _ := resolvers.NewMiniblockResolver(arg)
 
 	err := mbRes.ProcessReceivedMessage(
