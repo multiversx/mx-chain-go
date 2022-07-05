@@ -104,6 +104,11 @@ func (txCoordinator *TxCoordinator) CreateMarshalizedReceipts() ([]byte, error) 
 	return nil, nil
 }
 
+// GetCreatedInShardMiniBlocks returns nil as is it disabled
+func (txCoordinator *TxCoordinator) GetCreatedInShardMiniBlocks() []*block.MiniBlock {
+	return nil
+}
+
 // VerifyCreatedMiniBlocks does nothing as it is disabled
 func (txCoordinator *TxCoordinator) VerifyCreatedMiniBlocks(_ data.HeaderHandler, _ *block.Body) error {
 	return nil

@@ -1576,8 +1576,9 @@ func (bp *baseProcessor) recordBlockInHistory(blockHeaderHash []byte, blockHeade
 	scrResultsFromPool := bp.txCoordinator.GetAllCurrentUsedTxs(block.SmartContractResultBlock)
 	receiptsFromPool := bp.txCoordinator.GetAllCurrentUsedTxs(block.ReceiptBlock)
 	logs := bp.txCoordinator.GetAllCurrentLogs()
+	intraMiniBlocks := bp.txCoordinator.GetCreatedInShardMiniBlocks()
 
-	err := bp.historyRepo.RecordBlock(blockHeaderHash, blockHeader, blockBody, scrResultsFromPool, receiptsFromPool, logs)
+	err := bp.historyRepo.RecordBlock(blockHeaderHash, blockHeader, blockBody, scrResultsFromPool, receiptsFromPool, intraMiniBlocks, logs)
 	if err != nil {
 		log.Error("historyRepo.RecordBlock()", "blockHeaderHash", blockHeaderHash, "error", err.Error())
 	}

@@ -150,7 +150,7 @@ func (atp *apiTransactionProcessor) lookupHistoricalTransaction(hash []byte, wit
 	txBytes, txType, found := atp.getTxBytesFromStorageByEpoch(hash, miniblockMetadata.Epoch)
 	if !found {
 		log.Warn("lookupHistoricalTransaction(): unexpected condition, cannot find transaction in storage")
-		return nil, fmt.Errorf("%s: %w", ErrCannotRetrieveTransaction.Error(), err)
+		return nil, ErrCannotRetrieveTransaction
 	}
 
 	// After looking up a transaction from storage, it's impossible to say whether it was successful or invalid
