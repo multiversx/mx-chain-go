@@ -7,19 +7,29 @@ import (
 
 // ChainStorerMock -
 type ChainStorerMock struct {
-	Transactions *StorerMock
-	Rewards      *StorerMock
-	Unsigned     *StorerMock
-	HdrNonce     *StorerMock
+	Metablocks    *StorerMock
+	Miniblocks    *StorerMock
+	Transactions  *StorerMock
+	Rewards       *StorerMock
+	Unsigned      *StorerMock
+	Logs          *StorerMock
+	MetaHdrNonce  *StorerMock
+	ShardHdrNonce *StorerMock
+	Others        *StorerMock
 }
 
 // NewChainStorerMock -
 func NewChainStorerMock(epoch uint32) *ChainStorerMock {
 	return &ChainStorerMock{
-		Transactions: NewStorerMock("Transactions", epoch),
-		Rewards:      NewStorerMock("Rewards", epoch),
-		Unsigned:     NewStorerMock("Unsigned", epoch),
-		HdrNonce:     NewStorerMock("HeaderNonce", epoch),
+		Metablocks:    NewStorerMockWithEpoch(epoch),
+		Miniblocks:    NewStorerMockWithEpoch(epoch),
+		Transactions:  NewStorerMockWithEpoch(epoch),
+		Rewards:       NewStorerMockWithEpoch(epoch),
+		Unsigned:      NewStorerMockWithEpoch(epoch),
+		Logs:          NewStorerMockWithEpoch(epoch),
+		MetaHdrNonce:  NewStorerMockWithEpoch(epoch),
+		ShardHdrNonce: NewStorerMockWithEpoch(epoch),
+		Others:        NewStorerMockWithEpoch(epoch),
 	}
 }
 
@@ -35,17 +45,31 @@ func (sm *ChainStorerMock) AddStorer(_ dataRetriever.UnitType, _ storage.Storer)
 
 // GetStorer -
 func (sm *ChainStorerMock) GetStorer(unitType dataRetriever.UnitType) storage.Storer {
-	if unitType == dataRetriever.TransactionUnit {
+	switch unitType {
+	case dataRetriever.MetaBlockUnit:
+		return sm.Metablocks
+	case dataRetriever.MiniBlockUnit:
+		return sm.Miniblocks
+	case dataRetriever.TransactionUnit:
 		return sm.Transactions
-	}
-	if unitType == dataRetriever.RewardTransactionUnit {
+	case dataRetriever.RewardTransactionUnit:
 		return sm.Rewards
-	}
-	if unitType == dataRetriever.UnsignedTransactionUnit {
+	case dataRetriever.UnsignedTransactionUnit:
 		return sm.Unsigned
+	case dataRetriever.TxLogsUnit:
+		return sm.Logs
+	case dataRetriever.MetaHdrNonceHashDataUnit:
+		return sm.MetaHdrNonce
+	case dataRetriever.ShardHdrNonceHashDataUnit:
+		return sm.ShardHdrNonce
 	}
 
-	return sm.HdrNonce
+	// According to: dataRetriever/interface.go
+	if unitType > dataRetriever.ShardHdrNonceHashDataUnit {
+		return sm.MetaHdrNonce
+	}
+
+	return sm.Others
 }
 
 // Has -
@@ -88,10 +112,14 @@ func (sm *ChainStorerMock) SetEpochForPutOperation(_ uint32) {
 // GetAllStorers -
 func (sm *ChainStorerMock) GetAllStorers() map[dataRetriever.UnitType]storage.Storer {
 	return map[dataRetriever.UnitType]storage.Storer{
-		dataRetriever.TransactionUnit:          sm.Transactions,
-		dataRetriever.RewardTransactionUnit:    sm.Rewards,
-		dataRetriever.UnsignedTransactionUnit:  sm.Unsigned,
-		dataRetriever.MetaHdrNonceHashDataUnit: sm.HdrNonce,
+		dataRetriever.MetaBlockUnit:             sm.Metablocks,
+		dataRetriever.MiniBlockUnit:             sm.Miniblocks,
+		dataRetriever.TransactionUnit:           sm.Transactions,
+		dataRetriever.RewardTransactionUnit:     sm.Rewards,
+		dataRetriever.UnsignedTransactionUnit:   sm.Unsigned,
+		dataRetriever.TxLogsUnit:                sm.Logs,
+		dataRetriever.MetaHdrNonceHashDataUnit:  sm.MetaHdrNonce,
+		dataRetriever.ShardHdrNonceHashDataUnit: sm.ShardHdrNonce,
 	}
 }
 

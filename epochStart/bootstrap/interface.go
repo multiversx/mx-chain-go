@@ -39,6 +39,7 @@ type Messenger interface {
 	UnregisterAllMessageProcessors() error
 	UnjoinAllTopics() error
 	ConnectedPeers() []core.PeerID
+	Verify(payload []byte, pid core.PeerID, signature []byte) error
 }
 
 // RequestHandler defines which methods a request handler should implement

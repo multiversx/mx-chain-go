@@ -11,8 +11,11 @@ import (
 )
 
 // ------------ Test TestManagedProcessComponents --------------------
-func TestManagedProcessComponents_CreateWithInvalidArgs_ShouldErr(t *testing.T) {
+func TestManagedProcessComponents_CreateWithInvalidArgsShouldErr(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	processArgs := getProcessComponentsArgs(shardCoordinator)
@@ -25,8 +28,11 @@ func TestManagedProcessComponents_CreateWithInvalidArgs_ShouldErr(t *testing.T) 
 	require.Nil(t, managedProcessComponents.NodesCoordinator())
 }
 
-func TestManagedProcessComponents_Create_ShouldWork(t *testing.T) {
+func TestManagedProcessComponents_CreateShouldWork(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	coreComponents := getCoreComponents()
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(1)
@@ -92,6 +98,8 @@ func TestManagedProcessComponents_Create_ShouldWork(t *testing.T) {
 	require.True(t, check.IfNil(managedProcessComponents.PeerShardMapper()))
 	require.True(t, check.IfNil(managedProcessComponents.ShardCoordinator()))
 	require.True(t, check.IfNil(managedProcessComponents.TxsSenderHandler()))
+	require.True(t, check.IfNil(managedProcessComponents.HardforkTrigger()))
+	require.True(t, check.IfNil(managedProcessComponents.ProcessedMiniBlocksTracker()))
 
 	err = managedProcessComponents.Create()
 	require.NoError(t, err)
@@ -126,6 +134,8 @@ func TestManagedProcessComponents_Create_ShouldWork(t *testing.T) {
 	require.False(t, check.IfNil(managedProcessComponents.PeerShardMapper()))
 	require.False(t, check.IfNil(managedProcessComponents.ShardCoordinator()))
 	require.False(t, check.IfNil(managedProcessComponents.TxsSenderHandler()))
+	require.False(t, check.IfNil(managedProcessComponents.HardforkTrigger()))
+	require.False(t, check.IfNil(managedProcessComponents.ProcessedMiniBlocksTracker()))
 
 	nodeSkBytes, err := cryptoComponents.PrivateKey().ToByteArray()
 	require.Nil(t, err)
@@ -136,6 +146,9 @@ func TestManagedProcessComponents_Create_ShouldWork(t *testing.T) {
 
 func TestManagedProcessComponents_Close(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	processArgs := getProcessComponentsArgs(shardCoordinator)

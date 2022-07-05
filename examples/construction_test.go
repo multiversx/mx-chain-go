@@ -19,12 +19,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var addressEncoder, _ = pubkeyConverter.NewBech32PubkeyConverter(32, &mock.LoggerMock{})
-var signingMarshalizer = &marshal.JsonMarshalizer{}
-var signer = &singlesig.Ed25519Signer{}
-var signingCryptoSuite = ed25519.NewEd25519()
-var contentMarshalizer = &marshal.GogoProtoMarshalizer{}
-var contentHasher = blake2b.NewBlake2b()
+var (
+	addressEncoder, _  = pubkeyConverter.NewBech32PubkeyConverter(32, &mock.LoggerMock{})
+	signingMarshalizer = &marshal.JsonMarshalizer{}
+	signer             = &singlesig.Ed25519Signer{}
+	signingCryptoSuite = ed25519.NewEd25519()
+	contentMarshalizer = &marshal.GogoProtoMarshalizer{}
+	contentHasher      = blake2b.NewBlake2b()
+)
 
 const alicePrivateKeyHex = "413f42575f7f26fad3317a778771212fdb80245850981e48b58a4f25e344e8f9"
 

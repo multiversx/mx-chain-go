@@ -74,13 +74,15 @@ func createComponentsForEpochStart() (*mock.CoreComponentsMock, *mock.CryptoComp
 			TxVersionCheckField:          versioning.NewTxVersionChecker(1),
 			NodeTypeProviderField:        &nodeTypeProviderMock.NodeTypeProviderStub{},
 			ProcessStatusHandlerInstance: &testscommon.ProcessStatusHandlerStub{},
+			HardforkTriggerPubKeyField:   []byte("provided hardfork pub key"),
 		},
 		&mock.CryptoComponentsMock{
-			PubKey:   &cryptoMocks.PublicKeyStub{},
-			BlockSig: &cryptoMocks.SignerStub{},
-			TxSig:    &cryptoMocks.SignerStub{},
-			BlKeyGen: &cryptoMocks.KeyGenStub{},
-			TxKeyGen: &cryptoMocks.KeyGenStub{},
+			PubKey:          &cryptoMocks.PublicKeyStub{},
+			BlockSig:        &cryptoMocks.SignerStub{},
+			TxSig:           &cryptoMocks.SignerStub{},
+			BlKeyGen:        &cryptoMocks.KeyGenStub{},
+			TxKeyGen:        &cryptoMocks.KeyGenStub{},
+			PeerSignHandler: &cryptoMocks.PeerSignatureHandlerStub{},
 		}
 }
 
@@ -90,7 +92,7 @@ func createMockEpochStartBootstrapArgs(
 ) ArgsEpochStartBootstrap {
 	generalCfg := testscommon.GetGeneralConfig()
 	return ArgsEpochStartBootstrap{
-		ScheduledSCRsStorer:    genericMocks.NewStorerMock("path", 0),
+		ScheduledSCRsStorer:    genericMocks.NewStorerMock(),
 		CoreComponentsHolder:   coreMock,
 		CryptoComponentsHolder: cryptoMock,
 		Messenger:              &mock.MessengerStub{},
@@ -115,6 +117,8 @@ func createMockEpochStartBootstrapArgs(
 			AccountsTrieCheckpointsStorage:     generalCfg.AccountsTrieCheckpointsStorage,
 			PeerAccountsTrieCheckpointsStorage: generalCfg.PeerAccountsTrieCheckpointsStorage,
 			Heartbeat:                          generalCfg.Heartbeat,
+			HeartbeatV2:                        generalCfg.HeartbeatV2,
+			Hardfork:                           generalCfg.Hardfork,
 			EvictionWaitingList: config.EvictionWaitingListConfig{
 				HashesSize:     100,
 				RootHashesSize: 100,
@@ -894,6 +898,12 @@ func TestCreateSyncers(t *testing.T) {
 			return testscommon.NewCacherStub()
 		},
 		TrieNodesCalled: func() storage.Cacher {
+			return testscommon.NewCacherStub()
+		},
+		PeerAuthenticationsCalled: func() storage.Cacher {
+			return testscommon.NewCacherStub()
+		},
+		HeartbeatsCalled: func() storage.Cacher {
 			return testscommon.NewCacherStub()
 		},
 	}
@@ -2247,4 +2257,21 @@ func TestEpochStartBootstrap_ComputeAllPendingMiniblocks(t *testing.T) {
 	for i := 0; i < len(pendingMiniblocksHashes); i++ {
 		assert.Equal(t, pendingMiniblocksHashes[i], allPendingMiniblocksHeaders[i].GetHash())
 	}
+}
+
+func TestEpochStartBootstrap_Close(t *testing.T) {
+	t.Parallel()
+
+	expectedErr := errors.New("expected error")
+	coreComp, cryptoComp := createComponentsForEpochStart()
+	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+
+	epochStartProvider, _ := NewEpochStartBootstrap(args)
+	epochStartProvider.dataPool = &dataRetrieverMock.PoolsHolderStub{
+		CloseCalled: func() error {
+			return expectedErr
+		}}
+
+	err := epochStartProvider.Close()
+	assert.Equal(t, expectedErr, err)
 }

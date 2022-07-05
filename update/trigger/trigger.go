@@ -69,7 +69,8 @@ type trigger struct {
 	chanStopNodeProcess          chan endProcess.ArgEndProcess
 	mutClosers                   sync.RWMutex
 	closers                      []update.Closer
-	chanTriggerReceived          chan struct{}
+	chanTriggerReceived          chan struct{} // TODO: remove it with heartbeat v1 cleanup
+	chanTriggerReceivedV2        chan struct{}
 	importStartHandler           update.ImportStartHandler
 	isWithEarlyEndOfEpoch        bool
 	roundHandler                 update.RoundHandler
@@ -112,21 +113,22 @@ func NewTrigger(arg ArgHardforkTrigger) (*trigger, error) {
 	}
 
 	t := &trigger{
-		enabled:              arg.Enabled,
-		enabledAuthenticated: arg.EnabledAuthenticated,
-		selfPubKey:           arg.SelfPubKeyBytes,
-		triggerPubKey:        arg.TriggerPubKeyBytes,
-		triggerReceived:      false,
-		triggerExecuting:     false,
-		argumentParser:       arg.ArgumentParser,
-		epochProvider:        arg.EpochProvider,
-		exportFactoryHandler: arg.ExportFactoryHandler,
-		closeAfterInMinutes:  arg.CloseAfterExportInMinutes,
-		chanStopNodeProcess:  arg.ChanStopNodeProcess,
-		closers:              make([]update.Closer, 0),
-		chanTriggerReceived:  make(chan struct{}, 1), //buffer with one value as there might be async calls
-		importStartHandler:   arg.ImportStartHandler,
-		roundHandler:         arg.RoundHandler,
+		enabled:               arg.Enabled,
+		enabledAuthenticated:  arg.EnabledAuthenticated,
+		selfPubKey:            arg.SelfPubKeyBytes,
+		triggerPubKey:         arg.TriggerPubKeyBytes,
+		triggerReceived:       false,
+		triggerExecuting:      false,
+		argumentParser:        arg.ArgumentParser,
+		epochProvider:         arg.EpochProvider,
+		exportFactoryHandler:  arg.ExportFactoryHandler,
+		closeAfterInMinutes:   arg.CloseAfterExportInMinutes,
+		chanStopNodeProcess:   arg.ChanStopNodeProcess,
+		closers:               make([]update.Closer, 0),
+		chanTriggerReceived:   make(chan struct{}, 1), // TODO: remove it with heartbeat v1 cleanup
+		chanTriggerReceivedV2: make(chan struct{}, 1), // buffer with one value as there might be async calls
+		importStartHandler:    arg.ImportStartHandler,
+		roundHandler:          arg.RoundHandler,
 	}
 
 	t.isTriggerSelf = bytes.Equal(arg.TriggerPubKeyBytes, arg.SelfPubKeyBytes)
@@ -171,7 +173,17 @@ func (t *trigger) computeTriggerStartOfEpoch(receivedTrigger uint32) bool {
 	return true
 }
 
-// Trigger will start the hardfork process
+// SetExportFactoryHandler sets the exportFactoryHandler with the provided one
+func (t *trigger) SetExportFactoryHandler(exportFactoryHandler update.ExportFactoryHandler) error {
+	if check.IfNil(exportFactoryHandler) {
+		return update.ErrNilExportFactoryHandler
+	}
+
+	t.exportFactoryHandler = exportFactoryHandler
+	return nil
+}
+
+// Trigger starts the hardfork process
 func (t *trigger) Trigger(epoch uint32, withEarlyEndOfEpoch bool) error {
 	if !t.enabled {
 		return update.ErrTriggerNotEnabled
@@ -244,7 +256,8 @@ func (t *trigger) computeAndSetTrigger(epoch uint32, originalPayload []byte, wit
 	}
 
 	if len(originalPayload) == 0 {
-		t.writeOnNotifyChan()
+		t.writeOnNotifyChan() // TODO: remove it with heartbeat v1 cleanup
+		t.writeOnNotifyChanV2()
 	}
 
 	shouldSetTriggerFromEpochChange := epoch > t.epochProvider.MetaEpoch()
@@ -263,9 +276,18 @@ func (t *trigger) computeAndSetTrigger(epoch uint32, originalPayload []byte, wit
 }
 
 func (t *trigger) writeOnNotifyChan() {
-	//writing on the notification chan should not be blocking as to allow self to initiate the hardfork process
+	// TODO: remove it with heartbeat v1 cleanup
+	// writing on the notification chan should not be blocking as to allow self to initiate the hardfork process
 	select {
 	case t.chanTriggerReceived <- struct{}{}:
+	default:
+	}
+}
+
+func (t *trigger) writeOnNotifyChanV2() {
+	// writing on the notification chan should not be blocking as to allow self to initiate the hardfork process
+	select {
+	case t.chanTriggerReceivedV2 <- struct{}{}:
 	default:
 	}
 }
@@ -328,7 +350,7 @@ func (t *trigger) TriggerReceived(originalPayload []byte, data []byte, pkBytes [
 
 	isTriggerEnabled := t.enabled && t.enabledAuthenticated
 	if !isTriggerEnabled {
-		//should not return error as to allow the message to get to other peers
+		// should not return error as to allow the message to get to other peers
 		return true, nil
 	}
 
@@ -455,7 +477,7 @@ func (t *trigger) CreateData() []byte {
 	return []byte(payload)
 }
 
-// AddCloser will add a closer interface on the existing list
+// AddCloser adds a closer interface on the existing list
 func (t *trigger) AddCloser(closer update.Closer) error {
 	if check.IfNil(closer) {
 		return update.ErrNilCloser
@@ -468,10 +490,17 @@ func (t *trigger) AddCloser(closer update.Closer) error {
 	return nil
 }
 
-// NotifyTriggerReceived will write a struct{}{} on the provided channel as soon as a trigger is received
+// NotifyTriggerReceived writes a struct{}{} on the provided channel as soon as a trigger is received
 // this is done to decrease the latency of the heartbeat sending system
 func (t *trigger) NotifyTriggerReceived() <-chan struct{} {
+	// TODO: remove it with heartbeat v1 cleanup
 	return t.chanTriggerReceived
+}
+
+// NotifyTriggerReceivedV2 writes a struct{}{} on the provided channel as soon as a trigger is received
+// this is done to decrease the latency of the heartbeat sending system
+func (t *trigger) NotifyTriggerReceivedV2() <-chan struct{} {
+	return t.chanTriggerReceivedV2
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

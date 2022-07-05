@@ -164,6 +164,8 @@ func CreateNodesAndPrepareBalances(numOfShards int) ([]*integrationTests.TestPro
 
 	enableEpochs := config.EnableEpochs{
 		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: 10,
+		ScheduledMiniBlocksEnableEpoch:              10,
+		MiniBlockPartialExecutionEnableEpoch:        10,
 	}
 
 	nodes := integrationTests.CreateNodesWithEnableEpochs(
@@ -303,7 +305,7 @@ func CheckSavedCallBackData(
 		require.Equal(t, []byte(expectedTokenId), vmOutput.ReturnData[0])
 		require.Equal(t, expectedPayment.Bytes(), vmOutput.ReturnData[1])
 		if expectedResultCode == vmcommon.Ok {
-			require.Equal(t, []byte{}, vmOutput.ReturnData[2])
+			require.Equal(t, []byte{0x0}, vmOutput.ReturnData[2])
 		} else {
 			require.Equal(t, []byte{byte(expectedResultCode)}, vmOutput.ReturnData[2])
 		}

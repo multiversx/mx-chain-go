@@ -13,8 +13,11 @@ import (
 )
 
 // ------------ Test HeartbeatComponents --------------------
-func TestHeartbeatComponents_Close_ShouldWork(t *testing.T) {
+func TestHeartbeatComponents_CloseShouldWork(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	heartbeatArgs := getDefaultHeartbeatComponents(shardCoordinator)
@@ -69,10 +72,10 @@ func getDefaultHeartbeatComponents(shardCoordinator sharding.Coordinator) factor
 				CacheRefreshIntervalInSec: uint32(100),
 			},
 		},
-		Prefs:           config.Preferences{},
-		AppVersion:      "test",
-		GenesisTime:     time.Time{},
-		HardforkTrigger: &mock.HardforkTriggerStub{},
+		HeartbeatDisableEpoch: 10,
+		Prefs:                 config.Preferences{},
+		AppVersion:            "test",
+		GenesisTime:           time.Time{},
 		RedundancyHandler: &mock.RedundancyHandlerStub{
 			ObserverPrivateKeyCalled: func() crypto.PrivateKey {
 				return &mock.PrivateKeyStub{

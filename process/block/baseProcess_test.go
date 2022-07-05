@@ -30,6 +30,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	blproc "github.com/ElrondNetwork/elrond-go/process/block"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
+	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/state"
@@ -105,6 +106,7 @@ func createArgBaseProcessor(
 		GasHandler:                     &mock.GasHandlerMock{},
 		ScheduledTxsExecutionHandler:   &testscommon.ScheduledTxsExecutionStub{},
 		ScheduledMiniBlocksEnableEpoch: 2,
+		ProcessedMiniBlocksTracker:     &testscommon.ProcessedMiniBlocksTrackerStub{},
 	}
 }
 
@@ -417,18 +419,20 @@ func createMockTransactionCoordinatorArguments(
 				return []block.Type{block.SmartContractResultBlock}
 			},
 		},
-		GasHandler:                        &testscommon.GasHandlerStub{},
-		FeeHandler:                        &mock.FeeAccumulatorStub{},
-		BlockSizeComputation:              &testscommon.BlockSizeComputationStub{},
-		BalanceComputation:                &testscommon.BalanceComputationStub{},
-		EconomicsFee:                      &mock.FeeHandlerStub{},
-		TxTypeHandler:                     &testscommon.TxTypeHandlerMock{},
-		BlockGasAndFeesReCheckEnableEpoch: 0,
-		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},
-		EpochNotifier:                     &epochNotifier.EpochNotifierStub{},
-		ScheduledTxsExecutionHandler:      &testscommon.ScheduledTxsExecutionStub{},
-		ScheduledMiniBlocksEnableEpoch:    2,
-		DoubleTransactionsDetector:        &testscommon.PanicDoubleTransactionsDetector{},
+		GasHandler:                           &testscommon.GasHandlerStub{},
+		FeeHandler:                           &mock.FeeAccumulatorStub{},
+		BlockSizeComputation:                 &testscommon.BlockSizeComputationStub{},
+		BalanceComputation:                   &testscommon.BalanceComputationStub{},
+		EconomicsFee:                         &mock.FeeHandlerStub{},
+		TxTypeHandler:                        &testscommon.TxTypeHandlerMock{},
+		BlockGasAndFeesReCheckEnableEpoch:    0,
+		TransactionsLogProcessor:             &mock.TxLogsProcessorStub{},
+		EpochNotifier:                        &epochNotifier.EpochNotifierStub{},
+		ScheduledTxsExecutionHandler:         &testscommon.ScheduledTxsExecutionStub{},
+		ScheduledMiniBlocksEnableEpoch:       2,
+		DoubleTransactionsDetector:           &testscommon.PanicDoubleTransactionsDetector{},
+		MiniBlockPartialExecutionEnableEpoch: 2,
+		ProcessedMiniBlocksTracker:           &testscommon.ProcessedMiniBlocksTrackerStub{},
 	}
 
 	return argsTransactionCoordinator
@@ -693,6 +697,14 @@ func TestCheckProcessorNilParameters(t *testing.T) {
 		},
 		{
 			args: func() blproc.ArgBaseProcessor {
+				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+				args.ProcessedMiniBlocksTracker = nil
+				return args
+			},
+			expectedErr: process.ErrNilProcessedMiniBlocksTracker,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
 				bootstrapCopy := *bootstrapComponents
 				bootstrapCopy.VersionedHdrFactory = nil
 				return createArgBaseProcessor(coreComponents, dataComponents, &bootstrapCopy, statusComponents)
@@ -786,6 +798,162 @@ func TestVerifyStateRoot_ShouldWork(t *testing.T) {
 	bp, _ := blproc.NewShardProcessor(arguments)
 
 	assert.True(t, bp.VerifyStateRoot(rootHash))
+}
+
+func TestBaseProcessor_SetIndexOfFirstTxProcessed(t *testing.T) {
+	t.Parallel()
+
+	arguments := CreateMockArguments(createComponentHolderMocks())
+	processedMiniBlocksTracker := processedMb.NewProcessedMiniBlocksTracker()
+	arguments.ProcessedMiniBlocksTracker = processedMiniBlocksTracker
+	bp, _ := blproc.NewShardProcessor(arguments)
+
+	metaHash := []byte("meta_hash")
+	mbHash := []byte("mb_hash")
+	miniBlockHeader := &block.MiniBlockHeader{
+		Hash: mbHash,
+	}
+
+	processedMbInfo := &processedMb.ProcessedMiniBlockInfo{
+		FullyProcessed:         false,
+		IndexOfLastTxProcessed: 8,
+	}
+	processedMiniBlocksTracker.SetProcessedMiniBlockInfo(metaHash, mbHash, processedMbInfo)
+	err := bp.SetIndexOfFirstTxProcessed(miniBlockHeader)
+	assert.Nil(t, err)
+	assert.Equal(t, int32(9), miniBlockHeader.GetIndexOfFirstTxProcessed())
+}
+
+func TestBaseProcessor_SetIndexOfLastTxProcessed(t *testing.T) {
+	t.Parallel()
+
+	arguments := CreateMockArguments(createComponentHolderMocks())
+	bp, _ := blproc.NewShardProcessor(arguments)
+
+	mbHash := []byte("mb_hash")
+	processedMiniBlocksDestMeInfo := make(map[string]*processedMb.ProcessedMiniBlockInfo)
+	miniBlockHeader := &block.MiniBlockHeader{
+		Hash:    mbHash,
+		TxCount: 100,
+	}
+
+	err := bp.SetIndexOfLastTxProcessed(miniBlockHeader, processedMiniBlocksDestMeInfo)
+	assert.Nil(t, err)
+	assert.Equal(t, int32(99), miniBlockHeader.GetIndexOfLastTxProcessed())
+
+	processedMbInfo := &processedMb.ProcessedMiniBlockInfo{
+		FullyProcessed:         false,
+		IndexOfLastTxProcessed: 8,
+	}
+	processedMiniBlocksDestMeInfo[string(mbHash)] = processedMbInfo
+
+	err = bp.SetIndexOfLastTxProcessed(miniBlockHeader, processedMiniBlocksDestMeInfo)
+	assert.Nil(t, err)
+	assert.Equal(t, int32(8), miniBlockHeader.GetIndexOfLastTxProcessed())
+}
+
+func TestBaseProcessor_SetProcessingTypeAndConstructionStateForScheduledMb(t *testing.T) {
+	t.Parallel()
+
+	arguments := CreateMockArguments(createComponentHolderMocks())
+	bp, _ := blproc.NewShardProcessor(arguments)
+
+	mbHash := []byte("mb_hash")
+	processedMiniBlocksDestMeInfo := make(map[string]*processedMb.ProcessedMiniBlockInfo)
+	miniBlockHeader := &block.MiniBlockHeader{
+		Hash: mbHash,
+	}
+
+	processedMbInfo := &processedMb.ProcessedMiniBlockInfo{
+		FullyProcessed: false,
+	}
+
+	miniBlockHeader.SenderShardID = 0
+	err := bp.SetProcessingTypeAndConstructionStateForScheduledMb(miniBlockHeader, processedMiniBlocksDestMeInfo)
+	assert.Nil(t, err)
+	assert.Equal(t, int32(block.Proposed), miniBlockHeader.GetConstructionState())
+	assert.Equal(t, int32(block.Scheduled), miniBlockHeader.GetProcessingType())
+
+	miniBlockHeader.SenderShardID = 1
+
+	err = bp.SetProcessingTypeAndConstructionStateForScheduledMb(miniBlockHeader, processedMiniBlocksDestMeInfo)
+	assert.Nil(t, err)
+	assert.Equal(t, int32(block.Final), miniBlockHeader.GetConstructionState())
+	assert.Equal(t, int32(block.Scheduled), miniBlockHeader.GetProcessingType())
+
+	processedMiniBlocksDestMeInfo[string(mbHash)] = processedMbInfo
+
+	err = bp.SetProcessingTypeAndConstructionStateForScheduledMb(miniBlockHeader, processedMiniBlocksDestMeInfo)
+	assert.Nil(t, err)
+	assert.Equal(t, int32(block.PartialExecuted), miniBlockHeader.GetConstructionState())
+	assert.Equal(t, int32(block.Scheduled), miniBlockHeader.GetProcessingType())
+}
+
+func TestBaseProcessor_SetProcessingTypeAndConstructionStateForNormalMb(t *testing.T) {
+	t.Parallel()
+
+	t.Run("set processing/construction for normal mini blocks not processed, should work", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		bp, _ := blproc.NewShardProcessor(arguments)
+
+		mbHash := []byte("mb_hash")
+		processedMiniBlocksDestMeInfo := make(map[string]*processedMb.ProcessedMiniBlockInfo)
+		miniBlockHeader := &block.MiniBlockHeader{
+			Hash: mbHash,
+		}
+
+		processedMbInfo := &processedMb.ProcessedMiniBlockInfo{
+			FullyProcessed: false,
+		}
+
+		err := bp.SetProcessingTypeAndConstructionStateForNormalMb(miniBlockHeader, processedMiniBlocksDestMeInfo)
+		assert.Nil(t, err)
+		assert.Equal(t, int32(block.Final), miniBlockHeader.GetConstructionState())
+		assert.Equal(t, int32(block.Normal), miniBlockHeader.GetProcessingType())
+
+		processedMiniBlocksDestMeInfo[string(mbHash)] = processedMbInfo
+
+		err = bp.SetProcessingTypeAndConstructionStateForNormalMb(miniBlockHeader, processedMiniBlocksDestMeInfo)
+		assert.Nil(t, err)
+		assert.Equal(t, int32(block.PartialExecuted), miniBlockHeader.GetConstructionState())
+		assert.Equal(t, int32(block.Normal), miniBlockHeader.GetProcessingType())
+	})
+
+	t.Run("set processing/construction for normal mini blocks already processed, should work", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		arguments.ScheduledTxsExecutionHandler = &testscommon.ScheduledTxsExecutionStub{
+			IsMiniBlockExecutedCalled: func(i []byte) bool {
+				return true
+			},
+		}
+		bp, _ := blproc.NewShardProcessor(arguments)
+
+		mbHash := []byte("mb_hash")
+		processedMiniBlocksDestMeInfo := make(map[string]*processedMb.ProcessedMiniBlockInfo)
+		miniBlockHeader := &block.MiniBlockHeader{
+			Hash: mbHash,
+		}
+
+		processedMbInfo := &processedMb.ProcessedMiniBlockInfo{
+			FullyProcessed: false,
+		}
+
+		err := bp.SetProcessingTypeAndConstructionStateForNormalMb(miniBlockHeader, processedMiniBlocksDestMeInfo)
+		assert.Nil(t, err)
+		assert.Equal(t, int32(block.Final), miniBlockHeader.GetConstructionState())
+		assert.Equal(t, int32(block.Processed), miniBlockHeader.GetProcessingType())
+
+		processedMiniBlocksDestMeInfo[string(mbHash)] = processedMbInfo
+
+		err = bp.SetProcessingTypeAndConstructionStateForNormalMb(miniBlockHeader, processedMiniBlocksDestMeInfo)
+		assert.Nil(t, err)
+		assert.Equal(t, int32(block.PartialExecuted), miniBlockHeader.GetConstructionState())
+		assert.Equal(t, int32(block.Processed), miniBlockHeader.GetProcessingType())
+	})
 }
 
 // ------- RevertState
@@ -2468,7 +2636,7 @@ func TestBaseProcessor_setMiniBlockHeaderReservedField(t *testing.T) {
 		arguments := CreateMockArguments(createComponentHolderMocks())
 		bp, _ := blproc.NewShardProcessor(arguments)
 
-		err := bp.SetMiniBlockHeaderReservedField(&block.MiniBlock{}, []byte{}, &block.MiniBlockHeader{})
+		err := bp.SetMiniBlockHeaderReservedField(&block.MiniBlock{}, &block.MiniBlockHeader{Hash: []byte{}}, make(map[string]*processedMb.ProcessedMiniBlockInfo))
 		assert.Nil(t, err)
 	})
 
@@ -2489,9 +2657,11 @@ func TestBaseProcessor_setMiniBlockHeaderReservedField(t *testing.T) {
 		bp, _ := blproc.NewShardProcessor(arguments)
 		bp.EpochConfirmed(4, 0)
 
-		mbHandler := &block.MiniBlockHeader{}
+		mbHandler := &block.MiniBlockHeader{
+			Hash: miniBlockHash,
+		}
 
-		err := bp.SetMiniBlockHeaderReservedField(&block.MiniBlock{}, miniBlockHash, mbHandler)
+		err := bp.SetMiniBlockHeaderReservedField(&block.MiniBlock{}, mbHandler, make(map[string]*processedMb.ProcessedMiniBlockInfo))
 		assert.Nil(t, err)
 		assert.Equal(t, int32(block.Normal), mbHandler.GetProcessingType())
 		assert.Equal(t, int32(block.Final), mbHandler.GetConstructionState())
@@ -2515,9 +2685,11 @@ func TestBaseProcessor_setMiniBlockHeaderReservedField(t *testing.T) {
 		bp, _ := blproc.NewShardProcessor(arguments)
 		bp.EpochConfirmed(4, 0)
 
-		mbHandler := &block.MiniBlockHeader{}
+		mbHandler := &block.MiniBlockHeader{
+			Hash: miniBlockHash,
+		}
 
-		err := bp.SetMiniBlockHeaderReservedField(&block.MiniBlock{}, miniBlockHash, mbHandler)
+		err := bp.SetMiniBlockHeaderReservedField(&block.MiniBlock{}, mbHandler, make(map[string]*processedMb.ProcessedMiniBlockInfo))
 		assert.Nil(t, err)
 		assert.Equal(t, int32(block.Processed), mbHandler.GetProcessingType())
 		assert.Equal(t, int32(block.Final), mbHandler.GetConstructionState())
@@ -2548,10 +2720,11 @@ func TestBaseProcessor_setMiniBlockHeaderReservedField(t *testing.T) {
 		}
 
 		mbHandler := &block.MiniBlockHeader{
+			Hash:          miniBlockHash,
 			SenderShardID: 2,
 		}
 
-		err := bp.SetMiniBlockHeaderReservedField(mb, miniBlockHash, mbHandler)
+		err := bp.SetMiniBlockHeaderReservedField(mb, mbHandler, make(map[string]*processedMb.ProcessedMiniBlockInfo))
 		assert.Nil(t, err)
 		assert.Equal(t, int32(block.Scheduled), mbHandler.GetProcessingType())
 		assert.Equal(t, int32(block.Final), mbHandler.GetConstructionState())
@@ -2584,10 +2757,11 @@ func TestBaseProcessor_setMiniBlockHeaderReservedField(t *testing.T) {
 		}
 
 		mbHandler := &block.MiniBlockHeader{
+			Hash:          miniBlockHash,
 			SenderShardID: shardId,
 		}
 
-		err := bp.SetMiniBlockHeaderReservedField(mb, miniBlockHash, mbHandler)
+		err := bp.SetMiniBlockHeaderReservedField(mb, mbHandler, make(map[string]*processedMb.ProcessedMiniBlockInfo))
 		assert.Nil(t, err)
 		assert.Equal(t, int32(block.Scheduled), mbHandler.GetProcessingType())
 		assert.Equal(t, int32(block.Proposed), mbHandler.GetConstructionState())
@@ -2678,4 +2852,43 @@ func TestBaseProcessor_getPruningHandlerSetsDefaulPruningDelay(t *testing.T) {
 	bp.SetLastRestartNonce(0)
 	ph := bp.GetPruningHandler(9)
 	assert.False(t, ph.IsPruningEnabled())
+}
+
+func TestBaseProcessor_checkConstructionStateAndIndexesCorrectness(t *testing.T) {
+	t.Parallel()
+
+	arguments := CreateMockArguments(createComponentHolderMocks())
+	bp, _ := blproc.NewShardProcessor(arguments)
+
+	mbh := &block.MiniBlockHeader{
+		TxCount: 5,
+	}
+
+	_ = mbh.SetConstructionState(int32(block.PartialExecuted))
+
+	_ = mbh.SetIndexOfLastTxProcessed(int32(mbh.TxCount))
+	err := bp.CheckConstructionStateAndIndexesCorrectness(mbh)
+	assert.Nil(t, err)
+
+	_ = mbh.SetIndexOfLastTxProcessed(int32(mbh.TxCount) - 2)
+	err = bp.CheckConstructionStateAndIndexesCorrectness(mbh)
+	assert.Nil(t, err)
+
+	_ = mbh.SetIndexOfLastTxProcessed(int32(mbh.TxCount) - 1)
+	err = bp.CheckConstructionStateAndIndexesCorrectness(mbh)
+	assert.Equal(t, process.ErrIndexDoesNotMatchWithPartialExecutedMiniBlock, err)
+
+	_ = mbh.SetConstructionState(int32(block.Final))
+
+	_ = mbh.SetIndexOfLastTxProcessed(int32(mbh.TxCount))
+	err = bp.CheckConstructionStateAndIndexesCorrectness(mbh)
+	assert.Equal(t, process.ErrIndexDoesNotMatchWithFullyExecutedMiniBlock, err)
+
+	_ = mbh.SetIndexOfLastTxProcessed(int32(mbh.TxCount) - 2)
+	err = bp.CheckConstructionStateAndIndexesCorrectness(mbh)
+	assert.Equal(t, process.ErrIndexDoesNotMatchWithFullyExecutedMiniBlock, err)
+
+	_ = mbh.SetIndexOfLastTxProcessed(int32(mbh.TxCount) - 1)
+	err = bp.CheckConstructionStateAndIndexesCorrectness(mbh)
+	assert.Nil(t, err)
 }

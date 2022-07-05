@@ -147,3 +147,9 @@ var ErrNilOldDataCleanerProvider = errors.New("nil old data cleaner provider")
 
 // ErrNilStoredDataFactory signals that a nil stored data factory has been provided
 var ErrNilStoredDataFactory = errors.New("nil stored data factory")
+
+// ErrInvalidDefaultSpan signals that an invalid default span was provided
+var ErrInvalidDefaultSpan = errors.New("invalid default span")
+
+// ErrInvalidCacheExpiry signals that an invalid cache expiry was provided
+var ErrInvalidCacheExpiry = errors.New("invalid cache expiry")

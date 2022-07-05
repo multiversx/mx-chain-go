@@ -420,7 +420,7 @@ func registerCpuStatistics(ctx context.Context, appStatusPollingHandler *appStat
 
 // String returns the name of the component
 func (msc *managedStatusComponents) String() string {
-	return "managedStatusComponents"
+	return statusComponentsName
 }
 
 func (msc *managedStatusComponents) attachEpochGoRoutineAnalyser() {

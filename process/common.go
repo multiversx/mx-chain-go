@@ -815,3 +815,28 @@ func GetMiniBlockHeaderWithHash(header data.HeaderHandler, miniBlockHash []byte)
 	}
 	return nil
 }
+
+// CheckIfIndexesAreOutOfBound checks if the given indexes are out of bound for the given mini block
+func CheckIfIndexesAreOutOfBound(
+	indexOfFirstTxToBeProcessed int32,
+	indexOfLastTxToBeProcessed int32,
+	miniBlock *block.MiniBlock,
+) error {
+	maxIndex := int32(len(miniBlock.TxHashes)) - 1
+
+	isFirstIndexHigherThanLastIndex := indexOfFirstTxToBeProcessed > indexOfLastTxToBeProcessed
+	isFirstIndexOutOfRange := indexOfFirstTxToBeProcessed < 0 || indexOfFirstTxToBeProcessed > maxIndex
+	isLastIndexOutOfRange := indexOfLastTxToBeProcessed < 0 || indexOfLastTxToBeProcessed > maxIndex
+
+	isIndexOutOfBound := isFirstIndexHigherThanLastIndex || isFirstIndexOutOfRange || isLastIndexOutOfRange
+	if isIndexOutOfBound {
+		return fmt.Errorf("%w: indexOfFirstTxToBeProcessed: %d, indexOfLastTxToBeProcessed = %d, maxIndex: %d",
+			ErrIndexIsOutOfBound,
+			indexOfFirstTxToBeProcessed,
+			indexOfLastTxToBeProcessed,
+			maxIndex,
+		)
+	}
+
+	return nil
+}
