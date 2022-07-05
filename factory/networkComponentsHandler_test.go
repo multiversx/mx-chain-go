@@ -9,8 +9,11 @@ import (
 )
 
 // ------------ Test ManagedNetworkComponents --------------------
-func TestManagedNetworkComponents_CreateWithInvalidArgs_ShouldErr(t *testing.T) {
+func TestManagedNetworkComponents_CreateWithInvalidArgsShouldErr(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	networkArgs := getNetworkArgs()
 	networkArgs.P2pConfig.Node.Port = "invalid"
@@ -22,8 +25,11 @@ func TestManagedNetworkComponents_CreateWithInvalidArgs_ShouldErr(t *testing.T) 
 	require.Nil(t, managedNetworkComponents.NetworkMessenger())
 }
 
-func TestManagedNetworkComponents_Create_ShouldWork(t *testing.T) {
+func TestManagedNetworkComponents_CreateShouldWork(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	networkArgs := getNetworkArgs()
 	networkComponentsFactory, _ := factory.NewNetworkComponentsFactory(networkArgs)
@@ -51,6 +57,9 @@ func TestManagedNetworkComponents_Create_ShouldWork(t *testing.T) {
 
 func TestManagedNetworkComponents_CheckSubcomponents(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	networkArgs := getNetworkArgs()
 	networkComponentsFactory, _ := factory.NewNetworkComponentsFactory(networkArgs)
@@ -66,6 +75,9 @@ func TestManagedNetworkComponents_CheckSubcomponents(t *testing.T) {
 
 func TestManagedNetworkComponents_Close(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	networkArgs := getNetworkArgs()
 	networkComponentsFactory, _ := factory.NewNetworkComponentsFactory(networkArgs)

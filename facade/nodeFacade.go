@@ -166,63 +166,63 @@ func (nf *nodeFacade) RestApiInterface() string {
 }
 
 // GetBalance gets the current balance for a specified address
-func (nf *nodeFacade) GetBalance(address string) (*big.Int, error) {
-	return nf.node.GetBalance(address)
+func (nf *nodeFacade) GetBalance(address string, options apiData.AccountQueryOptions) (*big.Int, apiData.BlockInfo, error) {
+	return nf.node.GetBalance(address, options)
 }
 
 // GetUsername gets the username for a specified address
-func (nf *nodeFacade) GetUsername(address string) (string, error) {
-	return nf.node.GetUsername(address)
+func (nf *nodeFacade) GetUsername(address string, options apiData.AccountQueryOptions) (string, apiData.BlockInfo, error) {
+	return nf.node.GetUsername(address, options)
 }
 
 // GetValueForKey gets the value for a key in a given address
-func (nf *nodeFacade) GetValueForKey(address string, key string) (string, error) {
-	return nf.node.GetValueForKey(address, key)
+func (nf *nodeFacade) GetValueForKey(address string, key string, options apiData.AccountQueryOptions) (string, apiData.BlockInfo, error) {
+	return nf.node.GetValueForKey(address, key, options)
 }
 
 // GetESDTData returns the ESDT data for the given address, tokenID and nonce
-func (nf *nodeFacade) GetESDTData(address string, key string, nonce uint64) (*esdt.ESDigitalToken, error) {
-	return nf.node.GetESDTData(address, key, nonce)
+func (nf *nodeFacade) GetESDTData(address string, key string, nonce uint64, options apiData.AccountQueryOptions) (*esdt.ESDigitalToken, apiData.BlockInfo, error) {
+	return nf.node.GetESDTData(address, key, nonce, options)
 }
 
 // GetESDTsRoles returns all the tokens identifiers and roles for the given address
-func (nf *nodeFacade) GetESDTsRoles(address string) (map[string][]string, error) {
+func (nf *nodeFacade) GetESDTsRoles(address string, options apiData.AccountQueryOptions) (map[string][]string, apiData.BlockInfo, error) {
 	ctx, cancel := nf.getContextForApiTrieRangeOperations()
 	defer cancel()
 
-	return nf.node.GetESDTsRoles(address, ctx)
+	return nf.node.GetESDTsRoles(address, options, ctx)
 }
 
 // GetNFTTokenIDsRegisteredByAddress returns all the token identifiers for semi or non fungible tokens registered by the address
-func (nf *nodeFacade) GetNFTTokenIDsRegisteredByAddress(address string) ([]string, error) {
+func (nf *nodeFacade) GetNFTTokenIDsRegisteredByAddress(address string, options apiData.AccountQueryOptions) ([]string, apiData.BlockInfo, error) {
 	ctx, cancel := nf.getContextForApiTrieRangeOperations()
 	defer cancel()
 
-	return nf.node.GetNFTTokenIDsRegisteredByAddress(address, ctx)
+	return nf.node.GetNFTTokenIDsRegisteredByAddress(address, options, ctx)
 }
 
 // GetESDTsWithRole returns all the tokens with the given role for the given address
-func (nf *nodeFacade) GetESDTsWithRole(address string, role string) ([]string, error) {
+func (nf *nodeFacade) GetESDTsWithRole(address string, role string, options apiData.AccountQueryOptions) ([]string, apiData.BlockInfo, error) {
 	ctx, cancel := nf.getContextForApiTrieRangeOperations()
 	defer cancel()
 
-	return nf.node.GetESDTsWithRole(address, role, ctx)
+	return nf.node.GetESDTsWithRole(address, role, options, ctx)
 }
 
 // GetKeyValuePairs returns all the key-value pairs under the provided address
-func (nf *nodeFacade) GetKeyValuePairs(address string) (map[string]string, error) {
+func (nf *nodeFacade) GetKeyValuePairs(address string, options apiData.AccountQueryOptions) (map[string]string, apiData.BlockInfo, error) {
 	ctx, cancel := nf.getContextForApiTrieRangeOperations()
 	defer cancel()
 
-	return nf.node.GetKeyValuePairs(address, ctx)
+	return nf.node.GetKeyValuePairs(address, options, ctx)
 }
 
 // GetAllESDTTokens returns all the esdt tokens for a given address
-func (nf *nodeFacade) GetAllESDTTokens(address string) (map[string]*esdt.ESDigitalToken, error) {
+func (nf *nodeFacade) GetAllESDTTokens(address string, options apiData.AccountQueryOptions) (map[string]*esdt.ESDigitalToken, apiData.BlockInfo, error) {
 	ctx, cancel := nf.getContextForApiTrieRangeOperations()
 	defer cancel()
 
-	return nf.node.GetAllESDTTokens(address, ctx)
+	return nf.node.GetAllESDTTokens(address, options, ctx)
 }
 
 // GetTokenSupply returns the provided token supply
@@ -320,16 +320,16 @@ func (nf *nodeFacade) ComputeTransactionGasLimit(tx *transaction.Transaction) (*
 }
 
 // GetAccount returns a response containing information about the account correlated with provided address
-func (nf *nodeFacade) GetAccount(address string) (apiData.AccountResponse, error) {
-	accountResponse, err := nf.node.GetAccount(address)
+func (nf *nodeFacade) GetAccount(address string, options apiData.AccountQueryOptions) (apiData.AccountResponse, apiData.BlockInfo, error) {
+	accountResponse, blockInfo, err := nf.node.GetAccount(address, options)
 	if err != nil {
-		return apiData.AccountResponse{}, err
+		return apiData.AccountResponse{}, apiData.BlockInfo{}, err
 	}
 
 	codeHash := accountResponse.CodeHash
-	code := nf.node.GetCode(codeHash)
+	code, _ := nf.node.GetCode(codeHash, options)
 	accountResponse.Code = hex.EncodeToString(code)
-	return accountResponse, nil
+	return accountResponse, blockInfo, nil
 }
 
 // GetHeartbeats returns the heartbeat status for each public key from initial list or later joined to the network
@@ -425,18 +425,18 @@ func (nf *nodeFacade) GetThrottlerForEndpoint(endpoint string) (core.Throttler, 
 }
 
 // GetBlockByHash return the block for a given hash
-func (nf *nodeFacade) GetBlockByHash(hash string, withTxs bool) (*apiData.Block, error) {
-	return nf.apiResolver.GetBlockByHash(hash, withTxs)
+func (nf *nodeFacade) GetBlockByHash(hash string, options apiData.BlockQueryOptions) (*apiData.Block, error) {
+	return nf.apiResolver.GetBlockByHash(hash, options)
 }
 
 // GetBlockByNonce returns the block for a given nonce
-func (nf *nodeFacade) GetBlockByNonce(nonce uint64, withTxs bool) (*apiData.Block, error) {
-	return nf.apiResolver.GetBlockByNonce(nonce, withTxs)
+func (nf *nodeFacade) GetBlockByNonce(nonce uint64, options apiData.BlockQueryOptions) (*apiData.Block, error) {
+	return nf.apiResolver.GetBlockByNonce(nonce, options)
 }
 
 // GetBlockByRound returns the block for a given round
-func (nf *nodeFacade) GetBlockByRound(round uint64, withTxs bool) (*apiData.Block, error) {
-	return nf.apiResolver.GetBlockByRound(round, withTxs)
+func (nf *nodeFacade) GetBlockByRound(round uint64, options apiData.BlockQueryOptions) (*apiData.Block, error) {
+	return nf.apiResolver.GetBlockByRound(round, options)
 }
 
 // GetInternalMetaBlockByHash return the meta block for a given hash
@@ -607,6 +607,19 @@ func (nf *nodeFacade) GetGenesisNodesPubKeys() (map[uint32][]string, map[uint32]
 	}
 
 	return eligible, waiting, nil
+}
+
+// GetGenesisBalances will return the balances minted on the genesis block
+func (nf *nodeFacade) GetGenesisBalances() ([]*common.InitialAccountAPI, error) {
+	initialAccounts, err := nf.apiResolver.GetGenesisBalances()
+	if err != nil {
+		return nil, err
+	}
+	if len(initialAccounts) == 0 {
+		return nil, ErrNilGenesisBalances
+	}
+
+	return initialAccounts, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
