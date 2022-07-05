@@ -255,7 +255,26 @@ func (tsm *trieStorageManager) PutInEpoch(key []byte, val []byte, epoch uint32) 
 	log.Trace("put hash in tsm in epoch", "hash", key, "epoch", epoch)
 
 	if tsm.closed {
-		log.Trace("trieStorageManager put context closing", "key", key, "value", val, "epoch", epoch)
+		log.Trace("trieStorageManager putInEpoch context closing", "key", key, "value", val, "epoch", epoch)
+		return errors.ErrContextClosing
+	}
+
+	storer, ok := tsm.mainStorer.(snapshotPruningStorer)
+	if !ok {
+		return fmt.Errorf("invalid storer type for PutInEpoch")
+	}
+
+	return storer.PutInEpoch(key, val, epoch)
+}
+
+// PutInEpochWithoutCache adds the given value to the main storer in the specified epoch without saving it to cache
+func (tsm *trieStorageManager) PutInEpochWithoutCache(key []byte, val []byte, epoch uint32) error {
+	tsm.storageOperationMutex.Lock()
+	defer tsm.storageOperationMutex.Unlock()
+	log.Trace("put hash in tsm in epoch without cache", "hash", key, "epoch", epoch)
+
+	if tsm.closed {
+		log.Trace("trieStorageManager putInEpochWithoutCache context closing", "key", key, "value", val, "epoch", epoch)
 		return errors.ErrContextClosing
 	}
 

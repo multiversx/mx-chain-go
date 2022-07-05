@@ -46,6 +46,7 @@ type StorageManager interface {
 	Get(key []byte) ([]byte, error)
 	GetFromCurrentEpoch(key []byte) ([]byte, error)
 	PutInEpoch(key []byte, val []byte, epoch uint32) error
+	PutInEpochWithoutCache(key []byte, val []byte, epoch uint32) error
 	TakeSnapshot(rootHash []byte, mainTrieRootHash []byte, leavesChan chan core.KeyValueHolder, stats SnapshotStatisticsHandler, epoch uint32)
 	SetCheckpoint(rootHash []byte, mainTrieRootHash []byte, leavesChan chan core.KeyValueHolder, stats SnapshotStatisticsHandler)
 	GetLatestStorageEpoch() (uint32, error)

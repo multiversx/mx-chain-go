@@ -56,7 +56,7 @@ func (adb *PeerAccountsDB) MarkSnapshotDone() {
 		return
 	}
 
-	err = trieStorageManager.PutInEpoch([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal), epoch)
+	err = trieStorageManager.PutInEpochWithoutCache([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal), epoch)
 	handleLoggingWhenError("error while putting active DB value into main storer", err)
 }
 
@@ -103,7 +103,7 @@ func (adb *PeerAccountsDB) SnapshotState(rootHash []byte) {
 	go func() {
 		stats.PrintStats("snapshotState peer trie", rootHash)
 
-		err = trieStorageManager.PutInEpoch([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal), epoch)
+		err = trieStorageManager.PutInEpochWithoutCache([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal), epoch)
 		handleLoggingWhenError("error while putting active DB value into main storer", err)
 	}()
 
