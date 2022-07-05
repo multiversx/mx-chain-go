@@ -595,12 +595,18 @@ func TestApiTransactionProcessor_GetTransactionsPool(t *testing.T) {
 				KeysCalled: func() [][]byte {
 					return expectedTxs
 				},
+				SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
+					return createTx(key, "alice", 1).Tx, true
+				},
 			}
 		},
 		UnsignedTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 			return &testscommon.ShardedDataStub{
 				KeysCalled: func() [][]byte {
 					return expectedScrs
+				},
+				SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
+					return &smartContractResult.SmartContractResult{}, true
 				},
 			}
 		},
@@ -609,6 +615,9 @@ func TestApiTransactionProcessor_GetTransactionsPool(t *testing.T) {
 				KeysCalled: func() [][]byte {
 					return expectedRwds
 				},
+				SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
+					return &rewardTx.RewardTx{}, true
+				},
 			}
 		},
 	}
@@ -616,11 +625,40 @@ func TestApiTransactionProcessor_GetTransactionsPool(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, atp)
 
-	res, err := atp.GetTransactionsPool()
+	res, err := atp.GetTransactionsPool("")
 	require.NoError(t, err)
-	require.Equal(t, []string{hex.EncodeToString(txHash0), hex.EncodeToString(txHash1)}, res.RegularTransactions)
-	require.Equal(t, []string{hex.EncodeToString(txHash2)}, res.SmartContractResults)
-	require.Equal(t, []string{hex.EncodeToString(txHash3)}, res.Rewards)
+
+	regularTxs := []common.Transaction{
+		{
+			TxFields: map[string]interface{}{
+				"hash": hex.EncodeToString(txHash0),
+			},
+		},
+		{
+			TxFields: map[string]interface{}{
+				"hash": hex.EncodeToString(txHash1),
+			},
+		},
+	}
+	require.Equal(t, regularTxs, res.RegularTransactions)
+
+	scrTxs := []common.Transaction{
+		{
+			TxFields: map[string]interface{}{
+				"hash": hex.EncodeToString(txHash2),
+			},
+		},
+	}
+	require.Equal(t, scrTxs, res.SmartContractResults)
+
+	rewardTxs := []common.Transaction{
+		{
+			TxFields: map[string]interface{}{
+				"hash": hex.EncodeToString(txHash3),
+			},
+		},
+	}
+	require.Equal(t, rewardTxs, res.Rewards)
 }
 
 func createTx(hash []byte, sender string, nonce uint64) *txcache.WrappedTransaction {
@@ -700,11 +738,13 @@ func TestApiTransactionProcessor_GetTransactionsPoolForSender(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, atp)
 
-	res, err := atp.GetTransactionsPoolForSender(sender)
+	res, err := atp.GetTransactionsPoolForSender(sender, "sender")
 	require.NoError(t, err)
-	require.Equal(t, sender, res.Sender)
 	expectedHashes := []string{hex.EncodeToString(txHash0), hex.EncodeToString(txHash1), hex.EncodeToString(txHash2), hex.EncodeToString(txHash3), hex.EncodeToString(txHash4)}
-	require.Equal(t, expectedHashes, res.Transactions)
+	for i, tx := range res.Transactions {
+		require.Equal(t, expectedHashes[i], tx.TxFields[hashField])
+		require.Equal(t, sender, tx.TxFields["sender"])
+	}
 }
 
 func TestApiTransactionProcessor_GetLastPoolNonceForSender(t *testing.T) {
@@ -804,16 +844,16 @@ func TestApiTransactionProcessor_GetTransactionsPoolNonceGapsForSender(t *testin
 		GasProcessingDivisor: 1,
 	})
 
-	// final sorted nonces 1, 2, 5, 6, 15
-	gap1FirstNonce := uint64(2)
-	gap1LastNonce := uint64(5)
-	gap2FirstNonce := uint64(6)
-	gap2LastNonce := uint64(15)
+	// expected nonce gaps: 3-3, 5-7
+	lastNonceBeforeGap1 := uint64(2)
+	firstNonceAfterGap1 := uint64(4)
+	lastNonceBeforeGap2 := uint64(5)
+	firstNonceAfterGap2 := uint64(9)
 	txCacheIntraShard.AddTx(createTx(txHash0, sender, 1))
-	txCacheIntraShard.AddTx(createTx(txHash1, sender, gap1LastNonce))
-	txCacheIntraShard.AddTx(createTx(txHash2, sender, gap2FirstNonce))
-	txCacheIntraShard.AddTx(createTx(txHash3, sender, gap1FirstNonce))
-	txCacheIntraShard.AddTx(createTx(txHash4, sender, gap2LastNonce))
+	txCacheIntraShard.AddTx(createTx(txHash1, sender, lastNonceBeforeGap1))
+	txCacheIntraShard.AddTx(createTx(txHash2, sender, firstNonceAfterGap1))
+	txCacheIntraShard.AddTx(createTx(txHash3, sender, lastNonceBeforeGap2))
+	txCacheIntraShard.AddTx(createTx(txHash4, sender, firstNonceAfterGap2))
 
 	args := createMockArgAPIBlockProcessor()
 	args.DataPool = &dataRetrieverMock.PoolsHolderStub{
@@ -850,12 +890,12 @@ func TestApiTransactionProcessor_GetTransactionsPoolNonceGapsForSender(t *testin
 		Sender: sender,
 		Gaps: []common.NonceGapApiResponse{
 			{
-				From: gap1FirstNonce,
-				To:   gap1LastNonce,
+				From: lastNonceBeforeGap1 + 1,
+				To:   firstNonceAfterGap1 - 1,
 			},
 			{
-				From: gap2FirstNonce,
-				To:   gap2LastNonce,
+				From: lastNonceBeforeGap2 + 1,
+				To:   firstNonceAfterGap2 - 1,
 			},
 		},
 	}
