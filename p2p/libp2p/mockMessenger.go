@@ -26,7 +26,6 @@ func NewMockMessenger(
 
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	p2pNode := &networkMessenger{
-		p2pSigner:  &p2pSigner{},
 		p2pHost:    NewConnectableHost(h),
 		ctx:        ctx,
 		cancelFunc: cancelFunc,

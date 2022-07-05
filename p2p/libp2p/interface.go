@@ -1,6 +1,7 @@
 package libp2p
 
 import (
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/libp2p/go-libp2p-core/network"
 )
@@ -19,4 +20,9 @@ type ConnectionMonitor interface {
 type PeerDiscovererWithSharder interface {
 	p2p.PeerDiscoverer
 	SetSharder(sharder p2p.Sharder) error
+}
+
+type p2pSigner interface {
+	Sign(payload []byte) ([]byte, error)
+	Verify(payload []byte, pid core.PeerID, signature []byte) error
 }
