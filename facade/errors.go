@@ -35,5 +35,10 @@ var ErrEmptyRootHash = errors.New("empty current root hash")
 // ErrNilGenesisNodes signals that the provided genesis nodes configuration is nil
 var ErrNilGenesisNodes = errors.New("nil genesis nodes")
 
+<<<<<<< HEAD
 // ErrEmptyGasConfigs signals that the provided gas configs map is empty
 var ErrEmptyGasConfigs = errors.New("empty gas configs")
+=======
+// ErrNilGenesisBalances signals that the provided genesis balances slice is nil
+var ErrNilGenesisBalances = errors.New("nil genesis balances slice")
+>>>>>>> development

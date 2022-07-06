@@ -118,8 +118,13 @@
         # /network/genesis-nodes will return the genesis nodes public keys
         { Name = "/genesis-nodes", Open = true },
 
+<<<<<<< HEAD
         # /network/gas-configs will return currently scheduled gas configs
         { Name = "/gas-configs", Open = true }
+=======
+        # /network/genesis-balances will return the balances minted at genesis
+        { Name = "/genesis-balances", Open = true }
+>>>>>>> development
     ]
 
 [APIPackages.log]

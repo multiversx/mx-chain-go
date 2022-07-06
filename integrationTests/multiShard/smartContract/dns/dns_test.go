@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go-core/hashing/keccak"
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
@@ -250,7 +251,7 @@ func checkUserNamesAreSetCorrectly(
 			assert.Equal(t, userNames[i], string(userAcc.GetUserName()))
 
 			bech32c := integrationTests.TestAddressPubkeyConverter
-			usernameReportedByNode, err := node.Node.GetUsername(bech32c.Encode(player.Address))
+			usernameReportedByNode, _, err := node.Node.GetUsername(bech32c.Encode(player.Address), api.AccountQueryOptions{})
 			require.NoError(t, err)
 			require.Equal(t, userNames[i], usernameReportedByNode)
 		}

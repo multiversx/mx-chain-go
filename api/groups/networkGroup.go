@@ -30,7 +30,11 @@ const (
 	delegatedInfoPath      = "/delegated-info"
 	ratingsPath            = "/ratings"
 	genesisNodesConfigPath = "/genesis-nodes"
+<<<<<<< HEAD
 	gasConfigPath          = "/gas-configs"
+=======
+	genesisBalances        = "/genesis-balances"
+>>>>>>> development
 )
 
 // networkFacadeHandler defines the methods to be implemented by a facade for handling network requests
@@ -42,7 +46,11 @@ type networkFacadeHandler interface {
 	GetAllIssuedESDTs(tokenType string) ([]string, error)
 	GetTokenSupply(token string) (*api.ESDTSupply, error)
 	GetGenesisNodesPubKeys() (map[uint32][]string, map[uint32][]string, error)
+<<<<<<< HEAD
 	GetGasConfigs() (map[string]map[string]uint64, error)
+=======
+	GetGenesisBalances() ([]*common.InitialAccountAPI, error)
+>>>>>>> development
 	IsInterfaceNil() bool
 }
 
@@ -142,9 +150,15 @@ func NewNetworkGroup(facade networkFacadeHandler) (*networkGroup, error) {
 			Handler: ng.getGenesisNodesConfig,
 		},
 		{
+<<<<<<< HEAD
 			Path:    gasConfigPath,
 			Method:  http.MethodGet,
 			Handler: ng.getGasConfig,
+=======
+			Path:    genesisBalances,
+			Method:  http.MethodGet,
+			Handler: ng.getGenesisBalances,
+>>>>>>> development
 		},
 	}
 	ng.endpoints = endpoints
@@ -347,9 +361,7 @@ func (ng *networkGroup) delegatedInfo(c *gin.Context) {
 func (ng *networkGroup) getESDTTokenSupply(c *gin.Context) {
 	token := c.Param("token")
 	if token == "" {
-		shared.RespondWithValidationError(
-			c, fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrValidationEmptyToken.Error()),
-		)
+		shared.RespondWithValidationError(c, errors.ErrValidation, errors.ErrBadUrlParams)
 		return
 	}
 
@@ -405,7 +417,7 @@ func (ng *networkGroup) getRatingsConfig(c *gin.Context) {
 func (ng *networkGroup) getGenesisNodesConfig(c *gin.Context) {
 	start := time.Now()
 	eligibleNodesConfig, waitingNodesConfig, err := ng.getFacade().GetGenesisNodesPubKeys()
-	log.Debug(fmt.Sprintf("GetGenesisNodesPubKeys took %s", time.Since(start)))
+	log.Debug("API call: GetGenesisNodesPubKeys", "duration", time.Since(start))
 
 	if err != nil {
 		c.JSON(
@@ -427,27 +439,44 @@ func (ng *networkGroup) getGenesisNodesConfig(c *gin.Context) {
 	shared.RespondWith(c, http.StatusOK, gin.H{"nodes": nc}, "", shared.ReturnCodeSuccess)
 }
 
+<<<<<<< HEAD
 // getGasConfig returns currently used gas configs configuration
 func (ng *networkGroup) getGasConfig(c *gin.Context) {
 	gasConfigMap, err := ng.getFacade().GetGasConfigs()
+=======
+// getGenesisBalances return genesis balances configuration
+func (ng *networkGroup) getGenesisBalances(c *gin.Context) {
+	start := time.Now()
+	genesisBalances, err := ng.getFacade().GetGenesisBalances()
+	log.Debug("API call: GetGenesisBalances", "duration", time.Since(start))
+
+>>>>>>> development
 	if err != nil {
 		c.JSON(
 			http.StatusInternalServerError,
 			shared.GenericAPIResponse{
 				Data:  nil,
+<<<<<<< HEAD
 				Error: fmt.Sprintf("%s: %s", errors.ErrGetGasConfigs.Error(), err.Error()),
+=======
+				Error: fmt.Sprintf("%s: %s", errors.ErrGetGenesisBalances.Error(), err.Error()),
+>>>>>>> development
 				Code:  shared.ReturnCodeInternalError,
 			},
 		)
 		return
 	}
 
+<<<<<<< HEAD
 	gc := GasConfig{
 		BuiltInCost:            gasConfigMap[common.BuiltInCost],
 		MetaChainSystemSCsCost: gasConfigMap[common.MetaChainSystemSCsCost],
 	}
 
 	shared.RespondWith(c, http.StatusOK, gin.H{"gasConfigs": gc}, "", shared.ReturnCodeSuccess)
+=======
+	shared.RespondWith(c, http.StatusOK, gin.H{"balances": genesisBalances}, "", shared.ReturnCodeSuccess)
+>>>>>>> development
 }
 
 func (ng *networkGroup) getFacade() networkFacadeHandler {

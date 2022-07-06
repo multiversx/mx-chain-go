@@ -34,14 +34,16 @@ func TestCreateApiResolver(t *testing.T) {
 	require.Nil(t, err)
 
 	gasSchedule, _ := common.LoadGasScheduleConfig("../cmd/node/config/gasSchedules/gasScheduleV1.toml")
+	economicsConfig := testscommon.GetEconomicsConfig()
 	cfg := getGeneralConfig()
 	args := &factory.ApiResolverArgs{
 		Configs: &config.Configs{
 			FlagsConfig: &config.ContextFlagsConfig{
 				WorkingDir: "",
 			},
-			GeneralConfig: &cfg,
-			EpochConfig:   &config.EpochConfig{},
+			GeneralConfig:   &cfg,
+			EpochConfig:     &config.EpochConfig{},
+			EconomicsConfig: &economicsConfig,
 		},
 		CoreComponents:      coreComponents,
 		DataComponents:      dataComponents,
