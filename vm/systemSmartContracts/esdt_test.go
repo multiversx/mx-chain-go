@@ -3527,6 +3527,69 @@ func TestEsdt_SetSpecialRoleTransferWithTransferRoleEnhancement(t *testing.T) {
 	require.Equal(t, called, 2)
 }
 
+func TestEsdt_SendAllTransferRoleAddresses(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForESDT()
+	args.EpochConfig.EnableEpochs.ESDTTransferRoleEnableEpoch = 10
+
+	token := &ESDTDataV2{
+		OwnerAddress: []byte("caller1234"),
+		SpecialRoles: []*ESDTRoles{
+			{
+				Address: []byte("myAddress1"),
+				Roles:   [][]byte{[]byte(core.ESDTRoleTransfer)},
+			},
+			{
+				Address: []byte("myAddress2"),
+				Roles:   [][]byte{[]byte(core.ESDTRoleTransfer)},
+			},
+			{
+				Address: []byte("myAddress3"),
+				Roles:   [][]byte{[]byte(core.ESDTRoleTransfer)},
+			},
+		},
+		TokenType:          []byte(core.NonFungibleESDT),
+		CanAddSpecialRoles: true,
+	}
+	called := 0
+	eei := &mock.SystemEIStub{
+		GetStorageCalled: func(key []byte) []byte {
+			tokenBytes, _ := args.Marshalizer.Marshal(token)
+			return tokenBytes
+		},
+	}
+	args.Eei = eei
+
+	e, _ := NewESDTSmartContract(args)
+
+	vmInput := getDefaultVmInputForFunc("sendAllTransferRoleAddresses", [][]byte{})
+	vmInput.Arguments = [][]byte{[]byte("myToken"), []byte("myAddress")}
+	vmInput.CallerAddr = []byte("caller1234")
+	vmInput.CallValue = big.NewInt(0)
+	vmInput.GasProvided = 50000000
+
+	e.flagSendTransferRoleAddress.Reset()
+	retCode := e.Execute(vmInput)
+	require.Equal(t, vmcommon.FunctionNotFound, retCode)
+
+	e.flagSendTransferRoleAddress.SetValue(true)
+	called = 0
+	token.TokenType = []byte(core.NonFungibleESDT)
+	eei.SendGlobalSettingToAllCalled = func(sender []byte, input []byte) {
+		if called == 0 {
+			assert.Equal(t, core.BuiltInFunctionESDTSetLimitedTransfer+"@"+hex.EncodeToString([]byte("myToken")), string(input))
+		} else {
+			assert.Equal(t, vmcommon.BuiltInFunctionESDTTransferRoleAddAddress+"@"+hex.EncodeToString([]byte("myToken"))+"@"+hex.EncodeToString([]byte("myAddress")), string(input))
+		}
+		called++
+	}
+
+	retCode = e.Execute(vmInput)
+	require.Equal(t, vmcommon.Ok, retCode)
+	require.Equal(t, called, 2)
+}
+
 func TestEsdt_SetSpecialRoleSFTShouldErr(t *testing.T) {
 	t.Parallel()
 
