@@ -202,6 +202,9 @@
     # RefactorContextEnableEpoch represents the epoch when refactoring/simplifying is enabled in contexts
     RefactorContextEnableEpoch = 1
 
+    # CheckFunctionArgumentEnableEpoch represents the epoch when the extra argument check is enabled in vm-common
+    CheckFunctionArgumentEnableEpoch = 4
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 0, MaxNumNodes = 36, NodesToShufflePerShard = 4 },

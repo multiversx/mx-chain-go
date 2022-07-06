@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/txsFee/utils"
+	"github.com/ElrondNetwork/elrond-go/process"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/require"
 )
@@ -492,9 +493,8 @@ func TestSendNFTToContractWith0FunctionNonPayable(t *testing.T) {
 	)
 	tx.Data = append(tx.Data, []byte("@")...)
 	retCode, err := testContext.TxProcessor.ProcessTransaction(tx)
-	// TODO: change this to vmcommon.User when resolving the TODO in vmcommon
-	require.Equal(t, vmcommon.Ok, retCode)
-	require.Nil(t, err)
+	require.Equal(t, vmcommon.UserError, retCode)
+	require.Equal(t, process.ErrFailedTransaction, err)
 
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)

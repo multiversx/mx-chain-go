@@ -116,6 +116,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		args.Configs.EpochConfig.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch,
 		args.Configs.EpochConfig.EnableEpochs.OptimizeNFTStoreEnableEpoch,
 		args.Configs.EpochConfig.EnableEpochs.CheckCorrectTokenIDForTransferRoleEnableEpoch,
+		args.Configs.EpochConfig.EnableEpochs.CheckFunctionArgumentEnableEpoch,
 	)
 	if err != nil {
 		return nil, err
@@ -286,6 +287,7 @@ func createScQueryElement(
 		args.epochConfig.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch,
 		args.epochConfig.EnableEpochs.OptimizeNFTStoreEnableEpoch,
 		args.epochConfig.EnableEpochs.CheckCorrectTokenIDForTransferRoleEnableEpoch,
+		args.epochConfig.EnableEpochs.CheckFunctionArgumentEnableEpoch,
 	)
 	if err != nil {
 		return nil, err
@@ -420,20 +422,22 @@ func createBuiltinFuncs(
 	transferToMetaEnableEpoch uint32,
 	optimizeNFTStoreEnableEpoch uint32,
 	checkCorrectTokenIDEnableEpoch uint32,
+	checkFunctionArgumentEnableEpoch uint32,
 ) (vmcommon.BuiltInFunctionContainer, vmcommon.SimpleESDTNFTStorageHandler, vmcommon.ESDTGlobalSettingsHandler, error) {
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:                    gasScheduleNotifier,
-		MapDNSAddresses:                make(map[string]struct{}),
-		Marshalizer:                    marshalizer,
-		Accounts:                       accnts,
-		ShardCoordinator:               shardCoordinator,
-		EpochNotifier:                  epochNotifier,
-		ESDTMultiTransferEnableEpoch:   esdtMultiTransferEnableEpoch,
-		ESDTTransferRoleEnableEpoch:    esdtTransferRoleEnableEpoch,
-		GlobalMintBurnDisableEpoch:     esdtGlobalMintBurnDisableEpoch,
-		ESDTTransferMetaEnableEpoch:    transferToMetaEnableEpoch,
-		OptimizeNFTStoreEnableEpoch:    optimizeNFTStoreEnableEpoch,
-		CheckCorrectTokenIDEnableEpoch: checkCorrectTokenIDEnableEpoch,
+		GasSchedule:                      gasScheduleNotifier,
+		MapDNSAddresses:                  make(map[string]struct{}),
+		Marshalizer:                      marshalizer,
+		Accounts:                         accnts,
+		ShardCoordinator:                 shardCoordinator,
+		EpochNotifier:                    epochNotifier,
+		ESDTMultiTransferEnableEpoch:     esdtMultiTransferEnableEpoch,
+		ESDTTransferRoleEnableEpoch:      esdtTransferRoleEnableEpoch,
+		GlobalMintBurnDisableEpoch:       esdtGlobalMintBurnDisableEpoch,
+		ESDTTransferMetaEnableEpoch:      transferToMetaEnableEpoch,
+		OptimizeNFTStoreEnableEpoch:      optimizeNFTStoreEnableEpoch,
+		CheckCorrectTokenIDEnableEpoch:   checkCorrectTokenIDEnableEpoch,
+		CheckFunctionArgumentEnableEpoch: checkFunctionArgumentEnableEpoch,
 	}
 	return builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
 }
