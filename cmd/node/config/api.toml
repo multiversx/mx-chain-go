@@ -116,7 +116,10 @@
         { Name = "/ratings", Open = true },
 
         # /network/genesis-nodes will return the genesis nodes public keys
-        { Name = "/genesis-nodes", Open = true }
+        { Name = "/genesis-nodes", Open = true },
+
+        # /network/genesis-balances will return the balances minted at genesis
+        { Name = "/genesis-balances", Open = true }
     ]
 
 [APIPackages.log]

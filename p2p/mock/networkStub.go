@@ -13,13 +13,23 @@ import (
 
 // NetworkStub -
 type NetworkStub struct {
-	ConnsToPeerCalled   func(p peer.ID) []network.Conn
-	ConnsCalled         func() []network.Conn
-	ConnectednessCalled func(peer.ID) network.Connectedness
-	NotifyCalled        func(network.Notifiee)
-	StopNotifyCalled    func(network.Notifiee)
-	PeersCall           func() []peer.ID
-	ClosePeerCall       func(peer.ID) error
+	ConnsToPeerCalled     func(p peer.ID) []network.Conn
+	ConnsCalled           func() []network.Conn
+	ConnectednessCalled   func(peer.ID) network.Connectedness
+	NotifyCalled          func(network.Notifiee)
+	StopNotifyCalled      func(network.Notifiee)
+	PeersCall             func() []peer.ID
+	ClosePeerCall         func(peer.ID) error
+	ResourceManagerCalled func() network.ResourceManager
+}
+
+// ResourceManager -
+func (ns *NetworkStub) ResourceManager() network.ResourceManager {
+	if ns.ResourceManagerCalled != nil {
+		return ns.ResourceManagerCalled()
+	}
+
+	return nil
 }
 
 // Peerstore -
@@ -103,9 +113,6 @@ func (ns *NetworkStub) Close() error {
 
 // SetStreamHandler -
 func (ns *NetworkStub) SetStreamHandler(network.StreamHandler) {}
-
-// SetConnHandler -
-func (ns *NetworkStub) SetConnHandler(network.ConnHandler) {}
 
 // NewStream -
 func (ns *NetworkStub) NewStream(context.Context, peer.ID) (network.Stream, error) {

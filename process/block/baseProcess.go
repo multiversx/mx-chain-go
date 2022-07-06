@@ -98,6 +98,8 @@ type baseProcessor struct {
 	processDataTriesOnCommitEpoch  bool
 	scheduledMiniBlocksEnableEpoch uint32
 	flagScheduledMiniBlocks        atomic.Flag
+	lastRestartNonce               uint64
+	pruningDelay                   uint32
 	processedMiniBlocksTracker     process.ProcessedMiniBlocksTracker
 }
 
@@ -1379,7 +1381,7 @@ func (bp *baseProcessor) updateStateStorage(
 	}
 
 	accounts.CancelPrune(rootHashToBePruned, state.NewRoot)
-	accounts.PruneTrie(rootHashToBePruned, state.OldRoot)
+	accounts.PruneTrie(rootHashToBePruned, state.OldRoot, bp.getPruningHandler(finalHeader.GetNonce()))
 }
 
 // RevertCurrentBlock reverts the current block for cleanup failed process
@@ -1515,8 +1517,21 @@ func (bp *baseProcessor) PruneStateOnRollback(currHeader data.HeaderHandler, cur
 		}
 
 		bp.accountsDB[key].CancelPrune(prevRootHash, state.OldRoot)
-		bp.accountsDB[key].PruneTrie(rootHash, state.NewRoot)
+		bp.accountsDB[key].PruneTrie(rootHash, state.NewRoot, bp.getPruningHandler(currHeader.GetNonce()))
 	}
+}
+
+func (bp *baseProcessor) getPruningHandler(finalHeaderNonce uint64) state.PruningHandler {
+	if finalHeaderNonce-bp.lastRestartNonce <= uint64(bp.pruningDelay) {
+		log.Debug("will skip pruning",
+			"finalHeaderNonce", finalHeaderNonce,
+			"last restart nonce", bp.lastRestartNonce,
+			"num blocks for pruning delay", bp.pruningDelay,
+		)
+		return state.NewPruningHandler(state.DisableDataRemoval)
+	}
+
+	return state.NewPruningHandler(state.EnableDataRemoval)
 }
 
 func (bp *baseProcessor) getRootHashes(currHeader data.HeaderHandler, prevHeader data.HeaderHandler, identifier state.AccountsDbIdentifier) ([]byte, []byte) {
@@ -1817,6 +1832,8 @@ func (bp *baseProcessor) ProcessScheduledBlock(headerHandler data.HeaderHandler,
 	if err != nil {
 		return err
 	}
+
+	_ = bp.txCoordinator.CreatePostProcessMiniBlocks()
 
 	finalProcessingGasAndFees := bp.getGasAndFeesWithScheduled()
 

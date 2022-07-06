@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
+	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
 	storageMocks "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -274,7 +275,7 @@ func TestInternalBlockProcessor_GetProtoShardBlockByRound(t *testing.T) {
 }
 
 func preapreShardBlockProcessor(nonce uint64, round uint64, headerHash []byte) (*internalBlockProcessor, []byte) {
-	storerMock := mock.NewStorerMock()
+	storerMock := genericMocks.NewStorerMock()
 	uint64Converter := mock.NewNonceHashConverterMock()
 
 	ibp := createMockInternalBlockProcessor(
@@ -520,7 +521,7 @@ func TestInternalBlockProcessor_GetProtoMetaBlockByRound(t *testing.T) {
 }
 
 func prepareMetaBlockProcessor(nonce uint64, round uint64, headerHash []byte) (*internalBlockProcessor, []byte) {
-	storerMock := mock.NewStorerMock()
+	storerMock := genericMocks.NewStorerMock()
 	uint64Converter := mock.NewNonceHashConverterMock()
 
 	ibp := createMockInternalBlockProcessor(
