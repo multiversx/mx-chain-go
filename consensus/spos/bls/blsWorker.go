@@ -80,6 +80,11 @@ func (wrk *worker) IsMessageWithFinalInfo(msgType consensus.MessageType) bool {
 	return msgType == MtBlockHeaderFinalInfo
 }
 
+//IsMessageWithInvalidSigners returns if the current messageType is about invalid signers
+func (wrk *worker) IsMessageWithInvalidSigners(msgType consensus.MessageType) bool {
+	return msgType == MtInvalidSigners
+}
+
 //IsMessageTypeValid returns if the current messageType is valid
 func (wrk *worker) IsMessageTypeValid(msgType consensus.MessageType) bool {
 	isMessageTypeValid := msgType == MtBlockBodyAndHeader ||

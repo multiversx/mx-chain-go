@@ -93,6 +93,7 @@ func (sr *subroundSignature) doSignatureJob(_ context.Context) bool {
 			nil,
 			nil,
 			sr.CurrentPid(),
+			nil,
 		)
 
 		err = sr.BroadcastMessenger().BroadcastConsensusMessage(cnsMsg)
@@ -178,6 +179,8 @@ func (sr *subroundSignature) receivedSignature(_ context.Context, cnsDta *consen
 			"error", err.Error())
 		return false
 	}
+
+	sr.AddMessageWithSignature(node, cnsDta.InvalidSigners)
 
 	sr.PeerHonestyHandler().ChangeScore(
 		node,

@@ -24,6 +24,9 @@ type ConsensusState struct {
 	receivedHeaders    []data.HeaderHandler
 	mutReceivedHeaders sync.RWMutex
 
+	receivedMessagesWithSignature    map[string][]byte
+	mutReceivedMessagesWithSignature sync.RWMutex
+
 	RoundIndex                  int64
 	RoundTimeStamp              time.Time
 	RoundCanceled               bool
@@ -92,6 +95,20 @@ func (cns *ConsensusState) GetReceivedHeaders() []data.HeaderHandler {
 	cns.mutReceivedHeaders.RUnlock()
 
 	return receivedHeaders
+}
+
+func (cns *ConsensusState) AddMessageWithSignature(key string, message []byte) {
+	cns.mutReceivedMessagesWithSignature.Lock()
+	cns.receivedMessagesWithSignature[key] = message
+	cns.mutReceivedMessagesWithSignature.Unlock()
+}
+
+func (cns *ConsensusState) GetMessageWithSignature(key string) ([]byte, bool) {
+	cns.mutReceivedMessagesWithSignature.Lock()
+	defer cns.mutReceivedMessagesWithSignature.Unlock()
+
+	val, ok := cns.receivedMessagesWithSignature[key]
+	return val, ok
 }
 
 // IsNodeLeaderInCurrentRound method checks if the given node is leader in the current round

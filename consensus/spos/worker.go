@@ -390,7 +390,10 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedP
 	}
 
 	if wrk.consensusService.IsMessageWithSignature(msgType) {
-		wrk.doJobOnMessageWithSignature(cnsMsg)
+		err = wrk.doJobOnMessageWithSignature(cnsMsg, message)
+		if err != nil {
+			return err
+		}
 	}
 
 	errNotCritical := wrk.checkSelfState(cnsMsg)
@@ -474,12 +477,20 @@ func (wrk *Worker) doJobOnMessageWithHeader(cnsMsg *consensus.Message) error {
 	return nil
 }
 
-func (wrk *Worker) doJobOnMessageWithSignature(cnsMsg *consensus.Message) {
+func (wrk *Worker) doJobOnMessageWithSignature(cnsMsg *consensus.Message, p2pMsg p2p.MessageP2P) error {
 	wrk.mutDisplayHashConsensusMessage.Lock()
 	defer wrk.mutDisplayHashConsensusMessage.Unlock()
 
 	hash := string(cnsMsg.BlockHeaderHash)
 	wrk.mapDisplayHashConsensusMessage[hash] = append(wrk.mapDisplayHashConsensusMessage[hash], cnsMsg)
+
+	msgBytes, err := wrk.marshalizer.Marshal(p2pMsg)
+	if err != nil {
+		return err
+	}
+	cnsMsg.InvalidSigners = msgBytes
+
+	return nil
 }
 
 func (wrk *Worker) addBlockToPool(bodyBytes []byte) {
