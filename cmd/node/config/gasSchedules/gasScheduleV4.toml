@@ -98,6 +98,7 @@
     GetOriginalTxHash    = 10000
     GetPrevTxHash      = 10000
     GetCurrentTxHash   = 10000
+    GetCallbackClosure   = 10000
 
 [EthAPICost]
     UseGas              = 100
