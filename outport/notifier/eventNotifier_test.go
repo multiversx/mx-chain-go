@@ -168,9 +168,9 @@ func TestGetLogEventsFromTransactionsPool(t *testing.T) {
 	}
 
 	require.Equal(t, len(events), len(receivedEvents))
-	require.Equal(t, txHash1, receivedEvents[0].TxHash)
-	require.Equal(t, txHash1, receivedEvents[1].TxHash)
-	require.Equal(t, txHash2, receivedEvents[2].TxHash)
+	require.Equal(t, hex.EncodeToString([]byte(txHash1)), receivedEvents[0].TxHash)
+	require.Equal(t, hex.EncodeToString([]byte(txHash1)), receivedEvents[1].TxHash)
+	require.Equal(t, hex.EncodeToString([]byte(txHash2)), receivedEvents[2].TxHash)
 }
 
 func TestMockFunctions(t *testing.T) {
