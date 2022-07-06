@@ -6,7 +6,6 @@ import (
 	"os"
 	"runtime"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -140,6 +139,12 @@ var (
 		Name:  "use-health-service",
 		Usage: "Boolean option for enabling the health service.",
 	}
+	// memoryUsageToCreateProfiles is used to set a custom value for the memory usage threshold (in bytes)
+	memoryUsageToCreateProfiles = cli.Uint64Flag{
+		Name:  "memory-usage-to-create-profiles",
+		Usage: "Integer value to be used to set the memory usage thresholds (in bytes)",
+		Value: 2415919104, // 2.25GB
+	}
 	// validatorKeyIndex defines a flag that specifies the 0-th based index of the private key to be used from validatorKey.pem file
 	validatorKeyIndex = cli.IntFlag{
 		Name:  "sk-index",
@@ -189,7 +194,7 @@ var (
 		Value: "",
 	}
 
-	//useLogView is a deprecated flag, but kept for backwards compatibility
+	// useLogView is a deprecated flag, but kept for backwards compatibility
 	useLogView = cli.BoolFlag{
 		Name: "use-log-view",
 		Usage: "Deprecated flag. This flag's value is not used anymore as the only way the node starts now is within " +
@@ -212,17 +217,17 @@ var (
 			" log level.",
 		Value: "*:" + logger.LogInfo.String(),
 	}
-	//logFile is used when the log output needs to be logged in a file
+	// logFile is used when the log output needs to be logged in a file
 	logSaveFile = cli.BoolFlag{
 		Name:  "log-save",
 		Usage: "Boolean option for enabling log saving. If set, it will automatically save all the logs into a file.",
 	}
-	//logWithCorrelation is used to enable log correlation elements
+	// logWithCorrelation is used to enable log correlation elements
 	logWithCorrelation = cli.BoolFlag{
 		Name:  "log-correlation",
 		Usage: "Boolean option for enabling log correlation elements.",
 	}
-	//logWithLoggerName is used to enable log correlation elements
+	// logWithLoggerName is used to enable log correlation elements
 	logWithLoggerName = cli.BoolFlag{
 		Name:  "log-logger-name",
 		Usage: "Boolean option for logger name in the logs.",
@@ -365,6 +370,7 @@ func getFlags() []cli.Flag {
 		redundancyLevel,
 		fullArchive,
 		memBallast,
+		memoryUsageToCreateProfiles,
 	}
 }
 
@@ -414,6 +420,11 @@ func applyFlags(ctx *cli.Context, cfgs *config.Configs, flagsConfig *config.Cont
 	}
 	if ctx.IsSet(fullArchive.Name) {
 		cfgs.PreferencesConfig.Preferences.FullArchive = ctx.GlobalBool(fullArchive.Name)
+	}
+	if ctx.IsSet(memoryUsageToCreateProfiles.Name) {
+		cfgs.GeneralConfig.Health.MemoryUsageToCreateProfiles = int(ctx.GlobalUint64(memoryUsageToCreateProfiles.Name))
+		log.Info("setting a new value for the memoryUsageToCreateProfiles option",
+			"new value", cfgs.GeneralConfig.Health.MemoryUsageToCreateProfiles)
 	}
 
 	importDbDirectoryValue := ctx.GlobalString(importDbDirectory.Name)
@@ -499,14 +510,6 @@ func processConfigImportDBMode(log logger.Logger, configs *config.Configs) error
 	p2pConfigs.Node.ThresholdMinConnectedPeers = 0
 	p2pConfigs.KadDhtPeerDiscovery.Enabled = false
 
-	defaultSecondsToCheckHealth := 300                   // 5minutes
-	defaultDiagnoseMemoryLimit := 6 * 1024 * 1024 * 1024 // 6GB
-
-	generalConfigs.Health.IntervalDiagnoseComponentsDeeplyInSeconds = defaultSecondsToCheckHealth
-	generalConfigs.Health.IntervalDiagnoseComponentsInSeconds = defaultSecondsToCheckHealth
-	generalConfigs.Health.IntervalVerifyMemoryInSeconds = defaultSecondsToCheckHealth
-	generalConfigs.Health.MemoryUsageToCreateProfiles = defaultDiagnoseMemoryLimit
-
 	alterStorageConfigsForDBImport(generalConfigs)
 
 	log.Warn("the node is in import mode! Will auto-set some config values, including storage config values",
@@ -520,10 +523,6 @@ func processConfigImportDBMode(log logger.Logger, configs *config.Configs) error
 		"import DB start in epoch", importDbFlags.ImportDBStartInEpoch,
 		"import DB shard ID", importDbFlags.ImportDBTargetShardID,
 		"kad dht discoverer", "off",
-		"health interval diagnose components deeply in seconds", generalConfigs.Health.IntervalDiagnoseComponentsDeeplyInSeconds,
-		"health interval diagnose components in seconds", generalConfigs.Health.IntervalDiagnoseComponentsInSeconds,
-		"health interval verify memory in seconds", generalConfigs.Health.IntervalVerifyMemoryInSeconds,
-		"health memory usage threshold", core.ConvertBytes(uint64(generalConfigs.Health.MemoryUsageToCreateProfiles)),
 	)
 	return nil
 }
