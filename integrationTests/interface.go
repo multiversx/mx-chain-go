@@ -99,11 +99,8 @@ type Facade interface {
 	GetProofCurrentRootHash(address string) (*common.GetProofResponse, error)
 	VerifyProof(rootHash string, address string, proof [][]byte) (bool, error)
 	GetGenesisNodesPubKeys() (map[uint32][]string, map[uint32][]string, error)
-<<<<<<< HEAD
 	GetGasConfigs() (map[string]map[string]uint64, error)
-=======
 	GetGenesisBalances() ([]*common.InitialAccountAPI, error)
->>>>>>> development
 	GetTransactionsPool() (*common.TransactionsPoolAPIResponse, error)
 	IsInterfaceNil() bool
 }

@@ -31,11 +31,8 @@ type ArgNodeApiResolver struct {
 	APIInternalBlockHandler  blockAPI.APIInternalBlockHandler
 	GenesisNodesSetupHandler sharding.GenesisNodesSetupHandler
 	ValidatorPubKeyConverter core.PubkeyConverter
-<<<<<<< HEAD
 	GasScheduleNotifier      common.GasScheduleNotifierAPI
-=======
 	AccountsParser           genesis.AccountsParser
->>>>>>> development
 }
 
 // nodeApiResolver can resolve API requests
@@ -51,11 +48,8 @@ type nodeApiResolver struct {
 	apiInternalBlockHandler  blockAPI.APIInternalBlockHandler
 	genesisNodesSetupHandler sharding.GenesisNodesSetupHandler
 	validatorPubKeyConverter core.PubkeyConverter
-<<<<<<< HEAD
 	gasScheduleNotifier      common.GasScheduleNotifierAPI
-=======
 	accountsParser           genesis.AccountsParser
->>>>>>> development
 }
 
 // NewNodeApiResolver creates a new nodeApiResolver instance
@@ -93,13 +87,11 @@ func NewNodeApiResolver(arg ArgNodeApiResolver) (*nodeApiResolver, error) {
 	if check.IfNil(arg.ValidatorPubKeyConverter) {
 		return nil, ErrNilValidatorPubKeyConverter
 	}
-<<<<<<< HEAD
 	if check.IfNil(arg.GasScheduleNotifier) {
 		return nil, ErrNilGasScheduler
-=======
+	}
 	if check.IfNil(arg.AccountsParser) {
 		return nil, ErrNilAccountsParser
->>>>>>> development
 	}
 
 	return &nodeApiResolver{
@@ -114,11 +106,8 @@ func NewNodeApiResolver(arg ArgNodeApiResolver) (*nodeApiResolver, error) {
 		apiInternalBlockHandler:  arg.APIInternalBlockHandler,
 		genesisNodesSetupHandler: arg.GenesisNodesSetupHandler,
 		validatorPubKeyConverter: arg.ValidatorPubKeyConverter,
-<<<<<<< HEAD
 		gasScheduleNotifier:      arg.GasScheduleNotifier,
-=======
 		accountsParser:           arg.AccountsParser,
->>>>>>> development
 	}, nil
 }
 

@@ -38,11 +38,8 @@ func createMockArgs() external.ArgNodeApiResolver {
 		APIInternalBlockHandler:  &mock.InternalBlockApiHandlerStub{},
 		GenesisNodesSetupHandler: &testscommon.NodesSetupStub{},
 		ValidatorPubKeyConverter: &testscommon.PubkeyConverterMock{},
-<<<<<<< HEAD
 		GasScheduleNotifier:      &testscommon.GasScheduleNotifierMock{},
-=======
 		AccountsParser:           &genesisMocks.AccountsParserStub{},
->>>>>>> development
 	}
 }
 
@@ -439,7 +436,6 @@ func TestNodeApiResolver_GetGenesisNodesPubKeys(t *testing.T) {
 	assert.Equal(t, expectedWaiting, wt)
 }
 
-<<<<<<< HEAD
 func TestNodeApiResolver_GetGasConfigs(t *testing.T) {
 	t.Parallel()
 
@@ -458,7 +454,8 @@ func TestNodeApiResolver_GetGasConfigs(t *testing.T) {
 
 	_ = nar.GetGasConfigs()
 	require.True(t, wasCalled)
-=======
+}
+
 func TestNodeApiResolver_GetGenesisBalances(t *testing.T) {
 	t.Parallel()
 
@@ -515,5 +512,4 @@ func TestNodeApiResolver_GetGenesisBalances(t *testing.T) {
 			},
 		}, res)
 	})
->>>>>>> development
 }

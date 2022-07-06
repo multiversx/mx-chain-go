@@ -767,11 +767,7 @@ func TestGetGenesisNodes(t *testing.T) {
 	})
 }
 
-<<<<<<< HEAD
-func TestGetGasConfigs(t *testing.T) {
-=======
 func TestGetGenesisBalances(t *testing.T) {
->>>>>>> development
 	t.Parallel()
 
 	t.Run("facade error, should fail", func(t *testing.T) {
@@ -779,11 +775,7 @@ func TestGetGenesisBalances(t *testing.T) {
 
 		expectedErr := errors.New("expected err")
 		facade := mock.FacadeStub{
-<<<<<<< HEAD
-			GetGasConfigsCalled: func() (map[string]map[string]uint64, error) {
-=======
 			GetGenesisBalancesCalled: func() ([]*common.InitialAccountAPI, error) {
->>>>>>> development
 				return nil, expectedErr
 			},
 		}
@@ -793,19 +785,11 @@ func TestGetGenesisBalances(t *testing.T) {
 
 		ws := startWebServer(networkGroup, "network", getNetworkRoutesConfig())
 
-<<<<<<< HEAD
-		req, _ := http.NewRequest("GET", "/network/gas-configs", nil)
-		resp := httptest.NewRecorder()
-		ws.ServeHTTP(resp, req)
-
-		response := genesisNodesConfigResponse{}
-=======
 		req, _ := http.NewRequest("GET", "/network/genesis-balances", nil)
 		resp := httptest.NewRecorder()
 		ws.ServeHTTP(resp, req)
 
 		response := genesisBalancesResponse{}
->>>>>>> development
 		loadResponse(resp.Body, &response)
 
 		assert.Equal(t, http.StatusInternalServerError, resp.Code)
@@ -815,22 +799,6 @@ func TestGetGenesisBalances(t *testing.T) {
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-<<<<<<< HEAD
-		builtInCost := map[string]uint64{
-			"val1": 1,
-		}
-		metaChainSystemSCsCost := map[string]uint64{
-			"val2": 2,
-		}
-		expectedMap := map[string]map[string]uint64{
-			common.BuiltInCost:            builtInCost,
-			common.MetaChainSystemSCsCost: metaChainSystemSCsCost,
-		}
-
-		facade := mock.FacadeStub{
-			GetGasConfigsCalled: func() (map[string]map[string]uint64, error) {
-				return expectedMap, nil
-=======
 		initialAccounts := []*common.InitialAccountAPI{
 			{
 				Address:      "addr0",
@@ -845,7 +813,6 @@ func TestGetGenesisBalances(t *testing.T) {
 		facade := mock.FacadeStub{
 			GetGenesisBalancesCalled: func() ([]*common.InitialAccountAPI, error) {
 				return initialAccounts, nil
->>>>>>> development
 			},
 		}
 
@@ -854,28 +821,84 @@ func TestGetGenesisBalances(t *testing.T) {
 
 		ws := startWebServer(networkGroup, "network", getNetworkRoutesConfig())
 
-<<<<<<< HEAD
-		req, _ := http.NewRequest("GET", "/network/gas-configs", nil)
-=======
 		req, _ := http.NewRequest("GET", "/network/genesis-balances", nil)
->>>>>>> development
 		resp := httptest.NewRecorder()
 		ws.ServeHTTP(resp, req)
 
 		assert.Equal(t, resp.Code, http.StatusOK)
 
-<<<<<<< HEAD
+		response := genesisBalancesResponse{}
+		loadResponse(resp.Body, &response)
+
+		assert.Equal(t, initialAccounts, response.Data.Balances)
+	})
+}
+
+func TestGetGasConfigs(t *testing.T) {
+	t.Parallel()
+
+	t.Run("facade error, should fail", func(t *testing.T) {
+		t.Parallel()
+
+		expectedErr := errors.New("expected err")
+		facade := mock.FacadeStub{
+			GetGasConfigsCalled: func() (map[string]map[string]uint64, error) {
+				return nil, expectedErr
+			},
+		}
+
+		networkGroup, err := groups.NewNetworkGroup(&facade)
+		require.NoError(t, err)
+
+		ws := startWebServer(networkGroup, "network", getNetworkRoutesConfig())
+
+		req, _ := http.NewRequest("GET", "/network/gas-configs", nil)
+		resp := httptest.NewRecorder()
+		ws.ServeHTTP(resp, req)
+
+		response := genesisNodesConfigResponse{}
+		loadResponse(resp.Body, &response)
+
+		assert.Equal(t, http.StatusInternalServerError, resp.Code)
+		assert.True(t, strings.Contains(response.Error, expectedErr.Error()))
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		builtInCost := map[string]uint64{
+			"val1": 1,
+		}
+		metaChainSystemSCsCost := map[string]uint64{
+			"val2": 2,
+		}
+		expectedMap := map[string]map[string]uint64{
+			common.BuiltInCost:            builtInCost,
+			common.MetaChainSystemSCsCost: metaChainSystemSCsCost,
+		}
+
+		facade := mock.FacadeStub{
+			GetGasConfigsCalled: func() (map[string]map[string]uint64, error) {
+				return expectedMap, nil
+			},
+		}
+
+		networkGroup, err := groups.NewNetworkGroup(&facade)
+		require.NoError(t, err)
+
+		ws := startWebServer(networkGroup, "network", getNetworkRoutesConfig())
+
+		req, _ := http.NewRequest("GET", "/network/gas-configs", nil)
+		resp := httptest.NewRecorder()
+		ws.ServeHTTP(resp, req)
+
+		assert.Equal(t, resp.Code, http.StatusOK)
+
 		response := gasConfigsResponse{}
 		loadResponse(resp.Body, &response)
 
 		assert.Equal(t, builtInCost, response.Data.Configs.BuiltInCost)
 		assert.Equal(t, metaChainSystemSCsCost, response.Data.Configs.MetaChainSystemSCsCost)
-=======
-		response := genesisBalancesResponse{}
-		loadResponse(resp.Body, &response)
-
-		assert.Equal(t, initialAccounts, response.Data.Balances)
->>>>>>> development
 	})
 }
 

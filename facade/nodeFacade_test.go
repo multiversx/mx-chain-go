@@ -1313,7 +1313,47 @@ func TestNodeFacade_GetTransactionsPool(t *testing.T) {
 	})
 }
 
-<<<<<<< HEAD
+func TestNodeFacade_GetGenesisBalances(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should return error", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArguments()
+		expectedErr := errors.New("expected error")
+		arg.ApiResolver = &mock.ApiResolverStub{
+			GetGenesisBalancesCalled: func() ([]*common.InitialAccountAPI, error) {
+				return nil, expectedErr
+			},
+		}
+
+		nf, _ := NewNodeFacade(arg)
+		res, err := nf.GetGenesisBalances()
+		require.Nil(t, res)
+		require.Equal(t, expectedErr, err)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArguments()
+		expectedBalances := []*common.InitialAccountAPI{
+			{
+				Address: "addr",
+			},
+		}
+		arg.ApiResolver = &mock.ApiResolverStub{
+			GetGenesisBalancesCalled: func() ([]*common.InitialAccountAPI, error) {
+				return expectedBalances, nil
+			},
+		}
+
+		nf, _ := NewNodeFacade(arg)
+		res, err := nf.GetGenesisBalances()
+		require.NoError(t, err)
+		require.Equal(t, expectedBalances, res)
+	})
+}
+
 func TestGetGasConfigs(t *testing.T) {
 	t.Parallel()
 
@@ -1327,40 +1367,19 @@ func TestGetGasConfigs(t *testing.T) {
 			GetGasConfigsCalled: func() map[string]map[string]uint64 {
 				wasCalled = true
 				return make(map[string]map[string]uint64)
-=======
-func TestNodeFacade_GetGenesisBalances(t *testing.T) {
-	t.Parallel()
-
-	t.Run("should return error", func(t *testing.T) {
-		t.Parallel()
-
-		arg := createMockArguments()
-		expectedErr := errors.New("expected error")
-		arg.ApiResolver = &mock.ApiResolverStub{
-			GetGenesisBalancesCalled: func() ([]*common.InitialAccountAPI, error) {
-				return nil, expectedErr
->>>>>>> development
 			},
 		}
 
 		nf, _ := NewNodeFacade(arg)
-<<<<<<< HEAD
 		_, err := nf.GetGasConfigs()
 		require.Equal(t, ErrEmptyGasConfigs, err)
 		require.True(t, wasCalled)
 	})
 
-=======
-		res, err := nf.GetGenesisBalances()
-		require.Nil(t, res)
-		require.Equal(t, expectedErr, err)
-	})
->>>>>>> development
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
 		arg := createMockArguments()
-<<<<<<< HEAD
 
 		providedMap := map[string]map[string]uint64{
 			"map1": {
@@ -1372,29 +1391,13 @@ func TestNodeFacade_GetGenesisBalances(t *testing.T) {
 			GetGasConfigsCalled: func() map[string]map[string]uint64 {
 				wasCalled = true
 				return providedMap
-=======
-		expectedBalances := []*common.InitialAccountAPI{
-			{
-				Address: "addr",
-			},
-		}
-		arg.ApiResolver = &mock.ApiResolverStub{
-			GetGenesisBalancesCalled: func() ([]*common.InitialAccountAPI, error) {
-				return expectedBalances, nil
->>>>>>> development
 			},
 		}
 
 		nf, _ := NewNodeFacade(arg)
-<<<<<<< HEAD
 		gasConfigMap, err := nf.GetGasConfigs()
 		require.NoError(t, err)
 		require.Equal(t, providedMap, gasConfigMap)
 		require.True(t, wasCalled)
-=======
-		res, err := nf.GetGenesisBalances()
-		require.NoError(t, err)
-		require.Equal(t, expectedBalances, res)
->>>>>>> development
 	})
 }

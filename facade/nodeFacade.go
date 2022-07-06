@@ -594,7 +594,6 @@ func (nf *nodeFacade) GetGenesisNodesPubKeys() (map[uint32][]string, map[uint32]
 	return eligible, waiting, nil
 }
 
-<<<<<<< HEAD
 // GetGasConfigs will return currently using gas schedule configs
 func (nf *nodeFacade) GetGasConfigs() (map[string]map[string]uint64, error) {
 	gasConfigs := nf.apiResolver.GetGasConfigs()
@@ -603,7 +602,8 @@ func (nf *nodeFacade) GetGasConfigs() (map[string]map[string]uint64, error) {
 	}
 
 	return gasConfigs, nil
-=======
+}
+
 // GetGenesisBalances will return the balances minted on the genesis block
 func (nf *nodeFacade) GetGenesisBalances() ([]*common.InitialAccountAPI, error) {
 	initialAccounts, err := nf.apiResolver.GetGenesisBalances()
@@ -615,7 +615,6 @@ func (nf *nodeFacade) GetGenesisBalances() ([]*common.InitialAccountAPI, error) 
 	}
 
 	return initialAccounts, nil
->>>>>>> development
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

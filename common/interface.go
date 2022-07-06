@@ -138,12 +138,12 @@ type ProcessStatusHandler interface {
 	IsInterfaceNil() bool
 }
 
-<<<<<<< HEAD
 // GasScheduleNotifierAPI defines the behavior of the gas schedule notifier components that is used for api
 type GasScheduleNotifierAPI interface {
 	core.GasScheduleNotifier
 	LatestGasScheduleCopy() map[string]map[string]uint64
-=======
+}
+
 // BlockInfo provides a block information such as nonce, hash, roothash and so on
 type BlockInfo interface {
 	GetNonce() uint64
@@ -151,5 +151,4 @@ type BlockInfo interface {
 	GetRootHash() []byte
 	Equal(blockInfo BlockInfo) bool
 	IsInterfaceNil() bool
->>>>>>> development
 }

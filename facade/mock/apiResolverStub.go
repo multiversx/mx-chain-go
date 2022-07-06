@@ -33,11 +33,8 @@ type ApiResolverStub struct {
 	GetInternalStartOfEpochMetaBlockCalled func(format common.ApiOutputFormat, epoch uint32) (interface{}, error)
 	GetGenesisNodesPubKeysCalled           func() (map[uint32][]string, map[uint32][]string)
 	GetTransactionsPoolCalled              func() (*common.TransactionsPoolAPIResponse, error)
-<<<<<<< HEAD
 	GetGasConfigsCalled                    func() map[string]map[string]uint64
-=======
 	GetGenesisBalancesCalled               func() ([]*common.InitialAccountAPI, error)
->>>>>>> development
 }
 
 // GetTransaction -
@@ -211,7 +208,6 @@ func (ars *ApiResolverStub) GetGenesisNodesPubKeys() (map[uint32][]string, map[u
 	return nil, nil
 }
 
-<<<<<<< HEAD
 // GetGasConfigs -
 func (ars *ApiResolverStub) GetGasConfigs() map[string]map[string]uint64 {
 	if ars.GetGasConfigsCalled != nil {
@@ -219,7 +215,8 @@ func (ars *ApiResolverStub) GetGasConfigs() map[string]map[string]uint64 {
 	}
 
 	return nil
-=======
+}
+
 // GetGenesisBalances -
 func (ars *ApiResolverStub) GetGenesisBalances() ([]*common.InitialAccountAPI, error) {
 	if ars.GetGenesisBalancesCalled != nil {
@@ -227,7 +224,6 @@ func (ars *ApiResolverStub) GetGenesisBalances() ([]*common.InitialAccountAPI, e
 	}
 
 	return nil, nil
->>>>>>> development
 }
 
 // Close -

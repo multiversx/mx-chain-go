@@ -252,11 +252,8 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 		APIInternalBlockHandler:  apiInternalBlockProcessor,
 		GenesisNodesSetupHandler: &mock.NodesSetupStub{},
 		ValidatorPubKeyConverter: &testscommon.PubkeyConverterMock{},
-<<<<<<< HEAD
 		GasScheduleNotifier:      &testscommon.GasScheduleNotifierMock{},
-=======
 		AccountsParser:           &genesisMocks.AccountsParserStub{},
->>>>>>> development
 	}
 
 	apiResolver, err := external.NewNodeApiResolver(argsApiResolver)

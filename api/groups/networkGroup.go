@@ -30,11 +30,8 @@ const (
 	delegatedInfoPath      = "/delegated-info"
 	ratingsPath            = "/ratings"
 	genesisNodesConfigPath = "/genesis-nodes"
-<<<<<<< HEAD
-	gasConfigPath          = "/gas-configs"
-=======
 	genesisBalances        = "/genesis-balances"
->>>>>>> development
+	gasConfigPath          = "/gas-configs"
 )
 
 // networkFacadeHandler defines the methods to be implemented by a facade for handling network requests
