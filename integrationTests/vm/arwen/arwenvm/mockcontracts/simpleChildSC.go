@@ -3,9 +3,9 @@ package mockcontracts
 import (
 	"errors"
 
-	"github.com/ElrondNetwork/arwen-wasm-vm/v1_4/arwen"
-	mock "github.com/ElrondNetwork/arwen-wasm-vm/v1_4/mock/context"
-	test "github.com/ElrondNetwork/arwen-wasm-vm/v1_4/testcommon"
+	"github.com/ElrondNetwork/arwen-wasm-vm/v1_5/arwen"
+	mock "github.com/ElrondNetwork/arwen-wasm-vm/v1_5/mock/context"
+	test "github.com/ElrondNetwork/arwen-wasm-vm/v1_5/testcommon"
 )
 
 // SimpleCallChildMock is an exposed mock contract method

@@ -4,7 +4,7 @@ import (
 	"math/big"
 	"sync"
 
-	"github.com/ElrondNetwork/arwen-wasm-vm/v1_4/arwen/contexts"
+	"github.com/ElrondNetwork/arwen-wasm-vm/v1_5/arwen/contexts"
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/common"

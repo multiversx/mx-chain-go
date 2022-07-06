@@ -3,10 +3,10 @@ package mockcontracts
 import (
 	"math/big"
 
-	"github.com/ElrondNetwork/arwen-wasm-vm/v1_4/arwen"
-	"github.com/ElrondNetwork/arwen-wasm-vm/v1_4/arwen/elrondapi"
-	mock "github.com/ElrondNetwork/arwen-wasm-vm/v1_4/mock/context"
-	test "github.com/ElrondNetwork/arwen-wasm-vm/v1_4/testcommon"
+	"github.com/ElrondNetwork/arwen-wasm-vm/v1_5/arwen"
+	"github.com/ElrondNetwork/arwen-wasm-vm/v1_5/arwen/elrondapi"
+	mock "github.com/ElrondNetwork/arwen-wasm-vm/v1_5/mock/context"
+	test "github.com/ElrondNetwork/arwen-wasm-vm/v1_5/testcommon"
 	"github.com/stretchr/testify/require"
 )
 
