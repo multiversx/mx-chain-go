@@ -3,7 +3,7 @@ package integrationTests
 import (
 	"sync"
 
-	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/v1_4/config"
+	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/v1_5/config"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/common/forking"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"

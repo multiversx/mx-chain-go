@@ -9,9 +9,9 @@ import (
 	arwenHost12 "github.com/ElrondNetwork/arwen-wasm-vm/v1_2/arwen/host"
 	arwen13 "github.com/ElrondNetwork/arwen-wasm-vm/v1_3/arwen"
 	arwenHost13 "github.com/ElrondNetwork/arwen-wasm-vm/v1_3/arwen/host"
-	arwen14 "github.com/ElrondNetwork/arwen-wasm-vm/v1_4/arwen"
-	arwenHost14 "github.com/ElrondNetwork/arwen-wasm-vm/v1_4/arwen/host"
+	arwen14 "github.com/ElrondNetwork/arwen-wasm-vm/v1_5/arwen"
 	arwen15 "github.com/ElrondNetwork/arwen-wasm-vm/v1_5/arwen"
+	arwenHost14 "github.com/ElrondNetwork/arwen-wasm-vm/v1_5/arwen/host"
 	arwenHost15 "github.com/ElrondNetwork/arwen-wasm-vm/v1_5/arwen/host"
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
@@ -324,15 +324,6 @@ func (vmf *vmContainerFactory) createInProcessArwenVMV14() (vmcommon.VMExecution
 		EpochNotifier:                       vmf.epochNotifier,
 		WasmerSIGSEGVPassthrough:            vmf.config.WasmerSIGSEGVPassthrough,
 		TimeOutForSCExecutionInMilliseconds: vmf.config.TimeOutForSCExecutionInMilliseconds,
-		MultiESDTTransferAsyncCallBackEnableEpoch:       vmf.epochConfig.MultiESDTTransferFixOnCallBackOnEnableEpoch,
-		FixOOGReturnCodeEnableEpoch:                     vmf.epochConfig.FixOOGReturnCodeEnableEpoch,
-		RemoveNonUpdatedStorageEnableEpoch:              vmf.epochConfig.RemoveNonUpdatedStorageEnableEpoch,
-		CreateNFTThroughExecByCallerEnableEpoch:         vmf.epochConfig.CreateNFTThroughExecByCallerEnableEpoch,
-		UseDifferentGasCostForReadingCachedStorageEpoch: vmf.epochConfig.StorageAPICostOptimizationEnableEpoch,
-		DisableExecByCallerEnableEpoch:                  vmf.epochConfig.DisableExecByCallerEnableEpoch,
-		FixFailExecutionOnErrorEnableEpoch:              vmf.epochConfig.FailExecutionOnEveryAPIErrorEnableEpoch,
-		ManagedCryptoAPIEnableEpoch:                     vmf.epochConfig.ManagedCryptoAPIsEnableEpoch,
-		RefactorContextEnableEpoch:                      vmf.epochConfig.RefactorContextEnableEpoch,
 	}
 	return arwenHost14.NewArwenVM(vmf.blockChainHook, hostParameters)
 }
