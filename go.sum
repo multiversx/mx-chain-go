@@ -77,6 +77,8 @@ github.com/ElrondNetwork/elrond-vm-common v1.3.6 h1:4wr26EVIMAu7pJ197EkAqa1NYoVY
 github.com/ElrondNetwork/elrond-vm-common v1.3.6/go.mod h1:seROQuR7RJCoCS7mgRXVAlvjztltY1c+UroAgWr/USE=
 github.com/ElrondNetwork/elrond-vm-common-ghsa-xw23-hv54-vg9p v1.3.7-0.20220706122339-3b8c8e07b870 h1:hySHmw9hZaCmQSnr173M7Ydpdt5a07OPcON800XOyZ4=
 github.com/ElrondNetwork/elrond-vm-common-ghsa-xw23-hv54-vg9p v1.3.7-0.20220706122339-3b8c8e07b870/go.mod h1:seROQuR7RJCoCS7mgRXVAlvjztltY1c+UroAgWr/USE=
+github.com/ElrondNetwork/elrond-vm-common-ghsa-xw23-hv54-vg9p v1.3.7-0.20220706153722-bc06a3992636 h1:F4KEjjcGzyZy2Eek8EM4M7y6bP7HwyrqrgbptFkQfiU=
+github.com/ElrondNetwork/elrond-vm-common-ghsa-xw23-hv54-vg9p v1.3.7-0.20220706153722-bc06a3992636/go.mod h1:seROQuR7RJCoCS7mgRXVAlvjztltY1c+UroAgWr/USE=
 github.com/ElrondNetwork/go-libp2p-pubsub v0.6.1-rc1 h1:Nu/uwYQg/QbfoQ0uD6GahYTwgtAkAwtzsB0HVfSP58I=
 github.com/ElrondNetwork/go-libp2p-pubsub v0.6.1-rc1/go.mod h1:pJfaShe+i5aWZx8NhSkQjvOYQYLoqPztmFUlKjToOzM=
 github.com/ElrondNetwork/protobuf v1.3.2 h1:qoCSYiO+8GtXBEZWEjw0WPcZfM3g7QuuJrwpN+y6Mvg=

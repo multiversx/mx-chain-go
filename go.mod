@@ -56,4 +56,4 @@ replace github.com/ElrondNetwork/arwen-wasm-vm/v1_3 v1.3.40 => github.com/Elrond
 
 replace github.com/ElrondNetwork/arwen-wasm-vm/v1_4 v1.4.54-rc2 => github.com/ElrondNetwork/arwen-wasm-vm v1.4.54-rc2
 
-replace github.com/ElrondNetwork/elrond-vm-common v1.3.6 => github.com/ElrondNetwork/elrond-vm-common-ghsa-xw23-hv54-vg9p v1.3.7-0.20220706122339-3b8c8e07b870
+replace github.com/ElrondNetwork/elrond-vm-common v1.3.6 => github.com/ElrondNetwork/elrond-vm-common-ghsa-xw23-hv54-vg9p v1.3.7-0.20220706153722-bc06a3992636
