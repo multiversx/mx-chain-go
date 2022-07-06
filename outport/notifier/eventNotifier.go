@@ -124,7 +124,7 @@ func (en *eventNotifier) getLogEventsFromTransactionsPool(logs []*nodeData.LogDa
 		for _, eventHandler := range logData.LogHandler.GetLogEvents() {
 			le := &logEvent{
 				eventHandler: eventHandler,
-				txHash:       logData.TxHash,
+				txHash:       hex.EncodeToString([]byte(logData.TxHash)),
 			}
 
 			logEvents = append(logEvents, le)
