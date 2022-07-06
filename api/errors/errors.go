@@ -70,9 +70,6 @@ var ErrInvalidBlockRound = errors.New("invalid block round")
 // ErrInvalidEpoch signals that an invalid epoch parameter was provided
 var ErrInvalidEpoch = errors.New("invalid epoch parameter")
 
-// ErrInvalidQueryParameter signals and invalid query parameter was provided
-var ErrInvalidQueryParameter = errors.New("invalid query parameter")
-
 // ErrValidationEmptyBlockHash signals an empty block hash was provided
 var ErrValidationEmptyBlockHash = errors.New("block hash is empty")
 
@@ -126,3 +123,9 @@ var ErrGetGenesisNodes = errors.New("getting genesis nodes failed")
 
 // ErrGetGasConfigs signals that an error occurred while trying to fetch gas configs
 var ErrGetGasConfigs = errors.New("getting gas configs failed")
+
+// ErrGetGenesisBalances signals that an error happened when trying to fetch genesis balances config
+var ErrGetGenesisBalances = errors.New("getting genesis balances failed")
+
+// ErrBadUrlParams signals one or more incorrectly provided URL params (generic error)
+var ErrBadUrlParams = errors.New("bad url parameter(s)")

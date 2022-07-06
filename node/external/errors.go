@@ -20,12 +20,6 @@ var ErrNilDirectStakeListHandler = errors.New("nil direct stake list handler")
 // ErrNilDelegatedListHandler signals that a nil delegated list handler has been provided
 var ErrNilDelegatedListHandler = errors.New("nil delegated list handler")
 
-// ErrNilVmContainer signals that a nil vm container has been provided
-var ErrNilVmContainer = errors.New("nil vm container")
-
-// ErrNilVmFactory signals that a nil vm factory has been provided
-var ErrNilVmFactory = errors.New("nil vm factory")
-
 // ErrNilAPITransactionHandler signals that a nil api transaction handler has been provided
 var ErrNilAPITransactionHandler = errors.New("nil api transaction handler")
 
@@ -43,3 +37,6 @@ var ErrNilValidatorPubKeyConverter = errors.New("nil validator public key conver
 
 // ErrNilGasScheduler signals that a nil gas scheduler has been provided
 var ErrNilGasScheduler = errors.New("nil gas scheduler")
+
+// ErrNilAccountsParser signals that a nil accounts parser has been provided
+var ErrNilAccountsParser = errors.New("nil accounts parser")

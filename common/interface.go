@@ -143,3 +143,12 @@ type GasScheduleNotifierAPI interface {
 	core.GasScheduleNotifier
 	LatestGasScheduleCopy() map[string]map[string]uint64
 }
+
+// BlockInfo provides a block information such as nonce, hash, roothash and so on
+type BlockInfo interface {
+	GetNonce() uint64
+	GetHash() []byte
+	GetRootHash() []byte
+	Equal(blockInfo BlockInfo) bool
+	IsInterfaceNil() bool
+}

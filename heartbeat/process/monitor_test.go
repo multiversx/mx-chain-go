@@ -18,6 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
+	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/assert"
 )
@@ -444,7 +445,7 @@ func TestMonitor_ProcessReceivedMessageShouldSetPeerInactive(t *testing.T) {
 	th := mock.NewTimerMock()
 	pubKey1 := "pk1-should-stay-online"
 	pubKey2 := "pk2-should-go-offline"
-	storer, _ := storage.NewHeartbeatDbStorer(mock.NewStorerMock(), &mock.MarshallerMock{})
+	storer, _ := storage.NewHeartbeatDbStorer(genericMocks.NewStorerMock(), &mock.MarshallerMock{})
 	arg := createMockArgHeartbeatMonitor()
 	arg.Marshalizer = &mock.MarshallerStub{
 		UnmarshalHandler: func(obj interface{}, buff []byte) error {
@@ -508,7 +509,7 @@ func TestMonitor_RemoveInactiveValidatorsIfIntervalExceeded(t *testing.T) {
 	pubKey3 := "pk3-observer"
 	pubKey4 := "pk4-inactive"
 
-	storer, _ := storage.NewHeartbeatDbStorer(mock.NewStorerMock(), &mock.MarshallerMock{})
+	storer, _ := storage.NewHeartbeatDbStorer(genericMocks.NewStorerMock(), &mock.MarshallerMock{})
 
 	timer := mock.NewTimerMock()
 	genesisTime := timer.Now()
