@@ -1867,7 +1867,7 @@ func (e *esdt) sendNewTransferRoleAddressToSystemAccount(token []byte, address [
 		return
 	}
 
-	esdtTransferData := "ESDTTransferRoleAddAddress" + "@" + hex.EncodeToString(token) + "@" + hex.EncodeToString(address)
+	esdtTransferData := vmcommon.BuiltInFunctionESDTTransferRoleAddAddress + "@" + hex.EncodeToString(token) + "@" + hex.EncodeToString(address)
 	e.eei.SendGlobalSettingToAll(e.eSDTSCAddress, []byte(esdtTransferData))
 }
 
@@ -1876,7 +1876,7 @@ func (e *esdt) deleteTransferRoleAddressFromSystemAccount(token []byte, address 
 		return
 	}
 
-	esdtTransferData := "ESDTTransferRoleDeleteAddress" + "@" + hex.EncodeToString(token) + "@" + hex.EncodeToString(address)
+	esdtTransferData := vmcommon.BuiltInFunctionESDTTransferRoleDeleteAddress + "@" + hex.EncodeToString(token) + "@" + hex.EncodeToString(address)
 	e.eei.SendGlobalSettingToAll(e.eSDTSCAddress, []byte(esdtTransferData))
 }
 
@@ -1896,7 +1896,7 @@ func (e *esdt) sendAllTransferRoleAddresses(args *vmcommon.ContractCallInput) vm
 	}
 
 	numAddresses := 0
-	esdtTransferData := "ESDTTransferRoleAddAddress"
+	esdtTransferData := vmcommon.BuiltInFunctionESDTTransferRoleAddAddress
 	for _, role := range token.SpecialRoles {
 		for _, actualRole := range role.Roles {
 			if bytes.Equal(actualRole, []byte(core.ESDTRoleTransfer)) {
