@@ -1,6 +1,7 @@
 package arwenvm
 
 import (
+	"bytes"
 	"math/big"
 	"testing"
 
@@ -92,6 +93,8 @@ func testMockContract_CrossShard(t *testing.T, asyncCallType []byte) {
 		ChildAddress:      childAddress,
 		ThirdPartyAddress: thirdPartyAddress,
 		VaultAddress:      vaultAddress,
+
+		IsLegacyAsync: bytes.Equal(asyncCallType, LegacyAsyncCallType),
 	}
 
 	InitializeMockContracts(
