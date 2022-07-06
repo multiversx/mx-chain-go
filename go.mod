@@ -12,7 +12,7 @@ require (
 	github.com/ElrondNetwork/elrond-go-core v1.1.15
 	github.com/ElrondNetwork/elrond-go-crypto v1.0.1
 	github.com/ElrondNetwork/elrond-go-logger v1.0.7
-	github.com/ElrondNetwork/elrond-vm-common v1.3.6
+	github.com/ElrondNetwork/elrond-vm-common v1.3.10
 	github.com/ElrondNetwork/go-libp2p-pubsub v0.6.1-rc1
 	github.com/beevik/ntp v0.3.0
 	github.com/btcsuite/btcd v0.22.0-beta
@@ -55,5 +55,3 @@ replace github.com/ElrondNetwork/arwen-wasm-vm/v1_2 v1.2.40 => github.com/Elrond
 replace github.com/ElrondNetwork/arwen-wasm-vm/v1_3 v1.3.40 => github.com/ElrondNetwork/arwen-wasm-vm v1.3.40
 
 replace github.com/ElrondNetwork/arwen-wasm-vm/v1_4 v1.4.54-rc2 => github.com/ElrondNetwork/arwen-wasm-vm v1.4.54-rc2
-
-replace github.com/ElrondNetwork/elrond-vm-common v1.3.6 => github.com/ElrondNetwork/elrond-vm-common-ghsa-xw23-hv54-vg9p v1.3.7-0.20220706153722-bc06a3992636
