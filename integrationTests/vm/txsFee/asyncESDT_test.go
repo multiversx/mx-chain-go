@@ -447,3 +447,55 @@ func TestSendNFTToContractWith0Function(t *testing.T) {
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
 }
+
+func TestSendNFTToContractWith0FunctionNonPayable(t *testing.T) {
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
+	require.Nil(t, err)
+	defer testContext.Close()
+
+	ownerAddr := []byte("12345678901234567890123456789010")
+	sftTokenID := []byte("SFT-123456")
+	sftNonce := uint64(1)
+	sftBalance := big.NewInt(1000)
+
+	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, ownerAddr, big.NewInt(1000000000), sftTokenID, sftNonce, sftBalance)
+	utils.CheckESDTNFTBalance(t, testContext, ownerAddr, sftTokenID, sftNonce, sftBalance)
+
+	gasPrice := uint64(10)
+	ownerAccount, _ := testContext.Accounts.LoadAccount(ownerAddr)
+	deployGasLimit := uint64(1000000)
+	txGasLimit := uint64(1000000)
+
+	vaultAddr := utils.DoDeployWithMetadata(t,
+		testContext,
+		"../esdt/testdata/vault-managed-api.wasm",
+		ownerAccount,
+		gasPrice,
+		deployGasLimit,
+		[]byte("0000"),
+		nil,
+		big.NewInt(0),
+	)
+
+	// send the tokens to vault
+	ownerAccount, _ = testContext.Accounts.LoadAccount(ownerAddr)
+	tx := utils.CreateESDTNFTTransferTx(
+		ownerAccount.GetNonce(),
+		ownerAddr,
+		vaultAddr,
+		sftTokenID,
+		sftNonce,
+		sftBalance,
+		gasPrice,
+		txGasLimit,
+		"",
+	)
+	tx.Data = append(tx.Data, []byte("@")...)
+	retCode, err := testContext.TxProcessor.ProcessTransaction(tx)
+	// TODO: change this to vmcommon.User when resolving the TODO in vmcommon
+	require.Equal(t, vmcommon.Ok, retCode)
+	require.Nil(t, err)
+
+	_, err = testContext.Accounts.Commit()
+	require.Nil(t, err)
+}
