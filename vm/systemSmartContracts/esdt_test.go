@@ -3574,20 +3574,27 @@ func TestEsdt_SendAllTransferRoleAddresses(t *testing.T) {
 	require.Equal(t, vmcommon.FunctionNotFound, retCode)
 
 	e.flagSendTransferRoleAddress.SetValue(true)
+	eei.ReturnMessage = ""
+	retCode = e.Execute(vmInput)
+	require.Equal(t, vmcommon.UserError, retCode)
+	require.Equal(t, "too many arguments", eei.ReturnMessage)
+
 	called = 0
 	token.TokenType = []byte(core.NonFungibleESDT)
 	eei.SendGlobalSettingToAllCalled = func(sender []byte, input []byte) {
-		if called == 0 {
-			assert.Equal(t, core.BuiltInFunctionESDTSetLimitedTransfer+"@"+hex.EncodeToString([]byte("myToken")), string(input))
-		} else {
-			assert.Equal(t, vmcommon.BuiltInFunctionESDTTransferRoleAddAddress+"@"+hex.EncodeToString([]byte("myToken"))+"@"+hex.EncodeToString([]byte("myAddress")), string(input))
-		}
+		assert.Equal(t, vmcommon.BuiltInFunctionESDTTransferRoleAddAddress+"@"+hex.EncodeToString([]byte("myToken"))+"@"+hex.EncodeToString([]byte("myAddress1"))+"@"+hex.EncodeToString([]byte("myAddress2"))+"@"+hex.EncodeToString([]byte("myAddress3")), string(input))
 		called++
 	}
-
+	vmInput.Arguments = [][]byte{[]byte("myToken")}
 	retCode = e.Execute(vmInput)
 	require.Equal(t, vmcommon.Ok, retCode)
-	require.Equal(t, called, 2)
+	require.Equal(t, called, 1)
+
+	called = 0
+	token.SpecialRoles = make([]*ESDTRoles, 0)
+	retCode = e.Execute(vmInput)
+	require.Equal(t, vmcommon.UserError, retCode)
+	require.Equal(t, "no address with transfer role", eei.ReturnMessage)
 }
 
 func TestEsdt_SetSpecialRoleSFTShouldErr(t *testing.T) {

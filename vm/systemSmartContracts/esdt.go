@@ -238,6 +238,8 @@ func (e *esdt) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 		return e.setBurnRoleGlobally(args)
 	case "unsetBurnRoleGlobally":
 		return e.unsetBurnRoleGlobally(args)
+	case "sendAllTransferRoleAddresses":
+		return e.sendAllTransferRoleAddresses(args)
 	}
 
 	e.eei.AddReturnMessage("invalid method to call")
@@ -1896,7 +1898,7 @@ func (e *esdt) sendAllTransferRoleAddresses(args *vmcommon.ContractCallInput) vm
 	}
 
 	numAddresses := 0
-	esdtTransferData := vmcommon.BuiltInFunctionESDTTransferRoleAddAddress
+	esdtTransferData := vmcommon.BuiltInFunctionESDTTransferRoleAddAddress + "@" + hex.EncodeToString(args.Arguments[0])
 	for _, role := range token.SpecialRoles {
 		for _, actualRole := range role.Roles {
 			if bytes.Equal(actualRole, []byte(core.ESDTRoleTransfer)) {
