@@ -13,19 +13,20 @@ import (
 
 // ArgsCreateBuiltInFunctionContainer defines the argument structure to create new built in function container
 type ArgsCreateBuiltInFunctionContainer struct {
-	GasSchedule                    core.GasScheduleNotifier
-	MapDNSAddresses                map[string]struct{}
-	EnableUserNameChange           bool
-	Marshalizer                    marshal.Marshalizer
-	Accounts                       state.AccountsAdapter
-	ShardCoordinator               sharding.Coordinator
-	EpochNotifier                  vmcommon.EpochNotifier
-	ESDTMultiTransferEnableEpoch   uint32
-	ESDTTransferRoleEnableEpoch    uint32
-	GlobalMintBurnDisableEpoch     uint32
-	ESDTTransferMetaEnableEpoch    uint32
-	OptimizeNFTStoreEnableEpoch    uint32
-	CheckCorrectTokenIDEnableEpoch uint32
+	GasSchedule                      core.GasScheduleNotifier
+	MapDNSAddresses                  map[string]struct{}
+	EnableUserNameChange             bool
+	Marshalizer                      marshal.Marshalizer
+	Accounts                         state.AccountsAdapter
+	ShardCoordinator                 sharding.Coordinator
+	EpochNotifier                    vmcommon.EpochNotifier
+	ESDTMultiTransferEnableEpoch     uint32
+	ESDTTransferRoleEnableEpoch      uint32
+	GlobalMintBurnDisableEpoch       uint32
+	ESDTTransferMetaEnableEpoch      uint32
+	OptimizeNFTStoreEnableEpoch      uint32
+	CheckCorrectTokenIDEnableEpoch   uint32
+	CheckFunctionArgumentEnableEpoch uint32
 }
 
 // CreateBuiltInFuncContainerAndNFTStorageHandler creates a container that will hold all the available built in functions
@@ -68,6 +69,7 @@ func CreateBuiltInFuncContainerAndNFTStorageHandler(args ArgsCreateBuiltInFuncti
 		GlobalMintBurnDisableEpoch:          args.GlobalMintBurnDisableEpoch,
 		SaveNFTToSystemAccountEnableEpoch:   args.OptimizeNFTStoreEnableEpoch,
 		CheckCorrectTokenIDEnableEpoch:      args.CheckCorrectTokenIDEnableEpoch,
+		CheckFunctionArgumentEnableEpoch:    args.CheckFunctionArgumentEnableEpoch,
 	}
 
 	bContainerFactory, err := vmcommonBuiltInFunctions.NewBuiltInFunctionsCreator(modifiedArgs)

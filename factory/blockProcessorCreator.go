@@ -1143,18 +1143,19 @@ func (pcf *processComponentsFactory) createBuiltInFunctionContainer(
 	mapDNSAddresses map[string]struct{},
 ) (vmcommon.BuiltInFunctionContainer, vmcommon.SimpleESDTNFTStorageHandler, vmcommon.ESDTGlobalSettingsHandler, error) {
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:                    pcf.gasSchedule,
-		MapDNSAddresses:                mapDNSAddresses,
-		Marshalizer:                    pcf.coreData.InternalMarshalizer(),
-		Accounts:                       accounts,
-		ShardCoordinator:               pcf.bootstrapComponents.ShardCoordinator(),
-		EpochNotifier:                  pcf.epochNotifier,
-		ESDTMultiTransferEnableEpoch:   pcf.epochConfig.EnableEpochs.ESDTMultiTransferEnableEpoch,
-		ESDTTransferRoleEnableEpoch:    pcf.epochConfig.EnableEpochs.ESDTTransferRoleEnableEpoch,
-		GlobalMintBurnDisableEpoch:     pcf.epochConfig.EnableEpochs.GlobalMintBurnDisableEpoch,
-		ESDTTransferMetaEnableEpoch:    pcf.epochConfig.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch,
-		OptimizeNFTStoreEnableEpoch:    pcf.epochConfig.EnableEpochs.OptimizeNFTStoreEnableEpoch,
-		CheckCorrectTokenIDEnableEpoch: pcf.epochConfig.EnableEpochs.CheckCorrectTokenIDForTransferRoleEnableEpoch,
+		GasSchedule:                      pcf.gasSchedule,
+		MapDNSAddresses:                  mapDNSAddresses,
+		Marshalizer:                      pcf.coreData.InternalMarshalizer(),
+		Accounts:                         accounts,
+		ShardCoordinator:                 pcf.bootstrapComponents.ShardCoordinator(),
+		EpochNotifier:                    pcf.epochNotifier,
+		ESDTMultiTransferEnableEpoch:     pcf.epochConfig.EnableEpochs.ESDTMultiTransferEnableEpoch,
+		ESDTTransferRoleEnableEpoch:      pcf.epochConfig.EnableEpochs.ESDTTransferRoleEnableEpoch,
+		GlobalMintBurnDisableEpoch:       pcf.epochConfig.EnableEpochs.GlobalMintBurnDisableEpoch,
+		ESDTTransferMetaEnableEpoch:      pcf.epochConfig.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch,
+		OptimizeNFTStoreEnableEpoch:      pcf.epochConfig.EnableEpochs.OptimizeNFTStoreEnableEpoch,
+		CheckCorrectTokenIDEnableEpoch:   pcf.epochConfig.EnableEpochs.CheckCorrectTokenIDForTransferRoleEnableEpoch,
+		CheckFunctionArgumentEnableEpoch: pcf.epochConfig.EnableEpochs.CheckFunctionArgumentEnableEpoch,
 	}
 
 	return builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
