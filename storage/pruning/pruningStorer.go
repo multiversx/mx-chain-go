@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"math"
 	"runtime/debug"
-	"strings"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -300,17 +299,7 @@ func (ps *PruningStorer) Put(key, data []byte) error {
 
 	persisterToUse := ps.getPersisterToUse()
 
-	ps.logKey(key, "Put", persisterToUse.path)
 	return ps.doPutInPersister(key, data, persisterToUse.getPersister())
-}
-
-// TODO remove this
-func (ps *PruningStorer) logKey(key []byte, operation string, path string) {
-	if !strings.Contains(path, "MiniBlocks") {
-		return
-	}
-
-	log.Debug("BUGHUNT PruningStorer."+operation, "db path", path, "key", key)
 }
 
 func (ps *PruningStorer) getPersisterToUse() *persisterData {
@@ -362,8 +351,6 @@ func (ps *PruningStorer) PutInEpoch(key, data []byte, epoch uint32) error {
 	if !exists {
 		return fmt.Errorf("put in epoch: persister for epoch %d not found", epoch)
 	}
-
-	ps.logKey(key, fmt.Sprintf("PutInEpoch %d", epoch), pd.path)
 
 	persister, closePersister, err := ps.createAndInitPersisterIfClosedProtected(pd)
 	if err != nil {
@@ -621,8 +608,6 @@ func (ps *PruningStorer) RemoveFromCurrentEpoch(key []byte) error {
 
 	persisterToUse := ps.activePersisters[0]
 
-	ps.logKey(key, "RemoveFromCurrentEpoch", persisterToUse.path)
-
 	return persisterToUse.persister.Remove(key)
 }
 
@@ -634,8 +619,6 @@ func (ps *PruningStorer) Remove(key []byte) error {
 	ps.lock.RLock()
 	defer ps.lock.RUnlock()
 	for _, pd := range ps.activePersisters {
-		ps.logKey(key, "Remove", pd.path)
-
 		err = pd.persister.Remove(key)
 		if err == nil {
 			return nil
@@ -998,7 +981,6 @@ func (ps *PruningStorer) processPersistersToClose() []*persisterData {
 		allEpochsAfterProcess = append(allEpochsAfterProcess, p.epoch)
 	}
 
-	// TODO remove this
 	log.Debug("PruningStorer.processPersistersToClose",
 		"epochs to close", epochsToClose,
 		"before process", allEpochsBeforeProcess,
