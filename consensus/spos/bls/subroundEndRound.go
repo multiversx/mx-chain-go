@@ -27,6 +27,10 @@ type subroundEndRound struct {
 	mutProcessingEndRound         sync.Mutex
 }
 
+type invalidSigners struct {
+	signers [][]byte
+}
+
 // NewSubroundEndRound creates a subroundEndRound object
 func NewSubroundEndRound(
 	baseSubround *spos.Subround,
@@ -185,17 +189,18 @@ func (sr *subroundEndRound) receivedInvalidSignersInfo(_ context.Context, cnsDta
 	}
 
 	if len(cnsDta.InvalidSigners) == 0 {
+		log.Debug("receivedInvalidSignersInfo: no invalid Signers")
 		return false
 	}
 
-	var invalidSigners [][]byte
-	err := sr.Marshalizer().Unmarshal(invalidSigners, cnsDta.InvalidSigners)
+	var invalidS *invalidSigners
+	err := sr.Marshalizer().Unmarshal(invalidS, cnsDta.InvalidSigners)
 	if err != nil {
 		log.Debug("receivedInvalidSignersInfo.Unmarshal", "error", err.Error())
 		return false
 	}
 
-	for _, signer := range invalidSigners {
+	for _, signer := range invalidS.signers {
 		err = sr.verifyInvalidSigner(signer)
 		if err != nil {
 			log.Debug("receivedInvalidSignersInfo.verifyInvalidSigner", "error", err.Error())
@@ -474,17 +479,17 @@ func (sr *subroundEndRound) verifyNodesOnAggSigVerificationFail() ([]string, err
 }
 
 func (sr *subroundEndRound) getFullMessagesForInvalidSigners(invalidPubKeys []string) ([]byte, error) {
-	messages := make([][]byte, 0)
+	invalidS := &invalidSigners{signers: make([][]byte, 0)}
 	for _, pk := range invalidPubKeys {
 		msg, ok := sr.GetMessageWithSignature(pk)
 		if !ok {
 			continue
 		}
 
-		messages = append(messages, msg)
+		invalidS.signers = append(invalidS.signers, msg)
 	}
 
-	messagesBytes, err := sr.Marshalizer().Marshal(messages)
+	messagesBytes, err := sr.Marshalizer().Marshal(invalidS)
 	if err != nil {
 		return nil, err
 	}
