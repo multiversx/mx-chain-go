@@ -61,8 +61,6 @@ github.com/ElrondNetwork/elrond-go-core v1.0.0/go.mod h1:FQMem7fFF4+8pQ6lVsBZq6y
 github.com/ElrondNetwork/elrond-go-core v1.1.7/go.mod h1:O9FkkTT2H9kxCzfn40TbhoCDXzGmUrRVusMomhK/Y3g=
 github.com/ElrondNetwork/elrond-go-core v1.1.13/go.mod h1:Yz8JK5sGBctw7+gU8j2mZHbzQ09Ek4XHJ4Uinq1N6nM=
 github.com/ElrondNetwork/elrond-go-core v1.1.16-0.20220414130405-e3cc29bc7711/go.mod h1:Yz8JK5sGBctw7+gU8j2mZHbzQ09Ek4XHJ4Uinq1N6nM=
-github.com/ElrondNetwork/elrond-go-core v1.1.16-0.20220523150518-f1519c41d352 h1:AGHGB7bHGaUHNyplgGk6RyqB3w02eK5gpn2cGZ9LYm0=
-github.com/ElrondNetwork/elrond-go-core v1.1.16-0.20220523150518-f1519c41d352/go.mod h1:Yz8JK5sGBctw7+gU8j2mZHbzQ09Ek4XHJ4Uinq1N6nM=
 github.com/ElrondNetwork/elrond-go-core v1.1.16-0.20220630104220-f27fa634b2a2 h1:2GbdnEGC+uA+cSWQyOtURuf/p3BnTn0gYFB5TH1qURQ=
 github.com/ElrondNetwork/elrond-go-core v1.1.16-0.20220630104220-f27fa634b2a2/go.mod h1:Yz8JK5sGBctw7+gU8j2mZHbzQ09Ek4XHJ4Uinq1N6nM=
 github.com/ElrondNetwork/elrond-go-crypto v1.0.0/go.mod h1:DGiR7/j1xv729Xg8SsjYaUzWXL5svMd44REXjWS/gAc=
@@ -76,8 +74,9 @@ github.com/ElrondNetwork/elrond-vm-common v1.1.0/go.mod h1:w3i6f8uiuRkE68Ie/gebR
 github.com/ElrondNetwork/elrond-vm-common v1.2.9/go.mod h1:B/Y8WiqHyDd7xsjNYsaYbVMp1jQgQ+z4jTJkFvj/EWI=
 github.com/ElrondNetwork/elrond-vm-common v1.3.4/go.mod h1:B/Y8WiqHyDd7xsjNYsaYbVMp1jQgQ+z4jTJkFvj/EWI=
 github.com/ElrondNetwork/elrond-vm-common v1.3.7/go.mod h1:seROQuR7RJCoCS7mgRXVAlvjztltY1c+UroAgWr/USE=
-github.com/ElrondNetwork/elrond-vm-common v1.3.9 h1:7AwnXDNEYVzVObylOatdzW8HEH0DQa7dDI2fzg6KLwg=
 github.com/ElrondNetwork/elrond-vm-common v1.3.9/go.mod h1:seROQuR7RJCoCS7mgRXVAlvjztltY1c+UroAgWr/USE=
+github.com/ElrondNetwork/elrond-vm-common v1.3.12 h1:kj4lH/TkvzLKOC56vno3WEu4QR42reyyRiLsqyAv3s0=
+github.com/ElrondNetwork/elrond-vm-common v1.3.12/go.mod h1:seROQuR7RJCoCS7mgRXVAlvjztltY1c+UroAgWr/USE=
 github.com/ElrondNetwork/go-libp2p-pubsub v0.6.1-rc1 h1:Nu/uwYQg/QbfoQ0uD6GahYTwgtAkAwtzsB0HVfSP58I=
 github.com/ElrondNetwork/go-libp2p-pubsub v0.6.1-rc1/go.mod h1:pJfaShe+i5aWZx8NhSkQjvOYQYLoqPztmFUlKjToOzM=
 github.com/ElrondNetwork/protobuf v1.3.2 h1:qoCSYiO+8GtXBEZWEjw0WPcZfM3g7QuuJrwpN+y6Mvg=
