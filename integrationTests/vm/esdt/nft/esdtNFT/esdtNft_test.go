@@ -1015,7 +1015,7 @@ func TestESDTSFTWithEnhancedTransferRole(t *testing.T) {
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 	time.Sleep(time.Second)
 
-	nftMetaData.Quantity = initialQuantity + quantityToAdd - quantityToTransfer
+	nftMetaData.Quantity = initialQuantity + quantityToAdd - int64(len(nodes)-1)*quantityToTransfer
 	nft.CheckNftData(
 		t,
 		tokenIssuer.OwnAccount.Address,

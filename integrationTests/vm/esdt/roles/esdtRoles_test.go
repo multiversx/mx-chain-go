@@ -474,7 +474,7 @@ func TestESDTWithTransferRoleCrossShardShouldWork(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	numOfShards := 2
+	numOfShards := 5
 	nodesPerShard := 2
 	numMetachainNodes := 2
 
