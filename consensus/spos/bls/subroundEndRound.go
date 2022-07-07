@@ -3,6 +3,7 @@ package bls
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"sync"
 	"time"
@@ -219,8 +220,8 @@ func (sr *subroundEndRound) receivedInvalidSignersInfo(_ context.Context, cnsDta
 }
 
 func (sr *subroundEndRound) verifyInvalidSigner(invalidSigner []byte) error {
-	var p2pMsg message.Message
-	err := sr.Marshalizer().Unmarshal(p2pMsg, invalidSigner)
+	var p2pMsg *message.Message
+	err := json.Unmarshal(invalidSigner, p2pMsg)
 	if err != nil {
 		return err
 	}
@@ -259,7 +260,7 @@ func (sr *subroundEndRound) verifyInvalidSigner(invalidSigner []byte) error {
 	err = multiSigner.VerifySignatureShare(uint16(index), sigShare, sr.GetData(), nil)
 	if err != nil {
 		log.Debug("confirmed that node provided invalid signiture")
-		sr.applyBlacklistOnNode(pubKey)
+		err = sr.applyBlacklistOnNode(pubKey)
 		if err != nil {
 			return err
 		}

@@ -3,6 +3,7 @@ package spos
 import (
 	"context"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strconv"
@@ -21,6 +22,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/ElrondNetwork/elrond-go/p2p/message"
+	p2pMessage "github.com/ElrondNetwork/elrond-go/p2p/message"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
@@ -390,8 +393,15 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedP
 	}
 
 	if wrk.consensusService.IsMessageWithSignature(msgType) {
-		err = wrk.doJobOnMessageWithSignature(cnsMsg, message)
+		log.Debug("IsMessageWithSignature")
+		p2pMsg, ok := message.(*p2pMessage.Message)
+		if !ok {
+			return ErrWrongTypeAssertion
+		}
+
+		err = wrk.doJobOnMessageWithSignature(cnsMsg, p2pMsg)
 		if err != nil {
+			log.Debug("worker: doJobOnMessageWithSignature", "error", err.Error())
 			return err
 		}
 	}
@@ -477,14 +487,15 @@ func (wrk *Worker) doJobOnMessageWithHeader(cnsMsg *consensus.Message) error {
 	return nil
 }
 
-func (wrk *Worker) doJobOnMessageWithSignature(cnsMsg *consensus.Message, p2pMsg p2p.MessageP2P) error {
+func (wrk *Worker) doJobOnMessageWithSignature(cnsMsg *consensus.Message, p2pMsg *message.Message) error {
 	wrk.mutDisplayHashConsensusMessage.Lock()
 	defer wrk.mutDisplayHashConsensusMessage.Unlock()
 
 	hash := string(cnsMsg.BlockHeaderHash)
 	wrk.mapDisplayHashConsensusMessage[hash] = append(wrk.mapDisplayHashConsensusMessage[hash], cnsMsg)
 
-	msgBytes, err := wrk.marshalizer.Marshal(p2pMsg)
+	// TODO: analyse better marshalling options here
+	msgBytes, err := json.Marshal(p2pMsg)
 	if err != nil {
 		return err
 	}

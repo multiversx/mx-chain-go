@@ -222,3 +222,6 @@ var ErrNilScheduledProcessor = errors.New("nil scheduled processor")
 
 // ErrInvalidNumSigShares signals that an invalid number of signature shares has been provided
 var ErrInvalidNumSigShares = errors.New("invalid number of sig shares")
+
+// ErrWrongTypeAssertion signals that a wrong type assertion has been triggered
+var ErrWrongTypeAssertion = errors.New("wrong type assertion")

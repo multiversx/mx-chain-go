@@ -36,6 +36,7 @@ func (wrk *worker) InitReceivedMessages() map[consensus.MessageType][]*consensus
 	receivedMessages[MtBlockHeader] = make([]*consensus.Message, 0)
 	receivedMessages[MtSignature] = make([]*consensus.Message, 0)
 	receivedMessages[MtBlockHeaderFinalInfo] = make([]*consensus.Message, 0)
+	receivedMessages[MtInvalidSigners] = make([]*consensus.Message, 0)
 
 	return receivedMessages
 }

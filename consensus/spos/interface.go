@@ -91,6 +91,8 @@ type ConsensusService interface {
 	IsMessageWithFinalInfo(consensus.MessageType) bool
 	// IsMessageTypeValid returns if the current messageType is valid
 	IsMessageTypeValid(consensus.MessageType) bool
+	// IsMessageWithInvalidSigners returns if the current messageType is with invalid signers
+	IsMessageWithInvalidSigners(consensus.MessageType) bool
 	// IsSubroundSignature returns if the current subround is about signature
 	IsSubroundSignature(int) bool
 	// IsSubroundStartRound returns if the current subround is about start round
