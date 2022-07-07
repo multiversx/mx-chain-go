@@ -74,6 +74,7 @@ type ComponentsNeededForBootstrap struct {
 	Headers             map[string]data.HeaderHandler
 	ShardCoordinator    sharding.Coordinator
 	PendingMiniBlocks   map[string]*block.MiniBlock
+	PeerMiniBlocks      []*block.MiniBlock
 }
 
 // epochStartBootstrap will handle requesting the needed data to start when joining late the network
@@ -640,7 +641,7 @@ func (e *epochStartBootstrap) requestAndProcessing() (Parameters, error) {
 		return Parameters{}, err
 	}
 
-	err = e.processNodesConfig(pubKeyBytes)
+	miniBlocks, err := e.processNodesConfig(pubKeyBytes)
 	if err != nil {
 		return Parameters{}, err
 	}
@@ -659,12 +660,12 @@ func (e *epochStartBootstrap) requestAndProcessing() (Parameters, error) {
 	}
 
 	if e.shardCoordinator.SelfId() == core.MetachainShardId {
-		err = e.requestAndProcessForMeta()
+		err = e.requestAndProcessForMeta(miniBlocks)
 		if err != nil {
 			return Parameters{}, err
 		}
 	} else {
-		err = e.requestAndProcessForShard()
+		err = e.requestAndProcessForShard(miniBlocks)
 		if err != nil {
 			return Parameters{}, err
 		}
@@ -696,7 +697,7 @@ func (e *epochStartBootstrap) saveSelfShardId() {
 	}
 }
 
-func (e *epochStartBootstrap) processNodesConfig(pubKey []byte) error {
+func (e *epochStartBootstrap) processNodesConfig(pubKey []byte) ([]*block.MiniBlock, error) {
 	var err error
 	shardId := e.destinationShardAsObserver
 	if shardId > e.baseData.numberOfShards && shardId != core.MetachainShardId {
@@ -720,16 +721,17 @@ func (e *epochStartBootstrap) processNodesConfig(pubKey []byte) error {
 
 	e.nodesConfigHandler, err = NewSyncValidatorStatus(argsNewValidatorStatusSyncers)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	e.nodesConfig, e.baseData.shardId, err = e.nodesConfigHandler.NodesConfigFromMetaBlock(e.epochStartMeta, e.prevEpochStartMeta)
+	var miniBlocks []*block.MiniBlock
+	e.nodesConfig, e.baseData.shardId, miniBlocks, err = e.nodesConfigHandler.NodesConfigFromMetaBlock(e.epochStartMeta, e.prevEpochStartMeta)
 	e.baseData.shardId = e.applyShardIDAsObserverIfNeeded(e.baseData.shardId)
 
-	return err
+	return miniBlocks, err
 }
 
-func (e *epochStartBootstrap) requestAndProcessForMeta() error {
+func (e *epochStartBootstrap) requestAndProcessForMeta(peerMiniBlocks []*block.MiniBlock) error {
 	var err error
 
 	storageHandlerComponent, err := NewMetaStorageHandler(
@@ -788,6 +790,7 @@ func (e *epochStartBootstrap) requestAndProcessForMeta() error {
 		Headers:             e.syncedHeaders,
 		ShardCoordinator:    e.shardCoordinator,
 		PendingMiniBlocks:   pendingMiniBlocks,
+		PeerMiniBlocks:      peerMiniBlocks,
 	}
 
 	errSavingToStorage := storageHandlerComponent.SaveDataToStorage(components)
@@ -832,7 +835,7 @@ func (e *epochStartBootstrap) findSelfShardEpochStartData() (data.EpochStartShar
 	return epochStartData, epochStart.ErrEpochStartDataForShardNotFound
 }
 
-func (e *epochStartBootstrap) requestAndProcessForShard() error {
+func (e *epochStartBootstrap) requestAndProcessForShard(peerMiniBlocks []*block.MiniBlock) error {
 	epochStartData, err := e.findSelfShardEpochStartData()
 	if err != nil {
 		return err
@@ -942,6 +945,7 @@ func (e *epochStartBootstrap) requestAndProcessForShard() error {
 		Headers:             e.syncedHeaders,
 		ShardCoordinator:    e.shardCoordinator,
 		PendingMiniBlocks:   pendingMiniBlocks,
+		PeerMiniBlocks:      peerMiniBlocks,
 	}
 
 	errSavingToStorage := storageHandlerComponent.SaveDataToStorage(components, shardNotarizedHeader, dts.withScheduled)
