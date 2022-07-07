@@ -324,8 +324,7 @@ func (ps *PruningStorer) getPersisterToUse() *persisterData {
 			"epoch", ps.epochForPutOperation,
 			"used", persisterToUse.epoch,
 			"path", ps.dbPath,
-			"returning persister", returningPath,
-			"stack", string(debug.Stack())) // TODO remove debug.Stack call
+			"returning persister", returningPath)
 	}
 
 	return persisterToUse
