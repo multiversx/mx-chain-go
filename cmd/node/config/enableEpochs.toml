@@ -189,25 +189,34 @@
     SCRSizeInvariantOnBuiltInResultEnableEpoch = 1
 
     # CheckCorrectTokenIDForTransferRoleEnableEpoch represents the epoch when the correct token ID check is applied for transfer role verification
-    CheckCorrectTokenIDForTransferRoleEnableEpoch = 2
+    CheckCorrectTokenIDForTransferRoleEnableEpoch = 1
 
-   	# FailExecutionOnEveryAPIErrorEnableEpoch represent the epoch when new protection in VM is enabled to fail all wrong API calls
-   	FailExecutionOnEveryAPIErrorEnableEpoch = 3
+    # DisableExecByCallerEnableEpoch represents the epoch when the check on value is disabled on exec by caller
+    DisableExecByCallerEnableEpoch = 1
+
+    # RefactorContextEnableEpoch represents the epoch when refactoring/simplifying is enabled in contexts
+    RefactorContextEnableEpoch = 1
+
+    # FailExecutionOnEveryAPIErrorEnableEpoch represent the epoch when new protection in VM is enabled to fail all wrong API calls
+    FailExecutionOnEveryAPIErrorEnableEpoch = 3
 
     # ManagedCryptoAPIsEnableEpoch represents the epoch when new managed crypto APIs are enabled in the wasm VM
     ManagedCryptoAPIsEnableEpoch = 4
 
-    # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
-    MaxNodesChangeEnableEpoch = [
-        { EpochEnable = 0, MaxNumNodes = 36, NodesToShufflePerShard = 4 },
-        { EpochEnable = 1, MaxNumNodes = 56, NodesToShufflePerShard = 2 }
-    ]
+    # ESDTMetadataContinuousCleanupEnableEpoch represents the epoch when esdt metadata is automatically deleted according to inshard liquidity
+    ESDTMetadataContinuousCleanupEnableEpoch = 4
 
     # HeartbeatDisableEpoch represents the epoch when heartbeat v1 messages stop being sent and processed
     HeartbeatDisableEpoch = 2
 
     # MiniBlockPartialExecutionEnableEpoch represents the epoch when mini block partial execution will be enabled
     MiniBlockPartialExecutionEnableEpoch = 3
+
+    # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
+    MaxNodesChangeEnableEpoch = [
+        { EpochEnable = 0, MaxNumNodes = 36, NodesToShufflePerShard = 4 },
+        { EpochEnable = 1, MaxNumNodes = 56, NodesToShufflePerShard = 2 }
+    ]
 
 [GasSchedule]
     # GasScheduleByEpochs holds the configuration for the gas schedule that will be applied from specific epochs

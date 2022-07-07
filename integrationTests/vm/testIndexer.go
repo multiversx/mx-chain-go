@@ -295,6 +295,15 @@ func (ti *testIndexer) GetIndexerPreparedTransaction(t *testing.T) *indexerTypes
 	require.True(t, len(split) > 1)
 
 	ss := splitAgain[1][:len(splitAgain[1])-1]
+	// TODO: this is a temporary fix - the upsert mechanism has changed in indexer 1.35 and the proper fix should come in the branch
+	// that integrates the new indexer into development
+	if string(ss) == `{}` {
+		splitByTx := bytes.Split(split[1], []byte(`"tx":`))
+		require.True(t, len(splitByTx) > 1)
+
+		ss = splitByTx[1][:len(splitByTx[1])-len(`}},"upsert":{}}`)]
+	}
+
 	err = json.Unmarshal(ss, &newTx)
 	require.Nil(t, err)
 

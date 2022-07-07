@@ -116,6 +116,7 @@ type processComponents struct {
 	hardforkTrigger              HardforkTrigger
 	processedMiniBlocksTracker   process.ProcessedMiniBlocksTracker
 	esdtDataStorageForApi        vmcommon.ESDTNFTStorageHandler
+	accountsParser               genesis.AccountsParser
 }
 
 // ProcessComponentsFactoryArgs holds the arguments needed to create a process components factory
@@ -662,6 +663,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		hardforkTrigger:              hardforkTrigger,
 		processedMiniBlocksTracker:   processedMiniBlocksTracker,
 		esdtDataStorageForApi:        pcf.esdtNftStorage,
+		accountsParser:               pcf.accountsParser,
 	}, nil
 }
 

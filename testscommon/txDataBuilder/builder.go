@@ -161,6 +161,11 @@ func (builder *TxDataBuilder) BurnESDT(token string, value int64) *TxDataBuilder
 	return builder.Func(core.BuiltInFunctionESDTBurn).Str(token).Int64(value)
 }
 
+// LocalBurnESDT appends to the data string all the elements required to local burn ESDT tokens.
+func (builder *TxDataBuilder) LocalBurnESDT(token string, value int64) *TxDataBuilder {
+	return builder.Func(core.BuiltInFunctionESDTLocalBurn).Str(token).Int64(value)
+}
+
 // CanFreeze appends "canFreeze" followed by the provided boolean value.
 func (builder *TxDataBuilder) CanFreeze(prop bool) *TxDataBuilder {
 	return builder.Str("canFreeze").Bool(prop)

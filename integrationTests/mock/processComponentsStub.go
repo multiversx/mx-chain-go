@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/factory"
+	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
@@ -44,6 +45,7 @@ type ProcessComponentsStub struct {
 	ImportStartHandlerInternal           update.ImportStartHandler
 	RequestedItemsHandlerInternal        dataRetriever.RequestedItemsHandler
 	NodeRedundancyHandlerInternal        consensus.NodeRedundancyHandler
+	AccountsParserInternal               genesis.AccountsParser
 	CurrentEpochProviderInternal         process.CurrentNetworkEpochProviderHandler
 	ScheduledTxsExecutionHandlerInternal process.ScheduledTxsExecutionHandler
 	TxsSenderHandlerField                process.TxsSenderHandler
@@ -210,6 +212,11 @@ func (pcs *ProcessComponentsStub) RequestedItemsHandler() dataRetriever.Requeste
 // NodeRedundancyHandler -
 func (pcs *ProcessComponentsStub) NodeRedundancyHandler() consensus.NodeRedundancyHandler {
 	return pcs.NodeRedundancyHandlerInternal
+}
+
+// AccountsParser -
+func (pcs *ProcessComponentsStub) AccountsParser() genesis.AccountsParser {
+	return pcs.AccountsParserInternal
 }
 
 // CurrentEpochProvider -

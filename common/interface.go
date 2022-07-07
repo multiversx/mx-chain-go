@@ -2,6 +2,7 @@ package common
 
 import (
 	"context"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
@@ -113,6 +114,10 @@ type SizeSyncStatisticsHandler interface {
 	AddNumBytesReceived(bytes uint64)
 	NumBytesReceived() uint64
 	NumTries() int
+	AddProcessingTime(duration time.Duration)
+	IncrementIteration()
+	ProcessingTime() time.Duration
+	NumIterations() int
 }
 
 // SnapshotStatisticsHandler is used to measure different statistics for the trie snapshot
@@ -130,5 +135,14 @@ type ProcessStatusHandler interface {
 	SetBusy(reason string)
 	SetIdle()
 	IsIdle() bool
+	IsInterfaceNil() bool
+}
+
+// BlockInfo provides a block information such as nonce, hash, roothash and so on
+type BlockInfo interface {
+	GetNonce() uint64
+	GetHash() []byte
+	GetRootHash() []byte
+	Equal(blockInfo BlockInfo) bool
 	IsInterfaceNil() bool
 }

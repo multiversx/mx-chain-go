@@ -15,8 +15,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/mock"
-	pubsub "github.com/ElrondNetwork/go-libp2p-pubsub"
-	pubsubPb "github.com/ElrondNetwork/go-libp2p-pubsub/pb"
+	"github.com/ElrondNetwork/go-libp2p-pubsub"
+	pb "github.com/ElrondNetwork/go-libp2p-pubsub/pb"
 	"github.com/btcsuite/btcd/btcec"
 	ggio "github.com/gogo/protobuf/io"
 	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
@@ -27,6 +27,7 @@ import (
 )
 
 const timeout = time.Second * 5
+const testMaxSize = 1 << 21
 
 var blankMessageHandler = func(msg *pubsub.Message, fromConnectedPeer core.PeerID) error {
 	return nil
@@ -148,7 +149,7 @@ func TestDirectSender_ProcessReceivedDirectMessageNilTopicIdsShouldErr(t *testin
 
 	id, _ := createLibP2PCredentialsDirectSender()
 
-	msg := &pubsubPb.Message{}
+	msg := &pb.Message{}
 	msg.Data = []byte("data")
 	msg.Seqno = []byte("111")
 	msg.From = []byte(id)
@@ -168,7 +169,7 @@ func TestDirectSender_ProcessReceivedDirectMessageAlreadySeenMsgShouldErr(t *tes
 
 	id, _ := createLibP2PCredentialsDirectSender()
 
-	msg := &pubsubPb.Message{}
+	msg := &pb.Message{}
 	msg.Data = []byte("data")
 	msg.Seqno = []byte("111")
 	msg.From = []byte(id)
@@ -192,7 +193,7 @@ func TestDirectSender_ProcessReceivedDirectMessageShouldWork(t *testing.T) {
 
 	id, _ := createLibP2PCredentialsDirectSender()
 
-	msg := &pubsubPb.Message{}
+	msg := &pb.Message{}
 	msg.Data = []byte("data")
 	msg.Seqno = []byte("111")
 	msg.From = []byte(id)
@@ -218,7 +219,7 @@ func TestDirectSender_ProcessReceivedDirectMessageShouldCallMessageHandler(t *te
 
 	id, _ := createLibP2PCredentialsDirectSender()
 
-	msg := &pubsubPb.Message{}
+	msg := &pb.Message{}
 	msg.Data = []byte("data")
 	msg.Seqno = []byte("111")
 	msg.From = []byte(id)
@@ -243,7 +244,7 @@ func TestDirectSender_ProcessReceivedDirectMessageShouldReturnHandlersError(t *t
 
 	id, _ := createLibP2PCredentialsDirectSender()
 
-	msg := &pubsubPb.Message{}
+	msg := &pb.Message{}
 	msg.Data = []byte("data")
 	msg.Seqno = []byte("111")
 	msg.From = []byte(id)
@@ -264,7 +265,7 @@ func TestDirectSender_SendDirectToConnectedPeerBufferToLargeShouldErr(t *testing
 	remotePeer := peer.ID("remote peer")
 
 	stream := mock.NewStreamMock()
-	stream.SetProtocol(libp2p.DirectSendID)
+	_ = stream.SetProtocol(libp2p.DirectSendID)
 
 	cs := createConnStub(stream, id, sk, remotePeer)
 
@@ -370,7 +371,8 @@ func TestDirectSender_SendDirectToConnectedPeerExistingStreamShouldSendToStream(
 	remotePeer := peer.ID("remote peer")
 
 	stream := mock.NewStreamMock()
-	stream.SetProtocol(libp2p.DirectSendID)
+	err := stream.SetProtocol(libp2p.DirectSendID)
+	assert.Nil(t, err)
 
 	cs := createConnStub(stream, id, sk, remotePeer)
 
@@ -378,15 +380,15 @@ func TestDirectSender_SendDirectToConnectedPeerExistingStreamShouldSendToStream(
 		return []network.Conn{cs}
 	}
 
-	receivedMsg := &pubsubPb.Message{}
+	receivedMsg := &pb.Message{}
 	chanDone := make(chan bool)
 
 	go func(s network.Stream) {
-		reader := ggio.NewDelimitedReader(s, 1<<20)
+		reader := ggio.NewDelimitedReader(s, testMaxSize)
 		for {
-			err := reader.ReadMsg(receivedMsg)
-			if err != nil {
-				fmt.Println(err.Error())
+			errRead := reader.ReadMsg(receivedMsg)
+			if errRead != nil {
+				fmt.Println(errRead.Error())
 				return
 			}
 
@@ -396,7 +398,8 @@ func TestDirectSender_SendDirectToConnectedPeerExistingStreamShouldSendToStream(
 
 	data := []byte("data")
 	topic := "topic"
-	err := ds.Send(topic, data, core.PeerID(cs.RemotePeer()))
+	err = ds.Send(topic, data, core.PeerID(cs.RemotePeer()))
+	assert.Nil(t, err)
 
 	select {
 	case <-chanDone:
@@ -430,7 +433,7 @@ func TestDirectSender_SendDirectToConnectedPeerNewStreamShouldSendToStream(t *te
 	remotePeer := peer.ID("remote peer")
 
 	stream := mock.NewStreamMock()
-	stream.SetProtocol(libp2p.DirectSendID)
+	_ = stream.SetProtocol(libp2p.DirectSendID)
 
 	cs := createConnStub(stream, id, sk, remotePeer)
 
@@ -445,11 +448,11 @@ func TestDirectSender_SendDirectToConnectedPeerNewStreamShouldSendToStream(t *te
 		return nil, errors.New("wrong parameters")
 	}
 
-	receivedMsg := &pubsubPb.Message{}
+	receivedMsg := &pb.Message{}
 	chanDone := make(chan bool)
 
 	go func(s network.Stream) {
-		reader := ggio.NewDelimitedReader(s, 1<<20)
+		reader := ggio.NewDelimitedReader(s, testMaxSize)
 		for {
 			err := reader.ReadMsg(receivedMsg)
 			if err != nil {
@@ -515,7 +518,7 @@ func TestDirectSender_ReceivedSentMessageShouldCallMessageHandlerTestFullCycle(t
 				return remotePeer
 			},
 		})
-	stream.SetProtocol(libp2p.DirectSendID)
+	_ = stream.SetProtocol(libp2p.DirectSendID)
 
 	streamHandler(stream)
 
@@ -553,7 +556,7 @@ func TestDirectSender_ProcessReceivedDirectMessageFromMismatchesFromConnectedPee
 
 	id, _ := createLibP2PCredentialsDirectSender()
 
-	msg := &pubsubPb.Message{}
+	msg := &pb.Message{}
 	msg.Data = []byte("data")
 	msg.Seqno = []byte("111")
 	msg.From = []byte(id)
