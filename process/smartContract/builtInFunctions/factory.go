@@ -27,6 +27,7 @@ type ArgsCreateBuiltInFunctionContainer struct {
 	OptimizeNFTStoreEnableEpoch              uint32
 	CheckCorrectTokenIDEnableEpoch           uint32
 	ESDTMetadataContinuousCleanupEnableEpoch uint32
+	MaxNumNodesInTransferRole                uint32
 	AutomaticCrawlerAddress                  []byte
 }
 
@@ -71,6 +72,7 @@ func CreateBuiltInFuncContainerAndNFTStorageHandler(args ArgsCreateBuiltInFuncti
 		SaveNFTToSystemAccountEnableEpoch:   args.OptimizeNFTStoreEnableEpoch,
 		CheckCorrectTokenIDEnableEpoch:      args.CheckCorrectTokenIDEnableEpoch,
 		SendESDTMetadataAlwaysEnableEpoch:   args.ESDTMetadataContinuousCleanupEnableEpoch,
+		MaxNumOfAddressesForTransferRole:    args.MaxNumNodesInTransferRole,
 		ConfigAddress:                       args.AutomaticCrawlerAddress,
 	}
 

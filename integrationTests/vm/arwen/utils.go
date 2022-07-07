@@ -230,13 +230,14 @@ func (context *TestContext) initFeeHandlers() {
 
 func (context *TestContext) initVMAndBlockchainHook() {
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:             mock.NewGasScheduleNotifierMock(context.GasSchedule),
-		MapDNSAddresses:         DNSAddresses,
-		Marshalizer:             marshalizer,
-		Accounts:                context.Accounts,
-		ShardCoordinator:        oneShardCoordinator,
-		EpochNotifier:           context.EpochNotifier,
-		AutomaticCrawlerAddress: bytes.Repeat([]byte{1}, 32),
+		GasSchedule:               mock.NewGasScheduleNotifierMock(context.GasSchedule),
+		MapDNSAddresses:           DNSAddresses,
+		Marshalizer:               marshalizer,
+		Accounts:                  context.Accounts,
+		ShardCoordinator:          oneShardCoordinator,
+		EpochNotifier:             context.EpochNotifier,
+		AutomaticCrawlerAddress:   bytes.Repeat([]byte{1}, 32),
+		MaxNumNodesInTransferRole: 100,
 	}
 	builtInFuncs, nftStorageHandler, globalSettingsHandler, err := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
 	require.Nil(context.T, err)
