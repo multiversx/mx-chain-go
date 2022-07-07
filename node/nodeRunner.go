@@ -1179,6 +1179,7 @@ func (nr *nodeRunner) CreateManagedBootstrapComponents(
 		RoundConfig:       *nr.configs.RoundConfig,
 		PrefConfig:        *nr.configs.PreferencesConfig,
 		ImportDbConfig:    *nr.configs.ImportDbConfig,
+		FlagsConfig:       *nr.configs.FlagsConfig,
 		WorkingDir:        nr.configs.FlagsConfig.WorkingDir,
 		CoreComponents:    coreComponents,
 		CryptoComponents:  cryptoComponents,

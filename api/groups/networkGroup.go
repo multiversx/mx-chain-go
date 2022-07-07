@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/shared"
+	"github.com/ElrondNetwork/elrond-go/api/shared/logging"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/gin-gonic/gin"
@@ -397,7 +398,7 @@ func (ng *networkGroup) getRatingsConfig(c *gin.Context) {
 func (ng *networkGroup) getGenesisNodesConfig(c *gin.Context) {
 	start := time.Now()
 	eligibleNodesConfig, waitingNodesConfig, err := ng.getFacade().GetGenesisNodesPubKeys()
-	log.Debug("API call: GetGenesisNodesPubKeys", "duration", time.Since(start))
+	logging.LogAPIActionDurationIfNeeded(start, "API call: GetGenesisNodesPubKeys")
 
 	if err != nil {
 		c.JSON(
