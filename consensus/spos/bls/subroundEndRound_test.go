@@ -957,7 +957,7 @@ func TestVerifyNodesOnAggSigVerificationFail(t *testing.T) {
 
 		_ = sr.SetJobDone(sr.ConsensusGroup()[0], bls.SrSignature, true)
 
-		err := sr.VerifyNodesOnAggSigVerificationFail()
+		_, err := sr.VerifyNodesOnAggSigVerificationFail()
 		require.Equal(t, expectedErr, err)
 	})
 
@@ -979,7 +979,7 @@ func TestVerifyNodesOnAggSigVerificationFail(t *testing.T) {
 		_ = sr.SetJobDone(sr.ConsensusGroup()[0], bls.SrSignature, true)
 		container.SetMultiSigner(multiSignerMock)
 
-		err := sr.VerifyNodesOnAggSigVerificationFail()
+		_, err := sr.VerifyNodesOnAggSigVerificationFail()
 		require.Nil(t, err)
 
 		isJobDone, err := sr.JobDone(sr.ConsensusGroup()[0], bls.SrSignature)
@@ -1007,8 +1007,9 @@ func TestVerifyNodesOnAggSigVerificationFail(t *testing.T) {
 		_ = sr.SetJobDone(sr.ConsensusGroup()[0], bls.SrSignature, true)
 		_ = sr.SetJobDone(sr.ConsensusGroup()[1], bls.SrSignature, true)
 
-		err := sr.VerifyNodesOnAggSigVerificationFail()
+		invalidSigners, err := sr.VerifyNodesOnAggSigVerificationFail()
 		require.Nil(t, err)
+		require.NotNil(t, invalidSigners)
 	})
 }
 

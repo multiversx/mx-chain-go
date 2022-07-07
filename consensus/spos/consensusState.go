@@ -66,6 +66,7 @@ func (cns *ConsensusState) ResetConsensusState() {
 	cns.Data = nil
 
 	cns.initReceivedHeaders()
+	cns.initReceivedMessagesWithSig()
 
 	cns.RoundCanceled = false
 	cns.ExtendedCalled = false
@@ -79,6 +80,12 @@ func (cns *ConsensusState) initReceivedHeaders() {
 	cns.mutReceivedHeaders.Lock()
 	cns.receivedHeaders = make([]data.HeaderHandler, 0)
 	cns.mutReceivedHeaders.Unlock()
+}
+
+func (cns *ConsensusState) initReceivedMessagesWithSig() {
+	cns.mutReceivedMessagesWithSignature.Lock()
+	cns.receivedMessagesWithSignature = make(map[string][]byte)
+	cns.mutReceivedMessagesWithSignature.Unlock()
 }
 
 // AddReceivedHeader append the provided header to the inner received headers list
