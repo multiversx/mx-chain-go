@@ -474,7 +474,7 @@ func TestESDTWithTransferRoleCrossShardShouldWork(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	numOfShards := 5
+	numOfShards := 2
 	nodesPerShard := 2
 	numMetachainNodes := 2
 
@@ -526,8 +526,11 @@ func TestESDTWithTransferRoleCrossShardShouldWork(t *testing.T) {
 
 	tokenIdentifier := string(integrationTests.GetTokenIdentifier(nodes, []byte(ticker)))
 	setRole(nodes, tokenIssuer.OwnAccount.Address, []byte(tokenIdentifier), []byte(core.ESDTRoleTransfer))
-
 	esdt.CheckAddressHasTokens(t, tokenIssuer.OwnAccount.Address, nodes, []byte(tokenIdentifier), 0, initialSupply)
+
+	time.Sleep(time.Second)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 2, nonce, round, idxProposers)
+	time.Sleep(time.Second)
 
 	// send tx to other nodes
 	valueToSend := int64(100)
@@ -543,7 +546,7 @@ func TestESDTWithTransferRoleCrossShardShouldWork(t *testing.T) {
 	for _, node := range nodes[1:] {
 		esdt.CheckAddressHasTokens(t, node.OwnAccount.Address, nodes, []byte(tokenIdentifier), 0, valueToSend)
 		txData.Clear().TransferESDT(tokenIdentifier, valueToSend)
-		integrationTests.CreateAndSendTransaction(node, nodes, big.NewInt(0), node.OwnAccount.Address, txData.ToString(), integrationTests.AdditionalGasLimit)
+		integrationTests.CreateAndSendTransaction(node, nodes, big.NewInt(0), tokenIssuer.OwnAccount.Address, txData.ToString(), integrationTests.AdditionalGasLimit)
 	}
 
 	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
