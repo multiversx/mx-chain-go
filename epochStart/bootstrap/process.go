@@ -85,6 +85,7 @@ type epochStartBootstrap struct {
 	messenger                  Messenger
 	generalConfig              config.Config
 	prefsConfig                config.PreferencesConfig
+	flagsConfig                config.ContextFlagsConfig
 	economicsData              process.EconomicsDataHandler
 	shardCoordinator           sharding.Coordinator
 	genesisNodesConfig         sharding.GenesisNodesSetupHandler
@@ -152,6 +153,7 @@ type ArgsEpochStartBootstrap struct {
 	GeneralConfig              config.Config
 	PrefsConfig                config.PreferencesConfig
 	EnableEpochs               config.EnableEpochs
+	FlagsConfig                config.ContextFlagsConfig
 	EconomicsData              process.EconomicsDataHandler
 	GenesisNodesConfig         sharding.GenesisNodesSetupHandler
 	GenesisShardCoordinator    sharding.Coordinator
@@ -187,6 +189,7 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		messenger:                  args.Messenger,
 		generalConfig:              args.GeneralConfig,
 		prefsConfig:                args.PrefsConfig,
+		flagsConfig:                args.FlagsConfig,
 		economicsData:              args.EconomicsData,
 		genesisNodesConfig:         args.GenesisNodesConfig,
 		genesisShardCoordinator:    args.GenesisShardCoordinator,
@@ -299,7 +302,12 @@ func (e *epochStartBootstrap) isNodeInGenesisNodesConfig() bool {
 func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 	defer e.closeTrieComponents()
 
-	if !e.generalConfig.GeneralSettings.StartInEpochEnabled {
+	if e.flagsConfig.ForceStartFromNetwork {
+		log.Warn("epochStartBootstrap.Bootstrap: forcing start from network")
+	}
+
+	shouldStartFromNetwork := e.generalConfig.GeneralSettings.StartInEpochEnabled || e.flagsConfig.ForceStartFromNetwork
+	if !shouldStartFromNetwork {
 		return e.bootstrapFromLocalStorage()
 	}
 
@@ -325,6 +333,7 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 	}
 
 	params, shouldContinue, err := e.startFromSavedEpoch()
+	shouldContinue = shouldContinue || e.flagsConfig.ForceStartFromNetwork
 	if !shouldContinue {
 		return params, err
 	}
