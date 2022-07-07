@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/factory"
+	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
@@ -50,6 +51,7 @@ type ProcessComponentsMock struct {
 	HardforkTriggerField                 factory.HardforkTrigger
 	ProcessedMiniBlocksTrackerInternal   process.ProcessedMiniBlocksTracker
 	ESDTDataStorageHandlerForAPIInternal vmcommon.ESDTNFTStorageHandler
+	AccountsParserInternal               genesis.AccountsParser
 }
 
 // Create -
@@ -215,6 +217,11 @@ func (pcm *ProcessComponentsMock) NodeRedundancyHandler() consensus.NodeRedundan
 // CurrentEpochProvider -
 func (pcm *ProcessComponentsMock) CurrentEpochProvider() process.CurrentNetworkEpochProviderHandler {
 	return pcm.CurrentEpochProviderInternal
+}
+
+// GenesisAccounts -
+func (pcm *ProcessComponentsMock) AccountsParser() genesis.AccountsParser {
+	return pcm.AccountsParserInternal
 }
 
 // String -

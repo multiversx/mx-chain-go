@@ -86,6 +86,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/state/blockInfoProviders"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
@@ -331,9 +332,9 @@ type TestProcessorNode struct {
 	EnableEpochs             config.EnableEpochs
 	UseValidVmBlsSigVerifier bool
 
-	TransactionLogProcessor        process.TransactionLogProcessor
-	PeersRatingHandler p2p.PeersRatingHandler
-	HardforkTrigger node.HardforkTrigger
+	TransactionLogProcessor process.TransactionLogProcessor
+	PeersRatingHandler      p2p.PeersRatingHandler
+	HardforkTrigger         node.HardforkTrigger
 }
 
 // CreatePkBytes creates 'numShards' public key-like byte slices
@@ -858,6 +859,7 @@ func (tpn *TestProcessorNode) createFullSCQueryService() {
 		ShardCoordinator:           tpn.ShardCoordinator,
 		EpochNotifier:              tpn.EpochNotifier,
 		GlobalMintBurnDisableEpoch: tpn.EnableEpochs.GlobalMintBurnDisableEpoch,
+		AutomaticCrawlerAddress:    bytes.Repeat([]byte{1}, 32),
 	}
 	builtInFuncs, nftStorageHandler, globalSettingsHandler, _ := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
 
@@ -1493,6 +1495,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		ShardCoordinator:           tpn.ShardCoordinator,
 		EpochNotifier:              tpn.EpochNotifier,
 		GlobalMintBurnDisableEpoch: tpn.EnableEpochs.GlobalMintBurnDisableEpoch,
+		AutomaticCrawlerAddress:    bytes.Repeat([]byte{1}, 32),
 	}
 	builtInFuncs, nftStorageHandler, globalSettingsHandler, _ := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
 
@@ -1559,7 +1562,6 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		ShardCoordinator:   tpn.ShardCoordinator,
 		BuiltInFunctions:   builtInFuncs,
 		ArgumentParser:     parsers.NewCallArgsParser(),
-		EpochNotifier:      tpn.EpochNotifier,
 		ESDTTransferParser: esdtTransferParser,
 	}
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
@@ -1716,6 +1718,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		ShardCoordinator:           tpn.ShardCoordinator,
 		EpochNotifier:              tpn.EpochNotifier,
 		GlobalMintBurnDisableEpoch: tpn.EnableEpochs.GlobalMintBurnDisableEpoch,
+		AutomaticCrawlerAddress:    bytes.Repeat([]byte{1}, 32),
 	}
 	builtInFuncs, nftStorageHandler, globalSettingsHandler, _ := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
 	argsHook := hooks.ArgBlockChainHook{
@@ -1815,7 +1818,6 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		ShardCoordinator:   tpn.ShardCoordinator,
 		BuiltInFunctions:   builtInFuncs,
 		ArgumentParser:     parsers.NewCallArgsParser(),
-		EpochNotifier:      tpn.EpochNotifier,
 		ESDTTransferParser: esdtTransferParser,
 	}
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
@@ -2358,6 +2360,18 @@ func (tpn *TestProcessorNode) initNode() {
 	stateComponents := GetDefaultStateComponents()
 	stateComponents.Accounts = tpn.AccntState
 	stateComponents.AccountsAPI = tpn.AccntState
+
+	finalProvider, _ := blockInfoProviders.NewFinalBlockInfo(dataComponents.BlockChain)
+	finalAccountsApi, _ := state.NewAccountsDBApi(tpn.AccntState, finalProvider)
+
+	currentProvider, _ := blockInfoProviders.NewCurrentBlockInfo(dataComponents.BlockChain)
+	currentAccountsApi, _ := state.NewAccountsDBApi(tpn.AccntState, currentProvider)
+
+	argsAccountsRepo := state.ArgsAccountsRepository{
+		FinalStateAccountsWrapper:   finalAccountsApi,
+		CurrentStateAccountsWrapper: currentAccountsApi,
+	}
+	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(argsAccountsRepo)
 
 	networkComponents := GetDefaultNetworkComponents()
 	networkComponents.Messenger = tpn.Messenger
@@ -3104,7 +3118,7 @@ func GetDefaultProcessComponents() *mock.ProcessComponentsStub {
 // GetDefaultDataComponents -
 func GetDefaultDataComponents() *mock.DataComponentsStub {
 	return &mock.DataComponentsStub{
-		BlockChain: &testscommon.ChainHandlerStub{},
+		BlockChain: &testscommon.ChainHandlerMock{},
 		Store:      &mock.ChainStorerMock{},
 		DataPool:   &dataRetrieverMock.PoolsHolderMock{},
 		MbProvider: &mock.MiniBlocksProviderStub{},
@@ -3132,9 +3146,10 @@ func GetDefaultCryptoComponents() *mock.CryptoComponentsStub {
 // GetDefaultStateComponents -
 func GetDefaultStateComponents() *testscommon.StateComponentsMock {
 	return &testscommon.StateComponentsMock{
-		PeersAcc: &stateMock.AccountsStub{},
-		Accounts: &stateMock.AccountsStub{},
-		Tries:    &mock.TriesHolderStub{},
+		PeersAcc:     &stateMock.AccountsStub{},
+		Accounts:     &stateMock.AccountsStub{},
+		AccountsRepo: &stateMock.AccountsRepositoryStub{},
+		Tries:        &mock.TriesHolderStub{},
 		StorageManagers: map[string]common.StorageManager{
 			"0":                         &testscommon.StorageManagerStub{},
 			trieFactory.UserAccountTrie: &testscommon.StorageManagerStub{},

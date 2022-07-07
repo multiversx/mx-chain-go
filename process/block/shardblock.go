@@ -24,7 +24,11 @@ import (
 
 var _ process.BlockProcessor = (*shardProcessor)(nil)
 
-const timeBetweenCheckForEpochStart = 100 * time.Millisecond
+const (
+	timeBetweenCheckForEpochStart = 100 * time.Millisecond
+	pruningDelayMultiplier        = 2
+	defaultPruningDelay           = 10
+)
 
 type createAndProcessMiniBlocksDestMeInfo struct {
 	currMetaHdr                 data.HeaderHandler
@@ -71,6 +75,13 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		return nil, fmt.Errorf("%w for genesis header in DataComponents.Blockchain", process.ErrNilHeaderHandler)
 	}
 
+	pruningQueueSize := arguments.Config.StateTriesConfig.UserStatePruningQueueSize
+	pruningDelay := uint32(pruningQueueSize * pruningDelayMultiplier)
+	if pruningDelay < defaultPruningDelay {
+		log.Warn("using default pruning delay", "user state pruning queue size", pruningQueueSize)
+		pruningDelay = defaultPruningDelay
+	}
+
 	base := &baseProcessor{
 		accountsDB:                     arguments.AccountsDB,
 		blockSizeThrottler:             arguments.BlockSizeThrottler,
@@ -108,6 +119,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		economicsData:                  arguments.CoreComponents.EconomicsData(),
 		scheduledTxsExecutionHandler:   arguments.ScheduledTxsExecutionHandler,
 		scheduledMiniBlocksEnableEpoch: arguments.ScheduledMiniBlocksEnableEpoch,
+		pruningDelay:                   pruningDelay,
 		processedMiniBlocksTracker:     arguments.ProcessedMiniBlocksTracker,
 		alteredAccountsProvider:        arguments.AlteredAccountsProvider,
 	}
@@ -1032,6 +1044,10 @@ func (sp *shardProcessor) CommitBlock(
 
 	sp.notifyFinalMetaHdrs(processedMetaHdrs)
 
+	if sp.lastRestartNonce == 0 {
+		sp.lastRestartNonce = header.GetNonce()
+	}
+
 	sp.updateState(selfNotarizedHeaders, header)
 
 	highestFinalBlockNonce := sp.forkDetector.GetHighestFinalBlockNonce()
@@ -1237,6 +1253,13 @@ func (sp *shardProcessor) updateState(headers []data.HeaderHandler, currentHeade
 		)
 
 		sp.setFinalizedHeaderHashInIndexer(header.GetPrevHash())
+
+		finalRootHash := scheduledHeaderRootHash
+		if len(finalRootHash) == 0 {
+			finalRootHash = header.GetRootHash()
+		}
+
+		sp.blockChain.SetFinalBlockInfo(header.GetNonce(), headerHash, finalRootHash)
 	}
 }
 

@@ -358,7 +358,7 @@ func TestNewTransactionCoordinator_NilGasHandler(t *testing.T) {
 	assert.Equal(t, process.ErrNilGasHandler, err)
 }
 
-func TestNewTransactionCoordinator_NilFeeAcumulator(t *testing.T) {
+func TestNewTransactionCoordinator_NilFeeAccumulator(t *testing.T) {
 	t.Parallel()
 
 	argsTransactionCoordinator := createMockTransactionCoordinatorArguments()
@@ -1006,6 +1006,51 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsWithSki
 	assert.False(t, finalized)
 	require.Equal(t, 1, len(mbs[0].TxHashes))
 	assert.Equal(t, []byte("tx_hash_from_mb0"), mbs[0].TxHashes[0])
+}
+
+func TestTransactionCoordinator_HandleProcessMiniBlockInit(t *testing.T) {
+	mbHash := []byte("miniblock hash")
+	numResetGasHandler := 0
+	numInitInterimProc := 0
+	shardCoord := testscommon.NewMultiShardsCoordinatorMock(1)
+	tc := &transactionCoordinator{
+		accounts: initAccountsMock(),
+		gasHandler: &testscommon.GasHandlerStub{
+			ResetCalled: func(key []byte) {
+				assert.Equal(t, key, mbHash)
+				numResetGasHandler++
+			},
+		},
+		keysInterimProcs: []block.Type{block.SmartContractResultBlock},
+		interimProcessors: map[block.Type]process.IntermediateTransactionHandler{
+			block.SmartContractResultBlock: &mock.IntermediateTransactionHandlerStub{
+				InitProcessedResultsCalled: func(key []byte) {
+					assert.Equal(t, mbHash, key)
+					numInitInterimProc++
+				},
+			},
+		},
+		shardCoordinator: shardCoord,
+	}
+
+	t.Run("shard 0 should call init", func(t *testing.T) {
+		numResetGasHandler = 0
+		numInitInterimProc = 0
+		shardCoord.CurrentShard = 0
+
+		tc.handleProcessMiniBlockInit(mbHash)
+		assert.Equal(t, 1, numResetGasHandler)
+		assert.Equal(t, 1, numInitInterimProc)
+	})
+	t.Run("shard meta should call init", func(t *testing.T) {
+		numResetGasHandler = 0
+		numInitInterimProc = 0
+		shardCoord.CurrentShard = core.MetachainShardId
+
+		tc.handleProcessMiniBlockInit(mbHash)
+		assert.Equal(t, 1, numResetGasHandler)
+		assert.Equal(t, 1, numInitInterimProc)
+	})
 }
 
 func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsNilPreProcessor(t *testing.T) {

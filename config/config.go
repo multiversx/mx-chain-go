@@ -201,6 +201,7 @@ type Config struct {
 	HeadersPoolConfig       HeadersPoolConfig
 	BlockSizeThrottleConfig BlockSizeThrottleConfig
 	VirtualMachine          VirtualMachineServicesConfig
+	BuiltInFunctions        BuiltInFunctionsConfig
 
 	Hardfork HardforkConfig
 	Debug    DebugConfig
@@ -413,7 +414,13 @@ type QueryVirtualMachineConfig struct {
 
 // VirtualMachineGasConfig holds the configuration for the virtual machine(s) gas operations
 type VirtualMachineGasConfig struct {
-	MaxGasPerVmQuery uint64
+	ShardMaxGasPerVmQuery uint64
+	MetaMaxGasPerVmQuery  uint64
+}
+
+// BuiltInFunctionsConfig holds the configuration for the built in functions
+type BuiltInFunctionsConfig struct {
+	AutomaticCrawlerAddress string
 }
 
 // HardforkConfig holds the configuration for the hardfork trigger

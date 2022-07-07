@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/errors"
+	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
@@ -512,6 +513,18 @@ func (m *managedProcessComponents) NodeRedundancyHandler() consensus.NodeRedunda
 	}
 
 	return m.processComponents.nodeRedundancyHandler
+}
+
+// AccountsParser returns the genesis accounts parser
+func (m *managedProcessComponents) AccountsParser() genesis.AccountsParser {
+	m.mutProcessComponents.RLock()
+	defer m.mutProcessComponents.RUnlock()
+
+	if m.processComponents == nil {
+		return nil
+	}
+
+	return m.processComponents.accountsParser
 }
 
 // CurrentEpochProvider returns the current epoch provider that can decide if an epoch is active or not on the network

@@ -117,8 +117,11 @@ func createGenesisConfig() config.EnableEpochs {
 		SCRSizeInvariantOnBuiltInResultEnableEpoch:        unreachableEpoch,
 		ManagedCryptoAPIsEnableEpoch:                      unreachableEpoch,
 		CheckCorrectTokenIDForTransferRoleEnableEpoch:     unreachableEpoch,
+		DisableExecByCallerEnableEpoch:                    unreachableEpoch,
+		RefactorContextEnableEpoch:                        unreachableEpoch,
 		HeartbeatDisableEpoch:                             unreachableEpoch,
 		MiniBlockPartialExecutionEnableEpoch:              unreachableEpoch,
+		ESDTMetadataContinuousCleanupEnableEpoch:          unreachableEpoch,
 	}
 }
 
@@ -353,19 +356,21 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 	epochNotifier := forking.NewGenericEpochNotifier()
 
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:                    arg.GasSchedule,
-		MapDNSAddresses:                make(map[string]struct{}),
-		EnableUserNameChange:           false,
-		Marshalizer:                    arg.Core.InternalMarshalizer(),
-		Accounts:                       arg.Accounts,
-		ShardCoordinator:               arg.ShardCoordinator,
-		EpochNotifier:                  epochNotifier,
-		ESDTMultiTransferEnableEpoch:   enableEpochs.ESDTMultiTransferEnableEpoch,
-		ESDTTransferRoleEnableEpoch:    enableEpochs.ESDTTransferRoleEnableEpoch,
-		GlobalMintBurnDisableEpoch:     enableEpochs.GlobalMintBurnDisableEpoch,
-		ESDTTransferMetaEnableEpoch:    enableEpochs.BuiltInFunctionOnMetaEnableEpoch,
-		OptimizeNFTStoreEnableEpoch:    enableEpochs.OptimizeNFTStoreEnableEpoch,
-		CheckCorrectTokenIDEnableEpoch: enableEpochs.CheckCorrectTokenIDForTransferRoleEnableEpoch,
+		GasSchedule:                              arg.GasSchedule,
+		MapDNSAddresses:                          make(map[string]struct{}),
+		EnableUserNameChange:                     false,
+		Marshalizer:                              arg.Core.InternalMarshalizer(),
+		Accounts:                                 arg.Accounts,
+		ShardCoordinator:                         arg.ShardCoordinator,
+		EpochNotifier:                            epochNotifier,
+		ESDTMultiTransferEnableEpoch:             enableEpochs.ESDTMultiTransferEnableEpoch,
+		ESDTTransferRoleEnableEpoch:              enableEpochs.ESDTTransferRoleEnableEpoch,
+		GlobalMintBurnDisableEpoch:               enableEpochs.GlobalMintBurnDisableEpoch,
+		ESDTTransferMetaEnableEpoch:              enableEpochs.BuiltInFunctionOnMetaEnableEpoch,
+		OptimizeNFTStoreEnableEpoch:              enableEpochs.OptimizeNFTStoreEnableEpoch,
+		CheckCorrectTokenIDEnableEpoch:           enableEpochs.CheckCorrectTokenIDForTransferRoleEnableEpoch,
+		ESDTMetadataContinuousCleanupEnableEpoch: enableEpochs.ESDTMetadataContinuousCleanupEnableEpoch,
+		AutomaticCrawlerAddress:                  make([]byte, 32),
 	}
 	builtInFuncs, nftStorageHandler, globalSettingsHandler, err := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
 	if err != nil {
@@ -467,13 +472,11 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 	epochNotifier.CheckEpoch(temporaryBlock)
 
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
-		PubkeyConverter:        arg.Core.AddressPubKeyConverter(),
-		ShardCoordinator:       arg.ShardCoordinator,
-		BuiltInFunctions:       builtInFuncs,
-		ArgumentParser:         parsers.NewCallArgsParser(),
-		EpochNotifier:          epochNotifier,
-		RelayedTxV2EnableEpoch: arg.EpochConfig.EnableEpochs.RelayedTransactionsV2EnableEpoch,
-		ESDTTransferParser:     esdtTransferParser,
+		PubkeyConverter:    arg.Core.AddressPubKeyConverter(),
+		ShardCoordinator:   arg.ShardCoordinator,
+		BuiltInFunctions:   builtInFuncs,
+		ArgumentParser:     parsers.NewCallArgsParser(),
+		ESDTTransferParser: esdtTransferParser,
 	}
 	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	if err != nil {
