@@ -131,7 +131,7 @@ func (u *userAccountsSyncer) SyncAccounts(rootHash []byte) error {
 		return err
 	}
 
-	markStorerAsSyncedAndActive(mainTrie)
+	mainTrie.MarkStorerAsSyncedAndActive()
 
 	return nil
 }

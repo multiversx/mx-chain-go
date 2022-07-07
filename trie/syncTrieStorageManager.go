@@ -1,6 +1,9 @@
 package trie
 
-import "github.com/ElrondNetwork/elrond-go/common"
+import (
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go/common"
+)
 
 type syncTrieStorageManager struct {
 	common.StorageManager
@@ -9,6 +12,10 @@ type syncTrieStorageManager struct {
 
 // NewSyncTrieStorageManager creates a new instance of syncTrieStorageManager
 func NewSyncTrieStorageManager(tsm common.StorageManager) (*syncTrieStorageManager, error) {
+	if check.IfNil(tsm) {
+		return nil, ErrNilTrieStorage
+	}
+
 	epoch, err := tsm.GetLatestStorageEpoch()
 	if err != nil {
 		return nil, err

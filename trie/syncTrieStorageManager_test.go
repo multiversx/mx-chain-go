@@ -8,7 +8,17 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestNewSyncTrieStorageManagerNilTsm(t *testing.T) {
+	t.Parallel()
+
+	stsm, err := NewSyncTrieStorageManager(nil)
+	assert.Nil(t, stsm)
+	assert.Equal(t, ErrNilTrieStorage, err)
+}
+
 func TestNewSyncTrieStorageManagerInvalidStorerType(t *testing.T) {
+	t.Parallel()
+
 	_, trieStorage := newEmptyTrie()
 
 	stsm, err := NewSyncTrieStorageManager(trieStorage)
@@ -17,6 +27,8 @@ func TestNewSyncTrieStorageManagerInvalidStorerType(t *testing.T) {
 }
 
 func TestNewSyncTrieStorageManager(t *testing.T) {
+	t.Parallel()
+
 	_, trieStorage := newEmptyTrie()
 	trieStorage.mainStorer = &trie.SnapshotPruningStorerStub{}
 	stsm, err := NewSyncTrieStorageManager(trieStorage)
@@ -25,11 +37,13 @@ func TestNewSyncTrieStorageManager(t *testing.T) {
 }
 
 func TestNewSyncTrieStorageManager_PutInFirstEpoch(t *testing.T) {
+	t.Parallel()
+
 	_, trieStorage := newEmptyTrie()
-	putInEpochCalled := false
+	putInEpochCalled := 0
 	trieStorage.mainStorer = &trie.SnapshotPruningStorerStub{
 		PutInEpochCalled: func(_ []byte, _ []byte, _ uint32) error {
-			putInEpochCalled = true
+			putInEpochCalled++
 			return nil
 		},
 		GetLatestStorageEpochCalled: func() (uint32, error) {
@@ -40,10 +54,12 @@ func TestNewSyncTrieStorageManager_PutInFirstEpoch(t *testing.T) {
 
 	err := stsm.Put([]byte("key"), []byte("val"))
 	assert.Nil(t, err)
-	assert.True(t, putInEpochCalled)
+	assert.Equal(t, 1, putInEpochCalled)
 }
 
 func TestNewSyncTrieStorageManager_PutInEpoch(t *testing.T) {
+	t.Parallel()
+
 	_, trieStorage := newEmptyTrie()
 	putInEpochCalled := 0
 	trieStorage.mainStorer = &trie.SnapshotPruningStorerStub{

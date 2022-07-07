@@ -77,7 +77,7 @@ func (v *validatorAccountsSyncer) SyncAccounts(rootHash []byte) error {
 		return err
 	}
 
-	markStorerAsSyncedAndActive(mainTrie)
+	mainTrie.MarkStorerAsSyncedAndActive()
 
 	return nil
 }
