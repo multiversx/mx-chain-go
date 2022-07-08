@@ -213,6 +213,9 @@ func createMockEpochStartBootstrapArgs(
 				}, nil
 			},
 		},
+		FlagsConfig: config.ContextFlagsConfig{
+			ForceStartFromNetwork: false,
+		},
 	}
 }
 
@@ -1041,6 +1044,7 @@ func TestRequestAndProcessForShard_ShouldFail(t *testing.T) {
 		},
 	}
 
+	emptyMiniBlocksSlice := make([]*block.MiniBlock, 0)
 	t.Run("find self shard epoch start data not found", func(t *testing.T) {
 		t.Parallel()
 
@@ -1049,7 +1053,7 @@ func TestRequestAndProcessForShard_ShouldFail(t *testing.T) {
 		epochStartProvider, _ := NewEpochStartBootstrap(args)
 		epochStartProvider.epochStartMeta = &block.MetaBlock{}
 
-		err := epochStartProvider.requestAndProcessForShard()
+		err := epochStartProvider.requestAndProcessForShard(emptyMiniBlocksSlice)
 		assert.Equal(t, epochStart.ErrEpochStartDataForShardNotFound, err)
 	})
 	t.Run("fail to sync pending miniblocks", func(t *testing.T) {
@@ -1067,7 +1071,7 @@ func TestRequestAndProcessForShard_ShouldFail(t *testing.T) {
 			},
 		}
 
-		err := epochStartProvider.requestAndProcessForShard()
+		err := epochStartProvider.requestAndProcessForShard(emptyMiniBlocksSlice)
 		assert.Equal(t, expectedErr, err)
 	})
 	t.Run("fail to get pending miniblocks", func(t *testing.T) {
@@ -1085,7 +1089,7 @@ func TestRequestAndProcessForShard_ShouldFail(t *testing.T) {
 			},
 		}
 
-		err := epochStartProvider.requestAndProcessForShard()
+		err := epochStartProvider.requestAndProcessForShard(emptyMiniBlocksSlice)
 		assert.Equal(t, expectedErr, err)
 	})
 	t.Run("fail to sync missing headers", func(t *testing.T) {
@@ -1105,7 +1109,7 @@ func TestRequestAndProcessForShard_ShouldFail(t *testing.T) {
 
 		epochStartProvider.miniBlocksSyncer = &epochStartMocks.PendingMiniBlockSyncHandlerStub{}
 
-		err := epochStartProvider.requestAndProcessForShard()
+		err := epochStartProvider.requestAndProcessForShard(emptyMiniBlocksSlice)
 		assert.Equal(t, expectedErr, err)
 	})
 	t.Run("fail to get needed headers", func(t *testing.T) {
@@ -1125,7 +1129,7 @@ func TestRequestAndProcessForShard_ShouldFail(t *testing.T) {
 
 		epochStartProvider.miniBlocksSyncer = &epochStartMocks.PendingMiniBlockSyncHandlerStub{}
 
-		err := epochStartProvider.requestAndProcessForShard()
+		err := epochStartProvider.requestAndProcessForShard(emptyMiniBlocksSlice)
 		assert.Equal(t, expectedErr, err)
 	})
 	t.Run("fail to get data to sync", func(t *testing.T) {
@@ -1163,7 +1167,7 @@ func TestRequestAndProcessForShard_ShouldFail(t *testing.T) {
 
 		epochStartProvider.miniBlocksSyncer = &epochStartMocks.PendingMiniBlockSyncHandlerStub{}
 
-		err := epochStartProvider.requestAndProcessForShard()
+		err := epochStartProvider.requestAndProcessForShard(emptyMiniBlocksSlice)
 		assert.Equal(t, expectedErr, err)
 	})
 	t.Run("fail to create user accounts syncer", func(t *testing.T) {
@@ -1196,7 +1200,7 @@ func TestRequestAndProcessForShard_ShouldFail(t *testing.T) {
 
 		epochStartProvider.miniBlocksSyncer = &epochStartMocks.PendingMiniBlockSyncHandlerStub{}
 
-		err := epochStartProvider.requestAndProcessForShard()
+		err := epochStartProvider.requestAndProcessForShard(emptyMiniBlocksSlice)
 		assert.Equal(t, state.ErrNilCacher, err)
 	})
 	t.Run("fail to save data to storage", func(t *testing.T) {
@@ -1268,7 +1272,7 @@ func TestRequestAndProcessForShard_ShouldFail(t *testing.T) {
 		epochStartProvider.requestHandler = &testscommon.RequestHandlerStub{}
 		epochStartProvider.nodesConfig = &nodesCoordinator.NodesCoordinatorRegistry{}
 
-		err := epochStartProvider.requestAndProcessForShard()
+		err := epochStartProvider.requestAndProcessForShard(emptyMiniBlocksSlice)
 		assert.Equal(t, expectedErr, err)
 	})
 }
@@ -1277,6 +1281,7 @@ func TestRequestAndProcessForMeta_ShouldFail(t *testing.T) {
 	notarizedShardHeaderHash := []byte("notarizedShardHeaderHash")
 	prevShardHeaderHash := []byte("prevShardHeaderHash")
 
+	emptyMiniBlocksSlice := make([]*block.MiniBlock, 0)
 	t.Run("fail to create storage handler component", func(t *testing.T) {
 		t.Parallel()
 
@@ -1295,7 +1300,7 @@ func TestRequestAndProcessForMeta_ShouldFail(t *testing.T) {
 
 		epochStartProvider.shardCoordinator = nil
 
-		err := epochStartProvider.requestAndProcessForMeta()
+		err := epochStartProvider.requestAndProcessForMeta(emptyMiniBlocksSlice)
 		assert.Equal(t, storage.ErrNilShardCoordinator, err)
 	})
 	t.Run("fail to create validators accounts syncer", func(t *testing.T) {
@@ -1329,7 +1334,7 @@ func TestRequestAndProcessForMeta_ShouldFail(t *testing.T) {
 
 		epochStartProvider.miniBlocksSyncer = &epochStartMocks.PendingMiniBlockSyncHandlerStub{}
 
-		err := epochStartProvider.requestAndProcessForMeta()
+		err := epochStartProvider.requestAndProcessForMeta(emptyMiniBlocksSlice)
 		assert.Equal(t, state.ErrNilRequestHandler, err)
 	})
 	t.Run("fail to sync user accounts state", func(t *testing.T) {
@@ -1380,7 +1385,7 @@ func TestRequestAndProcessForMeta_ShouldFail(t *testing.T) {
 		epochStartProvider.miniBlocksSyncer = &epochStartMocks.PendingMiniBlockSyncHandlerStub{}
 		epochStartProvider.requestHandler = &testscommon.RequestHandlerStub{}
 
-		err := epochStartProvider.requestAndProcessForMeta()
+		err := epochStartProvider.requestAndProcessForMeta(emptyMiniBlocksSlice)
 		assert.Equal(t, expectedErr, err)
 	})
 }
@@ -1972,8 +1977,9 @@ func TestEpochStartBootstrap_WithDisabledShardIDAsObserver(t *testing.T) {
 	epochStartProvider.requestHandler = &testscommon.RequestHandlerStub{}
 	epochStartProvider.epochStartMeta = &block.MetaBlock{Epoch: 0}
 	epochStartProvider.prevEpochStartMeta = &block.MetaBlock{}
-	err = epochStartProvider.processNodesConfig([]byte("something"))
+	peerMiniBlocks, err := epochStartProvider.processNodesConfig([]byte("something"))
 	assert.Nil(t, err)
+	assert.Empty(t, peerMiniBlocks)
 }
 
 func TestEpochStartBootstrap_updateDataForScheduledNoScheduledRootHash_UpdateSyncDataIfNeededWithError(t *testing.T) {
