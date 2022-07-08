@@ -15,7 +15,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
-	"github.com/ElrondNetwork/elrond-go/p2p/message"
 	pubsub "github.com/ElrondNetwork/go-libp2p-pubsub"
 	pb "github.com/ElrondNetwork/go-libp2p-pubsub/pb"
 )
@@ -220,27 +219,19 @@ func (sr *subroundEndRound) receivedInvalidSignersInfo(_ context.Context, cnsDta
 }
 
 func (sr *subroundEndRound) verifyInvalidSigner(invalidSigner []byte) error {
-	var p2pMsg *message.Message
-	err := json.Unmarshal(invalidSigner, p2pMsg)
+	var pbMsg *pb.Message
+	err := json.Unmarshal(invalidSigner, pbMsg)
 	if err != nil {
 		return err
 	}
 
-	pbMsg := &pb.Message{
-		From:      p2pMsg.FromField,
-		Data:      p2pMsg.PayloadField,
-		Seqno:     p2pMsg.SeqNoField,
-		Topic:     &p2pMsg.TopicField,
-		Signature: p2pMsg.SignatureField,
-		Key:       p2pMsg.KeyField,
-	}
 	err = pubsub.VerifyMessageSignature(pbMsg)
 	if err != nil {
 		return err
 	}
 
-	cnsMsg := &consensus.Message{}
-	err = sr.Marshalizer().Unmarshal(cnsMsg, p2pMsg.Data())
+	var cnsMsg *consensus.Message
+	err = sr.Marshalizer().Unmarshal(cnsMsg, pbMsg.Data)
 	if err != nil {
 		return err
 	}

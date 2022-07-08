@@ -1,6 +1,7 @@
 package spos_test
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -24,6 +25,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const roundTimeDuration = 100 * time.Millisecond
@@ -1586,4 +1588,47 @@ func TestWorker_ProcessReceivedMessageWrongHeaderShouldErr(t *testing.T) {
 	}
 	err := wrk.ProcessReceivedMessage(msg, "")
 	assert.True(t, errors.Is(err, spos.ErrInvalidHeader))
+}
+
+func TestWorker_ProcessReceivedMessageWithSignature(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		workerArgs := createDefaultWorkerArgs(&statusHandlerMock.AppStatusHandlerStub{})
+		wrk, _ := spos.NewWorker(workerArgs)
+
+		hdr := &block.Header{}
+		hdr.Nonce = 1
+		hdr.TimeStamp = uint64(wrk.RoundHandler().TimeStamp().Unix())
+		hdrStr, _ := mock.MarshalizerMock{}.Marshal(hdr)
+		hdrHash := (&hashingMocks.HasherMock{}).Compute(string(hdrStr))
+		cnsMsg := consensus.NewConsensusMessage(
+			hdrHash,
+			bytes.Repeat([]byte("a"), SignatureSize),
+			nil,
+			nil,
+			[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
+			bytes.Repeat([]byte("a"), SignatureSize),
+			int(bls.MtSignature),
+			0,
+			chainID,
+			nil,
+			nil,
+			nil,
+			currentPid,
+			nil,
+		)
+		buff, err := wrk.Marshalizer().Marshal(cnsMsg)
+		require.Nil(t, err)
+
+		time.Sleep(time.Second)
+		msg := &mock.P2PMessageMock{
+			DataField: buff,
+			PeerField: currentPid,
+		}
+		err = wrk.ProcessReceivedMessage(msg, "")
+		assert.Nil(t, err)
+	})
 }

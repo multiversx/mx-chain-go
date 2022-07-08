@@ -6,15 +6,16 @@ import (
 
 // P2PMessageMock -
 type P2PMessageMock struct {
-	FromField      []byte
-	DataField      []byte
-	SeqNoField     []byte
-	TopicField     string
-	SignatureField []byte
-	KeyField       []byte
-	PeerField      core.PeerID
-	PayloadField   []byte
-	TimestampField int64
+	FromField          []byte
+	DataField          []byte
+	SeqNoField         []byte
+	TopicField         string
+	SignatureField     []byte
+	KeyField           []byte
+	PeerField          core.PeerID
+	PayloadField       []byte
+	TimestampField     int64
+	MarshalledP2PField []byte
 }
 
 // From -
@@ -60,6 +61,11 @@ func (msg *P2PMessageMock) Timestamp() int64 {
 // Payload -
 func (msg *P2PMessageMock) Payload() []byte {
 	return msg.PayloadField
+}
+
+// MarshalledP2P -
+func (msg *P2PMessageMock) MarshalledP2P() []byte {
+	return msg.MarshalledP2PField
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
