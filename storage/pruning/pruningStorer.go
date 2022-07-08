@@ -298,6 +298,7 @@ func (ps *PruningStorer) Put(key, data []byte) error {
 	ps.cacher.Put(key, data, len(data))
 
 	persisterToUse := ps.getPersisterToUse()
+
 	return ps.doPutInPersister(key, data, persisterToUse.getPersister())
 }
 
@@ -314,9 +315,16 @@ func (ps *PruningStorer) getPersisterToUse() *persisterData {
 	if ok && !persisterInSetEpoch.getIsClosed() {
 		persisterToUse = persisterInSetEpoch
 	} else {
+		returningPath := "<nil persisterToUse>"
+		if persisterToUse != nil {
+			returningPath = persisterToUse.path
+		}
+
 		log.Debug("active persister not found",
 			"epoch", ps.epochForPutOperation,
-			"used", persisterToUse.epoch)
+			"used", persisterToUse.epoch,
+			"path", ps.dbPath,
+			"returning persister", returningPath)
 	}
 
 	return persisterToUse
@@ -972,7 +980,6 @@ func (ps *PruningStorer) processPersistersToClose() []*persisterData {
 		allEpochsAfterProcess = append(allEpochsAfterProcess, p.epoch)
 	}
 
-	// TODO remove this
 	log.Debug("PruningStorer.processPersistersToClose",
 		"epochs to close", epochsToClose,
 		"before process", allEpochsBeforeProcess,
