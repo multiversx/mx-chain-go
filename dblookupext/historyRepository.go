@@ -127,6 +127,7 @@ func (hr *historyRepository) RecordBlock(blockHeaderHash []byte,
 	blockBody data.BodyHandler,
 	scrResultsFromPool map[string]data.TransactionHandler,
 	receiptsFromPool map[string]data.TransactionHandler,
+	createdIntraShardMiniBlocks []*block.MiniBlock,
 	logs []*data.LogData) error {
 	hr.recordBlockMutex.Lock()
 	defer hr.recordBlockMutex.Unlock()
@@ -152,7 +153,15 @@ func (hr *historyRepository) RecordBlock(blockHeaderHash []byte,
 
 		err = hr.recordMiniblock(blockHeaderHash, blockHeader, miniblock, epoch)
 		if err != nil {
+			log.Error("cannot record miniblock", "type", miniblock.Type, "error", err)
 			continue
+		}
+	}
+
+	for _, miniBlock := range createdIntraShardMiniBlocks {
+		err = hr.recordMiniblock(blockHeaderHash, blockHeader, miniBlock, epoch)
+		if err != nil {
+			log.Error("cannot record in shard miniblock", "type", miniBlock.Type, "error", err)
 		}
 	}
 
