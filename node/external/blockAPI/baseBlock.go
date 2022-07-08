@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/api/shared/logging"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dblookupext"
 )
@@ -192,7 +193,7 @@ func (bap *baseAPIBlockProcessor) getReceiptsFromMiniblock(miniblock *block.Mini
 	if err != nil {
 		return nil, fmt.Errorf("%w: %v", errCannotLoadReceipts, err)
 	}
-	log.Debug(fmt.Sprintf("GetBulkFromEpoch took %s", time.Since(start)))
+	logging.LogAPIActionDurationIfNeeded(start, "GetBulkFromEpoch")
 
 	apiReceipts := make([]*transaction.ApiReceipt, 0)
 	for _, pair := range marshalledReceipts {
@@ -224,7 +225,7 @@ func (bap *baseAPIBlockProcessor) getTxsFromMiniblock(
 	if err != nil {
 		return nil, fmt.Errorf("%w: %v, miniblock = %s", errCannotLoadTransactions, err, hex.EncodeToString(miniblockHash))
 	}
-	log.Debug(fmt.Sprintf("GetBulkFromEpoch took %s", time.Since(start)))
+	logging.LogAPIActionDurationIfNeeded(start, "GetBulkFromEpoch")
 
 	start = time.Now()
 	txs := make([]*transaction.ApiTransactionResult, 0)
@@ -247,7 +248,7 @@ func (bap *baseAPIBlockProcessor) getTxsFromMiniblock(
 
 		txs = append(txs, tx)
 	}
-	log.Debug(fmt.Sprintf("UnmarshalTransactions took %s", time.Since(start)))
+	logging.LogAPIActionDurationIfNeeded(start, "UnmarshalTransactions")
 
 	return txs, nil
 }
