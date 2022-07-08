@@ -94,6 +94,9 @@ func testMockContract_CrossShard(t *testing.T, asyncCallType []byte) {
 		ThirdPartyAddress: thirdPartyAddress,
 		VaultAddress:      vaultAddress,
 
+		SuccessCallback: "myCallBack",
+		ErrorCallback:   "myCallBack",
+
 		IsLegacyAsync: bytes.Equal(asyncCallType, LegacyAsyncCallType),
 	}
 

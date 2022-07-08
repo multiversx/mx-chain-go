@@ -2071,7 +2071,7 @@ func (sc *scProcessor) createSCRsWhenError(
 				scr.GasLimit = gasLocked
 				consumedFee = sc.economicsFee.ComputeFeeForProcessing(tx, tx.GetGasLimit()-gasLocked)
 			}
-			accumulatedSCRData += "@" + core.ConvertToEvenHex(int(vmcommon.UserError))
+			accumulatedSCRData += "@@@@" + core.ConvertToEvenHex(int(vmcommon.UserError))
 			if sc.flagRepairCallBackData.IsSet() {
 				accumulatedSCRData += "@" + hex.EncodeToString(returnMessage)
 			}

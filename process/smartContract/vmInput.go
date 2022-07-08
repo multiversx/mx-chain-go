@@ -3,8 +3,6 @@ package smartContract
 import (
 	"math/big"
 
-	"github.com/ElrondNetwork/arwen-wasm-vm/v1_5/arwen"
-	"github.com/ElrondNetwork/arwen-wasm-vm/v1_5/arwen/contexts"
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
@@ -121,10 +119,6 @@ func (sc *scProcessor) createVMCallInput(
 	vmCallInput.GasProvided, err = core.SafeSubUint64(vmCallInput.GasProvided, gasLocked)
 	if err != nil {
 		return nil, err
-	}
-
-	if contexts.IsCallback(vmCallInput.CallType) && !builtInFuncCall {
-		arwen.PrependToArguments(vmCallInput, []byte{}, []byte{}, []byte{}, []byte{})
 	}
 
 	return vmCallInput, nil
