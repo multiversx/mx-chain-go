@@ -195,8 +195,8 @@ func (holder *virtualPeersHolder) ResetRoundsWithoutReceivedMessages(pkBytes []b
 	return nil
 }
 
-// GetAllManagedKeys returns all keys that will be managed by this node
-func (holder *virtualPeersHolder) GetAllManagedKeys() map[string]crypto.PrivateKey {
+// GetManagedKeysByCurrentNode returns all keys that will be managed by this node
+func (holder *virtualPeersHolder) GetManagedKeysByCurrentNode() map[string]crypto.PrivateKey {
 	holder.mut.RLock()
 	defer holder.mut.RUnlock()
 

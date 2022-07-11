@@ -402,7 +402,7 @@ func TestVirtualPeersHolder_ResetRoundsWithoutReceivedMessages(t *testing.T) {
 	})
 }
 
-func TestVirtualPeersHolder_GetAllManagedKeys(t *testing.T) {
+func TestVirtualPeersHolder_GetManagedKeysByCurrentNode(t *testing.T) {
 	t.Parallel()
 
 	t.Run("main machine should return all keys, always", func(t *testing.T) {
@@ -416,7 +416,7 @@ func TestVirtualPeersHolder_GetAllManagedKeys(t *testing.T) {
 			_ = holder.IncrementRoundsWithoutReceivedMessages(pkBytes0)
 		}
 
-		result := holder.GetAllManagedKeys()
+		result := holder.GetManagedKeysByCurrentNode()
 		testManagedKeys(t, result, pkBytes0, pkBytes1)
 	})
 	t.Run("is secondary machine should return managed keys", func(t *testing.T) {
@@ -428,22 +428,22 @@ func TestVirtualPeersHolder_GetAllManagedKeys(t *testing.T) {
 		_ = holder.AddVirtualPeer(skBytes1)
 
 		t.Run("MaxRoundsWithoutReceivedMessages not reached should return none", func(t *testing.T) {
-			result := holder.GetAllManagedKeys()
+			result := holder.GetManagedKeysByCurrentNode()
 			testManagedKeys(t, result)
 
 			_ = holder.IncrementRoundsWithoutReceivedMessages(pkBytes0)
 
-			result = holder.GetAllManagedKeys()
+			result = holder.GetManagedKeysByCurrentNode()
 			testManagedKeys(t, result)
 		})
 		t.Run("MaxRoundsWithoutReceivedMessages reached, should return failed pk", func(t *testing.T) {
 			_ = holder.IncrementRoundsWithoutReceivedMessages(pkBytes0)
 
-			result := holder.GetAllManagedKeys()
+			result := holder.GetManagedKeysByCurrentNode()
 			testManagedKeys(t, result, pkBytes0)
 
 			_ = holder.IncrementRoundsWithoutReceivedMessages(pkBytes0)
-			result = holder.GetAllManagedKeys()
+			result = holder.GetManagedKeysByCurrentNode()
 			testManagedKeys(t, result, pkBytes0)
 		})
 	})
@@ -590,7 +590,7 @@ func TestVirtualPeersHolder_ParallelOperationsShouldNotPanic(t *testing.T) {
 			case 5:
 				_ = holder.ResetRoundsWithoutReceivedMessages(pkBytes0)
 			case 6:
-				_ = holder.GetAllManagedKeys()
+				_ = holder.GetManagedKeysByCurrentNode()
 			case 7:
 				_ = holder.IsKeyManagedByCurrentNode(pkBytes0)
 			case 8:
