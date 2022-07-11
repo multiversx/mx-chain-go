@@ -6,6 +6,9 @@ import (
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
+// LastSnapshotStarted -
+const LastSnapshotStarted = lastSnapshotStarted
+
 // NewEmptyBaseAccount -
 func NewEmptyBaseAccount(address []byte, tracker DataTrieTracker) *baseAccount {
 	return &baseAccount{

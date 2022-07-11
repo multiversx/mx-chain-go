@@ -317,7 +317,7 @@ func (tsm *trieStorageManager) TakeSnapshot(
 	stats common.SnapshotStatisticsHandler,
 	epoch uint32,
 ) {
-	if tsm.isClosed() {
+	if tsm.IsClosed() {
 		tsm.safelyCloseChan(leavesChan)
 		stats.SnapshotFinished()
 		return
@@ -353,7 +353,7 @@ func (tsm *trieStorageManager) TakeSnapshot(
 // it adds this checkpoint in the queue. The checkpoint operation creates a new snapshot file
 // only if there was no snapshot done prior to this
 func (tsm *trieStorageManager) SetCheckpoint(rootHash []byte, mainTrieRootHash []byte, leavesChan chan core.KeyValueHolder, stats common.SnapshotStatisticsHandler) {
-	if tsm.isClosed() {
+	if tsm.IsClosed() {
 		tsm.safelyCloseChan(leavesChan)
 		stats.SnapshotFinished()
 		return
@@ -518,7 +518,8 @@ func (tsm *trieStorageManager) Remove(hash []byte) error {
 	return storer.RemoveFromCurrentEpoch(hash)
 }
 
-func (tsm *trieStorageManager) isClosed() bool {
+// IsClosed returns true if the trie storage manager signals that it has been closed
+func (tsm *trieStorageManager) IsClosed() bool {
 	tsm.storageOperationMutex.RLock()
 	defer tsm.storageOperationMutex.RUnlock()
 

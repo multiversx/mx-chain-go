@@ -25,6 +25,7 @@ type StorageManagerStub struct {
 	SetEpochForPutOperationCalled   func(uint32)
 	ShouldTakeSnapshotCalled        func() bool
 	GetLatestStorageEpochCalled     func() (uint32, error)
+	IsClosedCalled                  func() bool
 }
 
 // Put -
@@ -161,6 +162,15 @@ func (sms *StorageManagerStub) GetLatestStorageEpoch() (uint32, error) {
 // Close -
 func (sms *StorageManagerStub) Close() error {
 	return nil
+}
+
+// IsClosed -
+func (sms *StorageManagerStub) IsClosed() bool {
+	if sms.IsClosedCalled != nil {
+		return sms.IsClosedCalled()
+	}
+
+	return false
 }
 
 // IsInterfaceNil -
