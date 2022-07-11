@@ -1718,14 +1718,14 @@ func (e *esdt) prepareAndSendRoleChangeData(
 		e.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
-	isTransferRoleDefinedIArgs := isDefinedRoleInArgs(roles, []byte(core.ESDTRoleTransfer))
-	firstTransferRoleSet := !properties.transferRoleExists && isTransferRoleDefinedIArgs
+	isTransferRoleDefinedInArgs := isDefinedRoleInArgs(roles, []byte(core.ESDTRoleTransfer))
+	firstTransferRoleSet := !properties.transferRoleExists && isTransferRoleDefinedInArgs
 	if firstTransferRoleSet {
 		esdtTransferData := core.BuiltInFunctionESDTSetLimitedTransfer + "@" + hex.EncodeToString(tokenID)
 		e.eei.SendGlobalSettingToAll(e.eSDTSCAddress, []byte(esdtTransferData))
 	}
 
-	if isTransferRoleDefinedIArgs {
+	if isTransferRoleDefinedInArgs {
 		e.sendNewTransferRoleAddressToSystemAccount(tokenID, address)
 	}
 
@@ -1888,7 +1888,7 @@ func (e *esdt) sendAllTransferRoleAddresses(args *vmcommon.ContractCallInput) vm
 		return vmcommon.FunctionNotFound
 	}
 	if len(args.Arguments) != 1 {
-		e.eei.AddReturnMessage("too many arguments")
+		e.eei.AddReturnMessage("wrong number of arguments, expected 1")
 		return vmcommon.UserError
 	}
 
@@ -1897,19 +1897,19 @@ func (e *esdt) sendAllTransferRoleAddresses(args *vmcommon.ContractCallInput) vm
 		return returnCode
 	}
 
-	numAddresses := 0
+	transferRoleFound := false
 	esdtTransferData := vmcommon.BuiltInFunctionESDTTransferRoleAddAddress + "@" + hex.EncodeToString(args.Arguments[0])
 	for _, role := range token.SpecialRoles {
 		for _, actualRole := range role.Roles {
 			if bytes.Equal(actualRole, []byte(core.ESDTRoleTransfer)) {
 				esdtTransferData += "@" + hex.EncodeToString(role.Address)
-				numAddresses++
+				transferRoleFound = true
 				break
 			}
 		}
 	}
 
-	if numAddresses == 0 {
+	if !transferRoleFound {
 		e.eei.AddReturnMessage("no address with transfer role")
 		return vmcommon.UserError
 	}

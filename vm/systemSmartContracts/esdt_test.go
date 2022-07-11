@@ -3577,7 +3577,7 @@ func TestEsdt_SendAllTransferRoleAddresses(t *testing.T) {
 	eei.ReturnMessage = ""
 	retCode = e.Execute(vmInput)
 	require.Equal(t, vmcommon.UserError, retCode)
-	require.Equal(t, "too many arguments", eei.ReturnMessage)
+	require.Equal(t, "wrong number of arguments, expected 1", eei.ReturnMessage)
 
 	called = 0
 	token.TokenType = []byte(core.NonFungibleESDT)
