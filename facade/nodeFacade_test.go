@@ -1280,13 +1280,13 @@ func TestNodeFacade_GetTransactionsPool(t *testing.T) {
 		arg := createMockArguments()
 		expectedErr := errors.New("expected error")
 		arg.ApiResolver = &mock.ApiResolverStub{
-			GetTransactionsPoolCalled: func() (*common.TransactionsPoolAPIResponse, error) {
+			GetTransactionsPoolCalled: func(fields string) (*common.TransactionsPoolAPIResponse, error) {
 				return nil, expectedErr
 			},
 		}
 
 		nf, _ := NewNodeFacade(arg)
-		res, err := nf.GetTransactionsPool()
+		res, err := nf.GetTransactionsPool("")
 		require.Nil(t, res)
 		require.Equal(t, expectedErr, err)
 	})
@@ -1296,18 +1296,46 @@ func TestNodeFacade_GetTransactionsPool(t *testing.T) {
 
 		arg := createMockArguments()
 		expectedPool := &common.TransactionsPoolAPIResponse{
-			RegularTransactions:  []string{"tx0", "tx1"},
-			SmartContractResults: []string{"tx2", "tx3"},
-			Rewards:              []string{"tx4"},
+			RegularTransactions: []common.Transaction{
+				{
+					TxFields: map[string]interface{}{
+						"hash": "tx0",
+					},
+				},
+				{
+					TxFields: map[string]interface{}{
+						"hash": "tx1",
+					},
+				},
+			},
+			SmartContractResults: []common.Transaction{
+				{
+					TxFields: map[string]interface{}{
+						"hash": "tx2",
+					},
+				},
+				{
+					TxFields: map[string]interface{}{
+						"hash": "tx3",
+					},
+				},
+			},
+			Rewards: []common.Transaction{
+				{
+					TxFields: map[string]interface{}{
+						"hash": "tx4",
+					},
+				},
+			},
 		}
 		arg.ApiResolver = &mock.ApiResolverStub{
-			GetTransactionsPoolCalled: func() (*common.TransactionsPoolAPIResponse, error) {
+			GetTransactionsPoolCalled: func(fields string) (*common.TransactionsPoolAPIResponse, error) {
 				return expectedPool, nil
 			},
 		}
 
 		nf, _ := NewNodeFacade(arg)
-		res, err := nf.GetTransactionsPool()
+		res, err := nf.GetTransactionsPool("")
 		require.NoError(t, err)
 		require.Equal(t, expectedPool, res)
 	})
@@ -1351,5 +1379,150 @@ func TestNodeFacade_GetGenesisBalances(t *testing.T) {
 		res, err := nf.GetGenesisBalances()
 		require.NoError(t, err)
 		require.Equal(t, expectedBalances, res)
+	})
+}
+
+func TestNodeFacade_GetTransactionsPoolForSender(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should error", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArguments()
+		expectedErr := errors.New("expected error")
+		arg.ApiResolver = &mock.ApiResolverStub{
+			GetTransactionsPoolForSenderCalled: func(sender, fields string) (*common.TransactionsPoolForSenderApiResponse, error) {
+				return nil, expectedErr
+			},
+		}
+
+		nf, _ := NewNodeFacade(arg)
+		res, err := nf.GetTransactionsPoolForSender("", "")
+		require.Nil(t, res)
+		require.Equal(t, expectedErr, err)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArguments()
+		expectedSender := "alice"
+		providedParameters := "sender,hash,receiver"
+		expectedResponse := &common.TransactionsPoolForSenderApiResponse{
+			Transactions: []common.Transaction{
+				{
+					TxFields: map[string]interface{}{
+						"hash":     "txhash1",
+						"sender":   expectedSender,
+						"receiver": "receiver1",
+					},
+				},
+				{
+					TxFields: map[string]interface{}{
+						"hash":     "txhash2",
+						"sender":   expectedSender,
+						"receiver": "receiver2",
+					},
+				},
+			},
+		}
+		arg.ApiResolver = &mock.ApiResolverStub{
+			GetTransactionsPoolForSenderCalled: func(sender, fields string) (*common.TransactionsPoolForSenderApiResponse, error) {
+				require.Equal(t, expectedSender, sender)
+				require.Equal(t, providedParameters, fields)
+				return expectedResponse, nil
+			},
+		}
+
+		nf, _ := NewNodeFacade(arg)
+		res, err := nf.GetTransactionsPoolForSender(expectedSender, providedParameters)
+		require.NoError(t, err)
+		require.Equal(t, expectedResponse, res)
+	})
+}
+
+func TestNodeFacade_GetLastPoolNonceForSender(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should error", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArguments()
+		expectedErr := errors.New("expected error")
+		arg.ApiResolver = &mock.ApiResolverStub{
+			GetLastPoolNonceForSenderCalled: func(sender string) (uint64, error) {
+				return 0, expectedErr
+			},
+		}
+
+		nf, _ := NewNodeFacade(arg)
+		res, err := nf.GetLastPoolNonceForSender("")
+		require.Equal(t, uint64(0), res)
+		require.Equal(t, expectedErr, err)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArguments()
+		expectedSender := "alice"
+		expectedNonce := uint64(33)
+		arg.ApiResolver = &mock.ApiResolverStub{
+			GetLastPoolNonceForSenderCalled: func(sender string) (uint64, error) {
+				return expectedNonce, nil
+			},
+		}
+
+		nf, _ := NewNodeFacade(arg)
+		res, err := nf.GetLastPoolNonceForSender(expectedSender)
+		require.NoError(t, err)
+		require.Equal(t, expectedNonce, res)
+	})
+}
+
+func TestNodeFacade_GetTransactionsPoolNonceGapsForSender(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should error", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArguments()
+		expectedErr := errors.New("expected error")
+		arg.ApiResolver = &mock.ApiResolverStub{
+			GetTransactionsPoolNonceGapsForSenderCalled: func(sender string) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error) {
+				return nil, expectedErr
+			},
+		}
+
+		nf, _ := NewNodeFacade(arg)
+		res, err := nf.GetTransactionsPoolNonceGapsForSender("")
+		require.Nil(t, res)
+		require.Equal(t, expectedErr, err)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArguments()
+		expectedSender := "alice"
+		expectedNonceGaps := &common.TransactionsPoolNonceGapsForSenderApiResponse{
+			Sender: expectedSender,
+			Gaps: []common.NonceGapApiResponse{
+				{
+					From: 33,
+					To:   60,
+				},
+			},
+		}
+		arg.ApiResolver = &mock.ApiResolverStub{
+			GetTransactionsPoolNonceGapsForSenderCalled: func(sender string) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error) {
+				return expectedNonceGaps, nil
+			},
+		}
+
+		nf, _ := NewNodeFacade(arg)
+		res, err := nf.GetTransactionsPoolNonceGapsForSender(expectedSender)
+		require.NoError(t, err)
+		require.Equal(t, expectedNonceGaps, res)
 	})
 }

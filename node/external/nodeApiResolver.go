@@ -146,8 +146,23 @@ func (nar *nodeApiResolver) GetTransaction(hash string, withResults bool) (*tran
 }
 
 // GetTransactionsPool will return a structure containing the transactions pool that is to be returned on API calls
-func (nar *nodeApiResolver) GetTransactionsPool() (*common.TransactionsPoolAPIResponse, error) {
-	return nar.apiTransactionHandler.GetTransactionsPool()
+func (nar *nodeApiResolver) GetTransactionsPool(fields string) (*common.TransactionsPoolAPIResponse, error) {
+	return nar.apiTransactionHandler.GetTransactionsPool(fields)
+}
+
+// GetTransactionsPoolForSender will return a structure containing the transactions for sender that is to be returned on API calls
+func (nar *nodeApiResolver) GetTransactionsPoolForSender(sender, fields string) (*common.TransactionsPoolForSenderApiResponse, error) {
+	return nar.apiTransactionHandler.GetTransactionsPoolForSender(sender, fields)
+}
+
+// GetLastPoolNonceForSender will return the last nonce from pool for sender that is to be returned on API calls
+func (nar *nodeApiResolver) GetLastPoolNonceForSender(sender string) (uint64, error) {
+	return nar.apiTransactionHandler.GetLastPoolNonceForSender(sender)
+}
+
+// GetTransactionsPoolNonceGapsForSender will return the nonce gaps from pool for sender, if exists, that is to be returned on API calls
+func (nar *nodeApiResolver) GetTransactionsPoolNonceGapsForSender(sender string) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error) {
+	return nar.apiTransactionHandler.GetTransactionsPoolNonceGapsForSender(sender)
 }
 
 // GetBlockByHash will return the block with the given hash and optionally with transactions

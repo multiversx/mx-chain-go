@@ -29,6 +29,9 @@ func TestDisabledCache_DoesNothing(t *testing.T) {
 
 	require.NotPanics(t, func() { cache.ForEachTransaction(func(_ []byte, _ *WrappedTransaction) {}) })
 
+	txs := cache.GetTransactionsPoolForSender("")
+	require.Equal(t, make([]*WrappedTransaction, 0), txs)
+
 	cache.Clear()
 
 	evicted := cache.Put(nil, nil, 0)
