@@ -197,6 +197,7 @@ func TestDisabledNodeFacade_AllMethodsShouldNotPanic(t *testing.T) {
 
 	gasConfig, err := inf.GetGasConfigs()
 	assert.Nil(t, gasConfig)
+	assert.Equal(t, errNodeStarting, err)
 
 	txs, err := inf.GetTransactionsPoolForSender("", "")
 	assert.Nil(t, txs)
