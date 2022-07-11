@@ -317,3 +317,59 @@ func TestPeerAccountsDB_MarkSnapshotDone(t *testing.T) {
 	})
 
 }
+
+func TestPeerAccountsDB_SnapshotStateOnAClosedStorageManagerShouldNotMarkActiveDB(t *testing.T) {
+	t.Parallel()
+
+	mut := sync.RWMutex{}
+	lastSnapshotStartedWasPut := false
+	activeDBWasPut := false
+	trieStub := &trieMock.TrieStub{
+		GetStorageManagerCalled: func() common.StorageManager {
+			return &testscommon.StorageManagerStub{
+				ShouldTakeSnapshotCalled: func() bool {
+					return true
+				},
+				TakeSnapshotCalled: func(_ []byte, _ []byte, ch chan core.KeyValueHolder, stats common.SnapshotStatisticsHandler, _ uint32) {
+					stats.SnapshotFinished()
+				},
+				IsClosedCalled: func() bool {
+					return true
+				},
+				PutCalled: func(key []byte, val []byte) error {
+					mut.Lock()
+					defer mut.Unlock()
+
+					if string(key) == state.LastSnapshotStarted {
+						lastSnapshotStartedWasPut = true
+						return nil
+					}
+
+					return nil
+				},
+				PutInEpochCalled: func(key []byte, val []byte, epoch uint32) error {
+					mut.Lock()
+					defer mut.Unlock()
+
+					if string(key) == common.ActiveDBKey {
+						activeDBWasPut = true
+						return nil
+					}
+
+					return nil
+				},
+			}
+		},
+	}
+	args := createMockAccountsDBArgs()
+	args.Trie = trieStub
+
+	adb, _ := state.NewPeerAccountsDB(args)
+	adb.SnapshotState([]byte("roothash"))
+	time.Sleep(time.Second)
+
+	mut.RLock()
+	defer mut.RUnlock()
+	assert.True(t, lastSnapshotStartedWasPut)
+	assert.False(t, activeDBWasPut)
+}

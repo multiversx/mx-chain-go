@@ -1113,20 +1113,23 @@ func (adb *AccountsDB) SnapshotState(rootHash []byte) {
 		stats.wg.Done()
 	}()
 
-	go func() {
-		printStats(stats, "snapshotState user trie", rootHash)
-
-		if trieStorageManager.IsClosed() {
-			log.Debug("will not set activeDB in epoch as the snapshot might be incomplete", "epoch", epoch)
-			return
-		}
-
-		log.Debug("set activeDB in epoch", "epoch", epoch)
-		errPut := trieStorageManager.PutInEpoch([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal), epoch)
-		handleLoggingWhenError("error while putting active DB value into main storer", errPut)
-	}()
+	go adb.markActiveDBAfterSnapshot(stats, rootHash, "snapshotState user trie", epoch)
 
 	adb.waitForCompletionIfRunningInImportDB(stats)
+}
+
+func (adb *AccountsDB) markActiveDBAfterSnapshot(stats *snapshotStatistics, rootHash []byte, message string, epoch uint32) {
+	printStats(stats, message, rootHash)
+
+	trieStorageManager := adb.mainTrie.GetStorageManager()
+	if trieStorageManager.IsClosed() {
+		log.Debug("will not set activeDB in epoch as the snapshot might be incomplete", "epoch", epoch)
+		return
+	}
+
+	log.Debug("set activeDB in epoch", "epoch", epoch)
+	errPut := trieStorageManager.PutInEpoch([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal), epoch)
+	handleLoggingWhenError("error while putting active DB value into main storer", errPut)
 }
 
 func printStats(stats *snapshotStatistics, identifier string, rootHash []byte) {
