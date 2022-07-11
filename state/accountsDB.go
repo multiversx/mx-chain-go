@@ -1123,7 +1123,7 @@ func (adb *AccountsDB) markActiveDBAfterSnapshot(stats *snapshotStatistics, root
 
 	trieStorageManager := adb.mainTrie.GetStorageManager()
 	if trieStorageManager.IsClosed() {
-		log.Debug("will not set activeDB in epoch as the snapshot might be incomplete", "epoch", epoch)
+		log.Debug("will not set activeDB in epoch as the snapshot might be incomplete since trie storage manager is closed", "epoch", epoch)
 		return
 	}
 

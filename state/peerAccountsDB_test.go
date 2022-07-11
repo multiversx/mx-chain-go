@@ -342,7 +342,6 @@ func TestPeerAccountsDB_SnapshotStateOnAClosedStorageManagerShouldNotMarkActiveD
 
 					if string(key) == state.LastSnapshotStarted {
 						lastSnapshotStartedWasPut = true
-						return nil
 					}
 
 					return nil
@@ -353,7 +352,6 @@ func TestPeerAccountsDB_SnapshotStateOnAClosedStorageManagerShouldNotMarkActiveD
 
 					if string(key) == common.ActiveDBKey {
 						activeDBWasPut = true
-						return nil
 					}
 
 					return nil

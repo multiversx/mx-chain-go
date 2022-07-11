@@ -947,7 +947,6 @@ func TestAccountsDB_SnapshotStateOnAClosedStorageManagerShouldNotMarkActiveDB(t 
 
 					if string(key) == state.LastSnapshotStarted {
 						lastSnapshotStartedWasPut = true
-						return nil
 					}
 
 					return nil
@@ -958,7 +957,6 @@ func TestAccountsDB_SnapshotStateOnAClosedStorageManagerShouldNotMarkActiveDB(t 
 
 					if string(key) == common.ActiveDBKey {
 						activeDBWasPut = true
-						return nil
 					}
 
 					return nil
