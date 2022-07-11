@@ -3,6 +3,8 @@ package transactionAPI
 import (
 	"encoding/hex"
 	"fmt"
+	"sort"
+	"strings"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -19,6 +21,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/txstatus"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 )
 
 var log = logger.GetOrCreate("node/transactionAPI")
@@ -151,24 +155,267 @@ func (atp *apiTransactionProcessor) populateComputedFieldIsRefund(tx *transactio
 	})
 }
 
-// GetTransactionsPool will return a structure containing the transactions pool that is to be returned on API calls
-func (atp *apiTransactionProcessor) GetTransactionsPool() (*common.TransactionsPoolAPIResponse, error) {
-	txsPoolResponse := &common.TransactionsPoolAPIResponse{
-		RegularTransactions:  txsHashesBytesToString(atp.dataPool.Transactions().Keys()),
-		SmartContractResults: txsHashesBytesToString(atp.dataPool.UnsignedTransactions().Keys()),
-		Rewards:              txsHashesBytesToString(atp.dataPool.RewardTransactions().Keys()),
+// GetTransactionsPool will return a structure containing the transactions pool fields that is to be returned on API calls
+func (atp *apiTransactionProcessor) GetTransactionsPool(fields string) (*common.TransactionsPoolAPIResponse, error) {
+	transactions := &common.TransactionsPoolAPIResponse{}
+	requestedFieldsHandler := newFieldsHandler(fields)
+
+	var err error
+	transactions.RegularTransactions, err = atp.getRegularTransactionsFromPool(requestedFieldsHandler)
+	if err != nil {
+		return nil, err
 	}
 
-	return txsPoolResponse, nil
+	transactions.Rewards, err = atp.getRewardTransactionsFromPool(requestedFieldsHandler)
+	if err != nil {
+		return nil, err
+	}
+
+	transactions.SmartContractResults, err = atp.getUnsignedTransactionsFromPool(requestedFieldsHandler)
+	if err != nil {
+		return nil, err
+	}
+
+	return transactions, nil
 }
 
-func txsHashesBytesToString(input [][]byte) []string {
-	result := make([]string, 0, len(input))
-	for _, txHashBytes := range input {
-		result = append(result, hex.EncodeToString(txHashBytes))
+// GetTransactionsPoolForSender will return a structure containing the transactions for sender that is to be returned on API calls
+func (atp *apiTransactionProcessor) GetTransactionsPoolForSender(sender, fields string) (*common.TransactionsPoolForSenderApiResponse, error) {
+	senderAddr, err := atp.addressPubKeyConverter.Decode(sender)
+	if err != nil {
+		return nil, fmt.Errorf("%s, %w", ErrInvalidAddress.Error(), err)
 	}
 
-	return result
+	senderShard := atp.shardCoordinator.ComputeId(senderAddr)
+
+	fields = strings.Trim(fields, " ")
+	fields = strings.ToLower(fields)
+	wrappedTxs := atp.fetchTxsForSender(string(senderAddr), senderShard)
+	if len(wrappedTxs) == 0 {
+		return nil, fmt.Errorf("%w, no transaction in pool for sender", ErrCannotRetrieveTransactions)
+	}
+
+	requestedFieldsHandler := newFieldsHandler(fields)
+	transactions := &common.TransactionsPoolForSenderApiResponse{}
+	for _, wrappedTx := range wrappedTxs {
+		tx := atp.extractRequestedTxInfo(wrappedTx, requestedFieldsHandler)
+		transactions.Transactions = append(transactions.Transactions, tx)
+	}
+
+	return transactions, nil
+}
+
+// GetLastPoolNonceForSender will return the last nonce from pool for sender that is to be returned on API calls
+func (atp *apiTransactionProcessor) GetLastPoolNonceForSender(sender string) (uint64, error) {
+	senderAddr, err := atp.addressPubKeyConverter.Decode(sender)
+	if err != nil {
+		return 0, fmt.Errorf("%s, %w", ErrInvalidAddress.Error(), err)
+	}
+
+	senderShard := atp.shardCoordinator.ComputeId(senderAddr)
+	lastNonce, err := atp.fetchLastNonceForSender(string(senderAddr), senderShard)
+	if err != nil {
+		return 0, err
+	}
+
+	return lastNonce, nil
+}
+
+// GetTransactionsPoolNonceGapsForSender will return the nonce gaps from pool for sender, if exists, that is to be returned on API calls
+func (atp *apiTransactionProcessor) GetTransactionsPoolNonceGapsForSender(sender string) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error) {
+	senderAddr, err := atp.addressPubKeyConverter.Decode(sender)
+	if err != nil {
+		return nil, fmt.Errorf("%s, %w", ErrInvalidAddress.Error(), err)
+	}
+
+	senderShard := atp.shardCoordinator.ComputeId(senderAddr)
+	nonceGaps, err := atp.extractNonceGaps(string(senderAddr), senderShard)
+	if err != nil {
+		return nil, err
+	}
+
+	return &common.TransactionsPoolNonceGapsForSenderApiResponse{
+		Sender: sender,
+		Gaps:   nonceGaps,
+	}, nil
+}
+
+func (atp *apiTransactionProcessor) extractRequestedTxInfoFromObj(txObj interface{}, txType transaction.TxType, txHash []byte, requestedFieldsHandler fieldsHandler) (common.Transaction, error) {
+	txResult, err := atp.getApiResultFromObj(txObj, txType)
+	if err != nil {
+		return common.Transaction{}, err
+	}
+
+	wrappedTx := &txcache.WrappedTransaction{
+		Tx:     txResult.Tx,
+		TxHash: txHash,
+	}
+
+	return atp.extractRequestedTxInfo(wrappedTx, requestedFieldsHandler), nil
+}
+
+func (atp *apiTransactionProcessor) getRegularTransactionsFromPool(requestedFieldsHandler fieldsHandler) ([]common.Transaction, error) {
+	regularTxKeys := atp.dataPool.Transactions().Keys()
+	regularTxs := make([]common.Transaction, len(regularTxKeys))
+	for idx, key := range regularTxKeys {
+		txObj, found := atp.getRegularTxObjFromDataPool(key)
+		if !found {
+			continue
+		}
+
+		tx, err := atp.extractRequestedTxInfoFromObj(txObj, transaction.TxTypeNormal, key, requestedFieldsHandler)
+		if err != nil {
+			return nil, err
+		}
+
+		regularTxs[idx] = tx
+	}
+
+	return regularTxs, nil
+}
+
+func (atp *apiTransactionProcessor) getRewardTransactionsFromPool(requestedFieldsHandler fieldsHandler) ([]common.Transaction, error) {
+	rewardTxKeys := atp.dataPool.RewardTransactions().Keys()
+	rewardTxs := make([]common.Transaction, len(rewardTxKeys))
+	for idx, key := range rewardTxKeys {
+		txObj, found := atp.getRewardTxObjFromDataPool(key)
+		if !found {
+			continue
+		}
+
+		tx, err := atp.extractRequestedTxInfoFromObj(txObj, transaction.TxTypeReward, key, requestedFieldsHandler)
+		if err != nil {
+			return nil, err
+		}
+
+		rewardTxs[idx] = tx
+	}
+
+	return rewardTxs, nil
+}
+
+func (atp *apiTransactionProcessor) getUnsignedTransactionsFromPool(requestedFieldsHandler fieldsHandler) ([]common.Transaction, error) {
+	unsignedTxKeys := atp.dataPool.UnsignedTransactions().Keys()
+	unsignedTxs := make([]common.Transaction, len(unsignedTxKeys))
+	for idx, key := range unsignedTxKeys {
+		txObj, found := atp.getUnsignedTxObjFromDataPool(key)
+		if !found {
+			continue
+		}
+
+		tx, err := atp.extractRequestedTxInfoFromObj(txObj, transaction.TxTypeUnsigned, key, requestedFieldsHandler)
+		if err != nil {
+			return nil, err
+		}
+
+		unsignedTxs[idx] = tx
+	}
+
+	return unsignedTxs, nil
+}
+
+func (atp *apiTransactionProcessor) extractRequestedTxInfo(wrappedTx *txcache.WrappedTransaction, requestedFieldsHandler fieldsHandler) common.Transaction {
+	tx := common.Transaction{
+		TxFields: make(map[string]interface{}),
+	}
+
+	tx.TxFields[hashField] = hex.EncodeToString(wrappedTx.TxHash)
+
+	if requestedFieldsHandler.HasNonce {
+		tx.TxFields[nonceField] = wrappedTx.Tx.GetNonce()
+	}
+	if requestedFieldsHandler.HasSender {
+		tx.TxFields[senderField] = atp.addressPubKeyConverter.Encode(wrappedTx.Tx.GetSndAddr())
+	}
+	if requestedFieldsHandler.HasReceiver {
+		tx.TxFields[receiverField] = atp.addressPubKeyConverter.Encode(wrappedTx.Tx.GetRcvAddr())
+	}
+	if requestedFieldsHandler.HasGasLimit {
+		tx.TxFields[gasLimitField] = wrappedTx.Tx.GetGasLimit()
+	}
+	if requestedFieldsHandler.HasGasPrice {
+		tx.TxFields[gasPriceField] = wrappedTx.Tx.GetGasPrice()
+	}
+	if requestedFieldsHandler.HasRcvUsername {
+		tx.TxFields[rcvUsernameField] = wrappedTx.Tx.GetRcvUserName()
+	}
+	if requestedFieldsHandler.HasData {
+		tx.TxFields[dataField] = wrappedTx.Tx.GetData()
+	}
+	if requestedFieldsHandler.HasValue {
+		tx.TxFields[valueField] = wrappedTx.Tx.GetValue()
+	}
+
+	return tx
+}
+
+func (atp *apiTransactionProcessor) getDataStoresForSender(senderShard uint32) []storage.Cacher {
+	cachers := make([]storage.Cacher, 0)
+	numOfShards := atp.shardCoordinator.NumberOfShards()
+	for shard := uint32(0); shard < numOfShards; shard++ {
+		cacheId := process.ShardCacherIdentifier(senderShard, shard)
+		shardCache := atp.dataPool.Transactions().ShardDataStore(cacheId)
+		cachers = append(cachers, shardCache)
+	}
+
+	cacheId := process.ShardCacherIdentifier(senderShard, common.MetachainShardId)
+	shardCache := atp.dataPool.Transactions().ShardDataStore(cacheId)
+	cachers = append(cachers, shardCache)
+
+	return cachers
+}
+
+func (atp *apiTransactionProcessor) fetchTxsForSender(sender string, senderShard uint32) []*txcache.WrappedTransaction {
+	txsForSender := make([]*txcache.WrappedTransaction, 0)
+	cachers := atp.getDataStoresForSender(senderShard)
+	for _, cache := range cachers {
+		txCache, ok := cache.(*txcache.TxCache)
+		if !ok {
+			continue
+		}
+
+		txs := txCache.GetTransactionsPoolForSender(sender)
+		txsForSender = append(txsForSender, txs...)
+	}
+
+	sort.Slice(txsForSender, func(i, j int) bool {
+		return txsForSender[i].Tx.GetNonce() < txsForSender[j].Tx.GetNonce()
+	})
+
+	return txsForSender
+}
+
+func (atp *apiTransactionProcessor) fetchLastNonceForSender(sender string, senderShard uint32) (uint64, error) {
+	wrappedTxs := atp.fetchTxsForSender(sender, senderShard)
+	if len(wrappedTxs) == 0 {
+		return 0, fmt.Errorf("%w, no transaction in pool for sender", ErrCannotRetrieveTransactions)
+	}
+
+	lastTx := wrappedTxs[len(wrappedTxs)-1]
+	return lastTx.Tx.GetNonce(), nil
+}
+
+func (atp *apiTransactionProcessor) extractNonceGaps(sender string, senderShard uint32) ([]common.NonceGapApiResponse, error) {
+	wrappedTxs := atp.fetchTxsForSender(sender, senderShard)
+	if len(wrappedTxs) == 0 {
+		return nil, fmt.Errorf("%w, no transaction in pool for sender", ErrCannotRetrieveTransactions)
+	}
+
+	nonceGaps := make([]common.NonceGapApiResponse, 0)
+	for i := 0; i < len(wrappedTxs)-1; i++ {
+		nextNonce := wrappedTxs[i+1].Tx.GetNonce()
+		currentNonce := wrappedTxs[i].Tx.GetNonce()
+		nonceDiff := nextNonce - currentNonce
+		if nonceDiff > 1 {
+			nonceGap := common.NonceGapApiResponse{
+				From: currentNonce + 1,
+				To:   nextNonce - 1,
+			}
+			nonceGaps = append(nonceGaps, nonceGap)
+		}
+	}
+
+	return nonceGaps, nil
 }
 
 func (atp *apiTransactionProcessor) optionallyGetTransactionFromPool(hash []byte) (*transaction.ApiTransactionResult, error) {
@@ -177,6 +424,10 @@ func (atp *apiTransactionProcessor) optionallyGetTransactionFromPool(hash []byte
 		return nil, nil
 	}
 
+	return atp.getApiResultFromObj(txObj, txType)
+}
+
+func (atp *apiTransactionProcessor) getApiResultFromObj(txObj interface{}, txType transaction.TxType) (*transaction.ApiTransactionResult, error) {
 	tx, err := atp.castObjToTransaction(txObj, txType)
 	if err != nil {
 		return nil, err
@@ -210,7 +461,7 @@ func (atp *apiTransactionProcessor) lookupHistoricalTransaction(hash []byte, wit
 	txBytes, txType, found := atp.getTxBytesFromStorageByEpoch(hash, miniblockMetadata.Epoch)
 	if !found {
 		log.Warn("lookupHistoricalTransaction(): unexpected condition, cannot find transaction in storage")
-		return nil, fmt.Errorf("%s: %w", ErrCannotRetrieveTransaction.Error(), err)
+		return nil, ErrCannotRetrieveTransaction
 	}
 
 	// After looking up a transaction from storage, it's impossible to say whether it was successful or invalid
@@ -298,25 +549,40 @@ func (atp *apiTransactionProcessor) getTransactionFromStorage(hash []byte) (*tra
 }
 
 func (atp *apiTransactionProcessor) getTxObjFromDataPool(hash []byte) (interface{}, transaction.TxType, bool) {
-	txsPool := atp.dataPool.Transactions()
-	txObj, found := txsPool.SearchFirstData(hash)
+	txObj, found := atp.getRegularTxObjFromDataPool(hash)
 	if found && txObj != nil {
 		return txObj, transaction.TxTypeNormal, true
 	}
 
-	rewardTxsPool := atp.dataPool.RewardTransactions()
-	txObj, found = rewardTxsPool.SearchFirstData(hash)
+	txObj, found = atp.getRewardTxObjFromDataPool(hash)
 	if found && txObj != nil {
 		return txObj, transaction.TxTypeReward, true
 	}
 
-	unsignedTxsPool := atp.dataPool.UnsignedTransactions()
-	txObj, found = unsignedTxsPool.SearchFirstData(hash)
+	txObj, found = atp.getUnsignedTxObjFromDataPool(hash)
 	if found && txObj != nil {
 		return txObj, transaction.TxTypeUnsigned, true
 	}
 
 	return nil, transaction.TxTypeInvalid, false
+}
+
+func (atp *apiTransactionProcessor) getRegularTxObjFromDataPool(hash []byte) (interface{}, bool) {
+	txsPool := atp.dataPool.Transactions()
+	txObj, found := txsPool.SearchFirstData(hash)
+	return txObj, found
+}
+
+func (atp *apiTransactionProcessor) getRewardTxObjFromDataPool(hash []byte) (interface{}, bool) {
+	rewardTxsPool := atp.dataPool.RewardTransactions()
+	txObj, found := rewardTxsPool.SearchFirstData(hash)
+	return txObj, found
+}
+
+func (atp *apiTransactionProcessor) getUnsignedTxObjFromDataPool(hash []byte) (interface{}, bool) {
+	unsignedTxsPool := atp.dataPool.UnsignedTransactions()
+	txObj, found := unsignedTxsPool.SearchFirstData(hash)
+	return txObj, found
 }
 
 func (atp *apiTransactionProcessor) getTxBytesFromStorage(hash []byte) ([]byte, transaction.TxType, bool) {

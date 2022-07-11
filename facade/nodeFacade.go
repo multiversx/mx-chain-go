@@ -295,8 +295,23 @@ func (nf *nodeFacade) GetTransaction(hash string, withResults bool) (*transactio
 }
 
 // GetTransactionsPool will return a structure containing the transactions pool that is to be returned on API calls
-func (nf *nodeFacade) GetTransactionsPool() (*common.TransactionsPoolAPIResponse, error) {
-	return nf.apiResolver.GetTransactionsPool()
+func (nf *nodeFacade) GetTransactionsPool(fields string) (*common.TransactionsPoolAPIResponse, error) {
+	return nf.apiResolver.GetTransactionsPool(fields)
+}
+
+// GetTransactionsPoolForSender will return a structure containing the transactions for sender that is to be returned on API calls
+func (nf *nodeFacade) GetTransactionsPoolForSender(sender, fields string) (*common.TransactionsPoolForSenderApiResponse, error) {
+	return nf.apiResolver.GetTransactionsPoolForSender(sender, fields)
+}
+
+// GetLastPoolNonceForSender will return the last nonce from pool for sender that is to be returned on API calls
+func (nf *nodeFacade) GetLastPoolNonceForSender(sender string) (uint64, error) {
+	return nf.apiResolver.GetLastPoolNonceForSender(sender)
+}
+
+// GetTransactionsPoolNonceGapsForSender will return the nonce gaps from pool for sender, if exists, that is to be returned on API calls
+func (nf *nodeFacade) GetTransactionsPoolNonceGapsForSender(sender string) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error) {
+	return nf.apiResolver.GetTransactionsPoolNonceGapsForSender(sender)
 }
 
 // ComputeTransactionGasLimit will estimate how many gas a transaction will consume
