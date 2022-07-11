@@ -518,7 +518,7 @@ func (tsm *trieStorageManager) Remove(hash []byte) error {
 	return storer.RemoveFromCurrentEpoch(hash)
 }
 
-// IsClosed returns true if the trie storage manager signals that it has been closed
+// IsClosed returns true if the trie storage manager has been closed
 func (tsm *trieStorageManager) IsClosed() bool {
 	tsm.storageOperationMutex.RLock()
 	defer tsm.storageOperationMutex.RUnlock()
