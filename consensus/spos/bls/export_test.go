@@ -305,6 +305,10 @@ func (sr *subroundEndRound) ComputeAggSigOnValidNodes() ([]byte, []byte, error) 
 	return sr.computeAggSigOnValidNodes()
 }
 
+func (sr *subroundEndRound) ReceivedInvalidSignersInfo(cnsDta *consensus.Message) bool {
+	return sr.receivedInvalidSignersInfo(context.Background(), cnsDta)
+}
+
 // GetStringValue gets the name of the message type
 func GetStringValue(messageType consensus.MessageType) string {
 	return getStringValue(messageType)

@@ -477,6 +477,7 @@ func createConsensusMessage(header *block.Header, body *block.Body, leader []byt
 		nil,
 		currentPid,
 		nil,
+		0,
 	)
 }
 
@@ -502,6 +503,7 @@ func TestSubroundBlock_ReceivedBlock(t *testing.T) {
 		nil,
 		currentPid,
 		nil,
+		0,
 	)
 	sr.Body = &block.Body{}
 	r := sr.ReceivedBlockBody(cnsMsg)
@@ -540,6 +542,7 @@ func TestSubroundBlock_ReceivedBlock(t *testing.T) {
 		nil,
 		currentPid,
 		nil,
+		0,
 	)
 	r = sr.ReceivedBlockHeader(cnsMsg)
 	assert.False(t, r)
@@ -592,6 +595,7 @@ func TestSubroundBlock_ProcessReceivedBlockShouldReturnFalseWhenBodyAndHeaderAre
 		nil,
 		currentPid,
 		nil,
+		0,
 	)
 	assert.False(t, sr.ProcessReceivedBlock(cnsMsg))
 }
@@ -624,6 +628,7 @@ func TestSubroundBlock_ProcessReceivedBlockShouldReturnFalseWhenProcessBlockFail
 		nil,
 		currentPid,
 		nil,
+		0,
 	)
 	sr.Header = hdr
 	sr.Body = blkBody
@@ -652,6 +657,7 @@ func TestSubroundBlock_ProcessReceivedBlockShouldReturnFalseWhenProcessBlockRetu
 		nil,
 		currentPid,
 		nil,
+		0,
 	)
 	sr.Header = hdr
 	sr.Body = blkBody
@@ -689,6 +695,7 @@ func TestSubroundBlock_ProcessReceivedBlockShouldReturnTrue(t *testing.T) {
 			nil,
 			currentPid,
 			nil,
+			0,
 		)
 		sr.Header = hdr
 		sr.Body = blkBody
@@ -1068,6 +1075,7 @@ func TestSubroundBlock_ReceivedBlockComputeProcessDuration(t *testing.T) {
 		nil,
 		currentPid,
 		nil,
+		0,
 	)
 	sr.Header = hdr
 	sr.Body = blkBody

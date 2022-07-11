@@ -3,7 +3,6 @@ package bls
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"sync"
 	"time"
@@ -28,7 +27,7 @@ type subroundEndRound struct {
 }
 
 type invalidSigners struct {
-	signers [][]byte
+	Signers [][]byte
 }
 
 // NewSubroundEndRound creates a subroundEndRound object
@@ -188,24 +187,15 @@ func (sr *subroundEndRound) receivedInvalidSignersInfo(_ context.Context, cnsDta
 		return false
 	}
 
-	if len(cnsDta.InvalidSigners) == 0 {
+	if len(cnsDta.InvalidSigners) == 0 || cnsDta.NumInvalidSigners == 0 {
 		log.Debug("receivedInvalidSignersInfo: no invalid Signers")
 		return false
 	}
 
-	var invalidS *invalidSigners
-	err := sr.Marshalizer().Unmarshal(invalidS, cnsDta.InvalidSigners)
+	err := sr.verifyInvalidSigners(cnsDta.InvalidSigners, cnsDta.NumInvalidSigners)
 	if err != nil {
-		log.Debug("receivedInvalidSignersInfo.Unmarshal", "error", err.Error())
+		log.Debug("receivedInvalidSignersInfo.verifyInvalidSigner", "error", err.Error())
 		return false
-	}
-
-	for _, signer := range invalidS.signers {
-		err = sr.verifyInvalidSigner(signer)
-		if err != nil {
-			log.Debug("receivedInvalidSignersInfo.verifyInvalidSigner", "error", err.Error())
-			return false
-		}
 	}
 
 	// TODO: better evaluate debug logs
@@ -218,9 +208,25 @@ func (sr *subroundEndRound) receivedInvalidSignersInfo(_ context.Context, cnsDta
 	return true
 }
 
+func (sr *subroundEndRound) verifyInvalidSigners(invalidSigners []byte, num int64) error {
+	arraySize := len(invalidSigners) / int(num)
+
+	index := 0
+	for i := int64(0); i < num; i++ {
+		err := sr.verifyInvalidSigner(invalidSigners[index : index+arraySize])
+		if err != nil {
+			return err
+		}
+
+		index += arraySize
+	}
+
+	return nil
+}
+
 func (sr *subroundEndRound) verifyInvalidSigner(invalidSigner []byte) error {
-	var pbMsg *pb.Message
-	err := json.Unmarshal(invalidSigner, pbMsg)
+	pbMsg := &pb.Message{}
+	err := sr.Marshalizer().Unmarshal(pbMsg, invalidSigner)
 	if err != nil {
 		return err
 	}
@@ -230,7 +236,7 @@ func (sr *subroundEndRound) verifyInvalidSigner(invalidSigner []byte) error {
 		return err
 	}
 
-	var cnsMsg *consensus.Message
+	cnsMsg := &consensus.Message{}
 	err = sr.Marshalizer().Unmarshal(cnsMsg, pbMsg.Data)
 	if err != nil {
 		return err
@@ -314,6 +320,7 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 	}
 
 	invalidSigners := make([]byte, 0)
+	numInvalidSigners := int64(0)
 	err = currentMultiSigner.Verify(sr.GetData(), bitmap)
 	if err != nil {
 		log.Debug("doEndRoundJobByLeader.Verify", "error", err.Error())
@@ -324,11 +331,7 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 			return false
 		}
 
-		invalidSigners, err = sr.getFullMessagesForInvalidSigners(invalidPubKeys)
-		if err != nil {
-			log.Debug("doEndRoundJobByLeader.verifyNodesOnAggSigVerificationFail", "error", err.Error())
-			return false
-		}
+		invalidSigners, numInvalidSigners = sr.getFullMessagesForInvalidSigners(invalidPubKeys)
 
 		bitmap, sig, err = sr.computeAggSigOnValidNodes()
 		if err != nil {
@@ -382,7 +385,7 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 	sr.createAndBroadcastHeaderFinalInfo()
 
 	// TODO: check whether it should be sent after header
-	sr.createAndBroadcastInvalidSigners(invalidSigners)
+	sr.createAndBroadcastInvalidSigners(invalidSigners, numInvalidSigners)
 
 	// broadcast header
 	err = sr.BroadcastMessenger().BroadcastHeader(sr.Header)
@@ -470,23 +473,20 @@ func (sr *subroundEndRound) verifyNodesOnAggSigVerificationFail() ([]string, err
 	return invalidPubKeys, nil
 }
 
-func (sr *subroundEndRound) getFullMessagesForInvalidSigners(invalidPubKeys []string) ([]byte, error) {
-	invalidS := &invalidSigners{signers: make([][]byte, 0)}
+func (sr *subroundEndRound) getFullMessagesForInvalidSigners(invalidPubKeys []string) ([]byte, int64) {
+	invalidSigners := make([]byte, 0)
+	numInvalidSigners := int64(0)
 	for _, pk := range invalidPubKeys {
 		msg, ok := sr.GetMessageWithSignature(pk)
 		if !ok {
 			continue
 		}
 
-		invalidS.signers = append(invalidS.signers, msg)
+		invalidSigners = append(invalidSigners, msg...)
+		numInvalidSigners++
 	}
 
-	messagesBytes, err := sr.Marshalizer().Marshal(invalidS)
-	if err != nil {
-		return nil, err
-	}
-
-	return messagesBytes, nil
+	return invalidSigners, numInvalidSigners
 }
 
 func (sr *subroundEndRound) computeAggSigOnValidNodes() ([]byte, []byte, error) {
@@ -534,6 +534,7 @@ func (sr *subroundEndRound) createAndBroadcastHeaderFinalInfo() {
 		sr.Header.GetLeaderSignature(),
 		sr.CurrentPid(),
 		nil,
+		0,
 	)
 
 	err := sr.BroadcastMessenger().BroadcastConsensusMessage(cnsMsg)
@@ -548,7 +549,7 @@ func (sr *subroundEndRound) createAndBroadcastHeaderFinalInfo() {
 		"LeaderSignature", sr.Header.GetLeaderSignature())
 }
 
-func (sr *subroundEndRound) createAndBroadcastInvalidSigners(invalidSigners []byte) {
+func (sr *subroundEndRound) createAndBroadcastInvalidSigners(invalidSigners []byte, num int64) {
 	cnsMsg := consensus.NewConsensusMessage(
 		sr.GetData(),
 		nil,
@@ -564,6 +565,7 @@ func (sr *subroundEndRound) createAndBroadcastInvalidSigners(invalidSigners []by
 		nil,
 		sr.CurrentPid(),
 		invalidSigners,
+		num,
 	)
 
 	err := sr.BroadcastMessenger().BroadcastConsensusMessage(cnsMsg)

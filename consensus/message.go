@@ -22,6 +22,7 @@ func NewConsensusMessage(
 	leaderSignature []byte,
 	currentPid core.PeerID,
 	invalidSigners []byte,
+	numInvalidSigners int64,
 ) *Message {
 	return &Message{
 		BlockHeaderHash:    blHeaderHash,
@@ -38,5 +39,6 @@ func NewConsensusMessage(
 		LeaderSignature:    leaderSignature,
 		OriginatorPid:      currentPid.Bytes(),
 		InvalidSigners:     invalidSigners,
+		NumInvalidSigners:  numInvalidSigners,
 	}
 }

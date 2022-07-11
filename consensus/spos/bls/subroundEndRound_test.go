@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/bls"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/blockchain"
 	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
+	pb "github.com/ElrondNetwork/go-libp2p-pubsub/pb"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -1174,5 +1175,70 @@ func TestSubroundEndRound_DoEndRoundJobByLeaderVerificationFail(t *testing.T) {
 
 		assert.False(t, verifyFirstCall)
 		assert.Equal(t, 3, verifySigShareNumCalls)
+	})
+}
+
+func TestSubroundEndRound_ReceivedInvalidSignersInfo(t *testing.T) {
+	t.Parallel()
+
+	t.Run("empty invalid signers", func(t *testing.T) {
+		t.Parallel()
+
+		container := mock.InitConsensusCore()
+
+		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
+		cnsData := consensus.Message{
+			BlockHeaderHash: []byte("X"),
+			PubKey:          []byte("A"),
+			InvalidSigners:  []byte{},
+		}
+
+		res := sr.ReceivedInvalidSignersInfo(&cnsData)
+		assert.False(t, res)
+	})
+
+	t.Run("invalid signers data", func(t *testing.T) {
+		t.Parallel()
+
+		container := mock.InitConsensusCore()
+
+		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
+		cnsData := consensus.Message{
+			BlockHeaderHash: []byte("X"),
+			PubKey:          []byte("A"),
+			InvalidSigners:  []byte("invalid data"),
+		}
+
+		res := sr.ReceivedInvalidSignersInfo(&cnsData)
+		assert.False(t, res)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		pbMsg := &pb.Message{
+			From:      []byte("from"),
+			Data:      []byte{},
+			Seqno:     []byte{},
+			Topic:     nil,
+			Signature: []byte{},
+			Key:       []byte{},
+		}
+
+		container := mock.InitConsensusCore()
+
+		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
+
+		pbMsgBytes, _ := container.Marshalizer().Marshal(pbMsg)
+
+		cnsData := consensus.Message{
+			BlockHeaderHash:   []byte("X"),
+			PubKey:            []byte("A"),
+			InvalidSigners:    pbMsgBytes,
+			NumInvalidSigners: 1,
+		}
+
+		res := sr.ReceivedInvalidSignersInfo(&cnsData)
+		assert.False(t, res)
 	})
 }

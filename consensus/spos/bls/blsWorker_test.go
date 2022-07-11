@@ -79,6 +79,7 @@ func TestWorker_InitReceivedMessagesShouldWork(t *testing.T) {
 	receivedMessages[bls.MtBlockHeader] = make([]*consensus.Message, 0)
 	receivedMessages[bls.MtSignature] = make([]*consensus.Message, 0)
 	receivedMessages[bls.MtBlockHeaderFinalInfo] = make([]*consensus.Message, 0)
+	receivedMessages[bls.MtInvalidSigners] = make([]*consensus.Message, 0)
 
 	assert.Equal(t, len(receivedMessages), len(messages))
 	assert.NotNil(t, messages[bls.MtBlockBodyAndHeader])
@@ -86,6 +87,7 @@ func TestWorker_InitReceivedMessagesShouldWork(t *testing.T) {
 	assert.NotNil(t, messages[bls.MtBlockHeader])
 	assert.NotNil(t, messages[bls.MtSignature])
 	assert.NotNil(t, messages[bls.MtBlockHeaderFinalInfo])
+	assert.NotNil(t, messages[bls.MtInvalidSigners])
 }
 
 func TestWorker_GetMessageRangeShouldWork(t *testing.T) {
