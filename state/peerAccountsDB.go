@@ -100,12 +100,7 @@ func (adb *PeerAccountsDB) SnapshotState(rootHash []byte) {
 	trieStorageManager.TakeSnapshot(rootHash, rootHash, nil, stats, epoch)
 	trieStorageManager.ExitPruningBufferingMode()
 
-	go func() {
-		printStats(stats, "snapshotState peer trie", rootHash)
-
-		err = trieStorageManager.PutInEpoch([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal), epoch)
-		handleLoggingWhenError("error while putting active DB value into main storer", err)
-	}()
+	go adb.markActiveDBAfterSnapshot(stats, rootHash, "snapshotState peer trie", epoch)
 
 	adb.waitForCompletionIfRunningInImportDB(stats)
 }
