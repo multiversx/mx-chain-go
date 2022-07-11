@@ -29,50 +29,53 @@ type FacadeStub struct {
 	GetTransactionHandler      func(hash string, withResults bool) (*transaction.ApiTransactionResult, error)
 	CreateTransactionHandler   func(nonce uint64, value string, receiver string, receiverUsername []byte, sender string, senderUsername []byte, gasPrice uint64,
 		gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32, options uint32) (*transaction.Transaction, []byte, error)
-	ValidateTransactionHandler              func(tx *transaction.Transaction) error
-	ValidateTransactionForSimulationHandler func(tx *transaction.Transaction, bypassSignature bool) error
-	SendBulkTransactionsHandler             func(txs []*transaction.Transaction) (uint64, error)
-	ExecuteSCQueryHandler                   func(query *process.SCQuery) (*vm.VMOutputApi, error)
-	StatusMetricsHandler                    func() external.StatusMetricsHandler
-	ValidatorStatisticsHandler              func() (map[string]*state.ValidatorApiResponse, error)
-	ComputeTransactionGasLimitHandler       func(tx *transaction.Transaction) (*transaction.CostResponse, error)
-	NodeConfigCalled                        func() map[string]interface{}
-	GetQueryHandlerCalled                   func(name string) (debug.QueryHandler, error)
-	GetValueForKeyCalled                    func(address string, key string, options api.AccountQueryOptions) (string, api.BlockInfo, error)
-	GetPeerInfoCalled                       func(pid string) ([]core.QueryP2PPeerInfo, error)
-	GetThrottlerForEndpointCalled           func(endpoint string) (core.Throttler, bool)
-	GetUsernameCalled                       func(address string, options api.AccountQueryOptions) (string, api.BlockInfo, error)
-	GetKeyValuePairsCalled                  func(address string, options api.AccountQueryOptions) (map[string]string, api.BlockInfo, error)
-	SimulateTransactionExecutionHandler     func(tx *transaction.Transaction) (*txSimData.SimulationResults, error)
-	GetESDTDataCalled                       func(address string, key string, nonce uint64, options api.AccountQueryOptions) (*esdt.ESDigitalToken, api.BlockInfo, error)
-	GetAllESDTTokensCalled                  func(address string, options api.AccountQueryOptions) (map[string]*esdt.ESDigitalToken, api.BlockInfo, error)
-	GetESDTsWithRoleCalled                  func(address string, role string, options api.AccountQueryOptions) ([]string, api.BlockInfo, error)
-	GetESDTsRolesCalled                     func(address string, options api.AccountQueryOptions) (map[string][]string, api.BlockInfo, error)
-	GetNFTTokenIDsRegisteredByAddressCalled func(address string, options api.AccountQueryOptions) ([]string, api.BlockInfo, error)
-	GetBlockByHashCalled                    func(hash string, options api.BlockQueryOptions) (*api.Block, error)
-	GetBlockByNonceCalled                   func(nonce uint64, options api.BlockQueryOptions) (*api.Block, error)
-	GetBlockByRoundCalled                   func(round uint64, options api.BlockQueryOptions) (*api.Block, error)
-	GetInternalShardBlockByNonceCalled      func(format common.ApiOutputFormat, nonce uint64) (interface{}, error)
-	GetInternalShardBlockByHashCalled       func(format common.ApiOutputFormat, hash string) (interface{}, error)
-	GetInternalShardBlockByRoundCalled      func(format common.ApiOutputFormat, round uint64) (interface{}, error)
-	GetInternalMetaBlockByNonceCalled       func(format common.ApiOutputFormat, nonce uint64) (interface{}, error)
-	GetInternalMetaBlockByHashCalled        func(format common.ApiOutputFormat, hash string) (interface{}, error)
-	GetInternalMetaBlockByRoundCalled       func(format common.ApiOutputFormat, round uint64) (interface{}, error)
-	GetInternalStartOfEpochMetaBlockCalled  func(format common.ApiOutputFormat, epoch uint32) (interface{}, error)
-	GetInternalMiniBlockByHashCalled        func(format common.ApiOutputFormat, txHash string, epoch uint32) (interface{}, error)
-	GetTotalStakedValueHandler              func() (*api.StakeValues, error)
-	GetAllIssuedESDTsCalled                 func(tokenType string) ([]string, error)
-	GetDirectStakedListHandler              func() ([]*api.DirectStakedValue, error)
-	GetDelegatorsListHandler                func() ([]*api.Delegator, error)
-	GetProofCalled                          func(string, string) (*common.GetProofResponse, error)
-	GetProofCurrentRootHashCalled           func(string) (*common.GetProofResponse, error)
-	GetProofDataTrieCalled                  func(string, string, string) (*common.GetProofResponse, *common.GetProofResponse, error)
-	VerifyProofCalled                       func(string, string, [][]byte) (bool, error)
-	GetTokenSupplyCalled                    func(token string) (*api.ESDTSupply, error)
-	GetGenesisNodesPubKeysCalled            func() (map[uint32][]string, map[uint32][]string, error)
-	GetGenesisBalancesCalled                func() ([]*common.InitialAccountAPI, error)
-	GetTransactionsPoolCalled               func() (*common.TransactionsPoolAPIResponse, error)
-	GetGasConfigsCalled                     func() (map[string]map[string]uint64, error)
+	ValidateTransactionHandler                  func(tx *transaction.Transaction) error
+	ValidateTransactionForSimulationHandler     func(tx *transaction.Transaction, bypassSignature bool) error
+	SendBulkTransactionsHandler                 func(txs []*transaction.Transaction) (uint64, error)
+	ExecuteSCQueryHandler                       func(query *process.SCQuery) (*vm.VMOutputApi, error)
+	StatusMetricsHandler                        func() external.StatusMetricsHandler
+	ValidatorStatisticsHandler                  func() (map[string]*state.ValidatorApiResponse, error)
+	ComputeTransactionGasLimitHandler           func(tx *transaction.Transaction) (*transaction.CostResponse, error)
+	NodeConfigCalled                            func() map[string]interface{}
+	GetQueryHandlerCalled                       func(name string) (debug.QueryHandler, error)
+	GetValueForKeyCalled                        func(address string, key string, options api.AccountQueryOptions) (string, api.BlockInfo, error)
+	GetPeerInfoCalled                           func(pid string) ([]core.QueryP2PPeerInfo, error)
+	GetThrottlerForEndpointCalled               func(endpoint string) (core.Throttler, bool)
+	GetUsernameCalled                           func(address string, options api.AccountQueryOptions) (string, api.BlockInfo, error)
+	GetKeyValuePairsCalled                      func(address string, options api.AccountQueryOptions) (map[string]string, api.BlockInfo, error)
+	SimulateTransactionExecutionHandler         func(tx *transaction.Transaction) (*txSimData.SimulationResults, error)
+	GetESDTDataCalled                           func(address string, key string, nonce uint64, options api.AccountQueryOptions) (*esdt.ESDigitalToken, api.BlockInfo, error)
+	GetAllESDTTokensCalled                      func(address string, options api.AccountQueryOptions) (map[string]*esdt.ESDigitalToken, api.BlockInfo, error)
+	GetESDTsWithRoleCalled                      func(address string, role string, options api.AccountQueryOptions) ([]string, api.BlockInfo, error)
+	GetESDTsRolesCalled                         func(address string, options api.AccountQueryOptions) (map[string][]string, api.BlockInfo, error)
+	GetNFTTokenIDsRegisteredByAddressCalled     func(address string, options api.AccountQueryOptions) ([]string, api.BlockInfo, error)
+	GetBlockByHashCalled                        func(hash string, options api.BlockQueryOptions) (*api.Block, error)
+	GetBlockByNonceCalled                       func(nonce uint64, options api.BlockQueryOptions) (*api.Block, error)
+	GetBlockByRoundCalled                       func(round uint64, options api.BlockQueryOptions) (*api.Block, error)
+	GetInternalShardBlockByNonceCalled          func(format common.ApiOutputFormat, nonce uint64) (interface{}, error)
+	GetInternalShardBlockByHashCalled           func(format common.ApiOutputFormat, hash string) (interface{}, error)
+	GetInternalShardBlockByRoundCalled          func(format common.ApiOutputFormat, round uint64) (interface{}, error)
+	GetInternalMetaBlockByNonceCalled           func(format common.ApiOutputFormat, nonce uint64) (interface{}, error)
+	GetInternalMetaBlockByHashCalled            func(format common.ApiOutputFormat, hash string) (interface{}, error)
+	GetInternalMetaBlockByRoundCalled           func(format common.ApiOutputFormat, round uint64) (interface{}, error)
+	GetInternalStartOfEpochMetaBlockCalled      func(format common.ApiOutputFormat, epoch uint32) (interface{}, error)
+	GetInternalMiniBlockByHashCalled            func(format common.ApiOutputFormat, txHash string, epoch uint32) (interface{}, error)
+	GetTotalStakedValueHandler                  func() (*api.StakeValues, error)
+	GetAllIssuedESDTsCalled                     func(tokenType string) ([]string, error)
+	GetDirectStakedListHandler                  func() ([]*api.DirectStakedValue, error)
+	GetDelegatorsListHandler                    func() ([]*api.Delegator, error)
+	GetProofCalled                              func(string, string) (*common.GetProofResponse, error)
+	GetProofCurrentRootHashCalled               func(string) (*common.GetProofResponse, error)
+	GetProofDataTrieCalled                      func(string, string, string) (*common.GetProofResponse, *common.GetProofResponse, error)
+	VerifyProofCalled                           func(string, string, [][]byte) (bool, error)
+	GetTokenSupplyCalled                        func(token string) (*api.ESDTSupply, error)
+	GetGenesisNodesPubKeysCalled                func() (map[uint32][]string, map[uint32][]string, error)
+	GetGenesisBalancesCalled                    func() ([]*common.InitialAccountAPI, error)
+	GetTransactionsPoolCalled                   func(fields string) (*common.TransactionsPoolAPIResponse, error)
+	GetTransactionsPoolForSenderCalled          func(sender, fields string) (*common.TransactionsPoolForSenderApiResponse, error)
+	GetLastPoolNonceForSenderCalled             func(sender string) (uint64, error)
+	GetTransactionsPoolNonceGapsForSenderCalled func(sender string) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error)
+	GetGasConfigsCalled                         func() (map[string]map[string]uint64, error)
 }
 
 // GetTokenSupply -
@@ -444,9 +447,36 @@ func (f *FacadeStub) GetGenesisBalances() ([]*common.InitialAccountAPI, error) {
 }
 
 // GetTransactionsPool -
-func (f *FacadeStub) GetTransactionsPool() (*common.TransactionsPoolAPIResponse, error) {
+func (f *FacadeStub) GetTransactionsPool(fields string) (*common.TransactionsPoolAPIResponse, error) {
 	if f.GetTransactionsPoolCalled != nil {
-		return f.GetTransactionsPoolCalled()
+		return f.GetTransactionsPoolCalled(fields)
+	}
+
+	return nil, nil
+}
+
+// GetTransactionsPoolForSender -
+func (f *FacadeStub) GetTransactionsPoolForSender(sender, fields string) (*common.TransactionsPoolForSenderApiResponse, error) {
+	if f.GetTransactionsPoolForSenderCalled != nil {
+		return f.GetTransactionsPoolForSenderCalled(sender, fields)
+	}
+
+	return nil, nil
+}
+
+// GetLastPoolNonceForSender -
+func (f *FacadeStub) GetLastPoolNonceForSender(sender string) (uint64, error) {
+	if f.GetLastPoolNonceForSenderCalled != nil {
+		return f.GetLastPoolNonceForSenderCalled(sender)
+	}
+
+	return 0, nil
+}
+
+// GetTransactionsPoolNonceGapsForSender -
+func (f *FacadeStub) GetTransactionsPoolNonceGapsForSender(sender string) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error) {
+	if f.GetTransactionsPoolNonceGapsForSenderCalled != nil {
+		return f.GetTransactionsPoolNonceGapsForSenderCalled(sender)
 	}
 
 	return nil, nil
