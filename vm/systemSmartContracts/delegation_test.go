@@ -5322,3 +5322,74 @@ func TestDelegation_correctNodesStatus(t *testing.T) {
 		assert.True(t, found)
 	}
 }
+
+func TestDelegationSystemSC_ExecuteChangeOwnerUserErrors(t *testing.T) {
+	t.Parallel()
+
+	vmInputArgs := make([][]byte, 0)
+	args := createMockArgumentsForDelegation()
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&stateMock.AccountsStub{},
+		&mock.RaterMock{})
+
+	delegationsMap := map[string][]byte{}
+	delegationsMap[ownerKey] = []byte("ownerAddr")
+	eei.storageUpdate[string(eei.scAddress)] = delegationsMap
+	args.Eei = eei
+
+	d, _ := NewDelegationSystemSC(args)
+	d.flagChangeDelegationOwner.Reset()
+	vmInput := getDefaultVmInputForFunc("changeOwner", vmInputArgs)
+	output := d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	assert.True(t, strings.Contains(eei.returnMessage, vmInput.Function+" is an unknown function"))
+
+	d.flagChangeDelegationOwner.SetValue(true)
+	vmInput.CallValue = big.NewInt(0)
+	vmInput.CallerAddr = []byte("aaa")
+	output = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+
+	eei.returnMessage = ""
+	vmInput.CallerAddr = delegationsMap[ownerKey]
+	output = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	assert.True(t, strings.Contains(eei.returnMessage, "wrong number of arguments, expected 1"))
+
+	eei.returnMessage = ""
+	vmInput.Arguments = append(vmInput.Arguments, []byte("aaa"))
+	output = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	assert.True(t, strings.Contains(eei.returnMessage, "invalid argument, wanted an address"))
+}
+
+func TestDelegationSystemSC_ExecuteChangeOwner(t *testing.T) {
+	t.Parallel()
+
+	vmInputArgs := make([][]byte, 0)
+	args := createMockArgumentsForDelegation()
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&stateMock.AccountsStub{},
+		&mock.RaterMock{})
+
+	delegationsMap := map[string][]byte{}
+	delegationsMap[ownerKey] = []byte("ownerAddr")
+	eei.storageUpdate[string(eei.scAddress)] = delegationsMap
+	args.Eei = eei
+
+	d, _ := NewDelegationSystemSC(args)
+	vmInput := getDefaultVmInputForFunc("changeOwner", vmInputArgs)
+	vmInput.CallValue = big.NewInt(0)
+	vmInput.CallerAddr = delegationsMap[ownerKey]
+	vmInput.Arguments = append(vmInput.Arguments, []byte("second123"))
+
+	returnCode := d.Execute(vmInput)
+	assert.Equal(t, returnCode, vmcommon.Ok)
+	assert.Equal(t, delegationsMap[ownerKey], []byte("second123"))
+}

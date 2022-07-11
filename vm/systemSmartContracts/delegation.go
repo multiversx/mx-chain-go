@@ -72,6 +72,8 @@ type delegation struct {
 	addTokensEnableEpoch                            uint32
 	flagDeleteDelegatorDataAfterClaimRewards        atomic.Flag
 	deleteDelegatorDataAfterClaimRewardsEnableEpoch uint32
+	flagChangeDelegationOwner                       atomic.Flag
+	changeDelegationOwnerEnableEpoch                uint32
 }
 
 // ArgsNewDelegation defines the arguments to create the delegation smart contract
@@ -150,6 +152,7 @@ func NewDelegationSystemSC(args ArgsNewDelegation) (*delegation, error) {
 		computeRewardCheckpointEnableEpoch: args.EpochConfig.EnableEpochs.ComputeRewardCheckpointEnableEpoch,
 		addTokensEnableEpoch:               args.EpochConfig.EnableEpochs.AddTokensToDelegationEnableEpoch,
 		addTokensAddr:                      args.AddTokensAddress,
+		changeDelegationOwnerEnableEpoch:   args.EpochConfig.EnableEpochs.ESDTMetadataContinuousCleanupEnableEpoch,
 		deleteDelegatorDataAfterClaimRewardsEnableEpoch: args.EpochConfig.EnableEpochs.DeleteDelegatorAfterClaimRewardsEnableEpoch,
 		flagDeleteDelegatorDataAfterClaimRewards:        atomic.Flag{},
 	}
@@ -160,6 +163,7 @@ func NewDelegationSystemSC(args ArgsNewDelegation) (*delegation, error) {
 	log.Debug("delegation: enable epoch for compute rewards checkpoint", "epoch", d.computeRewardCheckpointEnableEpoch)
 	log.Debug("delegation: enable epoch for adding tokens", "epoch", d.addTokensEnableEpoch)
 	log.Debug("delegation: delete delegator data after claim rewards", "epoch", d.deleteDelegatorDataAfterClaimRewardsEnableEpoch)
+	log.Debug("delegation: change delegation owner", "epoch", d.changeDelegationOwnerEnableEpoch)
 
 	var okValue bool
 
@@ -294,6 +298,8 @@ func (d *delegation) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 		return d.addTokens(args)
 	case "correctNodesStatus":
 		return d.correctNodesStatus(args)
+	case "changeOwner":
+		return d.changeOwner(args)
 	}
 
 	d.eei.AddReturnMessage(args.Function + " is an unknown function")
@@ -927,6 +933,30 @@ func (d *delegation) checkBLSKeysIfExistsInStakingSC(blsKeys [][]byte) bool {
 		}
 	}
 	return false
+}
+
+func (d *delegation) changeOwner(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if !d.flagChangeDelegationOwner.IsSet() {
+		d.eei.AddReturnMessage(args.Function + " is an unknown function")
+		return vmcommon.UserError
+	}
+
+	returnCode := d.checkOwnerCallValueGasAndDuplicates(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+	if len(args.Arguments) != 1 {
+		d.eei.AddReturnMessage("wrong number of arguments, expected 1")
+		return vmcommon.UserError
+	}
+	if len(args.Arguments[0]) != len(args.CallerAddr) {
+		d.eei.AddReturnMessage("invalid argument, wanted an address")
+		return vmcommon.UserError
+	}
+
+	d.eei.SetStorage([]byte(ownerKey), args.Arguments[0])
+
+	return vmcommon.Ok
 }
 
 func (d *delegation) addNodes(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
@@ -3058,6 +3088,9 @@ func (d *delegation) EpochConfirmed(epoch uint32, _ uint64) {
 
 	d.flagDeleteDelegatorDataAfterClaimRewards.SetValue(epoch >= d.deleteDelegatorDataAfterClaimRewardsEnableEpoch)
 	log.Debug("delegationSC: delete delegator data after claim rewards", "enabled", d.flagDeleteDelegatorDataAfterClaimRewards.IsSet())
+
+	d.flagChangeDelegationOwner.SetValue(epoch >= d.changeDelegationOwnerEnableEpoch)
+	log.Debug("delegationSC: change delegation owner", "enabled", d.flagChangeDelegationOwner.IsSet())
 }
 
 // CanUseContract returns true if contract can be used
