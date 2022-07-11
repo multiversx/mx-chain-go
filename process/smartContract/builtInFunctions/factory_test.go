@@ -20,14 +20,15 @@ func createMockArguments() ArgsCreateBuiltInFunctionContainer {
 
 	gasScheduleNotifier := mock.NewGasScheduleNotifierMock(gasMap)
 	args := ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:             gasScheduleNotifier,
-		MapDNSAddresses:         make(map[string]struct{}),
-		EnableUserNameChange:    false,
-		Marshalizer:             &mock.MarshalizerMock{},
-		Accounts:                &stateMock.AccountsStub{},
-		ShardCoordinator:        mock.NewMultiShardsCoordinatorMock(1),
-		EpochNotifier:           &epochNotifier.EpochNotifierStub{},
-		AutomaticCrawlerAddress: bytes.Repeat([]byte{1}, 32),
+		GasSchedule:               gasScheduleNotifier,
+		MapDNSAddresses:           make(map[string]struct{}),
+		EnableUserNameChange:      false,
+		Marshalizer:               &mock.MarshalizerMock{},
+		Accounts:                  &stateMock.AccountsStub{},
+		ShardCoordinator:          mock.NewMultiShardsCoordinatorMock(1),
+		EpochNotifier:             &epochNotifier.EpochNotifierStub{},
+		AutomaticCrawlerAddress:   bytes.Repeat([]byte{1}, 32),
+		MaxNumNodesInTransferRole: 100,
 	}
 
 	return args
@@ -98,7 +99,7 @@ func TestCreateBuiltInFunctionContainer_Errors(t *testing.T) {
 	args = createMockArguments()
 	container, nftStorageHandler, globalSettingsHandler, err := CreateBuiltInFuncContainerAndNFTStorageHandler(args)
 	assert.Nil(t, err)
-	assert.Equal(t, len(container.Keys()), 29)
+	assert.Equal(t, len(container.Keys()), 31)
 
 	err = vmcommonBuiltInFunctions.SetPayableHandler(container, &testscommon.BlockChainHookStub{})
 	assert.Nil(t, err)
