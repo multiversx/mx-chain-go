@@ -1,6 +1,7 @@
 package mock
 
 import (
+	"context"
 	"encoding/hex"
 	"math/big"
 
@@ -39,12 +40,12 @@ type NodeStub struct {
 	GetPeerInfoCalled                              func(pid string) ([]core.QueryP2PPeerInfo, error)
 	GetUsernameCalled                              func(address string) (string, error)
 	GetESDTDataCalled                              func(address string, key string, nonce uint64) (*esdt.ESDigitalToken, error)
-	GetAllESDTTokensCalled                         func(address string) (map[string]*esdt.ESDigitalToken, error)
-	GetNFTTokenIDsRegisteredByAddressCalled        func(address string) ([]string, error)
-	GetESDTsWithRoleCalled                         func(address string, role string) ([]string, error)
-	GetESDTsRolesCalled                            func(address string) (map[string][]string, error)
-	GetKeyValuePairsCalled                         func(address string) (map[string]string, error)
-	GetAllIssuedESDTsCalled                        func(tokenType string) ([]string, error)
+	GetAllESDTTokensCalled                         func(address string, ctx context.Context) (map[string]*esdt.ESDigitalToken, error)
+	GetNFTTokenIDsRegisteredByAddressCalled        func(address string, ctx context.Context) ([]string, error)
+	GetESDTsWithRoleCalled                         func(address string, role string, ctx context.Context) ([]string, error)
+	GetESDTsRolesCalled                            func(address string, ctx context.Context) (map[string][]string, error)
+	GetKeyValuePairsCalled                         func(address string, ctx context.Context) (map[string]string, error)
+	GetAllIssuedESDTsCalled                        func(tokenType string, ctx context.Context) ([]string, error)
 	GetProofCalled                                 func(rootHash string, key string) (*common.GetProofResponse, error)
 	GetProofDataTrieCalled                         func(rootHash string, address string, key string) (*common.GetProofResponse, *common.GetProofResponse, error)
 	VerifyProofCalled                              func(rootHash string, address string, proof [][]byte) (bool, error)
@@ -87,9 +88,9 @@ func (ns *NodeStub) GetUsername(address string) (string, error) {
 }
 
 // GetKeyValuePairs -
-func (ns *NodeStub) GetKeyValuePairs(address string) (map[string]string, error) {
+func (ns *NodeStub) GetKeyValuePairs(address string, ctx context.Context) (map[string]string, error) {
 	if ns.GetKeyValuePairsCalled != nil {
-		return ns.GetKeyValuePairsCalled(address)
+		return ns.GetKeyValuePairsCalled(address, ctx)
 	}
 
 	return nil, nil
@@ -202,27 +203,27 @@ func (ns *NodeStub) GetESDTData(address, tokenID string, nonce uint64) (*esdt.ES
 }
 
 // GetESDTsRoles -
-func (ns *NodeStub) GetESDTsRoles(address string) (map[string][]string, error) {
+func (ns *NodeStub) GetESDTsRoles(address string, ctx context.Context) (map[string][]string, error) {
 	if ns.GetESDTsRolesCalled != nil {
-		return ns.GetESDTsRolesCalled(address)
+		return ns.GetESDTsRolesCalled(address, ctx)
 	}
 
 	return map[string][]string{}, nil
 }
 
 // GetESDTsWithRole -
-func (ns *NodeStub) GetESDTsWithRole(address string, role string) ([]string, error) {
+func (ns *NodeStub) GetESDTsWithRole(address string, role string, ctx context.Context) ([]string, error) {
 	if ns.GetESDTsWithRoleCalled != nil {
-		return ns.GetESDTsWithRoleCalled(address, role)
+		return ns.GetESDTsWithRoleCalled(address, role, ctx)
 	}
 
 	return make([]string, 0), nil
 }
 
 // GetAllESDTTokens -
-func (ns *NodeStub) GetAllESDTTokens(address string) (map[string]*esdt.ESDigitalToken, error) {
+func (ns *NodeStub) GetAllESDTTokens(address string, ctx context.Context) (map[string]*esdt.ESDigitalToken, error) {
 	if ns.GetAllESDTTokensCalled != nil {
-		return ns.GetAllESDTTokensCalled(address)
+		return ns.GetAllESDTTokensCalled(address, ctx)
 	}
 
 	return make(map[string]*esdt.ESDigitalToken), nil
@@ -234,17 +235,17 @@ func (ns *NodeStub) GetTokenSupply(_ string) (*api.ESDTSupply, error) {
 }
 
 // GetAllIssuedESDTs -
-func (ns *NodeStub) GetAllIssuedESDTs(tokenType string) ([]string, error) {
+func (ns *NodeStub) GetAllIssuedESDTs(tokenType string, ctx context.Context) ([]string, error) {
 	if ns.GetAllIssuedESDTsCalled != nil {
-		return ns.GetAllIssuedESDTsCalled(tokenType)
+		return ns.GetAllIssuedESDTsCalled(tokenType, ctx)
 	}
 	return make([]string, 0), nil
 }
 
 // GetNFTTokenIDsRegisteredByAddress -
-func (ns *NodeStub) GetNFTTokenIDsRegisteredByAddress(address string) ([]string, error) {
+func (ns *NodeStub) GetNFTTokenIDsRegisteredByAddress(address string, ctx context.Context) ([]string, error) {
 	if ns.GetNFTTokenIDsRegisteredByAddressCalled != nil {
-		return ns.GetNFTTokenIDsRegisteredByAddressCalled(address)
+		return ns.GetNFTTokenIDsRegisteredByAddressCalled(address, ctx)
 	}
 
 	return make([]string, 0), nil

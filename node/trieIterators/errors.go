@@ -11,14 +11,11 @@ var ErrNilAccountsAdapter = errors.New("trying to set nil accounts adapter")
 // ErrNilQueryService signals that a nil query service has been provided
 var ErrNilQueryService = errors.New("nil query service")
 
-// ErrNilBlockChain signals that an operation has been attempted to or with a nil blockchain
-var ErrNilBlockChain = errors.New("nil block chain")
-
 // ErrNilPubkeyConverter signals that an operation has been attempted to or with a nil public key converter implementation
 var ErrNilPubkeyConverter = errors.New("nil pubkey converter")
 
-// ErrNodeNotInitialized signals that the node is not initialized and can not compute the required task yet
-var ErrNodeNotInitialized = errors.New("the node is not fully initialized")
-
 // ErrNilMutex signals that a nil mutex has been provided
 var ErrNilMutex = errors.New("nil mutex")
+
+// ErrTrieOperationsTimeout signals a timeout during trie operations
+var ErrTrieOperationsTimeout = errors.New("trie operations timeout")

@@ -107,7 +107,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		return nil, err
 	}
 
-	builtInFuncs, _, err := createBuiltinFuncs(
+	builtInFuncs, _, _, err := createBuiltinFuncs(
 		args.GasScheduleNotifier,
 		args.CoreComponents.InternalMarshalizer(),
 		args.StateComponents.AccountsAdapterAPI(),
@@ -119,6 +119,8 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		args.Configs.EpochConfig.EnableEpochs.ESDTTransferRoleEnableEpoch,
 		args.Configs.EpochConfig.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch,
 		args.Configs.EpochConfig.EnableEpochs.OptimizeNFTStoreEnableEpoch,
+		args.Configs.EpochConfig.EnableEpochs.CheckCorrectTokenIDForTransferRoleEnableEpoch,
+		args.Configs.EpochConfig.EnableEpochs.CheckFunctionArgumentEnableEpoch,
 	)
 	if err != nil {
 		return nil, err
@@ -149,6 +151,8 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		args.ProcessComponents.TransactionSimulatorProcessor(),
 		args.StateComponents.AccountsAdapterAPI(),
 		args.ProcessComponents.ShardCoordinator(),
+		args.CoreComponents.EpochNotifier(),
+		args.Configs.EpochConfig.EnableEpochs.CleanUpInformativeSCRsEnableEpoch,
 	)
 	if err != nil {
 		return nil, err
@@ -201,15 +205,23 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		return nil, err
 	}
 
+	apiInternalBlockProcessor, err := createAPIInternalBlockProcessor(args, apiTransactionProcessor)
+	if err != nil {
+		return nil, err
+	}
+
 	argsApiResolver := external.ArgNodeApiResolver{
-		SCQueryService:          scQueryService,
-		StatusMetricsHandler:    args.CoreComponents.StatusHandlerUtils().Metrics(),
-		TxCostHandler:           txCostHandler,
-		TotalStakedValueHandler: totalStakedValueHandler,
-		DirectStakedListHandler: directStakedListHandler,
-		DelegatedListHandler:    delegatedListHandler,
-		APITransactionHandler:   apiTransactionProcessor,
-		APIBlockHandler:         apiBlockProcessor,
+		SCQueryService:           scQueryService,
+		StatusMetricsHandler:     args.CoreComponents.StatusHandlerUtils().Metrics(),
+		TxCostHandler:            txCostHandler,
+		TotalStakedValueHandler:  totalStakedValueHandler,
+		DirectStakedListHandler:  directStakedListHandler,
+		DelegatedListHandler:     delegatedListHandler,
+		APITransactionHandler:    apiTransactionProcessor,
+		APIBlockHandler:          apiBlockProcessor,
+		APIInternalBlockHandler:  apiInternalBlockProcessor,
+		GenesisNodesSetupHandler: args.CoreComponents.GenesisNodesSetup(),
+		ValidatorPubKeyConverter: args.CoreComponents.ValidatorPubKeyConverter(),
 	}
 
 	return external.NewNodeApiResolver(argsApiResolver)
@@ -268,7 +280,7 @@ func createScQueryElement(
 	var vmFactory process.VirtualMachinesContainerFactory
 	var err error
 
-	builtInFuncs, nftStorageHandler, err := createBuiltinFuncs(
+	builtInFuncs, nftStorageHandler, globalSettingsHandler, err := createBuiltinFuncs(
 		args.gasScheduleNotifier,
 		args.coreComponents.InternalMarshalizer(),
 		args.stateComponents.AccountsAdapterAPI(),
@@ -280,6 +292,8 @@ func createScQueryElement(
 		args.epochConfig.EnableEpochs.ESDTTransferRoleEnableEpoch,
 		args.epochConfig.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch,
 		args.epochConfig.EnableEpochs.OptimizeNFTStoreEnableEpoch,
+		args.epochConfig.EnableEpochs.CheckCorrectTokenIDForTransferRoleEnableEpoch,
+		args.epochConfig.EnableEpochs.CheckFunctionArgumentEnableEpoch,
 	)
 	if err != nil {
 		return nil, err
@@ -294,25 +308,29 @@ func createScQueryElement(
 	scStorage := args.generalConfig.SmartContractsStorageForSCQuery
 	scStorage.DB.FilePath += fmt.Sprintf("%d", args.index)
 	argsHook := hooks.ArgBlockChainHook{
-		Accounts:           args.stateComponents.AccountsAdapterAPI(),
-		PubkeyConv:         args.coreComponents.AddressPubKeyConverter(),
-		StorageService:     args.dataComponents.StorageService(),
-		BlockChain:         args.dataComponents.Blockchain(),
-		ShardCoordinator:   args.processComponents.ShardCoordinator(),
-		Marshalizer:        args.coreComponents.InternalMarshalizer(),
-		Uint64Converter:    args.coreComponents.Uint64ByteSliceConverter(),
-		BuiltInFunctions:   builtInFuncs,
-		NFTStorageHandler:  nftStorageHandler,
-		DataPool:           args.dataComponents.Datapool(),
-		ConfigSCStorage:    scStorage,
-		CompiledSCPool:     smartContractsCache,
-		WorkingDir:         args.workingDir,
-		EpochNotifier:      args.coreComponents.EpochNotifier(),
-		EnableEpochs:       args.epochConfig.EnableEpochs,
-		NilCompiledSCStore: true,
+		Accounts:              args.stateComponents.AccountsAdapterAPI(),
+		PubkeyConv:            args.coreComponents.AddressPubKeyConverter(),
+		StorageService:        args.dataComponents.StorageService(),
+		BlockChain:            args.dataComponents.Blockchain(),
+		ShardCoordinator:      args.processComponents.ShardCoordinator(),
+		Marshalizer:           args.coreComponents.InternalMarshalizer(),
+		Uint64Converter:       args.coreComponents.Uint64ByteSliceConverter(),
+		BuiltInFunctions:      builtInFuncs,
+		NFTStorageHandler:     nftStorageHandler,
+		GlobalSettingsHandler: globalSettingsHandler,
+		DataPool:              args.dataComponents.Datapool(),
+		ConfigSCStorage:       scStorage,
+		CompiledSCPool:        smartContractsCache,
+		WorkingDir:            args.workingDir,
+		EpochNotifier:         args.coreComponents.EpochNotifier(),
+		EnableEpochs:          args.epochConfig.EnableEpochs,
+		NilCompiledSCStore:    true,
 	}
 
+	maxGasForVmQueries := args.generalConfig.VirtualMachine.GasConfig.ShardMaxGasPerVmQuery
 	if args.processComponents.ShardCoordinator().SelfId() == core.MetachainShardId {
+		maxGasForVmQueries = args.generalConfig.VirtualMachine.GasConfig.MetaMaxGasPerVmQuery
+
 		blockChainHookImpl, errBlockChainHook := hooks.NewBlockChainHookImpl(argsHook)
 		if errBlockChainHook != nil {
 			return nil, errBlockChainHook
@@ -372,6 +390,8 @@ func createScQueryElement(
 		}
 	}
 
+	log.Debug("maximum gas per VM Query", "value", maxGasForVmQueries)
+
 	vmContainer, err := vmFactory.Create()
 	if err != nil {
 		return nil, err
@@ -390,6 +410,7 @@ func createScQueryElement(
 		ArwenChangeLocker:        args.coreComponents.ArwenChangeLocker(),
 		Bootstrapper:             args.bootstrapper,
 		AllowExternalQueriesChan: args.allowVMQueriesChan,
+		MaxGasLimitPerQuery:      maxGasForVmQueries,
 	}
 
 	return smartContract.NewSCQueryService(argsNewSCQueryService)
@@ -407,7 +428,9 @@ func createBuiltinFuncs(
 	esdtTransferRoleEnableEpoch uint32,
 	transferToMetaEnableEpoch uint32,
 	optimizeNFTStoreEnableEpoch uint32,
-) (vmcommon.BuiltInFunctionContainer, vmcommon.SimpleESDTNFTStorageHandler, error) {
+	checkCorrectTokenIDEnableEpoch uint32,
+	checkFunctionArgumentEnableEpoch uint32,
+) (vmcommon.BuiltInFunctionContainer, vmcommon.SimpleESDTNFTStorageHandler, vmcommon.ESDTGlobalSettingsHandler, error) {
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
 		GasSchedule:                  gasScheduleNotifier,
 		MapDNSAddresses:              make(map[string]struct{}),
@@ -421,11 +444,31 @@ func createBuiltinFuncs(
 		ESDTTransferMetaEnableEpoch:  transferToMetaEnableEpoch,
 		OptimizeNFTStoreEnableEpoch:  optimizeNFTStoreEnableEpoch,
 		GuardedAccountHandler:        guardedAccountHandler,
+		CheckCorrectTokenIDEnableEpoch:   checkCorrectTokenIDEnableEpoch,
+		CheckFunctionArgumentEnableEpoch: checkFunctionArgumentEnableEpoch,
 	}
 	return builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
 }
 
-func createAPIBlockProcessor(args *ApiResolverArgs, apiTransactionHandler external.APITransactionHandler) (external.APIBlockHandler, error) {
+func createAPIBlockProcessor(args *ApiResolverArgs, apiTransactionHandler external.APITransactionHandler) (blockAPI.APIBlockHandler, error) {
+	blockApiArgs, err := createAPIBlockProcessorArgs(args, apiTransactionHandler)
+	if err != nil {
+		return nil, err
+	}
+
+	return blockAPI.CreateAPIBlockProcessor(blockApiArgs)
+}
+
+func createAPIInternalBlockProcessor(args *ApiResolverArgs, apiTransactionHandler external.APITransactionHandler) (blockAPI.APIInternalBlockHandler, error) {
+	blockApiArgs, err := createAPIBlockProcessorArgs(args, apiTransactionHandler)
+	if err != nil {
+		return nil, err
+	}
+
+	return blockAPI.CreateAPIInternalBlockProcessor(blockApiArgs)
+}
+
+func createAPIBlockProcessorArgs(args *ApiResolverArgs, apiTransactionHandler external.APITransactionHandler) (*blockAPI.ArgAPIBlockProcessor, error) {
 	statusComputer, err := txstatus.NewStatusComputer(
 		args.ProcessComponents.ShardCoordinator().SelfId(),
 		args.CoreComponents.Uint64ByteSliceConverter(),
@@ -447,5 +490,5 @@ func createAPIBlockProcessor(args *ApiResolverArgs, apiTransactionHandler extern
 		Hasher:                   args.CoreComponents.Hasher(),
 	}
 
-	return blockAPI.CreateAPIBlockProcessor(blockApiArgs)
+	return blockApiArgs, nil
 }

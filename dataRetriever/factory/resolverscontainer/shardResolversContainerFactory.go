@@ -50,6 +50,7 @@ func NewShardResolversContainerFactory(
 		isFullHistoryNode:           args.IsFullHistoryNode,
 		currentNetworkEpochProvider: args.CurrentNetworkEpochProvider,
 		preferredPeersHolder:        args.PreferredPeersHolder,
+		peersRatingHandler:          args.PeersRatingHandler,
 		numCrossShardPeers:          int(args.ResolverConfig.NumCrossShardPeers),
 		numIntraShardPeers:          int(args.ResolverConfig.NumIntraShardPeers),
 		numFullHistoryPeers:         int(args.ResolverConfig.NumFullHistoryPeers),

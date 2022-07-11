@@ -105,6 +105,7 @@ func NewSmartContractResultPreprocessor(
 		balanceComputation:   balanceComputation,
 		accounts:             accounts,
 		pubkeyConverter:      pubkeyConverter,
+
 		optimizeGasUsedInCrossMiniBlocksEnableEpoch: optimizeGasUsedInCrossMiniBlocksEnableEpoch,
 	}
 
@@ -206,8 +207,8 @@ func (scr *smartContractResults) RestoreBlockDataIntoPools(
 			scr.scrPool.AddData([]byte(txHash), &tx, tx.Size(), strCache)
 		}
 
-		//TODO: Should be analyzed if restoring into pool only cross-shard miniblocks with destination in self shard,
-		//would create problems or not
+		// TODO: Should be analyzed if restoring into pool only cross-shard miniblocks with destination in self shard,
+		// would create problems or not
 		if miniBlock.SenderShardID != scr.shardCoordinator.SelfId() {
 			miniBlockHash, errHash := core.CalculateHash(scr.marshalizer, scr.hasher, miniBlock)
 			if errHash != nil {
@@ -340,10 +341,7 @@ func (scr *smartContractResults) SaveTxsToStorage(body *block.Body) error {
 			continue
 		}
 
-		err := scr.saveTxsToStorage(miniBlock.TxHashes, &scr.scrForBlock, scr.storage, dataRetriever.UnsignedTransactionUnit)
-		if err != nil {
-			return err
-		}
+		scr.saveTxsToStorage(miniBlock.TxHashes, &scr.scrForBlock, scr.storage, dataRetriever.UnsignedTransactionUnit)
 	}
 
 	return nil
@@ -635,6 +633,10 @@ func (scr *smartContractResults) GetAllCurrentUsedTxs() map[string]data.Transact
 func (scr *smartContractResults) AddTxsFromMiniBlocks(_ block.MiniBlockSlice) {
 }
 
+// AddTransactions does nothing
+func (scr *smartContractResults) AddTransactions(_ []data.TransactionHandler) {
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (scr *smartContractResults) IsInterfaceNil() bool {
 	return scr == nil
@@ -645,7 +647,6 @@ func (scr *smartContractResults) isMiniBlockCorrect(mbType block.Type) bool {
 }
 
 // EpochConfirmed is called whenever a new epoch is confirmed
-func (scr *smartContractResults) EpochConfirmed(epoch uint32, _ uint64) {
-	scr.flagOptimizeGasUsedInCrossMiniBlocks.SetValue(epoch >= scr.optimizeGasUsedInCrossMiniBlocksEnableEpoch)
-	log.Debug("smartContractResults: optimize gas used in cross mini blocks", "enabled", scr.flagOptimizeGasUsedInCrossMiniBlocks.IsSet())
+func (scr *smartContractResults) EpochConfirmed(epoch uint32, timestamp uint64) {
+	scr.epochConfirmed(epoch, timestamp)
 }

@@ -190,10 +190,16 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction) (vmco
 		return 0, err
 	}
 
+	txHash, err := core.CalculateHash(txProc.marshalizer, txProc.hasher, tx)
+	if err != nil {
+		return 0, err
+	}
+
 	process.DisplayProcessTxDetails(
 		"ProcessTransaction: sender account details",
 		acntSnd,
 		tx,
+		txHash,
 		txProc.pubkeyConv,
 	)
 
@@ -226,7 +232,7 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction) (vmco
 
 	switch txType {
 	case process.MoveBalance:
-		err = txProc.processMoveBalance(tx, acntSnd, acntDst, dstShardTxType, false)
+		err = txProc.processMoveBalance(tx, acntSnd, acntDst, dstShardTxType, nil, false)
 		if err != nil {
 			return vmcommon.UserError, txProc.executeAfterFailedMoveBalanceTransaction(tx, err)
 		}
@@ -451,6 +457,7 @@ func (txProc *txProcessor) processMoveBalance(
 	tx *transaction.Transaction,
 	acntSrc, acntDst state.UserAccountHandler,
 	destShardTxType process.TransactionType,
+	originalTxHash []byte,
 	isUserTxOfRelayed bool,
 ) error {
 
@@ -509,7 +516,11 @@ func (txProc *txProcessor) processMoveBalance(
 		return err
 	}
 
-	txProc.txFeeHandler.ProcessTransactionFee(moveBalanceCost, big.NewInt(0), txHash)
+	if isUserTxOfRelayed {
+		txProc.txFeeHandler.ProcessTransactionFeeRelayedUserTx(moveBalanceCost, big.NewInt(0), txHash, originalTxHash)
+	} else {
+		txProc.txFeeHandler.ProcessTransactionFee(moveBalanceCost, big.NewInt(0), txHash)
+	}
 
 	return nil
 }
@@ -732,6 +743,7 @@ func (txProc *txProcessor) processMoveBalanceCostRelayedUserTx(
 	userTx *transaction.Transaction,
 	userScr *smartContractResult.SmartContractResult,
 	userAcc state.UserAccountHandler,
+	originalTxHash []byte,
 ) error {
 	moveBalanceGasLimit := txProc.economicsFee.ComputeGasLimit(userTx)
 	moveBalanceUserFee := txProc.economicsFee.ComputeFeeForProcessing(userTx, moveBalanceGasLimit)
@@ -741,7 +753,7 @@ func (txProc *txProcessor) processMoveBalanceCostRelayedUserTx(
 		return err
 	}
 
-	txProc.txFeeHandler.ProcessTransactionFee(moveBalanceUserFee, big.NewInt(0), userScrHash)
+	txProc.txFeeHandler.ProcessTransactionFeeRelayedUserTx(moveBalanceUserFee, big.NewInt(0), userScrHash, originalTxHash)
 	return userAcc.SubFromBalance(moveBalanceUserFee)
 }
 
@@ -781,26 +793,32 @@ func (txProc *txProcessor) processUserTx(
 		return 0, err
 	}
 
+	var originalTxHash []byte
+	originalTxHash, err = core.CalculateHash(txProc.marshalizer, txProc.hasher, originalTx)
+	if err != nil {
+		return 0, err
+	}
+
 	returnCode := vmcommon.Ok
 	switch txType {
 	case process.MoveBalance:
-		err = txProc.processMoveBalance(userTx, acntSnd, acntDst, dstShardTxType, true)
+		err = txProc.processMoveBalance(userTx, acntSnd, acntDst, dstShardTxType, originalTxHash, true)
 	case process.SCDeployment:
-		err = txProc.processMoveBalanceCostRelayedUserTx(userTx, scrFromTx, acntSnd)
+		err = txProc.processMoveBalanceCostRelayedUserTx(userTx, scrFromTx, acntSnd, originalTxHash)
 		if err != nil {
 			break
 		}
 
 		returnCode, err = txProc.scProcessor.DeploySmartContract(scrFromTx, acntSnd)
 	case process.SCInvoking:
-		err = txProc.processMoveBalanceCostRelayedUserTx(userTx, scrFromTx, acntSnd)
+		err = txProc.processMoveBalanceCostRelayedUserTx(userTx, scrFromTx, acntSnd, originalTxHash)
 		if err != nil {
 			break
 		}
 
 		returnCode, err = txProc.scProcessor.ExecuteSmartContractTransaction(scrFromTx, acntSnd, acntDst)
 	case process.BuiltInFunctionCall:
-		err = txProc.processMoveBalanceCostRelayedUserTx(userTx, scrFromTx, acntSnd)
+		err = txProc.processMoveBalanceCostRelayedUserTx(userTx, scrFromTx, acntSnd, originalTxHash)
 		if err != nil {
 			break
 		}

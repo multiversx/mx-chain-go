@@ -18,6 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -141,6 +142,9 @@ func (mcc *managedCoreComponents) CheckSubcomponents() error {
 	}
 	if check.IfNil(mcc.epochNotifier) {
 		return errors.ErrNilEpochNotifier
+	}
+	if check.IfNil(mcc.processStatusHandler) {
+		return errors.ErrNilProcessStatusHandler
 	}
 	if len(mcc.chainID) == 0 {
 		return errors.ErrInvalidChainID
@@ -467,7 +471,7 @@ func (mcc *managedCoreComponents) RoundHandler() consensus.RoundHandler {
 }
 
 // NodesShuffler returns the nodes shuffler
-func (mcc *managedCoreComponents) NodesShuffler() sharding.NodesShuffler {
+func (mcc *managedCoreComponents) NodesShuffler() nodesCoordinator.NodesShuffler {
 	mcc.mutCoreComponents.RLock()
 	defer mcc.mutCoreComponents.RUnlock()
 
@@ -548,6 +552,18 @@ func (mcc *managedCoreComponents) ArwenChangeLocker() common.Locker {
 	}
 
 	return mcc.coreComponents.arwenChangeLocker
+}
+
+// ProcessStatusHandler returns the process status handler
+func (mcc *managedCoreComponents) ProcessStatusHandler() common.ProcessStatusHandler {
+	mcc.mutCoreComponents.RLock()
+	defer mcc.mutCoreComponents.RUnlock()
+
+	if mcc.coreComponents == nil {
+		return nil
+	}
+
+	return mcc.coreComponents.processStatusHandler
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

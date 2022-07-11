@@ -92,6 +92,7 @@ type PruningStorer struct {
 	mutEpochPrepareHdr     sync.RWMutex
 	epochPrepareHdr        data.HeaderHandler
 	oldDataCleanerProvider clean.OldDataCleanerProvider
+	customDatabaseRemover  storage.CustomDatabaseRemoverHandler
 	identifier             string
 	numOfEpochsToKeep      uint32
 	numOfActivePersisters  uint32
@@ -152,6 +153,7 @@ func initPruningStorer(
 	pdb.numOfEpochsToKeep = args.NumOfEpochsToKeep
 	pdb.numOfActivePersisters = args.NumOfActivePersisters
 	pdb.oldDataCleanerProvider = args.OldDataCleanerProvider
+	pdb.customDatabaseRemover = args.CustomDatabaseRemover
 	pdb.persistersMapByEpoch = persistersMapByEpoch
 	pdb.activePersisters = activePersisters
 
@@ -177,6 +179,12 @@ func checkArgs(args *StorerArgs) error {
 	}
 	if check.IfNil(args.PathManager) {
 		return storage.ErrNilPathManager
+	}
+	if check.IfNil(args.CustomDatabaseRemover) {
+		return storage.ErrNilCustomDatabaseRemover
+	}
+	if check.IfNil(args.OldDataCleanerProvider) {
+		return storage.ErrNilOldDataCleanerProvider
 	}
 	if args.MaxBatchSize > int(args.CacheConf.Capacity) {
 		return storage.ErrCacheSizeIsLowerThanBatchSize
@@ -577,6 +585,21 @@ func (ps *PruningStorer) SetEpochForPutOperation(epoch uint32) {
 	ps.lock.Unlock()
 }
 
+// RemoveFromCurrentEpoch removes the data associated to the given key from both cache and the current epoch persistence medium
+func (ps *PruningStorer) RemoveFromCurrentEpoch(key []byte) error {
+	ps.cacher.Remove(key)
+
+	ps.lock.RLock()
+	defer ps.lock.RUnlock()
+	if len(ps.activePersisters) == 0 {
+		return nil
+	}
+
+	persisterToUse := ps.activePersisters[0]
+
+	return persisterToUse.persister.Remove(key)
+}
+
 // Remove removes the data associated to the given key from both cache and persistence medium
 func (ps *PruningStorer) Remove(key []byte) error {
 	var err error
@@ -746,7 +769,7 @@ func (ps *PruningStorer) changeEpoch(header data.HeaderHandler) error {
 		return nil
 	}
 
-	err = ps.closePersisters(epoch)
+	err = ps.closeAndDestroyPersisters(epoch)
 	if err != nil {
 		log.Warn("closing persisters", "error", err.Error())
 		return err
@@ -876,18 +899,19 @@ func (ps *PruningStorer) extendActivePersisters(from uint32, to uint32) error {
 }
 
 // should be called under mutex protection
-func (ps *PruningStorer) closePersisters(epoch uint32) error {
+func (ps *PruningStorer) closeAndDestroyPersisters(epoch uint32) error {
 	// activePersisters outside the numOfActivePersisters border have to he closed for both scenarios: full archive or not
 	persistersToClose := ps.processPersistersToClose()
 
-	if ps.oldDataCleanerProvider.ShouldClean() && uint32(len(ps.persistersMapByEpoch)) > ps.numOfEpochsToKeep {
-		idxToRemove := epoch - ps.numOfEpochsToKeep
+	epochsToRemove := make([]uint32, 0)
+	idxToRemove := epoch - ps.numOfEpochsToKeep
+	if uint32(len(ps.persistersMapByEpoch)) > ps.numOfEpochsToKeep {
 		for {
 			_, exists := ps.persistersMapByEpoch[idxToRemove]
 			if !exists {
 				break
 			}
-			delete(ps.persistersMapByEpoch, idxToRemove)
+			epochsToRemove = append(epochsToRemove, idxToRemove)
 			idxToRemove--
 		}
 	}
@@ -896,6 +920,26 @@ func (ps *PruningStorer) closePersisters(epoch uint32) error {
 		err := pd.Close()
 		if err != nil {
 			log.Warn("error closing persister", "error", err.Error(), "id", ps.identifier)
+		}
+	}
+
+	shouldRemoveFromMapDueToOldData := ps.oldDataCleanerProvider.ShouldClean()
+
+	for _, epochToRemove := range epochsToRemove {
+		persisterToRemove := ps.persistersMapByEpoch[epochToRemove]
+		if ps.customDatabaseRemover.ShouldRemove(persisterToRemove.path, epochToRemove) {
+			log.Debug("destroying persister", "path", persisterToRemove.path)
+			err := persisterToRemove.getPersister().DestroyClosed()
+			if err != nil {
+				return err
+			}
+
+			// destroyed persisters have to be removed from the map, regardless on the shouldRemoveFromMapDueToOldData value
+			delete(ps.persistersMapByEpoch, epochToRemove)
+		}
+
+		if shouldRemoveFromMapDueToOldData {
+			delete(ps.persistersMapByEpoch, epochToRemove)
 		}
 	}
 

@@ -10,6 +10,7 @@ import (
 	"path"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -39,7 +40,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
-	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
@@ -174,6 +175,13 @@ func printEnableEpochs(configs *config.Configs) {
 	log.Debug(readEpochFor("scheduled mini blocks"), "epoch", enableEpochs.ScheduledMiniBlocksEnableEpoch)
 	log.Debug(readEpochFor("correct jailed not unstaked if empty queue"), "epoch", enableEpochs.CorrectJailedNotUnstakedEmptyQueueEpoch)
 	log.Debug(readEpochFor("do not return old block in blockchain hook"), "epoch", enableEpochs.DoNotReturnOldBlockInBlockchainHookEnableEpoch)
+	log.Debug(readEpochFor("scr size invariant check on built in"), "epoch", enableEpochs.SCRSizeInvariantOnBuiltInResultEnableEpoch)
+	log.Debug(readEpochFor("correct check on tokenID for transfer role"), "epoch", enableEpochs.CheckCorrectTokenIDForTransferRoleEnableEpoch)
+	log.Debug(readEpochFor("disable check value on exec by caller"), "epoch", enableEpochs.DisableExecByCallerEnableEpoch)
+	log.Debug(readEpochFor("fail execution on every wrong API call"), "epoch", enableEpochs.FailExecutionOnEveryAPIErrorEnableEpoch)
+	log.Debug(readEpochFor("managed crypto API in wasm vm"), "epoch", enableEpochs.ManagedCryptoAPIsEnableEpoch)
+	log.Debug(readEpochFor("refactor contexts"), "epoch", enableEpochs.RefactorContextEnableEpoch)
+
 	gasSchedule := configs.EpochConfig.GasSchedule
 
 	log.Debug(readEpochFor("gas schedule directories paths"), "epoch", gasSchedule.GasScheduleByEpochs)
@@ -239,6 +247,9 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	flagsConfig := configs.FlagsConfig
 	configurationPaths := configs.ConfigurationPathsHolder
 
+	log.Debug("creating healthService")
+	healthService := nr.createHealthService(flagsConfig)
+
 	log.Debug("creating core components")
 	managedCoreComponents, err := nr.CreateManagedCoreComponents(
 		chanStopNodeProcess,
@@ -289,15 +300,15 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		return true, err
 	}
 
-	log.Trace("creating metrics")
+	log.Debug("creating metrics")
 	// this should be called before setting the storer (done in the managedDataComponents creation)
 	err = nr.createMetrics(managedCoreComponents, managedCryptoComponents, managedBootstrapComponents)
 	if err != nil {
 		return true, err
 	}
 
-	log.Debug("creating healthService")
-	healthService := nr.createHealthService(flagsConfig, managedDataComponents)
+	log.Debug("registering components in healthService")
+	nr.registerDataComponentsInHealthService(healthService, managedDataComponents)
 
 	nodesShufflerOut, err := mainFactory.CreateNodesShuffleOut(
 		managedCoreComponents.GenesisNodesSetup(),
@@ -309,7 +320,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	}
 
 	log.Debug("creating nodes coordinator")
-	nodesCoordinator, err := mainFactory.CreateNodesCoordinator(
+	nodesCoord, err := mainFactory.CreateNodesCoordinator(
 		nodesShufflerOut,
 		managedCoreComponents.GenesisNodesSetup(),
 		configs.PreferencesConfig.Preferences,
@@ -331,14 +342,14 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		return true, err
 	}
 
-	log.Trace("starting status pooling components")
+	log.Debug("starting status pooling components")
 	managedStatusComponents, err := nr.CreateManagedStatusComponents(
 		managedCoreComponents,
 		managedNetworkComponents,
 		managedBootstrapComponents,
 		managedDataComponents,
 		managedStateComponents,
-		nodesCoordinator,
+		nodesCoord,
 		configs.ImportDbConfig.IsImportDBMode,
 	)
 	if err != nil {
@@ -356,7 +367,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		return true, err
 	}
 
-	log.Trace("creating process components")
+	log.Debug("creating process components")
 	managedProcessComponents, err := nr.CreateManagedProcessComponents(
 		managedCoreComponents,
 		managedCryptoComponents,
@@ -366,7 +377,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		managedDataComponents,
 		managedStatusComponents,
 		gasScheduleNotifier,
-		nodesCoordinator,
+		nodesCoord,
 	)
 	if err != nil {
 		return true, err
@@ -389,7 +400,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		managedStateComponents,
 		managedStatusComponents,
 		managedProcessComponents,
-		nodesCoordinator,
+		nodesCoord,
 		nodesShufflerOut,
 	)
 	if err != nil {
@@ -410,7 +421,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		return true, err
 	}
 
-	log.Trace("creating node structure")
+	log.Debug("creating node structure")
 	currentNode, err := CreateNode(
 		configs.GeneralConfig,
 		managedBootstrapComponents,
@@ -432,10 +443,10 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	}
 
 	if managedBootstrapComponents.ShardCoordinator().SelfId() == core.MetachainShardId {
-		log.Trace("activating nodesCoordinator's validators indexing")
+		log.Debug("activating nodesCoord's validators indexing")
 		indexValidatorsListIfNeeded(
 			managedStatusComponents.OutportHandler(),
-			nodesCoordinator,
+			nodesCoord,
 			managedProcessComponents.EpochStartTrigger().Epoch(),
 		)
 	}
@@ -452,10 +463,11 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	log.Info("application is now running")
 
 	// TODO: remove this and treat better the VM versions switching
-	go func() {
+	go func(statusHandler core.AppStatusHandler) {
 		time.Sleep(delayBeforeScQueriesStart)
 		close(allowExternalVMQueriesChan)
-	}()
+		statusHandler.SetStringValue(common.MetricAreVMQueriesReady, strconv.FormatBool(true))
+	}(managedCoreComponents.StatusHandler())
 
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
@@ -585,6 +597,8 @@ func (nr *nodeRunner) createMetrics(
 	}
 
 	metrics.SaveStringMetric(coreComponents.StatusHandler(), common.MetricNodeDisplayName, nr.configs.PreferencesConfig.Preferences.NodeDisplayName)
+	metrics.SaveStringMetric(coreComponents.StatusHandler(), common.MetricRedundancyLevel, fmt.Sprintf("%d", nr.configs.PreferencesConfig.Preferences.RedundancyLevel))
+	metrics.SaveStringMetric(coreComponents.StatusHandler(), common.MetricRedundancyIsMainActive, common.MetricValueNA)
 	metrics.SaveStringMetric(coreComponents.StatusHandler(), common.MetricChainId, coreComponents.ChainID())
 	metrics.SaveUint64Metric(coreComponents.StatusHandler(), common.MetricGasPerDataByte, coreComponents.EconomicsData().GasPerDataByte())
 	metrics.SaveUint64Metric(coreComponents.StatusHandler(), common.MetricMinGasPrice, coreComponents.EconomicsData().MinGasPrice())
@@ -597,16 +611,19 @@ func (nr *nodeRunner) createMetrics(
 	return nil
 }
 
-func (nr *nodeRunner) createHealthService(flagsConfig *config.ContextFlagsConfig, dataComponents mainFactory.DataComponentsHolder) closing.Closer {
+func (nr *nodeRunner) createHealthService(flagsConfig *config.ContextFlagsConfig) HealthService {
 	healthService := health.NewHealthService(nr.configs.GeneralConfig.Health, flagsConfig.WorkingDir)
 	if flagsConfig.UseHealthService {
 		healthService.Start()
 	}
 
+	return healthService
+}
+
+func (nr *nodeRunner) registerDataComponentsInHealthService(healthService HealthService, dataComponents mainFactory.DataComponentsHolder) {
 	healthService.RegisterComponent(dataComponents.Datapool().Transactions())
 	healthService.RegisterComponent(dataComponents.Datapool().UnsignedTransactions())
 	healthService.RegisterComponent(dataComponents.Datapool().RewardTransactions())
-	return healthService
 }
 
 // CreateManagedConsensusComponents is the managed consensus components factory
@@ -619,7 +636,7 @@ func (nr *nodeRunner) CreateManagedConsensusComponents(
 	stateComponents mainFactory.StateComponentsHolder,
 	statusComponents mainFactory.StatusComponentsHolder,
 	processComponents mainFactory.ProcessComponentsHolder,
-	nodesCoordinator sharding.NodesCoordinator,
+	nodesCoordinator nodesCoordinator.NodesCoordinator,
 	nodesShuffledOut update.Closer,
 ) (mainFactory.ConsensusComponentsHandler, error) {
 	hardForkTrigger, err := CreateHardForkTrigger(
@@ -840,7 +857,7 @@ func (nr *nodeRunner) CreateManagedStatusComponents(
 	managedBootstrapComponents mainFactory.BootstrapComponentsHolder,
 	managedDataComponents mainFactory.DataComponentsHolder,
 	managedStateComponents mainFactory.StateComponentsHolder,
-	nodesCoordinator sharding.NodesCoordinator,
+	nodesCoordinator nodesCoordinator.NodesCoordinator,
 	isInImportMode bool,
 ) (mainFactory.StatusComponentsHandler, error) {
 	statArgs := mainFactory.StatusComponentsFactoryArgs{
@@ -916,7 +933,7 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 	dataComponents mainFactory.DataComponentsHolder,
 	statusComponents mainFactory.StatusComponentsHolder,
 	gasScheduleNotifier core.GasScheduleNotifier,
-	nodesCoordinator sharding.NodesCoordinator,
+	nodesCoordinator nodesCoordinator.NodesCoordinator,
 ) (mainFactory.ProcessComponentsHandler, error) {
 	configs := nr.configs
 	configurationPaths := nr.configs.ConfigurationPathsHolder
@@ -1134,6 +1151,7 @@ func (nr *nodeRunner) CreateManagedBootstrapComponents(
 		RoundConfig:       *nr.configs.RoundConfig,
 		PrefConfig:        *nr.configs.PreferencesConfig,
 		ImportDbConfig:    *nr.configs.ImportDbConfig,
+		FlagsConfig:       *nr.configs.FlagsConfig,
 		WorkingDir:        nr.configs.FlagsConfig.WorkingDir,
 		CoreComponents:    coreComponents,
 		CryptoComponents:  cryptoComponents,
@@ -1414,7 +1432,7 @@ func copySingleFile(folder string, configFile string) {
 
 func indexValidatorsListIfNeeded(
 	outportHandler outport.OutportHandler,
-	coordinator sharding.NodesCoordinator,
+	coordinator nodesCoordinator.NodesCoordinator,
 	epoch uint32,
 ) {
 	if !outportHandler.HasDrivers() {

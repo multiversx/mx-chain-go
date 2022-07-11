@@ -41,8 +41,7 @@ func (txCoordinator *TxCoordinator) IsDataPreparedForProcessing(_ func() time.Du
 }
 
 // SaveTxsToStorage does nothing as it is disabled
-func (txCoordinator *TxCoordinator) SaveTxsToStorage(_ *block.Body) error {
-	return nil
+func (txCoordinator *TxCoordinator) SaveTxsToStorage(_ *block.Body) {
 }
 
 // RestoreBlockDataFromStorage does nothing as it is disabled
@@ -122,6 +121,10 @@ func (txCoordinator *TxCoordinator) GetAllIntermediateTxs() map[block.Type]map[s
 
 // AddTxsFromMiniBlocks does nothing as it is disabled
 func (txCoordinator *TxCoordinator) AddTxsFromMiniBlocks(_ block.MiniBlockSlice) {
+}
+
+// AddTransactions does nothing as it is disabled
+func (txCoordinator *TxCoordinator) AddTransactions(_ []data.TransactionHandler, _ block.Type) {
 }
 
 // GetAllCurrentLogs returns empty logs map

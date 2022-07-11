@@ -91,8 +91,8 @@ func (m *metaBlockCreator) CreateBlock(
 	}
 
 	hardForkMeta := m.importHandler.GetHardForkMetaBlock()
-	epochStart, ok:= hardForkMeta.GetEpochStartHandler().(*block.EpochStart)
-	if !ok{
+	epochStart, ok := hardForkMeta.GetEpochStartHandler().(*block.EpochStart)
+	if !ok {
 		return nil, update.ErrWrongTypeAssertion
 	}
 

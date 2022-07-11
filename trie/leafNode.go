@@ -127,6 +127,7 @@ func (ln *leafNode) commitDirty(_ byte, _ uint, _ common.DBWriteCacher, targetDb
 
 	return err
 }
+
 func (ln *leafNode) commitCheckpoint(
 	_ common.DBWriteCacher,
 	targetDb common.DBWriteCacher,
@@ -134,8 +135,9 @@ func (ln *leafNode) commitCheckpoint(
 	leavesChan chan core.KeyValueHolder,
 	ctx context.Context,
 	stats common.SnapshotStatisticsHandler,
+	idleProvider IdleNodeProvider,
 ) error {
-	if shouldStopIfContextDone(ctx) {
+	if shouldStopIfContextDone(ctx, idleProvider) {
 		return errors.ErrContextClosing
 	}
 
@@ -176,8 +178,9 @@ func (ln *leafNode) commitSnapshot(
 	leavesChan chan core.KeyValueHolder,
 	ctx context.Context,
 	stats common.SnapshotStatisticsHandler,
+	idleProvider IdleNodeProvider,
 ) error {
-	if shouldStopIfContextDone(ctx) {
+	if shouldStopIfContextDone(ctx, idleProvider) {
 		return errors.ErrContextClosing
 	}
 
@@ -432,6 +435,7 @@ func (ln *leafNode) getAllLeavesOnChannel(
 	_ common.DBWriteCacher,
 	_ marshal.Marshalizer,
 	chanClose chan struct{},
+	ctx context.Context,
 ) error {
 	err := ln.isEmptyOrNil()
 	if err != nil {
@@ -448,7 +452,10 @@ func (ln *leafNode) getAllLeavesOnChannel(
 	for {
 		select {
 		case <-chanClose:
-			log.Trace("getAllLeavesOnChannel interrupted")
+			log.Trace("leafNode.getAllLeavesOnChannel interrupted")
+			return nil
+		case <-ctx.Done():
+			log.Trace("leafNode.getAllLeavesOnChannel: context done")
 			return nil
 		case leavesChannel <- trieLeaf:
 			return nil

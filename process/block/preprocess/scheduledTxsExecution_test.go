@@ -1524,12 +1524,13 @@ func TestScheduledTxsExecution_removeInvalidTxsFromScheduledMiniBlocks(t *testin
 	scheduledTxsExec.scheduledMbs = mbs
 	scheduledTxsExec.removeInvalidTxsFromScheduledMiniBlocks(scrsInfo)
 
-	//TODO: check if a scheduledMB should have no TxHashes inside
-	expectedLen := 0
-	assert.Equal(t, expectedLen, len(scheduledTxsExec.scheduledMbs[1].TxHashes))
+	// a scheduled miniBlock without any txs is removed completely
+	expectedNumScheduledMiniBlocks := 1
+	assert.Equal(t, expectedNumScheduledMiniBlocks, len(scheduledTxsExec.scheduledMbs))
 
-	expectedLen = 2
+	expectedLen := 2
 	assert.Equal(t, expectedLen, len(scheduledTxsExec.scheduledMbs[0].TxHashes))
+
 	remainingTxHashes := scheduledTxsExec.scheduledMbs[0].TxHashes
 	assert.True(t, bytes.Equal(txHash2, remainingTxHashes[0]))
 	assert.True(t, bytes.Equal(txHash4, remainingTxHashes[1]))

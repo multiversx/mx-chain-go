@@ -46,6 +46,7 @@ type metaProcessor struct {
 	rewardsV2EnableEpoch         uint32
 	userStatePruningQueue        core.Queue
 	peerStatePruningQueue        core.Queue
+	processStatusHandler         common.ProcessStatusHandler
 }
 
 // NewMetaProcessor creates a new metaProcessor object
@@ -83,6 +84,13 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 	}
 	if check.IfNil(arguments.EpochSystemSCProcessor) {
 		return nil, process.ErrNilEpochStartSystemSCProcessor
+	}
+
+	pruningQueueSize := arguments.Config.StateTriesConfig.PeerStatePruningQueueSize
+	pruningDelay := uint32(pruningQueueSize * pruningDelayMultiplier)
+	if pruningDelay < defaultPruningDelay {
+		log.Warn("using default pruning delay", "pruning queue size", pruningQueueSize)
+		pruningDelay = defaultPruningDelay
 	}
 
 	genesisHdr := arguments.DataComponents.Blockchain().GetGenesisHeader()
@@ -123,6 +131,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		economicsData:                  arguments.CoreComponents.EconomicsData(),
 		scheduledTxsExecutionHandler:   arguments.ScheduledTxsExecutionHandler,
 		scheduledMiniBlocksEnableEpoch: arguments.ScheduledMiniBlocksEnableEpoch,
+		pruningDelay:                   pruningDelay,
 	}
 
 	mp := metaProcessor{
@@ -137,6 +146,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		validatorInfoCreator:         arguments.EpochValidatorInfoCreator,
 		epochSystemSCProcessor:       arguments.EpochSystemSCProcessor,
 		rewardsV2EnableEpoch:         arguments.RewardsV2EnableEpoch,
+		processStatusHandler:         arguments.CoreComponents.ProcessStatusHandler(),
 	}
 
 	log.Debug("metablock: enable epoch for staking v2", "epoch", mp.rewardsV2EnableEpoch)
@@ -177,10 +187,12 @@ func (mp *metaProcessor) ProcessBlock(
 	bodyHandler data.BodyHandler,
 	haveTime func() time.Duration,
 ) error {
-
 	if haveTime == nil {
 		return process.ErrNilHaveTimeHandler
 	}
+
+	mp.processStatusHandler.SetBusy("metaProcessor.ProcessBlock")
+	defer mp.processStatusHandler.SetIdle()
 
 	err := mp.checkBlockValidity(headerHandler, bodyHandler)
 	if err != nil {
@@ -745,6 +757,9 @@ func (mp *metaProcessor) CreateBlock(
 		return nil, nil, process.ErrWrongTypeAssertion
 	}
 
+	mp.processStatusHandler.SetBusy("metaProcessor.CreateBlock")
+	defer mp.processStatusHandler.SetIdle()
+
 	metaHdr.SoftwareVersion = []byte(mp.headerIntegrityVerifier.GetVersion(metaHdr.Epoch))
 	mp.epochNotifier.CheckEpoch(metaHdr)
 	mp.blockChainHook.SetCurrentHeader(initialHdr)
@@ -968,6 +983,7 @@ func (mp *metaProcessor) createMiniBlocks(
 	if mp.flagScheduledMiniBlocks.IsSet() {
 		miniBlocks = mp.scheduledTxsExecutionHandler.GetScheduledMiniBlocks()
 		mp.txCoordinator.AddTxsFromMiniBlocks(miniBlocks)
+		// TODO: in case we add metachain originating scheduled miniBlocks, we need to add the invalid txs here, same as for shard processor
 	}
 
 	if !haveTime() {
@@ -1173,11 +1189,13 @@ func (mp *metaProcessor) CommitBlock(
 	headerHandler data.HeaderHandler,
 	bodyHandler data.BodyHandler,
 ) error {
+	mp.processStatusHandler.SetBusy("metaProcessor.CommitBlock")
 	var err error
 	defer func() {
 		if err != nil {
 			mp.RevertCurrentBlock()
 		}
+		mp.processStatusHandler.SetIdle()
 	}()
 
 	err = checkForNils(headerHandler, bodyHandler)
@@ -1282,6 +1300,10 @@ func (mp *metaProcessor) CommitBlock(
 		}
 	}
 	lastMetaBlockHash := mp.blockChain.GetCurrentBlockHeaderHash()
+	if mp.lastRestartNonce == 0 {
+		mp.lastRestartNonce = header.GetNonce()
+	}
+
 	mp.updateState(lastMetaBlock, lastMetaBlockHash)
 
 	committedRootHash, err := mp.accountsDB[state.UserAccountsState].RootHash()
@@ -1757,7 +1779,8 @@ func (mp *metaProcessor) checkShardHeadersValidity(metaHdr *block.MetaBlock) (ma
 	for _, shardData := range metaHdr.ShardInfo {
 		headerInfo, ok := mp.hdrsForCurrBlock.hdrHashAndInfo[string(shardData.HeaderHash)]
 		if !ok {
-			return nil, fmt.Errorf("%w : checkShardHeadersValidity -> hash not found %s ", process.ErrHeaderShardDataMismatch, shardData.HeaderHash)
+			return nil, fmt.Errorf("%w : checkShardHeadersValidity -> hash not found %s ",
+				process.ErrHeaderShardDataMismatch, hex.EncodeToString(shardData.HeaderHash))
 		}
 		actualHdr := headerInfo.hdr
 		shardHdr, ok := actualHdr.(data.ShardHeaderHandler)

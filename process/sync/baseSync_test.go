@@ -226,3 +226,94 @@ func TestBaseSync_getEpochOfCurrentBlockHeader(t *testing.T) {
 	epoch := boot.getEpochOfCurrentBlock()
 	assert.Equal(t, headerEpoch, epoch)
 }
+
+func TestBaseSync_shouldAllowRollback(t *testing.T) {
+	t.Parallel()
+
+	finalBlockHash := []byte("final block hash")
+	notFinalBlockHash := []byte("not final block hash")
+	boot := &baseBootstrap{
+		forkDetector: &mock.ForkDetectorMock{
+			GetHighestFinalBlockNonceCalled: func() uint64 {
+				return 10
+			},
+			GetHighestFinalBlockHashCalled: func() []byte {
+				return finalBlockHash
+			},
+		},
+	}
+
+	t.Run("should allow rollback nonces above final", func(t *testing.T) {
+		header := &testscommon.HeaderHandlerStub{
+			GetNonceCalled: func() uint64 {
+				return 11
+			},
+			HasScheduledMiniBlocksCalled: func() bool {
+				return false
+			},
+		}
+		require.True(t, boot.shouldAllowRollback(header, finalBlockHash))
+		require.True(t, boot.shouldAllowRollback(header, notFinalBlockHash))
+
+		header.HasScheduledMiniBlocksCalled = func() bool {
+			return true
+		}
+		require.True(t, boot.shouldAllowRollback(header, finalBlockHash))
+		require.True(t, boot.shouldAllowRollback(header, notFinalBlockHash))
+	})
+
+	t.Run("should not allow rollback of a final header with the same final hash if it doesn't have scheduled miniBlocks", func(t *testing.T) {
+		header := &testscommon.HeaderHandlerStub{
+			GetNonceCalled: func() uint64 {
+				return 10
+			},
+			HasScheduledMiniBlocksCalled: func() bool {
+				return false
+			},
+		}
+		require.False(t, boot.shouldAllowRollback(header, finalBlockHash))
+	})
+
+	t.Run("should allow rollback of a final header without the same final hash", func(t *testing.T) {
+		header := &testscommon.HeaderHandlerStub{
+			GetNonceCalled: func() uint64 {
+				return 10
+			},
+			HasScheduledMiniBlocksCalled: func() bool {
+				return false
+			},
+		}
+		require.True(t, boot.shouldAllowRollback(header, notFinalBlockHash))
+	})
+
+	t.Run("should allow rollback of a final header if it holds scheduled miniBlocks", func(t *testing.T) {
+		header := &testscommon.HeaderHandlerStub{
+			GetNonceCalled: func() uint64 {
+				return 10
+			},
+			HasScheduledMiniBlocksCalled: func() bool {
+				return true
+			},
+		}
+		require.True(t, boot.shouldAllowRollback(header, finalBlockHash))
+	})
+
+	t.Run("should not allow any rollBack of a header if nonce is behind final", func(t *testing.T) {
+		header := &testscommon.HeaderHandlerStub{
+			GetNonceCalled: func() uint64 {
+				return 9
+			},
+			HasScheduledMiniBlocksCalled: func() bool {
+				return true
+			},
+		}
+		require.False(t, boot.shouldAllowRollback(header, finalBlockHash))
+		require.False(t, boot.shouldAllowRollback(header, notFinalBlockHash))
+
+		header.HasScheduledMiniBlocksCalled = func() bool {
+			return false
+		}
+		require.False(t, boot.shouldAllowRollback(header, finalBlockHash))
+		require.False(t, boot.shouldAllowRollback(header, notFinalBlockHash))
+	})
+}

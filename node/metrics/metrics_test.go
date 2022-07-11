@@ -2,10 +2,12 @@ package metrics
 
 import (
 	"fmt"
+	"strconv"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -31,8 +33,6 @@ func TestInitBaseMetrics(t *testing.T) {
 		common.MetricNumTimesInForkChoice,
 		common.MetricHighestFinalBlock,
 		common.MetricCountConsensusAcceptedBlocks,
-		common.MetricRoundAtEpochStart,
-		common.MetricNonceAtEpochStart,
 		common.MetricRoundsPassedInCurrentEpoch,
 		common.MetricNoncesPassedInCurrentEpoch,
 		common.MetricNumConnectedPeers,
@@ -42,6 +42,7 @@ func TestInitBaseMetrics(t *testing.T) {
 		common.MetricCurrentBlockHash,
 		common.MetricNumConnectedPeersClassification,
 		common.MetricLatestTagSoftwareVersion,
+		common.MetricAreVMQueriesReady,
 		common.MetricP2PNumConnectedPeersClassification,
 		common.MetricP2PPeerInfo,
 		common.MetricP2PIntraShardValidators,
@@ -59,7 +60,7 @@ func TestInitBaseMetrics(t *testing.T) {
 
 	ash := &statusHandler.AppStatusHandlerStub{
 		SetStringValueHandler: func(key string, value string) {
-			okValue := value == initString || value == initZeroString
+			okValue := value == initString || value == initZeroString || value == strconv.FormatBool(false)
 			require.True(t, okValue)
 			keys[key] = struct{}{}
 		},
@@ -125,6 +126,7 @@ func TestInitConfigMetrics(t *testing.T) {
 			GlobalMintBurnDisableEpoch:                  32,
 			ESDTTransferRoleEnableEpoch:                 33,
 			BuiltInFunctionOnMetaEnableEpoch:            34,
+			WaitingListFixEnableEpoch:                   35,
 		},
 	}
 
@@ -163,12 +165,25 @@ func TestInitConfigMetrics(t *testing.T) {
 		"erd_global_mint_burn_disable_epoch":                     uint32(32),
 		"erd_esdt_transfer_role_enable_epoch":                    uint32(33),
 		"erd_builtin_function_on_meta_enable_epoch":              uint32(34),
+		"erd_waiting_list_fix_enable_epoch":                      uint32(35),
+		"erd_max_nodes_change_enable_epoch":                      nil,
 		"erd_total_supply":                                       "12345",
+		"erd_hysteresis":                                         "0.100000",
+		"erd_adaptivity":                                         "true",
 	}
 
 	economicsConfig := config.EconomicsConfig{
 		GlobalSettings: config.GlobalSettings{
 			GenesisTotalSupply: "12345",
+		},
+	}
+
+	genesisNodesConfig := &testscommon.NodesSetupStub{
+		GetAdaptivityCalled: func() bool {
+			return true
+		},
+		GetHysteresisCalled: func() float32 {
+			return 0.1
 		},
 	}
 
@@ -187,10 +202,127 @@ func TestInitConfigMetrics(t *testing.T) {
 		AppStatusHandler: ash,
 	}
 
-	err := InitConfigMetrics(nil, cfg, economicsConfig)
+	err := InitConfigMetrics(nil, cfg, economicsConfig, genesisNodesConfig)
 	require.Equal(t, ErrNilStatusHandlerUtils, err)
 
-	err = InitConfigMetrics(sm, cfg, economicsConfig)
+	err = InitConfigMetrics(sm, cfg, economicsConfig, genesisNodesConfig)
+	require.Nil(t, err)
+
+	assert.Equal(t, len(expectedValues), len(keys))
+	for k, v := range expectedValues {
+		assert.Equal(t, v, keys[k])
+	}
+
+	genesisNodesConfig = &testscommon.NodesSetupStub{
+		GetAdaptivityCalled: func() bool {
+			return false
+		},
+		GetHysteresisCalled: func() float32 {
+			return 0
+		},
+	}
+	expectedValues["erd_adaptivity"] = "false"
+	expectedValues["erd_hysteresis"] = "0.000000"
+
+	err = InitConfigMetrics(sm, cfg, economicsConfig, genesisNodesConfig)
+	require.Nil(t, err)
+
+	assert.Equal(t, expectedValues["erd_adaptivity"], keys["erd_adaptivity"])
+	assert.Equal(t, expectedValues["erd_hysteresis"], keys["erd_hysteresis"])
+}
+
+func TestInitRatingsMetrics(t *testing.T) {
+	t.Parallel()
+
+	cfg := config.RatingsConfig{
+		General: config.General{
+			StartRating:           1,
+			MaxRating:             10,
+			MinRating:             0,
+			SignedBlocksThreshold: 0.1,
+			SelectionChances: []*config.SelectionChance{
+				{
+					MaxThreshold:  10,
+					ChancePercent: 5,
+				},
+			},
+		},
+		ShardChain: config.ShardChain{
+			RatingSteps: config.RatingSteps{
+				HoursToMaxRatingFromStartRating: 10,
+				ProposerValidatorImportance:     0.1,
+				ProposerDecreaseFactor:          0.1,
+				ValidatorDecreaseFactor:         0.1,
+				ConsecutiveMissedBlocksPenalty:  0.1,
+			},
+		},
+		MetaChain: config.MetaChain{
+			RatingSteps: config.RatingSteps{
+				HoursToMaxRatingFromStartRating: 10,
+				ProposerValidatorImportance:     0.1,
+				ProposerDecreaseFactor:          0.1,
+				ValidatorDecreaseFactor:         0.1,
+				ConsecutiveMissedBlocksPenalty:  0.1,
+			},
+		},
+		PeerHonesty: config.PeerHonestyConfig{
+			DecayCoefficient:             0.1,
+			DecayUpdateIntervalInSeconds: 10,
+			MaxScore:                     0.1,
+			MinScore:                     0.1,
+			BadPeerThreshold:             0.1,
+			UnitValue:                    0.1,
+		},
+	}
+
+	maxThresholdStr := fmt.Sprintf("%s%d%s", common.MetricRatingsGeneralSelectionChances, 0, common.SelectionChancesMaxThresholdSuffix)
+	chancePercentStr := fmt.Sprintf("%s%d%s", common.MetricRatingsGeneralSelectionChances, 0, common.SelectionChancesChancePercentSuffix)
+
+	expectedValues := map[string]interface{}{
+		common.MetricRatingsGeneralStartRating:                 uint64(1),
+		common.MetricRatingsGeneralMaxRating:                   uint64(10),
+		common.MetricRatingsGeneralMinRating:                   uint64(0),
+		common.MetricRatingsGeneralSignedBlocksThreshold:       "0.100000",
+		common.MetricRatingsGeneralSelectionChances + "_count": uint64(1),
+		maxThresholdStr:  uint64(10),
+		chancePercentStr: uint64(5),
+		common.MetricRatingsShardChainHoursToMaxRatingFromStartRating: uint64(10),
+		common.MetricRatingsShardChainProposerValidatorImportance:     "0.100000",
+		common.MetricRatingsShardChainProposerDecreaseFactor:          "0.100000",
+		common.MetricRatingsShardChainValidatorDecreaseFactor:         "0.100000",
+		common.MetricRatingsShardChainConsecutiveMissedBlocksPenalty:  "0.100000",
+		common.MetricRatingsMetaChainHoursToMaxRatingFromStartRating:  uint64(10),
+		common.MetricRatingsMetaChainProposerValidatorImportance:      "0.100000",
+		common.MetricRatingsMetaChainProposerDecreaseFactor:           "0.100000",
+		common.MetricRatingsMetaChainValidatorDecreaseFactor:          "0.100000",
+		common.MetricRatingsMetaChainConsecutiveMissedBlocksPenalty:   "0.100000",
+		common.MetricRatingsPeerHonestyDecayCoefficient:               "0.100000",
+		common.MetricRatingsPeerHonestyDecayUpdateIntervalInSeconds:   uint64(10),
+		common.MetricRatingsPeerHonestyMaxScore:                       "0.100000",
+		common.MetricRatingsPeerHonestyMinScore:                       "0.100000",
+		common.MetricRatingsPeerHonestyBadPeerThreshold:               "0.100000",
+		common.MetricRatingsPeerHonestyUnitValue:                      "0.100000",
+	}
+
+	keys := make(map[string]interface{})
+
+	ash := &statusHandler.AppStatusHandlerStub{
+		SetUInt64ValueHandler: func(key string, value uint64) {
+			keys[key] = uint64(value)
+		},
+		SetStringValueHandler: func(key string, value string) {
+			keys[key] = value
+		},
+	}
+
+	sm := &statusHandler.StatusHandlersUtilsMock{
+		AppStatusHandler: ash,
+	}
+
+	err := InitRatingsMetrics(nil, cfg)
+	require.Equal(t, ErrNilStatusHandlerUtils, err)
+
+	err = InitRatingsMetrics(sm, cfg)
 	require.Nil(t, err)
 
 	assert.Equal(t, len(expectedValues), len(keys))

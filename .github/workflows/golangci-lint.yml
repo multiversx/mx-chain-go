@@ -4,7 +4,8 @@ on:
     branches:
       - master
   pull_request:
-    branches: [ master, development ]
+    branches: [ master, development, feat/*, rc/* ]
+
 jobs:
   golangci:
     name: golangci linter
@@ -15,7 +16,7 @@ jobs:
         uses: golangci/golangci-lint-action@v2
         with:
           # Required: the version of golangci-lint is required and must be specified without patch version: we always use the latest patch version.
-          version: v1.29
+          version: v1.45.2
 
           # Optional: working directory, useful for monorepos
           # working-directory: somedir

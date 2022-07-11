@@ -16,6 +16,7 @@ import (
 	txSimData "github.com/ElrondNetwork/elrond-go/process/txsimulator/data"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/require"
@@ -24,7 +25,14 @@ import (
 func TestTransactionCostEstimator_NilTxTypeHandler(t *testing.T) {
 	t.Parallel()
 
-	tce, err := NewTransactionCostEstimator(nil, &economicsmocks.EconomicsHandlerStub{}, &mock.TransactionSimulatorStub{}, &stateMock.AccountsStub{}, &mock.ShardCoordinatorStub{})
+	tce, err := NewTransactionCostEstimator(
+		nil,
+		&economicsmocks.EconomicsHandlerStub{},
+		&mock.TransactionSimulatorStub{},
+		&stateMock.AccountsStub{},
+		&mock.ShardCoordinatorStub{},
+		&epochNotifier.EpochNotifierStub{},
+		0)
 
 	require.Nil(t, tce)
 	require.Equal(t, process.ErrNilTxTypeHandler, err)
@@ -33,7 +41,14 @@ func TestTransactionCostEstimator_NilTxTypeHandler(t *testing.T) {
 func TestTransactionCostEstimator_NilFeeHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	tce, err := NewTransactionCostEstimator(&testscommon.TxTypeHandlerMock{}, nil, &mock.TransactionSimulatorStub{}, &stateMock.AccountsStub{}, &mock.ShardCoordinatorStub{})
+	tce, err := NewTransactionCostEstimator(
+		&testscommon.TxTypeHandlerMock{},
+		nil,
+		&mock.TransactionSimulatorStub{},
+		&stateMock.AccountsStub{},
+		&mock.ShardCoordinatorStub{},
+		&epochNotifier.EpochNotifierStub{},
+		0)
 
 	require.Nil(t, tce)
 	require.Equal(t, process.ErrNilEconomicsFeeHandler, err)
@@ -42,16 +57,46 @@ func TestTransactionCostEstimator_NilFeeHandlerShouldErr(t *testing.T) {
 func TestTransactionCostEstimator_NilTransactionSimulatorShouldErr(t *testing.T) {
 	t.Parallel()
 
-	tce, err := NewTransactionCostEstimator(&testscommon.TxTypeHandlerMock{}, &economicsmocks.EconomicsHandlerStub{}, nil, &stateMock.AccountsStub{}, &mock.ShardCoordinatorStub{})
+	tce, err := NewTransactionCostEstimator(
+		&testscommon.TxTypeHandlerMock{},
+		&economicsmocks.EconomicsHandlerStub{},
+		nil,
+		&stateMock.AccountsStub{},
+		&mock.ShardCoordinatorStub{},
+		&epochNotifier.EpochNotifierStub{},
+		0)
 
 	require.Nil(t, tce)
 	require.Equal(t, txsimulator.ErrNilTxSimulatorProcessor, err)
 }
 
+func TestTransactionCostEstimator_NilEpochNotifierShouldErr(t *testing.T) {
+	t.Parallel()
+
+	tce, err := NewTransactionCostEstimator(
+		&testscommon.TxTypeHandlerMock{},
+		&economicsmocks.EconomicsHandlerStub{},
+		&mock.TransactionSimulatorStub{},
+		&stateMock.AccountsStub{},
+		&mock.ShardCoordinatorStub{},
+		nil,
+		0)
+
+	require.Nil(t, tce)
+	require.Equal(t, process.ErrNilEpochNotifier, err)
+}
+
 func TestTransactionCostEstimator_Ok(t *testing.T) {
 	t.Parallel()
 
-	tce, err := NewTransactionCostEstimator(&testscommon.TxTypeHandlerMock{}, &economicsmocks.EconomicsHandlerStub{}, &mock.TransactionSimulatorStub{}, &stateMock.AccountsStub{}, &mock.ShardCoordinatorStub{})
+	tce, err := NewTransactionCostEstimator(
+		&testscommon.TxTypeHandlerMock{},
+		&economicsmocks.EconomicsHandlerStub{},
+		&mock.TransactionSimulatorStub{},
+		&stateMock.AccountsStub{},
+		&mock.ShardCoordinatorStub{},
+		&epochNotifier.EpochNotifierStub{},
+		0)
 
 	require.Nil(t, err)
 	require.False(t, check.IfNil(tce))
@@ -80,7 +125,9 @@ func TestComputeTransactionGasLimit_MoveBalance(t *testing.T) {
 		LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
 			return &stateMock.UserAccountStub{Balance: big.NewInt(100000)}, nil
 		},
-	}, &mock.ShardCoordinatorStub{})
+	}, &mock.ShardCoordinatorStub{},
+		&epochNotifier.EpochNotifierStub{},
+		0)
 
 	tx := &transaction.Transaction{}
 	cost, err := tce.ComputeTransactionGasLimit(tx)
@@ -112,7 +159,9 @@ func TestComputeTransactionGasLimit_MoveBalanceInvalidNonceShouldStillComputeCos
 		LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
 			return &stateMock.UserAccountStub{Balance: big.NewInt(100000)}, nil
 		},
-	}, &mock.ShardCoordinatorStub{})
+	}, &mock.ShardCoordinatorStub{},
+		&epochNotifier.EpochNotifierStub{},
+		0)
 
 	tx := &transaction.Transaction{}
 	cost, err := tce.ComputeTransactionGasLimit(tx)
@@ -144,7 +193,9 @@ func TestComputeTransactionGasLimit_BuiltInFunction(t *testing.T) {
 			LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
 				return &stateMock.UserAccountStub{Balance: big.NewInt(100000)}, nil
 			},
-		}, &mock.ShardCoordinatorStub{})
+		}, &mock.ShardCoordinatorStub{},
+		&epochNotifier.EpochNotifierStub{},
+		0)
 
 	tx := &transaction.Transaction{}
 	cost, err := tce.ComputeTransactionGasLimit(tx)
@@ -171,7 +222,9 @@ func TestComputeTransactionGasLimit_BuiltInFunctionShouldErr(t *testing.T) {
 			LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
 				return &stateMock.UserAccountStub{Balance: big.NewInt(100000)}, nil
 			},
-		}, &mock.ShardCoordinatorStub{})
+		}, &mock.ShardCoordinatorStub{},
+		&epochNotifier.EpochNotifierStub{},
+		0)
 
 	tx := &transaction.Transaction{}
 	cost, err := tce.ComputeTransactionGasLimit(tx)
@@ -197,7 +250,9 @@ func TestComputeTransactionGasLimit_NilVMOutput(t *testing.T) {
 			LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
 				return &stateMock.UserAccountStub{Balance: big.NewInt(100000)}, nil
 			},
-		}, &mock.ShardCoordinatorStub{})
+		}, &mock.ShardCoordinatorStub{},
+		&epochNotifier.EpochNotifierStub{},
+		0)
 
 	tx := &transaction.Transaction{}
 	cost, err := tce.ComputeTransactionGasLimit(tx)
@@ -227,7 +282,9 @@ func TestComputeTransactionGasLimit_RetCodeNotOk(t *testing.T) {
 			LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
 				return &stateMock.UserAccountStub{Balance: big.NewInt(100000)}, nil
 			},
-		}, &mock.ShardCoordinatorStub{})
+		}, &mock.ShardCoordinatorStub{},
+		&epochNotifier.EpochNotifierStub{},
+		0)
 
 	tx := &transaction.Transaction{}
 	cost, err := tce.ComputeTransactionGasLimit(tx)
@@ -245,18 +302,30 @@ func TestTransactionCostEstimator_RelayedTxShouldErr(t *testing.T) {
 			},
 		},
 		&economicsmocks.EconomicsHandlerStub{},
-		&mock.TransactionSimulatorStub{}, &stateMock.AccountsStub{}, &mock.ShardCoordinatorStub{},
-	)
+		&mock.TransactionSimulatorStub{},
+		&stateMock.AccountsStub{},
+		&mock.ShardCoordinatorStub{},
+		&epochNotifier.EpochNotifierStub{},
+		0)
 
 	tx := &transaction.Transaction{}
 	cost, err := tce.ComputeTransactionGasLimit(tx)
 	require.Nil(t, err)
 	require.Equal(t, "cannot compute cost of the relayed transaction", cost.ReturnMessage)
 }
-func TestExtractGasNeededFromMessage(t *testing.T) {
+
+func TestExtractGasRemainedFromMessage(t *testing.T) {
 	t.Parallel()
 
-	require.Equal(t, uint64(500000000), extractGasRemainedFromMessage("too much gas provided, gas needed = 10000, gas remained = 500000000"))
-	require.Equal(t, uint64(0), extractGasRemainedFromMessage(""))
-	require.Equal(t, uint64(0), extractGasRemainedFromMessage("too much gas provided, gas needed = 10000, gas remained = wrong"))
+	require.Equal(t, uint64(500000000), extractGasRemainedFromMessage("too much gas provided, gas needed = 10000, gas remained = 500000000", gasRemainedSplitString))
+	require.Equal(t, uint64(0), extractGasRemainedFromMessage("", gasRemainedSplitString))
+	require.Equal(t, uint64(0), extractGasRemainedFromMessage("too much gas provided, gas needed = 10000, gas remained = wrong", gasRemainedSplitString))
+}
+
+func TestExtractGasUsedFromMessage(t *testing.T) {
+	t.Parallel()
+
+	require.Equal(t, uint64(500000000), extractGasRemainedFromMessage("too much gas provided, gas needed = 10000, gas used = 500000000", gasUsedSlitString))
+	require.Equal(t, uint64(0), extractGasRemainedFromMessage("", gasRemainedSplitString))
+	require.Equal(t, uint64(0), extractGasRemainedFromMessage("too much gas provided, gas needed = 10000, gas used = wrong", gasUsedSlitString))
 }

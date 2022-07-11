@@ -87,24 +87,25 @@ func TestCreateBuiltInFunctionContainer_Errors(t *testing.T) {
 
 	args := createMockArguments()
 	args.GasSchedule = nil
-	container, _, err := CreateBuiltInFuncContainerAndNFTStorageHandler(args)
+	container, _, _, err := CreateBuiltInFuncContainerAndNFTStorageHandler(args)
 	assert.NotNil(t, err)
 	assert.Nil(t, container)
 
 	args = createMockArguments()
 	args.MapDNSAddresses = nil
-	container, _, err = CreateBuiltInFuncContainerAndNFTStorageHandler(args)
+	container, _, _, err = CreateBuiltInFuncContainerAndNFTStorageHandler(args)
 	assert.Equal(t, process.ErrNilDnsAddresses, err)
 	assert.Nil(t, container)
 
 	args = createMockArguments()
-	container, nftStorageHandler, err := CreateBuiltInFuncContainerAndNFTStorageHandler(args)
+	container, nftStorageHandler, globalSettingsHandler, err := CreateBuiltInFuncContainerAndNFTStorageHandler(args)
 	assert.Nil(t, err)
-	assert.Equal(t, len(container.Keys()), 28)
+	assert.Equal(t, 32, len(container.Keys()))
 
 	err = vmcommonBuiltInFunctions.SetPayableHandler(container, &testscommon.BlockChainHookStub{})
 	assert.Nil(t, err)
 
 	assert.False(t, container.IsInterfaceNil())
 	assert.False(t, nftStorageHandler.IsInterfaceNil())
+	assert.False(t, globalSettingsHandler.IsInterfaceNil())
 }

@@ -74,7 +74,7 @@ func (ws *webServer) UpdateFacade(facade shared.FacadeHandler) error {
 	return nil
 }
 
-// CreateHttpServer will create a new instance of http.Server and populate it with all the routes
+// StartHttpServer will create a new instance of http.Server and populate it with all the routes
 func (ws *webServer) StartHttpServer() error {
 	ws.Lock()
 	defer ws.Unlock()
@@ -98,8 +98,9 @@ func (ws *webServer) StartHttpServer() error {
 		return err
 	}
 
-	for _, proc := range processors {
+	for idx, proc := range processors {
 		if check.IfNil(proc) {
+			log.Error("got nil middleware processor, skipping it...", "index", idx)
 			continue
 		}
 
@@ -149,6 +150,12 @@ func (ws *webServer) createGroups() error {
 		return err
 	}
 	groupsMap["block"] = blockGroup
+
+	internalBlockGroup, err := groups.NewInternalBlockGroup(ws.facade)
+	if err != nil {
+		return err
+	}
+	groupsMap["internal"] = internalBlockGroup
 
 	hardforkGroup, err := groups.NewHardforkGroup(ws.facade)
 	if err != nil {

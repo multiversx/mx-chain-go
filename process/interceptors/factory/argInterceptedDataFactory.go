@@ -5,10 +5,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go-crypto"
+	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 )
 
 // interceptedDataCoreComponentsHolder holds the core components required by the intercepted data factory
@@ -43,7 +44,7 @@ type ArgInterceptedDataFactory struct {
 	CoreComponents          interceptedDataCoreComponentsHolder
 	CryptoComponents        interceptedDataCryptoComponentsHolder
 	ShardCoordinator        sharding.Coordinator
-	NodesCoordinator        sharding.NodesCoordinator
+	NodesCoordinator        nodesCoordinator.NodesCoordinator
 	FeeHandler              process.FeeHandler
 	WhiteListerVerifiedTxs  process.WhiteListHandler
 	HeaderSigVerifier       process.InterceptedHeaderSigVerifier
