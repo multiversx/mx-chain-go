@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/interceptors/processor"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/update/disabled"
@@ -33,7 +34,7 @@ type fullSyncInterceptorsContainerFactory struct {
 	store                  dataRetriever.StorageService
 	dataPool               dataRetriever.PoolsHolder
 	messenger              process.TopicHandler
-	nodesCoordinator       sharding.NodesCoordinator
+	nodesCoordinator       nodesCoordinator.NodesCoordinator
 	blockBlackList         process.TimeCacher
 	argInterceptorFactory  *interceptorFactory.ArgInterceptedDataFactory
 	globalThrottler        process.InterceptorThrottler
@@ -51,7 +52,7 @@ type ArgsNewFullSyncInterceptorsContainerFactory struct {
 	CryptoComponents        process.CryptoComponentsHolder
 	Accounts                state.AccountsAdapter
 	ShardCoordinator        sharding.Coordinator
-	NodesCoordinator        sharding.NodesCoordinator
+	NodesCoordinator        nodesCoordinator.NodesCoordinator
 	Messenger               process.TopicHandler
 	Store                   dataRetriever.StorageService
 	DataPool                dataRetriever.PoolsHolder
@@ -211,7 +212,7 @@ func checkBaseParams(
 	store dataRetriever.StorageService,
 	dataPool dataRetriever.PoolsHolder,
 	messenger process.TopicHandler,
-	nodesCoordinator sharding.NodesCoordinator,
+	nodesCoordinator nodesCoordinator.NodesCoordinator,
 	blockBlackList process.TimeCacher,
 	whiteListerVerifiedTxs update.WhiteListHandler,
 ) error {

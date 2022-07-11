@@ -1,12 +1,14 @@
 package requestHandlers
 
 import (
+	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
+	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -95,7 +97,7 @@ func TestNewResolverRequestHandler(t *testing.T) {
 	assert.NotNil(t, rrh)
 }
 
-//------- RequestTransaction
+// ------- RequestTransaction
 
 func TestResolverRequestHandler_RequestTransactionErrorWhenGettingCrossShardResolverShouldNotPanic(t *testing.T) {
 	t.Parallel()
@@ -187,6 +189,50 @@ func TestResolverRequestHandler_RequestTransactionShouldRequestTransactions(t *t
 	time.Sleep(time.Second)
 }
 
+func TestResolverRequestHandler_RequestTransactionShouldRequest4TimesIfDifferentShardsAndEnoughTime(t *testing.T) {
+	t.Parallel()
+
+	numRequests := uint32(0)
+	txResolver := &mock.HashSliceResolverStub{
+		RequestDataFromHashArrayCalled: func(hashes [][]byte, epoch uint32) error {
+			atomic.AddUint32(&numRequests, 1)
+			return nil
+		},
+	}
+
+	timeSpan := time.Second
+	cache := timecache.NewTimeCache(timeSpan)
+	rrh, _ := NewResolverRequestHandler(
+		&mock.ResolversFinderStub{
+			CrossShardResolverCalled: func(baseTopic string, crossShard uint32) (resolver dataRetriever.Resolver, e error) {
+				return txResolver, nil
+			},
+		},
+		cache,
+		&mock.WhiteListHandlerStub{},
+		1,
+		0,
+		time.Second,
+	)
+
+	rrh.RequestTransaction(0, [][]byte{[]byte("txHash")})
+	rrh.RequestTransaction(1, [][]byte{[]byte("txHash")})
+	rrh.RequestTransaction(0, [][]byte{[]byte("txHash")})
+	rrh.RequestTransaction(1, [][]byte{[]byte("txHash")})
+
+	time.Sleep(time.Second) // let the go routines finish
+	assert.Equal(t, uint32(2), atomic.LoadUint32(&numRequests))
+	time.Sleep(time.Second) // sweep will take effect
+
+	rrh.RequestTransaction(0, [][]byte{[]byte("txHash")})
+	rrh.RequestTransaction(1, [][]byte{[]byte("txHash")})
+	rrh.RequestTransaction(0, [][]byte{[]byte("txHash")})
+	rrh.RequestTransaction(1, [][]byte{[]byte("txHash")})
+
+	time.Sleep(time.Second) // let the go routines finish
+	assert.Equal(t, uint32(4), atomic.LoadUint32(&numRequests))
+}
+
 func TestResolverRequestHandler_RequestTransactionErrorsOnRequestShouldNotPanic(t *testing.T) {
 	t.Parallel()
 
@@ -230,7 +276,7 @@ func TestResolverRequestHandler_RequestTransactionErrorsOnRequestShouldNotPanic(
 	time.Sleep(time.Second)
 }
 
-//------- RequestMiniBlock
+// ------- RequestMiniBlock
 
 func TestResolverRequestHandler_RequestMiniBlockErrorWhenGettingCrossShardResolverShouldNotPanic(t *testing.T) {
 	t.Parallel()
@@ -350,7 +396,7 @@ func TestResolverRequestHandler_RequestMiniBlockShouldCallWithTheCorrectEpoch(t 
 	rrh.RequestMiniBlock(0, []byte("mbHash"))
 }
 
-//------- RequestShardHeader
+// ------- RequestShardHeader
 
 func TestResolverRequestHandler_RequestShardHeaderHashAlreadyRequestedShouldNotRequest(t *testing.T) {
 	t.Parallel()
@@ -415,7 +461,7 @@ func TestResolverRequestHandler_RequestShardHeaderShouldCallRequestOnResolver(t 
 	assert.True(t, wasCalled)
 }
 
-//------- RequestMetaHeader
+// ------- RequestMetaHeader
 
 func TestResolverRequestHandler_RequestMetadHeaderHashAlreadyRequestedShouldNotRequest(t *testing.T) {
 	t.Parallel()
@@ -494,7 +540,7 @@ func TestResolverRequestHandler_RequestMetaHeaderShouldCallRequestOnResolver(t *
 	assert.True(t, wasCalled)
 }
 
-//------- RequestShardHeaderByNonce
+// ------- RequestShardHeaderByNonce
 
 func TestResolverRequestHandler_RequestShardHeaderByNonceAlreadyRequestedShouldNotRequest(t *testing.T) {
 	t.Parallel()
@@ -664,7 +710,7 @@ func TestResolverRequestHandler_RequestShardHeaderByNonceShouldRequest(t *testin
 	assert.True(t, wasCalled)
 }
 
-//------- RequestMetaHeaderByNonce
+// ------- RequestMetaHeaderByNonce
 
 func TestResolverRequestHandler_RequestMetaHeaderHashAlreadyRequestedShouldNotRequest(t *testing.T) {
 	t.Parallel()
@@ -714,7 +760,7 @@ func TestResolverRequestHandler_RequestMetaHeaderByNonceShouldRequest(t *testing
 	assert.True(t, wasCalled)
 }
 
-//------- RequestSmartContractResult
+// ------- RequestSmartContractResult
 
 func TestResolverRequestHandler_RequestScrErrorWhenGettingCrossShardResolverShouldNotPanic(t *testing.T) {
 	t.Parallel()
@@ -849,7 +895,7 @@ func TestResolverRequestHandler_RequestScrErrorsOnRequestShouldNotPanic(t *testi
 	time.Sleep(time.Second)
 }
 
-//------- RequestRewardTransaction
+// ------- RequestRewardTransaction
 
 func TestResolverRequestHandler_RequestRewardShouldRequestReward(t *testing.T) {
 	t.Parallel()

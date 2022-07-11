@@ -27,6 +27,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/networksharding/factory"
 	randFactory "github.com/ElrondNetwork/elrond-go/p2p/libp2p/rand/factory"
 	"github.com/ElrondNetwork/elrond-go/p2p/loadBalancer"
+	pubsub "github.com/ElrondNetwork/go-libp2p-pubsub"
+	pubsubPb "github.com/ElrondNetwork/go-libp2p-pubsub/pb"
 	"github.com/btcsuite/btcd/btcec"
 	logging "github.com/ipfs/go-log"
 	"github.com/libp2p/go-libp2p"
@@ -34,10 +36,6 @@ import (
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
-	pubsub "github.com/libp2p/go-libp2p-pubsub"
-	pubsubPb "github.com/libp2p/go-libp2p-pubsub/pb"
-	stream "github.com/libp2p/go-libp2p-transport-upgrader"
-	"github.com/libp2p/go-tcp-transport"
 )
 
 const (
@@ -74,17 +72,10 @@ const (
 	withoutMessageSigning messageSigningConfig = false
 )
 
-type reusePortsConfig bool
-
-const (
-	allowReusePorts   reusePortsConfig = true
-	preventReusePorts reusePortsConfig = false
-)
-
 // TODO remove the header size of the message when commit d3c5ecd3a3e884206129d9f2a9a4ddfd5e7c8951 from
 // https://github.com/libp2p/go-libp2p-pubsub/pull/189/commits will be part of a new release
 var messageHeader = 64 * 1024 // 64kB
-var maxSendBuffSize = (1 << 20) - messageHeader
+var maxSendBuffSize = (1 << 21) - messageHeader
 var log = logger.GetOrCreate("p2p/libp2p")
 
 var _ p2p.Messenger = (*networkMessenger)(nil)
@@ -120,13 +111,13 @@ type networkMessenger struct {
 	outgoingPLB          p2p.ChannelLoadBalancer
 	poc                  *peersOnChannel
 	goRoutinesThrottler  *throttler.NumGoRoutinesThrottler
-	ip                   *identityProvider
 	connectionsMetric    *metrics.Connections
 	debugger             p2p.Debugger
 	marshalizer          p2p.Marshalizer
 	syncTimer            p2p.SyncTimer
 	preferredPeersHolder p2p.PreferredPeersHolderHandler
 	connectionsWatcher   p2p.ConnectionsWatcher
+	peersRatingHandler   p2p.PeersRatingHandler
 }
 
 // ArgsNetworkMessenger defines the options used to create a p2p wrapper
@@ -137,14 +128,15 @@ type ArgsNetworkMessenger struct {
 	SyncTimer            p2p.SyncTimer
 	PreferredPeersHolder p2p.PreferredPeersHolderHandler
 	NodeOperationMode    p2p.NodeOperation
+	PeersRatingHandler   p2p.PeersRatingHandler
 }
 
 // NewNetworkMessenger creates a libP2P messenger by opening a port on the current machine
 func NewNetworkMessenger(args ArgsNetworkMessenger) (*networkMessenger, error) {
-	return newNetworkMessenger(args, withMessageSigning, allowReusePorts)
+	return newNetworkMessenger(args, withMessageSigning)
 }
 
-func newNetworkMessenger(args ArgsNetworkMessenger, messageSigning messageSigningConfig, reusePort reusePortsConfig) (*networkMessenger, error) {
+func newNetworkMessenger(args ArgsNetworkMessenger, messageSigning messageSigningConfig) (*networkMessenger, error) {
 	if check.IfNil(args.Marshalizer) {
 		return nil, fmt.Errorf("%w when creating a new network messenger", p2p.ErrNilMarshalizer)
 	}
@@ -154,6 +146,9 @@ func newNetworkMessenger(args ArgsNetworkMessenger, messageSigning messageSignin
 	if check.IfNil(args.PreferredPeersHolder) {
 		return nil, fmt.Errorf("%w when creating a new network messenger", p2p.ErrNilPreferredPeersHolder)
 	}
+	if check.IfNil(args.PeersRatingHandler) {
+		return nil, fmt.Errorf("%w when creating a new network messenger", p2p.ErrNilPeersRatingHandler)
+	}
 
 	p2pPrivKey, err := createP2PPrivKey(args.P2pConfig.Node.Seed)
 	if err != nil {
@@ -162,7 +157,7 @@ func newNetworkMessenger(args ArgsNetworkMessenger, messageSigning messageSignin
 
 	setupExternalP2PLoggers()
 
-	p2pNode, err := constructNodeWithPortRetry(args, p2pPrivKey, reusePort)
+	p2pNode, err := constructNodeWithPortRetry(args, p2pPrivKey)
 	if err != nil {
 		return nil, err
 	}
@@ -179,22 +174,11 @@ func newNetworkMessenger(args ArgsNetworkMessenger, messageSigning messageSignin
 func constructNode(
 	args ArgsNetworkMessenger,
 	p2pPrivKey *libp2pCrypto.Secp256k1PrivateKey,
-	portReuse reusePortsConfig,
 ) (*networkMessenger, error) {
 
 	port, err := getPort(args.P2pConfig.Node.Port, checkFreePort)
 	if err != nil {
 		return nil, err
-	}
-
-	transportOption := libp2p.DefaultTransports
-	if portReuse == preventReusePorts {
-		log.Warn("port reuse is turned off in network messenger instance. NOT recommended in production environment")
-		transportOption = libp2p.Transport(func(u *stream.Upgrader) *tcp.TcpTransport {
-			tpt := tcp.NewTCPTransport(u)
-			tpt.DisableReuseport = true
-			return tpt
-		})
 	}
 
 	connWatcher, err := metricsFactory.NewConnectionsWatcher(args.P2pConfig.Node.ConnectionWatcherType, ttlConnectionsWatcher)
@@ -208,14 +192,14 @@ func constructNode(
 		libp2p.Identity(p2pPrivKey),
 		libp2p.DefaultMuxers,
 		libp2p.DefaultSecurity,
-		transportOption,
+		libp2p.DefaultTransports,
 		// we need the disable relay option in order to save the node's bandwidth as much as possible
 		libp2p.DisableRelay(),
 		libp2p.NATPortMap(),
 	}
 
 	ctx, cancelFunc := context.WithCancel(context.Background())
-	h, err := libp2p.New(ctx, opts...)
+	h, err := libp2p.New(opts...)
 	if err != nil {
 		cancelFunc()
 		return nil, err
@@ -227,6 +211,7 @@ func constructNode(
 		p2pHost:            NewConnectableHost(h),
 		port:               port,
 		connectionsWatcher: connWatcher,
+		peersRatingHandler: args.PeersRatingHandler,
 	}
 
 	return p2pNode, nil
@@ -235,12 +220,11 @@ func constructNode(
 func constructNodeWithPortRetry(
 	args ArgsNetworkMessenger,
 	p2pPrivKey *libp2pCrypto.Secp256k1PrivateKey,
-	portReuse reusePortsConfig,
 ) (*networkMessenger, error) {
 
 	var lastErr error
 	for i := 0; i < maxRetriesIfBindError; i++ {
-		p2pNode, err := constructNode(args, p2pPrivKey, portReuse)
+		p2pNode, err := constructNode(args, p2pPrivKey)
 		if err == nil {
 			return p2pNode, nil
 		}
@@ -295,6 +279,7 @@ func addComponentsToNode(
 	p2pNode.syncTimer = args.SyncTimer
 	p2pNode.preferredPeersHolder = args.PreferredPeersHolder
 	p2pNode.debugger = p2pDebug.NewP2PDebugger(core.PeerID(p2pNode.p2pHost.ID()))
+	p2pNode.peersRatingHandler = args.PeersRatingHandler
 
 	err = p2pNode.createPubSub(messageSigning)
 	if err != nil {
@@ -347,6 +332,7 @@ func (netMes *networkMessenger) createPubSub(messageSigning messageSigningConfig
 	}
 
 	netMes.poc, err = newPeersOnChannel(
+		netMes.peersRatingHandler,
 		netMes.pb.ListPeers,
 		refreshPeersOnTopic,
 		ttlPeersOnTopic)
@@ -583,17 +569,6 @@ func (netMes *networkMessenger) checkExternalLoggers() {
 
 		setupExternalP2PLoggers()
 	}
-}
-
-// ApplyOptions can set up different configurable options of a networkMessenger instance
-func (netMes *networkMessenger) ApplyOptions(opts ...Option) error {
-	for _, opt := range opts {
-		err := opt(netMes)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 // Close closes the host, connections and streams
@@ -998,6 +973,10 @@ func (netMes *networkMessenger) pubsubCallback(topicProcs *topicProcessors, topi
 		}
 		netMes.processDebugMessage(topic, fromConnectedPeer, uint64(len(message.Data)), !messageOk)
 
+		if messageOk {
+			netMes.peersRatingHandler.IncreaseRating(fromConnectedPeer)
+		}
+
 		return messageOk
 	}
 }
@@ -1225,6 +1204,10 @@ func (netMes *networkMessenger) directMessageHandler(message *pubsub.Message, fr
 		}
 
 		netMes.debugger.AddIncomingMessage(msg.Topic(), uint64(len(msg.Data())), !messageOk)
+
+		if messageOk {
+			netMes.peersRatingHandler.IncreaseRating(fromConnectedPeer)
+		}
 	}(msg)
 
 	return nil

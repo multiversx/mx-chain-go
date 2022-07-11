@@ -2,7 +2,7 @@ package mock
 
 import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 )
 
 // ConsensusStateMock -
@@ -11,7 +11,7 @@ type ConsensusStateMock struct {
 	IsNodeLeaderInCurrentRoundCalled func(node string) bool
 	IsSelfLeaderInCurrentRoundCalled func() bool
 	GetLeaderCalled                  func() (string, error)
-	GetNextConsensusGroupCalled      func(randomSource string, vgs sharding.NodesCoordinator) ([]string, error)
+	GetNextConsensusGroupCalled      func(randomSource string, vgs nodesCoordinator.NodesCoordinator) ([]string, error)
 	IsConsensusDataSetCalled         func() bool
 	IsConsensusDataEqualCalled       func(data []byte) bool
 	IsJobDoneCalled                  func(node string, currentSubroundId int) bool
@@ -52,7 +52,7 @@ func (cnsm *ConsensusStateMock) GetLeader() (string, error) {
 // GetNextConsensusGroup -
 func (cnsm *ConsensusStateMock) GetNextConsensusGroup(
 	randomSource string,
-	vgs sharding.NodesCoordinator,
+	vgs nodesCoordinator.NodesCoordinator,
 ) ([]string, error) {
 	return cnsm.GetNextConsensusGroupCalled(randomSource, vgs)
 }

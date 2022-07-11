@@ -206,8 +206,9 @@ func (en *extensionNode) commitCheckpoint(
 	leavesChan chan core.KeyValueHolder,
 	ctx context.Context,
 	stats common.SnapshotStatisticsHandler,
+	idleProvider IdleNodeProvider,
 ) error {
-	if shouldStopIfContextDone(ctx) {
+	if shouldStopIfContextDone(ctx, idleProvider) {
 		return errors.ErrContextClosing
 	}
 
@@ -231,7 +232,7 @@ func (en *extensionNode) commitCheckpoint(
 		return nil
 	}
 
-	err = en.child.commitCheckpoint(originDb, targetDb, checkpointHashes, leavesChan, ctx, stats)
+	err = en.child.commitCheckpoint(originDb, targetDb, checkpointHashes, leavesChan, ctx, stats, idleProvider)
 	if err != nil {
 		return err
 	}
@@ -245,8 +246,9 @@ func (en *extensionNode) commitSnapshot(
 	leavesChan chan core.KeyValueHolder,
 	ctx context.Context,
 	stats common.SnapshotStatisticsHandler,
+	idleProvider IdleNodeProvider,
 ) error {
-	if shouldStopIfContextDone(ctx) {
+	if shouldStopIfContextDone(ctx, idleProvider) {
 		return errors.ErrContextClosing
 	}
 
@@ -260,7 +262,7 @@ func (en *extensionNode) commitSnapshot(
 		return err
 	}
 
-	err = en.child.commitSnapshot(db, leavesChan, ctx, stats)
+	err = en.child.commitSnapshot(db, leavesChan, ctx, stats, idleProvider)
 	if err != nil {
 		return err
 	}
@@ -640,6 +642,7 @@ func (en *extensionNode) getAllLeavesOnChannel(
 	key []byte, db common.DBWriteCacher,
 	marshalizer marshal.Marshalizer,
 	chanClose chan struct{},
+	ctx context.Context,
 ) error {
 	err := en.isEmptyOrNil()
 	if err != nil {
@@ -648,7 +651,10 @@ func (en *extensionNode) getAllLeavesOnChannel(
 
 	select {
 	case <-chanClose:
-		log.Trace("getAllLeavesOnChannel interrupted")
+		log.Trace("extensionNode.getAllLeavesOnChannel interrupted")
+		return nil
+	case <-ctx.Done():
+		log.Trace("extensionNode.getAllLeavesOnChannel: context done")
 		return nil
 	default:
 		err = resolveIfCollapsed(en, 0, db)
@@ -657,7 +663,7 @@ func (en *extensionNode) getAllLeavesOnChannel(
 		}
 
 		childKey := append(key, en.Key...)
-		err = en.child.getAllLeavesOnChannel(leavesChannel, childKey, db, marshalizer, chanClose)
+		err = en.child.getAllLeavesOnChannel(leavesChannel, childKey, db, marshalizer, chanClose, ctx)
 		if err != nil {
 			return err
 		}

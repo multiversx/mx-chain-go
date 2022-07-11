@@ -1,6 +1,7 @@
 package txsimulator
 
 import (
+	"context"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -54,7 +55,7 @@ func TestReadOnlyAccountsDB_WriteOperationsShouldNotCalled(t *testing.T) {
 			t.Errorf(failErrMsg)
 			return nil
 		},
-		PruneTrieCalled: func(_ []byte, _ state.TriePruningIdentifier) {
+		PruneTrieCalled: func(_ []byte, _ state.TriePruningIdentifier, _ state.PruningHandler) {
 			t.Errorf(failErrMsg)
 		},
 		CancelPruneCalled: func(_ []byte, _ state.TriePruningIdentifier) {
@@ -90,7 +91,7 @@ func TestReadOnlyAccountsDB_WriteOperationsShouldNotCalled(t *testing.T) {
 	err = roAccDb.RecreateTrie(nil)
 	require.NoError(t, err)
 
-	roAccDb.PruneTrie(nil, state.NewRoot)
+	roAccDb.PruneTrie(nil, state.NewRoot, state.NewPruningHandler(state.EnableDataRemoval))
 
 	roAccDb.CancelPrune(nil, state.NewRoot)
 
@@ -108,8 +109,6 @@ func TestReadOnlyAccountsDB_ReadOperationsShouldWork(t *testing.T) {
 	expectedAcc := &mock.AccountWrapMock{}
 	expectedJournalLen := 37
 	expectedRootHash := []byte("root")
-	expectedLeavesChannel := make(chan core.KeyValueHolder)
-	expectedNumCheckpoints := uint32(7)
 
 	accDb := &stateMock.AccountsStub{
 		GetExistingAccountCalled: func(_ []byte) (vmcommon.AccountHandler, error) {
@@ -126,12 +125,6 @@ func TestReadOnlyAccountsDB_ReadOperationsShouldWork(t *testing.T) {
 		},
 		IsPruningEnabledCalled: func() bool {
 			return true
-		},
-		GetAllLeavesCalled: func(_ []byte) (chan core.KeyValueHolder, error) {
-			return expectedLeavesChannel, nil
-		},
-		GetNumCheckpointsCalled: func() uint32 {
-			return expectedNumCheckpoints
 		},
 	}
 
@@ -156,10 +149,7 @@ func TestReadOnlyAccountsDB_ReadOperationsShouldWork(t *testing.T) {
 	actualIsPruningEnabled := roAccDb.IsPruningEnabled()
 	require.Equal(t, true, actualIsPruningEnabled)
 
-	actualAllLeaves, err := roAccDb.GetAllLeaves(nil)
+	allLeaves := make(chan core.KeyValueHolder)
+	err = roAccDb.GetAllLeaves(allLeaves, context.Background(), nil)
 	require.NoError(t, err)
-	require.Equal(t, expectedLeavesChannel, actualAllLeaves)
-
-	actualNumCheckpoints := roAccDb.GetNumCheckpoints()
-	require.Equal(t, expectedNumCheckpoints, actualNumCheckpoints)
 }

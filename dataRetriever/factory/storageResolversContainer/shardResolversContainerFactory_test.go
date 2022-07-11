@@ -12,7 +12,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
@@ -183,21 +182,11 @@ func TestShardResolversContainerFactory_With4ShardsShouldWork(t *testing.T) {
 func getArgumentsShard() storageResolversContainers.FactoryArgs {
 	return storageResolversContainers.FactoryArgs{
 		GeneralConfig: config.Config{
-			AccountsTrieStorageOld:     getMockStorageConfig(),
-			AccountsTrieStorage:        getMockStorageConfig(),
-			PeerAccountsTrieStorage:    getMockStorageConfig(),
-			PeerAccountsTrieStorageOld: getMockStorageConfig(),
-			TrieSnapshotDB: config.DBConfig{
-				FilePath:          "",
-				Type:              "MemoryDB",
-				BatchDelaySeconds: 1,
-				MaxBatchSize:      1,
-				MaxOpenFiles:      10,
-			},
+			AccountsTrieStorage:     getMockStorageConfig(),
+			PeerAccountsTrieStorage: getMockStorageConfig(),
 			TrieStorageManagerConfig: config.TrieStorageManagerConfig{
 				PruningBufferLen:   255,
 				SnapshotsBufferLen: 255,
-				MaxSnapshots:       255,
 			},
 			StateTriesConfig: config.StateTriesConfig{
 				CheckpointRoundsModulus:     100,
@@ -219,6 +208,5 @@ func getArgumentsShard() storageResolversContainers.FactoryArgs {
 		DataPacker:               &mock.DataPackerStub{},
 		ManualEpochStartNotifier: &mock.ManualEpochStartNotifierStub{},
 		ChanGracefullyClose:      make(chan endProcess.ArgEndProcess),
-		EpochNotifier:            &epochNotifier.EpochNotifierStub{},
 	}
 }

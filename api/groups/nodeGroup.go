@@ -23,12 +23,6 @@ const (
 	p2pStatusPath       = "/p2pstatus"
 	peerInfoPath        = "/peerinfo"
 	statusPath          = "/status"
-
-	// AccStateCheckpointsKey is used as a key for the number of account state checkpoints in the api response
-	AccStateCheckpointsKey = "erd_num_accounts_state_checkpoints"
-
-	// PeerStateCheckpointsKey is used as a key for the number of peer state checkpoints in the api response
-	PeerStateCheckpointsKey = "erd_num_peer_state_checkpoints"
 )
 
 // nodeFacadeHandler defines the methods to be implemented by a facade for node requests
@@ -37,8 +31,6 @@ type nodeFacadeHandler interface {
 	StatusMetrics() external.StatusMetricsHandler
 	GetQueryHandler(name string) (debug.QueryHandler, error)
 	GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error)
-	GetNumCheckpointsFromAccountState() uint32
-	GetNumCheckpointsFromPeerState() uint32
 	IsInterfaceNil() bool
 }
 
@@ -130,13 +122,23 @@ func (ng *nodeGroup) heartbeatStatus(c *gin.Context) {
 // statusMetrics returns the node statistics exported by an StatusMetricsHandler without p2p statistics
 func (ng *nodeGroup) statusMetrics(c *gin.Context) {
 	nodeFacade := ng.getFacade()
-	details := nodeFacade.StatusMetrics().StatusMetricsMapWithoutP2P()
-	details[AccStateCheckpointsKey] = nodeFacade.GetNumCheckpointsFromAccountState()
-	details[PeerStateCheckpointsKey] = nodeFacade.GetNumCheckpointsFromPeerState()
+	metrics, err := nodeFacade.StatusMetrics().StatusMetricsMapWithoutP2P()
+	if err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: err.Error(),
+				Code:  shared.ReturnCodeInternalError,
+			},
+		)
+		return
+	}
+
 	c.JSON(
 		http.StatusOK,
 		shared.GenericAPIResponse{
-			Data:  gin.H{"metrics": details},
+			Data:  gin.H{"metrics": metrics},
 			Error: "",
 			Code:  shared.ReturnCodeSuccess,
 		},
@@ -145,11 +147,23 @@ func (ng *nodeGroup) statusMetrics(c *gin.Context) {
 
 // p2pStatusMetrics returns the node's p2p statistics exported by a StatusMetricsHandler
 func (ng *nodeGroup) p2pStatusMetrics(c *gin.Context) {
-	details := ng.getFacade().StatusMetrics().StatusP2pMetricsMap()
+	metrics, err := ng.getFacade().StatusMetrics().StatusP2pMetricsMap()
+	if err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: err.Error(),
+				Code:  shared.ReturnCodeInternalError,
+			},
+		)
+		return
+	}
+
 	c.JSON(
 		http.StatusOK,
 		shared.GenericAPIResponse{
-			Data:  gin.H{"metrics": details},
+			Data:  gin.H{"metrics": metrics},
 			Error: "",
 			Code:  shared.ReturnCodeSuccess,
 		},
@@ -229,7 +243,19 @@ func (ng *nodeGroup) peerInfo(c *gin.Context) {
 
 // prometheusMetrics is the endpoint which will return the data in the way that prometheus expects them
 func (ng *nodeGroup) prometheusMetrics(c *gin.Context) {
-	metrics := ng.getFacade().StatusMetrics().StatusMetricsWithoutP2PPrometheusString()
+	metrics, err := ng.getFacade().StatusMetrics().StatusMetricsWithoutP2PPrometheusString()
+	if err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: err.Error(),
+				Code:  shared.ReturnCodeInternalError,
+			},
+		)
+		return
+	}
+
 	c.String(
 		http.StatusOK,
 		metrics,

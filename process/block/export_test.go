@@ -20,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 )
@@ -45,6 +46,14 @@ func (bp *baseProcessor) RemoveHeadersBehindNonceFromPools(
 	nonce uint64,
 ) {
 	bp.removeHeadersBehindNonceFromPools(shouldRemoveBlockBody, shardId, nonce)
+}
+
+func (bp *baseProcessor) GetPruningHandler(finalHeaderNonce uint64) state.PruningHandler {
+	return bp.getPruningHandler(finalHeaderNonce)
+}
+
+func (bp *baseProcessor) SetLastRestartNonce(lastRestartNonce uint64) {
+	bp.lastRestartNonce = lastRestartNonce
 }
 
 func (bp *baseProcessor) CommitTrieEpochRootHashIfNeeded(metaBlock *block.MetaBlock, rootHash []byte) error {
@@ -81,7 +90,7 @@ func NewShardProcessorEmptyWith3shards(
 	blockChain data.ChainHandler,
 ) (*shardProcessor, error) {
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(3)
-	nodesCoordinator := mock.NewNodesCoordinatorMock()
+	nodesCoordinator := shardingMocks.NewNodesCoordinatorMock()
 
 	argsHeaderValidator := ArgsHeaderValidator{
 		Hasher:      &hashingMocks.HasherMock{},
@@ -93,11 +102,12 @@ func NewShardProcessorEmptyWith3shards(
 	accountsDb[state.UserAccountsState] = &stateMock.AccountsStub{}
 
 	coreComponents := &mock.CoreComponentsMock{
-		IntMarsh:            &mock.MarshalizerMock{},
-		Hash:                &hashingMocks.HasherMock{},
-		UInt64ByteSliceConv: &mock.Uint64ByteSliceConverterMock{},
-		StatusField:         &statusHandlerMock.AppStatusHandlerStub{},
-		RoundField:          &mock.RoundHandlerMock{},
+		IntMarsh:                  &mock.MarshalizerMock{},
+		Hash:                      &hashingMocks.HasherMock{},
+		UInt64ByteSliceConv:       &mock.Uint64ByteSliceConverterMock{},
+		StatusField:               &statusHandlerMock.AppStatusHandlerStub{},
+		RoundField:                &mock.RoundHandlerMock{},
+		ProcessStatusHandlerField: &testscommon.ProcessStatusHandlerStub{},
 	}
 	dataComponents := &mock.DataComponentsMock{
 		Storage:    &mock.ChainStorerMock{},

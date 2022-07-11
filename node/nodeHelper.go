@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/blackList"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/update"
 	updateFactory "github.com/ElrondNetwork/elrond-go/update/factory"
@@ -29,7 +30,7 @@ func CreateHardForkTrigger(
 	config *config.Config,
 	epochConfig *config.EpochConfig,
 	shardCoordinator sharding.Coordinator,
-	nodesCoordinator sharding.NodesCoordinator,
+	nodesCoordinator nodesCoordinator.NodesCoordinator,
 	nodesShuffledOut update.Closer,
 	coreData factory.CoreComponentsHolder,
 	stateComponents factory.StateComponentsHolder,
@@ -79,6 +80,7 @@ func CreateHardForkTrigger(
 		InputAntifloodHandler:     network.InputAntiFloodHandler(),
 		OutputAntifloodHandler:    network.OutputAntiFloodHandler(),
 		RoundHandler:              process.RoundHandler(),
+		PeersRatingHandler:        network.PeersRatingHandler(),
 		InterceptorDebugConfig:    config.Debug.InterceptorResolver,
 		EnableEpochs:              epochConfig.EnableEpochs,
 		MaxHardCapForMissingNodes: config.TrieSync.MaxHardCapForMissingNodes,

@@ -39,15 +39,15 @@ type node interface {
 	isValid() bool
 	setDirty(bool)
 	loadChildren(func([]byte) (node, error)) ([][]byte, []node, error)
-	getAllLeavesOnChannel(chan core.KeyValueHolder, []byte, common.DBWriteCacher, marshal.Marshalizer, chan struct{}) error
+	getAllLeavesOnChannel(chan core.KeyValueHolder, []byte, common.DBWriteCacher, marshal.Marshalizer, chan struct{}, context.Context) error
 	getAllHashes(db common.DBWriteCacher) ([][]byte, error)
 	getNextHashAndKey([]byte) (bool, []byte, []byte)
 	getNumNodes() common.NumNodesDTO
 	getValue() []byte
 
 	commitDirty(level byte, maxTrieLevelInMemory uint, originDb common.DBWriteCacher, targetDb common.DBWriteCacher) error
-	commitCheckpoint(originDb common.DBWriteCacher, targetDb common.DBWriteCacher, checkpointHashes CheckpointHashesHolder, leavesChan chan core.KeyValueHolder, ctx context.Context, stats common.SnapshotStatisticsHandler) error
-	commitSnapshot(originDb common.DBWriteCacher, leavesChan chan core.KeyValueHolder, ctx context.Context, stats common.SnapshotStatisticsHandler) error
+	commitCheckpoint(originDb common.DBWriteCacher, targetDb common.DBWriteCacher, checkpointHashes CheckpointHashesHolder, leavesChan chan core.KeyValueHolder, ctx context.Context, stats common.SnapshotStatisticsHandler, idleProvider IdleNodeProvider) error
+	commitSnapshot(originDb common.DBWriteCacher, leavesChan chan core.KeyValueHolder, ctx context.Context, stats common.SnapshotStatisticsHandler, idleProvider IdleNodeProvider) error
 
 	getMarshalizer() marshal.Marshalizer
 	setMarshalizer(marshal.Marshalizer)
@@ -59,8 +59,8 @@ type node interface {
 }
 
 type snapshotNode interface {
-	commitCheckpoint(originDb common.DBWriteCacher, targetDb common.DBWriteCacher, checkpointHashes CheckpointHashesHolder, leavesChan chan core.KeyValueHolder, ctx context.Context, stats common.SnapshotStatisticsHandler) error
-	commitSnapshot(originDb common.DBWriteCacher, leavesChan chan core.KeyValueHolder, ctx context.Context, stats common.SnapshotStatisticsHandler) error
+	commitCheckpoint(originDb common.DBWriteCacher, targetDb common.DBWriteCacher, checkpointHashes CheckpointHashesHolder, leavesChan chan core.KeyValueHolder, ctx context.Context, stats common.SnapshotStatisticsHandler, idleProvider IdleNodeProvider) error
+	commitSnapshot(originDb common.DBWriteCacher, leavesChan chan core.KeyValueHolder, ctx context.Context, stats common.SnapshotStatisticsHandler, idleProvider IdleNodeProvider) error
 }
 
 // RequestHandler defines the methods through which request to data can be made
@@ -98,10 +98,17 @@ type snapshotPruningStorer interface {
 	PutInEpochWithoutCache(key []byte, data []byte, epoch uint32) error
 	GetLatestStorageEpoch() (uint32, error)
 	GetFromCurrentEpoch(key []byte) ([]byte, error)
+	RemoveFromCurrentEpoch(key []byte) error
 }
 
 // EpochNotifier can notify upon an epoch change and provide the current epoch
 type EpochNotifier interface {
 	RegisterNotifyHandler(handler vmcommon.EpochSubscriberHandler)
+	IsInterfaceNil() bool
+}
+
+// IdleNodeProvider can determine if the node is idle or not
+type IdleNodeProvider interface {
+	IsIdle() bool
 	IsInterfaceNil() bool
 }

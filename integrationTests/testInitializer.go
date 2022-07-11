@@ -6,7 +6,6 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
-	"io/ioutil"
 	"math/big"
 	"strings"
 	"sync"
@@ -49,6 +48,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	txProc "github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/state/factory"
 	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager"
@@ -61,7 +61,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genesisMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/guardianMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
@@ -162,6 +161,7 @@ func CreateMessengerWithKadDht(initialAddr string) p2p.Messenger {
 		SyncTimer:            &libp2p.LocalSyncTimer{},
 		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
 		NodeOperationMode:    p2p.NormalOperation,
+		PeersRatingHandler:   &p2pmocks.PeersRatingHandlerStub{},
 	}
 
 	libP2PMes, err := libp2p.NewNetworkMessenger(arg)
@@ -185,6 +185,7 @@ func CreateMessengerWithKadDhtAndProtocolID(initialAddr string, protocolID strin
 		SyncTimer:            &libp2p.LocalSyncTimer{},
 		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
 		NodeOperationMode:    p2p.NormalOperation,
+		PeersRatingHandler:   &p2pmocks.PeersRatingHandlerStub{},
 	}
 
 	libP2PMes, err := libp2p.NewNetworkMessenger(arg)
@@ -202,6 +203,30 @@ func CreateMessengerFromConfig(p2pConfig config.P2PConfig) p2p.Messenger {
 		SyncTimer:            &libp2p.LocalSyncTimer{},
 		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
 		NodeOperationMode:    p2p.NormalOperation,
+		PeersRatingHandler:   &p2pmocks.PeersRatingHandlerStub{},
+	}
+
+	if p2pConfig.Sharding.AdditionalConnections.MaxFullHistoryObservers > 0 {
+		// we deliberately set this, automatically choose full archive node mode
+		arg.NodeOperationMode = p2p.FullArchiveMode
+	}
+
+	libP2PMes, err := libp2p.NewNetworkMessenger(arg)
+	log.LogIfError(err)
+
+	return libP2PMes
+}
+
+// CreateMessengerFromConfigWithPeersRatingHandler creates a new libp2p messenger with provided configuration
+func CreateMessengerFromConfigWithPeersRatingHandler(p2pConfig config.P2PConfig, peersRatingHandler p2p.PeersRatingHandler) p2p.Messenger {
+	arg := libp2p.ArgsNetworkMessenger{
+		Marshalizer:          TestMarshalizer,
+		ListenAddress:        libp2p.ListenLocalhostAddrWithIp4AndTcp,
+		P2pConfig:            p2pConfig,
+		SyncTimer:            &libp2p.LocalSyncTimer{},
+		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
+		NodeOperationMode:    p2p.NormalOperation,
+		PeersRatingHandler:   peersRatingHandler,
 	}
 
 	if p2pConfig.Sharding.AdditionalConnections.MaxFullHistoryObservers > 0 {
@@ -232,6 +257,25 @@ func CreateMessengerWithNoDiscovery() p2p.Messenger {
 	}
 
 	return CreateMessengerFromConfig(p2pConfig)
+}
+
+// CreateMessengerWithNoDiscoveryAndPeersRatingHandler creates a new libp2p messenger with no peer discovery
+func CreateMessengerWithNoDiscoveryAndPeersRatingHandler(peersRatingHanlder p2p.PeersRatingHandler) p2p.Messenger {
+	p2pConfig := config.P2PConfig{
+		Node: config.NodeConfig{
+			Port:                  "0",
+			Seed:                  "",
+			ConnectionWatcherType: "print",
+		},
+		KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
+			Enabled: false,
+		},
+		Sharding: config.ShardingConfig{
+			Type: p2p.NilListSharder,
+		},
+	}
+
+	return CreateMessengerFromConfigWithPeersRatingHandler(p2pConfig, peersRatingHanlder)
 }
 
 // CreateFixedNetworkOf8Peers assembles a network as following:
@@ -364,19 +408,10 @@ func CreateStore(numOfShards uint32) dataRetriever.StorageService {
 }
 
 // CreateTrieStorageManagerWithPruningStorer creates the trie storage manager for the tests
-func CreateTrieStorageManagerWithPruningStorer(store storage.Storer, coordinator sharding.Coordinator, notifier pruning.EpochStartNotifier) common.StorageManager {
-	tempDir, _ := ioutil.TempDir("", "integrationTests")
-	cfg := config.DBConfig{
-		FilePath:          tempDir,
-		Type:              string(storageUnit.LvlDBSerial),
-		BatchDelaySeconds: 4,
-		MaxBatchSize:      10000,
-		MaxOpenFiles:      10,
-	}
+func CreateTrieStorageManagerWithPruningStorer(coordinator sharding.Coordinator, notifier pruning.EpochStartNotifier) common.StorageManager {
 	generalCfg := config.TrieStorageManagerConfig{
 		PruningBufferLen:      1000,
 		SnapshotsBufferLen:    10,
-		MaxSnapshots:          3,
 		SnapshotsGoroutineNum: 1,
 	}
 
@@ -389,15 +424,13 @@ func CreateTrieStorageManagerWithPruningStorer(store storage.Storer, coordinator
 		fmt.Println("err creating checkpoints storer" + err.Error())
 	}
 	args := trie.NewTrieStorageManagerArgs{
-		DB:                     store,
 		MainStorer:             mainStorer,
 		CheckpointsStorer:      checkpointsStorer,
 		Marshalizer:            TestMarshalizer,
 		Hasher:                 TestHasher,
-		SnapshotDbConfig:       cfg,
 		GeneralConfig:          generalCfg,
 		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10000000, uint64(TestHasher.Size())),
-		EpochNotifier:          &epochNotifier.EpochNotifierStub{},
+		IdleProvider:           &testscommon.ProcessStatusHandlerStub{},
 	}
 	trieStorageManager, _ := trie.NewTrieStorageManager(args)
 
@@ -406,31 +439,19 @@ func CreateTrieStorageManagerWithPruningStorer(store storage.Storer, coordinator
 
 // CreateTrieStorageManager creates the trie storage manager for the tests
 func CreateTrieStorageManager(store storage.Storer) (common.StorageManager, storage.Storer) {
-	// TODO change this implementation with a factory
-	tempDir, _ := ioutil.TempDir("", "integrationTests")
-	cfg := config.DBConfig{
-		FilePath:          tempDir,
-		Type:              string(storageUnit.LvlDBSerial),
-		BatchDelaySeconds: 4,
-		MaxBatchSize:      10000,
-		MaxOpenFiles:      10,
-	}
 	generalCfg := config.TrieStorageManagerConfig{
 		PruningBufferLen:      1000,
 		SnapshotsBufferLen:    10,
-		MaxSnapshots:          3,
 		SnapshotsGoroutineNum: 1,
 	}
 	args := trie.NewTrieStorageManagerArgs{
-		DB:                     store,
 		MainStorer:             CreateMemUnit(),
 		CheckpointsStorer:      CreateMemUnit(),
 		Marshalizer:            TestMarshalizer,
 		Hasher:                 TestHasher,
-		SnapshotDbConfig:       cfg,
 		GeneralConfig:          generalCfg,
 		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10000000, uint64(TestHasher.Size())),
-		EpochNotifier:          &epochNotifier.EpochNotifierStub{},
+		IdleProvider:           &testscommon.ProcessStatusHandlerStub{},
 	}
 	trieStorageManager, _ := trie.NewTrieStorageManager(args)
 
@@ -468,6 +489,7 @@ func createTriePruningStorer(coordinator sharding.Coordinator, notifier pruning.
 		NumOfActivePersisters:  4,
 		Notifier:               notifier,
 		OldDataCleanerProvider: &testscommon.OldDataCleanerProviderStub{},
+		CustomDatabaseRemover:  &testscommon.CustomDatabaseRemoverStub{},
 		MaxBatchSize:           10,
 	}
 
@@ -501,7 +523,16 @@ func CreateAccountsDB(
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, memorydb.New(), TestMarshalizer)
 	accountFactory := getAccountFactory(accountType)
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
-	adb, _ := state.NewAccountsDB(tr, sha256.NewSha256(), TestMarshalizer, accountFactory, spm, common.Normal)
+	args := state.ArgsAccountsDB{
+		Trie:                  tr,
+		Hasher:                sha256.NewSha256(),
+		Marshaller:            TestMarshalizer,
+		AccountFactory:        accountFactory,
+		StoragePruningManager: spm,
+		ProcessingMode:        common.Normal,
+		ProcessStatusHandler:  &testscommon.ProcessStatusHandlerStub{},
+	}
+	adb, _ := state.NewAccountsDB(args)
 
 	return adb, tr
 }
@@ -1064,19 +1095,16 @@ func CreateNewDefaultTrie() common.Trie {
 	generalCfg := config.TrieStorageManagerConfig{
 		PruningBufferLen:      1000,
 		SnapshotsBufferLen:    10,
-		MaxSnapshots:          2,
 		SnapshotsGoroutineNum: 1,
 	}
 	args := trie.NewTrieStorageManagerArgs{
-		DB:                     CreateMemUnit(),
 		MainStorer:             CreateMemUnit(),
 		CheckpointsStorer:      CreateMemUnit(),
 		Marshalizer:            TestMarshalizer,
 		Hasher:                 TestHasher,
-		SnapshotDbConfig:       config.DBConfig{},
 		GeneralConfig:          generalCfg,
 		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10000000, uint64(TestHasher.Size())),
-		EpochNotifier:          &epochNotifier.EpochNotifierStub{},
+		IdleProvider:           &testscommon.ProcessStatusHandlerStub{},
 	}
 	trieStorage, _ := trie.NewTrieStorageManager(args)
 
@@ -2201,11 +2229,11 @@ func PubKeysMapFromKeysMap(keyPairMap map[uint32][]*TestKeyPair) map[uint32][]st
 }
 
 // GenValidatorsFromPubKeys generates a map of validators per shard out of public keys map
-func GenValidatorsFromPubKeys(pubKeysMap map[uint32][]string, _ uint32) map[uint32][]sharding.GenesisNodeInfoHandler {
-	validatorsMap := make(map[uint32][]sharding.GenesisNodeInfoHandler)
+func GenValidatorsFromPubKeys(pubKeysMap map[uint32][]string, _ uint32) map[uint32][]nodesCoordinator.GenesisNodeInfoHandler {
+	validatorsMap := make(map[uint32][]nodesCoordinator.GenesisNodeInfoHandler)
 
 	for shardId, shardNodesPks := range pubKeysMap {
-		var shardValidators []sharding.GenesisNodeInfoHandler
+		var shardValidators []nodesCoordinator.GenesisNodeInfoHandler
 		for i := 0; i < len(shardNodesPks); i++ {
 			v := mock.NewNodeInfo([]byte(shardNodesPks[i][:32]), []byte(shardNodesPks[i]), shardId, InitialRating)
 			shardValidators = append(shardValidators, v)
@@ -2220,11 +2248,11 @@ func GenValidatorsFromPubKeys(pubKeysMap map[uint32][]string, _ uint32) map[uint
 func GenValidatorsFromPubKeysAndTxPubKeys(
 	blsPubKeysMap map[uint32][]string,
 	txPubKeysMap map[uint32][]string,
-) map[uint32][]sharding.GenesisNodeInfoHandler {
-	validatorsMap := make(map[uint32][]sharding.GenesisNodeInfoHandler)
+) map[uint32][]nodesCoordinator.GenesisNodeInfoHandler {
+	validatorsMap := make(map[uint32][]nodesCoordinator.GenesisNodeInfoHandler)
 
 	for shardId, shardNodesPks := range blsPubKeysMap {
-		var shardValidators []sharding.GenesisNodeInfoHandler
+		var shardValidators []nodesCoordinator.GenesisNodeInfoHandler
 		for i := 0; i < len(shardNodesPks); i++ {
 			v := mock.NewNodeInfo([]byte(txPubKeysMap[shardId][i]), []byte(shardNodesPks[i]), shardId, InitialRating)
 			shardValidators = append(shardValidators, v)

@@ -17,8 +17,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/disabled"
 	"github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache/capacity"
+
 	"github.com/ElrondNetwork/elrond-go/storage/storageCacherAdapter"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
@@ -99,32 +101,13 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 		return nil, fmt.Errorf("%w while creating the cache for the trie nodes", err)
 	}
 
-	dbCfg := factory.GetDBFromConfig(mainConfig.TrieSyncStorage.DB)
-	shardId := core.GetShardIDString(args.ShardCoordinator.SelfId())
-	argDB := storageUnit.ArgDB{
-		DBType:            dbCfg.Type,
-		Path:              args.PathManager.PathForStatic(shardId, mainConfig.TrieSyncStorage.DB.FilePath),
-		BatchDelaySeconds: dbCfg.BatchDelaySeconds,
-		MaxBatchSize:      dbCfg.MaxBatchSize,
-		MaxOpenFiles:      dbCfg.MaxOpenFiles,
-	}
-
-	if mainConfig.TrieSyncStorage.DB.UseTmpAsFilePath {
-		filePath, errTempDir := ioutil.TempDir("", "trieSyncStorage")
-		if errTempDir != nil {
-			return nil, errTempDir
-		}
-
-		argDB.Path = filePath
-	}
-
-	db, err := storageUnit.NewDB(argDB)
+	trieSyncDB, err := createTrieSyncDB(args)
 	if err != nil {
-		return nil, fmt.Errorf("%w while creating the db for the trie nodes", err)
+		return nil, err
 	}
 
 	tnf := trieFactory.NewTrieNodeFactory()
-	adaptedTrieNodesStorage, err := storageCacherAdapter.NewStorageCacherAdapter(cacher, db, tnf, args.Marshalizer)
+	adaptedTrieNodesStorage, err := storageCacherAdapter.NewStorageCacherAdapter(cacher, trieSyncDB, tnf, args.Marshalizer)
 	if err != nil {
 		return nil, fmt.Errorf("%w while creating the adapter for the trie nodes", err)
 	}
@@ -155,4 +138,39 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 		SmartContracts:           smartContracts,
 	}
 	return dataPool.NewDataPool(dataPoolArgs)
+}
+
+func createTrieSyncDB(args ArgsDataPool) (storage.Persister, error) {
+	mainConfig := args.Config
+
+	if !mainConfig.TrieSyncStorage.EnableDB {
+		log.Debug("no DB for the intercepted trie nodes")
+		return disabled.NewPersister(), nil
+	}
+
+	dbCfg := factory.GetDBFromConfig(mainConfig.TrieSyncStorage.DB)
+	shardId := core.GetShardIDString(args.ShardCoordinator.SelfId())
+	argDB := storageUnit.ArgDB{
+		DBType:            dbCfg.Type,
+		Path:              args.PathManager.PathForStatic(shardId, mainConfig.TrieSyncStorage.DB.FilePath),
+		BatchDelaySeconds: dbCfg.BatchDelaySeconds,
+		MaxBatchSize:      dbCfg.MaxBatchSize,
+		MaxOpenFiles:      dbCfg.MaxOpenFiles,
+	}
+
+	if mainConfig.TrieSyncStorage.DB.UseTmpAsFilePath {
+		filePath, errTempDir := ioutil.TempDir("", "trieSyncStorage")
+		if errTempDir != nil {
+			return nil, errTempDir
+		}
+
+		argDB.Path = filePath
+	}
+
+	db, err := storageUnit.NewDB(argDB)
+	if err != nil {
+		return nil, fmt.Errorf("%w while creating the db for the trie nodes", err)
+	}
+
+	return db, nil
 }

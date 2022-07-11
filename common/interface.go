@@ -1,6 +1,9 @@
 package common
 
 import (
+	"context"
+	"time"
+
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 )
@@ -29,7 +32,7 @@ type Trie interface {
 	GetSerializedNodes([]byte, uint64) ([][]byte, uint64, error)
 	GetSerializedNode([]byte) ([]byte, error)
 	GetNumNodes() NumNodesDTO
-	GetAllLeavesOnChannel(rootHash []byte) (chan core.KeyValueHolder, error)
+	GetAllLeavesOnChannel(leavesChannel chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error
 	GetAllHashes() ([][]byte, error)
 	GetProof(key []byte) ([][]byte, []byte, error)
 	VerifyProof(rootHash []byte, key []byte, proof [][]byte) (bool, error)
@@ -50,7 +53,6 @@ type StorageManager interface {
 	IsPruningBlocked() bool
 	EnterPruningBufferingMode()
 	ExitPruningBufferingMode()
-	GetSnapshotDbBatchDelay() int
 	AddDirtyCheckpointHashes([]byte, ModifiedHashes) bool
 	Remove(hash []byte) error
 	SetEpochForPutOperation(uint32)
@@ -58,7 +60,7 @@ type StorageManager interface {
 	Close() error
 	IsInterfaceNil() bool
 
-	//TODO remove Put() when removing increaseNumCheckpoints()
+	// TODO remove Put() when removing increaseNumCheckpoints()
 
 	Put(key []byte, val []byte) error
 }
@@ -112,6 +114,10 @@ type SizeSyncStatisticsHandler interface {
 	AddNumBytesReceived(bytes uint64)
 	NumBytesReceived() uint64
 	NumTries() int
+	AddProcessingTime(duration time.Duration)
+	IncrementIteration()
+	ProcessingTime() time.Duration
+	NumIterations() int
 }
 
 // SnapshotStatisticsHandler is used to measure different statistics for the trie snapshot
@@ -121,4 +127,13 @@ type SnapshotStatisticsHandler interface {
 	NewSnapshotStarted()
 	NewDataTrie()
 	WaitForSnapshotsToFinish()
+}
+
+// ProcessStatusHandler defines the behavior of a component able to hold the current status of the node and
+// able to tell if the node is idle or processing/committing a block
+type ProcessStatusHandler interface {
+	SetBusy(reason string)
+	SetIdle()
+	IsIdle() bool
+	IsInterfaceNil() bool
 }

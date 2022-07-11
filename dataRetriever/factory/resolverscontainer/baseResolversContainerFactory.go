@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers"
@@ -17,6 +18,8 @@ import (
 
 // EmptyExcludePeersOnTopic is an empty topic
 const EmptyExcludePeersOnTopic = ""
+
+var log = logger.GetOrCreate("dataRetriever/factory/resolverscontainer")
 
 type baseResolversContainerFactory struct {
 	container                   dataRetriever.ResolversContainer
@@ -36,6 +39,7 @@ type baseResolversContainerFactory struct {
 	isFullHistoryNode           bool
 	currentNetworkEpochProvider dataRetriever.CurrentNetworkEpochProviderHandler
 	preferredPeersHolder        dataRetriever.PreferredPeersHolderHandler
+	peersRatingHandler          dataRetriever.PeersRatingHandler
 	numCrossShardPeers          int
 	numIntraShardPeers          int
 	numFullHistoryPeers         int
@@ -80,6 +84,9 @@ func (brcf *baseResolversContainerFactory) checkParams() error {
 	}
 	if check.IfNil(brcf.preferredPeersHolder) {
 		return dataRetriever.ErrNilPreferredPeersHolder
+	}
+	if check.IfNil(brcf.peersRatingHandler) {
+		return dataRetriever.ErrNilPeersRatingHandler
 	}
 	if brcf.numCrossShardPeers <= 0 {
 		return fmt.Errorf("%w for numCrossShardPeers", dataRetriever.ErrInvalidValue)
@@ -274,6 +281,9 @@ func (brcf *baseResolversContainerFactory) createOneResolverSenderWithSpecifiedN
 	currentNetworkEpochProvider dataRetriever.CurrentNetworkEpochProviderHandler,
 ) (dataRetriever.TopicResolverSender, error) {
 
+	log.Trace("baseResolversContainerFactory.createOneResolverSenderWithSpecifiedNumRequests",
+		"topic", topic, "intraShardTopic", brcf.intraShardTopic, "excludedTopic", excludedTopic)
+
 	peerListCreator, err := topicResolverSender.NewDiffPeerListCreator(brcf.messenger, topic, brcf.intraShardTopic, excludedTopic)
 	if err != nil {
 		return nil, err
@@ -293,8 +303,9 @@ func (brcf *baseResolversContainerFactory) createOneResolverSenderWithSpecifiedN
 		CurrentNetworkEpochProvider: currentNetworkEpochProvider,
 		PreferredPeersHolder:        brcf.preferredPeersHolder,
 		SelfShardIdProvider:         brcf.shardCoordinator,
+		PeersRatingHandler:          brcf.peersRatingHandler,
 	}
-	//TODO instantiate topic sender resolver with the shard IDs for which this resolver is supposed to serve the data
+	// TODO instantiate topic sender resolver with the shard IDs for which this resolver is supposed to serve the data
 	// this will improve the serving of transactions as the searching will be done only on 2 sharded data units
 	resolverSender, err := topicResolverSender.NewTopicResolverSender(arg)
 	if err != nil {

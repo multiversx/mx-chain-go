@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"strconv"
 	"sync"
 	"time"
 
@@ -15,13 +16,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go-crypto"
+	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 )
 
 var _ closing.Closer = (*Worker)(nil)
@@ -420,7 +422,7 @@ func (wrk *Worker) shouldBlacklistPeer(err error) bool {
 		errors.Is(err, ErrNodeIsNotInEligibleList) ||
 		errors.Is(err, crypto.ErrPIDMismatch) ||
 		errors.Is(err, crypto.ErrSignatureMismatch) ||
-		errors.Is(err, sharding.ErrEpochNodesConfigDoesNotExist) ||
+		errors.Is(err, nodesCoordinator.ErrEpochNodesConfigDoesNotExist) ||
 		errors.Is(err, ErrMessageTypeLimitReached) {
 		return false
 	}
@@ -513,6 +515,7 @@ func (wrk *Worker) processReceivedHeaderMetric(cnsDta *consensus.Message) {
 	sinceRoundStart := time.Since(wrk.roundHandler.TimeStamp())
 	percent := sinceRoundStart * 100 / wrk.roundHandler.TimeDuration()
 	wrk.appStatusHandler.SetUInt64Value(common.MetricReceivedProposedBlock, uint64(percent))
+	wrk.appStatusHandler.SetStringValue(common.MetricRedundancyIsMainActive, strconv.FormatBool(wrk.nodeRedundancyHandler.IsMainMachineActive()))
 }
 
 func (wrk *Worker) checkSelfState(cnsDta *consensus.Message) error {

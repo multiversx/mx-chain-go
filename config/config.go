@@ -35,9 +35,10 @@ type StorageConfig struct {
 
 // TrieSyncStorageConfig will map trie sync storage configuration
 type TrieSyncStorageConfig struct {
-	DB          DBConfig
 	Capacity    uint32
 	SizeInBytes uint64
+	EnableDB    bool
+	DB          DBConfig
 }
 
 // PubkeyConfig will map the public key configuration
@@ -123,13 +124,10 @@ type Config struct {
 	BootstrapStorage StorageConfig
 	MetaBlockStorage StorageConfig
 
-	AccountsTrieStorageOld             StorageConfig
-	PeerAccountsTrieStorageOld         StorageConfig
 	AccountsTrieStorage                StorageConfig
 	PeerAccountsTrieStorage            StorageConfig
 	AccountsTrieCheckpointsStorage     StorageConfig
 	PeerAccountsTrieCheckpointsStorage StorageConfig
-	TrieSnapshotDB                     DBConfig
 	EvictionWaitingList                EvictionWaitingListConfig
 	StateTriesConfig                   StateTriesConfig
 	TrieStorageManagerConfig           TrieStorageManagerConfig
@@ -186,21 +184,32 @@ type Config struct {
 	TrieSync              TrieSyncConfig
 	Resolvers             ResolverConfig
 	VMOutputCacher        CacheConfig
+
+	PeersRatingConfig PeersRatingConfig
+}
+
+// PeersRatingConfig will hold settings related to peers rating
+type PeersRatingConfig struct {
+	TopRatedCacheCapacity int
+	BadRatedCacheCapacity int
 }
 
 // LogsConfig will hold settings related to the logging sub-system
 type LogsConfig struct {
 	LogFileLifeSpanInSec int
+	LogFileLifeSpanInMB  int
 }
 
 // StoragePruningConfig will hold settings related to storage pruning
 type StoragePruningConfig struct {
-	Enabled                        bool
-	ValidatorCleanOldEpochsData    bool
-	ObserverCleanOldEpochsData     bool
-	NumEpochsToKeep                uint64
-	NumActivePersisters            uint64
-	FullArchiveNumActivePersisters uint32
+	Enabled                              bool
+	ValidatorCleanOldEpochsData          bool
+	ObserverCleanOldEpochsData           bool
+	AccountsTrieCleanOldEpochsData       bool
+	AccountsTrieSkipRemovalCustomPattern string
+	NumEpochsToKeep                      uint64
+	NumActivePersisters                  uint64
+	FullArchiveNumActivePersisters       uint32
 }
 
 // ResourceStatsConfig will hold all resource stats settings
@@ -241,6 +250,7 @@ type GeneralSettingsConfig struct {
 	MinTransactionVersion                uint32
 	GenesisString                        string
 	GenesisMaxNumberOfShards             uint32
+	SyncProcessTimeInMillis              uint32
 	SetGuardianEpochsDelay               uint32
 }
 
@@ -267,8 +277,6 @@ type TrieStorageManagerConfig struct {
 	PruningBufferLen              uint32
 	SnapshotsBufferLen            uint32
 	SnapshotsGoroutineNum         uint32
-	MaxSnapshots                  uint32
-	KeepSnapshots                 bool
 	CheckpointHashesHolderMaxSize uint64
 }
 
@@ -280,10 +288,11 @@ type EndpointsThrottlersConfig struct {
 
 // WebServerAntifloodConfig will hold the anti-flooding parameters for the web server
 type WebServerAntifloodConfig struct {
-	SimultaneousRequests         uint32
-	SameSourceRequests           uint32
-	SameSourceResetIntervalInSec uint32
-	EndpointsThrottlers          []EndpointsThrottlersConfig
+	SimultaneousRequests               uint32
+	SameSourceRequests                 uint32
+	SameSourceResetIntervalInSec       uint32
+	TrieOperationsDeadlineMilliseconds uint32
+	EndpointsThrottlers                []EndpointsThrottlersConfig
 }
 
 // BlackListConfig will hold the p2p peer black list threshold values
@@ -352,11 +361,14 @@ type IncreaseFactorConfig struct {
 type VirtualMachineServicesConfig struct {
 	Execution VirtualMachineConfig
 	Querying  QueryVirtualMachineConfig
+	GasConfig VirtualMachineGasConfig
 }
 
 // VirtualMachineConfig holds configuration for a Virtual Machine service
 type VirtualMachineConfig struct {
-	ArwenVersions []ArwenVersionByEpoch
+	ArwenVersions                       []ArwenVersionByEpoch
+	TimeOutForSCExecutionInMilliseconds uint32
+	WasmerSIGSEGVPassthrough            bool
 }
 
 // ArwenVersionByEpoch represents the Arwen version to be used starting with an epoch
@@ -369,6 +381,12 @@ type ArwenVersionByEpoch struct {
 type QueryVirtualMachineConfig struct {
 	VirtualMachineConfig
 	NumConcurrentVMs int
+}
+
+// VirtualMachineGasConfig holds the configuration for the virtual machine(s) gas operations
+type VirtualMachineGasConfig struct {
+	ShardMaxGasPerVmQuery uint64
+	MetaMaxGasPerVmQuery  uint64
 }
 
 // HardforkConfig holds the configuration for the hardfork trigger

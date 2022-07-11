@@ -1,6 +1,7 @@
 package state_test
 
 import (
+	"context"
 	"errors"
 	"testing"
 
@@ -201,13 +202,12 @@ func TestAccountsDBApi_EmptyMethodsShouldNotPanic(t *testing.T) {
 
 	accountsApi, _ := state.NewAccountsDBApi(&mockState.AccountsStub{}, &testscommon.ChainHandlerStub{})
 
-	accountsApi.PruneTrie(nil, 0)
+	accountsApi.PruneTrie(nil, 0, state.NewPruningHandler(state.EnableDataRemoval))
 	accountsApi.CancelPrune(nil, 0)
 	accountsApi.SnapshotState(nil)
 	accountsApi.SetStateCheckpoint(nil)
 
 	assert.Equal(t, 0, accountsApi.JournalLen())
-	assert.Equal(t, uint32(0), accountsApi.GetNumCheckpoints())
 }
 
 func TestAccountsDBApi_SimpleProxyMethodsShouldWork(t *testing.T) {
@@ -468,15 +468,14 @@ func TestAccountsDBApi_GetAllLeaves(t *testing.T) {
 			RecreateTrieCalled: func(rootHash []byte) error {
 				return expectedErr
 			},
-			GetAllLeavesCalled: func(rootHash []byte) (chan core.KeyValueHolder, error) {
+			GetAllLeavesCalled: func(_ chan core.KeyValueHolder, _ context.Context, _ []byte) error {
 				require.Fail(t, "should have not called inner method")
-				return nil, nil
+				return nil
 			},
 		}
 
 		accountsApi, _ := state.NewAccountsDBApi(accountsAdapter, blockchain)
-		ch, err := accountsApi.GetAllLeaves(nil)
-		assert.Nil(t, ch)
+		err := accountsApi.GetAllLeaves(nil, nil, []byte{})
 		assert.Equal(t, expectedErr, err)
 	})
 	t.Run("recreate trie works, should call inner method", func(t *testing.T) {
@@ -489,14 +488,10 @@ func TestAccountsDBApi_GetAllLeaves(t *testing.T) {
 				recreateTrieCalled = true
 				return nil
 			},
-			GetAllLeavesCalled: func(rootHash []byte) (chan core.KeyValueHolder, error) {
-				return providedChan, nil
-			},
 		}
 
 		accountsApi, _ := state.NewAccountsDBApi(accountsAdapter, blockchain)
-		ch, err := accountsApi.GetAllLeaves([]byte("address"))
-		assert.True(t, providedChan == ch) // pointer testing
+		err := accountsApi.GetAllLeaves(providedChan, context.Background(), []byte("address"))
 		assert.Nil(t, err)
 		assert.True(t, recreateTrieCalled)
 	})

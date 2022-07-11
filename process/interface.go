@@ -141,7 +141,7 @@ type TransactionCoordinator interface {
 	RequestBlockTransactions(body *block.Body)
 	IsDataPreparedForProcessing(haveTime func() time.Duration) error
 
-	SaveTxsToStorage(body *block.Body) error
+	SaveTxsToStorage(body *block.Body)
 	RestoreBlockDataFromStorage(body *block.Body) (int, error)
 	RemoveBlockDataFromPool(body *block.Body) error
 	RemoveTxsFromPool(body *block.Body) error
@@ -163,6 +163,7 @@ type TransactionCoordinator interface {
 	AddIntermediateTransactions(mapSCRs map[block.Type][]data.TransactionHandler) error
 	GetAllIntermediateTxs() map[block.Type]map[string]data.TransactionHandler
 	AddTxsFromMiniBlocks(miniBlocks block.MiniBlockSlice)
+	AddTransactions(txHandlers []data.TransactionHandler, blockType block.Type)
 	IsInterfaceNil() bool
 }
 
@@ -182,7 +183,7 @@ type IntermediateTransactionHandler interface {
 	GetNumOfCrossInterMbsAndTxs() (int, int)
 	CreateAllInterMiniBlocks() []*block.MiniBlock
 	VerifyInterMiniBlocks(body *block.Body) error
-	SaveCurrentIntermediateTxToStorage() error
+	SaveCurrentIntermediateTxToStorage()
 	GetAllCurrentFinishedTxs() map[string]data.TransactionHandler
 	CreateBlockStarted()
 	GetCreatedInShardMiniBlock() *block.MiniBlock
@@ -207,6 +208,7 @@ type TransactionFeeHandler interface {
 	GetAccumulatedFees() *big.Int
 	GetDeveloperFees() *big.Int
 	ProcessTransactionFee(cost *big.Int, devFee *big.Int, txHash []byte)
+	ProcessTransactionFeeRelayedUserTx(cost *big.Int, devFee *big.Int, userTxHash []byte, originalTxHash []byte)
 	RevertFees(txHashes [][]byte)
 	IsInterfaceNil() bool
 }
@@ -230,6 +232,7 @@ type PreProcessor interface {
 
 	GetAllCurrentUsedTxs() map[string]data.TransactionHandler
 	AddTxsFromMiniBlocks(miniBlocks block.MiniBlockSlice)
+	AddTransactions(txHandlers []data.TransactionHandler)
 	IsInterfaceNil() bool
 }
 
@@ -498,6 +501,8 @@ type BlockChainHookHandler interface {
 	GetBuiltinFunctionsContainer() vmcommon.BuiltInFunctionContainer
 	GetAllState(_ []byte) (map[string][]byte, error)
 	GetESDTToken(address []byte, tokenID []byte, nonce uint64) (*esdt.ESDigitalToken, error)
+	IsPaused(tokenID []byte) bool
+	IsLimitedTransfer(tokenID []byte) bool
 	NumberOfShards() uint32
 	SetCurrentHeader(hdr data.HeaderHandler)
 	SaveCompiledCode(codeHash []byte, code []byte)
@@ -826,6 +831,7 @@ type BlockTracker interface {
 	GetTrackedHeadersForAllShards() map[uint32][]data.HeaderHandler
 	GetTrackedHeadersWithNonce(shardID uint32, nonce uint64) ([]data.HeaderHandler, [][]byte)
 	IsShardStuck(shardID uint32) bool
+	ShouldSkipMiniBlocksCreationFromSelf() bool
 	RegisterCrossNotarizedHeadersHandler(func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte))
 	RegisterSelfNotarizedFromCrossHeadersHandler(func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte))
 	RegisterSelfNotarizedHeadersHandler(func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte))
@@ -1128,6 +1134,7 @@ type CoreComponentsHolder interface {
 	EpochNotifier() EpochNotifier
 	ChanStopNodeProcess() chan endProcess.ArgEndProcess
 	NodeTypeProvider() core.NodeTypeProviderHandler
+	ProcessStatusHandler() common.ProcessStatusHandler
 	IsInterfaceNil() bool
 }
 

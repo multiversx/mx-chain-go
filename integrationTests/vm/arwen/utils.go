@@ -241,26 +241,27 @@ func (context *TestContext) initVMAndBlockchainHook() {
 		EpochNotifier:         context.EpochNotifier,
 		GuardedAccountHandler: &guardianMocks.GuardedAccountHandlerStub{},
 	}
-	builtInFuncs, nftStorageHandler, err := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
+	builtInFuncs, nftStorageHandler, globalSettingsHandler, err := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
 	require.Nil(context.T, err)
 
 	blockchainMock := &testscommon.ChainHandlerStub{}
 	chainStorer := &mock.ChainStorerMock{}
 	datapool := dataRetrieverMock.NewPoolsHolderMock()
 	args := hooks.ArgBlockChainHook{
-		Accounts:           context.Accounts,
-		PubkeyConv:         pkConverter,
-		StorageService:     chainStorer,
-		BlockChain:         blockchainMock,
-		ShardCoordinator:   oneShardCoordinator,
-		Marshalizer:        marshalizer,
-		Uint64Converter:    &mock.Uint64ByteSliceConverterMock{},
-		BuiltInFunctions:   builtInFuncs,
-		NFTStorageHandler:  nftStorageHandler,
-		DataPool:           datapool,
-		CompiledSCPool:     datapool.SmartContracts(),
-		EpochNotifier:      context.EpochNotifier,
-		NilCompiledSCStore: true,
+		Accounts:              context.Accounts,
+		PubkeyConv:            pkConverter,
+		StorageService:        chainStorer,
+		BlockChain:            blockchainMock,
+		ShardCoordinator:      oneShardCoordinator,
+		Marshalizer:           marshalizer,
+		Uint64Converter:       &mock.Uint64ByteSliceConverterMock{},
+		BuiltInFunctions:      builtInFuncs,
+		NFTStorageHandler:     nftStorageHandler,
+		GlobalSettingsHandler: globalSettingsHandler,
+		DataPool:              datapool,
+		CompiledSCPool:        datapool.SmartContracts(),
+		EpochNotifier:         context.EpochNotifier,
+		NilCompiledSCStore:    true,
 		ConfigSCStorage: config.StorageConfig{
 			Cache: config.CacheConfig{
 				Name:     "SmartContractsStorage",
@@ -508,7 +509,7 @@ func (context *TestContext) DeploySC(wasmPath string, parametersString string) e
 		return err
 	}
 
-	err = context.GetLatestError()
+	err = context.GetCompositeTestError()
 	if err != nil {
 		return err
 	}
@@ -562,7 +563,7 @@ func (context *TestContext) UpgradeSC(wasmPath string, parametersString string) 
 		return err
 	}
 
-	err = context.GetLatestError()
+	err = context.GetCompositeTestError()
 	if err != nil {
 		return err
 	}
@@ -638,7 +639,7 @@ func (context *TestContext) ExecuteSCWithValue(sender *testParticipant, txData s
 		return err
 	}
 
-	err = context.GetLatestError()
+	err = context.GetCompositeTestError()
 	if err != nil {
 		return err
 	}
@@ -710,9 +711,9 @@ func (context *TestContext) GoToEpoch(epoch int) {
 	context.BlockchainHook.SetCurrentHeader(header)
 }
 
-// GetLatestError -
-func (context *TestContext) GetLatestError() error {
-	return context.ScProcessor.GetLatestTestError()
+// GetCompositeTestError -
+func (context *TestContext) GetCompositeTestError() error {
+	return context.ScProcessor.GetCompositeTestError()
 }
 
 // FormatHexNumber -

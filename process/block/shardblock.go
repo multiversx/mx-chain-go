@@ -24,7 +24,11 @@ import (
 
 var _ process.BlockProcessor = (*shardProcessor)(nil)
 
-const timeBetweenCheckForEpochStart = 100 * time.Millisecond
+const (
+	timeBetweenCheckForEpochStart = 100 * time.Millisecond
+	pruningDelayMultiplier        = 2
+	defaultPruningDelay           = 10
+)
 
 type createMbsAndProcessTxsDestMeInfo struct {
 	currMetaHdr               data.HeaderHandler
@@ -47,6 +51,7 @@ type shardProcessor struct {
 
 	processedMiniBlocks   *processedMb.ProcessedMiniBlockTracker
 	userStatePruningQueue core.Queue
+	processStatusHandler  common.ProcessStatusHandler
 }
 
 // NewShardProcessor creates a new shardProcessor object
@@ -68,6 +73,13 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 	genesisHdr := arguments.DataComponents.Blockchain().GetGenesisHeader()
 	if check.IfNil(genesisHdr) {
 		return nil, fmt.Errorf("%w for genesis header in DataComponents.Blockchain", process.ErrNilHeaderHandler)
+	}
+
+	pruningQueueSize := arguments.Config.StateTriesConfig.UserStatePruningQueueSize
+	pruningDelay := uint32(pruningQueueSize * pruningDelayMultiplier)
+	if pruningDelay < defaultPruningDelay {
+		log.Warn("using default pruning delay", "user state pruning queue size", pruningQueueSize)
+		pruningDelay = defaultPruningDelay
 	}
 
 	base := &baseProcessor{
@@ -107,10 +119,12 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		economicsData:                  arguments.CoreComponents.EconomicsData(),
 		scheduledTxsExecutionHandler:   arguments.ScheduledTxsExecutionHandler,
 		scheduledMiniBlocksEnableEpoch: arguments.ScheduledMiniBlocksEnableEpoch,
+		pruningDelay:                   pruningDelay,
 	}
 
 	sp := shardProcessor{
-		baseProcessor: base,
+		baseProcessor:        base,
+		processStatusHandler: arguments.CoreComponents.ProcessStatusHandler(),
 	}
 
 	sp.txCounter, err = NewTransactionCounter(sp.hasher, sp.marshalizer)
@@ -143,10 +157,12 @@ func (sp *shardProcessor) ProcessBlock(
 	bodyHandler data.BodyHandler,
 	haveTime func() time.Duration,
 ) error {
-
 	if haveTime == nil {
 		return process.ErrNilHaveTimeHandler
 	}
+
+	sp.processStatusHandler.SetBusy("shardProcessor.ProcessBlock")
+	defer sp.processStatusHandler.SetIdle()
 
 	err := sp.checkBlockValidity(headerHandler, bodyHandler)
 	if err != nil {
@@ -762,6 +778,9 @@ func (sp *shardProcessor) CreateBlock(
 		return nil, nil, process.ErrWrongTypeAssertion
 	}
 
+	sp.processStatusHandler.SetBusy("shardProcessor.CreateBlock")
+	defer sp.processStatusHandler.SetIdle()
+
 	err := sp.createBlockStarted()
 	if err != nil {
 		return nil, nil, err
@@ -830,10 +849,12 @@ func (sp *shardProcessor) CommitBlock(
 	bodyHandler data.BodyHandler,
 ) error {
 	var err error
+	sp.processStatusHandler.SetBusy("shardProcessor.CommitBlock")
 	defer func() {
 		if err != nil {
 			sp.RevertCurrentBlock()
 		}
+		sp.processStatusHandler.SetIdle()
 	}()
 
 	err = checkForNils(headerHandler, bodyHandler)
@@ -937,6 +958,10 @@ func (sp *shardProcessor) CommitBlock(
 	sp.blockTracker.AddSelfNotarizedHeader(core.MetachainShardId, lastSelfNotarizedHeader, lastSelfNotarizedHeaderHash)
 
 	sp.notifyFinalMetaHdrs(processedMetaHdrs)
+
+	if sp.lastRestartNonce == 0 {
+		sp.lastRestartNonce = header.GetNonce()
+	}
 
 	sp.updateState(selfNotarizedHeaders, header)
 
@@ -1458,15 +1483,15 @@ func (sp *shardProcessor) addProcessedCrossMiniBlocksFromHeader(header data.Head
 
 	sp.hdrsForCurrBlock.mutHdrsForBlock.RLock()
 	for _, metaBlockHash := range shardHeader.GetMetaBlockHashes() {
-		headerInfo, ok := sp.hdrsForCurrBlock.hdrHashAndInfo[string(metaBlockHash)]
-		if !ok {
+		headerInfo, found := sp.hdrsForCurrBlock.hdrHashAndInfo[string(metaBlockHash)]
+		if !found {
 			sp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
 			return fmt.Errorf("%w : addProcessedCrossMiniBlocksFromHeader metaBlockHash = %s",
 				process.ErrMissingHeader, logger.DisplayByteSlice(metaBlockHash))
 		}
 
-		metaBlock, ok := headerInfo.hdr.(*block.MetaBlock)
-		if !ok {
+		metaBlock, isMetaBlock := headerInfo.hdr.(*block.MetaBlock)
+		if !isMetaBlock {
 			sp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
 			return process.ErrWrongTypeAssertion
 		}
@@ -1916,6 +1941,9 @@ func (sp *shardProcessor) createMiniBlocks(haveTime func() bool, randomness []by
 	if sp.flagScheduledMiniBlocks.IsSet() {
 		miniBlocks = sp.scheduledTxsExecutionHandler.GetScheduledMiniBlocks()
 		sp.txCoordinator.AddTxsFromMiniBlocks(miniBlocks)
+
+		scheduledIntermediateTxs := sp.scheduledTxsExecutionHandler.GetScheduledIntermediateTxs()
+		sp.txCoordinator.AddTransactions(scheduledIntermediateTxs[block.InvalidBlock], block.TxBlock)
 	}
 
 	// placeholder for shardProcessor.createMiniBlocks script

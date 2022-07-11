@@ -20,6 +20,9 @@ import (
 
 func TestNewStateComponentsFactory_NilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	coreComponents := getCoreComponents()
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
@@ -33,6 +36,9 @@ func TestNewStateComponentsFactory_NilShardCoordinatorShouldErr(t *testing.T) {
 
 func TestNewStateComponentsFactory_NilCoreComponents(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	coreComponents := getCoreComponents()
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
@@ -46,6 +52,9 @@ func TestNewStateComponentsFactory_NilCoreComponents(t *testing.T) {
 
 func TestNewStateComponentsFactory_ShouldWork(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	coreComponents := getCoreComponents()
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
@@ -56,8 +65,11 @@ func TestNewStateComponentsFactory_ShouldWork(t *testing.T) {
 	require.NotNil(t, scf)
 }
 
-func TestStateComponentsFactory_Create_ShouldWork(t *testing.T) {
+func TestStateComponentsFactory_CreateShouldWork(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	coreComponents := getCoreComponents()
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
@@ -71,8 +83,11 @@ func TestStateComponentsFactory_Create_ShouldWork(t *testing.T) {
 }
 
 // ------------ Test StateComponents --------------------
-func TestStateComponents_Close_ShouldWork(t *testing.T) {
+func TestStateComponents_CloseShouldWork(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	coreComponents := getCoreComponents()
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
@@ -143,27 +158,6 @@ func getGeneralConfig() config.Config {
 				MaxOpenFiles:      10,
 			},
 		},
-		TrieSnapshotDB: config.DBConfig{
-			FilePath:          "TrieSnapshot",
-			Type:              "MemoryDB",
-			BatchDelaySeconds: 30,
-			MaxBatchSize:      6,
-			MaxOpenFiles:      10,
-		},
-		AccountsTrieStorageOld: config.StorageConfig{
-			Cache: config.CacheConfig{
-				Capacity: 10000,
-				Type:     "LRU",
-				Shards:   1,
-			},
-			DB: config.DBConfig{
-				FilePath:          "AccountsTrie",
-				Type:              "MemoryDB",
-				BatchDelaySeconds: 30,
-				MaxBatchSize:      6,
-				MaxOpenFiles:      10,
-			},
-		},
 		AccountsTrieStorage: config.StorageConfig{
 			Cache: config.CacheConfig{
 				Capacity: 10000,
@@ -186,20 +180,6 @@ func getGeneralConfig() config.Config {
 			},
 			DB: config.DBConfig{
 				FilePath:          "AccountsTrieCheckpoints",
-				Type:              "MemoryDB",
-				BatchDelaySeconds: 30,
-				MaxBatchSize:      6,
-				MaxOpenFiles:      10,
-			},
-		},
-		PeerAccountsTrieStorageOld: config.StorageConfig{
-			Cache: config.CacheConfig{
-				Capacity: 10000,
-				Type:     "LRU",
-				Shards:   1,
-			},
-			DB: config.DBConfig{
-				FilePath:          "PeerAccountsTrie",
 				Type:              "MemoryDB",
 				BatchDelaySeconds: 30,
 				MaxBatchSize:      6,
@@ -237,7 +217,6 @@ func getGeneralConfig() config.Config {
 		TrieStorageManagerConfig: config.TrieStorageManagerConfig{
 			PruningBufferLen:      1000,
 			SnapshotsBufferLen:    10,
-			MaxSnapshots:          2,
 			SnapshotsGoroutineNum: 1,
 		},
 		VirtualMachine: config.VirtualMachineServicesConfig{
@@ -253,6 +232,10 @@ func getGeneralConfig() config.Config {
 				ArwenVersions: []config.ArwenVersionByEpoch{
 					{StartEpoch: 0, Version: "v0.3"},
 				},
+			},
+			GasConfig: config.VirtualMachineGasConfig{
+				ShardMaxGasPerVmQuery: 1_500_000_000,
+				MetaMaxGasPerVmQuery:  0,
 			},
 		},
 		SmartContractsStorageForSCQuery: config.StorageConfig{

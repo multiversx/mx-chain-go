@@ -284,9 +284,21 @@ func TestShardProcess_CreateNewBlockHeaderProcessHeaderExpectCheckRoundCalled(t 
 	require.Nil(t, err)
 	require.Equal(t, int64(1), checkRoundCt.Get())
 
+	processHandler := arguments.CoreComponents.ProcessStatusHandler()
+	mockProcessHandler := processHandler.(*testscommon.ProcessStatusHandlerStub)
+	statusBusySet := false
+	statusIdleSet := false
+	mockProcessHandler.SetIdleCalled = func() {
+		statusIdleSet = true
+	}
+	mockProcessHandler.SetBusyCalled = func(reason string) {
+		statusBusySet = true
+	}
+
 	err = shardProcessor.ProcessBlock(headerHandler, bodyHandler, func() time.Duration { return time.Second })
 	require.Nil(t, err)
 	require.Equal(t, int64(2), checkRoundCt.Get())
+	assert.True(t, statusIdleSet && statusBusySet)
 }
 
 func TestShardProcessor_ProcessWithDirtyAccountShouldErr(t *testing.T) {
@@ -1907,10 +1919,22 @@ func TestShardProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) 
 
 	sp, _ := blproc.NewShardProcessor(arguments)
 
+	processHandler := arguments.CoreComponents.ProcessStatusHandler()
+	mockProcessHandler := processHandler.(*testscommon.ProcessStatusHandlerStub)
+	statusBusySet := false
+	statusIdleSet := false
+	mockProcessHandler.SetIdleCalled = func() {
+		statusIdleSet = true
+	}
+	mockProcessHandler.SetBusyCalled = func(reason string) {
+		statusBusySet = true
+	}
+
 	err := sp.CommitBlock(hdr, body)
 	wg.Wait()
 	assert.True(t, atomic.LoadUint32(&putCalledNr) > 0)
 	assert.Nil(t, err)
+	assert.True(t, statusBusySet && statusIdleSet)
 }
 
 func TestShardProcessor_CommitBlockStorageFailsForBodyShouldWork(t *testing.T) {
@@ -4470,7 +4494,7 @@ func TestShardProcessor_updateStateStorage(t *testing.T) {
 		IsPruningEnabledCalled: func() bool {
 			return true
 		},
-		PruneTrieCalled: func(rootHashParam []byte, identifier state.TriePruningIdentifier) {
+		PruneTrieCalled: func(rootHashParam []byte, identifier state.TriePruningIdentifier, _ state.PruningHandler) {
 			pruneTrieWasCalled = true
 			assert.Equal(t, rootHash, rootHashParam)
 		},
@@ -5004,4 +5028,43 @@ func TestShardProcessor_CreateNewHeaderValsOK(t *testing.T) {
 	zeroInt := big.NewInt(0)
 	assert.Equal(t, zeroInt, headerV2.GetDeveloperFees())
 	assert.Equal(t, zeroInt, headerV2.GetAccumulatedFees())
+}
+
+func TestShardProcessor_createMiniBlocks(t *testing.T) {
+	t.Parallel()
+	coreComponents, dataComponents, boostrapComponents, statusComponents := createMockComponentHolders()
+	tx1 := &transaction.Transaction{Nonce: 0}
+	tx2 := &transaction.Transaction{Nonce: 1}
+	txs := []data.TransactionHandler{tx1, tx2}
+
+	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents, boostrapComponents, statusComponents)
+	arguments.ScheduledTxsExecutionHandler = &testscommon.ScheduledTxsExecutionStub{
+		GetScheduledMiniBlocksCalled: func() block.MiniBlockSlice {
+			return block.MiniBlockSlice{}
+		},
+		GetScheduledIntermediateTxsCalled: func() map[block.Type][]data.TransactionHandler {
+			return map[block.Type][]data.TransactionHandler{
+				block.InvalidBlock: txs,
+			}
+		},
+	}
+
+	var called = &atomicCore.Flag{}
+	arguments.TxCoordinator = &mock.TransactionCoordinatorMock{
+		AddTransactionsCalled: func(txHandlers []data.TransactionHandler, blockType block.Type) {
+			require.Equal(t, block.TxBlock, blockType)
+			require.Equal(t, txs, txHandlers)
+			called.SetValue(true)
+		},
+	}
+	arguments.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{}
+	arguments.ScheduledMiniBlocksEnableEpoch = 0
+
+	sp, err := blproc.NewShardProcessor(arguments)
+	require.Nil(t, err)
+
+	sp.EpochConfirmed(1, 0)
+	_, err = sp.CreateMiniBlocks(func() bool { return false })
+	require.Nil(t, err)
+	require.True(t, called.IsSet())
 }

@@ -16,6 +16,7 @@ import (
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/ElrondNetwork/elrond-go/update/mock"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -144,6 +145,129 @@ func TestSyncPendingTransactionsFor_MissingTxFromPool(t *testing.T) {
 	err = pendingTxsSyncer.SyncTransactionsFor(miniBlocks, 1, ctx)
 	cancel()
 	require.Equal(t, process.ErrTimeIsOut, err)
+}
+
+func TestSyncPendingTransactionsFor_requestTransactionsFor(t *testing.T) {
+	t.Parallel()
+
+	mbTxHashes := [][]byte{[]byte("txHash1"), []byte("txHash2")}
+
+	t.Run("request transactions", func(t *testing.T) {
+		args := createMockArgs()
+		requests := make(map[uint32]int)
+		args.RequestHandler = &testscommon.RequestHandlerStub{
+			RequestTransactionHandlerCalled: func(destShardID uint32, txHashes [][]byte) {
+				assert.Equal(t, mbTxHashes, txHashes)
+				requests[destShardID]++
+			},
+		}
+		pendingTxsSyncer, _ := NewTransactionsSyncer(args)
+		mb := &block.MiniBlock{
+			Type:            block.TxBlock,
+			TxHashes:        mbTxHashes,
+			SenderShardID:   0,
+			ReceiverShardID: 0,
+		}
+		numMissing := pendingTxsSyncer.requestTransactionsFor(mb)
+		require.Equal(t, 2, numMissing)
+		require.Equal(t, 1, len(requests))
+		require.Equal(t, 2, requests[0])
+
+		requests = make(map[uint32]int)
+		mb.SenderShardID = 1
+		numMissing = pendingTxsSyncer.requestTransactionsFor(mb)
+		require.Equal(t, 2, numMissing)
+		require.Equal(t, 2, len(requests))
+		require.Equal(t, 1, requests[0])
+		require.Equal(t, 1, requests[1])
+	})
+	t.Run("request invalid transactions", func(t *testing.T) {
+		args := createMockArgs()
+		requests := make(map[uint32]int)
+		args.RequestHandler = &testscommon.RequestHandlerStub{
+			RequestTransactionHandlerCalled: func(destShardID uint32, txHashes [][]byte) {
+				assert.Equal(t, mbTxHashes, txHashes)
+				requests[destShardID]++
+			},
+		}
+		pendingTxsSyncer, _ := NewTransactionsSyncer(args)
+		mb := &block.MiniBlock{
+			Type:            block.InvalidBlock,
+			TxHashes:        mbTxHashes,
+			SenderShardID:   0,
+			ReceiverShardID: 0,
+		}
+		numMissing := pendingTxsSyncer.requestTransactionsFor(mb)
+		require.Equal(t, 2, numMissing)
+		require.Equal(t, 1, len(requests))
+		require.Equal(t, 2, requests[0])
+
+		requests = make(map[uint32]int)
+		mb.SenderShardID = 1
+		numMissing = pendingTxsSyncer.requestTransactionsFor(mb)
+		require.Equal(t, 2, numMissing)
+		require.Equal(t, 2, len(requests))
+		require.Equal(t, 1, requests[0])
+		require.Equal(t, 1, requests[1])
+	})
+	t.Run("request unsigned txs", func(t *testing.T) {
+		args := createMockArgs()
+		requests := make(map[uint32]int)
+		args.RequestHandler = &testscommon.RequestHandlerStub{
+			RequestScrHandlerCalled: func(destShardID uint32, txHashes [][]byte) {
+				assert.Equal(t, mbTxHashes, txHashes)
+				requests[destShardID]++
+			},
+		}
+		pendingTxsSyncer, _ := NewTransactionsSyncer(args)
+		mb := &block.MiniBlock{
+			Type:            block.SmartContractResultBlock,
+			TxHashes:        mbTxHashes,
+			SenderShardID:   0,
+			ReceiverShardID: 0,
+		}
+		numMissing := pendingTxsSyncer.requestTransactionsFor(mb)
+		require.Equal(t, 2, numMissing)
+		require.Equal(t, 1, len(requests))
+		require.Equal(t, 2, requests[0])
+
+		requests = make(map[uint32]int)
+		mb.SenderShardID = 1
+		numMissing = pendingTxsSyncer.requestTransactionsFor(mb)
+		require.Equal(t, 2, numMissing)
+		require.Equal(t, 2, len(requests))
+		require.Equal(t, 1, requests[0])
+		require.Equal(t, 1, requests[1])
+	})
+	t.Run("request rewards txs", func(t *testing.T) {
+		args := createMockArgs()
+		requests := make(map[uint32]int)
+		args.RequestHandler = &testscommon.RequestHandlerStub{
+			RequestRewardTxHandlerCalled: func(destShardID uint32, txHashes [][]byte) {
+				assert.Equal(t, mbTxHashes, txHashes)
+				requests[destShardID]++
+			},
+		}
+		pendingTxsSyncer, _ := NewTransactionsSyncer(args)
+		mb := &block.MiniBlock{
+			Type:            block.RewardsBlock,
+			TxHashes:        mbTxHashes,
+			SenderShardID:   0,
+			ReceiverShardID: 0,
+		}
+		numMissing := pendingTxsSyncer.requestTransactionsFor(mb)
+		require.Equal(t, 2, numMissing)
+		require.Equal(t, 1, len(requests))
+		require.Equal(t, 2, requests[0])
+
+		requests = make(map[uint32]int)
+		mb.SenderShardID = 1
+		numMissing = pendingTxsSyncer.requestTransactionsFor(mb)
+		require.Equal(t, 2, numMissing)
+		require.Equal(t, 2, len(requests))
+		require.Equal(t, 1, requests[0])
+		require.Equal(t, 1, requests[1])
+	})
 }
 
 func TestSyncPendingTransactionsFor_ReceiveMissingTx(t *testing.T) {

@@ -5,10 +5,14 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 )
 
-var _ ShuffledOutHandler = (*shuffledOutTrigger)(nil)
+var log = logger.GetOrCreate("sharding/shuffledOutTrigger")
+
+var _ nodesCoordinator.ShuffledOutHandler = (*shuffledOutTrigger)(nil)
 
 type shuffledOutTrigger struct {
 	ownPubKey         []byte

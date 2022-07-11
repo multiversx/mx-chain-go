@@ -67,7 +67,6 @@ type EnableEpochs struct {
 	CreateNFTThroughExecByCallerEnableEpoch           uint32
 	StopDecreasingValidatorRatingWhenStuckEnableEpoch uint32
 	FrontRunningProtectionEnableEpoch                 uint32
-	DisableOldTrieStorageEpoch                        uint32
 	IsPayableBySCEnableEpoch                          uint32
 	CleanUpInformativeSCRsEnableEpoch                 uint32
 	StorageAPICostOptimizationEnableEpoch             uint32
@@ -75,6 +74,14 @@ type EnableEpochs struct {
 	ESDTRegisterAndSetAllRolesEnableEpoch             uint32
 	DoNotReturnOldBlockInBlockchainHookEnableEpoch    uint32
 	AddFailedRelayedTxToInvalidMBsDisableEpoch        uint32
+	SCRSizeInvariantOnBuiltInResultEnableEpoch        uint32
+	CheckCorrectTokenIDForTransferRoleEnableEpoch     uint32
+	DisableExecByCallerEnableEpoch                    uint32
+	FailExecutionOnEveryAPIErrorEnableEpoch           uint32
+	ManagedCryptoAPIsEnableEpoch                      uint32
+	RefactorContextEnableEpoch                        uint32
+	CheckFunctionArgumentEnableEpoch                  uint32
+	CheckExecuteOnReadOnlyEnableEpoch                 uint32
 	FreezeAccountFeatureEnableEpoch                   uint32
 }
 

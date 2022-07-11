@@ -107,14 +107,19 @@ func createGenesisConfig() config.EnableEpochs {
 		CreateNFTThroughExecByCallerEnableEpoch:           unreachableEpoch,
 		StopDecreasingValidatorRatingWhenStuckEnableEpoch: unreachableEpoch,
 		FrontRunningProtectionEnableEpoch:                 unreachableEpoch,
-		DisableOldTrieStorageEpoch:                        unreachableEpoch,
 		IsPayableBySCEnableEpoch:                          unreachableEpoch,
 		CleanUpInformativeSCRsEnableEpoch:                 unreachableEpoch,
 		StorageAPICostOptimizationEnableEpoch:             unreachableEpoch,
 		TransformToMultiShardCreateEnableEpoch:            unreachableEpoch,
 		ESDTRegisterAndSetAllRolesEnableEpoch:             unreachableEpoch,
 		ScheduledMiniBlocksEnableEpoch:                    unreachableEpoch,
+		FailExecutionOnEveryAPIErrorEnableEpoch:           unreachableEpoch,
 		AddFailedRelayedTxToInvalidMBsDisableEpoch:        unreachableEpoch,
+		SCRSizeInvariantOnBuiltInResultEnableEpoch:        unreachableEpoch,
+		ManagedCryptoAPIsEnableEpoch:                      unreachableEpoch,
+		CheckCorrectTokenIDForTransferRoleEnableEpoch:     unreachableEpoch,
+		DisableExecByCallerEnableEpoch:                    unreachableEpoch,
+		RefactorContextEnableEpoch:                        unreachableEpoch,
 		FreezeAccountFeatureEnableEpoch:                   unreachableEpoch,
 	}
 }
@@ -350,39 +355,42 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 	epochNotifier := forking.NewGenericEpochNotifier()
 
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:                  arg.GasSchedule,
-		MapDNSAddresses:              make(map[string]struct{}),
-		EnableUserNameChange:         false,
-		Marshalizer:                  arg.Core.InternalMarshalizer(),
-		Accounts:                     arg.Accounts,
-		ShardCoordinator:             arg.ShardCoordinator,
-		EpochNotifier:                epochNotifier,
-		ESDTMultiTransferEnableEpoch: enableEpochs.ESDTMultiTransferEnableEpoch,
-		ESDTTransferRoleEnableEpoch:  enableEpochs.ESDTTransferRoleEnableEpoch,
-		GlobalMintBurnDisableEpoch:   enableEpochs.GlobalMintBurnDisableEpoch,
-		ESDTTransferMetaEnableEpoch:  enableEpochs.BuiltInFunctionOnMetaEnableEpoch,
+		GasSchedule:                    arg.GasSchedule,
+		MapDNSAddresses:                make(map[string]struct{}),
+		EnableUserNameChange:           false,
+		Marshalizer:                    arg.Core.InternalMarshalizer(),
+		Accounts:                       arg.Accounts,
+		ShardCoordinator:               arg.ShardCoordinator,
+		EpochNotifier:                  epochNotifier,
+		ESDTMultiTransferEnableEpoch:   enableEpochs.ESDTMultiTransferEnableEpoch,
+		ESDTTransferRoleEnableEpoch:    enableEpochs.ESDTTransferRoleEnableEpoch,
+		GlobalMintBurnDisableEpoch:     enableEpochs.GlobalMintBurnDisableEpoch,
+		ESDTTransferMetaEnableEpoch:    enableEpochs.BuiltInFunctionOnMetaEnableEpoch,
+		OptimizeNFTStoreEnableEpoch:    enableEpochs.OptimizeNFTStoreEnableEpoch,
+		CheckCorrectTokenIDEnableEpoch: enableEpochs.CheckCorrectTokenIDForTransferRoleEnableEpoch,
 		GuardedAccountHandler:        disabledGuardian.NewDisabledGuardedAccountHandler(),
 	}
-	builtInFuncs, nftStorageHandler, err := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
+	builtInFuncs, nftStorageHandler, globalSettingsHandler, err := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
 	if err != nil {
 		return nil, err
 	}
 
 	argsHook := hooks.ArgBlockChainHook{
-		Accounts:           arg.Accounts,
-		PubkeyConv:         arg.Core.AddressPubKeyConverter(),
-		StorageService:     arg.Data.StorageService(),
-		BlockChain:         arg.Data.Blockchain(),
-		ShardCoordinator:   arg.ShardCoordinator,
-		Marshalizer:        arg.Core.InternalMarshalizer(),
-		Uint64Converter:    arg.Core.Uint64ByteSliceConverter(),
-		BuiltInFunctions:   builtInFuncs,
-		NFTStorageHandler:  nftStorageHandler,
-		DataPool:           arg.Data.Datapool(),
-		CompiledSCPool:     arg.Data.Datapool().SmartContracts(),
-		EpochNotifier:      epochNotifier,
-		NilCompiledSCStore: true,
-		EnableEpochs:       enableEpochs,
+		Accounts:              arg.Accounts,
+		PubkeyConv:            arg.Core.AddressPubKeyConverter(),
+		StorageService:        arg.Data.StorageService(),
+		BlockChain:            arg.Data.Blockchain(),
+		ShardCoordinator:      arg.ShardCoordinator,
+		Marshalizer:           arg.Core.InternalMarshalizer(),
+		Uint64Converter:       arg.Core.Uint64ByteSliceConverter(),
+		BuiltInFunctions:      builtInFuncs,
+		NFTStorageHandler:     nftStorageHandler,
+		GlobalSettingsHandler: globalSettingsHandler,
+		DataPool:              arg.Data.Datapool(),
+		CompiledSCPool:        arg.Data.Datapool().SmartContracts(),
+		EpochNotifier:         epochNotifier,
+		NilCompiledSCStore:    true,
+		EnableEpochs:          enableEpochs,
 	}
 	esdtTransferParser, err := parsers.NewESDTTransferParser(arg.Core.InternalMarshalizer())
 	if err != nil {
@@ -806,7 +814,14 @@ func incrementNoncesForCrossShardDelegations(processors *genesisProcessors, arg 
 		if check.IfNil(dh) {
 			continue
 		}
-		if arg.ShardCoordinator.SameShard(ia.AddressBytes(), dh.AddressBytes()) {
+		sameShard := arg.ShardCoordinator.SameShard(ia.AddressBytes(), dh.AddressBytes())
+		if len(dh.AddressBytes()) == 0 {
+			// backwards compatibility, do not make "" address be considered empty and thus, belonging to the same shard
+			if arg.ShardCoordinator.ComputeId(ia.AddressBytes()) != 0 {
+				sameShard = false
+			}
+		}
+		if sameShard {
 			continue
 		}
 

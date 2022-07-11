@@ -294,8 +294,9 @@ func (bn *branchNode) commitCheckpoint(
 	leavesChan chan core.KeyValueHolder,
 	ctx context.Context,
 	stats common.SnapshotStatisticsHandler,
+	idleProvider IdleNodeProvider,
 ) error {
-	if shouldStopIfContextDone(ctx) {
+	if shouldStopIfContextDone(ctx, idleProvider) {
 		return errors.ErrContextClosing
 	}
 
@@ -324,7 +325,7 @@ func (bn *branchNode) commitCheckpoint(
 			continue
 		}
 
-		err = bn.children[i].commitCheckpoint(originDb, targetDb, checkpointHashes, leavesChan, ctx, stats)
+		err = bn.children[i].commitCheckpoint(originDb, targetDb, checkpointHashes, leavesChan, ctx, stats, idleProvider)
 		if err != nil {
 			return err
 		}
@@ -339,8 +340,9 @@ func (bn *branchNode) commitSnapshot(
 	leavesChan chan core.KeyValueHolder,
 	ctx context.Context,
 	stats common.SnapshotStatisticsHandler,
+	idleProvider IdleNodeProvider,
 ) error {
-	if shouldStopIfContextDone(ctx) {
+	if shouldStopIfContextDone(ctx, idleProvider) {
 		return errors.ErrContextClosing
 	}
 
@@ -359,7 +361,7 @@ func (bn *branchNode) commitSnapshot(
 			continue
 		}
 
-		err = bn.children[i].commitSnapshot(db, leavesChan, ctx, stats)
+		err = bn.children[i].commitSnapshot(db, leavesChan, ctx, stats, idleProvider)
 		if err != nil {
 			return err
 		}
@@ -774,6 +776,7 @@ func (bn *branchNode) getAllLeavesOnChannel(
 	key []byte, db common.DBWriteCacher,
 	marshalizer marshal.Marshalizer,
 	chanClose chan struct{},
+	ctx context.Context,
 ) error {
 	err := bn.isEmptyOrNil()
 	if err != nil {
@@ -783,7 +786,10 @@ func (bn *branchNode) getAllLeavesOnChannel(
 	for i := range bn.children {
 		select {
 		case <-chanClose:
-			log.Trace("getAllLeavesOnChannel interrupted")
+			log.Trace("branchNode.getAllLeavesOnChannel interrupted")
+			return nil
+		case <-ctx.Done():
+			log.Trace("branchNode.getAllLeavesOnChannel context done")
 			return nil
 		default:
 			err = resolveIfCollapsed(bn, byte(i), db)
@@ -796,7 +802,7 @@ func (bn *branchNode) getAllLeavesOnChannel(
 			}
 
 			childKey := append(key, byte(i))
-			err = bn.children[i].getAllLeavesOnChannel(leavesChannel, childKey, db, marshalizer, chanClose)
+			err = bn.children[i].getAllLeavesOnChannel(leavesChannel, childKey, db, marshalizer, chanClose, ctx)
 			if err != nil {
 				return err
 			}

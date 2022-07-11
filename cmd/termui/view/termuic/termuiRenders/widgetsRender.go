@@ -11,9 +11,12 @@ import (
 	"github.com/gizak/termui/v3/widgets"
 )
 
-const statusSyncing = "currently syncing"
-const statusSynchronized = "synchronized"
-const invalidKey = "invalid key"
+const (
+	statusSyncing       = "currently syncing"
+	statusSynchronized  = "synchronized"
+	statusNotApplicable = "N/A"
+	invalidKey          = "invalid key"
+)
 
 // WidgetsRender will define termui widgets that need to display a termui console
 type WidgetsRender struct {
@@ -34,7 +37,7 @@ type WidgetsRender struct {
 	presenter view.Presenter
 }
 
-//NewWidgetsRender method will create new WidgetsRender that display termui console
+// NewWidgetsRender method will create new WidgetsRender that display termui console
 func NewWidgetsRender(presenter view.Presenter, grid *DrawableContainer) (*WidgetsRender, error) {
 	if presenter == nil || presenter.IsInterfaceNil() {
 		return nil, view.ErrNilPresenterInterface
@@ -103,7 +106,7 @@ func (wr *WidgetsRender) setGrid() {
 	wr.container.SetBottom(gridBottom)
 }
 
-//RefreshData method is used to prepare data that are displayed on container
+// RefreshData method is used to prepare data that are displayed on container
 func (wr *WidgetsRender) RefreshData(numMillisecondsRefreshTime int) {
 	wr.prepareInstanceInfo()
 	wr.prepareChainInfo(numMillisecondsRefreshTime)
@@ -113,7 +116,7 @@ func (wr *WidgetsRender) RefreshData(numMillisecondsRefreshTime int) {
 }
 
 func (wr *WidgetsRender) prepareInstanceInfo() {
-	//8 rows and one column
+	// 8 rows and one column
 	numRows := 8
 	rows := make([][]string, numRows)
 
@@ -135,7 +138,7 @@ func (wr *WidgetsRender) prepareInstanceInfo() {
 		fmt.Sprintf("Node name: %s (Shard %s - %s)",
 			nodeName,
 			shardIdStr,
-			strings.Title(nodeTypeAndListDisplay),
+			nodeTypeAndListDisplay,
 		),
 	}
 
@@ -162,30 +165,7 @@ func (wr *WidgetsRender) prepareInstanceInfo() {
 	countAcceptedBlocks := wr.presenter.GetCountAcceptedBlocks()
 	rows[4] = []string{fmt.Sprintf("Blocks proposed: %d | Blocks accepted:  %d", countLeader, countAcceptedBlocks)}
 
-	// TODO: repair the rewards estimation or replace these 2 rows with rating details
-	//switch instanceType {
-	//case string(common.NodeTypeValidator):
-	//	rewardsPerHour := wr.presenter.CalculateRewardsPerHour()
-	//	rows[5] = []string{fmt.Sprintf("Rewards estimation: %s ERD/h (without fees)", rewardsPerHour)}
-	//
-	//	var rewardsInfo []string
-	//	totalRewardsValue, diffRewards := wr.presenter.GetTotalRewardsValue()
-	//	zeroString := "0" + wr.presenter.GetZeros()
-	//	if diffRewards != zeroString {
-	//		wr.instanceInfo.RowStyles[7] = ui.NewStyle(ui.ColorGreen)
-	//		rewardsInfo = []string{fmt.Sprintf("Total rewards %s + %s ERD (without fees)", totalRewardsValue, diffRewards)}
-	//	} else {
-	//		wr.instanceInfo.RowStyles[7] = ui.NewStyle(ui.ColorWhite)
-	//		rewardsInfo = []string{fmt.Sprintf("Total rewards %s ERD (without fees)", totalRewardsValue)}
-	//	}
-	//	rows[6] = rewardsInfo
-	//
-	//default:
-	//	rows[5] = []string{""}
-	//	rows[6] = []string{""}
-	//}
-
-	rows[5] = []string{""}
+	rows[5] = []string{computeRedundancyStr(wr.presenter.GetRedundancyLevel(), wr.presenter.GetRedundancyIsMainActive())}
 	rows[6] = []string{""}
 
 	wr.instanceInfo.Title = "Elrond instance info"
@@ -194,7 +174,7 @@ func (wr *WidgetsRender) prepareInstanceInfo() {
 }
 
 func (wr *WidgetsRender) prepareChainInfo(numMillisecondsRefreshTime int) {
-	//10 rows and one column
+	// 10 rows and one column
 	numRows := 10
 	rows := make([][]string, numRows)
 
@@ -211,6 +191,8 @@ func (wr *WidgetsRender) prepareChainInfo(numMillisecondsRefreshTime int) {
 
 		blocksPerSecond := wr.presenter.CalculateSynchronizationSpeed(numMillisecondsRefreshTime)
 		blocksPerSecondMessage = fmt.Sprintf("%d blocks/sec", blocksPerSecond)
+	case currentRound == 0:
+		syncingStr = statusNotApplicable
 	default:
 		syncingStr = statusSynchronized
 	}
@@ -263,8 +245,28 @@ func (wr *WidgetsRender) prepareChainInfo(numMillisecondsRefreshTime int) {
 	wr.chainInfo.Rows = rows
 }
 
+func computeRedundancyStr(redundancyLevel int64, redundancyIsMainActive string) string {
+	if redundancyIsMainActive == statusNotApplicable {
+		return ""
+	}
+
+	redundancyStr := "Redundancy: "
+	if redundancyLevel < 0 {
+		redundancyStr += "inactive"
+	} else {
+		if redundancyLevel == 0 {
+			redundancyStr += "main machine"
+		} else {
+			redundancyStr += fmt.Sprintf("back-up #%d", redundancyLevel)
+			redundancyStr += fmt.Sprintf(" (is main active: %s)", redundancyIsMainActive)
+		}
+	}
+
+	return redundancyStr
+}
+
 func (wr *WidgetsRender) prepareBlockInfo() {
-	//7 rows and one column
+	// 7 rows and one column
 	numRows := 8
 	rows := make([][]string, numRows)
 

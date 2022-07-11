@@ -4,12 +4,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go-crypto"
+	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 )
 
 // ConsensusCoreMock -
@@ -28,7 +29,7 @@ type ConsensusCoreMock struct {
 	roundHandler            consensus.RoundHandler
 	shardCoordinator        sharding.Coordinator
 	syncTimer               ntp.SyncTimer
-	validatorGroupSelector  sharding.NodesCoordinator
+	validatorGroupSelector  nodesCoordinator.NodesCoordinator
 	epochStartNotifier      epochStart.RegistrationHandler
 	antifloodHandler        consensus.P2PAntifloodHandler
 	peerHonestyHandler      consensus.PeerHonestyHandler
@@ -104,7 +105,7 @@ func (ccm *ConsensusCoreMock) SyncTimer() ntp.SyncTimer {
 }
 
 // NodesCoordinator -
-func (ccm *ConsensusCoreMock) NodesCoordinator() sharding.NodesCoordinator {
+func (ccm *ConsensusCoreMock) NodesCoordinator() nodesCoordinator.NodesCoordinator {
 	return ccm.validatorGroupSelector
 }
 
@@ -174,7 +175,7 @@ func (ccm *ConsensusCoreMock) SetSyncTimer(syncTimer ntp.SyncTimer) {
 }
 
 // SetValidatorGroupSelector -
-func (ccm *ConsensusCoreMock) SetValidatorGroupSelector(validatorGroupSelector sharding.NodesCoordinator) {
+func (ccm *ConsensusCoreMock) SetValidatorGroupSelector(validatorGroupSelector nodesCoordinator.NodesCoordinator) {
 	ccm.validatorGroupSelector = validatorGroupSelector
 }
 
@@ -219,7 +220,7 @@ func (ccm *ConsensusCoreMock) NodeRedundancyHandler() consensus.NodeRedundancyHa
 }
 
 // ScheduledProcessor -
-func (ccm *ConsensusCoreMock) ScheduledProcessor() consensus.ScheduledProcessor{
+func (ccm *ConsensusCoreMock) ScheduledProcessor() consensus.ScheduledProcessor {
 	return ccm.scheduledProcessor
 }
 
