@@ -309,6 +309,10 @@ func (sr *subroundEndRound) ReceivedInvalidSignersInfo(cnsDta *consensus.Message
 	return sr.receivedInvalidSignersInfo(context.Background(), cnsDta)
 }
 
+func (sr *subroundEndRound) VerifyInvalidSigners(invalidSigners []byte) error {
+	return sr.verifyInvalidSigners(invalidSigners)
+}
+
 // GetStringValue gets the name of the message type
 func GetStringValue(messageType consensus.MessageType) string {
 	return getStringValue(messageType)
