@@ -198,10 +198,10 @@
     RefactorContextEnableEpoch = 1
 
     # FailExecutionOnEveryAPIErrorEnableEpoch represent the epoch when new protection in VM is enabled to fail all wrong API calls
-    FailExecutionOnEveryAPIErrorEnableEpoch = 3
+    FailExecutionOnEveryAPIErrorEnableEpoch = 1
 
     # ManagedCryptoAPIsEnableEpoch represents the epoch when new managed crypto APIs are enabled in the wasm VM
-    ManagedCryptoAPIsEnableEpoch = 4
+    ManagedCryptoAPIsEnableEpoch = 1
 
     # ESDTMetadataContinuousCleanupEnableEpoch represents the epoch when esdt metadata is automatically deleted according to inshard liquidity
     ESDTMetadataContinuousCleanupEnableEpoch = 4
@@ -211,6 +211,12 @@
 
     # MiniBlockPartialExecutionEnableEpoch represents the epoch when mini block partial execution will be enabled
     MiniBlockPartialExecutionEnableEpoch = 3
+
+    # CheckFunctionArgumentEnableEpoch represents the epoch when the extra argument check is enabled in vm-common
+    CheckFunctionArgumentEnableEpoch = 1
+
+    # CheckExecuteOnReadOnlyEnableEpoch represents the epoch when the extra checks are enabled for execution on read only
+    CheckExecuteOnReadOnlyEnableEpoch = 1
 
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
