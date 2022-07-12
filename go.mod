@@ -5,7 +5,7 @@ go 1.15
 require (
 	github.com/ElrondNetwork/arwen-wasm-vm/v1_2 v1.2.40
 	github.com/ElrondNetwork/arwen-wasm-vm/v1_3 v1.3.40
-	github.com/ElrondNetwork/arwen-wasm-vm/v1_4 v1.4.55
+	github.com/ElrondNetwork/arwen-wasm-vm/v1_4 v1.4.57
 	github.com/ElrondNetwork/concurrent-map v0.1.3
 	github.com/ElrondNetwork/covalent-indexer-go v1.0.6
 	github.com/ElrondNetwork/elastic-indexer-go v1.2.34-partial-execution
@@ -54,4 +54,4 @@ replace github.com/ElrondNetwork/arwen-wasm-vm/v1_2 v1.2.40 => github.com/Elrond
 
 replace github.com/ElrondNetwork/arwen-wasm-vm/v1_3 v1.3.40 => github.com/ElrondNetwork/arwen-wasm-vm v1.3.40
 
-replace github.com/ElrondNetwork/arwen-wasm-vm/v1_4 v1.4.55 => github.com/ElrondNetwork/arwen-wasm-vm v1.4.55
+replace github.com/ElrondNetwork/arwen-wasm-vm/v1_4 v1.4.57 => github.com/ElrondNetwork/arwen-wasm-vm v1.4.57
