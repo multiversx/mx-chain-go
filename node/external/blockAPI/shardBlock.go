@@ -100,12 +100,14 @@ func (sbp *shardAPIBlockProcessor) convertShardBlockBytesToAPIBlock(hash []byte,
 		numOfTxs += mb.GetTxCount()
 
 		miniblockAPI := &api.MiniBlock{
-			Hash:              hex.EncodeToString(mb.GetHash()),
-			Type:              block.Type(mb.GetTypeInt32()).String(),
-			SourceShard:       mb.GetSenderShardID(),
-			DestinationShard:  mb.GetReceiverShardID(),
-			ProcessingType:    block.ProcessingType(mb.GetProcessingType()).String(),
-			ConstructionState: block.MiniBlockState(mb.GetConstructionState()).String(),
+			Hash:                    hex.EncodeToString(mb.GetHash()),
+			Type:                    block.Type(mb.GetTypeInt32()).String(),
+			SourceShard:             mb.GetSenderShardID(),
+			DestinationShard:        mb.GetReceiverShardID(),
+			ProcessingType:          block.ProcessingType(mb.GetProcessingType()).String(),
+			ConstructionState:       block.MiniBlockState(mb.GetConstructionState()).String(),
+			IndexOfFirstTxProcessed: mb.GetIndexOfFirstTxProcessed(),
+			IndexOfLastTxProcessed:  mb.GetIndexOfLastTxProcessed(),
 		}
 		if options.WithTransactions {
 			miniBlockCopy := mb
