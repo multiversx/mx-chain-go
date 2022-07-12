@@ -710,6 +710,7 @@
 
 [BuiltInFunctions]
     AutomaticCrawlerAddress = "erd1fpkcgel4gcmh8zqqdt043yfcn5tyx8373kg6q2qmkxzu4dqamc0swts65c"
+    MaxNumAddressesInTransferRole = 100
 
 [Hardfork]
     EnableTrigger = true

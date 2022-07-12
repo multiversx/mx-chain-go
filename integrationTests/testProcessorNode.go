@@ -860,6 +860,7 @@ func (tpn *TestProcessorNode) createFullSCQueryService() {
 		EpochNotifier:              tpn.EpochNotifier,
 		GlobalMintBurnDisableEpoch: tpn.EnableEpochs.GlobalMintBurnDisableEpoch,
 		AutomaticCrawlerAddress:    bytes.Repeat([]byte{1}, 32),
+		MaxNumNodesInTransferRole:  100,
 	}
 	builtInFuncs, nftStorageHandler, globalSettingsHandler, _ := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
 
@@ -1496,6 +1497,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		EpochNotifier:              tpn.EpochNotifier,
 		GlobalMintBurnDisableEpoch: tpn.EnableEpochs.GlobalMintBurnDisableEpoch,
 		AutomaticCrawlerAddress:    bytes.Repeat([]byte{1}, 32),
+		MaxNumNodesInTransferRole:  100,
 	}
 	builtInFuncs, nftStorageHandler, globalSettingsHandler, _ := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
 
@@ -1719,6 +1721,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		EpochNotifier:              tpn.EpochNotifier,
 		GlobalMintBurnDisableEpoch: tpn.EnableEpochs.GlobalMintBurnDisableEpoch,
 		AutomaticCrawlerAddress:    bytes.Repeat([]byte{1}, 32),
+		MaxNumNodesInTransferRole:  100,
 	}
 	builtInFuncs, nftStorageHandler, globalSettingsHandler, _ := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
 	argsHook := hooks.ArgBlockChainHook{
