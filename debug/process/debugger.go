@@ -3,7 +3,7 @@ package process
 import (
 	"context"
 	"fmt"
-	"runtime/debug"
+	"runtime"
 	"sync"
 	"time"
 
@@ -13,6 +13,7 @@ import (
 
 const minAcceptedValue = 1
 
+const buffSize = 100 * 1024 * 1024 // 100MB
 var log = logger.GetOrCreate("debug/process")
 
 type processDebugger struct {
@@ -49,7 +50,9 @@ func NewProcessDebugger(config config.ProcessDebugConfig) (*processDebugger, err
 	ctx, cancel := context.WithCancel(context.Background())
 	d.cancel = cancel
 	d.goRoutinesDumpHandler = func() {
-		log.Debug(string(debug.Stack()))
+		buff := make([]byte, buffSize)
+		numBytes := runtime.Stack(buff, true)
+		log.Debug(string(buff[:numBytes]))
 	}
 	d.logChangeHandler = func() {
 		errSetLogLevel := logger.SetLogLevel(d.logLevel)
@@ -71,7 +74,7 @@ func checkConfigs(config config.ProcessDebugConfig) error {
 }
 
 func (debugger *processDebugger) processLoop(ctx context.Context) {
-	log.Debug("process debugger processLoop is starting...")
+	log.Debug("processor debugger processLoop is starting...")
 
 	defer debugger.timer.Stop()
 
@@ -80,7 +83,7 @@ func (debugger *processDebugger) processLoop(ctx context.Context) {
 
 		select {
 		case <-ctx.Done():
-			log.Debug("process debugger processLoop is closing...")
+			log.Debug("processor debugger processLoop is closing...")
 			return
 		case <-debugger.timer.C:
 			debugger.checkRounds()
