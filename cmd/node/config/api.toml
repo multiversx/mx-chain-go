@@ -119,7 +119,10 @@
         { Name = "/genesis-nodes", Open = true },
 
         # /network/genesis-balances will return the balances minted at genesis
-        { Name = "/genesis-balances", Open = true }
+        { Name = "/genesis-balances", Open = true },
+
+        # /network/gas-configs will return currently scheduled gas configs
+        { Name = "/gas-configs", Open = true }
     ]
 
 [APIPackages.log]

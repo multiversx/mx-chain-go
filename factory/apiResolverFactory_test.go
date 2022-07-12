@@ -51,7 +51,7 @@ func TestCreateApiResolver(t *testing.T) {
 		BootstrapComponents: mbc,
 		CryptoComponents:    cryptoComponents,
 		ProcessComponents:   processComponents,
-		GasScheduleNotifier: &mock.GasScheduleNotifierMock{
+		GasScheduleNotifier: &testscommon.GasScheduleNotifierMock{
 			GasSchedule: gasSchedule,
 		},
 		Bootstrapper:       disabled.NewDisabledBootstrapper(),
