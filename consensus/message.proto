@@ -23,5 +23,4 @@ message Message {
 	bytes    LeaderSignature    = 12;
 	bytes    OriginatorPid      = 13;
     bytes    InvalidSigners     = 14;
-    int64    NumInvalidSigners  = 15;
 }
