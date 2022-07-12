@@ -5401,4 +5401,10 @@ func TestDelegationSystemSC_ExecuteChangeOwner(t *testing.T) {
 	returnCode := d.Execute(vmInput)
 	assert.Equal(t, returnCode, vmcommon.Ok)
 	assert.Equal(t, delegationsMap[ownerKey], []byte("second123"))
+
+	vmInput.CallerAddr = []byte("second123")
+	vmInput.Arguments[0] = []byte("ownerAddr")
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, returnCode, vmcommon.Ok)
+	assert.Equal(t, delegationsMap[ownerKey], []byte("ownerAddr"))
 }
