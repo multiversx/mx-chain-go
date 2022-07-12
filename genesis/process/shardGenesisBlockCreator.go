@@ -371,6 +371,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		CheckCorrectTokenIDEnableEpoch:           enableEpochs.CheckCorrectTokenIDForTransferRoleEnableEpoch,
 		ESDTMetadataContinuousCleanupEnableEpoch: enableEpochs.ESDTMetadataContinuousCleanupEnableEpoch,
 		AutomaticCrawlerAddress:                  make([]byte, 32),
+		MaxNumNodesInTransferRole:                math.MaxUint32,
 	}
 	builtInFuncs, nftStorageHandler, globalSettingsHandler, err := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
 	if err != nil {
