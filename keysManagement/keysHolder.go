@@ -13,26 +13,26 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 )
 
+const minRoundsWithoutReceivedMessages = 1
+
 var log = logger.GetOrCreate("keysManagement")
 
-type peerInfo struct {
-	pid                core.PeerID
-	p2pPrivateKeyBytes []byte
-	privateKey         crypto.PrivateKey
-	machineID          string
-}
-
 type virtualPeersHolder struct {
-	mut                  sync.RWMutex
-	data                 map[string]*peerInfo
-	keyGenerator         crypto.KeyGenerator
-	p2pIdentityGenerator P2PIdentityGenerator
+	mut                              sync.RWMutex
+	data                             map[string]*peerInfo
+	pids                             map[core.PeerID]struct{}
+	keyGenerator                     crypto.KeyGenerator
+	p2pIdentityGenerator             P2PIdentityGenerator
+	isMainMachine                    bool
+	maxRoundsWithoutReceivedMessages int
 }
 
 // ArgsVirtualPeersHolder represents the argument for the virtual peers holder
 type ArgsVirtualPeersHolder struct {
-	KeyGenerator         crypto.KeyGenerator
-	P2PIdentityGenerator P2PIdentityGenerator
+	KeyGenerator                     crypto.KeyGenerator
+	P2PIdentityGenerator             P2PIdentityGenerator
+	IsMainMachine                    bool
+	MaxRoundsWithoutReceivedMessages int
 }
 
 // NewVirtualPeersHolder creates a new instance of a virtual peers holder
@@ -43,9 +43,12 @@ func NewVirtualPeersHolder(args ArgsVirtualPeersHolder) (*virtualPeersHolder, er
 	}
 
 	return &virtualPeersHolder{
-		data:                 make(map[string]*peerInfo),
-		keyGenerator:         args.KeyGenerator,
-		p2pIdentityGenerator: args.P2PIdentityGenerator,
+		data:                             make(map[string]*peerInfo),
+		pids:                             make(map[core.PeerID]struct{}),
+		keyGenerator:                     args.KeyGenerator,
+		p2pIdentityGenerator:             args.P2PIdentityGenerator,
+		isMainMachine:                    args.IsMainMachine,
+		maxRoundsWithoutReceivedMessages: args.MaxRoundsWithoutReceivedMessages,
 	}, nil
 }
 
@@ -55,6 +58,10 @@ func checkVirtualPeersHolderArgs(args ArgsVirtualPeersHolder) error {
 	}
 	if check.IfNil(args.P2PIdentityGenerator) {
 		return errNilP2PIdentityGenerator
+	}
+	if args.MaxRoundsWithoutReceivedMessages < minRoundsWithoutReceivedMessages {
+		return fmt.Errorf("%w for MaxRoundsWithoutReceivedMessages, minimum %d, got %d",
+			errInvalidValue, minRoundsWithoutReceivedMessages, args.MaxRoundsWithoutReceivedMessages)
 	}
 
 	return nil
@@ -97,6 +104,7 @@ func (holder *virtualPeersHolder) AddVirtualPeer(privateKeyBytes []byte) error {
 	}
 
 	holder.data[string(publicKeyBytes)] = pInfo
+	holder.pids[pid] = struct{}{}
 
 	log.Debug("added new key definition",
 		"hex public key", hex.EncodeToString(publicKeyBytes),
@@ -151,6 +159,89 @@ func (holder *virtualPeersHolder) GetMachineID(pkBytes []byte) (string, error) {
 	}
 
 	return pInfo.machineID, nil
+}
+
+// IncrementRoundsWithoutReceivedMessages increments the number of rounds without received messages on a provided public key
+func (holder *virtualPeersHolder) IncrementRoundsWithoutReceivedMessages(pkBytes []byte) error {
+	if holder.isMainMachine {
+		return nil
+	}
+
+	pInfo := holder.getPeerInfo(pkBytes)
+	if pInfo == nil {
+		return fmt.Errorf("%w in IncrementRoundsWithoutReceivedMessages for public key %s",
+			errMissingPublicKeyDefinition, hex.EncodeToString(pkBytes))
+	}
+
+	pInfo.incrementRoundsWithoutReceivedMessages()
+
+	return nil
+}
+
+// ResetRoundsWithoutReceivedMessages resets the number of rounds without received messages on a provided public key
+func (holder *virtualPeersHolder) ResetRoundsWithoutReceivedMessages(pkBytes []byte) error {
+	if holder.isMainMachine {
+		return nil
+	}
+
+	pInfo := holder.getPeerInfo(pkBytes)
+	if pInfo == nil {
+		return fmt.Errorf("%w in ResetRoundsWithoutReceivedMessages for public key %s",
+			errMissingPublicKeyDefinition, hex.EncodeToString(pkBytes))
+	}
+
+	pInfo.resetRoundsWithoutReceivedMessages()
+
+	return nil
+}
+
+// GetManagedKeysByCurrentNode returns all keys that will be managed by this node
+func (holder *virtualPeersHolder) GetManagedKeysByCurrentNode() map[string]crypto.PrivateKey {
+	holder.mut.RLock()
+	defer holder.mut.RUnlock()
+
+	allManagedKeys := make(map[string]crypto.PrivateKey)
+	for pk, pInfo := range holder.data {
+		isSlaveAndMainFailed := !holder.isMainMachine && !pInfo.isNodeActiveOnMainMachine(holder.maxRoundsWithoutReceivedMessages)
+		shouldAddToMap := holder.isMainMachine || isSlaveAndMainFailed
+		if !shouldAddToMap {
+			continue
+		}
+
+		allManagedKeys[pk] = pInfo.privateKey
+	}
+
+	return allManagedKeys
+}
+
+// IsKeyManagedByCurrentNode returns true if the key is managed by the current node
+func (holder *virtualPeersHolder) IsKeyManagedByCurrentNode(pkBytes []byte) bool {
+	pInfo := holder.getPeerInfo(pkBytes)
+	if pInfo == nil {
+		return false
+	}
+
+	if holder.isMainMachine {
+		return true
+	}
+
+	return !pInfo.isNodeActiveOnMainMachine(holder.maxRoundsWithoutReceivedMessages)
+}
+
+// IsKeyRegistered returns true if the key is registered (not necessarily managed by the current node)
+func (holder *virtualPeersHolder) IsKeyRegistered(pkBytes []byte) bool {
+	pInfo := holder.getPeerInfo(pkBytes)
+	return pInfo != nil
+}
+
+// IsPidManagedByCurrentNode returns true if the peer id is managed by the current node
+func (holder *virtualPeersHolder) IsPidManagedByCurrentNode(pid core.PeerID) bool {
+	holder.mut.RLock()
+	defer holder.mut.RUnlock()
+
+	_, found := holder.pids[pid]
+
+	return found
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
