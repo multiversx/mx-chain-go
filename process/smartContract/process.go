@@ -123,8 +123,6 @@ type scProcessor struct {
 	txLogsProcessor     process.TransactionLogProcessor
 	vmOutputCacher      storage.Cacher
 	isGenesisProcessing bool
-
-	asyncParams [][]byte
 }
 
 // ArgsNewSmartContractProcessor defines the arguments needed for new smart contract processor
@@ -467,9 +465,10 @@ func (sc *scProcessor) executeSmartContractCall(
 
 	if bytes.Equal(vmType, vmFactory.SystemVirtualMachine) {
 		// TODO matei-p for system vm calls add async param back to async callback transfer (if one exists)
+		newAsyncParams := createCallbackAsyncParams(asyncParams)
 		errAsyncParams := contexts.AddAsyncParamsToVmOutput(
 			tx.GetRcvAddr(),
-			asyncParams,
+			newAsyncParams,
 			vmData.AsynchronousCallBack,
 			sc.argsParser.ParseCallData,
 			vmOutput)
@@ -951,7 +950,6 @@ func (sc *scProcessor) doExecuteBuiltInFunction(
 	}
 	// TODO matei-p extract async framework and save
 	asyncParams, err := contexts.RemoveAsyncContextArguments(vmInput)
-	sc.asyncParams = asyncParams
 	if err != nil {
 		log.Debug("processed built in functions error (async params extraction)", "error", err.Error())
 		return 0, err
@@ -1024,14 +1022,15 @@ func (sc *scProcessor) doExecuteBuiltInFunction(
 		return vmcommon.UserError, nil
 	}
 
+	newAsyncParams := createCallbackAsyncParams(asyncParams)
+
 	// TODO matei-p prepend async params
 	err = contexts.AddAsyncParamsToVmOutput(
 		tx.GetRcvAddr(),
-		sc.asyncParams,
+		newAsyncParams,
 		vmData.AsynchronousCallBack,
 		sc.argsParser.ParseCallData,
 		vmOutput)
-	sc.asyncParams = nil
 	if err != nil {
 		log.Debug("run smart contract call error (async params prepend)", "error", err.Error())
 		return vmcommon.UserError, nil
@@ -1097,6 +1096,18 @@ func (sc *scProcessor) doExecuteBuiltInFunction(
 	}
 
 	return sc.finishSCExecution(scrResults, txHash, tx, newVMOutput, builtInFuncGasUsed)
+}
+
+func createCallbackAsyncParams(asyncParams [][]byte) [][]byte {
+	if asyncParams == nil {
+		return nil
+	}
+	newAsyncParams := make([][]byte, 4)
+	newAsyncParams[0] = contexts.GenerateNewCallID(asyncParams[0], []byte{0})
+	newAsyncParams[1] = asyncParams[0]
+	newAsyncParams[2] = asyncParams[1]
+	newAsyncParams[3] = []byte{0}
+	return newAsyncParams
 }
 
 func mergeVMOutputLogs(newVMOutput *vmcommon.VMOutput, vmOutput *vmcommon.VMOutput) {
@@ -2116,10 +2127,27 @@ func (sc *scProcessor) createSCRsWhenError(
 				scr.GasLimit = gasLocked
 				consumedFee = sc.economicsFee.ComputeFeeForProcessing(tx, tx.GetGasLimit()-gasLocked)
 			}
-			// for _, arg := range sc.asyncParams {
-			// 	accumulatedSCRData += "@" + hex.EncodeToString(arg)
-			// }
-			sc.asyncParams = nil
+
+			function, args, err := sc.argsParser.ParseCallData(accumulatedSCRData)
+			if err != nil {
+				log.Trace("scProcessor.createSCRsWhenError()", "error parsing args", accumulatedSCRData)
+				return nil, nil
+			}
+
+			if len(args) < 2 {
+				log.Trace("scProcessor.createSCRsWhenError()", "no async params found", accumulatedSCRData)
+				return nil, nil
+			}
+
+			asyncParams := [][]byte{args[0], args[1]}
+			newAsyncParams := createCallbackAsyncParams(asyncParams)
+			newArgs := append(newAsyncParams, args[2:]...)
+
+			accumulatedSCRData = function
+			for _, arg := range newArgs {
+				accumulatedSCRData += "@" + hex.EncodeToString(arg)
+			}
+
 			accumulatedSCRData += "@" + core.ConvertToEvenHex(int(vmcommon.UserError))
 			if sc.flagRepairCallBackData.IsSet() {
 				accumulatedSCRData += "@" + hex.EncodeToString(returnMessage)
