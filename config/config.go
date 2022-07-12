@@ -588,6 +588,7 @@ type TrieSyncConfig struct {
 	NumConcurrentTrieSyncers  int
 	MaxHardCapForMissingNodes int
 	TrieSyncerVersion         int
+	CheckNodesOnDisk          bool
 }
 
 // ResolverConfig represents the config options to be used when setting up the resolver instances

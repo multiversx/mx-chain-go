@@ -384,6 +384,7 @@ func GetGeneralConfig() config.Config {
 			NumConcurrentTrieSyncers:  50,
 			MaxHardCapForMissingNodes: 500,
 			TrieSyncerVersion:         2,
+			CheckNodesOnDisk:          false,
 		},
 		Antiflood: config.AntifloodConfig{
 			NumConcurrentResolverJobs: 2,

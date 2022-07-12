@@ -141,6 +141,7 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 		TrieSyncStatistics:        tss,
 		TimeoutHandler:            testscommon.NewTimeoutHandlerMock(timeout),
 		MaxHardCapForMissingNodes: 10000,
+		CheckNodesOnDisk:          false,
 	}
 	trieSyncer, _ := trie.NewDoubleListTrieSyncer(arg)
 
@@ -271,6 +272,7 @@ func TestNode_RequestInterceptTrieNodesWithMessengerNotSyncingShouldErr(t *testi
 		TrieSyncStatistics:        tss,
 		TimeoutHandler:            testscommon.NewTimeoutHandlerMock(timeout),
 		MaxHardCapForMissingNodes: 10000,
+		CheckNodesOnDisk:          false,
 	}
 	trieSyncer, _ := trie.NewDoubleListTrieSyncer(arg)
 
@@ -376,6 +378,7 @@ func testMultipleDataTriesSync(t *testing.T, numAccounts int, numDataTrieLeaves 
 			MaxTrieLevelInMemory:      200,
 			MaxHardCapForMissingNodes: 5000,
 			TrieSyncerVersion:         2,
+			CheckNodesOnDisk:          false,
 		},
 		ShardId:                shardID,
 		Throttler:              thr,
