@@ -11,3 +11,10 @@ type InterceptorResolverDebugHandler interface {
 	Close() error
 	IsInterfaceNil() bool
 }
+
+// ProcessDebugger defines what a process debugger implementation should do
+type ProcessDebugger interface {
+	SetLastCommittedBlockRound(round uint64)
+	Close() error
+	IsInterfaceNil() bool
+}

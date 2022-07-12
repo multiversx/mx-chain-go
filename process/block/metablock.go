@@ -93,6 +93,11 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		pruningDelay = defaultPruningDelay
 	}
 
+	processDebugger, err := createDisabledProcessDebugger()
+	if err != nil {
+		return nil, err
+	}
+
 	genesisHdr := arguments.DataComponents.Blockchain().GetGenesisHeader()
 	base := &baseProcessor{
 		accountsDB:                     arguments.AccountsDB,
@@ -133,6 +138,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		scheduledMiniBlocksEnableEpoch: arguments.ScheduledMiniBlocksEnableEpoch,
 		pruningDelay:                   pruningDelay,
 		processedMiniBlocksTracker:     arguments.ProcessedMiniBlocksTracker,
+		processDebugger:                processDebugger,
 	}
 
 	mp := metaProcessor{
@@ -1266,6 +1272,8 @@ func (mp *metaProcessor) CommitBlock(
 		"round", headerHandler.GetRound(),
 		"nonce", headerHandler.GetNonce(),
 		"hash", headerHash)
+
+	mp.updateLastCommittedInDebugger(headerHandler.GetRound())
 
 	notarizedHeadersHashes, errNotCritical := mp.updateCrossShardInfo(header)
 	if errNotCritical != nil {

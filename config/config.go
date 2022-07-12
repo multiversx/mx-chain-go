@@ -468,6 +468,7 @@ type DebugConfig struct {
 	Antiflood           AntifloodDebugConfig
 	ShuffleOut          ShuffleOutDebugConfig
 	EpochStart          EpochStartDebugConfig
+	Process             ProcessDebugConfig
 }
 
 // HealthServiceConfig will hold health service (monitoring) configuration
@@ -509,6 +510,14 @@ type ShuffleOutDebugConfig struct {
 type EpochStartDebugConfig struct {
 	GoRoutineAnalyserEnabled     bool
 	ProcessDataTrieOnCommitEpoch bool
+}
+
+// ProcessDebugConfig will hold the process debug configuration
+type ProcessDebugConfig struct {
+	Enabled              bool
+	LogLevelChanger      string
+	GoRoutinesDump       bool
+	PollingTimeInSeconds int
 }
 
 // ApiRoutesConfig holds the configuration related to Rest API routes

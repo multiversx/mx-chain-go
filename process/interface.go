@@ -1244,3 +1244,10 @@ type ProcessedMiniBlocksTracker interface {
 	DisplayProcessedMiniBlocks()
 	IsInterfaceNil() bool
 }
+
+// Debugger defines what a process debugger implementation should do
+type Debugger interface {
+	SetLastCommittedBlockRound(round uint64)
+	Close() error
+	IsInterfaceNil() bool
+}

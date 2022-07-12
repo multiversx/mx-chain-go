@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	debugFactory "github.com/ElrondNetwork/elrond-go/debug/factory"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
 	metachainEpochStart "github.com/ElrondNetwork/elrond-go/epochStart/metachain"
@@ -416,6 +417,11 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 	blockProcessor, err := block.NewShardProcessor(arguments)
 	if err != nil {
 		return nil, errors.New("could not create block statisticsProcessor: " + err.Error())
+	}
+
+	err = pcf.attachProcessDebugger(blockProcessor, pcf.config.Debug.Process)
+	if err != nil {
+		return nil, err
 	}
 
 	blockProcessorComponents := &blockProcessorAndVmFactories{
@@ -854,6 +860,11 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		return nil, errors.New("could not create block processor: " + err.Error())
 	}
 
+	err = pcf.attachProcessDebugger(metaProcessor, pcf.config.Debug.Process)
+	if err != nil {
+		return nil, err
+	}
+
 	blockProcessorComponents := &blockProcessorAndVmFactories{
 		blockProcessor:         metaProcessor,
 		vmFactoryForTxSimulate: vmFactoryTxSimulator,
@@ -861,6 +872,18 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	}
 
 	return blockProcessorComponents, nil
+}
+
+func (pcf *processComponentsFactory) attachProcessDebugger(
+	processor processDebuggerSetter,
+	configs config.ProcessDebugConfig,
+) error {
+	processDebugger, err := debugFactory.CreateProcessDebugger(configs)
+	if err != nil {
+		return err
+	}
+
+	return processor.SetProcessDebugger(processDebugger)
 }
 
 func (pcf *processComponentsFactory) createShardTxSimulatorProcessor(

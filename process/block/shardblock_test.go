@@ -2112,13 +2112,27 @@ func TestShardProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 	arguments.BlockTracker = blockTrackerMock
 
 	sp, _ := blproc.NewShardProcessor(arguments)
+	debuggerMethodWasCalled := false
+	debugger := &testscommon.ProcessDebuggerStub{
+		SetLastCommittedBlockRoundCalled: func(round uint64) {
+			assert.Equal(t, hdr.Round, round)
+			debuggerMethodWasCalled = true
+		},
+	}
 
-	err := sp.ProcessBlock(hdr, body, haveTime)
+	err := sp.SetProcessDebugger(nil)
+	assert.Equal(t, process.ErrNilProcessDebugger, err)
+
+	err = sp.SetProcessDebugger(debugger)
+	assert.Nil(t, err)
+
+	err = sp.ProcessBlock(hdr, body, haveTime)
 	assert.Nil(t, err)
 	err = sp.CommitBlock(hdr, body)
 	assert.Nil(t, err)
 	assert.True(t, forkDetectorAddCalled)
 	assert.Equal(t, hdrHash, blkc.GetCurrentBlockHeaderHash())
+	assert.True(t, debuggerMethodWasCalled)
 	// this should sleep as there is an async call to display current hdr and block in CommitBlock
 	time.Sleep(time.Second)
 }

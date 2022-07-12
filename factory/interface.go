@@ -497,3 +497,7 @@ type LogsFacade interface {
 	IncludeLogsInTransactions(txs []*transaction.ApiTransactionResult, logsKeys [][]byte, epoch uint32) error
 	IsInterfaceNil() bool
 }
+
+type processDebuggerSetter interface {
+	SetProcessDebugger(debugger process.Debugger) error
+}

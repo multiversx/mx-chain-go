@@ -1122,10 +1122,10 @@ var ErrMissingMiniBlock = errors.New("missing mini block")
 // ErrIndexIsOutOfBound signals that the given index is out of bound
 var ErrIndexIsOutOfBound = errors.New("index is out of bound")
 
-// ErrIndexDoesNotMatchWithPartialExecuted signals that the given index does not match with a partial executed mini block
+// ErrIndexDoesNotMatchWithPartialExecutedMiniBlock signals that the given index does not match with a partial executed mini block
 var ErrIndexDoesNotMatchWithPartialExecutedMiniBlock = errors.New("index does not match with a partial executed mini block")
 
-// ErrIndexDoesNotMatchWithFullyExecuted signals that the given index does not match with a fully executed mini block
+// ErrIndexDoesNotMatchWithFullyExecutedMiniBlock signals that the given index does not match with a fully executed mini block
 var ErrIndexDoesNotMatchWithFullyExecutedMiniBlock = errors.New("index does not match with a fully executed mini block")
 
 // ErrNilProcessedMiniBlocksTracker signals that a nil processed mini blocks tracker has been provided
@@ -1133,3 +1133,6 @@ var ErrNilProcessedMiniBlocksTracker = errors.New("nil processed mini blocks tra
 
 // ErrNilESDTGlobalSettingsHandler signals that nil global settings handler was provided
 var ErrNilESDTGlobalSettingsHandler = errors.New("nil esdt global settings handler")
+
+// ErrNilProcessDebugger signals that a nil process debugger was provided
+var ErrNilProcessDebugger = errors.New("nil process debugger")
