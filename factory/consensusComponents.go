@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
 	"github.com/ElrondNetwork/elrond-go/errors"
+	"github.com/ElrondNetwork/elrond-go/factory/disabled"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/sync"
 	"github.com/ElrondNetwork/elrond-go/process/sync/storageBootstrap"
@@ -238,6 +239,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		FallbackHeaderValidator:       ccf.processComponents.FallbackHeaderValidator(),
 		NodeRedundancyHandler:         ccf.processComponents.NodeRedundancyHandler(),
 		ScheduledProcessor:            ccf.scheduledProcessor,
+		MessageSigningHandler:         &disabled.MessageSigner{},
 	}
 
 	consensusDataContainer, err := spos.NewConsensusCore(

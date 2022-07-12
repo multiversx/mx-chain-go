@@ -6,7 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-crypto"
+	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 )
 
@@ -145,5 +145,13 @@ type ScheduledProcessor interface {
 	StartScheduledProcessing(header data.HeaderHandler, body data.BodyHandler, startTime time.Time)
 	ForceStopScheduledExecutionBlocking()
 	IsProcessedOKWithTimeout() bool
+	IsInterfaceNil() bool
+}
+
+// P2PSigningHandler
+type P2PSigningHandler interface {
+	Verify(message p2p.MessageP2P) error
+	Serialize(messages []p2p.MessageP2P) ([]byte, error)
+	Deserialize(messagesBytes []byte) ([]p2p.MessageP2P, error)
 	IsInterfaceNil() bool
 }

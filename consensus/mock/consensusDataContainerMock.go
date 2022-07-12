@@ -37,6 +37,7 @@ type ConsensusCoreMock struct {
 	fallbackHeaderValidator consensus.FallbackHeaderValidator
 	nodeRedundancyHandler   consensus.NodeRedundancyHandler
 	scheduledProcessor      consensus.ScheduledProcessor
+	messageSigningHandler   consensus.P2PSigningHandler
 }
 
 // GetAntiFloodHandler -
@@ -227,6 +228,16 @@ func (ccm *ConsensusCoreMock) ScheduledProcessor() consensus.ScheduledProcessor 
 // SetNodeRedundancyHandler -
 func (ccm *ConsensusCoreMock) SetNodeRedundancyHandler(nodeRedundancyHandler consensus.NodeRedundancyHandler) {
 	ccm.nodeRedundancyHandler = nodeRedundancyHandler
+}
+
+// MessageSigningHandler -
+func (ccm *ConsensusCoreMock) MessageSigningHandler() consensus.P2PSigningHandler {
+	return ccm.messageSigningHandler
+}
+
+// SetMessageSigningHandler -
+func (ccm *ConsensusCoreMock) SetMessageSigningHandler(messageSigningHandler consensus.P2PSigningHandler) {
+	ccm.messageSigningHandler = messageSigningHandler
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
