@@ -954,6 +954,13 @@ func (d *delegation) changeOwner(args *vmcommon.ContractCallInput) vmcommon.Retu
 		return vmcommon.UserError
 	}
 
+	dataFromDelegationMGR := d.eei.GetStorageFromAddress(d.delegationMgrSCAddress, args.Arguments[0])
+	if len(dataFromDelegationMGR) > 0 {
+		d.eei.AddReturnMessage("destination already deployed a delegation sc")
+		return vmcommon.UserError
+	}
+
+	d.eei.SetStorageForAddress(d.delegationMgrSCAddress, args.RecipientAddr, args.Arguments[0])
 	d.eei.SetStorage([]byte(ownerKey), args.Arguments[0])
 
 	return vmcommon.Ok
