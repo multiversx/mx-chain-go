@@ -37,6 +37,7 @@ type ApiResolverStub struct {
 	GetTransactionsPoolForSenderCalled          func(sender, fields string) (*common.TransactionsPoolForSenderApiResponse, error)
 	GetLastPoolNonceForSenderCalled             func(sender string) (uint64, error)
 	GetTransactionsPoolNonceGapsForSenderCalled func(sender string) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error)
+	GetGasConfigsCalled                         func() map[string]map[string]uint64
 }
 
 // GetTransaction -
@@ -244,6 +245,15 @@ func (ars *ApiResolverStub) GetGenesisBalances() ([]*common.InitialAccountAPI, e
 	}
 
 	return nil, nil
+}
+
+// GetGasConfigs -
+func (ars *ApiResolverStub) GetGasConfigs() map[string]map[string]uint64 {
+	if ars.GetGasConfigsCalled != nil {
+		return ars.GetGasConfigsCalled()
+	}
+
+	return nil
 }
 
 // Close -
