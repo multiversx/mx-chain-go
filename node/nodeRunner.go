@@ -507,7 +507,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 func (nr *nodeRunner) createApiFacade(
 	currentNode *Node,
 	upgradableHttpServer shared.UpgradeableHttpServerHandler,
-	gasScheduleNotifier core.GasScheduleNotifier,
+	gasScheduleNotifier common.GasScheduleNotifierAPI,
 	allowVMQueriesChan chan struct{},
 ) (closing.Closer, error) {
 	configs := nr.configs

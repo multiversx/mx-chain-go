@@ -622,6 +622,16 @@ func (nf *nodeFacade) GetGenesisBalances() ([]*common.InitialAccountAPI, error) 
 	return initialAccounts, nil
 }
 
+// GetGasConfigs will return currently using gas schedule configs
+func (nf *nodeFacade) GetGasConfigs() (map[string]map[string]uint64, error) {
+	gasConfigs := nf.apiResolver.GetGasConfigs()
+	if len(gasConfigs) == 0 {
+		return nil, ErrEmptyGasConfigs
+	}
+
+	return gasConfigs, nil
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (nf *nodeFacade) IsInterfaceNil() bool {
 	return nf == nil

@@ -75,6 +75,7 @@ type FacadeStub struct {
 	GetTransactionsPoolForSenderCalled          func(sender, fields string) (*common.TransactionsPoolForSenderApiResponse, error)
 	GetLastPoolNonceForSenderCalled             func(sender string) (uint64, error)
 	GetTransactionsPoolNonceGapsForSenderCalled func(sender string) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error)
+	GetGasConfigsCalled                         func() (map[string]map[string]uint64, error)
 }
 
 // GetTokenSupply -
@@ -476,6 +477,15 @@ func (f *FacadeStub) GetLastPoolNonceForSender(sender string) (uint64, error) {
 func (f *FacadeStub) GetTransactionsPoolNonceGapsForSender(sender string) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error) {
 	if f.GetTransactionsPoolNonceGapsForSenderCalled != nil {
 		return f.GetTransactionsPoolNonceGapsForSenderCalled(sender)
+	}
+
+	return nil, nil
+}
+
+// GetGasConfigs -
+func (f *FacadeStub) GetGasConfigs() (map[string]map[string]uint64, error) {
+	if f.GetGasConfigsCalled != nil {
+		return f.GetGasConfigsCalled()
 	}
 
 	return nil, nil
