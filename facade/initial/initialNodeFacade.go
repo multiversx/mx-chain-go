@@ -361,6 +361,11 @@ func (inf *initialNodeFacade) GetTransactionsPoolForSender(_, _ string) (*common
 	return nil, errNodeStarting
 }
 
+// GetGasConfigs return a nil map and error
+func (inf *initialNodeFacade) GetGasConfigs() (map[string]map[string]uint64, error) {
+	return nil, errNodeStarting
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (inf *initialNodeFacade) IsInterfaceNil() bool {
 	return inf == nil
