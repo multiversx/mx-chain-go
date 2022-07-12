@@ -4,7 +4,6 @@ import (
 	"math/big"
 	"sync"
 
-	"github.com/ElrondNetwork/arwen-wasm-vm/v1_5/arwen/contexts"
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/common"
@@ -107,14 +106,6 @@ func (s *systemVM) RunSmartContractCall(input *vmcommon.ContractCallInput) (*vmc
 	s.systemEI.AddTxValueToSmartContract(input.CallValue, input.RecipientAddr)
 	s.systemEI.SetGasProvided(input.GasProvided)
 
-	isBuiltInFunction := s.systemEI.BlockChainHook().IsBuiltinFunctionName(input.Function)
-	if !isBuiltInFunction {
-		err := removeAsyncContextArguments(input)
-		if err != nil {
-			return nil, err
-		}
-	}
-
 	contract, err := s.systemEI.GetContract(input.RecipientAddr)
 	if err != nil {
 		return nil, vm.ErrUnknownSystemSmartContract
@@ -142,34 +133,6 @@ func (s *systemVM) RunSmartContractCall(input *vmcommon.ContractCallInput) (*vmc
 	vmOutput.ReturnCode = returnCode
 
 	return vmOutput, nil
-}
-
-func removeAsyncContextArguments(input *vmcommon.ContractCallInput) error {
-	var err error
-	vmInput := &input.VMInput
-	if contexts.IsCallAsync(input.CallType) {
-		_ /*callID*/, err = contexts.PopFirstArgumentFromVMInput(vmInput)
-		if err != nil {
-			return err
-		}
-
-		_ /*callerCallID*/, err = contexts.PopFirstArgumentFromVMInput(vmInput)
-		if err != nil {
-			return err
-		}
-
-		if contexts.IsCallback(input.CallType) {
-			_ /*callbackAsyncInitiatorCallID*/, err = contexts.PopFirstArgumentFromVMInput(vmInput)
-			if err != nil {
-				return err
-			}
-			_ /*gasAccumulated*/, err = contexts.PopFirstArgumentFromVMInput(vmInput)
-			if err != nil {
-				return err
-			}
-		}
-	}
-	return nil
 }
 
 // GetVersion returns an empty string, because the system VM is not versioned

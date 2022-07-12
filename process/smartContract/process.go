@@ -9,7 +9,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ElrondNetwork/arwen-wasm-vm/v1_5/arwen"
 	"github.com/ElrondNetwork/arwen-wasm-vm/v1_5/arwen/contexts"
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
@@ -24,6 +23,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/process"
+	vmFactory "github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -123,6 +123,8 @@ type scProcessor struct {
 	txLogsProcessor     process.TransactionLogProcessor
 	vmOutputCacher      storage.Cacher
 	isGenesisProcessing bool
+
+	asyncParams [][]byte
 }
 
 // ArgsNewSmartContractProcessor defines the arguments needed for new smart contract processor
@@ -442,7 +444,7 @@ func (sc *scProcessor) executeSmartContractCall(
 	userErrorVmOutput := &vmcommon.VMOutput{
 		ReturnCode: vmcommon.UserError,
 	}
-	vmExec, err := findVMByScAddress(sc.vmContainer, vmInput.RecipientAddr)
+	vmExec, vmType, err := findVMByScAddress(sc.vmContainer, vmInput.RecipientAddr)
 	if err != nil {
 		sc.arwenChangeLocker.RUnlock()
 		returnMessage := "cannot get vm from address"
@@ -450,8 +452,33 @@ func (sc *scProcessor) executeSmartContractCall(
 		return userErrorVmOutput, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(returnMessage), snapshot, vmInput.GasLocked)
 	}
 
+	// TODO matei-p remove and store async args for system vm (see factory.go / SystemVirtualMachine)
+	var asyncParams [][]byte
+	if bytes.Equal(vmType, vmFactory.SystemVirtualMachine) {
+		asyncParams, err = contexts.RemoveAsyncContextArguments(vmInput)
+		if err != nil {
+			log.Debug("run smart contract call error (async params extraction)", "error", err.Error())
+			return userErrorVmOutput, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(""), snapshot, vmInput.GasLocked)
+		}
+	}
+
 	var vmOutput *vmcommon.VMOutput
 	vmOutput, err = vmExec.RunSmartContractCall(vmInput)
+
+	if bytes.Equal(vmType, vmFactory.SystemVirtualMachine) {
+		// TODO matei-p for system vm calls add async param back to async callback transfer (if one exists)
+		errAsyncParams := contexts.AddAsyncParamsToVmOutput(
+			tx.GetRcvAddr(),
+			asyncParams,
+			vmData.AsynchronousCallBack,
+			sc.argsParser.ParseCallData,
+			vmOutput)
+		if errAsyncParams != nil {
+			log.Debug("run smart contract call error (async params prepend)", "error", err.Error())
+			return userErrorVmOutput, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(""), snapshot, vmInput.GasLocked)
+		}
+	}
+
 	sc.arwenChangeLocker.RUnlock()
 	if err != nil {
 		log.Debug("run smart contract call error", "error", err.Error())
@@ -467,7 +494,6 @@ func (sc *scProcessor) executeSmartContractCall(
 	if vmOutput.ReturnCode != vmcommon.Ok {
 		return userErrorVmOutput, sc.processIfErrorWithAddedLogs(acntSnd, txHash, tx, vmOutput.ReturnCode.String(), []byte(vmOutput.ReturnMessage), snapshot, vmInput.GasLocked, vmOutput.Logs)
 	}
-
 	acntSnd, err = sc.reloadLocalAccount(acntSnd) // nolint
 	if err != nil {
 		log.Debug("reloadLocalAccount error", "error", err.Error())
@@ -923,6 +949,13 @@ func (sc *scProcessor) doExecuteBuiltInFunction(
 	if err != nil || returnCode != vmcommon.Ok {
 		return returnCode, err
 	}
+	// TODO matei-p extract async framework and save
+	asyncParams, err := contexts.RemoveAsyncContextArguments(vmInput)
+	sc.asyncParams = asyncParams
+	if err != nil {
+		log.Debug("processed built in functions error (async params extraction)", "error", err.Error())
+		return 0, err
+	}
 
 	snapshot := sc.accounts.JournalLen()
 	if !sc.flagBuiltin.IsSet() {
@@ -988,6 +1021,19 @@ func (sc *scProcessor) doExecuteBuiltInFunction(
 		return 0, err
 	}
 	if newVMOutput.ReturnCode != vmcommon.Ok {
+		return vmcommon.UserError, nil
+	}
+
+	// TODO matei-p prepend async params
+	err = contexts.AddAsyncParamsToVmOutput(
+		tx.GetRcvAddr(),
+		sc.asyncParams,
+		vmData.AsynchronousCallBack,
+		sc.argsParser.ParseCallData,
+		vmOutput)
+	sc.asyncParams = nil
+	if err != nil {
+		log.Debug("run smart contract call error (async params prepend)", "error", err.Error())
 		return vmcommon.UserError, nil
 	}
 
@@ -1216,7 +1262,6 @@ func (sc *scProcessor) isSCExecutionAfterBuiltInFunc(
 		Function:          parsedTransfer.CallFunction,
 		AllowInitFunction: false,
 	}
-	PrependEmptyAsyncContextArgs(newVMInput)
 	newVMInput.ESDTTransfers = parsedTransfer.ESDTTransfers
 
 	return true, newVMInput, nil
@@ -1264,19 +1309,19 @@ func (sc *scProcessor) createVMInputWithAsyncCallBackAfterBuiltIn(
 		AllowInitFunction: false,
 	}
 	newVMInput.ESDTTransfers = parsedTransfer.ESDTTransfers
-	PrependEmptyAsyncContextArgs(newVMInput)
+	// PrependEmptyAsyncContextArgs(newVMInput)
 
 	return newVMInput
 }
 
-func PrependEmptyAsyncContextArgs(vmInput *vmcommon.ContractCallInput) {
-	if contexts.IsCallAsync(vmInput.CallType) {
-		arwen.PrependToArguments(vmInput, []byte{}, []byte{})
-		if contexts.IsCallback(vmInput.CallType) {
-			arwen.PrependToArguments(vmInput, []byte{}, []byte{})
-		}
-	}
-}
+// func PrependEmptyAsyncContextArgs(vmInput *vmcommon.ContractCallInput) {
+// 	if contexts.IsCallAsync(vmInput.CallType) {
+// 		arwen.PrependToArguments(vmInput, []byte{}, []byte{})
+// 		if contexts.IsCallback(vmInput.CallType) {
+// 			arwen.PrependToArguments(vmInput, []byte{}, []byte{})
+// 		}
+// 	}
+// }
 
 // isCrossShardESDTTransfer is called when return is created out of the esdt transfer as of failed transaction
 func (sc *scProcessor) isCrossShardESDTTransfer(tx data.TransactionHandler) (string, bool) {
@@ -2071,7 +2116,11 @@ func (sc *scProcessor) createSCRsWhenError(
 				scr.GasLimit = gasLocked
 				consumedFee = sc.economicsFee.ComputeFeeForProcessing(tx, tx.GetGasLimit()-gasLocked)
 			}
-			accumulatedSCRData += "@@@@" + core.ConvertToEvenHex(int(vmcommon.UserError))
+			// for _, arg := range sc.asyncParams {
+			// 	accumulatedSCRData += "@" + hex.EncodeToString(arg)
+			// }
+			sc.asyncParams = nil
+			accumulatedSCRData += "@" + core.ConvertToEvenHex(int(vmcommon.UserError))
 			if sc.flagRepairCallBackData.IsSet() {
 				accumulatedSCRData += "@" + hex.EncodeToString(returnMessage)
 			}

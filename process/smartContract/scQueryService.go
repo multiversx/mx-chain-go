@@ -134,7 +134,7 @@ func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice ui
 	service.blockChainHook.SetCurrentHeader(service.blockChain.GetCurrentBlockHeader())
 
 	service.arwenChangeLocker.RLock()
-	vm, err := findVMByScAddress(service.vmContainer, query.ScAddress)
+	vm, _, err := findVMByScAddress(service.vmContainer, query.ScAddress)
 	if err != nil {
 		service.arwenChangeLocker.RUnlock()
 		return nil, err

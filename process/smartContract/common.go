@@ -6,18 +6,18 @@ import (
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
-func findVMByScAddress(container process.VirtualMachinesContainer, scAddress []byte) (vmcommon.VMExecutionHandler, error) {
+func findVMByScAddress(container process.VirtualMachinesContainer, scAddress []byte) (vmcommon.VMExecutionHandler, []byte, error) {
 	vmType, err := parseVMTypeFromContractAddress(scAddress)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	vm, err := container.Get(vmType)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return vm, nil
+	return vm, vmType, nil
 }
 
 func parseVMTypeFromContractAddress(contractAddress []byte) ([]byte, error) {
