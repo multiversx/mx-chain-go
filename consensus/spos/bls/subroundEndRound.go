@@ -14,8 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
-	pubsub "github.com/ElrondNetwork/go-libp2p-pubsub"
-	pb "github.com/ElrondNetwork/go-libp2p-pubsub/pb"
+	"github.com/ElrondNetwork/elrond-go/p2p"
 )
 
 type subroundEndRound struct {
@@ -187,12 +186,12 @@ func (sr *subroundEndRound) receivedInvalidSignersInfo(_ context.Context, cnsDta
 		return false
 	}
 
-	if len(cnsDta.InvalidSigners) == 0 || cnsDta.NumInvalidSigners == 0 {
+	if len(cnsDta.InvalidSigners) == 0 {
 		log.Debug("receivedInvalidSignersInfo: no invalid Signers")
 		return false
 	}
 
-	err := sr.verifyInvalidSigners(cnsDta.InvalidSigners, cnsDta.NumInvalidSigners)
+	err := sr.verifyInvalidSigners(cnsDta.InvalidSigners)
 	if err != nil {
 		log.Debug("receivedInvalidSignersInfo.verifyInvalidSigner", "error", err.Error())
 		return false
@@ -208,36 +207,30 @@ func (sr *subroundEndRound) receivedInvalidSignersInfo(_ context.Context, cnsDta
 	return true
 }
 
-func (sr *subroundEndRound) verifyInvalidSigners(invalidSigners []byte, num int64) error {
-	arraySize := len(invalidSigners) / int(num)
+func (sr *subroundEndRound) verifyInvalidSigners(invalidSigners []byte) error {
+	messages, err := sr.MessageSigningHandler().Deserialize(invalidSigners)
+	if err != nil {
+		return err
+	}
 
-	index := 0
-	for i := int64(0); i < num; i++ {
-		err := sr.verifyInvalidSigner(invalidSigners[index : index+arraySize])
+	for _, msg := range messages {
+		err := sr.verifyInvalidSigner(msg)
 		if err != nil {
 			return err
 		}
-
-		index += arraySize
 	}
 
 	return nil
 }
 
-func (sr *subroundEndRound) verifyInvalidSigner(invalidSigner []byte) error {
-	pbMsg := &pb.Message{}
-	err := sr.Marshalizer().Unmarshal(pbMsg, invalidSigner)
-	if err != nil {
-		return err
-	}
-
-	err = pubsub.VerifyMessageSignature(pbMsg)
+func (sr *subroundEndRound) verifyInvalidSigner(msg p2p.MessageP2P) error {
+	err := sr.MessageSigningHandler().Verify(msg)
 	if err != nil {
 		return err
 	}
 
 	cnsMsg := &consensus.Message{}
-	err = sr.Marshalizer().Unmarshal(cnsMsg, pbMsg.Data)
+	err = sr.Marshalizer().Unmarshal(cnsMsg, msg.Data())
 	if err != nil {
 		return err
 	}
@@ -256,7 +249,7 @@ func (sr *subroundEndRound) verifyInvalidSigner(invalidSigner []byte) error {
 
 	err = multiSigner.VerifySignatureShare(uint16(index), sigShare, sr.GetData(), nil)
 	if err != nil {
-		log.Debug("confirmed that node provided invalid signiture")
+		log.Debug("confirmed that node provided invalid signature")
 		err = sr.applyBlacklistOnNode(pubKey)
 		if err != nil {
 			return err
@@ -320,7 +313,6 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 	}
 
 	invalidSigners := make([]byte, 0)
-	numInvalidSigners := int64(0)
 	err = currentMultiSigner.Verify(sr.GetData(), bitmap)
 	if err != nil {
 		log.Debug("doEndRoundJobByLeader.Verify", "error", err.Error())
@@ -331,7 +323,7 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 			return false
 		}
 
-		invalidSigners, numInvalidSigners = sr.getFullMessagesForInvalidSigners(invalidPubKeys)
+		invalidSigners = sr.getFullMessagesForInvalidSigners(invalidPubKeys)
 
 		bitmap, sig, err = sr.computeAggSigOnValidNodes()
 		if err != nil {
@@ -385,7 +377,7 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 	sr.createAndBroadcastHeaderFinalInfo()
 
 	// TODO: check whether it should be sent after header
-	sr.createAndBroadcastInvalidSigners(invalidSigners, numInvalidSigners)
+	sr.createAndBroadcastInvalidSigners(invalidSigners)
 
 	// broadcast header
 	err = sr.BroadcastMessenger().BroadcastHeader(sr.Header)
@@ -473,9 +465,8 @@ func (sr *subroundEndRound) verifyNodesOnAggSigVerificationFail() ([]string, err
 	return invalidPubKeys, nil
 }
 
-func (sr *subroundEndRound) getFullMessagesForInvalidSigners(invalidPubKeys []string) ([]byte, int64) {
+func (sr *subroundEndRound) getFullMessagesForInvalidSigners(invalidPubKeys []string) []byte {
 	invalidSigners := make([]byte, 0)
-	numInvalidSigners := int64(0)
 	for _, pk := range invalidPubKeys {
 		msg, ok := sr.GetMessageWithSignature(pk)
 		if !ok {
@@ -483,10 +474,9 @@ func (sr *subroundEndRound) getFullMessagesForInvalidSigners(invalidPubKeys []st
 		}
 
 		invalidSigners = append(invalidSigners, msg...)
-		numInvalidSigners++
 	}
 
-	return invalidSigners, numInvalidSigners
+	return invalidSigners
 }
 
 func (sr *subroundEndRound) computeAggSigOnValidNodes() ([]byte, []byte, error) {
@@ -534,7 +524,6 @@ func (sr *subroundEndRound) createAndBroadcastHeaderFinalInfo() {
 		sr.Header.GetLeaderSignature(),
 		sr.CurrentPid(),
 		nil,
-		0,
 	)
 
 	err := sr.BroadcastMessenger().BroadcastConsensusMessage(cnsMsg)
@@ -549,7 +538,7 @@ func (sr *subroundEndRound) createAndBroadcastHeaderFinalInfo() {
 		"LeaderSignature", sr.Header.GetLeaderSignature())
 }
 
-func (sr *subroundEndRound) createAndBroadcastInvalidSigners(invalidSigners []byte, num int64) {
+func (sr *subroundEndRound) createAndBroadcastInvalidSigners(invalidSigners []byte) {
 	cnsMsg := consensus.NewConsensusMessage(
 		sr.GetData(),
 		nil,
@@ -565,7 +554,6 @@ func (sr *subroundEndRound) createAndBroadcastInvalidSigners(invalidSigners []by
 		nil,
 		sr.CurrentPid(),
 		invalidSigners,
-		num,
 	)
 
 	err := sr.BroadcastMessenger().BroadcastConsensusMessage(cnsMsg)

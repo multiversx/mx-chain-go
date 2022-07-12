@@ -74,7 +74,6 @@ func (sr *subroundSignature) doSignatureJob(_ context.Context) bool {
 		log.Debug("doSignatureJob.CreateSignatureShare", "error", err.Error())
 		return false
 	}
-	signatureShare[0] = signatureShare[0] ^ signatureShare[1] ^ signatureShare[2]
 
 	isSelfLeader := sr.IsSelfLeaderInCurrentRound()
 
@@ -95,7 +94,6 @@ func (sr *subroundSignature) doSignatureJob(_ context.Context) bool {
 			nil,
 			sr.CurrentPid(),
 			nil,
-			0,
 		)
 
 		err = sr.BroadcastMessenger().BroadcastConsensusMessage(cnsMsg)

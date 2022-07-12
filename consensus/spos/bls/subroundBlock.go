@@ -197,7 +197,6 @@ func (sr *subroundBlock) sendHeaderAndBlockBody(
 		nil,
 		sr.CurrentPid(),
 		nil,
-		0,
 	)
 
 	err := sr.BroadcastMessenger().BroadcastConsensusMessage(cnsMsg)
@@ -234,7 +233,6 @@ func (sr *subroundBlock) sendBlockBody(bodyHandler data.BodyHandler, marshalized
 		nil,
 		sr.CurrentPid(),
 		nil,
-		0,
 	)
 
 	err := sr.BroadcastMessenger().BroadcastConsensusMessage(cnsMsg)
@@ -269,7 +267,6 @@ func (sr *subroundBlock) sendBlockHeader(headerHandler data.HeaderHandler, marsh
 		nil,
 		sr.CurrentPid(),
 		nil,
-		0,
 	)
 
 	err := sr.BroadcastMessenger().BroadcastConsensusMessage(cnsMsg)

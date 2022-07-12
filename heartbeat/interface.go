@@ -5,7 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-crypto"
+	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/common"
 	heartbeatData "github.com/ElrondNetwork/elrond-go/heartbeat/data"
 	"github.com/ElrondNetwork/elrond-go/p2p"

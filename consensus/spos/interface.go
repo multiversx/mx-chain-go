@@ -62,6 +62,8 @@ type ConsensusCoreHandler interface {
 	NodeRedundancyHandler() consensus.NodeRedundancyHandler
 	// ScheduledProcessor returns the scheduled txs processor
 	ScheduledProcessor() consensus.ScheduledProcessor
+	// MessageSignerHandler
+	MessageSigningHandler() consensus.P2PSigningHandler
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }
