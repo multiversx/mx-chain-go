@@ -222,8 +222,8 @@ func TestESDTMultiTransferWithWrongArguments1(t *testing.T) {
 	txData := txDataBuilder.NewBuilder()
 	txData.Func(core.BuiltInFunctionMultiESDTNFTTransfer)
 	txData.Bytes(forwarder).Int(1)
-	txData.Str(sftID).Int(1).Int64(10).Str("doAsyncCall").Bytes(vaultOtherShard)
-	txData.Bytes([]byte{}).Str(core.BuiltInFunctionMultiESDTNFTTransfer).Int(6).Bytes(vaultOtherShard).Int(1).Str(tokenID).Int(1).Int(1).Bytes([]byte{})
+	txData.Str(sftID).Int(1).Int64(10).Str("doAsyncCall").Bytes(forwarder)
+	txData.Bytes([]byte{}).Str(core.BuiltInFunctionMultiESDTNFTTransfer).Int(6).Bytes(vaultOtherShard).Int(1).Str(sftID).Int(1).Int(1).Bytes([]byte{})
 	tx := net.CreateTxUint64(owner, owner.Address, 0, txData.ToBytes())
 	tx.GasLimit = net.MaxGasLimit / 2
 	_ = net.SignAndSendTx(owner, tx)
