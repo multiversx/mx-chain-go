@@ -5366,10 +5366,10 @@ func TestDelegationSystemSC_ExecuteChangeOwnerUserErrors(t *testing.T) {
 	assert.True(t, strings.Contains(eei.returnMessage, "invalid argument, wanted an address"))
 
 	eei.returnMessage = ""
-	vmInput.Arguments = append(vmInput.Arguments, []byte("second123"))
+	vmInput.Arguments[0] = []byte("second123")
 	delegationMgrMap := map[string][]byte{}
 	delegationMgrMap["second123"] = []byte("info")
-	eei.storageUpdate[string(eei.scAddress)] = delegationsMap
+	eei.storageUpdate[string(d.delegationMgrSCAddress)] = delegationMgrMap
 	output = d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
 	assert.True(t, strings.Contains(eei.returnMessage, "destination already deployed a delegation sc"))
