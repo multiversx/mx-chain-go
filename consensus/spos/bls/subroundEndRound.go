@@ -192,9 +192,11 @@ func (sr *subroundEndRound) receivedInvalidSignersInfo(_ context.Context, cnsDta
 	// TODO: evaluate better debug logs
 	log.Debug("step 4: invalid signers info has been received")
 
-	// evaluate peer honesty change
-
-	//return sr.doEndRoundJobByParticipant(cnsDta)
+	sr.PeerHonestyHandler().ChangeScore(
+		node,
+		spos.GetConsensusTopicID(sr.ShardCoordinator()),
+		spos.LeaderPeerHonestyIncreaseFactor,
+	)
 
 	return true
 }
@@ -305,6 +307,8 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 	}
 
 	invalidSigners := make([]byte, 0)
+	shouldSendInvalidSigners := false
+
 	err = currentMultiSigner.Verify(sr.GetData(), bitmap)
 	if err != nil {
 		log.Debug("doEndRoundJobByLeader.Verify", "error", err.Error())
@@ -315,7 +319,7 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 			return false
 		}
 
-		invalidSigners, err = sr.getFullMessagesForInvalidSigners(invalidPubKeys)
+		invalidSigners, shouldSendInvalidSigners, err = sr.getFullMessagesForInvalidSigners(invalidPubKeys)
 		if err != nil {
 			log.Debug("doEndRoundJobByLeader.getFullMessagesForInvalidSigners", "error", err.Error())
 			return false
@@ -372,8 +376,9 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 	// create and broadcast header final info
 	sr.createAndBroadcastHeaderFinalInfo()
 
-	// TODO: check whether it should be sent after header
-	sr.createAndBroadcastInvalidSigners(invalidSigners)
+	if shouldSendInvalidSigners {
+		sr.createAndBroadcastInvalidSigners(invalidSigners)
+	}
 
 	// broadcast header
 	err = sr.BroadcastMessenger().BroadcastHeader(sr.Header)
@@ -461,8 +466,10 @@ func (sr *subroundEndRound) verifyNodesOnAggSigVerificationFail() ([]string, err
 	return invalidPubKeys, nil
 }
 
-func (sr *subroundEndRound) getFullMessagesForInvalidSigners(invalidPubKeys []string) ([]byte, error) {
+func (sr *subroundEndRound) getFullMessagesForInvalidSigners(invalidPubKeys []string) ([]byte, bool, error) {
+	shouldSend := false
 	p2pMessages := make([]p2p.MessageP2P, 0)
+
 	for _, pk := range invalidPubKeys {
 		p2pMsg, ok := sr.GetMessageWithSignature(pk)
 		if !ok {
@@ -470,14 +477,15 @@ func (sr *subroundEndRound) getFullMessagesForInvalidSigners(invalidPubKeys []st
 		}
 
 		p2pMessages = append(p2pMessages, p2pMsg)
+		shouldSend = true
 	}
 
 	invalidSigners, err := sr.MessageSigningHandler().Serialize(p2pMessages)
 	if err != nil {
-		return nil, err
+		return nil, shouldSend, err
 	}
 
-	return invalidSigners, nil
+	return invalidSigners, shouldSend, nil
 }
 
 func (sr *subroundEndRound) computeAggSigOnValidNodes() ([]byte, []byte, error) {
