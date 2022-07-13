@@ -340,6 +340,18 @@ func TestWorker_IsMessageWithFinalInfo(t *testing.T) {
 	assert.True(t, ret)
 }
 
+func TestWorker_IsMessageWithInvalidSigners(t *testing.T) {
+	t.Parallel()
+
+	service, _ := bls.NewConsensusService()
+
+	ret := service.IsMessageWithInvalidSigners(bls.MtBlockHeaderFinalInfo)
+	assert.False(t, ret)
+
+	ret = service.IsMessageWithInvalidSigners(bls.MtInvalidSigners)
+	assert.True(t, ret)
+}
+
 func TestWorker_IsSubroundSignature(t *testing.T) {
 	t.Parallel()
 

@@ -174,8 +174,6 @@ func (sr *subroundEndRound) receivedInvalidSignersInfo(_ context.Context, cnsDta
 		return false
 	}
 
-	// more specific checks here?
-
 	if !sr.CanProcessReceivedMessage(cnsDta, sr.RoundHandler().Index(), sr.Current()) {
 		return false
 	}
@@ -191,7 +189,7 @@ func (sr *subroundEndRound) receivedInvalidSignersInfo(_ context.Context, cnsDta
 		return false
 	}
 
-	// TODO: better evaluate debug logs
+	// TODO: evaluate better debug logs
 	log.Debug("step 4: invalid signers info has been received")
 
 	// evaluate peer honesty change
