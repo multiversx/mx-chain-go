@@ -303,6 +303,8 @@ func testESDTWithTransferRoleAndForwarder(t *testing.T, numShards int) {
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 15, nonce, round, idxProposers)
 	time.Sleep(time.Second)
 
+	esdtCommon.CheckAddressHasTokens(t, scAddressB, nodes, []byte(tokenIdentifier), 0, 0)
+	esdtCommon.CheckAddressHasTokens(t, scAddressA, nodes, []byte(tokenIdentifier), 0, 0)
 	esdtCommon.CheckAddressHasTokens(t, nodes[0].OwnAccount.Address, nodes, []byte(tokenIdentifier), 0, amount)
 }
 

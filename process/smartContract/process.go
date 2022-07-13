@@ -1013,26 +1013,12 @@ func (sc *scProcessor) doExecuteBuiltInFunction(
 		}
 	}
 
-	isSCCallSelfShard, newVMOutput, newVMInput, err := sc.treatExecutionAfterBuiltInFunc(tx, vmInput, vmOutput, acntSnd, snapshot)
+	isSCCallSelfShard, newVMOutput, newVMInput, err := sc.treatExecutionAfterBuiltInFunc(tx, asyncParams, vmInput, vmOutput, acntSnd, snapshot)
 	if err != nil {
 		log.Debug("treat execution after built in function", "error", err.Error())
 		return 0, err
 	}
 	if newVMOutput.ReturnCode != vmcommon.Ok {
-		return vmcommon.UserError, nil
-	}
-
-	newAsyncParams := createCallbackAsyncParams(asyncParams)
-
-	// TODO matei-p prepend async params
-	err = contexts.AddAsyncParamsToVmOutput(
-		tx.GetRcvAddr(),
-		newAsyncParams,
-		vmData.AsynchronousCallBack,
-		sc.argsParser.ParseCallData,
-		vmOutput)
-	if err != nil {
-		log.Debug("run smart contract call error (async params prepend)", "error", err.Error())
 		return vmcommon.UserError, nil
 	}
 
@@ -1171,6 +1157,7 @@ func (sc *scProcessor) resolveBuiltInFunctions(
 
 func (sc *scProcessor) treatExecutionAfterBuiltInFunc(
 	tx data.TransactionHandler,
+	asyncParams [][]byte,
 	vmInput *vmcommon.ContractCallInput,
 	vmOutput *vmcommon.VMOutput,
 	acntSnd state.UserAccountHandler,
@@ -1180,6 +1167,9 @@ func (sc *scProcessor) treatExecutionAfterBuiltInFunc(
 	if !isSCCall {
 		return false, vmOutput, vmInput, nil
 	}
+
+	// TODO matei-p append async args
+	newVMInput.Arguments = append(asyncParams, newVMInput.Arguments...)
 
 	userErrorVmOutput := &vmcommon.VMOutput{
 		ReturnCode: vmcommon.UserError,
