@@ -482,7 +482,7 @@ func (sr *subroundEndRound) getFullMessagesForInvalidSigners(invalidPubKeys []st
 
 	invalidSigners, err := sr.MessageSigningHandler().Serialize(p2pMessages)
 	if err != nil {
-		return nil, shouldSend, err
+		return nil, false, err
 	}
 
 	return invalidSigners, shouldSend, nil
