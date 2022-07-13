@@ -54,17 +54,21 @@ func GetCodeEntry(codeHash []byte, trie Updater, marshalizer marshal.Marshalizer
 
 // RecreateTrieIfNecessary -
 func (accountsDB *accountsDBApi) RecreateTrieIfNecessary() error {
-	return accountsDB.recreateTrieIfNecessary()
+	_, err := accountsDB.recreateTrieIfNecessary()
+
+	return err
 }
 
-// DoRecreateTrie -
-func (accountsDB *accountsDBApi) DoRecreateTrie(targetRootHash []byte) error {
-	return accountsDB.doRecreateTrie(targetRootHash)
+// DoRecreateTrieWithBlockInfo -
+func (accountsDB *accountsDBApi) DoRecreateTrieWithBlockInfo(blockInfo common.BlockInfo) error {
+	_, err := accountsDB.doRecreateTrieWithBlockInfo(blockInfo)
+
+	return err
 }
 
-// SetLastRootHash -
-func (accountsDB *accountsDBApi) SetLastRootHash(rootHash []byte) {
-	accountsDB.mutLastRootHash.Lock()
-	accountsDB.lastRootHash = rootHash
-	accountsDB.mutLastRootHash.Unlock()
+// SetCurrentBlockInfo -
+func (accountsDB *accountsDBApi) SetCurrentBlockInfo(blockInfo common.BlockInfo) {
+	accountsDB.mutBlockInfo.Lock()
+	accountsDB.blockInfo = blockInfo
+	accountsDB.mutBlockInfo.Unlock()
 }

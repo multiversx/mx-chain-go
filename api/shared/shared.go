@@ -1,6 +1,7 @@
 package shared
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -54,24 +55,50 @@ const ReturnCodeRequestError ReturnCode = "bad_request"
 const ReturnCodeSystemBusy ReturnCode = "system_busy"
 
 // RespondWith will respond with the generic API response
-func RespondWith(c *gin.Context, status int, dataField interface{}, err string, code ReturnCode) {
+func RespondWith(c *gin.Context, status int, dataField interface{}, errMessage string, code ReturnCode) {
 	c.JSON(
 		status,
 		GenericAPIResponse{
 			Data:  dataField,
-			Error: err,
+			Error: errMessage,
 			Code:  code,
 		},
 	)
 }
 
-// RespondWithValidationError will be called when the application's context is invalid
-func RespondWithValidationError(c *gin.Context, err string) {
+// RespondWithValidationError should be called when the request cannot be satisfied due to a (request) validation error
+func RespondWithValidationError(c *gin.Context, err error, innerErr error) {
+	errMessage := fmt.Sprintf("%s: %s", err.Error(), innerErr.Error())
+
 	RespondWith(
 		c,
 		http.StatusBadRequest,
 		nil,
-		err,
+		errMessage,
 		ReturnCodeRequestError,
+	)
+}
+
+// RespondWithInternalError should be called when the request cannot be satisfied due to an internal error
+func RespondWithInternalError(c *gin.Context, err error, innerErr error) {
+	errMessage := fmt.Sprintf("%s: %s", err.Error(), innerErr.Error())
+
+	RespondWith(
+		c,
+		http.StatusInternalServerError,
+		nil,
+		errMessage,
+		ReturnCodeInternalError,
+	)
+}
+
+// RespondWithSuccess should be called when the request can be satisfied
+func RespondWithSuccess(c *gin.Context, data interface{}) {
+	RespondWith(
+		c,
+		http.StatusOK,
+		data,
+		"",
+		ReturnCodeSuccess,
 	)
 }

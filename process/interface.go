@@ -137,7 +137,7 @@ type TransactionCoordinator interface {
 	ProcessBlockTransaction(header data.HeaderHandler, body *block.Body, haveTime func() time.Duration) error
 
 	CreateBlockStarted()
-	CreateMbsAndProcessCrossShardTransactionsDstMe(header data.HeaderHandler, processedMiniBlocksHashes map[string]struct{}, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool) (block.MiniBlockSlice, uint32, bool, error)
+	CreateMbsAndProcessCrossShardTransactionsDstMe(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool) (block.MiniBlockSlice, uint32, bool, error)
 	CreateMbsAndProcessTransactionsFromMe(haveTime func() bool, randomness []byte) block.MiniBlockSlice
 	CreatePostProcessMiniBlocks() block.MiniBlockSlice
 	CreateMarshalizedData(body *block.Body) map[string][][]byte
@@ -147,6 +147,7 @@ type TransactionCoordinator interface {
 	CreateReceiptsHash() ([]byte, error)
 	VerifyCreatedBlockTransactions(hdr data.HeaderHandler, body *block.Body) error
 	CreateMarshalizedReceipts() ([]byte, error)
+	GetCreatedInShardMiniBlocks() []*block.MiniBlock
 	VerifyCreatedMiniBlocks(hdr data.HeaderHandler, body *block.Body) error
 	AddIntermediateTransactions(mapSCRs map[block.Type][]data.TransactionHandler) error
 	GetAllIntermediateTxs() map[block.Type]map[string]data.TransactionHandler
@@ -175,8 +176,8 @@ type IntermediateTransactionHandler interface {
 	GetAllCurrentFinishedTxs() map[string]data.TransactionHandler
 	CreateBlockStarted()
 	GetCreatedInShardMiniBlock() *block.MiniBlock
-	RemoveProcessedResults() [][]byte
-	InitProcessedResults()
+	RemoveProcessedResults(key []byte) [][]byte
+	InitProcessedResults(key []byte)
 	IsInterfaceNil() bool
 }
 
@@ -215,7 +216,7 @@ type PreProcessor interface {
 	RequestBlockTransactions(body *block.Body) int
 
 	RequestTransactionsForMiniBlock(miniBlock *block.MiniBlock) int
-	ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, haveAdditionalTime func() bool, getNumOfCrossInterMbsAndTxs func() (int, int), scheduledMode bool) ([][]byte, int, error)
+	ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool, partialMbExecutionMode bool, indexOfLastTxProcessed int, preProcessorExecutionInfoHandler PreProcessorExecutionInfoHandler) ([][]byte, int, bool, error)
 	CreateAndProcessMiniBlocks(haveTime func() bool, randomness []byte) (block.MiniBlockSlice, error)
 
 	GetAllCurrentUsedTxs() map[string]data.TransactionHandler
@@ -235,7 +236,6 @@ type BlockProcessor interface {
 	CreateNewHeader(round uint64, nonce uint64) (data.HeaderHandler, error)
 	RestoreBlockIntoPools(header data.HeaderHandler, body data.BodyHandler) error
 	CreateBlock(initialHdr data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error)
-	ApplyProcessedMiniBlocks(processedMiniBlocks *processedMb.ProcessedMiniBlockTracker)
 	MarshalizedDataToBroadcast(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error)
 	DecodeBlockBody(dta []byte) data.BodyHandler
 	DecodeBlockHeader(dta []byte) data.HeaderHandler
@@ -525,6 +525,12 @@ type TopicHandler interface {
 	IsInterfaceNil() bool
 }
 
+// SignaturesHandler defines the behavior of a struct able to handle signatures
+type SignaturesHandler interface {
+	Verify(payload []byte, pid core.PeerID, signature []byte) error
+	IsInterfaceNil() bool
+}
+
 // DataPacker can split a large slice of byte slices in smaller packets
 type DataPacker interface {
 	PackDataInChunks(data [][]byte, limit int) ([][]byte, error)
@@ -550,6 +556,8 @@ type RequestHandler interface {
 	GetNumPeersToQuery(key string) (int, int, error)
 	RequestTrieNode(requestHash []byte, topic string, chunkIndex uint32)
 	CreateTrieNodeIdentifier(requestHash []byte, chunkIndex uint32) []byte
+	RequestPeerAuthenticationsChunk(destShardID uint32, chunkIndex uint32)
+	RequestPeerAuthenticationsByHashes(destShardID uint32, hashes [][]byte)
 	IsInterfaceNil() bool
 }
 
@@ -700,14 +708,21 @@ type PeerBlackListCacher interface {
 
 // PeerShardMapper can return the public key of a provided peer ID
 type PeerShardMapper interface {
+	UpdatePeerIDPublicKeyPair(pid core.PeerID, pk []byte)
+	PutPeerIdShardId(pid core.PeerID, shardID uint32)
+	PutPeerIdSubType(pid core.PeerID, peerSubType core.P2PPeerSubType)
+	GetLastKnownPeerID(pk []byte) (*core.PeerID, bool)
 	GetPeerInfo(pid core.PeerID) core.P2PPeerInfo
 	IsInterfaceNil() bool
 }
 
 // NetworkShardingCollector defines the updating methods used by the network sharding component
 type NetworkShardingCollector interface {
+	UpdatePeerIDPublicKeyPair(pid core.PeerID, pk []byte)
 	UpdatePeerIDInfo(pid core.PeerID, pk []byte, shardID uint32)
-	UpdatePeerIdSubType(pid core.PeerID, peerSubType core.P2PPeerSubType)
+	PutPeerIdShardId(pid core.PeerID, shardID uint32)
+	PutPeerIdSubType(pid core.PeerID, peerSubType core.P2PPeerSubType)
+	GetLastKnownPeerID(pk []byte) (*core.PeerID, bool)
 	GetPeerInfo(pid core.PeerID) core.P2PPeerInfo
 	IsInterfaceNil() bool
 }
@@ -733,7 +748,7 @@ type SCQuery struct {
 // GasHandler is able to perform some gas calculation
 type GasHandler interface {
 	Init()
-	Reset()
+	Reset(key []byte)
 	SetGasProvided(gasProvided uint64, hash []byte)
 	SetGasProvidedAsScheduled(gasProvided uint64, hash []byte)
 	SetGasRefunded(gasRefunded uint64, hash []byte)
@@ -751,7 +766,7 @@ type GasHandler interface {
 	RemoveGasProvidedAsScheduled(hashes [][]byte)
 	RemoveGasRefunded(hashes [][]byte)
 	RemoveGasPenalized(hashes [][]byte)
-	RestoreGasSinceLastReset()
+	RestoreGasSinceLastReset(key []byte)
 	ComputeGasProvidedByMiniBlock(*block.MiniBlock, map[string]data.TransactionHandler) (uint64, uint64, error)
 	ComputeGasProvidedByTx(txSenderShardId uint32, txReceiverShardId uint32, txHandler data.TransactionHandler) (uint64, uint64, error)
 	IsInterfaceNil() bool
@@ -1121,6 +1136,7 @@ type CoreComponentsHolder interface {
 	ChanStopNodeProcess() chan endProcess.ArgEndProcess
 	NodeTypeProvider() core.NodeTypeProviderHandler
 	ProcessStatusHandler() common.ProcessStatusHandler
+	HardforkTriggerPubKey() []byte
 	IsInterfaceNil() bool
 }
 
@@ -1132,6 +1148,7 @@ type CryptoComponentsHolder interface {
 	BlockSigner() crypto.SingleSigner
 	MultiSigner() crypto.MultiSigner
 	SetMultiSigner(ms crypto.MultiSigner) error
+	PeerSignatureHandler() crypto.PeerSignatureHandler
 	PublicKey() crypto.PublicKey
 	Clone() interface{}
 	IsInterfaceNil() bool
@@ -1204,5 +1221,26 @@ type DoubleTransactionDetector interface {
 type TxsSenderHandler interface {
 	SendBulkTransactions(txs []*transaction.Transaction) (uint64, error)
 	Close() error
+	IsInterfaceNil() bool
+}
+
+// PreProcessorExecutionInfoHandler handles pre processor execution info needed by the transactions preprocessors
+type PreProcessorExecutionInfoHandler interface {
+	GetNumOfCrossInterMbsAndTxs() (int, int)
+	InitProcessedTxsResults(key []byte)
+	RevertProcessedTxsResults(txHashes [][]byte, key []byte)
+}
+
+// ProcessedMiniBlocksTracker handles tracking of processed mini blocks
+type ProcessedMiniBlocksTracker interface {
+	SetProcessedMiniBlockInfo(metaBlockHash []byte, miniBlockHash []byte, processedMbInfo *processedMb.ProcessedMiniBlockInfo)
+	RemoveMetaBlockHash(metaBlockHash []byte)
+	RemoveMiniBlockHash(miniBlockHash []byte)
+	GetProcessedMiniBlocksInfo(metaBlockHash []byte) map[string]*processedMb.ProcessedMiniBlockInfo
+	GetProcessedMiniBlockInfo(miniBlockHash []byte) (*processedMb.ProcessedMiniBlockInfo, []byte)
+	IsMiniBlockFullyProcessed(metaBlockHash []byte, miniBlockHash []byte) bool
+	ConvertProcessedMiniBlocksMapToSlice() []bootstrapStorage.MiniBlocksInMeta
+	ConvertSliceToProcessedMiniBlocksMap(miniBlocksInMetaBlocks []bootstrapStorage.MiniBlocksInMeta)
+	DisplayProcessedMiniBlocks()
 	IsInterfaceNil() bool
 }

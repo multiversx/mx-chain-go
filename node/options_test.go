@@ -183,30 +183,6 @@ func TestWithPeerDenialEvaluator_OkHandlerShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestWithHardforkTrigger_NilHardforkTriggerShouldErr(t *testing.T) {
-	t.Parallel()
-
-	node, _ := NewNode()
-
-	opt := WithHardforkTrigger(nil)
-	err := opt(node)
-
-	assert.Equal(t, ErrNilHardforkTrigger, err)
-}
-
-func TestWithHardforkTrigger_ShouldWork(t *testing.T) {
-	t.Parallel()
-
-	node, _ := NewNode()
-
-	hardforkTrigger := &mock.HardforkTriggerStub{}
-	opt := WithHardforkTrigger(hardforkTrigger)
-	err := opt(node)
-
-	assert.Nil(t, err)
-	assert.True(t, node.hardforkTrigger == hardforkTrigger)
-}
-
 func TestWithAddressSignatureSize(t *testing.T) {
 	t.Parallel()
 

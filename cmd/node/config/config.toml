@@ -11,7 +11,11 @@
     # available in local disk
     StartInEpochEnabled = true
 
-    # ChainID identifies the blockChain
+    # ChainID represents the chain identifier
+    # The currently supported constants are:
+    #   "1" for Mainnet
+    #   "D" for Devnet
+    #   "T" for Testnet
     ChainID = "undefined"
 
     # MinTransactionVersion represents the minimum transaction version accepted
@@ -704,6 +708,10 @@
         ShardMaxGasPerVmQuery = 1500000000  #1.5b
         MetaMaxGasPerVmQuery = 0  #unlimited
 
+[BuiltInFunctions]
+    AutomaticCrawlerAddress = "erd1fpkcgel4gcmh8zqqdt043yfcn5tyx8373kg6q2qmkxzu4dqamc0swts65c"
+    MaxNumAddressesInTransferRole = 100
+
 [Hardfork]
     EnableTrigger = true
     EnableTriggerFromP2P = true
@@ -892,8 +900,35 @@
     MaxHardCapForMissingNodes = 5000
     #available versions: 1 and 2. 1 is the initial version, 2 is updated, more efficient version
     TrieSyncerVersion         = 2
+    CheckNodesOnDisk          = false
 
 [Resolvers]
     NumCrossShardPeers  = 2
-    NumIntraShardPeers  = 1
+    NumTotalPeers       = 3 # NumCrossShardPeers + num intra shard
     NumFullHistoryPeers = 3
+
+[HeartbeatV2]
+    PeerAuthenticationTimeBetweenSendsInSec          = 7200 # 2h
+    PeerAuthenticationTimeBetweenSendsWhenErrorInSec = 60   # 1min
+    PeerAuthenticationThresholdBetweenSends          = 0.1  # 10%
+    HeartbeatTimeBetweenSendsInSec                   = 60   # 1min
+    HeartbeatTimeBetweenSendsWhenErrorInSec          = 60   # 1min
+    HeartbeatThresholdBetweenSends                   = 0.1  # 10%
+    MaxNumOfPeerAuthenticationInResponse             = 10
+    HeartbeatExpiryTimespanInSec                     = 3600 # 1h
+    MinPeersThreshold                                = 0.8  # 80%
+    DelayBetweenRequestsInSec                        = 10   # 10sec
+    MaxTimeoutInSec                                  = 7200 # 2h
+    DelayBetweenConnectionNotificationsInSec         = 60   # 1min
+    MaxMissingKeysInRequest                          = 1000
+    MaxDurationPeerUnresponsiveInSec                 = 900  # 15min
+    HideInactiveValidatorIntervalInSec               = 3600 # 1h
+    HardforkTimeBetweenSendsInSec                    = 10   # 10sec
+    [HeartbeatV2.PeerAuthenticationPool]
+        DefaultSpanInSec = 3600 # 1h
+        CacheExpiryInSec = 3600 # 1h
+    [HeartbeatV2.HeartbeatPool]
+        Name = "HeartbeatPool"
+        Capacity = 1000
+        Type = "SizeLRU"
+        SizeInBytes = 314572800 #300MB

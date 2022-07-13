@@ -62,7 +62,6 @@ type Node struct {
 	consensusGroupSize  int
 	genesisTime         time.Time
 	peerDenialEvaluator p2p.PeerDenialEvaluator
-	hardforkTrigger     HardforkTrigger
 	esdtStorageHandler  vmcommon.ESDTNFTStorageHandler
 
 	consensusType       string
@@ -77,18 +76,19 @@ type Node struct {
 
 	chanStopNodeProcess chan endProcess.ArgEndProcess
 
-	mutQueryHandlers    syncGo.RWMutex
-	queryHandlers       map[string]debug.QueryHandler
-	bootstrapComponents mainFactory.BootstrapComponentsHolder
-	consensusComponents mainFactory.ConsensusComponentsHolder
-	coreComponents      mainFactory.CoreComponentsHolder
-	cryptoComponents    mainFactory.CryptoComponentsHolder
-	dataComponents      mainFactory.DataComponentsHolder
-	heartbeatComponents mainFactory.HeartbeatComponentsHolder
-	networkComponents   mainFactory.NetworkComponentsHolder
-	processComponents   mainFactory.ProcessComponentsHolder
-	stateComponents     mainFactory.StateComponentsHolder
-	statusComponents    mainFactory.StatusComponentsHolder
+	mutQueryHandlers      syncGo.RWMutex
+	queryHandlers         map[string]debug.QueryHandler
+	bootstrapComponents   mainFactory.BootstrapComponentsHolder
+	consensusComponents   mainFactory.ConsensusComponentsHolder
+	coreComponents        mainFactory.CoreComponentsHolder
+	cryptoComponents      mainFactory.CryptoComponentsHolder
+	dataComponents        mainFactory.DataComponentsHolder
+	heartbeatComponents   mainFactory.HeartbeatComponentsHolder
+	heartbeatV2Components mainFactory.HeartbeatV2ComponentsHolder
+	networkComponents     mainFactory.NetworkComponentsHolder
+	processComponents     mainFactory.ProcessComponentsHolder
+	stateComponents       mainFactory.StateComponentsHolder
+	statusComponents      mainFactory.StatusComponentsHolder
 
 	closableComponents        []mainFactory.Closer
 	enableSignTxWithHashEpoch uint32
@@ -156,27 +156,27 @@ func (n *Node) GetConsensusGroupSize() int {
 }
 
 // GetBalance gets the balance for a specific address
-func (n *Node) GetBalance(address string) (*big.Int, error) {
-	userAccount, err := n.getAccountHandlerAPIAccounts(address)
+func (n *Node) GetBalance(address string, options api.AccountQueryOptions) (*big.Int, api.BlockInfo, error) {
+	userAccount, blockInfo, err := n.loadUserAccountHandlerByAddress(address, options)
 	if err != nil {
 		if err == ErrCannotCastAccountHandlerToUserAccountHandler {
-			return big.NewInt(0), nil
+			return big.NewInt(0), api.BlockInfo{}, nil
 		}
-		return nil, err
+		return nil, api.BlockInfo{}, err
 	}
 
-	return userAccount.GetBalance(), nil
+	return userAccount.GetBalance(), blockInfo, nil
 }
 
 // GetUsername gets the username for a specific address
-func (n *Node) GetUsername(address string) (string, error) {
-	userAccount, err := n.getAccountHandlerAPIAccounts(address)
+func (n *Node) GetUsername(address string, options api.AccountQueryOptions) (string, api.BlockInfo, error) {
+	userAccount, blockInfo, err := n.loadUserAccountHandlerByAddress(address, options)
 	if err != nil {
-		return "", err
+		return "", api.BlockInfo{}, err
 	}
 
 	username := userAccount.GetUserName()
-	return string(username), nil
+	return string(username), blockInfo, nil
 }
 
 // GetAllIssuedESDTs returns all the issued esdt tokens, works only on metachain
@@ -185,7 +185,7 @@ func (n *Node) GetAllIssuedESDTs(tokenType string, ctx context.Context) ([]strin
 		return nil, ErrMetachainOnlyEndpoint
 	}
 
-	userAccount, err := n.getAccountHandlerForPubKey(vm.ESDTSCAddress)
+	userAccount, _, err := n.loadUserAccountHandlerByPubKey(vm.ESDTSCAddress, api.AccountQueryOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -253,25 +253,25 @@ func (n *Node) getEsdtDataFromLeaf(leaf core.KeyValueHolder, userAccount state.U
 }
 
 // GetKeyValuePairs returns all the key-value pairs under the address
-func (n *Node) GetKeyValuePairs(address string, ctx context.Context) (map[string]string, error) {
-	userAccount, err := n.getAccountHandlerAPIAccounts(address)
+func (n *Node) GetKeyValuePairs(address string, options api.AccountQueryOptions, ctx context.Context) (map[string]string, api.BlockInfo, error) {
+	userAccount, blockInfo, err := n.loadUserAccountHandlerByAddress(address, options)
 	if err != nil {
-		return nil, err
+		return nil, api.BlockInfo{}, err
 	}
 
 	if check.IfNil(userAccount.DataTrie()) {
-		return map[string]string{}, nil
+		return map[string]string{}, api.BlockInfo{}, nil
 	}
 
 	rootHash, err := userAccount.DataTrie().RootHash()
 	if err != nil {
-		return nil, err
+		return nil, api.BlockInfo{}, err
 	}
 
 	chLeaves := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
 	err = userAccount.DataTrie().GetAllLeavesOnChannel(chLeaves, ctx, rootHash)
 	if err != nil {
-		return nil, err
+		return nil, api.BlockInfo{}, err
 	}
 
 	mapToReturn := make(map[string]string)
@@ -287,84 +287,85 @@ func (n *Node) GetKeyValuePairs(address string, ctx context.Context) (map[string
 	}
 
 	if common.IsContextDone(ctx) {
-		return nil, ErrTrieOperationsTimeout
+		return nil, api.BlockInfo{}, ErrTrieOperationsTimeout
 	}
 
-	return mapToReturn, nil
+	return mapToReturn, blockInfo, nil
 }
 
 // GetValueForKey will return the value for a key from a given account
-func (n *Node) GetValueForKey(address string, key string) (string, error) {
+func (n *Node) GetValueForKey(address string, key string, options api.AccountQueryOptions) (string, api.BlockInfo, error) {
 	keyBytes, err := hex.DecodeString(key)
 	if err != nil {
-		return "", fmt.Errorf("invalid key: %w", err)
+		return "", api.BlockInfo{}, fmt.Errorf("invalid key: %w", err)
 	}
 
-	userAccount, err := n.getAccountHandlerAPIAccounts(address)
+	userAccount, blockInfo, err := n.loadUserAccountHandlerByAddress(address, options)
 	if err != nil {
-		return "", err
+		return "", api.BlockInfo{}, err
 	}
 
 	valueBytes, err := userAccount.DataTrieTracker().RetrieveValue(keyBytes)
 	if err != nil {
-		return "", fmt.Errorf("fetching value error: %w", err)
+		return "", api.BlockInfo{}, fmt.Errorf("fetching value error: %w", err)
 	}
 
-	return hex.EncodeToString(valueBytes), nil
+	return hex.EncodeToString(valueBytes), blockInfo, nil
 }
 
 // GetESDTData returns the esdt balance and properties from a given account
-func (n *Node) GetESDTData(address, tokenID string, nonce uint64) (*esdt.ESDigitalToken, error) {
-	userAccount, err := n.getAccountHandlerAPIAccounts(address)
+func (n *Node) GetESDTData(address, tokenID string, nonce uint64, options api.AccountQueryOptions) (*esdt.ESDigitalToken, api.BlockInfo, error) {
+	userAccount, blockInfo, err := n.loadUserAccountHandlerByAddress(address, options)
 	if err != nil {
-		return nil, err
+		return nil, api.BlockInfo{}, err
 	}
 
 	userAccountVmCommon, ok := userAccount.(vmcommon.UserAccountHandler)
 	if !ok {
-		return nil, ErrCannotCastUserAccountHandlerToVmCommonUserAccountHandler
+		return nil, api.BlockInfo{}, ErrCannotCastUserAccountHandlerToVmCommonUserAccountHandler
 	}
 
 	esdtTokenKey := []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier + tokenID)
 	esdtToken, _, err := n.esdtStorageHandler.GetESDTNFTTokenOnDestination(userAccountVmCommon, esdtTokenKey, nonce)
 	if err != nil {
-		return nil, err
+		return nil, api.BlockInfo{}, err
 	}
 
 	if esdtToken.TokenMetaData != nil {
 		esdtToken.TokenMetaData.Creator = []byte(n.coreComponents.AddressPubKeyConverter().Encode(esdtToken.TokenMetaData.Creator))
 	}
 
-	return esdtToken, nil
+	return esdtToken, blockInfo, nil
 }
 
 func (n *Node) getTokensIDsWithFilter(
 	f filter,
+	options api.AccountQueryOptions,
 	ctx context.Context,
-) ([]string, error) {
+) ([]string, api.BlockInfo, error) {
 	if n.processComponents.ShardCoordinator().SelfId() != core.MetachainShardId {
-		return nil, ErrMetachainOnlyEndpoint
+		return nil, api.BlockInfo{}, ErrMetachainOnlyEndpoint
 	}
 
-	userAccount, err := n.getAccountHandlerForPubKey(vm.ESDTSCAddress)
+	userAccount, blockInfo, err := n.loadUserAccountHandlerByPubKey(vm.ESDTSCAddress, options)
 	if err != nil {
-		return nil, err
+		return nil, api.BlockInfo{}, err
 	}
 
 	tokens := make([]string, 0)
 	if check.IfNil(userAccount.DataTrie()) {
-		return tokens, nil
+		return tokens, api.BlockInfo{}, nil
 	}
 
 	rootHash, err := userAccount.DataTrie().RootHash()
 	if err != nil {
-		return nil, err
+		return nil, api.BlockInfo{}, err
 	}
 
 	chLeaves := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
 	err = userAccount.DataTrie().GetAllLeavesOnChannel(chLeaves, ctx, rootHash)
 	if err != nil {
-		return nil, err
+		return nil, api.BlockInfo{}, err
 	}
 
 	for leaf := range chLeaves {
@@ -384,48 +385,48 @@ func (n *Node) getTokensIDsWithFilter(
 	}
 
 	if common.IsContextDone(ctx) {
-		return nil, ErrTrieOperationsTimeout
+		return nil, api.BlockInfo{}, ErrTrieOperationsTimeout
 	}
 
-	return tokens, nil
+	return tokens, blockInfo, nil
 }
 
 // GetNFTTokenIDsRegisteredByAddress returns all the token identifiers for semi or non fungible tokens registered by the address
-func (n *Node) GetNFTTokenIDsRegisteredByAddress(address string, ctx context.Context) ([]string, error) {
+func (n *Node) GetNFTTokenIDsRegisteredByAddress(address string, options api.AccountQueryOptions, ctx context.Context) ([]string, api.BlockInfo, error) {
 	addressBytes, err := n.coreComponents.AddressPubKeyConverter().Decode(address)
 	if err != nil {
-		return nil, err
+		return nil, api.BlockInfo{}, err
 	}
 
 	f := &getRegisteredNftsFilter{
 		addressBytes: addressBytes,
 	}
-	return n.getTokensIDsWithFilter(f, ctx)
+	return n.getTokensIDsWithFilter(f, options, ctx)
 }
 
 // GetESDTsWithRole returns all the tokens with the given role for the given address
-func (n *Node) GetESDTsWithRole(address string, role string, ctx context.Context) ([]string, error) {
+func (n *Node) GetESDTsWithRole(address string, role string, options api.AccountQueryOptions, ctx context.Context) ([]string, api.BlockInfo, error) {
 	if !core.IsValidESDTRole(role) {
-		return nil, ErrInvalidESDTRole
+		return nil, api.BlockInfo{}, ErrInvalidESDTRole
 	}
 
 	addressBytes, err := n.coreComponents.AddressPubKeyConverter().Decode(address)
 	if err != nil {
-		return nil, err
+		return nil, api.BlockInfo{}, err
 	}
 
 	f := &getTokensWithRoleFilter{
 		addressBytes: addressBytes,
 		role:         role,
 	}
-	return n.getTokensIDsWithFilter(f, ctx)
+	return n.getTokensIDsWithFilter(f, options, ctx)
 }
 
 // GetESDTsRoles returns all the tokens identifiers and roles for the given address
-func (n *Node) GetESDTsRoles(address string, ctx context.Context) (map[string][]string, error) {
+func (n *Node) GetESDTsRoles(address string, options api.AccountQueryOptions, ctx context.Context) (map[string][]string, api.BlockInfo, error) {
 	addressBytes, err := n.coreComponents.AddressPubKeyConverter().Decode(address)
 	if err != nil {
-		return nil, err
+		return nil, api.BlockInfo{}, err
 	}
 
 	tokensRoles := make(map[string][]string)
@@ -434,12 +435,12 @@ func (n *Node) GetESDTsRoles(address string, ctx context.Context) (map[string][]
 		addressBytes: addressBytes,
 		outputRoles:  tokensRoles,
 	}
-	_, err = n.getTokensIDsWithFilter(f, ctx)
+	_, blockInfo, err := n.getTokensIDsWithFilter(f, options, ctx)
 	if err != nil {
-		return nil, err
+		return nil, api.BlockInfo{}, err
 	}
 
-	return tokensRoles, nil
+	return tokensRoles, blockInfo, nil
 }
 
 // GetTokenSupply returns the provided token supply from current shard
@@ -464,15 +465,15 @@ func bigToString(bigValue *big.Int) string {
 }
 
 // GetAllESDTTokens returns all the ESDTs that the given address interacted with
-func (n *Node) GetAllESDTTokens(address string, ctx context.Context) (map[string]*esdt.ESDigitalToken, error) {
-	userAccount, err := n.getAccountHandlerAPIAccounts(address)
+func (n *Node) GetAllESDTTokens(address string, options api.AccountQueryOptions, ctx context.Context) (map[string]*esdt.ESDigitalToken, api.BlockInfo, error) {
+	userAccount, blockInfo, err := n.loadUserAccountHandlerByAddress(address, options)
 	if err != nil {
-		return nil, err
+		return nil, api.BlockInfo{}, err
 	}
 
 	allESDTs := make(map[string]*esdt.ESDigitalToken)
 	if check.IfNil(userAccount.DataTrie()) {
-		return allESDTs, nil
+		return allESDTs, api.BlockInfo{}, nil
 	}
 
 	esdtPrefix := []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier)
@@ -480,13 +481,13 @@ func (n *Node) GetAllESDTTokens(address string, ctx context.Context) (map[string
 
 	rootHash, err := userAccount.DataTrie().RootHash()
 	if err != nil {
-		return nil, err
+		return nil, api.BlockInfo{}, err
 	}
 
 	chLeaves := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
 	err = userAccount.DataTrie().GetAllLeavesOnChannel(chLeaves, ctx, rootHash)
 	if err != nil {
-		return nil, err
+		return nil, api.BlockInfo{}, err
 	}
 
 	for leaf := range chLeaves {
@@ -500,7 +501,7 @@ func (n *Node) GetAllESDTTokens(address string, ctx context.Context) (map[string
 
 		userAccountVmCommon, ok := userAccount.(vmcommon.UserAccountHandler)
 		if !ok {
-			return nil, ErrCannotCastUserAccountHandlerToVmCommonUserAccountHandler
+			return nil, api.BlockInfo{}, ErrCannotCastUserAccountHandlerToVmCommonUserAccountHandler
 		}
 
 		tokenID, nonce := common.ExtractTokenIDAndNonceFromTokenStorageKey([]byte(tokenName))
@@ -521,10 +522,10 @@ func (n *Node) GetAllESDTTokens(address string, ctx context.Context) (map[string
 	}
 
 	if common.IsContextDone(ctx) {
-		return nil, ErrTrieOperationsTimeout
+		return nil, api.BlockInfo{}, ErrTrieOperationsTimeout
 	}
 
-	return allESDTs, nil
+	return allESDTs, blockInfo, nil
 }
 
 func adjustNftTokenIdentifier(token string, nonce uint64) string {
@@ -546,42 +547,28 @@ func adjustNftTokenIdentifier(token string, nonce uint64) string {
 	return formattedTokenIdentifier
 }
 
-func (n *Node) getAccountHandlerAPIAccounts(address string) (state.UserAccountHandler, error) {
-	componentsNotInitialized := check.IfNil(n.coreComponents.AddressPubKeyConverter()) ||
-		check.IfNil(n.stateComponents.AccountsAdapterAPI())
-	if componentsNotInitialized {
-		return nil, errors.New("initialize AccountsAdapterAPI, PubkeyConverter first")
-	}
-
-	addr, err := n.coreComponents.AddressPubKeyConverter().Decode(address)
+func (n *Node) decodeAddressToPubKey(address string) ([]byte, error) {
+	pubKey, err := n.coreComponents.AddressPubKeyConverter().Decode(address)
 	if err != nil {
-		return nil, errors.New("invalid address, could not decode from: " + err.Error())
+		return nil, fmt.Errorf("invalid address (%w): %s", err, address)
 	}
 
-	return n.getAccountHandlerForPubKey(addr)
+	return pubKey, nil
 }
 
-func (n *Node) getAccountHandlerForPubKey(address []byte) (state.UserAccountHandler, error) {
-	account, err := n.stateComponents.AccountsAdapterAPI().GetExistingAccount(address)
-	if err != nil {
-		return nil, err
-	}
-
-	userAccount, ok := n.castAccountToUserAccount(account)
-	if !ok {
+func (n *Node) castAccountToUserAccount(ah vmcommon.AccountHandler) (state.UserAccountHandler, error) {
+	if check.IfNil(ah) {
+		log.Error("node.castAccountToUserAccount(): unexpected nil account")
 		return nil, ErrCannotCastAccountHandlerToUserAccountHandler
 	}
 
-	return userAccount, nil
-}
-
-func (n *Node) castAccountToUserAccount(ah vmcommon.AccountHandler) (state.UserAccountHandler, bool) {
-	if check.IfNil(ah) {
-		return nil, false
+	account, ok := ah.(state.UserAccountHandler)
+	if !ok {
+		log.Error("node.castAccountToUserAccount(): unexpected type of account")
+		return nil, ErrCannotCastAccountHandlerToUserAccountHandler
 	}
 
-	account, ok := ah.(state.UserAccountHandler)
-	return account, ok
+	return account, nil
 }
 
 // SendBulkTransactions sends the provided transactions as a bulk, optimizing transfer between nodes
@@ -792,34 +779,22 @@ func (n *Node) CreateTransaction(
 }
 
 // GetAccount will return account details for a given address
-func (n *Node) GetAccount(address string) (api.AccountResponse, error) {
-	if check.IfNil(n.coreComponents.AddressPubKeyConverter()) {
-		return api.AccountResponse{}, ErrNilPubkeyConverter
-	}
-	if check.IfNil(n.stateComponents.AccountsAdapterAPI()) {
-		return api.AccountResponse{}, ErrNilAccountsAdapter
-	}
+func (n *Node) GetAccount(address string, options api.AccountQueryOptions) (api.AccountResponse, api.BlockInfo, error) {
+	var accountNotFoundErr *state.ErrAccountNotFoundAtBlock
 
-	addr, err := n.coreComponents.AddressPubKeyConverter().Decode(address)
+	account, blockInfo, err := n.loadUserAccountHandlerByAddress(address, options)
 	if err != nil {
-		return api.AccountResponse{}, err
-	}
+		if errors.As(err, &accountNotFoundErr) {
+			blockInfo := accountBlockInfoToApiResource(accountNotFoundErr.BlockInfo)
 
-	accWrp, err := n.stateComponents.AccountsAdapterAPI().GetExistingAccount(addr)
-	if err != nil {
-		if err == state.ErrAccNotFound {
 			return api.AccountResponse{
 				Address:         address,
 				Balance:         "0",
 				DeveloperReward: "0",
-			}, nil
+			}, blockInfo, nil
 		}
-		return api.AccountResponse{}, errors.New("could not fetch sender address from provided param: " + err.Error())
-	}
 
-	account, ok := accWrp.(state.UserAccountHandler)
-	if !ok {
-		return api.AccountResponse{}, errors.New("account is not of type with balance and nonce")
+		return api.AccountResponse{}, api.BlockInfo{}, err
 	}
 
 	ownerAddress := ""
@@ -838,25 +813,48 @@ func (n *Node) GetAccount(address string) (api.AccountResponse, error) {
 		CodeMetadata:    account.GetCodeMetadata(),
 		DeveloperReward: account.GetDeveloperReward().String(),
 		OwnerAddress:    ownerAddress,
-	}, nil
+	}, blockInfo, nil
 }
 
 // GetCode returns the code for the given code hash
-func (n *Node) GetCode(codeHash []byte) []byte {
-	return n.stateComponents.AccountsAdapterAPI().GetCode(codeHash)
+func (n *Node) GetCode(codeHash []byte, options api.AccountQueryOptions) ([]byte, api.BlockInfo) {
+	return n.loadAccountCode(codeHash, options)
 }
 
 // GetHeartbeats returns the heartbeat status for each public key defined in genesis.json
 func (n *Node) GetHeartbeats() []heartbeatData.PubKeyHeartbeat {
-	if check.IfNil(n.heartbeatComponents) {
-		return make([]heartbeatData.PubKeyHeartbeat, 0)
-	}
-	mon := n.heartbeatComponents.Monitor()
-	if check.IfNil(mon) {
-		return make([]heartbeatData.PubKeyHeartbeat, 0)
+	dataMap := make(map[string]heartbeatData.PubKeyHeartbeat)
+
+	if !check.IfNil(n.heartbeatComponents) {
+		v1Monitor := n.heartbeatComponents.Monitor()
+		if !check.IfNil(v1Monitor) {
+			n.addHeartbeatDataToMap(v1Monitor.GetHeartbeats(), dataMap)
+		}
 	}
 
-	return mon.GetHeartbeats()
+	if !check.IfNil(n.heartbeatV2Components) {
+		v2Monitor := n.heartbeatV2Components.Monitor()
+		if !check.IfNil(v2Monitor) {
+			n.addHeartbeatDataToMap(v2Monitor.GetHeartbeats(), dataMap)
+		}
+	}
+
+	dataSlice := make([]heartbeatData.PubKeyHeartbeat, 0)
+	for _, hb := range dataMap {
+		dataSlice = append(dataSlice, hb)
+	}
+
+	sort.Slice(dataSlice, func(i, j int) bool {
+		return strings.Compare(dataSlice[i].PublicKey, dataSlice[j].PublicKey) < 0
+	})
+
+	return dataSlice
+}
+
+func (n *Node) addHeartbeatDataToMap(data []heartbeatData.PubKeyHeartbeat, dataMap map[string]heartbeatData.PubKeyHeartbeat) {
+	for _, hb := range data {
+		dataMap[hb.PublicKey] = hb
+	}
 }
 
 // ValidatorStatisticsApi will return the statistics for all the validators from the initial nodes pub keys
@@ -866,12 +864,12 @@ func (n *Node) ValidatorStatisticsApi() (map[string]*state.ValidatorApiResponse,
 
 // DirectTrigger will start the hardfork trigger
 func (n *Node) DirectTrigger(epoch uint32, withEarlyEndOfEpoch bool) error {
-	return n.hardforkTrigger.Trigger(epoch, withEarlyEndOfEpoch)
+	return n.processComponents.HardforkTrigger().Trigger(epoch, withEarlyEndOfEpoch)
 }
 
 // IsSelfTrigger returns true if the trigger's registered public key matches the self public key
 func (n *Node) IsSelfTrigger() bool {
-	return n.hardforkTrigger.IsSelfTrigger()
+	return n.processComponents.HardforkTrigger().IsSelfTrigger()
 }
 
 // EncodeAddressPubkey will encode the provided address public key bytes to string
@@ -954,11 +952,6 @@ func (n *Node) GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error) {
 	return peerInfoSlice, nil
 }
 
-// GetHardforkTrigger returns the hardfork trigger
-func (n *Node) GetHardforkTrigger() HardforkTrigger {
-	return n.hardforkTrigger
-}
-
 // GetCoreComponents returns the core components
 func (n *Node) GetCoreComponents() mainFactory.CoreComponentsHolder {
 	return n.coreComponents
@@ -987,6 +980,11 @@ func (n *Node) GetDataComponents() mainFactory.DataComponentsHolder {
 // GetHeartbeatComponents returns the heartbeat components
 func (n *Node) GetHeartbeatComponents() mainFactory.HeartbeatComponentsHolder {
 	return n.heartbeatComponents
+}
+
+// GetHeartbeatV2Components returns the heartbeatV2 components
+func (n *Node) GetHeartbeatV2Components() mainFactory.HeartbeatV2ComponentsHolder {
+	return n.heartbeatV2Components
 }
 
 // GetNetworkComponents returns the network components

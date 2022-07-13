@@ -154,24 +154,15 @@ func NewInternalBlockGroup(facade internalBlockFacadeHandler) (*internalBlockGro
 func (ib *internalBlockGroup) getRawMetaBlockByNonce(c *gin.Context) {
 	nonce, err := getQueryParamNonce(c)
 	if err != nil {
-		shared.RespondWithValidationError(
-			c, fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrInvalidBlockNonce.Error()),
-		)
+		shared.RespondWithValidationError(c, errors.ErrGetBlock, errors.ErrInvalidBlockNonce)
 		return
 	}
 
 	start := time.Now()
 	rawBlock, err := ib.getFacade().GetInternalMetaBlockByNonce(common.ApiOutputFormatProto, nonce)
-	logging.LogAPIActionDurationIfNeeded(start, "GetInternalMetaBlockByNonce with proto")
+	logging.LogAPIActionDurationIfNeeded(start, "API call: GetInternalMetaBlockByNonce with proto")
 	if err != nil {
-		shared.RespondWith(
-			c,
-			http.StatusInternalServerError,
-			nil,
-			fmt.Sprintf("%s: %s", errors.ErrGetBlock.Error(), err.Error()),
-			shared.ReturnCodeInternalError,
-		)
-		return
+		shared.RespondWithInternalError(c, errors.ErrGetBlock, err)
 	}
 
 	shared.RespondWith(c, http.StatusOK, gin.H{"block": rawBlock}, "", shared.ReturnCodeSuccess)
@@ -180,23 +171,15 @@ func (ib *internalBlockGroup) getRawMetaBlockByNonce(c *gin.Context) {
 func (ib *internalBlockGroup) getRawMetaBlockByHash(c *gin.Context) {
 	hash := c.Param("hash")
 	if hash == "" {
-		shared.RespondWithValidationError(
-			c, fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrValidationEmptyBlockHash.Error()),
-		)
+		shared.RespondWithValidationError(c, errors.ErrGetBlock, errors.ErrValidationEmptyBlockHash)
 		return
 	}
 
 	start := time.Now()
 	rawBlock, err := ib.getFacade().GetInternalMetaBlockByHash(common.ApiOutputFormatProto, hash)
-	logging.LogAPIActionDurationIfNeeded(start, "GetInternalMetaBlockByHash with proto")
+	logging.LogAPIActionDurationIfNeeded(start, "API call: GetInternalMetaBlockByHash with proto")
 	if err != nil {
-		shared.RespondWith(
-			c,
-			http.StatusInternalServerError,
-			nil,
-			fmt.Sprintf("%s: %s", errors.ErrGetBlock.Error(), err.Error()),
-			shared.ReturnCodeInternalError,
-		)
+		shared.RespondWithInternalError(c, errors.ErrGetBlock, err)
 		return
 	}
 
@@ -206,23 +189,15 @@ func (ib *internalBlockGroup) getRawMetaBlockByHash(c *gin.Context) {
 func (ib *internalBlockGroup) getRawMetaBlockByRound(c *gin.Context) {
 	round, err := getQueryParamRound(c)
 	if err != nil {
-		shared.RespondWithValidationError(
-			c, fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrInvalidBlockRound.Error()),
-		)
+		shared.RespondWithValidationError(c, errors.ErrGetBlock, errors.ErrInvalidBlockRound)
 		return
 	}
 
 	start := time.Now()
 	rawBlock, err := ib.getFacade().GetInternalMetaBlockByRound(common.ApiOutputFormatProto, round)
-	logging.LogAPIActionDurationIfNeeded(start, "GetInternalMetaBlockByRound with proto")
+	logging.LogAPIActionDurationIfNeeded(start, "API call: GetInternalMetaBlockByRound with proto")
 	if err != nil {
-		shared.RespondWith(
-			c,
-			http.StatusInternalServerError,
-			nil,
-			fmt.Sprintf("%s: %s", errors.ErrGetBlock.Error(), err.Error()),
-			shared.ReturnCodeInternalError,
-		)
+		shared.RespondWithInternalError(c, errors.ErrGetBlock, err)
 		return
 	}
 
@@ -232,23 +207,15 @@ func (ib *internalBlockGroup) getRawMetaBlockByRound(c *gin.Context) {
 func (ib *internalBlockGroup) getRawStartOfEpochMetaBlock(c *gin.Context) {
 	epoch, err := getQueryParamEpoch(c)
 	if err != nil {
-		shared.RespondWithValidationError(
-			c, fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrInvalidEpoch.Error()),
-		)
+		shared.RespondWithValidationError(c, errors.ErrGetBlock, errors.ErrInvalidEpoch)
 		return
 	}
 
 	start := time.Now()
 	rawBlock, err := ib.getFacade().GetInternalStartOfEpochMetaBlock(common.ApiOutputFormatProto, epoch)
-	logging.LogAPIActionDurationIfNeeded(start, "GetInternalStartOfEpochMetaBlock with proto")
+	logging.LogAPIActionDurationIfNeeded(start, "API call: GetInternalStartOfEpochMetaBlock with proto")
 	if err != nil {
-		shared.RespondWith(
-			c,
-			http.StatusInternalServerError,
-			nil,
-			fmt.Sprintf("%s: %s", errors.ErrGetBlock.Error(), err.Error()),
-			shared.ReturnCodeInternalError,
-		)
+		shared.RespondWithInternalError(c, errors.ErrGetBlock, err)
 		return
 	}
 
@@ -258,23 +225,15 @@ func (ib *internalBlockGroup) getRawStartOfEpochMetaBlock(c *gin.Context) {
 func (ib *internalBlockGroup) getRawShardBlockByNonce(c *gin.Context) {
 	nonce, err := getQueryParamNonce(c)
 	if err != nil {
-		shared.RespondWithValidationError(
-			c, fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrInvalidBlockNonce.Error()),
-		)
+		shared.RespondWithValidationError(c, errors.ErrGetBlock, errors.ErrInvalidBlockNonce)
 		return
 	}
 
 	start := time.Now()
 	rawBlock, err := ib.getFacade().GetInternalShardBlockByNonce(common.ApiOutputFormatProto, nonce)
-	logging.LogAPIActionDurationIfNeeded(start, "GetInternalShardBlockByNonce with proto")
+	logging.LogAPIActionDurationIfNeeded(start, "API call: GetInternalShardBlockByNonce with proto")
 	if err != nil {
-		shared.RespondWith(
-			c,
-			http.StatusInternalServerError,
-			nil,
-			fmt.Sprintf("%s: %s", errors.ErrGetBlock.Error(), err.Error()),
-			shared.ReturnCodeInternalError,
-		)
+		shared.RespondWithInternalError(c, errors.ErrGetBlock, err)
 		return
 	}
 
@@ -284,23 +243,15 @@ func (ib *internalBlockGroup) getRawShardBlockByNonce(c *gin.Context) {
 func (ib *internalBlockGroup) getRawShardBlockByHash(c *gin.Context) {
 	hash := c.Param("hash")
 	if hash == "" {
-		shared.RespondWithValidationError(
-			c, fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrValidationEmptyBlockHash.Error()),
-		)
+		shared.RespondWithValidationError(c, errors.ErrGetBlock, errors.ErrValidationEmptyBlockHash)
 		return
 	}
 
 	start := time.Now()
 	rawBlock, err := ib.getFacade().GetInternalShardBlockByHash(common.ApiOutputFormatProto, hash)
-	logging.LogAPIActionDurationIfNeeded(start, "GetInternalShardBlockByHash with proto")
+	logging.LogAPIActionDurationIfNeeded(start, "API call: GetInternalShardBlockByHash with proto")
 	if err != nil {
-		shared.RespondWith(
-			c,
-			http.StatusInternalServerError,
-			nil,
-			fmt.Sprintf("%s: %s", errors.ErrGetBlock.Error(), err.Error()),
-			shared.ReturnCodeInternalError,
-		)
+		shared.RespondWithInternalError(c, errors.ErrGetBlock, err)
 		return
 	}
 
@@ -310,23 +261,15 @@ func (ib *internalBlockGroup) getRawShardBlockByHash(c *gin.Context) {
 func (ib *internalBlockGroup) getRawShardBlockByRound(c *gin.Context) {
 	round, err := getQueryParamRound(c)
 	if err != nil {
-		shared.RespondWithValidationError(
-			c, fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrInvalidBlockRound.Error()),
-		)
+		shared.RespondWithValidationError(c, errors.ErrGetBlock, errors.ErrInvalidBlockRound)
 		return
 	}
 
 	start := time.Now()
 	rawBlock, err := ib.getFacade().GetInternalShardBlockByRound(common.ApiOutputFormatProto, round)
-	logging.LogAPIActionDurationIfNeeded(start, "GetInternalShardBlockByRound with proto")
+	logging.LogAPIActionDurationIfNeeded(start, "API call: GetInternalShardBlockByRound with proto")
 	if err != nil {
-		shared.RespondWith(
-			c,
-			http.StatusInternalServerError,
-			nil,
-			fmt.Sprintf("%s: %s", errors.ErrGetBlock.Error(), err.Error()),
-			shared.ReturnCodeInternalError,
-		)
+		shared.RespondWithInternalError(c, errors.ErrGetBlock, err)
 		return
 	}
 
@@ -336,23 +279,15 @@ func (ib *internalBlockGroup) getRawShardBlockByRound(c *gin.Context) {
 func (ib *internalBlockGroup) getJSONMetaBlockByNonce(c *gin.Context) {
 	nonce, err := getQueryParamNonce(c)
 	if err != nil {
-		shared.RespondWithValidationError(
-			c, fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrInvalidBlockNonce.Error()),
-		)
+		shared.RespondWithValidationError(c, errors.ErrGetBlock, errors.ErrInvalidBlockNonce)
 		return
 	}
 
 	start := time.Now()
 	block, err := ib.getFacade().GetInternalMetaBlockByNonce(common.ApiOutputFormatJSON, nonce)
-	logging.LogAPIActionDurationIfNeeded(start, "GetInternalMetaBlockByNonce")
+	logging.LogAPIActionDurationIfNeeded(start, "API call: GetInternalMetaBlockByNonce with JSON")
 	if err != nil {
-		shared.RespondWith(
-			c,
-			http.StatusInternalServerError,
-			nil,
-			fmt.Sprintf("%s: %s", errors.ErrGetBlock.Error(), err.Error()),
-			shared.ReturnCodeInternalError,
-		)
+		shared.RespondWithInternalError(c, errors.ErrGetBlock, err)
 		return
 	}
 
@@ -362,23 +297,15 @@ func (ib *internalBlockGroup) getJSONMetaBlockByNonce(c *gin.Context) {
 func (ib *internalBlockGroup) getJSONMetaBlockByHash(c *gin.Context) {
 	hash := c.Param("hash")
 	if hash == "" {
-		shared.RespondWithValidationError(
-			c, fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrValidationEmptyBlockHash.Error()),
-		)
+		shared.RespondWithValidationError(c, errors.ErrGetBlock, errors.ErrValidationEmptyBlockHash)
 		return
 	}
 
 	start := time.Now()
 	block, err := ib.getFacade().GetInternalMetaBlockByHash(common.ApiOutputFormatJSON, hash)
-	logging.LogAPIActionDurationIfNeeded(start, "GetInternalMetaBlockByHash")
+	logging.LogAPIActionDurationIfNeeded(start, "API call: GetInternalMetaBlockByHash with JSON")
 	if err != nil {
-		shared.RespondWith(
-			c,
-			http.StatusInternalServerError,
-			nil,
-			fmt.Sprintf("%s: %s", errors.ErrGetBlock.Error(), err.Error()),
-			shared.ReturnCodeInternalError,
-		)
+		shared.RespondWithInternalError(c, errors.ErrGetBlock, err)
 		return
 	}
 
@@ -388,23 +315,15 @@ func (ib *internalBlockGroup) getJSONMetaBlockByHash(c *gin.Context) {
 func (ib *internalBlockGroup) getJSONMetaBlockByRound(c *gin.Context) {
 	round, err := getQueryParamRound(c)
 	if err != nil {
-		shared.RespondWithValidationError(
-			c, fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrInvalidBlockRound.Error()),
-		)
+		shared.RespondWithValidationError(c, errors.ErrGetBlock, errors.ErrInvalidBlockRound)
 		return
 	}
 
 	start := time.Now()
 	block, err := ib.getFacade().GetInternalMetaBlockByRound(common.ApiOutputFormatJSON, round)
-	logging.LogAPIActionDurationIfNeeded(start, "GetInternalMetaBlockByRound")
+	logging.LogAPIActionDurationIfNeeded(start, "API call: GetInternalMetaBlockByRound with JSON")
 	if err != nil {
-		shared.RespondWith(
-			c,
-			http.StatusInternalServerError,
-			nil,
-			fmt.Sprintf("%s: %s", errors.ErrGetBlock.Error(), err.Error()),
-			shared.ReturnCodeInternalError,
-		)
+		shared.RespondWithInternalError(c, errors.ErrGetBlock, err)
 		return
 	}
 
@@ -414,23 +333,15 @@ func (ib *internalBlockGroup) getJSONMetaBlockByRound(c *gin.Context) {
 func (ib *internalBlockGroup) getJSONStartOfEpochMetaBlock(c *gin.Context) {
 	epoch, err := getQueryParamEpoch(c)
 	if err != nil {
-		shared.RespondWithValidationError(
-			c, fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrInvalidEpoch.Error()),
-		)
+		shared.RespondWithValidationError(c, errors.ErrGetBlock, errors.ErrInvalidEpoch)
 		return
 	}
 
 	start := time.Now()
 	block, err := ib.getFacade().GetInternalStartOfEpochMetaBlock(common.ApiOutputFormatJSON, epoch)
-	logging.LogAPIActionDurationIfNeeded(start, "GetInternalStartOfEpochMetaBlock")
+	logging.LogAPIActionDurationIfNeeded(start, "API call: GetInternalStartOfEpochMetaBlock with JSON")
 	if err != nil {
-		shared.RespondWith(
-			c,
-			http.StatusInternalServerError,
-			nil,
-			fmt.Sprintf("%s: %s", errors.ErrGetBlock.Error(), err.Error()),
-			shared.ReturnCodeInternalError,
-		)
+		shared.RespondWithInternalError(c, errors.ErrGetBlock, err)
 		return
 	}
 
@@ -440,23 +351,15 @@ func (ib *internalBlockGroup) getJSONStartOfEpochMetaBlock(c *gin.Context) {
 func (ib *internalBlockGroup) getJSONShardBlockByNonce(c *gin.Context) {
 	nonce, err := getQueryParamNonce(c)
 	if err != nil {
-		shared.RespondWithValidationError(
-			c, fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrInvalidBlockNonce.Error()),
-		)
+		shared.RespondWithValidationError(c, errors.ErrGetBlock, errors.ErrInvalidBlockNonce)
 		return
 	}
 
 	start := time.Now()
 	block, err := ib.getFacade().GetInternalShardBlockByNonce(common.ApiOutputFormatJSON, nonce)
-	logging.LogAPIActionDurationIfNeeded(start, "GetInternalShardBlockByNonce")
+	logging.LogAPIActionDurationIfNeeded(start, "API call: GetInternalShardBlockByNonce with JSON")
 	if err != nil {
-		shared.RespondWith(
-			c,
-			http.StatusInternalServerError,
-			nil,
-			fmt.Sprintf("%s: %s", errors.ErrGetBlock.Error(), err.Error()),
-			shared.ReturnCodeInternalError,
-		)
+		shared.RespondWithInternalError(c, errors.ErrGetBlock, err)
 		return
 	}
 
@@ -466,23 +369,15 @@ func (ib *internalBlockGroup) getJSONShardBlockByNonce(c *gin.Context) {
 func (ib *internalBlockGroup) getJSONShardBlockByHash(c *gin.Context) {
 	hash := c.Param("hash")
 	if hash == "" {
-		shared.RespondWithValidationError(
-			c, fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrValidationEmptyBlockHash.Error()),
-		)
+		shared.RespondWithValidationError(c, errors.ErrGetBlock, errors.ErrValidationEmptyBlockHash)
 		return
 	}
 
 	start := time.Now()
 	block, err := ib.getFacade().GetInternalShardBlockByHash(common.ApiOutputFormatJSON, hash)
-	logging.LogAPIActionDurationIfNeeded(start, "GetInternalShardBlockByHash")
+	logging.LogAPIActionDurationIfNeeded(start, "API call: GetInternalShardBlockByHash with JSON")
 	if err != nil {
-		shared.RespondWith(
-			c,
-			http.StatusInternalServerError,
-			nil,
-			fmt.Sprintf("%s: %s", errors.ErrGetBlock.Error(), err.Error()),
-			shared.ReturnCodeInternalError,
-		)
+		shared.RespondWithInternalError(c, errors.ErrGetBlock, err)
 		return
 	}
 
@@ -492,23 +387,15 @@ func (ib *internalBlockGroup) getJSONShardBlockByHash(c *gin.Context) {
 func (ib *internalBlockGroup) getJSONShardBlockByRound(c *gin.Context) {
 	round, err := getQueryParamRound(c)
 	if err != nil {
-		shared.RespondWithValidationError(
-			c, fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrInvalidBlockRound.Error()),
-		)
+		shared.RespondWithValidationError(c, errors.ErrGetBlock, errors.ErrInvalidBlockRound)
 		return
 	}
 
 	start := time.Now()
 	block, err := ib.getFacade().GetInternalShardBlockByRound(common.ApiOutputFormatJSON, round)
-	logging.LogAPIActionDurationIfNeeded(start, "GetInternalShardBlockByRound")
+	logging.LogAPIActionDurationIfNeeded(start, "API call: GetInternalShardBlockByRound with JSON")
 	if err != nil {
-		shared.RespondWith(
-			c,
-			http.StatusInternalServerError,
-			nil,
-			fmt.Sprintf("%s: %s", errors.ErrGetBlock.Error(), err.Error()),
-			shared.ReturnCodeInternalError,
-		)
+		shared.RespondWithInternalError(c, errors.ErrGetBlock, err)
 		return
 	}
 
@@ -518,31 +405,21 @@ func (ib *internalBlockGroup) getJSONShardBlockByRound(c *gin.Context) {
 func (ib *internalBlockGroup) getRawMiniBlockByHash(c *gin.Context) {
 	hash := c.Param("hash")
 	if hash == "" {
-		shared.RespondWithValidationError(
-			c, fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrValidationEmptyBlockHash.Error()),
-		)
+		shared.RespondWithValidationError(c, errors.ErrGetBlock, errors.ErrValidationEmptyBlockHash)
 		return
 	}
 
 	epoch, err := getQueryParamEpoch(c)
 	if err != nil {
-		shared.RespondWithValidationError(
-			c, fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrInvalidEpoch.Error()),
-		)
+		shared.RespondWithValidationError(c, errors.ErrGetBlock, errors.ErrInvalidEpoch)
 		return
 	}
 
 	start := time.Now()
 	miniBlock, err := ib.getFacade().GetInternalMiniBlockByHash(common.ApiOutputFormatProto, hash, epoch)
-	logging.LogAPIActionDurationIfNeeded(start, "GetInternalMiniBlockByHash")
+	logging.LogAPIActionDurationIfNeeded(start, "API call: GetInternalMiniBlockByHash with proto")
 	if err != nil {
-		shared.RespondWith(
-			c,
-			http.StatusInternalServerError,
-			nil,
-			fmt.Sprintf("%s: %s", errors.ErrGetBlock.Error(), err.Error()),
-			shared.ReturnCodeInternalError,
-		)
+		shared.RespondWithInternalError(c, errors.ErrGetBlock, err)
 		return
 	}
 
@@ -552,31 +429,21 @@ func (ib *internalBlockGroup) getRawMiniBlockByHash(c *gin.Context) {
 func (ib *internalBlockGroup) getJSONMiniBlockByHash(c *gin.Context) {
 	hash := c.Param("hash")
 	if hash == "" {
-		shared.RespondWithValidationError(
-			c, fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrValidationEmptyBlockHash.Error()),
-		)
+		shared.RespondWithValidationError(c, errors.ErrGetBlock, errors.ErrValidationEmptyBlockHash)
 		return
 	}
 
 	epoch, err := getQueryParamEpoch(c)
 	if err != nil {
-		shared.RespondWithValidationError(
-			c, fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrInvalidEpoch.Error()),
-		)
+		shared.RespondWithValidationError(c, errors.ErrGetBlock, errors.ErrInvalidEpoch)
 		return
 	}
 
 	start := time.Now()
 	miniBlock, err := ib.getFacade().GetInternalMiniBlockByHash(common.ApiOutputFormatJSON, hash, epoch)
-	logging.LogAPIActionDurationIfNeeded(start, "GetInternalMiniBlockByHash")
+	logging.LogAPIActionDurationIfNeeded(start, "API call: GetInternalMiniBlockByHash with JSON")
 	if err != nil {
-		shared.RespondWith(
-			c,
-			http.StatusInternalServerError,
-			nil,
-			fmt.Sprintf("%s: %s", errors.ErrGetBlock.Error(), err.Error()),
-			shared.ReturnCodeInternalError,
-		)
+		shared.RespondWithInternalError(c, errors.ErrGetBlock, err)
 		return
 	}
 

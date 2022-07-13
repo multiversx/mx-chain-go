@@ -1,6 +1,7 @@
 package vm
 
 import (
+	"bytes"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -445,7 +446,6 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 		ShardCoordinator:   oneShardCoordinator,
 		BuiltInFunctions:   builtInFuncs,
 		ArgumentParser:     parsers.NewCallArgsParser(),
-		EpochNotifier:      forking.NewGenericEpochNotifier(),
 		ESDTTransferParser: esdtTransferParser,
 	}
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
@@ -556,10 +556,12 @@ func CreateVMAndBlockchainHookAndDataPool(
 		MapDNSAddresses: map[string]struct{}{
 			string(dnsAddr): {},
 		},
-		Marshalizer:      testMarshalizer,
-		Accounts:         accnts,
-		ShardCoordinator: shardCoordinator,
-		EpochNotifier:    epochNotifierInstance,
+		Marshalizer:               testMarshalizer,
+		Accounts:                  accnts,
+		ShardCoordinator:          shardCoordinator,
+		EpochNotifier:             epochNotifierInstance,
+		AutomaticCrawlerAddress:   bytes.Repeat([]byte{1}, 32),
+		MaxNumNodesInTransferRole: 100,
 	}
 	builtInFuncs, nftStorageHandler, globalSettingsHandler, _ := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
 
@@ -631,10 +633,12 @@ func CreateVMAndBlockchainHookMeta(
 		MapDNSAddresses: map[string]struct{}{
 			string(dnsAddr): {},
 		},
-		Marshalizer:      testMarshalizer,
-		Accounts:         accnts,
-		ShardCoordinator: shardCoordinator,
-		EpochNotifier:    globalEpochNotifier,
+		Marshalizer:               testMarshalizer,
+		Accounts:                  accnts,
+		ShardCoordinator:          shardCoordinator,
+		EpochNotifier:             globalEpochNotifier,
+		AutomaticCrawlerAddress:   bytes.Repeat([]byte{1}, 32),
+		MaxNumNodesInTransferRole: 100,
 	}
 	builtInFuncs, nftStorageHandler, globalSettingsHandler, _ := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
 
@@ -788,7 +792,6 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		ShardCoordinator:   shardCoordinator,
 		BuiltInFunctions:   blockChainHook.GetBuiltinFunctionsContainer(),
 		ArgumentParser:     parsers.NewCallArgsParser(),
-		EpochNotifier:      forking.NewGenericEpochNotifier(),
 		ESDTTransferParser: esdtTransferParser,
 	}
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)

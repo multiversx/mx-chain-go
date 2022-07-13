@@ -84,7 +84,7 @@ func (adb *PeerAccountsDB) SnapshotState(rootHash []byte) {
 		return
 	}
 
-	log.Debug("starting snapshot", "rootHash", rootHash, "epoch", epoch)
+	log.Info("starting snapshot", "rootHash", rootHash, "epoch", epoch)
 
 	adb.lastSnapshot.rootHash = rootHash
 	adb.lastSnapshot.epoch = epoch

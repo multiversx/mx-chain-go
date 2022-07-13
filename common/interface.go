@@ -138,3 +138,18 @@ type ProcessStatusHandler interface {
 	IsIdle() bool
 	IsInterfaceNil() bool
 }
+
+// BlockInfo provides a block information such as nonce, hash, roothash and so on
+type BlockInfo interface {
+	GetNonce() uint64
+	GetHash() []byte
+	GetRootHash() []byte
+	Equal(blockInfo BlockInfo) bool
+	IsInterfaceNil() bool
+}
+
+// GasScheduleNotifierAPI defines the behavior of the gas schedule notifier components that is used for api
+type GasScheduleNotifierAPI interface {
+	core.GasScheduleNotifier
+	LatestGasScheduleCopy() map[string]map[string]uint64
+}

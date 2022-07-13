@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 )
 
 // TransactionCoordinatorMock -
@@ -20,9 +21,10 @@ type TransactionCoordinatorMock struct {
 	RemoveTxsFromPoolCalled                              func(body *block.Body) error
 	ProcessBlockTransactionCalled                        func(header data.HeaderHandler, body *block.Body, haveTime func() time.Duration) error
 	CreateBlockStartedCalled                             func()
-	CreateMbsAndProcessCrossShardTransactionsDstMeCalled func(header data.HeaderHandler, processedMiniBlocksHashes map[string]struct{}, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool) (block.MiniBlockSlice, uint32, bool, error)
+	CreateMbsAndProcessCrossShardTransactionsDstMeCalled func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool) (block.MiniBlockSlice, uint32, bool, error)
 	CreateMbsAndProcessTransactionsFromMeCalled          func(haveTime func() bool) block.MiniBlockSlice
 	CreateMarshalizedDataCalled                          func(body *block.Body) map[string][][]byte
+	GetCreatedInShardMiniBlocksCalled                    func() []*block.MiniBlock
 	GetAllCurrentUsedTxsCalled                           func(blockType block.Type) map[string]data.TransactionHandler
 	VerifyCreatedBlockTransactionsCalled                 func(hdr data.HeaderHandler, body *block.Body) error
 	CreatePostProcessMiniBlocksCalled                    func() block.MiniBlockSlice
@@ -145,7 +147,7 @@ func (tcm *TransactionCoordinatorMock) CreateBlockStarted() {
 // CreateMbsAndProcessCrossShardTransactionsDstMe -
 func (tcm *TransactionCoordinatorMock) CreateMbsAndProcessCrossShardTransactionsDstMe(
 	header data.HeaderHandler,
-	processedMiniBlocksHashes map[string]struct{},
+	processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo,
 	haveTime func() bool,
 	haveAdditionalTime func() bool,
 	scheduledMode bool,
@@ -154,7 +156,7 @@ func (tcm *TransactionCoordinatorMock) CreateMbsAndProcessCrossShardTransactions
 		return nil, 0, false, nil
 	}
 
-	return tcm.CreateMbsAndProcessCrossShardTransactionsDstMeCalled(header, processedMiniBlocksHashes, haveTime, haveAdditionalTime, scheduledMode)
+	return tcm.CreateMbsAndProcessCrossShardTransactionsDstMeCalled(header, processedMiniBlocksInfo, haveTime, haveAdditionalTime, scheduledMode)
 }
 
 // CreateMbsAndProcessTransactionsFromMe -
@@ -200,6 +202,15 @@ func (tcm *TransactionCoordinatorMock) CreateMarshalizedReceipts() ([]byte, erro
 	}
 
 	return tcm.CreateMarshalizedReceiptsCalled()
+}
+
+// GetCreatedInShardMiniBlocks -
+func (tcm *TransactionCoordinatorMock) GetCreatedInShardMiniBlocks() []*block.MiniBlock {
+	if tcm.GetCreatedInShardMiniBlocksCalled != nil {
+		return tcm.GetCreatedInShardMiniBlocksCalled()
+	}
+
+	return nil
 }
 
 // VerifyCreatedMiniBlocks -

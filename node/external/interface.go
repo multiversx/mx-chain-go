@@ -58,8 +58,12 @@ type DelegatedListHandler interface {
 // APITransactionHandler defines what an API transaction handler should be able to do
 type APITransactionHandler interface {
 	GetTransaction(txHash string, withResults bool) (*transaction.ApiTransactionResult, error)
-	GetTransactionsPool() (*common.TransactionsPoolAPIResponse, error)
+	GetTransactionsPool(fields string) (*common.TransactionsPoolAPIResponse, error)
+	GetTransactionsPoolForSender(sender, fields string) (*common.TransactionsPoolForSenderApiResponse, error)
+	GetLastPoolNonceForSender(sender string) (uint64, error)
+	GetTransactionsPoolNonceGapsForSender(sender string) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error)
 	UnmarshalTransaction(txBytes []byte, txType transaction.TxType) (*transaction.ApiTransactionResult, error)
+	PopulateComputedFields(tx *transaction.ApiTransactionResult)
 	UnmarshalReceipt(receiptBytes []byte) (*transaction.ApiReceipt, error)
 	IsInterfaceNil() bool
 }
