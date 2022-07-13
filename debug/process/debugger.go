@@ -24,11 +24,9 @@ type processDebugger struct {
 	cancel                  func()
 	goRoutinesDumpHandler   func()
 	logChangeHandler        func()
-
-	maxRoundsWithoutCommit int64
-	pollingTime            time.Duration
-	logLevel               string
-	dumpGoRoutines         bool
+	pollingTime             time.Duration
+	logLevel                string
+	dumpGoRoutines          bool
 }
 
 // NewProcessDebugger creates a new debugger instance used to monitor the block process flow
