@@ -1084,6 +1084,29 @@ func (sc *scProcessor) doExecuteBuiltInFunction(
 	return sc.finishSCExecution(scrResults, txHash, tx, newVMOutput, builtInFuncGasUsed)
 }
 
+func (sc *scProcessor) reapendAsyncParams(data string, asyncArgs [][]byte) (string, error) {
+	function, args, err := sc.argsParser.ParseCallData(data)
+	if err != nil {
+		log.Trace("scProcessor.createSCRsWhenError()", "error parsing args", data)
+		return "", err
+	}
+
+	if len(args) < 2 {
+		log.Trace("scProcessor.createSCRsWhenError()", "no async params found", data)
+		return "", err
+	}
+
+	newAsyncParams := createCallbackAsyncParams(asyncArgs)
+	newArgs := append(newAsyncParams, args...)
+
+	data = function
+	for _, arg := range newArgs {
+		data += "@" + hex.EncodeToString(arg)
+	}
+
+	return data, nil
+}
+
 func createCallbackAsyncParams(asyncParams [][]byte) [][]byte {
 	if asyncParams == nil {
 		return nil
@@ -1325,18 +1348,18 @@ func (sc *scProcessor) createVMInputWithAsyncCallBackAfterBuiltIn(
 // }
 
 // isCrossShardESDTTransfer is called when return is created out of the esdt transfer as of failed transaction
-func (sc *scProcessor) isCrossShardESDTTransfer(tx data.TransactionHandler) (string, bool) {
-	sndShardID := sc.shardCoordinator.ComputeId(tx.GetSndAddr())
+func (sc *scProcessor) isCrossShardESDTTransfer(sender []byte, receiver []byte, data []byte) (string, bool) {
+	sndShardID := sc.shardCoordinator.ComputeId(sender)
 	if sndShardID == sc.shardCoordinator.SelfId() {
 		return "", false
 	}
 
-	dstShardID := sc.shardCoordinator.ComputeId(tx.GetRcvAddr())
+	dstShardID := sc.shardCoordinator.ComputeId(receiver)
 	if dstShardID == sndShardID {
 		return "", false
 	}
 
-	function, args, err := sc.argsParser.ParseCallData(string(tx.GetData()))
+	function, args, err := sc.argsParser.ParseCallData(string(data))
 	if err != nil {
 		return "", false
 	}
@@ -1345,7 +1368,7 @@ func (sc *scProcessor) isCrossShardESDTTransfer(tx data.TransactionHandler) (str
 		return "", false
 	}
 
-	parsedTransfer, err := sc.esdtTransferParser.ParseESDTTransfers(tx.GetSndAddr(), tx.GetRcvAddr(), function, args)
+	parsedTransfer, err := sc.esdtTransferParser.ParseESDTTransfers(sender, receiver, function, args)
 	if err != nil {
 		return "", false
 	}
@@ -2092,8 +2115,32 @@ func (sc *scProcessor) createSCRsWhenError(
 		ReturnMessage: returnMessage,
 	}
 
+	data := tx.GetData()
+	asyncArgs := make([][]byte, 0)
+	if callType == vmData.AsynchronousCall {
+		function, args, err := sc.argsParser.ParseCallData(string(data))
+		dataAsString := function
+		if err != nil {
+			log.Trace("scProcessor.createSCRsWhenError()", "error parsing args", string(data))
+			return nil, nil
+		}
+
+		if len(args) < 2 {
+			log.Trace("scProcessor.createSCRsWhenError()", "no async params found", string(data))
+			return nil, nil
+		}
+
+		asyncArgs = args[0:2]
+
+		for _, arg := range args[2:] {
+			dataAsString += "@" + hex.EncodeToString(arg)
+		}
+
+		data = []byte(dataAsString)
+	}
+
 	accumulatedSCRData := ""
-	esdtReturnData, isCrossShardESDTCall := sc.isCrossShardESDTTransfer(tx)
+	esdtReturnData, isCrossShardESDTCall := sc.isCrossShardESDTTransfer(tx.GetSndAddr(), tx.GetRcvAddr(), data)
 	if callType != vmData.AsynchronousCallBack && isCrossShardESDTCall {
 		accumulatedSCRData += esdtReturnData
 	}
@@ -2118,24 +2165,10 @@ func (sc *scProcessor) createSCRsWhenError(
 				consumedFee = sc.economicsFee.ComputeFeeForProcessing(tx, tx.GetGasLimit()-gasLocked)
 			}
 
-			function, args, err := sc.argsParser.ParseCallData(accumulatedSCRData)
+			var err error
+			accumulatedSCRData, err = sc.reapendAsyncParams(accumulatedSCRData, asyncArgs)
 			if err != nil {
-				log.Trace("scProcessor.createSCRsWhenError()", "error parsing args", accumulatedSCRData)
 				return nil, nil
-			}
-
-			if len(args) < 2 {
-				log.Trace("scProcessor.createSCRsWhenError()", "no async params found", accumulatedSCRData)
-				return nil, nil
-			}
-
-			asyncParams := [][]byte{args[0], args[1]}
-			newAsyncParams := createCallbackAsyncParams(asyncParams)
-			newArgs := append(newAsyncParams, args[2:]...)
-
-			accumulatedSCRData = function
-			for _, arg := range newArgs {
-				accumulatedSCRData += "@" + hex.EncodeToString(arg)
 			}
 
 			accumulatedSCRData += "@" + core.ConvertToEvenHex(int(vmcommon.UserError))
