@@ -804,7 +804,7 @@
         Enabled = true
         LogLevelChanger = "*:DEBUG,p2p:TRACE,debug:DEBUG,process:TRACE"
         GoRoutinesDump = true
-        PollingTimeInSeconds = 120 # 2 minutes
+        PollingTimeInSeconds = 240 # 4 minutes
 
 [Health]
     IntervalVerifyMemoryInSeconds = 5
