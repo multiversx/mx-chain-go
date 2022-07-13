@@ -25,10 +25,6 @@ type subroundEndRound struct {
 	mutProcessingEndRound         sync.Mutex
 }
 
-type invalidSigners struct {
-	Signers [][]byte
-}
-
 // NewSubroundEndRound creates a subroundEndRound object
 func NewSubroundEndRound(
 	baseSubround *spos.Subround,
@@ -76,8 +72,6 @@ func checkNewSubroundEndRoundParams(
 // receivedBlockHeaderFinalInfo method is called when a block header final info is received
 func (sr *subroundEndRound) receivedBlockHeaderFinalInfo(_ context.Context, cnsDta *consensus.Message) bool {
 	node := string(cnsDta.PubKey)
-
-	log.Debug("receivedBlockHeaderFinalInfo", "size", cnsDta.Size())
 
 	if !sr.IsConsensusDataSet() {
 		return false

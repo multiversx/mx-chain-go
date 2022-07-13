@@ -46,8 +46,6 @@ github.com/ElrondNetwork/elrond-vm-common v1.3.3 h1:c8nwV3oUNfXrelWM6CZMjBjhf6lJ
 github.com/ElrondNetwork/elrond-vm-common v1.3.3/go.mod h1:B/Y8WiqHyDd7xsjNYsaYbVMp1jQgQ+z4jTJkFvj/EWI=
 github.com/ElrondNetwork/go-libp2p-pubsub v0.5.5-rc2 h1:Eyi2JlK0Eg6D8XNOiK0dLffpKy2ExQ0mXt+xm1cpKHk=
 github.com/ElrondNetwork/go-libp2p-pubsub v0.5.5-rc2/go.mod h1:3VSrYfPnRU8skcNAJNCPSyzM0dkazQHTdBMWyn/oAIA=
-github.com/ElrondNetwork/go-libp2p-pubsub v0.5.5-rc2.0.20220706051620-e9124115e1bd h1:6oPlVLzaZIHRqp2kblqw7eXL1qiIOPaEDsu1wFFJpkk=
-github.com/ElrondNetwork/go-libp2p-pubsub v0.5.5-rc2.0.20220706051620-e9124115e1bd/go.mod h1:3VSrYfPnRU8skcNAJNCPSyzM0dkazQHTdBMWyn/oAIA=
 github.com/ElrondNetwork/protobuf v1.3.2 h1:qoCSYiO+8GtXBEZWEjw0WPcZfM3g7QuuJrwpN+y6Mvg=
 github.com/ElrondNetwork/protobuf v1.3.2/go.mod h1:SlYgWuQ5SjCEi6WLHjHCa1yvBfUnHcTbrrZtXPKa29o=
 github.com/Knetic/govaluate v3.0.1-0.20171022003610-9aa49832a739+incompatible/go.mod h1:r7JcOSlj0wfOMncg0iLm8Leh48TZaKVeNIfJntJ2wa0=
