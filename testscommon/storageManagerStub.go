@@ -9,6 +9,7 @@ import (
 type StorageManagerStub struct {
 	PutCalled                       func([]byte, []byte) error
 	PutInEpochCalled                func([]byte, []byte, uint32) error
+	PutInEpochWithoutCacheCalled    func([]byte, []byte, uint32) error
 	GetCalled                       func([]byte) ([]byte, error)
 	GetFromCurrentEpochCalled       func([]byte) ([]byte, error)
 	TakeSnapshotCalled              func([]byte, []byte, chan core.KeyValueHolder, common.SnapshotStatisticsHandler, uint32)
@@ -41,6 +42,15 @@ func (sms *StorageManagerStub) Put(key []byte, val []byte) error {
 func (sms *StorageManagerStub) PutInEpoch(key []byte, val []byte, epoch uint32) error {
 	if sms.PutInEpochCalled != nil {
 		return sms.PutInEpochCalled(key, val, epoch)
+	}
+
+	return nil
+}
+
+// PutInEpochWithoutCache -
+func (sms *StorageManagerStub) PutInEpochWithoutCache(key []byte, val []byte, epoch uint32) error {
+	if sms.PutInEpochWithoutCacheCalled != nil {
+		return sms.PutInEpochWithoutCacheCalled(key, val, epoch)
 	}
 
 	return nil

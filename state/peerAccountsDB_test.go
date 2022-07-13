@@ -277,7 +277,7 @@ func TestPeerAccountsDB_MarkSnapshotDone(t *testing.T) {
 		args.Trie = &trieMock.TrieStub{
 			GetStorageManagerCalled: func() common.StorageManager {
 				return &testscommon.StorageManagerStub{
-					PutInEpochCalled: func(key []byte, value []byte, epoch uint32) error {
+					PutInEpochWithoutCacheCalled: func(key []byte, value []byte, epoch uint32) error {
 						assert.Equal(t, common.ActiveDBKey, string(key))
 						assert.Equal(t, common.ActiveDBVal, string(value))
 						putWasCalled = true
@@ -300,7 +300,7 @@ func TestPeerAccountsDB_MarkSnapshotDone(t *testing.T) {
 		args.Trie = &trieMock.TrieStub{
 			GetStorageManagerCalled: func() common.StorageManager {
 				return &testscommon.StorageManagerStub{
-					PutInEpochCalled: func(key []byte, value []byte, epoch uint32) error {
+					PutInEpochWithoutCacheCalled: func(key []byte, value []byte, epoch uint32) error {
 						assert.Equal(t, common.ActiveDBKey, string(key))
 						assert.Equal(t, common.ActiveDBVal, string(value))
 						putWasCalled = true

@@ -621,6 +621,29 @@ func (tr *patriciaMerkleTrie) Close() error {
 	return nil
 }
 
+// MarkStorerAsSyncedAndActive marks the storage as synced and active
+func (tr *patriciaMerkleTrie) MarkStorerAsSyncedAndActive() {
+	epoch, err := tr.trieStorage.GetLatestStorageEpoch()
+	if err != nil {
+		log.Error("getLatestStorageEpoch error", "error", err)
+	}
+
+	err = tr.trieStorage.Put([]byte(common.TrieSyncedKey), []byte(common.TrieSyncedVal))
+	if err != nil {
+		log.Error("error while putting trieSynced value into main storer after sync", "error", err)
+	}
+
+	lastEpoch := epoch - 1
+	if epoch == 0 {
+		lastEpoch = 0
+	}
+
+	err = tr.trieStorage.PutInEpoch([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal), lastEpoch)
+	if err != nil {
+		log.Error("error while putting activeDB value into main storer after sync", "error", err)
+	}
+}
+
 func isChannelClosed(ch chan struct{}) bool {
 	select {
 	case <-ch:

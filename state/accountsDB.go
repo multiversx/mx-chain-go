@@ -1128,24 +1128,8 @@ func (adb *AccountsDB) markActiveDBAfterSnapshot(stats *snapshotStatistics, root
 	}
 
 	log.Debug("set activeDB in epoch", "epoch", epoch)
-	errPut := trieStorageManager.PutInEpoch([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal), epoch)
+	errPut := trieStorageManager.PutInEpochWithoutCache([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal), epoch)
 	handleLoggingWhenError("error while putting active DB value into main storer", errPut)
-}
-
-func printStats(stats *snapshotStatistics, identifier string, rootHash []byte) {
-	stats.wg.Wait()
-
-	stats.mutex.RLock()
-	defer stats.mutex.RUnlock()
-
-	log.Debug("snapshot statistics",
-		"type", identifier,
-		"duration", time.Since(stats.startTime).Truncate(time.Second),
-		"total num of nodes", stats.numNodes,
-		"total size", core.ConvertBytes(stats.trieSize),
-		"num data tries", stats.numDataTries,
-		"rootHash", rootHash,
-	)
 }
 
 func (adb *AccountsDB) snapshotUserAccountDataTrie(
@@ -1203,7 +1187,7 @@ func (adb *AccountsDB) setStateCheckpoint(rootHash []byte) {
 		stats.wg.Done()
 	}()
 
-	go printStats(stats, "setStateCheckpoint user trie", rootHash)
+	go stats.PrintStats("setStateCheckpoint user trie", rootHash)
 
 	adb.waitForCompletionIfRunningInImportDB(stats)
 }
