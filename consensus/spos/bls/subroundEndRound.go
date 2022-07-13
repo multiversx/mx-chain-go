@@ -323,7 +323,11 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 			return false
 		}
 
-		invalidSigners = sr.getFullMessagesForInvalidSigners(invalidPubKeys)
+		invalidSigners, err = sr.getFullMessagesForInvalidSigners(invalidPubKeys)
+		if err != nil {
+			log.Debug("doEndRoundJobByLeader.getFullMessagesForInvalidSigners", "error", err.Error())
+			return false
+		}
 
 		bitmap, sig, err = sr.computeAggSigOnValidNodes()
 		if err != nil {
@@ -465,18 +469,23 @@ func (sr *subroundEndRound) verifyNodesOnAggSigVerificationFail() ([]string, err
 	return invalidPubKeys, nil
 }
 
-func (sr *subroundEndRound) getFullMessagesForInvalidSigners(invalidPubKeys []string) []byte {
-	invalidSigners := make([]byte, 0)
+func (sr *subroundEndRound) getFullMessagesForInvalidSigners(invalidPubKeys []string) ([]byte, error) {
+	p2pMessages := make([]p2p.MessageP2P, 0)
 	for _, pk := range invalidPubKeys {
-		msg, ok := sr.GetMessageWithSignature(pk)
+		p2pMsg, ok := sr.GetMessageWithSignature(pk)
 		if !ok {
 			continue
 		}
 
-		invalidSigners = append(invalidSigners, msg...)
+		p2pMessages = append(p2pMessages, p2pMsg)
 	}
 
-	return invalidSigners
+	invalidSigners, err := sr.MessageSigningHandler().Serialize(p2pMessages)
+	if err != nil {
+		return nil, err
+	}
+
+	return invalidSigners, nil
 }
 
 func (sr *subroundEndRound) computeAggSigOnValidNodes() ([]byte, []byte, error) {

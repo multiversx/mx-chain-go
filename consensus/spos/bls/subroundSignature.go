@@ -180,8 +180,6 @@ func (sr *subroundSignature) receivedSignature(_ context.Context, cnsDta *consen
 		return false
 	}
 
-	sr.AddMessageWithSignature(node, cnsDta.InvalidSigners)
-
 	sr.PeerHonestyHandler().ChangeScore(
 		node,
 		spos.GetConsensusTopicID(sr.ShardCoordinator()),

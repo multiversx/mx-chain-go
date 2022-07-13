@@ -148,7 +148,7 @@ type ScheduledProcessor interface {
 	IsInterfaceNil() bool
 }
 
-// P2PSigningHandler
+// P2PSigningHandler defines the behaviour of a component able to verify p2p message signature
 type P2PSigningHandler interface {
 	Verify(message p2p.MessageP2P) error
 	Serialize(messages []p2p.MessageP2P) ([]byte, error)

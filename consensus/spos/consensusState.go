@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/consensus"
+	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 )
 
@@ -24,7 +25,7 @@ type ConsensusState struct {
 	receivedHeaders    []data.HeaderHandler
 	mutReceivedHeaders sync.RWMutex
 
-	receivedMessagesWithSignature    map[string][]byte
+	receivedMessagesWithSignature    map[string]p2p.MessageP2P
 	mutReceivedMessagesWithSignature sync.RWMutex
 
 	RoundIndex                  int64
@@ -84,7 +85,7 @@ func (cns *ConsensusState) initReceivedHeaders() {
 
 func (cns *ConsensusState) initReceivedMessagesWithSig() {
 	cns.mutReceivedMessagesWithSignature.Lock()
-	cns.receivedMessagesWithSignature = make(map[string][]byte)
+	cns.receivedMessagesWithSignature = make(map[string]p2p.MessageP2P)
 	cns.mutReceivedMessagesWithSignature.Unlock()
 }
 
@@ -104,13 +105,13 @@ func (cns *ConsensusState) GetReceivedHeaders() []data.HeaderHandler {
 	return receivedHeaders
 }
 
-func (cns *ConsensusState) AddMessageWithSignature(key string, message []byte) {
+func (cns *ConsensusState) AddMessageWithSignature(key string, message p2p.MessageP2P) {
 	cns.mutReceivedMessagesWithSignature.Lock()
 	cns.receivedMessagesWithSignature[key] = message
 	cns.mutReceivedMessagesWithSignature.Unlock()
 }
 
-func (cns *ConsensusState) GetMessageWithSignature(key string) ([]byte, bool) {
+func (cns *ConsensusState) GetMessageWithSignature(key string) (p2p.MessageP2P, bool) {
 	cns.mutReceivedMessagesWithSignature.Lock()
 	defer cns.mutReceivedMessagesWithSignature.Unlock()
 
