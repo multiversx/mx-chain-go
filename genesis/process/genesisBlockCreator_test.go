@@ -165,7 +165,7 @@ func createMockArgument(
 
 	gasMap := arwenConfig.MakeGasMapForTests()
 	defaults.FillGasMapInternal(gasMap, 1)
-	arg.GasSchedule = mock.NewGasScheduleNotifierMock(gasMap)
+	arg.GasSchedule = testscommon.NewGasScheduleNotifierMock(gasMap)
 	ted := &economicsmocks.EconomicsHandlerStub{
 		GenesisTotalSupplyCalled: func() *big.Int {
 			return entireSupply

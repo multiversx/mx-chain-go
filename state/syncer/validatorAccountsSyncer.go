@@ -47,6 +47,7 @@ func NewValidatorAccountsSyncer(args ArgsNewValidatorAccountsSyncer) (*validator
 		name:                      "peer accounts",
 		maxHardCapForMissingNodes: args.MaxHardCapForMissingNodes,
 		trieSyncerVersion:         args.TrieSyncerVersion,
+		checkNodesOnDisk:          args.CheckNodesOnDisk,
 	}
 
 	u := &validatorAccountsSyncer{

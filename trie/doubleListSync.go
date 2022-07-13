@@ -14,6 +14,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
+const deltaReRequest = 5 * int64(time.Second)
+const maxNumRequestedNodesPerBatch = 1000
+
+type request struct {
+	timestamp int64
+}
+
 type doubleListTrieSyncer struct {
 	baseSyncTrie
 	rootFound                 bool
@@ -31,8 +38,10 @@ type doubleListTrieSyncer struct {
 	trieSyncStatistics        common.SizeSyncStatisticsHandler
 	timeoutHandler            TimeoutHandler
 	maxHardCapForMissingNodes int
+	checkNodesOnDisk          bool
 	existingNodes             map[string]node
 	missingHashes             map[string]struct{}
+	requestedHashes           map[string]*request
 }
 
 // NewDoubleListTrieSyncer creates a new instance of trieSyncer that uses 2 list for keeping the "margin" nodes.
@@ -62,6 +71,7 @@ func NewDoubleListTrieSyncer(arg ArgTrieSyncer) (*doubleListTrieSyncer, error) {
 		trieSyncStatistics:        arg.TrieSyncStatistics,
 		timeoutHandler:            arg.TimeoutHandler,
 		maxHardCapForMissingNodes: arg.MaxHardCapForMissingNodes,
+		checkNodesOnDisk:          arg.CheckNodesOnDisk,
 	}
 
 	return d, nil
@@ -83,6 +93,7 @@ func (d *doubleListTrieSyncer) StartSyncing(rootHash []byte, ctx context.Context
 
 	d.existingNodes = make(map[string]node)
 	d.missingHashes = make(map[string]struct{})
+	d.requestedHashes = make(map[string]*request)
 
 	d.rootFound = false
 	d.rootHash = rootHash
@@ -130,21 +141,33 @@ func (d *doubleListTrieSyncer) checkIsSyncedWhileProcessingMissingAndExisting() 
 	}
 
 	if len(d.missingHashes) > 0 {
-		marginSlice := make([][]byte, 0, len(d.missingHashes))
+		marginSlice := make([][]byte, 0, maxNumRequestedNodesPerBatch)
 		for hash := range d.missingHashes {
 			n, errGet := d.getNodeFromCache([]byte(hash))
 			if errGet == nil {
 				d.existingNodes[hash] = n
 				delete(d.missingHashes, hash)
+				delete(d.requestedHashes, hash)
 
 				continue
 			}
 
-			marginSlice = append(marginSlice, []byte(hash))
+			r, ok := d.requestedHashes[hash]
+			if !ok {
+				marginSlice = append(marginSlice, []byte(hash))
+				d.requestedHashes[hash] = &request{
+					timestamp: time.Now().UnixNano(),
+				}
+			} else {
+				delta := time.Now().UnixNano() - r.timestamp
+				if delta > deltaReRequest {
+					marginSlice = append(marginSlice, []byte(hash))
+					r.timestamp = time.Now().UnixNano()
+				}
+			}
 		}
 
 		d.request(marginSlice)
-
 		return false, nil
 	}
 
@@ -153,7 +176,7 @@ func (d *doubleListTrieSyncer) checkIsSyncedWhileProcessingMissingAndExisting() 
 
 func (d *doubleListTrieSyncer) request(hashes [][]byte) {
 	d.requestHandler.RequestTrieNodes(d.shardId, hashes, d.topic)
-	d.trieSyncStatistics.SetNumMissing(d.rootHash, len(hashes))
+	d.trieSyncStatistics.SetNumMissing(d.rootHash, len(d.missingHashes))
 }
 
 func (d *doubleListTrieSyncer) processMissingAndExisting() error {
@@ -170,6 +193,7 @@ func (d *doubleListTrieSyncer) processMissingHashes() {
 		}
 
 		delete(d.missingHashes, hash)
+		delete(d.requestedHashes, hash)
 
 		d.existingNodes[string(n.getHash())] = n
 	}
@@ -217,13 +241,16 @@ func (d *doubleListTrieSyncer) processExistingNodes() error {
 }
 
 func (d *doubleListTrieSyncer) getNode(hash []byte) (node, error) {
-	return getNodeFromCacheOrStorage(
-		hash,
-		d.interceptedNodesCacher,
-		d.db,
-		d.marshalizer,
-		d.hasher,
-	)
+	if d.checkNodesOnDisk {
+		return getNodeFromCacheOrStorage(
+			hash,
+			d.interceptedNodesCacher,
+			d.db,
+			d.marshalizer,
+			d.hasher,
+		)
+	}
+	return d.getNodeFromCache(hash)
 }
 
 func (d *doubleListTrieSyncer) getNodeFromCache(hash []byte) (node, error) {

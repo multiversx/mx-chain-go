@@ -137,13 +137,14 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 	defaults.FillGasMapInternal(gasMap, 1)
 	gasScheduleNotifier := mock.NewGasScheduleNotifierMock(gasMap)
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:             gasScheduleNotifier,
-		MapDNSAddresses:         make(map[string]struct{}),
-		Marshalizer:             TestMarshalizer,
-		Accounts:                tpn.AccntState,
-		ShardCoordinator:        tpn.ShardCoordinator,
-		EpochNotifier:           tpn.EpochNotifier,
-		AutomaticCrawlerAddress: bytes.Repeat([]byte{1}, 32),
+		GasSchedule:               gasScheduleNotifier,
+		MapDNSAddresses:           make(map[string]struct{}),
+		Marshalizer:               TestMarshalizer,
+		Accounts:                  tpn.AccntState,
+		ShardCoordinator:          tpn.ShardCoordinator,
+		EpochNotifier:             tpn.EpochNotifier,
+		AutomaticCrawlerAddress:   bytes.Repeat([]byte{1}, 32),
+		MaxNumNodesInTransferRole: 100,
 	}
 	builtInFuncs, _, _, err := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
 	log.LogIfError(err)
@@ -253,6 +254,7 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 		GenesisNodesSetupHandler: &mock.NodesSetupStub{},
 		ValidatorPubKeyConverter: &testscommon.PubkeyConverterMock{},
 		AccountsParser:           &genesisMocks.AccountsParserStub{},
+		GasScheduleNotifier:      &testscommon.GasScheduleNotifierMock{},
 	}
 
 	apiResolver, err := external.NewNodeApiResolver(argsApiResolver)

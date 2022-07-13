@@ -148,3 +148,9 @@ type BlockInfo interface {
 	Equal(blockInfo BlockInfo) bool
 	IsInterfaceNil() bool
 }
+
+// GasScheduleNotifierAPI defines the behavior of the gas schedule notifier components that is used for api
+type GasScheduleNotifierAPI interface {
+	core.GasScheduleNotifier
+	LatestGasScheduleCopy() map[string]map[string]uint64
+}

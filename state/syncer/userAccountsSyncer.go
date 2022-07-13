@@ -87,6 +87,7 @@ func NewUserAccountsSyncer(args ArgsNewUserAccountsSyncer) (*userAccountsSyncer,
 		name:                      fmt.Sprintf("user accounts for shard %s", core.GetShardIDString(args.ShardId)),
 		maxHardCapForMissingNodes: args.MaxHardCapForMissingNodes,
 		trieSyncerVersion:         args.TrieSyncerVersion,
+		checkNodesOnDisk:          args.CheckNodesOnDisk,
 	}
 
 	u := &userAccountsSyncer{
@@ -158,6 +159,7 @@ func (u *userAccountsSyncer) syncDataTrie(rootHash []byte, ssh common.SizeSyncSt
 		TrieSyncStatistics:        ssh,
 		TimeoutHandler:            u.timeoutHandler,
 		MaxHardCapForMissingNodes: u.maxHardCapForMissingNodes,
+		CheckNodesOnDisk:          u.checkNodesOnDisk,
 	}
 	trieSyncer, err := trie.CreateTrieSyncer(arg, u.trieSyncerVersion)
 	if err != nil {

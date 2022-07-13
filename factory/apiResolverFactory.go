@@ -48,7 +48,7 @@ type ApiResolverArgs struct {
 	BootstrapComponents BootstrapComponentsHolder
 	CryptoComponents    CryptoComponentsHolder
 	ProcessComponents   ProcessComponentsHolder
-	GasScheduleNotifier core.GasScheduleNotifier
+	GasScheduleNotifier common.GasScheduleNotifierAPI
 	Bootstrapper        process.Bootstrapper
 	AllowVMQueriesChan  chan struct{}
 }
@@ -127,6 +127,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		args.Configs.EpochConfig.EnableEpochs.CheckCorrectTokenIDForTransferRoleEnableEpoch,
 		args.Configs.EpochConfig.EnableEpochs.ESDTMetadataContinuousCleanupEnableEpoch,
 		convertedAddress,
+		args.Configs.GeneralConfig.BuiltInFunctions.MaxNumAddressesInTransferRole,
 	)
 	if err != nil {
 		return nil, err
@@ -264,6 +265,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		GenesisNodesSetupHandler: args.CoreComponents.GenesisNodesSetup(),
 		ValidatorPubKeyConverter: args.CoreComponents.ValidatorPubKeyConverter(),
 		AccountsParser:           args.ProcessComponents.AccountsParser(),
+		GasScheduleNotifier:      args.GasScheduleNotifier,
 	}
 
 	return external.NewNodeApiResolver(argsApiResolver)
@@ -340,6 +342,7 @@ func createScQueryElement(
 		args.epochConfig.EnableEpochs.CheckCorrectTokenIDForTransferRoleEnableEpoch,
 		args.epochConfig.EnableEpochs.ESDTMetadataContinuousCleanupEnableEpoch,
 		convertedAddress,
+		args.generalConfig.BuiltInFunctions.MaxNumAddressesInTransferRole,
 	)
 	if err != nil {
 		return nil, err
@@ -476,6 +479,7 @@ func createBuiltinFuncs(
 	checkCorrectTokenIDEnableEpoch uint32,
 	esdtMetadataContinuousCleanupEnableEpoch uint32,
 	automaticCrawlerAddress []byte,
+	maxNumAddressesInTransferRole uint32,
 ) (vmcommon.BuiltInFunctionContainer, vmcommon.SimpleESDTNFTStorageHandler, vmcommon.ESDTGlobalSettingsHandler, error) {
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
 		GasSchedule:                              gasScheduleNotifier,
@@ -492,6 +496,7 @@ func createBuiltinFuncs(
 		CheckCorrectTokenIDEnableEpoch:           checkCorrectTokenIDEnableEpoch,
 		ESDTMetadataContinuousCleanupEnableEpoch: esdtMetadataContinuousCleanupEnableEpoch,
 		AutomaticCrawlerAddress:                  automaticCrawlerAddress,
+		MaxNumNodesInTransferRole:                maxNumAddressesInTransferRole,
 	}
 	return builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
 }
