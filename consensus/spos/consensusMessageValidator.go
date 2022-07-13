@@ -397,8 +397,6 @@ func (cmv *consensusMessageValidator) checkMessageWithInvalidSingersValidity(cns
 			logger.DisplayByteSlice(cnsMsg.PubKey))
 	}
 
-	// TODO: evaluare more checks here
-
 	return nil
 }
 

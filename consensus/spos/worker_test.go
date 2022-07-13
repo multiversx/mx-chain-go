@@ -1604,12 +1604,14 @@ func TestWorker_ProcessReceivedMessageWithSignature(t *testing.T) {
 		hdr.TimeStamp = uint64(wrk.RoundHandler().TimeStamp().Unix())
 		hdrStr, _ := mock.MarshalizerMock{}.Marshal(hdr)
 		hdrHash := (&hashingMocks.HasherMock{}).Compute(string(hdrStr))
+		pubKey := []byte(wrk.ConsensusState().ConsensusGroup()[0])
+
 		cnsMsg := consensus.NewConsensusMessage(
 			hdrHash,
 			bytes.Repeat([]byte("a"), SignatureSize),
 			nil,
 			nil,
-			[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
+			pubKey,
 			bytes.Repeat([]byte("a"), SignatureSize),
 			int(bls.MtSignature),
 			0,
@@ -1630,5 +1632,9 @@ func TestWorker_ProcessReceivedMessageWithSignature(t *testing.T) {
 		}
 		err = wrk.ProcessReceivedMessage(msg, "")
 		assert.Nil(t, err)
+
+		p2pMsgWithSignature, ok := wrk.ConsensusState().GetMessageWithSignature(string(pubKey))
+		require.True(t, ok)
+		require.Equal(t, msg, p2pMsgWithSignature)
 	})
 }

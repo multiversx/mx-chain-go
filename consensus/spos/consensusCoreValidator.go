@@ -64,6 +64,12 @@ func ValidateConsensusCore(container ConsensusCoreHandler) error {
 	if check.IfNil(container.NodeRedundancyHandler()) {
 		return ErrNilNodeRedundancyHandler
 	}
+	if check.IfNil(container.ScheduledProcessor()) {
+		return ErrNilScheduledProcessor
+	}
+	if check.IfNil(container.MessageSigningHandler()) {
+		return ErrNilMessageSigningHandler
+	}
 
 	return nil
 }

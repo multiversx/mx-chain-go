@@ -208,7 +208,7 @@ func (cc *ConsensusCore) ScheduledProcessor() consensus.ScheduledProcessor {
 	return cc.scheduledProcessor
 }
 
-// MessageSigningHandler
+// MessageSigningHandler will return the message signing handler
 func (cc *ConsensusCore) MessageSigningHandler() consensus.P2PSigningHandler {
 	return cc.messageSigningHandler
 }

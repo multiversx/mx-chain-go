@@ -36,6 +36,7 @@ func createDefaultConsensusCoreArgs() *spos.ConsensusCoreArgs {
 		FallbackHeaderValidator:       consensusCoreMock.FallbackHeaderValidator(),
 		NodeRedundancyHandler:         consensusCoreMock.NodeRedundancyHandler(),
 		ScheduledProcessor:            scheduledProcessor,
+		MessageSigningHandler:         consensusCoreMock.MessageSigningHandler(),
 	}
 	return args
 }
@@ -302,6 +303,34 @@ func TestConsensusCore_WithNilNodeRedundancyHandlerShouldFail(t *testing.T) {
 
 	assert.Nil(t, consensusCore)
 	assert.Equal(t, spos.ErrNilNodeRedundancyHandler, err)
+}
+
+func TestConsensusCore_WithNilScheduledProcessorShouldFail(t *testing.T) {
+	t.Parallel()
+
+	args := createDefaultConsensusCoreArgs()
+	args.ScheduledProcessor = nil
+
+	consensusCore, err := spos.NewConsensusCore(
+		args,
+	)
+
+	assert.Nil(t, consensusCore)
+	assert.Equal(t, spos.ErrNilScheduledProcessor, err)
+}
+
+func TestConsensusCore_WithNilMessageSigningHandlerShouldFail(t *testing.T) {
+	t.Parallel()
+
+	args := createDefaultConsensusCoreArgs()
+	args.MessageSigningHandler = nil
+
+	consensusCore, err := spos.NewConsensusCore(
+		args,
+	)
+
+	assert.Nil(t, consensusCore)
+	assert.Equal(t, spos.ErrNilMessageSigningHandler, err)
 }
 
 func TestConsensusCore_CreateConsensusCoreShouldWork(t *testing.T) {
