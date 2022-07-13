@@ -1084,7 +1084,29 @@ func (sc *scProcessor) doExecuteBuiltInFunction(
 	return sc.finishSCExecution(scrResults, txHash, tx, newVMOutput, builtInFuncGasUsed)
 }
 
-func (sc *scProcessor) reapendAsyncParams(data string, asyncArgs [][]byte) (string, error) {
+func (sc *scProcessor) extractAsyncParamsFromTxData(data string) ([][]byte, []byte, error) {
+	function, args, err := sc.argsParser.ParseCallData(string(data))
+	dataAsString := function
+	if err != nil {
+		log.Trace("scProcessor.createSCRsWhenError()", "error parsing args", string(data))
+		return nil, nil, err
+	}
+
+	if len(args) < 2 {
+		log.Trace("scProcessor.createSCRsWhenError()", "no async params found", string(data))
+		return nil, nil, err
+	}
+
+	asyncArgs := args[0:2]
+
+	for _, arg := range args[2:] {
+		dataAsString += "@" + hex.EncodeToString(arg)
+	}
+
+	return asyncArgs, []byte(dataAsString), nil
+}
+
+func (sc *scProcessor) reapendAsyncParamsToTxData(data string, asyncArgs [][]byte) (string, error) {
 	function, args, err := sc.argsParser.ParseCallData(data)
 	if err != nil {
 		log.Trace("scProcessor.createSCRsWhenError()", "error parsing args", data)
@@ -2118,25 +2140,11 @@ func (sc *scProcessor) createSCRsWhenError(
 	data := tx.GetData()
 	asyncArgs := make([][]byte, 0)
 	if callType == vmData.AsynchronousCall {
-		function, args, err := sc.argsParser.ParseCallData(string(data))
-		dataAsString := function
+		var err error
+		asyncArgs, data, err = sc.extractAsyncParamsFromTxData(string(data))
 		if err != nil {
-			log.Trace("scProcessor.createSCRsWhenError()", "error parsing args", string(data))
 			return nil, nil
 		}
-
-		if len(args) < 2 {
-			log.Trace("scProcessor.createSCRsWhenError()", "no async params found", string(data))
-			return nil, nil
-		}
-
-		asyncArgs = args[0:2]
-
-		for _, arg := range args[2:] {
-			dataAsString += "@" + hex.EncodeToString(arg)
-		}
-
-		data = []byte(dataAsString)
 	}
 
 	accumulatedSCRData := ""
@@ -2166,7 +2174,7 @@ func (sc *scProcessor) createSCRsWhenError(
 			}
 
 			var err error
-			accumulatedSCRData, err = sc.reapendAsyncParams(accumulatedSCRData, asyncArgs)
+			accumulatedSCRData, err = sc.reapendAsyncParamsToTxData(accumulatedSCRData, asyncArgs)
 			if err != nil {
 				return nil, nil
 			}
