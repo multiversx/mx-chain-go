@@ -9,16 +9,15 @@ var _ p2p.MessageP2P = (*Message)(nil)
 
 // Message is a data holder struct
 type Message struct {
-	FromField          []byte
-	DataField          []byte
-	PayloadField       []byte
-	SeqNoField         []byte
-	TopicField         string
-	SignatureField     []byte
-	KeyField           []byte
-	PeerField          core.PeerID
-	TimestampField     int64
-	MarshalledP2PField []byte
+	FromField      []byte
+	DataField      []byte
+	PayloadField   []byte
+	SeqNoField     []byte
+	TopicField     string
+	SignatureField []byte
+	KeyField       []byte
+	PeerField      core.PeerID
+	TimestampField int64
 }
 
 // From returns the message originator's peer ID
@@ -64,11 +63,6 @@ func (m *Message) Peer() core.PeerID {
 // Timestamp returns the message timestamp to prevent endless re-processing of the same message
 func (m *Message) Timestamp() int64 {
 	return m.TimestampField
-}
-
-// MarshalledP2P returns the marshalled pubsub message
-func (m *Message) MarshalledP2P() []byte {
-	return m.MarshalledP2PField
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

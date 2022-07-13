@@ -26,23 +26,17 @@ func NewMessage(msg *pubsub.Message, marshalizer p2p.Marshalizer) (*message.Mess
 		return nil, p2p.ErrNilTopic
 	}
 
-	marshalledPubsubMsg, err := msg.Marshal()
-	if err != nil {
-		return nil, err
-	}
-
 	newMsg := &message.Message{
-		FromField:          msg.From,
-		PayloadField:       msg.Data,
-		SeqNoField:         msg.Seqno,
-		TopicField:         *msg.Topic,
-		SignatureField:     msg.Signature,
-		KeyField:           msg.Key,
-		MarshalledP2PField: marshalledPubsubMsg,
+		FromField:      msg.From,
+		PayloadField:   msg.Data,
+		SeqNoField:     msg.Seqno,
+		TopicField:     *msg.Topic,
+		SignatureField: msg.Signature,
+		KeyField:       msg.Key,
 	}
 
 	topicMessage := &data.TopicMessage{}
-	err = marshalizer.Unmarshal(topicMessage, msg.Data)
+	err := marshalizer.Unmarshal(topicMessage, msg.Data)
 	if err != nil {
 		return nil, fmt.Errorf("%w error: %s", p2p.ErrMessageUnmarshalError, err.Error())
 	}
