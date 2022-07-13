@@ -1119,7 +1119,7 @@ func (adb *AccountsDB) SnapshotState(rootHash []byte) {
 }
 
 func (adb *AccountsDB) markActiveDBAfterSnapshot(stats *snapshotStatistics, rootHash []byte, message string, epoch uint32) {
-	printStats(stats, message, rootHash)
+	stats.PrintStats(message, rootHash)
 
 	trieStorageManager := adb.mainTrie.GetStorageManager()
 	if trieStorageManager.IsClosed() {
