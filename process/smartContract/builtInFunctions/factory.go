@@ -75,6 +75,7 @@ func CreateBuiltInFunctionsFactory(args ArgsCreateBuiltInFunctionContainer) (vmc
 		CheckFunctionArgumentEnableEpoch:    args.CheckFunctionArgumentEnableEpoch,
 		SendESDTMetadataAlwaysEnableEpoch:   args.ESDTMetadataContinuousCleanupEnableEpoch,
 		MaxNumOfAddressesForTransferRole:    args.MaxNumNodesInTransferRole,
+		FixAsyncCallbackCheckEnableEpoch:    args.ESDTMetadataContinuousCleanupEnableEpoch,
 		ConfigAddress:                       args.AutomaticCrawlerAddress,
 	}
 
