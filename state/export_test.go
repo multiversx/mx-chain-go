@@ -68,3 +68,8 @@ func (accountsDB *accountsDBApi) SetLastRootHash(rootHash []byte) {
 	accountsDB.lastRootHash = rootHash
 	accountsDB.mutLastRootHash.Unlock()
 }
+
+// EmptyErrChanReturningHadContained -
+func EmptyErrChanReturningHadContained(errChan chan error) bool {
+	return emptyErrChanReturningHadContained(errChan)
+}

@@ -1093,7 +1093,7 @@ func (adb *AccountsDB) SnapshotState(rootHash []byte) {
 		return
 	}
 
-	log.Debug("starting snapshot", "rootHash", rootHash, "epoch", epoch)
+	log.Info("starting snapshot", "rootHash", rootHash, "epoch", epoch)
 
 	adb.lastSnapshot.rootHash = rootHash
 	adb.lastSnapshot.epoch = epoch
@@ -1102,28 +1102,33 @@ func (adb *AccountsDB) SnapshotState(rootHash []byte) {
 
 	trieStorageManager.EnterPruningBufferingMode()
 
+	errChan := make(chan error, 1)
 	stats := newSnapshotStatistics(1)
 	go func() {
 		leavesChannel := make(chan core.KeyValueHolder, leavesChannelSize)
 		stats.NewSnapshotStarted()
-		trieStorageManager.TakeSnapshot(rootHash, rootHash, leavesChannel, stats, epoch)
-		adb.snapshotUserAccountDataTrie(true, rootHash, leavesChannel, stats, epoch)
+		trieStorageManager.TakeSnapshot(rootHash, rootHash, leavesChannel, errChan, stats, epoch)
+		adb.snapshotUserAccountDataTrie(true, rootHash, leavesChannel, errChan, stats, epoch)
 		trieStorageManager.ExitPruningBufferingMode()
 
 		stats.wg.Done()
 	}()
 
-	go adb.markActiveDBAfterSnapshot(stats, rootHash, "snapshotState user trie", epoch)
+	go adb.markActiveDBAfterSnapshot(stats, errChan, rootHash, "snapshotState user trie", epoch)
 
 	adb.waitForCompletionIfRunningInImportDB(stats)
 }
 
-func (adb *AccountsDB) markActiveDBAfterSnapshot(stats *snapshotStatistics, rootHash []byte, message string, epoch uint32) {
+func (adb *AccountsDB) markActiveDBAfterSnapshot(stats *snapshotStatistics, errChan chan error, rootHash []byte, message string, epoch uint32) {
 	printStats(stats, message, rootHash)
 
 	trieStorageManager := adb.mainTrie.GetStorageManager()
-	if trieStorageManager.IsClosed() {
-		log.Debug("will not set activeDB in epoch as the snapshot might be incomplete since trie storage manager is closed", "epoch", epoch)
+	containsErrorDuringSnapshot := emptyErrChanReturningHadContained(errChan)
+	shouldNotMarkActive := trieStorageManager.IsClosed() || containsErrorDuringSnapshot
+	if shouldNotMarkActive {
+		log.Debug("will not set activeDB in epoch as the snapshot might be incomplete",
+			"epoch", epoch, "trie storage manager closed", trieStorageManager.IsClosed(),
+			"errors during snapshot found", containsErrorDuringSnapshot)
 		return
 	}
 
@@ -1148,10 +1153,23 @@ func printStats(stats *snapshotStatistics, identifier string, rootHash []byte) {
 	)
 }
 
+func emptyErrChanReturningHadContained(errChan chan error) bool {
+	contained := false
+	for {
+		select {
+		case <-errChan:
+			contained = true
+		default:
+			return contained
+		}
+	}
+}
+
 func (adb *AccountsDB) snapshotUserAccountDataTrie(
 	isSnapshot bool,
 	mainTrieRootHash []byte,
 	leavesChannel chan core.KeyValueHolder,
+	errChan chan error,
 	stats common.SnapshotStatisticsHandler,
 	epoch uint32,
 ) {
@@ -1171,11 +1189,11 @@ func (adb *AccountsDB) snapshotUserAccountDataTrie(
 		stats.NewDataTrie()
 
 		if isSnapshot {
-			adb.mainTrie.GetStorageManager().TakeSnapshot(account.RootHash, mainTrieRootHash, nil, stats, epoch)
+			adb.mainTrie.GetStorageManager().TakeSnapshot(account.RootHash, mainTrieRootHash, nil, errChan, stats, epoch)
 			continue
 		}
 
-		adb.mainTrie.GetStorageManager().SetCheckpoint(account.RootHash, mainTrieRootHash, nil, stats)
+		adb.mainTrie.GetStorageManager().SetCheckpoint(account.RootHash, mainTrieRootHash, nil, errChan, stats)
 	}
 }
 
@@ -1193,16 +1211,19 @@ func (adb *AccountsDB) setStateCheckpoint(rootHash []byte) {
 	trieStorageManager.EnterPruningBufferingMode()
 
 	stats := newSnapshotStatistics(1)
+	errChan := make(chan error, 1)
 	go func() {
 		leavesChannel := make(chan core.KeyValueHolder, leavesChannelSize)
 		stats.NewSnapshotStarted()
-		trieStorageManager.SetCheckpoint(rootHash, rootHash, leavesChannel, stats)
-		adb.snapshotUserAccountDataTrie(false, rootHash, leavesChannel, stats, 0)
+		trieStorageManager.SetCheckpoint(rootHash, rootHash, leavesChannel, errChan, stats)
+		adb.snapshotUserAccountDataTrie(false, rootHash, leavesChannel, errChan, stats, 0)
 		trieStorageManager.ExitPruningBufferingMode()
 
 		stats.wg.Done()
 	}()
 
+	// TODO decide if we need to take some actions whenever we hit an error that occurred in the checkpoint process
+	//  that will be present in the errChan var
 	go printStats(stats, "setStateCheckpoint user trie", rootHash)
 
 	adb.waitForCompletionIfRunningInImportDB(stats)

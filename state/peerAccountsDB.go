@@ -97,10 +97,11 @@ func (adb *PeerAccountsDB) SnapshotState(rootHash []byte) {
 
 	trieStorageManager.EnterPruningBufferingMode()
 	stats.NewSnapshotStarted()
-	trieStorageManager.TakeSnapshot(rootHash, rootHash, nil, stats, epoch)
+	errChan := make(chan error, 1)
+	trieStorageManager.TakeSnapshot(rootHash, rootHash, nil, errChan, stats, epoch)
 	trieStorageManager.ExitPruningBufferingMode()
 
-	go adb.markActiveDBAfterSnapshot(stats, rootHash, "snapshotState peer trie", epoch)
+	go adb.markActiveDBAfterSnapshot(stats, errChan, rootHash, "snapshotState peer trie", epoch)
 
 	adb.waitForCompletionIfRunningInImportDB(stats)
 }
@@ -114,10 +115,13 @@ func (adb *PeerAccountsDB) SetStateCheckpoint(rootHash []byte) {
 
 	trieStorageManager.EnterPruningBufferingMode()
 	stats.NewSnapshotStarted()
-	trieStorageManager.SetCheckpoint(rootHash, rootHash, nil, stats)
+	errChan := make(chan error, 1)
+	trieStorageManager.SetCheckpoint(rootHash, rootHash, nil, errChan, stats)
 	trieStorageManager.ExitPruningBufferingMode()
 
-	go printStats(stats, "snapshotState peer trie", rootHash)
+	// TODO decide if we need to take some actions whenever we hit an error that occurred in the checkpoint process
+	//  that will be present in the errChan var
+	go printStats(stats, "setStateCheckpoint peer trie", rootHash)
 
 	adb.waitForCompletionIfRunningInImportDB(stats)
 }
