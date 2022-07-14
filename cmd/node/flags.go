@@ -323,9 +323,9 @@ var (
 			"should not be higher than 20-25% of the machine's available RAM",
 	}
 
-	// autoGenerateSigningKey defines a flag that, if set, will generate every time when node starts a new signing key
-	autoGenerateSigningKey = cli.BoolFlag{
-		Name:  "auto-generate-signing-key",
+	// autoGenerateKey defines a flag that, if set, will generate every time when node starts a new signing key
+	autoGenerateKey = cli.BoolFlag{
+		Name:  "autogenerate-key",
 		Usage: "Boolean flag for enabling the node to generate a signing key when it starts (if is set a BLS key file will be no longer required)",
 	}
 )
@@ -377,7 +377,7 @@ func getFlags() []cli.Flag {
 		fullArchive,
 		memBallast,
 		memoryUsageToCreateProfiles,
-		autoGenerateSigningKey,
+		autoGenerateKey,
 	}
 }
 
@@ -400,7 +400,7 @@ func getFlagsConfig(ctx *cli.Context, log logger.Logger) *config.ContextFlagsCon
 	flagsConfig.EnablePprof = ctx.GlobalBool(profileMode.Name)
 	flagsConfig.UseLogView = ctx.GlobalBool(useLogView.Name)
 	flagsConfig.ValidatorKeyIndex = ctx.GlobalInt(validatorKeyIndex.Name)
-	flagsConfig.AutoGenerateSigningKey = ctx.GlobalBool(autoGenerateSigningKey.Name)
+	flagsConfig.AutoGenerateSigningKey = ctx.GlobalBool(autoGenerateKey.Name)
 
 	return flagsConfig
 }
