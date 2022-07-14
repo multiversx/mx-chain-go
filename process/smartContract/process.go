@@ -24,6 +24,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/process"
 	vmFactory "github.com/ElrondNetwork/elrond-go/process/factory"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -1134,7 +1135,7 @@ func createCallbackAsyncParams(asyncParams [][]byte) [][]byte {
 		return nil
 	}
 	newAsyncParams := make([][]byte, 4)
-	newAsyncParams[0] = contexts.GenerateNewCallID(asyncParams[0], []byte{0})
+	newAsyncParams[0] = contexts.GenerateNewCallID(hooks.NewVMCryptoHook(), asyncParams[0], []byte{0})
 	newAsyncParams[1] = asyncParams[0]
 	newAsyncParams[2] = asyncParams[1]
 	newAsyncParams[3] = []byte{0}
