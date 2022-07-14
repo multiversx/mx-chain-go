@@ -32,8 +32,8 @@ type ArgsCreateBuiltInFunctionContainer struct {
 	AutomaticCrawlerAddress                  []byte
 }
 
-// CreateBuiltInFuncContainerAndNFTStorageHandler creates a container that will hold all the available built in functions
-func CreateBuiltInFuncContainerAndNFTStorageHandler(args ArgsCreateBuiltInFunctionContainer) (vmcommon.BuiltInFunctionFactory, error) {
+// CreateBuiltInFunctionsFactory creates a container that will hold all the available built in functions
+func CreateBuiltInFunctionsFactory(args ArgsCreateBuiltInFunctionContainer) (vmcommon.BuiltInFunctionFactory, error) {
 	if check.IfNil(args.GasSchedule) {
 		return nil, process.ErrNilGasSchedule
 	}

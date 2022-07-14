@@ -1203,5 +1203,5 @@ func (pcf *processComponentsFactory) createBuiltInFunctionContainer(
 		MaxNumNodesInTransferRole:                pcf.config.BuiltInFunctions.MaxNumAddressesInTransferRole,
 	}
 
-	return builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
+	return builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)
 }

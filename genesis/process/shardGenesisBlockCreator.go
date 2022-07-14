@@ -372,7 +372,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		AutomaticCrawlerAddress:                  make([]byte, 32),
 		MaxNumNodesInTransferRole:                math.MaxUint32,
 	}
-	builtInFuncFactory, err := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
+	builtInFuncFactory, err := builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)
 	if err != nil {
 		return nil, err
 	}

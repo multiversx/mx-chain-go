@@ -501,7 +501,7 @@ func createBuiltinFuncs(
 		AutomaticCrawlerAddress:                  automaticCrawlerAddress,
 		MaxNumNodesInTransferRole:                maxNumAddressesInTransferRole,
 	}
-	return builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
+	return builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)
 }
 
 func createAPIBlockProcessor(args *ApiResolverArgs, apiTransactionHandler external.APITransactionHandler) (blockAPI.APIBlockHandler, error) {

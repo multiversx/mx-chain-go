@@ -861,7 +861,7 @@ func (tpn *TestProcessorNode) createFullSCQueryService() {
 		AutomaticCrawlerAddress:    bytes.Repeat([]byte{1}, 32),
 		MaxNumNodesInTransferRole:  100,
 	}
-	builtInFuncFactory, _ := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
+	builtInFuncFactory, _ := builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)
 
 	smartContractsCache := testscommon.NewCacherMock()
 
@@ -1498,7 +1498,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		AutomaticCrawlerAddress:    bytes.Repeat([]byte{1}, 32),
 		MaxNumNodesInTransferRole:  100,
 	}
-	builtInFuncFactory, _ := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
+	builtInFuncFactory, _ := builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)
 
 	for name, function := range TestBuiltinFunctions {
 		err := builtInFuncFactory.BuiltInFunctionContainer().Add(name, function)
@@ -1722,7 +1722,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		AutomaticCrawlerAddress:    bytes.Repeat([]byte{1}, 32),
 		MaxNumNodesInTransferRole:  100,
 	}
-	builtInFuncFactory, _ := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
+	builtInFuncFactory, _ := builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)
 	argsHook := hooks.ArgBlockChainHook{
 		Accounts:              tpn.AccntState,
 		PubkeyConv:            TestAddressPubkeyConverter,
