@@ -1,8 +1,11 @@
 package trie_test
 
 import (
+	errorsGo "errors"
 	"strings"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/common"
@@ -15,6 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/trie/hashesHolder"
 	"github.com/ElrondNetwork/elrond-go/vm/mock"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -85,13 +89,63 @@ func TestTrieCheckpoint(t *testing.T) {
 
 	dirtyHashes := trie.GetDirtyHashes(tr)
 
+	errChan := make(chan error, 1)
 	trieStorage.AddDirtyCheckpointHashes(rootHash, dirtyHashes)
-	trieStorage.SetCheckpoint(rootHash, []byte{}, nil, &trieMock.MockStatistics{})
+	trieStorage.SetCheckpoint(rootHash, []byte{}, nil, errChan, &trieMock.MockStatistics{})
 	trie.WaitForOperationToComplete(trieStorage)
 
 	val, err = trieStorage.GetFromCheckpoint(rootHash)
 	assert.Nil(t, err)
 	assert.NotNil(t, val)
+	assert.Equal(t, 0, len(errChan))
+}
+
+func TestTrieStorageManager_SetCheckpointEmptyErrorChan(t *testing.T) {
+	t.Parallel()
+
+	args := getNewTrieStorageManagerArgs()
+	ts, _ := trie.NewTrieStorageManager(args)
+	_ = ts.Close()
+
+	rootHash := []byte("rootHash")
+	leavesChan := make(chan core.KeyValueHolder)
+	ts.SetCheckpoint(rootHash, rootHash, leavesChan, nil, &trieMock.MockStatistics{})
+
+	_, ok := <-leavesChan
+	assert.False(t, ok)
+}
+
+func TestTrieStorageManager_SetCheckpointClosedDb(t *testing.T) {
+	t.Parallel()
+
+	args := getNewTrieStorageManagerArgs()
+	ts, _ := trie.NewTrieStorageManager(args)
+	_ = ts.Close()
+
+	rootHash := []byte("rootHash")
+	leavesChan := make(chan core.KeyValueHolder)
+	errChan := make(chan error, 1)
+	ts.SetCheckpoint(rootHash, rootHash, leavesChan, errChan, &trieMock.MockStatistics{})
+
+	_, ok := <-leavesChan
+	assert.False(t, ok)
+	assert.Equal(t, 0, len(errChan))
+}
+
+func TestTrieStorageManager_SetCheckpointEmptyTrieRootHash(t *testing.T) {
+	t.Parallel()
+
+	args := getNewTrieStorageManagerArgs()
+	ts, _ := trie.NewTrieStorageManager(args)
+
+	rootHash := make([]byte, 32)
+	leavesChan := make(chan core.KeyValueHolder)
+	errChan := make(chan error, 1)
+	ts.SetCheckpoint(rootHash, rootHash, leavesChan, errChan, &trieMock.MockStatistics{})
+
+	_, ok := <-leavesChan
+	assert.False(t, ok)
+	assert.Equal(t, 0, len(errChan))
 }
 
 func TestTrieCheckpoint_DoesNotSaveToCheckpointStorageIfNotDirty(t *testing.T) {
@@ -104,12 +158,14 @@ func TestTrieCheckpoint_DoesNotSaveToCheckpointStorageIfNotDirty(t *testing.T) {
 	assert.NotNil(t, err)
 	assert.Nil(t, val)
 
-	trieStorage.SetCheckpoint(rootHash, []byte{}, nil, &trieMock.MockStatistics{})
+	errChan := make(chan error, 1)
+	trieStorage.SetCheckpoint(rootHash, []byte{}, nil, errChan, &trieMock.MockStatistics{})
 	trie.WaitForOperationToComplete(trieStorage)
 
 	val, err = trieStorage.GetFromCheckpoint(rootHash)
 	assert.NotNil(t, err)
 	assert.Nil(t, val)
+	assert.Equal(t, 0, len(errChan))
 }
 
 func TestTrieStorageManager_IsPruningEnabled(t *testing.T) {
@@ -246,6 +302,21 @@ func TestTrieStorageManager_GetLatestStorageEpoch(t *testing.T) {
 	assert.True(t, getLatestSorageCalled)
 }
 
+func TestTrieStorageManager_TakeSnapshotEmptyErrorChan(t *testing.T) {
+	t.Parallel()
+
+	args := getNewTrieStorageManagerArgs()
+	ts, _ := trie.NewTrieStorageManager(args)
+	_ = ts.Close()
+
+	rootHash := []byte("rootHash")
+	leavesChan := make(chan core.KeyValueHolder)
+	ts.TakeSnapshot(rootHash, rootHash, leavesChan, nil, &trieMock.MockStatistics{}, 0)
+
+	_, ok := <-leavesChan
+	assert.False(t, ok)
+}
+
 func TestTrieStorageManager_TakeSnapshotClosedDb(t *testing.T) {
 	t.Parallel()
 
@@ -255,10 +326,12 @@ func TestTrieStorageManager_TakeSnapshotClosedDb(t *testing.T) {
 
 	rootHash := []byte("rootHash")
 	leavesChan := make(chan core.KeyValueHolder)
-	ts.TakeSnapshot(rootHash, rootHash, leavesChan, &trieMock.MockStatistics{}, 0)
+	errChan := make(chan error, 1)
+	ts.TakeSnapshot(rootHash, rootHash, leavesChan, errChan, &trieMock.MockStatistics{}, 0)
 
 	_, ok := <-leavesChan
 	assert.False(t, ok)
+	assert.Equal(t, 0, len(errChan))
 }
 
 func TestTrieStorageManager_TakeSnapshotEmptyTrieRootHash(t *testing.T) {
@@ -269,10 +342,12 @@ func TestTrieStorageManager_TakeSnapshotEmptyTrieRootHash(t *testing.T) {
 
 	rootHash := make([]byte, 32)
 	leavesChan := make(chan core.KeyValueHolder)
-	ts.TakeSnapshot(rootHash, rootHash, leavesChan, &trieMock.MockStatistics{}, 0)
+	errChan := make(chan error, 1)
+	ts.TakeSnapshot(rootHash, rootHash, leavesChan, errChan, &trieMock.MockStatistics{}, 0)
 
 	_, ok := <-leavesChan
 	assert.False(t, ok)
+	assert.Equal(t, 0, len(errChan))
 }
 
 func TestTrieStorageManager_TakeSnapshot(t *testing.T) {
@@ -283,9 +358,14 @@ func TestTrieStorageManager_TakeSnapshot(t *testing.T) {
 
 	rootHash := []byte("rootHash")
 	leavesChan := make(chan core.KeyValueHolder)
-	ts.TakeSnapshot(rootHash, rootHash, leavesChan, &trieMock.MockStatistics{}, 0)
+	errChan := make(chan error, 1)
+	ts.TakeSnapshot(rootHash, rootHash, leavesChan, errChan, &trieMock.MockStatistics{}, 0)
 	_, ok := <-leavesChan
 	assert.False(t, ok)
+
+	require.Equal(t, 1, len(errChan))
+	errRecovered := <-errChan
+	assert.True(t, strings.Contains(errRecovered.Error(), common.GetNodeFromDBErrorString))
 }
 
 func TestTrieStorageManager_ShouldTakeSnapshotInvalidStorer(t *testing.T) {
@@ -314,4 +394,102 @@ func TestNewSnapshotTrieStorageManager_GetFromCurrentEpoch(t *testing.T) {
 	_, err := ts.GetFromCurrentEpoch([]byte("key"))
 	assert.Nil(t, err)
 	assert.True(t, getFromCurrentEpochCalled)
+}
+
+func TestWriteInChanNonBlocking(t *testing.T) {
+	t.Parallel()
+
+	err1 := errorsGo.New("error 1")
+	err2 := errorsGo.New("error 2")
+	err3 := errorsGo.New("error 3")
+	t.Run("unbuffered, reader has been set up, should add", func(t *testing.T) {
+		t.Parallel()
+
+		errChan := make(chan error)
+		var recovered error
+		wg := sync.WaitGroup{}
+		wg.Add(1)
+
+		// set up the consumer that will be blocked until writing is done
+		go func() {
+			recovered = <-errChan
+			wg.Done()
+		}()
+
+		time.Sleep(time.Second) // allow the go routine to start
+
+		trie.WriteInChanNonBlocking(errChan, err1)
+		wg.Wait()
+
+		assert.Equal(t, err1, recovered)
+	})
+	t.Run("unbuffered, no reader should skip", func(t *testing.T) {
+		t.Parallel()
+
+		chanFinish := make(chan struct{})
+		go func() {
+			errChan := make(chan error)
+			trie.WriteInChanNonBlocking(errChan, err1)
+
+			close(chanFinish)
+		}()
+
+		select {
+		case <-chanFinish:
+		case <-time.After(time.Second * 5):
+			assert.Fail(t, "timeout, WriteInChanNonBlocking is blocking on an unbuffered chan")
+		}
+	})
+	t.Run("buffered (one element), empty chan should add", func(t *testing.T) {
+		t.Parallel()
+
+		errChan := make(chan error, 1)
+		trie.WriteInChanNonBlocking(errChan, err1)
+		require.Equal(t, 1, len(errChan))
+		recovered := <-errChan
+		assert.Equal(t, err1, recovered)
+	})
+	t.Run("buffered (1 element), full chan should not add, but should finish", func(t *testing.T) {
+		t.Parallel()
+
+		errChan := make(chan error, 1)
+		trie.WriteInChanNonBlocking(errChan, err1)
+		trie.WriteInChanNonBlocking(errChan, err2)
+
+		require.Equal(t, 1, len(errChan))
+		recovered := <-errChan
+		assert.Equal(t, err1, recovered)
+	})
+	t.Run("buffered (two elements), empty chan should add", func(t *testing.T) {
+		t.Parallel()
+
+		errChan := make(chan error, 2)
+		trie.WriteInChanNonBlocking(errChan, err1)
+		require.Equal(t, 1, len(errChan))
+		recovered := <-errChan
+		assert.Equal(t, err1, recovered)
+
+		trie.WriteInChanNonBlocking(errChan, err1)
+		trie.WriteInChanNonBlocking(errChan, err2)
+		require.Equal(t, 2, len(errChan))
+
+		recovered = <-errChan
+		assert.Equal(t, err1, recovered)
+		recovered = <-errChan
+		assert.Equal(t, err2, recovered)
+	})
+	t.Run("buffered (2 elements), full chan should not add, but should finish", func(t *testing.T) {
+		t.Parallel()
+
+		errChan := make(chan error, 2)
+		trie.WriteInChanNonBlocking(errChan, err1)
+		trie.WriteInChanNonBlocking(errChan, err2)
+		trie.WriteInChanNonBlocking(errChan, err3)
+
+		require.Equal(t, 2, len(errChan))
+		recovered := <-errChan
+		assert.Equal(t, err1, recovered)
+		recovered = <-errChan
+		assert.Equal(t, err2, recovered)
+	})
 }
