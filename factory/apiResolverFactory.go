@@ -48,7 +48,7 @@ type ApiResolverArgs struct {
 	BootstrapComponents BootstrapComponentsHolder
 	CryptoComponents    CryptoComponentsHolder
 	ProcessComponents   ProcessComponentsHolder
-	GasScheduleNotifier core.GasScheduleNotifier
+	GasScheduleNotifier common.GasScheduleNotifierAPI
 	Bootstrapper        process.Bootstrapper
 	AllowVMQueriesChan  chan struct{}
 }
@@ -125,6 +125,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		args.Configs.EpochConfig.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch,
 		args.Configs.EpochConfig.EnableEpochs.OptimizeNFTStoreEnableEpoch,
 		args.Configs.EpochConfig.EnableEpochs.CheckCorrectTokenIDForTransferRoleEnableEpoch,
+		args.Configs.EpochConfig.EnableEpochs.CheckFunctionArgumentEnableEpoch,
 		args.Configs.EpochConfig.EnableEpochs.ESDTMetadataContinuousCleanupEnableEpoch,
 		convertedAddress,
 		args.Configs.GeneralConfig.BuiltInFunctions.MaxNumAddressesInTransferRole,
@@ -265,6 +266,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		GenesisNodesSetupHandler: args.CoreComponents.GenesisNodesSetup(),
 		ValidatorPubKeyConverter: args.CoreComponents.ValidatorPubKeyConverter(),
 		AccountsParser:           args.ProcessComponents.AccountsParser(),
+		GasScheduleNotifier:      args.GasScheduleNotifier,
 	}
 
 	return external.NewNodeApiResolver(argsApiResolver)
@@ -339,6 +341,7 @@ func createScQueryElement(
 		args.epochConfig.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch,
 		args.epochConfig.EnableEpochs.OptimizeNFTStoreEnableEpoch,
 		args.epochConfig.EnableEpochs.CheckCorrectTokenIDForTransferRoleEnableEpoch,
+		args.epochConfig.EnableEpochs.CheckFunctionArgumentEnableEpoch,
 		args.epochConfig.EnableEpochs.ESDTMetadataContinuousCleanupEnableEpoch,
 		convertedAddress,
 		args.generalConfig.BuiltInFunctions.MaxNumAddressesInTransferRole,
@@ -476,6 +479,7 @@ func createBuiltinFuncs(
 	transferToMetaEnableEpoch uint32,
 	optimizeNFTStoreEnableEpoch uint32,
 	checkCorrectTokenIDEnableEpoch uint32,
+	checkFunctionArgumentEnableEpoch uint32,
 	esdtMetadataContinuousCleanupEnableEpoch uint32,
 	automaticCrawlerAddress []byte,
 	maxNumAddressesInTransferRole uint32,
@@ -493,6 +497,7 @@ func createBuiltinFuncs(
 		ESDTTransferMetaEnableEpoch:              transferToMetaEnableEpoch,
 		OptimizeNFTStoreEnableEpoch:              optimizeNFTStoreEnableEpoch,
 		CheckCorrectTokenIDEnableEpoch:           checkCorrectTokenIDEnableEpoch,
+		CheckFunctionArgumentEnableEpoch:         checkFunctionArgumentEnableEpoch,
 		ESDTMetadataContinuousCleanupEnableEpoch: esdtMetadataContinuousCleanupEnableEpoch,
 		AutomaticCrawlerAddress:                  automaticCrawlerAddress,
 		MaxNumNodesInTransferRole:                maxNumAddressesInTransferRole,

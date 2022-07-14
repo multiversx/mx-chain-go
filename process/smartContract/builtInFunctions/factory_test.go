@@ -18,7 +18,7 @@ func createMockArguments() ArgsCreateBuiltInFunctionContainer {
 	gasMap := make(map[string]map[string]uint64)
 	fillGasMapInternal(gasMap, 1)
 
-	gasScheduleNotifier := mock.NewGasScheduleNotifierMock(gasMap)
+	gasScheduleNotifier := testscommon.NewGasScheduleNotifierMock(gasMap)
 	args := ArgsCreateBuiltInFunctionContainer{
 		GasSchedule:               gasScheduleNotifier,
 		MapDNSAddresses:           make(map[string]struct{}),

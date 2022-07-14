@@ -37,6 +37,7 @@ type Trie interface {
 	GetProof(key []byte) ([][]byte, []byte, error)
 	VerifyProof(rootHash []byte, key []byte, proof [][]byte) (bool, error)
 	GetStorageManager() StorageManager
+	MarkStorerAsSyncedAndActive()
 	Close() error
 	IsInterfaceNil() bool
 }
@@ -46,6 +47,7 @@ type StorageManager interface {
 	Get(key []byte) ([]byte, error)
 	GetFromCurrentEpoch(key []byte) ([]byte, error)
 	PutInEpoch(key []byte, val []byte, epoch uint32) error
+	PutInEpochWithoutCache(key []byte, val []byte, epoch uint32) error
 	TakeSnapshot(rootHash []byte, mainTrieRootHash []byte, leavesChan chan core.KeyValueHolder, stats SnapshotStatisticsHandler, epoch uint32)
 	SetCheckpoint(rootHash []byte, mainTrieRootHash []byte, leavesChan chan core.KeyValueHolder, stats SnapshotStatisticsHandler)
 	GetLatestStorageEpoch() (uint32, error)
@@ -145,4 +147,10 @@ type BlockInfo interface {
 	GetRootHash() []byte
 	Equal(blockInfo BlockInfo) bool
 	IsInterfaceNil() bool
+}
+
+// GasScheduleNotifierAPI defines the behavior of the gas schedule notifier components that is used for api
+type GasScheduleNotifierAPI interface {
+	core.GasScheduleNotifier
+	LatestGasScheduleCopy() map[string]map[string]uint64
 }
