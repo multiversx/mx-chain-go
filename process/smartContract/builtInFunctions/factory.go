@@ -33,29 +33,29 @@ type ArgsCreateBuiltInFunctionContainer struct {
 }
 
 // CreateBuiltInFuncContainerAndNFTStorageHandler creates a container that will hold all the available built in functions
-func CreateBuiltInFuncContainerAndNFTStorageHandler(args ArgsCreateBuiltInFunctionContainer) (vmcommon.BuiltInFunctionContainer, vmcommon.SimpleESDTNFTStorageHandler, vmcommon.ESDTGlobalSettingsHandler, error) {
+func CreateBuiltInFuncContainerAndNFTStorageHandler(args ArgsCreateBuiltInFunctionContainer) (vmcommon.BuiltInFunctionFactory, error) {
 	if check.IfNil(args.GasSchedule) {
-		return nil, nil, nil, process.ErrNilGasSchedule
+		return nil, process.ErrNilGasSchedule
 	}
 	if check.IfNil(args.Marshalizer) {
-		return nil, nil, nil, process.ErrNilMarshalizer
+		return nil, process.ErrNilMarshalizer
 	}
 	if check.IfNil(args.Accounts) {
-		return nil, nil, nil, process.ErrNilAccountsAdapter
+		return nil, process.ErrNilAccountsAdapter
 	}
 	if args.MapDNSAddresses == nil {
-		return nil, nil, nil, process.ErrNilDnsAddresses
+		return nil, process.ErrNilDnsAddresses
 	}
 	if check.IfNil(args.ShardCoordinator) {
-		return nil, nil, nil, process.ErrNilShardCoordinator
+		return nil, process.ErrNilShardCoordinator
 	}
 	if check.IfNil(args.EpochNotifier) {
-		return nil, nil, nil, process.ErrNilEpochNotifier
+		return nil, process.ErrNilEpochNotifier
 	}
 
 	vmcommonAccounts, ok := args.Accounts.(vmcommon.AccountsAdapter)
 	if !ok {
-		return nil, nil, nil, process.ErrWrongTypeAssertion
+		return nil, process.ErrWrongTypeAssertion
 	}
 
 	modifiedArgs := vmcommonBuiltInFunctions.ArgsCreateBuiltInFunctionContainer{
@@ -80,15 +80,15 @@ func CreateBuiltInFuncContainerAndNFTStorageHandler(args ArgsCreateBuiltInFuncti
 
 	bContainerFactory, err := vmcommonBuiltInFunctions.NewBuiltInFunctionsCreator(modifiedArgs)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, err
 	}
 
-	container, err := bContainerFactory.CreateBuiltInFunctionContainer()
+	err = bContainerFactory.CreateBuiltInFunctionContainer()
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, err
 	}
 
 	args.GasSchedule.RegisterNotifyHandler(bContainerFactory)
 
-	return container, bContainerFactory.NFTStorageHandler(), bContainerFactory.ESDTGlobalSettingsHandler(), nil
+	return bContainerFactory, nil
 }

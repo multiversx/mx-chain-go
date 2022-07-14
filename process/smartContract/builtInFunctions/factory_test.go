@@ -10,7 +10,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
-	vmcommonBuiltInFunctions "github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -86,25 +85,25 @@ func TestCreateBuiltInFunctionContainer_Errors(t *testing.T) {
 
 	args := createMockArguments()
 	args.GasSchedule = nil
-	container, _, _, err := CreateBuiltInFuncContainerAndNFTStorageHandler(args)
+	builtInFuncFactory, err := CreateBuiltInFuncContainerAndNFTStorageHandler(args)
 	assert.NotNil(t, err)
-	assert.Nil(t, container)
+	assert.Nil(t, builtInFuncFactory)
 
 	args = createMockArguments()
 	args.MapDNSAddresses = nil
-	container, _, _, err = CreateBuiltInFuncContainerAndNFTStorageHandler(args)
+	builtInFuncFactory, err = CreateBuiltInFuncContainerAndNFTStorageHandler(args)
 	assert.Equal(t, process.ErrNilDnsAddresses, err)
-	assert.Nil(t, container)
+	assert.Nil(t, builtInFuncFactory)
 
 	args = createMockArguments()
-	container, nftStorageHandler, globalSettingsHandler, err := CreateBuiltInFuncContainerAndNFTStorageHandler(args)
+	builtInFuncFactory, err = CreateBuiltInFuncContainerAndNFTStorageHandler(args)
 	assert.Nil(t, err)
-	assert.Equal(t, len(container.Keys()), 31)
+	assert.Equal(t, len(builtInFuncFactory.BuiltInFunctionContainer().Keys()), 31)
 
-	err = vmcommonBuiltInFunctions.SetPayableHandler(container, &testscommon.BlockChainHookStub{})
+	err = builtInFuncFactory.SetPayableHandler(&testscommon.BlockChainHookStub{})
 	assert.Nil(t, err)
 
-	assert.False(t, container.IsInterfaceNil())
-	assert.False(t, nftStorageHandler.IsInterfaceNil())
-	assert.False(t, globalSettingsHandler.IsInterfaceNil())
+	assert.False(t, builtInFuncFactory.BuiltInFunctionContainer().IsInterfaceNil())
+	assert.False(t, builtInFuncFactory.NFTStorageHandler().IsInterfaceNil())
+	assert.False(t, builtInFuncFactory.ESDTGlobalSettingsHandler().IsInterfaceNil())
 }
