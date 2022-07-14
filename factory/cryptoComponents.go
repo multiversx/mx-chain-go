@@ -43,7 +43,7 @@ type CryptoComponentsFactoryArgs struct {
 	ActivateBLSPubKeyMessageVerification bool
 	IsInImportMode                       bool
 	ImportModeNoSigCheck                 bool
-	AutoGenerateKey                      bool
+	GenerateSigningKey                   bool
 }
 
 type cryptoComponentsFactory struct {
@@ -56,7 +56,7 @@ type cryptoComponentsFactory struct {
 	keyLoader                            KeyLoaderHandler
 	isInImportMode                       bool
 	importModeNoSigCheck                 bool
-	autoGenerateKey                      bool
+	generateSigningKey                   bool
 }
 
 // cryptoParams holds the node public/private key data
@@ -102,7 +102,7 @@ func NewCryptoComponentsFactory(args CryptoComponentsFactoryArgs) (*cryptoCompon
 		keyLoader:                            args.KeyLoader,
 		isInImportMode:                       args.IsInImportMode,
 		importModeNoSigCheck:                 args.ImportModeNoSigCheck,
-		autoGenerateKey:                      args.AutoGenerateKey,
+		generateSigningKey:                   args.GenerateSigningKey,
 	}
 
 	return ccf, nil
@@ -255,7 +255,7 @@ func (ccf *cryptoComponentsFactory) createCryptoParams(
 	keygen crypto.KeyGenerator,
 ) (*cryptoParams, error) {
 
-	shouldGenerateCryptoParams := ccf.isInImportMode || ccf.autoGenerateKey
+	shouldGenerateCryptoParams := ccf.isInImportMode || ccf.generateSigningKey
 	if shouldGenerateCryptoParams {
 		return ccf.generateCryptoParams(keygen)
 	}
@@ -295,8 +295,8 @@ func (ccf *cryptoComponentsFactory) readCryptoParams(keygen crypto.KeyGenerator)
 
 func (ccf *cryptoComponentsFactory) generateCryptoParams(keygen crypto.KeyGenerator) (*cryptoParams, error) {
 	var message string
-	if ccf.autoGenerateKey {
-		message = "with autogenerate-key flag enabled"
+	if ccf.generateSigningKey {
+		message = "with generate-key flag enabled"
 	} else {
 		message = "in import mode"
 	}

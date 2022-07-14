@@ -51,7 +51,7 @@ GLOBAL OPTIONS:
    --num-epochs-to-keep value             This flag represents the number of epochs which will kept in the databases. It is relevant only if the full archive flag is not set. (default: 2)
    --num-active-persisters value          This flag represents the number of databases (1 database = 1 epoch) which are kept open at a moment. It is relevant even if the node is full archive or not. (default: 2)
    --start-in-epoch                       Boolean option for enabling a node the fast bootstrap mechanism from the network.Should be enabled if data is not available in local disk.
-   --autogenerate-key                     Boolean flag for enabling the node to generate a signing key when it starts (if is set a BLS key file will be no longer required)   
+   --generate-key                          Boolean flag for enabling the node to generate a signing key when it starts (if is set a BLS key file will be no longer required)   
    --help, -h                             show help
    --version, -v                          print the version
    
