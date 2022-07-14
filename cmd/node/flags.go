@@ -326,7 +326,7 @@ var (
 	// generateKey defines a flag that, if set, will generate every time when node starts a new signing key
 	generateKey = cli.BoolFlag{
 		Name:  "generate-key",
-		Usage: "Boolean flag for enabling the node to generate a signing key when it starts (if is set a BLS key file will be no longer required)",
+		Usage: "Boolean flag for enabling the node to generate a signing key when it starts (if the validatorKey.pem file is present, this flag is not required)",
 	}
 )
 
