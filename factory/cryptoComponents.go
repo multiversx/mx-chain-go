@@ -296,7 +296,7 @@ func (ccf *cryptoComponentsFactory) readCryptoParams(keygen crypto.KeyGenerator)
 func (ccf *cryptoComponentsFactory) generateCryptoParams(keygen crypto.KeyGenerator) (*cryptoParams, error) {
 	var message string
 	if ccf.autoGenerateKey {
-		message = "with auto-generate-signing-key flag enabled"
+		message = "with autogenerate-key flag enabled"
 	} else {
 		message = "in import mode"
 	}
