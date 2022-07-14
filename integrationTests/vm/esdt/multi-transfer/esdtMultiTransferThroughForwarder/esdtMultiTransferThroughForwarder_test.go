@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/esdt"
 	multitransfer "github.com/ElrondNetwork/elrond-go/integrationTests/vm/esdt/multi-transfer"
@@ -207,14 +206,8 @@ func TestESDTMultiTransferWithWrongArguments1(t *testing.T) {
 	forwarder := net.DeployNonpayableSC(owner, "../../testdata/execute.wasm")
 	vaultOtherShard := net.DeployNonpayableSC(net.NodesSharded[1][0].OwnAccount, "../../testdata/vaultV2.wasm")
 
-	var log = logger.GetOrCreate("test")
-	log.Error("VALUES ", "forwarder ", senderNode.ShardCoordinator.ComputeId(forwarder), " vault ", senderNode.ShardCoordinator.ComputeId(vaultOtherShard))
-
-	// Create the fungible token
-	supply := int64(1000)
-	tokenID := multitransfer.IssueFungibleToken(t, net, senderNode, "FUNG1", supply)
-
 	// Issue and create SFT
+	supply := int64(1000)
 	sftID := multitransfer.IssueNft(net, senderNode, "SFT1", true)
 	multitransfer.CreateSFT(t, net, senderNode, sftID, 1, supply)
 
@@ -227,22 +220,9 @@ func TestESDTMultiTransferWithWrongArguments1(t *testing.T) {
 	tx := net.CreateTxUint64(owner, owner.Address, 0, txData.ToBytes())
 	tx.GasLimit = net.MaxGasLimit / 2
 	_ = net.SignAndSendTx(owner, tx)
-	_ = logger.SetLogLevel("arwen:TRACE")
 	net.Steps(12)
 
-	esdt.CheckAddressHasTokens(t, forwarder, net.Nodes, []byte(sftID), 1, supply)
-	esdt.CheckAddressHasTokens(t, forwarder, net.Nodes, []byte(tokenID), 0, supply)
-
-	txData = txDataBuilder.NewBuilder()
-	txData.Func(core.BuiltInFunctionMultiESDTNFTTransfer)
-	txData.Bytes(forwarder).Int(1)
-	txData.Str(tokenID).Int(0).Int64(10).Str("doAsyncCall").Bytes(vaultOtherShard)
-	tx = net.CreateTxUint64(owner, owner.Address, 0, txData.ToBytes())
-	tx.Data = append(tx.Data, []byte("@@4d756c7469455344544e46545472616e73666572@06@0000000000000000050029139511fd210457a1affbb772a13c22d78e9ab028ab@01@475245454e2d383138393035@01@01@")...)
-	tx.GasLimit = net.MaxGasLimit / 2
-	_ = net.SignAndSendTx(owner, tx)
-	net.Steps(12)
-
-	esdt.CheckAddressHasTokens(t, forwarder, net.Nodes, []byte(sftID), 1, supply)
-	esdt.CheckAddressHasTokens(t, forwarder, net.Nodes, []byte(tokenID), 0, supply)
+	esdt.CheckAddressHasTokens(t, forwarder, net.Nodes, []byte(sftID), 1, 10)
+	esdt.CheckAddressHasTokens(t, vaultOtherShard, net.Nodes, []byte(sftID), 1, 0)
+	esdt.CheckAddressHasTokens(t, owner.Address, net.Nodes, []byte(sftID), 1, supply-10)
 }
