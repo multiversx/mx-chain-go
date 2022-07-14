@@ -1301,7 +1301,7 @@ func (nr *nodeRunner) CreateManagedCryptoComponents(
 		KeyLoader:                            &core.KeyLoader{},
 		ImportModeNoSigCheck:                 configs.ImportDbConfig.ImportDbNoSigCheckFlag,
 		IsInImportMode:                       configs.ImportDbConfig.IsImportDBMode,
-		AutoGenerateKey:                      configs.FlagsConfig.AutoGenerateSigningKey,
+		GenerateSigningKey:                   configs.FlagsConfig.GenerateSigningKey,
 	}
 
 	cryptoComponentsFactory, err := mainFactory.NewCryptoComponentsFactory(cryptoComponentsHandlerArgs)
