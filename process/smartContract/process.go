@@ -304,6 +304,9 @@ func (sc *scProcessor) GasScheduleChange(gasSchedule map[string]map[string]uint6
 	}
 
 	sc.builtInGasCosts = builtInFuncCost
+	if sc.flagFixAsyncCallBackArgumentsParser.IsSet() {
+		sc.builtInGasCosts[core.BuiltInFunctionMultiESDTNFTTransfer] = builtInFuncCost["ESDTNFTMultiTransfer"]
+	}
 	sc.storePerByte = gasSchedule[common.BaseOperationCost]["StorePerByte"]
 	sc.persistPerByte = gasSchedule[common.BaseOperationCost]["PersistPerByte"]
 }
@@ -885,9 +888,14 @@ func (sc *scProcessor) computeBuiltInFuncGasUsed(
 	function string,
 	gasProvided uint64,
 	gasRemaining uint64,
+	isCrossShard bool,
 ) (uint64, error) {
 	if txTypeOnDst != process.SCInvoking {
 		return core.SafeSubUint64(gasProvided, gasRemaining)
+	}
+
+	if sc.flagFixAsyncCallBackArgumentsParser.IsSet() && isCrossShard {
+		return 0, nil
 	}
 
 	sc.mutGasLock.RLock()
@@ -948,7 +956,7 @@ func (sc *scProcessor) doExecuteBuiltInFunction(
 	}
 
 	_, txTypeOnDst := sc.txTypeHandler.ComputeTransactionType(tx)
-	builtInFuncGasUsed, err := sc.computeBuiltInFuncGasUsed(txTypeOnDst, vmInput.Function, vmInput.GasProvided, vmOutput.GasRemaining)
+	builtInFuncGasUsed, err := sc.computeBuiltInFuncGasUsed(txTypeOnDst, vmInput.Function, vmInput.GasProvided, vmOutput.GasRemaining, check.IfNil(acntSnd))
 	log.LogIfError(err, "function", "ExecuteBuiltInFunction.computeBuiltInFuncGasUsed")
 
 	if txTypeOnDst != process.SCInvoking {
@@ -1966,6 +1974,9 @@ func (sc *scProcessor) penalizeUserIfNeeded(
 		return
 	}
 	if callType == vmData.AsynchronousCall {
+		return
+	}
+	if callType == vmData.AsynchronousCallBack {
 		return
 	}
 

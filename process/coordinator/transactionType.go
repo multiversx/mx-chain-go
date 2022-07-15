@@ -130,6 +130,9 @@ func isAsynchronousCallBack(tx data.TransactionHandler) bool {
 }
 
 func (tth *txTypeHandler) isSCCallAfterBuiltIn(function string, args [][]byte, tx data.TransactionHandler) bool {
+	if isAsynchronousCallBack(tx) {
+		return true
+	}
 	if len(args) <= 2 {
 		return false
 	}
