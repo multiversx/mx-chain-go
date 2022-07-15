@@ -528,15 +528,15 @@ func (sc *scProcessor) finishSCExecution(
 	resultWithoutMeta := sc.deleteSCRsWithValueZeroGoingToMeta(results)
 	finalResults, logsFromSCRs := sc.cleanInformativeOnlySCRs(resultWithoutMeta)
 
-	err := sc.scrForwarder.AddIntermediateTransactions(finalResults)
+	err := sc.updateDeveloperRewardsProxy(tx, vmOutput, builtInFuncGasUsed)
 	if err != nil {
-		log.Error("AddIntermediateTransactions error", "error", err.Error())
+		log.Error("updateDeveloperRewardsProxy", "error", err.Error())
 		return 0, err
 	}
 
-	err = sc.updateDeveloperRewardsProxy(tx, vmOutput, builtInFuncGasUsed)
+	err = sc.scrForwarder.AddIntermediateTransactions(finalResults)
 	if err != nil {
-		log.Error("updateDeveloperRewardsProxy", "error", err.Error())
+		log.Error("AddIntermediateTransactions error", "error", err.Error())
 		return 0, err
 	}
 
@@ -1755,15 +1755,15 @@ func (sc *scProcessor) doDeploySmartContract(
 	finalResults, logsFromSCRs := sc.cleanInformativeOnlySCRs(results)
 
 	vmOutput.Logs = append(vmOutput.Logs, logsFromSCRs...)
-	err = sc.scrForwarder.AddIntermediateTransactions(finalResults)
-	if err != nil {
-		log.Debug("AddIntermediate Transaction error", "error", err.Error())
-		return 0, err
-	}
-
 	err = sc.updateDeveloperRewardsProxy(tx, vmOutput, 0)
 	if err != nil {
 		log.Debug("updateDeveloperRewardsProxy", "error", err.Error())
+		return 0, err
+	}
+
+	err = sc.scrForwarder.AddIntermediateTransactions(finalResults)
+	if err != nil {
+		log.Debug("AddIntermediate Transaction error", "error", err.Error())
 		return 0, err
 	}
 
