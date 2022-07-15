@@ -17,7 +17,7 @@ func createMockProcessDebugConfig() config.ProcessDebugConfig {
 	return config.ProcessDebugConfig{
 		Enabled:              true,
 		GoRoutinesDump:       true,
-		LogLevelChanger:      "*:INFO",
+		DebuggingLogLevel:    "*:INFO",
 		PollingTimeInSeconds: minAcceptedValue,
 	}
 }

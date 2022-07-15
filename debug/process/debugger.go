@@ -11,9 +11,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 )
 
-const minAcceptedValue = 1
+const (
+	minAcceptedValue = 1
+	buffSize         = 100 * 1024 * 1024 // 100MB
+)
 
-const buffSize = 100 * 1024 * 1024 // 100MB
 var log = logger.GetOrCreate("debug/process")
 
 type processDebugger struct {
@@ -25,7 +27,7 @@ type processDebugger struct {
 	goRoutinesDumpHandler   func()
 	logChangeHandler        func()
 	pollingTime             time.Duration
-	logLevel                string
+	debuggingLogLevel       string
 	dumpGoRoutines          bool
 }
 
@@ -40,22 +42,15 @@ func NewProcessDebugger(config config.ProcessDebugConfig) (*processDebugger, err
 	d := &processDebugger{
 		timer: time.NewTimer(pollingTime),
 
-		pollingTime:    pollingTime,
-		logLevel:       config.LogLevelChanger,
-		dumpGoRoutines: config.GoRoutinesDump,
+		pollingTime:       pollingTime,
+		debuggingLogLevel: config.DebuggingLogLevel,
+		dumpGoRoutines:    config.GoRoutinesDump,
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	d.cancel = cancel
-	d.goRoutinesDumpHandler = func() {
-		buff := make([]byte, buffSize)
-		numBytes := runtime.Stack(buff, true)
-		log.Debug(string(buff[:numBytes]))
-	}
-	d.logChangeHandler = func() {
-		errSetLogLevel := logger.SetLogLevel(d.logLevel)
-		log.LogIfError(errSetLogLevel)
-	}
+	d.goRoutinesDumpHandler = dumpGoRoutines
+	d.logChangeHandler = d.changeLog
 
 	go d.processLoop(ctx)
 
@@ -154,6 +149,19 @@ func (debugger *processDebugger) Close() error {
 	debugger.cancel()
 
 	return nil
+}
+
+func dumpGoRoutines() {
+	buff := make([]byte, buffSize)
+	numBytes := runtime.Stack(buff, true)
+	log.Debug(string(buff[:numBytes]))
+}
+
+func (debugger *processDebugger) changeLog() {
+	errSetLogLevel := logger.SetLogLevel(debugger.debuggingLogLevel)
+	if errSetLogLevel != nil {
+		log.Error("debugger.changeLog: cannot change log level", "error", errSetLogLevel)
+	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

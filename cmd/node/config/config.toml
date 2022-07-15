@@ -802,7 +802,7 @@
         ProcessDataTrieOnCommitEpoch = true
     [Debug.Process]
         Enabled = true
-        LogLevelChanger = "*:DEBUG,p2p:TRACE,debug:DEBUG,process:TRACE,intercept:TRACE"
+        DebuggingLogLevel = "*:DEBUG,p2p:TRACE,debug:DEBUG,process:TRACE,intercept:TRACE"
         GoRoutinesDump = true
         PollingTimeInSeconds = 240 # 4 minutes
 

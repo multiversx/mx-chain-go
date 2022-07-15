@@ -516,8 +516,8 @@ type EpochStartDebugConfig struct {
 // ProcessDebugConfig will hold the process debug configuration
 type ProcessDebugConfig struct {
 	Enabled              bool
-	LogLevelChanger      string
 	GoRoutinesDump       bool
+	DebuggingLogLevel    string
 	PollingTimeInSeconds int
 }
 
