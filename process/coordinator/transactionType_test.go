@@ -3,6 +3,7 @@ package coordinator
 import (
 	"bytes"
 	"encoding/hex"
+	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"math/big"
 	"testing"
 
@@ -26,6 +27,7 @@ func createMockArguments() ArgNewTxTypeHandler {
 		BuiltInFunctions:   builtInFunctions.NewBuiltInFunctionContainer(),
 		ArgumentParser:     parsers.NewCallArgsParser(),
 		ESDTTransferParser: esdtTransferParser,
+		EpochNotifier:      &epochNotifier.EpochNotifierStub{},
 	}
 }
 

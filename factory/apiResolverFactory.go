@@ -139,11 +139,13 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 	}
 
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
-		PubkeyConverter:    args.CoreComponents.AddressPubKeyConverter(),
-		ShardCoordinator:   args.ProcessComponents.ShardCoordinator(),
-		BuiltInFunctions:   builtInFuncFactory.BuiltInFunctionContainer(),
-		ArgumentParser:     parsers.NewCallArgsParser(),
-		ESDTTransferParser: esdtTransferParser,
+		PubkeyConverter:                        args.CoreComponents.AddressPubKeyConverter(),
+		ShardCoordinator:                       args.ProcessComponents.ShardCoordinator(),
+		BuiltInFunctions:                       builtInFuncFactory.BuiltInFunctionContainer(),
+		ArgumentParser:                         parsers.NewCallArgsParser(),
+		ESDTTransferParser:                     esdtTransferParser,
+		EpochNotifier:                          args.CoreComponents.EpochNotifier(),
+		TransferAndAsyncCallbackFixEnableEpoch: args.Configs.EpochConfig.EnableEpochs.ESDTMetadataContinuousCleanupEnableEpoch,
 	}
 	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	if err != nil {

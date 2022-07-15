@@ -183,11 +183,13 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 	}
 
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
-		PubkeyConverter:    pcf.coreData.AddressPubKeyConverter(),
-		ShardCoordinator:   pcf.bootstrapComponents.ShardCoordinator(),
-		BuiltInFunctions:   builtInFuncFactory.BuiltInFunctionContainer(),
-		ArgumentParser:     parsers.NewCallArgsParser(),
-		ESDTTransferParser: esdtTransferParser,
+		PubkeyConverter:                        pcf.coreData.AddressPubKeyConverter(),
+		ShardCoordinator:                       pcf.bootstrapComponents.ShardCoordinator(),
+		BuiltInFunctions:                       builtInFuncFactory.BuiltInFunctionContainer(),
+		ArgumentParser:                         parsers.NewCallArgsParser(),
+		ESDTTransferParser:                     esdtTransferParser,
+		EpochNotifier:                          pcf.coreData.EpochNotifier(),
+		TransferAndAsyncCallbackFixEnableEpoch: pcf.epochConfig.EnableEpochs.ESDTMetadataContinuousCleanupEnableEpoch,
 	}
 	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	if err != nil {
@@ -505,11 +507,13 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	}
 
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
-		PubkeyConverter:    pcf.coreData.AddressPubKeyConverter(),
-		ShardCoordinator:   pcf.bootstrapComponents.ShardCoordinator(),
-		BuiltInFunctions:   builtInFuncFactory.BuiltInFunctionContainer(),
-		ArgumentParser:     parsers.NewCallArgsParser(),
-		ESDTTransferParser: esdtTransferParser,
+		PubkeyConverter:                        pcf.coreData.AddressPubKeyConverter(),
+		ShardCoordinator:                       pcf.bootstrapComponents.ShardCoordinator(),
+		BuiltInFunctions:                       builtInFuncFactory.BuiltInFunctionContainer(),
+		ArgumentParser:                         parsers.NewCallArgsParser(),
+		ESDTTransferParser:                     esdtTransferParser,
+		EpochNotifier:                          pcf.coreData.EpochNotifier(),
+		TransferAndAsyncCallbackFixEnableEpoch: pcf.epochConfig.EnableEpochs.ESDTMetadataContinuousCleanupEnableEpoch,
 	}
 	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	if err != nil {
