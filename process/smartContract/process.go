@@ -85,6 +85,7 @@ type scProcessor struct {
 	fixCodeMetadataOnUpgradeContract            uint32
 	scrSizeInvariantOnBuiltInResultEnableEpoch  uint32
 	deleteWrongArgAsyncAfterBuiltInEnableEpoch  uint32
+	fixAsyncCallBackArgParserEnableEpoch        uint32
 	flagStakingV2                               atomic.Flag
 	flagDeploy                                  atomic.Flag
 	flagBuiltin                                 atomic.Flag
@@ -106,6 +107,7 @@ type scProcessor struct {
 	flagFixCodeMetadataOnUpgradeContract        atomic.Flag
 	flagSCRSizeInvariantOnBuiltInResult         atomic.Flag
 	flagDeleteWrongArgAsyncAfterBuiltIn         atomic.Flag
+	flagFixAsyncCallBackArgumentsParser         atomic.Flag
 
 	badTxForwarder process.IntermediateTransactionHandler
 	scrForwarder   process.IntermediateTransactionHandler
@@ -257,6 +259,7 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 		fixCodeMetadataOnUpgradeContract:            args.EnableEpochs.IsPayableBySCEnableEpoch,
 		scrSizeInvariantOnBuiltInResultEnableEpoch:  args.EnableEpochs.SCRSizeInvariantOnBuiltInResultEnableEpoch,
 		deleteWrongArgAsyncAfterBuiltInEnableEpoch:  args.EnableEpochs.ManagedCryptoAPIsEnableEpoch,
+		fixAsyncCallBackArgParserEnableEpoch:        args.EnableEpochs.ESDTMetadataContinuousCleanupEnableEpoch,
 	}
 
 	var err error
@@ -282,6 +285,7 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 	log.Debug("smartContract/process: enable epoch for fix code metadata on upgrade contract", "epoch", sc.fixCodeMetadataOnUpgradeContract)
 	log.Debug("smartContract/process: enable epoch for scr size invariant on built in", "epoch", sc.scrSizeInvariantOnBuiltInResultEnableEpoch)
 	log.Debug("smartContract/process: enable epoch for delete wrong arg on async callback after built in", "epoch", sc.deleteWrongArgAsyncAfterBuiltInEnableEpoch)
+	log.Debug("smartContract/process: enable epoch for async callback argument parser", "epoch", sc.fixAsyncCallBackArgParserEnableEpoch)
 
 	args.EpochNotifier.RegisterNotifyHandler(sc)
 	args.GasSchedule.RegisterNotifyHandler(sc)
@@ -1234,13 +1238,20 @@ func (sc *scProcessor) createVMInputWithAsyncCallBackAfterBuiltIn(
 		}
 
 		gasLimit = outAcc.OutputTransfers[0].GasLimit
-		function, args, err := sc.argsParser.ParseCallData(string(outAcc.OutputTransfers[0].Data))
-		log.LogIfError(err, "function", "createVMInputWithAsyncCallBackAfterBuiltIn.ParseCallData")
-		if len(function) > 0 {
-			arguments = append(arguments, []byte(function))
-		}
 
-		arguments = append(arguments, args...)
+		if sc.flagFixAsyncCallBackArgumentsParser.IsSet() {
+			args, err := sc.argsParser.ParseArguments(string(outAcc.OutputTransfers[0].Data))
+			log.LogIfError(err, "function", "createVMInputWithAsyncCallBackAfterBuiltIn.ParseArguments")
+			arguments = append(arguments, args...)
+		} else {
+			function, args, err := sc.argsParser.ParseCallData(string(outAcc.OutputTransfers[0].Data))
+			log.LogIfError(err, "function", "createVMInputWithAsyncCallBackAfterBuiltIn.ParseCallData")
+			if len(function) > 0 {
+				arguments = append(arguments, []byte(function))
+			}
+
+			arguments = append(arguments, args...)
+		}
 	}
 
 	newVMInput := &vmcommon.ContractCallInput{
@@ -2926,6 +2937,9 @@ func (sc *scProcessor) EpochConfirmed(epoch uint32, _ uint64) {
 
 	sc.flagDeleteWrongArgAsyncAfterBuiltIn.SetValue(epoch >= sc.deleteWrongArgAsyncAfterBuiltInEnableEpoch)
 	log.Debug("scProcessor: delete wrong argument on async callback after builtin", "enabled", sc.flagDeleteWrongArgAsyncAfterBuiltIn.IsSet())
+
+	sc.flagFixAsyncCallBackArgumentsParser.SetValue(epoch >= sc.fixAsyncCallBackArgParserEnableEpoch)
+	log.Debug("scProcessor: fix async callback arguments parser", "enabled", sc.flagFixAsyncCallBackArgumentsParser.IsSet())
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
