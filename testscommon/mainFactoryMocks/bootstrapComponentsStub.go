@@ -75,6 +75,12 @@ func (bcs *BootstrapComponentsStub) RoundActivationHandler() process.RoundActiva
 	return bcs.RoundActivationHandlerField
 }
 
+// SetShardCoordinator -
+func (bcs *BootstrapComponentsStub) SetShardCoordinator(shardCoordinator sharding.Coordinator) error {
+	bcs.ShCoordinator = shardCoordinator
+	return nil
+}
+
 // String -
 func (bcs *BootstrapComponentsStub) String() string {
 	return "BootstrapComponentsStub"

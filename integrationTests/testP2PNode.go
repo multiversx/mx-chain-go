@@ -16,7 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
-	"github.com/ElrondNetwork/elrond-go/factory"
+	heartbeatComp "github.com/ElrondNetwork/elrond-go/factory/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/factory/peerSignatureHandler"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/node"
@@ -212,7 +212,7 @@ func (tP2pNode *TestP2PNode) initNode() {
 		HideInactiveValidatorIntervalInSec:  600,
 	}
 
-	hbCompArgs := factory.HeartbeatComponentsFactoryArgs{
+	hbCompArgs := heartbeatComp.HeartbeatComponentsFactoryArgs{
 		Config: config.Config{
 			Heartbeat: hbConfig,
 		},
@@ -227,8 +227,8 @@ func (tP2pNode *TestP2PNode) initNode() {
 		CryptoComponents:      cryptoComponents,
 		ProcessComponents:     processComponents,
 	}
-	heartbeatComponentsFactory, _ := factory.NewHeartbeatComponentsFactory(hbCompArgs)
-	managedHBComponents, err := factory.NewManagedHeartbeatComponents(heartbeatComponentsFactory)
+	heartbeatComponentsFactory, _ := heartbeatComp.NewHeartbeatComponentsFactory(hbCompArgs)
+	managedHBComponents, err := heartbeatComp.NewManagedHeartbeatComponents(heartbeatComponentsFactory)
 	log.LogIfError(err)
 
 	err = managedHBComponents.Create()

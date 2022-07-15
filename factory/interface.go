@@ -454,6 +454,7 @@ type BootstrapComponentsHolder interface {
 	VersionedHeaderFactory() factory.VersionedHeaderFactory
 	HeaderVersionHandler() factory.HeaderVersionHandler
 	HeaderIntegrityVerifier() factory.HeaderIntegrityVerifierHandler
+	SetShardCoordinator(shardCoordinator sharding.Coordinator) error
 	IsInterfaceNil() bool
 }
 

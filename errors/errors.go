@@ -77,6 +77,9 @@ var ErrNilBlockTracker = errors.New("trying to set nil block tracker")
 // ErrNilBootStorer signals that the provided boot storer is nil
 var ErrNilBootStorer = errors.New("nil boot storer")
 
+// ErrNilBootstrapComponents signals that the provided instance of bootstrap components is nil
+var ErrNilBootstrapComponents = errors.New("nil bootstrap components")
+
 // ErrNilBootstrapComponentsHolder signals that the provided bootstrap components holder is nil
 var ErrNilBootstrapComponentsHolder = errors.New("nil bootstrap components holder")
 
