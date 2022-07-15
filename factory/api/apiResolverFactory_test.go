@@ -27,7 +27,7 @@ func TestCreateApiResolver(t *testing.T) {
 	cryptoComponents := componentsMock.GetCryptoComponents(coreComponents)
 	stateComponents := componentsMock.GetStateComponents(coreComponents, shardCoordinator)
 	processComponents := componentsMock.GetProcessComponents(shardCoordinator, coreComponents, networkComponents, dataComponents, cryptoComponents, stateComponents)
-	argsB := componentsMock.GetBootStrapArgs()
+	argsB := componentsMock.GetBootStrapFactoryArgs()
 
 	bcf, _ := bootstrap.NewBootstrapComponentsFactory(argsB)
 	mbc, err := bootstrap.NewManagedBootstrapComponents(bcf)

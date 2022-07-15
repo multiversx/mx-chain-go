@@ -14,7 +14,7 @@ import (
 
 func createMockHeartbeatV2ComponentsFactoryArgs() heartbeatComp.ArgHeartbeatV2ComponentsFactory {
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
-	bootStrapArgs := componentsMock.GetBootStrapArgs()
+	bootStrapArgs := componentsMock.GetBootStrapFactoryArgs()
 	bootstrapComponentsFactory, _ := bootstrapComp.NewBootstrapComponentsFactory(bootStrapArgs)
 	bootstrapC, _ := bootstrapComp.NewManagedBootstrapComponents(bootstrapComponentsFactory)
 	_ = bootstrapC.Create()

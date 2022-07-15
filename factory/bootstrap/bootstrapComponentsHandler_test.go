@@ -17,7 +17,7 @@ func TestNewManagedBootstrapComponents(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	args := componentsMock.GetBootStrapArgs()
+	args := componentsMock.GetBootStrapFactoryArgs()
 	bcf, _ := bootstrap.NewBootstrapComponentsFactory(args)
 	mbc, err := bootstrap.NewManagedBootstrapComponents(bcf)
 
@@ -43,7 +43,7 @@ func TestManagedBootstrapComponents_CheckSubcomponentsNoCreate(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	args := componentsMock.GetBootStrapArgs()
+	args := componentsMock.GetBootStrapFactoryArgs()
 	bcf, _ := bootstrap.NewBootstrapComponentsFactory(args)
 	mbc, _ := bootstrap.NewManagedBootstrapComponents(bcf)
 	err := mbc.CheckSubcomponents()
@@ -57,7 +57,7 @@ func TestManagedBootstrapComponents_Create(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	args := componentsMock.GetBootStrapArgs()
+	args := componentsMock.GetBootStrapFactoryArgs()
 	bcf, _ := bootstrap.NewBootstrapComponentsFactory(args)
 	mbc, _ := bootstrap.NewManagedBootstrapComponents(bcf)
 
@@ -74,7 +74,7 @@ func TestManagedBootstrapComponents_CreateNilInternalMarshalizer(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	args := componentsMock.GetBootStrapArgs()
+	args := componentsMock.GetBootStrapFactoryArgs()
 	coreComponents := componentsMock.GetDefaultCoreComponents()
 	args.CoreComponents = coreComponents
 	bcf, _ := bootstrap.NewBootstrapComponentsFactory(args)
@@ -91,7 +91,7 @@ func TestManagedBootstrapComponents_Close(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	args := componentsMock.GetBootStrapArgs()
+	args := componentsMock.GetBootStrapFactoryArgs()
 
 	bcf, _ := bootstrap.NewBootstrapComponentsFactory(args)
 	mbc, _ := bootstrap.NewManagedBootstrapComponents(bcf)

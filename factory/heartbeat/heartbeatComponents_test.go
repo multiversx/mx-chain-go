@@ -17,7 +17,7 @@ func TestHeartbeatComponents_CloseShouldWork(t *testing.T) {
 	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
-	heartbeatArgs := componentsMock.GetDefaultHeartbeatComponents(shardCoordinator)
+	heartbeatArgs := componentsMock.GetHeartbeatFactoryArgs(shardCoordinator)
 	hcf, err := heartbeatComp.NewHeartbeatComponentsFactory(heartbeatArgs)
 	require.Nil(t, err)
 	cc, err := hcf.Create()

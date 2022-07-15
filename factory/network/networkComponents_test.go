@@ -18,7 +18,7 @@ func TestNewNetworkComponentsFactory_NilStatusHandlerShouldErr(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	args := componentsMock.GetNetworkArgs()
+	args := componentsMock.GetNetworkFactoryArgs()
 	args.StatusHandler = nil
 	ncf, err := networkComp.NewNetworkComponentsFactory(args)
 	require.Nil(t, ncf)
@@ -31,7 +31,7 @@ func TestNewNetworkComponentsFactory_NilMarshalizerShouldErr(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	args := componentsMock.GetNetworkArgs()
+	args := componentsMock.GetNetworkFactoryArgs()
 	args.Marshalizer = nil
 	ncf, err := networkComp.NewNetworkComponentsFactory(args)
 	require.Nil(t, ncf)
@@ -44,7 +44,7 @@ func TestNewNetworkComponentsFactory_OkValsShouldWork(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	args := componentsMock.GetNetworkArgs()
+	args := componentsMock.GetNetworkFactoryArgs()
 	ncf, err := networkComp.NewNetworkComponentsFactory(args)
 	require.NoError(t, err)
 	require.NotNil(t, ncf)
@@ -56,7 +56,7 @@ func TestNetworkComponentsFactory_CreateShouldErrDueToBadConfig(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	args := componentsMock.GetNetworkArgs()
+	args := componentsMock.GetNetworkFactoryArgs()
 	args.MainConfig = config.Config{}
 	args.P2pConfig = config.P2PConfig{}
 
@@ -73,7 +73,7 @@ func TestNetworkComponentsFactory_CreateShouldWork(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	args := componentsMock.GetNetworkArgs()
+	args := componentsMock.GetNetworkFactoryArgs()
 	ncf, _ := networkComp.NewNetworkComponentsFactory(args)
 	ncf.SetListenAddress(libp2p.ListenLocalhostAddrWithIp4AndTcp)
 
@@ -89,7 +89,7 @@ func TestNetworkComponents_CloseShouldWork(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	args := componentsMock.GetNetworkArgs()
+	args := componentsMock.GetNetworkFactoryArgs()
 	ncf, _ := networkComp.NewNetworkComponentsFactory(args)
 
 	nc, _ := ncf.Create()

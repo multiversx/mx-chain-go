@@ -18,7 +18,7 @@ func TestNewStateComponentsFactory_NilShardCoordinatorShouldErr(t *testing.T) {
 
 	coreComponents := componentsMock.GetCoreComponents()
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
-	args := componentsMock.GetStateArgs(coreComponents, shardCoordinator)
+	args := componentsMock.GetStateFactoryArgs(coreComponents, shardCoordinator)
 	args.ShardCoordinator = nil
 
 	scf, err := stateComp.NewStateComponentsFactory(args)
@@ -34,7 +34,7 @@ func TestNewStateComponentsFactory_NilCoreComponents(t *testing.T) {
 
 	coreComponents := componentsMock.GetCoreComponents()
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
-	args := componentsMock.GetStateArgs(coreComponents, shardCoordinator)
+	args := componentsMock.GetStateFactoryArgs(coreComponents, shardCoordinator)
 	args.Core = nil
 
 	scf, err := stateComp.NewStateComponentsFactory(args)
@@ -50,7 +50,7 @@ func TestNewStateComponentsFactory_ShouldWork(t *testing.T) {
 
 	coreComponents := componentsMock.GetCoreComponents()
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
-	args := componentsMock.GetStateArgs(coreComponents, shardCoordinator)
+	args := componentsMock.GetStateFactoryArgs(coreComponents, shardCoordinator)
 
 	scf, err := stateComp.NewStateComponentsFactory(args)
 	require.NoError(t, err)
@@ -65,7 +65,7 @@ func TestStateComponentsFactory_CreateShouldWork(t *testing.T) {
 
 	coreComponents := componentsMock.GetCoreComponents()
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
-	args := componentsMock.GetStateArgs(coreComponents, shardCoordinator)
+	args := componentsMock.GetStateFactoryArgs(coreComponents, shardCoordinator)
 
 	scf, _ := stateComp.NewStateComponentsFactory(args)
 
@@ -83,7 +83,7 @@ func TestStateComponents_CloseShouldWork(t *testing.T) {
 
 	coreComponents := componentsMock.GetCoreComponents()
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
-	args := componentsMock.GetStateArgs(coreComponents, shardCoordinator)
+	args := componentsMock.GetStateFactoryArgs(coreComponents, shardCoordinator)
 	scf, _ := stateComp.NewStateComponentsFactory(args)
 
 	sc, _ := scf.Create()

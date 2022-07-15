@@ -19,7 +19,7 @@ func TestManagedProcessComponents_CreateWithInvalidArgsShouldErr(t *testing.T) {
 	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
-	processArgs := componentsMock.GetProcessComponentsArgs(shardCoordinator)
+	processArgs := componentsMock.GetProcessComponentsFactoryArgs(shardCoordinator)
 	_ = processArgs.CoreData.SetInternalMarshalizer(nil)
 	processComponentsFactory, _ := processComp.NewProcessComponentsFactory(processArgs)
 	managedProcessComponents, err := processComp.NewManagedProcessComponents(processComponentsFactory)
@@ -152,7 +152,7 @@ func TestManagedProcessComponents_Close(t *testing.T) {
 	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
-	processArgs := componentsMock.GetProcessComponentsArgs(shardCoordinator)
+	processArgs := componentsMock.GetProcessComponentsFactoryArgs(shardCoordinator)
 	processComponentsFactory, _ := processComp.NewProcessComponentsFactory(processArgs)
 	managedProcessComponents, _ := processComp.NewManagedProcessComponents(processComponentsFactory)
 	err := managedProcessComponents.Create()

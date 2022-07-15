@@ -17,7 +17,7 @@ func TestManagedHeartbeatComponents_CreateWithInvalidArgsShouldErr(t *testing.T)
 	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
-	heartbeatArgs := componentsMock.GetDefaultHeartbeatComponents(shardCoordinator)
+	heartbeatArgs := componentsMock.GetHeartbeatFactoryArgs(shardCoordinator)
 	heartbeatArgs.Config.Heartbeat.MaxTimeToWaitBetweenBroadcastsInSec = 0
 	heartbeatComponentsFactory, _ := heartbeatComp.NewHeartbeatComponentsFactory(heartbeatArgs)
 	managedHeartbeatComponents, err := heartbeatComp.NewManagedHeartbeatComponents(heartbeatComponentsFactory)
@@ -34,7 +34,7 @@ func TestManagedHeartbeatComponents_CreateShouldWork(t *testing.T) {
 	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
-	heartbeatArgs := componentsMock.GetDefaultHeartbeatComponents(shardCoordinator)
+	heartbeatArgs := componentsMock.GetHeartbeatFactoryArgs(shardCoordinator)
 	heartbeatComponentsFactory, _ := heartbeatComp.NewHeartbeatComponentsFactory(heartbeatArgs)
 	managedHeartbeatComponents, err := heartbeatComp.NewManagedHeartbeatComponents(heartbeatComponentsFactory)
 	require.NoError(t, err)
@@ -58,7 +58,7 @@ func TestManagedHeartbeatComponents_Close(t *testing.T) {
 	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
-	heartbeatArgs := componentsMock.GetDefaultHeartbeatComponents(shardCoordinator)
+	heartbeatArgs := componentsMock.GetHeartbeatFactoryArgs(shardCoordinator)
 	heartbeatComponentsFactory, _ := heartbeatComp.NewHeartbeatComponentsFactory(heartbeatArgs)
 	managedHeartbeatComponents, _ := heartbeatComp.NewManagedHeartbeatComponents(heartbeatComponentsFactory)
 	err := managedHeartbeatComponents.Create()

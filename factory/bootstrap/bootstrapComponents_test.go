@@ -17,7 +17,7 @@ func TestNewBootstrapComponentsFactory_OkValuesShouldWork(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	args := componentsMock.GetBootStrapArgs()
+	args := componentsMock.GetBootStrapFactoryArgs()
 
 	bcf, err := bootstrap.NewBootstrapComponentsFactory(args)
 
@@ -31,7 +31,7 @@ func TestNewBootstrapComponentsFactory_NilCoreComponents(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	args := componentsMock.GetBootStrapArgs()
+	args := componentsMock.GetBootStrapFactoryArgs()
 	args.CoreComponents = nil
 
 	bcf, err := bootstrap.NewBootstrapComponentsFactory(args)
@@ -46,7 +46,7 @@ func TestNewBootstrapComponentsFactory_NilCryptoComponents(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	args := componentsMock.GetBootStrapArgs()
+	args := componentsMock.GetBootStrapFactoryArgs()
 	args.CryptoComponents = nil
 
 	bcf, err := bootstrap.NewBootstrapComponentsFactory(args)
@@ -61,7 +61,7 @@ func TestNewBootstrapComponentsFactory_NilNetworkComponents(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	args := componentsMock.GetBootStrapArgs()
+	args := componentsMock.GetBootStrapFactoryArgs()
 	args.NetworkComponents = nil
 
 	bcf, err := bootstrap.NewBootstrapComponentsFactory(args)
@@ -76,7 +76,7 @@ func TestNewBootstrapComponentsFactory_NilWorkingDir(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	args := componentsMock.GetBootStrapArgs()
+	args := componentsMock.GetBootStrapFactoryArgs()
 	args.WorkingDir = ""
 
 	bcf, err := bootstrap.NewBootstrapComponentsFactory(args)
@@ -91,7 +91,7 @@ func TestBootstrapComponentsFactory_CreateShouldWork(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	args := componentsMock.GetBootStrapArgs()
+	args := componentsMock.GetBootStrapFactoryArgs()
 
 	bcf, _ := bootstrap.NewBootstrapComponentsFactory(args)
 
@@ -107,7 +107,7 @@ func TestBootstrapComponentsFactory_CreateBootstrapDataProviderCreationFail(t *t
 		t.Skip("this is not a short test")
 	}
 
-	args := componentsMock.GetBootStrapArgs()
+	args := componentsMock.GetBootStrapFactoryArgs()
 	coreComponents := componentsMock.GetDefaultCoreComponents()
 	args.CoreComponents = coreComponents
 
@@ -126,7 +126,7 @@ func TestBootstrapComponentsFactory_CreateEpochStartBootstrapCreationFail(t *tes
 		t.Skip("this is not a short test")
 	}
 
-	args := componentsMock.GetBootStrapArgs()
+	args := componentsMock.GetBootStrapFactoryArgs()
 	coreComponents := componentsMock.GetDefaultCoreComponents()
 	args.CoreComponents = coreComponents
 

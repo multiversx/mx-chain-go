@@ -28,7 +28,7 @@ func TestProcessComponents_CloseShouldWork(t *testing.T) {
 	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
-	processArgs := componentsMock.GetProcessComponentsArgs(shardCoordinator)
+	processArgs := componentsMock.GetProcessComponentsFactoryArgs(shardCoordinator)
 	pcf, err := processComp.NewProcessComponentsFactory(processArgs)
 	require.Nil(t, err)
 
@@ -46,7 +46,7 @@ func TestProcessComponentsFactory_CreateWithInvalidTxAccumulatorTimeExpectError(
 	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
-	processArgs := componentsMock.GetProcessComponentsArgs(shardCoordinator)
+	processArgs := componentsMock.GetProcessComponentsFactoryArgs(shardCoordinator)
 	processArgs.Config.Antiflood.TxAccumulator.MaxAllowedTimeInMilliseconds = 0
 	pcf, err := processComp.NewProcessComponentsFactory(processArgs)
 	require.Nil(t, err)
@@ -64,7 +64,7 @@ func TestProcessComponents_IndexGenesisBlocks(t *testing.T) {
 	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(1)
-	processArgs := componentsMock.GetProcessComponentsArgs(shardCoordinator)
+	processArgs := componentsMock.GetProcessComponentsFactoryArgs(shardCoordinator)
 	processArgs.Data = &mock.DataComponentsMock{
 		Storage: &mock.ChainStorerMock{},
 	}
