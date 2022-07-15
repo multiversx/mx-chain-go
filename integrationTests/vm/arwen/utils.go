@@ -311,6 +311,7 @@ func (context *TestContext) initTxProcessorWithOneSCExecutorWithVMs() {
 		BuiltInFunctions:   context.BlockchainHook.GetBuiltinFunctionsContainer(),
 		ArgumentParser:     parsers.NewCallArgsParser(),
 		ESDTTransferParser: esdtTransferParser,
+		EpochNotifier:      forking.NewGenericEpochNotifier(),
 	}
 
 	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
