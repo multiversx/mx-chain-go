@@ -795,7 +795,7 @@ func TestApiTransactionProcessor_GetTransactionsPoolForSender(t *testing.T) {
 		require.Equal(t, sender, tx.TxFields["sender"])
 	}
 
-	// if no tx if found in pool for a sender, it isn't an error, but return empty slice
+	// if no tx is found in pool for a sender, it isn't an error, but return empty slice
 	newSender := "new-sender"
 	res, err  = atp.GetTransactionsPoolForSender(newSender, "")
 	require.NoError(t, err)
@@ -960,7 +960,7 @@ func TestApiTransactionProcessor_GetTransactionsPoolNonceGapsForSender(t *testin
 	require.NoError(t, err)
 	require.Equal(t, expectedResponse, res)
 
-	// if no tx if found in pool for a sender, it isn't an error, but return empty slice
+	// if no tx is found in pool for a sender, it isn't an error, but return empty slice
 	newSender := "new-sender"
 	res, err  = atp.GetTransactionsPoolNonceGapsForSender(newSender)
 	require.NoError(t, err)
