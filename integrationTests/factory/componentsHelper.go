@@ -52,6 +52,7 @@ func CreateDefaultConfig() *config.Configs {
 
 	p2pConfig.KadDhtPeerDiscovery.Enabled = false
 	prefsConfig.Preferences.DestinationShardAsObserver = "0"
+	prefsConfig.Preferences.ConnectionWatcherType = "print"
 
 	configs := &config.Configs{}
 	configs.GeneralConfig = generalConfig

@@ -50,13 +50,14 @@ func TestSeedersDisconnectionWith2AdvertiserAnd3Peers(t *testing.T) {
 	peers := make([]p2p.Messenger, numOfPeers)
 	for i := 0; i < numOfPeers; i++ {
 		arg := libp2p.ArgsNetworkMessenger{
-			ListenAddress:        libp2p.ListenLocalhostAddrWithIp4AndTcp,
-			P2pConfig:            p2pConfig,
-			PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
-			NodeOperationMode:    p2p.NormalOperation,
-			Marshalizer:          &testscommon.MarshalizerMock{},
-			SyncTimer:            &testscommon.SyncTimerStub{},
-			PeersRatingHandler:   &p2pmocks.PeersRatingHandlerStub{},
+			ListenAddress:         libp2p.ListenLocalhostAddrWithIp4AndTcp,
+			P2pConfig:             p2pConfig,
+			PreferredPeersHolder:  &p2pmocks.PeersHolderStub{},
+			NodeOperationMode:     p2p.NormalOperation,
+			Marshalizer:           &testscommon.MarshalizerMock{},
+			SyncTimer:             &testscommon.SyncTimerStub{},
+			PeersRatingHandler:    &p2pmocks.PeersRatingHandlerStub{},
+			ConnectionWatcherType: "print",
 		}
 		node, err := libp2p.NewMockMessenger(arg, netw)
 		require.Nil(t, err)
@@ -123,13 +124,14 @@ func createBootstrappedSeeders(baseP2PConfig config.P2PConfig, numSeeders int, n
 
 	p2pConfigSeeder := baseP2PConfig
 	argSeeder := libp2p.ArgsNetworkMessenger{
-		ListenAddress:        libp2p.ListenLocalhostAddrWithIp4AndTcp,
-		P2pConfig:            p2pConfigSeeder,
-		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
-		NodeOperationMode:    p2p.NormalOperation,
-		Marshalizer:          &testscommon.MarshalizerMock{},
-		SyncTimer:            &testscommon.SyncTimerStub{},
-		PeersRatingHandler:   &p2pmocks.PeersRatingHandlerStub{},
+		ListenAddress:         libp2p.ListenLocalhostAddrWithIp4AndTcp,
+		P2pConfig:             p2pConfigSeeder,
+		PreferredPeersHolder:  &p2pmocks.PeersHolderStub{},
+		NodeOperationMode:     p2p.NormalOperation,
+		Marshalizer:           &testscommon.MarshalizerMock{},
+		SyncTimer:             &testscommon.SyncTimerStub{},
+		PeersRatingHandler:    &p2pmocks.PeersRatingHandlerStub{},
+		ConnectionWatcherType: "print",
 	}
 	seeders[0], _ = libp2p.NewMockMessenger(argSeeder, netw)
 	_ = seeders[0].Bootstrap()
@@ -139,13 +141,14 @@ func createBootstrappedSeeders(baseP2PConfig config.P2PConfig, numSeeders int, n
 		p2pConfigSeeder = baseP2PConfig
 		p2pConfigSeeder.KadDhtPeerDiscovery.InitialPeerList = []string{integrationTests.GetConnectableAddress(seeders[0])}
 		argSeeder = libp2p.ArgsNetworkMessenger{
-			ListenAddress:        libp2p.ListenLocalhostAddrWithIp4AndTcp,
-			P2pConfig:            p2pConfigSeeder,
-			PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
-			NodeOperationMode:    p2p.NormalOperation,
-			Marshalizer:          &testscommon.MarshalizerMock{},
-			SyncTimer:            &testscommon.SyncTimerStub{},
-			PeersRatingHandler:   &p2pmocks.PeersRatingHandlerStub{},
+			ListenAddress:         libp2p.ListenLocalhostAddrWithIp4AndTcp,
+			P2pConfig:             p2pConfigSeeder,
+			PreferredPeersHolder:  &p2pmocks.PeersHolderStub{},
+			NodeOperationMode:     p2p.NormalOperation,
+			Marshalizer:           &testscommon.MarshalizerMock{},
+			SyncTimer:             &testscommon.SyncTimerStub{},
+			PeersRatingHandler:    &p2pmocks.PeersRatingHandlerStub{},
+			ConnectionWatcherType: "print",
 		}
 		seeders[i], _ = libp2p.NewMockMessenger(argSeeder, netw)
 		_ = netw.LinkAll()

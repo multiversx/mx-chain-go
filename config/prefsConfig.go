@@ -13,4 +13,5 @@ type PreferencesConfig struct {
 	RedundancyLevel            int64
 	PreferredConnections       []string
 	FullArchive                bool
+	ConnectionWatcherType      string
 }

@@ -29,6 +29,14 @@ func TestNewConnectionsWatcher(t *testing.T) {
 		assert.False(t, check.IfNil(cw))
 		assert.Equal(t, "*metrics.disabledConnectionsWatcher", fmt.Sprintf("%T", cw))
 	})
+	t.Run("empty connections watcher", func(t *testing.T) {
+		t.Parallel()
+
+		cw, err := NewConnectionsWatcher("", time.Second)
+		assert.Nil(t, err)
+		assert.False(t, check.IfNil(cw))
+		assert.Equal(t, "*metrics.disabledConnectionsWatcher", fmt.Sprintf("%T", cw))
+	})
 	t.Run("unknown type", func(t *testing.T) {
 		t.Parallel()
 
