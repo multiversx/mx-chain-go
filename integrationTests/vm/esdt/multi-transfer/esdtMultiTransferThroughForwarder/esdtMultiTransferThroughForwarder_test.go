@@ -188,7 +188,7 @@ func multiTransferThroughForwarder(
 	net.Steps(10)
 }
 
-func TestESDTMultiTransferWithWrongArguments1(t *testing.T) {
+func TestESDTMultiTransferWithWrongArgumentsSFT(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -225,4 +225,42 @@ func TestESDTMultiTransferWithWrongArguments1(t *testing.T) {
 	esdt.CheckAddressHasTokens(t, forwarder, net.Nodes, []byte(sftID), 1, 10)
 	esdt.CheckAddressHasTokens(t, vaultOtherShard, net.Nodes, []byte(sftID), 1, 0)
 	esdt.CheckAddressHasTokens(t, owner.Address, net.Nodes, []byte(sftID), 1, supply-10)
+}
+
+func TestESDTMultiTransferWithWrongArgumentsFungible(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	net := integrationTests.NewTestNetworkSized(t, 2, 1, 1)
+	net.Start()
+	defer net.Close()
+
+	initialVal := uint64(1000000000)
+	net.MintNodeAccountsUint64(initialVal)
+	net.Step()
+
+	senderNode := net.NodesSharded[0][0]
+	owner := senderNode.OwnAccount
+	forwarder := net.DeployNonpayableSC(owner, "../../testdata/execute.wasm")
+	vaultOtherShard := net.DeployNonpayableSC(net.NodesSharded[1][0].OwnAccount, "../../testdata/vaultV2.wasm")
+
+	// Create the fungible token
+	supply := int64(1000)
+	tokenID := multitransfer.IssueFungibleToken(t, net, senderNode, "FUNG1", supply)
+
+	// Send the tokens to the forwarder SC
+	txData := txDataBuilder.NewBuilder()
+	txData.Func(core.BuiltInFunctionMultiESDTNFTTransfer)
+	txData.Bytes(forwarder).Int(1)
+	txData.Str(tokenID).Int(0).Int64(10).Str("doAsyncCall").Bytes(forwarder)
+	txData.Bytes([]byte{}).Str(core.BuiltInFunctionMultiESDTNFTTransfer).Int(6).Bytes(vaultOtherShard).Int(1).Str(tokenID).Int(0).Int(1).Bytes([]byte{})
+	tx := net.CreateTxUint64(owner, owner.Address, 0, txData.ToBytes())
+	tx.GasLimit = net.MaxGasLimit / 2
+	_ = net.SignAndSendTx(owner, tx)
+	net.Steps(12)
+
+	esdt.CheckAddressHasTokens(t, forwarder, net.Nodes, []byte(tokenID), 0, 10)
+	esdt.CheckAddressHasTokens(t, vaultOtherShard, net.Nodes, []byte(tokenID), 0, 0)
+	esdt.CheckAddressHasTokens(t, owner.Address, net.Nodes, []byte(tokenID), 0, supply-10)
 }
