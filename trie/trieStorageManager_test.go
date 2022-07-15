@@ -101,12 +101,11 @@ func TestTrieCheckpoint(t *testing.T) {
 	assert.Equal(t, 0, len(errChan))
 }
 
-func TestTrieStorageManager_SetCheckpointEmptyErrorChan(t *testing.T) {
+func TestTrieStorageManager_SetCheckpointNilErrorChan(t *testing.T) {
 	t.Parallel()
 
 	args := getNewTrieStorageManagerArgs()
 	ts, _ := trie.NewTrieStorageManager(args)
-	_ = ts.Close()
 
 	rootHash := []byte("rootHash")
 	leavesChan := make(chan core.KeyValueHolder)
@@ -114,6 +113,8 @@ func TestTrieStorageManager_SetCheckpointEmptyErrorChan(t *testing.T) {
 
 	_, ok := <-leavesChan
 	assert.False(t, ok)
+
+	_ = ts.Close()
 }
 
 func TestTrieStorageManager_SetCheckpointClosedDb(t *testing.T) {
@@ -303,12 +304,11 @@ func TestTrieStorageManager_GetLatestStorageEpoch(t *testing.T) {
 	assert.True(t, getLatestSorageCalled)
 }
 
-func TestTrieStorageManager_TakeSnapshotEmptyErrorChan(t *testing.T) {
+func TestTrieStorageManager_TakeSnapshotNilErrorChan(t *testing.T) {
 	t.Parallel()
 
 	args := getNewTrieStorageManagerArgs()
 	ts, _ := trie.NewTrieStorageManager(args)
-	_ = ts.Close()
 
 	rootHash := []byte("rootHash")
 	leavesChan := make(chan core.KeyValueHolder)
@@ -316,6 +316,8 @@ func TestTrieStorageManager_TakeSnapshotEmptyErrorChan(t *testing.T) {
 
 	_, ok := <-leavesChan
 	assert.False(t, ok)
+
+	_ = ts.Close()
 }
 
 func TestTrieStorageManager_TakeSnapshotClosedDb(t *testing.T) {
@@ -351,7 +353,7 @@ func TestTrieStorageManager_TakeSnapshotEmptyTrieRootHash(t *testing.T) {
 	assert.Equal(t, 0, len(errChan))
 }
 
-func TestTrieStorageManager_TakeSnapshot(t *testing.T) {
+func TestTrieStorageManager_TakeSnapshotWithGetNodeFromDBError(t *testing.T) {
 	t.Parallel()
 
 	args := getNewTrieStorageManagerArgs()
