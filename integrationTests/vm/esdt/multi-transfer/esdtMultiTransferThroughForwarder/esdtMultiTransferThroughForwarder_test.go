@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/esdt"
 	multitransfer "github.com/ElrondNetwork/elrond-go/integrationTests/vm/esdt/multi-transfer"
@@ -259,7 +258,6 @@ func TestESDTMultiTransferWithWrongArgumentsFungible(t *testing.T) {
 	tx := net.CreateTxUint64(owner, owner.Address, 0, txData.ToBytes())
 	tx.GasLimit = 104000
 	_ = net.SignAndSendTx(owner, tx)
-	_ = logger.SetLogLevel("process/smartcontract:TRACE,arwen:TRACE,gasTrace:TRACE")
 	net.Steps(12)
 
 	esdt.CheckAddressHasTokens(t, forwarder, net.Nodes, []byte(tokenID), 0, 80)
