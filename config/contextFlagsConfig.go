@@ -20,7 +20,7 @@ type ContextFlagsConfig struct {
 	ValidatorKeyIndex            int
 	EnableRestAPIServerDebugMode bool
 	Version                      string
-	GenerateSigningKey           bool
+	NoKeyProvided                bool
 }
 
 // ImportDbConfig will hold the import-db parameters

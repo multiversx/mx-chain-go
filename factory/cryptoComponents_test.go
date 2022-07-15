@@ -184,7 +184,7 @@ func TestCryptoComponentsFactory_CreateWithAutoGenerateKey(t *testing.T) {
 
 	coreComponents := getCoreComponents()
 	args := getCryptoArgs(coreComponents)
-	args.GenerateSigningKey = true
+	args.NoKeyProvided = true
 	ccf, _ := factory.NewCryptoComponentsFactory(args)
 
 	cc, err := ccf.Create()
