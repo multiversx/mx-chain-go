@@ -32,6 +32,11 @@ func (a *argumentParser) ParseCallData(data string) (string, [][]byte, error) {
 	return a.callParser.ParseData(data)
 }
 
+// ParseArguments returns parsed data for contract calls
+func (a *argumentParser) ParseArguments(data string) ([][]byte, error) {
+	return a.callParser.ParseArguments(data)
+}
+
 // ParseDeployData returns parsed data for deploy data
 func (a *argumentParser) ParseDeployData(data string) (*parsers.DeployArgs, error) {
 	return a.deployParser.ParseData(data)
