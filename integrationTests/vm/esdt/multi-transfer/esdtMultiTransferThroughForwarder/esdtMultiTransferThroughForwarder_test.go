@@ -253,14 +253,14 @@ func TestESDTMultiTransferWithWrongArgumentsFungible(t *testing.T) {
 	txData := txDataBuilder.NewBuilder()
 	txData.Func(core.BuiltInFunctionMultiESDTNFTTransfer)
 	txData.Bytes(forwarder).Int(1)
-	txData.Str(tokenID).Int(0).Int64(10).Str("doAsyncCall").Bytes(forwarder)
-	txData.Bytes([]byte{}).Str(core.BuiltInFunctionMultiESDTNFTTransfer).Int(6).Bytes(vaultOtherShard).Int(1).Str(tokenID).Int(0).Int(1).Bytes([]byte{})
+	txData.Str(tokenID).Int(0).Int64(80).Str("doAsyncCall").Bytes(forwarder)
+	txData.Bytes([]byte{}).Str(core.BuiltInFunctionMultiESDTNFTTransfer).Int(6).Bytes(vaultOtherShard).Int(1).Str(tokenID).Int(0).Int(42).Bytes([]byte{})
 	tx := net.CreateTxUint64(owner, owner.Address, 0, txData.ToBytes())
 	tx.GasLimit = net.MaxGasLimit / 2
 	_ = net.SignAndSendTx(owner, tx)
 	net.Steps(12)
 
-	esdt.CheckAddressHasTokens(t, forwarder, net.Nodes, []byte(tokenID), 0, 10)
+	esdt.CheckAddressHasTokens(t, forwarder, net.Nodes, []byte(tokenID), 0, 80)
 	esdt.CheckAddressHasTokens(t, vaultOtherShard, net.Nodes, []byte(tokenID), 0, 0)
-	esdt.CheckAddressHasTokens(t, owner.Address, net.Nodes, []byte(tokenID), 0, supply-10)
+	esdt.CheckAddressHasTokens(t, owner.Address, net.Nodes, []byte(tokenID), 0, supply-80)
 }
