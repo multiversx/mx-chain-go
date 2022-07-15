@@ -28,7 +28,7 @@ func TestCreateProcessDebugger(t *testing.T) {
 
 		configs := config.ProcessDebugConfig{
 			Enabled:              true,
-			LogLevelChanger:      "",
+			DebuggingLogLevel:    "",
 			GoRoutinesDump:       false,
 			PollingTimeInSeconds: 1,
 		}
