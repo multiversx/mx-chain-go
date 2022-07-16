@@ -259,7 +259,7 @@ func CheckNumCallBacks(
 
 		scQuery := &process.SCQuery{
 			ScAddress:  address,
-			FuncName:   "callback_data",
+			FuncName:   "callback_args",
 			CallerAddr: address,
 			CallValue:  big.NewInt(0),
 			Arguments:  [][]byte{},
@@ -272,14 +272,11 @@ func CheckNumCallBacks(
 	}
 }
 
-// CheckSavedCallBackData -
-func CheckSavedCallBackData(
+func CheckForwarderRawSavedCallbackArgs(
 	t *testing.T,
 	address []byte,
 	nodes []*integrationTests.TestProcessorNode,
 	callbackIndex int,
-	expectedTokenId string,
-	expectedPayment *big.Int,
 	expectedResultCode vmcommon.ReturnCode,
 	expectedArguments [][]byte) {
 
@@ -289,27 +286,64 @@ func CheckSavedCallBackData(
 			continue
 		}
 
-		scQuery := &process.SCQuery{
+		scQueryArgs := &process.SCQuery{
 			ScAddress:  address,
-			FuncName:   "callback_data_at_index",
+			FuncName:   "callback_args_at_index",
 			CallerAddr: address,
 			CallValue:  big.NewInt(0),
 			Arguments: [][]byte{
 				{byte(callbackIndex)},
 			},
 		}
-		vmOutput, err := node.SCQueryService.ExecuteQuery(scQuery)
+		vmOutputArgs, err := node.SCQueryService.ExecuteQuery(scQueryArgs)
 		require.Nil(t, err)
-		require.Equal(t, vmcommon.Ok, vmOutput.ReturnCode)
-		require.GreaterOrEqual(t, 3, len(vmOutput.ReturnData))
-		require.Equal(t, []byte(expectedTokenId), vmOutput.ReturnData[0])
-		require.Equal(t, expectedPayment.Bytes(), vmOutput.ReturnData[1])
+		require.Equal(t, vmcommon.Ok, vmOutputArgs.ReturnCode)
+		require.GreaterOrEqual(t, len(vmOutputArgs.ReturnData), 1)
 		if expectedResultCode == vmcommon.Ok {
-			require.Equal(t, []byte{0x0}, vmOutput.ReturnData[2])
+			require.Equal(t, []byte{0x0}, vmOutputArgs.ReturnData[0])
+			require.Equal(t, expectedArguments, vmOutputArgs.ReturnData[1:])
 		} else {
-			require.Equal(t, []byte{byte(expectedResultCode)}, vmOutput.ReturnData[2])
+			require.Equal(t, []byte{byte(expectedResultCode)}, vmOutputArgs.ReturnData[0])
 		}
-		require.Equal(t, expectedArguments, vmOutput.ReturnData[3:])
+	}
+}
+
+/// ForwarderRawSavedPaymentInfo contains token data to be checked in the forwarder-raw contract.
+type ForwarderRawSavedPaymentInfo struct {
+	TokenId string
+	Nonce   uint64
+	Payment *big.Int
+}
+
+func CheckForwarderRawSavedCallbackPayments(
+	t *testing.T,
+	address []byte,
+	nodes []*integrationTests.TestProcessorNode,
+	expectedPayments []*ForwarderRawSavedPaymentInfo) {
+
+	scQueryPayment := &process.SCQuery{
+		ScAddress:  address,
+		FuncName:   "callback_payments_triples",
+		CallerAddr: address,
+		CallValue:  big.NewInt(0),
+		Arguments:  [][]byte{},
+	}
+
+	contractID := nodes[0].ShardCoordinator.ComputeId(address)
+	for _, node := range nodes {
+		if node.ShardCoordinator.SelfId() != contractID {
+			continue
+		}
+		vmOutputPayment, err := node.SCQueryService.ExecuteQuery(scQueryPayment)
+		require.Nil(t, err)
+		require.Equal(t, vmcommon.Ok, vmOutputPayment.ReturnCode)
+
+		require.Equal(t, len(expectedPayments)*3, len(vmOutputPayment.ReturnData))
+		for i, expectedPayment := range expectedPayments {
+			require.Equal(t, []byte(expectedPayment.TokenId), vmOutputPayment.ReturnData[3*i])
+			require.Equal(t, big.NewInt(0).SetUint64(expectedPayment.Nonce).Bytes(), vmOutputPayment.ReturnData[3*i+1])
+			require.Equal(t, expectedPayment.Payment.Bytes(), vmOutputPayment.ReturnData[3*i+2])
+		}
 	}
 }
 
