@@ -458,7 +458,7 @@ func TestScSendsEsdtToUserWithMessage(t *testing.T) {
 
 	// take them back, with a message
 	valueToRequest := valueToSendToSc / 4
-	txData.Clear().Func("retrieve_funds").Str(tokenIdentifier).Int64(valueToRequest).Str("ESDT transfer message")
+	txData.Clear().Func("retrieve_funds").Str(tokenIdentifier).Int64(valueToRequest).Int64(0).Str("ESDT transfer message")
 	integrationTests.CreateAndSendTransaction(tokenIssuer, nodes, big.NewInt(0), vaultScAddress, txData.ToString(), integrationTests.AdditionalGasLimit)
 
 	time.Sleep(time.Second)
@@ -640,7 +640,7 @@ func TestScCallsScWithEsdtIntraShard(t *testing.T) {
 
 	// deploy the smart contracts
 
-	vaultCode := arwen.GetSCCode("../testdata/vaultV1.wasm")
+	vaultCode := arwen.GetSCCode("../testdata/vault-0.34.0.wasm")
 	vault, _ := tokenIssuer.BlockchainHook.NewAddress(tokenIssuer.OwnAccount.Address, tokenIssuer.OwnAccount.Nonce, vmFactory.ArwenVirtualMachine)
 
 	integrationTests.CreateAndSendTransaction(
@@ -656,7 +656,7 @@ func TestScCallsScWithEsdtIntraShard(t *testing.T) {
 	_, err := nodes[0].AccntState.GetExistingAccount(vault)
 	require.Nil(t, err)
 
-	forwarderCode := arwen.GetSCCode("../testdata/forwarder-raw.wasm")
+	forwarderCode := arwen.GetSCCode("../testdata/forwarder-raw-0.34.0.wasm")
 	forwarder, _ := tokenIssuer.BlockchainHook.NewAddress(tokenIssuer.OwnAccount.Address, tokenIssuer.OwnAccount.Nonce, vmFactory.ArwenVirtualMachine)
 
 	integrationTests.CreateAndSendTransaction(
@@ -690,11 +690,12 @@ func TestScCallsScWithEsdtIntraShard(t *testing.T) {
 	esdtCommon.CheckAddressHasTokens(t, vault, nodes, []byte(tokenIdentifier), 0, valueToSendToSc/2)
 
 	esdtCommon.CheckNumCallBacks(t, forwarder, nodes, 1)
-	esdtCommon.CheckSavedCallBackData(t, forwarder, nodes, 1, "EGLD", big.NewInt(0), vmcommon.Ok, [][]byte{})
+	esdtCommon.CheckForwarderRawSavedCallbackArgs(t, forwarder, nodes, 1, vmcommon.Ok, [][]byte{})
+	esdtCommon.CheckForwarderRawSavedCallbackPayments(t, forwarder, nodes, []*esdtCommon.ForwarderRawSavedPaymentInfo{})
 
 	// call forwarder to ask the second one to send it back some esdt
 	valueToRequest := valueToSendToSc / 4
-	txData.Clear().Func("forward_async_call").Bytes(vault).Str("retrieve_funds").Str(tokenIdentifier).Int64(valueToRequest)
+	txData.Clear().Func("forward_async_call").Bytes(vault).Str("retrieve_funds").Str(tokenIdentifier).Int64(0).Int64(valueToRequest)
 
 	integrationTests.CreateAndSendTransaction(tokenIssuer, nodes, big.NewInt(0), forwarder, txData.ToString(), integrationTests.AdditionalGasLimit)
 
@@ -707,7 +708,14 @@ func TestScCallsScWithEsdtIntraShard(t *testing.T) {
 	esdtCommon.CheckAddressHasTokens(t, vault, nodes, []byte(tokenIdentifier), 0, valueToSendToSc/4)
 
 	esdtCommon.CheckNumCallBacks(t, forwarder, nodes, 2)
-	esdtCommon.CheckSavedCallBackData(t, forwarder, nodes, 2, tokenIdentifier, big.NewInt(valueToRequest), vmcommon.Ok, [][]byte{})
+	esdtCommon.CheckForwarderRawSavedCallbackArgs(t, forwarder, nodes, 2, vmcommon.Ok, [][]byte{})
+	esdtCommon.CheckForwarderRawSavedCallbackPayments(t, forwarder, nodes, []*esdtCommon.ForwarderRawSavedPaymentInfo{
+		{
+			TokenId: tokenIdentifier,
+			Nonce:   0,
+			Payment: big.NewInt(valueToRequest),
+		},
+	})
 
 	// call forwarder to ask the second one to execute a method
 	valueToTransferWithExecSc := valueToSendToSc / 4
@@ -809,7 +817,7 @@ func TestCallbackPaymentEgld(t *testing.T) {
 	_, err := nodes[0].AccntState.GetExistingAccount(secondScAddress)
 	require.Nil(t, err)
 
-	forwarderCode := arwen.GetSCCode("../testdata/forwarder-raw.wasm")
+	forwarderCode := arwen.GetSCCode("../testdata/forwarder-raw-0.34.0.wasm")
 	forwarder, _ := tokenIssuer.BlockchainHook.NewAddress(tokenIssuer.OwnAccount.Address, tokenIssuer.OwnAccount.Nonce, vmFactory.ArwenVirtualMachine)
 
 	integrationTests.CreateAndSendTransaction(
@@ -836,11 +844,12 @@ func TestCallbackPaymentEgld(t *testing.T) {
 	time.Sleep(time.Second)
 
 	esdtCommon.CheckNumCallBacks(t, forwarder, nodes, 1)
-	esdtCommon.CheckSavedCallBackData(t, forwarder, nodes, 1, "EGLD", big.NewInt(0), vmcommon.Ok, [][]byte{})
+	esdtCommon.CheckForwarderRawSavedCallbackArgs(t, forwarder, nodes, 1, vmcommon.Ok, [][]byte{})
+	esdtCommon.CheckForwarderRawSavedCallbackPayments(t, forwarder, nodes, []*esdtCommon.ForwarderRawSavedPaymentInfo{})
 
 	// call first sc to ask the second one to send it back some esdt
 	valueToRequest := valueToSendToSc / 4
-	txData.Clear().Func("forward_async_call").Bytes(secondScAddress).Str("retrieve_funds").Str("EGLD").Int64(valueToRequest)
+	txData.Clear().Func("forward_async_call").Bytes(secondScAddress).Str("retrieve_funds").Str("EGLD").Int64(0).Int64(valueToRequest)
 	integrationTests.CreateAndSendTransaction(tokenIssuer, nodes, big.NewInt(0), forwarder, txData.ToString(), integrationTests.AdditionalGasLimit)
 
 	time.Sleep(time.Second)
@@ -848,7 +857,14 @@ func TestCallbackPaymentEgld(t *testing.T) {
 	time.Sleep(time.Second)
 
 	esdtCommon.CheckNumCallBacks(t, forwarder, nodes, 2)
-	esdtCommon.CheckSavedCallBackData(t, forwarder, nodes, 2, "EGLD", big.NewInt(valueToRequest), vmcommon.Ok, [][]byte{})
+	esdtCommon.CheckForwarderRawSavedCallbackArgs(t, forwarder, nodes, 2, vmcommon.Ok, [][]byte{})
+	esdtCommon.CheckForwarderRawSavedCallbackPayments(t, forwarder, nodes, []*esdtCommon.ForwarderRawSavedPaymentInfo{
+		{
+			TokenId: "EGLD",
+			Nonce:   0,
+			Payment: big.NewInt(valueToRequest),
+		},
+	})
 }
 
 func TestScCallsScWithEsdtCrossShard(t *testing.T) {
@@ -919,7 +935,7 @@ func TestScCallsScWithEsdtCrossShard(t *testing.T) {
 	_, err := nodes[0].AccntState.GetExistingAccount(secondScAddress)
 	require.Nil(t, err)
 
-	forwarderCode := arwen.GetSCCode("../testdata/forwarder-raw.wasm")
+	forwarderCode := arwen.GetSCCode("../testdata/forwarder-raw-0.34.0.wasm")
 	forwarder, _ := nodes[2].BlockchainHook.NewAddress(nodes[2].OwnAccount.Address, nodes[2].OwnAccount.Nonce, vmFactory.ArwenVirtualMachine)
 	integrationTests.CreateAndSendTransaction(
 		nodes[2],
@@ -951,12 +967,13 @@ func TestScCallsScWithEsdtCrossShard(t *testing.T) {
 	esdtCommon.CheckAddressHasTokens(t, secondScAddress, nodes, []byte(tokenIdentifier), 0, valueToSendToSc/2)
 
 	esdtCommon.CheckNumCallBacks(t, forwarder, nodes, 1)
-	esdtCommon.CheckSavedCallBackData(t, forwarder, nodes, 1, "EGLD", big.NewInt(0), vmcommon.Ok, [][]byte{})
+	esdtCommon.CheckForwarderRawSavedCallbackArgs(t, forwarder, nodes, 1, vmcommon.Ok, [][]byte{})
+	esdtCommon.CheckForwarderRawSavedCallbackPayments(t, forwarder, nodes, []*esdtCommon.ForwarderRawSavedPaymentInfo{})
 
 	// call forwarder to ask the second one to send it back some esdt
 	valueToRequest := valueToSendToSc / 4
 	txData.Clear().Func("forward_async_call").Bytes(secondScAddress)
-	txData.Str("retrieve_funds").Str(tokenIdentifier).Int64(valueToRequest)
+	txData.Str("retrieve_funds").Str(tokenIdentifier).Int64(0).Int64(valueToRequest)
 	integrationTests.CreateAndSendTransaction(tokenIssuer, nodes, big.NewInt(0), forwarder, txData.ToString(), integrationTests.AdditionalGasLimit)
 
 	time.Sleep(time.Second)
@@ -967,7 +984,14 @@ func TestScCallsScWithEsdtCrossShard(t *testing.T) {
 	esdtCommon.CheckAddressHasTokens(t, secondScAddress, nodes, []byte(tokenIdentifier), 0, valueToSendToSc/4)
 
 	esdtCommon.CheckNumCallBacks(t, forwarder, nodes, 2)
-	esdtCommon.CheckSavedCallBackData(t, forwarder, nodes, 1, tokenIdentifier, big.NewInt(valueToSendToSc), vmcommon.Ok, [][]byte{})
+	esdtCommon.CheckForwarderRawSavedCallbackArgs(t, forwarder, nodes, 2, vmcommon.Ok, [][]byte{})
+	esdtCommon.CheckForwarderRawSavedCallbackPayments(t, forwarder, nodes, []*esdtCommon.ForwarderRawSavedPaymentInfo{
+		{
+			TokenId: "EGLD",
+			Nonce:   0,
+			Payment: big.NewInt(valueToSendToSc),
+		},
+	})
 }
 
 func TestScCallsScWithEsdtIntraShard_SecondScRefusesPayment(t *testing.T) {
