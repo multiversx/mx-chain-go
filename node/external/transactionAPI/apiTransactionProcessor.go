@@ -192,7 +192,9 @@ func (atp *apiTransactionProcessor) GetTransactionsPoolForSender(sender, fields 
 	fields = strings.ToLower(fields)
 	wrappedTxs := atp.fetchTxsForSender(string(senderAddr), senderShard)
 	if len(wrappedTxs) == 0 {
-		return nil, fmt.Errorf("%w, no transaction in pool for sender", ErrCannotRetrieveTransactions)
+		return &common.TransactionsPoolForSenderApiResponse{
+			Transactions: []common.Transaction{},
+		}, nil
 	}
 
 	requestedFieldsHandler := newFieldsHandler(fields)
@@ -398,7 +400,7 @@ func (atp *apiTransactionProcessor) fetchLastNonceForSender(sender string, sende
 func (atp *apiTransactionProcessor) extractNonceGaps(sender string, senderShard uint32) ([]common.NonceGapApiResponse, error) {
 	wrappedTxs := atp.fetchTxsForSender(sender, senderShard)
 	if len(wrappedTxs) == 0 {
-		return nil, fmt.Errorf("%w, no transaction in pool for sender", ErrCannotRetrieveTransactions)
+		return []common.NonceGapApiResponse{}, nil
 	}
 
 	nonceGaps := make([]common.NonceGapApiResponse, 0)
