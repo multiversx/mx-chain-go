@@ -3,7 +3,6 @@ package coordinator
 import (
 	"bytes"
 	"encoding/hex"
-	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"math/big"
 	"testing"
 
@@ -13,6 +12,7 @@ import (
 	vmData "github.com/ElrondNetwork/elrond-go-core/data/vm"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"

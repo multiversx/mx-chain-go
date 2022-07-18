@@ -1976,9 +1976,6 @@ func (sc *scProcessor) penalizeUserIfNeeded(
 	if callType == vmData.AsynchronousCall {
 		return
 	}
-	if callType == vmData.AsynchronousCallBack {
-		return
-	}
 
 	isTooMuchProvided := isTooMuchGasProvided(gasProvidedForProcessing, vmOutput.GasRemaining)
 	if !isTooMuchProvided {
