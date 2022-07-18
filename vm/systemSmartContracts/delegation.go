@@ -960,7 +960,7 @@ func (d *delegation) changeOwner(args *vmcommon.ContractCallInput) vmcommon.Retu
 		return vmcommon.UserError
 	}
 
-	d.eei.SetStorageForAddress(d.delegationMgrSCAddress, args.RecipientAddr, args.Arguments[0])
+	d.eei.SetStorageForAddress(d.delegationMgrSCAddress, args.Arguments[0], args.RecipientAddr)
 	d.eei.SetStorageForAddress(d.delegationMgrSCAddress, args.CallerAddr, []byte{})
 	d.eei.SetStorage([]byte(ownerKey), args.Arguments[0])
 
