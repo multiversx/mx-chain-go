@@ -53,10 +53,15 @@ func NewDoubleListTrieSyncer(arg ArgTrieSyncer) (*doubleListTrieSyncer, error) {
 		return nil, err
 	}
 
+	stsm, err := NewSyncTrieStorageManager(arg.DB)
+	if err != nil {
+		return nil, err
+	}
+
 	d := &doubleListTrieSyncer{
 		requestHandler:            arg.RequestHandler,
 		interceptedNodesCacher:    arg.InterceptedNodes,
-		db:                        arg.DB,
+		db:                        stsm,
 		marshalizer:               arg.Marshalizer,
 		hasher:                    arg.Hasher,
 		topic:                     arg.Topic,

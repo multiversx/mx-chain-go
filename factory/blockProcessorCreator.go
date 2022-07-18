@@ -1170,8 +1170,10 @@ func (pcf *processComponentsFactory) createBuiltInFunctionContainer(
 		ESDTTransferMetaEnableEpoch:              pcf.epochConfig.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch,
 		OptimizeNFTStoreEnableEpoch:              pcf.epochConfig.EnableEpochs.OptimizeNFTStoreEnableEpoch,
 		CheckCorrectTokenIDEnableEpoch:           pcf.epochConfig.EnableEpochs.CheckCorrectTokenIDForTransferRoleEnableEpoch,
+		CheckFunctionArgumentEnableEpoch:         pcf.epochConfig.EnableEpochs.CheckFunctionArgumentEnableEpoch,
 		ESDTMetadataContinuousCleanupEnableEpoch: pcf.epochConfig.EnableEpochs.ESDTMetadataContinuousCleanupEnableEpoch,
 		AutomaticCrawlerAddress:                  convertedAddress,
+		MaxNumNodesInTransferRole:                pcf.config.BuiltInFunctions.MaxNumAddressesInTransferRole,
 	}
 
 	return builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)

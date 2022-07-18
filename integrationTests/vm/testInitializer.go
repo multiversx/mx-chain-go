@@ -556,11 +556,12 @@ func CreateVMAndBlockchainHookAndDataPool(
 		MapDNSAddresses: map[string]struct{}{
 			string(dnsAddr): {},
 		},
-		Marshalizer:             testMarshalizer,
-		Accounts:                accnts,
-		ShardCoordinator:        shardCoordinator,
-		EpochNotifier:           epochNotifierInstance,
-		AutomaticCrawlerAddress: bytes.Repeat([]byte{1}, 32),
+		Marshalizer:               testMarshalizer,
+		Accounts:                  accnts,
+		ShardCoordinator:          shardCoordinator,
+		EpochNotifier:             epochNotifierInstance,
+		AutomaticCrawlerAddress:   bytes.Repeat([]byte{1}, 32),
+		MaxNumNodesInTransferRole: 100,
 	}
 	builtInFuncs, nftStorageHandler, globalSettingsHandler, _ := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
 
@@ -632,11 +633,12 @@ func CreateVMAndBlockchainHookMeta(
 		MapDNSAddresses: map[string]struct{}{
 			string(dnsAddr): {},
 		},
-		Marshalizer:             testMarshalizer,
-		Accounts:                accnts,
-		ShardCoordinator:        shardCoordinator,
-		EpochNotifier:           globalEpochNotifier,
-		AutomaticCrawlerAddress: bytes.Repeat([]byte{1}, 32),
+		Marshalizer:               testMarshalizer,
+		Accounts:                  accnts,
+		ShardCoordinator:          shardCoordinator,
+		EpochNotifier:             globalEpochNotifier,
+		AutomaticCrawlerAddress:   bytes.Repeat([]byte{1}, 32),
+		MaxNumNodesInTransferRole: 100,
 	}
 	builtInFuncs, nftStorageHandler, globalSettingsHandler, _ := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
 
