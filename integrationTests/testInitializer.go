@@ -159,7 +159,7 @@ func CreateMessengerWithKadDht(initialAddr string) p2p.Messenger {
 		PreferredPeersHolder:  &p2pmocks.PeersHolderStub{},
 		NodeOperationMode:     p2p.NormalOperation,
 		PeersRatingHandler:    &p2pmocks.PeersRatingHandlerStub{},
-		ConnectionWatcherType: "print",
+		ConnectionWatcherType: libp2p.ConnectionWatcherTypePrint,
 	}
 
 	libP2PMes, err := libp2p.NewNetworkMessenger(arg)
@@ -184,7 +184,7 @@ func CreateMessengerWithKadDhtAndProtocolID(initialAddr string, protocolID strin
 		PreferredPeersHolder:  &p2pmocks.PeersHolderStub{},
 		NodeOperationMode:     p2p.NormalOperation,
 		PeersRatingHandler:    &p2pmocks.PeersRatingHandlerStub{},
-		ConnectionWatcherType: "print",
+		ConnectionWatcherType: libp2p.ConnectionWatcherTypePrint,
 	}
 
 	libP2PMes, err := libp2p.NewNetworkMessenger(arg)
@@ -203,7 +203,7 @@ func CreateMessengerFromConfig(p2pConfig config.P2PConfig) p2p.Messenger {
 		PreferredPeersHolder:  &p2pmocks.PeersHolderStub{},
 		NodeOperationMode:     p2p.NormalOperation,
 		PeersRatingHandler:    &p2pmocks.PeersRatingHandlerStub{},
-		ConnectionWatcherType: "print",
+		ConnectionWatcherType: libp2p.ConnectionWatcherTypePrint,
 	}
 
 	if p2pConfig.Sharding.AdditionalConnections.MaxFullHistoryObservers > 0 {
@@ -227,7 +227,7 @@ func CreateMessengerFromConfigWithPeersRatingHandler(p2pConfig config.P2PConfig,
 		PreferredPeersHolder:  &p2pmocks.PeersHolderStub{},
 		NodeOperationMode:     p2p.NormalOperation,
 		PeersRatingHandler:    peersRatingHandler,
-		ConnectionWatcherType: "print",
+		ConnectionWatcherType: libp2p.ConnectionWatcherTypePrint,
 	}
 
 	if p2pConfig.Sharding.AdditionalConnections.MaxFullHistoryObservers > 0 {

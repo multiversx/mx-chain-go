@@ -72,6 +72,15 @@ const (
 	withoutMessageSigning messageSigningConfig = false
 )
 
+const (
+	// ConnectionWatcherTypePrint - new connection found will be printed in the log file
+	ConnectionWatcherTypePrint = "print"
+	// ConnectionWatcherTypeDisabled - no connection watching should be made
+	ConnectionWatcherTypeDisabled = "disabled"
+	// ConnectionWatcherTypeEmpty - not set, no connection watching should be made
+	ConnectionWatcherTypeEmpty = ""
+)
+
 // TODO remove the header size of the message when commit d3c5ecd3a3e884206129d9f2a9a4ddfd5e7c8951 from
 // https://github.com/libp2p/go-libp2p-pubsub/pull/189/commits will be part of a new release
 var messageHeader = 64 * 1024 // 64kB
@@ -183,7 +192,7 @@ func constructNode(
 		return nil, err
 	}
 
-	log.Trace("connectionWatcherType", "type", args.ConnectionWatcherType)
+	log.Debug("connectionWatcherType", "type", args.ConnectionWatcherType)
 	connWatcher, err := metricsFactory.NewConnectionsWatcher(args.ConnectionWatcherType, ttlConnectionsWatcher)
 	if err != nil {
 		return nil, err

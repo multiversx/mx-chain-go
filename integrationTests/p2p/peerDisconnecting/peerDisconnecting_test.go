@@ -67,7 +67,7 @@ func testPeerDisconnectionWithOneAdvertiser(t *testing.T, p2pConfig config.P2PCo
 		Marshalizer:           &testscommon.MarshalizerMock{},
 		SyncTimer:             &testscommon.SyncTimerStub{},
 		PeersRatingHandler:    &p2pmocks.PeersRatingHandlerStub{},
-		ConnectionWatcherType: "print",
+		ConnectionWatcherType: libp2p.ConnectionWatcherTypePrint,
 	}
 	// Step 1. Create advertiser
 	advertiser, err := libp2p.NewMockMessenger(argSeeder, netw)
@@ -85,7 +85,7 @@ func testPeerDisconnectionWithOneAdvertiser(t *testing.T, p2pConfig config.P2PCo
 			Marshalizer:           &testscommon.MarshalizerMock{},
 			SyncTimer:             &testscommon.SyncTimerStub{},
 			PeersRatingHandler:    &p2pmocks.PeersRatingHandlerStub{},
-			ConnectionWatcherType: "print",
+			ConnectionWatcherType: libp2p.ConnectionWatcherTypePrint,
 		}
 		node, errCreate := libp2p.NewMockMessenger(arg, netw)
 		require.Nil(t, errCreate)
