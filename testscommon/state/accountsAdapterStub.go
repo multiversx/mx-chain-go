@@ -14,30 +14,38 @@ var errNotImplemented = errors.New("not implemented")
 
 // AccountsStub -
 type AccountsStub struct {
-	GetExistingAccountCalled      func(addressContainer []byte) (vmcommon.AccountHandler, error)
-	GetAccountFromBytesCalled     func(address []byte, accountBytes []byte) (vmcommon.AccountHandler, error)
-	LoadAccountCalled             func(container []byte) (vmcommon.AccountHandler, error)
-	SaveAccountCalled             func(account vmcommon.AccountHandler) error
-	RemoveAccountCalled           func(addressContainer []byte) error
-	CommitCalled                  func() ([]byte, error)
-	CommitInEpochCalled           func(uint32, uint32) ([]byte, error)
-	JournalLenCalled              func() int
-	RevertToSnapshotCalled        func(snapshot int) error
-	RootHashCalled                func() ([]byte, error)
-	RecreateTrieCalled            func(rootHash []byte) error
-	PruneTrieCalled               func(rootHash []byte, identifier state.TriePruningIdentifier, handler state.PruningHandler)
-	CancelPruneCalled             func(rootHash []byte, identifier state.TriePruningIdentifier)
-	SnapshotStateCalled           func(rootHash []byte)
-	SetStateCheckpointCalled      func(rootHash []byte)
-	IsPruningEnabledCalled        func() bool
-	GetAllLeavesCalled            func(leavesChannel chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error
-	RecreateAllTriesCalled        func(rootHash []byte) (map[string]common.Trie, error)
-	GetCodeCalled                 func([]byte) []byte
-	GetTrieCalled                 func([]byte) (common.Trie, error)
-	GetStackDebugFirstEntryCalled func() []byte
-	GetAccountWithBlockInfoCalled func(address []byte) (vmcommon.AccountHandler, common.BlockInfo, error)
-	GetCodeWithBlockInfoCalled    func(codeHash []byte) ([]byte, common.BlockInfo, error)
-	CloseCalled                   func() error
+	GetExistingAccountCalled                func(addressContainer []byte) (vmcommon.AccountHandler, error)
+	GetAccountFromBytesCalled               func(address []byte, accountBytes []byte) (vmcommon.AccountHandler, error)
+	LoadAccountCalled                       func(container []byte) (vmcommon.AccountHandler, error)
+	SaveAccountCalled                       func(account vmcommon.AccountHandler) error
+	RemoveAccountCalled                     func(addressContainer []byte) error
+	CommitCalled                            func() ([]byte, error)
+	CommitInEpochCalled                     func(uint32, uint32) ([]byte, error)
+	JournalLenCalled                        func() int
+	RevertToSnapshotCalled                  func(snapshot int) error
+	RootHashCalled                          func() ([]byte, error)
+	RecreateTrieCalled                      func(rootHash []byte) error
+	PruneTrieCalled                         func(rootHash []byte, identifier state.TriePruningIdentifier, handler state.PruningHandler)
+	CancelPruneCalled                       func(rootHash []byte, identifier state.TriePruningIdentifier)
+	SnapshotStateCalled                     func(rootHash []byte)
+	SetStateCheckpointCalled                func(rootHash []byte)
+	IsPruningEnabledCalled                  func() bool
+	GetAllLeavesCalled                      func(leavesChannel chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error
+	RecreateAllTriesCalled                  func(rootHash []byte) (map[string]common.Trie, error)
+	GetCodeCalled                           func([]byte) []byte
+	GetTrieCalled                           func([]byte) (common.Trie, error)
+	GetStackDebugFirstEntryCalled           func() []byte
+	GetAccountWithBlockInfoCalled           func(address []byte) (vmcommon.AccountHandler, common.BlockInfo, error)
+	GetCodeWithBlockInfoCalled              func(codeHash []byte) ([]byte, common.BlockInfo, error)
+	CloseCalled                             func() error
+	SetSyncerAndStartSnapshotIfNeededCalled func(syncer state.AccountsDBSyncer)
+}
+
+// SetSyncerAndStartSnapshotIfNeeded -
+func (as *AccountsStub) SetSyncerAndStartSnapshotIfNeeded(syncer state.AccountsDBSyncer) {
+	if as.SetSyncerAndStartSnapshotIfNeededCalled != nil {
+		as.SetSyncerAndStartSnapshotIfNeededCalled(syncer)
+	}
 }
 
 // GetTrie -

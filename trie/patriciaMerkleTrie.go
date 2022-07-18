@@ -431,6 +431,7 @@ func (tr *patriciaMerkleTrie) GetAllLeavesOnChannel(
 	leavesChannel chan core.KeyValueHolder,
 	ctx context.Context,
 	rootHash []byte,
+	keyBuilder common.KeyBuilder,
 ) error {
 	tr.mutOperation.RLock()
 	newTrie, err := tr.recreate(rootHash)
@@ -452,7 +453,7 @@ func (tr *patriciaMerkleTrie) GetAllLeavesOnChannel(
 	go func() {
 		err = newTrie.root.getAllLeavesOnChannel(
 			leavesChannel,
-			[]byte{},
+			keyBuilder,
 			tr.trieStorage,
 			tr.marshalizer,
 			tr.chanClose,

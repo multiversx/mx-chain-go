@@ -87,7 +87,7 @@ func TestTrieCheckpoint(t *testing.T) {
 	dirtyHashes := trie.GetDirtyHashes(tr)
 
 	trieStorage.AddDirtyCheckpointHashes(rootHash, dirtyHashes)
-	trieStorage.SetCheckpoint(rootHash, []byte{}, nil, &trieMock.MockStatistics{})
+	trieStorage.SetCheckpoint(rootHash, []byte{}, nil, nil, &trieMock.MockStatistics{})
 	trie.WaitForOperationToComplete(trieStorage)
 
 	val, err = trieStorage.GetFromCheckpoint(rootHash)
@@ -105,7 +105,7 @@ func TestTrieCheckpoint_DoesNotSaveToCheckpointStorageIfNotDirty(t *testing.T) {
 	assert.NotNil(t, err)
 	assert.Nil(t, val)
 
-	trieStorage.SetCheckpoint(rootHash, []byte{}, nil, &trieMock.MockStatistics{})
+	trieStorage.SetCheckpoint(rootHash, []byte{}, nil, nil, &trieMock.MockStatistics{})
 	trie.WaitForOperationToComplete(trieStorage)
 
 	val, err = trieStorage.GetFromCheckpoint(rootHash)
@@ -256,7 +256,7 @@ func TestTrieStorageManager_TakeSnapshotClosedDb(t *testing.T) {
 
 	rootHash := []byte("rootHash")
 	leavesChan := make(chan core.KeyValueHolder)
-	ts.TakeSnapshot(rootHash, rootHash, leavesChan, &trieMock.MockStatistics{}, 0)
+	ts.TakeSnapshot(rootHash, rootHash, leavesChan, nil, &trieMock.MockStatistics{}, 0)
 
 	_, ok := <-leavesChan
 	assert.False(t, ok)
@@ -270,7 +270,7 @@ func TestTrieStorageManager_TakeSnapshotEmptyTrieRootHash(t *testing.T) {
 
 	rootHash := make([]byte, 32)
 	leavesChan := make(chan core.KeyValueHolder)
-	ts.TakeSnapshot(rootHash, rootHash, leavesChan, &trieMock.MockStatistics{}, 0)
+	ts.TakeSnapshot(rootHash, rootHash, leavesChan, nil, &trieMock.MockStatistics{}, 0)
 
 	_, ok := <-leavesChan
 	assert.False(t, ok)
@@ -284,7 +284,8 @@ func TestTrieStorageManager_TakeSnapshot(t *testing.T) {
 
 	rootHash := []byte("rootHash")
 	leavesChan := make(chan core.KeyValueHolder)
-	ts.TakeSnapshot(rootHash, rootHash, leavesChan, &trieMock.MockStatistics{}, 0)
+	missingNodesChan := make(chan []byte, 2)
+	ts.TakeSnapshot(rootHash, rootHash, leavesChan, missingNodesChan, &trieMock.MockStatistics{}, 0)
 	_, ok := <-leavesChan
 	assert.False(t, ok)
 }

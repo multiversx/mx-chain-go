@@ -74,6 +74,10 @@ func (accountsDB *accountsDBApi) doRecreateTrieWithBlockInfo(newBlockInfo common
 	return newBlockInfo, nil
 }
 
+// SetSyncerAndStartSnapshotIfNeeded is a not permitted operation in this implementation and thus, does nothing
+func (accountsDB *accountsDBApi) SetSyncerAndStartSnapshotIfNeeded(_ AccountsDBSyncer) {
+}
+
 // GetExistingAccount will call the inner accountsAdapter method after trying to recreate the trie
 func (accountsDB *accountsDBApi) GetExistingAccount(address []byte) (vmcommon.AccountHandler, error) {
 	account, _, err := accountsDB.GetAccountWithBlockInfo(address)

@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
@@ -99,7 +100,7 @@ func TestNewPeerAccountsDB_SnapshotState(t *testing.T) {
 	args.Trie = &trieMock.TrieStub{
 		GetStorageManagerCalled: func() common.StorageManager {
 			return &testscommon.StorageManagerStub{
-				TakeSnapshotCalled: func(_ []byte, _ []byte, _ chan core.KeyValueHolder, _ common.SnapshotStatisticsHandler, _ uint32) {
+				TakeSnapshotCalled: func(_ []byte, _ []byte, _ chan core.KeyValueHolder, _ chan []byte, _ common.SnapshotStatisticsHandler, _ uint32) {
 					snapshotCalled = true
 				},
 			}
@@ -125,7 +126,7 @@ func TestNewPeerAccountsDB_SnapshotStateGetLatestStorageEpochErrDoesNotSnapshot(
 				GetLatestStorageEpochCalled: func() (uint32, error) {
 					return 0, fmt.Errorf("new error")
 				},
-				TakeSnapshotCalled: func(_ []byte, _ []byte, _ chan core.KeyValueHolder, _ common.SnapshotStatisticsHandler, _ uint32) {
+				TakeSnapshotCalled: func(_ []byte, _ []byte, _ chan core.KeyValueHolder, _ chan []byte, _ common.SnapshotStatisticsHandler, _ uint32) {
 					snapshotCalled = true
 				},
 			}
@@ -147,7 +148,7 @@ func TestNewPeerAccountsDB_SetStateCheckpoint(t *testing.T) {
 	args.Trie = &trieMock.TrieStub{
 		GetStorageManagerCalled: func() common.StorageManager {
 			return &testscommon.StorageManagerStub{
-				SetCheckpointCalled: func(_ []byte, _ []byte, _ chan core.KeyValueHolder, _ common.SnapshotStatisticsHandler) {
+				SetCheckpointCalled: func(_ []byte, _ []byte, _ chan core.KeyValueHolder, _ chan []byte, _ common.SnapshotStatisticsHandler) {
 					checkpointCalled = true
 				},
 			}
@@ -187,7 +188,7 @@ func TestNewPeerAccountsDB_RecreateAllTries(t *testing.T) {
 	assert.True(t, recreateCalled)
 }
 
-func TestPeerAccountsDB_NewAccountsDbStartsSnapshotAfterRestart(t *testing.T) {
+func TestPeerAccountsDB_SetSyncerAndStartSnapshotIfNeeded(t *testing.T) {
 	t.Parallel()
 
 	rootHash := []byte("rootHash")
@@ -208,7 +209,7 @@ func TestPeerAccountsDB_NewAccountsDbStartsSnapshotAfterRestart(t *testing.T) {
 				ShouldTakeSnapshotCalled: func() bool {
 					return true
 				},
-				TakeSnapshotCalled: func(_ []byte, _ []byte, _ chan core.KeyValueHolder, _ common.SnapshotStatisticsHandler, _ uint32) {
+				TakeSnapshotCalled: func(_ []byte, _ []byte, _ chan core.KeyValueHolder, _ chan []byte, _ common.SnapshotStatisticsHandler, _ uint32) {
 					mutex.Lock()
 					takeSnapshotCalled = true
 					mutex.Unlock()
@@ -222,6 +223,7 @@ func TestPeerAccountsDB_NewAccountsDbStartsSnapshotAfterRestart(t *testing.T) {
 	adb, err := state.NewPeerAccountsDB(args)
 	assert.Nil(t, err)
 	assert.NotNil(t, adb)
+	adb.SetSyncerAndStartSnapshotIfNeeded(&mock.AccountsDBSyncerStub{})
 
 	time.Sleep(time.Second)
 	mutex.RLock()

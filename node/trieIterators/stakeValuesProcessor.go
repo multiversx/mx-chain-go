@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/trie/keyBuilder"
 	"github.com/ElrondNetwork/elrond-go/vm"
 )
 
@@ -96,7 +97,7 @@ func (svp *stakedValuesProcessor) computeBaseStakedAndTopUp(ctx context.Context)
 
 	// TODO investigate if a call to GetAllLeavesKeysOnChannel (without values) might increase performance
 	chLeaves := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
-	err = validatorAccount.DataTrie().GetAllLeavesOnChannel(chLeaves, ctx, rootHash)
+	err = validatorAccount.DataTrie().GetAllLeavesOnChannel(chLeaves, ctx, rootHash, keyBuilder.NewKeyBuilder())
 	if err != nil {
 		return nil, nil, err
 	}

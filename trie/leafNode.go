@@ -176,6 +176,7 @@ func (ln *leafNode) commitCheckpoint(
 func (ln *leafNode) commitSnapshot(
 	db common.DBWriteCacher,
 	leavesChan chan core.KeyValueHolder,
+	_ chan []byte,
 	ctx context.Context,
 	stats common.SnapshotStatisticsHandler,
 	idleProvider IdleNodeProvider,
@@ -431,7 +432,7 @@ func (ln *leafNode) loadChildren(_ func([]byte) (node, error)) ([][]byte, []node
 
 func (ln *leafNode) getAllLeavesOnChannel(
 	leavesChannel chan core.KeyValueHolder,
-	key []byte,
+	keyBuilder common.KeyBuilder,
 	_ common.DBWriteCacher,
 	_ marshal.Marshalizer,
 	chanClose chan struct{},
@@ -442,8 +443,8 @@ func (ln *leafNode) getAllLeavesOnChannel(
 		return fmt.Errorf("getAllLeavesOnChannel error: %w", err)
 	}
 
-	nodeKey := append(key, ln.Key...)
-	nodeKey, err = hexToKeyBytes(nodeKey)
+	keyBuilder.BuildKey(ln.Key)
+	nodeKey, err := keyBuilder.GetKey()
 	if err != nil {
 		return err
 	}

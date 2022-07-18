@@ -39,6 +39,7 @@ type snapshotsQueueEntry struct {
 	rootHash         []byte
 	mainTrieRootHash []byte
 	leavesChan       chan core.KeyValueHolder
+	missingNodesChan chan []byte
 	stats            common.SnapshotStatisticsHandler
 	epoch            uint32
 }
@@ -314,6 +315,7 @@ func (tsm *trieStorageManager) TakeSnapshot(
 	rootHash []byte,
 	mainTrieRootHash []byte,
 	leavesChan chan core.KeyValueHolder,
+	missingNodesChan chan []byte,
 	stats common.SnapshotStatisticsHandler,
 	epoch uint32,
 ) {
@@ -337,6 +339,7 @@ func (tsm *trieStorageManager) TakeSnapshot(
 		rootHash:         rootHash,
 		mainTrieRootHash: mainTrieRootHash,
 		leavesChan:       leavesChan,
+		missingNodesChan: missingNodesChan,
 		stats:            stats,
 		epoch:            epoch,
 	}
@@ -352,7 +355,13 @@ func (tsm *trieStorageManager) TakeSnapshot(
 // SetCheckpoint creates a new checkpoint, or if there is another snapshot or checkpoint in progress,
 // it adds this checkpoint in the queue. The checkpoint operation creates a new snapshot file
 // only if there was no snapshot done prior to this
-func (tsm *trieStorageManager) SetCheckpoint(rootHash []byte, mainTrieRootHash []byte, leavesChan chan core.KeyValueHolder, stats common.SnapshotStatisticsHandler) {
+func (tsm *trieStorageManager) SetCheckpoint(
+	rootHash []byte,
+	mainTrieRootHash []byte,
+	leavesChan chan core.KeyValueHolder,
+	missingNodesChan chan []byte,
+	stats common.SnapshotStatisticsHandler,
+) {
 	if tsm.isClosed() {
 		tsm.safelyCloseChan(leavesChan)
 		stats.SnapshotFinished()
@@ -372,6 +381,7 @@ func (tsm *trieStorageManager) SetCheckpoint(rootHash []byte, mainTrieRootHash [
 		rootHash:         rootHash,
 		mainTrieRootHash: mainTrieRootHash,
 		leavesChan:       leavesChan,
+		missingNodesChan: missingNodesChan,
 		stats:            stats,
 	}
 	select {
@@ -404,7 +414,7 @@ func (tsm *trieStorageManager) takeSnapshot(snapshotEntry *snapshotsQueueEntry, 
 
 	log.Trace("trie snapshot started", "rootHash", snapshotEntry.rootHash)
 
-	newRoot, err := newSnapshotNode(tsm, msh, hsh, snapshotEntry.rootHash)
+	newRoot, err := newSnapshotNode(tsm, msh, hsh, snapshotEntry.rootHash, snapshotEntry.missingNodesChan)
 	if err != nil {
 		treatSnapshotError(err,
 			"trie storage manager: newSnapshotNode takeSnapshot",
@@ -423,7 +433,7 @@ func (tsm *trieStorageManager) takeSnapshot(snapshotEntry *snapshotsQueueEntry, 
 		return
 	}
 
-	err = newRoot.commitSnapshot(stsm, snapshotEntry.leavesChan, ctx, snapshotEntry.stats, tsm.idleProvider)
+	err = newRoot.commitSnapshot(stsm, snapshotEntry.leavesChan, snapshotEntry.missingNodesChan, ctx, snapshotEntry.stats, tsm.idleProvider)
 	if err != nil {
 		treatSnapshotError(err,
 			"trie storage manager: takeSnapshot commit",
@@ -442,7 +452,7 @@ func (tsm *trieStorageManager) takeCheckpoint(checkpointEntry *snapshotsQueueEnt
 
 	log.Trace("trie checkpoint started", "rootHash", checkpointEntry.rootHash)
 
-	newRoot, err := newSnapshotNode(tsm, msh, hsh, checkpointEntry.rootHash)
+	newRoot, err := newSnapshotNode(tsm, msh, hsh, checkpointEntry.rootHash, checkpointEntry.missingNodesChan)
 	if err != nil {
 		treatSnapshotError(err,
 			"trie storage manager: newSnapshotNode takeCheckpoint",
@@ -477,9 +487,13 @@ func newSnapshotNode(
 	msh marshal.Marshalizer,
 	hsh hashing.Hasher,
 	rootHash []byte,
+	missingNodesCh chan []byte,
 ) (snapshotNode, error) {
 	newRoot, err := getNodeFromDBAndDecode(rootHash, db, msh, hsh)
 	if err != nil {
+		if strings.Contains(err.Error(), common.GetNodeFromDBErrorString) {
+			missingNodesCh <- rootHash
+		}
 		return nil, err
 	}
 

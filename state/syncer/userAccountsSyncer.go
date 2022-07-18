@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/trie"
+	"github.com/ElrondNetwork/elrond-go/trie/keyBuilder"
 	"github.com/ElrondNetwork/elrond-go/trie/statistics"
 )
 
@@ -212,7 +213,7 @@ func (u *userAccountsSyncer) syncAccountDataTries(
 	}
 
 	leavesChannel := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
-	err = mainTrie.GetAllLeavesOnChannel(leavesChannel, context.Background(), mainRootHash)
+	err = mainTrie.GetAllLeavesOnChannel(leavesChannel, context.Background(), mainRootHash, keyBuilder.NewDisabledKeyBuilder())
 	if err != nil {
 		return err
 	}

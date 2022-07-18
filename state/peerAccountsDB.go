@@ -39,13 +39,19 @@ func NewPeerAccountsDB(args ArgsAccountsDB) (*PeerAccountsDB, error) {
 		},
 	}
 
+	return adb, nil
+}
+
+// SetSyncerAndStartSnapshotIfNeeded sets the given syncer as the syncer for the underlying trie and then
+// starts a snapshot process if needed
+func (adb *PeerAccountsDB) SetSyncerAndStartSnapshotIfNeeded(syncer AccountsDBSyncer) {
+	adb.trieSyncer = syncer
+
 	trieStorageManager := adb.mainTrie.GetStorageManager()
 	val, err := trieStorageManager.GetFromCurrentEpoch([]byte(common.ActiveDBKey))
 	if err != nil || !bytes.Equal(val, []byte(common.ActiveDBVal)) {
 		startSnapshotAfterRestart(adb, trieStorageManager)
 	}
-
-	return adb, nil
 }
 
 // MarkSnapshotDone will mark that the snapshot process has been completed
@@ -93,19 +99,16 @@ func (adb *PeerAccountsDB) SnapshotState(rootHash []byte) {
 		log.Warn("could not set lastSnapshotStarted", "err", err, "rootHash", rootHash)
 	}
 
-	stats := newSnapshotStatistics(0)
+	missingNodesChannel := make(chan []byte, missingNodesChannelSize)
+	stats := newSnapshotStatistics(0, 1)
 
 	trieStorageManager.EnterPruningBufferingMode()
 	stats.NewSnapshotStarted()
-	trieStorageManager.TakeSnapshot(rootHash, rootHash, nil, stats, epoch)
-	trieStorageManager.ExitPruningBufferingMode()
+	trieStorageManager.TakeSnapshot(rootHash, rootHash, nil, missingNodesChannel, stats, epoch)
 
-	go func() {
-		printStats(stats, "snapshotState peer trie", rootHash)
+	go adb.syncMissingNodes(missingNodesChannel, stats)
 
-		err = trieStorageManager.PutInEpoch([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal), epoch)
-		handleLoggingWhenError("error while putting active DB value into main storer", err)
-	}()
+	go adb.markActiveDBAfterSnapshot(stats, missingNodesChannel, rootHash, "snapshotState peer trie", epoch)
 
 	adb.waitForCompletionIfRunningInImportDB(stats)
 }
@@ -115,14 +118,23 @@ func (adb *PeerAccountsDB) SetStateCheckpoint(rootHash []byte) {
 	log.Trace("peerAccountsDB.SetStateCheckpoint", "root hash", rootHash)
 	trieStorageManager := adb.mainTrie.GetStorageManager()
 
-	stats := newSnapshotStatistics(0)
+	missingNodesChannel := make(chan []byte, missingNodesChannelSize)
+	stats := newSnapshotStatistics(0, 1)
 
 	trieStorageManager.EnterPruningBufferingMode()
 	stats.NewSnapshotStarted()
-	trieStorageManager.SetCheckpoint(rootHash, rootHash, nil, stats)
+	trieStorageManager.SetCheckpoint(rootHash, rootHash, nil, missingNodesChannel, stats)
 	trieStorageManager.ExitPruningBufferingMode()
 
-	go printStats(stats, "snapshotState peer trie", rootHash)
+	go adb.syncMissingNodes(missingNodesChannel, stats)
+
+	go func() {
+		stats.WaitForSnapshotsToFinish()
+		close(missingNodesChannel)
+		stats.WaitForSyncToFinish()
+
+		printStats(stats, "snapshotState peer trie", rootHash)
+	}()
 
 	adb.waitForCompletionIfRunningInImportDB(stats)
 }

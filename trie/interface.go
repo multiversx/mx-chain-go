@@ -39,7 +39,7 @@ type node interface {
 	isValid() bool
 	setDirty(bool)
 	loadChildren(func([]byte) (node, error)) ([][]byte, []node, error)
-	getAllLeavesOnChannel(chan core.KeyValueHolder, []byte, common.DBWriteCacher, marshal.Marshalizer, chan struct{}, context.Context) error
+	getAllLeavesOnChannel(chan core.KeyValueHolder, common.KeyBuilder, common.DBWriteCacher, marshal.Marshalizer, chan struct{}, context.Context) error
 	getAllHashes(db common.DBWriteCacher) ([][]byte, error)
 	getNextHashAndKey([]byte) (bool, []byte, []byte)
 	getNumNodes() common.NumNodesDTO
@@ -47,7 +47,7 @@ type node interface {
 
 	commitDirty(level byte, maxTrieLevelInMemory uint, originDb common.DBWriteCacher, targetDb common.DBWriteCacher) error
 	commitCheckpoint(originDb common.DBWriteCacher, targetDb common.DBWriteCacher, checkpointHashes CheckpointHashesHolder, leavesChan chan core.KeyValueHolder, ctx context.Context, stats common.SnapshotStatisticsHandler, idleProvider IdleNodeProvider) error
-	commitSnapshot(originDb common.DBWriteCacher, leavesChan chan core.KeyValueHolder, ctx context.Context, stats common.SnapshotStatisticsHandler, idleProvider IdleNodeProvider) error
+	commitSnapshot(originDb common.DBWriteCacher, leavesChan chan core.KeyValueHolder, missingNodesChan chan []byte, ctx context.Context, stats common.SnapshotStatisticsHandler, idleProvider IdleNodeProvider) error
 
 	getMarshalizer() marshal.Marshalizer
 	setMarshalizer(marshal.Marshalizer)
@@ -60,7 +60,7 @@ type node interface {
 
 type snapshotNode interface {
 	commitCheckpoint(originDb common.DBWriteCacher, targetDb common.DBWriteCacher, checkpointHashes CheckpointHashesHolder, leavesChan chan core.KeyValueHolder, ctx context.Context, stats common.SnapshotStatisticsHandler, idleProvider IdleNodeProvider) error
-	commitSnapshot(originDb common.DBWriteCacher, leavesChan chan core.KeyValueHolder, ctx context.Context, stats common.SnapshotStatisticsHandler, idleProvider IdleNodeProvider) error
+	commitSnapshot(originDb common.DBWriteCacher, leavesChan chan core.KeyValueHolder, missingNodesChan chan []byte, ctx context.Context, stats common.SnapshotStatisticsHandler, idleProvider IdleNodeProvider) error
 }
 
 // RequestHandler defines the methods through which request to data can be made

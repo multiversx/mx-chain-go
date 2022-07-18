@@ -22,7 +22,7 @@ func TestSnapshotStatistics_AddSize(t *testing.T) {
 func TestSnapshotStatistics_Concurrency(t *testing.T) {
 	wg := &sync.WaitGroup{}
 	ss := &snapshotStatistics{
-		wg: wg,
+		wgSnapshot: wg,
 	}
 
 	numRuns := 100

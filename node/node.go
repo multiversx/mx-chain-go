@@ -34,6 +34,7 @@ import (
 	procTx "github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/trie"
+	"github.com/ElrondNetwork/elrond-go/trie/keyBuilder"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -201,7 +202,7 @@ func (n *Node) GetAllIssuedESDTs(tokenType string, ctx context.Context) ([]strin
 	}
 
 	chLeaves := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
-	err = userAccount.DataTrie().GetAllLeavesOnChannel(chLeaves, ctx, rootHash)
+	err = userAccount.DataTrie().GetAllLeavesOnChannel(chLeaves, ctx, rootHash, keyBuilder.NewKeyBuilder())
 	if err != nil {
 		return nil, err
 	}
@@ -269,7 +270,7 @@ func (n *Node) GetKeyValuePairs(address string, options api.AccountQueryOptions,
 	}
 
 	chLeaves := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
-	err = userAccount.DataTrie().GetAllLeavesOnChannel(chLeaves, ctx, rootHash)
+	err = userAccount.DataTrie().GetAllLeavesOnChannel(chLeaves, ctx, rootHash, keyBuilder.NewKeyBuilder())
 	if err != nil {
 		return nil, api.BlockInfo{}, err
 	}
@@ -363,7 +364,7 @@ func (n *Node) getTokensIDsWithFilter(
 	}
 
 	chLeaves := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
-	err = userAccount.DataTrie().GetAllLeavesOnChannel(chLeaves, ctx, rootHash)
+	err = userAccount.DataTrie().GetAllLeavesOnChannel(chLeaves, ctx, rootHash, keyBuilder.NewKeyBuilder())
 	if err != nil {
 		return nil, api.BlockInfo{}, err
 	}
@@ -485,7 +486,7 @@ func (n *Node) GetAllESDTTokens(address string, options api.AccountQueryOptions,
 	}
 
 	chLeaves := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
-	err = userAccount.DataTrie().GetAllLeavesOnChannel(chLeaves, ctx, rootHash)
+	err = userAccount.DataTrie().GetAllLeavesOnChannel(chLeaves, ctx, rootHash, keyBuilder.NewKeyBuilder())
 	if err != nil {
 		return nil, api.BlockInfo{}, err
 	}

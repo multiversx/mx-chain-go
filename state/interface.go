@@ -124,7 +124,14 @@ type AccountsAdapter interface {
 	RecreateAllTries(rootHash []byte) (map[string]common.Trie, error)
 	GetTrie(rootHash []byte) (common.Trie, error)
 	GetStackDebugFirstEntry() []byte
+	SetSyncerAndStartSnapshotIfNeeded(syncer AccountsDBSyncer)
 	Close() error
+	IsInterfaceNil() bool
+}
+
+// AccountsDBSyncer defines the methods for the accounts db syncer
+type AccountsDBSyncer interface {
+	SyncAccounts(rootHash []byte) error
 	IsInterfaceNil() bool
 }
 

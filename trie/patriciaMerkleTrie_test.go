@@ -19,6 +19,7 @@ import (
 	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/trie/hashesHolder"
+	"github.com/ElrondNetwork/elrond-go/trie/keyBuilder"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -423,7 +424,7 @@ func TestPatriciaMerkleTrie_GetSerializedNodesGetFromCheckpoint(t *testing.T) {
 	storageManager := tr.GetStorageManager()
 	dirtyHashes := trie.GetDirtyHashes(tr)
 	storageManager.AddDirtyCheckpointHashes(rootHash, dirtyHashes)
-	storageManager.SetCheckpoint(rootHash, make([]byte, 0), nil, &trieMock.MockStatistics{})
+	storageManager.SetCheckpoint(rootHash, make([]byte, 0), nil, nil, &trieMock.MockStatistics{})
 	trie.WaitForOperationToComplete(storageManager)
 
 	err := storageManager.Remove(rootHash)
@@ -496,7 +497,7 @@ func TestPatriciaMerkleTrie_GetAllLeavesOnChannelEmptyTrie(t *testing.T) {
 	tr := emptyTrie()
 
 	leavesChannel := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
-	err := tr.GetAllLeavesOnChannel(leavesChannel, context.Background(), []byte{})
+	err := tr.GetAllLeavesOnChannel(leavesChannel, context.Background(), []byte{}, keyBuilder.NewDisabledKeyBuilder())
 	assert.Nil(t, err)
 	assert.NotNil(t, leavesChannel)
 
@@ -517,7 +518,7 @@ func TestPatriciaMerkleTrie_GetAllLeavesOnChannel(t *testing.T) {
 	rootHash, _ := tr.RootHash()
 
 	leavesChannel := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
-	err := tr.GetAllLeavesOnChannel(leavesChannel, context.Background(), rootHash)
+	err := tr.GetAllLeavesOnChannel(leavesChannel, context.Background(), rootHash, keyBuilder.NewKeyBuilder())
 	assert.Nil(t, err)
 	assert.NotNil(t, leavesChannel)
 
