@@ -794,6 +794,14 @@ func TestApiTransactionProcessor_GetTransactionsPoolForSender(t *testing.T) {
 		require.Equal(t, expectedHashes[i], tx.TxFields[hashField])
 		require.Equal(t, sender, tx.TxFields["sender"])
 	}
+
+	// if no tx is found in pool for a sender, it isn't an error, but return empty slice
+	newSender := "new-sender"
+	res, err  = atp.GetTransactionsPoolForSender(newSender, "")
+	require.NoError(t, err)
+	require.Equal(t, &common.TransactionsPoolForSenderApiResponse{
+		Transactions: []common.Transaction{},
+	}, res)
 }
 
 func TestApiTransactionProcessor_GetLastPoolNonceForSender(t *testing.T) {
@@ -951,6 +959,15 @@ func TestApiTransactionProcessor_GetTransactionsPoolNonceGapsForSender(t *testin
 	res, err := atp.GetTransactionsPoolNonceGapsForSender(sender)
 	require.NoError(t, err)
 	require.Equal(t, expectedResponse, res)
+
+	// if no tx is found in pool for a sender, it isn't an error, but return empty slice
+	newSender := "new-sender"
+	res, err  = atp.GetTransactionsPoolNonceGapsForSender(newSender)
+	require.NoError(t, err)
+	require.Equal(t, &common.TransactionsPoolNonceGapsForSenderApiResponse{
+		Sender: newSender,
+		Gaps: []common.NonceGapApiResponse{},
+	}, res)
 }
 
 func createAPITransactionProc(t *testing.T, epoch uint32, withDbLookupExt bool) (*apiTransactionProcessor, *genericMocks.ChainStorerMock, *dataRetrieverMock.PoolsHolderMock, *dblookupextMock.HistoryRepositoryStub) {
