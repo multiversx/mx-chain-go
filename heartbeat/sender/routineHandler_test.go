@@ -48,7 +48,8 @@ func TestRoutineHandler_ShouldWork(t *testing.T) {
 			},
 		}
 
-		_ = newRoutineHandler(handler1, handler2, handler3)
+		handler := newRoutineHandler(handler1, handler2, handler3)
+		handler.delayAfterHardforkMessageBroadcast = time.Second
 		time.Sleep(time.Second) // wait for the go routine start
 
 		assert.Equal(t, uint32(1), atomic.LoadUint32(&numExecuteCalled1)) // initial call
@@ -67,7 +68,7 @@ func TestRoutineHandler_ShouldWork(t *testing.T) {
 			ch3 <- struct{}{}
 		}()
 
-		time.Sleep(time.Second) // wait for the iteration
+		time.Sleep(time.Second * 3) // wait for the iteration
 
 		assert.Equal(t, uint32(2), atomic.LoadUint32(&numExecuteCalled1))
 		assert.Equal(t, uint32(2), atomic.LoadUint32(&numExecuteCalled2))

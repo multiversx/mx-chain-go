@@ -2,6 +2,7 @@ package sender
 
 import (
 	"context"
+	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 )
@@ -9,17 +10,19 @@ import (
 var log = logger.GetOrCreate("heartbeat/sender")
 
 type routineHandler struct {
-	peerAuthenticationSender senderHandler
-	heartbeatSender          senderHandler
-	hardforkSender           hardforkHandler
-	cancel                   func()
+	peerAuthenticationSender           senderHandler
+	heartbeatSender                    senderHandler
+	hardforkSender                     hardforkHandler
+	delayAfterHardforkMessageBroadcast time.Duration
+	cancel                             func()
 }
 
 func newRoutineHandler(peerAuthenticationSender senderHandler, heartbeatSender senderHandler, hardforkSender hardforkHandler) *routineHandler {
 	handler := &routineHandler{
-		peerAuthenticationSender: peerAuthenticationSender,
-		heartbeatSender:          heartbeatSender,
-		hardforkSender:           hardforkSender,
+		peerAuthenticationSender:           peerAuthenticationSender,
+		heartbeatSender:                    heartbeatSender,
+		hardforkSender:                     hardforkSender,
+		delayAfterHardforkMessageBroadcast: time.Minute,
 	}
 
 	var ctx context.Context
@@ -49,6 +52,7 @@ func (handler *routineHandler) processLoop(ctx context.Context) {
 			handler.heartbeatSender.Execute()
 		case <-handler.hardforkSender.ShouldTriggerHardfork():
 			handler.hardforkSender.Execute()
+			time.Sleep(handler.delayAfterHardforkMessageBroadcast)
 		case <-ctx.Done():
 			return
 		}
