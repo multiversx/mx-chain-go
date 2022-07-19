@@ -25,7 +25,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
-	"github.com/ElrondNetwork/go-libp2p-pubsub"
+	pubsub "github.com/ElrondNetwork/go-libp2p-pubsub"
 	pb "github.com/ElrondNetwork/go-libp2p-pubsub/pb"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -93,7 +93,7 @@ func createMockNetworkArgs() libp2p.ArgsNetworkMessenger {
 		SyncTimer:             &libp2p.LocalSyncTimer{},
 		PreferredPeersHolder:  &p2pmocks.PeersHolderStub{},
 		PeersRatingHandler:    &p2pmocks.PeersRatingHandlerStub{},
-		ConnectionWatcherType: libp2p.ConnectionWatcherTypePrint,
+		ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
 	}
 }
 
@@ -1314,7 +1314,7 @@ func TestNetworkMessenger_PreventReprocessingShouldWork(t *testing.T) {
 		SyncTimer:             &libp2p.LocalSyncTimer{},
 		PreferredPeersHolder:  &p2pmocks.PeersHolderStub{},
 		PeersRatingHandler:    &p2pmocks.PeersRatingHandlerStub{},
-		ConnectionWatcherType: libp2p.ConnectionWatcherTypePrint,
+		ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
 	}
 
 	mes, _ := libp2p.NewNetworkMessenger(args)
@@ -1380,7 +1380,7 @@ func TestNetworkMessenger_PubsubCallbackNotMessageNotValidShouldNotCallHandler(t
 		SyncTimer:             &libp2p.LocalSyncTimer{},
 		PreferredPeersHolder:  &p2pmocks.PeersHolderStub{},
 		PeersRatingHandler:    &p2pmocks.PeersRatingHandlerStub{},
-		ConnectionWatcherType: libp2p.ConnectionWatcherTypePrint,
+		ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
 	}
 
 	mes, _ := libp2p.NewNetworkMessenger(args)
@@ -1453,7 +1453,7 @@ func TestNetworkMessenger_PubsubCallbackReturnsFalseIfHandlerErrors(t *testing.T
 		SyncTimer:             &libp2p.LocalSyncTimer{},
 		PreferredPeersHolder:  &p2pmocks.PeersHolderStub{},
 		PeersRatingHandler:    &p2pmocks.PeersRatingHandlerStub{},
-		ConnectionWatcherType: libp2p.ConnectionWatcherTypePrint,
+		ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
 	}
 
 	mes, _ := libp2p.NewNetworkMessenger(args)
@@ -1517,7 +1517,7 @@ func TestNetworkMessenger_UnjoinAllTopicsShouldWork(t *testing.T) {
 		SyncTimer:             &libp2p.LocalSyncTimer{},
 		PreferredPeersHolder:  &p2pmocks.PeersHolderStub{},
 		PeersRatingHandler:    &p2pmocks.PeersRatingHandlerStub{},
-		ConnectionWatcherType: libp2p.ConnectionWatcherTypePrint,
+		ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
 	}
 
 	mes, _ := libp2p.NewNetworkMessenger(args)
@@ -1731,7 +1731,7 @@ func TestNetworkMessenger_Bootstrap(t *testing.T) {
 		SyncTimer:             &mock.SyncTimerStub{},
 		PeersRatingHandler:    &p2pmocks.PeersRatingHandlerStub{},
 		PreferredPeersHolder:  &p2pmocks.PeersHolderStub{},
-		ConnectionWatcherType: libp2p.ConnectionWatcherTypePrint,
+		ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
 	}
 
 	netMes, err := libp2p.NewNetworkMessenger(args)

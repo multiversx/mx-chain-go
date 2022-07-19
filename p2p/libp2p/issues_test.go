@@ -36,7 +36,7 @@ func createMessenger() p2p.Messenger {
 		PreferredPeersHolder:  &p2pmocks.PeersHolderStub{},
 		NodeOperationMode:     p2p.NormalOperation,
 		PeersRatingHandler:    &p2pmocks.PeersRatingHandlerStub{},
-		ConnectionWatcherType: libp2p.ConnectionWatcherTypePrint,
+		ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
 	}
 
 	libP2PMes, err := libp2p.NewNetworkMessenger(args)

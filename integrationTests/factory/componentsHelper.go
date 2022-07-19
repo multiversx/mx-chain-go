@@ -10,7 +10,7 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
+	"github.com/ElrondNetwork/elrond-go/p2p"
 )
 
 var log = logger.GetOrCreate("integrationtests")
@@ -53,7 +53,7 @@ func CreateDefaultConfig() *config.Configs {
 
 	p2pConfig.KadDhtPeerDiscovery.Enabled = false
 	prefsConfig.Preferences.DestinationShardAsObserver = "0"
-	prefsConfig.Preferences.ConnectionWatcherType = libp2p.ConnectionWatcherTypePrint
+	prefsConfig.Preferences.ConnectionWatcherType = p2p.ConnectionWatcherTypePrint
 
 	configs := &config.Configs{}
 	configs.GeneralConfig = generalConfig

@@ -170,6 +170,6 @@ func getNetworkArgs() factory.NetworkComponentsFactoryArgs {
 		},
 		Syncer:                &libp2p.LocalSyncTimer{},
 		NodeOperationMode:     p2p.NormalOperation,
-		ConnectionWatcherType: libp2p.ConnectionWatcherTypePrint,
+		ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
 	}
 }
