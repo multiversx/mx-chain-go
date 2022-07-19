@@ -177,6 +177,7 @@ func InitConsensusCoreWithMultiSigner(multiSigner crypto.MultiSigner) *Consensus
 			return make([]byte, 0), nil
 		},
 	}
+	keyGeneratorMock := &KeyGenMock{}
 	roundHandlerMock := &RoundHandlerMock{}
 	shardCoordinatorMock := ShardCoordinatorMock{}
 	syncTimerMock := &SyncTimerMock{}
@@ -205,6 +206,7 @@ func InitConsensusCoreWithMultiSigner(multiSigner crypto.MultiSigner) *Consensus
 	nodeRedundancyHandler := &NodeRedundancyHandlerStub{}
 	scheduledProcessor := &consensusMocks.ScheduledProcessorStub{}
 	messageSigningHandler := &MessageSigningHandlerStub{}
+	peerBlacklistHandler := &PeerBlacklistHandlerStub{}
 
 	container := &ConsensusCoreMock{
 		blockChain:              blockChain,
@@ -218,6 +220,7 @@ func InitConsensusCoreWithMultiSigner(multiSigner crypto.MultiSigner) *Consensus
 		blsPrivateKey:           blsPrivateKeyMock,
 		blsSingleSigner:         blsSingleSignerMock,
 		multiSigner:             multiSigner,
+		keyGenerator:            keyGeneratorMock,
 		roundHandler:            roundHandlerMock,
 		shardCoordinator:        shardCoordinatorMock,
 		syncTimer:               syncTimerMock,
@@ -230,6 +233,7 @@ func InitConsensusCoreWithMultiSigner(multiSigner crypto.MultiSigner) *Consensus
 		nodeRedundancyHandler:   nodeRedundancyHandler,
 		scheduledProcessor:      scheduledProcessor,
 		messageSigningHandler:   messageSigningHandler,
+		peerBlacklistHandler:    peerBlacklistHandler,
 	}
 
 	return container

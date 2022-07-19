@@ -26,6 +26,7 @@ type ConsensusCoreMock struct {
 	blsPrivateKey           crypto.PrivateKey
 	blsSingleSigner         crypto.SingleSigner
 	multiSigner             crypto.MultiSigner
+	keyGenerator            crypto.KeyGenerator
 	roundHandler            consensus.RoundHandler
 	shardCoordinator        sharding.Coordinator
 	syncTimer               ntp.SyncTimer
@@ -38,6 +39,7 @@ type ConsensusCoreMock struct {
 	nodeRedundancyHandler   consensus.NodeRedundancyHandler
 	scheduledProcessor      consensus.ScheduledProcessor
 	messageSigningHandler   consensus.P2PSigningHandler
+	peerBlacklistHandler    consensus.PeerBlacklistHandler
 }
 
 // GetAntiFloodHandler -
@@ -190,6 +192,11 @@ func (ccm *ConsensusCoreMock) SingleSigner() crypto.SingleSigner {
 	return ccm.blsSingleSigner
 }
 
+// KeyGenerator -
+func (ccm *ConsensusCoreMock) KeyGenerator() crypto.KeyGenerator {
+	return ccm.keyGenerator
+}
+
 // PeerHonestyHandler -
 func (ccm *ConsensusCoreMock) PeerHonestyHandler() consensus.PeerHonestyHandler {
 	return ccm.peerHonestyHandler
@@ -238,6 +245,16 @@ func (ccm *ConsensusCoreMock) MessageSigningHandler() consensus.P2PSigningHandle
 // SetMessageSigningHandler -
 func (ccm *ConsensusCoreMock) SetMessageSigningHandler(messageSigningHandler consensus.P2PSigningHandler) {
 	ccm.messageSigningHandler = messageSigningHandler
+}
+
+// PeerBlacklistHandler will return the peer blacklist handler
+func (ccm *ConsensusCoreMock) PeerBlacklistHandler() consensus.PeerBlacklistHandler {
+	return ccm.peerBlacklistHandler
+}
+
+// SetKeyGenerator -
+func (ccm *ConsensusCoreMock) SetKeyGenerator(keyGenerator crypto.KeyGenerator) {
+	ccm.keyGenerator = keyGenerator
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
