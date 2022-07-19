@@ -58,7 +58,7 @@ func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer)
 	}
 
 	cryptoComponents := args.CryptoComponents.Clone().(process.CryptoComponentsHolder)
-	err := cryptoComponents.SetMultiSigner(disabled.NewMultiSigner())
+	err := cryptoComponents.SetMultiSignerContainer(disabled.NewMultiSignerContainer())
 	if err != nil {
 		return nil, err
 	}

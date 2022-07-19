@@ -564,7 +564,7 @@ func createHardForkExporter(
 		cryptoComponents := integrationTests.GetDefaultCryptoComponents()
 		cryptoComponents.BlockSig = node.OwnAccount.BlockSingleSigner
 		cryptoComponents.TxSig = node.OwnAccount.SingleSigner
-		cryptoComponents.MultiSig = node.MultiSigner
+		cryptoComponents.MultiSigContainer = node.MultiSigner
 		cryptoComponents.BlKeyGen = node.OwnAccount.KeygenBlockSign
 		cryptoComponents.TxKeyGen = node.OwnAccount.KeygenTxSign
 

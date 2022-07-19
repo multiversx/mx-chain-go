@@ -36,8 +36,8 @@ type ConsensusCoreHandler interface {
 	Hasher() hashing.Hasher
 	// Marshalizer gets the Marshalizer stored in the ConsensusCore
 	Marshalizer() marshal.Marshalizer
-	// MultiSigner gets the MultiSigner stored in the ConsensusCore
-	MultiSigner() crypto.MultiSigner
+	// MultiSignerContainer gets the MultiSigner container from the ConsensusCore
+	MultiSignerContainer() process.MultiSignerContainer
 	// RoundHandler gets the RoundHandler stored in the ConsensusCore
 	RoundHandler() consensus.RoundHandler
 	// ShardCoordinator gets the ShardCoordinator stored in the ConsensusCore

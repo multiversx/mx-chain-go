@@ -12,12 +12,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing"
 	disabledCrypto "github.com/ElrondNetwork/elrond-go-crypto/signing/disabled"
-	disabledMultiSig "github.com/ElrondNetwork/elrond-go-crypto/signing/disabled/multisig"
 	disabledSig "github.com/ElrondNetwork/elrond-go-crypto/signing/disabled/singlesig"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/ed25519"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/ed25519/singlesig"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl"
-	mclMultiSig "github.com/ElrondNetwork/elrond-go-crypto/signing/mcl/multisig"
 	mclSig "github.com/ElrondNetwork/elrond-go-crypto/signing/mcl/singlesig"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/multisig"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -40,6 +38,7 @@ type CryptoComponentsFactoryArgs struct {
 	ValidatorKeyPemFileName              string
 	SkIndex                              int
 	Config                               config.Config
+	EnableEpochs                         config.EnableEpochs
 	CoreComponentsHolder                 factory.CoreComponentsHolder
 	ActivateBLSPubKeyMessageVerification bool
 	KeyLoader                            factory.KeyLoaderHandler
@@ -52,6 +51,7 @@ type cryptoComponentsFactory struct {
 	validatorKeyPemFileName              string
 	skIndex                              int
 	config                               config.Config
+	enableEpochs                         config.EnableEpochs
 	coreComponentsHolder                 factory.CoreComponentsHolder
 	activateBLSPubKeyMessageVerification bool
 	keyLoader                            factory.KeyLoaderHandler
@@ -70,13 +70,13 @@ type cryptoParams struct {
 
 // cryptoComponents struct holds the crypto components
 type cryptoComponents struct {
-	txSingleSigner      crypto.SingleSigner
-	blockSingleSigner   crypto.SingleSigner
-	multiSigner         crypto.MultiSigner
-	peerSignHandler     crypto.PeerSignatureHandler
-	blockSignKeyGen     crypto.KeyGenerator
-	txSignKeyGen        crypto.KeyGenerator
-	messageSignVerifier vm.MessageSignVerifier
+	txSingleSigner       crypto.SingleSigner
+	blockSingleSigner    crypto.SingleSigner
+	multiSignerContainer factory.MultiSignerContainer
+	peerSignHandler      crypto.PeerSignatureHandler
+	blockSignKeyGen      crypto.KeyGenerator
+	txSignKeyGen         crypto.KeyGenerator
+	messageSignVerifier  vm.MessageSignVerifier
 	cryptoParams
 }
 
@@ -104,6 +104,7 @@ func NewCryptoComponentsFactory(args CryptoComponentsFactoryArgs) (*cryptoCompon
 		keyLoader:                            args.KeyLoader,
 		isInImportMode:                       args.IsInImportMode,
 		importModeNoSigCheck:                 args.ImportModeNoSigCheck,
+		enableEpochs:                         args.EnableEpochs,
 	}
 
 	return ccf, nil
@@ -139,7 +140,7 @@ func (ccf *cryptoComponentsFactory) Create() (*cryptoComponents, error) {
 		return nil, err
 	}
 
-	multiSigner, err := ccf.createMultiSigner(multisigHasher, cp, blockSignKeyGen, ccf.importModeNoSigCheck)
+	multiSigner, err := ccf.createMultiSignerContainer(multisigHasher, cp, blockSignKeyGen, ccf.importModeNoSigCheck)
 	if err != nil {
 		return nil, err
 	}
@@ -171,14 +172,14 @@ func (ccf *cryptoComponentsFactory) Create() (*cryptoComponents, error) {
 	log.Debug("block sign pubkey", "value", cp.publicKeyString)
 
 	return &cryptoComponents{
-		txSingleSigner:      txSingleSigner,
-		blockSingleSigner:   interceptSingleSigner,
-		multiSigner:         multiSigner,
-		peerSignHandler:     peerSigHandler,
-		blockSignKeyGen:     blockSignKeyGen,
-		txSignKeyGen:        txSignKeyGen,
-		messageSignVerifier: messageSignVerifier,
-		cryptoParams:        *cp,
+		txSingleSigner:       txSingleSigner,
+		blockSingleSigner:    interceptSingleSigner,
+		multiSignerContainer: multiSigner,
+		peerSignHandler:      peerSigHandler,
+		blockSignKeyGen:      blockSignKeyGen,
+		txSignKeyGen:         txSignKeyGen,
+		messageSignVerifier:  messageSignVerifier,
+		cryptoParams:         *cp,
 	}, nil
 }
 
@@ -217,27 +218,21 @@ func (ccf *cryptoComponentsFactory) getMultiSigHasherFromConfig() (hashing.Hashe
 	return nil, errors.ErrMissingMultiHasherConfig
 }
 
-func (ccf *cryptoComponentsFactory) createMultiSigner(
+func (ccf *cryptoComponentsFactory) createMultiSignerContainer(
 	hasher hashing.Hasher,
 	cp *cryptoParams,
 	blSignKeyGen crypto.KeyGenerator,
 	importModeNoSigCheck bool,
-) (crypto.MultiSigner, error) {
-	if importModeNoSigCheck {
-		log.Warn("using disabled multi signer because the node is running in import-db 'turbo mode'")
-		return &disabledMultiSig.DisabledMultiSig{}, nil
-	}
+) (factory.MultiSignerContainer, error) {
 
-	switch ccf.consensusType {
-	case consensus.BlsConsensusType:
-		blsSigner := &mclMultiSig.BlsMultiSigner{Hasher: hasher}
-		return multisig.NewBLSMultisig(blsSigner, []string{string(cp.publicKeyBytes)}, cp.privateKey, blSignKeyGen, uint16(0))
-	case disabledSigChecking:
-		log.Warn("using disabled multi signer")
-		return &disabledMultiSig.DisabledMultiSig{}, nil
-	default:
-		return nil, errors.ErrInvalidConsensusConfig
+	args := MultiSigArgs{
+		hasher:               hasher,
+		cryptoParams:         cp,
+		blSignKeyGen:         blSignKeyGen,
+		consensusType:        ccf.consensusType,
+		importModeNoSigCheck: importModeNoSigCheck,
 	}
+	return NewMultiSignerContainer(args, ccf.enableEpochs.BLSMultiSignerEnableEpoch)
 }
 
 func (ccf *cryptoComponentsFactory) getSuite() (crypto.Suite, error) {

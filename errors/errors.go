@@ -478,3 +478,9 @@ var ErrNilTxsSender = errors.New("nil transactions sender has been provided")
 
 // ErrNilProcessStatusHandler signals that a nil process status handler was provided
 var ErrNilProcessStatusHandler = errors.New("nil process status handler")
+
+// ErrSignerNotSupported signals that a not supported signer was provided
+var ErrSignerNotSupported = errors.New("signer not supported")
+
+// ErrMissingMultiSignerConfig signals that the multisigner config is missing
+var ErrMissingMultiSignerConfig = errors.New("multisigner configuration missing")

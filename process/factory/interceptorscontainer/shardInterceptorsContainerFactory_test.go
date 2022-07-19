@@ -269,7 +269,7 @@ func TestNewShardInterceptorsContainerFactory_NilMultiSignerShouldErr(t *testing
 	t.Parallel()
 
 	coreComp, cryptoComp := createMockComponentHolders()
-	cryptoComp.MultiSig = nil
+	cryptoComp.MultiSigContainer = cryptoMocks.NewMultiSignerContainerMock(nil)
 	args := getArgumentsShard(coreComp, cryptoComp)
 	icf, err := interceptorscontainer.NewShardInterceptorsContainerFactory(args)
 
@@ -685,12 +685,13 @@ func createMockComponentHolders() (*mock.CoreComponentsMock, *mock.CryptoCompone
 		TxVersionCheckField:        versioning.NewTxVersionChecker(1),
 		HardforkTriggerPubKeyField: providedHardforkPubKey,
 	}
+	multiSigner := cryptoMocks.NewMultiSigner(21)
 	cryptoComponents := &mock.CryptoComponentsMock{
-		BlockSig: &mock.SignerMock{},
-		TxSig:    &mock.SignerMock{},
-		MultiSig: cryptoMocks.NewMultiSigner(21),
-		BlKeyGen: &mock.SingleSignKeyGenMock{},
-		TxKeyGen: &mock.SingleSignKeyGenMock{},
+		BlockSig:          &mock.SignerMock{},
+		TxSig:             &mock.SignerMock{},
+		MultiSigContainer: cryptoMocks.NewMultiSignerContainerMock(multiSigner),
+		BlKeyGen:          &mock.SingleSignKeyGenMock{},
+		TxKeyGen:          &mock.SingleSignKeyGenMock{},
 	}
 
 	return coreComponents, cryptoComponents

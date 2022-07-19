@@ -25,7 +25,7 @@ type ConsensusCore struct {
 	marshalizer                   marshal.Marshalizer
 	blsPrivateKey                 crypto.PrivateKey
 	blsSingleSigner               crypto.SingleSigner
-	multiSigner                   crypto.MultiSigner
+	multiSignerContainer          process.MultiSignerContainer
 	roundHandler                  consensus.RoundHandler
 	shardCoordinator              sharding.Coordinator
 	nodesCoordinator              nodesCoordinator.NodesCoordinator
@@ -50,7 +50,7 @@ type ConsensusCoreArgs struct {
 	Marshalizer                   marshal.Marshalizer
 	BlsPrivateKey                 crypto.PrivateKey
 	BlsSingleSigner               crypto.SingleSigner
-	MultiSigner                   crypto.MultiSigner
+	MultiSignerContainer          process.MultiSignerContainer
 	RoundHandler                  consensus.RoundHandler
 	ShardCoordinator              sharding.Coordinator
 	NodesCoordinator              nodesCoordinator.NodesCoordinator
@@ -78,7 +78,7 @@ func NewConsensusCore(
 		marshalizer:                   args.Marshalizer,
 		blsPrivateKey:                 args.BlsPrivateKey,
 		blsSingleSigner:               args.BlsSingleSigner,
-		multiSigner:                   args.MultiSigner,
+		multiSignerContainer:          args.MultiSignerContainer,
 		roundHandler:                  args.RoundHandler,
 		shardCoordinator:              args.ShardCoordinator,
 		nodesCoordinator:              args.NodesCoordinator,
@@ -141,8 +141,8 @@ func (cc *ConsensusCore) Marshalizer() marshal.Marshalizer {
 }
 
 // MultiSigner gets the MultiSigner stored in the ConsensusCore
-func (cc *ConsensusCore) MultiSigner() crypto.MultiSigner {
-	return cc.multiSigner
+func (cc *ConsensusCore) MultiSignerContainer() process.MultiSignerContainer {
+	return cc.multiSignerContainer
 }
 
 //RoundHandler gets the RoundHandler stored in the ConsensusCore

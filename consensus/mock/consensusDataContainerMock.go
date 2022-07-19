@@ -85,7 +85,7 @@ func (ccm *ConsensusCoreMock) Marshalizer() marshal.Marshalizer {
 }
 
 // MultiSigner -
-func (ccm *ConsensusCoreMock) MultiSigner() crypto.MultiSigner {
+func (ccm *ConsensusCoreMock) MultiSignerContainer() process.MultiSignerContainer {
 	return ccm.multiSigner
 }
 

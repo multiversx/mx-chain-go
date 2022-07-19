@@ -248,7 +248,11 @@ func checkBaseParams(
 	if check.IfNil(cryptoComponents.BlockSigner()) {
 		return process.ErrNilSingleSigner
 	}
-	if check.IfNil(cryptoComponents.MultiSigner()) {
+	multiSigner, err := cryptoComponents.GetMultiSigner(0)
+	if err != nil {
+		return err
+	}
+	if check.IfNil(multiSigner) {
 		return process.ErrNilMultiSigVerifier
 	}
 	if check.IfNil(shardCoordinator) {

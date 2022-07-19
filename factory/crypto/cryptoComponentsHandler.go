@@ -90,7 +90,7 @@ func (mcc *managedCryptoComponents) CheckSubcomponents() error {
 	if check.IfNil(mcc.cryptoComponents.blockSingleSigner) {
 		return errors.ErrNilBlockSigner
 	}
-	if check.IfNil(mcc.cryptoComponents.multiSigner) {
+	if check.IfNil(mcc.cryptoComponents.multiSignerContainer) {
 		return errors.ErrNilMultiSigner
 	}
 	if check.IfNil(mcc.cryptoComponents.peerSignHandler) {
@@ -193,8 +193,8 @@ func (mcc *managedCryptoComponents) BlockSigner() crypto.SingleSigner {
 	return mcc.cryptoComponents.blockSingleSigner
 }
 
-// MultiSigner returns the block multi-signer
-func (mcc *managedCryptoComponents) MultiSigner() crypto.MultiSigner {
+// MultiSignerContainer returns the block multi-signer container
+func (mcc *managedCryptoComponents) MultiSignerContainer() factory.MultiSignerContainer {
 	mcc.mutCryptoComponents.RLock()
 	defer mcc.mutCryptoComponents.RUnlock()
 
@@ -202,7 +202,19 @@ func (mcc *managedCryptoComponents) MultiSigner() crypto.MultiSigner {
 		return nil
 	}
 
-	return mcc.cryptoComponents.multiSigner
+	return mcc.cryptoComponents.multiSignerContainer
+}
+
+// GetMultiSigner returns the block multi signer valid for the given epoch
+func (mcc *managedCryptoComponents) GetMultiSigner(epoch uint32) (crypto.MultiSigner, error) {
+	mcc.mutCryptoComponents.RLock()
+	defer mcc.mutCryptoComponents.RUnlock()
+
+	if mcc.cryptoComponents == nil {
+		return nil, errors.ErrNilCryptoComponents
+	}
+
+	return mcc.cryptoComponents.multiSignerContainer.GetMultiSigner(epoch)
 }
 
 // PeerSignatureHandler returns the peer signature handler
@@ -217,8 +229,8 @@ func (mcc *managedCryptoComponents) PeerSignatureHandler() crypto.PeerSignatureH
 	return mcc.cryptoComponents.peerSignHandler
 }
 
-// SetMultiSigner sets the block multi-signer
-func (mcc *managedCryptoComponents) SetMultiSigner(ms crypto.MultiSigner) error {
+// SetMultiSignerContainer sets the block multi-signer container
+func (mcc *managedCryptoComponents) SetMultiSignerContainer(ms factory.MultiSignerContainer) error {
 	mcc.mutCryptoComponents.Lock()
 	defer mcc.mutCryptoComponents.Unlock()
 
@@ -226,7 +238,7 @@ func (mcc *managedCryptoComponents) SetMultiSigner(ms crypto.MultiSigner) error 
 		return errors.ErrNilCryptoComponents
 	}
 
-	mcc.cryptoComponents.multiSigner = ms
+	mcc.cryptoComponents.multiSignerContainer = ms
 	return nil
 }
 
@@ -271,14 +283,14 @@ func (mcc *managedCryptoComponents) Clone() interface{} {
 	cryptoComp := (*cryptoComponents)(nil)
 	if mcc.cryptoComponents != nil {
 		cryptoComp = &cryptoComponents{
-			txSingleSigner:      mcc.TxSingleSigner(),
-			blockSingleSigner:   mcc.BlockSigner(),
-			multiSigner:         mcc.MultiSigner(),
-			peerSignHandler:     mcc.PeerSignatureHandler(),
-			blockSignKeyGen:     mcc.BlockSignKeyGen(),
-			txSignKeyGen:        mcc.TxSignKeyGen(),
-			messageSignVerifier: mcc.MessageSignVerifier(),
-			cryptoParams:        mcc.cryptoParams,
+			txSingleSigner:       mcc.TxSingleSigner(),
+			blockSingleSigner:    mcc.BlockSigner(),
+			multiSignerContainer: mcc.MultiSignerContainer(),
+			peerSignHandler:      mcc.PeerSignatureHandler(),
+			blockSignKeyGen:      mcc.BlockSignKeyGen(),
+			txSignKeyGen:         mcc.TxSignKeyGen(),
+			messageSignVerifier:  mcc.MessageSignVerifier(),
+			cryptoParams:         mcc.cryptoParams,
 		}
 	}
 

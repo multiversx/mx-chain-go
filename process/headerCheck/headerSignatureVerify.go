@@ -23,7 +23,7 @@ type ArgsHeaderSigVerifier struct {
 	Marshalizer             marshal.Marshalizer
 	Hasher                  hashing.Hasher
 	NodesCoordinator        nodesCoordinator.NodesCoordinator
-	MultiSigVerifier        crypto.MultiSigVerifier
+	MultiSigContainer       process.MultiSignerContainer
 	SingleSigVerifier       crypto.SingleSigner
 	KeyGen                  crypto.KeyGenerator
 	FallbackHeaderValidator process.FallbackHeaderValidator
@@ -34,7 +34,7 @@ type HeaderSigVerifier struct {
 	marshalizer             marshal.Marshalizer
 	hasher                  hashing.Hasher
 	nodesCoordinator        nodesCoordinator.NodesCoordinator
-	multiSigVerifier        crypto.MultiSigVerifier
+	multiSigContainer       process.MultiSignerContainer
 	singleSigVerifier       crypto.SingleSigner
 	keyGen                  crypto.KeyGenerator
 	fallbackHeaderValidator process.FallbackHeaderValidator
@@ -51,7 +51,7 @@ func NewHeaderSigVerifier(arguments *ArgsHeaderSigVerifier) (*HeaderSigVerifier,
 		marshalizer:             arguments.Marshalizer,
 		hasher:                  arguments.Hasher,
 		nodesCoordinator:        arguments.NodesCoordinator,
-		multiSigVerifier:        arguments.MultiSigVerifier,
+		multiSigContainer:       arguments.MultiSigContainer,
 		singleSigVerifier:       arguments.SingleSigVerifier,
 		keyGen:                  arguments.KeyGen,
 		fallbackHeaderValidator: arguments.FallbackHeaderValidator,
@@ -71,7 +71,7 @@ func checkArgsHeaderSigVerifier(arguments *ArgsHeaderSigVerifier) error {
 	if check.IfNil(arguments.Marshalizer) {
 		return process.ErrNilMarshalizer
 	}
-	if check.IfNil(arguments.MultiSigVerifier) {
+	if check.IfNil(arguments.MultiSigContainer) {
 		return process.ErrNilMultiSigVerifier
 	}
 	if check.IfNil(arguments.NodesCoordinator) {
@@ -98,17 +98,17 @@ func (hsv *HeaderSigVerifier) VerifySignature(header data.HeaderHandler) error {
 		return process.ErrBlockProposerSignatureMissing
 	}
 
-	// TODO: remove if start of epoch block needs to be validated by the new epoch nodes
-	epoch := header.GetEpoch()
-	if header.IsStartOfEpochBlock() && epoch > 0 {
-		epoch = epoch - 1
+	// TODO: remove if start of epochForConsensus block needs to be validated by the new epochForConsensus nodes
+	epochForConsensus := header.GetEpoch()
+	if header.IsStartOfEpochBlock() && epochForConsensus > 0 {
+		epochForConsensus = epochForConsensus - 1
 	}
 
 	consensusPubKeys, err := hsv.nodesCoordinator.GetConsensusValidatorsPublicKeys(
 		randSeed,
 		header.GetRound(),
 		header.GetShardID(),
-		epoch,
+		epochForConsensus,
 	)
 	if err != nil {
 		return err
@@ -119,7 +119,12 @@ func (hsv *HeaderSigVerifier) VerifySignature(header data.HeaderHandler) error {
 		return err
 	}
 
-	verifier, err := hsv.multiSigVerifier.Create(consensusPubKeys, 0)
+	multiSigVerifier, err := hsv.multiSigContainer.GetMultiSigner(header.GetEpoch())
+	if err != nil {
+		return err
+	}
+
+	verifier, err := multiSigVerifier.Create(consensusPubKeys, 0)
 	if err != nil {
 		return err
 	}

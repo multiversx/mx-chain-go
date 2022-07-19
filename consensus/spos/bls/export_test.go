@@ -62,7 +62,7 @@ func (fct *factory) Marshalizer() marshal.Marshalizer {
 
 // MultiSigner gets the multi signer object
 func (fct *factory) MultiSigner() crypto.MultiSigner {
-	return fct.consensusCore.MultiSigner()
+	return fct.consensusCore.MultiSignerContainer()
 }
 
 // RoundHandler gets the roundHandler object

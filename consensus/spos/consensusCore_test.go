@@ -24,7 +24,7 @@ func createDefaultConsensusCoreArgs() *spos.ConsensusCoreArgs {
 		Marshalizer:                   consensusCoreMock.Marshalizer(),
 		BlsPrivateKey:                 consensusCoreMock.PrivateKey(),
 		BlsSingleSigner:               consensusCoreMock.SingleSigner(),
-		MultiSigner:                   consensusCoreMock.MultiSigner(),
+		MultiSignerContainer:          consensusCoreMock.MultiSignerContainer(),
 		RoundHandler:                  consensusCoreMock.RoundHandler(),
 		ShardCoordinator:              consensusCoreMock.ShardCoordinator(),
 		NodesCoordinator:              consensusCoreMock.NodesCoordinator(),
@@ -168,7 +168,7 @@ func TestConsensusCore_WithNilMultiSignerShouldFail(t *testing.T) {
 	t.Parallel()
 
 	args := createDefaultConsensusCoreArgs()
-	args.MultiSigner = nil
+	args.MultiSignerContainer = nil
 
 	consensusCore, err := spos.NewConsensusCore(
 		args,

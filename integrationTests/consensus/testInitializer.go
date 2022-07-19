@@ -414,7 +414,7 @@ func createConsensusOnlyNode(
 	cryptoComponents.PubKey = privKey.GeneratePublic()
 	cryptoComponents.BlockSig = singleBlsSigner
 	cryptoComponents.TxSig = singlesigner
-	cryptoComponents.MultiSig = testMultiSig
+	cryptoComponents.MultiSigContainer = testMultiSig
 	cryptoComponents.BlKeyGen = testKeyGen
 	cryptoComponents.PeerSignHandler = peerSigHandler
 

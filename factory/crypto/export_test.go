@@ -3,6 +3,7 @@ package crypto
 import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
+	"github.com/ElrondNetwork/elrond-go/factory"
 )
 
 // GetSkPk -
@@ -30,11 +31,11 @@ func (ccf *cryptoComponentsFactory) CreateCryptoParams(blockSignKeyGen crypto.Ke
 	return ccf.createCryptoParams(blockSignKeyGen)
 }
 
-// CreateMultiSigner -
-func (ccf *cryptoComponentsFactory) CreateMultiSigner(
+// CreateMultiSignerContainer -
+func (ccf *cryptoComponentsFactory) CreateMultiSignerContainer(
 	h hashing.Hasher, cp *cryptoParams, blSignKeyGen crypto.KeyGenerator, importModeNoSigCheck bool,
-) (crypto.MultiSigner, error) {
-	return ccf.createMultiSigner(h, cp, blSignKeyGen, importModeNoSigCheck)
+) (factory.MultiSignerContainer, error) {
+	return ccf.createMultiSignerContainer(h, cp, blSignKeyGen, importModeNoSigCheck)
 }
 
 // GetSuite -

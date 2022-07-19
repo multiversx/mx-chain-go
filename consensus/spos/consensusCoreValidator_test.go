@@ -42,7 +42,7 @@ func initConsensusDataContainer() *ConsensusCore {
 		marshalizer:             marshalizerMock,
 		blsPrivateKey:           blsPrivateKeyMock,
 		blsSingleSigner:         blsSingleSignerMock,
-		multiSigner:             multiSignerMock,
+		multiSignerContainer:    multiSignerMock,
 		roundHandler:            roundHandlerMock,
 		shardCoordinator:        shardCoordinatorMock,
 		syncTimer:               syncTimerMock,
@@ -125,7 +125,7 @@ func TestConsensusContainerValidator_ValidateNilMultiSignerShouldFail(t *testing
 	t.Parallel()
 
 	container := initConsensusDataContainer()
-	container.multiSigner = nil
+	container.multiSignerContainer = nil
 
 	err := ValidateConsensusCore(container)
 

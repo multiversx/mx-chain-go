@@ -69,7 +69,7 @@ func (sr *subroundSignature) doSignatureJob(_ context.Context) bool {
 		return false
 	}
 
-	signatureShare, err := sr.MultiSigner().CreateSignatureShare(sr.GetData(), nil)
+	signatureShare, err := sr.MultiSignerContainer().CreateSignatureShare(sr.GetData(), nil)
 	if err != nil {
 		log.Debug("doSignatureJob.CreateSignatureShare", "error", err.Error())
 		return false
@@ -160,7 +160,7 @@ func (sr *subroundSignature) receivedSignature(_ context.Context, cnsDta *consen
 		return false
 	}
 
-	currentMultiSigner := sr.MultiSigner()
+	currentMultiSigner := sr.MultiSignerContainer()
 	err = currentMultiSigner.VerifySignatureShare(uint16(index), cnsDta.SignatureShare, sr.GetData(), nil)
 	if err != nil {
 		log.Debug("receivedSignature.VerifySignatureShare",

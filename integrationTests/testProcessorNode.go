@@ -1223,7 +1223,7 @@ func (tpn *TestProcessorNode) initInterceptors(heartbeatPk string) {
 	cryptoComponents.PubKey = nil
 	cryptoComponents.BlockSig = tpn.OwnAccount.BlockSingleSigner
 	cryptoComponents.TxSig = tpn.OwnAccount.SingleSigner
-	cryptoComponents.MultiSig = TestMultiSig
+	cryptoComponents.MultiSigContainer = TestMultiSig
 	cryptoComponents.BlKeyGen = tpn.OwnAccount.KeygenBlockSign
 	cryptoComponents.TxKeyGen = tpn.OwnAccount.KeygenTxSign
 
@@ -2355,7 +2355,7 @@ func (tpn *TestProcessorNode) initNode() {
 	cryptoComponents.PubKey = tpn.NodeKeys.Pk
 	cryptoComponents.TxSig = tpn.OwnAccount.SingleSigner
 	cryptoComponents.BlockSig = tpn.OwnAccount.SingleSigner
-	cryptoComponents.MultiSig = tpn.MultiSigner
+	cryptoComponents.MultiSigContainer = tpn.MultiSigner
 	cryptoComponents.BlKeyGen = tpn.OwnAccount.KeygenTxSign
 	cryptoComponents.TxKeyGen = TestKeyGenForAccounts
 
@@ -2897,7 +2897,7 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger() {
 	cryptoComponents.PubKey = tpn.NodeKeys.Pk
 	cryptoComponents.TxSig = tpn.OwnAccount.SingleSigner
 	cryptoComponents.BlockSig = tpn.OwnAccount.SingleSigner
-	cryptoComponents.MultiSig = tpn.MultiSigner
+	cryptoComponents.MultiSigContainer = tpn.MultiSigner
 	cryptoComponents.BlKeyGen = tpn.OwnAccount.KeygenTxSign
 	cryptoComponents.TxKeyGen = TestKeyGenForAccounts
 	cryptoComponents.PeerSignHandler = psh
@@ -3130,18 +3130,18 @@ func GetDefaultDataComponents() *mock.DataComponentsStub {
 // GetDefaultCryptoComponents -
 func GetDefaultCryptoComponents() *mock.CryptoComponentsStub {
 	return &mock.CryptoComponentsStub{
-		PubKey:          &mock.PublicKeyMock{},
-		PrivKey:         &mock.PrivateKeyMock{},
-		PubKeyString:    "pubKey",
-		PrivKeyBytes:    []byte("privKey"),
-		PubKeyBytes:     []byte("pubKey"),
-		BlockSig:        &mock.SignerMock{},
-		TxSig:           &mock.SignerMock{},
-		MultiSig:        TestMultiSig,
-		PeerSignHandler: &mock.PeerSignatureHandler{},
-		BlKeyGen:        &mock.KeyGenMock{},
-		TxKeyGen:        &mock.KeyGenMock{},
-		MsgSigVerifier:  &testscommon.MessageSignVerifierMock{},
+		PubKey:            &mock.PublicKeyMock{},
+		PrivKey:           &mock.PrivateKeyMock{},
+		PubKeyString:      "pubKey",
+		PrivKeyBytes:      []byte("privKey"),
+		PubKeyBytes:       []byte("pubKey"),
+		BlockSig:          &mock.SignerMock{},
+		TxSig:             &mock.SignerMock{},
+		MultiSigContainer: TestMultiSig,
+		PeerSignHandler:   &mock.PeerSignatureHandler{},
+		BlKeyGen:          &mock.KeyGenMock{},
+		TxKeyGen:          &mock.KeyGenMock{},
+		MsgSigVerifier:    &testscommon.MessageSignVerifierMock{},
 	}
 }
 

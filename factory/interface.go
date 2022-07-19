@@ -150,14 +150,21 @@ type CryptoParamsHolder interface {
 	PrivateKeyBytes() []byte
 }
 
+// MultiSignerContainer defines the container for different versioned multiSigner instances
+type MultiSignerContainer interface {
+	GetMultiSigner(epoch uint32) (crypto.MultiSigner, error)
+	IsInterfaceNil() bool
+}
+
 // CryptoComponentsHolder holds the crypto components
 type CryptoComponentsHolder interface {
 	CryptoParamsHolder
 	TxSingleSigner() crypto.SingleSigner
 	BlockSigner() crypto.SingleSigner
-	MultiSigner() crypto.MultiSigner
+	SetMultiSignerContainer(container MultiSignerContainer) error
+	MultiSignerContainer() MultiSignerContainer
+	GetMultiSigner(epoch uint32) (crypto.MultiSigner, error)
 	PeerSignatureHandler() crypto.PeerSignatureHandler
-	SetMultiSigner(ms crypto.MultiSigner) error
 	BlockSignKeyGen() crypto.KeyGenerator
 	TxSignKeyGen() crypto.KeyGenerator
 	MessageSignVerifier() vm.MessageSignVerifier

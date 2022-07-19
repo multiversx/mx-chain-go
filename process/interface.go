@@ -1140,14 +1140,20 @@ type CoreComponentsHolder interface {
 	IsInterfaceNil() bool
 }
 
+// MultiSignerContainer defines the container for different versioned multiSigner instances
+type MultiSignerContainer interface {
+	GetMultiSigner(epoch uint32) (crypto.MultiSigner, error)
+	IsInterfaceNil() bool
+}
+
 // CryptoComponentsHolder holds the crypto components needed by the interceptors
 type CryptoComponentsHolder interface {
 	TxSignKeyGen() crypto.KeyGenerator
 	BlockSignKeyGen() crypto.KeyGenerator
 	TxSingleSigner() crypto.SingleSigner
 	BlockSigner() crypto.SingleSigner
-	MultiSigner() crypto.MultiSigner
-	SetMultiSigner(ms crypto.MultiSigner) error
+	GetMultiSigner(epoch uint32) (crypto.MultiSigner, error)
+	SetMultiSignerContainer(ms MultiSignerContainer) error
 	PeerSignatureHandler() crypto.PeerSignatureHandler
 	PublicKey() crypto.PublicKey
 	Clone() interface{}
