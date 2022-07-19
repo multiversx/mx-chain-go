@@ -70,3 +70,8 @@ func GetDirtyHashes(tr common.Trie) common.ModifiedHashes {
 
 	return dirtyHashes
 }
+
+// WriteInChanNonBlocking -
+func WriteInChanNonBlocking(errChan chan error, err error) {
+	writeInChanNonBlocking(errChan, err)
+}

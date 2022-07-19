@@ -420,10 +420,11 @@ func TestPatriciaMerkleTrie_GetSerializedNodesGetFromCheckpoint(t *testing.T) {
 	_ = tr.Commit()
 	rootHash, _ := tr.RootHash()
 
+	errChan := make(chan error, 1)
 	storageManager := tr.GetStorageManager()
 	dirtyHashes := trie.GetDirtyHashes(tr)
 	storageManager.AddDirtyCheckpointHashes(rootHash, dirtyHashes)
-	storageManager.SetCheckpoint(rootHash, make([]byte, 0), nil, &trieMock.MockStatistics{})
+	storageManager.SetCheckpoint(rootHash, make([]byte, 0), nil, errChan, &trieMock.MockStatistics{})
 	trie.WaitForOperationToComplete(storageManager)
 
 	err := storageManager.Remove(rootHash)
