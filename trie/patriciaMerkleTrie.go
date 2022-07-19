@@ -638,7 +638,7 @@ func (tr *patriciaMerkleTrie) MarkStorerAsSyncedAndActive() {
 		lastEpoch = 0
 	}
 
-	err = tr.trieStorage.PutInEpoch([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal), lastEpoch)
+	err = tr.trieStorage.PutInEpochWithoutCache([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal), lastEpoch)
 	if err != nil {
 		log.Error("error while putting activeDB value into main storer after sync", "error", err)
 	}
