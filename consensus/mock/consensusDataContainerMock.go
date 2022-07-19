@@ -39,7 +39,6 @@ type ConsensusCoreMock struct {
 	nodeRedundancyHandler   consensus.NodeRedundancyHandler
 	scheduledProcessor      consensus.ScheduledProcessor
 	messageSigningHandler   consensus.P2PSigningHandler
-	peerBlacklistHandler    consensus.PeerBlacklistHandler
 }
 
 // GetAntiFloodHandler -
@@ -245,11 +244,6 @@ func (ccm *ConsensusCoreMock) MessageSigningHandler() consensus.P2PSigningHandle
 // SetMessageSigningHandler -
 func (ccm *ConsensusCoreMock) SetMessageSigningHandler(messageSigningHandler consensus.P2PSigningHandler) {
 	ccm.messageSigningHandler = messageSigningHandler
-}
-
-// PeerBlacklistHandler will return the peer blacklist handler
-func (ccm *ConsensusCoreMock) PeerBlacklistHandler() consensus.PeerBlacklistHandler {
-	return ccm.peerBlacklistHandler
 }
 
 // SetKeyGenerator -
