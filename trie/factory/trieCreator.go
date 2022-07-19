@@ -20,6 +20,7 @@ type TrieCreateArgs struct {
 	CheckpointsStorer  storage.Storer
 	PruningEnabled     bool
 	CheckpointsEnabled bool
+	SnapshotsEnabled   bool
 	MaxTrieLevelInMem  uint
 	IdleProvider       trie.IdleNodeProvider
 }
@@ -76,6 +77,11 @@ func (tc *trieCreator) Create(args TrieCreateArgs) (common.StorageManager, commo
 		IdleProvider:           args.IdleProvider,
 	}
 
+	log.Debug("trie snapshot status", "enabled", args.SnapshotsEnabled)
+	if !args.SnapshotsEnabled {
+		return tc.newTrieAndTrieStorageWithoutSnapshots(storageManagerArgs, args.MaxTrieLevelInMem)
+	}
+
 	log.Debug("trie checkpoints status", "enabled", args.CheckpointsEnabled)
 	if !args.CheckpointsEnabled {
 		return tc.newTrieAndTrieStorageWithoutCheckpoints(storageManagerArgs, args.MaxTrieLevelInMem)
@@ -89,6 +95,23 @@ func (tc *trieCreator) newTrieAndTrieStorage(
 	maxTrieLevelInMem uint,
 ) (common.StorageManager, common.Trie, error) {
 	trieStorage, err := trie.NewTrieStorageManager(args)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	newTrie, err := trie.NewTrie(trieStorage, tc.marshalizer, tc.hasher, maxTrieLevelInMem)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return trieStorage, newTrie, nil
+}
+
+func (tc *trieCreator) newTrieAndTrieStorageWithoutSnapshots(
+	args trie.NewTrieStorageManagerArgs,
+	maxTrieLevelInMem uint,
+) (common.StorageManager, common.Trie, error) {
+	trieStorage, err := trie.NewTrieStorageManagerWithoutSnapshot(args)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -163,6 +186,7 @@ func CreateTriesComponentsForShardId(
 		PruningEnabled:     generalConfig.StateTriesConfig.AccountsStatePruningEnabled,
 		CheckpointsEnabled: generalConfig.StateTriesConfig.CheckpointsEnabled,
 		MaxTrieLevelInMem:  generalConfig.StateTriesConfig.MaxStateTrieLevelInMemory,
+		SnapshotsEnabled:   generalConfig.StateTriesConfig.SnapshotsEnabled,
 		IdleProvider:       coreComponentsHolder.ProcessStatusHandler(),
 	}
 	userStorageManager, userAccountTrie, err := trFactory.Create(args)
@@ -182,6 +206,7 @@ func CreateTriesComponentsForShardId(
 		PruningEnabled:     generalConfig.StateTriesConfig.PeerStatePruningEnabled,
 		CheckpointsEnabled: generalConfig.StateTriesConfig.CheckpointsEnabled,
 		MaxTrieLevelInMem:  generalConfig.StateTriesConfig.MaxPeerTrieLevelInMemory,
+		SnapshotsEnabled:   generalConfig.StateTriesConfig.SnapshotsEnabled,
 		IdleProvider:       coreComponentsHolder.ProcessStatusHandler(),
 	}
 	peerStorageManager, peerAccountsTrie, err := trFactory.Create(args)
