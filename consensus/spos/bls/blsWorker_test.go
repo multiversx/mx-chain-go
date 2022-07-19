@@ -99,7 +99,7 @@ func TestWorker_GetMessageRangeShouldWork(t *testing.T) {
 	messagesRange := blsService.GetMessageRange()
 	assert.NotNil(t, messagesRange)
 
-	for i := bls.MtBlockBodyAndHeader; i <= bls.MtBlockHeaderFinalInfo; i++ {
+	for i := bls.MtBlockBodyAndHeader; i <= bls.MtInvalidSigners; i++ {
 		v = append(v, i)
 	}
 	assert.NotNil(t, v)
