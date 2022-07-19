@@ -92,7 +92,8 @@ func (wrk *worker) IsMessageTypeValid(msgType consensus.MessageType) bool {
 		msgType == MtBlockBody ||
 		msgType == MtBlockHeader ||
 		msgType == MtSignature ||
-		msgType == MtBlockHeaderFinalInfo
+		msgType == MtBlockHeaderFinalInfo ||
+		msgType == MtInvalidSigners
 
 	return isMessageTypeValid
 }
@@ -111,7 +112,7 @@ func (wrk *worker) IsSubroundStartRound(subroundId int) bool {
 func (wrk *worker) GetMessageRange() []consensus.MessageType {
 	var v []consensus.MessageType
 
-	for i := MtBlockBodyAndHeader; i <= MtBlockHeaderFinalInfo; i++ {
+	for i := MtBlockBodyAndHeader; i <= MtInvalidSigners; i++ {
 		v = append(v, i)
 	}
 
@@ -130,6 +131,8 @@ func (wrk *worker) CanProceed(consensusState *spos.ConsensusState, msgType conse
 	case MtSignature:
 		return consensusState.Status(SrBlock) == spos.SsFinished
 	case MtBlockHeaderFinalInfo:
+		return consensusState.Status(SrSignature) == spos.SsFinished
+	case MtInvalidSigners:
 		return consensusState.Status(SrSignature) == spos.SsFinished
 	}
 
