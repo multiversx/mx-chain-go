@@ -4,12 +4,16 @@ import (
 	"math/big"
 	"sync"
 
+	"github.com/ElrondNetwork/arwen-wasm-vm/v1_5/arwen/contexts"
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
+
+var log = logger.GetOrCreate("process/systemvm")
 
 type systemVM struct {
 	systemEI             vm.ContextHandler
@@ -118,6 +122,12 @@ func (s *systemVM) RunSmartContractCall(input *vmcommon.ContractCallInput) (*vmc
 		}, nil
 	}
 
+	asyncParams, err := contexts.RemoveAsyncContextArguments(&input.VMInput)
+	if err != nil {
+		log.Debug("run smart contract call error (async params extraction)", "error", err.Error())
+		return nil, vm.ErrInputAsyncParamsMissing
+	}
+
 	returnCode := contract.Execute(input)
 	var vmOutput *vmcommon.VMOutput
 	if returnCode == vmcommon.Ok {
@@ -131,6 +141,8 @@ func (s *systemVM) RunSmartContractCall(input *vmcommon.ContractCallInput) (*vmc
 	}
 
 	vmOutput.ReturnCode = returnCode
+
+	input.VMInput.Arguments = append(asyncParams, input.VMInput.Arguments...)
 
 	return vmOutput, nil
 }
