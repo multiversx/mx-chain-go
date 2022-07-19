@@ -73,8 +73,9 @@ func TestTrieStorageManagerWithoutSnapshot_TakeSnapshot(t *testing.T) {
 	args := getNewTrieStorageManagerArgs()
 	ts, _ := trie.NewTrieStorageManagerWithoutSnapshot(args)
 
+	errChan := make(chan error, 1)
 	leavesCh := make(chan core.KeyValueHolder)
-	ts.TakeSnapshot(nil, nil, leavesCh, &trieMock.MockStatistics{}, 10)
+	ts.TakeSnapshot(nil, nil, leavesCh, errChan, &trieMock.MockStatistics{}, 10)
 
 	select {
 	case <-leavesCh:
@@ -89,8 +90,9 @@ func TestTrieStorageManagerWithoutSnapshot_SetCheckpoint(t *testing.T) {
 	args := getNewTrieStorageManagerArgs()
 	ts, _ := trie.NewTrieStorageManagerWithoutSnapshot(args)
 
+	errChan := make(chan error, 1)
 	leavesCh := make(chan core.KeyValueHolder)
-	ts.SetCheckpoint(nil, nil, leavesCh, &trieMock.MockStatistics{})
+	ts.SetCheckpoint(nil, nil, leavesCh, errChan, &trieMock.MockStatistics{})
 
 	select {
 	case <-leavesCh:

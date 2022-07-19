@@ -37,13 +37,13 @@ func (tsm *trieStorageManagerWithoutSnapshot) PutInEpochWithoutCache(key []byte,
 }
 
 // TakeSnapshot does nothing, as snapshots are disabled for this implementation
-func (tsm *trieStorageManagerWithoutSnapshot) TakeSnapshot(_ []byte, _ []byte, leavesChan chan core.KeyValueHolder, stats common.SnapshotStatisticsHandler, _ uint32) {
+func (tsm *trieStorageManagerWithoutSnapshot) TakeSnapshot(_ []byte, _ []byte, leavesChan chan core.KeyValueHolder, _ chan error, stats common.SnapshotStatisticsHandler, _ uint32) {
 	tsm.safelyCloseChan(leavesChan)
 	stats.SnapshotFinished()
 }
 
 // SetCheckpoint does nothing, as checkpoints are disabled for this implementation
-func (tsm *trieStorageManagerWithoutSnapshot) SetCheckpoint(_ []byte, _ []byte, leavesChan chan core.KeyValueHolder, stats common.SnapshotStatisticsHandler) {
+func (tsm *trieStorageManagerWithoutSnapshot) SetCheckpoint(_ []byte, _ []byte, leavesChan chan core.KeyValueHolder, _ chan error, stats common.SnapshotStatisticsHandler) {
 	tsm.safelyCloseChan(leavesChan)
 	stats.SnapshotFinished()
 }
