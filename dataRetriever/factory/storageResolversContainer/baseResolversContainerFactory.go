@@ -221,6 +221,7 @@ func (brcf *baseResolversContainerFactory) newImportDBTrieStorage(
 		PruningEnabled:     brcf.generalConfig.StateTriesConfig.AccountsStatePruningEnabled,
 		CheckpointsEnabled: brcf.generalConfig.StateTriesConfig.CheckpointsEnabled,
 		MaxTrieLevelInMem:  brcf.generalConfig.StateTriesConfig.MaxStateTrieLevelInMemory,
+		SnapshotsEnabled:   brcf.generalConfig.StateTriesConfig.SnapshotsEnabled,
 		IdleProvider:       disabled.NewProcessStatusHandler(),
 	}
 	return trieFactoryInstance.Create(args)
