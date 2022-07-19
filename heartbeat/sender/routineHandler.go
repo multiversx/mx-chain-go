@@ -52,10 +52,20 @@ func (handler *routineHandler) processLoop(ctx context.Context) {
 			handler.heartbeatSender.Execute()
 		case <-handler.hardforkSender.ShouldTriggerHardfork():
 			handler.hardforkSender.Execute()
-			time.Sleep(handler.delayAfterHardforkMessageBroadcast)
+			handler.waitAfterHarforkBroadcast(ctx)
 		case <-ctx.Done():
 			return
 		}
+	}
+}
+
+func (handler *routineHandler) waitAfterHarforkBroadcast(ctx context.Context) {
+	timer := time.NewTimer(handler.delayAfterHardforkMessageBroadcast)
+	defer timer.Stop()
+
+	select {
+	case <-timer.C:
+	case <-ctx.Done():
 	}
 }
 
