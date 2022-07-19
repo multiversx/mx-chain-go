@@ -174,18 +174,12 @@ func (sr *subroundEndRound) receivedInvalidSignersInfo(_ context.Context, cnsDta
 		return false
 	}
 
-	if !sr.CanProcessReceivedMessage(cnsDta, sr.RoundHandler().Index(), sr.Current()) {
-		return false
-	}
-
 	if len(cnsDta.InvalidSigners) == 0 {
-		log.Debug("receivedInvalidSignersInfo: no invalid Signers")
 		return false
 	}
 
 	err := sr.verifyInvalidSigners(cnsDta.InvalidSigners)
 	if err != nil {
-		log.Debug("receivedInvalidSignersInfo.verifyInvalidSigner", "error", err.Error())
 		return false
 	}
 
@@ -228,23 +222,17 @@ func (sr *subroundEndRound) verifyInvalidSigner(msg p2p.MessageP2P) error {
 	if err != nil {
 		return err
 	}
-	pubKey := string(cnsMsg.PubKey)
 
-	index, err := sr.ConsensusGroupIndex(pubKey)
+	pubKey, err := sr.KeyGenerator().PublicKeyFromByteArray(cnsMsg.PubKey)
 	if err != nil {
 		return err
 	}
 
-	multiSigner := sr.MultiSigner()
-	sigShare, err := multiSigner.SignatureShare(uint16(index))
-	if err != nil {
-		return err
-	}
-
-	err = multiSigner.VerifySignatureShare(uint16(index), sigShare, sr.GetData(), nil)
+	singleSigner := sr.SingleSigner()
+	err = singleSigner.Verify(pubKey, cnsMsg.BlockHeaderHash, cnsMsg.SignatureShare)
 	if err != nil {
 		log.Debug("confirmed that node provided invalid signature")
-		err = sr.applyBlacklistOnNode(pubKey)
+		err = sr.applyBlacklistOnNode(msg.Peer())
 		if err != nil {
 			return err
 		}
@@ -253,7 +241,7 @@ func (sr *subroundEndRound) verifyInvalidSigner(msg p2p.MessageP2P) error {
 	return nil
 }
 
-func (sr *subroundEndRound) applyBlacklistOnNode(pubKey string) error {
+func (sr *subroundEndRound) applyBlacklistOnNode(peer core.PeerID) error {
 	return nil
 }
 
@@ -371,14 +359,12 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 		return false
 	}
 
-	// broadcast header and final info section
-
-	// create and broadcast header final info
-	sr.createAndBroadcastHeaderFinalInfo()
-
 	if shouldSendInvalidSigners {
 		sr.createAndBroadcastInvalidSigners(invalidSigners)
 	}
+
+	// create and broadcast header final info
+	sr.createAndBroadcastHeaderFinalInfo()
 
 	// broadcast header
 	err = sr.BroadcastMessenger().BroadcastHeader(sr.Header)

@@ -52,6 +52,8 @@ type ConsensusCoreHandler interface {
 	PrivateKey() crypto.PrivateKey
 	// SingleSigner returns the single signer stored in the ConsensusStore used for randomness and leader's signature generation
 	SingleSigner() crypto.SingleSigner
+	// KeyGenerator returns the key generator stored in the ConsensusStore
+	KeyGenerator() crypto.KeyGenerator
 	// PeerHonestyHandler returns the peer honesty handler which will be used in subrounds
 	PeerHonestyHandler() consensus.PeerHonestyHandler
 	// HeaderSigVerifier returns the sig verifier handler which will be used in subrounds

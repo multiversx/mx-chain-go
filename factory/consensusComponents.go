@@ -228,6 +228,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		BlsPrivateKey:                 ccf.cryptoComponents.PrivateKey(),
 		BlsSingleSigner:               ccf.cryptoComponents.BlockSigner(),
 		MultiSigner:                   ccf.cryptoComponents.MultiSigner(),
+		KeyGenerator:                  ccf.cryptoComponents.BlockSignKeyGen(),
 		RoundHandler:                  ccf.processComponents.RoundHandler(),
 		ShardCoordinator:              ccf.processComponents.ShardCoordinator(),
 		NodesCoordinator:              ccf.processComponents.NodesCoordinator(),

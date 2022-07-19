@@ -26,6 +26,7 @@ type ConsensusCore struct {
 	blsPrivateKey                 crypto.PrivateKey
 	blsSingleSigner               crypto.SingleSigner
 	multiSigner                   crypto.MultiSigner
+	keyGenerator                  crypto.KeyGenerator
 	roundHandler                  consensus.RoundHandler
 	shardCoordinator              sharding.Coordinator
 	nodesCoordinator              nodesCoordinator.NodesCoordinator
@@ -52,6 +53,7 @@ type ConsensusCoreArgs struct {
 	BlsPrivateKey                 crypto.PrivateKey
 	BlsSingleSigner               crypto.SingleSigner
 	MultiSigner                   crypto.MultiSigner
+	KeyGenerator                  crypto.KeyGenerator
 	RoundHandler                  consensus.RoundHandler
 	ShardCoordinator              sharding.Coordinator
 	NodesCoordinator              nodesCoordinator.NodesCoordinator
@@ -181,6 +183,11 @@ func (cc *ConsensusCore) PrivateKey() crypto.PrivateKey {
 // SingleSigner returns the bls single signer stored in the ConsensusStore
 func (cc *ConsensusCore) SingleSigner() crypto.SingleSigner {
 	return cc.blsSingleSigner
+}
+
+// KeyGenerator returns the bls key generator stored in the ConsensusStore
+func (cc *ConsensusCore) KeyGenerator() crypto.KeyGenerator {
+	return cc.keyGenerator
 }
 
 // PeerHonestyHandler will return the peer honesty handler which will be used in subrounds
