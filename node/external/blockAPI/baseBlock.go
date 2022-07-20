@@ -50,11 +50,7 @@ type baseAPIBlockProcessor struct {
 var log = logger.GetOrCreate("node/blockAPI")
 
 func (bap *baseAPIBlockProcessor) getIntrashardMiniblocksFromReceiptsStorage(receiptsHash []byte, headerHash []byte, epoch uint32, options api.BlockQueryOptions) ([]*api.MiniBlock, error) {
-	receiptsStorageKey := receiptsHash
-
-	if bytes.Equal(bap.emptyReceiptsHash, receiptsStorageKey) {
-		receiptsStorageKey = headerHash
-	}
+	receiptsStorageKey := bap.getKeyOfIntrashardMiniblocksFromReceiptsStorage(receiptsHash, headerHash)
 
 	batchBytes, err := bap.getFromStorerWithEpoch(dataRetriever.ReceiptsUnit, receiptsStorageKey, epoch)
 	if err != nil {
@@ -64,6 +60,9 @@ func (bap *baseAPIBlockProcessor) getIntrashardMiniblocksFromReceiptsStorage(rec
 
 		return nil, fmt.Errorf("%w (receipts): %v, storageKey = %s", errCannotLoadMiniblocks, err, hex.EncodeToString(receiptsStorageKey))
 	}
+	if len(batchBytes) == 0 {
+		return nil, nil
+	}
 
 	batchWithMbs := &batch.Batch{}
 	err = bap.marshalizer.Unmarshal(batchWithMbs, batchBytes)
@@ -72,6 +71,15 @@ func (bap *baseAPIBlockProcessor) getIntrashardMiniblocksFromReceiptsStorage(rec
 	}
 
 	return bap.convertReceiptsStorageBatchToApiMiniblocks(batchWithMbs, epoch, options)
+}
+
+func (bap *baseAPIBlockProcessor) getKeyOfIntrashardMiniblocksFromReceiptsStorage(receiptsHash []byte, headerHash []byte) []byte {
+	isEmptyReceiptsHash := bytes.Equal(receiptsHash, bap.emptyReceiptsHash)
+	if isEmptyReceiptsHash {
+		return headerHash
+	}
+
+	return receiptsHash
 }
 
 func (bap *baseAPIBlockProcessor) convertReceiptsStorageBatchToApiMiniblocks(batchWithMbs *batch.Batch, epoch uint32, options api.BlockQueryOptions) ([]*api.MiniBlock, error) {
