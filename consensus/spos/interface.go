@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
+	cryptoCommon "github.com/ElrondNetwork/elrond-go/common/crypto"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/ntp"
@@ -37,7 +38,7 @@ type ConsensusCoreHandler interface {
 	// Marshalizer gets the Marshalizer stored in the ConsensusCore
 	Marshalizer() marshal.Marshalizer
 	// MultiSignerContainer gets the MultiSigner container from the ConsensusCore
-	MultiSignerContainer() process.MultiSignerContainer
+	MultiSignerContainer() cryptoCommon.MultiSignerContainer
 	// RoundHandler gets the RoundHandler stored in the ConsensusCore
 	RoundHandler() consensus.RoundHandler
 	// ShardCoordinator gets the ShardCoordinator stored in the ConsensusCore

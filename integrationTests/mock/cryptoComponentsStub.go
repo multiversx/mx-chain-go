@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-crypto"
-	"github.com/ElrondNetwork/elrond-go/factory"
+	cryptoCommon "github.com/ElrondNetwork/elrond-go/common/crypto"
 	"github.com/ElrondNetwork/elrond-go/vm"
 )
 
@@ -18,7 +18,7 @@ type CryptoComponentsStub struct {
 	PubKeyBytes       []byte
 	BlockSig          crypto.SingleSigner
 	TxSig             crypto.SingleSigner
-	MultiSigContainer factory.MultiSignerContainer
+	MultiSigContainer cryptoCommon.MultiSignerContainer
 	PeerSignHandler   crypto.PeerSignatureHandler
 	BlKeyGen          crypto.KeyGenerator
 	TxKeyGen          crypto.KeyGenerator
@@ -76,14 +76,6 @@ func (ccs *CryptoComponentsStub) TxSingleSigner() crypto.SingleSigner {
 	return ccs.TxSig
 }
 
-// MultiSignerContainer -
-func (ccs *CryptoComponentsStub) MultiSignerContainer() factory.MultiSignerContainer {
-	ccs.mutMultiSig.RLock()
-	defer ccs.mutMultiSig.RUnlock()
-
-	return ccs.MultiSigContainer
-}
-
 // PeerSignatureHandler -
 func (ccs *CryptoComponentsStub) PeerSignatureHandler() crypto.PeerSignatureHandler {
 	ccs.mutMultiSig.RLock()
@@ -92,8 +84,16 @@ func (ccs *CryptoComponentsStub) PeerSignatureHandler() crypto.PeerSignatureHand
 	return ccs.PeerSignHandler
 }
 
+// MultiSignerContainer -
+func (ccs *CryptoComponentsStub) MultiSignerContainer() cryptoCommon.MultiSignerContainer {
+	ccs.mutMultiSig.RLock()
+	defer ccs.mutMultiSig.RUnlock()
+
+	return ccs.MultiSigContainer
+}
+
 // SetMultiSignerContainer -
-func (ccs *CryptoComponentsStub) SetMultiSignerContainer(ms factory.MultiSignerContainer) error {
+func (ccs *CryptoComponentsStub) SetMultiSignerContainer(ms cryptoCommon.MultiSignerContainer) error {
 	ccs.mutMultiSig.Lock()
 	ccs.MultiSigContainer = ms
 	ccs.mutMultiSig.Unlock()

@@ -484,3 +484,6 @@ var ErrSignerNotSupported = errors.New("signer not supported")
 
 // ErrMissingMultiSignerConfig signals that the multisigner config is missing
 var ErrMissingMultiSignerConfig = errors.New("multisigner configuration missing")
+
+// ErrNilMultiSignerContainer signals that the multisigner container is nil
+var ErrNilMultiSignerContainer = errors.New("multisigner container is nil")

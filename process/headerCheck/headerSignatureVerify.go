@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	cryptoCommon "github.com/ElrondNetwork/elrond-go/common/crypto"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 )
@@ -23,7 +24,7 @@ type ArgsHeaderSigVerifier struct {
 	Marshalizer             marshal.Marshalizer
 	Hasher                  hashing.Hasher
 	NodesCoordinator        nodesCoordinator.NodesCoordinator
-	MultiSigContainer       process.MultiSignerContainer
+	MultiSigContainer       cryptoCommon.MultiSignerContainer
 	SingleSigVerifier       crypto.SingleSigner
 	KeyGen                  crypto.KeyGenerator
 	FallbackHeaderValidator process.FallbackHeaderValidator
@@ -34,7 +35,7 @@ type HeaderSigVerifier struct {
 	marshalizer             marshal.Marshalizer
 	hasher                  hashing.Hasher
 	nodesCoordinator        nodesCoordinator.NodesCoordinator
-	multiSigContainer       process.MultiSignerContainer
+	multiSigContainer       cryptoCommon.MultiSignerContainer
 	singleSigVerifier       crypto.SingleSigner
 	keyGen                  crypto.KeyGenerator
 	fallbackHeaderValidator process.FallbackHeaderValidator
@@ -72,6 +73,13 @@ func checkArgsHeaderSigVerifier(arguments *ArgsHeaderSigVerifier) error {
 		return process.ErrNilMarshalizer
 	}
 	if check.IfNil(arguments.MultiSigContainer) {
+		return process.ErrNilMultiSignerContainer
+	}
+	multiSigner, err := arguments.MultiSigContainer.GetMultiSigner(0)
+	if err != nil {
+		return err
+	}
+	if check.IfNil(multiSigner) {
 		return process.ErrNilMultiSigVerifier
 	}
 	if check.IfNil(arguments.NodesCoordinator) {

@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-crypto"
-	"github.com/ElrondNetwork/elrond-go/factory"
+	cryptoCommon "github.com/ElrondNetwork/elrond-go/common/crypto"
 	"github.com/ElrondNetwork/elrond-go/vm"
 )
 
@@ -18,7 +18,7 @@ type CryptoComponentsMock struct {
 	PubKeyBytes       []byte
 	BlockSig          crypto.SingleSigner
 	TxSig             crypto.SingleSigner
-	MultiSigContainer factory.MultiSignerContainer
+	MultiSigContainer cryptoCommon.MultiSignerContainer
 	PeerSignHandler   crypto.PeerSignatureHandler
 	BlKeyGen          crypto.KeyGenerator
 	TxKeyGen          crypto.KeyGenerator
@@ -62,19 +62,20 @@ func (ccm *CryptoComponentsMock) TxSingleSigner() crypto.SingleSigner {
 }
 
 // MultiSignerContainer -
-func (ccm *CryptoComponentsMock) MultiSignerContainer() factory.MultiSignerContainer {
+func (ccm *CryptoComponentsMock) MultiSignerContainer() cryptoCommon.MultiSignerContainer {
 	ccm.mutMultiSig.RLock()
 	defer ccm.mutMultiSig.RUnlock()
 
 	return ccm.MultiSigContainer
 }
 
-// PeerSignatureHandler -
-func (ccm *CryptoComponentsMock) PeerSignatureHandler() crypto.PeerSignatureHandler {
-	ccm.mutMultiSig.RLock()
-	defer ccm.mutMultiSig.RUnlock()
+// SetMultiSignerContainer -
+func (ccm *CryptoComponentsMock) SetMultiSignerContainer(ms cryptoCommon.MultiSignerContainer) error {
+	ccm.mutMultiSig.Lock()
+	ccm.MultiSigContainer = ms
+	ccm.mutMultiSig.Unlock()
 
-	return ccm.PeerSignHandler
+	return nil
 }
 
 // GetMultiSigner -
@@ -89,13 +90,12 @@ func (ccm *CryptoComponentsMock) GetMultiSigner(epoch uint32) (crypto.MultiSigne
 	return ccm.MultiSigContainer.GetMultiSigner(epoch)
 }
 
-// SetMultiSignerContainer -
-func (ccm *CryptoComponentsMock) SetMultiSignerContainer(ms factory.MultiSignerContainer) error {
-	ccm.mutMultiSig.Lock()
-	ccm.MultiSigContainer = ms
-	ccm.mutMultiSig.Unlock()
+// PeerSignatureHandler -
+func (ccm *CryptoComponentsMock) PeerSignatureHandler() crypto.PeerSignatureHandler {
+	ccm.mutMultiSig.RLock()
+	defer ccm.mutMultiSig.RUnlock()
 
-	return nil
+	return ccm.PeerSignHandler
 }
 
 // BlockSignKeyGen -

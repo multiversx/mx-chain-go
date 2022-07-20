@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-crypto"
+	cryptoCommon "github.com/ElrondNetwork/elrond-go/common/crypto"
 	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/vm"
@@ -193,28 +194,33 @@ func (mcc *managedCryptoComponents) BlockSigner() crypto.SingleSigner {
 	return mcc.cryptoComponents.blockSingleSigner
 }
 
-// MultiSignerContainer returns the block multi-signer container
-func (mcc *managedCryptoComponents) MultiSignerContainer() factory.MultiSignerContainer {
+// MultiSignerContainer -
+func (mcc *managedCryptoComponents) MultiSignerContainer() cryptoCommon.MultiSignerContainer {
 	mcc.mutCryptoComponents.RLock()
 	defer mcc.mutCryptoComponents.RUnlock()
 
-	if mcc.cryptoComponents == nil {
-		return nil
-	}
-
-	return mcc.cryptoComponents.multiSignerContainer
+	return mcc.multiSignerContainer
 }
 
-// GetMultiSigner returns the block multi signer valid for the given epoch
+// SetMultiSignerContainer -
+func (mcc *managedCryptoComponents) SetMultiSignerContainer(ms cryptoCommon.MultiSignerContainer) error {
+	mcc.mutCryptoComponents.Lock()
+	mcc.multiSignerContainer = ms
+	mcc.mutCryptoComponents.Unlock()
+
+	return nil
+}
+
+// GetMultiSigner -
 func (mcc *managedCryptoComponents) GetMultiSigner(epoch uint32) (crypto.MultiSigner, error) {
 	mcc.mutCryptoComponents.RLock()
 	defer mcc.mutCryptoComponents.RUnlock()
 
-	if mcc.cryptoComponents == nil {
-		return nil, errors.ErrNilCryptoComponents
+	if mcc.multiSignerContainer == nil {
+		return nil, errors.ErrNilMultiSignerContainer
 	}
 
-	return mcc.cryptoComponents.multiSignerContainer.GetMultiSigner(epoch)
+	return mcc.MultiSignerContainer().GetMultiSigner(epoch)
 }
 
 // PeerSignatureHandler returns the peer signature handler
@@ -227,19 +233,6 @@ func (mcc *managedCryptoComponents) PeerSignatureHandler() crypto.PeerSignatureH
 	}
 
 	return mcc.cryptoComponents.peerSignHandler
-}
-
-// SetMultiSignerContainer sets the block multi-signer container
-func (mcc *managedCryptoComponents) SetMultiSignerContainer(ms factory.MultiSignerContainer) error {
-	mcc.mutCryptoComponents.Lock()
-	defer mcc.mutCryptoComponents.Unlock()
-
-	if mcc.cryptoComponents == nil {
-		return errors.ErrNilCryptoComponents
-	}
-
-	mcc.cryptoComponents.multiSignerContainer = ms
-	return nil
 }
 
 // BlockSignKeyGen returns the block signer key generator

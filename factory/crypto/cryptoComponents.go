@@ -19,6 +19,7 @@ import (
 	mclSig "github.com/ElrondNetwork/elrond-go-crypto/signing/mcl/singlesig"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/multisig"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	cryptoCommon "github.com/ElrondNetwork/elrond-go/common/crypto"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/errors"
@@ -72,7 +73,7 @@ type cryptoParams struct {
 type cryptoComponents struct {
 	txSingleSigner       crypto.SingleSigner
 	blockSingleSigner    crypto.SingleSigner
-	multiSignerContainer factory.MultiSignerContainer
+	multiSignerContainer cryptoCommon.MultiSignerContainer
 	peerSignHandler      crypto.PeerSignatureHandler
 	blockSignKeyGen      crypto.KeyGenerator
 	txSignKeyGen         crypto.KeyGenerator
@@ -223,7 +224,7 @@ func (ccf *cryptoComponentsFactory) createMultiSignerContainer(
 	cp *cryptoParams,
 	blSignKeyGen crypto.KeyGenerator,
 	importModeNoSigCheck bool,
-) (factory.MultiSignerContainer, error) {
+) (cryptoCommon.MultiSignerContainer, error) {
 
 	args := MultiSigArgs{
 		hasher:               hasher,

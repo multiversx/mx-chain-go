@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-crypto"
-	"github.com/ElrondNetwork/elrond-go/factory"
+	cryptoCommon "github.com/ElrondNetwork/elrond-go/common/crypto"
 	"github.com/ElrondNetwork/elrond-go/vm"
 )
 
@@ -18,7 +18,7 @@ type CryptoComponentsMock struct {
 	PubKeyBytes       []byte
 	BlockSig          crypto.SingleSigner
 	TxSig             crypto.SingleSigner
-	MultiSigContainer factory.MultiSignerContainer
+	MultiSigContainer cryptoCommon.MultiSignerContainer
 	PeerSignHandler   crypto.PeerSignatureHandler
 	BlKeyGen          crypto.KeyGenerator
 	TxKeyGen          crypto.KeyGenerator
@@ -76,24 +76,16 @@ func (ccm *CryptoComponentsMock) TxSingleSigner() crypto.SingleSigner {
 	return ccm.TxSig
 }
 
-// MultiSigner -
-func (ccm *CryptoComponentsMock) MultiSigner() factory.MultiSignerContainer {
+// MultiSignerContainer -
+func (ccm *CryptoComponentsMock) MultiSignerContainer() cryptoCommon.MultiSignerContainer {
 	ccm.mutMultiSig.RLock()
 	defer ccm.mutMultiSig.RUnlock()
 
 	return ccm.MultiSigContainer
 }
 
-// PeerSignatureHandler -
-func (ccm *CryptoComponentsMock) PeerSignatureHandler() crypto.PeerSignatureHandler {
-	ccm.mutMultiSig.RLock()
-	defer ccm.mutMultiSig.RUnlock()
-
-	return ccm.PeerSignHandler
-}
-
-// SetMultiSigner -
-func (ccm *CryptoComponentsMock) SetMultiSigner(ms factory.MultiSignerContainer) error {
+// SetMultiSignerContainer -
+func (ccm *CryptoComponentsMock) SetMultiSignerContainer(ms cryptoCommon.MultiSignerContainer) error {
 	ccm.mutMultiSig.Lock()
 	ccm.MultiSigContainer = ms
 	ccm.mutMultiSig.Unlock()
@@ -111,6 +103,14 @@ func (ccm *CryptoComponentsMock) GetMultiSigner(epoch uint32) (crypto.MultiSigne
 	}
 
 	return ccm.MultiSigContainer.GetMultiSigner(epoch)
+}
+
+// PeerSignatureHandler -
+func (ccm *CryptoComponentsMock) PeerSignatureHandler() crypto.PeerSignatureHandler {
+	ccm.mutMultiSig.RLock()
+	defer ccm.mutMultiSig.RUnlock()
+
+	return ccm.PeerSignHandler
 }
 
 // BlockSignKeyGen -

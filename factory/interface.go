@@ -16,6 +16,7 @@ import (
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/common"
+	cryptoCommon "github.com/ElrondNetwork/elrond-go/common/crypto"
 	"github.com/ElrondNetwork/elrond-go/common/statistics"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -150,19 +151,13 @@ type CryptoParamsHolder interface {
 	PrivateKeyBytes() []byte
 }
 
-// MultiSignerContainer defines the container for different versioned multiSigner instances
-type MultiSignerContainer interface {
-	GetMultiSigner(epoch uint32) (crypto.MultiSigner, error)
-	IsInterfaceNil() bool
-}
-
 // CryptoComponentsHolder holds the crypto components
 type CryptoComponentsHolder interface {
 	CryptoParamsHolder
 	TxSingleSigner() crypto.SingleSigner
 	BlockSigner() crypto.SingleSigner
-	SetMultiSignerContainer(container MultiSignerContainer) error
-	MultiSignerContainer() MultiSignerContainer
+	SetMultiSignerContainer(container cryptoCommon.MultiSignerContainer) error
+	MultiSignerContainer() cryptoCommon.MultiSignerContainer
 	GetMultiSigner(epoch uint32) (crypto.MultiSigner, error)
 	PeerSignatureHandler() crypto.PeerSignatureHandler
 	BlockSignKeyGen() crypto.KeyGenerator

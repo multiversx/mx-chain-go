@@ -19,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/common"
+	cryptoCommon "github.com/ElrondNetwork/elrond-go/common/crypto"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
@@ -1140,12 +1141,6 @@ type CoreComponentsHolder interface {
 	IsInterfaceNil() bool
 }
 
-// MultiSignerContainer defines the container for different versioned multiSigner instances
-type MultiSignerContainer interface {
-	GetMultiSigner(epoch uint32) (crypto.MultiSigner, error)
-	IsInterfaceNil() bool
-}
-
 // CryptoComponentsHolder holds the crypto components needed by the interceptors
 type CryptoComponentsHolder interface {
 	TxSignKeyGen() crypto.KeyGenerator
@@ -1153,7 +1148,8 @@ type CryptoComponentsHolder interface {
 	TxSingleSigner() crypto.SingleSigner
 	BlockSigner() crypto.SingleSigner
 	GetMultiSigner(epoch uint32) (crypto.MultiSigner, error)
-	SetMultiSignerContainer(ms MultiSignerContainer) error
+	MultiSignerContainer() cryptoCommon.MultiSignerContainer
+	SetMultiSignerContainer(ms cryptoCommon.MultiSignerContainer) error
 	PeerSignatureHandler() crypto.PeerSignatureHandler
 	PublicKey() crypto.PublicKey
 	Clone() interface{}

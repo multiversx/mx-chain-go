@@ -31,6 +31,7 @@ func initConsensusDataContainer() *ConsensusCore {
 	headerSigVerifier := &mock.HeaderSigVerifierStub{}
 	fallbackHeaderValidator := &testscommon.FallBackHeaderValidatorStub{}
 	nodeRedundancyHandler := &mock.NodeRedundancyHandlerStub{}
+	multiSignerContainer := cryptoMocks.NewMultiSignerContainerMock(multiSignerMock)
 
 	return &ConsensusCore{
 		blockChain:              blockChain,
@@ -42,7 +43,7 @@ func initConsensusDataContainer() *ConsensusCore {
 		marshalizer:             marshalizerMock,
 		blsPrivateKey:           blsPrivateKeyMock,
 		blsSingleSigner:         blsSingleSignerMock,
-		multiSignerContainer:    multiSignerMock,
+		multiSignerContainer:    multiSignerContainer,
 		roundHandler:            roundHandlerMock,
 		shardCoordinator:        shardCoordinatorMock,
 		syncTimer:               syncTimerMock,
