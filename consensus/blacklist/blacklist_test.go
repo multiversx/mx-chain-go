@@ -1,0 +1,102 @@
+package blacklist_test
+
+import (
+	"sync"
+	"testing"
+	"time"
+
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go/consensus/blacklist"
+	"github.com/ElrondNetwork/elrond-go/consensus/mock"
+	"github.com/ElrondNetwork/elrond-go/consensus/spos"
+	"github.com/stretchr/testify/require"
+)
+
+func createMockPeerBlacklistArgs() blacklist.PeerBlackListArgs {
+	return blacklist.PeerBlackListArgs{
+		PeerCacher: &mock.PeerBlackListCacherStub{},
+	}
+}
+
+func TestNewPeerBlacklist(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nil peer cacher, should fail", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockPeerBlacklistArgs()
+		args.PeerCacher = nil
+
+		pb, err := blacklist.NewPeerBlacklist(args)
+		require.Nil(t, pb)
+		require.Equal(t, spos.ErrNilPeerBlacklistCacher, err)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockPeerBlacklistArgs()
+		pb, err := blacklist.NewPeerBlacklist(args)
+		require.Nil(t, err)
+		require.False(t, pb.IsInterfaceNil())
+	})
+}
+
+func TestBlacklistPeer(t *testing.T) {
+	t.Parallel()
+
+	args := createMockPeerBlacklistArgs()
+
+	expPeer, _ := core.NewPeerID("peerID")
+
+	hasWasCalled := false
+	upsertWasCalled := false
+	args.PeerCacher = &mock.PeerBlackListCacherStub{
+		HasCalled: func(pid core.PeerID) bool {
+			require.Equal(t, expPeer, pid)
+			hasWasCalled = true
+			return true
+		},
+		UpsertCalled: func(pid core.PeerID, span time.Duration) error {
+			require.Equal(t, expPeer, pid)
+			upsertWasCalled = true
+			return nil
+		},
+	}
+
+	pb, err := blacklist.NewPeerBlacklist(args)
+	require.Nil(t, err)
+
+	duration := 1 * time.Second
+
+	pb.BlacklistPeer(expPeer, duration)
+	require.True(t, hasWasCalled)
+	require.True(t, upsertWasCalled)
+}
+
+func TestStartSweepingTimeCache(t *testing.T) {
+	t.Parallel()
+
+	args := createMockPeerBlacklistArgs()
+
+	wg := &sync.WaitGroup{}
+	wg.Add(1)
+
+	sweepWasCalled := false
+	args.PeerCacher = &mock.PeerBlackListCacherStub{
+		SweepCalled: func() {
+			sweepWasCalled = true
+			wg.Done()
+		},
+	}
+
+	pb, err := blacklist.NewPeerBlacklist(args)
+	require.Nil(t, err)
+
+	pb.StartSweepingTimeCache()
+	defer pb.Close()
+
+	wg.Wait()
+
+	require.True(t, sweepWasCalled)
+}
