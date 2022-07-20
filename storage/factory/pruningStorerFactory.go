@@ -714,7 +714,7 @@ func (psf *StorageServiceFactory) createTriePersister(
 
 	trieDBConfig := GetDBFromConfig(storageConfig.DB)
 	shardID := core.GetShardIDString(psf.shardCoordinator.SelfId())
-	dbPath := psf.pathManager.PathForStatic(shardID, trieDBConfig.FilePath) + shardID
+	dbPath := psf.pathManager.PathForStatic(shardID, storageConfig.DB.FilePath) + shardID
 	trieDBConfig.FilePath = dbPath
 	trieUnit, err := storageUnit.NewStorageUnitFromConf(
 		GetCacherFromConfig(storageConfig.Cache),
