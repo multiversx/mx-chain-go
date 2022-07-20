@@ -4,7 +4,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -32,8 +31,6 @@ type trieCreator struct {
 	trieStorageManagerConfig config.TrieStorageManagerConfig
 }
 
-var log = logger.GetOrCreate("trie")
-
 // NewTrieFactory creates a new trie factory
 func NewTrieFactory(
 	args TrieFactoryArgs,
@@ -58,11 +55,6 @@ func NewTrieFactory(
 
 // Create creates a new trie
 func (tc *trieCreator) Create(args TrieCreateArgs) (common.StorageManager, common.Trie, error) {
-	log.Debug("trie pruning status", "enabled", args.PruningEnabled)
-	if !args.PruningEnabled {
-		return tc.newTrieAndTrieStorageWithoutPruning(args.MainStorer, args.MaxTrieLevelInMem)
-	}
-
 	checkpointHashesHolder := hashesHolder.NewCheckpointHashesHolder(
 		tc.trieStorageManagerConfig.CheckpointHashesHolderMaxSize,
 		uint64(tc.hasher.Size()),
@@ -76,81 +68,17 @@ func (tc *trieCreator) Create(args TrieCreateArgs) (common.StorageManager, commo
 		CheckpointHashesHolder: checkpointHashesHolder,
 		IdleProvider:           args.IdleProvider,
 	}
-
-	log.Debug("trie snapshot status", "enabled", args.SnapshotsEnabled)
-	if !args.SnapshotsEnabled {
-		return tc.newTrieAndTrieStorageWithoutSnapshots(storageManagerArgs, args.MaxTrieLevelInMem)
-	}
-
-	log.Debug("trie checkpoints status", "enabled", args.CheckpointsEnabled)
-	if !args.CheckpointsEnabled {
-		return tc.newTrieAndTrieStorageWithoutCheckpoints(storageManagerArgs, args.MaxTrieLevelInMem)
-	}
-
-	return tc.newTrieAndTrieStorage(storageManagerArgs, args.MaxTrieLevelInMem)
-}
-
-func (tc *trieCreator) newTrieAndTrieStorage(
-	args trie.NewTrieStorageManagerArgs,
-	maxTrieLevelInMem uint,
-) (common.StorageManager, common.Trie, error) {
-	trieStorage, err := trie.NewTrieStorageManager(args)
+	trieStorage, err := trie.CreateTrieStorageManager(
+		storageManagerArgs,
+		args.PruningEnabled,
+		args.SnapshotsEnabled,
+		args.CheckpointsEnabled,
+	)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	newTrie, err := trie.NewTrie(trieStorage, tc.marshalizer, tc.hasher, maxTrieLevelInMem)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return trieStorage, newTrie, nil
-}
-
-func (tc *trieCreator) newTrieAndTrieStorageWithoutSnapshots(
-	args trie.NewTrieStorageManagerArgs,
-	maxTrieLevelInMem uint,
-) (common.StorageManager, common.Trie, error) {
-	trieStorage, err := trie.NewTrieStorageManagerWithoutSnapshot(args)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	newTrie, err := trie.NewTrie(trieStorage, tc.marshalizer, tc.hasher, maxTrieLevelInMem)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return trieStorage, newTrie, nil
-}
-
-func (tc *trieCreator) newTrieAndTrieStorageWithoutCheckpoints(
-	args trie.NewTrieStorageManagerArgs,
-	maxTrieLevelInMem uint,
-) (common.StorageManager, common.Trie, error) {
-	trieStorage, err := trie.NewTrieStorageManagerWithoutCheckpoints(args)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	newTrie, err := trie.NewTrie(trieStorage, tc.marshalizer, tc.hasher, maxTrieLevelInMem)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return trieStorage, newTrie, nil
-}
-
-func (tc *trieCreator) newTrieAndTrieStorageWithoutPruning(
-	accountsTrieStorage common.DBWriteCacher,
-	maxTrieLevelInMem uint,
-) (common.StorageManager, common.Trie, error) {
-	trieStorage, err := trie.NewTrieStorageManagerWithoutPruning(accountsTrieStorage)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	newTrie, err := trie.NewTrie(trieStorage, tc.marshalizer, tc.hasher, maxTrieLevelInMem)
+	newTrie, err := trie.NewTrie(trieStorage, tc.marshalizer, tc.hasher, args.MaxTrieLevelInMem)
 	if err != nil {
 		return nil, nil, err
 	}
