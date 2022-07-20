@@ -39,12 +39,17 @@ func SaveReceipts(args ArgsSaveReceipts) {
 	emptyReceipts := &batch.Batch{Data: make([][]byte, 0)}
 	emptyReceiptsHash, errNotCritical := core.CalculateHash(args.Marshaller, args.Hasher, emptyReceipts)
 	if errNotCritical != nil {
-		log.Warn("SaveReceipts(), error on computeEmptyReceiptsHash()", "error", errNotCritical.Error())
+		log.Warn("SaveReceipts(), error on CalculateHash(emptyReceipts)", "error", errNotCritical.Error())
+		return
 	}
 
 	storerKey := args.Header.GetReceiptsHash()
 	if bytes.Equal(storerKey, emptyReceiptsHash) {
 		storerKey, errNotCritical = core.CalculateHash(args.Marshaller, args.Hasher, args.Header)
+		if errNotCritical != nil {
+			log.Warn("SaveReceipts(), error on CalculateHash(header)", "error", errNotCritical.Error())
+			return
+		}
 	}
 
 	log.Debug("SaveReceipts()", "blockNonce", args.Header.GetNonce(), "storerKey", storerKey)
