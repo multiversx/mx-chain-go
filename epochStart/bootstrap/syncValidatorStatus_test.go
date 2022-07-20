@@ -144,7 +144,7 @@ func TestSyncValidatorStatus_processValidatorChangesFor(t *testing.T) {
 		},
 	}
 	svs.miniBlocksSyncer = &epochStartMocks.PendingMiniBlockSyncHandlerStub{
-		SyncPendingMiniBlocksCalled: func(miniBlockHeaders []data.MiniBlockHeaderHandler, ctx context.Context) error {
+		SyncMiniBlocksCalled: func(miniBlockHeaders []data.MiniBlockHeaderHandler, ctx context.Context) error {
 			return nil
 		},
 		GetMiniBlocksCalled: func() (map[string]*block.MiniBlock, error) {
@@ -214,7 +214,7 @@ func TestSyncValidatorStatus_getPeerBlockBodyForMeta(t *testing.T) {
 
 	svs, _ := NewSyncValidatorStatus(args)
 	svs.miniBlocksSyncer = &epochStartMocks.PendingMiniBlockSyncHandlerStub{
-		SyncPendingMiniBlocksCalled: func(miniBlockHeaders []data.MiniBlockHeaderHandler, ctx context.Context) error {
+		SyncMiniBlocksCalled: func(miniBlockHeaders []data.MiniBlockHeaderHandler, ctx context.Context) error {
 			return nil
 		},
 		GetMiniBlocksCalled: func() (map[string]*block.MiniBlock, error) {

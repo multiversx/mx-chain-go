@@ -23,7 +23,7 @@ import (
 const consensusGroupCacheSize = 50
 
 type syncValidatorStatus struct {
-	miniBlocksSyncer   epochStart.PendingMiniBlocksSyncHandler
+	miniBlocksSyncer   epochStart.MiniBlocksSyncHandler
 	dataPool           dataRetriever.PoolsHolder
 	marshalizer        marshal.Marshalizer
 	requestHandler     process.RequestHandler
@@ -61,14 +61,14 @@ func NewSyncValidatorStatus(args ArgsNewSyncValidatorStatus) (*syncValidatorStat
 		requestHandler:     args.RequestHandler,
 		genesisNodesConfig: args.GenesisNodesConfig,
 	}
-	syncMiniBlocksArgs := sync.ArgsNewPendingMiniBlocksSyncer{
+	syncMiniBlocksArgs := sync.ArgsNewMiniBlocksSyncer{
 		Storage:        disabled.CreateMemUnit(),
 		Cache:          s.dataPool.MiniBlocks(),
 		Marshalizer:    s.marshalizer,
 		RequestHandler: s.requestHandler,
 	}
 	var err error
-	s.miniBlocksSyncer, err = sync.NewPendingMiniBlocksSyncer(syncMiniBlocksArgs)
+	s.miniBlocksSyncer, err = sync.NewMiniBlocksSyncer(syncMiniBlocksArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -197,7 +197,7 @@ func (s *syncValidatorStatus) getPeerBlockBodyForMeta(
 
 	s.miniBlocksSyncer.ClearFields()
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
-	err := s.miniBlocksSyncer.SyncPendingMiniBlocks(shardMBHeaders, ctx)
+	err := s.miniBlocksSyncer.SyncMiniBlocks(shardMBHeaders, ctx)
 	cancel()
 	if err != nil {
 		return nil, nil, err

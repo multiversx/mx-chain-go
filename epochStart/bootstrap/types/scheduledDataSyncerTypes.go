@@ -11,7 +11,7 @@ import (
 type ScheduledDataSyncerCreateArgs struct {
 	ScheduledTxsHandler  process.ScheduledTxsExecutionHandler
 	HeadersSyncer        epochStart.HeadersByHashSyncer
-	MiniBlocksSyncer     epochStart.PendingMiniBlocksSyncHandler
+	MiniBlocksSyncer     epochStart.MiniBlocksSyncHandler
 	TxSyncer             update.TransactionsSyncHandler
 	ScheduledEnableEpoch uint32
 }

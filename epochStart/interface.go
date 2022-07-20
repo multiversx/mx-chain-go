@@ -105,9 +105,9 @@ type HeadersByHashSyncer interface {
 	IsInterfaceNil() bool
 }
 
-// PendingMiniBlocksSyncHandler defines the methods to sync all pending miniblocks
-type PendingMiniBlocksSyncHandler interface {
-	SyncPendingMiniBlocks(miniBlockHeaders []data.MiniBlockHeaderHandler, ctx context.Context) error
+// MiniBlocksSyncHandler defines the methods to sync required miniblocks
+type MiniBlocksSyncHandler interface {
+	SyncMiniBlocks(miniBlockHeaders []data.MiniBlockHeaderHandler, ctx context.Context) error
 	GetMiniBlocks() (map[string]*block.MiniBlock, error)
 	ClearFields()
 	IsInterfaceNil() bool

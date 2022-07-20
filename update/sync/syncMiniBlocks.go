@@ -32,16 +32,16 @@ type pendingMiniBlocks struct {
 	waitTimeBetweenRequests time.Duration
 }
 
-// ArgsNewPendingMiniBlocksSyncer defines the arguments needed for the sycner
-type ArgsNewPendingMiniBlocksSyncer struct {
+// ArgsNewMiniBlocksSyncer defines the arguments needed for the miniblocks syncer
+type ArgsNewMiniBlocksSyncer struct {
 	Storage        storage.Storer
 	Cache          storage.Cacher
 	Marshalizer    marshal.Marshalizer
 	RequestHandler process.RequestHandler
 }
 
-// NewPendingMiniBlocksSyncer creates a syncer for all pending miniblocks
-func NewPendingMiniBlocksSyncer(args ArgsNewPendingMiniBlocksSyncer) (*pendingMiniBlocks, error) {
+// NewMiniBlocksSyncer creates a syncer for all required miniblocks
+func NewMiniBlocksSyncer(args ArgsNewMiniBlocksSyncer) (*pendingMiniBlocks, error) {
 	if check.IfNil(args.Storage) {
 		return nil, dataRetriever.ErrNilHeadersStorage
 	}
@@ -95,16 +95,16 @@ func (p *pendingMiniBlocks) SyncPendingMiniBlocksFromMeta(epochStart data.MetaHe
 	return p.syncMiniBlocks(listPendingMiniBlocks, ctx)
 }
 
-// SyncPendingMiniBlocks will sync the miniblocks for the given epoch start meta block
-func (p *pendingMiniBlocks) SyncPendingMiniBlocks(miniBlockHeaders []data.MiniBlockHeaderHandler, ctx context.Context) error {
+// SyncMiniBlocks will sync the miniblocks for the given miniblocks header handlers
+func (p *pendingMiniBlocks) SyncMiniBlocks(miniBlockHeaders []data.MiniBlockHeaderHandler, ctx context.Context) error {
 	return p.syncMiniBlocks(miniBlockHeaders, ctx)
 }
 
-func (p *pendingMiniBlocks) syncMiniBlocks(listPendingMiniBlocks []data.MiniBlockHeaderHandler, ctx context.Context) error {
+func (p *pendingMiniBlocks) syncMiniBlocks(listMiniBlocks []data.MiniBlockHeaderHandler, ctx context.Context) error {
 	_ = core.EmptyChannel(p.chReceivedAll)
 
 	mapHashesToRequest := make(map[string]uint32)
-	for _, mbHeader := range listPendingMiniBlocks {
+	for _, mbHeader := range listMiniBlocks {
 		mapHashesToRequest[string(mbHeader.GetHash())] = mbHeader.GetSenderShardID()
 	}
 

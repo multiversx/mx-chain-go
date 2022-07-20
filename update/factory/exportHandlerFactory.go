@@ -410,13 +410,13 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 		return nil, err
 	}
 
-	argsMiniBlockSyncer := sync.ArgsNewPendingMiniBlocksSyncer{
+	argsMiniBlockSyncer := sync.ArgsNewMiniBlocksSyncer{
 		Storage:        e.storageService.GetStorer(dataRetriever.MiniBlockUnit),
 		Cache:          e.dataPool.MiniBlocks(),
 		Marshalizer:    e.CoreComponents.InternalMarshalizer(),
 		RequestHandler: e.requestHandler,
 	}
-	epochStartMiniBlocksSyncer, err := sync.NewPendingMiniBlocksSyncer(argsMiniBlockSyncer)
+	epochStartMiniBlocksSyncer, err := sync.NewMiniBlocksSyncer(argsMiniBlockSyncer)
 	if err != nil {
 		return nil, err
 	}

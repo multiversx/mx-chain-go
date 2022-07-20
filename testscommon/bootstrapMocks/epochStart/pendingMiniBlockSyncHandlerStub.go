@@ -9,14 +9,14 @@ import (
 
 // PendingMiniBlockSyncHandlerStub -
 type PendingMiniBlockSyncHandlerStub struct {
-	SyncPendingMiniBlocksCalled func(miniBlockHeaders []data.MiniBlockHeaderHandler, ctx context.Context) error
-	GetMiniBlocksCalled         func() (map[string]*block.MiniBlock, error)
+	SyncMiniBlocksCalled func(miniBlockHeaders []data.MiniBlockHeaderHandler, ctx context.Context) error
+	GetMiniBlocksCalled  func() (map[string]*block.MiniBlock, error)
 }
 
-// SyncPendingMiniBlocks -
-func (pm *PendingMiniBlockSyncHandlerStub) SyncPendingMiniBlocks(miniBlockHeaders []data.MiniBlockHeaderHandler, ctx context.Context) error {
-	if pm.SyncPendingMiniBlocksCalled != nil {
-		return pm.SyncPendingMiniBlocksCalled(miniBlockHeaders, ctx)
+// SyncMiniBlocks -
+func (pm *PendingMiniBlockSyncHandlerStub) SyncMiniBlocks(miniBlockHeaders []data.MiniBlockHeaderHandler, ctx context.Context) error {
+	if pm.SyncMiniBlocksCalled != nil {
+		return pm.SyncMiniBlocksCalled(miniBlockHeaders, ctx)
 	}
 	return nil
 }

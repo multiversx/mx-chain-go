@@ -66,10 +66,10 @@ func createHeaderSyncHandler(retErr bool) update.HeaderSyncHandler {
 	return headersSyncHandler
 }
 
-func createPendingMiniBlocksSyncHandler() update.EpochStartPendingMiniBlocksSyncHandler {
+func createMiniBlocksSyncHandler() update.EpochStartPendingMiniBlocksSyncHandler {
 	txHash := []byte("txHash")
 	mb := &block.MiniBlock{TxHashes: [][]byte{txHash}}
-	args := ArgsNewPendingMiniBlocksSyncer{
+	args := ArgsNewMiniBlocksSyncer{
 		Storage: &storageStubs.StorerStub{},
 		Cache: &testscommon.CacherStub{
 			RegisterHandlerCalled: func(f func(key []byte, val interface{})) {},
@@ -81,8 +81,8 @@ func createPendingMiniBlocksSyncHandler() update.EpochStartPendingMiniBlocksSync
 		RequestHandler: &testscommon.RequestHandlerStub{},
 	}
 
-	pendingMiniBlocksSyncer, _ := NewPendingMiniBlocksSyncer(args)
-	return pendingMiniBlocksSyncer
+	miniBlocksSyncer, _ := NewMiniBlocksSyncer(args)
+	return miniBlocksSyncer
 }
 
 func createPendingTxSyncHandler() update.TransactionsSyncHandler {
@@ -161,7 +161,7 @@ func TestNewSyncState_Ok(t *testing.T) {
 	args := ArgsNewSyncState{
 		Headers:      createHeaderSyncHandler(false),
 		Tries:        createSyncTrieState(false),
-		MiniBlocks:   createPendingMiniBlocksSyncHandler(),
+		MiniBlocks:   createMiniBlocksSyncHandler(),
 		Transactions: createPendingTxSyncHandler(),
 	}
 
@@ -179,7 +179,7 @@ func TestNewSyncState_CannotSyncHeaderErr(t *testing.T) {
 	args := ArgsNewSyncState{
 		Headers:      createHeaderSyncHandler(true),
 		Tries:        createSyncTrieState(false),
-		MiniBlocks:   createPendingMiniBlocksSyncHandler(),
+		MiniBlocks:   createMiniBlocksSyncHandler(),
 		Transactions: createPendingTxSyncHandler(),
 	}
 
@@ -196,7 +196,7 @@ func TestNewSyncState_CannotSyncTriesErr(t *testing.T) {
 	args := ArgsNewSyncState{
 		Headers:      createHeaderSyncHandler(false),
 		Tries:        createSyncTrieState(true),
-		MiniBlocks:   createPendingMiniBlocksSyncHandler(),
+		MiniBlocks:   createMiniBlocksSyncHandler(),
 		Transactions: createPendingTxSyncHandler(),
 	}
 

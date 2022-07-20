@@ -109,7 +109,7 @@ func TestStartInEpochWithScheduledDataSyncer_UpdateSyncDataIfNeededGetMiniBlocks
 	args := createDefaultDataSyncerFactoryArgs()
 	expectedErr := fmt.Errorf("expected error")
 	args.MiniBlocksSyncer = &epochStartMocks.PendingMiniBlockSyncHandlerStub{
-		SyncPendingMiniBlocksCalled: func(miniBlockHeaders []data.MiniBlockHeaderHandler, ctx context.Context) error {
+		SyncMiniBlocksCalled: func(miniBlockHeaders []data.MiniBlockHeaderHandler, ctx context.Context) error {
 			return expectedErr
 		},
 	}
@@ -205,7 +205,7 @@ func TestStartInEpochWithScheduledDataSyncer_getRequiredMiniBlocksByMbHeaderWith
 	args := createDefaultDataSyncerFactoryArgs()
 	expectedErr := fmt.Errorf("expected error")
 	args.MiniBlocksSyncer = &epochStartMocks.PendingMiniBlockSyncHandlerStub{
-		SyncPendingMiniBlocksCalled: func(miniBlockHeaders []data.MiniBlockHeaderHandler, ctx context.Context) error {
+		SyncMiniBlocksCalled: func(miniBlockHeaders []data.MiniBlockHeaderHandler, ctx context.Context) error {
 			return expectedErr
 		},
 	}
@@ -245,7 +245,7 @@ func TestStartInEpochWithScheduledDataSyncer_getRequiredMiniBlocksByMbHeader(t *
 	}
 
 	args.MiniBlocksSyncer = &epochStartMocks.PendingMiniBlockSyncHandlerStub{
-		SyncPendingMiniBlocksCalled: func(miniBlockHeaders []data.MiniBlockHeaderHandler, ctx context.Context) error {
+		SyncMiniBlocksCalled: func(miniBlockHeaders []data.MiniBlockHeaderHandler, ctx context.Context) error {
 			return nil
 		},
 		GetMiniBlocksCalled: func() (map[string]*block.MiniBlock, error) {
@@ -586,7 +586,7 @@ func TestStartInEpochWithScheduledDataSyncer_getScheduledTransactionHashesWithDe
 	}
 	sds := &startInEpochWithScheduledDataSyncer{
 		scheduledMiniBlocksSyncer: &epochStartMocks.PendingMiniBlockSyncHandlerStub{
-			SyncPendingMiniBlocksCalled: func(miniBlockHeaders []data.MiniBlockHeaderHandler, ctx context.Context) error {
+			SyncMiniBlocksCalled: func(miniBlockHeaders []data.MiniBlockHeaderHandler, ctx context.Context) error {
 				for i := range miniBlockHeaders {
 					require.Len(t, miniBlockHeaders[i].GetReserved(), 4)
 				}

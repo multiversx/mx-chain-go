@@ -20,7 +20,7 @@ import (
 type startInEpochWithScheduledDataSyncer struct {
 	scheduledTxsHandler       process.ScheduledTxsExecutionHandler
 	scheduledHeadersSyncer    epochStart.HeadersByHashSyncer
-	scheduledMiniBlocksSyncer epochStart.PendingMiniBlocksSyncHandler
+	scheduledMiniBlocksSyncer epochStart.MiniBlocksSyncHandler
 	txSyncer                  update.TransactionsSyncHandler
 	scheduledEnableEpoch      uint32
 }
@@ -28,7 +28,7 @@ type startInEpochWithScheduledDataSyncer struct {
 func newStartInEpochShardHeaderDataSyncerWithScheduled(
 	scheduledTxsHandler process.ScheduledTxsExecutionHandler,
 	headersSyncer epochStart.HeadersByHashSyncer,
-	miniBlocksSyncer epochStart.PendingMiniBlocksSyncHandler,
+	miniBlocksSyncer epochStart.MiniBlocksSyncHandler,
 	txSyncer update.TransactionsSyncHandler,
 	scheduledEnableEpoch uint32,
 ) (*startInEpochWithScheduledDataSyncer, error) {
@@ -209,7 +209,7 @@ func (ses *startInEpochWithScheduledDataSyncer) getRequiredMiniBlocksByMbHeader(
 ) (map[string]*block.MiniBlock, error) {
 	ses.scheduledMiniBlocksSyncer.ClearFields()
 	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeToWaitForRequestedData)
-	err := ses.scheduledMiniBlocksSyncer.SyncPendingMiniBlocks(mbHeaders, ctx)
+	err := ses.scheduledMiniBlocksSyncer.SyncMiniBlocks(mbHeaders, ctx)
 	cancel()
 	if err != nil {
 		return nil, err

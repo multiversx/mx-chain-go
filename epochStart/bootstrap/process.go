@@ -110,7 +110,7 @@ type epochStartBootstrap struct {
 	requestHandler            process.RequestHandler
 	interceptorContainer      process.InterceptorsContainer
 	dataPool                  dataRetriever.PoolsHolder
-	miniBlocksSyncer          epochStart.PendingMiniBlocksSyncHandler
+	miniBlocksSyncer          epochStart.MiniBlocksSyncHandler
 	headersSyncer             epochStart.HeadersByHashSyncer
 	txSyncerForScheduled      update.TransactionsSyncHandler
 	epochStartMetaBlockSyncer epochStart.StartOfEpochMetaSyncer
@@ -549,13 +549,13 @@ func (e *epochStartBootstrap) createSyncers() error {
 		return err
 	}
 
-	syncMiniBlocksArgs := updateSync.ArgsNewPendingMiniBlocksSyncer{
+	syncMiniBlocksArgs := updateSync.ArgsNewMiniBlocksSyncer{
 		Storage:        disabled.CreateMemUnit(),
 		Cache:          e.dataPool.MiniBlocks(),
 		Marshalizer:    e.coreComponentsHolder.InternalMarshalizer(),
 		RequestHandler: e.requestHandler,
 	}
-	e.miniBlocksSyncer, err = updateSync.NewPendingMiniBlocksSyncer(syncMiniBlocksArgs)
+	e.miniBlocksSyncer, err = updateSync.NewMiniBlocksSyncer(syncMiniBlocksArgs)
 	if err != nil {
 		return err
 	}
@@ -806,7 +806,7 @@ func (e *epochStartBootstrap) requestAndProcessForMeta(peerMiniBlocks []*block.M
 func (e *epochStartBootstrap) getPendingMiniblocks() (map[string]*block.MiniBlock, error) {
 	allPendingMiniblocksHeaders := e.computeAllPendingMiniblocksHeaders()
 	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeToWaitForRequestedData)
-	err := e.miniBlocksSyncer.SyncPendingMiniBlocks(allPendingMiniblocksHeaders, ctx)
+	err := e.miniBlocksSyncer.SyncMiniBlocks(allPendingMiniblocksHeaders, ctx)
 	cancel()
 	if err != nil {
 		return nil, err
@@ -844,7 +844,7 @@ func (e *epochStartBootstrap) requestAndProcessForShard(peerMiniBlocks []*block.
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeToWaitForRequestedData)
-	err = e.miniBlocksSyncer.SyncPendingMiniBlocks(epochStartData.GetPendingMiniBlockHeaderHandlers(), ctx)
+	err = e.miniBlocksSyncer.SyncMiniBlocks(epochStartData.GetPendingMiniBlockHeaderHandlers(), ctx)
 	cancel()
 	if err != nil {
 		return err
@@ -1143,22 +1143,22 @@ func (e *epochStartBootstrap) createRequestHandler() error {
 	//  this one should only be used before determining the correct shard where the node should reside
 	log.Debug("epochStartBootstrap.createRequestHandler", "shard", e.shardCoordinator.SelfId())
 	resolversContainerArgs := resolverscontainer.FactoryArgs{
-		ShardCoordinator:            e.shardCoordinator,
-		Messenger:                   e.messenger,
-		Store:                       storageService,
-		Marshalizer:                 e.coreComponentsHolder.InternalMarshalizer(),
-		DataPools:                   e.dataPool,
-		Uint64ByteSliceConverter:    uint64ByteSlice.NewBigEndianConverter(),
-		NumConcurrentResolvingJobs:  10,
-		DataPacker:                  dataPacker,
-		TriesContainer:              e.trieContainer,
-		SizeCheckDelta:              0,
-		InputAntifloodHandler:       disabled.NewAntiFloodHandler(),
-		OutputAntifloodHandler:      disabled.NewAntiFloodHandler(),
-		CurrentNetworkEpochProvider: disabled.NewCurrentNetworkEpochProviderHandler(),
-		PreferredPeersHolder:        disabled.NewPreferredPeersHolder(),
-		ResolverConfig:              e.generalConfig.Resolvers,
-		PeersRatingHandler:          disabled.NewDisabledPeersRatingHandler(),
+		ShardCoordinator:                     e.shardCoordinator,
+		Messenger:                            e.messenger,
+		Store:                                storageService,
+		Marshalizer:                          e.coreComponentsHolder.InternalMarshalizer(),
+		DataPools:                            e.dataPool,
+		Uint64ByteSliceConverter:             uint64ByteSlice.NewBigEndianConverter(),
+		NumConcurrentResolvingJobs:           10,
+		DataPacker:                           dataPacker,
+		TriesContainer:                       e.trieContainer,
+		SizeCheckDelta:                       0,
+		InputAntifloodHandler:                disabled.NewAntiFloodHandler(),
+		OutputAntifloodHandler:               disabled.NewAntiFloodHandler(),
+		CurrentNetworkEpochProvider:          disabled.NewCurrentNetworkEpochProviderHandler(),
+		PreferredPeersHolder:                 disabled.NewPreferredPeersHolder(),
+		ResolverConfig:                       e.generalConfig.Resolvers,
+		PeersRatingHandler:                   disabled.NewDisabledPeersRatingHandler(),
 		NodesCoordinator:                     disabled.NewNodesCoordinator(),
 		MaxNumOfPeerAuthenticationInResponse: e.generalConfig.HeartbeatV2.MaxNumOfPeerAuthenticationInResponse,
 		PeerShardMapper:                      disabled.NewPeerShardMapper(),
