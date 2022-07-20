@@ -425,7 +425,7 @@ func TestScSendsEsdtToUserWithMessage(t *testing.T) {
 
 	// deploy the smart contract
 
-	vaultScCode := arwen.GetSCCode("../testdata/vaultV1.wasm")
+	vaultScCode := arwen.GetSCCode("../testdata/vault-0.34.0.wasm")
 	vaultScAddress, _ := tokenIssuer.BlockchainHook.NewAddress(tokenIssuer.OwnAccount.Address, tokenIssuer.OwnAccount.Nonce, vmFactory.ArwenVirtualMachine)
 
 	integrationTests.CreateAndSendTransaction(
@@ -801,7 +801,7 @@ func TestCallbackPaymentEgld(t *testing.T) {
 
 	// deploy the smart contracts
 
-	vaultCode := arwen.GetSCCode("../testdata/vaultV1.wasm")
+	vaultCode := arwen.GetSCCode("../testdata/vault-0.34.0.wasm")
 	secondScAddress, _ := tokenIssuer.BlockchainHook.NewAddress(tokenIssuer.OwnAccount.Address, tokenIssuer.OwnAccount.Nonce, vmFactory.ArwenVirtualMachine)
 
 	integrationTests.CreateAndSendTransaction(
@@ -919,7 +919,7 @@ func TestScCallsScWithEsdtCrossShard(t *testing.T) {
 
 	// deploy the smart contracts
 
-	vaultCode := arwen.GetSCCode("../testdata/vaultV1.wasm")
+	vaultCode := arwen.GetSCCode("../testdata/vault-0.34.0.wasm")
 	secondScAddress, _ := tokenIssuer.BlockchainHook.NewAddress(tokenIssuer.OwnAccount.Address, tokenIssuer.OwnAccount.Nonce, vmFactory.ArwenVirtualMachine)
 
 	integrationTests.CreateAndSendTransaction(
