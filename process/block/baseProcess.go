@@ -1270,17 +1270,13 @@ func (bp *baseProcessor) saveBody(body *block.Body, header data.HeaderHandler, h
 		log.Trace("saveBody.Put -> MiniBlockUnit", "time", time.Since(startTime), "hash", miniBlockHash)
 	}
 
-	marshalizedReceipts, errNotCritical := bp.txCoordinator.CreateMarshalizedReceipts()
-	if errNotCritical != nil {
-		log.Warn("saveBody.CreateMarshalizedReceipts", "error", errNotCritical.Error())
-	} else {
-		if len(marshalizedReceipts) > 0 {
-			errNotCritical = bp.store.Put(dataRetriever.ReceiptsUnit, header.GetReceiptsHash(), marshalizedReceipts)
-			if errNotCritical != nil {
-				log.Warn("saveBody.Put -> ReceiptsUnit", "error", errNotCritical.Error())
-			}
-		}
-	}
+	process.SaveReceipts(process.ArgsSaveReceipts{
+		MarshalizedReceiptsProvider: bp.txCoordinator,
+		Marshaller:                  bp.marshalizer,
+		Hasher:                      bp.hasher,
+		Store:                       bp.store,
+		Header:                      header,
+	})
 
 	bp.scheduledTxsExecutionHandler.SaveStateIfNeeded(headerHash)
 

@@ -122,7 +122,7 @@ func (eht *eventsHashesByTxHash) mergeRecordsFromStorageIfExists(
 func (eht *eventsHashesByTxHash) getEventsHashesByTxHash(txHash []byte, epoch uint32) (*ResultsHashesByTxHash, error) {
 	rawBytes, err := eht.storer.GetFromEpoch(txHash, epoch)
 	if err != nil {
-		if isNotFoundInStorageErr(err) {
+		if storage.IsNotFoundInStorageErr(err) {
 			err = fmt.Errorf("%w: %v", ErrNotFoundInStorage, err)
 		}
 

@@ -250,20 +250,13 @@ func (b *baseProcessor) saveMiniBlocks(headerHandler data.HeaderHandler, body *b
 }
 
 func (b *baseProcessor) saveReceipts(headerHandler data.HeaderHandler) {
-	marshalizedReceipts, errNotCritical := b.txCoordinator.CreateMarshalizedReceipts()
-	if errNotCritical != nil {
-		log.Warn("saveReceipts.CreateMarshalizedReceipts",
-			"error", errNotCritical.Error())
-		return
-	}
-
-	if len(marshalizedReceipts) > 0 {
-		errNotCritical = b.storage.Put(dataRetriever.ReceiptsUnit, headerHandler.GetReceiptsHash(), marshalizedReceipts)
-		if errNotCritical != nil {
-			log.Warn("saveReceipts.Put -> ReceiptsUnit",
-				"error", errNotCritical.Error())
-		}
-	}
+	process.SaveReceipts(process.ArgsSaveReceipts{
+		MarshalizedReceiptsProvider: b.txCoordinator,
+		Marshaller:                  b.marshalizer,
+		Hasher:                      b.hasher,
+		Store:                       b.storage,
+		Header:                      headerHandler,
+	})
 }
 
 func (b *baseProcessor) saveTransactions(body *block.Body) {

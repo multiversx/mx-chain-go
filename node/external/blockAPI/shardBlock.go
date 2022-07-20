@@ -120,7 +120,7 @@ func (sbp *shardAPIBlockProcessor) convertShardBlockBytesToAPIBlock(hash []byte,
 		miniblocks = append(miniblocks, miniblockAPI)
 	}
 
-	intraMb, err := sbp.getIntrashardMiniblocksFromReceiptsStorage(blockHeader.GetReceiptsHash(), headerEpoch, options)
+	intraMb, err := sbp.getIntrashardMiniblocksFromReceiptsStorage(blockHeader.GetReceiptsHash(), hash, headerEpoch, options)
 	if err != nil {
 		return nil, err
 	}

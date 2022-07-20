@@ -2,6 +2,7 @@ package storage
 
 import (
 	"errors"
+	"strings"
 )
 
 // ErrNilPersister is raised when a nil persister is provided
@@ -153,3 +154,14 @@ var ErrInvalidDefaultSpan = errors.New("invalid default span")
 
 // ErrInvalidCacheExpiry signals that an invalid cache expiry was provided
 var ErrInvalidCacheExpiry = errors.New("invalid cache expiry")
+
+// IsNotFoundInStorageErr returns whether an error is a "not found in storage" error.
+// Currently, "item not found" storage errors are untyped (thus not distinguishable from others). E.g. see "pruningStorer.go".
+// As a workaround, we test the error message for a match.
+func IsNotFoundInStorageErr(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	return strings.Contains(err.Error(), "not found")
+}

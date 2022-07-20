@@ -19,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/api/shared/logging"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dblookupext"
+	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 // BlockStatus is the status of a block
@@ -48,20 +49,26 @@ type baseAPIBlockProcessor struct {
 
 var log = logger.GetOrCreate("node/blockAPI")
 
-func (bap *baseAPIBlockProcessor) getIntrashardMiniblocksFromReceiptsStorage(receiptsHash []byte, epoch uint32, options api.BlockQueryOptions) ([]*api.MiniBlock, error) {
-	if bytes.Equal(bap.emptyReceiptsHash, receiptsHash) {
-		return nil, nil
+func (bap *baseAPIBlockProcessor) getIntrashardMiniblocksFromReceiptsStorage(receiptsHash []byte, headerHash []byte, epoch uint32, options api.BlockQueryOptions) ([]*api.MiniBlock, error) {
+	receiptsStorageKey := receiptsHash
+
+	if bytes.Equal(bap.emptyReceiptsHash, receiptsStorageKey) {
+		receiptsStorageKey = headerHash
 	}
 
-	batchBytes, err := bap.getFromStorerWithEpoch(dataRetriever.ReceiptsUnit, receiptsHash, epoch)
+	batchBytes, err := bap.getFromStorerWithEpoch(dataRetriever.ReceiptsUnit, receiptsStorageKey, epoch)
 	if err != nil {
-		return nil, fmt.Errorf("%w (receipts): %v, hash = %s", errCannotLoadMiniblocks, err, hex.EncodeToString(receiptsHash))
+		if storage.IsNotFoundInStorageErr(err) {
+			return nil, nil
+		}
+
+		return nil, fmt.Errorf("%w (receipts): %v, storageKey = %s", errCannotLoadMiniblocks, err, hex.EncodeToString(receiptsStorageKey))
 	}
 
 	batchWithMbs := &batch.Batch{}
 	err = bap.marshalizer.Unmarshal(batchWithMbs, batchBytes)
 	if err != nil {
-		return nil, fmt.Errorf("%w (receipts): %v, hash = %s", errCannotUnmarshalMiniblocks, err, hex.EncodeToString(receiptsHash))
+		return nil, fmt.Errorf("%w (receipts): %v, storageKey = %s", errCannotUnmarshalMiniblocks, err, hex.EncodeToString(receiptsStorageKey))
 	}
 
 	return bap.convertReceiptsStorageBatchToApiMiniblocks(batchWithMbs, epoch, options)
