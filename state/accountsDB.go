@@ -157,13 +157,19 @@ func checkArgsAccountsDB(args ArgsAccountsDB) error {
 }
 
 func startSnapshotAfterRestart(adb AccountsAdapter, tsm common.StorageManager) {
+	epoch, err := tsm.GetLatestStorageEpoch()
+	if err != nil {
+		log.Error("could not get latest storage epoch")
+	}
+	if epoch == 0 && err == nil {
+		err = tsm.Put([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal))
+		handleLoggingWhenError("error while putting active DB value into main storer", err)
+		return
+	}
+
 	rootHash, err := tsm.Get([]byte(lastSnapshotStarted))
 	if err != nil {
 		log.Debug("startSnapshotAfterRestart root hash", "error", err)
-
-		err = tsm.Put([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal))
-		handleLoggingWhenError("error while putting active DB value into main storer", err)
-
 		return
 	}
 	log.Debug("snapshot hash after restart", "hash", rootHash)
@@ -173,9 +179,6 @@ func startSnapshotAfterRestart(adb AccountsAdapter, tsm common.StorageManager) {
 		adb.SnapshotState(rootHash)
 		return
 	}
-
-	err = tsm.Put([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal))
-	handleLoggingWhenError("newTrieStorageManager error while putting active DB value into main storer", err)
 }
 
 func handleLoggingWhenError(message string, err error, extraArguments ...interface{}) {
@@ -1131,6 +1134,9 @@ func (adb *AccountsDB) markActiveDBAfterSnapshot(stats *snapshotStatistics, errC
 			"errors during snapshot found", containsErrorDuringSnapshot)
 		return
 	}
+
+	err := trieStorageManager.Remove([]byte(lastSnapshotStarted))
+	handleLoggingWhenError("could not set lastSnapshotStarted", err, "rootHash", rootHash)
 
 	log.Debug("set activeDB in epoch", "epoch", epoch)
 	errPut := trieStorageManager.PutInEpochWithoutCache([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal), epoch)
