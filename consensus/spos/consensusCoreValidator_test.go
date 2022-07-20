@@ -34,6 +34,7 @@ func initConsensusDataContainer() *ConsensusCore {
 	nodeRedundancyHandler := &mock.NodeRedundancyHandlerStub{}
 	scheduledProcessor := &consensusMocks.ScheduledProcessorStub{}
 	messageSigningHandler := &mock.MessageSigningHandlerStub{}
+	peerBlacklistHandler := &mock.PeerBlacklistHandlerStub{}
 
 	return &ConsensusCore{
 		blockChain:              blockChain,
@@ -57,6 +58,7 @@ func initConsensusDataContainer() *ConsensusCore {
 		nodeRedundancyHandler:   nodeRedundancyHandler,
 		scheduledProcessor:      scheduledProcessor,
 		messageSigningHandler:   messageSigningHandler,
+		peerBlacklistHandler:    peerBlacklistHandler,
 	}
 }
 

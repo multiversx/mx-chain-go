@@ -11,19 +11,23 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
+	"github.com/ElrondNetwork/elrond-go/consensus/blacklist"
 	"github.com/ElrondNetwork/elrond-go/consensus/chronology"
+	"github.com/ElrondNetwork/elrond-go/consensus/mock"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
 	"github.com/ElrondNetwork/elrond-go/errors"
-	"github.com/ElrondNetwork/elrond-go/factory/disabled"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/sync"
 	"github.com/ElrondNetwork/elrond-go/process/sync/storageBootstrap"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state/syncer"
+	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/ElrondNetwork/elrond-go/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/update"
 )
+
+const defaultSpan = 300 * time.Second
 
 // ConsensusComponentsFactoryArgs holds the arguments needed to create a consensus components factory
 type ConsensusComponentsFactoryArgs struct {
@@ -217,6 +221,20 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		return nil, err
 	}
 
+	cache := timecache.NewTimeCache(defaultSpan)
+	peerCacher, err := timecache.NewPeerTimeCache(cache)
+	if err != nil {
+		return nil, err
+	}
+	blacklistArgs := blacklist.PeerBlackListArgs{
+		PeerCacher: peerCacher,
+	}
+	peerBlacklistHandler, err := blacklist.NewPeerBlacklist(blacklistArgs)
+	if err != nil {
+		return nil, err
+	}
+	peerBlacklistHandler.StartSweepingTimeCache()
+
 	consensusArgs := &spos.ConsensusCoreArgs{
 		BlockChain:                    ccf.dataComponents.Blockchain(),
 		BlockProcessor:                ccf.processComponents.BlockProcessor(),
@@ -240,7 +258,8 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		FallbackHeaderValidator:       ccf.processComponents.FallbackHeaderValidator(),
 		NodeRedundancyHandler:         ccf.processComponents.NodeRedundancyHandler(),
 		ScheduledProcessor:            ccf.scheduledProcessor,
-		MessageSigningHandler:         &disabled.MessageSigner{},
+		MessageSigningHandler:         &mock.MessageSignerMock{},
+		PeerBlacklistHandler:          peerBlacklistHandler,
 	}
 
 	consensusDataContainer, err := spos.NewConsensusCore(

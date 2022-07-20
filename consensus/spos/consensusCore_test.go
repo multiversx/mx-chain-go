@@ -37,6 +37,7 @@ func createDefaultConsensusCoreArgs() *spos.ConsensusCoreArgs {
 		NodeRedundancyHandler:         consensusCoreMock.NodeRedundancyHandler(),
 		ScheduledProcessor:            scheduledProcessor,
 		MessageSigningHandler:         consensusCoreMock.MessageSigningHandler(),
+		PeerBlacklistHandler:          consensusCoreMock.PeerBlacklistHandler(),
 	}
 	return args
 }

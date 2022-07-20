@@ -228,3 +228,9 @@ var ErrWrongTypeAssertion = errors.New("wrong type assertion")
 
 // ErrNilMessageSigningHandler signals that the provided message signing handler is nil
 var ErrNilMessageSigningHandler = errors.New("nil message signing handler")
+
+// ErrNilPeerBlacklistHandler signals that the provided peer blacklist handler is nil
+var ErrNilPeerBlacklistHandler = errors.New("nil peer blacklist handler")
+
+// ErrNilPeerBlacklistCacher signals that a nil peer blacklist cacher has been provided
+var ErrNilPeerBlacklistCacher = errors.New("nil peer blacklist cacher")

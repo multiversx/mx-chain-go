@@ -160,11 +160,15 @@ func (sr *subroundEndRound) isBlockHeaderFinalInfoValid(cnsDta *consensus.Messag
 func (sr *subroundEndRound) receivedInvalidSignersInfo(_ context.Context, cnsDta *consensus.Message) bool {
 	node := string(cnsDta.PubKey)
 
+	log.Debug("receivedInvalidSignersInfo: START")
+
 	if !sr.IsConsensusDataSet() {
+		log.Debug("receivedInvalidSignersInfo: consensus data is not set")
 		return false
 	}
 
 	if !sr.IsNodeLeaderInCurrentRound(node) { // is NOT this node leader in current round?
+		log.Debug("receivedInvalidSignersInfo: node leader not in current round")
 		sr.PeerHonestyHandler().ChangeScore(
 			node,
 			spos.GetConsensusTopicID(sr.ShardCoordinator()),
@@ -196,6 +200,7 @@ func (sr *subroundEndRound) receivedInvalidSignersInfo(_ context.Context, cnsDta
 }
 
 func (sr *subroundEndRound) verifyInvalidSigners(invalidSigners []byte) error {
+	log.Debug("verifyInvalidSigners", "size invalidSigners", len(invalidSigners))
 	messages, err := sr.MessageSigningHandler().Deserialize(invalidSigners)
 	if err != nil {
 		return err
@@ -204,6 +209,7 @@ func (sr *subroundEndRound) verifyInvalidSigners(invalidSigners []byte) error {
 	for _, msg := range messages {
 		err := sr.verifyInvalidSigner(msg)
 		if err != nil {
+			log.Debug("verifyInvalidSigners: verifyInvalidSigner", "error", err.Error())
 			return err
 		}
 	}
@@ -212,6 +218,7 @@ func (sr *subroundEndRound) verifyInvalidSigners(invalidSigners []byte) error {
 }
 
 func (sr *subroundEndRound) verifyInvalidSigner(msg p2p.MessageP2P) error {
+	log.Debug("verifyInvalidSigner: START")
 	err := sr.MessageSigningHandler().Verify(msg)
 	if err != nil {
 		return err
@@ -242,6 +249,8 @@ func (sr *subroundEndRound) verifyInvalidSigner(msg p2p.MessageP2P) error {
 }
 
 func (sr *subroundEndRound) applyBlacklistOnNode(peer core.PeerID) error {
+	sr.PeerBlacklistHandler().BlacklistPeer(peer, common.InvalidMessageBlacklistDuration)
+
 	return nil
 }
 
@@ -360,6 +369,7 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 	}
 
 	if shouldSendInvalidSigners {
+		log.Debug("doEndRoundJobByLeader", "shouldSendInvalidSigners", shouldSendInvalidSigners)
 		sr.createAndBroadcastInvalidSigners(invalidSigners)
 	}
 
@@ -446,7 +456,7 @@ func (sr *subroundEndRound) verifyNodesOnAggSigVerificationFail() ([]string, err
 			invalidPubKeys = append(invalidPubKeys, pk)
 		}
 
-		log.Trace("verifyNodesOnAggSigVerificationFail: verifying signature share", "public key", pk, "is successfull", isSuccessfull)
+		log.Debug("verifyNodesOnAggSigVerificationFail: verifying signature share", "public key", pk, "is successfull", isSuccessfull)
 	}
 
 	return invalidPubKeys, nil
@@ -456,11 +466,14 @@ func (sr *subroundEndRound) getFullMessagesForInvalidSigners(invalidPubKeys []st
 	shouldSend := false
 	p2pMessages := make([]p2p.MessageP2P, 0)
 
+	log.Debug("getFullMessagesForInvalidSigners", "num invalidPubKeys", len(invalidPubKeys))
+
 	for _, pk := range invalidPubKeys {
 		p2pMsg, ok := sr.GetMessageWithSignature(pk)
 		if !ok {
 			continue
 		}
+		log.Debug("getFullMessagesForInvalidSigners: p2p message was found")
 
 		p2pMessages = append(p2pMessages, p2pMsg)
 		shouldSend = true
@@ -470,6 +483,8 @@ func (sr *subroundEndRound) getFullMessagesForInvalidSigners(invalidPubKeys []st
 	if err != nil {
 		return nil, false, err
 	}
+
+	log.Debug("getFullMessagesForInvalidSigners", "size invalidSigners", len(invalidSigners))
 
 	return invalidSigners, shouldSend, nil
 }
@@ -499,6 +514,8 @@ func (sr *subroundEndRound) computeAggSigOnValidNodes() ([]byte, []byte, error) 
 	if err != nil {
 		return nil, nil, err
 	}
+
+	log.Debug("computeAggSigOnValidNodes: agg sig calculated")
 
 	return bitmap, sig, nil
 }

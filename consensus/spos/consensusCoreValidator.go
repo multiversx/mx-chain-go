@@ -70,6 +70,9 @@ func ValidateConsensusCore(container ConsensusCoreHandler) error {
 	if check.IfNil(container.MessageSigningHandler()) {
 		return ErrNilMessageSigningHandler
 	}
+	if check.IfNil(container.PeerBlacklistHandler()) {
+		return ErrNilPeerBlacklistHandler
+	}
 
 	return nil
 }

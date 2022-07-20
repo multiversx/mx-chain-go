@@ -155,3 +155,9 @@ type P2PSigningHandler interface {
 	Deserialize(messagesBytes []byte) ([]p2p.MessageP2P, error)
 	IsInterfaceNil() bool
 }
+
+// PeerBlacklistHandler defines the behaviour of a component able to blacklist p2p peers
+type PeerBlacklistHandler interface {
+	BlacklistPeer(peer core.PeerID, duration time.Duration)
+	IsInterfaceNil() bool
+}
