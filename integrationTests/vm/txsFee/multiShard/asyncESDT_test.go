@@ -136,7 +136,7 @@ func TestAsyncESDTTransferWithSCCallShouldWork(t *testing.T) {
 
 	utils.ProcessSCRResult(t, testContextFirstContract, intermediateTxs[1], vmcommon.Ok, nil)
 
-	require.Equal(t, big.NewInt(278300), testContextFirstContract.TxFeeHandler.GetAccumulatedFees())
+	require.Equal(t, big.NewInt(4936720), testContextFirstContract.TxFeeHandler.GetAccumulatedFees())
 }
 
 func TestAsyncESDTTransferWithSCCallSecondContractAnotherToken(t *testing.T) {
@@ -254,5 +254,5 @@ func TestAsyncESDTTransferWithSCCallSecondContractAnotherToken(t *testing.T) {
 
 	utils.ProcessSCRResult(t, testContextFirstContract, intermediateTxs[0], vmcommon.Ok, nil)
 
-	require.Equal(t, big.NewInt(278310), testContextFirstContract.TxFeeHandler.GetAccumulatedFees())
+	require.Equal(t, big.NewInt(1278290), testContextFirstContract.TxFeeHandler.GetAccumulatedFees())
 }

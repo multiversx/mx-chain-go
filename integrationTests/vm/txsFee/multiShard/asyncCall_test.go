@@ -122,8 +122,8 @@ func TestAsyncCallShouldWork(t *testing.T) {
 	scr = intermediateTxs[0]
 	utils.ProcessSCRResult(t, testContextSecondContract, scr, vmcommon.Ok, nil)
 
-	require.Equal(t, big.NewInt(3680), testContextSecondContract.TxFeeHandler.GetAccumulatedFees())
-	require.Equal(t, big.NewInt(368), testContextSecondContract.TxFeeHandler.GetDeveloperFees())
+	require.Equal(t, big.NewInt(49993150), testContextSecondContract.TxFeeHandler.GetAccumulatedFees())
+	require.Equal(t, big.NewInt(4999315), testContextSecondContract.TxFeeHandler.GetDeveloperFees())
 
 	intermediateTxs = testContextSecondContract.GetIntermediateTransactions(t)
 	require.NotNil(t, intermediateTxs)
