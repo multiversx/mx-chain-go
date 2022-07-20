@@ -7,6 +7,7 @@ import (
 	"math/big"
 	"testing"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -66,7 +67,7 @@ func TestBridgeSetupAndBurn(t *testing.T) {
 	nonce++
 
 	tokenManagerPath := "../testdata/polynetworkbridge/esdt_token_manager.wasm"
-
+	_ = logger.SetLogLevel("process/smartcontract:TRACE,arwen:TRACE,gasTrace:TRACE")
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 2, nonce, round, idxProposers)
 
 	blockChainHook := ownerNode.BlockchainHook
@@ -106,7 +107,7 @@ func TestBridgeSetupAndBurn(t *testing.T) {
 		txData,
 		integrationTests.AdditionalGasLimit,
 	)
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 6, nonce, round, idxProposers)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 8, nonce, round, idxProposers)
 
 	scQuery := &process.SCQuery{
 		CallerAddr: ownerNode.OwnAccount.Address,
