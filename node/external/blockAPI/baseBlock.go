@@ -1,7 +1,6 @@
 package blockAPI
 
 import (
-	"bytes"
 	"encoding/hex"
 	"fmt"
 	"time"
@@ -19,7 +18,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/api/shared/logging"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dblookupext"
-	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 // BlockStatus is the status of a block
@@ -50,36 +48,12 @@ type baseAPIBlockProcessor struct {
 var log = logger.GetOrCreate("node/blockAPI")
 
 func (bap *baseAPIBlockProcessor) getIntrashardMiniblocksFromReceiptsStorage(receiptsHash []byte, headerHash []byte, epoch uint32, options api.BlockQueryOptions) ([]*api.MiniBlock, error) {
-	receiptsStorageKey := bap.getKeyOfIntrashardMiniblocksFromReceiptsStorage(receiptsHash, headerHash)
-
-	batchBytes, err := bap.getFromStorerWithEpoch(dataRetriever.ReceiptsUnit, receiptsStorageKey, epoch)
+	batchWithMbs, err := bap.getReceiptsBatch(receiptsHash, headerHash, epoch, options)
 	if err != nil {
-		if storage.IsNotFoundInStorageErr(err) {
-			return nil, nil
-		}
-
-		return nil, fmt.Errorf("%w (receipts): %v, storageKey = %s", errCannotLoadMiniblocks, err, hex.EncodeToString(receiptsStorageKey))
-	}
-	if len(batchBytes) == 0 {
-		return nil, nil
-	}
-
-	batchWithMbs := &batch.Batch{}
-	err = bap.marshalizer.Unmarshal(batchWithMbs, batchBytes)
-	if err != nil {
-		return nil, fmt.Errorf("%w (receipts): %v, storageKey = %s", errCannotUnmarshalMiniblocks, err, hex.EncodeToString(receiptsStorageKey))
+		return nil, err
 	}
 
 	return bap.convertReceiptsStorageBatchToApiMiniblocks(batchWithMbs, epoch, options)
-}
-
-func (bap *baseAPIBlockProcessor) getKeyOfIntrashardMiniblocksFromReceiptsStorage(receiptsHash []byte, headerHash []byte) []byte {
-	isEmptyReceiptsHash := bytes.Equal(receiptsHash, bap.emptyReceiptsHash)
-	if isEmptyReceiptsHash {
-		return headerHash
-	}
-
-	return receiptsHash
 }
 
 func (bap *baseAPIBlockProcessor) convertReceiptsStorageBatchToApiMiniblocks(batchWithMbs *batch.Batch, epoch uint32, options api.BlockQueryOptions) ([]*api.MiniBlock, error) {
