@@ -213,6 +213,9 @@ func TestPeerAccountsDB_NewAccountsDbStartsSnapshotAfterRestart(t *testing.T) {
 					takeSnapshotCalled = true
 					mutex.Unlock()
 				},
+				GetLatestStorageEpochCalled: func() (uint32, error) {
+					return 1, nil
+				},
 			}
 		},
 	}
