@@ -47,7 +47,7 @@ func TestSaveMiniBlocksFromComponents(t *testing.T) {
 			"mb1": mb1,
 			"mb2": mb2,
 		},
-		PeerMiniBlocks: []*block.MiniBlock{mb3, mb4},
+		AllMiniBlocks: []*block.MiniBlock{mb3, mb4},
 	}
 
 	receivedMiniblocks := make(map[string]*block.MiniBlock)

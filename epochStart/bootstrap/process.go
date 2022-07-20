@@ -74,7 +74,7 @@ type ComponentsNeededForBootstrap struct {
 	Headers             map[string]data.HeaderHandler
 	ShardCoordinator    sharding.Coordinator
 	PendingMiniBlocks   map[string]*block.MiniBlock
-	PeerMiniBlocks      []*block.MiniBlock
+	AllMiniBlocks       []*block.MiniBlock
 }
 
 // epochStartBootstrap will handle requesting the needed data to start when joining late the network
@@ -778,12 +778,12 @@ func (e *epochStartBootstrap) requestAndProcessForMeta(peerMiniBlocks []*block.M
 		return err
 	}
 
-	pendingMiniBlocks, err := e.getPendingMiniblocks()
+	pendingMiniBlocks, err := e.syncMiniBlocks(e.computeAllPendingMiniblocksHeaders())
 	if err != nil {
 		return err
 	}
 
-	log.Debug("start in epoch bootstrap: GetMiniBlocks", "num synced", len(pendingMiniBlocks))
+	log.Debug("start in epoch bootstrap: syncMiniBlocks (all pending)", "num synced", len(pendingMiniBlocks))
 
 	components := &ComponentsNeededForBootstrap{
 		EpochStartMetaBlock: e.epochStartMeta,
@@ -792,7 +792,7 @@ func (e *epochStartBootstrap) requestAndProcessForMeta(peerMiniBlocks []*block.M
 		Headers:             e.syncedHeaders,
 		ShardCoordinator:    e.shardCoordinator,
 		PendingMiniBlocks:   pendingMiniBlocks,
-		PeerMiniBlocks:      peerMiniBlocks,
+		AllMiniBlocks:       peerMiniBlocks,
 	}
 
 	errSavingToStorage := storageHandlerComponent.SaveDataToStorage(components)
@@ -803,10 +803,11 @@ func (e *epochStartBootstrap) requestAndProcessForMeta(peerMiniBlocks []*block.M
 	return nil
 }
 
-func (e *epochStartBootstrap) getPendingMiniblocks() (map[string]*block.MiniBlock, error) {
-	allPendingMiniblocksHeaders := e.computeAllPendingMiniblocksHeaders()
+func (e *epochStartBootstrap) syncMiniBlocks(miniblocksHeaders []data.MiniBlockHeaderHandler) (map[string]*block.MiniBlock, error) {
+	e.miniBlocksSyncer.ClearFields()
+
 	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeToWaitForRequestedData)
-	err := e.miniBlocksSyncer.SyncMiniBlocks(allPendingMiniblocksHeaders, ctx)
+	err := e.miniBlocksSyncer.SyncMiniBlocks(miniblocksHeaders, ctx)
 	cancel()
 	if err != nil {
 		return nil, err
@@ -843,18 +844,11 @@ func (e *epochStartBootstrap) requestAndProcessForShard(peerMiniBlocks []*block.
 		return err
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeToWaitForRequestedData)
-	err = e.miniBlocksSyncer.SyncMiniBlocks(epochStartData.GetPendingMiniBlockHeaderHandlers(), ctx)
-	cancel()
+	pendingMiniBlocks, err := e.syncMiniBlocks(epochStartData.GetPendingMiniBlockHeaderHandlers())
 	if err != nil {
 		return err
 	}
-
-	pendingMiniBlocks, err := e.miniBlocksSyncer.GetMiniBlocks()
-	if err != nil {
-		return err
-	}
-	log.Debug("start in epoch bootstrap: GetMiniBlocks", "num synced", len(pendingMiniBlocks))
+	log.Debug("start in epoch bootstrap: syncMiniBlocks (pending)", "num synced", len(pendingMiniBlocks))
 
 	shardIds := []uint32{
 		core.MetachainShardId,
@@ -868,7 +862,7 @@ func (e *epochStartBootstrap) requestAndProcessForShard(peerMiniBlocks []*block.
 	}
 
 	e.headersSyncer.ClearFields()
-	ctx, cancel = context.WithTimeout(context.Background(), DefaultTimeToWaitForRequestedData)
+	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeToWaitForRequestedData)
 	err = e.headersSyncer.SyncMissingHeadersByHash(shardIds, hashesToRequest, ctx)
 	cancel()
 	if err != nil {
@@ -901,6 +895,16 @@ func (e *epochStartBootstrap) requestAndProcessForShard(peerMiniBlocks []*block.
 	for hash, hdr := range dts.additionalHeaders {
 		e.syncedHeaders[hash] = hdr
 	}
+
+	involvedMiniBlocksHeaders := createListOfMiniBlockHeadersFromHeaders(e.syncedHeaders)
+	syncedMiniBlocks, err := e.syncMiniBlocks(involvedMiniBlocksHeaders)
+	if err != nil {
+		return err
+	}
+	log.Debug("start in epoch bootstrap: syncMiniBlocks (all involved mini blocks)", "num synced", len(pendingMiniBlocks))
+
+	allInvolvedMiniBlocks := createListOfMiniBlocks(syncedMiniBlocks)
+	allInvolvedMiniBlocks = append(allInvolvedMiniBlocks, peerMiniBlocks...)
 
 	storageHandlerComponent, err := NewShardStorageHandler(
 		e.generalConfig,
@@ -947,7 +951,7 @@ func (e *epochStartBootstrap) requestAndProcessForShard(peerMiniBlocks []*block.
 		Headers:             e.syncedHeaders,
 		ShardCoordinator:    e.shardCoordinator,
 		PendingMiniBlocks:   pendingMiniBlocks,
-		PeerMiniBlocks:      peerMiniBlocks,
+		AllMiniBlocks:       allInvolvedMiniBlocks,
 	}
 
 	errSavingToStorage := storageHandlerComponent.SaveDataToStorage(components, shardNotarizedHeader, dts.withScheduled)
@@ -956,6 +960,24 @@ func (e *epochStartBootstrap) requestAndProcessForShard(peerMiniBlocks []*block.
 	}
 
 	return nil
+}
+
+func createListOfMiniBlocks(mapOfMiniBlocks map[string]*block.MiniBlock) []*block.MiniBlock {
+	result := make([]*block.MiniBlock, 0, len(mapOfMiniBlocks))
+	for _, mb := range mapOfMiniBlocks {
+		result = append(result, mb)
+	}
+
+	return result
+}
+
+func createListOfMiniBlockHeadersFromHeaders(headers map[string]data.HeaderHandler) []data.MiniBlockHeaderHandler {
+	miniBlockHeaders := make([]data.MiniBlockHeaderHandler, 0)
+	for _, hdr := range headers {
+		miniBlockHeaders = append(miniBlockHeaders, hdr.GetMiniBlockHeaderHandlers()...)
+	}
+
+	return miniBlockHeaders
 }
 
 func (e *epochStartBootstrap) getDataToSync(

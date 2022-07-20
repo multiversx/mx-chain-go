@@ -179,11 +179,11 @@ func (bsh *baseStorageHandler) saveMiniblocksFromComponents(components *Componen
 	log.Debug("saving pending miniblocks", "num pending miniblocks", len(components.PendingMiniBlocks))
 	bsh.saveMiniblocks(components.PendingMiniBlocks)
 
-	peerMiniblocksMap := bsh.convertPeerMiniblocks(components.PeerMiniBlocks)
-	log.Debug("saving peer miniblocks",
-		"num peer miniblocks in slice", len(components.PeerMiniBlocks),
-		"num peer miniblocks in map", len(peerMiniblocksMap))
-	bsh.saveMiniblocks(peerMiniblocksMap)
+	allMiniblocksMap := bsh.convertPeerMiniblocks(components.AllMiniBlocks)
+	log.Debug("saving miniblocks",
+		"num miniblocks in slice", len(components.AllMiniBlocks),
+		"num miniblocks in map", len(allMiniblocksMap))
+	bsh.saveMiniblocks(allMiniblocksMap)
 }
 
 func (bsh *baseStorageHandler) convertPeerMiniblocks(slice []*block.MiniBlock) map[string]*block.MiniBlock {
