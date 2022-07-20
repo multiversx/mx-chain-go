@@ -1,16 +1,20 @@
-package sync
+package metricsLoader
 
 import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/metrics"
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/statusHandler/persister"
 )
 
-func updateMetricsFromStorage(
+var log = logger.GetOrCreate("sync/storageBootstrap/metricsLoader")
+
+// UpdateMetricsFromStorage will read the persistent metrics by using the persisted ones
+func UpdateMetricsFromStorage(
 	store dataRetriever.StorageService,
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter,
 	marshalizer marshal.Marshalizer,
@@ -18,6 +22,8 @@ func updateMetricsFromStorage(
 	nonce uint64,
 ) (numTxs uint64, numHdrs uint64) {
 	uint64Metrics, stringMetrics := loadMetricsFromDb(store, uint64ByteSliceConverter, marshalizer, nonce)
+
+	log.Debug("loaded metrics from storage", "uint64 metrics", uint64Metrics, "string metrics", stringMetrics)
 
 	saveUint64Metrics(statusHandler, uint64Metrics)
 	saveStringMetrics(statusHandler, stringMetrics)
