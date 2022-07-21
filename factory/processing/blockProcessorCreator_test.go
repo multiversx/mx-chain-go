@@ -10,7 +10,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	dataComp "github.com/ElrondNetwork/elrond-go/factory/data"
 	"github.com/ElrondNetwork/elrond-go/factory/mock"
-	componentsMock "github.com/ElrondNetwork/elrond-go/factory/mock/components"
 	processComp "github.com/ElrondNetwork/elrond-go/factory/processing"
 	"github.com/ElrondNetwork/elrond-go/process/txsimulator"
 	"github.com/ElrondNetwork/elrond-go/state"
@@ -18,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager/disabled"
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	componentsMock "github.com/ElrondNetwork/elrond-go/testscommon/components"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/ElrondNetwork/elrond-go/trie"
@@ -143,7 +143,7 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 		networkComponents,
 	)
 
-	_ = args.BootstrapComponents.SetShardCoordinator(shardC)
+	componentsMock.SetShardCoordinator(t, args.BootstrapComponents, shardC)
 
 	pcf, _ := processComp.NewProcessComponentsFactory(args)
 	require.NotNil(t, pcf)

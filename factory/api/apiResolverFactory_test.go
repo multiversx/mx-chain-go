@@ -8,9 +8,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/factory/api"
 	"github.com/ElrondNetwork/elrond-go/factory/bootstrap"
 	"github.com/ElrondNetwork/elrond-go/factory/mock"
-	componentsMock "github.com/ElrondNetwork/elrond-go/factory/mock/components"
 	"github.com/ElrondNetwork/elrond-go/process/sync/disabled"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	componentsMock "github.com/ElrondNetwork/elrond-go/testscommon/components"
 	"github.com/stretchr/testify/require"
 )
 

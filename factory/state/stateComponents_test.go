@@ -5,8 +5,8 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/factory/mock"
-	componentsMock "github.com/ElrondNetwork/elrond-go/factory/mock/components"
 	stateComp "github.com/ElrondNetwork/elrond-go/factory/state"
+	componentsMock "github.com/ElrondNetwork/elrond-go/testscommon/components"
 	"github.com/stretchr/testify/require"
 )
 

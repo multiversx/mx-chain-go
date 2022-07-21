@@ -3,6 +3,7 @@ package components
 import (
 	"fmt"
 	"math/big"
+	"testing"
 	"time"
 
 	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/v1_4/config"
@@ -41,6 +42,7 @@ import (
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
+	"github.com/stretchr/testify/require"
 )
 
 var log = logger.GetOrCreate("componentsMock")
@@ -520,7 +522,7 @@ func GetProcessArgs(
 
 	bootstrapComponentsFactoryArgs := GetBootStrapFactoryArgs()
 	bootstrapComponentsFactory, _ := bootstrapComp.NewBootstrapComponentsFactory(bootstrapComponentsFactoryArgs)
-	bootstrapComponents, _ := bootstrapComp.NewManagedBootstrapComponents(bootstrapComponentsFactory)
+	bootstrapComponents, _ := bootstrapComp.NewTestManagedBootstrapComponents(bootstrapComponentsFactory)
 	_ = bootstrapComponents.Create()
 	_ = bootstrapComponents.SetShardCoordinator(shardCoordinator)
 
@@ -863,4 +865,16 @@ func FillGasMapMetaChainSystemSCsCosts(value uint64) map[string]uint64 {
 	gasMap["FixWaitingListSize"] = value
 
 	return gasMap
+}
+
+// SetShardCoordinator -
+func SetShardCoordinator(t *testing.T, bootstrapComponents factory.BootstrapComponentsHolder, coordinator sharding.Coordinator) {
+	type testBootstrapComponents interface {
+		SetShardCoordinator(shardCoordinator sharding.Coordinator) error
+	}
+
+	testBootstrap, ok := bootstrapComponents.(testBootstrapComponents)
+	require.True(t, ok)
+
+	_ = testBootstrap.SetShardCoordinator(coordinator)
 }

@@ -5,7 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	coreComp "github.com/ElrondNetwork/elrond-go/factory/core"
-	componentsMock "github.com/ElrondNetwork/elrond-go/factory/mock/components"
+	componentsMock "github.com/ElrondNetwork/elrond-go/testscommon/components"
 	"github.com/stretchr/testify/require"
 )
 

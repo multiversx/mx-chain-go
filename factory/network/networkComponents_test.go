@@ -6,9 +6,9 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	errErd "github.com/ElrondNetwork/elrond-go/errors"
-	componentsMock "github.com/ElrondNetwork/elrond-go/factory/mock/components"
 	networkComp "github.com/ElrondNetwork/elrond-go/factory/network"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
+	componentsMock "github.com/ElrondNetwork/elrond-go/testscommon/components"
 	"github.com/stretchr/testify/require"
 )
 

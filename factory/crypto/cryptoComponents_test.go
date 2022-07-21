@@ -11,7 +11,7 @@ import (
 	errErd "github.com/ElrondNetwork/elrond-go/errors"
 	cryptoComp "github.com/ElrondNetwork/elrond-go/factory/crypto"
 	"github.com/ElrondNetwork/elrond-go/factory/mock"
-	componentsMock "github.com/ElrondNetwork/elrond-go/factory/mock/components"
+	componentsMock "github.com/ElrondNetwork/elrond-go/testscommon/components"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/require"
 )

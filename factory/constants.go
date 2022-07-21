@@ -1,15 +1,26 @@
 package factory
 
 const (
-	BootstrapComponentsName   = "managedBootstrapComponents"
-	ConsensusComponentsName   = "managedConsensusComponents"
-	CoreComponentsName        = "managedCoreComponents"
-	CryptoComponentsName      = "managedCryptoComponents"
-	DataComponentsName        = "managedDataComponents"
-	HeartbeatComponentsName   = "managedHeartbeatComponents"
+	// BootstrapComponentsName is the bootstrap components identifier
+	BootstrapComponentsName = "managedBootstrapComponents"
+	// ConsensusComponentsName is the consensus components identifier
+	ConsensusComponentsName = "managedConsensusComponents"
+	// CoreComponentsName is the core components identifier
+	CoreComponentsName = "managedCoreComponents"
+	// CryptoComponentsName is the crypto components identifier
+	CryptoComponentsName = "managedCryptoComponents"
+	// DataComponentsName is the data components identifier
+	DataComponentsName = "managedDataComponents"
+	// HeartbeatComponentsName is the heartbeat components identifier
+	HeartbeatComponentsName = "managedHeartbeatComponents"
+	// HeartbeatV2ComponentsName is the heartbeat V2 components identifier
 	HeartbeatV2ComponentsName = "managedHeartbeatV2Components"
-	NetworkComponentsName     = "managedNetworkComponents"
-	ProcessComponentsName     = "managedProcessComponents"
-	StateComponentsName       = "managedStateComponents"
-	StatusComponentsName      = "managedStatusComponents"
+	// NetworkComponentsName is the network components identifier
+	NetworkComponentsName = "managedNetworkComponents"
+	// ProcessComponentsName is the process components identifier
+	ProcessComponentsName = "managedProcessComponents"
+	// StateComponentsName is the state components identifier
+	StateComponentsName = "managedStateComponents"
+	// StatusComponentsName is the status components identifier
+	StatusComponentsName = "managedStatusComponents"
 )

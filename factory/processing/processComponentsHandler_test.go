@@ -6,8 +6,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/factory/mock"
-	componentsMock "github.com/ElrondNetwork/elrond-go/factory/mock/components"
 	processComp "github.com/ElrondNetwork/elrond-go/factory/processing"
+	componentsMock "github.com/ElrondNetwork/elrond-go/testscommon/components"
 	"github.com/stretchr/testify/require"
 )
 
@@ -62,7 +62,7 @@ func TestManagedProcessComponents_CreateShouldWork(t *testing.T) {
 		networkComponents,
 	)
 
-	_ = processArgs.BootstrapComponents.SetShardCoordinator(shardCoordinator)
+	componentsMock.SetShardCoordinator(t, processArgs.BootstrapComponents, shardCoordinator)
 
 	processComponentsFactory, err := processComp.NewProcessComponentsFactory(processArgs)
 	require.Nil(t, err)
