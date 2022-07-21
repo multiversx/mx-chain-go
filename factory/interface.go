@@ -497,3 +497,9 @@ type LogsFacade interface {
 	IncludeLogsInTransactions(txs []*transaction.ApiTransactionResult, logsKeys [][]byte, epoch uint32) error
 	IsInterfaceNil() bool
 }
+
+// ReceiptsRepository defines the interface of a receiptsRepository
+type ReceiptsRepository interface {
+	LoadReceipts(header data.HeaderHandler, headerHash []byte) (*process.ReceiptsHolder, error)
+	IsInterfaceNil() bool
+}
