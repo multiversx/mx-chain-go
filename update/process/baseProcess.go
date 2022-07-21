@@ -21,6 +21,7 @@ type baseProcessor struct {
 	shardCoordinator   sharding.Coordinator
 	storage            dataRetriever.StorageService
 	txCoordinator      process.TransactionCoordinator
+	receiptsRepository receiptsRepository
 	selfShardID        uint32
 }
 
@@ -256,14 +257,11 @@ func (b *baseProcessor) saveReceipts(headerHandler data.HeaderHandler) {
 		return
 	}
 
-	process.SaveReceipts(process.ArgsSaveReceipts{
-		MarshalizedReceiptsProvider: b.txCoordinator,
-		Marshaller:                  b.marshalizer,
-		Hasher:                      b.hasher,
-		Store:                       b.storage,
-		Header:                      headerHandler,
-		HeaderHash:                  headerHash,
-	})
+	receiptsHolder := &process.ReceiptsHolder{Miniblocks: b.txCoordinator.GetCreatedInShardMiniBlocks()}
+	errNotCritical = b.receiptsRepository.SaveReceipts(receiptsHolder, headerHandler, headerHash)
+	if errNotCritical != nil {
+		log.Warn("saveReceipts(), error on receiptsRepository.SaveReceipts()", "error", errNotCritical.Error())
+	}
 }
 
 func (b *baseProcessor) saveTransactions(body *block.Body) {
@@ -325,6 +323,7 @@ func checkBlockCreatorAfterHardForkNilParameters(
 	shardCoordinator sharding.Coordinator,
 	storage dataRetriever.StorageService,
 	txCoordinator process.TransactionCoordinator,
+	receiptsRepository receiptsRepository,
 ) error {
 	if check.IfNil(hasher) {
 		return update.ErrNilHasher
@@ -346,6 +345,9 @@ func checkBlockCreatorAfterHardForkNilParameters(
 	}
 	if check.IfNil(txCoordinator) {
 		return update.ErrNilTxCoordinator
+	}
+	if check.IfNil(receiptsRepository) {
+		return update.ErrNilReceiptsRepository
 	}
 
 	return nil

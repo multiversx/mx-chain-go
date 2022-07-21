@@ -101,6 +101,7 @@ type baseProcessor struct {
 	lastRestartNonce               uint64
 	pruningDelay                   uint32
 	processedMiniBlocksTracker     process.ProcessedMiniBlocksTracker
+	receiptsRepository             receiptsRepository
 }
 
 type bootStorerDataArgs struct {
@@ -510,6 +511,9 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 	}
 	if check.IfNil(arguments.ProcessedMiniBlocksTracker) {
 		return process.ErrNilProcessedMiniBlocksTracker
+	}
+	if check.IfNil(arguments.ReceiptsRepository) {
+		return process.ErrNilReceiptsRepository
 	}
 
 	return nil
@@ -1270,14 +1274,11 @@ func (bp *baseProcessor) saveBody(body *block.Body, header data.HeaderHandler, h
 		log.Trace("saveBody.Put -> MiniBlockUnit", "time", time.Since(startTime), "hash", miniBlockHash)
 	}
 
-	process.SaveReceipts(process.ArgsSaveReceipts{
-		MarshalizedReceiptsProvider: bp.txCoordinator,
-		Marshaller:                  bp.marshalizer,
-		Hasher:                      bp.hasher,
-		Store:                       bp.store,
-		Header:                      header,
-		HeaderHash:                  headerHash,
-	})
+	receiptsHolder := &process.ReceiptsHolder{Miniblocks: bp.txCoordinator.GetCreatedInShardMiniBlocks()}
+	errNotCritical = bp.receiptsRepository.SaveReceipts(receiptsHolder, header, headerHash)
+	if errNotCritical != nil {
+		log.Warn("saveBody(), error on receiptsRepository.SaveReceipts()", "error", errNotCritical.Error())
+	}
 
 	bp.scheduledTxsExecutionHandler.SaveStateIfNeeded(headerHash)
 
