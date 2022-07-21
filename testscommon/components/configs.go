@@ -1,0 +1,229 @@
+package components
+
+import (
+	"github.com/ElrondNetwork/elrond-go/config"
+)
+
+// GetGeneralConfig -
+func GetGeneralConfig() config.Config {
+	return config.Config{
+		AddressPubkeyConverter: config.PubkeyConfig{
+			Length:          32,
+			Type:            "hex",
+			SignatureLength: 0,
+		},
+		ValidatorPubkeyConverter: config.PubkeyConfig{
+			Length:          96,
+			Type:            "hex",
+			SignatureLength: 0,
+		},
+		StateTriesConfig: config.StateTriesConfig{
+			CheckpointRoundsModulus:     5,
+			AccountsStatePruningEnabled: true,
+			PeerStatePruningEnabled:     true,
+			MaxStateTrieLevelInMemory:   5,
+			MaxPeerTrieLevelInMemory:    5,
+		},
+		EvictionWaitingList: config.EvictionWaitingListConfig{
+			HashesSize:     100,
+			RootHashesSize: 100,
+			DB: config.DBConfig{
+				FilePath:          "EvictionWaitingList",
+				Type:              "MemoryDB",
+				BatchDelaySeconds: 30,
+				MaxBatchSize:      6,
+				MaxOpenFiles:      10,
+			},
+		},
+		AccountsTrieStorage: config.StorageConfig{
+			Cache: config.CacheConfig{
+				Capacity: 10000,
+				Type:     "LRU",
+				Shards:   1,
+			},
+			DB: config.DBConfig{
+				FilePath:          "AccountsTrie/MainDB",
+				Type:              "MemoryDB",
+				BatchDelaySeconds: 30,
+				MaxBatchSize:      6,
+				MaxOpenFiles:      10,
+			},
+		},
+		AccountsTrieCheckpointsStorage: config.StorageConfig{
+			Cache: config.CacheConfig{
+				Capacity: 10000,
+				Type:     "LRU",
+				Shards:   1,
+			},
+			DB: config.DBConfig{
+				FilePath:          "AccountsTrieCheckpoints",
+				Type:              "MemoryDB",
+				BatchDelaySeconds: 30,
+				MaxBatchSize:      6,
+				MaxOpenFiles:      10,
+			},
+		},
+		PeerAccountsTrieStorage: config.StorageConfig{
+			Cache: config.CacheConfig{
+				Capacity: 10000,
+				Type:     "LRU",
+				Shards:   1,
+			},
+			DB: config.DBConfig{
+				FilePath:          "PeerAccountsTrie/MainDB",
+				Type:              "MemoryDB",
+				BatchDelaySeconds: 30,
+				MaxBatchSize:      6,
+				MaxOpenFiles:      10,
+			},
+		},
+		PeerAccountsTrieCheckpointsStorage: config.StorageConfig{
+			Cache: config.CacheConfig{
+				Capacity: 10000,
+				Type:     "LRU",
+				Shards:   1,
+			},
+			DB: config.DBConfig{
+				FilePath:          "PeerAccountsTrieCheckpoints",
+				Type:              "MemoryDB",
+				BatchDelaySeconds: 30,
+				MaxBatchSize:      6,
+				MaxOpenFiles:      10,
+			},
+		},
+		TrieStorageManagerConfig: config.TrieStorageManagerConfig{
+			PruningBufferLen:      1000,
+			SnapshotsBufferLen:    10,
+			SnapshotsGoroutineNum: 1,
+		},
+		VirtualMachine: config.VirtualMachineServicesConfig{
+			Querying: config.QueryVirtualMachineConfig{
+				NumConcurrentVMs: 1,
+				VirtualMachineConfig: config.VirtualMachineConfig{
+					ArwenVersions: []config.ArwenVersionByEpoch{
+						{StartEpoch: 0, Version: "v0.3"},
+					},
+				},
+			},
+			Execution: config.VirtualMachineConfig{
+				ArwenVersions: []config.ArwenVersionByEpoch{
+					{StartEpoch: 0, Version: "v0.3"},
+				},
+			},
+			GasConfig: config.VirtualMachineGasConfig{
+				ShardMaxGasPerVmQuery: 1_500_000_000,
+				MetaMaxGasPerVmQuery:  0,
+			},
+		},
+		SmartContractsStorageForSCQuery: config.StorageConfig{
+			Cache: config.CacheConfig{
+				Capacity: 10000,
+				Type:     "LRU",
+				Shards:   1,
+			},
+		},
+		SmartContractDataPool: config.CacheConfig{
+			Capacity: 10000,
+			Type:     "LRU",
+			Shards:   1,
+		},
+		PeersRatingConfig: config.PeersRatingConfig{
+			TopRatedCacheCapacity: 1000,
+			BadRatedCacheCapacity: 1000,
+		},
+		BuiltInFunctions: config.BuiltInFunctionsConfig{
+			AutomaticCrawlerAddress:       "erd1fpkcgel4gcmh8zqqdt043yfcn5tyx8373kg6q2qmkxzu4dqamc0swts65c",
+			MaxNumAddressesInTransferRole: 100,
+		},
+	}
+}
+
+// GetEpochStartConfig -
+func GetEpochStartConfig() config.EpochStartConfig {
+	return config.EpochStartConfig{
+		MinRoundsBetweenEpochs:            20,
+		RoundsPerEpoch:                    20,
+		MaxShuffledOutRestartThreshold:    0.2,
+		MinShuffledOutRestartThreshold:    0.1,
+		MinNumConnectedPeersToStart:       2,
+		MinNumOfPeersToConsiderBlockValid: 2,
+	}
+}
+
+// CreateDummyEconomicsConfig -
+func CreateDummyEconomicsConfig() config.EconomicsConfig {
+	return config.EconomicsConfig{
+		GlobalSettings: config.GlobalSettings{
+			GenesisTotalSupply: "20000000000000000000000000",
+			MinimumInflation:   0,
+			YearSettings: []*config.YearSetting{
+				{
+					Year:             0,
+					MaximumInflation: 0.01,
+				},
+			},
+		},
+		RewardsSettings: config.RewardsSettings{
+			RewardsConfigByEpoch: []config.EpochRewardSettings{
+				{
+					LeaderPercentage:                 0.1,
+					ProtocolSustainabilityPercentage: 0.1,
+					ProtocolSustainabilityAddress:    "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp",
+					TopUpFactor:                      0.25,
+					TopUpGradientPoint:               "3000000000000000000000000",
+				},
+			},
+		},
+		FeeSettings: config.FeeSettings{
+			GasLimitSettings: []config.GasLimitSetting{
+				{
+					MaxGasLimitPerBlock:         "1500000000",
+					MaxGasLimitPerMiniBlock:     "1500000000",
+					MaxGasLimitPerMetaBlock:     "15000000000",
+					MaxGasLimitPerMetaMiniBlock: "15000000000",
+					MaxGasLimitPerTx:            "1500000000",
+					MinGasLimit:                 "50000",
+				},
+			},
+			MinGasPrice:      "1000000000",
+			GasPerDataByte:   "1500",
+			GasPriceModifier: 1,
+		},
+	}
+}
+
+// CreateDummyRatingsConfig -
+func CreateDummyRatingsConfig() config.RatingsConfig {
+	return config.RatingsConfig{
+		General: config.General{
+			StartRating:           5000001,
+			MaxRating:             10000000,
+			MinRating:             1,
+			SignedBlocksThreshold: SignedBlocksThreshold,
+			SelectionChances: []*config.SelectionChance{
+				{MaxThreshold: 0, ChancePercent: 5},
+				{MaxThreshold: 2500000, ChancePercent: 19},
+				{MaxThreshold: 7500000, ChancePercent: 20},
+				{MaxThreshold: 10000000, ChancePercent: 21},
+			},
+		},
+		ShardChain: config.ShardChain{
+			RatingSteps: config.RatingSteps{
+				HoursToMaxRatingFromStartRating: 2,
+				ProposerValidatorImportance:     1,
+				ProposerDecreaseFactor:          -4,
+				ValidatorDecreaseFactor:         -4,
+				ConsecutiveMissedBlocksPenalty:  ConsecutiveMissedBlocksPenalty,
+			},
+		},
+		MetaChain: config.MetaChain{
+			RatingSteps: config.RatingSteps{
+				HoursToMaxRatingFromStartRating: 2,
+				ProposerValidatorImportance:     1,
+				ProposerDecreaseFactor:          -4,
+				ValidatorDecreaseFactor:         -4,
+				ConsecutiveMissedBlocksPenalty:  ConsecutiveMissedBlocksPenalty,
+			},
+		},
+	}
+}

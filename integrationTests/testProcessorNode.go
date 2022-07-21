@@ -45,8 +45,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart/metachain"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/epochStart/shardchain"
-	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
 	hdrFactory "github.com/ElrondNetwork/elrond-go/factory/block"
+	heartbeatComp "github.com/ElrondNetwork/elrond-go/factory/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/factory/peerSignatureHandler"
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/genesis/process/disabled"
@@ -2950,7 +2950,7 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger() {
 		HideInactiveValidatorIntervalInSec:  600,
 	}
 
-	hbFactoryArgs := mainFactory.HeartbeatComponentsFactoryArgs{
+	hbFactoryArgs := heartbeatComp.HeartbeatComponentsFactoryArgs{
 		Config: config.Config{
 			Heartbeat: hbConfig,
 		},
@@ -2964,10 +2964,10 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger() {
 		ProcessComponents:     tpn.Node.GetProcessComponents(),
 	}
 
-	heartbeatFactory, err := mainFactory.NewHeartbeatComponentsFactory(hbFactoryArgs)
+	heartbeatFactory, err := heartbeatComp.NewHeartbeatComponentsFactory(hbFactoryArgs)
 	log.LogIfError(err)
 
-	managedHeartbeatComponents, err := mainFactory.NewManagedHeartbeatComponents(heartbeatFactory)
+	managedHeartbeatComponents, err := heartbeatComp.NewManagedHeartbeatComponents(heartbeatFactory)
 	log.LogIfError(err)
 
 	err = managedHeartbeatComponents.Create()
@@ -3007,7 +3007,7 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger() {
 		},
 	}
 
-	hbv2FactoryArgs := mainFactory.ArgHeartbeatV2ComponentsFactory{
+	hbv2FactoryArgs := heartbeatComp.ArgHeartbeatV2ComponentsFactory{
 		Config: config.Config{
 			HeartbeatV2: hbv2Config,
 			Hardfork: config.HardforkConfig{
@@ -3022,10 +3022,10 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger() {
 		ProcessComponents:  tpn.Node.GetProcessComponents(),
 	}
 
-	heartbeatV2Factory, err := mainFactory.NewHeartbeatV2ComponentsFactory(hbv2FactoryArgs)
+	heartbeatV2Factory, err := heartbeatComp.NewHeartbeatV2ComponentsFactory(hbv2FactoryArgs)
 	log.LogIfError(err)
 
-	managedHeartbeatV2Components, err := mainFactory.NewManagedHeartbeatV2Components(heartbeatV2Factory)
+	managedHeartbeatV2Components, err := heartbeatComp.NewManagedHeartbeatV2Components(heartbeatV2Factory)
 	log.LogIfError(err)
 
 	err = managedHeartbeatV2Components.Create()
