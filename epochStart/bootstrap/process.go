@@ -901,7 +901,7 @@ func (e *epochStartBootstrap) requestAndProcessForShard(peerMiniBlocks []*block.
 	if err != nil {
 		return err
 	}
-	log.Debug("start in epoch bootstrap: syncMiniBlocks (all involved mini blocks)", "num synced", len(syncedMiniBlocks))
+	log.Debug("start in epoch bootstrap: syncMiniBlocks (from las notarized shard header)", "num synced", len(syncedMiniBlocks))
 
 	allInvolvedMiniBlocks := createListOfMiniBlocks(syncedMiniBlocks)
 	allInvolvedMiniBlocks = append(allInvolvedMiniBlocks, peerMiniBlocks...)
