@@ -23,7 +23,9 @@ func UpdateMetricsFromStorage(
 ) (numTxs uint64, numHdrs uint64) {
 	uint64Metrics, stringMetrics := loadMetricsFromDb(store, uint64ByteSliceConverter, marshalizer, nonce)
 
-	log.Debug("loaded metrics from storage", "uint64 metrics", uint64Metrics, "string metrics", stringMetrics)
+	if len(uint64Metrics) > 0 || len(stringMetrics) > 0 {
+		log.Debug("loaded metrics from storage", "uint64 metrics", uint64Metrics, "string metrics", stringMetrics)
+	}
 
 	saveUint64Metrics(statusHandler, uint64Metrics)
 	saveStringMetrics(statusHandler, stringMetrics)
