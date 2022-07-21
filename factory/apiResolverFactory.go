@@ -139,13 +139,12 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 	}
 
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
-		PubkeyConverter:                        args.CoreComponents.AddressPubKeyConverter(),
-		ShardCoordinator:                       args.ProcessComponents.ShardCoordinator(),
-		BuiltInFunctions:                       builtInFuncFactory.BuiltInFunctionContainer(),
-		ArgumentParser:                         parsers.NewCallArgsParser(),
-		ESDTTransferParser:                     esdtTransferParser,
-		EpochNotifier:                          args.CoreComponents.EpochNotifier(),
-		TransferAndAsyncCallbackFixEnableEpoch: args.Configs.EpochConfig.EnableEpochs.ESDTMetadataContinuousCleanupEnableEpoch,
+		PubkeyConverter:     args.CoreComponents.AddressPubKeyConverter(),
+		ShardCoordinator:    args.ProcessComponents.ShardCoordinator(),
+		BuiltInFunctions:    builtInFuncFactory.BuiltInFunctionContainer(),
+		ArgumentParser:      parsers.NewCallArgsParser(),
+		ESDTTransferParser:  esdtTransferParser,
+		EnableEpochsHandler: args.CoreComponents.EnableEpochsHandler(),
 	}
 	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	if err != nil {
@@ -372,6 +371,7 @@ func createScQueryElement(
 		ConfigSCStorage:       scStorage,
 		CompiledSCPool:        smartContractsCache,
 		WorkingDir:            args.workingDir,
+		EpochNotifier:         args.coreComponents.EpochNotifier(),
 		EnableEpochsHandler:   args.coreComponents.EnableEpochsHandler(),
 		NilCompiledSCStore:    true,
 	}

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"math"
 	"math/big"
 	"strings"
 	"testing"
@@ -24,6 +25,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon/trie"
@@ -54,8 +56,12 @@ func createMockBlockChainHookArgs() hooks.ArgBlockChainHook {
 		GlobalSettingsHandler: &testscommon.ESDTGlobalSettingsHandlerStub{},
 		DataPool:              datapool,
 		CompiledSCPool:        datapool.SmartContracts(),
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+		EpochNotifier:         &epochNotifier.EpochNotifierStub{},
+		EnableEpochsHandler:   &testscommon.EnableEpochsHandlerStub{},
 		NilCompiledSCStore:    true,
+		EnableEpochs: config.EnableEpochs{
+			DoNotReturnOldBlockInBlockchainHookEnableEpoch: math.MaxUint32,
+		},
 	}
 	return arguments
 }
@@ -168,6 +174,14 @@ func TestNewBlockChainHookImpl(t *testing.T) {
 		{
 			args: func() hooks.ArgBlockChainHook {
 				args := createMockBlockChainHookArgs()
+				args.EpochNotifier = nil
+				return args
+			},
+			expectedErr: process.ErrNilEpochNotifier,
+		},
+		{
+			args: func() hooks.ArgBlockChainHook {
+				args := createMockBlockChainHookArgs()
 				args.EnableEpochsHandler = nil
 				return args
 			},
@@ -205,7 +219,7 @@ func TestNewBlockChainHookImpl(t *testing.T) {
 			require.Nil(t, bh)
 		} else {
 			require.NotNil(t, bh)
-			require.Equal(t, len(bh.GetMapActivationEpochs()), 2)
+			require.Equal(t, 2, len(bh.GetMapActivationEpochs()))
 		}
 	}
 }

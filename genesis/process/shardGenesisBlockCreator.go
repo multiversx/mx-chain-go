@@ -395,7 +395,8 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		GlobalSettingsHandler: builtInFuncFactory.ESDTGlobalSettingsHandler(),
 		DataPool:              arg.Data.Datapool(),
 		CompiledSCPool:        arg.Data.Datapool().SmartContracts(),
-		EnableEpochsHandler: enableEpochsHandler,
+		EpochNotifier:         epochNotifier,
+		EnableEpochsHandler:   enableEpochsHandler,
 		NilCompiledSCStore:    true,
 	}
 	esdtTransferParser, err := parsers.NewESDTTransferParser(arg.Core.InternalMarshalizer())
@@ -476,13 +477,12 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 	epochNotifier.CheckEpoch(temporaryBlock)
 
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
-		PubkeyConverter:                        arg.Core.AddressPubKeyConverter(),
-		ShardCoordinator:                       arg.ShardCoordinator,
-		BuiltInFunctions:                       builtInFuncFactory.BuiltInFunctionContainer(),
-		ArgumentParser:                         parsers.NewCallArgsParser(),
-		ESDTTransferParser:                     esdtTransferParser,
-		EpochNotifier:                          epochNotifier,
-		TransferAndAsyncCallbackFixEnableEpoch: arg.EpochConfig.EnableEpochs.ESDTMetadataContinuousCleanupEnableEpoch,
+		PubkeyConverter:     arg.Core.AddressPubKeyConverter(),
+		ShardCoordinator:    arg.ShardCoordinator,
+		BuiltInFunctions:    builtInFuncFactory.BuiltInFunctionContainer(),
+		ArgumentParser:      parsers.NewCallArgsParser(),
+		ESDTTransferParser:  esdtTransferParser,
+		EnableEpochsHandler: enableEpochsHandler,
 	}
 	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	if err != nil {

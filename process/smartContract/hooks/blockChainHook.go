@@ -56,7 +56,7 @@ type ArgBlockChainHook struct {
 	ConfigSCStorage       config.StorageConfig
 	EnableEpochs          config.EnableEpochs
 	EpochNotifier         vmcommon.EpochNotifier
-	EnableEpochsHandler common.EnableEpochsHandler
+	EnableEpochsHandler   common.EnableEpochsHandler
 	WorkingDir            string
 	NilCompiledSCStore    bool
 }
@@ -73,7 +73,7 @@ type BlockChainHookImpl struct {
 	builtInFunctions      vmcommon.BuiltInFunctionContainer
 	nftStorageHandler     vmcommon.SimpleESDTNFTStorageHandler
 	globalSettingsHandler vmcommon.ESDTGlobalSettingsHandler
-	enableEpochsHandler common.EnableEpochsHandler
+	enableEpochsHandler   common.EnableEpochsHandler
 
 	mutCurrentHdr sync.RWMutex
 	currentHdr    data.HeaderHandler
@@ -97,27 +97,22 @@ func NewBlockChainHookImpl(
 	}
 
 	blockChainHookImpl := &BlockChainHookImpl{
-		accounts:                       args.Accounts,
-		pubkeyConv:                     args.PubkeyConv,
-		storageService:                 args.StorageService,
-		blockChain:                     args.BlockChain,
-		shardCoordinator:               args.ShardCoordinator,
-		marshalizer:                    args.Marshalizer,
-		uint64Converter:                args.Uint64Converter,
-		builtInFunctions:               args.BuiltInFunctions,
-		compiledScPool:                 args.CompiledSCPool,
-		configSCStorage:                args.ConfigSCStorage,
-		workingDir:                     args.WorkingDir,
-		nilCompiledSCStore:             args.NilCompiledSCStore,
-		nftStorageHandler:              args.NFTStorageHandler,
-		globalSettingsHandler:          args.GlobalSettingsHandler,
-		enableEpochsHandler: args.EnableEpochsHandler,
+		accounts:              args.Accounts,
+		pubkeyConv:            args.PubkeyConv,
+		storageService:        args.StorageService,
+		blockChain:            args.BlockChain,
+		shardCoordinator:      args.ShardCoordinator,
+		marshalizer:           args.Marshalizer,
+		uint64Converter:       args.Uint64Converter,
+		builtInFunctions:      args.BuiltInFunctions,
+		compiledScPool:        args.CompiledSCPool,
+		configSCStorage:       args.ConfigSCStorage,
+		workingDir:            args.WorkingDir,
+		nilCompiledSCStore:    args.NilCompiledSCStore,
+		nftStorageHandler:     args.NFTStorageHandler,
+		globalSettingsHandler: args.GlobalSettingsHandler,
+		enableEpochsHandler:   args.EnableEpochsHandler,
 	}
-
-	log.Debug("blockchainHook: payable by SC", "epoch", blockChainHookImpl.isPayableBySCEnableEpoch)
-	log.Debug("blockchainHook: optimize nft metadata store", "epoch", blockChainHookImpl.optimizeNFTStoreEnableEpoch)
-	log.Debug("blockchainHook: do not return old block", "epoch", blockChainHookImpl.doNotReturnOldBlockEnableEpoch)
-	log.Debug("blockchainHook: filter code metadata", "epoch", blockChainHookImpl.filterCodeMetadataEnableEpoch)
 
 	err = blockChainHookImpl.makeCompiledSCStorage()
 	if err != nil {

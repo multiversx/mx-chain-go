@@ -152,7 +152,6 @@ type ArgsEpochStartBootstrap struct {
 	Messenger                  Messenger
 	GeneralConfig              config.Config
 	PrefsConfig                config.PreferencesConfig
-	EnableEpochs               config.EnableEpochs
 	FlagsConfig                config.ContextFlagsConfig
 	EconomicsData              process.EconomicsDataHandler
 	GenesisNodesConfig         sharding.GenesisNodesSetupHandler
@@ -522,20 +521,18 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 func (e *epochStartBootstrap) createSyncers() error {
 	var err error
 	args := factoryInterceptors.ArgsEpochStartInterceptorContainer{
-		CoreComponents:            e.coreComponentsHolder,
-		CryptoComponents:          e.cryptoComponentsHolder,
-		Config:                    e.generalConfig,
-		ShardCoordinator:          e.shardCoordinator,
-		Messenger:                 e.messenger,
-		DataPool:                  e.dataPool,
-		WhiteListHandler:          e.whiteListHandler,
-		WhiteListerVerifiedTxs:    e.whiteListerVerifiedTxs,
-		ArgumentsParser:           e.argumentsParser,
-		HeaderIntegrityVerifier:   e.headerIntegrityVerifier,
-		EnableSignTxWithHashEpoch: e.enableEpochs.TransactionSignedWithTxHashEnableEpoch,
-		EpochNotifier:             e.epochNotifier,
-		RequestHandler:            e.requestHandler,
-		SignaturesHandler:         e.messenger,
+		CoreComponents:          e.coreComponentsHolder,
+		CryptoComponents:        e.cryptoComponentsHolder,
+		Config:                  e.generalConfig,
+		ShardCoordinator:        e.shardCoordinator,
+		Messenger:               e.messenger,
+		DataPool:                e.dataPool,
+		WhiteListHandler:        e.whiteListHandler,
+		WhiteListerVerifiedTxs:  e.whiteListerVerifiedTxs,
+		ArgumentsParser:         e.argumentsParser,
+		HeaderIntegrityVerifier: e.headerIntegrityVerifier,
+		RequestHandler:          e.requestHandler,
+		SignaturesHandler:       e.messenger,
 	}
 
 	e.interceptorContainer, err = factoryInterceptors.NewEpochStartInterceptorsContainer(args)

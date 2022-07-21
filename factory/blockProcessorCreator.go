@@ -183,13 +183,12 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 	}
 
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
-		PubkeyConverter:                        pcf.coreData.AddressPubKeyConverter(),
-		ShardCoordinator:                       pcf.bootstrapComponents.ShardCoordinator(),
-		BuiltInFunctions:                       builtInFuncFactory.BuiltInFunctionContainer(),
-		ArgumentParser:                         parsers.NewCallArgsParser(),
-		ESDTTransferParser:                     esdtTransferParser,
-		EpochNotifier:                          pcf.coreData.EpochNotifier(),
-		TransferAndAsyncCallbackFixEnableEpoch: pcf.epochConfig.EnableEpochs.ESDTMetadataContinuousCleanupEnableEpoch,
+		PubkeyConverter:     pcf.coreData.AddressPubKeyConverter(),
+		ShardCoordinator:    pcf.bootstrapComponents.ShardCoordinator(),
+		BuiltInFunctions:    builtInFuncFactory.BuiltInFunctionContainer(),
+		ArgumentParser:      parsers.NewCallArgsParser(),
+		ESDTTransferParser:  esdtTransferParser,
+		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
 	}
 	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	if err != nil {
@@ -488,13 +487,12 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	}
 
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
-		PubkeyConverter:                        pcf.coreData.AddressPubKeyConverter(),
-		ShardCoordinator:                       pcf.bootstrapComponents.ShardCoordinator(),
-		BuiltInFunctions:                       builtInFuncFactory.BuiltInFunctionContainer(),
-		ArgumentParser:                         parsers.NewCallArgsParser(),
-		ESDTTransferParser:                     esdtTransferParser,
-		EpochNotifier:                          pcf.coreData.EpochNotifier(),
-		TransferAndAsyncCallbackFixEnableEpoch: pcf.epochConfig.EnableEpochs.ESDTMetadataContinuousCleanupEnableEpoch,
+		PubkeyConverter:     pcf.coreData.AddressPubKeyConverter(),
+		ShardCoordinator:    pcf.bootstrapComponents.ShardCoordinator(),
+		BuiltInFunctions:    builtInFuncFactory.BuiltInFunctionContainer(),
+		ArgumentParser:      parsers.NewCallArgsParser(),
+		ESDTTransferParser:  esdtTransferParser,
+		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
 	}
 	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	if err != nil {
@@ -1062,7 +1060,8 @@ func (pcf *processComponentsFactory) createVMFactoryShard(
 		WorkingDir:            pcf.workingDir,
 		NFTStorageHandler:     nftStorageHandler,
 		GlobalSettingsHandler: globalSettingsHandler,
-		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
+		EpochNotifier:         pcf.coreData.EpochNotifier(),
+		EnableEpochsHandler:   pcf.coreData.EnableEpochsHandler(),
 		NilCompiledSCStore:    false,
 		ConfigSCStorage:       configSCStorage,
 	}
@@ -1109,7 +1108,8 @@ func (pcf *processComponentsFactory) createVMFactoryMeta(
 		WorkingDir:            pcf.workingDir,
 		NFTStorageHandler:     nftStorageHandler,
 		GlobalSettingsHandler: globalSettingsHandler,
-		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
+		EpochNotifier:         pcf.coreData.EpochNotifier(),
+		EnableEpochsHandler:   pcf.coreData.EnableEpochsHandler(),
 		NilCompiledSCStore:    false,
 	}
 

@@ -3389,7 +3389,7 @@ func TestEsdt_SetSpecialRoleTransferNotEnabledShouldErr(t *testing.T) {
 	args.Eei = eei
 
 	e, _ := NewESDTSmartContract(args)
-	e.flagSendTransferRoleAddress.Reset()
+	enableEpochsHandler.IsESDTMetadataContinuousCleanupFlagEnabledField = false
 	vmInput := getDefaultVmInputForFunc("setSpecialRole", [][]byte{})
 	vmInput.Arguments = [][]byte{[]byte("myToken"), []byte("myAddress"), []byte(core.ESDTRoleTransfer)}
 	vmInput.CallerAddr = []byte("caller123")
@@ -3452,7 +3452,8 @@ func TestEsdt_SetSpecialRoleTransferWithTransferRoleEnhancement(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
-	args.EpochConfig.EnableEpochs.ESDTTransferRoleEnableEpoch = 10
+	enableEpochsHandler, _ := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
+	enableEpochsHandler.IsESDTTransferRoleFlagEnabledField = false
 
 	token := &ESDTDataV2{
 		OwnerAddress: []byte("caller123"),
@@ -3482,7 +3483,7 @@ func TestEsdt_SetSpecialRoleTransferWithTransferRoleEnhancement(t *testing.T) {
 	vmInput.CallValue = big.NewInt(0)
 	vmInput.GasProvided = 50000000
 
-	_ = e.flagTransferRole.SetReturningPrevious()
+	enableEpochsHandler.IsESDTTransferRoleFlagEnabledField = true
 	called = 0
 	token.TokenType = []byte(core.NonFungibleESDT)
 	eei.SendGlobalSettingToAllCalled = func(sender []byte, input []byte) {
@@ -3544,7 +3545,8 @@ func TestEsdt_SendAllTransferRoleAddresses(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
-	args.EpochConfig.EnableEpochs.ESDTTransferRoleEnableEpoch = 10
+	enableEpochsHandler, _ := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
+	enableEpochsHandler.IsESDTMetadataContinuousCleanupFlagEnabledField = false
 
 	token := &ESDTDataV2{
 		OwnerAddress: []byte("caller1234"),
@@ -3582,11 +3584,10 @@ func TestEsdt_SendAllTransferRoleAddresses(t *testing.T) {
 	vmInput.CallValue = big.NewInt(0)
 	vmInput.GasProvided = 50000000
 
-	e.flagSendTransferRoleAddress.Reset()
 	retCode := e.Execute(vmInput)
 	require.Equal(t, vmcommon.FunctionNotFound, retCode)
 
-	e.flagSendTransferRoleAddress.SetValue(true)
+	enableEpochsHandler.IsESDTMetadataContinuousCleanupFlagEnabledField = true
 	eei.ReturnMessage = ""
 	retCode = e.Execute(vmInput)
 	require.Equal(t, vmcommon.UserError, retCode)

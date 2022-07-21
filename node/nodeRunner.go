@@ -1173,7 +1173,6 @@ func (nr *nodeRunner) CreateManagedBootstrapComponents(
 
 	bootstrapComponentsFactoryArgs := mainFactory.BootstrapComponentsFactoryArgs{
 		Config:            *nr.configs.GeneralConfig,
-		EpochConfig:       *nr.configs.EpochConfig,
 		PrefConfig:        *nr.configs.PreferencesConfig,
 		ImportDbConfig:    *nr.configs.ImportDbConfig,
 		FlagsConfig:       *nr.configs.FlagsConfig,

@@ -259,6 +259,7 @@ func (context *TestContext) initVMAndBlockchainHook() {
 		GlobalSettingsHandler: builtInFuncFactory.ESDTGlobalSettingsHandler(),
 		DataPool:              datapool,
 		CompiledSCPool:        datapool.SmartContracts(),
+		EpochNotifier:         context.EpochNotifier,
 		EnableEpochsHandler:   context.EnableEpochsHandler,
 		NilCompiledSCStore:    true,
 		ConfigSCStorage: config.StorageConfig{
@@ -308,12 +309,12 @@ func (context *TestContext) initVMAndBlockchainHook() {
 func (context *TestContext) initTxProcessorWithOneSCExecutorWithVMs() {
 	esdtTransferParser, _ := parsers.NewESDTTransferParser(marshalizer)
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
-		PubkeyConverter:    pkConverter,
-		ShardCoordinator:   oneShardCoordinator,
-		BuiltInFunctions:   context.BlockchainHook.GetBuiltinFunctionsContainer(),
-		ArgumentParser:     parsers.NewCallArgsParser(),
-		ESDTTransferParser: esdtTransferParser,
-		EpochNotifier:      forking.NewGenericEpochNotifier(),
+		PubkeyConverter:     pkConverter,
+		ShardCoordinator:    oneShardCoordinator,
+		BuiltInFunctions:    context.BlockchainHook.GetBuiltinFunctionsContainer(),
+		ArgumentParser:      parsers.NewCallArgsParser(),
+		ESDTTransferParser:  esdtTransferParser,
+		EnableEpochsHandler: context.EnableEpochsHandler,
 	}
 
 	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)

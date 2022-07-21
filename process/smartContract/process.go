@@ -220,7 +220,8 @@ func (sc *scProcessor) GasScheduleChange(gasSchedule map[string]map[string]uint6
 	}
 
 	sc.builtInGasCosts = builtInFuncCost
-	if sc.flagFixAsyncCallBackArgumentsParser.IsSet() {
+	isFixAsyncCallBackArgumentsParserFlagSet := sc.enableEpochsHandler.IsESDTMetadataContinuousCleanupFlagEnabled()
+	if isFixAsyncCallBackArgumentsParserFlagSet {
 		sc.builtInGasCosts[core.BuiltInFunctionMultiESDTNFTTransfer] = builtInFuncCost["ESDTNFTMultiTransfer"]
 	}
 	sc.storePerByte = gasSchedule[common.BaseOperationCost]["StorePerByte"]
@@ -810,7 +811,8 @@ func (sc *scProcessor) computeBuiltInFuncGasUsed(
 		return core.SafeSubUint64(gasProvided, gasRemaining)
 	}
 
-	if sc.flagFixAsyncCallBackArgumentsParser.IsSet() && isCrossShard {
+	isFixAsyncCallBackArgumentsParserFlagSet := sc.enableEpochsHandler.IsESDTMetadataContinuousCleanupFlagEnabled()
+	if isFixAsyncCallBackArgumentsParserFlagSet && isCrossShard {
 		return 0, nil
 	}
 
@@ -1164,7 +1166,8 @@ func (sc *scProcessor) createVMInputWithAsyncCallBackAfterBuiltIn(
 
 		gasLimit = outAcc.OutputTransfers[0].GasLimit
 
-		if sc.flagFixAsyncCallBackArgumentsParser.IsSet() {
+		isFixAsyncCallBackArgumentsParserFlagSet := sc.enableEpochsHandler.IsESDTMetadataContinuousCleanupFlagEnabled()
+		if isFixAsyncCallBackArgumentsParserFlagSet {
 			args, err := sc.argsParser.ParseArguments(string(outAcc.OutputTransfers[0].Data))
 			log.LogIfError(err, "function", "createVMInputWithAsyncCallBackAfterBuiltIn.ParseArguments")
 			arguments = append(arguments, args...)

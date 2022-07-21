@@ -907,6 +907,7 @@ func (tpn *TestProcessorNode) createFullSCQueryService() {
 		GlobalSettingsHandler: builtInFuncFactory.ESDTGlobalSettingsHandler(),
 		DataPool:              tpn.DataPool,
 		CompiledSCPool:        smartContractsCache,
+		EpochNotifier:         tpn.EpochNotifier,
 		EnableEpochsHandler:   tpn.EnableEpochsHandler,
 		NilCompiledSCStore:    true,
 	}
@@ -1546,6 +1547,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		GlobalSettingsHandler: builtInFuncFactory.ESDTGlobalSettingsHandler(),
 		DataPool:              tpn.DataPool,
 		CompiledSCPool:        tpn.DataPool.SmartContracts(),
+		EpochNotifier:         tpn.EpochNotifier,
 		EnableEpochsHandler:   tpn.EnableEpochsHandler,
 		NilCompiledSCStore:    true,
 	}
@@ -1587,11 +1589,12 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 	tpn.ArgsParser = smartContract.NewArgumentParser()
 
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
-		PubkeyConverter:    TestAddressPubkeyConverter,
-		ShardCoordinator:   tpn.ShardCoordinator,
-		BuiltInFunctions:   builtInFuncFactory.BuiltInFunctionContainer(),
-		ArgumentParser:     parsers.NewCallArgsParser(),
-		ESDTTransferParser: esdtTransferParser,
+		PubkeyConverter:     TestAddressPubkeyConverter,
+		ShardCoordinator:    tpn.ShardCoordinator,
+		BuiltInFunctions:    builtInFuncFactory.BuiltInFunctionContainer(),
+		ArgumentParser:      parsers.NewCallArgsParser(),
+		ESDTTransferParser:  esdtTransferParser,
+		EnableEpochsHandler: tpn.EnableEpochsHandler,
 	}
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	tpn.GasHandler, _ = preprocess.NewGasComputation(tpn.EconomicsData, txTypeHandler, tpn.EnableEpochsHandler)
@@ -1755,6 +1758,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		GlobalSettingsHandler: builtInFuncFactory.ESDTGlobalSettingsHandler(),
 		DataPool:              tpn.DataPool,
 		CompiledSCPool:        tpn.DataPool.SmartContracts(),
+		EpochNotifier:         tpn.EpochNotifier,
 		EnableEpochsHandler:   tpn.EnableEpochsHandler,
 		NilCompiledSCStore:    true,
 	}
@@ -1832,12 +1836,12 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 	tpn.ArgsParser = smartContract.NewArgumentParser()
 	esdtTransferParser, _ := parsers.NewESDTTransferParser(TestMarshalizer)
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
-		PubkeyConverter:    TestAddressPubkeyConverter,
-		ShardCoordinator:   tpn.ShardCoordinator,
-		BuiltInFunctions:   builtInFuncFactory.BuiltInFunctionContainer(),
-		ArgumentParser:     parsers.NewCallArgsParser(),
-		ESDTTransferParser: esdtTransferParser,
-		EpochNotifier:      tpn.EpochNotifier,
+		PubkeyConverter:     TestAddressPubkeyConverter,
+		ShardCoordinator:    tpn.ShardCoordinator,
+		BuiltInFunctions:    builtInFuncFactory.BuiltInFunctionContainer(),
+		ArgumentParser:      parsers.NewCallArgsParser(),
+		ESDTTransferParser:  esdtTransferParser,
+		EnableEpochsHandler: tpn.EnableEpochsHandler,
 	}
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	tpn.GasHandler, _ = preprocess.NewGasComputation(tpn.EconomicsData, txTypeHandler, tpn.EnableEpochsHandler)

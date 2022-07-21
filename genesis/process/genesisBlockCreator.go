@@ -440,7 +440,8 @@ func (gbc *genesisBlockCreator) computeDNSAddresses(enableEpochsConfig config.En
 		GlobalSettingsHandler: &disabled.ESDTGlobalSettingsHandler{},
 		DataPool:              gbc.arg.Data.Datapool(),
 		CompiledSCPool:        gbc.arg.Data.Datapool().SmartContracts(),
-		EnableEpochsHandler: enableEpochsHandler,
+		EpochNotifier:         epochNotifier,
+		EnableEpochsHandler:   enableEpochsHandler,
 		NilCompiledSCStore:    true,
 	}
 	blockChainHook, err := hooks.NewBlockChainHookImpl(argsHook)

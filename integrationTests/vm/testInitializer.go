@@ -57,6 +57,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/txDataBuilder"
 	"github.com/ElrondNetwork/elrond-go/trie"
@@ -415,7 +416,8 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 	arwenChangeLocker common.Locker,
 ) (process.TransactionProcessor, error) {
 
-	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(enableEpochsConfig, forking.NewGenericEpochNotifier())
+	genericEpochNotifier := forking.NewGenericEpochNotifier()
+	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(enableEpochsConfig, genericEpochNotifier)
 
 	builtInFuncs := vmcommonBuiltInFunctions.NewBuiltInFunctionContainer()
 	datapool := dataRetrieverMock.NewPoolsHolderMock()
@@ -434,6 +436,7 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 		CompiledSCPool:        datapool.SmartContracts(),
 		NilCompiledSCStore:    true,
 		ConfigSCStorage:       *defaultStorageConfig(),
+		EpochNotifier:         genericEpochNotifier,
 		EnableEpochsHandler:   enableEpochsHandler,
 	}
 
@@ -448,12 +451,12 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 
 	esdtTransferParser, _ := parsers.NewESDTTransferParser(testMarshalizer)
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
-		PubkeyConverter:    pubkeyConv,
-		ShardCoordinator:   oneShardCoordinator,
-		BuiltInFunctions:   builtInFuncs,
-		ArgumentParser:     parsers.NewCallArgsParser(),
-		ESDTTransferParser: esdtTransferParser,
-		EpochNotifier:      globalEpochNotifier,
+		PubkeyConverter:     pubkeyConv,
+		ShardCoordinator:    oneShardCoordinator,
+		BuiltInFunctions:    builtInFuncs,
+		ArgumentParser:      parsers.NewCallArgsParser(),
+		ESDTTransferParser:  esdtTransferParser,
+		EnableEpochsHandler: enableEpochsHandler,
 	}
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	gasSchedule := make(map[string]map[string]uint64)
@@ -529,6 +532,7 @@ func CreateOneSCExecutorMockVM(accnts state.AccountsAdapter) vmcommon.VMExecutio
 		CompiledSCPool:        datapool.SmartContracts(),
 		NilCompiledSCStore:    true,
 		ConfigSCStorage:       *defaultStorageConfig(),
+		EpochNotifier:         &epochNotifier.EpochNotifierStub{},
 		EnableEpochsHandler:   &testscommon.EnableEpochsHandlerStub{},
 	}
 	blockChainHook, _ := hooks.NewBlockChainHookImpl(args)
@@ -584,6 +588,7 @@ func CreateVMAndBlockchainHookAndDataPool(
 		CompiledSCPool:        datapool.SmartContracts(),
 		NilCompiledSCStore:    true,
 		ConfigSCStorage:       *defaultStorageConfig(),
+		EpochNotifier:         epochNotifierInstance,
 		EnableEpochsHandler:   enableEpochsHandler,
 	}
 
@@ -660,6 +665,7 @@ func CreateVMAndBlockchainHookMeta(
 		DataPool:              datapool,
 		CompiledSCPool:        datapool.SmartContracts(),
 		NilCompiledSCStore:    true,
+		EpochNotifier:         globalEpochNotifier,
 		EnableEpochsHandler:   enableEpochsHandler,
 	}
 
@@ -786,12 +792,12 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 
 	esdtTransferParser, _ := parsers.NewESDTTransferParser(testMarshalizer)
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
-		PubkeyConverter:    pubkeyConv,
-		ShardCoordinator:   shardCoordinator,
-		BuiltInFunctions:   blockChainHook.GetBuiltinFunctionsContainer(),
-		ArgumentParser:     parsers.NewCallArgsParser(),
-		ESDTTransferParser: esdtTransferParser,
-		EpochNotifier:      globalEpochNotifier,
+		PubkeyConverter:     pubkeyConv,
+		ShardCoordinator:    shardCoordinator,
+		BuiltInFunctions:    blockChainHook.GetBuiltinFunctionsContainer(),
+		ArgumentParser:      parsers.NewCallArgsParser(),
+		ESDTTransferParser:  esdtTransferParser,
+		EnableEpochsHandler: enableEpochsHandler,
 	}
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 

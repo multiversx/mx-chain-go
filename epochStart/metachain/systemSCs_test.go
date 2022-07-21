@@ -942,6 +942,7 @@ func createFullArgumentsForSystemSCProcessing(enableEpochsConfig config.EnableEp
 		GlobalSettingsHandler: &testscommon.ESDTGlobalSettingsHandlerStub{},
 		DataPool:              testDataPool,
 		CompiledSCPool:        testDataPool.SmartContracts(),
+		EpochNotifier:         en,
 		EnableEpochsHandler:   enableEpochsHandler,
 		NilCompiledSCStore:    true,
 	}
