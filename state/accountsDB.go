@@ -157,13 +157,19 @@ func checkArgsAccountsDB(args ArgsAccountsDB) error {
 }
 
 func startSnapshotAfterRestart(adb AccountsAdapter, tsm common.StorageManager) {
+	epoch, err := tsm.GetLatestStorageEpoch()
+	if err != nil {
+		log.Error("could not get latest storage epoch")
+	}
+	if epoch == 0 && err == nil {
+		err = tsm.Put([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal))
+		handleLoggingWhenError("error while putting active DB value into main storer", err)
+		return
+	}
+
 	rootHash, err := tsm.Get([]byte(lastSnapshotStarted))
 	if err != nil {
 		log.Debug("startSnapshotAfterRestart root hash", "error", err)
-
-		err = tsm.Put([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal))
-		handleLoggingWhenError("error while putting active DB value into main storer", err)
-
 		return
 	}
 	log.Debug("snapshot hash after restart", "hash", rootHash)
@@ -173,9 +179,6 @@ func startSnapshotAfterRestart(adb AccountsAdapter, tsm common.StorageManager) {
 		adb.SnapshotState(rootHash)
 		return
 	}
-
-	err = tsm.Put([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal))
-	handleLoggingWhenError("newTrieStorageManager error while putting active DB value into main storer", err)
 }
 
 func handleLoggingWhenError(message string, err error, extraArguments ...interface{}) {
@@ -1102,48 +1105,61 @@ func (adb *AccountsDB) SnapshotState(rootHash []byte) {
 
 	trieStorageManager.EnterPruningBufferingMode()
 
+	errChan := make(chan error, 1)
 	stats := newSnapshotStatistics(1)
 	go func() {
 		leavesChannel := make(chan core.KeyValueHolder, leavesChannelSize)
 		stats.NewSnapshotStarted()
-		trieStorageManager.TakeSnapshot(rootHash, rootHash, leavesChannel, stats, epoch)
-		adb.snapshotUserAccountDataTrie(true, rootHash, leavesChannel, stats, epoch)
+		trieStorageManager.TakeSnapshot(rootHash, rootHash, leavesChannel, errChan, stats, epoch)
+		adb.snapshotUserAccountDataTrie(true, rootHash, leavesChannel, errChan, stats, epoch)
 		trieStorageManager.ExitPruningBufferingMode()
 
 		stats.wg.Done()
 	}()
 
-	go func() {
-		printStats(stats, "snapshotState user trie", rootHash)
-
-		log.Debug("set activeDB in epoch", "epoch", epoch)
-		errPut := trieStorageManager.PutInEpoch([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal), epoch)
-		handleLoggingWhenError("error while putting active DB value into main storer", errPut)
-	}()
+	go adb.markActiveDBAfterSnapshot(stats, errChan, rootHash, "snapshotState user trie", epoch)
 
 	adb.waitForCompletionIfRunningInImportDB(stats)
 }
 
-func printStats(stats *snapshotStatistics, identifier string, rootHash []byte) {
-	stats.wg.Wait()
+func (adb *AccountsDB) markActiveDBAfterSnapshot(stats *snapshotStatistics, errChan chan error, rootHash []byte, message string, epoch uint32) {
+	stats.PrintStats(message, rootHash)
 
-	stats.mutex.RLock()
-	defer stats.mutex.RUnlock()
+	trieStorageManager := adb.mainTrie.GetStorageManager()
+	containsErrorDuringSnapshot := emptyErrChanReturningHadContained(errChan)
+	shouldNotMarkActive := trieStorageManager.IsClosed() || containsErrorDuringSnapshot
+	if shouldNotMarkActive {
+		log.Debug("will not set activeDB in epoch as the snapshot might be incomplete",
+			"epoch", epoch, "trie storage manager closed", trieStorageManager.IsClosed(),
+			"errors during snapshot found", containsErrorDuringSnapshot)
+		return
+	}
 
-	log.Debug("snapshot statistics",
-		"type", identifier,
-		"duration", time.Since(stats.startTime).Truncate(time.Second),
-		"total num of nodes", stats.numNodes,
-		"total size", core.ConvertBytes(stats.trieSize),
-		"num data tries", stats.numDataTries,
-		"rootHash", rootHash,
-	)
+	err := trieStorageManager.Remove([]byte(lastSnapshotStarted))
+	handleLoggingWhenError("could not set lastSnapshotStarted", err, "rootHash", rootHash)
+
+	log.Debug("set activeDB in epoch", "epoch", epoch)
+	errPut := trieStorageManager.PutInEpochWithoutCache([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal), epoch)
+	handleLoggingWhenError("error while putting active DB value into main storer", errPut)
+}
+
+func emptyErrChanReturningHadContained(errChan chan error) bool {
+	contained := false
+	for {
+		select {
+		case <-errChan:
+			contained = true
+		default:
+			return contained
+		}
+	}
 }
 
 func (adb *AccountsDB) snapshotUserAccountDataTrie(
 	isSnapshot bool,
 	mainTrieRootHash []byte,
 	leavesChannel chan core.KeyValueHolder,
+	errChan chan error,
 	stats common.SnapshotStatisticsHandler,
 	epoch uint32,
 ) {
@@ -1163,11 +1179,11 @@ func (adb *AccountsDB) snapshotUserAccountDataTrie(
 		stats.NewDataTrie()
 
 		if isSnapshot {
-			adb.mainTrie.GetStorageManager().TakeSnapshot(account.RootHash, mainTrieRootHash, nil, stats, epoch)
+			adb.mainTrie.GetStorageManager().TakeSnapshot(account.RootHash, mainTrieRootHash, nil, errChan, stats, epoch)
 			continue
 		}
 
-		adb.mainTrie.GetStorageManager().SetCheckpoint(account.RootHash, mainTrieRootHash, nil, stats)
+		adb.mainTrie.GetStorageManager().SetCheckpoint(account.RootHash, mainTrieRootHash, nil, errChan, stats)
 	}
 }
 
@@ -1185,17 +1201,20 @@ func (adb *AccountsDB) setStateCheckpoint(rootHash []byte) {
 	trieStorageManager.EnterPruningBufferingMode()
 
 	stats := newSnapshotStatistics(1)
+	errChan := make(chan error, 1)
 	go func() {
 		leavesChannel := make(chan core.KeyValueHolder, leavesChannelSize)
 		stats.NewSnapshotStarted()
-		trieStorageManager.SetCheckpoint(rootHash, rootHash, leavesChannel, stats)
-		adb.snapshotUserAccountDataTrie(false, rootHash, leavesChannel, stats, 0)
+		trieStorageManager.SetCheckpoint(rootHash, rootHash, leavesChannel, errChan, stats)
+		adb.snapshotUserAccountDataTrie(false, rootHash, leavesChannel, errChan, stats, 0)
 		trieStorageManager.ExitPruningBufferingMode()
 
 		stats.wg.Done()
 	}()
 
-	go printStats(stats, "setStateCheckpoint user trie", rootHash)
+	// TODO decide if we need to take some actions whenever we hit an error that occurred in the checkpoint process
+	//  that will be present in the errChan var
+	go stats.PrintStats("setStateCheckpoint user trie", rootHash)
 
 	adb.waitForCompletionIfRunningInImportDB(stats)
 }

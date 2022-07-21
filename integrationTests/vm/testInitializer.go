@@ -453,6 +453,7 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 		BuiltInFunctions:   builtInFuncs,
 		ArgumentParser:     parsers.NewCallArgsParser(),
 		ESDTTransferParser: esdtTransferParser,
+		EpochNotifier:      globalEpochNotifier,
 	}
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	gasSchedule := make(map[string]map[string]uint64)
@@ -558,13 +559,14 @@ func CreateVMAndBlockchainHookAndDataPool(
 		MapDNSAddresses: map[string]struct{}{
 			string(dnsAddr): {},
 		},
-		Marshalizer:             testMarshalizer,
-		Accounts:                accnts,
-		ShardCoordinator:        shardCoordinator,
-		EpochNotifier:           epochNotifierInstance,
-		AutomaticCrawlerAddress: bytes.Repeat([]byte{1}, 32),
+		Marshalizer:               testMarshalizer,
+		Accounts:                  accnts,
+		ShardCoordinator:          shardCoordinator,
+		EpochNotifier:             epochNotifierInstance,
+		AutomaticCrawlerAddress:   bytes.Repeat([]byte{1}, 32),
+		MaxNumNodesInTransferRole: 100,
 	}
-	builtInFuncs, nftStorageHandler, globalSettingsHandler, _ := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
+	builtInFuncFactory, _ := builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)
 
 	datapool := dataRetrieverMock.NewPoolsHolderMock()
 	args := hooks.ArgBlockChainHook{
@@ -575,9 +577,9 @@ func CreateVMAndBlockchainHookAndDataPool(
 		ShardCoordinator:      shardCoordinator,
 		Marshalizer:           testMarshalizer,
 		Uint64Converter:       &mock.Uint64ByteSliceConverterMock{},
-		BuiltInFunctions:      builtInFuncs,
-		NFTStorageHandler:     nftStorageHandler,
-		GlobalSettingsHandler: globalSettingsHandler,
+		BuiltInFunctions:      builtInFuncFactory.BuiltInFunctionContainer(),
+		NFTStorageHandler:     builtInFuncFactory.NFTStorageHandler(),
+		GlobalSettingsHandler: builtInFuncFactory.ESDTGlobalSettingsHandler(),
 		DataPool:              datapool,
 		CompiledSCPool:        datapool.SmartContracts(),
 		NilCompiledSCStore:    true,
@@ -610,7 +612,7 @@ func CreateVMAndBlockchainHookAndDataPool(
 	}
 
 	blockChainHook, _ := vmFactory.BlockChainHookImpl().(*hooks.BlockChainHookImpl)
-	_ = vmcommonBuiltInFunctions.SetPayableHandler(builtInFuncs, blockChainHook)
+	_ = builtInFuncFactory.SetPayableHandler(blockChainHook)
 
 	return vmContainer, blockChainHook, datapool
 }
@@ -633,13 +635,14 @@ func CreateVMAndBlockchainHookMeta(
 		MapDNSAddresses: map[string]struct{}{
 			string(dnsAddr): {},
 		},
-		Marshalizer:             testMarshalizer,
-		Accounts:                accnts,
-		ShardCoordinator:        shardCoordinator,
-		EpochNotifier:           globalEpochNotifier,
-		AutomaticCrawlerAddress: bytes.Repeat([]byte{1}, 32),
+		Marshalizer:               testMarshalizer,
+		Accounts:                  accnts,
+		ShardCoordinator:          shardCoordinator,
+		EpochNotifier:             globalEpochNotifier,
+		AutomaticCrawlerAddress:   bytes.Repeat([]byte{1}, 32),
+		MaxNumNodesInTransferRole: 100,
 	}
-	builtInFuncs, nftStorageHandler, globalSettingsHandler, _ := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
+	builtInFuncFactory, _ := builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)
 
 	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(enableEpochsConfig, globalEpochNotifier)
 	datapool := dataRetrieverMock.NewPoolsHolderMock()
@@ -651,9 +654,9 @@ func CreateVMAndBlockchainHookMeta(
 		ShardCoordinator:      shardCoordinator,
 		Marshalizer:           testMarshalizer,
 		Uint64Converter:       &mock.Uint64ByteSliceConverterMock{},
-		BuiltInFunctions:      builtInFuncs,
-		NFTStorageHandler:     nftStorageHandler,
-		GlobalSettingsHandler: globalSettingsHandler,
+		BuiltInFunctions:      builtInFuncFactory.BuiltInFunctionContainer(),
+		NFTStorageHandler:     builtInFuncFactory.NFTStorageHandler(),
+		GlobalSettingsHandler: builtInFuncFactory.ESDTGlobalSettingsHandler(),
 		DataPool:              datapool,
 		CompiledSCPool:        datapool.SmartContracts(),
 		NilCompiledSCStore:    true,
@@ -692,7 +695,7 @@ func CreateVMAndBlockchainHookMeta(
 	}
 
 	blockChainHook, _ := vmFactory.BlockChainHookImpl().(*hooks.BlockChainHookImpl)
-	_ = vmcommonBuiltInFunctions.SetPayableHandler(builtInFuncs, blockChainHook)
+	_ = builtInFuncFactory.SetPayableHandler(blockChainHook)
 
 	return vmContainer, blockChainHook
 }
@@ -788,6 +791,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		BuiltInFunctions:   blockChainHook.GetBuiltinFunctionsContainer(),
 		ArgumentParser:     parsers.NewCallArgsParser(),
 		ESDTTransferParser: esdtTransferParser,
+		EpochNotifier:      globalEpochNotifier,
 	}
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 

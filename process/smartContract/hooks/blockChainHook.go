@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/big"
 	"path"
+	"reflect"
 	"sync"
 	"time"
 
@@ -53,6 +54,8 @@ type ArgBlockChainHook struct {
 	GlobalSettingsHandler vmcommon.ESDTGlobalSettingsHandler
 	CompiledSCPool        storage.Cacher
 	ConfigSCStorage       config.StorageConfig
+	EnableEpochs          config.EnableEpochs
+	EpochNotifier         vmcommon.EpochNotifier
 	EnableEpochsHandler common.EnableEpochsHandler
 	WorkingDir            string
 	NilCompiledSCStore    bool
@@ -80,6 +83,8 @@ type BlockChainHookImpl struct {
 	configSCStorage    config.StorageConfig
 	workingDir         string
 	nilCompiledSCStore bool
+
+	mapActivationEpochs map[uint32]struct{}
 }
 
 // NewBlockChainHookImpl creates a new BlockChainHookImpl instance
@@ -109,6 +114,11 @@ func NewBlockChainHookImpl(
 		enableEpochsHandler: args.EnableEpochsHandler,
 	}
 
+	log.Debug("blockchainHook: payable by SC", "epoch", blockChainHookImpl.isPayableBySCEnableEpoch)
+	log.Debug("blockchainHook: optimize nft metadata store", "epoch", blockChainHookImpl.optimizeNFTStoreEnableEpoch)
+	log.Debug("blockchainHook: do not return old block", "epoch", blockChainHookImpl.doNotReturnOldBlockEnableEpoch)
+	log.Debug("blockchainHook: filter code metadata", "epoch", blockChainHookImpl.filterCodeMetadataEnableEpoch)
+
 	err = blockChainHookImpl.makeCompiledSCStorage()
 	if err != nil {
 		return nil, err
@@ -116,8 +126,26 @@ func NewBlockChainHookImpl(
 
 	blockChainHookImpl.ClearCompiledCodes()
 	blockChainHookImpl.currentHdr = &block.Header{}
+	blockChainHookImpl.mapActivationEpochs = createMapActivationEpochs(&args.EnableEpochs)
+
+	args.EpochNotifier.RegisterNotifyHandler(blockChainHookImpl)
 
 	return blockChainHookImpl, nil
+}
+
+func createMapActivationEpochs(enableEpochs *config.EnableEpochs) map[uint32]struct{} {
+	mapActivationEpoch := make(map[uint32]struct{})
+
+	reflectVal := reflect.ValueOf(enableEpochs).Elem()
+	for i := 0; i < reflectVal.NumField(); i++ {
+		f := reflectVal.Field(i)
+		epoch, ok := f.Interface().(uint32)
+		if !ok {
+			continue
+		}
+		mapActivationEpoch[epoch] = struct{}{}
+	}
+	return mapActivationEpoch
 }
 
 func checkForNil(args ArgBlockChainHook) error {
@@ -150,6 +178,9 @@ func checkForNil(args ArgBlockChainHook) error {
 	}
 	if check.IfNil(args.NFTStorageHandler) {
 		return process.ErrNilNFTStorageHandler
+	}
+	if check.IfNil(args.EpochNotifier) {
+		return process.ErrNilEpochNotifier
 	}
 	if check.IfNil(args.GlobalSettingsHandler) {
 		return process.ErrNilESDTGlobalSettingsHandler
@@ -726,6 +757,14 @@ func (bh *BlockChainHookImpl) GetSnapshot() int {
 // RevertToSnapshot reverts snapshots up to the specified one
 func (bh *BlockChainHookImpl) RevertToSnapshot(snapshot int) error {
 	return bh.accounts.RevertToSnapshot(snapshot)
+}
+
+// EpochConfirmed is called whenever a new epoch is confirmed
+func (bh *BlockChainHookImpl) EpochConfirmed(epoch uint32, _ uint64) {
+	_, ok := bh.mapActivationEpochs[epoch]
+	if ok {
+		bh.ClearCompiledCodes()
+	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

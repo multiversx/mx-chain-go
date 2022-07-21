@@ -205,6 +205,7 @@ func TestNewBlockChainHookImpl(t *testing.T) {
 			require.Nil(t, bh)
 		} else {
 			require.NotNil(t, bh)
+			require.Equal(t, len(bh.GetMapActivationEpochs()), 2)
 		}
 	}
 }
@@ -1901,4 +1902,31 @@ func TestBlockChainHookImpl_FilterCodeMetadataForUpgrade(t *testing.T) {
 		assert.Nil(t, resultBytes)
 		assert.Equal(t, parsers.ErrInvalidCodeMetadata, err)
 	})
+}
+
+func TestBlockChainHookImpl_ClearCompiledCodes(t *testing.T) {
+	t.Parallel()
+
+	args := createMockBlockChainHookArgs()
+	args.EnableEpochs.DoNotReturnOldBlockInBlockchainHookEnableEpoch = 0
+	args.EnableEpochs.ESDTEnableEpoch = 10
+	args.EnableEpochs.IsPayableBySCEnableEpoch = 11
+
+	clearCalled := 0
+	args.CompiledSCPool = &testscommon.CacherStub{ClearCalled: func() {
+		clearCalled++
+	}}
+
+	bh, _ := hooks.NewBlockChainHookImpl(args)
+	assert.Equal(t, len(bh.GetMapActivationEpochs()), 3)
+	assert.Equal(t, clearCalled, 2)
+
+	bh.EpochConfirmed(100, 0)
+	assert.Equal(t, clearCalled, 2)
+
+	bh.EpochConfirmed(10, 0)
+	assert.Equal(t, clearCalled, 3)
+
+	bh.EpochConfirmed(11, 0)
+	assert.Equal(t, clearCalled, 4)
 }

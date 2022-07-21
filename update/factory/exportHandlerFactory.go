@@ -67,6 +67,7 @@ type ArgsExporter struct {
 	MaxHardCapForMissingNodes int
 	NumConcurrentTrieSyncers  int
 	TrieSyncerVersion         int
+	CheckNodesOnDisk          bool
 }
 
 type exportHandlerFactory struct {
@@ -103,6 +104,7 @@ type exportHandlerFactory struct {
 	maxHardCapForMissingNodes int
 	numConcurrentTrieSyncers  int
 	trieSyncerVersion         int
+	checkNodesOnDisk          bool
 }
 
 // NewExportHandlerFactory creates an exporter factory
@@ -249,6 +251,7 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 		maxHardCapForMissingNodes: args.MaxHardCapForMissingNodes,
 		numConcurrentTrieSyncers:  args.NumConcurrentTrieSyncers,
 		trieSyncerVersion:         args.TrieSyncerVersion,
+		checkNodesOnDisk:          args.CheckNodesOnDisk,
 	}
 
 	return e, nil
@@ -364,6 +367,7 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 		MaxHardCapForMissingNodes: e.maxHardCapForMissingNodes,
 		NumConcurrentTrieSyncers:  e.numConcurrentTrieSyncers,
 		TrieSyncerVersion:         e.trieSyncerVersion,
+		CheckNodesOnDisk:          e.checkNodesOnDisk,
 		AddressPubKeyConverter:    e.CoreComponents.AddressPubKeyConverter(),
 	}
 	accountsDBSyncerFactory, err := NewAccountsDBSContainerFactory(argsAccountsSyncers)
