@@ -892,6 +892,10 @@ func (e *epochStartBootstrap) requestAndProcessForShard(peerMiniBlocks []*block.
 		return err
 	}
 
+	for hash, hdr := range dts.additionalHeaders {
+		e.syncedHeaders[hash] = hdr
+	}
+
 	miniblocksHeadersFromNotarizedShardHeader := shardNotarizedHeader.GetMiniBlockHeaderHandlers()
 	syncedMiniBlocks, err := e.syncMiniBlocks(miniblocksHeadersFromNotarizedShardHeader)
 	if err != nil {
