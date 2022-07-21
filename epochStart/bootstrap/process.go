@@ -892,16 +892,12 @@ func (e *epochStartBootstrap) requestAndProcessForShard(peerMiniBlocks []*block.
 		return err
 	}
 
-	for hash, hdr := range dts.additionalHeaders {
-		e.syncedHeaders[hash] = hdr
-	}
-
-	involvedMiniBlocksHeaders := createListOfMiniBlockHeadersFromHeaders(e.syncedHeaders)
-	syncedMiniBlocks, err := e.syncMiniBlocks(involvedMiniBlocksHeaders)
+	miniblocksHeadersFromNotarizedShardHeader := shardNotarizedHeader.GetMiniBlockHeaderHandlers()
+	syncedMiniBlocks, err := e.syncMiniBlocks(miniblocksHeadersFromNotarizedShardHeader)
 	if err != nil {
 		return err
 	}
-	log.Debug("start in epoch bootstrap: syncMiniBlocks (all involved mini blocks)", "num synced", len(pendingMiniBlocks))
+	log.Debug("start in epoch bootstrap: syncMiniBlocks (all involved mini blocks)", "num synced", len(syncedMiniBlocks))
 
 	allInvolvedMiniBlocks := createListOfMiniBlocks(syncedMiniBlocks)
 	allInvolvedMiniBlocks = append(allInvolvedMiniBlocks, peerMiniBlocks...)
@@ -969,15 +965,6 @@ func createListOfMiniBlocks(mapOfMiniBlocks map[string]*block.MiniBlock) []*bloc
 	}
 
 	return result
-}
-
-func createListOfMiniBlockHeadersFromHeaders(headers map[string]data.HeaderHandler) []data.MiniBlockHeaderHandler {
-	miniBlockHeaders := make([]data.MiniBlockHeaderHandler, 0)
-	for _, hdr := range headers {
-		miniBlockHeaders = append(miniBlockHeaders, hdr.GetMiniBlockHeaderHandlers()...)
-	}
-
-	return miniBlockHeaders
 }
 
 func (e *epochStartBootstrap) getDataToSync(
