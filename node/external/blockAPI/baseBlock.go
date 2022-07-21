@@ -328,7 +328,7 @@ func extractExecutedTxHashes(mbTxHashes [][]byte, firstProcessed, lastProcessed 
 
 func addScheduledInfoInBlock(header data.HeaderHandler, apiBlock *api.Block) {
 	additionalData := header.GetAdditionalData()
-	if additionalData != nil {
+	if additionalData == nil {
 		return
 	}
 
