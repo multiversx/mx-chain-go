@@ -85,6 +85,7 @@ func NewConsensusCore(
 		blsPrivateKey:                 args.BlsPrivateKey,
 		blsSingleSigner:               args.BlsSingleSigner,
 		multiSigner:                   args.MultiSigner,
+		keyGenerator:                  args.KeyGenerator,
 		roundHandler:                  args.RoundHandler,
 		shardCoordinator:              args.ShardCoordinator,
 		nodesCoordinator:              args.NodesCoordinator,

@@ -25,6 +25,7 @@ func createDefaultConsensusCoreArgs() *spos.ConsensusCoreArgs {
 		BlsPrivateKey:                 consensusCoreMock.PrivateKey(),
 		BlsSingleSigner:               consensusCoreMock.SingleSigner(),
 		MultiSigner:                   consensusCoreMock.MultiSigner(),
+		KeyGenerator:                  consensusCoreMock.KeyGenerator(),
 		RoundHandler:                  consensusCoreMock.RoundHandler(),
 		ShardCoordinator:              consensusCoreMock.ShardCoordinator(),
 		NodesCoordinator:              consensusCoreMock.NodesCoordinator(),
@@ -180,6 +181,20 @@ func TestConsensusCore_WithNilMultiSignerShouldFail(t *testing.T) {
 	assert.Equal(t, spos.ErrNilMultiSigner, err)
 }
 
+func TestConsensusCore_WithNilKeyGeneratorShouldFail(t *testing.T) {
+	t.Parallel()
+
+	args := createDefaultConsensusCoreArgs()
+	args.KeyGenerator = nil
+
+	consensusCore, err := spos.NewConsensusCore(
+		args,
+	)
+
+	assert.Nil(t, consensusCore)
+	assert.Equal(t, spos.ErrNilKeyGenerator, err)
+}
+
 func TestConsensusCore_WithNilRoundHandlerShouldFail(t *testing.T) {
 	t.Parallel()
 
@@ -332,6 +347,20 @@ func TestConsensusCore_WithNilMessageSigningHandlerShouldFail(t *testing.T) {
 
 	assert.Nil(t, consensusCore)
 	assert.Equal(t, spos.ErrNilMessageSigningHandler, err)
+}
+
+func TestConsensusCore_WithNilPeerBlacklistHandlerShouldFail(t *testing.T) {
+	t.Parallel()
+
+	args := createDefaultConsensusCoreArgs()
+	args.PeerBlacklistHandler = nil
+
+	consensusCore, err := spos.NewConsensusCore(
+		args,
+	)
+
+	assert.Nil(t, consensusCore)
+	assert.Equal(t, spos.ErrNilPeerBlacklistHandler, err)
 }
 
 func TestConsensusCore_CreateConsensusCoreShouldWork(t *testing.T) {

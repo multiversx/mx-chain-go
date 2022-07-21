@@ -49,6 +49,9 @@ func ValidateConsensusCore(container ConsensusCoreHandler) error {
 	if check.IfNil(container.SingleSigner()) {
 		return ErrNilBlsSingleSigner
 	}
+	if check.IfNil(container.KeyGenerator()) {
+		return ErrNilKeyGenerator
+	}
 	if check.IfNil(container.GetAntiFloodHandler()) {
 		return ErrNilAntifloodHandler
 	}

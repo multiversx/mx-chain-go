@@ -14,6 +14,7 @@ var log = logger.GetOrCreate("consensus/blacklist")
 
 var durationSweepP2PBlacklist = time.Second * 5
 
+// PeerBlackListArgs defines the arguments needed for peer blacklist component
 type PeerBlackListArgs struct {
 	PeerCacher spos.PeerBlackListCacher
 }
@@ -23,6 +24,7 @@ type peerBlacklist struct {
 	cancel     func()
 }
 
+// NewPeerBlacklist creates a new instance of peer blacklist
 func NewPeerBlacklist(args PeerBlackListArgs) (*peerBlacklist, error) {
 	err := checkArgs(args)
 	if err != nil {
@@ -42,6 +44,7 @@ func checkArgs(args PeerBlackListArgs) error {
 	return nil
 }
 
+// BlacklistPeer will blacklist a peer for a certain amount of time
 func (pb *peerBlacklist) BlacklistPeer(peer core.PeerID, duration time.Duration) {
 	peerIsBlacklisted := pb.peerCacher.Has(peer)
 
@@ -63,6 +66,7 @@ func (pb *peerBlacklist) BlacklistPeer(peer core.PeerID, duration time.Duration)
 	}
 }
 
+// StartSweepingTimeCache will trigger the sweeping cache goroutine
 func (pb *peerBlacklist) StartSweepingTimeCache() {
 	var ctx context.Context
 	ctx, pb.cancel = context.WithCancel(context.Background())
@@ -83,6 +87,7 @@ func (pb *peerBlacklist) startSweepingPeerCache(ctx context.Context) {
 	}
 }
 
+// Close will close the goroutine
 func (pb *peerBlacklist) Close() error {
 	pb.cancel()
 

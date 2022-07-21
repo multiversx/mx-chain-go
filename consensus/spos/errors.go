@@ -234,3 +234,6 @@ var ErrNilPeerBlacklistHandler = errors.New("nil peer blacklist handler")
 
 // ErrNilPeerBlacklistCacher signals that a nil peer blacklist cacher has been provided
 var ErrNilPeerBlacklistCacher = errors.New("nil peer blacklist cacher")
+
+// ErrNilKeyGenerator signals that a nil key generator has been provided
+var ErrNilKeyGenerator = errors.New("nil key generator")

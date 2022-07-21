@@ -221,15 +221,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		return nil, err
 	}
 
-	cache := timecache.NewTimeCache(defaultSpan)
-	peerCacher, err := timecache.NewPeerTimeCache(cache)
-	if err != nil {
-		return nil, err
-	}
-	blacklistArgs := blacklist.PeerBlackListArgs{
-		PeerCacher: peerCacher,
-	}
-	peerBlacklistHandler, err := blacklist.NewPeerBlacklist(blacklistArgs)
+	peerBlacklistHandler, err := ccf.createPeerBlacklistHandler()
 	if err != nil {
 		return nil, err
 	}
@@ -642,6 +634,19 @@ func (ccf *consensusComponentsFactory) createConsensusTopic(cc *consensusCompone
 	}
 
 	return ccf.networkComponents.NetworkMessenger().RegisterMessageProcessor(cc.consensusTopic, common.DefaultInterceptorsIdentifier, cc.worker)
+}
+
+func (ccf *consensusComponentsFactory) createPeerBlacklistHandler() (consensus.PeerBlacklistHandler, error) {
+	cache := timecache.NewTimeCache(defaultSpan)
+	peerCacher, err := timecache.NewPeerTimeCache(cache)
+	if err != nil {
+		return nil, err
+	}
+	blacklistArgs := blacklist.PeerBlackListArgs{
+		PeerCacher: peerCacher,
+	}
+
+	return blacklist.NewPeerBlacklist(blacklistArgs)
 }
 
 func (ccf *consensusComponentsFactory) addCloserInstances(closers ...update.Closer) error {

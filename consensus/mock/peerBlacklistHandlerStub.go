@@ -8,7 +8,8 @@ import (
 
 // PeerBlacklistHandlerStub -
 type PeerBlacklistHandlerStub struct {
-	BlacklistPeerCalled func(peer core.PeerID, duration time.Duration)
+	BlacklistPeerCalled          func(peer core.PeerID, duration time.Duration)
+	StartSweepingTimeCacheCalled func()
 }
 
 // BlacklistPeer -
@@ -18,6 +19,13 @@ func (stub *PeerBlacklistHandlerStub) BlacklistPeer(peer core.PeerID, duration t
 	}
 
 	return
+}
+
+// StartSweepingTimeCache -
+func (stub *PeerBlacklistHandlerStub) StartSweepingTimeCache() {
+	if stub.StartSweepingTimeCacheCalled != nil {
+		stub.StartSweepingTimeCacheCalled()
+	}
 }
 
 // IsInterfaceNil -

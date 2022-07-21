@@ -74,8 +74,8 @@ func (sr *subroundSignature) doSignatureJob(_ context.Context) bool {
 		log.Debug("doSignatureJob.CreateSignatureShare", "error", err.Error())
 		return false
 	}
-	log.Debug("doSignatureJob.CreateSignatureShare: fake signature")
-	signatureShare[0] = signatureShare[1] ^ signatureShare[2] ^ signatureShare[3]
+	// log.Debug("doSignatureJob.CreateSignatureShare: fake signature")
+	// signatureShare[0] = signatureShare[1] ^ signatureShare[2] ^ signatureShare[3]
 
 	isSelfLeader := sr.IsSelfLeaderInCurrentRound()
 
