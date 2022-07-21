@@ -5,6 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/stretchr/testify/require"
 )
 
@@ -13,7 +14,7 @@ func TestMarshalAndUnmarshalReceiptsHolder(t *testing.T) {
 		marshaller := &marshal.GogoProtoMarshalizer{}
 
 		// Miniblocks as nil slice
-		holder := &ReceiptsHolder{}
+		holder := &process.ReceiptsHolder{}
 		data, err := marshalReceiptsHolder(holder, marshaller)
 		require.Nil(t, err)
 		require.Equal(t, []byte{}, data)
@@ -23,7 +24,7 @@ func TestMarshalAndUnmarshalReceiptsHolder(t *testing.T) {
 		require.Equal(t, newReceiptsHolder(), unmarshalledHolder)
 
 		// Miniblocks as empty slice
-		holder = &ReceiptsHolder{Miniblocks: make([]*block.MiniBlock, 0)}
+		holder = &process.ReceiptsHolder{Miniblocks: make([]*block.MiniBlock, 0)}
 		data, err = marshalReceiptsHolder(holder, marshaller)
 		require.Nil(t, err)
 		require.Equal(t, []byte{}, data)
@@ -37,7 +38,7 @@ func TestMarshalAndUnmarshalReceiptsHolder(t *testing.T) {
 		marshaller := &marshal.GogoProtoMarshalizer{}
 
 		// One miniblock in batch.Data
-		holder := &ReceiptsHolder{Miniblocks: []*block.MiniBlock{{SenderShardID: 42}}}
+		holder := &process.ReceiptsHolder{Miniblocks: []*block.MiniBlock{{SenderShardID: 42}}}
 		data, err := marshalReceiptsHolder(holder, marshaller)
 		require.Nil(t, err)
 		require.Equal(t, []byte{0xa, 0x2, 0x18, 42}, data)
@@ -47,7 +48,7 @@ func TestMarshalAndUnmarshalReceiptsHolder(t *testing.T) {
 		require.Equal(t, holder, unmarshalledHolder)
 
 		// More miniblocks in batch.Data
-		holder = &ReceiptsHolder{Miniblocks: []*block.MiniBlock{{SenderShardID: 42}, {SenderShardID: 43}}}
+		holder = &process.ReceiptsHolder{Miniblocks: []*block.MiniBlock{{SenderShardID: 42}, {SenderShardID: 43}}}
 		data, err = marshalReceiptsHolder(holder, marshaller)
 		require.Nil(t, err)
 		require.Equal(t, []byte{0xa, 0x2, 0x18, 42, 0xa, 0x2, 0x18, 43}, data)

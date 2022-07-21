@@ -33,6 +33,7 @@ func newShardApiBlockProcessor(arg *ArgAPIBlockProcessor, emptyReceiptsHash []by
 			addressPubKeyConverter:   arg.AddressPubkeyConverter,
 			emptyReceiptsHash:        emptyReceiptsHash,
 			logsFacade:               arg.LogsFacade,
+			receiptsRepository:       arg.ReceiptsRepository,
 		},
 	}
 }
@@ -120,7 +121,7 @@ func (sbp *shardAPIBlockProcessor) convertShardBlockBytesToAPIBlock(hash []byte,
 		miniblocks = append(miniblocks, miniblockAPI)
 	}
 
-	intraMb, err := sbp.getIntrashardMiniblocksFromReceiptsStorage(blockHeader.GetReceiptsHash(), hash, headerEpoch, options)
+	intraMb, err := sbp.getIntrashardMiniblocksFromReceiptsStorage(blockHeader, hash, options)
 	if err != nil {
 		return nil, err
 	}

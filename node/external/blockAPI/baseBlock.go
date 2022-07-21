@@ -8,7 +8,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
-	"github.com/ElrondNetwork/elrond-go-core/data/batch"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
@@ -42,38 +41,29 @@ type baseAPIBlockProcessor struct {
 	addressPubKeyConverter   core.PubkeyConverter
 	txStatusComputer         transaction.StatusComputerHandler
 	apiTransactionHandler    APITransactionHandler
-	logsFacade               LogsFacade
+	logsFacade               logsFacade
+	receiptsRepository       receiptsRepository
 }
 
 var log = logger.GetOrCreate("node/blockAPI")
 
-func (bap *baseAPIBlockProcessor) getIntrashardMiniblocksFromReceiptsStorage(receiptsHash []byte, headerHash []byte, epoch uint32, options api.BlockQueryOptions) ([]*api.MiniBlock, error) {
-	batchWithMbs, err := bap.getReceiptsBatch(receiptsHash, headerHash, epoch, options)
+func (bap *baseAPIBlockProcessor) getIntrashardMiniblocksFromReceiptsStorage(header data.HeaderHandler, headerHash []byte, options api.BlockQueryOptions) ([]*api.MiniBlock, error) {
+	receiptsHolder, err := bap.receiptsRepository.LoadReceipts(header, headerHash)
 	if err != nil {
 		return nil, err
 	}
 
-	return bap.convertReceiptsStorageBatchToApiMiniblocks(batchWithMbs, epoch, options)
-}
-
-func (bap *baseAPIBlockProcessor) convertReceiptsStorageBatchToApiMiniblocks(batchWithMbs *batch.Batch, epoch uint32, options api.BlockQueryOptions) ([]*api.MiniBlock, error) {
-	mbs := make([]*api.MiniBlock, 0)
-	for _, mbBytes := range batchWithMbs.Data {
-		miniBlock := &block.MiniBlock{}
-		err := bap.marshalizer.Unmarshal(miniBlock, mbBytes)
-		if err != nil {
-			return nil, fmt.Errorf("%w: %v", errCannotUnmarshalMiniblocks, err)
-		}
-
-		miniblockAPI, err := bap.convertMiniblockFromReceiptsStorageToApiMiniblock(miniBlock, epoch, options)
+	apiMiniblocks := make([]*api.MiniBlock, 0)
+	for _, miniblock := range receiptsHolder.Miniblocks {
+		apiMiniblock, err := bap.convertMiniblockFromReceiptsStorageToApiMiniblock(miniblock, header.GetEpoch(), options)
 		if err != nil {
 			return nil, err
 		}
 
-		mbs = append(mbs, miniblockAPI)
+		apiMiniblocks = append(apiMiniblocks, apiMiniblock)
 	}
 
-	return mbs, nil
+	return apiMiniblocks, nil
 }
 
 func (bap *baseAPIBlockProcessor) convertMiniblockFromReceiptsStorageToApiMiniblock(miniblock *block.MiniBlock, epoch uint32, options api.BlockQueryOptions) (*api.MiniBlock, error) {

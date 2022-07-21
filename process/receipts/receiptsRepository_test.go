@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing/blake2b"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
@@ -92,7 +93,7 @@ func TestReceiptsRepository_SaveReceipts(t *testing.T) {
 	hasher := blake2b.NewBlake2b()
 	emptyReceiptsHash, _ := createEmptyReceiptsHash(marshaller, hasher)
 	nonEmptyReceiptsHash := []byte("non-empty-receipts-hash")
-	receiptsHolder := &ReceiptsHolder{Miniblocks: []*block.MiniBlock{{Type: block.SmartContractResultBlock}}}
+	receiptsHolder := &process.ReceiptsHolder{Miniblocks: []*block.MiniBlock{{Type: block.SmartContractResultBlock}}}
 	receiptsBytes, _ := marshalReceiptsHolder(receiptsHolder, marshaller)
 	headerHash := []byte("header-hash")
 
@@ -161,11 +162,11 @@ func TestReceiptsRepository_LoadReceipts(t *testing.T) {
 		Store:      store,
 	})
 
-	receiptsAtKeyHeaderHash := &ReceiptsHolder{Miniblocks: []*block.MiniBlock{{SenderShardID: 42}}}
+	receiptsAtKeyHeaderHash := &process.ReceiptsHolder{Miniblocks: []*block.MiniBlock{{SenderShardID: 42}}}
 	receiptsAtKeyHeaderHashBytes, _ := marshalReceiptsHolder(receiptsAtKeyHeaderHash, marshaller)
 	_ = store.Put(dataRetriever.ReceiptsUnit, headerHash, receiptsAtKeyHeaderHashBytes)
 
-	receiptsAtKeyReceiptsHash := &ReceiptsHolder{Miniblocks: []*block.MiniBlock{{SenderShardID: 43}}}
+	receiptsAtKeyReceiptsHash := &process.ReceiptsHolder{Miniblocks: []*block.MiniBlock{{SenderShardID: 43}}}
 	receiptsAtKeyReceiptsHashBytes, _ := marshalReceiptsHolder(receiptsAtKeyReceiptsHash, marshaller)
 	_ = store.Put(dataRetriever.ReceiptsUnit, nonEmptyReceiptsHash, receiptsAtKeyReceiptsHashBytes)
 
@@ -209,7 +210,7 @@ func TestReceiptsRepository_NoPanicOnSaveOrLoadWhenBadStorage(t *testing.T) {
 	})
 
 	t.Run("save in bad storage", func(t *testing.T) {
-		holder := &ReceiptsHolder{Miniblocks: []*block.MiniBlock{{SenderShardID: 42}}}
+		holder := &process.ReceiptsHolder{Miniblocks: []*block.MiniBlock{{SenderShardID: 42}}}
 		header := &block.Header{ReceiptsHash: []byte("aaaa")}
 		err := repository.SaveReceipts(holder, header, []byte("bbbb"))
 		require.NotNil(t, err)

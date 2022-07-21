@@ -6,20 +6,16 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/batch"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/process"
 )
 
-// ReceiptsHolder holds the content to be saved in (loaded from) the receipts unit
-type ReceiptsHolder struct {
-	Miniblocks []*block.MiniBlock
-}
-
-func newReceiptsHolder() *ReceiptsHolder {
-	return &ReceiptsHolder{
+func newReceiptsHolder() *process.ReceiptsHolder {
+	return &process.ReceiptsHolder{
 		Miniblocks: make([]*block.MiniBlock, 0),
 	}
 }
 
-func marshalReceiptsHolder(holder *ReceiptsHolder, marshaller marshal.Marshalizer) ([]byte, error) {
+func marshalReceiptsHolder(holder *process.ReceiptsHolder, marshaller marshal.Marshalizer) ([]byte, error) {
 	receiptsBatch := &batch.Batch{}
 
 	for _, miniBlock := range holder.Miniblocks {
@@ -44,7 +40,7 @@ func marshalReceiptsHolder(holder *ReceiptsHolder, marshaller marshal.Marshalize
 	return receiptsBytes, nil
 }
 
-func unmarshalReceiptsHolder(receiptsBytes []byte, marshaller marshal.Marshalizer) (*ReceiptsHolder, error) {
+func unmarshalReceiptsHolder(receiptsBytes []byte, marshaller marshal.Marshalizer) (*process.ReceiptsHolder, error) {
 	holder := newReceiptsHolder()
 
 	if len(receiptsBytes) == 0 {

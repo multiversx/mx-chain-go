@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -51,7 +52,7 @@ func createEmptyReceiptsHash(marshaller marshal.Marshalizer, hasher hashing.Hash
 }
 
 // SaveReceipts saves the receipts in the storer (receipts unit) for a given block header
-func (repository *receiptsRepository) SaveReceipts(holder *ReceiptsHolder, header data.HeaderHandler, headerHash []byte) error {
+func (repository *receiptsRepository) SaveReceipts(holder *process.ReceiptsHolder, header data.HeaderHandler, headerHash []byte) error {
 	storageKey := repository.decideStorageKey(header.GetReceiptsHash(), headerHash)
 
 	log.Debug("receiptsRepository.SaveReceipts()", "headerNonce", header.GetNonce(), "storageKey", storageKey)
@@ -79,7 +80,7 @@ func (repository *receiptsRepository) getStorer() storage.Storer {
 }
 
 // LoadReceipts loads the receipts, given a block header
-func (repository *receiptsRepository) LoadReceipts(header data.HeaderHandler, headerHash []byte) (*ReceiptsHolder, error) {
+func (repository *receiptsRepository) LoadReceipts(header data.HeaderHandler, headerHash []byte) (*process.ReceiptsHolder, error) {
 	storageKey := repository.decideStorageKey(header.GetReceiptsHash(), headerHash)
 
 	batchBytes, err := repository.getStorer().GetFromEpoch(storageKey, header.GetEpoch())
