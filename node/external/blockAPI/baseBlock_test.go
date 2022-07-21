@@ -60,7 +60,7 @@ func TestBaseBlockGetIntraMiniblocksSCRS(t *testing.T) {
 	scResultBytes, _ := baseAPIBlockProc.marshalizer.Marshal(scResult)
 
 	baseAPIBlockProc.store = genericMocks.NewChainStorerMock(0)
-	baseAPIBlockProc.store.GetStorer(dataRetriever.UnsignedTransactionUnit).Put(scrHash, scResultBytes)
+	_ = baseAPIBlockProc.store.GetStorer(dataRetriever.UnsignedTransactionUnit).Put(scrHash, scResultBytes)
 
 	baseAPIBlockProc.receiptsRepository = &testscommon.ReceiptsRepositoryStub{
 		LoadReceiptsCalled: func(header data.HeaderHandler, headerHash []byte) (*process.ReceiptsHolder, error) {
@@ -120,7 +120,7 @@ func TestBaseBlockGetIntraMiniblocksReceipts(t *testing.T) {
 	receiptBytes, _ := baseAPIBlockProc.marshalizer.Marshal(receipt)
 
 	baseAPIBlockProc.store = genericMocks.NewChainStorerMock(0)
-	baseAPIBlockProc.store.GetStorer(dataRetriever.UnsignedTransactionUnit).Put(receiptHash, receiptBytes)
+	_ = baseAPIBlockProc.store.GetStorer(dataRetriever.UnsignedTransactionUnit).Put(receiptHash, receiptBytes)
 
 	baseAPIBlockProc.receiptsRepository = &testscommon.ReceiptsRepositoryStub{
 		LoadReceiptsCalled: func(header data.HeaderHandler, headerHash []byte) (*process.ReceiptsHolder, error) {

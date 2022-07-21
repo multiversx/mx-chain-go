@@ -106,7 +106,7 @@ func TestReceiptsRepository_SaveReceipts(t *testing.T) {
 			Store:      store,
 		})
 
-		repository.SaveReceipts(
+		_ = repository.SaveReceipts(
 			receiptsHolder,
 			&block.Header{ReceiptsHash: nonEmptyReceiptsHash},
 			headerHash,
@@ -131,7 +131,7 @@ func TestReceiptsRepository_SaveReceipts(t *testing.T) {
 			Store:      store,
 		})
 
-		repository.SaveReceipts(
+		_ = repository.SaveReceipts(
 			receiptsHolder,
 			&block.Header{ReceiptsHash: emptyReceiptsHash},
 			headerHash,
