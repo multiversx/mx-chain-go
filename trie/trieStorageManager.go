@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"strings"
 	"sync"
 	"time"
 
@@ -17,7 +16,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/errors"
-	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 // trieStorageManager manages all the storage operations of the trie (commit, snapshot, checkpoint, pruning)
@@ -179,7 +177,7 @@ func (tsm *trieStorageManager) Get(key []byte) ([]byte, error) {
 	}
 
 	val, err := tsm.mainStorer.Get(key)
-	if isClosingError(err) {
+	if errors.IsClosingError(err) {
 		return nil, err
 	}
 	if len(val) != 0 {
@@ -213,7 +211,7 @@ func (tsm *trieStorageManager) GetFromCurrentEpoch(key []byte) ([]byte, error) {
 
 func (tsm *trieStorageManager) getFromOtherStorers(key []byte) ([]byte, error) {
 	val, err := tsm.checkpointsStorer.Get(key)
-	if isClosingError(err) {
+	if errors.IsClosingError(err) {
 		return nil, err
 	}
 	if len(val) != 0 {
@@ -221,18 +219,6 @@ func (tsm *trieStorageManager) getFromOtherStorers(key []byte) ([]byte, error) {
 	}
 
 	return nil, ErrKeyNotFound
-}
-
-func isClosingError(err error) bool {
-	if err == nil {
-		return false
-	}
-
-	isClosingErr := err == errors.ErrContextClosing ||
-		err == storage.ErrDBIsClosed ||
-		strings.Contains(err.Error(), storage.ErrDBIsClosed.Error()) ||
-		strings.Contains(err.Error(), errors.ErrContextClosing.Error())
-	return isClosingErr
 }
 
 // Put adds the given value to the main storer
@@ -517,7 +503,7 @@ func (tsm *trieStorageManager) takeCheckpoint(checkpointEntry *snapshotsQueueEnt
 }
 
 func treatSnapshotError(err error, message string, rootHash []byte, mainTrieRootHash []byte) {
-	if isClosingError(err) {
+	if errors.IsClosingError(err) {
 		log.Debug("context closing", "message", message, "rootHash", rootHash, "mainTrieRootHash", mainTrieRootHash)
 		return
 	}
