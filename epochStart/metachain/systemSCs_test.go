@@ -943,7 +943,7 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieS
 		PubkeyConv:          argsHook.PubkeyConv,
 		Economics:           createEconomicsData(),
 		MessageSignVerifier: signVerifer,
-		GasSchedule:         mock.NewGasScheduleNotifierMock(gasSchedule),
+		GasSchedule:         testscommon.NewGasScheduleNotifierMock(gasSchedule),
 		NodesConfigProvider: nodesSetup,
 		Hasher:              hasher,
 		Marshalizer:         marshalizer,
