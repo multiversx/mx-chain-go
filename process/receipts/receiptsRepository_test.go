@@ -2,6 +2,7 @@ package receipts
 
 import (
 	"encoding/hex"
+	"errors"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -10,8 +11,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing/blake2b"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
+	testsCommonStorage "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/stretchr/testify/require"
 )
 
@@ -67,16 +70,20 @@ func TestNewReceiptsRepository(t *testing.T) {
 		require.False(t, check.IfNil(repository))
 	})
 
-	t.Run("emptyReceiptsHash is set", func(t *testing.T) {
+	t.Run("emptyReceiptsHash is cached", func(t *testing.T) {
+		marshaller := &marshal.GogoProtoMarshalizer{}
+		hasher := blake2b.NewBlake2b()
+		emptyReceiptsHash, _ := createEmptyReceiptsHash(marshaller, hasher)
+
 		arguments := ArgsNewReceiptsRepository{
-			Marshaller: &marshal.GogoProtoMarshalizer{},
-			Hasher:     blake2b.NewBlake2b(),
+			Marshaller: marshaller,
+			Hasher:     hasher,
 			Store:      genericMocks.NewChainStorerMock(0),
 		}
 
 		repository, err := NewReceiptsRepository(arguments)
 		require.Nil(t, err)
-		require.Equal(t, "0e5751c026e543b2e8ab2eb06099daa1d1e5df47778f7787faab45cdf12fe3a8", hex.EncodeToString(repository.emptyReceiptsHash))
+		require.Equal(t, emptyReceiptsHash, repository.emptyReceiptsHash)
 	})
 }
 
@@ -84,7 +91,7 @@ func TestReceiptsRepository_SaveReceipts(t *testing.T) {
 	marshaller := &marshal.GogoProtoMarshalizer{}
 	hasher := blake2b.NewBlake2b()
 	emptyReceiptsHash, _ := createEmptyReceiptsHash(marshaller, hasher)
-	nonEmptyReceiptsHash := []byte("receipts-hash")
+	nonEmptyReceiptsHash := []byte("non-empty-receipts-hash")
 	receiptsHolder := &ReceiptsHolder{Miniblocks: []*block.MiniBlock{{Type: block.SmartContractResultBlock}}}
 	receiptsBytes, _ := marshalReceiptsHolder(receiptsHolder, marshaller)
 	headerHash := []byte("header-hash")
@@ -141,5 +148,108 @@ func TestReceiptsRepository_SaveReceipts(t *testing.T) {
 }
 
 func TestReceiptsRepository_LoadReceipts(t *testing.T) {
-	// TBD
+	marshaller := &marshal.GogoProtoMarshalizer{}
+	hasher := blake2b.NewBlake2b()
+	store := genericMocks.NewChainStorerMock(0)
+	emptyReceiptsHash, _ := createEmptyReceiptsHash(marshaller, hasher)
+	nonEmptyReceiptsHash := []byte("non-empty-receipts-hash")
+	headerHash := []byte("header-hash")
+
+	repository, _ := NewReceiptsRepository(ArgsNewReceiptsRepository{
+		Marshaller: marshaller,
+		Hasher:     hasher,
+		Store:      store,
+	})
+
+	receiptsAtKeyHeaderHash := &ReceiptsHolder{Miniblocks: []*block.MiniBlock{{SenderShardID: 42}}}
+	receiptsAtKeyHeaderHashBytes, _ := marshalReceiptsHolder(receiptsAtKeyHeaderHash, marshaller)
+	_ = store.Put(dataRetriever.ReceiptsUnit, headerHash, receiptsAtKeyHeaderHashBytes)
+
+	receiptsAtKeyReceiptsHash := &ReceiptsHolder{Miniblocks: []*block.MiniBlock{{SenderShardID: 43}}}
+	receiptsAtKeyReceiptsHashBytes, _ := marshalReceiptsHolder(receiptsAtKeyReceiptsHash, marshaller)
+	_ = store.Put(dataRetriever.ReceiptsUnit, nonEmptyReceiptsHash, receiptsAtKeyReceiptsHashBytes)
+
+	t.Run("when header.GetReceiptsHash() == emptyReceiptsHash", func(t *testing.T) {
+		loaded, err := repository.LoadReceipts(&block.Header{ReceiptsHash: emptyReceiptsHash}, headerHash)
+		require.Nil(t, err)
+		require.Equal(t, receiptsAtKeyHeaderHash, loaded)
+	})
+
+	t.Run("when header.GetReceiptsHash() != emptyReceiptsHash", func(t *testing.T) {
+		loaded, err := repository.LoadReceipts(&block.Header{ReceiptsHash: nonEmptyReceiptsHash}, headerHash)
+		require.Nil(t, err)
+		require.Equal(t, receiptsAtKeyReceiptsHash, loaded)
+	})
+
+	t.Run("when no receipts for given header", func(t *testing.T) {
+		loadedHolder, err := repository.LoadReceipts(&block.Header{ReceiptsHash: emptyReceiptsHash}, []byte("abba"))
+		require.Nil(t, err)
+		require.Equal(t, newReceiptsHolder(), loadedHolder)
+	})
+}
+
+func TestReceiptsRepository_NoPanicOnSaveOrLoadWhenBadStorage(t *testing.T) {
+	store := &testsCommonStorage.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+			return &testsCommonStorage.StorerStub{
+				PutCalled: func(key, data []byte) error {
+					return errors.New("bad")
+				},
+				GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
+					return nil, errors.New("bad")
+				},
+			}
+		},
+	}
+
+	repository, _ := NewReceiptsRepository(ArgsNewReceiptsRepository{
+		Marshaller: testscommon.MarshalizerMock{},
+		Hasher:     &testscommon.HasherStub{},
+		Store:      store,
+	})
+
+	t.Run("save in bad storage", func(t *testing.T) {
+		holder := &ReceiptsHolder{Miniblocks: []*block.MiniBlock{{SenderShardID: 42}}}
+		header := &block.Header{ReceiptsHash: []byte("aaaa")}
+		err := repository.SaveReceipts(holder, header, []byte("bbbb"))
+		require.NotNil(t, err)
+		require.ErrorIs(t, err, errCannotSaveReceipts)
+	})
+
+	t.Run("load from bad storage", func(t *testing.T) {
+		header := &block.Header{ReceiptsHash: []byte("aaaa")}
+		loaded, err := repository.LoadReceipts(header, []byte("bbbb"))
+		require.NotNil(t, err)
+		require.ErrorIs(t, err, errCannotLoadReceipts)
+		require.Nil(t, loaded)
+	})
+}
+
+func TestReceiptsRepository_DecideStorageKey(t *testing.T) {
+	repository, _ := NewReceiptsRepository(ArgsNewReceiptsRepository{
+		Marshaller: testscommon.MarshalizerMock{},
+		Hasher:     &testscommon.HasherStub{},
+		Store:      genericMocks.NewChainStorerMock(0),
+	})
+
+	repository.emptyReceiptsHash = []byte("empty-receipts-hash")
+
+	t.Run("when receipts hash is for non-empty receipts", func(t *testing.T) {
+		storageKey := repository.decideStorageKey([]byte("non-empty-receipts-hash"), []byte("header-hash"))
+		require.Equal(t, []byte("non-empty-receipts-hash"), storageKey)
+	})
+
+	t.Run("when receipts hash is for empty receipts", func(t *testing.T) {
+		storageKey := repository.decideStorageKey([]byte("empty-receipts-hash"), []byte("header-hash"))
+		require.Equal(t, []byte("header-hash"), storageKey)
+	})
+}
+
+func TestCreateEmptyReceiptsHash(t *testing.T) {
+	marshaller := &marshal.GogoProtoMarshalizer{}
+	hasher := blake2b.NewBlake2b()
+
+	emptyReceiptsHash, err := createEmptyReceiptsHash(marshaller, hasher)
+	require.Nil(t, err)
+	require.Equal(t, "0e5751c026e543b2e8ab2eb06099daa1d1e5df47778f7787faab45cdf12fe3a8", hex.EncodeToString(emptyReceiptsHash))
 }
