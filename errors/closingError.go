@@ -1,7 +1,6 @@
 package errors
 
 import (
-	"errors"
 	"strings"
 )
 
@@ -11,8 +10,6 @@ func IsClosingError(err error) bool {
 		return false
 	}
 
-	return errors.Is(err, ErrContextClosing) ||
-		errors.Is(err, ErrDBIsClosed) ||
-		strings.Contains(err.Error(), ErrDBIsClosed.Error()) ||
+	return strings.Contains(err.Error(), ErrDBIsClosed.Error()) ||
 		strings.Contains(err.Error(), ErrContextClosing.Error())
 }
