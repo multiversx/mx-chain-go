@@ -564,6 +564,7 @@ type RequestHandler interface {
 // CallArgumentsParser defines the functionality to parse transaction data into call arguments
 type CallArgumentsParser interface {
 	ParseData(data string) (string, [][]byte, error)
+	ParseArguments(data string) ([][]byte, error)
 	IsInterfaceNil() bool
 }
 
@@ -583,6 +584,7 @@ type StorageArgumentsParser interface {
 // ArgumentsParser defines the functionality to parse transaction data into arguments and code for smart contracts
 type ArgumentsParser interface {
 	ParseCallData(data string) (string, [][]byte, error)
+	ParseArguments(data string) ([][]byte, error)
 	ParseDeployData(data string) (*parsers.DeployArgs, error)
 
 	CreateDataFromStorageUpdate(storageUpdates []*vmcommon.StorageUpdate) string
