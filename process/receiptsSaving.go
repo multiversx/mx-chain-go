@@ -22,6 +22,7 @@ type ArgsSaveReceipts struct {
 	Hasher                      hashing.Hasher
 	Store                       dataRetriever.StorageService
 	Header                      data.HeaderHandler
+	HeaderHash                  []byte
 }
 
 // SaveReceipts saves receipts in the storer (receipts unit)
@@ -45,11 +46,7 @@ func SaveReceipts(args ArgsSaveReceipts) {
 
 	storerKey := args.Header.GetReceiptsHash()
 	if bytes.Equal(storerKey, emptyReceiptsHash) {
-		storerKey, errNotCritical = core.CalculateHash(args.Marshaller, args.Hasher, args.Header)
-		if errNotCritical != nil {
-			log.Warn("SaveReceipts(), error on CalculateHash(header)", "error", errNotCritical.Error())
-			return
-		}
+		storerKey = args.HeaderHash
 	}
 
 	log.Debug("SaveReceipts()", "blockNonce", args.Header.GetNonce(), "storerKey", storerKey)

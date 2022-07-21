@@ -250,12 +250,19 @@ func (b *baseProcessor) saveMiniBlocks(headerHandler data.HeaderHandler, body *b
 }
 
 func (b *baseProcessor) saveReceipts(headerHandler data.HeaderHandler) {
+	headerHash, errNotCritical := core.CalculateHash(b.marshalizer, b.hasher, headerHandler)
+	if errNotCritical != nil {
+		log.Warn("saveReceipts(), error on CalculateHash(header)", "error", errNotCritical.Error())
+		return
+	}
+
 	process.SaveReceipts(process.ArgsSaveReceipts{
 		MarshalizedReceiptsProvider: b.txCoordinator,
 		Marshaller:                  b.marshalizer,
 		Hasher:                      b.hasher,
 		Store:                       b.storage,
 		Header:                      headerHandler,
+		HeaderHash:                  headerHash,
 	})
 }
 

@@ -1276,6 +1276,7 @@ func (bp *baseProcessor) saveBody(body *block.Body, header data.HeaderHandler, h
 		Hasher:                      bp.hasher,
 		Store:                       bp.store,
 		Header:                      header,
+		HeaderHash:                  headerHash,
 	})
 
 	bp.scheduledTxsExecutionHandler.SaveStateIfNeeded(headerHash)
