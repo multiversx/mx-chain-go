@@ -500,6 +500,7 @@ type LogsFacade interface {
 
 // ReceiptsRepository defines the interface of a receiptsRepository
 type ReceiptsRepository interface {
+	SaveReceipts(holder *process.ReceiptsHolder, header data.HeaderHandler, headerHash []byte) error
 	LoadReceipts(header data.HeaderHandler, headerHash []byte) (*process.ReceiptsHolder, error)
 	IsInterfaceNil() bool
 }
