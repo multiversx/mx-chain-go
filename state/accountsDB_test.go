@@ -2383,6 +2383,9 @@ func TestAccountsDB_NewAccountsDbStartsSnapshotAfterRestart(t *testing.T) {
 				TakeSnapshotCalled: func(_ []byte, _ []byte, _ chan core.KeyValueHolder, _ chan error, _ common.SnapshotStatisticsHandler, _ uint32) {
 					takeSnapshotCalled.SetValue(true)
 				},
+				GetLatestStorageEpochCalled: func() (uint32, error) {
+					return 1, nil
+				},
 			}
 		},
 	}
