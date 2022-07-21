@@ -136,9 +136,6 @@ func (boot *MetaBootstrap) StartSyncingBlocks() {
 	if errNotCritical != nil {
 		log.Debug("syncFromStorer", "error", errNotCritical.Error())
 	} else {
-		_, numHdrs := updateMetricsFromStorage(boot.store, boot.uint64Converter, boot.marshalizer, boot.statusHandler, boot.storageBootstrapper.GetHighestBlockNonce())
-		boot.blockProcessor.SetNumProcessedObj(numHdrs)
-
 		boot.setLastEpochStartRound()
 	}
 
