@@ -163,7 +163,7 @@ func (mbp *metaAPIBlockProcessor) convertMetaBlockBytesToAPIBlock(hash []byte, b
 }
 
 func addStartOfEpochInfoInBlock(metaBlock *block.MetaBlock, apiBlock *api.Block) {
-	if metaBlock.IsStartOfEpochBlock() {
+	if !metaBlock.IsStartOfEpochBlock() {
 		return
 	}
 

@@ -418,7 +418,26 @@ func TestMetaAPIBlockProcessor_GetBlockByRound_GetBlockByNonce_EpochStartBlock(t
 			},
 		},
 		EpochStart: block.EpochStart{
-			LastFinalizedHeaders: []block.EpochStartShardData{{}},
+			LastFinalizedHeaders: []block.EpochStartShardData{{
+				ShardID:               1,
+				Nonce:                 1234,
+				Round:                 1500,
+				Epoch:                 10,
+				HeaderHash:            []byte("hh"),
+				RootHash:              []byte("rh"),
+				ScheduledRootHash:     []byte("sch"),
+				FirstPendingMetaBlock: []byte("fpmb"),
+				LastFinishedMetaBlock: []byte("lfmb"),
+				PendingMiniBlockHeaders: []block.MiniBlockHeader{
+					{
+						Hash:            []byte("mbh"),
+						SenderShardID:   0,
+						ReceiverShardID: 1,
+						Type:            block.TxBlock,
+						Reserved:        []byte("rrr"),
+					},
+				},
+			}},
 			Economics: block.Economics{
 				TotalSupply:                      big.NewInt(100),
 				TotalToDistribute:                big.NewInt(55),
@@ -475,6 +494,27 @@ func TestMetaAPIBlockProcessor_GetBlockByRound_GetBlockByNonce_EpochStartBlock(t
 			NodePrice:                        "10",
 			PrevEpochStartRound:              222,
 			PrevEpochStartHash:               "7072657645706f6368",
+		},
+		EpochStartShardsData: []*api.EpochStartShardData{
+			{
+				ShardID:               1,
+				Epoch:                 10,
+				Round:                 1500,
+				Nonce:                 1234,
+				HeaderHash:            "6868",
+				RootHash:              "7268",
+				ScheduledRootHash:     "736368",
+				FirstPendingMetaBlock: "66706d62",
+				LastFinishedMetaBlock: "6c666d62",
+				PendingMiniBlockHeaders: []*api.MiniBlock{
+					{
+						Hash:             "6d6268",
+						SourceShard:      0,
+						DestinationShard: 1,
+						Type:             "TxBlock",
+					},
+				},
+			},
 		},
 	}
 
