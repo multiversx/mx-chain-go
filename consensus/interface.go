@@ -2,11 +2,11 @@ package consensus
 
 import (
 	"context"
+	"crypto"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 )
 
@@ -145,5 +145,24 @@ type ScheduledProcessor interface {
 	StartScheduledProcessing(header data.HeaderHandler, body data.BodyHandler, startTime time.Time)
 	ForceStopScheduledExecutionBlocking()
 	IsProcessedOKWithTimeout() bool
+	IsInterfaceNil() bool
+}
+
+// MultiSigner provides functionality for multi-signing a message and verifying a multi-signed message
+type MultiSigner interface {
+	MultiSigVerifier
+	Reset(pubKeys []string, index uint16) error
+	CreateSignatureShare(msg []byte, bitmap []byte) ([]byte, error)
+	StoreSignatureShare(index uint16, sig []byte) error
+	SignatureShare(index uint16) ([]byte, error)
+	VerifySignatureShare(index uint16, sig []byte, msg []byte, bitmap []byte) error
+	AggregateSigs(bitmap []byte) ([]byte, error)
+}
+
+// MultiSigVerifier provides functionality for verifying a multi-signature
+type MultiSigVerifier interface {
+	Create(pubKeys []string, index uint16) (MultiSigner, error)
+	SetAggregatedSig([]byte) error
+	Verify(msg []byte, bitmap []byte) error
 	IsInterfaceNil() bool
 }
