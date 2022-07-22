@@ -9,7 +9,17 @@ import (
 // PeerBlacklistHandlerStub -
 type PeerBlacklistHandlerStub struct {
 	BlacklistPeerCalled          func(peer core.PeerID, duration time.Duration)
+	IsPeerBlacklistedCalled      func(peer core.PeerID) bool
 	StartSweepingTimeCacheCalled func()
+}
+
+// IsPeerBlacklisted -
+func (stub *PeerBlacklistHandlerStub) IsPeerBlacklisted(peer core.PeerID) bool {
+	if stub.IsPeerBlacklistedCalled != nil {
+		return stub.IsPeerBlacklistedCalled(peer)
+	}
+
+	return false
 }
 
 // BlacklistPeer -

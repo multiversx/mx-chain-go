@@ -237,3 +237,6 @@ var ErrNilPeerBlacklistCacher = errors.New("nil peer blacklist cacher")
 
 // ErrNilKeyGenerator signals that a nil key generator has been provided
 var ErrNilKeyGenerator = errors.New("nil key generator")
+
+// ErrInvalidConsensusPeer signals that a consensus message has been received from a blacklisted peer
+var ErrInvalidConsensusPeer = errors.New("blacklisted consensus peer")

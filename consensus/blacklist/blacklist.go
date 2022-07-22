@@ -44,6 +44,11 @@ func checkArgs(args PeerBlackListArgs) error {
 	return nil
 }
 
+// IsPeerBlacklisted will check if specified peer is blacklisted
+func (pb *peerBlacklist) IsPeerBlacklisted(peer core.PeerID) bool {
+	return pb.peerCacher.Has(peer)
+}
+
 // BlacklistPeer will blacklist a peer for a certain amount of time
 func (pb *peerBlacklist) BlacklistPeer(peer core.PeerID, duration time.Duration) {
 	peerIsBlacklisted := pb.peerCacher.Has(peer)

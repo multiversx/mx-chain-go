@@ -158,6 +158,7 @@ type P2PSigningHandler interface {
 
 // PeerBlacklistHandler defines the behaviour of a component able to blacklist p2p peers
 type PeerBlacklistHandler interface {
+	IsPeerBlacklisted(peer core.PeerID) bool
 	BlacklistPeer(peer core.PeerID, duration time.Duration)
 	StartSweepingTimeCache()
 	IsInterfaceNil() bool
