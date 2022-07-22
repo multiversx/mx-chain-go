@@ -419,7 +419,7 @@ func TestSendNFTToContractWith0Function(t *testing.T) {
 
 	vaultAddr := utils.DoDeploySecond(t,
 		testContext,
-		"../esdt/testdata/vault-managed-api.wasm",
+		"../esdt/testdata/vault-0.34.0.wasm",
 		ownerAccount,
 		gasPrice,
 		deployGasLimit,
@@ -469,7 +469,7 @@ func TestSendNFTToContractWith0FunctionNonPayable(t *testing.T) {
 
 	vaultAddr := utils.DoDeployWithMetadata(t,
 		testContext,
-		"../esdt/testdata/vault-managed-api.wasm",
+		"../esdt/testdata/vault-0.34.0.wasm",
 		ownerAccount,
 		gasPrice,
 		deployGasLimit,
