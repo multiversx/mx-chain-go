@@ -275,7 +275,8 @@ func TestHeartbeatV2Monitor_GetHeartbeats(t *testing.T) {
 		assert.False(t, check.IfNil(monitor))
 
 		heartbeats := monitor.GetHeartbeats()
-		assert.Equal(t, args.Cache.Len()-1, len(heartbeats))
+		assert.Equal(t, len(providedStatuses)-1, len(heartbeats))
+		assert.Equal(t, len(providedStatuses)-1, args.Cache.Len()) // faulty message was removed from cache
 		for i := 0; i < len(heartbeats); i++ {
 			checkResults(t, *providedMessages[i], heartbeats[i], providedStatuses[i], providedPids, 1)
 		}

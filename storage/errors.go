@@ -23,9 +23,6 @@ var ErrNotSupportedHashType = errors.New("hash type not supported")
 // ErrKeyNotFound is raised when a key is not found
 var ErrKeyNotFound = errors.New("key not found")
 
-// ErrDBIsClosed is raised when the DB is closed
-var ErrDBIsClosed = errors.New("DB is closed")
-
 // ErrInvalidBatch is raised when the used batch is invalid
 var ErrInvalidBatch = errors.New("batch is invalid")
 
