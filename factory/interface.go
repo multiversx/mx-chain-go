@@ -271,6 +271,7 @@ type ProcessComponentsHolder interface {
 	HardforkTrigger() HardforkTrigger
 	ProcessedMiniBlocksTracker() process.ProcessedMiniBlocksTracker
 	AccountsParser() genesis.AccountsParser
+	ReceiptsRepository() ReceiptsRepository
 	IsInterfaceNil() bool
 }
 

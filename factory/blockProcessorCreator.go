@@ -22,7 +22,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
-	"github.com/ElrondNetwork/elrond-go/process/receipts"
 	"github.com/ElrondNetwork/elrond-go/process/rewardTransaction"
 	"github.com/ElrondNetwork/elrond-go/process/scToProtocol"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
@@ -57,6 +56,7 @@ func (pcf *processComponentsFactory) newBlockProcessor(
 	arwenChangeLocker common.Locker,
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler,
 	processedMiniBlocksTracker process.ProcessedMiniBlocksTracker,
+	receiptsRepository ReceiptsRepository,
 ) (*blockProcessorAndVmFactories, error) {
 	if pcf.bootstrapComponents.ShardCoordinator().SelfId() < pcf.bootstrapComponents.ShardCoordinator().NumberOfShards() {
 		return pcf.newShardBlockProcessor(
@@ -71,6 +71,7 @@ func (pcf *processComponentsFactory) newBlockProcessor(
 			arwenChangeLocker,
 			scheduledTxsExecutionHandler,
 			processedMiniBlocksTracker,
+			receiptsRepository,
 		)
 	}
 	if pcf.bootstrapComponents.ShardCoordinator().SelfId() == core.MetachainShardId {
@@ -87,6 +88,7 @@ func (pcf *processComponentsFactory) newBlockProcessor(
 			arwenChangeLocker,
 			scheduledTxsExecutionHandler,
 			processedMiniBlocksTracker,
+			receiptsRepository,
 		)
 	}
 
@@ -105,6 +107,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 	arwenChangeLocker common.Locker,
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler,
 	processedMiniBlocksTracker process.ProcessedMiniBlocksTracker,
+	receiptsRepository ReceiptsRepository,
 ) (*blockProcessorAndVmFactories, error) {
 	argsParser := smartContract.NewArgumentParser()
 
@@ -390,11 +393,6 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 	accountsDb[state.UserAccountsState] = pcf.state.AccountsAdapter()
 	accountsDb[state.PeerAccountsState] = pcf.state.PeerAccounts()
 
-	receiptsRepository, err := pcf.createReceiptsRepository()
-	if err != nil {
-		return nil, err
-	}
-
 	argumentsBaseProcessor := block.ArgBaseProcessor{
 		CoreComponents:                 pcf.coreData,
 		DataComponents:                 pcf.data,
@@ -456,6 +454,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	arwenChangeLocker common.Locker,
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler,
 	processedMiniBlocksTracker process.ProcessedMiniBlocksTracker,
+	receiptsRepository ReceiptsRepository,
 ) (*blockProcessorAndVmFactories, error) {
 	builtInFuncFactory, err := pcf.createBuiltInFunctionContainer(pcf.state.AccountsAdapter(), make(map[string]struct{}))
 	if err != nil {
@@ -799,11 +798,6 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	accountsDb := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
 	accountsDb[state.UserAccountsState] = pcf.state.AccountsAdapter()
 	accountsDb[state.PeerAccountsState] = pcf.state.PeerAccounts()
-
-	receiptsRepository, err := pcf.createReceiptsRepository()
-	if err != nil {
-		return nil, err
-	}
 
 	argumentsBaseProcessor := block.ArgBaseProcessor{
 		CoreComponents:                 pcf.coreData,
@@ -1221,12 +1215,4 @@ func (pcf *processComponentsFactory) createBuiltInFunctionContainer(
 	}
 
 	return builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)
-}
-
-func (pcf *processComponentsFactory) createReceiptsRepository() (ReceiptsRepository, error) {
-	return receipts.NewReceiptsRepository(receipts.ArgsNewReceiptsRepository{
-		Store:      pcf.data.StorageService(),
-		Marshaller: pcf.coreData.InternalMarshalizer(),
-		Hasher:     pcf.coreData.Hasher(),
-	})
 }

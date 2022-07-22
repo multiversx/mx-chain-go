@@ -23,7 +23,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
-	"github.com/ElrondNetwork/elrond-go/process/receipts"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
@@ -540,11 +539,6 @@ func createAPIBlockProcessorArgs(args *ApiResolverArgs, apiTransactionHandler ex
 		return nil, err
 	}
 
-	receiptsRepository, err := createReceiptsRepository(args)
-	if err != nil {
-		return nil, err
-	}
-
 	blockApiArgs := &blockAPI.ArgAPIBlockProcessor{
 		SelfShardID:              args.ProcessComponents.ShardCoordinator().SelfId(),
 		Store:                    args.DataComponents.StorageService(),
@@ -556,7 +550,7 @@ func createAPIBlockProcessorArgs(args *ApiResolverArgs, apiTransactionHandler ex
 		AddressPubkeyConverter:   args.CoreComponents.AddressPubKeyConverter(),
 		Hasher:                   args.CoreComponents.Hasher(),
 		LogsFacade:               logsFacade,
-		ReceiptsRepository:       receiptsRepository,
+		ReceiptsRepository:       args.ProcessComponents.ReceiptsRepository(),
 	}
 
 	return blockApiArgs, nil
@@ -567,13 +561,5 @@ func createLogsFacade(args *ApiResolverArgs) (LogsFacade, error) {
 		StorageService:  args.DataComponents.StorageService(),
 		Marshaller:      args.CoreComponents.InternalMarshalizer(),
 		PubKeyConverter: args.CoreComponents.AddressPubKeyConverter(),
-	})
-}
-
-func createReceiptsRepository(args *ApiResolverArgs) (ReceiptsRepository, error) {
-	return receipts.NewReceiptsRepository(receipts.ArgsNewReceiptsRepository{
-		Store:      args.DataComponents.StorageService(),
-		Marshaller: args.CoreComponents.InternalMarshalizer(),
-		Hasher:     args.CoreComponents.Hasher(),
 	})
 }
