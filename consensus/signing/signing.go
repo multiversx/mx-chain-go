@@ -233,7 +233,7 @@ func (sg *signer) AggregateSigs(bitmap []byte) ([]byte, error) {
 	maxFlags := len(bitmap) * 8
 	flagsMismatch := maxFlags < len(sg.data.pubKeys)
 	if flagsMismatch {
-		return nil, crypto.ErrBitmapMismatch
+		return nil, ErrBitmapMismatch
 	}
 
 	signatures := make([][]byte, 0, len(sg.data.sigShares))
@@ -275,7 +275,7 @@ func (sg *signer) Verify(message []byte, bitmap []byte) error {
 	maxFlags := len(bitmap) * 8
 	flagsMismatch := maxFlags < len(sg.data.pubKeys)
 	if flagsMismatch {
-		return crypto.ErrBitmapMismatch
+		return ErrBitmapMismatch
 	}
 
 	pubKeys := make([][]byte, 0)

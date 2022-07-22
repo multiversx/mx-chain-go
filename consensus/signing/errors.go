@@ -40,3 +40,6 @@ var ErrEmptyPubKeyString = errors.New("public key string is empty")
 
 // ErrNilMessage is raised when trying to verify a nil signed message or trying to sign a nil message
 var ErrNilMessage = errors.New("message to be signed or to be verified is nil")
+
+// ErrBitmapMismatch is raised when an invalid bitmap is passed to the multisigner
+var ErrBitmapMismatch = errors.New("multi signer reported a mismatch in used bitmap")
