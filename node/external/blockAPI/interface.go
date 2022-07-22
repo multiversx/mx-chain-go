@@ -5,7 +5,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/process"
 )
 
 // APITransactionHandler defines what a transaction handler should do
@@ -43,6 +42,6 @@ type logsFacade interface {
 }
 
 type receiptsRepository interface {
-	LoadReceipts(header data.HeaderHandler, headerHash []byte) (*process.ReceiptsHolder, error)
+	LoadReceipts(header data.HeaderHandler, headerHash []byte) (common.ReceiptsHolder, error)
 	IsInterfaceNil() bool
 }

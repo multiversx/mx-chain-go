@@ -7,6 +7,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common/holders"
+	"github.com/ElrondNetwork/elrond-go/common/logging"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -244,8 +246,7 @@ func (b *baseProcessor) saveMiniBlocks(headerHandler data.HeaderHandler, body *b
 
 		errNotCritical = b.storage.Put(dataRetriever.MiniBlockUnit, miniBlockHeadersHashes[i], marshalizedMiniBlock)
 		if errNotCritical != nil {
-			log.Warn("saveMiniBlocks.Put -> MiniBlockUnit",
-				"error", errNotCritical.Error())
+			logging.LogErrAsWarnExceptAsDebugIfClosingError(log, errNotCritical, "saveMiniBlocks.Put -> MiniBlockUnit")
 		}
 	}
 }
@@ -257,10 +258,10 @@ func (b *baseProcessor) saveReceipts(headerHandler data.HeaderHandler) {
 		return
 	}
 
-	receiptsHolder := &process.ReceiptsHolder{Miniblocks: b.txCoordinator.GetCreatedInShardMiniBlocks()}
+	receiptsHolder := holders.NewReceiptsHolder(b.txCoordinator.GetCreatedInShardMiniBlocks())
 	errNotCritical = b.receiptsRepository.SaveReceipts(receiptsHolder, headerHandler, headerHash)
 	if errNotCritical != nil {
-		log.Warn("saveReceipts(), error on receiptsRepository.SaveReceipts()", "error", errNotCritical.Error())
+		logging.LogErrAsWarnExceptAsDebugIfClosingError(log, errNotCritical, "saveReceipts(), error on receiptsRepository.SaveReceipts()")
 	}
 }
 
@@ -291,8 +292,7 @@ func (b *baseProcessor) saveTransactions(body *block.Body) {
 
 			errNotCritical = b.storage.Put(unitType, txHash, marshaledData)
 			if errNotCritical != nil {
-				log.Warn("saveTransactions.Put -> Transaction",
-					"error", errNotCritical.Error())
+				logging.LogErrAsWarnExceptAsDebugIfClosingError(log, errNotCritical, "saveTransactions.Put -> Transaction")
 			}
 		}
 	}

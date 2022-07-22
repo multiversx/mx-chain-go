@@ -6,13 +6,14 @@ import (
 	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/batch"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -21,7 +22,7 @@ var log = logger.GetOrCreate("process/receipts")
 type receiptsRepository struct {
 	marshaller        marshal.Marshalizer
 	hasher            hashing.Hasher
-	store             dataRetriever.StorageService
+	storer            storage.Storer
 	emptyReceiptsHash []byte
 }
 
@@ -38,10 +39,12 @@ func NewReceiptsRepository(args ArgsNewReceiptsRepository) (*receiptsRepository,
 		return nil, fmt.Errorf("%w: %v", errCannotCreateReceiptsRepository, err)
 	}
 
+	storer := args.Store.GetStorer(dataRetriever.ReceiptsUnit)
+
 	return &receiptsRepository{
 		marshaller:        args.Marshaller,
 		hasher:            args.Hasher,
-		store:             args.Store,
+		storer:            storer,
 		emptyReceiptsHash: emptyReceiptsHash,
 	}, nil
 }
@@ -52,7 +55,17 @@ func createEmptyReceiptsHash(marshaller marshal.Marshalizer, hasher hashing.Hash
 }
 
 // SaveReceipts saves the receipts in the storer (receipts unit) for a given block header
-func (repository *receiptsRepository) SaveReceipts(holder *process.ReceiptsHolder, header data.HeaderHandler, headerHash []byte) error {
+func (repository *receiptsRepository) SaveReceipts(holder common.ReceiptsHolder, header data.HeaderHandler, headerHash []byte) error {
+	if check.IfNil(holder) {
+		return errNilReceiptsHolder
+	}
+	if check.IfNil(header) {
+		return errNilBlockHeader
+	}
+	if len(headerHash) == 0 {
+		return errEmptyBlockHash
+	}
+
 	storageKey := repository.decideStorageKey(header.GetReceiptsHash(), headerHash)
 
 	log.Debug("receiptsRepository.SaveReceipts()", "headerNonce", header.GetNonce(), "storageKey", storageKey)
@@ -67,29 +80,25 @@ func (repository *receiptsRepository) SaveReceipts(holder *process.ReceiptsHolde
 		return nil
 	}
 
-	err = repository.getStorer().Put(storageKey, receiptsBytes)
+	err = repository.storer.Put(storageKey, receiptsBytes)
 	if err != nil {
-		return fmt.Errorf("%w: %v", errCannotSaveReceipts, err)
+		return fmt.Errorf("%w: %v", err, errCannotSaveReceipts)
 	}
 
 	return nil
 }
 
-func (repository *receiptsRepository) getStorer() storage.Storer {
-	return repository.store.GetStorer(dataRetriever.ReceiptsUnit)
-}
-
 // LoadReceipts loads the receipts, given a block header
-func (repository *receiptsRepository) LoadReceipts(header data.HeaderHandler, headerHash []byte) (*process.ReceiptsHolder, error) {
+func (repository *receiptsRepository) LoadReceipts(header data.HeaderHandler, headerHash []byte) (common.ReceiptsHolder, error) {
 	storageKey := repository.decideStorageKey(header.GetReceiptsHash(), headerHash)
 
-	batchBytes, err := repository.getStorer().GetFromEpoch(storageKey, header.GetEpoch())
+	batchBytes, err := repository.storer.GetFromEpoch(storageKey, header.GetEpoch())
 	if err != nil {
 		if storage.IsNotFoundInStorageErr(err) {
-			return newReceiptsHolder(), nil
+			return createEmptyReceiptsHolder(), nil
 		}
 
-		return nil, fmt.Errorf("%w: %v, storageKey = %s", errCannotLoadReceipts, err, hex.EncodeToString(storageKey))
+		return nil, fmt.Errorf("%w: %v, storageKey = %s", err, errCannotLoadReceipts, hex.EncodeToString(storageKey))
 	}
 
 	holder, err := unmarshalReceiptsHolder(batchBytes, repository.marshaller)

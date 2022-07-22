@@ -10,8 +10,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/hashing/blake2b"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common/holders"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
@@ -93,7 +93,7 @@ func TestReceiptsRepository_SaveReceipts(t *testing.T) {
 	hasher := blake2b.NewBlake2b()
 	emptyReceiptsHash, _ := createEmptyReceiptsHash(marshaller, hasher)
 	nonEmptyReceiptsHash := []byte("non-empty-receipts-hash")
-	receiptsHolder := &process.ReceiptsHolder{Miniblocks: []*block.MiniBlock{{Type: block.SmartContractResultBlock}}}
+	receiptsHolder := holders.NewReceiptsHolder([]*block.MiniBlock{{Type: block.SmartContractResultBlock}})
 	receiptsBytes, _ := marshalReceiptsHolder(receiptsHolder, marshaller)
 	headerHash := []byte("header-hash")
 
@@ -148,6 +148,29 @@ func TestReceiptsRepository_SaveReceipts(t *testing.T) {
 	})
 }
 
+func TestReceiptsRepository_SaveReceiptsShouldErrWhenPassingBadInput(t *testing.T) {
+	repository, _ := NewReceiptsRepository(ArgsNewReceiptsRepository{
+		Marshaller: &marshal.GogoProtoMarshalizer{},
+		Hasher:     blake2b.NewBlake2b(),
+		Store:      genericMocks.NewChainStorerMock(0),
+	})
+
+	t.Run("when receipts holder is nil", func(t *testing.T) {
+		err := repository.SaveReceipts(nil, &block.Header{}, []byte("aaaa"))
+		require.ErrorIs(t, err, errNilReceiptsHolder)
+	})
+
+	t.Run("when block header is nil", func(t *testing.T) {
+		err := repository.SaveReceipts(holders.NewReceiptsHolder([]*block.MiniBlock{}), nil, []byte("aaaa"))
+		require.ErrorIs(t, err, errNilBlockHeader)
+	})
+
+	t.Run("when block hash is empty", func(t *testing.T) {
+		err := repository.SaveReceipts(holders.NewReceiptsHolder([]*block.MiniBlock{}), &block.Header{}, nil)
+		require.ErrorIs(t, err, errEmptyBlockHash)
+	})
+}
+
 func TestReceiptsRepository_LoadReceipts(t *testing.T) {
 	marshaller := &marshal.GogoProtoMarshalizer{}
 	hasher := blake2b.NewBlake2b()
@@ -162,11 +185,11 @@ func TestReceiptsRepository_LoadReceipts(t *testing.T) {
 		Store:      store,
 	})
 
-	receiptsAtKeyHeaderHash := &process.ReceiptsHolder{Miniblocks: []*block.MiniBlock{{SenderShardID: 42}}}
+	receiptsAtKeyHeaderHash := holders.NewReceiptsHolder([]*block.MiniBlock{{SenderShardID: 42}})
 	receiptsAtKeyHeaderHashBytes, _ := marshalReceiptsHolder(receiptsAtKeyHeaderHash, marshaller)
 	_ = store.Put(dataRetriever.ReceiptsUnit, headerHash, receiptsAtKeyHeaderHashBytes)
 
-	receiptsAtKeyReceiptsHash := &process.ReceiptsHolder{Miniblocks: []*block.MiniBlock{{SenderShardID: 43}}}
+	receiptsAtKeyReceiptsHash := holders.NewReceiptsHolder([]*block.MiniBlock{{SenderShardID: 43}})
 	receiptsAtKeyReceiptsHashBytes, _ := marshalReceiptsHolder(receiptsAtKeyReceiptsHash, marshaller)
 	_ = store.Put(dataRetriever.ReceiptsUnit, nonEmptyReceiptsHash, receiptsAtKeyReceiptsHashBytes)
 
@@ -185,7 +208,7 @@ func TestReceiptsRepository_LoadReceipts(t *testing.T) {
 	t.Run("when no receipts for given header", func(t *testing.T) {
 		loadedHolder, err := repository.LoadReceipts(&block.Header{ReceiptsHash: emptyReceiptsHash}, []byte("abba"))
 		require.Nil(t, err)
-		require.Equal(t, newReceiptsHolder(), loadedHolder)
+		require.Equal(t, createEmptyReceiptsHolder(), loadedHolder)
 	})
 }
 
@@ -210,18 +233,18 @@ func TestReceiptsRepository_NoPanicOnSaveOrLoadWhenBadStorage(t *testing.T) {
 	})
 
 	t.Run("save in bad storage", func(t *testing.T) {
-		holder := &process.ReceiptsHolder{Miniblocks: []*block.MiniBlock{{SenderShardID: 42}}}
+		holder := holders.NewReceiptsHolder([]*block.MiniBlock{{SenderShardID: 42}})
 		header := &block.Header{ReceiptsHash: []byte("aaaa")}
 		err := repository.SaveReceipts(holder, header, []byte("bbbb"))
 		require.NotNil(t, err)
-		require.ErrorIs(t, err, errCannotSaveReceipts)
+		require.ErrorContains(t, err, errCannotSaveReceipts.Error())
 	})
 
 	t.Run("load from bad storage", func(t *testing.T) {
 		header := &block.Header{ReceiptsHash: []byte("aaaa")}
 		loaded, err := repository.LoadReceipts(header, []byte("bbbb"))
 		require.NotNil(t, err)
-		require.ErrorIs(t, err, errCannotLoadReceipts)
+		require.ErrorContains(t, err, errCannotLoadReceipts.Error())
 		require.Nil(t, loaded)
 	})
 }

@@ -55,8 +55,8 @@ func (bap *baseAPIBlockProcessor) getIntrashardMiniblocksFromReceiptsStorage(hea
 		return nil, err
 	}
 
-	apiMiniblocks := make([]*api.MiniBlock, 0)
-	for _, miniblock := range receiptsHolder.Miniblocks {
+	apiMiniblocks := make([]*api.MiniBlock, 0, len(receiptsHolder.GetMiniblocks()))
+	for _, miniblock := range receiptsHolder.GetMiniblocks() {
 		apiMiniblock, err := bap.convertMiniblockFromReceiptsStorageToApiMiniblock(miniblock, header.GetEpoch(), options)
 		if err != nil {
 			return nil, err

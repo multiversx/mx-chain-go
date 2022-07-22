@@ -2,17 +2,18 @@ package testscommon
 
 import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/common/holders"
 )
 
 // ReceiptsRepositoryStub -
 type ReceiptsRepositoryStub struct {
-	SaveReceiptsCalled func(holder *process.ReceiptsHolder, header data.HeaderHandler, headerHash []byte) error
-	LoadReceiptsCalled func(header data.HeaderHandler, headerHash []byte) (*process.ReceiptsHolder, error)
+	SaveReceiptsCalled func(holder common.ReceiptsHolder, header data.HeaderHandler, headerHash []byte) error
+	LoadReceiptsCalled func(header data.HeaderHandler, headerHash []byte) (common.ReceiptsHolder, error)
 }
 
 // SaveReceipts -
-func (stub *ReceiptsRepositoryStub) SaveReceipts(holder *process.ReceiptsHolder, header data.HeaderHandler, headerHash []byte) error {
+func (stub *ReceiptsRepositoryStub) SaveReceipts(holder common.ReceiptsHolder, header data.HeaderHandler, headerHash []byte) error {
 	if stub.SaveReceiptsCalled != nil {
 		return stub.SaveReceiptsCalled(holder, header, headerHash)
 	}
@@ -21,12 +22,12 @@ func (stub *ReceiptsRepositoryStub) SaveReceipts(holder *process.ReceiptsHolder,
 }
 
 // LoadReceipts -
-func (stub *ReceiptsRepositoryStub) LoadReceipts(header data.HeaderHandler, headerHash []byte) (*process.ReceiptsHolder, error) {
+func (stub *ReceiptsRepositoryStub) LoadReceipts(header data.HeaderHandler, headerHash []byte) (common.ReceiptsHolder, error) {
 	if stub.LoadReceiptsCalled != nil {
 		return stub.LoadReceiptsCalled(header, headerHash)
 	}
 
-	return &process.ReceiptsHolder{}, nil
+	return holders.NewReceiptsHolder(nil), nil
 }
 
 // IsInterfaceNil -

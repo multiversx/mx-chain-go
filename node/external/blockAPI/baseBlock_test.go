@@ -13,9 +13,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/common/holders"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
-	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
@@ -63,8 +64,8 @@ func TestBaseBlockGetIntraMiniblocksSCRS(t *testing.T) {
 	_ = baseAPIBlockProc.store.GetStorer(dataRetriever.UnsignedTransactionUnit).Put(scrHash, scResultBytes)
 
 	baseAPIBlockProc.receiptsRepository = &testscommon.ReceiptsRepositoryStub{
-		LoadReceiptsCalled: func(header data.HeaderHandler, headerHash []byte) (*process.ReceiptsHolder, error) {
-			return &process.ReceiptsHolder{Miniblocks: []*block.MiniBlock{miniblock}}, nil
+		LoadReceiptsCalled: func(header data.HeaderHandler, headerHash []byte) (common.ReceiptsHolder, error) {
+			return holders.NewReceiptsHolder([]*block.MiniBlock{miniblock}), nil
 		},
 	}
 
@@ -123,8 +124,8 @@ func TestBaseBlockGetIntraMiniblocksReceipts(t *testing.T) {
 	_ = baseAPIBlockProc.store.GetStorer(dataRetriever.UnsignedTransactionUnit).Put(receiptHash, receiptBytes)
 
 	baseAPIBlockProc.receiptsRepository = &testscommon.ReceiptsRepositoryStub{
-		LoadReceiptsCalled: func(header data.HeaderHandler, headerHash []byte) (*process.ReceiptsHolder, error) {
-			return &process.ReceiptsHolder{Miniblocks: []*block.MiniBlock{miniblock}}, nil
+		LoadReceiptsCalled: func(header data.HeaderHandler, headerHash []byte) (common.ReceiptsHolder, error) {
+			return holders.NewReceiptsHolder([]*block.MiniBlock{miniblock}), nil
 		},
 	}
 
