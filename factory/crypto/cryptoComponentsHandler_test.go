@@ -71,21 +71,6 @@ func TestManagedCryptoComponents_CheckSubcomponents(t *testing.T) {
 	require.NoError(t, err)
 }
 
-//func TestManagedCryptoComponents_SetMultiSigner(t *testing.T) {
-//	t.Parallel()
-//	if testing.Short() {
-//		t.Skip("this is not a short test")
-//	}
-//
-//	managedCryptoComponents := getManagedCryptoComponents(t)
-//
-//	ms := &cryptoMocks.MultisignerMock{}
-//	err := managedCryptoComponents.SetMultiSigner(ms)
-//	require.NoError(t, err)
-//
-//	require.Equal(t, managedCryptoComponents.MultiSignerContainer(), ms)
-//}
-
 func TestManagedCryptoComponents_Close(t *testing.T) {
 	t.Parallel()
 	if testing.Short() {
@@ -98,7 +83,7 @@ func TestManagedCryptoComponents_Close(t *testing.T) {
 	require.NoError(t, err)
 	multiSigner, errGet := managedCryptoComponents.GetMultiSigner(0)
 	require.Nil(t, multiSigner)
-	require.Equal(t, errors.ErrNilMultiSigner, errGet)
+	require.Equal(t, errors.ErrNilCryptoComponentsHolder, errGet)
 }
 
 func getManagedCryptoComponents(t *testing.T) factory.CryptoComponentsHandler {

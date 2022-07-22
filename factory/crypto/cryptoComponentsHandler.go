@@ -198,6 +198,9 @@ func (mcc *managedCryptoComponents) BlockSigner() crypto.SingleSigner {
 func (mcc *managedCryptoComponents) MultiSignerContainer() cryptoCommon.MultiSignerContainer {
 	mcc.mutCryptoComponents.RLock()
 	defer mcc.mutCryptoComponents.RUnlock()
+	if mcc.cryptoComponents == nil {
+		return nil
+	}
 
 	return mcc.multiSignerContainer
 }
@@ -215,6 +218,10 @@ func (mcc *managedCryptoComponents) SetMultiSignerContainer(ms cryptoCommon.Mult
 func (mcc *managedCryptoComponents) GetMultiSigner(epoch uint32) (crypto.MultiSigner, error) {
 	mcc.mutCryptoComponents.RLock()
 	defer mcc.mutCryptoComponents.RUnlock()
+
+	if mcc.cryptoComponents == nil {
+		return nil, errors.ErrNilCryptoComponentsHolder
+	}
 
 	if mcc.multiSignerContainer == nil {
 		return nil, errors.ErrNilMultiSignerContainer
