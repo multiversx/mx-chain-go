@@ -1,7 +1,8 @@
 package cryptoMocks
 
 import (
-	"github.com/ElrondNetwork/elrond-go-crypto"
+	crypto "github.com/ElrondNetwork/elrond-go-crypto"
+	"github.com/ElrondNetwork/elrond-go/consensus/signing"
 )
 
 const signatureSize = 48
@@ -19,7 +20,8 @@ type MultisignerMock struct {
 	VerifySignatureShareCalled             func(index uint16, sig []byte, msg []byte, bitmap []byte) error
 	AggregateSigsCalled                    func(bitmap []byte) ([]byte, error)
 	SignatureShareCalled                   func(index uint16) ([]byte, error)
-	CreateCalled                           func(pubKeys []string, index uint16) (crypto.MultiSigner, error)
+	CreateCalled                           func(pubKeys []string, index uint16) (*MultisignerMock, error)
+	SetAggregatedSigCalled                 func(sig []byte) error
 	ResetCalled                            func(pubKeys []string, index uint16) error
 	CreateAndAddSignatureShareForKeyCalled func(message []byte, privateKey crypto.PrivateKey, pubKeyBytes []byte) ([]byte, error)
 	StoreSignatureShareCalled              func(index uint16, sig []byte) error
@@ -38,7 +40,7 @@ func NewMultiSigner(consensusSize uint32) *MultisignerMock {
 }
 
 // Create -
-func (mm *MultisignerMock) Create(pubKeys []string, index uint16) (crypto.MultiSigner, error) {
+func (mm *MultisignerMock) Create(pubKeys []string, index uint16) (*MultisignerMock, error) {
 	if mm.CreateCalled != nil {
 		return mm.CreateCalled(pubKeys, index)
 	}
@@ -104,7 +106,7 @@ func (mm *MultisignerMock) StoreSignatureShare(index uint16, sig []byte) error {
 	}
 
 	if index >= uint16(len(mm.pubkeys)) {
-		return crypto.ErrIndexOutOfBounds
+		return signing.ErrIndexOutOfBounds
 	}
 
 	mm.sigs[index] = sig
@@ -136,7 +138,7 @@ func (mm *MultisignerMock) SignatureShare(index uint16) ([]byte, error) {
 	}
 
 	if index >= uint16(len(mm.sigs)) {
-		return nil, crypto.ErrIndexOutOfBounds
+		return nil, signing.ErrIndexOutOfBounds
 	}
 
 	return mm.sigs[index], nil
