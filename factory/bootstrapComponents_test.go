@@ -164,6 +164,9 @@ func getBootStrapArgs() factory.BootstrapComponentsFactoryArgs {
 			IsImportDBMode: false,
 		},
 		RoundConfig: config.RoundConfig{},
+		FlagsConfig: config.ContextFlagsConfig{
+			ForceStartFromNetwork: false,
+		},
 	}
 }
 

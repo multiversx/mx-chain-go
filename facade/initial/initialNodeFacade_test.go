@@ -186,8 +186,25 @@ func TestDisabledNodeFacade_AllMethodsShouldNotPanic(t *testing.T) {
 	assert.Nil(t, supply)
 	assert.Equal(t, errNodeStarting, err)
 
-	txPool, err := inf.GetTransactionsPool()
+	txPool, err := inf.GetTransactionsPool("")
 	assert.Nil(t, txPool)
+	assert.Equal(t, errNodeStarting, err)
+
+	eligible, waiting, err := inf.GetGenesisNodesPubKeys()
+	assert.Nil(t, eligible)
+	assert.Nil(t, waiting)
+	assert.Equal(t, errNodeStarting, err)
+
+	gasConfig, err := inf.GetGasConfigs()
+	assert.Nil(t, gasConfig)
+	assert.Equal(t, errNodeStarting, err)
+
+	txs, err := inf.GetTransactionsPoolForSender("", "")
+	assert.Nil(t, txs)
+	assert.Equal(t, errNodeStarting, err)
+
+	nonce, err := inf.GetLastPoolNonceForSender("")
+	assert.Equal(t, uint64(0), nonce)
 	assert.Equal(t, errNodeStarting, err)
 
 	assert.False(t, check.IfNil(inf))

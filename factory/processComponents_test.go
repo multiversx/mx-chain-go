@@ -99,7 +99,7 @@ func getProcessArgs(
 	gasSchedule["BuiltInCost"]["ESDTBurn"] = 1
 	gasSchedule[common.MetaChainSystemSCsCost] = FillGasMapMetaChainSystemSCsCosts(1)
 
-	gasScheduleNotifier := &mock.GasScheduleNotifierMock{
+	gasScheduleNotifier := &testscommon.GasScheduleNotifierMock{
 		GasSchedule: gasSchedule,
 	}
 
