@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
 	"github.com/stretchr/testify/require"
@@ -103,8 +104,24 @@ func TestStateComponents_CloseShouldWork(t *testing.T) {
 func getStateArgs(coreComponents factory.CoreComponentsHolder, shardCoordinator sharding.Coordinator) factory.StateComponentsFactoryArgs {
 	memDBUsers := mock.NewMemDbMock()
 	memdbPeers := mock.NewMemDbMock()
-	storageManagerUser, _ := trie.NewTrieStorageManagerWithoutPruning(memDBUsers)
-	storageManagerPeer, _ := trie.NewTrieStorageManagerWithoutPruning(memdbPeers)
+	generalConfig := getGeneralConfig()
+
+	storageManagerArgs, options := stateMock.GetStorageManagerArgsAndOptions()
+	storageManagerArgs.Marshalizer = coreComponents.InternalMarshalizer()
+	storageManagerArgs.Hasher = coreComponents.Hasher()
+	storageManagerArgs.MainStorer = memDBUsers
+	storageManagerArgs.CheckpointsStorer = memDBUsers
+	storageManagerArgs.GeneralConfig = generalConfig.TrieStorageManagerConfig
+	options.PruningEnabled = generalConfig.StateTriesConfig.AccountsStatePruningEnabled
+	options.SnapshotsEnabled = generalConfig.StateTriesConfig.SnapshotsEnabled
+	options.CheckpointsEnabled = generalConfig.StateTriesConfig.CheckpointsEnabled
+
+	storageManagerUser, _ := trie.CreateTrieStorageManager(storageManagerArgs, options)
+
+	storageManagerArgs.MainStorer = memdbPeers
+	storageManagerArgs.CheckpointsStorer = memdbPeers
+	options.PruningEnabled = generalConfig.StateTriesConfig.PeerStatePruningEnabled
+	storageManagerPeer, _ := trie.CreateTrieStorageManager(storageManagerArgs, options)
 
 	trieStorageManagers := make(map[string]common.StorageManager)
 	trieStorageManagers[trieFactory.UserAccountTrie] = storageManagerUser
@@ -117,7 +134,7 @@ func getStateArgs(coreComponents factory.CoreComponentsHolder, shardCoordinator 
 	triesHolder.Put([]byte(trieFactory.PeerAccountTrie), triePeers)
 
 	stateComponentsFactoryArgs := factory.StateComponentsFactoryArgs{
-		Config:           getGeneralConfig(),
+		Config:           generalConfig,
 		ShardCoordinator: shardCoordinator,
 		Core:             coreComponents,
 		StorageService:   disabled.NewChainStorer(),

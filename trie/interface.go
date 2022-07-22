@@ -113,3 +113,8 @@ type IdleNodeProvider interface {
 	IsIdle() bool
 	IsInterfaceNil() bool
 }
+
+type storageManagerExtension interface {
+	removeFromCheckpointHashesHolder(hash []byte)
+	safelyCloseChan(ch chan core.KeyValueHolder)
+}

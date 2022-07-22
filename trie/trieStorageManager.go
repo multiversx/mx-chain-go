@@ -571,6 +571,13 @@ func (tsm *trieStorageManager) Remove(hash []byte) error {
 	return storer.RemoveFromCurrentEpoch(hash)
 }
 
+func (tsm *trieStorageManager) removeFromCheckpointHashesHolder(hash []byte) {
+	tsm.storageOperationMutex.Lock()
+	defer tsm.storageOperationMutex.Unlock()
+
+	tsm.checkpointHashesHolder.Remove(hash)
+}
+
 // IsClosed returns true if the trie storage manager has been closed
 func (tsm *trieStorageManager) IsClosed() bool {
 	tsm.storageOperationMutex.RLock()

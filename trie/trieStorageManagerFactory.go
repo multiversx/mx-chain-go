@@ -4,27 +4,50 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 )
 
+// StorageManagerOptions specify the options that a trie storage manager can have
+type StorageManagerOptions struct {
+	PruningEnabled     bool
+	SnapshotsEnabled   bool
+	CheckpointsEnabled bool
+}
+
 // CreateTrieStorageManager creates a new trie storage manager based on the given type
 func CreateTrieStorageManager(
 	args NewTrieStorageManagerArgs,
-	pruningEnabled bool,
-	snapshotsEnabled bool,
-	checkpointsEnabled bool,
+	options StorageManagerOptions,
 ) (common.StorageManager, error) {
-	log.Debug("trie pruning status", "enabled", pruningEnabled)
-	if !pruningEnabled {
-		return NewTrieStorageManagerWithoutPruning(args.MainStorer)
+	log.Debug("trie storage manager options",
+		"trie pruning status", options.PruningEnabled,
+		"trie snapshot status", options.SnapshotsEnabled,
+		"trie checkpoints status", options.CheckpointsEnabled,
+	)
+
+	var tsm common.StorageManager
+	tsm, err := NewTrieStorageManager(args)
+	if err != nil {
+		return nil, err
 	}
 
-	log.Debug("trie snapshot status", "enabled", snapshotsEnabled)
-	if !snapshotsEnabled {
-		return NewTrieStorageManagerWithoutSnapshot(args)
+	if !options.PruningEnabled {
+		tsm, err = NewTrieStorageManagerWithoutPruning(tsm)
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	log.Debug("trie checkpoints status", "enabled", checkpointsEnabled)
-	if !checkpointsEnabled {
-		return NewTrieStorageManagerWithoutCheckpoints(args)
+	if !options.SnapshotsEnabled {
+		tsm, err = NewTrieStorageManagerWithoutSnapshot(tsm)
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	return NewTrieStorageManager(args)
+	if !options.CheckpointsEnabled {
+		tsm, err = NewTrieStorageManagerWithoutCheckpoints(tsm)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return tsm, nil
 }
