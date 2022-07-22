@@ -36,7 +36,7 @@ func (tsm *trieStorageManagerWithoutPruning) IsPruningEnabled() bool {
 	return false
 }
 
-// Remove does nothing for this implementation
+// Remove deletes the given hash from checkpointHashesHolder
 func (tsm *trieStorageManagerWithoutPruning) Remove(hash []byte) error {
 	tsm.storageManagerExtension.removeFromCheckpointHashesHolder(hash)
 	return nil

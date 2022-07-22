@@ -340,19 +340,19 @@ func (tsm *trieStorageManager) TakeSnapshot(
 ) {
 	if errChan == nil {
 		log.Error("programming error in trieStorageManager.TakeSnapshot, cannot take snapshot because errChan is nil")
-		tsm.safelyCloseChan(leavesChan)
+		safelyCloseChan(leavesChan)
 		stats.SnapshotFinished()
 		return
 	}
 	if tsm.IsClosed() {
-		tsm.safelyCloseChan(leavesChan)
+		safelyCloseChan(leavesChan)
 		stats.SnapshotFinished()
 		return
 	}
 
 	if bytes.Equal(rootHash, EmptyTrieHash) {
 		log.Trace("should not snapshot an empty trie")
-		tsm.safelyCloseChan(leavesChan)
+		safelyCloseChan(leavesChan)
 		stats.SnapshotFinished()
 		return
 	}
@@ -372,7 +372,7 @@ func (tsm *trieStorageManager) TakeSnapshot(
 	case tsm.snapshotReq <- snapshotEntry:
 	case <-tsm.closer.ChanClose():
 		tsm.ExitPruningBufferingMode()
-		tsm.safelyCloseChan(leavesChan)
+		safelyCloseChan(leavesChan)
 		stats.SnapshotFinished()
 	}
 }
@@ -389,19 +389,19 @@ func (tsm *trieStorageManager) SetCheckpoint(
 ) {
 	if errChan == nil {
 		log.Error("programming error in trieStorageManager.SetCheckpoint, cannot set checkpoint because errChan is nil")
-		tsm.safelyCloseChan(leavesChan)
+		safelyCloseChan(leavesChan)
 		stats.SnapshotFinished()
 		return
 	}
 	if tsm.IsClosed() {
-		tsm.safelyCloseChan(leavesChan)
+		safelyCloseChan(leavesChan)
 		stats.SnapshotFinished()
 		return
 	}
 
 	if bytes.Equal(rootHash, EmptyTrieHash) {
 		log.Trace("should not set checkpoint for empty trie")
-		tsm.safelyCloseChan(leavesChan)
+		safelyCloseChan(leavesChan)
 		stats.SnapshotFinished()
 		return
 	}
@@ -419,12 +419,12 @@ func (tsm *trieStorageManager) SetCheckpoint(
 	case tsm.checkpointReq <- checkpointEntry:
 	case <-tsm.closer.ChanClose():
 		tsm.ExitPruningBufferingMode()
-		tsm.safelyCloseChan(leavesChan)
+		safelyCloseChan(leavesChan)
 		stats.SnapshotFinished()
 	}
 }
 
-func (tsm *trieStorageManager) safelyCloseChan(ch chan core.KeyValueHolder) {
+func safelyCloseChan(ch chan core.KeyValueHolder) {
 	if ch != nil {
 		close(ch)
 	}
@@ -433,7 +433,7 @@ func (tsm *trieStorageManager) safelyCloseChan(ch chan core.KeyValueHolder) {
 func (tsm *trieStorageManager) finishOperation(snapshotEntry *snapshotsQueueEntry, message string) {
 	tsm.ExitPruningBufferingMode()
 	log.Trace(message, "rootHash", snapshotEntry.rootHash)
-	tsm.safelyCloseChan(snapshotEntry.leavesChan)
+	safelyCloseChan(snapshotEntry.leavesChan)
 	snapshotEntry.stats.SnapshotFinished()
 }
 
@@ -572,6 +572,7 @@ func (tsm *trieStorageManager) Remove(hash []byte) error {
 }
 
 func (tsm *trieStorageManager) removeFromCheckpointHashesHolder(hash []byte) {
+	//TODO check if the mutex is really needed here
 	tsm.storageOperationMutex.Lock()
 	defer tsm.storageOperationMutex.Unlock()
 
