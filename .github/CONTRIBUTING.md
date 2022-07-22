@@ -16,19 +16,21 @@ Other branches may be used by the team members in accordance to internal decisio
 ## Use linter
 
 Make sure the code is well-formatted and aligned before opening a PR. Some linters such `gofmt` can be used, or code style
-can be proactively checked while written code when using an IDE.
+can be proactively checked while writing code, when using an IDE.
 
 ## Writing tests
 
 In case of adding a new feature, make sure you follow these guidelines:
-- Attempt to write some unit tests which verify the component in isolation and mock the external components around it
-- If the component relies on many other external components which are difficult to mock, write integrations tests for it
-- Try to cover both expected functionality but also verify that the code fails in expected ways
+- write unit tests which verify the component in isolation and mock the external components around it;
+- if the component relies on many other external components which are difficult to mock, write integrations tests for it; Although, this usually means that further decoupling using interfaces is required. Also, the component might needed to be split in smaller, specialized sub-components;
+- cover both expected functionality but also verify that the code fails in expected ways.
 
 In case of fixing a bug:
-- Try to first write the unit test that exposes the bug, then fix it and have a test that will make sure the specific situation will always be tested in the future
+- write the unit test that exposes the bug, then fix it and have a test that will make sure the specific situation will always be tested in the future.
 
 In both cases, make sure that the new code has a good code coverage (ideally, 100% of the new lines are covered) and also try to cover edge-cases.
+
+Please take care of the severity of the bug. Pushing directly a fix of an undiscovered, critical bug, or a bug that can be exploited in such a way that could create damage to the blockchain, loss of funds, state alteration beyond repair, and so on, can be exploited before the team can take any action. Please contact the team on private channels before pushing the fix if you have any doubts.
 
 ## Make sure the tests pass
 

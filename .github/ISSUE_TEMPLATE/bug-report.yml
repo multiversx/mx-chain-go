@@ -25,6 +25,22 @@ body:
       placeholder: Description
     validations:
       required: true
+  - type: input
+    id: version
+    attributes:
+      label: Node version
+      description: The version of the node used when discovering the bug
+      placeholder: v1.3.35.0-0-gfc78258fe/go1.17.6/linux-amd64
+    validations:
+      required: false
+  - type: input
+    id: host
+    attributes:
+      label: Host machine
+      description: Specifications and other details about the host of the node
+      placeholder: DO, AWS, Contabo, no VPS (if you run your validator on a physical machine)
+    validations:
+      required: false
   - type: textarea
     id: steps-to-reproduce
     attributes:
