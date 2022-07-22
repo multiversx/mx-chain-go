@@ -132,7 +132,7 @@ func (hr *historyRepository) RecordBlock(blockHeaderHash []byte,
 	hr.recordBlockMutex.Lock()
 	defer hr.recordBlockMutex.Unlock()
 
-	log.Trace("RecordBlock()", "nonce", blockHeader.GetNonce(), "blockHeaderHash", blockHeaderHash, "header type", fmt.Sprintf("%T", blockHeader))
+	log.Debug("RecordBlock()", "nonce", blockHeader.GetNonce(), "blockHeaderHash", blockHeaderHash, "header type", fmt.Sprintf("%T", blockHeader))
 
 	body, ok := blockBody.(*block.Body)
 	if !ok {
@@ -153,7 +153,8 @@ func (hr *historyRepository) RecordBlock(blockHeaderHash []byte,
 
 		err = hr.recordMiniblock(blockHeaderHash, blockHeader, miniblock, epoch)
 		if err != nil {
-			log.Error("cannot record miniblock", "type", miniblock.Type, "error", err)
+			handleErrorLogging(log, logger.LogError, err, "cannot record miniblock",
+				"type", miniblock.Type, "error", err)
 			continue
 		}
 	}
@@ -161,7 +162,8 @@ func (hr *historyRepository) RecordBlock(blockHeaderHash []byte,
 	for _, miniBlock := range createdIntraShardMiniBlocks {
 		err = hr.recordMiniblock(blockHeaderHash, blockHeader, miniBlock, epoch)
 		if err != nil {
-			log.Error("cannot record in shard miniblock", "type", miniBlock.Type, "error", err)
+			handleErrorLogging(log, logger.LogError, err, "cannot record in shard miniblock",
+				"type", miniBlock.Type, "error", err)
 		}
 	}
 
@@ -224,7 +226,8 @@ func (hr *historyRepository) recordMiniblock(blockHeaderHash []byte, blockHeader
 	for _, txHash := range miniblock.TxHashes {
 		errPut := hr.miniblockHashByTxHashIndex.Put(txHash, miniblockHash)
 		if errPut != nil {
-			log.Warn("miniblockHashByTxHashIndex.Put()", "txHash", txHash, "err", errPut)
+			handleErrorLogging(log, logger.LogWarning, errPut, "miniblockHashByTxHashIndex.Put()",
+				"txHash", txHash, "err", errPut)
 			continue
 		}
 	}
@@ -455,7 +458,8 @@ func (hr *historyRepository) consumePendingNotificationsNoLock(pendingMap *conta
 		patchMetadataFunc(metadata, notificationTyped)
 		err = hr.putMiniblockMetadata(miniblockHash, metadata)
 		if err != nil {
-			log.Error("consumePendingNotificationsNoLock(): cannot put miniblock metadata", "miniblockHash", miniblockHash, "err", err)
+			handleErrorLogging(log, logger.LogError, err, "consumePendingNotificationsNoLock(): cannot put miniblock metadata",
+				"miniblockHash", miniblockHash, "err", err)
 			continue
 		}
 
