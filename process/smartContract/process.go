@@ -1051,6 +1051,16 @@ func (sc *scProcessor) doExecuteBuiltInFunction(
 		if !createdAsyncCallback {
 			if vmInput.CallType == vmData.AsynchronousCall {
 				asyncCallBackSCR := sc.createAsyncCallBackSCRFromVMOutput(newVMOutput, tx, txHash)
+
+				asyncCallBackSCR.Data, err = contexts.AppendAsyncParamsToArguments(
+					contexts.CreateCallbackAsyncParams(hooks.NewVMCryptoHook(), asyncParams),
+					asyncCallBackSCR.Data,
+					sc.argsParser.ParseArguments)
+
+				if err != nil {
+					return vmcommon.ExecutionFailed, err
+				}
+
 				scrResults = append(scrResults, asyncCallBackSCR)
 			} else {
 				scrResults = append(scrResults, scrForSender)
