@@ -40,7 +40,7 @@ func (tsm *trieStorageManagerWithoutCheckpoints) SetCheckpoint(
 	_ chan error,
 	stats common.SnapshotStatisticsHandler,
 ) {
-	tsm.storageManagerExtension.safelyCloseChan(chLeaves)
+	safelyCloseChan(chLeaves)
 	stats.SnapshotFinished()
 
 	log.Debug("trieStorageManagerWithoutCheckpoints - SetCheckpoint is disabled")
