@@ -41,7 +41,14 @@ func (tsm *trieStorageManagerWithoutPruning) GetFromCurrentEpoch(key []byte) ([]
 }
 
 // TakeSnapshot does nothing if pruning is disabled
-func (tsm *trieStorageManagerWithoutPruning) TakeSnapshot(_ []byte, _ []byte, chLeaves chan core.KeyValueHolder, stats common.SnapshotStatisticsHandler, _ uint32) {
+func (tsm *trieStorageManagerWithoutPruning) TakeSnapshot(
+	_ []byte,
+	_ []byte,
+	chLeaves chan core.KeyValueHolder,
+	_ chan error,
+	stats common.SnapshotStatisticsHandler,
+	_ uint32,
+) {
 	if chLeaves != nil {
 		close(chLeaves)
 	}
@@ -51,7 +58,13 @@ func (tsm *trieStorageManagerWithoutPruning) TakeSnapshot(_ []byte, _ []byte, ch
 }
 
 // SetCheckpoint does nothing if pruning is disabled
-func (tsm *trieStorageManagerWithoutPruning) SetCheckpoint(_ []byte, _ []byte, chLeaves chan core.KeyValueHolder, stats common.SnapshotStatisticsHandler) {
+func (tsm *trieStorageManagerWithoutPruning) SetCheckpoint(
+	_ []byte,
+	_ []byte,
+	chLeaves chan core.KeyValueHolder,
+	_ chan error,
+	stats common.SnapshotStatisticsHandler,
+) {
 	if chLeaves != nil {
 		close(chLeaves)
 	}

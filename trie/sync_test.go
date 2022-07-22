@@ -17,10 +17,19 @@ import (
 )
 
 func createMockArgument(timeout time.Duration) ArgTrieSyncer {
+	_, trieStorage := newEmptyTrie()
+	memDb := testscommon.NewMemDbMock()
+	trieStorage.mainStorer = &trieMock.SnapshotPruningStorerStub{
+		MemDbMock: memDb,
+		PutInEpochCalled: func(key []byte, data []byte, epoch uint32) error {
+			return memDb.Put(key, data)
+		},
+	}
+
 	return ArgTrieSyncer{
 		RequestHandler:            &testscommon.RequestHandlerStub{},
 		InterceptedNodes:          testscommon.NewCacherMock(),
-		DB:                        testscommon.NewMemDbMock(),
+		DB:                        trieStorage,
 		Hasher:                    &hashingMocks.HasherMock{},
 		Marshalizer:               &testscommon.MarshalizerMock{},
 		ShardId:                   0,
@@ -195,7 +204,15 @@ func TestTrieSync_FoundInStorageShouldNotRequest(t *testing.T) {
 	err := bn.setHash()
 	require.Nil(t, err)
 	rootHash := bn.getHash()
+
+	_, trieStorage := newEmptyTrie()
 	db := testscommon.NewMemDbMock()
+	trieStorage.mainStorer = &trieMock.SnapshotPruningStorerStub{
+		MemDbMock: db,
+		PutInEpochWithoutCacheCalled: func(key []byte, data []byte, epoch uint32) error {
+			return db.Put(key, data)
+		},
+	}
 
 	err = bn.commitSnapshot(db, nil, context.Background(), &trieMock.MockStatistics{}, &testscommon.ProcessStatusHandlerStub{})
 	require.Nil(t, err)
@@ -206,7 +223,7 @@ func TestTrieSync_FoundInStorageShouldNotRequest(t *testing.T) {
 			assert.Fail(t, "should have not requested trie nodes")
 		},
 	}
-	arg.DB = db
+	arg.DB = trieStorage
 	arg.Marshalizer = testMarshalizer
 	arg.Hasher = testHasher
 
