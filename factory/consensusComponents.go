@@ -177,6 +177,12 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		marshalizer = marshal.NewSizeCheckUnmarshalizer(marshalizer, sizeCheckDelta)
 	}
 
+	peerBlacklistHandler, err := ccf.createPeerBlacklistHandler()
+	if err != nil {
+		return nil, err
+	}
+	peerBlacklistHandler.StartSweepingTimeCache()
+
 	workerArgs := &spos.WorkerArgs{
 		ConsensusService:        consensusService,
 		BlockChain:              ccf.dataComponents.Blockchain(),
@@ -201,6 +207,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		PublicKeySize:           ccf.config.ValidatorPubkeyConverter.Length,
 		AppStatusHandler:        ccf.coreComponents.StatusHandler(),
 		NodeRedundancyHandler:   ccf.processComponents.NodeRedundancyHandler(),
+		PeerBlacklistHandler:    peerBlacklistHandler,
 	}
 
 	cc.worker, err = spos.NewWorker(workerArgs)
@@ -220,12 +227,6 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	peerBlacklistHandler, err := ccf.createPeerBlacklistHandler()
-	if err != nil {
-		return nil, err
-	}
-	peerBlacklistHandler.StartSweepingTimeCache()
 
 	consensusArgs := &spos.ConsensusCoreArgs{
 		BlockChain:                    ccf.dataComponents.Blockchain(),
