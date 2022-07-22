@@ -204,8 +204,9 @@ func addEpochStartShardDataForMeta(epochStartShardData block.EpochStartShardData
 		LastFinishedMetaBlock: hex.EncodeToString(epochStartShardData.LastFinishedMetaBlock),
 	}
 
+	apiBlock.EpochStartShardsData = append(apiBlock.EpochStartShardsData, shardData)
+
 	if len(epochStartShardData.PendingMiniBlockHeaders) == 0 {
-		apiBlock.EpochStartShardsData = append(apiBlock.EpochStartShardsData, shardData)
 		return
 	}
 
@@ -218,8 +219,6 @@ func addEpochStartShardDataForMeta(epochStartShardData block.EpochStartShardData
 			Type:             pendingMb.Type.String(),
 		})
 	}
-
-	apiBlock.EpochStartShardsData = append(apiBlock.EpochStartShardsData, shardData)
 }
 
 // IsInterfaceNil returns true if underlying object is nil

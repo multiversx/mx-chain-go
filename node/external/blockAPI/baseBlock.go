@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go-core/data/batch"
@@ -328,7 +329,7 @@ func extractExecutedTxHashes(mbTxHashes [][]byte, firstProcessed, lastProcessed 
 
 func addScheduledInfoInBlock(header data.HeaderHandler, apiBlock *api.Block) {
 	additionalData := header.GetAdditionalData()
-	if additionalData == nil {
+	if check.IfNil(additionalData) {
 		return
 	}
 
