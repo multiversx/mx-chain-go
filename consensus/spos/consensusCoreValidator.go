@@ -28,9 +28,6 @@ func ValidateConsensusCore(container ConsensusCoreHandler) error {
 	if check.IfNil(container.Marshalizer()) {
 		return ErrNilMarshalizer
 	}
-	if check.IfNil(container.MultiSigner()) {
-		return ErrNilMultiSigner
-	}
 	if check.IfNil(container.RoundHandler()) {
 		return ErrNilRoundHandler
 	}
@@ -62,6 +59,9 @@ func ValidateConsensusCore(container ConsensusCoreHandler) error {
 		return ErrNilFallbackHeaderValidator
 	}
 	if check.IfNil(container.NodeRedundancyHandler()) {
+		return ErrNilNodeRedundancyHandler
+	}
+	if check.IfNil(container.SignatureHandler()) {
 		return ErrNilNodeRedundancyHandler
 	}
 

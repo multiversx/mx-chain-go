@@ -36,8 +36,6 @@ type ConsensusCoreHandler interface {
 	Hasher() hashing.Hasher
 	// Marshalizer gets the Marshalizer stored in the ConsensusCore
 	Marshalizer() marshal.Marshalizer
-	// MultiSigner gets the MultiSigner stored in the ConsensusCore
-	MultiSigner() crypto.MultiSigner
 	// RoundHandler gets the RoundHandler stored in the ConsensusCore
 	RoundHandler() consensus.RoundHandler
 	// ShardCoordinator gets the ShardCoordinator stored in the ConsensusCore
@@ -62,6 +60,8 @@ type ConsensusCoreHandler interface {
 	NodeRedundancyHandler() consensus.NodeRedundancyHandler
 	// ScheduledProcessor returns the scheduled txs processor
 	ScheduledProcessor() consensus.ScheduledProcessor
+	// SignatureHandler returns the signature handler component
+	SignatureHandler() SignatureHandler
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }
@@ -153,5 +153,18 @@ type HeaderSigVerifier interface {
 // ConsensusDataIndexer defines the actions that a consensus data indexer has to do
 type ConsensusDataIndexer interface {
 	SaveRoundsInfo(roundsInfos []*indexer.RoundInfo)
+	IsInterfaceNil() bool
+}
+
+// SignatureHandler defines the behaviour of a component that handles signatures in consensus
+type SignatureHandler interface {
+	Reset(pubKeys []string, index uint16) error
+	CreateSignatureShare(msg []byte, bitmap []byte) ([]byte, error)
+	StoreSignatureShare(index uint16, sig []byte) error
+	SignatureShare(index uint16) ([]byte, error)
+	VerifySignatureShare(index uint16, sig []byte, msg []byte, bitmap []byte) error
+	AggregateSigs(bitmap []byte) ([]byte, error)
+	SetAggregatedSig([]byte) error
+	Verify(msg []byte, bitmap []byte) error
 	IsInterfaceNil() bool
 }

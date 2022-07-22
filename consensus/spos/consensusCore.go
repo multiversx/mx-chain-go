@@ -25,7 +25,6 @@ type ConsensusCore struct {
 	marshalizer                   marshal.Marshalizer
 	blsPrivateKey                 crypto.PrivateKey
 	blsSingleSigner               crypto.SingleSigner
-	multiSigner                   crypto.MultiSigner
 	roundHandler                  consensus.RoundHandler
 	shardCoordinator              sharding.Coordinator
 	nodesCoordinator              nodesCoordinator.NodesCoordinator
@@ -37,6 +36,7 @@ type ConsensusCore struct {
 	fallbackHeaderValidator       consensus.FallbackHeaderValidator
 	nodeRedundancyHandler         consensus.NodeRedundancyHandler
 	scheduledProcessor            consensus.ScheduledProcessor
+	signatureHandler              SignatureHandler
 }
 
 // ConsensusCoreArgs store all arguments that are needed to create a ConsensusCore object
@@ -62,6 +62,7 @@ type ConsensusCoreArgs struct {
 	FallbackHeaderValidator       consensus.FallbackHeaderValidator
 	NodeRedundancyHandler         consensus.NodeRedundancyHandler
 	ScheduledProcessor            consensus.ScheduledProcessor
+	SignatureHandler              SignatureHandler
 }
 
 // NewConsensusCore creates a new ConsensusCore instance
@@ -78,7 +79,6 @@ func NewConsensusCore(
 		marshalizer:                   args.Marshalizer,
 		blsPrivateKey:                 args.BlsPrivateKey,
 		blsSingleSigner:               args.BlsSingleSigner,
-		multiSigner:                   args.MultiSigner,
 		roundHandler:                  args.RoundHandler,
 		shardCoordinator:              args.ShardCoordinator,
 		nodesCoordinator:              args.NodesCoordinator,
@@ -90,6 +90,7 @@ func NewConsensusCore(
 		fallbackHeaderValidator:       args.FallbackHeaderValidator,
 		nodeRedundancyHandler:         args.NodeRedundancyHandler,
 		scheduledProcessor:            args.ScheduledProcessor,
+		signatureHandler:              args.SignatureHandler,
 	}
 
 	err := ValidateConsensusCore(consensusCore)
@@ -138,11 +139,6 @@ func (cc *ConsensusCore) Hasher() hashing.Hasher {
 // Marshalizer gets the Marshalizer stored in the ConsensusCore
 func (cc *ConsensusCore) Marshalizer() marshal.Marshalizer {
 	return cc.marshalizer
-}
-
-// MultiSigner gets the MultiSigner stored in the ConsensusCore
-func (cc *ConsensusCore) MultiSigner() crypto.MultiSigner {
-	return cc.multiSigner
 }
 
 //RoundHandler gets the RoundHandler stored in the ConsensusCore
@@ -203,6 +199,11 @@ func (cc *ConsensusCore) NodeRedundancyHandler() consensus.NodeRedundancyHandler
 // ScheduledProcessor will return the scheduled processor
 func (cc *ConsensusCore) ScheduledProcessor() consensus.ScheduledProcessor {
 	return cc.scheduledProcessor
+}
+
+// SignatureHandler will return the signature handler component
+func (cc *ConsensusCore) SignatureHandler() SignatureHandler {
+	return cc.signatureHandler
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -411,8 +411,8 @@ func (wrk *Worker) shouldBlacklistPeer(err error) bool {
 		errors.Is(err, ErrMessageForPastRound) ||
 		errors.Is(err, ErrMessageForFutureRound) ||
 		errors.Is(err, ErrNodeIsNotInEligibleList) ||
-		errors.Is(err, crypto.ErrPIDMismatch) ||
-		errors.Is(err, crypto.ErrSignatureMismatch) ||
+		errors.Is(err, common.ErrPIDMismatch) ||
+		errors.Is(err, common.ErrSignatureMismatch) ||
 		errors.Is(err, nodesCoordinator.ErrEpochNodesConfigDoesNotExist) ||
 		errors.Is(err, ErrMessageTypeLimitReached) {
 		return false
