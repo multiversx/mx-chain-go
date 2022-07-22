@@ -156,8 +156,8 @@ func (ccm *ConsensusCoreMock) SetMarshalizer(marshalizer marshal.Marshalizer) {
 }
 
 // SetMultiSignerContainer -
-func (ccm *ConsensusCoreMock) SetMultiSignerContainer(multiSigner cryptoCommon.MultiSignerContainer) {
-	ccm.multiSignerContainer = multiSigner
+func (ccm *ConsensusCoreMock) SetMultiSignerContainer(multiSignerContainer cryptoCommon.MultiSignerContainer) {
+	ccm.multiSignerContainer = multiSignerContainer
 }
 
 // SetRoundHandler -

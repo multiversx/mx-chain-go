@@ -275,13 +275,13 @@ func TestFactory_NewFactoryNilMarshalizerShouldFail(t *testing.T) {
 	assert.Equal(t, spos.ErrNilMarshalizer, err)
 }
 
-func TestFactory_NewFactoryNilMultiSignerShouldFail(t *testing.T) {
+func TestFactory_NewFactoryNilMultiSignerContainerShouldFail(t *testing.T) {
 	t.Parallel()
 
 	consensusState := initConsensusState()
 	container := mock.InitConsensusCore()
 	worker := initWorker()
-	container.SetMultiSigner(nil)
+	container.SetMultiSignerContainer(nil)
 
 	fct, err := bls.NewSubroundsFactory(
 		container,
@@ -293,7 +293,7 @@ func TestFactory_NewFactoryNilMultiSignerShouldFail(t *testing.T) {
 	)
 
 	assert.Nil(t, fct)
-	assert.Equal(t, spos.ErrNilMultiSigner, err)
+	assert.Equal(t, spos.ErrNilMultiSignerContainer, err)
 }
 
 func TestFactory_NewFactoryNilRoundHandlerShouldFail(t *testing.T) {

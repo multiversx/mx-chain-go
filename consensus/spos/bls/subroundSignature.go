@@ -68,6 +68,10 @@ func (sr *subroundSignature) doSignatureJob(_ context.Context) bool {
 	if !sr.CanDoSubroundJob(sr.Current()) {
 		return false
 	}
+	if sr.Header == nil {
+		log.Error("doSignatureJob", "error", spos.ErrNilHeader)
+		return false
+	}
 
 	multiSigner, err := sr.MultiSignerContainer().GetMultiSigner(sr.Header.GetEpoch())
 	if err != nil {
@@ -165,6 +169,11 @@ func (sr *subroundSignature) receivedSignature(_ context.Context, cnsDta *consen
 		log.Debug("receivedSignature.ConsensusGroupIndex",
 			"node", pkForLogs,
 			"error", err.Error())
+		return false
+	}
+
+	if sr.Header == nil {
+		log.Error("receivedSignature", "error", spos.ErrNilHeader)
 		return false
 	}
 

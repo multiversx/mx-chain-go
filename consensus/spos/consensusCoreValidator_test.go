@@ -122,11 +122,22 @@ func TestConsensusContainerValidator_ValidateNilMarshalizerShouldFail(t *testing
 	assert.Equal(t, ErrNilMarshalizer, err)
 }
 
-func TestConsensusContainerValidator_ValidateNilMultiSignerShouldFail(t *testing.T) {
+func TestConsensusContainerValidator_ValidateNilMultiSignerContainerShouldFail(t *testing.T) {
 	t.Parallel()
 
 	container := initConsensusDataContainer()
 	container.multiSignerContainer = nil
+
+	err := ValidateConsensusCore(container)
+
+	assert.Equal(t, ErrNilMultiSignerContainer, err)
+}
+
+func TestConsensusContainerValidator_ValidateNilMultiSignerShouldFail(t *testing.T) {
+	t.Parallel()
+
+	container := initConsensusDataContainer()
+	container.multiSignerContainer = cryptoMocks.NewMultiSignerContainerMock(nil)
 
 	err := ValidateConsensusCore(container)
 

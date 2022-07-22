@@ -22,6 +22,9 @@ var ErrNilSignature = errors.New("signature is nil")
 // ErrNilMultiSigner is raised when a valid multiSigner is expected but nil used
 var ErrNilMultiSigner = errors.New("multiSigner is nil")
 
+// ErrNilMultiSignerContainer is raised when a valid multiSigner container is expected, but nil used
+var ErrNilMultiSignerContainer = errors.New("multiSigner container is nil")
+
 // ErrNilConsensusState is raised when a valid consensus is expected but nil used
 var ErrNilConsensusState = errors.New("consensus state is nil")
 
