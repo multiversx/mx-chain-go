@@ -390,3 +390,39 @@ func TestExtractExecutedTxHashes(t *testing.T) {
 	res = extractExecutedTxHashes(array, 0, 5)
 	require.Equal(t, res, [][]byte{{byte(0)}, {byte(1)}, {byte(2)}, {byte(3)}, {byte(4)}, {byte(5)}})
 }
+
+func TestAddScheduledInfoInBlock(t *testing.T) {
+	t.Parallel()
+
+	blockHeader := &block.HeaderV2{
+		ScheduledRootHash:        []byte("srh"),
+		ScheduledAccumulatedFees: big.NewInt(1000),
+		ScheduledDeveloperFees:   big.NewInt(500),
+		ScheduledGasProvided:     10,
+		ScheduledGasPenalized:    1,
+		ScheduledGasRefunded:     2,
+	}
+
+	apiBlock := &api.Block{}
+
+	addScheduledInfoInBlock(blockHeader, apiBlock)
+	require.Equal(t, &api.Block{
+		ScheduledData: &api.ScheduledData{
+			ScheduledRootHash:        "737268",
+			ScheduledAccumulatedFees: "1000",
+			ScheduledDeveloperFees:   "500",
+			ScheduledGasProvided:     10,
+			ScheduledGasPenalized:    1,
+			ScheduledGasRefunded:     2,
+		},
+	}, apiBlock)
+}
+
+func TestBigInToString(t *testing.T) {
+	t.Parallel()
+
+	require.Equal(t, "0", bigIntToStr(big.NewInt(0)))
+	require.Equal(t, "0", bigIntToStr(nil))
+	require.Equal(t, "15", bigIntToStr(big.NewInt(15)))
+	require.Equal(t, "100", bigIntToStr(big.NewInt(100)))
+}
