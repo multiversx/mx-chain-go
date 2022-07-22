@@ -106,7 +106,7 @@ func (mbp *metaAPIBlockProcessor) convertMetaBlockBytesToAPIBlock(hash []byte, b
 		}
 		if options.WithTransactions {
 			miniBlockCopy := mb
-			err := mbp.getAndAttachTxsToMb(&miniBlockCopy, headerEpoch, miniblockAPI, options)
+			err = mbp.getAndAttachTxsToMb(&miniBlockCopy, headerEpoch, miniblockAPI, options)
 			if err != nil {
 				return nil, err
 			}
@@ -138,7 +138,7 @@ func (mbp *metaAPIBlockProcessor) convertMetaBlockBytesToAPIBlock(hash []byte, b
 		notarizedBlocks = append(notarizedBlocks, notarizedBlock)
 	}
 
-	metaBlock := &api.Block{
+	apiMetaBlock := &api.Block{
 		Nonce:                  blockHeader.Nonce,
 		Round:                  blockHeader.Round,
 		Epoch:                  blockHeader.Epoch,
@@ -153,25 +153,73 @@ func (mbp *metaAPIBlockProcessor) convertMetaBlockBytesToAPIBlock(hash []byte, b
 		AccumulatedFeesInEpoch: blockHeader.AccumulatedFeesInEpoch.String(),
 		DeveloperFeesInEpoch:   blockHeader.DevFeesInEpoch.String(),
 		Timestamp:              time.Duration(blockHeader.GetTimeStamp()),
+		StateRootHash:          hex.EncodeToString(blockHeader.RootHash),
 		Status:                 BlockStatusOnChain,
 	}
 
-	if blockHeader.IsStartOfEpochBlock() {
-		epochStartEconomics := blockHeader.EpochStart.Economics
+	addScheduledInfoInBlock(blockHeader, apiMetaBlock)
+	addStartOfEpochInfoInBlock(blockHeader, apiMetaBlock)
 
-		metaBlock.EpochStartInfo = &api.EpochStartInfo{
-			TotalSupply:                      epochStartEconomics.TotalSupply.String(),
-			TotalToDistribute:                epochStartEconomics.TotalToDistribute.String(),
-			TotalNewlyMinted:                 epochStartEconomics.TotalNewlyMinted.String(),
-			RewardsPerBlock:                  epochStartEconomics.RewardsPerBlock.String(),
-			RewardsForProtocolSustainability: epochStartEconomics.RewardsForProtocolSustainability.String(),
-			NodePrice:                        epochStartEconomics.NodePrice.String(),
-			PrevEpochStartRound:              epochStartEconomics.PrevEpochStartRound,
-			PrevEpochStartHash:               hex.EncodeToString(epochStartEconomics.PrevEpochStartHash),
-		}
+	return apiMetaBlock, nil
+}
+
+func addStartOfEpochInfoInBlock(metaBlock *block.MetaBlock, apiBlock *api.Block) {
+	if !metaBlock.IsStartOfEpochBlock() {
+		return
 	}
 
-	return metaBlock, nil
+	epochStartEconomics := metaBlock.EpochStart.Economics
+
+	apiBlock.EpochStartInfo = &api.EpochStartInfo{
+		TotalSupply:                      epochStartEconomics.TotalSupply.String(),
+		TotalToDistribute:                epochStartEconomics.TotalToDistribute.String(),
+		TotalNewlyMinted:                 epochStartEconomics.TotalNewlyMinted.String(),
+		RewardsPerBlock:                  epochStartEconomics.RewardsPerBlock.String(),
+		RewardsForProtocolSustainability: epochStartEconomics.RewardsForProtocolSustainability.String(),
+		NodePrice:                        epochStartEconomics.NodePrice.String(),
+		PrevEpochStartRound:              epochStartEconomics.PrevEpochStartRound,
+		PrevEpochStartHash:               hex.EncodeToString(epochStartEconomics.PrevEpochStartHash),
+	}
+
+	if len(metaBlock.EpochStart.LastFinalizedHeaders) == 0 {
+		return
+	}
+
+	epochStartShardsData := metaBlock.EpochStart.LastFinalizedHeaders
+	apiBlock.EpochStartShardsData = make([]*api.EpochStartShardData, 0, len(epochStartShardsData))
+	for _, epochStartShardData := range epochStartShardsData {
+		addEpochStartShardDataForMeta(epochStartShardData, apiBlock)
+	}
+}
+
+func addEpochStartShardDataForMeta(epochStartShardData block.EpochStartShardData, apiBlock *api.Block) {
+	shardData := &api.EpochStartShardData{
+		ShardID:               epochStartShardData.ShardID,
+		Epoch:                 epochStartShardData.Epoch,
+		Round:                 epochStartShardData.Round,
+		Nonce:                 epochStartShardData.Nonce,
+		HeaderHash:            hex.EncodeToString(epochStartShardData.HeaderHash),
+		RootHash:              hex.EncodeToString(epochStartShardData.RootHash),
+		ScheduledRootHash:     hex.EncodeToString(epochStartShardData.ScheduledRootHash),
+		FirstPendingMetaBlock: hex.EncodeToString(epochStartShardData.FirstPendingMetaBlock),
+		LastFinishedMetaBlock: hex.EncodeToString(epochStartShardData.LastFinishedMetaBlock),
+	}
+
+	apiBlock.EpochStartShardsData = append(apiBlock.EpochStartShardsData, shardData)
+
+	if len(epochStartShardData.PendingMiniBlockHeaders) == 0 {
+		return
+	}
+
+	shardData.PendingMiniBlockHeaders = make([]*api.MiniBlock, 0, len(epochStartShardData.PendingMiniBlockHeaders))
+	for _, pendingMb := range epochStartShardData.PendingMiniBlockHeaders {
+		shardData.PendingMiniBlockHeaders = append(shardData.PendingMiniBlockHeaders, &api.MiniBlock{
+			Hash:             hex.EncodeToString(pendingMb.Hash),
+			SourceShard:      pendingMb.SenderShardID,
+			DestinationShard: pendingMb.ReceiverShardID,
+			Type:             pendingMb.Type.String(),
+		})
+	}
 }
 
 // IsInterfaceNil returns true if underlying object is nil

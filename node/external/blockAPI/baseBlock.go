@@ -3,9 +3,11 @@ package blockAPI
 import (
 	"encoding/hex"
 	"fmt"
+	"math/big"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
@@ -302,4 +304,28 @@ func extractExecutedTxHashes(mbTxHashes [][]byte, firstProcessed, lastProcessed 
 	}
 
 	return mbTxHashes[firstProcessed : lastProcessed+1]
+}
+
+func addScheduledInfoInBlock(header data.HeaderHandler, apiBlock *api.Block) {
+	additionalData := header.GetAdditionalData()
+	if check.IfNil(additionalData) {
+		return
+	}
+
+	apiBlock.ScheduledData = &api.ScheduledData{
+		ScheduledRootHash:        hex.EncodeToString(additionalData.GetScheduledRootHash()),
+		ScheduledAccumulatedFees: bigIntToStr(additionalData.GetScheduledAccumulatedFees()),
+		ScheduledDeveloperFees:   bigIntToStr(additionalData.GetScheduledDeveloperFees()),
+		ScheduledGasProvided:     additionalData.GetScheduledGasProvided(),
+		ScheduledGasPenalized:    additionalData.GetScheduledGasPenalized(),
+		ScheduledGasRefunded:     additionalData.GetScheduledGasRefunded(),
+	}
+}
+
+func bigIntToStr(value *big.Int) string {
+	if value == nil {
+		return "0"
+	}
+
+	return value.String()
 }
