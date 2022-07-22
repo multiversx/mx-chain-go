@@ -185,7 +185,7 @@ func addStartOfEpochInfoInBlock(metaBlock *block.MetaBlock, apiBlock *api.Block)
 	}
 
 	epochStartShardsData := metaBlock.EpochStart.LastFinalizedHeaders
-	apiBlock.EpochStartShardsData = make([]*api.EpochStartShardData, 0, len(metaBlock.EpochStart.LastFinalizedHeaders))
+	apiBlock.EpochStartShardsData = make([]*api.EpochStartShardData, 0, len(epochStartShardsData))
 	for _, epochStartShardData := range epochStartShardsData {
 		addEpochStartShardDataForMeta(epochStartShardData, apiBlock)
 	}
