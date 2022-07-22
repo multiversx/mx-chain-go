@@ -45,6 +45,7 @@ type Trie interface {
 type StorageManager interface {
 	Get(key []byte) ([]byte, error)
 	GetFromCurrentEpoch(key []byte) ([]byte, error)
+	Put(key []byte, val []byte) error
 	PutInEpoch(key []byte, val []byte, epoch uint32) error
 	TakeSnapshot(rootHash []byte, mainTrieRootHash []byte, leavesChan chan core.KeyValueHolder, errChan chan error, stats SnapshotStatisticsHandler, epoch uint32)
 	SetCheckpoint(rootHash []byte, mainTrieRootHash []byte, leavesChan chan core.KeyValueHolder, errChan chan error, stats SnapshotStatisticsHandler)
@@ -60,10 +61,6 @@ type StorageManager interface {
 	IsClosed() bool
 	Close() error
 	IsInterfaceNil() bool
-
-	// TODO remove Put() when removing increaseNumCheckpoints()
-
-	Put(key []byte, val []byte) error
 }
 
 // DBWriteCacher is used to cache changes made to the trie, and only write to the database when it's needed

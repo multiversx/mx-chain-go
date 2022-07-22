@@ -14,8 +14,8 @@ import (
 func TestNewTrieStorageManagerWithoutSnapshot(t *testing.T) {
 	t.Parallel()
 
-	args := getNewTrieStorageManagerArgs()
-	ts, err := trie.NewTrieStorageManagerWithoutSnapshot(args)
+	tsm, _ := trie.NewTrieStorageManager(getNewTrieStorageManagerArgs())
+	ts, err := trie.NewTrieStorageManagerWithoutSnapshot(tsm)
 	assert.Nil(t, err)
 	assert.NotNil(t, ts)
 }
@@ -24,7 +24,8 @@ func TestTrieStorageManagerWithoutSnapshot_GetFromCurrentEpoch(t *testing.T) {
 	t.Parallel()
 
 	args := getNewTrieStorageManagerArgs()
-	ts, _ := trie.NewTrieStorageManagerWithoutSnapshot(args)
+	tsm, _ := trie.NewTrieStorageManager(args)
+	ts, _ := trie.NewTrieStorageManagerWithoutSnapshot(tsm)
 
 	key := []byte("key")
 	val := []byte("value")
@@ -39,7 +40,8 @@ func TestTrieStorageManagerWithoutSnapshot_PutInEpoch(t *testing.T) {
 	t.Parallel()
 
 	args := getNewTrieStorageManagerArgs()
-	ts, _ := trie.NewTrieStorageManagerWithoutSnapshot(args)
+	tsm, _ := trie.NewTrieStorageManager(args)
+	ts, _ := trie.NewTrieStorageManagerWithoutSnapshot(tsm)
 
 	key := []byte("key")
 	val := []byte("value")
@@ -55,7 +57,8 @@ func TestTrieStorageManagerWithoutSnapshot_PutInEpochWithoutCache(t *testing.T) 
 	t.Parallel()
 
 	args := getNewTrieStorageManagerArgs()
-	ts, _ := trie.NewTrieStorageManagerWithoutSnapshot(args)
+	tsm, _ := trie.NewTrieStorageManager(args)
+	ts, _ := trie.NewTrieStorageManagerWithoutSnapshot(tsm)
 
 	key := []byte("key")
 	val := []byte("value")
@@ -71,7 +74,8 @@ func TestTrieStorageManagerWithoutSnapshot_TakeSnapshot(t *testing.T) {
 	t.Parallel()
 
 	args := getNewTrieStorageManagerArgs()
-	ts, _ := trie.NewTrieStorageManagerWithoutSnapshot(args)
+	tsm, _ := trie.NewTrieStorageManager(args)
+	ts, _ := trie.NewTrieStorageManagerWithoutSnapshot(tsm)
 
 	errChan := make(chan error, 1)
 	leavesCh := make(chan core.KeyValueHolder)
@@ -84,67 +88,24 @@ func TestTrieStorageManagerWithoutSnapshot_TakeSnapshot(t *testing.T) {
 	}
 }
 
-func TestTrieStorageManagerWithoutSnapshot_SetCheckpoint(t *testing.T) {
-	t.Parallel()
-
-	args := getNewTrieStorageManagerArgs()
-	ts, _ := trie.NewTrieStorageManagerWithoutSnapshot(args)
-
-	errChan := make(chan error, 1)
-	leavesCh := make(chan core.KeyValueHolder)
-	ts.SetCheckpoint(nil, nil, leavesCh, errChan, &trieMock.MockStatistics{})
-
-	select {
-	case <-leavesCh:
-	default:
-		assert.Fail(t, "unclosed channel")
-	}
-}
-
 func TestTrieStorageManagerWithoutSnapshot_GetLatestStorageEpoch(t *testing.T) {
 	t.Parallel()
 
 	args := getNewTrieStorageManagerArgs()
-	ts, _ := trie.NewTrieStorageManagerWithoutSnapshot(args)
+	tsm, _ := trie.NewTrieStorageManager(args)
+	ts, _ := trie.NewTrieStorageManagerWithoutSnapshot(tsm)
 
 	epoch, err := ts.GetLatestStorageEpoch()
 	assert.Nil(t, err)
 	assert.Equal(t, uint32(0), epoch)
 }
 
-func TestTrieStorageManagerWithoutSnapshot_AddDirtyCheckpointHashes(t *testing.T) {
-	t.Parallel()
-
-	args := getNewTrieStorageManagerArgs()
-	ts, _ := trie.NewTrieStorageManagerWithoutSnapshot(args)
-
-	shouldCheckpoint := ts.AddDirtyCheckpointHashes([]byte("rootHash"), make(map[string]struct{}))
-	assert.False(t, shouldCheckpoint)
-}
-
-func TestTrieStorageManagerWithoutSnapshot_Remove(t *testing.T) {
-	t.Parallel()
-
-	args := getNewTrieStorageManagerArgs()
-	ts, _ := trie.NewTrieStorageManagerWithoutSnapshot(args)
-
-	key := []byte("key")
-	val := []byte("value")
-	_ = args.MainStorer.Put(key, val)
-
-	err := ts.Remove(key)
-	assert.Nil(t, err)
-
-	returnedVal, err := args.MainStorer.Get(key)
-	assert.Nil(t, returnedVal)
-	assert.NotNil(t, err)
-}
-
 func TestTrieStorageManagerWithoutSnapshot_SetEpochForPutOperationDoesNotPanic(t *testing.T) {
 	t.Parallel()
 
 	args := getNewTrieStorageManagerArgs()
-	ts, _ := trie.NewTrieStorageManagerWithoutSnapshot(args)
+	tsm, _ := trie.NewTrieStorageManager(args)
+	ts, _ := trie.NewTrieStorageManagerWithoutSnapshot(tsm)
 
 	ts.SetEpochForPutOperation(5)
 }
@@ -153,7 +114,8 @@ func TestTrieStorageManagerWithoutSnapshot_ShouldTakeSnapshot(t *testing.T) {
 	t.Parallel()
 
 	args := getNewTrieStorageManagerArgs()
-	ts, _ := trie.NewTrieStorageManagerWithoutSnapshot(args)
+	tsm, _ := trie.NewTrieStorageManager(args)
+	ts, _ := trie.NewTrieStorageManagerWithoutSnapshot(tsm)
 
 	ok := ts.ShouldTakeSnapshot()
 	assert.False(t, ok)
@@ -166,6 +128,7 @@ func TestTrieStorageManagerWithoutSnapshot_IsInterfaceNil(t *testing.T) {
 	assert.True(t, check.IfNil(ts))
 
 	args := getNewTrieStorageManagerArgs()
-	ts, _ = trie.NewTrieStorageManagerWithoutSnapshot(args)
+	tsm, _ := trie.NewTrieStorageManager(args)
+	ts, _ = trie.NewTrieStorageManagerWithoutSnapshot(tsm)
 	assert.False(t, check.IfNil(ts))
 }

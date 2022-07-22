@@ -1,24 +1,34 @@
 package trie
 
 import (
+	"errors"
+	"fmt"
+
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/trie/hashesHolder/disabled"
 )
 
 type trieStorageManagerWithoutSnapshot struct {
-	*trieStorageManager
+	common.StorageManager
+	storageManagerExtension
 }
 
 // NewTrieStorageManagerWithoutSnapshot creates a new trieStorageManagerWithoutSnapshot
-func NewTrieStorageManagerWithoutSnapshot(args NewTrieStorageManagerArgs) (*trieStorageManagerWithoutSnapshot, error) {
-	args.CheckpointHashesHolder = disabled.NewDisabledCheckpointHashesHolder()
-	tsm, err := NewTrieStorageManager(args)
-	if err != nil {
-		return nil, err
+func NewTrieStorageManagerWithoutSnapshot(tsm common.StorageManager) (*trieStorageManagerWithoutSnapshot, error) {
+	if check.IfNil(tsm) {
+		return nil, ErrNilTrieStorage
 	}
 
-	return &trieStorageManagerWithoutSnapshot{tsm}, nil
+	sm, ok := tsm.(storageManagerExtension)
+	if !ok {
+		return nil, errors.New("invalid storage manager type" + fmt.Sprintf("%T", tsm))
+	}
+
+	return &trieStorageManagerWithoutSnapshot{
+		StorageManager:          tsm,
+		storageManagerExtension: sm,
+	}, nil
 }
 
 // GetFromCurrentEpoch calls Get(), as this implementation uses a static storer
@@ -38,29 +48,13 @@ func (tsm *trieStorageManagerWithoutSnapshot) PutInEpochWithoutCache(key []byte,
 
 // TakeSnapshot does nothing, as snapshots are disabled for this implementation
 func (tsm *trieStorageManagerWithoutSnapshot) TakeSnapshot(_ []byte, _ []byte, leavesChan chan core.KeyValueHolder, _ chan error, stats common.SnapshotStatisticsHandler, _ uint32) {
-	tsm.safelyCloseChan(leavesChan)
-	stats.SnapshotFinished()
-}
-
-// SetCheckpoint does nothing, as checkpoints are disabled for this implementation
-func (tsm *trieStorageManagerWithoutSnapshot) SetCheckpoint(_ []byte, _ []byte, leavesChan chan core.KeyValueHolder, _ chan error, stats common.SnapshotStatisticsHandler) {
-	tsm.safelyCloseChan(leavesChan)
+	tsm.storageManagerExtension.safelyCloseChan(leavesChan)
 	stats.SnapshotFinished()
 }
 
 // GetLatestStorageEpoch returns 0, as this implementation uses a static storer
 func (tsm *trieStorageManagerWithoutSnapshot) GetLatestStorageEpoch() (uint32, error) {
 	return 0, nil
-}
-
-// AddDirtyCheckpointHashes returns false for this implementation
-func (tsm *trieStorageManagerWithoutSnapshot) AddDirtyCheckpointHashes([]byte, common.ModifiedHashes) bool {
-	return false
-}
-
-// Remove removes data from the static storer
-func (tsm *trieStorageManagerWithoutSnapshot) Remove(hash []byte) error {
-	return tsm.mainStorer.Remove(hash)
 }
 
 // SetEpochForPutOperation does nothing for this implementation

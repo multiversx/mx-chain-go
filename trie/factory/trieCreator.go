@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/trie/hashesHolder"
+	"github.com/ElrondNetwork/elrond-go/trie/hashesHolder/disabled"
 )
 
 // TrieCreateArgs holds arguments for calling the Create method on the TrieFactory
@@ -55,24 +56,25 @@ func NewTrieFactory(
 
 // Create creates a new trie
 func (tc *trieCreator) Create(args TrieCreateArgs) (common.StorageManager, common.Trie, error) {
-	checkpointHashesHolder := hashesHolder.NewCheckpointHashesHolder(
-		tc.trieStorageManagerConfig.CheckpointHashesHolderMaxSize,
-		uint64(tc.hasher.Size()),
-	)
 	storageManagerArgs := trie.NewTrieStorageManagerArgs{
 		MainStorer:             args.MainStorer,
 		CheckpointsStorer:      args.CheckpointsStorer,
 		Marshalizer:            tc.marshalizer,
 		Hasher:                 tc.hasher,
 		GeneralConfig:          tc.trieStorageManagerConfig,
-		CheckpointHashesHolder: checkpointHashesHolder,
+		CheckpointHashesHolder: tc.getCheckpointHashesHolder(args.CheckpointsEnabled),
 		IdleProvider:           args.IdleProvider,
 	}
+
+	options := trie.StorageManagerOptions{
+		PruningEnabled:     args.PruningEnabled,
+		SnapshotsEnabled:   args.SnapshotsEnabled,
+		CheckpointsEnabled: args.CheckpointsEnabled,
+	}
+
 	trieStorage, err := trie.CreateTrieStorageManager(
 		storageManagerArgs,
-		args.PruningEnabled,
-		args.SnapshotsEnabled,
-		args.CheckpointsEnabled,
+		options,
 	)
 	if err != nil {
 		return nil, nil, err
@@ -84,6 +86,17 @@ func (tc *trieCreator) Create(args TrieCreateArgs) (common.StorageManager, commo
 	}
 
 	return trieStorage, newTrie, nil
+}
+
+func (tc *trieCreator) getCheckpointHashesHolder(checkpointsEnabled bool) trie.CheckpointHashesHolder {
+	if !checkpointsEnabled {
+		return disabled.NewDisabledCheckpointHashesHolder()
+	}
+
+	return hashesHolder.NewCheckpointHashesHolder(
+		tc.trieStorageManagerConfig.CheckpointHashesHolderMaxSize,
+		uint64(tc.hasher.Size()),
+	)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
