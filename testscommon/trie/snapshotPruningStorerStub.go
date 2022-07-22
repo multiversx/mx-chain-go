@@ -1,13 +1,16 @@
 package trie
 
-import "github.com/ElrondNetwork/elrond-go/storage/memorydb"
+import (
+	"github.com/ElrondNetwork/elrond-go/testscommon"
+)
 
 // SnapshotPruningStorerStub -
 type SnapshotPruningStorerStub struct {
-	*memorydb.DB
+	*testscommon.MemDbMock
 	GetFromOldEpochsWithoutAddingToCacheCalled func(key []byte) ([]byte, error)
 	GetFromLastEpochCalled                     func(key []byte) ([]byte, error)
 	GetFromCurrentEpochCalled                  func(key []byte) ([]byte, error)
+	PutInEpochCalled                           func(key []byte, data []byte, epoch uint32) error
 	PutInEpochWithoutCacheCalled               func(key []byte, data []byte, epoch uint32) error
 	GetLatestStorageEpochCalled                func() (uint32, error)
 	RemoveFromCurrentEpochCalled               func(key []byte) error
@@ -20,6 +23,15 @@ func (spss *SnapshotPruningStorerStub) GetFromOldEpochsWithoutAddingToCache(key 
 	}
 
 	return nil, nil
+}
+
+// PutInEpoch -
+func (spss *SnapshotPruningStorerStub) PutInEpoch(key []byte, data []byte, epoch uint32) error {
+	if spss.PutInEpochCalled != nil {
+		return spss.PutInEpochCalled(key, data, epoch)
+	}
+
+	return nil
 }
 
 // PutInEpochWithoutCache -

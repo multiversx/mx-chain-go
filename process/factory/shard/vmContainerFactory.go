@@ -324,6 +324,16 @@ func (vmf *vmContainerFactory) createInProcessArwenVMV14() (vmcommon.VMExecution
 		EpochNotifier:                       vmf.epochNotifier,
 		WasmerSIGSEGVPassthrough:            vmf.config.WasmerSIGSEGVPassthrough,
 		TimeOutForSCExecutionInMilliseconds: vmf.config.TimeOutForSCExecutionInMilliseconds,
+		MultiESDTTransferAsyncCallBackEnableEpoch:       vmf.epochConfig.MultiESDTTransferFixOnCallBackOnEnableEpoch,
+		FixOOGReturnCodeEnableEpoch:                     vmf.epochConfig.FixOOGReturnCodeEnableEpoch,
+		RemoveNonUpdatedStorageEnableEpoch:              vmf.epochConfig.RemoveNonUpdatedStorageEnableEpoch,
+		CreateNFTThroughExecByCallerEnableEpoch:         vmf.epochConfig.CreateNFTThroughExecByCallerEnableEpoch,
+		UseDifferentGasCostForReadingCachedStorageEpoch: vmf.epochConfig.StorageAPICostOptimizationEnableEpoch,
+		DisableExecByCallerEnableEpoch:                  vmf.epochConfig.DisableExecByCallerEnableEpoch,
+		FixFailExecutionOnErrorEnableEpoch:              vmf.epochConfig.FailExecutionOnEveryAPIErrorEnableEpoch,
+		ManagedCryptoAPIEnableEpoch:                     vmf.epochConfig.ManagedCryptoAPIsEnableEpoch,
+		RefactorContextEnableEpoch:                      vmf.epochConfig.RefactorContextEnableEpoch,
+		CheckExecuteReadOnlyEnableEpoch:                 vmf.epochConfig.CheckExecuteOnReadOnlyEnableEpoch,
 	}
 	return arwenHost14.NewArwenVM(vmf.blockChainHook, hostParameters)
 }
