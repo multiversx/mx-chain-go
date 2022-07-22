@@ -115,5 +115,5 @@ type IdleNodeProvider interface {
 }
 
 type storageManagerExtension interface {
-	removeFromCheckpointHashesHolder(hash []byte)
+	RemoveFromCheckpointHashesHolder(hash []byte)
 }
