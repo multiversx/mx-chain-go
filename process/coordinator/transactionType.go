@@ -4,6 +4,7 @@ import (
 	"bytes"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
@@ -21,15 +22,20 @@ type txTypeHandler struct {
 	builtInFunctions   vmcommon.BuiltInFunctionContainer
 	argumentParser     process.CallArgumentsParser
 	esdtTransferParser vmcommon.ESDTTransferParser
+
+	transferAndAsyncCallbackFixEnableEpoch uint32
+	flagTransferAndAsyncCallbackFix        atomic.Flag
 }
 
 // ArgNewTxTypeHandler defines the arguments needed to create a new tx type handler
 type ArgNewTxTypeHandler struct {
-	PubkeyConverter    core.PubkeyConverter
-	ShardCoordinator   sharding.Coordinator
-	BuiltInFunctions   vmcommon.BuiltInFunctionContainer
-	ArgumentParser     process.CallArgumentsParser
-	ESDTTransferParser vmcommon.ESDTTransferParser
+	PubkeyConverter                        core.PubkeyConverter
+	ShardCoordinator                       sharding.Coordinator
+	BuiltInFunctions                       vmcommon.BuiltInFunctionContainer
+	ArgumentParser                         process.CallArgumentsParser
+	ESDTTransferParser                     vmcommon.ESDTTransferParser
+	EpochNotifier                          process.EpochNotifier
+	TransferAndAsyncCallbackFixEnableEpoch uint32
 }
 
 // NewTxTypeHandler creates a transaction type handler
@@ -51,14 +57,19 @@ func NewTxTypeHandler(
 	if check.IfNil(args.ESDTTransferParser) {
 		return nil, process.ErrNilESDTTransferParser
 	}
+	if check.IfNil(args.EpochNotifier) {
+		return nil, process.ErrNilEpochNotifier
+	}
 
 	tc := &txTypeHandler{
-		pubkeyConv:         args.PubkeyConverter,
-		shardCoordinator:   args.ShardCoordinator,
-		argumentParser:     args.ArgumentParser,
-		builtInFunctions:   args.BuiltInFunctions,
-		esdtTransferParser: args.ESDTTransferParser,
+		pubkeyConv:                             args.PubkeyConverter,
+		shardCoordinator:                       args.ShardCoordinator,
+		argumentParser:                         args.ArgumentParser,
+		builtInFunctions:                       args.BuiltInFunctions,
+		esdtTransferParser:                     args.ESDTTransferParser,
+		transferAndAsyncCallbackFixEnableEpoch: args.TransferAndAsyncCallbackFixEnableEpoch,
 	}
+	args.EpochNotifier.RegisterNotifyHandler(tc)
 
 	return tc, nil
 }
@@ -130,6 +141,9 @@ func isAsynchronousCallBack(tx data.TransactionHandler) bool {
 }
 
 func (tth *txTypeHandler) isSCCallAfterBuiltIn(function string, args [][]byte, tx data.TransactionHandler) bool {
+	if tth.flagTransferAndAsyncCallbackFix.IsSet() && isAsynchronousCallBack(tx) {
+		return true
+	}
 	if len(args) <= 2 {
 		return false
 	}
@@ -196,6 +210,12 @@ func (tth *txTypeHandler) checkTxValidity(tx data.TransactionHandler) error {
 	}
 
 	return nil
+}
+
+// EpochConfirmed is called whenever a new epoch is confirmed
+func (tth *txTypeHandler) EpochConfirmed(epoch uint32, _ uint64) {
+	tth.flagTransferAndAsyncCallbackFix.SetValue(epoch >= tth.transferAndAsyncCallbackFixEnableEpoch)
+	log.Debug("txTypeHandler: fix transfer and callback txType check", "enabled", tth.flagTransferAndAsyncCallbackFix.IsSet())
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
