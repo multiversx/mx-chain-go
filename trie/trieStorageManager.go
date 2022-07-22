@@ -571,7 +571,8 @@ func (tsm *trieStorageManager) Remove(hash []byte) error {
 	return storer.RemoveFromCurrentEpoch(hash)
 }
 
-func (tsm *trieStorageManager) removeFromCheckpointHashesHolder(hash []byte) {
+// RemoveFromCheckpointHashesHolder removes the given hash from the checkpointHashesHolder
+func (tsm *trieStorageManager) RemoveFromCheckpointHashesHolder(hash []byte) {
 	//TODO check if the mutex is really needed here
 	tsm.storageOperationMutex.Lock()
 	defer tsm.storageOperationMutex.Unlock()
