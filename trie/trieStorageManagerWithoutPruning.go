@@ -38,6 +38,6 @@ func (tsm *trieStorageManagerWithoutPruning) IsPruningEnabled() bool {
 
 // Remove deletes the given hash from checkpointHashesHolder
 func (tsm *trieStorageManagerWithoutPruning) Remove(hash []byte) error {
-	tsm.storageManagerExtension.removeFromCheckpointHashesHolder(hash)
+	tsm.storageManagerExtension.RemoveFromCheckpointHashesHolder(hash)
 	return nil
 }
