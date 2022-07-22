@@ -238,6 +238,9 @@ func GetCryptoArgs(coreComponents factory.CoreComponentsHolder) cryptoComp.Crypt
 		KeyLoader: &mock.KeyLoaderStub{
 			LoadKeyCalled: DummyLoadSkPkFromPemFile([]byte(DummySk), DummyPk, nil),
 		},
+		EnableEpochs: config.EnableEpochs{
+			BLSMultiSignerEnableEpoch: []config.MultiSignerConfig{{EnableEpoch: 0, Type: "no-KOSK"}},
+		},
 	}
 
 	return args

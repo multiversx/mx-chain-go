@@ -12,7 +12,6 @@ import (
 	cryptoComp "github.com/ElrondNetwork/elrond-go/factory/crypto"
 	"github.com/ElrondNetwork/elrond-go/factory/mock"
 	componentsMock "github.com/ElrondNetwork/elrond-go/factory/mock/components"
-	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/require"
 )
 
@@ -206,62 +205,6 @@ func TestCryptoComponentsFactory_CreateSingleSignerOK(t *testing.T) {
 	require.NotNil(t, singleSigner)
 }
 
-func TestCryptoComponentsFactory_GetMultiSigHasherFromConfigInvalidHasherShouldErr(t *testing.T) {
-	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
-
-	coreComponents := componentsMock.GetCoreComponents()
-	args := componentsMock.GetCryptoArgs(coreComponents)
-	args.Config.Consensus.Type = ""
-	args.Config.MultisigHasher.Type = ""
-	ccf, err := cryptoComp.NewCryptoComponentsFactory(args)
-	require.NotNil(t, ccf)
-	require.Nil(t, err)
-
-	multiSigHasher, err := ccf.GetMultiSigHasherFromConfig()
-	require.Nil(t, multiSigHasher)
-	require.Equal(t, errErd.ErrMissingMultiHasherConfig, err)
-}
-
-func TestCryptoComponentsFactory_GetMultiSigHasherFromConfigMismatchConsensusTypeMultiSigHasher(t *testing.T) {
-	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
-
-	coreComponents := componentsMock.GetCoreComponents()
-	args := componentsMock.GetCryptoArgs(coreComponents)
-	args.Config.MultisigHasher.Type = "sha256"
-	ccf, err := cryptoComp.NewCryptoComponentsFactory(args)
-	require.NotNil(t, ccf)
-	require.Nil(t, err)
-
-	multiSigHasher, err := ccf.GetMultiSigHasherFromConfig()
-	require.Nil(t, multiSigHasher)
-	require.Equal(t, errErd.ErrMultiSigHasherMissmatch, err)
-}
-
-func TestCryptoComponentsFactory_GetMultiSigHasherFromConfigOK(t *testing.T) {
-	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
-
-	coreComponents := componentsMock.GetCoreComponents()
-	args := componentsMock.GetCryptoArgs(coreComponents)
-	args.Config.Consensus.Type = "bls"
-	args.Config.MultisigHasher.Type = "blake2b"
-	ccf, err := cryptoComp.NewCryptoComponentsFactory(args)
-	require.NotNil(t, ccf)
-	require.Nil(t, err)
-
-	multiSigHasher, err := ccf.GetMultiSigHasherFromConfig()
-	require.Nil(t, err)
-	require.NotNil(t, multiSigHasher)
-}
-
 func TestCryptoComponentsFactory_CreateMultiSignerInvalidConsensusTypeShouldErr(t *testing.T) {
 	t.Parallel()
 	if testing.Short() {
@@ -276,7 +219,7 @@ func TestCryptoComponentsFactory_CreateMultiSignerInvalidConsensusTypeShouldErr(
 	require.Nil(t, err)
 
 	cp := ccf.CreateDummyCryptoParams()
-	multiSigner, err := ccf.CreateMultiSignerContainer(&hashingMocks.HasherMock{}, cp, &mock.KeyGenMock{}, false)
+	multiSigner, err := ccf.CreateMultiSignerContainer(cp, &mock.KeyGenMock{}, false)
 	require.Nil(t, multiSigner)
 	require.Equal(t, errErd.ErrInvalidConsensusConfig, err)
 }
@@ -296,9 +239,8 @@ func TestCryptoComponentsFactory_CreateMultiSignerOK(t *testing.T) {
 	suite, _ := ccf.GetSuite()
 	blockSignKeyGen := signing.NewKeyGenerator(suite)
 	cp, _ := ccf.CreateCryptoParams(blockSignKeyGen)
-	multisigHasher, _ := ccf.GetMultiSigHasherFromConfig()
 
-	multiSigner, err := ccf.CreateMultiSignerContainer(multisigHasher, cp, blockSignKeyGen, false)
+	multiSigner, err := ccf.CreateMultiSignerContainer(cp, blockSignKeyGen, false)
 	require.Nil(t, err)
 	require.NotNil(t, multiSigner)
 }

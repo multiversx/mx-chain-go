@@ -6,9 +6,6 @@ import (
 	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	"github.com/ElrondNetwork/elrond-go-core/hashing/blake2b"
-	"github.com/ElrondNetwork/elrond-go-core/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing"
 	disabledCrypto "github.com/ElrondNetwork/elrond-go-crypto/signing/disabled"
@@ -17,7 +14,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/ed25519/singlesig"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl"
 	mclSig "github.com/ElrondNetwork/elrond-go-crypto/signing/mcl/singlesig"
-	"github.com/ElrondNetwork/elrond-go-crypto/signing/multisig"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	cryptoCommon "github.com/ElrondNetwork/elrond-go/common/crypto"
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -136,12 +132,7 @@ func (ccf *cryptoComponentsFactory) Create() (*cryptoComponents, error) {
 		return nil, err
 	}
 
-	multisigHasher, err := ccf.getMultiSigHasherFromConfig()
-	if err != nil {
-		return nil, err
-	}
-
-	multiSigner, err := ccf.createMultiSignerContainer(multisigHasher, cp, blockSignKeyGen, ccf.importModeNoSigCheck)
+	multiSigner, err := ccf.createMultiSignerContainer(cp, blockSignKeyGen, ccf.importModeNoSigCheck)
 	if err != nil {
 		return nil, err
 	}
@@ -201,33 +192,14 @@ func (ccf *cryptoComponentsFactory) createSingleSigner(importModeNoSigCheck bool
 	}
 }
 
-func (ccf *cryptoComponentsFactory) getMultiSigHasherFromConfig() (hashing.Hasher, error) {
-	if ccf.consensusType == consensus.BlsConsensusType && ccf.config.MultisigHasher.Type != "blake2b" {
-		return nil, errors.ErrMultiSigHasherMissmatch
-	}
-
-	switch ccf.config.MultisigHasher.Type {
-	case "sha256":
-		return sha256.NewSha256(), nil
-	case "blake2b":
-		if ccf.consensusType == consensus.BlsConsensusType {
-			return blake2b.NewBlake2bWithSize(multisig.BlsHashSize)
-		}
-		return blake2b.NewBlake2b(), nil
-	}
-
-	return nil, errors.ErrMissingMultiHasherConfig
-}
-
 func (ccf *cryptoComponentsFactory) createMultiSignerContainer(
-	hasher hashing.Hasher,
 	cp *cryptoParams,
 	blSignKeyGen crypto.KeyGenerator,
 	importModeNoSigCheck bool,
 ) (cryptoCommon.MultiSignerContainer, error) {
 
 	args := MultiSigArgs{
-		hasher:               hasher,
+		multiSigHasherType:   ccf.config.MultisigHasher.Type,
 		cryptoParams:         cp,
 		blSignKeyGen:         blSignKeyGen,
 		consensusType:        ccf.consensusType,

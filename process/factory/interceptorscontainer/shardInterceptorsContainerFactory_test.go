@@ -685,7 +685,7 @@ func createMockComponentHolders() (*mock.CoreComponentsMock, *mock.CryptoCompone
 		TxVersionCheckField:        versioning.NewTxVersionChecker(1),
 		HardforkTriggerPubKeyField: providedHardforkPubKey,
 	}
-	multiSigner := cryptoMocks.NewMultiSigner(21)
+	multiSigner := cryptoMocks.NewMultiSigner()
 	cryptoComponents := &mock.CryptoComponentsMock{
 		BlockSig:          &mock.SignerMock{},
 		TxSig:             &mock.SignerMock{},

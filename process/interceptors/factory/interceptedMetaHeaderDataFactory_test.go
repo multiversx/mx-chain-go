@@ -75,7 +75,7 @@ func createMockComponentHolders() (*mock.CoreComponentsMock, *mock.CryptoCompone
 	cryptoComponents := &mock.CryptoComponentsMock{
 		BlockSig:          createMockSigner(),
 		TxSig:             createMockSigner(),
-		MultiSigContainer: cryptoMocks.NewMultiSignerContainerMock(cryptoMocks.NewMultiSigner(21)),
+		MultiSigContainer: cryptoMocks.NewMultiSignerContainerMock(cryptoMocks.NewMultiSigner()),
 		BlKeyGen:          createMockKeyGen(),
 		TxKeyGen:          createMockKeyGen(),
 	}

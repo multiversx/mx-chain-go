@@ -8,7 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	crypto "github.com/ElrondNetwork/elrond-go-crypto"
+	cryptoCommon "github.com/ElrondNetwork/elrond-go/common/crypto"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/ntp"
@@ -61,7 +61,7 @@ func (fct *factory) Marshalizer() marshal.Marshalizer {
 }
 
 // MultiSigner gets the multi signer object
-func (fct *factory) MultiSigner() crypto.MultiSigner {
+func (fct *factory) MultiSignerContainer() cryptoCommon.MultiSignerContainer {
 	return fct.consensusCore.MultiSignerContainer()
 }
 

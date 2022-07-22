@@ -17,8 +17,8 @@ func (ccf *cryptoComponentsFactory) CreateSingleSigner(importModeNoSigCheck bool
 }
 
 // GetMultiSigHasherFromConfig -
-func (ccf *cryptoComponentsFactory) GetMultiSigHasherFromConfig() (hashing.Hasher, error) {
-	return ccf.getMultiSigHasherFromConfig()
+func GetMultiSigHasherFromConfig(args MultiSigArgs) (hashing.Hasher, error) {
+	return getMultiSigHasherFromConfig(args)
 }
 
 // CreateDummyCryptoParams
@@ -33,9 +33,11 @@ func (ccf *cryptoComponentsFactory) CreateCryptoParams(blockSignKeyGen crypto.Ke
 
 // CreateMultiSignerContainer -
 func (ccf *cryptoComponentsFactory) CreateMultiSignerContainer(
-	h hashing.Hasher, cp *cryptoParams, blSignKeyGen crypto.KeyGenerator, importModeNoSigCheck bool,
+	cp *cryptoParams,
+	blSignKeyGen crypto.KeyGenerator,
+	importModeNoSigCheck bool,
 ) (cryptoCommon.MultiSignerContainer, error) {
-	return ccf.createMultiSignerContainer(h, cp, blSignKeyGen, importModeNoSigCheck)
+	return ccf.createMultiSignerContainer(cp, blSignKeyGen, importModeNoSigCheck)
 }
 
 // GetSuite -

@@ -170,7 +170,7 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 
 	sr.indexRoundIfNeeded(pubKeys)
 
-	selfIndex, err := sr.SelfConsensusGroupIndex()
+	_, err = sr.SelfConsensusGroupIndex()
 	if err != nil {
 		log.Debug("not in consensus group")
 		sr.AppStatusHandler().SetStringValue(common.MetricConsensusState, "not in consensus group")
@@ -181,14 +181,15 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 		sr.AppStatusHandler().SetStringValue(common.MetricConsensusState, "participant")
 	}
 
-	err = sr.MultiSignerContainer().Reset(pubKeys, uint16(selfIndex))
-	if err != nil {
-		log.Debug("initCurrentRound.Reset", "error", err.Error())
-
-		sr.RoundCanceled = true
-
-		return false
-	}
+	// TODO: reset here signatures/signers data in consensus
+	//err = sr.MultiSignerContainer().Reset(pubKeys, uint16(selfIndex))
+	//if err != nil {
+	//	log.Debug("initCurrentRound.Reset", "error", err.Error())
+	//
+	//	sr.RoundCanceled = true
+	//
+	//	return false
+	//}
 
 	startTime := sr.RoundTimeStamp
 	maxTime := sr.RoundHandler().TimeDuration() * time.Duration(sr.processingThresholdPercentage) / 100

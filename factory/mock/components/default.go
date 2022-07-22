@@ -60,7 +60,7 @@ func GetDefaultCryptoComponents() *mock.CryptoComponentsMock {
 		PubKeyBytes:       []byte("pubKey"),
 		BlockSig:          &mock.SinglesignMock{},
 		TxSig:             &mock.SinglesignMock{},
-		MultiSigContainer: &cryptoMocks.MultisignerStub{},
+		MultiSigContainer: cryptoMocks.NewMultiSignerContainerMock(&cryptoMocks.MultisignerMock{}),
 		PeerSignHandler:   &mock.PeerSignatureHandler{},
 		BlKeyGen:          &mock.KeyGenMock{},
 		TxKeyGen:          &mock.KeyGenMock{},

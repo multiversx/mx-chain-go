@@ -363,7 +363,7 @@ func TestSubround_NilContainerMultisignerShouldFail(t *testing.T) {
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 	container := mock.InitConsensusCore()
-	container.SetMultiSigner(nil)
+	container.SetMultiSignerContainer(nil)
 
 	sr, err := spos.NewSubround(
 		-1,

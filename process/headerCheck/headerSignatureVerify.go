@@ -95,15 +95,28 @@ func checkArgsHeaderSigVerifier(arguments *ArgsHeaderSigVerifier) error {
 	return nil
 }
 
-// VerifySignature will check if signature is correct
-func (hsv *HeaderSigVerifier) VerifySignature(header data.HeaderHandler) error {
+func isIndexInBitmap(index uint16, bitmap []byte) error {
+	indexOutOfBounds := index >= uint16(len(bitmap)*8)
+	if indexOutOfBounds {
+		return ErrIndexOutOfBounds
+	}
+
+	indexNotInBitmap := bitmap[index/8]&(1<<uint8(index%8)) == 0
+	if indexNotInBitmap {
+		return ErrIndexNotSelected
+	}
+
+	return nil
+}
+
+func (hsv *HeaderSigVerifier) getConsensusSigners(header data.HeaderHandler) ([][]byte, error) {
 	randSeed := header.GetPrevRandSeed()
 	bitmap := header.GetPubKeysBitmap()
 	if len(bitmap) == 0 {
-		return process.ErrNilPubKeysBitmap
+		return nil, process.ErrNilPubKeysBitmap
 	}
 	if bitmap[0]&1 == 0 {
-		return process.ErrBlockProposerSignatureMissing
+		return nil, process.ErrBlockProposerSignatureMissing
 	}
 
 	// TODO: remove if start of epochForConsensus block needs to be validated by the new epochForConsensus nodes
@@ -119,31 +132,33 @@ func (hsv *HeaderSigVerifier) VerifySignature(header data.HeaderHandler) error {
 		epochForConsensus,
 	)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	err = hsv.verifyConsensusSize(consensusPubKeys, header)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
+	pubKeysSigners := make([][]byte, 0, len(consensusPubKeys))
+	for i := range consensusPubKeys {
+		err = isIndexInBitmap(uint16(i), bitmap)
+		if err != nil {
+			continue
+		}
+		pubKeysSigners = append(pubKeysSigners, []byte(consensusPubKeys[i]))
+	}
+
+	return pubKeysSigners, nil
+}
+
+// VerifySignature will check if signature is correct
+func (hsv *HeaderSigVerifier) VerifySignature(header data.HeaderHandler) error {
 	multiSigVerifier, err := hsv.multiSigContainer.GetMultiSigner(header.GetEpoch())
 	if err != nil {
 		return err
 	}
 
-	verifier, err := multiSigVerifier.Create(consensusPubKeys, 0)
-	if err != nil {
-		return err
-	}
-
-	err = verifier.SetAggregatedSig(header.GetSignature())
-	if err != nil {
-		return err
-	}
-
-	// get marshalled block header without signature and bitmap
-	// as this is the message that was signed
 	headerCopy, err := hsv.copyHeaderWithoutSig(header)
 	if err != nil {
 		return err
@@ -154,7 +169,12 @@ func (hsv *HeaderSigVerifier) VerifySignature(header data.HeaderHandler) error {
 		return err
 	}
 
-	return verifier.Verify(hash, bitmap)
+	pubKeysSigners, err := hsv.getConsensusSigners(header)
+	if err != nil {
+		return err
+	}
+
+	return multiSigVerifier.VerifyAggregatedSig(pubKeysSigners, hash, header.GetSignature())
 }
 
 func (hsv *HeaderSigVerifier) verifyConsensusSize(consensusPubKeys []string, header data.HeaderHandler) error {

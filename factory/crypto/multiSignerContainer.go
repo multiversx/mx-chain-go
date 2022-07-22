@@ -6,6 +6,8 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
+	"github.com/ElrondNetwork/elrond-go-core/hashing/blake2b"
+	"github.com/ElrondNetwork/elrond-go-core/hashing/sha256"
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	disabledMultiSig "github.com/ElrondNetwork/elrond-go-crypto/signing/disabled/multisig"
 	mclMultiSig "github.com/ElrondNetwork/elrond-go-crypto/signing/mcl/multisig"
@@ -16,8 +18,8 @@ import (
 )
 
 const (
-	blsNonKOSK = "non-KOSK"
-	blsKOSK    = "KOSK"
+	blsNoKOSK = "no-KOSK"
+	blsKOSK   = "KOSK"
 )
 
 type epochMultiSigner struct {
@@ -32,7 +34,7 @@ type container struct {
 
 // MultiSigArgs holds the arguments for creating the multiSignerContainer container
 type MultiSigArgs struct {
-	hasher               hashing.Hasher
+	multiSigHasherType   string
 	cryptoParams         *cryptoParams
 	blSignKeyGen         crypto.KeyGenerator
 	consensusType        string
@@ -95,11 +97,15 @@ func createMultiSigner(multiSigType string, args MultiSigArgs) (crypto.MultiSign
 
 	switch args.consensusType {
 	case consensus.BlsConsensusType:
-		blsSigner, err := createLowLevelSigner(multiSigType, args.hasher)
+		hasher, err := getMultiSigHasherFromConfig(args)
 		if err != nil {
 			return nil, err
 		}
-		return multisig.NewBLSMultisig(blsSigner, []string{string(args.cryptoParams.publicKeyBytes)}, args.cryptoParams.privateKey, args.blSignKeyGen, uint16(0))
+		blsSigner, err := createLowLevelSigner(multiSigType, hasher)
+		if err != nil {
+			return nil, err
+		}
+		return multisig.NewBLSMultisig(blsSigner, args.blSignKeyGen)
 	case disabledSigChecking:
 		log.Warn("using disabled multi signer")
 		return &disabledMultiSig.DisabledMultiSig{}, nil
@@ -114,13 +120,31 @@ func createLowLevelSigner(multiSigType string, hasher hashing.Hasher) (crypto.Lo
 	}
 
 	switch multiSigType {
-	case blsNonKOSK:
+	case blsNoKOSK:
 		return &mclMultiSig.BlsMultiSigner{Hasher: hasher}, nil
 	case blsKOSK:
 		return &mclMultiSig.BlsMultiSignerKOSK{}, nil
 	default:
 		return nil, errors.ErrSignerNotSupported
 	}
+}
+
+func getMultiSigHasherFromConfig(args MultiSigArgs) (hashing.Hasher, error) {
+	if args.consensusType == consensus.BlsConsensusType && args.multiSigHasherType != "blake2b" {
+		return nil, errors.ErrMultiSigHasherMissmatch
+	}
+
+	switch args.multiSigHasherType {
+	case "sha256":
+		return sha256.NewSha256(), nil
+	case "blake2b":
+		if args.consensusType == consensus.BlsConsensusType {
+			return blake2b.NewBlake2bWithSize(mclMultiSig.HasherOutputSize)
+		}
+		return blake2b.NewBlake2b(), nil
+	}
+
+	return nil, errors.ErrMissingMultiHasherConfig
 }
 
 func sortMultiSignerConfig(multiSignerConfig []config.MultiSignerConfig) []config.MultiSignerConfig {
