@@ -156,7 +156,7 @@ func testTsmWithoutSnapshot(
 	assert.Equal(t, returnedVal, val)
 
 	_ = tsm.PutInEpoch([]byte("hash"), []byte("val"), 0)
-	_ = tsm.PutInEpochWithoutCache([]byte("hash"), []byte("val"), 0)
+	_ = tsm.PutInEpoch([]byte("hash"), []byte("val"), 0)
 
 	leavesCh := make(chan core.KeyValueHolder)
 	tsm.TakeSnapshot(nil, nil, leavesCh, make(chan error, 1), &trieMock.MockStatistics{}, 10)
