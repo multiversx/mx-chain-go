@@ -25,7 +25,7 @@ func TestDeployDNSContract_TestRegisterAndResolveAndSendTxWithSndAndRcvUserName(
 	require.Nil(t, err)
 	defer testContext.Close()
 
-	scAddress, _ := utils.DoDeployDNS(t, testContext, "../../multiShard/smartContract/dns/dns.wasm")
+	scAddress, _ := utils.DoDeployDNS(t, testContext, "../../multiShard/smartContract/dns/elrond-wasm-sc-dns-0.34.0.wasm")
 	fmt.Println(scAddress)
 	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 

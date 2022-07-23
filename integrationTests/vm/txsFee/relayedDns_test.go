@@ -23,7 +23,7 @@ func TestRelayedTxDnsTransaction_ShouldWork(t *testing.T) {
 	require.Nil(t, err)
 	defer testContext.Close()
 
-	scAddress, _ := utils.DoDeployDNS(t, testContext, "../../multiShard/smartContract/dns/dns.wasm")
+	scAddress, _ := utils.DoDeployDNS(t, testContext, "../../multiShard/smartContract/dns/elrond-wasm-sc-dns-0.34.0.wasm")
 	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 
 	relayerAddr := []byte("12345678901234567890123456789033")
