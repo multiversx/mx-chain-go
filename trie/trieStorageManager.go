@@ -546,7 +546,7 @@ func (tsm *trieStorageManager) Remove(hash []byte) error {
 	tsm.checkpointHashesHolder.Remove(hash)
 	storer, ok := tsm.mainStorer.(snapshotPruningStorer)
 	if !ok {
-		return fmt.Errorf("%w, storer type is %s", ErrWrongTypeAssertion, fmt.Sprintf("%T", tsm.mainStorer))
+		return tsm.mainStorer.Remove(hash)
 	}
 
 	return storer.RemoveFromCurrentEpoch(hash)
