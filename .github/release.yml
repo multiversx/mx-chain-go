@@ -3,16 +3,16 @@ changelog:
     labels:
       - ignore-for-release
   categories:
-    - title: Breaking Changes 🛠
+    - title: Breaking Changes
       labels:
         - type:breaking-change
-    - title: Bugfixes 🐛
+    - title: Bugfixes
       labels:
         - type:bug
-    - title: New Features 🎉
+    - title: New Features
       labels:
         - type:feature
-    - title: Improvements 🛠
+    - title: Improvements
       labels:
         - type:improvement
         - type:performance
