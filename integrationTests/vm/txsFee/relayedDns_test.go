@@ -57,8 +57,8 @@ func TestRelayedTxDnsTransaction_ShouldWork(t *testing.T) {
 	testIndexer.SaveTransaction(rtx, block.TxBlock, intermediateTxs)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, uint64(70324), indexerTx.GasUsed)
-	require.Equal(t, "703240", indexerTx.Fee)
+	require.Equal(t, uint64(500257), indexerTx.GasUsed)
+	require.Equal(t, "5002570", indexerTx.Fee)
 
 	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 
@@ -91,8 +91,8 @@ func TestRelayedTxDnsTransaction_ShouldWork(t *testing.T) {
 	testIndexer.SaveTransaction(rtx, block.TxBlock, intermediateTxs)
 
 	indexerTx = testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, uint64(70324), indexerTx.GasUsed)
-	require.Equal(t, "703240", indexerTx.Fee)
+	require.Equal(t, uint64(500257), indexerTx.GasUsed)
+	require.Equal(t, "5002570", indexerTx.Fee)
 
 	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 
