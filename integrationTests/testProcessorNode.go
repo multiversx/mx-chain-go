@@ -464,7 +464,6 @@ func NewTestProcessorNode(
 		ScheduledMiniBlocksEnableEpoch:              UnreachableEpoch,
 		MiniBlockPartialExecutionEnableEpoch:        UnreachableEpoch,
 		FailExecutionOnEveryAPIErrorEnableEpoch:     UnreachableEpoch,
-		ManagedCryptoAPIsEnableEpoch:                UnreachableEpoch,
 	}
 	tpn := newBaseTestProcessorNode(maxShards, nodeShardId, txSignPrivKeyShardId, enableEpochsConfig)
 	tpn.initTestNode()
@@ -1519,15 +1518,15 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 
 	gasSchedule := mock.NewGasScheduleNotifierMock(gasMap)
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:             gasSchedule,
-		MapDNSAddresses:         mapDNSAddresses,
-		Marshalizer:             TestMarshalizer,
-		Accounts:                tpn.AccntState,
-		ShardCoordinator:        tpn.ShardCoordinator,
-		EpochNotifier:              tpn.EpochNotifier,
-		EnableEpochsHandler:     tpn.EnableEpochsHandler,
-		AutomaticCrawlerAddress: bytes.Repeat([]byte{1}, 32),
-		MaxNumNodesInTransferRole:  100,
+		GasSchedule:               gasSchedule,
+		MapDNSAddresses:           mapDNSAddresses,
+		Marshalizer:               TestMarshalizer,
+		Accounts:                  tpn.AccntState,
+		ShardCoordinator:          tpn.ShardCoordinator,
+		EpochNotifier:             tpn.EpochNotifier,
+		EnableEpochsHandler:       tpn.EnableEpochsHandler,
+		AutomaticCrawlerAddress:   bytes.Repeat([]byte{1}, 32),
+		MaxNumNodesInTransferRole: 100,
 	}
 	builtInFuncFactory, _ := builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)
 
@@ -1736,15 +1735,15 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 	defaults.FillGasMapInternal(gasMap, 1)
 	gasSchedule := mock.NewGasScheduleNotifierMock(gasMap)
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:             gasSchedule,
-		MapDNSAddresses:         make(map[string]struct{}),
-		Marshalizer:             TestMarshalizer,
-		Accounts:                tpn.AccntState,
-		ShardCoordinator:        tpn.ShardCoordinator,
-		EpochNotifier:              tpn.EpochNotifier,
-		EnableEpochsHandler:     tpn.EnableEpochsHandler,
-		AutomaticCrawlerAddress: bytes.Repeat([]byte{1}, 32),
-		MaxNumNodesInTransferRole:  100,
+		GasSchedule:               gasSchedule,
+		MapDNSAddresses:           make(map[string]struct{}),
+		Marshalizer:               TestMarshalizer,
+		Accounts:                  tpn.AccntState,
+		ShardCoordinator:          tpn.ShardCoordinator,
+		EpochNotifier:             tpn.EpochNotifier,
+		EnableEpochsHandler:       tpn.EnableEpochsHandler,
+		AutomaticCrawlerAddress:   bytes.Repeat([]byte{1}, 32),
+		MaxNumNodesInTransferRole: 100,
 	}
 	builtInFuncFactory, _ := builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)
 	argsHook := hooks.ArgBlockChainHook{
