@@ -77,8 +77,3 @@ func (accountsDB *accountsDBApi) SetCurrentBlockInfo(blockInfo common.BlockInfo)
 func EmptyErrChanReturningHadContained(errChan chan error) bool {
 	return emptyErrChanReturningHadContained(errChan)
 }
-
-// EmptyErrChanReturningHadContained -
-func EmptyErrChanReturningHadContained(errChan chan error) bool {
-	return emptyErrChanReturningHadContained(errChan)
-}

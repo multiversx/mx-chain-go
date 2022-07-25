@@ -1155,18 +1155,6 @@ func emptyErrChanReturningHadContained(errChan chan error) bool {
 	}
 }
 
-func emptyErrChanReturningHadContained(errChan chan error) bool {
-	contained := false
-	for {
-		select {
-		case <-errChan:
-			contained = true
-		default:
-			return contained
-		}
-	}
-}
-
 func (adb *AccountsDB) snapshotUserAccountDataTrie(
 	isSnapshot bool,
 	mainTrieRootHash []byte,
