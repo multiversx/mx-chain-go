@@ -2824,6 +2824,7 @@ func TestScProcessor_CreateCrossShardTransactionsWithAsyncCalls(t *testing.T) {
 
 	tx.Value = big.NewInt(0)
 	scTxs, err = sc.processVMOutput(&vmcommon.VMInput{
+		Arguments:   [][]byte{{}, {}},
 		CallType:    vmData.AsynchronousCall,
 		GasProvided: 10000,
 	}, &vmcommon.VMOutput{GasRemaining: 1000}, txHash, tx)

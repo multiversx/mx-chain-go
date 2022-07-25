@@ -1050,12 +1050,7 @@ func (sc *scProcessor) doExecuteBuiltInFunction(
 
 		if !createdAsyncCallback {
 			if vmInput.CallType == vmData.AsynchronousCall {
-				asyncCallBackSCR := sc.createAsyncCallBackSCRFromVMOutput(newVMOutput, tx, txHash)
-
-				asyncCallBackSCR.Data, err = contexts.AppendAsyncParamsToArguments(
-					contexts.CreateCallbackAsyncParams(hooks.NewVMCryptoHook(), asyncParams),
-					asyncCallBackSCR.Data,
-					sc.argsParser.ParseArguments)
+				asyncCallBackSCR, err := sc.createAsyncCallBackSCRFromVMOutput(newVMOutput, tx, txHash, asyncParams)
 
 				if err != nil {
 					return vmcommon.ExecutionFailed, err
@@ -1962,7 +1957,11 @@ func (sc *scProcessor) processVMOutput(
 	}
 
 	if !createdAsyncCallback && vmInput.CallType == vmData.AsynchronousCall {
-		asyncCallBackSCR := sc.createAsyncCallBackSCRFromVMOutput(vmOutput, tx, txHash)
+		asyncParams := vmInput.Arguments[:2]
+		asyncCallBackSCR, err := sc.createAsyncCallBackSCRFromVMOutput(vmOutput, tx, txHash, asyncParams)
+		if err != nil {
+			return nil, err
+		}
 		scrTxs = append(scrTxs, asyncCallBackSCR)
 	} else if !createdAsyncCallback {
 		scrTxs = append(scrTxs, scrForSender)
@@ -2259,7 +2258,8 @@ func (sc *scProcessor) createAsyncCallBackSCRFromVMOutput(
 	vmOutput *vmcommon.VMOutput,
 	tx data.TransactionHandler,
 	txHash []byte,
-) *smartContractResult.SmartContractResult {
+	asyncParams [][]byte,
+) (*smartContractResult.SmartContractResult, error) {
 	scr := &smartContractResult.SmartContractResult{
 		Value:          big.NewInt(0),
 		RcvAddr:        tx.GetSndAddr(),
@@ -2278,7 +2278,17 @@ func (sc *scProcessor) createAsyncCallBackSCRFromVMOutput(
 
 	sc.addVMOutputResultsToSCR(vmOutput, scr)
 
-	return scr
+	var err error
+	scr.Data, err = contexts.AppendAsyncParamsToArguments(
+		contexts.CreateCallbackAsyncParams(hooks.NewVMCryptoHook(), asyncParams),
+		scr.Data,
+		sc.argsParser.ParseArguments)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return scr, nil
 }
 
 func (sc *scProcessor) createSCRFromStakingSC(
