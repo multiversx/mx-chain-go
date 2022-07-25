@@ -8,7 +8,7 @@ import (
 	bootstrapComp "github.com/ElrondNetwork/elrond-go/factory/bootstrap"
 	heartbeatComp "github.com/ElrondNetwork/elrond-go/factory/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/factory/mock"
-	componentsMock "github.com/ElrondNetwork/elrond-go/factory/mock/components"
+	componentsMock "github.com/ElrondNetwork/elrond-go/testscommon/components"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -16,7 +16,7 @@ func createMockHeartbeatV2ComponentsFactoryArgs() heartbeatComp.ArgHeartbeatV2Co
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	bootStrapArgs := componentsMock.GetBootStrapFactoryArgs()
 	bootstrapComponentsFactory, _ := bootstrapComp.NewBootstrapComponentsFactory(bootStrapArgs)
-	bootstrapC, _ := bootstrapComp.NewManagedBootstrapComponents(bootstrapComponentsFactory)
+	bootstrapC, _ := bootstrapComp.NewTestManagedBootstrapComponents(bootstrapComponentsFactory)
 	_ = bootstrapC.Create()
 
 	_ = bootstrapC.SetShardCoordinator(shardCoordinator)

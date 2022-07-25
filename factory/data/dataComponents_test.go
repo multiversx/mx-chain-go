@@ -8,7 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/errors"
 	dataComp "github.com/ElrondNetwork/elrond-go/factory/data"
 	"github.com/ElrondNetwork/elrond-go/factory/mock"
-	componentsMock "github.com/ElrondNetwork/elrond-go/factory/mock/components"
+	componentsMock "github.com/ElrondNetwork/elrond-go/testscommon/components"
 	"github.com/stretchr/testify/require"
 )
 

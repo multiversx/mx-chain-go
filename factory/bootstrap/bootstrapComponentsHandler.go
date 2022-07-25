@@ -8,7 +8,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 var _ factory.ComponentHandler = (*managedBootstrapComponents)(nil)
@@ -117,19 +116,6 @@ func (mbf *managedBootstrapComponents) RoundActivationHandler() process.RoundAct
 	}
 
 	return mbf.bootstrapComponents.roundActivationHandler
-}
-
-// SetShardCoordinator sets the shard coordinator
-func (mbf *managedBootstrapComponents) SetShardCoordinator(shardCoordinator sharding.Coordinator) error {
-	mbf.mutBootstrapComponents.RLock()
-	defer mbf.mutBootstrapComponents.RUnlock()
-
-	if mbf.bootstrapComponents == nil {
-		return errors.ErrNilBootstrapComponents
-	}
-
-	mbf.bootstrapComponents.shardCoordinator = shardCoordinator
-	return nil
 }
 
 // IsInterfaceNil returns true if the underlying object is nil

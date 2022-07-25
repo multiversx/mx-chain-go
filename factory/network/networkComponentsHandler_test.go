@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	componentsMock "github.com/ElrondNetwork/elrond-go/factory/mock/components"
 	networkComp "github.com/ElrondNetwork/elrond-go/factory/network"
+	componentsMock "github.com/ElrondNetwork/elrond-go/testscommon/components"
 	"github.com/stretchr/testify/require"
 )
 
