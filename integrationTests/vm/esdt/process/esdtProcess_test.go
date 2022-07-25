@@ -458,7 +458,7 @@ func TestScSendsEsdtToUserWithMessage(t *testing.T) {
 
 	// take them back, with a message
 	valueToRequest := valueToSendToSc / 4
-	txData.Clear().Func("retrieve_funds").Str(tokenIdentifier).Int64(valueToRequest).Int64(0).Str("ESDT transfer message")
+	txData.Clear().Func("retrieve_funds").Str(tokenIdentifier).Int64(0).Int64(valueToRequest)
 	integrationTests.CreateAndSendTransaction(tokenIssuer, nodes, big.NewInt(0), vaultScAddress, txData.ToString(), integrationTests.AdditionalGasLimit)
 
 	time.Sleep(time.Second)
