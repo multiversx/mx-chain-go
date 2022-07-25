@@ -322,6 +322,18 @@ var (
 			"and by advanced users, as a too high memory ballast could lead to Out Of Memory panics. The memory ballast " +
 			"should not be higher than 20-25% of the machine's available RAM",
 	}
+	// forceStartFromNetwork defines a flag that will force the start from network bootstrap process
+	forceStartFromNetwork = cli.BoolFlag{
+		Name:  "force-start-from-network",
+		Usage: "Flag that will force the start from network bootstrap process",
+	}
+
+	// noKey defines a flag that, if set, will generate every time when node starts a new signing key
+	noKey = cli.BoolFlag{
+		Name: "no-key",
+		Usage: "Boolean flag for enabling the node to generate a signing key when it starts (if the validatorKey.pem" +
+			" file is present, setting this flag to true will overwrite the BLS key used by the node)",
+	}
 )
 
 func getFlags() []cli.Flag {
@@ -371,6 +383,8 @@ func getFlags() []cli.Flag {
 		fullArchive,
 		memBallast,
 		memoryUsageToCreateProfiles,
+		forceStartFromNetwork,
+		noKey,
 	}
 }
 
@@ -393,6 +407,9 @@ func getFlagsConfig(ctx *cli.Context, log logger.Logger) *config.ContextFlagsCon
 	flagsConfig.EnablePprof = ctx.GlobalBool(profileMode.Name)
 	flagsConfig.UseLogView = ctx.GlobalBool(useLogView.Name)
 	flagsConfig.ValidatorKeyIndex = ctx.GlobalInt(validatorKeyIndex.Name)
+	flagsConfig.ForceStartFromNetwork = ctx.GlobalBool(forceStartFromNetwork.Name)
+	flagsConfig.NoKeyProvided = ctx.GlobalBool(noKey.Name)
+
 	return flagsConfig
 }
 

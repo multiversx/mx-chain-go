@@ -33,6 +33,7 @@ type SaveBlockData struct {
 type Event struct {
 	Address    string   `json:"address"`
 	Identifier string   `json:"identifier"`
+	TxHash     string   `json:"txHash"`
 	Topics     [][]byte `json:"topics"`
 	Data       []byte   `json:"data"`
 }
@@ -55,6 +56,12 @@ type eventNotifier struct {
 	marshalizer     marshal.Marshalizer
 	hasher          hashing.Hasher
 	pubKeyConverter core.PubkeyConverter
+}
+
+// logEvent defines a log event associated with corresponding tx hash
+type logEvent struct {
+	eventHandler nodeData.EventHandler
+	txHash       string
 }
 
 // ArgsEventNotifier defines the arguments needed for event notifier creation
@@ -105,7 +112,7 @@ func (en *eventNotifier) SaveBlock(args *indexer.ArgsSaveBlockData) error {
 }
 
 func (en *eventNotifier) getLogEventsFromTransactionsPool(logs []*nodeData.LogData) []Event {
-	var logEvents []nodeData.EventHandler
+	var logEvents []*logEvent
 	for _, logData := range logs {
 		if logData == nil {
 			continue
@@ -114,31 +121,41 @@ func (en *eventNotifier) getLogEventsFromTransactionsPool(logs []*nodeData.LogDa
 			continue
 		}
 
-		logEvents = append(logEvents, logData.LogHandler.GetLogEvents()...)
+		for _, eventHandler := range logData.LogHandler.GetLogEvents() {
+			le := &logEvent{
+				eventHandler: eventHandler,
+				txHash:       hex.EncodeToString([]byte(logData.TxHash)),
+			}
+
+			logEvents = append(logEvents, le)
+		}
 	}
 
 	if len(logEvents) == 0 {
 		return nil
 	}
 
-	var events []Event
-	for _, eventHandler := range logEvents {
-		if !eventHandler.IsInterfaceNil() {
-			bech32Address := en.pubKeyConverter.Encode(eventHandler.GetAddress())
-			eventIdentifier := string(eventHandler.GetIdentifier())
-
-			log.Debug("eventNotifier: received event from address",
-				"address", bech32Address,
-				"identifier", eventIdentifier,
-			)
-
-			events = append(events, Event{
-				Address:    bech32Address,
-				Identifier: eventIdentifier,
-				Topics:     eventHandler.GetTopics(),
-				Data:       eventHandler.GetData(),
-			})
+	events := make([]Event, 0, len(logEvents))
+	for _, event := range logEvents {
+		if event == nil || event.eventHandler.IsInterfaceNil() {
+			continue
 		}
+
+		bech32Address := en.pubKeyConverter.Encode(event.eventHandler.GetAddress())
+		eventIdentifier := string(event.eventHandler.GetIdentifier())
+
+		log.Debug("eventNotifier: received event from address",
+			"address", bech32Address,
+			"identifier", eventIdentifier,
+		)
+
+		events = append(events, Event{
+			Address:    bech32Address,
+			Identifier: eventIdentifier,
+			Topics:     event.eventHandler.GetTopics(),
+			Data:       event.eventHandler.GetData(),
+			TxHash:     event.txHash,
+		})
 	}
 
 	return events

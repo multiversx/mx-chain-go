@@ -195,7 +195,7 @@ func TestNewAccountsDB(t *testing.T) {
 	})
 }
 
-//------- SaveAccount
+// ------- SaveAccount
 
 func TestAccountsDB_SaveAccountNilAccountShouldErr(t *testing.T) {
 	t.Parallel()
@@ -905,7 +905,7 @@ func TestAccountsDB_SnapshotState(t *testing.T) {
 	trieStub := &trieMock.TrieStub{
 		GetStorageManagerCalled: func() common.StorageManager {
 			return &testscommon.StorageManagerStub{
-				TakeSnapshotCalled: func(_ []byte, _ []byte, _ chan core.KeyValueHolder, _ common.SnapshotStatisticsHandler, _ uint32) {
+				TakeSnapshotCalled: func(_ []byte, _ []byte, _ chan core.KeyValueHolder, _ chan error, _ common.SnapshotStatisticsHandler, _ uint32) {
 					snapshotMut.Lock()
 					takeSnapshotWasCalled = true
 					snapshotMut.Unlock()
@@ -922,6 +922,112 @@ func TestAccountsDB_SnapshotState(t *testing.T) {
 	snapshotMut.Unlock()
 }
 
+func TestAccountsDB_SnapshotStateOnAClosedStorageManagerShouldNotMarkActiveDB(t *testing.T) {
+	t.Parallel()
+
+	mut := sync.RWMutex{}
+	lastSnapshotStartedWasPut := false
+	activeDBWasPut := false
+	trieStub := &trieMock.TrieStub{
+		GetStorageManagerCalled: func() common.StorageManager {
+			return &testscommon.StorageManagerStub{
+				ShouldTakeSnapshotCalled: func() bool {
+					return true
+				},
+				TakeSnapshotCalled: func(_ []byte, _ []byte, ch chan core.KeyValueHolder, _ chan error, stats common.SnapshotStatisticsHandler, _ uint32) {
+					close(ch)
+					stats.SnapshotFinished()
+				},
+				IsClosedCalled: func() bool {
+					return true
+				},
+				PutCalled: func(key []byte, val []byte) error {
+					mut.Lock()
+					defer mut.Unlock()
+
+					if string(key) == state.LastSnapshotStarted {
+						lastSnapshotStartedWasPut = true
+					}
+
+					return nil
+				},
+				PutInEpochCalled: func(key []byte, val []byte, epoch uint32) error {
+					mut.Lock()
+					defer mut.Unlock()
+
+					if string(key) == common.ActiveDBKey {
+						activeDBWasPut = true
+					}
+
+					return nil
+				},
+			}
+		},
+	}
+	adb := generateAccountDBFromTrie(trieStub)
+	adb.SnapshotState([]byte("roothash"))
+	time.Sleep(time.Second)
+
+	mut.RLock()
+	defer mut.RUnlock()
+	assert.True(t, lastSnapshotStartedWasPut)
+	assert.False(t, activeDBWasPut)
+}
+
+func TestAccountsDB_SnapshotStateWithErrorsShouldNotMarkActiveDB(t *testing.T) {
+	t.Parallel()
+
+	mut := sync.RWMutex{}
+	lastSnapshotStartedWasPut := false
+	activeDBWasPut := false
+	expectedErr := errors.New("expected error")
+	trieStub := &trieMock.TrieStub{
+		GetStorageManagerCalled: func() common.StorageManager {
+			return &testscommon.StorageManagerStub{
+				ShouldTakeSnapshotCalled: func() bool {
+					return true
+				},
+				TakeSnapshotCalled: func(_ []byte, _ []byte, ch chan core.KeyValueHolder, errChan chan error, stats common.SnapshotStatisticsHandler, _ uint32) {
+					errChan <- expectedErr
+					close(ch)
+					stats.SnapshotFinished()
+				},
+				IsClosedCalled: func() bool {
+					return false
+				},
+				PutCalled: func(key []byte, val []byte) error {
+					mut.Lock()
+					defer mut.Unlock()
+
+					if string(key) == state.LastSnapshotStarted {
+						lastSnapshotStartedWasPut = true
+					}
+
+					return nil
+				},
+				PutInEpochCalled: func(key []byte, val []byte, epoch uint32) error {
+					mut.Lock()
+					defer mut.Unlock()
+
+					if string(key) == common.ActiveDBKey {
+						activeDBWasPut = true
+					}
+
+					return nil
+				},
+			}
+		},
+	}
+	adb := generateAccountDBFromTrie(trieStub)
+	adb.SnapshotState([]byte("roothash"))
+	time.Sleep(time.Second)
+
+	mut.RLock()
+	defer mut.RUnlock()
+	assert.True(t, lastSnapshotStartedWasPut)
+	assert.False(t, activeDBWasPut)
+}
+
 func TestAccountsDB_SnapshotStateGetLatestStorageEpochErrDoesNotSnapshot(t *testing.T) {
 	t.Parallel()
 
@@ -932,7 +1038,7 @@ func TestAccountsDB_SnapshotStateGetLatestStorageEpochErrDoesNotSnapshot(t *test
 				GetLatestStorageEpochCalled: func() (uint32, error) {
 					return 0, fmt.Errorf("new error")
 				},
-				TakeSnapshotCalled: func(_ []byte, _ []byte, _ chan core.KeyValueHolder, _ common.SnapshotStatisticsHandler, _ uint32) {
+				TakeSnapshotCalled: func(_ []byte, _ []byte, _ chan core.KeyValueHolder, _ chan error, _ common.SnapshotStatisticsHandler, _ uint32) {
 					takeSnapshotCalled = true
 				},
 			}
@@ -959,7 +1065,7 @@ func TestAccountsDB_SnapshotStateSnapshotSameRootHash(t *testing.T) {
 				GetLatestStorageEpochCalled: func() (uint32, error) {
 					return latestEpoch, nil
 				},
-				TakeSnapshotCalled: func(_ []byte, _ []byte, _ chan core.KeyValueHolder, _ common.SnapshotStatisticsHandler, _ uint32) {
+				TakeSnapshotCalled: func(_ []byte, _ []byte, _ chan core.KeyValueHolder, _ chan error, _ common.SnapshotStatisticsHandler, _ uint32) {
 					snapshotMutex.Lock()
 					takeSnapshotCalled++
 					snapshotMutex.Unlock()
@@ -1063,7 +1169,7 @@ func TestAccountsDB_SetStateCheckpoint(t *testing.T) {
 	trieStub := &trieMock.TrieStub{
 		GetStorageManagerCalled: func() common.StorageManager {
 			return &testscommon.StorageManagerStub{
-				SetCheckpointCalled: func(_ []byte, _ []byte, _ chan core.KeyValueHolder, _ common.SnapshotStatisticsHandler) {
+				SetCheckpointCalled: func(_ []byte, _ []byte, _ chan core.KeyValueHolder, _ chan error, _ common.SnapshotStatisticsHandler) {
 					snapshotMut.Lock()
 					setCheckPointWasCalled = true
 					snapshotMut.Unlock()
@@ -2274,8 +2380,11 @@ func TestAccountsDB_NewAccountsDbStartsSnapshotAfterRestart(t *testing.T) {
 				ShouldTakeSnapshotCalled: func() bool {
 					return true
 				},
-				TakeSnapshotCalled: func(_ []byte, _ []byte, _ chan core.KeyValueHolder, _ common.SnapshotStatisticsHandler, _ uint32) {
+				TakeSnapshotCalled: func(_ []byte, _ []byte, _ chan core.KeyValueHolder, _ chan error, _ common.SnapshotStatisticsHandler, _ uint32) {
 					takeSnapshotCalled.SetValue(true)
+				},
+				GetLatestStorageEpochCalled: func() (uint32, error) {
+					return 1, nil
 				},
 			}
 		},
@@ -2375,5 +2484,60 @@ func TestAccountsDB_waitForCompletionIfRunningInImportDB(t *testing.T) {
 		adb.WaitForCompletionIfRunningInImportDB(stats)
 		assert.True(t, idleWasSet)
 		assert.True(t, waitForSnapshotsToFinishCalled)
+	})
+}
+
+func TestEmptyErrChanReturningHadContained(t *testing.T) {
+	t.Parallel()
+
+	t.Run("empty chan should return false", func(t *testing.T) {
+		t.Parallel()
+
+		t.Run("unbuffered chan", func(t *testing.T) {
+			t.Parallel()
+
+			errChan := make(chan error)
+			assert.False(t, state.EmptyErrChanReturningHadContained(errChan))
+			assert.Equal(t, 0, len(errChan))
+		})
+		t.Run("buffered chan", func(t *testing.T) {
+			t.Parallel()
+
+			for i := 1; i < 10; i++ {
+				errChan := make(chan error, i)
+				assert.False(t, state.EmptyErrChanReturningHadContained(errChan))
+				assert.Equal(t, 0, len(errChan))
+			}
+		})
+	})
+	t.Run("chan containing elements should return true", func(t *testing.T) {
+		t.Parallel()
+
+		t.Run("unbuffered chan", func(t *testing.T) {
+			t.Parallel()
+
+			errChan := make(chan error)
+			go func() {
+				errChan <- errors.New("test")
+			}()
+
+			time.Sleep(time.Second) // allow the go routine to start
+
+			assert.True(t, state.EmptyErrChanReturningHadContained(errChan))
+			assert.Equal(t, 0, len(errChan))
+		})
+		t.Run("buffered chan", func(t *testing.T) {
+			t.Parallel()
+
+			for i := 1; i < 10; i++ {
+				errChan := make(chan error, i)
+				for j := 0; j < i; j++ {
+					errChan <- errors.New("test")
+				}
+
+				assert.True(t, state.EmptyErrChanReturningHadContained(errChan))
+				assert.Equal(t, 0, len(errChan))
+			}
+		})
 	})
 }

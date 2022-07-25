@@ -634,3 +634,49 @@ func Test_computeStillPendingInShardHeader(t *testing.T) {
 	assert.Equal(t, newIndexOfFirstTxProcessed, mbh.GetIndexOfFirstTxProcessed())
 	assert.Equal(t, newIndexOfLastTxProcessed, mbh.GetIndexOfLastTxProcessed())
 }
+
+func Test_updateIndexesOfProcessedTxsEdgeCaseWithIndex0(t *testing.T) {
+	t.Parallel()
+
+	reserved := block.MiniBlockHeaderReserved{
+		ExecutionType:           block.Normal,
+		IndexOfFirstTxProcessed: -1,
+		IndexOfLastTxProcessed:  -1,
+	}
+	reservedBytes, err := reserved.Marshal()
+	assert.Nil(t, err)
+
+	mbHeader := block.MiniBlockHeader{
+		TxCount:  132,
+		Reserved: reservedBytes,
+	}
+	miniblockHeaders := make(map[string]block.MiniBlockHeader)
+	mbHash := "mb hash"
+
+	reserved = block.MiniBlockHeaderReserved{
+		ExecutionType:           block.Normal,
+		State:                   block.PartialExecuted,
+		IndexOfFirstTxProcessed: 0,
+		IndexOfLastTxProcessed:  0,
+	}
+	reservedBytes, err = reserved.Marshal()
+	assert.Nil(t, err)
+
+	shardMiniblockHeader := &block.MiniBlockHeader{
+		Hash:            []byte(mbHash),
+		SenderShardID:   1,
+		ReceiverShardID: 2,
+		TxCount:         132,
+		Type:            block.TxBlock,
+		Reserved:        reservedBytes,
+	}
+
+	updateIndexesOfProcessedTxs(mbHeader, shardMiniblockHeader, mbHash, 2, miniblockHeaders)
+
+	require.Equal(t, 1, len(miniblockHeaders))
+	processedMbHeader, found := miniblockHeaders[mbHash]
+	require.True(t, found)
+	assert.True(t, len(processedMbHeader.Reserved) > 0)
+	assert.Equal(t, int32(0), processedMbHeader.GetIndexOfFirstTxProcessed())
+	assert.Equal(t, int32(0), processedMbHeader.GetIndexOfLastTxProcessed())
+}

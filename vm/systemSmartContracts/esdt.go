@@ -195,6 +195,8 @@ func (e *esdt) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 		return e.setBurnRoleGlobally(args)
 	case "unsetBurnRoleGlobally":
 		return e.unsetBurnRoleGlobally(args)
+	case "sendAllTransferRoleAddresses":
+		return e.sendAllTransferRoleAddresses(args)
 	}
 
 	e.eei.AddReturnMessage("invalid method to call")
@@ -1672,10 +1674,15 @@ func (e *esdt) prepareAndSendRoleChangeData(
 		e.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
-	firstTransferRoleSet := !properties.transferRoleExists && isDefinedRoleInArgs(roles, []byte(core.ESDTRoleTransfer))
+	isTransferRoleDefinedInArgs := isDefinedRoleInArgs(roles, []byte(core.ESDTRoleTransfer))
+	firstTransferRoleSet := !properties.transferRoleExists && isTransferRoleDefinedInArgs
 	if firstTransferRoleSet {
 		esdtTransferData := core.BuiltInFunctionESDTSetLimitedTransfer + "@" + hex.EncodeToString(tokenID)
 		e.eei.SendGlobalSettingToAll(e.eSDTSCAddress, []byte(esdtTransferData))
+	}
+
+	if isTransferRoleDefinedInArgs {
+		e.sendNewTransferRoleAddressToSystemAccount(tokenID, address)
 	}
 
 	return vmcommon.Ok
@@ -1792,11 +1799,16 @@ func (e *esdt) unSetSpecialRole(args *vmcommon.ContractCallInput) vmcommon.Retur
 		}
 	}
 
+	isTransferRoleInArgs := isDefinedRoleInArgs(args.Arguments[2:], []byte(core.ESDTRoleTransfer))
 	transferRoleExists := checkIfDefinedRoleExistsInArgsAndToken(args.Arguments[2:], token, []byte(core.ESDTRoleTransfer))
-	lastTransferRoleWasDeleted := isDefinedRoleInArgs(args.Arguments[2:], []byte(core.ESDTRoleTransfer)) && !transferRoleExists
+	lastTransferRoleWasDeleted := isTransferRoleInArgs && !transferRoleExists
 	if lastTransferRoleWasDeleted {
 		esdtTransferData := core.BuiltInFunctionESDTUnSetLimitedTransfer + "@" + hex.EncodeToString(args.Arguments[0])
 		e.eei.SendGlobalSettingToAll(e.eSDTSCAddress, []byte(esdtTransferData))
+	}
+
+	if isTransferRoleInArgs {
+		e.deleteTransferRoleAddressFromSystemAccount(args.Arguments[0], address)
 	}
 
 	err = e.saveToken(args.Arguments[0], token)
@@ -1804,6 +1816,64 @@ func (e *esdt) unSetSpecialRole(args *vmcommon.ContractCallInput) vmcommon.Retur
 		e.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
+
+	return vmcommon.Ok
+}
+
+func (e *esdt) sendNewTransferRoleAddressToSystemAccount(token []byte, address []byte) {
+	isSendTransferRoleAddressFlagEnabled := e.enableEpochsHandler.IsESDTMetadataContinuousCleanupFlagEnabled()
+	if !isSendTransferRoleAddressFlagEnabled {
+		return
+	}
+
+	esdtTransferData := vmcommon.BuiltInFunctionESDTTransferRoleAddAddress + "@" + hex.EncodeToString(token) + "@" + hex.EncodeToString(address)
+	e.eei.SendGlobalSettingToAll(e.eSDTSCAddress, []byte(esdtTransferData))
+}
+
+func (e *esdt) deleteTransferRoleAddressFromSystemAccount(token []byte, address []byte) {
+	isSendTransferRoleAddressFlagEnabled := e.enableEpochsHandler.IsESDTMetadataContinuousCleanupFlagEnabled()
+	if !isSendTransferRoleAddressFlagEnabled {
+		return
+	}
+
+	esdtTransferData := vmcommon.BuiltInFunctionESDTTransferRoleDeleteAddress + "@" + hex.EncodeToString(token) + "@" + hex.EncodeToString(address)
+	e.eei.SendGlobalSettingToAll(e.eSDTSCAddress, []byte(esdtTransferData))
+}
+
+func (e *esdt) sendAllTransferRoleAddresses(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	isSendTransferRoleAddressFlagEnabled := e.enableEpochsHandler.IsESDTMetadataContinuousCleanupFlagEnabled()
+	if !isSendTransferRoleAddressFlagEnabled {
+		e.eei.AddReturnMessage("invalid method to call")
+		return vmcommon.FunctionNotFound
+	}
+	if len(args.Arguments) != 1 {
+		e.eei.AddReturnMessage("wrong number of arguments, expected 1")
+		return vmcommon.UserError
+	}
+
+	token, returnCode := e.basicOwnershipChecks(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+
+	transferRoleFound := false
+	esdtTransferData := vmcommon.BuiltInFunctionESDTTransferRoleAddAddress + "@" + hex.EncodeToString(args.Arguments[0])
+	for _, role := range token.SpecialRoles {
+		for _, actualRole := range role.Roles {
+			if bytes.Equal(actualRole, []byte(core.ESDTRoleTransfer)) {
+				esdtTransferData += "@" + hex.EncodeToString(role.Address)
+				transferRoleFound = true
+				break
+			}
+		}
+	}
+
+	if !transferRoleFound {
+		e.eei.AddReturnMessage("no address with transfer role")
+		return vmcommon.UserError
+	}
+
+	e.eei.SendGlobalSettingToAll(e.eSDTSCAddress, []byte(esdtTransferData))
 
 	return vmcommon.Ok
 }

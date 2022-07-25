@@ -118,7 +118,7 @@ var ErrNilFacadeHandler = errors.New("nil facade handler")
 // ErrFacadeWrongTypeAssertion signals that a type conversion to a facade type failed
 var ErrFacadeWrongTypeAssertion = errors.New("facade - wrong type assertion")
 
-// ErrGetGenesisNodes signals that an error happened when trying to fetch genesis nodes config
+// ErrGetGenesisNodes signals that an error occurred while trying to fetch genesis nodes config
 var ErrGetGenesisNodes = errors.New("getting genesis nodes failed")
 
 // ErrGetGenesisBalances signals that an error happened when trying to fetch genesis balances config
@@ -126,3 +126,21 @@ var ErrGetGenesisBalances = errors.New("getting genesis balances failed")
 
 // ErrBadUrlParams signals one or more incorrectly provided URL params (generic error)
 var ErrBadUrlParams = errors.New("bad url parameter(s)")
+
+// ErrGetGasConfigs signals that an error occurred while trying to fetch gas configs
+var ErrGetGasConfigs = errors.New("getting gas configs failed")
+
+// ErrEmptySenderToGetLatestNonce signals that an error happened when trying to fetch latest nonce
+var ErrEmptySenderToGetLatestNonce = errors.New("empty sender to get latest nonce")
+
+// ErrEmptySenderToGetNonceGaps signals that an error happened when trying to fetch nonce gaps
+var ErrEmptySenderToGetNonceGaps = errors.New("empty sender to get nonce gaps")
+
+// ErrFetchingLatestNonceCannotIncludeFields signals that an error happened when trying to fetch latest nonce
+var ErrFetchingLatestNonceCannotIncludeFields = errors.New("fetching latest nonce cannot include fields")
+
+// ErrFetchingNonceGapsCannotIncludeFields signals that an error happened when trying to fetch nonce gaps
+var ErrFetchingNonceGapsCannotIncludeFields = errors.New("fetching nonce gaps cannot include fields")
+
+// ErrInvalidFields signals that invalid fields were provided
+var ErrInvalidFields = errors.New("invalid fields")
