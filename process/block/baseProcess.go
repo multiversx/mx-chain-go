@@ -1109,7 +1109,9 @@ func (bp *baseProcessor) prepareDataForBootStorer(args bootStorerDataArgs) {
 
 	err := bp.bootStorer.Put(int64(args.round), bootData)
 	if err != nil {
-		logging.LogErrAsWarnExceptAsDebugIfClosingError(log, err, "cannot save boot data in storage")
+		logging.LogErrAsWarnExceptAsDebugIfClosingError(log, err,
+			"cannot save boot data in storage",
+			"err", err)
 	}
 
 	elapsedTime := time.Since(startTime)
@@ -1270,7 +1272,9 @@ func (bp *baseProcessor) saveBody(body *block.Body, header data.HeaderHandler, h
 		miniBlockHash := bp.hasher.Compute(string(marshalizedMiniBlock))
 		errNotCritical = bp.store.Put(dataRetriever.MiniBlockUnit, miniBlockHash, marshalizedMiniBlock)
 		if errNotCritical != nil {
-			logging.LogErrAsWarnExceptAsDebugIfClosingError(log, errNotCritical, "saveBody.Put -> MiniBlockUnit")
+			logging.LogErrAsWarnExceptAsDebugIfClosingError(log, errNotCritical,
+				"saveBody.Put -> MiniBlockUnit",
+				"err", errNotCritical)
 		}
 		log.Trace("saveBody.Put -> MiniBlockUnit", "time", time.Since(startTime), "hash", miniBlockHash)
 	}
@@ -1278,7 +1282,9 @@ func (bp *baseProcessor) saveBody(body *block.Body, header data.HeaderHandler, h
 	receiptsHolder := holders.NewReceiptsHolder(bp.txCoordinator.GetCreatedInShardMiniBlocks())
 	errNotCritical = bp.receiptsRepository.SaveReceipts(receiptsHolder, header, headerHash)
 	if errNotCritical != nil {
-		logging.LogErrAsWarnExceptAsDebugIfClosingError(log, errNotCritical, "saveBody(), error on receiptsRepository.SaveReceipts()")
+		logging.LogErrAsWarnExceptAsDebugIfClosingError(log, errNotCritical,
+			"saveBody(), error on receiptsRepository.SaveReceipts()",
+			"err", errNotCritical)
 	}
 
 	bp.scheduledTxsExecutionHandler.SaveStateIfNeeded(headerHash)
@@ -1297,12 +1303,16 @@ func (bp *baseProcessor) saveShardHeader(header data.HeaderHandler, headerHash [
 
 	errNotCritical := bp.store.Put(hdrNonceHashDataUnit, nonceToByteSlice, headerHash)
 	if errNotCritical != nil {
-		logging.LogErrAsWarnExceptAsDebugIfClosingError(log, errNotCritical, fmt.Sprintf("saveHeader.Put -> ShardHdrNonceHashDataUnit_%d", header.GetShardID()))
+		logging.LogErrAsWarnExceptAsDebugIfClosingError(log, errNotCritical,
+			fmt.Sprintf("saveHeader.Put -> ShardHdrNonceHashDataUnit_%d", header.GetShardID()),
+			"err", errNotCritical)
 	}
 
 	errNotCritical = bp.store.Put(dataRetriever.BlockHeaderUnit, headerHash, marshalizedHeader)
 	if errNotCritical != nil {
-		logging.LogErrAsWarnExceptAsDebugIfClosingError(log, errNotCritical, "saveHeader.Put -> BlockHeaderUnit")
+		logging.LogErrAsWarnExceptAsDebugIfClosingError(log, errNotCritical,
+			"saveHeader.Put -> BlockHeaderUnit",
+			"err", errNotCritical)
 	}
 
 	elapsedTime := time.Since(startTime)
@@ -1318,12 +1328,16 @@ func (bp *baseProcessor) saveMetaHeader(header data.HeaderHandler, headerHash []
 
 	errNotCritical := bp.store.Put(dataRetriever.MetaHdrNonceHashDataUnit, nonceToByteSlice, headerHash)
 	if errNotCritical != nil {
-		logging.LogErrAsWarnExceptAsDebugIfClosingError(log, errNotCritical, "saveMetaHeader.Put -> MetaHdrNonceHashDataUnit")
+		logging.LogErrAsWarnExceptAsDebugIfClosingError(log, errNotCritical,
+			"saveMetaHeader.Put -> MetaHdrNonceHashDataUnit",
+			"err", errNotCritical)
 	}
 
 	errNotCritical = bp.store.Put(dataRetriever.MetaBlockUnit, headerHash, marshalizedHeader)
 	if errNotCritical != nil {
-		logging.LogErrAsWarnExceptAsDebugIfClosingError(log, errNotCritical, "saveMetaHeader.Put -> MetaBlockUnit")
+		logging.LogErrAsWarnExceptAsDebugIfClosingError(log, errNotCritical,
+			"saveMetaHeader.Put -> MetaBlockUnit",
+			"err", errNotCritical)
 	}
 
 	elapsedTime := time.Since(startTime)

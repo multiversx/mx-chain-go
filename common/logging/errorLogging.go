@@ -28,6 +28,5 @@ func logErrAsLevelExceptAsDebugIfClosingError(logInstance logger.Logger, logLeve
 		logLevel = logger.LogDebug
 	}
 
-	argsWithError := append([]interface{}{"err", err.Error()}, args...)
-	logInstance.Log(logLevel, message, argsWithError...)
+	logInstance.Log(logLevel, message, args...)
 }

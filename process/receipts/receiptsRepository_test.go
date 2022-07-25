@@ -237,14 +237,14 @@ func TestReceiptsRepository_NoPanicOnSaveOrLoadWhenBadStorage(t *testing.T) {
 		header := &block.Header{ReceiptsHash: []byte("aaaa")}
 		err := repository.SaveReceipts(holder, header, []byte("bbbb"))
 		require.NotNil(t, err)
-		require.ErrorContains(t, err, errCannotSaveReceipts.Error())
+		require.ErrorIs(t, err, errCannotSaveReceipts)
 	})
 
 	t.Run("load from bad storage", func(t *testing.T) {
 		header := &block.Header{ReceiptsHash: []byte("aaaa")}
 		loaded, err := repository.LoadReceipts(header, []byte("bbbb"))
 		require.NotNil(t, err)
-		require.ErrorContains(t, err, errCannotLoadReceipts.Error())
+		require.ErrorIs(t, err, errCannotLoadReceipts)
 		require.Nil(t, loaded)
 	})
 }

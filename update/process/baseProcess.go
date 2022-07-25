@@ -246,7 +246,9 @@ func (b *baseProcessor) saveMiniBlocks(headerHandler data.HeaderHandler, body *b
 
 		errNotCritical = b.storage.Put(dataRetriever.MiniBlockUnit, miniBlockHeadersHashes[i], marshalizedMiniBlock)
 		if errNotCritical != nil {
-			logging.LogErrAsWarnExceptAsDebugIfClosingError(log, errNotCritical, "saveMiniBlocks.Put -> MiniBlockUnit")
+			logging.LogErrAsWarnExceptAsDebugIfClosingError(log, errNotCritical,
+				"saveMiniBlocks.Put -> MiniBlockUnit",
+				"err", errNotCritical)
 		}
 	}
 }
@@ -261,7 +263,9 @@ func (b *baseProcessor) saveReceipts(headerHandler data.HeaderHandler) {
 	receiptsHolder := holders.NewReceiptsHolder(b.txCoordinator.GetCreatedInShardMiniBlocks())
 	errNotCritical = b.receiptsRepository.SaveReceipts(receiptsHolder, headerHandler, headerHash)
 	if errNotCritical != nil {
-		logging.LogErrAsWarnExceptAsDebugIfClosingError(log, errNotCritical, "saveReceipts(), error on receiptsRepository.SaveReceipts()")
+		logging.LogErrAsWarnExceptAsDebugIfClosingError(log, errNotCritical,
+			"saveReceipts(), error on receiptsRepository.SaveReceipts()",
+			"err", errNotCritical)
 	}
 }
 
@@ -292,7 +296,9 @@ func (b *baseProcessor) saveTransactions(body *block.Body) {
 
 			errNotCritical = b.storage.Put(unitType, txHash, marshaledData)
 			if errNotCritical != nil {
-				logging.LogErrAsWarnExceptAsDebugIfClosingError(log, errNotCritical, "saveTransactions.Put -> Transaction")
+				logging.LogErrAsWarnExceptAsDebugIfClosingError(log, errNotCritical,
+					"saveTransactions.Put -> Transaction",
+					"err", errNotCritical)
 			}
 		}
 	}

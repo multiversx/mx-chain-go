@@ -10,19 +10,26 @@ import (
 )
 
 func TestLogErrAsLevelExceptAsDebugIfClosingError(t *testing.T) {
+	testError := errors.New("test error")
+	dbError := errors.New("DB is closed")
+
 	t.Run("not a closing error", func(t *testing.T) {
 		logCalled := false
 		log := &testscommon.LoggerStub{
 			LogCalled: func(logLevel logger.LogLevel, message string, args ...interface{}) {
 				assert.Equal(t, logger.LogWarning, logLevel)
 				assert.Equal(t, "test", message)
-				assert.Equal(t, []interface{}{"err", "test error", "a", 7, "b", []byte("hash")}, args)
+				assert.Equal(t, []interface{}{"a", 7, "b", []byte("hash"), "err", testError.Error()}, args)
 
 				logCalled = true
 			},
 		}
 
-		logErrAsLevelExceptAsDebugIfClosingError(log, logger.LogWarning, errors.New("test error"), "test", "a", 7, "b", []byte("hash"))
+		logErrAsLevelExceptAsDebugIfClosingError(log, logger.LogWarning, testError, "test",
+			"a", 7,
+			"b", []byte("hash"),
+			"err", testError.Error(),
+		)
 		assert.True(t, logCalled)
 	})
 
@@ -32,21 +39,25 @@ func TestLogErrAsLevelExceptAsDebugIfClosingError(t *testing.T) {
 			LogCalled: func(logLevel logger.LogLevel, message string, args ...interface{}) {
 				assert.Equal(t, logger.LogDebug, logLevel)
 				assert.Equal(t, "test", message)
-				assert.Equal(t, []interface{}{"err", "DB is closed", "a", 7, "b", []byte("hash")}, args)
+				assert.Equal(t, []interface{}{"a", 7, "b", []byte("hash"), "err", dbError.Error()}, args)
 
 				logCalled = true
 			},
 		}
 
-		logErrAsLevelExceptAsDebugIfClosingError(log, logger.LogWarning, errors.New("DB is closed"), "test", "a", 7, "b", []byte("hash"))
+		logErrAsLevelExceptAsDebugIfClosingError(log, logger.LogWarning, dbError, "test",
+			"a", 7,
+			"b", []byte("hash"),
+			"err", dbError.Error(),
+		)
 		assert.True(t, logCalled)
 	})
 
 	t.Run("no panic on bad input", func(t *testing.T) {
 		log := logger.GetOrCreate("test")
 
-		logErrAsLevelExceptAsDebugIfClosingError(log, logger.LogError, errors.New("test error"), "", "a", nil)
+		logErrAsLevelExceptAsDebugIfClosingError(log, logger.LogError, testError, "", "a", nil)
 		logErrAsLevelExceptAsDebugIfClosingError(log, logger.LogError, nil, "", "a", nil)
-		logErrAsLevelExceptAsDebugIfClosingError(nil, logger.LogError, errors.New("test error"), "")
+		logErrAsLevelExceptAsDebugIfClosingError(nil, logger.LogError, testError, "")
 	})
 }

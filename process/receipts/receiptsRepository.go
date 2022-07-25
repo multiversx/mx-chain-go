@@ -82,7 +82,7 @@ func (repository *receiptsRepository) SaveReceipts(holder common.ReceiptsHolder,
 
 	err = repository.storer.Put(storageKey, receiptsBytes)
 	if err != nil {
-		return fmt.Errorf("%w: %v", err, errCannotSaveReceipts)
+		return fmt.Errorf("%w: %v", errCannotSaveReceipts, err)
 	}
 
 	return nil
@@ -98,7 +98,7 @@ func (repository *receiptsRepository) LoadReceipts(header data.HeaderHandler, he
 			return createEmptyReceiptsHolder(), nil
 		}
 
-		return nil, fmt.Errorf("%w: %v, storageKey = %s", err, errCannotLoadReceipts, hex.EncodeToString(storageKey))
+		return nil, fmt.Errorf("%w: %v, storageKey = %s", errCannotLoadReceipts, err, hex.EncodeToString(storageKey))
 	}
 
 	holder, err := unmarshalReceiptsHolder(batchBytes, repository.marshaller)

@@ -9,7 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/receipt"
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common/logging"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -37,8 +37,9 @@ func (eht *eventsHashesByTxHash) saveResultsHashes(epoch uint32, scResults, rece
 
 		err = eht.storer.Put([]byte(txHash), resultHashesBytes)
 		if err != nil {
-			handleErrorLogging(log, logger.LogWarning, err, "saveResultsHashes() cannot save resultHashesByte",
-				"error", err.Error())
+			logging.LogErrAsWarnExceptAsDebugIfClosingError(log, err,
+				"saveResultsHashes() cannot save resultHashesByte",
+				"err", err.Error())
 			continue
 		}
 	}
