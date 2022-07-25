@@ -164,6 +164,16 @@ type EnableEpochsHandler interface {
 	SwitchJailWaitingEnableEpoch() uint32
 	BalanceWaitingListsEnableEpoch() uint32
 	WaitingListFixEnableEpoch() uint32
+	MultiESDTTransferAsyncCallBackEnableEpoch() uint32
+	FixOOGReturnCodeEnableEpoch() uint32
+	RemoveNonUpdatedStorageEnableEpoch() uint32
+	CreateNFTThroughExecByCallerEnableEpoch() uint32
+	FixFailExecutionOnErrorEnableEpoch() uint32
+	ManagedCryptoAPIEnableEpoch() uint32
+	DisableExecByCallerEnableEpoch() uint32
+	RefactorContextEnableEpoch() uint32
+	CheckExecuteReadOnlyEnableEpoch() uint32
+	StorageAPICostOptimizationEnableEpoch() uint32
 	IsSCDeployFlagEnabled() bool
 	IsBuiltInFunctionsFlagEnabled() bool
 	IsRelayedTransactionsFlagEnabled() bool
@@ -239,6 +249,8 @@ type EnableEpochsHandler interface {
 	IsESDTMetadataContinuousCleanupFlagEnabled() bool
 	IsDisableExecByCallerFlagEnabled() bool
 	IsRefactorContextFlagEnabled() bool
+	IsCheckFunctionArgumentFlagEnabled() bool
+	IsCheckExecuteOnReadOnlyFlagEnabled() bool
 
 	IsInterfaceNil() bool
 }

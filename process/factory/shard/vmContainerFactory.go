@@ -316,6 +316,7 @@ func (vmf *vmContainerFactory) createInProcessArwenVMV14() (vmcommon.VMExecution
 		ESDTTransferParser:                  vmf.esdtTransferParser,
 		WasmerSIGSEGVPassthrough:            vmf.config.WasmerSIGSEGVPassthrough,
 		TimeOutForSCExecutionInMilliseconds: vmf.config.TimeOutForSCExecutionInMilliseconds,
+		EpochNotifier:                       vmf.epochNotifier,
 		EnableEpochsHandler:                 vmf.enableEpochsHandler,
 	}
 	return arwenHost14.NewArwenVM(vmf.blockChainHook, hostParameters)

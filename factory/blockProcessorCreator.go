@@ -1152,6 +1152,7 @@ func (pcf *processComponentsFactory) createBuiltInFunctionContainer(
 		Marshalizer:               pcf.coreData.InternalMarshalizer(),
 		Accounts:                  accounts,
 		ShardCoordinator:          pcf.bootstrapComponents.ShardCoordinator(),
+		EpochNotifier:             pcf.coreData.EpochNotifier(),
 		EnableEpochsHandler:       pcf.coreData.EnableEpochsHandler(),
 		AutomaticCrawlerAddress:   convertedAddress,
 		MaxNumNodesInTransferRole: pcf.config.BuiltInFunctions.MaxNumAddressesInTransferRole,

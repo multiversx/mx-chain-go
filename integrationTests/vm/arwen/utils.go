@@ -49,7 +49,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
-	vmcommonBuiltInFunctions "github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 	"github.com/stretchr/testify/require"
 )

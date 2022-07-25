@@ -83,6 +83,8 @@ func createEnableEpochsConfig() config.EnableEpochs {
 		ESDTMetadataContinuousCleanupEnableEpoch:          67,
 		DisableExecByCallerEnableEpoch:                    68,
 		RefactorContextEnableEpoch:                        69,
+		CheckFunctionArgumentEnableEpoch:                  70,
+		CheckExecuteOnReadOnlyEnableEpoch:                 71,
 	}
 }
 
@@ -121,7 +123,7 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		handler, _ := NewEnableEpochsHandler(cfg, &epochNotifier.EpochNotifierStub{})
 		require.False(t, check.IfNil(handler))
 
-		handler.EpochConfirmed(70, 0)
+		handler.EpochConfirmed(73, 0)
 
 		assert.Equal(t, cfg.BlockGasAndFeesReCheckEnableEpoch, handler.BlockGasAndFeesReCheckEnableEpoch())
 		assert.True(t, handler.IsSCDeployFlagEnabled())
@@ -198,6 +200,8 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsESDTMetadataContinuousCleanupFlagEnabled())
 		assert.True(t, handler.IsDisableExecByCallerFlagEnabled())
 		assert.True(t, handler.IsRefactorContextFlagEnabled())
+		assert.True(t, handler.IsCheckFunctionArgumentFlagEnabled())
+		assert.True(t, handler.IsCheckExecuteOnReadOnlyFlagEnabled())
 	})
 	t.Run("flags with == condition should be set, along with all >=", func(t *testing.T) {
 		t.Parallel()
@@ -289,6 +293,8 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsESDTMetadataContinuousCleanupFlagEnabled())
 		assert.True(t, handler.IsDisableExecByCallerFlagEnabled())
 		assert.True(t, handler.IsRefactorContextFlagEnabled())
+		assert.True(t, handler.IsCheckFunctionArgumentFlagEnabled())
+		assert.True(t, handler.IsCheckExecuteOnReadOnlyFlagEnabled())
 	})
 	t.Run("flags with < should be set", func(t *testing.T) {
 		t.Parallel()
@@ -375,5 +381,7 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.False(t, handler.IsESDTMetadataContinuousCleanupFlagEnabled())
 		assert.False(t, handler.IsDisableExecByCallerFlagEnabled())
 		assert.False(t, handler.IsRefactorContextFlagEnabled())
+		assert.False(t, handler.IsCheckFunctionArgumentFlagEnabled())
+		assert.False(t, handler.IsCheckExecuteOnReadOnlyFlagEnabled())
 	})
 }

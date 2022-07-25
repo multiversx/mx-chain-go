@@ -55,14 +55,15 @@ func CreateBuiltInFunctionsFactory(args ArgsCreateBuiltInFunctionContainer) (vmc
 	}
 
 	modifiedArgs := vmcommonBuiltInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasMap:               args.GasSchedule.LatestGasSchedule(),
-		MapDNSAddresses:      args.MapDNSAddresses,
-		EnableUserNameChange: args.EnableUserNameChange,
-		Marshalizer:          args.Marshalizer,
-		Accounts:             vmcommonAccounts,
-		ShardCoordinator:     args.ShardCoordinator,
-		EnableEpochsHandler:  args.EnableEpochsHandler,
-		ConfigAddress:        args.AutomaticCrawlerAddress,
+		GasMap:                           args.GasSchedule.LatestGasSchedule(),
+		MapDNSAddresses:                  args.MapDNSAddresses,
+		EnableUserNameChange:             args.EnableUserNameChange,
+		Marshalizer:                      args.Marshalizer,
+		Accounts:                         vmcommonAccounts,
+		ShardCoordinator:                 args.ShardCoordinator,
+		EnableEpochsHandler:              args.EnableEpochsHandler,
+		ConfigAddress:                    args.AutomaticCrawlerAddress,
+		MaxNumOfAddressesForTransferRole: args.MaxNumNodesInTransferRole,
 	}
 
 	bContainerFactory, err := vmcommonBuiltInFunctions.NewBuiltInFunctionsCreator(modifiedArgs)

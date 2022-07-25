@@ -9,6 +9,16 @@ type EnableEpochsHandlerStub struct {
 	SwitchJailWaitingEnableEpochField                            uint32
 	BalanceWaitingListsEnableEpochField                          uint32
 	WaitingListFixEnableEpochField                               uint32
+	MultiESDTTransferAsyncCallBackEnableEpochField               uint32
+	FixOOGReturnCodeEnableEpochField                             uint32
+	RemoveNonUpdatedStorageEnableEpochField                      uint32
+	CreateNFTThroughExecByCallerEnableEpochField                 uint32
+	FixFailExecutionOnErrorEnableEpochField                      uint32
+	ManagedCryptoAPIEnableEpochField                             uint32
+	DisableExecByCallerEnableEpochField                          uint32
+	RefactorContextEnableEpochField                              uint32
+	CheckExecuteReadOnlyEnableEpochField                         uint32
+	StorageAPICostOptimizationEnableEpochField                   uint32
 	IsSCDeployFlagEnabledField                                   bool
 	IsBuiltInFunctionsFlagEnabledField                           bool
 	IsRelayedTransactionsFlagEnabledField                        bool
@@ -83,6 +93,15 @@ type EnableEpochsHandlerStub struct {
 	IsESDTMetadataContinuousCleanupFlagEnabledField              bool
 	IsDisableExecByCallerFlagEnabledField                        bool
 	IsRefactorContextFlagEnabledField                            bool
+	IsCheckFunctionArgumentFlagEnabledField                      bool
+	IsCheckExecuteOnReadOnlyFlagEnabledField                     bool
+}
+
+// ResetPenalizedTooMuchGasFlag -
+func (stub *EnableEpochsHandlerStub) ResetPenalizedTooMuchGasFlag() {
+	if stub.ResetPenalizedTooMuchGasFlagCalled != nil {
+		stub.ResetPenalizedTooMuchGasFlagCalled()
+	}
 }
 
 // BlockGasAndFeesReCheckEnableEpoch -
@@ -115,11 +134,54 @@ func (stub *EnableEpochsHandlerStub) WaitingListFixEnableEpoch() uint32 {
 	return stub.WaitingListFixEnableEpochField
 }
 
-// ResetPenalizedTooMuchGasFlag -
-func (stub *EnableEpochsHandlerStub) ResetPenalizedTooMuchGasFlag() {
-	if stub.ResetPenalizedTooMuchGasFlagCalled != nil {
-		stub.ResetPenalizedTooMuchGasFlagCalled()
-	}
+// MultiESDTTransferAsyncCallBackEnableEpoch -
+func (stub *EnableEpochsHandlerStub) MultiESDTTransferAsyncCallBackEnableEpoch() uint32 {
+	return stub.MultiESDTTransferAsyncCallBackEnableEpochField
+}
+
+// FixOOGReturnCodeEnableEpoch -
+func (stub *EnableEpochsHandlerStub) FixOOGReturnCodeEnableEpoch() uint32 {
+	return stub.FixOOGReturnCodeEnableEpochField
+}
+
+// RemoveNonUpdatedStorageEnableEpoch -
+func (stub *EnableEpochsHandlerStub) RemoveNonUpdatedStorageEnableEpoch() uint32 {
+	return stub.RemoveNonUpdatedStorageEnableEpochField
+}
+
+// CreateNFTThroughExecByCallerEnableEpoch -
+func (stub *EnableEpochsHandlerStub) CreateNFTThroughExecByCallerEnableEpoch() uint32 {
+	return stub.CreateNFTThroughExecByCallerEnableEpochField
+}
+
+// FixFailExecutionOnErrorEnableEpoch -
+func (stub *EnableEpochsHandlerStub) FixFailExecutionOnErrorEnableEpoch() uint32 {
+	return stub.FixFailExecutionOnErrorEnableEpochField
+}
+
+// ManagedCryptoAPIEnableEpoch -
+func (stub *EnableEpochsHandlerStub) ManagedCryptoAPIEnableEpoch() uint32 {
+	return stub.ManagedCryptoAPIEnableEpochField
+}
+
+// DisableExecByCallerEnableEpoch -
+func (stub *EnableEpochsHandlerStub) DisableExecByCallerEnableEpoch() uint32 {
+	return stub.DisableExecByCallerEnableEpochField
+}
+
+// RefactorContextEnableEpoch -
+func (stub *EnableEpochsHandlerStub) RefactorContextEnableEpoch() uint32 {
+	return stub.RefactorContextEnableEpochField
+}
+
+// CheckExecuteReadOnlyEnableEpoch -
+func (stub *EnableEpochsHandlerStub) CheckExecuteReadOnlyEnableEpoch() uint32 {
+	return stub.CheckExecuteReadOnlyEnableEpochField
+}
+
+// StorageAPICostOptimizationEnableEpoch -
+func (stub *EnableEpochsHandlerStub) StorageAPICostOptimizationEnableEpoch() uint32 {
+	return stub.StorageAPICostOptimizationEnableEpochField
 }
 
 // IsSCDeployFlagEnabled -
@@ -490,6 +552,16 @@ func (stub *EnableEpochsHandlerStub) IsDisableExecByCallerFlagEnabled() bool {
 // IsRefactorContextFlagEnabled -
 func (stub *EnableEpochsHandlerStub) IsRefactorContextFlagEnabled() bool {
 	return stub.IsRefactorContextFlagEnabledField
+}
+
+// IsCheckFunctionArgumentFlagEnabled -
+func (stub *EnableEpochsHandlerStub) IsCheckFunctionArgumentFlagEnabled() bool {
+	return stub.IsCheckFunctionArgumentFlagEnabledField
+}
+
+// IsCheckExecuteOnReadOnlyFlagEnabled -
+func (stub *EnableEpochsHandlerStub) IsCheckExecuteOnReadOnlyFlagEnabled() bool {
+	return stub.IsCheckExecuteOnReadOnlyFlagEnabledField
 }
 
 // IsInterfaceNil -

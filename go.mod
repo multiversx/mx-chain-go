@@ -3,16 +3,16 @@ module github.com/ElrondNetwork/elrond-go
 go 1.15
 
 require (
-	github.com/ElrondNetwork/arwen-wasm-vm/v1_2 v1.2.41
-	github.com/ElrondNetwork/arwen-wasm-vm/v1_3 v1.3.41
-	github.com/ElrondNetwork/arwen-wasm-vm/v1_4 v1.4.58
+	github.com/ElrondNetwork/arwen-wasm-vm/v1_2 v1.2.42-0.20220725094651-084c4dd97fc9
+	github.com/ElrondNetwork/arwen-wasm-vm/v1_3 v1.3.42-0.20220725094638-a059dc6564d0
+	github.com/ElrondNetwork/arwen-wasm-vm/v1_4 v1.4.59-0.20220725094920-9b161a1b1591
 	github.com/ElrondNetwork/concurrent-map v0.1.3
 	github.com/ElrondNetwork/covalent-indexer-go v1.0.6
 	github.com/ElrondNetwork/elastic-indexer-go v1.2.37
 	github.com/ElrondNetwork/elrond-go-core v1.1.16-0.20220708085217-ccc0c5ac9076
 	github.com/ElrondNetwork/elrond-go-crypto v1.0.1
 	github.com/ElrondNetwork/elrond-go-logger v1.0.7
-	github.com/ElrondNetwork/elrond-vm-common v1.3.14
+	github.com/ElrondNetwork/elrond-vm-common v1.3.15-0.20220725094420-5d6df85d1ef4
 	github.com/ElrondNetwork/go-libp2p-pubsub v0.6.1-rc1
 	github.com/beevik/ntp v0.3.0
 	github.com/btcsuite/btcd v0.22.0-beta
@@ -50,8 +50,8 @@ require (
 
 replace github.com/gogo/protobuf => github.com/ElrondNetwork/protobuf v1.3.2
 
-replace github.com/ElrondNetwork/arwen-wasm-vm/v1_2 v1.2.41 => github.com/ElrondNetwork/arwen-wasm-vm v1.2.41
+replace github.com/ElrondNetwork/arwen-wasm-vm/v1_2 v1.2.42-0.20220725094651-084c4dd97fc9 => github.com/ElrondNetwork/arwen-wasm-vm v1.2.42-0.20220725094651-084c4dd97fc9
 
-replace github.com/ElrondNetwork/arwen-wasm-vm/v1_3 v1.3.41 => github.com/ElrondNetwork/arwen-wasm-vm v1.3.41
+replace github.com/ElrondNetwork/arwen-wasm-vm/v1_3 v1.3.42-0.20220725094638-a059dc6564d0 => github.com/ElrondNetwork/arwen-wasm-vm v1.3.42-0.20220725094638-a059dc6564d0
 
-replace github.com/ElrondNetwork/arwen-wasm-vm/v1_4 v1.4.58 => github.com/ElrondNetwork/arwen-wasm-vm v1.4.58
+replace github.com/ElrondNetwork/arwen-wasm-vm/v1_4 v1.4.59-0.20220725094920-9b161a1b1591 => github.com/ElrondNetwork/arwen-wasm-vm v1.4.59-0.20220725094920-9b161a1b1591
