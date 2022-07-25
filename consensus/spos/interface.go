@@ -158,11 +158,11 @@ type ConsensusDataIndexer interface {
 
 // SignatureHandler defines the behaviour of a component that handles signatures in consensus
 type SignatureHandler interface {
-	Reset(pubKeys []string, index uint16) error
-	CreateSignatureShare(msg []byte, bitmap []byte) ([]byte, error)
+	Reset(pubKeys []string) error
+	CreateSignatureShare(msg []byte, index uint16) ([]byte, error)
 	StoreSignatureShare(index uint16, sig []byte) error
 	SignatureShare(index uint16) ([]byte, error)
-	VerifySignatureShare(index uint16, sig []byte, msg []byte, bitmap []byte) error
+	VerifySignatureShare(index uint16, sig []byte, msg []byte) error
 	AggregateSigs(bitmap []byte) ([]byte, error)
 	SetAggregatedSig([]byte) error
 	Verify(msg []byte, bitmap []byte) error

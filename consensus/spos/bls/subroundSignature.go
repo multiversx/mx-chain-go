@@ -69,7 +69,13 @@ func (sr *subroundSignature) doSignatureJob(_ context.Context) bool {
 		return false
 	}
 
-	signatureShare, err := sr.SignatureHandler().CreateSignatureShare(sr.GetData(), nil)
+	selfIndex, err := sr.SelfConsensusGroupIndex()
+	if err != nil {
+		log.Debug("doSignatureJob.SelfConsensusGroupIndex: not in consensus group")
+		return false
+	}
+
+	signatureShare, err := sr.SignatureHandler().CreateSignatureShare(sr.GetData(), uint16(selfIndex))
 	if err != nil {
 		log.Debug("doSignatureJob.CreateSignatureShare", "error", err.Error())
 		return false
@@ -161,7 +167,7 @@ func (sr *subroundSignature) receivedSignature(_ context.Context, cnsDta *consen
 	}
 
 	currentMultiSigner := sr.SignatureHandler()
-	err = currentMultiSigner.VerifySignatureShare(uint16(index), cnsDta.SignatureShare, sr.GetData(), nil)
+	err = currentMultiSigner.VerifySignatureShare(uint16(index), cnsDta.SignatureShare, sr.GetData())
 	if err != nil {
 		log.Debug("receivedSignature.VerifySignatureShare",
 			"node", pkForLogs,

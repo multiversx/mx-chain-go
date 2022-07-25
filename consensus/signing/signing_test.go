@@ -13,7 +13,6 @@ import (
 func createMockArgsSignatureHolder() signing.ArgsSignatureHolder {
 	return signing.ArgsSignatureHolder{
 		PubKeys:      []string{"pubkey1"},
-		OwnIndex:     uint16(0),
 		PrivKey:      &cryptoMocks.PrivateKeyStub{},
 		SingleSigner: &cryptoMocks.SingleSignerStub{},
 		MultiSigner:  &cryptoMocks.MultiSignerNewStub{},
@@ -79,17 +78,6 @@ func TestNewSigner(t *testing.T) {
 		require.Equal(t, signing.ErrNoPublicKeySet, err)
 	})
 
-	t.Run("ownIndex out of bounds", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockArgsSignatureHolder()
-		args.OwnIndex = uint16(1)
-
-		signer, err := signing.NewSignatureHolder(args)
-		require.Nil(t, signer)
-		require.Equal(t, signing.ErrIndexOutOfBounds, err)
-	})
-
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
@@ -143,18 +131,8 @@ func TestReset(t *testing.T) {
 		args := createMockArgsSignatureHolder()
 
 		signer, _ := signing.NewSignatureHolder(args)
-		err := signer.Reset(nil, uint16(3))
+		err := signer.Reset(nil)
 		require.Equal(t, signing.ErrNilPublicKeys, err)
-	})
-
-	t.Run("index out of bounds", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockArgsSignatureHolder()
-
-		signer, _ := signing.NewSignatureHolder(args)
-		err := signer.Reset([]string{"pubKey1", "pubKey2"}, uint16(3))
-		require.Equal(t, signing.ErrIndexOutOfBounds, err)
 	})
 
 	t.Run("empty pubkeys in list", func(t *testing.T) {
@@ -163,7 +141,7 @@ func TestReset(t *testing.T) {
 		args := createMockArgsSignatureHolder()
 
 		signer, _ := signing.NewSignatureHolder(args)
-		err := signer.Reset([]string{"pubKey1", ""}, uint16(1))
+		err := signer.Reset([]string{"pubKey1", ""})
 		require.Equal(t, signing.ErrEmptyPubKeyString, err)
 	})
 
@@ -173,7 +151,7 @@ func TestReset(t *testing.T) {
 		args := createMockArgsSignatureHolder()
 
 		signer, _ := signing.NewSignatureHolder(args)
-		err := signer.Reset([]string{"pubKey1", "pubKey2"}, uint16(1))
+		err := signer.Reset([]string{"pubKey1", "pubKey2"})
 		require.Nil(t, err)
 	})
 }
@@ -181,11 +159,13 @@ func TestReset(t *testing.T) {
 func TestCreateSignatureShare(t *testing.T) {
 	t.Parallel()
 
+	selfIndex := uint16(0)
+
 	t.Run("nil message", func(t *testing.T) {
 		t.Parallel()
 
 		signer, _ := signing.NewSignatureHolder(createMockArgsSignatureHolder())
-		sigShare, err := signer.CreateSignatureShare(nil, []byte{})
+		sigShare, err := signer.CreateSignatureShare(nil, selfIndex)
 		require.Nil(t, sigShare)
 		require.Equal(t, signing.ErrNilMessage, err)
 	})
@@ -203,7 +183,7 @@ func TestCreateSignatureShare(t *testing.T) {
 		}
 
 		signer, _ := signing.NewSignatureHolder(args)
-		sigShare, err := signer.CreateSignatureShare([]byte("msg1"), []byte{})
+		sigShare, err := signer.CreateSignatureShare([]byte("msg1"), selfIndex)
 		require.Nil(t, sigShare)
 		require.Equal(t, expectedErr, err)
 	})
@@ -220,7 +200,7 @@ func TestCreateSignatureShare(t *testing.T) {
 			},
 		}
 		signer, _ := signing.NewSignatureHolder(args)
-		sigShare, err := signer.CreateSignatureShare([]byte("msg1"), []byte{})
+		sigShare, err := signer.CreateSignatureShare([]byte("msg1"), selfIndex)
 		require.Nil(t, err)
 		require.Equal(t, expectedSigShare, sigShare)
 	})
@@ -236,7 +216,7 @@ func TestVerifySignatureShare(t *testing.T) {
 		t.Parallel()
 
 		signer, _ := signing.NewSignatureHolder(createMockArgsSignatureHolder())
-		err := signer.VerifySignatureShare(ownIndex, nil, msg, []byte(""))
+		err := signer.VerifySignatureShare(ownIndex, nil, msg)
 		require.Equal(t, signing.ErrNilSignature, err)
 	})
 
@@ -244,7 +224,7 @@ func TestVerifySignatureShare(t *testing.T) {
 		t.Parallel()
 
 		signer, _ := signing.NewSignatureHolder(createMockArgsSignatureHolder())
-		err := signer.VerifySignatureShare(uint16(3), []byte("sigShare"), msg, []byte(""))
+		err := signer.VerifySignatureShare(uint16(3), []byte("sigShare"), msg)
 		require.Equal(t, signing.ErrIndexOutOfBounds, err)
 	})
 
@@ -262,7 +242,7 @@ func TestVerifySignatureShare(t *testing.T) {
 		}
 		signer, _ := signing.NewSignatureHolder(args)
 
-		err := signer.VerifySignatureShare(uint16(1), []byte("sigShare"), []byte{}, msg)
+		err := signer.VerifySignatureShare(uint16(1), []byte("sigShare"), msg)
 		require.Equal(t, expectedErr, err)
 	})
 
@@ -279,7 +259,7 @@ func TestVerifySignatureShare(t *testing.T) {
 		}
 		signer, _ := signing.NewSignatureHolder(args)
 
-		err := signer.VerifySignatureShare(uint16(1), []byte("sigShare"), []byte{}, msg)
+		err := signer.VerifySignatureShare(uint16(1), []byte("sigShare"), msg)
 		require.Nil(t, err)
 	})
 }
@@ -303,7 +283,6 @@ func TestStoreSignatureShare(t *testing.T) {
 
 		args := createMockArgsSignatureHolder()
 		args.PubKeys = []string{"pk1", "pk2", "pk3", "pk4"}
-		args.OwnIndex = ownIndex
 		args.MultiSigner = &cryptoMocks.MultiSignerNewStub{
 			CreateSignatureShareCalled: func(privateKeyBytes, message []byte) ([]byte, error) {
 				return []byte("sigshare"), nil
@@ -312,7 +291,7 @@ func TestStoreSignatureShare(t *testing.T) {
 
 		signer, _ := signing.NewSignatureHolder(args)
 
-		sigShare, err := signer.CreateSignatureShare(msg, []byte{})
+		sigShare, err := signer.CreateSignatureShare(msg, uint16(0))
 		require.Nil(t, err)
 
 		err = signer.StoreSignatureShare(ownIndex, sigShare)
@@ -369,7 +348,6 @@ func TestSignatureShare(t *testing.T) {
 
 		args := createMockArgsSignatureHolder()
 		args.PubKeys = []string{"pk1", "pk2", "pk3", "pk4"}
-		args.OwnIndex = ownIndex
 
 		signer, _ := signing.NewSignatureHolder(args)
 

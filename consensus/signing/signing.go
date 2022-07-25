@@ -10,7 +10,6 @@ import (
 // ArgsSignatureHolder defines the arguments needed to create a new signature holder component
 type ArgsSignatureHolder struct {
 	PubKeys      []string
-	OwnIndex     uint16
 	PrivKey      crypto.PrivateKey
 	SingleSigner crypto.SingleSigner
 	MultiSigner  crypto.MultiSigner
@@ -22,7 +21,6 @@ type signatureHolderData struct {
 	privKey   crypto.PrivateKey
 	sigShares [][]byte
 	aggSig    []byte
-	ownIndex  uint16
 }
 
 type signatureHolder struct {
@@ -51,7 +49,6 @@ func NewSignatureHolder(args ArgsSignatureHolder) (*signatureHolder, error) {
 		pubKeys:   pk,
 		privKey:   args.PrivKey,
 		sigShares: sigShares,
-		ownIndex:  args.OwnIndex,
 	}
 
 	return &signatureHolder{
@@ -79,9 +76,6 @@ func checkArgs(args ArgsSignatureHolder) error {
 	if len(args.PubKeys) == 0 {
 		return ErrNoPublicKeySet
 	}
-	if args.OwnIndex >= uint16(len(args.PubKeys)) {
-		return ErrIndexOutOfBounds
-	}
 
 	return nil
 }
@@ -103,13 +97,9 @@ func (sh *signatureHolder) Create(pubKeys []string, index uint16) (*signatureHol
 }
 
 // Reset resets the data inside the signature holder component
-func (sh *signatureHolder) Reset(pubKeys []string, index uint16) error {
+func (sh *signatureHolder) Reset(pubKeys []string) error {
 	if pubKeys == nil {
 		return ErrNilPublicKeys
-	}
-
-	if index >= uint16(len(pubKeys)) {
-		return ErrIndexOutOfBounds
 	}
 
 	sigSharesSize := uint16(len(pubKeys))
@@ -128,7 +118,6 @@ func (sh *signatureHolder) Reset(pubKeys []string, index uint16) error {
 		pubKeys:   pk,
 		privKey:   privKey,
 		sigShares: sigShares,
-		ownIndex:  index,
 	}
 
 	sh.data = data
@@ -137,7 +126,7 @@ func (sh *signatureHolder) Reset(pubKeys []string, index uint16) error {
 }
 
 // CreateSignatureShare returns a signature over a message
-func (sh *signatureHolder) CreateSignatureShare(message []byte, _ []byte) ([]byte, error) {
+func (sh *signatureHolder) CreateSignatureShare(message []byte, selfIndex uint16) ([]byte, error) {
 	if message == nil {
 		return nil, ErrNilMessage
 	}
@@ -155,13 +144,13 @@ func (sh *signatureHolder) CreateSignatureShare(message []byte, _ []byte) ([]byt
 		return nil, err
 	}
 
-	sh.data.sigShares[sh.data.ownIndex] = sigShareBytes
+	sh.data.sigShares[selfIndex] = sigShareBytes
 
 	return sigShareBytes, nil
 }
 
 // VerifySignatureShare will verify the signature share based on the specified index
-func (sh *signatureHolder) VerifySignatureShare(index uint16, sig []byte, message []byte, _ []byte) error {
+func (sh *signatureHolder) VerifySignatureShare(index uint16, sig []byte, message []byte) error {
 	if sig == nil {
 		return ErrNilSignature
 	}
