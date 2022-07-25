@@ -141,7 +141,7 @@ func (cc *ConsensusCore) Marshalizer() marshal.Marshalizer {
 	return cc.marshalizer
 }
 
-// MultiSignerContainer gets the MultiSigner stored in the ConsensusCore
+// MultiSignerContainer gets the MultiSignerContainer stored in the ConsensusCore
 func (cc *ConsensusCore) MultiSignerContainer() cryptoCommon.MultiSignerContainer {
 	return cc.multiSignerContainer
 }

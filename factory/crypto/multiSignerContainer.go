@@ -34,11 +34,11 @@ type container struct {
 
 // MultiSigArgs holds the arguments for creating the multiSignerContainer container
 type MultiSigArgs struct {
-	multiSigHasherType   string
-	cryptoParams         *cryptoParams
-	blSignKeyGen         crypto.KeyGenerator
-	consensusType        string
-	importModeNoSigCheck bool
+	MultiSigHasherType   string
+	CryptoParams         *cryptoParams
+	BlSignKeyGen         crypto.KeyGenerator
+	ConsensusType        string
+	ImportModeNoSigCheck bool
 }
 
 // NewMultiSignerContainer creates the multiSignerContainer container
@@ -90,12 +90,12 @@ func (c *container) IsInterfaceNil() bool {
 }
 
 func createMultiSigner(multiSigType string, args MultiSigArgs) (crypto.MultiSigner, error) {
-	if args.importModeNoSigCheck {
+	if args.ImportModeNoSigCheck {
 		log.Warn("using disabled multi signer because the node is running in import-db 'turbo mode'")
 		return &disabledMultiSig.DisabledMultiSig{}, nil
 	}
 
-	switch args.consensusType {
+	switch args.ConsensusType {
 	case consensus.BlsConsensusType:
 		hasher, err := getMultiSigHasherFromConfig(args)
 		if err != nil {
@@ -105,7 +105,7 @@ func createMultiSigner(multiSigType string, args MultiSigArgs) (crypto.MultiSign
 		if err != nil {
 			return nil, err
 		}
-		return multisig.NewBLSMultisig(blsSigner, args.blSignKeyGen)
+		return multisig.NewBLSMultisig(blsSigner, args.BlSignKeyGen)
 	case disabledSigChecking:
 		log.Warn("using disabled multi signer")
 		return &disabledMultiSig.DisabledMultiSig{}, nil
@@ -130,15 +130,15 @@ func createLowLevelSigner(multiSigType string, hasher hashing.Hasher) (crypto.Lo
 }
 
 func getMultiSigHasherFromConfig(args MultiSigArgs) (hashing.Hasher, error) {
-	if args.consensusType == consensus.BlsConsensusType && args.multiSigHasherType != "blake2b" {
+	if args.ConsensusType == consensus.BlsConsensusType && args.MultiSigHasherType != "blake2b" {
 		return nil, errors.ErrMultiSigHasherMissmatch
 	}
 
-	switch args.multiSigHasherType {
+	switch args.MultiSigHasherType {
 	case "sha256":
 		return sha256.NewSha256(), nil
 	case "blake2b":
-		if args.consensusType == consensus.BlsConsensusType {
+		if args.ConsensusType == consensus.BlsConsensusType {
 			return blake2b.NewBlake2bWithSize(mclMultiSig.HasherOutputSize)
 		}
 		return blake2b.NewBlake2b(), nil

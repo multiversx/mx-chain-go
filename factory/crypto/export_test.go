@@ -1,7 +1,6 @@
 package crypto
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	cryptoCommon "github.com/ElrondNetwork/elrond-go/common/crypto"
 )
@@ -14,11 +13,6 @@ func (ccf *cryptoComponentsFactory) GetSkPk() ([]byte, []byte, error) {
 // CreateSingleSigner -
 func (ccf *cryptoComponentsFactory) CreateSingleSigner(importModeNoSigCheck bool) (crypto.SingleSigner, error) {
 	return ccf.createSingleSigner(importModeNoSigCheck)
-}
-
-// GetMultiSigHasherFromConfig -
-func GetMultiSigHasherFromConfig(args MultiSigArgs) (hashing.Hasher, error) {
-	return getMultiSigHasherFromConfig(args)
 }
 
 // CreateDummyCryptoParams

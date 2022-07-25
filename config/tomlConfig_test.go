@@ -672,7 +672,7 @@ func TestEnableEpochConfig(t *testing.T) {
     ]
 
 	BLSMultiSignerEnableEpoch = [
-		{EnableEpoch = 0, Type = "non-KOSK"},
+		{EnableEpoch = 0, Type = "no-KOSK"},
 		{EnableEpoch = 3, Type = "KOSK"}
 	]
 
@@ -756,7 +756,7 @@ func TestEnableEpochConfig(t *testing.T) {
 			BLSMultiSignerEnableEpoch: []MultiSignerConfig{
 				{
 					EnableEpoch: 0,
-					Type:        "non-KOSK",
+					Type:        "no-KOSK",
 				},
 				{
 					EnableEpoch: 3,

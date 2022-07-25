@@ -199,11 +199,11 @@ func (ccf *cryptoComponentsFactory) createMultiSignerContainer(
 ) (cryptoCommon.MultiSignerContainer, error) {
 
 	args := MultiSigArgs{
-		multiSigHasherType:   ccf.config.MultisigHasher.Type,
-		cryptoParams:         cp,
-		blSignKeyGen:         blSignKeyGen,
-		consensusType:        ccf.consensusType,
-		importModeNoSigCheck: importModeNoSigCheck,
+		MultiSigHasherType:   ccf.config.MultisigHasher.Type,
+		CryptoParams:         cp,
+		BlSignKeyGen:         blSignKeyGen,
+		ConsensusType:        ccf.consensusType,
+		ImportModeNoSigCheck: importModeNoSigCheck,
 	}
 	return NewMultiSignerContainer(args, ccf.enableEpochs.BLSMultiSignerEnableEpoch)
 }
