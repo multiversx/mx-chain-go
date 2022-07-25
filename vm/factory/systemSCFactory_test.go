@@ -21,7 +21,7 @@ import (
 func createMockNewSystemScFactoryArgs() ArgsNewSystemSCFactory {
 	gasMap := arwenConfig.MakeGasMapForTests()
 	gasMap = defaults.FillGasMapInternal(gasMap, 1)
-	gasSchedule := mock.NewGasScheduleNotifierMock(gasMap)
+	gasSchedule := testscommon.NewGasScheduleNotifierMock(gasMap)
 	return ArgsNewSystemSCFactory{
 		SystemEI:            &mock.SystemEIStub{},
 		Economics:           &mock.EconomicsHandlerStub{},

@@ -163,6 +163,10 @@ func getBootStrapArgs() factory.BootstrapComponentsFactoryArgs {
 		ImportDbConfig: config.ImportDbConfig{
 			IsImportDBMode: false,
 		},
+		RoundConfig: config.RoundConfig{},
+		FlagsConfig: config.ContextFlagsConfig{
+			ForceStartFromNetwork: false,
+		},
 	}
 }
 

@@ -330,13 +330,14 @@ func (sesb *storageEpochStartBootstrap) requestAndProcessFromStorage() (Paramete
 		return Parameters{}, err
 	}
 
+	emptyPeerMiniBlocksSlice := make([]*block.MiniBlock, 0) // empty slice since we have bootstrapped from storage
 	if sesb.shardCoordinator.SelfId() == core.MetachainShardId {
-		err = sesb.requestAndProcessForMeta()
+		err = sesb.requestAndProcessForMeta(emptyPeerMiniBlocksSlice)
 		if err != nil {
 			return Parameters{}, err
 		}
 	} else {
-		err = sesb.requestAndProcessForShard()
+		err = sesb.requestAndProcessForShard(emptyPeerMiniBlocksSlice)
 		if err != nil {
 			return Parameters{}, err
 		}
@@ -438,7 +439,8 @@ func (sesb *storageEpochStartBootstrap) processNodesConfig(pubKey []byte) error 
 		return err
 	}
 
-	sesb.nodesConfig, sesb.baseData.shardId, err = sesb.nodesConfigHandler.NodesConfigFromMetaBlock(clonedEpochStartMeta, clonedPrevEpochStartMeta)
+	// no need to save the peers miniblocks here as they were already fetched from the DB
+	sesb.nodesConfig, sesb.baseData.shardId, _, err = sesb.nodesConfigHandler.NodesConfigFromMetaBlock(clonedEpochStartMeta, clonedPrevEpochStartMeta)
 	sesb.baseData.shardId = sesb.applyShardIDAsObserverIfNeeded(sesb.baseData.shardId)
 
 	return err

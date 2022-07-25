@@ -297,7 +297,8 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		GlobalSettingsHandler: &disabled.ESDTGlobalSettingsHandler{},
 		DataPool:              arg.Data.Datapool(),
 		CompiledSCPool:        arg.Data.Datapool().SmartContracts(),
-		EnableEpochsHandler: enableEpochsHandler,
+		EpochNotifier:         epochNotifier,
+		EnableEpochsHandler:   enableEpochsHandler,
 		NilCompiledSCStore:    true,
 	}
 
@@ -371,11 +372,12 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 	}
 
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
-		PubkeyConverter:    arg.Core.AddressPubKeyConverter(),
-		ShardCoordinator:   arg.ShardCoordinator,
-		BuiltInFunctions:   builtInFuncs,
-		ArgumentParser:     parsers.NewCallArgsParser(),
-		ESDTTransferParser: esdtTransferParser,
+		PubkeyConverter:     arg.Core.AddressPubKeyConverter(),
+		ShardCoordinator:    arg.ShardCoordinator,
+		BuiltInFunctions:    builtInFuncs,
+		ArgumentParser:      parsers.NewCallArgsParser(),
+		ESDTTransferParser:  esdtTransferParser,
+		EnableEpochsHandler: enableEpochsHandler,
 	}
 	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	if err != nil {

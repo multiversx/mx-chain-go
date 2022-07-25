@@ -34,7 +34,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
-	vmcommonBuiltInFunctions "github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 )
 
@@ -118,7 +117,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		return nil, err
 	}
 
-	builtInFuncs, nftStorageHandler, globalSettingsHandler, err := pcf.createBuiltInFunctionContainer(pcf.state.AccountsAdapter(), mapDNSAddresses)
+	builtInFuncFactory, err := pcf.createBuiltInFunctionContainer(pcf.state.AccountsAdapter(), mapDNSAddresses)
 	if err != nil {
 		return nil, err
 	}
@@ -127,7 +126,15 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 	log.Debug("blockProcessorCreator: enable epoch for ahead of time gas usage", "epoch", pcf.epochConfig.EnableEpochs.AheadOfTimeGasUsageEnableEpoch)
 	log.Debug("blockProcessorCreator: enable epoch for repair callback", "epoch", pcf.epochConfig.EnableEpochs.RepairCallbackEnableEpoch)
 
-	vmFactory, err := pcf.createVMFactoryShard(pcf.state.AccountsAdapter(), builtInFuncs, esdtTransferParser, arwenChangeLocker, pcf.config.SmartContractsStorage, nftStorageHandler, globalSettingsHandler)
+	vmFactory, err := pcf.createVMFactoryShard(
+		pcf.state.AccountsAdapter(),
+		builtInFuncFactory.BuiltInFunctionContainer(),
+		esdtTransferParser,
+		arwenChangeLocker,
+		pcf.config.SmartContractsStorage,
+		builtInFuncFactory.NFTStorageHandler(),
+		builtInFuncFactory.ESDTGlobalSettingsHandler(),
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -137,7 +144,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		return nil, err
 	}
 
-	err = vmcommonBuiltInFunctions.SetPayableHandler(builtInFuncs, vmFactory.BlockChainHookImpl())
+	err = builtInFuncFactory.SetPayableHandler(vmFactory.BlockChainHookImpl())
 	if err != nil {
 		return nil, err
 	}
@@ -176,11 +183,12 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 	}
 
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
-		PubkeyConverter:    pcf.coreData.AddressPubKeyConverter(),
-		ShardCoordinator:   pcf.bootstrapComponents.ShardCoordinator(),
-		BuiltInFunctions:   builtInFuncs,
-		ArgumentParser:     parsers.NewCallArgsParser(),
-		ESDTTransferParser: esdtTransferParser,
+		PubkeyConverter:     pcf.coreData.AddressPubKeyConverter(),
+		ShardCoordinator:    pcf.bootstrapComponents.ShardCoordinator(),
+		BuiltInFunctions:    builtInFuncFactory.BuiltInFunctionContainer(),
+		ArgumentParser:      parsers.NewCallArgsParser(),
+		ESDTTransferParser:  esdtTransferParser,
+		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
 	}
 	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	if err != nil {
@@ -208,7 +216,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		Marshalizer:         pcf.coreData.InternalMarshalizer(),
 		AccountsDB:          pcf.state.AccountsAdapter(),
 		BlockChainHook:      vmFactory.BlockChainHookImpl(),
-		BuiltInFunctions:    builtInFuncs,
+		BuiltInFunctions:    builtInFuncFactory.BuiltInFunctionContainer(),
 		PubkeyConv:          pcf.coreData.AddressPubKeyConverter(),
 		ShardCoordinator:    pcf.bootstrapComponents.ShardCoordinator(),
 		ScrForwarder:        scForwarder,
@@ -422,14 +430,20 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler,
 	processedMiniBlocksTracker process.ProcessedMiniBlocksTracker,
 ) (*blockProcessorAndVmFactories, error) {
-	builtInFuncs, nftStorageHandler, globalSettingsHandler, err := pcf.createBuiltInFunctionContainer(pcf.state.AccountsAdapter(), make(map[string]struct{}))
+	builtInFuncFactory, err := pcf.createBuiltInFunctionContainer(pcf.state.AccountsAdapter(), make(map[string]struct{}))
 	if err != nil {
 		return nil, err
 	}
 
 	argsParser := smartContract.NewArgumentParser()
 
-	vmFactory, err := pcf.createVMFactoryMeta(pcf.state.AccountsAdapter(), builtInFuncs, pcf.config.SmartContractsStorage, nftStorageHandler, globalSettingsHandler)
+	vmFactory, err := pcf.createVMFactoryMeta(
+		pcf.state.AccountsAdapter(),
+		builtInFuncFactory.BuiltInFunctionContainer(),
+		pcf.config.SmartContractsStorage,
+		builtInFuncFactory.NFTStorageHandler(),
+		builtInFuncFactory.ESDTGlobalSettingsHandler(),
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -473,11 +487,12 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	}
 
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
-		PubkeyConverter:    pcf.coreData.AddressPubKeyConverter(),
-		ShardCoordinator:   pcf.bootstrapComponents.ShardCoordinator(),
-		BuiltInFunctions:   builtInFuncs,
-		ArgumentParser:     parsers.NewCallArgsParser(),
-		ESDTTransferParser: esdtTransferParser,
+		PubkeyConverter:     pcf.coreData.AddressPubKeyConverter(),
+		ShardCoordinator:    pcf.bootstrapComponents.ShardCoordinator(),
+		BuiltInFunctions:    builtInFuncFactory.BuiltInFunctionContainer(),
+		ArgumentParser:      parsers.NewCallArgsParser(),
+		ESDTTransferParser:  esdtTransferParser,
+		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
 	}
 	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	if err != nil {
@@ -506,7 +521,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		Marshalizer:         pcf.coreData.InternalMarshalizer(),
 		AccountsDB:          pcf.state.AccountsAdapter(),
 		BlockChainHook:      vmFactory.BlockChainHookImpl(),
-		BuiltInFunctions:    builtInFuncs,
+		BuiltInFunctions:    builtInFuncFactory.BuiltInFunctionContainer(),
 		PubkeyConv:          pcf.coreData.AddressPubKeyConverter(),
 		ShardCoordinator:    pcf.bootstrapComponents.ShardCoordinator(),
 		ScrForwarder:        scForwarder,
@@ -852,13 +867,21 @@ func (pcf *processComponentsFactory) createShardTxSimulatorProcessor(
 		return nil, err
 	}
 
-	builtInFuncs, nftStorageHandler, globalSettingsHandler, err := pcf.createBuiltInFunctionContainer(readOnlyAccountsDB, mapDNSAddresses)
+	builtInFuncFactory, err := pcf.createBuiltInFunctionContainer(readOnlyAccountsDB, mapDNSAddresses)
 	if err != nil {
 		return nil, err
 	}
 
 	smartContractStorageSimulate := pcf.config.SmartContractsStorageSimulate
-	vmFactory, err := pcf.createVMFactoryShard(readOnlyAccountsDB, builtInFuncs, esdtTransferParser, arwenChangeLocker, smartContractStorageSimulate, nftStorageHandler, globalSettingsHandler)
+	vmFactory, err := pcf.createVMFactoryShard(
+		readOnlyAccountsDB,
+		builtInFuncFactory.BuiltInFunctionContainer(),
+		esdtTransferParser,
+		arwenChangeLocker,
+		smartContractStorageSimulate,
+		builtInFuncFactory.NFTStorageHandler(),
+		builtInFuncFactory.ESDTGlobalSettingsHandler(),
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -963,12 +986,18 @@ func (pcf *processComponentsFactory) createMetaTxSimulatorProcessor(
 		return nil, err
 	}
 
-	builtInFuncs, nftStorageHandler, globalSettingsHandler, err := pcf.createBuiltInFunctionContainer(readOnlyAccountsDB, make(map[string]struct{}))
+	builtInFuncFactory, err := pcf.createBuiltInFunctionContainer(readOnlyAccountsDB, make(map[string]struct{}))
 	if err != nil {
 		return nil, err
 	}
 
-	vmFactory, err := pcf.createVMFactoryMeta(readOnlyAccountsDB, builtInFuncs, pcf.config.SmartContractsStorageSimulate, nftStorageHandler, globalSettingsHandler)
+	vmFactory, err := pcf.createVMFactoryMeta(
+		readOnlyAccountsDB,
+		builtInFuncFactory.BuiltInFunctionContainer(),
+		pcf.config.SmartContractsStorageSimulate,
+		builtInFuncFactory.NFTStorageHandler(),
+		builtInFuncFactory.ESDTGlobalSettingsHandler(),
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -1031,7 +1060,8 @@ func (pcf *processComponentsFactory) createVMFactoryShard(
 		WorkingDir:            pcf.workingDir,
 		NFTStorageHandler:     nftStorageHandler,
 		GlobalSettingsHandler: globalSettingsHandler,
-		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
+		EpochNotifier:         pcf.coreData.EpochNotifier(),
+		EnableEpochsHandler:   pcf.coreData.EnableEpochsHandler(),
 		NilCompiledSCStore:    false,
 		ConfigSCStorage:       configSCStorage,
 	}
@@ -1078,7 +1108,8 @@ func (pcf *processComponentsFactory) createVMFactoryMeta(
 		WorkingDir:            pcf.workingDir,
 		NFTStorageHandler:     nftStorageHandler,
 		GlobalSettingsHandler: globalSettingsHandler,
-		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
+		EpochNotifier:         pcf.coreData.EpochNotifier(),
+		EnableEpochsHandler:   pcf.coreData.EnableEpochsHandler(),
 		NilCompiledSCStore:    false,
 	}
 
@@ -1108,11 +1139,11 @@ func (pcf *processComponentsFactory) createVMFactoryMeta(
 func (pcf *processComponentsFactory) createBuiltInFunctionContainer(
 	accounts state.AccountsAdapter,
 	mapDNSAddresses map[string]struct{},
-) (vmcommon.BuiltInFunctionContainer, vmcommon.SimpleESDTNFTStorageHandler, vmcommon.ESDTGlobalSettingsHandler, error) {
+) (vmcommon.BuiltInFunctionFactory, error) {
 	pubKeyConverter := pcf.coreData.AddressPubKeyConverter()
 	convertedAddress, err := pubKeyConverter.Decode(pcf.config.BuiltInFunctions.AutomaticCrawlerAddress)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, err
 	}
 
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
@@ -1128,9 +1159,11 @@ func (pcf *processComponentsFactory) createBuiltInFunctionContainer(
 		ESDTTransferMetaEnableEpoch:              pcf.epochConfig.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch,
 		OptimizeNFTStoreEnableEpoch:              pcf.epochConfig.EnableEpochs.OptimizeNFTStoreEnableEpoch,
 		CheckCorrectTokenIDEnableEpoch:           pcf.epochConfig.EnableEpochs.CheckCorrectTokenIDForTransferRoleEnableEpoch,
+		CheckFunctionArgumentEnableEpoch:         pcf.epochConfig.EnableEpochs.CheckFunctionArgumentEnableEpoch,
 		ESDTMetadataContinuousCleanupEnableEpoch: pcf.epochConfig.EnableEpochs.ESDTMetadataContinuousCleanupEnableEpoch,
 		AutomaticCrawlerAddress:                  convertedAddress,
+		MaxNumNodesInTransferRole:                pcf.config.BuiltInFunctions.MaxNumAddressesInTransferRole,
 	}
 
-	return builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
+	return builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)
 }

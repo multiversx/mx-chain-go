@@ -479,6 +479,7 @@ func (ccf *consensusComponentsFactory) createArgsBaseAccountsSyncer(trieStorageM
 		MaxTrieLevelInMemory:      ccf.config.StateTriesConfig.MaxStateTrieLevelInMemory,
 		MaxHardCapForMissingNodes: ccf.config.TrieSync.MaxHardCapForMissingNodes,
 		TrieSyncerVersion:         ccf.config.TrieSync.TrieSyncerVersion,
+		CheckNodesOnDisk:          ccf.config.TrieSync.CheckNodesOnDisk,
 	}
 }
 

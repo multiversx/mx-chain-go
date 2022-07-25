@@ -942,6 +942,7 @@ func createFullArgumentsForSystemSCProcessing(enableEpochsConfig config.EnableEp
 		GlobalSettingsHandler: &testscommon.ESDTGlobalSettingsHandlerStub{},
 		DataPool:              testDataPool,
 		CompiledSCPool:        testDataPool.SmartContracts(),
+		EpochNotifier:         en,
 		EnableEpochsHandler:   enableEpochsHandler,
 		NilCompiledSCStore:    true,
 	}
@@ -958,7 +959,7 @@ func createFullArgumentsForSystemSCProcessing(enableEpochsConfig config.EnableEp
 		PubkeyConv:          argsHook.PubkeyConv,
 		Economics:           createEconomicsData(),
 		MessageSignVerifier: signVerifer,
-		GasSchedule:         mock.NewGasScheduleNotifierMock(gasSchedule),
+		GasSchedule:         testscommon.NewGasScheduleNotifierMock(gasSchedule),
 		NodesConfigProvider: nodesSetup,
 		Hasher:              hasher,
 		Marshalizer:         marshalizer,
