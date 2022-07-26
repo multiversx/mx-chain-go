@@ -2,6 +2,17 @@
 
 We should be striving to document here where all the contract source codes lie.
 
+## execute-on-dest-esdt-issue-*.wasm
+
+Files:
+    execute-on-dest-esdt-issue-parent-0.34.1.wasm
+    execute-on-dest-esdt-issue-child-0.34.1.wasm
+Repo: https://github.com/ElrondNetwork/elrond-wasm-rs
+Commit: 0947f9c3e1c942ee165853fcb8d50afcecdf938a
+Paths:
+    contracts/feature-tests/composability/execute-on-dest-esdt-issue-callback/parent
+    contracts/feature-tests/composability/execute-on-dest-esdt-issue-callback/child
+
 ## forwarder-raw-0.34.0.wasm
 
 All it does is send transactions to other contracts or wallets.

@@ -1296,7 +1296,7 @@ func TestScACallsScBWithExecOnDestScAPerformsAsyncCall_NoCallbackInScB(t *testin
 	tokenIssuer := nodes[0]
 
 	// deploy parent contract
-	callerScCode := arwen.GetSCCode("../testdata/parent.wasm")
+	callerScCode := arwen.GetSCCode("../testdata/execute-on-dest-esdt-issue-parent-0.34.1.wasm")
 	callerScAddress, _ := tokenIssuer.BlockchainHook.NewAddress(tokenIssuer.OwnAccount.Address, tokenIssuer.OwnAccount.Nonce, vmFactory.ArwenVirtualMachine)
 
 	integrationTests.CreateAndSendTransaction(
@@ -1314,7 +1314,7 @@ func TestScACallsScBWithExecOnDestScAPerformsAsyncCall_NoCallbackInScB(t *testin
 	require.Nil(t, err)
 
 	// deploy child contract by calling deployChildContract endpoint
-	receiverScCode := arwen.GetSCCode("../testdata/child.wasm")
+	receiverScCode := arwen.GetSCCode("../testdata/execute-on-dest-esdt-issue-child-0.34.1.wasm")
 	txDeployData := txDataBuilder.NewBuilder()
 	txDeployData.Func("deployChildContract").Str(receiverScCode)
 
