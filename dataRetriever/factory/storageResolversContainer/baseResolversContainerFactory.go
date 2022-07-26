@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common/disabled"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	disabledResolvers "github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers/disabled"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/storageResolvers"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -224,4 +225,11 @@ func (brcf *baseResolversContainerFactory) newImportDBTrieStorage(
 		IdleProvider:       disabled.NewProcessStatusHandler(),
 	}
 	return trieFactoryInstance.Create(args)
+}
+
+func (brcf *baseResolversContainerFactory) generateValidatorInfoResolver() error {
+	identifierValidatorInfo := common.ValidatorInfoTopic
+	validatorInfoResolver := disabledResolvers.NewDisabledValidatorInfoResolver()
+
+	return brcf.container.Add(identifierValidatorInfo, validatorInfoResolver)
 }
