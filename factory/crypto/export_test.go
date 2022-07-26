@@ -27,11 +27,10 @@ func (ccf *cryptoComponentsFactory) CreateCryptoParams(blockSignKeyGen crypto.Ke
 
 // CreateMultiSignerContainer -
 func (ccf *cryptoComponentsFactory) CreateMultiSignerContainer(
-	cp *cryptoParams,
 	blSignKeyGen crypto.KeyGenerator,
 	importModeNoSigCheck bool,
 ) (cryptoCommon.MultiSignerContainer, error) {
-	return ccf.createMultiSignerContainer(cp, blSignKeyGen, importModeNoSigCheck)
+	return ccf.createMultiSignerContainer(blSignKeyGen, importModeNoSigCheck)
 }
 
 // GetSuite -

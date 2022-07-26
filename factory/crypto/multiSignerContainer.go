@@ -35,7 +35,6 @@ type container struct {
 // MultiSigArgs holds the arguments for creating the multiSignerContainer container
 type MultiSigArgs struct {
 	MultiSigHasherType   string
-	CryptoParams         *cryptoParams
 	BlSignKeyGen         crypto.KeyGenerator
 	ConsensusType        string
 	ImportModeNoSigCheck bool

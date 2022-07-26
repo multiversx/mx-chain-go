@@ -194,7 +194,7 @@ func (mcc *managedCryptoComponents) BlockSigner() crypto.SingleSigner {
 	return mcc.cryptoComponents.blockSingleSigner
 }
 
-// MultiSignerContainer -
+// MultiSignerContainer returns the multiSigner container holding the multiSigner versions
 func (mcc *managedCryptoComponents) MultiSignerContainer() cryptoCommon.MultiSignerContainer {
 	mcc.mutCryptoComponents.RLock()
 	defer mcc.mutCryptoComponents.RUnlock()

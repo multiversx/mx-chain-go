@@ -132,7 +132,7 @@ func (ccf *cryptoComponentsFactory) Create() (*cryptoComponents, error) {
 		return nil, err
 	}
 
-	multiSigner, err := ccf.createMultiSignerContainer(cp, blockSignKeyGen, ccf.importModeNoSigCheck)
+	multiSigner, err := ccf.createMultiSignerContainer(blockSignKeyGen, ccf.importModeNoSigCheck)
 	if err != nil {
 		return nil, err
 	}
@@ -193,14 +193,12 @@ func (ccf *cryptoComponentsFactory) createSingleSigner(importModeNoSigCheck bool
 }
 
 func (ccf *cryptoComponentsFactory) createMultiSignerContainer(
-	cp *cryptoParams,
 	blSignKeyGen crypto.KeyGenerator,
 	importModeNoSigCheck bool,
 ) (cryptoCommon.MultiSignerContainer, error) {
 
 	args := MultiSigArgs{
 		MultiSigHasherType:   ccf.config.MultisigHasher.Type,
-		CryptoParams:         cp,
 		BlSignKeyGen:         blSignKeyGen,
 		ConsensusType:        ccf.consensusType,
 		ImportModeNoSigCheck: importModeNoSigCheck,

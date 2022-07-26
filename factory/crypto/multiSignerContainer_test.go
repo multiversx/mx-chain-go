@@ -312,18 +312,8 @@ func Test_getMultiSigHasherFromConfigOK(t *testing.T) {
 }
 
 func createDefaultMultiSignerArgs() MultiSigArgs {
-	publicKey := "public key"
-	privateKey := "private key"
-
 	return MultiSigArgs{
-		MultiSigHasherType: "blake2b",
-		CryptoParams: &cryptoParams{
-			publicKey:       &cryptoMocks.PublicKeyStub{},
-			privateKey:      &cryptoMocks.PrivateKeyStub{},
-			publicKeyString: publicKey,
-			publicKeyBytes:  []byte(publicKey),
-			privateKeyBytes: []byte(privateKey),
-		},
+		MultiSigHasherType:   "blake2b",
 		BlSignKeyGen:         &cryptoMocks.KeyGenStub{},
 		ConsensusType:        "bls",
 		ImportModeNoSigCheck: false,
