@@ -121,6 +121,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		scheduledMiniBlocksEnableEpoch: arguments.ScheduledMiniBlocksEnableEpoch,
 		pruningDelay:                   pruningDelay,
 		processedMiniBlocksTracker:     arguments.ProcessedMiniBlocksTracker,
+		receiptsRepository:             arguments.ReceiptsRepository,
 	}
 
 	sp := shardProcessor{
