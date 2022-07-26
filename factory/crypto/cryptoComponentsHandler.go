@@ -205,7 +205,7 @@ func (mcc *managedCryptoComponents) MultiSignerContainer() cryptoCommon.MultiSig
 	return mcc.multiSignerContainer
 }
 
-// SetMultiSignerContainer -
+// SetMultiSignerContainer sets the multiSigner container in the crypto components
 func (mcc *managedCryptoComponents) SetMultiSignerContainer(ms cryptoCommon.MultiSignerContainer) error {
 	mcc.mutCryptoComponents.Lock()
 	mcc.multiSignerContainer = ms
@@ -214,7 +214,7 @@ func (mcc *managedCryptoComponents) SetMultiSignerContainer(ms cryptoCommon.Mult
 	return nil
 }
 
-// GetMultiSigner -
+// GetMultiSigner returns the multiSigner configured in the multiSigner container for the given epoch
 func (mcc *managedCryptoComponents) GetMultiSigner(epoch uint32) (crypto.MultiSigner, error) {
 	mcc.mutCryptoComponents.RLock()
 	defer mcc.mutCryptoComponents.RUnlock()
