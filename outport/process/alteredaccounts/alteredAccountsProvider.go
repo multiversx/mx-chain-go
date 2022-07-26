@@ -198,7 +198,7 @@ func (aap *alteredAccountsProvider) extractAddressesWithBalanceChange(
 
 func (aap *alteredAccountsProvider) extractAddressesFromTxsHandlers(
 	selfShardID uint32,
-	txsHandlers map[string]data.TransactionHandler,
+	txsHandlers map[string]data.TransactionHandlerWithGasUsedAndFee,
 	markedAlteredAccounts map[string]*markedAlteredAccount,
 	txType process.TransactionType,
 ) {

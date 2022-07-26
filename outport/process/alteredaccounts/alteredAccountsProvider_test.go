@@ -138,15 +138,15 @@ func testExtractAlteredAccountsFromPoolSenderShard(t *testing.T) {
 	aap, _ := NewAlteredAccountsProvider(args)
 
 	res, err := aap.ExtractAlteredAccountsFromPool(&indexer.Pool{
-		Txs: map[string]data.TransactionHandler{
-			"hash0": &transaction.Transaction{
+		Txs: map[string]data.TransactionHandlerWithGasUsedAndFee{
+			"hash0": indexer.NewTransactionHandlerWithGasAndFee(&transaction.Transaction{
 				SndAddr: []byte("sender shard - tx0  "),
 				RcvAddr: []byte("receiver shard - tx0"),
-			},
-			"hash1": &transaction.Transaction{
+			}, 0, big.NewInt(0)),
+			"hash1": indexer.NewTransactionHandlerWithGasAndFee(&transaction.Transaction{
 				SndAddr: []byte("sender shard - tx1  "),
 				RcvAddr: []byte("receiver shard - tx1"),
-			},
+			}, 0, big.NewInt(0)),
 		},
 	})
 	require.NoError(t, err)
@@ -178,15 +178,15 @@ func testExtractAlteredAccountsFromPoolReceiverShard(t *testing.T) {
 	aap, _ := NewAlteredAccountsProvider(args)
 
 	res, err := aap.ExtractAlteredAccountsFromPool(&indexer.Pool{
-		Txs: map[string]data.TransactionHandler{
-			"hash0": &transaction.Transaction{
+		Txs: map[string]data.TransactionHandlerWithGasUsedAndFee{
+			"hash0": indexer.NewTransactionHandlerWithGasAndFee(&transaction.Transaction{
 				SndAddr: []byte("sender shard - tx0  "),
 				RcvAddr: []byte("receiver shard - tx0"),
-			},
-			"hash1": &transaction.Transaction{
+			}, 0, big.NewInt(0)),
+			"hash1": indexer.NewTransactionHandlerWithGasAndFee(&transaction.Transaction{
 				SndAddr: []byte("sender shard - tx1  "),
 				RcvAddr: []byte("receiver shard - tx1"),
-			},
+			}, 0, big.NewInt(0)),
 		},
 	})
 	require.NoError(t, err)
@@ -216,27 +216,27 @@ func testExtractAlteredAccountsFromPoolBothSenderAndReceiverShards(t *testing.T)
 	aap, _ := NewAlteredAccountsProvider(args)
 
 	res, err := aap.ExtractAlteredAccountsFromPool(&indexer.Pool{
-		Txs: map[string]data.TransactionHandler{
-			"hash0": &transaction.Transaction{ // intra-shard 0, different addresses
+		Txs: map[string]data.TransactionHandlerWithGasUsedAndFee{
+			"hash0": indexer.NewTransactionHandlerWithGasAndFee(&transaction.Transaction{ // intra-shard 0, different addresses
 				SndAddr: []byte("shard0 addr - tx0  "),
 				RcvAddr: []byte("shard0 addr 2 - tx0"),
-			},
-			"hash1": &transaction.Transaction{ // intra-shard 0, same addresses
+			}, 0, big.NewInt(0)),
+			"hash1": indexer.NewTransactionHandlerWithGasAndFee(&transaction.Transaction{ // intra-shard 0, same addresses
 				SndAddr: []byte("shard0 addr 3 - tx1"),
 				RcvAddr: []byte("shard0 addr 3 - tx1"),
-			},
-			"hash2": &transaction.Transaction{ // cross-shard, sender in shard 0
+			}, 0, big.NewInt(0)),
+			"hash2": indexer.NewTransactionHandlerWithGasAndFee(&transaction.Transaction{ // cross-shard, sender in shard 0
 				SndAddr: []byte("shard0 addr - tx2  "),
 				RcvAddr: []byte("shard1 - tx2       "),
-			},
-			"hash3": &transaction.Transaction{ // cross-shard, receiver in shard 0
+			}, 0, big.NewInt(0)),
+			"hash3": indexer.NewTransactionHandlerWithGasAndFee(&transaction.Transaction{ // cross-shard, receiver in shard 0
 				SndAddr: []byte("shard1 addr - tx3  "),
 				RcvAddr: []byte("shard0 addr - tx3  "),
-			},
-			"hash4": &transaction.Transaction{ // cross-shard, no address in shard 0
+			}, 0, big.NewInt(0)),
+			"hash4": indexer.NewTransactionHandlerWithGasAndFee(&transaction.Transaction{ // cross-shard, no address in shard 0
 				SndAddr: []byte("shard2 addr - tx4  "),
 				RcvAddr: []byte("shard2 addr - tx3  "),
-			},
+			}, 0, big.NewInt(0)),
 		},
 	})
 	require.NoError(t, err)
@@ -282,11 +282,11 @@ func testExtractAlteredAccountsFromPoolTrieDataChecks(t *testing.T) {
 	aap, _ := NewAlteredAccountsProvider(args)
 
 	res, err := aap.ExtractAlteredAccountsFromPool(&indexer.Pool{
-		Txs: map[string]data.TransactionHandler{
-			"hash0": &transaction.Transaction{
+		Txs: map[string]data.TransactionHandlerWithGasUsedAndFee{
+			"hash0": indexer.NewTransactionHandlerWithGasAndFee(&transaction.Transaction{
 				SndAddr: []byte("sender in shard 0  "),
 				RcvAddr: []byte(receiverInSelfShard),
-			},
+			}, 0, big.NewInt(0)),
 		},
 	})
 	require.NoError(t, err)
@@ -327,27 +327,27 @@ func testExtractAlteredAccountsFromPoolScrsInvalidRewards(t *testing.T) {
 	aap, _ := NewAlteredAccountsProvider(args)
 
 	res, err := aap.ExtractAlteredAccountsFromPool(&indexer.Pool{
-		Txs: map[string]data.TransactionHandler{
-			"hash0": &transaction.Transaction{
+		Txs: map[string]data.TransactionHandlerWithGasUsedAndFee{
+			"hash0": indexer.NewTransactionHandlerWithGasAndFee(&transaction.Transaction{
 				SndAddr: []byte("sender in shard 0 - tx 0  "),
-			},
+			}, 0, big.NewInt(0)),
 		},
-		Rewards: map[string]data.TransactionHandler{
-			"hash1": &rewardTx.RewardTx{
+		Rewards: map[string]data.TransactionHandlerWithGasUsedAndFee{
+			"hash1": indexer.NewTransactionHandlerWithGasAndFee(&rewardTx.RewardTx{
 				RcvAddr: []byte("receiver in shard 0 - tx 1"),
-			},
+			}, 0, big.NewInt(0)),
 		},
-		Scrs: map[string]data.TransactionHandler{
-			"hash2": &smartContractResult.SmartContractResult{
+		Scrs: map[string]data.TransactionHandlerWithGasUsedAndFee{
+			"hash2": indexer.NewTransactionHandlerWithGasAndFee(&smartContractResult.SmartContractResult{
 				SndAddr: []byte("sender in shard 0 - tx 2  "),
 				RcvAddr: []byte("receiver in shard 0 - tx 2"),
-			},
+			}, 0, big.NewInt(0)),
 		},
-		Invalid: map[string]data.TransactionHandler{
-			"hash3": &transaction.Transaction{
+		Invalid: map[string]data.TransactionHandlerWithGasUsedAndFee{
+			"hash3": indexer.NewTransactionHandlerWithGasAndFee(&transaction.Transaction{
 				SndAddr: []byte("sender in shard 0 - tx 3  "),
 				RcvAddr: []byte("receiver in shard 0 - tx 3"), // receiver for invalid txs should not be included
-			},
+			}, 0, big.NewInt(0)),
 		},
 	})
 	require.NoError(t, err)
@@ -650,10 +650,10 @@ func testExtractAlteredAccountsFromPoolAddressHasBalanceChangeEsdtAndfNft(t *tes
 	aap, _ := NewAlteredAccountsProvider(args)
 
 	res, err := aap.ExtractAlteredAccountsFromPool(&indexer.Pool{
-		Txs: map[string]data.TransactionHandler{
-			"hash0": &transaction.Transaction{
+		Txs: map[string]data.TransactionHandlerWithGasUsedAndFee{
+			"hash0": indexer.NewTransactionHandlerWithGasAndFee(&transaction.Transaction{
 				SndAddr: []byte("addr"),
-			},
+			}, 0, big.NewInt(0)),
 		},
 		Logs: []*data.LogData{
 			{
@@ -753,10 +753,10 @@ func testExtractAlteredAccountsFromPoolAddressHasMultipleNfts(t *testing.T) {
 	aap, _ := NewAlteredAccountsProvider(args)
 
 	res, err := aap.ExtractAlteredAccountsFromPool(&indexer.Pool{
-		Txs: map[string]data.TransactionHandler{
-			"hash0": &transaction.Transaction{
+		Txs: map[string]data.TransactionHandlerWithGasUsedAndFee{
+			"hash0": indexer.NewTransactionHandlerWithGasAndFee(&transaction.Transaction{
 				SndAddr: []byte("addr"),
-			},
+			}, 0, big.NewInt(0)),
 		},
 		Logs: []*data.LogData{
 			{
