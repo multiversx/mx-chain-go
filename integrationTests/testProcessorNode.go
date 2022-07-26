@@ -246,6 +246,7 @@ type ArgTestProcessorNode struct {
 	WithBLSSigVerifier     bool
 	GasScheduleMap         GasScheduleMap
 	EpochsConfig           *config.EnableEpochs
+	VMConfig               *config.VirtualMachineConfig
 	DataPool               dataRetriever.PoolsHolder
 	TrieStore              storage.Storer
 	HardforkPk             crypto.PublicKey
@@ -667,7 +668,11 @@ func (tpn *TestProcessorNode) initTestNodeWithArgs(args ArgTestProcessorNode) {
 	if args.GasScheduleMap != nil {
 		gasMap = args.GasScheduleMap
 	}
-	tpn.initInnerProcessors(gasMap)
+	vmConfig := getDefaultVMConfig()
+	if args.VMConfig != nil {
+		vmConfig = args.VMConfig
+	}
+	tpn.initInnerProcessors(gasMap, vmConfig)
 
 	argsNewScQueryService := smartContract.ArgsNewSCQueryService{
 		VmContainer:              tpn.VMContainer,
@@ -741,7 +746,7 @@ func (tpn *TestProcessorNode) initTestNode() {
 	)
 	tpn.initBlockTracker()
 	tpn.initInterceptors("")
-	tpn.initInnerProcessors(arwenConfig.MakeGasMapForTests())
+	tpn.initInnerProcessors(arwenConfig.MakeGasMapForTests(), getDefaultVMConfig())
 	argsNewScQueryService := smartContract.ArgsNewSCQueryService{
 		VmContainer:              tpn.VMContainer,
 		EconomicsFee:             tpn.EconomicsData,
@@ -774,7 +779,7 @@ func (tpn *TestProcessorNode) initTestNode() {
 func (tpn *TestProcessorNode) InitializeProcessors(gasMap map[string]map[string]uint64) {
 	tpn.initValidatorStatistics()
 	tpn.initBlockTracker()
-	tpn.initInnerProcessors(gasMap)
+	tpn.initInnerProcessors(gasMap, getDefaultVMConfig())
 	argsNewScQueryService := smartContract.ArgsNewSCQueryService{
 		VmContainer:              tpn.VMContainer,
 		EconomicsFee:             tpn.EconomicsData,
@@ -1223,7 +1228,7 @@ func (tpn *TestProcessorNode) initResolvers() {
 	}
 }
 
-func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]uint64) {
+func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]uint64, vmConfig *config.VirtualMachineConfig) {
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
 		tpn.initMetaInnerProcessors()
 		return
@@ -1310,11 +1315,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 	blockChainHookImpl, _ := hooks.NewBlockChainHookImpl(argsHook)
 	tpn.EnableEpochs.FailExecutionOnEveryAPIErrorEnableEpoch = 1
 	argsNewVMFactory := shard.ArgVMContainerFactory{
-		Config: config.VirtualMachineConfig{
-			ArwenVersions: []config.ArwenVersionByEpoch{
-				{StartEpoch: 0, Version: "*"},
-			},
-		},
+		Config:              *vmConfig,
 		BlockGasLimit:       maxGasLimitPerBlock,
 		GasSchedule:         gasSchedule,
 		BlockChainHook:      blockChainHookImpl,
@@ -3089,4 +3090,12 @@ func createTxsSender(shardCoordinator storage.ShardCoordinator, messenger txsSen
 	log.LogIfError(err)
 
 	return txsSenderHandler
+}
+
+func getDefaultVMConfig() *config.VirtualMachineConfig {
+	return &config.VirtualMachineConfig{
+		ArwenVersions: []config.ArwenVersionByEpoch{
+			{StartEpoch: 0, Version: "*"},
+		},
+	}
 }
