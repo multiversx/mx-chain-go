@@ -1,6 +1,10 @@
 package transactionsfee
 
 import (
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/storage"
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
@@ -14,29 +18,38 @@ const (
 )
 
 type ArgTransactionsFeeProcessor struct {
-	TxFeeCalculator FeesProcessorHandler
+	Marshalizer        marshal.Marshalizer
+	TransactionsStorer storage.Storer
+	ShardCoordinator   sharding.Coordinator
+	TxFeeCalculator    FeesProcessorHandler
 }
 
 type transactionsFeeProcessor struct {
-	txFeeCalculator FeesProcessorHandler
+	txGetter         *txGetter
+	txFeeCalculator  FeesProcessorHandler
+	shardCoordinator sharding.Coordinator
 }
 
 func NewTransactionFeeProcessor(arg ArgTransactionsFeeProcessor) (*transactionsFeeProcessor, error) {
-	if check.IfNil(arg.TxFeeCalculator) {
-		return nil, ErrNilTransactionFeeCalculator
+	err := checkArg(arg)
+	if err != nil {
+		return nil, err
 	}
 
 	return &transactionsFeeProcessor{
-		txFeeCalculator: arg.TxFeeCalculator,
+		txFeeCalculator:  arg.TxFeeCalculator,
+		shardCoordinator: arg.ShardCoordinator,
+		txGetter:         newTxGetter(arg.TransactionsStorer, arg.Marshalizer),
 	}, nil
 }
 
-func (tep *transactionsFeeProcessor) PutFeeAndGasUsed(pool *indexer.Pool) {
+func (tep *transactionsFeeProcessor) PutFeeAndGasUsed(pool *indexer.Pool) error {
 	tep.prepareInvalidTxs(pool)
 
 	txsWithResultsMap := groupTransactionsWithResults(pool)
 	tep.prepareNormalTxs(txsWithResultsMap)
 
+	return tep.prepareScrsNoTx(txsWithResultsMap)
 }
 
 func (tep *transactionsFeeProcessor) prepareInvalidTxs(pool *indexer.Pool) {
@@ -101,4 +114,38 @@ func (tep *transactionsFeeProcessor) prepareTxWithResults(txHash []byte, txWithR
 			continue
 		}
 	}
+}
+
+func (tep *transactionsFeeProcessor) prepareScrsNoTx(groupedTxs *groupedTransactionsAndScrs) error {
+	for _, scrHandler := range groupedTxs.scrsNoTx {
+		scrTxHandler, ok := scrHandler.(data.TransactionHandler)
+		if !ok {
+			continue
+		}
+		scr, ok := scrTxHandler.(*smartContractResult.SmartContractResult)
+		if !ok {
+			continue
+		}
+
+		scrReceiverShardID := tep.shardCoordinator.ComputeId(scr.RcvAddr)
+		if scrReceiverShardID != tep.shardCoordinator.SelfId() {
+			continue
+		}
+
+		if !isSCRWithRefundNoTx(scr) {
+			continue
+		}
+
+		txFromStorage, err := tep.txGetter.getTxByHash(scr.OriginalTxHash)
+		if err != nil {
+			return err
+		}
+
+		gasUsed, fee := tep.txFeeCalculator.ComputeGasUsedAndFeeBasedOnRefundValue(txFromStorage, scr.Value)
+
+		scrHandler.SetGasUsed(gasUsed)
+		scrHandler.SetFee(fee)
+	}
+
+	return nil
 }

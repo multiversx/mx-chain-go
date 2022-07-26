@@ -15,13 +15,13 @@ type transactionWithResults struct {
 
 type groupedTransactionsAndScrs struct {
 	txsWithResults map[string]*transactionWithResults
-	scrsNoTx       map[string]data.TransactionHandler
+	scrsNoTx       map[string]data.TransactionHandlerWithGasUsedAndFee
 }
 
 func newGroupedTransactionsAndScrs(nrTxs, nrScrs int) *groupedTransactionsAndScrs {
 	return &groupedTransactionsAndScrs{
 		txsWithResults: make(map[string]*transactionWithResults, nrTxs),
-		scrsNoTx:       make(map[string]data.TransactionHandler, nrScrs),
+		scrsNoTx:       make(map[string]data.TransactionHandlerWithGasUsedAndFee, nrScrs),
 	}
 }
 
