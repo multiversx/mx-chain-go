@@ -34,10 +34,18 @@ func TestNode_GenerateSendInterceptHeaderByNonceWithNetMessenger(t *testing.T) {
 	var txSignPrivKeyShardId uint32 = 0
 
 	fmt.Println("Requester:	")
-	nRequester := integrationTests.NewTestProcessorNode(nrOfShards, shardID, txSignPrivKeyShardId)
+	nRequester := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
+		MaxShards:            nrOfShards,
+		NodeShardId:          shardID,
+		TxSignPrivKeyShardId: txSignPrivKeyShardId,
+	})
 
 	fmt.Println("Resolver:")
-	nResolver := integrationTests.NewTestProcessorNode(nrOfShards, shardID, txSignPrivKeyShardId)
+	nResolver := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
+		MaxShards:            nrOfShards,
+		NodeShardId:          shardID,
+		TxSignPrivKeyShardId: txSignPrivKeyShardId,
+	})
 
 	defer func() {
 		_ = nRequester.Messenger.Close()
@@ -90,10 +98,18 @@ func TestNode_InterceptedHeaderWithWrongChainIDShouldBeDiscarded(t *testing.T) {
 	var txSignPrivKeyShardId uint32 = 0
 
 	fmt.Println("Requester:	")
-	nRequester := integrationTests.NewTestProcessorNode(nrOfShards, shardID, txSignPrivKeyShardId)
+	nRequester := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
+		MaxShards:            nrOfShards,
+		NodeShardId:          shardID,
+		TxSignPrivKeyShardId: txSignPrivKeyShardId,
+	})
 
 	fmt.Println("Resolver:")
-	nResolver := integrationTests.NewTestProcessorNode(nrOfShards, shardID, txSignPrivKeyShardId)
+	nResolver := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
+		MaxShards:            nrOfShards,
+		NodeShardId:          shardID,
+		TxSignPrivKeyShardId: txSignPrivKeyShardId,
+	})
 
 	defer func() {
 		_ = nRequester.Messenger.Close()

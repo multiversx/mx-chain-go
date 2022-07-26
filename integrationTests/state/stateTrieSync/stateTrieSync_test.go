@@ -40,7 +40,13 @@ func createTestProcessorNodeAndTrieStorage(
 	mainStorer, _, err := testStorage.CreateTestingTriePruningStorer(&testscommon.ShardsCoordinatorMock{}, notifier.NewEpochStartSubscriptionHandler())
 	assert.Nil(t, err)
 
-	node := integrationTests.NewTestProcessorNodeWithStorageTrieAndGasModel(numOfShards, shardID, txSignPrivKeyShardId, mainStorer, createTestGasMap())
+	node := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
+		MaxShards:            numOfShards,
+		NodeShardId:          shardID,
+		TxSignPrivKeyShardId: txSignPrivKeyShardId,
+		TrieStore:            mainStorer,
+		GasScheduleMap:       createTestGasMap(),
+	})
 	_ = node.Messenger.CreateTopic(common.ConsensusTopic+node.ShardCoordinator.CommunicationIdentifier(node.ShardCoordinator.SelfId()), true)
 
 	return node, mainStorer

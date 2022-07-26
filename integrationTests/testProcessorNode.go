@@ -42,7 +42,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/resolverscontainer"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/requestHandlers"
 	"github.com/ElrondNetwork/elrond-go/dblookupext"
-	disabledBootstrap "github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
 	"github.com/ElrondNetwork/elrond-go/epochStart/metachain"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/epochStart/shardchain"
@@ -50,6 +49,7 @@ import (
 	hdrFactory "github.com/ElrondNetwork/elrond-go/factory/block"
 	"github.com/ElrondNetwork/elrond-go/factory/peerSignatureHandler"
 	"github.com/ElrondNetwork/elrond-go/genesis"
+	"github.com/ElrondNetwork/elrond-go/genesis/parsing"
 	"github.com/ElrondNetwork/elrond-go/genesis/process/disabled"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/node"
@@ -98,6 +98,7 @@ import (
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	dblookupextMock "github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/genesisMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/mainFactoryMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
@@ -204,7 +205,7 @@ var DelegationManagerConfigChangeAddress = "erd1vxy22x0fj4zv6hktmydg8vpfh6euv02c
 // sizeCheckDelta the maximum allowed bufer overhead (p2p unmarshalling)
 const sizeCheckDelta = 100
 
-const stateCheckpointModulus = 100
+const stateCheckpointModulus = uint(100)
 
 // UnreachableEpoch defines an unreachable epoch for integration tests
 const UnreachableEpoch = uint32(1000000)
@@ -230,6 +231,26 @@ type Connectable interface {
 	ConnectTo(connectable Connectable) error
 	GetConnectableAddress() string
 	IsInterfaceNil() bool
+}
+
+// StateCheckpointModulus defines the checkpoint modulus for block processor
+type StateCheckpointModulus struct {
+	Value uint
+}
+
+// ArgTestProcessorNode represents the DTO used to create a new TestProcessorNode
+type ArgTestProcessorNode struct {
+	MaxShards              uint32
+	NodeShardId            uint32
+	TxSignPrivKeyShardId   uint32
+	WithBLSSigVerifier     bool
+	GasScheduleMap         GasScheduleMap
+	EpochsConfig           *config.EnableEpochs
+	DataPool               dataRetriever.PoolsHolder
+	TrieStore              storage.Storer
+	HardforkPk             crypto.PublicKey
+	GenesisFile            string
+	StateCheckpointModulus *StateCheckpointModulus
 }
 
 // TestProcessorNode represents a container type of class used in integration tests
@@ -351,25 +372,20 @@ func CreatePkBytes(numShards uint32) map[uint32][]byte {
 	return pksbytes
 }
 
-func newBaseTestProcessorNode(
-	maxShards uint32,
-	nodeShardId uint32,
-	txSignPrivKeyShardId uint32,
-	enableEpochsConfig config.EnableEpochs,
-) *TestProcessorNode {
-	shardCoordinator, _ := sharding.NewMultiShardCoordinator(maxShards, nodeShardId)
+func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
+	shardCoordinator, _ := sharding.NewMultiShardCoordinator(args.MaxShards, args.NodeShardId)
 
 	kg := &mock.KeyGenMock{}
 	sk, pk := kg.GeneratePair()
 
-	pksBytes := CreatePkBytes(maxShards)
+	pksBytes := CreatePkBytes(args.MaxShards)
 	address := []byte("afafafafafafafafafafafafafafafaf")
 	numNodes := uint32(len(pksBytes))
 
 	nodesSetup := &mock.NodesSetupStub{
 		InitialNodesInfoCalled: func() (m map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, m2 map[uint32][]nodesCoordinator.GenesisNodeInfoHandler) {
 			oneMap := make(map[uint32][]nodesCoordinator.GenesisNodeInfoHandler)
-			for i := uint32(0); i < maxShards; i++ {
+			for i := uint32(0); i < args.MaxShards; i++ {
 				oneMap[i] = append(oneMap[i], mock.NewNodeInfo(address, pksBytes[i], i, InitialRating))
 			}
 			oneMap[core.MetachainShardId] = append(oneMap[core.MetachainShardId],
@@ -385,14 +401,14 @@ func newBaseTestProcessorNode(
 			return numNodes
 		},
 	}
-	nodesCoordinatorStub := &shardingMocks.NodesCoordinatorStub{
+	nodesCoordinatorInstance := &shardingMocks.NodesCoordinatorStub{
 		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []nodesCoordinator.Validator, err error) {
 			v, _ := nodesCoordinator.NewValidator(pksBytes[shardId], 1, defaultChancesSelection)
 			return []nodesCoordinator.Validator{v}, nil
 		},
 		GetAllValidatorsPublicKeysCalled: func() (map[uint32][][]byte, error) {
 			keys := make(map[uint32][][]byte)
-			for shardID := uint32(0); shardID < maxShards; shardID++ {
+			for shardID := uint32(0); shardID < args.MaxShards; shardID++ {
 				keys[shardID] = append(keys[shardID], pksBytes[shardID])
 			}
 
@@ -416,27 +432,42 @@ func newBaseTestProcessorNode(
 	messenger := CreateMessengerWithNoDiscoveryAndPeersRatingHandler(peersRatingHandler)
 
 	genericEpochNotifier := forking.NewGenericEpochNotifier()
-	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(enableEpochsConfig, genericEpochNotifier)
+	if args.EpochsConfig == nil {
+		args.EpochsConfig = &config.EnableEpochs{
+			OptimizeGasUsedInCrossMiniBlocksEnableEpoch: UnreachableEpoch,
+			ScheduledMiniBlocksEnableEpoch:              UnreachableEpoch,
+			MiniBlockPartialExecutionEnableEpoch:        UnreachableEpoch,
+			FailExecutionOnEveryAPIErrorEnableEpoch:     UnreachableEpoch,
+		}
+
+		isFullGenesis := args.GenesisFile != ""
+		isWithStateCheckpointModulus := args.StateCheckpointModulus != nil
+		if isFullGenesis || isWithStateCheckpointModulus {
+			args.EpochsConfig.StakingV2EnableEpoch = UnreachableEpoch
+		}
+	}
+	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(*args.EpochsConfig, genericEpochNotifier)
 
 	logsProcessor, _ := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{Marshalizer: TestMarshalizer})
 	tpn := &TestProcessorNode{
-		ShardCoordinator:        shardCoordinator,
-		Messenger:               messenger,
-		NodesCoordinator:        nodesCoordinatorStub,
-		HeaderSigVerifier:       &mock.HeaderSigVerifierStub{},
-		HeaderIntegrityVerifier: CreateHeaderIntegrityVerifier(),
-		ChainID:                 ChainID,
-		MinTransactionVersion:   MinTransactionVersion,
-		NodesSetup:              nodesSetup,
-		HistoryRepository:       &dblookupextMock.HistoryRepositoryStub{},
-		EpochNotifier:           genericEpochNotifier,
-		EnableEpochsHandler:     enableEpochsHandler,
-		ArwenChangeLocker:       &sync.RWMutex{},
-		TransactionLogProcessor: logsProcessor,
-		Bootstrapper:            mock.NewTestBootstrapperMock(),
-		PeersRatingHandler:      peersRatingHandler,
-		PeerShardMapper:         mock.NewNetworkShardingCollectorMock(),
-		EnableEpochs:            enableEpochsConfig,
+		ShardCoordinator:         shardCoordinator,
+		Messenger:                messenger,
+		NodesCoordinator:         nodesCoordinatorInstance,
+		HeaderSigVerifier:        &mock.HeaderSigVerifierStub{},
+		HeaderIntegrityVerifier:  CreateHeaderIntegrityVerifier(),
+		ChainID:                  ChainID,
+		MinTransactionVersion:    MinTransactionVersion,
+		NodesSetup:               nodesSetup,
+		HistoryRepository:        &dblookupextMock.HistoryRepositoryStub{},
+		EpochNotifier:            genericEpochNotifier,
+		EnableEpochsHandler:      enableEpochsHandler,
+		ArwenChangeLocker:        &sync.RWMutex{},
+		TransactionLogProcessor:  logsProcessor,
+		Bootstrapper:             mock.NewTestBootstrapperMock(),
+		PeersRatingHandler:       peersRatingHandler,
+		PeerShardMapper:          mock.NewNetworkShardingCollectorMock(),
+		EnableEpochs:             *args.EpochsConfig,
+		UseValidVmBlsSigVerifier: args.WithBLSSigVerifier,
 	}
 
 	tpn.NodeKeys = &TestKeyPair{
@@ -444,232 +475,24 @@ func newBaseTestProcessorNode(
 		Pk: pk,
 	}
 	tpn.MultiSigner = TestMultiSig
-	tpn.OwnAccount = CreateTestWalletAccount(shardCoordinator, txSignPrivKeyShardId)
+	tpn.OwnAccount = CreateTestWalletAccount(shardCoordinator, args.TxSignPrivKeyShardId)
 	tpn.StorageBootstrapper = &mock.StorageBootstrapperMock{}
 	tpn.BootstrapStorer = &mock.BoostrapStorerMock{}
+
 	tpn.initDataPools()
+
+	if !check.IfNil(args.DataPool) {
+		tpn.DataPool = args.DataPool
+		_ = messenger.SetThresholdMinConnectedPeers(minConnectedPeers)
+	}
 
 	return tpn
 }
 
 // NewTestProcessorNode returns a new TestProcessorNode instance with a libp2p messenger
-func NewTestProcessorNode(
-	maxShards uint32,
-	nodeShardId uint32,
-	txSignPrivKeyShardId uint32,
-) *TestProcessorNode {
-
-	enableEpochsConfig := config.EnableEpochs{
-		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: UnreachableEpoch,
-		ScheduledMiniBlocksEnableEpoch:              UnreachableEpoch,
-		MiniBlockPartialExecutionEnableEpoch:        UnreachableEpoch,
-		FailExecutionOnEveryAPIErrorEnableEpoch:     UnreachableEpoch,
-	}
-	tpn := newBaseTestProcessorNode(maxShards, nodeShardId, txSignPrivKeyShardId, enableEpochsConfig)
-	tpn.initTestNode()
-
-	return tpn
-}
-
-// NewTestProcessorNodeWithStorageTrieAndGasModel returns a new TestProcessorNode instance with a storage-based trie
-// and gas model
-func NewTestProcessorNodeWithStorageTrieAndGasModel(
-	maxShards uint32,
-	nodeShardId uint32,
-	txSignPrivKeyShardId uint32,
-	trieStore storage.Storer,
-	gasMap map[string]map[string]uint64,
-) *TestProcessorNode {
-
-	enableEpochsConfig := config.EnableEpochs{
-		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: UnreachableEpoch,
-		ScheduledMiniBlocksEnableEpoch:              UnreachableEpoch,
-		MiniBlockPartialExecutionEnableEpoch:        UnreachableEpoch,
-	}
-	tpn := newBaseTestProcessorNode(maxShards, nodeShardId, txSignPrivKeyShardId, enableEpochsConfig)
-	tpn.initTestNodeWithTrieDBAndGasModel(trieStore, gasMap)
-
-	return tpn
-}
-
-// NewTestProcessorNodeWithBLSSigVerifier returns a new TestProcessorNode instance with a libp2p messenger
-// with a real BLS sig verifier used in system smart contracts
-func NewTestProcessorNodeWithBLSSigVerifier(
-	maxShards uint32,
-	nodeShardId uint32,
-	txSignPrivKeyShardId uint32,
-) *TestProcessorNode {
-
-	enableEpochsConfig := config.EnableEpochs{
-		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: UnreachableEpoch,
-		ScheduledMiniBlocksEnableEpoch:              UnreachableEpoch,
-		MiniBlockPartialExecutionEnableEpoch:        UnreachableEpoch,
-	}
-	tpn := newBaseTestProcessorNode(maxShards, nodeShardId, txSignPrivKeyShardId, enableEpochsConfig)
-	tpn.UseValidVmBlsSigVerifier = true
-	tpn.initTestNode()
-
-	return tpn
-}
-
-// NewTestProcessorNodeWithEnableEpochs returns a TestProcessorNode instance custom enable epochs
-func NewTestProcessorNodeWithEnableEpochs(
-	maxShards uint32,
-	nodeShardId uint32,
-	txSignPrivKeyShardId uint32,
-	enableEpochs config.EnableEpochs,
-) *TestProcessorNode {
-
-	tpn := newBaseTestProcessorNode(maxShards, nodeShardId, txSignPrivKeyShardId, enableEpochs)
-	tpn.initTestNode()
-
-	return tpn
-}
-
-// NewTestProcessorNodeWithFullGenesis returns a new TestProcessorNode instance with a libp2p messenger and a full genesis deploy
-func NewTestProcessorNodeWithFullGenesis(
-	maxShards uint32,
-	nodeShardId uint32,
-	txSignPrivKeyShardId uint32,
-	accountParser genesis.AccountsParser,
-	smartContractParser genesis.InitialSmartContractParser,
-	heartbeatPk string,
-) *TestProcessorNode {
-
-	enableEpochsConfig := config.EnableEpochs{
-		StakingV2EnableEpoch:                        UnreachableEpoch,
-		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: UnreachableEpoch,
-		ScheduledMiniBlocksEnableEpoch:              UnreachableEpoch,
-		MiniBlockPartialExecutionEnableEpoch:        UnreachableEpoch,
-	}
-	tpn := newBaseTestProcessorNode(maxShards, nodeShardId, txSignPrivKeyShardId, enableEpochsConfig)
-	tpn.initChainHandler()
-	tpn.initHeaderValidator()
-	tpn.initRoundHandler()
-	tpn.NetworkShardingCollector = mock.NewNetworkShardingCollectorMock()
-	tpn.initStorage()
-	tpn.EpochStartNotifier = notifier.NewEpochStartSubscriptionHandler()
-	tpn.initAccountDBsWithPruningStorer()
-	economicsConfig := tpn.createDefaultEconomicsConfig()
-	economicsConfig.GlobalSettings.YearSettings = append(
-		economicsConfig.GlobalSettings.YearSettings,
-		&config.YearSetting{
-			Year:             1,
-			MaximumInflation: 0.01,
-		},
-	)
-	tpn.initEconomicsData(economicsConfig)
-	tpn.initRatingsData()
-	tpn.initRequestedItemsHandler()
-	tpn.initResolvers()
-	tpn.initValidatorStatistics()
-
-	tpn.SmartContractParser = smartContractParser
-	tpn.GenesisBlocks = CreateFullGenesisBlocks(
-		tpn.AccntState,
-		tpn.PeerState,
-		tpn.TrieStorageManagers,
-		tpn.NodesSetup,
-		tpn.ShardCoordinator,
-		tpn.Storage,
-		tpn.BlockChain,
-		tpn.DataPool,
-		tpn.EconomicsData,
-		accountParser,
-		smartContractParser,
-		tpn.EnableEpochs,
-	)
-	tpn.initBlockTracker()
-	tpn.initInterceptors(heartbeatPk)
-	tpn.initInnerProcessors(arwenConfig.MakeGasMapForTests())
-	argsNewScQueryService := smartContract.ArgsNewSCQueryService{
-		VmContainer:              tpn.VMContainer,
-		EconomicsFee:             tpn.EconomicsData,
-		BlockChainHook:           tpn.BlockchainHook,
-		BlockChain:               tpn.BlockChain,
-		ArwenChangeLocker:        tpn.ArwenChangeLocker,
-		Bootstrapper:             tpn.Bootstrapper,
-		AllowExternalQueriesChan: common.GetClosedUnbufferedChannel(),
-	}
-	tpn.SCQueryService, _ = smartContract.NewSCQueryService(argsNewScQueryService)
-	tpn.initBlockProcessor(stateCheckpointModulus)
-	tpn.BroadcastMessenger, _ = sposFactory.GetBroadcastMessenger(
-		TestMarshalizer,
-		TestHasher,
-		tpn.Messenger,
-		tpn.ShardCoordinator,
-		tpn.OwnAccount.SkTxSign,
-		tpn.OwnAccount.PeerSigHandler,
-		tpn.DataPool.Headers(),
-		tpn.InterceptorsContainer,
-		&testscommon.AlarmSchedulerStub{},
-	)
-	tpn.setGenesisBlock()
-	tpn.initNode()
-	tpn.addHandlersForCounters()
-	tpn.addGenesisBlocksIntoStorage()
-	tpn.createHeartbeatWithHardforkTrigger()
-
-	return tpn
-}
-
-// NewTestProcessorNodeWithCustomDataPool returns a new TestProcessorNode instance with the given data pool
-func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32, txSignPrivKeyShardId uint32, dPool dataRetriever.PoolsHolder) *TestProcessorNode {
-	shardCoordinator, _ := sharding.NewMultiShardCoordinator(maxShards, nodeShardId)
-
-	peersRatingHandler, _ := p2pRating.NewPeersRatingHandler(
-		p2pRating.ArgPeersRatingHandler{
-			TopRatedCache: testscommon.NewCacherMock(),
-			BadRatedCache: testscommon.NewCacherMock(),
-		})
-
-	messenger := CreateMessengerWithNoDiscoveryAndPeersRatingHandler(peersRatingHandler)
-	_ = messenger.SetThresholdMinConnectedPeers(minConnectedPeers)
-	nodesCoordinatorStub := &shardingMocks.NodesCoordinatorMock{}
-	kg := &mock.KeyGenMock{}
-	sk, pk := kg.GeneratePair()
-
-	enableEpochsConfig := CreateEnableEpochsConfig()
-	genericEpochNotifier := forking.NewGenericEpochNotifier()
-	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(enableEpochsConfig, genericEpochNotifier)
-
-	logsProcessor, _ := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{Marshalizer: TestMarshalizer})
-	tpn := &TestProcessorNode{
-		ShardCoordinator:        shardCoordinator,
-		Messenger:               messenger,
-		NodesCoordinator:        nodesCoordinatorStub,
-		HeaderSigVerifier:       &mock.HeaderSigVerifierStub{},
-		HeaderIntegrityVerifier: CreateHeaderIntegrityVerifier(),
-		ChainID:                 ChainID,
-		NodesSetup: &mock.NodesSetupStub{
-			MinNumberOfNodesCalled: func() uint32 {
-				return 1
-			},
-		},
-		MinTransactionVersion:   MinTransactionVersion,
-		HistoryRepository:       &dblookupextMock.HistoryRepositoryStub{},
-		EpochNotifier:           genericEpochNotifier,
-		ArwenChangeLocker:       &sync.RWMutex{},
-		TransactionLogProcessor: logsProcessor,
-		PeersRatingHandler:      peersRatingHandler,
-		PeerShardMapper:         disabledBootstrap.NewPeerShardMapper(),
-		EnableEpochs:            enableEpochsConfig,
-		EnableEpochsHandler:     enableEpochsHandler,
-	}
-
-	tpn.NodeKeys = &TestKeyPair{
-		Sk: sk,
-		Pk: pk,
-	}
-	tpn.MultiSigner = TestMultiSig
-	tpn.OwnAccount = CreateTestWalletAccount(shardCoordinator, txSignPrivKeyShardId)
-
-	tpn.initDataPools()
-	if tpn.ShardCoordinator.SelfId() != core.MetachainShardId {
-		tpn.DataPool = dPool
-	}
-
-	tpn.initTestNode()
+func NewTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
+	tpn := newBaseTestProcessorNode(args)
+	tpn.initTestNodeWithArgs(args)
 
 	return tpn
 }
@@ -761,6 +584,129 @@ func (tpn *TestProcessorNode) initValidatorStatistics() {
 	tpn.ValidatorStatisticsProcessor, _ = peer.NewValidatorStatisticsProcessor(arguments)
 }
 
+func (tpn *TestProcessorNode) initTestNodeWithArgs(args ArgTestProcessorNode) {
+	isFullGenesis := args.GenesisFile != ""
+	tpn.initChainHandler()
+	tpn.initHeaderValidator()
+	tpn.initRoundHandler()
+	tpn.NetworkShardingCollector = mock.NewNetworkShardingCollectorMock()
+	tpn.EpochStartNotifier = notifier.NewEpochStartSubscriptionHandler()
+	tpn.initStorage()
+	if check.IfNil(args.TrieStore) {
+		tpn.initAccountDBsWithPruningStorer()
+	} else {
+		tpn.initAccountDBs(args.TrieStore)
+	}
+
+	economicsConfig := tpn.createDefaultEconomicsConfig()
+	if isFullGenesis {
+		economicsConfig.GlobalSettings.YearSettings = append(
+			economicsConfig.GlobalSettings.YearSettings,
+			&config.YearSetting{
+				Year:             1,
+				MaximumInflation: 0.01,
+			},
+		)
+	}
+	tpn.initEconomicsData(economicsConfig)
+	tpn.initRatingsData()
+	tpn.initRequestedItemsHandler()
+	tpn.initResolvers()
+	tpn.initValidatorStatistics()
+
+	if isFullGenesis {
+		tpn.SmartContractParser, _ = parsing.NewSmartContractsParser(
+			args.GenesisFile,
+			TestAddressPubkeyConverter,
+			&mock.KeyGenMock{},
+		)
+		tpn.GenesisBlocks = CreateFullGenesisBlocks(
+			tpn.AccntState,
+			tpn.PeerState,
+			tpn.TrieStorageManagers,
+			tpn.NodesSetup,
+			tpn.ShardCoordinator,
+			tpn.Storage,
+			tpn.BlockChain,
+			tpn.DataPool,
+			tpn.EconomicsData,
+			&genesisMocks.AccountsParserStub{},
+			tpn.SmartContractParser,
+			tpn.EnableEpochs,
+		)
+	} else {
+		tpn.GenesisBlocks = CreateGenesisBlocks(
+			tpn.AccntState,
+			tpn.PeerState,
+			tpn.TrieStorageManagers,
+			TestAddressPubkeyConverter,
+			tpn.NodesSetup,
+			tpn.ShardCoordinator,
+			tpn.Storage,
+			tpn.BlockChain,
+			TestMarshalizer,
+			TestHasher,
+			TestUint64Converter,
+			tpn.DataPool,
+			tpn.EconomicsData,
+			tpn.EnableEpochs,
+		)
+	}
+	tpn.initBlockTracker()
+
+	strPk := ""
+	if !check.IfNil(args.HardforkPk) {
+		buff, err := args.HardforkPk.ToByteArray()
+		log.LogIfError(err)
+
+		strPk = hex.EncodeToString(buff)
+	}
+	tpn.initInterceptors(strPk)
+
+	gasMap := arwenConfig.MakeGasMapForTests()
+	if args.GasScheduleMap != nil {
+		gasMap = args.GasScheduleMap
+	}
+	tpn.initInnerProcessors(gasMap)
+
+	argsNewScQueryService := smartContract.ArgsNewSCQueryService{
+		VmContainer:              tpn.VMContainer,
+		EconomicsFee:             tpn.EconomicsData,
+		BlockChainHook:           tpn.BlockchainHook,
+		BlockChain:               tpn.BlockChain,
+		ArwenChangeLocker:        tpn.ArwenChangeLocker,
+		Bootstrapper:             tpn.Bootstrapper,
+		AllowExternalQueriesChan: common.GetClosedUnbufferedChannel(),
+	}
+	tpn.SCQueryService, _ = smartContract.NewSCQueryService(argsNewScQueryService)
+
+	scm := stateCheckpointModulus
+	if args.StateCheckpointModulus != nil {
+		scm = args.StateCheckpointModulus.Value
+	}
+	tpn.initBlockProcessor(scm)
+
+	tpn.BroadcastMessenger, _ = sposFactory.GetBroadcastMessenger(
+		TestMarshalizer,
+		TestHasher,
+		tpn.Messenger,
+		tpn.ShardCoordinator,
+		tpn.OwnAccount.SkTxSign,
+		tpn.OwnAccount.PeerSigHandler,
+		tpn.DataPool.Headers(),
+		tpn.InterceptorsContainer,
+		&testscommon.AlarmSchedulerStub{},
+	)
+	tpn.setGenesisBlock()
+	tpn.initNode()
+	tpn.addHandlersForCounters()
+	tpn.addGenesisBlocksIntoStorage()
+
+	if isFullGenesis {
+		tpn.createHeartbeatWithHardforkTrigger()
+	}
+}
+
 func (tpn *TestProcessorNode) initTestNode() {
 	tpn.initChainHandler()
 	tpn.initHeaderValidator()
@@ -822,199 +768,6 @@ func (tpn *TestProcessorNode) initTestNode() {
 	tpn.initNode()
 	tpn.addHandlersForCounters()
 	tpn.addGenesisBlocksIntoStorage()
-}
-
-func (tpn *TestProcessorNode) initTestNodeWithTrieDBAndGasModel(trieStore storage.Storer, gasMap map[string]map[string]uint64) {
-	tpn.initChainHandler()
-	tpn.initHeaderValidator()
-	tpn.initRoundHandler()
-	tpn.NetworkShardingCollector = mock.NewNetworkShardingCollectorMock()
-	tpn.initStorage()
-	tpn.initAccountDBs(trieStore)
-	tpn.initEconomicsData(tpn.createDefaultEconomicsConfig())
-	tpn.initRatingsData()
-	tpn.initRequestedItemsHandler()
-	tpn.initResolvers()
-	tpn.initValidatorStatistics()
-
-	tpn.GenesisBlocks = CreateGenesisBlocks(
-		tpn.AccntState,
-		tpn.PeerState,
-		tpn.TrieStorageManagers,
-		TestAddressPubkeyConverter,
-		tpn.NodesSetup,
-		tpn.ShardCoordinator,
-		tpn.Storage,
-		tpn.BlockChain,
-		TestMarshalizer,
-		TestHasher,
-		TestUint64Converter,
-		tpn.DataPool,
-		tpn.EconomicsData,
-		tpn.EnableEpochs,
-	)
-	tpn.initBlockTracker()
-	tpn.initInterceptors("")
-	tpn.initInnerProcessors(gasMap)
-	tpn.createFullSCQueryService()
-	tpn.initBlockProcessor(stateCheckpointModulus)
-	tpn.BroadcastMessenger, _ = sposFactory.GetBroadcastMessenger(
-		TestMarshalizer,
-		TestHasher,
-		tpn.Messenger,
-		tpn.ShardCoordinator,
-		tpn.OwnAccount.SkTxSign,
-		tpn.OwnAccount.PeerSigHandler,
-		tpn.DataPool.Headers(),
-		tpn.InterceptorsContainer,
-		&testscommon.AlarmSchedulerStub{},
-	)
-	tpn.setGenesisBlock()
-	tpn.initNode()
-	tpn.addHandlersForCounters()
-	tpn.addGenesisBlocksIntoStorage()
-}
-
-func (tpn *TestProcessorNode) createFullSCQueryService() {
-	var vmFactory process.VirtualMachinesContainerFactory
-	gasMap := arwenConfig.MakeGasMapForTests()
-	defaults.FillGasMapInternal(gasMap, 1)
-	gasSchedule := mock.NewGasScheduleNotifierMock(gasMap)
-	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:               gasSchedule,
-		MapDNSAddresses:           make(map[string]struct{}),
-		Marshalizer:               TestMarshalizer,
-		Accounts:                  tpn.AccntState,
-		ShardCoordinator:          tpn.ShardCoordinator,
-		EpochNotifier:             tpn.EpochNotifier,
-		EnableEpochsHandler:       tpn.EnableEpochsHandler,
-		AutomaticCrawlerAddress:   bytes.Repeat([]byte{1}, 32),
-		MaxNumNodesInTransferRole: 100,
-	}
-	builtInFuncFactory, _ := builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)
-
-	smartContractsCache := testscommon.NewCacherMock()
-
-	argsHook := hooks.ArgBlockChainHook{
-		Accounts:              tpn.AccntState,
-		PubkeyConv:            TestAddressPubkeyConverter,
-		StorageService:        tpn.Storage,
-		BlockChain:            tpn.BlockChain,
-		ShardCoordinator:      tpn.ShardCoordinator,
-		Marshalizer:           TestMarshalizer,
-		Uint64Converter:       TestUint64Converter,
-		BuiltInFunctions:      builtInFuncFactory.BuiltInFunctionContainer(),
-		NFTStorageHandler:     builtInFuncFactory.NFTStorageHandler(),
-		GlobalSettingsHandler: builtInFuncFactory.ESDTGlobalSettingsHandler(),
-		DataPool:              tpn.DataPool,
-		CompiledSCPool:        smartContractsCache,
-		EpochNotifier:         tpn.EpochNotifier,
-		EnableEpochsHandler:   tpn.EnableEpochsHandler,
-		NilCompiledSCStore:    true,
-	}
-
-	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
-		tpn.EnableEpochs = config.EnableEpochs{}
-		sigVerifier, _ := disabled.NewMessageSignVerifier(&mock.KeyGenMock{})
-
-		blockChainHookImpl, _ := hooks.NewBlockChainHookImpl(argsHook)
-		argsNewVmFactory := metaProcess.ArgsNewVMContainerFactory{
-			BlockChainHook:      blockChainHookImpl,
-			PubkeyConv:          argsHook.PubkeyConv,
-			Economics:           tpn.EconomicsData,
-			MessageSignVerifier: sigVerifier,
-			GasSchedule:         gasSchedule,
-			NodesConfigProvider: tpn.NodesSetup,
-			Hasher:              TestHasher,
-			Marshalizer:         TestMarshalizer,
-			SystemSCConfig: &config.SystemSmartContractsConfig{
-				ESDTSystemSCConfig: config.ESDTSystemSCConfig{
-					BaseIssuingCost: "1000",
-					OwnerAddress:    "aaaaaa",
-				},
-				GovernanceSystemSCConfig: config.GovernanceSystemSCConfig{
-					V1: config.GovernanceSystemSCConfigV1{
-						ProposalCost:     "500",
-						NumNodes:         100,
-						MinQuorum:        50,
-						MinPassThreshold: 50,
-						MinVetoThreshold: 50,
-					},
-					Active: config.GovernanceSystemSCConfigActive{
-						ProposalCost:     "500",
-						MinQuorum:        "50",
-						MinPassThreshold: "50",
-						MinVetoThreshold: "50",
-					},
-					FirstWhitelistedAddress: DelegationManagerConfigChangeAddress,
-				},
-				StakingSystemSCConfig: config.StakingSystemSCConfig{
-					GenesisNodePrice:                     "1000",
-					UnJailValue:                          "10",
-					MinStepValue:                         "10",
-					MinStakeValue:                        "1",
-					UnBondPeriod:                         1,
-					UnBondPeriodInEpochs:                 1,
-					NumRoundsWithoutBleed:                1,
-					MaximumPercentageToBleed:             1,
-					BleedPercentagePerRound:              1,
-					MaxNumberOfNodesForStake:             100,
-					ActivateBLSPubKeyMessageVerification: false,
-					MinUnstakeTokensValue:                "1",
-				},
-				DelegationManagerSystemSCConfig: config.DelegationManagerSystemSCConfig{
-					MinCreationDeposit:  "100",
-					MinStakeAmount:      "100",
-					ConfigChangeAddress: DelegationManagerConfigChangeAddress,
-				},
-				DelegationSystemSCConfig: config.DelegationSystemSCConfig{
-					MinServiceFee: 0,
-					MaxServiceFee: 100000,
-				},
-			},
-			ValidatorAccountsDB: tpn.PeerState,
-			ChanceComputer:      tpn.NodesCoordinator,
-			ShardCoordinator:    tpn.ShardCoordinator,
-			EnableEpochsHandler: tpn.EnableEpochsHandler,
-		}
-		tpn.EpochNotifier.CheckEpoch(&testscommon.HeaderHandlerStub{
-			EpochField: tpn.EnableEpochs.DelegationSmartContractEnableEpoch,
-		})
-		vmFactory, _ = metaProcess.NewVMContainerFactory(argsNewVmFactory)
-	} else {
-		esdtTransferParser, _ := parsers.NewESDTTransferParser(TestMarshalizer)
-		blockChainHookImpl, _ := hooks.NewBlockChainHookImpl(argsHook)
-		argsNewVMFactory := shard.ArgVMContainerFactory{
-			Config: config.VirtualMachineConfig{
-				ArwenVersions: []config.ArwenVersionByEpoch{
-					{StartEpoch: 0, Version: "*"},
-				},
-			},
-			BlockChainHook:      blockChainHookImpl,
-			BuiltInFunctions:    argsHook.BuiltInFunctions,
-			BlockGasLimit:       tpn.EconomicsData.MaxGasLimitPerBlock(tpn.ShardCoordinator.SelfId()),
-			GasSchedule:         gasSchedule,
-			EpochNotifier:       tpn.EpochNotifier,
-			EnableEpochsHandler: tpn.EnableEpochsHandler,
-			ArwenChangeLocker:   tpn.ArwenChangeLocker,
-			ESDTTransferParser:  esdtTransferParser,
-		}
-		vmFactory, _ = shard.NewVMContainerFactory(argsNewVMFactory)
-	}
-
-	vmContainer, _ := vmFactory.Create()
-
-	_ = builtInFuncFactory.SetPayableHandler(vmFactory.BlockChainHookImpl())
-	argsNewScQueryService := smartContract.ArgsNewSCQueryService{
-		VmContainer:              vmContainer,
-		EconomicsFee:             tpn.EconomicsData,
-		BlockChainHook:           vmFactory.BlockChainHookImpl(),
-		BlockChain:               tpn.BlockChain,
-		ArwenChangeLocker:        tpn.ArwenChangeLocker,
-		Bootstrapper:             tpn.Bootstrapper,
-		AllowExternalQueriesChan: common.GetClosedUnbufferedChannel(),
-	}
-	tpn.SCQueryService, _ = smartContract.NewSCQueryService(argsNewScQueryService)
 }
 
 // InitializeProcessors will reinitialize processors

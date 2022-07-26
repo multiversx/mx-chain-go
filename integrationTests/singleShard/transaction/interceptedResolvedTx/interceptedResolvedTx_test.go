@@ -28,10 +28,18 @@ func TestNode_RequestInterceptTransactionWithMessengerAndWhitelist(t *testing.T)
 	var txSignPrivKeyShardId uint32 = 0
 
 	fmt.Println("Requester:	")
-	nRequester := integrationTests.NewTestProcessorNode(nrOfShards, shardID, txSignPrivKeyShardId)
+	nRequester := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
+		MaxShards:            nrOfShards,
+		NodeShardId:          shardID,
+		TxSignPrivKeyShardId: txSignPrivKeyShardId,
+	})
 
 	fmt.Println("Resolver:")
-	nResolver := integrationTests.NewTestProcessorNode(nrOfShards, shardID, txSignPrivKeyShardId)
+	nResolver := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
+		MaxShards:            nrOfShards,
+		NodeShardId:          shardID,
+		TxSignPrivKeyShardId: txSignPrivKeyShardId,
+	})
 	defer func() {
 		_ = nRequester.Messenger.Close()
 		_ = nResolver.Messenger.Close()
@@ -116,10 +124,18 @@ func TestNode_RequestInterceptRewardTransactionWithMessenger(t *testing.T) {
 	var txSignPrivKeyShardId uint32 = 0
 
 	fmt.Println("Requester:	")
-	nRequester := integrationTests.NewTestProcessorNode(nrOfShards, shardID, txSignPrivKeyShardId)
+	nRequester := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
+		MaxShards:            nrOfShards,
+		NodeShardId:          shardID,
+		TxSignPrivKeyShardId: txSignPrivKeyShardId,
+	})
 
 	fmt.Println("Resolver:")
-	nResolver := integrationTests.NewTestProcessorNode(nrOfShards, shardID, txSignPrivKeyShardId)
+	nResolver := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
+		MaxShards:            nrOfShards,
+		NodeShardId:          shardID,
+		TxSignPrivKeyShardId: txSignPrivKeyShardId,
+	})
 	defer func() {
 		_ = nRequester.Messenger.Close()
 		_ = nResolver.Messenger.Close()

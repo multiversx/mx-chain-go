@@ -74,13 +74,14 @@ func RunDelegationStressTest(
 		log.LogIfError(err)
 	}()
 
-	node := integrationTests.NewTestProcessorNodeWithStorageTrieAndGasModel(
-		1,
-		0,
-		0,
-		trieStorage,
-		gasSchedule,
-	)
+	node := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
+		MaxShards:            1,
+		NodeShardId:          0,
+		TxSignPrivKeyShardId: 0,
+		TrieStore:            trieStorage,
+		GasScheduleMap:       gasSchedule,
+	})
+
 	defer func() {
 		_ = node.VMContainer.Close()
 	}()

@@ -35,7 +35,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/blockchain"
 	"github.com/ElrondNetwork/elrond-go/genesis"
-	"github.com/ElrondNetwork/elrond-go/genesis/parsing"
 	genesisProcess "github.com/ElrondNetwork/elrond-go/genesis/process"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/node"
@@ -58,7 +57,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/testscommon/genesisMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	testStorage "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
@@ -1287,7 +1285,11 @@ func CreateNodes(
 	idx := 0
 	for shardId := uint32(0); shardId < uint32(numOfShards); shardId++ {
 		for j := 0; j < nodesPerShard; j++ {
-			n := NewTestProcessorNode(uint32(numOfShards), shardId, shardId)
+			n := NewTestProcessorNode(ArgTestProcessorNode{
+				MaxShards:            uint32(numOfShards),
+				NodeShardId:          shardId,
+				TxSignPrivKeyShardId: shardId,
+			})
 			nodes[idx] = n
 			connectableNodes[idx] = n
 			idx++
@@ -1295,7 +1297,11 @@ func CreateNodes(
 	}
 
 	for i := 0; i < numMetaChainNodes; i++ {
-		metaNode := NewTestProcessorNode(uint32(numOfShards), core.MetachainShardId, 0)
+		metaNode := NewTestProcessorNode(ArgTestProcessorNode{
+			MaxShards:            uint32(numOfShards),
+			NodeShardId:          core.MetachainShardId,
+			TxSignPrivKeyShardId: 0,
+		})
 		idx = i + numOfShards*nodesPerShard
 		nodes[idx] = metaNode
 		connectableNodes[idx] = metaNode
@@ -1319,7 +1325,12 @@ func CreateNodesWithEnableEpochs(
 	idx := 0
 	for shardId := uint32(0); shardId < uint32(numOfShards); shardId++ {
 		for j := 0; j < nodesPerShard; j++ {
-			n := NewTestProcessorNodeWithEnableEpochs(uint32(numOfShards), shardId, shardId, epochConfig)
+			n := NewTestProcessorNode(ArgTestProcessorNode{
+				MaxShards:            uint32(numOfShards),
+				NodeShardId:          shardId,
+				TxSignPrivKeyShardId: shardId,
+				EpochsConfig:         &epochConfig,
+			})
 			nodes[idx] = n
 			connectableNodes[idx] = n
 			idx++
@@ -1327,7 +1338,12 @@ func CreateNodesWithEnableEpochs(
 	}
 
 	for i := 0; i < numMetaChainNodes; i++ {
-		metaNode := NewTestProcessorNodeWithEnableEpochs(uint32(numOfShards), core.MetachainShardId, 0, epochConfig)
+		metaNode := NewTestProcessorNode(ArgTestProcessorNode{
+			MaxShards:            uint32(numOfShards),
+			NodeShardId:          core.MetachainShardId,
+			TxSignPrivKeyShardId: 0,
+			EpochsConfig:         &epochConfig,
+		})
 		idx = i + numOfShards*nodesPerShard
 		nodes[idx] = metaNode
 		connectableNodes[idx] = metaNode
@@ -1387,7 +1403,12 @@ func CreateNodesWithBLSSigVerifier(
 	idx := 0
 	for shardId := uint32(0); shardId < uint32(numOfShards); shardId++ {
 		for j := 0; j < nodesPerShard; j++ {
-			n := NewTestProcessorNodeWithBLSSigVerifier(uint32(numOfShards), shardId, shardId)
+			n := NewTestProcessorNode(ArgTestProcessorNode{
+				MaxShards:            uint32(numOfShards),
+				NodeShardId:          shardId,
+				TxSignPrivKeyShardId: shardId,
+				WithBLSSigVerifier:   true,
+			})
 			nodes[idx] = n
 			connectableNodes[idx] = n
 			idx++
@@ -1395,7 +1416,12 @@ func CreateNodesWithBLSSigVerifier(
 	}
 
 	for i := 0; i < numMetaChainNodes; i++ {
-		metaNode := NewTestProcessorNodeWithBLSSigVerifier(uint32(numOfShards), core.MetachainShardId, 0)
+		metaNode := NewTestProcessorNode(ArgTestProcessorNode{
+			MaxShards:            uint32(numOfShards),
+			NodeShardId:          core.MetachainShardId,
+			TxSignPrivKeyShardId: 0,
+			WithBLSSigVerifier:   true,
+		})
 		idx = i + numOfShards*nodesPerShard
 		nodes[idx] = metaNode
 		connectableNodes[idx] = metaNode
@@ -1416,17 +1442,23 @@ func CreateNodesWithFullGenesis(
 	nodes := make([]*TestProcessorNode, numOfShards*nodesPerShard+numMetaChainNodes)
 	connectableNodes := make([]Connectable, len(nodes))
 
-	hardforkStarter := createGenesisNode(genesisFile, uint32(numOfShards), 0, nil)
+	hardforkStarter := NewTestProcessorNode(ArgTestProcessorNode{
+		MaxShards:            uint32(numOfShards),
+		NodeShardId:          0,
+		TxSignPrivKeyShardId: 0,
+		GenesisFile:          genesisFile,
+	})
 
 	idx := 0
 	for shardId := uint32(0); shardId < uint32(numOfShards); shardId++ {
 		for j := 0; j < nodesPerShard; j++ {
-			nodes[idx] = createGenesisNode(
-				genesisFile,
-				uint32(numOfShards),
-				shardId,
-				hardforkStarter.NodeKeys.Pk,
-			)
+			nodes[idx] = NewTestProcessorNode(ArgTestProcessorNode{
+				MaxShards:            uint32(numOfShards),
+				NodeShardId:          shardId,
+				TxSignPrivKeyShardId: shardId,
+				GenesisFile:          genesisFile,
+				HardforkPk:           hardforkStarter.NodeKeys.Pk,
+			})
 			connectableNodes[idx] = nodes[idx]
 			idx++
 		}
@@ -1434,12 +1466,13 @@ func CreateNodesWithFullGenesis(
 
 	for i := 0; i < numMetaChainNodes; i++ {
 		idx = i + numOfShards*nodesPerShard
-		nodes[idx] = createGenesisNode(
-			genesisFile,
-			uint32(numOfShards),
-			core.MetachainShardId,
-			hardforkStarter.NodeKeys.Pk,
-		)
+		nodes[idx] = NewTestProcessorNode(ArgTestProcessorNode{
+			MaxShards:            uint32(numOfShards),
+			NodeShardId:          core.MetachainShardId,
+			TxSignPrivKeyShardId: 0,
+			GenesisFile:          genesisFile,
+			HardforkPk:           hardforkStarter.NodeKeys.Pk,
+		})
 		connectableNodes[idx] = nodes[idx]
 	}
 
@@ -1447,41 +1480,6 @@ func CreateNodesWithFullGenesis(
 	ConnectNodes(connectableNodes)
 
 	return nodes, hardforkStarter
-}
-
-func createGenesisNode(
-	genesisFile string,
-	numOfShards uint32,
-	shardId uint32,
-	hardforkPk crypto.PublicKey,
-) *TestProcessorNode {
-	accountParser := &genesisMocks.AccountsParserStub{}
-	smartContractParser, _ := parsing.NewSmartContractsParser(
-		genesisFile,
-		TestAddressPubkeyConverter,
-		&mock.KeyGenMock{},
-	)
-	txSignShardID := shardId
-	if shardId == core.MetachainShardId {
-		txSignShardID = 0
-	}
-
-	strPk := ""
-	if !check.IfNil(hardforkPk) {
-		buff, err := hardforkPk.ToByteArray()
-		log.LogIfError(err)
-
-		strPk = hex.EncodeToString(buff)
-	}
-
-	return NewTestProcessorNodeWithFullGenesis(
-		numOfShards,
-		shardId,
-		txSignShardID,
-		accountParser,
-		smartContractParser,
-		strPk,
-	)
 }
 
 // CreateNodesWithCustomStateCheckpointModulus creates multiple nodes in different shards with custom stateCheckpointModulus
@@ -1497,7 +1495,14 @@ func CreateNodesWithCustomStateCheckpointModulus(
 	idx := 0
 	for shardId := uint32(0); shardId < uint32(numOfShards); shardId++ {
 		for j := 0; j < nodesPerShard; j++ {
-			n := NewTestProcessorNodeWithStateCheckpointModulus(uint32(numOfShards), shardId, shardId, stateCheckpointModulus)
+			n := NewTestProcessorNode(ArgTestProcessorNode{
+				MaxShards:            uint32(numOfShards),
+				NodeShardId:          shardId,
+				TxSignPrivKeyShardId: shardId,
+				StateCheckpointModulus: &StateCheckpointModulus{
+					Value: stateCheckpointModulus,
+				},
+			})
 
 			nodes[idx] = n
 			connectableNodes[idx] = n
@@ -1506,7 +1511,14 @@ func CreateNodesWithCustomStateCheckpointModulus(
 	}
 
 	for i := 0; i < numMetaChainNodes; i++ {
-		metaNode := NewTestProcessorNodeWithStateCheckpointModulus(uint32(numOfShards), core.MetachainShardId, 0, stateCheckpointModulus)
+		metaNode := NewTestProcessorNode(ArgTestProcessorNode{
+			MaxShards:            uint32(numOfShards),
+			NodeShardId:          core.MetachainShardId,
+			TxSignPrivKeyShardId: 0,
+			StateCheckpointModulus: &StateCheckpointModulus{
+				Value: stateCheckpointModulus,
+			},
+		})
 		idx = i + numOfShards*nodesPerShard
 		nodes[idx] = metaNode
 		connectableNodes[idx] = metaNode

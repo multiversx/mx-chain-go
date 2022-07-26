@@ -48,8 +48,11 @@ func NewTestProcessorNodeWithTestWebServer(
 	txSignPrivKeyShardId uint32,
 ) *TestProcessorNodeWithTestWebServer {
 
-	tpn := newBaseTestProcessorNode(maxShards, nodeShardId, txSignPrivKeyShardId, config.EnableEpochs{})
-	tpn.initTestNode()
+	tpn := NewTestProcessorNode(ArgTestProcessorNode{
+		MaxShards:            maxShards,
+		NodeShardId:          nodeShardId,
+		TxSignPrivKeyShardId: txSignPrivKeyShardId,
+	})
 
 	argFacade := createFacadeArg(tpn)
 	facade, err := nodeFacade.NewNodeFacade(argFacade)
@@ -137,14 +140,14 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 	defaults.FillGasMapInternal(gasMap, 1)
 	gasScheduleNotifier := mock.NewGasScheduleNotifierMock(gasMap)
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:             gasScheduleNotifier,
-		MapDNSAddresses:         make(map[string]struct{}),
-		Marshalizer:             TestMarshalizer,
-		Accounts:                tpn.AccntState,
-		ShardCoordinator:        tpn.ShardCoordinator,
+		GasSchedule:               gasScheduleNotifier,
+		MapDNSAddresses:           make(map[string]struct{}),
+		Marshalizer:               TestMarshalizer,
+		Accounts:                  tpn.AccntState,
+		ShardCoordinator:          tpn.ShardCoordinator,
 		EpochNotifier:             tpn.EpochNotifier,
-		EnableEpochsHandler:     tpn.EnableEpochsHandler,
-		AutomaticCrawlerAddress: bytes.Repeat([]byte{1}, 32),
+		EnableEpochsHandler:       tpn.EnableEpochsHandler,
+		AutomaticCrawlerAddress:   bytes.Repeat([]byte{1}, 32),
 		MaxNumNodesInTransferRole: 100,
 	}
 	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)
