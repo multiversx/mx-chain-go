@@ -7,7 +7,7 @@ import (
 )
 
 type transactionWithResults struct {
-	data.TransactionHandler
+	data.TransactionHandlerWithGasUsedAndFee
 	scrs    []data.TransactionHandler
 	receipt []*receipt.Receipt
 	logs    *data.LogData
@@ -34,19 +34,7 @@ func groupTransactionsWithResults(txPool *indexer.Pool) *groupedTransactionsAndS
 	groupedTxsAndScrs := newGroupedTransactionsAndScrs(totalTxs, len(txPool.Scrs))
 	for txHash, tx := range txPool.Txs {
 		groupedTxsAndScrs.txsWithResults[txHash] = &transactionWithResults{
-			TransactionHandler: tx,
-		}
-	}
-
-	for txHash, tx := range txPool.Rewards {
-		groupedTxsAndScrs.txsWithResults[txHash] = &transactionWithResults{
-			TransactionHandler: tx,
-		}
-	}
-
-	for txHash, tx := range txPool.Invalid {
-		groupedTxsAndScrs.txsWithResults[txHash] = &transactionWithResults{
-			TransactionHandler: tx,
+			TransactionHandlerWithGasUsedAndFee: tx,
 		}
 	}
 
