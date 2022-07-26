@@ -139,7 +139,7 @@ func (tpn *TestProcessorNode) initTestNodeWithSync() {
 	tpn.initResolvers()
 	tpn.initBlockTracker()
 	tpn.initInterceptors("")
-	tpn.initInnerProcessors(arwenConfig.MakeGasMapForTests())
+	tpn.initInnerProcessors(arwenConfig.MakeGasMapForTests(), getDefaultVMConfig())
 	tpn.initBlockProcessorWithSync()
 	tpn.BroadcastMessenger, _ = sposFactory.GetBroadcastMessenger(
 		TestMarshalizer,
