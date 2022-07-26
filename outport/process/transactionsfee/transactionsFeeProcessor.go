@@ -1,10 +1,11 @@
 package transactionsfee
 
 import (
+	"math/big"
+
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
-	"math/big"
 )
 
 const (
