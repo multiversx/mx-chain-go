@@ -244,6 +244,7 @@ type ArgTestProcessorNode struct {
 	NodeShardId             uint32
 	TxSignPrivKeyShardId    uint32
 	WithBLSSigVerifier      bool
+	WithSync                bool
 	GasScheduleMap          GasScheduleMap
 	EpochsConfig            *config.EnableEpochs
 	VMConfig                *config.VirtualMachineConfig
@@ -636,6 +637,8 @@ func (tpn *TestProcessorNode) initTestNodeWithArgs(args ArgTestProcessorNode) {
 			tpn.SmartContractParser,
 			tpn.EnableEpochs,
 		)
+	} else if args.WithSync {
+		tpn.GenesisBlocks = CreateSimpleGenesisBlocks(tpn.ShardCoordinator)
 	} else {
 		tpn.GenesisBlocks = CreateGenesisBlocks(
 			tpn.AccntState,
@@ -686,11 +689,15 @@ func (tpn *TestProcessorNode) initTestNodeWithArgs(args ArgTestProcessorNode) {
 	}
 	tpn.SCQueryService, _ = smartContract.NewSCQueryService(argsNewScQueryService)
 
-	scm := stateCheckpointModulus
-	if args.StateCheckpointModulus != nil {
-		scm = args.StateCheckpointModulus.Value
+	if args.WithSync {
+		tpn.initBlockProcessorWithSync()
+	} else {
+		scm := stateCheckpointModulus
+		if args.StateCheckpointModulus != nil {
+			scm = args.StateCheckpointModulus.Value
+		}
+		tpn.initBlockProcessor(scm)
 	}
-	tpn.initBlockProcessor(scm)
 
 	tpn.BroadcastMessenger, _ = sposFactory.GetBroadcastMessenger(
 		TestMarshalizer,
@@ -703,6 +710,10 @@ func (tpn *TestProcessorNode) initTestNodeWithArgs(args ArgTestProcessorNode) {
 		tpn.InterceptorsContainer,
 		&testscommon.AlarmSchedulerStub{},
 	)
+
+	if args.WithSync {
+		tpn.initBootstrapper()
+	}
 	tpn.setGenesisBlock()
 	tpn.initNode()
 	tpn.addHandlersForCounters()

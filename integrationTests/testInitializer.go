@@ -2282,22 +2282,24 @@ func SetupSyncNodesOneShardAndMeta(
 	var nodes []*TestProcessorNode
 	var connectableNodes []Connectable
 	for i := 0; i < numNodesPerShard; i++ {
-		shardNode := NewTestSyncNode(
-			maxShards,
-			shardId,
-			shardId,
-		)
+		shardNode := NewTestProcessorNode(ArgTestProcessorNode{
+			MaxShards:            maxShards,
+			NodeShardId:          shardId,
+			TxSignPrivKeyShardId: shardId,
+			WithSync:             true,
+		})
 		nodes = append(nodes, shardNode)
 		connectableNodes = append(connectableNodes, shardNode)
 	}
 	idxProposerShard0 := 0
 
 	for i := 0; i < numNodesMeta; i++ {
-		metaNode := NewTestSyncNode(
-			maxShards,
-			core.MetachainShardId,
-			shardId,
-		)
+		metaNode := NewTestProcessorNode(ArgTestProcessorNode{
+			MaxShards:            maxShards,
+			NodeShardId:          core.MetachainShardId,
+			TxSignPrivKeyShardId: shardId,
+			WithSync:             true,
+		})
 		nodes = append(nodes, metaNode)
 		connectableNodes = append(connectableNodes, metaNode)
 	}
