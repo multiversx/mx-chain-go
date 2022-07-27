@@ -709,69 +709,6 @@ func (tpn *TestProcessorNode) initTestNodeWithArgs(args ArgTestProcessorNode) {
 	}
 }
 
-func (tpn *TestProcessorNode) initTestNode() {
-	tpn.initChainHandler()
-	tpn.initHeaderValidator()
-	tpn.initRoundHandler()
-	tpn.NetworkShardingCollector = mock.NewNetworkShardingCollectorMock()
-	tpn.initStorage()
-	if tpn.EpochStartNotifier == nil {
-		tpn.EpochStartNotifier = notifier.NewEpochStartSubscriptionHandler()
-	}
-	tpn.initAccountDBsWithPruningStorer()
-	tpn.initEconomicsData(tpn.createDefaultEconomicsConfig())
-	tpn.initRatingsData()
-	tpn.initRequestedItemsHandler()
-	tpn.initResolvers()
-	tpn.initValidatorStatistics()
-
-	tpn.GenesisBlocks = CreateGenesisBlocks(
-		tpn.AccntState,
-		tpn.PeerState,
-		tpn.TrieStorageManagers,
-		TestAddressPubkeyConverter,
-		tpn.NodesSetup,
-		tpn.ShardCoordinator,
-		tpn.Storage,
-		tpn.BlockChain,
-		TestMarshalizer,
-		TestHasher,
-		TestUint64Converter,
-		tpn.DataPool,
-		tpn.EconomicsData,
-		tpn.EnableEpochs,
-	)
-	tpn.initBlockTracker()
-	tpn.initInterceptors("")
-	tpn.initInnerProcessors(arwenConfig.MakeGasMapForTests(), getDefaultVMConfig())
-	argsNewScQueryService := smartContract.ArgsNewSCQueryService{
-		VmContainer:              tpn.VMContainer,
-		EconomicsFee:             tpn.EconomicsData,
-		BlockChainHook:           tpn.BlockchainHook,
-		BlockChain:               tpn.BlockChain,
-		ArwenChangeLocker:        tpn.ArwenChangeLocker,
-		Bootstrapper:             tpn.Bootstrapper,
-		AllowExternalQueriesChan: common.GetClosedUnbufferedChannel(),
-	}
-	tpn.SCQueryService, _ = smartContract.NewSCQueryService(argsNewScQueryService)
-	tpn.initBlockProcessor(stateCheckpointModulus)
-	tpn.BroadcastMessenger, _ = sposFactory.GetBroadcastMessenger(
-		TestMarshalizer,
-		TestHasher,
-		tpn.Messenger,
-		tpn.ShardCoordinator,
-		tpn.OwnAccount.SkTxSign,
-		tpn.OwnAccount.PeerSigHandler,
-		tpn.DataPool.Headers(),
-		tpn.InterceptorsContainer,
-		&testscommon.AlarmSchedulerStub{},
-	)
-	tpn.setGenesisBlock()
-	tpn.initNode()
-	tpn.addHandlersForCounters()
-	tpn.addGenesisBlocksIntoStorage()
-}
-
 // InitializeProcessors will reinitialize processors
 func (tpn *TestProcessorNode) InitializeProcessors(gasMap map[string]map[string]uint64) {
 	tpn.initValidatorStatistics()
