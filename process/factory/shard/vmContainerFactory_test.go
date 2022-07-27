@@ -91,6 +91,17 @@ func TestNewVMContainerFactory_NilEpochNotifierShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilEpochNotifier, err)
 }
 
+func TestNewVMContainerFactory_NilEnableEpochsHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createMockVMAccountsArguments()
+	args.EnableEpochsHandler = nil
+	vmf, err := NewVMContainerFactory(args)
+
+	assert.Nil(t, vmf)
+	assert.Equal(t, process.ErrNilEnableEpochsHandler, err)
+}
+
 func TestNewVMContainerFactory_NilBuiltinFunctionsShouldErr(t *testing.T) {
 	t.Parallel()
 

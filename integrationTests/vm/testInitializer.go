@@ -641,12 +641,12 @@ func CreateVMAndBlockchainHookMeta(
 		MapDNSAddresses: map[string]struct{}{
 			string(dnsAddr): {},
 		},
-		Marshalizer:             testMarshalizer,
-		Accounts:                accnts,
-		ShardCoordinator:        shardCoordinator,
+		Marshalizer:               testMarshalizer,
+		Accounts:                  accnts,
+		ShardCoordinator:          shardCoordinator,
 		EpochNotifier:             globalEpochNotifier,
-		EnableEpochsHandler:     enableEpochsHandler,
-		AutomaticCrawlerAddress: bytes.Repeat([]byte{1}, 32),
+		EnableEpochsHandler:       enableEpochsHandler,
+		AutomaticCrawlerAddress:   bytes.Repeat([]byte{1}, 32),
 		MaxNumNodesInTransferRole: 100,
 	}
 	builtInFuncFactory, _ := builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)
