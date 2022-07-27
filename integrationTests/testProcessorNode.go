@@ -452,6 +452,7 @@ func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 	tpn.NodeKeys = args.NodeKeys
 	if tpn.NodeKeys == nil {
 		kg := &mock.KeyGenMock{}
+		tpn.NodeKeys = &TestKeyPair{}
 		tpn.NodeKeys.Sk, tpn.NodeKeys.Pk = kg.GeneratePair()
 	}
 
@@ -518,6 +519,9 @@ func (tpn *TestProcessorNode) Close() {
 }
 
 func (tpn *TestProcessorNode) initAccountDBsWithPruningStorer() {
+	if check.IfNil(tpn.EpochStartNotifier) {
+		tpn.EpochStartNotifier = notifier.NewEpochStartSubscriptionHandler()
+	}
 	trieStorageManager := CreateTrieStorageManagerWithPruningStorer(tpn.ShardCoordinator, tpn.EpochStartNotifier)
 	tpn.TrieContainer = state.NewDataTriesHolder()
 	var stateTrie common.Trie
