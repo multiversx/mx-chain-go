@@ -252,6 +252,10 @@ type ArgTestProcessorNode struct {
 	HardforkPk             crypto.PublicKey
 	GenesisFile            string
 	StateCheckpointModulus *StateCheckpointModulus
+	NodeKeys               *nodeKeys
+	NodesSetup             sharding.GenesisNodesSetupHandler
+	NodesCoordinator       nodesCoordinator.NodesCoordinator
+	MultiSigner            crypto.MultiSigner
 }
 
 // TestProcessorNode represents a container type of class used in integration tests
@@ -379,49 +383,24 @@ func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 	kg := &mock.KeyGenMock{}
 	sk, pk := kg.GeneratePair()
 
+	if args.NodeKeys != nil {
+		sk = args.NodeKeys.BlockSignSk
+		pk = args.NodeKeys.BlockSignPk
+	}
+
 	pksBytes := CreatePkBytes(args.MaxShards)
 	address := []byte("afafafafafafafafafafafafafafafaf")
 	numNodes := uint32(len(pksBytes))
 
-	nodesSetup := &mock.NodesSetupStub{
-		InitialNodesInfoCalled: func() (m map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, m2 map[uint32][]nodesCoordinator.GenesisNodeInfoHandler) {
-			oneMap := make(map[uint32][]nodesCoordinator.GenesisNodeInfoHandler)
-			for i := uint32(0); i < args.MaxShards; i++ {
-				oneMap[i] = append(oneMap[i], mock.NewNodeInfo(address, pksBytes[i], i, InitialRating))
-			}
-			oneMap[core.MetachainShardId] = append(oneMap[core.MetachainShardId],
-				mock.NewNodeInfo(address, pksBytes[core.MetachainShardId], core.MetachainShardId, InitialRating))
-			return oneMap, nil
-		},
-		InitialNodesInfoForShardCalled: func(shardId uint32) (handlers []nodesCoordinator.GenesisNodeInfoHandler, handlers2 []nodesCoordinator.GenesisNodeInfoHandler, err error) {
-			list := make([]nodesCoordinator.GenesisNodeInfoHandler, 0)
-			list = append(list, mock.NewNodeInfo(address, pksBytes[shardId], shardId, InitialRating))
-			return list, nil, nil
-		},
-		MinNumberOfNodesCalled: func() uint32 {
-			return numNodes
-		},
+	nodesSetup := args.NodesSetup
+	if check.IfNil(nodesSetup) {
+		nodesSetup = getDefaultNodesSetup(args.MaxShards, numNodes, address, pksBytes)
 	}
-	nodesCoordinatorInstance := &shardingMocks.NodesCoordinatorStub{
-		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []nodesCoordinator.Validator, err error) {
-			v, _ := nodesCoordinator.NewValidator(pksBytes[shardId], 1, defaultChancesSelection)
-			return []nodesCoordinator.Validator{v}, nil
-		},
-		GetAllValidatorsPublicKeysCalled: func() (map[uint32][][]byte, error) {
-			keys := make(map[uint32][][]byte)
-			for shardID := uint32(0); shardID < args.MaxShards; shardID++ {
-				keys[shardID] = append(keys[shardID], pksBytes[shardID])
-			}
 
-			shardID := core.MetachainShardId
-			keys[shardID] = append(keys[shardID], pksBytes[shardID])
-
-			return keys, nil
-		},
-		GetValidatorWithPublicKeyCalled: func(publicKey []byte) (nodesCoordinator.Validator, uint32, error) {
-			validator, _ := nodesCoordinator.NewValidator(publicKey, defaultChancesSelection, 1)
-			return validator, 0, nil
-		},
+	nodesCoordinatorInstance := args.NodesCoordinator
+	withCustomNodesCoordinator := !check.IfNil(nodesCoordinatorInstance)
+	if !withCustomNodesCoordinator {
+		nodesCoordinatorInstance = getDefaultNodesCoordinator(args.MaxShards, pksBytes)
 	}
 
 	peersRatingHandler, _ := p2pRating.NewPeersRatingHandler(
@@ -433,8 +412,9 @@ func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 	messenger := CreateMessengerWithNoDiscoveryAndPeersRatingHandler(peersRatingHandler)
 
 	genericEpochNotifier := forking.NewGenericEpochNotifier()
-	if args.EpochsConfig == nil {
-		args.EpochsConfig = &config.EnableEpochs{
+	epochsConfig := args.EpochsConfig
+	if epochsConfig == nil {
+		epochsConfig = &config.EnableEpochs{
 			OptimizeGasUsedInCrossMiniBlocksEnableEpoch: UnreachableEpoch,
 			ScheduledMiniBlocksEnableEpoch:              UnreachableEpoch,
 			MiniBlockPartialExecutionEnableEpoch:        UnreachableEpoch,
@@ -444,10 +424,10 @@ func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 		isFullGenesis := args.GenesisFile != ""
 		isWithStateCheckpointModulus := args.StateCheckpointModulus != nil
 		if isFullGenesis || isWithStateCheckpointModulus {
-			args.EpochsConfig.StakingV2EnableEpoch = UnreachableEpoch
+			epochsConfig.StakingV2EnableEpoch = UnreachableEpoch
 		}
 	}
-	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(*args.EpochsConfig, genericEpochNotifier)
+	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(*epochsConfig, genericEpochNotifier)
 
 	logsProcessor, _ := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{Marshalizer: TestMarshalizer})
 	tpn := &TestProcessorNode{
@@ -467,18 +447,38 @@ func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 		Bootstrapper:             mock.NewTestBootstrapperMock(),
 		PeersRatingHandler:       peersRatingHandler,
 		PeerShardMapper:          mock.NewNetworkShardingCollectorMock(),
-		EnableEpochs:             *args.EpochsConfig,
+		EnableEpochs:             *epochsConfig,
 		UseValidVmBlsSigVerifier: args.WithBLSSigVerifier,
+		StorageBootstrapper:      &mock.StorageBootstrapperMock{},
+		BootstrapStorer:          &mock.BoostrapStorerMock{},
 	}
 
 	tpn.NodeKeys = &TestKeyPair{
 		Sk: sk,
 		Pk: pk,
 	}
+
 	tpn.MultiSigner = TestMultiSig
-	tpn.OwnAccount = CreateTestWalletAccount(shardCoordinator, args.TxSignPrivKeyShardId)
-	tpn.StorageBootstrapper = &mock.StorageBootstrapperMock{}
-	tpn.BootstrapStorer = &mock.BoostrapStorerMock{}
+	if !check.IfNil(args.MultiSigner) {
+		tpn.MultiSigner = args.MultiSigner
+	}
+
+	if withCustomNodesCoordinator {
+		tpn.OwnAccount = &TestWalletAccount{
+			SingleSigner:      createTestSingleSigner(),
+			BlockSingleSigner: createTestSingleSigner(),
+			SkTxSign:          args.NodeKeys.TxSignSk,
+			PkTxSign:          args.NodeKeys.TxSignPk,
+			PkTxSignBytes:     args.NodeKeys.TxSignPkBytes,
+			KeygenTxSign:      args.NodeKeys.TxSignKeyGen,
+			KeygenBlockSign:   args.NodeKeys.BlockSignKeyGen,
+			Nonce:             0,
+			Balance:           nil,
+		}
+		tpn.OwnAccount.Address = args.NodeKeys.TxSignPkBytes
+	} else {
+		tpn.OwnAccount = CreateTestWalletAccount(shardCoordinator, args.TxSignPrivKeyShardId)
+	}
 
 	tpn.initDataPools()
 
@@ -3096,6 +3096,52 @@ func getDefaultVMConfig() *config.VirtualMachineConfig {
 	return &config.VirtualMachineConfig{
 		ArwenVersions: []config.ArwenVersionByEpoch{
 			{StartEpoch: 0, Version: "*"},
+		},
+	}
+}
+
+func getDefaultNodesSetup(maxShards, numNodes uint32, address []byte, pksBytes map[uint32][]byte) sharding.GenesisNodesSetupHandler {
+	return &mock.NodesSetupStub{
+		InitialNodesInfoCalled: func() (m map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, m2 map[uint32][]nodesCoordinator.GenesisNodeInfoHandler) {
+			oneMap := make(map[uint32][]nodesCoordinator.GenesisNodeInfoHandler)
+			for i := uint32(0); i < maxShards; i++ {
+				oneMap[i] = append(oneMap[i], mock.NewNodeInfo(address, pksBytes[i], i, InitialRating))
+			}
+			oneMap[core.MetachainShardId] = append(oneMap[core.MetachainShardId],
+				mock.NewNodeInfo(address, pksBytes[core.MetachainShardId], core.MetachainShardId, InitialRating))
+			return oneMap, nil
+		},
+		InitialNodesInfoForShardCalled: func(shardId uint32) (handlers []nodesCoordinator.GenesisNodeInfoHandler, handlers2 []nodesCoordinator.GenesisNodeInfoHandler, err error) {
+			list := make([]nodesCoordinator.GenesisNodeInfoHandler, 0)
+			list = append(list, mock.NewNodeInfo(address, pksBytes[shardId], shardId, InitialRating))
+			return list, nil, nil
+		},
+		MinNumberOfNodesCalled: func() uint32 {
+			return numNodes
+		},
+	}
+}
+
+func getDefaultNodesCoordinator(maxShards uint32, pksBytes map[uint32][]byte) nodesCoordinator.NodesCoordinator {
+	return &shardingMocks.NodesCoordinatorStub{
+		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []nodesCoordinator.Validator, err error) {
+			v, _ := nodesCoordinator.NewValidator(pksBytes[shardId], 1, defaultChancesSelection)
+			return []nodesCoordinator.Validator{v}, nil
+		},
+		GetAllValidatorsPublicKeysCalled: func() (map[uint32][][]byte, error) {
+			keys := make(map[uint32][][]byte)
+			for shardID := uint32(0); shardID < maxShards; shardID++ {
+				keys[shardID] = append(keys[shardID], pksBytes[shardID])
+			}
+
+			shardID := core.MetachainShardId
+			keys[shardID] = append(keys[shardID], pksBytes[shardID])
+
+			return keys, nil
+		},
+		GetValidatorWithPublicKeyCalled: func(publicKey []byte) (nodesCoordinator.Validator, uint32, error) {
+			validator, _ := nodesCoordinator.NewValidator(publicKey, defaultChancesSelection, 1)
+			return validator, 0, nil
 		},
 	}
 }
