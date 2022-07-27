@@ -240,22 +240,27 @@ type StateCheckpointModulus struct {
 
 // ArgTestProcessorNode represents the DTO used to create a new TestProcessorNode
 type ArgTestProcessorNode struct {
-	MaxShards              uint32
-	NodeShardId            uint32
-	TxSignPrivKeyShardId   uint32
-	WithBLSSigVerifier     bool
-	GasScheduleMap         GasScheduleMap
-	EpochsConfig           *config.EnableEpochs
-	VMConfig               *config.VirtualMachineConfig
-	DataPool               dataRetriever.PoolsHolder
-	TrieStore              storage.Storer
-	HardforkPk             crypto.PublicKey
-	GenesisFile            string
-	StateCheckpointModulus *StateCheckpointModulus
-	NodeKeys               *nodeKeys
-	NodesSetup             sharding.GenesisNodesSetupHandler
-	NodesCoordinator       nodesCoordinator.NodesCoordinator
-	MultiSigner            crypto.MultiSigner
+	MaxShards               uint32
+	NodeShardId             uint32
+	TxSignPrivKeyShardId    uint32
+	WithBLSSigVerifier      bool
+	GasScheduleMap          GasScheduleMap
+	EpochsConfig            *config.EnableEpochs
+	VMConfig                *config.VirtualMachineConfig
+	DataPool                dataRetriever.PoolsHolder
+	TrieStore               storage.Storer
+	HardforkPk              crypto.PublicKey
+	GenesisFile             string
+	StateCheckpointModulus  *StateCheckpointModulus
+	NodeKeys                *TestKeyPair
+	NodesSetup              sharding.GenesisNodesSetupHandler
+	NodesCoordinator        nodesCoordinator.NodesCoordinator
+	MultiSigner             crypto.MultiSigner
+	RatingsData             *rating.RatingsData
+	HeaderSigVerifier       process.InterceptedHeaderSigVerifier
+	HeaderIntegrityVerifier process.HeaderIntegrityVerifier
+	OwnAccount              *TestWalletAccount
+	EpochStartSubscriber    notifier.EpochStartNotifier
 }
 
 // TestProcessorNode represents a container type of class used in integration tests
@@ -380,14 +385,6 @@ func CreatePkBytes(numShards uint32) map[uint32][]byte {
 func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(args.MaxShards, args.NodeShardId)
 
-	kg := &mock.KeyGenMock{}
-	sk, pk := kg.GeneratePair()
-
-	if args.NodeKeys != nil {
-		sk = args.NodeKeys.BlockSignSk
-		pk = args.NodeKeys.BlockSignPk
-	}
-
 	pksBytes := CreatePkBytes(args.MaxShards)
 	address := []byte("afafafafafafafafafafafafafafafaf")
 	numNodes := uint32(len(pksBytes))
@@ -398,8 +395,7 @@ func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 	}
 
 	nodesCoordinatorInstance := args.NodesCoordinator
-	withCustomNodesCoordinator := !check.IfNil(nodesCoordinatorInstance)
-	if !withCustomNodesCoordinator {
+	if check.IfNil(nodesCoordinatorInstance) {
 		nodesCoordinatorInstance = getDefaultNodesCoordinator(args.MaxShards, pksBytes)
 	}
 
@@ -434,8 +430,6 @@ func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 		ShardCoordinator:         shardCoordinator,
 		Messenger:                messenger,
 		NodesCoordinator:         nodesCoordinatorInstance,
-		HeaderSigVerifier:        &mock.HeaderSigVerifierStub{},
-		HeaderIntegrityVerifier:  CreateHeaderIntegrityVerifier(),
 		ChainID:                  ChainID,
 		MinTransactionVersion:    MinTransactionVersion,
 		NodesSetup:               nodesSetup,
@@ -451,11 +445,14 @@ func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 		UseValidVmBlsSigVerifier: args.WithBLSSigVerifier,
 		StorageBootstrapper:      &mock.StorageBootstrapperMock{},
 		BootstrapStorer:          &mock.BoostrapStorerMock{},
+		RatingsData:              args.RatingsData,
+		EpochStartNotifier:       args.EpochStartSubscriber,
 	}
 
-	tpn.NodeKeys = &TestKeyPair{
-		Sk: sk,
-		Pk: pk,
+	tpn.NodeKeys = args.NodeKeys
+	if tpn.NodeKeys == nil {
+		kg := &mock.KeyGenMock{}
+		tpn.NodeKeys.Sk, tpn.NodeKeys.Pk = kg.GeneratePair()
 	}
 
 	tpn.MultiSigner = TestMultiSig
@@ -463,21 +460,19 @@ func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 		tpn.MultiSigner = args.MultiSigner
 	}
 
-	if withCustomNodesCoordinator {
-		tpn.OwnAccount = &TestWalletAccount{
-			SingleSigner:      createTestSingleSigner(),
-			BlockSingleSigner: createTestSingleSigner(),
-			SkTxSign:          args.NodeKeys.TxSignSk,
-			PkTxSign:          args.NodeKeys.TxSignPk,
-			PkTxSignBytes:     args.NodeKeys.TxSignPkBytes,
-			KeygenTxSign:      args.NodeKeys.TxSignKeyGen,
-			KeygenBlockSign:   args.NodeKeys.BlockSignKeyGen,
-			Nonce:             0,
-			Balance:           nil,
-		}
-		tpn.OwnAccount.Address = args.NodeKeys.TxSignPkBytes
-	} else {
+	tpn.OwnAccount = args.OwnAccount
+	if tpn.OwnAccount == nil {
 		tpn.OwnAccount = CreateTestWalletAccount(shardCoordinator, args.TxSignPrivKeyShardId)
+	}
+
+	tpn.HeaderSigVerifier = args.HeaderSigVerifier
+	if check.IfNil(tpn.HeaderSigVerifier) {
+		tpn.HeaderSigVerifier = &mock.HeaderSigVerifierStub{}
+	}
+
+	tpn.HeaderIntegrityVerifier = args.HeaderIntegrityVerifier
+	if check.IfNil(tpn.HeaderIntegrityVerifier) {
+		tpn.HeaderIntegrityVerifier = CreateHeaderIntegrityVerifier()
 	}
 
 	tpn.initDataPools()
@@ -591,7 +586,9 @@ func (tpn *TestProcessorNode) initTestNodeWithArgs(args ArgTestProcessorNode) {
 	tpn.initHeaderValidator()
 	tpn.initRoundHandler()
 	tpn.NetworkShardingCollector = mock.NewNetworkShardingCollectorMock()
-	tpn.EpochStartNotifier = notifier.NewEpochStartSubscriptionHandler()
+	if check.IfNil(tpn.EpochNotifier) {
+		tpn.EpochStartNotifier = notifier.NewEpochStartSubscriptionHandler()
+	}
 	tpn.initStorage()
 	if check.IfNil(args.TrieStore) {
 		tpn.initAccountDBsWithPruningStorer()

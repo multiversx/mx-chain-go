@@ -116,14 +116,31 @@ func CreateProcessorNodesWithNodesCoordinator(
 				return nil, 0
 			}
 
+			ownAccount := &TestWalletAccount{
+				SingleSigner:      createTestSingleSigner(),
+				BlockSingleSigner: createTestSingleSigner(),
+				SkTxSign:          kp.TxSignSk,
+				PkTxSign:          kp.TxSignPk,
+				PkTxSignBytes:     kp.TxSignPkBytes,
+				KeygenTxSign:      kp.TxSignKeyGen,
+				KeygenBlockSign:   kp.BlockSignKeyGen,
+				Nonce:             0,
+				Balance:           nil,
+			}
+			ownAccount.Address = kp.TxSignPkBytes
+
 			nodesList[i] = NewTestProcessorNode(ArgTestProcessorNode{
 				MaxShards:            numShards,
 				NodeShardId:          shardId,
 				TxSignPrivKeyShardId: shardId,
-				NodeKeys:             kp,
-				NodesSetup:           nodesSetup,
-				NodesCoordinator:     nodesCoordinatorInstance,
-				MultiSigner:          multiSigner,
+				NodeKeys: &TestKeyPair{
+					Sk: kp.BlockSignSk,
+					Pk: kp.BlockSignPk,
+				},
+				NodesSetup:       nodesSetup,
+				NodesCoordinator: nodesCoordinatorInstance,
+				MultiSigner:      multiSigner,
+				OwnAccount:       ownAccount,
 			})
 
 			completeNodesList = append(completeNodesList, nodesList[i])
