@@ -13,27 +13,31 @@ import (
 
 // ApiResolverStub -
 type ApiResolverStub struct {
-	ExecuteSCQueryHandler                  func(query *process.SCQuery) (*vmcommon.VMOutput, error)
-	StatusMetricsHandler                   func() external.StatusMetricsHandler
-	ComputeTransactionGasLimitHandler      func(tx *transaction.Transaction) (*transaction.CostResponse, error)
-	GetTotalStakedValueHandler             func(ctx context.Context) (*api.StakeValues, error)
-	GetDirectStakedListHandler             func(ctx context.Context) ([]*api.DirectStakedValue, error)
-	GetDelegatorsListHandler               func(ctx context.Context) ([]*api.Delegator, error)
-	GetBlockByHashCalled                   func(hash string, options api.BlockQueryOptions) (*api.Block, error)
-	GetBlockByNonceCalled                  func(nonce uint64, options api.BlockQueryOptions) (*api.Block, error)
-	GetBlockByRoundCalled                  func(round uint64, options api.BlockQueryOptions) (*api.Block, error)
-	GetTransactionHandler                  func(hash string, withEvents bool) (*transaction.ApiTransactionResult, error)
-	GetInternalShardBlockByNonceCalled     func(format common.ApiOutputFormat, nonce uint64) (interface{}, error)
-	GetInternalShardBlockByHashCalled      func(format common.ApiOutputFormat, hash string) (interface{}, error)
-	GetInternalShardBlockByRoundCalled     func(format common.ApiOutputFormat, round uint64) (interface{}, error)
-	GetInternalMetaBlockByNonceCalled      func(format common.ApiOutputFormat, nonce uint64) (interface{}, error)
-	GetInternalMetaBlockByHashCalled       func(format common.ApiOutputFormat, hash string) (interface{}, error)
-	GetInternalMetaBlockByRoundCalled      func(format common.ApiOutputFormat, round uint64) (interface{}, error)
-	GetInternalMiniBlockCalled             func(format common.ApiOutputFormat, hash string, epoch uint32) (interface{}, error)
-	GetInternalStartOfEpochMetaBlockCalled func(format common.ApiOutputFormat, epoch uint32) (interface{}, error)
-	GetGenesisNodesPubKeysCalled           func() (map[uint32][]string, map[uint32][]string)
-	GetTransactionsPoolCalled              func() (*common.TransactionsPoolAPIResponse, error)
-	GetGenesisBalancesCalled               func() ([]*common.InitialAccountAPI, error)
+	ExecuteSCQueryHandler                       func(query *process.SCQuery) (*vmcommon.VMOutput, error)
+	StatusMetricsHandler                        func() external.StatusMetricsHandler
+	ComputeTransactionGasLimitHandler           func(tx *transaction.Transaction) (*transaction.CostResponse, error)
+	GetTotalStakedValueHandler                  func(ctx context.Context) (*api.StakeValues, error)
+	GetDirectStakedListHandler                  func(ctx context.Context) ([]*api.DirectStakedValue, error)
+	GetDelegatorsListHandler                    func(ctx context.Context) ([]*api.Delegator, error)
+	GetBlockByHashCalled                        func(hash string, options api.BlockQueryOptions) (*api.Block, error)
+	GetBlockByNonceCalled                       func(nonce uint64, options api.BlockQueryOptions) (*api.Block, error)
+	GetBlockByRoundCalled                       func(round uint64, options api.BlockQueryOptions) (*api.Block, error)
+	GetTransactionHandler                       func(hash string, withEvents bool) (*transaction.ApiTransactionResult, error)
+	GetInternalShardBlockByNonceCalled          func(format common.ApiOutputFormat, nonce uint64) (interface{}, error)
+	GetInternalShardBlockByHashCalled           func(format common.ApiOutputFormat, hash string) (interface{}, error)
+	GetInternalShardBlockByRoundCalled          func(format common.ApiOutputFormat, round uint64) (interface{}, error)
+	GetInternalMetaBlockByNonceCalled           func(format common.ApiOutputFormat, nonce uint64) (interface{}, error)
+	GetInternalMetaBlockByHashCalled            func(format common.ApiOutputFormat, hash string) (interface{}, error)
+	GetInternalMetaBlockByRoundCalled           func(format common.ApiOutputFormat, round uint64) (interface{}, error)
+	GetInternalMiniBlockCalled                  func(format common.ApiOutputFormat, hash string, epoch uint32) (interface{}, error)
+	GetInternalStartOfEpochMetaBlockCalled      func(format common.ApiOutputFormat, epoch uint32) (interface{}, error)
+	GetGenesisNodesPubKeysCalled                func() (map[uint32][]string, map[uint32][]string)
+	GetTransactionsPoolCalled                   func(fields string) (*common.TransactionsPoolAPIResponse, error)
+	GetGenesisBalancesCalled                    func() ([]*common.InitialAccountAPI, error)
+	GetTransactionsPoolForSenderCalled          func(sender, fields string) (*common.TransactionsPoolForSenderApiResponse, error)
+	GetLastPoolNonceForSenderCalled             func(sender string) (uint64, error)
+	GetTransactionsPoolNonceGapsForSenderCalled func(sender string) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error)
+	GetGasConfigsCalled                         func() map[string]map[string]uint64
 }
 
 // GetTransaction -
@@ -159,9 +163,36 @@ func (ars *ApiResolverStub) GetInternalMetaBlockByNonce(format common.ApiOutputF
 }
 
 // GetTransactionsPool -
-func (ars *ApiResolverStub) GetTransactionsPool() (*common.TransactionsPoolAPIResponse, error) {
+func (ars *ApiResolverStub) GetTransactionsPool(fields string) (*common.TransactionsPoolAPIResponse, error) {
 	if ars.GetTransactionsPoolCalled != nil {
-		return ars.GetTransactionsPoolCalled()
+		return ars.GetTransactionsPoolCalled(fields)
+	}
+
+	return nil, nil
+}
+
+// GetTransactionsPoolForSender -
+func (ars *ApiResolverStub) GetTransactionsPoolForSender(sender, fields string) (*common.TransactionsPoolForSenderApiResponse, error) {
+	if ars.GetTransactionsPoolForSenderCalled != nil {
+		return ars.GetTransactionsPoolForSenderCalled(sender, fields)
+	}
+
+	return nil, nil
+}
+
+// GetLastPoolNonceForSender -
+func (ars *ApiResolverStub) GetLastPoolNonceForSender(sender string) (uint64, error) {
+	if ars.GetLastPoolNonceForSenderCalled != nil {
+		return ars.GetLastPoolNonceForSenderCalled(sender)
+	}
+
+	return 0, nil
+}
+
+// GetTransactionsPoolNonceGapsForSender -
+func (ars *ApiResolverStub) GetTransactionsPoolNonceGapsForSender(sender string) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error) {
+	if ars.GetTransactionsPoolNonceGapsForSenderCalled != nil {
+		return ars.GetTransactionsPoolNonceGapsForSenderCalled(sender)
 	}
 
 	return nil, nil
@@ -214,6 +245,15 @@ func (ars *ApiResolverStub) GetGenesisBalances() ([]*common.InitialAccountAPI, e
 	}
 
 	return nil, nil
+}
+
+// GetGasConfigs -
+func (ars *ApiResolverStub) GetGasConfigs() map[string]map[string]uint64 {
+	if ars.GetGasConfigsCalled != nil {
+		return ars.GetGasConfigsCalled()
+	}
+
+	return nil
 }
 
 // Close -

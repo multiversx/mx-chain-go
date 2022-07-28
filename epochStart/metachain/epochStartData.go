@@ -319,7 +319,7 @@ func (e *epochStartData) computePendingMiniBlockList(
 	allPending := make([]block.MiniBlockHeader, 0)
 	for shId, shardData := range startData.LastFinalizedHeaders {
 		if shardData.Nonce == 0 {
-			//shard has only the genesis block
+			// shard has only the genesis block
 			continue
 		}
 		if len(shardData.FirstPendingMetaBlock) == 0 {
@@ -444,18 +444,30 @@ func updateIndexesOfProcessedTxs(
 ) {
 	currIndexOfFirstTxProcessed := mbHeader.GetIndexOfFirstTxProcessed()
 	currIndexOfLastTxProcessed := mbHeader.GetIndexOfLastTxProcessed()
+	currConstructionState := block.MiniBlockState(mbHeader.GetConstructionState()).String()
 	newIndexOfFirstTxProcessed := shardMiniBlockHeader.GetIndexOfFirstTxProcessed()
 	newIndexOfLastTxProcessed := shardMiniBlockHeader.GetIndexOfLastTxProcessed()
+	newConstructionState := block.MiniBlockState(shardMiniBlockHeader.GetConstructionState()).String()
+
 	if newIndexOfLastTxProcessed > currIndexOfLastTxProcessed {
 		log.Debug("epochStartData.updateIndexesOfProcessedTxs",
 			"mb hash", shardMiniBlockHash,
 			"shard", shardID,
 			"current index of first tx processed", currIndexOfFirstTxProcessed,
 			"current index of last tx processed", currIndexOfLastTxProcessed,
+			"current construction state", currConstructionState,
 			"new index of first tx processed", newIndexOfFirstTxProcessed,
 			"new index of last tx processed", newIndexOfLastTxProcessed,
+			"new construction state", newConstructionState,
 		)
 		setIndexOfFirstAndLastTxProcessed(&mbHeader, newIndexOfFirstTxProcessed, newIndexOfLastTxProcessed)
+
+		// this set is not particular needed but this will trigger the marshaller to save in the reserved field a
+		// non-empty slice so the rest of the code will run as designed
+		err := mbHeader.SetConstructionState(shardMiniBlockHeader.GetConstructionState())
+		if err != nil {
+			log.Warn("updateIndexesOfProcessedTxs: SetConstructionState", "error", err.Error())
+		}
 		miniBlockHeaders[shardMiniBlockHash] = mbHeader
 	}
 }

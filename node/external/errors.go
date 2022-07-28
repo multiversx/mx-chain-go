@@ -37,3 +37,6 @@ var ErrNilValidatorPubKeyConverter = errors.New("nil validator public key conver
 
 // ErrNilAccountsParser signals that a nil accounts parser has been provided
 var ErrNilAccountsParser = errors.New("nil accounts parser")
+
+// ErrNilGasScheduler signals that a nil gas scheduler has been provided
+var ErrNilGasScheduler = errors.New("nil gas scheduler")

@@ -506,7 +506,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 func (nr *nodeRunner) createApiFacade(
 	currentNode *Node,
 	upgradableHttpServer shared.UpgradeableHttpServerHandler,
-	gasScheduleNotifier core.GasScheduleNotifier,
+	gasScheduleNotifier common.GasScheduleNotifierAPI,
 	allowVMQueriesChan chan struct{},
 ) (closing.Closer, error) {
 	configs := nr.configs
@@ -1178,6 +1178,7 @@ func (nr *nodeRunner) CreateManagedBootstrapComponents(
 		RoundConfig:       *nr.configs.RoundConfig,
 		PrefConfig:        *nr.configs.PreferencesConfig,
 		ImportDbConfig:    *nr.configs.ImportDbConfig,
+		FlagsConfig:       *nr.configs.FlagsConfig,
 		WorkingDir:        nr.configs.FlagsConfig.WorkingDir,
 		CoreComponents:    coreComponents,
 		CryptoComponents:  cryptoComponents,
@@ -1300,6 +1301,7 @@ func (nr *nodeRunner) CreateManagedCryptoComponents(
 		KeyLoader:                            &core.KeyLoader{},
 		ImportModeNoSigCheck:                 configs.ImportDbConfig.ImportDbNoSigCheckFlag,
 		IsInImportMode:                       configs.ImportDbConfig.IsImportDBMode,
+		NoKeyProvided:                        configs.FlagsConfig.NoKeyProvided,
 	}
 
 	cryptoComponentsFactory, err := mainFactory.NewCryptoComponentsFactory(cryptoComponentsHandlerArgs)

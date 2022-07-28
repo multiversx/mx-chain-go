@@ -1387,21 +1387,10 @@ func (tc *transactionCoordinator) CreateReceiptsHash() ([]byte, error) {
 
 // CreateMarshalizedReceipts will return all the receipts list in one marshalized object
 func (tc *transactionCoordinator) CreateMarshalizedReceipts() ([]byte, error) {
-	tc.mutInterimProcessors.RLock()
-	defer tc.mutInterimProcessors.RUnlock()
+	inShardMiniBlocks := tc.GetCreatedInShardMiniBlocks()
 
 	receiptsBatch := &batch.Batch{}
-	for _, blockType := range tc.keysInterimProcs {
-		interProc, ok := tc.interimProcessors[blockType]
-		if !ok {
-			continue
-		}
-
-		miniBlock := interProc.GetCreatedInShardMiniBlock()
-		if miniBlock == nil {
-			continue
-		}
-
+	for _, miniBlock := range inShardMiniBlocks {
 		marshalizedMiniBlock, err := tc.marshalizer.Marshal(miniBlock)
 		if err != nil {
 			return nil, err
@@ -1415,6 +1404,29 @@ func (tc *transactionCoordinator) CreateMarshalizedReceipts() ([]byte, error) {
 	}
 
 	return tc.marshalizer.Marshal(receiptsBatch)
+}
+
+// GetCreatedInShardMiniBlocks will return the intra-shard created miniblocks
+func (tc *transactionCoordinator) GetCreatedInShardMiniBlocks() []*block.MiniBlock {
+	tc.mutInterimProcessors.RLock()
+	defer tc.mutInterimProcessors.RUnlock()
+
+	miniBlocks := make([]*block.MiniBlock, 0)
+	for _, blockType := range tc.keysInterimProcs {
+		interProc, ok := tc.interimProcessors[blockType]
+		if !ok {
+			continue
+		}
+
+		miniBlock := interProc.GetCreatedInShardMiniBlock()
+		if miniBlock == nil {
+			continue
+		}
+
+		miniBlocks = append(miniBlocks, miniBlock)
+	}
+
+	return miniBlocks
 }
 
 // GetNumOfCrossInterMbsAndTxs gets the number of cross intermediate transactions and mini blocks

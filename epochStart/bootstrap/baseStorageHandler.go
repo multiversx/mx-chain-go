@@ -1,7 +1,9 @@
 package bootstrap
 
 import (
+	"encoding/hex"
 	"encoding/json"
+	"strings"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
@@ -148,4 +150,55 @@ func (bsh *baseStorageHandler) saveMetaHdrForEpochTrigger(metaBlock data.HeaderH
 	}
 
 	return nil
+}
+
+func (bsh *baseStorageHandler) saveMiniblocks(miniblocks map[string]*block.MiniBlock) {
+	hashes := make([]string, 0, len(miniblocks))
+	for hash, mb := range miniblocks {
+		errNotCritical := bsh.saveMiniblock([]byte(hash), mb)
+		if errNotCritical != nil {
+			log.Warn("baseStorageHandler.saveMiniblocks - not a critical error", "error", errNotCritical)
+		}
+
+		hashes = append(hashes, hex.EncodeToString([]byte(hash)))
+	}
+
+	log.Debug("baseStorageHandler.saveMiniblocks", "saved miniblocks", strings.Join(hashes, ", "))
+}
+
+func (bsh *baseStorageHandler) saveMiniblock(hash []byte, mb *block.MiniBlock) error {
+	mbBytes, err := bsh.marshalizer.Marshal(mb)
+	if err != nil {
+		return err
+	}
+
+	return bsh.storageService.Put(dataRetriever.MiniBlockUnit, hash, mbBytes)
+}
+
+func (bsh *baseStorageHandler) saveMiniblocksFromComponents(components *ComponentsNeededForBootstrap) {
+	log.Debug("saving pending miniblocks", "num pending miniblocks", len(components.PendingMiniBlocks))
+	bsh.saveMiniblocks(components.PendingMiniBlocks)
+
+	peerMiniblocksMap := bsh.convertPeerMiniblocks(components.PeerMiniBlocks)
+	log.Debug("saving peer miniblocks",
+		"num peer miniblocks in slice", len(components.PeerMiniBlocks),
+		"num peer miniblocks in map", len(peerMiniblocksMap))
+	bsh.saveMiniblocks(peerMiniblocksMap)
+}
+
+func (bsh *baseStorageHandler) convertPeerMiniblocks(slice []*block.MiniBlock) map[string]*block.MiniBlock {
+	result := make(map[string]*block.MiniBlock)
+	for _, mb := range slice {
+		hash, errNotCritical := core.CalculateHash(bsh.marshalizer, bsh.hasher, mb)
+		if errNotCritical != nil {
+			log.Error("internal error computing hash in baseStorageHandler.convertPeerMiniblocks",
+				"miniblock", mb, "error", errNotCritical)
+			continue
+		}
+
+		log.Debug("computed peer miniblock hash", "hash", hash)
+		result[string(hash)] = mb
+	}
+
+	return result
 }
