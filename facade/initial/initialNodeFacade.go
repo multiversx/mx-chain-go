@@ -266,8 +266,8 @@ func (inf *initialNodeFacade) GetInternalMetaBlockByRound(_ common.ApiOutputForm
 	return nil, errNodeStarting
 }
 
-// GetInternalStartOfEpochMetaBlockByEpoch returns nil and error
-func (inf *initialNodeFacade) GetInternalStartOfEpochMetaBlock(format common.ApiOutputFormat, epoch uint32) (interface{}, error) {
+// GetInternalStartOfEpochMetaBlock returns nil and error
+func (inf *initialNodeFacade) GetInternalStartOfEpochMetaBlock(_ common.ApiOutputFormat, _ uint32) (interface{}, error) {
 	return nil, errNodeStarting
 }
 
@@ -342,7 +342,27 @@ func (inf *initialNodeFacade) GetGenesisBalances() ([]*common.InitialAccountAPI,
 }
 
 // GetTransactionsPool returns a nil structure and error
-func (inf *initialNodeFacade) GetTransactionsPool() (*common.TransactionsPoolAPIResponse, error) {
+func (inf *initialNodeFacade) GetTransactionsPool(_ string) (*common.TransactionsPoolAPIResponse, error) {
+	return nil, errNodeStarting
+}
+
+// GetLastPoolNonceForSender returns nonce 0 and error
+func (inf *initialNodeFacade) GetLastPoolNonceForSender(_ string) (uint64, error) {
+	return 0, errNodeStarting
+}
+
+// GetTransactionsPoolNonceGapsForSender returns a nil structure and error
+func (inf *initialNodeFacade) GetTransactionsPoolNonceGapsForSender(_ string) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error) {
+	return nil, errNodeStarting
+}
+
+// GetTransactionsPoolForSender returns a nil structure and error
+func (inf *initialNodeFacade) GetTransactionsPoolForSender(_, _ string) (*common.TransactionsPoolForSenderApiResponse, error) {
+	return nil, errNodeStarting
+}
+
+// GetGasConfigs return a nil map and error
+func (inf *initialNodeFacade) GetGasConfigs() (map[string]map[string]uint64, error) {
 	return nil, errNodeStarting
 }
 
