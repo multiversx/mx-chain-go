@@ -605,11 +605,11 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 	log.Debug("preparing to index block", "hash", headerHash, "nonce", header.GetNonce(), "round", header.GetRound())
 
 	pool := &indexer.Pool{
-		Txs:      sp.txCoordinator.GetAllCurrentUsedTxs(block.TxBlock),
-		Scrs:     sp.txCoordinator.GetAllCurrentUsedTxs(block.SmartContractResultBlock),
-		Rewards:  sp.txCoordinator.GetAllCurrentUsedTxs(block.RewardsBlock),
-		Invalid:  sp.txCoordinator.GetAllCurrentUsedTxs(block.InvalidBlock),
-		Receipts: sp.txCoordinator.GetAllCurrentUsedTxs(block.ReceiptBlock),
+		Txs:      wrapTxsMap(sp.txCoordinator.GetAllCurrentUsedTxs(block.TxBlock)),
+		Scrs:     wrapTxsMap(sp.txCoordinator.GetAllCurrentUsedTxs(block.SmartContractResultBlock)),
+		Rewards:  wrapTxsMap(sp.txCoordinator.GetAllCurrentUsedTxs(block.RewardsBlock)),
+		Invalid:  wrapTxsMap(sp.txCoordinator.GetAllCurrentUsedTxs(block.InvalidBlock)),
+		Receipts: wrapTxsMap(sp.txCoordinator.GetAllCurrentUsedTxs(block.ReceiptBlock)),
 		Logs:     sp.txCoordinator.GetAllCurrentLogs(),
 	}
 

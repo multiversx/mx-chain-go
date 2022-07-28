@@ -304,8 +304,8 @@ func (ap *accountsParser) createIndexerPools(shardIDs []uint32) map[uint32]*inde
 
 	for _, id := range shardIDs {
 		txsPoolPerShard[id] = &indexer.Pool{
-			Txs:  make(map[string]coreData.TransactionHandler),
-			Scrs: make(map[string]coreData.TransactionHandler),
+			Txs:  make(map[string]coreData.TransactionHandlerWithGasUsedAndFee),
+			Scrs: make(map[string]coreData.TransactionHandlerWithGasUsedAndFee),
 		}
 	}
 
@@ -381,7 +381,7 @@ func (ap *accountsParser) putMintingTxsInPoolAndCreateMiniBlock(
 		}
 		txHashes = append(txHashes, txHash)
 
-		txsPoolPerShard[mintShardID].Txs[string(txHash)] = tx
+		txsPoolPerShard[mintShardID].Txs[string(txHash)] = indexer.NewTransactionHandlerWithGasAndFee(tx, 0, big.NewInt(0))
 	}
 
 	miniBlock := &block.MiniBlock{
@@ -425,8 +425,8 @@ func (ap *accountsParser) setScrsTxsPool(
 			}
 			scrTx.GasLimit = uint64(0)
 
-			txsPoolPerShard[senderShardID].Scrs[txHash] = scrTx
-			txsPoolPerShard[receiverShardID].Scrs[txHash] = scrTx
+			txsPoolPerShard[senderShardID].Scrs[txHash] = indexer.NewTransactionHandlerWithGasAndFee(scrTx, 0, big.NewInt(0))
+			txsPoolPerShard[receiverShardID].Scrs[txHash] = indexer.NewTransactionHandlerWithGasAndFee(scrTx, 0, big.NewInt(0))
 		}
 	}
 }
@@ -455,8 +455,8 @@ func (ap *accountsParser) setTxsPoolAndMiniBlocks(
 		tx.Signature = []byte(common.GenesisTxSignatureString)
 		tx.GasLimit = uint64(0)
 
-		txsPoolPerShard[senderShardID].Txs[string(txHash)] = tx
-		txsPoolPerShard[receiverShardID].Txs[string(txHash)] = tx
+		txsPoolPerShard[senderShardID].Txs[string(txHash)] = indexer.NewTransactionHandlerWithGasAndFee(tx, 0, big.NewInt(0))
+		txsPoolPerShard[receiverShardID].Txs[string(txHash)] = indexer.NewTransactionHandlerWithGasAndFee(tx, 0, big.NewInt(0))
 
 		for _, miniBlock := range miniBlocks {
 			if senderShardID == miniBlock.GetSenderShardID() &&

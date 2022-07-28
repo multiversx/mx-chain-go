@@ -23,10 +23,10 @@ const (
 
 // SaveBlockData holds the data that will be sent to notifier instance
 type SaveBlockData struct {
-	Hash      string                                 `json:"hash"`
-	Txs       map[string]nodeData.TransactionHandler `json:"txs"`
-	Scrs      map[string]nodeData.TransactionHandler `json:"scrs"`
-	LogEvents []Event                                `json:"events"`
+	Hash      string                                                  `json:"hash"`
+	Txs       map[string]nodeData.TransactionHandlerWithGasUsedAndFee `json:"txs"`
+	Scrs      map[string]nodeData.TransactionHandlerWithGasUsedAndFee `json:"scrs"`
+	LogEvents []Event                                                 `json:"events"`
 }
 
 // Event holds event data

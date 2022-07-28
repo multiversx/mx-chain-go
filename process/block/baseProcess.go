@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
 	"math/big"
 	"sort"
 	"time"
@@ -1983,4 +1984,13 @@ func displayCleanupErrorMessage(message string, shardID uint32, noncesToPrevFina
 		"shard", shardID,
 		"nonces to previous final", noncesToPrevFinal,
 		"error", err.Error())
+}
+
+func wrapTxsMap(txs map[string]data.TransactionHandler) map[string]data.TransactionHandlerWithGasUsedAndFee {
+	newMap := make(map[string]data.TransactionHandlerWithGasUsedAndFee, len(txs))
+	for txHash, tx := range txs {
+		newMap[txHash] = indexer.NewTransactionHandlerWithGasAndFee(tx, 0, big.NewInt(0))
+	}
+
+	return newMap
 }
