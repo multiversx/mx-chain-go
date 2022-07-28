@@ -615,13 +615,11 @@ func (mp *metaProcessor) indexBlock(
 	}
 
 	log.Debug("preparing to index block", "hash", headerHash, "nonce", metaBlock.GetNonce(), "round", metaBlock.GetRound())
-
 	argSaveBlock, err := mp.outportDataProvider.PrepareOutportSaveBlockData(headerHash, body, metaBlock, rewardsTxs, notarizedHeadersHashes)
 	if err != nil {
 		log.Warn("metaProcessor.indexBlock cannot prepare argSaveBlock", "error", err.Error())
 		return
 	}
-
 	mp.outportHandler.SaveBlock(argSaveBlock)
 	log.Debug("indexed block", "hash", headerHash, "nonce", metaBlock.GetNonce(), "round", metaBlock.GetRound())
 
