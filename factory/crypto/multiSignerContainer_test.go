@@ -34,7 +34,7 @@ func Test_NewMultiSignerContainer(t *testing.T) {
 		multiSigContainer, err := NewMultiSignerContainer(args, multiSigConfigClone)
 
 		require.Nil(t, multiSigContainer)
-		require.Equal(t, errors.ErrNilMultiSigner, err)
+		require.Equal(t, errors.ErrMissingEpochZeroMultiSignerConfig, err)
 	})
 	t.Run("invalid multiSigner type should err", func(t *testing.T) {
 		multiSigConfigClone := append([]config.MultiSignerConfig{}, multiSigConfig...)

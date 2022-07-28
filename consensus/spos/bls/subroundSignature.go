@@ -68,7 +68,7 @@ func (sr *subroundSignature) doSignatureJob(_ context.Context) bool {
 	if !sr.CanDoSubroundJob(sr.Current()) {
 		return false
 	}
-	if sr.Header == nil {
+	if check.IfNil(sr.Header) {
 		log.Error("doSignatureJob", "error", spos.ErrNilHeader)
 		return false
 	}
@@ -172,7 +172,7 @@ func (sr *subroundSignature) receivedSignature(_ context.Context, cnsDta *consen
 		return false
 	}
 
-	if sr.Header == nil {
+	if check.IfNil(sr.Header) {
 		log.Error("receivedSignature", "error", spos.ErrNilHeader)
 		return false
 	}

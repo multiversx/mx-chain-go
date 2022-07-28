@@ -52,7 +52,7 @@ func NewMultiSignerContainer(args MultiSigArgs, multiSignerConfig []config.Multi
 
 	sortedMultiSignerConfig := sortMultiSignerConfig(multiSignerConfig)
 	if sortedMultiSignerConfig[0].EnableEpoch != 0 {
-		return nil, errors.ErrNilMultiSigner
+		return nil, errors.ErrMissingEpochZeroMultiSignerConfig
 	}
 
 	for i, mConfig := range sortedMultiSignerConfig {
