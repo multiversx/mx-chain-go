@@ -16,16 +16,16 @@ const (
 
 func checkArg(arg ArgTransactionsFeeProcessor) error {
 	if check.IfNil(arg.TransactionsStorer) {
-		return errNilStorage
+		return ErrNilStorage
 	}
 	if check.IfNil(arg.ShardCoordinator) {
-		return errNilShardCoordinator
+		return ErrNilShardCoordinator
 	}
 	if check.IfNil(arg.TxFeeCalculator) {
-		return errNilTransactionFeeCalculator
+		return ErrNilTransactionFeeCalculator
 	}
 	if check.IfNil(arg.Marshalizer) {
-		return errNilMarshalizer
+		return ErrNilMarshalizer
 	}
 
 	return nil

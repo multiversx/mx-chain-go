@@ -1,6 +1,9 @@
 package process
 
-import "github.com/ElrondNetwork/elrond-go-core/data/indexer"
+import (
+	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
+	"github.com/ElrondNetwork/elrond-go/outport/process/transactionsfee"
+)
 
 // AlteredAccountsProviderHandler defines the functionality needed for provisioning of altered accounts when indexing data
 type AlteredAccountsProviderHandler interface {
@@ -22,5 +25,6 @@ type GasConsumedProvider interface {
 }
 
 type EconomicsDataHandler interface {
+	transactionsfee.FeesProcessorHandler
 	MaxGasLimitPerBlock(shardID uint32) uint64
 }

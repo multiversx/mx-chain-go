@@ -21,7 +21,6 @@ type ArgOutportDataProviderFactory struct {
 	Marshalizer            marshal.Marshalizer
 	EsdtDataStorageHandler vmcommon.ESDTNFTStorageHandler
 	TransactionsStorer     storage.Storer
-	TxFeeCalculator        transactionsfee.FeesProcessorHandler
 	ShardCoordinator       sharding.Coordinator
 	TxCoordinator          processTxs.TransactionCoordinator
 	NodesCoordinator       nodesCoordinator.NodesCoordinator
@@ -31,6 +30,11 @@ type ArgOutportDataProviderFactory struct {
 
 // CreateOutportDataProvider will create a new instance of outport.DataProviderOutport
 func CreateOutportDataProvider(arg ArgOutportDataProviderFactory) (outport.DataProviderOutport, error) {
+	err := checkArgCreateOutportDataProvider(arg)
+	if err != nil {
+		return nil, err
+	}
+
 	alteredAccountsProvider, err := alteredaccounts.NewAlteredAccountsProvider(alteredaccounts.ArgsAlteredAccountsProvider{
 		ShardCoordinator:       arg.ShardCoordinator,
 		AddressConverter:       arg.AddressConverter,
@@ -46,7 +50,7 @@ func CreateOutportDataProvider(arg ArgOutportDataProviderFactory) (outport.DataP
 		Marshalizer:        arg.Marshalizer,
 		TransactionsStorer: arg.TransactionsStorer,
 		ShardCoordinator:   arg.ShardCoordinator,
-		TxFeeCalculator:    arg.TxFeeCalculator,
+		TxFeeCalculator:    arg.EconomicsData,
 	})
 	if err != nil {
 		return nil, err

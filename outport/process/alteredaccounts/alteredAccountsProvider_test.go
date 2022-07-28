@@ -42,7 +42,7 @@ func TestNewAlteredAccountsProvider(t *testing.T) {
 
 		aap, err := NewAlteredAccountsProvider(args)
 		require.Nil(t, aap)
-		require.Equal(t, errNilPubKeyConverter, err)
+		require.Equal(t, ErrNilPubKeyConverter, err)
 	})
 
 	t.Run("nil accounts adapter", func(t *testing.T) {
@@ -53,7 +53,7 @@ func TestNewAlteredAccountsProvider(t *testing.T) {
 
 		aap, err := NewAlteredAccountsProvider(args)
 		require.Nil(t, aap)
-		require.Equal(t, errNilAccountsDB, err)
+		require.Equal(t, ErrNilAccountsDB, err)
 	})
 
 	t.Run("nil marshalizer", func(t *testing.T) {
@@ -75,7 +75,7 @@ func TestNewAlteredAccountsProvider(t *testing.T) {
 
 		aap, err := NewAlteredAccountsProvider(args)
 		require.Nil(t, aap)
-		require.Equal(t, errNilESDTDataStorageHandler, err)
+		require.Equal(t, ErrNilESDTDataStorageHandler, err)
 	})
 
 	t.Run("should work", func(t *testing.T) {

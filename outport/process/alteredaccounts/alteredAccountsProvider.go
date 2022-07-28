@@ -234,16 +234,16 @@ func checkArgAlteredAccountsProvider(arg ArgsAlteredAccountsProvider) error {
 		return errNilShardCoordinator
 	}
 	if check.IfNil(arg.AddressConverter) {
-		return errNilPubKeyConverter
+		return ErrNilPubKeyConverter
 	}
 	if check.IfNil(arg.AccountsDB) {
-		return errNilAccountsDB
+		return ErrNilAccountsDB
 	}
 	if check.IfNil(arg.Marshalizer) {
 		return errNilMarshalizer
 	}
 	if check.IfNil(arg.EsdtDataStorageHandler) {
-		return errNilESDTDataStorageHandler
+		return ErrNilESDTDataStorageHandler
 	}
 
 	return nil

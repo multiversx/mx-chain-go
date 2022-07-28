@@ -905,7 +905,6 @@ func (pcf *processComponentsFactory) createOutportDataProvider(
 		Marshalizer:            pcf.coreData.TxMarshalizer(),
 		EsdtDataStorageHandler: pcf.esdtNftStorage,
 		TransactionsStorer:     pcf.data.StorageService().GetStorer(dataRetriever.TransactionUnit),
-		TxFeeCalculator:        pcf.coreData.EconomicsData(),
 		ShardCoordinator:       pcf.bootstrapComponents.ShardCoordinator(),
 		TxCoordinator:          txCoordinator,
 		NodesCoordinator:       pcf.nodesCoordinator,
