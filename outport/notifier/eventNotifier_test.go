@@ -50,10 +50,10 @@ func TestSaveBlock(t *testing.T) {
 	saveBlockData := &indexer.ArgsSaveBlockData{
 		HeaderHash: []byte{},
 		TransactionsPool: &indexer.Pool{
-			Txs: map[string]data.TransactionHandler{
+			Txs: map[string]data.TransactionHandlerWithGasUsedAndFee{
 				"txhash1": nil,
 			},
-			Scrs: map[string]data.TransactionHandler{
+			Scrs: map[string]data.TransactionHandlerWithGasUsedAndFee{
 				"scrHash1": nil,
 			},
 			Logs: []*data.LogData{},
