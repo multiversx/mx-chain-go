@@ -3,14 +3,12 @@ package transactionsfee
 import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
-	"github.com/ElrondNetwork/elrond-go-core/data/receipt"
 )
 
 type transactionWithResults struct {
 	data.TransactionHandlerWithGasUsedAndFee
-	scrs    []data.TransactionHandler
-	receipt []*receipt.Receipt
-	logs    *data.LogData
+	scrs []data.TransactionHandler
+	logs *data.LogData
 }
 
 type groupedTransactionsAndScrs struct {
