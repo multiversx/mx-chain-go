@@ -463,6 +463,7 @@ func NewTestProcessorNode(
 		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: UnreachableEpoch,
 		ScheduledMiniBlocksEnableEpoch:              UnreachableEpoch,
 		MiniBlockPartialExecutionEnableEpoch:        UnreachableEpoch,
+		FailExecutionOnEveryAPIErrorEnableEpoch:     UnreachableEpoch,
 	}
 	tpn := newBaseTestProcessorNode(maxShards, nodeShardId, txSignPrivKeyShardId, enableEpochsConfig)
 	tpn.initTestNode()
@@ -880,15 +881,15 @@ func (tpn *TestProcessorNode) createFullSCQueryService() {
 	defaults.FillGasMapInternal(gasMap, 1)
 	gasSchedule := mock.NewGasScheduleNotifierMock(gasMap)
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:                gasSchedule,
-		MapDNSAddresses:            make(map[string]struct{}),
-		Marshalizer:                TestMarshalizer,
-		Accounts:                   tpn.AccntState,
-		ShardCoordinator:           tpn.ShardCoordinator,
-		EpochNotifier:              tpn.EpochNotifier,
-		GlobalMintBurnDisableEpoch: tpn.EnableEpochs.GlobalMintBurnDisableEpoch,
-		AutomaticCrawlerAddress:    bytes.Repeat([]byte{1}, 32),
-		MaxNumNodesInTransferRole:  100,
+		GasSchedule:               gasSchedule,
+		MapDNSAddresses:           make(map[string]struct{}),
+		Marshalizer:               TestMarshalizer,
+		Accounts:                  tpn.AccntState,
+		ShardCoordinator:          tpn.ShardCoordinator,
+		EpochNotifier:             tpn.EpochNotifier,
+		EnableEpochsHandler:       tpn.EnableEpochsHandler,
+		AutomaticCrawlerAddress:   bytes.Repeat([]byte{1}, 32),
+		MaxNumNodesInTransferRole: 100,
 	}
 	builtInFuncFactory, _ := builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)
 
@@ -989,14 +990,14 @@ func (tpn *TestProcessorNode) createFullSCQueryService() {
 					{StartEpoch: 0, Version: "*"},
 				},
 			},
-			BlockChainHook:     blockChainHookImpl,
-			BuiltInFunctions:   argsHook.BuiltInFunctions,
-			BlockGasLimit:      tpn.EconomicsData.MaxGasLimitPerBlock(tpn.ShardCoordinator.SelfId()),
-			GasSchedule:        gasSchedule,
-			EpochNotifier:      tpn.EpochNotifier,
-			EpochConfig:        tpn.EnableEpochs,
-			ArwenChangeLocker:  tpn.ArwenChangeLocker,
-			ESDTTransferParser: esdtTransferParser,
+			BlockChainHook:      blockChainHookImpl,
+			BuiltInFunctions:    argsHook.BuiltInFunctions,
+			BlockGasLimit:       tpn.EconomicsData.MaxGasLimitPerBlock(tpn.ShardCoordinator.SelfId()),
+			GasSchedule:         gasSchedule,
+			EpochNotifier:       tpn.EpochNotifier,
+			EnableEpochsHandler: tpn.EnableEpochsHandler,
+			ArwenChangeLocker:   tpn.ArwenChangeLocker,
+			ESDTTransferParser:  esdtTransferParser,
 		}
 		vmFactory, _ = shard.NewVMContainerFactory(argsNewVMFactory)
 	}
@@ -1517,15 +1518,15 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 
 	gasSchedule := mock.NewGasScheduleNotifierMock(gasMap)
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:                gasSchedule,
-		MapDNSAddresses:            mapDNSAddresses,
-		Marshalizer:                TestMarshalizer,
-		Accounts:                   tpn.AccntState,
-		ShardCoordinator:           tpn.ShardCoordinator,
-		EpochNotifier:              tpn.EpochNotifier,
-		GlobalMintBurnDisableEpoch: tpn.EnableEpochs.GlobalMintBurnDisableEpoch,
-		AutomaticCrawlerAddress:    bytes.Repeat([]byte{1}, 32),
-		MaxNumNodesInTransferRole:  100,
+		GasSchedule:               gasSchedule,
+		MapDNSAddresses:           mapDNSAddresses,
+		Marshalizer:               TestMarshalizer,
+		Accounts:                  tpn.AccntState,
+		ShardCoordinator:          tpn.ShardCoordinator,
+		EpochNotifier:             tpn.EpochNotifier,
+		EnableEpochsHandler:       tpn.EnableEpochsHandler,
+		AutomaticCrawlerAddress:   bytes.Repeat([]byte{1}, 32),
+		MaxNumNodesInTransferRole: 100,
 	}
 	builtInFuncFactory, _ := builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)
 
@@ -1561,14 +1562,14 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 				{StartEpoch: 0, Version: "*"},
 			},
 		},
-		BlockGasLimit:      maxGasLimitPerBlock,
-		GasSchedule:        gasSchedule,
-		BlockChainHook:     blockChainHookImpl,
-		BuiltInFunctions:   argsHook.BuiltInFunctions,
-		EpochNotifier:      tpn.EpochNotifier,
-		EpochConfig:        tpn.EnableEpochs,
-		ArwenChangeLocker:  tpn.ArwenChangeLocker,
-		ESDTTransferParser: esdtTransferParser,
+		BlockGasLimit:       maxGasLimitPerBlock,
+		GasSchedule:         gasSchedule,
+		BlockChainHook:      blockChainHookImpl,
+		BuiltInFunctions:    argsHook.BuiltInFunctions,
+		EpochNotifier:       tpn.EpochNotifier,
+		EnableEpochsHandler: tpn.EnableEpochsHandler,
+		ArwenChangeLocker:   tpn.ArwenChangeLocker,
+		ESDTTransferParser:  esdtTransferParser,
 	}
 	vmFactory, _ := shard.NewVMContainerFactory(argsNewVMFactory)
 
@@ -1734,15 +1735,15 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 	defaults.FillGasMapInternal(gasMap, 1)
 	gasSchedule := mock.NewGasScheduleNotifierMock(gasMap)
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:                gasSchedule,
-		MapDNSAddresses:            make(map[string]struct{}),
-		Marshalizer:                TestMarshalizer,
-		Accounts:                   tpn.AccntState,
-		ShardCoordinator:           tpn.ShardCoordinator,
-		EpochNotifier:              tpn.EpochNotifier,
-		GlobalMintBurnDisableEpoch: tpn.EnableEpochs.GlobalMintBurnDisableEpoch,
-		AutomaticCrawlerAddress:    bytes.Repeat([]byte{1}, 32),
-		MaxNumNodesInTransferRole:  100,
+		GasSchedule:               gasSchedule,
+		MapDNSAddresses:           make(map[string]struct{}),
+		Marshalizer:               TestMarshalizer,
+		Accounts:                  tpn.AccntState,
+		ShardCoordinator:          tpn.ShardCoordinator,
+		EpochNotifier:             tpn.EpochNotifier,
+		EnableEpochsHandler:       tpn.EnableEpochsHandler,
+		AutomaticCrawlerAddress:   bytes.Repeat([]byte{1}, 32),
+		MaxNumNodesInTransferRole: 100,
 	}
 	builtInFuncFactory, _ := builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)
 	argsHook := hooks.ArgBlockChainHook{

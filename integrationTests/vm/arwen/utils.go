@@ -237,6 +237,7 @@ func (context *TestContext) initVMAndBlockchainHook() {
 		Accounts:                  context.Accounts,
 		ShardCoordinator:          oneShardCoordinator,
 		EpochNotifier:             context.EpochNotifier,
+		EnableEpochsHandler:       context.EnableEpochsHandler,
 		AutomaticCrawlerAddress:   bytes.Repeat([]byte{1}, 32),
 		MaxNumNodesInTransferRole: 100,
 	}
@@ -286,15 +287,15 @@ func (context *TestContext) initVMAndBlockchainHook() {
 	esdtTransferParser, _ := parsers.NewESDTTransferParser(marshalizer)
 	blockChainHookImpl, _ := hooks.NewBlockChainHookImpl(args)
 	argsNewVMFactory := shard.ArgVMContainerFactory{
-		Config:             vmFactoryConfig,
-		BlockGasLimit:      maxGasLimit,
-		GasSchedule:        mock.NewGasScheduleNotifierMock(context.GasSchedule),
-		BlockChainHook:     blockChainHookImpl,
-		BuiltInFunctions:   args.BuiltInFunctions,
-		EpochNotifier:      context.EpochNotifier,
-		EpochConfig:        config.EnableEpochs{},
-		ArwenChangeLocker:  context.ArwenChangeLocker,
-		ESDTTransferParser: esdtTransferParser,
+		Config:              vmFactoryConfig,
+		BlockGasLimit:       maxGasLimit,
+		GasSchedule:         mock.NewGasScheduleNotifierMock(context.GasSchedule),
+		BlockChainHook:      blockChainHookImpl,
+		BuiltInFunctions:    args.BuiltInFunctions,
+		EpochNotifier:       context.EpochNotifier,
+		EnableEpochsHandler: context.EnableEpochsHandler,
+		ArwenChangeLocker:   context.ArwenChangeLocker,
+		ESDTTransferParser:  esdtTransferParser,
 	}
 	vmFactory, err := shard.NewVMContainerFactory(argsNewVMFactory)
 	require.Nil(context.T, err)

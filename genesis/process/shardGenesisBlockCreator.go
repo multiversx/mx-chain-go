@@ -360,22 +360,16 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 	}
 
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:                              arg.GasSchedule,
-		MapDNSAddresses:                          make(map[string]struct{}),
-		EnableUserNameChange:                     false,
-		Marshalizer:                              arg.Core.InternalMarshalizer(),
-		Accounts:                                 arg.Accounts,
-		ShardCoordinator:                         arg.ShardCoordinator,
-		EpochNotifier:                            epochNotifier,
-		ESDTMultiTransferEnableEpoch:             enableEpochsConfig.ESDTMultiTransferEnableEpoch,
-		ESDTTransferRoleEnableEpoch:              enableEpochsConfig.ESDTTransferRoleEnableEpoch,
-		GlobalMintBurnDisableEpoch:               enableEpochsConfig.GlobalMintBurnDisableEpoch,
-		ESDTTransferMetaEnableEpoch:              enableEpochsConfig.BuiltInFunctionOnMetaEnableEpoch,
-		OptimizeNFTStoreEnableEpoch:              enableEpochsConfig.OptimizeNFTStoreEnableEpoch,
-		CheckCorrectTokenIDEnableEpoch:           enableEpochsConfig.CheckCorrectTokenIDForTransferRoleEnableEpoch,
-		ESDTMetadataContinuousCleanupEnableEpoch: enableEpochsConfig.ESDTMetadataContinuousCleanupEnableEpoch,
-		AutomaticCrawlerAddress:                  make([]byte, 32),
-		MaxNumNodesInTransferRole:                math.MaxUint32,
+		GasSchedule:               arg.GasSchedule,
+		MapDNSAddresses:           make(map[string]struct{}),
+		EnableUserNameChange:      false,
+		Marshalizer:               arg.Core.InternalMarshalizer(),
+		Accounts:                  arg.Accounts,
+		ShardCoordinator:          arg.ShardCoordinator,
+		EpochNotifier:             epochNotifier,
+		EnableEpochsHandler:       enableEpochsHandler,
+		AutomaticCrawlerAddress:   make([]byte, 32),
+		MaxNumNodesInTransferRole: math.MaxUint32,
 	}
 	builtInFuncFactory, err := builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)
 	if err != nil {
@@ -410,15 +404,15 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 	}
 
 	argsNewVMFactory := shard.ArgVMContainerFactory{
-		Config:             arg.VirtualMachineConfig,
-		BlockGasLimit:      math.MaxUint64,
-		GasSchedule:        arg.GasSchedule,
-		BlockChainHook:     blockChainHookImpl,
-		EpochNotifier:      epochNotifier,
-		EpochConfig:        arg.EpochConfig.EnableEpochs,
-		ArwenChangeLocker:  genesisArwenLocker,
-		ESDTTransferParser: esdtTransferParser,
-		BuiltInFunctions:   argsHook.BuiltInFunctions,
+		Config:              arg.VirtualMachineConfig,
+		BlockGasLimit:       math.MaxUint64,
+		GasSchedule:         arg.GasSchedule,
+		BlockChainHook:      blockChainHookImpl,
+		EpochNotifier:       epochNotifier,
+		EnableEpochsHandler: enableEpochsHandler,
+		ArwenChangeLocker:   genesisArwenLocker,
+		ESDTTransferParser:  esdtTransferParser,
+		BuiltInFunctions:    argsHook.BuiltInFunctions,
 	}
 	vmFactoryImpl, err := shard.NewVMContainerFactory(argsNewVMFactory)
 	if err != nil {

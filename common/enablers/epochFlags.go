@@ -77,6 +77,8 @@ type epochFlagsHolder struct {
 	esdtMetadataContinuousCleanupFlag           *atomic.Flag
 	disableExecByCallerFlag                     *atomic.Flag
 	refactorContextFlag                         *atomic.Flag
+	checkFunctionArgumentFlag                   *atomic.Flag
+	checkExecuteOnReadOnlyFlag                  *atomic.Flag
 }
 
 func newEpochFlagsHolder() *epochFlagsHolder {
@@ -155,6 +157,8 @@ func newEpochFlagsHolder() *epochFlagsHolder {
 		esdtMetadataContinuousCleanupFlag:           &atomic.Flag{},
 		disableExecByCallerFlag:                     &atomic.Flag{},
 		refactorContextFlag:                         &atomic.Flag{},
+		checkFunctionArgumentFlag:                   &atomic.Flag{},
+		checkExecuteOnReadOnlyFlag:                  &atomic.Flag{},
 	}
 }
 
@@ -531,4 +535,14 @@ func (holder *epochFlagsHolder) IsDisableExecByCallerFlagEnabled() bool {
 // IsRefactorContextFlagEnabled returns true if refactorContextFlag is enabled
 func (holder *epochFlagsHolder) IsRefactorContextFlagEnabled() bool {
 	return holder.refactorContextFlag.IsSet()
+}
+
+// IsCheckFunctionArgumentFlagEnabled returns true if checkFunctionArgumentFlag is enabled
+func (holder *epochFlagsHolder) IsCheckFunctionArgumentFlagEnabled() bool {
+	return holder.checkFunctionArgumentFlag.IsSet()
+}
+
+// IsCheckExecuteOnReadOnlyFlagEnabled returns true if checkExecuteOnReadOnlyFlag is enabled
+func (holder *epochFlagsHolder) IsCheckExecuteOnReadOnlyFlagEnabled() bool {
+	return holder.checkExecuteOnReadOnlyFlag.IsSet()
 }

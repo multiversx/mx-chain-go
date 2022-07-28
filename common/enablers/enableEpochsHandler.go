@@ -107,6 +107,8 @@ func (handler *enableEpochsHandler) EpochConfirmed(epoch uint32, _ uint64) {
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.ESDTMetadataContinuousCleanupEnableEpoch, handler.esdtMetadataContinuousCleanupFlag, "esdtMetadataContinuousCleanupFlag")
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.DisableExecByCallerEnableEpoch, handler.disableExecByCallerFlag, "disableExecByCallerFlag")
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.RefactorContextEnableEpoch, handler.refactorContextFlag, "refactorContextFlag")
+	handler.setFlagValue(epoch >= handler.enableEpochsConfig.CheckFunctionArgumentEnableEpoch, handler.checkFunctionArgumentFlag, "checkFunctionArgumentFlag")
+	handler.setFlagValue(epoch >= handler.enableEpochsConfig.CheckExecuteOnReadOnlyEnableEpoch, handler.checkExecuteOnReadOnlyFlag, "checkExecuteOnReadOnlyFlag")
 }
 
 func (handler *enableEpochsHandler) setFlagValue(value bool, flag *atomic.Flag, flagName string) {
@@ -142,6 +144,56 @@ func (handler *enableEpochsHandler) BalanceWaitingListsEnableEpoch() uint32 {
 // WaitingListFixEnableEpoch returns the epoch for waiting list fix
 func (handler *enableEpochsHandler) WaitingListFixEnableEpoch() uint32 {
 	return handler.enableEpochsConfig.WaitingListFixEnableEpoch
+}
+
+// MultiESDTTransferAsyncCallBackEnableEpoch returns the epoch when multi esdt transfer fix on callback becomes active
+func (handler *enableEpochsHandler) MultiESDTTransferAsyncCallBackEnableEpoch() uint32 {
+	return handler.enableEpochsConfig.MultiESDTTransferFixOnCallBackOnEnableEpoch
+}
+
+// FixOOGReturnCodeEnableEpoch returns the epoch when fix oog return code becomes active
+func (handler *enableEpochsHandler) FixOOGReturnCodeEnableEpoch() uint32 {
+	return handler.enableEpochsConfig.FixOOGReturnCodeEnableEpoch
+}
+
+// RemoveNonUpdatedStorageEnableEpoch returns the epoch for remove non updated storage
+func (handler *enableEpochsHandler) RemoveNonUpdatedStorageEnableEpoch() uint32 {
+	return handler.enableEpochsConfig.RemoveNonUpdatedStorageEnableEpoch
+}
+
+// CreateNFTThroughExecByCallerEnableEpoch returns the epoch when create nft through exec by caller becomes active
+func (handler *enableEpochsHandler) CreateNFTThroughExecByCallerEnableEpoch() uint32 {
+	return handler.enableEpochsConfig.CreateNFTThroughExecByCallerEnableEpoch
+}
+
+// FixFailExecutionOnErrorEnableEpoch returns the epoch when fail execution on error fix becomes active
+func (handler *enableEpochsHandler) FixFailExecutionOnErrorEnableEpoch() uint32 {
+	return handler.enableEpochsConfig.FailExecutionOnEveryAPIErrorEnableEpoch
+}
+
+// ManagedCryptoAPIEnableEpoch returns the epoch when managed crypto api becomes active
+func (handler *enableEpochsHandler) ManagedCryptoAPIEnableEpoch() uint32 {
+	return handler.enableEpochsConfig.ManagedCryptoAPIsEnableEpoch
+}
+
+// DisableExecByCallerEnableEpoch returns the epoch when disable exec by caller becomes active
+func (handler *enableEpochsHandler) DisableExecByCallerEnableEpoch() uint32 {
+	return handler.enableEpochsConfig.DisableExecByCallerEnableEpoch
+}
+
+// RefactorContextEnableEpoch returns the epoch when refactor context becomes active
+func (handler *enableEpochsHandler) RefactorContextEnableEpoch() uint32 {
+	return handler.enableEpochsConfig.RefactorContextEnableEpoch
+}
+
+// CheckExecuteReadOnlyEnableEpoch returns the epoch when check execute readonly becomes active
+func (handler *enableEpochsHandler) CheckExecuteReadOnlyEnableEpoch() uint32 {
+	return handler.enableEpochsConfig.CheckExecuteOnReadOnlyEnableEpoch
+}
+
+// StorageAPICostOptimizationEnableEpoch returns the epoch when storage api cost optimization becomes active
+func (handler *enableEpochsHandler) StorageAPICostOptimizationEnableEpoch() uint32 {
+	return handler.enableEpochsConfig.StorageAPICostOptimizationEnableEpoch
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -143,6 +143,7 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 		Accounts:                  tpn.AccntState,
 		ShardCoordinator:          tpn.ShardCoordinator,
 		EpochNotifier:             tpn.EpochNotifier,
+		EnableEpochsHandler:       tpn.EnableEpochsHandler,
 		AutomaticCrawlerAddress:   bytes.Repeat([]byte{1}, 32),
 		MaxNumNodesInTransferRole: 100,
 	}

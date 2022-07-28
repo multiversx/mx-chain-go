@@ -35,6 +35,56 @@ func (mock *EnableEpochsHandlerMock) WaitingListFixEnableEpoch() uint32 {
 	return mock.WaitingListFixEnableEpochField
 }
 
+// MultiESDTTransferAsyncCallBackEnableEpoch returns 0
+func (mock *EnableEpochsHandlerMock) MultiESDTTransferAsyncCallBackEnableEpoch() uint32 {
+	return 0
+}
+
+// FixOOGReturnCodeEnableEpoch returns 0
+func (mock *EnableEpochsHandlerMock) FixOOGReturnCodeEnableEpoch() uint32 {
+	return 0
+}
+
+// RemoveNonUpdatedStorageEnableEpoch returns 0
+func (mock *EnableEpochsHandlerMock) RemoveNonUpdatedStorageEnableEpoch() uint32 {
+	return 0
+}
+
+// CreateNFTThroughExecByCallerEnableEpoch returns 0
+func (mock *EnableEpochsHandlerMock) CreateNFTThroughExecByCallerEnableEpoch() uint32 {
+	return 0
+}
+
+// FixFailExecutionOnErrorEnableEpoch returns 0
+func (mock *EnableEpochsHandlerMock) FixFailExecutionOnErrorEnableEpoch() uint32 {
+	return 0
+}
+
+// ManagedCryptoAPIEnableEpoch returns 0
+func (mock *EnableEpochsHandlerMock) ManagedCryptoAPIEnableEpoch() uint32 {
+	return 0
+}
+
+// DisableExecByCallerEnableEpoch returns 0
+func (mock *EnableEpochsHandlerMock) DisableExecByCallerEnableEpoch() uint32 {
+	return 0
+}
+
+// RefactorContextEnableEpoch returns 0
+func (mock *EnableEpochsHandlerMock) RefactorContextEnableEpoch() uint32 {
+	return 0
+}
+
+// CheckExecuteReadOnlyEnableEpoch returns 0
+func (mock *EnableEpochsHandlerMock) CheckExecuteReadOnlyEnableEpoch() uint32 {
+	return 0
+}
+
+// StorageAPICostOptimizationEnableEpoch returns 0
+func (mock *EnableEpochsHandlerMock) StorageAPICostOptimizationEnableEpoch() uint32 {
+	return 0
+}
+
 // IsSCDeployFlagEnabled returns false
 func (mock *EnableEpochsHandlerMock) IsSCDeployFlagEnabled() bool {
 	return false
@@ -406,6 +456,16 @@ func (mock *EnableEpochsHandlerMock) IsDisableExecByCallerFlagEnabled() bool {
 
 // IsRefactorContextFlagEnabled returns false
 func (mock *EnableEpochsHandlerMock) IsRefactorContextFlagEnabled() bool {
+	return false
+}
+
+// IsCheckFunctionArgumentFlagEnabled returns false
+func (mock *EnableEpochsHandlerMock) IsCheckFunctionArgumentFlagEnabled() bool {
+	return false
+}
+
+// IsCheckExecuteOnReadOnlyFlagEnabled returns false
+func (mock *EnableEpochsHandlerMock) IsCheckExecuteOnReadOnlyFlagEnabled() bool {
 	return false
 }
 
