@@ -18,7 +18,7 @@ import (
 )
 
 var (
-	log        = logger.GetOrCreate("process/block/alteredaccounts")
+	log        = logger.GetOrCreate("outport/process/alteredaccounts")
 	zeroBigInt = big.NewInt(0)
 )
 
@@ -52,20 +52,9 @@ type alteredAccountsProvider struct {
 
 // NewAlteredAccountsProvider returns a new instance of alteredAccountsProvider
 func NewAlteredAccountsProvider(args ArgsAlteredAccountsProvider) (*alteredAccountsProvider, error) {
-	if check.IfNil(args.ShardCoordinator) {
-		return nil, errNilShardCoordinator
-	}
-	if check.IfNil(args.AddressConverter) {
-		return nil, errNilPubKeyConverter
-	}
-	if check.IfNil(args.AccountsDB) {
-		return nil, errNilAccountsDB
-	}
-	if check.IfNil(args.Marshalizer) {
-		return nil, errNilMarshalizer
-	}
-	if check.IfNil(args.EsdtDataStorageHandler) {
-		return nil, errNilESDTDataStorageHandler
+	err := checkArgAlteredAccountsProvider(args)
+	if err != nil {
+		return nil, err
 	}
 
 	return &alteredAccountsProvider{
@@ -238,4 +227,24 @@ func (aap *alteredAccountsProvider) addAddressWithBalanceChangeInMap(
 // IsInterfaceNil returns true if there is no value under the interface
 func (aap *alteredAccountsProvider) IsInterfaceNil() bool {
 	return aap == nil
+}
+
+func checkArgAlteredAccountsProvider(arg ArgsAlteredAccountsProvider) error {
+	if check.IfNil(arg.ShardCoordinator) {
+		return errNilShardCoordinator
+	}
+	if check.IfNil(arg.AddressConverter) {
+		return errNilPubKeyConverter
+	}
+	if check.IfNil(arg.AccountsDB) {
+		return errNilAccountsDB
+	}
+	if check.IfNil(arg.Marshalizer) {
+		return errNilMarshalizer
+	}
+	if check.IfNil(arg.EsdtDataStorageHandler) {
+		return errNilESDTDataStorageHandler
+	}
+
+	return nil
 }
