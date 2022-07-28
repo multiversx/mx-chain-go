@@ -163,7 +163,8 @@ func startSnapshotAfterRestart(adb AccountsAdapter, args ArgsAccountsDB) {
 		log.Error("could not get latest storage epoch")
 	}
 	putActiveDBMarker := epoch == 0 && err == nil
-	putActiveDBMarker = putActiveDBMarker || args.ProcessingMode == common.ImportDb
+	isInImportDBMode := args.ProcessingMode == common.ImportDb
+	putActiveDBMarker = putActiveDBMarker || isInImportDBMode
 	if putActiveDBMarker {
 		log.Debug("marking activeDB", "epoch", epoch, "error", err, "processing mode", args.ProcessingMode)
 		err = tsm.Put([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal))
