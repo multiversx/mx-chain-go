@@ -3,7 +3,6 @@ package factory
 import (
 	"errors"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/outport/process/alteredaccounts"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	dataBlock "github.com/ElrondNetwork/elrond-go-core/data/block"
@@ -15,6 +14,9 @@ import (
 	metachainEpochStart "github.com/ElrondNetwork/elrond-go/epochStart/metachain"
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	processDisabled "github.com/ElrondNetwork/elrond-go/genesis/process/disabled"
+	"github.com/ElrondNetwork/elrond-go/outport"
+	processOutport "github.com/ElrondNetwork/elrond-go/outport/process"
+	factoryOutportProvider "github.com/ElrondNetwork/elrond-go/outport/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block"
 	"github.com/ElrondNetwork/elrond-go/process/block/postprocess"
@@ -375,7 +377,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		return nil, err
 	}
 
-	alteredAccountsProvider, err := pcf.createAlteredAccountsProvider()
+	outportDataProvider, err := pcf.createOutportDataProvider(txCoordinator, gasHandler)
 	if err != nil {
 		return nil, err
 	}
@@ -414,7 +416,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		ScheduledTxsExecutionHandler:   scheduledTxsExecutionHandler,
 		ScheduledMiniBlocksEnableEpoch: enableEpochs.ScheduledMiniBlocksEnableEpoch,
 		ProcessedMiniBlocksTracker:     processedMiniBlocksTracker,
-		AlteredAccountsProvider:        alteredAccountsProvider,
+		OutportDataProvider:            outportDataProvider,
 	}
 	arguments := block.ArgShardProcessor{
 		ArgBaseProcessor: argumentsBaseProcessor,
@@ -779,7 +781,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		return nil, err
 	}
 
-	alteredAccountsProvider, err := pcf.createAlteredAccountsProvider()
+	outportDataProvider, err := pcf.createOutportDataProvider(txCoordinator, gasHandler)
 	if err != nil {
 		return nil, err
 	}
@@ -816,7 +818,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		ScheduledTxsExecutionHandler:   scheduledTxsExecutionHandler,
 		ScheduledMiniBlocksEnableEpoch: enableEpochs.ScheduledMiniBlocksEnableEpoch,
 		ProcessedMiniBlocksTracker:     processedMiniBlocksTracker,
-		AlteredAccountsProvider:        alteredAccountsProvider,
+		OutportDataProvider:            outportDataProvider,
 	}
 
 	esdtOwnerAddress, err := pcf.coreData.AddressPubKeyConverter().Decode(pcf.systemSCConfig.ESDTSystemSCConfig.OwnerAddress)
@@ -876,13 +878,22 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	return blockProcessorComponents, nil
 }
 
-func (pcf *processComponentsFactory) createAlteredAccountsProvider() (process.AlteredAccountsProviderHandler, error) {
-	return alteredaccounts.NewAlteredAccountsProvider(alteredaccounts.ArgsAlteredAccountsProvider{
-		ShardCoordinator:       pcf.bootstrapComponents.ShardCoordinator(),
+func (pcf *processComponentsFactory) createOutportDataProvider(
+	txCoordinator process.TransactionCoordinator,
+	gasConsumedProvider processOutport.GasConsumedProvider,
+) (outport.DataProviderOutport, error) {
+	return factoryOutportProvider.CreateOutportDataProvider(factoryOutportProvider.ArgOutportDataProviderFactory{
 		AddressConverter:       pcf.coreData.AddressPubKeyConverter(),
 		AccountsDB:             pcf.state.AccountsAdapter(),
-		Marshalizer:            pcf.coreData.InternalMarshalizer(),
+		Marshalizer:            pcf.coreData.TxMarshalizer(),
 		EsdtDataStorageHandler: pcf.esdtNftStorage,
+		TransactionsStorer:     pcf.data.StorageService().GetStorer(dataRetriever.TransactionUnit),
+		TxFeeCalculator:        pcf.coreData.EconomicsData(),
+		ShardCoordinator:       pcf.bootstrapComponents.ShardCoordinator(),
+		TxCoordinator:          txCoordinator,
+		NodesCoordinator:       pcf.nodesCoordinator,
+		GasConsumedProvider:    gasConsumedProvider,
+		EconomicsData:          pcf.coreData.EconomicsData(),
 	})
 }
 

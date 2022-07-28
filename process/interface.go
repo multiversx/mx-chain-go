@@ -10,7 +10,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
-	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
 	"github.com/ElrondNetwork/elrond-go-core/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
@@ -427,12 +426,6 @@ type VirtualMachinesContainerFactory interface {
 	Create() (VirtualMachinesContainer, error)
 	Close() error
 	BlockChainHookImpl() BlockChainHookHandler
-	IsInterfaceNil() bool
-}
-
-// AlteredAccountsProviderHandler defines the functionality needed for provisioning of altered accounts when indexing data
-type AlteredAccountsProviderHandler interface {
-	ExtractAlteredAccountsFromPool(txPool *indexer.Pool) (map[string]*indexer.AlteredAccount, error)
 	IsInterfaceNil() bool
 }
 

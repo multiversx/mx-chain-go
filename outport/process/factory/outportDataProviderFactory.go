@@ -7,6 +7,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/outport/process"
 	"github.com/ElrondNetwork/elrond-go/outport/process/alteredaccounts"
 	"github.com/ElrondNetwork/elrond-go/outport/process/transactionsfee"
+	processTxs "github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -19,7 +22,11 @@ type ArgOutportDataProviderFactory struct {
 	EsdtDataStorageHandler vmcommon.ESDTNFTStorageHandler
 	TransactionsStorer     storage.Storer
 	TxFeeCalculator        transactionsfee.FeesProcessorHandler
-	process.ArgOutportDataProvider
+	ShardCoordinator       sharding.Coordinator
+	TxCoordinator          processTxs.TransactionCoordinator
+	NodesCoordinator       nodesCoordinator.NodesCoordinator
+	GasConsumedProvider    process.GasConsumedProvider
+	EconomicsData          process.EconomicsDataHandler
 }
 
 // CreateOutportDataProvider will create a new instance of outport.DataProviderOutport

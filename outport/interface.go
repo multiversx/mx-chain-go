@@ -43,4 +43,5 @@ type DataProviderOutport interface {
 		rewardsTxs map[string]data.TransactionHandler,
 		notarizedHeadersHashes []string,
 	) (*indexer.ArgsSaveBlockData, error)
+	IsInterfaceNil() bool
 }

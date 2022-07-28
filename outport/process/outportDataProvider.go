@@ -147,3 +147,8 @@ func wrapTxsMap(txs map[string]data.TransactionHandler) map[string]data.Transact
 
 	return newMap
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (odp *outportDataProvider) IsInterfaceNil() bool {
+	return odp == nil
+}
