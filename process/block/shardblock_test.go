@@ -18,7 +18,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
-	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
@@ -2191,9 +2190,6 @@ func TestShardProcessor_CommitBlockCallsIndexerMethods(t *testing.T) {
 	}
 	store := initStore()
 
-	var txsPool *indexer.Pool
-	saveBlockCalledMutex := sync.Mutex{}
-
 	blkc := createTestBlockchain()
 	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
 		return prevHdr
@@ -2209,37 +2205,22 @@ func TestShardProcessor_CommitBlockCallsIndexerMethods(t *testing.T) {
 
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 
+	called := false
 	statusComponents.Outport = &testscommon.OutportStub{
 		SaveBlockCalled: func(args *indexer.ArgsSaveBlockData) {
-			saveBlockCalledMutex.Lock()
-			txsPool = args.TransactionsPool
-			saveBlockCalledMutex.Unlock()
+			called = true
 		},
 		HasDriversCalled: func() bool {
 			return true
 		},
 	}
+	arguments.OutportDataProvider = &testscommon.OutportDataProviderStub{
+		PrepareOutportSaveBlockDataCalled: func(headerHash []byte, body data.BodyHandler, header data.HeaderHandler, rewardsTxs map[string]data.TransactionHandler, notarizedHeadersHashes []string) (*indexer.ArgsSaveBlockData, error) {
+			return &indexer.ArgsSaveBlockData{}, nil
+		}}
 
 	arguments.AccountsDB[state.UserAccountsState] = accounts
 	arguments.ForkDetector = fd
-	arguments.TxCoordinator = &mock.TransactionCoordinatorMock{
-		GetAllCurrentUsedTxsCalled: func(blockType block.Type) map[string]data.TransactionHandler {
-			switch blockType {
-			case block.TxBlock:
-				return map[string]data.TransactionHandler{
-					"tx_1": &transaction.Transaction{Nonce: 1},
-					"tx_2": &transaction.Transaction{Nonce: 2},
-				}
-			case block.SmartContractResultBlock:
-				return map[string]data.TransactionHandler{
-					"utx_1": &smartContractResult.SmartContractResult{Nonce: 1},
-					"utx_2": &smartContractResult.SmartContractResult{Nonce: 2},
-				}
-			default:
-				return nil
-			}
-		},
-	}
 	blockTrackerMock := mock.NewBlockTrackerMock(mock.NewOneShardCoordinatorMock(), createGenesisBlocks(mock.NewOneShardCoordinatorMock()))
 	blockTrackerMock.GetCrossNotarizedHeaderCalled = func(shardID uint32, offset uint64) (data.HeaderHandler, []byte, error) {
 		return &block.MetaBlock{}, []byte("hash"), nil
@@ -2256,8 +2237,7 @@ func TestShardProcessor_CommitBlockCallsIndexerMethods(t *testing.T) {
 	// Wait for the index block go routine to start
 	time.Sleep(time.Second * 2)
 
-	assert.Equal(t, 2, len(txsPool.Txs))
-	assert.Equal(t, 2, len(txsPool.Scrs))
+	require.True(t, called)
 }
 
 func TestShardProcessor_CreateTxBlockBodyWithDirtyAccStateShouldReturnEmptyBody(t *testing.T) {
