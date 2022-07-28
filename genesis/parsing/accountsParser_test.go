@@ -595,7 +595,7 @@ func TestAccountsParser_setScrsTxsPool(t *testing.T) {
 	txsPoolPerShard := make(map[uint32]*indexer.Pool)
 	for i := uint32(0); i < sharder.NumOfShards; i++ {
 		txsPoolPerShard[i] = &indexer.Pool{
-			Scrs: map[string]coreData.TransactionHandler{},
+			Scrs: map[string]coreData.TransactionHandlerWithGasUsedAndFee{},
 		}
 	}
 
@@ -702,7 +702,7 @@ func TestAccountsParser_GenerateInitialTransactionsVerifyTxsHashes(t *testing.T)
 
 	ap := parsing.NewTestAccountsParser(createMockHexPubkeyConverter())
 	balance := int64(1)
-	ibs := []*data.InitialAccount{}
+	var ibs []*data.InitialAccount
 
 	ap.SetEntireSupply(big.NewInt(int64(len(ibs)) * balance))
 	ap.SetInitialAccounts(ibs)
@@ -740,6 +740,6 @@ func TestAccountsParser_GenerateInitialTransactionsVerifyTxsHashes(t *testing.T)
 
 	for hashString, v := range txsPoolPerShard[0].Txs {
 		assert.Equal(t, txHash, []byte(hashString))
-		assert.Equal(t, tx, v)
+		assert.Equal(t, tx, v.GetTxHandler())
 	}
 }

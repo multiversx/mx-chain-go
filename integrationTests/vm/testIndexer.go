@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"math/big"
 	"sync"
 	"testing"
 	"time"
@@ -183,19 +184,19 @@ func (ti *testIndexer) SaveTransaction(
 	}
 
 	txsPool := &indexer.Pool{
-		Txs:      make(map[string]data.TransactionHandler),
-		Scrs:     make(map[string]data.TransactionHandler),
+		Txs:      make(map[string]data.TransactionHandlerWithGasUsedAndFee),
+		Scrs:     make(map[string]data.TransactionHandlerWithGasUsedAndFee),
 		Rewards:  nil,
-		Invalid:  make(map[string]data.TransactionHandler),
-		Receipts: make(map[string]data.TransactionHandler),
+		Invalid:  make(map[string]data.TransactionHandlerWithGasUsedAndFee),
+		Receipts: make(map[string]data.TransactionHandlerWithGasUsedAndFee),
 		Logs:     ti.txsLogsProcessor.GetAllCurrentLogs(),
 	}
 
 	if mbType == block.InvalidBlock {
-		txsPool.Invalid[string(txHash)] = tx
+		txsPool.Invalid[string(txHash)] = indexer.NewTransactionHandlerWithGasAndFee(tx, 0, big.NewInt(0))
 		bigTxMb.ReceiverShardID = sndShardID
 	} else {
-		txsPool.Txs[string(txHash)] = tx
+		txsPool.Txs[string(txHash)] = indexer.NewTransactionHandlerWithGasAndFee(tx, 0, big.NewInt(0))
 	}
 
 	for _, intTx := range intermediateTxs {
@@ -211,11 +212,11 @@ func (ti *testIndexer) SaveTransaction(
 		case *receipt.Receipt:
 			mb.Type = block.ReceiptBlock
 			mb.ReceiverShardID = sndShardID
-			txsPool.Receipts[string(intTxHash)] = intTx
+			txsPool.Receipts[string(intTxHash)] = indexer.NewTransactionHandlerWithGasAndFee(intTx, 0, big.NewInt(0))
 		case *smartContractResult.SmartContractResult:
 			mb.Type = block.SmartContractResultBlock
 			mb.ReceiverShardID = rcvShardID
-			txsPool.Scrs[string(intTxHash)] = intTx
+			txsPool.Scrs[string(intTxHash)] = indexer.NewTransactionHandlerWithGasAndFee(intTx, 0, big.NewInt(0))
 		default:
 			continue
 		}
