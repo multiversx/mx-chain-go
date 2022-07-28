@@ -77,11 +77,12 @@ func TestSyncMetaNodeIsSyncingReceivedHigherRoundBlockFromShard(t *testing.T) {
 
 	maxShards := uint32(1)
 	shardId := uint32(0)
-	syncMetaNode := integrationTests.NewTestSyncNode(
-		maxShards,
-		core.MetachainShardId,
-		shardId,
-	)
+	syncMetaNode := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
+		MaxShards:            maxShards,
+		NodeShardId:          core.MetachainShardId,
+		TxSignPrivKeyShardId: shardId,
+		WithSync:             true,
+	})
 	nodes = append(nodes, syncMetaNode)
 	syncMetaNode.RoundHandler.IndexField = int64(round)
 

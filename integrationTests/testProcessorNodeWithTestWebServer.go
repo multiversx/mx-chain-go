@@ -48,8 +48,11 @@ func NewTestProcessorNodeWithTestWebServer(
 	txSignPrivKeyShardId uint32,
 ) *TestProcessorNodeWithTestWebServer {
 
-	tpn := newBaseTestProcessorNode(maxShards, nodeShardId, txSignPrivKeyShardId, config.EnableEpochs{})
-	tpn.initTestNode()
+	tpn := NewTestProcessorNode(ArgTestProcessorNode{
+		MaxShards:            maxShards,
+		NodeShardId:          nodeShardId,
+		TxSignPrivKeyShardId: txSignPrivKeyShardId,
+	})
 
 	argFacade := createFacadeArg(tpn)
 	facade, err := nodeFacade.NewNodeFacade(argFacade)

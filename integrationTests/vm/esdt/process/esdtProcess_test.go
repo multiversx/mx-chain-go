@@ -333,7 +333,12 @@ func TestESDTIssueAndSelfTransferShouldNotChangeBalance(t *testing.T) {
 }
 
 func TestESDTIssueFromASmartContractSimulated(t *testing.T) {
-	metaNode := integrationTests.NewTestProcessorNode(1, core.MetachainShardId, 0)
+	metaNode := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
+		MaxShards:            1,
+		NodeShardId:          core.MetachainShardId,
+		TxSignPrivKeyShardId: 0,
+	})
+
 	defer func() {
 		metaNode.Close()
 	}()

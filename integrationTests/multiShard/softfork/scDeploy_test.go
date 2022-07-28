@@ -37,20 +37,20 @@ func TestScDeploy(t *testing.T) {
 	enableEpochs.RelayedTransactionsEnableEpoch = relayedTxEnableEpoch
 	enableEpochs.PenalizedTooMuchGasEnableEpoch = penalizedTooMuchGasEnableEpoch
 
-	shardNode := integrationTests.NewTestProcessorNodeWithEnableEpochs(
-		1,
-		0,
-		0,
-		enableEpochs,
-	)
+	shardNode := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
+		MaxShards:            1,
+		NodeShardId:          0,
+		TxSignPrivKeyShardId: 0,
+		EpochsConfig:         &enableEpochs,
+	})
 	shardNode.EpochStartTrigger.SetRoundsPerEpoch(roundsPerEpoch)
 
-	metaNode := integrationTests.NewTestProcessorNodeWithEnableEpochs(
-		1,
-		core.MetachainShardId,
-		0,
-		enableEpochs,
-	)
+	metaNode := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
+		MaxShards:            1,
+		NodeShardId:          core.MetachainShardId,
+		TxSignPrivKeyShardId: 0,
+		EpochsConfig:         &enableEpochs,
+	})
 	metaNode.EpochStartTrigger.SetRoundsPerEpoch(roundsPerEpoch)
 
 	nodes := []*integrationTests.TestProcessorNode{

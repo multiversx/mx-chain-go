@@ -32,7 +32,11 @@ func TestShardShouldNotProposeAndExecuteTwoBlocksInSameRound(t *testing.T) {
 	nodes := make([]*integrationTests.TestProcessorNode, numOfNodes)
 	connectableNodes := make([]integrationTests.Connectable, numOfNodes)
 	for i := 0; i < numOfNodes; i++ {
-		nodes[i] = integrationTests.NewTestProcessorNode(maxShards, 0, 0)
+		nodes[i] = integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
+			MaxShards:            maxShards,
+			NodeShardId:          0,
+			TxSignPrivKeyShardId: 0,
+		})
 		connectableNodes[i] = nodes[i]
 	}
 
@@ -95,7 +99,11 @@ func TestShardShouldProposeBlockContainingInvalidTransactions(t *testing.T) {
 	nodes := make([]*integrationTests.TestProcessorNode, numOfNodes)
 	connectableNodes := make([]integrationTests.Connectable, numOfNodes)
 	for i := 0; i < numOfNodes; i++ {
-		nodes[i] = integrationTests.NewTestProcessorNode(maxShards, 0, 0)
+		nodes[i] = integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
+			MaxShards:            maxShards,
+			NodeShardId:          0,
+			TxSignPrivKeyShardId: 0,
+		})
 		connectableNodes[i] = nodes[i]
 	}
 

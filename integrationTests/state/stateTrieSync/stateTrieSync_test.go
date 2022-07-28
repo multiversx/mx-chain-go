@@ -40,7 +40,13 @@ func createTestProcessorNodeAndTrieStorage(
 	mainStorer, _, err := testStorage.CreateTestingTriePruningStorer(&testscommon.ShardsCoordinatorMock{}, notifier.NewEpochStartSubscriptionHandler())
 	assert.Nil(t, err)
 
-	node := integrationTests.NewTestProcessorNodeWithStorageTrieAndGasModel(numOfShards, shardID, txSignPrivKeyShardId, mainStorer, createTestGasMap())
+	node := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
+		MaxShards:            numOfShards,
+		NodeShardId:          shardID,
+		TxSignPrivKeyShardId: txSignPrivKeyShardId,
+		TrieStore:            mainStorer,
+		GasScheduleMap:       createTestGasMap(),
+	})
 	_ = node.Messenger.CreateTopic(common.ConsensusTopic+node.ShardCoordinator.CommunicationIdentifier(node.ShardCoordinator.SelfId()), true)
 
 	return node, mainStorer
@@ -51,15 +57,15 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	var nrOfShards uint32 = 1
+	var numOfShards uint32 = 1
 	var shardID uint32 = 0
 	var txSignPrivKeyShardId uint32 = 0
 
 	fmt.Println("Requester:	")
-	nRequester, trieStorageRequester := createTestProcessorNodeAndTrieStorage(t, nrOfShards, shardID, txSignPrivKeyShardId)
+	nRequester, trieStorageRequester := createTestProcessorNodeAndTrieStorage(t, numOfShards, shardID, txSignPrivKeyShardId)
 
 	fmt.Println("Resolver:")
-	nResolver, trieStorageResolver := createTestProcessorNodeAndTrieStorage(t, nrOfShards, shardID, txSignPrivKeyShardId)
+	nResolver, trieStorageResolver := createTestProcessorNodeAndTrieStorage(t, numOfShards, shardID, txSignPrivKeyShardId)
 
 	defer func() {
 		_ = trieStorageRequester.DestroyUnit()
@@ -183,15 +189,15 @@ func TestNode_RequestInterceptTrieNodesWithMessengerNotSyncingShouldErr(t *testi
 		t.Skip("this is not a short test")
 	}
 
-	var nrOfShards uint32 = 1
+	var numOfShards uint32 = 1
 	var shardID uint32 = 0
 	var txSignPrivKeyShardId uint32 = 0
 
 	fmt.Println("Requester:	")
-	nRequester, trieStorageRequester := createTestProcessorNodeAndTrieStorage(t, nrOfShards, shardID, txSignPrivKeyShardId)
+	nRequester, trieStorageRequester := createTestProcessorNodeAndTrieStorage(t, numOfShards, shardID, txSignPrivKeyShardId)
 
 	fmt.Println("Resolver:")
-	nResolver, trieStorageResolver := createTestProcessorNodeAndTrieStorage(t, nrOfShards, shardID, txSignPrivKeyShardId)
+	nResolver, trieStorageResolver := createTestProcessorNodeAndTrieStorage(t, numOfShards, shardID, txSignPrivKeyShardId)
 
 	defer func() {
 		_ = trieStorageRequester.DestroyUnit()
@@ -296,15 +302,15 @@ func testMultipleDataTriesSync(t *testing.T, numAccounts int, numDataTrieLeaves 
 		t.Skip("this is not a short test")
 	}
 
-	var nrOfShards uint32 = 1
+	var numOfShards uint32 = 1
 	var shardID uint32 = 0
 	var txSignPrivKeyShardId uint32 = 0
 
 	fmt.Println("Requester:	")
-	nRequester, trieStorageRequester := createTestProcessorNodeAndTrieStorage(t, nrOfShards, shardID, txSignPrivKeyShardId)
+	nRequester, trieStorageRequester := createTestProcessorNodeAndTrieStorage(t, numOfShards, shardID, txSignPrivKeyShardId)
 
 	fmt.Println("Resolver:")
-	nResolver, trieStorageResolver := createTestProcessorNodeAndTrieStorage(t, nrOfShards, shardID, txSignPrivKeyShardId)
+	nResolver, trieStorageResolver := createTestProcessorNodeAndTrieStorage(t, numOfShards, shardID, txSignPrivKeyShardId)
 
 	defer func() {
 		_ = trieStorageRequester.DestroyUnit()
