@@ -127,7 +127,7 @@ func NewAccountsDB(args ArgsAccountsDB) (*AccountsDB, error) {
 	trieStorageManager := adb.mainTrie.GetStorageManager()
 	val, err := trieStorageManager.GetFromCurrentEpoch([]byte(common.ActiveDBKey))
 	if err != nil || !bytes.Equal(val, []byte(common.ActiveDBVal)) {
-		startSnapshotAfterRestart(adb, trieStorageManager)
+		startSnapshotAfterRestart(adb, args)
 	}
 
 	return adb, nil
@@ -156,12 +156,16 @@ func checkArgsAccountsDB(args ArgsAccountsDB) error {
 	return nil
 }
 
-func startSnapshotAfterRestart(adb AccountsAdapter, tsm common.StorageManager) {
+func startSnapshotAfterRestart(adb AccountsAdapter, args ArgsAccountsDB) {
+	tsm := args.Trie.GetStorageManager()
 	epoch, err := tsm.GetLatestStorageEpoch()
 	if err != nil {
 		log.Error("could not get latest storage epoch")
 	}
-	if epoch == 0 && err == nil {
+	putActiveDBMarker := epoch == 0 && err == nil
+	putActiveDBMarker = putActiveDBMarker || args.ProcessingMode == common.ImportDb
+	if putActiveDBMarker {
+		log.Debug("marking activeDB", "epoch", epoch, "error", err, "processing mode", args.ProcessingMode)
 		err = tsm.Put([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal))
 		handleLoggingWhenError("error while putting active DB value into main storer", err)
 		return
