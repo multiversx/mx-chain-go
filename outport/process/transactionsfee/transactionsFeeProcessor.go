@@ -149,3 +149,8 @@ func (tep *transactionsFeeProcessor) prepareScrsNoTx(groupedTxs *groupedTransact
 
 	return nil
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (tep *transactionsFeeProcessor) IsInterfaceNil() bool {
+	return tep == nil
+}

@@ -34,3 +34,13 @@ type OutportHandler interface {
 	Close() error
 	IsInterfaceNil() bool
 }
+
+type DataProviderOutport interface {
+	PrepareOutportSaveBlockData(
+		headerHash []byte,
+		body data.BodyHandler,
+		header data.HeaderHandler,
+		rewardsTxs map[string]data.TransactionHandler,
+		notarizedHeadersHashes []string,
+	) (*indexer.ArgsSaveBlockData, error)
+}
