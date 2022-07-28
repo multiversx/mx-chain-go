@@ -368,11 +368,13 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 	}
 
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
-		PubkeyConverter:    arg.Core.AddressPubKeyConverter(),
-		ShardCoordinator:   arg.ShardCoordinator,
-		BuiltInFunctions:   builtInFuncs,
-		ArgumentParser:     parsers.NewCallArgsParser(),
-		ESDTTransferParser: esdtTransferParser,
+		PubkeyConverter:                        arg.Core.AddressPubKeyConverter(),
+		ShardCoordinator:                       arg.ShardCoordinator,
+		BuiltInFunctions:                       builtInFuncs,
+		ArgumentParser:                         parsers.NewCallArgsParser(),
+		ESDTTransferParser:                     esdtTransferParser,
+		EpochNotifier:                          epochNotifier,
+		TransferAndAsyncCallbackFixEnableEpoch: arg.EpochConfig.EnableEpochs.ESDTMetadataContinuousCleanupEnableEpoch,
 	}
 	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	if err != nil {
