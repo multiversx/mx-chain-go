@@ -5,15 +5,11 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	"github.com/ElrondNetwork/elrond-go-core/hashing/blake2b"
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/ed25519"
 	ed25519SingleSig "github.com/ElrondNetwork/elrond-go-crypto/signing/ed25519/singlesig"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl"
-	multisig2 "github.com/ElrondNetwork/elrond-go-crypto/signing/mcl/multisig"
-	"github.com/ElrondNetwork/elrond-go-crypto/signing/multisig"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
@@ -30,20 +26,6 @@ type nodeKeys struct {
 	BlockSignSk      crypto.PrivateKey
 	BlockSignPk      crypto.PublicKey
 	BlockSignPkBytes []byte
-}
-
-func pubKeysMapFromKeysMap(ncp map[uint32][]*nodeKeys) map[uint32][]string {
-	keysMap := make(map[uint32][]string)
-
-	for shardId, keys := range ncp {
-		shardKeys := make([]string, len(keys))
-		for i, nk := range keys {
-			shardKeys[i] = string(nk.BlockSignPkBytes)
-		}
-		keysMap[shardId] = shardKeys
-	}
-
-	return keysMap
 }
 
 // CreateProcessorNodesWithNodesCoordinator creates a map of nodes with a valid nodes coordinator implementation
@@ -99,22 +81,13 @@ func CreateProcessorNodesWithNodesCoordinator(
 				fmt.Println("error creating node coordinator")
 			}
 
-			blsHasher, _ := blake2b.NewBlake2bWithSize(hashing.BlsHashSize)
-			llsig := &multisig2.BlsMultiSigner{Hasher: blsHasher}
-
-			pubKeysMap := pubKeysMapFromKeysMap(ncp)
-			kp := ncp[shardId][i]
-			multiSigner, err := multisig.NewBLSMultisig(
-				llsig,
-				pubKeysMap[shardId],
-				kp.BlockSignSk,
-				kp.BlockSignKeyGen,
-				uint16(i),
-			)
+			multiSigner, err := createMultiSigner(*cp, shardId, i)
 			if err != nil {
-				fmt.Printf("error generating multisigner: %s\n", err)
+				log.Error("error generating multisigner: %s\n", err)
 				return nil, 0
 			}
+
+			kp := ncp[shardId][i]
 
 			ownAccount := &TestWalletAccount{
 				SingleSigner:      createTestSingleSigner(),

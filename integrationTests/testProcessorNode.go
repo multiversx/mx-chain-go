@@ -233,11 +233,6 @@ type Connectable interface {
 	IsInterfaceNil() bool
 }
 
-// StateCheckpointModulus defines the checkpoint modulus for block processor
-type StateCheckpointModulus struct {
-	Value uint
-}
-
 // ArgTestProcessorNode represents the DTO used to create a new TestProcessorNode
 type ArgTestProcessorNode struct {
 	MaxShards               uint32
@@ -248,11 +243,12 @@ type ArgTestProcessorNode struct {
 	GasScheduleMap          GasScheduleMap
 	EpochsConfig            *config.EnableEpochs
 	VMConfig                *config.VirtualMachineConfig
+	EconomicsConfig         *config.EconomicsConfig
 	DataPool                dataRetriever.PoolsHolder
 	TrieStore               storage.Storer
 	HardforkPk              crypto.PublicKey
 	GenesisFile             string
-	StateCheckpointModulus  *StateCheckpointModulus
+	StateCheckpointModulus  *IntWrapper
 	NodeKeys                *TestKeyPair
 	NodesSetup              sharding.GenesisNodesSetupHandler
 	NodesCoordinator        nodesCoordinator.NodesCoordinator
@@ -411,18 +407,7 @@ func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 	genericEpochNotifier := forking.NewGenericEpochNotifier()
 	epochsConfig := args.EpochsConfig
 	if epochsConfig == nil {
-		epochsConfig = &config.EnableEpochs{
-			OptimizeGasUsedInCrossMiniBlocksEnableEpoch: UnreachableEpoch,
-			ScheduledMiniBlocksEnableEpoch:              UnreachableEpoch,
-			MiniBlockPartialExecutionEnableEpoch:        UnreachableEpoch,
-			FailExecutionOnEveryAPIErrorEnableEpoch:     UnreachableEpoch,
-		}
-
-		isFullGenesis := args.GenesisFile != ""
-		isWithStateCheckpointModulus := args.StateCheckpointModulus != nil
-		if isFullGenesis || isWithStateCheckpointModulus {
-			epochsConfig.StakingV2EnableEpoch = UnreachableEpoch
-		}
+		epochsConfig = getDefaultEnableEpochsConfig()
 	}
 	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(*epochsConfig, genericEpochNotifier)
 
@@ -487,7 +472,7 @@ func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 	return tpn
 }
 
-// NewTestProcessorNode returns a new TestProcessorNode instance with a libp2p messenger
+// NewTestProcessorNode returns a new TestProcessorNode instance with a libp2p messenger and the provided arguments
 func NewTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 	tpn := newBaseTestProcessorNode(args)
 	tpn.initTestNodeWithArgs(args)
@@ -585,39 +570,8 @@ func (tpn *TestProcessorNode) initValidatorStatistics() {
 	tpn.ValidatorStatisticsProcessor, _ = peer.NewValidatorStatisticsProcessor(arguments)
 }
 
-func (tpn *TestProcessorNode) initTestNodeWithArgs(args ArgTestProcessorNode) {
-	isFullGenesis := args.GenesisFile != ""
-	tpn.initChainHandler()
-	tpn.initHeaderValidator()
-	tpn.initRoundHandler()
-	tpn.NetworkShardingCollector = mock.NewNetworkShardingCollectorMock()
-	if check.IfNil(tpn.EpochNotifier) {
-		tpn.EpochStartNotifier = notifier.NewEpochStartSubscriptionHandler()
-	}
-	tpn.initStorage()
-	if check.IfNil(args.TrieStore) {
-		tpn.initAccountDBsWithPruningStorer()
-	} else {
-		tpn.initAccountDBs(args.TrieStore)
-	}
-
-	economicsConfig := tpn.createDefaultEconomicsConfig()
-	if isFullGenesis {
-		economicsConfig.GlobalSettings.YearSettings = append(
-			economicsConfig.GlobalSettings.YearSettings,
-			&config.YearSetting{
-				Year:             1,
-				MaximumInflation: 0.01,
-			},
-		)
-	}
-	tpn.initEconomicsData(economicsConfig)
-	tpn.initRatingsData()
-	tpn.initRequestedItemsHandler()
-	tpn.initResolvers()
-	tpn.initValidatorStatistics()
-
-	if isFullGenesis {
+func (tpn *TestProcessorNode) initGenesisBlocks(args ArgTestProcessorNode) {
+	if args.GenesisFile != "" {
 		tpn.SmartContractParser, _ = parsing.NewSmartContractsParser(
 			args.GenesisFile,
 			TestAddressPubkeyConverter,
@@ -637,26 +591,58 @@ func (tpn *TestProcessorNode) initTestNodeWithArgs(args ArgTestProcessorNode) {
 			tpn.SmartContractParser,
 			tpn.EnableEpochs,
 		)
-	} else if args.WithSync {
-		tpn.GenesisBlocks = CreateSimpleGenesisBlocks(tpn.ShardCoordinator)
-	} else {
-		tpn.GenesisBlocks = CreateGenesisBlocks(
-			tpn.AccntState,
-			tpn.PeerState,
-			tpn.TrieStorageManagers,
-			TestAddressPubkeyConverter,
-			tpn.NodesSetup,
-			tpn.ShardCoordinator,
-			tpn.Storage,
-			tpn.BlockChain,
-			TestMarshalizer,
-			TestHasher,
-			TestUint64Converter,
-			tpn.DataPool,
-			tpn.EconomicsData,
-			tpn.EnableEpochs,
-		)
+		return
 	}
+
+	if args.WithSync {
+		tpn.GenesisBlocks = CreateSimpleGenesisBlocks(tpn.ShardCoordinator)
+		return
+	}
+
+	tpn.GenesisBlocks = CreateGenesisBlocks(
+		tpn.AccntState,
+		tpn.PeerState,
+		tpn.TrieStorageManagers,
+		TestAddressPubkeyConverter,
+		tpn.NodesSetup,
+		tpn.ShardCoordinator,
+		tpn.Storage,
+		tpn.BlockChain,
+		TestMarshalizer,
+		TestHasher,
+		TestUint64Converter,
+		tpn.DataPool,
+		tpn.EconomicsData,
+		tpn.EnableEpochs,
+	)
+}
+
+func (tpn *TestProcessorNode) initTestNodeWithArgs(args ArgTestProcessorNode) {
+	tpn.initChainHandler()
+	tpn.initHeaderValidator()
+	tpn.initRoundHandler()
+	tpn.NetworkShardingCollector = mock.NewNetworkShardingCollectorMock()
+	if check.IfNil(tpn.EpochNotifier) {
+		tpn.EpochStartNotifier = notifier.NewEpochStartSubscriptionHandler()
+	}
+	tpn.initStorage()
+	if check.IfNil(args.TrieStore) {
+		tpn.initAccountDBsWithPruningStorer()
+	} else {
+		tpn.initAccountDBs(args.TrieStore)
+	}
+
+	economicsConfig := args.EconomicsConfig
+	if economicsConfig == nil {
+		economicsConfig = createDefaultEconomicsConfig()
+	}
+
+	tpn.initEconomicsData(economicsConfig)
+	tpn.initRatingsData()
+	tpn.initRequestedItemsHandler()
+	tpn.initResolvers()
+	tpn.initValidatorStatistics()
+	tpn.initGenesisBlocks(args)
 	tpn.initBlockTracker()
 
 	strPk := ""
@@ -719,7 +705,7 @@ func (tpn *TestProcessorNode) initTestNodeWithArgs(args ArgTestProcessorNode) {
 	tpn.addHandlersForCounters()
 	tpn.addGenesisBlocksIntoStorage()
 
-	if isFullGenesis {
+	if args.GenesisFile != "" {
 		tpn.createHeartbeatWithHardforkTrigger()
 	}
 }
@@ -792,7 +778,7 @@ func (tpn *TestProcessorNode) initEconomicsData(economicsConfig *config.Economic
 	tpn.EconomicsData = economics.NewTestEconomicsData(economicsData)
 }
 
-func (tpn *TestProcessorNode) createDefaultEconomicsConfig() *config.EconomicsConfig {
+func createDefaultEconomicsConfig() *config.EconomicsConfig {
 	maxGasLimitPerBlock := strconv.FormatUint(MaxGasLimitPerBlock, 10)
 	minGasPrice := strconv.FormatUint(MinTxGasPrice, 10)
 	minGasLimit := strconv.FormatUint(MinTxGasLimit, 10)
@@ -3092,5 +3078,14 @@ func getDefaultNodesCoordinator(maxShards uint32, pksBytes map[uint32][]byte) no
 			validator, _ := nodesCoordinator.NewValidator(publicKey, defaultChancesSelection, 1)
 			return validator, 0, nil
 		},
+	}
+}
+
+func getDefaultEnableEpochsConfig() *config.EnableEpochs {
+	return &config.EnableEpochs{
+		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: UnreachableEpoch,
+		ScheduledMiniBlocksEnableEpoch:              UnreachableEpoch,
+		MiniBlockPartialExecutionEnableEpoch:        UnreachableEpoch,
+		FailExecutionOnEveryAPIErrorEnableEpoch:     UnreachableEpoch,
 	}
 }

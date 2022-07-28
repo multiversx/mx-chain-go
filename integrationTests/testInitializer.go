@@ -1442,11 +1442,25 @@ func CreateNodesWithFullGenesis(
 	nodes := make([]*TestProcessorNode, numOfShards*nodesPerShard+numMetaChainNodes)
 	connectableNodes := make([]Connectable, len(nodes))
 
+	enableEpochsConfig := getDefaultEnableEpochsConfig()
+	enableEpochsConfig.StakingV2EnableEpoch = UnreachableEpoch
+
+	economicsConfig := createDefaultEconomicsConfig()
+	economicsConfig.GlobalSettings.YearSettings = append(
+		economicsConfig.GlobalSettings.YearSettings,
+		&config.YearSetting{
+			Year:             1,
+			MaximumInflation: 0.01,
+		},
+	)
+
 	hardforkStarter := NewTestProcessorNode(ArgTestProcessorNode{
 		MaxShards:            uint32(numOfShards),
 		NodeShardId:          0,
 		TxSignPrivKeyShardId: 0,
 		GenesisFile:          genesisFile,
+		EpochsConfig:         enableEpochsConfig,
+		EconomicsConfig:      economicsConfig,
 	})
 
 	idx := 0
@@ -1458,6 +1472,8 @@ func CreateNodesWithFullGenesis(
 				TxSignPrivKeyShardId: shardId,
 				GenesisFile:          genesisFile,
 				HardforkPk:           hardforkStarter.NodeKeys.Pk,
+				EpochsConfig:         enableEpochsConfig,
+				EconomicsConfig:      economicsConfig,
 			})
 			connectableNodes[idx] = nodes[idx]
 			idx++
@@ -1472,6 +1488,8 @@ func CreateNodesWithFullGenesis(
 			TxSignPrivKeyShardId: 0,
 			GenesisFile:          genesisFile,
 			HardforkPk:           hardforkStarter.NodeKeys.Pk,
+			EpochsConfig:         enableEpochsConfig,
+			EconomicsConfig:      economicsConfig,
 		})
 		connectableNodes[idx] = nodes[idx]
 	}
@@ -1492,16 +1510,22 @@ func CreateNodesWithCustomStateCheckpointModulus(
 	nodes := make([]*TestProcessorNode, numOfShards*nodesPerShard+numMetaChainNodes)
 	connectableNodes := make([]Connectable, len(nodes))
 
+	enableEpochsConfig := getDefaultEnableEpochsConfig()
+	enableEpochsConfig.StakingV2EnableEpoch = UnreachableEpoch
+
+	scm := &IntWrapper{
+		Value: stateCheckpointModulus,
+	}
+
 	idx := 0
 	for shardId := uint32(0); shardId < uint32(numOfShards); shardId++ {
 		for j := 0; j < nodesPerShard; j++ {
 			n := NewTestProcessorNode(ArgTestProcessorNode{
-				MaxShards:            uint32(numOfShards),
-				NodeShardId:          shardId,
-				TxSignPrivKeyShardId: shardId,
-				StateCheckpointModulus: &StateCheckpointModulus{
-					Value: stateCheckpointModulus,
-				},
+				MaxShards:              uint32(numOfShards),
+				NodeShardId:            shardId,
+				TxSignPrivKeyShardId:   shardId,
+				StateCheckpointModulus: scm,
+				EpochsConfig:           enableEpochsConfig,
 			})
 
 			nodes[idx] = n
@@ -1512,12 +1536,11 @@ func CreateNodesWithCustomStateCheckpointModulus(
 
 	for i := 0; i < numMetaChainNodes; i++ {
 		metaNode := NewTestProcessorNode(ArgTestProcessorNode{
-			MaxShards:            uint32(numOfShards),
-			NodeShardId:          core.MetachainShardId,
-			TxSignPrivKeyShardId: 0,
-			StateCheckpointModulus: &StateCheckpointModulus{
-				Value: stateCheckpointModulus,
-			},
+			MaxShards:              uint32(numOfShards),
+			NodeShardId:            core.MetachainShardId,
+			TxSignPrivKeyShardId:   0,
+			StateCheckpointModulus: scm,
+			EpochsConfig:           enableEpochsConfig,
 		})
 		idx = i + numOfShards*nodesPerShard
 		nodes[idx] = metaNode

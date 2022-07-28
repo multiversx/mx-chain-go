@@ -23,20 +23,20 @@ func TestNode_RequestInterceptTransactionWithMessengerAndWhitelist(t *testing.T)
 		t.Skip("this is not a short test")
 	}
 
-	var nrOfShards uint32 = 1
+	var numOfShards uint32 = 1
 	var shardID uint32 = 0
 	var txSignPrivKeyShardId uint32 = 0
 
 	fmt.Println("Requester:	")
 	nRequester := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
-		MaxShards:            nrOfShards,
+		MaxShards:            numOfShards,
 		NodeShardId:          shardID,
 		TxSignPrivKeyShardId: txSignPrivKeyShardId,
 	})
 
 	fmt.Println("Resolver:")
 	nResolver := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
-		MaxShards:            nrOfShards,
+		MaxShards:            numOfShards,
 		NodeShardId:          shardID,
 		TxSignPrivKeyShardId: txSignPrivKeyShardId,
 	})
@@ -119,20 +119,20 @@ func TestNode_RequestInterceptRewardTransactionWithMessenger(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	var nrOfShards uint32 = 1
+	var numOfShards uint32 = 1
 	var shardID uint32 = 0
 	var txSignPrivKeyShardId uint32 = 0
 
 	fmt.Println("Requester:	")
 	nRequester := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
-		MaxShards:            nrOfShards,
+		MaxShards:            numOfShards,
 		NodeShardId:          shardID,
 		TxSignPrivKeyShardId: txSignPrivKeyShardId,
 	})
 
 	fmt.Println("Resolver:")
 	nResolver := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
-		MaxShards:            nrOfShards,
+		MaxShards:            numOfShards,
 		NodeShardId:          shardID,
 		TxSignPrivKeyShardId: txSignPrivKeyShardId,
 	})

@@ -23,20 +23,20 @@ func TestNode_GenerateSendInterceptTxBlockBodyWithNetMessenger(t *testing.T) {
 
 	hasher := integrationTests.TestHasher
 	marshalizer := integrationTests.TestMarshalizer
-	var nrOfShards uint32 = 1
+	var numOfShards uint32 = 1
 	var shardID uint32 = 0
 	var txSignPrivKeyShardId uint32 = 0
 
 	fmt.Println("Requester:	")
 	nRequester := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
-		MaxShards:            nrOfShards,
+		MaxShards:            numOfShards,
 		NodeShardId:          shardID,
 		TxSignPrivKeyShardId: txSignPrivKeyShardId,
 	})
 
 	fmt.Println("Resolver:")
 	nResolver := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
-		MaxShards:            nrOfShards,
+		MaxShards:            numOfShards,
 		NodeShardId:          shardID,
 		TxSignPrivKeyShardId: txSignPrivKeyShardId,
 	})

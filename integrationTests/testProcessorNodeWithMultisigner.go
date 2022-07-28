@@ -342,7 +342,7 @@ func CreateNode(
 
 	multiSigner, err := createMultiSigner(*cp, shardId, keyIndex)
 	if err != nil {
-		fmt.Println("Error generating multisigner")
+		log.Error("error generating multisigner: %s\n", err)
 		return nil
 	}
 
@@ -453,7 +453,7 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 		for i := range validatorList {
 			multiSigner, err := createMultiSigner(*cp, shardId, i)
 			if err != nil {
-				fmt.Println("Error generating multisigner")
+				log.Error("error generating multisigner: %s\n", err)
 				return nil
 			}
 
@@ -576,7 +576,7 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 
 			multiSigner, err := createMultiSigner(*cp, shardId, i)
 			if err != nil {
-				fmt.Println("Error generating multisigner")
+				log.Error("error generating multisigner: %s\n", err)
 				return nil
 			}
 

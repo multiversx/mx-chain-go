@@ -25,12 +25,12 @@ func TestNode_GenerateSendInterceptBulkTransactionsWithMessenger(t *testing.T) {
 	}
 
 	startingNonce := uint64(6)
-	var nrOfShards uint32 = 1
+	var numOfShards uint32 = 1
 	var shardID uint32 = 0
 	var txSignPrivKeyShardId uint32 = 0
 
 	n := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
-		MaxShards:            nrOfShards,
+		MaxShards:            numOfShards,
 		NodeShardId:          shardID,
 		TxSignPrivKeyShardId: txSignPrivKeyShardId,
 	})
@@ -123,12 +123,12 @@ func TestNode_SendTransactionFromAnUnmintedAccountShouldReturnErrorAtApiLevel(t 
 		t.Skip("this is not a short test")
 	}
 
-	var nrOfShards uint32 = 1
+	var numOfShards uint32 = 1
 	var shardID uint32 = 0
 	var txSignPrivKeyShardId uint32 = 0
 
 	node := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
-		MaxShards:            nrOfShards,
+		MaxShards:            numOfShards,
 		NodeShardId:          shardID,
 		TxSignPrivKeyShardId: txSignPrivKeyShardId,
 	})
