@@ -546,3 +546,51 @@ func (holder *epochFlagsHolder) IsCheckFunctionArgumentFlagEnabled() bool {
 func (holder *epochFlagsHolder) IsCheckExecuteOnReadOnlyFlagEnabled() bool {
 	return holder.checkExecuteOnReadOnlyFlag.IsSet()
 }
+
+// IsFixAsyncCallbackCheckFlagEnabled returns true if esdtMetadataContinuousCleanupFlag is enabled
+// this is a duplicate for ESDTMetadataContinuousCleanupEnableEpoch needed for consistency into vm-common
+func (holder *epochFlagsHolder) IsFixAsyncCallbackCheckFlagEnabled() bool {
+	return holder.esdtMetadataContinuousCleanupFlag.IsSet()
+}
+
+// IsSaveToSystemAccountFlagEnabled returns true if optimizeNFTStoreFlag is enabled
+// this is a duplicate for OptimizeNFTStoreEnableEpoch needed for consistency into vm-common
+func (holder *epochFlagsHolder) IsSaveToSystemAccountFlagEnabled() bool {
+	return holder.optimizeNFTStoreFlag.IsSet()
+}
+
+// IsCheckFrozenCollectionFlagEnabled returns true if optimizeNFTStoreFlag is enabled
+// this is a duplicate for OptimizeNFTStoreEnableEpoch needed for consistency into vm-common
+func (holder *epochFlagsHolder) IsCheckFrozenCollectionFlagEnabled() bool {
+	return holder.optimizeNFTStoreFlag.IsSet()
+}
+
+// IsSendAlwaysFlagEnabled returns true if esdtMetadataContinuousCleanupFlag is enabled
+// this is a duplicate for ESDTMetadataContinuousCleanupEnableEpoch needed for consistency into vm-common
+func (holder *epochFlagsHolder) IsSendAlwaysFlagEnabled() bool {
+	return holder.esdtMetadataContinuousCleanupFlag.IsSet()
+}
+
+// IsValueLengthCheckFlagEnabled returns true if optimizeNFTStoreFlag is enabled
+// this is a duplicate for OptimizeNFTStoreEnableEpoch needed for consistency into vm-common
+func (holder *epochFlagsHolder) IsValueLengthCheckFlagEnabled() bool {
+	return holder.optimizeNFTStoreFlag.IsSet()
+}
+
+// IsCheckTransferFlagEnabled returns true if optimizeNFTStoreFlag is enabled
+// this is a duplicate for OptimizeNFTStoreEnableEpoch needed for consistency into vm-common
+func (holder *epochFlagsHolder) IsCheckTransferFlagEnabled() bool {
+	return holder.optimizeNFTStoreFlag.IsSet()
+}
+
+// IsTransferToMetaFlagEnabled returns true if builtInFunctionOnMetaFlag is enabled
+// this is a duplicate for BuiltInFunctionOnMetaEnableEpoch needed for consistency into vm-common
+func (holder *epochFlagsHolder) IsTransferToMetaFlagEnabled() bool {
+	return holder.builtInFunctionOnMetaFlag.IsSet()
+}
+
+// IsESDTNFTImprovementV1FlagEnabled returns true if esdtMultiTransferFlag is enabled
+// this is a duplicate for ESDTMultiTransferEnableEpoch needed for consistency into vm-common
+func (holder *epochFlagsHolder) IsESDTNFTImprovementV1FlagEnabled() bool {
+	return holder.esdtMultiTransferFlag.IsSet()
+}

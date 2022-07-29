@@ -469,6 +469,46 @@ func (mock *EnableEpochsHandlerMock) IsCheckExecuteOnReadOnlyFlagEnabled() bool 
 	return false
 }
 
+// IsFixAsyncCallbackCheckFlagEnabled returns false
+func (mock *EnableEpochsHandlerMock) IsFixAsyncCallbackCheckFlagEnabled() bool {
+	return false
+}
+
+// IsSaveToSystemAccountFlagEnabled returns false
+func (mock *EnableEpochsHandlerMock) IsSaveToSystemAccountFlagEnabled() bool {
+	return false
+}
+
+// IsCheckFrozenCollectionFlagEnabled returns false
+func (mock *EnableEpochsHandlerMock) IsCheckFrozenCollectionFlagEnabled() bool {
+	return false
+}
+
+// IsSendAlwaysFlagEnabled returns false
+func (mock *EnableEpochsHandlerMock) IsSendAlwaysFlagEnabled() bool {
+	return false
+}
+
+// IsValueLengthCheckFlagEnabled returns false
+func (mock *EnableEpochsHandlerMock) IsValueLengthCheckFlagEnabled() bool {
+	return false
+}
+
+// IsCheckTransferFlagEnabled returns false
+func (mock *EnableEpochsHandlerMock) IsCheckTransferFlagEnabled() bool {
+	return false
+}
+
+// IsTransferToMetaFlagEnabled returns false
+func (mock *EnableEpochsHandlerMock) IsTransferToMetaFlagEnabled() bool {
+	return false
+}
+
+// IsESDTNFTImprovementV1FlagEnabled returns false
+func (mock *EnableEpochsHandlerMock) IsESDTNFTImprovementV1FlagEnabled() bool {
+	return false
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (mock *EnableEpochsHandlerMock) IsInterfaceNil() bool {
 	return mock == nil

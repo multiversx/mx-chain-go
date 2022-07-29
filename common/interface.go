@@ -251,6 +251,14 @@ type EnableEpochsHandler interface {
 	IsRefactorContextFlagEnabled() bool
 	IsCheckFunctionArgumentFlagEnabled() bool
 	IsCheckExecuteOnReadOnlyFlagEnabled() bool
+	IsFixAsyncCallbackCheckFlagEnabled() bool
+	IsSaveToSystemAccountFlagEnabled() bool
+	IsCheckFrozenCollectionFlagEnabled() bool
+	IsSendAlwaysFlagEnabled() bool
+	IsValueLengthCheckFlagEnabled() bool
+	IsCheckTransferFlagEnabled() bool
+	IsTransferToMetaFlagEnabled() bool
+	IsESDTNFTImprovementV1FlagEnabled() bool
 
 	IsInterfaceNil() bool
 }
