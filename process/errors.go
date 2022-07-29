@@ -1133,3 +1133,6 @@ var ErrNilProcessedMiniBlocksTracker = errors.New("nil processed mini blocks tra
 
 // ErrNilESDTGlobalSettingsHandler signals that nil global settings handler was provided
 var ErrNilESDTGlobalSettingsHandler = errors.New("nil esdt global settings handler")
+
+// ErrNilMultiSignerContainer signals that the given multisigner container is nil
+var ErrNilMultiSignerContainer = errors.New("nil multiSigner container")

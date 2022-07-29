@@ -17,3 +17,9 @@ var ErrInvalidChainID = errors.New("invalid chain ID")
 
 // ErrNilHeaderVersionHandler signals that the provided header version handler is nil
 var ErrNilHeaderVersionHandler = errors.New("nil header version handler")
+
+// ErrIndexOutOfBounds signals that the given index is outside of expected bounds
+var ErrIndexOutOfBounds = errors.New("index is out of bounds")
+
+// ErrIndexNotSelected signals that the given index is not selected
+var ErrIndexNotSelected = errors.New("index is not selected")

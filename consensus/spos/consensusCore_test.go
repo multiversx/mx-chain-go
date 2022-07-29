@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/testscommon/consensus"
+	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -24,7 +25,7 @@ func createDefaultConsensusCoreArgs() *spos.ConsensusCoreArgs {
 		Marshalizer:                   consensusCoreMock.Marshalizer(),
 		BlsPrivateKey:                 consensusCoreMock.PrivateKey(),
 		BlsSingleSigner:               consensusCoreMock.SingleSigner(),
-		MultiSigner:                   consensusCoreMock.MultiSigner(),
+		MultiSignerContainer:          consensusCoreMock.MultiSignerContainer(),
 		RoundHandler:                  consensusCoreMock.RoundHandler(),
 		ShardCoordinator:              consensusCoreMock.ShardCoordinator(),
 		NodesCoordinator:              consensusCoreMock.NodesCoordinator(),
@@ -164,11 +165,25 @@ func TestConsensusCore_WithNilBlsSingleSignerShouldFail(t *testing.T) {
 	assert.Equal(t, spos.ErrNilBlsSingleSigner, err)
 }
 
+func TestConsensusCore_WithNilMultiSignerContainerShouldFail(t *testing.T) {
+	t.Parallel()
+
+	args := createDefaultConsensusCoreArgs()
+	args.MultiSignerContainer = nil
+
+	consensusCore, err := spos.NewConsensusCore(
+		args,
+	)
+
+	assert.Nil(t, consensusCore)
+	assert.Equal(t, spos.ErrNilMultiSignerContainer, err)
+}
+
 func TestConsensusCore_WithNilMultiSignerShouldFail(t *testing.T) {
 	t.Parallel()
 
 	args := createDefaultConsensusCoreArgs()
-	args.MultiSigner = nil
+	args.MultiSignerContainer = cryptoMocks.NewMultiSignerContainerMock(nil)
 
 	consensusCore, err := spos.NewConsensusCore(
 		args,

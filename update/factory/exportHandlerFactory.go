@@ -159,7 +159,11 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 	if check.IfNil(args.ExistingResolvers) {
 		return nil, update.ErrNilResolverContainer
 	}
-	if check.IfNil(args.CryptoComponents.MultiSigner()) {
+	multiSigner, err := args.CryptoComponents.GetMultiSigner(0)
+	if err != nil {
+		return nil, err
+	}
+	if check.IfNil(multiSigner) {
 		return nil, update.ErrNilMultiSigner
 	}
 	if check.IfNil(args.NodesCoordinator) {
@@ -219,7 +223,7 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 	if args.NumConcurrentTrieSyncers < 1 {
 		return nil, update.ErrInvalidNumConcurrentTrieSyncers
 	}
-	err := trie.CheckTrieSyncerVersion(args.TrieSyncerVersion)
+	err = trie.CheckTrieSyncerVersion(args.TrieSyncerVersion)
 	if err != nil {
 		return nil, err
 	}

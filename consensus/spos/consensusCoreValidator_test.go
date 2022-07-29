@@ -19,7 +19,7 @@ func initConsensusDataContainer() *ConsensusCore {
 	chronologyHandlerMock := mock.InitChronologyHandlerMock()
 	blsPrivateKeyMock := &mock.PrivateKeyMock{}
 	blsSingleSignerMock := &mock.SingleSignerMock{}
-	multiSignerMock := cryptoMocks.NewMultiSigner(21)
+	multiSignerMock := cryptoMocks.NewMultiSigner()
 	hasherMock := &hashingMocks.HasherMock{}
 	marshalizerMock := mock.MarshalizerMock{}
 	roundHandlerMock := &mock.RoundHandlerMock{}
@@ -31,6 +31,7 @@ func initConsensusDataContainer() *ConsensusCore {
 	headerSigVerifier := &mock.HeaderSigVerifierStub{}
 	fallbackHeaderValidator := &testscommon.FallBackHeaderValidatorStub{}
 	nodeRedundancyHandler := &mock.NodeRedundancyHandlerStub{}
+	multiSignerContainer := cryptoMocks.NewMultiSignerContainerMock(multiSignerMock)
 
 	return &ConsensusCore{
 		blockChain:              blockChain,
@@ -42,7 +43,7 @@ func initConsensusDataContainer() *ConsensusCore {
 		marshalizer:             marshalizerMock,
 		blsPrivateKey:           blsPrivateKeyMock,
 		blsSingleSigner:         blsSingleSignerMock,
-		multiSigner:             multiSignerMock,
+		multiSignerContainer:    multiSignerContainer,
 		roundHandler:            roundHandlerMock,
 		shardCoordinator:        shardCoordinatorMock,
 		syncTimer:               syncTimerMock,
@@ -121,11 +122,22 @@ func TestConsensusContainerValidator_ValidateNilMarshalizerShouldFail(t *testing
 	assert.Equal(t, ErrNilMarshalizer, err)
 }
 
+func TestConsensusContainerValidator_ValidateNilMultiSignerContainerShouldFail(t *testing.T) {
+	t.Parallel()
+
+	container := initConsensusDataContainer()
+	container.multiSignerContainer = nil
+
+	err := ValidateConsensusCore(container)
+
+	assert.Equal(t, ErrNilMultiSignerContainer, err)
+}
+
 func TestConsensusContainerValidator_ValidateNilMultiSignerShouldFail(t *testing.T) {
 	t.Parallel()
 
 	container := initConsensusDataContainer()
-	container.multiSigner = nil
+	container.multiSignerContainer = cryptoMocks.NewMultiSignerContainerMock(nil)
 
 	err := ValidateConsensusCore(container)
 

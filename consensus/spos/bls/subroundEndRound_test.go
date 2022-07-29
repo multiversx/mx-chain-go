@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/bls"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/blockchain"
+	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -177,7 +178,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilConsensusStateShouldFail(t *test
 	assert.Equal(t, spos.ErrNilConsensusState, err)
 }
 
-func TestSubroundEndRound_NewSubroundEndRoundNilMultisignerShouldFail(t *testing.T) {
+func TestSubroundEndRound_NewSubroundEndRoundNilMultiSignerContainerShouldFail(t *testing.T) {
 	t.Parallel()
 
 	container := mock.InitConsensusCore()
@@ -199,7 +200,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilMultisignerShouldFail(t *testing
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
 	)
-	container.SetMultiSigner(nil)
+	container.SetMultiSignerContainer(nil)
 	srEndRound, err := bls.NewSubroundEndRound(
 		sr,
 		extend,
@@ -209,7 +210,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilMultisignerShouldFail(t *testing
 	)
 
 	assert.Nil(t, srEndRound)
-	assert.Equal(t, spos.ErrNilMultiSigner, err)
+	assert.Equal(t, spos.ErrNilMultiSignerContainer, err)
 }
 
 func TestSubroundEndRound_NewSubroundEndRoundNilRoundHandlerShouldFail(t *testing.T) {
@@ -322,11 +323,11 @@ func TestSubroundEndRound_DoEndRoundJobErrAggregatingSigShouldFail(t *testing.T)
 	container := mock.InitConsensusCore()
 	sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 	multiSignerMock := mock.InitMultiSignerMock()
-	multiSignerMock.AggregateSigsCalled = func(bitmap []byte) ([]byte, error) {
+	multiSignerMock.AggregateSigsCalled = func(pubKeysSigners [][]byte, signatures [][]byte) ([]byte, error) {
 		return nil, crypto.ErrNilHasher
 	}
 
-	container.SetMultiSigner(multiSignerMock)
+	container.SetMultiSignerContainer(cryptoMocks.NewMultiSignerContainerMock(multiSignerMock))
 	sr.Header = &block.Header{}
 
 	sr.SetSelfPubKey("A")

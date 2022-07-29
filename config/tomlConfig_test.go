@@ -671,6 +671,11 @@ func TestEnableEpochConfig(t *testing.T) {
         { EpochEnable = 45, MaxNumNodes = 3200, NodesToShufflePerShard = 80 }
     ]
 
+	BLSMultiSignerEnableEpoch = [
+		{EnableEpoch = 0, Type = "no-KOSK"},
+		{EnableEpoch = 3, Type = "KOSK"}
+	]
+
 [GasSchedule]
     GasScheduleByEpochs = [
         { StartEpoch = 46, FileName = "gasScheduleV1.toml" },
@@ -748,7 +753,18 @@ func TestEnableEpochConfig(t *testing.T) {
 			ManagedCryptoAPIsEnableEpoch:                54,
 			HeartbeatDisableEpoch:                       55,
 			ESDTMetadataContinuousCleanupEnableEpoch:    56,
+			BLSMultiSignerEnableEpoch: []MultiSignerConfig{
+				{
+					EnableEpoch: 0,
+					Type:        "no-KOSK",
+				},
+				{
+					EnableEpoch: 3,
+					Type:        "KOSK",
+				},
+			},
 		},
+
 		GasSchedule: GasScheduleConfig{
 			GasScheduleByEpochs: []GasScheduleByEpochs{
 				{

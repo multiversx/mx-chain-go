@@ -68,6 +68,10 @@ func (sr *subroundSignature) doSignatureJob(_ context.Context) bool {
 	if !sr.CanDoSubroundJob(sr.Current()) {
 		return false
 	}
+	if sr.Header == nil {
+		log.Error("doSignatureJob", "error", spos.ErrNilHeader)
+		return false
+	}
 
 	selfIndex, err := sr.SelfConsensusGroupIndex()
 	if err != nil {
@@ -168,6 +172,18 @@ func (sr *subroundSignature) receivedSignature(_ context.Context, cnsDta *consen
 
 	currentMultiSigner := sr.SignatureHandler()
 	err = currentMultiSigner.VerifySignatureShare(uint16(index), cnsDta.SignatureShare, sr.GetData())
+	// if sr.Header == nil {
+	// 	log.Error("receivedSignature", "error", spos.ErrNilHeader)
+	// 	return false
+	// }
+
+	// currentMultiSigner, err := sr.MultiSignerContainer().GetMultiSigner(sr.Header.GetEpoch())
+	if err != nil {
+		log.Error("receivedSignature.GetMultiSigner", "error", err.Error())
+		return false
+	}
+
+	err = currentMultiSigner.VerifySignatureShare(uint16(index), cnsDta.SignatureShare, sr.GetData())
 	if err != nil {
 		log.Debug("receivedSignature.VerifySignatureShare",
 			"node", pkForLogs,
@@ -176,14 +192,15 @@ func (sr *subroundSignature) receivedSignature(_ context.Context, cnsDta *consen
 		return false
 	}
 
-	err = currentMultiSigner.StoreSignatureShare(uint16(index), cnsDta.SignatureShare)
-	if err != nil {
-		log.Debug("receivedSignature.StoreSignatureShare",
-			"node", pkForLogs,
-			"index", index,
-			"error", err.Error())
-		return false
-	}
+	// TODO: store here the signature in consensus state
+	//err = currentMultiSigner.StoreSignatureShare(uint16(index), cnsDta.SignatureShare)
+	//if err != nil {
+	//	log.Debug("receivedSignature.StoreSignatureShare",
+	//		"node", pkForLogs,
+	//		"index", index,
+	//		"error", err.Error())
+	//	return false
+	//}
 
 	err = sr.SetJobDone(node, sr.Current(), true)
 	if err != nil {
