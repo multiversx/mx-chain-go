@@ -230,7 +230,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		Marshalizer:                   ccf.coreComponents.InternalMarshalizer(),
 		BlsPrivateKey:                 ccf.cryptoComponents.PrivateKey(),
 		BlsSingleSigner:               ccf.cryptoComponents.BlockSigner(),
-		MultiSigner:                   ccf.cryptoComponents.MultiSigner(),
+		MultiSignerContainer:          ccf.cryptoComponents.MultiSignerContainer(),
 		RoundHandler:                  ccf.processComponents.RoundHandler(),
 		ShardCoordinator:              ccf.processComponents.ShardCoordinator(),
 		NodesCoordinator:              ccf.processComponents.NodesCoordinator(),

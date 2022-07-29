@@ -10,7 +10,7 @@ require (
 	github.com/ElrondNetwork/covalent-indexer-go v1.0.6
 	github.com/ElrondNetwork/elastic-indexer-go v1.2.34-partial-execution
 	github.com/ElrondNetwork/elrond-go-core v1.1.16-0.20220708085217-ccc0c5ac9076
-	github.com/ElrondNetwork/elrond-go-crypto v1.0.1
+	github.com/ElrondNetwork/elrond-go-crypto v1.1.1-0.20220725093518-7a5126e0f2e3
 	github.com/ElrondNetwork/elrond-go-logger v1.0.7
 	github.com/ElrondNetwork/elrond-vm-common v1.3.13
 	github.com/ElrondNetwork/go-libp2p-pubsub v0.6.1-rc1

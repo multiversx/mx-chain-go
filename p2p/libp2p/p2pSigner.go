@@ -35,7 +35,7 @@ func (signer *p2pSigner) Verify(payload []byte, pid core.PeerID, signature []byt
 		return err
 	}
 	if !sigOk {
-		return crypto.ErrInvalidSignature
+		return crypto.ErrSigNotValid
 	}
 
 	return nil

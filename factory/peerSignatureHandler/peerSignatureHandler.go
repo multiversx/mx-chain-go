@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-crypto"
+	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -29,10 +30,10 @@ func NewPeerSignatureHandler(
 	keygen crypto.KeyGenerator,
 ) (*peerSignatureHandler, error) {
 	if check.IfNil(pkPIDSignature) {
-		return nil, crypto.ErrNilCacher
+		return nil, errors.ErrNilCacher
 	}
 	if check.IfNil(singleSigner) {
-		return nil, crypto.ErrNilSingleSigner
+		return nil, errors.ErrNilSingleSigner
 	}
 	if check.IfNil(keygen) {
 		return nil, crypto.ErrNilKeyGenerator
@@ -52,10 +53,10 @@ func (psh *peerSignatureHandler) VerifyPeerSignature(pk []byte, pid core.PeerID,
 		return crypto.ErrInvalidPublicKey
 	}
 	if len(pid) == 0 {
-		return crypto.ErrInvalidPID
+		return errors.ErrInvalidPID
 	}
 	if len(signature) == 0 {
-		return crypto.ErrInvalidSignature
+		return errors.ErrInvalidSignature
 	}
 
 	senderPubKey, err := psh.keygen.PublicKeyFromByteArray(pk)
@@ -77,11 +78,11 @@ func (psh *peerSignatureHandler) VerifyPeerSignature(pk []byte, pid core.PeerID,
 	}
 
 	if retrievedPID != pid {
-		return crypto.ErrPIDMismatch
+		return errors.ErrPIDMismatch
 	}
 
 	if !bytes.Equal(retrievedSig, signature) {
-		return crypto.ErrSignatureMismatch
+		return errors.ErrSignatureMismatch
 	}
 
 	return nil

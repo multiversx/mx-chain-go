@@ -252,7 +252,6 @@ func createConsensusOnlyNode(
 	shardCoordinator sharding.Coordinator,
 	nodesCoordinator nodesCoordinator.NodesCoordinator,
 	shardId uint32,
-	selfId uint32,
 	consensusSize uint32,
 	roundTime uint64,
 	privKey crypto.PrivateKey,
@@ -378,8 +377,7 @@ func createConsensusOnlyNode(
 		inPubKeys[shardId] = append(inPubKeys[shardId], string(sPubKey))
 	}
 
-	testMultiSig := cryptoMocks.NewMultiSigner(consensusSize)
-	_ = testMultiSig.Reset(inPubKeys[shardId], uint16(selfId))
+	testMultiSig := cryptoMocks.NewMultiSigner()
 
 	peerSigCache, _ := storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 1000})
 	peerSigHandler, _ := peerSignatureHandler.NewPeerSignatureHandler(peerSigCache, singleBlsSigner, testKeyGen)
@@ -414,7 +412,7 @@ func createConsensusOnlyNode(
 	cryptoComponents.PubKey = privKey.GeneratePublic()
 	cryptoComponents.BlockSig = singleBlsSigner
 	cryptoComponents.TxSig = singlesigner
-	cryptoComponents.MultiSig = testMultiSig
+	cryptoComponents.MultiSigContainer = cryptoMocks.NewMultiSignerContainerMock(testMultiSig)
 	cryptoComponents.BlKeyGen = testKeyGen
 	cryptoComponents.PeerSignHandler = peerSigHandler
 
@@ -535,7 +533,6 @@ func createNodes(
 			shardCoordinator,
 			nodesCoord,
 			testNodeObject.shardId,
-			uint32(i),
 			uint32(consensusSize),
 			roundTime,
 			kp.sk,

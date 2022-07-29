@@ -68,8 +68,20 @@ func (sr *subroundSignature) doSignatureJob(_ context.Context) bool {
 	if !sr.CanDoSubroundJob(sr.Current()) {
 		return false
 	}
+	if check.IfNil(sr.Header) {
+		log.Error("doSignatureJob", "error", spos.ErrNilHeader)
+		return false
+	}
 
-	signatureShare, err := sr.MultiSigner().CreateSignatureShare(sr.GetData(), nil)
+	multiSigner, err := sr.MultiSignerContainer().GetMultiSigner(sr.Header.GetEpoch())
+	if err != nil {
+		log.Error("doSignatureJob.GetMultiSigner", "error", err.Error())
+		return false
+	}
+
+	// TODO: keep private key as byte array in consensus
+	privateKey, _ := sr.PrivateKey().ToByteArray()
+	signatureShare, err := multiSigner.CreateSignatureShare(privateKey, sr.GetData())
 	if err != nil {
 		log.Debug("doSignatureJob.CreateSignatureShare", "error", err.Error())
 		return false
@@ -160,8 +172,18 @@ func (sr *subroundSignature) receivedSignature(_ context.Context, cnsDta *consen
 		return false
 	}
 
-	currentMultiSigner := sr.MultiSigner()
-	err = currentMultiSigner.VerifySignatureShare(uint16(index), cnsDta.SignatureShare, sr.GetData(), nil)
+	if check.IfNil(sr.Header) {
+		log.Error("receivedSignature", "error", spos.ErrNilHeader)
+		return false
+	}
+
+	currentMultiSigner, err := sr.MultiSignerContainer().GetMultiSigner(sr.Header.GetEpoch())
+	if err != nil {
+		log.Error("receivedSignature.GetMultiSigner", "error", err.Error())
+		return false
+	}
+
+	err = currentMultiSigner.VerifySignatureShare([]byte(node), sr.GetData(), cnsDta.SignatureShare)
 	if err != nil {
 		log.Debug("receivedSignature.VerifySignatureShare",
 			"node", pkForLogs,
@@ -170,14 +192,15 @@ func (sr *subroundSignature) receivedSignature(_ context.Context, cnsDta *consen
 		return false
 	}
 
-	err = currentMultiSigner.StoreSignatureShare(uint16(index), cnsDta.SignatureShare)
-	if err != nil {
-		log.Debug("receivedSignature.StoreSignatureShare",
-			"node", pkForLogs,
-			"index", index,
-			"error", err.Error())
-		return false
-	}
+	// TODO: store here the signature in consensus state
+	//err = currentMultiSigner.StoreSignatureShare(uint16(index), cnsDta.SignatureShare)
+	//if err != nil {
+	//	log.Debug("receivedSignature.StoreSignatureShare",
+	//		"node", pkForLogs,
+	//		"index", index,
+	//		"error", err.Error())
+	//	return false
+	//}
 
 	err = sr.SetJobDone(node, sr.Current(), true)
 	if err != nil {

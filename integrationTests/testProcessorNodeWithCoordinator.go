@@ -34,20 +34,6 @@ type nodeKeys struct {
 	BlockSignPkBytes []byte
 }
 
-func pubKeysMapFromKeysMap(ncp map[uint32][]*nodeKeys) map[uint32][]string {
-	keysMap := make(map[uint32][]string)
-
-	for shardId, keys := range ncp {
-		shardKeys := make([]string, len(keys))
-		for i, nk := range keys {
-			shardKeys[i] = string(nk.BlockSignPkBytes)
-		}
-		keysMap[shardId] = shardKeys
-	}
-
-	return keysMap
-}
-
 // CreateProcessorNodesWithNodesCoordinator creates a map of nodes with a valid nodes coordinator implementation
 // keeping the consistency of generated keys
 func CreateProcessorNodesWithNodesCoordinator(
@@ -96,7 +82,7 @@ func CreateProcessorNodesWithNodesCoordinator(
 				IsFullArchive:              false,
 			}
 
-			nodesCoordinator, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
+			nc, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 			if err != nil {
 				fmt.Println("error creating node coordinator")
 			}
@@ -104,7 +90,7 @@ func CreateProcessorNodesWithNodesCoordinator(
 			tpn := newTestProcessorNodeWithCustomNodesCoordinator(
 				numShards,
 				shardId,
-				nodesCoordinator,
+				nc,
 				i,
 				ncp,
 				nodesSetup,
@@ -230,15 +216,11 @@ func newTestProcessorNodeWithCustomNodesCoordinator(
 	blsHasher, _ := blake2b.NewBlake2bWithSize(hashing.BlsHashSize)
 	llsig := &multisig2.BlsMultiSigner{Hasher: blsHasher}
 
-	pubKeysMap := pubKeysMapFromKeysMap(ncp)
 	kp := ncp[nodeShardId][keyIndex]
 	var err error
 	tpn.MultiSigner, err = multisig.NewBLSMultisig(
 		llsig,
-		pubKeysMap[nodeShardId],
-		tpn.NodeKeys.Sk,
 		kp.BlockSignKeyGen,
-		uint16(keyIndex),
 	)
 	if err != nil {
 		fmt.Printf("error generating multisigner: %s\n", err)

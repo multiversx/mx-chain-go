@@ -5,7 +5,8 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-crypto"
+	crypto "github.com/ElrondNetwork/elrond-go-crypto"
+	cryptoCommon "github.com/ElrondNetwork/elrond-go/common/crypto"
 	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/vm"
@@ -90,7 +91,7 @@ func (mcc *managedCryptoComponents) CheckSubcomponents() error {
 	if check.IfNil(mcc.cryptoComponents.blockSingleSigner) {
 		return errors.ErrNilBlockSigner
 	}
-	if check.IfNil(mcc.cryptoComponents.multiSigner) {
+	if check.IfNil(mcc.cryptoComponents.multiSignerContainer) {
 		return errors.ErrNilMultiSigner
 	}
 	if check.IfNil(mcc.cryptoComponents.peerSignHandler) {
@@ -193,16 +194,40 @@ func (mcc *managedCryptoComponents) BlockSigner() crypto.SingleSigner {
 	return mcc.cryptoComponents.blockSingleSigner
 }
 
-// MultiSigner returns the block multi-signer
-func (mcc *managedCryptoComponents) MultiSigner() crypto.MultiSigner {
+// MultiSignerContainer returns the multiSigner container holding the multiSigner versions
+func (mcc *managedCryptoComponents) MultiSignerContainer() cryptoCommon.MultiSignerContainer {
 	mcc.mutCryptoComponents.RLock()
 	defer mcc.mutCryptoComponents.RUnlock()
-
 	if mcc.cryptoComponents == nil {
 		return nil
 	}
 
-	return mcc.cryptoComponents.multiSigner
+	return mcc.cryptoComponents.multiSignerContainer
+}
+
+// SetMultiSignerContainer sets the multiSigner container in the crypto components
+func (mcc *managedCryptoComponents) SetMultiSignerContainer(ms cryptoCommon.MultiSignerContainer) error {
+	mcc.mutCryptoComponents.Lock()
+	mcc.multiSignerContainer = ms
+	mcc.mutCryptoComponents.Unlock()
+
+	return nil
+}
+
+// GetMultiSigner returns the multiSigner configured in the multiSigner container for the given epoch
+func (mcc *managedCryptoComponents) GetMultiSigner(epoch uint32) (crypto.MultiSigner, error) {
+	mcc.mutCryptoComponents.RLock()
+	defer mcc.mutCryptoComponents.RUnlock()
+
+	if mcc.cryptoComponents == nil {
+		return nil, errors.ErrNilCryptoComponentsHolder
+	}
+
+	if mcc.multiSignerContainer == nil {
+		return nil, errors.ErrNilMultiSignerContainer
+	}
+
+	return mcc.MultiSignerContainer().GetMultiSigner(epoch)
 }
 
 // PeerSignatureHandler returns the peer signature handler
@@ -215,19 +240,6 @@ func (mcc *managedCryptoComponents) PeerSignatureHandler() crypto.PeerSignatureH
 	}
 
 	return mcc.cryptoComponents.peerSignHandler
-}
-
-// SetMultiSigner sets the block multi-signer
-func (mcc *managedCryptoComponents) SetMultiSigner(ms crypto.MultiSigner) error {
-	mcc.mutCryptoComponents.Lock()
-	defer mcc.mutCryptoComponents.Unlock()
-
-	if mcc.cryptoComponents == nil {
-		return errors.ErrNilCryptoComponents
-	}
-
-	mcc.cryptoComponents.multiSigner = ms
-	return nil
 }
 
 // BlockSignKeyGen returns the block signer key generator
@@ -271,14 +283,14 @@ func (mcc *managedCryptoComponents) Clone() interface{} {
 	cryptoComp := (*cryptoComponents)(nil)
 	if mcc.cryptoComponents != nil {
 		cryptoComp = &cryptoComponents{
-			txSingleSigner:      mcc.TxSingleSigner(),
-			blockSingleSigner:   mcc.BlockSigner(),
-			multiSigner:         mcc.MultiSigner(),
-			peerSignHandler:     mcc.PeerSignatureHandler(),
-			blockSignKeyGen:     mcc.BlockSignKeyGen(),
-			txSignKeyGen:        mcc.TxSignKeyGen(),
-			messageSignVerifier: mcc.MessageSignVerifier(),
-			cryptoParams:        mcc.cryptoParams,
+			txSingleSigner:       mcc.TxSingleSigner(),
+			blockSingleSigner:    mcc.BlockSigner(),
+			multiSignerContainer: mcc.MultiSignerContainer(),
+			peerSignHandler:      mcc.PeerSignatureHandler(),
+			blockSignKeyGen:      mcc.BlockSignKeyGen(),
+			txSignKeyGen:         mcc.TxSignKeyGen(),
+			messageSignVerifier:  mcc.MessageSignVerifier(),
+			cryptoParams:         mcc.cryptoParams,
 		}
 	}
 

@@ -53,18 +53,18 @@ func GetDefaultCoreComponents() *mock.CoreComponentsMock {
 // GetDefaultCryptoComponents -
 func GetDefaultCryptoComponents() *mock.CryptoComponentsMock {
 	return &mock.CryptoComponentsMock{
-		PubKey:          &mock.PublicKeyMock{},
-		PrivKey:         &mock.PrivateKeyStub{},
-		PubKeyString:    "pubKey",
-		PrivKeyBytes:    []byte("privKey"),
-		PubKeyBytes:     []byte("pubKey"),
-		BlockSig:        &mock.SinglesignMock{},
-		TxSig:           &mock.SinglesignMock{},
-		MultiSig:        &cryptoMocks.MultisignerStub{},
-		PeerSignHandler: &mock.PeerSignatureHandler{},
-		BlKeyGen:        &mock.KeyGenMock{},
-		TxKeyGen:        &mock.KeyGenMock{},
-		MsgSigVerifier:  &testscommon.MessageSignVerifierMock{},
+		PubKey:            &mock.PublicKeyMock{},
+		PrivKey:           &mock.PrivateKeyStub{},
+		PubKeyString:      "pubKey",
+		PrivKeyBytes:      []byte("privKey"),
+		PubKeyBytes:       []byte("pubKey"),
+		BlockSig:          &mock.SinglesignMock{},
+		TxSig:             &mock.SinglesignMock{},
+		MultiSigContainer: cryptoMocks.NewMultiSignerContainerMock(&cryptoMocks.MultisignerMock{}),
+		PeerSignHandler:   &mock.PeerSignatureHandler{},
+		BlKeyGen:          &mock.KeyGenMock{},
+		TxKeyGen:          &mock.KeyGenMock{},
+		MsgSigVerifier:    &testscommon.MessageSignVerifierMock{},
 	}
 }
 

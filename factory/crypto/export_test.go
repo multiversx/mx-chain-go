@@ -1,8 +1,8 @@
 package crypto
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
+	cryptoCommon "github.com/ElrondNetwork/elrond-go/common/crypto"
 )
 
 // GetSkPk -
@@ -15,11 +15,6 @@ func (ccf *cryptoComponentsFactory) CreateSingleSigner(importModeNoSigCheck bool
 	return ccf.createSingleSigner(importModeNoSigCheck)
 }
 
-// GetMultiSigHasherFromConfig -
-func (ccf *cryptoComponentsFactory) GetMultiSigHasherFromConfig() (hashing.Hasher, error) {
-	return ccf.getMultiSigHasherFromConfig()
-}
-
 // CreateDummyCryptoParams
 func (ccf *cryptoComponentsFactory) CreateDummyCryptoParams() *cryptoParams {
 	return &cryptoParams{}
@@ -30,11 +25,12 @@ func (ccf *cryptoComponentsFactory) CreateCryptoParams(blockSignKeyGen crypto.Ke
 	return ccf.createCryptoParams(blockSignKeyGen)
 }
 
-// CreateMultiSigner -
-func (ccf *cryptoComponentsFactory) CreateMultiSigner(
-	h hashing.Hasher, cp *cryptoParams, blSignKeyGen crypto.KeyGenerator, importModeNoSigCheck bool,
-) (crypto.MultiSigner, error) {
-	return ccf.createMultiSigner(h, cp, blSignKeyGen, importModeNoSigCheck)
+// CreateMultiSignerContainer -
+func (ccf *cryptoComponentsFactory) CreateMultiSignerContainer(
+	blSignKeyGen crypto.KeyGenerator,
+	importModeNoSigCheck bool,
+) (cryptoCommon.MultiSignerContainer, error) {
+	return ccf.createMultiSignerContainer(blSignKeyGen, importModeNoSigCheck)
 }
 
 // GetSuite -

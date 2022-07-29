@@ -75,7 +75,7 @@ func TestP2pSigner_Verify(t *testing.T) {
 		sig[len(sig)-1] = sig[0] ^ sig[1] ^ sig[2]
 
 		err = signer.Verify(payload, core.PeerID(libp2pPid), sig)
-		assert.Equal(t, crypto.ErrInvalidSignature, err)
+		assert.Equal(t, crypto.ErrSigNotValid, err)
 	})
 	t.Run("sign and verify should work", func(t *testing.T) {
 		t.Parallel()

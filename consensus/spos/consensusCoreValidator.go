@@ -28,7 +28,11 @@ func ValidateConsensusCore(container ConsensusCoreHandler) error {
 	if check.IfNil(container.Marshalizer()) {
 		return ErrNilMarshalizer
 	}
-	if check.IfNil(container.MultiSigner()) {
+	if check.IfNil(container.MultiSignerContainer()) {
+		return ErrNilMultiSignerContainer
+	}
+	multiSigner, _ := container.MultiSignerContainer().GetMultiSigner(0)
+	if check.IfNil(multiSigner) {
 		return ErrNilMultiSigner
 	}
 	if check.IfNil(container.RoundHandler()) {

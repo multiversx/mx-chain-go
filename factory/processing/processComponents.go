@@ -239,7 +239,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		Marshalizer:             pcf.coreData.InternalMarshalizer(),
 		Hasher:                  pcf.coreData.Hasher(),
 		NodesCoordinator:        pcf.nodesCoordinator,
-		MultiSigVerifier:        pcf.crypto.MultiSigner(),
+		MultiSigContainer:       pcf.crypto.MultiSignerContainer(),
 		SingleSigVerifier:       pcf.crypto.BlockSigner(),
 		KeyGen:                  pcf.crypto.BlockSignKeyGen(),
 		FallbackHeaderValidator: fallbackHeaderValidator,
