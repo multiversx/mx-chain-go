@@ -87,7 +87,7 @@ func (tep *transactionsFeeProcessor) prepareNormalTxs(transactionsAndScrs *trans
 }
 
 func (tep *transactionsFeeProcessor) prepareTxWithResults(txHash []byte, txWithResults *transactionWithResults) {
-	txHashHasRefund := make(map[string]struct{})
+	hasRefund := false
 	for _, scrHandler := range txWithResults.scrs {
 		scr, ok := scrHandler.(*smartContractResult.SmartContractResult)
 		if !ok {
@@ -99,16 +99,17 @@ func (tep *transactionsFeeProcessor) prepareTxWithResults(txHash []byte, txWithR
 
 			txWithResults.SetGasUsed(gasUsed)
 			txWithResults.SetFee(fee)
-			txHashHasRefund[string(txHash)] = struct{}{}
+			hasRefund = true
 		}
 	}
+
+	tep.prepareTxWithResultsBasedOnLogs(txWithResults, hasRefund)
 
 }
 
 func (tep *transactionsFeeProcessor) prepareTxWithResultsBasedOnLogs(
-	txHash []byte,
 	txWithResults *transactionWithResults,
-	txHashHasRefund map[string]struct{},
+	hasRefund bool,
 ) {
 	if check.IfNil(txWithResults.logs) {
 		return
@@ -123,8 +124,7 @@ func (tep *transactionsFeeProcessor) prepareTxWithResultsBasedOnLogs(
 			txWithResults.SetFee(fee)
 			return
 		case core.WriteLogIdentifier:
-			_, found := txHashHasRefund[string(txHash)]
-			if !found {
+			if hasRefund {
 				return
 			}
 
