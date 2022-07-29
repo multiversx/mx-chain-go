@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 )
@@ -29,7 +30,7 @@ func (tsp *TestScProcessor) GetCompositeTestError() error {
 		allLogs := tsp.txLogsProcessor.GetAllCurrentLogs()
 		for _, logs := range allLogs {
 			for _, event := range logs.GetLogEvents() {
-				if string(event.GetIdentifier()) == signalError {
+				if string(event.GetIdentifier()) == core.SignalErrorOperation {
 					returnError = wrapErrorIfNotContains(returnError, string(event.GetTopics()[1]))
 				}
 			}

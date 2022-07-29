@@ -3,6 +3,8 @@ package transactionAPI
 import (
 	"bytes"
 	"strings"
+
+	"github.com/ElrondNetwork/elrond-go-core/core"
 )
 
 type refundDetectorInput struct {
@@ -23,7 +25,7 @@ func newRefundDetector() *refundDetector {
 func (detector *refundDetector) isRefund(input refundDetectorInput) bool {
 	hasValue := input.Value != "0" && input.Value != ""
 	hasReturnCodeOK := detector.isReturnCodeOK(input.Data)
-	isRefundForRelayTxSender := strings.Contains(input.ReturnMessage, gasRefundForRelayerMessage)
+	isRefundForRelayTxSender := strings.Contains(input.ReturnMessage, core.GasRefundForRelayerMessage)
 	isSuccessful := hasReturnCodeOK || isRefundForRelayTxSender
 
 	return hasValue && isSuccessful
