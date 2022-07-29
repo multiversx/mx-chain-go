@@ -485,6 +485,9 @@ var ErrSignerNotSupported = errors.New("signer not supported")
 // ErrMissingMultiSignerConfig signals that the multisigner config is missing
 var ErrMissingMultiSignerConfig = errors.New("multisigner configuration missing")
 
+// ErrMissingMultiSigner signals that there is no multisigner instance available
+var ErrMissingMultiSigner = errors.New("multisigner instance missing")
+
 // ErrMissingEpochZeroMultiSignerConfig signals that the multisigner config for epoch zero is missing
 var ErrMissingEpochZeroMultiSignerConfig = errors.New("multisigner configuration missing for epoch zero")
 

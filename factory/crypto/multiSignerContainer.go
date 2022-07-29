@@ -70,7 +70,7 @@ func NewMultiSignerContainer(args MultiSigArgs, multiSignerConfig []config.Multi
 	return c, nil
 }
 
-// GetMultiSigner returns the multiSignerContainer configured for the given epoch
+// GetMultiSigner returns the multiSigner configured for the given epoch
 func (c *container) GetMultiSigner(epoch uint32) (crypto.MultiSigner, error) {
 	c.mutSigners.RLock()
 	defer c.mutSigners.RUnlock()
@@ -80,7 +80,7 @@ func (c *container) GetMultiSigner(epoch uint32) (crypto.MultiSigner, error) {
 			return c.multiSigners[i].multiSigner, nil
 		}
 	}
-	return nil, errors.ErrMissingMultiSignerConfig
+	return nil, errors.ErrMissingMultiSigner
 }
 
 // IsInterfaceNil returns true if the underlying object is nil

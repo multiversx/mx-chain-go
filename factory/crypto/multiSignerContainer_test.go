@@ -64,7 +64,7 @@ func TestContainer_GetMultiSigner(t *testing.T) {
 
 		multiSigner, err := multiSigContainer.GetMultiSigner(0)
 		require.Nil(t, multiSigner)
-		require.Equal(t, errors.ErrMissingMultiSignerConfig, err)
+		require.Equal(t, errors.ErrMissingMultiSigner, err)
 	})
 	t.Run("get multi signer OK", func(t *testing.T) {
 		multiSigContainer, _ := NewMultiSignerContainer(args, multiSigConfig)
