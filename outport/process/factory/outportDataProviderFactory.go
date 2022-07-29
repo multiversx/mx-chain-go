@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/outport"
 	"github.com/ElrondNetwork/elrond-go/outport/process"
 	"github.com/ElrondNetwork/elrond-go/outport/process/alteredaccounts"
+	"github.com/ElrondNetwork/elrond-go/outport/process/disabled"
 	"github.com/ElrondNetwork/elrond-go/outport/process/transactionsfee"
 	processTxs "github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -17,6 +18,7 @@ import (
 
 // ArgOutportDataProviderFactory holds the arguments needed for creating a new instance of outport.DataProviderOutport
 type ArgOutportDataProviderFactory struct {
+	HasDrivers             bool
 	AddressConverter       core.PubkeyConverter
 	AccountsDB             state.AccountsAdapter
 	Marshaller             marshal.Marshalizer
@@ -31,6 +33,10 @@ type ArgOutportDataProviderFactory struct {
 
 // CreateOutportDataProvider will create a new instance of outport.DataProviderOutport
 func CreateOutportDataProvider(arg ArgOutportDataProviderFactory) (outport.DataProviderOutport, error) {
+	if !arg.HasDrivers {
+		return disabled.NewDisabledOutportDataProvider(), nil
+	}
+
 	err := checkArgCreateOutportDataProvider(arg)
 	if err != nil {
 		return nil, err

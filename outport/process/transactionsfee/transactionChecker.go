@@ -3,33 +3,13 @@ package transactionsfee
 import (
 	"bytes"
 	"encoding/hex"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"math/big"
+
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
-	"math/big"
 )
-
-const (
-	GasRefundForRelayerMessage = "gas refund for relayer"
-)
-
-func checkArg(arg ArgTransactionsFeeProcessor) error {
-	if check.IfNil(arg.TransactionsStorer) {
-		return ErrNilStorage
-	}
-	if check.IfNil(arg.ShardCoordinator) {
-		return ErrNilShardCoordinator
-	}
-	if check.IfNil(arg.TxFeeCalculator) {
-		return ErrNilTransactionFeeCalculator
-	}
-	if check.IfNil(arg.Marshaller) {
-		return ErrNilMarshaller
-	}
-
-	return nil
-}
 
 func isSCRForSenderWithRefund(scr *smartContractResult.SmartContractResult, txHash []byte, tx data.TransactionHandlerWithGasUsedAndFee) bool {
 	isForSender := bytes.Equal(scr.RcvAddr, tx.GetSndAddr())
@@ -41,7 +21,7 @@ func isSCRForSenderWithRefund(scr *smartContractResult.SmartContractResult, txHa
 }
 
 func isRefundForRelayed(dbScResult *smartContractResult.SmartContractResult, tx data.TransactionHandlerWithGasUsedAndFee) bool {
-	isForRelayed := string(dbScResult.ReturnMessage) == GasRefundForRelayerMessage
+	isForRelayed := string(dbScResult.ReturnMessage) == core.GasRefundForRelayerMessage
 	isForSender := bytes.Equal(dbScResult.RcvAddr, tx.GetSndAddr())
 	differentHash := !bytes.Equal(dbScResult.OriginalTxHash, dbScResult.PrevTxHash)
 
@@ -58,7 +38,7 @@ func isDataOk(data []byte) bool {
 func isSCRWithRefundNoTx(scr *smartContractResult.SmartContractResult) bool {
 	hasRefund := scr.Value.Cmp(big.NewInt(0)) != 0
 	isSuccessful := isDataOk(scr.Data)
-	isRefundForRelayTxSender := string(scr.ReturnMessage) == GasRefundForRelayerMessage
+	isRefundForRelayTxSender := string(scr.ReturnMessage) == core.GasRefundForRelayerMessage
 
 	ok := isSuccessful || isRefundForRelayTxSender
 	differentHash := !bytes.Equal(scr.OriginalTxHash, scr.PrevTxHash)

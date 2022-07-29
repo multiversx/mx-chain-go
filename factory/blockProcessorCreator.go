@@ -900,9 +900,10 @@ func (pcf *processComponentsFactory) createOutportDataProvider(
 	gasConsumedProvider processOutport.GasConsumedProvider,
 ) (outport.DataProviderOutport, error) {
 	return factoryOutportProvider.CreateOutportDataProvider(factoryOutportProvider.ArgOutportDataProviderFactory{
+		HasDrivers:             pcf.statusComponents.OutportHandler().HasDrivers(),
 		AddressConverter:       pcf.coreData.AddressPubKeyConverter(),
 		AccountsDB:             pcf.state.AccountsAdapter(),
-		Marshalizer:            pcf.coreData.InternalMarshalizer(),
+		Marshaller:             pcf.coreData.InternalMarshalizer(),
 		EsdtDataStorageHandler: pcf.esdtNftStorage,
 		TransactionsStorer:     pcf.data.StorageService().GetStorer(dataRetriever.TransactionUnit),
 		ShardCoordinator:       pcf.bootstrapComponents.ShardCoordinator(),

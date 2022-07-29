@@ -3,18 +3,13 @@ package transactionsfee
 import (
 	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data"
 	outportcore "github.com/ElrondNetwork/elrond-go-core/data/outport"
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
-)
-
-const (
-	writeLogOperation    = "writeLog"
-	signalErrorOperation = "signalError"
 )
 
 // ArgTransactionsFeeProcessor holds the arguments needed for creating a new instance of transactionsFeeProcessor
@@ -43,6 +38,23 @@ func NewTransactionFeeProcessor(arg ArgTransactionsFeeProcessor) (*transactionsF
 		shardCoordinator: arg.ShardCoordinator,
 		txGetter:         newTxGetter(arg.TransactionsStorer, arg.Marshaller),
 	}, nil
+}
+
+func checkArg(arg ArgTransactionsFeeProcessor) error {
+	if check.IfNil(arg.TransactionsStorer) {
+		return ErrNilStorage
+	}
+	if check.IfNil(arg.ShardCoordinator) {
+		return ErrNilShardCoordinator
+	}
+	if check.IfNil(arg.TxFeeCalculator) {
+		return ErrNilTransactionFeeCalculator
+	}
+	if check.IfNil(arg.Marshaller) {
+		return ErrNilMarshaller
+	}
+
+	return nil
 }
 
 func (tep *transactionsFeeProcessor) PutFeeAndGasUsed(pool *outportcore.Pool) error {
@@ -91,6 +103,13 @@ func (tep *transactionsFeeProcessor) prepareTxWithResults(txHash []byte, txWithR
 		}
 	}
 
+}
+
+func (tep *transactionsFeeProcessor) prepareTxWithResultsBasedOnLogs(
+	txHash []byte,
+	txWithResults *transactionWithResults,
+	txHashHasRefund map[string]struct{},
+) {
 	if check.IfNil(txWithResults.logs) {
 		return
 	}
@@ -98,12 +117,12 @@ func (tep *transactionsFeeProcessor) prepareTxWithResults(txHash []byte, txWithR
 	for _, event := range txWithResults.logs.GetLogEvents() {
 		identifier := string(event.GetIdentifier())
 		switch identifier {
-		case signalErrorOperation:
+		case core.SignalErrorOperation:
 			fee := tep.txFeeCalculator.ComputeTxFeeBasedOnGasUsed(txWithResults, txWithResults.GetGasLimit())
 			txWithResults.SetGasUsed(txWithResults.GetGasLimit())
 			txWithResults.SetFee(fee)
 			return
-		case writeLogOperation:
+		case core.WriteLogIdentifier:
 			_, found := txHashHasRefund[string(txHash)]
 			if !found {
 				return
@@ -120,11 +139,7 @@ func (tep *transactionsFeeProcessor) prepareTxWithResults(txHash []byte, txWithR
 
 func (tep *transactionsFeeProcessor) prepareScrsNoTx(transactionsAndScrs *transactionsAndScrsHolder) error {
 	for _, scrHandler := range transactionsAndScrs.scrsNoTx {
-		scrTxHandler, ok := scrHandler.(data.TransactionHandler)
-		if !ok {
-			continue
-		}
-		scr, ok := scrTxHandler.(*smartContractResult.SmartContractResult)
+		scr, ok := scrHandler.GetTxHandler().(*smartContractResult.SmartContractResult)
 		if !ok {
 			continue
 		}
