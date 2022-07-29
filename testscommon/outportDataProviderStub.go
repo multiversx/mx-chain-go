@@ -2,7 +2,7 @@ package testscommon
 
 import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
+	outportcore "github.com/ElrondNetwork/elrond-go-core/data/outport"
 )
 
 // OutportDataProviderStub -
@@ -13,7 +13,7 @@ type OutportDataProviderStub struct {
 		header data.HeaderHandler,
 		rewardsTxs map[string]data.TransactionHandler,
 		notarizedHeadersHashes []string,
-	) (*indexer.ArgsSaveBlockData, error)
+	) (*outportcore.ArgsSaveBlockData, error)
 }
 
 // PrepareOutportSaveBlockData -
@@ -23,7 +23,7 @@ func (a *OutportDataProviderStub) PrepareOutportSaveBlockData(
 	header data.HeaderHandler,
 	rewardsTxs map[string]data.TransactionHandler,
 	notarizedHeadersHashes []string,
-) (*indexer.ArgsSaveBlockData, error) {
+) (*outportcore.ArgsSaveBlockData, error) {
 	if a.PrepareOutportSaveBlockDataCalled != nil {
 		return a.PrepareOutportSaveBlockDataCalled(headerHash, body, header, rewardsTxs, notarizedHeadersHashes)
 	}

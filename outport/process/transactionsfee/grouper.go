@@ -2,7 +2,7 @@ package transactionsfee
 
 import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
+	outportcore "github.com/ElrondNetwork/elrond-go-core/data/outport"
 )
 
 type transactionWithResults struct {
@@ -23,7 +23,7 @@ func newGroupedTransactionsAndScrs(nrTxs, nrScrs int) *groupedTransactionsAndScr
 	}
 }
 
-func groupTransactionsWithResults(txPool *indexer.Pool) *groupedTransactionsAndScrs {
+func groupTransactionsWithResults(txPool *outportcore.Pool) *groupedTransactionsAndScrs {
 	totalTxs := len(txPool.Txs) + len(txPool.Invalid) + len(txPool.Rewards)
 	if totalTxs == 0 && len(txPool.Scrs) == 0 {
 		return newGroupedTransactionsAndScrs(0, 0)

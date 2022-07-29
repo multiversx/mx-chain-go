@@ -6,7 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	coreData "github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
+	"github.com/ElrondNetwork/elrond-go-core/data/outport"
 	transactionData "github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/genesis"
@@ -43,7 +43,7 @@ func (ap *accountsParser) CreateMintTransactions() []coreData.TransactionHandler
 func (ap *accountsParser) SetScrsTxsPool(
 	shardCoordinator sharding.Coordinator,
 	indexingData map[uint32]*genesis.IndexingData,
-	txsPoolPerShard map[uint32]*indexer.Pool,
+	txsPoolPerShard map[uint32]*outport.Pool,
 ) {
 	ap.setScrsTxsPool(shardCoordinator, indexingData, txsPoolPerShard)
 }

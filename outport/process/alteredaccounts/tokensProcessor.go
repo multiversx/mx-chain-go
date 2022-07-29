@@ -5,7 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
+	outportcore "github.com/ElrondNetwork/elrond-go-core/data/outport"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
@@ -59,7 +59,7 @@ func newTokensProcessor(shardCoordinator sharding.Coordinator) *tokensProcessor 
 }
 
 func (tp *tokensProcessor) extractESDTAccounts(
-	txPool *indexer.Pool,
+	txPool *outportcore.Pool,
 	markedAlteredAccounts map[string]*markedAlteredAccount,
 ) error {
 	var err error

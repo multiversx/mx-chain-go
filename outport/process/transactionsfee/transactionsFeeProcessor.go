@@ -5,7 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
+	outportcore "github.com/ElrondNetwork/elrond-go-core/data/outport"
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -43,7 +43,7 @@ func NewTransactionFeeProcessor(arg ArgTransactionsFeeProcessor) (*transactionsF
 	}, nil
 }
 
-func (tep *transactionsFeeProcessor) PutFeeAndGasUsed(pool *indexer.Pool) error {
+func (tep *transactionsFeeProcessor) PutFeeAndGasUsed(pool *outportcore.Pool) error {
 	tep.prepareInvalidTxs(pool)
 
 	txsWithResultsMap := groupTransactionsWithResults(pool)
@@ -52,7 +52,7 @@ func (tep *transactionsFeeProcessor) PutFeeAndGasUsed(pool *indexer.Pool) error 
 	return tep.prepareScrsNoTx(txsWithResultsMap)
 }
 
-func (tep *transactionsFeeProcessor) prepareInvalidTxs(pool *indexer.Pool) {
+func (tep *transactionsFeeProcessor) prepareInvalidTxs(pool *outportcore.Pool) {
 	for _, invalidTx := range pool.Invalid {
 		fee := tep.txFeeCalculator.ComputeTxFeeBasedOnGasUsed(invalidTx, invalidTx.GetGasLimit())
 		invalidTx.SetGasUsed(invalidTx.GetGasLimit())

@@ -1,19 +1,19 @@
 package process
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
+	"github.com/ElrondNetwork/elrond-go-core/data/outport"
 	"github.com/ElrondNetwork/elrond-go/outport/process/transactionsfee"
 )
 
 // AlteredAccountsProviderHandler defines the functionality needed for provisioning of altered accounts when indexing data
 type AlteredAccountsProviderHandler interface {
-	ExtractAlteredAccountsFromPool(txPool *indexer.Pool) (map[string]*indexer.AlteredAccount, error)
+	ExtractAlteredAccountsFromPool(txPool *outport.Pool) (map[string]*outport.AlteredAccount, error)
 	IsInterfaceNil() bool
 }
 
 type TransactionsFeeHandler interface {
 	IsInterfaceNil() bool
-	PutFeeAndGasUsed(pool *indexer.Pool) error
+	PutFeeAndGasUsed(pool *outport.Pool) error
 }
 
 type GasConsumedProvider interface {

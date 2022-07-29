@@ -10,7 +10,7 @@ import (
 	coreData "github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	dataBlock "github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
+	outportcore "github.com/ElrondNetwork/elrond-go-core/data/outport"
 	"github.com/ElrondNetwork/elrond-go/common"
 	commonFactory "github.com/ElrondNetwork/elrond-go/common/factory"
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -171,10 +171,10 @@ func getProcessArgs(
 
 				return initialAccounts
 			},
-			GenerateInitialTransactionsCalled: func(shardCoordinator sharding.Coordinator, initialIndexingData map[uint32]*genesis.IndexingData) ([]*block.MiniBlock, map[uint32]*indexer.Pool, error) {
-				txsPool := make(map[uint32]*indexer.Pool)
+			GenerateInitialTransactionsCalled: func(shardCoordinator sharding.Coordinator, initialIndexingData map[uint32]*genesis.IndexingData) ([]*block.MiniBlock, map[uint32]*outportcore.Pool, error) {
+				txsPool := make(map[uint32]*outportcore.Pool)
 				for i := uint32(0); i < shardCoordinator.NumberOfShards(); i++ {
-					txsPool[i] = &indexer.Pool{}
+					txsPool[i] = &outportcore.Pool{}
 				}
 
 				return make([]*block.MiniBlock, 4), txsPool, nil
@@ -291,7 +291,7 @@ func TestProcessComponents_IndexGenesisBlocks(t *testing.T) {
 		HasDriversCalled: func() bool {
 			return true
 		},
-		SaveBlockCalled: func(args *indexer.ArgsSaveBlockData) {
+		SaveBlockCalled: func(args *outportcore.ArgsSaveBlockData) {
 			saveBlockCalledMutex.Lock()
 			require.NotNil(t, args)
 
@@ -299,7 +299,7 @@ func TestProcessComponents_IndexGenesisBlocks(t *testing.T) {
 				MiniBlocks: make([]*block.MiniBlock, 4),
 			}
 
-			txsPoolRequired := &indexer.Pool{}
+			txsPoolRequired := &outportcore.Pool{}
 
 			assert.Equal(t, txsPoolRequired, args.TransactionsPool)
 			assert.Equal(t, bodyRequired, args.Body)

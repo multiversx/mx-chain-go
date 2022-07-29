@@ -7,7 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
+	outportcore "github.com/ElrondNetwork/elrond-go-core/data/outport"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
@@ -52,7 +52,7 @@ func (odp *outportDataProvider) PrepareOutportSaveBlockData(
 	header data.HeaderHandler,
 	rewardsTxs map[string]data.TransactionHandler,
 	notarizedHeadersHashes []string,
-) (*indexer.ArgsSaveBlockData, error) {
+) (*outportcore.ArgsSaveBlockData, error) {
 	epoch := odp.computeEpoch(header)
 	pubKeys, err := odp.nodesCoordinator.GetConsensusValidatorsPublicKeys(
 		header.GetPrevRandSeed(),
@@ -94,12 +94,12 @@ func (odp *outportDataProvider) PrepareOutportSaveBlockData(
 		return nil, errors.Wrap(err, "transactionsFeeProcessor.PutFeeAndGasUsed")
 	}
 
-	return &indexer.ArgsSaveBlockData{
+	return &outportcore.ArgsSaveBlockData{
 		HeaderHash:     headerHash,
 		Body:           body,
 		Header:         header,
 		SignersIndexes: signersIndexes,
-		HeaderGasConsumption: indexer.HeaderGasConsumption{
+		HeaderGasConsumption: outportcore.HeaderGasConsumption{
 			GasProvided:    gasProvidedInHeader,
 			GasRefunded:    gasRefundedInHeader,
 			GasPenalized:   gasPenalizedInheader,
@@ -121,8 +121,8 @@ func (odp *outportDataProvider) computeEpoch(header data.HeaderHandler) uint32 {
 	return epoch
 }
 
-func (odp *outportDataProvider) createPool(rewardsTxs map[string]data.TransactionHandler) *indexer.Pool {
-	pool := &indexer.Pool{
+func (odp *outportDataProvider) createPool(rewardsTxs map[string]data.TransactionHandler) *outportcore.Pool {
+	pool := &outportcore.Pool{
 		Txs:  wrapTxsMap(odp.txCoordinator.GetAllCurrentUsedTxs(block.TxBlock)),
 		Scrs: wrapTxsMap(odp.txCoordinator.GetAllCurrentUsedTxs(block.SmartContractResultBlock)),
 		Logs: odp.txCoordinator.GetAllCurrentLogs(),
@@ -142,7 +142,7 @@ func (odp *outportDataProvider) createPool(rewardsTxs map[string]data.Transactio
 func wrapTxsMap(txs map[string]data.TransactionHandler) map[string]data.TransactionHandlerWithGasUsedAndFee {
 	newMap := make(map[string]data.TransactionHandlerWithGasUsedAndFee, len(txs))
 	for txHash, tx := range txs {
-		newMap[txHash] = indexer.NewTransactionHandlerWithGasAndFee(tx, 0, big.NewInt(0))
+		newMap[txHash] = outportcore.NewTransactionHandlerWithGasAndFee(tx, 0, big.NewInt(0))
 	}
 
 	return newMap

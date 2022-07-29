@@ -12,7 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	coreData "github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
+	"github.com/ElrondNetwork/elrond-go-core/data/outport"
 	scrData "github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	transactionData "github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/common"
@@ -592,9 +592,9 @@ func TestAccountsParser_setScrsTxsPool(t *testing.T) {
 		indexingDataMap[i] = indexingData
 	}
 
-	txsPoolPerShard := make(map[uint32]*indexer.Pool)
+	txsPoolPerShard := make(map[uint32]*outport.Pool)
 	for i := uint32(0); i < sharder.NumOfShards; i++ {
-		txsPoolPerShard[i] = &indexer.Pool{
+		txsPoolPerShard[i] = &outport.Pool{
 			Scrs: map[string]coreData.TransactionHandlerWithGasUsedAndFee{},
 		}
 	}

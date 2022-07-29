@@ -902,7 +902,7 @@ func (pcf *processComponentsFactory) createOutportDataProvider(
 	return factoryOutportProvider.CreateOutportDataProvider(factoryOutportProvider.ArgOutportDataProviderFactory{
 		AddressConverter:       pcf.coreData.AddressPubKeyConverter(),
 		AccountsDB:             pcf.state.AccountsAdapter(),
-		Marshalizer:            pcf.coreData.TxMarshalizer(),
+		Marshalizer:            pcf.coreData.InternalMarshalizer(),
 		EsdtDataStorageHandler: pcf.esdtNftStorage,
 		TransactionsStorer:     pcf.data.StorageService().GetStorer(dataRetriever.TransactionUnit),
 		ShardCoordinator:       pcf.bootstrapComponents.ShardCoordinator(),

@@ -17,7 +17,7 @@ import (
 	atomicCore "github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
+	outportcore "github.com/ElrondNetwork/elrond-go-core/data/outport"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
@@ -2207,7 +2207,7 @@ func TestShardProcessor_CommitBlockCallsIndexerMethods(t *testing.T) {
 
 	called := false
 	statusComponents.Outport = &testscommon.OutportStub{
-		SaveBlockCalled: func(args *indexer.ArgsSaveBlockData) {
+		SaveBlockCalled: func(args *outportcore.ArgsSaveBlockData) {
 			called = true
 		},
 		HasDriversCalled: func() bool {
@@ -2215,8 +2215,8 @@ func TestShardProcessor_CommitBlockCallsIndexerMethods(t *testing.T) {
 		},
 	}
 	arguments.OutportDataProvider = &testscommon.OutportDataProviderStub{
-		PrepareOutportSaveBlockDataCalled: func(headerHash []byte, body data.BodyHandler, header data.HeaderHandler, rewardsTxs map[string]data.TransactionHandler, notarizedHeadersHashes []string) (*indexer.ArgsSaveBlockData, error) {
-			return &indexer.ArgsSaveBlockData{}, nil
+		PrepareOutportSaveBlockDataCalled: func(headerHash []byte, body data.BodyHandler, header data.HeaderHandler, rewardsTxs map[string]data.TransactionHandler, notarizedHeadersHashes []string) (*outportcore.ArgsSaveBlockData, error) {
+			return &outportcore.ArgsSaveBlockData{}, nil
 		}}
 
 	arguments.AccountsDB[state.UserAccountsState] = accounts

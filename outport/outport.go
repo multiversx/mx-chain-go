@@ -7,7 +7,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
+	outportcore "github.com/ElrondNetwork/elrond-go-core/data/outport"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 )
 
@@ -37,7 +37,7 @@ func NewOutport(retrialInterval time.Duration) (*outport, error) {
 }
 
 // SaveBlock will save block for every driver
-func (o *outport) SaveBlock(args *indexer.ArgsSaveBlockData) {
+func (o *outport) SaveBlock(args *outportcore.ArgsSaveBlockData) {
 	o.mutex.RLock()
 	defer o.mutex.RUnlock()
 
@@ -46,7 +46,7 @@ func (o *outport) SaveBlock(args *indexer.ArgsSaveBlockData) {
 	}
 }
 
-func (o *outport) saveBlockBlocking(args *indexer.ArgsSaveBlockData, driver Driver) {
+func (o *outport) saveBlockBlocking(args *outportcore.ArgsSaveBlockData, driver Driver) {
 	for {
 		err := driver.SaveBlock(args)
 		if err == nil {
@@ -102,7 +102,7 @@ func (o *outport) revertIndexedBlockBlocking(header data.HeaderHandler, body dat
 }
 
 // SaveRoundsInfo will save rounds information for every driver
-func (o *outport) SaveRoundsInfo(roundsInfo []*indexer.RoundInfo) {
+func (o *outport) SaveRoundsInfo(roundsInfo []*outportcore.RoundInfo) {
 	o.mutex.RLock()
 	defer o.mutex.RUnlock()
 
@@ -111,7 +111,7 @@ func (o *outport) SaveRoundsInfo(roundsInfo []*indexer.RoundInfo) {
 	}
 }
 
-func (o *outport) saveRoundsInfoBlocking(roundsInfo []*indexer.RoundInfo, driver Driver) {
+func (o *outport) saveRoundsInfoBlocking(roundsInfo []*outportcore.RoundInfo, driver Driver) {
 	for {
 		err := driver.SaveRoundsInfo(roundsInfo)
 		if err == nil {
@@ -158,7 +158,7 @@ func (o *outport) saveValidatorsPubKeysBlocking(validatorsPubKeys map[uint32][][
 }
 
 // SaveValidatorsRating will save validators rating for every driver
-func (o *outport) SaveValidatorsRating(indexID string, infoRating []*indexer.ValidatorRatingInfo) {
+func (o *outport) SaveValidatorsRating(indexID string, infoRating []*outportcore.ValidatorRatingInfo) {
 	o.mutex.RLock()
 	defer o.mutex.RUnlock()
 
@@ -167,7 +167,7 @@ func (o *outport) SaveValidatorsRating(indexID string, infoRating []*indexer.Val
 	}
 }
 
-func (o *outport) saveValidatorsRatingBlocking(indexID string, infoRating []*indexer.ValidatorRatingInfo, driver Driver) {
+func (o *outport) saveValidatorsRatingBlocking(indexID string, infoRating []*outportcore.ValidatorRatingInfo, driver Driver) {
 	for {
 		err := driver.SaveValidatorsRating(indexID, infoRating)
 		if err == nil {
@@ -186,7 +186,7 @@ func (o *outport) saveValidatorsRatingBlocking(indexID string, infoRating []*ind
 }
 
 // SaveAccounts will save accounts  for every driver
-func (o *outport) SaveAccounts(blockTimestamp uint64, acc map[string]*indexer.AlteredAccount) {
+func (o *outport) SaveAccounts(blockTimestamp uint64, acc map[string]*outportcore.AlteredAccount) {
 	o.mutex.RLock()
 	defer o.mutex.RUnlock()
 
@@ -195,7 +195,7 @@ func (o *outport) SaveAccounts(blockTimestamp uint64, acc map[string]*indexer.Al
 	}
 }
 
-func (o *outport) saveAccountsBlocking(blockTimestamp uint64, acc map[string]*indexer.AlteredAccount, driver Driver) {
+func (o *outport) saveAccountsBlocking(blockTimestamp uint64, acc map[string]*outportcore.AlteredAccount, driver Driver) {
 	for {
 		err := driver.SaveAccounts(blockTimestamp, acc)
 		if err == nil {

@@ -24,7 +24,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
+	outportcore "github.com/ElrondNetwork/elrond-go-core/data/outport"
 	"github.com/ElrondNetwork/elrond-go-core/data/receipt"
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
@@ -183,7 +183,7 @@ func (ti *testIndexer) SaveTransaction(
 		},
 	}
 
-	txsPool := &indexer.Pool{
+	txsPool := &outportcore.Pool{
 		Txs:      make(map[string]data.TransactionHandlerWithGasUsedAndFee),
 		Scrs:     make(map[string]data.TransactionHandlerWithGasUsedAndFee),
 		Rewards:  nil,
@@ -193,10 +193,10 @@ func (ti *testIndexer) SaveTransaction(
 	}
 
 	if mbType == block.InvalidBlock {
-		txsPool.Invalid[string(txHash)] = indexer.NewTransactionHandlerWithGasAndFee(tx, 0, big.NewInt(0))
+		txsPool.Invalid[string(txHash)] = outportcore.NewTransactionHandlerWithGasAndFee(tx, 0, big.NewInt(0))
 		bigTxMb.ReceiverShardID = sndShardID
 	} else {
-		txsPool.Txs[string(txHash)] = indexer.NewTransactionHandlerWithGasAndFee(tx, 0, big.NewInt(0))
+		txsPool.Txs[string(txHash)] = outportcore.NewTransactionHandlerWithGasAndFee(tx, 0, big.NewInt(0))
 	}
 
 	for _, intTx := range intermediateTxs {
@@ -212,11 +212,11 @@ func (ti *testIndexer) SaveTransaction(
 		case *receipt.Receipt:
 			mb.Type = block.ReceiptBlock
 			mb.ReceiverShardID = sndShardID
-			txsPool.Receipts[string(intTxHash)] = indexer.NewTransactionHandlerWithGasAndFee(intTx, 0, big.NewInt(0))
+			txsPool.Receipts[string(intTxHash)] = outportcore.NewTransactionHandlerWithGasAndFee(intTx, 0, big.NewInt(0))
 		case *smartContractResult.SmartContractResult:
 			mb.Type = block.SmartContractResultBlock
 			mb.ReceiverShardID = rcvShardID
-			txsPool.Scrs[string(intTxHash)] = indexer.NewTransactionHandlerWithGasAndFee(intTx, 0, big.NewInt(0))
+			txsPool.Scrs[string(intTxHash)] = outportcore.NewTransactionHandlerWithGasAndFee(intTx, 0, big.NewInt(0))
 		default:
 			continue
 		}
@@ -230,7 +230,7 @@ func (ti *testIndexer) SaveTransaction(
 		ShardID: ti.shardCoordinator.SelfId(),
 	}
 
-	args := &indexer.ArgsSaveBlockData{
+	args := &outportcore.ArgsSaveBlockData{
 		Body:             blk,
 		Header:           header,
 		TransactionsPool: txsPool,
