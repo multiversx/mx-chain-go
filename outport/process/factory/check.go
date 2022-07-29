@@ -14,8 +14,8 @@ func checkArgCreateOutportDataProvider(arg ArgOutportDataProviderFactory) error 
 	if check.IfNil(arg.AccountsDB) {
 		return alteredaccounts.ErrNilAccountsDB
 	}
-	if check.IfNil(arg.Marshalizer) {
-		return transactionsfee.ErrNilMarshalizer
+	if check.IfNil(arg.Marshaller) {
+		return transactionsfee.ErrNilMarshaller
 	}
 	if check.IfNil(arg.EsdtDataStorageHandler) {
 		return alteredaccounts.ErrNilESDTDataStorageHandler

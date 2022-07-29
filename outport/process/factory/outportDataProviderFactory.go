@@ -15,10 +15,11 @@ import (
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
+// ArgOutportDataProviderFactory holds the arguments needed for creating a new instance of outport.DataProviderOutport
 type ArgOutportDataProviderFactory struct {
 	AddressConverter       core.PubkeyConverter
 	AccountsDB             state.AccountsAdapter
-	Marshalizer            marshal.Marshalizer
+	Marshaller             marshal.Marshalizer
 	EsdtDataStorageHandler vmcommon.ESDTNFTStorageHandler
 	TransactionsStorer     storage.Storer
 	ShardCoordinator       sharding.Coordinator
@@ -39,7 +40,6 @@ func CreateOutportDataProvider(arg ArgOutportDataProviderFactory) (outport.DataP
 		ShardCoordinator:       arg.ShardCoordinator,
 		AddressConverter:       arg.AddressConverter,
 		AccountsDB:             arg.AccountsDB,
-		Marshalizer:            arg.Marshalizer,
 		EsdtDataStorageHandler: arg.EsdtDataStorageHandler,
 	})
 	if err != nil {
@@ -47,7 +47,7 @@ func CreateOutportDataProvider(arg ArgOutportDataProviderFactory) (outport.DataP
 	}
 
 	transactionsFeeProc, err := transactionsfee.NewTransactionFeeProcessor(transactionsfee.ArgTransactionsFeeProcessor{
-		Marshalizer:        arg.Marshalizer,
+		Marshaller:         arg.Marshaller,
 		TransactionsStorer: arg.TransactionsStorer,
 		ShardCoordinator:   arg.ShardCoordinator,
 		TxFeeCalculator:    arg.EconomicsData,

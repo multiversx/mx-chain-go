@@ -11,5 +11,5 @@ var ErrNilShardCoordinator = errors.New("nil shard coordinator")
 // ErrNilStorage signals that a nil storage has been provided
 var ErrNilStorage = errors.New("nil storage")
 
-// ErrNilMarshalizer signals that an operation has been attempted to or with a nil Marshalizer implementation
-var ErrNilMarshalizer = errors.New("nil Marshalizer")
+// ErrNilMarshaller signals that a nil marshaller has been provided
+var ErrNilMarshaller = errors.New("nil Marshaller")

@@ -11,9 +11,6 @@ var ErrNilPubKeyConverter = errors.New("nil public key converter")
 // ErrNilAccountsDB signals that a nil accounts DB has been provided
 var ErrNilAccountsDB = errors.New("nil accounts DB")
 
-// errNilMarshalizer signals that a nil marshalizer has been provided
-var errNilMarshalizer = errors.New("nil marshalizer")
-
 // ErrNilESDTDataStorageHandler signals that a nil esdt data storage handler has been provided
 var ErrNilESDTDataStorageHandler = errors.New("nil esdt data storage handler")
 

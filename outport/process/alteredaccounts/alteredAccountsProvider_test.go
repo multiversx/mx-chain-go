@@ -56,17 +56,6 @@ func TestNewAlteredAccountsProvider(t *testing.T) {
 		require.Equal(t, ErrNilAccountsDB, err)
 	})
 
-	t.Run("nil marshalizer", func(t *testing.T) {
-		t.Parallel()
-
-		args := getMockArgs()
-		args.Marshalizer = nil
-
-		aap, err := NewAlteredAccountsProvider(args)
-		require.Nil(t, aap)
-		require.Equal(t, errNilMarshalizer, err)
-	})
-
 	t.Run("nil esdt data storage handler", func(t *testing.T) {
 		t.Parallel()
 
@@ -724,24 +713,25 @@ func testExtractAlteredAccountsFromPoolAddressHasMultipleNfts(t *testing.T) {
 			return nil, false, nil
 		},
 	}
+	marshaller := testscommon.MarshalizerMock{}
 	args.AccountsDB = &state.AccountsStub{
 		LoadAccountCalled: func(_ []byte) (vmcommon.AccountHandler, error) {
 			return &state.UserAccountStub{
 				RetrieveValueFromDataTrieTrackerCalled: func(key []byte) ([]byte, error) {
 					if strings.Contains(string(key), "esdttoken") {
-						tokenBytes, _ := args.Marshalizer.Marshal(expectedToken0)
+						tokenBytes, _ := marshaller.Marshal(expectedToken0)
 						return tokenBytes, nil
 					}
 
 					firstNftKey := fmt.Sprintf("%s%s", "nft-0", string(big.NewInt(5).Bytes()))
 					if strings.Contains(string(key), firstNftKey) {
-						tokenBytes, _ := args.Marshalizer.Marshal(expectedToken1)
+						tokenBytes, _ := marshaller.Marshal(expectedToken1)
 						return tokenBytes, nil
 					}
 
 					secondNftKey := fmt.Sprintf("%s%s", "nft-0", string(big.NewInt(6).Bytes()))
 					if strings.Contains(string(key), secondNftKey) {
-						tokenBytes, _ := args.Marshalizer.Marshal(expectedToken2)
+						tokenBytes, _ := marshaller.Marshal(expectedToken2)
 						return tokenBytes, nil
 					}
 
@@ -824,7 +814,6 @@ func getMockArgs() ArgsAlteredAccountsProvider {
 	return ArgsAlteredAccountsProvider{
 		ShardCoordinator:       &testscommon.ShardsCoordinatorMock{},
 		AddressConverter:       &testscommon.PubkeyConverterMock{},
-		Marshalizer:            &testscommon.MarshalizerMock{},
 		AccountsDB:             &state.AccountsStub{},
 		EsdtDataStorageHandler: &testscommon.EsdtStorageHandlerStub{},
 	}

@@ -11,11 +11,13 @@ type AlteredAccountsProviderHandler interface {
 	IsInterfaceNil() bool
 }
 
+// TransactionsFeeHandler defines the functionality needed for computation of the transaction fee and gas used
 type TransactionsFeeHandler interface {
-	IsInterfaceNil() bool
 	PutFeeAndGasUsed(pool *outport.Pool) error
+	IsInterfaceNil() bool
 }
 
+// GasConsumedProvider defines the functionality needed for providing gas consumed information
 type GasConsumedProvider interface {
 	TotalGasProvided() uint64
 	TotalGasProvidedWithScheduled() uint64
@@ -24,6 +26,7 @@ type GasConsumedProvider interface {
 	IsInterfaceNil() bool
 }
 
+// EconomicsDataHandler  defines the functionality needed for economics data
 type EconomicsDataHandler interface {
 	transactionsfee.FeesProcessorHandler
 	MaxGasLimitPerBlock(shardID uint32) uint64

@@ -5,15 +5,16 @@ import (
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	outportcore "github.com/ElrondNetwork/elrond-go-core/data/outport"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
-	"github.com/pkg/errors"
 )
 
+// ArgOutportDataProvider  holds the arguments needed for creating a new instance of outportDataProvider
 type ArgOutportDataProvider struct {
 	ShardCoordinator         sharding.Coordinator
 	AlteredAccountsProvider  AlteredAccountsProviderHandler
@@ -34,6 +35,7 @@ type outportDataProvider struct {
 	economicsData            EconomicsDataHandler
 }
 
+// NewOutportDataProvider will create a new instance of outportDataProvider
 func NewOutportDataProvider(arg ArgOutportDataProvider) (*outportDataProvider, error) {
 	return &outportDataProvider{
 		shardID:                  arg.ShardCoordinator.SelfId(),
@@ -53,45 +55,27 @@ func (odp *outportDataProvider) PrepareOutportSaveBlockData(
 	rewardsTxs map[string]data.TransactionHandler,
 	notarizedHeadersHashes []string,
 ) (*outportcore.ArgsSaveBlockData, error) {
-	epoch := odp.computeEpoch(header)
-	pubKeys, err := odp.nodesCoordinator.GetConsensusValidatorsPublicKeys(
-		header.GetPrevRandSeed(),
-		header.GetRound(),
-		odp.shardID,
-		epoch,
-	)
-	if err != nil {
-		return nil, errors.Wrap(err, "nodesCoordinator.GetConsensusValidatorsPublicKeys")
+	if check.IfNil(header) {
+		return nil, errNilHeaderHandler
 	}
-
-	nodesCoordinatorShardID, err := odp.nodesCoordinator.ShardIdForEpoch(epoch)
-	if err != nil {
-		return nil, errors.Wrap(err, "nodesCoordinator.ShardIdForEpoch")
+	if check.IfNil(body) {
+		return nil, errNilBodyHandler
 	}
-
-	if odp.shardID != nodesCoordinatorShardID {
-		return nil, fmt.Errorf("different shard id for epoch %d: shardId != nodesCoordinatorShardID", epoch)
-	}
-
-	signersIndexes, err := odp.nodesCoordinator.GetValidatorsIndexes(pubKeys, epoch)
-	if err != nil {
-		return nil, errors.Wrap(err, "nodesCoordinator.GetValidatorsIndexes")
-	}
-
-	gasProvidedInHeader := odp.gasConsumedProvider.TotalGasProvidedWithScheduled()
-	gasPenalizedInheader := odp.gasConsumedProvider.TotalGasPenalized()
-	gasRefundedInHeader := odp.gasConsumedProvider.TotalGasRefunded()
-	maxGasInHeader := odp.economicsData.MaxGasLimitPerBlock(odp.shardID)
 
 	pool := odp.createPool(rewardsTxs)
-	alteredAccounts, err := odp.alteredAccountsProvider.ExtractAlteredAccountsFromPool(pool)
+	err := odp.transactionsFeeProcessor.PutFeeAndGasUsed(pool)
 	if err != nil {
-		return nil, errors.Wrap(err, "alteredAccountsProvider.ExtractAlteredAccountsFromPoo")
+		return nil, fmt.Errorf("transactionsFeeProcessor.PutFeeAndGasUsed %w", err)
 	}
 
-	err = odp.transactionsFeeProcessor.PutFeeAndGasUsed(pool)
+	alteredAccounts, err := odp.alteredAccountsProvider.ExtractAlteredAccountsFromPool(pool)
 	if err != nil {
-		return nil, errors.Wrap(err, "transactionsFeeProcessor.PutFeeAndGasUsed")
+		return nil, fmt.Errorf("alteredAccountsProvider.ExtractAlteredAccountsFromPool %s", err)
+	}
+
+	signersIndexes, err := odp.getSignersIndexes(header)
+	if err != nil {
+		return nil, err
 	}
 
 	return &outportcore.ArgsSaveBlockData{
@@ -100,10 +84,10 @@ func (odp *outportDataProvider) PrepareOutportSaveBlockData(
 		Header:         header,
 		SignersIndexes: signersIndexes,
 		HeaderGasConsumption: outportcore.HeaderGasConsumption{
-			GasProvided:    gasProvidedInHeader,
-			GasRefunded:    gasRefundedInHeader,
-			GasPenalized:   gasPenalizedInheader,
-			MaxGasPerBlock: maxGasInHeader,
+			GasProvided:    odp.gasConsumedProvider.TotalGasProvidedWithScheduled(),
+			GasRefunded:    odp.gasConsumedProvider.TotalGasRefunded(),
+			GasPenalized:   odp.gasConsumedProvider.TotalGasPenalized(),
+			MaxGasPerBlock: odp.economicsData.MaxGasLimitPerBlock(odp.shardID),
 		},
 		NotarizedHeadersHashes: notarizedHeadersHashes,
 		TransactionsPool:       pool,
@@ -121,22 +105,52 @@ func (odp *outportDataProvider) computeEpoch(header data.HeaderHandler) uint32 {
 	return epoch
 }
 
+func (odp *outportDataProvider) getSignersIndexes(header data.HeaderHandler) ([]uint64, error) {
+	epoch := odp.computeEpoch(header)
+	pubKeys, err := odp.nodesCoordinator.GetConsensusValidatorsPublicKeys(
+		header.GetPrevRandSeed(),
+		header.GetRound(),
+		odp.shardID,
+		epoch,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("nodesCoordinator.GetConsensusValidatorsPublicKeys %w", err)
+	}
+
+	signersIndexes, err := odp.nodesCoordinator.GetValidatorsIndexes(pubKeys, epoch)
+	if err != nil {
+		return nil, fmt.Errorf("nodesCoordinator.GetValidatorsIndexes %s", err)
+	}
+
+	return signersIndexes, nil
+}
+
 func (odp *outportDataProvider) createPool(rewardsTxs map[string]data.TransactionHandler) *outportcore.Pool {
-	pool := &outportcore.Pool{
-		Txs:  wrapTxsMap(odp.txCoordinator.GetAllCurrentUsedTxs(block.TxBlock)),
-		Scrs: wrapTxsMap(odp.txCoordinator.GetAllCurrentUsedTxs(block.SmartContractResultBlock)),
-		Logs: odp.txCoordinator.GetAllCurrentLogs(),
-	}
-
 	if odp.shardID == core.MetachainShardId {
-		pool.Rewards = wrapTxsMap(rewardsTxs)
-	} else {
-		pool.Rewards = wrapTxsMap(odp.txCoordinator.GetAllCurrentUsedTxs(block.RewardsBlock))
-		pool.Invalid = wrapTxsMap(odp.txCoordinator.GetAllCurrentUsedTxs(block.InvalidBlock))
-		pool.Receipts = wrapTxsMap(odp.txCoordinator.GetAllCurrentUsedTxs(block.ReceiptBlock))
+		return odp.createPoolForMeta(rewardsTxs)
 	}
 
-	return pool
+	return odp.createPoolForShard()
+}
+
+func (odp *outportDataProvider) createPoolForShard() *outportcore.Pool {
+	return &outportcore.Pool{
+		Txs:      wrapTxsMap(odp.txCoordinator.GetAllCurrentUsedTxs(block.TxBlock)),
+		Scrs:     wrapTxsMap(odp.txCoordinator.GetAllCurrentUsedTxs(block.SmartContractResultBlock)),
+		Rewards:  wrapTxsMap(odp.txCoordinator.GetAllCurrentUsedTxs(block.RewardsBlock)),
+		Invalid:  wrapTxsMap(odp.txCoordinator.GetAllCurrentUsedTxs(block.InvalidBlock)),
+		Receipts: wrapTxsMap(odp.txCoordinator.GetAllCurrentUsedTxs(block.ReceiptBlock)),
+		Logs:     odp.txCoordinator.GetAllCurrentLogs(),
+	}
+}
+
+func (odp *outportDataProvider) createPoolForMeta(rewardsTxs map[string]data.TransactionHandler) *outportcore.Pool {
+	return &outportcore.Pool{
+		Txs:     wrapTxsMap(odp.txCoordinator.GetAllCurrentUsedTxs(block.TxBlock)),
+		Scrs:    wrapTxsMap(odp.txCoordinator.GetAllCurrentUsedTxs(block.SmartContractResultBlock)),
+		Rewards: wrapTxsMap(rewardsTxs),
+		Logs:    odp.txCoordinator.GetAllCurrentLogs(),
+	}
 }
 
 func wrapTxsMap(txs map[string]data.TransactionHandler) map[string]data.TransactionHandlerWithGasUsedAndFee {

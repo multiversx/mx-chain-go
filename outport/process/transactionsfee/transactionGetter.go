@@ -7,14 +7,14 @@ import (
 )
 
 type txGetter struct {
-	storer      storage.Storer
-	marshalizer marshal.Marshalizer
+	storer     storage.Storer
+	marshaller marshal.Marshalizer
 }
 
-func newTxGetter(storer storage.Storer, marshalizer marshal.Marshalizer) *txGetter {
+func newTxGetter(storer storage.Storer, marshaller marshal.Marshalizer) *txGetter {
 	return &txGetter{
-		storer:      storer,
-		marshalizer: marshalizer,
+		storer:     storer,
+		marshaller: marshaller,
 	}
 }
 
@@ -25,6 +25,6 @@ func (tg *txGetter) getTxByHash(txHash []byte) (*transaction.Transaction, error)
 	}
 
 	tx := &transaction.Transaction{}
-	err = tg.marshalizer.Unmarshal(tx, txBytes)
+	err = tg.marshaller.Unmarshal(tx, txBytes)
 	return tx, err
 }

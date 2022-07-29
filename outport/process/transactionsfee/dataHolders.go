@@ -11,33 +11,33 @@ type transactionWithResults struct {
 	logs *data.LogData
 }
 
-type groupedTransactionsAndScrs struct {
+type transactionsAndScrsHolder struct {
 	txsWithResults map[string]*transactionWithResults
 	scrsNoTx       map[string]data.TransactionHandlerWithGasUsedAndFee
 }
 
-func newGroupedTransactionsAndScrs(nrTxs, nrScrs int) *groupedTransactionsAndScrs {
-	return &groupedTransactionsAndScrs{
+func newTransactionsAndScrsHolder(nrTxs, nrScrs int) *transactionsAndScrsHolder {
+	return &transactionsAndScrsHolder{
 		txsWithResults: make(map[string]*transactionWithResults, nrTxs),
 		scrsNoTx:       make(map[string]data.TransactionHandlerWithGasUsedAndFee, nrScrs),
 	}
 }
 
-func groupTransactionsWithResults(txPool *outportcore.Pool) *groupedTransactionsAndScrs {
+func prepareTransactionsAndScrs(txPool *outportcore.Pool) *transactionsAndScrsHolder {
 	totalTxs := len(txPool.Txs) + len(txPool.Invalid) + len(txPool.Rewards)
 	if totalTxs == 0 && len(txPool.Scrs) == 0 {
-		return newGroupedTransactionsAndScrs(0, 0)
+		return newTransactionsAndScrsHolder(0, 0)
 	}
 
-	groupedTxsAndScrs := newGroupedTransactionsAndScrs(totalTxs, len(txPool.Scrs))
+	transactionsAndScrs := newTransactionsAndScrsHolder(totalTxs, len(txPool.Scrs))
 	for txHash, tx := range txPool.Txs {
-		groupedTxsAndScrs.txsWithResults[txHash] = &transactionWithResults{
+		transactionsAndScrs.txsWithResults[txHash] = &transactionWithResults{
 			TransactionHandlerWithGasUsedAndFee: tx,
 		}
 	}
 
 	for _, txLog := range txPool.Logs {
-		txWithResults, ok := groupedTxsAndScrs.txsWithResults[txLog.TxHash]
+		txWithResults, ok := transactionsAndScrs.txsWithResults[txLog.TxHash]
 		if !ok {
 			continue
 		}
@@ -46,13 +46,13 @@ func groupTransactionsWithResults(txPool *outportcore.Pool) *groupedTransactions
 	}
 
 	for scrHash, scr := range txPool.Scrs {
-		txWithResults, ok := groupedTxsAndScrs.txsWithResults[scrHash]
+		txWithResults, ok := transactionsAndScrs.txsWithResults[scrHash]
 		if !ok {
-			groupedTxsAndScrs.scrsNoTx[scrHash] = scr
+			transactionsAndScrs.scrsNoTx[scrHash] = scr
 		}
 
 		txWithResults.scrs = append(txWithResults.scrs, scr)
 	}
 
-	return groupedTxsAndScrs
+	return transactionsAndScrs
 }

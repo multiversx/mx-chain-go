@@ -17,8 +17,9 @@ const (
 	signalErrorOperation = "signalError"
 )
 
+// ArgTransactionsFeeProcessor holds the arguments needed for creating a new instance of transactionsFeeProcessor
 type ArgTransactionsFeeProcessor struct {
-	Marshalizer        marshal.Marshalizer
+	Marshaller         marshal.Marshalizer
 	TransactionsStorer storage.Storer
 	ShardCoordinator   sharding.Coordinator
 	TxFeeCalculator    FeesProcessorHandler
@@ -30,6 +31,7 @@ type transactionsFeeProcessor struct {
 	shardCoordinator sharding.Coordinator
 }
 
+// NewTransactionFeeProcessor will create a new instance of transactionsFeeProcessor
 func NewTransactionFeeProcessor(arg ArgTransactionsFeeProcessor) (*transactionsFeeProcessor, error) {
 	err := checkArg(arg)
 	if err != nil {
@@ -39,14 +41,14 @@ func NewTransactionFeeProcessor(arg ArgTransactionsFeeProcessor) (*transactionsF
 	return &transactionsFeeProcessor{
 		txFeeCalculator:  arg.TxFeeCalculator,
 		shardCoordinator: arg.ShardCoordinator,
-		txGetter:         newTxGetter(arg.TransactionsStorer, arg.Marshalizer),
+		txGetter:         newTxGetter(arg.TransactionsStorer, arg.Marshaller),
 	}, nil
 }
 
 func (tep *transactionsFeeProcessor) PutFeeAndGasUsed(pool *outportcore.Pool) error {
 	tep.prepareInvalidTxs(pool)
 
-	txsWithResultsMap := groupTransactionsWithResults(pool)
+	txsWithResultsMap := prepareTransactionsAndScrs(pool)
 	tep.prepareNormalTxs(txsWithResultsMap)
 
 	return tep.prepareScrsNoTx(txsWithResultsMap)
@@ -60,8 +62,8 @@ func (tep *transactionsFeeProcessor) prepareInvalidTxs(pool *outportcore.Pool) {
 	}
 }
 
-func (tep *transactionsFeeProcessor) prepareNormalTxs(groupedTxs *groupedTransactionsAndScrs) {
-	for txHash, txWithResult := range groupedTxs.txsWithResults {
+func (tep *transactionsFeeProcessor) prepareNormalTxs(transactionsAndScrs *transactionsAndScrsHolder) {
+	for txHash, txWithResult := range transactionsAndScrs.txsWithResults {
 		gasUsed := tep.txFeeCalculator.ComputeGasLimit(txWithResult)
 		fee := tep.txFeeCalculator.ComputeTxFeeBasedOnGasUsed(txWithResult, gasUsed)
 
@@ -116,8 +118,8 @@ func (tep *transactionsFeeProcessor) prepareTxWithResults(txHash []byte, txWithR
 	}
 }
 
-func (tep *transactionsFeeProcessor) prepareScrsNoTx(groupedTxs *groupedTransactionsAndScrs) error {
-	for _, scrHandler := range groupedTxs.scrsNoTx {
+func (tep *transactionsFeeProcessor) prepareScrsNoTx(transactionsAndScrs *transactionsAndScrsHolder) error {
+	for _, scrHandler := range transactionsAndScrs.scrsNoTx {
 		scrTxHandler, ok := scrHandler.(data.TransactionHandler)
 		if !ok {
 			continue

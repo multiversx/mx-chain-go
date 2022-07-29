@@ -35,6 +35,7 @@ type OutportHandler interface {
 	IsInterfaceNil() bool
 }
 
+// DataProviderOutport is an interface that defines what an implementation of data provider outport should be able to do
 type DataProviderOutport interface {
 	PrepareOutportSaveBlockData(
 		headerHash []byte,

@@ -24,8 +24,8 @@ func checkArg(arg ArgTransactionsFeeProcessor) error {
 	if check.IfNil(arg.TxFeeCalculator) {
 		return ErrNilTransactionFeeCalculator
 	}
-	if check.IfNil(arg.Marshalizer) {
-		return ErrNilMarshalizer
+	if check.IfNil(arg.Marshaller) {
+		return ErrNilMarshaller
 	}
 
 	return nil

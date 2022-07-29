@@ -9,7 +9,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	outportcore "github.com/ElrondNetwork/elrond-go-core/data/outport"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -36,7 +35,6 @@ type ArgsAlteredAccountsProvider struct {
 	ShardCoordinator       sharding.Coordinator
 	AddressConverter       core.PubkeyConverter
 	AccountsDB             state.AccountsAdapter
-	Marshalizer            marshal.Marshalizer
 	EsdtDataStorageHandler vmcommon.ESDTNFTStorageHandler
 }
 
@@ -44,7 +42,6 @@ type alteredAccountsProvider struct {
 	shardCoordinator       sharding.Coordinator
 	addressConverter       core.PubkeyConverter
 	accountsDB             state.AccountsAdapter
-	marshalizer            marshal.Marshalizer
 	tokensProc             *tokensProcessor
 	esdtDataStorageHandler vmcommon.ESDTNFTStorageHandler
 	mutExtractAccounts     sync.Mutex
@@ -61,7 +58,6 @@ func NewAlteredAccountsProvider(args ArgsAlteredAccountsProvider) (*alteredAccou
 		shardCoordinator:       args.ShardCoordinator,
 		addressConverter:       args.AddressConverter,
 		accountsDB:             args.AccountsDB,
-		marshalizer:            args.Marshalizer,
 		tokensProc:             newTokensProcessor(args.ShardCoordinator),
 		esdtDataStorageHandler: args.EsdtDataStorageHandler,
 	}, nil
@@ -238,9 +234,6 @@ func checkArgAlteredAccountsProvider(arg ArgsAlteredAccountsProvider) error {
 	}
 	if check.IfNil(arg.AccountsDB) {
 		return ErrNilAccountsDB
-	}
-	if check.IfNil(arg.Marshalizer) {
-		return errNilMarshalizer
 	}
 	if check.IfNil(arg.EsdtDataStorageHandler) {
 		return ErrNilESDTDataStorageHandler
