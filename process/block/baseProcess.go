@@ -647,6 +647,7 @@ func (bp *baseProcessor) setMiniBlockHeaderReservedField(
 		return nil
 	}
 
+	// TODO: check if partialExecutionEnableEpoch is not needed
 	err := bp.setIndexOfFirstTxProcessed(miniBlockHeaderHandler)
 	if err != nil {
 		return err
