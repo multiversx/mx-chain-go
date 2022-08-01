@@ -1498,6 +1498,7 @@ func (d *delegation) finishDelegateUser(
 		return vmcommon.UserError
 	}
 
+	d.eei.Finish(delegateValue.Bytes())
 	return vmcommon.Ok
 }
 
@@ -1973,7 +1974,8 @@ func (d *delegation) claimRewards(args *vmcommon.ContractCallInput) vmcommon.Ret
 	}
 
 	d.createAndAddLogEntry(args, unclaimedRewardsBytes, boolToSlice(wasDeleted))
-
+	
+	d.eei.Finish(unclaimedRewardsBytes)
 	return vmcommon.Ok
 }
 
@@ -2128,6 +2130,7 @@ func (d *delegation) withdraw(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 
 	d.createAndAddLogEntryForWithdraw(args, actualUserUnBond, globalFund, delegator, d.numUsers(), wasDeleted)
 
+	d.eei.Finish(actualUserUnBond.Bytes())
 	return vmcommon.Ok
 }
 

@@ -1689,6 +1689,8 @@ func TestDelegationSystemSC_ExecuteDelegate(t *testing.T) {
 
 	output = d.Execute(vmInput)
 	assert.Equal(t, vmcommon.Ok, output)
+	assert.Equal(t, 1, len(eei.output))
+	assert.Equal(t, big.NewInt(15), big.NewInt(0).SetBytes(eei.output[0]))
 
 	fundKey := append([]byte(fundKeyPrefix), []byte{1}...)
 	dFund, _ := d.getFund(fundKey)
@@ -2216,6 +2218,8 @@ func TestDelegationSystemSC_ExecuteUnDelegateMultipleTimesSameAndDiffEpochAndWit
 	vmInput.Arguments = [][]byte{}
 	output := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.Ok, output)
+	assert.Equal(t, 1, len(eei.output))
+	assert.Equal(t, big.NewInt(50), big.NewInt(0).SetBytes(eei.output[0]))
 
 	_, dData, _ = d.getOrCreateDelegatorData(vmInput.CallerAddr)
 	assert.Equal(t, 1, len(dData.UnStakedFunds))
@@ -2354,6 +2358,8 @@ func TestDelegationSystemSC_ExecuteWithdraw(t *testing.T) {
 
 	output := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.Ok, output)
+	assert.Equal(t, 1, len(eei.output))
+	assert.Equal(t, big.NewInt(60), big.NewInt(0).SetBytes(eei.output[0]))
 
 	gFundData, _ := d.getGlobalFundData()
 	assert.Equal(t, big.NewInt(80), gFundData.TotalUnStaked)
@@ -2774,6 +2780,8 @@ func TestDelegation_ExecuteClaimRewards(t *testing.T) {
 
 	output := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.Ok, output)
+	assert.Equal(t, 1, len(eei.output))
+	assert.Equal(t, big.NewInt(135), big.NewInt(0).SetBytes(eei.output[0]))
 
 	destAcc, exists := eei.outputAccounts[string(vmInput.CallerAddr)]
 	assert.True(t, exists)
@@ -2845,6 +2853,8 @@ func TestDelegation_ExecuteClaimRewardsShouldDeleteDelegator(t *testing.T) {
 
 	output := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.Ok, output)
+	assert.Equal(t, 1, len(eei.output))
+	assert.Equal(t, big.NewInt(135), big.NewInt(0).SetBytes(eei.output[0]))
 
 	destAcc, exists := eei.outputAccounts[string(vmInput.CallerAddr)]
 	assert.True(t, exists)
@@ -2871,6 +2881,9 @@ func TestDelegation_ExecuteReDelegateRewardsNoExtraCheck(t *testing.T) {
 	vmInput.CallerAddr = []byte("stakingProvider")
 	output := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.Ok, output)
+	assert.Equal(t, 2, len(eei.output))
+	assert.Equal(t, big.NewInt(1000), big.NewInt(0).SetBytes(eei.output[0]))
+	assert.Equal(t, big.NewInt(155), big.NewInt(0).SetBytes(eei.output[1]))
 
 	_, exists := eei.outputAccounts[string(vmInput.CallerAddr)]
 	assert.False(t, exists)
@@ -2894,7 +2907,9 @@ func TestDelegation_ExecuteReDelegateRewardsWithExtraCheckReDelegateIsAboveMinim
 	vmInput.CallerAddr = []byte("stakingProvider")
 	output := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.Ok, output)
-
+	assert.Equal(t, 2, len(eei.output))
+	assert.Equal(t, big.NewInt(1000), big.NewInt(0).SetBytes(eei.output[0]))
+	assert.Equal(t, big.NewInt(155), big.NewInt(0).SetBytes(eei.output[1]))
 	_, exists := eei.outputAccounts[string(vmInput.CallerAddr)]
 	assert.False(t, exists)
 	_, exists = eei.outputAccounts[string(vmInput.RecipientAddr)]
@@ -2955,6 +2970,8 @@ func prepareReDelegateRewardsComponents(
 	vmInput.CallerAddr = []byte("stakingProvider")
 	output := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.Ok, output)
+	assert.Equal(t, 1, len(eei.output))
+	assert.Equal(t, big.NewInt(1000), big.NewInt(0).SetBytes(eei.output[0]))
 
 	fundKey := []byte{1}
 	_ = d.saveDelegatorData(vmInput.CallerAddr, &DelegatorData{
@@ -5152,6 +5169,9 @@ func TestDelegation_OptimizeRewardsComputation(t *testing.T) {
 
 	output = d.Execute(vmInput)
 	assert.Equal(t, vmcommon.Ok, output)
+	assert.Equal(t, 2, len(eei.output))
+	assert.Equal(t, big.NewInt(1000), big.NewInt(0).SetBytes(eei.output[0]))
+	assert.Equal(t, big.NewInt(1010), big.NewInt(0).SetBytes(eei.output[1]))
 
 	destAcc, exists := eei.outputAccounts[string(vmInput.CallerAddr)]
 	assert.True(t, exists)
