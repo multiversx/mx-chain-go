@@ -210,11 +210,8 @@ func (sh *signatureHolder) isIndexInBitmap(index uint16, bitmap []byte) bool {
 	}
 
 	indexNotInBitmap := bitmap[index/8]&(1<<uint8(index%8)) == 0
-	if indexNotInBitmap {
-		return false
-	}
 
-	return true
+	return !indexNotInBitmap
 }
 
 // AggregateSigs aggregates all collected partial signatures
