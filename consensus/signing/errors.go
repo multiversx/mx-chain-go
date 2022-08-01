@@ -2,8 +2,8 @@ package signing
 
 import "errors"
 
-// ErrNilSignature is raised for a nil signature
-var ErrNilSignature = errors.New("signature is nil")
+// ErrInvalidSignature is raised for an invalid signature
+var ErrInvalidSignature = errors.New("invalid signature was provided")
 
 // ErrNilElement is raised when searching for a specific element but found nil
 var ErrNilElement = errors.New("element is nil")
@@ -14,8 +14,8 @@ var ErrIndexNotSelected = errors.New("index is not selected")
 // ErrNilBitmap is raised when a nil bitmap is used
 var ErrNilBitmap = errors.New("bitmap is nil")
 
-// ErrNilPrivateKey is raised when a private key was expected but received nil
-var ErrNilPrivateKey = errors.New("private key is nil")
+// ErrNoPrivateKeySet is raised when no private key was set
+var ErrNoPrivateKeySet = errors.New("no private key was set")
 
 // ErrNoPublicKeySet is raised when no public key was set for a multisignature
 var ErrNoPublicKeySet = errors.New("no public key was set")

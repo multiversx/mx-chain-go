@@ -52,7 +52,7 @@ func TestNewSigner(t *testing.T) {
 
 		signer, err := signing.NewSignatureHolder(args)
 		require.Nil(t, signer)
-		require.Equal(t, signing.ErrNilPrivateKey, err)
+		require.Equal(t, signing.ErrNoPrivateKeySet, err)
 	})
 
 	t.Run("no public keys", func(t *testing.T) {
@@ -205,12 +205,12 @@ func TestVerifySignatureShare(t *testing.T) {
 	epoch := uint32(0)
 	msg := []byte("message")
 
-	t.Run("nil signature share", func(t *testing.T) {
+	t.Run("invalid signature share", func(t *testing.T) {
 		t.Parallel()
 
 		signer, _ := signing.NewSignatureHolder(createMockArgsSignatureHolder())
 		err := signer.VerifySignatureShare(ownIndex, nil, msg, epoch)
-		require.Equal(t, signing.ErrNilSignature, err)
+		require.Equal(t, signing.ErrInvalidSignature, err)
 	})
 
 	t.Run("index out of bounds", func(t *testing.T) {

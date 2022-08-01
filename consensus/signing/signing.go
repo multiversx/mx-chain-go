@@ -63,8 +63,8 @@ func checkArgs(args ArgsSignatureHolder) error {
 	if check.IfNil(args.MultiSignerContainer) {
 		return ErrNilMultiSignerContainer
 	}
-	if args.PrivKeyBytes == nil {
-		return ErrNilPrivateKey
+	if len(args.PrivKeyBytes) == 0 {
+		return ErrNoPrivateKeySet
 	}
 	if check.IfNil(args.KeyGenerator) {
 		return ErrNilKeyGenerator
@@ -146,8 +146,8 @@ func (sh *signatureHolder) CreateSignatureShare(message []byte, selfIndex uint16
 
 // VerifySignatureShare will verify the signature share based on the specified index
 func (sh *signatureHolder) VerifySignatureShare(index uint16, sig []byte, message []byte, epoch uint32) error {
-	if sig == nil {
-		return ErrNilSignature
+	if len(sig) == 0 {
+		return ErrInvalidSignature
 	}
 
 	sh.mutSigningData.Lock()
@@ -170,8 +170,8 @@ func (sh *signatureHolder) VerifySignatureShare(index uint16, sig []byte, messag
 
 // StoreSignatureShare stores the partial signature of the signer with specified position
 func (sh *signatureHolder) StoreSignatureShare(index uint16, sig []byte) error {
-	if sig == nil {
-		return ErrNilSignature
+	if len(sig) == 0 {
+		return ErrInvalidSignature
 	}
 
 	sh.mutSigningData.Lock()
