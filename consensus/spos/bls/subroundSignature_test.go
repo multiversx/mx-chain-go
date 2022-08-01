@@ -277,7 +277,7 @@ func TestSubroundSignature_DoSignatureJob(t *testing.T) {
 
 	err := errors.New("create signature share error")
 	signatureHandler := &mock.SignatureHandlerStub{
-		CreateSignatureShareCalled: func(msg []byte, index uint16) ([]byte, error) {
+		CreateSignatureShareCalled: func(msg []byte, index uint16, epoch uint32) ([]byte, error) {
 			return nil, err
 		},
 	}
@@ -287,7 +287,7 @@ func TestSubroundSignature_DoSignatureJob(t *testing.T) {
 	assert.False(t, r)
 
 	signatureHandler = &mock.SignatureHandlerStub{
-		CreateSignatureShareCalled: func(msg []byte, index uint16) ([]byte, error) {
+		CreateSignatureShareCalled: func(msg []byte, index uint16, epoch uint32) ([]byte, error) {
 			return []byte("SIG"), nil
 		},
 	}
@@ -366,7 +366,7 @@ func TestSubroundSignature_ReceivedSignatureVerifyShareFailed(t *testing.T) {
 	errVerify := errors.New("signature share verification failed")
 	verifyCalled := false
 	signatureHandler := &mock.SignatureHandlerStub{
-		VerifySignatureShareCalled: func(index uint16, sig, msg []byte) error {
+		VerifySignatureShareCalled: func(index uint16, sig, msg []byte, epoch uint32) error {
 			verifyCalled = true
 			return errVerify
 		},

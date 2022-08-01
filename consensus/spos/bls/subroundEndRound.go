@@ -195,14 +195,8 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 		return false
 	}
 
-	err = sr.SignatureHandler().SetMultiSignerByEpoch(sr.Header.GetEpoch())
-	if err != nil {
-		log.Error("doEndRoundJobByLeader.GetMultiSigner", "error", err.Error())
-		return false
-	}
-
 	// Aggregate sig and add it to the block
-	sig, err := sr.SignatureHandler().AggregateSigs(bitmap)
+	sig, err := sr.SignatureHandler().AggregateSigs(bitmap, sr.Header.GetEpoch())
 	if err != nil {
 		log.Debug("doEndRoundJobByLeader.AggregateSigs", "error", err.Error())
 		return false

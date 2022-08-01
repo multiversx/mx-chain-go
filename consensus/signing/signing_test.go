@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/consensus/signing"
 	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
 	"github.com/stretchr/testify/require"
@@ -65,23 +64,6 @@ func TestNewSigner(t *testing.T) {
 		signer, err := signing.NewSignatureHolder(args)
 		require.Nil(t, signer)
 		require.Equal(t, signing.ErrNoPublicKeySet, err)
-	})
-
-	t.Run("failed to get multi signer for epoch zero", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockArgsSignatureHolder()
-
-		expectedErr := errors.New("expected error")
-		args.MultiSignerContainer = &cryptoMocks.MultiSignerContainerStub{
-			GetMultiSignerCalled: func(epoch uint32) (crypto.MultiSigner, error) {
-				return nil, expectedErr
-			},
-		}
-
-		signer, err := signing.NewSignatureHolder(args)
-		require.Nil(t, signer)
-		require.Equal(t, expectedErr, err)
 	})
 
 	t.Run("should work", func(t *testing.T) {
@@ -162,55 +144,17 @@ func TestReset(t *testing.T) {
 	})
 }
 
-func TestSetMultiSignerByEpoch(t *testing.T) {
-	t.Parallel()
-
-	t.Run("failed to get multi signer by epoch", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockArgsSignatureHolder()
-
-		expectedErr := errors.New("expected error")
-		args.MultiSignerContainer = &cryptoMocks.MultiSignerContainerStub{
-			GetMultiSignerCalled: func(epoch uint32) (crypto.MultiSigner, error) {
-				if epoch == 0 {
-					return &cryptoMocks.MultisignerMock{}, nil
-				}
-
-				return nil, expectedErr
-			},
-		}
-
-		signer, err := signing.NewSignatureHolder(args)
-		require.Nil(t, err)
-
-		err = signer.SetMultiSignerByEpoch(2)
-		require.Equal(t, expectedErr, err)
-	})
-
-	t.Run("should work", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockArgsSignatureHolder()
-
-		signer, err := signing.NewSignatureHolder(args)
-		require.Nil(t, err)
-
-		err = signer.SetMultiSignerByEpoch(2)
-		require.Nil(t, err)
-	})
-}
-
 func TestCreateSignatureShare(t *testing.T) {
 	t.Parallel()
 
 	selfIndex := uint16(0)
+	epoch := uint32(0)
 
 	t.Run("nil message", func(t *testing.T) {
 		t.Parallel()
 
 		signer, _ := signing.NewSignatureHolder(createMockArgsSignatureHolder())
-		sigShare, err := signer.CreateSignatureShare(nil, selfIndex)
+		sigShare, err := signer.CreateSignatureShare(nil, selfIndex, epoch)
 		require.Nil(t, sigShare)
 		require.Equal(t, signing.ErrNilMessage, err)
 	})
@@ -229,7 +173,7 @@ func TestCreateSignatureShare(t *testing.T) {
 		args.MultiSignerContainer = cryptoMocks.NewMultiSignerContainerMock(multiSigner)
 
 		signer, _ := signing.NewSignatureHolder(args)
-		sigShare, err := signer.CreateSignatureShare([]byte("msg1"), selfIndex)
+		sigShare, err := signer.CreateSignatureShare([]byte("msg1"), selfIndex, epoch)
 		require.Nil(t, sigShare)
 		require.Equal(t, expectedErr, err)
 	})
@@ -248,7 +192,7 @@ func TestCreateSignatureShare(t *testing.T) {
 		args.MultiSignerContainer = cryptoMocks.NewMultiSignerContainerMock(multiSigner)
 
 		signer, _ := signing.NewSignatureHolder(args)
-		sigShare, err := signer.CreateSignatureShare([]byte("msg1"), selfIndex)
+		sigShare, err := signer.CreateSignatureShare([]byte("msg1"), selfIndex, epoch)
 		require.Nil(t, err)
 		require.Equal(t, expectedSigShare, sigShare)
 	})
@@ -258,13 +202,14 @@ func TestVerifySignatureShare(t *testing.T) {
 	t.Parallel()
 
 	ownIndex := uint16(1)
+	epoch := uint32(0)
 	msg := []byte("message")
 
 	t.Run("nil signature share", func(t *testing.T) {
 		t.Parallel()
 
 		signer, _ := signing.NewSignatureHolder(createMockArgsSignatureHolder())
-		err := signer.VerifySignatureShare(ownIndex, nil, msg)
+		err := signer.VerifySignatureShare(ownIndex, nil, msg, epoch)
 		require.Equal(t, signing.ErrNilSignature, err)
 	})
 
@@ -272,7 +217,7 @@ func TestVerifySignatureShare(t *testing.T) {
 		t.Parallel()
 
 		signer, _ := signing.NewSignatureHolder(createMockArgsSignatureHolder())
-		err := signer.VerifySignatureShare(uint16(3), []byte("sigShare"), msg)
+		err := signer.VerifySignatureShare(uint16(3), []byte("sigShare"), msg, epoch)
 		require.Equal(t, signing.ErrIndexOutOfBounds, err)
 	})
 
@@ -292,7 +237,7 @@ func TestVerifySignatureShare(t *testing.T) {
 
 		signer, _ := signing.NewSignatureHolder(args)
 
-		err := signer.VerifySignatureShare(uint16(1), []byte("sigShare"), msg)
+		err := signer.VerifySignatureShare(uint16(1), []byte("sigShare"), msg, epoch)
 		require.Equal(t, expectedErr, err)
 	})
 
@@ -311,7 +256,7 @@ func TestVerifySignatureShare(t *testing.T) {
 
 		signer, _ := signing.NewSignatureHolder(args)
 
-		err := signer.VerifySignatureShare(uint16(1), []byte("sigShare"), msg)
+		err := signer.VerifySignatureShare(uint16(1), []byte("sigShare"), msg, epoch)
 		require.Nil(t, err)
 	})
 }
@@ -320,6 +265,7 @@ func TestStoreSignatureShare(t *testing.T) {
 	t.Parallel()
 
 	ownIndex := uint16(2)
+	epoch := uint32(0)
 	msg := []byte("message")
 
 	t.Run("index out of bounds", func(t *testing.T) {
@@ -345,7 +291,7 @@ func TestStoreSignatureShare(t *testing.T) {
 
 		signer, _ := signing.NewSignatureHolder(args)
 
-		sigShare, err := signer.CreateSignatureShare(msg, uint16(0))
+		sigShare, err := signer.CreateSignatureShare(msg, uint16(0), epoch)
 		require.Nil(t, err)
 
 		err = signer.StoreSignatureShare(ownIndex, sigShare)
@@ -416,6 +362,8 @@ func TestSignatureShare(t *testing.T) {
 func TestAggregateSigs(t *testing.T) {
 	t.Parallel()
 
+	epoch := uint32(0)
+
 	t.Run("nil bitmap", func(t *testing.T) {
 		t.Parallel()
 
@@ -424,7 +372,7 @@ func TestAggregateSigs(t *testing.T) {
 
 		signer, _ := signing.NewSignatureHolder(args)
 
-		aggSig, err := signer.AggregateSigs(nil)
+		aggSig, err := signer.AggregateSigs(nil, epoch)
 		require.Nil(t, aggSig)
 		require.Equal(t, signing.ErrNilBitmap, err)
 	})
@@ -441,7 +389,7 @@ func TestAggregateSigs(t *testing.T) {
 
 		signer, _ := signing.NewSignatureHolder(args)
 
-		aggSig, err := signer.AggregateSigs(bitmap)
+		aggSig, err := signer.AggregateSigs(bitmap, epoch)
 		require.Nil(t, aggSig)
 		require.Equal(t, signing.ErrBitmapMismatch, err)
 	})
@@ -469,7 +417,7 @@ func TestAggregateSigs(t *testing.T) {
 			_ = signer.StoreSignatureShare(uint16(i), []byte("sigShare"))
 		}
 
-		aggSig, err := signer.AggregateSigs(bitmap)
+		aggSig, err := signer.AggregateSigs(bitmap, epoch)
 		require.Nil(t, aggSig)
 		require.Equal(t, expectedErr, err)
 	})
@@ -499,7 +447,7 @@ func TestAggregateSigs(t *testing.T) {
 			_ = signer.StoreSignatureShare(uint16(i), []byte("sigShare"))
 		}
 
-		aggSig, err := signer.AggregateSigs(bitmap)
+		aggSig, err := signer.AggregateSigs(bitmap, epoch)
 		require.Nil(t, err)
 		require.Equal(t, expectedAggSig, aggSig)
 	})
@@ -509,6 +457,7 @@ func TestVerify(t *testing.T) {
 	t.Parallel()
 
 	message := []byte("message")
+	epoch := uint32(0)
 
 	t.Run("verify agg sig should fail", func(t *testing.T) {
 		t.Parallel()
@@ -518,7 +467,7 @@ func TestVerify(t *testing.T) {
 
 		signer, _ := signing.NewSignatureHolder(args)
 
-		err := signer.Verify(message, nil)
+		err := signer.Verify(message, nil, epoch)
 		require.Equal(t, signing.ErrNilBitmap, err)
 	})
 
@@ -534,7 +483,7 @@ func TestVerify(t *testing.T) {
 
 		signer, _ := signing.NewSignatureHolder(args)
 
-		err := signer.Verify(message, bitmap)
+		err := signer.Verify(message, bitmap, epoch)
 		require.Equal(t, signing.ErrBitmapMismatch, err)
 	})
 
@@ -557,7 +506,7 @@ func TestVerify(t *testing.T) {
 
 		signer, _ := signing.NewSignatureHolder(args)
 
-		err := signer.Verify(message, bitmap)
+		err := signer.Verify(message, bitmap, epoch)
 		require.Equal(t, expectedErr, err)
 	})
 
@@ -585,7 +534,7 @@ func TestVerify(t *testing.T) {
 
 		_ = signer.SetAggregatedSig(expAggSig)
 
-		err := signer.Verify(message, bitmap)
+		err := signer.Verify(message, bitmap, epoch)
 		require.Nil(t, err)
 	})
 }

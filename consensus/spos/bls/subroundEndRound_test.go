@@ -323,7 +323,7 @@ func TestSubroundEndRound_DoEndRoundJobErrAggregatingSigShouldFail(t *testing.T)
 	sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 
 	signatureHandler := &mock.SignatureHandlerStub{
-		AggregateSigsCalled: func(bitmap []byte) ([]byte, error) {
+		AggregateSigsCalled: func(bitmap []byte, epoch uint32) ([]byte, error) {
 			return nil, crypto.ErrNilHasher
 		},
 	}

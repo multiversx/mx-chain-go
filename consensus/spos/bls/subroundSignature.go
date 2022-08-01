@@ -84,13 +84,7 @@ func (sr *subroundSignature) doSignatureJob(_ context.Context) bool {
 		return false
 	}
 
-	err = sr.SignatureHandler().SetMultiSignerByEpoch(sr.Header.GetEpoch())
-	if err != nil {
-		log.Debug("doSignatureJob.SetMultiSignerByEpoch", "error", err.Error())
-		return false
-	}
-
-	signatureShare, err := sr.SignatureHandler().CreateSignatureShare(sr.GetData(), uint16(selfIndex))
+	signatureShare, err := sr.SignatureHandler().CreateSignatureShare(sr.GetData(), uint16(selfIndex), sr.Header.GetEpoch())
 	if err != nil {
 		log.Debug("doSignatureJob.CreateSignatureShare", "error", err.Error())
 		return false
@@ -186,13 +180,7 @@ func (sr *subroundSignature) receivedSignature(_ context.Context, cnsDta *consen
 		return false
 	}
 
-	err = sr.SignatureHandler().SetMultiSignerByEpoch(sr.Header.GetEpoch())
-	if err != nil {
-		log.Debug("receivedSignature.SetMultiSignerByEpoch", "error", err.Error())
-		return false
-	}
-
-	err = sr.SignatureHandler().VerifySignatureShare(uint16(index), cnsDta.SignatureShare, sr.GetData())
+	err = sr.SignatureHandler().VerifySignatureShare(uint16(index), cnsDta.SignatureShare, sr.GetData(), sr.Header.GetEpoch())
 	if err != nil {
 		log.Debug("receivedSignature.VerifySignatureShare",
 			"node", pkForLogs,
