@@ -113,6 +113,7 @@ type processComponents struct {
 	txsSender                    process.TxsSenderHandler
 	hardforkTrigger              HardforkTrigger
 	processedMiniBlocksTracker   process.ProcessedMiniBlocksTracker
+	accountsParser               genesis.AccountsParser
 }
 
 // ProcessComponentsFactoryArgs holds the arguments needed to create a process components factory
@@ -644,6 +645,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		txsSender:                    txsSenderWithAccumulator,
 		hardforkTrigger:              hardforkTrigger,
 		processedMiniBlocksTracker:   processedMiniBlocksTracker,
+		accountsParser:               pcf.accountsParser,
 	}, nil
 }
 
@@ -979,7 +981,7 @@ func (pcf *processComponentsFactory) indexGenesisBlocks(genesisBlocks map[uint32
 
 	log.Info("indexGenesisBlocks(): historyRepo.RecordBlock", "shardID", currentShardId, "hash", genesisBlockHash)
 	// TODO: save also genesis body transactions into node storage
-	err = pcf.historyRepo.RecordBlock(genesisBlockHash, genesisBlockHeader, &dataBlock.Body{}, nil, nil, nil)
+	err = pcf.historyRepo.RecordBlock(genesisBlockHash, genesisBlockHeader, &dataBlock.Body{}, nil, nil, nil, nil)
 	if err != nil {
 		return err
 	}

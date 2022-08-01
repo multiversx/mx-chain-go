@@ -362,9 +362,35 @@ func createMiniBlocks(shardIDs []uint32, blockType block.Type) []*block.MiniBloc
 	return miniBlocks
 }
 
+func (ap *accountsParser) putMintingTxsInPoolAndCreateMiniBlock(
+	txs []coreData.TransactionHandler,
+	txsPoolPerShard map[uint32]*indexer.Pool,
+) (*block.MiniBlock, error) {
+	txHashes := make([][]byte, 0, len(txs))
+	mintShardID := core.MetachainShardId
+
+	for _, tx := range txs {
+		txHash, err := core.CalculateHash(ap.marshalizer, ap.hasher, tx)
+		if err != nil {
+			return nil, err
+		}
+		txHashes = append(txHashes, txHash)
+
+		txsPoolPerShard[mintShardID].Txs[string(txHash)] = tx
+	}
+
+	miniBlock := &block.MiniBlock{
+		TxHashes:        txHashes,
+		ReceiverShardID: mintShardID,
+		SenderShardID:   mintShardID,
+		Type:            block.TxBlock,
+	}
+
+	return miniBlock, nil
+}
+
 func (ap *accountsParser) getAllTxs(
 	indexingData map[uint32]*genesis.IndexingData,
-	mintTxs []coreData.TransactionHandler,
 ) []coreData.TransactionHandler {
 	allTxs := make([]coreData.TransactionHandler, 0)
 
@@ -374,8 +400,6 @@ func (ap *accountsParser) getAllTxs(
 		allTxs = append(allTxs, txs.DeploySystemScTxs...)
 		allTxs = append(allTxs, txs.DeployInitialScTxs...)
 	}
-
-	allTxs = append(allTxs, mintTxs...)
 
 	return allTxs
 }
@@ -412,13 +436,7 @@ func (ap *accountsParser) setTxsPoolAndMiniBlocks(
 
 	for _, txHandler := range allTxs {
 		receiverShardID := shardCoordinator.ComputeId(txHandler.GetRcvAddr())
-
-		// treat minting transactions as intra shard
-		if bytes.Equal(txHandler.GetSndAddr(), ap.minterAddressBytes) {
-			senderShardID = receiverShardID
-		} else {
-			senderShardID = shardCoordinator.ComputeId(txHandler.GetSndAddr())
-		}
+		senderShardID = shardCoordinator.ComputeId(txHandler.GetSndAddr())
 
 		txHash, err := core.CalculateHash(ap.marshalizer, ap.hasher, txHandler)
 		if err != nil {
@@ -455,21 +473,29 @@ func (ap *accountsParser) GenerateInitialTransactions(
 		return nil, nil, genesis.ErrNilShardCoordinator
 	}
 
-	mintTxs := ap.createMintTransactions()
-	allTxs := ap.getAllTxs(indexingData, mintTxs)
-
+	allMiniBlocks := make([]*block.MiniBlock, 0)
 	shardIDs := getShardIDs(shardCoordinator)
 	txsPoolPerShard := ap.createIndexerPools(shardIDs)
-	miniBlocks := createMiniBlocks(shardIDs, block.TxBlock)
 
-	err := ap.setTxsPoolAndMiniBlocks(shardCoordinator, allTxs, txsPoolPerShard, miniBlocks)
+	mintTxs := ap.createMintTransactions()
+	mintMiniBlock, err := ap.putMintingTxsInPoolAndCreateMiniBlock(mintTxs, txsPoolPerShard)
 	if err != nil {
 		return nil, nil, err
 	}
+	allMiniBlocks = append(allMiniBlocks, mintMiniBlock)
+
+	allTxs := ap.getAllTxs(indexingData)
+	miniBlocks := createMiniBlocks(shardIDs, block.TxBlock)
+
+	err = ap.setTxsPoolAndMiniBlocks(shardCoordinator, allTxs, txsPoolPerShard, miniBlocks)
+	if err != nil {
+		return nil, nil, err
+	}
+	allMiniBlocks = append(allMiniBlocks, miniBlocks...)
 
 	ap.setScrsTxsPool(shardCoordinator, indexingData, txsPoolPerShard)
 
-	return miniBlocks, txsPoolPerShard, nil
+	return allMiniBlocks, txsPoolPerShard, nil
 }
 
 // IsInterfaceNil returns true if the underlying object is nil

@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/common/holders"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	mockState "github.com/ElrondNetwork/elrond-go/testscommon/state"
@@ -17,29 +18,39 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var dummyRootHash = []byte("new root hash")
+
+func createBlockInfoProviderStub(rootHash []byte) *testscommon.BlockInfoProviderStub {
+	return &testscommon.BlockInfoProviderStub{
+		GetBlockInfoCalled: func() common.BlockInfo {
+			return holders.NewBlockInfo(nil, 0, rootHash)
+		},
+	}
+}
+
 func TestNewAccountsDBApi(t *testing.T) {
 	t.Parallel()
 
 	t.Run("nil accounts adapter should error", func(t *testing.T) {
 		t.Parallel()
 
-		accountsApi, err := state.NewAccountsDBApi(nil, &testscommon.ChainHandlerStub{})
+		accountsApi, err := state.NewAccountsDBApi(nil, &testscommon.BlockInfoProviderStub{})
 
 		assert.True(t, check.IfNil(accountsApi))
 		assert.Equal(t, state.ErrNilAccountsAdapter, err)
 	})
-	t.Run("nil chain handler should error", func(t *testing.T) {
+	t.Run("nil block info provider should error", func(t *testing.T) {
 		t.Parallel()
 
 		accountsApi, err := state.NewAccountsDBApi(&mockState.AccountsStub{}, nil)
 
 		assert.True(t, check.IfNil(accountsApi))
-		assert.Equal(t, state.ErrNilChainHandler, err)
+		assert.Equal(t, state.ErrNilBlockInfoProvider, err)
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		accountsApi, err := state.NewAccountsDBApi(&mockState.AccountsStub{}, &testscommon.ChainHandlerStub{})
+		accountsApi, err := state.NewAccountsDBApi(&mockState.AccountsStub{}, &testscommon.BlockInfoProviderStub{})
 
 		assert.False(t, check.IfNil(accountsApi))
 		assert.Nil(t, err)
@@ -49,15 +60,9 @@ func TestNewAccountsDBApi(t *testing.T) {
 func TestAccountsDBAPi_recreateTrieIfNecessary(t *testing.T) {
 	t.Parallel()
 
-	blockchainRootHash := []byte("root hash")
-	blockchain := &testscommon.ChainHandlerStub{
-		GetCurrentBlockRootHashCalled: func() []byte {
-			return blockchainRootHash
-		},
-	}
 	expectedErr := errors.New("expected error")
 
-	t.Run("blockchain returns nil or empty root hash should error", func(t *testing.T) {
+	t.Run("block info provider returns nil or empty root hash should error", func(t *testing.T) {
 		t.Parallel()
 
 		accountsAdapter := &mockState.AccountsStub{
@@ -68,21 +73,32 @@ func TestAccountsDBAPi_recreateTrieIfNecessary(t *testing.T) {
 			},
 		}
 
-		chainHandler := &testscommon.ChainHandlerStub{
-			GetCurrentBlockRootHashCalled: func() []byte {
+		blockInfoProvider := &testscommon.BlockInfoProviderStub{
+			GetBlockInfoCalled: func() common.BlockInfo {
 				return nil
 			},
 		}
+		accountsApi, _ := state.NewAccountsDBApi(accountsAdapter, blockInfoProvider)
 
-		accountsApi, _ := state.NewAccountsDBApi(accountsAdapter, chainHandler)
-		accountsApi.SetLastRootHash(blockchainRootHash)
-		assert.True(t, errors.Is(accountsApi.RecreateTrieIfNecessary(), state.ErrNilRootHash))
+		t.Run("nil block info should error", func(t *testing.T) {
+			accountsApi.SetCurrentBlockInfo(holders.NewBlockInfo(nil, 0, dummyRootHash))
+			assert.True(t, errors.Is(accountsApi.RecreateTrieIfNecessary(), state.ErrNilBlockInfo))
 
-		accountsApi.SetLastRootHash(blockchainRootHash)
-		chainHandler.GetCurrentBlockRootHashCalled = func() []byte {
-			return make([]byte, 0)
-		}
-		assert.True(t, errors.Is(accountsApi.RecreateTrieIfNecessary(), state.ErrNilRootHash))
+		})
+		t.Run("block info contains a nil root hash should error", func(t *testing.T) {
+			accountsApi.SetCurrentBlockInfo(holders.NewBlockInfo(nil, 0, dummyRootHash))
+			blockInfoProvider.GetBlockInfoCalled = func() common.BlockInfo {
+				return holders.NewBlockInfo(nil, 0, nil)
+			}
+			assert.True(t, errors.Is(accountsApi.RecreateTrieIfNecessary(), state.ErrNilRootHash))
+		})
+		t.Run("block info contains an empty root hash should error", func(t *testing.T) {
+			accountsApi.SetCurrentBlockInfo(holders.NewBlockInfo(nil, 0, dummyRootHash))
+			blockInfoProvider.GetBlockInfoCalled = func() common.BlockInfo {
+				return holders.NewBlockInfo(nil, 0, make([]byte, 0))
+			}
+			assert.True(t, errors.Is(accountsApi.RecreateTrieIfNecessary(), state.ErrNilRootHash))
+		})
 	})
 	t.Run("root hash already set, return nil and do not call recreate", func(t *testing.T) {
 		t.Parallel()
@@ -95,8 +111,8 @@ func TestAccountsDBAPi_recreateTrieIfNecessary(t *testing.T) {
 			},
 		}
 
-		accountsApi, _ := state.NewAccountsDBApi(accountsAdapter, blockchain)
-		accountsApi.SetLastRootHash(blockchainRootHash)
+		accountsApi, _ := state.NewAccountsDBApi(accountsAdapter, createBlockInfoProviderStub(dummyRootHash))
+		accountsApi.SetCurrentBlockInfo(holders.NewBlockInfo(nil, 0, dummyRootHash))
 
 		assert.Nil(t, accountsApi.RecreateTrieIfNecessary())
 	})
@@ -106,18 +122,18 @@ func TestAccountsDBAPi_recreateTrieIfNecessary(t *testing.T) {
 		oldRootHash := []byte("old root hash")
 		accountsAdapter := &mockState.AccountsStub{
 			RecreateTrieCalled: func(rootHash []byte) error {
-				assert.Equal(t, blockchainRootHash, rootHash)
+				assert.Equal(t, rootHash, rootHash)
 
 				return nil
 			},
 		}
 
-		accountsApi, _ := state.NewAccountsDBApi(accountsAdapter, blockchain)
-		accountsApi.SetLastRootHash(oldRootHash)
+		accountsApi, _ := state.NewAccountsDBApi(accountsAdapter, createBlockInfoProviderStub(dummyRootHash))
+		accountsApi.SetCurrentBlockInfo(holders.NewBlockInfo(nil, 0, oldRootHash))
 
 		assert.Nil(t, accountsApi.RecreateTrieIfNecessary())
 		lastRootHash, err := accountsApi.RootHash()
-		assert.Equal(t, blockchainRootHash, lastRootHash)
+		assert.Equal(t, dummyRootHash, lastRootHash)
 		assert.Nil(t, err)
 	})
 	t.Run("recreate fails should return error and set last root hash to nil", func(t *testing.T) {
@@ -126,14 +142,14 @@ func TestAccountsDBAPi_recreateTrieIfNecessary(t *testing.T) {
 		oldRootHash := []byte("old root hash")
 		accountsAdapter := &mockState.AccountsStub{
 			RecreateTrieCalled: func(rootHash []byte) error {
-				assert.Equal(t, blockchainRootHash, rootHash)
+				assert.Equal(t, rootHash, rootHash)
 
 				return expectedErr
 			},
 		}
 
-		accountsApi, _ := state.NewAccountsDBApi(accountsAdapter, blockchain)
-		accountsApi.SetLastRootHash(oldRootHash)
+		accountsApi, _ := state.NewAccountsDBApi(accountsAdapter, createBlockInfoProviderStub(dummyRootHash))
+		accountsApi.SetCurrentBlockInfo(holders.NewBlockInfo(nil, 0, oldRootHash))
 
 		assert.Equal(t, expectedErr, accountsApi.RecreateTrieIfNecessary())
 		lastRootHash, err := accountsApi.RootHash()
@@ -154,9 +170,9 @@ func TestAccountsDBAPi_doRecreateTrieWhenReEntranceHappened(t *testing.T) {
 		},
 	}
 
-	accountsApi, _ := state.NewAccountsDBApi(accountsAdapter, &testscommon.ChainHandlerStub{})
-	assert.Nil(t, accountsApi.DoRecreateTrie(targetRootHash))
-	assert.Nil(t, accountsApi.DoRecreateTrie(targetRootHash))
+	accountsApi, _ := state.NewAccountsDBApi(accountsAdapter, createBlockInfoProviderStub(dummyRootHash))
+	assert.Nil(t, accountsApi.DoRecreateTrieWithBlockInfo(holders.NewBlockInfo(nil, 0, targetRootHash)))
+	assert.Nil(t, accountsApi.DoRecreateTrieWithBlockInfo(holders.NewBlockInfo(nil, 0, targetRootHash)))
 	assert.Equal(t, 1, numCalled)
 }
 
@@ -170,7 +186,7 @@ func TestAccountsDBApi_NotPermittedOperations(t *testing.T) {
 		}
 	}()
 
-	accountsApi, _ := state.NewAccountsDBApi(&mockState.AccountsStub{}, &testscommon.ChainHandlerStub{})
+	accountsApi, _ := state.NewAccountsDBApi(&mockState.AccountsStub{}, createBlockInfoProviderStub(dummyRootHash))
 
 	assert.Equal(t, state.ErrOperationNotPermitted, accountsApi.SaveAccount(nil))
 	assert.Equal(t, state.ErrOperationNotPermitted, accountsApi.RemoveAccount(nil))
@@ -200,9 +216,9 @@ func TestAccountsDBApi_EmptyMethodsShouldNotPanic(t *testing.T) {
 		}
 	}()
 
-	accountsApi, _ := state.NewAccountsDBApi(&mockState.AccountsStub{}, &testscommon.ChainHandlerStub{})
+	accountsApi, _ := state.NewAccountsDBApi(&mockState.AccountsStub{}, createBlockInfoProviderStub(dummyRootHash))
 
-	accountsApi.PruneTrie(nil, 0)
+	accountsApi.PruneTrie(nil, 0, state.NewPruningHandler(state.EnableDataRemoval))
 	accountsApi.CancelPrune(nil, 0)
 	accountsApi.SnapshotState(nil)
 	accountsApi.SetStateCheckpoint(nil)
@@ -241,7 +257,7 @@ func TestAccountsDBApi_SimpleProxyMethodsShouldWork(t *testing.T) {
 		},
 	}
 
-	accountsApi, _ := state.NewAccountsDBApi(accountsAdapter, &testscommon.ChainHandlerStub{})
+	accountsApi, _ := state.NewAccountsDBApi(accountsAdapter, createBlockInfoProviderStub(dummyRootHash))
 
 	assert.False(t, accountsApi.IsPruningEnabled())
 	assert.Nil(t, accountsApi.GetStackDebugFirstEntry())
@@ -261,11 +277,6 @@ func TestAccountsDBApi_GetExistingAccount(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("expected error")
-	blockchain := &testscommon.ChainHandlerStub{
-		GetCurrentBlockRootHashCalled: func() []byte {
-			return []byte("new root hash")
-		},
-	}
 	t.Run("recreate trie fails", func(t *testing.T) {
 		t.Parallel()
 
@@ -279,7 +290,7 @@ func TestAccountsDBApi_GetExistingAccount(t *testing.T) {
 			},
 		}
 
-		accountsApi, _ := state.NewAccountsDBApi(accountsAdapter, blockchain)
+		accountsApi, _ := state.NewAccountsDBApi(accountsAdapter, createBlockInfoProviderStub(dummyRootHash))
 		account, err := accountsApi.GetExistingAccount(nil)
 		assert.Nil(t, account)
 		assert.Equal(t, expectedErr, err)
@@ -298,7 +309,7 @@ func TestAccountsDBApi_GetExistingAccount(t *testing.T) {
 			},
 		}
 
-		accountsApi, _ := state.NewAccountsDBApi(accountsAdapter, blockchain)
+		accountsApi, _ := state.NewAccountsDBApi(accountsAdapter, createBlockInfoProviderStub(dummyRootHash))
 		account, err := accountsApi.GetExistingAccount([]byte("address"))
 		assert.False(t, check.IfNil(account))
 		assert.Nil(t, err)
@@ -310,11 +321,6 @@ func TestAccountsDBApi_GetAccountFromBytes(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("expected error")
-	blockchain := &testscommon.ChainHandlerStub{
-		GetCurrentBlockRootHashCalled: func() []byte {
-			return []byte("new root hash")
-		},
-	}
 	t.Run("recreate trie fails", func(t *testing.T) {
 		t.Parallel()
 
@@ -328,7 +334,7 @@ func TestAccountsDBApi_GetAccountFromBytes(t *testing.T) {
 			},
 		}
 
-		accountsApi, _ := state.NewAccountsDBApi(accountsAdapter, blockchain)
+		accountsApi, _ := state.NewAccountsDBApi(accountsAdapter, createBlockInfoProviderStub(dummyRootHash))
 		account, err := accountsApi.GetAccountFromBytes(nil, nil)
 		assert.Nil(t, account)
 		assert.Equal(t, expectedErr, err)
@@ -347,7 +353,7 @@ func TestAccountsDBApi_GetAccountFromBytes(t *testing.T) {
 			},
 		}
 
-		accountsApi, _ := state.NewAccountsDBApi(accountsAdapter, blockchain)
+		accountsApi, _ := state.NewAccountsDBApi(accountsAdapter, createBlockInfoProviderStub(dummyRootHash))
 		account, err := accountsApi.GetAccountFromBytes([]byte("address"), []byte("bytes"))
 		assert.False(t, check.IfNil(account))
 		assert.Nil(t, err)
@@ -359,11 +365,6 @@ func TestAccountsDBApi_LoadAccount(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("expected error")
-	blockchain := &testscommon.ChainHandlerStub{
-		GetCurrentBlockRootHashCalled: func() []byte {
-			return []byte("new root hash")
-		},
-	}
 	t.Run("recreate trie fails", func(t *testing.T) {
 		t.Parallel()
 
@@ -377,7 +378,7 @@ func TestAccountsDBApi_LoadAccount(t *testing.T) {
 			},
 		}
 
-		accountsApi, _ := state.NewAccountsDBApi(accountsAdapter, blockchain)
+		accountsApi, _ := state.NewAccountsDBApi(accountsAdapter, createBlockInfoProviderStub(dummyRootHash))
 		account, err := accountsApi.LoadAccount(nil)
 		assert.Nil(t, account)
 		assert.Equal(t, expectedErr, err)
@@ -396,7 +397,7 @@ func TestAccountsDBApi_LoadAccount(t *testing.T) {
 			},
 		}
 
-		accountsApi, _ := state.NewAccountsDBApi(accountsAdapter, blockchain)
+		accountsApi, _ := state.NewAccountsDBApi(accountsAdapter, createBlockInfoProviderStub(dummyRootHash))
 		account, err := accountsApi.LoadAccount([]byte("address"))
 		assert.False(t, check.IfNil(account))
 		assert.Nil(t, err)
@@ -408,11 +409,6 @@ func TestAccountsDBApi_GetCode(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("expected error")
-	blockchain := &testscommon.ChainHandlerStub{
-		GetCurrentBlockRootHashCalled: func() []byte {
-			return []byte("new root hash")
-		},
-	}
 	t.Run("recreate trie fails", func(t *testing.T) {
 		t.Parallel()
 
@@ -426,7 +422,7 @@ func TestAccountsDBApi_GetCode(t *testing.T) {
 			},
 		}
 
-		accountsApi, _ := state.NewAccountsDBApi(accountsAdapter, blockchain)
+		accountsApi, _ := state.NewAccountsDBApi(accountsAdapter, createBlockInfoProviderStub(dummyRootHash))
 		code := accountsApi.GetCode(nil)
 		assert.Nil(t, code)
 	})
@@ -445,7 +441,7 @@ func TestAccountsDBApi_GetCode(t *testing.T) {
 			},
 		}
 
-		accountsApi, _ := state.NewAccountsDBApi(accountsAdapter, blockchain)
+		accountsApi, _ := state.NewAccountsDBApi(accountsAdapter, createBlockInfoProviderStub(dummyRootHash))
 		code := accountsApi.GetCode([]byte("address"))
 		assert.Equal(t, providedCode, code)
 		assert.True(t, recreateTrieCalled)
@@ -456,11 +452,6 @@ func TestAccountsDBApi_GetAllLeaves(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("expected error")
-	blockchain := &testscommon.ChainHandlerStub{
-		GetCurrentBlockRootHashCalled: func() []byte {
-			return []byte("new root hash")
-		},
-	}
 	t.Run("recreate trie fails", func(t *testing.T) {
 		t.Parallel()
 
@@ -474,7 +465,7 @@ func TestAccountsDBApi_GetAllLeaves(t *testing.T) {
 			},
 		}
 
-		accountsApi, _ := state.NewAccountsDBApi(accountsAdapter, blockchain)
+		accountsApi, _ := state.NewAccountsDBApi(accountsAdapter, createBlockInfoProviderStub(dummyRootHash))
 		err := accountsApi.GetAllLeaves(nil, nil, []byte{})
 		assert.Equal(t, expectedErr, err)
 	})
@@ -490,7 +481,7 @@ func TestAccountsDBApi_GetAllLeaves(t *testing.T) {
 			},
 		}
 
-		accountsApi, _ := state.NewAccountsDBApi(accountsAdapter, blockchain)
+		accountsApi, _ := state.NewAccountsDBApi(accountsAdapter, createBlockInfoProviderStub(dummyRootHash))
 		err := accountsApi.GetAllLeaves(providedChan, context.Background(), []byte("address"))
 		assert.Nil(t, err)
 		assert.True(t, recreateTrieCalled)

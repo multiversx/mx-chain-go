@@ -31,6 +31,7 @@ type BootstrapComponentsFactoryArgs struct {
 	RoundConfig       config.RoundConfig
 	PrefConfig        config.Preferences
 	ImportDbConfig    config.ImportDbConfig
+	FlagsConfig       config.ContextFlagsConfig
 	WorkingDir        string
 	CoreComponents    CoreComponentsHolder
 	CryptoComponents  CryptoComponentsHolder
@@ -43,6 +44,7 @@ type bootstrapComponentsFactory struct {
 	roundConfig       config.RoundConfig
 	prefConfig        config.Preferences
 	importDbConfig    config.ImportDbConfig
+	flagsConfig       config.ContextFlagsConfig
 	workingDir        string
 	coreComponents    CoreComponentsHolder
 	cryptoComponents  CryptoComponentsHolder
@@ -81,6 +83,7 @@ func NewBootstrapComponentsFactory(args BootstrapComponentsFactoryArgs) (*bootst
 		roundConfig:       args.RoundConfig,
 		prefConfig:        args.PrefConfig,
 		importDbConfig:    args.ImportDbConfig,
+		flagsConfig:       args.FlagsConfig,
 		workingDir:        args.WorkingDir,
 		coreComponents:    args.CoreComponents,
 		cryptoComponents:  args.CryptoComponents,
@@ -167,6 +170,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		GeneralConfig:              bcf.config,
 		PrefsConfig:                bcf.prefConfig.Preferences,
 		EnableEpochs:               bcf.epochConfig.EnableEpochs,
+		FlagsConfig:                bcf.flagsConfig,
 		EconomicsData:              bcf.coreComponents.EconomicsData(),
 		GenesisNodesConfig:         bcf.coreComponents.GenesisNodesSetup(),
 		GenesisShardCoordinator:    genesisShardCoordinator,

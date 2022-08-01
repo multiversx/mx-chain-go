@@ -24,6 +24,7 @@ type TransactionCoordinatorMock struct {
 	CreateMbsAndProcessCrossShardTransactionsDstMeCalled func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool) (block.MiniBlockSlice, uint32, bool, error)
 	CreateMbsAndProcessTransactionsFromMeCalled          func(haveTime func() bool) block.MiniBlockSlice
 	CreateMarshalizedDataCalled                          func(body *block.Body) map[string][][]byte
+	GetCreatedInShardMiniBlocksCalled                    func() []*block.MiniBlock
 	GetAllCurrentUsedTxsCalled                           func(blockType block.Type) map[string]data.TransactionHandler
 	VerifyCreatedBlockTransactionsCalled                 func(hdr data.HeaderHandler, body *block.Body) error
 	CreatePostProcessMiniBlocksCalled                    func() block.MiniBlockSlice
@@ -192,6 +193,15 @@ func (tcm *TransactionCoordinatorMock) CreateMarshalizedReceipts() ([]byte, erro
 	}
 
 	return tcm.CreateMarshalizedReceiptsCalled()
+}
+
+// GetCreatedInShardMiniBlocks -
+func (tcm *TransactionCoordinatorMock) GetCreatedInShardMiniBlocks() []*block.MiniBlock {
+	if tcm.GetCreatedInShardMiniBlocksCalled != nil {
+		return tcm.GetCreatedInShardMiniBlocksCalled()
+	}
+
+	return nil
 }
 
 // VerifyCreatedMiniBlocks -

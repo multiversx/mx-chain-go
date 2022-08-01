@@ -8,10 +8,15 @@ import (
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/factory/mock"
 	"github.com/ElrondNetwork/elrond-go/process/sync/disabled"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/require"
 )
 
 func TestCreateApiResolver(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(1)
 	coreComponents := getCoreComponents()
 	coreComponents.StatusHandlerUtils().Metrics()
@@ -29,14 +34,16 @@ func TestCreateApiResolver(t *testing.T) {
 	require.Nil(t, err)
 
 	gasSchedule, _ := common.LoadGasScheduleConfig("../cmd/node/config/gasSchedules/gasScheduleV1.toml")
+	economicsConfig := testscommon.GetEconomicsConfig()
 	cfg := getGeneralConfig()
 	args := &factory.ApiResolverArgs{
 		Configs: &config.Configs{
 			FlagsConfig: &config.ContextFlagsConfig{
 				WorkingDir: "",
 			},
-			GeneralConfig: &cfg,
-			EpochConfig:   &config.EpochConfig{},
+			GeneralConfig:   &cfg,
+			EpochConfig:     &config.EpochConfig{},
+			EconomicsConfig: &economicsConfig,
 		},
 		CoreComponents:      coreComponents,
 		DataComponents:      dataComponents,
@@ -44,7 +51,7 @@ func TestCreateApiResolver(t *testing.T) {
 		BootstrapComponents: mbc,
 		CryptoComponents:    cryptoComponents,
 		ProcessComponents:   processComponents,
-		GasScheduleNotifier: &mock.GasScheduleNotifierMock{
+		GasScheduleNotifier: &testscommon.GasScheduleNotifierMock{
 			GasSchedule: gasSchedule,
 		},
 		Bootstrapper:       disabled.NewDisabledBootstrapper(),

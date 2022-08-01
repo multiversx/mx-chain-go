@@ -2,6 +2,7 @@ package common
 
 import (
 	"context"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
@@ -36,6 +37,7 @@ type Trie interface {
 	GetProof(key []byte) ([][]byte, []byte, error)
 	VerifyProof(rootHash []byte, key []byte, proof [][]byte) (bool, error)
 	GetStorageManager() StorageManager
+	MarkStorerAsSyncedAndActive()
 	Close() error
 	IsInterfaceNil() bool
 }
@@ -45,8 +47,9 @@ type StorageManager interface {
 	Get(key []byte) ([]byte, error)
 	GetFromCurrentEpoch(key []byte) ([]byte, error)
 	PutInEpoch(key []byte, val []byte, epoch uint32) error
-	TakeSnapshot(rootHash []byte, mainTrieRootHash []byte, leavesChan chan core.KeyValueHolder, stats SnapshotStatisticsHandler, epoch uint32)
-	SetCheckpoint(rootHash []byte, mainTrieRootHash []byte, leavesChan chan core.KeyValueHolder, stats SnapshotStatisticsHandler)
+	PutInEpochWithoutCache(key []byte, val []byte, epoch uint32) error
+	TakeSnapshot(rootHash []byte, mainTrieRootHash []byte, leavesChan chan core.KeyValueHolder, errChan chan error, stats SnapshotStatisticsHandler, epoch uint32)
+	SetCheckpoint(rootHash []byte, mainTrieRootHash []byte, leavesChan chan core.KeyValueHolder, errChan chan error, stats SnapshotStatisticsHandler)
 	GetLatestStorageEpoch() (uint32, error)
 	IsPruningEnabled() bool
 	IsPruningBlocked() bool
@@ -56,6 +59,7 @@ type StorageManager interface {
 	Remove(hash []byte) error
 	SetEpochForPutOperation(uint32)
 	ShouldTakeSnapshot() bool
+	IsClosed() bool
 	Close() error
 	IsInterfaceNil() bool
 
@@ -113,6 +117,10 @@ type SizeSyncStatisticsHandler interface {
 	AddNumBytesReceived(bytes uint64)
 	NumBytesReceived() uint64
 	NumTries() int
+	AddProcessingTime(duration time.Duration)
+	IncrementIteration()
+	ProcessingTime() time.Duration
+	NumIterations() int
 }
 
 // SnapshotStatisticsHandler is used to measure different statistics for the trie snapshot
@@ -131,4 +139,19 @@ type ProcessStatusHandler interface {
 	SetIdle()
 	IsIdle() bool
 	IsInterfaceNil() bool
+}
+
+// BlockInfo provides a block information such as nonce, hash, roothash and so on
+type BlockInfo interface {
+	GetNonce() uint64
+	GetHash() []byte
+	GetRootHash() []byte
+	Equal(blockInfo BlockInfo) bool
+	IsInterfaceNil() bool
+}
+
+// GasScheduleNotifierAPI defines the behavior of the gas schedule notifier components that is used for api
+type GasScheduleNotifierAPI interface {
+	core.GasScheduleNotifier
+	LatestGasScheduleCopy() map[string]map[string]uint64
 }
