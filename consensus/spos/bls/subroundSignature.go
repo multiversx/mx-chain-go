@@ -68,7 +68,7 @@ func (sr *subroundSignature) doSignatureJob(_ context.Context) bool {
 	if !sr.CanDoSubroundJob(sr.Current()) {
 		return false
 	}
-	if sr.Header == nil {
+	if check.IfNil(sr.Header) {
 		log.Error("doSignatureJob", "error", spos.ErrNilHeader)
 		return false
 	}
@@ -76,11 +76,6 @@ func (sr *subroundSignature) doSignatureJob(_ context.Context) bool {
 	selfIndex, err := sr.SelfConsensusGroupIndex()
 	if err != nil {
 		log.Debug("doSignatureJob.SelfConsensusGroupIndex: not in consensus group")
-		return false
-	}
-
-	if check.IfNil(sr.Header) {
-		log.Error("doSignatureJob", "error", spos.ErrNilHeader)
 		return false
 	}
 

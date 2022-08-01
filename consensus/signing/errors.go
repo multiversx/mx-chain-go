@@ -26,10 +26,7 @@ var ErrNilKeyGenerator = errors.New("key generator is nil")
 // ErrNilPublicKeys is raised when public keys are expected but received nil
 var ErrNilPublicKeys = errors.New("public keys are nil")
 
-// ErrNilSingleSigner singals that a nil single signer has been provided
-var ErrNilSingleSigner = errors.New("single signer is nil")
-
-// ErrNilMultiSignerContainer singals that a nil multi signer container has been provided
+// ErrNilMultiSignerContainer is raised when a nil multi signer container has been provided
 var ErrNilMultiSignerContainer = errors.New("multi signer container is nil")
 
 // ErrIndexOutOfBounds is raised when an out of bound index is used

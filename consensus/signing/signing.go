@@ -40,13 +40,13 @@ func NewSignatureHolder(args ArgsSignatureHolder) (*signatureHolder, error) {
 	sigSharesSize := uint16(len(args.PubKeys))
 	sigShares := make([][]byte, sigSharesSize)
 
-	pybKeysBytes, err := convertStringsToPubKeysBytes(args.PubKeys)
+	pubKeysBytes, err := convertStringsToPubKeysBytes(args.PubKeys)
 	if err != nil {
 		return nil, err
 	}
 
 	data := &signatureHolderData{
-		pubKeys:   pybKeysBytes,
+		pubKeys:   pubKeysBytes,
 		privKey:   args.PrivKeyBytes,
 		sigShares: sigShares,
 	}
@@ -76,8 +76,8 @@ func checkArgs(args ArgsSignatureHolder) error {
 	return nil
 }
 
-// Create generated a signature holder component and initializes corresponding fields
-func (sh *signatureHolder) Create(pubKeys []string, index uint16) (*signatureHolder, error) {
+// Create generates a signature holder component and initializes corresponding fields
+func (sh *signatureHolder) Create(pubKeys []string) (*signatureHolder, error) {
 	sh.mutSigningData.RLock()
 	privKey := sh.data.privKey
 	sh.mutSigningData.RUnlock()
@@ -150,8 +150,8 @@ func (sh *signatureHolder) VerifySignatureShare(index uint16, sig []byte, messag
 		return ErrInvalidSignature
 	}
 
-	sh.mutSigningData.Lock()
-	defer sh.mutSigningData.Unlock()
+	sh.mutSigningData.RLock()
+	defer sh.mutSigningData.RUnlock()
 
 	indexOutOfBounds := index >= uint16(len(sh.data.pubKeys))
 	if indexOutOfBounds {
@@ -188,8 +188,8 @@ func (sh *signatureHolder) StoreSignatureShare(index uint16, sig []byte) error {
 
 // SignatureShare returns the partial signature set for given index
 func (sh *signatureHolder) SignatureShare(index uint16) ([]byte, error) {
-	sh.mutSigningData.Lock()
-	defer sh.mutSigningData.Unlock()
+	sh.mutSigningData.RLock()
+	defer sh.mutSigningData.RUnlock()
 
 	if int(index) >= len(sh.data.sigShares) {
 		return nil, ErrIndexOutOfBounds
@@ -203,18 +203,18 @@ func (sh *signatureHolder) SignatureShare(index uint16) ([]byte, error) {
 }
 
 // not concurrent safe, should be used under RLock mutex
-func (sh *signatureHolder) isIndexInBitmap(index uint16, bitmap []byte) error {
+func (sh *signatureHolder) isIndexInBitmap(index uint16, bitmap []byte) bool {
 	indexOutOfBounds := index >= uint16(len(sh.data.pubKeys))
 	if indexOutOfBounds {
-		return ErrIndexOutOfBounds
+		return false
 	}
 
 	indexNotInBitmap := bitmap[index/8]&(1<<uint8(index%8)) == 0
 	if indexNotInBitmap {
-		return ErrIndexNotSelected
+		return false
 	}
 
-	return nil
+	return true
 }
 
 // AggregateSigs aggregates all collected partial signatures
@@ -235,19 +235,18 @@ func (sh *signatureHolder) AggregateSigs(bitmap []byte, epoch uint32) ([]byte, e
 	signatures := make([][]byte, 0, len(sh.data.sigShares))
 	pubKeysSigners := make([][]byte, 0, len(sh.data.sigShares))
 
+	multiSigner, err := sh.multiSignerContainer.GetMultiSigner(epoch)
+	if err != nil {
+		return nil, err
+	}
+
 	for i := range sh.data.sigShares {
-		err := sh.isIndexInBitmap(uint16(i), bitmap)
-		if err != nil {
+		if !sh.isIndexInBitmap(uint16(i), bitmap) {
 			continue
 		}
 
 		signatures = append(signatures, sh.data.sigShares[i])
 		pubKeysSigners = append(pubKeysSigners, sh.data.pubKeys[i])
-	}
-
-	multiSigner, err := sh.multiSignerContainer.GetMultiSigner(epoch)
-	if err != nil {
-		return nil, err
 	}
 
 	return multiSigner.AggregateSigs(pubKeysSigners, signatures)
@@ -270,8 +269,8 @@ func (sh *signatureHolder) Verify(message []byte, bitmap []byte, epoch uint32) e
 		return ErrNilBitmap
 	}
 
-	sh.mutSigningData.Lock()
-	defer sh.mutSigningData.Unlock()
+	sh.mutSigningData.RLock()
+	defer sh.mutSigningData.RUnlock()
 
 	maxFlags := len(bitmap) * 8
 	flagsMismatch := maxFlags < len(sh.data.pubKeys)
@@ -279,19 +278,18 @@ func (sh *signatureHolder) Verify(message []byte, bitmap []byte, epoch uint32) e
 		return ErrBitmapMismatch
 	}
 
-	pubKeys := make([][]byte, 0)
-	for i := range sh.data.pubKeys {
-		err := sh.isIndexInBitmap(uint16(i), bitmap)
-		if err != nil {
-			continue
-		}
-
-		pubKeys = append(pubKeys, sh.data.pubKeys[i])
-	}
-
 	multiSigner, err := sh.multiSignerContainer.GetMultiSigner(epoch)
 	if err != nil {
 		return err
+	}
+
+	pubKeys := make([][]byte, 0)
+	for i, pk := range sh.data.pubKeys {
+		if !sh.isIndexInBitmap(uint16(i), bitmap) {
+			continue
+		}
+
+		pubKeys = append(pubKeys, pk)
 	}
 
 	return multiSigner.VerifyAggregatedSig(pubKeys, message, sh.data.aggSig)

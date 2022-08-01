@@ -76,7 +76,7 @@ func TestNewSigner(t *testing.T) {
 	})
 }
 
-func TestCreate(t *testing.T) {
+func TestSignatureHolder_Create(t *testing.T) {
 	t.Parallel()
 
 	t.Run("empty pubkeys in list", func(t *testing.T) {
@@ -89,7 +89,7 @@ func TestCreate(t *testing.T) {
 		require.NotNil(t, signer)
 
 		pubKeys := []string{"pubKey1", ""}
-		createdSigner, err := signer.Create(pubKeys, uint16(2))
+		createdSigner, err := signer.Create(pubKeys)
 		require.Nil(t, createdSigner)
 		require.Equal(t, signing.ErrEmptyPubKeyString, err)
 	})
@@ -104,13 +104,13 @@ func TestCreate(t *testing.T) {
 		require.NotNil(t, signer)
 
 		pubKeys := []string{"pubKey1", "pubKey2"}
-		createdSigner, err := signer.Create(pubKeys, uint16(2))
+		createdSigner, err := signer.Create(pubKeys)
 		require.Nil(t, err)
 		require.NotNil(t, createdSigner)
 	})
 }
 
-func TestReset(t *testing.T) {
+func TestSignatureHolder_Reset(t *testing.T) {
 	t.Parallel()
 
 	t.Run("nil public keys", func(t *testing.T) {
@@ -144,7 +144,7 @@ func TestReset(t *testing.T) {
 	})
 }
 
-func TestCreateSignatureShare(t *testing.T) {
+func TestSignatureHolder_CreateSignatureShare(t *testing.T) {
 	t.Parallel()
 
 	selfIndex := uint16(0)
@@ -198,7 +198,7 @@ func TestCreateSignatureShare(t *testing.T) {
 	})
 }
 
-func TestVerifySignatureShare(t *testing.T) {
+func TestSignatureHolder_VerifySignatureShare(t *testing.T) {
 	t.Parallel()
 
 	ownIndex := uint16(1)
@@ -261,7 +261,7 @@ func TestVerifySignatureShare(t *testing.T) {
 	})
 }
 
-func TestStoreSignatureShare(t *testing.T) {
+func TestSignatureHolder_StoreSignatureShare(t *testing.T) {
 	t.Parallel()
 
 	ownIndex := uint16(2)
@@ -303,7 +303,7 @@ func TestStoreSignatureShare(t *testing.T) {
 	})
 }
 
-func TestSignatureShare(t *testing.T) {
+func TestSignatureHolder_SignatureShare(t *testing.T) {
 	t.Parallel()
 
 	t.Run("index out of bounds", func(t *testing.T) {
@@ -359,7 +359,7 @@ func TestSignatureShare(t *testing.T) {
 	})
 }
 
-func TestAggregateSigs(t *testing.T) {
+func TestSignatureHolder_AggregateSigs(t *testing.T) {
 	t.Parallel()
 
 	epoch := uint32(0)
@@ -453,7 +453,7 @@ func TestAggregateSigs(t *testing.T) {
 	})
 }
 
-func TestVerify(t *testing.T) {
+func TestSignatureHolder_Verify(t *testing.T) {
 	t.Parallel()
 
 	message := []byte("message")
