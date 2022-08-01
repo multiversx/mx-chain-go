@@ -4,6 +4,7 @@ import (
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 )
 
 // FeesProcessorHandler defines the interface for the transaction fees processor
@@ -12,4 +13,8 @@ type FeesProcessorHandler interface {
 	ComputeTxFeeBasedOnGasUsed(tx data.TransactionWithFeeHandler, gasUsed uint64) *big.Int
 	ComputeGasLimit(tx data.TransactionWithFeeHandler) uint64
 	IsInterfaceNil() bool
+}
+
+type transactionGetter interface {
+	getTxByHash(txHash []byte) (*transaction.Transaction, error)
 }

@@ -21,7 +21,7 @@ type ArgTransactionsFeeProcessor struct {
 }
 
 type transactionsFeeProcessor struct {
-	txGetter         *txGetter
+	txGetter         transactionGetter
 	txFeeCalculator  FeesProcessorHandler
 	shardCoordinator sharding.Coordinator
 }
