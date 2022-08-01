@@ -40,13 +40,13 @@ func NewSignatureHolder(args ArgsSignatureHolder) (*signatureHolder, error) {
 	sigSharesSize := uint16(len(args.PubKeys))
 	sigShares := make([][]byte, sigSharesSize)
 
-	pybKeyBytes, err := convertStringsToPubKeysBytes(args.PubKeys)
+	pybKeysBytes, err := convertStringsToPubKeysBytes(args.PubKeys)
 	if err != nil {
 		return nil, err
 	}
 
 	data := &signatureHolderData{
-		pubKeys:   pybKeyBytes,
+		pubKeys:   pybKeysBytes,
 		privKey:   args.PrivKeyBytes,
 		sigShares: sigShares,
 	}
@@ -99,7 +99,7 @@ func (sh *signatureHolder) Reset(pubKeys []string) error {
 
 	sigSharesSize := uint16(len(pubKeys))
 	sigShares := make([][]byte, sigSharesSize)
-	pk, err := convertStringsToPubKeysBytes(pubKeys)
+	pubKeysBytes, err := convertStringsToPubKeysBytes(pubKeys)
 	if err != nil {
 		return err
 	}
@@ -110,7 +110,7 @@ func (sh *signatureHolder) Reset(pubKeys []string) error {
 	privKey := sh.data.privKey
 
 	data := &signatureHolderData{
-		pubKeys:   pk,
+		pubKeys:   pubKeysBytes,
 		privKey:   privKey,
 		sigShares: sigShares,
 	}
@@ -170,7 +170,6 @@ func (sh *signatureHolder) VerifySignatureShare(index uint16, sig []byte, messag
 
 // StoreSignatureShare stores the partial signature of the signer with specified position
 func (sh *signatureHolder) StoreSignatureShare(index uint16, sig []byte) error {
-	// TODO: evaluate verifying if sig bytes is a valid BLS signature
 	if sig == nil {
 		return ErrNilSignature
 	}
