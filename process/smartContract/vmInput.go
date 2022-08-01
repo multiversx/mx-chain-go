@@ -87,6 +87,8 @@ func (sc *scProcessor) createVMCallInput(
 
 	finalArguments, gasLocked := sc.getAsyncCallGasLockFromTxData(callType, arguments)
 
+	asyncArguments, callArguments := separateAsyncArguments(callType, finalArguments)
+
 	vmCallInput := &vmcommon.ContractCallInput{}
 	vmCallInput.VMInput = vmcommon.VMInput{}
 	vmCallInput.CallType = callType
@@ -111,7 +113,8 @@ func (sc *scProcessor) createVMCallInput(
 		return nil, err
 	}
 
-	vmCallInput.VMInput.Arguments = finalArguments
+	vmCallInput.VMInput.AsyncArguments = buildAsyncArgumentsObject(callType, asyncArguments)
+	vmCallInput.VMInput.Arguments = callArguments
 	if vmCallInput.GasProvided > tx.GetGasLimit() {
 		return nil, process.ErrInvalidVMInputGasComputation
 	}
@@ -140,6 +143,46 @@ func (sc *scProcessor) getAsyncCallGasLockFromTxData(callType vm.CallType, argum
 	copy(argsWithoutGasLocked, arguments[:lenArgs-1])
 
 	return argsWithoutGasLocked, gasLocked
+}
+
+func separateAsyncArguments(callType vm.CallType, arguments [][]byte) ([][]byte, [][]byte) {
+	if callType == vm.DirectCall {
+		return nil, arguments
+	}
+
+	var noOfAsyncArguments int
+	if callType == vm.AsynchronousCall {
+		noOfAsyncArguments = 2
+	} else {
+		noOfAsyncArguments = 4
+	}
+
+	asyncArguments := make([][]byte, noOfAsyncArguments)
+	callArguments := make([][]byte, len(arguments)-noOfAsyncArguments)
+
+	copy(asyncArguments, arguments[:noOfAsyncArguments])
+	copy(callArguments, arguments[noOfAsyncArguments:])
+
+	return asyncArguments, callArguments
+}
+
+func buildAsyncArgumentsObject(callType vm.CallType, asyncArguments [][]byte) *vmcommon.AsyncArguments {
+	switch callType {
+	case vm.AsynchronousCall:
+		return &vmcommon.AsyncArguments{
+			CallID:       asyncArguments[0],
+			CallerCallID: asyncArguments[1],
+		}
+	case vm.AsynchronousCallBack:
+		return &vmcommon.AsyncArguments{
+			CallID:                       asyncArguments[0],
+			CallerCallID:                 asyncArguments[1],
+			CallbackAsyncInitiatorCallID: asyncArguments[2],
+			GasAccumulated:               big.NewInt(0).SetBytes(asyncArguments[3]).Uint64(),
+		}
+	default:
+		return &vmcommon.AsyncArguments{}
+	}
 }
 
 func determineCallType(tx data.TransactionHandler) vm.CallType {

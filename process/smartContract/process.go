@@ -936,8 +936,7 @@ func (sc *scProcessor) doExecuteBuiltInFunction(
 	if err != nil || returnCode != vmcommon.Ok {
 		return returnCode, err
 	}
-	// TODO matei-p extract async framework and save
-	asyncParams, err := contexts.RemoveAsyncContextArguments(&vmInput.VMInput)
+
 	if err != nil {
 		log.Debug("processed built in functions error (async params extraction)", "error", err.Error())
 		return 0, err
@@ -1001,7 +1000,7 @@ func (sc *scProcessor) doExecuteBuiltInFunction(
 		}
 	}
 
-	isSCCallSelfShard, newVMOutput, newVMInput, err := sc.treatExecutionAfterBuiltInFunc(tx, asyncParams, vmInput, vmOutput, acntSnd, snapshot)
+	isSCCallSelfShard, newVMOutput, newVMInput, err := sc.treatExecutionAfterBuiltInFunc(tx, vmInput, vmOutput, acntSnd, snapshot)
 	if err != nil {
 		log.Debug("treat execution after built in function", "error", err.Error())
 		return 0, err
@@ -1050,7 +1049,7 @@ func (sc *scProcessor) doExecuteBuiltInFunction(
 
 		if !createdAsyncCallback {
 			if vmInput.CallType == vmData.AsynchronousCall {
-				asyncCallBackSCR, err := sc.createAsyncCallBackSCRFromVMOutput(newVMOutput, tx, txHash, asyncParams)
+				asyncCallBackSCR, err := sc.createAsyncCallBackSCRFromVMOutput(newVMOutput, tx, txHash, vmInput.AsyncArguments)
 
 				if err != nil {
 					return vmcommon.ExecutionFailed, err
@@ -1077,7 +1076,7 @@ func (sc *scProcessor) doExecuteBuiltInFunction(
 	return sc.finishSCExecution(scrResults, txHash, tx, newVMOutput, builtInFuncGasUsed)
 }
 
-func (sc *scProcessor) extractAsyncParamsFromTxData(data string) ([][]byte, []byte, error) {
+func (sc *scProcessor) extractAsyncCallParamsFromTxData(data string) (*vmcommon.AsyncArguments, []byte, error) {
 	function, args, err := sc.argsParser.ParseCallData(string(data))
 	dataAsString := function
 	if err != nil {
@@ -1090,7 +1089,10 @@ func (sc *scProcessor) extractAsyncParamsFromTxData(data string) ([][]byte, []by
 		return nil, nil, err
 	}
 
-	asyncArgs := args[0:2]
+	asyncArgs := &vmcommon.AsyncArguments{
+		CallID:       args[0],
+		CallerCallID: args[1],
+	}
 
 	for _, arg := range args[2:] {
 		dataAsString += "@" + hex.EncodeToString(arg)
@@ -1099,22 +1101,26 @@ func (sc *scProcessor) extractAsyncParamsFromTxData(data string) ([][]byte, []by
 	return asyncArgs, []byte(dataAsString), nil
 }
 
-func (sc *scProcessor) reapendAsyncParamsToTxData(data string, asyncArgs [][]byte) (string, error) {
-	function, args, err := sc.argsParser.ParseCallData(data)
-	if err != nil {
-		log.Trace("scProcessor.createSCRsWhenError()", "error parsing args", data)
-		return "", err
-	}
-
-	if len(args) < 2 {
-		log.Trace("scProcessor.createSCRsWhenError()", "no async params found", data)
-		return "", err
-	}
-
+func (sc *scProcessor) reapendAsyncParamsToTxData(data string, isCrossShardESDTCall bool, asyncArgs *vmcommon.AsyncArguments) (string, error) {
 	newAsyncParams := contexts.CreateCallbackAsyncParams(hooks.NewVMCryptoHook(), asyncArgs)
-	newArgs := append(newAsyncParams, args...)
+	var newArgs [][]byte
+	if isCrossShardESDTCall {
+		function, args, err := sc.argsParser.ParseCallData(data)
+		if err != nil {
+			log.Trace("scProcessor.createSCRsWhenError()", "error parsing args", data)
+			return "", err
+		}
 
-	data = function
+		if len(args) < 2 {
+			log.Trace("scProcessor.createSCRsWhenError()", "no async params found", data)
+			return "", err
+		}
+		data = function
+		newArgs = append(newAsyncParams, args...)
+	} else {
+		newArgs = newAsyncParams
+	}
+
 	for _, arg := range newArgs {
 		data += "@" + hex.EncodeToString(arg)
 	}
@@ -1183,7 +1189,6 @@ func (sc *scProcessor) resolveBuiltInFunctions(
 
 func (sc *scProcessor) treatExecutionAfterBuiltInFunc(
 	tx data.TransactionHandler,
-	asyncParams [][]byte,
 	vmInput *vmcommon.ContractCallInput,
 	vmOutput *vmcommon.VMOutput,
 	acntSnd state.UserAccountHandler,
@@ -1193,9 +1198,6 @@ func (sc *scProcessor) treatExecutionAfterBuiltInFunc(
 	if !isSCCall {
 		return false, vmOutput, vmInput, nil
 	}
-
-	// TODO matei-p append async args
-	newVMInput.Arguments = append(asyncParams, newVMInput.Arguments...)
 
 	userErrorVmOutput := &vmcommon.VMOutput{
 		ReturnCode: vmcommon.UserError,
@@ -1275,6 +1277,7 @@ func (sc *scProcessor) isSCExecutionAfterBuiltInFunc(
 	newVMInput := &vmcommon.ContractCallInput{
 		VMInput: vmcommon.VMInput{
 			CallerAddr:           vmInput.CallerAddr,
+			AsyncArguments:       vmInput.AsyncArguments,
 			Arguments:            parsedTransfer.CallArgs,
 			CallValue:            big.NewInt(0),
 			CallType:             callType,
@@ -1957,8 +1960,7 @@ func (sc *scProcessor) processVMOutput(
 	}
 
 	if !createdAsyncCallback && vmInput.CallType == vmData.AsynchronousCall {
-		asyncParams := vmInput.Arguments[:2]
-		asyncCallBackSCR, err := sc.createAsyncCallBackSCRFromVMOutput(vmOutput, tx, txHash, asyncParams)
+		asyncCallBackSCR, err := sc.createAsyncCallBackSCRFromVMOutput(vmOutput, tx, txHash, vmInput.AsyncArguments)
 		if err != nil {
 			return nil, err
 		}
@@ -2119,10 +2121,10 @@ func (sc *scProcessor) createSCRsWhenError(
 	}
 
 	data := tx.GetData()
-	asyncArgs := make([][]byte, 0)
+	var asyncArgs *vmcommon.AsyncArguments
 	if callType == vmData.AsynchronousCall {
 		var err error
-		asyncArgs, data, err = sc.extractAsyncParamsFromTxData(string(data))
+		asyncArgs, data, err = sc.extractAsyncCallParamsFromTxData(string(data))
 		if err != nil {
 			return nil, nil
 		}
@@ -2155,7 +2157,7 @@ func (sc *scProcessor) createSCRsWhenError(
 			}
 
 			var err error
-			accumulatedSCRData, err = sc.reapendAsyncParamsToTxData(accumulatedSCRData, asyncArgs)
+			accumulatedSCRData, err = sc.reapendAsyncParamsToTxData(accumulatedSCRData, isCrossShardESDTCall, asyncArgs)
 			if err != nil {
 				return nil, nil
 			}
@@ -2258,7 +2260,7 @@ func (sc *scProcessor) createAsyncCallBackSCRFromVMOutput(
 	vmOutput *vmcommon.VMOutput,
 	tx data.TransactionHandler,
 	txHash []byte,
-	asyncParams [][]byte,
+	asyncParams *vmcommon.AsyncArguments,
 ) (*smartContractResult.SmartContractResult, error) {
 	scr := &smartContractResult.SmartContractResult{
 		Value:          big.NewInt(0),
@@ -2279,9 +2281,10 @@ func (sc *scProcessor) createAsyncCallBackSCRFromVMOutput(
 	sc.addVMOutputResultsToSCR(vmOutput, scr)
 
 	var err error
-	scr.Data, err = contexts.AppendAsyncParamsToArguments(
-		contexts.CreateCallbackAsyncParams(hooks.NewVMCryptoHook(), asyncParams),
+	scr.Data, err = contexts.AppendAsyncArgumentsToCallbackCallData(
+		hooks.NewVMCryptoHook(),
 		scr.Data,
+		asyncParams,
 		sc.argsParser.ParseArguments)
 
 	if err != nil {
@@ -2349,7 +2352,13 @@ func (sc *scProcessor) preprocessOutTransferToSCR(
 	if outputTransfer.Value != nil {
 		result.Value.Set(outputTransfer.Value)
 	}
-	result.Data = outputTransfer.Data
+
+	result.Data, _ = contexts.AppendTransferAsyncDataToCallData(
+		outputTransfer.Data,
+		outputTransfer.AsyncData,
+		sc.argsParser.ParseArguments,
+	)
+
 	result.GasLimit = outputTransfer.GasLimit
 	result.CallType = outputTransfer.CallType
 	setOriginalTxHash(result, txHash, tx)
@@ -2451,14 +2460,9 @@ func (sc *scProcessor) useLastTransferAsAsyncCallBackWhenNeeded(
 	result.CallType = vmData.AsynchronousCallBack
 	result.GasLimit, _ = core.SafeAddUint64(result.GasLimit, vmOutput.GasRemaining)
 
-	asyncParams, err := contexts.RemoveAsyncContextArguments(vmInput)
-	if err != nil {
-		log.Debug("processed built in functions error (async params extraction)", "error", err.Error())
-		return false
-	}
-
+	var err error
 	result.Data, err = sc.prependAsyncParamsToData(
-		contexts.CreateCallbackAsyncParams(hooks.NewVMCryptoHook(), asyncParams), result.Data)
+		contexts.CreateCallbackAsyncParams(hooks.NewVMCryptoHook(), vmInput.AsyncArguments), result.Data)
 	if err != nil {
 		log.Debug("processed built in functions error (async params extraction)", "error", err.Error())
 		return false
