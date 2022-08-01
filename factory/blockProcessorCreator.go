@@ -711,15 +711,16 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 
 	genesisHdr := pcf.data.Blockchain().GetGenesisHeader()
 	argsEpochStartData := metachainEpochStart.ArgsNewEpochStartData{
-		Marshalizer:       pcf.coreData.InternalMarshalizer(),
-		Hasher:            pcf.coreData.Hasher(),
-		Store:             pcf.data.StorageService(),
-		DataPool:          pcf.data.Datapool(),
-		BlockTracker:      blockTracker,
-		ShardCoordinator:  pcf.bootstrapComponents.ShardCoordinator(),
-		EpochStartTrigger: epochStartTrigger,
-		RequestHandler:    requestHandler,
-		GenesisEpoch:      genesisHdr.GetEpoch(),
+		Marshalizer:                          pcf.coreData.InternalMarshalizer(),
+		Hasher:                               pcf.coreData.Hasher(),
+		Store:                                pcf.data.StorageService(),
+		DataPool:                             pcf.data.Datapool(),
+		BlockTracker:                         blockTracker,
+		ShardCoordinator:                     pcf.bootstrapComponents.ShardCoordinator(),
+		EpochStartTrigger:                    epochStartTrigger,
+		RequestHandler:                       requestHandler,
+		GenesisEpoch:                         genesisHdr.GetEpoch(),
+		MiniBlockPartialExecutionEnableEpoch: pcf.epochConfig.EnableEpochs.MiniBlockPartialExecutionEnableEpoch,
 	}
 	epochStartDataCreator, err := metachainEpochStart.NewEpochStartData(argsEpochStartData)
 	if err != nil {
