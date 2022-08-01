@@ -245,6 +245,17 @@ func TestConsensusContainerValidator_ValidateNilNodeRedundancyHandlerShouldFail(
 	assert.Equal(t, ErrNilNodeRedundancyHandler, err)
 }
 
+func TestConsensusContainerValidator_ValidateNilSignatureHandlerShouldFail(t *testing.T) {
+	t.Parallel()
+
+	container := initConsensusDataContainer()
+	container.signatureHandler = nil
+
+	err := ValidateConsensusCore(container)
+
+	assert.Equal(t, ErrNilSignatureHandler, err)
+}
+
 func TestConsensusContainerValidator_ShouldWork(t *testing.T) {
 	t.Parallel()
 

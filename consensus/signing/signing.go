@@ -140,10 +140,9 @@ func (sh *signatureHolder) SetMultiSignerByEpoch(epoch uint32) error {
 		return err
 	}
 
-	sh.mutMultiSigner.RLock()
-	defer sh.mutSigningData.RUnlock()
-
+	sh.mutMultiSigner.Lock()
 	sh.multiSigner = multiSigner
+	sh.mutMultiSigner.Unlock()
 
 	return nil
 }

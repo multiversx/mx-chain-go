@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/consensus/signing"
 	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
 	"github.com/stretchr/testify/require"
@@ -76,6 +77,23 @@ func TestNewSigner(t *testing.T) {
 		signer, err := signing.NewSignatureHolder(args)
 		require.Nil(t, signer)
 		require.Equal(t, signing.ErrNoPublicKeySet, err)
+	})
+
+	t.Run("failed to get multi signer for epoch zero", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgsSignatureHolder()
+
+		expectedErr := errors.New("expected error")
+		args.MultiSignerContainer = &cryptoMocks.MultiSignerContainerStub{
+			GetMultiSignerCalled: func(epoch uint32) (crypto.MultiSigner, error) {
+				return nil, expectedErr
+			},
+		}
+
+		signer, err := signing.NewSignatureHolder(args)
+		require.Nil(t, signer)
+		require.Equal(t, expectedErr, err)
 	})
 
 	t.Run("should work", func(t *testing.T) {
@@ -152,6 +170,45 @@ func TestReset(t *testing.T) {
 
 		signer, _ := signing.NewSignatureHolder(args)
 		err := signer.Reset([]string{"pubKey1", "pubKey2"})
+		require.Nil(t, err)
+	})
+}
+
+func TestSetMultiSignerByEpoch(t *testing.T) {
+	t.Parallel()
+
+	t.Run("failed to get multi signer by epoch", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgsSignatureHolder()
+
+		expectedErr := errors.New("expected error")
+		args.MultiSignerContainer = &cryptoMocks.MultiSignerContainerStub{
+			GetMultiSignerCalled: func(epoch uint32) (crypto.MultiSigner, error) {
+				if epoch == 0 {
+					return &cryptoMocks.MultisignerMock{}, nil
+				}
+
+				return nil, expectedErr
+			},
+		}
+
+		signer, err := signing.NewSignatureHolder(args)
+		require.Nil(t, err)
+
+		err = signer.SetMultiSignerByEpoch(2)
+		require.Equal(t, expectedErr, err)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgsSignatureHolder()
+
+		signer, err := signing.NewSignatureHolder(args)
+		require.Nil(t, err)
+
+		err = signer.SetMultiSignerByEpoch(2)
 		require.Nil(t, err)
 	})
 }

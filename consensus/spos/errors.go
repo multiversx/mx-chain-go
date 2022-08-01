@@ -222,3 +222,6 @@ var ErrNilNodeRedundancyHandler = errors.New("nil node redundancy handler")
 
 // ErrNilScheduledProcessor signals that the provided scheduled processor is nil
 var ErrNilScheduledProcessor = errors.New("nil scheduled processor")
+
+// ErrNilSignatureHandler signals that provided signature handler is nil
+var ErrNilSignatureHandler = errors.New("nil signature handler")
