@@ -1,8 +1,9 @@
 package transactionsfee
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/data"
 	"math/big"
+
+	"github.com/ElrondNetwork/elrond-go-core/data"
 )
 
 // FeesProcessorHandler defines the interface for the transaction fees processor

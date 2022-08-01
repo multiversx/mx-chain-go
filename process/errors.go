@@ -576,7 +576,7 @@ var ErrHeaderIsBlackListed = errors.New("header is black listed")
 // ErrNilEconomicsData signals that nil economics data has been provided
 var ErrNilEconomicsData = errors.New("nil economics data")
 
-// ErrNilOutportDataProvider signals that a nil outport provided has been provided
+// ErrNilOutportDataProvider signals that a nil outport data provider has been given
 var ErrNilOutportDataProvider = errors.New("nil outport data  provider")
 
 // ErrZeroMaxComputableRounds signals that a value of zero was provided on the maxComputableRounds

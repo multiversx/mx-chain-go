@@ -25,6 +25,14 @@ type ArgOutportDataProvider struct {
 	EconomicsData            EconomicsDataHandler
 }
 
+type ArgPrepareOutportSaveBlockData struct {
+	HeaderHash             []byte
+	Header                 data.HeaderHandler
+	Body                   data.BodyHandler
+	RewardsTxs             map[string]data.TransactionHandler
+	NotarizedHeadersHashes []string
+}
+
 type outportDataProvider struct {
 	shardID                  uint32
 	alteredAccountsProvider  AlteredAccountsProviderHandler
@@ -48,21 +56,16 @@ func NewOutportDataProvider(arg ArgOutportDataProvider) (*outportDataProvider, e
 	}, nil
 }
 
-func (odp *outportDataProvider) PrepareOutportSaveBlockData(
-	headerHash []byte,
-	body data.BodyHandler,
-	header data.HeaderHandler,
-	rewardsTxs map[string]data.TransactionHandler,
-	notarizedHeadersHashes []string,
-) (*outportcore.ArgsSaveBlockData, error) {
-	if check.IfNil(header) {
+// PrepareOutportSaveBlockData will prepare the provided data in a format that will be accepted by an outport driver
+func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutportSaveBlockData) (*outportcore.ArgsSaveBlockData, error) {
+	if check.IfNil(arg.Header) {
 		return nil, errNilHeaderHandler
 	}
-	if check.IfNil(body) {
+	if check.IfNil(arg.Body) {
 		return nil, errNilBodyHandler
 	}
 
-	pool := odp.createPool(rewardsTxs)
+	pool := odp.createPool(arg.RewardsTxs)
 	err := odp.transactionsFeeProcessor.PutFeeAndGasUsed(pool)
 	if err != nil {
 		return nil, fmt.Errorf("transactionsFeeProcessor.PutFeeAndGasUsed %w", err)
@@ -73,15 +76,15 @@ func (odp *outportDataProvider) PrepareOutportSaveBlockData(
 		return nil, fmt.Errorf("alteredAccountsProvider.ExtractAlteredAccountsFromPool %s", err)
 	}
 
-	signersIndexes, err := odp.getSignersIndexes(header)
+	signersIndexes, err := odp.getSignersIndexes(arg.Header)
 	if err != nil {
 		return nil, err
 	}
 
 	return &outportcore.ArgsSaveBlockData{
-		HeaderHash:     headerHash,
-		Body:           body,
-		Header:         header,
+		HeaderHash:     arg.HeaderHash,
+		Body:           arg.Body,
+		Header:         arg.Header,
 		SignersIndexes: signersIndexes,
 		HeaderGasConsumption: outportcore.HeaderGasConsumption{
 			GasProvided:    odp.gasConsumedProvider.TotalGasProvidedWithScheduled(),
@@ -89,7 +92,7 @@ func (odp *outportDataProvider) PrepareOutportSaveBlockData(
 			GasPenalized:   odp.gasConsumedProvider.TotalGasPenalized(),
 			MaxGasPerBlock: odp.economicsData.MaxGasLimitPerBlock(odp.shardID),
 		},
-		NotarizedHeadersHashes: notarizedHeadersHashes,
+		NotarizedHeadersHashes: arg.NotarizedHeadersHashes,
 		TransactionsPool:       pool,
 		AlteredAccounts:        alteredAccounts,
 	}, nil

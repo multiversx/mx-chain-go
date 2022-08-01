@@ -1,31 +1,23 @@
 package testscommon
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/data"
 	outportcore "github.com/ElrondNetwork/elrond-go-core/data/outport"
+	"github.com/ElrondNetwork/elrond-go/outport/process"
 )
 
 // OutportDataProviderStub -
 type OutportDataProviderStub struct {
 	PrepareOutportSaveBlockDataCalled func(
-		headerHash []byte,
-		body data.BodyHandler,
-		header data.HeaderHandler,
-		rewardsTxs map[string]data.TransactionHandler,
-		notarizedHeadersHashes []string,
+		arg process.ArgPrepareOutportSaveBlockData,
 	) (*outportcore.ArgsSaveBlockData, error)
 }
 
 // PrepareOutportSaveBlockData -
 func (a *OutportDataProviderStub) PrepareOutportSaveBlockData(
-	headerHash []byte,
-	body data.BodyHandler,
-	header data.HeaderHandler,
-	rewardsTxs map[string]data.TransactionHandler,
-	notarizedHeadersHashes []string,
+	arg process.ArgPrepareOutportSaveBlockData,
 ) (*outportcore.ArgsSaveBlockData, error) {
 	if a.PrepareOutportSaveBlockDataCalled != nil {
-		return a.PrepareOutportSaveBlockDataCalled(headerHash, body, header, rewardsTxs, notarizedHeadersHashes)
+		return a.PrepareOutportSaveBlockDataCalled(arg)
 	}
 
 	return nil, nil

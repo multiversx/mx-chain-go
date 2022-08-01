@@ -17,6 +17,7 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	processOutport "github.com/ElrondNetwork/elrond-go/outport/process"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
@@ -615,7 +616,13 @@ func (mp *metaProcessor) indexBlock(
 	}
 
 	log.Debug("preparing to index block", "hash", headerHash, "nonce", metaBlock.GetNonce(), "round", metaBlock.GetRound())
-	argSaveBlock, err := mp.outportDataProvider.PrepareOutportSaveBlockData(headerHash, body, metaBlock, rewardsTxs, notarizedHeadersHashes)
+	argSaveBlock, err := mp.outportDataProvider.PrepareOutportSaveBlockData(processOutport.ArgPrepareOutportSaveBlockData{
+		HeaderHash:             headerHash,
+		Header:                 metaBlock,
+		Body:                   body,
+		RewardsTxs:             rewardsTxs,
+		NotarizedHeadersHashes: notarizedHeadersHashes,
+	})
 	if err != nil {
 		log.Warn("metaProcessor.indexBlock cannot prepare argSaveBlock", "error", err.Error())
 		return

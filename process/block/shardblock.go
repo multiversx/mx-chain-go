@@ -15,6 +15,7 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	processOutport "github.com/ElrondNetwork/elrond-go/outport/process"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
@@ -596,7 +597,11 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 	}
 
 	log.Debug("preparing to index block", "hash", headerHash, "nonce", header.GetNonce(), "round", header.GetRound())
-	argSaveBlock, err := sp.outportDataProvider.PrepareOutportSaveBlockData(headerHash, body, header, nil, nil)
+	argSaveBlock, err := sp.outportDataProvider.PrepareOutportSaveBlockData(processOutport.ArgPrepareOutportSaveBlockData{
+		HeaderHash: headerHash,
+		Header:     header,
+		Body:       body,
+	})
 	if err != nil {
 		log.Warn("shardProcessor.indexBlockIfNeeded cannot prepare argSaveBlock", "error", err.Error())
 		return

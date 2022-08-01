@@ -57,6 +57,7 @@ func checkArg(arg ArgTransactionsFeeProcessor) error {
 	return nil
 }
 
+// PutFeeAndGasUsed will compute and set in transactions pool fee and gas used
 func (tep *transactionsFeeProcessor) PutFeeAndGasUsed(pool *outportcore.Pool) error {
 	tep.prepareInvalidTxs(pool)
 

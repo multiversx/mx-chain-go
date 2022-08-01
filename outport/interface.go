@@ -3,6 +3,7 @@ package outport
 import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	outportcore "github.com/ElrondNetwork/elrond-go-core/data/outport"
+	"github.com/ElrondNetwork/elrond-go/outport/process"
 )
 
 // Driver is an interface for saving node specific data to other storage.
@@ -37,12 +38,6 @@ type OutportHandler interface {
 
 // DataProviderOutport is an interface that defines what an implementation of data provider outport should be able to do
 type DataProviderOutport interface {
-	PrepareOutportSaveBlockData(
-		headerHash []byte,
-		body data.BodyHandler,
-		header data.HeaderHandler,
-		rewardsTxs map[string]data.TransactionHandler,
-		notarizedHeadersHashes []string,
-	) (*outportcore.ArgsSaveBlockData, error)
+	PrepareOutportSaveBlockData(arg process.ArgPrepareOutportSaveBlockData) (*outportcore.ArgsSaveBlockData, error)
 	IsInterfaceNil() bool
 }

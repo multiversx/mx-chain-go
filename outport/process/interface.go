@@ -26,7 +26,7 @@ type GasConsumedProvider interface {
 	IsInterfaceNil() bool
 }
 
-// EconomicsDataHandler  defines the functionality needed for economics data
+// EconomicsDataHandler defines the functionality needed for economics data
 type EconomicsDataHandler interface {
 	transactionsfee.FeesProcessorHandler
 	MaxGasLimitPerBlock(shardID uint32) uint64

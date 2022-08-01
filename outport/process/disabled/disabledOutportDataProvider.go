@@ -1,8 +1,8 @@
 package disabled
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/data"
 	outportcore "github.com/ElrondNetwork/elrond-go-core/data/outport"
+	"github.com/ElrondNetwork/elrond-go/outport/process"
 )
 
 type disabledOutportDataProvider struct{}
@@ -13,7 +13,7 @@ func NewDisabledOutportDataProvider() *disabledOutportDataProvider {
 }
 
 // PrepareOutportSaveBlockData wil do nothing
-func (d *disabledOutportDataProvider) PrepareOutportSaveBlockData(_ []byte, _ data.BodyHandler, _ data.HeaderHandler, _ map[string]data.TransactionHandler, _ []string) (*outportcore.ArgsSaveBlockData, error) {
+func (d *disabledOutportDataProvider) PrepareOutportSaveBlockData(_ process.ArgPrepareOutportSaveBlockData) (*outportcore.ArgsSaveBlockData, error) {
 	return &outportcore.ArgsSaveBlockData{}, nil
 }
 

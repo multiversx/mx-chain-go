@@ -24,6 +24,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/blockchain"
+	processOutport "github.com/ElrondNetwork/elrond-go/outport/process"
 	"github.com/ElrondNetwork/elrond-go/process"
 	blproc "github.com/ElrondNetwork/elrond-go/process/block"
 	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
@@ -2215,7 +2216,7 @@ func TestShardProcessor_CommitBlockCallsIndexerMethods(t *testing.T) {
 		},
 	}
 	arguments.OutportDataProvider = &testscommon.OutportDataProviderStub{
-		PrepareOutportSaveBlockDataCalled: func(headerHash []byte, body data.BodyHandler, header data.HeaderHandler, rewardsTxs map[string]data.TransactionHandler, notarizedHeadersHashes []string) (*outportcore.ArgsSaveBlockData, error) {
+		PrepareOutportSaveBlockDataCalled: func(_ processOutport.ArgPrepareOutportSaveBlockData) (*outportcore.ArgsSaveBlockData, error) {
 			return &outportcore.ArgsSaveBlockData{}, nil
 		}}
 
