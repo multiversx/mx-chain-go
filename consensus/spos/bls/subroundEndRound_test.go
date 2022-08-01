@@ -8,13 +8,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-crypto"
+	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/bls"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/blockchain"
-	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -322,12 +321,14 @@ func TestSubroundEndRound_DoEndRoundJobErrAggregatingSigShouldFail(t *testing.T)
 	t.Parallel()
 	container := mock.InitConsensusCore()
 	sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
-	multiSignerMock := mock.InitMultiSignerMock()
-	multiSignerMock.AggregateSigsCalled = func(pubKeysSigners [][]byte, signatures [][]byte) ([]byte, error) {
-		return nil, crypto.ErrNilHasher
-	}
 
-	container.SetMultiSignerContainer(cryptoMocks.NewMultiSignerContainerMock(multiSignerMock))
+	signatureHandler := &mock.SignatureHandlerStub{
+		AggregateSigsCalled: func(bitmap []byte) ([]byte, error) {
+			return nil, crypto.ErrNilHasher
+		},
+	}
+	container.SetSignatureHandler(signatureHandler)
+
 	sr.Header = &block.Header{}
 
 	sr.SetSelfPubKey("A")

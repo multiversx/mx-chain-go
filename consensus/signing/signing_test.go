@@ -12,11 +12,11 @@ import (
 
 func createMockArgsSignatureHolder() signing.ArgsSignatureHolder {
 	return signing.ArgsSignatureHolder{
-		PubKeys:      []string{"pubkey1"},
-		PrivKey:      &cryptoMocks.PrivateKeyStub{},
-		SingleSigner: &cryptoMocks.SingleSignerStub{},
-		MultiSigner:  &cryptoMocks.MultiSignerNewStub{},
-		KeyGenerator: &cryptoMocks.KeyGenStub{},
+		PubKeys:              []string{"pubkey1"},
+		PrivKey:              &cryptoMocks.PrivateKeyStub{},
+		SingleSigner:         &cryptoMocks.SingleSignerStub{},
+		MultiSignerContainer: &cryptoMocks.MultiSignerContainerMock{},
+		KeyGenerator:         &cryptoMocks.KeyGenStub{},
 	}
 }
 
@@ -38,11 +38,11 @@ func TestNewSigner(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgsSignatureHolder()
-		args.MultiSigner = nil
+		args.MultiSignerContainer = nil
 
 		signer, err := signing.NewSignatureHolder(args)
 		require.Nil(t, signer)
-		require.Equal(t, signing.ErrNilMultiSigner, err)
+		require.Equal(t, signing.ErrNilMultiSignerContainer, err)
 	})
 
 	t.Run("nil key generator", func(t *testing.T) {
@@ -176,11 +176,12 @@ func TestCreateSignatureShare(t *testing.T) {
 		args := createMockArgsSignatureHolder()
 
 		expectedErr := errors.New("expected error")
-		args.MultiSigner = &cryptoMocks.MultiSignerNewStub{
+		multiSigner := &cryptoMocks.MultiSignerNewStub{
 			CreateSignatureShareCalled: func(privateKeyBytes, message []byte) ([]byte, error) {
 				return nil, expectedErr
 			},
 		}
+		args.MultiSignerContainer = cryptoMocks.NewMultiSignerContainerMock(multiSigner)
 
 		signer, _ := signing.NewSignatureHolder(args)
 		sigShare, err := signer.CreateSignatureShare([]byte("msg1"), selfIndex)
@@ -194,11 +195,13 @@ func TestCreateSignatureShare(t *testing.T) {
 		args := createMockArgsSignatureHolder()
 
 		expectedSigShare := []byte("sigShare")
-		args.MultiSigner = &cryptoMocks.MultiSignerNewStub{
+		multiSigner := &cryptoMocks.MultiSignerNewStub{
 			CreateSignatureShareCalled: func(privateKeyBytes, message []byte) ([]byte, error) {
 				return expectedSigShare, nil
 			},
 		}
+		args.MultiSignerContainer = cryptoMocks.NewMultiSignerContainerMock(multiSigner)
+
 		signer, _ := signing.NewSignatureHolder(args)
 		sigShare, err := signer.CreateSignatureShare([]byte("msg1"), selfIndex)
 		require.Nil(t, err)
@@ -235,11 +238,13 @@ func TestVerifySignatureShare(t *testing.T) {
 		args.PubKeys = []string{"pk1", "pk2"}
 
 		expectedErr := errors.New("expected error")
-		args.MultiSigner = &cryptoMocks.MultiSignerNewStub{
+		multiSigner := &cryptoMocks.MultiSignerNewStub{
 			VerifySignatureShareCalled: func(publicKey, message, sig []byte) error {
 				return expectedErr
 			},
 		}
+		args.MultiSignerContainer = cryptoMocks.NewMultiSignerContainerMock(multiSigner)
+
 		signer, _ := signing.NewSignatureHolder(args)
 
 		err := signer.VerifySignatureShare(uint16(1), []byte("sigShare"), msg)
@@ -252,11 +257,13 @@ func TestVerifySignatureShare(t *testing.T) {
 		args := createMockArgsSignatureHolder()
 		args.PubKeys = []string{"pk1", "pk2"}
 
-		args.MultiSigner = &cryptoMocks.MultiSignerNewStub{
+		multiSigner := &cryptoMocks.MultiSignerNewStub{
 			VerifySignatureShareCalled: func(publicKey, message, sig []byte) error {
 				return nil
 			},
 		}
+		args.MultiSignerContainer = cryptoMocks.NewMultiSignerContainerMock(multiSigner)
+
 		signer, _ := signing.NewSignatureHolder(args)
 
 		err := signer.VerifySignatureShare(uint16(1), []byte("sigShare"), msg)
@@ -283,11 +290,13 @@ func TestStoreSignatureShare(t *testing.T) {
 
 		args := createMockArgsSignatureHolder()
 		args.PubKeys = []string{"pk1", "pk2", "pk3", "pk4"}
-		args.MultiSigner = &cryptoMocks.MultiSignerNewStub{
+
+		multiSigner := &cryptoMocks.MultiSignerNewStub{
 			CreateSignatureShareCalled: func(privateKeyBytes, message []byte) ([]byte, error) {
 				return []byte("sigshare"), nil
 			},
 		}
+		args.MultiSignerContainer = cryptoMocks.NewMultiSignerContainerMock(multiSigner)
 
 		signer, _ := signing.NewSignatureHolder(args)
 
@@ -402,11 +411,12 @@ func TestAggregateSigs(t *testing.T) {
 		args.PubKeys = []string{"pk1", "pk2", "pk3", "pk4"}
 
 		expectedErr := errors.New("expected error")
-		args.MultiSigner = &cryptoMocks.MultiSignerNewStub{
+		multiSigner := &cryptoMocks.MultiSignerNewStub{
 			AggregateSigsCalled: func(pubKeysSigners, signatures [][]byte) ([]byte, error) {
 				return nil, expectedErr
 			},
 		}
+		args.MultiSignerContainer = cryptoMocks.NewMultiSignerContainerMock(multiSigner)
 
 		signer, _ := signing.NewSignatureHolder(args)
 
@@ -429,13 +439,14 @@ func TestAggregateSigs(t *testing.T) {
 		args.PubKeys = []string{"pk1", "pk2", "pk3", "pk4"}
 
 		expectedAggSig := []byte("agg sig")
-		args.MultiSigner = &cryptoMocks.MultiSignerNewStub{
+		multiSigner := &cryptoMocks.MultiSignerNewStub{
 			AggregateSigsCalled: func(pubKeysSigners, signatures [][]byte) ([]byte, error) {
 				require.Equal(t, len(args.PubKeys)-1, len(pubKeysSigners))
 				require.Equal(t, len(args.PubKeys)-1, len(signatures))
 				return expectedAggSig, nil
 			},
 		}
+		args.MultiSignerContainer = cryptoMocks.NewMultiSignerContainerMock(multiSigner)
 
 		signer, _ := signing.NewSignatureHolder(args)
 
@@ -492,11 +503,12 @@ func TestVerify(t *testing.T) {
 		args.PubKeys = []string{"pk1", "pk2", "pk3", "pk4"}
 
 		expectedErr := errors.New("expected error")
-		args.MultiSigner = &cryptoMocks.MultiSignerNewStub{
+		multiSigner := &cryptoMocks.MultiSignerNewStub{
 			VerifyAggregatedSigCalled: func(pubKeysSigners [][]byte, message, aggSig []byte) error {
 				return expectedErr
 			},
 		}
+		args.MultiSignerContainer = cryptoMocks.NewMultiSignerContainerMock(multiSigner)
 
 		signer, _ := signing.NewSignatureHolder(args)
 
@@ -515,13 +527,14 @@ func TestVerify(t *testing.T) {
 
 		expAggSig := []byte("aggSig")
 
-		args.MultiSigner = &cryptoMocks.MultiSignerNewStub{
+		multiSigner := &cryptoMocks.MultiSignerNewStub{
 			VerifyAggregatedSigCalled: func(pubKeysSigners [][]byte, message, aggSig []byte) error {
 				require.Equal(t, len(args.PubKeys)-1, len(pubKeysSigners))
 				require.Equal(t, expAggSig, aggSig)
 				return nil
 			},
 		}
+		args.MultiSignerContainer = cryptoMocks.NewMultiSignerContainerMock(multiSigner)
 
 		signer, _ := signing.NewSignatureHolder(args)
 

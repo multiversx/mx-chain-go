@@ -38,7 +38,7 @@ type ConsensusCore struct {
 	fallbackHeaderValidator       consensus.FallbackHeaderValidator
 	nodeRedundancyHandler         consensus.NodeRedundancyHandler
 	scheduledProcessor            consensus.ScheduledProcessor
-	signatureHandler              SignatureHandler
+	signatureHandler              consensus.SignatureHandler
 }
 
 // ConsensusCoreArgs store all arguments that are needed to create a ConsensusCore object
@@ -64,7 +64,7 @@ type ConsensusCoreArgs struct {
 	FallbackHeaderValidator       consensus.FallbackHeaderValidator
 	NodeRedundancyHandler         consensus.NodeRedundancyHandler
 	ScheduledProcessor            consensus.ScheduledProcessor
-	SignatureHandler              SignatureHandler
+	SignatureHandler              consensus.SignatureHandler
 }
 
 // NewConsensusCore creates a new ConsensusCore instance
@@ -210,7 +210,7 @@ func (cc *ConsensusCore) ScheduledProcessor() consensus.ScheduledProcessor {
 }
 
 // SignatureHandler will return the signature handler component
-func (cc *ConsensusCore) SignatureHandler() SignatureHandler {
+func (cc *ConsensusCore) SignatureHandler() consensus.SignatureHandler {
 	return cc.signatureHandler
 }
 

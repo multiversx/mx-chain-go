@@ -147,3 +147,17 @@ type ScheduledProcessor interface {
 	IsProcessedOKWithTimeout() bool
 	IsInterfaceNil() bool
 }
+
+// SignatureHandler defines the behaviour of a component that handles signatures in consensus
+type SignatureHandler interface {
+	Reset(pubKeys []string) error
+	SetMultiSignerByEpoch(epoch uint32) error
+	CreateSignatureShare(msg []byte, index uint16) ([]byte, error)
+	StoreSignatureShare(index uint16, sig []byte) error
+	SignatureShare(index uint16) ([]byte, error)
+	VerifySignatureShare(index uint16, sig []byte, msg []byte) error
+	AggregateSigs(bitmap []byte) ([]byte, error)
+	SetAggregatedSig([]byte) error
+	Verify(msg []byte, bitmap []byte) error
+	IsInterfaceNil() bool
+}

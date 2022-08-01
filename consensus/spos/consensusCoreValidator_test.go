@@ -32,6 +32,7 @@ func initConsensusDataContainer() *ConsensusCore {
 	fallbackHeaderValidator := &testscommon.FallBackHeaderValidatorStub{}
 	nodeRedundancyHandler := &mock.NodeRedundancyHandlerStub{}
 	multiSignerContainer := cryptoMocks.NewMultiSignerContainerMock(multiSignerMock)
+	signatureHandler := &mock.SignatureHandlerStub{}
 
 	return &ConsensusCore{
 		blockChain:              blockChain,
@@ -53,6 +54,7 @@ func initConsensusDataContainer() *ConsensusCore {
 		headerSigVerifier:       headerSigVerifier,
 		fallbackHeaderValidator: fallbackHeaderValidator,
 		nodeRedundancyHandler:   nodeRedundancyHandler,
+		signatureHandler:        signatureHandler,
 	}
 }
 

@@ -29,8 +29,8 @@ var ErrNilPublicKeys = errors.New("public keys are nil")
 // ErrNilSingleSigner singals that a nil single signer has been provided
 var ErrNilSingleSigner = errors.New("single signer is nil")
 
-// ErrNilMultiSigner singals that a nil multi signer has been provided
-var ErrNilMultiSigner = errors.New("multi signer is nil")
+// ErrNilMultiSignerContainer singals that a nil multi signer container has been provided
+var ErrNilMultiSignerContainer = errors.New("multi signer container is nil")
 
 // ErrIndexOutOfBounds is raised when an out of bound index is used
 var ErrIndexOutOfBounds = errors.New("index is out of bounds")

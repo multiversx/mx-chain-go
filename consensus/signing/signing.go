@@ -5,15 +5,16 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
+	cryptoCommon "github.com/ElrondNetwork/elrond-go/common/crypto"
 )
 
 // ArgsSignatureHolder defines the arguments needed to create a new signature holder component
 type ArgsSignatureHolder struct {
-	PubKeys      []string
-	PrivKey      crypto.PrivateKey
-	SingleSigner crypto.SingleSigner
-	MultiSigner  crypto.MultiSigner
-	KeyGenerator crypto.KeyGenerator
+	PubKeys              []string
+	PrivKey              crypto.PrivateKey
+	SingleSigner         crypto.SingleSigner
+	MultiSignerContainer cryptoCommon.MultiSignerContainer
+	KeyGenerator         crypto.KeyGenerator
 }
 
 type signatureHolderData struct {
@@ -24,11 +25,13 @@ type signatureHolderData struct {
 }
 
 type signatureHolder struct {
-	data           *signatureHolderData
-	mutSigningData sync.RWMutex
-	singleSigner   crypto.SingleSigner
-	multiSigner    crypto.MultiSigner
-	keyGen         crypto.KeyGenerator
+	data                 *signatureHolderData
+	mutSigningData       sync.RWMutex
+	singleSigner         crypto.SingleSigner
+	multiSignerContainer cryptoCommon.MultiSignerContainer
+	multiSigner          crypto.MultiSigner
+	mutMultiSigner       sync.RWMutex
+	keyGen               crypto.KeyGenerator
 }
 
 // NewSignatureHolder will create a new signature holder component
@@ -51,12 +54,18 @@ func NewSignatureHolder(args ArgsSignatureHolder) (*signatureHolder, error) {
 		sigShares: sigShares,
 	}
 
+	multiSigner, err := args.MultiSignerContainer.GetMultiSigner(0)
+	if err != nil {
+		return nil, err
+	}
+
 	return &signatureHolder{
-		data:           data,
-		mutSigningData: sync.RWMutex{},
-		singleSigner:   args.SingleSigner,
-		multiSigner:    args.MultiSigner,
-		keyGen:         args.KeyGenerator,
+		data:                 data,
+		mutSigningData:       sync.RWMutex{},
+		singleSigner:         args.SingleSigner,
+		multiSignerContainer: args.MultiSignerContainer,
+		multiSigner:          multiSigner,
+		keyGen:               args.KeyGenerator,
 	}, nil
 }
 
@@ -64,8 +73,8 @@ func checkArgs(args ArgsSignatureHolder) error {
 	if check.IfNil(args.SingleSigner) {
 		return ErrNilSingleSigner
 	}
-	if check.IfNil(args.MultiSigner) {
-		return ErrNilMultiSigner
+	if check.IfNil(args.MultiSignerContainer) {
+		return ErrNilMultiSignerContainer
 	}
 	if check.IfNil(args.PrivKey) {
 		return ErrNilPrivateKey
@@ -87,11 +96,11 @@ func (sh *signatureHolder) Create(pubKeys []string, index uint16) (*signatureHol
 	sh.mutSigningData.RUnlock()
 
 	args := ArgsSignatureHolder{
-		PubKeys:      pubKeys,
-		PrivKey:      privKey,
-		SingleSigner: sh.singleSigner,
-		MultiSigner:  sh.multiSigner,
-		KeyGenerator: sh.keyGen,
+		PubKeys:              pubKeys,
+		PrivKey:              privKey,
+		SingleSigner:         sh.singleSigner,
+		MultiSignerContainer: sh.multiSignerContainer,
+		KeyGenerator:         sh.keyGen,
 	}
 	return NewSignatureHolder(args)
 }
@@ -125,6 +134,20 @@ func (sh *signatureHolder) Reset(pubKeys []string) error {
 	return nil
 }
 
+func (sh *signatureHolder) SetMultiSignerByEpoch(epoch uint32) error {
+	multiSigner, err := sh.multiSignerContainer.GetMultiSigner(epoch)
+	if err != nil {
+		return err
+	}
+
+	sh.mutMultiSigner.RLock()
+	defer sh.mutSigningData.RUnlock()
+
+	sh.multiSigner = multiSigner
+
+	return nil
+}
+
 // CreateSignatureShare returns a signature over a message
 func (sh *signatureHolder) CreateSignatureShare(message []byte, selfIndex uint16) ([]byte, error) {
 	if message == nil {
@@ -139,10 +162,12 @@ func (sh *signatureHolder) CreateSignatureShare(message []byte, selfIndex uint16
 		return nil, err
 	}
 
+	sh.mutMultiSigner.RLock()
 	sigShareBytes, err := sh.multiSigner.CreateSignatureShare(privKeyBytes, message)
 	if err != nil {
 		return nil, err
 	}
+	sh.mutMultiSigner.RUnlock()
 
 	sh.data.sigShares[selfIndex] = sigShareBytes
 
@@ -164,6 +189,9 @@ func (sh *signatureHolder) VerifySignatureShare(index uint16, sig []byte, messag
 	}
 
 	pubKey := sh.data.pubKeys[index]
+
+	sh.mutMultiSigner.RLock()
+	defer sh.mutMultiSigner.RUnlock()
 
 	return sh.multiSigner.VerifySignatureShare(pubKey, message, sig)
 }
@@ -246,6 +274,9 @@ func (sh *signatureHolder) AggregateSigs(bitmap []byte) ([]byte, error) {
 		pubKeysSigners = append(pubKeysSigners, sh.data.pubKeys[i])
 	}
 
+	sh.mutMultiSigner.RLock()
+	defer sh.mutMultiSigner.RUnlock()
+
 	return sh.multiSigner.AggregateSigs(pubKeysSigners, signatures)
 }
 
@@ -284,6 +315,9 @@ func (sh *signatureHolder) Verify(message []byte, bitmap []byte) error {
 
 		pubKeys = append(pubKeys, sh.data.pubKeys[i])
 	}
+
+	sh.mutMultiSigner.RLock()
+	defer sh.mutMultiSigner.RUnlock()
 
 	return sh.multiSigner.VerifyAggregatedSig(pubKeys, message, sh.data.aggSig)
 }

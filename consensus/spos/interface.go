@@ -64,7 +64,7 @@ type ConsensusCoreHandler interface {
 	// ScheduledProcessor returns the scheduled txs processor
 	ScheduledProcessor() consensus.ScheduledProcessor
 	// SignatureHandler returns the signature handler component
-	SignatureHandler() SignatureHandler
+	SignatureHandler() consensus.SignatureHandler
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }
@@ -156,18 +156,5 @@ type HeaderSigVerifier interface {
 // ConsensusDataIndexer defines the actions that a consensus data indexer has to do
 type ConsensusDataIndexer interface {
 	SaveRoundsInfo(roundsInfos []*indexer.RoundInfo)
-	IsInterfaceNil() bool
-}
-
-// SignatureHandler defines the behaviour of a component that handles signatures in consensus
-type SignatureHandler interface {
-	Reset(pubKeys []string) error
-	CreateSignatureShare(msg []byte, index uint16) ([]byte, error)
-	StoreSignatureShare(index uint16, sig []byte) error
-	SignatureShare(index uint16) ([]byte, error)
-	VerifySignatureShare(index uint16, sig []byte, msg []byte) error
-	AggregateSigs(bitmap []byte) ([]byte, error)
-	SetAggregatedSig([]byte) error
-	Verify(msg []byte, bitmap []byte) error
 	IsInterfaceNil() bool
 }
