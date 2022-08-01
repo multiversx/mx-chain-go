@@ -1,8 +1,7 @@
 package cryptoMocks
 
-// MultiSignerNewStub implements crypto multisigner
-// TODO: change name
-type MultiSignerNewStub struct {
+// MultiSignerStub implements crypto multisigner
+type MultiSignerStub struct {
 	VerifyAggregatedSigCalled  func(pubKeysSigners [][]byte, message []byte, aggSig []byte) error
 	CreateSignatureShareCalled func(privateKeyBytes []byte, message []byte) ([]byte, error)
 	VerifySignatureShareCalled func(publicKey []byte, message []byte, sig []byte) error
@@ -10,7 +9,7 @@ type MultiSignerNewStub struct {
 }
 
 // VerifyAggregatedSig -
-func (stub *MultiSignerNewStub) VerifyAggregatedSig(pubKeysSigners [][]byte, message []byte, aggSig []byte) error {
+func (stub *MultiSignerStub) VerifyAggregatedSig(pubKeysSigners [][]byte, message []byte, aggSig []byte) error {
 	if stub.VerifyAggregatedSigCalled != nil {
 		return stub.VerifyAggregatedSigCalled(pubKeysSigners, message, aggSig)
 	}
@@ -19,7 +18,7 @@ func (stub *MultiSignerNewStub) VerifyAggregatedSig(pubKeysSigners [][]byte, mes
 }
 
 // CreateSignatureShare -
-func (stub *MultiSignerNewStub) CreateSignatureShare(privateKeyBytes []byte, message []byte) ([]byte, error) {
+func (stub *MultiSignerStub) CreateSignatureShare(privateKeyBytes []byte, message []byte) ([]byte, error) {
 	if stub.CreateSignatureShareCalled != nil {
 		return stub.CreateSignatureShareCalled(privateKeyBytes, message)
 	}
@@ -28,7 +27,7 @@ func (stub *MultiSignerNewStub) CreateSignatureShare(privateKeyBytes []byte, mes
 }
 
 // VerifySignatureShare -
-func (stub *MultiSignerNewStub) VerifySignatureShare(publicKey []byte, message []byte, sig []byte) error {
+func (stub *MultiSignerStub) VerifySignatureShare(publicKey []byte, message []byte, sig []byte) error {
 	if stub.VerifySignatureShareCalled != nil {
 		return stub.VerifySignatureShareCalled(publicKey, message, sig)
 	}
@@ -37,7 +36,7 @@ func (stub *MultiSignerNewStub) VerifySignatureShare(publicKey []byte, message [
 }
 
 // AggregateSigs -
-func (stub *MultiSignerNewStub) AggregateSigs(pubKeysSigners [][]byte, signatures [][]byte) ([]byte, error) {
+func (stub *MultiSignerStub) AggregateSigs(pubKeysSigners [][]byte, signatures [][]byte) ([]byte, error) {
 	if stub.AggregateSigsCalled != nil {
 		return stub.AggregateSigsCalled(pubKeysSigners, signatures)
 	}
@@ -46,6 +45,6 @@ func (stub *MultiSignerNewStub) AggregateSigs(pubKeysSigners [][]byte, signature
 }
 
 // IsInterfaceNil -
-func (stub *MultiSignerNewStub) IsInterfaceNil() bool {
+func (stub *MultiSignerStub) IsInterfaceNil() bool {
 	return stub == nil
 }

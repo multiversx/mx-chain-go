@@ -635,9 +635,14 @@ func (ccf *consensusComponentsFactory) createConsensusTopic(cc *consensusCompone
 }
 
 func (ccf *consensusComponentsFactory) createBlsSignatureHandler() (consensus.SignatureHandler, error) {
+	privKeyBytes, err := ccf.cryptoComponents.PrivateKey().ToByteArray()
+	if err != nil {
+		return nil, err
+	}
+
 	signatureHolderArgs := signing.ArgsSignatureHolder{
 		PubKeys:              []string{ccf.cryptoComponents.PublicKeyString()},
-		PrivKey:              ccf.cryptoComponents.PrivateKey(),
+		PrivKeyBytes:         privKeyBytes,
 		MultiSignerContainer: ccf.cryptoComponents.MultiSignerContainer(),
 		KeyGenerator:         ccf.cryptoComponents.BlockSignKeyGen(),
 	}

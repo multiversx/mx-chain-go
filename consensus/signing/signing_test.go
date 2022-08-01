@@ -13,7 +13,7 @@ import (
 func createMockArgsSignatureHolder() signing.ArgsSignatureHolder {
 	return signing.ArgsSignatureHolder{
 		PubKeys:              []string{"pubkey1"},
-		PrivKey:              &cryptoMocks.PrivateKeyStub{},
+		PrivKeyBytes:         []byte("privKey"),
 		MultiSignerContainer: &cryptoMocks.MultiSignerContainerMock{},
 		KeyGenerator:         &cryptoMocks.KeyGenStub{},
 	}
@@ -48,7 +48,7 @@ func TestNewSigner(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgsSignatureHolder()
-		args.PrivKey = nil
+		args.PrivKeyBytes = nil
 
 		signer, err := signing.NewSignatureHolder(args)
 		require.Nil(t, signer)
@@ -165,7 +165,7 @@ func TestCreateSignatureShare(t *testing.T) {
 		args := createMockArgsSignatureHolder()
 
 		expectedErr := errors.New("expected error")
-		multiSigner := &cryptoMocks.MultiSignerNewStub{
+		multiSigner := &cryptoMocks.MultiSignerStub{
 			CreateSignatureShareCalled: func(privateKeyBytes, message []byte) ([]byte, error) {
 				return nil, expectedErr
 			},
@@ -184,7 +184,7 @@ func TestCreateSignatureShare(t *testing.T) {
 		args := createMockArgsSignatureHolder()
 
 		expectedSigShare := []byte("sigShare")
-		multiSigner := &cryptoMocks.MultiSignerNewStub{
+		multiSigner := &cryptoMocks.MultiSignerStub{
 			CreateSignatureShareCalled: func(privateKeyBytes, message []byte) ([]byte, error) {
 				return expectedSigShare, nil
 			},
@@ -228,7 +228,7 @@ func TestVerifySignatureShare(t *testing.T) {
 		args.PubKeys = []string{"pk1", "pk2"}
 
 		expectedErr := errors.New("expected error")
-		multiSigner := &cryptoMocks.MultiSignerNewStub{
+		multiSigner := &cryptoMocks.MultiSignerStub{
 			VerifySignatureShareCalled: func(publicKey, message, sig []byte) error {
 				return expectedErr
 			},
@@ -247,7 +247,7 @@ func TestVerifySignatureShare(t *testing.T) {
 		args := createMockArgsSignatureHolder()
 		args.PubKeys = []string{"pk1", "pk2"}
 
-		multiSigner := &cryptoMocks.MultiSignerNewStub{
+		multiSigner := &cryptoMocks.MultiSignerStub{
 			VerifySignatureShareCalled: func(publicKey, message, sig []byte) error {
 				return nil
 			},
@@ -282,7 +282,7 @@ func TestStoreSignatureShare(t *testing.T) {
 		args := createMockArgsSignatureHolder()
 		args.PubKeys = []string{"pk1", "pk2", "pk3", "pk4"}
 
-		multiSigner := &cryptoMocks.MultiSignerNewStub{
+		multiSigner := &cryptoMocks.MultiSignerStub{
 			CreateSignatureShareCalled: func(privateKeyBytes, message []byte) ([]byte, error) {
 				return []byte("sigshare"), nil
 			},
@@ -404,7 +404,7 @@ func TestAggregateSigs(t *testing.T) {
 		args.PubKeys = []string{"pk1", "pk2", "pk3", "pk4"}
 
 		expectedErr := errors.New("expected error")
-		multiSigner := &cryptoMocks.MultiSignerNewStub{
+		multiSigner := &cryptoMocks.MultiSignerStub{
 			AggregateSigsCalled: func(pubKeysSigners, signatures [][]byte) ([]byte, error) {
 				return nil, expectedErr
 			},
@@ -432,7 +432,7 @@ func TestAggregateSigs(t *testing.T) {
 		args.PubKeys = []string{"pk1", "pk2", "pk3", "pk4"}
 
 		expectedAggSig := []byte("agg sig")
-		multiSigner := &cryptoMocks.MultiSignerNewStub{
+		multiSigner := &cryptoMocks.MultiSignerStub{
 			AggregateSigsCalled: func(pubKeysSigners, signatures [][]byte) ([]byte, error) {
 				require.Equal(t, len(args.PubKeys)-1, len(pubKeysSigners))
 				require.Equal(t, len(args.PubKeys)-1, len(signatures))
@@ -497,7 +497,7 @@ func TestVerify(t *testing.T) {
 		args.PubKeys = []string{"pk1", "pk2", "pk3", "pk4"}
 
 		expectedErr := errors.New("expected error")
-		multiSigner := &cryptoMocks.MultiSignerNewStub{
+		multiSigner := &cryptoMocks.MultiSignerStub{
 			VerifyAggregatedSigCalled: func(pubKeysSigners [][]byte, message, aggSig []byte) error {
 				return expectedErr
 			},
@@ -521,7 +521,7 @@ func TestVerify(t *testing.T) {
 
 		expAggSig := []byte("aggSig")
 
-		multiSigner := &cryptoMocks.MultiSignerNewStub{
+		multiSigner := &cryptoMocks.MultiSignerStub{
 			VerifyAggregatedSigCalled: func(pubKeysSigners [][]byte, message, aggSig []byte) error {
 				require.Equal(t, len(args.PubKeys)-1, len(pubKeysSigners))
 				require.Equal(t, expAggSig, aggSig)

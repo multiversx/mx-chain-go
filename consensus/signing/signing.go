@@ -11,14 +11,14 @@ import (
 // ArgsSignatureHolder defines the arguments needed to create a new signature holder component
 type ArgsSignatureHolder struct {
 	PubKeys              []string
-	PrivKey              crypto.PrivateKey
+	PrivKeyBytes         []byte
 	MultiSignerContainer cryptoCommon.MultiSignerContainer
 	KeyGenerator         crypto.KeyGenerator
 }
 
 type signatureHolderData struct {
 	pubKeys   [][]byte
-	privKey   crypto.PrivateKey
+	privKey   []byte
 	sigShares [][]byte
 	aggSig    []byte
 }
@@ -39,14 +39,15 @@ func NewSignatureHolder(args ArgsSignatureHolder) (*signatureHolder, error) {
 
 	sigSharesSize := uint16(len(args.PubKeys))
 	sigShares := make([][]byte, sigSharesSize)
-	pk, err := convertStringsToPubKeysBytes(args.PubKeys)
+
+	pybKeyBytes, err := convertStringsToPubKeysBytes(args.PubKeys)
 	if err != nil {
 		return nil, err
 	}
 
 	data := &signatureHolderData{
-		pubKeys:   pk,
-		privKey:   args.PrivKey,
+		pubKeys:   pybKeyBytes,
+		privKey:   args.PrivKeyBytes,
 		sigShares: sigShares,
 	}
 
@@ -62,7 +63,7 @@ func checkArgs(args ArgsSignatureHolder) error {
 	if check.IfNil(args.MultiSignerContainer) {
 		return ErrNilMultiSignerContainer
 	}
-	if check.IfNil(args.PrivKey) {
+	if args.PrivKeyBytes == nil {
 		return ErrNilPrivateKey
 	}
 	if check.IfNil(args.KeyGenerator) {
@@ -83,7 +84,7 @@ func (sh *signatureHolder) Create(pubKeys []string, index uint16) (*signatureHol
 
 	args := ArgsSignatureHolder{
 		PubKeys:              pubKeys,
-		PrivKey:              privKey,
+		PrivKeyBytes:         privKey,
 		MultiSignerContainer: sh.multiSignerContainer,
 		KeyGenerator:         sh.keyGen,
 	}
@@ -128,17 +129,12 @@ func (sh *signatureHolder) CreateSignatureShare(message []byte, selfIndex uint16
 	sh.mutSigningData.Lock()
 	defer sh.mutSigningData.Unlock()
 
-	privKeyBytes, err := sh.data.privKey.ToByteArray()
-	if err != nil {
-		return nil, err
-	}
-
 	multiSigner, err := sh.multiSignerContainer.GetMultiSigner(epoch)
 	if err != nil {
 		return nil, err
 	}
 
-	sigShareBytes, err := multiSigner.CreateSignatureShare(privKeyBytes, message)
+	sigShareBytes, err := multiSigner.CreateSignatureShare(sh.data.privKey, message)
 	if err != nil {
 		return nil, err
 	}
