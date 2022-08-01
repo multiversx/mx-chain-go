@@ -52,6 +52,7 @@ func TestManagedCoreComponents_CreateShouldWork(t *testing.T) {
 	require.Nil(t, managedCoreComponents.RoundNotifier())
 	require.Nil(t, managedCoreComponents.ArwenChangeLocker())
 	require.Nil(t, managedCoreComponents.ProcessStatusHandler())
+	require.True(t, len(managedCoreComponents.HardforkTriggerPubKey()) == 0)
 
 	err = managedCoreComponents.Create()
 	require.NoError(t, err)
@@ -69,6 +70,8 @@ func TestManagedCoreComponents_CreateShouldWork(t *testing.T) {
 	require.NotNil(t, managedCoreComponents.RoundNotifier())
 	require.NotNil(t, managedCoreComponents.ArwenChangeLocker())
 	require.NotNil(t, managedCoreComponents.ProcessStatusHandler())
+	expectedBytes, _ := managedCoreComponents.ValidatorPubKeyConverter().Decode(dummyPk)
+	require.Equal(t, expectedBytes, managedCoreComponents.HardforkTriggerPubKey())
 }
 
 func TestManagedCoreComponents_Close(t *testing.T) {

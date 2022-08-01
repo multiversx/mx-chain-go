@@ -1,7 +1,6 @@
 package txScenarios
 
 import (
-	"encoding/hex"
 	"fmt"
 	"io/ioutil"
 	"testing"
@@ -10,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
+	"github.com/ElrondNetwork/elrond-go/testscommon/txDataBuilder"
 	"github.com/stretchr/testify/require"
 )
 
@@ -33,11 +33,12 @@ func TestTransaction_TransactionSCScenarios(t *testing.T) {
 
 	players := net.Wallets
 
-	// TODO rewrite the following lines with the TxDataBuilder when
-	//	merged into development
-	scCodeString := hex.EncodeToString(scCode)
 	scCodeMetadataString := "0000"
-	txData := []byte(scCodeString + "@" + hex.EncodeToString(factory.ArwenVirtualMachine) + "@" + scCodeMetadataString)
+	builder := txDataBuilder.NewBuilder().
+		Bytes(scCode).
+		Bytes(factory.ArwenVirtualMachine).
+		Str(scCodeMetadataString)
+	txData := builder.ToBytes()
 
 	// deploy contract insufficient gas limit
 	player0 := players[0]
@@ -81,7 +82,7 @@ func TestTransaction_TransactionSCScenarios(t *testing.T) {
 		time.Sleep(time.Second)
 	}
 
-	//check balance address that tried but failed to deploy contract should not be modified
+	// check balance address that tried but failed to deploy contract should not be modified
 	senderAccount := net.GetAccountHandler(player0.Address)
 	require.Equal(t, initialBalance, senderAccount.GetBalance().Uint64())
 
@@ -105,12 +106,13 @@ func TestTransaction_TransactionSCScenarios(t *testing.T) {
 	sender := players[1]
 	txData = []byte("increment")
 	numIncrement := 10
+	gasLimitForTx := net.MaxGasLimit / 5
 	for i := 0; i < numIncrement; i++ {
-		tx := net.CreateTxUint64(sender, scAddress, 0, txData)
-		tx.GasLimit = net.MaxGasLimit
+		txToSend := net.CreateTxUint64(sender, scAddress, 0, txData)
+		txToSend.GasLimit = gasLimitForTx
 
-		net.SignTx(sender, tx)
-		net.SendTxFromNode(tx, net.Nodes[1])
+		net.SignTx(sender, txToSend)
+		net.SendTxFromNode(txToSend, net.Nodes[1])
 		time.Sleep(time.Millisecond)
 	}
 

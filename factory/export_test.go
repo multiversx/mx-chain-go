@@ -67,6 +67,8 @@ func (pcf *processComponentsFactory) NewBlockProcessor(
 	txSimulatorProcessorArgs *txsimulator.ArgsTxSimulator,
 	arwenChangeLocker common.Locker,
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler,
+	processedMiniBlocksTracker process.ProcessedMiniBlocksTracker,
+	receiptsRepository ReceiptsRepository,
 ) (process.BlockProcessor, process.VirtualMachinesContainerFactory, error) {
 	blockProcessorComponents, err := pcf.newBlockProcessor(
 		requestHandler,
@@ -80,6 +82,8 @@ func (pcf *processComponentsFactory) NewBlockProcessor(
 		txSimulatorProcessorArgs,
 		arwenChangeLocker,
 		scheduledTxsExecutionHandler,
+		processedMiniBlocksTracker,
+		receiptsRepository,
 	)
 	if err != nil {
 		return nil, nil, err

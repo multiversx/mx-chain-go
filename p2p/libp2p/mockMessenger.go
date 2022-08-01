@@ -26,11 +26,12 @@ func NewMockMessenger(
 
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	p2pNode := &networkMessenger{
+		p2pSigner:  &p2pSigner{},
 		p2pHost:    NewConnectableHost(h),
 		ctx:        ctx,
 		cancelFunc: cancelFunc,
 	}
-	p2pNode.connectionsWatcher, err = factory.NewConnectionsWatcher(args.P2pConfig.Node.ConnectionWatcherType, ttlConnectionsWatcher)
+	p2pNode.printConnectionsWatcher, err = factory.NewConnectionsWatcher(args.ConnectionWatcherType, ttlConnectionsWatcher)
 	if err != nil {
 		return nil, err
 	}

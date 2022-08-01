@@ -52,6 +52,27 @@ func (netMes *networkMessenger) MapHistogram(input map[uint32]int) string {
 	return netMes.mapHistogram(input)
 }
 
+// PubsubHasTopic -
+func (netMes *networkMessenger) PubsubHasTopic(expectedTopic string) bool {
+	netMes.mutTopics.RLock()
+	topics := netMes.pb.GetTopics()
+	netMes.mutTopics.RUnlock()
+
+	for _, topic := range topics {
+		if topic == expectedTopic {
+			return true
+		}
+	}
+	return false
+}
+
+// HasProcessorForTopic -
+func (netMes *networkMessenger) HasProcessorForTopic(expectedTopic string) bool {
+	processor, found := netMes.processors[expectedTopic]
+
+	return found && processor != nil
+}
+
 // ProcessReceivedDirectMessage -
 func (ds *directSender) ProcessReceivedDirectMessage(message *pb.Message, fromConnectedPeer peer.ID) error {
 	return ds.processReceivedDirectMessage(message, fromConnectedPeer)

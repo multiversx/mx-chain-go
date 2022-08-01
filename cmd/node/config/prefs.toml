@@ -18,11 +18,16 @@
    # It is highly recommended to enable this flag on an observer (not on a validator node)
    FullArchive = false
 
-   # PreferredConnections holds an array containing the public keys of the nodes to connect with (in top of other connections)
+   # PreferredConnections holds an array containing valid ips or peer ids from nodes to connect with (in top of other connections)
    # Example:
    # PreferredConnections = [
-   #    "eb2a13ec773924df2c7d1e92ff1c08d1c3b14218dc6a780b269ef12b9c098971f71851c212103720d40f92380c306a0c1a5e606f043f034188c3fcb95170112158730e2c53cd6c79331ce73df921675d71488f6287aa1ddca297756a98239584",
-   #    "eb2a13ec773924df2c7d1e92ff1c08d1c3b14218dc6a780b269ef12b9c098971f71851c212103720d40f92380c306a0c1a5e606f043f034188c3fcb95170112158730e2c53cd6c79331ce73df921675d71488f6287aa1ddca297756a98239584"
+   #    "127.0.0.10",
+   #    "16Uiu2HAm6yvbp1oZ6zjnWsn9FdRqBSaQkbhELyaThuq48ybdorrr"
    # ]
-
    PreferredConnections = []
+
+   # ConnectionWatcherType represents the type of a connection watcher needed.
+   # possible options:
+   #  - "disabled" - no connection watching should be made
+   #  - "print" - new connection found will be printed in the log file
+   ConnectionWatcherType = "disabled"

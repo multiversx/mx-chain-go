@@ -9,7 +9,7 @@ import (
 )
 
 const maxLenMiniBlockReservedField = 10
-const maxLenMiniBlockHeaderReservedField = 16
+const maxLenMiniBlockHeaderReservedField = 32
 
 func checkBlockHeaderArgument(arg *ArgInterceptedBlockHeader) error {
 	if arg == nil {
@@ -122,20 +122,20 @@ func checkShardData(sd data.ShardDataHandler, coordinator sharding.Coordinator) 
 	return nil
 }
 
-func checkMiniblocks(miniblocks []data.MiniBlockHeaderHandler, coordinator sharding.Coordinator) error {
-	for _, miniblock := range miniblocks {
-		isWrongSenderShardId := miniblock.GetSenderShardID() >= coordinator.NumberOfShards() &&
-			miniblock.GetSenderShardID() != core.MetachainShardId &&
-			miniblock.GetSenderShardID() != core.AllShardId
-		isWrongDestinationShardId := miniblock.GetReceiverShardID() >= coordinator.NumberOfShards() &&
-			miniblock.GetReceiverShardID() != core.MetachainShardId &&
-			miniblock.GetReceiverShardID() != core.AllShardId
+func checkMiniBlocksHeaders(mbHeaders []data.MiniBlockHeaderHandler, coordinator sharding.Coordinator) error {
+	for _, mbHeader := range mbHeaders {
+		isWrongSenderShardId := mbHeader.GetSenderShardID() >= coordinator.NumberOfShards() &&
+			mbHeader.GetSenderShardID() != core.MetachainShardId &&
+			mbHeader.GetSenderShardID() != core.AllShardId
+		isWrongDestinationShardId := mbHeader.GetReceiverShardID() >= coordinator.NumberOfShards() &&
+			mbHeader.GetReceiverShardID() != core.MetachainShardId &&
+			mbHeader.GetReceiverShardID() != core.AllShardId
 		isWrongShardId := isWrongSenderShardId || isWrongDestinationShardId
 		if isWrongShardId {
 			return process.ErrInvalidShardId
 		}
 
-		if len(miniblock.GetReserved()) > maxLenMiniBlockReservedField {
+		if len(mbHeader.GetReserved()) > maxLenMiniBlockHeaderReservedField {
 			return process.ErrReservedFieldInvalid
 		}
 	}

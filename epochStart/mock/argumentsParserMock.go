@@ -8,6 +8,7 @@ import (
 // ArgumentParserMock -
 type ArgumentParserMock struct {
 	ParseCallDataCalled               func(data string) (string, [][]byte, error)
+	ParseArgumentsCalled              func(data string) ([][]byte, error)
 	ParseDeployDataCalled             func(data string) (*parsers.DeployArgs, error)
 	CreateDataFromStorageUpdateCalled func(storageUpdates []*vmcommon.StorageUpdate) string
 	GetStorageUpdatesCalled           func(data string) ([]*vmcommon.StorageUpdate, error)
@@ -19,6 +20,14 @@ func (ap *ArgumentParserMock) ParseCallData(data string) (string, [][]byte, erro
 		return "", nil, nil
 	}
 	return ap.ParseCallDataCalled(data)
+}
+
+// ParseArguments -
+func (ap *ArgumentParserMock) ParseArguments(data string) ([][]byte, error) {
+	if ap.ParseArgumentsCalled == nil {
+		return [][]byte{}, nil
+	}
+	return ap.ParseArgumentsCalled(data)
 }
 
 // ParseDeployData -

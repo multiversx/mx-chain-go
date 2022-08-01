@@ -138,7 +138,7 @@ func (inHdr *InterceptedHeader) integrity() error {
 		return err
 	}
 
-	err = checkMiniblocks(inHdr.hdr.GetMiniBlockHeaderHandlers(), inHdr.shardCoordinator)
+	err = checkMiniBlocksHeaders(inHdr.hdr.GetMiniBlockHeaderHandlers(), inHdr.shardCoordinator)
 	if err != nil {
 		return err
 	}

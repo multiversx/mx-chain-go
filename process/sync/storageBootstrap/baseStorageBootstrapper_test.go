@@ -13,7 +13,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	epochNotifierMock "github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
+	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -35,6 +37,8 @@ func createMockShardStorageBoostrapperArgs() ArgsBaseStorageBootstrapper {
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		MiniblocksProvider:           &mock.MiniBlocksProviderStub{},
 		EpochNotifier:                &epochNotifierMock.EpochNotifierStub{},
+		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
+		AppStatusHandler:             &statusHandler.AppStatusHandlerMock{},
 	}
 
 	return argsBaseBootstrapper
@@ -169,6 +173,24 @@ func TestBaseStorageBootstrapper_CheckBaseStorageBootstrapperArguments(t *testin
 		err := checkBaseStorageBootstrapperArguments(args)
 		assert.Equal(t, process.ErrNilEpochNotifier, err)
 	})
+	t.Run("nil processed mini blocks tracker should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockShardStorageBoostrapperArgs()
+		args.ProcessedMiniBlocksTracker = nil
+
+		err := checkBaseStorageBootstrapperArguments(args)
+		assert.Equal(t, process.ErrNilProcessedMiniBlocksTracker, err)
+	})
+	t.Run("nil app status handler - should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockShardStorageBoostrapperArgs()
+		args.AppStatusHandler = nil
+
+		err := checkBaseStorageBootstrapperArguments(args)
+		assert.Equal(t, process.ErrNilAppStatusHandler, err)
+	})
 }
 
 func TestBaseStorageBootstrapper_RestoreBlockBodyIntoPoolsShouldErrMissingHeader(t *testing.T) {
@@ -182,6 +204,7 @@ func TestBaseStorageBootstrapper_RestoreBlockBodyIntoPoolsShouldErrMissingHeader
 
 	hash := []byte("hash")
 	err := ssb.restoreBlockBodyIntoPools(hash)
+	assert.Error(t, err)
 	assert.True(t, strings.Contains(err.Error(), process.ErrMissingHeader.Error()))
 }
 
@@ -198,7 +221,7 @@ func TestBaseStorageBootstrapper_RestoreBlockBodyIntoPoolsShouldErrMissingBody(t
 		},
 	}
 	marshaledHeader, _ := baseArgs.Marshalizer.Marshal(header)
-	storerMock := mock.NewStorerMock()
+	storerMock := genericMocks.NewStorerMock()
 	_ = storerMock.Put(headerHash, marshaledHeader)
 	baseArgs.Store = &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
@@ -233,7 +256,7 @@ func TestBaseStorageBootstrapper_RestoreBlockBodyIntoPoolsShouldErrWhenRestoreBl
 		},
 	}
 	marshaledHeader, _ := baseArgs.Marshalizer.Marshal(header)
-	storerMock := mock.NewStorerMock()
+	storerMock := genericMocks.NewStorerMock()
 	_ = storerMock.Put(headerHash, marshaledHeader)
 	baseArgs.Store = &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
@@ -267,7 +290,7 @@ func TestBaseStorageBootstrapper_RestoreBlockBodyIntoPoolsShouldWork(t *testing.
 		},
 	}
 	marshaledHeader, _ := baseArgs.Marshalizer.Marshal(header)
-	storerMock := mock.NewStorerMock()
+	storerMock := genericMocks.NewStorerMock()
 	_ = storerMock.Put(headerHash, marshaledHeader)
 	baseArgs.Store = &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {

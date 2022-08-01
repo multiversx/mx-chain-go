@@ -16,7 +16,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	epochNotifierMock "github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
+	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	storageMock "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -43,7 +45,7 @@ func TestShardStorageBootstrapper_LoadFromStorageShouldWork(t *testing.T) {
 	}
 	hdrHash := []byte("header hash")
 	hdrBytes, _ := marshaller.Marshal(hdr)
-	blockStorerMock := mock.NewStorerMock()
+	blockStorerMock := genericMocks.NewStorerMock()
 	_ = blockStorerMock.Put(hdrHash, hdrBytes)
 
 	args := ArgsShardStorageBootstrapper{
@@ -131,6 +133,8 @@ func TestShardStorageBootstrapper_LoadFromStorageShouldWork(t *testing.T) {
 					wasCalledEpochNotifier = true
 				},
 			},
+			ProcessedMiniBlocksTracker: &testscommon.ProcessedMiniBlocksTrackerStub{},
+			AppStatusHandler:           &statusHandler.AppStatusHandlerMock{},
 		},
 	}
 

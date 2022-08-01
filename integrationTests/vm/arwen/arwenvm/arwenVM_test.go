@@ -510,8 +510,8 @@ func TestExecuteTransactionAndTimeToProcessChange(t *testing.T) {
 		ShardCoordinator:   shardCoordinator,
 		BuiltInFunctions:   builtInFunctions.NewBuiltInFunctionContainer(),
 		ArgumentParser:     parsers.NewCallArgsParser(),
-		EpochNotifier:      forking.NewGenericEpochNotifier(),
 		ESDTTransferParser: esdtTransferParser,
+		EpochNotifier:      forking.NewGenericEpochNotifier(),
 	}
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	feeHandler := &mock.FeeHandlerStub{

@@ -208,6 +208,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 	}
 	coreComponents.NodeTypeProviderField = &nodeTypeProviderMock.NodeTypeProviderStub{}
 	coreComponents.ChanStopNodeProcessField = endProcess.GetDummyEndProcessChannel()
+	coreComponents.HardforkTriggerPubKeyField = []byte("provided hardfork pub key")
 
 	argsBootstrapHandler := bootstrap.ArgsEpochStartBootstrap{
 		CryptoComponentsHolder: cryptoComponents,
@@ -241,7 +242,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 				}, nil
 			},
 		},
-		ScheduledSCRsStorer: genericMocks.NewStorerMock("path", 0),
+		ScheduledSCRsStorer: genericMocks.NewStorerMock(),
 		FlagsConfig: config.ContextFlagsConfig{
 			ForceStartFromNetwork: false,
 		},
@@ -306,6 +307,8 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		MiniblocksProvider:           &mock.MiniBlocksProviderStub{},
 		EpochNotifier:                &epochNotifierMock.EpochNotifierStub{},
+		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
+		AppStatusHandler:             &statusHandlerMock.AppStatusHandlerMock{},
 	}
 
 	bootstrapper, err := getBootstrapper(shardID, argsBaseBootstrapper)

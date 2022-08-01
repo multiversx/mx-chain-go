@@ -26,6 +26,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/factory/metachain"
+	"github.com/ElrondNetwork/elrond-go/process/receipts"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	syncDisabled "github.com/ElrondNetwork/elrond-go/process/sync/disabled"
@@ -219,6 +220,15 @@ func createArgsMetaBlockCreatorAfterHardFork(
 		return hardForkProcess.ArgsNewMetaBlockCreatorAfterHardFork{}, err
 	}
 
+	receiptsRepository, err := receipts.NewReceiptsRepository(receipts.ArgsNewReceiptsRepository{
+		Marshaller: arg.Core.InternalMarshalizer(),
+		Hasher:     arg.Core.Hasher(),
+		Store:      arg.Data.StorageService(),
+	})
+	if err != nil {
+		return hardForkProcess.ArgsNewMetaBlockCreatorAfterHardFork{}, err
+	}
+
 	argsMetaBlockCreatorAfterHardFork := hardForkProcess.ArgsNewMetaBlockCreatorAfterHardFork{
 		Hasher:             arg.Core.Hasher(),
 		ImportHandler:      arg.importHandler,
@@ -228,6 +238,7 @@ func createArgsMetaBlockCreatorAfterHardFork(
 		Storage:            arg.Data.StorageService(),
 		TxCoordinator:      processors.txCoordinator,
 		ValidatorAccounts:  tmpArg.ValidatorAccounts,
+		ReceiptsRepository: receiptsRepository,
 		SelfShardID:        selfShardID,
 	}
 
@@ -368,13 +379,13 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 	}
 
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
-		PubkeyConverter:        arg.Core.AddressPubKeyConverter(),
-		ShardCoordinator:       arg.ShardCoordinator,
-		BuiltInFunctions:       builtInFuncs,
-		ArgumentParser:         parsers.NewCallArgsParser(),
-		EpochNotifier:          epochNotifier,
-		RelayedTxV2EnableEpoch: arg.EpochConfig.EnableEpochs.RelayedTransactionsV2EnableEpoch,
-		ESDTTransferParser:     esdtTransferParser,
+		PubkeyConverter:                        arg.Core.AddressPubKeyConverter(),
+		ShardCoordinator:                       arg.ShardCoordinator,
+		BuiltInFunctions:                       builtInFuncs,
+		ArgumentParser:                         parsers.NewCallArgsParser(),
+		ESDTTransferParser:                     esdtTransferParser,
+		EpochNotifier:                          epochNotifier,
+		TransferAndAsyncCallbackFixEnableEpoch: arg.EpochConfig.EnableEpochs.ESDTMetadataContinuousCleanupEnableEpoch,
 	}
 	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	if err != nil {
@@ -439,6 +450,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 	disabledBlockSizeComputationHandler := &disabled.BlockSizeComputationHandler{}
 	disabledBalanceComputationHandler := &disabled.BalanceComputationHandler{}
 	disabledScheduledTxsExecutionHandler := &disabled.ScheduledTxsExecutionHandler{}
+	disabledProcessedMiniBlocksTracker := &disabled.ProcessedMiniBlocksTracker{}
 
 	preProcFactory, err := metachain.NewPreProcessorsContainerFactory(
 		arg.ShardCoordinator,
@@ -462,6 +474,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		enableEpochs.ScheduledMiniBlocksEnableEpoch,
 		txTypeHandler,
 		disabledScheduledTxsExecutionHandler,
+		disabledProcessedMiniBlocksTracker,
 	)
 	if err != nil {
 		return nil, err
@@ -485,26 +498,28 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 	}
 
 	argsTransactionCoordinator := coordinator.ArgTransactionCoordinator{
-		Hasher:                            arg.Core.Hasher(),
-		Marshalizer:                       arg.Core.InternalMarshalizer(),
-		ShardCoordinator:                  arg.ShardCoordinator,
-		Accounts:                          arg.Accounts,
-		MiniBlockPool:                     arg.Data.Datapool().MiniBlocks(),
-		RequestHandler:                    disabledRequestHandler,
-		PreProcessors:                     preProcContainer,
-		InterProcessors:                   interimProcContainer,
-		GasHandler:                        gasHandler,
-		FeeHandler:                        genesisFeeHandler,
-		BlockSizeComputation:              disabledBlockSizeComputationHandler,
-		BalanceComputation:                disabledBalanceComputationHandler,
-		EconomicsFee:                      genesisFeeHandler,
-		TxTypeHandler:                     txTypeHandler,
-		BlockGasAndFeesReCheckEnableEpoch: enableEpochs.BlockGasAndFeesReCheckEnableEpoch,
-		TransactionsLogProcessor:          arg.TxLogsProcessor,
-		EpochNotifier:                     epochNotifier,
-		ScheduledTxsExecutionHandler:      disabledScheduledTxsExecutionHandler,
-		ScheduledMiniBlocksEnableEpoch:    enableEpochs.ScheduledMiniBlocksEnableEpoch,
-		DoubleTransactionsDetector:        doubleTransactionsDetector,
+		Hasher:                               arg.Core.Hasher(),
+		Marshalizer:                          arg.Core.InternalMarshalizer(),
+		ShardCoordinator:                     arg.ShardCoordinator,
+		Accounts:                             arg.Accounts,
+		MiniBlockPool:                        arg.Data.Datapool().MiniBlocks(),
+		RequestHandler:                       disabledRequestHandler,
+		PreProcessors:                        preProcContainer,
+		InterProcessors:                      interimProcContainer,
+		GasHandler:                           gasHandler,
+		FeeHandler:                           genesisFeeHandler,
+		BlockSizeComputation:                 disabledBlockSizeComputationHandler,
+		BalanceComputation:                   disabledBalanceComputationHandler,
+		EconomicsFee:                         genesisFeeHandler,
+		TxTypeHandler:                        txTypeHandler,
+		BlockGasAndFeesReCheckEnableEpoch:    enableEpochs.BlockGasAndFeesReCheckEnableEpoch,
+		TransactionsLogProcessor:             arg.TxLogsProcessor,
+		EpochNotifier:                        epochNotifier,
+		ScheduledTxsExecutionHandler:         disabledScheduledTxsExecutionHandler,
+		ScheduledMiniBlocksEnableEpoch:       enableEpochs.ScheduledMiniBlocksEnableEpoch,
+		DoubleTransactionsDetector:           doubleTransactionsDetector,
+		MiniBlockPartialExecutionEnableEpoch: enableEpochs.MiniBlockPartialExecutionEnableEpoch,
+		ProcessedMiniBlocksTracker:           disabledProcessedMiniBlocksTracker,
 	}
 	txCoordinator, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	if err != nil {

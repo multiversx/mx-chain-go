@@ -223,3 +223,24 @@ var ErrNilPathManager = errors.New("nil path manager")
 
 // ErrNilEpochNotifier signals that the provided EpochNotifier is nil
 var ErrNilEpochNotifier = errors.New("nil EpochNotifier")
+
+// ErrNilPeerAuthenticationPool signals that a nil peer authentication pool has been provided
+var ErrNilPeerAuthenticationPool = errors.New("nil peer authentication pool")
+
+// ErrNilHeartbeatPool signals that a nil heartbeat pool has been provided
+var ErrNilHeartbeatPool = errors.New("nil heartbeat pool")
+
+// ErrPeerAuthNotFound signals that no peer authentication found
+var ErrPeerAuthNotFound = errors.New("peer authentication not found")
+
+// ErrNilNodesCoordinator signals a nil nodes coordinator has been provided
+var ErrNilNodesCoordinator = errors.New("nil nodes coordinator")
+
+// InvalidChunkIndex signals that an invalid chunk was provided
+var InvalidChunkIndex = errors.New("invalid chunk index")
+
+// ErrInvalidNumOfPeerAuthentication signals that an invalid number of peer authentication was provided
+var ErrInvalidNumOfPeerAuthentication = errors.New("invalid num of peer authentication")
+
+// ErrNilPeerShardMapper signals that a nil peer shard mapper has been provided
+var ErrNilPeerShardMapper = errors.New("nil peer shard mapper")

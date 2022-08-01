@@ -91,6 +91,7 @@ func init() {
 
 // TODO refactor this struct to have be a wrapper (with logic) over a glue code
 type networkMessenger struct {
+	*p2pSigner
 	ctx        context.Context
 	cancelFunc context.CancelFunc
 	p2pHost    ConnectableHost
@@ -98,37 +99,38 @@ type networkMessenger struct {
 	pb         *pubsub.PubSub
 	ds         p2p.DirectSender
 	// TODO refactor this (connMonitor & connMonitorWrapper)
-	connMonitor          ConnectionMonitor
-	connMonitorWrapper   p2p.ConnectionMonitorWrapper
-	peerDiscoverer       p2p.PeerDiscoverer
-	sharder              p2p.Sharder
-	peerShardResolver    p2p.PeerShardResolver
-	mutPeerResolver      sync.RWMutex
-	mutTopics            sync.RWMutex
-	processors           map[string]*topicProcessors
-	topics               map[string]*pubsub.Topic
-	subscriptions        map[string]*pubsub.Subscription
-	outgoingPLB          p2p.ChannelLoadBalancer
-	poc                  *peersOnChannel
-	goRoutinesThrottler  *throttler.NumGoRoutinesThrottler
-	connectionsMetric    *metrics.Connections
-	debugger             p2p.Debugger
-	marshalizer          p2p.Marshalizer
-	syncTimer            p2p.SyncTimer
-	preferredPeersHolder p2p.PreferredPeersHolderHandler
-	connectionsWatcher   p2p.ConnectionsWatcher
-	peersRatingHandler   p2p.PeersRatingHandler
+	connMonitor             ConnectionMonitor
+	connMonitorWrapper      p2p.ConnectionMonitorWrapper
+	peerDiscoverer          p2p.PeerDiscoverer
+	sharder                 p2p.Sharder
+	peerShardResolver       p2p.PeerShardResolver
+	mutPeerResolver         sync.RWMutex
+	mutTopics               sync.RWMutex
+	processors              map[string]*topicProcessors
+	topics                  map[string]*pubsub.Topic
+	subscriptions           map[string]*pubsub.Subscription
+	outgoingPLB             p2p.ChannelLoadBalancer
+	poc                     *peersOnChannel
+	goRoutinesThrottler     *throttler.NumGoRoutinesThrottler
+	connectionsMetric       *metrics.Connections
+	debugger                p2p.Debugger
+	marshalizer             p2p.Marshalizer
+	syncTimer               p2p.SyncTimer
+	preferredPeersHolder    p2p.PreferredPeersHolderHandler
+	printConnectionsWatcher p2p.ConnectionsWatcher
+	peersRatingHandler      p2p.PeersRatingHandler
 }
 
 // ArgsNetworkMessenger defines the options used to create a p2p wrapper
 type ArgsNetworkMessenger struct {
-	ListenAddress        string
-	Marshalizer          p2p.Marshalizer
-	P2pConfig            config.P2PConfig
-	SyncTimer            p2p.SyncTimer
-	PreferredPeersHolder p2p.PreferredPeersHolderHandler
-	NodeOperationMode    p2p.NodeOperation
-	PeersRatingHandler   p2p.PeersRatingHandler
+	ListenAddress         string
+	Marshalizer           p2p.Marshalizer
+	P2pConfig             config.P2PConfig
+	SyncTimer             p2p.SyncTimer
+	PreferredPeersHolder  p2p.PreferredPeersHolderHandler
+	NodeOperationMode     p2p.NodeOperation
+	PeersRatingHandler    p2p.PeersRatingHandler
+	ConnectionWatcherType string
 }
 
 // NewNetworkMessenger creates a libP2P messenger by opening a port on the current machine
@@ -181,7 +183,8 @@ func constructNode(
 		return nil, err
 	}
 
-	connWatcher, err := metricsFactory.NewConnectionsWatcher(args.P2pConfig.Node.ConnectionWatcherType, ttlConnectionsWatcher)
+	log.Debug("connectionWatcherType", "type", args.ConnectionWatcherType)
+	connWatcher, err := metricsFactory.NewConnectionsWatcher(args.ConnectionWatcherType, ttlConnectionsWatcher)
 	if err != nil {
 		return nil, err
 	}
@@ -206,12 +209,15 @@ func constructNode(
 	}
 
 	p2pNode := &networkMessenger{
-		ctx:                ctx,
-		cancelFunc:         cancelFunc,
-		p2pHost:            NewConnectableHost(h),
-		port:               port,
-		connectionsWatcher: connWatcher,
-		peersRatingHandler: args.PeersRatingHandler,
+		p2pSigner: &p2pSigner{
+			privateKey: p2pPrivKey,
+		},
+		ctx:                     ctx,
+		cancelFunc:              cancelFunc,
+		p2pHost:                 NewConnectableHost(h),
+		port:                    port,
+		printConnectionsWatcher: connWatcher,
+		peersRatingHandler:      args.PeersRatingHandler,
 	}
 
 	return p2pNode, nil
@@ -420,7 +426,7 @@ func (netMes *networkMessenger) createDiscoverer(p2pConfig config.P2PConfig) err
 		Host:               netMes.p2pHost,
 		Sharder:            netMes.sharder,
 		P2pConfig:          p2pConfig,
-		ConnectionsWatcher: netMes.connectionsWatcher,
+		ConnectionsWatcher: netMes.printConnectionsWatcher,
 	}
 
 	netMes.peerDiscoverer, err = discoveryFactory.NewPeerDiscoverer(args)
@@ -444,7 +450,7 @@ func (netMes *networkMessenger) createConnectionMonitor(p2pConfig config.P2PConf
 		Sharder:                    sharder,
 		ThresholdMinConnectedPeers: p2pConfig.Node.ThresholdMinConnectedPeers,
 		PreferredPeersHolder:       netMes.preferredPeersHolder,
-		ConnectionsWatcher:         netMes.connectionsWatcher,
+		ConnectionsWatcher:         netMes.printConnectionsWatcher,
 	}
 	var err error
 	netMes.connMonitor, err = connectionMonitor.NewLibp2pConnectionMonitorSimple(args)
@@ -455,7 +461,7 @@ func (netMes *networkMessenger) createConnectionMonitor(p2pConfig config.P2PConf
 	cmw := newConnectionMonitorWrapper(
 		netMes.p2pHost.Network(),
 		netMes.connMonitor,
-		&disabled.NilPeerDenialEvaluator{},
+		&disabled.PeerDenialEvaluator{},
 	)
 	netMes.p2pHost.Network().Notify(cmw)
 	netMes.connMonitorWrapper = cmw
@@ -584,8 +590,8 @@ func (netMes *networkMessenger) Close() error {
 			"error", err)
 	}
 
-	log.Debug("closing network messenger's connection watcher...")
-	errConnWatcher := netMes.connectionsWatcher.Close()
+	log.Debug("closing network messenger's print connection watcher...")
+	errConnWatcher := netMes.printConnectionsWatcher.Close()
 	if errConnWatcher != nil {
 		err = errConnWatcher
 		log.Warn("networkMessenger.Close",
@@ -824,6 +830,10 @@ func (netMes *networkMessenger) CreateTopic(name string, createChannelForTopic b
 		return nil
 	}
 
+	if name == common.ConnectionTopic {
+		return nil
+	}
+
 	topic, err := netMes.pb.Join(name)
 	if err != nil {
 		return fmt.Errorf("%w for topic %s", err, name)
@@ -932,7 +942,7 @@ func (netMes *networkMessenger) RegisterMessageProcessor(topic string, identifie
 		topicProcs = newTopicProcessors()
 		netMes.processors[topic] = topicProcs
 
-		err := netMes.pb.RegisterTopicValidator(topic, netMes.pubsubCallback(topicProcs, topic))
+		err := netMes.registerOnPubSub(topic, topicProcs)
 		if err != nil {
 			return err
 		}
@@ -944,6 +954,15 @@ func (netMes *networkMessenger) RegisterMessageProcessor(topic string, identifie
 	}
 
 	return nil
+}
+
+func (netMes *networkMessenger) registerOnPubSub(topic string, topicProcs *topicProcessors) error {
+	if topic == common.ConnectionTopic {
+		// do not allow broadcasts on this connection topic
+		return nil
+	}
+
+	return netMes.pb.RegisterTopicValidator(topic, netMes.pubsubCallback(topicProcs, topic))
 }
 
 func (netMes *networkMessenger) pubsubCallback(topicProcs *topicProcessors, topic string) func(ctx context.Context, pid peer.ID, message *pubsub.Message) bool {
@@ -1066,6 +1085,11 @@ func (netMes *networkMessenger) UnregisterAllMessageProcessors() error {
 	defer netMes.mutTopics.Unlock()
 
 	for topic := range netMes.processors {
+		if topic == common.ConnectionTopic {
+			delete(netMes.processors, topic)
+			continue
+		}
+
 		err := netMes.pb.UnregisterTopicValidator(topic)
 		if err != nil {
 			return err
@@ -1122,7 +1146,9 @@ func (netMes *networkMessenger) UnregisterMessageProcessor(topic string, identif
 	if len(identifiers) == 0 {
 		netMes.processors[topic] = nil
 
-		return netMes.pb.UnregisterTopicValidator(topic)
+		if topic != common.ConnectionTopic { // no validator registered for this topic
+			return netMes.pb.UnregisterTopicValidator(topic)
+		}
 	}
 
 	return nil

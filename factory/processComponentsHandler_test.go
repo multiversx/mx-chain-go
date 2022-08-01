@@ -98,6 +98,8 @@ func TestManagedProcessComponents_CreateShouldWork(t *testing.T) {
 	require.True(t, check.IfNil(managedProcessComponents.PeerShardMapper()))
 	require.True(t, check.IfNil(managedProcessComponents.ShardCoordinator()))
 	require.True(t, check.IfNil(managedProcessComponents.TxsSenderHandler()))
+	require.True(t, check.IfNil(managedProcessComponents.HardforkTrigger()))
+	require.True(t, check.IfNil(managedProcessComponents.ProcessedMiniBlocksTracker()))
 
 	err = managedProcessComponents.Create()
 	require.NoError(t, err)
@@ -132,6 +134,8 @@ func TestManagedProcessComponents_CreateShouldWork(t *testing.T) {
 	require.False(t, check.IfNil(managedProcessComponents.PeerShardMapper()))
 	require.False(t, check.IfNil(managedProcessComponents.ShardCoordinator()))
 	require.False(t, check.IfNil(managedProcessComponents.TxsSenderHandler()))
+	require.False(t, check.IfNil(managedProcessComponents.HardforkTrigger()))
+	require.False(t, check.IfNil(managedProcessComponents.ProcessedMiniBlocksTracker()))
 
 	nodeSkBytes, err := cryptoComponents.PrivateKey().ToByteArray()
 	require.Nil(t, err)

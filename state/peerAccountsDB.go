@@ -56,7 +56,7 @@ func (adb *PeerAccountsDB) MarkSnapshotDone() {
 		return
 	}
 
-	err = trieStorageManager.PutInEpoch([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal), epoch)
+	err = trieStorageManager.PutInEpochWithoutCache([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal), epoch)
 	handleLoggingWhenError("error while putting active DB value into main storer", err)
 }
 
@@ -84,7 +84,7 @@ func (adb *PeerAccountsDB) SnapshotState(rootHash []byte) {
 		return
 	}
 
-	log.Debug("starting snapshot", "rootHash", rootHash, "epoch", epoch)
+	log.Info("starting snapshot", "rootHash", rootHash, "epoch", epoch)
 
 	adb.lastSnapshot.rootHash = rootHash
 	adb.lastSnapshot.epoch = epoch
@@ -121,7 +121,7 @@ func (adb *PeerAccountsDB) SetStateCheckpoint(rootHash []byte) {
 
 	// TODO decide if we need to take some actions whenever we hit an error that occurred in the checkpoint process
 	//  that will be present in the errChan var
-	go printStats(stats, "setStateCheckpoint peer trie", rootHash)
+	go stats.PrintStats("setStateCheckpoint peer trie", rootHash)
 
 	adb.waitForCompletionIfRunningInImportDB(stats)
 }

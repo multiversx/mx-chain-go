@@ -102,7 +102,7 @@ func createMockSmartContractProcessorArguments() ArgsNewSmartContractProcessor {
 		GasHandler: &testscommon.GasHandlerStub{
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
-		GasSchedule:       mock.NewGasScheduleNotifierMock(gasSchedule),
+		GasSchedule:       testscommon.NewGasScheduleNotifierMock(gasSchedule),
 		EpochNotifier:     &epochNotifier.EpochNotifierStub{},
 		ArwenChangeLocker: &sync.RWMutex{},
 		VMOutputCacher:    txcache.NewDisabledCache(),
@@ -304,7 +304,7 @@ func TestNewSmartContractProcessor_NilLatestGasScheduleShouldErr(t *testing.T) {
 	t.Parallel()
 
 	arguments := createMockSmartContractProcessorArguments()
-	arguments.GasSchedule = mock.NewGasScheduleNotifierMock(nil)
+	arguments.GasSchedule = testscommon.NewGasScheduleNotifierMock(nil)
 	sc, err := NewSmartContractProcessor(arguments)
 
 	require.Nil(t, sc)
@@ -356,7 +356,7 @@ func TestNewSmartContractProcessor_ShouldRegisterNotifiers(t *testing.T) {
 			epochNotifierRegisterCalled = true
 		},
 	}
-	gasSchedule := mock.NewGasScheduleNotifierMock(make(map[string]map[string]uint64))
+	gasSchedule := testscommon.NewGasScheduleNotifierMock(make(map[string]map[string]uint64))
 	gasSchedule.RegisterNotifyHandlerCalled = func(handler core.GasScheduleSubscribeHandler) {
 		gasScheduleRegisterCalled = true
 	}

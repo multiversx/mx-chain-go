@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common/logging"
 	"github.com/ElrondNetwork/elrond-go/dblookupext/esdtSupply"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -127,6 +128,7 @@ func (hr *historyRepository) RecordBlock(blockHeaderHash []byte,
 	blockBody data.BodyHandler,
 	scrResultsFromPool map[string]data.TransactionHandler,
 	receiptsFromPool map[string]data.TransactionHandler,
+	createdIntraShardMiniBlocks []*block.MiniBlock,
 	logs []*data.LogData) error {
 	hr.recordBlockMutex.Lock()
 	defer hr.recordBlockMutex.Unlock()
@@ -152,7 +154,17 @@ func (hr *historyRepository) RecordBlock(blockHeaderHash []byte,
 
 		err = hr.recordMiniblock(blockHeaderHash, blockHeader, miniblock, epoch)
 		if err != nil {
+			logging.LogErrAsErrorExceptAsDebugIfClosingError(log, err, "cannot record miniblock",
+				"type", miniblock.Type, "error", err)
 			continue
+		}
+	}
+
+	for _, miniBlock := range createdIntraShardMiniBlocks {
+		err = hr.recordMiniblock(blockHeaderHash, blockHeader, miniBlock, epoch)
+		if err != nil {
+			logging.LogErrAsErrorExceptAsDebugIfClosingError(log, err, "cannot record in shard miniblock",
+				"type", miniBlock.Type, "error", err)
 		}
 	}
 
@@ -215,7 +227,8 @@ func (hr *historyRepository) recordMiniblock(blockHeaderHash []byte, blockHeader
 	for _, txHash := range miniblock.TxHashes {
 		errPut := hr.miniblockHashByTxHashIndex.Put(txHash, miniblockHash)
 		if errPut != nil {
-			log.Warn("miniblockHashByTxHashIndex.Put()", "txHash", txHash, "err", errPut)
+			logging.LogErrAsWarnExceptAsDebugIfClosingError(log, errPut, "miniblockHashByTxHashIndex.Put()",
+				"txHash", txHash, "err", errPut)
 			continue
 		}
 	}
@@ -301,7 +314,7 @@ func (hr *historyRepository) OnNotarizedBlocks(shardID uint32, headers []data.He
 	for i, headerHandler := range headers {
 		headerHash := headersHashes[i]
 
-		log.Debug("onNotarizedBlocks():", "shardID", shardID, "nonce", headerHandler.GetNonce(), "headerHash", headerHash, "type", fmt.Sprintf("%T", headerHandler))
+		log.Trace("onNotarizedBlocks():", "shardID", shardID, "nonce", headerHandler.GetNonce(), "headerHash", headerHash, "type", fmt.Sprintf("%T", headerHandler))
 
 		metaBlock, isMetaBlock := headerHandler.(*block.MetaBlock)
 		if isMetaBlock {
@@ -347,7 +360,7 @@ func (hr *historyRepository) onNotarizedMiniblock(metaBlockNonce uint64, metaBlo
 		return
 	}
 
-	log.Debug("onNotarizedMiniblock()",
+	log.Trace("onNotarizedMiniblock()",
 		"metaBlockNonce", metaBlockNonce,
 		"metaBlockHash", metaBlockHash,
 		"shardOfContainingBlock", shardOfContainingBlock,
@@ -387,7 +400,7 @@ func (hr *historyRepository) consumePendingNotificationsWithLock() {
 		return
 	}
 
-	log.Debug("consumePendingNotificationsWithLock() begin",
+	log.Trace("consumePendingNotificationsWithLock() begin",
 		"len(source)", hr.pendingNotarizedAtSourceNotifications.Len(),
 		"len(destination)", hr.pendingNotarizedAtDestinationNotifications.Len(),
 		"len(both)", hr.pendingNotarizedAtBothNotifications.Len(),
@@ -410,7 +423,7 @@ func (hr *historyRepository) consumePendingNotificationsWithLock() {
 		metadata.NotarizedAtDestinationInMetaHash = notification.metaHash
 	})
 
-	log.Debug("consumePendingNotificationsWithLock() end",
+	log.Trace("consumePendingNotificationsWithLock() end",
 		"len(source)", hr.pendingNotarizedAtSourceNotifications.Len(),
 		"len(destination)", hr.pendingNotarizedAtDestinationNotifications.Len(),
 		"len(both)", hr.pendingNotarizedAtBothNotifications.Len(),
@@ -446,7 +459,8 @@ func (hr *historyRepository) consumePendingNotificationsNoLock(pendingMap *conta
 		patchMetadataFunc(metadata, notificationTyped)
 		err = hr.putMiniblockMetadata(miniblockHash, metadata)
 		if err != nil {
-			log.Error("consumePendingNotificationsNoLock(): cannot put miniblock metadata", "miniblockHash", miniblockHash, "err", err)
+			logging.LogErrAsErrorExceptAsDebugIfClosingError(log, err, "consumePendingNotificationsNoLock(): cannot put miniblock metadata",
+				"miniblockHash", miniblockHash, "err", err)
 			continue
 		}
 
