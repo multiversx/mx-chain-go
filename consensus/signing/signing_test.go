@@ -15,7 +15,6 @@ func createMockArgsSignatureHolder() signing.ArgsSignatureHolder {
 	return signing.ArgsSignatureHolder{
 		PubKeys:              []string{"pubkey1"},
 		PrivKey:              &cryptoMocks.PrivateKeyStub{},
-		SingleSigner:         &cryptoMocks.SingleSignerStub{},
 		MultiSignerContainer: &cryptoMocks.MultiSignerContainerMock{},
 		KeyGenerator:         &cryptoMocks.KeyGenStub{},
 	}
@@ -23,17 +22,6 @@ func createMockArgsSignatureHolder() signing.ArgsSignatureHolder {
 
 func TestNewSigner(t *testing.T) {
 	t.Parallel()
-
-	t.Run("nil single signer", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockArgsSignatureHolder()
-		args.SingleSigner = nil
-
-		signer, err := signing.NewSignatureHolder(args)
-		require.Nil(t, signer)
-		require.Equal(t, signing.ErrNilSingleSigner, err)
-	})
 
 	t.Run("nil multi signer", func(t *testing.T) {
 		t.Parallel()

@@ -12,7 +12,6 @@ import (
 type ArgsSignatureHolder struct {
 	PubKeys              []string
 	PrivKey              crypto.PrivateKey
-	SingleSigner         crypto.SingleSigner
 	MultiSignerContainer cryptoCommon.MultiSignerContainer
 	KeyGenerator         crypto.KeyGenerator
 }
@@ -27,7 +26,6 @@ type signatureHolderData struct {
 type signatureHolder struct {
 	data                 *signatureHolderData
 	mutSigningData       sync.RWMutex
-	singleSigner         crypto.SingleSigner
 	multiSignerContainer cryptoCommon.MultiSignerContainer
 	multiSigner          crypto.MultiSigner
 	mutMultiSigner       sync.RWMutex
@@ -62,7 +60,6 @@ func NewSignatureHolder(args ArgsSignatureHolder) (*signatureHolder, error) {
 	return &signatureHolder{
 		data:                 data,
 		mutSigningData:       sync.RWMutex{},
-		singleSigner:         args.SingleSigner,
 		multiSignerContainer: args.MultiSignerContainer,
 		multiSigner:          multiSigner,
 		keyGen:               args.KeyGenerator,
@@ -70,9 +67,6 @@ func NewSignatureHolder(args ArgsSignatureHolder) (*signatureHolder, error) {
 }
 
 func checkArgs(args ArgsSignatureHolder) error {
-	if check.IfNil(args.SingleSigner) {
-		return ErrNilSingleSigner
-	}
 	if check.IfNil(args.MultiSignerContainer) {
 		return ErrNilMultiSignerContainer
 	}
@@ -98,7 +92,6 @@ func (sh *signatureHolder) Create(pubKeys []string, index uint16) (*signatureHol
 	args := ArgsSignatureHolder{
 		PubKeys:              pubKeys,
 		PrivKey:              privKey,
-		SingleSigner:         sh.singleSigner,
 		MultiSignerContainer: sh.multiSignerContainer,
 		KeyGenerator:         sh.keyGen,
 	}
