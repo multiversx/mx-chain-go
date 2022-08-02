@@ -479,6 +479,7 @@ var ErrNilTxsSender = errors.New("nil transactions sender has been provided")
 // ErrNilProcessStatusHandler signals that a nil process status handler was provided
 var ErrNilProcessStatusHandler = errors.New("nil process status handler")
 
+<<<<<<< HEAD
 // ErrSignerNotSupported signals that a not supported signer was provided
 var ErrSignerNotSupported = errors.New("signer not supported")
 
@@ -511,3 +512,7 @@ var ErrInvalidPID = errors.New("invalid PID")
 
 // ErrInvalidSignature signals that the given signature is invalid
 var ErrInvalidSignature = errors.New("invalid signature")
+=======
+// ErrDBIsClosed is raised when the DB is closed
+var ErrDBIsClosed = errors.New("DB is closed")
+>>>>>>> rc/2022-july

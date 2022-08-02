@@ -1224,6 +1224,7 @@ func (nr *nodeRunner) CreateManagedNetworkComponents(
 		return nil, err
 	}
 
+<<<<<<< HEAD
 	networkComponentsFactoryArgs := networkComp.NetworkComponentsFactoryArgs{
 		P2pConfig:            *nr.configs.P2pConfig,
 		MainConfig:           *nr.configs.GeneralConfig,
@@ -1234,6 +1235,19 @@ func (nr *nodeRunner) CreateManagedNetworkComponents(
 		PreferredPeersSlices: decodedPreferredPeers,
 		BootstrapWaitTime:    common.TimeToWaitForP2PBootstrap,
 		NodeOperationMode:    p2p.NormalOperation,
+=======
+	networkComponentsFactoryArgs := mainFactory.NetworkComponentsFactoryArgs{
+		P2pConfig:             *nr.configs.P2pConfig,
+		MainConfig:            *nr.configs.GeneralConfig,
+		RatingsConfig:         *nr.configs.RatingsConfig,
+		StatusHandler:         coreComponents.StatusHandler(),
+		Marshalizer:           coreComponents.InternalMarshalizer(),
+		Syncer:                coreComponents.SyncTimer(),
+		PreferredPeersSlices:  decodedPreferredPeers,
+		BootstrapWaitTime:     common.TimeToWaitForP2PBootstrap,
+		NodeOperationMode:     p2p.NormalOperation,
+		ConnectionWatcherType: nr.configs.PreferencesConfig.Preferences.ConnectionWatcherType,
+>>>>>>> rc/2022-july
 	}
 	if nr.configs.ImportDbConfig.IsImportDBMode {
 		networkComponentsFactoryArgs.BootstrapWaitTime = 0

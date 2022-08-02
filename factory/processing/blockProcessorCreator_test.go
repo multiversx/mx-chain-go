@@ -54,6 +54,7 @@ func Test_newBlockProcessorCreatorForShard(t *testing.T) {
 		&sync.RWMutex{},
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
+		&testscommon.ReceiptsRepositoryStub{},
 	)
 
 	require.NoError(t, err)
@@ -166,6 +167,7 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 		&sync.RWMutex{},
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
+		&testscommon.ReceiptsRepositoryStub{},
 	)
 
 	require.NoError(t, err)

@@ -146,15 +146,16 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 		AutomaticCrawlerAddress:   bytes.Repeat([]byte{1}, 32),
 		MaxNumNodesInTransferRole: 100,
 	}
-	builtInFuncs, _, _, err := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
+	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)
 	log.LogIfError(err)
 	esdtTransferParser, _ := parsers.NewESDTTransferParser(TestMarshalizer)
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
 		PubkeyConverter:    TestAddressPubkeyConverter,
 		ShardCoordinator:   tpn.ShardCoordinator,
-		BuiltInFunctions:   builtInFuncs,
+		BuiltInFunctions:   builtInFuncs.BuiltInFunctionContainer(),
 		ArgumentParser:     parsers.NewCallArgsParser(),
 		ESDTTransferParser: esdtTransferParser,
+		EpochNotifier:      tpn.EpochNotifier,
 	}
 	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	log.LogIfError(err)
@@ -195,6 +196,7 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 	log.LogIfError(err)
 
 	logsFacade := &testscommon.LogsFacadeStub{}
+	receiptsRepository := &testscommon.ReceiptsRepositoryStub{}
 
 	argsDataFieldParser := &datafield.ArgsOperationDataFieldParser{
 		AddressLength:    TestAddressPubkeyConverter.Len(),
@@ -234,6 +236,7 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 		Hasher:                   TestHasher,
 		AddressPubkeyConverter:   TestAddressPubkeyConverter,
 		LogsFacade:               logsFacade,
+		ReceiptsRepository:       receiptsRepository,
 	}
 	blockAPIHandler, err := blockAPI.CreateAPIBlockProcessor(argsBlockAPI)
 	log.LogIfError(err)

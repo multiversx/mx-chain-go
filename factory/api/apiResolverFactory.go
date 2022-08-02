@@ -36,7 +36,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
-	vmcommonBuiltInFunctions "github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 	datafield "github.com/ElrondNetwork/elrond-vm-common/parsers/dataField"
 )
@@ -117,7 +116,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 	if err != nil {
 		return nil, err
 	}
-	builtInFuncs, _, _, err := createBuiltinFuncs(
+	builtInFuncFactory, err := createBuiltinFuncs(
 		args.GasScheduleNotifier,
 		args.CoreComponents.InternalMarshalizer(),
 		args.StateComponents.AccountsAdapterAPI(),
@@ -144,11 +143,13 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 	}
 
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
-		PubkeyConverter:    args.CoreComponents.AddressPubKeyConverter(),
-		ShardCoordinator:   args.ProcessComponents.ShardCoordinator(),
-		BuiltInFunctions:   builtInFuncs,
-		ArgumentParser:     parsers.NewCallArgsParser(),
-		ESDTTransferParser: esdtTransferParser,
+		PubkeyConverter:                        args.CoreComponents.AddressPubKeyConverter(),
+		ShardCoordinator:                       args.ProcessComponents.ShardCoordinator(),
+		BuiltInFunctions:                       builtInFuncFactory.BuiltInFunctionContainer(),
+		ArgumentParser:                         parsers.NewCallArgsParser(),
+		ESDTTransferParser:                     esdtTransferParser,
+		EpochNotifier:                          args.CoreComponents.EpochNotifier(),
+		TransferAndAsyncCallbackFixEnableEpoch: args.Configs.EpochConfig.EnableEpochs.ESDTMetadataContinuousCleanupEnableEpoch,
 	}
 	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	if err != nil {
@@ -333,7 +334,7 @@ func createScQueryElement(
 	if err != nil {
 		return nil, err
 	}
-	builtInFuncs, nftStorageHandler, globalSettingsHandler, err := createBuiltinFuncs(
+	builtInFuncFactory, err := createBuiltinFuncs(
 		args.gasScheduleNotifier,
 		args.coreComponents.InternalMarshalizer(),
 		args.stateComponents.AccountsAdapterAPI(),
@@ -370,9 +371,9 @@ func createScQueryElement(
 		ShardCoordinator:      args.processComponents.ShardCoordinator(),
 		Marshalizer:           args.coreComponents.InternalMarshalizer(),
 		Uint64Converter:       args.coreComponents.Uint64ByteSliceConverter(),
-		BuiltInFunctions:      builtInFuncs,
-		NFTStorageHandler:     nftStorageHandler,
-		GlobalSettingsHandler: globalSettingsHandler,
+		BuiltInFunctions:      builtInFuncFactory.BuiltInFunctionContainer(),
+		NFTStorageHandler:     builtInFuncFactory.NFTStorageHandler(),
+		GlobalSettingsHandler: builtInFuncFactory.ESDTGlobalSettingsHandler(),
 		DataPool:              args.dataComponents.Datapool(),
 		ConfigSCStorage:       scStorage,
 		CompiledSCPool:        smartContractsCache,
@@ -452,7 +453,7 @@ func createScQueryElement(
 		return nil, err
 	}
 
-	err = vmcommonBuiltInFunctions.SetPayableHandler(builtInFuncs, vmFactory.BlockChainHookImpl())
+	err = builtInFuncFactory.SetPayableHandler(vmFactory.BlockChainHookImpl())
 	if err != nil {
 		return nil, err
 	}
@@ -487,7 +488,7 @@ func createBuiltinFuncs(
 	esdtMetadataContinuousCleanupEnableEpoch uint32,
 	automaticCrawlerAddress []byte,
 	maxNumAddressesInTransferRole uint32,
-) (vmcommon.BuiltInFunctionContainer, vmcommon.SimpleESDTNFTStorageHandler, vmcommon.ESDTGlobalSettingsHandler, error) {
+) (vmcommon.BuiltInFunctionFactory, error) {
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
 		GasSchedule:                              gasScheduleNotifier,
 		MapDNSAddresses:                          make(map[string]struct{}),
@@ -506,7 +507,7 @@ func createBuiltinFuncs(
 		AutomaticCrawlerAddress:                  automaticCrawlerAddress,
 		MaxNumNodesInTransferRole:                maxNumAddressesInTransferRole,
 	}
-	return builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
+	return builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)
 }
 
 func createAPIBlockProcessor(args *ApiResolverArgs, apiTransactionHandler external.APITransactionHandler) (blockAPI.APIBlockHandler, error) {
@@ -553,6 +554,7 @@ func createAPIBlockProcessorArgs(args *ApiResolverArgs, apiTransactionHandler ex
 		AddressPubkeyConverter:   args.CoreComponents.AddressPubKeyConverter(),
 		Hasher:                   args.CoreComponents.Hasher(),
 		LogsFacade:               logsFacade,
+		ReceiptsRepository:       args.ProcessComponents.ReceiptsRepository(),
 	}
 
 	return blockApiArgs, nil
