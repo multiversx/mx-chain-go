@@ -227,9 +227,9 @@ func (brcf *baseResolversContainerFactory) newImportDBTrieStorage(
 	return trieFactoryInstance.Create(args)
 }
 
-func (brcf *baseResolversContainerFactory) generateValidatorInfoResolver() error {
-	identifierValidatorInfo := common.ValidatorInfoTopic
-	validatorInfoResolver := disabledResolvers.NewDisabledValidatorInfoResolver()
+func (brcf *baseResolversContainerFactory) generatePeerAuthenticationResolver() error {
+	identifierPeerAuth := common.PeerAuthenticationTopic
+	peerAuthResolver := disabledResolvers.NewDisabledPeerAuthenticatorResolver()
 
-	return brcf.container.Add(identifierValidatorInfo, validatorInfoResolver)
+	return brcf.container.Add(identifierPeerAuth, peerAuthResolver)
 }

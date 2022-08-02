@@ -147,7 +147,6 @@ type TransactionCoordinator interface {
 
 	CreateReceiptsHash() ([]byte, error)
 	VerifyCreatedBlockTransactions(hdr data.HeaderHandler, body *block.Body) error
-	CreateMarshalizedReceipts() ([]byte, error)
 	GetCreatedInShardMiniBlocks() []*block.MiniBlock
 	VerifyCreatedMiniBlocks(hdr data.HeaderHandler, body *block.Body) error
 	AddIntermediateTransactions(mapSCRs map[block.Type][]data.TransactionHandler) error

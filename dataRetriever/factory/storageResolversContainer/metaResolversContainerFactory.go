@@ -94,7 +94,7 @@ func (mrcf *metaResolversContainerFactory) Create() (dataRetriever.ResolversCont
 		return nil, err
 	}
 
-	err = mrcf.generateValidatorInfoResolver()
+	err = mrcf.generatePeerAuthenticationResolver()
 	if err != nil {
 		return nil, err
 	}
@@ -102,7 +102,7 @@ func (mrcf *metaResolversContainerFactory) Create() (dataRetriever.ResolversCont
 	return mrcf.container, nil
 }
 
-//------- Shard header resolvers
+// ------- Shard header resolvers
 
 func (mrcf *metaResolversContainerFactory) generateShardHeaderResolvers() error {
 	shardC := mrcf.shardCoordinator
@@ -110,7 +110,7 @@ func (mrcf *metaResolversContainerFactory) generateShardHeaderResolvers() error 
 	keys := make([]string, noOfShards)
 	resolversSlice := make([]dataRetriever.Resolver, noOfShards)
 
-	//wire up to topics: shardBlocks_0_META, shardBlocks_1_META ...
+	// wire up to topics: shardBlocks_0_META, shardBlocks_1_META ...
 	for idx := uint32(0); idx < noOfShards; idx++ {
 		identifierHeader := factory.ShardBlocksTopic + shardC.CommunicationIdentifier(idx)
 		resolver, err := mrcf.createShardHeaderResolver(identifierHeader, idx)
@@ -131,7 +131,7 @@ func (mrcf *metaResolversContainerFactory) createShardHeaderResolver(
 ) (dataRetriever.Resolver, error) {
 	hdrStorer := mrcf.store.GetStorer(dataRetriever.BlockHeaderUnit)
 
-	//TODO change this data unit creation method through a factory or func
+	// TODO change this data unit creation method through a factory or func
 	hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(shardID)
 	hdrNonceStore := mrcf.store.GetStorer(hdrNonceHashDataUnit)
 	arg := storageResolvers.ArgHeaderResolver{
@@ -152,7 +152,7 @@ func (mrcf *metaResolversContainerFactory) createShardHeaderResolver(
 	return resolver, nil
 }
 
-//------- Meta header resolvers
+// ------- Meta header resolvers
 
 func (mrcf *metaResolversContainerFactory) generateMetaChainHeaderResolvers() error {
 	identifierHeader := factory.MetachainBlocksTopic
@@ -257,7 +257,7 @@ func (mrcf *metaResolversContainerFactory) generateRewardsResolvers(
 	keys := make([]string, noOfShards)
 	resolverSlice := make([]dataRetriever.Resolver, noOfShards)
 
-	//wire up to topics: shardBlocks_0_META, shardBlocks_1_META ...
+	// wire up to topics: shardBlocks_0_META, shardBlocks_1_META ...
 	for idx := uint32(0); idx < noOfShards; idx++ {
 		identifierTx := topic + shardC.CommunicationIdentifier(idx)
 		resolver, err := mrcf.createTxResolver(identifierTx, unit)

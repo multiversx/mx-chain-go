@@ -58,7 +58,7 @@ func createStoreForShard() dataRetriever.StorageService {
 	}
 }
 
-//------- NewResolversContainerFactory
+// ------- NewResolversContainerFactory
 
 func TestNewShardResolversContainerFactory_NilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
@@ -137,7 +137,7 @@ func TestNewShardResolversContainerFactory_ShouldWork(t *testing.T) {
 	require.False(t, rcf.IsInterfaceNil())
 }
 
-//------- Create
+// ------- Create
 
 func TestShardResolversContainerFactory_CreateShouldWork(t *testing.T) {
 	t.Parallel()
@@ -173,10 +173,9 @@ func TestShardResolversContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	numResolverMiniBlocks := noOfShards + 2
 	numResolverMetaBlockHeaders := 1
 	numResolverTrieNodes := 1
-	numValidatorInfo := 1
+	numPeerAuthentication := 1
 	totalResolvers := numResolverTxs + numResolverHeaders + numResolverMiniBlocks +
-		numResolverMetaBlockHeaders + numResolverSCRs + numResolverRewardTxs +
-		numResolverTrieNodes + numValidatorInfo
+		numResolverMetaBlockHeaders + numResolverSCRs + numResolverRewardTxs + numResolverTrieNodes + numPeerAuthentication
 
 	assert.Equal(t, totalResolvers, container.Len())
 }
