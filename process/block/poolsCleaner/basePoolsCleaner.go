@@ -2,7 +2,9 @@ package poolsCleaner
 
 import (
 	"fmt"
+	"sync"
 
+	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -22,6 +24,8 @@ type basePoolsCleaner struct {
 	shardCoordinator               sharding.Coordinator
 	maxRoundsToKeepUnprocessedData int64
 	cancelFunc                     func()
+	isCleaningRoutineRunning       atomic.Flag
+	mut                            sync.Mutex
 }
 
 func newBasePoolsCleaner(args ArgBasePoolsCleaner) basePoolsCleaner {
@@ -29,6 +33,7 @@ func newBasePoolsCleaner(args ArgBasePoolsCleaner) basePoolsCleaner {
 		roundHandler:                   args.RoundHandler,
 		shardCoordinator:               args.ShardCoordinator,
 		maxRoundsToKeepUnprocessedData: args.MaxRoundsToKeepUnprocessedData,
+		isCleaningRoutineRunning:       atomic.Flag{},
 	}
 }
 
@@ -49,8 +54,12 @@ func checkBaseArgs(args ArgBasePoolsCleaner) error {
 
 // Close will close the endless running go routine
 func (base *basePoolsCleaner) Close() error {
+	base.mut.Lock()
+	defer base.mut.Unlock()
+
 	if base.cancelFunc != nil {
 		base.cancelFunc()
+		base.isCleaningRoutineRunning.Reset()
 	}
 
 	return nil

@@ -106,6 +106,15 @@ func checkArgTxsPoolsCleaner(args ArgTxsPoolsCleaner) error {
 
 // StartCleaning actually starts the pools cleaning mechanism
 func (tpc *txsPoolsCleaner) StartCleaning() {
+	tpc.mut.Lock()
+	defer tpc.mut.Unlock()
+
+	if tpc.isCleaningRoutineRunning.IsSet() {
+		log.Error("txsPoolsCleaner cleaning routine already started...")
+		return
+	}
+
+	tpc.isCleaningRoutineRunning.SetValue(true)
 	var ctx context.Context
 	ctx, tpc.cancelFunc = context.WithCancel(context.Background())
 	go tpc.cleanTxsPools(ctx)
