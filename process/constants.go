@@ -141,14 +141,6 @@ const MaxNumOfTxsToSelect = 30000
 // MaxGasBandwidthPerBatchPerSender defines the maximum gas bandwidth that should be selected for a sender per batch from the cache
 const MaxGasBandwidthPerBatchPerSender = 5000000
 
-// MaxRoundsToKeepUnprocessedMiniBlocks defines the maximum number of rounds for which unprocessed miniblocks are kept in pool
-// TODO extract this in configs (EN-11896)
-const MaxRoundsToKeepUnprocessedMiniBlocks = 300
-
-// MaxRoundsToKeepUnprocessedTransactions defines the maximum number of rounds for which unprocessed transactions are kept in pool
-// TODO extract this in configs (EN-11896)
-const MaxRoundsToKeepUnprocessedTransactions = 300
-
 // MaxHeadersToWhitelistInAdvance defines the maximum number of headers whose miniblocks will be whitelisted in advance
 const MaxHeadersToWhitelistInAdvance = 300
 

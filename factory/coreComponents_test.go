@@ -366,6 +366,10 @@ func getCoreArgs() factory.CoreComponentsFactoryArgs {
 				TopRatedCacheCapacity: 1000,
 				BadRatedCacheCapacity: 1000,
 			},
+			PoolsCleanersConfig: config.PoolsCleanersConfig{
+				MaxRoundsToKeepUnprocessedMiniBlocks:   50,
+				MaxRoundsToKeepUnprocessedTransactions: 50,
+			},
 			Hardfork: config.HardforkConfig{
 				PublicKeyToListenFrom: dummyPk,
 			},

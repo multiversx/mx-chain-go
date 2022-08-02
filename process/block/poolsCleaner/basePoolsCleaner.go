@@ -1,0 +1,62 @@
+package poolsCleaner
+
+import (
+	"fmt"
+
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/sharding"
+)
+
+const minRoundsToKeepUnprocessedData = int64(1)
+
+// ArgBasePoolsCleaner is the base argument structure used to create pools cleaners
+type ArgBasePoolsCleaner struct {
+	RoundHandler                   process.RoundHandler
+	ShardCoordinator               sharding.Coordinator
+	MaxRoundsToKeepUnprocessedData int64
+}
+
+type basePoolsCleaner struct {
+	roundHandler                   process.RoundHandler
+	shardCoordinator               sharding.Coordinator
+	maxRoundsToKeepUnprocessedData int64
+	cancelFunc                     func()
+}
+
+func newBasePoolsCleaner(args ArgBasePoolsCleaner) basePoolsCleaner {
+	return basePoolsCleaner{
+		roundHandler:                   args.RoundHandler,
+		shardCoordinator:               args.ShardCoordinator,
+		maxRoundsToKeepUnprocessedData: args.MaxRoundsToKeepUnprocessedData,
+	}
+}
+
+func checkBaseArgs(args ArgBasePoolsCleaner) error {
+	if check.IfNil(args.RoundHandler) {
+		return process.ErrNilRoundHandler
+	}
+	if check.IfNil(args.ShardCoordinator) {
+		return process.ErrNilShardCoordinator
+	}
+	if args.MaxRoundsToKeepUnprocessedData < minRoundsToKeepUnprocessedData {
+		return fmt.Errorf("%w for MaxRoundsToKeepUnprocessedData, received %d, min expected %d",
+			process.ErrInvalidValue, args.MaxRoundsToKeepUnprocessedData, minRoundsToKeepUnprocessedData)
+	}
+
+	return nil
+}
+
+// Close will close the endless running go routine
+func (base *basePoolsCleaner) Close() error {
+	if base.cancelFunc != nil {
+		base.cancelFunc()
+	}
+
+	return nil
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (base *basePoolsCleaner) IsInterfaceNil() bool {
+	return base == nil
+}

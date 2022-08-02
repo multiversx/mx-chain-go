@@ -408,23 +408,31 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
-	mbsPoolsCleaner, err := poolsCleaner.NewMiniBlocksPoolsCleaner(
-		pcf.data.Datapool().MiniBlocks(),
-		pcf.coreData.RoundHandler(),
-		pcf.bootstrapComponents.ShardCoordinator(),
-	)
+	argsMiniBlocksPoolsCleaner := poolsCleaner.ArgMiniBlocksPoolsCleaner{
+		ArgBasePoolsCleaner: poolsCleaner.ArgBasePoolsCleaner{
+			RoundHandler:                   pcf.coreData.RoundHandler(),
+			ShardCoordinator:               pcf.bootstrapComponents.ShardCoordinator(),
+			MaxRoundsToKeepUnprocessedData: pcf.config.PoolsCleanersConfig.MaxRoundsToKeepUnprocessedMiniBlocks,
+		},
+		MiniblocksPool: pcf.data.Datapool().MiniBlocks(),
+	}
+	mbsPoolsCleaner, err := poolsCleaner.NewMiniBlocksPoolsCleaner(argsMiniBlocksPoolsCleaner)
 	if err != nil {
 		return nil, err
 	}
 
 	mbsPoolsCleaner.StartCleaning()
 
-	txsPoolsCleaner, err := poolsCleaner.NewTxsPoolsCleaner(
-		pcf.coreData.AddressPubKeyConverter(),
-		pcf.data.Datapool(),
-		pcf.coreData.RoundHandler(),
-		pcf.bootstrapComponents.ShardCoordinator(),
-	)
+	argsBasePoolsCleaner := poolsCleaner.ArgTxsPoolsCleaner{
+		ArgBasePoolsCleaner: poolsCleaner.ArgBasePoolsCleaner{
+			RoundHandler:                   pcf.coreData.RoundHandler(),
+			ShardCoordinator:               pcf.bootstrapComponents.ShardCoordinator(),
+			MaxRoundsToKeepUnprocessedData: pcf.config.PoolsCleanersConfig.MaxRoundsToKeepUnprocessedTransactions,
+		},
+		AddressPubkeyConverter: pcf.coreData.AddressPubKeyConverter(),
+		DataPool:               pcf.data.Datapool(),
+	}
+	txsPoolsCleaner, err := poolsCleaner.NewTxsPoolsCleaner(argsBasePoolsCleaner)
 	if err != nil {
 		return nil, err
 	}

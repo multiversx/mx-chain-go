@@ -12,13 +12,18 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 var log = logger.GetOrCreate("process/block/poolsCleaner")
 
 var _ closing.Closer = (*miniBlocksPoolsCleaner)(nil)
+
+// ArgMiniBlocksPoolsCleaner represents the argument structure used to create a new miniBlocksPoolsCleaner instance
+type ArgMiniBlocksPoolsCleaner struct {
+	ArgBasePoolsCleaner
+	MiniblocksPool storage.Cacher
+}
 
 type mbInfo struct {
 	round           int64
@@ -29,42 +34,40 @@ type mbInfo struct {
 
 // miniBlocksPoolsCleaner represents a pools cleaner that checks and cleans miniblocks which should not be in pool anymore
 type miniBlocksPoolsCleaner struct {
-	miniblocksPool   storage.Cacher
-	roundHandler     process.RoundHandler
-	shardCoordinator sharding.Coordinator
-
+	basePoolsCleaner
+	miniblocksPool         storage.Cacher
 	mutMapMiniBlocksRounds sync.RWMutex
 	mapMiniBlocksRounds    map[string]*mbInfo
-	cancelFunc             func()
 }
 
 // NewMiniBlocksPoolsCleaner will return a new miniblocks pools cleaner
-func NewMiniBlocksPoolsCleaner(
-	miniblocksPool storage.Cacher,
-	roundHandler process.RoundHandler,
-	shardCoordinator sharding.Coordinator,
-) (*miniBlocksPoolsCleaner, error) {
-
-	if check.IfNil(miniblocksPool) {
-		return nil, process.ErrNilMiniBlockPool
-	}
-	if check.IfNil(roundHandler) {
-		return nil, process.ErrNilRoundHandler
-	}
-	if check.IfNil(shardCoordinator) {
-		return nil, process.ErrNilShardCoordinator
+func NewMiniBlocksPoolsCleaner(args ArgMiniBlocksPoolsCleaner) (*miniBlocksPoolsCleaner, error) {
+	err := checkArgMiniBlocksPoolsCleaner(args)
+	if err != nil {
+		return nil, err
 	}
 
 	mbpc := miniBlocksPoolsCleaner{
-		miniblocksPool:   miniblocksPool,
-		roundHandler:     roundHandler,
-		shardCoordinator: shardCoordinator,
+		basePoolsCleaner:    newBasePoolsCleaner(args.ArgBasePoolsCleaner),
+		miniblocksPool:      args.MiniblocksPool,
+		mapMiniBlocksRounds: make(map[string]*mbInfo),
 	}
 
-	mbpc.mapMiniBlocksRounds = make(map[string]*mbInfo)
 	mbpc.miniblocksPool.RegisterHandler(mbpc.receivedMiniBlock, core.UniqueIdentifier())
 
 	return &mbpc, nil
+}
+
+func checkArgMiniBlocksPoolsCleaner(args ArgMiniBlocksPoolsCleaner) error {
+	err := checkBaseArgs(args.ArgBasePoolsCleaner)
+	if err != nil {
+		return err
+	}
+	if check.IfNil(args.MiniblocksPool) {
+		return process.ErrNilMiniBlockPool
+	}
+
+	return err
 }
 
 // StartCleaning actually starts the pools cleaning mechanism
@@ -150,7 +153,7 @@ func (mbpc *miniBlocksPoolsCleaner) cleanMiniblocksPoolsIfNeeded() int {
 		}
 
 		roundDif := mbpc.roundHandler.Index() - mbi.round
-		if roundDif <= process.MaxRoundsToKeepUnprocessedMiniBlocks {
+		if roundDif <= mbpc.maxRoundsToKeepUnprocessedData {
 			log.Trace("cleaning miniblock not yet allowed",
 				"hash", []byte(hash),
 				"round", mbi.round,
@@ -190,18 +193,4 @@ func (mbpc *miniBlocksPoolsCleaner) cleanMiniblocksPoolsIfNeeded() int {
 	}
 
 	return numMiniBlocksRounds
-}
-
-// Close will close the endless running go routine
-func (mbpc *miniBlocksPoolsCleaner) Close() error {
-	if mbpc.cancelFunc != nil {
-		mbpc.cancelFunc()
-	}
-
-	return nil
-}
-
-// IsInterfaceNil returns true if there is no value under the interface
-func (mbpc *miniBlocksPoolsCleaner) IsInterfaceNil() bool {
-	return mbpc == nil
 }
