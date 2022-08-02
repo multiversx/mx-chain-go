@@ -25,7 +25,7 @@ type AccountsStub struct {
 	RevertToSnapshotCalled        func(snapshot int) error
 	RootHashCalled                func() ([]byte, error)
 	RecreateTrieCalled            func(rootHash []byte) error
-	PruneTrieCalled               func(rootHash []byte, identifier state.TriePruningIdentifier)
+	PruneTrieCalled               func(rootHash []byte, identifier state.TriePruningIdentifier, handler state.PruningHandler)
 	CancelPruneCalled             func(rootHash []byte, identifier state.TriePruningIdentifier)
 	SnapshotStateCalled           func(rootHash []byte)
 	SetStateCheckpointCalled      func(rootHash []byte)
@@ -35,6 +35,8 @@ type AccountsStub struct {
 	GetCodeCalled                 func([]byte) []byte
 	GetTrieCalled                 func([]byte) (common.Trie, error)
 	GetStackDebugFirstEntryCalled func() []byte
+	GetAccountWithBlockInfoCalled func(address []byte) (vmcommon.AccountHandler, common.BlockInfo, error)
+	GetCodeWithBlockInfoCalled    func(codeHash []byte) ([]byte, common.BlockInfo, error)
 	CloseCalled                   func() error
 }
 
@@ -160,8 +162,8 @@ func (as *AccountsStub) RecreateTrie(rootHash []byte) error {
 }
 
 // PruneTrie -
-func (as *AccountsStub) PruneTrie(rootHash []byte, identifier state.TriePruningIdentifier) {
-	as.PruneTrieCalled(rootHash, identifier)
+func (as *AccountsStub) PruneTrie(rootHash []byte, identifier state.TriePruningIdentifier, handler state.PruningHandler) {
+	as.PruneTrieCalled(rootHash, identifier, handler)
 }
 
 // CancelPrune -
@@ -210,6 +212,24 @@ func (as *AccountsStub) GetStackDebugFirstEntry() []byte {
 	}
 
 	return nil
+}
+
+// GetAccountWithBlockInfo -
+func (as *AccountsStub) GetAccountWithBlockInfo(address []byte) (vmcommon.AccountHandler, common.BlockInfo, error) {
+	if as.GetAccountWithBlockInfoCalled != nil {
+		return as.GetAccountWithBlockInfoCalled(address)
+	}
+
+	return nil, nil, nil
+}
+
+// GetCodeWithBlockInfo -
+func (as *AccountsStub) GetCodeWithBlockInfo(codeHash []byte) ([]byte, common.BlockInfo, error) {
+	if as.GetCodeWithBlockInfoCalled != nil {
+		return as.GetCodeWithBlockInfoCalled(codeHash)
+	}
+
+	return nil, nil, nil
 }
 
 // Close -

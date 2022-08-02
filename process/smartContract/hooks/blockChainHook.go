@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/big"
 	"path"
+	"reflect"
 	"sync"
 	"time"
 
@@ -40,35 +41,37 @@ const executeDurationAlarmThreshold = time.Duration(50) * time.Millisecond
 
 // ArgBlockChainHook represents the arguments structure for the blockchain hook
 type ArgBlockChainHook struct {
-	Accounts           state.AccountsAdapter
-	PubkeyConv         core.PubkeyConverter
-	StorageService     dataRetriever.StorageService
-	DataPool           dataRetriever.PoolsHolder
-	BlockChain         data.ChainHandler
-	ShardCoordinator   sharding.Coordinator
-	Marshalizer        marshal.Marshalizer
-	Uint64Converter    typeConverters.Uint64ByteSliceConverter
-	BuiltInFunctions   vmcommon.BuiltInFunctionContainer
-	NFTStorageHandler  vmcommon.SimpleESDTNFTStorageHandler
-	CompiledSCPool     storage.Cacher
-	ConfigSCStorage    config.StorageConfig
-	EnableEpochs       config.EnableEpochs
-	EpochNotifier      vmcommon.EpochNotifier
-	WorkingDir         string
-	NilCompiledSCStore bool
+	Accounts              state.AccountsAdapter
+	PubkeyConv            core.PubkeyConverter
+	StorageService        dataRetriever.StorageService
+	DataPool              dataRetriever.PoolsHolder
+	BlockChain            data.ChainHandler
+	ShardCoordinator      sharding.Coordinator
+	Marshalizer           marshal.Marshalizer
+	Uint64Converter       typeConverters.Uint64ByteSliceConverter
+	BuiltInFunctions      vmcommon.BuiltInFunctionContainer
+	NFTStorageHandler     vmcommon.SimpleESDTNFTStorageHandler
+	GlobalSettingsHandler vmcommon.ESDTGlobalSettingsHandler
+	CompiledSCPool        storage.Cacher
+	ConfigSCStorage       config.StorageConfig
+	EnableEpochs          config.EnableEpochs
+	EpochNotifier         vmcommon.EpochNotifier
+	WorkingDir            string
+	NilCompiledSCStore    bool
 }
 
 // BlockChainHookImpl is a wrapper over AccountsAdapter that satisfy vmcommon.BlockchainHook interface
 type BlockChainHookImpl struct {
-	accounts          state.AccountsAdapter
-	pubkeyConv        core.PubkeyConverter
-	storageService    dataRetriever.StorageService
-	blockChain        data.ChainHandler
-	shardCoordinator  sharding.Coordinator
-	marshalizer       marshal.Marshalizer
-	uint64Converter   typeConverters.Uint64ByteSliceConverter
-	builtInFunctions  vmcommon.BuiltInFunctionContainer
-	nftStorageHandler vmcommon.SimpleESDTNFTStorageHandler
+	accounts              state.AccountsAdapter
+	pubkeyConv            core.PubkeyConverter
+	storageService        dataRetriever.StorageService
+	blockChain            data.ChainHandler
+	shardCoordinator      sharding.Coordinator
+	marshalizer           marshal.Marshalizer
+	uint64Converter       typeConverters.Uint64ByteSliceConverter
+	builtInFunctions      vmcommon.BuiltInFunctionContainer
+	nftStorageHandler     vmcommon.SimpleESDTNFTStorageHandler
+	globalSettingsHandler vmcommon.ESDTGlobalSettingsHandler
 
 	mutCurrentHdr sync.RWMutex
 	currentHdr    data.HeaderHandler
@@ -87,6 +90,8 @@ type BlockChainHookImpl struct {
 	flagDoNotReturnOldBlock           atomic.Flag
 	filterCodeMetadataEnableEpoch     uint32
 	flagFilterCodeMetadataEnableEpoch atomic.Flag
+
+	mapActivationEpochs map[uint32]struct{}
 }
 
 // NewBlockChainHookImpl creates a new BlockChainHookImpl instance
@@ -112,6 +117,7 @@ func NewBlockChainHookImpl(
 		workingDir:                     args.WorkingDir,
 		nilCompiledSCStore:             args.NilCompiledSCStore,
 		nftStorageHandler:              args.NFTStorageHandler,
+		globalSettingsHandler:          args.GlobalSettingsHandler,
 		isPayableBySCEnableEpoch:       args.EnableEpochs.IsPayableBySCEnableEpoch,
 		optimizeNFTStoreEnableEpoch:    args.EnableEpochs.OptimizeNFTStoreEnableEpoch,
 		doNotReturnOldBlockEnableEpoch: args.EnableEpochs.DoNotReturnOldBlockInBlockchainHookEnableEpoch,
@@ -130,10 +136,26 @@ func NewBlockChainHookImpl(
 
 	blockChainHookImpl.ClearCompiledCodes()
 	blockChainHookImpl.currentHdr = &block.Header{}
+	blockChainHookImpl.mapActivationEpochs = createMapActivationEpochs(&args.EnableEpochs)
 
 	args.EpochNotifier.RegisterNotifyHandler(blockChainHookImpl)
 
 	return blockChainHookImpl, nil
+}
+
+func createMapActivationEpochs(enableEpochs *config.EnableEpochs) map[uint32]struct{} {
+	mapActivationEpoch := make(map[uint32]struct{})
+
+	reflectVal := reflect.ValueOf(enableEpochs).Elem()
+	for i := 0; i < reflectVal.NumField(); i++ {
+		f := reflectVal.Field(i)
+		epoch, ok := f.Interface().(uint32)
+		if !ok {
+			continue
+		}
+		mapActivationEpoch[epoch] = struct{}{}
+	}
+	return mapActivationEpoch
 }
 
 func checkForNil(args ArgBlockChainHook) error {
@@ -169,6 +191,9 @@ func checkForNil(args ArgBlockChainHook) error {
 	}
 	if check.IfNil(args.EpochNotifier) {
 		return process.ErrNilEpochNotifier
+	}
+	if check.IfNil(args.GlobalSettingsHandler) {
+		return process.ErrNilESDTGlobalSettingsHandler
 	}
 
 	return nil
@@ -576,6 +601,18 @@ func (bh *BlockChainHookImpl) GetESDTToken(address []byte, tokenID []byte, nonce
 	return esdtData, nil
 }
 
+// IsPaused returns true if the transfers for the given token ID are paused
+func (bh *BlockChainHookImpl) IsPaused(tokenID []byte) bool {
+	esdtTokenKey := []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier + string(tokenID))
+	return bh.globalSettingsHandler.IsPaused(esdtTokenKey)
+}
+
+// IsLimitedTransfer returns true if the transfers
+func (bh *BlockChainHookImpl) IsLimitedTransfer(tokenID []byte) bool {
+	esdtTokenKey := []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier + string(tokenID))
+	return bh.globalSettingsHandler.IsLimitedTransfer(esdtTokenKey)
+}
+
 func (bh *BlockChainHookImpl) returnESDTTokenByLegacyMethod(
 	userAcc vmcommon.UserAccountHandler,
 	esdtData *esdt.ESDigitalToken,
@@ -741,6 +778,11 @@ func (bh *BlockChainHookImpl) EpochConfirmed(epoch uint32, _ uint64) {
 
 	bh.flagFilterCodeMetadataEnableEpoch.SetValue(epoch >= bh.filterCodeMetadataEnableEpoch)
 	log.Debug("blockchainHookImpl: filter code metadata", "enabled", bh.flagFilterCodeMetadataEnableEpoch.IsSet())
+
+	_, ok := bh.mapActivationEpochs[epoch]
+	if ok {
+		bh.ClearCompiledCodes()
+	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

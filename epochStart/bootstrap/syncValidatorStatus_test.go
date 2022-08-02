@@ -98,9 +98,10 @@ func TestSyncValidatorStatus_NodesConfigFromMetaBlock(t *testing.T) {
 		},
 	}
 
-	registry, _, err := svs.NodesConfigFromMetaBlock(currMb, prevMb)
+	registry, _, miniBlocks, err := svs.NodesConfigFromMetaBlock(currMb, prevMb)
 	require.NoError(t, err)
 	require.NotNil(t, registry)
+	require.Empty(t, miniBlocks)
 }
 
 func TestSyncValidatorStatus_processValidatorChangesFor(t *testing.T) {
@@ -156,9 +157,10 @@ func TestSyncValidatorStatus_processValidatorChangesFor(t *testing.T) {
 		},
 	}
 
-	err := svs.processValidatorChangesFor(metaBlock)
+	miniBlocks, err := svs.processValidatorChangesFor(metaBlock)
 	require.NoError(t, err)
 	assert.True(t, wasCalled)
+	assert.Equal(t, []*block.MiniBlock{mb}, miniBlocks)
 }
 
 func TestSyncValidatorStatus_findPeerMiniBlockHeaders(t *testing.T) {
@@ -237,9 +239,10 @@ func TestSyncValidatorStatus_getPeerBlockBodyForMeta(t *testing.T) {
 		},
 	}
 
-	body, err := svs.getPeerBlockBodyForMeta(metaBlock)
+	body, miniBlocks, err := svs.getPeerBlockBodyForMeta(metaBlock)
 	require.NoError(t, err)
 	require.Equal(t, expectedBody, body)
+	require.Equal(t, expectedBody.MiniBlocks, miniBlocks)
 }
 
 func getSyncValidatorStatusArgs() ArgsNewSyncValidatorStatus {

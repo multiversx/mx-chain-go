@@ -7,6 +7,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common/holders"
+	"github.com/ElrondNetwork/elrond-go/common/logging"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -21,6 +23,7 @@ type baseProcessor struct {
 	shardCoordinator   sharding.Coordinator
 	storage            dataRetriever.StorageService
 	txCoordinator      process.TransactionCoordinator
+	receiptsRepository receiptsRepository
 	selfShardID        uint32
 }
 
@@ -239,26 +242,26 @@ func (b *baseProcessor) saveMiniBlocks(headerHandler data.HeaderHandler, body *b
 
 		errNotCritical = b.storage.Put(dataRetriever.MiniBlockUnit, miniBlockHeadersHashes[i], marshalizedMiniBlock)
 		if errNotCritical != nil {
-			log.Warn("saveMiniBlocks.Put -> MiniBlockUnit",
-				"error", errNotCritical.Error())
+			logging.LogErrAsWarnExceptAsDebugIfClosingError(log, errNotCritical,
+				"saveMiniBlocks.Put -> MiniBlockUnit",
+				"err", errNotCritical)
 		}
 	}
 }
 
 func (b *baseProcessor) saveReceipts(headerHandler data.HeaderHandler) {
-	marshalizedReceipts, errNotCritical := b.txCoordinator.CreateMarshalizedReceipts()
+	headerHash, errNotCritical := core.CalculateHash(b.marshalizer, b.hasher, headerHandler)
 	if errNotCritical != nil {
-		log.Warn("saveReceipts.CreateMarshalizedReceipts",
-			"error", errNotCritical.Error())
+		log.Warn("saveReceipts(), error on CalculateHash(header)", "error", errNotCritical.Error())
 		return
 	}
 
-	if len(marshalizedReceipts) > 0 {
-		errNotCritical = b.storage.Put(dataRetriever.ReceiptsUnit, headerHandler.GetReceiptsHash(), marshalizedReceipts)
-		if errNotCritical != nil {
-			log.Warn("saveReceipts.Put -> ReceiptsUnit",
-				"error", errNotCritical.Error())
-		}
+	receiptsHolder := holders.NewReceiptsHolder(b.txCoordinator.GetCreatedInShardMiniBlocks())
+	errNotCritical = b.receiptsRepository.SaveReceipts(receiptsHolder, headerHandler, headerHash)
+	if errNotCritical != nil {
+		logging.LogErrAsWarnExceptAsDebugIfClosingError(log, errNotCritical,
+			"saveReceipts(), error on receiptsRepository.SaveReceipts()",
+			"err", errNotCritical)
 	}
 }
 
@@ -289,8 +292,9 @@ func (b *baseProcessor) saveTransactions(body *block.Body) {
 
 			errNotCritical = b.storage.Put(unitType, txHash, marshaledData)
 			if errNotCritical != nil {
-				log.Warn("saveTransactions.Put -> Transaction",
-					"error", errNotCritical.Error())
+				logging.LogErrAsWarnExceptAsDebugIfClosingError(log, errNotCritical,
+					"saveTransactions.Put -> Transaction",
+					"err", errNotCritical)
 			}
 		}
 	}
@@ -321,6 +325,7 @@ func checkBlockCreatorAfterHardForkNilParameters(
 	shardCoordinator sharding.Coordinator,
 	storage dataRetriever.StorageService,
 	txCoordinator process.TransactionCoordinator,
+	receiptsRepository receiptsRepository,
 ) error {
 	if check.IfNil(hasher) {
 		return update.ErrNilHasher
@@ -342,6 +347,9 @@ func checkBlockCreatorAfterHardForkNilParameters(
 	}
 	if check.IfNil(txCoordinator) {
 		return update.ErrNilTxCoordinator
+	}
+	if check.IfNil(receiptsRepository) {
+		return update.ErrNilReceiptsRepository
 	}
 
 	return nil

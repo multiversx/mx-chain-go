@@ -2,6 +2,7 @@ package dblookupext
 
 import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/dblookupext/esdtSupply"
 )
 
@@ -12,12 +13,14 @@ type HistoryRepositoryFactory interface {
 }
 
 // HistoryRepository provides methods needed for the history data processing
+// TODO: Move interface where it's needed, not in the package where it's implemented
 type HistoryRepository interface {
 	RecordBlock(blockHeaderHash []byte,
 		blockHeader data.HeaderHandler,
 		blockBody data.BodyHandler,
 		scrResultsFromPool map[string]data.TransactionHandler,
 		receiptsFromPool map[string]data.TransactionHandler,
+		createdIntraShardMiniBlocks []*block.MiniBlock,
 		logs []*data.LogData) error
 	OnNotarizedBlocks(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte)
 	GetMiniblockMetadataByTxHash(hash []byte) (*MiniblockMetadata, error)

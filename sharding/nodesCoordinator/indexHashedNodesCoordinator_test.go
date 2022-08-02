@@ -25,6 +25,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding/mock"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
+	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
 	"github.com/stretchr/testify/assert"
@@ -93,7 +94,7 @@ func createArguments() ArgNodesCoordinator {
 	nodeShuffler, _ := NewHashValidatorsShuffler(shufflerArgs)
 
 	epochStartSubscriber := &mock.EpochStartNotifierStub{}
-	bootStorer := mock.NewStorerMock()
+	bootStorer := genericMocks.NewStorerMock()
 
 	arguments := ArgNodesCoordinator{
 		ShardConsensusGroupSize:    1,
@@ -242,7 +243,7 @@ func TestIndexHashedNodesCoordinator_OkValShouldWork(t *testing.T) {
 	require.Nil(t, err)
 
 	epochStartSubscriber := &mock.EpochStartNotifierStub{}
-	bootStorer := mock.NewStorerMock()
+	bootStorer := genericMocks.NewStorerMock()
 
 	arguments := ArgNodesCoordinator{
 		ShardConsensusGroupSize:    2,
@@ -300,7 +301,7 @@ func TestIndexHashedNodesCoordinator_NewCoordinatorTooFewNodesShouldErr(t *testi
 	require.Nil(t, err)
 
 	epochStartSubscriber := &mock.EpochStartNotifierStub{}
-	bootStorer := mock.NewStorerMock()
+	bootStorer := genericMocks.NewStorerMock()
 
 	arguments := ArgNodesCoordinator{
 		ShardConsensusGroupSize:    10,
@@ -372,7 +373,7 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroup1ValidatorShouldRetur
 	require.Nil(t, err)
 
 	epochStartSubscriber := &mock.EpochStartNotifierStub{}
-	bootStorer := mock.NewStorerMock()
+	bootStorer := genericMocks.NewStorerMock()
 
 	arguments := ArgNodesCoordinator{
 		ShardConsensusGroupSize:    1,
@@ -416,7 +417,7 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroup400of400For10locksNoM
 	require.Nil(t, err)
 
 	epochStartSubscriber := &mock.EpochStartNotifierStub{}
-	bootStorer := mock.NewStorerMock()
+	bootStorer := genericMocks.NewStorerMock()
 
 	getCounter := int32(0)
 	putCounter := int32(0)
@@ -489,7 +490,7 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroup400of400For10BlocksMe
 	require.Nil(t, err)
 
 	epochStartSubscriber := &mock.EpochStartNotifierStub{}
-	bootStorer := mock.NewStorerMock()
+	bootStorer := genericMocks.NewStorerMock()
 
 	getCounter := 0
 	putCounter := 0
@@ -586,7 +587,7 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroup63of400TestEqualSameP
 	require.Nil(t, err)
 
 	epochStartSubscriber := &mock.EpochStartNotifierStub{}
-	bootStorer := mock.NewStorerMock()
+	bootStorer := genericMocks.NewStorerMock()
 
 	arguments := ArgNodesCoordinator{
 		ShardConsensusGroupSize:    consensusGroupSize,
@@ -647,7 +648,7 @@ func BenchmarkIndexHashedGroupSelector_ComputeValidatorsGroup21of400(b *testing.
 	require.Nil(b, err)
 
 	epochStartSubscriber := &mock.EpochStartNotifierStub{}
-	bootStorer := mock.NewStorerMock()
+	bootStorer := genericMocks.NewStorerMock()
 
 	arguments := ArgNodesCoordinator{
 		ShardConsensusGroupSize:    consensusGroupSize,
@@ -718,7 +719,7 @@ func runBenchmark(consensusGroupCache Cacher, consensusGroupSize int, nodesMap m
 	require.Nil(b, err)
 
 	epochStartSubscriber := &mock.EpochStartNotifierStub{}
-	bootStorer := mock.NewStorerMock()
+	bootStorer := genericMocks.NewStorerMock()
 
 	arguments := ArgNodesCoordinator{
 		ShardConsensusGroupSize:    consensusGroupSize,
@@ -766,7 +767,7 @@ func computeMemoryRequirements(consensusGroupCache Cacher, consensusGroupSize in
 	require.Nil(b, err)
 
 	epochStartSubscriber := &mock.EpochStartNotifierStub{}
-	bootStorer := mock.NewStorerMock()
+	bootStorer := genericMocks.NewStorerMock()
 
 	arguments := ArgNodesCoordinator{
 		ShardConsensusGroupSize:    consensusGroupSize,
@@ -904,7 +905,7 @@ func TestIndexHashedNodesCoordinator_GetValidatorWithPublicKeyShouldWork(t *test
 	require.Nil(t, err)
 
 	epochStartSubscriber := &mock.EpochStartNotifierStub{}
-	bootStorer := mock.NewStorerMock()
+	bootStorer := genericMocks.NewStorerMock()
 
 	arguments := ArgNodesCoordinator{
 		ShardConsensusGroupSize:    1,
@@ -985,7 +986,7 @@ func TestIndexHashedGroupSelector_GetAllEligibleValidatorsPublicKeys(t *testing.
 	require.Nil(t, err)
 
 	epochStartSubscriber := &mock.EpochStartNotifierStub{}
-	bootStorer := mock.NewStorerMock()
+	bootStorer := genericMocks.NewStorerMock()
 
 	arguments := ArgNodesCoordinator{
 		ShardConsensusGroupSize:    1,
@@ -1058,7 +1059,7 @@ func TestIndexHashedGroupSelector_GetAllWaitingValidatorsPublicKeys(t *testing.T
 	require.Nil(t, err)
 
 	epochStartSubscriber := &mock.EpochStartNotifierStub{}
-	bootStorer := mock.NewStorerMock()
+	bootStorer := genericMocks.NewStorerMock()
 
 	eligibleMap := make(map[uint32][]Validator)
 	eligibleMap[core.MetachainShardId] = []Validator{&validator{}}
@@ -1421,7 +1422,7 @@ func TestIndexHashedNodesCoordinator_EpochStart_EligibleSortedAscendingByIndex(t
 	require.Nil(t, err)
 
 	epochStartSubscriber := &mock.EpochStartNotifierStub{}
-	bootStorer := mock.NewStorerMock()
+	bootStorer := genericMocks.NewStorerMock()
 
 	arguments := ArgNodesCoordinator{
 		ShardConsensusGroupSize:    1,

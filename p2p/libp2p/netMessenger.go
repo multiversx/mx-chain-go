@@ -36,9 +36,6 @@ import (
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
-	"github.com/libp2p/go-tcp-transport"
-
-	stream "github.com/libp2p/go-libp2p-transport-upgrader"
 )
 
 const (
@@ -75,13 +72,6 @@ const (
 	withoutMessageSigning messageSigningConfig = false
 )
 
-type reusePortsConfig bool
-
-const (
-	allowReusePorts   reusePortsConfig = true
-	preventReusePorts reusePortsConfig = false
-)
-
 // TODO remove the header size of the message when commit d3c5ecd3a3e884206129d9f2a9a4ddfd5e7c8951 from
 // https://github.com/libp2p/go-libp2p-pubsub/pull/189/commits will be part of a new release
 var messageHeader = 64 * 1024 // 64kB
@@ -109,45 +99,46 @@ type networkMessenger struct {
 	pb         *pubsub.PubSub
 	ds         p2p.DirectSender
 	// TODO refactor this (connMonitor & connMonitorWrapper)
-	connMonitor          ConnectionMonitor
-	connMonitorWrapper   p2p.ConnectionMonitorWrapper
-	peerDiscoverer       p2p.PeerDiscoverer
-	sharder              p2p.Sharder
-	peerShardResolver    p2p.PeerShardResolver
-	mutPeerResolver      sync.RWMutex
-	mutTopics            sync.RWMutex
-	processors           map[string]*topicProcessors
-	topics               map[string]*pubsub.Topic
-	subscriptions        map[string]*pubsub.Subscription
-	outgoingPLB          p2p.ChannelLoadBalancer
-	poc                  *peersOnChannel
-	goRoutinesThrottler  *throttler.NumGoRoutinesThrottler
-	connectionsMetric    *metrics.Connections
-	debugger             p2p.Debugger
-	marshalizer          p2p.Marshalizer
-	syncTimer            p2p.SyncTimer
-	preferredPeersHolder p2p.PreferredPeersHolderHandler
-	printConnectionsWatcher   p2p.ConnectionsWatcher
-	peersRatingHandler   p2p.PeersRatingHandler
+	connMonitor             ConnectionMonitor
+	connMonitorWrapper      p2p.ConnectionMonitorWrapper
+	peerDiscoverer          p2p.PeerDiscoverer
+	sharder                 p2p.Sharder
+	peerShardResolver       p2p.PeerShardResolver
+	mutPeerResolver         sync.RWMutex
+	mutTopics               sync.RWMutex
+	processors              map[string]*topicProcessors
+	topics                  map[string]*pubsub.Topic
+	subscriptions           map[string]*pubsub.Subscription
+	outgoingPLB             p2p.ChannelLoadBalancer
+	poc                     *peersOnChannel
+	goRoutinesThrottler     *throttler.NumGoRoutinesThrottler
+	connectionsMetric       *metrics.Connections
+	debugger                p2p.Debugger
+	marshalizer             p2p.Marshalizer
+	syncTimer               p2p.SyncTimer
+	preferredPeersHolder    p2p.PreferredPeersHolderHandler
+	printConnectionsWatcher p2p.ConnectionsWatcher
+	peersRatingHandler      p2p.PeersRatingHandler
 }
 
 // ArgsNetworkMessenger defines the options used to create a p2p wrapper
 type ArgsNetworkMessenger struct {
-	ListenAddress        string
-	Marshalizer          p2p.Marshalizer
-	P2pConfig            config.P2PConfig
-	SyncTimer            p2p.SyncTimer
-	PreferredPeersHolder p2p.PreferredPeersHolderHandler
-	NodeOperationMode    p2p.NodeOperation
-	PeersRatingHandler   p2p.PeersRatingHandler
+	ListenAddress         string
+	Marshalizer           p2p.Marshalizer
+	P2pConfig             config.P2PConfig
+	SyncTimer             p2p.SyncTimer
+	PreferredPeersHolder  p2p.PreferredPeersHolderHandler
+	NodeOperationMode     p2p.NodeOperation
+	PeersRatingHandler    p2p.PeersRatingHandler
+	ConnectionWatcherType string
 }
 
 // NewNetworkMessenger creates a libP2P messenger by opening a port on the current machine
 func NewNetworkMessenger(args ArgsNetworkMessenger) (*networkMessenger, error) {
-	return newNetworkMessenger(args, withMessageSigning, allowReusePorts)
+	return newNetworkMessenger(args, withMessageSigning)
 }
 
-func newNetworkMessenger(args ArgsNetworkMessenger, messageSigning messageSigningConfig, reusePort reusePortsConfig) (*networkMessenger, error) {
+func newNetworkMessenger(args ArgsNetworkMessenger, messageSigning messageSigningConfig) (*networkMessenger, error) {
 	if check.IfNil(args.Marshalizer) {
 		return nil, fmt.Errorf("%w when creating a new network messenger", p2p.ErrNilMarshalizer)
 	}
@@ -168,7 +159,7 @@ func newNetworkMessenger(args ArgsNetworkMessenger, messageSigning messageSignin
 
 	setupExternalP2PLoggers()
 
-	p2pNode, err := constructNodeWithPortRetry(args, p2pPrivKey, reusePort)
+	p2pNode, err := constructNodeWithPortRetry(args, p2pPrivKey)
 	if err != nil {
 		return nil, err
 	}
@@ -185,7 +176,6 @@ func newNetworkMessenger(args ArgsNetworkMessenger, messageSigning messageSignin
 func constructNode(
 	args ArgsNetworkMessenger,
 	p2pPrivKey *libp2pCrypto.Secp256k1PrivateKey,
-	portReuse reusePortsConfig,
 ) (*networkMessenger, error) {
 
 	port, err := getPort(args.P2pConfig.Node.Port, checkFreePort)
@@ -193,17 +183,8 @@ func constructNode(
 		return nil, err
 	}
 
-	transportOption := libp2p.DefaultTransports
-	if portReuse == preventReusePorts {
-		log.Warn("port reuse is turned off in network messenger instance. NOT recommended in production environment")
-		transportOption = libp2p.Transport(func(u *stream.Upgrader) *tcp.TcpTransport {
-			tpt := tcp.NewTCPTransport(u)
-			tpt.DisableReuseport = true
-			return tpt
-		})
-	}
-
-	connWatcher, err := metricsFactory.NewConnectionsWatcher(args.P2pConfig.Node.ConnectionWatcherType, ttlConnectionsWatcher)
+	log.Debug("connectionWatcherType", "type", args.ConnectionWatcherType)
+	connWatcher, err := metricsFactory.NewConnectionsWatcher(args.ConnectionWatcherType, ttlConnectionsWatcher)
 	if err != nil {
 		return nil, err
 	}
@@ -214,14 +195,14 @@ func constructNode(
 		libp2p.Identity(p2pPrivKey),
 		libp2p.DefaultMuxers,
 		libp2p.DefaultSecurity,
-		transportOption,
+		libp2p.DefaultTransports,
 		// we need the disable relay option in order to save the node's bandwidth as much as possible
 		libp2p.DisableRelay(),
 		libp2p.NATPortMap(),
 	}
 
 	ctx, cancelFunc := context.WithCancel(context.Background())
-	h, err := libp2p.New(ctx, opts...)
+	h, err := libp2p.New(opts...)
 	if err != nil {
 		cancelFunc()
 		return nil, err
@@ -236,7 +217,7 @@ func constructNode(
 		p2pHost:                 NewConnectableHost(h),
 		port:                    port,
 		printConnectionsWatcher: connWatcher,
-		peersRatingHandler: args.PeersRatingHandler,
+		peersRatingHandler:      args.PeersRatingHandler,
 	}
 
 	return p2pNode, nil
@@ -245,12 +226,11 @@ func constructNode(
 func constructNodeWithPortRetry(
 	args ArgsNetworkMessenger,
 	p2pPrivKey *libp2pCrypto.Secp256k1PrivateKey,
-	portReuse reusePortsConfig,
 ) (*networkMessenger, error) {
 
 	var lastErr error
 	for i := 0; i < maxRetriesIfBindError; i++ {
-		p2pNode, err := constructNode(args, p2pPrivKey, portReuse)
+		p2pNode, err := constructNode(args, p2pPrivKey)
 		if err == nil {
 			return p2pNode, nil
 		}

@@ -3376,7 +3376,7 @@ func TestEsdt_SetSpecialRoleTransferNotEnabledShouldErr(t *testing.T) {
 	args.Eei = eei
 
 	e, _ := NewESDTSmartContract(args)
-
+	e.flagSendTransferRoleAddress.Reset()
 	vmInput := getDefaultVmInputForFunc("setSpecialRole", [][]byte{})
 	vmInput.Arguments = [][]byte{[]byte("myToken"), []byte("myAddress"), []byte(core.ESDTRoleTransfer)}
 	vmInput.CallerAddr = []byte("caller123")
@@ -3433,6 +3433,168 @@ func TestEsdt_SetSpecialRoleTransferNotEnabledShouldErr(t *testing.T) {
 	retCode = e.Execute(vmInput)
 	require.Equal(t, vmcommon.Ok, retCode)
 	require.True(t, called)
+}
+
+func TestEsdt_SetSpecialRoleTransferWithTransferRoleEnhancement(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForESDT()
+	args.EpochConfig.EnableEpochs.ESDTTransferRoleEnableEpoch = 10
+
+	token := &ESDTDataV2{
+		OwnerAddress: []byte("caller123"),
+		SpecialRoles: []*ESDTRoles{
+			{
+				Address: []byte("myAddress"),
+				Roles:   [][]byte{[]byte(core.ESDTRoleLocalMint)},
+			},
+		},
+		TokenType:          []byte(core.NonFungibleESDT),
+		CanAddSpecialRoles: true,
+	}
+	called := 0
+	eei := &mock.SystemEIStub{
+		GetStorageCalled: func(key []byte) []byte {
+			tokenBytes, _ := args.Marshalizer.Marshal(token)
+			return tokenBytes
+		},
+	}
+	args.Eei = eei
+
+	e, _ := NewESDTSmartContract(args)
+
+	vmInput := getDefaultVmInputForFunc("setSpecialRole", [][]byte{})
+	vmInput.Arguments = [][]byte{[]byte("myToken"), []byte("myAddress"), []byte(core.ESDTRoleTransfer)}
+	vmInput.CallerAddr = []byte("caller123")
+	vmInput.CallValue = big.NewInt(0)
+	vmInput.GasProvided = 50000000
+
+	_ = e.flagTransferRole.SetReturningPrevious()
+	called = 0
+	token.TokenType = []byte(core.NonFungibleESDT)
+	eei.SendGlobalSettingToAllCalled = func(sender []byte, input []byte) {
+		if called == 0 {
+			assert.Equal(t, core.BuiltInFunctionESDTSetLimitedTransfer+"@"+hex.EncodeToString([]byte("myToken")), string(input))
+		} else {
+			assert.Equal(t, vmcommon.BuiltInFunctionESDTTransferRoleAddAddress+"@"+hex.EncodeToString([]byte("myToken"))+"@"+hex.EncodeToString([]byte("myAddress")), string(input))
+		}
+		called++
+	}
+
+	retCode := e.Execute(vmInput)
+	require.Equal(t, vmcommon.Ok, retCode)
+	require.Equal(t, called, 2)
+
+	called = 0
+	newAddressRole := &ESDTRoles{
+		Address: []byte("address"),
+		Roles:   [][]byte{[]byte(core.ESDTRoleTransfer)},
+	}
+	token.SpecialRoles = append(token.SpecialRoles, newAddressRole)
+	token.TokenType = []byte(core.SemiFungibleESDT)
+	eei.SendGlobalSettingToAllCalled = func(sender []byte, input []byte) {
+		assert.Equal(t, vmcommon.BuiltInFunctionESDTTransferRoleAddAddress+"@"+hex.EncodeToString([]byte("myToken"))+"@"+hex.EncodeToString([]byte("myAddress")), string(input))
+		called++
+	}
+	retCode = e.Execute(vmInput)
+	require.Equal(t, vmcommon.Ok, retCode)
+	require.Equal(t, called, 1)
+
+	token.SpecialRoles[0].Roles = append(token.SpecialRoles[0].Roles, []byte(core.ESDTRoleTransfer))
+	vmInput.Function = "unSetSpecialRole"
+	called = 0
+	eei.SendGlobalSettingToAllCalled = func(sender []byte, input []byte) {
+		assert.Equal(t, vmcommon.BuiltInFunctionESDTTransferRoleDeleteAddress+"@"+hex.EncodeToString([]byte("myToken"))+"@"+hex.EncodeToString([]byte("myAddress")), string(input))
+		called++
+	}
+	retCode = e.Execute(vmInput)
+	require.Equal(t, vmcommon.Ok, retCode)
+	require.Equal(t, called, 1)
+
+	called = 0
+	eei.SendGlobalSettingToAllCalled = func(sender []byte, input []byte) {
+		if called == 0 {
+			assert.Equal(t, core.BuiltInFunctionESDTUnSetLimitedTransfer+"@"+hex.EncodeToString([]byte("myToken")), string(input))
+		} else {
+			assert.Equal(t, vmcommon.BuiltInFunctionESDTTransferRoleDeleteAddress+"@"+hex.EncodeToString([]byte("myToken"))+"@"+hex.EncodeToString([]byte("myAddress")), string(input))
+		}
+
+		called++
+	}
+	token.SpecialRoles = token.SpecialRoles[:1]
+	retCode = e.Execute(vmInput)
+	require.Equal(t, vmcommon.Ok, retCode)
+	require.Equal(t, called, 2)
+}
+
+func TestEsdt_SendAllTransferRoleAddresses(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForESDT()
+	args.EpochConfig.EnableEpochs.ESDTTransferRoleEnableEpoch = 10
+
+	token := &ESDTDataV2{
+		OwnerAddress: []byte("caller1234"),
+		SpecialRoles: []*ESDTRoles{
+			{
+				Address: []byte("myAddress1"),
+				Roles:   [][]byte{[]byte(core.ESDTRoleTransfer)},
+			},
+			{
+				Address: []byte("myAddress2"),
+				Roles:   [][]byte{[]byte(core.ESDTRoleTransfer)},
+			},
+			{
+				Address: []byte("myAddress3"),
+				Roles:   [][]byte{[]byte(core.ESDTRoleTransfer)},
+			},
+		},
+		TokenType:          []byte(core.NonFungibleESDT),
+		CanAddSpecialRoles: true,
+	}
+	called := 0
+	eei := &mock.SystemEIStub{
+		GetStorageCalled: func(key []byte) []byte {
+			tokenBytes, _ := args.Marshalizer.Marshal(token)
+			return tokenBytes
+		},
+	}
+	args.Eei = eei
+
+	e, _ := NewESDTSmartContract(args)
+
+	vmInput := getDefaultVmInputForFunc("sendAllTransferRoleAddresses", [][]byte{})
+	vmInput.Arguments = [][]byte{[]byte("myToken"), []byte("myAddress")}
+	vmInput.CallerAddr = []byte("caller1234")
+	vmInput.CallValue = big.NewInt(0)
+	vmInput.GasProvided = 50000000
+
+	e.flagSendTransferRoleAddress.Reset()
+	retCode := e.Execute(vmInput)
+	require.Equal(t, vmcommon.FunctionNotFound, retCode)
+
+	e.flagSendTransferRoleAddress.SetValue(true)
+	eei.ReturnMessage = ""
+	retCode = e.Execute(vmInput)
+	require.Equal(t, vmcommon.UserError, retCode)
+	require.Equal(t, "wrong number of arguments, expected 1", eei.ReturnMessage)
+
+	called = 0
+	token.TokenType = []byte(core.NonFungibleESDT)
+	eei.SendGlobalSettingToAllCalled = func(sender []byte, input []byte) {
+		assert.Equal(t, vmcommon.BuiltInFunctionESDTTransferRoleAddAddress+"@"+hex.EncodeToString([]byte("myToken"))+"@"+hex.EncodeToString([]byte("myAddress1"))+"@"+hex.EncodeToString([]byte("myAddress2"))+"@"+hex.EncodeToString([]byte("myAddress3")), string(input))
+		called++
+	}
+	vmInput.Arguments = [][]byte{[]byte("myToken")}
+	retCode = e.Execute(vmInput)
+	require.Equal(t, vmcommon.Ok, retCode)
+	require.Equal(t, called, 1)
+
+	called = 0
+	token.SpecialRoles = make([]*ESDTRoles, 0)
+	retCode = e.Execute(vmInput)
+	require.Equal(t, vmcommon.UserError, retCode)
+	require.Equal(t, "no address with transfer role", eei.ReturnMessage)
 }
 
 func TestEsdt_SetSpecialRoleSFTShouldErr(t *testing.T) {
@@ -4590,9 +4752,192 @@ func TestEsdt_ExecuteRegisterAndSetSemiFungible(t *testing.T) {
 
 	token, _ := e.getExistingToken(eei.output[0])
 	assert.Equal(t, token.TokenType, []byte(core.SemiFungibleESDT))
+	lenOutTransfer := 0
+	for _, outAcc := range eei.outputAccounts {
+		lenOutTransfer += len(outAcc.OutputTransfers)
+	}
+	assert.Equal(t, uint32(lenOutTransfer), 1+eei.blockChainHook.NumberOfShards())
 }
 
-func TestEsdt_ExecuteRegisterAndSetMetaESDT(t *testing.T) {
+func TestEsdt_ExecuteRegisterAndSetMetaESDTShouldSetType(t *testing.T) {
+	t.Parallel()
+
+	registerAndSetAllRolesWithTypeCheck(t, []byte("NFT"), []byte(core.NonFungibleESDT))
+	registerAndSetAllRolesWithTypeCheck(t, []byte("SFT"), []byte(core.SemiFungibleESDT))
+	registerAndSetAllRolesWithTypeCheck(t, []byte("META"), []byte(metaESDT))
+	registerAndSetAllRolesWithTypeCheck(t, []byte("FNG"), []byte(core.FungibleESDT))
+}
+
+func registerAndSetAllRolesWithTypeCheck(t *testing.T, typeArgument []byte, expectedType []byte) {
+	args := createMockArgumentsForESDT()
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&stateMock.AccountsStub{},
+		&mock.RaterMock{})
+	args.Eei = eei
+	e, _ := NewESDTSmartContract(args)
+
+	e.flagBurnForAll.Reset()
+	vmInput := getDefaultVmInputForFunc("registerAndSetAllRoles", nil)
+	vmInput.CallValue = big.NewInt(0).Set(e.baseIssuingCost)
+
+	vmInput.Arguments = [][]byte{[]byte("tokenName"), []byte("TICKER"), typeArgument, big.NewInt(10).Bytes()}
+	eei.gasRemaining = 9999
+	eei.returnMessage = ""
+	output := e.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, output)
+	assert.Equal(t, len(eei.output), 1)
+	assert.True(t, strings.Contains(string(eei.output[0]), "TICKER-"))
+
+	token, _ := e.getExistingToken(eei.output[0])
+	assert.Equal(t, expectedType, token.TokenType)
+
+	lenOutTransfer := 0
+	for _, outAcc := range eei.outputAccounts {
+		lenOutTransfer += len(outAcc.OutputTransfers)
+	}
+	assert.Equal(t, lenOutTransfer, 1)
+}
+
+func TestEsdt_setBurnRoleGlobally(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForESDT()
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&stateMock.AccountsStub{},
+		&mock.RaterMock{})
+	args.Eei = eei
+
+	e, _ := NewESDTSmartContract(args)
+	vmInput := getDefaultVmInputForFunc("setBurnRoleGlobally", [][]byte{})
+
+	e.flagBurnForAll.Reset()
+	output := e.Execute(vmInput)
+	assert.Equal(t, vmcommon.FunctionNotFound, output)
+	assert.True(t, strings.Contains(eei.returnMessage, "invalid method to call"))
+
+	e.flagBurnForAll.SetValue(true)
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.FunctionWrongSignature, output)
+	assert.True(t, strings.Contains(eei.returnMessage, "invalid number of arguments, wanted 1"))
+
+	owner := bytes.Repeat([]byte{1}, 32)
+	tokenName := []byte("TOKEN-ABABAB")
+	tokensMap := map[string][]byte{}
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
+		TokenName:    tokenName,
+		OwnerAddress: owner,
+		CanPause:     true,
+		IsPaused:     true,
+	})
+	tokensMap[string(tokenName)] = marshalizedData
+	eei.storageUpdate[string(eei.scAddress)] = tokensMap
+
+	vmInput.CallerAddr = owner
+	vmInput.Arguments = [][]byte{tokenName}
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, output)
+
+	vmOutput := eei.CreateVMOutput()
+
+	systemAddress := make([]byte, len(core.SystemAccountAddress))
+	copy(systemAddress, core.SystemAccountAddress)
+	systemAddress[len(core.SystemAccountAddress)-1] = 0
+
+	createdAcc, accCreated := vmOutput.OutputAccounts[string(systemAddress)]
+	assert.True(t, accCreated)
+
+	assert.True(t, len(createdAcc.OutputTransfers) == 1)
+	outputTransfer := createdAcc.OutputTransfers[0]
+
+	assert.Equal(t, big.NewInt(0), outputTransfer.Value)
+	expectedInput := vmcommon.BuiltInFunctionESDTSetBurnRoleForAll + "@" + hex.EncodeToString(tokenName)
+	assert.Equal(t, []byte(expectedInput), outputTransfer.Data)
+	assert.Equal(t, vmData.DirectCall, outputTransfer.CallType)
+
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	assert.True(t, strings.Contains(eei.returnMessage, "cannot set burn role globally as it was already set"))
+}
+
+func TestEsdt_unsetBurnRoleGlobally(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForESDT()
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&stateMock.AccountsStub{},
+		&mock.RaterMock{})
+	args.Eei = eei
+
+	e, _ := NewESDTSmartContract(args)
+	vmInput := getDefaultVmInputForFunc("unsetBurnRoleGlobally", [][]byte{})
+
+	e.flagBurnForAll.Reset()
+	output := e.Execute(vmInput)
+	assert.Equal(t, vmcommon.FunctionNotFound, output)
+	assert.True(t, strings.Contains(eei.returnMessage, "invalid method to call"))
+
+	e.flagBurnForAll.SetValue(true)
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.FunctionWrongSignature, output)
+	assert.True(t, strings.Contains(eei.returnMessage, "invalid number of arguments, wanted 1"))
+
+	owner := bytes.Repeat([]byte{1}, 32)
+	tokenName := []byte("TOKEN-ABABAB")
+	tokensMap := map[string][]byte{}
+	token := &ESDTDataV2{
+		TokenName:    tokenName,
+		OwnerAddress: owner,
+		CanPause:     true,
+		IsPaused:     true,
+	}
+
+	burnForAllRole := &ESDTRoles{Roles: [][]byte{[]byte(vmcommon.ESDTRoleBurnForAll)}, Address: []byte{}}
+	token.SpecialRoles = append(token.SpecialRoles, burnForAllRole)
+
+	marshalizedData, _ := args.Marshalizer.Marshal(token)
+	tokensMap[string(tokenName)] = marshalizedData
+	eei.storageUpdate[string(eei.scAddress)] = tokensMap
+
+	vmInput.CallerAddr = owner
+	vmInput.Arguments = [][]byte{tokenName}
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, output)
+	vmOutput := eei.CreateVMOutput()
+
+	systemAddress := make([]byte, len(core.SystemAccountAddress))
+	copy(systemAddress, core.SystemAccountAddress)
+	systemAddress[len(core.SystemAccountAddress)-1] = 0
+
+	createdAcc, accCreated := vmOutput.OutputAccounts[string(systemAddress)]
+	assert.True(t, accCreated)
+
+	assert.True(t, len(createdAcc.OutputTransfers) == 1)
+	outputTransfer := createdAcc.OutputTransfers[0]
+
+	assert.Equal(t, big.NewInt(0), outputTransfer.Value)
+	expectedInput := vmcommon.BuiltInFunctionESDTUnSetBurnRoleForAll + "@" + hex.EncodeToString(tokenName)
+	assert.Equal(t, []byte(expectedInput), outputTransfer.Data)
+	assert.Equal(t, vmData.DirectCall, outputTransfer.CallType)
+
+	token, err := e.getExistingToken(tokenName)
+	assert.Nil(t, err)
+	assert.Equal(t, len(token.SpecialRoles), 0)
+
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	assert.True(t, strings.Contains(eei.returnMessage, "cannot unset burn role globally as it was not set"))
+}
+
+func TestEsdt_CheckRolesOnMetaESDT(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
@@ -4605,17 +4950,11 @@ func TestEsdt_ExecuteRegisterAndSetMetaESDT(t *testing.T) {
 	args.Eei = eei
 	e, _ := NewESDTSmartContract(args)
 
-	vmInput := getDefaultVmInputForFunc("registerAndSetAllRoles", nil)
-	vmInput.CallValue = big.NewInt(0).Set(e.baseIssuingCost)
+	e.flagCheckMetaESDTOnRolesEnableEpoch.Reset()
+	err := e.checkSpecialRolesAccordingToTokenType([][]byte{[]byte("random")}, &ESDTDataV2{TokenType: []byte(metaESDT)})
+	assert.Nil(t, err)
 
-	vmInput.Arguments = [][]byte{[]byte("tokenName"), []byte("TICKER"), []byte("META"), big.NewInt(10).Bytes()}
-	eei.gasRemaining = 9999
-	eei.returnMessage = ""
-	output := e.Execute(vmInput)
-	assert.Equal(t, vmcommon.Ok, output)
-	assert.Equal(t, len(eei.output), 1)
-	assert.True(t, strings.Contains(string(eei.output[0]), "TICKER-"))
-
-	token, _ := e.getExistingToken(eei.output[0])
-	assert.Equal(t, token.TokenType, []byte(metaESDT))
+	e.flagCheckMetaESDTOnRolesEnableEpoch.SetValue(true)
+	err = e.checkSpecialRolesAccordingToTokenType([][]byte{[]byte("random")}, &ESDTDataV2{TokenType: []byte(metaESDT)})
+	assert.Equal(t, err, vm.ErrInvalidArgument)
 }

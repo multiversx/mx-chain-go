@@ -31,9 +31,11 @@ type baseAccountsSyncer struct {
 	maxTrieLevelInMemory      uint
 	name                      string
 	maxHardCapForMissingNodes int
-	trieSyncerVersion         int
-	numTriesSynced            int32
-	numMaxTries               int32
+	checkNodesOnDisk          bool
+
+	trieSyncerVersion int
+	numTriesSynced    int32
+	numMaxTries       int32
 }
 
 const timeBetweenStatisticsPrints = time.Second * 2
@@ -49,6 +51,7 @@ type ArgsNewBaseAccountsSyncer struct {
 	MaxTrieLevelInMemory      uint
 	MaxHardCapForMissingNodes int
 	TrieSyncerVersion         int
+	CheckNodesOnDisk          bool
 }
 
 func checkArgs(args ArgsNewBaseAccountsSyncer) error {
@@ -101,6 +104,7 @@ func (b *baseAccountsSyncer) syncMainTrie(
 		TrieSyncStatistics:        ssh,
 		TimeoutHandler:            b.timeoutHandler,
 		MaxHardCapForMissingNodes: b.maxHardCapForMissingNodes,
+		CheckNodesOnDisk:          b.checkNodesOnDisk,
 	}
 	trieSyncer, err := trie.CreateTrieSyncer(arg, b.trieSyncerVersion)
 	if err != nil {
@@ -138,8 +142,10 @@ func (b *baseAccountsSyncer) printStatistics(ssh common.SizeSyncStatisticsHandle
 				"num large nodes", ssh.NumLarge(),
 				"num missing", ssh.NumMissing(),
 				"state data size", core.ConvertBytes(ssh.NumBytesReceived()),
-				"peak network speed", peakSpeed,
-				"average network speed", averageSpeed,
+				"total iterations", ssh.NumIterations(),
+				"total CPU time", ssh.ProcessingTime(),
+				"peak processing speed", peakSpeed,
+				"average processing speed", averageSpeed,
 			)
 			return
 		case <-time.After(timeBetweenStatisticsPrints):
@@ -165,7 +171,9 @@ func (b *baseAccountsSyncer) printStatistics(ssh common.SizeSyncStatisticsHandle
 				"intercepted trie nodes cache size", core.ConvertBytes(b.cacher.SizeInBytesContained()),
 				"num of intercepted trie nodes", b.cacher.Len(),
 				"state data size", core.ConvertBytes(ssh.NumBytesReceived()),
-				"network speed", speed)
+				"iterations", ssh.NumIterations(),
+				"CPU time", ssh.ProcessingTime(),
+				"processing speed", speed)
 		}
 	}
 }

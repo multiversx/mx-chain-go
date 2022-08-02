@@ -1,7 +1,6 @@
 package peerDisconnecting
 
 import (
-	"context"
 	"fmt"
 	"testing"
 
@@ -19,9 +18,7 @@ import (
 
 func createDefaultConfig() config.P2PConfig {
 	return config.P2PConfig{
-		Node: config.NodeConfig{
-			ConnectionWatcherType: "print",
-		},
+		Node: config.NodeConfig{},
 		KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
 			Enabled:                          true,
 			Type:                             "optimized",
@@ -59,34 +56,36 @@ func testPeerDisconnectionWithOneAdvertiser(t *testing.T, p2pConfig config.P2PCo
 	}
 
 	numOfPeers := 20
-	netw := mocknet.New(context.Background())
+	netw := mocknet.New()
 
 	p2pConfigSeeder := p2pConfig
 	argSeeder := libp2p.ArgsNetworkMessenger{
-		ListenAddress:        libp2p.ListenLocalhostAddrWithIp4AndTcp,
-		P2pConfig:            p2pConfigSeeder,
-		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
-		NodeOperationMode:    p2p.NormalOperation,
-		Marshalizer:          &testscommon.MarshalizerMock{},
-		SyncTimer:            &testscommon.SyncTimerStub{},
-		PeersRatingHandler:   &p2pmocks.PeersRatingHandlerStub{},
+		ListenAddress:         libp2p.ListenLocalhostAddrWithIp4AndTcp,
+		P2pConfig:             p2pConfigSeeder,
+		PreferredPeersHolder:  &p2pmocks.PeersHolderStub{},
+		NodeOperationMode:     p2p.NormalOperation,
+		Marshalizer:           &testscommon.MarshalizerMock{},
+		SyncTimer:             &testscommon.SyncTimerStub{},
+		PeersRatingHandler:    &p2pmocks.PeersRatingHandlerStub{},
+		ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
 	}
 	// Step 1. Create advertiser
 	advertiser, err := libp2p.NewMockMessenger(argSeeder, netw)
 	require.Nil(t, err)
 	p2pConfig.KadDhtPeerDiscovery.InitialPeerList = []string{integrationTests.GetConnectableAddress(advertiser)}
 
-	// Step 2. Create numOfPeers instances of messenger type and call bootstrap
+	// Step 2. Create noOfPeers instances of messenger type and call bootstrap
 	peers := make([]p2p.Messenger, numOfPeers)
 	for i := 0; i < numOfPeers; i++ {
 		arg := libp2p.ArgsNetworkMessenger{
-			ListenAddress:        libp2p.ListenLocalhostAddrWithIp4AndTcp,
-			P2pConfig:            p2pConfig,
-			PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
-			NodeOperationMode:    p2p.NormalOperation,
-			Marshalizer:          &testscommon.MarshalizerMock{},
-			SyncTimer:            &testscommon.SyncTimerStub{},
-			PeersRatingHandler:   &p2pmocks.PeersRatingHandlerStub{},
+			ListenAddress:         libp2p.ListenLocalhostAddrWithIp4AndTcp,
+			P2pConfig:             p2pConfig,
+			PreferredPeersHolder:  &p2pmocks.PeersHolderStub{},
+			NodeOperationMode:     p2p.NormalOperation,
+			Marshalizer:           &testscommon.MarshalizerMock{},
+			SyncTimer:             &testscommon.SyncTimerStub{},
+			PeersRatingHandler:    &p2pmocks.PeersRatingHandlerStub{},
+			ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
 		}
 		node, errCreate := libp2p.NewMockMessenger(arg, netw)
 		require.Nil(t, errCreate)

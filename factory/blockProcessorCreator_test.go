@@ -26,6 +26,9 @@ import (
 
 func Test_newBlockProcessorCreatorForShard(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	pcf, _ := factory.NewProcessComponentsFactory(getProcessComponentsArgs(shardCoordinator))
@@ -49,6 +52,7 @@ func Test_newBlockProcessorCreatorForShard(t *testing.T) {
 		&sync.RWMutex{},
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
+		&testscommon.ReceiptsRepositoryStub{},
 	)
 
 	require.NoError(t, err)
@@ -58,6 +62,9 @@ func Test_newBlockProcessorCreatorForShard(t *testing.T) {
 
 func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	coreComponents := getCoreComponents()
 	shardC := mock.NewMultiShardsCoordinatorMock(1)
@@ -158,6 +165,7 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 		&sync.RWMutex{},
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
+		&testscommon.ReceiptsRepositoryStub{},
 	)
 
 	require.NoError(t, err)
