@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/consensus/signing"
 	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
 	"github.com/stretchr/testify/require"
@@ -241,7 +242,26 @@ func TestSignatureHolder_VerifySignatureShare(t *testing.T) {
 		require.Equal(t, expectedErr, err)
 	})
 
-	t.Run("signature share verification failed", func(t *testing.T) {
+	t.Run("failed to get current multi signer", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgsSignatureHolder()
+		args.PubKeys = []string{"pk1", "pk2"}
+
+		expectedErr := errors.New("expected error")
+		args.MultiSignerContainer = &cryptoMocks.MultiSignerContainerStub{
+			GetMultiSignerCalled: func(epoch uint32) (crypto.MultiSigner, error) {
+				return nil, expectedErr
+			},
+		}
+
+		signer, _ := signing.NewSignatureHolder(args)
+
+		err := signer.VerifySignatureShare(uint16(1), []byte("sigShare"), msg, epoch)
+		require.Equal(t, expectedErr, err)
+	})
+
+	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgsSignatureHolder()
@@ -274,6 +294,25 @@ func TestSignatureHolder_StoreSignatureShare(t *testing.T) {
 		signer, _ := signing.NewSignatureHolder(createMockArgsSignatureHolder())
 		err := signer.StoreSignatureShare(uint16(2), []byte("sigShare"))
 		require.Equal(t, signing.ErrIndexOutOfBounds, err)
+	})
+
+	t.Run("failed to get current multi signer", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgsSignatureHolder()
+
+		expectedErr := errors.New("expected error")
+		args.MultiSignerContainer = &cryptoMocks.MultiSignerContainerStub{
+			GetMultiSignerCalled: func(epoch uint32) (crypto.MultiSigner, error) {
+				return nil, expectedErr
+			},
+		}
+
+		signer, _ := signing.NewSignatureHolder(args)
+
+		sigShare, err := signer.CreateSignatureShare(msg, uint16(0), epoch)
+		require.Nil(t, sigShare)
+		require.Equal(t, expectedErr, err)
 	})
 
 	t.Run("should work", func(t *testing.T) {
@@ -394,7 +433,7 @@ func TestSignatureHolder_AggregateSigs(t *testing.T) {
 		require.Equal(t, signing.ErrBitmapMismatch, err)
 	})
 
-	t.Run("should work", func(t *testing.T) {
+	t.Run("failed to get aggregated sig", func(t *testing.T) {
 		t.Parallel()
 
 		bitmap := make([]byte, 1)
@@ -416,6 +455,28 @@ func TestSignatureHolder_AggregateSigs(t *testing.T) {
 		for i := 0; i < len(args.PubKeys); i++ {
 			_ = signer.StoreSignatureShare(uint16(i), []byte("sigShare"))
 		}
+
+		aggSig, err := signer.AggregateSigs(bitmap, epoch)
+		require.Nil(t, aggSig)
+		require.Equal(t, expectedErr, err)
+	})
+
+	t.Run("failed to get current multi signer", func(t *testing.T) {
+		t.Parallel()
+
+		bitmap := make([]byte, 1)
+		bitmap[0] = 0x07
+
+		args := createMockArgsSignatureHolder()
+
+		expectedErr := errors.New("expected error")
+		args.MultiSignerContainer = &cryptoMocks.MultiSignerContainerStub{
+			GetMultiSignerCalled: func(epoch uint32) (crypto.MultiSigner, error) {
+				return nil, expectedErr
+			},
+		}
+
+		signer, _ := signing.NewSignatureHolder(args)
 
 		aggSig, err := signer.AggregateSigs(bitmap, epoch)
 		require.Nil(t, aggSig)
@@ -503,6 +564,27 @@ func TestSignatureHolder_Verify(t *testing.T) {
 			},
 		}
 		args.MultiSignerContainer = cryptoMocks.NewMultiSignerContainerMock(multiSigner)
+
+		signer, _ := signing.NewSignatureHolder(args)
+
+		err := signer.Verify(message, bitmap, epoch)
+		require.Equal(t, expectedErr, err)
+	})
+
+	t.Run("failed to get current multi signer", func(t *testing.T) {
+		t.Parallel()
+
+		bitmap := make([]byte, 1)
+		bitmap[0] = 0x07
+
+		args := createMockArgsSignatureHolder()
+
+		expectedErr := errors.New("expected error")
+		args.MultiSignerContainer = &cryptoMocks.MultiSignerContainerStub{
+			GetMultiSignerCalled: func(epoch uint32) (crypto.MultiSigner, error) {
+				return nil, expectedErr
+			},
+		}
 
 		signer, _ := signing.NewSignatureHolder(args)
 
