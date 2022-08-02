@@ -94,7 +94,7 @@ func (srcf *shardResolversContainerFactory) Create() (dataRetriever.ResolversCon
 		return nil, err
 	}
 
-	err = srcf.generateValidatorInfoResolver()
+	err = srcf.generatePeerAuthenticationResolver()
 	if err != nil {
 		return nil, err
 	}
@@ -102,12 +102,12 @@ func (srcf *shardResolversContainerFactory) Create() (dataRetriever.ResolversCon
 	return srcf.container, nil
 }
 
-//------- Hdr resolver
+// ------- Hdr resolver
 
 func (srcf *shardResolversContainerFactory) generateHeaderResolvers() error {
 	shardC := srcf.shardCoordinator
 
-	//only one shard header topic, for example: shardBlocks_0_META
+	// only one shard header topic, for example: shardBlocks_0_META
 	identifierHdr := factory.ShardBlocksTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
 
 	hdrStorer := srcf.store.GetStorer(dataRetriever.BlockHeaderUnit)
@@ -132,11 +132,11 @@ func (srcf *shardResolversContainerFactory) generateHeaderResolvers() error {
 	return srcf.container.Add(identifierHdr, resolver)
 }
 
-//------- MetaBlockHeaderResolvers
+// ------- MetaBlockHeaderResolvers
 
 func (srcf *shardResolversContainerFactory) generateMetablockHeaderResolvers() error {
-	//only one metachain header block topic
-	//this is: metachainBlocks
+	// only one metachain header block topic
+	// this is: metachainBlocks
 	identifierHdr := factory.MetachainBlocksTopic
 	hdrStorer := srcf.store.GetStorer(dataRetriever.MetaBlockUnit)
 
