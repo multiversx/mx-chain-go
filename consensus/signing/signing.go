@@ -229,13 +229,13 @@ func (sh *signatureHolder) AggregateSigs(bitmap []byte, epoch uint32) ([]byte, e
 		return nil, ErrBitmapMismatch
 	}
 
-	signatures := make([][]byte, 0, len(sh.data.sigShares))
-	pubKeysSigners := make([][]byte, 0, len(sh.data.sigShares))
-
 	multiSigner, err := sh.multiSignerContainer.GetMultiSigner(epoch)
 	if err != nil {
 		return nil, err
 	}
+
+	signatures := make([][]byte, 0, len(sh.data.sigShares))
+	pubKeysSigners := make([][]byte, 0, len(sh.data.sigShares))
 
 	for i := range sh.data.sigShares {
 		if !sh.isIndexInBitmap(uint16(i), bitmap) {
@@ -280,7 +280,7 @@ func (sh *signatureHolder) Verify(message []byte, bitmap []byte, epoch uint32) e
 		return err
 	}
 
-	pubKeys := make([][]byte, 0)
+	pubKeys := make([][]byte, 0, len(sh.data.pubKeys))
 	for i, pk := range sh.data.pubKeys {
 		if !sh.isIndexInBitmap(uint16(i), bitmap) {
 			continue
