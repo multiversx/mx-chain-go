@@ -216,7 +216,7 @@ func (rrh *resolverRequestHandler) RequestMiniBlock(destShardID uint32, minibloc
 
 	log.Debug("requesting miniblock from network",
 		"topic", factory.MiniBlocksTopic,
-		"shard", destShardID,
+		"destination shard ID", destShardID,
 		"hash", miniblockHash,
 	)
 
@@ -225,7 +225,7 @@ func (rrh *resolverRequestHandler) RequestMiniBlock(destShardID uint32, minibloc
 		log.Error("RequestMiniBlock.CrossShardResolver",
 			"error", err.Error(),
 			"topic", factory.MiniBlocksTopic,
-			"shard", destShardID,
+			"destination shard ID", destShardID,
 		)
 		return
 	}

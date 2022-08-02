@@ -3,7 +3,9 @@ package bootstrap
 import (
 	"bytes"
 	"context"
+	"encoding/hex"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -897,6 +899,13 @@ func (e *epochStartBootstrap) requestAndProcessForShard(peerMiniBlocks []*block.
 	}
 
 	miniblocksHeadersFromNotarizedShardHeader := shardNotarizedHeader.GetMiniBlockHeaderHandlers()
+	hashesToBeSync := make([]string, 0, len(miniblocksHeadersFromNotarizedShardHeader))
+	for _, mbh := range miniblocksHeadersFromNotarizedShardHeader {
+		hashesToBeSync = append(hashesToBeSync, hex.EncodeToString(mbh.GetHash()))
+	}
+
+	log.Debug("start in epoch bootstrap: syncing syncMiniBlocks", "hashes", "\n"+strings.Join(hashesToBeSync, "\n"))
+
 	syncedMiniBlocks, err := e.syncMiniBlocks(miniblocksHeadersFromNotarizedShardHeader)
 	if err != nil {
 		return err

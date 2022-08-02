@@ -16,9 +16,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/update"
 )
 
-var _ update.EpochStartPendingMiniBlocksSyncHandler = (*pendingMiniBlocks)(nil)
+var _ update.EpochStartPendingMiniBlocksSyncHandler = (*miniBlocksSyncer)(nil)
 
-type pendingMiniBlocks struct {
+type miniBlocksSyncer struct {
 	mutPendingMb            sync.Mutex
 	mapMiniBlocks           map[string]*block.MiniBlock
 	mapHashes               map[string]struct{}
@@ -41,7 +41,7 @@ type ArgsNewMiniBlocksSyncer struct {
 }
 
 // NewMiniBlocksSyncer creates a syncer for all required miniblocks
-func NewMiniBlocksSyncer(args ArgsNewMiniBlocksSyncer) (*pendingMiniBlocks, error) {
+func NewMiniBlocksSyncer(args ArgsNewMiniBlocksSyncer) (*miniBlocksSyncer, error) {
 	if check.IfNil(args.Storage) {
 		return nil, dataRetriever.ErrNilHeadersStorage
 	}
@@ -55,7 +55,7 @@ func NewMiniBlocksSyncer(args ArgsNewMiniBlocksSyncer) (*pendingMiniBlocks, erro
 		return nil, process.ErrNilRequestHandler
 	}
 
-	p := &pendingMiniBlocks{
+	p := &miniBlocksSyncer{
 		mutPendingMb:            sync.Mutex{},
 		mapMiniBlocks:           make(map[string]*block.MiniBlock),
 		mapHashes:               make(map[string]struct{}),
@@ -75,7 +75,7 @@ func NewMiniBlocksSyncer(args ArgsNewMiniBlocksSyncer) (*pendingMiniBlocks, erro
 }
 
 // SyncPendingMiniBlocksFromMeta syncs the pending miniblocks from an epoch start metaBlock
-func (p *pendingMiniBlocks) SyncPendingMiniBlocksFromMeta(epochStart data.MetaHeaderHandler, unFinished map[string]data.MetaHeaderHandler, ctx context.Context) error {
+func (syncer *miniBlocksSyncer) SyncPendingMiniBlocksFromMeta(epochStart data.MetaHeaderHandler, unFinished map[string]data.MetaHeaderHandler, ctx context.Context) error {
 	if !epochStart.IsStartOfEpochBlock() && epochStart.GetNonce() > 0 {
 		return update.ErrNotEpochStartBlock
 	}
@@ -92,115 +92,129 @@ func (p *pendingMiniBlocks) SyncPendingMiniBlocksFromMeta(epochStart data.MetaHe
 		return err
 	}
 
-	return p.syncMiniBlocks(listPendingMiniBlocks, ctx)
+	return syncer.syncMiniBlocks(listPendingMiniBlocks, ctx)
 }
 
 // SyncMiniBlocks will sync the miniblocks for the given miniblocks header handlers
-func (p *pendingMiniBlocks) SyncMiniBlocks(miniBlockHeaders []data.MiniBlockHeaderHandler, ctx context.Context) error {
-	return p.syncMiniBlocks(miniBlockHeaders, ctx)
+func (syncer *miniBlocksSyncer) SyncMiniBlocks(miniBlockHeaders []data.MiniBlockHeaderHandler, ctx context.Context) error {
+	return syncer.syncMiniBlocks(miniBlockHeaders, ctx)
 }
 
-func (p *pendingMiniBlocks) syncMiniBlocks(listMiniBlocks []data.MiniBlockHeaderHandler, ctx context.Context) error {
-	_ = core.EmptyChannel(p.chReceivedAll)
+func (syncer *miniBlocksSyncer) syncMiniBlocks(listMiniBlocks []data.MiniBlockHeaderHandler, ctx context.Context) error {
+	_ = core.EmptyChannel(syncer.chReceivedAll)
 
-	mapHashesToRequest := make(map[string]uint32)
+	mapMiniBlocksToRequest := make(map[string]data.MiniBlockHeaderHandler)
 	for _, mbHeader := range listMiniBlocks {
-		mapHashesToRequest[string(mbHeader.GetHash())] = mbHeader.GetSenderShardID()
+		mapMiniBlocksToRequest[string(mbHeader.GetHash())] = mbHeader
 	}
 
-	p.mutPendingMb.Lock()
-	p.stopSyncing = false
-	p.mutPendingMb.Unlock()
+	syncer.mutPendingMb.Lock()
+	syncer.stopSyncing = false
+	syncer.syncedAll = false
+	syncer.mutPendingMb.Unlock()
 
 	for {
 		requestedMBs := 0
-		p.mutPendingMb.Lock()
-		p.stopSyncing = false
-		for hash, shardId := range mapHashesToRequest {
-			if _, ok := p.mapMiniBlocks[hash]; ok {
-				delete(mapHashesToRequest, hash)
+		syncer.mutPendingMb.Lock()
+		syncer.stopSyncing = false
+		for hash, miniBlockHeader := range mapMiniBlocksToRequest {
+			if _, ok := syncer.mapMiniBlocks[hash]; ok {
+				delete(mapMiniBlocksToRequest, hash)
 				continue
 			}
 
-			p.mapHashes[hash] = struct{}{}
-			miniBlock, ok := p.getMiniBlockFromPoolOrStorage([]byte(hash))
+			syncer.mapHashes[hash] = struct{}{}
+			miniBlock, ok := syncer.getMiniBlockFromPoolOrStorage([]byte(hash))
 			if ok {
-				p.mapMiniBlocks[hash] = miniBlock
-				delete(mapHashesToRequest, hash)
+				syncer.mapMiniBlocks[hash] = miniBlock
+				delete(mapMiniBlocksToRequest, hash)
 				continue
 			}
 
-			p.requestHandler.RequestMiniBlock(shardId, []byte(hash))
+			syncer.requestMiniBlockHeader(miniBlockHeader, []byte(hash))
 			requestedMBs++
 		}
-		p.mutPendingMb.Unlock()
+		syncer.mutPendingMb.Unlock()
 
 		if requestedMBs == 0 {
-			p.mutPendingMb.Lock()
-			p.stopSyncing = true
-			p.syncedAll = true
-			p.mutPendingMb.Unlock()
+			syncer.mutPendingMb.Lock()
+			syncer.stopSyncing = true
+			syncer.syncedAll = true
+			syncer.mutPendingMb.Unlock()
 			return nil
 		}
 
 		select {
-		case <-p.chReceivedAll:
-			p.mutPendingMb.Lock()
-			p.stopSyncing = true
-			p.syncedAll = true
-			p.mutPendingMb.Unlock()
+		case <-syncer.chReceivedAll:
+			syncer.mutPendingMb.Lock()
+			syncer.stopSyncing = true
+			syncer.syncedAll = true
+			syncer.mutPendingMb.Unlock()
 			return nil
-		case <-time.After(p.waitTimeBetweenRequests):
+		case <-time.After(syncer.waitTimeBetweenRequests):
 			continue
 		case <-ctx.Done():
-			p.mutPendingMb.Lock()
-			p.stopSyncing = true
-			p.mutPendingMb.Unlock()
+			syncer.mutPendingMb.Lock()
+			syncer.stopSyncing = true
+			syncer.mutPendingMb.Unlock()
 			return update.ErrTimeIsOut
 		}
 	}
 }
 
+func (syncer *miniBlocksSyncer) requestMiniBlockHeader(miniBlockHeader data.MiniBlockHeaderHandler, hash []byte) {
+	log.Debug("requesting miniblock header from network",
+		"hash", hash,
+		"sender shard ID", miniBlockHeader.GetSenderShardID(),
+		"receiver shard ID", miniBlockHeader.GetReceiverShardID())
+
+	syncer.requestHandler.RequestMiniBlock(miniBlockHeader.GetSenderShardID(), hash)
+	if miniBlockHeader.GetSenderShardID() != miniBlockHeader.GetReceiverShardID() {
+		// request from receiver shard also, to increase the chance of getting the miniblock
+		syncer.requestHandler.RequestMiniBlock(miniBlockHeader.GetReceiverShardID(), hash)
+	}
+}
+
 // receivedMiniBlock is a callback function when a new miniblock was received
 // it will further ask for missing transactions
-func (p *pendingMiniBlocks) receivedMiniBlock(miniBlockHash []byte, val interface{}) {
-	p.mutPendingMb.Lock()
-	if p.stopSyncing {
-		p.mutPendingMb.Unlock()
+func (syncer *miniBlocksSyncer) receivedMiniBlock(miniBlockHash []byte, val interface{}) {
+	syncer.mutPendingMb.Lock()
+	if syncer.stopSyncing {
+		syncer.mutPendingMb.Unlock()
 		return
 	}
 
-	if _, ok := p.mapHashes[string(miniBlockHash)]; !ok {
-		p.mutPendingMb.Unlock()
+	if _, ok := syncer.mapHashes[string(miniBlockHash)]; !ok {
+		syncer.mutPendingMb.Unlock()
 		return
 	}
 
-	if _, ok := p.mapMiniBlocks[string(miniBlockHash)]; ok {
-		p.mutPendingMb.Unlock()
+	if _, ok := syncer.mapMiniBlocks[string(miniBlockHash)]; ok {
+		syncer.mutPendingMb.Unlock()
 		return
 	}
 
 	miniBlock, ok := val.(*block.MiniBlock)
 	if !ok {
-		p.mutPendingMb.Unlock()
+		syncer.mutPendingMb.Unlock()
 		return
 	}
 
-	p.mapMiniBlocks[string(miniBlockHash)] = miniBlock
-	receivedAll := len(p.mapHashes) == len(p.mapMiniBlocks)
-	p.mutPendingMb.Unlock()
+	syncer.mapMiniBlocks[string(miniBlockHash)] = miniBlock
+	receivedAll := len(syncer.mapHashes) == len(syncer.mapMiniBlocks)
+	syncer.mutPendingMb.Unlock()
 	if receivedAll {
-		p.chReceivedAll <- true
+		syncer.chReceivedAll <- true
 	}
 }
 
-func (p *pendingMiniBlocks) getMiniBlockFromPoolOrStorage(hash []byte) (*block.MiniBlock, bool) {
-	miniBlock, ok := p.getMiniBlockFromPool(hash)
+func (syncer *miniBlocksSyncer) getMiniBlockFromPoolOrStorage(hash []byte) (*block.MiniBlock, bool) {
+	miniBlock, ok := syncer.getMiniBlockFromPool(hash)
 	if ok {
 		return miniBlock, true
 	}
 
-	mbData, err := GetDataFromStorage(hash, p.storage)
+	mbData, err := GetDataFromStorage(hash, syncer.storage)
 	if err != nil {
 		return nil, false
 	}
@@ -208,7 +222,7 @@ func (p *pendingMiniBlocks) getMiniBlockFromPoolOrStorage(hash []byte) (*block.M
 	mb := &block.MiniBlock{
 		TxHashes: make([][]byte, 0),
 	}
-	err = p.marshalizer.Unmarshal(mb, mbData)
+	err = syncer.marshalizer.Unmarshal(mb, mbData)
 	if err != nil {
 		return nil, false
 	}
@@ -216,8 +230,8 @@ func (p *pendingMiniBlocks) getMiniBlockFromPoolOrStorage(hash []byte) (*block.M
 	return mb, true
 }
 
-func (p *pendingMiniBlocks) getMiniBlockFromPool(hash []byte) (*block.MiniBlock, bool) {
-	val, ok := p.pool.Peek(hash)
+func (syncer *miniBlocksSyncer) getMiniBlockFromPool(hash []byte) (*block.MiniBlock, bool) {
+	val, ok := syncer.pool.Peek(hash)
 	if !ok {
 		return nil, false
 	}
@@ -231,25 +245,25 @@ func (p *pendingMiniBlocks) getMiniBlockFromPool(hash []byte) (*block.MiniBlock,
 }
 
 // GetMiniBlocks returns the synced miniblocks
-func (p *pendingMiniBlocks) GetMiniBlocks() (map[string]*block.MiniBlock, error) {
-	p.mutPendingMb.Lock()
-	defer p.mutPendingMb.Unlock()
-	if !p.syncedAll {
+func (syncer *miniBlocksSyncer) GetMiniBlocks() (map[string]*block.MiniBlock, error) {
+	syncer.mutPendingMb.Lock()
+	defer syncer.mutPendingMb.Unlock()
+	if !syncer.syncedAll {
 		return nil, update.ErrNotSynced
 	}
 
-	return p.mapMiniBlocks, nil
+	return syncer.mapMiniBlocks, nil
 }
 
 // ClearFields will clear all the maps
-func (p *pendingMiniBlocks) ClearFields() {
-	p.mutPendingMb.Lock()
-	p.mapHashes = make(map[string]struct{})
-	p.mapMiniBlocks = make(map[string]*block.MiniBlock)
-	p.mutPendingMb.Unlock()
+func (syncer *miniBlocksSyncer) ClearFields() {
+	syncer.mutPendingMb.Lock()
+	syncer.mapHashes = make(map[string]struct{})
+	syncer.mapMiniBlocks = make(map[string]*block.MiniBlock)
+	syncer.mutPendingMb.Unlock()
 }
 
 // IsInterfaceNil returns nil if underlying object is nil
-func (p *pendingMiniBlocks) IsInterfaceNil() bool {
-	return p == nil
+func (syncer *miniBlocksSyncer) IsInterfaceNil() bool {
+	return syncer == nil
 }

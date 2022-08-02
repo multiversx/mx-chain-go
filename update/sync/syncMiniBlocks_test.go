@@ -35,10 +35,10 @@ func TestNewMiniBlocksSyncer(t *testing.T) {
 
 	args := createMockArgsMiniBlock()
 
-	miniBlocksSyncer, err := NewMiniBlocksSyncer(args)
-	require.NotNil(t, miniBlocksSyncer)
+	syncer, err := NewMiniBlocksSyncer(args)
+	require.NotNil(t, syncer)
 	require.Nil(t, err)
-	require.False(t, miniBlocksSyncer.IsInterfaceNil())
+	require.False(t, syncer.IsInterfaceNil())
 }
 
 func TestNewMiniBlocksSyncer_NilStorage(t *testing.T) {
@@ -47,9 +47,9 @@ func TestNewMiniBlocksSyncer_NilStorage(t *testing.T) {
 	args := createMockArgsMiniBlock()
 	args.Storage = nil
 
-	miniBlocksSyncer, err := NewMiniBlocksSyncer(args)
+	syncer, err := NewMiniBlocksSyncer(args)
 	require.Equal(t, dataRetriever.ErrNilHeadersStorage, err)
-	require.Nil(t, miniBlocksSyncer)
+	require.Nil(t, syncer)
 }
 
 func TestNewMiniBlocksSyncer_NilCache(t *testing.T) {
@@ -58,9 +58,9 @@ func TestNewMiniBlocksSyncer_NilCache(t *testing.T) {
 	args := createMockArgsMiniBlock()
 	args.Cache = nil
 
-	miniBlocksSyncer, err := NewMiniBlocksSyncer(args)
+	syncer, err := NewMiniBlocksSyncer(args)
 	require.Equal(t, update.ErrNilCacher, err)
-	require.Nil(t, miniBlocksSyncer)
+	require.Nil(t, syncer)
 }
 
 func TestNewMiniBlocksSyncer_NilMarshalizer(t *testing.T) {
@@ -69,9 +69,9 @@ func TestNewMiniBlocksSyncer_NilMarshalizer(t *testing.T) {
 	args := createMockArgsMiniBlock()
 	args.Marshalizer = nil
 
-	miniBlocksSyncer, err := NewMiniBlocksSyncer(args)
+	syncer, err := NewMiniBlocksSyncer(args)
 	require.Equal(t, dataRetriever.ErrNilMarshalizer, err)
-	require.Nil(t, miniBlocksSyncer)
+	require.Nil(t, syncer)
 }
 
 func TestNewMiniBlocksSyncer_NilRequestHandler(t *testing.T) {
@@ -80,9 +80,9 @@ func TestNewMiniBlocksSyncer_NilRequestHandler(t *testing.T) {
 	args := createMockArgsMiniBlock()
 	args.RequestHandler = nil
 
-	miniBlocksSyncer, err := NewMiniBlocksSyncer(args)
+	syncer, err := NewMiniBlocksSyncer(args)
 	require.Equal(t, process.ErrNilRequestHandler, err)
-	require.Nil(t, miniBlocksSyncer)
+	require.Nil(t, syncer)
 }
 
 func TestSyncMiniBlocksFromMeta_MiniBlocksInPool(t *testing.T) {
@@ -104,7 +104,7 @@ func TestSyncMiniBlocksFromMeta_MiniBlocksInPool(t *testing.T) {
 		RequestHandler: &testscommon.RequestHandlerStub{},
 	}
 
-	miniBlocksSyncer, err := NewMiniBlocksSyncer(args)
+	syncer, err := NewMiniBlocksSyncer(args)
 	require.Nil(t, err)
 
 	metaBlock := &block.MetaBlock{
@@ -123,12 +123,12 @@ func TestSyncMiniBlocksFromMeta_MiniBlocksInPool(t *testing.T) {
 	unFinished := make(map[string]data.MetaHeaderHandler)
 	unFinished["firstPending"] = metaBlock
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	err = miniBlocksSyncer.SyncPendingMiniBlocksFromMeta(metaBlock, unFinished, ctx)
+	err = syncer.SyncPendingMiniBlocksFromMeta(metaBlock, unFinished, ctx)
 	cancel()
 	require.Nil(t, err)
 	require.True(t, miniBlockInPool)
 
-	miniBlocks, err := miniBlocksSyncer.GetMiniBlocks()
+	miniBlocks, err := syncer.GetMiniBlocks()
 	require.Equal(t, mb, miniBlocks[string(mbHash)])
 	require.Nil(t, err)
 }
@@ -164,7 +164,7 @@ func TestSyncMiniBlocksFromMeta_MiniBlocksInPoolWithRewards(t *testing.T) {
 		RequestHandler: &testscommon.RequestHandlerStub{},
 	}
 
-	miniBlocksSyncer, err := NewMiniBlocksSyncer(args)
+	syncer, err := NewMiniBlocksSyncer(args)
 	require.Nil(t, err)
 
 	metaBlock := &block.MetaBlock{
@@ -197,12 +197,12 @@ func TestSyncMiniBlocksFromMeta_MiniBlocksInPoolWithRewards(t *testing.T) {
 	unFinished := make(map[string]data.MetaHeaderHandler)
 	unFinished["firstPending"] = metaBlock
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	err = miniBlocksSyncer.SyncPendingMiniBlocksFromMeta(metaBlock, unFinished, ctx)
+	err = syncer.SyncPendingMiniBlocksFromMeta(metaBlock, unFinished, ctx)
 	cancel()
 	require.Nil(t, err)
 	require.True(t, miniBlockInPool)
 
-	miniBlocks, err := miniBlocksSyncer.GetMiniBlocks()
+	miniBlocks, err := syncer.GetMiniBlocks()
 	require.Equal(t, mb, miniBlocks[string(mbHash)])
 	require.Equal(t, rwdMB, miniBlocks[string(rwdMBHash)])
 	require.Equal(t, 2, len(miniBlocks))
@@ -233,7 +233,7 @@ func TestSyncMiniBlocksFromMeta_MiniBlocksInPoolMissingTimeout(t *testing.T) {
 		RequestHandler: &testscommon.RequestHandlerStub{},
 	}
 
-	miniBlocksSyncer, err := NewMiniBlocksSyncer(args)
+	syncer, err := NewMiniBlocksSyncer(args)
 	require.Nil(t, err)
 
 	metaBlock := &block.MetaBlock{
@@ -254,7 +254,7 @@ func TestSyncMiniBlocksFromMeta_MiniBlocksInPoolMissingTimeout(t *testing.T) {
 	// we need a value larger than the request interval as to also test what happens after the normal request interval has expired
 	timeout := time.Second + time.Millisecond*500
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	err = miniBlocksSyncer.SyncPendingMiniBlocksFromMeta(metaBlock, unFinished, ctx)
+	err = syncer.SyncPendingMiniBlocksFromMeta(metaBlock, unFinished, ctx)
 	cancel()
 	require.Equal(t, process.ErrTimeIsOut, err)
 }
@@ -279,7 +279,7 @@ func TestSyncMiniBlocksFromMeta_MiniBlocksInPoolReceive(t *testing.T) {
 		RequestHandler: &testscommon.RequestHandlerStub{},
 	}
 
-	miniBlocksSyncer, err := NewMiniBlocksSyncer(args)
+	syncer, err := NewMiniBlocksSyncer(args)
 	require.Nil(t, err)
 
 	metaBlock := &block.MetaBlock{
@@ -300,11 +300,11 @@ func TestSyncMiniBlocksFromMeta_MiniBlocksInPoolReceive(t *testing.T) {
 
 	go func() {
 		time.Sleep(100 * time.Millisecond)
-		_ = miniBlocksSyncer.pool.Put(mbHash, mb, mb.Size())
+		_ = syncer.pool.Put(mbHash, mb, mb.Size())
 	}()
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	err = miniBlocksSyncer.SyncPendingMiniBlocksFromMeta(metaBlock, unFinished, ctx)
+	err = syncer.SyncPendingMiniBlocksFromMeta(metaBlock, unFinished, ctx)
 	cancel()
 	require.Nil(t, err)
 }
@@ -332,7 +332,7 @@ func TestSyncMiniBlocksFromMeta_MiniBlocksInStorageReceive(t *testing.T) {
 		RequestHandler: &testscommon.RequestHandlerStub{},
 	}
 
-	miniBlocksSyncer, err := NewMiniBlocksSyncer(args)
+	syncer, err := NewMiniBlocksSyncer(args)
 	require.Nil(t, err)
 
 	metaBlock := &block.MetaBlock{
@@ -352,7 +352,7 @@ func TestSyncMiniBlocksFromMeta_MiniBlocksInStorageReceive(t *testing.T) {
 	unFinished["firstPending"] = metaBlock
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	err = miniBlocksSyncer.SyncPendingMiniBlocksFromMeta(metaBlock, unFinished, ctx)
+	err = syncer.SyncPendingMiniBlocksFromMeta(metaBlock, unFinished, ctx)
 	cancel()
 	require.Nil(t, err)
 }
@@ -386,7 +386,7 @@ func TestSyncMiniBlocksFromMeta_GetMiniBlocksShouldWork(t *testing.T) {
 		RequestHandler: &testscommon.RequestHandlerStub{},
 	}
 
-	miniBlocksSyncer, err := NewMiniBlocksSyncer(args)
+	syncer, err := NewMiniBlocksSyncer(args)
 	require.Nil(t, err)
 
 	metaBlock := &block.MetaBlock{
@@ -406,11 +406,11 @@ func TestSyncMiniBlocksFromMeta_GetMiniBlocksShouldWork(t *testing.T) {
 	unFinished["firstPending"] = metaBlock
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	err = miniBlocksSyncer.SyncPendingMiniBlocksFromMeta(metaBlock, unFinished, ctx)
+	err = syncer.SyncPendingMiniBlocksFromMeta(metaBlock, unFinished, ctx)
 	cancel()
 	require.Nil(t, err)
 
-	res, err := miniBlocksSyncer.GetMiniBlocks()
+	res, err := syncer.GetMiniBlocks()
 	require.NoError(t, err)
 	require.Equal(t, mb, res[string(mbHash)])
 }
