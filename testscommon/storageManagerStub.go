@@ -7,26 +7,27 @@ import (
 
 // StorageManagerStub -
 type StorageManagerStub struct {
-	PutCalled                       func([]byte, []byte) error
-	PutInEpochCalled                func([]byte, []byte, uint32) error
-	PutInEpochWithoutCacheCalled    func([]byte, []byte, uint32) error
-	GetCalled                       func([]byte) ([]byte, error)
-	GetFromCurrentEpochCalled       func([]byte) ([]byte, error)
-	TakeSnapshotCalled              func([]byte, []byte, chan core.KeyValueHolder, chan error, common.SnapshotStatisticsHandler, uint32)
-	SetCheckpointCalled             func([]byte, []byte, chan core.KeyValueHolder, chan error, common.SnapshotStatisticsHandler)
-	GetDbThatContainsHashCalled     func([]byte) common.DBWriteCacher
-	IsPruningEnabledCalled          func() bool
-	IsPruningBlockedCalled          func() bool
-	EnterPruningBufferingModeCalled func()
-	ExitPruningBufferingModeCalled  func()
-	AddDirtyCheckpointHashesCalled  func([]byte, common.ModifiedHashes) bool
-	RemoveFromCurrentEpochCalled    func([]byte) error
-	RemoveCalled                    func([]byte) error
-	IsInterfaceNilCalled            func() bool
-	SetEpochForPutOperationCalled   func(uint32)
-	ShouldTakeSnapshotCalled        func() bool
-	GetLatestStorageEpochCalled     func() (uint32, error)
-	IsClosedCalled                  func() bool
+	PutCalled                              func([]byte, []byte) error
+	PutInEpochCalled                       func([]byte, []byte, uint32) error
+	PutInEpochWithoutCacheCalled           func([]byte, []byte, uint32) error
+	GetCalled                              func([]byte) ([]byte, error)
+	GetFromCurrentEpochCalled              func([]byte) ([]byte, error)
+	TakeSnapshotCalled                     func([]byte, []byte, chan core.KeyValueHolder, chan error, common.SnapshotStatisticsHandler, uint32)
+	SetCheckpointCalled                    func([]byte, []byte, chan core.KeyValueHolder, chan error, common.SnapshotStatisticsHandler)
+	GetDbThatContainsHashCalled            func([]byte) common.DBWriteCacher
+	IsPruningEnabledCalled                 func() bool
+	IsPruningBlockedCalled                 func() bool
+	EnterPruningBufferingModeCalled        func()
+	ExitPruningBufferingModeCalled         func()
+	AddDirtyCheckpointHashesCalled         func([]byte, common.ModifiedHashes) bool
+	RemoveFromCurrentEpochCalled           func([]byte) error
+	RemoveCalled                           func([]byte) error
+	IsInterfaceNilCalled                   func() bool
+	SetEpochForPutOperationCalled          func(uint32)
+	ShouldTakeSnapshotCalled               func() bool
+	GetLatestStorageEpochCalled            func() (uint32, error)
+	IsClosedCalled                         func() bool
+	RemoveFromCheckpointHashesHolderCalled func([]byte)
 }
 
 // Put -
@@ -194,6 +195,13 @@ func (sms *StorageManagerStub) IsClosed() bool {
 	}
 
 	return false
+}
+
+// RemoveFromCheckpointHashesHolder -
+func (sms *StorageManagerStub) RemoveFromCheckpointHashesHolder(hash []byte) {
+	if sms.RemoveFromCheckpointHashesHolderCalled != nil {
+		sms.RemoveFromCheckpointHashesHolderCalled(hash)
+	}
 }
 
 // IsInterfaceNil -

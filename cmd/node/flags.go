@@ -513,6 +513,7 @@ func processConfigImportDBMode(log logger.Logger, configs *config.Configs) error
 
 	generalConfigs.StoragePruning.NumActivePersisters = generalConfigs.StoragePruning.NumEpochsToKeep
 	generalConfigs.StateTriesConfig.CheckpointsEnabled = false
+	generalConfigs.StateTriesConfig.SnapshotsEnabled = false
 	generalConfigs.StateTriesConfig.CheckpointRoundsModulus = 100000000
 	p2pConfigs.Node.ThresholdMinConnectedPeers = 0
 	p2pConfigs.KadDhtPeerDiscovery.Enabled = false
@@ -522,6 +523,7 @@ func processConfigImportDBMode(log logger.Logger, configs *config.Configs) error
 	log.Warn("the node is in import mode! Will auto-set some config values, including storage config values",
 		"GeneralSettings.StartInEpochEnabled", generalConfigs.GeneralSettings.StartInEpochEnabled,
 		"StateTriesConfig.CheckpointsEnabled", generalConfigs.StateTriesConfig.CheckpointsEnabled,
+		"StateTriesConfig.SnapshotsEnabled", generalConfigs.StateTriesConfig.SnapshotsEnabled,
 		"StateTriesConfig.CheckpointRoundsModulus", generalConfigs.StateTriesConfig.CheckpointRoundsModulus,
 		"StoragePruning.NumActivePersisters", generalConfigs.StoragePruning.NumEpochsToKeep,
 		"p2p.ThresholdMinConnectedPeers", p2pConfigs.Node.ThresholdMinConnectedPeers,
