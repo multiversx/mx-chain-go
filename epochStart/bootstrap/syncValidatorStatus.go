@@ -228,12 +228,12 @@ func (s *syncValidatorStatus) getPeerBlockBodyForMeta(
 	err = s.transactionsSyncer.SyncTransactionsFor(peerMiniBlocks, metaBlock.GetEpoch(), ctx)
 	cancel()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	validatorsInfo, err := s.transactionsSyncer.GetValidatorsInfo()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	currentEpochValidatorInfoPool := s.dataPool.CurrentEpochValidatorInfo()
