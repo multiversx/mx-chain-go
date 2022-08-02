@@ -95,6 +95,14 @@ type EnableEpochsHandlerStub struct {
 	IsRefactorContextFlagEnabledField                            bool
 	IsCheckFunctionArgumentFlagEnabledField                      bool
 	IsCheckExecuteOnReadOnlyFlagEnabledField                     bool
+	IsFixAsyncCallbackCheckFlagEnabledField                      bool
+	IsSaveToSystemAccountFlagEnabledField                        bool
+	IsCheckFrozenCollectionFlagEnabledField                      bool
+	IsSendAlwaysFlagEnabledField                                 bool
+	IsValueLengthCheckFlagEnabledField                           bool
+	IsCheckTransferFlagEnabledField                              bool
+	IsTransferToMetaFlagEnabledField                             bool
+	IsESDTNFTImprovementV1FlagEnabledField                       bool
 }
 
 // ResetPenalizedTooMuchGasFlag -
@@ -562,6 +570,46 @@ func (stub *EnableEpochsHandlerStub) IsCheckFunctionArgumentFlagEnabled() bool {
 // IsCheckExecuteOnReadOnlyFlagEnabled -
 func (stub *EnableEpochsHandlerStub) IsCheckExecuteOnReadOnlyFlagEnabled() bool {
 	return stub.IsCheckExecuteOnReadOnlyFlagEnabledField
+}
+
+// IsFixAsyncCallbackCheckFlagEnabled -
+func (stub *EnableEpochsHandlerStub) IsFixAsyncCallbackCheckFlagEnabled() bool {
+	return stub.IsFixAsyncCallbackCheckFlagEnabledField
+}
+
+// IsSaveToSystemAccountFlagEnabled -
+func (stub *EnableEpochsHandlerStub) IsSaveToSystemAccountFlagEnabled() bool {
+	return stub.IsSaveToSystemAccountFlagEnabledField
+}
+
+// IsCheckFrozenCollectionFlagEnabled -
+func (stub *EnableEpochsHandlerStub) IsCheckFrozenCollectionFlagEnabled() bool {
+	return stub.IsCheckFrozenCollectionFlagEnabledField
+}
+
+// IsSendAlwaysFlagEnabled -
+func (stub *EnableEpochsHandlerStub) IsSendAlwaysFlagEnabled() bool {
+	return stub.IsSendAlwaysFlagEnabledField
+}
+
+// IsValueLengthCheckFlagEnabled -
+func (stub *EnableEpochsHandlerStub) IsValueLengthCheckFlagEnabled() bool {
+	return stub.IsValueLengthCheckFlagEnabledField
+}
+
+// IsCheckTransferFlagEnabled -
+func (stub *EnableEpochsHandlerStub) IsCheckTransferFlagEnabled() bool {
+	return stub.IsCheckTransferFlagEnabledField
+}
+
+// IsTransferToMetaFlagEnabled -
+func (stub *EnableEpochsHandlerStub) IsTransferToMetaFlagEnabled() bool {
+	return stub.IsTransferToMetaFlagEnabledField
+}
+
+// IsESDTNFTImprovementV1FlagEnabled -
+func (stub *EnableEpochsHandlerStub) IsESDTNFTImprovementV1FlagEnabled() bool {
+	return stub.IsESDTNFTImprovementV1FlagEnabledField
 }
 
 // IsInterfaceNil -
