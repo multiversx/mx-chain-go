@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
 )
 
 // NumNodesDTO represents the DTO structure that will hold the number of nodes split by category and other
@@ -147,6 +148,12 @@ type BlockInfo interface {
 	GetHash() []byte
 	GetRootHash() []byte
 	Equal(blockInfo BlockInfo) bool
+	IsInterfaceNil() bool
+}
+
+// ReceiptsHolder holds receipts content (e.g. miniblocks)
+type ReceiptsHolder interface {
+	GetMiniblocks() []*block.MiniBlock
 	IsInterfaceNil() bool
 }
 
