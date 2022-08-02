@@ -8,14 +8,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common/mock"
 	"github.com/ElrondNetwork/elrond-go/dblookupext/esdtSupply"
 	epochStartMocks "github.com/ElrondNetwork/elrond-go/epochStart/mock"
-	elrondErrors "github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
@@ -743,47 +740,4 @@ func TestHistoryRepository_ConcurrentlyRecordAndNotarizeSameBlockMultipleTimes(t
 	require.Equal(t, []byte("metablockFoo"), metadata.NotarizedAtSourceInMetaHash)
 	require.Equal(t, 4001, int(metadata.NotarizedAtDestinationInMetaNonce))
 	require.Equal(t, []byte("metablockFoo"), metadata.NotarizedAtDestinationInMetaHash)
-}
-
-func TestHandleErrorLogging(t *testing.T) {
-	t.Parallel()
-
-	testErr := errors.New("test error")
-	msg := "message"
-	logArgs := []interface{}{1, "aaa", []byte("hash"), testErr}
-
-	t.Run("not a closing error", func(t *testing.T) {
-		t.Parallel()
-
-		logCalled := false
-		logInstance := &testscommon.LoggerStub{
-			LogCalled: func(logLevel logger.LogLevel, message string, args ...interface{}) {
-				assert.Equal(t, logger.LogError, logLevel)
-				assert.Equal(t, msg, message)
-				assert.Equal(t, logArgs, args)
-
-				logCalled = true
-			},
-		}
-
-		handleErrorLogging(logInstance, logger.LogError, testErr, msg, logArgs...)
-		assert.True(t, logCalled)
-	})
-	t.Run("a closing error", func(t *testing.T) {
-		t.Parallel()
-
-		logCalled := false
-		logInstance := &testscommon.LoggerStub{
-			LogCalled: func(logLevel logger.LogLevel, message string, args ...interface{}) {
-				assert.Equal(t, logger.LogDebug, logLevel)
-				assert.Equal(t, msg, message)
-				assert.Equal(t, logArgs, args)
-
-				logCalled = true
-			},
-		}
-
-		handleErrorLogging(logInstance, logger.LogError, elrondErrors.ErrDBIsClosed, msg, logArgs...)
-		assert.True(t, logCalled)
-	})
 }

@@ -32,6 +32,7 @@ func newMetaApiBlockProcessor(arg *ArgAPIBlockProcessor, emptyReceiptsHash []byt
 			addressPubKeyConverter:   arg.AddressPubkeyConverter,
 			emptyReceiptsHash:        emptyReceiptsHash,
 			logsFacade:               arg.LogsFacade,
+			receiptsRepository:       arg.ReceiptsRepository,
 		},
 	}
 }
@@ -114,7 +115,7 @@ func (mbp *metaAPIBlockProcessor) convertMetaBlockBytesToAPIBlock(hash []byte, b
 		miniblocks = append(miniblocks, miniblockAPI)
 	}
 
-	intraMb, err := mbp.getIntrashardMiniblocksFromReceiptsStorage(blockHeader.GetReceiptsHash(), headerEpoch, options)
+	intraMb, err := mbp.getIntrashardMiniblocksFromReceiptsStorage(blockHeader, hash, options)
 	if err != nil {
 		return nil, err
 	}

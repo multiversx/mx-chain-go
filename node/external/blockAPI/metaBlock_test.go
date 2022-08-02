@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
 	"github.com/stretchr/testify/assert"
@@ -49,6 +50,7 @@ func createMockMetaAPIProcessor(
 				return withHistory
 			},
 		},
+		ReceiptsRepository: &testscommon.ReceiptsRepositoryStub{},
 	}, nil)
 }
 

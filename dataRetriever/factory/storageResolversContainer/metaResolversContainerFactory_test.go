@@ -54,7 +54,7 @@ func createStoreForMeta() dataRetriever.StorageService {
 	}
 }
 
-//------- NewResolversContainerFactory
+// ------- NewResolversContainerFactory
 
 func TestNewMetaResolversContainerFactory_NilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
@@ -132,7 +132,7 @@ func TestNewMetaResolversContainerFactory_ShouldWork(t *testing.T) {
 	assert.False(t, check.IfNil(rcf))
 }
 
-//------- Create
+// ------- Create
 
 func TestMetaResolversContainerFactory_CreateShouldWork(t *testing.T) {
 	t.Parallel()
@@ -169,8 +169,9 @@ func TestMetaResolversContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	numResolversRewards := noOfShards
 	numResolversTxs := noOfShards + 1
 	numResolversTrieNodes := 2
+	numPeerAuthentication := 1
 	totalResolvers := numResolversShardHeadersForMetachain + numResolverMetablocks + numResolversMiniBlocks +
-		numResolversUnsigned + numResolversTxs + numResolversTrieNodes + numResolversRewards
+		numResolversUnsigned + numResolversTxs + numResolversTrieNodes + numResolversRewards + numPeerAuthentication
 
 	assert.Equal(t, totalResolvers, container.Len())
 	assert.Equal(t, totalResolvers, container.Len())

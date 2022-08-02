@@ -9,7 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/receipt"
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common/logging"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -37,8 +37,9 @@ func (eht *eventsHashesByTxHash) saveResultsHashes(epoch uint32, scResults, rece
 
 		err = eht.storer.Put([]byte(txHash), resultHashesBytes)
 		if err != nil {
-			handleErrorLogging(log, logger.LogWarning, err, "saveResultsHashes() cannot save resultHashesByte",
-				"error", err.Error())
+			logging.LogErrAsWarnExceptAsDebugIfClosingError(log, err,
+				"saveResultsHashes() cannot save resultHashesByte",
+				"err", err.Error())
 			continue
 		}
 	}
@@ -123,7 +124,7 @@ func (eht *eventsHashesByTxHash) mergeRecordsFromStorageIfExists(
 func (eht *eventsHashesByTxHash) getEventsHashesByTxHash(txHash []byte, epoch uint32) (*ResultsHashesByTxHash, error) {
 	rawBytes, err := eht.storer.GetFromEpoch(txHash, epoch)
 	if err != nil {
-		if isNotFoundInStorageErr(err) {
+		if storage.IsNotFoundInStorageErr(err) {
 			err = fmt.Errorf("%w: %v", ErrNotFoundInStorage, err)
 		}
 

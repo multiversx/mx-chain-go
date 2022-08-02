@@ -2102,6 +2102,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		ScheduledTxsExecutionHandler:   &testscommon.ScheduledTxsExecutionStub{},
 		ScheduledMiniBlocksEnableEpoch: ScheduledMiniBlocksEnableEpoch,
 		ProcessedMiniBlocksTracker:     &testscommon.ProcessedMiniBlocksTrackerStub{},
+		ReceiptsRepository:             &testscommon.ReceiptsRepositoryStub{},
 	}
 
 	if check.IfNil(tpn.EpochStartNotifier) {
