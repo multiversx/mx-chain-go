@@ -195,17 +195,8 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 		return false
 	}
 
-	multiSigner, err := sr.MultiSignerContainer().GetMultiSigner(sr.Header.GetEpoch())
-	if err != nil {
-		log.Error("doEndRoundJobByLeader.GetMultiSigner", "error", err.Error())
-		return false
-	}
-
-	// TODO: get the signatures from consensus state
-	pubKeysSigners, sigShares := sr.getSigningData()
-
 	// Aggregate sig and add it to the block
-	sig, err := multiSigner.AggregateSigs(pubKeysSigners, sigShares)
+	sig, err := sr.SignatureHandler().AggregateSigs(bitmap, sr.Header.GetEpoch())
 	if err != nil {
 		log.Debug("doEndRoundJobByLeader.AggregateSigs", "error", err.Error())
 		return false

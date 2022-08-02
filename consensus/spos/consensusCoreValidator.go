@@ -68,6 +68,9 @@ func ValidateConsensusCore(container ConsensusCoreHandler) error {
 	if check.IfNil(container.NodeRedundancyHandler()) {
 		return ErrNilNodeRedundancyHandler
 	}
+	if check.IfNil(container.SignatureHandler()) {
+		return ErrNilSignatureHandler
+	}
 
 	return nil
 }

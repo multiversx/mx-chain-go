@@ -37,6 +37,7 @@ func createDefaultConsensusCoreArgs() *spos.ConsensusCoreArgs {
 		FallbackHeaderValidator:       consensusCoreMock.FallbackHeaderValidator(),
 		NodeRedundancyHandler:         consensusCoreMock.NodeRedundancyHandler(),
 		ScheduledProcessor:            scheduledProcessor,
+		SignatureHandler:              consensusCoreMock.SignatureHandler(),
 	}
 	return args
 }

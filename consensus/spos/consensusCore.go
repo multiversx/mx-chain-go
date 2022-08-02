@@ -38,6 +38,7 @@ type ConsensusCore struct {
 	fallbackHeaderValidator       consensus.FallbackHeaderValidator
 	nodeRedundancyHandler         consensus.NodeRedundancyHandler
 	scheduledProcessor            consensus.ScheduledProcessor
+	signatureHandler              consensus.SignatureHandler
 }
 
 // ConsensusCoreArgs store all arguments that are needed to create a ConsensusCore object
@@ -63,6 +64,7 @@ type ConsensusCoreArgs struct {
 	FallbackHeaderValidator       consensus.FallbackHeaderValidator
 	NodeRedundancyHandler         consensus.NodeRedundancyHandler
 	ScheduledProcessor            consensus.ScheduledProcessor
+	SignatureHandler              consensus.SignatureHandler
 }
 
 // NewConsensusCore creates a new ConsensusCore instance
@@ -91,6 +93,7 @@ func NewConsensusCore(
 		fallbackHeaderValidator:       args.FallbackHeaderValidator,
 		nodeRedundancyHandler:         args.NodeRedundancyHandler,
 		scheduledProcessor:            args.ScheduledProcessor,
+		signatureHandler:              args.SignatureHandler,
 	}
 
 	err := ValidateConsensusCore(consensusCore)
@@ -204,6 +207,11 @@ func (cc *ConsensusCore) NodeRedundancyHandler() consensus.NodeRedundancyHandler
 // ScheduledProcessor will return the scheduled processor
 func (cc *ConsensusCore) ScheduledProcessor() consensus.ScheduledProcessor {
 	return cc.scheduledProcessor
+}
+
+// SignatureHandler will return the signature handler component
+func (cc *ConsensusCore) SignatureHandler() consensus.SignatureHandler {
+	return cc.signatureHandler
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

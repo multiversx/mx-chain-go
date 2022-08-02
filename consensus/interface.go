@@ -6,7 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-crypto"
+	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 )
 
@@ -145,5 +145,18 @@ type ScheduledProcessor interface {
 	StartScheduledProcessing(header data.HeaderHandler, body data.BodyHandler, startTime time.Time)
 	ForceStopScheduledExecutionBlocking()
 	IsProcessedOKWithTimeout() bool
+	IsInterfaceNil() bool
+}
+
+// SignatureHandler defines the behaviour of a component that handles signatures in consensus
+type SignatureHandler interface {
+	Reset(pubKeys []string) error
+	CreateSignatureShare(msg []byte, index uint16, epoch uint32) ([]byte, error)
+	StoreSignatureShare(index uint16, sig []byte) error
+	SignatureShare(index uint16) ([]byte, error)
+	VerifySignatureShare(index uint16, sig []byte, msg []byte, epoch uint32) error
+	AggregateSigs(bitmap []byte, epoch uint32) ([]byte, error)
+	SetAggregatedSig([]byte) error
+	Verify(msg []byte, bitmap []byte, epoch uint32) error
 	IsInterfaceNil() bool
 }

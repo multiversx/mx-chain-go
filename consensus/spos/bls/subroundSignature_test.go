@@ -10,7 +10,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/bls"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
@@ -276,24 +275,23 @@ func TestSubroundSignature_DoSignatureJob(t *testing.T) {
 
 	sr.Data = []byte("X")
 
-	multiSignerMock := mock.InitMultiSignerMock()
-
 	err := errors.New("create signature share error")
-	multiSignerMock.CreateSignatureShareCalled = func(msg []byte, bitmap []byte) ([]byte, error) {
-		return nil, err
+	signatureHandler := &mock.SignatureHandlerStub{
+		CreateSignatureShareCalled: func(msg []byte, index uint16, epoch uint32) ([]byte, error) {
+			return nil, err
+		},
 	}
-
-	container.SetMultiSignerContainer(cryptoMocks.NewMultiSignerContainerMock(multiSignerMock))
+	container.SetSignatureHandler(signatureHandler)
 
 	r = sr.DoSignatureJob()
 	assert.False(t, r)
 
-	multiSignerMock = mock.InitMultiSignerMock()
-
-	multiSignerMock.CreateSignatureShareCalled = func(msg []byte, bitmap []byte) ([]byte, error) {
-		return []byte("SIG"), nil
+	signatureHandler = &mock.SignatureHandlerStub{
+		CreateSignatureShareCalled: func(msg []byte, index uint16, epoch uint32) ([]byte, error) {
+			return []byte("SIG"), nil
+		},
 	}
-	container.SetMultiSignerContainer(cryptoMocks.NewMultiSignerContainerMock(multiSignerMock))
+	container.SetSignatureHandler(signatureHandler)
 
 	r = sr.DoSignatureJob()
 	assert.True(t, r)
@@ -366,14 +364,16 @@ func TestSubroundSignature_ReceivedSignatureVerifyShareFailed(t *testing.T) {
 	t.Parallel()
 
 	errVerify := errors.New("signature share verification failed")
-	multiSigner := cryptoMocks.NewMultiSigner()
 	verifyCalled := false
-	multiSigner.VerifySignatureShareCalled = func(publicKey []byte, message []byte, sig []byte) error {
-		verifyCalled = true
-		return errVerify
+	signatureHandler := &mock.SignatureHandlerStub{
+		VerifySignatureShareCalled: func(index uint16, sig, msg []byte, epoch uint32) error {
+			verifyCalled = true
+			return errVerify
+		},
 	}
 
-	container := mock.InitConsensusCoreWithMultiSigner(multiSigner)
+	container := mock.InitConsensusCore()
+	container.SetSignatureHandler(signatureHandler)
 	sr := *initSubroundSignatureWithContainer(container)
 
 	signature := []byte("signature")
