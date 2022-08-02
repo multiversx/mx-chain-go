@@ -584,7 +584,7 @@ func (m *managedProcessComponents) ProcessedMiniBlocksTracker() process.Processe
 }
 
 // ReceiptsRepository returns the receipts repository
-func (m *managedProcessComponents) ReceiptsRepository() ReceiptsRepository {
+func (m *managedProcessComponents) ReceiptsRepository() factory.ReceiptsRepository {
 	m.mutProcessComponents.RLock()
 	defer m.mutProcessComponents.RUnlock()
 

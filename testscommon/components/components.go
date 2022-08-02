@@ -347,9 +347,8 @@ func GetHeartbeatFactoryArgs(shardCoordinator sharding.Coordinator) heartbeatCom
 func GetNetworkFactoryArgs() networkComp.NetworkComponentsFactoryArgs {
 	p2pConfig := config.P2PConfig{
 		Node: config.NodeConfig{
-			Port:                  "0",
-			Seed:                  "seed",
-			ConnectionWatcherType: "print",
+			Port: "0",
+			Seed: "seed",
 		},
 		KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
 			Enabled:                          false,
@@ -479,6 +478,7 @@ func GetBootStrapFactoryArgs() bootstrapComp.BootstrapComponentsFactoryArgs {
 		PrefConfig: config.Preferences{
 			Preferences: config.PreferencesConfig{
 				DestinationShardAsObserver: "0",
+				ConnectionWatcherType:      "print",
 			},
 		},
 		ImportDbConfig: config.ImportDbConfig{

@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
 	metachainEpochStart "github.com/ElrondNetwork/elrond-go/epochStart/metachain"
+	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	processDisabled "github.com/ElrondNetwork/elrond-go/genesis/process/disabled"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -57,7 +58,7 @@ func (pcf *processComponentsFactory) newBlockProcessor(
 	arwenChangeLocker common.Locker,
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler,
 	processedMiniBlocksTracker process.ProcessedMiniBlocksTracker,
-	receiptsRepository ReceiptsRepository,
+	receiptsRepository mainFactory.ReceiptsRepository,
 ) (*blockProcessorAndVmFactories, error) {
 	if pcf.bootstrapComponents.ShardCoordinator().SelfId() < pcf.bootstrapComponents.ShardCoordinator().NumberOfShards() {
 		return pcf.newShardBlockProcessor(
@@ -110,7 +111,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 	arwenChangeLocker common.Locker,
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler,
 	processedMiniBlocksTracker process.ProcessedMiniBlocksTracker,
-	receiptsRepository ReceiptsRepository,
+	receiptsRepository mainFactory.ReceiptsRepository,
 ) (*blockProcessorAndVmFactories, error) {
 	argsParser := smartContract.NewArgumentParser()
 
@@ -457,7 +458,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	arwenChangeLocker common.Locker,
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler,
 	processedMiniBlocksTracker process.ProcessedMiniBlocksTracker,
-	receiptsRepository ReceiptsRepository,
+	receiptsRepository mainFactory.ReceiptsRepository,
 ) (*blockProcessorAndVmFactories, error) {
 	builtInFuncFactory, err := pcf.createBuiltInFunctionContainer(pcf.state.AccountsAdapter(), make(map[string]struct{}))
 	if err != nil {

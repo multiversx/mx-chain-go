@@ -31,6 +31,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart/shardchain"
 	errErd "github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/factory"
+	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/factory/disabled"
 	"github.com/ElrondNetwork/elrond-go/fallback"
 	"github.com/ElrondNetwork/elrond-go/genesis"
@@ -113,7 +114,7 @@ type processComponents struct {
 	hardforkTrigger              factory.HardforkTrigger
 	processedMiniBlocksTracker   process.ProcessedMiniBlocksTracker
 	accountsParser               genesis.AccountsParser
-	receiptsRepository           ReceiptsRepository
+	receiptsRepository           mainFactory.ReceiptsRepository
 }
 
 // ProcessComponentsFactoryArgs holds the arguments needed to create a process components factory
