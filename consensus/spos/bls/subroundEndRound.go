@@ -182,11 +182,6 @@ func (sr *subroundEndRound) doEndRoundJob(_ context.Context) bool {
 	return sr.doEndRoundJobByLeader()
 }
 
-// TODO: this method should return the signers pubKeys and their signatures
-func (sr *subroundEndRound) getSigningData() (pubKeys [][]byte, sigShares [][]byte) {
-	return nil, nil
-}
-
 func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 	bitmap := sr.GenerateBitmap(SrSignature)
 	err := sr.checkSignaturesValidity(bitmap)
