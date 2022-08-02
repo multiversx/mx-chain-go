@@ -280,20 +280,21 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 
 	builtInFuncs := vmcommonBuiltInFunctions.NewBuiltInFunctionContainer()
 	argsHook := hooks.ArgBlockChainHook{
-		Accounts:           arg.Accounts,
-		PubkeyConv:         arg.Core.AddressPubKeyConverter(),
-		StorageService:     arg.Data.StorageService(),
-		BlockChain:         arg.Data.Blockchain(),
-		ShardCoordinator:   arg.ShardCoordinator,
-		Marshalizer:        arg.Core.InternalMarshalizer(),
-		Uint64Converter:    arg.Core.Uint64ByteSliceConverter(),
-		BuiltInFunctions:   builtInFuncs,
-		NFTStorageHandler:  &disabled.SimpleNFTStorage{},
-		DataPool:           arg.Data.Datapool(),
-		CompiledSCPool:     arg.Data.Datapool().SmartContracts(),
-		EpochNotifier:      epochNotifier,
-		NilCompiledSCStore: true,
-		EnableEpochs:       enableEpochs,
+		Accounts:              arg.Accounts,
+		PubkeyConv:            arg.Core.AddressPubKeyConverter(),
+		StorageService:        arg.Data.StorageService(),
+		BlockChain:            arg.Data.Blockchain(),
+		ShardCoordinator:      arg.ShardCoordinator,
+		Marshalizer:           arg.Core.InternalMarshalizer(),
+		Uint64Converter:       arg.Core.Uint64ByteSliceConverter(),
+		BuiltInFunctions:      builtInFuncs,
+		NFTStorageHandler:     &disabled.SimpleNFTStorage{},
+		GlobalSettingsHandler: &disabled.ESDTGlobalSettingsHandler{},
+		DataPool:              arg.Data.Datapool(),
+		CompiledSCPool:        arg.Data.Datapool().SmartContracts(),
+		EpochNotifier:         epochNotifier,
+		NilCompiledSCStore:    true,
+		EnableEpochs:          enableEpochs,
 	}
 
 	pubKeyVerifier, err := disabled.NewMessageSignVerifier(arg.BlockSignKeyGen)
@@ -367,13 +368,13 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 	}
 
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
-		PubkeyConverter:        arg.Core.AddressPubKeyConverter(),
-		ShardCoordinator:       arg.ShardCoordinator,
-		BuiltInFunctions:       builtInFuncs,
-		ArgumentParser:         parsers.NewCallArgsParser(),
-		EpochNotifier:          epochNotifier,
-		RelayedTxV2EnableEpoch: arg.EpochConfig.EnableEpochs.RelayedTransactionsV2EnableEpoch,
-		ESDTTransferParser:     esdtTransferParser,
+		PubkeyConverter:                        arg.Core.AddressPubKeyConverter(),
+		ShardCoordinator:                       arg.ShardCoordinator,
+		BuiltInFunctions:                       builtInFuncs,
+		ArgumentParser:                         parsers.NewCallArgsParser(),
+		ESDTTransferParser:                     esdtTransferParser,
+		EpochNotifier:                          epochNotifier,
+		TransferAndAsyncCallbackFixEnableEpoch: arg.EpochConfig.EnableEpochs.ESDTMetadataContinuousCleanupEnableEpoch,
 	}
 	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	if err != nil {

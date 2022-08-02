@@ -641,12 +641,12 @@ func TestAccountsParser_GenerateInitialTransactionsTxsPool(t *testing.T) {
 	miniBlocks, txsPoolPerShard, err := ap.GenerateInitialTransactions(sharder, indexingDataMap)
 	require.Nil(t, err)
 
-	assert.Equal(t, 9, len(miniBlocks))
+	assert.Equal(t, 10, len(miniBlocks))
 
 	assert.Equal(t, 3, len(txsPoolPerShard))
-	assert.Equal(t, 1, len(txsPoolPerShard[0].Txs))
-	assert.Equal(t, 1, len(txsPoolPerShard[1].Txs))
-	assert.Equal(t, 0, len(txsPoolPerShard[core.MetachainShardId].Txs))
+	assert.Equal(t, 0, len(txsPoolPerShard[0].Txs))
+	assert.Equal(t, 0, len(txsPoolPerShard[1].Txs))
+	assert.Equal(t, len(ibs), len(txsPoolPerShard[core.MetachainShardId].Txs))
 	assert.Equal(t, 0, len(txsPoolPerShard[0].Scrs))
 	assert.Equal(t, 0, len(txsPoolPerShard[1].Scrs))
 	assert.Equal(t, 0, len(txsPoolPerShard[core.MetachainShardId].Scrs))
@@ -734,7 +734,7 @@ func TestAccountsParser_GenerateInitialTransactionsVerifyTxsHashes(t *testing.T)
 	miniBlocks, txsPoolPerShard, err := ap.GenerateInitialTransactions(sharder, indexingDataMap)
 	require.Nil(t, err)
 
-	assert.Equal(t, 4, len(miniBlocks))
+	assert.Equal(t, 5, len(miniBlocks))
 	assert.Equal(t, 2, len(txsPoolPerShard))
 	assert.Equal(t, 1, len(txsPoolPerShard[0].Txs))
 

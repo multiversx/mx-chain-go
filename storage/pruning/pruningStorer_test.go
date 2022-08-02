@@ -492,8 +492,8 @@ func TestNewPruningStorer_GetBulkFromEpoch(t *testing.T) {
 	// check if data is still available after searching in closed activePersisters
 	res, err := ps.GetBulkFromEpoch([][]byte{testKey1, testKey2}, 0)
 	assert.Nil(t, err)
-	assert.Equal(t, testVal1, res[string(testKey1)])
-	assert.Equal(t, testVal2, res[string(testKey2)])
+	assert.Equal(t, testVal1, res[0].Value)
+	assert.Equal(t, testVal2, res[1].Value)
 }
 
 func TestNewPruningStorer_ChangeEpochDbsShouldNotBeDeletedIfPruningIsDisabled(t *testing.T) {

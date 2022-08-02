@@ -385,6 +385,7 @@ func GetGeneralConfig() config.Config {
 			NumConcurrentTrieSyncers:  50,
 			MaxHardCapForMissingNodes: 500,
 			TrieSyncerVersion:         2,
+			CheckNodesOnDisk:          false,
 		},
 		Antiflood: config.AntifloodConfig{
 			NumConcurrentResolverJobs: 2,
@@ -421,6 +422,10 @@ func GetGeneralConfig() config.Config {
 		PeersRatingConfig: config.PeersRatingConfig{
 			TopRatedCacheCapacity: 1000,
 			BadRatedCacheCapacity: 1000,
+		},
+		BuiltInFunctions: config.BuiltInFunctionsConfig{
+			AutomaticCrawlerAddress:       "erd1fpkcgel4gcmh8zqqdt043yfcn5tyx8373kg6q2qmkxzu4dqamc0swts65c",
+			MaxNumAddressesInTransferRole: 100,
 		},
 	}
 }

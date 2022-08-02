@@ -915,19 +915,20 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieS
 	blockChain, _ := blockchain.NewMetaChain(&statusHandlerMock.AppStatusHandlerStub{})
 	testDataPool := dataRetrieverMock.NewPoolsHolderMock()
 	argsHook := hooks.ArgBlockChainHook{
-		Accounts:           userAccountsDB,
-		PubkeyConv:         &mock.PubkeyConverterMock{},
-		StorageService:     &mock.ChainStorerStub{},
-		BlockChain:         blockChain,
-		ShardCoordinator:   &mock.ShardCoordinatorStub{},
-		Marshalizer:        marshalizer,
-		Uint64Converter:    &mock.Uint64ByteSliceConverterMock{},
-		BuiltInFunctions:   vmcommonBuiltInFunctions.NewBuiltInFunctionContainer(),
-		NFTStorageHandler:  &testscommon.SimpleNFTStorageHandlerStub{},
-		DataPool:           testDataPool,
-		CompiledSCPool:     testDataPool.SmartContracts(),
-		EpochNotifier:      &epochNotifier.EpochNotifierStub{},
-		NilCompiledSCStore: true,
+		Accounts:              userAccountsDB,
+		PubkeyConv:            &mock.PubkeyConverterMock{},
+		StorageService:        &mock.ChainStorerStub{},
+		BlockChain:            blockChain,
+		ShardCoordinator:      &mock.ShardCoordinatorStub{},
+		Marshalizer:           marshalizer,
+		Uint64Converter:       &mock.Uint64ByteSliceConverterMock{},
+		BuiltInFunctions:      vmcommonBuiltInFunctions.NewBuiltInFunctionContainer(),
+		NFTStorageHandler:     &testscommon.SimpleNFTStorageHandlerStub{},
+		GlobalSettingsHandler: &testscommon.ESDTGlobalSettingsHandlerStub{},
+		DataPool:              testDataPool,
+		CompiledSCPool:        testDataPool.SmartContracts(),
+		EpochNotifier:         &epochNotifier.EpochNotifierStub{},
+		NilCompiledSCStore:    true,
 	}
 
 	gasSchedule := arwenConfig.MakeGasMapForTests()
@@ -942,7 +943,7 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieS
 		PubkeyConv:          argsHook.PubkeyConv,
 		Economics:           createEconomicsData(),
 		MessageSignVerifier: signVerifer,
-		GasSchedule:         mock.NewGasScheduleNotifierMock(gasSchedule),
+		GasSchedule:         testscommon.NewGasScheduleNotifierMock(gasSchedule),
 		NodesConfigProvider: nodesSetup,
 		Hasher:              hasher,
 		Marshalizer:         marshalizer,

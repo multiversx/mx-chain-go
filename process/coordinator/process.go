@@ -149,9 +149,9 @@ func NewTransactionCoordinator(args ArgTransactionCoordinator) (*transactionCoor
 		return tc.keysTxPreProcs[i] < tc.keysTxPreProcs[j]
 	})
 	for _, value := range tc.keysTxPreProcs {
-		preProc, err := args.PreProcessors.Get(value)
-		if err != nil {
-			return nil, err
+		preProc, errGet := args.PreProcessors.Get(value)
+		if errGet != nil {
+			return nil, errGet
 		}
 		tc.txPreProcessors[value] = preProc
 	}
@@ -161,9 +161,9 @@ func NewTransactionCoordinator(args ArgTransactionCoordinator) (*transactionCoor
 		return tc.keysInterimProcs[i] < tc.keysInterimProcs[j]
 	})
 	for _, value := range tc.keysInterimProcs {
-		interProc, err := args.InterProcessors.Get(value)
-		if err != nil {
-			return nil, err
+		interProc, errGet := args.InterProcessors.Get(value)
+		if errGet != nil {
+			return nil, errGet
 		}
 		tc.interimProcessors[value] = interProc
 	}
@@ -581,6 +581,11 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 	createMBDestMeExecutionInfo := initMiniBlockDestMeExecutionInfo()
 
 	if check.IfNil(hdr) {
+		log.Warn("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe header is nil")
+
+		// we return the nil error here as to allow the proposer execute as much as it can, even if it ends up in a
+		// totally unlikely situation in which it needs to process a nil block.
+
 		return createMBDestMeExecutionInfo.miniBlocks, createMBDestMeExecutionInfo.numTxAdded, false, nil
 	}
 
@@ -588,6 +593,11 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 
 	headerHash, err := core.CalculateHash(tc.marshalizer, tc.hasher, hdr)
 	if err != nil {
+		log.Warn("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe CalculateHash error",
+			"error", err)
+
+		// we return the nil error here as to allow the proposer execute as much as it can, even if it ends up in a
+		// totally unlikely situation in which it can not marshall a block.
 		return createMBDestMeExecutionInfo.miniBlocks, createMBDestMeExecutionInfo.numTxAdded, false, nil
 	}
 
@@ -703,9 +713,9 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 
 		oldIndexOfLastTxProcessed := processedMbInfo.IndexOfLastTxProcessed
 
-		err := tc.processCompleteMiniBlock(preproc, miniBlock, miniBlockInfo.Hash, haveTime, haveAdditionalTime, scheduledMode, processedMbInfo)
+		errProc := tc.processCompleteMiniBlock(preproc, miniBlock, miniBlockInfo.Hash, haveTime, haveAdditionalTime, scheduledMode, processedMbInfo)
 		tc.handleProcessMiniBlockExecution(oldIndexOfLastTxProcessed, miniBlock, processedMbInfo, createMBDestMeExecutionInfo)
-		if err != nil {
+		if errProc != nil {
 			shouldSkipShard[miniBlockInfo.SenderShardID] = true
 			log.Debug("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: processed complete mini block failed",
 				"scheduled mode", scheduledMode,
@@ -721,6 +731,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 				"total gas provided as scheduled", tc.gasHandler.TotalGasProvidedAsScheduled(),
 				"total gas refunded", tc.gasHandler.TotalGasRefunded(),
 				"total gas penalized", tc.gasHandler.TotalGasPenalized(),
+				"error", errProc,
 			)
 			continue
 		}
@@ -1215,10 +1226,8 @@ func (tc *transactionCoordinator) processCompleteMiniBlock(
 
 func (tc *transactionCoordinator) handleProcessMiniBlockInit(miniBlockHash []byte) int {
 	snapshot := tc.accounts.JournalLen()
-	if tc.shardCoordinator.SelfId() != core.MetachainShardId {
-		tc.InitProcessedTxsResults(miniBlockHash)
-		tc.gasHandler.Reset(miniBlockHash)
-	}
+	tc.InitProcessedTxsResults(miniBlockHash)
+	tc.gasHandler.Reset(miniBlockHash)
 
 	return snapshot
 }
@@ -1378,21 +1387,10 @@ func (tc *transactionCoordinator) CreateReceiptsHash() ([]byte, error) {
 
 // CreateMarshalizedReceipts will return all the receipts list in one marshalized object
 func (tc *transactionCoordinator) CreateMarshalizedReceipts() ([]byte, error) {
-	tc.mutInterimProcessors.RLock()
-	defer tc.mutInterimProcessors.RUnlock()
+	inShardMiniBlocks := tc.GetCreatedInShardMiniBlocks()
 
 	receiptsBatch := &batch.Batch{}
-	for _, blockType := range tc.keysInterimProcs {
-		interProc, ok := tc.interimProcessors[blockType]
-		if !ok {
-			continue
-		}
-
-		miniBlock := interProc.GetCreatedInShardMiniBlock()
-		if miniBlock == nil {
-			continue
-		}
-
+	for _, miniBlock := range inShardMiniBlocks {
 		marshalizedMiniBlock, err := tc.marshalizer.Marshal(miniBlock)
 		if err != nil {
 			return nil, err
@@ -1406,6 +1404,29 @@ func (tc *transactionCoordinator) CreateMarshalizedReceipts() ([]byte, error) {
 	}
 
 	return tc.marshalizer.Marshal(receiptsBatch)
+}
+
+// GetCreatedInShardMiniBlocks will return the intra-shard created miniblocks
+func (tc *transactionCoordinator) GetCreatedInShardMiniBlocks() []*block.MiniBlock {
+	tc.mutInterimProcessors.RLock()
+	defer tc.mutInterimProcessors.RUnlock()
+
+	miniBlocks := make([]*block.MiniBlock, 0)
+	for _, blockType := range tc.keysInterimProcs {
+		interProc, ok := tc.interimProcessors[blockType]
+		if !ok {
+			continue
+		}
+
+		miniBlock := interProc.GetCreatedInShardMiniBlock()
+		if miniBlock == nil {
+			continue
+		}
+
+		miniBlocks = append(miniBlocks, miniBlock)
+	}
+
+	return miniBlocks
 }
 
 // GetNumOfCrossInterMbsAndTxs gets the number of cross intermediate transactions and mini blocks

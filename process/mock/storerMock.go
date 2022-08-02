@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+
+	"github.com/ElrondNetwork/elrond-go-core/storage"
 )
 
 // StorerMock -
@@ -58,17 +60,8 @@ func (sm *StorerMock) GetFromEpoch(key []byte, _ uint32) ([]byte, error) {
 }
 
 // GetBulkFromEpoch -
-func (sm *StorerMock) GetBulkFromEpoch(keys [][]byte, _ uint32) (map[string][]byte, error) {
-	retValue := map[string][]byte{}
-	for _, key := range keys {
-		value, err := sm.Get(key)
-		if err != nil {
-			continue
-		}
-		retValue[string(key)] = value
-	}
-
-	return retValue, nil
+func (sm *StorerMock) GetBulkFromEpoch(keys [][]byte, _ uint32) ([]storage.KeyValuePair, error) {
+	return nil, errors.New("not implemented")
 }
 
 // SearchFirst -
