@@ -4,6 +4,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
+	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/txsimulator"
@@ -23,7 +24,7 @@ func (pcf *processComponentsFactory) NewBlockProcessor(
 	arwenChangeLocker common.Locker,
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler,
 	processedMiniBlocksTracker process.ProcessedMiniBlocksTracker,
-	receiptsRepository ReceiptsRepository,
+	receiptsRepository factory.ReceiptsRepository,
 ) (process.BlockProcessor, process.VirtualMachinesContainerFactory, error) {
 	blockProcessorComponents, err := pcf.newBlockProcessor(
 		requestHandler,
@@ -51,4 +52,3 @@ func (pcf *processComponentsFactory) NewBlockProcessor(
 func (pcf *processComponentsFactory) IndexGenesisBlocks(genesisBlocks map[uint32]data.HeaderHandler, indexingData map[uint32]*genesis.IndexingData) error {
 	return pcf.indexGenesisBlocks(genesisBlocks, indexingData)
 }
-
