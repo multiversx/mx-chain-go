@@ -6,6 +6,9 @@ import (
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
+// LastSnapshotStarted -
+const LastSnapshotStarted = lastSnapshotStarted
+
 // NewEmptyBaseAccount -
 func NewEmptyBaseAccount(address []byte, tracker DataTrieTracker) *baseAccount {
 	return &baseAccount{
@@ -68,4 +71,9 @@ func (accountsDB *accountsDBApi) SetCurrentBlockInfo(blockInfo common.BlockInfo)
 	accountsDB.mutBlockInfo.Lock()
 	accountsDB.blockInfo = blockInfo
 	accountsDB.mutBlockInfo.Unlock()
+}
+
+// EmptyErrChanReturningHadContained -
+func EmptyErrChanReturningHadContained(errChan chan error) bool {
+	return emptyErrChanReturningHadContained(errChan)
 }

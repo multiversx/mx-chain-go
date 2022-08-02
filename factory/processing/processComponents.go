@@ -31,6 +31,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart/shardchain"
 	errErd "github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/factory"
+	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/factory/disabled"
 	"github.com/ElrondNetwork/elrond-go/fallback"
 	"github.com/ElrondNetwork/elrond-go/genesis"
@@ -46,6 +47,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory/interceptorscontainer"
 	"github.com/ElrondNetwork/elrond-go/process/headerCheck"
 	"github.com/ElrondNetwork/elrond-go/process/peer"
+	"github.com/ElrondNetwork/elrond-go/process/receipts"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/sync"
 	"github.com/ElrondNetwork/elrond-go/process/track"
@@ -112,6 +114,7 @@ type processComponents struct {
 	hardforkTrigger              factory.HardforkTrigger
 	processedMiniBlocksTracker   process.ProcessedMiniBlocksTracker
 	accountsParser               genesis.AccountsParser
+	receiptsRepository           mainFactory.ReceiptsRepository
 }
 
 // ProcessComponentsFactoryArgs holds the arguments needed to create a process components factory
@@ -524,6 +527,15 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 
 	processedMiniBlocksTracker := processedMb.NewProcessedMiniBlocksTracker()
 
+	receiptsRepository, err := receipts.NewReceiptsRepository(receipts.ArgsNewReceiptsRepository{
+		Store:      pcf.data.StorageService(),
+		Marshaller: pcf.coreData.InternalMarshalizer(),
+		Hasher:     pcf.coreData.Hasher(),
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	blockProcessorComponents, err := pcf.newBlockProcessor(
 		requestHandler,
 		forkDetector,
@@ -537,6 +549,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		pcf.coreData.ArwenChangeLocker(),
 		scheduledTxsExecutionHandler,
 		processedMiniBlocksTracker,
+		receiptsRepository,
 	)
 	if err != nil {
 		return nil, err
@@ -644,6 +657,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		hardforkTrigger:              hardforkTrigger,
 		processedMiniBlocksTracker:   processedMiniBlocksTracker,
 		accountsParser:               pcf.accountsParser,
+		receiptsRepository:           receiptsRepository,
 	}, nil
 }
 

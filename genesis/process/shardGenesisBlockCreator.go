@@ -22,6 +22,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
+	"github.com/ElrondNetwork/elrond-go/process/receipts"
 	"github.com/ElrondNetwork/elrond-go/process/rewardTransaction"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
@@ -32,7 +33,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 	"github.com/ElrondNetwork/elrond-go/update"
 	hardForkProcess "github.com/ElrondNetwork/elrond-go/update/process"
-	vmcommonBuiltInFunctions "github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 )
 
@@ -299,6 +299,15 @@ func createArgsShardBlockCreatorAfterHardFork(
 		return hardForkProcess.ArgsNewShardBlockCreatorAfterHardFork{}, err
 	}
 
+	receiptsRepository, err := receipts.NewReceiptsRepository(receipts.ArgsNewReceiptsRepository{
+		Marshaller: arg.Core.InternalMarshalizer(),
+		Hasher:     arg.Core.Hasher(),
+		Store:      arg.Data.StorageService(),
+	})
+	if err != nil {
+		return hardForkProcess.ArgsNewShardBlockCreatorAfterHardFork{}, err
+	}
+
 	argsShardBlockCreatorAfterHardFork := hardForkProcess.ArgsNewShardBlockCreatorAfterHardFork{
 		Hasher:             arg.Core.Hasher(),
 		ImportHandler:      arg.importHandler,
@@ -307,6 +316,7 @@ func createArgsShardBlockCreatorAfterHardFork(
 		ShardCoordinator:   arg.ShardCoordinator,
 		Storage:            arg.Data.StorageService(),
 		TxCoordinator:      processors.txCoordinator,
+		ReceiptsRepository: receiptsRepository,
 		SelfShardID:        selfShardID,
 	}
 
@@ -373,7 +383,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		AutomaticCrawlerAddress:                  make([]byte, 32),
 		MaxNumNodesInTransferRole:                math.MaxUint32,
 	}
-	builtInFuncs, nftStorageHandler, globalSettingsHandler, err := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
+	builtInFuncFactory, err := builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)
 	if err != nil {
 		return nil, err
 	}
@@ -386,9 +396,9 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		ShardCoordinator:      arg.ShardCoordinator,
 		Marshalizer:           arg.Core.InternalMarshalizer(),
 		Uint64Converter:       arg.Core.Uint64ByteSliceConverter(),
-		BuiltInFunctions:      builtInFuncs,
-		NFTStorageHandler:     nftStorageHandler,
-		GlobalSettingsHandler: globalSettingsHandler,
+		BuiltInFunctions:      builtInFuncFactory.BuiltInFunctionContainer(),
+		NFTStorageHandler:     builtInFuncFactory.NFTStorageHandler(),
+		GlobalSettingsHandler: builtInFuncFactory.ESDTGlobalSettingsHandler(),
 		DataPool:              arg.Data.Datapool(),
 		CompiledSCPool:        arg.Data.Datapool().SmartContracts(),
 		EpochNotifier:         epochNotifier,
@@ -426,7 +436,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		return nil, err
 	}
 
-	err = vmcommonBuiltInFunctions.SetPayableHandler(builtInFuncs, vmFactoryImpl.BlockChainHookImpl())
+	err = builtInFuncFactory.SetPayableHandler(vmFactoryImpl.BlockChainHookImpl())
 	if err != nil {
 		return nil, err
 	}
@@ -473,11 +483,13 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 	epochNotifier.CheckEpoch(temporaryBlock)
 
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
-		PubkeyConverter:    arg.Core.AddressPubKeyConverter(),
-		ShardCoordinator:   arg.ShardCoordinator,
-		BuiltInFunctions:   builtInFuncs,
-		ArgumentParser:     parsers.NewCallArgsParser(),
-		ESDTTransferParser: esdtTransferParser,
+		PubkeyConverter:                        arg.Core.AddressPubKeyConverter(),
+		ShardCoordinator:                       arg.ShardCoordinator,
+		BuiltInFunctions:                       builtInFuncFactory.BuiltInFunctionContainer(),
+		ArgumentParser:                         parsers.NewCallArgsParser(),
+		ESDTTransferParser:                     esdtTransferParser,
+		EpochNotifier:                          epochNotifier,
+		TransferAndAsyncCallbackFixEnableEpoch: arg.EpochConfig.EnableEpochs.ESDTMetadataContinuousCleanupEnableEpoch,
 	}
 	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	if err != nil {
@@ -496,7 +508,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		Marshalizer:         arg.Core.InternalMarshalizer(),
 		AccountsDB:          arg.Accounts,
 		BlockChainHook:      vmFactoryImpl.BlockChainHookImpl(),
-		BuiltInFunctions:    builtInFuncs,
+		BuiltInFunctions:    builtInFuncFactory.BuiltInFunctionContainer(),
 		PubkeyConv:          arg.Core.AddressPubKeyConverter(),
 		ShardCoordinator:    arg.ShardCoordinator,
 		ScrForwarder:        scForwarder,

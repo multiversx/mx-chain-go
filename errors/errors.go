@@ -511,3 +511,6 @@ var ErrInvalidPID = errors.New("invalid PID")
 
 // ErrInvalidSignature signals that the given signature is invalid
 var ErrInvalidSignature = errors.New("invalid signature")
+
+// ErrDBIsClosed is raised when the DB is closed
+var ErrDBIsClosed = errors.New("DB is closed")
