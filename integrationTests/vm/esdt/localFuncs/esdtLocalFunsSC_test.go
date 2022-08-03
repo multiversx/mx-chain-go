@@ -276,8 +276,8 @@ func testESDTWithTransferRoleAndForwarder(t *testing.T, numShards int) {
 	round = integrationTests.IncrementAndPrintRound(round)
 	nonce++
 
-	scAddressA := esdtCommon.DeployNonPayableSmartContract(t, nodes, idxProposers, &nonce, &round, "../testdata/use-module-0.34.1.wasm")
-	scAddressB := esdtCommon.DeployNonPayableSmartContractFromNode(t, nodes, 1, idxProposers, &nonce, &round, "../testdata/use-module-0.34.1.wasm")
+	scAddressA := esdtCommon.DeployNonPayableSmartContract(t, nodes, idxProposers, &nonce, &round, "../testdata/use-module.wasm")
+	scAddressB := esdtCommon.DeployNonPayableSmartContractFromNode(t, nodes, 1, idxProposers, &nonce, &round, "../testdata/use-module.wasm")
 	nrRoundsToPropagateMultiShard := 12
 	tokenIdentifier := esdtCommon.PrepareFungibleTokensWithLocalBurnAndMint(t, nodes, scAddressA, idxProposers, &nonce, &round)
 
@@ -289,7 +289,7 @@ func testESDTWithTransferRoleAndForwarder(t *testing.T, numShards int) {
 
 	amount := int64(100)
 	txData := txDataBuilder.NewBuilder()
-	txData.Clear().TransferESDT(tokenIdentifier, amount).Str("forwardPayments").Bytes(scAddressB).Str("depositTokensForAction") //.Str("fund")
+	txData.Clear().TransferESDT(tokenIdentifier, amount).Str("forwardPayments").Bytes(scAddressB).Str("depositTokensForAction").Str("fund")
 
 	integrationTests.CreateAndSendTransaction(
 		nodes[0],
