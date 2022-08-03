@@ -4,10 +4,12 @@ import (
 	"encoding/hex"
 	"fmt"
 
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/disabled"
 )
 
 type logsRepository struct {
@@ -17,6 +19,10 @@ type logsRepository struct {
 
 func newLogsRepository(storageService dataRetriever.StorageService, marshaller marshal.Marshalizer) *logsRepository {
 	storer := storageService.GetStorer(dataRetriever.TxLogsUnit)
+	if check.IfNil(storer) {
+		log.Debug("could not find TxLogsUnit, using a disabled storer instead...")
+		storer = disabled.NewStorer()
+	}
 
 	return &logsRepository{
 		storer:     storer,
