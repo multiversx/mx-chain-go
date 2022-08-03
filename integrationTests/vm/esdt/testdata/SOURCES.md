@@ -33,3 +33,10 @@ Updated slightly after the release of elrond-wasm 0.34.0, might rename to a futu
 Repo: https://github.com/ElrondNetwork/elrond-wasm-rs
 Commit: 0947f9c3e1c942ee165853fcb8d50afcecdf938a
 Quick link: https://github.com/ElrondNetwork/elrond-wasm-rs/blob/0947f9c3e1c942ee165853fcb8d50afcecdf938a/contracts/feature-tests/composability/vault/src/vault.rs
+
+## use-module-0.34.1.wasm
+
+Tests various standard modules.
+
+Repo: https://github.com/ElrondNetwork/elrond-wasm-rs
+Commit: feddb5b7ea5b0b5bb0f2d5a2ead65797252e3606
