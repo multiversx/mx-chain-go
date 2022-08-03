@@ -34,8 +34,6 @@ type vmContext struct {
 
 	setSenderInEeiOutputTransferEnableEpoch uint32
 	flagSetSenderInEeiOutputTransfer        atomic.Flag
-
-	epochNotifier process.EpochNotifier
 }
 
 // VMContextArgs holds the arguments needed to create a new vmContext
