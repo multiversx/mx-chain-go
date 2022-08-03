@@ -61,3 +61,17 @@ func TestLogsRepository_GetLogsShouldErr(t *testing.T) {
 	require.ErrorIs(t, err, errCannotUnmarshalLog)
 	require.Nil(t, badLog)
 }
+
+func TestLogsRepository_GetLogsShouldUseDisabled(t *testing.T) {
+	epoch := uint32(7)
+
+	storageService := genericMocks.NewChainStorerMock(epoch)
+	storageService.Logs = nil
+	marshaller := &marshal.GogoProtoMarshalizer{}
+
+	repository := newLogsRepository(storageService, marshaller)
+
+	receivedLog, err := repository.getLog([]byte{0xcc}, epoch)
+	require.Nil(t, err)
+	require.Equal(t, &transaction.Log{}, receivedLog)
+}
