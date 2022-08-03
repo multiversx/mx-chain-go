@@ -33,6 +33,7 @@ func createMockArgsAPIBlockProc() *ArgAPIBlockProcessor {
 		Hasher:                   &mock.HasherMock{},
 		AddressPubkeyConverter:   &mock.PubkeyConverterMock{},
 		LogsFacade:               &testscommon.LogsFacadeStub{},
+		ReceiptsRepository:       &testscommon.ReceiptsRepositoryStub{},
 	}
 }
 
@@ -124,6 +125,16 @@ func TestCreateAPIBlockProcessorNilArgs(t *testing.T) {
 
 		_, err := CreateAPIBlockProcessor(arguments)
 		assert.Equal(t, errNilLogsFacade, err)
+	})
+
+	t.Run("NilReceiptsRepository", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createMockArgsAPIBlockProc()
+		arguments.ReceiptsRepository = nil
+
+		_, err := CreateAPIBlockProcessor(arguments)
+		assert.Equal(t, errNilReceiptsRepository, err)
 	})
 }
 
