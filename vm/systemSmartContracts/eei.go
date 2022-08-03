@@ -4,9 +4,11 @@ import (
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	vmData "github.com/ElrondNetwork/elrond-go-core/data/vm"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/vm"
@@ -29,40 +31,57 @@ type vmContext struct {
 	returnMessage string
 	output        [][]byte
 	logs          []*vmcommon.LogEntry
+
+	setSenderInEeiOutputTransferEnableEpoch uint32
+	flagSetSenderInEeiOutputTransfer        atomic.Flag
+
+	epochNotifier process.EpochNotifier
+}
+
+// VMContextArgs holds the arguments needed to create a new vmContext
+type VMContextArgs struct {
+	BlockChainHook                          vm.BlockchainHook
+	CryptoHook                              vmcommon.CryptoHook
+	InputParser                             vm.ArgumentsParser
+	ValidatorAccountsDB                     state.AccountsAdapter
+	ChanceComputer                          nodesCoordinator.ChanceComputer
+	EpochNotifier                           process.EpochNotifier
+	SetSenderInEeiOutputTransferEnableEpoch uint32
 }
 
 // NewVMContext creates a context where smart contracts can run and write
-func NewVMContext(
-	blockChainHook vm.BlockchainHook,
-	cryptoHook vmcommon.CryptoHook,
-	inputParser vm.ArgumentsParser,
-	validatorAccountsDB state.AccountsAdapter,
-	chanceComputer nodesCoordinator.ChanceComputer,
-) (*vmContext, error) {
-	if check.IfNilReflect(blockChainHook) {
+func NewVMContext(args VMContextArgs) (*vmContext, error) {
+	if check.IfNilReflect(args.BlockChainHook) {
 		return nil, vm.ErrNilBlockchainHook
 	}
-	if check.IfNilReflect(cryptoHook) {
+	if check.IfNilReflect(args.CryptoHook) {
 		return nil, vm.ErrNilCryptoHook
 	}
-	if check.IfNil(inputParser) {
+	if check.IfNil(args.InputParser) {
 		return nil, vm.ErrNilArgumentsParser
 	}
-	if check.IfNil(validatorAccountsDB) {
+	if check.IfNil(args.ValidatorAccountsDB) {
 		return nil, vm.ErrNilValidatorAccountsDB
 	}
-	if check.IfNil(chanceComputer) {
+	if check.IfNil(args.ChanceComputer) {
 		return nil, vm.ErrNilChanceComputer
+	}
+	if check.IfNil(args.EpochNotifier) {
+		return nil, vm.ErrNilEpochNotifier
 	}
 
 	vmc := &vmContext{
-		blockChainHook:      blockChainHook,
-		cryptoHook:          cryptoHook,
-		inputParser:         inputParser,
-		validatorAccountsDB: validatorAccountsDB,
-		chanceComputer:      chanceComputer,
+		blockChainHook:      args.BlockChainHook,
+		cryptoHook:          args.CryptoHook,
+		inputParser:         args.InputParser,
+		validatorAccountsDB: args.ValidatorAccountsDB,
+		chanceComputer:      args.ChanceComputer,
 	}
 	vmc.CleanCache()
+
+	log.Debug("eei/vmContext: setSenderInEeiOutputTransferEnableEpoch", "epoch", vmc.setSenderInEeiOutputTransferEnableEpoch)
+
+	args.EpochNotifier.RegisterNotifyHandler(vmc)
 
 	return vmc, nil
 }
@@ -237,6 +256,10 @@ func (host *vmContext) Transfer(
 		GasLimit: gasLimit,
 		Data:     input,
 		CallType: vmData.DirectCall,
+	}
+
+	if host.flagSetSenderInEeiOutputTransfer.IsSet() {
+		outputTransfer.SenderAddress = senderAcc.Address
 	}
 	destAcc.OutputTransfers = append(destAcc.OutputTransfers, outputTransfer)
 
@@ -675,6 +698,12 @@ func (host *vmContext) IsBadRating(blsKey []byte) bool {
 // CleanStorageUpdates deletes all the storage updates, used especially to delete data which was only read not modified
 func (host *vmContext) CleanStorageUpdates() {
 	host.storageUpdate = make(map[string]map[string][]byte)
+}
+
+// EpochConfirmed will be called whenever a new epoch is confirmed
+func (host *vmContext) EpochConfirmed(epoch uint32, _ uint64) {
+	host.flagSetSenderInEeiOutputTransfer.SetValue(epoch >= host.setSenderInEeiOutputTransferEnableEpoch)
+	log.Debug("scProcessor: deployment of SC", "enabled", host.flagSetSenderInEeiOutputTransfer.IsSet())
 }
 
 // IsInterfaceNil returns if the underlying implementation is nil

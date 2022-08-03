@@ -15,9 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/pubkeyConverter"
 	vmData "github.com/ElrondNetwork/elrond-go-core/data/vm"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
-	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/mock"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -135,12 +133,7 @@ func TestEsdt_ExecuteIssueAlways6charactersForRandom(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 	args.Eei = eei
 	e, _ := NewESDTSmartContract(args)
 
@@ -187,12 +180,7 @@ func TestEsdt_ExecuteIssueWithMultiNFTCreate(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 	args.Eei = eei
 	e, _ := NewESDTSmartContract(args)
 
@@ -232,12 +220,7 @@ func TestEsdt_ExecuteIssue(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 	args.Eei = eei
 	e, _ := NewESDTSmartContract(args)
 
@@ -274,12 +257,7 @@ func TestEsdt_ExecuteIssueWithZero(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 	args.Eei = eei
 	e, _ := NewESDTSmartContract(args)
 
@@ -309,12 +287,7 @@ func TestEsdt_ExecuteIssueTooMuchSupply(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 	args.Eei = eei
 	e, _ := NewESDTSmartContract(args)
 
@@ -344,12 +317,7 @@ func TestEsdt_IssueInvalidNumberOfDecimals(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 	args.Eei = eei
 	e, _ := NewESDTSmartContract(args)
 
@@ -441,12 +409,7 @@ func TestEsdt_ExecuteBurnWrongNumOfArgsShouldFail(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 	args.Eei = eei
 	e, _ := NewESDTSmartContract(args)
 
@@ -462,12 +425,7 @@ func TestEsdt_ExecuteBurnWrongCallValueShouldFail(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 	args.Eei = eei
 	e, _ := NewESDTSmartContract(args)
 
@@ -483,12 +441,7 @@ func TestEsdt_ExecuteBurnWrongValueToBurnShouldFail(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	e, _ := NewESDTSmartContract(args)
@@ -504,12 +457,7 @@ func TestEsdt_ExecuteBurnOnNonExistentTokenShouldFail(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	e, _ := NewESDTSmartContract(args)
@@ -525,12 +473,7 @@ func TestEsdt_ExecuteBurnAndMintDisabled(t *testing.T) {
 
 	args := createMockArgumentsForESDT()
 	args.EpochConfig.EnableEpochs.GlobalMintBurnDisableEpoch = 0
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	e, _ := NewESDTSmartContract(args)
@@ -551,12 +494,7 @@ func TestEsdt_ExecuteBurnOnNonBurnableTokenShouldWorkAndReturnBurntTokens(t *tes
 
 	tokenName := []byte("esdtToken")
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 
 	tokensMap := map[string][]byte{}
 	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
@@ -584,12 +522,7 @@ func TestEsdt_ExecuteBurn(t *testing.T) {
 
 	tokenName := []byte("esdtToken")
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 
 	tokensMap := map[string][]byte{}
 	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
@@ -616,12 +549,7 @@ func TestEsdt_ExecuteMintTooFewArgumentsShouldFail(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	e, _ := NewESDTSmartContract(args)
@@ -636,12 +564,7 @@ func TestEsdt_ExecuteMintTooManyArgumentsShouldFail(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	e, _ := NewESDTSmartContract(args)
@@ -656,12 +579,7 @@ func TestEsdt_ExecuteMintWrongCallValueShouldFail(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	e, _ := NewESDTSmartContract(args)
@@ -677,12 +595,7 @@ func TestEsdt_ExecuteMintNotEnoughGasShouldFail(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 	args.Eei = eei
 	args.GasCost.MetaChainSystemSCsCost.ESDTOperations = 10
 
@@ -698,12 +611,7 @@ func TestEsdt_ExecuteMintOnNonExistentTokenShouldFail(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	e, _ := NewESDTSmartContract(args)
@@ -719,12 +627,7 @@ func TestEsdt_ExecuteMintNotByOwnerShouldFail(t *testing.T) {
 
 	tokenName := []byte("esdtToken")
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	tokensMap := map[string][]byte{}
@@ -748,12 +651,7 @@ func TestEsdt_ExecuteMintWrongMintValueShouldFail(t *testing.T) {
 
 	tokenName := []byte("esdtToken")
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	tokensMap := map[string][]byte{}
@@ -777,12 +675,7 @@ func TestEsdt_ExecuteMintNonMintableTokenShouldFail(t *testing.T) {
 
 	tokenName := []byte("esdtToken")
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	tokensMap := map[string][]byte{}
@@ -807,12 +700,7 @@ func TestEsdt_ExecuteMintSavesTokenWithMintedTokensAdded(t *testing.T) {
 
 	tokenName := []byte("esdtToken")
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	tokensMap := map[string][]byte{}
@@ -845,12 +733,7 @@ func TestEsdt_ExecuteMintInvalidDestinationAddressShouldFail(t *testing.T) {
 
 	tokenName := []byte("esdtToken")
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	tokensMap := map[string][]byte{}
@@ -906,12 +789,7 @@ func TestEsdt_ExecuteMintWithTwoArgsShouldSetOwnerAsDestination(t *testing.T) {
 	tokenName := []byte("esdtToken")
 	mintValue := []byte{200}
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 
 	tokensMap := map[string][]byte{}
 	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
@@ -955,12 +833,7 @@ func TestEsdt_ExecuteMintWithThreeArgsShouldSetThirdArgAsDestination(t *testing.
 	tokenName := []byte("esdtToken")
 	mintValue := []byte{200}
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 
 	tokensMap := map[string][]byte{}
 	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
@@ -1026,12 +899,7 @@ func TestEsdt_ExecuteToggleFreezeTooFewArgumentsShouldFail(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	e, _ := NewESDTSmartContract(args)
@@ -1051,12 +919,7 @@ func TestEsdt_ExecuteToggleFreezeWrongCallValueShouldFail(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	e, _ := NewESDTSmartContract(args)
@@ -1078,12 +941,7 @@ func TestEsdt_ExecuteToggleFreezeNotEnoughGasShouldFail(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 	args.Eei = eei
 	args.GasCost.MetaChainSystemSCsCost.ESDTOperations = 10
 
@@ -1105,12 +963,7 @@ func TestEsdt_ExecuteToggleFreezeOnNonExistentTokenShouldFail(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	e, _ := NewESDTSmartContract(args)
@@ -1132,12 +985,7 @@ func TestEsdt_ExecuteToggleFreezeNotByOwnerShouldFail(t *testing.T) {
 
 	tokenName := "esdtToken"
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 
 	tokensMap := map[string][]byte{}
 	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
@@ -1167,12 +1015,7 @@ func TestEsdt_ExecuteToggleFreezeNonFreezableTokenShouldFail(t *testing.T) {
 	owner := []byte("owner")
 	tokenName := []byte("esdtToken")
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 
 	tokensMap := map[string][]byte{}
 	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
@@ -1256,12 +1099,7 @@ func TestEsdt_ExecuteToggleFreezeShouldWorkWithRealBech32Address(t *testing.T) {
 	owner := []byte("owner")
 	tokenName := []byte("esdtToken")
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 
 	bech32C, _ := pubkeyConverter.NewBech32PubkeyConverter(32, &coreMock.LoggerMock{})
 	args.AddressPubKeyConverter = bech32C
@@ -1309,12 +1147,7 @@ func TestEsdt_ExecuteToggleFreezeShouldFailWithBech32Converter(t *testing.T) {
 	owner := []byte("owner")
 	tokenName := []byte("esdtToken")
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 
 	bech32C, _ := pubkeyConverter.NewBech32PubkeyConverter(32, &coreMock.LoggerMock{})
 	args.AddressPubKeyConverter = bech32C
@@ -1351,12 +1184,7 @@ func TestEsdt_ExecuteToggleFreezeShouldWork(t *testing.T) {
 	owner := []byte("owner")
 	tokenName := []byte("esdtToken")
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 
 	tokensMap := map[string][]byte{}
 	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
@@ -1399,12 +1227,7 @@ func TestEsdt_ExecuteToggleUnFreezeShouldWork(t *testing.T) {
 	owner := []byte("owner")
 	tokenName := []byte("esdtToken")
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 
 	tokensMap := map[string][]byte{}
 	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
@@ -1447,12 +1270,7 @@ func TestEsdt_ExecuteToggleFreezeSingleNFTShouldWork(t *testing.T) {
 	owner := []byte("owner")
 	tokenName := []byte("esdtToken")
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 
 	tokensMap := map[string][]byte{}
 	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
@@ -1496,12 +1314,7 @@ func TestEsdt_ExecuteToggleUnFreezeSingleNFTShouldWork(t *testing.T) {
 	owner := []byte("owner")
 	tokenName := []byte("esdtToken")
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 
 	tokensMap := map[string][]byte{}
 	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
@@ -1543,12 +1356,7 @@ func TestEsdt_ExecuteWipeTooFewArgumentsShouldFail(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	e, _ := NewESDTSmartContract(args)
@@ -1568,12 +1376,7 @@ func TestEsdt_ExecuteWipeWrongCallValueShouldFail(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	e, _ := NewESDTSmartContract(args)
@@ -1595,12 +1398,7 @@ func TestEsdt_ExecuteWipeNotEnoughGasShouldFail(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 	args.Eei = eei
 	args.GasCost.MetaChainSystemSCsCost.ESDTOperations = 10
 
@@ -1622,12 +1420,7 @@ func TestEsdt_ExecuteWipeOnNonExistentTokenShouldFail(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	e, _ := NewESDTSmartContract(args)
@@ -1649,12 +1442,7 @@ func TestEsdt_ExecuteWipeNotByOwnerShouldFail(t *testing.T) {
 
 	tokenName := "esdtToken"
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 
 	tokensMap := map[string][]byte{}
 	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
@@ -1684,12 +1472,7 @@ func TestEsdt_ExecuteWipeNonWipeableTokenShouldFail(t *testing.T) {
 	owner := []byte("owner")
 	tokenName := []byte("esdtToken")
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 
 	tokensMap := map[string][]byte{}
 	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
@@ -1720,12 +1503,7 @@ func TestEsdt_ExecuteWipeInvalidDestShouldFail(t *testing.T) {
 	owner := []byte("owner")
 	tokenName := []byte("esdtToken")
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 
 	tokensMap := map[string][]byte{}
 	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
@@ -1811,12 +1589,7 @@ func TestEsdt_ExecuteWipeShouldWork(t *testing.T) {
 	addressToWipe := getAddress()
 	tokenName := []byte("esdtToken")
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 
 	tokensMap := map[string][]byte{}
 	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
@@ -1859,12 +1632,7 @@ func TestEsdt_ExecuteWipeSingleNFTShouldWork(t *testing.T) {
 	addressToWipe := getAddress()
 	tokenName := []byte("esdtToken")
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 
 	tokensMap := map[string][]byte{}
 	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
@@ -1904,12 +1672,7 @@ func TestEsdt_ExecutePauseTooFewArgumentsShouldFail(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	e, _ := NewESDTSmartContract(args)
@@ -1924,12 +1687,7 @@ func TestEsdt_ExecutePauseWrongCallValueShouldFail(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	e, _ := NewESDTSmartContract(args)
@@ -1945,12 +1703,7 @@ func TestEsdt_ExecutePauseNotEnoughGasShouldFail(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 	args.Eei = eei
 	args.GasCost.MetaChainSystemSCsCost.ESDTOperations = 10
 
@@ -1966,12 +1719,7 @@ func TestEsdt_ExecutePauseOnNonExistentTokenShouldFail(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	e, _ := NewESDTSmartContract(args)
@@ -1987,12 +1735,7 @@ func TestEsdt_ExecutePauseNotByOwnerShouldFail(t *testing.T) {
 
 	tokenName := "esdtToken"
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 
 	tokensMap := map[string][]byte{}
 	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
@@ -2016,12 +1759,7 @@ func TestEsdt_ExecutePauseNonPauseableTokenShouldFail(t *testing.T) {
 	owner := []byte("owner")
 	tokenName := []byte("esdtToken")
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 
 	tokensMap := map[string][]byte{}
 	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
@@ -2046,12 +1784,7 @@ func TestEsdt_ExecutePauseOnAPausedTokenShouldFail(t *testing.T) {
 	owner := []byte("owner")
 	tokenName := []byte("esdtToken")
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 
 	tokensMap := map[string][]byte{}
 	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
@@ -2076,12 +1809,7 @@ func TestEsdt_ExecuteTogglePauseSavesTokenWithPausedFlagSet(t *testing.T) {
 
 	tokenName := []byte("esdtToken")
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	tokensMap := map[string][]byte{}
@@ -2111,12 +1839,7 @@ func TestEsdt_ExecuteTogglePauseShouldWork(t *testing.T) {
 	owner := []byte("owner")
 	tokenName := []byte("esdtToken")
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 
 	tokensMap := map[string][]byte{}
 	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
@@ -2158,12 +1881,7 @@ func TestEsdt_ExecuteUnPauseOnAnUnPausedTokenShouldFail(t *testing.T) {
 	owner := []byte("owner")
 	tokenName := []byte("esdtToken")
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 
 	tokensMap := map[string][]byte{}
 	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
@@ -2188,12 +1906,7 @@ func TestEsdt_ExecuteUnPauseSavesTokenWithPausedFlagSetToFalse(t *testing.T) {
 
 	tokenName := []byte("esdtToken")
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	tokensMap := map[string][]byte{}
@@ -2223,12 +1936,7 @@ func TestEsdt_ExecuteUnPauseShouldWork(t *testing.T) {
 	owner := []byte("owner")
 	tokenName := []byte("esdtToken")
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 
 	tokensMap := map[string][]byte{}
 	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
@@ -2269,12 +1977,7 @@ func TestEsdt_ExecuteTransferOwnershipWrongNumOfArgumentsShouldFail(t *testing.T
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	e, _ := NewESDTSmartContract(args)
@@ -2289,12 +1992,7 @@ func TestEsdt_ExecuteTransferOwnershipWrongCallValueShouldFail(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	e, _ := NewESDTSmartContract(args)
@@ -2310,12 +2008,7 @@ func TestEsdt_ExecuteTransferOwnershipNotEnoughGasShouldFail(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 	args.Eei = eei
 	args.GasCost.MetaChainSystemSCsCost.ESDTOperations = 10
 
@@ -2331,12 +2024,7 @@ func TestEsdt_ExecuteTransferOwnershipOnNonExistentTokenShouldFail(t *testing.T)
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	e, _ := NewESDTSmartContract(args)
@@ -2352,12 +2040,7 @@ func TestEsdt_ExecuteTransferOwnershipNotByOwnerShouldFail(t *testing.T) {
 
 	tokenName := []byte("esdtToken")
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	tokensMap := map[string][]byte{}
@@ -2381,12 +2064,7 @@ func TestEsdt_ExecuteTransferOwnershipNonTransferableTokenShouldFail(t *testing.
 
 	tokenName := []byte("esdtToken")
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	tokensMap := map[string][]byte{}
@@ -2411,12 +2089,7 @@ func TestEsdt_ExecuteTransferOwnershipInvalidDestinationAddressShouldFail(t *tes
 
 	tokenName := []byte("esdtToken")
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	tokensMap := map[string][]byte{}
@@ -2443,12 +2116,7 @@ func TestEsdt_ExecuteTransferOwnershipSavesTokenWithNewOwnerAddressSet(t *testin
 	newOwner := getAddress()
 	tokenName := []byte("esdtToken")
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	tokensMap := map[string][]byte{}
@@ -2476,12 +2144,7 @@ func TestEsdt_ExecuteEsdtControlChangesWrongNumOfArgumentsShouldFail(t *testing.
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	e, _ := NewESDTSmartContract(args)
@@ -2496,12 +2159,7 @@ func TestEsdt_ExecuteEsdtControlChangesWrongCallValueShouldFail(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	e, _ := NewESDTSmartContract(args)
@@ -2517,12 +2175,7 @@ func TestEsdt_ExecuteEsdtControlChangesNotEnoughGasShouldFail(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 	args.Eei = eei
 	args.GasCost.MetaChainSystemSCsCost.ESDTOperations = 10
 
@@ -2538,12 +2191,7 @@ func TestEsdt_ExecuteEsdtControlChangesOnNonExistentTokenShouldFail(t *testing.T
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	e, _ := NewESDTSmartContract(args)
@@ -2559,12 +2207,7 @@ func TestEsdt_ExecuteEsdtControlChangesNotByOwnerShouldFail(t *testing.T) {
 
 	tokenName := []byte("esdtToken")
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	tokensMap := map[string][]byte{}
@@ -2588,12 +2231,7 @@ func TestEsdt_ExecuteEsdtControlChangesNonUpgradableTokenShouldFail(t *testing.T
 
 	tokenName := []byte("esdtToken")
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	tokensMap := map[string][]byte{}
@@ -2618,12 +2256,7 @@ func TestEsdt_ExecuteEsdtControlChangesSavesTokenWithUpgradedProperties(t *testi
 
 	tokenName := []byte("esdtToken")
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	tokensMap := map[string][]byte{}
@@ -2702,12 +2335,7 @@ func TestEsdt_ExecuteEsdtControlChangesForMultiNFTTransferShouldFaild(t *testing
 
 	tokenName := []byte("esdtToken")
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	tokensMap := map[string][]byte{}
@@ -2738,12 +2366,7 @@ func TestEsdt_GetSpecialRolesValueNotZeroShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	e, _ := NewESDTSmartContract(args)
@@ -2761,12 +2384,7 @@ func TestEsdt_GetSpecialRolesInvalidNumOfArgsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	e, _ := NewESDTSmartContract(args)
@@ -2783,12 +2401,7 @@ func TestEsdt_GetSpecialRolesNotEnoughGasShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 	args.Eei = eei
 	args.GasCost.MetaChainSystemSCsCost.ESDTOperations = 10
 
@@ -2806,12 +2419,7 @@ func TestEsdt_GetSpecialRolesInvalidTokenShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	e, _ := NewESDTSmartContract(args)
@@ -2829,12 +2437,7 @@ func TestEsdt_GetSpecialRolesNoSpecialRoles(t *testing.T) {
 
 	tokenName := []byte("esdtToken")
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	tokensMap := map[string][]byte{}
@@ -2858,12 +2461,7 @@ func TestEsdt_GetSpecialRolesShouldWork(t *testing.T) {
 
 	tokenName := []byte("esdtToken")
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	bech32C, _ := pubkeyConverter.NewBech32PubkeyConverter(32, &coreMock.LoggerMock{})
@@ -2918,12 +2516,7 @@ func TestEsdt_UnsetSpecialRoleWithRemoveEntryFromSpecialRoles(t *testing.T) {
 
 	tokenName := []byte("esdtToken")
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	bech32C, _ := pubkeyConverter.NewBech32PubkeyConverter(32, &coreMock.LoggerMock{})
@@ -3011,12 +2604,7 @@ func TestEsdt_ExecuteConfigChangeGetContractConfig(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	e, _ := NewESDTSmartContract(args)
@@ -3060,12 +2648,7 @@ func TestEsdt_ExecuteClaim(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	e, _ := NewESDTSmartContract(args)
@@ -3099,12 +2682,7 @@ func TestEsdt_SetSpecialRoleCheckArgumentsErr(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	e, _ := NewESDTSmartContract(args)
@@ -3119,12 +2697,7 @@ func TestEsdt_SetSpecialRoleCheckBasicOwnershipErr(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	e, _ := NewESDTSmartContract(args)
@@ -3760,12 +3333,7 @@ func TestEsdt_UnsetSpecialRoleCheckArgumentsErr(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	e, _ := NewESDTSmartContract(args)
@@ -3783,12 +3351,7 @@ func TestEsdt_UnsetSpecialRoleCheckArgumentsInvalidRoleErr(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	e, _ := NewESDTSmartContract(args)
@@ -3806,12 +3369,7 @@ func TestEsdt_UnsetSpecialRoleCheckArgumentsDuplicatedRoleInArgsShouldErr(t *tes
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	e, _ := NewESDTSmartContract(args)
@@ -3829,12 +3387,7 @@ func TestEsdt_UnsetSpecialRoleCheckBasicOwnershipErr(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	e, _ := NewESDTSmartContract(args)
@@ -4031,12 +3584,7 @@ func TestEsdt_StopNFTCreateForeverCheckArgumentsErr(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	e, _ := NewESDTSmartContract(args)
@@ -4140,12 +3688,7 @@ func TestEsdt_TransferNFTCreateCheckArgumentsErr(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	e, _ := NewESDTSmartContract(args)
@@ -4386,12 +3929,7 @@ func TestEsdt_ExecuteIssueMetaESDT(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 	args.Eei = eei
 	e, _ := NewESDTSmartContract(args)
 
@@ -4439,12 +3977,7 @@ func TestEsdt_ExecuteChangeSFTToMetaESDT(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 	args.Eei = eei
 	e, _ := NewESDTSmartContract(args)
 
@@ -4492,12 +4025,7 @@ func TestEsdt_ExecuteIssueSFTAndChangeSFTToMetaESDT(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 	args.Eei = eei
 	e, _ := NewESDTSmartContract(args)
 
@@ -4536,12 +4064,7 @@ func TestEsdt_ExecuteTransformToMultiShardCreate(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 	args.Eei = eei
 	e, _ := NewESDTSmartContract(args)
 
@@ -4622,12 +4145,7 @@ func TestEsdt_ExecuteRegisterAndSetErrors(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 	args.Eei = eei
 	e, _ := NewESDTSmartContract(args)
 
@@ -4674,12 +4192,7 @@ func TestEsdt_ExecuteRegisterAndSetFungible(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 	args.Eei = eei
 	e, _ := NewESDTSmartContract(args)
 
@@ -4702,12 +4215,7 @@ func TestEsdt_ExecuteRegisterAndSetNonFungible(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 	args.Eei = eei
 	e, _ := NewESDTSmartContract(args)
 
@@ -4730,12 +4238,7 @@ func TestEsdt_ExecuteRegisterAndSetSemiFungible(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 	args.Eei = eei
 	e, _ := NewESDTSmartContract(args)
 
@@ -4770,12 +4273,7 @@ func TestEsdt_ExecuteRegisterAndSetMetaESDTShouldSetType(t *testing.T) {
 
 func registerAndSetAllRolesWithTypeCheck(t *testing.T, typeArgument []byte, expectedType []byte) {
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 	args.Eei = eei
 	e, _ := NewESDTSmartContract(args)
 
@@ -4805,12 +4303,7 @@ func TestEsdt_setBurnRoleGlobally(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	e, _ := NewESDTSmartContract(args)
@@ -4869,12 +4362,7 @@ func TestEsdt_unsetBurnRoleGlobally(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	e, _ := NewESDTSmartContract(args)
@@ -4941,12 +4429,7 @@ func TestEsdt_CheckRolesOnMetaESDT(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
 	args.Eei = eei
 	e, _ := NewESDTSmartContract(args)
 

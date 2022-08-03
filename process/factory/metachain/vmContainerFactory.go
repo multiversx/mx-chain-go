@@ -167,13 +167,16 @@ func (vmf *vmContainerFactory) CreateForGenesis() (process.VirtualMachinesContai
 
 func (vmf *vmContainerFactory) createSystemVMFactoryAndEEI() (vm.SystemSCContainerFactory, vm.ContextHandler, error) {
 	atArgumentParser := parsers.NewCallArgsParser()
-	systemEI, err := systemSmartContracts.NewVMContext(
-		vmf.blockChainHook,
-		vmf.cryptoHook,
-		atArgumentParser,
-		vmf.validatorAccountsDB,
-		vmf.chanceComputer,
-	)
+	vmContextArgs := systemSmartContracts.VMContextArgs{
+		BlockChainHook:                          vmf.blockChainHook,
+		CryptoHook:                              vmf.cryptoHook,
+		InputParser:                             atArgumentParser,
+		ValidatorAccountsDB:                     vmf.validatorAccountsDB,
+		ChanceComputer:                          vmf.chanceComputer,
+		EpochNotifier:                           vmf.epochNotifier,
+		SetSenderInEeiOutputTransferEnableEpoch: vmf.epochConfig.EnableEpochs.SetSenderInEeiOutputTransferEnableEpoch,
+	}
+	systemEI, err := systemSmartContracts.NewVMContext(vmContextArgs)
 	if err != nil {
 		return nil, nil, err
 	}
