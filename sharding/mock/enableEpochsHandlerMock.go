@@ -85,6 +85,11 @@ func (mock *EnableEpochsHandlerMock) StorageAPICostOptimizationEnableEpoch() uin
 	return 0
 }
 
+// MiniBlockPartialExecutionEnableEpoch returns 0
+func (mock *EnableEpochsHandlerMock) MiniBlockPartialExecutionEnableEpoch() uint32 {
+	return 0
+}
+
 // IsSCDeployFlagEnabled returns false
 func (mock *EnableEpochsHandlerMock) IsSCDeployFlagEnabled() bool {
 	return false

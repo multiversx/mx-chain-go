@@ -19,6 +19,7 @@ type EnableEpochsHandlerStub struct {
 	RefactorContextEnableEpochField                              uint32
 	CheckExecuteReadOnlyEnableEpochField                         uint32
 	StorageAPICostOptimizationEnableEpochField                   uint32
+	MiniBlockPartialExecutionEnableEpochField                    uint32
 	IsSCDeployFlagEnabledField                                   bool
 	IsBuiltInFunctionsFlagEnabledField                           bool
 	IsRelayedTransactionsFlagEnabledField                        bool
@@ -190,6 +191,11 @@ func (stub *EnableEpochsHandlerStub) CheckExecuteReadOnlyEnableEpoch() uint32 {
 // StorageAPICostOptimizationEnableEpoch -
 func (stub *EnableEpochsHandlerStub) StorageAPICostOptimizationEnableEpoch() uint32 {
 	return stub.StorageAPICostOptimizationEnableEpochField
+}
+
+// MiniBlockPartialExecutionEnableEpoch -
+func (stub *EnableEpochsHandlerStub) MiniBlockPartialExecutionEnableEpoch() uint32 {
+	return stub.MiniBlockPartialExecutionEnableEpochField
 }
 
 // IsSCDeployFlagEnabled -

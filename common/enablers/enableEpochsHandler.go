@@ -196,6 +196,11 @@ func (handler *enableEpochsHandler) StorageAPICostOptimizationEnableEpoch() uint
 	return handler.enableEpochsConfig.StorageAPICostOptimizationEnableEpoch
 }
 
+// MiniBlockPartialExecutionEnableEpoch returns the epoch when miniblock partial execution becomes active
+func (handler *enableEpochsHandler) MiniBlockPartialExecutionEnableEpoch() uint32 {
+	return handler.enableEpochsConfig.MiniBlockPartialExecutionEnableEpoch
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (handler *enableEpochsHandler) IsInterfaceNil() bool {
 	return handler == nil

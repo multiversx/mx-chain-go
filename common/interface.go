@@ -181,6 +181,7 @@ type EnableEpochsHandler interface {
 	RefactorContextEnableEpoch() uint32
 	CheckExecuteReadOnlyEnableEpoch() uint32
 	StorageAPICostOptimizationEnableEpoch() uint32
+	MiniBlockPartialExecutionEnableEpoch() uint32
 	IsSCDeployFlagEnabled() bool
 	IsBuiltInFunctionsFlagEnabled() bool
 	IsRelayedTransactionsFlagEnabled() bool
