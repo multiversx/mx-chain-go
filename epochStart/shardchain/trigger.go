@@ -733,15 +733,18 @@ func (t *trigger) checkIfTriggerCanBeActivated(hash string, metaHdr data.HeaderH
 		return false, 0
 	}
 
-	missingValidatorsInfoHashes, validatorsInfo, err := t.peerMiniBlocksSyncer.SyncValidatorsInfo(blockBody)
-	if err != nil {
-		t.addMissingValidatorsInfo(metaHdr.GetEpoch(), missingValidatorsInfoHashes)
-		log.Debug("checkIfTriggerCanBeActivated.SyncValidatorsInfo", "num missing validators info", len(missingValidatorsInfoHashes), "error", err)
-		return false, 0
-	}
+	// TODO: Use refactor peers mbs activation flag below
+	if true {
+		missingValidatorsInfoHashes, validatorsInfo, err := t.peerMiniBlocksSyncer.SyncValidatorsInfo(blockBody)
+		if err != nil {
+			t.addMissingValidatorsInfo(metaHdr.GetEpoch(), missingValidatorsInfoHashes)
+			log.Debug("checkIfTriggerCanBeActivated.SyncValidatorsInfo", "num missing validators info", len(missingValidatorsInfoHashes), "error", err)
+			return false, 0
+		}
 
-	for validatorInfoHash, validatorInfo := range validatorsInfo {
-		t.currentEpochValidatorInfoPool.AddValidatorInfo([]byte(validatorInfoHash), validatorInfo)
+		for validatorInfoHash, validatorInfo := range validatorsInfo {
+			t.currentEpochValidatorInfoPool.AddValidatorInfo([]byte(validatorInfoHash), validatorInfo)
+		}
 	}
 
 	t.epochStartNotifier.NotifyAllPrepare(metaHdr, blockBody, t.currentEpochValidatorInfoPool)

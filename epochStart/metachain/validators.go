@@ -136,18 +136,39 @@ func (vic *validatorInfoCreator) createMiniBlock(validatorsInfo []*state.Validat
 	})
 
 	currentEpochValidatorInfo := vic.dataPool.CurrentEpochValidatorInfo()
+
 	for index, validator := range validatorCopy {
 		shardValidatorInfo := createShardValidatorInfo(validator)
+
+		shardValidatorInfoData, err := vic.getShardValidatorInfoData(shardValidatorInfo, currentEpochValidatorInfo)
+		if err != nil {
+			return nil, err
+		}
+
+		miniBlock.TxHashes[index] = shardValidatorInfoData
+	}
+
+	return miniBlock, nil
+}
+
+func (vic *validatorInfoCreator) getShardValidatorInfoData(shardValidatorInfo *state.ShardValidatorInfo, currentEpochValidatorInfo dataRetriever.ValidatorInfoCacher) ([]byte, error) {
+	// TODO: Use refactor peers mbs activation flag below
+	if true {
 		shardValidatorInfoHash, err := core.CalculateHash(vic.marshalizer, vic.hasher, shardValidatorInfo)
 		if err != nil {
 			return nil, err
 		}
 
 		currentEpochValidatorInfo.AddValidatorInfo(shardValidatorInfoHash, shardValidatorInfo)
-		miniBlock.TxHashes[index] = shardValidatorInfoHash
+		return shardValidatorInfoHash, nil
 	}
 
-	return miniBlock, nil
+	marshalledShardValidatorInfo, err := vic.marshalizer.Marshal(shardValidatorInfo)
+	if err != nil {
+		return nil, err
+	}
+
+	return marshalledShardValidatorInfo, nil
 }
 
 func createShardValidatorInfo(validator *state.ValidatorInfo) *state.ShardValidatorInfo {

@@ -223,22 +223,25 @@ func (s *syncValidatorStatus) getPeerBlockBodyForMeta(
 		return nil, nil, err
 	}
 
-	s.transactionsSyncer.ClearFields()
-	ctx, cancel = context.WithTimeout(context.Background(), time.Minute)
-	err = s.transactionsSyncer.SyncTransactionsFor(peerMiniBlocks, metaBlock.GetEpoch(), ctx)
-	cancel()
-	if err != nil {
-		return nil, nil, err
-	}
+	// TODO: Use refactor peers mbs activation flag below
+	if true {
+		s.transactionsSyncer.ClearFields()
+		ctx, cancel = context.WithTimeout(context.Background(), time.Minute)
+		err = s.transactionsSyncer.SyncTransactionsFor(peerMiniBlocks, metaBlock.GetEpoch(), ctx)
+		cancel()
+		if err != nil {
+			return nil, nil, err
+		}
 
-	validatorsInfo, err := s.transactionsSyncer.GetValidatorsInfo()
-	if err != nil {
-		return nil, nil, err
-	}
+		validatorsInfo, err := s.transactionsSyncer.GetValidatorsInfo()
+		if err != nil {
+			return nil, nil, err
+		}
 
-	currentEpochValidatorInfoPool := s.dataPool.CurrentEpochValidatorInfo()
-	for validatorInfoHash, validatorInfo := range validatorsInfo {
-		currentEpochValidatorInfoPool.AddValidatorInfo([]byte(validatorInfoHash), validatorInfo)
+		currentEpochValidatorInfoPool := s.dataPool.CurrentEpochValidatorInfo()
+		for validatorInfoHash, validatorInfo := range validatorsInfo {
+			currentEpochValidatorInfoPool.AddValidatorInfo([]byte(validatorInfoHash), validatorInfo)
+		}
 	}
 
 	blockBody := &block.Body{MiniBlocks: make([]*block.MiniBlock, 0, len(peerMiniBlocks))}

@@ -135,9 +135,12 @@ func (vip *validatorInfoPreprocessor) RestoreBlockDataIntoPools(
 			continue
 		}
 
-		err := vip.restoreValidatorsInfo(miniBlock)
-		if err != nil {
-			return validatorsInfoRestored, err
+		// TODO: Use refactor peers mbs activation flag below
+		if true {
+			err := vip.restoreValidatorsInfo(miniBlock)
+			if err != nil {
+				return validatorsInfoRestored, err
+			}
 		}
 
 		miniBlockHash, err := core.CalculateHash(vip.marshalizer, vip.hasher, miniBlock)
