@@ -50,6 +50,7 @@ type ProcessComponentsMock struct {
 	HardforkTriggerField                 factory.HardforkTrigger
 	ProcessedMiniBlocksTrackerInternal   process.ProcessedMiniBlocksTracker
 	AccountsParserInternal               genesis.AccountsParser
+	ReceiptsRepositoryInternal           factory.ReceiptsRepository
 }
 
 // Create -
@@ -245,6 +246,11 @@ func (pcm *ProcessComponentsMock) HardforkTrigger() factory.HardforkTrigger {
 // ProcessedMiniBlocksTracker -
 func (pcm *ProcessComponentsMock) ProcessedMiniBlocksTracker() process.ProcessedMiniBlocksTracker {
 	return pcm.ProcessedMiniBlocksTrackerInternal
+}
+
+// ReceiptsRepository -
+func (pcm *ProcessComponentsMock) ReceiptsRepository() factory.ReceiptsRepository {
+	return pcm.ReceiptsRepositoryInternal
 }
 
 // IsInterfaceNil -

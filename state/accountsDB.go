@@ -185,7 +185,7 @@ func handleLoggingWhenError(message string, err error, extraArguments ...interfa
 	if err == nil {
 		return
 	}
-	if err == errors.ErrContextClosing {
+	if errors.IsClosingError(err) {
 		args := []interface{}{"reason", err}
 		log.Debug(message, append(args, extraArguments...)...)
 		return
