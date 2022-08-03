@@ -59,27 +59,29 @@ type ArgBaseProcessor struct {
 	BootstrapComponents bootstrapComponentsHolder
 	StatusComponents    statusComponentsHolder
 
-	Config                       config.Config
-	AccountsDB                   map[state.AccountsDbIdentifier]state.AccountsAdapter
-	ForkDetector                 process.ForkDetector
-	NodesCoordinator             nodesCoordinator.NodesCoordinator
-	FeeHandler                   process.TransactionFeeHandler
-	RequestHandler               process.RequestHandler
-	BlockChainHook               process.BlockChainHookHandler
-	TxCoordinator                process.TransactionCoordinator
-	EpochStartTrigger            process.EpochStartTriggerHandler
-	HeaderValidator              process.HeaderConstructionValidator
-	BootStorer                   process.BootStorer
-	BlockTracker                 process.BlockTracker
-	BlockSizeThrottler           process.BlockSizeThrottler
-	Version                      string
-	HistoryRepository            dblookupext.HistoryRepository
-	EnableRoundsHandler          process.EnableRoundsHandler
-	VMContainersFactory          process.VirtualMachinesContainerFactory
-	VmContainer                  process.VirtualMachinesContainer
-	GasHandler                   gasConsumedProvider
-	ScheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
-	ProcessedMiniBlocksTracker   process.ProcessedMiniBlocksTracker
+	Config                         config.Config
+	AccountsDB                     map[state.AccountsDbIdentifier]state.AccountsAdapter
+	ForkDetector                   process.ForkDetector
+	NodesCoordinator               nodesCoordinator.NodesCoordinator
+	FeeHandler                     process.TransactionFeeHandler
+	RequestHandler                 process.RequestHandler
+	BlockChainHook                 process.BlockChainHookHandler
+	TxCoordinator                  process.TransactionCoordinator
+	EpochStartTrigger              process.EpochStartTriggerHandler
+	HeaderValidator                process.HeaderConstructionValidator
+	BootStorer                     process.BootStorer
+	BlockTracker                   process.BlockTracker
+	BlockSizeThrottler             process.BlockSizeThrottler
+	Version                        string
+	HistoryRepository              dblookupext.HistoryRepository
+	EnableRoundsHandler            process.EnableRoundsHandler
+	VMContainersFactory            process.VirtualMachinesContainerFactory
+	VmContainer                    process.VirtualMachinesContainer
+	GasHandler                     gasConsumedProvider
+	ScheduledTxsExecutionHandler   process.ScheduledTxsExecutionHandler
+	ScheduledMiniBlocksEnableEpoch uint32
+	ProcessedMiniBlocksTracker     process.ProcessedMiniBlocksTracker
+	ReceiptsRepository             receiptsRepository
 }
 
 // ArgShardProcessor holds all dependencies required by the process data factory in order to create

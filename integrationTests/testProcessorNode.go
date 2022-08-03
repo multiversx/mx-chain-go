@@ -1942,6 +1942,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		GasHandler:                   tpn.GasHandler,
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
+		ReceiptsRepository:           &testscommon.ReceiptsRepositoryStub{},
 	}
 
 	if check.IfNil(tpn.EpochStartNotifier) {
@@ -1985,14 +1986,15 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		scToProtocolInstance, _ := scToProtocol.NewStakingToPeer(argsStakingToPeer)
 
 		argsEpochStartData := metachain.ArgsNewEpochStartData{
-			Marshalizer:       TestMarshalizer,
-			Hasher:            TestHasher,
-			Store:             tpn.Storage,
-			DataPool:          tpn.DataPool,
-			BlockTracker:      tpn.BlockTracker,
-			ShardCoordinator:  tpn.ShardCoordinator,
-			EpochStartTrigger: tpn.EpochStartTrigger,
-			RequestHandler:    tpn.RequestHandler,
+			Marshalizer:         TestMarshalizer,
+			Hasher:              TestHasher,
+			Store:               tpn.Storage,
+			DataPool:            tpn.DataPool,
+			BlockTracker:        tpn.BlockTracker,
+			ShardCoordinator:    tpn.ShardCoordinator,
+			EpochStartTrigger:   tpn.EpochStartTrigger,
+			RequestHandler:      tpn.RequestHandler,
+			EnableEpochsHandler: tpn.EnableEpochsHandler,
 		}
 		epochStartDataCreator, _ := metachain.NewEpochStartData(argsEpochStartData)
 

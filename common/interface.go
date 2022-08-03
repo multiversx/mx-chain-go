@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
 )
 
 // NumNodesDTO represents the DTO structure that will hold the number of nodes split by category and other
@@ -150,6 +151,12 @@ type BlockInfo interface {
 	IsInterfaceNil() bool
 }
 
+// ReceiptsHolder holds receipts content (e.g. miniblocks)
+type ReceiptsHolder interface {
+	GetMiniblocks() []*block.MiniBlock
+	IsInterfaceNil() bool
+}
+
 // GasScheduleNotifierAPI defines the behavior of the gas schedule notifier components that is used for api
 type GasScheduleNotifierAPI interface {
 	core.GasScheduleNotifier
@@ -174,6 +181,7 @@ type EnableEpochsHandler interface {
 	RefactorContextEnableEpoch() uint32
 	CheckExecuteReadOnlyEnableEpoch() uint32
 	StorageAPICostOptimizationEnableEpoch() uint32
+	MiniBlockPartialExecutionEnableEpoch() uint32
 	IsSCDeployFlagEnabled() bool
 	IsBuiltInFunctionsFlagEnabled() bool
 	IsRelayedTransactionsFlagEnabled() bool

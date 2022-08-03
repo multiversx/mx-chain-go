@@ -125,8 +125,7 @@ func GetConnectableAddress(mes p2p.Messenger) string {
 func createP2PConfig(initialPeerList []string) config.P2PConfig {
 	return config.P2PConfig{
 		Node: config.NodeConfig{
-			Port:                  "0",
-			ConnectionWatcherType: "print",
+			Port: "0",
 		},
 		KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
 			Enabled:                          true,
@@ -150,13 +149,14 @@ func CreateMessengerWithKadDht(initialAddr string) p2p.Messenger {
 		initialAddresses = append(initialAddresses, initialAddr)
 	}
 	arg := libp2p.ArgsNetworkMessenger{
-		Marshalizer:          TestMarshalizer,
-		ListenAddress:        libp2p.ListenLocalhostAddrWithIp4AndTcp,
-		P2pConfig:            createP2PConfig(initialAddresses),
-		SyncTimer:            &libp2p.LocalSyncTimer{},
-		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
-		NodeOperationMode:    p2p.NormalOperation,
-		PeersRatingHandler:   &p2pmocks.PeersRatingHandlerStub{},
+		Marshalizer:           TestMarshalizer,
+		ListenAddress:         libp2p.ListenLocalhostAddrWithIp4AndTcp,
+		P2pConfig:             createP2PConfig(initialAddresses),
+		SyncTimer:             &libp2p.LocalSyncTimer{},
+		PreferredPeersHolder:  &p2pmocks.PeersHolderStub{},
+		NodeOperationMode:     p2p.NormalOperation,
+		PeersRatingHandler:    &p2pmocks.PeersRatingHandlerStub{},
+		ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
 	}
 
 	libP2PMes, err := libp2p.NewNetworkMessenger(arg)
@@ -174,13 +174,14 @@ func CreateMessengerWithKadDhtAndProtocolID(initialAddr string, protocolID strin
 	p2pConfig := createP2PConfig(initialAddresses)
 	p2pConfig.KadDhtPeerDiscovery.ProtocolID = protocolID
 	arg := libp2p.ArgsNetworkMessenger{
-		Marshalizer:          TestMarshalizer,
-		ListenAddress:        libp2p.ListenLocalhostAddrWithIp4AndTcp,
-		P2pConfig:            p2pConfig,
-		SyncTimer:            &libp2p.LocalSyncTimer{},
-		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
-		NodeOperationMode:    p2p.NormalOperation,
-		PeersRatingHandler:   &p2pmocks.PeersRatingHandlerStub{},
+		Marshalizer:           TestMarshalizer,
+		ListenAddress:         libp2p.ListenLocalhostAddrWithIp4AndTcp,
+		P2pConfig:             p2pConfig,
+		SyncTimer:             &libp2p.LocalSyncTimer{},
+		PreferredPeersHolder:  &p2pmocks.PeersHolderStub{},
+		NodeOperationMode:     p2p.NormalOperation,
+		PeersRatingHandler:    &p2pmocks.PeersRatingHandlerStub{},
+		ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
 	}
 
 	libP2PMes, err := libp2p.NewNetworkMessenger(arg)
@@ -192,13 +193,14 @@ func CreateMessengerWithKadDhtAndProtocolID(initialAddr string, protocolID strin
 // CreateMessengerFromConfig creates a new libp2p messenger with provided configuration
 func CreateMessengerFromConfig(p2pConfig config.P2PConfig) p2p.Messenger {
 	arg := libp2p.ArgsNetworkMessenger{
-		Marshalizer:          TestMarshalizer,
-		ListenAddress:        libp2p.ListenLocalhostAddrWithIp4AndTcp,
-		P2pConfig:            p2pConfig,
-		SyncTimer:            &libp2p.LocalSyncTimer{},
-		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
-		NodeOperationMode:    p2p.NormalOperation,
-		PeersRatingHandler:   &p2pmocks.PeersRatingHandlerStub{},
+		Marshalizer:           TestMarshalizer,
+		ListenAddress:         libp2p.ListenLocalhostAddrWithIp4AndTcp,
+		P2pConfig:             p2pConfig,
+		SyncTimer:             &libp2p.LocalSyncTimer{},
+		PreferredPeersHolder:  &p2pmocks.PeersHolderStub{},
+		NodeOperationMode:     p2p.NormalOperation,
+		PeersRatingHandler:    &p2pmocks.PeersRatingHandlerStub{},
+		ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
 	}
 
 	if p2pConfig.Sharding.AdditionalConnections.MaxFullHistoryObservers > 0 {
@@ -215,13 +217,14 @@ func CreateMessengerFromConfig(p2pConfig config.P2PConfig) p2p.Messenger {
 // CreateMessengerFromConfigWithPeersRatingHandler creates a new libp2p messenger with provided configuration
 func CreateMessengerFromConfigWithPeersRatingHandler(p2pConfig config.P2PConfig, peersRatingHandler p2p.PeersRatingHandler) p2p.Messenger {
 	arg := libp2p.ArgsNetworkMessenger{
-		Marshalizer:          TestMarshalizer,
-		ListenAddress:        libp2p.ListenLocalhostAddrWithIp4AndTcp,
-		P2pConfig:            p2pConfig,
-		SyncTimer:            &libp2p.LocalSyncTimer{},
-		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
-		NodeOperationMode:    p2p.NormalOperation,
-		PeersRatingHandler:   peersRatingHandler,
+		Marshalizer:           TestMarshalizer,
+		ListenAddress:         libp2p.ListenLocalhostAddrWithIp4AndTcp,
+		P2pConfig:             p2pConfig,
+		SyncTimer:             &libp2p.LocalSyncTimer{},
+		PreferredPeersHolder:  &p2pmocks.PeersHolderStub{},
+		NodeOperationMode:     p2p.NormalOperation,
+		PeersRatingHandler:    peersRatingHandler,
+		ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
 	}
 
 	if p2pConfig.Sharding.AdditionalConnections.MaxFullHistoryObservers > 0 {
@@ -239,9 +242,8 @@ func CreateMessengerFromConfigWithPeersRatingHandler(p2pConfig config.P2PConfig,
 func CreateP2PConfigWithNoDiscovery() config.P2PConfig {
 	return config.P2PConfig{
 		Node: config.NodeConfig{
-			Port:                  "0",
-			Seed:                  "",
-			ConnectionWatcherType: "print",
+			Port: "0",
+			Seed: "",
 		},
 		KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
 			Enabled: false,
@@ -263,9 +265,8 @@ func CreateMessengerWithNoDiscovery() p2p.Messenger {
 func CreateMessengerWithNoDiscoveryAndPeersRatingHandler(peersRatingHanlder p2p.PeersRatingHandler) p2p.Messenger {
 	p2pConfig := config.P2PConfig{
 		Node: config.NodeConfig{
-			Port:                  "0",
-			Seed:                  "",
-			ConnectionWatcherType: "print",
+			Port: "0",
+			Seed: "",
 		},
 		KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
 			Enabled: false,

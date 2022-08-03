@@ -4,8 +4,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
-
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
@@ -16,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
+	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
@@ -147,14 +146,15 @@ func NewShardProcessorEmptyWith3shards(
 					return nil
 				},
 			},
-			BlockTracker:                 mock.NewBlockTrackerMock(shardCoordinator, genesisBlocks),
-			BlockSizeThrottler:           &mock.BlockSizeThrottlerStub{},
-			Version:                      "softwareVersion",
-			HistoryRepository:            &dblookupext.HistoryRepositoryStub{},
+			BlockTracker:                   mock.NewBlockTrackerMock(shardCoordinator, genesisBlocks),
+			BlockSizeThrottler:             &mock.BlockSizeThrottlerStub{},
+			Version:                        "softwareVersion",
+			HistoryRepository:              &dblookupext.HistoryRepositoryStub{},
 			EnableRoundsHandler:          &testscommon.EnableRoundsHandlerStub{},
-			GasHandler:                   &mock.GasHandlerMock{},
-			ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
-			ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
+			GasHandler:                     &mock.GasHandlerMock{},
+			ScheduledTxsExecutionHandler:   &testscommon.ScheduledTxsExecutionStub{},
+			ProcessedMiniBlocksTracker:     &testscommon.ProcessedMiniBlocksTrackerStub{},
+			ReceiptsRepository:             &testscommon.ReceiptsRepositoryStub{},
 		},
 	}
 	shardProc, err := NewShardProcessor(arguments)
