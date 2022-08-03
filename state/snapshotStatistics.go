@@ -75,8 +75,6 @@ func (ss *snapshotStatistics) SyncFinished() {
 
 // PrintStats will print the stats after the snapshot has finished
 func (ss *snapshotStatistics) PrintStats(identifier string, rootHash []byte) {
-	ss.wg.Wait()
-
 	ss.mutex.RLock()
 	defer ss.mutex.RUnlock()
 

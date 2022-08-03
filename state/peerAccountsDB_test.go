@@ -323,7 +323,7 @@ func TestPeerAccountsDB_MarkSnapshotDone(t *testing.T) {
 
 }
 
-func TestPeerAccountsDB_NewAccountsDbShouldSetActiveDB(t *testing.T) {
+func TestPeerAccountsDB_SetSyncerAndStartSnapshotIfNeededMarksActiveDB(t *testing.T) {
 	t.Parallel()
 
 	rootHash := []byte("rootHash")
@@ -356,7 +356,8 @@ func TestPeerAccountsDB_NewAccountsDbShouldSetActiveDB(t *testing.T) {
 
 		args := createMockAccountsDBArgs()
 		args.Trie = trieStub
-		_, _ = state.NewPeerAccountsDB(args)
+		adb, _ := state.NewPeerAccountsDB(args)
+		adb.SetSyncerAndStartSnapshotIfNeeded(&mock.AccountsDBSyncerStub{})
 
 		assert.True(t, putCalled)
 	})
@@ -384,7 +385,8 @@ func TestPeerAccountsDB_NewAccountsDbShouldSetActiveDB(t *testing.T) {
 
 		args := createMockAccountsDBArgs()
 		args.Trie = trieStub
-		_, _ = state.NewPeerAccountsDB(args)
+		adb, _ := state.NewPeerAccountsDB(args)
+		adb.SetSyncerAndStartSnapshotIfNeeded(&mock.AccountsDBSyncerStub{})
 	})
 	t.Run("in import DB mode", func(t *testing.T) {
 		putCalled := false
@@ -415,7 +417,8 @@ func TestPeerAccountsDB_NewAccountsDbShouldSetActiveDB(t *testing.T) {
 		args := createMockAccountsDBArgs()
 		args.ProcessingMode = common.ImportDb
 		args.Trie = trieStub
-		_, _ = state.NewPeerAccountsDB(args)
+		adb, _ := state.NewPeerAccountsDB(args)
+		adb.SetSyncerAndStartSnapshotIfNeeded(&mock.AccountsDBSyncerStub{})
 
 		assert.True(t, putCalled)
 	})
@@ -433,7 +436,7 @@ func TestPeerAccountsDB_SnapshotStateOnAClosedStorageManagerShouldNotMarkActiveD
 				ShouldTakeSnapshotCalled: func() bool {
 					return true
 				},
-				TakeSnapshotCalled: func(_ []byte, _ []byte, ch chan core.KeyValueHolder, _ chan error, stats common.SnapshotStatisticsHandler, _ uint32) {
+				TakeSnapshotCalled: func(_ []byte, _ []byte, ch chan core.KeyValueHolder, _ chan []byte, _ chan error, stats common.SnapshotStatisticsHandler, _ uint32) {
 					stats.SnapshotFinished()
 				},
 				IsClosedCalled: func() bool {

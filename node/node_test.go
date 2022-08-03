@@ -252,7 +252,7 @@ func TestNode_GetKeyValuePairs(t *testing.T) {
 	accDB := &stateMock.AccountsStub{}
 	acc.DataTrieTracker().SetDataTrie(
 		&trieMock.TrieStub{
-			GetAllLeavesOnChannelCalled: func(ch chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error {
+			GetAllLeavesOnChannelCalled: func(ch chan core.KeyValueHolder, ctx context.Context, rootHash []byte, _ common.KeyBuilder) error {
 				go func() {
 					suffix := append(k1, acc.AddressBytes()...)
 					trieLeaf := keyValStorage.NewKeyValStorage(k1, append(v1, suffix...))
@@ -313,7 +313,7 @@ func TestNode_GetKeyValuePairsContextShouldTimeout(t *testing.T) {
 	accDB := &stateMock.AccountsStub{}
 	acc.DataTrieTracker().SetDataTrie(
 		&trieMock.TrieStub{
-			GetAllLeavesOnChannelCalled: func(ch chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error {
+			GetAllLeavesOnChannelCalled: func(ch chan core.KeyValueHolder, ctx context.Context, rootHash []byte, _ common.KeyBuilder) error {
 				go func() {
 					time.Sleep(time.Second)
 					close(ch)
@@ -502,7 +502,7 @@ func TestNode_GetAllESDTTokens(t *testing.T) {
 
 	acc.DataTrieTracker().SetDataTrie(
 		&trieMock.TrieStub{
-			GetAllLeavesOnChannelCalled: func(ch chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error {
+			GetAllLeavesOnChannelCalled: func(ch chan core.KeyValueHolder, ctx context.Context, rootHash []byte, _ common.KeyBuilder) error {
 				go func() {
 					trieLeaf := keyValStorage.NewKeyValStorage(esdtKey, nil)
 					ch <- trieLeaf
@@ -556,7 +556,7 @@ func TestNode_GetAllESDTTokensContextShouldTimeout(t *testing.T) {
 
 	acc.DataTrieTracker().SetDataTrie(
 		&trieMock.TrieStub{
-			GetAllLeavesOnChannelCalled: func(ch chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error {
+			GetAllLeavesOnChannelCalled: func(ch chan core.KeyValueHolder, ctx context.Context, rootHash []byte, _ common.KeyBuilder) error {
 				go func() {
 					time.Sleep(time.Second)
 					close(ch)
@@ -639,7 +639,7 @@ func TestNode_GetAllESDTTokensShouldReturnEsdtAndFormattedNft(t *testing.T) {
 	}
 	acc.DataTrieTracker().SetDataTrie(
 		&trieMock.TrieStub{
-			GetAllLeavesOnChannelCalled: func(ch chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error {
+			GetAllLeavesOnChannelCalled: func(ch chan core.KeyValueHolder, ctx context.Context, rootHash []byte, _ common.KeyBuilder) error {
 				wg := &sync.WaitGroup{}
 				wg.Add(1)
 				go func() {
@@ -721,7 +721,7 @@ func TestNode_GetAllIssuedESDTs(t *testing.T) {
 
 	acc.DataTrieTracker().SetDataTrie(
 		&trieMock.TrieStub{
-			GetAllLeavesOnChannelCalled: func(ch chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error {
+			GetAllLeavesOnChannelCalled: func(ch chan core.KeyValueHolder, ctx context.Context, rootHash []byte, _ common.KeyBuilder) error {
 				go func() {
 					trieLeaf := keyValStorage.NewKeyValStorage(esdtToken, append(marshalledData, esdtSuffix...))
 					ch <- trieLeaf
@@ -809,7 +809,7 @@ func TestNode_GetESDTsWithRole(t *testing.T) {
 
 	acc.DataTrieTracker().SetDataTrie(
 		&trieMock.TrieStub{
-			GetAllLeavesOnChannelCalled: func(ch chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error {
+			GetAllLeavesOnChannelCalled: func(ch chan core.KeyValueHolder, ctx context.Context, rootHash []byte, _ common.KeyBuilder) error {
 				go func() {
 					trieLeaf := keyValStorage.NewKeyValStorage(esdtToken, append(marshalledData, esdtSuffix...))
 					ch <- trieLeaf
@@ -885,7 +885,7 @@ func TestNode_GetESDTsRoles(t *testing.T) {
 
 	acc.DataTrieTracker().SetDataTrie(
 		&trieMock.TrieStub{
-			GetAllLeavesOnChannelCalled: func(ch chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error {
+			GetAllLeavesOnChannelCalled: func(ch chan core.KeyValueHolder, ctx context.Context, rootHash []byte, _ common.KeyBuilder) error {
 				go func() {
 					trieLeaf := keyValStorage.NewKeyValStorage(esdtToken, append(marshalledData, esdtSuffix...))
 					ch <- trieLeaf
@@ -946,7 +946,7 @@ func TestNode_GetNFTTokenIDsRegisteredByAddress(t *testing.T) {
 
 	acc.DataTrieTracker().SetDataTrie(
 		&trieMock.TrieStub{
-			GetAllLeavesOnChannelCalled: func(ch chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error {
+			GetAllLeavesOnChannelCalled: func(ch chan core.KeyValueHolder, ctx context.Context, rootHash []byte, _ common.KeyBuilder) error {
 				go func() {
 					trieLeaf := keyValStorage.NewKeyValStorage(esdtToken, append(marshalledData, esdtSuffix...))
 					ch <- trieLeaf
@@ -1000,7 +1000,7 @@ func TestNode_GetNFTTokenIDsRegisteredByAddressContextShouldTimeout(t *testing.T
 
 	acc.DataTrieTracker().SetDataTrie(
 		&trieMock.TrieStub{
-			GetAllLeavesOnChannelCalled: func(ch chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error {
+			GetAllLeavesOnChannelCalled: func(ch chan core.KeyValueHolder, ctx context.Context, rootHash []byte, _ common.KeyBuilder) error {
 				go func() {
 					time.Sleep(time.Second)
 					close(ch)

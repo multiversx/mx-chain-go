@@ -81,7 +81,7 @@ func TestTrieStorageManager_SerialFuncShadowingCallsExpectedImpl(t *testing.T) {
 		IsPruningEnabledCalled: func() bool {
 			return true
 		},
-		TakeSnapshotCalled: func(_ []byte, _ []byte, _ chan core.KeyValueHolder, _ chan error, _ common.SnapshotStatisticsHandler, _ uint32) {
+		TakeSnapshotCalled: func(_ []byte, _ []byte, _ chan core.KeyValueHolder, _ chan []byte, _ chan error, _ common.SnapshotStatisticsHandler, _ uint32) {
 			assert.Fail(t, shouldNotHaveBeenCalledErr.Error())
 		},
 		GetLatestStorageEpochCalled: func() (uint32, error) {
@@ -129,7 +129,7 @@ func TestTrieStorageManager_SerialFuncShadowingCallsExpectedImpl(t *testing.T) {
 	assert.True(t, getCalled)
 
 	leavesCh := make(chan core.KeyValueHolder)
-	tsm.SetCheckpoint(nil, nil, leavesCh, make(chan error, 1), &trieMock.MockStatistics{})
+	tsm.SetCheckpoint(nil, nil, leavesCh, nil, make(chan error, 1), &trieMock.MockStatistics{})
 
 	select {
 	case <-leavesCh:
@@ -159,7 +159,7 @@ func testTsmWithoutSnapshot(
 	_ = tsm.PutInEpochWithoutCache([]byte("hash"), []byte("val"), 0)
 
 	leavesCh := make(chan core.KeyValueHolder)
-	tsm.TakeSnapshot(nil, nil, leavesCh, make(chan error, 1), &trieMock.MockStatistics{}, 10)
+	tsm.TakeSnapshot(nil, nil, leavesCh, nil, make(chan error, 1), &trieMock.MockStatistics{}, 10)
 
 	select {
 	case <-leavesCh:

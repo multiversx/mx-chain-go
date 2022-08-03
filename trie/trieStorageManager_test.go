@@ -108,7 +108,7 @@ func TestTrieStorageManager_SetCheckpointNilErrorChan(t *testing.T) {
 
 	rootHash := []byte("rootHash")
 	leavesChan := make(chan core.KeyValueHolder)
-	ts.SetCheckpoint(rootHash, rootHash, leavesChan, nil, &trieMock.MockStatistics{})
+	ts.SetCheckpoint(rootHash, rootHash, leavesChan, nil, nil, &trieMock.MockStatistics{})
 
 	_, ok := <-leavesChan
 	assert.False(t, ok)
@@ -126,7 +126,7 @@ func TestTrieStorageManager_SetCheckpointClosedDb(t *testing.T) {
 	rootHash := []byte("rootHash")
 	leavesChan := make(chan core.KeyValueHolder)
 	errChan := make(chan error, 1)
-	ts.SetCheckpoint(rootHash, rootHash, leavesChan, errChan, &trieMock.MockStatistics{})
+	ts.SetCheckpoint(rootHash, rootHash, leavesChan, nil, errChan, &trieMock.MockStatistics{})
 
 	_, ok := <-leavesChan
 	assert.False(t, ok)
@@ -142,7 +142,7 @@ func TestTrieStorageManager_SetCheckpointEmptyTrieRootHash(t *testing.T) {
 	rootHash := make([]byte, 32)
 	leavesChan := make(chan core.KeyValueHolder)
 	errChan := make(chan error, 1)
-	ts.SetCheckpoint(rootHash, rootHash, leavesChan, errChan, &trieMock.MockStatistics{})
+	ts.SetCheckpoint(rootHash, rootHash, leavesChan, nil, errChan, &trieMock.MockStatistics{})
 
 	_, ok := <-leavesChan
 	assert.False(t, ok)
@@ -311,7 +311,7 @@ func TestTrieStorageManager_TakeSnapshotNilErrorChan(t *testing.T) {
 
 	rootHash := []byte("rootHash")
 	leavesChan := make(chan core.KeyValueHolder)
-	ts.TakeSnapshot(rootHash, rootHash, leavesChan, nil, &trieMock.MockStatistics{}, 0)
+	ts.TakeSnapshot(rootHash, rootHash, leavesChan, nil, nil, &trieMock.MockStatistics{}, 0)
 
 	_, ok := <-leavesChan
 	assert.False(t, ok)

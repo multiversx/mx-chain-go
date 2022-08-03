@@ -50,7 +50,7 @@ func (adb *PeerAccountsDB) SetSyncerAndStartSnapshotIfNeeded(syncer AccountsDBSy
 	trieStorageManager := adb.mainTrie.GetStorageManager()
 	val, err := trieStorageManager.GetFromCurrentEpoch([]byte(common.ActiveDBKey))
 	if err != nil || !bytes.Equal(val, []byte(common.ActiveDBVal)) {
-		startSnapshotAfterRestart(adb, args)
+		startSnapshotAfterRestart(adb, trieStorageManager, adb.processingMode)
 	}
 }
 
@@ -105,7 +105,7 @@ func (adb *PeerAccountsDB) SnapshotState(rootHash []byte) {
 	trieStorageManager.EnterPruningBufferingMode()
 	stats.NewSnapshotStarted()
 	errChan := make(chan error, 1)
-	trieStorageManager.TakeSnapshot(rootHash, rootHash, nil, missingNodesChannel,errChan, stats, epoch)
+	trieStorageManager.TakeSnapshot(rootHash, rootHash, nil, missingNodesChannel, errChan, stats, epoch)
 
 	go adb.syncMissingNodes(missingNodesChannel, stats)
 
@@ -126,7 +126,6 @@ func (adb *PeerAccountsDB) SetStateCheckpoint(rootHash []byte) {
 	stats.NewSnapshotStarted()
 	errChan := make(chan error, 1)
 	trieStorageManager.SetCheckpoint(rootHash, rootHash, nil, missingNodesChannel, errChan, stats)
-	trieStorageManager.ExitPruningBufferingMode()
 
 	go adb.syncMissingNodes(missingNodesChannel, stats)
 
@@ -134,6 +133,7 @@ func (adb *PeerAccountsDB) SetStateCheckpoint(rootHash []byte) {
 		stats.WaitForSnapshotsToFinish()
 		close(missingNodesChannel)
 		stats.WaitForSyncToFinish()
+		trieStorageManager.ExitPruningBufferingMode()
 
 		// TODO decide if we need to take some actions whenever we hit an error that occurred in the checkpoint process
 		//  that will be present in the errChan var

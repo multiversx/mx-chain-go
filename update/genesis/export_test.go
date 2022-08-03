@@ -317,7 +317,7 @@ func TestStateExport_ExportTrieShouldExportNodesSetupJson(t *testing.T) {
 		RootCalled: func() ([]byte, error) {
 			return []byte{}, nil
 		},
-		GetAllLeavesOnChannelCalled: func(ch chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error {
+		GetAllLeavesOnChannelCalled: func(ch chan core.KeyValueHolder, ctx context.Context, rootHash []byte, keyBuilder common.KeyBuilder) error {
 			mm := &mock.MarshalizerMock{}
 			valInfo := &state.ValidatorInfo{List: string(common.EligibleList)}
 			pacB, _ := mm.Marshal(valInfo)
