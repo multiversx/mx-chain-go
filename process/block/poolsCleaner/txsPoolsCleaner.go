@@ -109,12 +109,12 @@ func (tpc *txsPoolsCleaner) StartCleaning() {
 	tpc.mut.Lock()
 	defer tpc.mut.Unlock()
 
-	if tpc.isCleaningRoutineRunning.IsSet() {
+	if tpc.isCleaningRoutineRunning {
 		log.Error("txsPoolsCleaner cleaning routine already started...")
 		return
 	}
 
-	tpc.isCleaningRoutineRunning.SetValue(true)
+	tpc.isCleaningRoutineRunning = true
 	var ctx context.Context
 	ctx, tpc.cancelFunc = context.WithCancel(context.Background())
 	go tpc.cleanTxsPools(ctx)

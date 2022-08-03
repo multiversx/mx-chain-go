@@ -75,12 +75,12 @@ func (mbpc *miniBlocksPoolsCleaner) StartCleaning() {
 	mbpc.mut.Lock()
 	defer mbpc.mut.Unlock()
 
-	if mbpc.isCleaningRoutineRunning.IsSet() {
+	if mbpc.isCleaningRoutineRunning {
 		log.Error("miniBlocksPoolsCleaner cleaning routine already started...")
 		return
 	}
 
-	mbpc.isCleaningRoutineRunning.SetValue(true)
+	mbpc.isCleaningRoutineRunning = true
 	var ctx context.Context
 	ctx, mbpc.cancelFunc = context.WithCancel(context.Background())
 	go mbpc.cleanMiniblocksPools(ctx)
