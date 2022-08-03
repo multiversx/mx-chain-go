@@ -103,9 +103,8 @@ func TestNetworkComponents_CloseShouldWork(t *testing.T) {
 func getNetworkArgs() factory.NetworkComponentsFactoryArgs {
 	p2pConfig := config.P2PConfig{
 		Node: config.NodeConfig{
-			Port:                  "0",
-			Seed:                  "seed",
-			ConnectionWatcherType: "print",
+			Port: "0",
+			Seed: "seed",
 		},
 		KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
 			Enabled:                          false,
@@ -173,7 +172,8 @@ func getNetworkArgs() factory.NetworkComponentsFactoryArgs {
 				UnitValue:                    1.0,
 			},
 		},
-		Syncer:            &libp2p.LocalSyncTimer{},
-		NodeOperationMode: p2p.NormalOperation,
+		Syncer:                &libp2p.LocalSyncTimer{},
+		NodeOperationMode:     p2p.NormalOperation,
+		ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
 	}
 }
