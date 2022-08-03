@@ -172,15 +172,13 @@ func (psf *StorageServiceFactory) CreateForShard() (dataRetriever.StorageService
 	}
 	successfullyCreatedStorers = append(successfullyCreatedStorers, metachainHeaderUnit)
 
-	userAccountsUnitArgs := psf.createPruningStorerArgs(psf.generalConfig.AccountsTrieStorage, customDatabaseRemover)
-	userAccountsUnit, err = psf.createTriePruningPersister(userAccountsUnitArgs)
+	userAccountsUnit, err = psf.createTriePersister(psf.generalConfig.AccountsTrieStorage, psf.generalConfig.StateTriesConfig, customDatabaseRemover)
 	if err != nil {
 		return nil, err
 	}
 	successfullyCreatedStorers = append(successfullyCreatedStorers, userAccountsUnit)
 
-	peerAccountsUnitArgs := psf.createPruningStorerArgs(psf.generalConfig.PeerAccountsTrieStorage, customDatabaseRemover)
-	peerAccountsUnit, err = psf.createTriePruningPersister(peerAccountsUnitArgs)
+	peerAccountsUnit, err = psf.createTriePersister(psf.generalConfig.PeerAccountsTrieStorage, psf.generalConfig.StateTriesConfig, customDatabaseRemover)
 	if err != nil {
 		return nil, err
 	}
@@ -702,6 +700,30 @@ func (psf *StorageServiceFactory) createTrieEpochRootHashStorerIfNeeded() (stora
 	}
 
 	return trieEpochRootHashStorageUnit, nil
+}
+
+func (psf *StorageServiceFactory) createTriePersister(
+	storageConfig config.StorageConfig,
+	triesConfig config.StateTriesConfig,
+	customDatabaseRemover storage.CustomDatabaseRemoverHandler,
+) (storage.Storer, error) {
+	if triesConfig.SnapshotsEnabled {
+		pruningPersisterArgs := psf.createPruningStorerArgs(storageConfig, customDatabaseRemover)
+		return psf.createTriePruningPersister(pruningPersisterArgs)
+	}
+
+	trieDBConfig := GetDBFromConfig(storageConfig.DB)
+	shardID := core.GetShardIDString(psf.shardCoordinator.SelfId())
+	dbPath := psf.pathManager.PathForStatic(shardID, storageConfig.DB.FilePath)
+	trieDBConfig.FilePath = dbPath
+	trieUnit, err := storageUnit.NewStorageUnitFromConf(
+		GetCacherFromConfig(storageConfig.Cache),
+		trieDBConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	return trieUnit, nil
 }
 
 func (psf *StorageServiceFactory) createTriePruningPersister(arg *pruning.StorerArgs) (storage.Storer, error) {

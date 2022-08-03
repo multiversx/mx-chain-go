@@ -1,22 +1,22 @@
 package blockAPI
 
 import (
-	"bytes"
 	"encoding/hex"
 	"fmt"
+	"math/big"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/data"
-
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
-	"github.com/ElrondNetwork/elrond-go-core/data/batch"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/api/shared/logging"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dblookupext"
 )
@@ -43,48 +43,29 @@ type baseAPIBlockProcessor struct {
 	addressPubKeyConverter   core.PubkeyConverter
 	txStatusComputer         transaction.StatusComputerHandler
 	apiTransactionHandler    APITransactionHandler
-	logsFacade               LogsFacade
+	logsFacade               logsFacade
+	receiptsRepository       receiptsRepository
 }
 
 var log = logger.GetOrCreate("node/blockAPI")
 
-func (bap *baseAPIBlockProcessor) getIntrashardMiniblocksFromReceiptsStorage(receiptsHash []byte, epoch uint32, options api.BlockQueryOptions) ([]*api.MiniBlock, error) {
-	if bytes.Equal(bap.emptyReceiptsHash, receiptsHash) {
-		return nil, nil
-	}
-
-	batchBytes, err := bap.getFromStorerWithEpoch(dataRetriever.ReceiptsUnit, receiptsHash, epoch)
+func (bap *baseAPIBlockProcessor) getIntrashardMiniblocksFromReceiptsStorage(header data.HeaderHandler, headerHash []byte, options api.BlockQueryOptions) ([]*api.MiniBlock, error) {
+	receiptsHolder, err := bap.receiptsRepository.LoadReceipts(header, headerHash)
 	if err != nil {
-		return nil, fmt.Errorf("%w (receipts): %v, hash = %s", errCannotLoadMiniblocks, err, hex.EncodeToString(receiptsHash))
+		return nil, err
 	}
 
-	batchWithMbs := &batch.Batch{}
-	err = bap.marshalizer.Unmarshal(batchWithMbs, batchBytes)
-	if err != nil {
-		return nil, fmt.Errorf("%w (receipts): %v, hash = %s", errCannotUnmarshalMiniblocks, err, hex.EncodeToString(receiptsHash))
-	}
-
-	return bap.convertReceiptsStorageBatchToApiMiniblocks(batchWithMbs, epoch, options)
-}
-
-func (bap *baseAPIBlockProcessor) convertReceiptsStorageBatchToApiMiniblocks(batchWithMbs *batch.Batch, epoch uint32, options api.BlockQueryOptions) ([]*api.MiniBlock, error) {
-	mbs := make([]*api.MiniBlock, 0)
-	for _, mbBytes := range batchWithMbs.Data {
-		miniBlock := &block.MiniBlock{}
-		err := bap.marshalizer.Unmarshal(miniBlock, mbBytes)
-		if err != nil {
-			return nil, fmt.Errorf("%w: %v", errCannotUnmarshalMiniblocks, err)
-		}
-
-		miniblockAPI, err := bap.convertMiniblockFromReceiptsStorageToApiMiniblock(miniBlock, epoch, options)
+	apiMiniblocks := make([]*api.MiniBlock, 0, len(receiptsHolder.GetMiniblocks()))
+	for _, miniblock := range receiptsHolder.GetMiniblocks() {
+		apiMiniblock, err := bap.convertMiniblockFromReceiptsStorageToApiMiniblock(miniblock, header.GetEpoch(), options)
 		if err != nil {
 			return nil, err
 		}
 
-		mbs = append(mbs, miniblockAPI)
+		apiMiniblocks = append(apiMiniblocks, apiMiniblock)
 	}
 
-	return mbs, nil
+	return apiMiniblocks, nil
 }
 
 func (bap *baseAPIBlockProcessor) convertMiniblockFromReceiptsStorageToApiMiniblock(miniblock *block.MiniBlock, epoch uint32, options api.BlockQueryOptions) (*api.MiniBlock, error) {
@@ -134,13 +115,13 @@ func (bap *baseAPIBlockProcessor) getAndAttachTxsToMb(
 }
 
 func (bap *baseAPIBlockProcessor) getMiniblockByHashAndEpoch(miniblockHash []byte, epoch uint32) (*block.MiniBlock, error) {
-	bytes, err := bap.getFromStorerWithEpoch(dataRetriever.MiniBlockUnit, miniblockHash, epoch)
+	buff, err := bap.getFromStorerWithEpoch(dataRetriever.MiniBlockUnit, miniblockHash, epoch)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %v, hash = %s", errCannotLoadMiniblocks, err, hex.EncodeToString(miniblockHash))
 	}
 
 	miniBlock := &block.MiniBlock{}
-	err = bap.marshalizer.Unmarshal(miniBlock, bytes)
+	err = bap.marshalizer.Unmarshal(miniBlock, buff)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %v, hash = %s", errCannotUnmarshalMiniblocks, err, hex.EncodeToString(miniblockHash))
 	}
@@ -177,7 +158,7 @@ func (bap *baseAPIBlockProcessor) getAndAttachTxsToMbByEpoch(
 	}
 
 	if options.WithLogs {
-		err := bap.logsFacade.IncludeLogsInTransactions(apiMiniblock.Transactions, miniBlock.TxHashes, epoch)
+		err = bap.logsFacade.IncludeLogsInTransactions(apiMiniblock.Transactions, miniBlock.TxHashes, epoch)
 		if err != nil {
 			return err
 		}
@@ -193,13 +174,13 @@ func (bap *baseAPIBlockProcessor) getReceiptsFromMiniblock(miniblock *block.Mini
 	if err != nil {
 		return nil, fmt.Errorf("%w: %v", errCannotLoadReceipts, err)
 	}
-	log.Debug(fmt.Sprintf("GetBulkFromEpoch took %s", time.Since(start)))
+	logging.LogAPIActionDurationIfNeeded(start, "GetBulkFromEpoch")
 
 	apiReceipts := make([]*transaction.ApiReceipt, 0)
 	for _, pair := range marshalledReceipts {
-		receipt, err := bap.apiTransactionHandler.UnmarshalReceipt(pair.Value)
-		if err != nil {
-			return nil, fmt.Errorf("%w: %v, hash = %s", errCannotUnmarshalReceipts, err, hex.EncodeToString(pair.Key))
+		receipt, errUnmarshal := bap.apiTransactionHandler.UnmarshalReceipt(pair.Value)
+		if errUnmarshal != nil {
+			return nil, fmt.Errorf("%w: %v, hash = %s", errCannotUnmarshalReceipts, errUnmarshal, hex.EncodeToString(pair.Key))
 		}
 
 		apiReceipts = append(apiReceipts, receipt)
@@ -225,7 +206,7 @@ func (bap *baseAPIBlockProcessor) getTxsFromMiniblock(
 	if err != nil {
 		return nil, fmt.Errorf("%w: %v, miniblock = %s", errCannotLoadTransactions, err, hex.EncodeToString(miniblockHash))
 	}
-	log.Debug(fmt.Sprintf("GetBulkFromEpoch took %s", time.Since(start)))
+	logging.LogAPIActionDurationIfNeeded(start, "GetBulkFromEpoch")
 
 	start = time.Now()
 	txs := make([]*transaction.ApiTransactionResult, 0)
@@ -248,7 +229,7 @@ func (bap *baseAPIBlockProcessor) getTxsFromMiniblock(
 
 		txs = append(txs, tx)
 	}
-	log.Debug(fmt.Sprintf("UnmarshalTransactions took %s", time.Since(start)))
+	logging.LogAPIActionDurationIfNeeded(start, "UnmarshalTransactions")
 
 	return txs, nil
 }
@@ -323,4 +304,28 @@ func extractExecutedTxHashes(mbTxHashes [][]byte, firstProcessed, lastProcessed 
 	}
 
 	return mbTxHashes[firstProcessed : lastProcessed+1]
+}
+
+func addScheduledInfoInBlock(header data.HeaderHandler, apiBlock *api.Block) {
+	additionalData := header.GetAdditionalData()
+	if check.IfNil(additionalData) {
+		return
+	}
+
+	apiBlock.ScheduledData = &api.ScheduledData{
+		ScheduledRootHash:        hex.EncodeToString(additionalData.GetScheduledRootHash()),
+		ScheduledAccumulatedFees: bigIntToStr(additionalData.GetScheduledAccumulatedFees()),
+		ScheduledDeveloperFees:   bigIntToStr(additionalData.GetScheduledDeveloperFees()),
+		ScheduledGasProvided:     additionalData.GetScheduledGasProvided(),
+		ScheduledGasPenalized:    additionalData.GetScheduledGasPenalized(),
+		ScheduledGasRefunded:     additionalData.GetScheduledGasRefunded(),
+	}
+}
+
+func bigIntToStr(value *big.Int) string {
+	if value == nil {
+		return "0"
+	}
+
+	return value.String()
 }

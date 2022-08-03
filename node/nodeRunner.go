@@ -643,7 +643,7 @@ func getBaseAccountSyncerArgs(
 func (nr *nodeRunner) createApiFacade(
 	currentNode *Node,
 	upgradableHttpServer shared.UpgradeableHttpServerHandler,
-	gasScheduleNotifier core.GasScheduleNotifier,
+	gasScheduleNotifier common.GasScheduleNotifierAPI,
 	allowVMQueriesChan chan struct{},
 ) (closing.Closer, error) {
 	configs := nr.configs
@@ -1315,6 +1315,7 @@ func (nr *nodeRunner) CreateManagedBootstrapComponents(
 		RoundConfig:       *nr.configs.RoundConfig,
 		PrefConfig:        *nr.configs.PreferencesConfig,
 		ImportDbConfig:    *nr.configs.ImportDbConfig,
+		FlagsConfig:       *nr.configs.FlagsConfig,
 		WorkingDir:        nr.configs.FlagsConfig.WorkingDir,
 		CoreComponents:    coreComponents,
 		CryptoComponents:  cryptoComponents,
@@ -1349,15 +1350,16 @@ func (nr *nodeRunner) CreateManagedNetworkComponents(
 	}
 
 	networkComponentsFactoryArgs := mainFactory.NetworkComponentsFactoryArgs{
-		P2pConfig:            *nr.configs.P2pConfig,
-		MainConfig:           *nr.configs.GeneralConfig,
-		RatingsConfig:        *nr.configs.RatingsConfig,
-		StatusHandler:        coreComponents.StatusHandler(),
-		Marshalizer:          coreComponents.InternalMarshalizer(),
-		Syncer:               coreComponents.SyncTimer(),
-		PreferredPeersSlices: decodedPreferredPeers,
-		BootstrapWaitTime:    common.TimeToWaitForP2PBootstrap,
-		NodeOperationMode:    p2p.NormalOperation,
+		P2pConfig:             *nr.configs.P2pConfig,
+		MainConfig:            *nr.configs.GeneralConfig,
+		RatingsConfig:         *nr.configs.RatingsConfig,
+		StatusHandler:         coreComponents.StatusHandler(),
+		Marshalizer:           coreComponents.InternalMarshalizer(),
+		Syncer:                coreComponents.SyncTimer(),
+		PreferredPeersSlices:  decodedPreferredPeers,
+		BootstrapWaitTime:     common.TimeToWaitForP2PBootstrap,
+		NodeOperationMode:     p2p.NormalOperation,
+		ConnectionWatcherType: nr.configs.PreferencesConfig.Preferences.ConnectionWatcherType,
 	}
 	if nr.configs.ImportDbConfig.IsImportDBMode {
 		networkComponentsFactoryArgs.BootstrapWaitTime = 0

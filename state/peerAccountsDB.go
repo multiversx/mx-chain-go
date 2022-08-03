@@ -50,7 +50,7 @@ func (adb *PeerAccountsDB) SetSyncerAndStartSnapshotIfNeeded(syncer AccountsDBSy
 	trieStorageManager := adb.mainTrie.GetStorageManager()
 	val, err := trieStorageManager.GetFromCurrentEpoch([]byte(common.ActiveDBKey))
 	if err != nil || !bytes.Equal(val, []byte(common.ActiveDBVal)) {
-		startSnapshotAfterRestart(adb, trieStorageManager)
+		startSnapshotAfterRestart(adb, args)
 	}
 }
 
@@ -62,7 +62,7 @@ func (adb *PeerAccountsDB) MarkSnapshotDone() {
 		return
 	}
 
-	err = trieStorageManager.PutInEpoch([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal), epoch)
+	err = trieStorageManager.PutInEpochWithoutCache([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal), epoch)
 	handleLoggingWhenError("error while putting active DB value into main storer", err)
 }
 
@@ -104,11 +104,12 @@ func (adb *PeerAccountsDB) SnapshotState(rootHash []byte) {
 
 	trieStorageManager.EnterPruningBufferingMode()
 	stats.NewSnapshotStarted()
-	trieStorageManager.TakeSnapshot(rootHash, rootHash, nil, missingNodesChannel, stats, epoch)
+	errChan := make(chan error, 1)
+	trieStorageManager.TakeSnapshot(rootHash, rootHash, nil, missingNodesChannel,errChan, stats, epoch)
 
 	go adb.syncMissingNodes(missingNodesChannel, stats)
 
-	go adb.markActiveDBAfterSnapshot(stats, missingNodesChannel, rootHash, "snapshotState peer trie", epoch)
+	go adb.markActiveDBAfterSnapshot(stats, missingNodesChannel, errChan, rootHash, "snapshotState peer trie", epoch)
 
 	adb.waitForCompletionIfRunningInImportDB(stats)
 }
@@ -123,7 +124,8 @@ func (adb *PeerAccountsDB) SetStateCheckpoint(rootHash []byte) {
 
 	trieStorageManager.EnterPruningBufferingMode()
 	stats.NewSnapshotStarted()
-	trieStorageManager.SetCheckpoint(rootHash, rootHash, nil, missingNodesChannel, stats)
+	errChan := make(chan error, 1)
+	trieStorageManager.SetCheckpoint(rootHash, rootHash, nil, missingNodesChannel, errChan, stats)
 	trieStorageManager.ExitPruningBufferingMode()
 
 	go adb.syncMissingNodes(missingNodesChannel, stats)
@@ -133,7 +135,9 @@ func (adb *PeerAccountsDB) SetStateCheckpoint(rootHash []byte) {
 		close(missingNodesChannel)
 		stats.WaitForSyncToFinish()
 
-		printStats(stats, "snapshotState peer trie", rootHash)
+		// TODO decide if we need to take some actions whenever we hit an error that occurred in the checkpoint process
+		//  that will be present in the errChan var
+		go stats.PrintStats("setStateCheckpoint peer trie", rootHash)
 	}()
 
 	adb.waitForCompletionIfRunningInImportDB(stats)

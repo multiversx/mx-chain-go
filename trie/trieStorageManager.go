@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"strings"
 	"sync"
 	"time"
 
@@ -17,7 +16,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/errors"
-	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 // trieStorageManager manages all the storage operations of the trie (commit, snapshot, checkpoint, pruning)
@@ -40,6 +38,7 @@ type snapshotsQueueEntry struct {
 	mainTrieRootHash []byte
 	leavesChan       chan core.KeyValueHolder
 	missingNodesChan chan []byte
+	errChan          chan error
 	stats            common.SnapshotStatisticsHandler
 	epoch            uint32
 }
@@ -179,7 +178,7 @@ func (tsm *trieStorageManager) Get(key []byte) ([]byte, error) {
 	}
 
 	val, err := tsm.mainStorer.Get(key)
-	if isClosingError(err) {
+	if errors.IsClosingError(err) {
 		return nil, err
 	}
 	if len(val) != 0 {
@@ -213,7 +212,7 @@ func (tsm *trieStorageManager) GetFromCurrentEpoch(key []byte) ([]byte, error) {
 
 func (tsm *trieStorageManager) getFromOtherStorers(key []byte) ([]byte, error) {
 	val, err := tsm.checkpointsStorer.Get(key)
-	if isClosingError(err) {
+	if errors.IsClosingError(err) {
 		return nil, err
 	}
 	if len(val) != 0 {
@@ -221,18 +220,6 @@ func (tsm *trieStorageManager) getFromOtherStorers(key []byte) ([]byte, error) {
 	}
 
 	return nil, ErrKeyNotFound
-}
-
-func isClosingError(err error) bool {
-	if err == nil {
-		return false
-	}
-
-	isClosingErr := err == errors.ErrContextClosing ||
-		err == storage.ErrDBIsClosed ||
-		strings.Contains(err.Error(), storage.ErrDBIsClosed.Error()) ||
-		strings.Contains(err.Error(), errors.ErrContextClosing.Error())
-	return isClosingErr
 }
 
 // Put adds the given value to the main storer
@@ -256,7 +243,26 @@ func (tsm *trieStorageManager) PutInEpoch(key []byte, val []byte, epoch uint32) 
 	log.Trace("put hash in tsm in epoch", "hash", key, "epoch", epoch)
 
 	if tsm.closed {
-		log.Trace("trieStorageManager put context closing", "key", key, "value", val, "epoch", epoch)
+		log.Trace("trieStorageManager putInEpoch context closing", "key", key, "value", val, "epoch", epoch)
+		return errors.ErrContextClosing
+	}
+
+	storer, ok := tsm.mainStorer.(snapshotPruningStorer)
+	if !ok {
+		return fmt.Errorf("invalid storer type for PutInEpoch")
+	}
+
+	return storer.PutInEpoch(key, val, epoch)
+}
+
+// PutInEpochWithoutCache adds the given value to the main storer in the specified epoch without saving it to cache
+func (tsm *trieStorageManager) PutInEpochWithoutCache(key []byte, val []byte, epoch uint32) error {
+	tsm.storageOperationMutex.Lock()
+	defer tsm.storageOperationMutex.Unlock()
+	log.Trace("put hash in tsm in epoch without cache", "hash", key, "epoch", epoch)
+
+	if tsm.closed {
+		log.Trace("trieStorageManager putInEpochWithoutCache context closing", "key", key, "value", val, "epoch", epoch)
 		return errors.ErrContextClosing
 	}
 
@@ -316,18 +322,25 @@ func (tsm *trieStorageManager) TakeSnapshot(
 	mainTrieRootHash []byte,
 	leavesChan chan core.KeyValueHolder,
 	missingNodesChan chan []byte,
+	errChan chan error,
 	stats common.SnapshotStatisticsHandler,
 	epoch uint32,
 ) {
-	if tsm.isClosed() {
-		tsm.safelyCloseChan(leavesChan)
+	if errChan == nil {
+		log.Error("programming error in trieStorageManager.TakeSnapshot, cannot take snapshot because errChan is nil")
+		safelyCloseChan(leavesChan)
+		stats.SnapshotFinished()
+		return
+	}
+	if tsm.IsClosed() {
+		safelyCloseChan(leavesChan)
 		stats.SnapshotFinished()
 		return
 	}
 
 	if bytes.Equal(rootHash, EmptyTrieHash) {
 		log.Trace("should not snapshot an empty trie")
-		tsm.safelyCloseChan(leavesChan)
+		safelyCloseChan(leavesChan)
 		stats.SnapshotFinished()
 		return
 	}
@@ -338,6 +351,7 @@ func (tsm *trieStorageManager) TakeSnapshot(
 	snapshotEntry := &snapshotsQueueEntry{
 		rootHash:         rootHash,
 		mainTrieRootHash: mainTrieRootHash,
+		errChan:          errChan,
 		leavesChan:       leavesChan,
 		missingNodesChan: missingNodesChan,
 		stats:            stats,
@@ -347,7 +361,7 @@ func (tsm *trieStorageManager) TakeSnapshot(
 	case tsm.snapshotReq <- snapshotEntry:
 	case <-tsm.closer.ChanClose():
 		tsm.ExitPruningBufferingMode()
-		tsm.safelyCloseChan(leavesChan)
+		safelyCloseChan(leavesChan)
 		stats.SnapshotFinished()
 	}
 }
@@ -360,17 +374,24 @@ func (tsm *trieStorageManager) SetCheckpoint(
 	mainTrieRootHash []byte,
 	leavesChan chan core.KeyValueHolder,
 	missingNodesChan chan []byte,
+	errChan chan error,
 	stats common.SnapshotStatisticsHandler,
 ) {
-	if tsm.isClosed() {
-		tsm.safelyCloseChan(leavesChan)
+	if errChan == nil {
+		log.Error("programming error in trieStorageManager.SetCheckpoint, cannot set checkpoint because errChan is nil")
+		safelyCloseChan(leavesChan)
+		stats.SnapshotFinished()
+		return
+	}
+	if tsm.IsClosed() {
+		safelyCloseChan(leavesChan)
 		stats.SnapshotFinished()
 		return
 	}
 
 	if bytes.Equal(rootHash, EmptyTrieHash) {
 		log.Trace("should not set checkpoint for empty trie")
-		tsm.safelyCloseChan(leavesChan)
+		safelyCloseChan(leavesChan)
 		stats.SnapshotFinished()
 		return
 	}
@@ -382,18 +403,19 @@ func (tsm *trieStorageManager) SetCheckpoint(
 		mainTrieRootHash: mainTrieRootHash,
 		leavesChan:       leavesChan,
 		missingNodesChan: missingNodesChan,
+		errChan:          errChan,
 		stats:            stats,
 	}
 	select {
 	case tsm.checkpointReq <- checkpointEntry:
 	case <-tsm.closer.ChanClose():
 		tsm.ExitPruningBufferingMode()
-		tsm.safelyCloseChan(leavesChan)
+		safelyCloseChan(leavesChan)
 		stats.SnapshotFinished()
 	}
 }
 
-func (tsm *trieStorageManager) safelyCloseChan(ch chan core.KeyValueHolder) {
+func safelyCloseChan(ch chan core.KeyValueHolder) {
 	if ch != nil {
 		close(ch)
 	}
@@ -402,7 +424,7 @@ func (tsm *trieStorageManager) safelyCloseChan(ch chan core.KeyValueHolder) {
 func (tsm *trieStorageManager) finishOperation(snapshotEntry *snapshotsQueueEntry, message string) {
 	tsm.ExitPruningBufferingMode()
 	log.Trace(message, "rootHash", snapshotEntry.rootHash)
-	tsm.safelyCloseChan(snapshotEntry.leavesChan)
+	safelyCloseChan(snapshotEntry.leavesChan)
 	snapshotEntry.stats.SnapshotFinished()
 }
 
@@ -416,6 +438,7 @@ func (tsm *trieStorageManager) takeSnapshot(snapshotEntry *snapshotsQueueEntry, 
 
 	newRoot, err := newSnapshotNode(tsm, msh, hsh, snapshotEntry.rootHash, snapshotEntry.missingNodesChan)
 	if err != nil {
+		writeInChanNonBlocking(snapshotEntry.errChan, err)
 		treatSnapshotError(err,
 			"trie storage manager: newSnapshotNode takeSnapshot",
 			snapshotEntry.rootHash,
@@ -426,6 +449,7 @@ func (tsm *trieStorageManager) takeSnapshot(snapshotEntry *snapshotsQueueEntry, 
 
 	stsm, err := newSnapshotTrieStorageManager(tsm, snapshotEntry.epoch)
 	if err != nil {
+		writeInChanNonBlocking(snapshotEntry.errChan, err)
 		log.Error("takeSnapshot: trie storage manager: newSnapshotTrieStorageManager",
 			"rootHash", snapshotEntry.rootHash,
 			"main trie rootHash", snapshotEntry.mainTrieRootHash,
@@ -435,12 +459,20 @@ func (tsm *trieStorageManager) takeSnapshot(snapshotEntry *snapshotsQueueEntry, 
 
 	err = newRoot.commitSnapshot(stsm, snapshotEntry.leavesChan, snapshotEntry.missingNodesChan, ctx, snapshotEntry.stats, tsm.idleProvider)
 	if err != nil {
+		writeInChanNonBlocking(snapshotEntry.errChan, err)
 		treatSnapshotError(err,
 			"trie storage manager: takeSnapshot commit",
 			snapshotEntry.rootHash,
 			snapshotEntry.mainTrieRootHash,
 		)
 		return
+	}
+}
+
+func writeInChanNonBlocking(errChan chan error, err error) {
+	select {
+	case errChan <- err:
+	default:
 	}
 }
 
@@ -454,6 +486,7 @@ func (tsm *trieStorageManager) takeCheckpoint(checkpointEntry *snapshotsQueueEnt
 
 	newRoot, err := newSnapshotNode(tsm, msh, hsh, checkpointEntry.rootHash, checkpointEntry.missingNodesChan)
 	if err != nil {
+		writeInChanNonBlocking(checkpointEntry.errChan, err)
 		treatSnapshotError(err,
 			"trie storage manager: newSnapshotNode takeCheckpoint",
 			checkpointEntry.rootHash,
@@ -464,6 +497,7 @@ func (tsm *trieStorageManager) takeCheckpoint(checkpointEntry *snapshotsQueueEnt
 
 	err = newRoot.commitCheckpoint(tsm, tsm.checkpointsStorer, tsm.checkpointHashesHolder, checkpointEntry.leavesChan, ctx, checkpointEntry.stats, tsm.idleProvider)
 	if err != nil {
+		writeInChanNonBlocking(checkpointEntry.errChan, err)
 		treatSnapshotError(err,
 			"trie storage manager: takeCheckpoint commit",
 			checkpointEntry.rootHash,
@@ -474,7 +508,7 @@ func (tsm *trieStorageManager) takeCheckpoint(checkpointEntry *snapshotsQueueEnt
 }
 
 func treatSnapshotError(err error, message string, rootHash []byte, mainTrieRootHash []byte) {
-	if isClosingError(err) {
+	if errors.IsClosingError(err) {
 		log.Debug("context closing", "message", message, "rootHash", rootHash, "mainTrieRootHash", mainTrieRootHash)
 		return
 	}
@@ -526,13 +560,23 @@ func (tsm *trieStorageManager) Remove(hash []byte) error {
 	tsm.checkpointHashesHolder.Remove(hash)
 	storer, ok := tsm.mainStorer.(snapshotPruningStorer)
 	if !ok {
-		return fmt.Errorf("%w, storer type is %s", ErrWrongTypeAssertion, fmt.Sprintf("%T", tsm.mainStorer))
+		return tsm.mainStorer.Remove(hash)
 	}
 
 	return storer.RemoveFromCurrentEpoch(hash)
 }
 
-func (tsm *trieStorageManager) isClosed() bool {
+// RemoveFromCheckpointHashesHolder removes the given hash from the checkpointHashesHolder
+func (tsm *trieStorageManager) RemoveFromCheckpointHashesHolder(hash []byte) {
+	//TODO check if the mutex is really needed here
+	tsm.storageOperationMutex.Lock()
+	defer tsm.storageOperationMutex.Unlock()
+
+	tsm.checkpointHashesHolder.Remove(hash)
+}
+
+// IsClosed returns true if the trie storage manager has been closed
+func (tsm *trieStorageManager) IsClosed() bool {
 	tsm.storageOperationMutex.RLock()
 	defer tsm.storageOperationMutex.RUnlock()
 

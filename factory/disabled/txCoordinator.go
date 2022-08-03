@@ -100,9 +100,9 @@ func (txCoordinator *TxCoordinator) VerifyCreatedBlockTransactions(_ data.Header
 	return nil
 }
 
-// CreateMarshalizedReceipts does nothing as it is disabled
-func (txCoordinator *TxCoordinator) CreateMarshalizedReceipts() ([]byte, error) {
-	return nil, nil
+// GetCreatedInShardMiniBlocks returns nil as is it disabled
+func (txCoordinator *TxCoordinator) GetCreatedInShardMiniBlocks() []*block.MiniBlock {
+	return nil
 }
 
 // VerifyCreatedMiniBlocks does nothing as it is disabled

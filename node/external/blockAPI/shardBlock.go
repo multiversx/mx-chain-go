@@ -33,6 +33,7 @@ func newShardApiBlockProcessor(arg *ArgAPIBlockProcessor, emptyReceiptsHash []by
 			addressPubKeyConverter:   arg.AddressPubkeyConverter,
 			emptyReceiptsHash:        emptyReceiptsHash,
 			logsFacade:               arg.LogsFacade,
+			receiptsRepository:       arg.ReceiptsRepository,
 		},
 	}
 }
@@ -100,16 +101,18 @@ func (sbp *shardAPIBlockProcessor) convertShardBlockBytesToAPIBlock(hash []byte,
 		numOfTxs += mb.GetTxCount()
 
 		miniblockAPI := &api.MiniBlock{
-			Hash:              hex.EncodeToString(mb.GetHash()),
-			Type:              block.Type(mb.GetTypeInt32()).String(),
-			SourceShard:       mb.GetSenderShardID(),
-			DestinationShard:  mb.GetReceiverShardID(),
-			ProcessingType:    block.ProcessingType(mb.GetProcessingType()).String(),
-			ConstructionState: block.MiniBlockState(mb.GetConstructionState()).String(),
+			Hash:                    hex.EncodeToString(mb.GetHash()),
+			Type:                    block.Type(mb.GetTypeInt32()).String(),
+			SourceShard:             mb.GetSenderShardID(),
+			DestinationShard:        mb.GetReceiverShardID(),
+			ProcessingType:          block.ProcessingType(mb.GetProcessingType()).String(),
+			ConstructionState:       block.MiniBlockState(mb.GetConstructionState()).String(),
+			IndexOfFirstTxProcessed: mb.GetIndexOfFirstTxProcessed(),
+			IndexOfLastTxProcessed:  mb.GetIndexOfLastTxProcessed(),
 		}
 		if options.WithTransactions {
 			miniBlockCopy := mb
-			err := sbp.getAndAttachTxsToMb(miniBlockCopy, headerEpoch, miniblockAPI, options)
+			err = sbp.getAndAttachTxsToMb(miniBlockCopy, headerEpoch, miniblockAPI, options)
 			if err != nil {
 				return nil, err
 			}
@@ -118,7 +121,7 @@ func (sbp *shardAPIBlockProcessor) convertShardBlockBytesToAPIBlock(hash []byte,
 		miniblocks = append(miniblocks, miniblockAPI)
 	}
 
-	intraMb, err := sbp.getIntrashardMiniblocksFromReceiptsStorage(blockHeader.GetReceiptsHash(), headerEpoch, options)
+	intraMb, err := sbp.getIntrashardMiniblocksFromReceiptsStorage(blockHeader, hash, options)
 	if err != nil {
 		return nil, err
 	}
@@ -129,7 +132,7 @@ func (sbp *shardAPIBlockProcessor) convertShardBlockBytesToAPIBlock(hash []byte,
 	statusFilters := filters.NewStatusFilters(sbp.selfShardID)
 	statusFilters.ApplyStatusFilters(miniblocks)
 
-	return &api.Block{
+	apiBlock := &api.Block{
 		Nonce:           blockHeader.GetNonce(),
 		Round:           blockHeader.GetRound(),
 		Epoch:           blockHeader.GetEpoch(),
@@ -142,7 +145,12 @@ func (sbp *shardAPIBlockProcessor) convertShardBlockBytesToAPIBlock(hash []byte,
 		DeveloperFees:   blockHeader.GetDeveloperFees().String(),
 		Timestamp:       time.Duration(blockHeader.GetTimeStamp()),
 		Status:          BlockStatusOnChain,
-	}, nil
+		StateRootHash:   hex.EncodeToString(blockHeader.GetRootHash()),
+	}
+
+	addScheduledInfoInBlock(blockHeader, apiBlock)
+
+	return apiBlock, nil
 }
 
 // IsInterfaceNil returns true if underlying object is nil

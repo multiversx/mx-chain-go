@@ -30,7 +30,8 @@ func (ts *trieSyncer) trieNodeIntercepted(hash []byte, val interface{}) {
 
 // PruningBlockingOperations -
 func (tsm *trieStorageManagerWithoutCheckpoints) PruningBlockingOperations() uint32 {
-	return tsm.pruningBlockingOps
+	ts, _ := tsm.StorageManager.(*trieStorageManager)
+	return ts.pruningBlockingOps
 }
 
 // WaitForOperationToComplete -
@@ -69,4 +70,9 @@ func GetDirtyHashes(tr common.Trie) common.ModifiedHashes {
 	}
 
 	return dirtyHashes
+}
+
+// WriteInChanNonBlocking -
+func WriteInChanNonBlocking(errChan chan error, err error) {
+	writeInChanNonBlocking(errChan, err)
 }

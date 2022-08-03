@@ -88,6 +88,7 @@ func NewUserAccountsSyncer(args ArgsNewUserAccountsSyncer) (*userAccountsSyncer,
 		name:                      fmt.Sprintf("user accounts for shard %s", core.GetShardIDString(args.ShardId)),
 		maxHardCapForMissingNodes: args.MaxHardCapForMissingNodes,
 		trieSyncerVersion:         args.TrieSyncerVersion,
+		checkNodesOnDisk:          args.CheckNodesOnDisk,
 	}
 
 	u := &userAccountsSyncer{
@@ -132,10 +133,7 @@ func (u *userAccountsSyncer) SyncAccounts(rootHash []byte) error {
 		return err
 	}
 
-	err = mainTrie.GetStorageManager().Put([]byte(common.TrieSyncedKey), []byte(common.TrieSyncedVal))
-	if err != nil {
-		log.Warn("error while putting trieSynced value into main storer after sync", "error", err)
-	}
+	mainTrie.MarkStorerAsSyncedAndActive()
 
 	return nil
 }
@@ -162,6 +160,7 @@ func (u *userAccountsSyncer) syncDataTrie(rootHash []byte, ssh common.SizeSyncSt
 		TrieSyncStatistics:        ssh,
 		TimeoutHandler:            u.timeoutHandler,
 		MaxHardCapForMissingNodes: u.maxHardCapForMissingNodes,
+		CheckNodesOnDisk:          u.checkNodesOnDisk,
 	}
 	trieSyncer, err := trie.CreateTrieSyncer(arg, u.trieSyncerVersion)
 	if err != nil {

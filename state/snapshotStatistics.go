@@ -3,6 +3,8 @@ package state
 import (
 	"sync"
 	"time"
+
+	"github.com/ElrondNetwork/elrond-go-core/core"
 )
 
 type snapshotStatistics struct {
@@ -69,4 +71,21 @@ func (ss *snapshotStatistics) WaitForSyncToFinish() {
 // SyncFinished marks the end of the sync process
 func (ss *snapshotStatistics) SyncFinished() {
 	ss.wgSync.Done()
+}
+
+// PrintStats will print the stats after the snapshot has finished
+func (ss *snapshotStatistics) PrintStats(identifier string, rootHash []byte) {
+	ss.wg.Wait()
+
+	ss.mutex.RLock()
+	defer ss.mutex.RUnlock()
+
+	log.Debug("snapshot statistics",
+		"type", identifier,
+		"duration", time.Since(ss.startTime).Truncate(time.Second),
+		"num of nodes copied", ss.numNodes,
+		"total size copied", core.ConvertBytes(ss.trieSize),
+		"num data tries copied", ss.numDataTries,
+		"rootHash", rootHash,
+	)
 }

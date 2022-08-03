@@ -322,6 +322,11 @@ var (
 			"and by advanced users, as a too high memory ballast could lead to Out Of Memory panics. The memory ballast " +
 			"should not be higher than 20-25% of the machine's available RAM",
 	}
+	// forceStartFromNetwork defines a flag that will force the start from network bootstrap process
+	forceStartFromNetwork = cli.BoolFlag{
+		Name:  "force-start-from-network",
+		Usage: "Flag that will force the start from network bootstrap process",
+	}
 )
 
 func getFlags() []cli.Flag {
@@ -371,6 +376,7 @@ func getFlags() []cli.Flag {
 		fullArchive,
 		memBallast,
 		memoryUsageToCreateProfiles,
+		forceStartFromNetwork,
 	}
 }
 
@@ -393,6 +399,7 @@ func getFlagsConfig(ctx *cli.Context, log logger.Logger) *config.ContextFlagsCon
 	flagsConfig.EnablePprof = ctx.GlobalBool(profileMode.Name)
 	flagsConfig.UseLogView = ctx.GlobalBool(useLogView.Name)
 	flagsConfig.ValidatorKeyIndex = ctx.GlobalInt(validatorKeyIndex.Name)
+	flagsConfig.ForceStartFromNetwork = ctx.GlobalBool(forceStartFromNetwork.Name)
 	return flagsConfig
 }
 
@@ -506,6 +513,7 @@ func processConfigImportDBMode(log logger.Logger, configs *config.Configs) error
 
 	generalConfigs.StoragePruning.NumActivePersisters = generalConfigs.StoragePruning.NumEpochsToKeep
 	generalConfigs.StateTriesConfig.CheckpointsEnabled = false
+	generalConfigs.StateTriesConfig.SnapshotsEnabled = false
 	generalConfigs.StateTriesConfig.CheckpointRoundsModulus = 100000000
 	p2pConfigs.Node.ThresholdMinConnectedPeers = 0
 	p2pConfigs.KadDhtPeerDiscovery.Enabled = false
@@ -515,6 +523,7 @@ func processConfigImportDBMode(log logger.Logger, configs *config.Configs) error
 	log.Warn("the node is in import mode! Will auto-set some config values, including storage config values",
 		"GeneralSettings.StartInEpochEnabled", generalConfigs.GeneralSettings.StartInEpochEnabled,
 		"StateTriesConfig.CheckpointsEnabled", generalConfigs.StateTriesConfig.CheckpointsEnabled,
+		"StateTriesConfig.SnapshotsEnabled", generalConfigs.StateTriesConfig.SnapshotsEnabled,
 		"StateTriesConfig.CheckpointRoundsModulus", generalConfigs.StateTriesConfig.CheckpointRoundsModulus,
 		"StoragePruning.NumActivePersisters", generalConfigs.StoragePruning.NumEpochsToKeep,
 		"p2p.ThresholdMinConnectedPeers", p2pConfigs.Node.ThresholdMinConnectedPeers,

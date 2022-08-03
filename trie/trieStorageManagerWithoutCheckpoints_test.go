@@ -4,37 +4,16 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go/common"
 	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNewTrieStorageManagerWithoutCheckpointsNilMarshalizer(t *testing.T) {
-	t.Parallel()
-
-	args := getNewTrieStorageManagerArgs()
-	args.Marshalizer = nil
-	ts, err := trie.NewTrieStorageManagerWithoutCheckpoints(args)
-	assert.Nil(t, ts)
-	assert.Equal(t, trie.ErrNilMarshalizer, err)
-}
-
-func TestNewTrieStorageManagerWithoutCheckpointsNilHasher(t *testing.T) {
-	t.Parallel()
-
-	args := getNewTrieStorageManagerArgs()
-	args.Hasher = nil
-	ts, err := trie.NewTrieStorageManagerWithoutCheckpoints(args)
-	assert.Nil(t, ts)
-	assert.Equal(t, trie.ErrNilHasher, err)
-}
-
 func TestNewTrieStorageManagerWithoutCheckpointsOkVals(t *testing.T) {
 	t.Parallel()
 
-	args := getNewTrieStorageManagerArgs()
-	ts, err := trie.NewTrieStorageManagerWithoutCheckpoints(args)
+	tsm, _ := trie.NewTrieStorageManager(getNewTrieStorageManagerArgs())
+	ts, err := trie.NewTrieStorageManagerWithoutCheckpoints(tsm)
 	assert.Nil(t, err)
 	assert.NotNil(t, ts)
 }
@@ -42,14 +21,15 @@ func TestNewTrieStorageManagerWithoutCheckpointsOkVals(t *testing.T) {
 func TestTrieStorageManagerWithoutCheckpoints_SetCheckpoint(t *testing.T) {
 	t.Parallel()
 
-	args := getNewTrieStorageManagerArgs()
-	ts, _ := trie.NewTrieStorageManagerWithoutCheckpoints(args)
+	errChan := make(chan error, 1)
+	tsm, _ := trie.NewTrieStorageManager(getNewTrieStorageManagerArgs())
+	ts, _ := trie.NewTrieStorageManagerWithoutCheckpoints(tsm)
 
-	ts.SetCheckpoint([]byte("rootHash"), make([]byte, 0), nil, nil, &trieMock.MockStatistics{})
+	ts.SetCheckpoint([]byte("rootHash"), make([]byte, 0), nil, nil, errChan, &trieMock.MockStatistics{})
 	assert.Equal(t, uint32(0), ts.PruningBlockingOperations())
 
 	chLeaves := make(chan core.KeyValueHolder)
-	ts.SetCheckpoint([]byte("rootHash"), make([]byte, 0), chLeaves, nil, &trieMock.MockStatistics{})
+	ts.SetCheckpoint([]byte("rootHash"), make([]byte, 0), chLeaves, nil, errChan, &trieMock.MockStatistics{})
 	assert.Equal(t, uint32(0), ts.PruningBlockingOperations())
 
 	select {
@@ -62,44 +42,8 @@ func TestTrieStorageManagerWithoutCheckpoints_SetCheckpoint(t *testing.T) {
 func TestTrieStorageManagerWithoutCheckpoints_AddDirtyCheckpointHashes(t *testing.T) {
 	t.Parallel()
 
-	args := getNewTrieStorageManagerArgs()
-	ts, _ := trie.NewTrieStorageManagerWithoutCheckpoints(args)
+	tsm, _ := trie.NewTrieStorageManager(getNewTrieStorageManagerArgs())
+	ts, _ := trie.NewTrieStorageManagerWithoutCheckpoints(tsm)
 
 	assert.False(t, ts.AddDirtyCheckpointHashes([]byte("rootHash"), nil))
-}
-
-func TestTrieStorageManagerWithoutCheckpoints_Remove(t *testing.T) {
-	t.Parallel()
-
-	args := getNewTrieStorageManagerArgs()
-	ts, _ := trie.NewTrieStorageManagerWithoutCheckpoints(args)
-
-	key := []byte("key")
-	value := []byte("value")
-
-	_ = args.MainStorer.Put(key, value)
-	hashes := make(common.ModifiedHashes)
-	hashes[string(value)] = struct{}{}
-	hashes[string(key)] = struct{}{}
-
-	val, err := args.MainStorer.Get(key)
-	assert.Nil(t, err)
-	assert.NotNil(t, val)
-
-	err = ts.Remove(key)
-	assert.Nil(t, err)
-
-	val, err = args.MainStorer.Get(key)
-	assert.Nil(t, val)
-	assert.NotNil(t, err)
-}
-
-func TestNewTrieStorageManagerCreatesDisabledCheckpointHashesHolder(t *testing.T) {
-	t.Parallel()
-
-	args := getNewTrieStorageManagerArgs()
-	args.CheckpointHashesHolder = nil
-	ts, err := trie.NewTrieStorageManagerWithoutCheckpoints(args)
-	assert.NotNil(t, ts)
-	assert.Nil(t, err)
 }

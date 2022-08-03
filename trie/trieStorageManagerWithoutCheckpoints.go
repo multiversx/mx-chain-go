@@ -1,30 +1,47 @@
 package trie
 
 import (
+	"errors"
+	"fmt"
+
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/trie/hashesHolder/disabled"
 )
 
 // trieStorageManagerWithoutCheckpoints manages the storage operations of the trie, but does not create checkpoints
 type trieStorageManagerWithoutCheckpoints struct {
-	*trieStorageManager
+	common.StorageManager
+	storageManagerExtension
 }
 
 // NewTrieStorageManagerWithoutCheckpoints creates a new instance of trieStorageManagerWithoutCheckpoints
-func NewTrieStorageManagerWithoutCheckpoints(args NewTrieStorageManagerArgs) (*trieStorageManagerWithoutCheckpoints, error) {
-	args.CheckpointHashesHolder = disabled.NewDisabledCheckpointHashesHolder()
-	tsm, err := NewTrieStorageManager(args)
-	if err != nil {
-		return nil, err
+func NewTrieStorageManagerWithoutCheckpoints(tsm common.StorageManager) (*trieStorageManagerWithoutCheckpoints, error) {
+	if check.IfNil(tsm) {
+		return nil, ErrNilTrieStorage
 	}
 
-	return &trieStorageManagerWithoutCheckpoints{tsm}, nil
+	sm, ok := tsm.(storageManagerExtension)
+	if !ok {
+		return nil, errors.New("invalid storage manager type" + fmt.Sprintf("%T", tsm))
+	}
+
+	return &trieStorageManagerWithoutCheckpoints{
+		StorageManager:          tsm,
+		storageManagerExtension: sm,
+	}, nil
 }
 
 // SetCheckpoint does nothing if pruning is disabled
-func (tsm *trieStorageManagerWithoutCheckpoints) SetCheckpoint(_ []byte, _ []byte, chLeaves chan core.KeyValueHolder, _ chan []byte, stats common.SnapshotStatisticsHandler) {
-	tsm.safelyCloseChan(chLeaves)
+func (tsm *trieStorageManagerWithoutCheckpoints) SetCheckpoint(
+	_ []byte,
+	_ []byte,
+	chLeaves chan core.KeyValueHolder,
+	_ chan []byte,
+	_ chan error,
+	stats common.SnapshotStatisticsHandler,
+) {
+	safelyCloseChan(chLeaves)
 	stats.SnapshotFinished()
 
 	log.Debug("trieStorageManagerWithoutCheckpoints - SetCheckpoint is disabled")
@@ -33,9 +50,4 @@ func (tsm *trieStorageManagerWithoutCheckpoints) SetCheckpoint(_ []byte, _ []byt
 // AddDirtyCheckpointHashes returns false
 func (tsm *trieStorageManagerWithoutCheckpoints) AddDirtyCheckpointHashes(_ []byte, _ common.ModifiedHashes) bool {
 	return false
-}
-
-// Remove removes the given hash form the storage
-func (tsm *trieStorageManagerWithoutCheckpoints) Remove(hash []byte) error {
-	return tsm.mainStorer.Remove(hash)
 }
