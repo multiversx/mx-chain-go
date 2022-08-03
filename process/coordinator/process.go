@@ -1371,27 +1371,6 @@ func (tc *transactionCoordinator) CreateReceiptsHash() ([]byte, error) {
 	return finalReceiptHash, err
 }
 
-// CreateMarshalizedReceipts will return all the receipts list in one marshalized object
-func (tc *transactionCoordinator) CreateMarshalizedReceipts() ([]byte, error) {
-	inShardMiniBlocks := tc.GetCreatedInShardMiniBlocks()
-
-	receiptsBatch := &batch.Batch{}
-	for _, miniBlock := range inShardMiniBlocks {
-		marshalizedMiniBlock, err := tc.marshalizer.Marshal(miniBlock)
-		if err != nil {
-			return nil, err
-		}
-
-		receiptsBatch.Data = append(receiptsBatch.Data, marshalizedMiniBlock)
-	}
-
-	if len(receiptsBatch.Data) == 0 {
-		return make([]byte, 0), nil
-	}
-
-	return tc.marshalizer.Marshal(receiptsBatch)
-}
-
 // GetCreatedInShardMiniBlocks will return the intra-shard created miniblocks
 func (tc *transactionCoordinator) GetCreatedInShardMiniBlocks() []*block.MiniBlock {
 	tc.mutInterimProcessors.RLock()

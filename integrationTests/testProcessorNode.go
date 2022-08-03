@@ -615,6 +615,10 @@ func (tpn *TestProcessorNode) initGenesisBlocks(args ArgTestProcessorNode) {
 		tpn.EconomicsData,
 		tpn.EnableEpochs,
 	)
+	tpn.setGenesisBlock()
+	tpn.initNode()
+	tpn.addHandlersForCounters()
+	tpn.addGenesisBlocksIntoStorage()
 }
 
 func (tpn *TestProcessorNode) initTestNodeWithArgs(args ArgTestProcessorNode) {
@@ -1942,6 +1946,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		GasHandler:                   tpn.GasHandler,
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
+		ReceiptsRepository:             &testscommon.ReceiptsRepositoryStub{},
 	}
 
 	if check.IfNil(tpn.EpochStartNotifier) {

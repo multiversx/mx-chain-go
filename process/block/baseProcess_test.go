@@ -97,14 +97,16 @@ func createArgBaseProcessor(
 				return nil
 			},
 		},
-		BlockTracker:                 mock.NewBlockTrackerMock(bootstrapComponents.ShardCoordinator(), startHeaders),
-		BlockSizeThrottler:           &mock.BlockSizeThrottlerStub{},
-		Version:                      "softwareVersion",
-		HistoryRepository:            &dblookupext.HistoryRepositoryStub{},
+		BlockTracker:                   mock.NewBlockTrackerMock(bootstrapComponents.ShardCoordinator(), startHeaders),
+		BlockSizeThrottler:             &mock.BlockSizeThrottlerStub{},
+		Version:                        "softwareVersion",
+		HistoryRepository:              &dblookupext.HistoryRepositoryStub{},
 		EnableRoundsHandler:          &testscommon.EnableRoundsHandlerStub{},
-		GasHandler:                   &mock.GasHandlerMock{},
-		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
-		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
+		GasHandler:                     &mock.GasHandlerMock{},
+		ScheduledTxsExecutionHandler:   &testscommon.ScheduledTxsExecutionStub{},
+		ScheduledMiniBlocksEnableEpoch: 2,
+		ProcessedMiniBlocksTracker:     &testscommon.ProcessedMiniBlocksTrackerStub{},
+		ReceiptsRepository:             &testscommon.ReceiptsRepositoryStub{},
 	}
 }
 
@@ -707,6 +709,14 @@ func TestCheckProcessorNilParameters(t *testing.T) {
 				return args
 			},
 			expectedErr: process.ErrNilProcessedMiniBlocksTracker,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+				args.ReceiptsRepository = nil
+				return args
+			},
+			expectedErr: process.ErrNilReceiptsRepository,
 		},
 		{
 			args: func() blproc.ArgBaseProcessor {

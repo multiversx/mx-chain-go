@@ -272,6 +272,7 @@ type ProcessComponentsHolder interface {
 	HardforkTrigger() HardforkTrigger
 	ProcessedMiniBlocksTracker() process.ProcessedMiniBlocksTracker
 	AccountsParser() genesis.AccountsParser
+	ReceiptsRepository() ReceiptsRepository
 	IsInterfaceNil() bool
 }
 
@@ -495,5 +496,12 @@ type EconomicsHandler interface {
 type LogsFacade interface {
 	GetLog(logKey []byte, epoch uint32) (*transaction.ApiLogs, error)
 	IncludeLogsInTransactions(txs []*transaction.ApiTransactionResult, logsKeys [][]byte, epoch uint32) error
+	IsInterfaceNil() bool
+}
+
+// ReceiptsRepository defines the interface of a receiptsRepository
+type ReceiptsRepository interface {
+	SaveReceipts(holder common.ReceiptsHolder, header data.HeaderHandler, headerHash []byte) error
+	LoadReceipts(header data.HeaderHandler, headerHash []byte) (common.ReceiptsHolder, error)
 	IsInterfaceNil() bool
 }

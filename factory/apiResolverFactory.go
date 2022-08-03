@@ -518,6 +518,7 @@ func createAPIBlockProcessorArgs(args *ApiResolverArgs, apiTransactionHandler ex
 		AddressPubkeyConverter:   args.CoreComponents.AddressPubKeyConverter(),
 		Hasher:                   args.CoreComponents.Hasher(),
 		LogsFacade:               logsFacade,
+		ReceiptsRepository:       args.ProcessComponents.ReceiptsRepository(),
 	}
 
 	return blockApiArgs, nil

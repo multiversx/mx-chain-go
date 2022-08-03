@@ -199,6 +199,7 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 	log.LogIfError(err)
 
 	logsFacade := &testscommon.LogsFacadeStub{}
+	receiptsRepository := &testscommon.ReceiptsRepositoryStub{}
 
 	argsDataFieldParser := &datafield.ArgsOperationDataFieldParser{
 		AddressLength:    TestAddressPubkeyConverter.Len(),
@@ -238,6 +239,7 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 		Hasher:                   TestHasher,
 		AddressPubkeyConverter:   TestAddressPubkeyConverter,
 		LogsFacade:               logsFacade,
+		ReceiptsRepository:       receiptsRepository,
 	}
 	blockAPIHandler, err := blockAPI.CreateAPIBlockProcessor(argsBlockAPI)
 	log.LogIfError(err)
