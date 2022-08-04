@@ -1332,6 +1332,7 @@ func (sc *scProcessor) createVMInputWithAsyncCallBackAfterBuiltIn(
 		VMInput: vmcommon.VMInput{
 			CallerAddr:           vmInput.CallerAddr,
 			Arguments:            arguments,
+			AsyncArguments:       vmInput.AsyncArguments,
 			CallValue:            big.NewInt(0),
 			CallType:             vmData.AsynchronousCallBack,
 			GasPrice:             vmInput.GasPrice,
