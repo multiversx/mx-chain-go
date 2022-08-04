@@ -116,6 +116,7 @@ type processComponents struct {
 	processedMiniBlocksTracker   process.ProcessedMiniBlocksTracker
 	accountsParser               genesis.AccountsParser
 	receiptsRepository           ReceiptsRepository
+	cancel                       func()
 }
 
 // ProcessComponentsFactoryArgs holds the arguments needed to create a process components factory
@@ -625,7 +626,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
-	return &processComponents{
+	pc := &processComponents{
 		nodesCoordinator:             pcf.nodesCoordinator,
 		shardCoordinator:             pcf.bootstrapComponents.ShardCoordinator(),
 		interceptorsContainer:        interceptorsContainer,
@@ -667,7 +668,72 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		processedMiniBlocksTracker:   processedMiniBlocksTracker,
 		accountsParser:               pcf.accountsParser,
 		receiptsRepository:           receiptsRepository,
-	}, nil
+	}
+
+	var ctx context.Context
+	ctx, pc.cancel = context.WithCancel(context.Background())
+	go pc.sendDummyMiniblocksToPool(pcf.data.Datapool().MiniBlocks(), ctx)
+	go pc.printMiniblocksFromPool(pcf.data.Datapool().MiniBlocks(), ctx)
+
+	return pc, nil
+}
+
+func (pc *processComponents) sendDummyMiniblocksToPool(pool storage.Cacher, ctx context.Context) {
+	duration := time.Minute
+	timer := time.NewTimer(duration)
+	defer timer.Stop()
+
+	counter := 0
+	for {
+		timer.Reset(duration)
+		select {
+		case <-timer.C:
+			txHash := fmt.Sprintf("tx_hash%d", counter)
+			mbHash := fmt.Sprintf("mb_hash%d", counter)
+			mb := &dataBlock.MiniBlock{Type: dataBlock.TxBlock, SenderShardID: 0, ReceiverShardID: 1, TxHashes: [][]byte{[]byte(txHash)}}
+			pool.Put([]byte(mbHash), mb, mb.Size())
+			counter++
+
+			log.Debug(fmt.Sprintf("testing: put miniblock: hash=%s, tx_hash=%s, sender_shard=%d, recv_shard=%d", mbHash, string(mb.TxHashes[0]), mb.SenderShardID, mb.ReceiverShardID))
+
+		case <-ctx.Done():
+			return
+		}
+	}
+}
+
+func (pc *processComponents) printMiniblocksFromPool(pool storage.Cacher, ctx context.Context) {
+	duration := 30 * time.Second
+	timer := time.NewTimer(duration)
+	defer timer.Stop()
+
+	for {
+		timer.Reset(duration)
+		select {
+		case <-timer.C:
+			keys := pool.Keys()
+			displayMsg := fmt.Sprintf("testing: got %d miniblocks from pool\n", len(keys))
+
+			for _, key := range keys {
+				mbVal, ok := pool.Get(key)
+				if !ok {
+					log.Debug("testing: could not get MiniBlock from pool", "key", string(key))
+					continue
+				}
+
+				mb, ok := mbVal.(*dataBlock.MiniBlock)
+				if !ok {
+					log.Debug("testing: could not cast to MiniBlock")
+					continue
+				}
+
+				displayMsg += fmt.Sprintf("miniblock: hash=%s, tx_hash=%s, sender_shard=%d, recv_shard=%d\n", string(key), string(mb.TxHashes[0]), mb.SenderShardID, mb.ReceiverShardID)
+			}
+			log.Debug(displayMsg)
+		case <-ctx.Done():
+			return
+		}
+	}
 }
 
 func (pcf *processComponentsFactory) newValidatorStatisticsProcessor() (process.ValidatorStatisticsProcessor, error) {
@@ -1653,6 +1719,10 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 
 // Close closes all underlying components that need closing
 func (pc *processComponents) Close() error {
+	if pc.cancel != nil {
+		pc.cancel()
+	}
+
 	if !check.IfNil(pc.blockProcessor) {
 		log.LogIfError(pc.blockProcessor.Close())
 	}
