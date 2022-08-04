@@ -16,5 +16,5 @@ type FeesProcessorHandler interface {
 }
 
 type transactionGetter interface {
-	getTxByHash(txHash []byte) (*transaction.Transaction, error)
+	GetTxByHash(txHash []byte) (*transaction.Transaction, error)
 }

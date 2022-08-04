@@ -25,6 +25,7 @@ type ArgOutportDataProvider struct {
 	EconomicsData            EconomicsDataHandler
 }
 
+// ArgPrepareOutportSaveBlockData holds the arguments needed for prepare outport save block data
 type ArgPrepareOutportSaveBlockData struct {
 	HeaderHash             []byte
 	Header                 data.HeaderHandler

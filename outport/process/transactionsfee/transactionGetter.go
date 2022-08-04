@@ -18,7 +18,8 @@ func newTxGetter(storer storage.Storer, marshaller marshal.Marshalizer) *txGette
 	}
 }
 
-func (tg *txGetter) getTxByHash(txHash []byte) (*transaction.Transaction, error) {
+// GetTxByHash will return from storage transaction with the provided hash
+func (tg *txGetter) GetTxByHash(txHash []byte) (*transaction.Transaction, error) {
 	txBytes, err := tg.storer.Get(txHash)
 	if err != nil {
 		return nil, err

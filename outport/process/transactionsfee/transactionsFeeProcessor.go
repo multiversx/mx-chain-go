@@ -154,7 +154,7 @@ func (tep *transactionsFeeProcessor) prepareScrsNoTx(transactionsAndScrs *transa
 			continue
 		}
 
-		txFromStorage, err := tep.txGetter.getTxByHash(scr.OriginalTxHash)
+		txFromStorage, err := tep.txGetter.GetTxByHash(scr.OriginalTxHash)
 		if err != nil {
 			return err
 		}
