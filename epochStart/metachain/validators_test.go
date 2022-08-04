@@ -3,6 +3,7 @@ package metachain
 import (
 	"bytes"
 	"errors"
+	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"math/big"
 	"reflect"
 	"sort"
@@ -129,6 +130,8 @@ func createMockEpochValidatorInfoCreatorsArguments() ArgsNewValidatorInfoCreator
 				return &validatorInfoCacherMock.ValidatorInfoCacherMock{}
 			},
 		},
+		EpochNotifier:                      &epochNotifier.EpochNotifierStub{},
+		RefactorPeersMiniBlocksEnableEpoch: 0,
 	}
 	return argsNewEpochEconomics
 }

@@ -152,9 +152,9 @@ func testInterceptedValidatorInfoPropertyLen(property string, tooLong bool) func
 
 		switch property {
 		case publicKeyProperty:
-			ivi.validatorInfo.PublicKey = value
+			ivi.shardValidatorInfo.PublicKey = value
 		case listProperty:
-			ivi.validatorInfo.List = string(value)
+			ivi.shardValidatorInfo.List = string(value)
 		default:
 			assert.True(t, false)
 		}
@@ -185,7 +185,7 @@ func TestInterceptedValidatorInfo_Getters(t *testing.T) {
 	assert.Equal(t, hash, identifiers[0])
 
 	str := ivi.String()
-	assert.True(t, strings.Contains(str, fmt.Sprintf("pk=%s", logger.DisplayByteSlice(ivi.validatorInfo.PublicKey))))
+	assert.True(t, strings.Contains(str, fmt.Sprintf("pk=%s", logger.DisplayByteSlice(ivi.shardValidatorInfo.PublicKey))))
 	assert.True(t, strings.Contains(str, fmt.Sprintf("shard=%d", validatorInfo.ShardId)))
 	assert.True(t, strings.Contains(str, fmt.Sprintf("list=%s", validatorInfo.List)))
 	assert.True(t, strings.Contains(str, fmt.Sprintf("index=%d", validatorInfo.Index)))

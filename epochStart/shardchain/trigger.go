@@ -54,9 +54,10 @@ type ArgsShardEpochStartTrigger struct {
 	RoundHandler         process.RoundHandler
 	AppStatusHandler     core.AppStatusHandler
 
-	Epoch    uint32
-	Validity uint64
-	Finality uint64
+	Epoch                              uint32
+	Validity                           uint64
+	Finality                           uint64
+	RefactorPeersMiniBlocksEnableEpoch uint32
 }
 
 type trigger struct {
@@ -105,11 +106,12 @@ type trigger struct {
 
 	appStatusHandler core.AppStatusHandler
 
-	mapMissingMiniBlocks     map[string]uint32
-	mapMissingValidatorsInfo map[string]uint32
-	mutMissingMiniBlocks     sync.RWMutex
-	mutMissingValidatorsInfo sync.RWMutex
-	cancelFunc               func()
+	mapMissingMiniBlocks               map[string]uint32
+	mapMissingValidatorsInfo           map[string]uint32
+	mutMissingMiniBlocks               sync.RWMutex
+	mutMissingValidatorsInfo           sync.RWMutex
+	cancelFunc                         func()
+	refactorPeersMiniBlocksEnableEpoch uint32
 }
 
 type metaInfo struct {
@@ -213,41 +215,42 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 	trigggerStateKey := common.TriggerRegistryInitialKeyPrefix + fmt.Sprintf("%d", args.Epoch)
 
 	t := &trigger{
-		triggerStateKey:               []byte(trigggerStateKey),
-		epoch:                         args.Epoch,
-		metaEpoch:                     args.Epoch,
-		currentRoundIndex:             0,
-		epochStartRound:               0,
-		epochFinalityAttestingRound:   0,
-		isEpochStart:                  false,
-		validity:                      args.Validity,
-		finality:                      args.Finality,
-		newEpochHdrReceived:           false,
-		mutTrigger:                    sync.RWMutex{},
-		mapHashHdr:                    make(map[string]data.HeaderHandler),
-		mapNonceHashes:                make(map[uint64][]string),
-		mapEpochStartHdrs:             make(map[string]data.HeaderHandler),
-		mapFinalizedEpochs:            make(map[uint32]string),
-		headersPool:                   args.DataPool.Headers(),
-		miniBlocksPool:                args.DataPool.MiniBlocks(),
-		validatorInfoPool:             args.DataPool.ValidatorsInfo(),
-		currentEpochValidatorInfoPool: args.DataPool.CurrentEpochValidatorInfo(),
-		metaHdrStorage:                metaHdrStorage,
-		shardHdrStorage:               shardHdrStorage,
-		triggerStorage:                triggerStorage,
-		metaNonceHdrStorage:           metaHdrNoncesStorage,
-		uint64Converter:               args.Uint64Converter,
-		marshaller:                    args.Marshalizer,
-		hasher:                        args.Hasher,
-		headerValidator:               args.HeaderValidator,
-		requestHandler:                args.RequestHandler,
-		epochMetaBlockHash:            nil,
-		epochStartNotifier:            args.EpochStartNotifier,
-		epochStartMeta:                &block.MetaBlock{},
-		epochStartShardHeader:         &block.Header{},
-		peerMiniBlocksSyncer:          args.PeerMiniBlocksSyncer,
-		appStatusHandler:              args.AppStatusHandler,
-		roundHandler:                  args.RoundHandler,
+		triggerStateKey:                    []byte(trigggerStateKey),
+		epoch:                              args.Epoch,
+		metaEpoch:                          args.Epoch,
+		currentRoundIndex:                  0,
+		epochStartRound:                    0,
+		epochFinalityAttestingRound:        0,
+		isEpochStart:                       false,
+		validity:                           args.Validity,
+		finality:                           args.Finality,
+		newEpochHdrReceived:                false,
+		mutTrigger:                         sync.RWMutex{},
+		mapHashHdr:                         make(map[string]data.HeaderHandler),
+		mapNonceHashes:                     make(map[uint64][]string),
+		mapEpochStartHdrs:                  make(map[string]data.HeaderHandler),
+		mapFinalizedEpochs:                 make(map[uint32]string),
+		headersPool:                        args.DataPool.Headers(),
+		miniBlocksPool:                     args.DataPool.MiniBlocks(),
+		validatorInfoPool:                  args.DataPool.ValidatorsInfo(),
+		currentEpochValidatorInfoPool:      args.DataPool.CurrentEpochValidatorInfo(),
+		metaHdrStorage:                     metaHdrStorage,
+		shardHdrStorage:                    shardHdrStorage,
+		triggerStorage:                     triggerStorage,
+		metaNonceHdrStorage:                metaHdrNoncesStorage,
+		uint64Converter:                    args.Uint64Converter,
+		marshaller:                         args.Marshalizer,
+		hasher:                             args.Hasher,
+		headerValidator:                    args.HeaderValidator,
+		requestHandler:                     args.RequestHandler,
+		epochMetaBlockHash:                 nil,
+		epochStartNotifier:                 args.EpochStartNotifier,
+		epochStartMeta:                     &block.MetaBlock{},
+		epochStartShardHeader:              &block.Header{},
+		peerMiniBlocksSyncer:               args.PeerMiniBlocksSyncer,
+		appStatusHandler:                   args.AppStatusHandler,
+		roundHandler:                       args.RoundHandler,
+		refactorPeersMiniBlocksEnableEpoch: args.RefactorPeersMiniBlocksEnableEpoch,
 	}
 
 	t.headersPool.RegisterHandler(t.receivedMetaBlock)
@@ -733,8 +736,7 @@ func (t *trigger) checkIfTriggerCanBeActivated(hash string, metaHdr data.HeaderH
 		return false, 0
 	}
 
-	// TODO: Use refactor peers mbs activation flag below
-	if true {
+	if metaHdr.GetEpoch() >= t.refactorPeersMiniBlocksEnableEpoch {
 		missingValidatorsInfoHashes, validatorsInfo, err := t.peerMiniBlocksSyncer.SyncValidatorsInfo(blockBody)
 		if err != nil {
 			t.addMissingValidatorsInfo(metaHdr.GetEpoch(), missingValidatorsInfoHashes)

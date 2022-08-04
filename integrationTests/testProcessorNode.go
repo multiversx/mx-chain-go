@@ -1290,20 +1290,21 @@ func (tpn *TestProcessorNode) initInterceptors(heartbeatPk string) {
 		}
 		peerMiniBlockSyncer, _ := shardchain.NewPeerMiniBlockSyncer(argsPeerMiniBlocksSyncer)
 		argsShardEpochStart := &shardchain.ArgsShardEpochStartTrigger{
-			Marshalizer:          TestMarshalizer,
-			Hasher:               TestHasher,
-			HeaderValidator:      tpn.HeaderValidator,
-			Uint64Converter:      TestUint64Converter,
-			DataPool:             tpn.DataPool,
-			Storage:              tpn.Storage,
-			RequestHandler:       tpn.RequestHandler,
-			Epoch:                0,
-			Validity:             1,
-			Finality:             1,
-			EpochStartNotifier:   tpn.EpochStartNotifier,
-			PeerMiniBlocksSyncer: peerMiniBlockSyncer,
-			RoundHandler:         tpn.RoundHandler,
-			AppStatusHandler:     &statusHandlerMock.AppStatusHandlerStub{},
+			Marshalizer:                        TestMarshalizer,
+			Hasher:                             TestHasher,
+			HeaderValidator:                    tpn.HeaderValidator,
+			Uint64Converter:                    TestUint64Converter,
+			DataPool:                           tpn.DataPool,
+			Storage:                            tpn.Storage,
+			RequestHandler:                     tpn.RequestHandler,
+			Epoch:                              0,
+			Validity:                           1,
+			Finality:                           1,
+			EpochStartNotifier:                 tpn.EpochStartNotifier,
+			PeerMiniBlocksSyncer:               peerMiniBlockSyncer,
+			RoundHandler:                       tpn.RoundHandler,
+			AppStatusHandler:                   &statusHandlerMock.AppStatusHandlerStub{},
+			RefactorPeersMiniBlocksEnableEpoch: 0,
 		}
 		epochStartTrigger, _ := shardchain.NewEpochStartTrigger(argsShardEpochStart)
 		tpn.EpochStartTrigger = &shardchain.TestTrigger{}
@@ -1654,6 +1655,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		txTypeHandler,
 		scheduledTxsExecutionHandler,
 		processedMiniBlocksTracker,
+		tpn.EnableEpochs.RefactorPeersMiniBlocksEnableEpoch,
 	)
 	tpn.PreProcessorsContainer, _ = fact.Create()
 
@@ -2205,12 +2207,14 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 
 		validatorInfoStorage := tpn.Storage.GetStorer(dataRetriever.UnsignedTransactionUnit)
 		argsEpochValidatorInfo := metachain.ArgsNewValidatorInfoCreator{
-			ShardCoordinator:     tpn.ShardCoordinator,
-			ValidatorInfoStorage: validatorInfoStorage,
-			MiniBlockStorage:     miniBlockStorage,
-			Hasher:               TestHasher,
-			Marshalizer:          TestMarshalizer,
-			DataPool:             tpn.DataPool,
+			ShardCoordinator:                   tpn.ShardCoordinator,
+			ValidatorInfoStorage:               validatorInfoStorage,
+			MiniBlockStorage:                   miniBlockStorage,
+			Hasher:                             TestHasher,
+			Marshalizer:                        TestMarshalizer,
+			DataPool:                           tpn.DataPool,
+			EpochNotifier:                      tpn.EpochNotifier,
+			RefactorPeersMiniBlocksEnableEpoch: tpn.EnableEpochs.RefactorPeersMiniBlocksEnableEpoch,
 		}
 
 		epochStartValidatorInfo, _ := metachain.NewValidatorInfoCreator(argsEpochValidatorInfo)
@@ -2262,20 +2266,21 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 			}
 			peerMiniBlocksSyncer, _ := shardchain.NewPeerMiniBlockSyncer(argsPeerMiniBlocksSyncer)
 			argsShardEpochStart := &shardchain.ArgsShardEpochStartTrigger{
-				Marshalizer:          TestMarshalizer,
-				Hasher:               TestHasher,
-				HeaderValidator:      tpn.HeaderValidator,
-				Uint64Converter:      TestUint64Converter,
-				DataPool:             tpn.DataPool,
-				Storage:              tpn.Storage,
-				RequestHandler:       tpn.RequestHandler,
-				Epoch:                0,
-				Validity:             1,
-				Finality:             1,
-				EpochStartNotifier:   tpn.EpochStartNotifier,
-				PeerMiniBlocksSyncer: peerMiniBlocksSyncer,
-				RoundHandler:         tpn.RoundHandler,
-				AppStatusHandler:     &statusHandlerMock.AppStatusHandlerStub{},
+				Marshalizer:                        TestMarshalizer,
+				Hasher:                             TestHasher,
+				HeaderValidator:                    tpn.HeaderValidator,
+				Uint64Converter:                    TestUint64Converter,
+				DataPool:                           tpn.DataPool,
+				Storage:                            tpn.Storage,
+				RequestHandler:                     tpn.RequestHandler,
+				Epoch:                              0,
+				Validity:                           1,
+				Finality:                           1,
+				EpochStartNotifier:                 tpn.EpochStartNotifier,
+				PeerMiniBlocksSyncer:               peerMiniBlocksSyncer,
+				RoundHandler:                       tpn.RoundHandler,
+				AppStatusHandler:                   &statusHandlerMock.AppStatusHandlerStub{},
+				RefactorPeersMiniBlocksEnableEpoch: 0,
 			}
 			epochStartTrigger, _ := shardchain.NewEpochStartTrigger(argsShardEpochStart)
 			tpn.EpochStartTrigger = &shardchain.TestTrigger{}

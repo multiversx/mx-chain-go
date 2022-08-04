@@ -24,31 +24,33 @@ import (
 const consensusGroupCacheSize = 50
 
 type syncValidatorStatus struct {
-	miniBlocksSyncer   epochStart.PendingMiniBlocksSyncHandler
-	transactionsSyncer update.TransactionsSyncHandler
-	dataPool           dataRetriever.PoolsHolder
-	marshalizer        marshal.Marshalizer
-	requestHandler     process.RequestHandler
-	nodeCoordinator    StartInEpochNodesCoordinator
-	genesisNodesConfig sharding.GenesisNodesSetupHandler
-	memDB              storage.Storer
+	miniBlocksSyncer                   epochStart.PendingMiniBlocksSyncHandler
+	transactionsSyncer                 update.TransactionsSyncHandler
+	dataPool                           dataRetriever.PoolsHolder
+	marshalizer                        marshal.Marshalizer
+	requestHandler                     process.RequestHandler
+	nodeCoordinator                    StartInEpochNodesCoordinator
+	genesisNodesConfig                 sharding.GenesisNodesSetupHandler
+	memDB                              storage.Storer
+	refactorPeersMiniBlocksEnableEpoch uint32
 }
 
 // ArgsNewSyncValidatorStatus holds the arguments needed for creating a new validator status process component
 type ArgsNewSyncValidatorStatus struct {
-	DataPool                  dataRetriever.PoolsHolder
-	Marshalizer               marshal.Marshalizer
-	Hasher                    hashing.Hasher
-	RequestHandler            process.RequestHandler
-	ChanceComputer            nodesCoordinator.ChanceComputer
-	GenesisNodesConfig        sharding.GenesisNodesSetupHandler
-	NodeShuffler              nodesCoordinator.NodesShuffler
-	PubKey                    []byte
-	ShardIdAsObserver         uint32
-	WaitingListFixEnableEpoch uint32
-	ChanNodeStop              chan endProcess.ArgEndProcess
-	NodeTypeProvider          NodeTypeProviderHandler
-	IsFullArchive             bool
+	DataPool                           dataRetriever.PoolsHolder
+	Marshalizer                        marshal.Marshalizer
+	Hasher                             hashing.Hasher
+	RequestHandler                     process.RequestHandler
+	ChanceComputer                     nodesCoordinator.ChanceComputer
+	GenesisNodesConfig                 sharding.GenesisNodesSetupHandler
+	NodeShuffler                       nodesCoordinator.NodesShuffler
+	PubKey                             []byte
+	ShardIdAsObserver                  uint32
+	WaitingListFixEnableEpoch          uint32
+	ChanNodeStop                       chan endProcess.ArgEndProcess
+	NodeTypeProvider                   NodeTypeProviderHandler
+	IsFullArchive                      bool
+	RefactorPeersMiniBlocksEnableEpoch uint32
 }
 
 // NewSyncValidatorStatus creates a new validator status process component
@@ -58,10 +60,11 @@ func NewSyncValidatorStatus(args ArgsNewSyncValidatorStatus) (*syncValidatorStat
 	}
 
 	s := &syncValidatorStatus{
-		dataPool:           args.DataPool,
-		marshalizer:        args.Marshalizer,
-		requestHandler:     args.RequestHandler,
-		genesisNodesConfig: args.GenesisNodesConfig,
+		dataPool:                           args.DataPool,
+		marshalizer:                        args.Marshalizer,
+		requestHandler:                     args.RequestHandler,
+		genesisNodesConfig:                 args.GenesisNodesConfig,
+		refactorPeersMiniBlocksEnableEpoch: args.RefactorPeersMiniBlocksEnableEpoch,
 	}
 
 	var err error
@@ -108,24 +111,25 @@ func NewSyncValidatorStatus(args ArgsNewSyncValidatorStatus) (*syncValidatorStat
 	s.memDB = disabled.CreateMemUnit()
 
 	argsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
-		ShardConsensusGroupSize:    int(args.GenesisNodesConfig.GetShardConsensusGroupSize()),
-		MetaConsensusGroupSize:     int(args.GenesisNodesConfig.GetMetaConsensusGroupSize()),
-		Marshalizer:                args.Marshalizer,
-		Hasher:                     args.Hasher,
-		Shuffler:                   args.NodeShuffler,
-		EpochStartNotifier:         &disabled.EpochStartNotifier{},
-		BootStorer:                 s.memDB,
-		ShardIDAsObserver:          args.ShardIdAsObserver,
-		NbShards:                   args.GenesisNodesConfig.NumberOfShards(),
-		EligibleNodes:              eligibleValidators,
-		WaitingNodes:               waitingValidators,
-		SelfPublicKey:              args.PubKey,
-		ConsensusGroupCache:        consensusGroupCache,
-		ShuffledOutHandler:         disabled.NewShuffledOutHandler(),
-		WaitingListFixEnabledEpoch: args.WaitingListFixEnableEpoch,
-		ChanStopNode:               args.ChanNodeStop,
-		NodeTypeProvider:           args.NodeTypeProvider,
-		IsFullArchive:              args.IsFullArchive,
+		ShardConsensusGroupSize:            int(args.GenesisNodesConfig.GetShardConsensusGroupSize()),
+		MetaConsensusGroupSize:             int(args.GenesisNodesConfig.GetMetaConsensusGroupSize()),
+		Marshalizer:                        args.Marshalizer,
+		Hasher:                             args.Hasher,
+		Shuffler:                           args.NodeShuffler,
+		EpochStartNotifier:                 &disabled.EpochStartNotifier{},
+		BootStorer:                         s.memDB,
+		ShardIDAsObserver:                  args.ShardIdAsObserver,
+		NbShards:                           args.GenesisNodesConfig.NumberOfShards(),
+		EligibleNodes:                      eligibleValidators,
+		WaitingNodes:                       waitingValidators,
+		SelfPublicKey:                      args.PubKey,
+		ConsensusGroupCache:                consensusGroupCache,
+		ShuffledOutHandler:                 disabled.NewShuffledOutHandler(),
+		WaitingListFixEnabledEpoch:         args.WaitingListFixEnableEpoch,
+		ChanStopNode:                       args.ChanNodeStop,
+		NodeTypeProvider:                   args.NodeTypeProvider,
+		IsFullArchive:                      args.IsFullArchive,
+		RefactorPeersMiniBlocksEnableEpoch: args.RefactorPeersMiniBlocksEnableEpoch,
 	}
 	baseNodesCoordinator, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argsNodesCoordinator)
 	if err != nil {
@@ -223,8 +227,7 @@ func (s *syncValidatorStatus) getPeerBlockBodyForMeta(
 		return nil, nil, err
 	}
 
-	// TODO: Use refactor peers mbs activation flag below
-	if true {
+	if metaBlock.GetEpoch() >= s.refactorPeersMiniBlocksEnableEpoch {
 		s.transactionsSyncer.ClearFields()
 		ctx, cancel = context.WithTimeout(context.Background(), time.Minute)
 		err = s.transactionsSyncer.SyncTransactionsFor(peerMiniBlocks, metaBlock.GetEpoch(), ctx)

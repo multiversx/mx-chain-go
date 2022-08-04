@@ -2,6 +2,7 @@ package metachain
 
 import (
 	"bytes"
+	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"sort"
 	"sync"
 
@@ -24,22 +25,26 @@ var _ process.EpochStartValidatorInfoCreator = (*validatorInfoCreator)(nil)
 
 // ArgsNewValidatorInfoCreator defines the arguments structure needed to create a new validatorInfo creator
 type ArgsNewValidatorInfoCreator struct {
-	ShardCoordinator     sharding.Coordinator
-	ValidatorInfoStorage storage.Storer
-	MiniBlockStorage     storage.Storer
-	Hasher               hashing.Hasher
-	Marshalizer          marshal.Marshalizer
-	DataPool             dataRetriever.PoolsHolder
+	ShardCoordinator                   sharding.Coordinator
+	ValidatorInfoStorage               storage.Storer
+	MiniBlockStorage                   storage.Storer
+	Hasher                             hashing.Hasher
+	Marshalizer                        marshal.Marshalizer
+	DataPool                           dataRetriever.PoolsHolder
+	EpochNotifier                      process.EpochNotifier
+	RefactorPeersMiniBlocksEnableEpoch uint32
 }
 
 type validatorInfoCreator struct {
-	shardCoordinator     sharding.Coordinator
-	validatorInfoStorage storage.Storer
-	miniBlockStorage     storage.Storer
-	hasher               hashing.Hasher
-	marshalizer          marshal.Marshalizer
-	dataPool             dataRetriever.PoolsHolder
-	mutValidatorInfo     sync.Mutex
+	shardCoordinator                   sharding.Coordinator
+	validatorInfoStorage               storage.Storer
+	miniBlockStorage                   storage.Storer
+	hasher                             hashing.Hasher
+	marshalizer                        marshal.Marshalizer
+	dataPool                           dataRetriever.PoolsHolder
+	mutValidatorInfo                   sync.Mutex
+	refactorPeersMiniBlocksEnableEpoch uint32
+	flagRefactorPeersMiniBlocks        atomic.Flag
 }
 
 // NewValidatorInfoCreator creates a new validatorInfo creator object
@@ -65,17 +70,25 @@ func NewValidatorInfoCreator(args ArgsNewValidatorInfoCreator) (*validatorInfoCr
 	if check.IfNil(args.DataPool.CurrentEpochValidatorInfo()) {
 		return nil, epochStart.ErrNilCurrentEpochValidatorsInfoPool
 	}
+	if check.IfNil(args.EpochNotifier) {
+		return nil, epochStart.ErrNilEpochNotifier
+	}
 
 	//TODO: currValidatorInfoCache := dataPool.NewCurrentEpochValidatorInfoPool() should be replaced by
 	//args.DataPool.CurrentEpochValidatorInfo(), as this pool is already created
 	vic := &validatorInfoCreator{
-		shardCoordinator:     args.ShardCoordinator,
-		hasher:               args.Hasher,
-		marshalizer:          args.Marshalizer,
-		validatorInfoStorage: args.ValidatorInfoStorage,
-		miniBlockStorage:     args.MiniBlockStorage,
-		dataPool:             args.DataPool,
+		shardCoordinator:                   args.ShardCoordinator,
+		hasher:                             args.Hasher,
+		marshalizer:                        args.Marshalizer,
+		validatorInfoStorage:               args.ValidatorInfoStorage,
+		miniBlockStorage:                   args.MiniBlockStorage,
+		dataPool:                           args.DataPool,
+		refactorPeersMiniBlocksEnableEpoch: args.RefactorPeersMiniBlocksEnableEpoch,
 	}
+
+	log.Debug("validatorInfoCreator: enable epoch for refactor peers mini blocks", "epoch", vic.refactorPeersMiniBlocksEnableEpoch)
+
+	args.EpochNotifier.RegisterNotifyHandler(vic)
 
 	return vic, nil
 }
@@ -135,12 +148,12 @@ func (vic *validatorInfoCreator) createMiniBlock(validatorsInfo []*state.Validat
 		return bytes.Compare(validatorCopy[a].PublicKey, validatorCopy[b].PublicKey) < 0
 	})
 
-	currentEpochValidatorInfo := vic.dataPool.CurrentEpochValidatorInfo()
+	validatorInfoCacher := vic.dataPool.CurrentEpochValidatorInfo()
 
 	for index, validator := range validatorCopy {
 		shardValidatorInfo := createShardValidatorInfo(validator)
 
-		shardValidatorInfoData, err := vic.getShardValidatorInfoData(shardValidatorInfo, currentEpochValidatorInfo)
+		shardValidatorInfoData, err := vic.getShardValidatorInfoData(shardValidatorInfo, validatorInfoCacher)
 		if err != nil {
 			return nil, err
 		}
@@ -151,15 +164,14 @@ func (vic *validatorInfoCreator) createMiniBlock(validatorsInfo []*state.Validat
 	return miniBlock, nil
 }
 
-func (vic *validatorInfoCreator) getShardValidatorInfoData(shardValidatorInfo *state.ShardValidatorInfo, currentEpochValidatorInfo dataRetriever.ValidatorInfoCacher) ([]byte, error) {
-	// TODO: Use refactor peers mbs activation flag below
-	if true {
+func (vic *validatorInfoCreator) getShardValidatorInfoData(shardValidatorInfo *state.ShardValidatorInfo, validatorInfoCacher dataRetriever.ValidatorInfoCacher) ([]byte, error) {
+	if vic.flagRefactorPeersMiniBlocks.IsSet() {
 		shardValidatorInfoHash, err := core.CalculateHash(vic.marshalizer, vic.hasher, shardValidatorInfo)
 		if err != nil {
 			return nil, err
 		}
 
-		currentEpochValidatorInfo.AddValidatorInfo(shardValidatorInfoHash, shardValidatorInfo)
+		validatorInfoCacher.AddValidatorInfo(shardValidatorInfoHash, shardValidatorInfo)
 		return shardValidatorInfoHash, nil
 	}
 
@@ -416,4 +428,10 @@ func (vic *validatorInfoCreator) clean() {
 // IsInterfaceNil return true if underlying object is nil
 func (vic *validatorInfoCreator) IsInterfaceNil() bool {
 	return vic == nil
+}
+
+// EpochConfirmed is called whenever a new epoch is confirmed
+func (vic *validatorInfoCreator) EpochConfirmed(epoch uint32, _ uint64) {
+	vic.flagRefactorPeersMiniBlocks.SetValue(epoch >= vic.refactorPeersMiniBlocksEnableEpoch)
+	log.Debug("validatorInfoCreator: refactor peers mini blocks", "enabled", vic.flagRefactorPeersMiniBlocks.IsSet())
 }

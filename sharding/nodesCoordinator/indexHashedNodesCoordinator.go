@@ -68,32 +68,34 @@ type epochNodesConfig struct {
 }
 
 type indexHashedNodesCoordinator struct {
-	shardIDAsObserver             uint32
-	currentEpoch                  uint32
-	shardConsensusGroupSize       int
-	metaConsensusGroupSize        int
-	numTotalEligible              uint64
-	selfPubKey                    []byte
-	savedStateKey                 []byte
-	marshalizer                   marshal.Marshalizer
-	hasher                        hashing.Hasher
-	shuffler                      NodesShuffler
-	epochStartRegistrationHandler EpochStartEventNotifier
-	bootStorer                    storage.Storer
-	nodesConfig                   map[uint32]*epochNodesConfig
-	mutNodesConfig                sync.RWMutex
-	mutSavedStateKey              sync.RWMutex
-	nodesCoordinatorHelper        NodesCoordinatorHelper
-	consensusGroupCacher          Cacher
-	loadingFromDisk               atomic.Value
-	shuffledOutHandler            ShuffledOutHandler
-	startEpoch                    uint32
-	publicKeyToValidatorMap       map[string]*validatorWithShardID
-	waitingListFixEnableEpoch     uint32
-	isFullArchive                 bool
-	chanStopNode                  chan endProcess.ArgEndProcess
-	flagWaitingListFix            atomicFlags.Flag
-	nodeTypeProvider              NodeTypeProviderHandler
+	shardIDAsObserver                  uint32
+	currentEpoch                       uint32
+	shardConsensusGroupSize            int
+	metaConsensusGroupSize             int
+	numTotalEligible                   uint64
+	selfPubKey                         []byte
+	savedStateKey                      []byte
+	marshalizer                        marshal.Marshalizer
+	hasher                             hashing.Hasher
+	shuffler                           NodesShuffler
+	epochStartRegistrationHandler      EpochStartEventNotifier
+	bootStorer                         storage.Storer
+	nodesConfig                        map[uint32]*epochNodesConfig
+	mutNodesConfig                     sync.RWMutex
+	mutSavedStateKey                   sync.RWMutex
+	nodesCoordinatorHelper             NodesCoordinatorHelper
+	consensusGroupCacher               Cacher
+	loadingFromDisk                    atomic.Value
+	shuffledOutHandler                 ShuffledOutHandler
+	startEpoch                         uint32
+	publicKeyToValidatorMap            map[string]*validatorWithShardID
+	waitingListFixEnableEpoch          uint32
+	isFullArchive                      bool
+	chanStopNode                       chan endProcess.ArgEndProcess
+	flagWaitingListFix                 atomicFlags.Flag
+	nodeTypeProvider                   NodeTypeProviderHandler
+	refactorPeersMiniBlocksEnableEpoch uint32
+	flagRefactorPeersMiniBlocks        atomicFlags.Flag
 }
 
 // NewIndexHashedNodesCoordinator creates a new index hashed group selector
@@ -118,28 +120,30 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 	savedKey := arguments.Hasher.Compute(string(arguments.SelfPublicKey))
 
 	ihnc := &indexHashedNodesCoordinator{
-		marshalizer:                   arguments.Marshalizer,
-		hasher:                        arguments.Hasher,
-		shuffler:                      arguments.Shuffler,
-		epochStartRegistrationHandler: arguments.EpochStartNotifier,
-		bootStorer:                    arguments.BootStorer,
-		selfPubKey:                    arguments.SelfPublicKey,
-		nodesConfig:                   nodesConfig,
-		currentEpoch:                  arguments.Epoch,
-		savedStateKey:                 savedKey,
-		shardConsensusGroupSize:       arguments.ShardConsensusGroupSize,
-		metaConsensusGroupSize:        arguments.MetaConsensusGroupSize,
-		consensusGroupCacher:          arguments.ConsensusGroupCache,
-		shardIDAsObserver:             arguments.ShardIDAsObserver,
-		shuffledOutHandler:            arguments.ShuffledOutHandler,
-		startEpoch:                    arguments.StartEpoch,
-		publicKeyToValidatorMap:       make(map[string]*validatorWithShardID),
-		waitingListFixEnableEpoch:     arguments.WaitingListFixEnabledEpoch,
-		chanStopNode:                  arguments.ChanStopNode,
-		nodeTypeProvider:              arguments.NodeTypeProvider,
-		isFullArchive:                 arguments.IsFullArchive,
+		marshalizer:                        arguments.Marshalizer,
+		hasher:                             arguments.Hasher,
+		shuffler:                           arguments.Shuffler,
+		epochStartRegistrationHandler:      arguments.EpochStartNotifier,
+		bootStorer:                         arguments.BootStorer,
+		selfPubKey:                         arguments.SelfPublicKey,
+		nodesConfig:                        nodesConfig,
+		currentEpoch:                       arguments.Epoch,
+		savedStateKey:                      savedKey,
+		shardConsensusGroupSize:            arguments.ShardConsensusGroupSize,
+		metaConsensusGroupSize:             arguments.MetaConsensusGroupSize,
+		consensusGroupCacher:               arguments.ConsensusGroupCache,
+		shardIDAsObserver:                  arguments.ShardIDAsObserver,
+		shuffledOutHandler:                 arguments.ShuffledOutHandler,
+		startEpoch:                         arguments.StartEpoch,
+		publicKeyToValidatorMap:            make(map[string]*validatorWithShardID),
+		waitingListFixEnableEpoch:          arguments.WaitingListFixEnabledEpoch,
+		chanStopNode:                       arguments.ChanStopNode,
+		nodeTypeProvider:                   arguments.NodeTypeProvider,
+		isFullArchive:                      arguments.IsFullArchive,
+		refactorPeersMiniBlocksEnableEpoch: arguments.RefactorPeersMiniBlocksEnableEpoch,
 	}
 	log.Debug("indexHashedNodesCoordinator: enable epoch for waiting waiting list", "epoch", ihnc.waitingListFixEnableEpoch)
+	log.Debug("indexHashedNodesCoordinator: enable epoch for refactor peers mini blocks", "epoch", ihnc.refactorPeersMiniBlocksEnableEpoch)
 
 	ihnc.loadingFromDisk.Store(false)
 
@@ -556,13 +560,13 @@ func (ihnc *indexHashedNodesCoordinator) EpochStartPrepare(metaHdr data.HeaderHa
 		return
 	}
 
-	allValidatorInfo, err := createValidatorInfoFromBody(body, ihnc.numTotalEligible, validatorInfoCacher)
+	ihnc.updateEpochFlags(newEpoch)
+
+	allValidatorInfo, err := ihnc.createValidatorInfoFromBody(body, ihnc.numTotalEligible, validatorInfoCacher)
 	if err != nil {
 		log.Error("could not create validator info from body - do nothing on nodesCoordinator epochStartPrepare", "error", err.Error())
 		return
 	}
-
-	ihnc.updateEpochFlags(newEpoch)
 
 	ihnc.mutNodesConfig.RLock()
 	previousConfig := ihnc.nodesConfig[ihnc.currentEpoch]
@@ -1159,7 +1163,7 @@ func selectValidators(
 }
 
 // createValidatorInfoFromBody unmarshalls body data to create validator info
-func createValidatorInfoFromBody(
+func (ihnc *indexHashedNodesCoordinator) createValidatorInfoFromBody(
 	body data.BodyHandler,
 	previousTotal uint64,
 	validatorInfoCacher epochStart.ValidatorInfoCacher,
@@ -1180,7 +1184,7 @@ func createValidatorInfoFromBody(
 		}
 
 		for _, txHash := range peerMiniBlock.TxHashes {
-			shardValidatorInfo, err := validatorInfoCacher.GetValidatorInfo(txHash)
+			shardValidatorInfo, err := ihnc.getShardValidatorInfoData(txHash, validatorInfoCacher)
 			if err != nil {
 				return nil, err
 			}
@@ -1192,7 +1196,28 @@ func createValidatorInfoFromBody(
 	return allValidatorInfo, nil
 }
 
+func (ihnc *indexHashedNodesCoordinator) getShardValidatorInfoData(txHash []byte, validatorInfoCacher epochStart.ValidatorInfoCacher) (*state.ShardValidatorInfo, error) {
+	if ihnc.flagRefactorPeersMiniBlocks.IsSet() {
+		shardValidatorInfo, err := validatorInfoCacher.GetValidatorInfo(txHash)
+		if err != nil {
+			return nil, err
+		}
+
+		return shardValidatorInfo, nil
+	}
+
+	shardValidatorInfo := &state.ShardValidatorInfo{}
+	err := ihnc.marshalizer.Unmarshal(shardValidatorInfo, txHash)
+	if err != nil {
+		return nil, err
+	}
+
+	return shardValidatorInfo, nil
+}
+
 func (ihnc *indexHashedNodesCoordinator) updateEpochFlags(epoch uint32) {
 	ihnc.flagWaitingListFix.SetValue(epoch >= ihnc.waitingListFixEnableEpoch)
 	log.Debug("indexHashedNodesCoordinator: waiting list fix", "enabled", ihnc.flagWaitingListFix.IsSet())
+	ihnc.flagRefactorPeersMiniBlocks.SetValue(epoch >= ihnc.refactorPeersMiniBlocksEnableEpoch)
+	log.Debug("indexHashedNodesCoordinator: refactor peers mini blocks", "enabled", ihnc.flagRefactorPeersMiniBlocks.IsSet())
 }

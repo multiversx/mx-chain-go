@@ -122,6 +122,7 @@ func createGenesisConfig() config.EnableEpochs {
 		HeartbeatDisableEpoch:                             unreachableEpoch,
 		MiniBlockPartialExecutionEnableEpoch:              unreachableEpoch,
 		ESDTMetadataContinuousCleanupEnableEpoch:          unreachableEpoch,
+		RefactorPeersMiniBlocksEnableEpoch:                unreachableEpoch,
 	}
 }
 
@@ -598,6 +599,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		txTypeHandler,
 		disabledScheduledTxsExecutionHandler,
 		disabledProcessedMiniBlocksTracker,
+		enableEpochs.RefactorPeersMiniBlocksEnableEpoch,
 	)
 	if err != nil {
 		return nil, err

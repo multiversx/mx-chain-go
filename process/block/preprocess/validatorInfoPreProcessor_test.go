@@ -1,6 +1,7 @@
 package preprocess
 
 import (
+	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -23,6 +24,8 @@ func TestNewValidatorInfoPreprocessor_NilHasherShouldErr(t *testing.T) {
 		tdp.ValidatorsInfo(),
 		&mock.ChainStorerMock{},
 		func(txHashes [][]byte) {},
+		&epochNotifier.EpochNotifierStub{},
+		0,
 	)
 
 	assert.Nil(t, rtp)
@@ -40,6 +43,8 @@ func TestNewValidatorInfoPreprocessor_NilMarshalizerShouldErr(t *testing.T) {
 		tdp.ValidatorsInfo(),
 		&mock.ChainStorerMock{},
 		func(txHashes [][]byte) {},
+		&epochNotifier.EpochNotifierStub{},
+		0,
 	)
 
 	assert.Nil(t, rtp)
@@ -57,6 +62,8 @@ func TestNewValidatorInfoPreprocessor_NilBlockSizeComputationHandlerShouldErr(t 
 		tdp.ValidatorsInfo(),
 		&mock.ChainStorerMock{},
 		func(txHashes [][]byte) {},
+		&epochNotifier.EpochNotifierStub{},
+		0,
 	)
 
 	assert.Nil(t, rtp)
@@ -73,6 +80,8 @@ func TestNewValidatorInfoPreprocessor_NilValidatorInfoPoolShouldErr(t *testing.T
 		nil,
 		&mock.ChainStorerMock{},
 		func(txHashes [][]byte) {},
+		&epochNotifier.EpochNotifierStub{},
+		0,
 	)
 
 	assert.Nil(t, rtp)
@@ -90,6 +99,8 @@ func TestNewValidatorInfoPreprocessor_NilStoreShouldErr(t *testing.T) {
 		tdp.ValidatorsInfo(),
 		nil,
 		func(txHashes [][]byte) {},
+		&epochNotifier.EpochNotifierStub{},
+		0,
 	)
 
 	assert.Nil(t, rtp)
@@ -107,10 +118,31 @@ func TestNewValidatorInfoPreprocessor_NilRequestHandlerShouldErr(t *testing.T) {
 		tdp.ValidatorsInfo(),
 		&mock.ChainStorerMock{},
 		nil,
+		&epochNotifier.EpochNotifierStub{},
+		0,
 	)
 
 	assert.Nil(t, rtp)
 	assert.Equal(t, process.ErrNilRequestHandler, err)
+}
+
+func TestNewValidatorInfoPreprocessor_NilEpochNotifierShouldErr(t *testing.T) {
+	t.Parallel()
+
+	tdp := initDataPool()
+	rtp, err := NewValidatorInfoPreprocessor(
+		&hashingMocks.HasherMock{},
+		&testscommon.MarshalizerMock{},
+		&testscommon.BlockSizeComputationStub{},
+		tdp.ValidatorsInfo(),
+		&mock.ChainStorerMock{},
+		func(txHashes [][]byte) {},
+		nil,
+		0,
+	)
+
+	assert.Nil(t, rtp)
+	assert.Equal(t, process.ErrNilEpochNotifier, err)
 }
 
 func TestNewValidatorInfoPreprocessor_OkValsShouldWork(t *testing.T) {
@@ -124,6 +156,8 @@ func TestNewValidatorInfoPreprocessor_OkValsShouldWork(t *testing.T) {
 		tdp.ValidatorsInfo(),
 		&mock.ChainStorerMock{},
 		func(txHashes [][]byte) {},
+		&epochNotifier.EpochNotifierStub{},
+		0,
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, rtp)
@@ -140,6 +174,8 @@ func TestNewValidatorInfoPreprocessor_CreateMarshalizedDataShouldWork(t *testing
 		tdp.ValidatorsInfo(),
 		&mock.ChainStorerMock{},
 		func(txHashes [][]byte) {},
+		&epochNotifier.EpochNotifierStub{},
+		0,
 	)
 
 	hash := make([][]byte, 0)
@@ -160,6 +196,8 @@ func TestNewValidatorInfoPreprocessor_ProcessMiniBlockInvalidMiniBlockTypeShould
 		tdp.ValidatorsInfo(),
 		&mock.ChainStorerMock{},
 		func(txHashes [][]byte) {},
+		&epochNotifier.EpochNotifierStub{},
+		0,
 	)
 
 	txHashes := make([][]byte, 0)
@@ -189,6 +227,8 @@ func TestNewValidatorInfoPreprocessor_ProcessMiniBlockShouldWork(t *testing.T) {
 		tdp.ValidatorsInfo(),
 		&mock.ChainStorerMock{},
 		func(txHashes [][]byte) {},
+		&epochNotifier.EpochNotifierStub{},
+		0,
 	)
 
 	txHashes := make([][]byte, 0)
@@ -218,6 +258,8 @@ func TestNewValidatorInfoPreprocessor_ProcessMiniBlockNotFromMeta(t *testing.T) 
 		tdp.ValidatorsInfo(),
 		&mock.ChainStorerMock{},
 		func(txHashes [][]byte) {},
+		&epochNotifier.EpochNotifierStub{},
+		0,
 	)
 
 	txHashes := make([][]byte, 0)
@@ -251,6 +293,8 @@ func TestNewValidatorInfoPreprocessor_RestorePeerBlockIntoPools(t *testing.T) {
 		tdp.ValidatorsInfo(),
 		&mock.ChainStorerMock{},
 		func(txHashes [][]byte) {},
+		&epochNotifier.EpochNotifierStub{},
+		0,
 	)
 
 	txHashes := [][]byte{[]byte("tx_hash1")}
@@ -296,6 +340,8 @@ func TestNewValidatorInfoPreprocessor_RestoreOtherBlockTypeIntoPoolsShouldNotRes
 		tdp.ValidatorsInfo(),
 		&mock.ChainStorerMock{},
 		func(txHashes [][]byte) {},
+		&epochNotifier.EpochNotifierStub{},
+		0,
 	)
 
 	txHashes := [][]byte{[]byte("tx_hash1")}
@@ -341,6 +387,8 @@ func TestNewValidatorInfoPreprocessor_RemovePeerBlockFromPool(t *testing.T) {
 		tdp.ValidatorsInfo(),
 		&mock.ChainStorerMock{},
 		func(txHashes [][]byte) {},
+		&epochNotifier.EpochNotifierStub{},
+		0,
 	)
 
 	txHashes := [][]byte{[]byte("tx_hash1")}
@@ -386,6 +434,8 @@ func TestNewValidatorInfoPreprocessor_RemoveOtherBlockTypeFromPoolShouldNotRemov
 		tdp.ValidatorsInfo(),
 		&mock.ChainStorerMock{},
 		func(txHashes [][]byte) {},
+		&epochNotifier.EpochNotifierStub{},
+		0,
 	)
 
 	txHashes := [][]byte{[]byte("tx_hash1")}

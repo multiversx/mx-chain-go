@@ -66,6 +66,7 @@ func TestStatusComponents_Create_Close_ShouldWork(t *testing.T) {
 		configs.EpochConfig.EnableEpochs.WaitingListFixEnableEpoch,
 		managedCoreComponents.ChanStopNodeProcess(),
 		managedCoreComponents.NodeTypeProvider(),
+		configs.EpochConfig.EnableEpochs.RefactorPeersMiniBlocksEnableEpoch,
 	)
 	require.Nil(t, err)
 	managedStatusComponents, err := nr.CreateManagedStatusComponents(

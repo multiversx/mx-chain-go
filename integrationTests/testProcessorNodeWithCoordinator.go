@@ -80,23 +80,24 @@ func CreateProcessorNodesWithNodesCoordinator(
 		for i, v := range validatorList {
 			cache, _ := lrucache.NewCache(10000)
 			argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
-				ShardConsensusGroupSize:    shardConsensusGroupSize,
-				MetaConsensusGroupSize:     metaConsensusGroupSize,
-				Marshalizer:                TestMarshalizer,
-				Hasher:                     TestHasher,
-				ShardIDAsObserver:          shardId,
-				NbShards:                   numShards,
-				EligibleNodes:              validatorsMapForNodesCoordinator,
-				WaitingNodes:               waitingMapForNodesCoordinator,
-				SelfPublicKey:              v.PubKeyBytes(),
-				ConsensusGroupCache:        cache,
-				ShuffledOutHandler:         &mock.ShuffledOutHandlerStub{},
-				WaitingListFixEnabledEpoch: 0,
-				ChanStopNode:               endProcess.GetDummyEndProcessChannel(),
-				IsFullArchive:              false,
+				ShardConsensusGroupSize:            shardConsensusGroupSize,
+				MetaConsensusGroupSize:             metaConsensusGroupSize,
+				Marshalizer:                        TestMarshalizer,
+				Hasher:                             TestHasher,
+				ShardIDAsObserver:                  shardId,
+				NbShards:                           numShards,
+				EligibleNodes:                      validatorsMapForNodesCoordinator,
+				WaitingNodes:                       waitingMapForNodesCoordinator,
+				SelfPublicKey:                      v.PubKeyBytes(),
+				ConsensusGroupCache:                cache,
+				ShuffledOutHandler:                 &mock.ShuffledOutHandlerStub{},
+				WaitingListFixEnabledEpoch:         0,
+				ChanStopNode:                       endProcess.GetDummyEndProcessChannel(),
+				IsFullArchive:                      false,
+				RefactorPeersMiniBlocksEnableEpoch: 0,
 			}
 
-			nodesCoordinator, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
+			coordinator, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 			if err != nil {
 				fmt.Println("error creating node coordinator")
 			}
@@ -104,7 +105,7 @@ func CreateProcessorNodesWithNodesCoordinator(
 			tpn := newTestProcessorNodeWithCustomNodesCoordinator(
 				numShards,
 				shardId,
-				nodesCoordinator,
+				coordinator,
 				i,
 				ncp,
 				nodesSetup,

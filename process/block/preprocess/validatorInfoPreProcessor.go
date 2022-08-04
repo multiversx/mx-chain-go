@@ -1,6 +1,7 @@
 package preprocess
 
 import (
+	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -20,11 +21,13 @@ var _ process.PreProcessor = (*validatorInfoPreprocessor)(nil)
 
 type validatorInfoPreprocessor struct {
 	*basePreProcess
-	chReceivedAllValidatorsInfo chan bool
-	onRequestValidatorsInfo     func(txHashes [][]byte)
-	validatorsInfoForBlock      txsForBlock
-	validatorsInfoPool          dataRetriever.ShardedDataCacherNotifier
-	storage                     dataRetriever.StorageService
+	chReceivedAllValidatorsInfo        chan bool
+	onRequestValidatorsInfo            func(txHashes [][]byte)
+	validatorsInfoForBlock             txsForBlock
+	validatorsInfoPool                 dataRetriever.ShardedDataCacherNotifier
+	storage                            dataRetriever.StorageService
+	refactorPeersMiniBlocksEnableEpoch uint32
+	flagRefactorPeersMiniBlocks        atomic.Flag
 }
 
 // NewValidatorInfoPreprocessor creates a new validatorInfo preprocessor object
@@ -35,6 +38,8 @@ func NewValidatorInfoPreprocessor(
 	validatorsInfoPool dataRetriever.ShardedDataCacherNotifier,
 	store dataRetriever.StorageService,
 	onRequestValidatorsInfo func(txHashes [][]byte),
+	epochNotifier process.EpochNotifier,
+	refactorPeersMiniBlocksEnableEpoch uint32,
 ) (*validatorInfoPreprocessor, error) {
 
 	if check.IfNil(hasher) {
@@ -55,6 +60,9 @@ func NewValidatorInfoPreprocessor(
 	if onRequestValidatorsInfo == nil {
 		return nil, process.ErrNilRequestHandler
 	}
+	if check.IfNil(epochNotifier) {
+		return nil, process.ErrNilEpochNotifier
+	}
 
 	bpp := &basePreProcess{
 		hasher:               hasher,
@@ -63,15 +71,20 @@ func NewValidatorInfoPreprocessor(
 	}
 
 	vip := &validatorInfoPreprocessor{
-		basePreProcess:          bpp,
-		storage:                 store,
-		validatorsInfoPool:      validatorsInfoPool,
-		onRequestValidatorsInfo: onRequestValidatorsInfo,
+		basePreProcess:                     bpp,
+		storage:                            store,
+		validatorsInfoPool:                 validatorsInfoPool,
+		onRequestValidatorsInfo:            onRequestValidatorsInfo,
+		refactorPeersMiniBlocksEnableEpoch: refactorPeersMiniBlocksEnableEpoch,
 	}
 
 	vip.chReceivedAllValidatorsInfo = make(chan bool)
 	vip.validatorsInfoPool.RegisterOnAdded(vip.receivedValidatorInfoTransaction)
 	vip.validatorsInfoForBlock.txHashAndInfo = make(map[string]*txInfo)
+
+	log.Debug("validatorInfoPreprocessor: enable epoch for refactor peers mini blocks", "epoch", vip.refactorPeersMiniBlocksEnableEpoch)
+
+	epochNotifier.RegisterNotifyHandler(vip)
 
 	return vip, nil
 }
@@ -135,8 +148,7 @@ func (vip *validatorInfoPreprocessor) RestoreBlockDataIntoPools(
 			continue
 		}
 
-		// TODO: Use refactor peers mbs activation flag below
-		if true {
+		if vip.flagRefactorPeersMiniBlocks.IsSet() {
 			err := vip.restoreValidatorsInfo(miniBlock)
 			if err != nil {
 				return validatorsInfoRestored, err
@@ -396,4 +408,12 @@ func (vip *validatorInfoPreprocessor) IsInterfaceNil() bool {
 
 func (vip *validatorInfoPreprocessor) isMiniBlockCorrect(mbType block.Type) bool {
 	return mbType == block.PeerBlock
+}
+
+// EpochConfirmed is called whenever a new epoch is confirmed
+func (vip *validatorInfoPreprocessor) EpochConfirmed(epoch uint32, timestamp uint64) {
+	vip.epochConfirmed(epoch, timestamp)
+
+	vip.flagRefactorPeersMiniBlocks.SetValue(epoch >= vip.refactorPeersMiniBlocksEnableEpoch)
+	log.Debug("validatorInfoPreprocessor: refactor peers mini blocks", "enabled", vip.flagRefactorPeersMiniBlocks.IsSet())
 }
