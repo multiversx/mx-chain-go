@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/clean"
 	"github.com/ElrondNetwork/elrond-go/storage/databaseremover"
 	"github.com/ElrondNetwork/elrond-go/storage/databaseremover/disabled"
+	storageDisabled "github.com/ElrondNetwork/elrond-go/storage/disabled"
 	"github.com/ElrondNetwork/elrond-go/storage/pruning"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
@@ -548,18 +549,20 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 func (psf *StorageServiceFactory) setupLogsAndEventsStorer(chainStorer *dataRetriever.ChainStorer) ([]storage.Storer, error) {
 	createdStorers := make([]storage.Storer, 0)
 
+	var txLogsUnit storage.Storer
+	txLogsUnit = storageDisabled.NewStorer()
+
 	// Should not create logs and events storer in the next case:
 	// - LogsAndEvents.Enabled = false and DbLookupExtensions.Enabled = false
 	// If we have DbLookupExtensions ACTIVE node by default should save logs no matter if is enabled or not
 	shouldCreateStorer := psf.generalConfig.LogsAndEvents.SaveInStorageEnabled || psf.generalConfig.DbLookupExtensions.Enabled
-	if !shouldCreateStorer {
-		return createdStorers, nil
-	}
-
-	txLogsUnitArgs := psf.createPruningStorerArgs(psf.generalConfig.LogsAndEvents.TxLogsStorage, disabled.NewDisabledCustomDatabaseRemover())
-	txLogsUnit, err := psf.createPruningPersister(txLogsUnitArgs)
-	if err != nil {
-		return createdStorers, err
+	if shouldCreateStorer {
+		var err error
+		txLogsUnitArgs := psf.createPruningStorerArgs(psf.generalConfig.LogsAndEvents.TxLogsStorage, disabled.NewDisabledCustomDatabaseRemover())
+		txLogsUnit, err = psf.createPruningPersister(txLogsUnitArgs)
+		if err != nil {
+			return createdStorers, err
+		}
 	}
 
 	createdStorers = append(createdStorers, txLogsUnit)
