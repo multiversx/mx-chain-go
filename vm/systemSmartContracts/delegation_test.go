@@ -288,15 +288,7 @@ func TestDelegationSystemSC_ExecuteNilArgsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(VMContextArgs{
-		BlockChainHook:                          &mock.BlockChainHookStub{},
-		CryptoHook:                              hooks.NewVMCryptoHook(),
-		InputParser:                             &mock.ArgumentParserMock{},
-		ValidatorAccountsDB:                     &stateMock.AccountsStub{},
-		ChanceComputer:                          &mock.RaterMock{},
-		EpochNotifier:                           &epochNotifier.EpochNotifierStub{},
-		SetSenderInEeiOutputTransferEnableEpoch: 0,
-	})
+	eei := createDefaultEei()
 	args.Eei = eei
 	d, _ := NewDelegationSystemSC(args)
 

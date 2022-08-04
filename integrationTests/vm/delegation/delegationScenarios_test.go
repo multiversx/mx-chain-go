@@ -47,7 +47,7 @@ func TestDelegationSystemNodesOperationsTest(t *testing.T) {
 	scrs := scrsHandler.GetAllCurrentFinishedTxs()
 
 	numExpectedScrsFound := 0
-	// we expect 2 scrs:
+	// we expect the following 2 scrs:
 	// Delegation Manager -> Delegation Contract Address - 1000 EGLD
 	// Delegation Contract Address -> Staking Address - 1000 EGLD
 	for _, scr := range scrs {
