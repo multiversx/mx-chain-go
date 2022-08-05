@@ -482,6 +482,10 @@
     TopRatedCacheCapacity = 5000
     BadRatedCacheCapacity = 5000
 
+[PoolsCleanersConfig]
+    MaxRoundsToKeepUnprocessedMiniBlocks = 300   # max number of rounds unprocessed miniblocks are kept in pool
+    MaxRoundsToKeepUnprocessedTransactions = 300 # max number of rounds unprocessed transactions are kept in pool
+
 [TrieSyncStorage]
     Capacity = 300000
     SizeInBytes = 104857600 #100MB
