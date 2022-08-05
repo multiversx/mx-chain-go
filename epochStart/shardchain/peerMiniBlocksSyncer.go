@@ -219,9 +219,10 @@ func (p *peerMiniBlockSyncer) getAllValidatorsInfo(body *block.Body) map[string]
 }
 
 func (p *peerMiniBlockSyncer) computeMissingPeerBlocks(metaBlock data.HeaderHandler) {
-	numMissingPeerMiniBlocks := uint32(0)
 	p.mutMiniBlocksForBlock.Lock()
+	defer p.mutMiniBlocksForBlock.Unlock()
 
+	numMissingPeerMiniBlocks := uint32(0)
 	for _, mb := range metaBlock.GetMiniBlockHeaderHandlers() {
 		if mb.GetTypeInt32() != int32(block.PeerBlock) {
 			continue
@@ -245,13 +246,13 @@ func (p *peerMiniBlockSyncer) computeMissingPeerBlocks(metaBlock data.HeaderHand
 	}
 
 	p.numMissingPeerMiniBlocks = numMissingPeerMiniBlocks
-	p.mutMiniBlocksForBlock.Unlock()
 }
 
 func (p *peerMiniBlockSyncer) computeMissingValidatorsInfo(body *block.Body) {
-	numMissingValidatorsInfo := uint32(0)
 	p.mutValidatorsInfoForBlock.Lock()
+	defer p.mutValidatorsInfoForBlock.Unlock()
 
+	numMissingValidatorsInfo := uint32(0)
 	for _, mb := range body.MiniBlocks {
 		if mb.Type != block.PeerBlock {
 			continue
@@ -277,7 +278,6 @@ func (p *peerMiniBlockSyncer) computeMissingValidatorsInfo(body *block.Body) {
 	}
 
 	p.numMissingValidatorsInfo = numMissingValidatorsInfo
-	p.mutValidatorsInfoForBlock.Unlock()
 }
 
 func (p *peerMiniBlockSyncer) retrieveMissingMiniBlocks() ([][]byte, error) {

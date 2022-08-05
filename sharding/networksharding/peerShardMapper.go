@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -12,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/storage"

@@ -409,48 +409,6 @@ func GetTransactionHandlerFromPool(
 	return tx, nil
 }
 
-// GetValidatorInfoFromPool gets the validator info from pool with a given sender/receiver shardId and txHash
-func GetValidatorInfoFromPool(
-	senderShardID uint32,
-	destShardID uint32,
-	validatorInfoHash []byte,
-	shardedDataCacherNotifier dataRetriever.ShardedDataCacherNotifier,
-	searchFirst bool,
-) (*state.ShardValidatorInfo, error) {
-
-	if shardedDataCacherNotifier == nil {
-		return nil, ErrNilShardedDataCacherNotifier
-	}
-
-	var val interface{}
-	ok := false
-	if searchFirst {
-		val, ok = shardedDataCacherNotifier.SearchFirstData(validatorInfoHash)
-		if !ok {
-			return nil, ErrValidatorInfoNotFound
-		}
-	} else {
-		strCache := ShardCacherIdentifier(senderShardID, destShardID)
-		txStore := shardedDataCacherNotifier.ShardDataStore(strCache)
-		if txStore == nil {
-			return nil, ErrNilStorage
-		}
-
-		val, ok = txStore.Peek(validatorInfoHash)
-	}
-
-	if !ok {
-		return nil, ErrValidatorInfoNotFound
-	}
-
-	validatorInfo, ok := val.(*state.ShardValidatorInfo)
-	if !ok {
-		return nil, ErrInvalidValidatorInfoInPool
-	}
-
-	return validatorInfo, nil
-}
-
 // GetTransactionHandlerFromStorage gets the transaction from storage with a given sender/receiver shardId and txHash
 func GetTransactionHandlerFromStorage(
 	txHash []byte,

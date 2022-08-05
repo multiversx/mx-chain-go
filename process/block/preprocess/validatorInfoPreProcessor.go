@@ -1,10 +1,10 @@
 package preprocess
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
@@ -89,34 +89,9 @@ func NewValidatorInfoPreprocessor(
 	return vip, nil
 }
 
-// waitForValidatorsInfoHashes waits for a call whether all the requested validators info appeared
-//func (vip *validatorInfoPreprocessor) waitForValidatorsInfoHashes(waitTime time.Duration) error {
-//	select {
-//	case <-vip.chReceivedAllValidatorsInfo:
-//		return nil
-//	case <-time.After(waitTime):
-//		return process.ErrTimeIsOut
-//	}
-//}
-
 // IsDataPrepared returns non error if all the requested validators info arrived and were saved into the pool
 func (vip *validatorInfoPreprocessor) IsDataPrepared(_ int, _ func() time.Duration) error {
 	return nil
-	//if requestedValidatorsInfo > 0 {
-	//	log.Debug("requested missing validators info",
-	//		"num validators info", requestedValidatorsInfo)
-	//	err := vip.waitForValidatorsInfoHashes(haveTime())
-	//	vip.validatorsInfoForBlock.mutTxsForBlock.Lock()
-	//	missingValidatorsInfo := vip.validatorsInfoForBlock.missingTxs
-	//	vip.validatorsInfoForBlock.missingTxs = 0
-	//	vip.validatorsInfoForBlock.mutTxsForBlock.Unlock()
-	//	log.Debug("received validators info",
-	//		"num validators info", requestedValidatorsInfo-missingValidatorsInfo)
-	//	if err != nil {
-	//		return err
-	//	}
-	//}
-	//return nil
 }
 
 // RemoveBlockDataFromPools removes the peer miniblocks from pool
@@ -203,28 +178,9 @@ func (vip *validatorInfoPreprocessor) ProcessBlockTransactions(
 	return nil
 }
 
-// SaveTxsToStorage saves the validators info from body into storage
+// SaveTxsToStorage does nothing
 func (vip *validatorInfoPreprocessor) SaveTxsToStorage(_ *block.Body) error {
 	return nil
-	//if check.IfNil(body) {
-	//	return process.ErrNilBlockBody
-	//}
-	//
-	//for i := 0; i < len(body.MiniBlocks); i++ {
-	//	miniBlock := body.MiniBlocks[i]
-	//	if miniBlock.Type != block.PeerBlock {
-	//		continue
-	//	}
-	//
-	//	vip.saveTxsToStorage(
-	//		miniBlock.TxHashes,
-	//		&vip.validatorsInfoForBlock,
-	//		vip.storage,
-	//		dataRetriever.UnsignedTransactionUnit,
-	//	)
-	//}
-	//
-	//return nil
 }
 
 // receivedValidatorInfoTransaction is a callback function called when a new validator info transaction
@@ -236,12 +192,7 @@ func (vip *validatorInfoPreprocessor) receivedValidatorInfoTransaction(_ []byte,
 		return
 	}
 
-	log.Debug("validatorInfoPreprocessor.receivedValidatorInfoTransaction", "pk", validatorInfo.PublicKey)
-	//receivedAllMissing := vip.baseReceivedTransaction(key, tx, &vip.validatorsInfoForBlock)
-	//
-	//if receivedAllMissing {
-	//	vip.chReceivedAllValidatorsInfo <- true
-	//}
+	log.Trace("validatorInfoPreprocessor.receivedValidatorInfoTransaction", "pk", validatorInfo.PublicKey)
 }
 
 // CreateBlockStarted cleans the local cache map for processed/created validators info at this round
@@ -254,87 +205,15 @@ func (vip *validatorInfoPreprocessor) CreateBlockStarted() {
 	vip.validatorsInfoForBlock.mutTxsForBlock.Unlock()
 }
 
-// RequestBlockTransactions request for validators info if missing from a block.Body
+// RequestBlockTransactions does nothing
 func (vip *validatorInfoPreprocessor) RequestBlockTransactions(_ *block.Body) int {
 	return 0
-	//if check.IfNil(body) {
-	//	return 0
-	//}
-	//
-	//return vip.computeExistingAndRequestMissingValidatorsInfoForShards(body)
 }
 
-// computeExistingAndRequestMissingValidatorsInfoForShards calculates what validators info are available and requests
-// what are missing from block.Body
-//func (vip *validatorInfoPreprocessor) computeExistingAndRequestMissingValidatorsInfoForShards(body *block.Body) int {
-//	validatorsInfoBody := block.Body{}
-//	for _, mb := range body.MiniBlocks {
-//		if mb.Type != block.PeerBlock {
-//			continue
-//		}
-//		if mb.SenderShardID != core.MetachainShardId {
-//			continue
-//		}
-//
-//		validatorsInfoBody.MiniBlocks = append(validatorsInfoBody.MiniBlocks, mb)
-//	}
-//
-//	numMissingTxsForShards := vip.computeExistingAndRequestMissing(
-//		&validatorsInfoBody,
-//		&vip.validatorsInfoForBlock,
-//		vip.chReceivedAllValidatorsInfo,
-//		vip.isMiniBlockCorrect,
-//		vip.validatorsInfoPool,
-//		vip.onRequestValidatorsInfoWithShard,
-//	)
-//
-//	return numMissingTxsForShards
-//}
-
-//func (vip *validatorInfoPreprocessor) onRequestValidatorsInfoWithShard(_ uint32, txHashes [][]byte) {
-//	vip.onRequestValidatorsInfo(txHashes)
-//}
-
-// RequestTransactionsForMiniBlock requests missing validators info for a certain miniblock
+// RequestTransactionsForMiniBlock does nothing
 func (vip *validatorInfoPreprocessor) RequestTransactionsForMiniBlock(_ *block.MiniBlock) int {
 	return 0
-	//if miniBlock == nil {
-	//	return 0
-	//}
-	//
-	//missingValidatorsInfoHashesForMiniBlock := vip.computeMissingValidatorsInfoHashesForMiniBlock(miniBlock)
-	//if len(missingValidatorsInfoHashesForMiniBlock) > 0 {
-	//	vip.onRequestValidatorsInfo(missingValidatorsInfoHashesForMiniBlock)
-	//}
-	//
-	//return len(missingValidatorsInfoHashesForMiniBlock)
 }
-
-// computeMissingValidatorsInfoHashesForMiniBlock computes missing validators info hashes for a certain miniblock
-//func (vip *validatorInfoPreprocessor) computeMissingValidatorsInfoHashesForMiniBlock(miniBlock *block.MiniBlock) [][]byte {
-//	missingValidatorsInfoHashes := make([][]byte, 0)
-//	return missingValidatorsInfoHashes
-//
-//	if miniBlock.Type != block.PeerBlock {
-//		return missingValidatorsInfoHashes
-//	}
-//
-//	for _, txHash := range miniBlock.TxHashes {
-//		validatorInfo, _ := process.GetValidatorInfoFromPool(
-//			miniBlock.SenderShardID,
-//			miniBlock.ReceiverShardID,
-//			txHash,
-//			vip.validatorsInfoPool,
-//			false,
-//		)
-//
-//		if validatorInfo == nil {
-//			missingValidatorsInfoHashes = append(missingValidatorsInfoHashes, txHash)
-//		}
-//	}
-//
-//	return missingValidatorsInfoHashes
-//}
 
 // CreateAndProcessMiniBlocks does nothing
 func (vip *validatorInfoPreprocessor) CreateAndProcessMiniBlocks(_ func() bool, _ []byte) (block.MiniBlockSlice, error) {
@@ -369,28 +248,14 @@ func (vip *validatorInfoPreprocessor) ProcessMiniBlock(
 	return nil, len(miniBlock.TxHashes) - 1, false, nil
 }
 
-// CreateMarshalledData marshals validators info hashes and saves them into a new structure
+// CreateMarshalledData does nothing
 func (vip *validatorInfoPreprocessor) CreateMarshalledData(_ [][]byte) ([][]byte, error) {
 	return make([][]byte, 0), nil
-	//marshalledValidatorsInfo, err := vip.createMarshalledData(txHashes, &vip.validatorsInfoForBlock)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//
-	//return marshalledValidatorsInfo, nil
 }
 
-// GetAllCurrentUsedTxs returns all the validators info used at current creation / processing
+// GetAllCurrentUsedTxs does nothing
 func (vip *validatorInfoPreprocessor) GetAllCurrentUsedTxs() map[string]data.TransactionHandler {
 	return make(map[string]data.TransactionHandler)
-	//vip.validatorsInfoForBlock.mutTxsForBlock.RLock()
-	//validatorsInfoPool := make(map[string]data.TransactionHandler, len(vip.validatorsInfoForBlock.txHashAndInfo))
-	//for txHash, txData := range vip.validatorsInfoForBlock.txHashAndInfo {
-	//	validatorsInfoPool[txHash] = txData.tx
-	//}
-	//vip.validatorsInfoForBlock.mutTxsForBlock.RUnlock()
-	//
-	//return validatorsInfoPool
 }
 
 // AddTxsFromMiniBlocks does nothing
@@ -401,7 +266,7 @@ func (vip *validatorInfoPreprocessor) AddTxsFromMiniBlocks(_ block.MiniBlockSlic
 func (vip *validatorInfoPreprocessor) AddTransactions(_ []data.TransactionHandler) {
 }
 
-// IsInterfaceNil does nothing
+// IsInterfaceNil returns true if there is no value under the interface
 func (vip *validatorInfoPreprocessor) IsInterfaceNil() bool {
 	return vip == nil
 }

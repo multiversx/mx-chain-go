@@ -2,7 +2,7 @@ package bootstrap
 
 import (
 	"context"
-	"github.com/ElrondNetwork/elrond-go/epochStart"
+	validatorInfoCacherMock "github.com/ElrondNetwork/elrond-go/testscommon/validatorInfoCacher"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -20,7 +21,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/validatorInfoCacher"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

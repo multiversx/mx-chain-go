@@ -3,7 +3,6 @@ package shardchain
 import (
 	"bytes"
 	"fmt"
-	validatorInfoCacherMock "github.com/ElrondNetwork/elrond-go/testscommon/validatorInfoCacher"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -19,6 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
+	validatorInfoCacherMock "github.com/ElrondNetwork/elrond-go/testscommon/validatorInfoCacher"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

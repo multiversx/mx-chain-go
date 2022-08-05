@@ -3,7 +3,6 @@ package metachain
 import (
 	"bytes"
 	"errors"
-	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"math/big"
 	"reflect"
 	"sort"
@@ -19,8 +18,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/validatorInfoCacher"
+	validatorInfoCacherMock "github.com/ElrondNetwork/elrond-go/testscommon/validatorInfoCacher"
 	"github.com/stretchr/testify/require"
 )
 

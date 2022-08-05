@@ -2,6 +2,7 @@ package integrationTests
 
 import (
 	"fmt"
+
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"

@@ -1,11 +1,11 @@
 package dataPool
 
 import (
-	"github.com/ElrondNetwork/elrond-go/state"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/state"
 )
 
 var _ dataRetriever.ValidatorInfoCacher = (*validatorInfoMapCacher)(nil)

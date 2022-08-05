@@ -97,7 +97,7 @@ func CreateProcessorNodesWithNodesCoordinator(
 				RefactorPeersMiniBlocksEnableEpoch: 0,
 			}
 
-			coordinator, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
+			indexHashedNodesCoordinator, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 			if err != nil {
 				fmt.Println("error creating node coordinator")
 			}
@@ -105,7 +105,7 @@ func CreateProcessorNodesWithNodesCoordinator(
 			tpn := newTestProcessorNodeWithCustomNodesCoordinator(
 				numShards,
 				shardId,
-				coordinator,
+				indexHashedNodesCoordinator,
 				i,
 				ncp,
 				nodesSetup,
