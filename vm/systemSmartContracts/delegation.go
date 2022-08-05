@@ -960,6 +960,33 @@ func (d *delegation) changeOwner(args *vmcommon.ContractCallInput) vmcommon.Retu
 		return vmcommon.UserError
 	}
 
+	isNew, _, err := d.getOrCreateDelegatorData(args.Arguments[0])
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+	if !isNew {
+		d.eei.AddReturnMessage("destination should be a new account")
+		return vmcommon.UserError
+	}
+
+	isNew, ownerDelegatorData, err := d.getOrCreateDelegatorData(args.CallerAddr)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+	if isNew {
+		d.eei.AddReturnMessage("owner is new delegator")
+		return vmcommon.UserError
+	}
+
+	d.eei.SetStorage(args.CallerAddr, nil)
+	err = d.saveDelegatorData(args.Arguments[0], ownerDelegatorData)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
 	d.eei.SetStorageForAddress(d.delegationMgrSCAddress, args.Arguments[0], args.RecipientAddr)
 	d.eei.SetStorageForAddress(d.delegationMgrSCAddress, args.CallerAddr, []byte{})
 	d.eei.SetStorage([]byte(ownerKey), args.Arguments[0])

@@ -5373,6 +5373,17 @@ func TestDelegationSystemSC_ExecuteChangeOwnerUserErrors(t *testing.T) {
 	output = d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
 	assert.True(t, strings.Contains(eei.returnMessage, "destination already deployed a delegation sc"))
+
+	eei.storageUpdate[string(d.delegationMgrSCAddress)] = map[string][]byte{}
+	output = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	assert.True(t, strings.Contains(eei.returnMessage, "owner is new delegator"))
+
+	marshalledData, _ := d.marshalizer.Marshal(&DelegatorData{RewardsCheckpoint: 10})
+	delegationsMap["second123"] = marshalledData
+	output = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	assert.True(t, strings.Contains(eei.returnMessage, "destination should be a new account"))
 }
 
 func TestDelegationSystemSC_ExecuteChangeOwner(t *testing.T) {
@@ -5389,6 +5400,8 @@ func TestDelegationSystemSC_ExecuteChangeOwner(t *testing.T) {
 
 	delegationsMap := map[string][]byte{}
 	delegationsMap[ownerKey] = []byte("ownerAddr")
+	marshalledData, _ := args.Marshalizer.Marshal(&DelegatorData{RewardsCheckpoint: 10})
+	delegationsMap["ownerAddr"] = marshalledData
 	eei.storageUpdate[string(eei.scAddress)] = delegationsMap
 	args.Eei = eei
 
