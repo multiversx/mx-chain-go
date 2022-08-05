@@ -266,6 +266,7 @@ type OutportHandler interface {
 // SyncTimer defines an interface for time synchronization
 type SyncTimer interface {
 	CurrentTime() time.Time
+	FormattedCurrentTime() string
 	IsInterfaceNil() bool
 }
 
