@@ -7,7 +7,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/ntp"
 )
 
 var _ consensus.RoundHandler = (*round)(nil)
@@ -17,7 +16,7 @@ type round struct {
 	index        int64         // represents the index of the round in the current chronology (current time - genesis time) / round duration
 	timeStamp    time.Time     // represents the start time of the round in the current chronology genesis time + round index * round duration
 	timeDuration time.Duration // represents the duration of the round in current chronology
-	syncTimer    ntp.SyncTimer
+	syncTimer    consensus.SyncTimer
 	startRound   int64
 
 	*sync.RWMutex
@@ -28,7 +27,7 @@ func NewRound(
 	genesisTimeStamp time.Time,
 	currentTimeStamp time.Time,
 	roundTimeDuration time.Duration,
-	syncTimer ntp.SyncTimer,
+	syncTimer consensus.SyncTimer,
 	startRound int64,
 ) (*round, error) {
 

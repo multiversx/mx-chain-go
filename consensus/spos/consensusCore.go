@@ -7,19 +7,14 @@ import (
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	cryptoCommon "github.com/ElrondNetwork/elrond-go/common/crypto"
 	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/epochStart"
-	"github.com/ElrondNetwork/elrond-go/ntp"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 )
 
 // ConsensusCore implements ConsensusCoreHandler and provides access to common functionality
 //  for the rest of the consensus structures
 type ConsensusCore struct {
 	blockChain                    data.ChainHandler
-	blockProcessor                process.BlockProcessor
-	bootstrapper                  process.Bootstrapper
+	blockProcessor                consensus.BlockProcessor
+	bootstrapper                  consensus.Bootstrapper
 	broadcastMessenger            consensus.BroadcastMessenger
 	chronologyHandler             consensus.ChronologyHandler
 	hasher                        hashing.Hasher
@@ -28,10 +23,10 @@ type ConsensusCore struct {
 	blsSingleSigner               crypto.SingleSigner
 	multiSignerContainer          cryptoCommon.MultiSignerContainer
 	roundHandler                  consensus.RoundHandler
-	shardCoordinator              sharding.Coordinator
-	nodesCoordinator              nodesCoordinator.NodesCoordinator
-	syncTimer                     ntp.SyncTimer
-	epochStartRegistrationHandler epochStart.RegistrationHandler
+	shardCoordinator              consensus.ShardCoordinator
+	nodesCoordinator              consensus.NodesCoordinator
+	syncTimer                     consensus.SyncTimer
+	epochStartRegistrationHandler consensus.RegistrationHandler
 	antifloodHandler              consensus.P2PAntifloodHandler
 	peerHonestyHandler            consensus.PeerHonestyHandler
 	headerSigVerifier             consensus.HeaderSigVerifier
@@ -44,8 +39,8 @@ type ConsensusCore struct {
 // ConsensusCoreArgs store all arguments that are needed to create a ConsensusCore object
 type ConsensusCoreArgs struct {
 	BlockChain                    data.ChainHandler
-	BlockProcessor                process.BlockProcessor
-	Bootstrapper                  process.Bootstrapper
+	BlockProcessor                consensus.BlockProcessor
+	Bootstrapper                  consensus.Bootstrapper
 	BroadcastMessenger            consensus.BroadcastMessenger
 	ChronologyHandler             consensus.ChronologyHandler
 	Hasher                        hashing.Hasher
@@ -54,10 +49,10 @@ type ConsensusCoreArgs struct {
 	BlsSingleSigner               crypto.SingleSigner
 	MultiSignerContainer          cryptoCommon.MultiSignerContainer
 	RoundHandler                  consensus.RoundHandler
-	ShardCoordinator              sharding.Coordinator
-	NodesCoordinator              nodesCoordinator.NodesCoordinator
-	SyncTimer                     ntp.SyncTimer
-	EpochStartRegistrationHandler epochStart.RegistrationHandler
+	ShardCoordinator              consensus.ShardCoordinator
+	NodesCoordinator              consensus.NodesCoordinator
+	SyncTimer                     consensus.SyncTimer
+	EpochStartRegistrationHandler consensus.RegistrationHandler
 	AntifloodHandler              consensus.P2PAntifloodHandler
 	PeerHonestyHandler            consensus.PeerHonestyHandler
 	HeaderSigVerifier             consensus.HeaderSigVerifier
@@ -115,12 +110,12 @@ func (cc *ConsensusCore) GetAntiFloodHandler() consensus.P2PAntifloodHandler {
 }
 
 // BlockProcessor gets the BlockProcessor stored in the ConsensusCore
-func (cc *ConsensusCore) BlockProcessor() process.BlockProcessor {
+func (cc *ConsensusCore) BlockProcessor() consensus.BlockProcessor {
 	return cc.blockProcessor
 }
 
 // BootStrapper gets the Bootstrapper stored in the ConsensusCore
-func (cc *ConsensusCore) BootStrapper() process.Bootstrapper {
+func (cc *ConsensusCore) BootStrapper() consensus.Bootstrapper {
 	return cc.bootstrapper
 }
 
@@ -155,22 +150,22 @@ func (cc *ConsensusCore) RoundHandler() consensus.RoundHandler {
 }
 
 // ShardCoordinator gets the ShardCoordinator stored in the ConsensusCore
-func (cc *ConsensusCore) ShardCoordinator() sharding.Coordinator {
+func (cc *ConsensusCore) ShardCoordinator() consensus.ShardCoordinator {
 	return cc.shardCoordinator
 }
 
 //SyncTimer gets the SyncTimer stored in the ConsensusCore
-func (cc *ConsensusCore) SyncTimer() ntp.SyncTimer {
+func (cc *ConsensusCore) SyncTimer() consensus.SyncTimer {
 	return cc.syncTimer
 }
 
 // NodesCoordinator gets the NodesCoordinator stored in the ConsensusCore
-func (cc *ConsensusCore) NodesCoordinator() nodesCoordinator.NodesCoordinator {
+func (cc *ConsensusCore) NodesCoordinator() consensus.NodesCoordinator {
 	return cc.nodesCoordinator
 }
 
 // EpochStartRegistrationHandler returns the epoch start registration handler
-func (cc *ConsensusCore) EpochStartRegistrationHandler() epochStart.RegistrationHandler {
+func (cc *ConsensusCore) EpochStartRegistrationHandler() consensus.RegistrationHandler {
 	return cc.epochStartRegistrationHandler
 }
 

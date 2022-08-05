@@ -20,10 +20,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	errorsErd "github.com/ElrondNetwork/elrond-go/errors"
-	"github.com/ElrondNetwork/elrond-go/ntp"
-	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 )
 
@@ -36,20 +32,20 @@ const sleepTime = 5 * time.Millisecond
 type Worker struct {
 	consensusService        ConsensusService
 	blockChain              data.ChainHandler
-	blockProcessor          process.BlockProcessor
+	blockProcessor          consensus.BlockProcessor
 	scheduledProcessor      consensus.ScheduledProcessor
-	bootstrapper            process.Bootstrapper
+	bootstrapper            consensus.Bootstrapper
 	broadcastMessenger      consensus.BroadcastMessenger
 	consensusState          *ConsensusState
-	forkDetector            process.ForkDetector
+	forkDetector            consensus.ForkDetector
 	marshalizer             marshal.Marshalizer
 	hasher                  hashing.Hasher
 	roundHandler            consensus.RoundHandler
-	shardCoordinator        sharding.Coordinator
+	shardCoordinator        consensus.ShardCoordinator
 	peerSignatureHandler    crypto.PeerSignatureHandler
-	syncTimer               ntp.SyncTimer
+	syncTimer               consensus.SyncTimer
 	headerSigVerifier       HeaderSigVerifier
-	headerIntegrityVerifier process.HeaderIntegrityVerifier
+	headerIntegrityVerifier consensus.HeaderIntegrityVerifier
 	appStatusHandler        core.AppStatusHandler
 
 	receivedMessages      map[consensus.MessageType][]*consensus.Message
@@ -80,20 +76,20 @@ type Worker struct {
 type WorkerArgs struct {
 	ConsensusService        ConsensusService
 	BlockChain              data.ChainHandler
-	BlockProcessor          process.BlockProcessor
+	BlockProcessor          consensus.BlockProcessor
 	ScheduledProcessor      consensus.ScheduledProcessor
-	Bootstrapper            process.Bootstrapper
+	Bootstrapper            consensus.Bootstrapper
 	BroadcastMessenger      consensus.BroadcastMessenger
 	ConsensusState          *ConsensusState
-	ForkDetector            process.ForkDetector
+	ForkDetector            consensus.ForkDetector
 	Marshalizer             marshal.Marshalizer
 	Hasher                  hashing.Hasher
 	RoundHandler            consensus.RoundHandler
-	ShardCoordinator        sharding.Coordinator
+	ShardCoordinator        consensus.ShardCoordinator
 	PeerSignatureHandler    crypto.PeerSignatureHandler
-	SyncTimer               ntp.SyncTimer
+	SyncTimer               consensus.SyncTimer
 	HeaderSigVerifier       HeaderSigVerifier
-	HeaderIntegrityVerifier process.HeaderIntegrityVerifier
+	HeaderIntegrityVerifier consensus.HeaderIntegrityVerifier
 	ChainID                 []byte
 	AntifloodHandler        consensus.P2PAntifloodHandler
 	PoolAdder               PoolAdder
@@ -321,7 +317,7 @@ func (wrk *Worker) getCleanedList(cnsDataList []*consensus.Message) []*consensus
 }
 
 // ProcessReceivedMessage method redirects the received message to the channel which should handle it
-func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
+func (wrk *Worker) ProcessReceivedMessage(message consensus.MessageP2P, fromConnectedPeer core.PeerID) error {
 	if check.IfNil(message) {
 		return ErrNilMessage
 	}
@@ -464,7 +460,7 @@ func (wrk *Worker) doJobOnMessageWithHeader(cnsMsg *consensus.Message) error {
 
 	wrk.processReceivedHeaderMetric(cnsMsg)
 
-	errNotCritical := wrk.forkDetector.AddHeader(header, headerHash, process.BHProposed, nil, nil)
+	errNotCritical := wrk.forkDetector.AddHeader(header, headerHash, consensus.BHProposed, nil, nil)
 	if errNotCritical != nil {
 		log.Debug("add received header from consensus topic to fork detector failed",
 			"error", errNotCritical.Error())

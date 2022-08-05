@@ -5,14 +5,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go-crypto"
+	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/broadcast"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/bls"
-	"github.com/ElrondNetwork/elrond-go/outport"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 // GetSubroundsFactory returns a subrounds factory depending of the given parameter
@@ -22,7 +19,7 @@ func GetSubroundsFactory(
 	worker spos.WorkerHandler,
 	consensusType string,
 	appStatusHandler core.AppStatusHandler,
-	outportHandler outport.OutportHandler,
+	outportHandler consensus.OutportHandler,
 	chainID []byte,
 	currentPid core.PeerID,
 ) (spos.SubroundsFactory, error) {
@@ -63,12 +60,13 @@ func GetBroadcastMessenger(
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
 	messenger consensus.P2PMessenger,
-	shardCoordinator sharding.Coordinator,
+	shardCoordinator consensus.ShardCoordinator,
 	privateKey crypto.PrivateKey,
 	peerSignatureHandler crypto.PeerSignatureHandler,
 	headersSubscriber consensus.HeadersPoolSubscriber,
-	interceptorsContainer process.InterceptorsContainer,
+	interceptorsContainer consensus.InterceptorsContainer,
 	alarmScheduler core.TimersScheduler,
+	headersCache consensus.Cacher,
 ) (consensus.BroadcastMessenger, error) {
 
 	if check.IfNil(shardCoordinator) {
@@ -87,6 +85,7 @@ func GetBroadcastMessenger(
 		MaxValidatorDelayCacheSize: maxDelayCacheSize,
 		InterceptorsContainer:      interceptorsContainer,
 		AlarmScheduler:             alarmScheduler,
+		HeadersCache:               headersCache,
 	}
 
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {

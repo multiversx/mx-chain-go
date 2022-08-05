@@ -10,10 +10,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/core/closing"
 	"github.com/ElrondNetwork/elrond-go-core/display"
-	"github.com/ElrondNetwork/elrond-go-logger"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/ntp"
 )
 
 var _ consensus.ChronologyHandler = (*chronology)(nil)
@@ -32,7 +31,7 @@ type chronology struct {
 	genesisTime time.Time
 
 	roundHandler consensus.RoundHandler
-	syncTimer    ntp.SyncTimer
+	syncTimer    consensus.SyncTimer
 
 	subroundId int
 

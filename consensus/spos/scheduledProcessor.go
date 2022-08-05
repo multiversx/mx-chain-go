@@ -6,8 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go/ntp"
-	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/consensus"
 )
 
 type processingStatus int
@@ -49,15 +48,15 @@ func (ps processingStatus) String() string {
 
 // ScheduledProcessorWrapperArgs holds the arguments required to instantiate the pipelineExecution
 type ScheduledProcessorWrapperArgs struct {
-	SyncTimer                ntp.SyncTimer
-	Processor                process.ScheduledBlockProcessor
-	RoundTimeDurationHandler process.RoundTimeDurationHandler
+	SyncTimer                consensus.SyncTimer
+	Processor                consensus.ScheduledBlockProcessor
+	RoundTimeDurationHandler consensus.RoundTimeDurationHandler
 }
 
 type scheduledProcessorWrapper struct {
-	syncTimer                ntp.SyncTimer
-	processor                process.ScheduledBlockProcessor
-	roundTimeDurationHandler process.RoundTimeDurationHandler
+	syncTimer                consensus.SyncTimer
+	processor                consensus.ScheduledBlockProcessor
+	roundTimeDurationHandler consensus.RoundTimeDurationHandler
 	startTime                time.Time
 
 	status processingStatus
@@ -70,13 +69,13 @@ type scheduledProcessorWrapper struct {
 // NewScheduledProcessorWrapper creates a new processor for scheduled transactions
 func NewScheduledProcessorWrapper(args ScheduledProcessorWrapperArgs) (*scheduledProcessorWrapper, error) {
 	if check.IfNil(args.SyncTimer) {
-		return nil, process.ErrNilSyncTimer
+		return nil, ErrNilSyncTimer
 	}
 	if check.IfNil(args.Processor) {
-		return nil, process.ErrNilBlockProcessor
+		return nil, ErrNilBlockProcessor
 	}
 	if check.IfNil(args.RoundTimeDurationHandler) {
-		return nil, process.ErrNilRoundTimeDurationHandler
+		return nil, ErrNilRoundTimeDurationHandler
 	}
 
 	return &scheduledProcessorWrapper{

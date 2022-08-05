@@ -11,12 +11,7 @@ import (
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	cryptoCommon "github.com/ElrondNetwork/elrond-go/common/crypto"
 	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/epochStart"
-	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 )
 
 // ConsensusCoreHandler encapsulates all needed data for the Consensus
@@ -24,9 +19,9 @@ type ConsensusCoreHandler interface {
 	// Blockchain gets the ChainHandler stored in the ConsensusCore
 	Blockchain() data.ChainHandler
 	// BlockProcessor gets the BlockProcessor stored in the ConsensusCore
-	BlockProcessor() process.BlockProcessor
+	BlockProcessor() consensus.BlockProcessor
 	// BootStrapper gets the Bootstrapper stored in the ConsensusCore
-	BootStrapper() process.Bootstrapper
+	BootStrapper() consensus.Bootstrapper
 	// BroadcastMessenger gets the BroadcastMessenger stored in ConsensusCore
 	BroadcastMessenger() consensus.BroadcastMessenger
 	// Chronology gets the ChronologyHandler stored in the ConsensusCore
@@ -42,13 +37,13 @@ type ConsensusCoreHandler interface {
 	// RoundHandler gets the RoundHandler stored in the ConsensusCore
 	RoundHandler() consensus.RoundHandler
 	// ShardCoordinator gets the ShardCoordinator stored in the ConsensusCore
-	ShardCoordinator() sharding.Coordinator
+	ShardCoordinator() consensus.ShardCoordinator
 	// SyncTimer gets the SyncTimer stored in the ConsensusCore
-	SyncTimer() ntp.SyncTimer
+	SyncTimer() consensus.SyncTimer
 	// NodesCoordinator gets the NodesCoordinator stored in the ConsensusCore
-	NodesCoordinator() nodesCoordinator.NodesCoordinator
+	NodesCoordinator() consensus.NodesCoordinator
 	// EpochStartRegistrationHandler gets the RegistrationHandler stored in the ConsensusCore
-	EpochStartRegistrationHandler() epochStart.RegistrationHandler
+	EpochStartRegistrationHandler() consensus.RegistrationHandler
 	// PrivateKey returns the private key stored in the ConsensusStore used for randomness and leader's signature generation
 	PrivateKey() crypto.PrivateKey
 	// SingleSigner returns the single signer stored in the ConsensusStore used for randomness and leader's signature generation

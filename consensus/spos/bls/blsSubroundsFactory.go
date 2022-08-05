@@ -5,8 +5,8 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
-	"github.com/ElrondNetwork/elrond-go/outport"
 )
 
 // factory defines the data needed by this factory to create all the subrounds and give them their specific
@@ -17,7 +17,7 @@ type factory struct {
 	worker         spos.WorkerHandler
 
 	appStatusHandler core.AppStatusHandler
-	outportHandler   outport.OutportHandler
+	outportHandler   consensus.OutportHandler
 	chainID          []byte
 	currentPid       core.PeerID
 }
@@ -82,7 +82,7 @@ func checkNewFactoryParams(
 }
 
 // SetOutportHandler method will update the value of the factory's outport
-func (fct *factory) SetOutportHandler(driver outport.OutportHandler) {
+func (fct *factory) SetOutportHandler(driver consensus.OutportHandler) {
 	fct.outportHandler = driver
 }
 

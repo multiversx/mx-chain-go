@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-crypto"
+	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing"
 	disabledCrypto "github.com/ElrondNetwork/elrond-go-crypto/signing/disabled"
 	disabledSig "github.com/ElrondNetwork/elrond-go-crypto/signing/disabled/singlesig"
@@ -18,6 +18,7 @@ import (
 	cryptoCommon "github.com/ElrondNetwork/elrond-go/common/crypto"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
+	sigHandler "github.com/ElrondNetwork/elrond-go/consensus/signing"
 	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/factory/peerSignatureHandler"
@@ -74,6 +75,7 @@ type cryptoComponents struct {
 	blockSignKeyGen      crypto.KeyGenerator
 	txSignKeyGen         crypto.KeyGenerator
 	messageSignVerifier  vm.MessageSignVerifier
+	blsSignatureHandler  consensus.SignatureHandler
 	cryptoParams
 }
 
@@ -132,7 +134,7 @@ func (ccf *cryptoComponentsFactory) Create() (*cryptoComponents, error) {
 		return nil, err
 	}
 
-	multiSigner, err := ccf.createMultiSignerContainer(blockSignKeyGen, ccf.importModeNoSigCheck)
+	multiSignerContainer, err := ccf.createMultiSignerContainer(blockSignKeyGen, ccf.importModeNoSigCheck)
 	if err != nil {
 		return nil, err
 	}
@@ -161,16 +163,19 @@ func (ccf *cryptoComponentsFactory) Create() (*cryptoComponents, error) {
 		return nil, err
 	}
 
+	blsSignatureHandler, err := ccf.createBlsSignatureHandler(blockSignKeyGen, multiSignerContainer, cp)
+
 	log.Debug("block sign pubkey", "value", cp.publicKeyString)
 
 	return &cryptoComponents{
 		txSingleSigner:       txSingleSigner,
 		blockSingleSigner:    interceptSingleSigner,
-		multiSignerContainer: multiSigner,
+		multiSignerContainer: multiSignerContainer,
 		peerSignHandler:      peerSigHandler,
 		blockSignKeyGen:      blockSignKeyGen,
 		txSignKeyGen:         txSignKeyGen,
 		messageSignVerifier:  messageSignVerifier,
+		blsSignatureHandler:  blsSignatureHandler,
 		cryptoParams:         *cp,
 	}, nil
 }
@@ -204,6 +209,22 @@ func (ccf *cryptoComponentsFactory) createMultiSignerContainer(
 		ImportModeNoSigCheck: importModeNoSigCheck,
 	}
 	return NewMultiSignerContainer(args, ccf.enableEpochs.BLSMultiSignerEnableEpoch)
+}
+
+func (ccf *cryptoComponentsFactory) createBlsSignatureHandler(
+	blSignKeyGen crypto.KeyGenerator,
+	multiSignerContainer cryptoCommon.MultiSignerContainer,
+	cp *cryptoParams,
+) (consensus.SignatureHandler, error) {
+
+	signatureHolderArgs := sigHandler.ArgsSignatureHolder{
+		PubKeys:              []string{string(cp.publicKeyBytes)},
+		PrivKey:              cp.privateKey,
+		MultiSignerContainer: multiSignerContainer,
+		KeyGenerator:         blSignKeyGen,
+	}
+
+	return sigHandler.NewSignatureHolder(signatureHolderArgs)
 }
 
 func (ccf *cryptoComponentsFactory) getSuite() (crypto.Suite, error) {

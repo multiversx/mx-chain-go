@@ -11,14 +11,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 )
 
 const prefixHeaderAlarm = "header_"
@@ -27,12 +21,13 @@ const sizeHeadersCache = 1000 // 1000 hashes in cache
 
 // ArgsDelayedBlockBroadcaster holds the arguments to create a delayed block broadcaster
 type ArgsDelayedBlockBroadcaster struct {
-	InterceptorsContainer process.InterceptorsContainer
+	InterceptorsContainer consensus.InterceptorsContainer
 	HeadersSubscriber     consensus.HeadersPoolSubscriber
-	ShardCoordinator      sharding.Coordinator
+	ShardCoordinator      consensus.ShardCoordinator
 	LeaderCacheSize       uint32
 	ValidatorCacheSize    uint32
 	AlarmScheduler        timersScheduler
+	HeadersCache          consensus.Cacher
 }
 
 type validatorHeaderBroadcastData struct {
@@ -67,8 +62,8 @@ type headerDataForValidator struct {
 
 type delayedBlockBroadcaster struct {
 	alarm                      timersScheduler
-	interceptorsContainer      process.InterceptorsContainer
-	shardCoordinator           sharding.Coordinator
+	interceptorsContainer      consensus.InterceptorsContainer
+	shardCoordinator           consensus.ShardCoordinator
 	headersSubscriber          consensus.HeadersPoolSubscriber
 	valHeaderBroadcastData     []*validatorHeaderBroadcastData
 	valBroadcastData           []*delayedBroadcastData
@@ -79,7 +74,7 @@ type delayedBlockBroadcaster struct {
 	broadcastMiniblocksData    func(mbData map[uint32][]byte) error
 	broadcastTxsData           func(txData map[string][][]byte) error
 	broadcastHeader            func(header data.HeaderHandler) error
-	cacheHeaders               storage.Cacher
+	cacheHeaders               consensus.Cacher
 	mutHeadersCache            sync.RWMutex
 }
 
@@ -98,11 +93,6 @@ func NewDelayedBlockBroadcaster(args *ArgsDelayedBlockBroadcaster) (*delayedBloc
 		return nil, spos.ErrNilAlarmScheduler
 	}
 
-	cacheHeaders, err := lrucache.NewCache(sizeHeadersCache)
-	if err != nil {
-		return nil, err
-	}
-
 	dbb := &delayedBlockBroadcaster{
 		alarm:                      args.AlarmScheduler,
 		shardCoordinator:           args.ShardCoordinator,
@@ -114,12 +104,12 @@ func NewDelayedBlockBroadcaster(args *ArgsDelayedBlockBroadcaster) (*delayedBloc
 		maxDelayCacheSize:          args.LeaderCacheSize,
 		maxValidatorDelayCacheSize: args.ValidatorCacheSize,
 		mutDataForBroadcast:        sync.RWMutex{},
-		cacheHeaders:               cacheHeaders,
+		cacheHeaders:               args.HeadersCache,
 		mutHeadersCache:            sync.RWMutex{},
 	}
 
 	dbb.headersSubscriber.RegisterHandler(dbb.headerReceived)
-	err = dbb.registerHeaderInterceptorCallback(dbb.interceptedHeader)
+	err := dbb.registerHeaderInterceptorCallback(dbb.interceptedHeader)
 	if err != nil {
 		return nil, err
 	}
@@ -314,7 +304,7 @@ func (dbb *delayedBlockBroadcaster) broadcastDataForHeaders(headerHashes [][]byt
 	}
 	dbb.mutDataForBroadcast.RUnlock()
 
-	time.Sleep(common.ExtraDelayForBroadcastBlockInfo)
+	time.Sleep(consensus.ExtraDelayForBroadcastBlockInfo)
 
 	dbb.mutDataForBroadcast.Lock()
 	dataToBroadcast := make([]*delayedBroadcastData, 0)
@@ -374,7 +364,7 @@ func (dbb *delayedBlockBroadcaster) scheduleValidatorBroadcast(dataForValidators
 			sameRound := headerData.round == broadcastData.header.GetRound()
 			samePrevRandomness := bytes.Equal(headerData.prevRandSeed, broadcastData.header.GetPrevRandSeed())
 			if sameRound && samePrevRandomness {
-				duration := validatorDelayPerOrder*time.Duration(broadcastData.order) + common.ExtraDelayForBroadcastBlockInfo
+				duration := validatorDelayPerOrder*time.Duration(broadcastData.order) + consensus.ExtraDelayForBroadcastBlockInfo
 				alarmID := prefixDelayDataAlarm + hex.EncodeToString(broadcastData.headerHash)
 
 				alarmsToAdd = append(alarmsToAdd, alarmParams{
@@ -475,7 +465,7 @@ func (dbb *delayedBlockBroadcaster) headerAlarmExpired(alarmID string) {
 			"headerHash", headerHash,
 			"alarmID", alarmID,
 		)
-		go dbb.broadcastBlockData(vHeader.metaMiniBlocksData, vHeader.metaTransactionsData, common.ExtraDelayForBroadcastBlockInfo)
+		go dbb.broadcastBlockData(vHeader.metaMiniBlocksData, vHeader.metaTransactionsData, consensus.ExtraDelayForBroadcastBlockInfo)
 	}
 }
 
@@ -499,7 +489,7 @@ func (dbb *delayedBlockBroadcaster) broadcastBlockData(
 		log.Error("broadcastBlockData.broadcastMiniblocksData", "error", err.Error())
 	}
 
-	time.Sleep(common.ExtraDelayBetweenBroadcastMbsAndTxs)
+	time.Sleep(consensus.ExtraDelayBetweenBroadcastMbsAndTxs)
 
 	err = dbb.broadcastTxsData(transactions)
 	if err != nil {
@@ -541,7 +531,7 @@ func (dbb *delayedBlockBroadcaster) registerHeaderInterceptorCallback(
 		return dbb.registerInterceptorsCallbackForMetaHeader(cb)
 	}
 
-	identifierShardHeader := factory.ShardBlocksTopic + dbb.shardCoordinator.CommunicationIdentifier(core.MetachainShardId)
+	identifierShardHeader := consensus.ShardBlocksTopic + dbb.shardCoordinator.CommunicationIdentifier(core.MetachainShardId)
 	interceptor, err := dbb.interceptorsContainer.Get(identifierShardHeader)
 	if err != nil {
 		return err
@@ -558,13 +548,13 @@ func (dbb *delayedBlockBroadcaster) registerMiniBlockInterceptorCallback(
 		return dbb.registerInterceptorsCallbackForMetaMiniblocks(cb)
 	}
 
-	return dbb.registerInterceptorsCallbackForShard(factory.MiniBlocksTopic, cb)
+	return dbb.registerInterceptorsCallbackForShard(consensus.MiniBlocksTopic, cb)
 }
 
 func (dbb *delayedBlockBroadcaster) registerInterceptorsCallbackForMetaHeader(
 	cb func(topic string, hash []byte, data interface{}),
 ) error {
-	identifier := factory.MetachainBlocksTopic
+	identifier := consensus.MetachainBlocksTopic
 	interceptor, err := dbb.interceptorsContainer.Get(identifier)
 	if err != nil {
 		return err
@@ -578,7 +568,7 @@ func (dbb *delayedBlockBroadcaster) registerInterceptorsCallbackForMetaHeader(
 func (dbb *delayedBlockBroadcaster) registerInterceptorsCallbackForMetaMiniblocks(
 	cb func(topic string, hash []byte, data interface{}),
 ) error {
-	identifier := factory.MiniBlocksTopic + dbb.shardCoordinator.CommunicationIdentifier(core.AllShardId)
+	identifier := consensus.MiniBlocksTopic + dbb.shardCoordinator.CommunicationIdentifier(core.AllShardId)
 	interceptor, err := dbb.interceptorsContainer.Get(identifier)
 	if err != nil {
 		return err
@@ -624,7 +614,7 @@ func (dbb *delayedBlockBroadcaster) shardIdentifiers() map[uint32]struct{} {
 func (dbb *delayedBlockBroadcaster) interceptedHeader(_ string, headerHash []byte, header interface{}) {
 	headerHandler, ok := header.(data.HeaderHandler)
 	if !ok {
-		log.Warn("delayedBlockBroadcaster.interceptedHeader", "error", process.ErrWrongTypeAssertion,
+		log.Warn("delayedBlockBroadcaster.interceptedHeader", "error", consensus.ErrWrongTypeAssertion,
 			"headerHash", headerHash,
 		)
 		return
@@ -712,7 +702,7 @@ func (dbb *delayedBlockBroadcaster) extractMiniBlockHashesCrossFromMe(header dat
 		if i == shardID {
 			continue
 		}
-		topic := factory.MiniBlocksTopic + dbb.shardCoordinator.CommunicationIdentifier(i)
+		topic := consensus.MiniBlocksTopic + dbb.shardCoordinator.CommunicationIdentifier(i)
 		mbs := dbb.extractMbsFromMeTo(header, i)
 		if len(mbs) == 0 {
 			continue
@@ -721,7 +711,7 @@ func (dbb *delayedBlockBroadcaster) extractMiniBlockHashesCrossFromMe(header dat
 	}
 
 	if shardID != core.MetachainShardId {
-		topic := factory.MiniBlocksTopic + dbb.shardCoordinator.CommunicationIdentifier(core.MetachainShardId)
+		topic := consensus.MiniBlocksTopic + dbb.shardCoordinator.CommunicationIdentifier(core.MetachainShardId)
 		mbs := dbb.extractMbsFromMeTo(header, core.MetachainShardId)
 		if len(mbs) > 0 {
 			mbHashesForShards[topic] = mbs
@@ -734,10 +724,39 @@ func (dbb *delayedBlockBroadcaster) extractMiniBlockHashesCrossFromMe(header dat
 func (dbb *delayedBlockBroadcaster) extractMbsFromMeTo(header data.HeaderHandler, toShardID uint32) map[string]struct{} {
 	mbHashesForShard := make(map[string]struct{})
 	// Remove mini blocks which are not final to avoid sending them
-	mbHashes := process.GetFinalCrossMiniBlockHashes(header, toShardID)
+	mbHashes := getFinalCrossMiniBlockHashes(header, toShardID)
 	for mbHash := range mbHashes {
 		mbHashesForShard[mbHash] = struct{}{}
 	}
 
 	return mbHashesForShard
+}
+
+// getFinalCrossMiniBlockHashes returns all the finalized miniblocks hashes, from the given header and with the given destination
+// TODO: duplicated code with process package
+func getFinalCrossMiniBlockHashes(header data.HeaderHandler, shardID uint32) map[string]uint32 {
+	crossMiniBlockHashes := header.GetMiniBlockHeadersWithDst(shardID)
+
+	miniBlockHashes := make(map[string]uint32)
+	for crossMiniBlockHash, senderShardID := range crossMiniBlockHashes {
+		miniBlockHeader := getMiniBlockHeaderWithHash(header, []byte(crossMiniBlockHash))
+		if miniBlockHeader != nil && !miniBlockHeader.IsFinal() {
+			log.Debug("GetFinalCrossMiniBlockHashes: skip mini block which is not final", "mb hash", miniBlockHeader.GetHash())
+			continue
+		}
+
+		miniBlockHashes[crossMiniBlockHash] = senderShardID
+	}
+
+	return miniBlockHashes
+}
+
+// getMiniBlockHeaderWithHash returns the miniblock header with the given hash
+func getMiniBlockHeaderWithHash(header data.HeaderHandler, miniBlockHash []byte) data.MiniBlockHeaderHandler {
+	for _, miniBlockHeader := range header.GetMiniBlockHeaderHandlers() {
+		if bytes.Equal(miniBlockHeader.GetHash(), miniBlockHash) {
+			return miniBlockHeader
+		}
+	}
+	return nil
 }

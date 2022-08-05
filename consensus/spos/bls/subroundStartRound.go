@@ -12,9 +12,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/consensus"
+	"github.com/ElrondNetwork/elrond-go/consensus/disabled"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
-	"github.com/ElrondNetwork/elrond-go/outport"
-	"github.com/ElrondNetwork/elrond-go/outport/disabled"
 )
 
 // subroundStartRound defines the data needed by the subround StartRound
@@ -25,7 +25,7 @@ type subroundStartRound struct {
 	executeStoredMessages         func()
 	resetConsensusMessages        func()
 
-	outportHandler outport.OutportHandler
+	outportHandler consensus.OutportHandler
 }
 
 // NewSubroundStartRound creates a subroundStartRound object
@@ -75,9 +75,9 @@ func checkNewSubroundStartRoundParams(
 }
 
 // SetOutportHandler method sets outport handler
-func (sr *subroundStartRound) SetOutportHandler(outportHandler outport.OutportHandler) error {
+func (sr *subroundStartRound) SetOutportHandler(outportHandler consensus.OutportHandler) error {
 	if check.IfNil(outportHandler) {
-		return outport.ErrNilDriver
+		return spos.ErrNilDriver
 	}
 
 	sr.outportMutex.Lock()

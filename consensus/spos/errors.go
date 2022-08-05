@@ -225,3 +225,9 @@ var ErrNilScheduledProcessor = errors.New("nil scheduled processor")
 
 // ErrNilSignatureHandler signals that provided signature handler is nil
 var ErrNilSignatureHandler = errors.New("nil signature handler")
+
+// ErrNilDriver signals that a nil driver has been provided
+var ErrNilDriver = errors.New("nil driver")
+
+// ErrNilRoundTimeDurationHandler signals that an operation has been attempted to or with a nil RoundTimeDurationHandler implementation
+var ErrNilRoundTimeDurationHandler = errors.New("nil RoundTimeDurationHandler")

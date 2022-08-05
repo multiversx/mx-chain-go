@@ -7,10 +7,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
-	"github.com/ElrondNetwork/elrond-go/process/factory"
 )
 
 const validatorDelayPerOrder = time.Second
@@ -113,8 +111,8 @@ func (scm *shardChainMessenger) BroadcastBlock(blockBody data.BodyHandler, heade
 	headerIdentifier := scm.shardCoordinator.CommunicationIdentifier(core.MetachainShardId)
 	selfIdentifier := scm.shardCoordinator.CommunicationIdentifier(scm.shardCoordinator.SelfId())
 
-	scm.messenger.Broadcast(factory.ShardBlocksTopic+headerIdentifier, msgHeader)
-	scm.messenger.Broadcast(factory.MiniBlocksTopic+selfIdentifier, msgBlockBody)
+	scm.messenger.Broadcast(consensus.ShardBlocksTopic+headerIdentifier, msgHeader)
+	scm.messenger.Broadcast(consensus.MiniBlocksTopic+selfIdentifier, msgBlockBody)
 
 	return nil
 }
@@ -131,7 +129,7 @@ func (scm *shardChainMessenger) BroadcastHeader(header data.HeaderHandler) error
 	}
 
 	shardIdentifier := scm.shardCoordinator.CommunicationIdentifier(core.MetachainShardId)
-	scm.messenger.Broadcast(factory.ShardBlocksTopic+shardIdentifier, msgHeader)
+	scm.messenger.Broadcast(consensus.ShardBlocksTopic+shardIdentifier, msgHeader)
 
 	return nil
 }
@@ -167,7 +165,7 @@ func (scm *shardChainMessenger) BroadcastBlockDataLeader(
 		return err
 	}
 
-	go scm.BroadcastBlockData(metaMiniBlocks, metaTransactions, common.ExtraDelayForBroadcastBlockInfo)
+	go scm.BroadcastBlockData(metaMiniBlocks, metaTransactions, consensus.ExtraDelayForBroadcastBlockInfo)
 	return nil
 }
 

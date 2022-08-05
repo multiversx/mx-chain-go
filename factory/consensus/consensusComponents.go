@@ -23,11 +23,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/sync/storageBootstrap"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state/syncer"
+	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/update"
 )
 
 var log = logger.GetOrCreate("factory")
+
+const sizeHeadersCache = 1000 // 1000 hashes in cache
 
 // ConsensusComponentsFactoryArgs holds the arguments needed to create a consensus components factory
 type ConsensusComponentsFactoryArgs struct {
@@ -152,6 +155,11 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 	}
 
 	consensusService, err := sposFactory.GetConsensusCoreFactory(ccf.config.Consensus.Type)
+	if err != nil {
+		return nil, err
+	}
+
+	cacheHeaders, err := lrucache.NewCache(sizeHeadersCache)
 	if err != nil {
 		return nil, err
 	}
