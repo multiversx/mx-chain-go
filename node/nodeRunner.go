@@ -319,6 +319,11 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		return true, err
 	}
 
+	botstrapStorer, err := managedDataComponents.StorageService().GetStorer(dataRetriever.BootstrapUnit)
+	if err != nil {
+		return true, err
+	}
+
 	log.Debug("creating nodes coordinator")
 	nodesCoord, err := mainFactory.CreateNodesCoordinator(
 		nodesShufflerOut,
@@ -329,7 +334,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		managedCoreComponents.InternalMarshalizer(),
 		managedCoreComponents.Hasher(),
 		managedCoreComponents.Rater(),
-		managedDataComponents.StorageService().GetStorer(dataRetriever.BootstrapUnit),
+		botstrapStorer,
 		managedCoreComponents.NodesShuffler(),
 		managedBootstrapComponents.ShardCoordinator().SelfId(),
 		managedBootstrapComponents.EpochBootstrapParams(),
@@ -1118,9 +1123,12 @@ func (nr *nodeRunner) CreateManagedDataComponents(
 		return nil, err
 	}
 
-	err = coreComponents.StatusHandlerUtils().UpdateStorerAndMetricsForPersistentHandler(
-		managedDataComponents.StorageService().GetStorer(dataRetriever.StatusMetricsUnit),
-	)
+	statusMetricsStorer, err := managedDataComponents.StorageService().GetStorer(dataRetriever.StatusMetricsUnit)
+	if err != nil {
+		return nil, err
+	}
+
+	err = coreComponents.StatusHandlerUtils().UpdateStorerAndMetricsForPersistentHandler(statusMetricsStorer)
 
 	if err != nil {
 		return nil, err

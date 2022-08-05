@@ -21,6 +21,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
+	storageMocks "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/stretchr/testify/require"
 )
 
@@ -29,7 +30,7 @@ func createBaseBlockProcessor() *baseAPIBlockProcessor {
 		hasDbLookupExtensions:    true,
 		selfShardID:              0,
 		emptyReceiptsHash:        nil,
-		store:                    &mock.ChainStorerMock{},
+		store:                    &storageMocks.ChainStorerStub{},
 		marshalizer:              &mock.MarshalizerFake{},
 		uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
 		historyRepo:              &dblookupext.HistoryRepositoryStub{},
@@ -61,7 +62,8 @@ func TestBaseBlockGetIntraMiniblocksSCRS(t *testing.T) {
 	scResultBytes, _ := baseAPIBlockProc.marshalizer.Marshal(scResult)
 
 	baseAPIBlockProc.store = genericMocks.NewChainStorerMock(0)
-	_ = baseAPIBlockProc.store.GetStorer(dataRetriever.UnsignedTransactionUnit).Put(scrHash, scResultBytes)
+	storer, _ := baseAPIBlockProc.store.GetStorer(dataRetriever.UnsignedTransactionUnit)
+	_ = storer.Put(scrHash, scResultBytes)
 
 	baseAPIBlockProc.receiptsRepository = &testscommon.ReceiptsRepositoryStub{
 		LoadReceiptsCalled: func(header data.HeaderHandler, headerHash []byte) (common.ReceiptsHolder, error) {
@@ -121,7 +123,8 @@ func TestBaseBlockGetIntraMiniblocksReceipts(t *testing.T) {
 	receiptBytes, _ := baseAPIBlockProc.marshalizer.Marshal(receipt)
 
 	baseAPIBlockProc.store = genericMocks.NewChainStorerMock(0)
-	_ = baseAPIBlockProc.store.GetStorer(dataRetriever.UnsignedTransactionUnit).Put(receiptHash, receiptBytes)
+	storer, _ := baseAPIBlockProc.store.GetStorer(dataRetriever.UnsignedTransactionUnit)
+	_ = storer.Put(receiptHash, receiptBytes)
 
 	baseAPIBlockProc.receiptsRepository = &testscommon.ReceiptsRepositoryStub{
 		LoadReceiptsCalled: func(header data.HeaderHandler, headerHash []byte) (common.ReceiptsHolder, error) {
@@ -186,16 +189,16 @@ func TestBaseBlock_getAndAttachTxsToMb_MiniblockTxBlock(t *testing.T) {
 	txBytes, _ := baseAPIBlockProc.marshalizer.Marshal(tx)
 	_ = unsignedStorer.Put(txHash, txBytes)
 
-	baseAPIBlockProc.store = &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+	baseAPIBlockProc.store = &storageMocks.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 			switch unitType {
 			case dataRetriever.MiniBlockUnit:
-				return mbStorer
+				return mbStorer, nil
 			case dataRetriever.TransactionUnit:
-				return unsignedStorer
+				return unsignedStorer, nil
 			}
 
-			return nil
+			return nil, storage.ErrKeyNotFound
 		},
 	}
 

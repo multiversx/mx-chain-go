@@ -17,14 +17,15 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
+	storageMocks "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 )
 
 func createMockArgsAPIBlockProc() *ArgAPIBlockProcessor {
-	statusComputer, _ := txstatus.NewStatusComputer(0, mock.NewNonceHashConverterMock(), &mock.ChainStorerStub{})
+	statusComputer, _ := txstatus.NewStatusComputer(0, mock.NewNonceHashConverterMock(), &storageMocks.ChainStorerStub{})
 
 	return &ArgAPIBlockProcessor{
-		Store:                    &mock.ChainStorerStub{},
+		Store:                    &storageMocks.ChainStorerStub{},
 		Marshalizer:              &mock.MarshalizerFake{},
 		Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
 		HistoryRepo:              &dblookupext.HistoryRepositoryStub{},
@@ -154,9 +155,9 @@ func TestGetBlockByHash_KeyNotFound(t *testing.T) {
 
 	args := createMockArgsAPIBlockProc()
 	args.HistoryRepo = historyProc
-	args.Store = &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return storerMock
+	args.Store = &storageMocks.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+			return storerMock, nil
 		},
 		GetCalled: func(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
 			return headerHash, nil
@@ -191,9 +192,9 @@ func TestGetBlockByHashFromHistoryNode(t *testing.T) {
 	storerMock := genericMocks.NewStorerMockWithEpoch(epoch)
 
 	args := createMockArgsAPIBlockProc()
-	args.Store = &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return storerMock
+	args.Store = &storageMocks.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+			return storerMock, nil
 		},
 		GetCalled: func(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
 			return headerHash, nil
@@ -260,7 +261,7 @@ func TestGetBlockByHashFromNormalNode(t *testing.T) {
 
 	args := createMockArgsAPIBlockProc()
 	args.SelfShardID = core.MetachainShardId
-	args.Store = &mock.ChainStorerMock{
+	args.Store = &storageMocks.ChainStorerStub{
 		GetCalled: func(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
 			return storerMock.Get(key)
 		},
@@ -337,12 +338,12 @@ func TestGetBlockByNonceFromHistoryNode(t *testing.T) {
 
 	args := createMockArgsAPIBlockProc()
 	args.HistoryRepo = historyProc
-	args.Store = &mock.ChainStorerMock{
+	args.Store = &storageMocks.ChainStorerStub{
 		GetCalled: func(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
 			return hex.DecodeString(headerHash)
 		},
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return storerMock
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+			return storerMock, nil
 		},
 	}
 	apiBlockProc, _ := CreateAPIBlockProcessor(args)
@@ -404,7 +405,7 @@ func TestGetBlockByNonce_GetBlockByRound_FromNormalNode(t *testing.T) {
 			return false
 		},
 	}
-	args.Store = &mock.ChainStorerMock{
+	args.Store = &storageMocks.ChainStorerStub{
 		GetCalled: func(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
 			if unitType == dataRetriever.ShardHdrNonceHashDataUnit ||
 				unitType == dataRetriever.RoundHdrHashDataUnit {
@@ -480,9 +481,9 @@ func TestGetBlockByHashFromHistoryNode_StatusReverted(t *testing.T) {
 
 	args := createMockArgsAPIBlockProc()
 	args.HistoryRepo = historyProc
-	args.Store = &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return storerMock
+	args.Store = &storageMocks.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+			return storerMock, nil
 		},
 		GetCalled: func(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
 			return storerMock.Get(key)

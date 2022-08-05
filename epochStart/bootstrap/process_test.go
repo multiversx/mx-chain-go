@@ -914,6 +914,7 @@ func TestCreateSyncers(t *testing.T) {
 	epochStartProvider.whiteListHandler = &testscommon.WhiteListHandlerStub{}
 	epochStartProvider.whiteListerVerifiedTxs = &testscommon.WhiteListHandlerStub{}
 	epochStartProvider.requestHandler = &testscommon.RequestHandlerStub{}
+	epochStartProvider.storageService = &storageMocks.ChainStorerStub{}
 
 	err := epochStartProvider.createSyncers()
 	assert.Nil(t, err)

@@ -24,6 +24,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/testscommon/mainFactoryMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
+	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -282,7 +283,7 @@ func TestProcessComponents_IndexGenesisBlocks(t *testing.T) {
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(1)
 	processArgs := getProcessComponentsArgs(shardCoordinator)
 	processArgs.Data = &mock.DataComponentsMock{
-		Storage: &mock.ChainStorerMock{},
+		Storage: &storageStubs.ChainStorerStub{},
 	}
 
 	saveBlockCalledMutex := sync.Mutex{}

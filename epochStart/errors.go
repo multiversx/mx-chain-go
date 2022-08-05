@@ -71,9 +71,6 @@ var ErrNilStorageService = errors.New("nil storage service")
 // ErrNilRequestHandler signals that nil request handler has been provided
 var ErrNilRequestHandler = errors.New("nil request handler")
 
-// ErrNilMetaBlockStorage signals that nil metablocks storage has been provided
-var ErrNilMetaBlockStorage = errors.New("nil metablocks storage")
-
 // ErrNilMetaBlocksPool signals that nil metablock pools holder has been provided
 var ErrNilMetaBlocksPool = errors.New("nil metablocks pool")
 
@@ -82,12 +79,6 @@ var ErrNilValidatorInfoProcessor = errors.New("nil validator info processor")
 
 // ErrNilUint64Converter signals that nil uint64 converter has been provided
 var ErrNilUint64Converter = errors.New("nil uint64 converter")
-
-// ErrNilTriggerStorage signals that nil meta header storage has been provided
-var ErrNilTriggerStorage = errors.New("nil trigger storage")
-
-// ErrNilMetaNonceHashStorage signals that nil meta header nonce hash storage has been provided
-var ErrNilMetaNonceHashStorage = errors.New("nil meta nonce hash storage")
 
 // ErrValidatorMiniBlockHashDoesNotMatch signals that created and received validatorInfo miniblock hash does not match
 var ErrValidatorMiniBlockHashDoesNotMatch = errors.New("validatorInfo miniblock hash does not match")
@@ -131,9 +122,6 @@ var ErrNilNodesConfigProvider = errors.New("nil nodes config provider")
 // ErrNotEpochStartBlock signals that block is not of type epoch start
 var ErrNotEpochStartBlock = errors.New("not epoch start block")
 
-// ErrNilShardHeaderStorage signals that shard header storage is nil
-var ErrNilShardHeaderStorage = errors.New("nil shard header storage")
-
 // ErrValidatorInfoMiniBlocksNumDoesNotMatch signals that number of created and received validatorInfo miniblocks is not equal
 var ErrValidatorInfoMiniBlocksNumDoesNotMatch = errors.New("number of created and received validatorInfo miniblocks missmatch")
 
@@ -154,9 +142,6 @@ var ErrEpochStartDataForShardNotFound = errors.New("epoch start data for current
 
 // ErrMissingHeader signals that searched header is missing
 var ErrMissingHeader = errors.New("missing header")
-
-// ErrMissingMiniBlock signals that the searched miniBlock is missing
-var ErrMissingMiniBlock = errors.New("missing miniBlock")
 
 // ErrNilPathManager signals that a nil path manager has been provided
 var ErrNilPathManager = errors.New("nil path manager")
@@ -187,9 +172,6 @@ var ErrNilGenesisNodesConfig = errors.New("nil genesis nodes config")
 
 // ErrNilRater signals that a nil rater has been provided
 var ErrNilRater = errors.New("nil rater")
-
-// ErrInvalidWorkingDir signals that an invalid working directory has been provided
-var ErrInvalidWorkingDir = errors.New("invalid working directory")
 
 // ErrTimeoutWaitingForMetaBlock signals that a timeout event was raised while waiting for the epoch start meta block
 var ErrTimeoutWaitingForMetaBlock = errors.New("timeout while waiting for epoch start meta block")
@@ -271,12 +253,6 @@ var ErrNilDataTrie = errors.New("nil data trie")
 
 // ErrInvalidMinNodePrice signals that the minimum node price is invalid (e.g negative, not a number, etc)
 var ErrInvalidMinNodePrice = errors.New("minimum node price is invalid")
-
-// ErrInvalidRewardsTopUpGradientPoint signals that the given point controlling the top-up gradient is invalid
-var ErrInvalidRewardsTopUpGradientPoint = errors.New("top-up gradient point invalid")
-
-// ErrInvalidRewardsTopUpFactor signals that the factor for computing the top-up rewards out of the full rewards is invalid
-var ErrInvalidRewardsTopUpFactor = errors.New("top-up factor invalid")
 
 // ErrNilEconomicsDataProvider signals that the economics data provider is nil
 var ErrNilEconomicsDataProvider = errors.New("end of epoch economics data provider is nil")

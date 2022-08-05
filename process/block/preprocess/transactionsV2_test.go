@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
+	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 )
@@ -26,7 +27,7 @@ func createTransactionPreprocessor() *transactions {
 	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
 	txPreProcArgs := ArgsTransactionPreProcessor{
 		TxDataPool:           dataPool.Transactions(),
-		Store:                &mock.ChainStorerMock{},
+		Store:                &storageStubs.ChainStorerStub{},
 		Hasher:               &hashingMocks.HasherMock{},
 		Marshalizer:          &mock.MarshalizerMock{},
 		TxProcessor:          &testscommon.TxProcessorMock{},

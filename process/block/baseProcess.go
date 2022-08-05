@@ -1690,7 +1690,11 @@ func (bp *baseProcessor) addHeaderIntoTrackerPool(nonce uint64, shardID uint32) 
 }
 
 func (bp *baseProcessor) commitTrieEpochRootHashIfNeeded(metaBlock *block.MetaBlock, rootHash []byte) error {
-	trieEpochRootHashStorageUnit := bp.store.GetStorer(dataRetriever.TrieEpochRootHashUnit)
+	trieEpochRootHashStorageUnit, err := bp.store.GetStorer(dataRetriever.TrieEpochRootHashUnit)
+	if err != nil {
+		return err
+	}
+
 	if check.IfNil(trieEpochRootHashStorageUnit) {
 		return nil
 	}
@@ -1706,7 +1710,7 @@ func (bp *baseProcessor) commitTrieEpochRootHashIfNeeded(metaBlock *block.MetaBl
 
 	epochBytes := bp.uint64Converter.ToByteSlice(uint64(metaBlock.Epoch))
 
-	err := trieEpochRootHashStorageUnit.Put(epochBytes, rootHash)
+	err = trieEpochRootHashStorageUnit.Put(epochBytes, rootHash)
 	if err != nil {
 		return err
 	}

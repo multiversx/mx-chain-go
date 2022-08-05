@@ -40,7 +40,7 @@ func createHeaderSyncHandler(retErr bool) update.HeaderSyncHandler {
 		},
 	}
 	args := createMockHeadersSyncHandlerArgs()
-	args.StorageService = &mock.ChainStorerMock{GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+	args.StorageService = &storageStubs.ChainStorerStub{GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 		return &storageStubs.StorerStub{
 			GetCalled: func(key []byte) (bytes []byte, err error) {
 				if retErr {
@@ -49,7 +49,7 @@ func createHeaderSyncHandler(retErr bool) update.HeaderSyncHandler {
 
 				return json.Marshal(meta)
 			},
-		}
+		}, nil
 	}}
 
 	if !retErr {
@@ -87,8 +87,8 @@ func createPendingMiniBlocksSyncHandler() update.EpochStartPendingMiniBlocksSync
 
 func createPendingTxSyncHandler() update.TransactionsSyncHandler {
 	args := createMockArgs()
-	args.Storages = &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+	args.Storages = &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 			return &storageStubs.StorerStub{
 				GetCalled: func(key []byte) (bytes []byte, err error) {
 					tx := &dataTransaction.Transaction{
@@ -96,7 +96,7 @@ func createPendingTxSyncHandler() update.TransactionsSyncHandler {
 					}
 					return json.Marshal(tx)
 				},
-			}
+			}, nil
 		},
 	}
 

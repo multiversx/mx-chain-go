@@ -9,6 +9,7 @@ import (
 	"reflect"
 	"sort"
 	"strconv"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -1783,7 +1784,7 @@ func TestAddHeaderIntoTrackerPool_ShouldWork(t *testing.T) {
 	assert.True(t, wasCalled)
 }
 
-func TestBaseProcessor_commitTrieEpochRootHashIfNeededNilStorerShouldNotErr(t *testing.T) {
+func TestBaseProcessor_commitTrieEpochRootHashIfNeededNilStorerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	epoch := uint32(37)
@@ -1796,7 +1797,8 @@ func TestBaseProcessor_commitTrieEpochRootHashIfNeededNilStorerShouldNotErr(t *t
 
 	mb := &block.MetaBlock{Epoch: epoch}
 	err := sp.CommitTrieEpochRootHashIfNeeded(mb, []byte("root"))
-	require.NoError(t, err)
+	require.True(t, strings.Contains(err.Error(), storage.ErrKeyNotFound.Error()))
+	require.True(t, strings.Contains(err.Error(), dataRetriever.TrieEpochRootHashUnit.String()))
 }
 
 func TestBaseProcessor_commitTrieEpochRootHashIfNeededDisabledStorerShouldNotErr(t *testing.T) {
@@ -1967,9 +1969,9 @@ func TestBaseProcessor_updateState(t *testing.T) {
 		},
 	}
 
-	storer := &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return hdrStore
+	storer := &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+			return hdrStore, nil
 		},
 	}
 

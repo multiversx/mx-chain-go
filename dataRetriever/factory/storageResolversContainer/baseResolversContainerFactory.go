@@ -112,7 +112,10 @@ func (brcf *baseResolversContainerFactory) createTxResolver(
 	unit dataRetriever.UnitType,
 ) (dataRetriever.Resolver, error) {
 
-	txStorer := brcf.store.GetStorer(unit)
+	txStorer, err := brcf.store.GetStorer(unit)
+	if err != nil {
+		return nil, err
+	}
 
 	arg := storageResolvers.ArgSliceResolver{
 		Messenger:                brcf.messenger,
@@ -171,7 +174,10 @@ func (brcf *baseResolversContainerFactory) generateMiniBlocksResolvers() error {
 }
 
 func (brcf *baseResolversContainerFactory) createMiniBlocksResolver(responseTopic string) (dataRetriever.Resolver, error) {
-	miniBlocksStorer := brcf.store.GetStorer(dataRetriever.MiniBlockUnit)
+	miniBlocksStorer, err := brcf.store.GetStorer(dataRetriever.MiniBlockUnit)
+	if err != nil {
+		return nil, err
+	}
 
 	arg := storageResolvers.ArgSliceResolver{
 		Messenger:                brcf.messenger,

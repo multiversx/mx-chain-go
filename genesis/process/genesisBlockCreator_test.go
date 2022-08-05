@@ -27,6 +27,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
+	storageMocks "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/update"
@@ -67,9 +68,9 @@ func createMockArgument(
 			MinTxVersion:        1,
 		},
 		Data: &mock.DataComponentsMock{
-			Storage: &mock.ChainStorerStub{
-				GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-					return genericMocks.NewStorerMock()
+			Storage: &storageMocks.ChainStorerStub{
+				GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+					return genericMocks.NewStorerMock(), nil
 				},
 			},
 			Blkc:     &testscommon.ChainHandlerStub{},

@@ -346,7 +346,7 @@ func TestMetaProcessor_CreateEpochStartFromMetaBlockShouldWork(t *testing.T) {
 		return cs
 	}
 	arguments.DataPool = dPool
-	metaHdrStorage := arguments.Store.GetStorer(dataRetriever.MetaBlockUnit)
+	metaHdrStorage, _ := arguments.Store.GetStorer(dataRetriever.MetaBlockUnit)
 	meta1 := &block.MetaBlock{Nonce: 100}
 
 	var hdrs []block.MiniBlockHeader
@@ -401,7 +401,7 @@ func TestMetaProcessor_CreateEpochStartFromMetaBlockEdgeCaseChecking(t *testing.
 	blockTracker := mock.NewBlockTrackerMock(arguments.ShardCoordinator, startHeaders)
 
 	mbHashes := [][]byte{[]byte("mb_hash1"), []byte("mb_hash2"), []byte("mb_hash3"), []byte("mb_hash4")}
-	metaHdrStorage := arguments.Store.GetStorer(dataRetriever.MetaBlockUnit)
+	metaHdrStorage, _ := arguments.Store.GetStorer(dataRetriever.MetaBlockUnit)
 	var mbHdrs1 []block.MiniBlockHeader
 	mbHdrs1 = append(mbHdrs1, block.MiniBlockHeader{
 		Hash:            mbHashes[0],

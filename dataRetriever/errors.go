@@ -244,3 +244,6 @@ var ErrInvalidNumOfPeerAuthentication = errors.New("invalid num of peer authenti
 
 // ErrNilPeerShardMapper signals that a nil peer shard mapper has been provided
 var ErrNilPeerShardMapper = errors.New("nil peer shard mapper")
+
+// ErrKeyNotFound signals that the provided key was not found
+var ErrKeyNotFound = errors.New("key not found")

@@ -52,6 +52,7 @@ func createMetaStore() dataRetriever.StorageService {
 	store := dataRetriever.NewChainStorer()
 	store.AddStorer(dataRetriever.MetaBlockUnit, generateTestUnit())
 	store.AddStorer(dataRetriever.ShardHdrNonceHashDataUnit, generateTestUnit())
+	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, generateTestUnit())
 	return store
 }
 
@@ -454,7 +455,7 @@ func TestMetaBootstrap_SyncBlockShouldCallRollBack(t *testing.T) {
 	bs, _ := sync.NewMetaBootstrap(args)
 	r := bs.SyncBlock(context.Background())
 
-	assert.Equal(t, process.ErrNilHeadersNonceHashStorage, r)
+	assert.Equal(t, storage.ErrKeyNotFound, r)
 }
 
 func TestMetaBootstrap_ShouldReturnTimeIsOutWhenMissingHeader(t *testing.T) {
@@ -1324,8 +1325,8 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockOkValsShouldWork(t *te
 		hdrHash = i
 	}
 	args.ChainHandler = blkc
-	args.Store = &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+	args.Store = &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 			return &storageStubs.StorerStub{
 				GetCalled: func(key []byte) ([]byte, error) {
 					return prevHdrBytes, nil
@@ -1334,7 +1335,7 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockOkValsShouldWork(t *te
 					remFlags.flagHdrRemovedFromStorage = true
 					return nil
 				},
-			}
+			}, nil
 		},
 	}
 	args.BlockProcessor = &mock.BlockProcessorMock{
@@ -1466,8 +1467,8 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockToGenesisShouldWork(t 
 		hdrHash = nil
 	}
 	args.ChainHandler = blkc
-	args.Store = &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+	args.Store = &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 			return &storageStubs.StorerStub{
 				GetCalled: func(key []byte) ([]byte, error) {
 					return prevHdrBytes, nil
@@ -1476,7 +1477,7 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockToGenesisShouldWork(t 
 					remFlags.flagHdrRemovedFromStorage = true
 					return nil
 				},
-			}
+			}, nil
 		},
 	}
 	args.BlockProcessor = &mock.BlockProcessorMock{

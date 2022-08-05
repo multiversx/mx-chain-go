@@ -61,9 +61,9 @@ func TestHistoryRepositoryFactory_CreateShouldCreateDisabledRepository(t *testin
 func TestHistoryRepositoryFactory_CreateShouldCreateRegularRepository(t *testing.T) {
 	args := getArgs()
 	args.Config.Enabled = true
-	args.Store = &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return &storageStubs.StorerStub{}
+	args.Store = &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+			return &storageStubs.StorerStub{}, nil
 		},
 	}
 
@@ -79,7 +79,7 @@ func getArgs() *factory.ArgsHistoryRepositoryFactory {
 	return &factory.ArgsHistoryRepositoryFactory{
 		SelfShardID:              0,
 		Config:                   config.DbLookupExtensionsConfig{},
-		Store:                    &mock.ChainStorerMock{},
+		Store:                    &storageStubs.ChainStorerStub{},
 		Marshalizer:              &mock.MarshalizerMock{},
 		Hasher:                   &hashingMocks.HasherMock{},
 		Uint64ByteSliceConverter: &processMock.Uint64ByteSliceConverterMock{},

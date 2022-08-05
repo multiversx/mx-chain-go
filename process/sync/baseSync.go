@@ -710,13 +710,6 @@ func (boot *baseBootstrap) cleanNoncesSyncedWithErrorsBehindFinal() {
 
 // rollBack decides if rollBackOneBlock must be called
 func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
-	if boot.headerStore == nil {
-		return process.ErrNilHeadersStorage
-	}
-	if boot.headerNonceHashStore == nil {
-		return process.ErrNilHeadersNonceHashStorage
-	}
-
 	var roleBackOneBlockExecuted bool
 	var err error
 	var currHeaderHash []byte

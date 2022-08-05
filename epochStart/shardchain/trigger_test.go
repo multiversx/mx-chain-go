@@ -2,6 +2,7 @@ package shardchain
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"testing"
 
@@ -40,8 +41,8 @@ func createMockShardEpochStartTriggerArguments() *ArgsShardEpochStartTrigger {
 				return testscommon.NewCacherStub()
 			},
 		},
-		Storage: &mock.ChainStorerStub{
-			GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+		Storage: &storageStubs.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 				return &storageStubs.StorerStub{
 					GetCalled: func(key []byte) (bytes []byte, err error) {
 						return []byte("hash"), nil
@@ -49,7 +50,7 @@ func createMockShardEpochStartTriggerArguments() *ArgsShardEpochStartTrigger {
 					PutCalled: func(key, data []byte) error {
 						return nil
 					},
-				}
+				}, nil
 			},
 		},
 		RequestHandler:       &testscommon.RequestHandlerStub{},
@@ -157,39 +158,41 @@ func TestNewEpochStartTrigger_NilEpochStartNotifierShouldErr(t *testing.T) {
 	assert.Equal(t, epochStart.ErrNilEpochStartNotifier, err)
 }
 
-func TestNewEpochStartTrigger_NilMetaBlockUnitShouldErr(t *testing.T) {
+func TestNewEpochStartTrigger_GetStorerCalledReturnsErr(t *testing.T) {
 	t.Parallel()
 
+	expectedErr := errors.New("expected err")
 	args := createMockShardEpochStartTriggerArguments()
-	args.Storage = &mock.ChainStorerStub{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return nil
+	args.Storage = &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+			return nil, expectedErr
 		},
 	}
 	epochStartTrigger, err := NewEpochStartTrigger(args)
 
 	assert.Nil(t, epochStartTrigger)
-	assert.Equal(t, epochStart.ErrNilMetaBlockStorage, err)
+	assert.Equal(t, expectedErr, err)
 }
 
 func TestNewEpochStartTrigger_NilMetaNonceHashStorageShouldErr(t *testing.T) {
 	t.Parallel()
 
+	expectedErr := errors.New("expected err")
 	args := createMockShardEpochStartTriggerArguments()
-	args.Storage = &mock.ChainStorerStub{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+	args.Storage = &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 			switch unitType {
 			case dataRetriever.MetaHdrNonceHashDataUnit:
-				return nil
+				return nil, expectedErr
 			default:
-				return &storageStubs.StorerStub{}
+				return &storageStubs.StorerStub{}, nil
 			}
 		},
 	}
 	epochStartTrigger, err := NewEpochStartTrigger(args)
 
 	assert.Nil(t, epochStartTrigger)
-	assert.Equal(t, epochStart.ErrNilMetaNonceHashStorage, err)
+	assert.Equal(t, expectedErr, err)
 }
 
 func TestNewEpochStartTrigger_NilHeadersPoolShouldErr(t *testing.T) {
@@ -224,41 +227,43 @@ func TestNewEpochStartTrigger_NilValidatorInfoProcessorShouldErr(t *testing.T) {
 func TestNewEpochStartTrigger_NiBootstrapUnitStorageShouldErr(t *testing.T) {
 	t.Parallel()
 
+	expectedErr := errors.New("expected err")
 	args := createMockShardEpochStartTriggerArguments()
-	args.Storage = &mock.ChainStorerStub{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+	args.Storage = &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 			switch unitType {
 			case dataRetriever.BootstrapUnit:
-				return nil
+				return nil, expectedErr
 			default:
-				return &storageStubs.StorerStub{}
+				return &storageStubs.StorerStub{}, nil
 			}
 		},
 	}
 	epochStartTrigger, err := NewEpochStartTrigger(args)
 
 	assert.Nil(t, epochStartTrigger)
-	assert.Equal(t, epochStart.ErrNilTriggerStorage, err)
+	assert.Equal(t, expectedErr, err)
 }
 
 func TestNewEpochStartTrigger_NilBlockHeaderUnitStorageErr(t *testing.T) {
 	t.Parallel()
 
+	expectedErr := errors.New("expected err")
 	args := createMockShardEpochStartTriggerArguments()
-	args.Storage = &mock.ChainStorerStub{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+	args.Storage = &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 			switch unitType {
 			case dataRetriever.BlockHeaderUnit:
-				return nil
+				return nil, expectedErr
 			default:
-				return &storageStubs.StorerStub{}
+				return &storageStubs.StorerStub{}, nil
 			}
 		},
 	}
 	epochStartTrigger, err := NewEpochStartTrigger(args)
 
 	assert.Nil(t, epochStartTrigger)
-	assert.Equal(t, epochStart.ErrNilShardHeaderStorage, err)
+	assert.Equal(t, expectedErr, err)
 }
 
 func TestNewEpochStartTrigger_NilRoundHandlerShouldErr(t *testing.T) {
@@ -403,8 +408,8 @@ func TestTrigger_ReceivedHeaderIsEpochStartTrueWithPeerMiniblocks(t *testing.T) 
 			return []byte(fmt.Sprint(u))
 		},
 	}
-	args.Storage = &mock.ChainStorerStub{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+	args.Storage = &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 			return &storageStubs.StorerStub{
 				GetCalled: func(key []byte) (bytes []byte, err error) {
 					return noncesToHeader[string(key)], nil
@@ -412,7 +417,7 @@ func TestTrigger_ReceivedHeaderIsEpochStartTrueWithPeerMiniblocks(t *testing.T) 
 				PutCalled: func(key, data []byte) error {
 					return nil
 				},
-			}
+			}, nil
 		},
 	}
 
@@ -494,8 +499,8 @@ func TestTrigger_RevertStateToBlockBehindEpochStart(t *testing.T) {
 	prevEpochHdr := &block.Header{Round: 20, Epoch: 2}
 	prevEpochHdrBuff, _ := args.Marshalizer.Marshal(prevEpochHdr)
 
-	args.Storage = &mock.ChainStorerStub{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+	args.Storage = &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 			return &storageStubs.StorerStub{
 				GetCalled: func(key []byte) (bytes []byte, err error) {
 					return []byte("hash"), nil
@@ -509,7 +514,7 @@ func TestTrigger_RevertStateToBlockBehindEpochStart(t *testing.T) {
 				RemoveCalled: func(key []byte) error {
 					return nil
 				},
-			}
+			}, nil
 		},
 	}
 	et, _ := NewEpochStartTrigger(args)
@@ -546,8 +551,8 @@ func TestTrigger_RevertStateToBlockBehindEpochStartNoBlockInAnEpoch(t *testing.T
 
 	epochStartKey := core.EpochStartIdentifier(prevEpochHdr.Epoch)
 
-	args.Storage = &mock.ChainStorerStub{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+	args.Storage = &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 			return &storageStubs.StorerStub{
 				GetCalled: func(key []byte) (bytes []byte, err error) {
 					return []byte("hash"), nil
@@ -564,7 +569,7 @@ func TestTrigger_RevertStateToBlockBehindEpochStartNoBlockInAnEpoch(t *testing.T
 				RemoveCalled: func(key []byte) error {
 					return nil
 				},
-			}
+			}, nil
 		},
 	}
 	et, _ := NewEpochStartTrigger(args)

@@ -6,9 +6,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -51,7 +51,7 @@ func TestSaveMiniBlocksFromComponents(t *testing.T) {
 	}
 
 	receivedMiniblocks := make(map[string]*block.MiniBlock)
-	storageService := &mock.ChainStorerStub{
+	storageService := &storage.ChainStorerStub{
 		PutCalled: func(unitType dataRetriever.UnitType, key []byte, value []byte) error {
 			assert.Equal(t, dataRetriever.MiniBlockUnit, unitType)
 

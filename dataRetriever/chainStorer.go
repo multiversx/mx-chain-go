@@ -30,13 +30,17 @@ func (bc *ChainStorer) AddStorer(key UnitType, s storage.Storer) {
 	bc.lock.Unlock()
 }
 
-// GetStorer returns the storer from the chain map or nil if the storer was not found
-func (bc *ChainStorer) GetStorer(unitType UnitType) storage.Storer {
+// GetStorer returns the storer from the chain map or nil if the storer was not found with error
+func (bc *ChainStorer) GetStorer(unitType UnitType) (storage.Storer, error) {
 	bc.lock.RLock()
-	storer := bc.chain[unitType]
+	storer, ok := bc.chain[unitType]
 	bc.lock.RUnlock()
 
-	return storer
+	if !ok {
+		return nil, fmt.Errorf("%w for key %s", ErrKeyNotFound, unitType.String())
+	}
+
+	return storer, nil
 }
 
 // Has returns true if the key is found in the selected Unit or false otherwise

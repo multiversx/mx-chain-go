@@ -61,9 +61,9 @@ func createMockPools() *dataRetrieverMock.PoolsHolderStub {
 	return pools
 }
 
-func createStore() *mock.ChainStorerMock {
-	return &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+func createStore() *storageStubs.ChainStorerStub {
+	return &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 			return &storageStubs.StorerStub{
 				GetCalled: func(key []byte) ([]byte, error) {
 					return nil, process.ErrMissingHeader
@@ -71,7 +71,7 @@ func createStore() *mock.ChainStorerMock {
 				RemoveCalled: func(key []byte) error {
 					return nil
 				},
-			}
+			}, nil
 		},
 	}
 }
@@ -529,7 +529,7 @@ func TestBootstrap_SyncBlockShouldCallForkChoice(t *testing.T) {
 	bs, _ := sync.NewShardBootstrap(args)
 	r := bs.SyncBlock(context.Background())
 
-	assert.Equal(t, process.ErrNilHeadersStorage, r)
+	assert.Equal(t, storage.ErrKeyNotFound, r)
 }
 
 func TestBootstrap_ShouldReturnTimeIsOutWhenMissingHeader(t *testing.T) {
@@ -1481,8 +1481,8 @@ func TestBootstrap_RollBackIsEmptyCallRollBackOneBlockOkValsShouldWork(t *testin
 		hdrHash = i
 	}
 	args.ChainHandler = blkc
-	args.Store = &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+	args.Store = &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 			return &storageStubs.StorerStub{
 				GetCalled: func(key []byte) ([]byte, error) {
 					return prevHdrBytes, nil
@@ -1491,7 +1491,7 @@ func TestBootstrap_RollBackIsEmptyCallRollBackOneBlockOkValsShouldWork(t *testin
 					remFlags.flagHdrRemovedFromStorage = true
 					return nil
 				},
-			}
+			}, nil
 		},
 	}
 	args.BlockProcessor = &mock.BlockProcessorMock{
@@ -1624,8 +1624,8 @@ func TestBootstrap_RollbackIsEmptyCallRollBackOneBlockToGenesisShouldWork(t *tes
 		hdrHash = nil
 	}
 	args.ChainHandler = blkc
-	args.Store = &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+	args.Store = &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 			return &storageStubs.StorerStub{
 				GetCalled: func(key []byte) ([]byte, error) {
 					return prevHdrBytes, nil
@@ -1634,7 +1634,7 @@ func TestBootstrap_RollbackIsEmptyCallRollBackOneBlockToGenesisShouldWork(t *tes
 					remFlags.flagHdrRemovedFromStorage = true
 					return nil
 				},
-			}
+			}, nil
 		},
 	}
 	args.BlockProcessor = &mock.BlockProcessorMock{

@@ -214,7 +214,7 @@ func TestReceiptsRepository_LoadReceipts(t *testing.T) {
 
 func TestReceiptsRepository_NoPanicOnSaveOrLoadWhenBadStorage(t *testing.T) {
 	store := &testsCommonStorage.ChainStorerStub{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 			return &testsCommonStorage.StorerStub{
 				PutCalled: func(key, data []byte) error {
 					return errors.New("bad")
@@ -222,7 +222,7 @@ func TestReceiptsRepository_NoPanicOnSaveOrLoadWhenBadStorage(t *testing.T) {
 				GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
 					return nil, errors.New("bad")
 				},
-			}
+			}, nil
 		},
 	}
 

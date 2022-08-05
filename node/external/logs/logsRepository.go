@@ -16,7 +16,10 @@ type logsRepository struct {
 }
 
 func newLogsRepository(storageService dataRetriever.StorageService, marshaller marshal.Marshalizer) *logsRepository {
-	storer := storageService.GetStorer(dataRetriever.TxLogsUnit)
+	storer, err := storageService.GetStorer(dataRetriever.TxLogsUnit)
+	if err != nil {
+		return nil
+	}
 
 	return &logsRepository{
 		storer:     storer,

@@ -36,14 +36,14 @@ func TestPutEventsInTransactionReceipt(t *testing.T) {
 	}
 
 	marshalizerdMock := &mock.MarshalizerFake{}
-	dataStore := &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+	dataStore := &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 			return &storageStubs.StorerStub{
 				GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
 					recBytes, _ := json.Marshal(rec)
 					return recBytes, nil
 				},
-			}
+			}, nil
 		},
 	}
 	historyRepo := &dbLookupExtMock.HistoryRepositoryStub{
@@ -158,8 +158,8 @@ func TestPutEventsInTransactionSmartContractResults(t *testing.T) {
 	}
 
 	marshalizerdMock := &mock.MarshalizerFake{}
-	dataStore := &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+	dataStore := &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 			switch unitType {
 			case dataRetriever.UnsignedTransactionUnit:
 				return &storageStubs.StorerStub{
@@ -173,9 +173,9 @@ func TestPutEventsInTransactionSmartContractResults(t *testing.T) {
 							return nil, nil
 						}
 					},
-				}
+				}, nil
 			default:
-				return genericMocks.NewStorerMock()
+				return genericMocks.NewStorerMock(), nil
 			}
 		},
 	}
@@ -274,7 +274,7 @@ func TestPutLogsInTransaction(t *testing.T) {
 	}
 
 	marshalizerMock := &mock.MarshalizerFake{}
-	dataStore := &mock.ChainStorerMock{}
+	dataStore := &storageStubs.ChainStorerStub{}
 
 	historyRepo := &dbLookupExtMock.HistoryRepositoryStub{
 		GetEventsHashesByTxHashCalled: func(hash []byte, e uint32) (*dblookupext.ResultsHashesByTxHash, error) {

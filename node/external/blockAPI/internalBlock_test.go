@@ -29,9 +29,9 @@ func createMockInternalBlockProcessor(
 		&ArgAPIBlockProcessor{
 			SelfShardID: shardID,
 			Marshalizer: &mock.MarshalizerFake{},
-			Store: &mock.ChainStorerMock{
-				GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-					return storerMock
+			Store: &storageMocks.ChainStorerStub{
+				GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+					return storerMock, nil
 				},
 				GetCalled: func(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
 					if withKey {
@@ -567,9 +567,9 @@ func TestInternalBlockProcessor_GetInternalMiniBlockByHash(t *testing.T) {
 			&ArgAPIBlockProcessor{
 				SelfShardID: 1,
 				Marshalizer: &mock.MarshalizerFake{},
-				Store: &mock.ChainStorerMock{
-					GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-						return storerMock
+				Store: &storageMocks.ChainStorerStub{
+					GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+						return storerMock, nil
 					},
 				},
 				Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
@@ -600,9 +600,9 @@ func TestInternalBlockProcessor_GetInternalMiniBlockByHash(t *testing.T) {
 			&ArgAPIBlockProcessor{
 				SelfShardID: 1,
 				Marshalizer: &mock.MarshalizerFake{},
-				Store: &mock.ChainStorerMock{
-					GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-						return storerMock
+				Store: &storageMocks.ChainStorerStub{
+					GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+						return storerMock, nil
 					},
 				},
 				Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
@@ -634,9 +634,9 @@ func TestInternalBlockProcessor_GetInternalMiniBlockByHash(t *testing.T) {
 			&ArgAPIBlockProcessor{
 				SelfShardID: 1,
 				Marshalizer: &mock.MarshalizerFake{},
-				Store: &mock.ChainStorerMock{
-					GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-						return storerMock
+				Store: &storageMocks.ChainStorerStub{
+					GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+						return storerMock, nil
 					},
 				},
 				Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
@@ -666,7 +666,7 @@ func TestInternalBlockProcessor_GetInternalStartOfEpochMetaBlock(t *testing.T) {
 			&ArgAPIBlockProcessor{
 				SelfShardID:              1,
 				Marshalizer:              &mock.MarshalizerFake{},
-				Store:                    &mock.ChainStorerMock{},
+				Store:                    &storageMocks.ChainStorerStub{},
 				Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
 				HistoryRepo:              &dblookupext.HistoryRepositoryStub{},
 			}, nil)
@@ -690,9 +690,9 @@ func TestInternalBlockProcessor_GetInternalStartOfEpochMetaBlock(t *testing.T) {
 			&ArgAPIBlockProcessor{
 				SelfShardID: core.MetachainShardId,
 				Marshalizer: &mock.MarshalizerFake{},
-				Store: &mock.ChainStorerMock{
-					GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-						return storerMock
+				Store: &storageMocks.ChainStorerStub{
+					GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+						return storerMock, nil
 					},
 				},
 				Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
@@ -718,9 +718,9 @@ func TestInternalBlockProcessor_GetInternalStartOfEpochMetaBlock(t *testing.T) {
 			&ArgAPIBlockProcessor{
 				SelfShardID: core.MetachainShardId,
 				Marshalizer: &mock.MarshalizerFake{},
-				Store: &mock.ChainStorerMock{
-					GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-						return storerMock
+				Store: &storageMocks.ChainStorerStub{
+					GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+						return storerMock, nil
 					},
 				},
 				Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
@@ -746,9 +746,9 @@ func TestInternalBlockProcessor_GetInternalStartOfEpochMetaBlock(t *testing.T) {
 			&ArgAPIBlockProcessor{
 				SelfShardID: core.MetachainShardId,
 				Marshalizer: &mock.MarshalizerFake{},
-				Store: &mock.ChainStorerMock{
-					GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-						return storerMock
+				Store: &storageMocks.ChainStorerStub{
+					GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+						return storerMock, nil
 					},
 				},
 				Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),

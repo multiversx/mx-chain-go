@@ -51,9 +51,9 @@ func createStubTopicMessageHandlerForShard(matchStrToErrOnCreate string, matchSt
 }
 
 func createStoreForShard() dataRetriever.StorageService {
-	return &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return &storageStubs.StorerStub{}
+	return &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+			return &storageStubs.StorerStub{}, nil
 		},
 	}
 }

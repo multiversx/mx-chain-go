@@ -49,7 +49,10 @@ func NewMetaStorageBootstrapper(arguments ArgsMetaStorageBootstrapper) (*metaSto
 	}
 
 	base.bootstrapper = &boot
-	base.headerNonceHashStore = boot.store.GetStorer(dataRetriever.MetaHdrNonceHashDataUnit)
+	base.headerNonceHashStore, err = boot.store.GetStorer(dataRetriever.MetaHdrNonceHashDataUnit)
+	if err != nil {
+		return nil, err
+	}
 
 	return &boot, nil
 }
@@ -122,7 +125,13 @@ func (msb *metaStorageBootstrapper) cleanupNotarizedStorage(metaBlockHash []byte
 			"hash", shardHeaderHash)
 
 		hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(shardHeader.GetShardID())
-		storer := msb.store.GetStorer(hdrNonceHashDataUnit)
+		storer, err := msb.store.GetStorer(hdrNonceHashDataUnit)
+		if err != nil {
+			log.Debug("could not get storage unit",
+				"unit", hdrNonceHashDataUnit,
+				"error", err.Error())
+		}
+
 		nonceToByteSlice := msb.uint64Converter.ToByteSlice(shardHeader.GetNonce())
 		err = storer.Remove(nonceToByteSlice)
 		if err != nil {

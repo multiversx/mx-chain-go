@@ -106,9 +106,9 @@ func TestShardStorageBootstrapper_LoadFromStorageShouldWork(t *testing.T) {
 				},
 			},
 			Marshalizer: &testscommon.MarshalizerMock{},
-			Store: &mock.ChainStorerMock{
-				GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-					return blockStorerMock
+			Store: &storageMock.ChainStorerStub{
+				GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+					return blockStorerMock, nil
 				},
 			},
 			Uint64Converter:     testscommon.NewNonceHashConverterMock(),
@@ -173,8 +173,8 @@ func TestShardStorageBootstrapper_CleanupNotarizedStorageForHigherNoncesIfExist(
 			return []byte("")
 		},
 	}
-	baseArgs.Store = &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+	baseArgs.Store = &storageMock.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 			return &storageMock.StorerStub{
 				RemoveCalled: func(key []byte) error {
 					if bForceError {
@@ -202,7 +202,7 @@ func TestShardStorageBootstrapper_CleanupNotarizedStorageForHigherNoncesIfExist(
 					numKeysNotFound++
 					return nil, errors.New("error")
 				},
-			}
+			}, nil
 		},
 	}
 

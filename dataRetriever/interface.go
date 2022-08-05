@@ -39,10 +39,32 @@ func (ut UnitType) String() string {
 		return "BootstrapUnit"
 	case StatusMetricsUnit:
 		return "StatusMetricsUnit"
+	case TxLogsUnit:
+		return "TxLogsUnit"
+	case MiniblocksMetadataUnit:
+		return "MiniblocksMetadataUnit"
+	case EpochByHashUnit:
+		return "EpochByHashUnit"
+	case MiniblockHashByTxHashUnit:
+		return "MiniblockHashByTxHashUnit"
 	case ReceiptsUnit:
 		return "ReceiptsUnit"
+	case ResultsHashesByTxHashUnit:
+		return "ResultsHashesByTxHashUnit"
 	case TrieEpochRootHashUnit:
 		return "TrieEpochRootHashUnit"
+	case ESDTSuppliesUnit:
+		return "ESDTSuppliesUnit"
+	case RoundHdrHashDataUnit:
+		return "RoundHdrHashDataUnit"
+	case UserAccountsUnit:
+		return "UserAccountsUnit"
+	case UserAccountsCheckpointsUnit:
+		return "UserAccountsCheckpointsUnit"
+	case PeerAccountsUnit:
+		return "PeerAccountsUnit"
+	case PeerAccountsCheckpointsUnit:
+		return "PeerAccountsCheckpointsUnit"
 	case ScheduledSCRsUnit:
 		return "ScheduledSCRsUnit"
 	}
@@ -337,7 +359,8 @@ type PoolsHolder interface {
 // StorageService is the interface for data storage unit provided services
 type StorageService interface {
 	// GetStorer returns the storer from the chain map
-	GetStorer(unitType UnitType) storage.Storer
+	// If the unit is missing, it returns an error
+	GetStorer(unitType UnitType) (storage.Storer, error)
 	// AddStorer will add a new storer to the chain map
 	AddStorer(key UnitType, s storage.Storer)
 	// Has returns true if the key is found in the selected Unit or false otherwise

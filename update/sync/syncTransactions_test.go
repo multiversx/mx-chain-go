@@ -3,6 +3,7 @@ package sync
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"math/big"
 	"testing"
 	"time"
@@ -23,9 +24,9 @@ import (
 func createMockArgs() ArgsNewTransactionsSyncer {
 	return ArgsNewTransactionsSyncer{
 		DataPools: dataRetrieverMock.NewPoolsHolderMock(),
-		Storages: &mock.ChainStorerMock{
-			GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-				return &storageStubs.StorerStub{}
+		Storages: &storageStubs.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+				return &storageStubs.StorerStub{}, nil
 			},
 		},
 		Marshalizer:    &mock.MarshalizerFake{},
@@ -80,6 +81,65 @@ func TestNewPendingTransactionsSyncer_NilMarshalizer(t *testing.T) {
 func TestNewPendingTransactionsSyncer_NilRequestHandler(t *testing.T) {
 	t.Parallel()
 
+	t.Run("TransactionUnit not found", func(t *testing.T) {
+		t.Parallel()
+
+		expectedErr := errors.New("expected err")
+		args := createMockArgs()
+		args.Storages = &storageStubs.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+				if unitType == dataRetriever.TransactionUnit {
+					return nil, expectedErr
+				}
+				return &storageStubs.StorerStub{}, nil
+			},
+		}
+
+		pendingTxsSyncer, err := NewTransactionsSyncer(args)
+		require.Nil(t, pendingTxsSyncer)
+		require.NotNil(t, expectedErr, err)
+	})
+	t.Run("UnsignedTransactionUnit not found", func(t *testing.T) {
+		t.Parallel()
+
+		expectedErr := errors.New("expected err")
+		args := createMockArgs()
+		args.Storages = &storageStubs.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+				if unitType == dataRetriever.UnsignedTransactionUnit {
+					return nil, expectedErr
+				}
+				return &storageStubs.StorerStub{}, nil
+			},
+		}
+
+		pendingTxsSyncer, err := NewTransactionsSyncer(args)
+		require.Nil(t, pendingTxsSyncer)
+		require.NotNil(t, expectedErr, err)
+	})
+	t.Run("RewardTransactionUnit not found", func(t *testing.T) {
+		t.Parallel()
+
+		expectedErr := errors.New("expected err")
+		args := createMockArgs()
+		args.Storages = &storageStubs.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+				if unitType == dataRetriever.TransactionUnit {
+					return nil, expectedErr
+				}
+				return &storageStubs.StorerStub{}, nil
+			},
+		}
+
+		pendingTxsSyncer, err := NewTransactionsSyncer(args)
+		require.Nil(t, pendingTxsSyncer)
+		require.NotNil(t, expectedErr, err)
+	})
+}
+
+func TestNewPendingTransactionsSyncer_GetStorerReturnsError(t *testing.T) {
+	t.Parallel()
+
 	args := createMockArgs()
 	args.RequestHandler = nil
 
@@ -92,8 +152,8 @@ func TestSyncPendingTransactionsFor(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgs()
-	args.Storages = &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+	args.Storages = &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 			return &storageStubs.StorerStub{
 				GetCalled: func(key []byte) (bytes []byte, err error) {
 					tx := &dataTransaction.Transaction{
@@ -101,7 +161,7 @@ func TestSyncPendingTransactionsFor(t *testing.T) {
 					}
 					return json.Marshal(tx)
 				},
-			}
+			}, nil
 		},
 	}
 
@@ -121,14 +181,14 @@ func TestSyncPendingTransactionsFor_MissingTxFromPool(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgs()
-	args.Storages = &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+	args.Storages = &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 			return &storageStubs.StorerStub{
 				GetCalled: func(key []byte) (bytes []byte, err error) {
 					dummy := 10
 					return json.Marshal(dummy)
 				},
-			}
+			}, nil
 		},
 	}
 
@@ -275,14 +335,14 @@ func TestSyncPendingTransactionsFor_ReceiveMissingTx(t *testing.T) {
 
 	txHash := []byte("txHash")
 	args := createMockArgs()
-	args.Storages = &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+	args.Storages = &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 			return &storageStubs.StorerStub{
 				GetCalled: func(key []byte) (bytes []byte, err error) {
 					dummy := 10
 					return json.Marshal(dummy)
 				},
-			}
+			}, nil
 		},
 	}
 

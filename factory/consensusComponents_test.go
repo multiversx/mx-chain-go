@@ -23,6 +23,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
+	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
 	"github.com/stretchr/testify/require"
 )
@@ -495,7 +496,7 @@ func getDefaultStateComponents() *testscommon.StateComponentsMock {
 func getDefaultDataComponents() *mock.DataComponentsMock {
 	return &mock.DataComponentsMock{
 		Blkc:              &testscommon.ChainHandlerStub{},
-		Storage:           &mock.ChainStorerStub{},
+		Storage:           &storageStubs.ChainStorerStub{},
 		DataPool:          &dataRetrieverMock.PoolsHolderMock{},
 		MiniBlockProvider: &mock.MiniBlocksProviderStub{},
 	}

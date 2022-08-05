@@ -47,7 +47,7 @@ func createMockArgAPITransactionProcessor() *ArgAPITransactionProcessor {
 		AddressPubKeyConverter:   &mock.PubkeyConverterMock{},
 		ShardCoordinator:         createShardCoordinator(),
 		HistoryRepository:        &dblookupextMock.HistoryRepositoryStub{},
-		StorageService:           &mock.ChainStorerMock{},
+		StorageService:           &storageStubs.ChainStorerStub{},
 		DataPool:                 &dataRetrieverMock.PoolsHolderMock{},
 		Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
 		FeeComputer:              &testscommon.FeeComputerStub{},
@@ -346,6 +346,70 @@ func TestNode_GetTransactionFromStorage(t *testing.T) {
 	require.Nil(t, tx)
 }
 
+func TestNode_GetTransactionWithResultsFromStorageMissingStorer(t *testing.T) {
+	t.Parallel()
+
+	t.Run("missing TransactionUnit", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgAPITransactionProcessor()
+		args.StorageService = &storageStubs.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+				if unitType == dataRetriever.TransactionUnit {
+					return nil, storage.ErrKeyNotFound
+				}
+				return &storageStubs.StorerStub{}, nil
+			},
+		}
+
+		apiTransactionProc, _ := NewAPITransactionProcessor(args)
+		_, err := apiTransactionProc.getTransactionFromStorage([]byte("txHash"))
+		require.Equal(t, ErrTransactionNotFound, err)
+	})
+	t.Run("missing UnsignedTransactionUnit", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgAPITransactionProcessor()
+		args.StorageService = &storageStubs.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+				if unitType == dataRetriever.UnsignedTransactionUnit {
+					return nil, storage.ErrKeyNotFound
+				}
+				return &storageStubs.StorerStub{
+					SearchFirstCalled: func(key []byte) ([]byte, error) {
+						return nil, errors.New("dummy")
+					},
+				}, nil
+			},
+		}
+
+		apiTransactionProc, _ := NewAPITransactionProcessor(args)
+		_, err := apiTransactionProc.getTransactionFromStorage([]byte("txHash"))
+		require.Equal(t, ErrTransactionNotFound, err)
+	})
+	t.Run("missing RewardTransactionUnit", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgAPITransactionProcessor()
+		args.StorageService = &storageStubs.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+				if unitType == dataRetriever.RewardTransactionUnit {
+					return nil, storage.ErrKeyNotFound
+				}
+				return &storageStubs.StorerStub{
+					SearchFirstCalled: func(key []byte) ([]byte, error) {
+						return nil, errors.New("dummy")
+					},
+				}, nil
+			},
+		}
+
+		apiTransactionProc, _ := NewAPITransactionProcessor(args)
+		_, err := apiTransactionProc.getTransactionFromStorage([]byte("txHash"))
+		require.Equal(t, ErrTransactionNotFound, err)
+	})
+}
+
 func TestNode_GetTransactionWithResultsFromStorage(t *testing.T) {
 	t.Parallel()
 
@@ -366,29 +430,29 @@ func TestNode_GetTransactionWithResultsFromStorage(t *testing.T) {
 		},
 	}
 
-	chainStorer := &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+	chainStorer := &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 			switch unitType {
 			case dataRetriever.TransactionUnit:
 				return &storageStubs.StorerStub{
 					GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
 						return marshalizer.Marshal(tx)
 					},
-				}
+				}, nil
 			case dataRetriever.UnsignedTransactionUnit:
 				return &storageStubs.StorerStub{
 					GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
 						return marshalizer.Marshal(scResult)
 					},
-				}
-			case dataRetriever.TxLogsUnit:
+				}, nil
+			case dataRetriever.RewardTransactionUnit:
 				return &storageStubs.StorerStub{
 					GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
 						return nil, errors.New("dummy")
 					},
-				}
+				}, nil
 			default:
-				return nil
+				return nil, storage.ErrKeyNotFound
 			}
 		},
 	}
@@ -797,7 +861,7 @@ func TestApiTransactionProcessor_GetTransactionsPoolForSender(t *testing.T) {
 
 	// if no tx is found in pool for a sender, it isn't an error, but return empty slice
 	newSender := "new-sender"
-	res, err  = atp.GetTransactionsPoolForSender(newSender, "")
+	res, err = atp.GetTransactionsPoolForSender(newSender, "")
 	require.NoError(t, err)
 	require.Equal(t, &common.TransactionsPoolForSenderApiResponse{
 		Transactions: []common.Transaction{},
@@ -962,11 +1026,11 @@ func TestApiTransactionProcessor_GetTransactionsPoolNonceGapsForSender(t *testin
 
 	// if no tx is found in pool for a sender, it isn't an error, but return empty slice
 	newSender := "new-sender"
-	res, err  = atp.GetTransactionsPoolNonceGapsForSender(newSender)
+	res, err = atp.GetTransactionsPoolNonceGapsForSender(newSender)
 	require.NoError(t, err)
 	require.Equal(t, &common.TransactionsPoolNonceGapsForSenderApiResponse{
 		Sender: newSender,
-		Gaps: []common.NonceGapApiResponse{},
+		Gaps:   []common.NonceGapApiResponse{},
 	}, res)
 }
 
