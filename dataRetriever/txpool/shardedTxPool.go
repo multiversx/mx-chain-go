@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/counting"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go-storage/common"
 	"github.com/ElrondNetwork/elrond-go-storage/txcache"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -66,7 +67,7 @@ func NewShardedTxPool(args ArgShardedTxPool) (*shardedTxPool, error) {
 		NumChunks:                   args.Config.Shards,
 		MaxNumBytes:                 uint32(halfOfSizeInBytes) / numCrossTxCaches,
 		MaxNumItems:                 halfOfCapacity / numCrossTxCaches,
-		NumItemsToPreemptivelyEvict: dataRetriever.TxPoolNumTxsToPreemptivelyEvict,
+		NumItemsToPreemptivelyEvict: common.TxPoolNumTxsToPreemptivelyEvict,
 	}
 
 	shardedTxPoolObject := &shardedTxPool{
