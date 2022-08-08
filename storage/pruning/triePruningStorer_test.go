@@ -262,6 +262,11 @@ func TestTriePruningStorer_OpenMoreDbsIfNecessary(t *testing.T) {
 	assert.Nil(t, err)
 
 	_ = tps.ChangeEpochSimple(2)
+
+	tps.SetEpochForPutOperation(2)
+	err = tps.Put([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal))
+	assert.Nil(t, err)
+
 	_ = tps.ChangeEpochSimple(3)
 	_ = tps.ChangeEpochSimple(4)
 

@@ -85,8 +85,12 @@ func initTriePersisterInEpoch(
 	var persisters []*persisterData
 	persistersMapByEpoch := make(map[uint32]*persisterData)
 
-	closeOldPersisters := false
-	for epoch := int64(args.StartingEpoch); epoch >= oldestEpochKeep; epoch-- {
+	numDbsMarkedAsActive := 0
+	for epoch := int64(args.StartingEpoch); epoch >= 0; epoch-- {
+		if numDbsMarkedAsActive >= minNumOfActiveDBsNecessary && epoch < oldestEpochKeep {
+			break
+		}
+
 		log.Debug("initTriePersisterInEpoch(): createPersisterDataForEpoch", "identifier", args.Identifier, "epoch", epoch, "shardID", shardIDStr)
 		p, err := createPersisterDataForEpoch(args, uint32(epoch), shardIDStr)
 		if err != nil {
@@ -95,7 +99,7 @@ func initTriePersisterInEpoch(
 
 		persistersMapByEpoch[uint32(epoch)] = p
 
-		if epoch < oldestEpochActive && closeOldPersisters {
+		if epoch < oldestEpochActive && numDbsMarkedAsActive >= minNumOfActiveDBsNecessary {
 			err = p.Close()
 			if err != nil {
 				log.Debug("persister.Close()", "identifier", args.Identifier, "error", err.Error())
@@ -105,15 +109,15 @@ func initTriePersisterInEpoch(
 			log.Debug("appended a pruning active persister", "epoch", epoch, "identifier", args.Identifier)
 		}
 
-		if !closeOldPersisters {
-			closeOldPersisters = shouldCloseOldPersisters(p)
+		if isDbMarkedAsActive(p) {
+			numDbsMarkedAsActive++
 		}
 	}
 
 	return persisters, persistersMapByEpoch, nil
 }
 
-func shouldCloseOldPersisters(pd *persisterData) bool {
+func isDbMarkedAsActive(pd *persisterData) bool {
 	val, err := pd.persister.Get([]byte(common.ActiveDBKey))
 	if err != nil {
 		return false
