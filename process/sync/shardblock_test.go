@@ -5,7 +5,9 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"reflect"
+	"strings"
 	goSync "sync"
 	"testing"
 	"time"
@@ -31,6 +33,7 @@ import (
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // waitTime defines the time in milliseconds until node waits the requested info from the network
@@ -431,6 +434,34 @@ func TestNewShardBootstrap_InvalidProcessTimeShouldErr(t *testing.T) {
 
 	assert.Nil(t, bs)
 	assert.True(t, errors.Is(err, process.ErrInvalidProcessWaitTime))
+}
+
+func TestNewShardBootstrap_MissingStorer(t *testing.T) {
+	t.Parallel()
+
+	t.Run("missing BlockHeaderUnit", testShardWithMissingStorer(dataRetriever.BlockHeaderUnit))
+	t.Run("missing ShardHdrNonceHashDataUnit", testShardWithMissingStorer(dataRetriever.ShardHdrNonceHashDataUnit))
+}
+
+func testShardWithMissingStorer(missingUnit dataRetriever.UnitType) func(t *testing.T) {
+	return func(t *testing.T) {
+		t.Parallel()
+
+		args := CreateShardBootstrapMockArguments()
+		args.Store = &storageStubs.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+				if unitType == missingUnit ||
+					strings.Contains(unitType.String(), missingUnit.String()) {
+					return nil, fmt.Errorf("%w for %s", storage.ErrKeyNotFound, missingUnit.String())
+				}
+				return &storageStubs.StorerStub{}, nil
+			},
+		}
+
+		bs, err := sync.NewShardBootstrap(args)
+		assert.Nil(t, bs)
+		require.True(t, strings.Contains(err.Error(), storage.ErrKeyNotFound.Error()))
+	}
 }
 
 func TestNewShardBootstrap_OkValsShouldWork(t *testing.T) {

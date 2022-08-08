@@ -59,6 +59,24 @@ func TestNewReceiptsRepository(t *testing.T) {
 		require.True(t, check.IfNil(repository))
 	})
 
+	t.Run("storer not found", func(t *testing.T) {
+		expectedErr := errors.New("expected error")
+		arguments := ArgsNewReceiptsRepository{
+			Marshaller: testscommon.MarshalizerMock{},
+			Hasher:     &testscommon.HasherStub{},
+			Store: &testsCommonStorage.ChainStorerStub{
+				GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+					return nil, expectedErr
+				},
+			},
+		}
+
+		repository, err := NewReceiptsRepository(arguments)
+		require.ErrorIs(t, err, errCannotCreateReceiptsRepository)
+		require.ErrorContains(t, err, expectedErr.Error())
+		require.True(t, check.IfNil(repository))
+	})
+
 	t.Run("no error", func(t *testing.T) {
 		arguments := ArgsNewReceiptsRepository{
 			Marshaller: testscommon.MarshalizerMock{},

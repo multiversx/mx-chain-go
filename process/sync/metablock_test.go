@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"reflect"
+	"strings"
 	goSync "sync"
 	"testing"
 	"time"
@@ -27,6 +29,7 @@ import (
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func createMetaBlockProcessor(blk data.ChainHandler) *mock.BlockProcessorMock {
@@ -376,6 +379,33 @@ func TestNewMetaBootstrap_InvalidProcessTimeShouldErr(t *testing.T) {
 
 	assert.Nil(t, bs)
 	assert.True(t, errors.Is(err, process.ErrInvalidProcessWaitTime))
+}
+
+func TestNewMetaBootstrap_MissingStorer(t *testing.T) {
+	t.Parallel()
+
+	t.Run("missing MetaBlockUnit", testMetaWithMissingStorer(dataRetriever.MetaBlockUnit))
+	t.Run("missing MetaHdrNonceHashDataUnit", testMetaWithMissingStorer(dataRetriever.MetaHdrNonceHashDataUnit))
+}
+
+func testMetaWithMissingStorer(missingUnit dataRetriever.UnitType) func(t *testing.T) {
+	return func(t *testing.T) {
+		t.Parallel()
+
+		args := CreateMetaBootstrapMockArguments()
+		args.Store = &storageStubs.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+				if unitType == missingUnit {
+					return nil, fmt.Errorf("%w for %s", storage.ErrKeyNotFound, missingUnit.String())
+				}
+				return &storageStubs.StorerStub{}, nil
+			},
+		}
+
+		bs, err := sync.NewMetaBootstrap(args)
+		assert.Nil(t, bs)
+		require.True(t, strings.Contains(err.Error(), storage.ErrKeyNotFound.Error()))
+	}
 }
 
 func TestNewMetaBootstrap_OkValsShouldWork(t *testing.T) {

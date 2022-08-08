@@ -3,6 +3,7 @@ package blockAPI
 import (
 	"bytes"
 	"encoding/hex"
+	"errors"
 	"math/big"
 	"testing"
 
@@ -399,4 +400,20 @@ func TestBigInToString(t *testing.T) {
 	require.Equal(t, "0", bigIntToStr(nil))
 	require.Equal(t, "15", bigIntToStr(big.NewInt(15)))
 	require.Equal(t, "100", bigIntToStr(big.NewInt(100)))
+}
+
+func TestBaseBlock_getAndAttachTxsToMb_MiniblockTxBlockgetFromStore(t *testing.T) {
+	t.Parallel()
+
+	expectedErr := errors.New("expected error")
+	baseAPIBlockProc := createBaseBlockProcessor()
+	baseAPIBlockProc.store = &storageMocks.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+			return nil, expectedErr
+		},
+	}
+
+	resp, err := baseAPIBlockProc.getFromStorer(dataRetriever.BlockHeaderUnit, nil)
+	require.Nil(t, resp)
+	require.Equal(t, expectedErr, err)
 }

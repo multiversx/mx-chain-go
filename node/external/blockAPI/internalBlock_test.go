@@ -156,6 +156,26 @@ func TestInternalBlockProcessor_GetInternalShardBlockShouldFail(t *testing.T) {
 		true,
 	)
 
+	t.Run("storer not found", func(t *testing.T) {
+		t.Parallel()
+
+		ibpTmp := createMockInternalBlockProcessor(
+			core.MetachainShardId,
+			headerHash,
+			storerMock,
+			true,
+		)
+		ibpTmp.store = &storageMocks.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+				return nil, expectedErr
+			},
+		}
+		ibpTmp.hasDbLookupExtensions = true
+		blk, err := ibpTmp.GetInternalShardBlockByHash(common.ApiOutputFormatJSON, headerHash)
+		assert.Nil(t, blk)
+		assert.Equal(t, expectedErr, err)
+	})
+
 	t.Run("provided hash not in storer", func(t *testing.T) {
 		t.Parallel()
 
@@ -402,6 +422,26 @@ func TestInternalBlockProcessor_GetInternalMetaBlockShouldFail(t *testing.T) {
 		true,
 	)
 
+	t.Run("storer not found", func(t *testing.T) {
+		t.Parallel()
+
+		ibpTmp := createMockInternalBlockProcessor(
+			core.MetachainShardId,
+			headerHash,
+			storerMock,
+			true,
+		)
+		ibpTmp.store = &storageMocks.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+				return nil, expectedErr
+			},
+		}
+		ibpTmp.hasDbLookupExtensions = true
+		blk, err := ibpTmp.GetInternalMetaBlockByHash(common.ApiOutputFormatJSON, []byte("invalidHash"))
+		assert.Nil(t, blk)
+		assert.Equal(t, expectedErr, err)
+	})
+
 	t.Run("provided hash not in storer", func(t *testing.T) {
 		t.Parallel()
 
@@ -552,6 +592,56 @@ func TestInternalBlockProcessor_GetInternalMiniBlockByHash(t *testing.T) {
 	miniBlockHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
 	txHash := []byte("dummyhash")
 	expEpoch := uint32(1)
+
+	t.Run("storer not found", func(t *testing.T) {
+		t.Parallel()
+
+		expectedErr := errors.New("key not found err")
+		ibp := newInternalBlockProcessor(
+			&ArgAPIBlockProcessor{
+				SelfShardID: 1,
+				Marshalizer: &mock.MarshalizerFake{},
+				Store: &storageMocks.ChainStorerStub{
+					GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+						return nil, expectedErr
+					},
+				},
+				Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
+				HistoryRepo:              &dblookupext.HistoryRepositoryStub{},
+			}, nil)
+
+		blk, err := ibp.GetInternalMiniBlock(common.ApiOutputFormatJSON, []byte("invalidHash"), 1)
+		assert.Nil(t, blk)
+		assert.Equal(t, expectedErr, err)
+	})
+
+	t.Run("provided hash not in storer", func(t *testing.T) {
+		t.Parallel()
+
+		expectedErr := errors.New("key not found err")
+		storerMock := &storageMocks.StorerStub{
+			GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
+				return nil, expectedErr
+			},
+		}
+
+		ibp := newInternalBlockProcessor(
+			&ArgAPIBlockProcessor{
+				SelfShardID: 1,
+				Marshalizer: &mock.MarshalizerFake{},
+				Store: &storageMocks.ChainStorerStub{
+					GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+						return storerMock, nil
+					},
+				},
+				Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
+				HistoryRepo:              &dblookupext.HistoryRepositoryStub{},
+			}, nil)
+
+		blk, err := ibp.GetInternalMiniBlock(common.ApiOutputFormatJSON, []byte("invalidHash"), 1)
+		assert.Nil(t, blk)
+		assert.Equal(t, expectedErr, err)
+	})
 
 	t.Run("provided hash not in storer", func(t *testing.T) {
 		t.Parallel()

@@ -1,13 +1,39 @@
 package logs
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
+	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/stretchr/testify/require"
 )
+
+func TestNewLogsRepository(t *testing.T) {
+	t.Parallel()
+
+	t.Run("storer not found", func(t *testing.T) {
+		t.Parallel()
+
+		repository := newLogsRepository(&storageStubs.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+				return nil, errors.New("new error")
+			},
+		}, testscommon.MarshalizerMock{})
+		require.Nil(t, repository)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		repository := newLogsRepository(&genericMocks.ChainStorerMock{}, testscommon.MarshalizerMock{})
+		require.NotNil(t, repository)
+	})
+}
 
 func TestLogsRepository_GetLogsShouldWork(t *testing.T) {
 	epoch := uint32(7)

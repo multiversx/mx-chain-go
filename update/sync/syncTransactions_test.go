@@ -3,11 +3,13 @@ package sync
 import (
 	"context"
 	"encoding/json"
-	"errors"
+	"fmt"
 	"math/big"
+	"strings"
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	dataTransaction "github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -81,60 +83,30 @@ func TestNewPendingTransactionsSyncer_NilMarshalizer(t *testing.T) {
 func TestNewPendingTransactionsSyncer_NilRequestHandler(t *testing.T) {
 	t.Parallel()
 
-	t.Run("TransactionUnit not found", func(t *testing.T) {
+	t.Run("TransactionUnit not found", testWithMissingStorer(dataRetriever.TransactionUnit))
+	t.Run("UnsignedTransactionUnit not found", testWithMissingStorer(dataRetriever.UnsignedTransactionUnit))
+	t.Run("RewardTransactionUnit not found", testWithMissingStorer(dataRetriever.RewardTransactionUnit))
+}
+
+func testWithMissingStorer(missingUnit dataRetriever.UnitType) func(t *testing.T) {
+	return func(t *testing.T) {
 		t.Parallel()
 
-		expectedErr := errors.New("expected err")
 		args := createMockArgs()
 		args.Storages = &storageStubs.ChainStorerStub{
 			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
-				if unitType == dataRetriever.TransactionUnit {
-					return nil, expectedErr
+				if unitType == missingUnit {
+					return nil, fmt.Errorf("%w for %s", storage.ErrKeyNotFound, missingUnit.String())
 				}
 				return &storageStubs.StorerStub{}, nil
 			},
 		}
 
 		pendingTxsSyncer, err := NewTransactionsSyncer(args)
-		require.Nil(t, pendingTxsSyncer)
-		require.NotNil(t, expectedErr, err)
-	})
-	t.Run("UnsignedTransactionUnit not found", func(t *testing.T) {
-		t.Parallel()
-
-		expectedErr := errors.New("expected err")
-		args := createMockArgs()
-		args.Storages = &storageStubs.ChainStorerStub{
-			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
-				if unitType == dataRetriever.UnsignedTransactionUnit {
-					return nil, expectedErr
-				}
-				return &storageStubs.StorerStub{}, nil
-			},
-		}
-
-		pendingTxsSyncer, err := NewTransactionsSyncer(args)
-		require.Nil(t, pendingTxsSyncer)
-		require.NotNil(t, expectedErr, err)
-	})
-	t.Run("RewardTransactionUnit not found", func(t *testing.T) {
-		t.Parallel()
-
-		expectedErr := errors.New("expected err")
-		args := createMockArgs()
-		args.Storages = &storageStubs.ChainStorerStub{
-			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
-				if unitType == dataRetriever.TransactionUnit {
-					return nil, expectedErr
-				}
-				return &storageStubs.StorerStub{}, nil
-			},
-		}
-
-		pendingTxsSyncer, err := NewTransactionsSyncer(args)
-		require.Nil(t, pendingTxsSyncer)
-		require.NotNil(t, expectedErr, err)
-	})
+		require.True(t, strings.Contains(err.Error(), storage.ErrKeyNotFound.Error()))
+		require.True(t, strings.Contains(err.Error(), missingUnit.String()))
+		require.True(t, check.IfNil(pendingTxsSyncer))
+	}
 }
 
 func TestNewPendingTransactionsSyncer_GetStorerReturnsError(t *testing.T) {
