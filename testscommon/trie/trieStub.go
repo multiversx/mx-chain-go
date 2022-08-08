@@ -12,25 +12,24 @@ var errNotImplemented = errors.New("not implemented")
 
 // TrieStub -
 type TrieStub struct {
-	GetCalled                         func(key []byte) ([]byte, error)
-	UpdateCalled                      func(key, value []byte) error
-	DeleteCalled                      func(key []byte) error
-	RootCalled                        func() ([]byte, error)
-	CommitCalled                      func() error
-	RecreateCalled                    func(root []byte) (common.Trie, error)
-	GetObsoleteHashesCalled           func() [][]byte
-	AppendToOldHashesCalled           func([][]byte)
-	GetSerializedNodesCalled          func([]byte, uint64) ([][]byte, uint64, error)
-	GetAllHashesCalled                func() ([][]byte, error)
-	GetAllLeavesOnChannelCalled       func(leavesChannel chan core.KeyValueHolder, ctx context.Context, rootHash []byte, keyBuilder common.KeyBuilder) error
-	GetProofCalled                    func(key []byte) ([][]byte, []byte, error)
-	VerifyProofCalled                 func(rootHash []byte, key []byte, proof [][]byte) (bool, error)
-	GetStorageManagerCalled           func() common.StorageManager
-	GetSerializedNodeCalled           func(bytes []byte) ([]byte, error)
-	GetNumNodesCalled                 func() common.NumNodesDTO
-	GetOldRootCalled                  func() []byte
-	MarkStorerAsSyncedAndActiveCalled func()
-	CloseCalled                       func() error
+	GetCalled                   func(key []byte) ([]byte, error)
+	UpdateCalled                func(key, value []byte) error
+	DeleteCalled                func(key []byte) error
+	RootCalled                  func() ([]byte, error)
+	CommitCalled                func() error
+	RecreateCalled              func(root []byte) (common.Trie, error)
+	GetObsoleteHashesCalled     func() [][]byte
+	AppendToOldHashesCalled     func([][]byte)
+	GetSerializedNodesCalled    func([]byte, uint64) ([][]byte, uint64, error)
+	GetAllHashesCalled          func() ([][]byte, error)
+	GetAllLeavesOnChannelCalled func(leavesChannel chan core.KeyValueHolder, ctx context.Context, rootHash []byte, keyBuilder common.KeyBuilder) error
+	GetProofCalled              func(key []byte) ([][]byte, []byte, error)
+	VerifyProofCalled           func(rootHash []byte, key []byte, proof [][]byte) (bool, error)
+	GetStorageManagerCalled     func() common.StorageManager
+	GetSerializedNodeCalled     func(bytes []byte) ([]byte, error)
+	GetNumNodesCalled           func() common.NumNodesDTO
+	GetOldRootCalled            func() []byte
+	CloseCalled                 func() error
 }
 
 // GetStorageManager -
@@ -193,13 +192,6 @@ func (ts *TrieStub) GetOldRoot() []byte {
 	}
 
 	return nil
-}
-
-// MarkStorerAsSyncedAndActive -
-func (ts *TrieStub) MarkStorerAsSyncedAndActive() {
-	if ts.MarkStorerAsSyncedAndActiveCalled != nil {
-		ts.MarkStorerAsSyncedAndActiveCalled()
-	}
 }
 
 // Close -

@@ -48,6 +48,7 @@ func NewValidatorAccountsSyncer(args ArgsNewValidatorAccountsSyncer) (*validator
 		maxHardCapForMissingNodes: args.MaxHardCapForMissingNodes,
 		trieSyncerVersion:         args.TrieSyncerVersion,
 		checkNodesOnDisk:          args.CheckNodesOnDisk,
+		storageMarker:             args.StorageMarker,
 	}
 
 	u := &validatorAccountsSyncer{
@@ -78,7 +79,7 @@ func (v *validatorAccountsSyncer) SyncAccounts(rootHash []byte) error {
 		return err
 	}
 
-	mainTrie.MarkStorerAsSyncedAndActive()
+	v.storageMarker.MarkStorerAsSyncedAndActive(mainTrie.GetStorageManager())
 
 	return nil
 }

@@ -40,6 +40,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/ElrondNetwork/elrond-go/trie/factory"
+	"github.com/ElrondNetwork/elrond-go/trie/storageMarker"
 	"github.com/ElrondNetwork/elrond-go/update"
 	updateSync "github.com/ElrondNetwork/elrond-go/update/sync"
 )
@@ -1052,6 +1053,7 @@ func (e *epochStartBootstrap) syncUserAccountsState(rootHash []byte) error {
 			MaxHardCapForMissingNodes: e.maxHardCapForMissingNodes,
 			TrieSyncerVersion:         e.trieSyncerVersion,
 			CheckNodesOnDisk:          e.checkNodesOnDisk,
+			StorageMarker:             storageMarker.NewTrieStorageMarker(),
 		},
 		ShardId:                e.shardCoordinator.SelfId(),
 		Throttler:              thr,
@@ -1116,6 +1118,7 @@ func (e *epochStartBootstrap) syncValidatorAccountsState(rootHash []byte) error 
 			MaxHardCapForMissingNodes: e.maxHardCapForMissingNodes,
 			TrieSyncerVersion:         e.trieSyncerVersion,
 			CheckNodesOnDisk:          e.checkNodesOnDisk,
+			StorageMarker:             storageMarker.NewTrieStorageMarker(),
 		},
 	}
 	accountsDBSyncer, err := syncer.NewValidatorAccountsSyncer(argsValidatorAccountsSyncer)
@@ -1143,22 +1146,22 @@ func (e *epochStartBootstrap) createRequestHandler() error {
 	//  this one should only be used before determining the correct shard where the node should reside
 	log.Debug("epochStartBootstrap.createRequestHandler", "shard", e.shardCoordinator.SelfId())
 	resolversContainerArgs := resolverscontainer.FactoryArgs{
-		ShardCoordinator:            e.shardCoordinator,
-		Messenger:                   e.messenger,
-		Store:                       storageService,
-		Marshalizer:                 e.coreComponentsHolder.InternalMarshalizer(),
-		DataPools:                   e.dataPool,
-		Uint64ByteSliceConverter:    uint64ByteSlice.NewBigEndianConverter(),
-		NumConcurrentResolvingJobs:  10,
-		DataPacker:                  dataPacker,
-		TriesContainer:              e.trieContainer,
-		SizeCheckDelta:              0,
-		InputAntifloodHandler:       disabled.NewAntiFloodHandler(),
-		OutputAntifloodHandler:      disabled.NewAntiFloodHandler(),
-		CurrentNetworkEpochProvider: disabled.NewCurrentNetworkEpochProviderHandler(),
-		PreferredPeersHolder:        disabled.NewPreferredPeersHolder(),
-		ResolverConfig:              e.generalConfig.Resolvers,
-		PeersRatingHandler:          disabled.NewDisabledPeersRatingHandler(),
+		ShardCoordinator:                     e.shardCoordinator,
+		Messenger:                            e.messenger,
+		Store:                                storageService,
+		Marshalizer:                          e.coreComponentsHolder.InternalMarshalizer(),
+		DataPools:                            e.dataPool,
+		Uint64ByteSliceConverter:             uint64ByteSlice.NewBigEndianConverter(),
+		NumConcurrentResolvingJobs:           10,
+		DataPacker:                           dataPacker,
+		TriesContainer:                       e.trieContainer,
+		SizeCheckDelta:                       0,
+		InputAntifloodHandler:                disabled.NewAntiFloodHandler(),
+		OutputAntifloodHandler:               disabled.NewAntiFloodHandler(),
+		CurrentNetworkEpochProvider:          disabled.NewCurrentNetworkEpochProviderHandler(),
+		PreferredPeersHolder:                 disabled.NewPreferredPeersHolder(),
+		ResolverConfig:                       e.generalConfig.Resolvers,
+		PeersRatingHandler:                   disabled.NewDisabledPeersRatingHandler(),
 		NodesCoordinator:                     disabled.NewNodesCoordinator(),
 		MaxNumOfPeerAuthenticationInResponse: e.generalConfig.HeartbeatV2.MaxNumOfPeerAuthenticationInResponse,
 		PeerShardMapper:                      disabled.NewPeerShardMapper(),

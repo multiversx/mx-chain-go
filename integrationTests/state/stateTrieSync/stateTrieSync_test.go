@@ -25,6 +25,7 @@ import (
 	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/trie/keyBuilder"
 	"github.com/ElrondNetwork/elrond-go/trie/statistics"
+	"github.com/ElrondNetwork/elrond-go/trie/storageMarker"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -536,6 +537,7 @@ func getUserAccountSyncerArgs(node *integrationTests.TestProcessorNode) syncer.A
 			MaxTrieLevelInMemory:      200,
 			MaxHardCapForMissingNodes: 5000,
 			TrieSyncerVersion:         2,
+			StorageMarker:             storageMarker.NewTrieStorageMarker(),
 		},
 		ShardId:                0,
 		Throttler:              thr,

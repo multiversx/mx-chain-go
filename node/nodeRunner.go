@@ -47,6 +47,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
+	"github.com/ElrondNetwork/elrond-go/trie/storageMarker"
 	"github.com/ElrondNetwork/elrond-go/update/trigger"
 	"github.com/google/gops/agent"
 )
@@ -637,6 +638,7 @@ func getBaseAccountSyncerArgs(
 		MaxTrieLevelInMemory:      maxTrieLevelInMemory,
 		MaxHardCapForMissingNodes: config.TrieSync.MaxHardCapForMissingNodes,
 		TrieSyncerVersion:         config.TrieSync.TrieSyncerVersion,
+		StorageMarker:             storageMarker.NewDisabledStorageMarker(),
 	}
 }
 

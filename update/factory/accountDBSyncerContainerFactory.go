@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/state/syncer"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/trie"
+	"github.com/ElrondNetwork/elrond-go/trie/storageMarker"
 	"github.com/ElrondNetwork/elrond-go/update"
 	containers "github.com/ElrondNetwork/elrond-go/update/container"
 	"github.com/ElrondNetwork/elrond-go/update/genesis"
@@ -147,6 +148,7 @@ func (a *accountDBSyncersContainerFactory) createUserAccountsSyncer(shardId uint
 			MaxHardCapForMissingNodes: a.maxHardCapForMissingNodes,
 			TrieSyncerVersion:         a.trieSyncerVersion,
 			CheckNodesOnDisk:          a.checkNodesOnDisk,
+			StorageMarker:             storageMarker.NewTrieStorageMarker(),
 		},
 		ShardId:                shardId,
 		Throttler:              thr,
@@ -174,6 +176,7 @@ func (a *accountDBSyncersContainerFactory) createValidatorAccountsSyncer(shardId
 			MaxHardCapForMissingNodes: a.maxHardCapForMissingNodes,
 			TrieSyncerVersion:         a.trieSyncerVersion,
 			CheckNodesOnDisk:          a.checkNodesOnDisk,
+			StorageMarker:             storageMarker.NewTrieStorageMarker(),
 		},
 	}
 	accountSyncer, err := syncer.NewValidatorAccountsSyncer(args)

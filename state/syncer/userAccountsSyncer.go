@@ -89,6 +89,7 @@ func NewUserAccountsSyncer(args ArgsNewUserAccountsSyncer) (*userAccountsSyncer,
 		maxHardCapForMissingNodes: args.MaxHardCapForMissingNodes,
 		trieSyncerVersion:         args.TrieSyncerVersion,
 		checkNodesOnDisk:          args.CheckNodesOnDisk,
+		storageMarker:             args.StorageMarker,
 	}
 
 	u := &userAccountsSyncer{
@@ -133,7 +134,7 @@ func (u *userAccountsSyncer) SyncAccounts(rootHash []byte) error {
 		return err
 	}
 
-	mainTrie.MarkStorerAsSyncedAndActive()
+	u.storageMarker.MarkStorerAsSyncedAndActive(mainTrie.GetStorageManager())
 
 	return nil
 }

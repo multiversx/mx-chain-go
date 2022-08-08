@@ -38,7 +38,6 @@ type Trie interface {
 	GetProof(key []byte) ([][]byte, []byte, error)
 	VerifyProof(rootHash []byte, key []byte, proof [][]byte) (bool, error)
 	GetStorageManager() StorageManager
-	MarkStorerAsSyncedAndActive()
 	Close() error
 	IsInterfaceNil() bool
 }

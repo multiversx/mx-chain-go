@@ -1250,8 +1250,10 @@ func (adb *AccountsDB) setStateCheckpoint(rootHash []byte) {
 		trieStorageManager.SetCheckpoint(rootHash, rootHash, leavesChannel, missingNodesChannel, errChan, stats)
 		adb.snapshotUserAccountDataTrie(false, rootHash, leavesChannel, missingNodesChannel, errChan, stats, 0)
 
-		stats.WaitForSnapshotsToFinish()
+		stats.SnapshotFinished()
 	}()
+
+	go adb.syncMissingNodes(missingNodesChannel, stats)
 
 	go func() {
 		stats.WaitForSnapshotsToFinish()
@@ -1261,7 +1263,7 @@ func (adb *AccountsDB) setStateCheckpoint(rootHash []byte) {
 
 		// TODO decide if we need to take some actions whenever we hit an error that occurred in the checkpoint process
 		//  that will be present in the errChan var
-		go stats.PrintStats("setStateCheckpoint user trie", rootHash)
+		stats.PrintStats("setStateCheckpoint user trie", rootHash)
 	}()
 
 	adb.waitForCompletionIfRunningInImportDB(stats)

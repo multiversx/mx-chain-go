@@ -117,3 +117,8 @@ type IdleNodeProvider interface {
 type storageManagerExtension interface {
 	RemoveFromCheckpointHashesHolder(hash []byte)
 }
+
+// StorageMarker is used to mark the given storer as synced and active
+type StorageMarker interface {
+	MarkStorerAsSyncedAndActive(storer common.StorageManager)
+}
