@@ -160,7 +160,7 @@ func TestInternalBlockProcessor_GetInternalShardBlockShouldFail(t *testing.T) {
 		t.Parallel()
 
 		ibpTmp := createMockInternalBlockProcessor(
-			core.MetachainShardId,
+			0,
 			headerHash,
 			storerMock,
 			true,

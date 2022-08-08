@@ -22,12 +22,16 @@ import (
 
 func createMockShardStorageBoostrapperArgs() ArgsBaseStorageBootstrapper {
 	argsBaseBootstrapper := ArgsBaseStorageBootstrapper{
-		BootStorer:                   &mock.BoostrapStorerMock{},
-		ForkDetector:                 &mock.ForkDetectorMock{},
-		BlockProcessor:               &mock.BlockProcessorMock{},
-		ChainHandler:                 &testscommon.ChainHandlerStub{},
-		Marshalizer:                  &mock.MarshalizerMock{},
-		Store:                        &storageStubs.ChainStorerStub{},
+		BootStorer:     &mock.BoostrapStorerMock{},
+		ForkDetector:   &mock.ForkDetectorMock{},
+		BlockProcessor: &mock.BlockProcessorMock{},
+		ChainHandler:   &testscommon.ChainHandlerStub{},
+		Marshalizer:    &mock.MarshalizerMock{},
+		Store: &storageStubs.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+				return &storageStubs.StorerStub{}, nil
+			},
+		},
 		Uint64Converter:              &mock.Uint64ByteSliceConverterMock{},
 		BootstrapRoundIndex:          1,
 		ShardCoordinator:             &mock.ShardCoordinatorStub{},
@@ -198,6 +202,15 @@ func TestBaseStorageBootstrapper_RestoreBlockBodyIntoPoolsShouldErrMissingHeader
 	t.Parallel()
 
 	baseArgs := createMockShardStorageBoostrapperArgs()
+	baseArgs.Store = &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+			return &storageStubs.StorerStub{
+				GetCalled: func(key []byte) ([]byte, error) {
+					return nil, errors.New("key not found")
+				},
+			}, nil
+		},
+	}
 	args := ArgsShardStorageBootstrapper{
 		ArgsBaseStorageBootstrapper: baseArgs,
 	}

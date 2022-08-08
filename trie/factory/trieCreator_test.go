@@ -179,9 +179,10 @@ func testWithMissingStorer(missingUnit dataRetriever.UnitType) func(t *testing.T
 		holder, storageManager, err := factory.CreateTriesComponentsForShardId(
 			testscommon.GetGeneralConfig(),
 			&mock.CoreComponentsStub{
-				InternalMarshalizerField: &testscommon.MarshalizerMock{},
-				HasherField:              &hashingMocks.HasherMock{},
-				PathHandlerField:         &testscommon.PathManagerStub{},
+				InternalMarshalizerField:     &testscommon.MarshalizerMock{},
+				HasherField:                  &hashingMocks.HasherMock{},
+				PathHandlerField:             &testscommon.PathManagerStub{},
+				ProcessStatusHandlerInternal: &testscommon.ProcessStatusHandlerStub{},
 			},
 			&storageStubs.ChainStorerStub{
 				GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {

@@ -512,57 +512,6 @@ func TestNewShardBootstrap_OkValsShouldWork(t *testing.T) {
 
 // ------- processing
 
-func TestBootstrap_SyncBlockShouldCallForkChoice(t *testing.T) {
-	t.Parallel()
-
-	args := CreateShardBootstrapMockArguments()
-
-	hdr := block.Header{Nonce: 1, PubKeysBitmap: []byte("X")}
-	blockBodyUnit := &storageStubs.StorerStub{
-		GetCalled: func(key []byte) (i []byte, e error) {
-			return nil, nil
-		},
-	}
-
-	store := dataRetriever.NewChainStorer()
-	store.AddStorer(dataRetriever.MiniBlockUnit, blockBodyUnit)
-	args.Store = store
-
-	blkc, _ := blockchain.NewBlockChain(&statusHandlerMock.AppStatusHandlerStub{
-		SetUInt64ValueHandler: func(key string, value uint64) {},
-	})
-
-	_ = blkc.SetGenesisHeader(&block.Header{})
-	_ = blkc.SetCurrentBlockHeaderAndRootHash(&hdr, hdr.GetRootHash())
-	args.ChainHandler = blkc
-
-	forkDetector := &mock.ForkDetectorMock{}
-	forkDetector.CheckForkCalled = func() *process.ForkInfo {
-		return &process.ForkInfo{
-			IsDetected: true,
-			Nonce:      90,
-			Round:      90,
-			Hash:       []byte("hash"),
-		}
-	}
-	forkDetector.RemoveHeaderCalled = func(nonce uint64, hash []byte) {
-	}
-	forkDetector.GetHighestFinalBlockNonceCalled = func() uint64 {
-		return hdr.Nonce
-	}
-	forkDetector.ProbableHighestNonceCalled = func() uint64 {
-		return 100
-	}
-	args.ForkDetector = forkDetector
-	args.RoundHandler = initRoundHandler()
-	args.BlockProcessor = createBlockProcessor(args.ChainHandler)
-
-	bs, _ := sync.NewShardBootstrap(args)
-	r := bs.SyncBlock(context.Background())
-
-	assert.Equal(t, storage.ErrKeyNotFound, r)
-}
-
 func TestBootstrap_ShouldReturnTimeIsOutWhenMissingHeader(t *testing.T) {
 	t.Parallel()
 

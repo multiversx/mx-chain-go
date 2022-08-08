@@ -447,47 +447,6 @@ func TestNewMetaBootstrap_OkValsShouldWork(t *testing.T) {
 
 // ------- processing
 
-func TestMetaBootstrap_SyncBlockShouldCallRollBack(t *testing.T) {
-	t.Parallel()
-
-	args := CreateMetaBootstrapMockArguments()
-
-	hdr := block.MetaBlock{Nonce: 1, PubKeysBitmap: []byte("X")}
-
-	args.Store = createMetaStore()
-
-	blkc, _ := blockchain.NewMetaChain(&statusHandlerMock.AppStatusHandlerStub{})
-	_ = blkc.SetGenesisHeader(&block.MetaBlock{})
-	_ = blkc.SetCurrentBlockHeaderAndRootHash(&hdr, hdr.RootHash)
-	args.ChainHandler = blkc
-
-	forkDetector := &mock.ForkDetectorMock{}
-	forkDetector.CheckForkCalled = func() *process.ForkInfo {
-		return &process.ForkInfo{
-			IsDetected: true,
-			Nonce:      90,
-			Round:      90,
-			Hash:       []byte("hash"),
-		}
-	}
-	forkDetector.RemoveHeaderCalled = func(nonce uint64, hash []byte) {
-	}
-	forkDetector.GetHighestFinalBlockNonceCalled = func() uint64 {
-		return hdr.Nonce
-	}
-	forkDetector.ProbableHighestNonceCalled = func() uint64 {
-		return 100
-	}
-	args.ForkDetector = forkDetector
-	args.RoundHandler = initRoundHandler()
-	args.BlockProcessor = createMetaBlockProcessor(args.ChainHandler)
-
-	bs, _ := sync.NewMetaBootstrap(args)
-	r := bs.SyncBlock(context.Background())
-
-	assert.Equal(t, storage.ErrKeyNotFound, r)
-}
-
 func TestMetaBootstrap_ShouldReturnTimeIsOutWhenMissingHeader(t *testing.T) {
 	t.Parallel()
 
