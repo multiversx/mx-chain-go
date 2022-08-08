@@ -54,7 +54,7 @@ func NewResourceMonitor(config *config.Config, pathManager storage.PathManagerHa
 		nrCores = len(rawCpuInfo)
 	}
 
-	log.Info("newResourceMonitor", "numCores", nrCores, "memory", memoryString)
+	log.Debug("newResourceMonitor", "numCores", nrCores, "memory", memoryString)
 
 	return &ResourceMonitor{
 		generalConfig: config,
@@ -178,7 +178,7 @@ func getDirMemSize(dir string) string {
 // SaveStatistics generates and saves statistic data on the disk
 func (rm *ResourceMonitor) SaveStatistics() {
 	stats := rm.GenerateStatistics()
-	log.Info("node statistics", stats...)
+	log.Debug("node statistics", stats...)
 }
 
 // StartMonitoring starts the monitoring process for saving statistics
