@@ -261,19 +261,19 @@ func (p *peerMiniBlockSyncer) computeMissingValidatorsInfo(body *block.Body) {
 		for _, txHash := range mb.TxHashes {
 			p.mapAllValidatorsInfo[string(txHash)] = nil
 
-			mbObjectFound, ok := p.validatorsInfoPool.SearchFirstData(txHash)
+			validatorInfoObjectFound, ok := p.validatorsInfoPool.SearchFirstData(txHash)
 			if !ok {
 				numMissingValidatorsInfo++
 				continue
 			}
 
-			mbFound, ok := mbObjectFound.(*state.ShardValidatorInfo)
+			validatorInfo, ok := validatorInfoObjectFound.(*state.ShardValidatorInfo)
 			if !ok {
 				numMissingValidatorsInfo++
 				continue
 			}
 
-			p.mapAllValidatorsInfo[string(txHash)] = mbFound
+			p.mapAllValidatorsInfo[string(txHash)] = validatorInfo
 		}
 	}
 

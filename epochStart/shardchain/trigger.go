@@ -297,12 +297,19 @@ func (t *trigger) requestMissingMiniBlocks(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
-			log.Debug("trigger's go routine is stopping...")
+			log.Debug("requestMissingMiniBlocks: trigger's go routine is stopping...")
 			return
 		case <-time.After(sleepTime):
 		}
 
 		t.mutMissingMiniBlocks.RLock()
+
+		for hash, epochOfMissingMb := range t.mapMissingMiniBlocks {
+			if epochOfMissingMb <= t.metaEpoch {
+				delete(t.mapMissingMiniBlocks, hash)
+			}
+		}
+
 		if len(t.mapMissingMiniBlocks) == 0 {
 			t.mutMissingMiniBlocks.RUnlock()
 			continue
@@ -332,12 +339,19 @@ func (t *trigger) requestMissingValidatorsInfo(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
-			log.Debug("trigger's go routine is stopping...")
+			log.Debug("requestMissingValidatorsInfo: trigger's go routine is stopping...")
 			return
 		case <-time.After(sleepTime):
 		}
 
 		t.mutMissingValidatorsInfo.RLock()
+
+		for hash, epochOfMissingValidatorInfo := range t.mapMissingValidatorsInfo {
+			if epochOfMissingValidatorInfo <= t.metaEpoch {
+				delete(t.mapMissingValidatorsInfo, hash)
+			}
+		}
+
 		if len(t.mapMissingValidatorsInfo) == 0 {
 			t.mutMissingValidatorsInfo.RUnlock()
 			continue
