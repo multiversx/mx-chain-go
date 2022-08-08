@@ -7,10 +7,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/counting"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go-storage/immunitycache"
+	"github.com/ElrondNetwork/elrond-go-storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/immunitycache"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
 
 var log = logger.GetOrCreate("dataretriever/shardeddata")

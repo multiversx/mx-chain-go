@@ -5,9 +5,9 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/floodPreventers"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
 
 // DurationBootstrapingTime -

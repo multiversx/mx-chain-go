@@ -1,9 +1,9 @@
 package disabled
 
 import (
+	"github.com/ElrondNetwork/elrond-go-storage/memorydb"
+	"github.com/ElrondNetwork/elrond-go-storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
 
 const defaultCapacity = 10000

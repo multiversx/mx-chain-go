@@ -15,6 +15,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters/uint64ByteSlice"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go-storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go-storage/timecache"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -37,8 +39,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/state/syncer"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
-	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/ElrondNetwork/elrond-go/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/update"
 	updateSync "github.com/ElrondNetwork/elrond-go/update/sync"
@@ -1143,22 +1143,22 @@ func (e *epochStartBootstrap) createRequestHandler() error {
 	//  this one should only be used before determining the correct shard where the node should reside
 	log.Debug("epochStartBootstrap.createRequestHandler", "shard", e.shardCoordinator.SelfId())
 	resolversContainerArgs := resolverscontainer.FactoryArgs{
-		ShardCoordinator:            e.shardCoordinator,
-		Messenger:                   e.messenger,
-		Store:                       storageService,
-		Marshalizer:                 e.coreComponentsHolder.InternalMarshalizer(),
-		DataPools:                   e.dataPool,
-		Uint64ByteSliceConverter:    uint64ByteSlice.NewBigEndianConverter(),
-		NumConcurrentResolvingJobs:  10,
-		DataPacker:                  dataPacker,
-		TriesContainer:              e.trieContainer,
-		SizeCheckDelta:              0,
-		InputAntifloodHandler:       disabled.NewAntiFloodHandler(),
-		OutputAntifloodHandler:      disabled.NewAntiFloodHandler(),
-		CurrentNetworkEpochProvider: disabled.NewCurrentNetworkEpochProviderHandler(),
-		PreferredPeersHolder:        disabled.NewPreferredPeersHolder(),
-		ResolverConfig:              e.generalConfig.Resolvers,
-		PeersRatingHandler:          disabled.NewDisabledPeersRatingHandler(),
+		ShardCoordinator:                     e.shardCoordinator,
+		Messenger:                            e.messenger,
+		Store:                                storageService,
+		Marshalizer:                          e.coreComponentsHolder.InternalMarshalizer(),
+		DataPools:                            e.dataPool,
+		Uint64ByteSliceConverter:             uint64ByteSlice.NewBigEndianConverter(),
+		NumConcurrentResolvingJobs:           10,
+		DataPacker:                           dataPacker,
+		TriesContainer:                       e.trieContainer,
+		SizeCheckDelta:                       0,
+		InputAntifloodHandler:                disabled.NewAntiFloodHandler(),
+		OutputAntifloodHandler:               disabled.NewAntiFloodHandler(),
+		CurrentNetworkEpochProvider:          disabled.NewCurrentNetworkEpochProviderHandler(),
+		PreferredPeersHolder:                 disabled.NewPreferredPeersHolder(),
+		ResolverConfig:                       e.generalConfig.Resolvers,
+		PeersRatingHandler:                   disabled.NewDisabledPeersRatingHandler(),
 		NodesCoordinator:                     disabled.NewNodesCoordinator(),
 		MaxNumOfPeerAuthenticationInResponse: e.generalConfig.HeartbeatV2.MaxNumOfPeerAuthenticationInResponse,
 		PeerShardMapper:                      disabled.NewPeerShardMapper(),

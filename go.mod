@@ -6,12 +6,12 @@ require (
 	github.com/ElrondNetwork/arwen-wasm-vm/v1_2 v1.2.41
 	github.com/ElrondNetwork/arwen-wasm-vm/v1_3 v1.3.41
 	github.com/ElrondNetwork/arwen-wasm-vm/v1_4 v1.4.58
-	github.com/ElrondNetwork/concurrent-map v0.1.3
 	github.com/ElrondNetwork/covalent-indexer-go v1.0.6
 	github.com/ElrondNetwork/elastic-indexer-go v1.2.38
 	github.com/ElrondNetwork/elrond-go-core v1.1.18
 	github.com/ElrondNetwork/elrond-go-crypto v1.0.1
 	github.com/ElrondNetwork/elrond-go-logger v1.0.7
+	github.com/ElrondNetwork/elrond-go-storage v0.0.0-20220808111521-ee968bd40da6
 	github.com/ElrondNetwork/elrond-vm-common v1.3.14
 	github.com/ElrondNetwork/go-libp2p-pubsub v0.6.1-rc1
 	github.com/beevik/ntp v0.3.0
@@ -25,7 +25,6 @@ require (
 	github.com/gogo/protobuf v1.3.2
 	github.com/google/gops v0.3.18
 	github.com/gorilla/websocket v1.5.0
-	github.com/hashicorp/golang-lru v0.5.4
 	github.com/ipfs/go-log v1.0.5
 	github.com/jbenet/goprocess v0.1.4
 	github.com/libp2p/go-libp2p v0.19.3
@@ -38,7 +37,6 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/shirou/gopsutil v3.21.11+incompatible
 	github.com/stretchr/testify v1.7.1
-	github.com/syndtr/goleveldb v1.0.1-0.20190318030020-c3a204f8e965
 	github.com/urfave/cli v1.22.9
 	github.com/whyrusleeping/timecache v0.0.0-20160911033111-cfcb2f1abfee
 	github.com/yusufpapurcu/wmi v1.2.2 // indirect

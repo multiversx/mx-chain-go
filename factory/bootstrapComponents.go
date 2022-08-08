@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -21,7 +22,6 @@ import (
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/factory/directoryhandler"
 	"github.com/ElrondNetwork/elrond-go/storage/latestData"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
 
 // BootstrapComponentsFactoryArgs holds the arguments needed to create a botstrap components factory

@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go-storage/lrucache"
+	"github.com/ElrondNetwork/elrond-go-storage/timecache"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/p2p/antiflood"
@@ -14,8 +16,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/blackList"
 	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/floodPreventers"
-	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
-	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/stretchr/testify/assert"
 )
 

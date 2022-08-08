@@ -5,12 +5,12 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-storage/lrucache"
+	"github.com/ElrondNetwork/elrond-go-storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
 
 const cacheSize = 10

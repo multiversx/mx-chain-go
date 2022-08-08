@@ -6,8 +6,8 @@ import (
 	"math"
 
 	storageCore "github.com/ElrondNetwork/elrond-go-core/storage"
+	"github.com/ElrondNetwork/elrond-go-storage/lrucache"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 )
 
 // FullHistoryPruningStorer represents a storer for full history nodes

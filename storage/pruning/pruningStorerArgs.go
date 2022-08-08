@@ -1,9 +1,9 @@
 package pruning
 
 import (
+	"github.com/ElrondNetwork/elrond-go-storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/clean"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
 
 // StorerArgs will hold the arguments needed for PruningStorer

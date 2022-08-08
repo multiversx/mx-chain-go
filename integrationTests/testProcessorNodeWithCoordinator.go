@@ -15,11 +15,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl"
 	multisig2 "github.com/ElrondNetwork/elrond-go-crypto/signing/mcl/multisig"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/multisig"
+	"github.com/ElrondNetwork/elrond-go-storage/lrucache"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	p2pRating "github.com/ElrondNetwork/elrond-go/p2p/rating"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
-	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 )
 
@@ -96,7 +96,7 @@ func CreateProcessorNodesWithNodesCoordinator(
 				IsFullArchive:              false,
 			}
 
-			nodesCoordinator, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
+			indexHashedNodesCoordinator, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 			if err != nil {
 				fmt.Println("error creating node coordinator")
 			}
@@ -104,7 +104,7 @@ func CreateProcessorNodesWithNodesCoordinator(
 			tpn := newTestProcessorNodeWithCustomNodesCoordinator(
 				numShards,
 				shardId,
-				nodesCoordinator,
+				indexHashedNodesCoordinator,
 				i,
 				ncp,
 				nodesSetup,

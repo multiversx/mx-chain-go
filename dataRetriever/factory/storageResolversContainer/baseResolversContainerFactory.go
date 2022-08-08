@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	storageFactory "github.com/ElrondNetwork/elrond-go-storage/factory"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/common/disabled"
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -18,7 +19,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
 )
 

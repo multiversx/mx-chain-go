@@ -9,6 +9,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go-storage/lrucache/capacity"
+	"github.com/ElrondNetwork/elrond-go-storage/mapTimeCache"
+	"github.com/ElrondNetwork/elrond-go-storage/storageCacherAdapter"
+	"github.com/ElrondNetwork/elrond-go-storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
@@ -20,10 +24,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/disabled"
 	"github.com/ElrondNetwork/elrond-go/storage/factory"
-	"github.com/ElrondNetwork/elrond-go/storage/lrucache/capacity"
-	"github.com/ElrondNetwork/elrond-go/storage/mapTimeCache"
-	"github.com/ElrondNetwork/elrond-go/storage/storageCacherAdapter"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
 )
 

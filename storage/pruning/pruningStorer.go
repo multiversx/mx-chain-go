@@ -14,12 +14,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	storageCore "github.com/ElrondNetwork/elrond-go-core/storage"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go-storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	elrondErrors "github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/clean"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
 
 var _ storage.Storer = (*PruningStorer)(nil)

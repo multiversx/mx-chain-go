@@ -20,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go-storage/txcache"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dblookupext"
@@ -27,7 +28,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	processMocks "github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	dblookupextMock "github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
@@ -797,7 +797,7 @@ func TestApiTransactionProcessor_GetTransactionsPoolForSender(t *testing.T) {
 
 	// if no tx is found in pool for a sender, it isn't an error, but return empty slice
 	newSender := "new-sender"
-	res, err  = atp.GetTransactionsPoolForSender(newSender, "")
+	res, err = atp.GetTransactionsPoolForSender(newSender, "")
 	require.NoError(t, err)
 	require.Equal(t, &common.TransactionsPoolForSenderApiResponse{
 		Transactions: []common.Transaction{},
@@ -962,11 +962,11 @@ func TestApiTransactionProcessor_GetTransactionsPoolNonceGapsForSender(t *testin
 
 	// if no tx is found in pool for a sender, it isn't an error, but return empty slice
 	newSender := "new-sender"
-	res, err  = atp.GetTransactionsPoolNonceGapsForSender(newSender)
+	res, err = atp.GetTransactionsPoolNonceGapsForSender(newSender)
 	require.NoError(t, err)
 	require.Equal(t, &common.TransactionsPoolNonceGapsForSenderApiResponse{
 		Sender: newSender,
-		Gaps: []common.NonceGapApiResponse{},
+		Gaps:   []common.NonceGapApiResponse{},
 	}, res)
 }
 

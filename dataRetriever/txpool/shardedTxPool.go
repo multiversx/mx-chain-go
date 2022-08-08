@@ -8,10 +8,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/counting"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go-storage/txcache"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 )
 
 var _ dataRetriever.ShardedDataCacherNotifier = (*shardedTxPool)(nil)
