@@ -53,7 +53,7 @@ type CoreComponentsMock struct {
 	NodeTypeProviderField        core.NodeTypeProviderHandler
 	ArwenChangeLockerInternal    common.Locker
 	ProcessStatusHandlerInternal common.ProcessStatusHandler
-	HardforkTriggerPubKeyField  []byte
+	HardforkTriggerPubKeyField   []byte
 }
 
 // Create -
