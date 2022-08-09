@@ -1797,7 +1797,7 @@ func TestBaseProcessor_commitTrieEpochRootHashIfNeededNilStorerShouldErr(t *test
 
 	mb := &block.MetaBlock{Epoch: epoch}
 	err := sp.CommitTrieEpochRootHashIfNeeded(mb, []byte("root"))
-	require.True(t, strings.Contains(err.Error(), storage.ErrKeyNotFound.Error()))
+	require.True(t, strings.Contains(err.Error(), dataRetriever.ErrStorerNotFound.Error()))
 	require.True(t, strings.Contains(err.Error(), dataRetriever.TrieEpochRootHashUnit.String()))
 }
 
