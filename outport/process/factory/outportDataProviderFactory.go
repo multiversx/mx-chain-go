@@ -52,7 +52,7 @@ func CreateOutportDataProvider(arg ArgOutportDataProviderFactory) (outport.DataP
 		return nil, err
 	}
 
-	transactionsFeeProc, err := transactionsfee.NewTransactionFeeProcessor(transactionsfee.ArgTransactionsFeeProcessor{
+	transactionsFeeProc, err := transactionsfee.NewTransactionsFeeProcessor(transactionsfee.ArgTransactionsFeeProcessor{
 		Marshaller:         arg.Marshaller,
 		TransactionsStorer: arg.TransactionsStorer,
 		ShardCoordinator:   arg.ShardCoordinator,

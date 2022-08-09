@@ -3,12 +3,13 @@ package transactionsfee
 import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	outportcore "github.com/ElrondNetwork/elrond-go-core/data/outport"
+	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 )
 
 type transactionWithResults struct {
 	data.TransactionHandlerWithGasUsedAndFee
-	scrs []data.TransactionHandler
-	logs *data.LogData
+	scrs []data.TransactionHandlerWithGasUsedAndFee
+	log  *data.LogData
 }
 
 type transactionsAndScrsHolder struct {
@@ -42,16 +43,22 @@ func prepareTransactionsAndScrs(txPool *outportcore.Pool) *transactionsAndScrsHo
 			continue
 		}
 
-		txWithResults.logs = txLog
+		txWithResults.log = txLog
 	}
 
-	for scrHash, scr := range txPool.Scrs {
-		txWithResults, ok := transactionsAndScrs.txsWithResults[scrHash]
+	for scrHash, scrHandler := range txPool.Scrs {
+		scr, ok := scrHandler.GetTxHandler().(*smartContractResult.SmartContractResult)
 		if !ok {
-			transactionsAndScrs.scrsNoTx[scrHash] = scr
+			continue
 		}
 
-		txWithResults.scrs = append(txWithResults.scrs, scr)
+		txWithResults, ok := transactionsAndScrs.txsWithResults[string(scr.OriginalTxHash)]
+		if !ok {
+			transactionsAndScrs.scrsNoTx[scrHash] = scrHandler
+			continue
+		}
+
+		txWithResults.scrs = append(txWithResults.scrs, scrHandler)
 	}
 
 	return transactionsAndScrs

@@ -26,8 +26,8 @@ type transactionsFeeProcessor struct {
 	shardCoordinator sharding.Coordinator
 }
 
-// NewTransactionFeeProcessor will create a new instance of transactionsFeeProcessor
-func NewTransactionFeeProcessor(arg ArgTransactionsFeeProcessor) (*transactionsFeeProcessor, error) {
+// NewTransactionsFeeProcessor will create a new instance of transactionsFeeProcessor
+func NewTransactionsFeeProcessor(arg ArgTransactionsFeeProcessor) (*transactionsFeeProcessor, error) {
 	err := checkArg(arg)
 	if err != nil {
 		return nil, err
@@ -90,7 +90,7 @@ func (tep *transactionsFeeProcessor) prepareNormalTxs(transactionsAndScrs *trans
 func (tep *transactionsFeeProcessor) prepareTxWithResults(txHash []byte, txWithResults *transactionWithResults) {
 	hasRefund := false
 	for _, scrHandler := range txWithResults.scrs {
-		scr, ok := scrHandler.(*smartContractResult.SmartContractResult)
+		scr, ok := scrHandler.GetTxHandler().(*smartContractResult.SmartContractResult)
 		if !ok {
 			continue
 		}
@@ -101,6 +101,7 @@ func (tep *transactionsFeeProcessor) prepareTxWithResults(txHash []byte, txWithR
 			txWithResults.SetGasUsed(gasUsed)
 			txWithResults.SetFee(fee)
 			hasRefund = true
+			break
 		}
 	}
 
@@ -112,11 +113,11 @@ func (tep *transactionsFeeProcessor) prepareTxWithResultsBasedOnLogs(
 	txWithResults *transactionWithResults,
 	hasRefund bool,
 ) {
-	if check.IfNil(txWithResults.logs) {
+	if check.IfNilReflect(txWithResults.log) {
 		return
 	}
 
-	for _, event := range txWithResults.logs.GetLogEvents() {
+	for _, event := range txWithResults.log.GetLogEvents() {
 		identifier := string(event.GetIdentifier())
 		switch identifier {
 		case core.SignalErrorOperation:
