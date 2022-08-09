@@ -4,6 +4,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	coreData "github.com/ElrondNetwork/elrond-go-core/data"
 	outportcore "github.com/ElrondNetwork/elrond-go-core/data/outport"
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
@@ -17,7 +18,7 @@ import (
 func prepareMockArg() ArgTransactionsFeeProcessor {
 	return ArgTransactionsFeeProcessor{
 		Marshaller:         testscommon.MarshalizerMock{},
-		TransactionsStorer: &genericMocks.StorerMock{},
+		TransactionsStorer: genericMocks.NewStorerMock(),
 		ShardCoordinator:   &testscommon.ShardsCoordinatorMock{},
 		TxFeeCalculator:    &mock.EconomicsHandlerMock{},
 	}
@@ -50,9 +51,12 @@ func TestNewTransactionFeeProcessor(t *testing.T) {
 	txsFeeProc, err := NewTransactionsFeeProcessor(arg)
 	require.NotNil(t, txsFeeProc)
 	require.Nil(t, err)
+	require.False(t, txsFeeProc.IsInterfaceNil())
 }
 
 func TestPutFeeAndGasUsedTx1(t *testing.T) {
+	t.Parallel()
+
 	txHash := []byte("relayedTx")
 	scrHash1 := []byte("scrHash1")
 	scrWithRefund := []byte("scrWithRefund")
@@ -107,4 +111,144 @@ func TestPutFeeAndGasUsedTx1(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, big.NewInt(1673728170000000), initialTx.GetFee())
 	require.Equal(t, uint64(7982817), initialTx.GetGasUsed())
+}
+
+func TestPutFeeAndGasUsedScrNoTx(t *testing.T) {
+	t.Parallel()
+
+	txHash := []byte("relayedTx")
+	scrWithRefund := []byte("scrWithRefund")
+
+	refundValueBig, _ := big.NewInt(0).SetString("226498540000000", 10)
+
+	scr := outportcore.NewTransactionHandlerWithGasAndFee(&smartContractResult.SmartContractResult{
+		Nonce:          3,
+		SndAddr:        []byte("erd1qqqqqqqqqqqqqpgq3dswlnnlkfd3gqrcv3dhzgnvh8ryf27g5rfsecnn2s"),
+		RcvAddr:        []byte("erd1k7j6ewjsla4zsgv8v6f6fe3dvrkgv3d0d9jerczw45hzedhyed8sh2u34u"),
+		PrevTxHash:     []byte("f639cb7a0231191e04ec19dcb1359bd93a03fe8dc4a28a80d00835c5d1c988f8"),
+		OriginalTxHash: txHash,
+		Value:          refundValueBig,
+		Data:           []byte(""),
+		ReturnMessage:  []byte("gas refund for relayer"),
+	}, 0, big.NewInt(0))
+
+	pool := &outportcore.Pool{
+		Scrs: map[string]coreData.TransactionHandlerWithGasUsedAndFee{
+			"wrong":               outportcore.NewTransactionHandlerWithGasAndFee(&transaction.Transaction{}, 0, big.NewInt(0)),
+			string(scrWithRefund): scr,
+		},
+	}
+
+	arg := prepareMockArg()
+
+	initialTx := &transaction.Transaction{
+		GasLimit: 30000000,
+		GasPrice: 1000000000,
+	}
+	txBytes, _ := arg.Marshaller.Marshal(initialTx)
+
+	_ = arg.TransactionsStorer.Put(txHash, txBytes)
+
+	txsFeeProc, err := NewTransactionsFeeProcessor(arg)
+	require.NotNil(t, txsFeeProc)
+	require.Nil(t, err)
+
+	err = txsFeeProc.PutFeeAndGasUsed(pool)
+	require.Nil(t, err)
+	require.Equal(t, big.NewInt(123001460000000), scr.GetFee())
+	require.Equal(t, uint64(7350146), scr.GetGasUsed())
+}
+
+func TestPutFeeAndGasUsedInvalidTxs(t *testing.T) {
+	t.Parallel()
+
+	tx := outportcore.NewTransactionHandlerWithGasAndFee(&transaction.Transaction{
+		GasLimit: 30000000,
+		GasPrice: 1000000000,
+	}, 0, big.NewInt(0))
+
+	pool := &outportcore.Pool{
+		Invalid: map[string]coreData.TransactionHandlerWithGasUsedAndFee{
+			"tx": tx,
+		},
+	}
+
+	arg := prepareMockArg()
+	txsFeeProc, err := NewTransactionsFeeProcessor(arg)
+	require.NotNil(t, txsFeeProc)
+	require.Nil(t, err)
+
+	err = txsFeeProc.PutFeeAndGasUsed(pool)
+	require.Nil(t, err)
+	require.Equal(t, big.NewInt(349500000000000), tx.GetFee())
+	require.Equal(t, tx.GetGasLimit(), tx.GetGasUsed())
+}
+
+func TestPutFeeAndGasUsedLogWithErrorAndInformative(t *testing.T) {
+	t.Parallel()
+
+	tx1Hash := "h1"
+	tx1 := outportcore.NewTransactionHandlerWithGasAndFee(&transaction.Transaction{
+		GasLimit: 30000000,
+		GasPrice: 1000000000,
+	}, 0, big.NewInt(0))
+
+	tx2Hash := "h2"
+	tx2 := outportcore.NewTransactionHandlerWithGasAndFee(&transaction.Transaction{
+		GasLimit: 50000000,
+		GasPrice: 1000000000,
+	}, 0, big.NewInt(0))
+
+	pool := &outportcore.Pool{
+		Txs: map[string]coreData.TransactionHandlerWithGasUsedAndFee{
+			tx1Hash: tx1,
+			tx2Hash: tx2,
+			"t3":    outportcore.NewTransactionHandlerWithGasAndFee(&transaction.Transaction{}, 0, big.NewInt(0)),
+		},
+		Logs: []*coreData.LogData{
+			{
+				LogHandler: &transaction.Log{
+					Events: []*transaction.Event{
+						{
+							Identifier: []byte("ignore"),
+						},
+					},
+				},
+			},
+			{
+				LogHandler: &transaction.Log{
+					Events: []*transaction.Event{
+						{
+							Identifier: []byte("ignore"),
+						},
+						{
+							Identifier: []byte(core.SignalErrorOperation),
+						},
+					},
+				},
+				TxHash: tx1Hash,
+			},
+			{
+				LogHandler: &transaction.Log{
+					Events: []*transaction.Event{
+						{
+							Identifier: []byte(core.WriteLogIdentifier),
+						},
+					},
+				},
+				TxHash: tx2Hash,
+			},
+		},
+	}
+
+	arg := prepareMockArg()
+	txsFeeProc, err := NewTransactionsFeeProcessor(arg)
+	require.NotNil(t, txsFeeProc)
+	require.Nil(t, err)
+
+	err = txsFeeProc.PutFeeAndGasUsed(pool)
+	require.Nil(t, err)
+
+	require.Equal(t, tx1.GetGasLimit(), tx1.GetGasUsed())
+	require.Equal(t, tx2.GetGasLimit(), tx2.GetGasUsed())
 }
