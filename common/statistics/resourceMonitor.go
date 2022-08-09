@@ -48,13 +48,13 @@ func NewResourceMonitor(config *config.Config, pathManager storage.PathManagerHa
 		memoryString = core.ConvertBytes(vms.Total)
 	}
 
-	nrCores := -1
+	numCores := -1
 	rawCpuInfo, err := cpu.Info()
 	if err == nil {
-		nrCores = len(rawCpuInfo)
+		numCores = len(rawCpuInfo)
 	}
 
-	log.Debug("newResourceMonitor", "numCores", nrCores, "memory", memoryString)
+	log.Debug("newResourceMonitor", "numCores", numCores, "memory", memoryString)
 
 	return &ResourceMonitor{
 		generalConfig: config,
