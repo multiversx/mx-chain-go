@@ -80,7 +80,7 @@ func (pd *persisterData) setPersisterAndIsClosed(persister storage.Persister, is
 // PruningStorer represents a storer which creates a new persister for each epoch and removes older activePersisters
 // TODO unexport PruningStorer
 type PruningStorer struct {
-	extendPersisterLifeHandler func() bool
+	lastEpochNeededHandler func() uint32
 
 	lock             sync.RWMutex
 	shardCoordinator storage.ShardCoordinator
@@ -158,10 +158,7 @@ func initPruningStorer(
 	pdb.customDatabaseRemover = args.CustomDatabaseRemover
 	pdb.persistersMapByEpoch = persistersMapByEpoch
 	pdb.activePersisters = activePersisters
-
-	pdb.extendPersisterLifeHandler = func() bool {
-		return false
-	}
+	pdb.lastEpochNeededHandler = pdb.lastEpochNeeded
 
 	return pdb, nil
 }
@@ -193,6 +190,14 @@ func checkArgs(args *StorerArgs) error {
 	}
 
 	return nil
+}
+
+func (ps *PruningStorer) lastEpochNeeded() uint32 {
+	if len(ps.activePersisters) == 0 {
+		return 0
+	}
+
+	return ps.activePersisters[0].epoch
 }
 
 func initPersistersInEpoch(
@@ -790,10 +795,6 @@ func (ps *PruningStorer) changeEpoch(header data.HeaderHandler) error {
 
 // should be called under mutex protection
 func (ps *PruningStorer) extendSavedEpochsIfNeeded(header data.HeaderHandler) bool {
-	if ps.extendPersisterLifeHandler() {
-		return true
-	}
-
 	epoch := header.GetEpoch()
 	metaBlock, mbOk := header.(*block.MetaBlock)
 	if !mbOk {
@@ -911,11 +912,16 @@ func (ps *PruningStorer) extendActivePersisters(from uint32, to uint32) error {
 
 // should be called under mutex protection
 func (ps *PruningStorer) closeAndDestroyPersisters(epoch uint32) error {
+	lastEpochNeeded := ps.lastEpochNeededHandler()
+
 	// activePersisters outside the numOfActivePersisters border have to he closed for both scenarios: full archive or not
-	persistersToClose := ps.processPersistersToClose()
+	persistersToClose := ps.processPersistersToClose(lastEpochNeeded)
 
 	epochsToRemove := make([]uint32, 0)
 	idxToRemove := epoch - ps.numOfEpochsToKeep
+	if idxToRemove > lastEpochNeeded {
+		idxToRemove = lastEpochNeeded - 1
+	}
 	if uint32(len(ps.persistersMapByEpoch)) > ps.numOfEpochsToKeep {
 		for {
 			_, exists := ps.persistersMapByEpoch[idxToRemove]
@@ -957,7 +963,18 @@ func (ps *PruningStorer) closeAndDestroyPersisters(epoch uint32) error {
 	return nil
 }
 
-func (ps *PruningStorer) processPersistersToClose() []*persisterData {
+func (ps *PruningStorer) getNumPersistersToKeep(lastEpochNeeded uint32) uint32 {
+	numPersistersToKeep := uint32(0)
+	for _, activePersister := range ps.activePersisters {
+		if activePersister.epoch >= lastEpochNeeded {
+			numPersistersToKeep++
+		}
+	}
+
+	return numPersistersToKeep
+}
+
+func (ps *PruningStorer) processPersistersToClose(lastEpochNeeded uint32) []*persisterData {
 	persistersToClose := make([]*persisterData, 0)
 
 	epochsToClose := make([]uint32, 0)
@@ -967,8 +984,10 @@ func (ps *PruningStorer) processPersistersToClose() []*persisterData {
 	}
 
 	if ps.numOfActivePersisters < uint32(len(ps.activePersisters)) {
-		persistersToClose = ps.activePersisters[ps.numOfActivePersisters:]
-		ps.activePersisters = ps.activePersisters[:ps.numOfActivePersisters]
+		numPersistersToKeep := ps.getNumPersistersToKeep(lastEpochNeeded)
+		epochRemoveIndex := core.MaxUint32(numPersistersToKeep, ps.numOfActivePersisters)
+		persistersToClose = ps.activePersisters[epochRemoveIndex:]
+		ps.activePersisters = ps.activePersisters[:epochRemoveIndex]
 
 		for _, p := range persistersToClose {
 			ps.persistersMapByEpoch[p.epoch] = p

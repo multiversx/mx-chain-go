@@ -38,19 +38,17 @@ func NewTriePruningStorer(args *StorerArgs) (*triePruningStorer, error) {
 	}
 
 	tps := &triePruningStorer{ps}
-	ps.extendPersisterLifeHandler = tps.extendPersisterLife
+	ps.lastEpochNeededHandler = tps.lastEpochNeeded
 	tps.registerHandler(args.Notifier)
 
 	return tps, nil
 }
 
-func (ps *triePruningStorer) extendPersisterLife() bool {
+func (ps *triePruningStorer) lastEpochNeeded() uint32 {
 	numActiveDBs := 0
-	for i := 0; i < int(ps.numOfActivePersisters); i++ {
-		if i >= len(ps.activePersisters) {
-			continue
-		}
-
+	lastEpochNeeded := uint32(0)
+	for i := 0; i < len(ps.activePersisters); i++ {
+		lastEpochNeeded = ps.activePersisters[i].epoch
 		val, err := ps.activePersisters[i].persister.Get([]byte(common.ActiveDBKey))
 		if err != nil {
 			continue
@@ -59,14 +57,13 @@ func (ps *triePruningStorer) extendPersisterLife() bool {
 		if bytes.Equal(val, []byte(common.ActiveDBVal)) {
 			numActiveDBs++
 		}
+
+		if numActiveDBs == minNumOfActiveDBsNecessary {
+			break
+		}
 	}
 
-	if numActiveDBs < minNumOfActiveDBsNecessary {
-		log.Debug("extendPersisterLife", "path", ps.dbPath)
-		return true
-	}
-
-	return false
+	return lastEpochNeeded
 }
 
 func initTriePersisterInEpoch(

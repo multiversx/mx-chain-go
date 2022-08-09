@@ -36,7 +36,7 @@ func initFullHistoryTriePruningStorer(args *FullHistoryStorerArgs, shardId strin
 	}
 
 	tps := &triePruningStorer{ps}
-	ps.extendPersisterLifeHandler = tps.extendPersisterLife
+	ps.lastEpochNeededHandler = tps.lastEpochNeeded
 	tps.registerHandler(args.Notifier)
 
 	if args.NumOfOldActivePersisters < 1 || args.NumOfOldActivePersisters > math.MaxInt32 {
