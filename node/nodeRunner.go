@@ -639,6 +639,7 @@ func getBaseAccountSyncerArgs(
 		MaxHardCapForMissingNodes: config.TrieSync.MaxHardCapForMissingNodes,
 		TrieSyncerVersion:         config.TrieSync.TrieSyncerVersion,
 		StorageMarker:             storageMarker.NewDisabledStorageMarker(),
+		CheckNodesOnDisk:          true,
 	}
 }
 
