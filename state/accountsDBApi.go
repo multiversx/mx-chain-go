@@ -220,8 +220,6 @@ func (accountsDB *accountsDBApi) GetAccountWithBlockInfo(address []byte) (vmcomm
 	// We hold the read mutex over both <getting the current block info> AND <getting the account>.
 	// -> desired side-effect: any concurrent "recreateTrieIfNecessary()" waits until the mutex is released.
 	// -> under normal circumstances (node already synchronized), performance of GET account should not be impacted.
-	// -> why don't we create a critical section that spans over the whole function? Because we'd like "recreateTrieIfNecessary()"
-	// to happen as soon (and as often) as possible.
 	accountsDB.mutBlockInfoOfRecreatedTrie.RLock()
 	defer accountsDB.mutBlockInfoOfRecreatedTrie.RUnlock()
 
