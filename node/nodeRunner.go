@@ -319,7 +319,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		return true, err
 	}
 
-	botstrapStorer, err := managedDataComponents.StorageService().GetStorer(dataRetriever.BootstrapUnit)
+	bootstrapStorer, err := managedDataComponents.StorageService().GetStorer(dataRetriever.BootstrapUnit)
 	if err != nil {
 		return true, err
 	}
@@ -334,7 +334,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		managedCoreComponents.InternalMarshalizer(),
 		managedCoreComponents.Hasher(),
 		managedCoreComponents.Rater(),
-		botstrapStorer,
+		bootstrapStorer,
 		managedCoreComponents.NodesShuffler(),
 		managedBootstrapComponents.ShardCoordinator().SelfId(),
 		managedBootstrapComponents.EpochBootstrapParams(),

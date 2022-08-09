@@ -130,6 +130,7 @@ func (msb *metaStorageBootstrapper) cleanupNotarizedStorage(metaBlockHash []byte
 			log.Debug("could not get storage unit",
 				"unit", hdrNonceHashDataUnit,
 				"error", err.Error())
+			return
 		}
 
 		nonceToByteSlice := msb.uint64Converter.ToByteSlice(shardHeader.GetNonce())

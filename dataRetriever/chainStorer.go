@@ -37,7 +37,7 @@ func (bc *ChainStorer) GetStorer(unitType UnitType) (storage.Storer, error) {
 	bc.lock.RUnlock()
 
 	if !ok {
-		return nil, fmt.Errorf("%w for key %s", ErrKeyNotFound, unitType.String())
+		return nil, fmt.Errorf("%s %w", unitType.String(), ErrStorerNotFound)
 	}
 
 	return storer, nil

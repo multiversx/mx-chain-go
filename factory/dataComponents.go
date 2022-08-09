@@ -105,14 +105,14 @@ func (dcf *dataComponentsFactory) Create() (*dataComponents, error) {
 		log.Warn("unable to close the trie nodes cacher...continuing", "error", errNotCritical)
 	}
 
-	storer, err := store.GetStorer(dataRetriever.MiniBlockUnit)
+	miniBlockStorer, err := store.GetStorer(dataRetriever.MiniBlockUnit)
 	if err != nil {
 		return nil, err
 	}
 
 	arg := provider.ArgMiniBlockProvider{
 		MiniBlockPool:    datapool.MiniBlocks(),
-		MiniBlockStorage: storer,
+		MiniBlockStorage: miniBlockStorer,
 		Marshalizer:      dcf.core.InternalMarshalizer(),
 	}
 
