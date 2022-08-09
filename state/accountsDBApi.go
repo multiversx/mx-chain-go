@@ -12,10 +12,10 @@ import (
 )
 
 type accountsDBApi struct {
-	innerAccountsAdapter AccountsAdapter
-	blockInfoProvider    BlockInfoProvider
-	mutBlockInfo         sync.RWMutex
-	blockInfo            common.BlockInfo
+	innerAccountsAdapter        AccountsAdapter
+	blockInfoProvider           BlockInfoProvider
+	mutBlockInfoOfRecreatedTrie sync.RWMutex
+	blockInfo                   common.BlockInfo
 }
 
 // NewAccountsDBApi will create a new instance of type accountsDBApi
@@ -42,9 +42,9 @@ func (accountsDB *accountsDBApi) recreateTrieIfNecessary() (common.BlockInfo, er
 		return nil, fmt.Errorf("%w in accountsDBApi.recreateTrieIfNecessary", ErrNilRootHash)
 	}
 
-	accountsDB.mutBlockInfo.RLock()
+	accountsDB.mutBlockInfoOfRecreatedTrie.RLock()
 	currentBlockInfo := accountsDB.blockInfo
-	accountsDB.mutBlockInfo.RUnlock()
+	accountsDB.mutBlockInfoOfRecreatedTrie.RUnlock()
 
 	if newBlockInfo.Equal(currentBlockInfo) {
 		return currentBlockInfo, nil
@@ -54,8 +54,8 @@ func (accountsDB *accountsDBApi) recreateTrieIfNecessary() (common.BlockInfo, er
 }
 
 func (accountsDB *accountsDBApi) doRecreateTrieWithBlockInfo(newBlockInfo common.BlockInfo) (common.BlockInfo, error) {
-	accountsDB.mutBlockInfo.Lock()
-	defer accountsDB.mutBlockInfo.Unlock()
+	accountsDB.mutBlockInfoOfRecreatedTrie.Lock()
+	defer accountsDB.mutBlockInfoOfRecreatedTrie.Unlock()
 
 	// early exit for possible multiple re-entrances here
 	currentBlockInfo := accountsDB.blockInfo
@@ -143,8 +143,8 @@ func (accountsDB *accountsDBApi) GetCode(codeHash []byte) []byte {
 
 // RootHash will return last loaded root hash
 func (accountsDB *accountsDBApi) RootHash() ([]byte, error) {
-	accountsDB.mutBlockInfo.RLock()
-	defer accountsDB.mutBlockInfo.RUnlock()
+	accountsDB.mutBlockInfoOfRecreatedTrie.RLock()
+	defer accountsDB.mutBlockInfoOfRecreatedTrie.RUnlock()
 
 	blockInfo := accountsDB.blockInfo
 	if check.IfNil(blockInfo) || blockInfo.GetRootHash() == nil {
@@ -217,8 +217,13 @@ func (accountsDB *accountsDBApi) GetAccountWithBlockInfo(address []byte) (vmcomm
 		return nil, nil, err
 	}
 
-	accountsDB.mutBlockInfo.RLock()
-	defer accountsDB.mutBlockInfo.RUnlock()
+	// We hold the read mutex over both <getting the current block info> AND <getting the account>.
+	// -> desired side-effect: any concurrent "recreateTrieIfNecessary()" waits until the mutex is released.
+	// -> under normal circumstances (node already synchronized), performance of GET account should not be impacted.
+	// -> why don't we create a critical section that spans over the whole function? Because we'd like "recreateTrieIfNecessary()"
+	// to happen as soon (and as often) as possible.
+	accountsDB.mutBlockInfoOfRecreatedTrie.RLock()
+	defer accountsDB.mutBlockInfoOfRecreatedTrie.RUnlock()
 
 	blockInfo := accountsDB.blockInfo
 
