@@ -114,7 +114,7 @@ func (ts *transactionsSync) SyncTransactionsFor(miniBlocks map[string]*block.Min
 				ts.mapTxsToMiniBlocks[string(txHash)] = miniBlock
 				log.Debug("transactionsSync.SyncTransactionsFor", "mb type", miniBlock.Type, "mb sender", miniBlock.SenderShardID, "mb receiver", miniBlock.ReceiverShardID, "tx hash needed", txHash)
 			}
-			numRequestedTxs += ts.requestTransactionsFor(miniBlock)
+			numRequestedTxs += ts.requestTransactionsFor(miniBlock, epoch)
 		}
 		ts.mutPendingTx.Unlock()
 
@@ -147,9 +147,9 @@ func (ts *transactionsSync) SyncTransactionsFor(miniBlocks map[string]*block.Min
 	}
 }
 
-func (ts *transactionsSync) requestTransactionsFor(miniBlock *block.MiniBlock) int {
+func (ts *transactionsSync) requestTransactionsFor(miniBlock *block.MiniBlock, epoch uint32) int {
 	if miniBlock.Type == block.PeerBlock {
-		return ts.requestTransactionsForPeerMiniBlock(miniBlock)
+		return ts.requestTransactionsForPeerMiniBlock(miniBlock, epoch)
 	}
 
 	return ts.requestTransactionsForNonPeerMiniBlock(miniBlock)
@@ -197,7 +197,7 @@ func (ts *transactionsSync) requestTransactionsForNonPeerMiniBlock(miniBlock *bl
 	return len(missingTxs)
 }
 
-func (ts *transactionsSync) requestTransactionsForPeerMiniBlock(miniBlock *block.MiniBlock) int {
+func (ts *transactionsSync) requestTransactionsForPeerMiniBlock(miniBlock *block.MiniBlock, epoch uint32) int {
 	missingTxs := make([][]byte, 0)
 	for _, txHash := range miniBlock.TxHashes {
 		if _, ok := ts.mapValidatorsInfo[string(txHash)]; ok {
@@ -218,7 +218,7 @@ func (ts *transactionsSync) requestTransactionsForPeerMiniBlock(miniBlock *block
 		log.Debug("transactionsSync.requestTransactionsForPeerMiniBlock", "mb type", miniBlock.Type, "mb sender", miniBlock.SenderShardID, "mb receiver", miniBlock.ReceiverShardID, "tx hash missing", txHash)
 	}
 
-	ts.requestHandler.RequestValidatorsInfo(missingTxs)
+	ts.requestHandler.RequestValidatorsInfo(missingTxs, epoch)
 
 	return len(missingTxs)
 }

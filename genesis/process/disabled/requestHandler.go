@@ -91,7 +91,7 @@ func (r *RequestHandler) RequestValidatorInfo(_ []byte) {
 }
 
 // RequestValidatorsInfo does nothing
-func (r *RequestHandler) RequestValidatorsInfo(_ [][]byte) {
+func (r *RequestHandler) RequestValidatorsInfo(_ [][]byte, _ uint32) {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

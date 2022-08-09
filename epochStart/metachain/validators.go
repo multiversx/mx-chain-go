@@ -312,17 +312,17 @@ func (vic *validatorInfoCreator) GetValidatorInfoTxs(body *block.Body) map[strin
 			continue
 		}
 
-		vic.getMapShardValidatorInfo(miniBlock, mapShardValidatorInfo)
+		vic.setMapShardValidatorInfo(miniBlock, mapShardValidatorInfo)
 	}
 
 	return mapShardValidatorInfo
 }
 
-func (vic *validatorInfoCreator) getMapShardValidatorInfo(miniBlock *block.MiniBlock, mapShardValidatorInfo map[string]*state.ShardValidatorInfo) {
+func (vic *validatorInfoCreator) setMapShardValidatorInfo(miniBlock *block.MiniBlock, mapShardValidatorInfo map[string]*state.ShardValidatorInfo) {
 	for _, txHash := range miniBlock.TxHashes {
 		shardValidatorInfo, err := vic.getShardValidatorInfo(txHash)
 		if err != nil {
-			log.Error("validatorInfoCreator.getMapShardValidatorInfo", "hash", txHash, "error", err)
+			log.Error("validatorInfoCreator.setMapShardValidatorInfo", "hash", txHash, "error", err)
 			continue
 		}
 
@@ -361,7 +361,9 @@ func (vic *validatorInfoCreator) SaveBlockDataToStorage(_ data.HeaderHandler, bo
 			continue
 		}
 
-		vic.saveValidatorInfo(miniBlock)
+		if vic.flagRefactorPeersMiniBlocks.IsSet() {
+			vic.saveValidatorInfo(miniBlock)
+		}
 
 		marshalledData, err := vic.marshalizer.Marshal(miniBlock)
 		if err != nil {
@@ -375,10 +377,6 @@ func (vic *validatorInfoCreator) SaveBlockDataToStorage(_ data.HeaderHandler, bo
 }
 
 func (vic *validatorInfoCreator) saveValidatorInfo(miniBlock *block.MiniBlock) {
-	if !vic.flagRefactorPeersMiniBlocks.IsSet() {
-		return
-	}
-
 	validatorInfoCacher := vic.dataPool.CurrentEpochValidatorInfo()
 
 	for _, validatorInfoHash := range miniBlock.TxHashes {
