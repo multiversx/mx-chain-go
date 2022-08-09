@@ -212,10 +212,15 @@ func (accountsDB *accountsDBApi) Close() error {
 
 // GetAccountWithBlockInfo returns the account and the associated block info
 func (accountsDB *accountsDBApi) GetAccountWithBlockInfo(address []byte) (vmcommon.AccountHandler, common.BlockInfo, error) {
-	blockInfo, err := accountsDB.recreateTrieIfNecessary()
+	_, err := accountsDB.recreateTrieIfNecessary()
 	if err != nil {
 		return nil, nil, err
 	}
+
+	accountsDB.mutBlockInfo.RLock()
+	defer accountsDB.mutBlockInfo.RUnlock()
+
+	blockInfo := accountsDB.blockInfo
 
 	account, err := accountsDB.innerAccountsAdapter.GetExistingAccount(address)
 	if err == ErrAccNotFound {
