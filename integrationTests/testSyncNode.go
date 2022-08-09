@@ -205,6 +205,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 
 	triesConfig := config.Config{
 		StateTriesConfig: config.StateTriesConfig{
+			SnapshotsEnabled:        true,
 			CheckpointRoundsModulus: stateCheckpointModulus,
 		},
 	}

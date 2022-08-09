@@ -10,9 +10,10 @@ import (
 )
 
 const (
-	lastEpochIndex             = 1
-	currentEpochIndex          = 0
-	minNumOfActiveDBsNecessary = 1
+	lastEpochIndex    = 1
+	currentEpochIndex = 0
+	// leave this at 2, because in order to have a complete state at a certain moment, 2 dbs need to be opened
+	minNumOfActiveDBsNecessary = 2
 )
 
 type triePruningStorer struct {
