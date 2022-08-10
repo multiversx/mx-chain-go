@@ -69,11 +69,12 @@ func NewVMContext(args VMContextArgs) (*vmContext, error) {
 	}
 
 	vmc := &vmContext{
-		blockChainHook:      args.BlockChainHook,
-		cryptoHook:          args.CryptoHook,
-		inputParser:         args.InputParser,
-		validatorAccountsDB: args.ValidatorAccountsDB,
-		chanceComputer:      args.ChanceComputer,
+		blockChainHook:                          args.BlockChainHook,
+		cryptoHook:                              args.CryptoHook,
+		inputParser:                             args.InputParser,
+		validatorAccountsDB:                     args.ValidatorAccountsDB,
+		chanceComputer:                          args.ChanceComputer,
+		setSenderInEeiOutputTransferEnableEpoch: args.SetSenderInEeiOutputTransferEnableEpoch,
 	}
 	vmc.CleanCache()
 
