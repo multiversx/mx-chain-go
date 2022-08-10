@@ -116,6 +116,7 @@ func startNodesWithCommitBlock(nodes []*testNode, mutex *sync.Mutex, nonceForRou
 					NumConcurrentTrieSyncers:  5,
 					MaxHardCapForMissingNodes: 5,
 					TrieSyncerVersion:         2,
+					CheckNodesOnDisk:          false,
 				},
 				GeneralSettings: config.GeneralSettingsConfig{
 					SyncProcessTimeInMillis: 6000,

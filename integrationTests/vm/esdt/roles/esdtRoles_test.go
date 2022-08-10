@@ -468,3 +468,92 @@ func TestESDTLocalBurnFromAnyoneOfThisToken(t *testing.T) {
 		esdt.CheckAddressHasTokens(t, node.OwnAccount.Address, nodes, []byte(tokenIdentifier), 0, 0)
 	}
 }
+
+func TestESDTWithTransferRoleCrossShardShouldWork(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	numOfShards := 2
+	nodesPerShard := 2
+	numMetachainNodes := 2
+
+	enableEpochs := config.EnableEpochs{}
+	nodes := integrationTests.CreateNodesWithEnableEpochs(
+		numOfShards,
+		nodesPerShard,
+		numMetachainNodes,
+		enableEpochs,
+	)
+
+	idxProposers := make([]int, numOfShards+1)
+	for i := 0; i < numOfShards; i++ {
+		idxProposers[i] = i * nodesPerShard
+	}
+	idxProposers[numOfShards] = numOfShards * nodesPerShard
+
+	integrationTests.DisplayAndStartNodes(nodes)
+
+	defer func() {
+		for _, n := range nodes {
+			n.Close()
+		}
+	}()
+
+	initialVal := big.NewInt(10000000000)
+	integrationTests.MintAllNodes(nodes, initialVal)
+
+	round := uint64(0)
+	nonce := uint64(0)
+	round = integrationTests.IncrementAndPrintRound(round)
+	nonce++
+
+	// send token issue
+	ticker := "ALC"
+	issuePrice := big.NewInt(1000)
+	initialSupply := int64(10000000000)
+	tokenIssuer := nodes[0]
+	txData := txDataBuilder.NewBuilder()
+
+	txData.Clear().IssueESDT("aliceToken", ticker, initialSupply, 6)
+	txData.CanFreeze(true).CanWipe(true).CanPause(true).CanMint(true).CanBurn(false)
+	integrationTests.CreateAndSendTransaction(tokenIssuer, nodes, issuePrice, vm.ESDTSCAddress, txData.ToString(), core.MinMetaTxExtraGasCost)
+
+	time.Sleep(time.Second)
+	nrRoundsToPropagateMultiShard := 12
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	time.Sleep(time.Second)
+
+	tokenIdentifier := string(integrationTests.GetTokenIdentifier(nodes, []byte(ticker)))
+	setRole(nodes, tokenIssuer.OwnAccount.Address, []byte(tokenIdentifier), []byte(core.ESDTRoleTransfer))
+	esdt.CheckAddressHasTokens(t, tokenIssuer.OwnAccount.Address, nodes, []byte(tokenIdentifier), 0, initialSupply)
+
+	time.Sleep(time.Second)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 2, nonce, round, idxProposers)
+	time.Sleep(time.Second)
+
+	// send tx to other nodes
+	valueToSend := int64(100)
+	for _, node := range nodes[1:] {
+		txData.Clear().TransferESDT(tokenIdentifier, valueToSend)
+		integrationTests.CreateAndSendTransaction(tokenIssuer, nodes, big.NewInt(0), node.OwnAccount.Address, txData.ToString(), integrationTests.AdditionalGasLimit)
+	}
+
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	time.Sleep(time.Second)
+
+	// send value back to the initial node
+	for _, node := range nodes[1:] {
+		esdt.CheckAddressHasTokens(t, node.OwnAccount.Address, nodes, []byte(tokenIdentifier), 0, valueToSend)
+		txData.Clear().TransferESDT(tokenIdentifier, valueToSend)
+		integrationTests.CreateAndSendTransaction(node, nodes, big.NewInt(0), tokenIssuer.OwnAccount.Address, txData.ToString(), integrationTests.AdditionalGasLimit)
+	}
+
+	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	time.Sleep(time.Second)
+
+	for _, node := range nodes[1:] {
+		esdt.CheckAddressHasTokens(t, node.OwnAccount.Address, nodes, []byte(tokenIdentifier), 0, 0)
+	}
+	esdt.CheckAddressHasTokens(t, tokenIssuer.OwnAccount.Address, nodes, []byte(tokenIdentifier), 0, initialSupply)
+}

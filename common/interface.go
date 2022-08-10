@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
 )
 
 // NumNodesDTO represents the DTO structure that will hold the number of nodes split by category and other
@@ -37,6 +38,7 @@ type Trie interface {
 	GetProof(key []byte) ([][]byte, []byte, error)
 	VerifyProof(rootHash []byte, key []byte, proof [][]byte) (bool, error)
 	GetStorageManager() StorageManager
+	MarkStorerAsSyncedAndActive()
 	Close() error
 	IsInterfaceNil() bool
 }
@@ -45,9 +47,11 @@ type Trie interface {
 type StorageManager interface {
 	Get(key []byte) ([]byte, error)
 	GetFromCurrentEpoch(key []byte) ([]byte, error)
+	Put(key []byte, val []byte) error
 	PutInEpoch(key []byte, val []byte, epoch uint32) error
-	TakeSnapshot(rootHash []byte, mainTrieRootHash []byte, leavesChan chan core.KeyValueHolder, stats SnapshotStatisticsHandler, epoch uint32)
-	SetCheckpoint(rootHash []byte, mainTrieRootHash []byte, leavesChan chan core.KeyValueHolder, stats SnapshotStatisticsHandler)
+	PutInEpochWithoutCache(key []byte, val []byte, epoch uint32) error
+	TakeSnapshot(rootHash []byte, mainTrieRootHash []byte, leavesChan chan core.KeyValueHolder, errChan chan error, stats SnapshotStatisticsHandler, epoch uint32)
+	SetCheckpoint(rootHash []byte, mainTrieRootHash []byte, leavesChan chan core.KeyValueHolder, errChan chan error, stats SnapshotStatisticsHandler)
 	GetLatestStorageEpoch() (uint32, error)
 	IsPruningEnabled() bool
 	IsPruningBlocked() bool
@@ -57,12 +61,9 @@ type StorageManager interface {
 	Remove(hash []byte) error
 	SetEpochForPutOperation(uint32)
 	ShouldTakeSnapshot() bool
+	IsClosed() bool
 	Close() error
 	IsInterfaceNil() bool
-
-	// TODO remove Put() when removing increaseNumCheckpoints()
-
-	Put(key []byte, val []byte) error
 }
 
 // DBWriteCacher is used to cache changes made to the trie, and only write to the database when it's needed
@@ -145,4 +146,16 @@ type BlockInfo interface {
 	GetRootHash() []byte
 	Equal(blockInfo BlockInfo) bool
 	IsInterfaceNil() bool
+}
+
+// ReceiptsHolder holds receipts content (e.g. miniblocks)
+type ReceiptsHolder interface {
+	GetMiniblocks() []*block.MiniBlock
+	IsInterfaceNil() bool
+}
+
+// GasScheduleNotifierAPI defines the behavior of the gas schedule notifier components that is used for api
+type GasScheduleNotifierAPI interface {
+	core.GasScheduleNotifier
+	LatestGasScheduleCopy() map[string]map[string]uint64
 }

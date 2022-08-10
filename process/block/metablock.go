@@ -85,6 +85,9 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 	if check.IfNil(arguments.EpochSystemSCProcessor) {
 		return nil, process.ErrNilEpochStartSystemSCProcessor
 	}
+	if check.IfNil(arguments.ReceiptsRepository) {
+		return nil, process.ErrNilReceiptsRepository
+	}
 
 	pruningQueueSize := arguments.Config.StateTriesConfig.PeerStatePruningQueueSize
 	pruningDelay := uint32(pruningQueueSize * pruningDelayMultiplier)
@@ -133,6 +136,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		scheduledMiniBlocksEnableEpoch: arguments.ScheduledMiniBlocksEnableEpoch,
 		pruningDelay:                   pruningDelay,
 		processedMiniBlocksTracker:     arguments.ProcessedMiniBlocksTracker,
+		receiptsRepository:             arguments.ReceiptsRepository,
 	}
 
 	mp := metaProcessor{

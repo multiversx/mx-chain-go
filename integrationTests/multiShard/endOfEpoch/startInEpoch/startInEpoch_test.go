@@ -243,6 +243,9 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 			},
 		},
 		ScheduledSCRsStorer: genericMocks.NewStorerMock(),
+		FlagsConfig: config.ContextFlagsConfig{
+			ForceStartFromNetwork: false,
+		},
 	}
 
 	epochStartBootstrap, err := bootstrap.NewEpochStartBootstrap(argsBootstrapHandler)
@@ -305,6 +308,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		MiniblocksProvider:           &mock.MiniBlocksProviderStub{},
 		EpochNotifier:                &epochNotifierMock.EpochNotifierStub{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
+		AppStatusHandler:             &statusHandlerMock.AppStatusHandlerMock{},
 	}
 
 	bootstrapper, err := getBootstrapper(shardID, argsBaseBootstrapper)

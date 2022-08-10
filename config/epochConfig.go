@@ -80,6 +80,8 @@ type EnableEpochs struct {
 	FailExecutionOnEveryAPIErrorEnableEpoch           uint32
 	ManagedCryptoAPIsEnableEpoch                      uint32
 	RefactorContextEnableEpoch                        uint32
+	CheckFunctionArgumentEnableEpoch                  uint32
+	CheckExecuteOnReadOnlyEnableEpoch                 uint32
 	HeartbeatDisableEpoch                             uint32
 	MiniBlockPartialExecutionEnableEpoch              uint32
 	ESDTMetadataContinuousCleanupEnableEpoch          uint32

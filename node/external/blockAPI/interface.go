@@ -1,6 +1,7 @@
 package blockAPI
 
 import (
+	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/common"
@@ -35,8 +36,12 @@ type APIInternalBlockHandler interface {
 	IsInterfaceNil() bool
 }
 
-// LogsFacade defines the interface of a logs facade
-type LogsFacade interface {
+type logsFacade interface {
 	IncludeLogsInTransactions(txs []*transaction.ApiTransactionResult, logsKeys [][]byte, epoch uint32) error
+	IsInterfaceNil() bool
+}
+
+type receiptsRepository interface {
+	LoadReceipts(header data.HeaderHandler, headerHash []byte) (common.ReceiptsHolder, error)
 	IsInterfaceNil() bool
 }

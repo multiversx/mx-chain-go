@@ -293,6 +293,7 @@ type FacadeConfig struct {
 type StateTriesConfig struct {
 	CheckpointRoundsModulus     uint
 	CheckpointsEnabled          bool
+	SnapshotsEnabled            bool
 	AccountsStatePruningEnabled bool
 	PeerStatePruningEnabled     bool
 	MaxStateTrieLevelInMemory   uint
@@ -420,7 +421,8 @@ type VirtualMachineGasConfig struct {
 
 // BuiltInFunctionsConfig holds the configuration for the built in functions
 type BuiltInFunctionsConfig struct {
-	AutomaticCrawlerAddress string
+	AutomaticCrawlerAddress       string
+	MaxNumAddressesInTransferRole uint32
 }
 
 // HardforkConfig holds the configuration for the hardfork trigger
@@ -588,6 +590,7 @@ type TrieSyncConfig struct {
 	NumConcurrentTrieSyncers  int
 	MaxHardCapForMissingNodes int
 	TrieSyncerVersion         int
+	CheckNodesOnDisk          bool
 }
 
 // ResolverConfig represents the config options to be used when setting up the resolver instances

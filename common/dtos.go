@@ -9,9 +9,33 @@ type GetProofResponse struct {
 
 // TransactionsPoolAPIResponse is a struct that holds the data to be returned when getting the transaction pool from an API call
 type TransactionsPoolAPIResponse struct {
-	RegularTransactions  []string `json:"regularTransactions"`
-	SmartContractResults []string `json:"smartContractResults"`
-	Rewards              []string `json:"rewards"`
+	RegularTransactions  []Transaction `json:"regularTransactions"`
+	SmartContractResults []Transaction `json:"smartContractResults"`
+	Rewards              []Transaction `json:"rewards"`
+}
+
+// Transaction is a struct that holds transaction fields to be returned when getting the transactions from pool
+type Transaction struct {
+	TxFields map[string]interface{} `json:"txFields"`
+}
+
+// TransactionsPoolForSenderApiResponse is a struct that holds the data to be returned when getting the transactions for a sender from an API call
+type TransactionsPoolForSenderApiResponse struct {
+	Transactions []Transaction `json:"transactions"`
+}
+
+// NonceGapApiResponse is a struct that holds a nonce gap from transactions pool
+// From - first unknown nonce
+// To   - last unknown nonce
+type NonceGapApiResponse struct {
+	From uint64 `json:"from"`
+	To   uint64 `json:"to"`
+}
+
+// TransactionsPoolNonceGapsForSenderApiResponse is a struct that holds the data to be returned when getting the nonce gaps from transactions pool for a sender from an API call
+type TransactionsPoolNonceGapsForSenderApiResponse struct {
+	Sender string                `json:"sender"`
+	Gaps   []NonceGapApiResponse `json:"gaps"`
 }
 
 // DelegationDataAPI will be used when requesting the genesis balances from API

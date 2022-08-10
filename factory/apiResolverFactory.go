@@ -34,7 +34,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
-	vmcommonBuiltInFunctions "github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 	datafield "github.com/ElrondNetwork/elrond-vm-common/parsers/dataField"
 )
@@ -48,7 +47,7 @@ type ApiResolverArgs struct {
 	BootstrapComponents BootstrapComponentsHolder
 	CryptoComponents    CryptoComponentsHolder
 	ProcessComponents   ProcessComponentsHolder
-	GasScheduleNotifier core.GasScheduleNotifier
+	GasScheduleNotifier common.GasScheduleNotifierAPI
 	Bootstrapper        process.Bootstrapper
 	AllowVMQueriesChan  chan struct{}
 }
@@ -113,7 +112,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 	if err != nil {
 		return nil, err
 	}
-	builtInFuncs, _, _, err := createBuiltinFuncs(
+	builtInFuncFactory, err := createBuiltinFuncs(
 		args.GasScheduleNotifier,
 		args.CoreComponents.InternalMarshalizer(),
 		args.StateComponents.AccountsAdapterAPI(),
@@ -125,8 +124,10 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		args.Configs.EpochConfig.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch,
 		args.Configs.EpochConfig.EnableEpochs.OptimizeNFTStoreEnableEpoch,
 		args.Configs.EpochConfig.EnableEpochs.CheckCorrectTokenIDForTransferRoleEnableEpoch,
+		args.Configs.EpochConfig.EnableEpochs.CheckFunctionArgumentEnableEpoch,
 		args.Configs.EpochConfig.EnableEpochs.ESDTMetadataContinuousCleanupEnableEpoch,
 		convertedAddress,
+		args.Configs.GeneralConfig.BuiltInFunctions.MaxNumAddressesInTransferRole,
 	)
 	if err != nil {
 		return nil, err
@@ -138,11 +139,13 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 	}
 
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
-		PubkeyConverter:    args.CoreComponents.AddressPubKeyConverter(),
-		ShardCoordinator:   args.ProcessComponents.ShardCoordinator(),
-		BuiltInFunctions:   builtInFuncs,
-		ArgumentParser:     parsers.NewCallArgsParser(),
-		ESDTTransferParser: esdtTransferParser,
+		PubkeyConverter:                        args.CoreComponents.AddressPubKeyConverter(),
+		ShardCoordinator:                       args.ProcessComponents.ShardCoordinator(),
+		BuiltInFunctions:                       builtInFuncFactory.BuiltInFunctionContainer(),
+		ArgumentParser:                         parsers.NewCallArgsParser(),
+		ESDTTransferParser:                     esdtTransferParser,
+		EpochNotifier:                          args.CoreComponents.EpochNotifier(),
+		TransferAndAsyncCallbackFixEnableEpoch: args.Configs.EpochConfig.EnableEpochs.ESDTMetadataContinuousCleanupEnableEpoch,
 	}
 	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	if err != nil {
@@ -264,6 +267,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		GenesisNodesSetupHandler: args.CoreComponents.GenesisNodesSetup(),
 		ValidatorPubKeyConverter: args.CoreComponents.ValidatorPubKeyConverter(),
 		AccountsParser:           args.ProcessComponents.AccountsParser(),
+		GasScheduleNotifier:      args.GasScheduleNotifier,
 	}
 
 	return external.NewNodeApiResolver(argsApiResolver)
@@ -326,7 +330,7 @@ func createScQueryElement(
 	if err != nil {
 		return nil, err
 	}
-	builtInFuncs, nftStorageHandler, globalSettingsHandler, err := createBuiltinFuncs(
+	builtInFuncFactory, err := createBuiltinFuncs(
 		args.gasScheduleNotifier,
 		args.coreComponents.InternalMarshalizer(),
 		args.stateComponents.AccountsAdapterAPI(),
@@ -338,8 +342,10 @@ func createScQueryElement(
 		args.epochConfig.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch,
 		args.epochConfig.EnableEpochs.OptimizeNFTStoreEnableEpoch,
 		args.epochConfig.EnableEpochs.CheckCorrectTokenIDForTransferRoleEnableEpoch,
+		args.epochConfig.EnableEpochs.CheckFunctionArgumentEnableEpoch,
 		args.epochConfig.EnableEpochs.ESDTMetadataContinuousCleanupEnableEpoch,
 		convertedAddress,
+		args.generalConfig.BuiltInFunctions.MaxNumAddressesInTransferRole,
 	)
 	if err != nil {
 		return nil, err
@@ -361,9 +367,9 @@ func createScQueryElement(
 		ShardCoordinator:      args.processComponents.ShardCoordinator(),
 		Marshalizer:           args.coreComponents.InternalMarshalizer(),
 		Uint64Converter:       args.coreComponents.Uint64ByteSliceConverter(),
-		BuiltInFunctions:      builtInFuncs,
-		NFTStorageHandler:     nftStorageHandler,
-		GlobalSettingsHandler: globalSettingsHandler,
+		BuiltInFunctions:      builtInFuncFactory.BuiltInFunctionContainer(),
+		NFTStorageHandler:     builtInFuncFactory.NFTStorageHandler(),
+		GlobalSettingsHandler: builtInFuncFactory.ESDTGlobalSettingsHandler(),
 		DataPool:              args.dataComponents.Datapool(),
 		ConfigSCStorage:       scStorage,
 		CompiledSCPool:        smartContractsCache,
@@ -443,7 +449,7 @@ func createScQueryElement(
 		return nil, err
 	}
 
-	err = vmcommonBuiltInFunctions.SetPayableHandler(builtInFuncs, vmFactory.BlockChainHookImpl())
+	err = builtInFuncFactory.SetPayableHandler(vmFactory.BlockChainHookImpl())
 	if err != nil {
 		return nil, err
 	}
@@ -474,9 +480,11 @@ func createBuiltinFuncs(
 	transferToMetaEnableEpoch uint32,
 	optimizeNFTStoreEnableEpoch uint32,
 	checkCorrectTokenIDEnableEpoch uint32,
+	checkFunctionArgumentEnableEpoch uint32,
 	esdtMetadataContinuousCleanupEnableEpoch uint32,
 	automaticCrawlerAddress []byte,
-) (vmcommon.BuiltInFunctionContainer, vmcommon.SimpleESDTNFTStorageHandler, vmcommon.ESDTGlobalSettingsHandler, error) {
+	maxNumAddressesInTransferRole uint32,
+) (vmcommon.BuiltInFunctionFactory, error) {
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
 		GasSchedule:                              gasScheduleNotifier,
 		MapDNSAddresses:                          make(map[string]struct{}),
@@ -490,10 +498,12 @@ func createBuiltinFuncs(
 		ESDTTransferMetaEnableEpoch:              transferToMetaEnableEpoch,
 		OptimizeNFTStoreEnableEpoch:              optimizeNFTStoreEnableEpoch,
 		CheckCorrectTokenIDEnableEpoch:           checkCorrectTokenIDEnableEpoch,
+		CheckFunctionArgumentEnableEpoch:         checkFunctionArgumentEnableEpoch,
 		ESDTMetadataContinuousCleanupEnableEpoch: esdtMetadataContinuousCleanupEnableEpoch,
 		AutomaticCrawlerAddress:                  automaticCrawlerAddress,
+		MaxNumNodesInTransferRole:                maxNumAddressesInTransferRole,
 	}
-	return builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
+	return builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)
 }
 
 func createAPIBlockProcessor(args *ApiResolverArgs, apiTransactionHandler external.APITransactionHandler) (blockAPI.APIBlockHandler, error) {
@@ -540,6 +550,7 @@ func createAPIBlockProcessorArgs(args *ApiResolverArgs, apiTransactionHandler ex
 		AddressPubkeyConverter:   args.CoreComponents.AddressPubKeyConverter(),
 		Hasher:                   args.CoreComponents.Hasher(),
 		LogsFacade:               logsFacade,
+		ReceiptsRepository:       args.ProcessComponents.ReceiptsRepository(),
 	}
 
 	return blockApiArgs, nil

@@ -47,6 +47,7 @@ func NewValidatorAccountsSyncer(args ArgsNewValidatorAccountsSyncer) (*validator
 		name:                      "peer accounts",
 		maxHardCapForMissingNodes: args.MaxHardCapForMissingNodes,
 		trieSyncerVersion:         args.TrieSyncerVersion,
+		checkNodesOnDisk:          args.CheckNodesOnDisk,
 	}
 
 	u := &validatorAccountsSyncer{
@@ -77,10 +78,7 @@ func (v *validatorAccountsSyncer) SyncAccounts(rootHash []byte) error {
 		return err
 	}
 
-	err = mainTrie.GetStorageManager().Put([]byte(common.TrieSyncedKey), []byte(common.TrieSyncedVal))
-	if err != nil {
-		log.Warn("error while putting trieSynced value into main storer after sync", "error", err)
-	}
+	mainTrie.MarkStorerAsSyncedAndActive()
 
 	return nil
 }

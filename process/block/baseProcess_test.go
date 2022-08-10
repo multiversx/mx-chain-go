@@ -107,6 +107,7 @@ func createArgBaseProcessor(
 		ScheduledTxsExecutionHandler:   &testscommon.ScheduledTxsExecutionStub{},
 		ScheduledMiniBlocksEnableEpoch: 2,
 		ProcessedMiniBlocksTracker:     &testscommon.ProcessedMiniBlocksTrackerStub{},
+		ReceiptsRepository:             &testscommon.ReceiptsRepositoryStub{},
 	}
 }
 
@@ -702,6 +703,14 @@ func TestCheckProcessorNilParameters(t *testing.T) {
 				return args
 			},
 			expectedErr: process.ErrNilProcessedMiniBlocksTracker,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+				args.ReceiptsRepository = nil
+				return args
+			},
+			expectedErr: process.ErrNilReceiptsRepository,
 		},
 		{
 			args: func() blproc.ArgBaseProcessor {

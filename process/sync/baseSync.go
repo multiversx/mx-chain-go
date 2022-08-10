@@ -23,6 +23,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/outport"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/sync/storageBootstrap/metricsLoader"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -785,7 +786,7 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 			return err
 		}
 
-		_, _ = updateMetricsFromStorage(boot.store, boot.uint64Converter, boot.marshalizer, boot.statusHandler, prevHeader.GetNonce())
+		_, _ = metricsLoader.UpdateMetricsFromStorage(boot.store, boot.uint64Converter, boot.marshalizer, boot.statusHandler, prevHeader.GetNonce())
 
 		err = boot.bootStorer.SaveLastRound(int64(prevHeader.GetRound()))
 		if err != nil {

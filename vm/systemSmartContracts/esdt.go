@@ -75,6 +75,8 @@ type esdt struct {
 	flagCheckMetaESDTOnRolesEnableEpoch    atomic.Flag
 	burnForAllEnableEpoch                  uint32
 	flagBurnForAll                         atomic.Flag
+	sendTransferRoleAddressEnableEpoch     uint32
+	flagSendTransferRoleAddress            atomic.Flag
 }
 
 // ArgsNewESDTSmartContract defines the arguments needed for the esdt contract
@@ -123,20 +125,21 @@ func NewESDTSmartContract(args ArgsNewESDTSmartContract) (*esdt, error) {
 		baseIssuingCost: baseIssuingCost,
 		// we should have called pubkeyConverter.Decode here instead of a byte slice cast. Since that change would break
 		// backwards compatibility, the fix was carried in the epochStart/metachain/systemSCs.go
-		ownerAddress:                      []byte(args.ESDTSCConfig.OwnerAddress),
-		eSDTSCAddress:                     args.ESDTSCAddress,
-		hasher:                            args.Hasher,
-		marshalizer:                       args.Marshalizer,
-		enabledEpoch:                      args.EpochConfig.EnableEpochs.ESDTEnableEpoch,
-		globalMintBurnDisableEpoch:        args.EpochConfig.EnableEpochs.GlobalMintBurnDisableEpoch,
-		transferRoleEnableEpoch:           args.EpochConfig.EnableEpochs.ESDTTransferRoleEnableEpoch,
-		nftCreateONMultiShardEnableEpoch:  args.EpochConfig.EnableEpochs.ESDTNFTCreateOnMultiShardEnableEpoch,
-		metaESDTEnableEpoch:               args.EpochConfig.EnableEpochs.MetaESDTSetEnableEpoch,
-		registerAndSetAllRolesEnableEpoch: args.EpochConfig.EnableEpochs.ESDTRegisterAndSetAllRolesEnableEpoch,
-		checkMetaESDTOnRolesEnableEpoch:   args.EpochConfig.EnableEpochs.ManagedCryptoAPIsEnableEpoch,
-		burnForAllEnableEpoch:             args.EpochConfig.EnableEpochs.ESDTMetadataContinuousCleanupEnableEpoch,
-		endOfEpochSCAddress:               args.EndOfEpochSCAddress,
-		addressPubKeyConverter:            args.AddressPubKeyConverter,
+		ownerAddress:                       []byte(args.ESDTSCConfig.OwnerAddress),
+		eSDTSCAddress:                      args.ESDTSCAddress,
+		hasher:                             args.Hasher,
+		marshalizer:                        args.Marshalizer,
+		enabledEpoch:                       args.EpochConfig.EnableEpochs.ESDTEnableEpoch,
+		globalMintBurnDisableEpoch:         args.EpochConfig.EnableEpochs.GlobalMintBurnDisableEpoch,
+		transferRoleEnableEpoch:            args.EpochConfig.EnableEpochs.ESDTTransferRoleEnableEpoch,
+		nftCreateONMultiShardEnableEpoch:   args.EpochConfig.EnableEpochs.ESDTNFTCreateOnMultiShardEnableEpoch,
+		metaESDTEnableEpoch:                args.EpochConfig.EnableEpochs.MetaESDTSetEnableEpoch,
+		registerAndSetAllRolesEnableEpoch:  args.EpochConfig.EnableEpochs.ESDTRegisterAndSetAllRolesEnableEpoch,
+		checkMetaESDTOnRolesEnableEpoch:    args.EpochConfig.EnableEpochs.ManagedCryptoAPIsEnableEpoch,
+		burnForAllEnableEpoch:              args.EpochConfig.EnableEpochs.ESDTMetadataContinuousCleanupEnableEpoch,
+		sendTransferRoleAddressEnableEpoch: args.EpochConfig.EnableEpochs.ESDTMetadataContinuousCleanupEnableEpoch,
+		endOfEpochSCAddress:                args.EndOfEpochSCAddress,
+		addressPubKeyConverter:             args.AddressPubKeyConverter,
 	}
 	log.Debug("esdt: enable epoch for esdt", "epoch", e.enabledEpoch)
 	log.Debug("esdt: enable epoch for contract global mint and burn", "epoch", e.globalMintBurnDisableEpoch)
@@ -147,6 +150,7 @@ func NewESDTSmartContract(args ArgsNewESDTSmartContract) (*esdt, error) {
 	log.Debug("esdt: enable epoch for esdt register and set all roles function", "epoch", e.registerAndSetAllRolesEnableEpoch)
 	log.Debug("esdt: enable epoch for check on roles for metaESDT", "epoch", e.checkMetaESDTOnRolesEnableEpoch)
 	log.Debug("esdt: enable epoch for esdt burn for all role", "epoch", e.burnForAllEnableEpoch)
+	log.Debug("esdt: enable epoch for send transfer role address", "epoch", e.sendTransferRoleAddressEnableEpoch)
 
 	args.EpochNotifier.RegisterNotifyHandler(e)
 
@@ -234,6 +238,8 @@ func (e *esdt) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 		return e.setBurnRoleGlobally(args)
 	case "unsetBurnRoleGlobally":
 		return e.unsetBurnRoleGlobally(args)
+	case "sendAllTransferRoleAddresses":
+		return e.sendAllTransferRoleAddresses(args)
 	}
 
 	e.eei.AddReturnMessage("invalid method to call")
@@ -1712,10 +1718,15 @@ func (e *esdt) prepareAndSendRoleChangeData(
 		e.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
-	firstTransferRoleSet := !properties.transferRoleExists && isDefinedRoleInArgs(roles, []byte(core.ESDTRoleTransfer))
+	isTransferRoleDefinedInArgs := isDefinedRoleInArgs(roles, []byte(core.ESDTRoleTransfer))
+	firstTransferRoleSet := !properties.transferRoleExists && isTransferRoleDefinedInArgs
 	if firstTransferRoleSet {
 		esdtTransferData := core.BuiltInFunctionESDTSetLimitedTransfer + "@" + hex.EncodeToString(tokenID)
 		e.eei.SendGlobalSettingToAll(e.eSDTSCAddress, []byte(esdtTransferData))
+	}
+
+	if isTransferRoleDefinedInArgs {
+		e.sendNewTransferRoleAddressToSystemAccount(tokenID, address)
 	}
 
 	return vmcommon.Ok
@@ -1832,11 +1843,16 @@ func (e *esdt) unSetSpecialRole(args *vmcommon.ContractCallInput) vmcommon.Retur
 		}
 	}
 
+	isTransferRoleInArgs := isDefinedRoleInArgs(args.Arguments[2:], []byte(core.ESDTRoleTransfer))
 	transferRoleExists := checkIfDefinedRoleExistsInArgsAndToken(args.Arguments[2:], token, []byte(core.ESDTRoleTransfer))
-	lastTransferRoleWasDeleted := isDefinedRoleInArgs(args.Arguments[2:], []byte(core.ESDTRoleTransfer)) && !transferRoleExists
+	lastTransferRoleWasDeleted := isTransferRoleInArgs && !transferRoleExists
 	if lastTransferRoleWasDeleted {
 		esdtTransferData := core.BuiltInFunctionESDTUnSetLimitedTransfer + "@" + hex.EncodeToString(args.Arguments[0])
 		e.eei.SendGlobalSettingToAll(e.eSDTSCAddress, []byte(esdtTransferData))
+	}
+
+	if isTransferRoleInArgs {
+		e.deleteTransferRoleAddressFromSystemAccount(args.Arguments[0], address)
 	}
 
 	err = e.saveToken(args.Arguments[0], token)
@@ -1844,6 +1860,61 @@ func (e *esdt) unSetSpecialRole(args *vmcommon.ContractCallInput) vmcommon.Retur
 		e.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
+
+	return vmcommon.Ok
+}
+
+func (e *esdt) sendNewTransferRoleAddressToSystemAccount(token []byte, address []byte) {
+	if !e.flagSendTransferRoleAddress.IsSet() {
+		return
+	}
+
+	esdtTransferData := vmcommon.BuiltInFunctionESDTTransferRoleAddAddress + "@" + hex.EncodeToString(token) + "@" + hex.EncodeToString(address)
+	e.eei.SendGlobalSettingToAll(e.eSDTSCAddress, []byte(esdtTransferData))
+}
+
+func (e *esdt) deleteTransferRoleAddressFromSystemAccount(token []byte, address []byte) {
+	if !e.flagSendTransferRoleAddress.IsSet() {
+		return
+	}
+
+	esdtTransferData := vmcommon.BuiltInFunctionESDTTransferRoleDeleteAddress + "@" + hex.EncodeToString(token) + "@" + hex.EncodeToString(address)
+	e.eei.SendGlobalSettingToAll(e.eSDTSCAddress, []byte(esdtTransferData))
+}
+
+func (e *esdt) sendAllTransferRoleAddresses(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if !e.flagSendTransferRoleAddress.IsSet() {
+		e.eei.AddReturnMessage("invalid method to call")
+		return vmcommon.FunctionNotFound
+	}
+	if len(args.Arguments) != 1 {
+		e.eei.AddReturnMessage("wrong number of arguments, expected 1")
+		return vmcommon.UserError
+	}
+
+	token, returnCode := e.basicOwnershipChecks(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+
+	transferRoleFound := false
+	esdtTransferData := vmcommon.BuiltInFunctionESDTTransferRoleAddAddress + "@" + hex.EncodeToString(args.Arguments[0])
+	for _, role := range token.SpecialRoles {
+		for _, actualRole := range role.Roles {
+			if bytes.Equal(actualRole, []byte(core.ESDTRoleTransfer)) {
+				esdtTransferData += "@" + hex.EncodeToString(role.Address)
+				transferRoleFound = true
+				break
+			}
+		}
+	}
+
+	if !transferRoleFound {
+		e.eei.AddReturnMessage("no address with transfer role")
+		return vmcommon.UserError
+	}
+
+	e.eei.SendGlobalSettingToAll(e.eSDTSCAddress, []byte(esdtTransferData))
 
 	return vmcommon.Ok
 }
@@ -2186,6 +2257,9 @@ func (e *esdt) EpochConfirmed(epoch uint32, _ uint64) {
 
 	e.flagBurnForAll.SetValue(epoch >= e.burnForAllEnableEpoch)
 	log.Debug("ESDT burn for all", "enabled", e.flagBurnForAll.IsSet())
+
+	e.flagSendTransferRoleAddress.SetValue(epoch >= e.sendTransferRoleAddressEnableEpoch)
+	log.Debug("ESDT send transfer role address", "enabled", e.flagSendTransferRoleAddress.IsSet())
 }
 
 // SetNewGasCost is called whenever a gas cost was changed

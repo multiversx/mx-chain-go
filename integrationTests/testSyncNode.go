@@ -205,6 +205,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 
 	triesConfig := config.Config{
 		StateTriesConfig: config.StateTriesConfig{
+			SnapshotsEnabled:        true,
 			CheckpointRoundsModulus: stateCheckpointModulus,
 		},
 	}
@@ -237,6 +238,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		ScheduledTxsExecutionHandler:   &testscommon.ScheduledTxsExecutionStub{},
 		ScheduledMiniBlocksEnableEpoch: ScheduledMiniBlocksEnableEpoch,
 		ProcessedMiniBlocksTracker:     &testscommon.ProcessedMiniBlocksTrackerStub{},
+		ReceiptsRepository:             &testscommon.ReceiptsRepositoryStub{},
 	}
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {

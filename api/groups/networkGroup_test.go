@@ -80,6 +80,16 @@ type ratingsConfigResponse struct {
 	Code  string `json:"code"`
 }
 
+type gasConfigsResponse struct {
+	Data  gasConfigsData `json:"data"`
+	Error string         `json:"error"`
+	Code  string         `json:"code"`
+}
+
+type gasConfigsData struct {
+	Configs groups.GasConfig `json:"gasConfigs"`
+}
+
 func TestNetworkConfigMetrics_ShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -824,6 +834,74 @@ func TestGetGenesisBalances(t *testing.T) {
 	})
 }
 
+func TestGetGasConfigs(t *testing.T) {
+	t.Parallel()
+
+	t.Run("facade error, should fail", func(t *testing.T) {
+		t.Parallel()
+
+		expectedErr := errors.New("expected err")
+		facade := mock.FacadeStub{
+			GetGasConfigsCalled: func() (map[string]map[string]uint64, error) {
+				return nil, expectedErr
+			},
+		}
+
+		networkGroup, err := groups.NewNetworkGroup(&facade)
+		require.NoError(t, err)
+
+		ws := startWebServer(networkGroup, "network", getNetworkRoutesConfig())
+
+		req, _ := http.NewRequest("GET", "/network/gas-configs", nil)
+		resp := httptest.NewRecorder()
+		ws.ServeHTTP(resp, req)
+
+		response := genesisNodesConfigResponse{}
+		loadResponse(resp.Body, &response)
+
+		assert.Equal(t, http.StatusInternalServerError, resp.Code)
+		assert.True(t, strings.Contains(response.Error, expectedErr.Error()))
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		builtInCost := map[string]uint64{
+			"val1": 1,
+		}
+		metaChainSystemSCsCost := map[string]uint64{
+			"val2": 2,
+		}
+		expectedMap := map[string]map[string]uint64{
+			common.BuiltInCost:            builtInCost,
+			common.MetaChainSystemSCsCost: metaChainSystemSCsCost,
+		}
+
+		facade := mock.FacadeStub{
+			GetGasConfigsCalled: func() (map[string]map[string]uint64, error) {
+				return expectedMap, nil
+			},
+		}
+
+		networkGroup, err := groups.NewNetworkGroup(&facade)
+		require.NoError(t, err)
+
+		ws := startWebServer(networkGroup, "network", getNetworkRoutesConfig())
+
+		req, _ := http.NewRequest("GET", "/network/gas-configs", nil)
+		resp := httptest.NewRecorder()
+		ws.ServeHTTP(resp, req)
+
+		assert.Equal(t, resp.Code, http.StatusOK)
+
+		response := gasConfigsResponse{}
+		loadResponse(resp.Body, &response)
+
+		assert.Equal(t, builtInCost, response.Data.Configs.BuiltInCost)
+		assert.Equal(t, metaChainSystemSCsCost, response.Data.Configs.MetaChainSystemSCsCost)
+	})
+}
+
 func getNetworkRoutesConfig() config.ApiRoutesConfig {
 	return config.ApiRoutesConfig{
 		APIPackages: map[string]config.APIPackageConfig{
@@ -841,6 +919,7 @@ func getNetworkRoutesConfig() config.ApiRoutesConfig {
 					{Name: "/genesis-nodes", Open: true},
 					{Name: "/genesis-balances", Open: true},
 					{Name: "/ratings", Open: true},
+					{Name: "/gas-configs", Open: true},
 				},
 			},
 		},

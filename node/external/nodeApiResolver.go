@@ -32,6 +32,7 @@ type ArgNodeApiResolver struct {
 	GenesisNodesSetupHandler sharding.GenesisNodesSetupHandler
 	ValidatorPubKeyConverter core.PubkeyConverter
 	AccountsParser           genesis.AccountsParser
+	GasScheduleNotifier      common.GasScheduleNotifierAPI
 }
 
 // nodeApiResolver can resolve API requests
@@ -48,6 +49,7 @@ type nodeApiResolver struct {
 	genesisNodesSetupHandler sharding.GenesisNodesSetupHandler
 	validatorPubKeyConverter core.PubkeyConverter
 	accountsParser           genesis.AccountsParser
+	gasScheduleNotifier      common.GasScheduleNotifierAPI
 }
 
 // NewNodeApiResolver creates a new nodeApiResolver instance
@@ -88,6 +90,9 @@ func NewNodeApiResolver(arg ArgNodeApiResolver) (*nodeApiResolver, error) {
 	if check.IfNil(arg.AccountsParser) {
 		return nil, ErrNilAccountsParser
 	}
+	if check.IfNil(arg.GasScheduleNotifier) {
+		return nil, ErrNilGasScheduler
+	}
 
 	return &nodeApiResolver{
 		scQueryService:           arg.SCQueryService,
@@ -102,6 +107,7 @@ func NewNodeApiResolver(arg ArgNodeApiResolver) (*nodeApiResolver, error) {
 		genesisNodesSetupHandler: arg.GenesisNodesSetupHandler,
 		validatorPubKeyConverter: arg.ValidatorPubKeyConverter,
 		accountsParser:           arg.AccountsParser,
+		gasScheduleNotifier:      arg.GasScheduleNotifier,
 	}, nil
 }
 
@@ -146,8 +152,23 @@ func (nar *nodeApiResolver) GetTransaction(hash string, withResults bool) (*tran
 }
 
 // GetTransactionsPool will return a structure containing the transactions pool that is to be returned on API calls
-func (nar *nodeApiResolver) GetTransactionsPool() (*common.TransactionsPoolAPIResponse, error) {
-	return nar.apiTransactionHandler.GetTransactionsPool()
+func (nar *nodeApiResolver) GetTransactionsPool(fields string) (*common.TransactionsPoolAPIResponse, error) {
+	return nar.apiTransactionHandler.GetTransactionsPool(fields)
+}
+
+// GetTransactionsPoolForSender will return a structure containing the transactions for sender that is to be returned on API calls
+func (nar *nodeApiResolver) GetTransactionsPoolForSender(sender, fields string) (*common.TransactionsPoolForSenderApiResponse, error) {
+	return nar.apiTransactionHandler.GetTransactionsPoolForSender(sender, fields)
+}
+
+// GetLastPoolNonceForSender will return the last nonce from pool for sender that is to be returned on API calls
+func (nar *nodeApiResolver) GetLastPoolNonceForSender(sender string) (uint64, error) {
+	return nar.apiTransactionHandler.GetLastPoolNonceForSender(sender)
+}
+
+// GetTransactionsPoolNonceGapsForSender will return the nonce gaps from pool for sender, if exists, that is to be returned on API calls
+func (nar *nodeApiResolver) GetTransactionsPoolNonceGapsForSender(sender string) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error) {
+	return nar.apiTransactionHandler.GetTransactionsPoolNonceGapsForSender(sender)
 }
 
 // GetBlockByHash will return the block with the given hash and optionally with transactions
@@ -273,6 +294,11 @@ func (nar *nodeApiResolver) getInitialNodesPubKeysBytes(nodesInfo map[uint32][]n
 	}
 
 	return nodesInfoPubkeys
+}
+
+// GetGasConfigs return currently used gas schedule config
+func (nar *nodeApiResolver) GetGasConfigs() map[string]map[string]uint64 {
+	return nar.gasScheduleNotifier.LatestGasScheduleCopy()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

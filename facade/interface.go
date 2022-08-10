@@ -108,7 +108,10 @@ type ApiResolver interface {
 	GetDirectStakedList(ctx context.Context) ([]*api.DirectStakedValue, error)
 	GetDelegatorsList(ctx context.Context) ([]*api.Delegator, error)
 	GetTransaction(hash string, withResults bool) (*transaction.ApiTransactionResult, error)
-	GetTransactionsPool() (*common.TransactionsPoolAPIResponse, error)
+	GetTransactionsPool(fields string) (*common.TransactionsPoolAPIResponse, error)
+	GetTransactionsPoolForSender(sender, fields string) (*common.TransactionsPoolForSenderApiResponse, error)
+	GetLastPoolNonceForSender(sender string) (uint64, error)
+	GetTransactionsPoolNonceGapsForSender(sender string) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error)
 	GetBlockByHash(hash string, options api.BlockQueryOptions) (*api.Block, error)
 	GetBlockByNonce(nonce uint64, options api.BlockQueryOptions) (*api.Block, error)
 	GetBlockByRound(round uint64, options api.BlockQueryOptions) (*api.Block, error)
@@ -122,6 +125,7 @@ type ApiResolver interface {
 	GetInternalMiniBlock(format common.ApiOutputFormat, txHash string, epoch uint32) (interface{}, error)
 	GetGenesisNodesPubKeys() (map[uint32][]string, map[uint32][]string)
 	GetGenesisBalances() ([]*common.InitialAccountAPI, error)
+	GetGasConfigs() map[string]map[string]uint64
 	Close() error
 	IsInterfaceNil() bool
 }

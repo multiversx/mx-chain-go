@@ -582,6 +582,18 @@ func (m *managedProcessComponents) ProcessedMiniBlocksTracker() process.Processe
 	return m.processComponents.processedMiniBlocksTracker
 }
 
+// ReceiptsRepository returns the receipts repository
+func (m *managedProcessComponents) ReceiptsRepository() ReceiptsRepository {
+	m.mutProcessComponents.RLock()
+	defer m.mutProcessComponents.RUnlock()
+
+	if m.receiptsRepository == nil {
+		return nil
+	}
+
+	return m.processComponents.receiptsRepository
+}
+
 // IsInterfaceNil returns true if the interface is nil
 func (m *managedProcessComponents) IsInterfaceNil() bool {
 	return m == nil

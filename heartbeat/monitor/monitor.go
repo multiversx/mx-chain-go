@@ -102,7 +102,8 @@ func (monitor *heartbeatV2Monitor) GetHeartbeats() []data.PubKeyHeartbeat {
 		peerId := core.PeerID(pid)
 		heartbeatData, err := monitor.parseMessage(peerId, hb, numInstances)
 		if err != nil {
-			log.Debug("could not parse message for pid", "pid", peerId.Pretty(), "error", err.Error())
+			monitor.cache.Remove(pid)
+			log.Trace("could not parse message for pid, removed message", "pid", peerId.Pretty(), "error", err.Error())
 			continue
 		}
 

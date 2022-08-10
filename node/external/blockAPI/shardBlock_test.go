@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
 	"github.com/stretchr/testify/assert"
@@ -47,6 +48,7 @@ func createMockShardAPIProcessor(
 				return withHistory
 			},
 		},
+		ReceiptsRepository: &testscommon.ReceiptsRepositoryStub{},
 	}, nil)
 }
 
@@ -140,7 +142,7 @@ func TestShardAPIBlockProcessor_GetBlockByHashFromNormalNode(t *testing.T) {
 		ShardID: shardID,
 		Epoch:   epoch,
 		MiniBlockHeaders: []block.MiniBlockHeader{
-			{Hash: miniblockHeader},
+			{Hash: miniblockHeader, TxCount: 1},
 		},
 		AccumulatedFees: big.NewInt(0),
 		DeveloperFees:   big.NewInt(0),
@@ -152,17 +154,20 @@ func TestShardAPIBlockProcessor_GetBlockByHashFromNormalNode(t *testing.T) {
 	_ = storerMock.Put(nonceBytes, headerHash)
 
 	expectedBlock := &api.Block{
-		Nonce: nonce,
-		Round: round,
-		Shard: shardID,
-		Epoch: epoch,
-		Hash:  hex.EncodeToString(headerHash),
+		Nonce:  nonce,
+		Round:  round,
+		Shard:  shardID,
+		Epoch:  epoch,
+		Hash:   hex.EncodeToString(headerHash),
+		NumTxs: 1,
 		MiniBlocks: []*api.MiniBlock{
 			{
-				Hash:              hex.EncodeToString(miniblockHeader),
-				Type:              block.TxBlock.String(),
-				ProcessingType:    block.Normal.String(),
-				ConstructionState: block.Final.String(),
+				Hash:                    hex.EncodeToString(miniblockHeader),
+				Type:                    block.TxBlock.String(),
+				ProcessingType:          block.Normal.String(),
+				ConstructionState:       block.Final.String(),
+				IndexOfFirstTxProcessed: 0,
+				IndexOfLastTxProcessed:  0,
 			},
 		},
 		AccumulatedFees: "0",
@@ -201,7 +206,7 @@ func TestShardAPIBlockProcessor_GetBlockByNonceFromHistoryNode(t *testing.T) {
 		ShardID: shardID,
 		Epoch:   epoch,
 		MiniBlockHeaders: []block.MiniBlockHeader{
-			{Hash: miniblockHeader},
+			{Hash: miniblockHeader, TxCount: 1},
 		},
 		AccumulatedFees: big.NewInt(100),
 		DeveloperFees:   big.NewInt(50),
@@ -210,17 +215,20 @@ func TestShardAPIBlockProcessor_GetBlockByNonceFromHistoryNode(t *testing.T) {
 	_ = storerMock.Put(headerHash, headerBytes)
 
 	expectedBlock := &api.Block{
-		Nonce: nonce,
-		Round: round,
-		Shard: shardID,
-		Epoch: epoch,
-		Hash:  hex.EncodeToString(headerHash),
+		Nonce:  nonce,
+		Round:  round,
+		Shard:  shardID,
+		Epoch:  epoch,
+		Hash:   hex.EncodeToString(headerHash),
+		NumTxs: 1,
 		MiniBlocks: []*api.MiniBlock{
 			{
-				Hash:              hex.EncodeToString(miniblockHeader),
-				Type:              block.TxBlock.String(),
-				ProcessingType:    block.Normal.String(),
-				ConstructionState: block.Final.String(),
+				Hash:                    hex.EncodeToString(miniblockHeader),
+				Type:                    block.TxBlock.String(),
+				ProcessingType:          block.Normal.String(),
+				ConstructionState:       block.Final.String(),
+				IndexOfFirstTxProcessed: 0,
+				IndexOfLastTxProcessed:  0,
 			},
 		},
 		AccumulatedFees: "100",
@@ -259,7 +267,7 @@ func TestShardAPIBlockProcessor_GetBlockByRoundFromStorer(t *testing.T) {
 		ShardID: shardID,
 		Epoch:   epoch,
 		MiniBlockHeaders: []block.MiniBlockHeader{
-			{Hash: miniblockHeader},
+			{Hash: miniblockHeader, TxCount: 1},
 		},
 		AccumulatedFees: big.NewInt(100),
 		DeveloperFees:   big.NewInt(50),
@@ -274,17 +282,20 @@ func TestShardAPIBlockProcessor_GetBlockByRoundFromStorer(t *testing.T) {
 	_ = storerMock.Put(nonceBytes, headerHash)
 
 	expectedBlock := &api.Block{
-		Nonce: nonce,
-		Round: round,
-		Shard: shardID,
-		Epoch: epoch,
-		Hash:  hex.EncodeToString(headerHash),
+		Nonce:  nonce,
+		Round:  round,
+		Shard:  shardID,
+		Epoch:  epoch,
+		Hash:   hex.EncodeToString(headerHash),
+		NumTxs: 1,
 		MiniBlocks: []*api.MiniBlock{
 			{
-				Hash:              hex.EncodeToString(miniblockHeader),
-				Type:              block.TxBlock.String(),
-				ProcessingType:    block.Normal.String(),
-				ConstructionState: block.Final.String(),
+				Hash:                    hex.EncodeToString(miniblockHeader),
+				Type:                    block.TxBlock.String(),
+				ProcessingType:          block.Normal.String(),
+				ConstructionState:       block.Final.String(),
+				IndexOfFirstTxProcessed: 0,
+				IndexOfLastTxProcessed:  0,
 			},
 		},
 		AccumulatedFees: "100",
@@ -324,7 +335,7 @@ func TestShardAPIBlockProcessor_GetBlockByHashFromHistoryNodeStatusReverted(t *t
 		ShardID: shardID,
 		Epoch:   epoch,
 		MiniBlockHeaders: []block.MiniBlockHeader{
-			{Hash: miniblockHeader},
+			{Hash: miniblockHeader, TxCount: 1},
 		},
 		AccumulatedFees: big.NewInt(100),
 		DeveloperFees:   big.NewInt(50),
@@ -337,17 +348,20 @@ func TestShardAPIBlockProcessor_GetBlockByHashFromHistoryNodeStatusReverted(t *t
 	_ = storerMock.Put(nonceBytes, correctHash)
 
 	expectedBlock := &api.Block{
-		Nonce: nonce,
-		Round: round,
-		Shard: shardID,
-		Epoch: epoch,
-		Hash:  hex.EncodeToString(headerHash),
+		Nonce:  nonce,
+		Round:  round,
+		Shard:  shardID,
+		Epoch:  epoch,
+		Hash:   hex.EncodeToString(headerHash),
+		NumTxs: 1,
 		MiniBlocks: []*api.MiniBlock{
 			{
-				Hash:              hex.EncodeToString(miniblockHeader),
-				Type:              block.TxBlock.String(),
-				ProcessingType:    block.Normal.String(),
-				ConstructionState: block.Final.String(),
+				Hash:                    hex.EncodeToString(miniblockHeader),
+				Type:                    block.TxBlock.String(),
+				ProcessingType:          block.Normal.String(),
+				ConstructionState:       block.Final.String(),
+				IndexOfFirstTxProcessed: 0,
+				IndexOfLastTxProcessed:  0,
 			},
 		},
 		AccumulatedFees: "100",

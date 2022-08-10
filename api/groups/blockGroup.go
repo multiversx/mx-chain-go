@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/shared"
+	"github.com/ElrondNetwork/elrond-go/api/shared/logging"
 	"github.com/gin-gonic/gin"
 )
 
@@ -84,7 +85,7 @@ func (bg *blockGroup) getBlockByNonce(c *gin.Context) {
 
 	start := time.Now()
 	block, err := bg.getFacade().GetBlockByNonce(nonce, options)
-	log.Debug("API call: GetBlockByNonce", "duration", time.Since(start))
+	logging.LogAPIActionDurationIfNeeded(start, "API call: GetBlockByNonce")
 	if err != nil {
 		shared.RespondWithInternalError(c, errors.ErrGetBlock, err)
 		return
@@ -109,7 +110,7 @@ func (bg *blockGroup) getBlockByHash(c *gin.Context) {
 
 	start := time.Now()
 	block, err := bg.getFacade().GetBlockByHash(hash, options)
-	log.Debug("API call: GetBlockByHash", "duration", time.Since(start))
+	logging.LogAPIActionDurationIfNeeded(start, "API call: GetBlockByHash")
 	if err != nil {
 		shared.RespondWithInternalError(c, errors.ErrGetBlock, err)
 		return
@@ -133,7 +134,7 @@ func (bg *blockGroup) getBlockByRound(c *gin.Context) {
 
 	start := time.Now()
 	block, err := bg.getFacade().GetBlockByRound(round, options)
-	log.Debug("API call: GetBlockByRound", "duration", time.Since(start))
+	logging.LogAPIActionDurationIfNeeded(start, "API call: GetBlockByRound")
 	if err != nil {
 		shared.RespondWithInternalError(c, errors.ErrGetBlock, err)
 		return
