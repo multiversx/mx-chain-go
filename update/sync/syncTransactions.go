@@ -218,13 +218,13 @@ func (ts *transactionsSync) requestTransactionsForPeerMiniBlock(miniBlock *block
 		log.Debug("transactionsSync.requestTransactionsForPeerMiniBlock", "mb type", miniBlock.Type, "mb sender", miniBlock.SenderShardID, "mb receiver", miniBlock.ReceiverShardID, "tx hash missing", txHash)
 	}
 
-	////TODO: Analyze if it works also with: go ts.requestHandler.RequestValidatorsInfo(missingTxs)
-	//for _, missingValidatorInfo := range missingValidatorsInfo {
-	//	go func(validatorInfo []byte) {
-	//		ts.requestHandler.RequestValidatorInfo(validatorInfo)
-	//	}(missingValidatorInfo)
-	//}
-	go ts.requestHandler.RequestValidatorsInfo(missingValidatorsInfo)
+	//TODO: Analyze if it works also with: go ts.requestHandler.RequestValidatorsInfo(missingTxs)
+	for _, missingValidatorInfo := range missingValidatorsInfo {
+		go func(validatorInfo []byte) {
+			ts.requestHandler.RequestValidatorInfo(validatorInfo)
+		}(missingValidatorInfo)
+	}
+	//go ts.requestHandler.RequestValidatorsInfo(missingValidatorsInfo)
 
 	return len(missingValidatorsInfo)
 }
