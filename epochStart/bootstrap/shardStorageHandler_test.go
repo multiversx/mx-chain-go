@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	storageRepo "github.com/ElrondNetwork/elrond-go-storage"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
@@ -120,7 +121,7 @@ func testShardWithMissingStorer(missingUnit dataRetriever.UnitType, atCallNumber
 
 				if unitType == missingUnit ||
 					strings.Contains(unitType.String(), missingUnit.String()) {
-					return nil, fmt.Errorf("%w for %s", storage.ErrKeyNotFound, missingUnit.String())
+					return nil, fmt.Errorf("%w for %s", storageRepo.ErrKeyNotFound, missingUnit.String())
 				}
 
 				return &storageStubs.StorerStub{}, nil
@@ -140,7 +141,7 @@ func testShardWithMissingStorer(missingUnit dataRetriever.UnitType, atCallNumber
 		}
 
 		err := shardStorage.SaveDataToStorage(components, components.ShardHeader, false)
-		require.True(t, strings.Contains(err.Error(), storage.ErrKeyNotFound.Error()))
+		require.True(t, strings.Contains(err.Error(), storageRepo.ErrKeyNotFound.Error()))
 		require.True(t, strings.Contains(err.Error(), missingUnit.String()))
 	}
 }
@@ -1144,7 +1145,7 @@ func createPendingAndProcessedMiniBlocksScenario() scenarioData {
 	expectedPendingMbsWithScheduled := []bootstrapStorage.PendingMiniBlocksInfo{
 		{ShardID: 0, MiniBlocksHashes: [][]byte{crossMbHeaders[1].Hash, crossMbHeaders[2].Hash, crossMbHeaders[3].Hash, crossMbHeaders[4].Hash, crossMbHeaders[0].Hash}},
 	}
-	expectedProcessedMbsWithScheduled := []bootstrapStorage.MiniBlocksInMeta{}
+	var expectedProcessedMbsWithScheduled []bootstrapStorage.MiniBlocksInMeta
 
 	headers := map[string]data.HeaderHandler{
 		lastFinishedMetaBlockHash: &block.MetaBlock{

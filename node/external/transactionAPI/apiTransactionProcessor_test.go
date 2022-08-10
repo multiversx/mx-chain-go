@@ -21,6 +21,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	storageRepo "github.com/ElrondNetwork/elrond-go-storage"
 	"github.com/ElrondNetwork/elrond-go-storage/txcache"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -362,7 +363,7 @@ func testWithMissingStorer(missingUnit dataRetriever.UnitType) func(t *testing.T
 		args.StorageService = &storageStubs.ChainStorerStub{
 			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 				if unitType == missingUnit {
-					return nil, fmt.Errorf("%w for %s", storage.ErrKeyNotFound, missingUnit.String())
+					return nil, fmt.Errorf("%w for %s", storageRepo.ErrKeyNotFound, missingUnit.String())
 				}
 				return &storageStubs.StorerStub{
 					SearchFirstCalled: func(key []byte) ([]byte, error) {
@@ -420,7 +421,7 @@ func TestNode_GetTransactionWithResultsFromStorage(t *testing.T) {
 					},
 				}, nil
 			default:
-				return nil, storage.ErrKeyNotFound
+				return nil, storageRepo.ErrKeyNotFound
 			}
 		},
 	}

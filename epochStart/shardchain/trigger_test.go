@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	storageRepo "github.com/ElrondNetwork/elrond-go-storage"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
@@ -176,14 +177,14 @@ func testWithMissingStorer(missingUnit dataRetriever.UnitType) func(t *testing.T
 		args.Storage = &storageStubs.ChainStorerStub{
 			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 				if unitType == missingUnit {
-					return nil, fmt.Errorf("%w for %s", storage.ErrKeyNotFound, missingUnit.String())
+					return nil, fmt.Errorf("%w for %s", storageRepo.ErrKeyNotFound, missingUnit.String())
 				}
 				return &storageStubs.StorerStub{}, nil
 			},
 		}
 
 		epochStartTrigger, err := NewEpochStartTrigger(args)
-		require.True(t, strings.Contains(err.Error(), storage.ErrKeyNotFound.Error()))
+		require.True(t, strings.Contains(err.Error(), storageRepo.ErrKeyNotFound.Error()))
 		require.True(t, strings.Contains(err.Error(), missingUnit.String()))
 		require.True(t, check.IfNil(epochStartTrigger))
 	}

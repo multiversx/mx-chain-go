@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	dataTransaction "github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	storageRepo "github.com/ElrondNetwork/elrond-go-storage"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -96,14 +97,14 @@ func testWithMissingStorer(missingUnit dataRetriever.UnitType) func(t *testing.T
 		args.Storages = &storageStubs.ChainStorerStub{
 			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 				if unitType == missingUnit {
-					return nil, fmt.Errorf("%w for %s", storage.ErrKeyNotFound, missingUnit.String())
+					return nil, fmt.Errorf("%w for %s", storageRepo.ErrKeyNotFound, missingUnit.String())
 				}
 				return &storageStubs.StorerStub{}, nil
 			},
 		}
 
 		pendingTxsSyncer, err := NewTransactionsSyncer(args)
-		require.True(t, strings.Contains(err.Error(), storage.ErrKeyNotFound.Error()))
+		require.True(t, strings.Contains(err.Error(), storageRepo.ErrKeyNotFound.Error()))
 		require.True(t, strings.Contains(err.Error(), missingUnit.String()))
 		require.True(t, check.IfNil(pendingTxsSyncer))
 	}

@@ -14,6 +14,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	storageRepo "github.com/ElrondNetwork/elrond-go-storage"
 	"github.com/ElrondNetwork/elrond-go-storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go-storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/common"
@@ -452,7 +453,7 @@ func testShardWithMissingStorer(missingUnit dataRetriever.UnitType) func(t *test
 			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 				if unitType == missingUnit ||
 					strings.Contains(unitType.String(), missingUnit.String()) {
-					return nil, fmt.Errorf("%w for %s", storage.ErrKeyNotFound, missingUnit.String())
+					return nil, fmt.Errorf("%w for %s", storageRepo.ErrKeyNotFound, missingUnit.String())
 				}
 				return &storageStubs.StorerStub{}, nil
 			},
@@ -460,7 +461,7 @@ func testShardWithMissingStorer(missingUnit dataRetriever.UnitType) func(t *test
 
 		bs, err := sync.NewShardBootstrap(args)
 		assert.Nil(t, bs)
-		require.True(t, strings.Contains(err.Error(), storage.ErrKeyNotFound.Error()))
+		require.True(t, strings.Contains(err.Error(), storageRepo.ErrKeyNotFound.Error()))
 	}
 }
 
