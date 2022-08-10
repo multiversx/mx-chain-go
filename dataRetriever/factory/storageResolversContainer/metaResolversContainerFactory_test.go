@@ -47,9 +47,9 @@ func createStubTopicMessageHandlerForMeta(matchStrToErrOnCreate string, matchStr
 }
 
 func createStoreForMeta() dataRetriever.StorageService {
-	return &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return &storageStubs.StorerStub{}
+	return &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+			return &storageStubs.StorerStub{}, nil
 		},
 	}
 }
@@ -201,11 +201,13 @@ func getArgumentsMeta() storageResolversContainers.FactoryArgs {
 			AccountsTrieStorage:     getMockStorageConfig(),
 			PeerAccountsTrieStorage: getMockStorageConfig(),
 			TrieStorageManagerConfig: config.TrieStorageManagerConfig{
-				PruningBufferLen:   255,
-				SnapshotsBufferLen: 255,
+				PruningBufferLen:      255,
+				SnapshotsBufferLen:    255,
+				SnapshotsGoroutineNum: 2,
 			},
 			StateTriesConfig: config.StateTriesConfig{
 				CheckpointRoundsModulus:     100,
+				SnapshotsEnabled:            true,
 				AccountsStatePruningEnabled: false,
 				PeerStatePruningEnabled:     false,
 				MaxStateTrieLevelInMemory:   5,

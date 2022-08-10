@@ -49,6 +49,8 @@ func TestProcessComponents_Close_ShouldWork(t *testing.T) {
 	require.Nil(t, err)
 	nodesShufflerOut, err := mainFactory.CreateNodesShuffleOut(managedCoreComponents.GenesisNodesSetup(), configs.GeneralConfig.EpochStartConfig, managedCoreComponents.ChanStopNodeProcess())
 	require.Nil(t, err)
+	storer, err := managedDataComponents.StorageService().GetStorer(dataRetriever.BootstrapUnit)
+	require.Nil(t, err)
 	nodesCoordinator, err := mainFactory.CreateNodesCoordinator(
 		nodesShufflerOut,
 		managedCoreComponents.GenesisNodesSetup(),
@@ -58,14 +60,14 @@ func TestProcessComponents_Close_ShouldWork(t *testing.T) {
 		managedCoreComponents.InternalMarshalizer(),
 		managedCoreComponents.Hasher(),
 		managedCoreComponents.Rater(),
-		managedDataComponents.StorageService().GetStorer(dataRetriever.BootstrapUnit),
+		storer,
 		managedCoreComponents.NodesShuffler(),
 		managedBootstrapComponents.ShardCoordinator().SelfId(),
 		managedBootstrapComponents.EpochBootstrapParams(),
 		managedBootstrapComponents.EpochBootstrapParams().Epoch(),
-		configs.EpochConfig.EnableEpochs.WaitingListFixEnableEpoch,
 		managedCoreComponents.ChanStopNodeProcess(),
 		managedCoreComponents.NodeTypeProvider(),
+		managedCoreComponents.EnableEpochsHandler(),
 	)
 	require.Nil(t, err)
 	managedStatusComponents, err := nr.CreateManagedStatusComponents(

@@ -10,7 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-go/process"
 )
 
 // GasScheduleMap (alias) is the map for gas schedule
@@ -30,7 +30,7 @@ type gasScheduleNotifier struct {
 type ArgsNewGasScheduleNotifier struct {
 	GasScheduleConfig config.GasScheduleConfig
 	ConfigDir         string
-	EpochNotifier     vmcommon.EpochNotifier
+	EpochNotifier     process.EpochNotifier
 	ArwenChangeLocker common.Locker
 }
 

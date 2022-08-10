@@ -4,11 +4,12 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
 	"math"
 	"math/big"
 	"sort"
 	"time"
+
+	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
@@ -168,9 +169,9 @@ func GetMarshalizedHeaderFromStorage(
 		return nil, ErrNilStorage
 	}
 
-	hdrStore := storageService.GetStorer(blockUnit)
-	if check.IfNil(hdrStore) {
-		return nil, ErrNilHeadersStorage
+	hdrStore, err := storageService.GetStorer(blockUnit)
+	if err != nil {
+		return nil, err
 	}
 
 	buffHdr, err := hdrStore.Get(hash)
@@ -549,9 +550,9 @@ func getHeaderHashFromStorageWithNonce(
 		return nil, ErrNilMarshalizer
 	}
 
-	headerStore := storageService.GetStorer(blockUnit)
-	if headerStore == nil {
-		return nil, ErrNilHeadersStorage
+	headerStore, err := storageService.GetStorer(blockUnit)
+	if err != nil {
+		return nil, err
 	}
 
 	nonceToByteSlice := uint64Converter.ToByteSlice(nonce)
