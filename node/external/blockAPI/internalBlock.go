@@ -154,7 +154,10 @@ func (ibp *internalBlockProcessor) GetInternalStartOfEpochMetaBlock(format commo
 		return nil, ErrMetachainOnlyEndpoint
 	}
 
-	storer := ibp.store.GetStorer(dataRetriever.MetaBlockUnit)
+	storer, err := ibp.store.GetStorer(dataRetriever.MetaBlockUnit)
+	if err != nil {
+		return nil, err
+	}
 
 	epochStartIdentifier := core.EpochStartIdentifier(epoch)
 	blockBytes, err := storer.GetFromEpoch([]byte(epochStartIdentifier), epoch)
@@ -188,7 +191,11 @@ func (ibp *internalBlockProcessor) convertMetaBlockBytesByOutputFormat(format co
 
 // GetInternalMiniBlock will return the miniblock based on the hash
 func (ibp *internalBlockProcessor) GetInternalMiniBlock(format common.ApiOutputFormat, hash []byte, epoch uint32) (interface{}, error) {
-	storer := ibp.store.GetStorer(dataRetriever.MiniBlockUnit)
+	storer, err := ibp.store.GetStorer(dataRetriever.MiniBlockUnit)
+	if err != nil {
+		return nil, err
+	}
+
 	blockBytes, err := storer.GetFromEpoch(hash, epoch)
 	if err != nil {
 		return nil, err

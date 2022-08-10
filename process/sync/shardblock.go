@@ -82,9 +82,16 @@ func NewShardBootstrap(arguments ArgShardBootstrapper) (*ShardBootstrap, error) 
 	base.requestMiniBlocks = boot.requestMiniBlocksFromHeaderWithNonceIfMissing
 
 	// placed in struct fields for performance reasons
-	base.headerStore = boot.store.GetStorer(dataRetriever.BlockHeaderUnit)
+	base.headerStore, err = boot.store.GetStorer(dataRetriever.BlockHeaderUnit)
+	if err != nil {
+		return nil, err
+	}
+
 	hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(boot.shardCoordinator.SelfId())
-	base.headerNonceHashStore = boot.store.GetStorer(hdrNonceHashDataUnit)
+	base.headerNonceHashStore, err = boot.store.GetStorer(hdrNonceHashDataUnit)
+	if err != nil {
+		return nil, err
+	}
 
 	base.init()
 
@@ -122,9 +129,6 @@ func (boot *ShardBootstrap) StartSyncingBlocks() {
 		log.Debug("boot.syncFromStorer",
 			"error", errNotCritical.Error(),
 		)
-	} else {
-		numTxs, _ := updateMetricsFromStorage(boot.store, boot.uint64Converter, boot.marshalizer, boot.statusHandler, boot.storageBootstrapper.GetHighestBlockNonce())
-		boot.blockProcessor.SetNumProcessedObj(numTxs)
 	}
 
 	var ctx context.Context

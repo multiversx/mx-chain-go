@@ -104,14 +104,14 @@ func NewEpochStartTrigger(args *ArgsNewMetaEpochStartTrigger) (*trigger, error) 
 		return nil, epochStart.ErrNilStatusHandler
 	}
 
-	triggerStorage := args.Storage.GetStorer(dataRetriever.BootstrapUnit)
-	if check.IfNil(triggerStorage) {
-		return nil, epochStart.ErrNilTriggerStorage
+	triggerStorage, err := args.Storage.GetStorer(dataRetriever.BootstrapUnit)
+	if err != nil {
+		return nil, err
 	}
 
-	metaBlockStorage := args.Storage.GetStorer(dataRetriever.MetaBlockUnit)
-	if check.IfNil(triggerStorage) {
-		return nil, epochStart.ErrNilMetaBlockStorage
+	metaBlockStorage, err := args.Storage.GetStorer(dataRetriever.MetaBlockUnit)
+	if err != nil {
+		return nil, err
 	}
 
 	trigggerStateKey := common.TriggerRegistryInitialKeyPrefix + fmt.Sprintf("%d", args.Epoch)
@@ -135,7 +135,7 @@ func NewEpochStartTrigger(args *ArgsNewMetaEpochStartTrigger) (*trigger, error) 
 		nextEpochStartRound:         disabledRoundForForceEpochStart,
 	}
 
-	err := trig.saveState(trig.triggerStateKey)
+	err = trig.saveState(trig.triggerStateKey)
 	if err != nil {
 		return nil, err
 	}

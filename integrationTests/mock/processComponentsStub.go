@@ -51,6 +51,7 @@ type ProcessComponentsStub struct {
 	TxsSenderHandlerField                process.TxsSenderHandler
 	HardforkTriggerField                 factory.HardforkTrigger
 	ProcessedMiniBlocksTrackerInternal   process.ProcessedMiniBlocksTracker
+	ReceiptsRepositoryInternal           factory.ReceiptsRepository
 	ESDTDataStorageHandlerForAPIInternal vmcommon.ESDTNFTStorageHandler
 }
 
@@ -247,6 +248,11 @@ func (pcs *ProcessComponentsStub) HardforkTrigger() factory.HardforkTrigger {
 // ProcessedMiniBlocksTracker -
 func (pcs *ProcessComponentsStub) ProcessedMiniBlocksTracker() process.ProcessedMiniBlocksTracker {
 	return pcs.ProcessedMiniBlocksTrackerInternal
+}
+
+// ReceiptsRepository -
+func (pcs *ProcessComponentsStub) ReceiptsRepository() factory.ReceiptsRepository {
+	return pcs.ReceiptsRepositoryInternal
 }
 
 // ESDTDataStorageHandlerForAPI -

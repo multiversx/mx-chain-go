@@ -3,22 +3,26 @@ package blockAPI
 import (
 	"bytes"
 	"encoding/hex"
+	"errors"
 	"math/big"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
-	"github.com/ElrondNetwork/elrond-go-core/data/batch"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/receipt"
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/common/holders"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
+	storageMocks "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/stretchr/testify/require"
 )
 
@@ -27,7 +31,7 @@ func createBaseBlockProcessor() *baseAPIBlockProcessor {
 		hasDbLookupExtensions:    true,
 		selfShardID:              0,
 		emptyReceiptsHash:        nil,
-		store:                    &mock.ChainStorerMock{},
+		store:                    &storageMocks.ChainStorerStub{},
 		marshalizer:              &mock.MarshalizerFake{},
 		uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
 		historyRepo:              &dblookupext.HistoryRepositoryStub{},
@@ -36,6 +40,7 @@ func createBaseBlockProcessor() *baseAPIBlockProcessor {
 		txStatusComputer:         &mock.StatusComputerStub{},
 		apiTransactionHandler:    &mock.TransactionAPIHandlerStub{},
 		logsFacade:               &testscommon.LogsFacadeStub{},
+		receiptsRepository:       &testscommon.ReceiptsRepositoryStub{},
 	}
 }
 
@@ -45,41 +50,25 @@ func TestBaseBlockGetIntraMiniblocksSCRS(t *testing.T) {
 	baseAPIBlockProc := createBaseBlockProcessor()
 
 	scrHash := []byte("scr1")
-	mbScrs := &block.MiniBlock{
+	miniblock := &block.MiniBlock{
 		Type:     block.SmartContractResultBlock,
 		TxHashes: [][]byte{scrHash},
 	}
-	mbScrsBytes, _ := baseAPIBlockProc.marshalizer.Marshal(mbScrs)
 
-	receiptsStorer := genericMocks.NewStorerMock()
-
-	batchData := &batch.Batch{
-		Data: [][]byte{mbScrsBytes},
-	}
-	batchDataBytes, _ := baseAPIBlockProc.marshalizer.Marshal(batchData)
-
-	receiptsHash := []byte("recHash")
-	_ = receiptsStorer.Put(receiptsHash, batchDataBytes)
-
-	unsignedStorer := genericMocks.NewStorerMock()
 	scResult := &smartContractResult.SmartContractResult{
 		SndAddr: []byte("snd"),
 		RcvAddr: []byte("rcv"),
 		Data:    []byte("doSomething"),
 	}
 	scResultBytes, _ := baseAPIBlockProc.marshalizer.Marshal(scResult)
-	_ = unsignedStorer.Put(scrHash, scResultBytes)
 
-	baseAPIBlockProc.store = &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			switch unitType {
-			case dataRetriever.ReceiptsUnit:
-				return receiptsStorer
-			case dataRetriever.UnsignedTransactionUnit:
-				return unsignedStorer
-			}
+	baseAPIBlockProc.store = genericMocks.NewChainStorerMock(0)
+	storer, _ := baseAPIBlockProc.store.GetStorer(dataRetriever.UnsignedTransactionUnit)
+	_ = storer.Put(scrHash, scResultBytes)
 
-			return nil
+	baseAPIBlockProc.receiptsRepository = &testscommon.ReceiptsRepositoryStub{
+		LoadReceiptsCalled: func(header data.HeaderHandler, headerHash []byte) (common.ReceiptsHolder, error) {
+			return holders.NewReceiptsHolder([]*block.MiniBlock{miniblock}), nil
 		},
 	}
 
@@ -93,7 +82,8 @@ func TestBaseBlockGetIntraMiniblocksSCRS(t *testing.T) {
 		},
 	}
 
-	intraMbs, err := baseAPIBlockProc.getIntrashardMiniblocksFromReceiptsStorage(receiptsHash, 0, api.BlockQueryOptions{WithTransactions: true})
+	blockHeader := &block.Header{ReceiptsHash: []byte("aaaa"), Epoch: 0}
+	intraMbs, err := baseAPIBlockProc.getIntrashardMiniblocksFromReceiptsStorage(blockHeader, []byte{}, api.BlockQueryOptions{WithTransactions: true})
 	require.Nil(t, err)
 	require.Equal(t, &api.MiniBlock{
 		Hash: "7630a217810d1ad3ea67e32dbff0e8f3ea6d970191f03d3c71761b3b60e57b91",
@@ -119,58 +109,43 @@ func TestBaseBlockGetIntraMiniblocksReceipts(t *testing.T) {
 
 	baseAPIBlockProc := createBaseBlockProcessor()
 
-	recHash := []byte("rec1")
-	recMb := &block.MiniBlock{
+	receiptHash := []byte("rec1")
+	miniblock := &block.MiniBlock{
 		Type:     block.ReceiptBlock,
-		TxHashes: [][]byte{recHash},
+		TxHashes: [][]byte{receiptHash},
 	}
-	recMbBytes, _ := baseAPIBlockProc.marshalizer.Marshal(recMb)
 
-	receiptsStorer := genericMocks.NewStorerMock()
-
-	batchData := &batch.Batch{
-		Data: [][]byte{recMbBytes},
-	}
-	batchDataBytes, _ := baseAPIBlockProc.marshalizer.Marshal(batchData)
-
-	receiptsHash := []byte("recHash")
-	_ = receiptsStorer.Put(receiptsHash, batchDataBytes)
-
-	unsignedStorer := genericMocks.NewStorerMock()
-	rec := &receipt.Receipt{
+	receipt := &receipt.Receipt{
 		Value:   big.NewInt(1000),
 		SndAddr: []byte("sndAddr"),
 		Data:    []byte("refund"),
 		TxHash:  []byte("hash"),
 	}
-	recBytes, _ := baseAPIBlockProc.marshalizer.Marshal(rec)
-	_ = unsignedStorer.Put(recHash, recBytes)
+	receiptBytes, _ := baseAPIBlockProc.marshalizer.Marshal(receipt)
+
+	baseAPIBlockProc.store = genericMocks.NewChainStorerMock(0)
+	storer, _ := baseAPIBlockProc.store.GetStorer(dataRetriever.UnsignedTransactionUnit)
+	_ = storer.Put(receiptHash, receiptBytes)
+
+	baseAPIBlockProc.receiptsRepository = &testscommon.ReceiptsRepositoryStub{
+		LoadReceiptsCalled: func(header data.HeaderHandler, headerHash []byte) (common.ReceiptsHolder, error) {
+			return holders.NewReceiptsHolder([]*block.MiniBlock{miniblock}), nil
+		},
+	}
 
 	baseAPIBlockProc.apiTransactionHandler = &mock.TransactionAPIHandlerStub{
 		UnmarshalReceiptCalled: func(receiptBytes []byte) (*transaction.ApiReceipt, error) {
 			return &transaction.ApiReceipt{
-				Value:   rec.Value,
-				SndAddr: baseAPIBlockProc.addressPubKeyConverter.Encode(rec.SndAddr),
-				Data:    string(rec.Data),
-				TxHash:  hex.EncodeToString(rec.TxHash),
+				Value:   receipt.Value,
+				SndAddr: baseAPIBlockProc.addressPubKeyConverter.Encode(receipt.SndAddr),
+				Data:    string(receipt.Data),
+				TxHash:  hex.EncodeToString(receipt.TxHash),
 			}, nil
 		},
 	}
 
-	baseAPIBlockProc.store = &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			switch unitType {
-			case dataRetriever.ReceiptsUnit:
-				return receiptsStorer
-			case dataRetriever.UnsignedTransactionUnit:
-				return unsignedStorer
-			}
-
-			return nil
-		},
-	}
-
-	intraMbs, err := baseAPIBlockProc.getIntrashardMiniblocksFromReceiptsStorage(receiptsHash, 0, api.BlockQueryOptions{WithTransactions: true})
+	blockHeader := &block.Header{ReceiptsHash: []byte("aaaa"), Epoch: 0}
+	intraMbs, err := baseAPIBlockProc.getIntrashardMiniblocksFromReceiptsStorage(blockHeader, []byte{}, api.BlockQueryOptions{WithTransactions: true})
 	require.Nil(t, err)
 	require.Equal(t, &api.MiniBlock{
 		Hash: "262b3023ca9ba61e90a60932b4db7f8b0d1dec7c2a00261cf0c5d43785f17f6f",
@@ -215,16 +190,16 @@ func TestBaseBlock_getAndAttachTxsToMb_MiniblockTxBlock(t *testing.T) {
 	txBytes, _ := baseAPIBlockProc.marshalizer.Marshal(tx)
 	_ = unsignedStorer.Put(txHash, txBytes)
 
-	baseAPIBlockProc.store = &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+	baseAPIBlockProc.store = &storageMocks.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 			switch unitType {
 			case dataRetriever.MiniBlockUnit:
-				return mbStorer
+				return mbStorer, nil
 			case dataRetriever.TransactionUnit:
-				return unsignedStorer
+				return unsignedStorer, nil
 			}
 
-			return nil
+			return nil, storage.ErrKeyNotFound
 		},
 	}
 
@@ -389,4 +364,56 @@ func TestExtractExecutedTxHashes(t *testing.T) {
 	}
 	res = extractExecutedTxHashes(array, 0, 5)
 	require.Equal(t, res, [][]byte{{byte(0)}, {byte(1)}, {byte(2)}, {byte(3)}, {byte(4)}, {byte(5)}})
+}
+
+func TestAddScheduledInfoInBlock(t *testing.T) {
+	t.Parallel()
+
+	blockHeader := &block.HeaderV2{
+		ScheduledRootHash:        []byte("srh"),
+		ScheduledAccumulatedFees: big.NewInt(1000),
+		ScheduledDeveloperFees:   big.NewInt(500),
+		ScheduledGasProvided:     10,
+		ScheduledGasPenalized:    1,
+		ScheduledGasRefunded:     2,
+	}
+
+	apiBlock := &api.Block{}
+
+	addScheduledInfoInBlock(blockHeader, apiBlock)
+	require.Equal(t, &api.Block{
+		ScheduledData: &api.ScheduledData{
+			ScheduledRootHash:        "737268",
+			ScheduledAccumulatedFees: "1000",
+			ScheduledDeveloperFees:   "500",
+			ScheduledGasProvided:     10,
+			ScheduledGasPenalized:    1,
+			ScheduledGasRefunded:     2,
+		},
+	}, apiBlock)
+}
+
+func TestBigInToString(t *testing.T) {
+	t.Parallel()
+
+	require.Equal(t, "0", bigIntToStr(big.NewInt(0)))
+	require.Equal(t, "0", bigIntToStr(nil))
+	require.Equal(t, "15", bigIntToStr(big.NewInt(15)))
+	require.Equal(t, "100", bigIntToStr(big.NewInt(100)))
+}
+
+func TestBaseBlock_getAndAttachTxsToMb_MiniblockTxBlockgetFromStore(t *testing.T) {
+	t.Parallel()
+
+	expectedErr := errors.New("expected error")
+	baseAPIBlockProc := createBaseBlockProcessor()
+	baseAPIBlockProc.store = &storageMocks.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+			return nil, expectedErr
+		},
+	}
+
+	resp, err := baseAPIBlockProc.getFromStorer(dataRetriever.BlockHeaderUnit, nil)
+	require.Nil(t, resp)
+	require.Equal(t, expectedErr, err)
 }

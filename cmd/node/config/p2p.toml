@@ -24,12 +24,6 @@
     #the sync and consensus mechanisms
     ThresholdMinConnectedPeers = 3
 
-    # ConnectionWatcherType represents the type of a connection watcher needed.
-    # possible options:
-    #  - "disabled" - no connection watching should be made
-    #  - "print" - new connection found will be printed in the log file
-    ConnectionWatcherType = "disabled"
-
     # MinNumPeersToWaitForOnBootstrap is the minimum number of peers to wait on bootstrap or the node will wait the default
     # time which is now set to ~20 seconds (the const defined in the common package named TimeToWaitForP2PBootstrap)
     MinNumPeersToWaitForOnBootstrap = 10

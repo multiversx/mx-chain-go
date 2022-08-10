@@ -1,7 +1,6 @@
 package block
 
 import (
-	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 	"sync"
 	"time"
 
@@ -15,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
+	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
@@ -24,6 +24,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
+	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 )
 
 func (bp *baseProcessor) ComputeHeaderHash(hdr data.HeaderHandler) ([]byte, error) {
@@ -111,7 +112,7 @@ func NewShardProcessorEmptyWith3shards(
 		ProcessStatusHandlerField: &testscommon.ProcessStatusHandlerStub{},
 	}
 	dataComponents := &mock.DataComponentsMock{
-		Storage:    &mock.ChainStorerMock{},
+		Storage:    &storageStubs.ChainStorerStub{},
 		DataPool:   tdp,
 		BlockChain: blockChain,
 	}
@@ -155,6 +156,7 @@ func NewShardProcessorEmptyWith3shards(
 			ScheduledTxsExecutionHandler:   &testscommon.ScheduledTxsExecutionStub{},
 			ScheduledMiniBlocksEnableEpoch: 2,
 			ProcessedMiniBlocksTracker:     &testscommon.ProcessedMiniBlocksTrackerStub{},
+			ReceiptsRepository:             &testscommon.ReceiptsRepositoryStub{},
 		},
 	}
 	shardProc, err := NewShardProcessor(arguments)

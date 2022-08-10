@@ -22,6 +22,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
+	"github.com/ElrondNetwork/elrond-go/process/receipts"
 	"github.com/ElrondNetwork/elrond-go/process/rewardTransaction"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
@@ -298,6 +299,15 @@ func createArgsShardBlockCreatorAfterHardFork(
 		return hardForkProcess.ArgsNewShardBlockCreatorAfterHardFork{}, err
 	}
 
+	receiptsRepository, err := receipts.NewReceiptsRepository(receipts.ArgsNewReceiptsRepository{
+		Marshaller: arg.Core.InternalMarshalizer(),
+		Hasher:     arg.Core.Hasher(),
+		Store:      arg.Data.StorageService(),
+	})
+	if err != nil {
+		return hardForkProcess.ArgsNewShardBlockCreatorAfterHardFork{}, err
+	}
+
 	argsShardBlockCreatorAfterHardFork := hardForkProcess.ArgsNewShardBlockCreatorAfterHardFork{
 		Hasher:             arg.Core.Hasher(),
 		ImportHandler:      arg.importHandler,
@@ -306,6 +316,7 @@ func createArgsShardBlockCreatorAfterHardFork(
 		ShardCoordinator:   arg.ShardCoordinator,
 		Storage:            arg.Data.StorageService(),
 		TxCoordinator:      processors.txCoordinator,
+		ReceiptsRepository: receiptsRepository,
 		SelfShardID:        selfShardID,
 	}
 

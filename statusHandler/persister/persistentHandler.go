@@ -129,7 +129,7 @@ func (psh *PersistentStatusHandler) SetUInt64Value(key string, value uint64) {
 
 	psh.persistentMetrics.Store(key, value)
 
-	//metrics wil be saved in storage every time when a block is committed successfully
+	//metrics will be saved in storage every time when a block is committed successfully
 	if key != common.MetricNonce {
 		return
 	}

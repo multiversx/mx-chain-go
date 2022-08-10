@@ -11,8 +11,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
+	storageMocks "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -27,9 +29,9 @@ func createMockShardAPIProcessor(
 		APITransactionHandler: &mock.TransactionAPIHandlerStub{},
 		SelfShardID:           shardID,
 		Marshalizer:           &mock.MarshalizerFake{},
-		Store: &mock.ChainStorerMock{
-			GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-				return storerMock
+		Store: &storageMocks.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+				return storerMock, nil
 			},
 			GetCalled: func(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
 				if withKey {
@@ -47,6 +49,7 @@ func createMockShardAPIProcessor(
 				return withHistory
 			},
 		},
+		ReceiptsRepository: &testscommon.ReceiptsRepositoryStub{},
 	}, nil)
 }
 

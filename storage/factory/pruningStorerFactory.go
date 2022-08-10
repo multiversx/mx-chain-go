@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/clean"
 	"github.com/ElrondNetwork/elrond-go/storage/databaseremover"
 	"github.com/ElrondNetwork/elrond-go/storage/databaseremover/disabled"
+	storageDisabled "github.com/ElrondNetwork/elrond-go/storage/disabled"
 	"github.com/ElrondNetwork/elrond-go/storage/pruning"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
@@ -172,15 +173,13 @@ func (psf *StorageServiceFactory) CreateForShard() (dataRetriever.StorageService
 	}
 	successfullyCreatedStorers = append(successfullyCreatedStorers, metachainHeaderUnit)
 
-	userAccountsUnitArgs := psf.createPruningStorerArgs(psf.generalConfig.AccountsTrieStorage, customDatabaseRemover)
-	userAccountsUnit, err = psf.createTriePruningPersister(userAccountsUnitArgs)
+	userAccountsUnit, err = psf.createTriePersister(psf.generalConfig.AccountsTrieStorage, psf.generalConfig.StateTriesConfig, customDatabaseRemover)
 	if err != nil {
 		return nil, err
 	}
 	successfullyCreatedStorers = append(successfullyCreatedStorers, userAccountsUnit)
 
-	peerAccountsUnitArgs := psf.createPruningStorerArgs(psf.generalConfig.PeerAccountsTrieStorage, customDatabaseRemover)
-	peerAccountsUnit, err = psf.createTriePruningPersister(peerAccountsUnitArgs)
+	peerAccountsUnit, err = psf.createTriePersister(psf.generalConfig.PeerAccountsTrieStorage, psf.generalConfig.StateTriesConfig, customDatabaseRemover)
 	if err != nil {
 		return nil, err
 	}
@@ -550,18 +549,20 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 func (psf *StorageServiceFactory) setupLogsAndEventsStorer(chainStorer *dataRetriever.ChainStorer) ([]storage.Storer, error) {
 	createdStorers := make([]storage.Storer, 0)
 
+	var txLogsUnit storage.Storer
+	txLogsUnit = storageDisabled.NewStorer()
+
 	// Should not create logs and events storer in the next case:
 	// - LogsAndEvents.Enabled = false and DbLookupExtensions.Enabled = false
 	// If we have DbLookupExtensions ACTIVE node by default should save logs no matter if is enabled or not
 	shouldCreateStorer := psf.generalConfig.LogsAndEvents.SaveInStorageEnabled || psf.generalConfig.DbLookupExtensions.Enabled
-	if !shouldCreateStorer {
-		return createdStorers, nil
-	}
-
-	txLogsUnitArgs := psf.createPruningStorerArgs(psf.generalConfig.LogsAndEvents.TxLogsStorage, disabled.NewDisabledCustomDatabaseRemover())
-	txLogsUnit, err := psf.createPruningPersister(txLogsUnitArgs)
-	if err != nil {
-		return createdStorers, err
+	if shouldCreateStorer {
+		var err error
+		txLogsUnitArgs := psf.createPruningStorerArgs(psf.generalConfig.LogsAndEvents.TxLogsStorage, disabled.NewDisabledCustomDatabaseRemover())
+		txLogsUnit, err = psf.createPruningPersister(txLogsUnitArgs)
+		if err != nil {
+			return createdStorers, err
+		}
 	}
 
 	createdStorers = append(createdStorers, txLogsUnit)
@@ -702,6 +703,30 @@ func (psf *StorageServiceFactory) createTrieEpochRootHashStorerIfNeeded() (stora
 	}
 
 	return trieEpochRootHashStorageUnit, nil
+}
+
+func (psf *StorageServiceFactory) createTriePersister(
+	storageConfig config.StorageConfig,
+	triesConfig config.StateTriesConfig,
+	customDatabaseRemover storage.CustomDatabaseRemoverHandler,
+) (storage.Storer, error) {
+	if triesConfig.SnapshotsEnabled {
+		pruningPersisterArgs := psf.createPruningStorerArgs(storageConfig, customDatabaseRemover)
+		return psf.createTriePruningPersister(pruningPersisterArgs)
+	}
+
+	trieDBConfig := GetDBFromConfig(storageConfig.DB)
+	shardID := core.GetShardIDString(psf.shardCoordinator.SelfId())
+	dbPath := psf.pathManager.PathForStatic(shardID, storageConfig.DB.FilePath)
+	trieDBConfig.FilePath = dbPath
+	trieUnit, err := storageUnit.NewStorageUnitFromConf(
+		GetCacherFromConfig(storageConfig.Cache),
+		trieDBConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	return trieUnit, nil
 }
 
 func (psf *StorageServiceFactory) createTriePruningPersister(arg *pruning.StorerArgs) (storage.Storer, error) {

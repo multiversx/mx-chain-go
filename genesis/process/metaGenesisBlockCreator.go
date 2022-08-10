@@ -26,6 +26,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/factory/metachain"
+	"github.com/ElrondNetwork/elrond-go/process/receipts"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	syncDisabled "github.com/ElrondNetwork/elrond-go/process/sync/disabled"
@@ -219,6 +220,15 @@ func createArgsMetaBlockCreatorAfterHardFork(
 		return hardForkProcess.ArgsNewMetaBlockCreatorAfterHardFork{}, err
 	}
 
+	receiptsRepository, err := receipts.NewReceiptsRepository(receipts.ArgsNewReceiptsRepository{
+		Marshaller: arg.Core.InternalMarshalizer(),
+		Hasher:     arg.Core.Hasher(),
+		Store:      arg.Data.StorageService(),
+	})
+	if err != nil {
+		return hardForkProcess.ArgsNewMetaBlockCreatorAfterHardFork{}, err
+	}
+
 	argsMetaBlockCreatorAfterHardFork := hardForkProcess.ArgsNewMetaBlockCreatorAfterHardFork{
 		Hasher:             arg.Core.Hasher(),
 		ImportHandler:      arg.importHandler,
@@ -228,6 +238,7 @@ func createArgsMetaBlockCreatorAfterHardFork(
 		Storage:            arg.Data.StorageService(),
 		TxCoordinator:      processors.txCoordinator,
 		ValidatorAccounts:  tmpArg.ValidatorAccounts,
+		ReceiptsRepository: receiptsRepository,
 		SelfShardID:        selfShardID,
 	}
 
@@ -242,14 +253,14 @@ func saveGenesisMetaToStorage(
 
 	epochStartID := core.EpochStartIdentifier(genesisBlock.GetEpoch())
 
-	metaHdrStorage := storageService.GetStorer(dataRetriever.MetaBlockUnit)
-	if check.IfNil(metaHdrStorage) {
-		return process.ErrNilStorage
+	metaHdrStorage, err := storageService.GetStorer(dataRetriever.MetaBlockUnit)
+	if err != nil {
+		return err
 	}
 
-	triggerStorage := storageService.GetStorer(dataRetriever.BootstrapUnit)
-	if check.IfNil(triggerStorage) {
-		return process.ErrNilStorage
+	triggerStorage, err := storageService.GetStorer(dataRetriever.BootstrapUnit)
+	if err != nil {
+		return err
 	}
 
 	marshaledData, err := marshalizer.Marshal(genesisBlock)

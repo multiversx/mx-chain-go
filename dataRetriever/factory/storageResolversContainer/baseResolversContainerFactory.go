@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common/disabled"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	disabledResolvers "github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers/disabled"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/storageResolvers"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -111,7 +112,10 @@ func (brcf *baseResolversContainerFactory) createTxResolver(
 	unit dataRetriever.UnitType,
 ) (dataRetriever.Resolver, error) {
 
-	txStorer := brcf.store.GetStorer(unit)
+	txStorer, err := brcf.store.GetStorer(unit)
+	if err != nil {
+		return nil, err
+	}
 
 	arg := storageResolvers.ArgSliceResolver{
 		Messenger:                brcf.messenger,
@@ -170,7 +174,10 @@ func (brcf *baseResolversContainerFactory) generateMiniBlocksResolvers() error {
 }
 
 func (brcf *baseResolversContainerFactory) createMiniBlocksResolver(responseTopic string) (dataRetriever.Resolver, error) {
-	miniBlocksStorer := brcf.store.GetStorer(dataRetriever.MiniBlockUnit)
+	miniBlocksStorer, err := brcf.store.GetStorer(dataRetriever.MiniBlockUnit)
+	if err != nil {
+		return nil, err
+	}
 
 	arg := storageResolvers.ArgSliceResolver{
 		Messenger:                brcf.messenger,
@@ -221,7 +228,15 @@ func (brcf *baseResolversContainerFactory) newImportDBTrieStorage(
 		PruningEnabled:     brcf.generalConfig.StateTriesConfig.AccountsStatePruningEnabled,
 		CheckpointsEnabled: brcf.generalConfig.StateTriesConfig.CheckpointsEnabled,
 		MaxTrieLevelInMem:  brcf.generalConfig.StateTriesConfig.MaxStateTrieLevelInMemory,
+		SnapshotsEnabled:   brcf.generalConfig.StateTriesConfig.SnapshotsEnabled,
 		IdleProvider:       disabled.NewProcessStatusHandler(),
 	}
 	return trieFactoryInstance.Create(args)
+}
+
+func (brcf *baseResolversContainerFactory) generatePeerAuthenticationResolver() error {
+	identifierPeerAuth := common.PeerAuthenticationTopic
+	peerAuthResolver := disabledResolvers.NewDisabledPeerAuthenticatorResolver()
+
+	return brcf.container.Add(identifierPeerAuth, peerAuthResolver)
 }
