@@ -1,6 +1,7 @@
 package nodesCoordinator
 
 import (
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
@@ -18,8 +19,8 @@ type ArgNodesCoordinator struct {
 	BootStorer                 storage.Storer
 	ShardIDAsObserver          uint32
 	NbShards                   uint32
-	EligibleNodes              map[uint32][]Validator
-	WaitingNodes               map[uint32][]Validator
+	EligibleNodes              map[uint32][]core.Validator
+	WaitingNodes               map[uint32][]core.Validator
 	SelfPublicKey              []byte
 	Epoch                      uint32
 	StartEpoch                 uint32

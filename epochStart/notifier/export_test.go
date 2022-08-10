@@ -6,15 +6,15 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 )
 
-func (essh *epochStartSubscriptionHandler) RegisteredHandlers() ([]epochStart.ActionHandler, *sync.RWMutex) {
+func (essh *epochStartSubscriptionHandler) RegisteredHandlers() ([]core.EpochStartActionHandler, *sync.RWMutex) {
 	return essh.epochStartHandlers, &essh.mutEpochStartHandler
 }
 
-func (mesn *manualEpochStartNotifier) Handlers() []epochStart.ActionHandler {
+func (mesn *manualEpochStartNotifier) Handlers() []core.EpochStartActionHandler {
 	mesn.mutHandlers.RLock()
 	defer mesn.mutHandlers.RUnlock()
 
-	handlers := make([]epochStart.ActionHandler, len(mesn.handlers))
+	handlers := make([]core.EpochStartActionHandler, len(mesn.handlers))
 	copy(handlers, mesn.handlers)
 
 	return handlers

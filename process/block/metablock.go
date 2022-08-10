@@ -1276,7 +1276,7 @@ func (mp *metaProcessor) CommitBlock(
 		log.Debug("updateCrossShardInfo", "error", errNotCritical.Error())
 	}
 
-	errNotCritical = mp.forkDetector.AddHeader(header, headerHash, process.BHProcessed, nil, nil)
+	errNotCritical = mp.forkDetector.AddHeader(header, headerHash, core.BHProcessed, nil, nil)
 	if errNotCritical != nil {
 		log.Debug("forkDetector.AddHeader", "error", errNotCritical.Error())
 	}

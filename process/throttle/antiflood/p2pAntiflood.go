@@ -58,7 +58,7 @@ func NewP2PAntiflood(
 }
 
 // CanProcessMessage signals if a p2p message can be processed or not
-func (af *p2pAntiflood) CanProcessMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
+func (af *p2pAntiflood) CanProcessMessage(message core.MessageP2P, fromConnectedPeer core.PeerID) error {
 	if message == nil {
 		return p2p.ErrNilMessage
 	}
@@ -145,7 +145,7 @@ func (af *p2pAntiflood) recordDebugEvent(pid core.PeerID, topic string, numRejec
 	af.debugger.AddData(pid, topic, numRejected, sizeRejected, sequence, isBlacklisted)
 }
 
-func (af *p2pAntiflood) canProcessMessage(fp process.FloodPreventer, message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
+func (af *p2pAntiflood) canProcessMessage(fp process.FloodPreventer, message core.MessageP2P, fromConnectedPeer core.PeerID) error {
 	//protect from directly connected peer
 	err := fp.IncreaseLoad(fromConnectedPeer, uint64(len(message.Data())))
 	if err != nil {

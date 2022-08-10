@@ -3,9 +3,9 @@ package storage
 import (
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/storage"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/epochStart"
 )
 
 // Persister provides storage of data services in a database like construct
@@ -111,7 +111,7 @@ type StorerWithPutInEpoch interface {
 
 // EpochStartNotifier defines which actions should be done for handling new epoch's events
 type EpochStartNotifier interface {
-	RegisterHandler(handler epochStart.ActionHandler)
+	RegisterHandler(handler core.EpochStartActionHandler)
 	IsInterfaceNil() bool
 }
 

@@ -125,7 +125,7 @@ type ResolverThrottler interface {
 // Resolver defines what a data resolver should do
 type Resolver interface {
 	RequestDataFromHash(hash []byte, epoch uint32) error
-	ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error
+	ProcessReceivedMessage(message core.MessageP2P, fromConnectedPeer core.PeerID) error
 	SetResolverDebugHandler(handler ResolverDebugHandler) error
 	SetNumPeersToQuery(intra int, cross int)
 	NumPeersToQuery() (int, int)
@@ -385,7 +385,7 @@ type RequestedItemsHandler interface {
 // P2PAntifloodHandler defines the behavior of a component able to signal that the system is too busy (or flooded) processing
 // p2p messages
 type P2PAntifloodHandler interface {
-	CanProcessMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error
+	CanProcessMessage(message core.MessageP2P, fromConnectedPeer core.PeerID) error
 	CanProcessMessagesOnTopic(peer core.PeerID, topic string, numMessages uint32, _ uint64, sequence []byte) error
 	BlacklistPeer(peer core.PeerID, reason string, duration time.Duration)
 	IsInterfaceNil() bool

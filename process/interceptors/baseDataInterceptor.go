@@ -21,7 +21,7 @@ type baseDataInterceptor struct {
 	preferredPeersHolder process.PreferredPeersHolderHandler
 }
 
-func (bdi *baseDataInterceptor) preProcessMesage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
+func (bdi *baseDataInterceptor) preProcessMesage(message core.MessageP2P, fromConnectedPeer core.PeerID) error {
 	if message == nil {
 		return process.ErrNilMessage
 	}
@@ -48,7 +48,7 @@ func (bdi *baseDataInterceptor) preProcessMesage(message p2p.MessageP2P, fromCon
 	return nil
 }
 
-func (bdi *baseDataInterceptor) shouldSkipAntifloodChecks(fromConnectedPeer core.PeerID, message p2p.MessageP2P) bool {
+func (bdi *baseDataInterceptor) shouldSkipAntifloodChecks(fromConnectedPeer core.PeerID, message core.MessageP2P) bool {
 	if bdi.isMessageFromSelfToSelf(fromConnectedPeer, message) {
 		return true
 	}
@@ -56,13 +56,13 @@ func (bdi *baseDataInterceptor) shouldSkipAntifloodChecks(fromConnectedPeer core
 	return bdi.preferredPeersHolder.Contains(fromConnectedPeer)
 }
 
-func (bdi *baseDataInterceptor) isMessageFromSelfToSelf(fromConnectedPeer core.PeerID, message p2p.MessageP2P) bool {
+func (bdi *baseDataInterceptor) isMessageFromSelfToSelf(fromConnectedPeer core.PeerID, message core.MessageP2P) bool {
 	return bytes.Equal(message.Signature(), message.From()) &&
 		bytes.Equal(message.From(), bdi.currentPeerId.Bytes()) &&
 		fromConnectedPeer == bdi.currentPeerId
 }
 
-func (bdi *baseDataInterceptor) processInterceptedData(data process.InterceptedData, msg p2p.MessageP2P) {
+func (bdi *baseDataInterceptor) processInterceptedData(data process.InterceptedData, msg core.MessageP2P) {
 	err := bdi.processor.Validate(data, msg.Peer())
 	if err != nil {
 		log.Trace("intercepted data is not valid",
@@ -120,7 +120,7 @@ func (bdi *baseDataInterceptor) receivedDebugInterceptedData(interceptedData pro
 }
 
 // SetInterceptedDebugHandler will set a new intercepted debug handler
-func (bdi *baseDataInterceptor) SetInterceptedDebugHandler(handler process.InterceptedDebugger) error {
+func (bdi *baseDataInterceptor) SetInterceptedDebugHandler(handler core.InterceptedDebugger) error {
 	if check.IfNil(handler) {
 		return process.ErrNilDebugger
 	}

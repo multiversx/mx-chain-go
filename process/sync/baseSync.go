@@ -165,7 +165,7 @@ func (boot *baseBootstrap) processReceivedHeader(headerHandler data.HeaderHandle
 		"hash", headerHash,
 	)
 
-	err := boot.forkDetector.AddHeader(headerHandler, headerHash, process.BHReceived, nil, nil)
+	err := boot.forkDetector.AddHeader(headerHandler, headerHash, core.BHReceived, nil, nil)
 	if err != nil {
 		log.Debug("forkDetector.AddHeader", "error", err.Error())
 	}

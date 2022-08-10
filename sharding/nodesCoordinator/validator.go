@@ -3,11 +3,13 @@ package nodesCoordinator
 import (
 	"encoding/hex"
 	"fmt"
+
+	"github.com/ElrondNetwork/elrond-go-core/core"
 )
 
 const intSize = 8
 
-var _ Validator = (*validator)(nil)
+var _ core.Validator = (*validator)(nil)
 
 type validator struct {
 	pubKey  []byte

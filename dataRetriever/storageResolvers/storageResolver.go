@@ -9,7 +9,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/p2p"
 )
 
 type storageResolver struct {
@@ -23,7 +22,7 @@ type storageResolver struct {
 }
 
 // ProcessReceivedMessage does nothing, won't be able to process network requests
-func (sr *storageResolver) ProcessReceivedMessage(_ p2p.MessageP2P, _ core.PeerID) error {
+func (sr *storageResolver) ProcessReceivedMessage(_ core.MessageP2P, _ core.PeerID) error {
 	return nil
 }
 

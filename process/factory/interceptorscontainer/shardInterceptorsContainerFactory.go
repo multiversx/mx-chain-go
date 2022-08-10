@@ -192,7 +192,7 @@ func (sicf *shardInterceptorsContainerFactory) generateTrieNodesInterceptors() e
 	shardC := sicf.shardCoordinator
 
 	keys := make([]string, 0)
-	interceptorsSlice := make([]process.Interceptor, 0)
+	interceptorsSlice := make([]core.Interceptor, 0)
 
 	identifierTrieNodes := factory.AccountTrieNodesTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
 	interceptor, err := sicf.createOneTrieNodesInterceptor(identifierTrieNodes)
@@ -212,7 +212,7 @@ func (sicf *shardInterceptorsContainerFactory) generateRewardTxInterceptor() err
 	shardC := sicf.shardCoordinator
 
 	keys := make([]string, 0)
-	interceptorSlice := make([]process.Interceptor, 0)
+	interceptorSlice := make([]core.Interceptor, 0)
 
 	identifierTx := factory.RewardsTransactionTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
 	interceptor, err := sicf.createOneRewardTxInterceptor(identifierTx)

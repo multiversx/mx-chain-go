@@ -3,7 +3,6 @@ package disabled
 import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/p2p"
 )
 
 type peerAuthenticatorResolver struct {
@@ -30,7 +29,7 @@ func (res *peerAuthenticatorResolver) RequestDataFromHashArray(_ [][]byte, _ uin
 }
 
 // ProcessReceivedMessage does nothing and returns nil
-func (res *peerAuthenticatorResolver) ProcessReceivedMessage(_ p2p.MessageP2P, _ core.PeerID) error {
+func (res *peerAuthenticatorResolver) ProcessReceivedMessage(_ core.MessageP2P, _ core.PeerID) error {
 	return nil
 }
 

@@ -153,7 +153,7 @@ func TestConsensusState_GetNextConsensusGroupShouldFailWhenComputeValidatorsGrou
 		round uint64,
 		shardId uint32,
 		epoch uint32,
-	) ([]nodesCoordinator.Validator, error) {
+	) ([]core.Validator, error) {
 		return nil, err
 	}
 
@@ -167,9 +167,9 @@ func TestConsensusState_GetNextConsensusGroupShouldWork(t *testing.T) {
 	cns := internalInitConsensusState()
 
 	nodesCoord := &shardingMocks.NodesCoordinatorMock{
-		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]nodesCoordinator.Validator, error) {
+		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]core.Validator, error) {
 			defaultSelectionChances := uint32(1)
-			return []nodesCoordinator.Validator{
+			return []core.Validator{
 				shardingMocks.NewValidatorMock([]byte("A"), 1, defaultSelectionChances),
 				shardingMocks.NewValidatorMock([]byte("B"), 1, defaultSelectionChances),
 				shardingMocks.NewValidatorMock([]byte("C"), 1, defaultSelectionChances),

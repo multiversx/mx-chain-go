@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/common"
 )
 
@@ -221,9 +222,9 @@ func epochValidatorsToEpochNodesConfig(config *EpochValidators) (*epochNodesConf
 
 func serializableValidatorsMapToValidatorsMap(
 	sValidators map[string][]*SerializableValidator,
-) (map[uint32][]Validator, error) {
+) (map[uint32][]core.Validator, error) {
 
-	result := make(map[uint32][]Validator, len(sValidators))
+	result := make(map[uint32][]core.Validator, len(sValidators))
 
 	for k, v := range sValidators {
 		key, err := strconv.ParseInt(k, 10, 64)
@@ -241,7 +242,7 @@ func serializableValidatorsMapToValidatorsMap(
 }
 
 // ValidatorArrayToSerializableValidatorArray -
-func ValidatorArrayToSerializableValidatorArray(validators []Validator) []*SerializableValidator {
+func ValidatorArrayToSerializableValidatorArray(validators []core.Validator) []*SerializableValidator {
 	result := make([]*SerializableValidator, len(validators))
 
 	for i, v := range validators {
@@ -255,8 +256,8 @@ func ValidatorArrayToSerializableValidatorArray(validators []Validator) []*Seria
 	return result
 }
 
-func serializableValidatorArrayToValidatorArray(sValidators []*SerializableValidator) ([]Validator, error) {
-	result := make([]Validator, len(sValidators))
+func serializableValidatorArrayToValidatorArray(sValidators []*SerializableValidator) ([]core.Validator, error) {
+	result := make([]core.Validator, len(sValidators))
 	var err error
 
 	for i, v := range sValidators {
@@ -270,11 +271,11 @@ func serializableValidatorArrayToValidatorArray(sValidators []*SerializableValid
 }
 
 // NodesInfoToValidators maps nodeInfo to validator interface
-func NodesInfoToValidators(nodesInfo map[uint32][]GenesisNodeInfoHandler) (map[uint32][]Validator, error) {
-	validatorsMap := make(map[uint32][]Validator)
+func NodesInfoToValidators(nodesInfo map[uint32][]GenesisNodeInfoHandler) (map[uint32][]core.Validator, error) {
+	validatorsMap := make(map[uint32][]core.Validator)
 
 	for shId, nodeInfoList := range nodesInfo {
-		validators := make([]Validator, 0, len(nodeInfoList))
+		validators := make([]core.Validator, 0, len(nodeInfoList))
 		for index, nodeInfo := range nodeInfoList {
 			validatorObj, err := NewValidator(nodeInfo.PubKeyBytes(), defaultSelectionChances, uint32(index))
 			if err != nil {

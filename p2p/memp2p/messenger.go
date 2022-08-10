@@ -38,7 +38,7 @@ type Messenger struct {
 	topicValidators map[string]p2p.MessageProcessor
 	topicsMutex     *sync.RWMutex
 	seqNo           uint64
-	processQueue    chan p2p.MessageP2P
+	processQueue    chan core.MessageP2P
 	numReceived     uint64
 }
 
@@ -61,7 +61,7 @@ func NewMessenger(network *Network) (*Messenger, error) {
 		topics:          make(map[string]struct{}),
 		topicValidators: make(map[string]p2p.MessageProcessor),
 		topicsMutex:     &sync.RWMutex{},
-		processQueue:    make(chan p2p.MessageP2P, maxQueueSize),
+		processQueue:    make(chan core.MessageP2P, maxQueueSize),
 	}
 	network.RegisterPeer(messenger)
 	go messenger.processFromQueue()
@@ -353,7 +353,7 @@ func (messenger *Messenger) SendToConnectedPeer(topic string, buff []byte, peerI
 // previously registered a message processor for that topic. The Network will
 // log the message only if the Network.LogMessages flag is set and only if the
 // Messenger has the requested topic and MessageProcessor.
-func (messenger *Messenger) receiveMessage(message p2p.MessageP2P) {
+func (messenger *Messenger) receiveMessage(message core.MessageP2P) {
 	messenger.processQueue <- message
 }
 

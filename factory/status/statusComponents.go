@@ -14,7 +14,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common/statistics"
 	swVersionFactory "github.com/ElrondNetwork/elrond-go/common/statistics/softwareVersion/factory"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/factory"
@@ -170,7 +169,7 @@ func (scf *statusComponentsFactory) Create() (*statusComponents, error) {
 	return statusComponentsInstance, nil
 }
 
-func (pc *statusComponents) epochStartEventHandler() epochStart.ActionHandler {
+func (pc *statusComponents) epochStartEventHandler() core.EpochStartActionHandler {
 	subscribeHandler := notifier.NewHandlerForEpochStart(func(hdr nodeData.HeaderHandler) {
 		currentEpoch := hdr.GetEpoch()
 		validatorsPubKeys, err := pc.nodesCoordinator.GetAllEligibleValidatorsPublicKeys(currentEpoch)

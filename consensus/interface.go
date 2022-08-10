@@ -9,7 +9,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/p2p"
 )
 
 // BlsConsensusType specifies the signature scheme used in the consensus
@@ -90,7 +89,7 @@ type NetworkShardingCollector interface {
 // P2PAntifloodHandler defines the behavior of a component able to signal that the system is too busy (or flooded) processing
 // p2p messages
 type P2PAntifloodHandler interface {
-	CanProcessMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error
+	CanProcessMessage(message core.MessageP2P, fromConnectedPeer core.PeerID) error
 	CanProcessMessagesOnTopic(peer core.PeerID, topic string, numMessages uint32, totalSize uint64, sequence []byte) error
 	ResetForTopic(topic string)
 	SetMaxMessagesForTopic(topic string, maxNum uint32)
@@ -215,25 +214,15 @@ type SignatureHandler interface {
 // 	ResetRoundStatus()
 // }
 
-// Interceptor defines what a data interceptor should do
-// It should also adhere to the p2p.MessageProcessor interface so it can wire to a p2p.Messenger
-type Interceptor interface {
-	ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error
-	//SetInterceptedDebugHandler(handler InterceptedDebugger) error
-	RegisterHandler(handler func(topic string, hash []byte, data interface{}))
-	Close() error
-	IsInterfaceNil() bool
-}
-
 // InterceptorsContainer defines an interceptors holder data type with basic functionality
 type InterceptorsContainer interface {
-	Get(key string) (Interceptor, error)
-	Add(key string, val Interceptor) error
-	AddMultiple(keys []string, interceptors []Interceptor) error
-	Replace(key string, val Interceptor) error
+	Get(key string) (core.Interceptor, error)
+	Add(key string, val core.Interceptor) error
+	AddMultiple(keys []string, interceptors []core.Interceptor) error
+	Replace(key string, val core.Interceptor) error
 	Remove(key string)
 	Len() int
-	Iterate(handler func(key string, interceptor Interceptor) bool)
+	Iterate(handler func(key string, interceptor core.Interceptor) bool)
 	Close() error
 	IsInterfaceNil() bool
 }
@@ -279,8 +268,8 @@ type ActionHandler interface {
 
 // RegistrationHandler provides Register and Unregister functionality for the end of epoch events
 type RegistrationHandler interface {
-	RegisterHandler(handler ActionHandler)
-	UnregisterHandler(handler ActionHandler)
+	RegisterHandler(handler core.EpochStartActionHandler)
+	UnregisterHandler(handler core.EpochStartActionHandler)
 	IsInterfaceNil() bool
 }
 
@@ -308,16 +297,10 @@ type Bootstrapper interface {
 	IsInterfaceNil() bool
 }
 
-// Validator defines a node that can be allocated to a shard for participation in a consensus group as validator
-// or block proposer
-type Validator interface {
-	PubKey() []byte
-}
-
 // NodesCoordinator defines the behaviour of a struct able to do validator group selection
 type NodesCoordinator interface {
 	GetValidatorsIndexes(publicKeys []string, epoch uint32) ([]uint64, error)
-	ComputeConsensusGroup(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []Validator, err error)
+	ComputeConsensusGroup(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []core.Validator, err error)
 	ShardIdForEpoch(epoch uint32) (uint32, error)
 	GetConsensusWhitelistedNodes(epoch uint32) (map[string]struct{}, error)
 	ConsensusGroupSize(uint32) int
@@ -336,24 +319,10 @@ type RoundTimeDurationHandler interface {
 	IsInterfaceNil() bool
 }
 
-// MessageP2P defines what a p2p message can do (should return)
-type MessageP2P interface {
-	From() []byte
-	Data() []byte
-	Payload() []byte
-	SeqNo() []byte
-	Topic() string
-	Signature() []byte
-	Key() []byte
-	Peer() core.PeerID
-	Timestamp() int64
-	IsInterfaceNil() bool
-}
-
 // ForkDetector is an interface that defines the behaviour of a struct that is able
 // to detect forks
 type ForkDetector interface {
-	AddHeader(header data.HeaderHandler, headerHash []byte, state BlockHeaderState, selfNotarizedHeaders []data.HeaderHandler, selfNotarizedHeadersHashes [][]byte) error
+	AddHeader(header data.HeaderHandler, headerHash []byte, state core.BlockHeaderState, selfNotarizedHeaders []data.HeaderHandler, selfNotarizedHeadersHashes [][]byte) error
 	IsInterfaceNil() bool
 }
 
