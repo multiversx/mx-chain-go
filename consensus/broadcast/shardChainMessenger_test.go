@@ -4,12 +4,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/consensus/broadcast"
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
-	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
@@ -39,9 +39,9 @@ func createDelayData(prefix string) ([]byte, *block.Header, map[uint32][]byte, m
 
 func createInterceptorContainer() process.InterceptorsContainer {
 	return &testscommon.InterceptorsContainerStub{
-		GetCalled: func(topic string) (process.Interceptor, error) {
+		GetCalled: func(topic string) (core.Interceptor, error) {
 			return &testscommon.InterceptorStub{
-				ProcessReceivedMessageCalled: func(message p2p.MessageP2P) error {
+				ProcessReceivedMessageCalled: func(message core.MessageP2P) error {
 					return nil
 				},
 			}, nil

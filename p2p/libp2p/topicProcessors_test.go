@@ -89,17 +89,17 @@ func TestTopicProcessorsGetListShouldWorkAndPreserveOrder(t *testing.T) {
 	identifier2 := "identifier2"
 	identifier3 := "identifier3"
 	handler1 := &mock.MessageProcessorStub{
-		ProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
+		ProcessMessageCalled: func(message core.MessageP2P, fromConnectedPeer core.PeerID) error {
 			return nil
 		},
 	}
 	handler2 := &mock.MessageProcessorStub{
-		ProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
+		ProcessMessageCalled: func(message core.MessageP2P, fromConnectedPeer core.PeerID) error {
 			return nil
 		},
 	}
 	handler3 := &mock.MessageProcessorStub{
-		ProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
+		ProcessMessageCalled: func(message core.MessageP2P, fromConnectedPeer core.PeerID) error {
 			return nil
 		},
 	}

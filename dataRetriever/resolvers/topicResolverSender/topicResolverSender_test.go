@@ -12,7 +12,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers/topicResolverSender"
-	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -525,7 +524,7 @@ func TestTopicResolverSender_SendOnRequestTopicShouldWorkAndSkipAntifloodChecksF
 		},
 	}
 	arg.OutputAntiflooder = &mock.P2PAntifloodHandlerStub{
-		CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
+		CanProcessMessageCalled: func(message core.MessageP2P, fromConnectedPeer core.PeerID) error {
 			if fromConnectedPeer == pIDPreferred {
 				require.Fail(t, "CanProcessMessage should have not be called for preferred peer")
 			}
@@ -741,7 +740,7 @@ func TestTopicResolverSender_SendOutputAntiflooderErrorsShouldNotSendButError(t 
 		},
 	}
 	arg.OutputAntiflooder = &mock.P2PAntifloodHandlerStub{
-		CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
+		CanProcessMessageCalled: func(message core.MessageP2P, fromConnectedPeer core.PeerID) error {
 			if fromConnectedPeer == pID1 {
 				return expectedErr
 			}
@@ -772,7 +771,7 @@ func TestTopicResolverSender_SendShouldNotCheckAntifloodForPreferred(t *testing.
 		},
 	}
 	arg.OutputAntiflooder = &mock.P2PAntifloodHandlerStub{
-		CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
+		CanProcessMessageCalled: func(message core.MessageP2P, fromConnectedPeer core.PeerID) error {
 			require.Fail(t, "CanProcessMessage should have not be called for preferred peer")
 
 			return nil

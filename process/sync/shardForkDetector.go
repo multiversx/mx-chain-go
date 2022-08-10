@@ -78,7 +78,7 @@ func NewShardForkDetector(
 func (sfd *shardForkDetector) AddHeader(
 	header data.HeaderHandler,
 	headerHash []byte,
-	state process.BlockHeaderState,
+	state core.BlockHeaderState,
 	selfNotarizedHeaders []data.HeaderHandler,
 	selfNotarizedHeadersHashes [][]byte,
 ) error {
@@ -140,7 +140,7 @@ func (sfd *shardForkDetector) appendSelfNotarizedHeaders(
 			nonce: selfNotarizedHeaders[i].GetNonce(),
 			round: selfNotarizedHeaders[i].GetRound(),
 			hash:  selfNotarizedHeadersHashes[i],
-			state: process.BHNotarized,
+			state: core.BHNotarized,
 		})
 		if appended {
 			log.Debug("added self notarized header in fork detector",
@@ -198,9 +198,9 @@ func (sfd *shardForkDetector) getProcessedAndNotarizedIndexes(headersInfo []*hea
 
 	for index, hdrInfo := range headersInfo {
 		switch hdrInfo.state {
-		case process.BHProcessed:
+		case core.BHProcessed:
 			indexBHProcessed = index
-		case process.BHNotarized:
+		case core.BHNotarized:
 			indexBHNotarized = index
 		}
 	}

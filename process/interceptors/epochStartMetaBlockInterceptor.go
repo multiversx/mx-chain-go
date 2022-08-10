@@ -9,7 +9,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 )
@@ -56,7 +55,7 @@ func NewEpochStartMetaBlockInterceptor(args ArgsEpochStartMetaBlockInterceptor) 
 }
 
 // ProcessReceivedMessage will handle received messages containing epoch start meta blocks
-func (e *epochStartMetaBlockInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
+func (e *epochStartMetaBlockInterceptor) ProcessReceivedMessage(message core.MessageP2P, fromConnectedPeer core.PeerID) error {
 	var epochStartMb block.MetaBlock
 	err := e.marshalizer.Unmarshal(&epochStartMb, message.Data())
 	if err != nil {

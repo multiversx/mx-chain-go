@@ -1,6 +1,7 @@
 package shardingMocks
 
 import (
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 )
 
@@ -24,7 +25,7 @@ func (nsm *NodeShufflerMock) UpdateNodeLists(args nodesCoordinator.ArgsUpdateNod
 		Eligible:       args.Eligible,
 		Waiting:        args.Waiting,
 		Leaving:        args.UnStakeLeaving,
-		StillRemaining: make([]nodesCoordinator.Validator, 0),
+		StillRemaining: make([]core.Validator, 0),
 	}, nil
 }
 

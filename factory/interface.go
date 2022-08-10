@@ -41,8 +41,8 @@ import (
 
 // EpochStartNotifier defines which actions should be done for handling new epoch's events
 type EpochStartNotifier interface {
-	RegisterHandler(handler epochStart.ActionHandler)
-	UnregisterHandler(handler epochStart.ActionHandler)
+	RegisterHandler(handler core.EpochStartActionHandler)
+	UnregisterHandler(handler core.EpochStartActionHandler)
 	NotifyAll(hdr data.HeaderHandler)
 	NotifyAllPrepare(metaHdr data.HeaderHandler, body data.BodyHandler)
 	NotifyEpochChangeConfirmed(epoch uint32)
@@ -58,7 +58,7 @@ type EpochStartNotifierWithConfirm interface {
 // P2PAntifloodHandler defines the behavior of a component able to signal that the system is too busy (or flooded) processing
 // p2p messages
 type P2PAntifloodHandler interface {
-	CanProcessMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error
+	CanProcessMessage(message core.MessageP2P, fromConnectedPeer core.PeerID) error
 	CanProcessMessagesOnTopic(peer core.PeerID, topic string, numMessages uint32, totalSize uint64, sequence []byte) error
 	ResetForTopic(topic string)
 	SetMaxMessagesForTopic(topic string, maxNum uint32)
@@ -324,7 +324,7 @@ type HeartbeatSender interface {
 
 // HeartbeatMonitor monitors the received heartbeat messages
 type HeartbeatMonitor interface {
-	ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error
+	ProcessReceivedMessage(message core.MessageP2P, fromConnectedPeer core.PeerID) error
 	GetHeartbeats() []heartbeatData.PubKeyHeartbeat
 	IsInterfaceNil() bool
 	Cleanup()
@@ -384,7 +384,7 @@ type ConsensusWorker interface {
 	// RemoveAllReceivedMessagesCalls removes all the functions handlers
 	RemoveAllReceivedMessagesCalls()
 	// ProcessReceivedMessage method redirects the received message to the channel which should handle it
-	ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error
+	ProcessReceivedMessage(message core.MessageP2P, fromConnectedPeer core.PeerID) error
 	// Extend does an extension for the subround with subroundId
 	Extend(subroundId int)
 	// GetConsensusStateChangedChannel gets the channel for the consensusStateChanged

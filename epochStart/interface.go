@@ -5,6 +5,7 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/state"
@@ -70,8 +71,8 @@ type ActionHandler interface {
 
 // RegistrationHandler provides Register and Unregister functionality for the end of epoch events
 type RegistrationHandler interface {
-	RegisterHandler(handler ActionHandler)
-	UnregisterHandler(handler ActionHandler)
+	RegisterHandler(handler core.EpochStartActionHandler)
+	UnregisterHandler(handler core.EpochStartActionHandler)
 	IsInterfaceNil() bool
 }
 
@@ -141,7 +142,7 @@ type ImportStartHandler interface {
 // ManualEpochStartNotifier represents a notifier that can be triggered manually for an epoch change event.
 // Useful in storage resolvers (import-db process)
 type ManualEpochStartNotifier interface {
-	RegisterHandler(handler ActionHandler)
+	RegisterHandler(handler core.EpochStartActionHandler)
 	NewEpoch(epoch uint32)
 	CurrentEpoch() uint32
 	IsInterfaceNil() bool

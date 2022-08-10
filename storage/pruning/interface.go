@@ -1,13 +1,13 @@
 package pruning
 
 import (
-	"github.com/ElrondNetwork/elrond-go/epochStart"
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 // EpochStartNotifier defines what a component which will handle registration to epoch start event should do
 type EpochStartNotifier interface {
-	RegisterHandler(handler epochStart.ActionHandler)
+	RegisterHandler(handler core.EpochStartActionHandler)
 	IsInterfaceNil() bool
 }
 

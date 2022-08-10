@@ -1,6 +1,7 @@
 package heartbeat
 
 import (
+	"crypto"
 	"errors"
 	"fmt"
 	"testing"
@@ -15,7 +16,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl"
 	mclsig "github.com/ElrondNetwork/elrond-go-crypto/signing/mcl/singlesig"
@@ -390,7 +390,7 @@ func createMonitor(maxDurationPeerUnresponsive time.Duration) *process.Monitor {
 		PeerTypeProvider: &mock.PeerTypeProviderStub{},
 		Timer:            &process.RealTimer{},
 		AntifloodHandler: &mock.P2PAntifloodHandlerStub{
-			CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
+			CanProcessMessageCalled: func(message core.MessageP2P, fromConnectedPeer core.PeerID) error {
 				return nil
 			},
 		},

@@ -4,14 +4,14 @@ import (
 	"sort"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go/epochStart"
 )
 
 // EpochStartNotifier defines which actions should be done for handling new epoch's events
 type EpochStartNotifier interface {
-	RegisterHandler(handler epochStart.ActionHandler)
-	UnregisterHandler(handler epochStart.ActionHandler)
+	RegisterHandler(handler core.EpochStartActionHandler)
+	UnregisterHandler(handler core.EpochStartActionHandler)
 	NotifyAll(hdr data.HeaderHandler)
 	NotifyAllPrepare(metaHdr data.HeaderHandler, body data.BodyHandler)
 	NotifyEpochChangeConfirmed(epoch uint32)
@@ -23,7 +23,7 @@ var _ EpochStartNotifier = (*epochStartSubscriptionHandler)(nil)
 
 // epochStartSubscriptionHandler will handle subscription of function and notifying them
 type epochStartSubscriptionHandler struct {
-	epochStartHandlers    []epochStart.ActionHandler
+	epochStartHandlers    []core.EpochStartActionHandler
 	epochFinalizedHandler []func(epoch uint32)
 	mutEpochStartHandler  sync.RWMutex
 }
@@ -31,14 +31,14 @@ type epochStartSubscriptionHandler struct {
 // NewEpochStartSubscriptionHandler returns a new instance of epochStartSubscriptionHandler
 func NewEpochStartSubscriptionHandler() *epochStartSubscriptionHandler {
 	return &epochStartSubscriptionHandler{
-		epochStartHandlers:    make([]epochStart.ActionHandler, 0),
+		epochStartHandlers:    make([]core.EpochStartActionHandler, 0),
 		epochFinalizedHandler: make([]func(epoch uint32), 0),
 		mutEpochStartHandler:  sync.RWMutex{},
 	}
 }
 
 // RegisterHandler will subscribe a function so it will be called when NotifyAll method is called
-func (essh *epochStartSubscriptionHandler) RegisterHandler(handler epochStart.ActionHandler) {
+func (essh *epochStartSubscriptionHandler) RegisterHandler(handler core.EpochStartActionHandler) {
 	if handler != nil {
 		essh.mutEpochStartHandler.Lock()
 		essh.epochStartHandlers = append(essh.epochStartHandlers, handler)
@@ -47,7 +47,7 @@ func (essh *epochStartSubscriptionHandler) RegisterHandler(handler epochStart.Ac
 }
 
 // UnregisterHandler will unsubscribe a function from the slice
-func (essh *epochStartSubscriptionHandler) UnregisterHandler(handlerToUnregister epochStart.ActionHandler) {
+func (essh *epochStartSubscriptionHandler) UnregisterHandler(handlerToUnregister core.EpochStartActionHandler) {
 	if handlerToUnregister != nil {
 		essh.mutEpochStartHandler.Lock()
 		for idx, handler := range essh.epochStartHandlers {

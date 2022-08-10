@@ -15,7 +15,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers"
-	"github.com/ElrondNetwork/elrond-go/p2p"
 	processMock "github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
@@ -188,7 +187,7 @@ func TestPeerAuthenticationResolver_ProcessReceivedMessage(t *testing.T) {
 
 		arg := createMockArgPeerAuthenticationResolver()
 		arg.AntifloodHandler = &mock.P2PAntifloodHandlerStub{
-			CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
+			CanProcessMessageCalled: func(message core.MessageP2P, fromConnectedPeer core.PeerID) error {
 				return expectedErr
 			},
 		}

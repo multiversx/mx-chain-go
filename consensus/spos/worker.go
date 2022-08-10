@@ -317,7 +317,7 @@ func (wrk *Worker) getCleanedList(cnsDataList []*consensus.Message) []*consensus
 }
 
 // ProcessReceivedMessage method redirects the received message to the channel which should handle it
-func (wrk *Worker) ProcessReceivedMessage(message consensus.MessageP2P, fromConnectedPeer core.PeerID) error {
+func (wrk *Worker) ProcessReceivedMessage(message core.MessageP2P, fromConnectedPeer core.PeerID) error {
 	if check.IfNil(message) {
 		return ErrNilMessage
 	}
@@ -460,7 +460,7 @@ func (wrk *Worker) doJobOnMessageWithHeader(cnsMsg *consensus.Message) error {
 
 	wrk.processReceivedHeaderMetric(cnsMsg)
 
-	errNotCritical := wrk.forkDetector.AddHeader(header, headerHash, consensus.BHProposed, nil, nil)
+	errNotCritical := wrk.forkDetector.AddHeader(header, headerHash, core.BHProposed, nil, nil)
 	if errNotCritical != nil {
 		log.Debug("add received header from consensus topic to fork detector failed",
 			"error", errNotCritical.Error())

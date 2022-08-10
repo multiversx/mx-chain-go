@@ -196,7 +196,7 @@ func TestInterceptedPeerAuthentication_CheckValidity(t *testing.T) {
 
 		arg := createMockInterceptedPeerAuthenticationArg(createDefaultInterceptedPeerAuthentication())
 		arg.NodesCoordinator = &processMocks.NodesCoordinatorStub{
-			GetValidatorWithPublicKeyCalled: func(publicKey []byte) (validator nodesCoordinator.Validator, shardId uint32, err error) {
+			GetValidatorWithPublicKeyCalled: func(publicKey []byte) (validator core.Validator, shardId uint32, err error) {
 				return nil, 0, expectedErr
 			},
 		}

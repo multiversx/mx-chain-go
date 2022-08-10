@@ -2,14 +2,14 @@
 package dataRetriever
 
 import (
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/p2p"
 )
 
-// UnmarshalWith sets the fields according to p2p.MessageP2P.Data() contents
+// UnmarshalWith sets the fields according to core.MessageP2P.Data() contents
 // Errors if something went wrong
-func (rd *RequestData) UnmarshalWith(marshalizer marshal.Marshalizer, message p2p.MessageP2P) error {
+func (rd *RequestData) UnmarshalWith(marshalizer marshal.Marshalizer, message core.MessageP2P) error {
 	if marshalizer == nil || marshalizer.IsInterfaceNil() {
 		return ErrNilMarshalizer
 	}

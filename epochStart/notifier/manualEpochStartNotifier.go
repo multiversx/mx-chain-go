@@ -3,9 +3,9 @@ package notifier
 import (
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/epochStart"
 )
 
 var log = logger.GetOrCreate("epochstart/notifier")
@@ -14,7 +14,7 @@ var log = logger.GetOrCreate("epochstart/notifier")
 // TODO think about a better name as this does not get its data from the exterior of the node
 type manualEpochStartNotifier struct {
 	mutHandlers     sync.RWMutex
-	handlers        []epochStart.ActionHandler
+	handlers        []core.EpochStartActionHandler
 	mutCurrentEpoch sync.RWMutex
 	currentEpoch    uint32
 }
@@ -22,12 +22,12 @@ type manualEpochStartNotifier struct {
 // NewManualEpochStartNotifier creates a new instance of a manual epoch start notifier
 func NewManualEpochStartNotifier() *manualEpochStartNotifier {
 	return &manualEpochStartNotifier{
-		handlers: make([]epochStart.ActionHandler, 0),
+		handlers: make([]core.EpochStartActionHandler, 0),
 	}
 }
 
 // RegisterHandler registers an epoch start action handler
-func (mesn *manualEpochStartNotifier) RegisterHandler(handler epochStart.ActionHandler) {
+func (mesn *manualEpochStartNotifier) RegisterHandler(handler core.EpochStartActionHandler) {
 	mesn.mutHandlers.Lock()
 	defer mesn.mutHandlers.Unlock()
 

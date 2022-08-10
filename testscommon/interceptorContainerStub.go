@@ -1,44 +1,43 @@
 package testscommon
 
 import (
-	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go-core/core"
 )
 
 // InterceptorsContainerStub -
 type InterceptorsContainerStub struct {
-	IterateCalled     func(handler func(key string, interceptor process.Interceptor) bool)
-	GetCalled         func(string) (process.Interceptor, error)
-	AddCalled         func(key string, interceptor process.Interceptor) error
-	AddMultipleCalled func(keys []string, interceptors []process.Interceptor) error
-	ReplaceCalled     func(key string, interceptor process.Interceptor) error
+	IterateCalled     func(handler func(key string, interceptor core.Interceptor) bool)
+	GetCalled         func(string) (core.Interceptor, error)
+	AddCalled         func(key string, interceptor core.Interceptor) error
+	AddMultipleCalled func(keys []string, interceptors []core.Interceptor) error
+	ReplaceCalled     func(key string, interceptor core.Interceptor) error
 	RemoveCalled      func(key string)
 	LenCalled         func() int
 	CloseCalled       func() error
 }
 
 // Iterate -
-func (ics *InterceptorsContainerStub) Iterate(handler func(key string, interceptor process.Interceptor) bool) {
+func (ics *InterceptorsContainerStub) Iterate(handler func(key string, interceptor core.Interceptor) bool) {
 	if ics.IterateCalled != nil {
 		ics.IterateCalled(handler)
 	}
 }
 
 // Get -
-func (ics *InterceptorsContainerStub) Get(topic string) (process.Interceptor, error) {
+func (ics *InterceptorsContainerStub) Get(topic string) (core.Interceptor, error) {
 	if ics.GetCalled != nil {
 		return ics.GetCalled(topic)
 	}
 
 	return &InterceptorStub{
-		ProcessReceivedMessageCalled: func(message p2p.MessageP2P) error {
+		ProcessReceivedMessageCalled: func(message core.MessageP2P) error {
 			return nil
 		},
 	}, nil
 }
 
 // Add -
-func (ics *InterceptorsContainerStub) Add(key string, interceptor process.Interceptor) error {
+func (ics *InterceptorsContainerStub) Add(key string, interceptor core.Interceptor) error {
 	if ics.AddCalled != nil {
 		return ics.AddCalled(key, interceptor)
 	}
@@ -47,7 +46,7 @@ func (ics *InterceptorsContainerStub) Add(key string, interceptor process.Interc
 }
 
 // AddMultiple -
-func (ics *InterceptorsContainerStub) AddMultiple(keys []string, interceptors []process.Interceptor) error {
+func (ics *InterceptorsContainerStub) AddMultiple(keys []string, interceptors []core.Interceptor) error {
 	if ics.AddMultipleCalled != nil {
 		return ics.AddMultipleCalled(keys, interceptors)
 	}
@@ -56,7 +55,7 @@ func (ics *InterceptorsContainerStub) AddMultiple(keys []string, interceptors []
 }
 
 // Replace -
-func (ics *InterceptorsContainerStub) Replace(key string, interceptor process.Interceptor) error {
+func (ics *InterceptorsContainerStub) Replace(key string, interceptor core.Interceptor) error {
 	if ics.ReplaceCalled != nil {
 		return ics.ReplaceCalled(key, interceptor)
 	}

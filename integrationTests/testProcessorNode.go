@@ -387,9 +387,9 @@ func newBaseTestProcessorNode(
 		},
 	}
 	nodesCoordinatorStub := &shardingMocks.NodesCoordinatorStub{
-		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []nodesCoordinator.Validator, err error) {
+		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []core.Validator, err error) {
 			v, _ := nodesCoordinator.NewValidator(pksBytes[shardId], 1, defaultChancesSelection)
-			return []nodesCoordinator.Validator{v}, nil
+			return []core.Validator{v}, nil
 		},
 		GetAllValidatorsPublicKeysCalled: func() (map[uint32][][]byte, error) {
 			keys := make(map[uint32][][]byte)
@@ -402,7 +402,7 @@ func newBaseTestProcessorNode(
 
 			return keys, nil
 		},
-		GetValidatorWithPublicKeyCalled: func(publicKey []byte) (nodesCoordinator.Validator, uint32, error) {
+		GetValidatorWithPublicKeyCalled: func(publicKey []byte) (core.Validator, uint32, error) {
 			validator, _ := nodesCoordinator.NewValidator(publicKey, defaultChancesSelection, 1)
 			return validator, 0, nil
 		},
@@ -580,6 +580,7 @@ func NewTestProcessorNodeWithFullGenesis(
 		tpn.DataPool.Headers(),
 		tpn.InterceptorsContainer,
 		&testscommon.AlarmSchedulerStub{},
+		&testscommon.CacherMock{},
 	)
 	tpn.setGenesisBlock()
 	tpn.initNode()
@@ -788,6 +789,7 @@ func (tpn *TestProcessorNode) initTestNode() {
 		tpn.DataPool.Headers(),
 		tpn.InterceptorsContainer,
 		&testscommon.AlarmSchedulerStub{},
+		&testscommon.CacherMock{},
 	)
 	tpn.setGenesisBlock()
 	tpn.initNode()
@@ -838,6 +840,7 @@ func (tpn *TestProcessorNode) initTestNodeWithTrieDBAndGasModel(trieStore storag
 		tpn.DataPool.Headers(),
 		tpn.InterceptorsContainer,
 		&testscommon.AlarmSchedulerStub{},
+		&testscommon.CacherMock{},
 	)
 	tpn.setGenesisBlock()
 	tpn.initNode()
@@ -1016,6 +1019,7 @@ func (tpn *TestProcessorNode) InitializeProcessors(gasMap map[string]map[string]
 		tpn.DataPool.Headers(),
 		tpn.InterceptorsContainer,
 		&testscommon.AlarmSchedulerStub{},
+		&testscommon.CacherMock{},
 	)
 	tpn.setGenesisBlock()
 	tpn.initNode()
