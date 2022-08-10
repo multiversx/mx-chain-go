@@ -44,6 +44,10 @@ func TestDelegationSystemNodesOperationsTest(t *testing.T) {
 
 	tpn.BlockchainHook.SetCurrentHeader(&block.MetaBlock{Nonce: 1})
 
+	tpn.EpochNotifier.CheckEpoch(&testscommon.HeaderHandlerStub{
+		EpochField: integrationTests.UnreachableEpoch + 1,
+	})
+
 	// create new delegation contract
 	delegationScAddress := deployNewSc(t, tpn, maxDelegationCap, serviceFee, value, tpn.OwnAccount.Address)
 
