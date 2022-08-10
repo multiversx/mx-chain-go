@@ -14,7 +14,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/vm/mock"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestNewVMContext_NilBlockChainHook(t *testing.T) {
@@ -61,15 +60,15 @@ func TestNewVMContext_NilChanceComputer(t *testing.T) {
 	assert.Equal(t, vm.ErrNilChanceComputer, err)
 }
 
-func TestNewVMContext_NilEpochNotifier(t *testing.T) {
+func TestNewVMContext_NilEnableEpochsHandler(t *testing.T) {
 	t.Parallel()
 
 	args := createDefaultEeiArgs()
-	args.EpochNotifier = nil
+	args.EnableEpochsHandler = nil
 	vmCtx, err := NewVMContext(args)
 
 	assert.Nil(t, vmCtx)
-	assert.Equal(t, vm.ErrNilEpochNotifier, err)
+	assert.Equal(t, vm.ErrNilEnableEpochsHandler, err)
 	assert.True(t, check.IfNil(vmCtx))
 }
 
@@ -265,27 +264,4 @@ func TestVmContext_CleanStorage(t *testing.T) {
 	vmCtx.storageUpdate["address"]["key"] = []byte("someData")
 	vmCtx.CleanStorageUpdates()
 	assert.Equal(t, 0, len(vmCtx.storageUpdate))
-}
-
-func TestVmContext_EpochConfirmed(t *testing.T) {
-	t.Parallel()
-
-	args := createDefaultEeiArgs()
-	args.SetSenderInEeiOutputTransferEnableEpoch = 5
-
-	vmCtx, _ := NewVMContext(args)
-
-	require.False(t, vmCtx.flagSetSenderInEeiOutputTransfer.IsSet())
-
-	vmCtx.EpochConfirmed(4, 0)
-	require.False(t, vmCtx.flagSetSenderInEeiOutputTransfer.IsSet())
-
-	vmCtx.EpochConfirmed(5, 0)
-	require.True(t, vmCtx.flagSetSenderInEeiOutputTransfer.IsSet())
-
-	vmCtx.EpochConfirmed(6, 0)
-	require.True(t, vmCtx.flagSetSenderInEeiOutputTransfer.IsSet())
-
-	vmCtx.EpochConfirmed(3, 0)
-	require.False(t, vmCtx.flagSetSenderInEeiOutputTransfer.IsSet())
 }

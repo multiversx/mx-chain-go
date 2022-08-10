@@ -15,7 +15,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/mock"
@@ -139,12 +138,11 @@ func createDelegationContractAndEEI() (*delegation, *vmContext) {
 				return 2
 			},
 		},
-		CryptoHook:                              hooks.NewVMCryptoHook(),
-		InputParser:                             &mock.ArgumentParserMock{},
-		ValidatorAccountsDB:                     &stateMock.AccountsStub{},
-		ChanceComputer:                          &mock.RaterMock{},
-		EpochNotifier:                           &epochNotifier.EpochNotifierStub{},
-		SetSenderInEeiOutputTransferEnableEpoch: 0,
+		CryptoHook:          hooks.NewVMCryptoHook(),
+		InputParser:         &mock.ArgumentParserMock{},
+		ValidatorAccountsDB: &stateMock.AccountsStub{},
+		ChanceComputer:      &mock.RaterMock{},
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
 	})
 	systemSCContainerStub := &mock.SystemSCContainerStub{GetCalled: func(key []byte) (vm.SystemSmartContract, error) {
 		return &mock.SystemSCStub{ExecuteCalled: func(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
@@ -4755,12 +4753,11 @@ func createDefaultEei() *vmContext {
 
 func createDefaultEeiArgs() VMContextArgs {
 	return VMContextArgs{
-		BlockChainHook:                          &mock.BlockChainHookStub{},
-		CryptoHook:                              hooks.NewVMCryptoHook(),
-		InputParser:                             parsers.NewCallArgsParser(),
-		ValidatorAccountsDB:                     &stateMock.AccountsStub{},
-		ChanceComputer:                          &mock.RaterMock{},
-		EpochNotifier:                           &epochNotifier.EpochNotifierStub{},
-		SetSenderInEeiOutputTransferEnableEpoch: 0,
+		BlockChainHook:      &mock.BlockChainHookStub{},
+		CryptoHook:          hooks.NewVMCryptoHook(),
+		InputParser:         parsers.NewCallArgsParser(),
+		ValidatorAccountsDB: &stateMock.AccountsStub{},
+		ChanceComputer:      &mock.RaterMock{},
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
 	}
 }

@@ -4,11 +4,9 @@ import (
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	vmData "github.com/ElrondNetwork/elrond-go-core/data/vm"
 	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/vm"
@@ -32,19 +30,17 @@ type vmContext struct {
 	output        [][]byte
 	logs          []*vmcommon.LogEntry
 
-	setSenderInEeiOutputTransferEnableEpoch uint32
-	flagSetSenderInEeiOutputTransfer        atomic.Flag
+	enableEpochsHandler common.EnableEpochsHandler
 }
 
 // VMContextArgs holds the arguments needed to create a new vmContext
 type VMContextArgs struct {
-	BlockChainHook                          vm.BlockchainHook
-	CryptoHook                              vmcommon.CryptoHook
-	InputParser                             vm.ArgumentsParser
-	ValidatorAccountsDB                     state.AccountsAdapter
-	ChanceComputer                          nodesCoordinator.ChanceComputer
-	EpochNotifier                           process.EpochNotifier
-	SetSenderInEeiOutputTransferEnableEpoch uint32
+	BlockChainHook      vm.BlockchainHook
+	CryptoHook          vmcommon.CryptoHook
+	InputParser         vm.ArgumentsParser
+	ValidatorAccountsDB state.AccountsAdapter
+	ChanceComputer      nodesCoordinator.ChanceComputer
+	EnableEpochsHandler common.EnableEpochsHandler
 }
 
 // NewVMContext creates a context where smart contracts can run and write
@@ -64,23 +60,19 @@ func NewVMContext(args VMContextArgs) (*vmContext, error) {
 	if check.IfNil(args.ChanceComputer) {
 		return nil, vm.ErrNilChanceComputer
 	}
-	if check.IfNil(args.EpochNotifier) {
-		return nil, vm.ErrNilEpochNotifier
+	if check.IfNil(args.EnableEpochsHandler) {
+		return nil, vm.ErrNilEnableEpochsHandler
 	}
 
 	vmc := &vmContext{
-		blockChainHook:                          args.BlockChainHook,
-		cryptoHook:                              args.CryptoHook,
-		inputParser:                             args.InputParser,
-		validatorAccountsDB:                     args.ValidatorAccountsDB,
-		chanceComputer:                          args.ChanceComputer,
-		setSenderInEeiOutputTransferEnableEpoch: args.SetSenderInEeiOutputTransferEnableEpoch,
+		blockChainHook:      args.BlockChainHook,
+		cryptoHook:          args.CryptoHook,
+		inputParser:         args.InputParser,
+		validatorAccountsDB: args.ValidatorAccountsDB,
+		chanceComputer:      args.ChanceComputer,
+		enableEpochsHandler: args.EnableEpochsHandler,
 	}
 	vmc.CleanCache()
-
-	log.Debug("eei/vmContext: setSenderInEeiOutputTransferEnableEpoch", "epoch", vmc.setSenderInEeiOutputTransferEnableEpoch)
-
-	args.EpochNotifier.RegisterNotifyHandler(vmc)
 
 	return vmc, nil
 }
@@ -257,7 +249,7 @@ func (host *vmContext) Transfer(
 		CallType: vmData.DirectCall,
 	}
 
-	if host.flagSetSenderInEeiOutputTransfer.IsSet() {
+	if host.enableEpochsHandler.IsSetSenderInEeiOutputTransferFlagEnabled() {
 		outputTransfer.SenderAddress = senderAcc.Address
 	}
 	destAcc.OutputTransfers = append(destAcc.OutputTransfers, outputTransfer)
@@ -697,12 +689,6 @@ func (host *vmContext) IsBadRating(blsKey []byte) bool {
 // CleanStorageUpdates deletes all the storage updates, used especially to delete data which was only read not modified
 func (host *vmContext) CleanStorageUpdates() {
 	host.storageUpdate = make(map[string]map[string][]byte)
-}
-
-// EpochConfirmed will be called whenever a new epoch is confirmed
-func (host *vmContext) EpochConfirmed(epoch uint32, _ uint64) {
-	host.flagSetSenderInEeiOutputTransfer.SetValue(epoch >= host.setSenderInEeiOutputTransferEnableEpoch)
-	log.Debug("scProcessor: deployment of SC", "enabled", host.flagSetSenderInEeiOutputTransfer.IsSet())
 }
 
 // IsInterfaceNil returns if the underlying implementation is nil
