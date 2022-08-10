@@ -1,7 +1,6 @@
 package shardchain
 
 import (
-	"fmt"
 	"sync"
 	"time"
 
@@ -130,13 +129,18 @@ func (p *peerMiniBlockSyncer) SyncValidatorsInfo(bodyHandler data.BodyHandler, e
 }
 
 func (p *peerMiniBlockSyncer) receivedMiniBlock(key []byte, val interface{}) {
-	peerMb, ok := val.(*block.MiniBlock)
-	if !ok || peerMb.Type != block.PeerBlock {
+	peerMiniBlock, ok := val.(*block.MiniBlock)
+	if !ok {
+		log.Error("receivedMiniBlock", "key", key, "error", epochStart.ErrWrongTypeAssertion)
+		return
+	}
+
+	if peerMiniBlock.Type != block.PeerBlock {
 		return
 	}
 
 	//TODO: Set the log level on Trace
-	log.Debug(fmt.Sprintf("received miniblock of type %s", peerMb.Type))
+	log.Debug("peerMiniBlockSyncer.receivedMiniBlock", "type", peerMiniBlock.Type)
 
 	p.mutMiniBlocksForBlock.Lock()
 	havingPeerMb, ok := p.mapAllPeerMiniBlocks[string(key)]
@@ -145,7 +149,7 @@ func (p *peerMiniBlockSyncer) receivedMiniBlock(key []byte, val interface{}) {
 		return
 	}
 
-	p.mapAllPeerMiniBlocks[string(key)] = peerMb
+	p.mapAllPeerMiniBlocks[string(key)] = peerMiniBlock
 	p.numMissingPeerMiniBlocks--
 	numMissingPeerMiniBlocks := p.numMissingPeerMiniBlocks
 	p.mutMiniBlocksForBlock.Unlock()
@@ -166,7 +170,7 @@ func (p *peerMiniBlockSyncer) receivedValidatorInfo(key []byte, val interface{})
 	}
 
 	//TODO: Set the log level on Trace
-	log.Debug(fmt.Sprintf("received validator info of pk %s", validatorInfo.PublicKey))
+	log.Debug("peerMiniBlockSyncer.receivedValidatorInfo", "pk", validatorInfo.PublicKey)
 
 	p.mutValidatorsInfoForBlock.Lock()
 	havingValidatorInfo, ok := p.mapAllValidatorsInfo[string(key)]
@@ -328,7 +332,12 @@ func (p *peerMiniBlockSyncer) retrieveMissingValidatorsInfo(epoch uint32) ([][]b
 		return nil, nil
 	}
 
-	p.requestHandler.RequestValidatorsInfo(missingValidatorsInfo, epoch)
+	//p.requestHandler.RequestValidatorsInfo(missingValidatorsInfo, epoch)
+	for _, missingValidatorInfo := range missingValidatorsInfo {
+		go func(validatorInfo []byte) {
+			p.requestHandler.RequestValidatorInfo(validatorInfo)
+		}(missingValidatorInfo)
+	}
 
 	select {
 	case <-p.chRcvAllValidatorsInfo:

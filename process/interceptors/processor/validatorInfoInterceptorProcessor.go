@@ -51,6 +51,9 @@ func (viip *validatorInfoInterceptorProcessor) Save(data process.InterceptedData
 	validatorInfo := ivi.ValidatorInfo()
 	hash := ivi.Hash()
 
+	//TODO: Set the log level on Trace
+	log.Debug("validatorInfoInterceptorProcessor.Save", "tx hash", hash, "publick key", validatorInfo.PublicKey)
+
 	strCache := process.ShardCacherIdentifier(core.MetachainShardId, core.AllShardId)
 	viip.validatorInfoPool.AddData(hash, validatorInfo, validatorInfo.Size(), strCache)
 

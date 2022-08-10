@@ -357,16 +357,21 @@ func (t *trigger) requestMissingValidatorsInfo(ctx context.Context) {
 			continue
 		}
 
-		var requestWithEpoch uint32
+		//var requestWithEpoch uint32
 		missingValidatorsInfo := make([][]byte, 0, len(t.mapMissingValidatorsInfo))
 		for hash, epoch := range t.mapMissingValidatorsInfo {
-			requestWithEpoch = epoch
+			//requestWithEpoch = epoch
 			missingValidatorsInfo = append(missingValidatorsInfo, []byte(hash))
 			log.Debug("trigger.requestMissingValidatorsInfo", "epoch", epoch, "hash", []byte(hash))
 		}
 		t.mutMissingValidatorsInfo.RUnlock()
 
-		go t.requestHandler.RequestValidatorsInfo(missingValidatorsInfo, requestWithEpoch)
+		//go t.requestHandler.RequestValidatorsInfo(missingValidatorsInfo, requestWithEpoch)
+		for _, missingValidatorInfo := range missingValidatorsInfo {
+			go func(validatorInfo []byte) {
+				t.requestHandler.RequestValidatorInfo(validatorInfo)
+			}(missingValidatorInfo)
+		}
 
 		select {
 		case <-ctx.Done():
