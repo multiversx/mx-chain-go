@@ -32,7 +32,11 @@ import (
 )
 
 func TestDelegationSystemNodesOperationsTest(t *testing.T) {
-	tpn := integrationTests.NewTestProcessorNode(1, core.MetachainShardId, 0)
+	tpn := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
+		MaxShards:            1,
+		NodeShardId:          core.MetachainShardId,
+		TxSignPrivKeyShardId: 0,
+	})
 	tpn.InitDelegationManager()
 	maxDelegationCap := big.NewInt(5000)
 	serviceFee := big.NewInt(1000)
