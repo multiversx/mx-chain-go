@@ -80,8 +80,7 @@ func (bdi *baseDataInterceptor) processInterceptedData(data process.InterceptedD
 
 	err = bdi.processor.Save(data, msg.Peer(), bdi.topic)
 	if err != nil {
-		//TODO: Set the log level on Trace
-		log.Debug("intercepted data can not be processed",
+		log.Trace("intercepted data can not be processed",
 			"hash", data.Hash(),
 			"type", data.Type(),
 			"pid", p2p.MessageOriginatorPid(msg),

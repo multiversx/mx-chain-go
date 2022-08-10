@@ -15,7 +15,7 @@ func (vip *ValidatorInfoSyncerStub) SyncMiniBlocks(_ data.HeaderHandler) ([][]by
 }
 
 // SyncValidatorsInfo -
-func (vip *ValidatorInfoSyncerStub) SyncValidatorsInfo(_ data.BodyHandler, _ uint32) ([][]byte, map[string]*state.ShardValidatorInfo, error) {
+func (vip *ValidatorInfoSyncerStub) SyncValidatorsInfo(_ data.BodyHandler) ([][]byte, map[string]*state.ShardValidatorInfo, error) {
 	return nil, nil, nil
 }
 

@@ -104,7 +104,7 @@ func (p *peerMiniBlockSyncer) SyncMiniBlocks(headerHandler data.HeaderHandler) (
 }
 
 // SyncValidatorsInfo synchronizes validators info from a block body of an epoch start meta block
-func (p *peerMiniBlockSyncer) SyncValidatorsInfo(bodyHandler data.BodyHandler, epoch uint32) ([][]byte, map[string]*state.ShardValidatorInfo, error) {
+func (p *peerMiniBlockSyncer) SyncValidatorsInfo(bodyHandler data.BodyHandler) ([][]byte, map[string]*state.ShardValidatorInfo, error) {
 	if check.IfNil(bodyHandler) {
 		return nil, nil, epochStart.ErrNilBlockBody
 	}
@@ -118,7 +118,7 @@ func (p *peerMiniBlockSyncer) SyncValidatorsInfo(bodyHandler data.BodyHandler, e
 
 	p.computeMissingValidatorsInfo(body)
 
-	allMissingValidatorsInfoHashes, err := p.retrieveMissingValidatorsInfo(epoch)
+	allMissingValidatorsInfoHashes, err := p.retrieveMissingValidatorsInfo()
 	if err != nil {
 		return allMissingValidatorsInfoHashes, nil, err
 	}
@@ -139,8 +139,7 @@ func (p *peerMiniBlockSyncer) receivedMiniBlock(key []byte, val interface{}) {
 		return
 	}
 
-	//TODO: Set the log level on Trace
-	log.Debug("peerMiniBlockSyncer.receivedMiniBlock", "type", peerMiniBlock.Type)
+	log.Debug("peerMiniBlockSyncer.receivedMiniBlock", "mb type", peerMiniBlock.Type)
 
 	p.mutMiniBlocksForBlock.Lock()
 	havingPeerMb, ok := p.mapAllPeerMiniBlocks[string(key)]
@@ -154,7 +153,6 @@ func (p *peerMiniBlockSyncer) receivedMiniBlock(key []byte, val interface{}) {
 	numMissingPeerMiniBlocks := p.numMissingPeerMiniBlocks
 	p.mutMiniBlocksForBlock.Unlock()
 
-	//TODO: Set the log level on Trace
 	log.Debug("peerMiniBlockSyncer.receivedMiniBlock", "mb hash", key, "num missing peer mini blocks", numMissingPeerMiniBlocks)
 
 	if numMissingPeerMiniBlocks == 0 {
@@ -169,7 +167,6 @@ func (p *peerMiniBlockSyncer) receivedValidatorInfo(key []byte, val interface{})
 		return
 	}
 
-	//TODO: Set the log level on Trace
 	log.Debug("peerMiniBlockSyncer.receivedValidatorInfo", "pk", validatorInfo.PublicKey)
 
 	p.mutValidatorsInfoForBlock.Lock()
@@ -184,7 +181,6 @@ func (p *peerMiniBlockSyncer) receivedValidatorInfo(key []byte, val interface{})
 	numMissingValidatorsInfo := p.numMissingValidatorsInfo
 	p.mutValidatorsInfoForBlock.Unlock()
 
-	//TODO: Set the log level on Trace
 	log.Debug("peerMiniBlockSyncer.receivedValidatorInfo", "tx hash", key, "num missing validators info", numMissingValidatorsInfo)
 
 	if numMissingValidatorsInfo == 0 {
@@ -317,7 +313,7 @@ func (p *peerMiniBlockSyncer) retrieveMissingMiniBlocks() ([][]byte, error) {
 	}
 }
 
-func (p *peerMiniBlockSyncer) retrieveMissingValidatorsInfo(epoch uint32) ([][]byte, error) {
+func (p *peerMiniBlockSyncer) retrieveMissingValidatorsInfo() ([][]byte, error) {
 	p.mutValidatorsInfoForBlock.Lock()
 	missingValidatorsInfo := make([][]byte, 0)
 	for validatorInfoHash, validatorInfo := range p.mapAllValidatorsInfo {
@@ -332,7 +328,7 @@ func (p *peerMiniBlockSyncer) retrieveMissingValidatorsInfo(epoch uint32) ([][]b
 		return nil, nil
 	}
 
-	//p.requestHandler.RequestValidatorsInfo(missingValidatorsInfo, epoch)
+	//TODO: Analyze if it works also with: go p.requestHandler.RequestValidatorsInfo(missingValidatorsInfo)
 	for _, missingValidatorInfo := range missingValidatorsInfo {
 		go func(validatorInfo []byte) {
 			p.requestHandler.RequestValidatorInfo(validatorInfo)

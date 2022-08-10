@@ -979,8 +979,7 @@ func (netMes *networkMessenger) pubsubCallback(topicProcs *topicProcessors, topi
 		for index, handler := range handlers {
 			err = handler.ProcessReceivedMessage(msg, fromConnectedPeer)
 			if err != nil {
-				//TODO: Set the log level on Trace
-				log.Debug("p2p validator",
+				log.Trace("p2p validator",
 					"error", err.Error(),
 					"topic", topic,
 					"originator", p2p.MessageOriginatorPid(msg),
@@ -1218,8 +1217,7 @@ func (netMes *networkMessenger) directMessageHandler(message *pubsub.Message, fr
 		for index, handler := range handlers {
 			errProcess := handler.ProcessReceivedMessage(msg, fromConnectedPeer)
 			if errProcess != nil {
-				//TODO: Set the log level on Trace
-				log.Debug("p2p validator",
+				log.Trace("p2p validator",
 					"error", errProcess.Error(),
 					"topic", msg.Topic(),
 					"originator", p2p.MessageOriginatorPid(msg),

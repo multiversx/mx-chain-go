@@ -1534,7 +1534,7 @@ func TestResolverRequestHandler_RequestValidatorsInfo(t *testing.T) {
 			time.Second,
 		)
 
-		rrh.RequestValidatorsInfo([][]byte{providedHash}, 0)
+		rrh.RequestValidatorsInfo([][]byte{providedHash})
 		assert.False(t, wasCalled)
 	})
 	t.Run("cast fails", func(t *testing.T) {
@@ -1558,7 +1558,7 @@ func TestResolverRequestHandler_RequestValidatorsInfo(t *testing.T) {
 			time.Second,
 		)
 
-		rrh.RequestValidatorsInfo([][]byte{providedHash}, 0)
+		rrh.RequestValidatorsInfo([][]byte{providedHash})
 		assert.False(t, wasCalled)
 	})
 	t.Run("should work", func(t *testing.T) {
@@ -1586,7 +1586,7 @@ func TestResolverRequestHandler_RequestValidatorsInfo(t *testing.T) {
 			time.Second,
 		)
 
-		rrh.RequestValidatorsInfo(providedHashes, 0)
+		rrh.RequestValidatorsInfo(providedHashes)
 		assert.True(t, wasCalled)
 	})
 }

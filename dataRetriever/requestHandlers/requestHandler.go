@@ -592,8 +592,8 @@ func (rrh *resolverRequestHandler) RequestValidatorInfo(hash []byte) {
 	rrh.addRequestedItems([][]byte{hash}, uniqueValidatorInfoSuffix)
 }
 
-// RequestValidatorsInfo asks for the validators` info associated with the specified hashes and epoch from connected peers
-func (rrh *resolverRequestHandler) RequestValidatorsInfo(hashes [][]byte, epoch uint32) {
+// RequestValidatorsInfo asks for the validators` info associated with the specified hashes from connected peers
+func (rrh *resolverRequestHandler) RequestValidatorsInfo(hashes [][]byte) {
 	unrequestedHashes := rrh.getUnrequestedHashes(hashes, uniqueValidatorInfoSuffix)
 	if len(unrequestedHashes) == 0 {
 		return
@@ -602,7 +602,7 @@ func (rrh *resolverRequestHandler) RequestValidatorsInfo(hashes [][]byte, epoch 
 	log.Debug("requesting validator info messages from network",
 		"topic", common.ValidatorInfoTopic,
 		"num hashes", len(unrequestedHashes),
-		"epoch", epoch,
+		"epoch", rrh.epoch,
 	)
 
 	resolver, err := rrh.resolversFinder.MetaChainResolver(common.ValidatorInfoTopic)
@@ -611,7 +611,7 @@ func (rrh *resolverRequestHandler) RequestValidatorsInfo(hashes [][]byte, epoch 
 			"error", err.Error(),
 			"topic", common.ValidatorInfoTopic,
 			"num hashes", len(unrequestedHashes),
-			"epoch", epoch,
+			"epoch", rrh.epoch,
 		)
 		return
 	}
@@ -624,13 +624,13 @@ func (rrh *resolverRequestHandler) RequestValidatorsInfo(hashes [][]byte, epoch 
 
 	rrh.whiteList.Add(unrequestedHashes)
 
-	err = validatorInfoResolver.RequestDataFromHashArray(unrequestedHashes, epoch)
+	err = validatorInfoResolver.RequestDataFromHashArray(unrequestedHashes, rrh.epoch)
 	if err != nil {
 		log.Debug("RequestValidatorInfo.RequestDataFromHash",
 			"error", err.Error(),
 			"topic", common.ValidatorInfoTopic,
 			"num hashes", len(unrequestedHashes),
-			"epoch", epoch,
+			"epoch", rrh.epoch,
 		)
 		return
 	}

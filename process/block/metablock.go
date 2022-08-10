@@ -2431,21 +2431,13 @@ func (mp *metaProcessor) getAllMarshalledTxs(body *block.Body) map[string][][]by
 
 	for topic, marshalledTxs := range marshalledRewardsTxs {
 		allMarshalledTxs[topic] = append(allMarshalledTxs[topic], marshalledTxs...)
-		//TODO: Set the log level on Trace
-		log.Debug("metaProcessor.getAllMarshalledTxs", "topic", topic, "num rewards txs", len(marshalledTxs))
+		log.Trace("metaProcessor.getAllMarshalledTxs", "topic", topic, "num rewards txs", len(marshalledTxs))
 	}
-
-	//TODO: Set the log level on Trace
-	log.Debug("metaProcessor.getAllMarshalledTxs", "num rewards txs", len(marshalledRewardsTxs))
 
 	for topic, marshalledTxs := range marshalledValidatorInfoTxs {
 		allMarshalledTxs[topic] = append(allMarshalledTxs[topic], marshalledTxs...)
-		//TODO: Set the log level on Trace
-		log.Debug("metaProcessor.getAllMarshalledTxs", "topic", topic, "num validator info txs", len(marshalledTxs))
+		log.Trace("metaProcessor.getAllMarshalledTxs", "topic", topic, "num validator info txs", len(marshalledTxs))
 	}
-
-	//TODO: Set the log level on Trace
-	log.Debug("metaProcessor.getAllMarshalledTxs", "num validator info txs", len(marshalledValidatorInfoTxs))
 
 	return allMarshalledTxs
 }

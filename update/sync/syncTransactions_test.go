@@ -168,14 +168,14 @@ func TestSyncPendingTransactionsFor_requestTransactionsFor(t *testing.T) {
 			SenderShardID:   0,
 			ReceiverShardID: 0,
 		}
-		numMissing := pendingTxsSyncer.requestTransactionsFor(mb, 0)
+		numMissing := pendingTxsSyncer.requestTransactionsFor(mb)
 		require.Equal(t, 2, numMissing)
 		require.Equal(t, 1, len(requests))
 		require.Equal(t, 2, requests[0])
 
 		requests = make(map[uint32]int)
 		mb.SenderShardID = 1
-		numMissing = pendingTxsSyncer.requestTransactionsFor(mb, 0)
+		numMissing = pendingTxsSyncer.requestTransactionsFor(mb)
 		require.Equal(t, 2, numMissing)
 		require.Equal(t, 2, len(requests))
 		require.Equal(t, 1, requests[0])
@@ -197,14 +197,14 @@ func TestSyncPendingTransactionsFor_requestTransactionsFor(t *testing.T) {
 			SenderShardID:   0,
 			ReceiverShardID: 0,
 		}
-		numMissing := pendingTxsSyncer.requestTransactionsFor(mb, 0)
+		numMissing := pendingTxsSyncer.requestTransactionsFor(mb)
 		require.Equal(t, 2, numMissing)
 		require.Equal(t, 1, len(requests))
 		require.Equal(t, 2, requests[0])
 
 		requests = make(map[uint32]int)
 		mb.SenderShardID = 1
-		numMissing = pendingTxsSyncer.requestTransactionsFor(mb, 0)
+		numMissing = pendingTxsSyncer.requestTransactionsFor(mb)
 		require.Equal(t, 2, numMissing)
 		require.Equal(t, 2, len(requests))
 		require.Equal(t, 1, requests[0])
@@ -226,14 +226,14 @@ func TestSyncPendingTransactionsFor_requestTransactionsFor(t *testing.T) {
 			SenderShardID:   0,
 			ReceiverShardID: 0,
 		}
-		numMissing := pendingTxsSyncer.requestTransactionsFor(mb, 0)
+		numMissing := pendingTxsSyncer.requestTransactionsFor(mb)
 		require.Equal(t, 2, numMissing)
 		require.Equal(t, 1, len(requests))
 		require.Equal(t, 2, requests[0])
 
 		requests = make(map[uint32]int)
 		mb.SenderShardID = 1
-		numMissing = pendingTxsSyncer.requestTransactionsFor(mb, 0)
+		numMissing = pendingTxsSyncer.requestTransactionsFor(mb)
 		require.Equal(t, 2, numMissing)
 		require.Equal(t, 2, len(requests))
 		require.Equal(t, 1, requests[0])
@@ -255,14 +255,14 @@ func TestSyncPendingTransactionsFor_requestTransactionsFor(t *testing.T) {
 			SenderShardID:   0,
 			ReceiverShardID: 0,
 		}
-		numMissing := pendingTxsSyncer.requestTransactionsFor(mb, 0)
+		numMissing := pendingTxsSyncer.requestTransactionsFor(mb)
 		require.Equal(t, 2, numMissing)
 		require.Equal(t, 1, len(requests))
 		require.Equal(t, 2, requests[0])
 
 		requests = make(map[uint32]int)
 		mb.SenderShardID = 1
-		numMissing = pendingTxsSyncer.requestTransactionsFor(mb, 0)
+		numMissing = pendingTxsSyncer.requestTransactionsFor(mb)
 		require.Equal(t, 2, numMissing)
 		require.Equal(t, 2, len(requests))
 		require.Equal(t, 1, requests[0])

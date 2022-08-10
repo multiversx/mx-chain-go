@@ -559,7 +559,7 @@ type RequestHandler interface {
 	RequestPeerAuthenticationsChunk(destShardID uint32, chunkIndex uint32)
 	RequestPeerAuthenticationsByHashes(destShardID uint32, hashes [][]byte)
 	RequestValidatorInfo(hash []byte)
-	RequestValidatorsInfo(hashes [][]byte, epoch uint32)
+	RequestValidatorsInfo(hashes [][]byte)
 	IsInterfaceNil() bool
 }
 
@@ -1000,7 +1000,7 @@ type RatingsStepHandler interface {
 // ValidatorInfoSyncer defines the method needed for validatorInfoProcessing
 type ValidatorInfoSyncer interface {
 	SyncMiniBlocks(headerHandler data.HeaderHandler) ([][]byte, data.BodyHandler, error)
-	SyncValidatorsInfo(bodyHandler data.BodyHandler, epoch uint32) ([][]byte, map[string]*state.ShardValidatorInfo, error)
+	SyncValidatorsInfo(bodyHandler data.BodyHandler) ([][]byte, map[string]*state.ShardValidatorInfo, error)
 	IsInterfaceNil() bool
 }
 

@@ -22,7 +22,7 @@ var _ process.PreProcessor = (*validatorInfoPreprocessor)(nil)
 type validatorInfoPreprocessor struct {
 	*basePreProcess
 	chReceivedAllValidatorsInfo        chan bool
-	onRequestValidatorsInfo            func(txHashes [][]byte, epoch uint32)
+	onRequestValidatorsInfo            func(txHashes [][]byte)
 	validatorsInfoForBlock             txsForBlock
 	validatorsInfoPool                 dataRetriever.ShardedDataCacherNotifier
 	storage                            dataRetriever.StorageService
@@ -37,7 +37,7 @@ func NewValidatorInfoPreprocessor(
 	blockSizeComputation BlockSizeComputationHandler,
 	validatorsInfoPool dataRetriever.ShardedDataCacherNotifier,
 	store dataRetriever.StorageService,
-	onRequestValidatorsInfo func(txHashes [][]byte, epoch uint32),
+	onRequestValidatorsInfo func(txHashes [][]byte),
 	epochNotifier process.EpochNotifier,
 	refactorPeersMiniBlocksEnableEpoch uint32,
 ) (*validatorInfoPreprocessor, error) {
@@ -192,8 +192,7 @@ func (vip *validatorInfoPreprocessor) receivedValidatorInfoTransaction(txHash []
 		return
 	}
 
-	//TODO: Set the log level on Trace
-	log.Debug("validatorInfoPreprocessor.receivedValidatorInfoTransaction", "tx hash", txHash, "pk", validatorInfo.PublicKey)
+	log.Trace("validatorInfoPreprocessor.receivedValidatorInfoTransaction", "tx hash", txHash, "pk", validatorInfo.PublicKey)
 }
 
 // CreateBlockStarted cleans the local cache map for processed/created validators info at this round

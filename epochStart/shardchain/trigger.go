@@ -303,13 +303,6 @@ func (t *trigger) requestMissingMiniBlocks(ctx context.Context) {
 		}
 
 		t.mutMissingMiniBlocks.RLock()
-
-		//for hash, epochOfMissingMb := range t.mapMissingMiniBlocks {
-		//	if epochOfMissingMb <= t.metaEpoch {
-		//		delete(t.mapMissingMiniBlocks, hash)
-		//	}
-		//}
-
 		if len(t.mapMissingMiniBlocks) == 0 {
 			t.mutMissingMiniBlocks.RUnlock()
 			continue
@@ -345,28 +338,19 @@ func (t *trigger) requestMissingValidatorsInfo(ctx context.Context) {
 		}
 
 		t.mutMissingValidatorsInfo.RLock()
-
-		//for hash, epochOfMissingValidatorInfo := range t.mapMissingValidatorsInfo {
-		//	if epochOfMissingValidatorInfo <= t.metaEpoch {
-		//		delete(t.mapMissingValidatorsInfo, hash)
-		//	}
-		//}
-
 		if len(t.mapMissingValidatorsInfo) == 0 {
 			t.mutMissingValidatorsInfo.RUnlock()
 			continue
 		}
 
-		//var requestWithEpoch uint32
 		missingValidatorsInfo := make([][]byte, 0, len(t.mapMissingValidatorsInfo))
 		for hash, epoch := range t.mapMissingValidatorsInfo {
-			//requestWithEpoch = epoch
 			missingValidatorsInfo = append(missingValidatorsInfo, []byte(hash))
 			log.Debug("trigger.requestMissingValidatorsInfo", "epoch", epoch, "hash", []byte(hash))
 		}
 		t.mutMissingValidatorsInfo.RUnlock()
 
-		//go t.requestHandler.RequestValidatorsInfo(missingValidatorsInfo, requestWithEpoch)
+		//TODO: Analyze if it works also with: go t.requestHandler.RequestValidatorsInfo(missingValidatorsInfo)
 		for _, missingValidatorInfo := range missingValidatorsInfo {
 			go func(validatorInfo []byte) {
 				t.requestHandler.RequestValidatorInfo(validatorInfo)
@@ -758,7 +742,7 @@ func (t *trigger) checkIfTriggerCanBeActivated(hash string, metaHdr data.HeaderH
 	}
 
 	if metaHdr.GetEpoch() >= t.refactorPeersMiniBlocksEnableEpoch {
-		missingValidatorsInfoHashes, validatorsInfo, err := t.peerMiniBlocksSyncer.SyncValidatorsInfo(blockBody, metaHdr.GetEpoch())
+		missingValidatorsInfoHashes, validatorsInfo, err := t.peerMiniBlocksSyncer.SyncValidatorsInfo(blockBody)
 		if err != nil {
 			t.addMissingValidatorsInfo(metaHdr.GetEpoch(), missingValidatorsInfoHashes)
 			log.Debug("checkIfTriggerCanBeActivated.SyncValidatorsInfo", "num missing validators info", len(missingValidatorsInfoHashes), "error", err)

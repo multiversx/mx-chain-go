@@ -22,7 +22,7 @@ type RequestHandlerStub struct {
 	RequestPeerAuthenticationsChunkCalled    func(destShardID uint32, chunkIndex uint32)
 	RequestPeerAuthenticationsByHashesCalled func(destShardID uint32, hashes [][]byte)
 	RequestValidatorInfoCalled               func(hash []byte)
-	RequestValidatorsInfoCalled              func(hashes [][]byte, epoch uint32)
+	RequestValidatorsInfoCalled              func(hashes [][]byte)
 }
 
 // SetNumPeersToQuery -
@@ -178,9 +178,9 @@ func (rhs *RequestHandlerStub) RequestValidatorInfo(hash []byte) {
 }
 
 // RequestValidatorsInfo -
-func (rhs *RequestHandlerStub) RequestValidatorsInfo(hashes [][]byte, epoch uint32) {
+func (rhs *RequestHandlerStub) RequestValidatorsInfo(hashes [][]byte) {
 	if rhs.RequestValidatorsInfoCalled != nil {
-		rhs.RequestValidatorsInfoCalled(hashes, epoch)
+		rhs.RequestValidatorsInfoCalled(hashes)
 	}
 }
 
