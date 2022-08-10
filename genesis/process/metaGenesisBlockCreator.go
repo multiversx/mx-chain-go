@@ -254,14 +254,14 @@ func saveGenesisMetaToStorage(
 
 	epochStartID := core.EpochStartIdentifier(genesisBlock.GetEpoch())
 
-	metaHdrStorage := storageService.GetStorer(dataRetriever.MetaBlockUnit)
-	if check.IfNil(metaHdrStorage) {
-		return process.ErrNilStorage
+	metaHdrStorage, err := storageService.GetStorer(dataRetriever.MetaBlockUnit)
+	if err != nil {
+		return err
 	}
 
-	triggerStorage := storageService.GetStorer(dataRetriever.BootstrapUnit)
-	if check.IfNil(triggerStorage) {
-		return process.ErrNilStorage
+	triggerStorage, err := storageService.GetStorer(dataRetriever.BootstrapUnit)
+	if err != nil {
+		return err
 	}
 
 	marshaledData, err := marshalizer.Marshal(genesisBlock)

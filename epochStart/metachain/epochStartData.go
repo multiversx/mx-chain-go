@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/davecgh/go-spew/spew"
 )
 
 var _ process.EpochStartDataCreator = (*epochStartData)(nil)
@@ -113,11 +114,8 @@ func (e *epochStartData) VerifyEpochStartDataForMetablock(metaBlock *block.MetaB
 	}
 
 	if !bytes.Equal(receivedEpochStartHash, createdEpochStartHash) {
-		log.Warn("RECEIVED epoch start data")
-		displayEpochStartData(&metaBlock.EpochStart)
-
-		log.Warn("CREATED epoch start data")
-		displayEpochStartData(startData)
+		displayEpochStartData("received", receivedEpochStartHash, &metaBlock.EpochStart)
+		displayEpochStartData("created", createdEpochStartHash, startData)
 
 		return process.ErrEpochStartDataDoesNotMatch
 	}
@@ -125,9 +123,12 @@ func (e *epochStartData) VerifyEpochStartDataForMetablock(metaBlock *block.MetaB
 	return nil
 }
 
-func displayEpochStartData(startData *block.EpochStart) {
+func displayEpochStartData(mode string, hash []byte, startData *block.EpochStart) {
+	log.Warn(mode+" epoch start data",
+		"hash", hash, "startData", spew.Sdump(startData))
+
 	for _, shardData := range startData.LastFinalizedHeaders {
-		log.Debug("epoch start shard data",
+		log.Warn("epoch start shard data",
 			"shardID", shardData.ShardID,
 			"num pending miniblocks", len(shardData.PendingMiniBlockHeaders),
 			"first pending meta", shardData.FirstPendingMetaBlock,

@@ -56,7 +56,7 @@ func createMockComponentHolders() (
 	}
 
 	dataComponents := &mock.DataComponentsMock{
-		Storage:    &mock.ChainStorerMock{},
+		Storage:    &storageStubs.ChainStorerStub{},
 		DataPool:   mdp,
 		BlockChain: createTestBlockchain(),
 	}
@@ -1751,8 +1751,8 @@ func TestMetaProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 	buffHdr, _ := marshalizerMock.Marshal(&hdr)
 	hdrHash := []byte("hdr_hash1")
 
-	store := &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+	store := &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 			return &storageStubs.StorerStub{
 				RemoveCalled: func(key []byte) error {
 					return nil
@@ -1760,7 +1760,7 @@ func TestMetaProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 				GetCalled: func(key []byte) ([]byte, error) {
 					return buffHdr, nil
 				},
-			}
+			}, nil
 		},
 	}
 

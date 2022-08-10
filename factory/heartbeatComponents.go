@@ -169,7 +169,11 @@ func (hcf *heartbeatComponentsFactory) Create() (*heartbeatComponents, error) {
 	if err != nil {
 		return nil, err
 	}
-	storer := hcf.dataComponents.StorageService().GetStorer(dataRetriever.HeartbeatUnit)
+	storer, err := hcf.dataComponents.StorageService().GetStorer(dataRetriever.HeartbeatUnit)
+	if err != nil {
+		return nil, err
+	}
+
 	marshalizer := hcf.coreComponents.InternalMarshalizer()
 	heartbeatStorer, err := heartbeatStorage.NewHeartbeatDbStorer(storer, marshalizer)
 	if err != nil {

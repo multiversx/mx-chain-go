@@ -68,8 +68,12 @@ func TestNode_GenerateSendInterceptHeaderByNonceWithNetMessenger(t *testing.T) {
 	//resolver has the headers
 	nResolver.DataPool.Headers().AddHeader(hdrHash1, hdr1)
 
-	_ = nResolver.Storage.GetStorer(dataRetriever.BlockHeaderUnit).Put(hdrHash2, hdrBuff2)
-	_ = nResolver.Storage.GetStorer(dataRetriever.ShardHdrNonceHashDataUnit).Put(uint64Converter.ToByteSlice(1), hdrHash2)
+	storer, err := nResolver.Storage.GetStorer(dataRetriever.BlockHeaderUnit)
+	assert.Nil(t, err)
+	_ = storer.Put(hdrHash2, hdrBuff2)
+	storer, err = nResolver.Storage.GetStorer(dataRetriever.ShardHdrNonceHashDataUnit)
+	assert.Nil(t, err)
+	_ = storer.Put(uint64Converter.ToByteSlice(1), hdrHash2)
 
 	chanDone1, chanDone2 := wireUpHandler(nRequester, hdr1, hdr2)
 
@@ -133,8 +137,12 @@ func TestNode_InterceptedHeaderWithWrongChainIDShouldBeDiscarded(t *testing.T) {
 	//resolver has the headers
 	nResolver.DataPool.Headers().AddHeader(hdrHash1, hdr1)
 
-	_ = nResolver.Storage.GetStorer(dataRetriever.BlockHeaderUnit).Put(hdrHash2, hdrBuff2)
-	_ = nResolver.Storage.GetStorer(dataRetriever.ShardHdrNonceHashDataUnit).Put(uint64Converter.ToByteSlice(1), hdrHash2)
+	storer, err := nResolver.Storage.GetStorer(dataRetriever.BlockHeaderUnit)
+	assert.Nil(t, err)
+	_ = storer.Put(hdrHash2, hdrBuff2)
+	storer, err = nResolver.Storage.GetStorer(dataRetriever.ShardHdrNonceHashDataUnit)
+	assert.Nil(t, err)
+	_ = storer.Put(uint64Converter.ToByteSlice(1), hdrHash2)
 
 	chanDone1, chanDone2 := wireUpHandler(nRequester, hdr1, hdr2)
 

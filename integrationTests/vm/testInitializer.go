@@ -59,6 +59,7 @@ import (
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
+	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon/txDataBuilder"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/trie/hashesHolder"
@@ -424,7 +425,7 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 	args := hooks.ArgBlockChainHook{
 		Accounts:              accnts,
 		PubkeyConv:            pubkeyConv,
-		StorageService:        &mock.ChainStorerMock{},
+		StorageService:        &storageStubs.ChainStorerStub{},
 		BlockChain:            &testscommon.ChainHandlerStub{},
 		ShardCoordinator:      oneShardCoordinator,
 		Marshalizer:           testMarshalizer,
@@ -520,7 +521,7 @@ func CreateOneSCExecutorMockVM(accnts state.AccountsAdapter) vmcommon.VMExecutio
 	args := hooks.ArgBlockChainHook{
 		Accounts:              accnts,
 		PubkeyConv:            pubkeyConv,
-		StorageService:        &mock.ChainStorerMock{},
+		StorageService:        &storageStubs.ChainStorerStub{},
 		BlockChain:            &testscommon.ChainHandlerStub{},
 		ShardCoordinator:      oneShardCoordinator,
 		Marshalizer:           testMarshalizer,
@@ -576,7 +577,7 @@ func CreateVMAndBlockchainHookAndDataPool(
 	args := hooks.ArgBlockChainHook{
 		Accounts:              accnts,
 		PubkeyConv:            pubkeyConv,
-		StorageService:        &mock.ChainStorerMock{},
+		StorageService:        &storageStubs.ChainStorerStub{},
 		BlockChain:            &testscommon.ChainHandlerStub{},
 		ShardCoordinator:      shardCoordinator,
 		Marshalizer:           testMarshalizer,
@@ -655,7 +656,7 @@ func CreateVMAndBlockchainHookMeta(
 	args := hooks.ArgBlockChainHook{
 		Accounts:              accnts,
 		PubkeyConv:            pubkeyConv,
-		StorageService:        &mock.ChainStorerMock{},
+		StorageService:        &storageStubs.ChainStorerStub{},
 		BlockChain:            &testscommon.ChainHandlerStub{},
 		ShardCoordinator:      shardCoordinator,
 		Marshalizer:           testMarshalizer,

@@ -108,7 +108,7 @@ func createMockArguments() peer.ArgValidatorStatisticsProcessor {
 				return nil
 			},
 		},
-		StorageService:                       &mock.ChainStorerMock{},
+		StorageService:                       &storageStubs.ChainStorerStub{},
 		NodesCoordinator:                     &shardingMocks.NodesCoordinatorMock{},
 		ShardCoordinator:                     mock.NewOneShardCoordinatorMock(),
 		PubkeyConv:                           createMockPubkeyConverter(),
@@ -526,13 +526,13 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateGetHeaderError(t *testing.T
 			return &mock.HeadersCacherStub{}
 		},
 	}
-	arguments.StorageService = &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+	arguments.StorageService = &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 			return &storageStubs.StorerStub{
 				GetCalled: func(key []byte) (bytes []byte, e error) {
 					return nil, getHeaderError
 				},
-			}
+			}, nil
 		},
 	}
 	arguments.NodesCoordinator = &shardingMocks.NodesCoordinatorMock{
@@ -582,13 +582,13 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateCallsIncrease(t *testing.T)
 			return &mock.HeadersCacherStub{}
 		},
 	}
-	arguments.StorageService = &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+	arguments.StorageService = &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 			return &storageStubs.StorerStub{
 				GetCalled: func(key []byte) (bytes []byte, e error) {
 					return nil, nil
 				},
-			}
+			}, nil
 		},
 	}
 	arguments.NodesCoordinator = &shardingMocks.NodesCoordinatorMock{
@@ -1254,13 +1254,13 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateCheckForMissedBlocksErr(t *
 			return &mock.HeadersCacherStub{}
 		},
 	}
-	arguments.StorageService = &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+	arguments.StorageService = &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 			return &storageStubs.StorerStub{
 				GetCalled: func(key []byte) (bytes []byte, e error) {
 					return nil, nil
 				},
-			}
+			}, nil
 		},
 	}
 	arguments.NodesCoordinator = &shardingMocks.NodesCoordinatorMock{
@@ -1329,7 +1329,7 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksNoMissedBlocks(t *test
 	arguments := createMockArguments()
 	arguments.Marshalizer = &mock.MarshalizerMock{}
 	arguments.DataPool = dataRetrieverMock.NewPoolsHolderStub()
-	arguments.StorageService = &mock.ChainStorerMock{}
+	arguments.StorageService = &storageStubs.ChainStorerStub{}
 	arguments.NodesCoordinator = &shardingMocks.NodesCoordinatorMock{
 		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []nodesCoordinator.Validator, err error) {
 			computeValidatorGroupCalled = true
@@ -1415,7 +1415,7 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksErrOnComputeValidatorL
 	arguments := createMockArguments()
 	arguments.Marshalizer = &mock.MarshalizerMock{}
 	arguments.DataPool = dataRetrieverMock.NewPoolsHolderStub()
-	arguments.StorageService = &mock.ChainStorerMock{}
+	arguments.StorageService = &storageStubs.ChainStorerStub{}
 	arguments.NodesCoordinator = &shardingMocks.NodesCoordinatorMock{
 		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []nodesCoordinator.Validator, err error) {
 			return nil, computeErr
