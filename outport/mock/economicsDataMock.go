@@ -20,6 +20,11 @@ const (
 type EconomicsHandlerMock struct {
 }
 
+// MaxGasLimitPerBlock -
+func (e *EconomicsHandlerMock) MaxGasLimitPerBlock(_ uint32) uint64 {
+	return 0
+}
+
 // MinGasLimit -
 func (e *EconomicsHandlerMock) MinGasLimit() uint64 {
 	return minGasLimit

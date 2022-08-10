@@ -1,4 +1,4 @@
-package testscommon
+package outport
 
 import (
 	outportcore "github.com/ElrondNetwork/elrond-go-core/data/outport"
