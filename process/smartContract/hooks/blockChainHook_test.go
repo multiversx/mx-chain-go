@@ -46,7 +46,7 @@ func createMockBlockChainHookArgs() hooks.ArgBlockChainHook {
 			},
 		},
 		PubkeyConv:            mock.NewPubkeyConverterMock(32),
-		StorageService:        &mock.ChainStorerMock{},
+		StorageService:        &storageStubs.ChainStorerStub{},
 		BlockChain:            &testscommon.ChainHandlerStub{},
 		ShardCoordinator:      mock.NewOneShardCoordinatorMock(),
 		Marshalizer:           &mock.MarshalizerMock{},
@@ -549,9 +549,9 @@ func TestBlockChainHookImpl_GetBlockhashFromStorerErrorReadingFromStorage(t *tes
 			return nil, errors.New("local error")
 		},
 	}
-	args.StorageService = &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return storer
+	args.StorageService = &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+			return storer, nil
 		},
 	}
 	bh, _ := hooks.NewBlockChainHookImpl(args)
@@ -590,16 +590,16 @@ func TestBlockChainHookImpl_GetBlockhashFromStorerInSameEpoch(t *testing.T) {
 			return hash, nil
 		},
 	}
-	args.StorageService = &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+	args.StorageService = &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 			switch unitType {
 			case dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(shardID):
-				return storerShardHdrNonceHash
+				return storerShardHdrNonceHash, nil
 			case dataRetriever.BlockHeaderUnit:
-				return storerBlockHeader
+				return storerBlockHeader, nil
 			default:
 				require.Fail(t, "should not search in another storer")
-				return nil
+				return nil, errors.New("key not found")
 			}
 		},
 	}
@@ -637,16 +637,16 @@ func TestBlockChainHookImpl_GetBlockhashFromStorerInSameEpochWithFlagEnabled(t *
 			return nil, nil
 		},
 	}
-	args.StorageService = &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+	args.StorageService = &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 			switch unitType {
 			case dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(shardID):
-				return storerShardHdrNonceHash
+				return storerShardHdrNonceHash, nil
 			case dataRetriever.BlockHeaderUnit:
-				return storerBlockHeader
+				return storerBlockHeader, nil
 			default:
 				require.Fail(t, "should not search in another storer")
-				return nil
+				return nil, errors.New("key not found")
 			}
 		},
 	}
@@ -671,21 +671,21 @@ func TestBlockChainHookImpl_GetBlockhashFromOldEpochExpectError(t *testing.T) {
 			return &block.Header{Nonce: 10, Epoch: 10}
 		},
 	}
-	args.StorageService = &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+	args.StorageService = &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 			if uint8(unitType) >= uint8(dataRetriever.ShardHdrNonceHashDataUnit) {
 				return &storageStubs.StorerStub{
 					GetCalled: func(key []byte) ([]byte, error) {
 						return hashToRet, nil
 					},
-				}
+				}, nil
 			}
 
 			return &storageStubs.StorerStub{
 				GetCalled: func(key []byte) ([]byte, error) {
 					return marshaledData, nil
 				},
-			}
+			}, nil
 		},
 	}
 	bh, _ := hooks.NewBlockChainHookImpl(args)

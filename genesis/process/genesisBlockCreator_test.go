@@ -68,9 +68,9 @@ func createMockArgument(
 			MinTxVersion:        1,
 		},
 		Data: &mock.DataComponentsMock{
-			Storage: &mock.ChainStorerStub{
-				GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-					return genericMocks.NewStorerMock()
+			Storage: &storageCommon.ChainStorerStub{
+				GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+					return genericMocks.NewStorerMock(), nil
 				},
 			},
 			Blkc:     &testscommon.ChainHandlerStub{},

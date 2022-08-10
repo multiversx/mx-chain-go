@@ -103,6 +103,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
+	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/update/trigger"
@@ -1617,10 +1618,11 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		PenalizedTooMuchGasEnableEpoch: tpn.EnableEpochs.PenalizedTooMuchGasEnableEpoch,
 	}
 	tpn.TxProcessor, _ = transaction.NewTxProcessor(argsNewTxProcessor)
+	scheduledSCRsStorer, _ := tpn.Storage.GetStorer(dataRetriever.ScheduledSCRsUnit)
 	scheduledTxsExecutionHandler, _ := preprocess.NewScheduledTxsExecution(
 		tpn.TxProcessor,
 		&mock.TransactionCoordinatorMock{},
-		tpn.Storage.GetStorer(dataRetriever.ScheduledSCRsUnit),
+		scheduledSCRsStorer,
 		TestMarshalizer,
 		TestHasher,
 		tpn.ShardCoordinator,
@@ -1866,10 +1868,11 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		BuiltInFunctionOnMetachainEnableEpoch: tpn.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch,
 	}
 	tpn.TxProcessor, _ = transaction.NewMetaTxProcessor(argsNewMetaTxProc)
+	scheduledSCRsStorer, _ := tpn.Storage.GetStorer(dataRetriever.ScheduledSCRsUnit)
 	scheduledTxsExecutionHandler, _ := preprocess.NewScheduledTxsExecution(
 		tpn.TxProcessor,
 		&mock.TransactionCoordinatorMock{},
-		tpn.Storage.GetStorer(dataRetriever.ScheduledSCRsUnit),
+		scheduledSCRsStorer,
 		TestMarshalizer,
 		TestHasher,
 		tpn.ShardCoordinator)
@@ -2179,8 +2182,8 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 			log.Error("initBlockProcessor NewRewardsStakingProvider", "error", errRsp)
 		}
 
-		rewardsStorage := tpn.Storage.GetStorer(dataRetriever.RewardTransactionUnit)
-		miniBlockStorage := tpn.Storage.GetStorer(dataRetriever.MiniBlockUnit)
+		rewardsStorage, _ := tpn.Storage.GetStorer(dataRetriever.RewardTransactionUnit)
+		miniBlockStorage, _ := tpn.Storage.GetStorer(dataRetriever.MiniBlockUnit)
 		argsEpochRewards := metachain.RewardsCreatorProxyArgs{
 			BaseRewardsCreatorArgs: metachain.BaseRewardsCreatorArgs{
 				ShardCoordinator:              tpn.ShardCoordinator,
@@ -3124,7 +3127,7 @@ func GetDefaultProcessComponents() *mock.ProcessComponentsStub {
 func GetDefaultDataComponents() *mock.DataComponentsStub {
 	return &mock.DataComponentsStub{
 		BlockChain: &testscommon.ChainHandlerMock{},
-		Store:      &mock.ChainStorerMock{},
+		Store:      &storageStubs.ChainStorerStub{},
 		DataPool:   &dataRetrieverMock.PoolsHolderMock{},
 		MbProvider: &mock.MiniBlocksProviderStub{},
 	}
