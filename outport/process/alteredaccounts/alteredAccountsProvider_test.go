@@ -10,7 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
-	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
+	outportcore "github.com/ElrondNetwork/elrond-go-core/data/outport"
 	"github.com/ElrondNetwork/elrond-go-core/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
@@ -42,7 +42,7 @@ func TestNewAlteredAccountsProvider(t *testing.T) {
 
 		aap, err := NewAlteredAccountsProvider(args)
 		require.Nil(t, aap)
-		require.Equal(t, errNilPubKeyConverter, err)
+		require.Equal(t, ErrNilPubKeyConverter, err)
 	})
 
 	t.Run("nil accounts adapter", func(t *testing.T) {
@@ -53,18 +53,7 @@ func TestNewAlteredAccountsProvider(t *testing.T) {
 
 		aap, err := NewAlteredAccountsProvider(args)
 		require.Nil(t, aap)
-		require.Equal(t, errNilAccountsDB, err)
-	})
-
-	t.Run("nil marshalizer", func(t *testing.T) {
-		t.Parallel()
-
-		args := getMockArgs()
-		args.Marshalizer = nil
-
-		aap, err := NewAlteredAccountsProvider(args)
-		require.Nil(t, aap)
-		require.Equal(t, errNilMarshalizer, err)
+		require.Equal(t, ErrNilAccountsDB, err)
 	})
 
 	t.Run("nil esdt data storage handler", func(t *testing.T) {
@@ -75,7 +64,7 @@ func TestNewAlteredAccountsProvider(t *testing.T) {
 
 		aap, err := NewAlteredAccountsProvider(args)
 		require.Nil(t, aap)
-		require.Equal(t, errNilESDTDataStorageHandler, err)
+		require.Equal(t, ErrNilESDTDataStorageHandler, err)
 	})
 
 	t.Run("should work", func(t *testing.T) {
@@ -113,7 +102,7 @@ func testExtractAlteredAccountsFromPoolNoTransaction(t *testing.T) {
 	args := getMockArgs()
 	aap, _ := NewAlteredAccountsProvider(args)
 
-	res, err := aap.ExtractAlteredAccountsFromPool(&indexer.Pool{})
+	res, err := aap.ExtractAlteredAccountsFromPool(&outportcore.Pool{})
 	require.NoError(t, err)
 	require.Empty(t, res)
 }
@@ -137,16 +126,16 @@ func testExtractAlteredAccountsFromPoolSenderShard(t *testing.T) {
 	args.AddressConverter = testscommon.NewPubkeyConverterMock(20)
 	aap, _ := NewAlteredAccountsProvider(args)
 
-	res, err := aap.ExtractAlteredAccountsFromPool(&indexer.Pool{
-		Txs: map[string]data.TransactionHandler{
-			"hash0": &transaction.Transaction{
+	res, err := aap.ExtractAlteredAccountsFromPool(&outportcore.Pool{
+		Txs: map[string]data.TransactionHandlerWithGasUsedAndFee{
+			"hash0": outportcore.NewTransactionHandlerWithGasAndFee(&transaction.Transaction{
 				SndAddr: []byte("sender shard - tx0  "),
 				RcvAddr: []byte("receiver shard - tx0"),
-			},
-			"hash1": &transaction.Transaction{
+			}, 0, big.NewInt(0)),
+			"hash1": outportcore.NewTransactionHandlerWithGasAndFee(&transaction.Transaction{
 				SndAddr: []byte("sender shard - tx1  "),
 				RcvAddr: []byte("receiver shard - tx1"),
-			},
+			}, 0, big.NewInt(0)),
 		},
 	})
 	require.NoError(t, err)
@@ -177,16 +166,16 @@ func testExtractAlteredAccountsFromPoolReceiverShard(t *testing.T) {
 	args.AddressConverter = testscommon.NewPubkeyConverterMock(20)
 	aap, _ := NewAlteredAccountsProvider(args)
 
-	res, err := aap.ExtractAlteredAccountsFromPool(&indexer.Pool{
-		Txs: map[string]data.TransactionHandler{
-			"hash0": &transaction.Transaction{
+	res, err := aap.ExtractAlteredAccountsFromPool(&outportcore.Pool{
+		Txs: map[string]data.TransactionHandlerWithGasUsedAndFee{
+			"hash0": outportcore.NewTransactionHandlerWithGasAndFee(&transaction.Transaction{
 				SndAddr: []byte("sender shard - tx0  "),
 				RcvAddr: []byte("receiver shard - tx0"),
-			},
-			"hash1": &transaction.Transaction{
+			}, 0, big.NewInt(0)),
+			"hash1": outportcore.NewTransactionHandlerWithGasAndFee(&transaction.Transaction{
 				SndAddr: []byte("sender shard - tx1  "),
 				RcvAddr: []byte("receiver shard - tx1"),
-			},
+			}, 0, big.NewInt(0)),
 		},
 	})
 	require.NoError(t, err)
@@ -215,28 +204,28 @@ func testExtractAlteredAccountsFromPoolBothSenderAndReceiverShards(t *testing.T)
 	args.AddressConverter = testscommon.NewPubkeyConverterMock(19)
 	aap, _ := NewAlteredAccountsProvider(args)
 
-	res, err := aap.ExtractAlteredAccountsFromPool(&indexer.Pool{
-		Txs: map[string]data.TransactionHandler{
-			"hash0": &transaction.Transaction{ // intra-shard 0, different addresses
+	res, err := aap.ExtractAlteredAccountsFromPool(&outportcore.Pool{
+		Txs: map[string]data.TransactionHandlerWithGasUsedAndFee{
+			"hash0": outportcore.NewTransactionHandlerWithGasAndFee(&transaction.Transaction{ // intra-shard 0, different addresses
 				SndAddr: []byte("shard0 addr - tx0  "),
 				RcvAddr: []byte("shard0 addr 2 - tx0"),
-			},
-			"hash1": &transaction.Transaction{ // intra-shard 0, same addresses
+			}, 0, big.NewInt(0)),
+			"hash1": outportcore.NewTransactionHandlerWithGasAndFee(&transaction.Transaction{ // intra-shard 0, same addresses
 				SndAddr: []byte("shard0 addr 3 - tx1"),
 				RcvAddr: []byte("shard0 addr 3 - tx1"),
-			},
-			"hash2": &transaction.Transaction{ // cross-shard, sender in shard 0
+			}, 0, big.NewInt(0)),
+			"hash2": outportcore.NewTransactionHandlerWithGasAndFee(&transaction.Transaction{ // cross-shard, sender in shard 0
 				SndAddr: []byte("shard0 addr - tx2  "),
 				RcvAddr: []byte("shard1 - tx2       "),
-			},
-			"hash3": &transaction.Transaction{ // cross-shard, receiver in shard 0
+			}, 0, big.NewInt(0)),
+			"hash3": outportcore.NewTransactionHandlerWithGasAndFee(&transaction.Transaction{ // cross-shard, receiver in shard 0
 				SndAddr: []byte("shard1 addr - tx3  "),
 				RcvAddr: []byte("shard0 addr - tx3  "),
-			},
-			"hash4": &transaction.Transaction{ // cross-shard, no address in shard 0
+			}, 0, big.NewInt(0)),
+			"hash4": outportcore.NewTransactionHandlerWithGasAndFee(&transaction.Transaction{ // cross-shard, no address in shard 0
 				SndAddr: []byte("shard2 addr - tx4  "),
 				RcvAddr: []byte("shard2 addr - tx3  "),
-			},
+			}, 0, big.NewInt(0)),
 		},
 	})
 	require.NoError(t, err)
@@ -281,12 +270,12 @@ func testExtractAlteredAccountsFromPoolTrieDataChecks(t *testing.T) {
 	args.AddressConverter = testscommon.NewPubkeyConverterMock(19)
 	aap, _ := NewAlteredAccountsProvider(args)
 
-	res, err := aap.ExtractAlteredAccountsFromPool(&indexer.Pool{
-		Txs: map[string]data.TransactionHandler{
-			"hash0": &transaction.Transaction{
+	res, err := aap.ExtractAlteredAccountsFromPool(&outportcore.Pool{
+		Txs: map[string]data.TransactionHandlerWithGasUsedAndFee{
+			"hash0": outportcore.NewTransactionHandlerWithGasAndFee(&transaction.Transaction{
 				SndAddr: []byte("sender in shard 0  "),
 				RcvAddr: []byte(receiverInSelfShard),
-			},
+			}, 0, big.NewInt(0)),
 		},
 	})
 	require.NoError(t, err)
@@ -326,28 +315,28 @@ func testExtractAlteredAccountsFromPoolScrsInvalidRewards(t *testing.T) {
 	args.AddressConverter = testscommon.NewPubkeyConverterMock(26)
 	aap, _ := NewAlteredAccountsProvider(args)
 
-	res, err := aap.ExtractAlteredAccountsFromPool(&indexer.Pool{
-		Txs: map[string]data.TransactionHandler{
-			"hash0": &transaction.Transaction{
+	res, err := aap.ExtractAlteredAccountsFromPool(&outportcore.Pool{
+		Txs: map[string]data.TransactionHandlerWithGasUsedAndFee{
+			"hash0": outportcore.NewTransactionHandlerWithGasAndFee(&transaction.Transaction{
 				SndAddr: []byte("sender in shard 0 - tx 0  "),
-			},
+			}, 0, big.NewInt(0)),
 		},
-		Rewards: map[string]data.TransactionHandler{
-			"hash1": &rewardTx.RewardTx{
+		Rewards: map[string]data.TransactionHandlerWithGasUsedAndFee{
+			"hash1": outportcore.NewTransactionHandlerWithGasAndFee(&rewardTx.RewardTx{
 				RcvAddr: []byte("receiver in shard 0 - tx 1"),
-			},
+			}, 0, big.NewInt(0)),
 		},
-		Scrs: map[string]data.TransactionHandler{
-			"hash2": &smartContractResult.SmartContractResult{
+		Scrs: map[string]data.TransactionHandlerWithGasUsedAndFee{
+			"hash2": outportcore.NewTransactionHandlerWithGasAndFee(&smartContractResult.SmartContractResult{
 				SndAddr: []byte("sender in shard 0 - tx 2  "),
 				RcvAddr: []byte("receiver in shard 0 - tx 2"),
-			},
+			}, 0, big.NewInt(0)),
 		},
-		Invalid: map[string]data.TransactionHandler{
-			"hash3": &transaction.Transaction{
+		Invalid: map[string]data.TransactionHandlerWithGasUsedAndFee{
+			"hash3": outportcore.NewTransactionHandlerWithGasAndFee(&transaction.Transaction{
 				SndAddr: []byte("sender in shard 0 - tx 3  "),
 				RcvAddr: []byte("receiver in shard 0 - tx 3"), // receiver for invalid txs should not be included
-			},
+			}, 0, big.NewInt(0)),
 		},
 	})
 	require.NoError(t, err)
@@ -374,7 +363,7 @@ func testExtractAlteredAccountsFromPoolShouldReturnErrorWhenCastingToVmCommonUse
 	}
 	aap, _ := NewAlteredAccountsProvider(args)
 
-	res, err := aap.ExtractAlteredAccountsFromPool(&indexer.Pool{
+	res, err := aap.ExtractAlteredAccountsFromPool(&outportcore.Pool{
 		Logs: []*data.LogData{
 			{
 				LogHandler: &transaction.Log{
@@ -423,7 +412,7 @@ func testExtractAlteredAccountsFromPoolShouldIncludeESDT(t *testing.T) {
 	}
 	aap, _ := NewAlteredAccountsProvider(args)
 
-	res, err := aap.ExtractAlteredAccountsFromPool(&indexer.Pool{
+	res, err := aap.ExtractAlteredAccountsFromPool(&outportcore.Pool{
 		Logs: []*data.LogData{
 			{
 				LogHandler: &transaction.Log{
@@ -454,7 +443,7 @@ func testExtractAlteredAccountsFromPoolShouldIncludeESDT(t *testing.T) {
 
 	require.Len(t, res, 1)
 	require.Len(t, res[encodedAddr].Tokens, 1)
-	require.Equal(t, &indexer.AccountTokenData{
+	require.Equal(t, &outportcore.AccountTokenData{
 		Identifier: "token0",
 		Balance:    expectedToken.Value.String(),
 		Nonce:      0,
@@ -485,7 +474,7 @@ func testExtractAlteredAccountsFromPoolShouldIncludeNFT(t *testing.T) {
 	}
 	aap, _ := NewAlteredAccountsProvider(args)
 
-	res, err := aap.ExtractAlteredAccountsFromPool(&indexer.Pool{
+	res, err := aap.ExtractAlteredAccountsFromPool(&outportcore.Pool{
 		Logs: []*data.LogData{
 			{
 				LogHandler: &transaction.Log{
@@ -507,7 +496,7 @@ func testExtractAlteredAccountsFromPoolShouldIncludeNFT(t *testing.T) {
 	require.NoError(t, err)
 
 	encodedAddr := args.AddressConverter.Encode([]byte("addr"))
-	require.Equal(t, &indexer.AccountTokenData{
+	require.Equal(t, &outportcore.AccountTokenData{
 		Identifier: "token0",
 		Balance:    expectedToken.Value.String(),
 		Nonce:      expectedToken.TokenMetaData.Nonce,
@@ -538,7 +527,7 @@ func testExtractAlteredAccountsFromPoolShouldNotIncludeReceiverAddressIfNftCreat
 	}
 	aap, _ := NewAlteredAccountsProvider(args)
 
-	res, err := aap.ExtractAlteredAccountsFromPool(&indexer.Pool{
+	res, err := aap.ExtractAlteredAccountsFromPool(&outportcore.Pool{
 		Logs: []*data.LogData{
 			{
 				LogHandler: &transaction.Log{
@@ -590,7 +579,7 @@ func testExtractAlteredAccountsFromPoolShouldIncludeDestinationFromTokensLogsTop
 	}
 	aap, _ := NewAlteredAccountsProvider(args)
 
-	res, err := aap.ExtractAlteredAccountsFromPool(&indexer.Pool{
+	res, err := aap.ExtractAlteredAccountsFromPool(&outportcore.Pool{
 		Logs: []*data.LogData{
 			{
 				LogHandler: &transaction.Log{
@@ -617,7 +606,7 @@ func testExtractAlteredAccountsFromPoolShouldIncludeDestinationFromTokensLogsTop
 
 	mapKeyToSearch := args.AddressConverter.Encode(receiverOnDestination)
 	require.Len(t, res[mapKeyToSearch].Tokens, 1)
-	require.Equal(t, res[mapKeyToSearch].Tokens[0], &indexer.AccountTokenData{
+	require.Equal(t, res[mapKeyToSearch].Tokens[0], &outportcore.AccountTokenData{
 		Identifier: "token0",
 		Balance:    "37",
 		Nonce:      38,
@@ -649,11 +638,11 @@ func testExtractAlteredAccountsFromPoolAddressHasBalanceChangeEsdtAndfNft(t *tes
 	}
 	aap, _ := NewAlteredAccountsProvider(args)
 
-	res, err := aap.ExtractAlteredAccountsFromPool(&indexer.Pool{
-		Txs: map[string]data.TransactionHandler{
-			"hash0": &transaction.Transaction{
+	res, err := aap.ExtractAlteredAccountsFromPool(&outportcore.Pool{
+		Txs: map[string]data.TransactionHandlerWithGasUsedAndFee{
+			"hash0": outportcore.NewTransactionHandlerWithGasAndFee(&transaction.Transaction{
 				SndAddr: []byte("addr"),
-			},
+			}, 0, big.NewInt(0)),
 		},
 		Logs: []*data.LogData{
 			{
@@ -724,24 +713,25 @@ func testExtractAlteredAccountsFromPoolAddressHasMultipleNfts(t *testing.T) {
 			return nil, false, nil
 		},
 	}
+	marshaller := testscommon.MarshalizerMock{}
 	args.AccountsDB = &state.AccountsStub{
 		LoadAccountCalled: func(_ []byte) (vmcommon.AccountHandler, error) {
 			return &state.UserAccountStub{
 				RetrieveValueFromDataTrieTrackerCalled: func(key []byte) ([]byte, error) {
 					if strings.Contains(string(key), "esdttoken") {
-						tokenBytes, _ := args.Marshalizer.Marshal(expectedToken0)
+						tokenBytes, _ := marshaller.Marshal(expectedToken0)
 						return tokenBytes, nil
 					}
 
 					firstNftKey := fmt.Sprintf("%s%s", "nft-0", string(big.NewInt(5).Bytes()))
 					if strings.Contains(string(key), firstNftKey) {
-						tokenBytes, _ := args.Marshalizer.Marshal(expectedToken1)
+						tokenBytes, _ := marshaller.Marshal(expectedToken1)
 						return tokenBytes, nil
 					}
 
 					secondNftKey := fmt.Sprintf("%s%s", "nft-0", string(big.NewInt(6).Bytes()))
 					if strings.Contains(string(key), secondNftKey) {
-						tokenBytes, _ := args.Marshalizer.Marshal(expectedToken2)
+						tokenBytes, _ := marshaller.Marshal(expectedToken2)
 						return tokenBytes, nil
 					}
 
@@ -752,11 +742,11 @@ func testExtractAlteredAccountsFromPoolAddressHasMultipleNfts(t *testing.T) {
 	}
 	aap, _ := NewAlteredAccountsProvider(args)
 
-	res, err := aap.ExtractAlteredAccountsFromPool(&indexer.Pool{
-		Txs: map[string]data.TransactionHandler{
-			"hash0": &transaction.Transaction{
+	res, err := aap.ExtractAlteredAccountsFromPool(&outportcore.Pool{
+		Txs: map[string]data.TransactionHandlerWithGasUsedAndFee{
+			"hash0": outportcore.NewTransactionHandlerWithGasAndFee(&transaction.Transaction{
 				SndAddr: []byte("addr"),
-			},
+			}, 0, big.NewInt(0)),
 		},
 		Logs: []*data.LogData{
 			{
@@ -797,21 +787,21 @@ func testExtractAlteredAccountsFromPoolAddressHasMultipleNfts(t *testing.T) {
 	require.Len(t, res, 1)
 	require.Len(t, res[encodedAddr].Tokens, 3)
 
-	require.Contains(t, res[encodedAddr].Tokens, &indexer.AccountTokenData{
+	require.Contains(t, res[encodedAddr].Tokens, &outportcore.AccountTokenData{
 		Identifier: "esdttoken",
 		Balance:    expectedToken0.Value.String(),
 		Nonce:      0,
 		MetaData:   nil,
 	})
 
-	require.Contains(t, res[encodedAddr].Tokens, &indexer.AccountTokenData{
+	require.Contains(t, res[encodedAddr].Tokens, &outportcore.AccountTokenData{
 		Identifier: string(expectedToken1.TokenMetaData.Name),
 		Balance:    expectedToken1.Value.String(),
 		Nonce:      expectedToken1.TokenMetaData.Nonce,
 		MetaData:   expectedToken1.TokenMetaData,
 	})
 
-	require.Contains(t, res[encodedAddr].Tokens, &indexer.AccountTokenData{
+	require.Contains(t, res[encodedAddr].Tokens, &outportcore.AccountTokenData{
 		Identifier: string(expectedToken2.TokenMetaData.Name),
 		Balance:    expectedToken2.Value.String(),
 		Nonce:      expectedToken2.TokenMetaData.Nonce,
@@ -824,7 +814,6 @@ func getMockArgs() ArgsAlteredAccountsProvider {
 	return ArgsAlteredAccountsProvider{
 		ShardCoordinator:       &testscommon.ShardsCoordinatorMock{},
 		AddressConverter:       &testscommon.PubkeyConverterMock{},
-		Marshalizer:            &testscommon.MarshalizerMock{},
 		AccountsDB:             &state.AccountsStub{},
 		EsdtDataStorageHandler: &testscommon.EsdtStorageHandlerStub{},
 	}

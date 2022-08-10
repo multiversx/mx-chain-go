@@ -2098,7 +2098,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		EpochNotifier:                  tpn.EpochNotifier,
 		RoundNotifier:                  coreComponents.RoundNotifier(),
 		GasHandler:                     tpn.GasHandler,
-		AlteredAccountsProvider:        &testscommon.AlteredAccountsProviderStub{},
+		OutportDataProvider:            &testscommon.OutportDataProviderStub{},
 		ScheduledTxsExecutionHandler:   &testscommon.ScheduledTxsExecutionStub{},
 		ScheduledMiniBlocksEnableEpoch: ScheduledMiniBlocksEnableEpoch,
 		ProcessedMiniBlocksTracker:     &testscommon.ProcessedMiniBlocksTrackerStub{},

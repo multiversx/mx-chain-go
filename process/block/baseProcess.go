@@ -86,15 +86,15 @@ type baseProcessor struct {
 	blockProcessor         blockProcessor
 	txCounter              *transactionCounter
 
-	outportHandler          outport.OutportHandler
-	alteredAccountsProvider process.AlteredAccountsProviderHandler
-	historyRepo             dblookupext.HistoryRepository
-	epochNotifier           process.EpochNotifier
-	roundNotifier           process.RoundNotifier
-	vmContainerFactory      process.VirtualMachinesContainerFactory
-	vmContainer             process.VirtualMachinesContainer
-	gasConsumedProvider     gasConsumedProvider
-	economicsData           process.EconomicsDataHandler
+	outportHandler      outport.OutportHandler
+	outportDataProvider outport.DataProviderOutport
+	historyRepo         dblookupext.HistoryRepository
+	epochNotifier       process.EpochNotifier
+	roundNotifier       process.RoundNotifier
+	vmContainerFactory  process.VirtualMachinesContainerFactory
+	vmContainer         process.VirtualMachinesContainer
+	gasConsumedProvider gasConsumedProvider
+	economicsData       process.EconomicsDataHandler
 
 	processDataTriesOnCommitEpoch  bool
 	scheduledMiniBlocksEnableEpoch uint32
@@ -503,8 +503,8 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 	if check.IfNil(arguments.CoreComponents.EconomicsData()) {
 		return process.ErrNilEconomicsData
 	}
-	if check.IfNil(arguments.AlteredAccountsProvider) {
-		return process.ErrNilAlteredAccountsProvider
+	if check.IfNil(arguments.OutportDataProvider) {
+		return process.ErrNilOutportDataProvider
 	}
 	if check.IfNil(arguments.ScheduledTxsExecutionHandler) {
 		return process.ErrNilScheduledTxsExecutionHandler

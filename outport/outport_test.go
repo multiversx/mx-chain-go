@@ -8,7 +8,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
+	outportcore "github.com/ElrondNetwork/elrond-go-core/data/outport"
 	"github.com/ElrondNetwork/elrond-go/outport/mock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -38,7 +38,7 @@ func TestOutport_SaveAccounts(t *testing.T) {
 	numCalled1 := 0
 	numCalled2 := 0
 	driver1 := &mock.DriverStub{
-		SaveAccountsCalled: func(blockTimestamp uint64, accs map[string]*indexer.AlteredAccount) error {
+		SaveAccountsCalled: func(blockTimestamp uint64, accs map[string]*outportcore.AlteredAccount) error {
 			numCalled1++
 			if numCalled1 < 10 {
 				return expectedError
@@ -48,17 +48,17 @@ func TestOutport_SaveAccounts(t *testing.T) {
 		},
 	}
 	driver2 := &mock.DriverStub{
-		SaveAccountsCalled: func(blockTimestamp uint64, accs map[string]*indexer.AlteredAccount) error {
+		SaveAccountsCalled: func(blockTimestamp uint64, accs map[string]*outportcore.AlteredAccount) error {
 			numCalled2++
 			return nil
 		},
 	}
 	outportHandler, _ := NewOutport(minimumRetrialInterval)
-	outportHandler.SaveAccounts(0, map[string]*indexer.AlteredAccount{})
+	outportHandler.SaveAccounts(0, map[string]*outportcore.AlteredAccount{})
 	_ = outportHandler.SubscribeDriver(driver1)
 	_ = outportHandler.SubscribeDriver(driver2)
 
-	outportHandler.SaveAccounts(0, map[string]*indexer.AlteredAccount{})
+	outportHandler.SaveAccounts(0, map[string]*outportcore.AlteredAccount{})
 	assert.Equal(t, 10, numCalled1)
 	assert.Equal(t, 1, numCalled2)
 }
@@ -70,7 +70,7 @@ func TestOutport_SaveBlock(t *testing.T) {
 	numCalled1 := 0
 	numCalled2 := 0
 	driver1 := &mock.DriverStub{
-		SaveBlockCalled: func(args *indexer.ArgsSaveBlockData) error {
+		SaveBlockCalled: func(args *outportcore.ArgsSaveBlockData) error {
 			numCalled1++
 			if numCalled1 < 10 {
 				return expectedError
@@ -80,7 +80,7 @@ func TestOutport_SaveBlock(t *testing.T) {
 		},
 	}
 	driver2 := &mock.DriverStub{
-		SaveBlockCalled: func(args *indexer.ArgsSaveBlockData) error {
+		SaveBlockCalled: func(args *outportcore.ArgsSaveBlockData) error {
 			numCalled2++
 			return nil
 		},
@@ -102,7 +102,7 @@ func TestOutport_SaveRoundsInfo(t *testing.T) {
 	numCalled1 := 0
 	numCalled2 := 0
 	driver1 := &mock.DriverStub{
-		SaveRoundsInfoCalled: func(roundsInfos []*indexer.RoundInfo) error {
+		SaveRoundsInfoCalled: func(roundsInfos []*outportcore.RoundInfo) error {
 			numCalled1++
 			if numCalled1 < 10 {
 				return expectedError
@@ -112,7 +112,7 @@ func TestOutport_SaveRoundsInfo(t *testing.T) {
 		},
 	}
 	driver2 := &mock.DriverStub{
-		SaveRoundsInfoCalled: func(roundsInfos []*indexer.RoundInfo) error {
+		SaveRoundsInfoCalled: func(roundsInfos []*outportcore.RoundInfo) error {
 			numCalled2++
 			return nil
 		},
@@ -166,7 +166,7 @@ func TestOutport_SaveValidatorsRating(t *testing.T) {
 	numCalled1 := 0
 	numCalled2 := 0
 	driver1 := &mock.DriverStub{
-		SaveValidatorsRatingCalled: func(indexID string, infoRating []*indexer.ValidatorRatingInfo) error {
+		SaveValidatorsRatingCalled: func(indexID string, infoRating []*outportcore.ValidatorRatingInfo) error {
 			numCalled1++
 			if numCalled1 < 10 {
 				return expectedError
@@ -176,7 +176,7 @@ func TestOutport_SaveValidatorsRating(t *testing.T) {
 		},
 	}
 	driver2 := &mock.DriverStub{
-		SaveValidatorsRatingCalled: func(indexID string, infoRating []*indexer.ValidatorRatingInfo) error {
+		SaveValidatorsRatingCalled: func(indexID string, infoRating []*outportcore.ValidatorRatingInfo) error {
 			numCalled2++
 			return nil
 		},
@@ -309,22 +309,22 @@ func TestOutport_CloseWhileDriverIsStuckInContinuousErrors(t *testing.T) {
 
 	localErr := errors.New("driver stuck in error")
 	driver1 := &mock.DriverStub{
-		SaveBlockCalled: func(args *indexer.ArgsSaveBlockData) error {
+		SaveBlockCalled: func(args *outportcore.ArgsSaveBlockData) error {
 			return localErr
 		},
 		RevertBlockCalled: func(header data.HeaderHandler, body data.BodyHandler) error {
 			return localErr
 		},
-		SaveRoundsInfoCalled: func(roundsInfos []*indexer.RoundInfo) error {
+		SaveRoundsInfoCalled: func(roundsInfos []*outportcore.RoundInfo) error {
 			return localErr
 		},
 		SaveValidatorsPubKeysCalled: func(validatorsPubKeys map[uint32][][]byte, epoch uint32) error {
 			return localErr
 		},
-		SaveValidatorsRatingCalled: func(indexID string, infoRating []*indexer.ValidatorRatingInfo) error {
+		SaveValidatorsRatingCalled: func(indexID string, infoRating []*outportcore.ValidatorRatingInfo) error {
 			return localErr
 		},
-		SaveAccountsCalled: func(timestamp uint64, accs map[string]*indexer.AlteredAccount) error {
+		SaveAccountsCalled: func(timestamp uint64, accs map[string]*outportcore.AlteredAccount) error {
 			return localErr
 		},
 		FinalizedBlockCalled: func(headerHash []byte) error {

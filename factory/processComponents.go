@@ -13,7 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	dataBlock "github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
+	"github.com/ElrondNetwork/elrond-go-core/data/outport"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/common"
@@ -828,9 +828,9 @@ func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalanc
 	return genesisBlocks, indexingData, nil
 }
 
-func (pcf *processComponentsFactory) indexAndReturnGenesisAccounts() (map[string]*indexer.AlteredAccount, error) {
+func (pcf *processComponentsFactory) indexAndReturnGenesisAccounts() (map[string]*outport.AlteredAccount, error) {
 	if !pcf.statusComponents.OutportHandler().HasDrivers() {
-		return map[string]*indexer.AlteredAccount{}, nil
+		return map[string]*outport.AlteredAccount{}, nil
 	}
 
 	rootHash, err := pcf.state.AccountsAdapter().RootHash()
@@ -844,7 +844,7 @@ func (pcf *processComponentsFactory) indexAndReturnGenesisAccounts() (map[string
 		return nil, err
 	}
 
-	genesisAccounts := make(map[string]*indexer.AlteredAccount, 0)
+	genesisAccounts := make(map[string]*outport.AlteredAccount, 0)
 	for leaf := range leavesChannel {
 		userAccount, errUnmarshal := pcf.unmarshalUserAccount(leaf.Key(), leaf.Value())
 		if errUnmarshal != nil {
@@ -853,7 +853,7 @@ func (pcf *processComponentsFactory) indexAndReturnGenesisAccounts() (map[string
 		}
 
 		encodedAddress := pcf.coreData.AddressPubKeyConverter().Encode(userAccount.AddressBytes())
-		genesisAccounts[encodedAddress] = &indexer.AlteredAccount{
+		genesisAccounts[encodedAddress] = &outport.AlteredAccount{
 			Address: encodedAddress,
 			Balance: userAccount.GetBalance().String(),
 			Nonce:   userAccount.GetNonce(),
@@ -969,7 +969,7 @@ func getGenesisBlockForShard(miniBlocks []*dataBlock.MiniBlock, shardId uint32) 
 func (pcf *processComponentsFactory) indexGenesisBlocks(
 	genesisBlocks map[uint32]data.HeaderHandler,
 	initialIndexingData map[uint32]*genesis.IndexingData,
-	alteredAccounts map[string]*indexer.AlteredAccount,
+	alteredAccounts map[string]*outport.AlteredAccount,
 ) error {
 	currentShardId := pcf.bootstrapComponents.ShardCoordinator().SelfId()
 	originalGenesisBlockHeader := genesisBlocks[currentShardId]
@@ -985,7 +985,7 @@ func (pcf *processComponentsFactory) indexGenesisBlocks(
 
 		// manually add the genesis minting address as it is not exist in the trie
 		genesisAddress := pcf.accountsParser.GenesisMintingAddress()
-		alteredAccounts[genesisAddress] = &indexer.AlteredAccount{
+		alteredAccounts[genesisAddress] = &outport.AlteredAccount{
 			Address: genesisAddress,
 			Balance: "0",
 		}
@@ -999,11 +999,11 @@ func (pcf *processComponentsFactory) indexGenesisBlocks(
 
 		genesisBody := getGenesisBlockForShard(miniBlocks, currentShardId)
 
-		arg := &indexer.ArgsSaveBlockData{
+		arg := &outport.ArgsSaveBlockData{
 			HeaderHash: genesisBlockHash,
 			Body:       genesisBody,
 			Header:     genesisBlockHeader,
-			HeaderGasConsumption: indexer.HeaderGasConsumption{
+			HeaderGasConsumption: outport.HeaderGasConsumption{
 				GasProvided:    0,
 				GasRefunded:    0,
 				GasPenalized:   0,

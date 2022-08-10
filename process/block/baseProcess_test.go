@@ -105,7 +105,7 @@ func createArgBaseProcessor(
 		RoundNotifier:                  &mock.RoundNotifierStub{},
 		GasHandler:                     &mock.GasHandlerMock{},
 		ScheduledTxsExecutionHandler:   &testscommon.ScheduledTxsExecutionStub{},
-		AlteredAccountsProvider:        &testscommon.AlteredAccountsProviderStub{},
+		OutportDataProvider:            &testscommon.OutportDataProviderStub{},
 		ScheduledMiniBlocksEnableEpoch: 2,
 		ProcessedMiniBlocksTracker:     &testscommon.ProcessedMiniBlocksTrackerStub{},
 	}

@@ -151,7 +151,7 @@ func NewShardProcessorEmptyWith3shards(
 			EpochNotifier:                  &epochNotifier.EpochNotifierStub{},
 			RoundNotifier:                  &mock.RoundNotifierStub{},
 			GasHandler:                     &mock.GasHandlerMock{},
-			AlteredAccountsProvider:        &testscommon.AlteredAccountsProviderStub{},
+			OutportDataProvider:            &testscommon.OutportDataProviderStub{},
 			ScheduledTxsExecutionHandler:   &testscommon.ScheduledTxsExecutionStub{},
 			ScheduledMiniBlocksEnableEpoch: 2,
 			ProcessedMiniBlocksTracker:     &testscommon.ProcessedMiniBlocksTrackerStub{},

@@ -2,23 +2,23 @@ package mock
 
 import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
+	outportcore "github.com/ElrondNetwork/elrond-go-core/data/outport"
 )
 
 // DriverStub -
 type DriverStub struct {
-	SaveBlockCalled             func(args *indexer.ArgsSaveBlockData) error
+	SaveBlockCalled             func(args *outportcore.ArgsSaveBlockData) error
 	RevertBlockCalled           func(header data.HeaderHandler, body data.BodyHandler) error
-	SaveRoundsInfoCalled        func(roundsInfos []*indexer.RoundInfo) error
+	SaveRoundsInfoCalled        func(roundsInfos []*outportcore.RoundInfo) error
 	SaveValidatorsPubKeysCalled func(validatorsPubKeys map[uint32][][]byte, epoch uint32) error
-	SaveValidatorsRatingCalled  func(indexID string, infoRating []*indexer.ValidatorRatingInfo) error
-	SaveAccountsCalled          func(timestamp uint64, acc map[string]*indexer.AlteredAccount) error
+	SaveValidatorsRatingCalled  func(indexID string, infoRating []*outportcore.ValidatorRatingInfo) error
+	SaveAccountsCalled          func(timestamp uint64, acc map[string]*outportcore.AlteredAccount) error
 	FinalizedBlockCalled        func(headerHash []byte) error
 	CloseCalled                 func() error
 }
 
 // SaveBlock -
-func (d *DriverStub) SaveBlock(args *indexer.ArgsSaveBlockData) error {
+func (d *DriverStub) SaveBlock(args *outportcore.ArgsSaveBlockData) error {
 	if d.SaveBlockCalled != nil {
 		return d.SaveBlockCalled(args)
 	}
@@ -36,7 +36,7 @@ func (d *DriverStub) RevertIndexedBlock(header data.HeaderHandler, body data.Bod
 }
 
 // SaveRoundsInfo -
-func (d *DriverStub) SaveRoundsInfo(roundsInfos []*indexer.RoundInfo) error {
+func (d *DriverStub) SaveRoundsInfo(roundsInfos []*outportcore.RoundInfo) error {
 	if d.SaveRoundsInfoCalled != nil {
 		return d.SaveRoundsInfoCalled(roundsInfos)
 	}
@@ -54,7 +54,7 @@ func (d *DriverStub) SaveValidatorsPubKeys(validatorsPubKeys map[uint32][][]byte
 }
 
 // SaveValidatorsRating -
-func (d *DriverStub) SaveValidatorsRating(indexID string, infoRating []*indexer.ValidatorRatingInfo) error {
+func (d *DriverStub) SaveValidatorsRating(indexID string, infoRating []*outportcore.ValidatorRatingInfo) error {
 	if d.SaveValidatorsRatingCalled != nil {
 		return d.SaveValidatorsRatingCalled(indexID, infoRating)
 	}
@@ -63,7 +63,7 @@ func (d *DriverStub) SaveValidatorsRating(indexID string, infoRating []*indexer.
 }
 
 // SaveAccounts -
-func (d *DriverStub) SaveAccounts(timestamp uint64, acc map[string]*indexer.AlteredAccount) error {
+func (d *DriverStub) SaveAccounts(timestamp uint64, acc map[string]*outportcore.AlteredAccount) error {
 	if d.SaveAccountsCalled != nil {
 		return d.SaveAccountsCalled(timestamp, acc)
 	}

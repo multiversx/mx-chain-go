@@ -2,27 +2,27 @@ package testscommon
 
 import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
+	outportcore "github.com/ElrondNetwork/elrond-go-core/data/outport"
 	"github.com/ElrondNetwork/elrond-go/outport"
 )
 
 // OutportStub is a mock implementation fot the OutportHandler interface
 type OutportStub struct {
-	SaveBlockCalled             func(args *indexer.ArgsSaveBlockData)
-	SaveValidatorsRatingCalled  func(index string, validatorsInfo []*indexer.ValidatorRatingInfo)
+	SaveBlockCalled             func(args *outportcore.ArgsSaveBlockData)
+	SaveValidatorsRatingCalled  func(index string, validatorsInfo []*outportcore.ValidatorRatingInfo)
 	SaveValidatorsPubKeysCalled func(shardPubKeys map[uint32][][]byte, epoch uint32)
 	HasDriversCalled            func() bool
 }
 
 // SaveBlock -
-func (as *OutportStub) SaveBlock(args *indexer.ArgsSaveBlockData) {
+func (as *OutportStub) SaveBlock(args *outportcore.ArgsSaveBlockData) {
 	if as.SaveBlockCalled != nil {
 		as.SaveBlockCalled(args)
 	}
 }
 
 // SaveValidatorsRating -
-func (as *OutportStub) SaveValidatorsRating(index string, validatorsInfo []*indexer.ValidatorRatingInfo) {
+func (as *OutportStub) SaveValidatorsRating(index string, validatorsInfo []*outportcore.ValidatorRatingInfo) {
 	if as.SaveValidatorsRatingCalled != nil {
 		as.SaveValidatorsRatingCalled(index, validatorsInfo)
 	}
@@ -54,7 +54,7 @@ func (as *OutportStub) RevertIndexedBlock(_ data.HeaderHandler, _ data.BodyHandl
 }
 
 // SaveAccounts -
-func (as *OutportStub) SaveAccounts(_ uint64, _ map[string]*indexer.AlteredAccount) {
+func (as *OutportStub) SaveAccounts(_ uint64, _ map[string]*outportcore.AlteredAccount) {
 
 }
 
@@ -64,7 +64,7 @@ func (as *OutportStub) Close() error {
 }
 
 // SaveRoundsInfo -
-func (as *OutportStub) SaveRoundsInfo(_ []*indexer.RoundInfo) {
+func (as *OutportStub) SaveRoundsInfo(_ []*outportcore.RoundInfo) {
 
 }
 
