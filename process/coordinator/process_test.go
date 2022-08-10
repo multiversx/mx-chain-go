@@ -35,6 +35,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
+	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -2215,7 +2216,7 @@ func TestTransactionCoordinator_VerifyCreatedBlockTransactionsNilOrMiss(t *testi
 		&mock.MarshalizerMock{},
 		&hashingMocks.HasherMock{},
 		createMockPubkeyConverter(),
-		&mock.ChainStorerMock{},
+		&storageStubs.ChainStorerStub{},
 		tdp,
 		&mock.FeeHandlerStub{},
 	)
@@ -2269,7 +2270,7 @@ func TestTransactionCoordinator_VerifyCreatedBlockTransactionsOk(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&hashingMocks.HasherMock{},
 		createMockPubkeyConverter(),
-		&mock.ChainStorerMock{},
+		&storageStubs.ChainStorerStub{},
 		tdp,
 		&mock.FeeHandlerStub{
 			MaxGasLimitPerBlockCalled: func() uint64 {

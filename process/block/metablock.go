@@ -731,7 +731,12 @@ func (mp *metaProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler,
 		headersPool.AddHeader(hdrHash, shardHeader)
 
 		hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(shardHeader.GetShardID())
-		storer := mp.store.GetStorer(hdrNonceHashDataUnit)
+		storer, errNotCritical := mp.store.GetStorer(hdrNonceHashDataUnit)
+		if err != nil {
+			log.Debug("storage unit not found", "unit", hdrNonceHashDataUnit, "error", errNotCritical.Error())
+			continue
+		}
+
 		nonceToByteSlice := mp.uint64Converter.ToByteSlice(shardHeader.GetNonce())
 		errNotCritical = storer.Remove(nonceToByteSlice)
 		if errNotCritical != nil {

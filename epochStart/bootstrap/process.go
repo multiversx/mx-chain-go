@@ -573,7 +573,7 @@ func (e *epochStartBootstrap) createSyncers() error {
 
 	syncTxsArgs := updateSync.ArgsNewTransactionsSyncer{
 		DataPools:      e.dataPool,
-		Storages:       dataRetriever.NewChainStorer(),
+		Storages:       disabled.NewChainStorer(),
 		Marshalizer:    e.coreComponentsHolder.InternalMarshalizer(),
 		RequestHandler: e.requestHandler,
 	}

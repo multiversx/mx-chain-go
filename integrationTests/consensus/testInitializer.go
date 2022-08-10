@@ -154,6 +154,8 @@ func createTestStore() dataRetriever.StorageService {
 	store.AddStorer(dataRetriever.BootstrapUnit, createMemUnit())
 	store.AddStorer(dataRetriever.ReceiptsUnit, createMemUnit())
 	store.AddStorer(dataRetriever.ScheduledSCRsUnit, createMemUnit())
+	store.AddStorer(dataRetriever.ShardHdrNonceHashDataUnit, createMemUnit())
+
 	return store
 }
 
