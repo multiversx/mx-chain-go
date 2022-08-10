@@ -68,9 +68,9 @@ func (accountsDB *accountsDBApi) DoRecreateTrieWithBlockInfo(blockInfo common.Bl
 
 // SetCurrentBlockInfo -
 func (accountsDB *accountsDBApi) SetCurrentBlockInfo(blockInfo common.BlockInfo) {
-	accountsDB.mutBlockInfoOfRecreatedTrie.Lock()
+	accountsDB.mutRecreatedTrieBlockInfo.Lock()
 	accountsDB.blockInfo = blockInfo
-	accountsDB.mutBlockInfoOfRecreatedTrie.Unlock()
+	accountsDB.mutRecreatedTrieBlockInfo.Unlock()
 }
 
 // EmptyErrChanReturningHadContained -
