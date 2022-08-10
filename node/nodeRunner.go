@@ -319,6 +319,11 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		return true, err
 	}
 
+	bootstrapStorer, err := managedDataComponents.StorageService().GetStorer(dataRetriever.BootstrapUnit)
+	if err != nil {
+		return true, err
+	}
+
 	log.Debug("creating nodes coordinator")
 	nodesCoord, err := mainFactory.CreateNodesCoordinator(
 		nodesShufflerOut,
@@ -329,7 +334,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		managedCoreComponents.InternalMarshalizer(),
 		managedCoreComponents.Hasher(),
 		managedCoreComponents.Rater(),
-		managedDataComponents.StorageService().GetStorer(dataRetriever.BootstrapUnit),
+		bootstrapStorer,
 		managedCoreComponents.NodesShuffler(),
 		managedBootstrapComponents.ShardCoordinator().SelfId(),
 		managedBootstrapComponents.EpochBootstrapParams(),
@@ -1117,9 +1122,12 @@ func (nr *nodeRunner) CreateManagedDataComponents(
 		return nil, err
 	}
 
-	err = coreComponents.StatusHandlerUtils().UpdateStorerAndMetricsForPersistentHandler(
-		managedDataComponents.StorageService().GetStorer(dataRetriever.StatusMetricsUnit),
-	)
+	statusMetricsStorer, err := managedDataComponents.StorageService().GetStorer(dataRetriever.StatusMetricsUnit)
+	if err != nil {
+		return nil, err
+	}
+
+	err = coreComponents.StatusHandlerUtils().UpdateStorerAndMetricsForPersistentHandler(statusMetricsStorer)
 
 	if err != nil {
 		return nil, err
@@ -1213,15 +1221,16 @@ func (nr *nodeRunner) CreateManagedNetworkComponents(
 	}
 
 	networkComponentsFactoryArgs := mainFactory.NetworkComponentsFactoryArgs{
-		P2pConfig:            *nr.configs.P2pConfig,
-		MainConfig:           *nr.configs.GeneralConfig,
-		RatingsConfig:        *nr.configs.RatingsConfig,
-		StatusHandler:        coreComponents.StatusHandler(),
-		Marshalizer:          coreComponents.InternalMarshalizer(),
-		Syncer:               coreComponents.SyncTimer(),
-		PreferredPeersSlices: decodedPreferredPeers,
-		BootstrapWaitTime:    common.TimeToWaitForP2PBootstrap,
-		NodeOperationMode:    p2p.NormalOperation,
+		P2pConfig:             *nr.configs.P2pConfig,
+		MainConfig:            *nr.configs.GeneralConfig,
+		RatingsConfig:         *nr.configs.RatingsConfig,
+		StatusHandler:         coreComponents.StatusHandler(),
+		Marshalizer:           coreComponents.InternalMarshalizer(),
+		Syncer:                coreComponents.SyncTimer(),
+		PreferredPeersSlices:  decodedPreferredPeers,
+		BootstrapWaitTime:     common.TimeToWaitForP2PBootstrap,
+		NodeOperationMode:     p2p.NormalOperation,
+		ConnectionWatcherType: nr.configs.PreferencesConfig.Preferences.ConnectionWatcherType,
 	}
 	if nr.configs.ImportDbConfig.IsImportDBMode {
 		networkComponentsFactoryArgs.BootstrapWaitTime = 0

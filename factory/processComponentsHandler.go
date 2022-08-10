@@ -599,6 +599,18 @@ func (m *managedProcessComponents) ESDTDataStorageHandlerForAPI() vmcommon.ESDTN
 	return m.processComponents.esdtDataStorageForApi
 }
 
+// ReceiptsRepository returns the receipts repository
+func (m *managedProcessComponents) ReceiptsRepository() ReceiptsRepository {
+	m.mutProcessComponents.RLock()
+	defer m.mutProcessComponents.RUnlock()
+
+	if m.receiptsRepository == nil {
+		return nil
+	}
+
+	return m.processComponents.receiptsRepository
+}
+
 // IsInterfaceNil returns true if the interface is nil
 func (m *managedProcessComponents) IsInterfaceNil() bool {
 	return m == nil

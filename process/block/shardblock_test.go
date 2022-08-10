@@ -653,7 +653,7 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(3)
 	tpm := &testscommon.TxProcessorMock{ProcessTransactionCalled: txProcess}
-	store := &mock.ChainStorerMock{}
+	store := &storageStubs.ChainStorerStub{}
 	accounts := &stateMock.AccountsStub{
 		JournalLenCalled:       journalLen,
 		RevertToSnapshotCalled: revertToSnapshot,
@@ -1438,7 +1438,7 @@ func TestShardProcessor_RequestEpochStartInfo(t *testing.T) {
 
 		args := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 		args.DataComponents = &mock.DataComponentsMock{
-			Storage:  &mock.ChainStorerMock{},
+			Storage:  &storageStubs.ChainStorerStub{},
 			DataPool: poolsHolder,
 			BlockChain: &testscommon.ChainHandlerStub{
 				GetGenesisHeaderCalled: func() data.HeaderHandler {
@@ -1490,7 +1490,7 @@ func TestShardProcessor_RequestEpochStartInfo(t *testing.T) {
 
 		args := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 		args.DataComponents = &mock.DataComponentsMock{
-			Storage:  &mock.ChainStorerMock{},
+			Storage:  &storageStubs.ChainStorerStub{},
 			DataPool: poolsHolder,
 			BlockChain: &testscommon.ChainHandlerStub{
 				GetGenesisHeaderCalled: func() data.HeaderHandler {
@@ -1548,7 +1548,7 @@ func TestShardProcessor_RequestEpochStartInfo(t *testing.T) {
 
 		args := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 		args.DataComponents = &mock.DataComponentsMock{
-			Storage:  &mock.ChainStorerMock{},
+			Storage:  &storageStubs.ChainStorerStub{},
 			DataPool: poolsHolder,
 			BlockChain: &testscommon.ChainHandlerStub{
 				GetGenesisHeaderCalled: func() data.HeaderHandler {
@@ -3234,7 +3234,7 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 	}
 	buffTx, _ := marshalizerMock.Marshal(tx)
 
-	store := &mock.ChainStorerMock{
+	store := &storageStubs.ChainStorerStub{
 		GetAllCalled: func(unitType dataRetriever.UnitType, keys [][]byte) (map[string][]byte, error) {
 			m := make(map[string][]byte)
 			m[string(txHash)] = buffTx
@@ -3301,7 +3301,7 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 	metablockHeader := createDummyMetaBlock(0, 1, miniblockHash)
 	datapool.Headers().AddHeader(metablockHash, metablockHeader)
 
-	store.GetStorerCalled = func(unitType dataRetriever.UnitType) storage.Storer {
+	store.GetStorerCalled = func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 		return &storageStubs.StorerStub{
 			RemoveCalled: func(key []byte) error {
 				return nil
@@ -3309,7 +3309,7 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 			GetCalled: func(key []byte) ([]byte, error) {
 				return marshalizerMock.Marshal(metablockHeader)
 			},
-		}
+		}, nil
 	}
 
 	miniBlockHeader := block.MiniBlockHeader{
@@ -3481,7 +3481,7 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNoDstMB(t *testing.T) {
 	wg := sync.WaitGroup{}
 	wg.Add(4)
 	putCalledNr := uint32(0)
-	store := &mock.ChainStorerMock{
+	store := &storageStubs.ChainStorerStub{
 		PutCalled: func(unitType dataRetriever.UnitType, key []byte, value []byte) error {
 			atomic.AddUint32(&putCalledNr, 1)
 			wg.Done()
@@ -3636,7 +3636,7 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNotAllMBFinished(t *tes
 	wg := sync.WaitGroup{}
 	wg.Add(2)
 	putCalledNr := uint32(0)
-	store := &mock.ChainStorerMock{
+	store := &storageStubs.ChainStorerStub{
 		PutCalled: func(unitType dataRetriever.UnitType, key []byte, value []byte) error {
 			atomic.AddUint32(&putCalledNr, 1)
 			wg.Done()
@@ -3778,7 +3778,7 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrAllMBFinished(t *testin
 	wg := sync.WaitGroup{}
 	wg.Add(4)
 	putCalledNr := uint32(0)
-	store := &mock.ChainStorerMock{
+	store := &storageStubs.ChainStorerStub{
 		PutCalled: func(unitType dataRetriever.UnitType, key []byte, value []byte) error {
 			atomic.AddUint32(&putCalledNr, 1)
 			wg.Done()
@@ -4038,8 +4038,8 @@ func TestShardProcessor_RestoreMetaBlockIntoPoolShouldPass(t *testing.T) {
 		ShardInfo: make([]block.ShardData, 0),
 	}
 
-	store := &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+	store := &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 			return &storageStubs.StorerStub{
 				RemoveCalled: func(key []byte) error {
 					return nil
@@ -4047,7 +4047,7 @@ func TestShardProcessor_RestoreMetaBlockIntoPoolShouldPass(t *testing.T) {
 				GetCalled: func(key []byte) ([]byte, error) {
 					return marshalizer.Marshal(&metaBlock)
 				},
-			}
+			}, nil
 		},
 	}
 
@@ -4372,7 +4372,7 @@ func TestShardProcessor_RestoreMetaBlockIntoPoolVerifyMiniblocks(t *testing.T) {
 	marshalizer := &mock.MarshalizerMock{}
 	poolMock := dataRetrieverMock.CreatePoolsHolder(1, 0)
 
-	storer := &mock.ChainStorerMock{}
+	storer := &storageStubs.ChainStorerStub{}
 	shardC := mock.NewMultiShardsCoordinatorMock(3)
 
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
@@ -4422,7 +4422,7 @@ func TestShardProcessor_RestoreMetaBlockIntoPoolVerifyMiniblocks(t *testing.T) {
 	storer.GetCalled = func(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
 		return metaBytes, nil
 	}
-	storer.GetStorerCalled = func(unitType dataRetriever.UnitType) storage.Storer {
+	storer.GetStorerCalled = func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 		return &storageStubs.StorerStub{
 			RemoveCalled: func(key []byte) error {
 				return nil
@@ -4430,7 +4430,7 @@ func TestShardProcessor_RestoreMetaBlockIntoPoolVerifyMiniblocks(t *testing.T) {
 			GetCalled: func(key []byte) ([]byte, error) {
 				return metaBytes, nil
 			},
-		}
+		}, nil
 	}
 
 	err = sp.RestoreMetaBlockIntoPool(miniblockHashes, metablockHashes, &block.Header{})
@@ -4458,13 +4458,13 @@ func TestShardProcessor_updateStateStorage(t *testing.T) {
 		},
 	}
 
-	storer := &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+	storer := &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 			if unitType == dataRetriever.ScheduledSCRsUnit {
-				return nil
+				return nil, errors.New("key not found")
 			}
 
-			return hdrStore
+			return hdrStore, nil
 		},
 	}
 

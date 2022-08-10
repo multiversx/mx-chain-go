@@ -1,16 +1,20 @@
-package sync
+package metricsLoader
 
 import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/metrics"
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/statusHandler/persister"
 )
 
-func updateMetricsFromStorage(
+var log = logger.GetOrCreate("sync/storageBootstrap/metricsLoader")
+
+// UpdateMetricsFromStorage will read the persistent metrics by using the persisted ones
+func UpdateMetricsFromStorage(
 	store dataRetriever.StorageService,
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter,
 	marshalizer marshal.Marshalizer,
@@ -18,6 +22,10 @@ func updateMetricsFromStorage(
 	nonce uint64,
 ) (numTxs uint64, numHdrs uint64) {
 	uint64Metrics, stringMetrics := loadMetricsFromDb(store, uint64ByteSliceConverter, marshalizer, nonce)
+
+	if len(uint64Metrics) > 0 || len(stringMetrics) > 0 {
+		log.Debug("loaded metrics from storage", "uint64 metrics", uint64Metrics, "string metrics", stringMetrics)
+	}
 
 	saveUint64Metrics(statusHandler, uint64Metrics)
 	saveStringMetrics(statusHandler, stringMetrics)
@@ -43,7 +51,12 @@ func getTotalTxsAndHdrs(metrics map[string]uint64) (uint64, uint64) {
 func loadMetricsFromDb(store dataRetriever.StorageService, uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter, marshalizer marshal.Marshalizer, nonce uint64,
 ) (map[string]uint64, map[string]string) {
 	nonceBytes := uint64ByteSliceConverter.ToByteSlice(nonce)
-	storer := store.GetStorer(dataRetriever.StatusMetricsUnit)
+	storer, err := store.GetStorer(dataRetriever.StatusMetricsUnit)
+	if err != nil {
+		log.Debug("cannot get storer for persistent metrics", "error", err)
+		return nil, nil
+	}
+
 	statusMetricsDbBytes, err := storer.Get(nonceBytes)
 	if err != nil {
 		log.Debug("cannot load persistent metrics from storage", "error", err)

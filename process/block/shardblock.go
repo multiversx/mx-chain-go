@@ -121,6 +121,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		scheduledMiniBlocksEnableEpoch: arguments.ScheduledMiniBlocksEnableEpoch,
 		pruningDelay:                   pruningDelay,
 		processedMiniBlocksTracker:     arguments.ProcessedMiniBlocksTracker,
+		receiptsRepository:             arguments.ReceiptsRepository,
 		outportDataProvider:            arguments.OutportDataProvider,
 	}
 
@@ -663,7 +664,14 @@ func (sp *shardProcessor) restoreMetaBlockIntoPool(
 
 		headersPool.AddHeader(metaBlockHash, metaBlock)
 
-		err := sp.store.GetStorer(dataRetriever.MetaBlockUnit).Remove(metaBlockHash)
+		metablockStorer, err := sp.store.GetStorer(dataRetriever.MetaBlockUnit)
+		if err != nil {
+			log.Debug("unable to get storage unit",
+				"unit", dataRetriever.MetaBlockUnit.String())
+			return err
+		}
+
+		err = metablockStorer.Remove(metaBlockHash)
 		if err != nil {
 			log.Debug("unable to remove hash from MetaBlockUnit",
 				"hash", metaBlockHash)
@@ -671,7 +679,15 @@ func (sp *shardProcessor) restoreMetaBlockIntoPool(
 		}
 
 		nonceToByteSlice := sp.uint64Converter.ToByteSlice(metaBlock.GetNonce())
-		errNotCritical = sp.store.GetStorer(dataRetriever.MetaHdrNonceHashDataUnit).Remove(nonceToByteSlice)
+
+		metaHdrNonceHashStorer, err := sp.store.GetStorer(dataRetriever.MetaHdrNonceHashDataUnit)
+		if err != nil {
+			log.Debug("unable to get storage unit",
+				"unit", dataRetriever.MetaHdrNonceHashDataUnit.String())
+			return err
+		}
+
+		errNotCritical = metaHdrNonceHashStorer.Remove(nonceToByteSlice)
 		if errNotCritical != nil {
 			log.Debug("error not critical",
 				"error", errNotCritical.Error())

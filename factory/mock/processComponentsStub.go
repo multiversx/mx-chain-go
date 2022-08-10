@@ -52,6 +52,7 @@ type ProcessComponentsMock struct {
 	ProcessedMiniBlocksTrackerInternal   process.ProcessedMiniBlocksTracker
 	ESDTDataStorageHandlerForAPIInternal vmcommon.ESDTNFTStorageHandler
 	AccountsParserInternal               genesis.AccountsParser
+	ReceiptsRepositoryInternal           factory.ReceiptsRepository
 }
 
 // Create -
@@ -252,6 +253,11 @@ func (pcm *ProcessComponentsMock) ProcessedMiniBlocksTracker() process.Processed
 // ESDTDataStorageHandlerForAPI -
 func (pcm *ProcessComponentsMock) ESDTDataStorageHandlerForAPI() vmcommon.ESDTNFTStorageHandler {
 	return pcm.ESDTDataStorageHandlerForAPIInternal
+}
+
+// ReceiptsRepository -
+func (pcm *ProcessComponentsMock) ReceiptsRepository() factory.ReceiptsRepository {
+	return pcm.ReceiptsRepositoryInternal
 }
 
 // IsInterfaceNil -
