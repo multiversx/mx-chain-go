@@ -20,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/state/factory"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
@@ -160,6 +161,18 @@ func TestBaseRewardsCreator_NilUserAccountsDB(t *testing.T) {
 
 	assert.True(t, check.IfNil(rwd))
 	assert.Equal(t, epochStart.ErrNilAccountsDB, err)
+}
+
+func TestBaseRewardsCreator_NilEnableEpochsHandler(t *testing.T) {
+	t.Parallel()
+
+	args := getBaseRewardsArguments()
+	args.EnableEpochsHandler = nil
+
+	rwd, err := NewBaseRewardsCreator(args)
+
+	assert.True(t, check.IfNil(rwd))
+	assert.Equal(t, epochStart.ErrNilEnableEpochsHandler, err)
 }
 
 func TestBaseRewardsCreator_clean(t *testing.T) {
@@ -1155,8 +1168,10 @@ func getBaseRewardsArguments() BaseRewardsCreatorArgs {
 				return 63
 			},
 		},
-		UserAccountsDB:         userAccountsDB,
-		RewardsFix1EpochEnable: 0,
+		UserAccountsDB: userAccountsDB,
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
+			SwitchJailWaitingEnableEpochField: 0,
+		},
 	}
 }
 

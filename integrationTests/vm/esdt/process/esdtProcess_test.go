@@ -42,11 +42,11 @@ func TestESDTIssueAndTransactionsOnMultiShardEnvironment(t *testing.T) {
 	numMetachainNodes := 2
 
 	enableEpochs := config.EnableEpochs{
-		GlobalMintBurnDisableEpoch:                  10,
-		BuiltInFunctionOnMetaEnableEpoch:            10,
-		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: 10,
-		ScheduledMiniBlocksEnableEpoch:              10,
-		MiniBlockPartialExecutionEnableEpoch:        10,
+		GlobalMintBurnDisableEpoch:                  integrationTests.UnreachableEpoch,
+		BuiltInFunctionOnMetaEnableEpoch:            integrationTests.UnreachableEpoch,
+		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: integrationTests.UnreachableEpoch,
+		ScheduledMiniBlocksEnableEpoch:              integrationTests.UnreachableEpoch,
+		MiniBlockPartialExecutionEnableEpoch:        integrationTests.UnreachableEpoch,
 	}
 	nodes := integrationTests.CreateNodesWithEnableEpochs(
 		numOfShards,
@@ -174,7 +174,11 @@ func TestESDTCallBurnOnANonBurnableToken(t *testing.T) {
 	numMetachainNodes := 2
 
 	enableEpochs := config.EnableEpochs{
-		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: 10,
+		GlobalMintBurnDisableEpoch:                  integrationTests.UnreachableEpoch,
+		BuiltInFunctionOnMetaEnableEpoch:            integrationTests.UnreachableEpoch,
+		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: integrationTests.UnreachableEpoch,
+		ScheduledMiniBlocksEnableEpoch:              integrationTests.UnreachableEpoch,
+		MiniBlockPartialExecutionEnableEpoch:        integrationTests.UnreachableEpoch,
 	}
 
 	nodes := integrationTests.CreateNodesWithEnableEpochs(
@@ -329,7 +333,12 @@ func TestESDTIssueAndSelfTransferShouldNotChangeBalance(t *testing.T) {
 }
 
 func TestESDTIssueFromASmartContractSimulated(t *testing.T) {
-	metaNode := integrationTests.NewTestProcessorNode(1, core.MetachainShardId, 0)
+	metaNode := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
+		MaxShards:            1,
+		NodeShardId:          core.MetachainShardId,
+		TxSignPrivKeyShardId: 0,
+	})
+
 	defer func() {
 		metaNode.Close()
 	}()
@@ -2059,8 +2068,8 @@ func TestIssueAndBurnESDT_MaxGasPerBlockExceeded(t *testing.T) {
 	numMetachainNodes := 1
 
 	enableEpochs := config.EnableEpochs{
-		GlobalMintBurnDisableEpoch:       10,
-		BuiltInFunctionOnMetaEnableEpoch: 10,
+		GlobalMintBurnDisableEpoch:       integrationTests.UnreachableEpoch,
+		BuiltInFunctionOnMetaEnableEpoch: integrationTests.UnreachableEpoch,
 	}
 	nodes := integrationTests.CreateNodesWithEnableEpochs(
 		numOfShards,
@@ -2441,11 +2450,17 @@ func TestESDTIssueUnderProtectedKeyWillReturnTokensBack(t *testing.T) {
 	nodesPerShard := 2
 	numMetachainNodes := 2
 
+	enableEpochs := config.EnableEpochs{
+		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: integrationTests.UnreachableEpoch,
+		ScheduledMiniBlocksEnableEpoch:              integrationTests.UnreachableEpoch,
+		MiniBlockPartialExecutionEnableEpoch:        integrationTests.UnreachableEpoch,
+	}
+
 	nodes := integrationTests.CreateNodesWithEnableEpochs(
 		numOfShards,
 		nodesPerShard,
 		numMetachainNodes,
-		config.EnableEpochs{},
+		enableEpochs,
 	)
 
 	idxProposers := make([]int, numOfShards+1)
