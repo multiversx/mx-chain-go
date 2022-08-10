@@ -119,7 +119,7 @@ func createMockMetaArguments(
 			FeeHandler:          &mock.FeeAccumulatorStub{},
 			RequestHandler:      &testscommon.RequestHandlerStub{},
 			BlockChainHook:      &testscommon.BlockChainHookStub{},
-			TxCoordinator:       &mock.TransactionCoordinatorMock{},
+			TxCoordinator:       &testscommon.TransactionCoordinatorMock{},
 			EpochStartTrigger:   &mock.EpochStartTriggerStub{},
 			HeaderValidator:     headerValidator,
 			GasHandler:          &mock.GasHandlerMock{},
@@ -2483,7 +2483,7 @@ func TestMetaProcessor_CreateMiniBlocksDestMe(t *testing.T) {
 		return cs
 	}
 
-	txCoordinator := &mock.TransactionCoordinatorMock{
+	txCoordinator := &testscommon.TransactionCoordinatorMock{
 		CreateMbsAndProcessCrossShardTransactionsDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool) (slices block.MiniBlockSlice, u uint32, b bool, err error) {
 			return block.MiniBlockSlice{expectedMiniBlock1}, 0, true, nil
 		},
@@ -2650,7 +2650,7 @@ func TestMetaProcessor_VerifyCrossShardMiniBlocksDstMe(t *testing.T) {
 		return cs
 	}
 
-	txCoordinator := &mock.TransactionCoordinatorMock{
+	txCoordinator := &testscommon.TransactionCoordinatorMock{
 		CreateMbsAndProcessCrossShardTransactionsDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool) (slices block.MiniBlockSlice, u uint32, b bool, err error) {
 			return block.MiniBlockSlice{miniBlock1}, 0, true, nil
 		},
@@ -2773,7 +2773,7 @@ func TestMetaProcessor_CreateBlockCreateHeaderProcessBlock(t *testing.T) {
 		return cs
 	}
 
-	txCoordinator := &mock.TransactionCoordinatorMock{
+	txCoordinator := &testscommon.TransactionCoordinatorMock{
 		CreateMbsAndProcessCrossShardTransactionsDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool) (slices block.MiniBlockSlice, u uint32, b bool, err error) {
 			return block.MiniBlockSlice{miniBlock1}, 0, true, nil
 		},
@@ -2919,7 +2919,7 @@ func TestMetaProcessor_CreateAndProcessBlockCallsProcessAfterFirstEpoch(t *testi
 		return cs
 	}
 
-	txCoordinator := &mock.TransactionCoordinatorMock{
+	txCoordinator := &testscommon.TransactionCoordinatorMock{
 		CreateMbsAndProcessCrossShardTransactionsDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool) (slices block.MiniBlockSlice, u uint32, b bool, err error) {
 			return block.MiniBlockSlice{miniBlock1}, 0, true, nil
 		},

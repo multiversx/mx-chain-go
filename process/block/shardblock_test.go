@@ -5037,7 +5037,7 @@ func TestShardProcessor_createMiniBlocks(t *testing.T) {
 	}
 
 	var called = &atomicCore.Flag{}
-	arguments.TxCoordinator = &mock.TransactionCoordinatorMock{
+	arguments.TxCoordinator = &testscommon.TransactionCoordinatorMock{
 		AddTransactionsCalled: func(txHandlers []data.TransactionHandler, blockType block.Type) {
 			require.Equal(t, block.TxBlock, blockType)
 			require.Equal(t, txs, txHandlers)

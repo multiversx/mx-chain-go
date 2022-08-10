@@ -136,7 +136,7 @@ func NewShardProcessorEmptyWith3shards(
 			FeeHandler:          &mock.FeeAccumulatorStub{},
 			RequestHandler:      &testscommon.RequestHandlerStub{},
 			BlockChainHook:      &testscommon.BlockChainHookStub{},
-			TxCoordinator:       &mock.TransactionCoordinatorMock{},
+			TxCoordinator:       &testscommon.TransactionCoordinatorMock{},
 			EpochStartTrigger:   &mock.EpochStartTriggerStub{},
 			HeaderValidator:     hdrValidator,
 			BootStorer: &mock.BoostrapStorerMock{
