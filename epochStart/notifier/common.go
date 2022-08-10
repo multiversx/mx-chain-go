@@ -1,11 +1,11 @@
 package notifier
 
 import (
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go/epochStart"
 )
 
-var _ epochStart.ActionHandler = (*handlerStruct)(nil)
+var _ core.EpochStartActionHandler = (*handlerStruct)(nil)
 
 // handlerStruct represents a struct which satisfies the SubscribeFunctionHandler interface
 type handlerStruct struct {
@@ -19,7 +19,7 @@ func NewHandlerForEpochStart(
 	actionFunc func(hdr data.HeaderHandler),
 	prepareFunc func(metaHeader data.HeaderHandler),
 	id uint32,
-) epochStart.ActionHandler {
+) core.EpochStartActionHandler {
 	handler := handlerStruct{
 		act:     actionFunc,
 		prepare: prepareFunc,

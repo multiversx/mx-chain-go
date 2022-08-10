@@ -55,7 +55,7 @@ func createDummyValidatorsInfo() []*state.ShardValidatorInfo {
 func verifyEligibleValidators(
 	t *testing.T,
 	validatorsInfo []*state.ShardValidatorInfo,
-	eligibleMap map[uint32][]Validator,
+	eligibleMap map[uint32][]core.Validator,
 ) {
 	require.NotNil(t, eligibleMap)
 

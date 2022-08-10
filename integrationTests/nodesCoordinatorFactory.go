@@ -3,6 +3,7 @@ package integrationTests
 import (
 	"fmt"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
@@ -20,8 +21,8 @@ type ArgIndexHashedNodesCoordinatorFactory struct {
 	metaConsensusGroupSize  int
 	shardId                 uint32
 	nbShards                int
-	validatorsMap           map[uint32][]nodesCoordinator.Validator
-	waitingMap              map[uint32][]nodesCoordinator.Validator
+	validatorsMap           map[uint32][]core.Validator
+	waitingMap              map[uint32][]core.Validator
 	keyIndex                int
 	cp                      *CryptoParams
 	epochStartSubscriber    nodesCoordinator.EpochStartEventNotifier

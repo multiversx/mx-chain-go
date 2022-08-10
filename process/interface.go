@@ -17,7 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go-crypto"
+	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/common"
 	cryptoCommon "github.com/ElrondNetwork/elrond-go/common/crypto"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
@@ -339,7 +339,7 @@ type Bootstrapper interface {
 // ForkDetector is an interface that defines the behaviour of a struct that is able
 // to detect forks
 type ForkDetector interface {
-	AddHeader(header data.HeaderHandler, headerHash []byte, state BlockHeaderState, selfNotarizedHeaders []data.HeaderHandler, selfNotarizedHeadersHashes [][]byte) error
+	AddHeader(header data.HeaderHandler, headerHash []byte, state core.BlockHeaderState, selfNotarizedHeaders []data.HeaderHandler, selfNotarizedHeadersHashes [][]byte) error
 	RemoveHeader(nonce uint64, hash []byte)
 	CheckFork() *ForkInfo
 	GetHighestFinalBlockNonce() uint64
@@ -356,13 +356,13 @@ type ForkDetector interface {
 
 // InterceptorsContainer defines an interceptors holder data type with basic functionality
 type InterceptorsContainer interface {
-	Get(key string) (Interceptor, error)
-	Add(key string, val Interceptor) error
-	AddMultiple(keys []string, interceptors []Interceptor) error
-	Replace(key string, val Interceptor) error
+	Get(key string) (core.Interceptor, error)
+	Add(key string, val core.Interceptor) error
+	AddMultiple(keys []string, interceptors []core.Interceptor) error
+	Replace(key string, val core.Interceptor) error
 	Remove(key string)
 	Len() int
-	Iterate(handler func(key string, interceptor Interceptor) bool)
+	Iterate(handler func(key string, interceptor core.Interceptor) bool)
 	Close() error
 	IsInterfaceNil() bool
 }
@@ -503,16 +503,6 @@ type BlockChainHookHandler interface {
 	Close() error
 	FilterCodeMetadataForUpgrade(input []byte) ([]byte, error)
 	ApplyFiltersOnCodeMetadata(codeMetadata vmcommon.CodeMetadata) vmcommon.CodeMetadata
-	IsInterfaceNil() bool
-}
-
-// Interceptor defines what a data interceptor should do
-// It should also adhere to the p2p.MessageProcessor interface so it can wire to a p2p.Messenger
-type Interceptor interface {
-	ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error
-	SetInterceptedDebugHandler(handler InterceptedDebugger) error
-	RegisterHandler(handler func(topic string, hash []byte, data interface{}))
-	Close() error
 	IsInterfaceNil() bool
 }
 
@@ -867,7 +857,7 @@ type TopicFloodPreventer interface {
 // P2PAntifloodHandler defines the behavior of a component able to signal that the system is too busy (or flooded) processing
 // p2p messages
 type P2PAntifloodHandler interface {
-	CanProcessMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error
+	CanProcessMessage(message core.MessageP2P, fromConnectedPeer core.PeerID) error
 	CanProcessMessagesOnTopic(pid core.PeerID, topic string, numMessages uint32, totalSize uint64, sequence []byte) error
 	ApplyConsensusSize(size int)
 	SetDebugger(debugger AntifloodDebugger) error
@@ -1053,8 +1043,8 @@ type EpochHandler interface {
 
 // EpochStartEventNotifier provides Register and Unregister functionality for the end of epoch events
 type EpochStartEventNotifier interface {
-	RegisterHandler(handler epochStart.ActionHandler)
-	UnregisterHandler(handler epochStart.ActionHandler)
+	RegisterHandler(handler core.EpochStartActionHandler)
+	UnregisterHandler(handler core.EpochStartActionHandler)
 	IsInterfaceNil() bool
 }
 

@@ -27,11 +27,11 @@ type NodesShufflerArgs struct {
 }
 
 type shuffleNodesArg struct {
-	eligible                map[uint32][]Validator
-	waiting                 map[uint32][]Validator
-	unstakeLeaving          []Validator
-	additionalLeaving       []Validator
-	newNodes                []Validator
+	eligible                map[uint32][]core.Validator
+	waiting                 map[uint32][]core.Validator
+	unstakeLeaving          []core.Validator
+	additionalLeaving       []core.Validator
+	newNodes                []core.Validator
 	randomness              []byte
 	distributor             ValidatorsDistributor
 	nodesMeta               uint32
@@ -187,8 +187,8 @@ func (rhs *randHashShuffler) UpdateNodeLists(args ArgsUpdateNodes) (*ResUpdateNo
 	})
 }
 
-func removeDupplicates(unstake []Validator, additionalLeaving []Validator) []Validator {
-	additionalCopy := make([]Validator, 0, len(additionalLeaving))
+func removeDupplicates(unstake []core.Validator, additionalLeaving []core.Validator) []core.Validator {
+	additionalCopy := make([]core.Validator, 0, len(additionalLeaving))
 	additionalCopy = append(additionalCopy, additionalLeaving...)
 
 	for _, unstakeValidator := range unstake {
@@ -203,10 +203,10 @@ func removeDupplicates(unstake []Validator, additionalLeaving []Validator) []Val
 }
 
 func removeNodesFromMap(
-	existingNodes map[uint32][]Validator,
-	leavingNodes []Validator,
+	existingNodes map[uint32][]core.Validator,
+	leavingNodes []core.Validator,
 	numToRemove map[uint32]int,
-) (map[uint32][]Validator, []Validator) {
+) (map[uint32][]core.Validator, []core.Validator) {
 	sortedShardIds := sortKeys(existingNodes)
 	numRemoved := 0
 
@@ -219,7 +219,7 @@ func removeNodesFromMap(
 	return existingNodes, leavingNodes
 }
 
-func removeNodesFromShard(existingNodes map[uint32][]Validator, leavingNodes []Validator, shard uint32, nbToRemove int) ([]Validator, int) {
+func removeNodesFromShard(existingNodes map[uint32][]core.Validator, leavingNodes []core.Validator, shard uint32, nbToRemove int) ([]core.Validator, int) {
 	if len(leavingNodes) < nbToRemove {
 		nbToRemove = len(leavingNodes)
 	}
@@ -303,15 +303,15 @@ func shuffleNodes(arg shuffleNodesArg) (*ResUpdateNodes, error) {
 	}, nil
 }
 
-func createListsForAllShards(shardMap map[uint32][]Validator, shards uint32) {
+func createListsForAllShards(shardMap map[uint32][]core.Validator, shards uint32) {
 	for shardId := uint32(0); shardId < shards; shardId++ {
 		if shardMap[shardId] == nil {
-			shardMap[shardId] = make([]Validator, 0)
+			shardMap[shardId] = make([]core.Validator, 0)
 		}
 	}
 
 	if shardMap[core.MetachainShardId] == nil {
-		shardMap[core.MetachainShardId] = make([]Validator, 0)
+		shardMap[core.MetachainShardId] = make([]core.Validator, 0)
 	}
 }
 
@@ -353,11 +353,11 @@ func computeNumToRemovePerShard(numEligible int, numWaiting int, nodesPerShard i
 }
 
 func removeLeavingNodesNotExistingInEligibleOrWaiting(
-	leavingValidators []Validator,
-	waiting map[uint32][]Validator,
-	eligible map[uint32][]Validator,
-) ([]Validator, []Validator) {
-	notFoundValidators := make([]Validator, 0)
+	leavingValidators []core.Validator,
+	waiting map[uint32][]core.Validator,
+	eligible map[uint32][]core.Validator,
+) ([]core.Validator, []core.Validator) {
+	notFoundValidators := make([]core.Validator, 0)
 
 	for _, v := range leavingValidators {
 		found, _ := searchInMap(waiting, v.PubKey())
@@ -375,16 +375,16 @@ func removeLeavingNodesNotExistingInEligibleOrWaiting(
 }
 
 func removeLeavingNodesFromValidatorMaps(
-	eligible map[uint32][]Validator,
-	waiting map[uint32][]Validator,
+	eligible map[uint32][]core.Validator,
+	waiting map[uint32][]core.Validator,
 	numToRemove map[uint32]int,
-	leaving []Validator,
+	leaving []core.Validator,
 	minNodesMeta int,
 	minNodesPerShard int,
 	waitingFixEnabled bool,
-) (map[uint32][]Validator, map[uint32][]Validator, []Validator) {
+) (map[uint32][]core.Validator, map[uint32][]core.Validator, []core.Validator) {
 
-	stillRemainingInLeaving := make([]Validator, len(leaving))
+	stillRemainingInLeaving := make([]core.Validator, len(leaving))
 	copy(stillRemainingInLeaving, leaving)
 
 	if !waitingFixEnabled {
@@ -397,13 +397,13 @@ func removeLeavingNodesFromValidatorMaps(
 }
 
 func removeLeavingNodes(
-	eligible map[uint32][]Validator,
-	waiting map[uint32][]Validator,
+	eligible map[uint32][]core.Validator,
+	waiting map[uint32][]core.Validator,
 	numToRemove map[uint32]int,
-	stillRemainingInLeaving []Validator,
+	stillRemainingInLeaving []core.Validator,
 	minNodesMeta int,
 	minNodesPerShard int,
-) (map[uint32][]Validator, map[uint32][]Validator, []Validator) {
+) (map[uint32][]core.Validator, map[uint32][]core.Validator, []core.Validator) {
 	maxNumToRemoveFromWaiting := make(map[uint32]int)
 	for shardId := range eligible {
 		computedMinNumberOfNodes := computeMinNumberOfNodes(eligible, waiting, shardId, minNodesMeta, minNodesPerShard)
@@ -423,7 +423,7 @@ func removeLeavingNodes(
 	return newEligible, newWaiting, stillRemainingInLeaving
 }
 
-func computeMinNumberOfNodes(eligible map[uint32][]Validator, waiting map[uint32][]Validator, shardId uint32, minNodesMeta int, minNodesPerShard int) int {
+func computeMinNumberOfNodes(eligible map[uint32][]core.Validator, waiting map[uint32][]core.Validator, shardId uint32, minNodesMeta int, minNodesPerShard int) int {
 	minimumNumberOfNodes := minNodesPerShard
 	if shardId == core.MetachainShardId {
 		minimumNumberOfNodes = minNodesMeta
@@ -437,8 +437,8 @@ func computeMinNumberOfNodes(eligible map[uint32][]Validator, waiting map[uint32
 
 // computeNewShards determines the new number of shards based on the number of nodes in the network
 func (rhs *randHashShuffler) computeNewShards(
-	eligible map[uint32][]Validator,
-	waiting map[uint32][]Validator,
+	eligible map[uint32][]core.Validator,
+	waiting map[uint32][]core.Validator,
 	numNewNodes int,
 	numLeavingNodes int,
 	nbShards uint32,
@@ -478,13 +478,13 @@ func (rhs *randHashShuffler) computeNewShards(
 // shuffleOutNodes shuffles the list of eligible validators in each shard and returns the map of shuffled out
 // validators
 func shuffleOutNodes(
-	eligible map[uint32][]Validator,
+	eligible map[uint32][]core.Validator,
 	numToShuffle map[uint32]int,
 	randomness []byte,
-) (map[uint32][]Validator, map[uint32][]Validator) {
-	shuffledOutMap := make(map[uint32][]Validator)
-	newEligible := make(map[uint32][]Validator)
-	var shardShuffledOut []Validator
+) (map[uint32][]core.Validator, map[uint32][]core.Validator) {
+	shuffledOutMap := make(map[uint32][]core.Validator)
+	newEligible := make(map[uint32][]core.Validator)
+	var shardShuffledOut []core.Validator
 
 	sortedShardIds := sortKeys(eligible)
 	for _, shardId := range sortedShardIds {
@@ -499,10 +499,10 @@ func shuffleOutNodes(
 
 // shuffleOutShard selects the validators to be shuffled out from a shard
 func shuffleOutShard(
-	validators []Validator,
+	validators []core.Validator,
 	validatorsToSelect int,
 	randomness []byte,
-) ([]Validator, []Validator) {
+) ([]core.Validator, []core.Validator) {
 	if len(validators) < validatorsToSelect {
 		validatorsToSelect = len(validators)
 	}
@@ -518,9 +518,9 @@ func shuffleOutShard(
 // The shuffling is done by hash-ing the randomness concatenated with the
 // public keys of validators and sorting the validators depending on
 // the hash result.
-func shuffleList(validators []Validator, randomness []byte) []Validator {
+func shuffleList(validators []core.Validator, randomness []byte) []core.Validator {
 	keys := make([]string, len(validators))
-	mapValidators := make(map[string]Validator)
+	mapValidators := make(map[string]core.Validator)
 	var concat []byte
 
 	hasher := sha256.NewSha256()
@@ -533,7 +533,7 @@ func shuffleList(validators []Validator, randomness []byte) []Validator {
 
 	sort.Strings(keys)
 
-	result := make([]Validator, len(validators))
+	result := make([]core.Validator, len(validators))
 	for i := 0; i < len(validators); i++ {
 		result[i] = mapValidators[keys[i]]
 	}
@@ -542,13 +542,13 @@ func shuffleList(validators []Validator, randomness []byte) []Validator {
 }
 
 func removeValidatorsFromList(
-	validatorList []Validator,
-	validatorsToRemove []Validator,
+	validatorList []core.Validator,
+	validatorsToRemove []core.Validator,
 	maxToRemove int,
-) ([]Validator, []Validator) {
-	resultedList := make([]Validator, 0)
+) ([]core.Validator, []core.Validator) {
+	resultedList := make([]core.Validator, 0)
 	resultedList = append(resultedList, validatorList...)
-	removed := make([]Validator, 0)
+	removed := make([]core.Validator, 0)
 
 	for _, valToRemove := range validatorsToRemove {
 		if len(removed) == maxToRemove {
@@ -574,7 +574,7 @@ func removeValidatorsFromList(
 // so not critical to maintain the original order inside the list, as that would be slower.
 //
 // Attention: The slice given as parameter will have its element on position index swapped with the last element
-func removeValidatorFromList(validatorList []Validator, index int) []Validator {
+func removeValidatorFromList(validatorList []core.Validator, index int) []core.Validator {
 	indexNotOK := index > len(validatorList)-1 || index < 0
 	if indexNotOK {
 		return validatorList
@@ -584,7 +584,7 @@ func removeValidatorFromList(validatorList []Validator, index int) []Validator {
 	return validatorList[:len(validatorList)-1]
 }
 
-func removeValidatorFromListKeepOrder(validatorList []Validator, index int) []Validator {
+func removeValidatorFromListKeepOrder(validatorList []core.Validator, index int) []core.Validator {
 	indexNotOK := index > len(validatorList)-1 || index < 0
 	if indexNotOK {
 		return validatorList
@@ -596,10 +596,10 @@ func removeValidatorFromListKeepOrder(validatorList []Validator, index int) []Va
 // splitShards prepares for the shards split, or if already prepared does the split returning the resulting
 // shards configuration for eligible and waiting lists
 func (rhs *randHashShuffler) splitShards(
-	eligible map[uint32][]Validator,
-	waiting map[uint32][]Validator,
+	eligible map[uint32][]core.Validator,
+	waiting map[uint32][]core.Validator,
 	_ uint32,
-) (map[uint32][]Validator, map[uint32][]Validator) {
+) (map[uint32][]core.Validator, map[uint32][]core.Validator) {
 	log.Error(ErrNotImplemented.Error())
 
 	// TODO: do the split
@@ -608,10 +608,10 @@ func (rhs *randHashShuffler) splitShards(
 
 // mergeShards merges the required shards, returning the resulting shards configuration for eligible and waiting lists
 func (rhs *randHashShuffler) mergeShards(
-	eligible map[uint32][]Validator,
-	waiting map[uint32][]Validator,
+	eligible map[uint32][]core.Validator,
+	waiting map[uint32][]core.Validator,
 	_ uint32,
-) (map[uint32][]Validator, map[uint32][]Validator) {
+) (map[uint32][]core.Validator, map[uint32][]core.Validator) {
 	log.Error(ErrNotImplemented.Error())
 
 	// TODO: do the merge
@@ -619,11 +619,11 @@ func (rhs *randHashShuffler) mergeShards(
 }
 
 // copyValidatorMap creates a copy for the Validators map, creating copies for each of the lists for each shard
-func copyValidatorMap(validatorsMap map[uint32][]Validator) map[uint32][]Validator {
-	result := make(map[uint32][]Validator)
+func copyValidatorMap(validatorsMap map[uint32][]core.Validator) map[uint32][]core.Validator {
+	result := make(map[uint32][]core.Validator)
 
 	for shardId, validators := range validatorsMap {
-		elems := make([]Validator, 0)
+		elems := make([]core.Validator, 0)
 		result[shardId] = append(elems, validators...)
 	}
 
@@ -631,14 +631,14 @@ func copyValidatorMap(validatorsMap map[uint32][]Validator) map[uint32][]Validat
 }
 
 // moveNodesToMap moves the validators in the source list to the corresponding destination list
-func moveNodesToMap(destination map[uint32][]Validator, source map[uint32][]Validator) error {
+func moveNodesToMap(destination map[uint32][]core.Validator, source map[uint32][]core.Validator) error {
 	if destination == nil {
 		return ErrNilOrEmptyDestinationForDistribute
 	}
 
 	for shardId, validators := range source {
 		destination[shardId] = append(destination[shardId], validators...)
-		source[shardId] = make([]Validator, 0)
+		source[shardId] = make([]core.Validator, 0)
 	}
 
 	return nil
@@ -648,8 +648,8 @@ func moveNodesToMap(destination map[uint32][]Validator, source map[uint32][]Vali
 // but adding just enough nodes so that at most the number of nodes is kept in the destination list
 // The parameter maxNodesToMove is a limiting factor and should limit the number of nodes
 func moveMaxNumNodesToMap(
-	destination map[uint32][]Validator,
-	source map[uint32][]Validator,
+	destination map[uint32][]core.Validator,
+	source map[uint32][]core.Validator,
 	numMeta uint32,
 	numShard uint32,
 ) error {
@@ -671,7 +671,7 @@ func moveMaxNumNodesToMap(
 	return nil
 }
 
-func computeNeededNodes(destination []Validator, source []Validator, maxNumNodes uint32) uint32 {
+func computeNeededNodes(destination []core.Validator, source []core.Validator, maxNumNodes uint32) uint32 {
 	numNeededNodes := uint32(0)
 	numCurrentNodes := uint32(len(destination))
 	numSourceNodes := uint32(len(source))
@@ -686,7 +686,7 @@ func computeNeededNodes(destination []Validator, source []Validator, maxNumNodes
 }
 
 // distributeNewNodes distributes a list of validators to the given validators map
-func distributeValidators(destLists map[uint32][]Validator, validators []Validator, randomness []byte, balanced bool) error {
+func distributeValidators(destLists map[uint32][]core.Validator, validators []core.Validator, randomness []byte, balanced bool) error {
 	if len(destLists) == 0 {
 		return ErrNilOrEmptyDestinationForDistribute
 	}
@@ -709,7 +709,7 @@ func distributeValidators(destLists map[uint32][]Validator, validators []Validat
 	return nil
 }
 
-func equalizeValidatorsLists(destLists map[uint32][]Validator, validators []Validator) []Validator {
+func equalizeValidatorsLists(destLists map[uint32][]core.Validator, validators []core.Validator) []core.Validator {
 	log.Debug("equalizeValidatorsLists")
 
 	maxListSize := getMaxListSize(destLists)
@@ -735,7 +735,7 @@ func equalizeValidatorsLists(destLists map[uint32][]Validator, validators []Vali
 	return validators[indexValidators : indexValidators+remainingValidatorsNumber]
 }
 
-func getMaxListSize(lists map[uint32][]Validator) int {
+func getMaxListSize(lists map[uint32][]core.Validator) int {
 	var maxSize int
 
 	for _, list := range lists {
@@ -746,7 +746,7 @@ func getMaxListSize(lists map[uint32][]Validator) int {
 	return maxSize
 }
 
-func sortKeys(nodes map[uint32][]Validator) []uint32 {
+func sortKeys(nodes map[uint32][]core.Validator) []uint32 {
 	keys := make([]uint32, 0, len(nodes))
 	for k := range nodes {
 		keys = append(keys, k)

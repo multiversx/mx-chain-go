@@ -3,13 +3,12 @@ package mock
 import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/p2p"
 )
 
 // PeerAuthenticationResolverStub -
 type PeerAuthenticationResolverStub struct {
 	RequestDataFromHashCalled      func(hash []byte, epoch uint32) error
-	ProcessReceivedMessageCalled   func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error
+	ProcessReceivedMessageCalled   func(message core.MessageP2P, fromConnectedPeer core.PeerID) error
 	SetResolverDebugHandlerCalled  func(handler dataRetriever.ResolverDebugHandler) error
 	SetNumPeersToQueryCalled       func(intra int, cross int)
 	NumPeersToQueryCalled          func() (int, int)
@@ -28,7 +27,7 @@ func (pars *PeerAuthenticationResolverStub) RequestDataFromHash(hash []byte, epo
 }
 
 // ProcessReceivedMessage -
-func (pars *PeerAuthenticationResolverStub) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
+func (pars *PeerAuthenticationResolverStub) ProcessReceivedMessage(message core.MessageP2P, fromConnectedPeer core.PeerID) error {
 	if pars.ProcessReceivedMessageCalled != nil {
 		return pars.ProcessReceivedMessageCalled(message, fromConnectedPeer)
 	}

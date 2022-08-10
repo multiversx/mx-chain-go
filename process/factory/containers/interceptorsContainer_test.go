@@ -62,7 +62,7 @@ func TestInterceptorsContainer_AddMultipleAlreadyExistingShouldErr(t *testing.T)
 	c := containers.NewInterceptorsContainer()
 
 	keys := []string{"key", "key"}
-	interceptors := []process.Interceptor{&testscommon.InterceptorStub{}, &testscommon.InterceptorStub{}}
+	interceptors := []core.Interceptor{&testscommon.InterceptorStub{}, &testscommon.InterceptorStub{}}
 
 	err := c.AddMultiple(keys, interceptors)
 
@@ -75,7 +75,7 @@ func TestInterceptorsContainer_AddMultipleLenMismatchShouldErr(t *testing.T) {
 	c := containers.NewInterceptorsContainer()
 
 	keys := []string{"key"}
-	interceptors := []process.Interceptor{&testscommon.InterceptorStub{}, &testscommon.InterceptorStub{}}
+	interceptors := []core.Interceptor{&testscommon.InterceptorStub{}, &testscommon.InterceptorStub{}}
 
 	err := c.AddMultiple(keys, interceptors)
 
@@ -88,7 +88,7 @@ func TestInterceptorsContainer_AddMultipleShouldWork(t *testing.T) {
 	c := containers.NewInterceptorsContainer()
 
 	keys := []string{"key1", "key2"}
-	interceptors := []process.Interceptor{&testscommon.InterceptorStub{}, &testscommon.InterceptorStub{}}
+	interceptors := []core.Interceptor{&testscommon.InterceptorStub{}, &testscommon.InterceptorStub{}}
 
 	err := c.AddMultiple(keys, interceptors)
 
@@ -251,7 +251,7 @@ func TestInterceptorsContainer_IterateNotAValidKeyShouldWorkAndNotPanic(t *testi
 	_ = c.Add("key1", &testscommon.InterceptorStub{})
 
 	runs := uint32(0)
-	c.Iterate(func(key string, interceptor process.Interceptor) bool {
+	c.Iterate(func(key string, interceptor core.Interceptor) bool {
 		atomic.AddUint32(&runs, 1)
 		return true
 	})
@@ -275,7 +275,7 @@ func TestInterceptorsContainer_IterateNotAValidValueShouldWorkAndNotPanic(t *tes
 	c.Objects().Set("key 2", struct{}{})
 
 	runs := uint32(0)
-	c.Iterate(func(key string, interceptor process.Interceptor) bool {
+	c.Iterate(func(key string, interceptor core.Interceptor) bool {
 		atomic.AddUint32(&runs, 1)
 		return true
 	})
@@ -292,7 +292,7 @@ func TestInterceptorsContainer_Iterate(t *testing.T) {
 	_ = c.Add("key2", &testscommon.InterceptorStub{})
 
 	runs := uint32(0)
-	c.Iterate(func(key string, interceptor process.Interceptor) bool {
+	c.Iterate(func(key string, interceptor core.Interceptor) bool {
 		atomic.AddUint32(&runs, 1)
 		return true
 	})
@@ -309,7 +309,7 @@ func TestInterceptorsContainer_IterateEarlyExitShouldWork(t *testing.T) {
 	_ = c.Add("key2", &testscommon.InterceptorStub{})
 
 	runs := uint32(0)
-	c.Iterate(func(key string, interceptor process.Interceptor) bool {
+	c.Iterate(func(key string, interceptor core.Interceptor) bool {
 		atomic.AddUint32(&runs, 1)
 		return false
 	})

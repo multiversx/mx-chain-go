@@ -217,9 +217,14 @@ func (ccf *cryptoComponentsFactory) createBlsSignatureHandler(
 	cp *cryptoParams,
 ) (consensus.SignatureHandler, error) {
 
+	privKeyBytes, err := cp.privateKey.ToByteArray()
+	if err != nil {
+		return nil, err
+	}
+
 	signatureHolderArgs := sigHandler.ArgsSignatureHolder{
 		PubKeys:              []string{string(cp.publicKeyBytes)},
-		PrivKey:              cp.privateKey,
+		PrivKeyBytes:         privKeyBytes,
 		MultiSignerContainer: multiSignerContainer,
 		KeyGenerator:         blSignKeyGen,
 	}

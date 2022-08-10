@@ -4,22 +4,21 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go/p2p"
 )
 
 type messageProcessor struct {
 	mutMessages sync.Mutex
-	messages    map[core.PeerID][]p2p.MessageP2P
+	messages    map[core.PeerID][]core.MessageP2P
 }
 
 func newMessageProcessor() *messageProcessor {
 	return &messageProcessor{
-		messages: make(map[core.PeerID][]p2p.MessageP2P),
+		messages: make(map[core.PeerID][]core.MessageP2P),
 	}
 }
 
 // ProcessReceivedMessage -
-func (mp *messageProcessor) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
+func (mp *messageProcessor) ProcessReceivedMessage(message core.MessageP2P, fromConnectedPeer core.PeerID) error {
 	mp.mutMessages.Lock()
 	defer mp.mutMessages.Unlock()
 
@@ -29,7 +28,7 @@ func (mp *messageProcessor) ProcessReceivedMessage(message p2p.MessageP2P, fromC
 }
 
 // Messages -
-func (mp *messageProcessor) Messages(pid core.PeerID) []p2p.MessageP2P {
+func (mp *messageProcessor) Messages(pid core.PeerID) []core.MessageP2P {
 	mp.mutMessages.Lock()
 	defer mp.mutMessages.Unlock()
 
@@ -37,8 +36,8 @@ func (mp *messageProcessor) Messages(pid core.PeerID) []p2p.MessageP2P {
 }
 
 // AllMessages -
-func (mp *messageProcessor) AllMessages() []p2p.MessageP2P {
-	result := make([]p2p.MessageP2P, 0)
+func (mp *messageProcessor) AllMessages() []core.MessageP2P {
+	result := make([]core.MessageP2P, 0)
 
 	mp.mutMessages.Lock()
 	defer mp.mutMessages.Unlock()

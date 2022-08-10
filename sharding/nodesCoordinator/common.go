@@ -33,7 +33,7 @@ func computeStartIndexAndNumAppearancesForValidator(expEligibleList []uint32, id
 	return startIdx, endIdx - startIdx + 1
 }
 
-func displayValidatorsForRandomness(validators []Validator, randomness []byte) {
+func displayValidatorsForRandomness(validators []core.Validator, randomness []byte) {
 	if log.GetLevel() != logger.LogTrace {
 		return
 	}
@@ -48,10 +48,10 @@ func displayValidatorsForRandomness(validators []Validator, randomness []byte) {
 }
 
 func displayNodesConfiguration(
-	eligible map[uint32][]Validator,
-	waiting map[uint32][]Validator,
-	leaving map[uint32][]Validator,
-	actualRemaining map[uint32][]Validator,
+	eligible map[uint32][]core.Validator,
+	waiting map[uint32][]core.Validator,
+	leaving map[uint32][]core.Validator,
+	actualRemaining map[uint32][]core.Validator,
 	nbShards uint32,
 ) {
 	for shard := uint32(0); shard <= nbShards; shard++ {
@@ -79,8 +79,8 @@ func displayNodesConfiguration(
 }
 
 // SerializableValidatorsToValidators creates the validator map from serializable validator map
-func SerializableValidatorsToValidators(nodeRegistryValidators map[string][]*SerializableValidator) (map[uint32][]Validator, error) {
-	validators := make(map[uint32][]Validator)
+func SerializableValidatorsToValidators(nodeRegistryValidators map[string][]*SerializableValidator) (map[uint32][]core.Validator, error) {
+	validators := make(map[uint32][]core.Validator)
 	for shardId, shardValidators := range nodeRegistryValidators {
 		newValidators, err := SerializableShardValidatorListToValidatorList(shardValidators)
 		if err != nil {
@@ -97,8 +97,8 @@ func SerializableValidatorsToValidators(nodeRegistryValidators map[string][]*Ser
 }
 
 // SerializableShardValidatorListToValidatorList creates the validator list from serializable validator list
-func SerializableShardValidatorListToValidatorList(shardValidators []*SerializableValidator) ([]Validator, error) {
-	newValidators := make([]Validator, len(shardValidators))
+func SerializableShardValidatorListToValidatorList(shardValidators []*SerializableValidator) ([]core.Validator, error) {
+	newValidators := make([]core.Validator, len(shardValidators))
 	for i, shardValidator := range shardValidators {
 		v, err := NewValidator(shardValidator.PubKey, shardValidator.Chances, shardValidator.Index)
 		if err != nil {

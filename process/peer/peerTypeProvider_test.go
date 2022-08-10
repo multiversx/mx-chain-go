@@ -46,7 +46,7 @@ func TestPeerTypeProvider_CallsPopulateAndRegister(t *testing.T) {
 
 	arg := createDefaultArgPeerTypeProvider()
 	arg.EpochStartEventNotifier = &mock.EpochStartNotifierStub{
-		RegisterHandlerCalled: func(handler epochStart.ActionHandler) {
+		RegisterHandlerCalled: func(handler core.EpochStartActionHandler) {
 			atomic.AddInt32(&numRegisterHandlerCalled, 1)
 		},
 	}

@@ -430,7 +430,7 @@ func TestPeerAuthenticationSender_Execute(t *testing.T) {
 		}
 		args := createMockPeerAuthenticationSenderArgs(argsBase)
 		args.nodesCoordinator = &shardingMocks.NodesCoordinatorStub{
-			GetValidatorWithPublicKeyCalled: func(publicKey []byte) (validator nodesCoordinator.Validator, shardId uint32, err error) {
+			GetValidatorWithPublicKeyCalled: func(publicKey []byte) (validator core.Validator, shardId uint32, err error) {
 				return nil, 0, errors.New("observer")
 			},
 		}
@@ -501,7 +501,7 @@ func TestPeerAuthenticationSender_Execute(t *testing.T) {
 		args := createMockPeerAuthenticationSenderArgs(argsBase)
 		counter := 0
 		args.nodesCoordinator = &shardingMocks.NodesCoordinatorStub{
-			GetValidatorWithPublicKeyCalled: func(publicKey []byte) (validator nodesCoordinator.Validator, shardId uint32, err error) {
+			GetValidatorWithPublicKeyCalled: func(publicKey []byte) (validator core.Validator, shardId uint32, err error) {
 				counter++
 				if counter == 2 {
 					return nil, 0, nil // validator

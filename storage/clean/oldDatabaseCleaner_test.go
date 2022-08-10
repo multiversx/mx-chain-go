@@ -79,10 +79,10 @@ func TestNewOldDatabaseCleaner(t *testing.T) {
 func TestOldDatabaseCleaner_EpochChangeShouldErrIfOldestEpochComputationFails(t *testing.T) {
 	t.Parallel()
 
-	var handlerFunc epochStart.ActionHandler
+	var handlerFunc core.EpochStartActionHandler
 	args := createMockArgs()
 	args.EpochStartNotifier = &mock.EpochStartNotifierStub{
-		RegisterHandlerCalled: func(handler epochStart.ActionHandler) {
+		RegisterHandlerCalled: func(handler core.EpochStartActionHandler) {
 			handlerFunc = handler
 		},
 	}
@@ -111,10 +111,10 @@ func TestOldDatabaseCleaner_EpochChangeShouldErrIfOldestEpochComputationFails(t 
 func TestOldDatabaseCleaner_EpochChangeDirectoryReadFailsShouldNotRemove(t *testing.T) {
 	t.Parallel()
 
-	var handlerFunc epochStart.ActionHandler
+	var handlerFunc core.EpochStartActionHandler
 	args := createMockArgs()
 	args.EpochStartNotifier = &mock.EpochStartNotifierStub{
-		RegisterHandlerCalled: func(handler epochStart.ActionHandler) {
+		RegisterHandlerCalled: func(handler core.EpochStartActionHandler) {
 			handlerFunc = handler
 		},
 	}
@@ -143,10 +143,10 @@ func TestOldDatabaseCleaner_EpochChangeDirectoryReadFailsShouldNotRemove(t *test
 func TestOldDatabaseCleaner_EpochChangeNoEpochDirectory(t *testing.T) {
 	t.Parallel()
 
-	var handlerFunc epochStart.ActionHandler
+	var handlerFunc core.EpochStartActionHandler
 	args := createMockArgs()
 	args.EpochStartNotifier = &mock.EpochStartNotifierStub{
-		RegisterHandlerCalled: func(handler epochStart.ActionHandler) {
+		RegisterHandlerCalled: func(handler core.EpochStartActionHandler) {
 			handlerFunc = handler
 		},
 	}
@@ -175,10 +175,10 @@ func TestOldDatabaseCleaner_EpochChangeNoEpochDirectory(t *testing.T) {
 func TestOldDatabaseCleaner_EpochChangeShouldNotRemoveIfNewOldestEpochIsOlder(t *testing.T) {
 	t.Parallel()
 
-	var handlerFunc epochStart.ActionHandler
+	var handlerFunc core.EpochStartActionHandler
 	args := createMockArgs()
 	args.EpochStartNotifier = &mock.EpochStartNotifierStub{
-		RegisterHandlerCalled: func(handler epochStart.ActionHandler) {
+		RegisterHandlerCalled: func(handler core.EpochStartActionHandler) {
 			handlerFunc = handler
 		},
 	}
@@ -215,10 +215,10 @@ func TestOldDatabaseCleaner_EpochChangeShouldNotRemoveIfNewOldestEpochIsOlder(t 
 func TestOldDatabaseCleaner_EpochChange(t *testing.T) {
 	t.Parallel()
 
-	var handlerFunc epochStart.ActionHandler
+	var handlerFunc core.EpochStartActionHandler
 	args := createMockArgs()
 	args.EpochStartNotifier = &mock.EpochStartNotifierStub{
-		RegisterHandlerCalled: func(handler epochStart.ActionHandler) {
+		RegisterHandlerCalled: func(handler core.EpochStartActionHandler) {
 			handlerFunc = handler
 		},
 	}
@@ -278,7 +278,7 @@ func createMockArgs() ArgsOldDatabaseCleaner {
 		DatabasePath:        "db/D",
 		StorageListProvider: &mock.StorageListProviderStub{},
 		EpochStartNotifier: &mock.EpochStartNotifierStub{
-			RegisterHandlerCalled: func(_ epochStart.ActionHandler) {},
+			RegisterHandlerCalled: func(_ core.EpochStartActionHandler) {},
 		},
 		OldDataCleanerProvider: &testscommon.OldDataCleanerProviderStub{},
 	}
