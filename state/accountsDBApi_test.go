@@ -497,18 +497,19 @@ func TestAccountsDBApi_GetAccountWithBlockInfoWhenHighConcurrency(t *testing.T) 
 	numConcurrentRoutinesReadingAccount := 100
 
 	for run := 0; run < numTestRuns; run++ {
-		var dummyAccount = createDummyAccountWithBalanceBytes([]byte{42, 0, 0, 0, 0, 0, 0, 0})
+		dummyAccount := createDummyAccountWithBalanceBytes([]byte{42, 0, 0, 0, 0, 0, 0, 0})
+		currentBlockInfo := createDummyBlockInfoWithNonce(42)
 		var dummyAccountMutex sync.RWMutex
-		var currentBlockInfo = createDummyBlockInfoWithNonce(42)
 		var currentBlockInfoMutex sync.RWMutex
 
 		accountsAdapter := &mockState.AccountsStub{
 			RecreateTrieCalled: func(rootHash []byte) error {
 				dummyAccountMutex.Lock()
+				defer dummyAccountMutex.Unlock()
+
 				// When a trie is recreated, we "add" to it a single account,
-				// having a balance correlated with the trie rootHash (for the sake of the test, for easier assertions).
+				// having the balance correlated with the trie rootHash (for the sake of the test, for easier assertions).
 				dummyAccount = createDummyAccountWithBalanceBytes(rootHash)
-				dummyAccountMutex.Unlock()
 				return nil
 			},
 			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
@@ -558,7 +559,6 @@ func TestAccountsDBApi_GetAccountWithBlockInfoWhenHighConcurrency(t *testing.T) 
 
 		wg.Wait()
 	}
-
 }
 
 func createDummyAccountWithBalanceBytes(balanceBytes []byte) state.UserAccountHandler {
