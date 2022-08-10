@@ -15,7 +15,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/pubkeyConverter"
 	vmData "github.com/ElrondNetwork/elrond-go-core/data/vm"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/vm"
