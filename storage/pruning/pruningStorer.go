@@ -16,6 +16,7 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
+	elrondErrors "github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/clean"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
@@ -418,7 +419,7 @@ func (ps *PruningStorer) Get(key []byte) ([]byte, error) {
 	for idx := 0; idx < len(ps.activePersisters); idx++ {
 		val, err := ps.activePersisters[idx].persister.Get(key)
 		if err != nil {
-			if err == storage.ErrDBIsClosed {
+			if err == elrondErrors.ErrDBIsClosed {
 				numClosedDbs++
 			}
 
@@ -431,7 +432,7 @@ func (ps *PruningStorer) Get(key []byte) ([]byte, error) {
 	}
 
 	if numClosedDbs == len(ps.activePersisters) && len(ps.activePersisters) > 0 {
-		return nil, storage.ErrDBIsClosed
+		return nil, elrondErrors.ErrDBIsClosed
 	}
 
 	return nil, fmt.Errorf("key %s not found in %s", hex.EncodeToString(key), ps.identifier)

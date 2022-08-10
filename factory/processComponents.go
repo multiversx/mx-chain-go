@@ -46,6 +46,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory/interceptorscontainer"
 	"github.com/ElrondNetwork/elrond-go/process/headerCheck"
 	"github.com/ElrondNetwork/elrond-go/process/peer"
+	"github.com/ElrondNetwork/elrond-go/process/receipts"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/sync"
 	"github.com/ElrondNetwork/elrond-go/process/track"
@@ -117,6 +118,7 @@ type processComponents struct {
 	processedMiniBlocksTracker   process.ProcessedMiniBlocksTracker
 	esdtDataStorageForApi        vmcommon.ESDTNFTStorageHandler
 	accountsParser               genesis.AccountsParser
+	receiptsRepository           ReceiptsRepository
 }
 
 // ProcessComponentsFactoryArgs holds the arguments needed to create a process components factory
@@ -288,7 +290,10 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
-	txLogsStorage := pcf.data.StorageService().GetStorer(dataRetriever.TxLogsUnit)
+	txLogsStorage, err := pcf.data.StorageService().GetStorer(dataRetriever.TxLogsUnit)
+	if err != nil {
+		return nil, err
+	}
 
 	if !pcf.config.LogsAndEvents.SaveInStorageEnabled && pcf.config.DbLookupExtensions.Enabled {
 		log.Warn("processComponentsFactory.Create() node will save logs in storage because DbLookupExtensions is enabled")
@@ -388,7 +393,11 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
-	bootStr := pcf.data.StorageService().GetStorer(dataRetriever.BootstrapUnit)
+	bootStr, err := pcf.data.StorageService().GetStorer(dataRetriever.BootstrapUnit)
+	if err != nil {
+		return nil, err
+	}
+
 	bootStorer, err := bootstrapStorage.NewBootstrapStorer(pcf.coreData.InternalMarshalizer(), bootStr)
 	if err != nil {
 		return nil, err
@@ -412,23 +421,31 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
-	mbsPoolsCleaner, err := poolsCleaner.NewMiniBlocksPoolsCleaner(
-		pcf.data.Datapool().MiniBlocks(),
-		pcf.coreData.RoundHandler(),
-		pcf.bootstrapComponents.ShardCoordinator(),
-	)
+	argsMiniBlocksPoolsCleaner := poolsCleaner.ArgMiniBlocksPoolsCleaner{
+		ArgBasePoolsCleaner: poolsCleaner.ArgBasePoolsCleaner{
+			RoundHandler:                   pcf.coreData.RoundHandler(),
+			ShardCoordinator:               pcf.bootstrapComponents.ShardCoordinator(),
+			MaxRoundsToKeepUnprocessedData: pcf.config.PoolsCleanersConfig.MaxRoundsToKeepUnprocessedMiniBlocks,
+		},
+		MiniblocksPool: pcf.data.Datapool().MiniBlocks(),
+	}
+	mbsPoolsCleaner, err := poolsCleaner.NewMiniBlocksPoolsCleaner(argsMiniBlocksPoolsCleaner)
 	if err != nil {
 		return nil, err
 	}
 
 	mbsPoolsCleaner.StartCleaning()
 
-	txsPoolsCleaner, err := poolsCleaner.NewTxsPoolsCleaner(
-		pcf.coreData.AddressPubKeyConverter(),
-		pcf.data.Datapool(),
-		pcf.coreData.RoundHandler(),
-		pcf.bootstrapComponents.ShardCoordinator(),
-	)
+	argsBasePoolsCleaner := poolsCleaner.ArgTxsPoolsCleaner{
+		ArgBasePoolsCleaner: poolsCleaner.ArgBasePoolsCleaner{
+			RoundHandler:                   pcf.coreData.RoundHandler(),
+			ShardCoordinator:               pcf.bootstrapComponents.ShardCoordinator(),
+			MaxRoundsToKeepUnprocessedData: pcf.config.PoolsCleanersConfig.MaxRoundsToKeepUnprocessedTransactions,
+		},
+		AddressPubkeyConverter: pcf.coreData.AddressPubKeyConverter(),
+		DataPool:               pcf.data.Datapool(),
+	}
+	txsPoolsCleaner, err := poolsCleaner.NewTxsPoolsCleaner(argsBasePoolsCleaner)
 	if err != nil {
 		return nil, err
 	}
@@ -516,10 +533,15 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		Marshalizer:            pcf.coreData.InternalMarshalizer(),
 	}
 
+	scheduledSCRSStorer, err := pcf.data.StorageService().GetStorer(dataRetriever.ScheduledSCRsUnit)
+	if err != nil {
+		return nil, err
+	}
+
 	scheduledTxsExecutionHandler, err := preprocess.NewScheduledTxsExecution(
 		&disabled.TxProcessor{},
 		&disabled.TxCoordinator{},
-		pcf.data.StorageService().GetStorer(dataRetriever.ScheduledSCRsUnit),
+		scheduledSCRSStorer,
 		pcf.coreData.InternalMarshalizer(),
 		pcf.coreData.Hasher(),
 		pcf.bootstrapComponents.ShardCoordinator(),
@@ -543,6 +565,15 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 
 	processedMiniBlocksTracker := processedMb.NewProcessedMiniBlocksTracker()
 
+	receiptsRepository, err := receipts.NewReceiptsRepository(receipts.ArgsNewReceiptsRepository{
+		Store:      pcf.data.StorageService(),
+		Marshaller: pcf.coreData.InternalMarshalizer(),
+		Hasher:     pcf.coreData.Hasher(),
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	blockProcessorComponents, err := pcf.newBlockProcessor(
 		requestHandler,
 		forkDetector,
@@ -556,6 +587,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		pcf.coreData.ArwenChangeLocker(),
 		scheduledTxsExecutionHandler,
 		processedMiniBlocksTracker,
+		receiptsRepository,
 	)
 	if err != nil {
 		return nil, err
@@ -664,6 +696,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		processedMiniBlocksTracker:   processedMiniBlocksTracker,
 		esdtDataStorageForApi:        pcf.esdtNftStorage,
 		accountsParser:               pcf.accountsParser,
+		receiptsRepository:           receiptsRepository,
 	}, nil
 }
 

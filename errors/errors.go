@@ -478,3 +478,6 @@ var ErrNilProcessStatusHandler = errors.New("nil process status handler")
 
 // ErrNilESDTDataStorage signals that a nil esdt data storage has been provided
 var ErrNilESDTDataStorage = errors.New("nil esdt data storage")
+
+// ErrDBIsClosed is raised when the DB is closed
+var ErrDBIsClosed = errors.New("DB is closed")

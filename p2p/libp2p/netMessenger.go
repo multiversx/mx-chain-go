@@ -123,13 +123,14 @@ type networkMessenger struct {
 
 // ArgsNetworkMessenger defines the options used to create a p2p wrapper
 type ArgsNetworkMessenger struct {
-	ListenAddress        string
-	Marshalizer          p2p.Marshalizer
-	P2pConfig            config.P2PConfig
-	SyncTimer            p2p.SyncTimer
-	PreferredPeersHolder p2p.PreferredPeersHolderHandler
-	NodeOperationMode    p2p.NodeOperation
-	PeersRatingHandler   p2p.PeersRatingHandler
+	ListenAddress         string
+	Marshalizer           p2p.Marshalizer
+	P2pConfig             config.P2PConfig
+	SyncTimer             p2p.SyncTimer
+	PreferredPeersHolder  p2p.PreferredPeersHolderHandler
+	NodeOperationMode     p2p.NodeOperation
+	PeersRatingHandler    p2p.PeersRatingHandler
+	ConnectionWatcherType string
 }
 
 // NewNetworkMessenger creates a libP2P messenger by opening a port on the current machine
@@ -182,7 +183,8 @@ func constructNode(
 		return nil, err
 	}
 
-	connWatcher, err := metricsFactory.NewConnectionsWatcher(args.P2pConfig.Node.ConnectionWatcherType, ttlConnectionsWatcher)
+	log.Debug("connectionWatcherType", "type", args.ConnectionWatcherType)
+	connWatcher, err := metricsFactory.NewConnectionsWatcher(args.ConnectionWatcherType, ttlConnectionsWatcher)
 	if err != nil {
 		return nil, err
 	}

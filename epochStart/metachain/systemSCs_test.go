@@ -47,6 +47,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
+	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/storage"
+	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
@@ -889,7 +891,13 @@ func createAccountsDB(
 func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieStorer storage.Storer) (ArgsNewEpochStartSystemSCProcessing, vm.SystemSCContainer) {
 	hasher := sha256.NewSha256()
 	marshalizer := &marshal.GogoProtoMarshalizer{}
-	trieFactoryManager, _ := trie.NewTrieStorageManagerWithoutPruning(trieStorer)
+	storageManagerArgs, options := stateMock.GetStorageManagerArgsAndOptions()
+	storageManagerArgs.Marshalizer = marshalizer
+	storageManagerArgs.Hasher = hasher
+	storageManagerArgs.MainStorer = trieStorer
+	storageManagerArgs.CheckpointsStorer = trieStorer
+
+	trieFactoryManager, _ := trie.CreateTrieStorageManager(storageManagerArgs, options)
 	userAccountsDB := createAccountsDB(hasher, marshalizer, factory.NewAccountCreator(), trieFactoryManager)
 	peerAccountsDB := createAccountsDB(hasher, marshalizer, factory.NewPeerAccountCreator(), trieFactoryManager)
 	en := forking.NewGenericEpochNotifier()
@@ -899,7 +907,7 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieS
 		NodesCoordinator:                     &shardingMocks.NodesCoordinatorStub{},
 		ShardCoordinator:                     &mock.ShardCoordinatorStub{},
 		DataPool:                             &dataRetrieverMock.PoolsHolderStub{},
-		StorageService:                       &mock.ChainStorerStub{},
+		StorageService:                       &storageStubs.ChainStorerStub{},
 		PubkeyConv:                           &mock.PubkeyConverterMock{},
 		PeerAdapter:                          peerAccountsDB,
 		Rater:                                &mock.RaterStub{},
@@ -917,7 +925,7 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieS
 	argsHook := hooks.ArgBlockChainHook{
 		Accounts:              userAccountsDB,
 		PubkeyConv:            &mock.PubkeyConverterMock{},
-		StorageService:        &mock.ChainStorerStub{},
+		StorageService:        &storageStubs.ChainStorerStub{},
 		BlockChain:            blockChain,
 		ShardCoordinator:      &mock.ShardCoordinatorStub{},
 		Marshalizer:           marshalizer,

@@ -59,6 +59,7 @@ func (pcf *processComponentsFactory) newBlockProcessor(
 	arwenChangeLocker common.Locker,
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler,
 	processedMiniBlocksTracker process.ProcessedMiniBlocksTracker,
+	receiptsRepository ReceiptsRepository,
 ) (*blockProcessorAndVmFactories, error) {
 	if pcf.bootstrapComponents.ShardCoordinator().SelfId() < pcf.bootstrapComponents.ShardCoordinator().NumberOfShards() {
 		return pcf.newShardBlockProcessor(
@@ -73,6 +74,7 @@ func (pcf *processComponentsFactory) newBlockProcessor(
 			arwenChangeLocker,
 			scheduledTxsExecutionHandler,
 			processedMiniBlocksTracker,
+			receiptsRepository,
 		)
 	}
 	if pcf.bootstrapComponents.ShardCoordinator().SelfId() == core.MetachainShardId {
@@ -89,6 +91,7 @@ func (pcf *processComponentsFactory) newBlockProcessor(
 			arwenChangeLocker,
 			scheduledTxsExecutionHandler,
 			processedMiniBlocksTracker,
+			receiptsRepository,
 		)
 	}
 
@@ -107,6 +110,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 	arwenChangeLocker common.Locker,
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler,
 	processedMiniBlocksTracker process.ProcessedMiniBlocksTracker,
+	receiptsRepository ReceiptsRepository,
 ) (*blockProcessorAndVmFactories, error) {
 	argsParser := smartContract.NewArgumentParser()
 
@@ -425,6 +429,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		ScheduledTxsExecutionHandler:   scheduledTxsExecutionHandler,
 		ScheduledMiniBlocksEnableEpoch: enableEpochs.ScheduledMiniBlocksEnableEpoch,
 		ProcessedMiniBlocksTracker:     processedMiniBlocksTracker,
+		ReceiptsRepository:             receiptsRepository,
 		OutportDataProvider:            outportDataProvider,
 	}
 	arguments := block.ArgShardProcessor{
@@ -458,6 +463,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	arwenChangeLocker common.Locker,
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler,
 	processedMiniBlocksTracker process.ProcessedMiniBlocksTracker,
+	receiptsRepository ReceiptsRepository,
 ) (*blockProcessorAndVmFactories, error) {
 	builtInFuncFactory, err := pcf.createBuiltInFunctionContainer(pcf.state.AccountsAdapter(), make(map[string]struct{}))
 	if err != nil {
@@ -714,15 +720,16 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 
 	genesisHdr := pcf.data.Blockchain().GetGenesisHeader()
 	argsEpochStartData := metachainEpochStart.ArgsNewEpochStartData{
-		Marshalizer:       pcf.coreData.InternalMarshalizer(),
-		Hasher:            pcf.coreData.Hasher(),
-		Store:             pcf.data.StorageService(),
-		DataPool:          pcf.data.Datapool(),
-		BlockTracker:      blockTracker,
-		ShardCoordinator:  pcf.bootstrapComponents.ShardCoordinator(),
-		EpochStartTrigger: epochStartTrigger,
-		RequestHandler:    requestHandler,
-		GenesisEpoch:      genesisHdr.GetEpoch(),
+		Marshalizer:                          pcf.coreData.InternalMarshalizer(),
+		Hasher:                               pcf.coreData.Hasher(),
+		Store:                                pcf.data.StorageService(),
+		DataPool:                             pcf.data.Datapool(),
+		BlockTracker:                         blockTracker,
+		ShardCoordinator:                     pcf.bootstrapComponents.ShardCoordinator(),
+		EpochStartTrigger:                    epochStartTrigger,
+		RequestHandler:                       requestHandler,
+		GenesisEpoch:                         genesisHdr.GetEpoch(),
+		MiniBlockPartialExecutionEnableEpoch: pcf.epochConfig.EnableEpochs.MiniBlockPartialExecutionEnableEpoch,
 	}
 	epochStartDataCreator, err := metachainEpochStart.NewEpochStartData(argsEpochStartData)
 	if err != nil {
@@ -759,8 +766,16 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		return nil, err
 	}
 
-	rewardsStorage := pcf.data.StorageService().GetStorer(dataRetriever.RewardTransactionUnit)
-	miniBlockStorage := pcf.data.StorageService().GetStorer(dataRetriever.MiniBlockUnit)
+	rewardsStorage, err := pcf.data.StorageService().GetStorer(dataRetriever.RewardTransactionUnit)
+	if err != nil {
+		return nil, err
+	}
+
+	miniBlockStorage, err := pcf.data.StorageService().GetStorer(dataRetriever.MiniBlockUnit)
+	if err != nil {
+		return nil, err
+	}
+
 	argsEpochRewards := metachainEpochStart.RewardsCreatorProxyArgs{
 		BaseRewardsCreatorArgs: metachainEpochStart.BaseRewardsCreatorArgs{
 			ShardCoordinator:              pcf.bootstrapComponents.ShardCoordinator(),
@@ -835,6 +850,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		ScheduledTxsExecutionHandler:   scheduledTxsExecutionHandler,
 		ScheduledMiniBlocksEnableEpoch: enableEpochs.ScheduledMiniBlocksEnableEpoch,
 		ProcessedMiniBlocksTracker:     processedMiniBlocksTracker,
+		ReceiptsRepository:             receiptsRepository,
 		OutportDataProvider:            outportDataProvider,
 	}
 
@@ -899,13 +915,18 @@ func (pcf *processComponentsFactory) createOutportDataProvider(
 	txCoordinator process.TransactionCoordinator,
 	gasConsumedProvider processOutport.GasConsumedProvider,
 ) (outport.DataProviderOutport, error) {
+	txsStorer, err := pcf.data.StorageService().GetStorer(dataRetriever.TransactionUnit)
+	if err != nil {
+		return nil, err
+	}
+
 	return factoryOutportProvider.CreateOutportDataProvider(factoryOutportProvider.ArgOutportDataProviderFactory{
 		HasDrivers:             pcf.statusComponents.OutportHandler().HasDrivers(),
 		AddressConverter:       pcf.coreData.AddressPubKeyConverter(),
 		AccountsDB:             pcf.state.AccountsAdapter(),
 		Marshaller:             pcf.coreData.InternalMarshalizer(),
 		EsdtDataStorageHandler: pcf.esdtNftStorage,
-		TransactionsStorer:     pcf.data.StorageService().GetStorer(dataRetriever.TransactionUnit),
+		TransactionsStorer:     txsStorer,
 		ShardCoordinator:       pcf.bootstrapComponents.ShardCoordinator(),
 		TxCoordinator:          txCoordinator,
 		NodesCoordinator:       pcf.nodesCoordinator,

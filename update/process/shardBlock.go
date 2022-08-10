@@ -23,6 +23,7 @@ type ArgsNewShardBlockCreatorAfterHardFork struct {
 	ShardCoordinator   sharding.Coordinator
 	Storage            dataRetriever.StorageService
 	TxCoordinator      process.TransactionCoordinator
+	ReceiptsRepository receiptsRepository
 	SelfShardID        uint32
 }
 
@@ -40,6 +41,7 @@ func NewShardBlockCreatorAfterHardFork(args ArgsNewShardBlockCreatorAfterHardFor
 		args.ShardCoordinator,
 		args.Storage,
 		args.TxCoordinator,
+		args.ReceiptsRepository,
 	)
 	if err != nil {
 		return nil, err
@@ -53,6 +55,7 @@ func NewShardBlockCreatorAfterHardFork(args ArgsNewShardBlockCreatorAfterHardFor
 		shardCoordinator:   args.ShardCoordinator,
 		storage:            args.Storage,
 		txCoordinator:      args.TxCoordinator,
+		receiptsRepository: args.ReceiptsRepository,
 		selfShardID:        args.SelfShardID,
 	}
 
