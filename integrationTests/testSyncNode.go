@@ -22,10 +22,10 @@ func (tpn *TestProcessorNode) addGenesisBlocksIntoStorage() {
 		headerHash := TestHasher.Compute(string(buffHeader))
 
 		if shardId == core.MetachainShardId {
-			metablockStorer := tpn.Storage.GetStorer(dataRetriever.MetaBlockUnit)
+			metablockStorer, _ := tpn.Storage.GetStorer(dataRetriever.MetaBlockUnit)
 			_ = metablockStorer.Put(headerHash, buffHeader)
 		} else {
-			shardblockStorer := tpn.Storage.GetStorer(dataRetriever.BlockHeaderUnit)
+			shardblockStorer, _ := tpn.Storage.GetStorer(dataRetriever.BlockHeaderUnit)
 			_ = shardblockStorer.Put(headerHash, buffHeader)
 		}
 	}
@@ -57,6 +57,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 
 	triesConfig := config.Config{
 		StateTriesConfig: config.StateTriesConfig{
+			SnapshotsEnabled:        true,
 			CheckpointRoundsModulus: stateCheckpointModulus,
 		},
 	}
@@ -229,9 +230,10 @@ func (tpn *TestProcessorNode) initBootstrapper() {
 }
 
 func (tpn *TestProcessorNode) createMiniblocksProvider() {
+	storer, _ := tpn.Storage.GetStorer(dataRetriever.MiniBlockUnit)
 	arg := provider.ArgMiniBlockProvider{
 		MiniBlockPool:    tpn.DataPool.MiniBlocks(),
-		MiniBlockStorage: tpn.Storage.GetStorer(dataRetriever.MiniBlockUnit),
+		MiniBlockStorage: storer,
 		Marshalizer:      TestMarshalizer,
 	}
 

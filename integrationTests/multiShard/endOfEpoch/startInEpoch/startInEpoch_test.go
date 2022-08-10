@@ -284,7 +284,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 	assert.NoError(t, err)
 	assert.NotNil(t, storageServiceShard)
 
-	bootstrapUnit := storageServiceShard.GetStorer(dataRetriever.BootstrapUnit)
+	bootstrapUnit, _ := storageServiceShard.GetStorer(dataRetriever.BootstrapUnit)
 	assert.NotNil(t, bootstrapUnit)
 
 	bootstrapStorer, err := bootstrapStorage.NewBootstrapStorer(integrationTests.TestMarshalizer, bootstrapUnit)

@@ -35,6 +35,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
+	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
@@ -210,7 +211,7 @@ func createDefaultTransactionsProcessorArgs() ArgsTransactionPreProcessor {
 
 	return ArgsTransactionPreProcessor{
 		TxDataPool:                   tdp.Transactions(),
-		Store:                        &mock.ChainStorerMock{},
+		Store:                        &storageStubs.ChainStorerStub{},
 		Hasher:                       &hashingMocks.HasherMock{},
 		Marshalizer:                  &mock.MarshalizerMock{},
 		TxProcessor:                  &testscommon.TxProcessorMock{},
@@ -1950,7 +1951,8 @@ func TestTransactions_RestoreBlockDataIntoPools(t *testing.T) {
 	mbPool := testscommon.NewCacherMock()
 
 	body, allTxs := createMockBlockBody()
-	addTxsInStorer(args.Store.GetStorer(dataRetriever.TransactionUnit), allTxs)
+	storer, _ := args.Store.GetStorer(dataRetriever.TransactionUnit)
+	addTxsInStorer(storer, allTxs)
 
 	t.Run("nil block body should error", func(t *testing.T) {
 		numRestored, err := txs.RestoreBlockDataIntoPools(nil, mbPool)

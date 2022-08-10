@@ -11,6 +11,7 @@ import (
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
+	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -19,7 +20,7 @@ func TestNewPreProcessorsContainerFactory_NilShardCoordinator(t *testing.T) {
 
 	ppcm, err := metachain.NewPreProcessorsContainerFactory(
 		nil,
-		&mock.ChainStorerMock{},
+		&storageStubs.ChainStorerStub{},
 		&mock.MarshalizerMock{},
 		&hashingMocks.HasherMock{},
 		dataRetrieverMock.NewPoolsHolderMock(),
@@ -77,7 +78,7 @@ func TestNewPreProcessorsContainerFactory_NilMarshalizer(t *testing.T) {
 
 	ppcm, err := metachain.NewPreProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.ChainStorerMock{},
+		&storageStubs.ChainStorerStub{},
 		nil,
 		&hashingMocks.HasherMock{},
 		dataRetrieverMock.NewPoolsHolderMock(),
@@ -106,7 +107,7 @@ func TestNewPreProcessorsContainerFactory_NilHasher(t *testing.T) {
 
 	ppcm, err := metachain.NewPreProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.ChainStorerMock{},
+		&storageStubs.ChainStorerStub{},
 		&mock.MarshalizerMock{},
 		nil,
 		dataRetrieverMock.NewPoolsHolderMock(),
@@ -135,7 +136,7 @@ func TestNewPreProcessorsContainerFactory_NilDataPool(t *testing.T) {
 
 	ppcm, err := metachain.NewPreProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.ChainStorerMock{},
+		&storageStubs.ChainStorerStub{},
 		&mock.MarshalizerMock{},
 		&hashingMocks.HasherMock{},
 		nil,
@@ -164,7 +165,7 @@ func TestNewPreProcessorsContainerFactory_NilAccounts(t *testing.T) {
 
 	ppcm, err := metachain.NewPreProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.ChainStorerMock{},
+		&storageStubs.ChainStorerStub{},
 		&mock.MarshalizerMock{},
 		&hashingMocks.HasherMock{},
 		dataRetrieverMock.NewPoolsHolderMock(),
@@ -193,7 +194,7 @@ func TestNewPreProcessorsContainerFactory_NilFeeHandler(t *testing.T) {
 
 	ppcm, err := metachain.NewPreProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.ChainStorerMock{},
+		&storageStubs.ChainStorerStub{},
 		&mock.MarshalizerMock{},
 		&hashingMocks.HasherMock{},
 		dataRetrieverMock.NewPoolsHolderMock(),
@@ -222,7 +223,7 @@ func TestNewPreProcessorsContainerFactory_NilTxProcessor(t *testing.T) {
 
 	ppcm, err := metachain.NewPreProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.ChainStorerMock{},
+		&storageStubs.ChainStorerStub{},
 		&mock.MarshalizerMock{},
 		&hashingMocks.HasherMock{},
 		dataRetrieverMock.NewPoolsHolderMock(),
@@ -251,7 +252,7 @@ func TestNewPreProcessorsContainerFactory_NilRequestHandler(t *testing.T) {
 
 	ppcm, err := metachain.NewPreProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.ChainStorerMock{},
+		&storageStubs.ChainStorerStub{},
 		&mock.MarshalizerMock{},
 		&hashingMocks.HasherMock{},
 		dataRetrieverMock.NewPoolsHolderMock(),
@@ -279,7 +280,7 @@ func TestNewPreProcessorsContainerFactory_NilGasHandler(t *testing.T) {
 
 	ppcm, err := metachain.NewPreProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.ChainStorerMock{},
+		&storageStubs.ChainStorerStub{},
 		&mock.MarshalizerMock{},
 		&hashingMocks.HasherMock{},
 		dataRetrieverMock.NewPoolsHolderMock(),
@@ -307,7 +308,7 @@ func TestNewPreProcessorsContainerFactory_NilBlockTracker(t *testing.T) {
 
 	ppcm, err := metachain.NewPreProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.ChainStorerMock{},
+		&storageStubs.ChainStorerStub{},
 		&mock.MarshalizerMock{},
 		&hashingMocks.HasherMock{},
 		dataRetrieverMock.NewPoolsHolderMock(),
@@ -335,7 +336,7 @@ func TestNewPreProcessorsContainerFactory_NilPubkeyConverter(t *testing.T) {
 
 	ppcm, err := metachain.NewPreProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.ChainStorerMock{},
+		&storageStubs.ChainStorerStub{},
 		&mock.MarshalizerMock{},
 		&hashingMocks.HasherMock{},
 		dataRetrieverMock.NewPoolsHolderMock(),
@@ -363,7 +364,7 @@ func TestNewPreProcessorsContainerFactory_NilBlockSizeComputationHandler(t *test
 
 	ppcm, err := metachain.NewPreProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.ChainStorerMock{},
+		&storageStubs.ChainStorerStub{},
 		&mock.MarshalizerMock{},
 		&hashingMocks.HasherMock{},
 		dataRetrieverMock.NewPoolsHolderMock(),
@@ -391,7 +392,7 @@ func TestNewPreProcessorsContainerFactory_NilBalanceComputationHandler(t *testin
 
 	ppcm, err := metachain.NewPreProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.ChainStorerMock{},
+		&storageStubs.ChainStorerStub{},
 		&mock.MarshalizerMock{},
 		&hashingMocks.HasherMock{},
 		dataRetrieverMock.NewPoolsHolderMock(),
@@ -419,7 +420,7 @@ func TestNewPreProcessorsContainerFactory_NilEnableEpochsHandler(t *testing.T) {
 
 	ppcm, err := metachain.NewPreProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.ChainStorerMock{},
+		&storageStubs.ChainStorerStub{},
 		&mock.MarshalizerMock{},
 		&hashingMocks.HasherMock{},
 		dataRetrieverMock.NewPoolsHolderMock(),
@@ -447,7 +448,7 @@ func TestNewPreProcessorsContainerFactory_NilTxTypeHandler(t *testing.T) {
 
 	ppcm, err := metachain.NewPreProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.ChainStorerMock{},
+		&storageStubs.ChainStorerStub{},
 		&mock.MarshalizerMock{},
 		&hashingMocks.HasherMock{},
 		dataRetrieverMock.NewPoolsHolderMock(),
@@ -475,7 +476,7 @@ func TestNewPreProcessorsContainerFactory_NilScheduledTxsExecutionHandler(t *tes
 
 	ppcm, err := metachain.NewPreProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.ChainStorerMock{},
+		&storageStubs.ChainStorerStub{},
 		&mock.MarshalizerMock{},
 		&hashingMocks.HasherMock{},
 		dataRetrieverMock.NewPoolsHolderMock(),
@@ -503,7 +504,7 @@ func TestNewPreProcessorsContainerFactory_NilProcessedMiniBlocksTracker(t *testi
 
 	ppcm, err := metachain.NewPreProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.ChainStorerMock{},
+		&storageStubs.ChainStorerStub{},
 		&mock.MarshalizerMock{},
 		&hashingMocks.HasherMock{},
 		dataRetrieverMock.NewPoolsHolderMock(),
@@ -531,7 +532,7 @@ func TestNewPreProcessorsContainerFactory(t *testing.T) {
 
 	ppcm, err := metachain.NewPreProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.ChainStorerMock{},
+		&storageStubs.ChainStorerStub{},
 		&mock.MarshalizerMock{},
 		&hashingMocks.HasherMock{},
 		dataRetrieverMock.NewPoolsHolderMock(),
@@ -566,7 +567,7 @@ func TestPreProcessorsContainerFactory_CreateErrTxPreproc(t *testing.T) {
 
 	ppcm, err := metachain.NewPreProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.ChainStorerMock{},
+		&storageStubs.ChainStorerStub{},
 		&mock.MarshalizerMock{},
 		&hashingMocks.HasherMock{},
 		dataPool,
@@ -599,7 +600,7 @@ func TestPreProcessorsContainerFactory_Create(t *testing.T) {
 
 	ppcm, err := metachain.NewPreProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.ChainStorerMock{},
+		&storageStubs.ChainStorerStub{},
 		&mock.MarshalizerMock{},
 		&hashingMocks.HasherMock{},
 		dataRetrieverMock.NewPoolsHolderMock(),

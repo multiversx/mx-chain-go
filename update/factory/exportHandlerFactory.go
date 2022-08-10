@@ -403,8 +403,13 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 		return nil, err
 	}
 
+	storer, err := e.storageService.GetStorer(dataRetriever.MiniBlockUnit)
+	if err != nil {
+		return nil, err
+	}
+
 	argsMiniBlockSyncer := sync.ArgsNewPendingMiniBlocksSyncer{
-		Storage:        e.storageService.GetStorer(dataRetriever.MiniBlockUnit),
+		Storage:        storer,
 		Cache:          e.dataPool.MiniBlocks(),
 		Marshalizer:    e.CoreComponents.InternalMarshalizer(),
 		RequestHandler: e.requestHandler,
