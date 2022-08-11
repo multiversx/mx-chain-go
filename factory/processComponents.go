@@ -286,7 +286,10 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
-	txLogsStorage := pcf.data.StorageService().GetStorer(dataRetriever.TxLogsUnit)
+	txLogsStorage, err := pcf.data.StorageService().GetStorer(dataRetriever.TxLogsUnit)
+	if err != nil {
+		return nil, err
+	}
 
 	if !pcf.config.LogsAndEvents.SaveInStorageEnabled && pcf.config.DbLookupExtensions.Enabled {
 		log.Warn("processComponentsFactory.Create() node will save logs in storage because DbLookupExtensions is enabled")
@@ -386,7 +389,11 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
-	bootStr := pcf.data.StorageService().GetStorer(dataRetriever.BootstrapUnit)
+	bootStr, err := pcf.data.StorageService().GetStorer(dataRetriever.BootstrapUnit)
+	if err != nil {
+		return nil, err
+	}
+
 	bootStorer, err := bootstrapStorage.NewBootstrapStorer(pcf.coreData.InternalMarshalizer(), bootStr)
 	if err != nil {
 		return nil, err
@@ -410,23 +417,31 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
-	mbsPoolsCleaner, err := poolsCleaner.NewMiniBlocksPoolsCleaner(
-		pcf.data.Datapool().MiniBlocks(),
-		pcf.coreData.RoundHandler(),
-		pcf.bootstrapComponents.ShardCoordinator(),
-	)
+	argsMiniBlocksPoolsCleaner := poolsCleaner.ArgMiniBlocksPoolsCleaner{
+		ArgBasePoolsCleaner: poolsCleaner.ArgBasePoolsCleaner{
+			RoundHandler:                   pcf.coreData.RoundHandler(),
+			ShardCoordinator:               pcf.bootstrapComponents.ShardCoordinator(),
+			MaxRoundsToKeepUnprocessedData: pcf.config.PoolsCleanersConfig.MaxRoundsToKeepUnprocessedMiniBlocks,
+		},
+		MiniblocksPool: pcf.data.Datapool().MiniBlocks(),
+	}
+	mbsPoolsCleaner, err := poolsCleaner.NewMiniBlocksPoolsCleaner(argsMiniBlocksPoolsCleaner)
 	if err != nil {
 		return nil, err
 	}
 
 	mbsPoolsCleaner.StartCleaning()
 
-	txsPoolsCleaner, err := poolsCleaner.NewTxsPoolsCleaner(
-		pcf.coreData.AddressPubKeyConverter(),
-		pcf.data.Datapool(),
-		pcf.coreData.RoundHandler(),
-		pcf.bootstrapComponents.ShardCoordinator(),
-	)
+	argsBasePoolsCleaner := poolsCleaner.ArgTxsPoolsCleaner{
+		ArgBasePoolsCleaner: poolsCleaner.ArgBasePoolsCleaner{
+			RoundHandler:                   pcf.coreData.RoundHandler(),
+			ShardCoordinator:               pcf.bootstrapComponents.ShardCoordinator(),
+			MaxRoundsToKeepUnprocessedData: pcf.config.PoolsCleanersConfig.MaxRoundsToKeepUnprocessedTransactions,
+		},
+		AddressPubkeyConverter: pcf.coreData.AddressPubKeyConverter(),
+		DataPool:               pcf.data.Datapool(),
+	}
+	txsPoolsCleaner, err := poolsCleaner.NewTxsPoolsCleaner(argsBasePoolsCleaner)
 	if err != nil {
 		return nil, err
 	}
@@ -514,10 +529,15 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		Marshalizer:            pcf.coreData.InternalMarshalizer(),
 	}
 
+	scheduledSCRSStorer, err := pcf.data.StorageService().GetStorer(dataRetriever.ScheduledSCRsUnit)
+	if err != nil {
+		return nil, err
+	}
+
 	scheduledTxsExecutionHandler, err := preprocess.NewScheduledTxsExecution(
 		&disabled.TxProcessor{},
 		&disabled.TxCoordinator{},
-		pcf.data.StorageService().GetStorer(dataRetriever.ScheduledSCRsUnit),
+		scheduledSCRSStorer,
 		pcf.coreData.InternalMarshalizer(),
 		pcf.coreData.Hasher(),
 		pcf.bootstrapComponents.ShardCoordinator(),
@@ -691,11 +711,7 @@ func (pcf *processComponentsFactory) newValidatorStatisticsProcessor() (process.
 		NodesSetup:                           pcf.coreData.GenesisNodesSetup(),
 		RatingEnableEpoch:                    ratingEnabledEpoch,
 		GenesisNonce:                         pcf.data.Blockchain().GetGenesisHeader().GetNonce(),
-		EpochNotifier:                        pcf.coreData.EpochNotifier(),
-		SwitchJailWaitingEnableEpoch:         pcf.epochConfig.EnableEpochs.SwitchJailWaitingEnableEpoch,
-		BelowSignedThresholdEnableEpoch:      pcf.epochConfig.EnableEpochs.BelowSignedThresholdEnableEpoch,
-		StakingV2EnableEpoch:                 pcf.epochConfig.EnableEpochs.StakingV2EnableEpoch,
-		StopDecreasingValidatorRatingWhenStuckEnableEpoch: pcf.epochConfig.EnableEpochs.StopDecreasingValidatorRatingWhenStuckEnableEpoch,
+		EnableEpochsHandler:                  pcf.coreData.EnableEpochsHandler(),
 	}
 
 	validatorStatisticsProcessor, err := peer.NewValidatorStatisticsProcessor(arguments)
@@ -1336,7 +1352,6 @@ func (pcf *processComponentsFactory) newShardInterceptorContainerFactory(
 		ArgumentsParser:              smartContract.NewArgumentParser(),
 		PreferredPeersHolder:         pcf.network.PreferredPeersHolderHandler(),
 		SizeCheckDelta:               pcf.config.Marshalizer.SizeCheckDelta,
-		EnableSignTxWithHashEpoch:    pcf.epochConfig.EnableEpochs.TransactionSignedWithTxHashEnableEpoch,
 		RequestHandler:               requestHandler,
 		PeerSignatureHandler:         pcf.crypto.PeerSignatureHandler(),
 		SignaturesHandler:            pcf.network.NetworkMessenger(),
@@ -1344,7 +1359,6 @@ func (pcf *processComponentsFactory) newShardInterceptorContainerFactory(
 		PeerShardMapper:              peerShardMapper,
 		HardforkTrigger:              hardforkTrigger,
 	}
-	log.Debug("shardInterceptor: enable epoch for transaction signed with tx hash", "epoch", shardInterceptorsContainerFactoryArgs.EnableSignTxWithHashEpoch)
 
 	interceptorContainerFactory, err := interceptorscontainer.NewShardInterceptorsContainerFactory(shardInterceptorsContainerFactoryArgs)
 	if err != nil {
@@ -1385,7 +1399,6 @@ func (pcf *processComponentsFactory) newMetaInterceptorContainerFactory(
 		AntifloodHandler:             pcf.network.InputAntiFloodHandler(),
 		ArgumentsParser:              smartContract.NewArgumentParser(),
 		SizeCheckDelta:               pcf.config.Marshalizer.SizeCheckDelta,
-		EnableSignTxWithHashEpoch:    pcf.epochConfig.EnableEpochs.TransactionSignedWithTxHashEnableEpoch,
 		PreferredPeersHolder:         pcf.network.PreferredPeersHolderHandler(),
 		RequestHandler:               requestHandler,
 		PeerSignatureHandler:         pcf.crypto.PeerSignatureHandler(),
@@ -1394,7 +1407,6 @@ func (pcf *processComponentsFactory) newMetaInterceptorContainerFactory(
 		PeerShardMapper:              peerShardMapper,
 		HardforkTrigger:              hardforkTrigger,
 	}
-	log.Debug("metaInterceptor: enable epoch for transaction signed with tx hash", "epoch", metaInterceptorsContainerFactoryArgs.EnableSignTxWithHashEpoch)
 
 	interceptorContainerFactory, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(metaInterceptorsContainerFactoryArgs)
 	if err != nil {
@@ -1462,38 +1474,36 @@ func (pcf *processComponentsFactory) createExportFactoryHandler(
 	accountsDBs[state.PeerAccountsState] = pcf.state.PeerAccounts()
 	exportFolder := filepath.Join(pcf.workingDir, hardforkConfig.ImportFolder)
 	argsExporter := updateFactory.ArgsExporter{
-		CoreComponents:                     pcf.coreData,
-		CryptoComponents:                   pcf.crypto,
-		HeaderValidator:                    headerValidator,
-		DataPool:                           pcf.data.Datapool(),
-		StorageService:                     pcf.data.StorageService(),
-		RequestHandler:                     requestHandler,
-		ShardCoordinator:                   pcf.bootstrapComponents.ShardCoordinator(),
-		Messenger:                          pcf.network.NetworkMessenger(),
-		ActiveAccountsDBs:                  accountsDBs,
-		ExistingResolvers:                  resolversFinder,
-		ExportFolder:                       exportFolder,
-		ExportTriesStorageConfig:           hardforkConfig.ExportTriesStorageConfig,
-		ExportStateStorageConfig:           hardforkConfig.ExportStateStorageConfig,
-		ExportStateKeysConfig:              hardforkConfig.ExportKeysStorageConfig,
-		MaxTrieLevelInMemory:               pcf.config.StateTriesConfig.MaxStateTrieLevelInMemory,
-		WhiteListHandler:                   pcf.whiteListHandler,
-		WhiteListerVerifiedTxs:             pcf.whiteListerVerifiedTxs,
-		InterceptorsContainer:              interceptorsContainer,
-		NodesCoordinator:                   pcf.nodesCoordinator,
-		HeaderSigVerifier:                  headerSigVerifier,
-		HeaderIntegrityVerifier:            pcf.bootstrapComponents.HeaderIntegrityVerifier(),
-		ValidityAttester:                   blockTracker,
-		InputAntifloodHandler:              pcf.network.InputAntiFloodHandler(),
-		OutputAntifloodHandler:             pcf.network.OutputAntiFloodHandler(),
-		RoundHandler:                       pcf.coreData.RoundHandler(),
-		InterceptorDebugConfig:             pcf.config.Debug.InterceptorResolver,
-		EnableSignTxWithHashEpoch:          pcf.epochConfig.EnableEpochs.TransactionSignedWithTxHashEnableEpoch,
-		MaxHardCapForMissingNodes:          pcf.config.TrieSync.MaxHardCapForMissingNodes,
-		NumConcurrentTrieSyncers:           pcf.config.TrieSync.NumConcurrentTrieSyncers,
-		TrieSyncerVersion:                  pcf.config.TrieSync.TrieSyncerVersion,
-		PeersRatingHandler:                 pcf.network.PeersRatingHandler(),
-		RefactorPeersMiniBlocksEnableEpoch: pcf.epochConfig.EnableEpochs.RefactorPeersMiniBlocksEnableEpoch,
+		CoreComponents:            pcf.coreData,
+		CryptoComponents:          pcf.crypto,
+		HeaderValidator:           headerValidator,
+		DataPool:                  pcf.data.Datapool(),
+		StorageService:            pcf.data.StorageService(),
+		RequestHandler:            requestHandler,
+		ShardCoordinator:          pcf.bootstrapComponents.ShardCoordinator(),
+		Messenger:                 pcf.network.NetworkMessenger(),
+		ActiveAccountsDBs:         accountsDBs,
+		ExistingResolvers:         resolversFinder,
+		ExportFolder:              exportFolder,
+		ExportTriesStorageConfig:  hardforkConfig.ExportTriesStorageConfig,
+		ExportStateStorageConfig:  hardforkConfig.ExportStateStorageConfig,
+		ExportStateKeysConfig:     hardforkConfig.ExportKeysStorageConfig,
+		MaxTrieLevelInMemory:      pcf.config.StateTriesConfig.MaxStateTrieLevelInMemory,
+		WhiteListHandler:          pcf.whiteListHandler,
+		WhiteListerVerifiedTxs:    pcf.whiteListerVerifiedTxs,
+		InterceptorsContainer:     interceptorsContainer,
+		NodesCoordinator:          pcf.nodesCoordinator,
+		HeaderSigVerifier:         headerSigVerifier,
+		HeaderIntegrityVerifier:   pcf.bootstrapComponents.HeaderIntegrityVerifier(),
+		ValidityAttester:          blockTracker,
+		InputAntifloodHandler:     pcf.network.InputAntiFloodHandler(),
+		OutputAntifloodHandler:    pcf.network.OutputAntiFloodHandler(),
+		RoundHandler:              pcf.coreData.RoundHandler(),
+		InterceptorDebugConfig:    pcf.config.Debug.InterceptorResolver,
+		MaxHardCapForMissingNodes: pcf.config.TrieSync.MaxHardCapForMissingNodes,
+		NumConcurrentTrieSyncers:  pcf.config.TrieSync.NumConcurrentTrieSyncers,
+		TrieSyncerVersion:         pcf.config.TrieSync.TrieSyncerVersion,
+		PeersRatingHandler:        pcf.network.PeersRatingHandler(),
 	}
 	return updateFactory.NewExportHandlerFactory(argsExporter)
 }
@@ -1633,6 +1643,9 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 	}
 	if check.IfNil(args.CoreData.EpochNotifier()) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilEpochNotifier)
+	}
+	if check.IfNil(args.CoreData.EnableEpochsHandler()) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilEnableEpochsHandler)
 	}
 	if check.IfNil(args.BootstrapComponents) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilBootstrapComponentsHolder)

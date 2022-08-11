@@ -167,7 +167,10 @@ func (brcf *baseResolversContainerFactory) createTxResolver(
 	numIntraShardPeers int,
 ) (dataRetriever.Resolver, error) {
 
-	txStorer := brcf.store.GetStorer(unit)
+	txStorer, err := brcf.store.GetStorer(unit)
+	if err != nil {
+		return nil, err
+	}
 
 	resolverSender, err := brcf.createOneResolverSenderWithSpecifiedNumRequests(topic, excludedTopic, targetShardID, numCrossShardPeers, numIntraShardPeers)
 	if err != nil {
@@ -248,7 +251,10 @@ func (brcf *baseResolversContainerFactory) createMiniBlocksResolver(
 	numCrossShardPeers int,
 	numIntraShardPeers int,
 ) (dataRetriever.Resolver, error) {
-	miniBlocksStorer := brcf.store.GetStorer(dataRetriever.MiniBlockUnit)
+	miniBlocksStorer, err := brcf.store.GetStorer(dataRetriever.MiniBlockUnit)
+	if err != nil {
+		return nil, err
+	}
 
 	resolverSender, err := brcf.createOneResolverSenderWithSpecifiedNumRequests(topic, excludedTopic, targetShardID, numCrossShardPeers, numIntraShardPeers)
 	if err != nil {
@@ -406,13 +412,18 @@ func (brcf *baseResolversContainerFactory) generateValidatorInfoResolver() error
 		return err
 	}
 
+	validatorInfoStorage, err := brcf.store.GetStorer(dataRetriever.UnsignedTransactionUnit)
+	if err != nil {
+		return err
+	}
+
 	arg := resolvers.ArgValidatorInfoResolver{
 		SenderResolver:       resolverSender,
 		Marshaller:           brcf.marshalizer,
 		AntifloodHandler:     brcf.inputAntifloodHandler,
 		Throttler:            brcf.throttler,
 		ValidatorInfoPool:    brcf.dataPools.ValidatorsInfo(),
-		ValidatorInfoStorage: brcf.store.GetStorer(dataRetriever.UnsignedTransactionUnit),
+		ValidatorInfoStorage: validatorInfoStorage,
 		DataPacker:           brcf.dataPacker,
 		IsFullHistoryNode:    brcf.isFullHistoryNode,
 	}

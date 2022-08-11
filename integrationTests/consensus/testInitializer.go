@@ -154,6 +154,8 @@ func createTestStore() dataRetriever.StorageService {
 	store.AddStorer(dataRetriever.BootstrapUnit, createMemUnit())
 	store.AddStorer(dataRetriever.ReceiptsUnit, createMemUnit())
 	store.AddStorer(dataRetriever.ScheduledSCRsUnit, createMemUnit())
+	store.AddStorer(dataRetriever.ShardHdrNonceHashDataUnit, createMemUnit())
+
 	return store
 }
 
@@ -514,24 +516,26 @@ func createNodes(
 		consensusCache, _ := lrucache.NewCache(10000)
 
 		argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
-			ShardConsensusGroupSize:            consensusSize,
-			MetaConsensusGroupSize:             1,
-			Marshalizer:                        integrationTests.TestMarshalizer,
-			Hasher:                             createHasher(consensusType),
-			Shuffler:                           nodeShuffler,
-			EpochStartNotifier:                 epochStartRegistrationHandler,
-			BootStorer:                         bootStorer,
-			NbShards:                           1,
-			EligibleNodes:                      eligibleMap,
-			WaitingNodes:                       waitingMap,
-			SelfPublicKey:                      []byte(strconv.Itoa(i)),
-			ConsensusGroupCache:                consensusCache,
-			ShuffledOutHandler:                 &mock.ShuffledOutHandlerStub{},
-			WaitingListFixEnabledEpoch:         0,
-			ChanStopNode:                       endProcess.GetDummyEndProcessChannel(),
-			NodeTypeProvider:                   &nodeTypeProviderMock.NodeTypeProviderStub{},
-			IsFullArchive:                      false,
-			RefactorPeersMiniBlocksEnableEpoch: 0,
+			ShardConsensusGroupSize: consensusSize,
+			MetaConsensusGroupSize:  1,
+			Marshalizer:             integrationTests.TestMarshalizer,
+			Hasher:                  createHasher(consensusType),
+			Shuffler:                nodeShuffler,
+			EpochStartNotifier:      epochStartRegistrationHandler,
+			BootStorer:              bootStorer,
+			NbShards:                1,
+			EligibleNodes:           eligibleMap,
+			WaitingNodes:            waitingMap,
+			SelfPublicKey:           []byte(strconv.Itoa(i)),
+			ConsensusGroupCache:     consensusCache,
+			ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
+			ChanStopNode:            endProcess.GetDummyEndProcessChannel(),
+			NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
+			IsFullArchive:           false,
+			EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
+				IsWaitingListFixFlagEnabledField: true,
+				IsRefactorPeersMiniBlocksEnabledField: true,
+			},
 		}
 		nodesCoord, _ := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 

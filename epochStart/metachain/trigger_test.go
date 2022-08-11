@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -36,8 +37,8 @@ func createMockEpochStartTriggerArguments() *ArgsNewMetaEpochStartTrigger {
 		Marshalizer:        &mock.MarshalizerMock{},
 		Hasher:             &hashingMocks.HasherMock{},
 		AppStatusHandler:   &statusHandlerMock.AppStatusHandlerStub{},
-		Storage: &mock.ChainStorerStub{
-			GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+		Storage: &storageStubs.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 				return &storageStubs.StorerStub{
 					GetCalled: func(key []byte) (bytes []byte, err error) {
 						return []byte("hash"), nil
@@ -51,7 +52,7 @@ func createMockEpochStartTriggerArguments() *ArgsNewMetaEpochStartTrigger {
 					SearchFirstCalled: func(key []byte) (bytes []byte, err error) {
 						return []byte("hash"), nil
 					},
-				}
+				}, nil
 			},
 		},
 		DataPool: &dataRetrieverMock.PoolsHolderStub{
@@ -126,6 +127,42 @@ func TestNewEpochStartTrigger_InvalidSettingsShouldErr3(t *testing.T) {
 	epochStartTrigger, err := NewEpochStartTrigger(arguments)
 	assert.Nil(t, epochStartTrigger)
 	assert.True(t, errors.Is(err, epochStart.ErrInvalidSettingsForEpochStartTrigger))
+}
+
+func TestNewEpochStartTrigger_MissingBootstrapUnit(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockEpochStartTriggerArguments()
+	arguments.Storage = &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+			if unitType == dataRetriever.BootstrapUnit {
+				return nil, storage.ErrKeyNotFound
+			}
+			return &storageStubs.StorerStub{}, nil
+		},
+	}
+
+	epochStartTrigger, err := NewEpochStartTrigger(arguments)
+	assert.True(t, check.IfNil(epochStartTrigger))
+	assert.Equal(t, storage.ErrKeyNotFound, err)
+}
+
+func TestNewEpochStartTrigger_MissingMetaBlockUnit(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockEpochStartTriggerArguments()
+	arguments.Storage = &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+			if unitType == dataRetriever.MetaBlockUnit {
+				return nil, storage.ErrKeyNotFound
+			}
+			return &storageStubs.StorerStub{}, nil
+		},
+	}
+
+	epochStartTrigger, err := NewEpochStartTrigger(arguments)
+	assert.True(t, check.IfNil(epochStartTrigger))
+	assert.Equal(t, storage.ErrKeyNotFound, err)
 }
 
 func TestNewEpochStartTrigger_ShouldOk(t *testing.T) {
@@ -299,8 +336,8 @@ func TestTrigger_RevertBehindEpochStartBlock(t *testing.T) {
 	firstBlock := &block.MetaBlock{}
 	firstBlockBuff, _ := arguments.Marshalizer.Marshal(firstBlock)
 
-	arguments.Storage = &mock.ChainStorerStub{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+	arguments.Storage = &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 			return &storageStubs.StorerStub{
 				GetCalled: func(key []byte) (bytes []byte, err error) {
 					return []byte("hash"), nil
@@ -314,7 +351,7 @@ func TestTrigger_RevertBehindEpochStartBlock(t *testing.T) {
 				SearchFirstCalled: func(key []byte) (bytes []byte, err error) {
 					return firstBlockBuff, nil
 				},
-			}
+			}, nil
 		},
 	}
 

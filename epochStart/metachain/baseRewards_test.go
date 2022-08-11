@@ -20,10 +20,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/state/factory"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
+	"github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -159,6 +161,18 @@ func TestBaseRewardsCreator_NilUserAccountsDB(t *testing.T) {
 
 	assert.True(t, check.IfNil(rwd))
 	assert.Equal(t, epochStart.ErrNilAccountsDB, err)
+}
+
+func TestBaseRewardsCreator_NilEnableEpochsHandler(t *testing.T) {
+	t.Parallel()
+
+	args := getBaseRewardsArguments()
+	args.EnableEpochsHandler = nil
+
+	rwd, err := NewBaseRewardsCreator(args)
+
+	assert.True(t, check.IfNil(rwd))
+	assert.Equal(t, epochStart.ErrNilEnableEpochsHandler, err)
 }
 
 func TestBaseRewardsCreator_clean(t *testing.T) {
@@ -1124,7 +1138,12 @@ func TestBaseRewardsCreator_getMiniBlockWithReceiverShardIDFound(t *testing.T) {
 func getBaseRewardsArguments() BaseRewardsCreatorArgs {
 	hasher := sha256.NewSha256()
 	marshalizer := &marshal.GogoProtoMarshalizer{}
-	trieFactoryManager, _ := trie.NewTrieStorageManagerWithoutPruning(createMemUnit())
+
+	storageManagerArgs, options := storage.GetStorageManagerArgsAndOptions()
+	storageManagerArgs.Marshalizer = marshalizer
+	storageManagerArgs.Hasher = hasher
+
+	trieFactoryManager, _ := trie.CreateTrieStorageManager(storageManagerArgs, options)
 	userAccountsDB := createAccountsDB(hasher, marshalizer, factory.NewAccountCreator(), trieFactoryManager)
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	shardCoordinator.CurrentShard = core.MetachainShardId
@@ -1149,8 +1168,10 @@ func getBaseRewardsArguments() BaseRewardsCreatorArgs {
 				return 63
 			},
 		},
-		UserAccountsDB:         userAccountsDB,
-		RewardsFix1EpochEnable: 0,
+		UserAccountsDB: userAccountsDB,
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
+			SwitchJailWaitingEnableEpochField: 0,
+		},
 	}
 }
 

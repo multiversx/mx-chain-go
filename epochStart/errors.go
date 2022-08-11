@@ -71,9 +71,6 @@ var ErrNilStorageService = errors.New("nil storage service")
 // ErrNilRequestHandler signals that nil request handler has been provided
 var ErrNilRequestHandler = errors.New("nil request handler")
 
-// ErrNilMetaBlockStorage signals that nil metablocks storage has been provided
-var ErrNilMetaBlockStorage = errors.New("nil metablocks storage")
-
 // ErrNilMetaBlocksPool signals that nil metablock pools holder has been provided
 var ErrNilMetaBlocksPool = errors.New("nil metablocks pool")
 
@@ -82,12 +79,6 @@ var ErrNilValidatorInfoProcessor = errors.New("nil validator info processor")
 
 // ErrNilUint64Converter signals that nil uint64 converter has been provided
 var ErrNilUint64Converter = errors.New("nil uint64 converter")
-
-// ErrNilTriggerStorage signals that nil meta header storage has been provided
-var ErrNilTriggerStorage = errors.New("nil trigger storage")
-
-// ErrNilMetaNonceHashStorage signals that nil meta header nonce hash storage has been provided
-var ErrNilMetaNonceHashStorage = errors.New("nil meta nonce hash storage")
 
 // ErrValidatorMiniBlockHashDoesNotMatch signals that created and received validatorInfo miniblock hash does not match
 var ErrValidatorMiniBlockHashDoesNotMatch = errors.New("validatorInfo miniblock hash does not match")
@@ -130,9 +121,6 @@ var ErrNilNodesConfigProvider = errors.New("nil nodes config provider")
 
 // ErrNotEpochStartBlock signals that block is not of type epoch start
 var ErrNotEpochStartBlock = errors.New("not epoch start block")
-
-// ErrNilShardHeaderStorage signals that shard header storage is nil
-var ErrNilShardHeaderStorage = errors.New("nil shard header storage")
 
 // ErrValidatorInfoMiniBlocksNumDoesNotMatch signals that number of created and received validatorInfo miniblocks is not equal
 var ErrValidatorInfoMiniBlocksNumDoesNotMatch = errors.New("number of created and received validatorInfo miniblocks missmatch")
@@ -328,6 +316,9 @@ var ErrNilScheduledTxsHandler = errors.New("nil scheduled transactions handler")
 
 // ErrNilScheduledDataSyncerFactory signals that a nil scheduled data syncer factory was provided
 var ErrNilScheduledDataSyncerFactory = errors.New("nil scheduled data syncer factory")
+
+// ErrNilEnableEpochsHandler signals that a nil enable epochs handler has been provided
+var ErrNilEnableEpochsHandler = errors.New("nil enable epochs handler")
 
 // ErrNilValidatorInfoStorage signals that nil validator info storage has been provided
 var ErrNilValidatorInfoStorage = errors.New("nil validator info storage")

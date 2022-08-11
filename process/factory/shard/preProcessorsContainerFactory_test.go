@@ -8,9 +8,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
+	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -23,7 +23,7 @@ func TestNewPreProcessorsContainerFactory_NilShardCoordinator(t *testing.T) {
 
 	ppcm, err := NewPreProcessorsContainerFactory(
 		nil,
-		&mock.ChainStorerMock{},
+		&storageStubs.ChainStorerStub{},
 		&mock.MarshalizerMock{},
 		&hashingMocks.HasherMock{},
 		dataRetrieverMock.NewPoolsHolderMock(),
@@ -39,10 +39,7 @@ func TestNewPreProcessorsContainerFactory_NilShardCoordinator(t *testing.T) {
 		&mock.BlockTrackerMock{},
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
-		&epochNotifier.EpochNotifierStub{},
-		2,
-		2,
-		2,
+		&testscommon.EnableEpochsHandlerStub{},
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
@@ -74,10 +71,7 @@ func TestNewPreProcessorsContainerFactory_NilStore(t *testing.T) {
 		&mock.BlockTrackerMock{},
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
-		&epochNotifier.EpochNotifierStub{},
-		2,
-		2,
-		2,
+		&testscommon.EnableEpochsHandlerStub{},
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
@@ -93,7 +87,7 @@ func TestNewPreProcessorsContainerFactory_NilMarshalizer(t *testing.T) {
 
 	ppcm, err := NewPreProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.ChainStorerMock{},
+		&storageStubs.ChainStorerStub{},
 		nil,
 		&hashingMocks.HasherMock{},
 		dataRetrieverMock.NewPoolsHolderMock(),
@@ -109,10 +103,7 @@ func TestNewPreProcessorsContainerFactory_NilMarshalizer(t *testing.T) {
 		&mock.BlockTrackerMock{},
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
-		&epochNotifier.EpochNotifierStub{},
-		2,
-		2,
-		2,
+		&testscommon.EnableEpochsHandlerStub{},
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
@@ -128,7 +119,7 @@ func TestNewPreProcessorsContainerFactory_NilHasher(t *testing.T) {
 
 	ppcm, err := NewPreProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.ChainStorerMock{},
+		&storageStubs.ChainStorerStub{},
 		&mock.MarshalizerMock{},
 		nil,
 		dataRetrieverMock.NewPoolsHolderMock(),
@@ -144,10 +135,7 @@ func TestNewPreProcessorsContainerFactory_NilHasher(t *testing.T) {
 		&mock.BlockTrackerMock{},
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
-		&epochNotifier.EpochNotifierStub{},
-		2,
-		2,
-		2,
+		&testscommon.EnableEpochsHandlerStub{},
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
@@ -163,7 +151,7 @@ func TestNewPreProcessorsContainerFactory_NilDataPool(t *testing.T) {
 
 	ppcm, err := NewPreProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.ChainStorerMock{},
+		&storageStubs.ChainStorerStub{},
 		&mock.MarshalizerMock{},
 		&hashingMocks.HasherMock{},
 		nil,
@@ -179,10 +167,7 @@ func TestNewPreProcessorsContainerFactory_NilDataPool(t *testing.T) {
 		&mock.BlockTrackerMock{},
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
-		&epochNotifier.EpochNotifierStub{},
-		2,
-		2,
-		2,
+		&testscommon.EnableEpochsHandlerStub{},
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
@@ -198,7 +183,7 @@ func TestNewPreProcessorsContainerFactory_NilAddrConv(t *testing.T) {
 
 	ppcm, err := NewPreProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.ChainStorerMock{},
+		&storageStubs.ChainStorerStub{},
 		&mock.MarshalizerMock{},
 		&hashingMocks.HasherMock{},
 		dataRetrieverMock.NewPoolsHolderMock(),
@@ -214,10 +199,7 @@ func TestNewPreProcessorsContainerFactory_NilAddrConv(t *testing.T) {
 		&mock.BlockTrackerMock{},
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
-		&epochNotifier.EpochNotifierStub{},
-		2,
-		2,
-		2,
+		&testscommon.EnableEpochsHandlerStub{},
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
@@ -233,7 +215,7 @@ func TestNewPreProcessorsContainerFactory_NilAccounts(t *testing.T) {
 
 	ppcm, err := NewPreProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.ChainStorerMock{},
+		&storageStubs.ChainStorerStub{},
 		&mock.MarshalizerMock{},
 		&hashingMocks.HasherMock{},
 		dataRetrieverMock.NewPoolsHolderMock(),
@@ -249,10 +231,7 @@ func TestNewPreProcessorsContainerFactory_NilAccounts(t *testing.T) {
 		&mock.BlockTrackerMock{},
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
-		&epochNotifier.EpochNotifierStub{},
-		2,
-		2,
-		2,
+		&testscommon.EnableEpochsHandlerStub{},
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
@@ -268,7 +247,7 @@ func TestNewPreProcessorsContainerFactory_NilTxProcessor(t *testing.T) {
 
 	ppcm, err := NewPreProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.ChainStorerMock{},
+		&storageStubs.ChainStorerStub{},
 		&mock.MarshalizerMock{},
 		&hashingMocks.HasherMock{},
 		dataRetrieverMock.NewPoolsHolderMock(),
@@ -284,10 +263,7 @@ func TestNewPreProcessorsContainerFactory_NilTxProcessor(t *testing.T) {
 		&mock.BlockTrackerMock{},
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
-		&epochNotifier.EpochNotifierStub{},
-		2,
-		2,
-		2,
+		&testscommon.EnableEpochsHandlerStub{},
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
@@ -303,7 +279,7 @@ func TestNewPreProcessorsContainerFactory_NilSCProcessor(t *testing.T) {
 
 	ppcm, err := NewPreProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.ChainStorerMock{},
+		&storageStubs.ChainStorerStub{},
 		&mock.MarshalizerMock{},
 		&hashingMocks.HasherMock{},
 		dataRetrieverMock.NewPoolsHolderMock(),
@@ -319,10 +295,7 @@ func TestNewPreProcessorsContainerFactory_NilSCProcessor(t *testing.T) {
 		&mock.BlockTrackerMock{},
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
-		&epochNotifier.EpochNotifierStub{},
-		2,
-		2,
-		2,
+		&testscommon.EnableEpochsHandlerStub{},
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
@@ -338,7 +311,7 @@ func TestNewPreProcessorsContainerFactory_NilSCR(t *testing.T) {
 
 	ppcm, err := NewPreProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.ChainStorerMock{},
+		&storageStubs.ChainStorerStub{},
 		&mock.MarshalizerMock{},
 		&hashingMocks.HasherMock{},
 		dataRetrieverMock.NewPoolsHolderMock(),
@@ -354,10 +327,7 @@ func TestNewPreProcessorsContainerFactory_NilSCR(t *testing.T) {
 		&mock.BlockTrackerMock{},
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
-		&epochNotifier.EpochNotifierStub{},
-		2,
-		2,
-		2,
+		&testscommon.EnableEpochsHandlerStub{},
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
@@ -373,7 +343,7 @@ func TestNewPreProcessorsContainerFactory_NilRewardTxProcessor(t *testing.T) {
 
 	ppcm, err := NewPreProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.ChainStorerMock{},
+		&storageStubs.ChainStorerStub{},
 		&mock.MarshalizerMock{},
 		&hashingMocks.HasherMock{},
 		dataRetrieverMock.NewPoolsHolderMock(),
@@ -389,10 +359,7 @@ func TestNewPreProcessorsContainerFactory_NilRewardTxProcessor(t *testing.T) {
 		&mock.BlockTrackerMock{},
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
-		&epochNotifier.EpochNotifierStub{},
-		2,
-		2,
-		2,
+		&testscommon.EnableEpochsHandlerStub{},
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
@@ -408,7 +375,7 @@ func TestNewPreProcessorsContainerFactory_NilRequestHandler(t *testing.T) {
 
 	ppcm, err := NewPreProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.ChainStorerMock{},
+		&storageStubs.ChainStorerStub{},
 		&mock.MarshalizerMock{},
 		&hashingMocks.HasherMock{},
 		dataRetrieverMock.NewPoolsHolderMock(),
@@ -424,10 +391,7 @@ func TestNewPreProcessorsContainerFactory_NilRequestHandler(t *testing.T) {
 		&mock.BlockTrackerMock{},
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
-		&epochNotifier.EpochNotifierStub{},
-		2,
-		2,
-		2,
+		&testscommon.EnableEpochsHandlerStub{},
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
@@ -443,7 +407,7 @@ func TestNewPreProcessorsContainerFactory_NilFeeHandler(t *testing.T) {
 
 	ppcm, err := NewPreProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.ChainStorerMock{},
+		&storageStubs.ChainStorerStub{},
 		&mock.MarshalizerMock{},
 		&hashingMocks.HasherMock{},
 		dataRetrieverMock.NewPoolsHolderMock(),
@@ -459,10 +423,7 @@ func TestNewPreProcessorsContainerFactory_NilFeeHandler(t *testing.T) {
 		&mock.BlockTrackerMock{},
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
-		&epochNotifier.EpochNotifierStub{},
-		2,
-		2,
-		2,
+		&testscommon.EnableEpochsHandlerStub{},
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
@@ -478,7 +439,7 @@ func TestNewPreProcessorsContainerFactory_NilGasHandler(t *testing.T) {
 
 	ppcm, err := NewPreProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.ChainStorerMock{},
+		&storageStubs.ChainStorerStub{},
 		&mock.MarshalizerMock{},
 		&hashingMocks.HasherMock{},
 		dataRetrieverMock.NewPoolsHolderMock(),
@@ -494,10 +455,7 @@ func TestNewPreProcessorsContainerFactory_NilGasHandler(t *testing.T) {
 		&mock.BlockTrackerMock{},
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
-		&epochNotifier.EpochNotifierStub{},
-		2,
-		2,
-		2,
+		&testscommon.EnableEpochsHandlerStub{},
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
@@ -513,7 +471,7 @@ func TestNewPreProcessorsContainerFactory_NilBlockTracker(t *testing.T) {
 
 	ppcm, err := NewPreProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.ChainStorerMock{},
+		&storageStubs.ChainStorerStub{},
 		&mock.MarshalizerMock{},
 		&hashingMocks.HasherMock{},
 		dataRetrieverMock.NewPoolsHolderMock(),
@@ -529,10 +487,7 @@ func TestNewPreProcessorsContainerFactory_NilBlockTracker(t *testing.T) {
 		nil,
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
-		&epochNotifier.EpochNotifierStub{},
-		2,
-		2,
-		2,
+		&testscommon.EnableEpochsHandlerStub{},
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
@@ -548,7 +503,7 @@ func TestNewPreProcessorsContainerFactory_NilBlockSizeComputationHandler(t *test
 
 	ppcm, err := NewPreProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.ChainStorerMock{},
+		&storageStubs.ChainStorerStub{},
 		&mock.MarshalizerMock{},
 		&hashingMocks.HasherMock{},
 		dataRetrieverMock.NewPoolsHolderMock(),
@@ -564,10 +519,7 @@ func TestNewPreProcessorsContainerFactory_NilBlockSizeComputationHandler(t *test
 		&mock.BlockTrackerMock{},
 		nil,
 		&testscommon.BalanceComputationStub{},
-		&epochNotifier.EpochNotifierStub{},
-		2,
-		2,
-		2,
+		&testscommon.EnableEpochsHandlerStub{},
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
@@ -583,7 +535,7 @@ func TestNewPreProcessorsContainerFactory_NilBalanceComputationHandler(t *testin
 
 	ppcm, err := NewPreProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.ChainStorerMock{},
+		&storageStubs.ChainStorerStub{},
 		&mock.MarshalizerMock{},
 		&hashingMocks.HasherMock{},
 		dataRetrieverMock.NewPoolsHolderMock(),
@@ -599,10 +551,7 @@ func TestNewPreProcessorsContainerFactory_NilBalanceComputationHandler(t *testin
 		&mock.BlockTrackerMock{},
 		&testscommon.BlockSizeComputationStub{},
 		nil,
-		&epochNotifier.EpochNotifierStub{},
-		2,
-		2,
-		2,
+		&testscommon.EnableEpochsHandlerStub{},
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
@@ -613,12 +562,12 @@ func TestNewPreProcessorsContainerFactory_NilBalanceComputationHandler(t *testin
 	assert.Nil(t, ppcm)
 }
 
-func TestNewPreProcessorsContainerFactory_NilEpochNotifier(t *testing.T) {
+func TestNewPreProcessorsContainerFactory_NilEnableEpochsHandler(t *testing.T) {
 	t.Parallel()
 
 	ppcm, err := NewPreProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.ChainStorerMock{},
+		&storageStubs.ChainStorerStub{},
 		&mock.MarshalizerMock{},
 		&hashingMocks.HasherMock{},
 		dataRetrieverMock.NewPoolsHolderMock(),
@@ -635,16 +584,13 @@ func TestNewPreProcessorsContainerFactory_NilEpochNotifier(t *testing.T) {
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		nil,
-		2,
-		2,
-		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		2,
 	)
 
-	assert.Equal(t, process.ErrNilEpochNotifier, err)
+	assert.Equal(t, process.ErrNilEnableEpochsHandler, err)
 	assert.Nil(t, ppcm)
 }
 
@@ -653,7 +599,7 @@ func TestNewPreProcessorsContainerFactory_NilTxTypeHandler(t *testing.T) {
 
 	ppcm, err := NewPreProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.ChainStorerMock{},
+		&storageStubs.ChainStorerStub{},
 		&mock.MarshalizerMock{},
 		&hashingMocks.HasherMock{},
 		dataRetrieverMock.NewPoolsHolderMock(),
@@ -669,10 +615,7 @@ func TestNewPreProcessorsContainerFactory_NilTxTypeHandler(t *testing.T) {
 		&mock.BlockTrackerMock{},
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
-		&epochNotifier.EpochNotifierStub{},
-		2,
-		2,
-		2,
+		&testscommon.EnableEpochsHandlerStub{},
 		nil,
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
@@ -688,7 +631,7 @@ func TestNewPreProcessorsContainerFactory_NilScheduledTxsExecutionHandler(t *tes
 
 	ppcm, err := NewPreProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.ChainStorerMock{},
+		&storageStubs.ChainStorerStub{},
 		&mock.MarshalizerMock{},
 		&hashingMocks.HasherMock{},
 		dataRetrieverMock.NewPoolsHolderMock(),
@@ -704,10 +647,7 @@ func TestNewPreProcessorsContainerFactory_NilScheduledTxsExecutionHandler(t *tes
 		&mock.BlockTrackerMock{},
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
-		&epochNotifier.EpochNotifierStub{},
-		2,
-		2,
-		2,
+		&testscommon.EnableEpochsHandlerStub{},
 		&testscommon.TxTypeHandlerMock{},
 		nil,
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
@@ -723,7 +663,7 @@ func TestNewPreProcessorsContainerFactory_NilProcessedMiniBlocksTracker(t *testi
 
 	ppcm, err := NewPreProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.ChainStorerMock{},
+		&storageStubs.ChainStorerStub{},
 		&mock.MarshalizerMock{},
 		&hashingMocks.HasherMock{},
 		dataRetrieverMock.NewPoolsHolderMock(),
@@ -739,10 +679,7 @@ func TestNewPreProcessorsContainerFactory_NilProcessedMiniBlocksTracker(t *testi
 		&mock.BlockTrackerMock{},
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
-		&epochNotifier.EpochNotifierStub{},
-		2,
-		2,
-		2,
+		&testscommon.EnableEpochsHandlerStub{},
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 		nil,
@@ -758,7 +695,7 @@ func TestNewPreProcessorsContainerFactory(t *testing.T) {
 
 	ppcm, err := NewPreProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.ChainStorerMock{},
+		&storageStubs.ChainStorerStub{},
 		&mock.MarshalizerMock{},
 		&hashingMocks.HasherMock{},
 		dataRetrieverMock.NewPoolsHolderMock(),
@@ -774,10 +711,7 @@ func TestNewPreProcessorsContainerFactory(t *testing.T) {
 		&mock.BlockTrackerMock{},
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
-		&epochNotifier.EpochNotifierStub{},
-		2,
-		2,
-		2,
+		&testscommon.EnableEpochsHandlerStub{},
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
@@ -798,7 +732,7 @@ func TestPreProcessorsContainerFactory_CreateErrTxPreproc(t *testing.T) {
 
 	ppcm, err := NewPreProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.ChainStorerMock{},
+		&storageStubs.ChainStorerStub{},
 		&mock.MarshalizerMock{},
 		&hashingMocks.HasherMock{},
 		dataPool,
@@ -814,10 +748,7 @@ func TestPreProcessorsContainerFactory_CreateErrTxPreproc(t *testing.T) {
 		&mock.BlockTrackerMock{},
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
-		&epochNotifier.EpochNotifierStub{},
-		2,
-		2,
-		2,
+		&testscommon.EnableEpochsHandlerStub{},
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
@@ -844,7 +775,7 @@ func TestPreProcessorsContainerFactory_CreateErrScrPreproc(t *testing.T) {
 
 	ppcm, err := NewPreProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.ChainStorerMock{},
+		&storageStubs.ChainStorerStub{},
 		&mock.MarshalizerMock{},
 		&hashingMocks.HasherMock{},
 		dataPool,
@@ -860,10 +791,7 @@ func TestPreProcessorsContainerFactory_CreateErrScrPreproc(t *testing.T) {
 		&mock.BlockTrackerMock{},
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
-		&epochNotifier.EpochNotifierStub{},
-		2,
-		2,
-		2,
+		&testscommon.EnableEpochsHandlerStub{},
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
@@ -893,7 +821,7 @@ func TestPreProcessorsContainerFactory_Create(t *testing.T) {
 
 	ppcm, err := NewPreProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.ChainStorerMock{},
+		&storageStubs.ChainStorerStub{},
 		&mock.MarshalizerMock{},
 		&hashingMocks.HasherMock{},
 		dataPool,
@@ -909,10 +837,7 @@ func TestPreProcessorsContainerFactory_Create(t *testing.T) {
 		&mock.BlockTrackerMock{},
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
-		&epochNotifier.EpochNotifierStub{},
-		2,
-		2,
-		2,
+		&testscommon.EnableEpochsHandlerStub{},
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},

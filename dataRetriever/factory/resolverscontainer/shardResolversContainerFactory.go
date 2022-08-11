@@ -144,14 +144,21 @@ func (srcf *shardResolversContainerFactory) generateHeaderResolvers() error {
 	// only one shard header topic, for example: shardBlocks_0_META
 	identifierHdr := factory.ShardBlocksTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
 
-	hdrStorer := srcf.store.GetStorer(dataRetriever.BlockHeaderUnit)
+	hdrStorer, err := srcf.store.GetStorer(dataRetriever.BlockHeaderUnit)
+	if err != nil {
+		return err
+	}
 	resolverSender, err := srcf.createOneResolverSenderWithSpecifiedNumRequests(identifierHdr, EmptyExcludePeersOnTopic, shardC.SelfId(), srcf.numCrossShardPeers, srcf.numIntraShardPeers)
 	if err != nil {
 		return err
 	}
 
 	hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(shardC.SelfId())
-	hdrNonceStore := srcf.store.GetStorer(hdrNonceHashDataUnit)
+	hdrNonceStore, err := srcf.store.GetStorer(hdrNonceHashDataUnit)
+	if err != nil {
+		return err
+	}
+
 	arg := resolvers.ArgHeaderResolver{
 		ArgBaseResolver: resolvers.ArgBaseResolver{
 			SenderResolver:   resolverSender,
@@ -185,14 +192,21 @@ func (srcf *shardResolversContainerFactory) generateMetablockHeaderResolvers() e
 	// only one metachain header block topic
 	// this is: metachainBlocks
 	identifierHdr := factory.MetachainBlocksTopic
-	hdrStorer := srcf.store.GetStorer(dataRetriever.MetaBlockUnit)
+	hdrStorer, err := srcf.store.GetStorer(dataRetriever.MetaBlockUnit)
+	if err != nil {
+		return err
+	}
 
 	resolverSender, err := srcf.createOneResolverSenderWithSpecifiedNumRequests(identifierHdr, EmptyExcludePeersOnTopic, core.MetachainShardId, srcf.numCrossShardPeers, srcf.numIntraShardPeers)
 	if err != nil {
 		return err
 	}
 
-	hdrNonceStore := srcf.store.GetStorer(dataRetriever.MetaHdrNonceHashDataUnit)
+	hdrNonceStore, err := srcf.store.GetStorer(dataRetriever.MetaHdrNonceHashDataUnit)
+	if err != nil {
+		return err
+	}
+
 	arg := resolvers.ArgHeaderResolver{
 		ArgBaseResolver: resolvers.ArgBaseResolver{
 			SenderResolver:   resolverSender,

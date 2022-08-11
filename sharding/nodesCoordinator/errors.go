@@ -91,12 +91,6 @@ var ErrNilBlockBody = errors.New("nil block body")
 // ErrNilShuffledOutHandler signals that a nil shuffled out handler has been provided
 var ErrNilShuffledOutHandler = errors.New("nil shuffled out handler")
 
-// ErrNilEpochNotifier signals that the provided epoch notifier is nil
-var ErrNilEpochNotifier = errors.New("nil epoch notifier")
-
-// ErrNilEndOfProcessingHandler signals that a nil end of processing handler has been provided
-var ErrNilEndOfProcessingHandler = errors.New("nil end of processing handler")
-
 // ErrNilOrEmptyDestinationForDistribute signals that a nil or empty value was provided for destination of distributedNodes
 var ErrNilOrEmptyDestinationForDistribute = errors.New("nil or empty destination list for distributeNodes")
 
@@ -111,6 +105,9 @@ var ErrValidatorCannotBeFullArchive = errors.New("validator cannot be a full arc
 
 // ErrNilNodeTypeProvider signals that a nil node type provider has been given
 var ErrNilNodeTypeProvider = errors.New("nil node type provider")
+
+// ErrNilEnableEpochsHandler signals that a nil enable epochs handler has been provided
+var ErrNilEnableEpochsHandler = errors.New("nil enable epochs handler")
 
 // ErrNilPoolsHolder signals that a nil validator info cacher has been provided
 var ErrNilValidatorInfoCacher = errors.New("nil validator info cacher")

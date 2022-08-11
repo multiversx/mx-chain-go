@@ -43,7 +43,6 @@ type metaProcessor struct {
 	shardBlockFinality           uint32
 	chRcvAllHdrs                 chan bool
 	headersCounter               *headersCounter
-	rewardsV2EnableEpoch         uint32
 	userStatePruningQueue        core.Queue
 	peerStatePruningQueue        core.Queue
 	processStatusHandler         common.ProcessStatusHandler
@@ -125,15 +124,15 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		versionedHeaderFactory:         arguments.BootstrapComponents.VersionedHeaderFactory(),
 		headerIntegrityVerifier:        arguments.BootstrapComponents.HeaderIntegrityVerifier(),
 		historyRepo:                    arguments.HistoryRepository,
-		epochNotifier:                  arguments.EpochNotifier,
-		roundNotifier:                  arguments.RoundNotifier,
+		epochNotifier:                 arguments.CoreComponents.EpochNotifier(),
+		enableEpochsHandler:           arguments.CoreComponents.EnableEpochsHandler(),
+		enableRoundsHandler:            arguments.EnableRoundsHandler,
 		vmContainerFactory:             arguments.VMContainersFactory,
 		vmContainer:                    arguments.VmContainer,
 		processDataTriesOnCommitEpoch:  arguments.Config.Debug.EpochStart.ProcessDataTrieOnCommitEpoch,
 		gasConsumedProvider:            arguments.GasHandler,
 		economicsData:                  arguments.CoreComponents.EconomicsData(),
 		scheduledTxsExecutionHandler:   arguments.ScheduledTxsExecutionHandler,
-		scheduledMiniBlocksEnableEpoch: arguments.ScheduledMiniBlocksEnableEpoch,
 		pruningDelay:                   pruningDelay,
 		processedMiniBlocksTracker:     arguments.ProcessedMiniBlocksTracker,
 		receiptsRepository:             arguments.ReceiptsRepository,
@@ -150,11 +149,8 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		validatorStatisticsProcessor: arguments.ValidatorStatisticsProcessor,
 		validatorInfoCreator:         arguments.EpochValidatorInfoCreator,
 		epochSystemSCProcessor:       arguments.EpochSystemSCProcessor,
-		rewardsV2EnableEpoch:         arguments.RewardsV2EnableEpoch,
 		processStatusHandler:         arguments.CoreComponents.ProcessStatusHandler(),
 	}
-
-	log.Debug("metablock: enable epoch for staking v2", "epoch", mp.rewardsV2EnableEpoch)
 
 	mp.txCounter, err = NewTransactionCounter(mp.hasher, mp.marshalizer)
 	if err != nil {
@@ -177,13 +173,11 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 	mp.userStatePruningQueue = queue.NewSliceQueue(arguments.Config.StateTriesConfig.UserStatePruningQueueSize)
 	mp.peerStatePruningQueue = queue.NewSliceQueue(arguments.Config.StateTriesConfig.PeerStatePruningQueueSize)
 
-	mp.epochNotifier.RegisterNotifyHandler(&mp)
-
 	return &mp, nil
 }
 
 func (mp *metaProcessor) isRewardsV2Enabled(headerHandler data.HeaderHandler) bool {
-	return headerHandler.GetEpoch() >= mp.rewardsV2EnableEpoch
+	return headerHandler.GetEpoch() >= mp.enableEpochsHandler.StakingV2EnableEpoch()
 }
 
 // ProcessBlock processes a block. It returns nil if all ok or the specific error
@@ -213,7 +207,7 @@ func (mp *metaProcessor) ProcessBlock(
 		return err
 	}
 
-	mp.roundNotifier.CheckRound(headerHandler.GetRound())
+	mp.enableRoundsHandler.CheckRound(headerHandler.GetRound())
 	mp.epochNotifier.CheckEpoch(headerHandler)
 	mp.requestHandler.SetEpoch(headerHandler.GetEpoch())
 
@@ -588,7 +582,7 @@ func (mp *metaProcessor) getAllMiniBlockDstMeFromShards(metaHdr *block.MetaBlock
 }
 
 func (mp *metaProcessor) getFinalCrossMiniBlockHashes(headerHandler data.HeaderHandler) map[string]uint32 {
-	if !mp.flagScheduledMiniBlocks.IsSet() {
+	if !mp.enableEpochsHandler.IsScheduledMiniBlocksFlagEnabled() {
 		return headerHandler.GetMiniBlockHeadersWithDst(mp.shardCoordinator.SelfId())
 	}
 	return process.GetFinalCrossMiniBlockHashes(headerHandler, mp.shardCoordinator.SelfId())
@@ -731,7 +725,12 @@ func (mp *metaProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler,
 		headersPool.AddHeader(hdrHash, shardHeader)
 
 		hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(shardHeader.GetShardID())
-		storer := mp.store.GetStorer(hdrNonceHashDataUnit)
+		storer, errNotCritical := mp.store.GetStorer(hdrNonceHashDataUnit)
+		if err != nil {
+			log.Debug("storage unit not found", "unit", hdrNonceHashDataUnit, "error", errNotCritical.Error())
+			continue
+		}
+
 		nonceToByteSlice := mp.uint64Converter.ToByteSlice(shardHeader.GetNonce())
 		errNotCritical = storer.Remove(nonceToByteSlice)
 		if errNotCritical != nil {
@@ -985,7 +984,7 @@ func (mp *metaProcessor) createMiniBlocks(
 ) (*block.Body, error) {
 	var miniBlocks block.MiniBlockSlice
 
-	if mp.flagScheduledMiniBlocks.IsSet() {
+	if mp.enableEpochsHandler.IsScheduledMiniBlocksFlagEnabled() {
 		miniBlocks = mp.scheduledTxsExecutionHandler.GetScheduledMiniBlocks()
 		mp.txCoordinator.AddTxsFromMiniBlocks(miniBlocks)
 		// TODO: in case we add metachain originating scheduled miniBlocks, we need to add the invalid txs here, same as for shard processor
@@ -1819,7 +1818,7 @@ func (mp *metaProcessor) checkShardHeadersValidity(metaHdr *block.MetaBlock) (ma
 }
 
 func (mp *metaProcessor) getFinalMiniBlockHeaders(miniBlockHeaderHandlers []data.MiniBlockHeaderHandler) []data.MiniBlockHeaderHandler {
-	if !mp.flagScheduledMiniBlocks.IsSet() {
+	if !mp.enableEpochsHandler.IsScheduledMiniBlocksFlagEnabled() {
 		return miniBlockHeaderHandlers
 	}
 
@@ -2057,7 +2056,7 @@ func (mp *metaProcessor) createShardInfo() ([]data.ShardDataHandler, error) {
 		shardData.DeveloperFees = shardHdr.GetDeveloperFees()
 
 		for i := 0; i < len(shardHdr.GetMiniBlockHeaderHandlers()); i++ {
-			if mp.flagScheduledMiniBlocks.IsSet() {
+			if mp.enableEpochsHandler.IsScheduledMiniBlocksFlagEnabled() {
 				miniBlockHeader := shardHdr.GetMiniBlockHeaderHandlers()[i]
 				if !miniBlockHeader.IsFinal() {
 					log.Debug("metaProcessor.createShardInfo: do not create shard data with mini block which is not final", "mb hash", miniBlockHeader.GetHash())
@@ -2305,7 +2304,7 @@ func (mp *metaProcessor) waitForBlockHeaders(waitTime time.Duration) error {
 
 // CreateNewHeader creates a new header
 func (mp *metaProcessor) CreateNewHeader(round uint64, nonce uint64) (data.HeaderHandler, error) {
-	mp.roundNotifier.CheckRound(round)
+	mp.enableRoundsHandler.CheckRound(round)
 
 	mp.epochStartTrigger.Update(round, nonce)
 	epoch := mp.epochStartTrigger.Epoch()

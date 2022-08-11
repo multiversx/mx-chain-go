@@ -251,6 +251,9 @@ var ErrInvalidNumOfPeerAuthentication = errors.New("invalid num of peer authenti
 // ErrNilPeerShardMapper signals that a nil peer shard mapper has been provided
 var ErrNilPeerShardMapper = errors.New("nil peer shard mapper")
 
+// ErrStorerNotFound signals that the storer was not found
+var ErrStorerNotFound = errors.New("storer not found")
+
 // ErrNilValidatorInfoPool signals that a nil validator info pool has been provided
 var ErrNilValidatorInfoPool = errors.New("nil validator info pool")
 

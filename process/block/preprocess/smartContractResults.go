@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -46,8 +47,7 @@ func NewSmartContractResultPreprocessor(
 	pubkeyConverter core.PubkeyConverter,
 	blockSizeComputation BlockSizeComputationHandler,
 	balanceComputation BalanceComputationHandler,
-	epochNotifier process.EpochNotifier,
-	optimizeGasUsedInCrossMiniBlocksEnableEpoch uint32,
+	enableEpochsHandler common.EnableEpochsHandler,
 	processedMiniBlocksTracker process.ProcessedMiniBlocksTracker,
 ) (*smartContractResults, error) {
 
@@ -90,8 +90,8 @@ func NewSmartContractResultPreprocessor(
 	if check.IfNil(balanceComputation) {
 		return nil, process.ErrNilBalanceComputationHandler
 	}
-	if check.IfNil(epochNotifier) {
-		return nil, process.ErrNilEpochNotifier
+	if check.IfNil(enableEpochsHandler) {
+		return nil, process.ErrNilEnableEpochsHandler
 	}
 	if check.IfNil(processedMiniBlocksTracker) {
 		return nil, process.ErrNilProcessedMiniBlocksTracker
@@ -105,13 +105,12 @@ func NewSmartContractResultPreprocessor(
 			gasHandler:       gasHandler,
 			economicsFee:     economicsFee,
 		},
-		blockSizeComputation: blockSizeComputation,
-		balanceComputation:   balanceComputation,
-		accounts:             accounts,
-		pubkeyConverter:      pubkeyConverter,
-
-		optimizeGasUsedInCrossMiniBlocksEnableEpoch: optimizeGasUsedInCrossMiniBlocksEnableEpoch,
-		processedMiniBlocksTracker:                  processedMiniBlocksTracker,
+		blockSizeComputation:       blockSizeComputation,
+		balanceComputation:         balanceComputation,
+		accounts:                   accounts,
+		pubkeyConverter:            pubkeyConverter,
+		enableEpochsHandler:        enableEpochsHandler,
+		processedMiniBlocksTracker: processedMiniBlocksTracker,
 	}
 
 	scr := &smartContractResults{
@@ -125,9 +124,6 @@ func NewSmartContractResultPreprocessor(
 	scr.chRcvAllScrs = make(chan bool)
 	scr.scrPool.RegisterOnAdded(scr.receivedSmartContractResult)
 	scr.scrForBlock.txHashAndInfo = make(map[string]*txInfo)
-
-	log.Debug("smartContractResult: enable epoch for optimize gas used in cross shard mini blocks", "epoch", scr.optimizeGasUsedInCrossMiniBlocksEnableEpoch)
-	epochNotifier.RegisterNotifyHandler(scr)
 
 	return scr, nil
 }
@@ -318,7 +314,7 @@ func (scr *smartContractResults) ProcessBlockTransactions(
 				return process.ErrWrongTypeAssertion
 			}
 
-			if scr.flagOptimizeGasUsedInCrossMiniBlocks.IsSet() {
+			if scr.enableEpochsHandler.IsOptimizeGasUsedInCrossMiniBlocksFlagEnabled() {
 				gasProvidedByTxInSelfShard, err := scr.computeGasProvided(
 					miniBlock.SenderShardID,
 					miniBlock.ReceiverShardID,
@@ -601,7 +597,7 @@ func (scr *smartContractResults) ProcessMiniBlock(
 			break
 		}
 
-		if scr.flagOptimizeGasUsedInCrossMiniBlocks.IsSet() {
+		if scr.enableEpochsHandler.IsOptimizeGasUsedInCrossMiniBlocksFlagEnabled() {
 			if gasInfo.totalGasConsumedInSelfShard > maxGasLimitUsedForDestMeTxs {
 				err = process.ErrMaxGasLimitUsedForDestMeTxsIsReached
 				break
@@ -678,9 +674,4 @@ func (scr *smartContractResults) IsInterfaceNil() bool {
 
 func (scr *smartContractResults) isMiniBlockCorrect(mbType block.Type) bool {
 	return mbType == block.SmartContractResultBlock
-}
-
-// EpochConfirmed is called whenever a new epoch is confirmed
-func (scr *smartContractResults) EpochConfirmed(epoch uint32, timestamp uint64) {
-	scr.epochConfirmed(epoch, timestamp)
 }

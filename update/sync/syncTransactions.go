@@ -80,11 +80,27 @@ func NewTransactionsSyncer(args ArgsNewTransactionsSyncer) (*transactionsSync, e
 	ts.txPools[block.RewardsBlock] = args.DataPools.RewardTransactions()
 	ts.txPools[block.PeerBlock] = args.DataPools.ValidatorsInfo()
 
+	var err error
 	ts.storage = make(map[block.Type]update.HistoryStorer)
-	ts.storage[block.TxBlock] = args.Storages.GetStorer(dataRetriever.TransactionUnit)
-	ts.storage[block.SmartContractResultBlock] = args.Storages.GetStorer(dataRetriever.UnsignedTransactionUnit)
-	ts.storage[block.RewardsBlock] = args.Storages.GetStorer(dataRetriever.RewardTransactionUnit)
-	ts.storage[block.PeerBlock] = args.Storages.GetStorer(dataRetriever.UnsignedTransactionUnit)
+	ts.storage[block.TxBlock], err = args.Storages.GetStorer(dataRetriever.TransactionUnit)
+	if err != nil {
+		return nil, err
+	}
+
+	ts.storage[block.SmartContractResultBlock], err = args.Storages.GetStorer(dataRetriever.UnsignedTransactionUnit)
+	if err != nil {
+		return nil, err
+	}
+
+	ts.storage[block.RewardsBlock], err = args.Storages.GetStorer(dataRetriever.RewardTransactionUnit)
+	if err != nil {
+		return nil, err
+	}
+
+	ts.storage[block.PeerBlock], err = args.Storages.GetStorer(dataRetriever.UnsignedTransactionUnit)
+	if err != nil {
+		return nil, err
+	}
 
 	for poolType, pool := range ts.txPools {
 		if poolType == block.PeerBlock {

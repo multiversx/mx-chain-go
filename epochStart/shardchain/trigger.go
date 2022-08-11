@@ -192,24 +192,24 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 		return nil, epochStart.ErrNilStatusHandler
 	}
 
-	metaHdrStorage := args.Storage.GetStorer(dataRetriever.MetaBlockUnit)
-	if check.IfNil(metaHdrStorage) {
-		return nil, epochStart.ErrNilMetaBlockStorage
+	metaHdrStorage, err := args.Storage.GetStorer(dataRetriever.MetaBlockUnit)
+	if err != nil {
+		return nil, err
 	}
 
-	triggerStorage := args.Storage.GetStorer(dataRetriever.BootstrapUnit)
-	if check.IfNil(triggerStorage) {
-		return nil, epochStart.ErrNilTriggerStorage
+	triggerStorage, err := args.Storage.GetStorer(dataRetriever.BootstrapUnit)
+	if err != nil {
+		return nil, err
 	}
 
-	metaHdrNoncesStorage := args.Storage.GetStorer(dataRetriever.MetaHdrNonceHashDataUnit)
-	if check.IfNil(metaHdrNoncesStorage) {
-		return nil, epochStart.ErrNilMetaNonceHashStorage
+	metaHdrNoncesStorage, err := args.Storage.GetStorer(dataRetriever.MetaHdrNonceHashDataUnit)
+	if err != nil {
+		return nil, err
 	}
 
-	shardHdrStorage := args.Storage.GetStorer(dataRetriever.BlockHeaderUnit)
-	if check.IfNil(shardHdrStorage) {
-		return nil, epochStart.ErrNilShardHeaderStorage
+	shardHdrStorage, err := args.Storage.GetStorer(dataRetriever.BlockHeaderUnit)
+	if err != nil {
+		return nil, err
 	}
 
 	trigggerStateKey := common.TriggerRegistryInitialKeyPrefix + fmt.Sprintf("%d", args.Epoch)
@@ -255,7 +255,7 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 
 	t.headersPool.RegisterHandler(t.receivedMetaBlock)
 
-	err := t.saveState(t.triggerStateKey)
+	err = t.saveState(t.triggerStateKey)
 	if err != nil {
 		return nil, err
 	}
