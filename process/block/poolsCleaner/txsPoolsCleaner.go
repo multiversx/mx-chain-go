@@ -13,7 +13,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 )
@@ -29,6 +28,13 @@ const (
 	unsignedTx
 )
 
+// ArgTxsPoolsCleaner represents the argument structure used to create a new txsPoolsCleaner instance
+type ArgTxsPoolsCleaner struct {
+	ArgBasePoolsCleaner
+	AddressPubkeyConverter core.PubkeyConverter
+	DataPool               dataRetriever.PoolsHolder
+}
+
 type txInfo struct {
 	round           int64
 	senderShardID   uint32
@@ -39,71 +45,76 @@ type txInfo struct {
 
 // txsPoolsCleaner represents a pools cleaner that checks and cleans txs which should not be in pool anymore
 type txsPoolsCleaner struct {
+	basePoolsCleaner
 	addressPubkeyConverter   core.PubkeyConverter
 	blockTransactionsPool    dataRetriever.ShardedDataCacherNotifier
 	rewardTransactionsPool   dataRetriever.ShardedDataCacherNotifier
 	unsignedTransactionsPool dataRetriever.ShardedDataCacherNotifier
-	roundHandler             process.RoundHandler
-	shardCoordinator         sharding.Coordinator
 
 	mutMapTxsRounds sync.RWMutex
 	mapTxsRounds    map[string]*txInfo
 	emptyAddress    []byte
-	cancelFunc      func()
 }
 
 // NewTxsPoolsCleaner will return a new txs pools cleaner
-func NewTxsPoolsCleaner(
-	addressPubkeyConverter core.PubkeyConverter,
-	dataPool dataRetriever.PoolsHolder,
-	roundHandler process.RoundHandler,
-	shardCoordinator sharding.Coordinator,
-) (*txsPoolsCleaner, error) {
-
-	if check.IfNil(addressPubkeyConverter) {
-		return nil, process.ErrNilPubkeyConverter
-	}
-	if check.IfNil(dataPool) {
-		return nil, process.ErrNilPoolsHolder
-	}
-	if check.IfNil(dataPool.Transactions()) {
-		return nil, process.ErrNilTransactionPool
-	}
-	if check.IfNil(dataPool.RewardTransactions()) {
-		return nil, process.ErrNilRewardTxDataPool
-	}
-	if check.IfNil(dataPool.UnsignedTransactions()) {
-		return nil, process.ErrNilUnsignedTxDataPool
-	}
-	if check.IfNil(roundHandler) {
-		return nil, process.ErrNilRoundHandler
-	}
-	if check.IfNil(shardCoordinator) {
-		return nil, process.ErrNilShardCoordinator
+func NewTxsPoolsCleaner(args ArgTxsPoolsCleaner) (*txsPoolsCleaner, error) {
+	err := checkArgTxsPoolsCleaner(args)
+	if err != nil {
+		return nil, err
 	}
 
 	tpc := txsPoolsCleaner{
-		addressPubkeyConverter:   addressPubkeyConverter,
-		blockTransactionsPool:    dataPool.Transactions(),
-		rewardTransactionsPool:   dataPool.RewardTransactions(),
-		unsignedTransactionsPool: dataPool.UnsignedTransactions(),
-		roundHandler:             roundHandler,
-		shardCoordinator:         shardCoordinator,
+		basePoolsCleaner:         newBasePoolsCleaner(args.ArgBasePoolsCleaner),
+		addressPubkeyConverter:   args.AddressPubkeyConverter,
+		blockTransactionsPool:    args.DataPool.Transactions(),
+		rewardTransactionsPool:   args.DataPool.RewardTransactions(),
+		unsignedTransactionsPool: args.DataPool.UnsignedTransactions(),
+		mapTxsRounds:             make(map[string]*txInfo),
+		emptyAddress:             make([]byte, args.AddressPubkeyConverter.Len()),
 	}
-
-	tpc.mapTxsRounds = make(map[string]*txInfo)
 
 	tpc.blockTransactionsPool.RegisterOnAdded(tpc.receivedBlockTx)
 	tpc.rewardTransactionsPool.RegisterOnAdded(tpc.receivedRewardTx)
 	tpc.unsignedTransactionsPool.RegisterOnAdded(tpc.receivedUnsignedTx)
 
-	tpc.emptyAddress = make([]byte, tpc.addressPubkeyConverter.Len())
-
 	return &tpc, nil
+}
+
+func checkArgTxsPoolsCleaner(args ArgTxsPoolsCleaner) error {
+	err := checkBaseArgs(args.ArgBasePoolsCleaner)
+	if err != nil {
+		return err
+	}
+	if check.IfNil(args.AddressPubkeyConverter) {
+		return process.ErrNilPubkeyConverter
+	}
+	if check.IfNil(args.DataPool) {
+		return process.ErrNilPoolsHolder
+	}
+	if check.IfNil(args.DataPool.Transactions()) {
+		return process.ErrNilTransactionPool
+	}
+	if check.IfNil(args.DataPool.RewardTransactions()) {
+		return process.ErrNilRewardTxDataPool
+	}
+	if check.IfNil(args.DataPool.UnsignedTransactions()) {
+		return process.ErrNilUnsignedTxDataPool
+	}
+
+	return nil
 }
 
 // StartCleaning actually starts the pools cleaning mechanism
 func (tpc *txsPoolsCleaner) StartCleaning() {
+	tpc.mut.Lock()
+	defer tpc.mut.Unlock()
+
+	if tpc.isCleaningRoutineRunning {
+		log.Error("txsPoolsCleaner cleaning routine already started...")
+		return
+	}
+
+	tpc.isCleaningRoutineRunning = true
 	var ctx context.Context
 	ctx, tpc.cancelFunc = context.WithCancel(context.Background())
 	go tpc.cleanTxsPools(ctx)
@@ -260,7 +271,7 @@ func (tpc *txsPoolsCleaner) cleanTxsPoolsIfNeeded() int {
 		}
 
 		roundDif := tpc.roundHandler.Index() - currTxInfo.round
-		if roundDif <= process.MaxRoundsToKeepUnprocessedTransactions {
+		if roundDif <= tpc.maxRoundsToKeepUnprocessedData {
 			log.Trace("cleaning transaction not yet allowed",
 				"hash", []byte(hash),
 				"round", currTxInfo.round,
@@ -349,18 +360,4 @@ func (tpc *txsPoolsCleaner) getShardFromAddress(address []byte) (uint32, error) 
 	}
 
 	return tpc.shardCoordinator.ComputeId(address), nil
-}
-
-// Close will close the endless running go routine
-func (tpc *txsPoolsCleaner) Close() error {
-	if tpc.cancelFunc != nil {
-		tpc.cancelFunc()
-	}
-
-	return nil
-}
-
-// IsInterfaceNil returns true if there is no value under the interface
-func (tpc *txsPoolsCleaner) IsInterfaceNil() bool {
-	return tpc == nil
 }

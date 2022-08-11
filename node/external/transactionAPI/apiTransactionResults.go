@@ -84,7 +84,11 @@ func (arp *apiTransactionResultsProcessor) putReceiptInTransaction(tx *transacti
 }
 
 func (arp *apiTransactionResultsProcessor) getReceiptFromStorage(hash []byte, epoch uint32) (*transaction.ApiReceipt, error) {
-	receiptsStorer := arp.storageService.GetStorer(dataRetriever.UnsignedTransactionUnit)
+	receiptsStorer, err := arp.storageService.GetStorer(dataRetriever.UnsignedTransactionUnit)
+	if err != nil {
+		return nil, err
+	}
+
 	receiptBytes, err := receiptsStorer.GetFromEpoch(hash, epoch)
 	if err != nil {
 		return nil, err
@@ -144,7 +148,11 @@ func (arp *apiTransactionResultsProcessor) loadLogsIntoContractResults(scrHash [
 }
 
 func (arp *apiTransactionResultsProcessor) getScrFromStorage(hash []byte, epoch uint32) (*smartContractResult.SmartContractResult, error) {
-	unsignedTxsStorer := arp.storageService.GetStorer(dataRetriever.UnsignedTransactionUnit)
+	unsignedTxsStorer, err := arp.storageService.GetStorer(dataRetriever.UnsignedTransactionUnit)
+	if err != nil {
+		return nil, err
+	}
+
 	scrBytes, err := unsignedTxsStorer.GetFromEpoch(hash, epoch)
 	if err != nil {
 		return nil, err

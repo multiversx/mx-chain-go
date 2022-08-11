@@ -8,7 +8,6 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
@@ -53,21 +52,17 @@ type economicsData struct {
 	minInflation                     float64
 	yearSettings                     map[uint32]*config.YearSetting
 	mutYearSettings                  sync.RWMutex
-	flagPenalizedTooMuchGas          atomic.Flag
-	flagGasPriceModifier             atomic.Flag
-	penalizedTooMuchGasEnableEpoch   uint32
-	gasPriceModifierEnableEpoch      uint32
 	statusHandler                    core.AppStatusHandler
 	builtInFunctionsCostHandler      BuiltInFunctionsCostHandler
+	enableEpochsHandler              common.EnableEpochsHandler
 }
 
 // ArgsNewEconomicsData defines the arguments needed for new economics economicsData
 type ArgsNewEconomicsData struct {
-	BuiltInFunctionsCostHandler    BuiltInFunctionsCostHandler
-	Economics                      *config.EconomicsConfig
-	EpochNotifier                  EpochNotifier
-	PenalizedTooMuchGasEnableEpoch uint32
-	GasPriceModifierEnableEpoch    uint32
+	BuiltInFunctionsCostHandler BuiltInFunctionsCostHandler
+	Economics                   *config.EconomicsConfig
+	EpochNotifier               process.EpochNotifier
+	EnableEpochsHandler         common.EnableEpochsHandler
 }
 
 // NewEconomicsData will create an object with information about economics parameters
@@ -88,6 +83,10 @@ func NewEconomicsData(args ArgsNewEconomicsData) (*economicsData, error) {
 
 	if check.IfNil(args.EpochNotifier) {
 		return nil, process.ErrNilEpochNotifier
+	}
+
+	if check.IfNil(args.EnableEpochsHandler) {
+		return nil, process.ErrNilEnableEpochsHandler
 	}
 
 	rewardsConfigs := make([]config.EpochRewardSettings, len(args.Economics.RewardsSettings.RewardsConfigByEpoch))
@@ -121,14 +120,11 @@ func NewEconomicsData(args ArgsNewEconomicsData) (*economicsData, error) {
 		gasPerDataByte:                   convertedData.gasPerDataByte,
 		minInflation:                     args.Economics.GlobalSettings.MinimumInflation,
 		genesisTotalSupply:               convertedData.genesisTotalSupply,
-		penalizedTooMuchGasEnableEpoch:   args.PenalizedTooMuchGasEnableEpoch,
-		gasPriceModifierEnableEpoch:      args.GasPriceModifierEnableEpoch,
 		gasPriceModifier:                 args.Economics.FeeSettings.GasPriceModifier,
 		statusHandler:                    statusHandler.NewNilStatusHandler(),
 		builtInFunctionsCostHandler:      args.BuiltInFunctionsCostHandler,
+		enableEpochsHandler:              args.EnableEpochsHandler,
 	}
-	log.Debug("economicsData: enable epoch for penalized too much gas", "epoch", ed.penalizedTooMuchGasEnableEpoch)
-	log.Debug("economicsData: enable epoch for gas price modifier", "epoch", ed.gasPriceModifierEnableEpoch)
 
 	ed.yearSettings = make(map[uint32]*config.YearSetting)
 	for _, yearSetting := range args.Economics.GlobalSettings.YearSettings {
@@ -375,7 +371,7 @@ func (ed *economicsData) MinGasPriceForProcessing() uint64 {
 
 // GasPriceModifier will return the gas price modifier
 func (ed *economicsData) GasPriceModifier() float64 {
-	if !ed.flagGasPriceModifier.IsSet() {
+	if !ed.enableEpochsHandler.IsGasPriceModifierFlagEnabled() {
 		return 1.0
 	}
 	return ed.gasPriceModifier
@@ -423,7 +419,7 @@ func isSmartContractResult(tx data.TransactionWithFeeHandler) bool {
 
 // ComputeTxFee computes the provided transaction's fee using enable from epoch approach
 func (ed *economicsData) ComputeTxFee(tx data.TransactionWithFeeHandler) *big.Int {
-	if ed.flagGasPriceModifier.IsSet() {
+	if ed.enableEpochsHandler.IsGasPriceModifierFlagEnabled() {
 		if isSmartContractResult(tx) {
 			return ed.ComputeFeeForProcessing(tx, tx.GetGasLimit())
 		}
@@ -439,7 +435,7 @@ func (ed *economicsData) ComputeTxFee(tx data.TransactionWithFeeHandler) *big.In
 		return moveBalanceFee
 	}
 
-	if ed.flagPenalizedTooMuchGas.IsSet() {
+	if ed.enableEpochsHandler.IsPenalizedTooMuchGasFlagEnabled() {
 		return core.SafeMul(tx.GetGasLimit(), tx.GetGasPrice())
 	}
 
@@ -612,7 +608,9 @@ func (ed *economicsData) ComputeGasUsedAndFeeBasedOnRefundValue(tx data.Transact
 	}
 
 	txFee := ed.ComputeTxFee(tx)
-	flagCorrectTxFee := !ed.flagPenalizedTooMuchGas.IsSet() && !ed.flagGasPriceModifier.IsSet()
+	isPenalizedTooMuchGasFlagEnabled := ed.enableEpochsHandler.IsPenalizedTooMuchGasFlagEnabled()
+	isGasPriceModifierFlagEnabled := ed.enableEpochsHandler.IsGasPriceModifierFlagEnabled()
+	flagCorrectTxFee := !isPenalizedTooMuchGasFlagEnabled && !isGasPriceModifierFlagEnabled
 	if flagCorrectTxFee {
 		txFee = core.SafeMul(tx.GetGasLimit(), tx.GetGasPrice())
 	}
@@ -656,11 +654,6 @@ func (ed *economicsData) ComputeTxFeeBasedOnGasUsed(tx data.TransactionWithFeeHa
 
 // EpochConfirmed is called whenever a new epoch is confirmed
 func (ed *economicsData) EpochConfirmed(epoch uint32, _ uint64) {
-	ed.flagPenalizedTooMuchGas.SetValue(epoch >= ed.penalizedTooMuchGasEnableEpoch)
-	log.Debug("economics: penalized too much gas", "enabled", ed.flagPenalizedTooMuchGas.IsSet())
-
-	ed.flagGasPriceModifier.SetValue(epoch >= ed.gasPriceModifierEnableEpoch)
-	log.Debug("economics: gas price modifier", "enabled", ed.flagGasPriceModifier.IsSet())
 	ed.statusHandler.SetStringValue(common.MetricGasPriceModifier, fmt.Sprintf("%g", ed.GasPriceModifier()))
 	ed.setRewardsEpochConfig(epoch)
 	ed.setGasLimitConfig(epoch)
@@ -748,7 +741,7 @@ func (ed *economicsData) ComputeGasLimitBasedOnBalance(tx data.TransactionWithFe
 		return 0, process.ErrInsufficientFunds
 	}
 
-	if !ed.flagGasPriceModifier.IsSet() {
+	if !ed.enableEpochsHandler.IsGasPriceModifierFlagEnabled() {
 		gasPriceBig := big.NewInt(0).SetUint64(tx.GetGasPrice())
 		gasLimitBig := big.NewInt(0).Div(balanceWithoutTransferValue, gasPriceBig)
 
