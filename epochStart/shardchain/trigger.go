@@ -350,13 +350,7 @@ func (t *trigger) requestMissingValidatorsInfo(ctx context.Context) {
 		}
 		t.mutMissingValidatorsInfo.RUnlock()
 
-		//TODO: Analyze if it works also with: go t.requestHandler.RequestValidatorsInfo(missingValidatorsInfo)
-		for _, missingValidatorInfo := range missingValidatorsInfo {
-			go func(validatorInfo []byte) {
-				t.requestHandler.RequestValidatorInfo(validatorInfo)
-			}(missingValidatorInfo)
-		}
-		//go t.requestHandler.RequestValidatorsInfo(missingValidatorsInfo)
+		go t.requestHandler.RequestValidatorsInfo(missingValidatorsInfo)
 
 		select {
 		case <-ctx.Done():

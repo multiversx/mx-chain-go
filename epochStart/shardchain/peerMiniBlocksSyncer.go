@@ -328,13 +328,7 @@ func (p *peerMiniBlockSyncer) retrieveMissingValidatorsInfo() ([][]byte, error) 
 		return nil, nil
 	}
 
-	//TODO: Analyze if it works also with: go p.requestHandler.RequestValidatorsInfo(missingValidatorsInfo)
-	for _, missingValidatorInfo := range missingValidatorsInfo {
-		go func(validatorInfo []byte) {
-			p.requestHandler.RequestValidatorInfo(validatorInfo)
-		}(missingValidatorInfo)
-	}
-	//go p.requestHandler.RequestValidatorsInfo(missingValidatorsInfo)
+	go p.requestHandler.RequestValidatorsInfo(missingValidatorsInfo)
 
 	select {
 	case <-p.chRcvAllValidatorsInfo:

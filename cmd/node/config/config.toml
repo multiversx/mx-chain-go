@@ -447,7 +447,7 @@
     Name = "ValidatorInfoPool"
     Capacity = 10000
     SizeInBytes = 31457280  #30MB
-    Shards = 1
+    Shards = 4
 
 #PublicKeyPeerId represents the main cache used to map Elrond block signing public keys to their associated peer id's.
 [PublicKeyPeerId]
