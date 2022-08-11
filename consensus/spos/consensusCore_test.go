@@ -5,15 +5,13 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
-	"github.com/ElrondNetwork/elrond-go/testscommon/consensus"
-	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
 	"github.com/stretchr/testify/assert"
 )
 
 func createDefaultConsensusCoreArgs() *spos.ConsensusCoreArgs {
 	consensusCoreMock := mock.InitConsensusCore()
 
-	scheduledProcessor := &consensus.ScheduledProcessorStub{}
+	scheduledProcessor := &mock.ScheduledProcessorStub{}
 
 	args := &spos.ConsensusCoreArgs{
 		BlockChain:                    consensusCoreMock.Blockchain(),
@@ -184,7 +182,7 @@ func TestConsensusCore_WithNilMultiSignerShouldFail(t *testing.T) {
 	t.Parallel()
 
 	args := createDefaultConsensusCoreArgs()
-	args.MultiSignerContainer = cryptoMocks.NewMultiSignerContainerMock(nil)
+	args.MultiSignerContainer = mock.NewMultiSignerContainerMock(nil)
 
 	consensusCore, err := spos.NewConsensusCore(
 		args,

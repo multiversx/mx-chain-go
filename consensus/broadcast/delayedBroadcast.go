@@ -92,6 +92,9 @@ func NewDelayedBlockBroadcaster(args *ArgsDelayedBlockBroadcaster) (*delayedBloc
 	if check.IfNil(args.AlarmScheduler) {
 		return nil, spos.ErrNilAlarmScheduler
 	}
+	if check.IfNil(args.HeadersCache) {
+		return nil, spos.ErrNilHeadersCache
+	}
 
 	dbb := &delayedBlockBroadcaster{
 		alarm:                      args.AlarmScheduler,

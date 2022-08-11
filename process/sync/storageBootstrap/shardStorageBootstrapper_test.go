@@ -9,7 +9,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/sync"
@@ -72,10 +71,10 @@ func TestShardStorageBootstrapper_LoadFromStorageShouldWork(t *testing.T) {
 				},
 			},
 			ForkDetector: &mock.ForkDetectorMock{
-				AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, selfNotarizedHeaders []data.HeaderHandler, selfNotarizedHeadersHashes [][]byte) error {
+				AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state core.BlockHeaderState, selfNotarizedHeaders []data.HeaderHandler, selfNotarizedHeadersHashes [][]byte) error {
 					assert.Equal(t, hdr, header)
 					assert.Equal(t, hdrHash, hash)
-					assert.Equal(t, process.BHProcessed, state)
+					assert.Equal(t, core.BHProcessed, state)
 
 					wasCalledForkDetectorAddHeader = true
 					return nil

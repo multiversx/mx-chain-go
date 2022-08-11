@@ -7,13 +7,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/broadcast"
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -37,10 +34,10 @@ func createDelayData(prefix string) ([]byte, *block.Header, map[uint32][]byte, m
 	return headerHash, header, miniblocks, transactions
 }
 
-func createInterceptorContainer() process.InterceptorsContainer {
-	return &testscommon.InterceptorsContainerStub{
+func createInterceptorContainer() consensus.InterceptorsContainer {
+	return &mock.InterceptorsContainerStub{
 		GetCalled: func(topic string) (core.Interceptor, error) {
-			return &testscommon.InterceptorStub{
+			return &mock.InterceptorStub{
 				ProcessReceivedMessageCalled: func(message core.MessageP2P) error {
 					return nil
 				},
@@ -51,7 +48,7 @@ func createInterceptorContainer() process.InterceptorsContainer {
 
 func createDefaultShardChainArgs() broadcast.ShardChainMessengerArgs {
 	marshalizerMock := &mock.MarshalizerMock{}
-	hasher := &hashingMocks.HasherMock{}
+	hasher := &mock.HasherMock{}
 	messengerMock := &mock.MessengerStub{}
 	privateKeyMock := &mock.PrivateKeyMock{}
 	shardCoordinatorMock := &mock.ShardCoordinatorMock{}
@@ -76,6 +73,7 @@ func createDefaultShardChainArgs() broadcast.ShardChainMessengerArgs {
 			MaxDelayCacheSize:          1,
 			MaxValidatorDelayCacheSize: 1,
 			AlarmScheduler:             alarmScheduler,
+			HeadersCache:               &mock.CacherStub{},
 		},
 	}
 }
@@ -251,7 +249,7 @@ func TestShardChainMessenger_BroadcastTransactionsShouldNotBeCalled(t *testing.T
 	assert.Nil(t, err)
 	assert.False(t, wasCalled)
 
-	transactions[factory.TransactionTopic] = make([][]byte, 0)
+	transactions[consensus.TransactionTopic] = make([][]byte, 0)
 	err = scm.BroadcastTransactions(transactions)
 
 	wasCalled = false
@@ -281,7 +279,7 @@ func TestShardChainMessenger_BroadcastTransactionsShouldBeCalled(t *testing.T) {
 	transactions := make(map[string][][]byte)
 	txs := make([][]byte, 0)
 	txs = append(txs, []byte(""))
-	transactions[factory.TransactionTopic] = txs
+	transactions[consensus.TransactionTopic] = txs
 	err := scm.BroadcastTransactions(transactions)
 
 	wasCalled := false

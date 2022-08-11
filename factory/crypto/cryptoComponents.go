@@ -164,6 +164,9 @@ func (ccf *cryptoComponentsFactory) Create() (*cryptoComponents, error) {
 	}
 
 	blsSignatureHandler, err := ccf.createBlsSignatureHandler(blockSignKeyGen, multiSignerContainer, cp)
+	if err != nil {
+		return nil, err
+	}
 
 	log.Debug("block sign pubkey", "value", cp.publicKeyString)
 

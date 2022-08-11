@@ -5,14 +5,14 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
-	cryptoCommon "github.com/ElrondNetwork/elrond-go/common/crypto"
+	"github.com/ElrondNetwork/elrond-go/consensus"
 )
 
 // ArgsSignatureHolder defines the arguments needed to create a new signature holder component
 type ArgsSignatureHolder struct {
 	PubKeys              []string
 	PrivKeyBytes         []byte
-	MultiSignerContainer cryptoCommon.MultiSignerContainer
+	MultiSignerContainer consensus.MultiSignerContainer
 	KeyGenerator         crypto.KeyGenerator
 }
 
@@ -26,7 +26,7 @@ type signatureHolderData struct {
 type signatureHolder struct {
 	data                 *signatureHolderData
 	mutSigningData       sync.RWMutex
-	multiSignerContainer cryptoCommon.MultiSignerContainer
+	multiSignerContainer consensus.MultiSignerContainer
 	keyGen               crypto.KeyGenerator
 }
 

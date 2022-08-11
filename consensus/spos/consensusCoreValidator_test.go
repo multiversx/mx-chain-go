@@ -4,34 +4,30 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	"github.com/stretchr/testify/assert"
 )
 
 func initConsensusDataContainer() *ConsensusCore {
-	blockChain := &testscommon.ChainHandlerStub{}
+	blockChain := &mock.ChainHandlerStub{}
 	blockProcessorMock := mock.InitBlockProcessorMock()
 	bootstrapperMock := &mock.BootstrapperStub{}
 	broadcastMessengerMock := &mock.BroadcastMessengerMock{}
 	chronologyHandlerMock := mock.InitChronologyHandlerMock()
 	blsPrivateKeyMock := &mock.PrivateKeyMock{}
 	blsSingleSignerMock := &mock.SingleSignerMock{}
-	multiSignerMock := cryptoMocks.NewMultiSigner()
-	hasherMock := &hashingMocks.HasherMock{}
+	multiSignerMock := mock.NewMultiSigner()
+	hasherMock := &mock.HasherMock{}
 	marshalizerMock := mock.MarshalizerMock{}
 	roundHandlerMock := &mock.RoundHandlerMock{}
 	shardCoordinatorMock := mock.ShardCoordinatorMock{}
 	syncTimerMock := &mock.SyncTimerMock{}
-	validatorGroupSelector := &shardingMocks.NodesCoordinatorMock{}
+	validatorGroupSelector := &mock.NodesCoordinatorMock{}
 	antifloodHandler := &mock.P2PAntifloodHandlerStub{}
-	peerHonestyHandler := &testscommon.PeerHonestyHandlerStub{}
+	peerHonestyHandler := &mock.PeerHonestyHandlerStub{}
 	headerSigVerifier := &mock.HeaderSigVerifierStub{}
-	fallbackHeaderValidator := &testscommon.FallBackHeaderValidatorStub{}
+	fallbackHeaderValidator := &mock.FallBackHeaderValidatorStub{}
 	nodeRedundancyHandler := &mock.NodeRedundancyHandlerStub{}
-	multiSignerContainer := cryptoMocks.NewMultiSignerContainerMock(multiSignerMock)
+	multiSignerContainer := mock.NewMultiSignerContainerMock(multiSignerMock)
 	signatureHandler := &mock.SignatureHandlerStub{}
 
 	return &ConsensusCore{
@@ -139,7 +135,7 @@ func TestConsensusContainerValidator_ValidateNilMultiSignerShouldFail(t *testing
 	t.Parallel()
 
 	container := initConsensusDataContainer()
-	container.multiSignerContainer = cryptoMocks.NewMultiSignerContainerMock(nil)
+	container.multiSignerContainer = mock.NewMultiSignerContainerMock(nil)
 
 	err := ValidateConsensusCore(container)
 

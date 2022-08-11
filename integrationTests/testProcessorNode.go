@@ -580,7 +580,7 @@ func NewTestProcessorNodeWithFullGenesis(
 		tpn.DataPool.Headers(),
 		tpn.InterceptorsContainer,
 		&testscommon.AlarmSchedulerStub{},
-		&testscommon.CacherMock{},
+		&testscommon.CacherStub{},
 	)
 	tpn.setGenesisBlock()
 	tpn.initNode()
@@ -789,7 +789,7 @@ func (tpn *TestProcessorNode) initTestNode() {
 		tpn.DataPool.Headers(),
 		tpn.InterceptorsContainer,
 		&testscommon.AlarmSchedulerStub{},
-		&testscommon.CacherMock{},
+		testscommon.NewCacherMock(),
 	)
 	tpn.setGenesisBlock()
 	tpn.initNode()
@@ -840,7 +840,7 @@ func (tpn *TestProcessorNode) initTestNodeWithTrieDBAndGasModel(trieStore storag
 		tpn.DataPool.Headers(),
 		tpn.InterceptorsContainer,
 		&testscommon.AlarmSchedulerStub{},
-		&testscommon.CacherMock{},
+		&testscommon.CacherStub{},
 	)
 	tpn.setGenesisBlock()
 	tpn.initNode()
@@ -1019,7 +1019,7 @@ func (tpn *TestProcessorNode) InitializeProcessors(gasMap map[string]map[string]
 		tpn.DataPool.Headers(),
 		tpn.InterceptorsContainer,
 		&testscommon.AlarmSchedulerStub{},
-		&testscommon.CacherMock{},
+		&testscommon.CacherStub{},
 	)
 	tpn.setGenesisBlock()
 	tpn.initNode()

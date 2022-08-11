@@ -19,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
+	errorsErd "github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/sharding/mock"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
@@ -1459,7 +1460,7 @@ func TestIndexHashedNodesCoordinator_GetConsensusValidatorsPublicKeysNotExisting
 	var pKeys []string
 	randomness := []byte("randomness")
 	pKeys, err = ihnc.GetConsensusValidatorsPublicKeys(randomness, 0, 0, 1)
-	require.True(t, errors.Is(err, ErrEpochNodesConfigDoesNotExist))
+	require.True(t, errors.Is(err, errorsErd.ErrEpochNodesConfigDoesNotExist))
 	require.Nil(t, pKeys)
 }
 
@@ -1558,7 +1559,7 @@ func TestIndexHashedNodesCoordinator_ShardIdForEpochInvalidEpoch(t *testing.T) {
 	require.Nil(t, err)
 
 	shardId, err := ihnc.ShardIdForEpoch(1)
-	require.True(t, errors.Is(err, ErrEpochNodesConfigDoesNotExist))
+	require.True(t, errors.Is(err, errorsErd.ErrEpochNodesConfigDoesNotExist))
 	require.Equal(t, uint32(0), shardId)
 }
 

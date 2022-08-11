@@ -8,14 +8,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	cryptoCommon "github.com/ElrondNetwork/elrond-go/common/crypto"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
-	"github.com/ElrondNetwork/elrond-go/ntp"
-	"github.com/ElrondNetwork/elrond-go/outport"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 )
 
 const ProcessingThresholdPercent = processingThresholdPercent
@@ -31,12 +25,12 @@ func (fct *factory) BlockChain() data.ChainHandler {
 }
 
 // BlockProcessor gets the block processor object
-func (fct *factory) BlockProcessor() process.BlockProcessor {
+func (fct *factory) BlockProcessor() consensus.BlockProcessor {
 	return fct.consensusCore.BlockProcessor()
 }
 
 // Bootstrapper gets the bootstrapper object
-func (fct *factory) Bootstrapper() process.Bootstrapper {
+func (fct *factory) Bootstrapper() consensus.Bootstrapper {
 	return fct.consensusCore.BootStrapper()
 }
 
@@ -61,7 +55,7 @@ func (fct *factory) Marshalizer() marshal.Marshalizer {
 }
 
 // MultiSigner gets the multi signer object
-func (fct *factory) MultiSignerContainer() cryptoCommon.MultiSignerContainer {
+func (fct *factory) MultiSignerContainer() consensus.MultiSignerContainer {
 	return fct.consensusCore.MultiSignerContainer()
 }
 
@@ -71,17 +65,17 @@ func (fct *factory) RoundHandler() consensus.RoundHandler {
 }
 
 // ShardCoordinator gets the shard coordinator object
-func (fct *factory) ShardCoordinator() sharding.Coordinator {
+func (fct *factory) ShardCoordinator() consensus.ShardCoordinator {
 	return fct.consensusCore.ShardCoordinator()
 }
 
 // SyncTimer gets the sync timer object
-func (fct *factory) SyncTimer() ntp.SyncTimer {
+func (fct *factory) SyncTimer() consensus.SyncTimer {
 	return fct.consensusCore.SyncTimer()
 }
 
 // NodesCoordinator gets the nodes coordinator object
-func (fct *factory) NodesCoordinator() nodesCoordinator.NodesCoordinator {
+func (fct *factory) NodesCoordinator() consensus.NodesCoordinator {
 	return fct.consensusCore.NodesCoordinator()
 }
 
@@ -121,7 +115,7 @@ func (fct *factory) AppStatusHandler() core.AppStatusHandler {
 }
 
 // Outport gets the outport object
-func (fct *factory) Outport() outport.OutportHandler {
+func (fct *factory) Outport() consensus.OutportHandler {
 	return fct.outportHandler
 }
 

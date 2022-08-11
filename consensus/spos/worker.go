@@ -20,7 +20,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	errorsErd "github.com/ElrondNetwork/elrond-go/errors"
-	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 )
 
 var _ closing.Closer = (*Worker)(nil)
@@ -410,7 +409,7 @@ func (wrk *Worker) shouldBlacklistPeer(err error) bool {
 		errors.Is(err, ErrNodeIsNotInEligibleList) ||
 		errors.Is(err, errorsErd.ErrPIDMismatch) ||
 		errors.Is(err, errorsErd.ErrSignatureMismatch) ||
-		errors.Is(err, nodesCoordinator.ErrEpochNodesConfigDoesNotExist) ||
+		errors.Is(err, errorsErd.ErrEpochNodesConfigDoesNotExist) ||
 		errors.Is(err, ErrMessageTypeLimitReached) {
 		return false
 	}

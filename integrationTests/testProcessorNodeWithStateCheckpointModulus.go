@@ -155,7 +155,7 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 		tpn.DataPool.Headers(),
 		tpn.InterceptorsContainer,
 		&testscommon.AlarmSchedulerStub{},
-		&testscommon.CacherMock{},
+		testscommon.NewCacherMock(),
 	)
 	tpn.setGenesisBlock()
 	tpn.initNode()

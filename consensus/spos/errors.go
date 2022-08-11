@@ -231,3 +231,9 @@ var ErrNilDriver = errors.New("nil driver")
 
 // ErrNilRoundTimeDurationHandler signals that an operation has been attempted to or with a nil RoundTimeDurationHandler implementation
 var ErrNilRoundTimeDurationHandler = errors.New("nil RoundTimeDurationHandler")
+
+// ErrNilHeadersCache signals that a nil header cache has been provided
+var ErrNilHeadersCache = errors.New("nil headers cache")
+
+// ErrHeaderUnitNil defines the error for using a nil storage unit for block headers
+var ErrHeaderUnitNil = errors.New("header unit nil")

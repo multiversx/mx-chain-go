@@ -290,6 +290,7 @@ func (mcc *managedCryptoComponents) Clone() interface{} {
 			blockSignKeyGen:      mcc.BlockSignKeyGen(),
 			txSignKeyGen:         mcc.TxSignKeyGen(),
 			messageSignVerifier:  mcc.MessageSignVerifier(),
+			blsSignatureHandler:  mcc.blsSignatureHandler,
 			cryptoParams:         mcc.cryptoParams,
 		}
 	}

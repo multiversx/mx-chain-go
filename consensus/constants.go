@@ -5,6 +5,8 @@ import "time"
 // TODO: handler duplicated constants with other packages
 
 const (
+	// TransactionTopic is the topic used for sharing transactions
+	TransactionTopic = "transactions"
 	// ShardBlocksTopic is the topic used for sharing block headers
 	ShardBlocksTopic = "shardBlocks"
 	// MiniBlocksTopic is the topic used for sharing mini blocks
