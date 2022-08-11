@@ -283,7 +283,7 @@ extractDefaultReturn() {
       string | core.PeerID)
         toReturn+="\"\", "
         ;;
-      int | uint32 | uint64)
+      int | uint32 | uint64 | int32 | int64 | float | float32 | float64 | byte)
         toReturn+="0, "
         ;;
       *)
