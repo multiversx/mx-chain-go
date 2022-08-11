@@ -357,6 +357,7 @@ func (bn *branchNode) commitSnapshot(
 		err = resolveIfCollapsed(bn, byte(i), db)
 		if err != nil {
 			if strings.Contains(err.Error(), common.GetNodeFromDBErrorString) {
+				log.Error(err.Error())
 				missingNodesChan <- bn.EncodedChildren[i]
 				continue
 			}

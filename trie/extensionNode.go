@@ -269,6 +269,7 @@ func (en *extensionNode) commitSnapshot(
 	}
 
 	if isMissingNodeErr {
+		log.Error(err.Error())
 		missingNodesChan <- en.EncodedChild
 	} else {
 		err = en.child.commitSnapshot(db, leavesChan, missingNodesChan, ctx, stats, idleProvider)
