@@ -11,7 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	storageRepo "github.com/ElrondNetwork/elrond-go-storage"
+	storageErrors "github.com/ElrondNetwork/elrond-go-storage/common/commonErrors"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
@@ -94,7 +94,7 @@ func TestProcessLogsSaveSupply(t *testing.T) {
 				return pbnB, nil
 			}
 
-			return nil, storageRepo.ErrKeyNotFound
+			return nil, storageErrors.ErrKeyNotFound
 		},
 		PutCalled: func(key, data []byte) error {
 			if string(key) == "processed-block" {
@@ -206,11 +206,11 @@ func TestProcessLogsSaveSupplyShouldUpdateSupplyMintedAndBurned(t *testing.T) {
 			if string(key) == supplyKey {
 				val, err := membDB.Get(key)
 				if err != nil {
-					return nil, storageRepo.ErrKeyNotFound
+					return nil, storageErrors.ErrKeyNotFound
 				}
 				return val, nil
 			}
-			return nil, storageRepo.ErrKeyNotFound
+			return nil, storageErrors.ErrKeyNotFound
 		},
 		PutCalled: func(key, data []byte) error {
 			supplyKey := string(token) + "-" + hex.EncodeToString(big.NewInt(2).Bytes())

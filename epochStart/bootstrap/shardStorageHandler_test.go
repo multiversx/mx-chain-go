@@ -16,7 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	storageRepo "github.com/ElrondNetwork/elrond-go-storage"
+	storageErrors "github.com/ElrondNetwork/elrond-go-storage/common/commonErrors"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
@@ -121,7 +121,7 @@ func testShardWithMissingStorer(missingUnit dataRetriever.UnitType, atCallNumber
 
 				if unitType == missingUnit ||
 					strings.Contains(unitType.String(), missingUnit.String()) {
-					return nil, fmt.Errorf("%w for %s", storageRepo.ErrKeyNotFound, missingUnit.String())
+					return nil, fmt.Errorf("%w for %s", storageErrors.ErrKeyNotFound, missingUnit.String())
 				}
 
 				return &storageStubs.StorerStub{}, nil
@@ -141,7 +141,7 @@ func testShardWithMissingStorer(missingUnit dataRetriever.UnitType, atCallNumber
 		}
 
 		err := shardStorage.SaveDataToStorage(components, components.ShardHeader, false)
-		require.True(t, strings.Contains(err.Error(), storageRepo.ErrKeyNotFound.Error()))
+		require.True(t, strings.Contains(err.Error(), storageErrors.ErrKeyNotFound.Error()))
 		require.True(t, strings.Contains(err.Error(), missingUnit.String()))
 	}
 }

@@ -8,7 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	storageRepo "github.com/ElrondNetwork/elrond-go-storage"
+	storageErrors "github.com/ElrondNetwork/elrond-go-storage/common/commonErrors"
 	"github.com/ElrondNetwork/elrond-go/common/mock"
 	"github.com/ElrondNetwork/elrond-go/dblookupext/esdtSupply"
 	epochStartMocks "github.com/ElrondNetwork/elrond-go/epochStart/mock"
@@ -23,7 +23,7 @@ import (
 func createMockHistoryRepoArgs(epoch uint32) HistoryRepositoryArguments {
 	sp, _ := esdtSupply.NewSuppliesProcessor(&mock.MarshalizerMock{}, &storageStubs.StorerStub{
 		GetCalled: func(key []byte) ([]byte, error) {
-			return nil, storageRepo.ErrKeyNotFound
+			return nil, storageErrors.ErrKeyNotFound
 		},
 	}, &storageStubs.StorerStub{})
 

@@ -5,7 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 
-	storageCommon "github.com/ElrondNetwork/elrond-go-storage/common"
+	storageCommon "github.com/ElrondNetwork/elrond-go-storage/common/commonErrors"
 	"github.com/ElrondNetwork/elrond-go/common"
 )
 

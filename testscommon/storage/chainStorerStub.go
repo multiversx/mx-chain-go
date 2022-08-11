@@ -1,7 +1,7 @@
 package storage
 
 import (
-	storageRepo "github.com/ElrondNetwork/elrond-go-storage"
+	storageErrors "github.com/ElrondNetwork/elrond-go-storage/common/commonErrors"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
@@ -39,7 +39,7 @@ func (stub *ChainStorerStub) GetStorer(unitType dataRetriever.UnitType) (storage
 	if stub.GetStorerCalled != nil {
 		return stub.GetStorerCalled(unitType)
 	}
-	return nil, storageRepo.ErrKeyNotFound
+	return nil, storageErrors.ErrKeyNotFound
 }
 
 // Has -

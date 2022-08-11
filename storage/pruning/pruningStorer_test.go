@@ -18,7 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/random"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	storageRepo "github.com/ElrondNetwork/elrond-go-storage"
+	storageErrors "github.com/ElrondNetwork/elrond-go-storage/common/commonErrors"
 	"github.com/ElrondNetwork/elrond-go-storage/directoryhandler"
 	"github.com/ElrondNetwork/elrond-go-storage/leveldb"
 	"github.com/ElrondNetwork/elrond-go-storage/memorydb"
@@ -640,7 +640,7 @@ func TestPruningStorer_SearchFirst(t *testing.T) {
 	ps.ClearCache()
 	res, err = ps.SearchFirst(testKey)
 	assert.Nil(t, res)
-	assert.True(t, errors.Is(err, storageRepo.ErrKeyNotFound))
+	assert.True(t, errors.Is(err, storageErrors.ErrKeyNotFound))
 }
 
 func TestPruningStorer_ChangeEpochWithKeepingFromOldestEpochInMetaBlock(t *testing.T) {

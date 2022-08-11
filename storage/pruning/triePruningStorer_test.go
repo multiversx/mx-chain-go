@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	storageCommon "github.com/ElrondNetwork/elrond-go-storage/common"
+	storageCommon "github.com/ElrondNetwork/elrond-go-storage/common/commonErrors"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/mock"

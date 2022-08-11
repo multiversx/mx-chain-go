@@ -14,8 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	storageCore "github.com/ElrondNetwork/elrond-go-core/storage"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	storageRepo "github.com/ElrondNetwork/elrond-go-storage"
-	storageCommon "github.com/ElrondNetwork/elrond-go-storage/common"
+	storageErrors "github.com/ElrondNetwork/elrond-go-storage/common/commonErrors"
 	"github.com/ElrondNetwork/elrond-go-storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
@@ -420,7 +419,7 @@ func (ps *PruningStorer) Get(key []byte) ([]byte, error) {
 	for idx := 0; idx < len(ps.activePersisters); idx++ {
 		val, err := ps.activePersisters[idx].persister.Get(key)
 		if err != nil {
-			if err == storageCommon.ErrDBIsClosed {
+			if err == storageErrors.ErrDBIsClosed {
 				numClosedDbs++
 			}
 
@@ -433,7 +432,7 @@ func (ps *PruningStorer) Get(key []byte) ([]byte, error) {
 	}
 
 	if numClosedDbs == len(ps.activePersisters) && len(ps.activePersisters) > 0 {
-		return nil, storageCommon.ErrDBIsClosed
+		return nil, storageErrors.ErrDBIsClosed
 	}
 
 	return nil, fmt.Errorf("key %s not found in %s", hex.EncodeToString(key), ps.identifier)
@@ -561,7 +560,7 @@ func (ps *PruningStorer) SearchFirst(key []byte) ([]byte, error) {
 	}
 
 	return nil, fmt.Errorf("%w - SearchFirst, unit = %s, key = %s, num active persisters = %d",
-		storageRepo.ErrKeyNotFound,
+		storageErrors.ErrKeyNotFound,
 		ps.identifier,
 		hex.EncodeToString(key),
 		len(ps.activePersisters),
@@ -587,7 +586,7 @@ func (ps *PruningStorer) Has(key []byte) error {
 		return nil
 	}
 
-	return storageRepo.ErrKeyNotFound
+	return storageErrors.ErrKeyNotFound
 }
 
 // SetEpochForPutOperation will set the epoch to be used when using the put operation

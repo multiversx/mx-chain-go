@@ -10,7 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/container"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	storageCore "github.com/ElrondNetwork/elrond-go-core/storage"
-	storageRepo "github.com/ElrondNetwork/elrond-go-storage"
+	storageErrors "github.com/ElrondNetwork/elrond-go-storage/common/commonErrors"
 )
 
 // StorerMock -
@@ -228,7 +228,7 @@ func (sm *StorerMock) IsInterfaceNil() bool {
 
 func (sm *StorerMock) newErrNotFound(key []byte, epoch uint32) error {
 	if sm.shouldReturnErrKeyNotFound {
-		return storageRepo.ErrKeyNotFound
+		return storageErrors.ErrKeyNotFound
 	}
 
 	return fmt.Errorf("StorerMock: not found; key = %s, epoch = %d", hex.EncodeToString(key), epoch)
