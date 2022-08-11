@@ -6,9 +6,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-storage"
+	"github.com/ElrondNetwork/elrond-go-storage/common/commonErrors"
+	"github.com/ElrondNetwork/elrond-go-storage/types"
 )
 
-var _ elrond_go_storage.Cacher = (*TxCache)(nil)
+var _ types.Cacher = (*TxCache)(nil)
 
 // TxCache represents a cache-like structure (it has a fixed capacity and implements an eviction mechanism) for holding transactions
 type TxCache struct {
@@ -39,7 +41,7 @@ func NewTxCache(config ConfigSourceMe, txGasHandler TxGasHandler) (*TxCache, err
 		return nil, err
 	}
 	if check.IfNil(txGasHandler) {
-		return nil, elrond_go_storage.ErrNilTxGasHandler
+		return nil, commonErrors.ErrNilTxGasHandler
 	}
 
 	// Note: for simplicity, we use the same "numChunks" for both internal concurrent maps

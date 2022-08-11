@@ -1,11 +1,11 @@
 package txcache
 
 import (
-	"github.com/ElrondNetwork/elrond-go-storage"
 	"github.com/ElrondNetwork/elrond-go-storage/immunitycache"
+	"github.com/ElrondNetwork/elrond-go-storage/types"
 )
 
-var _ elrond_go_storage.Cacher = (*CrossTxCache)(nil)
+var _ types.Cacher = (*CrossTxCache)(nil)
 
 // CrossTxCache holds cross-shard transactions (where destination == me)
 type CrossTxCache struct {

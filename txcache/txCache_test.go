@@ -11,7 +11,8 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-storage"
+	"github.com/ElrondNetwork/elrond-go-storage/common/commonErrors"
+	"github.com/ElrondNetwork/elrond-go-storage/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -42,36 +43,36 @@ func Test_NewTxCache(t *testing.T) {
 
 	badConfig := config
 	badConfig.Name = ""
-	requireErrorOnNewTxCache(t, badConfig, elrond_go_storage.ErrInvalidConfig, "config.Name", txGasHandler)
+	requireErrorOnNewTxCache(t, badConfig, commonErrors.ErrInvalidConfig, "config.Name", txGasHandler)
 
 	badConfig = config
 	badConfig.NumChunks = 0
-	requireErrorOnNewTxCache(t, badConfig, elrond_go_storage.ErrInvalidConfig, "config.NumChunks", txGasHandler)
+	requireErrorOnNewTxCache(t, badConfig, commonErrors.ErrInvalidConfig, "config.NumChunks", txGasHandler)
 
 	badConfig = config
 	badConfig.NumBytesPerSenderThreshold = 0
-	requireErrorOnNewTxCache(t, badConfig, elrond_go_storage.ErrInvalidConfig, "config.NumBytesPerSenderThreshold", txGasHandler)
+	requireErrorOnNewTxCache(t, badConfig, commonErrors.ErrInvalidConfig, "config.NumBytesPerSenderThreshold", txGasHandler)
 
 	badConfig = config
 	badConfig.CountPerSenderThreshold = 0
-	requireErrorOnNewTxCache(t, badConfig, elrond_go_storage.ErrInvalidConfig, "config.CountPerSenderThreshold", txGasHandler)
+	requireErrorOnNewTxCache(t, badConfig, commonErrors.ErrInvalidConfig, "config.CountPerSenderThreshold", txGasHandler)
 
 	badConfig = config
 	cache, err = NewTxCache(config, nil)
 	require.Nil(t, cache)
-	require.Equal(t, elrond_go_storage.ErrNilTxGasHandler, err)
+	require.Equal(t, commonErrors.ErrNilTxGasHandler, err)
 
 	badConfig = withEvictionConfig
 	badConfig.NumBytesThreshold = 0
-	requireErrorOnNewTxCache(t, badConfig, elrond_go_storage.ErrInvalidConfig, "config.NumBytesThreshold", txGasHandler)
+	requireErrorOnNewTxCache(t, badConfig, commonErrors.ErrInvalidConfig, "config.NumBytesThreshold", txGasHandler)
 
 	badConfig = withEvictionConfig
 	badConfig.CountThreshold = 0
-	requireErrorOnNewTxCache(t, badConfig, elrond_go_storage.ErrInvalidConfig, "config.CountThreshold", txGasHandler)
+	requireErrorOnNewTxCache(t, badConfig, commonErrors.ErrInvalidConfig, "config.CountThreshold", txGasHandler)
 
 	badConfig = withEvictionConfig
 	badConfig.NumSendersToPreemptivelyEvict = 0
-	requireErrorOnNewTxCache(t, badConfig, elrond_go_storage.ErrInvalidConfig, "config.NumSendersToPreemptivelyEvict", txGasHandler)
+	requireErrorOnNewTxCache(t, badConfig, commonErrors.ErrInvalidConfig, "config.NumSendersToPreemptivelyEvict", txGasHandler)
 }
 
 func requireErrorOnNewTxCache(t *testing.T, config ConfigSourceMe, errExpected error, errPartialMessage string, txGasHandler TxGasHandler) {
@@ -466,7 +467,7 @@ func Test_IsInterfaceNil(t *testing.T) {
 	cache := newUnconstrainedCacheToTest()
 	require.False(t, check.IfNil(cache))
 
-	makeNil := func() elrond_go_storage.Cacher {
+	makeNil := func() types.Cacher {
 		return nil
 	}
 
