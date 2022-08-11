@@ -97,11 +97,11 @@ type baseProcessor struct {
 	gasConsumedProvider gasConsumedProvider
 	economicsData       process.EconomicsDataHandler
 
-	processDataTriesOnCommitEpoch  bool
-	lastRestartNonce               uint64
-	pruningDelay                   uint32
-	processedMiniBlocksTracker     process.ProcessedMiniBlocksTracker
-	receiptsRepository             receiptsRepository
+	processDataTriesOnCommitEpoch bool
+	lastRestartNonce              uint64
+	pruningDelay                  uint32
+	processedMiniBlocksTracker    process.ProcessedMiniBlocksTracker
+	receiptsRepository            receiptsRepository
 }
 
 type bootStorerDataArgs struct {

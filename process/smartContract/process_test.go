@@ -101,7 +101,7 @@ func createMockSmartContractProcessorArguments() ArgsNewSmartContractProcessor {
 		GasHandler: &testscommon.GasHandlerStub{
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
-		GasSchedule:       testscommon.NewGasScheduleNotifierMock(gasSchedule),
+		GasSchedule: testscommon.NewGasScheduleNotifierMock(gasSchedule),
 		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
 			IsSCDeployFlagEnabledField: true,
 		},

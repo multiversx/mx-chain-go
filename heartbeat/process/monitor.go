@@ -19,8 +19,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/storage/timecache"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 var log = logger.GetOrCreate("heartbeat/process")
