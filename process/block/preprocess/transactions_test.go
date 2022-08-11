@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go-core/core/pubkeyConverter"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
@@ -33,7 +32,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
@@ -212,28 +210,25 @@ func createDefaultTransactionsProcessorArgs() ArgsTransactionPreProcessor {
 	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
 
 	return ArgsTransactionPreProcessor{
-		TxDataPool:           tdp.Transactions(),
-		Store:                &storageStubs.ChainStorerStub{},
-		Hasher:               &hashingMocks.HasherMock{},
-		Marshalizer:          &mock.MarshalizerMock{},
-		TxProcessor:          &testscommon.TxProcessorMock{},
-		ShardCoordinator:     mock.NewMultiShardsCoordinatorMock(3),
-		Accounts:             &stateMock.AccountsStub{},
-		OnRequestTransaction: requestTransaction,
-		EconomicsFee:         feeHandlerMock(),
-		GasHandler:           &mock.GasHandlerMock{},
-		BlockTracker:         &mock.BlockTrackerMock{},
-		BlockType:            block.TxBlock,
-		PubkeyConverter:      createMockPubkeyConverter(),
-		BlockSizeComputation: &testscommon.BlockSizeComputationStub{},
-		BalanceComputation:   &testscommon.BalanceComputationStub{},
-		EpochNotifier:        &epochNotifier.EpochNotifierStub{},
-		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: 2,
-		FrontRunningProtectionEnableEpoch:           30,
-		ScheduledMiniBlocksEnableEpoch:              2,
-		TxTypeHandler:                               &testscommon.TxTypeHandlerMock{},
-		ScheduledTxsExecutionHandler:                &testscommon.ScheduledTxsExecutionStub{},
-		ProcessedMiniBlocksTracker:                  &testscommon.ProcessedMiniBlocksTrackerStub{},
+		TxDataPool:                   tdp.Transactions(),
+		Store:                        &storageStubs.ChainStorerStub{},
+		Hasher:                       &hashingMocks.HasherMock{},
+		Marshalizer:                  &mock.MarshalizerMock{},
+		TxProcessor:                  &testscommon.TxProcessorMock{},
+		ShardCoordinator:             mock.NewMultiShardsCoordinatorMock(3),
+		Accounts:                     &stateMock.AccountsStub{},
+		OnRequestTransaction:         requestTransaction,
+		EconomicsFee:                 feeHandlerMock(),
+		GasHandler:                   &mock.GasHandlerMock{},
+		BlockTracker:                 &mock.BlockTrackerMock{},
+		BlockType:                    block.TxBlock,
+		PubkeyConverter:              createMockPubkeyConverter(),
+		BlockSizeComputation:         &testscommon.BlockSizeComputationStub{},
+		BalanceComputation:           &testscommon.BalanceComputationStub{},
+		EnableEpochsHandler:          &testscommon.EnableEpochsHandlerStub{},
+		TxTypeHandler:                &testscommon.TxTypeHandlerMock{},
+		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
+		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 	}
 }
 
@@ -390,15 +385,15 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilBalanceComputationHandler(
 	assert.Equal(t, process.ErrNilBalanceComputationHandler, err)
 }
 
-func TestTxsPreprocessor_NewTransactionPreprocessorNilEpochNotifier(t *testing.T) {
+func TestTxsPreprocessor_NewTransactionPreprocessorNilEnableEpochsHandler(t *testing.T) {
 	t.Parallel()
 
 	args := createDefaultTransactionsProcessorArgs()
-	args.EpochNotifier = nil
+	args.EnableEpochsHandler = nil
 
 	txs, err := NewTransactionPreprocessor(args)
 	assert.Nil(t, txs)
-	assert.Equal(t, process.ErrNilEpochNotifier, err)
+	assert.Equal(t, process.ErrNilEnableEpochsHandler, err)
 }
 
 func TestTxsPreprocessor_NewTransactionPreprocessorNilTxTypeHandler(t *testing.T) {
@@ -833,6 +828,8 @@ func TestTransactions_GetTotalGasConsumedShouldWork(t *testing.T) {
 	var gasPenalized uint64
 
 	args := createDefaultTransactionsProcessorArgs()
+	enableEpochsHandlerStub := &testscommon.EnableEpochsHandlerStub{}
+	args.EnableEpochsHandler = enableEpochsHandlerStub
 	args.GasHandler = &mock.GasHandlerMock{
 		TotalGasProvidedCalled: func() uint64 {
 			return gasProvided
@@ -853,8 +850,7 @@ func TestTransactions_GetTotalGasConsumedShouldWork(t *testing.T) {
 	totalGasConsumed := preprocessor.getTotalGasConsumed()
 	assert.Equal(t, gasProvided, totalGasConsumed)
 
-	preprocessor.EpochConfirmed(2, 0)
-
+	enableEpochsHandlerStub.IsOptimizeGasUsedInCrossMiniBlocksFlagEnabledField = true
 	totalGasConsumed = preprocessor.getTotalGasConsumed()
 	assert.Equal(t, gasProvided-gasRefunded-gasPenalized, totalGasConsumed)
 
@@ -871,6 +867,8 @@ func TestTransactions_UpdateGasConsumedWithGasRefundedAndGasPenalizedShouldWork(
 	var gasPenalized uint64
 
 	args := createDefaultTransactionsProcessorArgs()
+	enableEpochsHandlerStub := &testscommon.EnableEpochsHandlerStub{}
+	args.EnableEpochsHandler = enableEpochsHandlerStub
 	args.GasHandler = &mock.GasHandlerMock{
 		GasRefundedCalled: func(_ []byte) uint64 {
 			return gasRefunded
@@ -879,7 +877,6 @@ func TestTransactions_UpdateGasConsumedWithGasRefundedAndGasPenalizedShouldWork(
 			return gasPenalized
 		},
 	}
-	args.OptimizeGasUsedInCrossMiniBlocksEnableEpoch = 2
 
 	preprocessor, _ := NewTransactionPreprocessor(args)
 	gasInfo := gasConsumedInfo{
@@ -894,8 +891,7 @@ func TestTransactions_UpdateGasConsumedWithGasRefundedAndGasPenalizedShouldWork(
 	assert.Equal(t, uint64(5), gasInfo.gasConsumedByMiniBlockInReceiverShard)
 	assert.Equal(t, uint64(10), gasInfo.totalGasConsumedInSelfShard)
 
-	preprocessor.EpochConfirmed(2, 0)
-
+	enableEpochsHandlerStub.IsOptimizeGasUsedInCrossMiniBlocksFlagEnabledField = true
 	gasRefunded = 10
 	gasPenalized = 1
 	preprocessor.updateGasConsumedWithGasRefundedAndGasPenalized([]byte("txHash"), &gasInfo)
@@ -1067,13 +1063,11 @@ func BenchmarkSortTransactionsByNonceAndSender_WhenReversedNoncesWithFrontRunnin
 		}
 	}
 
-	var frontRunProtection atomic.Flag
-	_ = frontRunProtection.SetReturningPrevious()
 	txpreproc := &transactions{
 		basePreProcess: &basePreProcess{
-			hasher:                     hasher,
-			marshalizer:                marshaller,
-			flagFrontRunningProtection: frontRunProtection,
+			hasher:              hasher,
+			marshalizer:         marshaller,
+			enableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
 		},
 	}
 	numRands := 1000
@@ -1256,6 +1250,8 @@ func TestTransactionsPreprocessor_ProcessMiniBlockShouldErrMaxGasLimitUsedForDes
 	}
 
 	args := createDefaultTransactionsProcessorArgs()
+	enableEpochsHandlerStub := &testscommon.EnableEpochsHandlerStub{}
+	args.EnableEpochsHandler = enableEpochsHandlerStub
 	args.TxDataPool = tdp.Transactions()
 	args.GasHandler = &mock.GasHandlerMock{
 		ComputeGasProvidedByTxCalled: func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
@@ -1289,8 +1285,7 @@ func TestTransactionsPreprocessor_ProcessMiniBlockShouldErrMaxGasLimitUsedForDes
 	assert.Equal(t, 0, len(txsToBeReverted))
 	assert.Equal(t, 0, indexOfLastTxProcessed)
 
-	txs.EpochConfirmed(2, 0)
-
+	enableEpochsHandlerStub.IsOptimizeGasUsedInCrossMiniBlocksFlagEnabledField = true
 	txsToBeReverted, indexOfLastTxProcessed, _, err = txs.ProcessMiniBlock(miniBlock, haveTimeTrue, haveAdditionalTimeFalse, false, false, -1, preProcessorExecutionInfoHandlerMock)
 
 	assert.Equal(t, process.ErrMaxGasLimitUsedForDestMeTxsIsReached, err)
@@ -1349,6 +1344,8 @@ func TestTransactionsPreprocessor_SplitMiniBlocksIfNeededShouldWork(t *testing.T
 	txGasLimit := uint64(100)
 
 	args := createDefaultTransactionsProcessorArgs()
+	enableEpochsHandlerStub := &testscommon.EnableEpochsHandlerStub{}
+	args.EnableEpochsHandler = enableEpochsHandlerStub
 	args.EconomicsFee = &mock.FeeHandlerStub{
 		MaxGasLimitPerMiniBlockForSafeCrossShardCalled: func() uint64 {
 			return gasLimitPerMiniBlock
@@ -1402,8 +1399,7 @@ func TestTransactionsPreprocessor_SplitMiniBlocksIfNeededShouldWork(t *testing.T
 	splitMiniBlocks := preprocessor.splitMiniBlocksBasedOnMaxGasLimitIfNeeded(miniBlocks)
 	assert.Equal(t, 3, len(splitMiniBlocks))
 
-	preprocessor.EpochConfirmed(2, 0)
-
+	enableEpochsHandlerStub.IsOptimizeGasUsedInCrossMiniBlocksFlagEnabledField = true
 	splitMiniBlocks = preprocessor.splitMiniBlocksBasedOnMaxGasLimitIfNeeded(miniBlocks)
 	assert.Equal(t, 4, len(splitMiniBlocks))
 
@@ -1671,6 +1667,7 @@ func TestTransactionsPreProcessor_getRemainingGasPerBlock(t *testing.T) {
 				economicsFee:     economicsFee,
 				gasHandler:       gasHandler,
 			},
+			enableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
 		},
 	}
 
@@ -1862,43 +1859,6 @@ func TestSortTransactionsBySenderAndNonceWithFrontRunningProtection_TestnetBids(
 	}
 }
 
-func TestTransactions_EpochConfirmed(t *testing.T) {
-	t.Parallel()
-
-	txs := transactions{
-		basePreProcess: &basePreProcess{
-			frontRunningProtectionEnableEpoch:           1,
-			optimizeGasUsedInCrossMiniBlocksEnableEpoch: 2,
-		},
-		scheduledMiniBlocksEnableEpoch: 3,
-	}
-
-	txs.EpochConfirmed(0, 0)
-	assert.False(t, txs.flagFrontRunningProtection.IsSet())
-	assert.False(t, txs.flagOptimizeGasUsedInCrossMiniBlocks.IsSet())
-	assert.False(t, txs.flagScheduledMiniBlocks.IsSet())
-
-	txs.EpochConfirmed(1, 0)
-	assert.True(t, txs.flagFrontRunningProtection.IsSet())
-	assert.False(t, txs.flagOptimizeGasUsedInCrossMiniBlocks.IsSet())
-	assert.False(t, txs.flagScheduledMiniBlocks.IsSet())
-
-	txs.EpochConfirmed(2, 0)
-	assert.True(t, txs.flagFrontRunningProtection.IsSet())
-	assert.True(t, txs.flagOptimizeGasUsedInCrossMiniBlocks.IsSet())
-	assert.False(t, txs.flagScheduledMiniBlocks.IsSet())
-
-	txs.EpochConfirmed(3, 0)
-	assert.True(t, txs.flagFrontRunningProtection.IsSet())
-	assert.True(t, txs.flagOptimizeGasUsedInCrossMiniBlocks.IsSet())
-	assert.True(t, txs.flagScheduledMiniBlocks.IsSet())
-
-	txs.EpochConfirmed(4, 0)
-	assert.True(t, txs.flagFrontRunningProtection.IsSet())
-	assert.True(t, txs.flagOptimizeGasUsedInCrossMiniBlocks.IsSet())
-	assert.True(t, txs.flagScheduledMiniBlocks.IsSet())
-}
-
 func TestTransactions_ComputeCacheIdentifier(t *testing.T) {
 	t.Parallel()
 
@@ -1919,8 +1879,11 @@ func TestTransactions_ComputeCacheIdentifier(t *testing.T) {
 	t.Run("invalid miniblock but flag not activated should return the original cache identifier", func(t *testing.T) {
 		t.Parallel()
 
-		txs := &transactions{}
-		txs.flagScheduledMiniBlocks.SetValue(false)
+		txs := &transactions{
+			basePreProcess: &basePreProcess{
+				enableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+			},
+		}
 
 		originalStrCache := "original"
 		result := txs.computeCacheIdentifier(originalStrCache, nil, block.InvalidBlock)
@@ -1936,9 +1899,11 @@ func TestTransactions_ComputeCacheIdentifier(t *testing.T) {
 				gasTracker: gasTracker{
 					shardCoordinator: coordinator,
 				},
+				enableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
+					IsScheduledMiniBlocksFlagEnabledField: true,
+				},
 			},
 		}
-		txs.flagScheduledMiniBlocks.SetValue(true)
 
 		originalStrCache := "original"
 		t.Run("shard 1 address with deploy address", func(t *testing.T) {
@@ -2015,7 +1980,7 @@ func TestTransactions_RestoreBlockDataIntoPools(t *testing.T) {
 		assert.Equal(t, 0, len(mbPool.Keys()))
 	})
 	t.Run("feat scheduled not activated", func(t *testing.T) {
-		txs.flagScheduledMiniBlocks.SetValue(false)
+		txs.basePreProcess.enableEpochsHandler = &testscommon.EnableEpochsHandlerStub{}
 
 		numRestored, err := txs.RestoreBlockDataIntoPools(body, mbPool)
 		assert.Nil(t, err)
@@ -2030,7 +1995,9 @@ func TestTransactions_RestoreBlockDataIntoPools(t *testing.T) {
 	mbPool.Clear()
 
 	t.Run("feat scheduled activated", func(t *testing.T) {
-		txs.flagScheduledMiniBlocks.SetValue(true)
+		txs.basePreProcess.enableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+			IsScheduledMiniBlocksFlagEnabledField: true,
+		}
 
 		numRestored, err := txs.RestoreBlockDataIntoPools(body, mbPool)
 		assert.Nil(t, err)
