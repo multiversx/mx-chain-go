@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/broadcast"
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
@@ -206,8 +206,8 @@ func TestMetaChainMessenger_BroadcastBlockDataLeader(t *testing.T) {
 
 	err := mcm.BroadcastBlockDataLeader(nil, miniBlocks, transactions)
 	require.Nil(t, err)
-	sleepTime := common.ExtraDelayBetweenBroadcastMbsAndTxs +
-		common.ExtraDelayForBroadcastBlockInfo +
+	sleepTime := consensus.ExtraDelayBetweenBroadcastMbsAndTxs +
+		consensus.ExtraDelayForBroadcastBlockInfo +
 		time.Millisecond*100
 	time.Sleep(sleepTime)
 

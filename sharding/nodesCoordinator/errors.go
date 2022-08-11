@@ -40,9 +40,6 @@ var ErrMapSizeZero = errors.New("map size zero")
 // ErrNilPreviousEpochConfig signals that the previous epoch config is nil
 var ErrNilPreviousEpochConfig = errors.New("nil previous epoch config")
 
-// ErrEpochNodesConfigDoesNotExist signals that the epoch nodes configuration is missing
-var ErrEpochNodesConfigDoesNotExist = errors.New("epoch nodes configuration does not exist")
-
 // ErrInvalidConsensusGroupSize signals that the consensus size is invalid (e.g. value is negative)
 var ErrInvalidConsensusGroupSize = errors.New("invalid consensus group size")
 

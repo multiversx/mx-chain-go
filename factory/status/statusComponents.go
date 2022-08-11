@@ -181,7 +181,7 @@ func (pc *statusComponents) epochStartEventHandler() core.EpochStartActionHandle
 
 		pc.outportHandler.SaveValidatorsPubKeys(validatorsPubKeys, currentEpoch)
 
-	}, func(_ nodeData.HeaderHandler) {}, common.IndexerOrder)
+	}, func(_ nodeData.HeaderHandler) {}, core.IndexerOrder)
 
 	return subscribeHandler
 }

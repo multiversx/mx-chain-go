@@ -7,7 +7,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 )
@@ -208,7 +207,7 @@ func (sr *subroundSignature) receivedSignature(_ context.Context, cnsDta *consen
 		spos.ValidatorPeerHonestyIncreaseFactor,
 	)
 
-	sr.appStatusHandler.SetStringValue(common.MetricConsensusRoundState, "signed")
+	sr.appStatusHandler.SetStringValue(consensus.MetricConsensusRoundState, "signed")
 	return true
 }
 
@@ -219,7 +218,7 @@ func (sr *subroundSignature) doSignatureConsensusCheck() bool {
 	}
 
 	if sr.IsSubroundFinished(sr.Current()) {
-		sr.appStatusHandler.SetStringValue(common.MetricConsensusRoundState, "signed")
+		sr.appStatusHandler.SetStringValue(consensus.MetricConsensusRoundState, "signed")
 
 		return true
 	}
@@ -255,7 +254,7 @@ func (sr *subroundSignature) doSignatureConsensusCheck() bool {
 			"subround", sr.Name())
 		sr.SetStatus(sr.Current(), spos.SsFinished)
 
-		sr.appStatusHandler.SetStringValue(common.MetricConsensusRoundState, "signed")
+		sr.appStatusHandler.SetStringValue(consensus.MetricConsensusRoundState, "signed")
 
 		return true
 	}

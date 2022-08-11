@@ -6,7 +6,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go/common"
 )
 
 // RequestHeaderWithNonce -
@@ -118,13 +117,13 @@ func (hi *headerInfo) GetBlockHeaderState() core.BlockHeaderState {
 
 // NotifySyncStateListeners -
 func (boot *ShardBootstrap) NotifySyncStateListeners() {
-	isNodeSynchronized := boot.GetNodeState() == common.NsSynchronized
+	isNodeSynchronized := boot.GetNodeState() == core.NsSynchronized
 	boot.notifySyncStateListeners(isNodeSynchronized)
 }
 
 // NotifySyncStateListeners -
 func (boot *MetaBootstrap) NotifySyncStateListeners() {
-	isNodeSynchronized := boot.GetNodeState() == common.NsSynchronized
+	isNodeSynchronized := boot.GetNodeState() == core.NsSynchronized
 	boot.notifySyncStateListeners(isNodeSynchronized)
 }
 

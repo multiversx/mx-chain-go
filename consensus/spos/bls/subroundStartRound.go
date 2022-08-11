@@ -11,7 +11,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
-	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/disabled"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
@@ -117,11 +116,11 @@ func (sr *subroundStartRound) doStartRoundConsensusCheck() bool {
 
 func (sr *subroundStartRound) initCurrentRound() bool {
 	nodeState := sr.BootStrapper().GetNodeState()
-	if nodeState != common.NsSynchronized { // if node is not synchronized yet, it has to continue the bootstrapping mechanism
+	if nodeState != core.NsSynchronized { // if node is not synchronized yet, it has to continue the bootstrapping mechanism
 		return false
 	}
 
-	sr.AppStatusHandler().SetStringValue(common.MetricConsensusRoundState, "")
+	sr.AppStatusHandler().SetStringValue(consensus.MetricConsensusRoundState, "")
 
 	err := sr.generateNextConsensusGroup(sr.RoundHandler().Index())
 	if err != nil {
@@ -156,9 +155,9 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 
 	msg := ""
 	if leader == sr.SelfPubKey() {
-		sr.AppStatusHandler().Increment(common.MetricCountLeader)
-		sr.AppStatusHandler().SetStringValue(common.MetricConsensusRoundState, "proposed")
-		sr.AppStatusHandler().SetStringValue(common.MetricConsensusState, "proposer")
+		sr.AppStatusHandler().Increment(consensus.MetricCountLeader)
+		sr.AppStatusHandler().SetStringValue(consensus.MetricConsensusRoundState, "proposed")
+		sr.AppStatusHandler().SetStringValue(consensus.MetricConsensusState, "proposer")
 		msg = " (my turn)"
 	}
 
@@ -173,12 +172,12 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 	_, err = sr.SelfConsensusGroupIndex()
 	if err != nil {
 		log.Debug("not in consensus group")
-		sr.AppStatusHandler().SetStringValue(common.MetricConsensusState, "not in consensus group")
+		sr.AppStatusHandler().SetStringValue(consensus.MetricConsensusState, "not in consensus group")
 	} else {
 		if leader != sr.SelfPubKey() {
-			sr.AppStatusHandler().Increment(common.MetricCountConsensus)
+			sr.AppStatusHandler().Increment(consensus.MetricCountConsensus)
 		}
-		sr.AppStatusHandler().SetStringValue(common.MetricConsensusState, "participant")
+		sr.AppStatusHandler().SetStringValue(consensus.MetricConsensusState, "participant")
 	}
 
 	err = sr.SignatureHandler().Reset(pubKeys)
@@ -324,5 +323,5 @@ func (sr *subroundStartRound) changeEpoch(currentEpoch uint32) {
 
 // NotifyOrder returns the notification order for a start of epoch event
 func (sr *subroundStartRound) NotifyOrder() uint32 {
-	return common.ConsensusOrder
+	return core.ConsensusOrder
 }

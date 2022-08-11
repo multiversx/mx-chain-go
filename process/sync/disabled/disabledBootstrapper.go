@@ -1,8 +1,6 @@
 package disabled
 
-import (
-	"github.com/ElrondNetwork/elrond-go/common"
-)
+import "github.com/ElrondNetwork/elrond-go-core/core"
 
 type disabledBootstrapper struct {
 }
@@ -17,8 +15,8 @@ func (d *disabledBootstrapper) AddSyncStateListener(_ func(isSyncing bool)) {
 }
 
 // GetNodeState will return a not synchronized state
-func (d *disabledBootstrapper) GetNodeState() common.NodeState {
-	return common.NsNotSynchronized
+func (d *disabledBootstrapper) GetNodeState() core.NodeState {
+	return core.NsNotSynchronized
 }
 
 // StartSyncingBlocks won't do anything as this is a disabled component

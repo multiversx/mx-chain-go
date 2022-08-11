@@ -965,7 +965,7 @@ func TestBootstrap_GetNodeStateShouldReturnSynchronizedWhenCurrentBlockIsNilAndR
 	bs, _ := sync.NewShardBootstrap(args)
 	bs.ComputeNodeState()
 
-	assert.Equal(t, common.NsSynchronized, bs.GetNodeState())
+	assert.Equal(t, core.NsSynchronized, bs.GetNodeState())
 }
 
 func TestBootstrap_GetNodeStateShouldReturnNotSynchronizedWhenCurrentBlockIsNilAndRoundIndexIsGreaterThanZero(t *testing.T) {
@@ -992,7 +992,7 @@ func TestBootstrap_GetNodeStateShouldReturnNotSynchronizedWhenCurrentBlockIsNilA
 	bs, _ := sync.NewShardBootstrap(args)
 	bs.ComputeNodeState()
 
-	assert.Equal(t, common.NsNotSynchronized, bs.GetNodeState())
+	assert.Equal(t, core.NsNotSynchronized, bs.GetNodeState())
 }
 
 func TestBootstrap_GetNodeStateShouldReturnSynchronizedWhenNodeIsSynced(t *testing.T) {
@@ -1024,7 +1024,7 @@ func TestBootstrap_GetNodeStateShouldReturnSynchronizedWhenNodeIsSynced(t *testi
 	bs, _ := sync.NewShardBootstrap(args)
 	bs.ComputeNodeState()
 
-	assert.Equal(t, common.NsSynchronized, bs.GetNodeState())
+	assert.Equal(t, core.NsSynchronized, bs.GetNodeState())
 }
 
 func TestBootstrap_GetNodeStateShouldReturnNotSynchronizedWhenNodeIsNotSynced(t *testing.T) {
@@ -1062,7 +1062,7 @@ func TestBootstrap_GetNodeStateShouldReturnNotSynchronizedWhenNodeIsNotSynced(t 
 	bs, _ := sync.NewShardBootstrap(args)
 	bs.ComputeNodeState()
 
-	assert.Equal(t, common.NsNotSynchronized, bs.GetNodeState())
+	assert.Equal(t, core.NsNotSynchronized, bs.GetNodeState())
 }
 
 func TestBootstrap_GetNodeStateShouldReturnNotSynchronizedWhenForkIsDetectedAndItReceivesTheSameWrongHeader(t *testing.T) {
@@ -1125,17 +1125,17 @@ func TestBootstrap_GetNodeStateShouldReturnNotSynchronizedWhenForkIsDetectedAndI
 	_ = args.ForkDetector.AddHeader(&hdr2, hash2, core.BHNotarized, selfNotarizedHeaders, selfNotarizedHeadersHashes)
 
 	bs.ComputeNodeState()
-	assert.Equal(t, common.NsNotSynchronized, bs.GetNodeState())
+	assert.Equal(t, core.NsNotSynchronized, bs.GetNodeState())
 	assert.True(t, bs.IsForkDetected())
 
-	if bs.GetNodeState() == common.NsNotSynchronized && bs.IsForkDetected() {
+	if bs.GetNodeState() == core.NsNotSynchronized && bs.IsForkDetected() {
 		args.ForkDetector.RemoveHeader(hdr1.GetNonce(), hash1)
 		bs.ReceivedHeaders(&hdr1, hash1)
 		_ = args.ForkDetector.AddHeader(&hdr1, hash1, core.BHProcessed, nil, nil)
 	}
 
 	bs.ComputeNodeState()
-	assert.Equal(t, common.NsNotSynchronized, bs.GetNodeState())
+	assert.Equal(t, core.NsNotSynchronized, bs.GetNodeState())
 	assert.True(t, bs.IsForkDetected())
 }
 
@@ -1200,10 +1200,10 @@ func TestBootstrap_GetNodeStateShouldReturnSynchronizedWhenForkIsDetectedAndItRe
 	_ = args.ForkDetector.AddHeader(&hdr2, hash2, core.BHNotarized, selfNotarizedHeaders, selfNotarizedHeadersHashes)
 
 	bs.ComputeNodeState()
-	assert.Equal(t, common.NsNotSynchronized, bs.GetNodeState())
+	assert.Equal(t, core.NsNotSynchronized, bs.GetNodeState())
 	assert.True(t, bs.IsForkDetected())
 
-	if bs.GetNodeState() == common.NsNotSynchronized && bs.IsForkDetected() {
+	if bs.GetNodeState() == core.NsNotSynchronized && bs.IsForkDetected() {
 		args.ForkDetector.RemoveHeader(hdr1.GetNonce(), hash1)
 		bs.ReceivedHeaders(&hdr2, hash2)
 		_ = args.ForkDetector.AddHeader(&hdr2, hash2, core.BHProcessed, selfNotarizedHeaders, selfNotarizedHeadersHashes)
@@ -1211,7 +1211,7 @@ func TestBootstrap_GetNodeStateShouldReturnSynchronizedWhenForkIsDetectedAndItRe
 	}
 
 	bs.ComputeNodeState()
-	assert.Equal(t, common.NsSynchronized, bs.GetNodeState())
+	assert.Equal(t, core.NsSynchronized, bs.GetNodeState())
 	assert.False(t, bs.IsForkDetected())
 }
 

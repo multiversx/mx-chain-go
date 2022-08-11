@@ -17,22 +17,6 @@ const (
 	ConsensusTopic = "consensus"
 )
 
-// BlockHeaderState specifies which is the state of the block header received
-type BlockHeaderState int
-
-const (
-	// BHReceived defines ID of a received block header
-	BHReceived BlockHeaderState = iota
-	// BHReceivedTooLate defines ID of a late received block header
-	BHReceivedTooLate
-	// BHProcessed defines ID of a processed block header
-	BHProcessed
-	// BHProposed defines ID of a proposed block header
-	BHProposed
-	// BHNotarized defines ID of a notarized block header
-	BHNotarized
-)
-
 // ExtraDelayForBroadcastBlockInfo represents the number of seconds to wait since a block has been broadcast and the
 // moment when its components, like mini blocks and transactions, would be broadcast too
 const ExtraDelayForBroadcastBlockInfo = 1 * time.Second
@@ -44,3 +28,21 @@ const ExtraDelayBetweenBroadcastMbsAndTxs = 1 * time.Second
 // MaxBulkTransactionSize specifies the maximum size of one bulk with txs which can be send over the network
 // TODO convert this const into a var and read it from config when this code moves to another binary
 const MaxBulkTransactionSize = 1 << 18 // 256KB bulks
+
+// MetricCurrentRound is the metric for monitoring the current round of a node
+const MetricCurrentRound = "erd_current_round"
+
+// MetricCurrentRoundTimestamp is the metric that stores current round timestamp
+const MetricCurrentRoundTimestamp = "erd_current_round_timestamp"
+
+// MetricConsensusRoundState is the metric for consensus round state for a block
+const MetricConsensusRoundState = "erd_consensus_round_state"
+
+// MetricCountLeader is the metric for monitoring number of rounds when a node was leader
+const MetricCountLeader = "erd_count_leader"
+
+// MetricConsensusState is the metric for consensus state of node proposer,participant or not consensus group
+const MetricConsensusState = "erd_consensus_state"
+
+// MetricCountConsensus is the metric for monitoring number of rounds when a node was in consensus group
+const MetricCountConsensus = "erd_count_consensus"

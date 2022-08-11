@@ -331,7 +331,7 @@ type HashAccesser interface {
 type Bootstrapper interface {
 	Close() error
 	AddSyncStateListener(func(isSyncing bool))
-	GetNodeState() common.NodeState
+	GetNodeState() core.NodeState
 	StartSyncingBlocks()
 	IsInterfaceNil() bool
 }

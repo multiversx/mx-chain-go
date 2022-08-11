@@ -7,6 +7,7 @@ import (
 	"math/big"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
@@ -119,7 +120,7 @@ func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice ui
 	log.Trace("executeScCall", "function", query.FuncName, "numQueries", service.numQueries)
 	service.numQueries++
 
-	shouldEarlyExitBecauseOfSyncState := query.ShouldBeSynced && service.bootstrapper.GetNodeState() == common.NsNotSynchronized
+	shouldEarlyExitBecauseOfSyncState := query.ShouldBeSynced && service.bootstrapper.GetNodeState() == core.NsNotSynchronized
 	if shouldEarlyExitBecauseOfSyncState {
 		return nil, process.ErrNodeIsNotSynced
 	}

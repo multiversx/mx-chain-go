@@ -6,7 +6,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/shirou/gopsutil/net"
 )
@@ -112,7 +111,7 @@ func (ns *netStatistics) EpochStartEventHandler() core.EpochStartActionHandler {
 	subscribeHandler := notifier.NewHandlerForEpochStart(func(hdr data.HeaderHandler) {
 		atomic.StoreUint64(&ns.totalBytesSentInEpoch, 0)
 		atomic.StoreUint64(&ns.totalBytesReceivedInEpoch, 0)
-	}, func(_ data.HeaderHandler) {}, common.NetStatisticsOrder)
+	}, func(_ data.HeaderHandler) {}, core.NetStatisticsOrder)
 
 	return subscribeHandler
 }

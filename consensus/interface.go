@@ -8,7 +8,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
-	"github.com/ElrondNetwork/elrond-go/common"
 )
 
 // BlsConsensusType specifies the signature scheme used in the consensus
@@ -292,7 +291,7 @@ type BlockProcessor interface {
 type Bootstrapper interface {
 	Close() error
 	AddSyncStateListener(func(isSyncing bool))
-	GetNodeState() common.NodeState
+	GetNodeState() core.NodeState
 	StartSyncingBlocks()
 	IsInterfaceNil() bool
 }

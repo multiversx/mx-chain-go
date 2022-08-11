@@ -824,7 +824,7 @@ func (ihnc *indexHashedNodesCoordinator) EpochStartAction(hdr data.HeaderHandler
 
 // NotifyOrder returns the notification order for a start of epoch event
 func (ihnc *indexHashedNodesCoordinator) NotifyOrder() uint32 {
-	return common.NodesCoordinatorOrder
+	return core.NodesCoordinatorOrder
 }
 
 // GetSavedStateKey returns the key for the last nodes coordinator saved state

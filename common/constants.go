@@ -602,35 +602,6 @@ const (
 	MetricRatingsPeerHonestyUnitValue = "erd_ratings_peerhonesty_unit_value"
 )
 
-const (
-	// StorerOrder defines the order of storers to be notified of a start of epoch event
-	StorerOrder = iota
-	// NodesCoordinatorOrder defines the order in which NodesCoordinator is notified of a start of epoch event
-	NodesCoordinatorOrder
-	// ConsensusOrder defines the order in which Consensus is notified of a start of epoch event
-	ConsensusOrder
-	// NetworkShardingOrder defines the order in which the network sharding subsystem is notified of a start of epoch event
-	NetworkShardingOrder
-	// IndexerOrder defines the order in which indexer is notified of a start of epoch event
-	IndexerOrder
-	// NetStatisticsOrder defines the order in which netStatistic component is notified of a start of epoch event
-	NetStatisticsOrder
-	// OldDatabaseCleanOrder defines the order in which oldDatabaseCleaner component is notified of a start of epoch event
-	OldDatabaseCleanOrder
-)
-
-// NodeState specifies what type of state a node could have
-type NodeState int
-
-const (
-	// NsSynchronized defines ID of a state of synchronized
-	NsSynchronized NodeState = iota
-	// NsNotSynchronized defines ID of a state of not synchronized
-	NsNotSynchronized
-	// NsNotCalculated defines ID of a state which is not calculated
-	NsNotCalculated
-)
-
 // MetricP2PPeerInfo is the metric for the node's p2p info
 const MetricP2PPeerInfo = "erd_p2p_peer_info"
 

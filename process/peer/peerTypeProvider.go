@@ -97,7 +97,7 @@ func (ptp *PeerTypeProvider) epochStartEventHandler() nodesCoordinator.EpochStar
 			ptp.updateCache(hdr.GetEpoch())
 		},
 		func(_ data.HeaderHandler) {},
-		common.IndexerOrder,
+		core.IndexerOrder,
 	)
 
 	return subscribeHandler

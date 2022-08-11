@@ -10,7 +10,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -406,7 +405,7 @@ func (psm *PeerShardMapper) EpochStartPrepare(metaHdr data.HeaderHandler, _ data
 
 // NotifyOrder returns the notification order of this component
 func (psm *PeerShardMapper) NotifyOrder() uint32 {
-	return common.NetworkShardingOrder
+	return core.NetworkShardingOrder
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

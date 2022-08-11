@@ -580,7 +580,7 @@ func (boot *baseBootstrap) incrementSyncedWithErrorsForNonce(nonce uint64) uint3
 func (boot *baseBootstrap) syncBlock() error {
 	boot.computeNodeState()
 	nodeState := boot.GetNodeState()
-	if nodeState != common.NsNotSynchronized {
+	if nodeState != core.NsNotSynchronized {
 		return nil
 	}
 
@@ -1158,13 +1158,13 @@ func (boot *baseBootstrap) requestHeaders(fromNonce uint64, toNonce uint64) {
 // that the node is already synced and it can participate to the consensus. This method could also returns 'NsNotCalculated'
 // which means that the state of the node in the current round is not calculated yet. Note that when the node is not
 // connected to the network, GetNodeState could return 'NsNotSynchronized' but the SyncBlock is not automatically called.
-func (boot *baseBootstrap) GetNodeState() common.NodeState {
+func (boot *baseBootstrap) GetNodeState() core.NodeState {
 	if boot.isInImportMode {
-		return common.NsNotSynchronized
+		return core.NsNotSynchronized
 	}
 	currentSyncedEpoch := boot.getEpochOfCurrentBlock()
 	if !boot.currentEpochProvider.EpochIsActiveInNetwork(currentSyncedEpoch) {
-		return common.NsNotSynchronized
+		return core.NsNotSynchronized
 	}
 
 	boot.mutNodeState.RLock()
@@ -1173,14 +1173,14 @@ func (boot *baseBootstrap) GetNodeState() common.NodeState {
 	boot.mutNodeState.RUnlock()
 
 	if !isNodeStateCalculatedInCurrentRound {
-		return common.NsNotCalculated
+		return core.NsNotCalculated
 	}
 
 	if isNodeSynchronized {
-		return common.NsSynchronized
+		return core.NsSynchronized
 	}
 
-	return common.NsNotSynchronized
+	return core.NsNotSynchronized
 }
 
 // Close will close the endless running go routine
