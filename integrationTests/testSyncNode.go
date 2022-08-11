@@ -15,7 +15,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/testscommon/outport"
-	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 )
 
 func (tpn *TestProcessorNode) addGenesisBlocksIntoStorage() {
