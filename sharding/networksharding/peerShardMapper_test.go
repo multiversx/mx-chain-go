@@ -9,7 +9,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/sharding/networksharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
@@ -478,7 +477,7 @@ func TestPeerShardMapper_NotifyOrder(t *testing.T) {
 
 	psm := createPeerShardMapper()
 
-	assert.Equal(t, uint32(common.NetworkShardingOrder), psm.NotifyOrder())
+	assert.Equal(t, uint32(core.NetworkShardingOrder), psm.NotifyOrder())
 }
 
 func TestPeerShardMapper_EpochStartPrepareShouldNotPanic(t *testing.T) {
