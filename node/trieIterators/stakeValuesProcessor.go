@@ -119,7 +119,7 @@ func (svp *stakedValuesProcessor) computeBaseStakedAndTopUp(ctx context.Context)
 		totalTopUp = totalTopUp.Add(totalTopUp, info.topUpValue)
 	}
 
-	if common.IsContextDone(ctx) {
+	if core.IsContextDone(ctx) {
 		return nil, nil, ErrTrieOperationsTimeout
 	}
 

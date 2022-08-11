@@ -17,7 +17,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
-	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	errorsErd "github.com/ElrondNetwork/elrond-go/errors"
 )
@@ -336,8 +335,8 @@ func (wrk *Worker) ProcessReceivedMessage(message core.MessageP2P, fromConnected
 			// that disseminated this message.
 
 			reason := fmt.Sprintf("blacklisted due to invalid consensus message: %s", err.Error())
-			wrk.antifloodHandler.BlacklistPeer(message.Peer(), reason, common.InvalidMessageBlacklistDuration)
-			wrk.antifloodHandler.BlacklistPeer(fromConnectedPeer, reason, common.InvalidMessageBlacklistDuration)
+			wrk.antifloodHandler.BlacklistPeer(message.Peer(), reason, consensus.InvalidMessageBlacklistDuration)
+			wrk.antifloodHandler.BlacklistPeer(fromConnectedPeer, reason, consensus.InvalidMessageBlacklistDuration)
 		}
 	}()
 
@@ -501,8 +500,8 @@ func (wrk *Worker) processReceivedHeaderMetric(cnsDta *consensus.Message) {
 
 	sinceRoundStart := time.Since(wrk.roundHandler.TimeStamp())
 	percent := sinceRoundStart * 100 / wrk.roundHandler.TimeDuration()
-	wrk.appStatusHandler.SetUInt64Value(common.MetricReceivedProposedBlock, uint64(percent))
-	wrk.appStatusHandler.SetStringValue(common.MetricRedundancyIsMainActive, strconv.FormatBool(wrk.nodeRedundancyHandler.IsMainMachineActive()))
+	wrk.appStatusHandler.SetUInt64Value(consensus.MetricReceivedProposedBlock, uint64(percent))
+	wrk.appStatusHandler.SetStringValue(consensus.MetricRedundancyIsMainActive, strconv.FormatBool(wrk.nodeRedundancyHandler.IsMainMachineActive()))
 }
 
 func (wrk *Worker) checkSelfState(cnsDta *consensus.Message) error {

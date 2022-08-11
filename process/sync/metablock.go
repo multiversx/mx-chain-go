@@ -176,7 +176,7 @@ func (boot *MetaBootstrap) SyncBlock(ctx context.Context) error {
 	isErrGetNodeFromDB := err != nil && strings.Contains(err.Error(), common.GetNodeFromDBErrorString)
 	if isErrGetNodeFromDB {
 		errSync := boot.syncAccountsDBs()
-		shouldOutputLog := errSync != nil && !common.IsContextDone(ctx)
+		shouldOutputLog := errSync != nil && !core.IsContextDone(ctx)
 		if shouldOutputLog {
 			log.Debug("SyncBlock syncTrie", "error", errSync)
 		}

@@ -86,7 +86,7 @@ func (dslp *directStakedListProcessor) getAllStakedAccounts(validatorAccount sta
 		stakedAccounts = append(stakedAccounts, val)
 	}
 
-	if common.IsContextDone(ctx) {
+	if core.IsContextDone(ctx) {
 		return nil, ErrTrieOperationsTimeout
 	}
 

@@ -140,7 +140,7 @@ func (boot *ShardBootstrap) SyncBlock(ctx context.Context) error {
 	isErrGetNodeFromDB := err != nil && strings.Contains(err.Error(), common.GetNodeFromDBErrorString)
 	if isErrGetNodeFromDB {
 		errSync := boot.syncUserAccountsState()
-		shouldOutputLog := errSync != nil && !common.IsContextDone(ctx)
+		shouldOutputLog := errSync != nil && !core.IsContextDone(ctx)
 		if shouldOutputLog {
 			log.Debug("SyncBlock syncTrie", "error", errSync)
 		}

@@ -7,7 +7,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 )
@@ -80,7 +79,7 @@ func (sr *subroundBlock) doBlockJob(ctx context.Context) bool {
 	}
 
 	metricStatTime := time.Now()
-	defer sr.computeSubroundProcessingMetric(metricStatTime, common.MetricCreatedProposedBlock)
+	defer sr.computeSubroundProcessingMetric(metricStatTime, consensus.MetricCreatedProposedBlock)
 
 	header, err := sr.createHeader()
 	if err != nil {
@@ -113,7 +112,7 @@ func (sr *subroundBlock) doBlockJob(ctx context.Context) bool {
 }
 
 func printLogMessage(ctx context.Context, baseMessage string, err error) {
-	if common.IsContextDone(ctx) {
+	if core.IsContextDone(ctx) {
 		log.Debug(baseMessage + " context is closing")
 		return
 	}
@@ -529,7 +528,7 @@ func (sr *subroundBlock) processReceivedBlock(ctx context.Context, cnsDta *conse
 	}
 
 	metricStatTime := time.Now()
-	defer sr.computeSubroundProcessingMetric(metricStatTime, common.MetricProcessedProposedBlock)
+	defer sr.computeSubroundProcessingMetric(metricStatTime, consensus.MetricProcessedProposedBlock)
 
 	err := sr.BlockProcessor().ProcessBlock(
 		sr.Header,
@@ -565,7 +564,7 @@ func (sr *subroundBlock) processReceivedBlock(ctx context.Context, cnsDta *conse
 }
 
 func (sr *subroundBlock) printCancelRoundLogMessage(ctx context.Context, err error) {
-	if common.IsContextDone(ctx) {
+	if core.IsContextDone(ctx) {
 		log.Debug("canceled round as the context is closing")
 		return
 	}
