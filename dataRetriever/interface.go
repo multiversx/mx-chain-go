@@ -1,7 +1,6 @@
 package dataRetriever
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -9,109 +8,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/storage"
-)
-
-// UnitType is the type for Storage unit identifiers
-type UnitType uint8
-
-// String returns the friendly name of the unit
-func (ut UnitType) String() string {
-	switch ut {
-	case TransactionUnit:
-		return "TransactionUnit"
-	case MiniBlockUnit:
-		return "MiniBlockUnit"
-	case PeerChangesUnit:
-		return "PeerChangesUnit"
-	case BlockHeaderUnit:
-		return "BlockHeaderUnit"
-	case MetaBlockUnit:
-		return "MetaBlockUnit"
-	case UnsignedTransactionUnit:
-		return "UnsignedTransactionUnit"
-	case RewardTransactionUnit:
-		return "RewardTransactionUnit"
-	case MetaHdrNonceHashDataUnit:
-		return "MetaHdrNonceHashDataUnit"
-	case HeartbeatUnit:
-		return "HeartbeatUnit"
-	case BootstrapUnit:
-		return "BootstrapUnit"
-	case StatusMetricsUnit:
-		return "StatusMetricsUnit"
-	case ReceiptsUnit:
-		return "ReceiptsUnit"
-	case TrieEpochRootHashUnit:
-		return "TrieEpochRootHashUnit"
-	case ScheduledSCRsUnit:
-		return "ScheduledSCRsUnit"
-	}
-
-	if ut < ShardHdrNonceHashDataUnit {
-		return fmt.Sprintf("unknown type %d", ut)
-	}
-
-	return fmt.Sprintf("%s%d", "ShardHdrNonceHashDataUnit", ut-ShardHdrNonceHashDataUnit)
-}
-
-const (
-	// TransactionUnit is the transactions storage unit identifier
-	TransactionUnit UnitType = 0
-	// MiniBlockUnit is the transaction block body storage unit identifier
-	MiniBlockUnit UnitType = 1
-	// PeerChangesUnit is the peer change block body storage unit identifier
-	PeerChangesUnit UnitType = 2
-	// BlockHeaderUnit is the Block Headers Storage unit identifier
-	BlockHeaderUnit UnitType = 3
-	// MetaBlockUnit is the metachain blocks storage unit identifier
-	MetaBlockUnit UnitType = 4
-	// UnsignedTransactionUnit is the unsigned transaction unit identifier
-	UnsignedTransactionUnit UnitType = 5
-	// RewardTransactionUnit is the reward transaction unit identifier
-	RewardTransactionUnit UnitType = 6
-	// MetaHdrNonceHashDataUnit is the meta header nonce-hash pair data unit identifier
-	MetaHdrNonceHashDataUnit UnitType = 7
-	// HeartbeatUnit is the heartbeat storage unit identifier
-	HeartbeatUnit UnitType = 8
-	// BootstrapUnit is the bootstrap storage unit identifier
-	BootstrapUnit UnitType = 9
-	//StatusMetricsUnit is the status metrics storage unit identifier
-	StatusMetricsUnit UnitType = 10
-	// TxLogsUnit is the transactions logs storage unit identifier
-	TxLogsUnit UnitType = 11
-	// MiniblocksMetadataUnit is the miniblocks metadata storage unit identifier
-	MiniblocksMetadataUnit UnitType = 12
-	// EpochByHashUnit is the epoch by hash storage unit identifier
-	EpochByHashUnit UnitType = 13
-	// MiniblockHashByTxHashUnit is the miniblocks hash by tx hash storage unit identifier
-	MiniblockHashByTxHashUnit UnitType = 14
-	// ReceiptsUnit is the receipts storage unit identifier
-	ReceiptsUnit UnitType = 15
-	// ResultsHashesByTxHashUnit is the results hashes by transaction storage unit identifier
-	ResultsHashesByTxHashUnit UnitType = 16
-	// TrieEpochRootHashUnit is the trie epoch <-> root hash storage unit identifier
-	TrieEpochRootHashUnit UnitType = 17
-	// ESDTSuppliesUnit is the ESDT supplies storage unit identifier
-	ESDTSuppliesUnit UnitType = 18
-	// RoundHdrHashDataUnit is the round- block header hash storage data unit identifier
-	RoundHdrHashDataUnit UnitType = 19
-	// UserAccountsUnit is the user accounts storage unit identifier
-	UserAccountsUnit UnitType = 20
-	// UserAccountsCheckpointsUnit is the user accounts checkpoints storage unit identifier
-	UserAccountsCheckpointsUnit UnitType = 21
-	// PeerAccountsUnit is the peer accounts storage unit identifier
-	PeerAccountsUnit UnitType = 22
-	// PeerAccountsCheckpointsUnit is the peer accounts checkpoints storage unit identifier
-	PeerAccountsCheckpointsUnit UnitType = 23
-	// ScheduledSCRsUnit is the scheduled SCRs storage unit identifier
-	ScheduledSCRsUnit UnitType = 24
-
-	// ShardHdrNonceHashDataUnit is the header nonce-hash pair data unit identifier
-	//TODO: Add only unit types lower than 100
-	ShardHdrNonceHashDataUnit UnitType = 100
-	//TODO: Do not add unit type greater than 100 as the metachain creates this kind of unit type for each shard.
-	//100 -> shard 0, 101 -> shard 1 and so on. This should be replaced with a factory which will manage the unit types
-	//creation
 )
 
 // ResolverThrottler can monitor the number of the currently running resolver go routines
@@ -344,7 +240,8 @@ type PoolsHolder interface {
 // StorageService is the interface for data storage unit provided services
 type StorageService interface {
 	// GetStorer returns the storer from the chain map
-	GetStorer(unitType UnitType) storage.Storer
+	// If the unit is missing, it returns an error
+	GetStorer(unitType UnitType) (storage.Storer, error)
 	// AddStorer will add a new storer to the chain map
 	AddStorer(key UnitType, s storage.Storer)
 	// Has returns true if the key is found in the selected Unit or false otherwise

@@ -8,7 +8,9 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/hashing/sha256"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 )
 
@@ -16,14 +18,13 @@ var _ NodesShuffler = (*randHashShuffler)(nil)
 
 // NodesShufflerArgs defines the arguments required to create a nodes shuffler
 type NodesShufflerArgs struct {
-	NodesShard                     uint32
-	NodesMeta                      uint32
-	Hysteresis                     float32
-	Adaptivity                     bool
-	ShuffleBetweenShards           bool
-	MaxNodesEnableConfig           []config.MaxNodesChangeConfig
-	BalanceWaitingListsEnableEpoch uint32
-	WaitingListFixEnableEpoch      uint32
+	NodesShard           uint32
+	NodesMeta            uint32
+	Hysteresis           float32
+	Adaptivity           bool
+	ShuffleBetweenShards bool
+	MaxNodesEnableConfig []config.MaxNodesChangeConfig
+	EnableEpochsHandler  common.EnableEpochsHandler
 }
 
 type shuffleNodesArg struct {
@@ -48,19 +49,18 @@ type randHashShuffler struct {
 	// when reinitialization of node in new shard is implemented
 	shuffleBetweenShards bool
 
-	adaptivity                     bool
-	nodesShard                     uint32
-	nodesMeta                      uint32
-	shardHysteresis                uint32
-	metaHysteresis                 uint32
-	activeNodesConfig              config.MaxNodesChangeConfig
-	availableNodesConfigs          []config.MaxNodesChangeConfig
-	mutShufflerParams              sync.RWMutex
-	validatorDistributor           ValidatorsDistributor
-	balanceWaitingListsEnableEpoch uint32
-	flagBalanceWaitingLists        atomic.Flag
-	waitingListFixEnableEpoch      uint32
-	flagWaitingListFix             atomic.Flag
+	adaptivity              bool
+	nodesShard              uint32
+	nodesMeta               uint32
+	shardHysteresis         uint32
+	metaHysteresis          uint32
+	activeNodesConfig       config.MaxNodesChangeConfig
+	availableNodesConfigs   []config.MaxNodesChangeConfig
+	mutShufflerParams       sync.RWMutex
+	validatorDistributor    ValidatorsDistributor
+	flagBalanceWaitingLists atomic.Flag
+	flagWaitingListFix      atomic.Flag
+	enableEpochsHandler     common.EnableEpochsHandler
 }
 
 // NewHashValidatorsShuffler creates a validator shuffler that uses a hash between validator key and a given
@@ -69,11 +69,13 @@ func NewHashValidatorsShuffler(args *NodesShufflerArgs) (*randHashShuffler, erro
 	if args == nil {
 		return nil, ErrNilNodeShufflerArguments
 	}
+	if check.IfNil(args.EnableEpochsHandler) {
+		return nil, ErrNilEnableEpochsHandler
+	}
 
 	var configs []config.MaxNodesChangeConfig
 
 	log.Debug("hashValidatorShuffler: enable epoch for max nodes change", "epoch", args.MaxNodesEnableConfig)
-	log.Debug("hashValidatorShuffler: enable epoch for balance waiting lists", "epoch", args.BalanceWaitingListsEnableEpoch)
 	if args.MaxNodesEnableConfig != nil {
 		configs = make([]config.MaxNodesChangeConfig, len(args.MaxNodesEnableConfig))
 		copy(configs, args.MaxNodesEnableConfig)
@@ -81,14 +83,10 @@ func NewHashValidatorsShuffler(args *NodesShufflerArgs) (*randHashShuffler, erro
 
 	log.Debug("Shuffler created", "shuffleBetweenShards", args.ShuffleBetweenShards)
 	rxs := &randHashShuffler{
-		shuffleBetweenShards:           args.ShuffleBetweenShards,
-		availableNodesConfigs:          configs,
-		balanceWaitingListsEnableEpoch: args.BalanceWaitingListsEnableEpoch,
-		waitingListFixEnableEpoch:      args.WaitingListFixEnableEpoch,
+		shuffleBetweenShards:  args.ShuffleBetweenShards,
+		availableNodesConfigs: configs,
+		enableEpochsHandler:   args.EnableEpochsHandler,
 	}
-
-	log.Debug("randHashShuffler: enable epoch for balance waiting list", "epoch", rxs.balanceWaitingListsEnableEpoch)
-	log.Debug("randHashShuffler: enable epoch for waiting waiting list", "epoch", rxs.waitingListFixEnableEpoch)
 
 	rxs.UpdateParams(args.NodesShard, args.NodesMeta, args.Hysteresis, args.Adaptivity)
 
@@ -777,9 +775,9 @@ func (rhs *randHashShuffler) UpdateShufflerConfig(epoch uint32) {
 		"maxNodesToShufflePerShard", rhs.activeNodesConfig.NodesToShufflePerShard,
 	)
 
-	rhs.flagBalanceWaitingLists.SetValue(epoch >= rhs.balanceWaitingListsEnableEpoch)
+	rhs.flagBalanceWaitingLists.SetValue(epoch >= rhs.enableEpochsHandler.BalanceWaitingListsEnableEpoch())
 	log.Debug("balanced waiting lists", "enabled", rhs.flagBalanceWaitingLists.IsSet())
-	rhs.flagWaitingListFix.SetValue(epoch >= rhs.waitingListFixEnableEpoch)
+	rhs.flagWaitingListFix.SetValue(epoch >= rhs.enableEpochsHandler.WaitingListFixEnableEpoch())
 	log.Debug("waiting list fix", "enabled", rhs.flagWaitingListFix.IsSet())
 }
 

@@ -21,6 +21,7 @@ import (
 	marshalizerFactory "github.com/ElrondNetwork/elrond-go-core/marshal/factory"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/common/enablers"
 	commonFactory "github.com/ElrondNetwork/elrond-go/common/factory"
 	"github.com/ElrondNetwork/elrond-go/common/forking"
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -46,6 +47,7 @@ type CoreComponentsFactoryArgs struct {
 	Config                config.Config
 	ConfigPathsHolder     config.ConfigurationPathsHolder
 	EpochConfig           config.EpochConfig
+	RoundConfig           config.RoundConfig
 	RatingsConfig         config.RatingsConfig
 	EconomicsConfig       config.EconomicsConfig
 	ImportDbConfig        config.ImportDbConfig
@@ -60,6 +62,7 @@ type coreComponentsFactory struct {
 	config                config.Config
 	configPathsHolder     config.ConfigurationPathsHolder
 	epochConfig           config.EpochConfig
+	roundConfig           config.RoundConfig
 	ratingsConfig         config.RatingsConfig
 	economicsConfig       config.EconomicsConfig
 	importDbConfig        config.ImportDbConfig
@@ -96,7 +99,7 @@ type coreComponents struct {
 	chainID                       string
 	minTransactionVersion         uint32
 	epochNotifier                 process.EpochNotifier
-	roundNotifier                 process.RoundNotifier
+	enableRoundsHandler           process.EnableRoundsHandler
 	epochStartNotifierWithConfirm EpochStartNotifierWithConfirm
 	chanStopNodeProcess           chan endProcess.ArgEndProcess
 	nodeTypeProvider              core.NodeTypeProviderHandler
@@ -104,6 +107,7 @@ type coreComponents struct {
 	arwenChangeLocker             common.Locker
 	processStatusHandler          common.ProcessStatusHandler
 	hardforkTriggerPubKey         []byte
+	enableEpochsHandler           common.EnableEpochsHandler
 }
 
 // NewCoreComponentsFactory initializes the factory which is responsible to creating core components
@@ -112,6 +116,7 @@ func NewCoreComponentsFactory(args CoreComponentsFactoryArgs) (*coreComponentsFa
 		config:                args.Config,
 		configPathsHolder:     args.ConfigPathsHolder,
 		epochConfig:           args.EpochConfig,
+		roundConfig:           args.RoundConfig,
 		ratingsConfig:         args.RatingsConfig,
 		importDbConfig:        args.ImportDbConfig,
 		economicsConfig:       args.EconomicsConfig,
@@ -227,7 +232,15 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 	}
 
 	epochNotifier := forking.NewGenericEpochNotifier()
-	roundNotifier := forking.NewRoundNotifier()
+	enableRoundsHandler, err := enablers.NewEnableRoundsHandler(ccf.roundConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	enableEpochsHandler, err := enablers.NewEnableEpochsHandler(ccf.epochConfig.EnableEpochs, epochNotifier)
+	if err != nil {
+		return nil, err
+	}
 
 	arwenChangeLocker := &sync.RWMutex{}
 	gasScheduleConfigurationFolderName := ccf.configPathsHolder.GasScheduleDirectoryName
@@ -252,11 +265,10 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 
 	log.Trace("creating economics data components")
 	argsNewEconomicsData := economics.ArgsNewEconomicsData{
-		Economics:                      &ccf.economicsConfig,
-		PenalizedTooMuchGasEnableEpoch: ccf.epochConfig.EnableEpochs.PenalizedTooMuchGasEnableEpoch,
-		GasPriceModifierEnableEpoch:    ccf.epochConfig.EnableEpochs.GasPriceModifierEnableEpoch,
-		EpochNotifier:                  epochNotifier,
-		BuiltInFunctionsCostHandler:    builtInCostHandler,
+		Economics:                   &ccf.economicsConfig,
+		EpochNotifier:               epochNotifier,
+		EnableEpochsHandler:         enableEpochsHandler,
+		BuiltInFunctionsCostHandler: builtInCostHandler,
 	}
 	economicsData, err := economics.NewEconomicsData(argsNewEconomicsData)
 	if err != nil {
@@ -313,14 +325,13 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 	}
 
 	argsNodesShuffler := &nodesCoordinator.NodesShufflerArgs{
-		NodesShard:                     genesisNodesConfig.MinNumberOfShardNodes(),
-		NodesMeta:                      genesisNodesConfig.MinNumberOfMetaNodes(),
-		Hysteresis:                     genesisNodesConfig.GetHysteresis(),
-		Adaptivity:                     genesisNodesConfig.GetAdaptivity(),
-		ShuffleBetweenShards:           true,
-		MaxNodesEnableConfig:           ccf.epochConfig.EnableEpochs.MaxNodesChangeEnableEpoch,
-		BalanceWaitingListsEnableEpoch: ccf.epochConfig.EnableEpochs.BalanceWaitingListsEnableEpoch,
-		WaitingListFixEnableEpoch:      ccf.epochConfig.EnableEpochs.WaitingListFixEnableEpoch,
+		NodesShard:           genesisNodesConfig.MinNumberOfShardNodes(),
+		NodesMeta:            genesisNodesConfig.MinNumberOfMetaNodes(),
+		Hysteresis:           genesisNodesConfig.GetHysteresis(),
+		Adaptivity:           genesisNodesConfig.GetAdaptivity(),
+		ShuffleBetweenShards: true,
+		MaxNodesEnableConfig: ccf.epochConfig.EnableEpochs.MaxNodesChangeEnableEpoch,
+		EnableEpochsHandler:  enableEpochsHandler,
 	}
 
 	nodesShuffler, err := nodesCoordinator.NewHashValidatorsShuffler(argsNodesShuffler)
@@ -365,7 +376,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		chainID:                       ccf.config.GeneralSettings.ChainID,
 		minTransactionVersion:         ccf.config.GeneralSettings.MinTransactionVersion,
 		epochNotifier:                 epochNotifier,
-		roundNotifier:                 roundNotifier,
+		enableRoundsHandler:           enableRoundsHandler,
 		epochStartNotifierWithConfirm: notifier.NewEpochStartSubscriptionHandler(),
 		chanStopNodeProcess:           ccf.chanStopNodeProcess,
 		encodedAddressLen:             computeEncodedAddressLen(addressPubkeyConverter),
@@ -373,6 +384,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		arwenChangeLocker:             arwenChangeLocker,
 		processStatusHandler:          statusHandler.NewProcessStatusHandler(),
 		hardforkTriggerPubKey:         pubKeyBytes,
+		enableEpochsHandler:           enableEpochsHandler,
 	}, nil
 }
 

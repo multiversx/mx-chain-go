@@ -319,8 +319,13 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		return true, err
 	}
 
+	bootstrapStorer, err := managedDataComponents.StorageService().GetStorer(dataRetriever.BootstrapUnit)
+	if err != nil {
+		return true, err
+	}
+
 	log.Debug("creating nodes coordinator")
-	nodesCoord, err := mainFactory.CreateNodesCoordinator(
+	nodesCoordinatorInstance, err := mainFactory.CreateNodesCoordinator(
 		nodesShufflerOut,
 		managedCoreComponents.GenesisNodesSetup(),
 		configs.PreferencesConfig.Preferences,
@@ -329,14 +334,14 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		managedCoreComponents.InternalMarshalizer(),
 		managedCoreComponents.Hasher(),
 		managedCoreComponents.Rater(),
-		managedDataComponents.StorageService().GetStorer(dataRetriever.BootstrapUnit),
+		bootstrapStorer,
 		managedCoreComponents.NodesShuffler(),
 		managedBootstrapComponents.ShardCoordinator().SelfId(),
 		managedBootstrapComponents.EpochBootstrapParams(),
 		managedBootstrapComponents.EpochBootstrapParams().Epoch(),
-		configs.EpochConfig.EnableEpochs.WaitingListFixEnableEpoch,
 		managedCoreComponents.ChanStopNodeProcess(),
 		managedCoreComponents.NodeTypeProvider(),
+		managedCoreComponents.EnableEpochsHandler(),
 	)
 	if err != nil {
 		return true, err
@@ -349,7 +354,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		managedBootstrapComponents,
 		managedDataComponents,
 		managedStateComponents,
-		nodesCoord,
+		nodesCoordinatorInstance,
 		configs.ImportDbConfig.IsImportDBMode,
 	)
 	if err != nil {
@@ -377,7 +382,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		managedDataComponents,
 		managedStatusComponents,
 		gasScheduleNotifier,
-		nodesCoord,
+		nodesCoordinatorInstance,
 	)
 	if err != nil {
 		return true, err
@@ -450,7 +455,6 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		managedHeartbeatComponents,
 		managedHeartbeatV2Components,
 		managedConsensusComponents,
-		*configs.EpochConfig,
 		flagsConfig.BootstrapRoundIndex,
 		configs.ImportDbConfig.IsImportDBMode,
 	)
@@ -459,10 +463,10 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	}
 
 	if managedBootstrapComponents.ShardCoordinator().SelfId() == core.MetachainShardId {
-		log.Debug("activating nodesCoord's validators indexing")
+		log.Debug("activating nodesCoordinator's validators indexing")
 		indexValidatorsListIfNeeded(
 			managedStatusComponents.OutportHandler(),
-			nodesCoord,
+			nodesCoordinatorInstance,
 			managedProcessComponents.EpochStartTrigger().Epoch(),
 		)
 	}
@@ -705,17 +709,16 @@ func (nr *nodeRunner) CreateManagedHeartbeatComponents(
 	genesisTime := time.Unix(coreComponents.GenesisNodesSetup().GetStartTime(), 0)
 
 	heartbeatArgs := mainFactory.HeartbeatComponentsFactoryArgs{
-		Config:                *nr.configs.GeneralConfig,
-		Prefs:                 *nr.configs.PreferencesConfig,
-		AppVersion:            nr.configs.FlagsConfig.Version,
-		GenesisTime:           genesisTime,
-		RedundancyHandler:     redundancyHandler,
-		CoreComponents:        coreComponents,
-		DataComponents:        dataComponents,
-		NetworkComponents:     networkComponents,
-		CryptoComponents:      cryptoComponents,
-		ProcessComponents:     processComponents,
-		HeartbeatDisableEpoch: nr.configs.EpochConfig.EnableEpochs.HeartbeatDisableEpoch,
+		Config:            *nr.configs.GeneralConfig,
+		Prefs:             *nr.configs.PreferencesConfig,
+		AppVersion:        nr.configs.FlagsConfig.Version,
+		GenesisTime:       genesisTime,
+		RedundancyHandler: redundancyHandler,
+		CoreComponents:    coreComponents,
+		DataComponents:    dataComponents,
+		NetworkComponents: networkComponents,
+		CryptoComponents:  cryptoComponents,
+		ProcessComponents: processComponents,
 	}
 
 	heartbeatComponentsFactory, err := mainFactory.NewHeartbeatComponentsFactory(heartbeatArgs)
@@ -1118,9 +1121,12 @@ func (nr *nodeRunner) CreateManagedDataComponents(
 		return nil, err
 	}
 
-	err = coreComponents.StatusHandlerUtils().UpdateStorerAndMetricsForPersistentHandler(
-		managedDataComponents.StorageService().GetStorer(dataRetriever.StatusMetricsUnit),
-	)
+	statusMetricsStorer, err := managedDataComponents.StorageService().GetStorer(dataRetriever.StatusMetricsUnit)
+	if err != nil {
+		return nil, err
+	}
+
+	err = coreComponents.StatusHandlerUtils().UpdateStorerAndMetricsForPersistentHandler(statusMetricsStorer)
 
 	if err != nil {
 		return nil, err
@@ -1141,7 +1147,6 @@ func (nr *nodeRunner) CreateManagedStateComponents(
 	}
 	stateArgs := mainFactory.StateComponentsFactoryArgs{
 		Config:           *nr.configs.GeneralConfig,
-		EnableEpochs:     nr.configs.EpochConfig.EnableEpochs,
 		ShardCoordinator: bootstrapComponents.ShardCoordinator(),
 		Core:             coreComponents,
 		StorageService:   dataComponents.StorageService(),
@@ -1175,8 +1180,6 @@ func (nr *nodeRunner) CreateManagedBootstrapComponents(
 
 	bootstrapComponentsFactoryArgs := mainFactory.BootstrapComponentsFactoryArgs{
 		Config:            *nr.configs.GeneralConfig,
-		EpochConfig:       *nr.configs.EpochConfig,
-		RoundConfig:       *nr.configs.RoundConfig,
 		PrefConfig:        *nr.configs.PreferencesConfig,
 		ImportDbConfig:    *nr.configs.ImportDbConfig,
 		FlagsConfig:       *nr.configs.FlagsConfig,
@@ -1261,6 +1264,7 @@ func (nr *nodeRunner) CreateManagedCoreComponents(
 		Config:                *nr.configs.GeneralConfig,
 		ConfigPathsHolder:     *nr.configs.ConfigurationPathsHolder,
 		EpochConfig:           *nr.configs.EpochConfig,
+		RoundConfig:           *nr.configs.RoundConfig,
 		ImportDbConfig:        *nr.configs.ImportDbConfig,
 		RatingsConfig:         *nr.configs.RatingsConfig,
 		EconomicsConfig:       *nr.configs.EconomicsConfig,
