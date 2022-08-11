@@ -23,6 +23,8 @@ type coreComponentsHolder interface {
 	Hasher() hashing.Hasher
 	InternalMarshalizer() marshal.Marshalizer
 	Uint64ByteSliceConverter() typeConverters.Uint64ByteSliceConverter
+	EpochNotifier() process.EpochNotifier
+	EnableEpochsHandler() common.EnableEpochsHandler
 	RoundHandler() consensus.RoundHandler
 	StatusHandler() core.AppStatusHandler
 	EconomicsData() process.EconomicsDataHandler
@@ -72,8 +74,7 @@ type ArgBaseProcessor struct {
 	BlockSizeThrottler             process.BlockSizeThrottler
 	Version                        string
 	HistoryRepository              dblookupext.HistoryRepository
-	EpochNotifier                  process.EpochNotifier
-	RoundNotifier                  process.RoundNotifier
+	EnableRoundsHandler            process.EnableRoundsHandler
 	VMContainersFactory            process.VirtualMachinesContainerFactory
 	VmContainer                    process.VirtualMachinesContainer
 	GasHandler                     gasConsumedProvider
@@ -102,5 +103,4 @@ type ArgMetaProcessor struct {
 	EpochValidatorInfoCreator    process.EpochStartValidatorInfoCreator
 	EpochSystemSCProcessor       process.EpochStartSystemSCProcessor
 	ValidatorStatisticsProcessor process.ValidatorStatisticsProcessor
-	RewardsV2EnableEpoch         uint32
 }

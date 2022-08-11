@@ -110,6 +110,8 @@ func NewShardProcessorEmptyWith3shards(
 		StatusField:               &statusHandlerMock.AppStatusHandlerStub{},
 		RoundField:                &mock.RoundHandlerMock{},
 		ProcessStatusHandlerField: &testscommon.ProcessStatusHandlerStub{},
+		EpochNotifierField:        &epochNotifier.EpochNotifierStub{},
+		EnableEpochsHandlerField:  &testscommon.EnableEpochsHandlerStub{},
 	}
 	dataComponents := &mock.DataComponentsMock{
 		Storage:    &storageStubs.ChainStorerStub{},
@@ -149,12 +151,10 @@ func NewShardProcessorEmptyWith3shards(
 			BlockSizeThrottler:             &mock.BlockSizeThrottlerStub{},
 			Version:                        "softwareVersion",
 			HistoryRepository:              &dblookupext.HistoryRepositoryStub{},
-			EpochNotifier:                  &epochNotifier.EpochNotifierStub{},
-			RoundNotifier:                  &mock.RoundNotifierStub{},
+			EnableRoundsHandler:          &testscommon.EnableRoundsHandlerStub{},
 			GasHandler:                     &mock.GasHandlerMock{},
 			OutportDataProvider:            &testscommon.OutportDataProviderStub{},
 			ScheduledTxsExecutionHandler:   &testscommon.ScheduledTxsExecutionStub{},
-			ScheduledMiniBlocksEnableEpoch: 2,
 			ProcessedMiniBlocksTracker:     &testscommon.ProcessedMiniBlocksTrackerStub{},
 			ReceiptsRepository:             &testscommon.ReceiptsRepositoryStub{},
 		},

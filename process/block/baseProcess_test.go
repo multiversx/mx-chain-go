@@ -102,8 +102,7 @@ func createArgBaseProcessor(
 		BlockSizeThrottler:             &mock.BlockSizeThrottlerStub{},
 		Version:                        "softwareVersion",
 		HistoryRepository:              &dblookupext.HistoryRepositoryStub{},
-		EpochNotifier:                  &epochNotifier.EpochNotifierStub{},
-		RoundNotifier:                  &mock.RoundNotifierStub{},
+		EnableRoundsHandler:          &testscommon.EnableRoundsHandlerStub{},
 		GasHandler:                     &mock.GasHandlerMock{},
 		ScheduledTxsExecutionHandler:   &testscommon.ScheduledTxsExecutionStub{},
 		OutportDataProvider:            &testscommon.OutportDataProviderStub{},
@@ -368,6 +367,8 @@ func createComponentHolderMocks() (
 		StatusField:               &statusHandlerMock.AppStatusHandlerStub{},
 		RoundField:                &mock.RoundHandlerMock{},
 		ProcessStatusHandlerField: &testscommon.ProcessStatusHandlerStub{},
+		EpochNotifierField:        &epochNotifier.EpochNotifierStub{},
+		EnableEpochsHandlerField:  &testscommon.EnableEpochsHandlerStub{},
 	}
 
 	dataComponents := &mock.DataComponentsMock{
@@ -422,20 +423,17 @@ func createMockTransactionCoordinatorArguments(
 				return []block.Type{block.SmartContractResultBlock}
 			},
 		},
-		GasHandler:                           &testscommon.GasHandlerStub{},
-		FeeHandler:                           &mock.FeeAccumulatorStub{},
-		BlockSizeComputation:                 &testscommon.BlockSizeComputationStub{},
-		BalanceComputation:                   &testscommon.BalanceComputationStub{},
-		EconomicsFee:                         &mock.FeeHandlerStub{},
-		TxTypeHandler:                        &testscommon.TxTypeHandlerMock{},
-		BlockGasAndFeesReCheckEnableEpoch:    0,
-		TransactionsLogProcessor:             &mock.TxLogsProcessorStub{},
-		EpochNotifier:                        &epochNotifier.EpochNotifierStub{},
-		ScheduledTxsExecutionHandler:         &testscommon.ScheduledTxsExecutionStub{},
-		ScheduledMiniBlocksEnableEpoch:       2,
-		DoubleTransactionsDetector:           &testscommon.PanicDoubleTransactionsDetector{},
-		MiniBlockPartialExecutionEnableEpoch: 2,
-		ProcessedMiniBlocksTracker:           &testscommon.ProcessedMiniBlocksTrackerStub{},
+		GasHandler:                   &testscommon.GasHandlerStub{},
+		FeeHandler:                   &mock.FeeAccumulatorStub{},
+		BlockSizeComputation:         &testscommon.BlockSizeComputationStub{},
+		BalanceComputation:           &testscommon.BalanceComputationStub{},
+		EconomicsFee:                 &mock.FeeHandlerStub{},
+		TxTypeHandler:                &testscommon.TxTypeHandlerMock{},
+		TransactionsLogProcessor:     &mock.TxLogsProcessorStub{},
+		EnableEpochsHandler:          &testscommon.EnableEpochsHandlerStub{},
+		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
+		DoubleTransactionsDetector:   &testscommon.PanicDoubleTransactionsDetector{},
+		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 	}
 
 	return argsTransactionCoordinator
@@ -661,18 +659,10 @@ func TestCheckProcessorNilParameters(t *testing.T) {
 		{
 			args: func() blproc.ArgBaseProcessor {
 				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-				args.EpochNotifier = nil
+				args.EnableRoundsHandler = nil
 				return args
 			},
-			expectedErr: process.ErrNilEpochNotifier,
-		},
-		{
-			args: func() blproc.ArgBaseProcessor {
-				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-				args.RoundNotifier = nil
-				return args
-			},
-			expectedErr: process.ErrNilRoundNotifier,
+			expectedErr: process.ErrNilEnableRoundsHandler,
 		},
 		{
 			args: func() blproc.ArgBaseProcessor {
@@ -681,6 +671,22 @@ func TestCheckProcessorNilParameters(t *testing.T) {
 				return createArgBaseProcessor(&coreCompCopy, dataComponents, bootstrapComponents, statusComponents)
 			},
 			expectedErr: process.ErrNilAppStatusHandler,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				coreCompCopy := *coreComponents
+				coreCompCopy.EnableEpochsHandlerField = nil
+				return createArgBaseProcessor(&coreCompCopy, dataComponents, bootstrapComponents, statusComponents)
+			},
+			expectedErr: process.ErrNilEnableEpochsHandler,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				coreCompCopy := *coreComponents
+				coreCompCopy.EpochNotifierField = nil
+				return createArgBaseProcessor(&coreCompCopy, dataComponents, bootstrapComponents, statusComponents)
+			},
+			expectedErr: process.ErrNilEpochNotifier,
 		},
 		{
 			args: func() blproc.ArgBaseProcessor {
@@ -2328,10 +2334,12 @@ func TestBaseProcessor_getIndexOfFirstMiniBlockToBeExecuted(t *testing.T) {
 	t.Run("scheduledMiniBlocks flag is set, empty block", func(t *testing.T) {
 		t.Parallel()
 
-		arguments := CreateMockArguments(createComponentHolderMocks())
-		arguments.ScheduledMiniBlocksEnableEpoch = 3
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		coreComponents.EnableEpochsHandlerField = &testscommon.EnableEpochsHandlerStub{
+			IsScheduledMiniBlocksFlagEnabledField: true,
+		}
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 		bp, _ := blproc.NewShardProcessor(arguments)
-		bp.EpochConfirmed(4, 0)
 
 		index := bp.GetIndexOfFirstMiniBlockToBeExecuted(&block.MetaBlock{})
 		assert.Equal(t, 0, index)
@@ -2340,10 +2348,12 @@ func TestBaseProcessor_getIndexOfFirstMiniBlockToBeExecuted(t *testing.T) {
 	t.Run("get first index for the miniBlockHeader which is not processed executionType", func(t *testing.T) {
 		t.Parallel()
 
-		arguments := CreateMockArguments(createComponentHolderMocks())
-		arguments.ScheduledMiniBlocksEnableEpoch = 3
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		coreComponents.EnableEpochsHandlerField = &testscommon.EnableEpochsHandlerStub{
+			IsScheduledMiniBlocksFlagEnabledField: true,
+		}
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 		bp, _ := blproc.NewShardProcessor(arguments)
-		bp.EpochConfirmed(4, 0)
 
 		mbh1 := block.MiniBlockHeader{}
 		mbhReserved1 := block.MiniBlockHeaderReserved{ExecutionType: block.Processed}
@@ -2382,10 +2392,12 @@ func TestBaseProcessor_getFinalMiniBlocks(t *testing.T) {
 	t.Run("scheduledMiniBlocks flag is set, empty body", func(t *testing.T) {
 		t.Parallel()
 
-		arguments := CreateMockArguments(createComponentHolderMocks())
-		arguments.ScheduledMiniBlocksEnableEpoch = 3
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		coreComponents.EnableEpochsHandlerField = &testscommon.EnableEpochsHandlerStub{
+			IsScheduledMiniBlocksFlagEnabledField: true,
+		}
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 		bp, _ := blproc.NewShardProcessor(arguments)
-		bp.EpochConfirmed(4, 0)
 
 		body, err := bp.GetFinalMiniBlocks(&block.MetaBlock{}, &block.Body{})
 		assert.Nil(t, err)
@@ -2395,10 +2407,12 @@ func TestBaseProcessor_getFinalMiniBlocks(t *testing.T) {
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		arguments := CreateMockArguments(createComponentHolderMocks())
-		arguments.ScheduledMiniBlocksEnableEpoch = 3
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		coreComponents.EnableEpochsHandlerField = &testscommon.EnableEpochsHandlerStub{
+			IsScheduledMiniBlocksFlagEnabledField: true,
+		}
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 		bp, _ := blproc.NewShardProcessor(arguments)
-		bp.EpochConfirmed(4, 0)
 
 		mb1 := &block.MiniBlock{
 			TxHashes: [][]byte{[]byte("txHash1")},
@@ -2508,7 +2522,9 @@ func TestBaseProcessor_checkScheduledMiniBlockValidity(t *testing.T) {
 		t.Parallel()
 
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
-
+		coreComponents.EnableEpochsHandlerField = &testscommon.EnableEpochsHandlerStub{
+			IsScheduledMiniBlocksFlagEnabledField: true,
+		}
 		expectedErr := errors.New("expected error")
 		coreComponents.IntMarsh = &testscommon.MarshalizerStub{
 			MarshalCalled: func(obj interface{}) ([]byte, error) {
@@ -2516,7 +2532,6 @@ func TestBaseProcessor_checkScheduledMiniBlockValidity(t *testing.T) {
 			},
 		}
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-		arguments.ScheduledMiniBlocksEnableEpoch = 3
 		arguments.ScheduledTxsExecutionHandler = &testscommon.ScheduledTxsExecutionStub{
 			GetScheduledMiniBlocksCalled: func() block.MiniBlockSlice {
 				return block.MiniBlockSlice{&block.MiniBlock{
@@ -2526,7 +2541,6 @@ func TestBaseProcessor_checkScheduledMiniBlockValidity(t *testing.T) {
 		}
 
 		bp, _ := blproc.NewShardProcessor(arguments)
-		bp.EpochConfirmed(4, 0)
 
 		header := &block.Header{
 			MiniBlockHeaders: []block.MiniBlockHeader{
@@ -2542,13 +2556,15 @@ func TestBaseProcessor_checkScheduledMiniBlockValidity(t *testing.T) {
 		t.Parallel()
 
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		coreComponents.EnableEpochsHandlerField = &testscommon.EnableEpochsHandlerStub{
+			IsScheduledMiniBlocksFlagEnabledField: true,
+		}
 		coreComponents.Hash = &mock.HasherStub{
 			ComputeCalled: func(s string) []byte {
 				return hash1
 			},
 		}
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-		arguments.ScheduledMiniBlocksEnableEpoch = 3
 		arguments.ScheduledTxsExecutionHandler = &testscommon.ScheduledTxsExecutionStub{
 			GetScheduledMiniBlocksCalled: func() block.MiniBlockSlice {
 				return block.MiniBlockSlice{&block.MiniBlock{
@@ -2558,7 +2574,6 @@ func TestBaseProcessor_checkScheduledMiniBlockValidity(t *testing.T) {
 		}
 
 		bp, _ := blproc.NewShardProcessor(arguments)
-		bp.EpochConfirmed(4, 0)
 
 		header := &block.Header{
 			MiniBlockHeaders: []block.MiniBlockHeader{
@@ -2574,8 +2589,10 @@ func TestBaseProcessor_checkScheduledMiniBlockValidity(t *testing.T) {
 		t.Parallel()
 
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		coreComponents.EnableEpochsHandlerField = &testscommon.EnableEpochsHandlerStub{
+			IsScheduledMiniBlocksFlagEnabledField: true,
+		}
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-		arguments.ScheduledMiniBlocksEnableEpoch = 3
 		arguments.ScheduledTxsExecutionHandler = &testscommon.ScheduledTxsExecutionStub{
 			GetScheduledMiniBlocksCalled: func() block.MiniBlockSlice {
 				return block.MiniBlockSlice{
@@ -2590,7 +2607,6 @@ func TestBaseProcessor_checkScheduledMiniBlockValidity(t *testing.T) {
 		}
 
 		bp, _ := blproc.NewShardProcessor(arguments)
-		bp.EpochConfirmed(4, 0)
 
 		header := &block.Header{
 			MiniBlockHeaders: []block.MiniBlockHeader{
@@ -2612,7 +2628,6 @@ func TestBaseProcessor_checkScheduledMiniBlockValidity(t *testing.T) {
 			},
 		}
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-		arguments.ScheduledMiniBlocksEnableEpoch = 3
 		arguments.ScheduledTxsExecutionHandler = &testscommon.ScheduledTxsExecutionStub{
 			GetScheduledMiniBlocksCalled: func() block.MiniBlockSlice {
 				return block.MiniBlockSlice{
@@ -2624,7 +2639,6 @@ func TestBaseProcessor_checkScheduledMiniBlockValidity(t *testing.T) {
 		}
 
 		bp, _ := blproc.NewShardProcessor(arguments)
-		bp.EpochConfirmed(4, 0)
 
 		header := &block.Header{
 			MiniBlockHeaders: []block.MiniBlockHeader{
@@ -2655,8 +2669,11 @@ func TestBaseProcessor_setMiniBlockHeaderReservedField(t *testing.T) {
 	t.Run("no scheduled miniBlock, miniBlock Not executed", func(t *testing.T) {
 		t.Parallel()
 
-		arguments := CreateMockArguments(createComponentHolderMocks())
-		arguments.ScheduledMiniBlocksEnableEpoch = 3
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		coreComponents.EnableEpochsHandlerField = &testscommon.EnableEpochsHandlerStub{
+			IsScheduledMiniBlocksFlagEnabledField: true,
+		}
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 		arguments.ScheduledTxsExecutionHandler = &testscommon.ScheduledTxsExecutionStub{
 			IsScheduledTxCalled: func(hash []byte) bool {
 				return false
@@ -2667,7 +2684,6 @@ func TestBaseProcessor_setMiniBlockHeaderReservedField(t *testing.T) {
 			},
 		}
 		bp, _ := blproc.NewShardProcessor(arguments)
-		bp.EpochConfirmed(4, 0)
 
 		mbHandler := &block.MiniBlockHeader{
 			Hash: miniBlockHash,
@@ -2682,9 +2698,10 @@ func TestBaseProcessor_setMiniBlockHeaderReservedField(t *testing.T) {
 	t.Run("no scheduled miniBlock, miniBlock executed", func(t *testing.T) {
 		t.Parallel()
 
-		arguments := CreateMockArguments(createComponentHolderMocks())
-		arguments.ScheduledMiniBlocksEnableEpoch = 3
-
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		coreComponents.EnableEpochsHandlerField = &testscommon.EnableEpochsHandlerStub{
+			IsScheduledMiniBlocksFlagEnabledField: true}
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 		arguments.ScheduledTxsExecutionHandler = &testscommon.ScheduledTxsExecutionStub{
 			IsScheduledTxCalled: func(hash []byte) bool {
 				return false
@@ -2695,7 +2712,6 @@ func TestBaseProcessor_setMiniBlockHeaderReservedField(t *testing.T) {
 			},
 		}
 		bp, _ := blproc.NewShardProcessor(arguments)
-		bp.EpochConfirmed(4, 0)
 
 		mbHandler := &block.MiniBlockHeader{
 			Hash: miniBlockHash,
@@ -2717,15 +2733,16 @@ func TestBaseProcessor_setMiniBlockHeaderReservedField(t *testing.T) {
 			},
 		}
 
+		coreComponents.EnableEpochsHandlerField = &testscommon.EnableEpochsHandlerStub{
+			IsScheduledMiniBlocksFlagEnabledField: true,
+		}
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-		arguments.ScheduledMiniBlocksEnableEpoch = 3
 		arguments.ScheduledTxsExecutionHandler = &testscommon.ScheduledTxsExecutionStub{
 			IsScheduledTxCalled: func(hash []byte) bool {
 				return true
 			},
 		}
 		bp, _ := blproc.NewShardProcessor(arguments)
-		bp.EpochConfirmed(4, 0)
 
 		mb := &block.MiniBlock{
 			TxHashes: [][]byte{[]byte("hash")},
@@ -2746,7 +2763,9 @@ func TestBaseProcessor_setMiniBlockHeaderReservedField(t *testing.T) {
 		t.Parallel()
 
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
-
+		coreComponents.EnableEpochsHandlerField = &testscommon.EnableEpochsHandlerStub{
+			IsScheduledMiniBlocksFlagEnabledField: true,
+		}
 		shardId := uint32(1)
 		bootstrapComponents.Coordinator = &testscommon.ShardsCoordinatorMock{
 			SelfIDCalled: func() uint32 {
@@ -2755,14 +2774,12 @@ func TestBaseProcessor_setMiniBlockHeaderReservedField(t *testing.T) {
 		}
 
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-		arguments.ScheduledMiniBlocksEnableEpoch = 3
 		arguments.ScheduledTxsExecutionHandler = &testscommon.ScheduledTxsExecutionStub{
 			IsScheduledTxCalled: func(hash []byte) bool {
 				return true
 			},
 		}
 		bp, _ := blproc.NewShardProcessor(arguments)
-		bp.EpochConfirmed(4, 0)
 
 		mb := &block.MiniBlock{
 			TxHashes: [][]byte{[]byte("hash")},

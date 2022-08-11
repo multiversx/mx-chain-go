@@ -1073,16 +1073,10 @@ type EpochNotifier interface {
 	IsInterfaceNil() bool
 }
 
-// RoundSubscriberHandler defines the behavior of a component that can be notified if a new round was confirmed
-type RoundSubscriberHandler interface {
-	RoundConfirmed(round uint64)
-	IsInterfaceNil() bool
-}
-
-// RoundNotifier can notify upon round change in current processed block
-type RoundNotifier interface {
-	RegisterNotifyHandler(handler RoundSubscriberHandler)
+// EnableRoundsHandler is an interface which can be queried to check for round activation features/fixes
+type EnableRoundsHandler interface {
 	CheckRound(round uint64)
+	IsExampleEnabled() bool
 	IsInterfaceNil() bool
 }
 
@@ -1110,13 +1104,6 @@ type FallbackHeaderValidator interface {
 	IsInterfaceNil() bool
 }
 
-// RoundActivationHandler is a component which can be queried to check for round activation features/fixes
-type RoundActivationHandler interface {
-	IsEnabledInRound(name string, round uint64) bool
-	IsEnabled(name string) bool
-	IsInterfaceNil() bool
-}
-
 // CoreComponentsHolder holds the core components needed by the interceptors
 type CoreComponentsHolder interface {
 	InternalMarshalizer() marshal.Marshalizer
@@ -1138,6 +1125,7 @@ type CoreComponentsHolder interface {
 	NodeTypeProvider() core.NodeTypeProviderHandler
 	ProcessStatusHandler() common.ProcessStatusHandler
 	HardforkTriggerPubKey() []byte
+	EnableEpochsHandler() common.EnableEpochsHandler
 	IsInterfaceNil() bool
 }
 

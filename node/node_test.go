@@ -2514,8 +2514,8 @@ func TestCreateShardedStores_NilHeaderDataPoolShouldError(t *testing.T) {
 func TestCreateShardedStores_ReturnsSuccessfully(t *testing.T) {
 	messenger := getMessenger()
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
-	nrOfShards := uint32(2)
-	shardCoordinator.SetNoShards(nrOfShards)
+	numOfShards := uint32(2)
+	shardCoordinator.SetNoShards(numOfShards)
 
 	dataPool := dataRetrieverMock.NewPoolsHolderStub()
 	dataPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {

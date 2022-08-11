@@ -17,7 +17,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
@@ -70,8 +69,7 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilPool(t *testing.T
 		createMockPubkeyConverter(),
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
-		&epochNotifier.EpochNotifierStub{},
-		2,
+		&testscommon.EnableEpochsHandlerStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
@@ -98,8 +96,7 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilStore(t *testing.
 		createMockPubkeyConverter(),
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
-		&epochNotifier.EpochNotifierStub{},
-		2,
+		&testscommon.EnableEpochsHandlerStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
@@ -126,8 +123,7 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilHasher(t *testing
 		createMockPubkeyConverter(),
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
-		&epochNotifier.EpochNotifierStub{},
-		2,
+		&testscommon.EnableEpochsHandlerStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
@@ -154,8 +150,7 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilMarsalizer(t *tes
 		createMockPubkeyConverter(),
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
-		&epochNotifier.EpochNotifierStub{},
-		2,
+		&testscommon.EnableEpochsHandlerStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
@@ -182,8 +177,7 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilTxProce(t *testin
 		createMockPubkeyConverter(),
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
-		&epochNotifier.EpochNotifierStub{},
-		2,
+		&testscommon.EnableEpochsHandlerStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
@@ -210,8 +204,7 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilShardCoord(t *tes
 		createMockPubkeyConverter(),
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
-		&epochNotifier.EpochNotifierStub{},
-		2,
+		&testscommon.EnableEpochsHandlerStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
@@ -238,8 +231,7 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilAccounts(t *testi
 		createMockPubkeyConverter(),
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
-		&epochNotifier.EpochNotifierStub{},
-		2,
+		&testscommon.EnableEpochsHandlerStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
@@ -265,8 +257,7 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilRequestFunc(t *te
 		createMockPubkeyConverter(),
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
-		&epochNotifier.EpochNotifierStub{},
-		2,
+		&testscommon.EnableEpochsHandlerStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
@@ -293,8 +284,7 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilGasHandler(t *tes
 		createMockPubkeyConverter(),
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
-		&epochNotifier.EpochNotifierStub{},
-		2,
+		&testscommon.EnableEpochsHandlerStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
@@ -321,8 +311,7 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorShouldWork(t *testin
 		createMockPubkeyConverter(),
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
-		&epochNotifier.EpochNotifierStub{},
-		2,
+		&testscommon.EnableEpochsHandlerStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
@@ -349,8 +338,7 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilPubkeyConverter(t
 		nil,
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
-		&epochNotifier.EpochNotifierStub{},
-		2,
+		&testscommon.EnableEpochsHandlerStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
@@ -377,8 +365,7 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilBlockSizeComputat
 		createMockPubkeyConverter(),
 		nil,
 		&testscommon.BalanceComputationStub{},
-		&epochNotifier.EpochNotifierStub{},
-		2,
+		&testscommon.EnableEpochsHandlerStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
@@ -405,8 +392,7 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilBalanceComputatio
 		createMockPubkeyConverter(),
 		&testscommon.BlockSizeComputationStub{},
 		nil,
-		&epochNotifier.EpochNotifierStub{},
-		2,
+		&testscommon.EnableEpochsHandlerStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
@@ -414,7 +400,7 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilBalanceComputatio
 	assert.Equal(t, process.ErrNilBalanceComputationHandler, err)
 }
 
-func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilEpochNotifier(t *testing.T) {
+func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilEnableEpochsHandler(t *testing.T) {
 	t.Parallel()
 
 	tdp := initDataPool()
@@ -434,12 +420,11 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilEpochNotifier(t *
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		nil,
-		2,
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
 	assert.Nil(t, txs)
-	assert.Equal(t, process.ErrNilEpochNotifier, err)
+	assert.Equal(t, process.ErrNilEnableEpochsHandler, err)
 }
 
 func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilProcessedMiniBlocksTracker(t *testing.T) {
@@ -461,8 +446,7 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilProcessedMiniBloc
 		createMockPubkeyConverter(),
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
-		&epochNotifier.EpochNotifierStub{},
-		2,
+		&testscommon.EnableEpochsHandlerStub{},
 		nil,
 	)
 
@@ -489,8 +473,7 @@ func TestScrsPreProcessor_GetTransactionFromPool(t *testing.T) {
 		createMockPubkeyConverter(),
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
-		&epochNotifier.EpochNotifierStub{},
-		2,
+		&testscommon.EnableEpochsHandlerStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
@@ -521,8 +504,7 @@ func TestScrsPreprocessor_RequestTransactionNothingToRequestAsGeneratedAtProcess
 		createMockPubkeyConverter(),
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
-		&epochNotifier.EpochNotifierStub{},
-		2,
+		&testscommon.EnableEpochsHandlerStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
@@ -561,8 +543,7 @@ func TestScrsPreprocessor_RequestTransactionFromNetwork(t *testing.T) {
 		createMockPubkeyConverter(),
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
-		&epochNotifier.EpochNotifierStub{},
-		2,
+		&testscommon.EnableEpochsHandlerStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
@@ -600,8 +581,7 @@ func TestScrsPreprocessor_RequestBlockTransactionFromMiniBlockFromNetwork(t *tes
 		createMockPubkeyConverter(),
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
-		&epochNotifier.EpochNotifierStub{},
-		2,
+		&testscommon.EnableEpochsHandlerStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
@@ -650,8 +630,7 @@ func TestScrsPreprocessor_ReceivedTransactionShouldEraseRequested(t *testing.T) 
 		createMockPubkeyConverter(),
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
-		&epochNotifier.EpochNotifierStub{},
-		2,
+		&testscommon.EnableEpochsHandlerStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
@@ -726,8 +705,7 @@ func TestScrsPreprocessor_GetAllTxsFromMiniBlockShouldWork(t *testing.T) {
 		createMockPubkeyConverter(),
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
-		&epochNotifier.EpochNotifierStub{},
-		2,
+		&testscommon.EnableEpochsHandlerStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
@@ -771,8 +749,7 @@ func TestScrsPreprocessor_RemoveBlockDataFromPoolsNilBlockShouldErr(t *testing.T
 		createMockPubkeyConverter(),
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
-		&epochNotifier.EpochNotifierStub{},
-		2,
+		&testscommon.EnableEpochsHandlerStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
@@ -801,8 +778,7 @@ func TestScrsPreprocessor_RemoveBlockDataFromPoolsOK(t *testing.T) {
 		createMockPubkeyConverter(),
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
-		&epochNotifier.EpochNotifierStub{},
-		2,
+		&testscommon.EnableEpochsHandlerStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
@@ -844,8 +820,7 @@ func TestScrsPreprocessor_IsDataPreparedErr(t *testing.T) {
 		createMockPubkeyConverter(),
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
-		&epochNotifier.EpochNotifierStub{},
-		2,
+		&testscommon.EnableEpochsHandlerStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
@@ -874,8 +849,7 @@ func TestScrsPreprocessor_IsDataPrepared(t *testing.T) {
 		createMockPubkeyConverter(),
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
-		&epochNotifier.EpochNotifierStub{},
-		2,
+		&testscommon.EnableEpochsHandlerStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
@@ -909,8 +883,7 @@ func TestScrsPreprocessor_SaveTxsToStorage(t *testing.T) {
 		createMockPubkeyConverter(),
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
-		&epochNotifier.EpochNotifierStub{},
-		2,
+		&testscommon.EnableEpochsHandlerStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
@@ -967,8 +940,7 @@ func TestScrsPreprocessor_SaveTxsToStorageShouldSaveCorrectly(t *testing.T) {
 		createMockPubkeyConverter(),
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
-		&epochNotifier.EpochNotifierStub{},
-		2,
+		&testscommon.EnableEpochsHandlerStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
@@ -1047,8 +1019,7 @@ func TestScrsPreprocessor_SaveTxsToStorageMissingTransactionsShouldNotErr(t *tes
 		createMockPubkeyConverter(),
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
-		&epochNotifier.EpochNotifierStub{},
-		2,
+		&testscommon.EnableEpochsHandlerStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
@@ -1095,8 +1066,7 @@ func TestScrsPreprocessor_ProcessBlockTransactionsShouldWork(t *testing.T) {
 		createMockPubkeyConverter(),
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
-		&epochNotifier.EpochNotifierStub{},
-		2,
+		&testscommon.EnableEpochsHandlerStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
@@ -1134,6 +1104,8 @@ func TestScrsPreprocessor_ProcessBlockTransactionsShouldWork(t *testing.T) {
 func TestScrsPreprocessor_ProcessBlockTransactionsShouldErrMaxGasLimitPerBlockInSelfShardIsReached(t *testing.T) {
 	t.Parallel()
 
+	enableEpochsHandlerStub := &testscommon.EnableEpochsHandlerStub{}
+	enableEpochsHandler := enableEpochsHandlerStub
 	tdp := initDataPool()
 	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
 	scrPreproc, _ := NewSmartContractResultPreprocessor(
@@ -1158,8 +1130,7 @@ func TestScrsPreprocessor_ProcessBlockTransactionsShouldErrMaxGasLimitPerBlockIn
 		createMockPubkeyConverter(),
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
-		&epochNotifier.EpochNotifierStub{},
-		2,
+		enableEpochsHandler,
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
@@ -1191,8 +1162,7 @@ func TestScrsPreprocessor_ProcessBlockTransactionsShouldErrMaxGasLimitPerBlockIn
 	err := scrPreproc.ProcessBlockTransactions(&block.Header{MiniBlockHeaders: []block.MiniBlockHeader{{Hash: miniblockHash, TxCount: 1}}}, body, haveTimeTrue)
 	assert.Nil(t, err)
 
-	scrPreproc.EpochConfirmed(2, 0)
-
+	enableEpochsHandlerStub.IsOptimizeGasUsedInCrossMiniBlocksFlagEnabledField = true
 	err = scrPreproc.ProcessBlockTransactions(&block.Header{MiniBlockHeaders: []block.MiniBlockHeader{{Hash: miniblockHash, TxCount: 1}}}, body, haveTimeTrue)
 	assert.Equal(t, process.ErrMaxGasLimitPerBlockInSelfShardIsReached, err)
 }
@@ -1237,8 +1207,7 @@ func TestScrsPreprocessor_ProcessMiniBlock(t *testing.T) {
 		createMockPubkeyConverter(),
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
-		&epochNotifier.EpochNotifierStub{},
-		2,
+		&testscommon.EnableEpochsHandlerStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
@@ -1282,8 +1251,7 @@ func TestScrsPreprocessor_ProcessMiniBlockWrongTypeMiniblockShouldErr(t *testing
 		createMockPubkeyConverter(),
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
-		&epochNotifier.EpochNotifierStub{},
-		2,
+		&testscommon.EnableEpochsHandlerStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
@@ -1346,8 +1314,7 @@ func TestScrsPreprocessor_RestoreBlockDataIntoPools(t *testing.T) {
 		createMockPubkeyConverter(),
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
-		&epochNotifier.EpochNotifierStub{},
-		2,
+		&testscommon.EnableEpochsHandlerStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
@@ -1391,8 +1358,7 @@ func TestScrsPreprocessor_RestoreBlockDataIntoPoolsNilMiniblockPoolShouldErr(t *
 		createMockPubkeyConverter(),
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
-		&epochNotifier.EpochNotifierStub{},
-		2,
+		&testscommon.EnableEpochsHandlerStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
@@ -1426,8 +1392,7 @@ func TestSmartContractResults_CreateBlockStartedShouldEmptyTxHashAndInfo(t *test
 		createMockPubkeyConverter(),
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
-		&epochNotifier.EpochNotifierStub{},
-		2,
+		&testscommon.EnableEpochsHandlerStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
@@ -1455,8 +1420,7 @@ func TestSmartContractResults_GetAllCurrentUsedTxs(t *testing.T) {
 		createMockPubkeyConverter(),
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
-		&epochNotifier.EpochNotifierStub{},
-		2,
+		&testscommon.EnableEpochsHandlerStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
@@ -1469,23 +1433,4 @@ func TestSmartContractResults_GetAllCurrentUsedTxs(t *testing.T) {
 
 	retMap := scrPreproc.GetAllCurrentUsedTxs()
 	assert.NotNil(t, retMap)
-}
-
-func TestSmartContractResults_EpochConfirmed(t *testing.T) {
-	t.Parallel()
-
-	srcs := smartContractResults{
-		basePreProcess: &basePreProcess{
-			optimizeGasUsedInCrossMiniBlocksEnableEpoch: 1,
-		},
-	}
-
-	srcs.EpochConfirmed(0, 0)
-	assert.False(t, srcs.flagOptimizeGasUsedInCrossMiniBlocks.IsSet())
-
-	srcs.EpochConfirmed(1, 0)
-	assert.True(t, srcs.flagOptimizeGasUsedInCrossMiniBlocks.IsSet())
-
-	srcs.EpochConfirmed(2, 0)
-	assert.True(t, srcs.flagOptimizeGasUsedInCrossMiniBlocks.IsSet())
 }
