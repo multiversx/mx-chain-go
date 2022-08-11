@@ -551,12 +551,11 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 	}
 
 	esdtDataStorageArgs := vmcommonBuiltInFunctions.ArgsNewESDTDataStorage{
-		Accounts:                pcf.state.AccountsAdapterAPI(),
-		GlobalSettingsHandler:   disabled.NewDisabledGlobalSettingHandler(),
-		Marshalizer:             pcf.coreData.InternalMarshalizer(),
-		SaveToSystemEnableEpoch: pcf.epochConfig.EnableEpochs.OptimizeNFTStoreEnableEpoch,
-		EpochNotifier:           pcf.coreData.EpochNotifier(),
-		ShardCoordinator:        pcf.bootstrapComponents.ShardCoordinator(),
+		Accounts:              pcf.state.AccountsAdapterAPI(),
+		GlobalSettingsHandler: disabled.NewDisabledGlobalSettingHandler(),
+		Marshalizer:           pcf.coreData.InternalMarshalizer(),
+		ShardCoordinator:      pcf.bootstrapComponents.ShardCoordinator(),
+		EnableEpochsHandler:   pcf.coreData.EnableEpochsHandler(),
 	}
 	pcf.esdtNftStorage, err = vmcommonBuiltInFunctions.NewESDTDataStorage(esdtDataStorageArgs)
 	if err != nil {
