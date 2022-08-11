@@ -5,8 +5,8 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-storage"
 	"github.com/ElrondNetwork/elrond-go-storage/common/commonErrors"
+	"github.com/ElrondNetwork/elrond-go-storage/monitoring"
 	"github.com/ElrondNetwork/elrond-go-storage/types"
 )
 
@@ -34,7 +34,7 @@ type TxCache struct {
 // NewTxCache creates a new transaction cache
 func NewTxCache(config ConfigSourceMe, txGasHandler TxGasHandler) (*TxCache, error) {
 	log.Debug("NewTxCache", "config", config.String())
-	elrond_go_storage.MonitorNewCache(config.Name, uint64(config.NumBytesThreshold))
+	monitoring.MonitorNewCache(config.Name, uint64(config.NumBytesThreshold))
 
 	err := config.verify()
 	if err != nil {
