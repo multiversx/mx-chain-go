@@ -50,6 +50,7 @@ func NewShardChainMessenger(
 		ValidatorCacheSize:    args.MaxValidatorDelayCacheSize,
 		ShardCoordinator:      args.ShardCoordinator,
 		AlarmScheduler:        args.AlarmScheduler,
+		HeadersCache:          args.HeadersCache,
 	}
 
 	dbb, err := NewDelayedBlockBroadcaster(dbbArgs)

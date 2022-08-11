@@ -270,7 +270,7 @@ func TestPeerShardMapper_GetPeerInfoNodesCoordinatorHasTheShardId(t *testing.T) 
 	pk := []byte("dummy pk")
 	arg := createMockArgumentForPeerShardMapper()
 	arg.NodesCoordinator = &shardingMocks.NodesCoordinatorStub{
-		GetValidatorWithPublicKeyCalled: func(publicKey []byte) (validator nodesCoordinator.Validator, u uint32, e error) {
+		GetValidatorWithPublicKeyCalled: func(publicKey []byte) (validator core.Validator, u uint32, e error) {
 			if bytes.Equal(publicKey, pk) {
 				return nil, shardId, nil
 			}
@@ -318,7 +318,7 @@ func TestPeerShardMapper_GetPeerInfoNodesCoordinatorDoesntHaveItShouldReturnFrom
 	pk := []byte("dummy pk")
 	arg := createMockArgumentForPeerShardMapper()
 	arg.NodesCoordinator = &shardingMocks.NodesCoordinatorStub{
-		GetValidatorWithPublicKeyCalled: func(publicKey []byte) (validator nodesCoordinator.Validator, u uint32, e error) {
+		GetValidatorWithPublicKeyCalled: func(publicKey []byte) (validator core.Validator, u uint32, e error) {
 			return nil, 0, errors.New("not found")
 		},
 	}
@@ -343,7 +343,7 @@ func TestPeerShardMapper_GetPeerInfoNodesCoordinatorDoesntHaveItWrongTypeInCache
 	pk := []byte("dummy pk")
 	arg := createMockArgumentForPeerShardMapper()
 	arg.NodesCoordinator = &shardingMocks.NodesCoordinatorStub{
-		GetValidatorWithPublicKeyCalled: func(publicKey []byte) (validator nodesCoordinator.Validator, u uint32, e error) {
+		GetValidatorWithPublicKeyCalled: func(publicKey []byte) (validator core.Validator, u uint32, e error) {
 			return nil, 0, errors.New("not found")
 		},
 	}
@@ -370,7 +370,7 @@ func TestPeerShardMapper_GetPeerInfoNodesCoordinatorDoesntHaveItShouldReturnFrom
 	pk := []byte("dummy pk")
 	arg := createMockArgumentForPeerShardMapper()
 	arg.NodesCoordinator = &shardingMocks.NodesCoordinatorStub{
-		GetValidatorWithPublicKeyCalled: func(publicKey []byte) (validator nodesCoordinator.Validator, u uint32, e error) {
+		GetValidatorWithPublicKeyCalled: func(publicKey []byte) (validator core.Validator, u uint32, e error) {
 			return nil, 0, errors.New("not found")
 		},
 	}
@@ -395,7 +395,7 @@ func TestPeerShardMapper_GetPeerInfoShouldRetUnknownShardId(t *testing.T) {
 	pk := []byte("dummy pk")
 	arg := createMockArgumentForPeerShardMapper()
 	arg.NodesCoordinator = &shardingMocks.NodesCoordinatorStub{
-		GetValidatorWithPublicKeyCalled: func(publicKey []byte) (validator nodesCoordinator.Validator, u uint32, e error) {
+		GetValidatorWithPublicKeyCalled: func(publicKey []byte) (validator core.Validator, u uint32, e error) {
 			return nil, 0, errors.New("not found")
 		},
 	}
@@ -418,7 +418,7 @@ func TestPeerShardMapper_GetPeerInfoWithWrongTypeInCacheShouldReturnUnknown(t *t
 
 	arg := createMockArgumentForPeerShardMapper()
 	arg.NodesCoordinator = &shardingMocks.NodesCoordinatorStub{
-		GetValidatorWithPublicKeyCalled: func(publicKey []byte) (validator nodesCoordinator.Validator, u uint32, e error) {
+		GetValidatorWithPublicKeyCalled: func(publicKey []byte) (validator core.Validator, u uint32, e error) {
 			return nil, 0, errors.New("not found")
 		},
 	}
@@ -444,7 +444,7 @@ func TestPeerShardMapper_GetPeerInfoShouldWorkConcurrently(t *testing.T) {
 	pk := []byte("dummy pk")
 	arg := createMockArgumentForPeerShardMapper()
 	arg.NodesCoordinator = &shardingMocks.NodesCoordinatorStub{
-		GetValidatorWithPublicKeyCalled: func(publicKey []byte) (validator nodesCoordinator.Validator, u uint32, e error) {
+		GetValidatorWithPublicKeyCalled: func(publicKey []byte) (validator core.Validator, u uint32, e error) {
 			return nil, 0, errors.New("not found")
 		},
 	}

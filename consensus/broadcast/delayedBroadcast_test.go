@@ -17,8 +17,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/broadcast"
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -106,6 +104,7 @@ func createDefaultDelayedBroadcasterArgs() *broadcast.ArgsDelayedBlockBroadcaste
 		LeaderCacheSize:       2,
 		ValidatorCacheSize:    2,
 		AlarmScheduler:        alarm.NewAlarmScheduler(),
+		HeadersCache:          &mock.CacherStub{},
 	}
 
 	return dbbArgs
@@ -1087,8 +1086,8 @@ func TestDelayedBlockBroadcaster_RegisterInterceptorCallback(t *testing.T) {
 		mutCbs.Unlock()
 	}
 
-	delayBroadcasterArgs.InterceptorsContainer = &testscommon.InterceptorsContainerStub{
-		GetCalled: func(topic string) (process.Interceptor, error) {
+	delayBroadcasterArgs.InterceptorsContainer = &mock.InterceptorsContainerStub{
+		GetCalled: func(topic string) (core.Interceptor, error) {
 			var hdl func(handler func(topic string, hash []byte, data interface{}))
 			switch topic {
 			case "shardBlocks_0_META":
@@ -1100,7 +1099,7 @@ func TestDelayedBlockBroadcaster_RegisterInterceptorCallback(t *testing.T) {
 				return nil, errors.New("unexpected topic")
 			}
 
-			return &testscommon.InterceptorStub{
+			return &mock.InterceptorStub{
 				RegisterHandlerCalled: hdl,
 			}, nil
 		},

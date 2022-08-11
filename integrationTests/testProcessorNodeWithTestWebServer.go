@@ -270,7 +270,7 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 		ShardCoordinator:          tpn.ShardCoordinator,
 		Marshalizer:               TestMarshalizer,
 		Hasher:                    TestHasher,
-		VMOutputCacher:            &testscommon.CacherMock{},
+		VMOutputCacher:            testscommon.NewCacherMock(),
 	}
 
 	txSimulator, err := txsimulator.NewTransactionSimulator(argSimulator)

@@ -235,7 +235,6 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		return nil, err
 	}
 
-	// TODO: move getter interfaces for struct (p2p.Message, sharding.Validator) to core
 	consensusArgs := &spos.ConsensusCoreArgs{
 		BlockChain:                    ccf.dataComponents.Blockchain(),
 		BlockProcessor:                ccf.processComponents.BlockProcessor(),

@@ -148,7 +148,7 @@ func (tpn *TestProcessorNode) initTestNodeWithSync() {
 		tpn.DataPool.Headers(),
 		tpn.InterceptorsContainer,
 		&testscommon.AlarmSchedulerStub{},
-		&testscommon.CacherMock{},
+		testscommon.NewCacherMock(),
 	)
 	tpn.initBootstrapper()
 	tpn.setGenesisBlock()

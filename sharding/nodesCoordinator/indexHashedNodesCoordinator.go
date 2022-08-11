@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
@@ -157,12 +158,12 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 	log.Info("new nodes config is set for epoch", "epoch", arguments.Epoch)
 	currentNodesConfig := ihnc.nodesConfig[arguments.Epoch]
 	if currentNodesConfig == nil {
-		return nil, fmt.Errorf("%w epoch=%v", ErrEpochNodesConfigDoesNotExist, arguments.Epoch)
+		return nil, fmt.Errorf("%w epoch=%v", errors.ErrEpochNodesConfigDoesNotExist, arguments.Epoch)
 	}
 
 	currentConfig := nodesConfig[arguments.Epoch]
 	if currentConfig == nil {
-		return nil, fmt.Errorf("%w epoch=%v", ErrEpochNodesConfigDoesNotExist, arguments.Epoch)
+		return nil, fmt.Errorf("%w epoch=%v", errors.ErrEpochNodesConfigDoesNotExist, arguments.Epoch)
 	}
 
 	displayNodesConfiguration(
@@ -333,7 +334,7 @@ func (ihnc *indexHashedNodesCoordinator) ComputeConsensusGroup(
 	ihnc.mutNodesConfig.RUnlock()
 
 	if !ok {
-		return nil, fmt.Errorf("%w epoch=%v", ErrEpochNodesConfigDoesNotExist, epoch)
+		return nil, fmt.Errorf("%w epoch=%v", errors.ErrEpochNodesConfigDoesNotExist, epoch)
 	}
 
 	key := []byte(fmt.Sprintf(keyFormat, string(randomness), round, shardID, epoch))
@@ -425,7 +426,7 @@ func (ihnc *indexHashedNodesCoordinator) GetAllEligibleValidatorsPublicKeys(epoc
 	ihnc.mutNodesConfig.RUnlock()
 
 	if !ok {
-		return nil, fmt.Errorf("%w epoch=%v", ErrEpochNodesConfigDoesNotExist, epoch)
+		return nil, fmt.Errorf("%w epoch=%v", errors.ErrEpochNodesConfigDoesNotExist, epoch)
 	}
 
 	nodesConfig.mutNodesMaps.RLock()
@@ -449,7 +450,7 @@ func (ihnc *indexHashedNodesCoordinator) GetAllWaitingValidatorsPublicKeys(epoch
 	ihnc.mutNodesConfig.RUnlock()
 
 	if !ok {
-		return nil, fmt.Errorf("%w epoch=%v", ErrEpochNodesConfigDoesNotExist, epoch)
+		return nil, fmt.Errorf("%w epoch=%v", errors.ErrEpochNodesConfigDoesNotExist, epoch)
 	}
 
 	nodesConfig.mutNodesMaps.RLock()
@@ -473,7 +474,7 @@ func (ihnc *indexHashedNodesCoordinator) GetAllLeavingValidatorsPublicKeys(epoch
 	ihnc.mutNodesConfig.RUnlock()
 
 	if !ok {
-		return nil, fmt.Errorf("%w epoch=%v", ErrEpochNodesConfigDoesNotExist, epoch)
+		return nil, fmt.Errorf("%w epoch=%v", errors.ErrEpochNodesConfigDoesNotExist, epoch)
 	}
 
 	nodesConfig.mutNodesMaps.RLock()
@@ -843,7 +844,7 @@ func (ihnc *indexHashedNodesCoordinator) ShardIdForEpoch(epoch uint32) (uint32, 
 	ihnc.mutNodesConfig.RUnlock()
 
 	if !ok {
-		return 0, fmt.Errorf("%w epoch=%v", ErrEpochNodesConfigDoesNotExist, epoch)
+		return 0, fmt.Errorf("%w epoch=%v", errors.ErrEpochNodesConfigDoesNotExist, epoch)
 	}
 
 	return nodesConfig.shardID, nil
@@ -860,7 +861,7 @@ func (ihnc *indexHashedNodesCoordinator) ShuffleOutForEpoch(epoch uint32) {
 	if nodesConfig == nil {
 		log.Warn("shuffleOutForEpoch failed",
 			"epoch", epoch,
-			"error", ErrEpochNodesConfigDoesNotExist)
+			"error", errors.ErrEpochNodesConfigDoesNotExist)
 		return
 	}
 

@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/common"
@@ -1120,8 +1121,8 @@ func TestBootstrap_GetNodeStateShouldReturnNotSynchronizedWhenForkIsDetectedAndI
 
 	bs, _ := sync.NewShardBootstrap(args)
 
-	_ = args.ForkDetector.AddHeader(&hdr1, hash1, process.BHProcessed, nil, nil)
-	_ = args.ForkDetector.AddHeader(&hdr2, hash2, process.BHNotarized, selfNotarizedHeaders, selfNotarizedHeadersHashes)
+	_ = args.ForkDetector.AddHeader(&hdr1, hash1, core.BHProcessed, nil, nil)
+	_ = args.ForkDetector.AddHeader(&hdr2, hash2, core.BHNotarized, selfNotarizedHeaders, selfNotarizedHeadersHashes)
 
 	bs.ComputeNodeState()
 	assert.Equal(t, common.NsNotSynchronized, bs.GetNodeState())
@@ -1130,7 +1131,7 @@ func TestBootstrap_GetNodeStateShouldReturnNotSynchronizedWhenForkIsDetectedAndI
 	if bs.GetNodeState() == common.NsNotSynchronized && bs.IsForkDetected() {
 		args.ForkDetector.RemoveHeader(hdr1.GetNonce(), hash1)
 		bs.ReceivedHeaders(&hdr1, hash1)
-		_ = args.ForkDetector.AddHeader(&hdr1, hash1, process.BHProcessed, nil, nil)
+		_ = args.ForkDetector.AddHeader(&hdr1, hash1, core.BHProcessed, nil, nil)
 	}
 
 	bs.ComputeNodeState()
@@ -1195,8 +1196,8 @@ func TestBootstrap_GetNodeStateShouldReturnSynchronizedWhenForkIsDetectedAndItRe
 
 	bs, _ := sync.NewShardBootstrap(args)
 
-	_ = args.ForkDetector.AddHeader(&hdr1, hash1, process.BHProcessed, nil, nil)
-	_ = args.ForkDetector.AddHeader(&hdr2, hash2, process.BHNotarized, selfNotarizedHeaders, selfNotarizedHeadersHashes)
+	_ = args.ForkDetector.AddHeader(&hdr1, hash1, core.BHProcessed, nil, nil)
+	_ = args.ForkDetector.AddHeader(&hdr2, hash2, core.BHNotarized, selfNotarizedHeaders, selfNotarizedHeadersHashes)
 
 	bs.ComputeNodeState()
 	assert.Equal(t, common.NsNotSynchronized, bs.GetNodeState())
@@ -1205,7 +1206,7 @@ func TestBootstrap_GetNodeStateShouldReturnSynchronizedWhenForkIsDetectedAndItRe
 	if bs.GetNodeState() == common.NsNotSynchronized && bs.IsForkDetected() {
 		args.ForkDetector.RemoveHeader(hdr1.GetNonce(), hash1)
 		bs.ReceivedHeaders(&hdr2, hash2)
-		_ = args.ForkDetector.AddHeader(&hdr2, hash2, process.BHProcessed, selfNotarizedHeaders, selfNotarizedHeadersHashes)
+		_ = args.ForkDetector.AddHeader(&hdr2, hash2, core.BHProcessed, selfNotarizedHeaders, selfNotarizedHeadersHashes)
 		bs.SetNodeStateCalculated(false)
 	}
 
@@ -1318,8 +1319,8 @@ func TestBootstrap_ReceivedHeadersFoundInPoolShouldAddToForkDetector(t *testing.
 	wasAdded := false
 
 	forkDetector := &mock.ForkDetectorMock{}
-	forkDetector.AddHeaderCalled = func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, selfNotarizedHeaders []data.HeaderHandler, selfNotarizedHeadersHashes [][]byte) error {
-		if state == process.BHProcessed {
+	forkDetector.AddHeaderCalled = func(header data.HeaderHandler, hash []byte, state core.BlockHeaderState, selfNotarizedHeaders []data.HeaderHandler, selfNotarizedHeadersHashes [][]byte) error {
+		if state == core.BHProcessed {
 			return errors.New("processed")
 		}
 

@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	errorsErd "github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -148,7 +149,7 @@ func TestIndexHashedNodesCoordinator_SetNodesConfigFromValidatorsInfoMultipleEpo
 
 	validators, err := ihnc.GetAllEligibleValidatorsPublicKeys(epoch)
 	require.Nil(t, validators)
-	require.True(t, errors.Is(err, ErrEpochNodesConfigDoesNotExist))
+	require.True(t, errors.Is(err, errorsErd.ErrEpochNodesConfigDoesNotExist))
 }
 
 func TestIndexHashedNodesCoordinator_IsEpochInConfig(t *testing.T) {

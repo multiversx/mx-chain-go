@@ -4,12 +4,12 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/consensus"
+	"github.com/ElrondNetwork/elrond-go/consensus/mock"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/bls"
-	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
-	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -146,7 +146,7 @@ func TestConsensusState_GetNextConsensusGroupShouldFailWhenComputeValidatorsGrou
 
 	cns := internalInitConsensusState()
 
-	nodesCoord := &shardingMocks.NodesCoordinatorMock{}
+	nodesCoord := &mock.NodesCoordinatorMock{}
 	err := errors.New("error")
 	nodesCoord.ComputeValidatorsGroupCalled = func(
 		randomness []byte,
@@ -166,19 +166,19 @@ func TestConsensusState_GetNextConsensusGroupShouldWork(t *testing.T) {
 
 	cns := internalInitConsensusState()
 
-	nodesCoord := &shardingMocks.NodesCoordinatorMock{
+	nodesCoord := &mock.NodesCoordinatorMock{
 		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]core.Validator, error) {
 			defaultSelectionChances := uint32(1)
 			return []core.Validator{
-				shardingMocks.NewValidatorMock([]byte("A"), 1, defaultSelectionChances),
-				shardingMocks.NewValidatorMock([]byte("B"), 1, defaultSelectionChances),
-				shardingMocks.NewValidatorMock([]byte("C"), 1, defaultSelectionChances),
-				shardingMocks.NewValidatorMock([]byte("D"), 1, defaultSelectionChances),
-				shardingMocks.NewValidatorMock([]byte("E"), 1, defaultSelectionChances),
-				shardingMocks.NewValidatorMock([]byte("F"), 1, defaultSelectionChances),
-				shardingMocks.NewValidatorMock([]byte("G"), 1, defaultSelectionChances),
-				shardingMocks.NewValidatorMock([]byte("H"), 1, defaultSelectionChances),
-				shardingMocks.NewValidatorMock([]byte("I"), 1, defaultSelectionChances),
+				mock.NewValidatorMock([]byte("A"), 1, defaultSelectionChances),
+				mock.NewValidatorMock([]byte("B"), 1, defaultSelectionChances),
+				mock.NewValidatorMock([]byte("C"), 1, defaultSelectionChances),
+				mock.NewValidatorMock([]byte("D"), 1, defaultSelectionChances),
+				mock.NewValidatorMock([]byte("E"), 1, defaultSelectionChances),
+				mock.NewValidatorMock([]byte("F"), 1, defaultSelectionChances),
+				mock.NewValidatorMock([]byte("G"), 1, defaultSelectionChances),
+				mock.NewValidatorMock([]byte("H"), 1, defaultSelectionChances),
+				mock.NewValidatorMock([]byte("I"), 1, defaultSelectionChances),
 			}, nil
 		},
 	}

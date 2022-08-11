@@ -5,7 +5,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
-	cryptoCommon "github.com/ElrondNetwork/elrond-go/common/crypto"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 )
 
@@ -21,7 +20,7 @@ type ConsensusCore struct {
 	marshalizer                   marshal.Marshalizer
 	blsPrivateKey                 crypto.PrivateKey
 	blsSingleSigner               crypto.SingleSigner
-	multiSignerContainer          cryptoCommon.MultiSignerContainer
+	multiSignerContainer          consensus.MultiSignerContainer
 	roundHandler                  consensus.RoundHandler
 	shardCoordinator              consensus.ShardCoordinator
 	nodesCoordinator              consensus.NodesCoordinator
@@ -47,7 +46,7 @@ type ConsensusCoreArgs struct {
 	Marshalizer                   marshal.Marshalizer
 	BlsPrivateKey                 crypto.PrivateKey
 	BlsSingleSigner               crypto.SingleSigner
-	MultiSignerContainer          cryptoCommon.MultiSignerContainer
+	MultiSignerContainer          consensus.MultiSignerContainer
 	RoundHandler                  consensus.RoundHandler
 	ShardCoordinator              consensus.ShardCoordinator
 	NodesCoordinator              consensus.NodesCoordinator
@@ -140,7 +139,7 @@ func (cc *ConsensusCore) Marshalizer() marshal.Marshalizer {
 }
 
 // MultiSignerContainer gets the MultiSignerContainer stored in the ConsensusCore
-func (cc *ConsensusCore) MultiSignerContainer() cryptoCommon.MultiSignerContainer {
+func (cc *ConsensusCore) MultiSignerContainer() consensus.MultiSignerContainer {
 	return cc.multiSignerContainer
 }
 

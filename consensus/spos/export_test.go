@@ -7,7 +7,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/process"
 )
 
 type RoundConsensus struct {
@@ -22,22 +21,22 @@ func NewRoundConsensusWrapper(rcns *roundConsensus) *RoundConsensus {
 }
 
 // BlockProcessor -
-func (wrk *Worker) BlockProcessor() process.BlockProcessor {
+func (wrk *Worker) BlockProcessor() consensus.BlockProcessor {
 	return wrk.blockProcessor
 }
 
 // SetBlockProcessor -
-func (wrk *Worker) SetBlockProcessor(blockProcessor process.BlockProcessor) {
+func (wrk *Worker) SetBlockProcessor(blockProcessor consensus.BlockProcessor) {
 	wrk.blockProcessor = blockProcessor
 }
 
 // Bootstrapper -
-func (wrk *Worker) Bootstrapper() process.Bootstrapper {
+func (wrk *Worker) Bootstrapper() consensus.Bootstrapper {
 	return wrk.bootstrapper
 }
 
 // SetBootstrapper -
-func (wrk *Worker) SetBootstrapper(bootstrapper process.Bootstrapper) {
+func (wrk *Worker) SetBootstrapper(bootstrapper consensus.Bootstrapper) {
 	wrk.bootstrapper = bootstrapper
 }
 
@@ -62,12 +61,12 @@ func (wrk *Worker) SetConsensusState(consensusState *ConsensusState) {
 }
 
 // ForkDetector -
-func (wrk *Worker) ForkDetector() process.ForkDetector {
+func (wrk *Worker) ForkDetector() consensus.ForkDetector {
 	return wrk.forkDetector
 }
 
 // SetForkDetector -
-func (wrk *Worker) SetForkDetector(forkDetector process.ForkDetector) {
+func (wrk *Worker) SetForkDetector(forkDetector consensus.ForkDetector) {
 	wrk.forkDetector = forkDetector
 }
 

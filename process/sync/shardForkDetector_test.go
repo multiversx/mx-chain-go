@@ -3,6 +3,7 @@ package sync_test
 import (
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
@@ -77,7 +78,7 @@ func TestShardForkDetector_AddHeaderNilHeaderShouldErr(t *testing.T) {
 		&mock.BlockTrackerMock{},
 		0,
 	)
-	err := bfd.AddHeader(nil, make([]byte, 0), process.BHProcessed, nil, nil)
+	err := bfd.AddHeader(nil, make([]byte, 0), core.BHProcessed, nil, nil)
 	assert.Equal(t, sync.ErrNilHeader, err)
 }
 
@@ -91,7 +92,7 @@ func TestShardForkDetector_AddHeaderNilHashShouldErr(t *testing.T) {
 		&mock.BlockTrackerMock{},
 		0,
 	)
-	err := bfd.AddHeader(&block.Header{}, nil, process.BHProcessed, nil, nil)
+	err := bfd.AddHeader(&block.Header{}, nil, core.BHProcessed, nil, nil)
 	assert.Equal(t, sync.ErrNilHash, err)
 }
 
@@ -107,7 +108,7 @@ func TestShardForkDetector_AddHeaderNotPresentShouldWork(t *testing.T) {
 		&mock.BlockTrackerMock{},
 		0,
 	)
-	err := bfd.AddHeader(hdr, hash, process.BHProcessed, nil, nil)
+	err := bfd.AddHeader(hdr, hash, core.BHProcessed, nil, nil)
 	assert.Nil(t, err)
 
 	hInfos := bfd.GetHeaders(1)
@@ -129,8 +130,8 @@ func TestShardForkDetector_AddHeaderPresentShouldAppend(t *testing.T) {
 		&mock.BlockTrackerMock{},
 		0,
 	)
-	_ = bfd.AddHeader(hdr1, hash1, process.BHProcessed, nil, nil)
-	err := bfd.AddHeader(hdr2, hash2, process.BHProcessed, nil, nil)
+	_ = bfd.AddHeader(hdr1, hash1, core.BHProcessed, nil, nil)
+	err := bfd.AddHeader(hdr2, hash2, core.BHProcessed, nil, nil)
 	assert.Nil(t, err)
 
 	hInfos := bfd.GetHeaders(1)
@@ -151,7 +152,7 @@ func TestShardForkDetector_AddHeaderWithProcessedBlockShouldSetCheckpoint(t *tes
 		&mock.BlockTrackerMock{},
 		0,
 	)
-	_ = bfd.AddHeader(hdr1, hash1, process.BHProcessed, nil, nil)
+	_ = bfd.AddHeader(hdr1, hash1, core.BHProcessed, nil, nil)
 	assert.Equal(t, hdr1.Nonce, bfd.LastCheckpointNonce())
 }
 
@@ -168,15 +169,15 @@ func TestShardForkDetector_AddHeaderPresentShouldNotRewriteState(t *testing.T) {
 		&mock.BlockTrackerMock{},
 		0,
 	)
-	_ = bfd.AddHeader(hdr1, hash, process.BHReceived, nil, nil)
-	err := bfd.AddHeader(hdr2, hash, process.BHProcessed, nil, nil)
+	_ = bfd.AddHeader(hdr1, hash, core.BHReceived, nil, nil)
+	err := bfd.AddHeader(hdr2, hash, core.BHProcessed, nil, nil)
 	assert.Nil(t, err)
 
 	hInfos := bfd.GetHeaders(1)
 	assert.Equal(t, 2, len(hInfos))
 	assert.Equal(t, hash, hInfos[0].Hash())
-	assert.Equal(t, process.BHReceived, hInfos[0].GetBlockHeaderState())
-	assert.Equal(t, process.BHProcessed, hInfos[1].GetBlockHeaderState())
+	assert.Equal(t, core.BHReceived, hInfos[0].GetBlockHeaderState())
+	assert.Equal(t, core.BHProcessed, hInfos[1].GetBlockHeaderState())
 }
 
 func TestShardForkDetector_AddHeaderHigherNonceThanRoundShouldErr(t *testing.T) {
@@ -190,6 +191,6 @@ func TestShardForkDetector_AddHeaderHigherNonceThanRoundShouldErr(t *testing.T) 
 		0,
 	)
 	err := bfd.AddHeader(
-		&block.Header{Nonce: 1, Round: 0, PubKeysBitmap: []byte("X")}, []byte("hash1"), process.BHProcessed, nil, nil)
+		&block.Header{Nonce: 1, Round: 0, PubKeysBitmap: []byte("X")}, []byte("hash1"), core.BHProcessed, nil, nil)
 	assert.Equal(t, sync.ErrHigherNonceInBlock, err)
 }

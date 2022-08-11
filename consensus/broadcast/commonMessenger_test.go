@@ -1,6 +1,7 @@
 package broadcast_test
 
 import (
+	"errors"
 	"sync"
 	"testing"
 	"time"
@@ -11,7 +12,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/broadcast"
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

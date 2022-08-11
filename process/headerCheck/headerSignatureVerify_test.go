@@ -5,6 +5,7 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	dataBlock "github.com/ElrondNetwork/elrond-go-core/data/block"
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"

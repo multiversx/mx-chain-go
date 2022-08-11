@@ -13,7 +13,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/process"
 	processMocks "github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	"github.com/stretchr/testify/assert"
