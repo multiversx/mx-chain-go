@@ -104,6 +104,7 @@ type EnableEpochsHandlerStub struct {
 	IsCheckTransferFlagEnabledField                              bool
 	IsTransferToMetaFlagEnabledField                             bool
 	IsESDTNFTImprovementV1FlagEnabledField                       bool
+	IsSetSenderInEeiOutputTransferFlagEnabledField               bool
 }
 
 // ResetPenalizedTooMuchGasFlag -
@@ -616,6 +617,11 @@ func (stub *EnableEpochsHandlerStub) IsTransferToMetaFlagEnabled() bool {
 // IsESDTNFTImprovementV1FlagEnabled -
 func (stub *EnableEpochsHandlerStub) IsESDTNFTImprovementV1FlagEnabled() bool {
 	return stub.IsESDTNFTImprovementV1FlagEnabledField
+}
+
+// IsSetSenderInEeiOutputTransferFlagEnabled -
+func (stub *EnableEpochsHandlerStub) IsSetSenderInEeiOutputTransferFlagEnabled() bool {
+	return stub.IsSetSenderInEeiOutputTransferFlagEnabledField
 }
 
 // IsInterfaceNil -
