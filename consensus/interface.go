@@ -161,58 +161,6 @@ type SignatureHandler interface {
 	IsInterfaceNil() bool
 }
 
-// type StateProcessing interface {
-// 	ConsensusStateHandler
-// 	RoundConsensusHandler
-// 	RoundThresholdHandler
-// 	RoundStatusHandler
-// 	IsInterfaceNil() bool
-// }
-
-// type ConsensusStateHandler interface {
-// 	GetData() []byte
-// 	GetBody() data.BodyHandler
-// 	GetHeader() data.HeaderHandler
-// 	GetRoundIndex() int64
-// 	GetRoundTimeStamp() time.Time
-// 	GetRoundCanceled() bool
-// 	GetExtendedCalled() bool
-// 	GetWaitingAllSignaturesTimeOut() bool
-// }
-
-// type RoundConsensusHandler interface {
-// 	ConsensusGroupIndex(pubKey string) (int, error)
-// 	SelfConsensusGroupIndex() (int, error)
-// 	SetEligibleList(eligibleList map[string]struct{})
-// 	ConsensusGroup() []string
-// 	SetConsensusGroup(consensusGroup []string)
-// 	ConsensusGroupSize() int
-// 	SetConsensusGroupSize(consensusGroudpSize int)
-// 	SelfPubKey() string
-// 	SetSelfPubKey(selfPubKey string)
-// 	JobDone(key string, subroundId int) (bool, error)
-// 	SetJobDone(key string, subroundId int, value bool) error
-// 	SelfJobDone(subroundId int) (bool, error)
-// 	SetSelfJobDone(subroundId int, value bool) error
-// 	IsNodeInConsensusGroup(node string) bool
-// 	IsNodeInEligibleList(node string) bool
-// 	ComputeSize(subroundId int) int
-// 	ResetRoundState()
-// }
-
-// type RoundThresholdHandler interface {
-// 	Threshold(subroundId int) int
-// 	SetThreshold(subroundId int, threshold int)
-// 	FallbackThreshold(subroundId int) int
-// 	SetFallbackThreshold(subroundId int, threshold int)
-// }
-
-// type RoundStatusHandler interface {
-// 	Status(subroundId int) spos.SubroundStatus
-// 	SetStatus(subroundId int, subroundStatus spos.SubroundStatus)
-// 	ResetRoundStatus()
-// }
-
 // InterceptorsContainer defines an interceptors holder data type with basic functionality
 type InterceptorsContainer interface {
 	Get(key string) (core.Interceptor, error)
@@ -256,13 +204,6 @@ type SyncTimer interface {
 	CurrentTime() time.Time
 	FormattedCurrentTime() string
 	IsInterfaceNil() bool
-}
-
-// ActionHandler defines the action taken on epoch start event
-type ActionHandler interface {
-	EpochStartAction(hdr data.HeaderHandler)
-	EpochStartPrepare(metaHdr data.HeaderHandler, body data.BodyHandler)
-	NotifyOrder() uint32
 }
 
 // RegistrationHandler provides Register and Unregister functionality for the end of epoch events

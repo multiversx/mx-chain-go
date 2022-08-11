@@ -2,7 +2,7 @@ package consensus
 
 import "time"
 
-// TODO: handler duplicated constants with other packages
+// TODO: better handling for duplicated constants, evaluare moving to core or to some other common repo
 
 const (
 	// TransactionTopic is the topic used for sharing transactions
