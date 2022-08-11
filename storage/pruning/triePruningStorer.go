@@ -83,8 +83,11 @@ func initTriePersisterInEpoch(
 	persistersMapByEpoch := make(map[uint32]*persisterData)
 
 	numDbsMarkedAsActive := 0
+	numDbsMarkedAsSynced := 0
 	for epoch := int64(args.StartingEpoch); epoch >= 0; epoch-- {
-		if numDbsMarkedAsActive >= minNumOfActiveDBsNecessary && epoch < oldestEpochKeep {
+		shouldKeepEpoch := epoch >= oldestEpochKeep
+		haveActiveDbsNecessary := numDbsMarkedAsActive >= minNumOfActiveDBsNecessary
+		if haveActiveDbsNecessary && !shouldKeepEpoch {
 			break
 		}
 
@@ -96,7 +99,15 @@ func initTriePersisterInEpoch(
 
 		persistersMapByEpoch[uint32(epoch)] = p
 
-		if epoch < oldestEpochActive && numDbsMarkedAsActive >= minNumOfActiveDBsNecessary {
+		if isDbMarkedAsActive(p) {
+			numDbsMarkedAsActive++
+		}
+
+		if isDbSynced(p) {
+			numDbsMarkedAsSynced++
+		}
+
+		if epoch < oldestEpochActive && haveActiveDbsNecessary {
 			err = p.Close()
 			if err != nil {
 				log.Debug("persister.Close()", "identifier", args.Identifier, "error", err.Error())
@@ -106,12 +117,26 @@ func initTriePersisterInEpoch(
 			log.Debug("appended a pruning active persister", "epoch", epoch, "identifier", args.Identifier)
 		}
 
-		if isDbMarkedAsActive(p) {
-			numDbsMarkedAsActive++
+		storageHasBeenSynced := numDbsMarkedAsActive >= 1 && numDbsMarkedAsSynced >= 1
+		if storageHasBeenSynced && !shouldKeepEpoch {
+			break
 		}
 	}
 
 	return persisters, persistersMapByEpoch, nil
+}
+
+func isDbSynced(pd *persisterData) bool {
+	val, err := pd.persister.Get([]byte(common.TrieSyncedKey))
+	if err != nil {
+		return false
+	}
+
+	if bytes.Equal(val, []byte(common.TrieSyncedVal)) {
+		return true
+	}
+
+	return false
 }
 
 func isDbMarkedAsActive(pd *persisterData) bool {

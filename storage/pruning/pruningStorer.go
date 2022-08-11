@@ -919,7 +919,7 @@ func (ps *PruningStorer) closeAndDestroyPersisters(epoch uint32) error {
 
 	epochsToRemove := make([]uint32, 0)
 	idxToRemove := epoch - ps.numOfEpochsToKeep
-	if idxToRemove > lastEpochNeeded {
+	if idxToRemove >= lastEpochNeeded {
 		idxToRemove = lastEpochNeeded - 1
 	}
 	if uint32(len(ps.persistersMapByEpoch)) > ps.numOfEpochsToKeep {
