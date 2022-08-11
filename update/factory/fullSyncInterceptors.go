@@ -47,27 +47,26 @@ type fullSyncInterceptorsContainerFactory struct {
 
 // ArgsNewFullSyncInterceptorsContainerFactory holds the arguments needed for fullSyncInterceptorsContainerFactory
 type ArgsNewFullSyncInterceptorsContainerFactory struct {
-	CoreComponents            process.CoreComponentsHolder
-	CryptoComponents          process.CryptoComponentsHolder
-	Accounts                  state.AccountsAdapter
-	ShardCoordinator          sharding.Coordinator
-	NodesCoordinator          nodesCoordinator.NodesCoordinator
-	Messenger                 process.TopicHandler
-	Store                     dataRetriever.StorageService
-	DataPool                  dataRetriever.PoolsHolder
-	MaxTxNonceDeltaAllowed    int
-	TxFeeHandler              process.FeeHandler
-	BlockBlackList            process.TimeCacher
-	HeaderSigVerifier         process.InterceptedHeaderSigVerifier
-	HeaderIntegrityVerifier   process.HeaderIntegrityVerifier
-	SizeCheckDelta            uint32
-	ValidityAttester          process.ValidityAttester
-	EpochStartTrigger         process.EpochStartTriggerHandler
-	WhiteListHandler          update.WhiteListHandler
-	WhiteListerVerifiedTxs    update.WhiteListHandler
-	InterceptorsContainer     process.InterceptorsContainer
-	AntifloodHandler          process.P2PAntifloodHandler
-	EnableSignTxWithHashEpoch uint32
+	CoreComponents          process.CoreComponentsHolder
+	CryptoComponents        process.CryptoComponentsHolder
+	Accounts                state.AccountsAdapter
+	ShardCoordinator        sharding.Coordinator
+	NodesCoordinator        nodesCoordinator.NodesCoordinator
+	Messenger               process.TopicHandler
+	Store                   dataRetriever.StorageService
+	DataPool                dataRetriever.PoolsHolder
+	MaxTxNonceDeltaAllowed  int
+	TxFeeHandler            process.FeeHandler
+	BlockBlackList          process.TimeCacher
+	HeaderSigVerifier       process.InterceptedHeaderSigVerifier
+	HeaderIntegrityVerifier process.HeaderIntegrityVerifier
+	SizeCheckDelta          uint32
+	ValidityAttester        process.ValidityAttester
+	EpochStartTrigger       process.EpochStartTriggerHandler
+	WhiteListHandler        update.WhiteListHandler
+	WhiteListerVerifiedTxs  update.WhiteListHandler
+	InterceptorsContainer   process.InterceptorsContainer
+	AntifloodHandler        process.P2PAntifloodHandler
 }
 
 // NewFullSyncInterceptorsContainerFactory is responsible for creating a new interceptors factory object
@@ -123,18 +122,17 @@ func NewFullSyncInterceptorsContainerFactory(
 	}
 
 	argInterceptorFactory := &interceptorFactory.ArgInterceptedDataFactory{
-		CoreComponents:            args.CoreComponents,
-		CryptoComponents:          args.CryptoComponents,
-		ShardCoordinator:          args.ShardCoordinator,
-		NodesCoordinator:          args.NodesCoordinator,
-		FeeHandler:                args.TxFeeHandler,
-		HeaderSigVerifier:         args.HeaderSigVerifier,
-		HeaderIntegrityVerifier:   args.HeaderIntegrityVerifier,
-		ValidityAttester:          args.ValidityAttester,
-		EpochStartTrigger:         args.EpochStartTrigger,
-		WhiteListerVerifiedTxs:    args.WhiteListerVerifiedTxs,
-		ArgsParser:                smartContract.NewArgumentParser(),
-		EnableSignTxWithHashEpoch: args.EnableSignTxWithHashEpoch,
+		CoreComponents:          args.CoreComponents,
+		CryptoComponents:        args.CryptoComponents,
+		ShardCoordinator:        args.ShardCoordinator,
+		NodesCoordinator:        args.NodesCoordinator,
+		FeeHandler:              args.TxFeeHandler,
+		HeaderSigVerifier:       args.HeaderSigVerifier,
+		HeaderIntegrityVerifier: args.HeaderIntegrityVerifier,
+		ValidityAttester:        args.ValidityAttester,
+		EpochStartTrigger:       args.EpochStartTrigger,
+		WhiteListerVerifiedTxs:  args.WhiteListerVerifiedTxs,
+		ArgsParser:              smartContract.NewArgumentParser(),
 	}
 
 	icf := &fullSyncInterceptorsContainerFactory{

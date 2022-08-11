@@ -59,13 +59,14 @@ func createMockArgument(
 		GenesisTime:   0,
 		StartEpochNum: 0,
 		Core: &mock.CoreComponentsMock{
-			IntMarsh:            &mock.MarshalizerMock{},
-			TxMarsh:             &mock.MarshalizerMock{},
-			Hash:                &hashingMocks.HasherMock{},
-			UInt64ByteSliceConv: &mock.Uint64ByteSliceConverterMock{},
-			AddrPubKeyConv:      mock.NewPubkeyConverterMock(32),
-			Chain:               "chainID",
-			MinTxVersion:        1,
+			IntMarsh:                 &mock.MarshalizerMock{},
+			TxMarsh:                  &mock.MarshalizerMock{},
+			Hash:                     &hashingMocks.HasherMock{},
+			UInt64ByteSliceConv:      &mock.Uint64ByteSliceConverterMock{},
+			AddrPubKeyConv:           mock.NewPubkeyConverterMock(32),
+			Chain:                    "chainID",
+			MinTxVersion:             1,
+			EnableEpochsHandlerField: &testscommon.EnableEpochsHandlerStub{},
 		},
 		Data: &mock.DataComponentsMock{
 			Storage: &storageCommon.ChainStorerStub{

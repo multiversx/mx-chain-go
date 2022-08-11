@@ -13,23 +13,16 @@ import (
 
 // ArgsCreateBuiltInFunctionContainer defines the argument structure to create new built in function container
 type ArgsCreateBuiltInFunctionContainer struct {
-	GasSchedule                              core.GasScheduleNotifier
-	MapDNSAddresses                          map[string]struct{}
-	EnableUserNameChange                     bool
-	Marshalizer                              marshal.Marshalizer
-	Accounts                                 state.AccountsAdapter
-	ShardCoordinator                         sharding.Coordinator
-	EpochNotifier                            vmcommon.EpochNotifier
-	ESDTMultiTransferEnableEpoch             uint32
-	ESDTTransferRoleEnableEpoch              uint32
-	GlobalMintBurnDisableEpoch               uint32
-	ESDTTransferMetaEnableEpoch              uint32
-	OptimizeNFTStoreEnableEpoch              uint32
-	CheckCorrectTokenIDEnableEpoch           uint32
-	CheckFunctionArgumentEnableEpoch         uint32
-	ESDTMetadataContinuousCleanupEnableEpoch uint32
-	MaxNumNodesInTransferRole                uint32
-	AutomaticCrawlerAddress                  []byte
+	GasSchedule               core.GasScheduleNotifier
+	MapDNSAddresses           map[string]struct{}
+	EnableUserNameChange      bool
+	Marshalizer               marshal.Marshalizer
+	Accounts                  state.AccountsAdapter
+	ShardCoordinator          sharding.Coordinator
+	EpochNotifier             vmcommon.EpochNotifier
+	EnableEpochsHandler       vmcommon.EnableEpochsHandler
+	AutomaticCrawlerAddress   []byte
+	MaxNumNodesInTransferRole uint32
 }
 
 // CreateBuiltInFunctionsFactory creates a container that will hold all the available built in functions
@@ -52,6 +45,9 @@ func CreateBuiltInFunctionsFactory(args ArgsCreateBuiltInFunctionContainer) (vmc
 	if check.IfNil(args.EpochNotifier) {
 		return nil, process.ErrNilEpochNotifier
 	}
+	if check.IfNil(args.EnableEpochsHandler) {
+		return nil, process.ErrNilEnableEpochsHandler
+	}
 
 	vmcommonAccounts, ok := args.Accounts.(vmcommon.AccountsAdapter)
 	if !ok {
@@ -59,24 +55,15 @@ func CreateBuiltInFunctionsFactory(args ArgsCreateBuiltInFunctionContainer) (vmc
 	}
 
 	modifiedArgs := vmcommonBuiltInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasMap:                              args.GasSchedule.LatestGasSchedule(),
-		MapDNSAddresses:                     args.MapDNSAddresses,
-		EnableUserNameChange:                args.EnableUserNameChange,
-		Marshalizer:                         args.Marshalizer,
-		Accounts:                            vmcommonAccounts,
-		ShardCoordinator:                    args.ShardCoordinator,
-		EpochNotifier:                       args.EpochNotifier,
-		ESDTNFTImprovementV1ActivationEpoch: args.ESDTMultiTransferEnableEpoch,
-		ESDTTransferToMetaEnableEpoch:       args.ESDTTransferMetaEnableEpoch,
-		ESDTTransferRoleEnableEpoch:         args.ESDTTransferRoleEnableEpoch,
-		GlobalMintBurnDisableEpoch:          args.GlobalMintBurnDisableEpoch,
-		SaveNFTToSystemAccountEnableEpoch:   args.OptimizeNFTStoreEnableEpoch,
-		CheckCorrectTokenIDEnableEpoch:      args.CheckCorrectTokenIDEnableEpoch,
-		CheckFunctionArgumentEnableEpoch:    args.CheckFunctionArgumentEnableEpoch,
-		SendESDTMetadataAlwaysEnableEpoch:   args.ESDTMetadataContinuousCleanupEnableEpoch,
-		MaxNumOfAddressesForTransferRole:    args.MaxNumNodesInTransferRole,
-		FixAsyncCallbackCheckEnableEpoch:    args.ESDTMetadataContinuousCleanupEnableEpoch,
-		ConfigAddress:                       args.AutomaticCrawlerAddress,
+		GasMap:                           args.GasSchedule.LatestGasSchedule(),
+		MapDNSAddresses:                  args.MapDNSAddresses,
+		EnableUserNameChange:             args.EnableUserNameChange,
+		Marshalizer:                      args.Marshalizer,
+		Accounts:                         vmcommonAccounts,
+		ShardCoordinator:                 args.ShardCoordinator,
+		EnableEpochsHandler:              args.EnableEpochsHandler,
+		ConfigAddress:                    args.AutomaticCrawlerAddress,
+		MaxNumOfAddressesForTransferRole: args.MaxNumNodesInTransferRole,
 	}
 
 	bContainerFactory, err := vmcommonBuiltInFunctions.NewBuiltInFunctionsCreator(modifiedArgs)

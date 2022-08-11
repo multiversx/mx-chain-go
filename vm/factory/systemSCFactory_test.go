@@ -67,17 +67,9 @@ func createMockNewSystemScFactoryArgs() ArgsNewSystemSCFactory {
 				ConfigChangeAddress: "3132333435363738393031323334353637383930313233343536373839303234",
 			},
 		},
-		EpochNotifier:          &mock.EpochNotifierStub{},
 		AddressPubKeyConverter: &mock.PubkeyConverterMock{},
-		EpochConfig: &config.EpochConfig{
-			EnableEpochs: config.EnableEpochs{
-				StakingV2EnableEpoch:               1,
-				StakeEnableEpoch:                   0,
-				DelegationSmartContractEnableEpoch: 0,
-				DelegationManagerEnableEpoch:       0,
-			},
-		},
-		ShardCoordinator: &mock.ShardCoordinatorStub{},
+		ShardCoordinator:       &mock.ShardCoordinatorStub{},
+		EnableEpochsHandler:    &testscommon.EnableEpochsHandlerStub{},
 	}
 }
 
@@ -156,17 +148,6 @@ func TestNewSystemSCFactory_NilSystemScConfig(t *testing.T) {
 
 	assert.Nil(t, scFactory)
 	assert.True(t, errors.Is(err, vm.ErrNilSystemSCConfig))
-}
-
-func TestNewSystemSCFactory_NilEpochNotifier(t *testing.T) {
-	t.Parallel()
-
-	arguments := createMockNewSystemScFactoryArgs()
-	arguments.EpochNotifier = nil
-	scFactory, err := NewSystemSCFactory(arguments)
-
-	assert.Nil(t, scFactory)
-	assert.True(t, errors.Is(err, vm.ErrNilEpochNotifier))
 }
 
 func TestNewSystemSCFactory_NilPubKeyConverter(t *testing.T) {

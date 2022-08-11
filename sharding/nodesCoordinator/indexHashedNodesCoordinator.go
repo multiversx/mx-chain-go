@@ -88,11 +88,11 @@ type indexHashedNodesCoordinator struct {
 	shuffledOutHandler            ShuffledOutHandler
 	startEpoch                    uint32
 	publicKeyToValidatorMap       map[string]*validatorWithShardID
-	waitingListFixEnableEpoch     uint32
 	isFullArchive                 bool
 	chanStopNode                  chan endProcess.ArgEndProcess
 	flagWaitingListFix            atomicFlags.Flag
 	nodeTypeProvider              NodeTypeProviderHandler
+	enableEpochsHandler           common.EnableEpochsHandler
 }
 
 // NewIndexHashedNodesCoordinator creates a new index hashed group selector
@@ -133,12 +133,11 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 		shuffledOutHandler:            arguments.ShuffledOutHandler,
 		startEpoch:                    arguments.StartEpoch,
 		publicKeyToValidatorMap:       make(map[string]*validatorWithShardID),
-		waitingListFixEnableEpoch:     arguments.WaitingListFixEnabledEpoch,
 		chanStopNode:                  arguments.ChanStopNode,
 		nodeTypeProvider:              arguments.NodeTypeProvider,
 		isFullArchive:                 arguments.IsFullArchive,
+		enableEpochsHandler:           arguments.EnableEpochsHandler,
 	}
-	log.Debug("indexHashedNodesCoordinator: enable epoch for waiting waiting list", "epoch", ihnc.waitingListFixEnableEpoch)
 
 	ihnc.loadingFromDisk.Store(false)
 
@@ -213,6 +212,9 @@ func checkArguments(arguments ArgNodesCoordinator) error {
 	}
 	if nil == arguments.ChanStopNode {
 		return ErrNilNodeStopChannel
+	}
+	if check.IfNil(arguments.EnableEpochsHandler) {
+		return ErrNilEnableEpochsHandler
 	}
 
 	return nil
@@ -1193,6 +1195,6 @@ func createValidatorInfoFromBody(
 }
 
 func (ihnc *indexHashedNodesCoordinator) updateEpochFlags(epoch uint32) {
-	ihnc.flagWaitingListFix.SetValue(epoch >= ihnc.waitingListFixEnableEpoch)
+	ihnc.flagWaitingListFix.SetValue(epoch >= ihnc.enableEpochsHandler.WaitingListFixEnableEpoch())
 	log.Debug("indexHashedNodesCoordinator: waiting list fix", "enabled", ihnc.flagWaitingListFix.IsSet())
 }
