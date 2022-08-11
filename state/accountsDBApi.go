@@ -12,10 +12,10 @@ import (
 )
 
 type accountsDBApi struct {
-	innerAccountsAdapter AccountsAdapter
-	blockInfoProvider    BlockInfoProvider
-	mutBlockInfo         sync.RWMutex
-	blockInfo            common.BlockInfo
+	innerAccountsAdapter      AccountsAdapter
+	blockInfoProvider         BlockInfoProvider
+	mutRecreatedTrieBlockInfo sync.RWMutex
+	blockInfo                 common.BlockInfo
 }
 
 // NewAccountsDBApi will create a new instance of type accountsDBApi
@@ -42,9 +42,9 @@ func (accountsDB *accountsDBApi) recreateTrieIfNecessary() (common.BlockInfo, er
 		return nil, fmt.Errorf("%w in accountsDBApi.recreateTrieIfNecessary", ErrNilRootHash)
 	}
 
-	accountsDB.mutBlockInfo.RLock()
+	accountsDB.mutRecreatedTrieBlockInfo.RLock()
 	currentBlockInfo := accountsDB.blockInfo
-	accountsDB.mutBlockInfo.RUnlock()
+	accountsDB.mutRecreatedTrieBlockInfo.RUnlock()
 
 	if newBlockInfo.Equal(currentBlockInfo) {
 		return currentBlockInfo, nil
@@ -54,8 +54,8 @@ func (accountsDB *accountsDBApi) recreateTrieIfNecessary() (common.BlockInfo, er
 }
 
 func (accountsDB *accountsDBApi) doRecreateTrieWithBlockInfo(newBlockInfo common.BlockInfo) (common.BlockInfo, error) {
-	accountsDB.mutBlockInfo.Lock()
-	defer accountsDB.mutBlockInfo.Unlock()
+	accountsDB.mutRecreatedTrieBlockInfo.Lock()
+	defer accountsDB.mutRecreatedTrieBlockInfo.Unlock()
 
 	// early exit for possible multiple re-entrances here
 	currentBlockInfo := accountsDB.blockInfo
@@ -147,8 +147,8 @@ func (accountsDB *accountsDBApi) GetCode(codeHash []byte) []byte {
 
 // RootHash will return last loaded root hash
 func (accountsDB *accountsDBApi) RootHash() ([]byte, error) {
-	accountsDB.mutBlockInfo.RLock()
-	defer accountsDB.mutBlockInfo.RUnlock()
+	accountsDB.mutRecreatedTrieBlockInfo.RLock()
+	defer accountsDB.mutRecreatedTrieBlockInfo.RUnlock()
 
 	blockInfo := accountsDB.blockInfo
 	if check.IfNil(blockInfo) || blockInfo.GetRootHash() == nil {
@@ -216,10 +216,18 @@ func (accountsDB *accountsDBApi) Close() error {
 
 // GetAccountWithBlockInfo returns the account and the associated block info
 func (accountsDB *accountsDBApi) GetAccountWithBlockInfo(address []byte) (vmcommon.AccountHandler, common.BlockInfo, error) {
-	blockInfo, err := accountsDB.recreateTrieIfNecessary()
+	_, err := accountsDB.recreateTrieIfNecessary()
 	if err != nil {
 		return nil, nil, err
 	}
+
+	// We hold the read mutex over both <getting the current block info> AND <getting the account>.
+	// -> desired side-effect: any concurrent "recreateTrieIfNecessary()" waits until the mutex is released.
+	// -> under normal circumstances (node already synchronized), performance of GET account should not be impacted.
+	accountsDB.mutRecreatedTrieBlockInfo.RLock()
+	defer accountsDB.mutRecreatedTrieBlockInfo.RUnlock()
+
+	blockInfo := accountsDB.blockInfo
 
 	account, err := accountsDB.innerAccountsAdapter.GetExistingAccount(address)
 	if err == ErrAccNotFound {
