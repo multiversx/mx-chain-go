@@ -412,13 +412,18 @@ func (brcf *baseResolversContainerFactory) generateValidatorInfoResolver() error
 		return err
 	}
 
+	validatorInfoStorage, err := brcf.store.GetStorer(dataRetriever.UnsignedTransactionUnit)
+	if err != nil {
+		return err
+	}
+
 	arg := resolvers.ArgValidatorInfoResolver{
 		SenderResolver:       resolverSender,
 		Marshaller:           brcf.marshalizer,
 		AntifloodHandler:     brcf.inputAntifloodHandler,
 		Throttler:            brcf.throttler,
 		ValidatorInfoPool:    brcf.dataPools.ValidatorsInfo(),
-		ValidatorInfoStorage: brcf.store.GetStorer(dataRetriever.UnsignedTransactionUnit),
+		ValidatorInfoStorage: validatorInfoStorage,
 		DataPacker:           brcf.dataPacker,
 		IsFullHistoryNode:    brcf.isFullHistoryNode,
 	}
