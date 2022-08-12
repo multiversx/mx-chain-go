@@ -34,7 +34,7 @@
    # SetGuardianEpochsDelay represents the delay in epochs between the execution time of the SetGuardian transaction and
    # the activation of the configured guardian.
    # Make sure that this is greater than the unbonding period!
-   SetGuardianEpochsDelay = 20
+   SetGuardianEpochsDelay = 2 # for mainnet should be 20, 2 is just for testing
 
 [Versions]
     DefaultVersion = "default"
