@@ -25,6 +25,7 @@ import (
 	txSimData "github.com/ElrondNetwork/elrond-go/process/txsimulator/data"
 	"github.com/ElrondNetwork/elrond-go/process/txstatus"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/genesisMocks"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 	datafield "github.com/ElrondNetwork/elrond-vm-common/parsers/dataField"
@@ -47,8 +48,11 @@ func NewTestProcessorNodeWithTestWebServer(
 	txSignPrivKeyShardId uint32,
 ) *TestProcessorNodeWithTestWebServer {
 
-	tpn := newBaseTestProcessorNode(maxShards, nodeShardId, txSignPrivKeyShardId)
-	tpn.initTestNode()
+	tpn := NewTestProcessorNode(ArgTestProcessorNode{
+		MaxShards:            maxShards,
+		NodeShardId:          nodeShardId,
+		TxSignPrivKeyShardId: txSignPrivKeyShardId,
+	})
 
 	argFacade := createFacadeArg(tpn)
 	facade, err := nodeFacade.NewNodeFacade(argFacade)
@@ -107,7 +111,7 @@ func createTestApiConfig() config.ApiRoutesConfig {
 		"log":         {"/log"},
 		"validator":   {"/statistics"},
 		"vm-values":   {"/hex", "/string", "/int", "/query"},
-		"transaction": {"/send", "/simulate", "/send-multiple", "/cost", "/:txhash"},
+		"transaction": {"/send", "/simulate", "/send-multiple", "/cost", "/:txhash", "/pool"},
 		"block":       {"/by-nonce/:nonce", "/by-hash/:hash", "/by-round/:round"},
 	}
 
@@ -136,23 +140,26 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 	defaults.FillGasMapInternal(gasMap, 1)
 	gasScheduleNotifier := mock.NewGasScheduleNotifierMock(gasMap)
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:             gasScheduleNotifier,
-		MapDNSAddresses:         make(map[string]struct{}),
-		Marshalizer:             TestMarshalizer,
-		Accounts:                tpn.AccntState,
-		ShardCoordinator:        tpn.ShardCoordinator,
-		EpochNotifier:           tpn.EpochNotifier,
-		AutomaticCrawlerAddress: bytes.Repeat([]byte{1}, 32),
+		GasSchedule:               gasScheduleNotifier,
+		MapDNSAddresses:           make(map[string]struct{}),
+		Marshalizer:               TestMarshalizer,
+		Accounts:                  tpn.AccntState,
+		ShardCoordinator:          tpn.ShardCoordinator,
+		EpochNotifier:             tpn.EpochNotifier,
+		EnableEpochsHandler:       tpn.EnableEpochsHandler,
+		AutomaticCrawlerAddress:   bytes.Repeat([]byte{1}, 32),
+		MaxNumNodesInTransferRole: 100,
 	}
-	builtInFuncs, _, _, err := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
+	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)
 	log.LogIfError(err)
 	esdtTransferParser, _ := parsers.NewESDTTransferParser(TestMarshalizer)
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
-		PubkeyConverter:    TestAddressPubkeyConverter,
-		ShardCoordinator:   tpn.ShardCoordinator,
-		BuiltInFunctions:   builtInFuncs,
-		ArgumentParser:     parsers.NewCallArgsParser(),
-		ESDTTransferParser: esdtTransferParser,
+		PubkeyConverter:     TestAddressPubkeyConverter,
+		ShardCoordinator:    tpn.ShardCoordinator,
+		BuiltInFunctions:    builtInFuncs.BuiltInFunctionContainer(),
+		ArgumentParser:      parsers.NewCallArgsParser(),
+		ESDTTransferParser:  esdtTransferParser,
+		EnableEpochsHandler: tpn.EnableEpochsHandler,
 	}
 	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	log.LogIfError(err)
@@ -167,8 +174,7 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 		},
 		tpn.AccntState,
 		tpn.ShardCoordinator,
-		tpn.EpochNotifier,
-		0,
+		tpn.EnableEpochsHandler,
 	)
 	log.LogIfError(err)
 
@@ -192,6 +198,9 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 	delegatedListHandler, err := factory.CreateDelegatedListHandler(args)
 	log.LogIfError(err)
 
+	logsFacade := &testscommon.LogsFacadeStub{}
+	receiptsRepository := &testscommon.ReceiptsRepositoryStub{}
+
 	argsDataFieldParser := &datafield.ArgsOperationDataFieldParser{
 		AddressLength:    TestAddressPubkeyConverter.Len(),
 		Marshalizer:      TestMarshalizer,
@@ -208,6 +217,9 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 		StorageService:           tpn.Storage,
 		DataPool:                 tpn.DataPool,
 		Uint64ByteSliceConverter: TestUint64Converter,
+		FeeComputer:              &testscommon.FeeComputerStub{},
+		TxTypeHandler:            txTypeHandler,
+		LogsFacade:               logsFacade,
 		DataFieldParser:          dataFieldParser,
 	}
 	apiTransactionHandler, err := transactionAPI.NewAPITransactionProcessor(argsApiTransactionProc)
@@ -222,10 +234,12 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 		Marshalizer:              TestMarshalizer,
 		Uint64ByteSliceConverter: TestUint64Converter,
 		HistoryRepo:              tpn.HistoryRepository,
-		TxUnmarshaller:           apiTransactionHandler,
+		APITransactionHandler:    apiTransactionHandler,
 		StatusComputer:           statusCom,
 		Hasher:                   TestHasher,
 		AddressPubkeyConverter:   TestAddressPubkeyConverter,
+		LogsFacade:               logsFacade,
+		ReceiptsRepository:       receiptsRepository,
 	}
 	blockAPIHandler, err := blockAPI.CreateAPIBlockProcessor(argsBlockAPI)
 	log.LogIfError(err)
@@ -245,6 +259,8 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 		APIInternalBlockHandler:  apiInternalBlockProcessor,
 		GenesisNodesSetupHandler: &mock.NodesSetupStub{},
 		ValidatorPubKeyConverter: &testscommon.PubkeyConverterMock{},
+		AccountsParser:           &genesisMocks.AccountsParserStub{},
+		GasScheduleNotifier:      &testscommon.GasScheduleNotifierMock{},
 	}
 
 	apiResolver, err := external.NewNodeApiResolver(argsApiResolver)

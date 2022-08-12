@@ -10,7 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-go/process"
 )
 
 // GasScheduleMap (alias) is the map for gas schedule
@@ -30,7 +30,7 @@ type gasScheduleNotifier struct {
 type ArgsNewGasScheduleNotifier struct {
 	GasScheduleConfig config.GasScheduleConfig
 	ConfigDir         string
-	EpochNotifier     vmcommon.EpochNotifier
+	EpochNotifier     process.EpochNotifier
 	ArwenChangeLocker common.Locker
 }
 
@@ -159,7 +159,28 @@ func (g *gasScheduleNotifier) changeLatestGasSchedule(epoch uint32, oldEpoch uin
 func (g *gasScheduleNotifier) LatestGasSchedule() map[string]map[string]uint64 {
 	g.mutNotifier.RLock()
 	defer g.mutNotifier.RUnlock()
+
 	return g.lastGasSchedule
+}
+
+// LatestGasScheduleCopy returns a copy of the latest gas schedule
+func (g *gasScheduleNotifier) LatestGasScheduleCopy() map[string]map[string]uint64 {
+	g.mutNotifier.RLock()
+	defer g.mutNotifier.RUnlock()
+
+	return copyLatestGasScheduleMap(g.lastGasSchedule)
+}
+
+func copyLatestGasScheduleMap(src map[string]map[string]uint64) map[string]map[string]uint64 {
+	newMap := make(map[string]map[string]uint64)
+	for key, innerMap := range src {
+		newMap[key] = make(map[string]uint64)
+		for innerKey, v := range innerMap {
+			newMap[key][innerKey] = v
+		}
+	}
+
+	return newMap
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

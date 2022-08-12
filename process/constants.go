@@ -1,5 +1,9 @@
 package process
 
+import (
+	"fmt"
+)
+
 // BlockHeaderState specifies which is the state of the block header received
 type BlockHeaderState int
 
@@ -37,6 +41,29 @@ const (
 	// InvalidTransaction defines unknown transaction type
 	InvalidTransaction
 )
+
+func (transactionType TransactionType) String() string {
+	switch transactionType {
+	case MoveBalance:
+		return "MoveBalance"
+	case SCDeployment:
+		return "SCDeployment"
+	case SCInvoking:
+		return "SCInvoking"
+	case BuiltInFunctionCall:
+		return "BuiltInFunctionCall"
+	case RelayedTx:
+		return "RelayedTx"
+	case RelayedTxV2:
+		return "RelayedTxV2"
+	case RewardTx:
+		return "RewardTx"
+	case InvalidTransaction:
+		return "InvalidTransaction"
+	default:
+		return fmt.Sprintf("type %d", transactionType)
+	}
+}
 
 // BlockFinality defines the block finality which is used in meta-chain/shards (the real finality in shards is given
 // by meta-chain)
@@ -113,14 +140,6 @@ const MaxNumOfTxsToSelect = 30000
 
 // MaxGasBandwidthPerBatchPerSender defines the maximum gas bandwidth that should be selected for a sender per batch from the cache
 const MaxGasBandwidthPerBatchPerSender = 5000000
-
-// MaxRoundsToKeepUnprocessedMiniBlocks defines the maximum number of rounds for which unprocessed miniblocks are kept in pool
-// TODO extract this in configs (EN-11896)
-const MaxRoundsToKeepUnprocessedMiniBlocks = 300
-
-// MaxRoundsToKeepUnprocessedTransactions defines the maximum number of rounds for which unprocessed transactions are kept in pool
-// TODO extract this in configs (EN-11896)
-const MaxRoundsToKeepUnprocessedTransactions = 300
 
 // MaxHeadersToWhitelistInAdvance defines the maximum number of headers whose miniblocks will be whitelisted in advance
 const MaxHeadersToWhitelistInAdvance = 300

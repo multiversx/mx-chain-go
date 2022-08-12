@@ -11,6 +11,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/closing"
+	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/opt"
@@ -124,7 +125,7 @@ func (s *SerialDB) updateBatchWithIncrement() error {
 // Put adds the value to the (key, val) storage medium
 func (s *SerialDB) Put(key, val []byte) error {
 	if s.isClosed() {
-		return storage.ErrDBIsClosed
+		return errors.ErrDBIsClosed
 	}
 
 	s.mutBatch.RLock()
@@ -140,7 +141,7 @@ func (s *SerialDB) Put(key, val []byte) error {
 // Get returns the value associated to the key
 func (s *SerialDB) Get(key []byte) ([]byte, error) {
 	if s.isClosed() {
-		return nil, storage.ErrDBIsClosed
+		return nil, errors.ErrDBIsClosed
 	}
 
 	s.mutBatch.RLock()
@@ -182,7 +183,7 @@ func (s *SerialDB) Get(key []byte) ([]byte, error) {
 // Has returns nil if the given key is present in the persistence medium
 func (s *SerialDB) Has(key []byte) error {
 	if s.isClosed() {
-		return storage.ErrDBIsClosed
+		return errors.ErrDBIsClosed
 	}
 
 	s.mutBatch.RLock()
@@ -219,7 +220,7 @@ func (s *SerialDB) tryWriteInDbAccessChan(req serialQueryer) error {
 	case s.dbAccess <- req:
 		return nil
 	case <-s.closer.ChanClose():
-		return storage.ErrDBIsClosed
+		return errors.ErrDBIsClosed
 	}
 }
 
@@ -269,7 +270,7 @@ func (s *SerialDB) Close() error {
 // Remove removes the data associated to the given key
 func (s *SerialDB) Remove(key []byte) error {
 	if s.isClosed() {
-		return storage.ErrDBIsClosed
+		return errors.ErrDBIsClosed
 	}
 
 	s.mutBatch.Lock()

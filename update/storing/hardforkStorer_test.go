@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
 	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/update/mock"
@@ -16,8 +17,8 @@ import (
 
 func createDefaultArg() ArgHardforkStorer {
 	return ArgHardforkStorer{
-		KeysStore:   mock.NewStorerMock(),
-		KeyValue:    mock.NewStorerMock(),
+		KeysStore:   genericMocks.NewStorerMock(),
+		KeyValue:    genericMocks.NewStorerMock(),
 		Marshalizer: &mock.MarshalizerMock{},
 	}
 }

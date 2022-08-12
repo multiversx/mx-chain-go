@@ -41,6 +41,7 @@ func NewShardStorageBootstrapper(arguments ArgsShardStorageBootstrapper) (*shard
 		miniBlocksProvider:           arguments.MiniblocksProvider,
 		epochNotifier:                arguments.EpochNotifier,
 		processedMiniBlocksTracker:   arguments.ProcessedMiniBlocksTracker,
+		appStatusHandler:             arguments.AppStatusHandler,
 	}
 
 	boot := shardStorageBootstrapper{
@@ -49,7 +50,10 @@ func NewShardStorageBootstrapper(arguments ArgsShardStorageBootstrapper) (*shard
 
 	base.bootstrapper = &boot
 	hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(boot.shardCoordinator.SelfId())
-	base.headerNonceHashStore = boot.store.GetStorer(hdrNonceHashDataUnit)
+	base.headerNonceHashStore, err = boot.store.GetStorer(hdrNonceHashDataUnit)
+	if err != nil {
+		return nil, err
+	}
 
 	return &boot, nil
 }
@@ -177,7 +181,15 @@ func (ssb *shardStorageBootstrapper) cleanupNotarizedStorageForHigherNoncesIfExi
 
 func (ssb *shardStorageBootstrapper) removeMetaFromMetaHeaderNonceToHashUnit(metaBlock *block.MetaBlock, metaBlockHash []byte) {
 	nonceToByteSlice := ssb.uint64Converter.ToByteSlice(metaBlock.GetNonce())
-	err := ssb.store.GetStorer(dataRetriever.MetaHdrNonceHashDataUnit).Remove(nonceToByteSlice)
+	metaHdrNonceHashStorer, err := ssb.store.GetStorer(dataRetriever.MetaHdrNonceHashDataUnit)
+	if err != nil {
+		log.Debug("could not get storage unit",
+			"unit", dataRetriever.MetaHdrNonceHashDataUnit,
+			"error", err.Error())
+		return
+	}
+
+	err = metaHdrNonceHashStorer.Remove(nonceToByteSlice)
 	if err != nil {
 		log.Debug("meta block was not removed from MetaHdrNonceHashDataUnit storage",
 			"shardId", metaBlock.GetShardID(),
@@ -188,7 +200,15 @@ func (ssb *shardStorageBootstrapper) removeMetaFromMetaHeaderNonceToHashUnit(met
 }
 
 func (ssb *shardStorageBootstrapper) removeMetaFromMetaBlockUnit(metaBlock *block.MetaBlock, metaBlockHash []byte) {
-	err := ssb.store.GetStorer(dataRetriever.MetaBlockUnit).Remove(metaBlockHash)
+	metaBlockStorer, err := ssb.store.GetStorer(dataRetriever.MetaBlockUnit)
+	if err != nil {
+		log.Debug("could not get storage unit",
+			"unit", dataRetriever.MetaBlockUnit,
+			"error", err.Error())
+		return
+	}
+
+	err = metaBlockStorer.Remove(metaBlockHash)
 	if err != nil {
 		log.Debug("meta block was not removed from MetaBlockUnit storage",
 			"shardId", metaBlock.GetShardID(),

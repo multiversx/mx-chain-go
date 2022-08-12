@@ -5,6 +5,7 @@ import (
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go/common"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
@@ -127,6 +128,15 @@ type AccountsAdapter interface {
 	IsInterfaceNil() bool
 }
 
+// AccountsRepository handles the defined execution based on the query options
+type AccountsRepository interface {
+	GetAccountWithBlockInfo(address []byte, options api.AccountQueryOptions) (vmcommon.AccountHandler, common.BlockInfo, error)
+	GetCodeWithBlockInfo(codeHash []byte, options api.AccountQueryOptions) ([]byte, common.BlockInfo, error)
+	GetCurrentStateAccountsWrapper() AccountsAdapterAPI
+	Close() error
+	IsInterfaceNil() bool
+}
+
 // JournalEntry will be used to implement different state changes to be able to easily revert them
 type JournalEntry interface {
 	Revert() (vmcommon.AccountHandler, error)
@@ -186,4 +196,17 @@ type StoragePruningManager interface {
 // PruningHandler defines different options for pruning
 type PruningHandler interface {
 	IsPruningEnabled() bool
+}
+
+// BlockInfoProvider defines the behavior of a struct able to provide the block information used in state tries
+type BlockInfoProvider interface {
+	GetBlockInfo() common.BlockInfo
+	IsInterfaceNil() bool
+}
+
+// AccountsAdapterAPI defines the extension of the AccountsAdapter that should be used in API calls
+type AccountsAdapterAPI interface {
+	AccountsAdapter
+	GetAccountWithBlockInfo(address []byte) (vmcommon.AccountHandler, common.BlockInfo, error)
+	GetCodeWithBlockInfo(codeHash []byte) ([]byte, common.BlockInfo, error)
 }

@@ -215,7 +215,8 @@ type Config struct {
 	Resolvers             ResolverConfig
 	VMOutputCacher        CacheConfig
 
-	PeersRatingConfig PeersRatingConfig
+	PeersRatingConfig   PeersRatingConfig
+	PoolsCleanersConfig PoolsCleanersConfig
 }
 
 // PeersRatingConfig will hold settings related to peers rating
@@ -293,6 +294,7 @@ type FacadeConfig struct {
 type StateTriesConfig struct {
 	CheckpointRoundsModulus     uint
 	CheckpointsEnabled          bool
+	SnapshotsEnabled            bool
 	AccountsStatePruningEnabled bool
 	PeerStatePruningEnabled     bool
 	MaxStateTrieLevelInMemory   uint
@@ -420,7 +422,8 @@ type VirtualMachineGasConfig struct {
 
 // BuiltInFunctionsConfig holds the configuration for the built in functions
 type BuiltInFunctionsConfig struct {
-	AutomaticCrawlerAddress string
+	AutomaticCrawlerAddress       string
+	MaxNumAddressesInTransferRole uint32
 }
 
 // HardforkConfig holds the configuration for the hardfork trigger
@@ -588,6 +591,7 @@ type TrieSyncConfig struct {
 	NumConcurrentTrieSyncers  int
 	MaxHardCapForMissingNodes int
 	TrieSyncerVersion         int
+	CheckNodesOnDisk          bool
 }
 
 // ResolverConfig represents the config options to be used when setting up the resolver instances
@@ -595,4 +599,10 @@ type ResolverConfig struct {
 	NumCrossShardPeers  uint32
 	NumTotalPeers       uint32
 	NumFullHistoryPeers uint32
+}
+
+// PoolsCleanersConfig represents the config options to be used by the pools cleaners
+type PoolsCleanersConfig struct {
+	MaxRoundsToKeepUnprocessedMiniBlocks   int64
+	MaxRoundsToKeepUnprocessedTransactions int64
 }

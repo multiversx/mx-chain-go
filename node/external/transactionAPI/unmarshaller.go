@@ -2,6 +2,7 @@ package transactionAPI
 
 import (
 	"encoding/hex"
+
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/receipt"
 	rewardTxData "github.com/ElrondNetwork/elrond-go-core/data/rewardTx"

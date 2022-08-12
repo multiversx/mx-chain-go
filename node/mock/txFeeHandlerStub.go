@@ -139,7 +139,11 @@ func (ehs *EconomicsHandlerStub) ComputeMoveBalanceFee(tx data.TransactionWithFe
 
 // ComputeTxFee -
 func (ehs *EconomicsHandlerStub) ComputeTxFee(tx data.TransactionWithFeeHandler) *big.Int {
-	return ehs.ComputeTxFeeCalled(tx)
+	if ehs.ComputeTxFeeCalled != nil {
+		return ehs.ComputeTxFeeCalled(tx)
+	}
+
+	return big.NewInt(0)
 }
 
 // CheckValidityTxValues -

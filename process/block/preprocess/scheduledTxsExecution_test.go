@@ -34,7 +34,7 @@ func TestScheduledTxsExecution_NewScheduledTxsExecutionNilTxProcessor(t *testing
 	scheduledTxsExec, err := NewScheduledTxsExecution(
 		nil,
 		&mock.TransactionCoordinatorMock{},
-		&genericMocks.StorerMock{},
+		genericMocks.NewStorerMock(),
 		&marshal.GogoProtoMarshalizer{},
 		&hashingMocks.HasherMock{},
 		&mock.ShardCoordinatorStub{},
@@ -50,7 +50,7 @@ func TestScheduledTxsExecution_NewScheduledTxsExecutionNilTxCoordinator(t *testi
 	scheduledTxsExec, err := NewScheduledTxsExecution(
 		&testscommon.TxProcessorMock{},
 		nil,
-		&genericMocks.StorerMock{},
+		genericMocks.NewStorerMock(),
 		&marshal.GogoProtoMarshalizer{},
 		&hashingMocks.HasherMock{},
 		&mock.ShardCoordinatorStub{},
@@ -82,7 +82,7 @@ func TestScheduledTxsExecution_NewScheduledTxsExecutionNilMarshaller(t *testing.
 	scheduledTxsExec, err := NewScheduledTxsExecution(
 		&testscommon.TxProcessorMock{},
 		&mock.TransactionCoordinatorMock{},
-		&genericMocks.StorerMock{},
+		genericMocks.NewStorerMock(),
 		nil,
 		&hashingMocks.HasherMock{},
 		&mock.ShardCoordinatorStub{},
@@ -98,7 +98,7 @@ func TestScheduledTxsExecution_NewScheduledTxsExecutionNilHasher(t *testing.T) {
 	scheduledTxsExec, err := NewScheduledTxsExecution(
 		&testscommon.TxProcessorMock{},
 		&mock.TransactionCoordinatorMock{},
-		&genericMocks.StorerMock{},
+		genericMocks.NewStorerMock(),
 		&marshal.GogoProtoMarshalizer{},
 		nil,
 		&mock.ShardCoordinatorStub{},
@@ -114,7 +114,7 @@ func TestScheduledTxsExecution_NewScheduledTxsExecutionNilShardCoordinator(t *te
 	scheduledTxsExec, err := NewScheduledTxsExecution(
 		&testscommon.TxProcessorMock{},
 		&mock.TransactionCoordinatorMock{},
-		&genericMocks.StorerMock{},
+		genericMocks.NewStorerMock(),
 		&marshal.GogoProtoMarshalizer{},
 		&hashingMocks.HasherMock{},
 		nil,
@@ -130,7 +130,7 @@ func TestScheduledTxsExecution_NewScheduledTxsExecutionOk(t *testing.T) {
 	scheduledTxsExec, err := NewScheduledTxsExecution(
 		&testscommon.TxProcessorMock{},
 		&mock.TransactionCoordinatorMock{},
-		&genericMocks.StorerMock{},
+		genericMocks.NewStorerMock(),
 		&marshal.GogoProtoMarshalizer{},
 		&hashingMocks.HasherMock{},
 		&mock.ShardCoordinatorStub{},
@@ -146,7 +146,7 @@ func TestScheduledTxsExecution_InitShouldWork(t *testing.T) {
 	scheduledTxsExec, _ := NewScheduledTxsExecution(
 		&testscommon.TxProcessorMock{},
 		&mock.TransactionCoordinatorMock{},
-		&genericMocks.StorerMock{},
+		genericMocks.NewStorerMock(),
 		&marshal.GogoProtoMarshalizer{},
 		&hashingMocks.HasherMock{},
 		&mock.ShardCoordinatorStub{},
@@ -171,7 +171,7 @@ func TestScheduledTxsExecution_AddShouldWork(t *testing.T) {
 	scheduledTxsExec, _ := NewScheduledTxsExecution(
 		&testscommon.TxProcessorMock{},
 		&mock.TransactionCoordinatorMock{},
-		&genericMocks.StorerMock{},
+		genericMocks.NewStorerMock(),
 		&marshal.GogoProtoMarshalizer{},
 		&hashingMocks.HasherMock{},
 		&mock.ShardCoordinatorStub{},
@@ -209,7 +209,7 @@ func TestScheduledTxsExecution_ExecuteShouldErrMissingTransaction(t *testing.T) 
 	scheduledTxsExec, _ := NewScheduledTxsExecution(
 		&testscommon.TxProcessorMock{},
 		&mock.TransactionCoordinatorMock{},
-		&genericMocks.StorerMock{},
+		genericMocks.NewStorerMock(),
 		&marshal.GogoProtoMarshalizer{},
 		&hashingMocks.HasherMock{},
 		&mock.ShardCoordinatorStub{},
@@ -230,7 +230,7 @@ func TestScheduledTxsExecution_ExecuteShouldErr(t *testing.T) {
 			},
 		},
 		&mock.TransactionCoordinatorMock{},
-		&genericMocks.StorerMock{},
+		genericMocks.NewStorerMock(),
 		&marshal.GogoProtoMarshalizer{},
 		&hashingMocks.HasherMock{},
 		&mock.ShardCoordinatorStub{},
@@ -251,7 +251,7 @@ func TestScheduledTxsExecution_ExecuteShouldWorkOnErrFailedTransaction(t *testin
 			},
 		},
 		&mock.TransactionCoordinatorMock{},
-		&genericMocks.StorerMock{},
+		genericMocks.NewStorerMock(),
 		&marshal.GogoProtoMarshalizer{},
 		&hashingMocks.HasherMock{},
 		&mock.ShardCoordinatorStub{},
@@ -272,7 +272,7 @@ func TestScheduledTxsExecution_ExecuteShouldWork(t *testing.T) {
 			},
 		},
 		&mock.TransactionCoordinatorMock{},
-		&genericMocks.StorerMock{},
+		genericMocks.NewStorerMock(),
 		&marshal.GogoProtoMarshalizer{},
 		&hashingMocks.HasherMock{},
 		&mock.ShardCoordinatorStub{},
@@ -289,7 +289,7 @@ func TestScheduledTxsExecution_ExecuteAllShouldErrNilHaveTimeHandler(t *testing.
 	scheduledTxsExec, _ := NewScheduledTxsExecution(
 		&testscommon.TxProcessorMock{},
 		&mock.TransactionCoordinatorMock{},
-		&genericMocks.StorerMock{},
+		genericMocks.NewStorerMock(),
 		&marshal.GogoProtoMarshalizer{},
 		&hashingMocks.HasherMock{},
 		&mock.ShardCoordinatorStub{},
@@ -305,7 +305,7 @@ func TestScheduledTxsExecution_ExecuteAllShouldErrTimeIsOut(t *testing.T) {
 	scheduledTxsExec, _ := NewScheduledTxsExecution(
 		&testscommon.TxProcessorMock{},
 		&mock.TransactionCoordinatorMock{},
-		&genericMocks.StorerMock{},
+		genericMocks.NewStorerMock(),
 		&marshal.GogoProtoMarshalizer{},
 		&hashingMocks.HasherMock{},
 		&mock.ShardCoordinatorStub{},
@@ -329,7 +329,7 @@ func TestScheduledTxsExecution_ExecuteAllShouldErrFailedTransaction(t *testing.T
 			},
 		},
 		&mock.TransactionCoordinatorMock{},
-		&genericMocks.StorerMock{},
+		genericMocks.NewStorerMock(),
 		&marshal.GogoProtoMarshalizer{},
 		&hashingMocks.HasherMock{},
 		&mock.ShardCoordinatorStub{},
@@ -352,7 +352,7 @@ func TestScheduledTxsExecution_ExecuteAllShouldWorkOnErrFailedTransaction(t *tes
 			},
 		},
 		&mock.TransactionCoordinatorMock{},
-		&genericMocks.StorerMock{},
+		genericMocks.NewStorerMock(),
 		&marshal.GogoProtoMarshalizer{},
 		&hashingMocks.HasherMock{},
 		&mock.ShardCoordinatorStub{},
@@ -377,7 +377,7 @@ func TestScheduledTxsExecution_ExecuteAllShouldWork(t *testing.T) {
 			},
 		},
 		&mock.TransactionCoordinatorMock{},
-		&genericMocks.StorerMock{},
+		genericMocks.NewStorerMock(),
 		&marshal.GogoProtoMarshalizer{},
 		&hashingMocks.HasherMock{},
 		&mock.ShardCoordinatorStub{},
@@ -399,7 +399,7 @@ func TestScheduledTxsExecution_executeShouldErr(t *testing.T) {
 	scheduledTxsExec, _ := NewScheduledTxsExecution(
 		&testscommon.TxProcessorMock{},
 		&mock.TransactionCoordinatorMock{},
-		&genericMocks.StorerMock{},
+		genericMocks.NewStorerMock(),
 		&marshal.GogoProtoMarshalizer{},
 		&hashingMocks.HasherMock{},
 		&mock.ShardCoordinatorStub{},
@@ -420,7 +420,7 @@ func TestScheduledTxsExecution_executeShouldWork(t *testing.T) {
 			},
 		},
 		&mock.TransactionCoordinatorMock{},
-		&genericMocks.StorerMock{},
+		genericMocks.NewStorerMock(),
 		&marshal.GogoProtoMarshalizer{},
 		&hashingMocks.HasherMock{},
 		&mock.ShardCoordinatorStub{},
@@ -458,7 +458,7 @@ func TestScheduledTxsExecution_computeScheduledSCRsShouldWork(t *testing.T) {
 		scheduledTxsExec, _ := NewScheduledTxsExecution(
 			&testscommon.TxProcessorMock{},
 			&mock.TransactionCoordinatorMock{},
-			&genericMocks.StorerMock{},
+			genericMocks.NewStorerMock(),
 			&marshal.GogoProtoMarshalizer{},
 			&hashingMocks.HasherMock{},
 			shardCoordinator,
@@ -474,7 +474,7 @@ func TestScheduledTxsExecution_computeScheduledSCRsShouldWork(t *testing.T) {
 		scheduledTxsExec, _ := NewScheduledTxsExecution(
 			&testscommon.TxProcessorMock{},
 			&mock.TransactionCoordinatorMock{},
-			&genericMocks.StorerMock{},
+			genericMocks.NewStorerMock(),
 			&marshal.GogoProtoMarshalizer{},
 			&hashingMocks.HasherMock{},
 			shardCoordinator,
@@ -490,7 +490,7 @@ func TestScheduledTxsExecution_computeScheduledSCRsShouldWork(t *testing.T) {
 		scheduledTxsExec, _ := NewScheduledTxsExecution(
 			&testscommon.TxProcessorMock{},
 			&mock.TransactionCoordinatorMock{},
-			&genericMocks.StorerMock{},
+			genericMocks.NewStorerMock(),
 			&marshal.GogoProtoMarshalizer{},
 			&hashingMocks.HasherMock{},
 			shardCoordinator,
@@ -515,7 +515,7 @@ func TestScheduledTxsExecution_computeScheduledSCRsShouldWork(t *testing.T) {
 		scheduledTxsExec, _ := NewScheduledTxsExecution(
 			&testscommon.TxProcessorMock{},
 			&mock.TransactionCoordinatorMock{},
-			&genericMocks.StorerMock{},
+			genericMocks.NewStorerMock(),
 			&marshal.GogoProtoMarshalizer{},
 			&hashingMocks.HasherMock{},
 			shardCoordinator,
@@ -538,7 +538,7 @@ func TestScheduledTxsExecution_computeScheduledSCRsShouldRemoveInvalidSCRs(t *te
 	scheduledTxsExec, _ := NewScheduledTxsExecution(
 		&testscommon.TxProcessorMock{},
 		&mock.TransactionCoordinatorMock{},
-		&genericMocks.StorerMock{},
+		genericMocks.NewStorerMock(),
 		&marshal.GogoProtoMarshalizer{},
 		&hashingMocks.HasherMock{},
 		&mock.ShardCoordinatorStub{
@@ -623,7 +623,7 @@ func TestScheduledTxsExecution_getAllIntermediateTxsAfterScheduledExecution(t *t
 		scheduledTxsExec, _ := NewScheduledTxsExecution(
 			&testscommon.TxProcessorMock{},
 			&mock.TransactionCoordinatorMock{},
-			&genericMocks.StorerMock{},
+			genericMocks.NewStorerMock(),
 			&marshal.GogoProtoMarshalizer{},
 			&hashingMocks.HasherMock{},
 			&mock.ShardCoordinatorStub{
@@ -647,7 +647,7 @@ func TestScheduledTxsExecution_getAllIntermediateTxsAfterScheduledExecution(t *t
 		scheduledTxsExec, _ := NewScheduledTxsExecution(
 			&testscommon.TxProcessorMock{},
 			&mock.TransactionCoordinatorMock{},
-			&genericMocks.StorerMock{},
+			genericMocks.NewStorerMock(),
 			&marshal.GogoProtoMarshalizer{},
 			&hashingMocks.HasherMock{},
 			&mock.ShardCoordinatorStub{
@@ -671,7 +671,7 @@ func TestScheduledTxsExecution_getAllIntermediateTxsAfterScheduledExecution(t *t
 		scheduledTxsExec, _ := NewScheduledTxsExecution(
 			&testscommon.TxProcessorMock{},
 			&mock.TransactionCoordinatorMock{},
-			&genericMocks.StorerMock{},
+			genericMocks.NewStorerMock(),
 			&marshal.GogoProtoMarshalizer{},
 			&hashingMocks.HasherMock{},
 			&mock.ShardCoordinatorStub{
@@ -695,7 +695,7 @@ func TestScheduledTxsExecution_getAllIntermediateTxsAfterScheduledExecution(t *t
 		scheduledTxsExec, _ := NewScheduledTxsExecution(
 			&testscommon.TxProcessorMock{},
 			&mock.TransactionCoordinatorMock{},
-			&genericMocks.StorerMock{},
+			genericMocks.NewStorerMock(),
 			&marshal.GogoProtoMarshalizer{},
 			&hashingMocks.HasherMock{},
 			&mock.ShardCoordinatorStub{
@@ -719,7 +719,7 @@ func TestScheduledTxsExecution_getAllIntermediateTxsAfterScheduledExecution(t *t
 		scheduledTxsExec, _ := NewScheduledTxsExecution(
 			&testscommon.TxProcessorMock{},
 			&mock.TransactionCoordinatorMock{},
-			&genericMocks.StorerMock{},
+			genericMocks.NewStorerMock(),
 			&marshal.GogoProtoMarshalizer{},
 			&hashingMocks.HasherMock{},
 			&mock.ShardCoordinatorStub{
@@ -743,7 +743,7 @@ func TestScheduledTxsExecution_getAllIntermediateTxsAfterScheduledExecution(t *t
 		scheduledTxsExec, _ := NewScheduledTxsExecution(
 			&testscommon.TxProcessorMock{},
 			&mock.TransactionCoordinatorMock{},
-			&genericMocks.StorerMock{},
+			genericMocks.NewStorerMock(),
 			&marshal.GogoProtoMarshalizer{},
 			&hashingMocks.HasherMock{},
 			&mock.ShardCoordinatorStub{
@@ -767,7 +767,7 @@ func TestScheduledTxsExecution_getAllIntermediateTxsAfterScheduledExecution(t *t
 		scheduledTxsExec, _ := NewScheduledTxsExecution(
 			&testscommon.TxProcessorMock{},
 			&mock.TransactionCoordinatorMock{},
-			&genericMocks.StorerMock{},
+			genericMocks.NewStorerMock(),
 			&marshal.GogoProtoMarshalizer{},
 			&hashingMocks.HasherMock{},
 			&mock.ShardCoordinatorStub{
@@ -809,7 +809,7 @@ func TestScheduledTxsExecution_GetScheduledIntermediateTxsNonEmptySCRsMap(t *tes
 	scheduledTxsExec, _ := NewScheduledTxsExecution(
 		&testscommon.TxProcessorMock{},
 		&mock.TransactionCoordinatorMock{},
-		&genericMocks.StorerMock{},
+		genericMocks.NewStorerMock(),
 		&marshal.GogoProtoMarshalizer{},
 		&hashingMocks.HasherMock{},
 		&mock.ShardCoordinatorStub{
@@ -839,7 +839,7 @@ func TestScheduledTxsExecution_GetScheduledIntermediateTxsEmptySCRsMap(t *testin
 	scheduledTxsExec, _ := NewScheduledTxsExecution(
 		&testscommon.TxProcessorMock{},
 		&mock.TransactionCoordinatorMock{},
-		&genericMocks.StorerMock{},
+		genericMocks.NewStorerMock(),
 		&marshal.GogoProtoMarshalizer{},
 		&hashingMocks.HasherMock{},
 		&mock.ShardCoordinatorStub{
@@ -865,7 +865,7 @@ func TestScheduledTxsExecution_SetScheduledInfo(t *testing.T) {
 	scheduledTxsExec, _ := NewScheduledTxsExecution(
 		&testscommon.TxProcessorMock{},
 		&mock.TransactionCoordinatorMock{},
-		&genericMocks.StorerMock{},
+		genericMocks.NewStorerMock(),
 		&marshal.GogoProtoMarshalizer{},
 		&hashingMocks.HasherMock{},
 		&mock.ShardCoordinatorStub{},
@@ -912,7 +912,7 @@ func TestScheduledTxsExecution_Setters(t *testing.T) {
 	scheduledTxsExec, _ := NewScheduledTxsExecution(
 		&testscommon.TxProcessorMock{},
 		&mock.TransactionCoordinatorMock{},
-		&genericMocks.StorerMock{},
+		genericMocks.NewStorerMock(),
 		&marshal.GogoProtoMarshalizer{},
 		&hashingMocks.HasherMock{},
 		&mock.ShardCoordinatorStub{},
@@ -1049,7 +1049,7 @@ func TestScheduledTxsExecution_getMarshalledScheduledInfoShouldWork(t *testing.T
 	scheduledTxsExec, _ := NewScheduledTxsExecution(
 		&testscommon.TxProcessorMock{},
 		&mock.TransactionCoordinatorMock{},
-		&genericMocks.StorerMock{},
+		genericMocks.NewStorerMock(),
 		&testscommon.MarshalizerMock{},
 		&hashingMocks.HasherMock{},
 		&mock.ShardCoordinatorStub{},
@@ -1235,7 +1235,7 @@ func TestScheduledTxsExecution_IsScheduledTx(t *testing.T) {
 	scheduledTxsExec, _ := NewScheduledTxsExecution(
 		&testscommon.TxProcessorMock{},
 		&mock.TransactionCoordinatorMock{},
-		&genericMocks.StorerMock{},
+		genericMocks.NewStorerMock(),
 		&marshal.GogoProtoMarshalizer{},
 		&hashingMocks.HasherMock{},
 		&mock.ShardCoordinatorStub{},
@@ -1256,7 +1256,7 @@ func TestScheduledTxsExecution_AddMiniBlocksWithNilReservedNilTxHashes(t *testin
 		scheduledTxsExec, _ := NewScheduledTxsExecution(
 			&testscommon.TxProcessorMock{},
 			&mock.TransactionCoordinatorMock{},
-			&genericMocks.StorerMock{},
+			genericMocks.NewStorerMock(),
 			&marshal.GogoProtoMarshalizer{},
 			&hashingMocks.HasherMock{},
 			&mock.ShardCoordinatorStub{},
@@ -1283,7 +1283,7 @@ func TestScheduledTxsExecution_AddMiniBlocksWithNilReservedNilTxHashes(t *testin
 		scheduledTxsExec, _ := NewScheduledTxsExecution(
 			&testscommon.TxProcessorMock{},
 			&mock.TransactionCoordinatorMock{},
-			&genericMocks.StorerMock{},
+			genericMocks.NewStorerMock(),
 			&marshal.GogoProtoMarshalizer{},
 			&hashingMocks.HasherMock{},
 			&mock.ShardCoordinatorStub{},
@@ -1311,7 +1311,7 @@ func TestScheduledTxsExecution_AddMiniBlocksShouldWork(t *testing.T) {
 	scheduledTxsExec, _ := NewScheduledTxsExecution(
 		&testscommon.TxProcessorMock{},
 		&mock.TransactionCoordinatorMock{},
-		&genericMocks.StorerMock{},
+		genericMocks.NewStorerMock(),
 		&marshal.GogoProtoMarshalizer{},
 		&hashingMocks.HasherMock{},
 		&mock.ShardCoordinatorStub{},
@@ -1350,7 +1350,7 @@ func TestScheduledTxsExecution_GetScheduledTxs(t *testing.T) {
 	scheduledTxsExec, _ := NewScheduledTxsExecution(
 		&testscommon.TxProcessorMock{},
 		&mock.TransactionCoordinatorMock{},
-		&genericMocks.StorerMock{},
+		genericMocks.NewStorerMock(),
 		&marshal.GogoProtoMarshalizer{},
 		&hashingMocks.HasherMock{},
 		&mock.ShardCoordinatorStub{},
@@ -1374,7 +1374,7 @@ func TestScheduledTxsExecution_GetScheduledMBs(t *testing.T) {
 	scheduledTxsExec, _ := NewScheduledTxsExecution(
 		&testscommon.TxProcessorMock{},
 		&mock.TransactionCoordinatorMock{},
-		&genericMocks.StorerMock{},
+		genericMocks.NewStorerMock(),
 		&marshal.GogoProtoMarshalizer{},
 		&hashingMocks.HasherMock{},
 		&mock.ShardCoordinatorStub{},
@@ -1486,7 +1486,7 @@ func TestScheduledTxsExecution_removeInvalidTxsFromScheduledMiniBlocks(t *testin
 	scheduledTxsExec, _ := NewScheduledTxsExecution(
 		&testscommon.TxProcessorMock{},
 		&mock.TransactionCoordinatorMock{},
-		&genericMocks.StorerMock{},
+		genericMocks.NewStorerMock(),
 		&marshal.GogoProtoMarshalizer{},
 		&hashingMocks.HasherMock{},
 		&mock.ShardCoordinatorStub{},
@@ -1567,7 +1567,7 @@ func TestScheduledTxsExecution_setScheduledMiniBlockHashes(t *testing.T) {
 		scheduledTxsExec, _ := NewScheduledTxsExecution(
 			&testscommon.TxProcessorMock{},
 			&mock.TransactionCoordinatorMock{},
-			&genericMocks.StorerMock{},
+			genericMocks.NewStorerMock(),
 			&testscommon.MarshalizerStub{
 				MarshalCalled: func(obj interface{}) ([]byte, error) {
 					return nil, expectedErr
@@ -1594,7 +1594,7 @@ func TestScheduledTxsExecution_setScheduledMiniBlockHashes(t *testing.T) {
 		scheduledTxsExec, _ := NewScheduledTxsExecution(
 			&testscommon.TxProcessorMock{},
 			&mock.TransactionCoordinatorMock{},
-			&genericMocks.StorerMock{},
+			genericMocks.NewStorerMock(),
 			&testscommon.MarshalizerStub{
 				MarshalCalled: func(obj interface{}) ([]byte, error) {
 					assert.Equal(t, mb, obj)
@@ -1630,7 +1630,7 @@ func TestScheduledTxsExecution_IsMiniBlockExecuted(t *testing.T) {
 	scheduledTxsExec, _ := NewScheduledTxsExecution(
 		&testscommon.TxProcessorMock{},
 		&mock.TransactionCoordinatorMock{},
-		&genericMocks.StorerMock{},
+		genericMocks.NewStorerMock(),
 		&marshal.GogoProtoMarshalizer{},
 		&mock.HasherStub{
 			ComputeCalled: func(s string) []byte {

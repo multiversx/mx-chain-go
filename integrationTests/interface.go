@@ -4,6 +4,7 @@ import (
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	dataApi "github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
@@ -56,19 +57,19 @@ type NetworkShardingUpdater interface {
 
 // Facade is the node facade used to decouple the node implementation with the web server. Used in integration tests
 type Facade interface {
-	GetBalance(address string) (*big.Int, error)
-	GetUsername(address string) (string, error)
-	GetValueForKey(address string, key string) (string, error)
-	GetAccount(address string) (dataApi.AccountResponse, error)
-	GetESDTData(address string, key string, nonce uint64) (*esdt.ESDigitalToken, error)
-	GetNFTTokenIDsRegisteredByAddress(address string) ([]string, error)
-	GetESDTsWithRole(address string, role string) ([]string, error)
-	GetAllESDTTokens(address string) (map[string]*esdt.ESDigitalToken, error)
-	GetESDTsRoles(address string) (map[string][]string, error)
-	GetKeyValuePairs(address string) (map[string]string, error)
-	GetBlockByHash(hash string, withTxs bool) (*dataApi.Block, error)
-	GetBlockByNonce(nonce uint64, withTxs bool) (*dataApi.Block, error)
-	GetBlockByRound(round uint64, withTxs bool) (*dataApi.Block, error)
+	GetBalance(address string, options api.AccountQueryOptions) (*big.Int, api.BlockInfo, error)
+	GetUsername(address string, options api.AccountQueryOptions) (string, api.BlockInfo, error)
+	GetValueForKey(address string, key string, options api.AccountQueryOptions) (string, api.BlockInfo, error)
+	GetAccount(address string, options api.AccountQueryOptions) (dataApi.AccountResponse, api.BlockInfo, error)
+	GetESDTData(address string, key string, nonce uint64, options api.AccountQueryOptions) (*esdt.ESDigitalToken, api.BlockInfo, error)
+	GetNFTTokenIDsRegisteredByAddress(address string, options api.AccountQueryOptions) ([]string, api.BlockInfo, error)
+	GetESDTsWithRole(address string, role string, options api.AccountQueryOptions) ([]string, api.BlockInfo, error)
+	GetAllESDTTokens(address string, options api.AccountQueryOptions) (map[string]*esdt.ESDigitalToken, api.BlockInfo, error)
+	GetESDTsRoles(address string, options api.AccountQueryOptions) (map[string][]string, api.BlockInfo, error)
+	GetKeyValuePairs(address string, options api.AccountQueryOptions) (map[string]string, api.BlockInfo, error)
+	GetBlockByHash(hash string, options api.BlockQueryOptions) (*dataApi.Block, error)
+	GetBlockByNonce(nonce uint64, options api.BlockQueryOptions) (*dataApi.Block, error)
+	GetBlockByRound(round uint64, options api.BlockQueryOptions) (*dataApi.Block, error)
 	Trigger(epoch uint32, withEarlyEndOfEpoch bool) error
 	IsSelfTrigger() bool
 	GetTotalStakedValue() (*dataApi.StakeValues, error)
@@ -98,6 +99,11 @@ type Facade interface {
 	GetProofCurrentRootHash(address string) (*common.GetProofResponse, error)
 	VerifyProof(rootHash string, address string, proof [][]byte) (bool, error)
 	GetGenesisNodesPubKeys() (map[uint32][]string, map[uint32][]string, error)
-	GetTransactionsPool() (*common.TransactionsPoolAPIResponse, error)
+	GetGenesisBalances() ([]*common.InitialAccountAPI, error)
+	GetGasConfigs() (map[string]map[string]uint64, error)
+	GetTransactionsPool(fields string) (*common.TransactionsPoolAPIResponse, error)
+	GetTransactionsPoolForSender(sender, fields string) (*common.TransactionsPoolForSenderApiResponse, error)
+	GetLastPoolNonceForSender(sender string) (uint64, error)
+	GetTransactionsPoolNonceGapsForSender(sender string) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error)
 	IsInterfaceNil() bool
 }
