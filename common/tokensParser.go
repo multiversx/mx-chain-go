@@ -21,7 +21,7 @@ const (
 
 // TODO: move this to core
 
-// ExtractTokenIDAndNonceFromTokenKey will parse the token's storage key and extract the identifier and the nonce
+// ExtractTokenIDAndNonceFromTokenStorageKey will parse the token's storage key and extract the identifier and the nonce
 func ExtractTokenIDAndNonceFromTokenStorageKey(tokenKey []byte) ([]byte, uint64) {
 	// ALC-1q2w3e for fungible
 	// ALC-2w3e4rX for non fungible

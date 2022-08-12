@@ -15,6 +15,11 @@ func (spsm *SnapshotPruningStorerMock) GetFromOldEpochsWithoutAddingToCache(key 
 	return spsm.Get(key)
 }
 
+// PutInEpoch -
+func (spsm *SnapshotPruningStorerMock) PutInEpoch(key []byte, data []byte, _ uint32) error {
+	return spsm.Put(key, data)
+}
+
 // PutInEpochWithoutCache -
 func (spsm *SnapshotPruningStorerMock) PutInEpochWithoutCache(key []byte, data []byte, _ uint32) error {
 	return spsm.Put(key, data)

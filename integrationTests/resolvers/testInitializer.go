@@ -26,8 +26,16 @@ func CreateResolverRequester(
 	numShards := uint32(2)
 
 	txSignShardId := uint32(0)
-	nResolver := integrationTests.NewTestProcessorNode(numShards, resolverShardID, txSignShardId)
-	nRequester := integrationTests.NewTestProcessorNode(numShards, requesterShardID, txSignShardId)
+	nResolver := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
+		MaxShards:            numShards,
+		NodeShardId:          resolverShardID,
+		TxSignPrivKeyShardId: txSignShardId,
+	})
+	nRequester := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
+		MaxShards:            numShards,
+		NodeShardId:          requesterShardID,
+		TxSignPrivKeyShardId: txSignShardId,
+	})
 
 	time.Sleep(time.Second)
 	err := nRequester.Messenger.ConnectToPeer(integrationTests.GetConnectableAddress(nResolver.Messenger))

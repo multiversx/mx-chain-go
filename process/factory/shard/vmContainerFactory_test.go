@@ -35,15 +35,15 @@ func makeVMConfig() config.VirtualMachineConfig {
 func createMockVMAccountsArguments() ArgVMContainerFactory {
 	esdtTransferParser, _ := parsers.NewESDTTransferParser(&mock.MarshalizerMock{})
 	return ArgVMContainerFactory{
-		Config:             makeVMConfig(),
-		BlockGasLimit:      10000,
-		GasSchedule:        mock.NewGasScheduleNotifierMock(arwenConfig.MakeGasMapForTests()),
-		EpochNotifier:      &epochNotifier.EpochNotifierStub{},
-		EpochConfig:        config.EnableEpochs{},
-		ArwenChangeLocker:  &sync.RWMutex{},
-		ESDTTransferParser: esdtTransferParser,
-		BuiltInFunctions:   vmcommonBuiltInFunctions.NewBuiltInFunctionContainer(),
-		BlockChainHook:     &testscommon.BlockChainHookStub{},
+		Config:              makeVMConfig(),
+		BlockGasLimit:       10000,
+		GasSchedule:         testscommon.NewGasScheduleNotifierMock(arwenConfig.MakeGasMapForTests()),
+		EpochNotifier:       &epochNotifier.EpochNotifierStub{},
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+		ArwenChangeLocker:   &sync.RWMutex{},
+		ESDTTransferParser:  esdtTransferParser,
+		BuiltInFunctions:    vmcommonBuiltInFunctions.NewBuiltInFunctionContainer(),
+		BlockChainHook:      &testscommon.BlockChainHookStub{},
 	}
 }
 
@@ -89,6 +89,17 @@ func TestNewVMContainerFactory_NilEpochNotifierShouldErr(t *testing.T) {
 
 	assert.Nil(t, vmf)
 	assert.Equal(t, process.ErrNilEpochNotifier, err)
+}
+
+func TestNewVMContainerFactory_NilEnableEpochsHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createMockVMAccountsArguments()
+	args.EnableEpochsHandler = nil
+	vmf, err := NewVMContainerFactory(args)
+
+	assert.Nil(t, vmf)
+	assert.Equal(t, process.ErrNilEnableEpochsHandler, err)
 }
 
 func TestNewVMContainerFactory_NilBuiltinFunctionsShouldErr(t *testing.T) {
@@ -153,7 +164,7 @@ func TestVmContainerFactory_ResolveArwenVersion(t *testing.T) {
 	epochNotifierInstance := forking.NewGenericEpochNotifier()
 
 	numCalled := 0
-	gasScheduleNotifier := mock.NewGasScheduleNotifierMock(arwenConfig.MakeGasMapForTests())
+	gasScheduleNotifier := testscommon.NewGasScheduleNotifierMock(arwenConfig.MakeGasMapForTests())
 	gasScheduleNotifier.RegisterNotifyHandlerCalled = func(handler core.GasScheduleSubscribeHandler) {
 		numCalled++
 		handler.GasScheduleChange(gasScheduleNotifier.GasSchedule)

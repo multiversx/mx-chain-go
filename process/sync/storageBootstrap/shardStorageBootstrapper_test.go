@@ -16,7 +16,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	epochNotifierMock "github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
+	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	storageMock "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -43,7 +45,7 @@ func TestShardStorageBootstrapper_LoadFromStorageShouldWork(t *testing.T) {
 	}
 	hdrHash := []byte("header hash")
 	hdrBytes, _ := marshaller.Marshal(hdr)
-	blockStorerMock := mock.NewStorerMock()
+	blockStorerMock := genericMocks.NewStorerMock()
 	_ = blockStorerMock.Put(hdrHash, hdrBytes)
 
 	args := ArgsShardStorageBootstrapper{
@@ -104,9 +106,9 @@ func TestShardStorageBootstrapper_LoadFromStorageShouldWork(t *testing.T) {
 				},
 			},
 			Marshalizer: &testscommon.MarshalizerMock{},
-			Store: &mock.ChainStorerMock{
-				GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-					return blockStorerMock
+			Store: &storageMock.ChainStorerStub{
+				GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+					return blockStorerMock, nil
 				},
 			},
 			Uint64Converter:     testscommon.NewNonceHashConverterMock(),
@@ -132,6 +134,7 @@ func TestShardStorageBootstrapper_LoadFromStorageShouldWork(t *testing.T) {
 				},
 			},
 			ProcessedMiniBlocksTracker: &testscommon.ProcessedMiniBlocksTrackerStub{},
+			AppStatusHandler:           &statusHandler.AppStatusHandlerMock{},
 		},
 	}
 
@@ -170,8 +173,8 @@ func TestShardStorageBootstrapper_CleanupNotarizedStorageForHigherNoncesIfExist(
 			return []byte("")
 		},
 	}
-	baseArgs.Store = &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+	baseArgs.Store = &storageMock.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 			return &storageMock.StorerStub{
 				RemoveCalled: func(key []byte) error {
 					if bForceError {
@@ -199,7 +202,7 @@ func TestShardStorageBootstrapper_CleanupNotarizedStorageForHigherNoncesIfExist(
 					numKeysNotFound++
 					return nil, errors.New("error")
 				},
-			}
+			}, nil
 		},
 	}
 

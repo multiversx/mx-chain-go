@@ -1,4 +1,4 @@
-package blockchain_test
+package blockchain
 
 import (
 	"fmt"
@@ -7,14 +7,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/mock"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/blockchain"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestNewBlockChain_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	bc, _ := blockchain.NewBlockChain(&mock.AppStatusHandlerStub{})
+	bc, _ := NewBlockChain(&mock.AppStatusHandlerStub{})
 
 	assert.False(t, check.IfNil(bc))
 }
@@ -22,16 +21,16 @@ func TestNewBlockChain_ShouldWork(t *testing.T) {
 func TestBlockChain_NilAppStatusHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	bc, err := blockchain.NewBlockChain(nil)
+	bc, err := NewBlockChain(nil)
 
-	assert.Equal(t, blockchain.ErrNilAppStatusHandler, err)
+	assert.Equal(t, ErrNilAppStatusHandler, err)
 	assert.Nil(t, bc)
 }
 
 func TestBlockChain_SettersAndGetters(t *testing.T) {
 	t.Parallel()
 
-	bc, _ := blockchain.NewBlockChain(&mock.AppStatusHandlerStub{})
+	bc, _ := NewBlockChain(&mock.AppStatusHandlerStub{})
 
 	hdr := &block.Header{
 		Nonce: 4,
@@ -68,7 +67,7 @@ func TestBlockChain_SettersAndGetters(t *testing.T) {
 func TestBlockChain_SettersAndGettersNilValues(t *testing.T) {
 	t.Parallel()
 
-	bc, _ := blockchain.NewBlockChain(&mock.AppStatusHandlerStub{})
+	bc, _ := NewBlockChain(&mock.AppStatusHandlerStub{})
 	_ = bc.SetGenesisHeader(&block.Header{})
 	_ = bc.SetCurrentBlockHeaderAndRootHash(&block.Header{}, []byte("root hash"))
 

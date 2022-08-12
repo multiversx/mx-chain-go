@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
 	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/update/mock"
@@ -173,7 +174,7 @@ func TestSyncHeadersByHash_GetHeadersShouldReceiveAndReturnOkMb(t *testing.T) {
 
 func getMisingHeadersByHashSyncerArgs() ArgsNewMissingHeadersByHashSyncer {
 	return ArgsNewMissingHeadersByHashSyncer{
-		Storage:        &mock.StorerMock{},
+		Storage:        genericMocks.NewStorerMock(),
 		Cache:          &mock.HeadersCacherStub{},
 		Marshalizer:    &mock.MarshalizerMock{},
 		RequestHandler: &testscommon.RequestHandlerStub{},
