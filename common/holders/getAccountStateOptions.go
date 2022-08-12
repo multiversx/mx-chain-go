@@ -16,7 +16,7 @@ func NewGetAccountStateOptionsAsEmpty() *getAccountStateOptions {
 
 // GetBlockRootHash returns the contained blockRootHash
 func (options *getAccountStateOptions) GetBlockRootHash() []byte {
-	return options.GetBlockRootHash()
+	return options.blockRootHash
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
