@@ -1,3 +1,4 @@
+#!/bin/bash
 # This script generates a stub from a given interface
 # Mandatory parameters needed:
 #   interface name from an interface.go file
@@ -5,40 +6,6 @@
 #   path to the destination directory the stub will be created, from the directory this script is called
 #
 # Usage example: bash stubGenerator.sh EnableEpochsHandler ../../common ../../common
-
-generateStub() {
-  interfaceName=$1
-  filePath=$2"/interface.go"
-  stubDir=$3
-
-  [ ! -d "$2" ] && echo "Source directory for interface DOES NOT exists." && exit
-  [ ! -f "$filePath" ] && echo "Source interface.go file DOES NOT exists." && exit
-  [ ! -d "$stubDir" ] && echo "Destination directory DOES NOT exists." && exit
-
-  extractPackageName
-
-  stubName=$interfaceName"Stub"
-
-  # make first char of the file name lowercase
-  firstChar=${stubName::1}
-  firstChar=${firstChar,,}
-
-  lenOfStubName=${#stubName}
-  stubFileName=$firstChar${stubName:1:$lenOfStubName}
-
-  stubPath="$stubDir/$stubFileName.go"
-  rm -rf "$stubPath"
-
-  isInterfaceMethod=false
-  declare -a methodsArr
-
-  readInterfaceFile
-  createStubStructure
-  createStubMethods
-
-  # go fmt file
-  go fmt "$stubPath"
-}
 
 extractPackageName() {
   if [ "$stubDir" == "." ]; then
@@ -95,6 +62,12 @@ readInterfaceFile() {
   [ $interfaceFound == false ] && echo "Interface $interfaceName DOES NOT exists in $filePath." && exit
 }
 
+removeCommentsFromMethodLine() {
+  if [[ "$method" == *"//"* ]]; then
+    method=${method%%"//"*}
+  fi
+}
+
 createStubStructure() {
   # navigate through all methods lines and create stub members with Called suffix and write them to the dest file
   for method in "${methodsArr[@]}"
@@ -115,52 +88,6 @@ createStubStructure() {
   done
   # now stub struct is complete, close it
   echo -e "}\n" >> "$stubPath"
-}
-
-createStubMethods() {
-  # navigate through all methods lines and:
-  #   extract method name
-  #   extract return types, used to handle the return
-  #   extract parameters, used to call the stub member
-  for method in "${methodsArr[@]}"
-    do
-      methodName=${method%%"("*}
-      methodName=${methodName//[[:blank:]]/}
-      # ignore commented lines
-      [[ "$methodName" == "//"* ]] && continue
-
-     removeCommentsFromMethodLine
-
-      rawReturnTypesWithBraces=${method#*")"}
-      rawReturnTypesWithBraces=${rawReturnTypesWithBraces%"{"*}
-      # remove () in case of multiple return types
-      rawReturnTypes=${rawReturnTypesWithBraces#*"("}
-      rawReturnTypes=${rawReturnTypes%")"*}
-
-      declare -a returnTypesArr=()
-      extractReturnTypes
-
-      rawParams=${method%%")"*}
-      rawParams=${rawParams##*"("}
-
-      declare -a paramNames=()
-      declare -a paramTypes=()
-      extractParametersAndTypes
-
-      # compute the stub member which will be called and write to the file:
-      #   the comment
-      #   the method signature
-      # But first we compute the updated parameters, to avoid situation when param name is missing
-      updatedParameters=""
-      computeUpdatedParameters
-
-      stubField=$methodName"Called"
-      { echo "// $methodName -";
-        echo "func (stub *$stubName) $methodName $updatedParameters $rawReturnTypesWithBraces {";
-        } >> "$stubPath"
-
-      createMethodBody
-  done
 }
 
 extractReturnTypes() {
@@ -215,61 +142,26 @@ extractParametersAndTypes() {
   fi
 }
 
-createMethodBody() {
-  # if method is IsInterfaceNil, write special return and return
-  if [[ $methodName == *"IsInterfaceNil"* ]]; then
-    { echo "return stub == nil";
-      echo -e "}\n";
-      } >> "$stubPath"
-    return
-  fi
-
-  # add the check to stub member to not be nil
-  echo "if stub.$stubField != nil {" >> "$stubPath"
-
-  stringParamNames=""
-  getStringParamNames
-
-  # add return statement calling stub member
-  # if there is no return type, add it without return
-  # otherwise, return it with the provided params
-  if [[ ${#returnTypesArr} == 0 ]]; then
-    writeWithNoReturn
-  else
-    writeWithReturn
-  fi
-}
-
-getStringParamNames() {
-  for i in "${paramNames[@]}"; do
-    stringParamNames+=$i
-    stringParamNames+=", "
+computeUpdatedParameters() {
+  updatedParameters+="("
+  for i in "${!paramNames[@]}"; do
+    updatedParameters+="${paramNames[$i]%%"."*}" # until first dot, in case there are variable params
+    updatedParameters+=" "
+    updatedParameters+="${paramTypes[$i]}"
+    updatedParameters+=", "
   done
 
-  if [[ ${#stringParamNames} != 0 ]]; then
+  if [[ ${#updatedParameters} != 1 ]]; then
     # remove the last ", " added with last param
-    stringParamNames=${stringParamNames::-2}
+    updatedParameters=${updatedParameters::-2}
   fi
+
+  updatedParameters+=")"
 }
 
 writeWithNoReturn() {
   { echo "stub.$stubField($stringParamNames)";
     echo "}";
-    echo -e "}\n";
-    } >> "$stubPath"
-}
-
-writeWithReturn() {
-  { echo "return stub.$stubField($stringParamNames)";
-  echo "}";
-  } >> "$stubPath"
-
-  # compute default values to return when stub member is not provided, separated by comma
-  toReturn=""
-  extractDefaultReturn
-
-  # write the final return statement to file with default params and close the method
-  { echo "return $toReturn";
     echo -e "}\n";
     } >> "$stubPath"
 }
@@ -298,36 +190,141 @@ extractDefaultReturn() {
   fi
 }
 
-computeUpdatedParameters() {
-  updatedParameters+="("
-  for i in "${!paramNames[@]}"; do
-    updatedParameters+="${paramNames[$i]%%"."*}" # until first dot, in case there are variable params
-    updatedParameters+=" "
-    updatedParameters+="${paramTypes[$i]}"
-    updatedParameters+=", "
+writeWithReturn() {
+  { echo "return stub.$stubField($stringParamNames)";
+  echo "}";
+  } >> "$stubPath"
+
+  # compute default values to return when stub member is not provided, separated by comma
+  toReturn=""
+  extractDefaultReturn
+
+  # write the final return statement to file with default params and close the method
+  { echo "return $toReturn";
+    echo -e "}\n";
+    } >> "$stubPath"
+}
+
+getStringParamNames() {
+  for i in "${paramNames[@]}"; do
+    stringParamNames+=$i
+    stringParamNames+=", "
   done
 
-  if [[ ${#updatedParameters} != 1 ]]; then
+  if [[ ${#stringParamNames} != 0 ]]; then
     # remove the last ", " added with last param
-    updatedParameters=${updatedParameters::-2}
-  fi
-
-  updatedParameters+=")"
-}
-
-removeCommentsFromMethodLine() {
-  if [[ "$method" == *"//"* ]]; then
-    method=${method%%"//"*}
+    stringParamNames=${stringParamNames::-2}
   fi
 }
 
-main() {
-  if [ $# -eq 3 ]; then
-    generateStub "$@"
+createMethodBody() {
+  # if method is IsInterfaceNil, write special return and return
+  if [[ $methodName == *"IsInterfaceNil"* ]]; then
+    { echo "return stub == nil";
+      echo -e "}\n";
+      } >> "$stubPath"
+    return
+  fi
+
+  # add the check to stub member to not be nil
+  echo "if stub.$stubField != nil {" >> "$stubPath"
+
+  stringParamNames=""
+  getStringParamNames
+
+  # add return statement calling stub member
+  # if there is no return type, add it without return
+  # otherwise, return it with the provided params
+  if [[ ${#returnTypesArr} == 0 ]]; then
+    writeWithNoReturn
   else
-    echo "Please use the following format..."
-    echo "bash stubGenerator.sh interface_name path_to_interface.go_dir path_to_stub_destionation_dir"
+    writeWithReturn
   fi
 }
 
-main "$@"
+createStubMethods() {
+  # navigate through all methods lines and:
+  #   extract method name
+  #   extract return types, used to handle the return
+  #   extract parameters, used to call the stub member
+  for method in "${methodsArr[@]}"
+    do
+      methodName=${method%%"("*}
+      methodName=${methodName//[[:blank:]]/}
+      # ignore commented lines
+      [[ "$methodName" == "//"* ]] && continue
+
+     removeCommentsFromMethodLine
+
+      rawReturnTypesWithBraces=${method#*")"}
+      rawReturnTypesWithBraces=${rawReturnTypesWithBraces%"{"*}
+      # remove () in case of multiple return types
+      rawReturnTypes=${rawReturnTypesWithBraces#*"("}
+      rawReturnTypes=${rawReturnTypes%")"*}
+
+      declare -a returnTypesArr=()
+      extractReturnTypes
+
+      rawParams=${method%%")"*}
+      rawParams=${rawParams##*"("}
+
+      declare -a paramNames=()
+      declare -a paramTypes=()
+      extractParametersAndTypes
+
+      # compute the stub member which will be called and write to the file:
+      #   the comment
+      #   the method signature
+      # But first we compute the updated parameters, to avoid situation when param name is missing
+      updatedParameters=""
+      computeUpdatedParameters
+
+      stubField=$methodName"Called"
+      { echo "// $methodName -";
+        echo "func (stub *$stubName) $methodName $updatedParameters $rawReturnTypesWithBraces {";
+        } >> "$stubPath"
+
+      createMethodBody
+  done
+}
+
+generateStub() {
+  interfaceName=$1
+  filePath=$2"/interface.go"
+  stubDir=$3
+
+  [ ! -d "$2" ] && echo "Source directory for interface DOES NOT exists." && exit
+  [ ! -f "$filePath" ] && echo "Source interface.go file DOES NOT exists." && exit
+  [ ! -d "$stubDir" ] && echo "Destination directory DOES NOT exists." && exit
+
+  extractPackageName
+
+  stubName=$interfaceName"Stub"
+
+  # make first char of the file name lowercase
+  firstChar=${stubName::1}
+  firstChar=${firstChar,,}
+
+  lenOfStubName=${#stubName}
+  stubFileName=$firstChar${stubName:1:$lenOfStubName}
+
+  stubPath="$stubDir/$stubFileName.go"
+  rm -rf "$stubPath"
+
+  isInterfaceMethod=false
+  declare -a methodsArr
+
+  readInterfaceFile
+  createStubStructure
+  createStubMethods
+
+  # go fmt file
+  go fmt "$stubPath"
+}
+
+if [ $# -eq 3 ]; then
+  generateStub "$@"
+else
+  echo "Please use the following format..."
+  echo "bash stubGenerator.sh interface_name path_to_interface.go_dir path_to_stub_destionation_dir"
+fi
