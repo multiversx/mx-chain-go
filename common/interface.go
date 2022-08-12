@@ -154,6 +154,12 @@ type ReceiptsHolder interface {
 	IsInterfaceNil() bool
 }
 
+// GetAccountsStateOptions holds options for getting the state of an account
+type GetAccountsStateOptions interface {
+	GetBlockRootHash() []byte
+	IsInterfaceNil() bool
+}
+
 // GasScheduleNotifierAPI defines the behavior of the gas schedule notifier components that is used for api
 type GasScheduleNotifierAPI interface {
 	core.GasScheduleNotifier

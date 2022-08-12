@@ -43,22 +43,42 @@ func NewAccountsRepository(args ArgsAccountsRepository) (*accountsRepository, er
 
 // GetAccountWithBlockInfo will return the account handler with the block info providing the address and the query option
 func (repository *accountsRepository) GetAccountWithBlockInfo(address []byte, options api.AccountQueryOptions) (vmcommon.AccountHandler, common.BlockInfo, error) {
+	err := repository.checkAccountQueryOptions(options)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	accountsAdapter, err := repository.selectStateAccounts(options)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	return accountsAdapter.GetAccountWithBlockInfo(address, options)
+	convertedOptions, err := repository.convertAccountQueryOptions(options)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return accountsAdapter.GetAccountWithBlockInfo(address, convertedOptions)
 }
 
 // GetCodeWithBlockInfo will return the code with the block info providing the code hash and the query option
 func (repository *accountsRepository) GetCodeWithBlockInfo(codeHash []byte, options api.AccountQueryOptions) ([]byte, common.BlockInfo, error) {
+	err := repository.checkAccountQueryOptions(options)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	accountsAdapter, err := repository.selectStateAccounts(options)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	return accountsAdapter.GetCodeWithBlockInfo(codeHash, options)
+	convertedOptions, err := repository.convertAccountQueryOptions(options)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return accountsAdapter.GetCodeWithBlockInfo(codeHash, convertedOptions)
 }
 
 func (repository *accountsRepository) selectStateAccounts(options api.AccountQueryOptions) (AccountsAdapterAPI, error) {

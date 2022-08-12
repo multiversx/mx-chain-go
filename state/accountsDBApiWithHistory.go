@@ -2,16 +2,18 @@ package state
 
 import (
 	"context"
+	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/common/holders"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 type accountsDBApiWithHistory struct {
 	innerAccountsAdapter AccountsAdapter
+	mutRecreateAndGet    sync.Mutex
 }
 
 // NewAccountsDBApiWithHistory will create a new instance of type accountsDBApiWithHistory
@@ -132,13 +134,44 @@ func (accountsDB *accountsDBApiWithHistory) Close() error {
 }
 
 // GetAccountWithBlockInfo returns the account and the associated block info
-func (accountsDB *accountsDBApiWithHistory) GetAccountWithBlockInfo(address []byte, options api.AccountQueryOptions) (vmcommon.AccountHandler, common.BlockInfo, error) {
-	return nil, nil, ErrFunctionalityNotImplemented
+func (accountsDB *accountsDBApiWithHistory) GetAccountWithBlockInfo(address []byte, options common.GetAccountsStateOptions) (vmcommon.AccountHandler, common.BlockInfo, error) {
+	blockInfo := holders.NewBlockInfo(nil, 0, options.GetBlockRootHash())
+
+	// We cannot allow concurrent requests to <recreate a trie & load state>.
+	accountsDB.mutRecreateAndGet.Lock()
+	defer accountsDB.mutRecreateAndGet.Unlock()
+
+	err := accountsDB.recreateTrie(options.GetBlockRootHash())
+	if err != nil {
+		return nil, nil, err
+	}
+
+	account, err := accountsDB.innerAccountsAdapter.GetExistingAccount(address)
+	if err == ErrAccNotFound {
+		return nil, nil, NewErrAccountNotFoundAtBlock(blockInfo)
+	}
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return account, blockInfo, nil
 }
 
 // GetCodeWithBlockInfo returns the code and the associated block info
-func (accountsDB *accountsDBApiWithHistory) GetCodeWithBlockInfo(codeHash []byte, options api.AccountQueryOptions) ([]byte, common.BlockInfo, error) {
-	return nil, nil, ErrFunctionalityNotImplemented
+func (accountsDB *accountsDBApiWithHistory) GetCodeWithBlockInfo(codeHash []byte, options common.GetAccountsStateOptions) ([]byte, common.BlockInfo, error) {
+	blockInfo := holders.NewBlockInfo(nil, 0, options.GetBlockRootHash())
+
+	// We cannot allow concurrent requests to <recreate a trie & load state>.
+	accountsDB.mutRecreateAndGet.Lock()
+	defer accountsDB.mutRecreateAndGet.Unlock()
+
+	err := accountsDB.recreateTrie(options.GetBlockRootHash())
+	if err != nil {
+		return nil, nil, err
+	}
+
+	code := accountsDB.innerAccountsAdapter.GetCode(codeHash)
+	return code, blockInfo, nil
 }
 
 func (accountsDB *accountsDBApiWithHistory) recreateTrie(rootHash []byte) error {

@@ -5,7 +5,6 @@ import (
 	"errors"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/state"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -36,8 +35,8 @@ type AccountsStub struct {
 	GetCodeCalled                 func([]byte) []byte
 	GetTrieCalled                 func([]byte) (common.Trie, error)
 	GetStackDebugFirstEntryCalled func() []byte
-	GetAccountWithBlockInfoCalled func(address []byte, options api.AccountQueryOptions) (vmcommon.AccountHandler, common.BlockInfo, error)
-	GetCodeWithBlockInfoCalled    func(codeHash []byte, options api.AccountQueryOptions) ([]byte, common.BlockInfo, error)
+	GetAccountWithBlockInfoCalled func(address []byte, options common.GetAccountsStateOptions) (vmcommon.AccountHandler, common.BlockInfo, error)
+	GetCodeWithBlockInfoCalled    func(codeHash []byte, options common.GetAccountsStateOptions) ([]byte, common.BlockInfo, error)
 	CloseCalled                   func() error
 }
 
@@ -216,7 +215,7 @@ func (as *AccountsStub) GetStackDebugFirstEntry() []byte {
 }
 
 // GetAccountWithBlockInfo -
-func (as *AccountsStub) GetAccountWithBlockInfo(address []byte, options api.AccountQueryOptions) (vmcommon.AccountHandler, common.BlockInfo, error) {
+func (as *AccountsStub) GetAccountWithBlockInfo(address []byte, options common.GetAccountsStateOptions) (vmcommon.AccountHandler, common.BlockInfo, error) {
 	if as.GetAccountWithBlockInfoCalled != nil {
 		return as.GetAccountWithBlockInfoCalled(address, options)
 	}
@@ -225,7 +224,7 @@ func (as *AccountsStub) GetAccountWithBlockInfo(address []byte, options api.Acco
 }
 
 // GetCodeWithBlockInfo -
-func (as *AccountsStub) GetCodeWithBlockInfo(codeHash []byte, options api.AccountQueryOptions) ([]byte, common.BlockInfo, error) {
+func (as *AccountsStub) GetCodeWithBlockInfo(codeHash []byte, options common.GetAccountsStateOptions) ([]byte, common.BlockInfo, error) {
 	if as.GetCodeWithBlockInfoCalled != nil {
 		return as.GetCodeWithBlockInfoCalled(codeHash, options)
 	}
