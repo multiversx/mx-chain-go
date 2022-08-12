@@ -8,12 +8,15 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
+	commonDisabled "github.com/ElrondNetwork/elrond-go/common/disabled"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
+	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/trie"
+	"github.com/ElrondNetwork/elrond-go/trie/hashesHolder/disabled"
 	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/update/genesis"
 )
@@ -60,8 +63,23 @@ func NewDataTrieFactory(args ArgsNewDataTrieFactory) (*dataTrieFactory, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	trieStorage, err := trie.NewTrieStorageManagerWithoutPruning(accountsTrieStorage)
+	tsmArgs := trie.NewTrieStorageManagerArgs{
+		MainStorer:        accountsTrieStorage,
+		CheckpointsStorer: memorydb.New(),
+		Marshalizer:       args.Marshalizer,
+		Hasher:            args.Hasher,
+		GeneralConfig: config.TrieStorageManagerConfig{
+			SnapshotsGoroutineNum: 2,
+		},
+		CheckpointHashesHolder: disabled.NewDisabledCheckpointHashesHolder(),
+		IdleProvider:           commonDisabled.NewProcessStatusHandler(),
+	}
+	options := trie.StorageManagerOptions{
+		PruningEnabled:     false,
+		SnapshotsEnabled:   false,
+		CheckpointsEnabled: false,
+	}
+	trieStorage, err := trie.CreateTrieStorageManager(tsmArgs, options)
 	if err != nil {
 		return nil, err
 	}

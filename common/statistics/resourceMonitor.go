@@ -2,6 +2,7 @@ package statistics
 
 import (
 	"context"
+	"fmt"
 	"io/ioutil"
 	"path"
 	"path/filepath"
@@ -14,6 +15,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common/statistics/machine"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/shirou/gopsutil/cpu"
+	"github.com/shirou/gopsutil/load"
+	"github.com/shirou/gopsutil/mem"
 	"github.com/shirou/gopsutil/net"
 	"github.com/shirou/gopsutil/process"
 )
@@ -38,6 +42,20 @@ func NewResourceMonitor(config *config.Config, pathManager storage.PathManagerHa
 		return nil, ErrNilPathHandler
 	}
 
+	memoryString := "no memory information"
+	vms, err := mem.VirtualMemory()
+	if err == nil {
+		memoryString = core.ConvertBytes(vms.Total)
+	}
+
+	numCores := -1
+	rawCpuInfo, err := cpu.Info()
+	if err == nil {
+		numCores = len(rawCpuInfo)
+	}
+
+	log.Debug("newResourceMonitor", "numCores", numCores, "memory", memoryString)
+
 	return &ResourceMonitor{
 		generalConfig: config,
 		pathManager:   pathManager,
@@ -51,6 +69,10 @@ func (rm *ResourceMonitor) GenerateStatistics() []interface{} {
 	fileDescriptors := int32(0)
 	numOpenFiles := 0
 	numConns := 0
+	cpuPercent := 0.0
+	ioStatsString := "no io stats info"
+	cpuPercentString := "no cpu percent info"
+	loadAverageString := "no load average info"
 	proc, err := machine.GetCurrentProcess()
 	if err == nil {
 		fileDescriptors, _ = proc.NumFDs()
@@ -58,6 +80,26 @@ func (rm *ResourceMonitor) GenerateStatistics() []interface{} {
 		openFiles, err = proc.OpenFiles()
 		if err == nil {
 			numOpenFiles = len(openFiles)
+		}
+
+		loadAvg, errLoadAvg := load.Avg()
+		if errLoadAvg == nil {
+			loadAverageString = fmt.Sprintf("{avg1min:%.2f, avg5min:%.2f, avg15min:%.2f}",
+				loadAvg.Load1, loadAvg.Load5, loadAvg.Load15)
+		}
+
+		cpuPercent, err = proc.CPUPercent()
+		if err == nil {
+			cpuPercentString = fmt.Sprintf("%.2f", cpuPercent)
+		}
+
+		ioStats, errIoCounters := proc.IOCounters()
+		if errIoCounters == nil {
+			ioStatsString = fmt.Sprintf("{readCount:%d, writeCount:%d, readBytes:%s, writeBytes:%s}",
+				ioStats.ReadCount,
+				ioStats.WriteCount,
+				core.ConvertBytes(ioStats.ReadBytes),
+				core.ConvertBytes(ioStats.WriteBytes))
 		}
 
 		var conns []net.ConnectionStat
@@ -93,6 +135,9 @@ func (rm *ResourceMonitor) GenerateStatistics() []interface{} {
 		"evictionDbMem", getDirMemSize(evictionWaitingListDbFilePath),
 		"peerTrieDbMem", getDirMemSize(peerTrieDbFilePath),
 		"peerTrieEvictionDbMem", getDirMemSize(peerTrieEvictionWaitingListDbFilePath),
+		"cpuPercent", cpuPercentString,
+		"cpuLoadAveragePercent", loadAverageString,
+		"ioStatsString", ioStatsString,
 	}...,
 	)
 

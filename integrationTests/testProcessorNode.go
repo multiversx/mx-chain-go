@@ -2068,6 +2068,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 
 	triesConfig := config.Config{
 		StateTriesConfig: config.StateTriesConfig{
+			SnapshotsEnabled:          true,
 			CheckpointRoundsModulus:   stateCheckpointModulus,
 			UserStatePruningQueueSize: uint(5),
 			PeerStatePruningQueueSize: uint(3),
