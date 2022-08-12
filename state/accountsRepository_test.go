@@ -86,7 +86,7 @@ func TestAccountsRepository_GetAccountWithBlockInfo(t *testing.T) {
 
 		args := createMockArgsAccountsRepository()
 		args.FinalStateAccountsWrapper = &mockState.AccountsStub{
-			GetAccountWithBlockInfoCalled: func(address []byte) (vmcommon.AccountHandler, common.BlockInfo, error) {
+			GetAccountWithBlockInfoCalled: func(address []byte, options api.AccountQueryOptions) (vmcommon.AccountHandler, common.BlockInfo, error) {
 				return commonAccount, commonBlockInfo, nil
 			},
 		}
@@ -102,7 +102,7 @@ func TestAccountsRepository_GetAccountWithBlockInfo(t *testing.T) {
 
 		args := createMockArgsAccountsRepository()
 		args.CurrentStateAccountsWrapper = &mockState.AccountsStub{
-			GetAccountWithBlockInfoCalled: func(address []byte) (vmcommon.AccountHandler, common.BlockInfo, error) {
+			GetAccountWithBlockInfoCalled: func(address []byte, options api.AccountQueryOptions) (vmcommon.AccountHandler, common.BlockInfo, error) {
 				return commonAccount, commonBlockInfo, nil
 			},
 		}
@@ -138,7 +138,7 @@ func TestAccountsRepository_GetCodeWithBlockInfo(t *testing.T) {
 
 		args := createMockArgsAccountsRepository()
 		args.FinalStateAccountsWrapper = &mockState.AccountsStub{
-			GetCodeWithBlockInfoCalled: func(codeHash []byte) ([]byte, common.BlockInfo, error) {
+			GetCodeWithBlockInfoCalled: func(codeHash []byte, options api.AccountQueryOptions) ([]byte, common.BlockInfo, error) {
 				return commonCode, commonBlockInfo, nil
 			},
 		}
@@ -154,7 +154,7 @@ func TestAccountsRepository_GetCodeWithBlockInfo(t *testing.T) {
 
 		args := createMockArgsAccountsRepository()
 		args.CurrentStateAccountsWrapper = &mockState.AccountsStub{
-			GetCodeWithBlockInfoCalled: func(codeHash []byte) ([]byte, common.BlockInfo, error) {
+			GetCodeWithBlockInfoCalled: func(codeHash []byte, options api.AccountQueryOptions) ([]byte, common.BlockInfo, error) {
 				return commonCode, commonBlockInfo, nil
 			},
 		}

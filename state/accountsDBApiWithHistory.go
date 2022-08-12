@@ -5,6 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go/common"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
@@ -131,12 +132,12 @@ func (accountsDB *accountsDBApiWithHistory) Close() error {
 }
 
 // GetAccountWithBlockInfo returns the account and the associated block info
-func (accountsDB *accountsDBApiWithHistory) GetAccountWithBlockInfo(address []byte) (vmcommon.AccountHandler, common.BlockInfo, error) {
+func (accountsDB *accountsDBApiWithHistory) GetAccountWithBlockInfo(address []byte, options api.AccountQueryOptions) (vmcommon.AccountHandler, common.BlockInfo, error) {
 	return nil, nil, ErrFunctionalityNotImplemented
 }
 
 // GetCodeWithBlockInfo returns the code and the associated block info
-func (accountsDB *accountsDBApiWithHistory) GetCodeWithBlockInfo(codeHash []byte) ([]byte, common.BlockInfo, error) {
+func (accountsDB *accountsDBApiWithHistory) GetCodeWithBlockInfo(codeHash []byte, options api.AccountQueryOptions) ([]byte, common.BlockInfo, error) {
 	return nil, nil, ErrFunctionalityNotImplemented
 }
 

@@ -48,7 +48,7 @@ func (repository *accountsRepository) GetAccountWithBlockInfo(address []byte, op
 		return nil, nil, err
 	}
 
-	return accountsAdapter.GetAccountWithBlockInfo(address)
+	return accountsAdapter.GetAccountWithBlockInfo(address, options)
 }
 
 // GetCodeWithBlockInfo will return the code with the block info providing the code hash and the query option
@@ -58,7 +58,7 @@ func (repository *accountsRepository) GetCodeWithBlockInfo(codeHash []byte, opti
 		return nil, nil, err
 	}
 
-	return accountsAdapter.GetCodeWithBlockInfo(codeHash)
+	return accountsAdapter.GetCodeWithBlockInfo(codeHash, options)
 }
 
 func (repository *accountsRepository) selectStateAccounts(options api.AccountQueryOptions) (AccountsAdapterAPI, error) {

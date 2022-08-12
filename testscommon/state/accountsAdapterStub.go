@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/state"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -35,8 +36,8 @@ type AccountsStub struct {
 	GetCodeCalled                 func([]byte) []byte
 	GetTrieCalled                 func([]byte) (common.Trie, error)
 	GetStackDebugFirstEntryCalled func() []byte
-	GetAccountWithBlockInfoCalled func(address []byte) (vmcommon.AccountHandler, common.BlockInfo, error)
-	GetCodeWithBlockInfoCalled    func(codeHash []byte) ([]byte, common.BlockInfo, error)
+	GetAccountWithBlockInfoCalled func(address []byte, options api.AccountQueryOptions) (vmcommon.AccountHandler, common.BlockInfo, error)
+	GetCodeWithBlockInfoCalled    func(codeHash []byte, options api.AccountQueryOptions) ([]byte, common.BlockInfo, error)
 	CloseCalled                   func() error
 }
 
@@ -215,18 +216,18 @@ func (as *AccountsStub) GetStackDebugFirstEntry() []byte {
 }
 
 // GetAccountWithBlockInfo -
-func (as *AccountsStub) GetAccountWithBlockInfo(address []byte) (vmcommon.AccountHandler, common.BlockInfo, error) {
+func (as *AccountsStub) GetAccountWithBlockInfo(address []byte, options api.AccountQueryOptions) (vmcommon.AccountHandler, common.BlockInfo, error) {
 	if as.GetAccountWithBlockInfoCalled != nil {
-		return as.GetAccountWithBlockInfoCalled(address)
+		return as.GetAccountWithBlockInfoCalled(address, options)
 	}
 
 	return nil, nil, nil
 }
 
 // GetCodeWithBlockInfo -
-func (as *AccountsStub) GetCodeWithBlockInfo(codeHash []byte) ([]byte, common.BlockInfo, error) {
+func (as *AccountsStub) GetCodeWithBlockInfo(codeHash []byte, options api.AccountQueryOptions) ([]byte, common.BlockInfo, error) {
 	if as.GetCodeWithBlockInfoCalled != nil {
-		return as.GetCodeWithBlockInfoCalled(codeHash)
+		return as.GetCodeWithBlockInfoCalled(codeHash, options)
 	}
 
 	return nil, nil, nil
