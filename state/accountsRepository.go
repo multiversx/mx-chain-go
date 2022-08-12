@@ -10,14 +10,16 @@ import (
 )
 
 type accountsRepository struct {
-	finalStateAccountsWrapper   AccountsAdapterAPI
-	currentStateAccountsWrapper AccountsAdapterAPI
+	finalStateAccountsWrapper      AccountsAdapterAPI
+	currentStateAccountsWrapper    AccountsAdapterAPI
+	historicalStateAccountsWrapper AccountsAdapterAPI
 }
 
 // ArgsAccountsRepository is the DTO for the NewAccountsRepository constructor function
 type ArgsAccountsRepository struct {
-	FinalStateAccountsWrapper   AccountsAdapterAPI
-	CurrentStateAccountsWrapper AccountsAdapterAPI
+	FinalStateAccountsWrapper      AccountsAdapterAPI
+	CurrentStateAccountsWrapper    AccountsAdapterAPI
+	HistoricalStateAccountsWrapper AccountsAdapterAPI
 }
 
 // NewAccountsRepository creates a new accountsRepository instance
@@ -28,10 +30,14 @@ func NewAccountsRepository(args ArgsAccountsRepository) (*accountsRepository, er
 	if check.IfNil(args.FinalStateAccountsWrapper) {
 		return nil, fmt.Errorf("%w for FinalStateAccountsWrapper", ErrNilAccountsAdapter)
 	}
+	if check.IfNil(args.HistoricalStateAccountsWrapper) {
+		return nil, fmt.Errorf("%w for HistoricalStateAccountsWrapper", ErrNilAccountsAdapter)
+	}
 
 	return &accountsRepository{
-		finalStateAccountsWrapper:   args.FinalStateAccountsWrapper,
-		currentStateAccountsWrapper: args.CurrentStateAccountsWrapper,
+		finalStateAccountsWrapper:      args.FinalStateAccountsWrapper,
+		currentStateAccountsWrapper:    args.CurrentStateAccountsWrapper,
+		historicalStateAccountsWrapper: args.HistoricalStateAccountsWrapper,
 	}, nil
 }
 
@@ -56,6 +62,9 @@ func (repository *accountsRepository) GetCodeWithBlockInfo(codeHash []byte, opti
 }
 
 func (repository *accountsRepository) selectStateAccounts(options api.AccountQueryOptions) (AccountsAdapterAPI, error) {
+	if len(options.BlockRootHash) > 0 {
+		return repository.historicalStateAccountsWrapper, nil
+	}
 	if options.OnFinalBlock {
 		return repository.finalStateAccountsWrapper, nil
 	}

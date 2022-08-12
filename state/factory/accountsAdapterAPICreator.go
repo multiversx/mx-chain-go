@@ -46,3 +46,18 @@ func createAccountsDB(args state.ArgsAccountsDB, provider state.BlockInfoProvide
 
 	return state.NewAccountsDBApi(accounts, provider)
 }
+
+// CreateAccountsAdapterAPIOnHistorical creates a new instance of AccountsAdapterAPI that tracks historical state
+func CreateAccountsAdapterAPIOnHistorical(args state.ArgsAccountsDB) (state.AccountsAdapterAPI, error) {
+	accounts, err := state.NewAccountsDB(args)
+	if err != nil {
+		return nil, fmt.Errorf("%w in CreateAccountsAdapterAPIOnHistorical", err)
+	}
+
+	accountsAdapterApi, err := state.NewAccountsDBApiWithHistory(accounts)
+	if err != nil {
+		return nil, fmt.Errorf("%w in CreateAccountsAdapterAPIOnHistorical", err)
+	}
+
+	return accountsAdapterApi, nil
+}

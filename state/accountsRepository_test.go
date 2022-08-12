@@ -21,8 +21,9 @@ var testApiOptOnCurrent = api.AccountQueryOptions{}
 
 func createMockArgsAccountsRepository() state.ArgsAccountsRepository {
 	return state.ArgsAccountsRepository{
-		FinalStateAccountsWrapper:   &mockState.AccountsStub{},
-		CurrentStateAccountsWrapper: &mockState.AccountsStub{},
+		FinalStateAccountsWrapper:      &mockState.AccountsStub{},
+		CurrentStateAccountsWrapper:    &mockState.AccountsStub{},
+		HistoricalStateAccountsWrapper: &mockState.AccountsStub{},
 	}
 }
 
@@ -49,6 +50,17 @@ func TestNewAccountsRepository(t *testing.T) {
 
 		assert.True(t, errors.Is(err, state.ErrNilAccountsAdapter))
 		assert.True(t, strings.Contains(err.Error(), "CurrentStateAccountsWrapper"))
+		assert.True(t, check.IfNil(repository))
+	})
+	t.Run("nil historical accounts adapter", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgsAccountsRepository()
+		args.HistoricalStateAccountsWrapper = nil
+		repository, err := state.NewAccountsRepository(args)
+
+		assert.True(t, errors.Is(err, state.ErrNilAccountsAdapter))
+		assert.True(t, strings.Contains(err.Error(), "HistoricalStateAccountsWrapper"))
 		assert.True(t, check.IfNil(repository))
 	})
 	t.Run("should work", func(t *testing.T) {

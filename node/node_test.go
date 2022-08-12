@@ -28,7 +28,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go-crypto"
+	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/common/holders"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -286,8 +286,9 @@ func TestNode_GetKeyValuePairs(t *testing.T) {
 	dataComponents := getDefaultDataComponents()
 	stateComponents := getDefaultStateComponents()
 	args := state.ArgsAccountsRepository{
-		FinalStateAccountsWrapper:   accDB,
-		CurrentStateAccountsWrapper: accDB,
+		FinalStateAccountsWrapper:      accDB,
+		CurrentStateAccountsWrapper:    accDB,
+		HistoricalStateAccountsWrapper: accDB,
 	}
 	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(args)
 	n, _ := node.NewNode(
@@ -341,8 +342,9 @@ func TestNode_GetKeyValuePairsContextShouldTimeout(t *testing.T) {
 	dataComponents := getDefaultDataComponents()
 	stateComponents := getDefaultStateComponents()
 	args := state.ArgsAccountsRepository{
-		FinalStateAccountsWrapper:   accDB,
-		CurrentStateAccountsWrapper: accDB,
+		FinalStateAccountsWrapper:      accDB,
+		CurrentStateAccountsWrapper:    accDB,
+		HistoricalStateAccountsWrapper: accDB,
 	}
 	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(args)
 
@@ -383,8 +385,9 @@ func TestNode_GetValueForKey(t *testing.T) {
 	coreComponents.AddrPubKeyConv = createMockPubkeyConverter()
 	stateComponents := getDefaultStateComponents()
 	args := state.ArgsAccountsRepository{
-		FinalStateAccountsWrapper:   accDB,
-		CurrentStateAccountsWrapper: accDB,
+		FinalStateAccountsWrapper:      accDB,
+		CurrentStateAccountsWrapper:    accDB,
+		HistoricalStateAccountsWrapper: accDB,
 	}
 	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(args)
 
@@ -428,8 +431,9 @@ func TestNode_GetESDTData(t *testing.T) {
 
 	stateComponents := getDefaultStateComponents()
 	args := state.ArgsAccountsRepository{
-		FinalStateAccountsWrapper:   accDB,
-		CurrentStateAccountsWrapper: accDB,
+		FinalStateAccountsWrapper:      accDB,
+		CurrentStateAccountsWrapper:    accDB,
+		HistoricalStateAccountsWrapper: accDB,
 	}
 	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(args)
 
@@ -470,8 +474,9 @@ func TestNode_GetESDTDataForNFT(t *testing.T) {
 	coreComponents := getDefaultCoreComponents()
 	stateComponents := getDefaultStateComponents()
 	args := state.ArgsAccountsRepository{
-		FinalStateAccountsWrapper:   accDB,
-		CurrentStateAccountsWrapper: accDB,
+		FinalStateAccountsWrapper:      accDB,
+		CurrentStateAccountsWrapper:    accDB,
+		HistoricalStateAccountsWrapper: accDB,
 	}
 	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(args)
 
@@ -533,8 +538,9 @@ func TestNode_GetAllESDTTokens(t *testing.T) {
 	dataComponents := getDefaultDataComponents()
 	stateComponents := getDefaultStateComponents()
 	args := state.ArgsAccountsRepository{
-		FinalStateAccountsWrapper:   accDB,
-		CurrentStateAccountsWrapper: accDB,
+		FinalStateAccountsWrapper:      accDB,
+		CurrentStateAccountsWrapper:    accDB,
+		HistoricalStateAccountsWrapper: accDB,
 	}
 	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(args)
 
@@ -586,8 +592,9 @@ func TestNode_GetAllESDTTokensContextShouldTimeout(t *testing.T) {
 	dataComponents := getDefaultDataComponents()
 	stateComponents := getDefaultStateComponents()
 	args := state.ArgsAccountsRepository{
-		FinalStateAccountsWrapper:   accDB,
-		CurrentStateAccountsWrapper: accDB,
+		FinalStateAccountsWrapper:      accDB,
+		CurrentStateAccountsWrapper:    accDB,
+		HistoricalStateAccountsWrapper: accDB,
 	}
 	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(args)
 
@@ -674,8 +681,9 @@ func TestNode_GetAllESDTTokensShouldReturnEsdtAndFormattedNft(t *testing.T) {
 	dataComponents := getDefaultDataComponents()
 	stateComponents := getDefaultStateComponents()
 	args := state.ArgsAccountsRepository{
-		FinalStateAccountsWrapper:   accDB,
-		CurrentStateAccountsWrapper: accDB,
+		FinalStateAccountsWrapper:      accDB,
+		CurrentStateAccountsWrapper:    accDB,
+		HistoricalStateAccountsWrapper: accDB,
 	}
 	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(args)
 
@@ -754,8 +762,9 @@ func TestNode_GetAllIssuedESDTs(t *testing.T) {
 	dataComponents := getDefaultDataComponents()
 	stateComponents := getDefaultStateComponents()
 	args := state.ArgsAccountsRepository{
-		FinalStateAccountsWrapper:   accDB,
-		CurrentStateAccountsWrapper: accDB,
+		FinalStateAccountsWrapper:      accDB,
+		CurrentStateAccountsWrapper:    accDB,
+		HistoricalStateAccountsWrapper: accDB,
 	}
 	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(args)
 	processComponents := getDefaultProcessComponents()
@@ -835,8 +844,9 @@ func TestNode_GetESDTsWithRole(t *testing.T) {
 	dataComponents := getDefaultDataComponents()
 	stateComponents := getDefaultStateComponents()
 	args := state.ArgsAccountsRepository{
-		FinalStateAccountsWrapper:   accDB,
-		CurrentStateAccountsWrapper: accDB,
+		FinalStateAccountsWrapper:      accDB,
+		CurrentStateAccountsWrapper:    accDB,
+		HistoricalStateAccountsWrapper: accDB,
 	}
 	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(args)
 	processComponents := getDefaultProcessComponents()
@@ -911,8 +921,9 @@ func TestNode_GetESDTsRoles(t *testing.T) {
 	stateComponents := getDefaultStateComponents()
 	dataComponents := getDefaultDataComponents()
 	args := state.ArgsAccountsRepository{
-		FinalStateAccountsWrapper:   accDB,
-		CurrentStateAccountsWrapper: accDB,
+		FinalStateAccountsWrapper:      accDB,
+		CurrentStateAccountsWrapper:    accDB,
+		HistoricalStateAccountsWrapper: accDB,
 	}
 	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(args)
 	processComponents := getDefaultProcessComponents()
@@ -973,8 +984,9 @@ func TestNode_GetNFTTokenIDsRegisteredByAddress(t *testing.T) {
 	stateComponents := getDefaultStateComponents()
 	dataComponents := getDefaultDataComponents()
 	args := state.ArgsAccountsRepository{
-		FinalStateAccountsWrapper:   accDB,
-		CurrentStateAccountsWrapper: accDB,
+		FinalStateAccountsWrapper:      accDB,
+		CurrentStateAccountsWrapper:    accDB,
+		HistoricalStateAccountsWrapper: accDB,
 	}
 	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(args)
 	processComponents := getDefaultProcessComponents()
@@ -1026,8 +1038,9 @@ func TestNode_GetNFTTokenIDsRegisteredByAddressContextShouldTimeout(t *testing.T
 	stateComponents := getDefaultStateComponents()
 	dataComponents := getDefaultDataComponents()
 	args := state.ArgsAccountsRepository{
-		FinalStateAccountsWrapper:   accDB,
-		CurrentStateAccountsWrapper: accDB,
+		FinalStateAccountsWrapper:      accDB,
+		CurrentStateAccountsWrapper:    accDB,
+		HistoricalStateAccountsWrapper: accDB,
 	}
 	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(args)
 	processComponents := getDefaultProcessComponents()
@@ -2744,8 +2757,9 @@ func TestNode_GetAccountAccountExistsShouldReturn(t *testing.T) {
 	dataComponents := getDefaultDataComponents()
 	stateComponents := getDefaultStateComponents()
 	args := state.ArgsAccountsRepository{
-		FinalStateAccountsWrapper:   accDB,
-		CurrentStateAccountsWrapper: accDB,
+		FinalStateAccountsWrapper:      accDB,
+		CurrentStateAccountsWrapper:    accDB,
+		HistoricalStateAccountsWrapper: accDB,
 	}
 	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(args)
 	n, _ := node.NewNode(
