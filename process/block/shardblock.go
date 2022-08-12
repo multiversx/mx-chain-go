@@ -1258,9 +1258,6 @@ func (sp *shardProcessor) updateState(headers []data.HeaderHandler, currentHeade
 
 func (sp *shardProcessor) snapShotEpochStartFromMeta(header data.ShardHeaderHandler) {
 	accounts := sp.accountsDB[state.UserAccountsState]
-	if !accounts.IsPruningEnabled() {
-		return
-	}
 
 	sp.hdrsForCurrBlock.mutHdrsForBlock.RLock()
 	defer sp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
