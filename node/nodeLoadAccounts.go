@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/common/holders"
 	"github.com/ElrondNetwork/elrond-go/state"
 )
 
@@ -37,7 +38,7 @@ func (n *Node) loadUserAccountHandlerByPubKey(pubKey []byte, options api.Account
 		return nil, api.BlockInfo{}, err
 	}
 
-	// todo mutate blockInfo
+	blockInfo = mergeAccountQueryOptionsIntoBlockInfo(options, blockInfo)
 	return userAccount, accountBlockInfoToApiResource(blockInfo), nil
 }
 
@@ -55,7 +56,30 @@ func (n *Node) loadAccountCode(codeHash []byte, options api.AccountQueryOptions)
 		return nil, api.BlockInfo{}
 	}
 
+	blockInfo = mergeAccountQueryOptionsIntoBlockInfo(options, blockInfo)
 	return code, accountBlockInfoToApiResource(blockInfo)
+}
+
+func mergeAccountQueryOptionsIntoBlockInfo(options api.AccountQueryOptions, info common.BlockInfo) common.BlockInfo {
+	if check.IfNil(info) {
+		return nil
+	}
+
+	blockNonce := info.GetNonce()
+	blockHash := info.GetHash()
+	blockRootHash := info.GetRootHash()
+
+	if blockNonce == 0 && options.BlockNonce.HasValue {
+		blockNonce = options.BlockNonce.Value
+	}
+	if len(blockHash) == 0 && len(options.BlockHash) > 0 {
+		blockHash = options.BlockHash
+	}
+	if len(blockRootHash) == 0 && len(options.BlockRootHash) > 0 {
+		blockRootHash = options.BlockRootHash
+	}
+
+	return holders.NewBlockInfo(blockHash, blockNonce, blockRootHash)
 }
 
 func accountBlockInfoToApiResource(info common.BlockInfo) api.BlockInfo {
