@@ -153,7 +153,7 @@ func (ag *addressGroup) getAccount(c *gin.Context) {
 		return
 	}
 
-	options, err := parseAccountQueryOptions(c)
+	options, err := extractAccountQueryOptions(c)
 	if err != nil {
 		shared.RespondWithValidationError(c, errors.ErrCouldNotGetAccount, errors.ErrBadUrlParams)
 		return
@@ -177,7 +177,7 @@ func (ag *addressGroup) getBalance(c *gin.Context) {
 		return
 	}
 
-	options, err := parseAccountQueryOptions(c)
+	options, err := extractAccountQueryOptions(c)
 	if err != nil {
 		shared.RespondWithValidationError(c, errors.ErrGetBalance, errors.ErrBadUrlParams)
 		return
@@ -200,7 +200,7 @@ func (ag *addressGroup) getUsername(c *gin.Context) {
 		return
 	}
 
-	options, err := parseAccountQueryOptions(c)
+	options, err := extractAccountQueryOptions(c)
 	if err != nil {
 		shared.RespondWithValidationError(c, errors.ErrGetUsername, errors.ErrBadUrlParams)
 		return
@@ -223,7 +223,7 @@ func (ag *addressGroup) getValueForKey(c *gin.Context) {
 		return
 	}
 
-	options, err := parseAccountQueryOptions(c)
+	options, err := extractAccountQueryOptions(c)
 	if err != nil {
 		shared.RespondWithValidationError(c, errors.ErrGetUsername, errors.ErrBadUrlParams)
 		return
@@ -252,7 +252,7 @@ func (ag *addressGroup) getKeyValuePairs(c *gin.Context) {
 		return
 	}
 
-	options, err := parseAccountQueryOptions(c)
+	options, err := extractAccountQueryOptions(c)
 	if err != nil {
 		shared.RespondWithValidationError(c, errors.ErrGetKeyValuePairs, errors.ErrBadUrlParams)
 		return
@@ -275,7 +275,7 @@ func (ag *addressGroup) getESDTBalance(c *gin.Context) {
 		return
 	}
 
-	options, err := parseAccountQueryOptions(c)
+	options, err := extractAccountQueryOptions(c)
 	if err != nil {
 		shared.RespondWithValidationError(c, errors.ErrGetESDTBalance, errors.ErrBadUrlParams)
 		return
@@ -310,7 +310,7 @@ func (ag *addressGroup) getESDTsRoles(c *gin.Context) {
 		return
 	}
 
-	options, err := parseAccountQueryOptions(c)
+	options, err := extractAccountQueryOptions(c)
 	if err != nil {
 		shared.RespondWithValidationError(c, errors.ErrGetRolesForAccount, errors.ErrBadUrlParams)
 		return
@@ -333,7 +333,7 @@ func (ag *addressGroup) getESDTTokensWithRole(c *gin.Context) {
 		return
 	}
 
-	options, err := parseAccountQueryOptions(c)
+	options, err := extractAccountQueryOptions(c)
 	if err != nil {
 		shared.RespondWithValidationError(c, errors.ErrGetESDTBalance, errors.ErrBadUrlParams)
 		return
@@ -367,7 +367,7 @@ func (ag *addressGroup) getNFTTokenIDsRegisteredByAddress(c *gin.Context) {
 		return
 	}
 
-	options, err := parseAccountQueryOptions(c)
+	options, err := extractAccountQueryOptions(c)
 	if err != nil {
 		shared.RespondWithValidationError(c, errors.ErrGetESDTBalance, errors.ErrBadUrlParams)
 		return
@@ -390,7 +390,7 @@ func (ag *addressGroup) getESDTNFTData(c *gin.Context) {
 		return
 	}
 
-	options, err := parseAccountQueryOptions(c)
+	options, err := extractAccountQueryOptions(c)
 	if err != nil {
 		shared.RespondWithValidationError(c, errors.ErrGetESDTNFTData, errors.ErrBadUrlParams)
 		return
@@ -432,7 +432,7 @@ func (ag *addressGroup) getAllESDTData(c *gin.Context) {
 		return
 	}
 
-	options, err := parseAccountQueryOptions(c)
+	options, err := extractAccountQueryOptions(c)
 	if err != nil {
 		shared.RespondWithValidationError(c, errors.ErrGetESDTNFTData, errors.ErrBadUrlParams)
 		return
@@ -502,6 +502,20 @@ func (ag *addressGroup) IsInterfaceNil() bool {
 	return ag == nil
 }
 
+func extractAccountQueryOptions(c *gin.Context) (api.AccountQueryOptions, error) {
+	options, err := parseAccountQueryOptions(c)
+	if err != nil {
+		return api.AccountQueryOptions{}, err
+	}
+
+	err = checkAccountQueryOptions(options)
+	if err != nil {
+		return api.AccountQueryOptions{}, err
+	}
+
+	return options, nil
+}
+
 func parseAccountQueryOptions(c *gin.Context) (api.AccountQueryOptions, error) {
 	onFinalBlock, err := parseBoolUrlParam(c, urlParamOnFinalBlock)
 	if err != nil {
@@ -515,4 +529,31 @@ func parseAccountQueryOptions(c *gin.Context) (api.AccountQueryOptions, error) {
 
 	options := api.AccountQueryOptions{OnFinalBlock: onFinalBlock, OnStartOfEpoch: uint32(onStartOfEpoch)}
 	return options, nil
+}
+
+// Question for review: should we move this validation logic in elrond-go-core, within the definition of AccountQueryOptions?
+func checkAccountQueryOptions(options api.AccountQueryOptions) error {
+	numSpecifiedBlockCoordinates := 0
+
+	if options.BlockNonce > 0 {
+		numSpecifiedBlockCoordinates++
+	}
+	if len(options.BlockHash) > 0 {
+		numSpecifiedBlockCoordinates++
+	}
+	if len(options.BlockRootHash) > 0 {
+		numSpecifiedBlockCoordinates++
+	}
+
+	if numSpecifiedBlockCoordinates > 1 {
+		return fmt.Errorf("%w: only one block coordinate (blockNonce vs. blockHash vs. blockRootHash) can be specified at a time", errors.ErrBadAccountQueryOptions)
+	}
+	if options.OnFinalBlock && numSpecifiedBlockCoordinates > 0 {
+		return fmt.Errorf("%w: onFinalBlock is not compatible with any other block coordinates", errors.ErrBadAccountQueryOptions)
+	}
+	if options.OnStartOfEpoch > 0 && numSpecifiedBlockCoordinates > 0 {
+		return fmt.Errorf("%w: onStartOfEpoch is not compatible with any other block coordinates", errors.ErrBadAccountQueryOptions)
+	}
+
+	return nil
 }

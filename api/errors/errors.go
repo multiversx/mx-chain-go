@@ -13,6 +13,9 @@ var ErrInvalidJSONRequest = errors.New("invalid json request")
 // ErrCouldNotGetAccount signals that a requested account could not be retrieved
 var ErrCouldNotGetAccount = errors.New("could not get requested account")
 
+// ErrBadAccountQueryOptions signals that bad account query options were provided
+var ErrBadAccountQueryOptions = errors.New("bad account query options")
+
 // ErrGetBalance signals an error in getting the balance for an account
 var ErrGetBalance = errors.New("get balance error")
 

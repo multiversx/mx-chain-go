@@ -1,11 +1,13 @@
 package state
 
 import (
+	"encoding/hex"
 	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/common/holders"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
@@ -43,11 +45,6 @@ func NewAccountsRepository(args ArgsAccountsRepository) (*accountsRepository, er
 
 // GetAccountWithBlockInfo will return the account handler with the block info providing the address and the query option
 func (repository *accountsRepository) GetAccountWithBlockInfo(address []byte, options api.AccountQueryOptions) (vmcommon.AccountHandler, common.BlockInfo, error) {
-	err := repository.checkAccountQueryOptions(options)
-	if err != nil {
-		return nil, nil, err
-	}
-
 	accountsAdapter, err := repository.selectStateAccounts(options)
 	if err != nil {
 		return nil, nil, err
@@ -61,13 +58,17 @@ func (repository *accountsRepository) GetAccountWithBlockInfo(address []byte, op
 	return accountsAdapter.GetAccountWithBlockInfo(address, convertedOptions)
 }
 
-// GetCodeWithBlockInfo will return the code with the block info providing the code hash and the query option
-func (repository *accountsRepository) GetCodeWithBlockInfo(codeHash []byte, options api.AccountQueryOptions) ([]byte, common.BlockInfo, error) {
-	err := repository.checkAccountQueryOptions(options)
+func (repository *accountsRepository) convertAccountQueryOptions(options api.AccountQueryOptions) (common.GetAccountsStateOptions, error) {
+	blockRootHash, err := hex.DecodeString(options.BlockRootHash)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
+	return holders.NewGetAccountStateOptions(blockRootHash), nil
+}
+
+// GetCodeWithBlockInfo will return the code with the block info providing the code hash and the query option
+func (repository *accountsRepository) GetCodeWithBlockInfo(codeHash []byte, options api.AccountQueryOptions) ([]byte, common.BlockInfo, error) {
 	accountsAdapter, err := repository.selectStateAccounts(options)
 	if err != nil {
 		return nil, nil, err
