@@ -1,7 +1,6 @@
 package state
 
 import (
-	"encoding/hex"
 	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
@@ -59,12 +58,7 @@ func (repository *accountsRepository) GetAccountWithBlockInfo(address []byte, op
 }
 
 func (repository *accountsRepository) convertAccountQueryOptions(options api.AccountQueryOptions) (common.GetAccountsStateOptions, error) {
-	blockRootHash, err := hex.DecodeString(options.BlockRootHash)
-	if err != nil {
-		return nil, err
-	}
-
-	return holders.NewGetAccountStateOptions(blockRootHash), nil
+	return holders.NewGetAccountStateOptions(options.BlockRootHash), nil
 }
 
 // GetCodeWithBlockInfo will return the code with the block info providing the code hash and the query option
@@ -89,7 +83,7 @@ func (repository *accountsRepository) selectStateAccounts(options api.AccountQue
 	if options.OnFinalBlock {
 		return repository.finalStateAccountsWrapper, nil
 	}
-	if options.OnStartOfEpoch > 0 {
+	if options.OnStartOfEpoch.HasValue {
 		// TODO implement this
 		return nil, ErrFunctionalityNotImplemented
 	}

@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go/common"
@@ -16,7 +17,7 @@ import (
 )
 
 var testApiOptOnFinal = api.AccountQueryOptions{OnFinalBlock: true}
-var testApiOptOnStartOfEpoch = api.AccountQueryOptions{OnStartOfEpoch: 23}
+var testApiOptOnStartOfEpoch = api.AccountQueryOptions{OnStartOfEpoch: core.OptionalUint32{Value: 32, HasValue: true}}
 var testApiOptOnCurrent = api.AccountQueryOptions{}
 
 func createMockArgsAccountsRepository() state.ArgsAccountsRepository {

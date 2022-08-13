@@ -3,6 +3,7 @@ package node
 import (
 	"encoding/hex"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go/common"
@@ -19,7 +20,7 @@ func (n *Node) loadUserAccountHandlerByAddress(address string, options api.Accou
 }
 
 func (n *Node) loadUserAccountHandlerByPubKey(pubKey []byte, options api.AccountQueryOptions) (state.UserAccountHandler, api.BlockInfo, error) {
-	options, err := n.transformAccountQueryOptions(options)
+	options, err := n.addBlockCoordinatesToAccountQueryOptions(options)
 	if err != nil {
 		return nil, api.BlockInfo{}, err
 	}
@@ -36,11 +37,12 @@ func (n *Node) loadUserAccountHandlerByPubKey(pubKey []byte, options api.Account
 		return nil, api.BlockInfo{}, err
 	}
 
+	// todo mutate blockInfo
 	return userAccount, accountBlockInfoToApiResource(blockInfo), nil
 }
 
 func (n *Node) loadAccountCode(codeHash []byte, options api.AccountQueryOptions) ([]byte, api.BlockInfo) {
-	options, err := n.transformAccountQueryOptions(options)
+	options, err := n.addBlockCoordinatesToAccountQueryOptions(options)
 	if err != nil {
 		return nil, api.BlockInfo{}
 	}
@@ -68,18 +70,10 @@ func accountBlockInfoToApiResource(info common.BlockInfo) api.BlockInfo {
 	}
 }
 
-func (n *Node) transformAccountQueryOptions(options api.AccountQueryOptions) (api.AccountQueryOptions, error) {
-	blockRootHash, err := hex.DecodeString(options.BlockRootHash)
-	if err != nil {
-		return api.AccountQueryOptions{}, err
-	}
-
-	blockHash, err := hex.DecodeString(options.BlockHash)
-	if err != nil {
-		return api.AccountQueryOptions{}, err
-	}
-
+func (n *Node) addBlockCoordinatesToAccountQueryOptions(options api.AccountQueryOptions) (api.AccountQueryOptions, error) {
 	blockNonce := options.BlockNonce
+	blockHash := options.BlockHash
+	blockRootHash := options.BlockRootHash
 
 	if len(blockRootHash) > 0 {
 		// We cannot infer other block coordinates (hash, nonce) at this moment
@@ -98,14 +92,13 @@ func (n *Node) transformAccountQueryOptions(options api.AccountQueryOptions) (ap
 
 		return api.AccountQueryOptions{
 			BlockHash:     options.BlockHash,
-			BlockNonce:    blockHeader.GetNonce(),
-			BlockRootHash: hex.EncodeToString(blockRootHash),
+			BlockNonce:    core.OptionalUint64{Value: blockHeader.GetNonce(), HasValue: true},
+			BlockRootHash: blockRootHash,
 		}, nil
 	}
 
-	// Workaround: at this moment, we cannot check whether "blockNonce" is set in other way than comparing it with zero.
-	if blockNonce > 0 {
-		blockHeader, blockHash, err := n.getBlockHeaderByNonce(blockNonce)
+	if blockNonce.HasValue {
+		blockHeader, blockHash, err := n.getBlockHeaderByNonce(blockNonce.Value)
 		if err != nil {
 			return api.AccountQueryOptions{}, err
 		}
@@ -114,8 +107,8 @@ func (n *Node) transformAccountQueryOptions(options api.AccountQueryOptions) (ap
 
 		return api.AccountQueryOptions{
 			BlockHash:     options.BlockHash,
-			BlockNonce:    blockHeader.GetNonce(),
-			BlockRootHash: hex.EncodeToString(blockRootHash),
+			BlockNonce:    core.OptionalUint64{Value: blockHeader.GetNonce(), HasValue: true},
+			BlockRootHash: blockRootHash,
 		}, nil
 	}
 

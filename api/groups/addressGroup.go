@@ -30,6 +30,9 @@ const (
 	getESDTNFTDataPath        = "/:address/nft/:tokenIdentifier/nonce/:nonce"
 	urlParamOnFinalBlock      = "onFinalBlock"
 	urlParamOnStartOfEpoch    = "onStartOfEpoch"
+	urlParamBlockNonce        = "blockNonce"
+	urlParamBlockHash         = "blockHash"
+	urlParamBlockRootHash     = "blockRootHash"
 )
 
 // addressFacadeHandler defines the methods to be implemented by a facade for handling address requests
@@ -522,12 +525,33 @@ func parseAccountQueryOptions(c *gin.Context) (api.AccountQueryOptions, error) {
 		return api.AccountQueryOptions{}, err
 	}
 
-	onStartOfEpoch, err := parseUintUrlParam(c, urlParamOnStartOfEpoch)
+	onStartOfEpoch, err := parseUint32UrlParam(c, urlParamOnStartOfEpoch)
 	if err != nil {
 		return api.AccountQueryOptions{}, err
 	}
 
-	options := api.AccountQueryOptions{OnFinalBlock: onFinalBlock, OnStartOfEpoch: uint32(onStartOfEpoch)}
+	blockNonce, err := parseUint64UrlParam(c, urlParamBlockNonce)
+	if err != nil {
+		return api.AccountQueryOptions{}, err
+	}
+
+	blockHash, err := parseHexBytesUrlParam(c, urlParamBlockHash)
+	if err != nil {
+		return api.AccountQueryOptions{}, err
+	}
+
+	blockRootHash, err := parseHexBytesUrlParam(c, urlParamBlockRootHash)
+	if err != nil {
+		return api.AccountQueryOptions{}, err
+	}
+
+	options := api.AccountQueryOptions{
+		OnFinalBlock:   onFinalBlock,
+		OnStartOfEpoch: onStartOfEpoch,
+		BlockNonce:     blockNonce,
+		BlockHash:      blockHash,
+		BlockRootHash:  blockRootHash,
+	}
 	return options, nil
 }
 
@@ -535,7 +559,7 @@ func parseAccountQueryOptions(c *gin.Context) (api.AccountQueryOptions, error) {
 func checkAccountQueryOptions(options api.AccountQueryOptions) error {
 	numSpecifiedBlockCoordinates := 0
 
-	if options.BlockNonce > 0 {
+	if options.BlockNonce.HasValue {
 		numSpecifiedBlockCoordinates++
 	}
 	if len(options.BlockHash) > 0 {
@@ -551,7 +575,7 @@ func checkAccountQueryOptions(options api.AccountQueryOptions) error {
 	if options.OnFinalBlock && numSpecifiedBlockCoordinates > 0 {
 		return fmt.Errorf("%w: onFinalBlock is not compatible with any other block coordinates", errors.ErrBadAccountQueryOptions)
 	}
-	if options.OnStartOfEpoch > 0 && numSpecifiedBlockCoordinates > 0 {
+	if options.OnStartOfEpoch.HasValue && numSpecifiedBlockCoordinates > 0 {
 		return fmt.Errorf("%w: onStartOfEpoch is not compatible with any other block coordinates", errors.ErrBadAccountQueryOptions)
 	}
 
