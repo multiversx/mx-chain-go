@@ -158,7 +158,7 @@ func (ag *addressGroup) getAccount(c *gin.Context) {
 
 	options, err := extractAccountQueryOptions(c)
 	if err != nil {
-		shared.RespondWithValidationError(c, errors.ErrCouldNotGetAccount, errors.ErrBadUrlParams)
+		shared.RespondWithValidationError(c, errors.ErrCouldNotGetAccount, err)
 		return
 	}
 
@@ -182,7 +182,7 @@ func (ag *addressGroup) getBalance(c *gin.Context) {
 
 	options, err := extractAccountQueryOptions(c)
 	if err != nil {
-		shared.RespondWithValidationError(c, errors.ErrGetBalance, errors.ErrBadUrlParams)
+		shared.RespondWithValidationError(c, errors.ErrGetBalance, err)
 		return
 	}
 
@@ -205,7 +205,7 @@ func (ag *addressGroup) getUsername(c *gin.Context) {
 
 	options, err := extractAccountQueryOptions(c)
 	if err != nil {
-		shared.RespondWithValidationError(c, errors.ErrGetUsername, errors.ErrBadUrlParams)
+		shared.RespondWithValidationError(c, errors.ErrGetUsername, err)
 		return
 	}
 
@@ -228,7 +228,7 @@ func (ag *addressGroup) getValueForKey(c *gin.Context) {
 
 	options, err := extractAccountQueryOptions(c)
 	if err != nil {
-		shared.RespondWithValidationError(c, errors.ErrGetUsername, errors.ErrBadUrlParams)
+		shared.RespondWithValidationError(c, errors.ErrGetUsername, err)
 		return
 	}
 
@@ -257,7 +257,7 @@ func (ag *addressGroup) getKeyValuePairs(c *gin.Context) {
 
 	options, err := extractAccountQueryOptions(c)
 	if err != nil {
-		shared.RespondWithValidationError(c, errors.ErrGetKeyValuePairs, errors.ErrBadUrlParams)
+		shared.RespondWithValidationError(c, errors.ErrGetKeyValuePairs, err)
 		return
 	}
 
@@ -280,7 +280,7 @@ func (ag *addressGroup) getESDTBalance(c *gin.Context) {
 
 	options, err := extractAccountQueryOptions(c)
 	if err != nil {
-		shared.RespondWithValidationError(c, errors.ErrGetESDTBalance, errors.ErrBadUrlParams)
+		shared.RespondWithValidationError(c, errors.ErrGetESDTBalance, err)
 		return
 	}
 
@@ -315,7 +315,7 @@ func (ag *addressGroup) getESDTsRoles(c *gin.Context) {
 
 	options, err := extractAccountQueryOptions(c)
 	if err != nil {
-		shared.RespondWithValidationError(c, errors.ErrGetRolesForAccount, errors.ErrBadUrlParams)
+		shared.RespondWithValidationError(c, errors.ErrGetRolesForAccount, err)
 		return
 	}
 
@@ -338,7 +338,7 @@ func (ag *addressGroup) getESDTTokensWithRole(c *gin.Context) {
 
 	options, err := extractAccountQueryOptions(c)
 	if err != nil {
-		shared.RespondWithValidationError(c, errors.ErrGetESDTBalance, errors.ErrBadUrlParams)
+		shared.RespondWithValidationError(c, errors.ErrGetESDTBalance, err)
 		return
 	}
 
@@ -372,7 +372,7 @@ func (ag *addressGroup) getNFTTokenIDsRegisteredByAddress(c *gin.Context) {
 
 	options, err := extractAccountQueryOptions(c)
 	if err != nil {
-		shared.RespondWithValidationError(c, errors.ErrGetESDTBalance, errors.ErrBadUrlParams)
+		shared.RespondWithValidationError(c, errors.ErrGetESDTBalance, err)
 		return
 	}
 
@@ -395,7 +395,7 @@ func (ag *addressGroup) getESDTNFTData(c *gin.Context) {
 
 	options, err := extractAccountQueryOptions(c)
 	if err != nil {
-		shared.RespondWithValidationError(c, errors.ErrGetESDTNFTData, errors.ErrBadUrlParams)
+		shared.RespondWithValidationError(c, errors.ErrGetESDTNFTData, err)
 		return
 	}
 
@@ -437,7 +437,7 @@ func (ag *addressGroup) getAllESDTData(c *gin.Context) {
 
 	options, err := extractAccountQueryOptions(c)
 	if err != nil {
-		shared.RespondWithValidationError(c, errors.ErrGetESDTNFTData, errors.ErrBadUrlParams)
+		shared.RespondWithValidationError(c, errors.ErrGetESDTNFTData, err)
 		return
 	}
 
@@ -570,13 +570,13 @@ func checkAccountQueryOptions(options api.AccountQueryOptions) error {
 	}
 
 	if numSpecifiedBlockCoordinates > 1 {
-		return fmt.Errorf("%w: only one block coordinate (blockNonce vs. blockHash vs. blockRootHash) can be specified at a time", errors.ErrBadAccountQueryOptions)
+		return fmt.Errorf("%w: only one block coordinate (blockNonce vs. blockHash vs. blockRootHash) can be specified at a time", errors.ErrBadUrlParams)
 	}
 	if options.OnFinalBlock && numSpecifiedBlockCoordinates > 0 {
-		return fmt.Errorf("%w: onFinalBlock is not compatible with any other block coordinates", errors.ErrBadAccountQueryOptions)
+		return fmt.Errorf("%w: onFinalBlock is not compatible with any other block coordinates", errors.ErrBadUrlParams)
 	}
 	if options.OnStartOfEpoch.HasValue && numSpecifiedBlockCoordinates > 0 {
-		return fmt.Errorf("%w: onStartOfEpoch is not compatible with any other block coordinates", errors.ErrBadAccountQueryOptions)
+		return fmt.Errorf("%w: onStartOfEpoch is not compatible with any other block coordinates", errors.ErrBadUrlParams)
 	}
 
 	return nil

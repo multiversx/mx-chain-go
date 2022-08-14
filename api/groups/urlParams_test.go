@@ -69,6 +69,7 @@ func TestParseUint32UrlParam(t *testing.T) {
 	require.Equal(t, uint32(0), value.Value)
 
 	value, err = parseUint32UrlParam(c, "e")
+	require.Nil(t, err)
 	require.True(t, value.HasValue)
 	require.Equal(t, uint32(0xffffffff), value.Value)
 
