@@ -130,7 +130,7 @@ func (n *Node) addBlockCoordinatesToAccountQueryOptions(options api.AccountQuery
 		blockRootHash := n.getBlockRootHash(blockHash, blockHeader)
 
 		return api.AccountQueryOptions{
-			BlockHash:     options.BlockHash,
+			BlockHash:     blockHash,
 			BlockNonce:    core.OptionalUint64{Value: blockHeader.GetNonce(), HasValue: true},
 			BlockRootHash: blockRootHash,
 		}, nil
