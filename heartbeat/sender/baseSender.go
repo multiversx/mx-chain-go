@@ -46,7 +46,7 @@ func createBaseSender(args argBaseSender) baseSender {
 		thresholdBetweenSends:     args.thresholdBetweenSends,
 	}
 	bs.timerHandler = &timerWrapper{
-		timer: time.NewTimer(bs.computeRandomDuration()),
+		timer: time.NewTimer(bs.computeRandomDuration(bs.timeBetweenSends)),
 	}
 
 	return bs
@@ -76,8 +76,8 @@ func checkBaseSenderArgs(args argBaseSender) error {
 	return nil
 }
 
-func (bs *baseSender) computeRandomDuration() time.Duration {
-	timeBetweenSendsInNano := bs.timeBetweenSends.Nanoseconds()
+func (bs *baseSender) computeRandomDuration(baseDuration time.Duration) time.Duration {
+	timeBetweenSendsInNano := baseDuration.Nanoseconds()
 	maxThreshold := float64(timeBetweenSendsInNano) * bs.thresholdBetweenSends
 	randThreshold := randomizer.Intn(int(maxThreshold))
 

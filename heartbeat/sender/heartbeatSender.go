@@ -64,7 +64,7 @@ func checkHeartbeatSenderArgs(args argHeartbeatSender) error {
 
 // Execute will handle the execution of a cycle in which the heartbeat message will be sent
 func (sender *heartbeatSender) Execute() {
-	duration := sender.computeRandomDuration()
+	duration := sender.computeRandomDuration(sender.timeBetweenSends)
 	err := sender.execute()
 	if err != nil {
 		duration = sender.timeBetweenSendsWhenError
