@@ -79,6 +79,7 @@ type epochFlagsHolder struct {
 	refactorContextFlag                         *atomic.Flag
 	checkFunctionArgumentFlag                   *atomic.Flag
 	checkExecuteOnReadOnlyFlag                  *atomic.Flag
+	setSenderInEeiOutputTransferFlag            *atomic.Flag
 }
 
 func newEpochFlagsHolder() *epochFlagsHolder {
@@ -159,6 +160,7 @@ func newEpochFlagsHolder() *epochFlagsHolder {
 		refactorContextFlag:                         &atomic.Flag{},
 		checkFunctionArgumentFlag:                   &atomic.Flag{},
 		checkExecuteOnReadOnlyFlag:                  &atomic.Flag{},
+		setSenderInEeiOutputTransferFlag:            &atomic.Flag{},
 	}
 }
 
@@ -545,6 +547,11 @@ func (holder *epochFlagsHolder) IsCheckFunctionArgumentFlagEnabled() bool {
 // IsCheckExecuteOnReadOnlyFlagEnabled returns true if checkExecuteOnReadOnlyFlag is enabled
 func (holder *epochFlagsHolder) IsCheckExecuteOnReadOnlyFlagEnabled() bool {
 	return holder.checkExecuteOnReadOnlyFlag.IsSet()
+}
+
+// IsSetSenderInEeiOutputTransferFlagEnabled returns true if setSenderInEeiOutputTransferFlag is enabled
+func (holder *epochFlagsHolder) IsSetSenderInEeiOutputTransferFlagEnabled() bool {
+	return holder.setSenderInEeiOutputTransferFlag.IsSet()
 }
 
 // IsFixAsyncCallbackCheckFlagEnabled returns true if esdtMetadataContinuousCleanupFlag is enabled
