@@ -10,7 +10,6 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/txsFee/utils"
@@ -52,14 +51,6 @@ func TestRelayedTxDnsTransaction_ShouldWork(t *testing.T) {
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
 
-	intermediateTxs := testContext.GetIntermediateTransactions(t)
-	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, true, testContext.TxsLogsProcessor)
-	testIndexer.SaveTransaction(rtx, block.TxBlock, intermediateTxs)
-
-	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, uint64(70324), indexerTx.GasUsed)
-	require.Equal(t, "703240", indexerTx.Fee)
-
 	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 
 	ret := vm.GetVmOutput(nil, testContext.Accounts, scAddress, "resolve", sndAddrUserName)
@@ -86,14 +77,6 @@ func TestRelayedTxDnsTransaction_ShouldWork(t *testing.T) {
 	dnsUserNameAddr = ret.ReturnData[0]
 	require.Equal(t, rcvAddr, dnsUserNameAddr)
 
-	intermediateTxs = testContext.GetIntermediateTransactions(t)
-	testIndexer = vm.CreateTestIndexer(t, testContext.ShardCoordinator, true, testContext.TxsLogsProcessor)
-	testIndexer.SaveTransaction(rtx, block.TxBlock, intermediateTxs)
-
-	indexerTx = testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, uint64(70324), indexerTx.GasUsed)
-	require.Equal(t, "703240", indexerTx.Fee)
-
 	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 
 	gasLimit = 10
@@ -108,15 +91,4 @@ func TestRelayedTxDnsTransaction_ShouldWork(t *testing.T) {
 	retCode, err = testContext.TxProcessor.ProcessTransaction(rtx)
 	require.Equal(t, vmcommon.Ok, retCode)
 	require.Nil(t, err)
-
-	_, err = testContext.Accounts.Commit()
-	require.Nil(t, err)
-
-	intermediateTxs = testContext.GetIntermediateTransactions(t)
-	testIndexer = vm.CreateTestIndexer(t, testContext.ShardCoordinator, true, testContext.TxsLogsProcessor)
-	testIndexer.SaveTransaction(rtx, block.TxBlock, intermediateTxs)
-
-	indexerTx = testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, rtx.GasLimit, indexerTx.GasUsed)
-	require.Equal(t, "2530", indexerTx.Fee)
 }
