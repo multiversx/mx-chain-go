@@ -61,7 +61,7 @@ func TestRelayedSCDeployShouldWork(t *testing.T) {
 	require.Equal(t, big.NewInt(13070), accumulatedFees)
 
 	intermediateTxs := testContextRelayer.GetIntermediateTransactions(t)
-	testIndexer := vm.CreateTestIndexer(t, testContextRelayer.ShardCoordinator, testContextRelayer.EconomicsData, false, testContextRelayer.TxsLogsProcessor)
+	testIndexer := vm.CreateTestIndexer(t, testContextRelayer.ShardCoordinator, false, testContextRelayer.TxsLogsProcessor)
 	testIndexer.SaveTransaction(rtx, block.TxBlock, intermediateTxs)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
@@ -86,7 +86,7 @@ func TestRelayedSCDeployShouldWork(t *testing.T) {
 
 	txs := testContextInner.GetIntermediateTransactions(t)
 
-	testIndexer = vm.CreateTestIndexer(t, testContextInner.ShardCoordinator, testContextInner.EconomicsData, true, testContextRelayer.TxsLogsProcessor)
+	testIndexer = vm.CreateTestIndexer(t, testContextInner.ShardCoordinator, true, testContextRelayer.TxsLogsProcessor)
 	testIndexer.SaveTransaction(rtx, block.TxBlock, txs)
 
 	indexerTx = testIndexer.GetIndexerPreparedTransaction(t)

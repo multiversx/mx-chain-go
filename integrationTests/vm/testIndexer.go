@@ -54,7 +54,6 @@ const timeoutSave = 3 * time.Second
 func CreateTestIndexer(
 	t testing.TB,
 	coordinator sharding.Coordinator,
-	economicsDataHandler process.EconomicsDataHandler,
 	hasResults bool,
 	txsLogsProcessor process.TransactionLogProcessor,
 ) *testIndexer {
@@ -68,10 +67,7 @@ func CreateTestIndexer(
 
 	dispatcher.StartIndexData()
 
-	txFeeCalculator, ok := economicsDataHandler.(elasticIndexer.FeesProcessorHandler)
-	require.True(t, ok)
-
-	ep := ti.createElasticProcessor(coordinator, txFeeCalculator, hasResults)
+	ep := ti.createElasticProcessor(coordinator, hasResults)
 
 	arguments := elasticIndexer.ArgDataIndexer{
 		Marshalizer:      testMarshalizer,
@@ -100,7 +96,6 @@ func CreateTestIndexer(
 
 func (ti *testIndexer) createElasticProcessor(
 	shardCoordinator sharding.Coordinator,
-	transactionFeeCalculator elasticIndexer.FeesProcessorHandler,
 	hasResults bool,
 ) elasticIndexer.ElasticProcessor {
 	databaseClient := ti.createDatabaseClient(hasResults)
@@ -113,7 +108,6 @@ func (ti *testIndexer) createElasticProcessor(
 
 	transactionProc, _ := transactions.NewTransactionsProcessor(&transactions.ArgsTransactionProcessor{
 		AddressPubkeyConverter: pubkeyConv,
-		TxFeeCalculator:        transactionFeeCalculator,
 		ShardCoordinator:       shardCoordinator,
 		Hasher:                 testHasher,
 		Marshalizer:            testMarshalizer,
@@ -132,7 +126,6 @@ func (ti *testIndexer) createElasticProcessor(
 		PubKeyConverter:  pubkeyConv,
 		Marshalizer:      testMarshalizer,
 		BalanceConverter: balanceConverter,
-		TxFeeCalculator:  transactionFeeCalculator,
 		Hasher:           testHasher,
 	}
 	lp, _ := logsevents.NewLogsAndEventsProcessor(args)

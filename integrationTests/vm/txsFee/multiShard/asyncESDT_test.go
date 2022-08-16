@@ -87,7 +87,7 @@ func TestAsyncESDTTransferWithSCCallShouldWork(t *testing.T) {
 	expectedAccumulatedFees := big.NewInt(950)
 	require.Equal(t, expectedAccumulatedFees, testContextSender.TxFeeHandler.GetAccumulatedFees())
 
-	testIndexer := vm.CreateTestIndexer(t, testContextSender.ShardCoordinator, testContextSender.EconomicsData, false, testContextSender.TxsLogsProcessor)
+	testIndexer := vm.CreateTestIndexer(t, testContextSender.ShardCoordinator, false, testContextSender.TxsLogsProcessor)
 	testIndexer.SaveTransaction(tx, block.TxBlock, nil)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
@@ -111,7 +111,7 @@ func TestAsyncESDTTransferWithSCCallShouldWork(t *testing.T) {
 	utils.CheckESDTBalance(t, testContextFirstContract, firstSCAddress, token, big.NewInt(2500))
 
 	intermediateTxs := testContextFirstContract.GetIntermediateTransactions(t)
-	testIndexer = vm.CreateTestIndexer(t, testContextFirstContract.ShardCoordinator, testContextFirstContract.EconomicsData, true, testContextFirstContract.TxsLogsProcessor)
+	testIndexer = vm.CreateTestIndexer(t, testContextFirstContract.ShardCoordinator, true, testContextFirstContract.TxsLogsProcessor)
 	testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
 
 	indexerTx = testIndexer.GetIndexerPreparedTransaction(t)
@@ -205,7 +205,7 @@ func TestAsyncESDTTransferWithSCCallSecondContractAnotherToken(t *testing.T) {
 	expectedAccumulatedFees := big.NewInt(950)
 	require.Equal(t, expectedAccumulatedFees, testContextSender.TxFeeHandler.GetAccumulatedFees())
 
-	testIndexer := vm.CreateTestIndexer(t, testContextSender.ShardCoordinator, testContextSender.EconomicsData, false, testContextSender.TxsLogsProcessor)
+	testIndexer := vm.CreateTestIndexer(t, testContextSender.ShardCoordinator, false, testContextSender.TxsLogsProcessor)
 	testIndexer.SaveTransaction(tx, block.TxBlock, nil)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
@@ -229,7 +229,7 @@ func TestAsyncESDTTransferWithSCCallSecondContractAnotherToken(t *testing.T) {
 	utils.CheckESDTBalance(t, testContextFirstContract, firstSCAddress, token, big.NewInt(2500))
 
 	intermediateTxs := testContextFirstContract.GetIntermediateTransactions(t)
-	testIndexer = vm.CreateTestIndexer(t, testContextFirstContract.ShardCoordinator, testContextFirstContract.EconomicsData, true, testContextFirstContract.TxsLogsProcessor)
+	testIndexer = vm.CreateTestIndexer(t, testContextFirstContract.ShardCoordinator, true, testContextFirstContract.TxsLogsProcessor)
 	testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
 
 	indexerTx = testIndexer.GetIndexerPreparedTransaction(t)
