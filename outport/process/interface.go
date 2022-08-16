@@ -1,8 +1,10 @@
 package process
 
 import (
+	"math/big"
+
+	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/outport"
-	"github.com/ElrondNetwork/elrond-go/outport/process/transactionsfee"
 )
 
 // AlteredAccountsProviderHandler defines the functionality needed for provisioning of altered accounts when indexing data
@@ -28,6 +30,9 @@ type GasConsumedProvider interface {
 
 // EconomicsDataHandler defines the functionality needed for economics data
 type EconomicsDataHandler interface {
-	transactionsfee.FeesProcessorHandler
+	ComputeGasUsedAndFeeBasedOnRefundValue(tx data.TransactionWithFeeHandler, refundValue *big.Int) (uint64, *big.Int)
+	ComputeTxFeeBasedOnGasUsed(tx data.TransactionWithFeeHandler, gasUsed uint64) *big.Int
+	ComputeGasLimit(tx data.TransactionWithFeeHandler) uint64
+	IsInterfaceNil() bool
 	MaxGasLimitPerBlock(shardID uint32) uint64
 }

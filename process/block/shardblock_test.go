@@ -36,6 +36,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/outport"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
@@ -2200,7 +2201,7 @@ func TestShardProcessor_CommitBlockCallsIndexerMethods(t *testing.T) {
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 
 	called := false
-	statusComponents.Outport = &testscommon.OutportStub{
+	statusComponents.Outport = &outport.OutportStub{
 		SaveBlockCalled: func(args *outportcore.ArgsSaveBlockData) {
 			called = true
 		},
@@ -2208,7 +2209,7 @@ func TestShardProcessor_CommitBlockCallsIndexerMethods(t *testing.T) {
 			return true
 		},
 	}
-	arguments.OutportDataProvider = &testscommon.OutportDataProviderStub{
+	arguments.OutportDataProvider = &outport.OutportDataProviderStub{
 		PrepareOutportSaveBlockDataCalled: func(_ processOutport.ArgPrepareOutportSaveBlockData) (*outportcore.ArgsSaveBlockData, error) {
 			return &outportcore.ArgsSaveBlockData{}, nil
 		}}
@@ -5021,7 +5022,7 @@ func TestShardProcessor_createMiniBlocks(t *testing.T) {
 	}
 
 	var called = &atomicCore.Flag{}
-	arguments.TxCoordinator = &mock.TransactionCoordinatorMock{
+	arguments.TxCoordinator = &testscommon.TransactionCoordinatorMock{
 		AddTransactionsCalled: func(txHandlers []data.TransactionHandler, blockType block.Type) {
 			require.Equal(t, block.TxBlock, blockType)
 			require.Equal(t, txs, txHandlers)

@@ -23,6 +23,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/testscommon/mainFactoryMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/outport"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
@@ -288,7 +289,7 @@ func TestProcessComponents_IndexGenesisBlocks(t *testing.T) {
 
 	saveBlockCalledMutex := sync.Mutex{}
 
-	outportHandler := &testscommon.OutportStub{
+	outportHandler := &outport.OutportStub{
 		HasDriversCalled: func() bool {
 			return true
 		},

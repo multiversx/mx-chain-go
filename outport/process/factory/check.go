@@ -7,7 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/outport/process/transactionsfee"
 )
 
-func checkArgCreateOutportDataProvider(arg ArgOutportDataProviderFactory) error {
+func checkArgOutportDataProviderFactory(arg ArgOutportDataProviderFactory) error {
 	if check.IfNil(arg.AddressConverter) {
 		return alteredaccounts.ErrNilPubKeyConverter
 	}

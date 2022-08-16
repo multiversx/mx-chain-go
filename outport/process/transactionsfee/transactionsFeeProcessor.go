@@ -1,8 +1,6 @@
 package transactionsfee
 
 import (
-	"math/big"
-
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	outportcore "github.com/ElrondNetwork/elrond-go-core/data/outport"
@@ -26,8 +24,8 @@ type transactionsFeeProcessor struct {
 	shardCoordinator sharding.Coordinator
 }
 
-// NewTransactionFeeProcessor will create a new instance of transactionsFeeProcessor
-func NewTransactionFeeProcessor(arg ArgTransactionsFeeProcessor) (*transactionsFeeProcessor, error) {
+// NewTransactionsFeeProcessor will create a new instance of transactionsFeeProcessor
+func NewTransactionsFeeProcessor(arg ArgTransactionsFeeProcessor) (*transactionsFeeProcessor, error) {
 	err := checkArg(arg)
 	if err != nil {
 		return nil, err
@@ -90,7 +88,7 @@ func (tep *transactionsFeeProcessor) prepareNormalTxs(transactionsAndScrs *trans
 func (tep *transactionsFeeProcessor) prepareTxWithResults(txHash []byte, txWithResults *transactionWithResults) {
 	hasRefund := false
 	for _, scrHandler := range txWithResults.scrs {
-		scr, ok := scrHandler.(*smartContractResult.SmartContractResult)
+		scr, ok := scrHandler.GetTxHandler().(*smartContractResult.SmartContractResult)
 		if !ok {
 			continue
 		}
@@ -101,6 +99,7 @@ func (tep *transactionsFeeProcessor) prepareTxWithResults(txHash []byte, txWithR
 			txWithResults.SetGasUsed(gasUsed)
 			txWithResults.SetFee(fee)
 			hasRefund = true
+			break
 		}
 	}
 
@@ -112,29 +111,20 @@ func (tep *transactionsFeeProcessor) prepareTxWithResultsBasedOnLogs(
 	txWithResults *transactionWithResults,
 	hasRefund bool,
 ) {
-	if check.IfNil(txWithResults.logs) {
+	if check.IfNilReflect(txWithResults.log) {
 		return
 	}
 
-	for _, event := range txWithResults.logs.GetLogEvents() {
+	for _, event := range txWithResults.log.GetLogEvents() {
 		identifier := string(event.GetIdentifier())
-		switch identifier {
-		case core.SignalErrorOperation:
-			fee := tep.txFeeCalculator.ComputeTxFeeBasedOnGasUsed(txWithResults, txWithResults.GetGasLimit())
-			txWithResults.SetGasUsed(txWithResults.GetGasLimit())
-			txWithResults.SetFee(fee)
-			return
-		case core.WriteLogIdentifier:
-			if hasRefund {
-				return
-			}
-
-			gasUsed, fee := tep.txFeeCalculator.ComputeGasUsedAndFeeBasedOnRefundValue(txWithResults, big.NewInt(0))
-			txWithResults.SetGasUsed(gasUsed)
-			txWithResults.SetFee(fee)
-		default:
+		shouldIgnore := identifier != core.SignalErrorOperation && identifier != core.WriteLogIdentifier
+		if shouldIgnore || hasRefund {
 			continue
 		}
+
+		fee := tep.txFeeCalculator.ComputeTxFeeBasedOnGasUsed(txWithResults, txWithResults.GetGasLimit())
+		txWithResults.SetGasUsed(txWithResults.GetGasLimit())
+		txWithResults.SetFee(fee)
 	}
 }
 
