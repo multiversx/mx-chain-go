@@ -153,7 +153,7 @@ extractParametersAndTypes() {
   fi
 
   # get the text before func
-  untilFunc=${parameters%"func("*}
+  untilFunc=${parameters%%"func("*}
   extractBasicParametersAndTypes "$untilFunc"
 
   # if last param type is not empty(ie it extracted some name for the func ptr), move last type to last name
@@ -316,11 +316,6 @@ createStubMethods() {
       declare -a paramTypes=()
 
       extractParametersAndTypes "$rawParams"
-
-      #for i in "${!paramNames[@]}"
-      #  do
-      #    echo "${paramNames[$i]} ++ ${paramTypes[$i]}"
-      #done
 
       # extract final sequence of the methods parameters in order to properly extract its return types
       endingOfRawParam="()"
