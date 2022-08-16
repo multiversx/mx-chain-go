@@ -73,7 +73,9 @@ func CreateProcessorNodesWithNodesCoordinator(
 				ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
 				ChanStopNode:            endProcess.GetDummyEndProcessChannel(),
 				IsFullArchive:           false,
-				EnableEpochsHandler:     &testscommon.EnableEpochsHandlerStub{},
+				EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
+					IsRefactorPeersMiniBlocksFlagEnabledField: true,
+				},
 			}
 
 			nodesCoordinatorInstance, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)

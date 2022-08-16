@@ -1195,7 +1195,7 @@ func (ihnc *indexHashedNodesCoordinator) createValidatorInfoFromBody(
 }
 
 func (ihnc *indexHashedNodesCoordinator) getShardValidatorInfoData(txHash []byte, validatorInfoCacher epochStart.ValidatorInfoCacher) (*state.ShardValidatorInfo, error) {
-	if ihnc.flagRefactorPeersMiniBlocks.IsSet() {
+	if ihnc.enableEpochsHandler.IsRefactorPeersMiniBlocksFlagEnabled() {
 		shardValidatorInfo, err := validatorInfoCacher.GetValidatorInfo(txHash)
 		if err != nil {
 			return nil, err
@@ -1216,6 +1216,4 @@ func (ihnc *indexHashedNodesCoordinator) getShardValidatorInfoData(txHash []byte
 func (ihnc *indexHashedNodesCoordinator) updateEpochFlags(epoch uint32) {
 	ihnc.flagWaitingListFix.SetValue(epoch >= ihnc.enableEpochsHandler.WaitingListFixEnableEpoch())
 	log.Debug("indexHashedNodesCoordinator: waiting list fix", "enabled", ihnc.flagWaitingListFix.IsSet())
-	ihnc.flagRefactorPeersMiniBlocks.SetValue(epoch >= ihnc.refactorPeersMiniBlocksEnableEpoch)
-	log.Debug("indexHashedNodesCoordinator: refactor peers mini blocks", "enabled", ihnc.flagRefactorPeersMiniBlocks.IsSet())
 }

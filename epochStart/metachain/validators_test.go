@@ -18,7 +18,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	validatorInfoCacherMock "github.com/ElrondNetwork/elrond-go/testscommon/validatorInfoCacher"
 	"github.com/stretchr/testify/require"
@@ -130,8 +129,9 @@ func createMockEpochValidatorInfoCreatorsArguments() ArgsNewValidatorInfoCreator
 				return &validatorInfoCacherMock.ValidatorInfoCacherMock{}
 			},
 		},
-		EpochNotifier:                      &epochNotifier.EpochNotifierStub{},
-		RefactorPeersMiniBlocksEnableEpoch: 0,
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
+			IsRefactorPeersMiniBlocksFlagEnabledField: true,
+		},
 	}
 	return argsNewEpochEconomics
 }

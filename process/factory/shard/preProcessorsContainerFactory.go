@@ -64,7 +64,6 @@ func NewPreProcessorsContainerFactory(
 	txTypeHandler process.TxTypeHandler,
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler,
 	processedMiniBlocksTracker process.ProcessedMiniBlocksTracker,
-	refactorPeersMiniBlocksEnableEpoch uint32,
 ) (*preProcessorsContainerFactory, error) {
 
 	if check.IfNil(shardCoordinator) {
@@ -281,8 +280,7 @@ func (ppcm *preProcessorsContainerFactory) createValidatorInfoPreProcessor() (pr
 		ppcm.dataPool.ValidatorsInfo(),
 		ppcm.store,
 		ppcm.requestHandler.RequestValidatorsInfo,
-		ppcm.epochNotifier,
-		ppcm.refactorPeersMiniBlocksEnableEpoch,
+		ppcm.enableEpochsHandler,
 	)
 
 	return validatorInfoPreprocessor, err

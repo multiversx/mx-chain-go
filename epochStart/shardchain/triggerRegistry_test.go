@@ -54,6 +54,7 @@ func cloneTrigger(t *trigger) *trigger {
 	rt.mapMissingMiniBlocks = t.mapMissingMiniBlocks
 	rt.mapFinalizedEpochs = t.mapFinalizedEpochs
 	rt.roundHandler = t.roundHandler
+	rt.enableEpochsHandler = t.enableEpochsHandler
 	return rt
 }
 

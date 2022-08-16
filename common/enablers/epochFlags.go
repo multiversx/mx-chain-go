@@ -79,6 +79,7 @@ type epochFlagsHolder struct {
 	refactorContextFlag                         *atomic.Flag
 	checkFunctionArgumentFlag                   *atomic.Flag
 	checkExecuteOnReadOnlyFlag                  *atomic.Flag
+	refactorPeersMiniBlocksFlag                 *atomic.Flag
 }
 
 func newEpochFlagsHolder() *epochFlagsHolder {
@@ -159,6 +160,7 @@ func newEpochFlagsHolder() *epochFlagsHolder {
 		refactorContextFlag:                         &atomic.Flag{},
 		checkFunctionArgumentFlag:                   &atomic.Flag{},
 		checkExecuteOnReadOnlyFlag:                  &atomic.Flag{},
+		refactorPeersMiniBlocksFlag:                 &atomic.Flag{},
 	}
 }
 
@@ -593,4 +595,9 @@ func (holder *epochFlagsHolder) IsTransferToMetaFlagEnabled() bool {
 // this is a duplicate for ESDTMultiTransferEnableEpoch needed for consistency into vm-common
 func (holder *epochFlagsHolder) IsESDTNFTImprovementV1FlagEnabled() bool {
 	return holder.esdtMultiTransferFlag.IsSet()
+}
+
+// IsRefactorPeersMiniBlocksFlagEnabled returns true if refactorPeersMiniBlocksFlag is enabled
+func (holder *epochFlagsHolder) IsRefactorPeersMiniBlocksFlagEnabled() bool {
+	return holder.refactorPeersMiniBlocksFlag.IsSet()
 }

@@ -25,15 +25,15 @@ import (
 const consensusGroupCacheSize = 50
 
 type syncValidatorStatus struct {
-	miniBlocksSyncer                   epochStart.PendingMiniBlocksSyncHandler
-	transactionsSyncer                 update.TransactionsSyncHandler
-	dataPool                           dataRetriever.PoolsHolder
-	marshalizer                        marshal.Marshalizer
-	requestHandler                     process.RequestHandler
-	nodeCoordinator                    StartInEpochNodesCoordinator
-	genesisNodesConfig                 sharding.GenesisNodesSetupHandler
-	memDB                              storage.Storer
-	refactorPeersMiniBlocksEnableEpoch uint32
+	miniBlocksSyncer    epochStart.PendingMiniBlocksSyncHandler
+	transactionsSyncer  update.TransactionsSyncHandler
+	dataPool            dataRetriever.PoolsHolder
+	marshalizer         marshal.Marshalizer
+	requestHandler      process.RequestHandler
+	nodeCoordinator     StartInEpochNodesCoordinator
+	genesisNodesConfig  sharding.GenesisNodesSetupHandler
+	memDB               storage.Storer
+	enableEpochsHandler common.EnableEpochsHandler
 }
 
 // ArgsNewSyncValidatorStatus holds the arguments needed for creating a new validator status process component
@@ -60,11 +60,11 @@ func NewSyncValidatorStatus(args ArgsNewSyncValidatorStatus) (*syncValidatorStat
 	}
 
 	s := &syncValidatorStatus{
-		dataPool:                           args.DataPool,
-		marshalizer:                        args.Marshalizer,
-		requestHandler:                     args.RequestHandler,
-		genesisNodesConfig:                 args.GenesisNodesConfig,
-		refactorPeersMiniBlocksEnableEpoch: args.RefactorPeersMiniBlocksEnableEpoch,
+		dataPool:            args.DataPool,
+		marshalizer:         args.Marshalizer,
+		requestHandler:      args.RequestHandler,
+		genesisNodesConfig:  args.GenesisNodesConfig,
+		enableEpochsHandler: args.EnableEpochsHandler,
 	}
 
 	var err error
@@ -82,7 +82,7 @@ func NewSyncValidatorStatus(args ArgsNewSyncValidatorStatus) (*syncValidatorStat
 
 	syncTxsArgs := sync.ArgsNewTransactionsSyncer{
 		DataPools:      s.dataPool,
-		Storages:       dataRetriever.NewChainStorer(),
+		Storages:       disabled.NewChainStorer(),
 		Marshaller:     s.marshalizer,
 		RequestHandler: s.requestHandler,
 	}
@@ -226,7 +226,7 @@ func (s *syncValidatorStatus) getPeerBlockBodyForMeta(
 		return nil, nil, err
 	}
 
-	if metaBlock.GetEpoch() >= s.refactorPeersMiniBlocksEnableEpoch {
+	if metaBlock.GetEpoch() >= s.enableEpochsHandler.RefactorPeersMiniBlocksEnableEpoch() {
 		s.transactionsSyncer.ClearFields()
 		ctx, cancel = context.WithTimeout(context.Background(), time.Minute)
 		err = s.transactionsSyncer.SyncTransactionsFor(peerMiniBlocks, metaBlock.GetEpoch(), ctx)

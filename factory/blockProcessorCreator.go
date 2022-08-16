@@ -323,7 +323,6 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		txTypeHandler,
 		scheduledTxsExecutionHandler,
 		processedMiniBlocksTracker,
-		enableEpochs.RefactorPeersMiniBlocksEnableEpoch,
 	)
 	if err != nil {
 		return nil, err
@@ -757,16 +756,18 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		return nil, err
 	}
 
-	validatorInfoStorage := pcf.data.StorageService().GetStorer(dataRetriever.UnsignedTransactionUnit)
+	validatorInfoStorage, err := pcf.data.StorageService().GetStorer(dataRetriever.UnsignedTransactionUnit)
+	if err != nil {
+		return nil, err
+	}
 	argsEpochValidatorInfo := metachainEpochStart.ArgsNewValidatorInfoCreator{
-		ShardCoordinator:                   pcf.bootstrapComponents.ShardCoordinator(),
-		ValidatorInfoStorage:               validatorInfoStorage,
-		MiniBlockStorage:                   miniBlockStorage,
-		Hasher:                             pcf.coreData.Hasher(),
-		Marshalizer:                        pcf.coreData.InternalMarshalizer(),
-		DataPool:                           pcf.data.Datapool(),
-		EpochNotifier:                      pcf.epochNotifier,
-		RefactorPeersMiniBlocksEnableEpoch: enableEpochs.RefactorPeersMiniBlocksEnableEpoch,
+		ShardCoordinator:     pcf.bootstrapComponents.ShardCoordinator(),
+		ValidatorInfoStorage: validatorInfoStorage,
+		MiniBlockStorage:     miniBlockStorage,
+		Hasher:               pcf.coreData.Hasher(),
+		Marshalizer:          pcf.coreData.InternalMarshalizer(),
+		DataPool:             pcf.data.Datapool(),
+		EnableEpochsHandler:  pcf.coreData.EnableEpochsHandler(),
 	}
 	validatorInfoCreator, err := metachainEpochStart.NewValidatorInfoCreator(argsEpochValidatorInfo)
 	if err != nil {

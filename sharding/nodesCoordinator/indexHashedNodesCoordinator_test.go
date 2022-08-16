@@ -114,7 +114,9 @@ func createArguments() ArgNodesCoordinator {
 		IsFullArchive:           false,
 		ChanStopNode:            make(chan endProcess.ArgEndProcess),
 		NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
-		EnableEpochsHandler:     &mock.EnableEpochsHandlerMock{},
+		EnableEpochsHandler: &mock.EnableEpochsHandlerMock{
+			IsRefactorPeersMiniBlocksFlagEnabledField: true,
+		},
 	}
 	return arguments
 }
@@ -1430,7 +1432,9 @@ func TestIndexHashedNodesCoordinator_EpochStart_EligibleSortedAscendingByIndex(t
 		Adaptivity:           adaptivity,
 		ShuffleBetweenShards: shuffleBetweenShards,
 		MaxNodesEnableConfig: nil,
-		EnableEpochsHandler:  &mock.EnableEpochsHandlerMock{},
+		EnableEpochsHandler: &mock.EnableEpochsHandlerMock{
+			IsRefactorPeersMiniBlocksFlagEnabledField: true,
+		},
 	}
 	nodeShuffler, err := NewHashValidatorsShuffler(shufflerArgs)
 	require.Nil(t, err)
@@ -1454,7 +1458,9 @@ func TestIndexHashedNodesCoordinator_EpochStart_EligibleSortedAscendingByIndex(t
 		ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
 		ChanStopNode:            make(chan endProcess.ArgEndProcess),
 		NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
-		EnableEpochsHandler:     &mock.EnableEpochsHandlerMock{},
+		EnableEpochsHandler: &mock.EnableEpochsHandlerMock{
+			IsRefactorPeersMiniBlocksFlagEnabledField: true,
+		},
 	}
 
 	ihnc, err := NewIndexHashedNodesCoordinator(arguments)

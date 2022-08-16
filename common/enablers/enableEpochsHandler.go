@@ -109,6 +109,7 @@ func (handler *enableEpochsHandler) EpochConfirmed(epoch uint32, _ uint64) {
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.RefactorContextEnableEpoch, handler.refactorContextFlag, "refactorContextFlag")
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.CheckFunctionArgumentEnableEpoch, handler.checkFunctionArgumentFlag, "checkFunctionArgumentFlag")
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.CheckExecuteOnReadOnlyEnableEpoch, handler.checkExecuteOnReadOnlyFlag, "checkExecuteOnReadOnlyFlag")
+	handler.setFlagValue(epoch >= handler.enableEpochsConfig.RefactorPeersMiniBlocksEnableEpoch, handler.refactorPeersMiniBlocksFlag, "refactorPeersMiniBlocksFlag")
 }
 
 func (handler *enableEpochsHandler) setFlagValue(value bool, flag *atomic.Flag, flagName string) {
@@ -199,6 +200,11 @@ func (handler *enableEpochsHandler) StorageAPICostOptimizationEnableEpoch() uint
 // MiniBlockPartialExecutionEnableEpoch returns the epoch when miniblock partial execution becomes active
 func (handler *enableEpochsHandler) MiniBlockPartialExecutionEnableEpoch() uint32 {
 	return handler.enableEpochsConfig.MiniBlockPartialExecutionEnableEpoch
+}
+
+// RefactorPeersMiniBlocksEnableEpoch returns the epoch when refactor of peers mini blocks becomes active
+func (handler *enableEpochsHandler) RefactorPeersMiniBlocksEnableEpoch() uint32 {
+	return handler.enableEpochsConfig.RefactorPeersMiniBlocksEnableEpoch
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -58,12 +58,12 @@ func createMockShardEpochStartTriggerArguments() *ArgsShardEpochStartTrigger {
 				}, nil
 			},
 		},
-		RequestHandler:                     &testscommon.RequestHandlerStub{},
-		EpochStartNotifier:                 &mock.EpochStartNotifierStub{},
-		PeerMiniBlocksSyncer:               &mock.ValidatorInfoSyncerStub{},
-		RoundHandler:                       &mock.RoundHandlerStub{},
-		AppStatusHandler:                   &statusHandlerMock.AppStatusHandlerStub{},
-		RefactorPeersMiniBlocksEnableEpoch: 0,
+		RequestHandler:       &testscommon.RequestHandlerStub{},
+		EpochStartNotifier:   &mock.EpochStartNotifierStub{},
+		PeerMiniBlocksSyncer: &mock.ValidatorInfoSyncerStub{},
+		RoundHandler:         &mock.RoundHandlerStub{},
+		AppStatusHandler:     &statusHandlerMock.AppStatusHandlerStub{},
+		EnableEpochsHandler:  &testscommon.EnableEpochsHandlerStub{},
 	}
 }
 
