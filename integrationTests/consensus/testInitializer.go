@@ -533,8 +533,7 @@ func createNodes(
 			NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
 			IsFullArchive:           false,
 			EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
-				IsWaitingListFixFlagEnabledField:          true,
-				IsRefactorPeersMiniBlocksFlagEnabledField: true,
+				IsWaitingListFixFlagEnabledField: true,
 			},
 		}
 		nodesCoord, _ := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)

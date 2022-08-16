@@ -48,9 +48,7 @@ func (tpn *IndexHashedNodesCoordinatorFactory) CreateNodesCoordinator(arg ArgInd
 		Adaptivity:           adaptivity,
 		ShuffleBetweenShards: shuffleBetweenShards,
 		MaxNodesEnableConfig: nil,
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
-			IsRefactorPeersMiniBlocksFlagEnabledField: true,
-		},
+		EnableEpochsHandler:  &testscommon.EnableEpochsHandlerStub{},
 	}
 	nodeShuffler, _ := nodesCoordinator.NewHashValidatorsShuffler(nodeShufflerArgs)
 	argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
@@ -71,9 +69,7 @@ func (tpn *IndexHashedNodesCoordinatorFactory) CreateNodesCoordinator(arg ArgInd
 		ChanStopNode:            endProcess.GetDummyEndProcessChannel(),
 		NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
 		IsFullArchive:           false,
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
-			IsRefactorPeersMiniBlocksFlagEnabledField: true,
-		},
+		EnableEpochsHandler:     &testscommon.EnableEpochsHandlerStub{},
 	}
 	nodesCoord, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 	if err != nil {
@@ -104,9 +100,8 @@ func (ihncrf *IndexHashedNodesCoordinatorWithRaterFactory) CreateNodesCoordinato
 		ShuffleBetweenShards: shuffleBetweenShards,
 		MaxNodesEnableConfig: nil,
 		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
-			IsWaitingListFixFlagEnabledField:          true,
-			IsBalanceWaitingListsFlagEnabledField:     true,
-			IsRefactorPeersMiniBlocksFlagEnabledField: true,
+			IsWaitingListFixFlagEnabledField:      true,
+			IsBalanceWaitingListsFlagEnabledField: true,
 		},
 	}
 	nodeShuffler, _ := nodesCoordinator.NewHashValidatorsShuffler(shufflerArgs)
@@ -129,8 +124,7 @@ func (ihncrf *IndexHashedNodesCoordinatorWithRaterFactory) CreateNodesCoordinato
 		NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
 		IsFullArchive:           false,
 		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
-			IsWaitingListFixFlagEnabledField:          true,
-			IsRefactorPeersMiniBlocksFlagEnabledField: true,
+			IsWaitingListFixFlagEnabledField: true,
 		},
 	}
 
