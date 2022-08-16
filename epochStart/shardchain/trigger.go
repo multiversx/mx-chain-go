@@ -23,6 +23,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
+	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
@@ -589,13 +590,13 @@ func (t *trigger) isMetaBlockValid(hash string, metaHdr data.HeaderHandler) bool
 	for i := metaHdr.GetNonce() - 1; i >= metaHdr.GetNonce()-t.validity; i-- {
 		neededHdr, err := t.getHeaderWithNonceAndHash(i, currHdr.GetPrevHash())
 		if err != nil {
-			log.Debug("isMetaBlockValid.getHeaderWithNonceAndHash",  "hash", hash, "error", err.Error())
+			log.Debug("isMetaBlockValid.getHeaderWithNonceAndHash", "hash", hash, "error", err.Error())
 			return false
 		}
 
 		err = t.headerValidator.IsHeaderConstructionValid(currHdr, neededHdr)
 		if err != nil {
-			log.Debug("isMetaBlockValid.IsHeaderConstructionValid",  "hash", hash, "error", err.Error())
+			log.Debug("isMetaBlockValid.IsHeaderConstructionValid", "hash", hash, "error", err.Error())
 			return false
 		}
 
@@ -869,7 +870,11 @@ func (t *trigger) SetProcessed(header data.HeaderHandler, _ data.BodyHandler) {
 	epochStartIdentifier := core.EpochStartIdentifier(shardHdr.GetEpoch())
 	errNotCritical = t.shardHdrStorage.Put([]byte(epochStartIdentifier), shardHdrBuff)
 	if errNotCritical != nil {
-		log.Warn("SetProcessed put to shard header storage error", "error", errNotCritical)
+		logLevel := logger.LogWarning
+		if errors.IsClosingError(errNotCritical) {
+			logLevel = logger.LogDebug
+		}
+		log.Log(logLevel, "SetProcessed put to shard header storage error", "error", errNotCritical)
 	}
 
 	// save finished start of epoch meta hdrs to current storage

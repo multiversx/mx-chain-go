@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
@@ -634,7 +635,11 @@ func (ihnc *indexHashedNodesCoordinator) EpochStartPrepare(metaHdr data.HeaderHa
 	ihnc.fillPublicKeyToValidatorMap()
 	err = ihnc.saveState(randomness)
 	if err != nil {
-		log.Error("saving nodes coordinator config failed", "error", err.Error())
+		logLevel := logger.LogError
+		if errors.IsClosingError(err) {
+			logLevel = logger.LogDebug
+		}
+		log.Log(logLevel, "saving nodes coordinator config failed", "error", err.Error())
 	}
 
 	displayNodesConfiguration(
@@ -807,7 +812,11 @@ func (ihnc *indexHashedNodesCoordinator) EpochStartAction(hdr data.HeaderHandler
 
 	err := ihnc.saveState(ihnc.savedStateKey)
 	if err != nil {
-		log.Error("saving nodes coordinator config failed", "error", err.Error())
+		logLevel := logger.LogError
+		if errors.IsClosingError(err) {
+			logLevel = logger.LogDebug
+		}
+		log.Log(logLevel, "saving nodes coordinator config failed", "error", err.Error())
 	}
 
 	ihnc.mutNodesConfig.Lock()
