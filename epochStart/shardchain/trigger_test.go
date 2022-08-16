@@ -234,6 +234,17 @@ func TestNewEpochStartTrigger_NilRoundHandlerShouldErr(t *testing.T) {
 	assert.Equal(t, epochStart.ErrNilRoundHandler, err)
 }
 
+func TestNewEpochStartTrigger_NilEnableEpochsHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createMockShardEpochStartTriggerArguments()
+	args.EnableEpochsHandler = nil
+	epochStartTrigger, err := NewEpochStartTrigger(args)
+
+	assert.Nil(t, epochStartTrigger)
+	assert.Equal(t, epochStart.ErrNilEnableEpochsHandler, err)
+}
+
 func TestNewEpochStartTrigger_ShouldOk(t *testing.T) {
 	t.Parallel()
 

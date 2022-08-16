@@ -196,6 +196,15 @@ func TestNewIndexHashedNodesCoordinator_NilCacherShouldErr(t *testing.T) {
 	require.Nil(t, ihnc)
 }
 
+func TestNewIndexHashedNodesCoordinator_NilEnableEpochsHandlerShouldErr(t *testing.T) {
+	arguments := createArguments()
+	arguments.EnableEpochsHandler = nil
+	ihnc, err := NewIndexHashedNodesCoordinator(arguments)
+
+	require.Equal(t, ErrNilEnableEpochsHandler, err)
+	require.Nil(t, ihnc)
+}
+
 func TestNewIndexHashedGroupSelector_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
