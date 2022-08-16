@@ -1,6 +1,8 @@
 package transactionsfee
 
 import (
+	"math/big"
+
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	outportcore "github.com/ElrondNetwork/elrond-go-core/data/outport"
@@ -116,15 +118,20 @@ func (tep *transactionsFeeProcessor) prepareTxWithResultsBasedOnLogs(
 	}
 
 	for _, event := range txWithResults.log.GetLogEvents() {
-		identifier := string(event.GetIdentifier())
-		shouldIgnore := identifier != core.SignalErrorOperation && identifier != core.WriteLogIdentifier
-		if shouldIgnore || hasRefund {
-			continue
+		switch {
+		case core.WriteLogIdentifier == string(event.GetIdentifier()) && !hasRefund:
+			{
+				gasUsed, fee := tep.txFeeCalculator.ComputeGasUsedAndFeeBasedOnRefundValue(txWithResults, big.NewInt(0))
+				txWithResults.SetGasUsed(gasUsed)
+				txWithResults.SetFee(fee)
+			}
+		case core.SignalErrorOperation == string(event.GetIdentifier()):
+			{
+				fee := tep.txFeeCalculator.ComputeTxFeeBasedOnGasUsed(txWithResults, txWithResults.GetGasLimit())
+				txWithResults.SetGasUsed(txWithResults.GetGasLimit())
+				txWithResults.SetFee(fee)
+			}
 		}
-
-		fee := tep.txFeeCalculator.ComputeTxFeeBasedOnGasUsed(txWithResults, txWithResults.GetGasLimit())
-		txWithResults.SetGasUsed(txWithResults.GetGasLimit())
-		txWithResults.SetFee(fee)
 	}
 }
 
