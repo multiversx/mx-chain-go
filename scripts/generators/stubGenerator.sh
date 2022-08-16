@@ -101,12 +101,12 @@ extractReturnTypes() {
   fi
 }
 
-extractParametersAndTypes() {
+extractBasicParametersAndTypes() {
   # extract parameters from method line into:
   #   paramNames, which will be an array of strings used to call stub method
   #   paramTypes, which will be an array of strings exactly how the params types are. Eg. bool, error, uint32, etc.
   IFS=','
-  read -ra ADDR <<< "$rawParams"
+  read -ra ADDR <<< "$1"
 
   if [[ ${#ADDR[@]} != 0 ]]; then
     for i in "${!ADDR[@]}"; do
@@ -140,6 +140,54 @@ extractParametersAndTypes() {
       paramTypes+=("$paramType")
     done
   fi
+}
+
+extractParametersAndTypes() {
+  parameters=$1
+
+  # if there is no func into params, extract/append basic parameters and return
+  if [[ ! "$parameters" == *"func"* ]]; then
+    parametersUntilFirstBrace=${parameters%")"*}
+    extractBasicParametersAndTypes "$parametersUntilFirstBrace"
+    return
+  fi
+
+  # get the text before func
+  untilFunc=${parameters%"func("*}
+  extractBasicParametersAndTypes "$untilFunc"
+
+  # if last param type is not empty(ie it extracted some name for the func ptr), move last type to last name
+  lastParamType=${paramTypes[-1]}
+  if [ ! "$lastParamType" == "" ]; then
+    paramNames[-1]=$lastParamType
+  fi
+
+  # get params of func ptr parameter
+  fromFunc=${parameters#*"func("}
+  paramsOfFunc=${fromFunc%%")"*}
+
+  # extract return type of func
+  fromParamsOfFunc=${fromFunc#*")"}
+  returnTypeOfFunc=${fromParamsOfFunc%%","*}
+
+  # if return type has any (, it means it has multiple return params
+  if [[ "$returnTypeOfFunc" == *"("* ]]; then
+    returnTypeOfFunc="${fromParamsOfFunc%%")"*})"
+  fi
+
+  # add the final param type, which is the entire func ptr signature
+  paramTypes[-1]="func($paramsOfFunc)$returnTypeOfFunc"
+
+  # call this method recursively in order to extract all possible func ptrs
+  afterFunc=${fromParamsOfFunc#*"$returnTypeOfFunc, "}
+  if [ "$returnTypeOfFunc" == "$afterFunc" ]; then
+    # it means that the func ptr is the last parameter, so nothing left after func
+    afterFunc=""
+  else
+    afterFunc=${afterFunc%")"*}
+  fi
+
+  extractParametersAndTypes "$afterFunc"
 }
 
 computeUpdatedParameters() {
@@ -254,23 +302,51 @@ createStubMethods() {
       # ignore commented lines
       [[ "$methodName" == "//"* ]] && continue
 
-     removeCommentsFromMethodLine
+      removeCommentsFromMethodLine
 
-      rawReturnTypesWithBraces=${method#*")"}
-      rawReturnTypesWithBraces=${rawReturnTypesWithBraces%"{"*}
+      # extract from first ( until first )
+      # this can lead to 2 cases:
+      #   1. no func ptr param, which means rawParams will hold all parameters
+      #   2. one or more func ptr params, which means rawParams will hold
+      #   all parameters until the closing brace of the func ptr parameters
+      rawParams=${method%")"*}
+      rawParams=${rawParams#*"("}
+
+      declare -a paramNames=()
+      declare -a paramTypes=()
+
+      extractParametersAndTypes "$rawParams"
+
+      #for i in "${!paramNames[@]}"
+      #  do
+      #    echo "${paramNames[$i]} ++ ${paramTypes[$i]}"
+      #done
+
+      # extract final sequence of the methods parameters in order to properly extract its return types
+      endingOfRawParam="()"
+      if [ ${#paramNames} != 0 ]; then
+        # remove previously appended ... for variable parameters
+        lastParamName=${paramNames[-1]%%"."*}
+
+        # if it's a placeholder, ignore param name. Otherwise, add it for better precision
+        if [[ "$lastParamName" == "tmp"* ]]; then
+          endingOfRawParam="${paramTypes[-1]})"
+        else
+          endingOfRawParam="$lastParamName ${paramTypes[-1]})"
+        fi
+      fi
+
+      rawReturnTypesWithBraces=${method#*"$endingOfRawParam"}
+
+      # clean fromParamsOfFunc
+      fromParamsOfFunc=""
+
       # remove () in case of multiple return types
       rawReturnTypes=${rawReturnTypesWithBraces#*"("}
       rawReturnTypes=${rawReturnTypes%")"*}
 
       declare -a returnTypesArr=()
       extractReturnTypes
-
-      rawParams=${method%%")"*}
-      rawParams=${rawParams##*"("}
-
-      declare -a paramNames=()
-      declare -a paramTypes=()
-      extractParametersAndTypes
 
       # compute the stub member which will be called and write to the file:
       #   the comment
