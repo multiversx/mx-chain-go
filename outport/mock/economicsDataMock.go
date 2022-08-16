@@ -55,7 +55,7 @@ func (e *EconomicsHandlerMock) ComputeGasUsedAndFeeBasedOnRefundValue(tx coreDat
 	moveBalanceFee := e.computeMoveBalanceFee(tx)
 
 	scOpFee := big.NewInt(0).Sub(txFee, moveBalanceFee)
-	gasPriceForProcessing := big.NewInt(0).SetUint64(e.GasPriceForProcessing(tx))
+	gasPriceForProcessing := big.NewInt(0).SetUint64(e.gasPriceForProcessing(tx))
 	scOpGasUnits := big.NewInt(0).Div(scOpFee, gasPriceForProcessing)
 
 	gasUsed := moveBalanceGasUnits + scOpGasUnits.Uint64()
@@ -71,7 +71,7 @@ func (e *EconomicsHandlerMock) ComputeTxFeeBasedOnGasUsed(tx coreData.Transactio
 		return moveBalanceFee
 	}
 
-	computeFeeForProcessing := e.ComputeFeeForProcessing(tx, gasUsed-moveBalanceGasLimit)
+	computeFeeForProcessing := e.computeFeeForProcessing(tx, gasUsed-moveBalanceGasLimit)
 	txFee := big.NewInt(0).Add(moveBalanceFee, computeFeeForProcessing)
 
 	return txFee
@@ -86,31 +86,28 @@ func (e *EconomicsHandlerMock) IsInterfaceNil() bool {
 	return e == nil
 }
 
-// ComputeFeeForProcessing will compute the fee using the gas price modifier, the gas to use and the actual gas price
-func (e *EconomicsHandlerMock) ComputeFeeForProcessing(tx coreData.TransactionWithFeeHandler, gasToUse uint64) *big.Int {
-	gasPrice := e.GasPriceForProcessing(tx)
+func (e *EconomicsHandlerMock) computeFeeForProcessing(tx coreData.TransactionWithFeeHandler, gasToUse uint64) *big.Int {
+	gasPrice := e.gasPriceForProcessing(tx)
 	return core.SafeMul(gasPrice, gasToUse)
 }
 
-// GasPriceForProcessing computes the price for the gas in addition to balance movement and data
-func (e *EconomicsHandlerMock) GasPriceForProcessing(tx coreData.TransactionWithFeeHandler) uint64 {
+func (e *EconomicsHandlerMock) gasPriceForProcessing(tx coreData.TransactionWithFeeHandler) uint64 {
 	return uint64(float64(tx.GetGasPrice()) * gasPriceModifier)
 }
 
 func (e *EconomicsHandlerMock) ComputeTxFee(tx coreData.TransactionWithFeeHandler) *big.Int {
-	gasLimitForMoveBalance, difference := e.SplitTxGasInCategories(tx)
+	gasLimitForMoveBalance, difference := e.splitTxGasInCategories(tx)
 	moveBalanceFee := core.SafeMul(tx.GetGasPrice(), gasLimitForMoveBalance)
 	if tx.GetGasLimit() <= gasLimitForMoveBalance {
 		return moveBalanceFee
 	}
 
-	extraFee := e.ComputeFeeForProcessing(tx, difference)
+	extraFee := e.computeFeeForProcessing(tx, difference)
 	moveBalanceFee.Add(moveBalanceFee, extraFee)
 	return moveBalanceFee
 }
 
-// SplitTxGasInCategories returns the gas split per categories
-func (e *EconomicsHandlerMock) SplitTxGasInCategories(tx coreData.TransactionWithFeeHandler) (gasLimitMove, gasLimitProcess uint64) {
+func (e *EconomicsHandlerMock) splitTxGasInCategories(tx coreData.TransactionWithFeeHandler) (gasLimitMove, gasLimitProcess uint64) {
 	var err error
 	gasLimitMove = e.ComputeGasLimit(tx)
 	gasLimitProcess, err = core.SafeSubUint64(tx.GetGasLimit(), gasLimitMove)

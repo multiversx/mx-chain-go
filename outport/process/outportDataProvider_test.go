@@ -21,7 +21,7 @@ func createArgOutportDataProvider() ArgOutportDataProvider {
 	})
 
 	return ArgOutportDataProvider{
-		AlteredAccountsProvider:  &mock.AlteredAccountsProviderStub{},
+		AlteredAccountsProvider:  &testscommon.AlteredAccountsProviderStub{},
 		TransactionsFeeProcessor: txsFeeProc,
 		TxCoordinator:            &testscommon.TransactionCoordinatorMock{},
 		NodesCoordinator:         &shardingMocks.NodesCoordinatorMock{},

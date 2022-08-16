@@ -37,7 +37,7 @@ func CreateOutportDataProvider(arg ArgOutportDataProviderFactory) (outport.DataP
 		return disabled.NewDisabledOutportDataProvider(), nil
 	}
 
-	err := checkArgCreateOutportDataProvider(arg)
+	err := checkArgOutportDataProviderFactory(arg)
 	if err != nil {
 		return nil, err
 	}

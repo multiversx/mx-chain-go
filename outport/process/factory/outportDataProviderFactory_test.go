@@ -11,7 +11,7 @@ import (
 func TestCreateOutportDataProviderDisabled(t *testing.T) {
 	t.Parallel()
 
-	arg := createArgCreateOutportDataProvider()
+	arg := createArgOutportDataProviderFactory()
 	arg.HasDrivers = false
 
 	provider, err := CreateOutportDataProvider(arg)
@@ -23,7 +23,7 @@ func TestCreateOutportDataProviderDisabled(t *testing.T) {
 func TestCreateOutportDataProviderError(t *testing.T) {
 	t.Parallel()
 
-	arg := createArgCreateOutportDataProvider()
+	arg := createArgOutportDataProviderFactory()
 	arg.HasDrivers = true
 	arg.AddressConverter = nil
 
@@ -35,7 +35,7 @@ func TestCreateOutportDataProviderError(t *testing.T) {
 func TestCreateOutportDataProvider(t *testing.T) {
 	t.Parallel()
 
-	arg := createArgCreateOutportDataProvider()
+	arg := createArgOutportDataProviderFactory()
 	arg.HasDrivers = true
 
 	provider, err := CreateOutportDataProvider(arg)

@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func createArgCreateOutportDataProvider() ArgOutportDataProviderFactory {
+func createArgOutportDataProviderFactory() ArgOutportDataProviderFactory {
 	return ArgOutportDataProviderFactory{
 		HasDrivers:             false,
 		AddressConverter:       &testscommon.PubkeyConverterMock{},
@@ -33,46 +33,46 @@ func createArgCreateOutportDataProvider() ArgOutportDataProviderFactory {
 func TestCheckArgCreateOutportDataProvider(t *testing.T) {
 	t.Parallel()
 
-	arg := createArgCreateOutportDataProvider()
+	arg := createArgOutportDataProviderFactory()
 	arg.AddressConverter = nil
-	require.Equal(t, alteredaccounts.ErrNilPubKeyConverter, checkArgCreateOutportDataProvider(arg))
+	require.Equal(t, alteredaccounts.ErrNilPubKeyConverter, checkArgOutportDataProviderFactory(arg))
 
-	arg = createArgCreateOutportDataProvider()
+	arg = createArgOutportDataProviderFactory()
 	arg.AccountsDB = nil
-	require.Equal(t, alteredaccounts.ErrNilAccountsDB, checkArgCreateOutportDataProvider(arg))
+	require.Equal(t, alteredaccounts.ErrNilAccountsDB, checkArgOutportDataProviderFactory(arg))
 
-	arg = createArgCreateOutportDataProvider()
+	arg = createArgOutportDataProviderFactory()
 	arg.Marshaller = nil
-	require.Equal(t, transactionsfee.ErrNilMarshaller, checkArgCreateOutportDataProvider(arg))
+	require.Equal(t, transactionsfee.ErrNilMarshaller, checkArgOutportDataProviderFactory(arg))
 
-	arg = createArgCreateOutportDataProvider()
+	arg = createArgOutportDataProviderFactory()
 	arg.EsdtDataStorageHandler = nil
-	require.Equal(t, alteredaccounts.ErrNilESDTDataStorageHandler, checkArgCreateOutportDataProvider(arg))
+	require.Equal(t, alteredaccounts.ErrNilESDTDataStorageHandler, checkArgOutportDataProviderFactory(arg))
 
-	arg = createArgCreateOutportDataProvider()
+	arg = createArgOutportDataProviderFactory()
 	arg.TransactionsStorer = nil
-	require.Equal(t, transactionsfee.ErrNilStorage, checkArgCreateOutportDataProvider(arg))
+	require.Equal(t, transactionsfee.ErrNilStorage, checkArgOutportDataProviderFactory(arg))
 
-	arg = createArgCreateOutportDataProvider()
+	arg = createArgOutportDataProviderFactory()
 	arg.ShardCoordinator = nil
-	require.Equal(t, transactionsfee.ErrNilShardCoordinator, checkArgCreateOutportDataProvider(arg))
+	require.Equal(t, transactionsfee.ErrNilShardCoordinator, checkArgOutportDataProviderFactory(arg))
 
-	arg = createArgCreateOutportDataProvider()
+	arg = createArgOutportDataProviderFactory()
 	arg.TxCoordinator = nil
-	require.Equal(t, process.ErrNilTransactionCoordinator, checkArgCreateOutportDataProvider(arg))
+	require.Equal(t, process.ErrNilTransactionCoordinator, checkArgOutportDataProviderFactory(arg))
 
-	arg = createArgCreateOutportDataProvider()
+	arg = createArgOutportDataProviderFactory()
 	arg.NodesCoordinator = nil
-	require.Equal(t, process.ErrNilNodesCoordinator, checkArgCreateOutportDataProvider(arg))
+	require.Equal(t, process.ErrNilNodesCoordinator, checkArgOutportDataProviderFactory(arg))
 
-	arg = createArgCreateOutportDataProvider()
+	arg = createArgOutportDataProviderFactory()
 	arg.GasConsumedProvider = nil
-	require.Equal(t, process.ErrNilGasConsumedProvider, checkArgCreateOutportDataProvider(arg))
+	require.Equal(t, process.ErrNilGasConsumedProvider, checkArgOutportDataProviderFactory(arg))
 
-	arg = createArgCreateOutportDataProvider()
+	arg = createArgOutportDataProviderFactory()
 	arg.EconomicsData = nil
-	require.Equal(t, transactionsfee.ErrNilTransactionFeeCalculator, checkArgCreateOutportDataProvider(arg))
+	require.Equal(t, transactionsfee.ErrNilTransactionFeeCalculator, checkArgOutportDataProviderFactory(arg))
 
-	arg = createArgCreateOutportDataProvider()
-	require.Nil(t, checkArgCreateOutportDataProvider(arg))
+	arg = createArgOutportDataProviderFactory()
+	require.Nil(t, checkArgOutportDataProviderFactory(arg))
 }
