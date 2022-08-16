@@ -514,6 +514,11 @@ func (mock *EnableEpochsHandlerMock) IsESDTNFTImprovementV1FlagEnabled() bool {
 	return false
 }
 
+// IsSetSenderInEeiOutputTransferFlagEnabled -
+func (mock *EnableEpochsHandlerMock) IsSetSenderInEeiOutputTransferFlagEnabled() bool {
+	return false
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (mock *EnableEpochsHandlerMock) IsInterfaceNil() bool {
 	return mock == nil
