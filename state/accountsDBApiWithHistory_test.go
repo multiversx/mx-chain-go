@@ -93,6 +93,10 @@ func TestAccountsDBApiWithHistory_NotPermittedOrNotImplementedOperationsDoNotPan
 }
 
 func TestAccountsDBApiWithHistory_GetAccountWithBlockInfo(t *testing.T) {
+	rootHash := []byte("rootHash")
+	options := holders.NewGetAccountStateOptions(rootHash)
+	arbitraryError := errors.New("arbitrary error")
+
 	t.Run("recreate trie fails", func(t *testing.T) {
 		expectedErr := errors.New("expected error")
 
@@ -103,7 +107,7 @@ func TestAccountsDBApiWithHistory_GetAccountWithBlockInfo(t *testing.T) {
 		}
 
 		accountsApi, _ := state.NewAccountsDBApiWithHistory(accountsAdapter)
-		account, blockInfo, err := accountsApi.GetAccountWithBlockInfo(testscommon.TestPubKeyAlice, holders.NewGetAccountStateOptions([]byte("rootHash")))
+		account, blockInfo, err := accountsApi.GetAccountWithBlockInfo(testscommon.TestPubKeyAlice, options)
 		assert.Nil(t, account)
 		assert.Nil(t, blockInfo)
 		assert.Equal(t, expectedErr, err)
@@ -127,10 +131,99 @@ func TestAccountsDBApiWithHistory_GetAccountWithBlockInfo(t *testing.T) {
 		}
 
 		accountsApi, _ := state.NewAccountsDBApiWithHistory(accountsAdapter)
-		account, blockInfo, err := accountsApi.GetAccountWithBlockInfo(testscommon.TestPubKeyAlice, holders.NewGetAccountStateOptions([]byte("abba")))
+		account, blockInfo, err := accountsApi.GetAccountWithBlockInfo(testscommon.TestPubKeyAlice, options)
 		assert.Nil(t, err)
-		assert.Equal(t, blockInfo.GetRootHash(), []byte("abba"))
+		assert.Equal(t, blockInfo.GetRootHash(), rootHash)
 		assert.Equal(t, testscommon.TestPubKeyAlice, account.AddressBytes())
-		assert.Equal(t, []byte("abba"), recreatedRootHash)
+		assert.Equal(t, rootHash, recreatedRootHash)
+	})
+
+	t.Run("account is missing, should return error with block info", func(t *testing.T) {
+		var recreatedRootHash []byte
+
+		accountsAdapter := &mockState.AccountsStub{
+			RecreateTrieCalled: func(rootHash []byte) error {
+				recreatedRootHash = rootHash
+				return nil
+			},
+			GetExistingAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
+				return nil, state.ErrAccNotFound
+			},
+		}
+
+		accountsApi, _ := state.NewAccountsDBApiWithHistory(accountsAdapter)
+		account, blockInfo, err := accountsApi.GetAccountWithBlockInfo(testscommon.TestPubKeyAlice, options)
+		assert.Nil(t, account)
+		assert.Nil(t, blockInfo)
+		assert.Equal(t, state.NewErrAccountNotFoundAtBlock(holders.NewBlockInfo(nil, 0, rootHash)), err)
+		assert.Equal(t, rootHash, recreatedRootHash)
+	})
+
+	t.Run("arbitrary error on GetExistingAccount(), should be returned (forwarded)", func(t *testing.T) {
+		var recreatedRootHash []byte
+
+		accountsAdapter := &mockState.AccountsStub{
+			RecreateTrieCalled: func(rootHash []byte) error {
+				recreatedRootHash = rootHash
+				return nil
+			},
+			GetExistingAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
+				return nil, arbitraryError
+			},
+		}
+
+		accountsApi, _ := state.NewAccountsDBApiWithHistory(accountsAdapter)
+		account, blockInfo, err := accountsApi.GetAccountWithBlockInfo(testscommon.TestPubKeyAlice, options)
+		assert.Nil(t, account)
+		assert.Nil(t, blockInfo)
+		assert.Equal(t, arbitraryError, err)
+		assert.Equal(t, rootHash, recreatedRootHash)
+	})
+}
+
+func TestAccountsDBApiWithHistory_GetCodeWithBlockInfo(t *testing.T) {
+	contractCodeHash := []byte("codeHash")
+	rootHash := []byte("rootHash")
+	options := holders.NewGetAccountStateOptions(rootHash)
+
+	t.Run("recreate trie fails", func(t *testing.T) {
+		expectedErr := errors.New("expected error")
+
+		accountsAdapter := &mockState.AccountsStub{
+			RecreateTrieCalled: func(rootHash []byte) error {
+				return expectedErr
+			},
+		}
+
+		accountsApi, _ := state.NewAccountsDBApiWithHistory(accountsAdapter)
+		account, blockInfo, err := accountsApi.GetCodeWithBlockInfo(contractCodeHash, options)
+		assert.Nil(t, account)
+		assert.Nil(t, blockInfo)
+		assert.Equal(t, expectedErr, err)
+	})
+
+	t.Run("recreate trie works, should call inner.GetExistingAccount()", func(t *testing.T) {
+		var recreatedRootHash []byte
+
+		accountsAdapter := &mockState.AccountsStub{
+			RecreateTrieCalled: func(rootHash []byte) error {
+				recreatedRootHash = rootHash
+				return nil
+			},
+			GetCodeCalled: func(codeHash []byte) []byte {
+				if bytes.Equal(codeHash, contractCodeHash) {
+					return []byte("code")
+				}
+
+				return nil
+			},
+		}
+
+		accountsApi, _ := state.NewAccountsDBApiWithHistory(accountsAdapter)
+		code, blockInfo, err := accountsApi.GetCodeWithBlockInfo(contractCodeHash, options)
+		assert.Nil(t, err)
+		assert.Equal(t, blockInfo.GetRootHash(), rootHash)
+		assert.Equal(t, []byte("code"), code)
+		assert.Equal(t, rootHash, recreatedRootHash)
 	})
 }

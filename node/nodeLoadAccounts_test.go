@@ -97,9 +97,9 @@ func TestNode_AddBlockCoordinatesToAccountQueryOptions(t *testing.T) {
 
 	// Setup storage
 	chainStorerMock := genericMocks.NewChainStorerMock(0)
-	chainStorerMock.BlockHeaders.Put([]byte("blockHash"), blockHeaderBytes)
+	_ = chainStorerMock.BlockHeaders.Put([]byte("blockHash"), blockHeaderBytes)
 	nonceAsStorerKey := coreComponents.Uint64ByteSliceConverter().ToByteSlice(42)
-	chainStorerMock.ShardHdrNonce.Put(nonceAsStorerKey, []byte("blockHash"))
+	_ = chainStorerMock.ShardHdrNonce.Put(nonceAsStorerKey, []byte("blockHash"))
 	dataComponents.Store = chainStorerMock
 
 	// Setup scheduled txs
