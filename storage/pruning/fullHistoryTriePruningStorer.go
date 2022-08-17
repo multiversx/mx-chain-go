@@ -25,7 +25,7 @@ func initFullHistoryTriePruningStorer(args *FullHistoryStorerArgs, shardId strin
 		return nil, err
 	}
 
-	activePersisters, persistersMapByEpoch, err := initPersistersInEpoch(args.StorerArgs, shardId)
+	activePersisters, persistersMapByEpoch, err := initPersistersInEpoch(args.StorerArgs, shardId, NewPersistersTracker(args.StorerArgs))
 	if err != nil {
 		return nil, err
 	}

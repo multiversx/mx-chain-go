@@ -109,7 +109,7 @@ func NewPruningStorer(args *StorerArgs) (*PruningStorer, error) {
 		return nil, err
 	}
 
-	activePersisters, persistersMapByEpoch, err := initPersistersInEpoch(args, "")
+	activePersisters, persistersMapByEpoch, err := initPersistersInEpoch(args, "", NewPersistersTracker(args))
 	if err != nil {
 		return nil, err
 	}
@@ -188,6 +188,9 @@ func checkArgs(args *StorerArgs) error {
 	if args.MaxBatchSize > int(args.CacheConf.Capacity) {
 		return storage.ErrCacheSizeIsLowerThanBatchSize
 	}
+	if args.NumOfEpochsToKeep < args.NumOfActivePersisters {
+		return storage.ErrEpochKeepIsLowerThanNumActive
+	}
 
 	return nil
 }
@@ -203,6 +206,7 @@ func (ps *PruningStorer) lastEpochNeeded() uint32 {
 func initPersistersInEpoch(
 	args *StorerArgs,
 	shardIDStr string,
+	persistersTracker PersistersTracker,
 ) ([]*persisterData, map[uint32]*persisterData, error) {
 	if !args.PruningEnabled {
 		return createPersisterIfPruningDisabled(args, shardIDStr)
@@ -212,11 +216,14 @@ func initPersistersInEpoch(
 		return nil, nil, fmt.Errorf("invalid epochs configuration")
 	}
 
-	oldestEpochActive, oldestEpochKeep := computeOldestEpochActiveAndToKeep(args)
 	var persisters []*persisterData
 	persistersMapByEpoch := make(map[uint32]*persisterData)
 
-	for epoch := int64(args.StartingEpoch); epoch >= oldestEpochKeep; epoch-- {
+	for epoch := int64(args.StartingEpoch); epoch >= 0; epoch-- {
+		if persistersTracker.HasInitializedEnoughPersisters(epoch) {
+			break
+		}
+
 		log.Debug("initPersistersInEpoch(): createPersisterDataForEpoch", "identifier", args.Identifier, "epoch", epoch, "shardID", shardIDStr)
 		p, err := createPersisterDataForEpoch(args, uint32(epoch), shardIDStr)
 		if err != nil {
@@ -225,7 +232,7 @@ func initPersistersInEpoch(
 
 		persistersMapByEpoch[uint32(epoch)] = p
 
-		if epoch < oldestEpochActive {
+		if persistersTracker.ShouldClosePersister(p.persister, epoch) {
 			err = p.Close()
 			if err != nil {
 				log.Debug("persister.Close()", "identifier", args.Identifier, "error", err.Error())
@@ -985,9 +992,9 @@ func (ps *PruningStorer) processPersistersToClose(lastEpochNeeded uint32) []*per
 
 	if ps.numOfActivePersisters < uint32(len(ps.activePersisters)) {
 		numPersistersToKeep := ps.getNumPersistersToKeep(lastEpochNeeded)
-		epochRemoveIndex := core.MaxUint32(numPersistersToKeep, ps.numOfActivePersisters)
-		persistersToClose = ps.activePersisters[epochRemoveIndex:]
-		ps.activePersisters = ps.activePersisters[:epochRemoveIndex]
+		allowedNumPersistersToKeep := core.MaxUint32(numPersistersToKeep, ps.numOfActivePersisters)
+		persistersToClose = ps.activePersisters[allowedNumPersistersToKeep:]
+		ps.activePersisters = ps.activePersisters[:allowedNumPersistersToKeep]
 
 		for _, p := range persistersToClose {
 			ps.persistersMapByEpoch[p.epoch] = p

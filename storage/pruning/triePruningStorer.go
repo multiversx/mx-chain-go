@@ -27,7 +27,7 @@ func NewTriePruningStorer(args *StorerArgs) (*triePruningStorer, error) {
 		return nil, err
 	}
 
-	activePersisters, persistersMapByEpoch, err := initTriePersisterInEpoch(args, "")
+	activePersisters, persistersMapByEpoch, err := initPersistersInEpoch(args, "", NewTriePersisterTracker(args))
 	if err != nil {
 		return nil, err
 	}
@@ -64,92 +64,6 @@ func (ps *triePruningStorer) lastEpochNeeded() uint32 {
 	}
 
 	return lastEpochNeeded
-}
-
-func initTriePersisterInEpoch(
-	args *StorerArgs,
-	shardIDStr string,
-) ([]*persisterData, map[uint32]*persisterData, error) {
-	if !args.PruningEnabled {
-		return createPersisterIfPruningDisabled(args, shardIDStr)
-	}
-
-	if args.NumOfEpochsToKeep < args.NumOfActivePersisters {
-		return nil, nil, fmt.Errorf("invalid epochs configuration")
-	}
-
-	oldestEpochActive, oldestEpochKeep := computeOldestEpochActiveAndToKeep(args)
-	var persisters []*persisterData
-	persistersMapByEpoch := make(map[uint32]*persisterData)
-
-	numDbsMarkedAsActive := 0
-	numDbsMarkedAsSynced := 0
-	for epoch := int64(args.StartingEpoch); epoch >= 0; epoch-- {
-		shouldKeepEpoch := epoch >= oldestEpochKeep
-		haveActiveDbsNecessary := numDbsMarkedAsActive >= minNumOfActiveDBsNecessary
-		if haveActiveDbsNecessary && !shouldKeepEpoch {
-			break
-		}
-
-		log.Debug("initTriePersisterInEpoch(): createPersisterDataForEpoch", "identifier", args.Identifier, "epoch", epoch, "shardID", shardIDStr)
-		p, err := createPersisterDataForEpoch(args, uint32(epoch), shardIDStr)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		persistersMapByEpoch[uint32(epoch)] = p
-
-		if isDbMarkedAsActive(p) {
-			numDbsMarkedAsActive++
-		}
-
-		if isDbSynced(p) {
-			numDbsMarkedAsSynced++
-		}
-
-		if epoch < oldestEpochActive && haveActiveDbsNecessary {
-			err = p.Close()
-			if err != nil {
-				log.Debug("persister.Close()", "identifier", args.Identifier, "error", err.Error())
-			}
-		} else {
-			persisters = append(persisters, p)
-			log.Debug("appended a pruning active persister", "epoch", epoch, "identifier", args.Identifier)
-		}
-
-		storageHasBeenSynced := numDbsMarkedAsActive >= 1 && numDbsMarkedAsSynced >= 1
-		if storageHasBeenSynced && !shouldKeepEpoch {
-			break
-		}
-	}
-
-	return persisters, persistersMapByEpoch, nil
-}
-
-func isDbSynced(pd *persisterData) bool {
-	val, err := pd.persister.Get([]byte(common.TrieSyncedKey))
-	if err != nil {
-		return false
-	}
-
-	if bytes.Equal(val, []byte(common.TrieSyncedVal)) {
-		return true
-	}
-
-	return false
-}
-
-func isDbMarkedAsActive(pd *persisterData) bool {
-	val, err := pd.persister.Get([]byte(common.ActiveDBKey))
-	if err != nil {
-		return false
-	}
-
-	if bytes.Equal(val, []byte(common.ActiveDBVal)) {
-		return true
-	}
-
-	return false
 }
 
 // PutInEpochWithoutCache adds data to persistence medium related to the specified epoch

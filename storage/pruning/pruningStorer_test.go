@@ -127,6 +127,19 @@ func TestNewPruningStorer_InvalidNumberOfActivePersistersShouldErr(t *testing.T)
 	assert.Equal(t, storage.ErrInvalidNumberOfPersisters, err)
 }
 
+func TestNewPruningStorer_NumEpochKeepLowerThanNumActiveShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := getDefaultArgs()
+	args.NumOfActivePersisters = 3
+	args.NumOfEpochsToKeep = 2
+
+	ps, err := pruning.NewPruningStorer(args)
+
+	assert.Nil(t, ps)
+	assert.Equal(t, storage.ErrEpochKeepIsLowerThanNumActive, err)
+}
+
 func TestNewPruningStorer_NilEpochStartHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -983,6 +996,25 @@ func TestPruningStorer_processPersistersToClose(t *testing.T) {
 		assert.Equal(t, []uint32{6, 7}, ps.PersistersMapByEpochToSlice())
 	})
 
+	t.Run("normal operations - older last epoch needed", func(t *testing.T) {
+		ps := pruning.NewEmptyPruningStorer()
+		ps.SetNumActivePersistersParameter(3)
+		ps.AddMockActivePersisters([]uint32{6, 7, 8, 9, 10}, true, false)
+		persistersToCloseEpochs := ps.ProcessPersistersToClose(6)
+		assert.Equal(t, []uint32{}, persistersToCloseEpochs)
+		assert.Equal(t, []uint32{10, 9, 8, 7, 6}, ps.GetActivePersistersEpochs())
+		assert.Equal(t, []uint32{}, ps.PersistersMapByEpochToSlice())
+	})
+
+	t.Run("normal operations - newer last epoch needed", func(t *testing.T) {
+		ps := pruning.NewEmptyPruningStorer()
+		ps.SetNumActivePersistersParameter(3)
+		ps.AddMockActivePersisters([]uint32{6, 7, 8, 9, 10}, true, false)
+		persistersToCloseEpochs := ps.ProcessPersistersToClose(10)
+		assert.Equal(t, []uint32{7, 6}, persistersToCloseEpochs)
+		assert.Equal(t, []uint32{10, 9, 8}, ps.GetActivePersistersEpochs())
+		assert.Equal(t, []uint32{6, 7}, ps.PersistersMapByEpochToSlice())
+	})
 }
 
 func TestPruningStorer_ConcurrentOperations(t *testing.T) {
