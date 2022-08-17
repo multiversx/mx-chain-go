@@ -98,9 +98,13 @@ func (repository *accountsRepository) GetCurrentStateAccountsWrapper() AccountsA
 
 // Close will handle the closing of the underlying components
 func (repository *accountsRepository) Close() error {
+	errHistorical := repository.historicalStateAccountsWrapper.Close()
 	errFinal := repository.finalStateAccountsWrapper.Close()
 	errCurrent := repository.currentStateAccountsWrapper.Close()
 
+	if errHistorical != nil {
+		return errHistorical
+	}
 	if errFinal != nil {
 		return errFinal
 	}

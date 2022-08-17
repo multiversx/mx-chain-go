@@ -103,9 +103,9 @@ func (accountsDB *accountsDBApiWithHistory) SnapshotState(_ []byte) {
 func (accountsDB *accountsDBApiWithHistory) SetStateCheckpoint(_ []byte) {
 }
 
-// IsPruningEnabled will call the inner accountsAdapter method
+// IsPruningEnabled will return false
 func (accountsDB *accountsDBApiWithHistory) IsPruningEnabled() bool {
-	return accountsDB.innerAccountsAdapter.IsPruningEnabled()
+	return false
 }
 
 // GetAllLeaves will return an error
@@ -118,14 +118,14 @@ func (accountsDB *accountsDBApiWithHistory) RecreateAllTries(_ []byte) (map[stri
 	return nil, ErrOperationNotPermitted
 }
 
-// GetTrie will call the inner accountsAdapter method
+// GetTrie is not implemented
 func (accountsDB *accountsDBApiWithHistory) GetTrie(rootHash []byte) (common.Trie, error) {
-	return accountsDB.innerAccountsAdapter.GetTrie(rootHash)
+	return nil, ErrFunctionalityNotImplemented
 }
 
-// GetStackDebugFirstEntry will call the inner accountsAdapter method
+// GetStackDebugFirstEntry returns nil
 func (accountsDB *accountsDBApiWithHistory) GetStackDebugFirstEntry() []byte {
-	return accountsDB.innerAccountsAdapter.GetStackDebugFirstEntry()
+	return nil
 }
 
 // Close will handle the closing of the underlying components

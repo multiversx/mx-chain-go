@@ -19,6 +19,7 @@ import (
 var testApiOptOnFinal = api.AccountQueryOptions{OnFinalBlock: true}
 var testApiOptOnStartOfEpoch = api.AccountQueryOptions{OnStartOfEpoch: core.OptionalUint32{Value: 32, HasValue: true}}
 var testApiOptOnCurrent = api.AccountQueryOptions{}
+var testApiOptOnHistorical = api.AccountQueryOptions{BlockRootHash: []byte("abba")}
 
 func createMockArgsAccountsRepository() state.ArgsAccountsRepository {
 	return state.ArgsAccountsRepository{
@@ -114,6 +115,22 @@ func TestAccountsRepository_GetAccountWithBlockInfo(t *testing.T) {
 		assert.Equal(t, commonBlockInfo, bi)
 		assert.Nil(t, err)
 	})
+	t.Run("on historical state should work", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgsAccountsRepository()
+		args.HistoricalStateAccountsWrapper = &mockState.AccountsStub{
+			GetAccountWithBlockInfoCalled: func(address []byte, options common.GetAccountsStateOptions) (vmcommon.AccountHandler, common.BlockInfo, error) {
+				return commonAccount, commonBlockInfo, nil
+			},
+		}
+		repository, _ := state.NewAccountsRepository(args)
+
+		account, bi, err := repository.GetAccountWithBlockInfo(commonAddress, testApiOptOnHistorical)
+		assert.Equal(t, commonAccount, account)
+		assert.Equal(t, commonBlockInfo, bi)
+		assert.Nil(t, err)
+	})
 	t.Run("on start of epoch should error", func(t *testing.T) {
 		t.Parallel()
 
@@ -166,6 +183,22 @@ func TestAccountsRepository_GetCodeWithBlockInfo(t *testing.T) {
 		assert.Equal(t, commonBlockInfo, bi)
 		assert.Nil(t, err)
 	})
+	t.Run("on historical state should work", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgsAccountsRepository()
+		args.HistoricalStateAccountsWrapper = &mockState.AccountsStub{
+			GetCodeWithBlockInfoCalled: func(codeHash []byte, options common.GetAccountsStateOptions) ([]byte, common.BlockInfo, error) {
+				return commonCode, commonBlockInfo, nil
+			},
+		}
+		repository, _ := state.NewAccountsRepository(args)
+
+		code, bi, err := repository.GetCodeWithBlockInfo(commonAddress, testApiOptOnHistorical)
+		assert.Equal(t, commonCode, code)
+		assert.Equal(t, commonBlockInfo, bi)
+		assert.Nil(t, err)
+	})
 	t.Run("on start of epoch should error", func(t *testing.T) {
 		t.Parallel()
 
@@ -193,8 +226,10 @@ func TestAccountsRepository_Close(t *testing.T) {
 
 	currentCloseCalled := false
 	finalCloseCalled := false
-	errCurrent := errors.New("err current")
-	errFinal := errors.New("err final")
+	historicalCloseCalled := false
+	var errCurrent error
+	var errFinal error
+	var errHistorical error
 
 	args := createMockArgsAccountsRepository()
 	args.CurrentStateAccountsWrapper = &mockState.AccountsStub{
@@ -209,31 +244,67 @@ func TestAccountsRepository_Close(t *testing.T) {
 			return errFinal
 		},
 	}
+	args.HistoricalStateAccountsWrapper = &mockState.AccountsStub{
+		CloseCalled: func() error {
+			historicalCloseCalled = true
+			return errHistorical
+		},
+	}
 
-	t.Run("current and final close errors", func(t *testing.T) {
+	t.Run("all have close errors, but last one is returned", func(t *testing.T) {
+		currentCloseCalled = false
+		finalCloseCalled = false
+		historicalCloseCalled = false
+
+		errCurrent = errors.New("err current")
+		errFinal = errors.New("err final")
+		errHistorical = errors.New("err historical")
 
 		repository, _ := state.NewAccountsRepository(args)
-
 		err := repository.Close()
 
 		assert.True(t, currentCloseCalled)
 		assert.True(t, finalCloseCalled)
-		assert.Equal(t, errFinal, err)
+		assert.True(t, historicalCloseCalled)
+
+		assert.Equal(t, errHistorical, err)
 	})
-	t.Run("current close errors", func(t *testing.T) {
-		args.FinalStateAccountsWrapper = &mockState.AccountsStub{
-			CloseCalled: func() error {
-				finalCloseCalled = true
-				return nil
-			},
-		}
-		repository, _ := state.NewAccountsRepository(args)
 
+	t.Run("historical has close error", func(t *testing.T) {
+		currentCloseCalled = false
+		finalCloseCalled = false
+		historicalCloseCalled = false
+
+		errCurrent = nil
+		errFinal = nil
+		errHistorical = errors.New("err historical")
+
+		repository, _ := state.NewAccountsRepository(args)
 		err := repository.Close()
 
 		assert.True(t, currentCloseCalled)
 		assert.True(t, finalCloseCalled)
+		assert.True(t, historicalCloseCalled)
+
+		assert.Equal(t, errHistorical, err)
+	})
+
+	t.Run("current has close error", func(t *testing.T) {
+		currentCloseCalled = false
+		finalCloseCalled = false
+		historicalCloseCalled = false
+
+		errCurrent = errors.New("err current")
+		errFinal = nil
+		errHistorical = nil
+
+		repository, _ := state.NewAccountsRepository(args)
+		err := repository.Close()
+
+		assert.True(t, currentCloseCalled)
+		assert.True(t, finalCloseCalled)
+		assert.True(t, historicalCloseCalled)
+
 		assert.Equal(t, errCurrent, err)
 	})
-
 }
