@@ -170,7 +170,7 @@ func TestIndexHashedNodesCoordinator_IsEpochInConfig(t *testing.T) {
 
 	validatorInfoCacher := dataPool.NewCurrentEpochValidatorInfoPool()
 	body := createBlockBodyFromNodesCoordinator(ihnc, epoch, validatorInfoCacher)
-	validatorsInfo, _ := ihnc.createValidatorInfoFromBody(body, 10, validatorInfoCacher)
+	validatorsInfo, _ := ihnc.createValidatorInfoFromBody(body, 10, validatorInfoCacher, epoch)
 
 	err = ihnc.SetNodesConfigFromValidatorsInfo(epoch, []byte{}, validatorsInfo)
 	require.Nil(t, err)
