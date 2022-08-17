@@ -1,6 +1,7 @@
 package node
 
 import (
+	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/factory"
 )
@@ -18,4 +19,14 @@ func (n *Node) ComputeProof(rootHash []byte, key []byte) (*common.GetProofRespon
 // AddClosableComponents -
 func (n *Node) AddClosableComponents(components ...factory.Closer) {
 	n.closableComponents = append(n.closableComponents, components...)
+}
+
+// AddBlockCoordinatesToAccountQueryOptions -
+func (n *Node) AddBlockCoordinatesToAccountQueryOptions(options api.AccountQueryOptions) (api.AccountQueryOptions, error) {
+	return n.addBlockCoordinatesToAccountQueryOptions(options)
+}
+
+// MergeAccountQueryOptionsIntoBlockInfo -
+func MergeAccountQueryOptionsIntoBlockInfo(options api.AccountQueryOptions, info common.BlockInfo) common.BlockInfo {
+	return mergeAccountQueryOptionsIntoBlockInfo(options, info)
 }
