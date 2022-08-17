@@ -257,13 +257,13 @@ func (ihnc *indexHashedNodesCoordinator) setNodesPerShards(
 	}
 
 	var err error
-	var isValidator bool
+	var currentNodeIsValidator bool
 	// nbShards holds number of shards without meta
 	nodesConfig.nbShards = uint32(len(eligible) - 1)
 	nodesConfig.eligibleMap = eligible
 	nodesConfig.waitingMap = waiting
 	nodesConfig.leavingMap = leaving
-	nodesConfig.shardID, isValidator = ihnc.computeShardForSelfPublicKey(nodesConfig)
+	nodesConfig.shardID, currentNodeIsValidator = ihnc.computeShardForSelfPublicKey(nodesConfig)
 	nodesConfig.selectors, err = ihnc.createSelectors(nodesConfig)
 	if err != nil {
 		return err
@@ -271,9 +271,9 @@ func (ihnc *indexHashedNodesCoordinator) setNodesPerShards(
 
 	ihnc.nodesConfig[epoch] = nodesConfig
 	ihnc.numTotalEligible = numTotalEligible
-	ihnc.setNodeType(isValidator)
+	ihnc.setNodeType(currentNodeIsValidator)
 
-	if ihnc.isFullArchive && isValidator {
+	if ihnc.isFullArchive && currentNodeIsValidator {
 		ihnc.chanStopNode <- endProcess.ArgEndProcess{
 			Reason:      common.WrongConfiguration,
 			Description: ErrValidatorCannotBeFullArchive.Error(),
@@ -634,13 +634,7 @@ func (ihnc *indexHashedNodesCoordinator) EpochStartPrepare(metaHdr data.HeaderHa
 
 	ihnc.fillPublicKeyToValidatorMap()
 	err = ihnc.saveState(randomness)
-	if err != nil {
-		logLevel := logger.LogError
-		if errors.IsClosingError(err) {
-			logLevel = logger.LogDebug
-		}
-		log.Log(logLevel, "saving nodes coordinator config failed", "error", err.Error())
-	}
+	ihnc.handleErrorLog(err, "saving nodes coordinator config failed")
 
 	displayNodesConfiguration(
 		resUpdateNodes.Eligible,
@@ -802,6 +796,19 @@ func (ihnc *indexHashedNodesCoordinator) addValidatorToPreviousMap(
 	}
 }
 
+func (ihnc *indexHashedNodesCoordinator) handleErrorLog(err error, message string) {
+	if err == nil {
+		return
+	}
+
+	logLevel := logger.LogError
+	if errors.IsClosingError(err) {
+		logLevel = logger.LogDebug
+	}
+
+	log.Log(logLevel, message, "error", err.Error())
+}
+
 // EpochStartAction is called upon a start of epoch event.
 // NodeCoordinator has to get the nodes assignment to shards using the shuffler.
 func (ihnc *indexHashedNodesCoordinator) EpochStartAction(hdr data.HeaderHandler) {
@@ -811,13 +818,7 @@ func (ihnc *indexHashedNodesCoordinator) EpochStartAction(hdr data.HeaderHandler
 	ihnc.currentEpoch = newEpoch
 
 	err := ihnc.saveState(ihnc.savedStateKey)
-	if err != nil {
-		logLevel := logger.LogError
-		if errors.IsClosingError(err) {
-			logLevel = logger.LogDebug
-		}
-		log.Log(logLevel, "saving nodes coordinator config failed", "error", err.Error())
-	}
+	ihnc.handleErrorLog(err, "saving nodes coordinator config failed")
 
 	ihnc.mutNodesConfig.Lock()
 	if needToRemove {

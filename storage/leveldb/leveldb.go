@@ -21,6 +21,8 @@ var _ storage.Persister = (*DB)(nil)
 
 // read + write + execute for owner only
 const rwxOwner = 0700
+const mkdirAllFunction = "MkdirAll"
+const openLevelDBFunction = "openLevelDB"
 
 var log = logger.GetOrCreate("storage/leveldb")
 
@@ -38,15 +40,17 @@ type DB struct {
 // NewDB is a constructor for the leveldb persister
 // It creates the files in the location given as parameter
 func NewDB(path string, batchDelaySeconds int, maxBatchSize int, maxOpenFiles int) (s *DB, err error) {
-	sw := core.NewStopWatch()
-	sw.Start("NewDB")
+	constructorName := "NewDB"
 
-	sw.Start("MkdirAll")
+	sw := core.NewStopWatch()
+	sw.Start(constructorName)
+
+	sw.Start(mkdirAllFunction)
 	err = os.MkdirAll(path, rwxOwner)
 	if err != nil {
 		return nil, err
 	}
-	sw.Stop("MkdirAll")
+	sw.Stop(mkdirAllFunction)
 
 	if maxOpenFiles < 1 {
 		return nil, storage.ErrInvalidNumOpenFiles
@@ -58,12 +62,12 @@ func NewDB(path string, batchDelaySeconds int, maxBatchSize int, maxOpenFiles in
 		OpenFilesCacheCapacity: maxOpenFiles,
 	}
 
-	sw.Start("openLevelDB")
+	sw.Start(openLevelDBFunction)
 	db, err := openLevelDB(path, options)
 	if err != nil {
 		return nil, fmt.Errorf("%w for path %s", err, path)
 	}
-	sw.Stop("openLevelDB")
+	sw.Stop(openLevelDBFunction)
 
 	bldb := &baseLevelDb{
 		db:   db,
@@ -88,7 +92,7 @@ func NewDB(path string, batchDelaySeconds int, maxBatchSize int, maxOpenFiles in
 	})
 
 	crtCounter := atomic.AddUint32(&loggingDBCounter, 1)
-	sw.Stop("NewSerialDB")
+	sw.Stop(constructorName)
 
 	logArguments := []interface{}{"path", path, "created pointer", fmt.Sprintf("%p", bldb.db), "global db counter", crtCounter}
 	logArguments = append(logArguments, sw.GetMeasurements()...)
