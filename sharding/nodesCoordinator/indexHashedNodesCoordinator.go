@@ -257,13 +257,13 @@ func (ihnc *indexHashedNodesCoordinator) setNodesPerShards(
 	}
 
 	var err error
-	var currentNodeIsValidator bool
+	var isCurrentNodeValidator bool
 	// nbShards holds number of shards without meta
 	nodesConfig.nbShards = uint32(len(eligible) - 1)
 	nodesConfig.eligibleMap = eligible
 	nodesConfig.waitingMap = waiting
 	nodesConfig.leavingMap = leaving
-	nodesConfig.shardID, currentNodeIsValidator = ihnc.computeShardForSelfPublicKey(nodesConfig)
+	nodesConfig.shardID, isCurrentNodeValidator = ihnc.computeShardForSelfPublicKey(nodesConfig)
 	nodesConfig.selectors, err = ihnc.createSelectors(nodesConfig)
 	if err != nil {
 		return err
@@ -271,9 +271,9 @@ func (ihnc *indexHashedNodesCoordinator) setNodesPerShards(
 
 	ihnc.nodesConfig[epoch] = nodesConfig
 	ihnc.numTotalEligible = numTotalEligible
-	ihnc.setNodeType(currentNodeIsValidator)
+	ihnc.setNodeType(isCurrentNodeValidator)
 
-	if ihnc.isFullArchive && currentNodeIsValidator {
+	if ihnc.isFullArchive && isCurrentNodeValidator {
 		ihnc.chanStopNode <- endProcess.ArgEndProcess{
 			Reason:      common.WrongConfiguration,
 			Description: ErrValidatorCannotBeFullArchive.Error(),

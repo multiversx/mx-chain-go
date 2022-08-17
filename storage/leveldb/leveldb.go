@@ -21,7 +21,7 @@ var _ storage.Persister = (*DB)(nil)
 
 // read + write + execute for owner only
 const rwxOwner = 0700
-const mkdirAllFunction = "MkdirAll"
+const mkdirAllFunction = "mkdirAll"
 const openLevelDBFunction = "openLevelDB"
 
 var log = logger.GetOrCreate("storage/leveldb")
