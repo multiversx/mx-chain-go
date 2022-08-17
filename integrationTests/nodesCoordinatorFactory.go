@@ -69,7 +69,9 @@ func (tpn *IndexHashedNodesCoordinatorFactory) CreateNodesCoordinator(arg ArgInd
 		ChanStopNode:            endProcess.GetDummyEndProcessChannel(),
 		NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
 		IsFullArchive:           false,
-		EnableEpochsHandler:     &testscommon.EnableEpochsHandlerStub{},
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
+			RefactorPeersMiniBlocksEnableEpochField: UnreachableEpoch,
+		},
 	}
 	nodesCoord, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 	if err != nil {
@@ -124,7 +126,8 @@ func (ihncrf *IndexHashedNodesCoordinatorWithRaterFactory) CreateNodesCoordinato
 		NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
 		IsFullArchive:           false,
 		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
-			IsWaitingListFixFlagEnabledField: true,
+			IsWaitingListFixFlagEnabledField:        true,
+			RefactorPeersMiniBlocksEnableEpochField: UnreachableEpoch,
 		},
 	}
 
