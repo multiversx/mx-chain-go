@@ -15,7 +15,12 @@ func CreateAccountsAdapterAPIOnFinal(args state.ArgsAccountsDB, chainHandler cha
 		return nil, fmt.Errorf("%w in CreateAccountsAdapterAPIOnFinal", err)
 	}
 
-	accountsAdapterApi, err := createAccountsDB(args, provider)
+	accounts, err := state.NewAccountsDB(args)
+	if err != nil {
+		return nil, fmt.Errorf("%w in CreateAccountsAdapterAPIOnFinal", err)
+	}
+
+	accountsAdapterApi, err := state.NewAccountsDBApi(accounts, provider)
 	if err != nil {
 		return nil, fmt.Errorf("%w in CreateAccountsAdapterAPIOnFinal", err)
 	}
@@ -30,21 +35,17 @@ func CreateAccountsAdapterAPIOnCurrent(args state.ArgsAccountsDB, chainHandler c
 		return nil, fmt.Errorf("%w in CreateAccountsAdapterAPIOnCurrent", err)
 	}
 
-	accountsAdapterApi, err := createAccountsDB(args, provider)
+	accounts, err := state.NewAccountsDB(args)
+	if err != nil {
+		return nil, fmt.Errorf("%w in CreateAccountsAdapterAPIOnCurrent", err)
+	}
+
+	accountsAdapterApi, err := state.NewAccountsDBApi(accounts, provider)
 	if err != nil {
 		return nil, fmt.Errorf("%w in CreateAccountsAdapterAPIOnCurrent", err)
 	}
 
 	return accountsAdapterApi, nil
-}
-
-func createAccountsDB(args state.ArgsAccountsDB, provider state.BlockInfoProvider) (state.AccountsAdapterAPI, error) {
-	accounts, err := state.NewAccountsDB(args)
-	if err != nil {
-		return nil, fmt.Errorf("%w in CreateAccountsAdapterAPI/createAccountsDB", err)
-	}
-
-	return state.NewAccountsDBApi(accounts, provider)
 }
 
 // CreateAccountsAdapterAPIOnHistorical creates a new instance of AccountsAdapterAPI that tracks historical state
