@@ -2,7 +2,6 @@ package sync
 
 import (
 	"context"
-	"strings"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
@@ -173,8 +172,7 @@ func (boot *MetaBootstrap) setLastEpochStartRound() {
 // in the blockchain, and all this mechanism will be reiterated for the next block.
 func (boot *MetaBootstrap) SyncBlock(ctx context.Context) error {
 	err := boot.syncBlock()
-	isErrGetNodeFromDB := err != nil && strings.Contains(err.Error(), common.GetNodeFromDBErrorString)
-	if isErrGetNodeFromDB {
+	if isErrGetNodeFromDB(err) {
 		errSync := boot.syncAccountsDBs()
 		shouldOutputLog := errSync != nil && !common.IsContextDone(ctx)
 		if shouldOutputLog {
