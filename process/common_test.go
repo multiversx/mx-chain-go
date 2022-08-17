@@ -273,6 +273,35 @@ func TestGetMetaHeaderFromPoolShouldWork(t *testing.T) {
 	assert.Equal(t, hdr, header)
 }
 
+func TestGetHeaderFromStorageShouldWork(t *testing.T) {
+	shardHeader := &block.Header{Nonce: 42}
+	metaHeader := &block.MetaBlock{Nonce: 43}
+	marshalizer := &mock.MarshalizerMock{}
+	storageService := &mock.ChainStorerMock{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+			return &storageStubs.StorerStub{
+				GetCalled: func(key []byte) ([]byte, error) {
+					if unitType == dataRetriever.BlockHeaderUnit && bytes.Equal(key, []byte("shard")) {
+						return marshalizer.Marshal(shardHeader)
+					} else if unitType == dataRetriever.MetaBlockUnit && bytes.Equal(key, []byte("meta")) {
+						return marshalizer.Marshal(metaHeader)
+					}
+
+					return nil, errors.New("error")
+				},
+			}
+		},
+	}
+
+	header, err := process.GetHeaderFromStorage(0, []byte("shard"), marshalizer, storageService)
+	assert.Nil(t, err)
+	assert.Equal(t, shardHeader, header)
+
+	header, err = process.GetHeaderFromStorage(core.MetachainShardId, []byte("meta"), marshalizer, storageService)
+	assert.Nil(t, err)
+	assert.Equal(t, metaHeader, header)
+}
+
 func TestGetShardHeaderFromStorageShouldErrNilCacher(t *testing.T) {
 	hash := []byte("X")
 
