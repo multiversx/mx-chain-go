@@ -96,6 +96,11 @@ func (tth *txTypeHandler) ComputeTransactionType(tx data.TransactionHandler) (pr
 	funcName, args := tth.getFunctionFromArguments(tx.GetData())
 	isBuiltInFunction := tth.isBuiltInFunctionCall(funcName)
 	if isBuiltInFunction {
+		if isCallOfType(tx, vm.AsynchronousCall) {
+			args = args[2:]
+		} else if isCallOfType(tx, vm.AsynchronousCallBack) {
+			args = args[4:]
+		}
 		if tth.isSCCallAfterBuiltIn(funcName, args, tx) {
 			return process.BuiltInFunctionCall, process.SCInvoking
 		}
@@ -103,7 +108,7 @@ func (tth *txTypeHandler) ComputeTransactionType(tx data.TransactionHandler) (pr
 		return process.BuiltInFunctionCall, process.BuiltInFunctionCall
 	}
 
-	if isAsynchronousCallBack(tx) {
+	if isCallOfType(tx, vm.AsynchronousCallBack) {
 		return process.SCInvoking, process.SCInvoking
 	}
 
@@ -131,17 +136,17 @@ func (tth *txTypeHandler) ComputeTransactionType(tx data.TransactionHandler) (pr
 	return process.MoveBalance, process.MoveBalance
 }
 
-func isAsynchronousCallBack(tx data.TransactionHandler) bool {
+func isCallOfType(tx data.TransactionHandler, callType vm.CallType) bool {
 	scr, ok := tx.(*smartContractResult.SmartContractResult)
 	if !ok {
 		return false
 	}
 
-	return scr.CallType == vm.AsynchronousCallBack
+	return scr.CallType == callType
 }
 
 func (tth *txTypeHandler) isSCCallAfterBuiltIn(function string, args [][]byte, tx data.TransactionHandler) bool {
-	if tth.flagTransferAndAsyncCallbackFix.IsSet() && isAsynchronousCallBack(tx) {
+	if tth.flagTransferAndAsyncCallbackFix.IsSet() && isCallOfType(tx, vm.AsynchronousCallBack) {
 		return true
 	}
 	if len(args) <= 2 {
