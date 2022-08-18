@@ -71,7 +71,12 @@ func (gtx *guardedTxSigVerifier) VerifyGuardianSignature(account vmcommon.UserAc
 		return process.ErrWrongTypeAssertion
 	}
 
-	msgForSigVerification, err := guardedTxHandler.GetDataForSigning(gtx.encoder, gtx.marshaller)
+	inSignedTx, ok := inTx.(process.InterceptedSignedTransactionHandler)
+	if !ok {
+		return process.ErrWrongTypeAssertion
+	}
+
+	msgForSigVerification, err := inSignedTx.GetTxMessageForSignatureVerification()
 	if err != nil {
 		return err
 	}

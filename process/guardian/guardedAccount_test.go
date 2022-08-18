@@ -100,7 +100,7 @@ func TestGuardedAccount_getActiveGuardian(t *testing.T) {
 func TestGuardedAccount_getConfiguredGuardians(t *testing.T) {
 	ga := createGuardedAccountWithEpoch(10)
 
-	t.Run("guardians key not found should err", func(t *testing.T) {
+	t.Run("guardians key not found should return empty", func(t *testing.T) {
 		t.Parallel()
 
 		expectedErr := errors.New("expected error")
@@ -111,8 +111,9 @@ func TestGuardedAccount_getConfiguredGuardians(t *testing.T) {
 		}
 
 		configuredGuardians, err := ga.getConfiguredGuardians(acc)
-		require.Nil(t, configuredGuardians)
-		require.Equal(t, expectedErr, err)
+		require.Nil(t, err)
+		require.NotNil(t, configuredGuardians)
+		require.True(t, len(configuredGuardians.Slice) == 0)
 	})
 	t.Run("key found but no guardians, should return empty", func(t *testing.T) {
 		t.Parallel()
@@ -292,17 +293,6 @@ func TestGuardedAccount_setAccountGuardian(t *testing.T) {
 		ActivationEpoch: 20,
 	}
 
-	t.Run("getConfiguredGuardians with err", func(t *testing.T) {
-		expectedErr := errors.New("expected error")
-		ua := &stateMocks.UserAccountStub{
-			RetrieveValueFromDataTrieTrackerCalled: func(key []byte) ([]byte, error) {
-				return nil, expectedErr
-			},
-		}
-
-		err := ga.setAccountGuardian(ua, newGuardian)
-		require.Equal(t, expectedErr, err)
-	})
 	t.Run("if updateGuardians returns err, the err should be propagated", func(t *testing.T) {
 		existingGuardian := &guardians.Guardian{
 			Address:         []byte("guardian address"),
@@ -358,17 +348,6 @@ func TestGuardedAccount_instantSetGuardian(t *testing.T) {
 	}
 	txGuardianAddress := []byte("guardian address")
 
-	t.Run("getConfiguredGuardians with err", func(t *testing.T) {
-		expectedErr := errors.New("expected error")
-		ua := &stateMocks.UserAccountStub{
-			RetrieveValueFromDataTrieTrackerCalled: func(key []byte) ([]byte, error) {
-				return nil, expectedErr
-			},
-		}
-
-		err := ga.instantSetGuardian(ua, newGuardian.Address, txGuardianAddress)
-		require.Equal(t, expectedErr, err)
-	})
 	t.Run("getActiveGuardianErr with err (no active guardian) should error", func(t *testing.T) {
 		configuredGuardians := &guardians.Guardians{Slice: []*guardians.Guardian{}}
 
@@ -440,16 +419,16 @@ func TestGuardedAccount_GetActiveGuardian(t *testing.T) {
 		require.Nil(t, activeGuardian)
 		require.Equal(t, process.ErrWrongTypeAssertion, err)
 	})
-	t.Run("getConfiguredGuardians with err should propagate the err", func(t *testing.T) {
-		expectedErr := errors.New("expected error")
+	t.Run("getConfiguredGuardians with err should err - no active", func(t *testing.T) {
+		dataTrieErr := errors.New("expected error")
 		uah := &stateMocks.UserAccountStub{
 			RetrieveValueFromDataTrieTrackerCalled: func(key []byte) ([]byte, error) {
-				return nil, expectedErr
+				return nil, dataTrieErr
 			},
 		}
 		activeGuardian, err := ga.GetActiveGuardian(uah)
 		require.Nil(t, activeGuardian)
-		require.Equal(t, expectedErr, err)
+		require.Equal(t, process.ErrAccountHasNoGuardianSet, err)
 	})
 	t.Run("no guardian should return err", func(t *testing.T) {
 		configuredGuardians := &guardians.Guardians{}
@@ -882,7 +861,7 @@ func TestGuardedAccount_CleanOtherThanActive(t *testing.T) {
 	t.Parallel()
 
 	currentEpoch := uint32(10)
-	g0 :=  &guardians.Guardian{
+	g0 := &guardians.Guardian{
 		Address:         []byte("old guardian"),
 		ActivationEpoch: currentEpoch - 4,
 	}

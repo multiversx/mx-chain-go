@@ -189,6 +189,10 @@ func createSignedInterceptedTx(
 		TransactionCalled: func() data.TransactionHandler {
 			return &txCopy
 		},
+		GetTxMessageForSignatureVerificationCalled: func() ([]byte, error) {
+			ftx := GetFrontEndTransaction(tx, converter)
+			return marshaller.Marshal(ftx)
+		},
 	}
 }
 
@@ -200,11 +204,20 @@ func signAndGuardTx(
 	converter core.PubkeyConverter,
 	marshaller data.Marshaller,
 ) ([]byte, []byte) {
+	ftx := GetFrontEndTransaction(tx, converter)
+	buff, _ := marshaller.Marshal(ftx)
+	signature, _ := signer.Sign(sk, buff)
+	guardianSignature, _ := signer.Sign(skGuardian, buff)
+
+	return signature, guardianSignature
+}
+
+func GetFrontEndTransaction(tx *txStruct.Transaction, converter core.PubkeyConverter) *txStruct.FrontendTransaction {
 	ftx := &txStruct.FrontendTransaction{
 		Nonce:             tx.Nonce,
 		Value:             tx.Value.String(),
 		Receiver:          converter.Encode(tx.RcvAddr),
-		Sender:            converter.Encode(tx.RcvAddr),
+		Sender:            converter.Encode(tx.SndAddr),
 		SenderUsername:    nil,
 		ReceiverUsername:  nil,
 		GasPrice:          tx.GasPrice,
@@ -215,12 +228,7 @@ func signAndGuardTx(
 		Version:           tx.Version,
 		GuardianSignature: "",
 	}
-
-	buff, _ := marshaller.Marshal(ftx)
-	signature, _ := signer.Sign(sk, buff)
-	guardianSignature, _ := signer.Sign(skGuardian, buff)
-
-	return signature, guardianSignature
+	return ftx
 }
 
 func TestGuardedTxSigVerifier_HasPendingGuardian(t *testing.T) {

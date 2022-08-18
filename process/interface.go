@@ -1213,6 +1213,12 @@ type ShardedPool interface {
 	AddData(key []byte, data interface{}, sizeInBytes int, cacheID string)
 }
 
+// InterceptedSignedTransactionHandler provides additional handling for signed transactions
+type InterceptedSignedTransactionHandler interface {
+	InterceptedTransactionHandler
+	GetTxMessageForSignatureVerification() ([]byte, error)
+}
+
 // GuardianSigVerifier allows the verification of the guardian signatures for guarded transactions
 type GuardianSigVerifier interface {
 	VerifyGuardianSignature(account vmcommon.UserAccountHandler, inTx InterceptedTransactionHandler) error
