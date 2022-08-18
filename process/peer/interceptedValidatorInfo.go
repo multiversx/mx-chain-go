@@ -21,7 +21,6 @@ type ArgInterceptedValidatorInfo struct {
 // interceptedValidatorInfo is a wrapper over validatorInfo
 type interceptedValidatorInfo struct {
 	shardValidatorInfo *state.ShardValidatorInfo
-	nodesCoordinator   process.NodesCoordinator
 	hash               []byte
 }
 
