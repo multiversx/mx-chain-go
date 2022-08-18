@@ -13,7 +13,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -30,9 +29,8 @@ func createMockValidatorInfo() state.ValidatorInfo {
 
 func createMockInterceptedValidatorInfo() process.InterceptedData {
 	args := peer.ArgInterceptedValidatorInfo{
-		Marshalizer:      testscommon.MarshalizerMock{},
-		Hasher:           &hashingMocks.HasherMock{},
-		NodesCoordinator: &shardingMocks.NodesCoordinatorStub{},
+		Marshalizer: testscommon.MarshalizerMock{},
+		Hasher:      &hashingMocks.HasherMock{},
 	}
 	args.DataBuff, _ = args.Marshalizer.Marshal(createMockValidatorInfo())
 	ivi, _ := peer.NewInterceptedValidatorInfo(args)
