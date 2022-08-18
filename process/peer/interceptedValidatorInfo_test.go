@@ -104,21 +104,22 @@ func TestInterceptedValidatorInfo_CheckValidity(t *testing.T) {
 	t.Run("listProperty too short", testInterceptedValidatorInfoPropertyLen(listProperty, false))
 	t.Run("listProperty too long", testInterceptedValidatorInfoPropertyLen(listProperty, true))
 
-	t.Run("not validator should error", func(t *testing.T) {
-		t.Parallel()
-
-		expectedErr := errors.New("expected err")
-		args := createMockArgInterceptedValidatorInfo()
-		args.NodesCoordinator = &shardingMocks.NodesCoordinatorStub{
-			GetValidatorWithPublicKeyCalled: func(publicKey []byte) (validator nodesCoordinator.Validator, shardId uint32, err error) {
-				return nil, 0, expectedErr
-			},
-		}
-
-		ivi, _ := NewInterceptedValidatorInfo(args)
-		require.False(t, check.IfNil(ivi))
-		assert.Equal(t, expectedErr, ivi.CheckValidity())
-	})
+	//TODO: Remove commented code
+	//t.Run("not validator should error", func(t *testing.T) {
+	//	t.Parallel()
+	//
+	//	expectedErr := errors.New("expected err")
+	//	args := createMockArgInterceptedValidatorInfo()
+	//	args.NodesCoordinator = &shardingMocks.NodesCoordinatorStub{
+	//		GetValidatorWithPublicKeyCalled: func(publicKey []byte) (validator nodesCoordinator.Validator, shardId uint32, err error) {
+	//			return nil, 0, expectedErr
+	//		},
+	//	}
+	//
+	//	ivi, _ := NewInterceptedValidatorInfo(args)
+	//	require.False(t, check.IfNil(ivi))
+	//	assert.Equal(t, expectedErr, ivi.CheckValidity())
+	//})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
