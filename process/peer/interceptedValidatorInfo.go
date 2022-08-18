@@ -84,9 +84,12 @@ func (ivi *interceptedValidatorInfo) CheckValidity() error {
 		return err
 	}
 
-	// Check if the public key is a validator
-	_, _, err = ivi.nodesCoordinator.GetValidatorWithPublicKey(ivi.shardValidatorInfo.PublicKey)
-	return err
+	//TODO: Analyse if GetValidatorWithPublicKey is still needed to be called also in all other places
+	//// Check if the public key is a validator
+	//_, _, err = ivi.nodesCoordinator.GetValidatorWithPublicKey(ivi.shardValidatorInfo.PublicKey)
+	//return err
+
+	return nil
 }
 
 // IsForCurrentShard always returns true
