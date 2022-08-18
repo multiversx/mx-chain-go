@@ -2,6 +2,7 @@ package networksharding
 
 import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -39,7 +40,14 @@ func (psm *PeerShardMapper) GetFromPkPeerId(pk []byte) []core.PeerID {
 		return nil
 	}
 
-	return objsPidsQueue.(*pidQueue).data
+	pq := objsPidsQueue.(common.PidQueue)
+	pidsQueue := make([]core.PeerID, pq.Len())
+
+	for i := 0; i < pq.Len(); i++ {
+		pidsQueue[i] = pq.Get(i)
+	}
+
+	return pidsQueue
 }
 
 // PeerIdPk -
@@ -60,14 +68,6 @@ func (psm *PeerShardMapper) FallbackPkShard() storage.Cacher {
 // FallbackPidShard -
 func (psm *PeerShardMapper) FallbackPidShard() storage.Cacher {
 	return psm.fallbackPidShardCache
-}
-
-// Epoch -
-func (psm *PeerShardMapper) Epoch() uint32 {
-	psm.mutEpoch.RLock()
-	defer psm.mutEpoch.RUnlock()
-
-	return psm.epoch
 }
 
 // UpdatePeerIDPublicKey -

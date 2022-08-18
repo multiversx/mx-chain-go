@@ -22,6 +22,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/assert"
 )
@@ -85,29 +86,30 @@ func createDefaultWorkerArgs(appStatusHandler core.AppStatusHandler) *spos.Worke
 
 	peerSigHandler := &mock.PeerSignatureHandler{Signer: singleSignerMock, KeyGen: keyGeneratorMock}
 	workerArgs := &spos.WorkerArgs{
-		ConsensusService:        blsService,
-		BlockChain:              blockchainMock,
-		BlockProcessor:          blockProcessor,
-		ScheduledProcessor:      scheduledProcessor,
-		Bootstrapper:            bootstrapperMock,
-		BroadcastMessenger:      broadcastMessengerMock,
-		ConsensusState:          consensusState,
-		ForkDetector:            forkDetectorMock,
-		Marshalizer:             marshalizerMock,
-		Hasher:                  hasher,
-		RoundHandler:            roundHandlerMock,
-		ShardCoordinator:        shardCoordinatorMock,
-		PeerSignatureHandler:    peerSigHandler,
-		SyncTimer:               syncTimerMock,
-		HeaderSigVerifier:       &mock.HeaderSigVerifierStub{},
-		HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
-		ChainID:                 chainID,
-		AntifloodHandler:        createMockP2PAntifloodHandler(),
-		PoolAdder:               poolAdder,
-		SignatureSize:           SignatureSize,
-		PublicKeySize:           PublicKeySize,
-		AppStatusHandler:        appStatusHandler,
-		NodeRedundancyHandler:   &mock.NodeRedundancyHandlerStub{},
+		ConsensusService:         blsService,
+		BlockChain:               blockchainMock,
+		BlockProcessor:           blockProcessor,
+		ScheduledProcessor:       scheduledProcessor,
+		Bootstrapper:             bootstrapperMock,
+		BroadcastMessenger:       broadcastMessengerMock,
+		ConsensusState:           consensusState,
+		ForkDetector:             forkDetectorMock,
+		Marshalizer:              marshalizerMock,
+		Hasher:                   hasher,
+		RoundHandler:             roundHandlerMock,
+		ShardCoordinator:         shardCoordinatorMock,
+		PeerSignatureHandler:     peerSigHandler,
+		SyncTimer:                syncTimerMock,
+		HeaderSigVerifier:        &mock.HeaderSigVerifierStub{},
+		HeaderIntegrityVerifier:  &mock.HeaderIntegrityVerifierStub{},
+		ChainID:                  chainID,
+		NetworkShardingCollector: &p2pmocks.NetworkShardingCollectorStub{},
+		AntifloodHandler:         createMockP2PAntifloodHandler(),
+		PoolAdder:                poolAdder,
+		SignatureSize:            SignatureSize,
+		PublicKeySize:            PublicKeySize,
+		AppStatusHandler:         appStatusHandler,
+		NodeRedundancyHandler:    &mock.NodeRedundancyHandlerStub{},
 	}
 
 	return workerArgs
@@ -316,6 +318,17 @@ func TestWorker_NewWorkerEmptyChainIDShouldFail(t *testing.T) {
 
 	assert.Nil(t, wrk)
 	assert.Equal(t, spos.ErrInvalidChainID, err)
+}
+
+func TestWorker_NewWorkerNilNetworkShardingCollectorShouldFail(t *testing.T) {
+	t.Parallel()
+
+	workerArgs := createDefaultWorkerArgs(&statusHandlerMock.AppStatusHandlerStub{})
+	workerArgs.NetworkShardingCollector = nil
+	wrk, err := spos.NewWorker(workerArgs)
+
+	assert.Nil(t, wrk)
+	assert.Equal(t, spos.ErrNilNetworkShardingCollector, err)
 }
 
 func TestWorker_NewWorkerNilAntifloodHandlerShouldFail(t *testing.T) {

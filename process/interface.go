@@ -712,7 +712,7 @@ type PeerShardMapper interface {
 	UpdatePeerIDPublicKeyPair(pid core.PeerID, pk []byte)
 	PutPeerIdShardId(pid core.PeerID, shardID uint32)
 	PutPeerIdSubType(pid core.PeerID, peerSubType core.P2PPeerSubType)
-	GetLastKnownPeerID(pk []byte) (*core.PeerID, bool)
+	GetLastKnownPeerID(pk []byte) (core.PeerID, bool)
 	GetPeerInfo(pid core.PeerID) core.P2PPeerInfo
 	IsInterfaceNil() bool
 }
@@ -723,7 +723,7 @@ type NetworkShardingCollector interface {
 	UpdatePeerIDInfo(pid core.PeerID, pk []byte, shardID uint32)
 	PutPeerIdShardId(pid core.PeerID, shardID uint32)
 	PutPeerIdSubType(pid core.PeerID, peerSubType core.P2PPeerSubType)
-	GetLastKnownPeerID(pk []byte) (*core.PeerID, bool)
+	GetLastKnownPeerID(pk []byte) (core.PeerID, bool)
 	GetPeerInfo(pid core.PeerID) core.P2PPeerInfo
 	IsInterfaceNil() bool
 }
