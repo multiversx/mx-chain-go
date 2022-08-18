@@ -160,7 +160,7 @@ type GasScheduleNotifierAPI interface {
 	LatestGasScheduleCopy() map[string]map[string]uint64
 }
 
-// PidQueue defines the behavior of the
+// PidQueue defines the behavior of a queue of pids
 type PidQueue interface {
 	Push(pid core.PeerID)
 	Pop() core.PeerID
