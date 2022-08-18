@@ -40,7 +40,7 @@ func (psm *PeerShardMapper) GetFromPkPeerId(pk []byte) []core.PeerID {
 		return nil
 	}
 
-	pq := objsPidsQueue.(common.PidQueue)
+	pq := objsPidsQueue.(common.PidQueueHandler)
 	pidsQueue := make([]core.PeerID, pq.Len())
 
 	for i := 0; i < pq.Len(); i++ {

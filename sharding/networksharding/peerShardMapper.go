@@ -235,7 +235,7 @@ func (psm *PeerShardMapper) GetLastKnownPeerID(pk []byte) (core.PeerID, bool) {
 		return "", false
 	}
 
-	pq, ok := objPidsQueue.(common.PidQueue)
+	pq, ok := objPidsQueue.(common.PidQueueHandler)
 	if !ok {
 		log.Warn("PeerShardMapper.GetLastKnownPeerID: the contained element should have been of type pidQueue")
 		return "", false
@@ -304,7 +304,7 @@ func (psm *PeerShardMapper) updatePeerIDPublicKey(pid core.PeerID, pk []byte) bo
 		return isNew
 	}
 
-	pq, ok := objPidsQueue.(common.PidQueue)
+	pq, ok := objPidsQueue.(common.PidQueueHandler)
 	if !ok {
 		log.Warn("PeerShardMapper.UpdatePeerIdPublicKey: the contained element should have been of type pidQueue")
 
@@ -350,7 +350,7 @@ func (psm *PeerShardMapper) removePidAssociation(pid core.PeerID) []byte {
 		return oldPkBuff
 	}
 
-	pq, ok := objPidsQueue.(common.PidQueue)
+	pq, ok := objPidsQueue.(common.PidQueueHandler)
 	if !ok {
 		psm.pkPeerIdCache.Remove(oldPkBuff)
 		return oldPkBuff

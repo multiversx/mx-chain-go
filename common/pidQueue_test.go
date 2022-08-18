@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/stretchr/testify/assert"
@@ -20,15 +21,17 @@ func TestPidQueue_PushPopShouldWork(t *testing.T) {
 	pq.Push(pid0)
 	pq.Push(pid1)
 
-	require.Equal(t, 2, len(pq.data))
-	assert.Equal(t, pid0, pq.data[0])
-	assert.Equal(t, pid1, pq.data[1])
+	require.Equal(t, 2, pq.Len())
+	assert.Equal(t, pid0, pq.Get(0))
+	assert.Equal(t, pid1, pq.Get(1))
 
 	evicted := pq.Pop()
 	assert.Equal(t, pid0, evicted)
 
 	evicted = pq.Pop()
 	assert.Equal(t, pid1, evicted)
+
+	require.Equal(t, 0, pq.Len())
 }
 
 func TestPidQueue_IndexOfShouldWork(t *testing.T) {
@@ -135,7 +138,7 @@ func TestPidQueue_RemoveShouldWork(t *testing.T) {
 
 	pq.Remove(pid0)
 
-	require.Equal(t, 2, len(pq.data))
+	require.Equal(t, 2, pq.Len())
 	assert.Equal(t, 0, pq.IndexOf(pid1))
 	assert.Equal(t, 1, pq.IndexOf(pid2))
 }
@@ -198,22 +201,35 @@ func TestPidQueue_TestConcurrency(t *testing.T) {
 
 	pq := NewPidQueue()
 
-	numOfThreads := 10
+	numOperations := 1000
 	var wg sync.WaitGroup
-	wg.Add(2 * numOfThreads)
+	wg.Add(numOperations)
 
-	for i := 0; i < numOfThreads; i++ {
-		go func(i int) {
-			pq.Push(core.PeerID(fmt.Sprintf("pid%d", i)))
+	for idx := 0; idx < numOperations; idx++ {
+		go func(index int) {
+			time.Sleep(time.Duration(index) * 1 * time.Millisecond)
+			pid := core.PeerID(fmt.Sprintf("pid%d", index))
+			switch index % 9 {
+			case 1:
+				pq.Push(pid)
+			case 2:
+				pq.Get(index)
+			case 3:
+				pq.Pop()
+			case 4:
+				pq.IndexOf(pid)
+			case 5:
+				pq.Promote(index)
+			case 6:
+				pq.Remove(pid)
+			case 7:
+				pq.DataSizeInBytes()
+			case 8:
+				pq.Len()
+			}
 			wg.Done()
-		}(i)
-
-		go func(i int) {
-			pq.Get(i)
-			wg.Done()
-		}(i)
+		}(idx)
 	}
 
 	wg.Wait()
-	assert.Equal(t, numOfThreads, pq.Len())
 }
