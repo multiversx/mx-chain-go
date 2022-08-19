@@ -521,6 +521,11 @@ func (mock *EnableEpochsHandlerMock) IsESDTNFTImprovementV1FlagEnabled() bool {
 	return false
 }
 
+// IsSetSenderInEeiOutputTransferFlagEnabled -
+func (mock *EnableEpochsHandlerMock) IsSetSenderInEeiOutputTransferFlagEnabled() bool {
+	return false
+}
+
 // IsRefactorPeersMiniBlocksFlagEnabled returns false
 func (mock *EnableEpochsHandlerMock) IsRefactorPeersMiniBlocksFlagEnabled() bool {
 	return mock.IsRefactorPeersMiniBlocksFlagEnabledField
