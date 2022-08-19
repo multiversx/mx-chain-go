@@ -385,7 +385,10 @@ func (vic *validatorInfoCreator) saveValidatorInfo(miniBlock *block.MiniBlock) {
 			continue
 		}
 
-		_ = vic.validatorInfoStorage.Put(validatorInfoHash, marshalledData)
+		err = vic.validatorInfoStorage.Put(validatorInfoHash, marshalledData)
+		if err != nil {
+			log.Error("validatorInfoCreator.saveValidatorInfo.Put", "hash", validatorInfoHash, "error", err)
+		}
 	}
 }
 

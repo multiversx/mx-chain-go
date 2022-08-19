@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
@@ -20,6 +21,7 @@ import (
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	validatorInfoCacherMock "github.com/ElrondNetwork/elrond-go/testscommon/validatorInfoCacher"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -558,4 +560,648 @@ func TestEpochValidatorInfoCreator_IsInterfaceNil(t *testing.T) {
 	arguments := createMockEpochValidatorInfoCreatorsArguments()
 	vic, _ := NewValidatorInfoCreator(arguments)
 	require.False(t, vic.IsInterfaceNil())
+}
+
+func TestEpochValidatorInfoCreator_GetShardValidatorInfoData(t *testing.T) {
+	t.Parallel()
+
+	t.Run("get shard validator info data before refactor peers mini block activation flag is set", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createMockEpochValidatorInfoCreatorsArguments()
+		arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+			IsRefactorPeersMiniBlocksFlagEnabledField: false,
+		}
+		vic, _ := NewValidatorInfoCreator(arguments)
+
+		shardValidatorInfo := &state.ShardValidatorInfo{
+			PublicKey: []byte("x"),
+		}
+		marshalledShardValidatorInfo, _ := arguments.Marshalizer.Marshal(shardValidatorInfo)
+		shardValidatorInfoData, _ := vic.getShardValidatorInfoData(shardValidatorInfo)
+		assert.Equal(t, marshalledShardValidatorInfo, shardValidatorInfoData)
+	})
+
+	t.Run("get shard validator info data after refactor peers mini block activation flag is set", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createMockEpochValidatorInfoCreatorsArguments()
+		arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+			IsRefactorPeersMiniBlocksFlagEnabledField: true,
+		}
+		vic, _ := NewValidatorInfoCreator(arguments)
+
+		shardValidatorInfo := &state.ShardValidatorInfo{
+			PublicKey: []byte("x"),
+		}
+		shardValidatorInfoHash, _ := core.CalculateHash(arguments.Marshalizer, arguments.Hasher, shardValidatorInfo)
+		shardValidatorInfoData, _ := vic.getShardValidatorInfoData(shardValidatorInfo)
+		assert.Equal(t, shardValidatorInfoHash, shardValidatorInfoData)
+	})
+}
+
+func TestEpochValidatorInfoCreator_CreateMarshalledData(t *testing.T) {
+	t.Parallel()
+
+	t.Run("CreateMarshalledData should return nil before refactor peers mini block activation flag is set", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createMockEpochValidatorInfoCreatorsArguments()
+		arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+			IsRefactorPeersMiniBlocksFlagEnabledField: false,
+		}
+		vic, _ := NewValidatorInfoCreator(arguments)
+
+		body := &block.Body{
+			MiniBlocks: []*block.MiniBlock{
+				{
+					SenderShardID:   0,
+					ReceiverShardID: 1,
+					Type:            block.TxBlock,
+					TxHashes: [][]byte{
+						[]byte("a"),
+						[]byte("b"),
+						[]byte("c"),
+					},
+				},
+			},
+		}
+
+		marshalledData := vic.CreateMarshalledData(body)
+		assert.Nil(t, marshalledData)
+	})
+
+	t.Run("CreateMarshalledData should return nil body is nil", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createMockEpochValidatorInfoCreatorsArguments()
+		arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+			IsRefactorPeersMiniBlocksFlagEnabledField: true,
+		}
+		vic, _ := NewValidatorInfoCreator(arguments)
+
+		marshalledData := vic.CreateMarshalledData(nil)
+		assert.Nil(t, marshalledData)
+	})
+
+	t.Run("CreateMarshalledData should return empty slice when there is no peer mini block in body", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createMockEpochValidatorInfoCreatorsArguments()
+		arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+			IsRefactorPeersMiniBlocksFlagEnabledField: true,
+		}
+		vic, _ := NewValidatorInfoCreator(arguments)
+
+		body := &block.Body{
+			MiniBlocks: []*block.MiniBlock{
+				{
+					SenderShardID:   0,
+					ReceiverShardID: 1,
+					Type:            block.TxBlock,
+					TxHashes: [][]byte{
+						[]byte("a"),
+						[]byte("b"),
+						[]byte("c"),
+					},
+				},
+			},
+		}
+
+		marshalledData := vic.CreateMarshalledData(body)
+		assert.Equal(t, make(map[string][][]byte), marshalledData)
+	})
+
+	t.Run("CreateMarshalledData should return empty slice when sender or receiver do not match", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createMockEpochValidatorInfoCreatorsArguments()
+		arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+			IsRefactorPeersMiniBlocksFlagEnabledField: true,
+		}
+		vic, _ := NewValidatorInfoCreator(arguments)
+
+		body := &block.Body{
+			MiniBlocks: []*block.MiniBlock{
+				{
+					SenderShardID:   0,
+					ReceiverShardID: 1,
+					Type:            block.PeerBlock,
+					TxHashes: [][]byte{
+						[]byte("a"),
+						[]byte("b"),
+						[]byte("c"),
+					},
+				},
+			},
+		}
+
+		marshalledData := vic.CreateMarshalledData(body)
+		assert.Equal(t, make(map[string][][]byte), marshalledData)
+	})
+
+	t.Run("CreateMarshalledData should return empty slice when tx hash does not exist in validator info cacher", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createMockEpochValidatorInfoCreatorsArguments()
+		arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+			IsRefactorPeersMiniBlocksFlagEnabledField: true,
+		}
+		arguments.DataPool = &dataRetrieverMock.PoolsHolderStub{
+			CurrEpochValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
+				return &validatorInfoCacherMock.ValidatorInfoCacherMock{
+					GetValidatorInfoCalled: func(validatorInfoHash []byte) (*state.ShardValidatorInfo, error) {
+						return nil, errors.New("error")
+					},
+				}
+			},
+		}
+		vic, _ := NewValidatorInfoCreator(arguments)
+
+		body := &block.Body{
+			MiniBlocks: []*block.MiniBlock{
+				{
+					SenderShardID:   core.MetachainShardId,
+					ReceiverShardID: 0,
+					Type:            block.PeerBlock,
+					TxHashes: [][]byte{
+						[]byte("a"),
+						[]byte("b"),
+						[]byte("c"),
+					},
+				},
+			},
+		}
+
+		marshalledData := vic.CreateMarshalledData(body)
+		assert.Equal(t, make(map[string][][]byte), marshalledData)
+	})
+
+	t.Run("CreateMarshalledData should work", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createMockEpochValidatorInfoCreatorsArguments()
+
+		svi1 := &state.ShardValidatorInfo{PublicKey: []byte("x")}
+		marshalledSVI1, _ := arguments.Marshalizer.Marshal(svi1)
+
+		svi2 := &state.ShardValidatorInfo{PublicKey: []byte("y")}
+		marshalledSVI2, _ := arguments.Marshalizer.Marshal(svi2)
+
+		svi3 := &state.ShardValidatorInfo{PublicKey: []byte("z")}
+		marshalledSVI3, _ := arguments.Marshalizer.Marshal(svi3)
+
+		arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+			IsRefactorPeersMiniBlocksFlagEnabledField: true,
+		}
+		arguments.DataPool = &dataRetrieverMock.PoolsHolderStub{
+			CurrEpochValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
+				return &validatorInfoCacherMock.ValidatorInfoCacherMock{
+					GetValidatorInfoCalled: func(validatorInfoHash []byte) (*state.ShardValidatorInfo, error) {
+						if bytes.Equal(validatorInfoHash, []byte("a")) {
+							return svi1, nil
+						}
+						if bytes.Equal(validatorInfoHash, []byte("b")) {
+							return svi2, nil
+						}
+						if bytes.Equal(validatorInfoHash, []byte("c")) {
+							return svi3, nil
+						}
+						return nil, errors.New("error")
+					},
+				}
+			},
+		}
+		vic, _ := NewValidatorInfoCreator(arguments)
+
+		body := &block.Body{
+			MiniBlocks: []*block.MiniBlock{
+				{
+					SenderShardID:   core.MetachainShardId,
+					ReceiverShardID: 0,
+					Type:            block.PeerBlock,
+					TxHashes: [][]byte{
+						[]byte("a"),
+						[]byte("b"),
+						[]byte("c"),
+					},
+				},
+			},
+		}
+
+		marshalledData := vic.CreateMarshalledData(body)
+		require.Equal(t, 1, len(marshalledData))
+		require.Equal(t, 3, len(marshalledData[common.ValidatorInfoTopic]))
+		assert.Equal(t, marshalledSVI1, marshalledData[common.ValidatorInfoTopic][0])
+		assert.Equal(t, marshalledSVI2, marshalledData[common.ValidatorInfoTopic][1])
+		assert.Equal(t, marshalledSVI3, marshalledData[common.ValidatorInfoTopic][2])
+	})
+}
+
+func TestEpochValidatorInfoCreator_SetMarshalledValidatorInfoTxsShouldWork(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockEpochValidatorInfoCreatorsArguments()
+
+	svi1 := &state.ShardValidatorInfo{PublicKey: []byte("x")}
+	marshalledSVI1, _ := arguments.Marshalizer.Marshal(svi1)
+
+	svi2 := &state.ShardValidatorInfo{PublicKey: []byte("y")}
+	marshalledSVI2, _ := arguments.Marshalizer.Marshal(svi2)
+
+	arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+		IsRefactorPeersMiniBlocksFlagEnabledField: true,
+	}
+	arguments.DataPool = &dataRetrieverMock.PoolsHolderStub{
+		CurrEpochValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
+			return &validatorInfoCacherMock.ValidatorInfoCacherMock{
+				GetValidatorInfoCalled: func(validatorInfoHash []byte) (*state.ShardValidatorInfo, error) {
+					if bytes.Equal(validatorInfoHash, []byte("a")) {
+						return svi1, nil
+					}
+					if bytes.Equal(validatorInfoHash, []byte("c")) {
+						return svi2, nil
+					}
+					return nil, errors.New("error")
+				},
+			}
+		},
+	}
+	vic, _ := NewValidatorInfoCreator(arguments)
+
+	miniBlock := &block.MiniBlock{
+		SenderShardID:   core.MetachainShardId,
+		ReceiverShardID: 0,
+		Type:            block.PeerBlock,
+		TxHashes: [][]byte{
+			[]byte("a"),
+			[]byte("b"),
+			[]byte("c"),
+		},
+	}
+
+	marshalledValidatorInfoTxs := make(map[string][][]byte)
+	vic.setMarshalledValidatorInfoTxs(miniBlock, marshalledValidatorInfoTxs, common.ValidatorInfoTopic)
+
+	require.Equal(t, 1, len(marshalledValidatorInfoTxs))
+	require.Equal(t, 2, len(marshalledValidatorInfoTxs[common.ValidatorInfoTopic]))
+	assert.Equal(t, marshalledSVI1, marshalledValidatorInfoTxs[common.ValidatorInfoTopic][0])
+	assert.Equal(t, marshalledSVI2, marshalledValidatorInfoTxs[common.ValidatorInfoTopic][1])
+}
+
+func TestEpochValidatorInfoCreator_GetValidatorInfoTxsShouldWork(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockEpochValidatorInfoCreatorsArguments()
+
+	svi1 := &state.ShardValidatorInfo{PublicKey: []byte("x")}
+	svi2 := &state.ShardValidatorInfo{PublicKey: []byte("y")}
+	svi3 := &state.ShardValidatorInfo{PublicKey: []byte("z")}
+
+	arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+		IsRefactorPeersMiniBlocksFlagEnabledField: true,
+	}
+	arguments.DataPool = &dataRetrieverMock.PoolsHolderStub{
+		CurrEpochValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
+			return &validatorInfoCacherMock.ValidatorInfoCacherMock{
+				GetValidatorInfoCalled: func(validatorInfoHash []byte) (*state.ShardValidatorInfo, error) {
+					if bytes.Equal(validatorInfoHash, []byte("a")) {
+						return svi1, nil
+					}
+					if bytes.Equal(validatorInfoHash, []byte("b")) {
+						return svi2, nil
+					}
+					if bytes.Equal(validatorInfoHash, []byte("c")) {
+						return svi3, nil
+					}
+					return nil, errors.New("error")
+				},
+			}
+		},
+	}
+	vic, _ := NewValidatorInfoCreator(arguments)
+
+	body := &block.Body{
+		MiniBlocks: []*block.MiniBlock{
+			{
+				SenderShardID:   core.MetachainShardId,
+				ReceiverShardID: 0,
+				Type:            block.TxBlock,
+				TxHashes: [][]byte{
+					[]byte("a"),
+					[]byte("b"),
+					[]byte("c"),
+				},
+			},
+			{
+				SenderShardID:   core.MetachainShardId,
+				ReceiverShardID: 0,
+				Type:            block.PeerBlock,
+				TxHashes: [][]byte{
+					[]byte("a"),
+					[]byte("b"),
+					[]byte("c"),
+				},
+			},
+		},
+	}
+
+	mapValidatorInfoTxs := vic.GetValidatorInfoTxs(body)
+
+	require.Equal(t, 3, len(mapValidatorInfoTxs))
+	require.Equal(t, svi1, mapValidatorInfoTxs["a"])
+	require.Equal(t, svi2, mapValidatorInfoTxs["b"])
+	require.Equal(t, svi3, mapValidatorInfoTxs["c"])
+}
+
+func TestEpochValidatorInfoCreator_SetMapShardValidatorInfoShouldWork(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockEpochValidatorInfoCreatorsArguments()
+
+	svi1 := &state.ShardValidatorInfo{PublicKey: []byte("x")}
+	svi2 := &state.ShardValidatorInfo{PublicKey: []byte("y")}
+
+	arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+		IsRefactorPeersMiniBlocksFlagEnabledField: true,
+	}
+	arguments.DataPool = &dataRetrieverMock.PoolsHolderStub{
+		CurrEpochValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
+			return &validatorInfoCacherMock.ValidatorInfoCacherMock{
+				GetValidatorInfoCalled: func(validatorInfoHash []byte) (*state.ShardValidatorInfo, error) {
+					if bytes.Equal(validatorInfoHash, []byte("a")) {
+						return svi1, nil
+					}
+					if bytes.Equal(validatorInfoHash, []byte("b")) {
+						return svi2, nil
+					}
+					return nil, errors.New("error")
+				},
+			}
+		},
+	}
+	vic, _ := NewValidatorInfoCreator(arguments)
+
+	miniBlock := &block.MiniBlock{
+		SenderShardID:   core.MetachainShardId,
+		ReceiverShardID: 0,
+		Type:            block.TxBlock,
+		TxHashes: [][]byte{
+			[]byte("a"),
+			[]byte("b"),
+			[]byte("c"),
+		},
+	}
+
+	mapShardValidatorInfo := make(map[string]*state.ShardValidatorInfo)
+	vic.setMapShardValidatorInfo(miniBlock, mapShardValidatorInfo)
+
+	require.Equal(t, 2, len(mapShardValidatorInfo))
+	require.Equal(t, svi1, mapShardValidatorInfo["a"])
+	require.Equal(t, svi2, mapShardValidatorInfo["b"])
+}
+
+func TestEpochValidatorInfoCreator_GetShardValidatorInfoShouldWork(t *testing.T) {
+	t.Parallel()
+
+	t.Run("get shard validator info before refactor peers mini block activation flag is set", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createMockEpochValidatorInfoCreatorsArguments()
+
+		svi := &state.ShardValidatorInfo{PublicKey: []byte("x")}
+		marshalledSVI, _ := arguments.Marshalizer.Marshal(svi)
+
+		arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+			IsRefactorPeersMiniBlocksFlagEnabledField: false,
+		}
+		arguments.DataPool = &dataRetrieverMock.PoolsHolderStub{
+			CurrEpochValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
+				return &validatorInfoCacherMock.ValidatorInfoCacherMock{
+					GetValidatorInfoCalled: func(validatorInfoHash []byte) (*state.ShardValidatorInfo, error) {
+						if bytes.Equal(validatorInfoHash, []byte("a")) {
+							return svi, nil
+						}
+						return nil, errors.New("error")
+					},
+				}
+			},
+		}
+		vic, _ := NewValidatorInfoCreator(arguments)
+
+		shardValidatorInfo, _ := vic.getShardValidatorInfo(marshalledSVI)
+		require.Equal(t, svi, shardValidatorInfo)
+	})
+
+	t.Run("get shard validator info after refactor peers mini block activation flag is set", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createMockEpochValidatorInfoCreatorsArguments()
+
+		svi := &state.ShardValidatorInfo{PublicKey: []byte("x")}
+
+		arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+			IsRefactorPeersMiniBlocksFlagEnabledField: true,
+		}
+		arguments.DataPool = &dataRetrieverMock.PoolsHolderStub{
+			CurrEpochValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
+				return &validatorInfoCacherMock.ValidatorInfoCacherMock{
+					GetValidatorInfoCalled: func(validatorInfoHash []byte) (*state.ShardValidatorInfo, error) {
+						if bytes.Equal(validatorInfoHash, []byte("a")) {
+							return svi, nil
+						}
+						return nil, errors.New("error")
+					},
+				}
+			},
+		}
+		vic, _ := NewValidatorInfoCreator(arguments)
+
+		shardValidatorInfo, _ := vic.getShardValidatorInfo([]byte("a"))
+		require.Equal(t, svi, shardValidatorInfo)
+	})
+}
+
+func TestEpochValidatorInfoCreator_SaveValidatorInfoShouldWork(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockEpochValidatorInfoCreatorsArguments()
+
+	svi1 := &state.ShardValidatorInfo{PublicKey: []byte("x")}
+	marshalledSVI1, _ := arguments.Marshalizer.Marshal(svi1)
+
+	svi2 := &state.ShardValidatorInfo{PublicKey: []byte("y")}
+	marshalledSVI2, _ := arguments.Marshalizer.Marshal(svi2)
+
+	storer := createMemUnit()
+	arguments.ValidatorInfoStorage = storer
+	arguments.DataPool = &dataRetrieverMock.PoolsHolderStub{
+		CurrEpochValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
+			return &validatorInfoCacherMock.ValidatorInfoCacherMock{
+				GetValidatorInfoCalled: func(validatorInfoHash []byte) (*state.ShardValidatorInfo, error) {
+					if bytes.Equal(validatorInfoHash, []byte("a")) {
+						return svi1, nil
+					}
+					if bytes.Equal(validatorInfoHash, []byte("b")) {
+						return svi2, nil
+					}
+					return nil, errors.New("error")
+				},
+			}
+		},
+	}
+	vic, _ := NewValidatorInfoCreator(arguments)
+
+	miniBlock := &block.MiniBlock{
+		SenderShardID:   core.MetachainShardId,
+		ReceiverShardID: 0,
+		Type:            block.TxBlock,
+		TxHashes: [][]byte{
+			[]byte("a"),
+			[]byte("b"),
+			[]byte("c"),
+		},
+	}
+
+	vic.saveValidatorInfo(miniBlock)
+
+	msvi1, err := storer.Get([]byte("a"))
+	assert.Nil(t, err)
+	assert.Equal(t, marshalledSVI1, msvi1)
+
+	msvi2, err := storer.Get([]byte("b"))
+	assert.Nil(t, err)
+	assert.Equal(t, marshalledSVI2, msvi2)
+
+	msvi3, err := storer.Get([]byte("c"))
+	assert.NotNil(t, err)
+	assert.Nil(t, msvi3)
+}
+
+func TestEpochValidatorInfoCreator_RemoveValidatorInfoFromStorageShouldWork(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockEpochValidatorInfoCreatorsArguments()
+
+	storer := createMemUnit()
+	arguments.ValidatorInfoStorage = storer
+	vic, _ := NewValidatorInfoCreator(arguments)
+
+	body := &block.Body{
+		MiniBlocks: []*block.MiniBlock{
+			{
+				SenderShardID:   core.MetachainShardId,
+				ReceiverShardID: 0,
+				Type:            block.TxBlock,
+				TxHashes: [][]byte{
+					[]byte("a"),
+					[]byte("b"),
+					[]byte("c"),
+				},
+			},
+			{
+				SenderShardID:   core.MetachainShardId,
+				ReceiverShardID: 0,
+				Type:            block.PeerBlock,
+				TxHashes: [][]byte{
+					[]byte("a"),
+					[]byte("b"),
+					[]byte("c"),
+				},
+			},
+		},
+	}
+
+	_ = storer.Put([]byte("a"), []byte("aa"))
+	_ = storer.Put([]byte("b"), []byte("bb"))
+	_ = storer.Put([]byte("c"), []byte("cc"))
+	_ = storer.Put([]byte("d"), []byte("dd"))
+
+	vic.removeValidatorInfoFromStorage(body)
+
+	msvi, err := storer.Get([]byte("a"))
+	assert.NotNil(t, err)
+	assert.Nil(t, msvi)
+
+	msvi, err = storer.Get([]byte("b"))
+	assert.NotNil(t, err)
+	assert.Nil(t, msvi)
+
+	msvi, err = storer.Get([]byte("c"))
+	assert.NotNil(t, err)
+	assert.Nil(t, msvi)
+
+	msvi, err = storer.Get([]byte("d"))
+	assert.Nil(t, err)
+	assert.Equal(t, []byte("dd"), msvi)
+}
+
+func TestEpochValidatorInfoCreator_RemoveValidatorInfoFromPoolShouldWork(t *testing.T) {
+	t.Parallel()
+
+	shardedDataCacheNotifierMock := testscommon.NewShardedDataCacheNotifierMock()
+	arguments := createMockEpochValidatorInfoCreatorsArguments()
+	arguments.DataPool = &dataRetrieverMock.PoolsHolderStub{
+		CurrEpochValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
+			return &validatorInfoCacherMock.ValidatorInfoCacherMock{}
+		},
+		ValidatorsInfoCalled: func() dataRetriever.ShardedDataCacherNotifier {
+			return shardedDataCacheNotifierMock
+		},
+	}
+
+	vic, _ := NewValidatorInfoCreator(arguments)
+
+	body := &block.Body{
+		MiniBlocks: []*block.MiniBlock{
+			{
+				SenderShardID:   core.MetachainShardId,
+				ReceiverShardID: 0,
+				Type:            block.TxBlock,
+				TxHashes: [][]byte{
+					[]byte("a"),
+					[]byte("b"),
+					[]byte("c"),
+				},
+			},
+			{
+				SenderShardID:   core.MetachainShardId,
+				ReceiverShardID: 0,
+				Type:            block.PeerBlock,
+				TxHashes: [][]byte{
+					[]byte("a"),
+					[]byte("b"),
+					[]byte("c"),
+				},
+			},
+		},
+	}
+
+	svi1 := &state.ShardValidatorInfo{PublicKey: []byte("aa")}
+	svi2 := &state.ShardValidatorInfo{PublicKey: []byte("bb")}
+	svi3 := &state.ShardValidatorInfo{PublicKey: []byte("cc")}
+	svi4 := &state.ShardValidatorInfo{PublicKey: []byte("dd")}
+
+	shardedDataCacheNotifierMock.AddData([]byte("a"), svi1, svi1.Size(), "x")
+	shardedDataCacheNotifierMock.AddData([]byte("b"), svi2, svi2.Size(), "x")
+	shardedDataCacheNotifierMock.AddData([]byte("c"), svi3, svi3.Size(), "x")
+	shardedDataCacheNotifierMock.AddData([]byte("d"), svi4, svi4.Size(), "x")
+
+	vic.removeValidatorInfoFromPool(body)
+
+	svi, found := shardedDataCacheNotifierMock.SearchFirstData([]byte("a"))
+	assert.False(t, found)
+	assert.Nil(t, svi)
+
+	svi, found = shardedDataCacheNotifierMock.SearchFirstData([]byte("b"))
+	assert.False(t, found)
+	assert.Nil(t, svi)
+
+	svi, found = shardedDataCacheNotifierMock.SearchFirstData([]byte("c"))
+	assert.False(t, found)
+	assert.Nil(t, svi)
+
+	svi, found = shardedDataCacheNotifierMock.SearchFirstData([]byte("d"))
+	assert.True(t, found)
+	assert.Equal(t, svi4, svi)
 }
