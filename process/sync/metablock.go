@@ -7,7 +7,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/state"
@@ -174,10 +173,7 @@ func (boot *MetaBootstrap) SyncBlock(ctx context.Context) error {
 	err := boot.syncBlock()
 	if isErrGetNodeFromDB(err) {
 		errSync := boot.syncAccountsDBs()
-		shouldOutputLog := errSync != nil && !common.IsContextDone(ctx)
-		if shouldOutputLog {
-			log.Debug("SyncBlock syncTrie", "error", errSync)
-		}
+		boot.handleTrieSyncError(errSync, ctx)
 	}
 
 	return err
