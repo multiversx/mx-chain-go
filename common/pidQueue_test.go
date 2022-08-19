@@ -18,6 +18,9 @@ func TestPidQueue_PushPopShouldWork(t *testing.T) {
 	pid0 := core.PeerID("pid 0")
 	pid1 := core.PeerID("pid 1")
 
+	evicted := pq.Pop()
+	assert.Equal(t, core.PeerID(""), evicted)
+
 	pq.Push(pid0)
 	pq.Push(pid1)
 
@@ -25,7 +28,7 @@ func TestPidQueue_PushPopShouldWork(t *testing.T) {
 	assert.Equal(t, pid0, pq.Get(0))
 	assert.Equal(t, pid1, pq.Get(1))
 
-	evicted := pq.Pop()
+	evicted = pq.Pop()
 	assert.Equal(t, pid0, evicted)
 
 	evicted = pq.Pop()

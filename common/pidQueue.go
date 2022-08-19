@@ -33,6 +33,10 @@ func (pq *pidQueue) Pop() core.PeerID {
 	pq.mutData.Lock()
 	defer pq.mutData.Unlock()
 
+	if len(pq.data) == 0 {
+		return ""
+	}
+
 	evicted := pq.data[0]
 	pq.data = pq.data[1:]
 
