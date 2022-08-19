@@ -26,7 +26,8 @@ type virtualPeersHolder struct {
 	p2pIdentityGenerator             P2PIdentityGenerator
 	isMainMachine                    bool
 	maxRoundsWithoutReceivedMessages int
-	namedIdentitiesMap               map[string]namedIdentity
+	defaultName                      string
+	defaultIdentity                  string
 }
 
 // ArgsVirtualPeersHolder represents the argument for the virtual peers holder
@@ -35,7 +36,7 @@ type ArgsVirtualPeersHolder struct {
 	P2PIdentityGenerator             P2PIdentityGenerator
 	IsMainMachine                    bool
 	MaxRoundsWithoutReceivedMessages int
-	NamedIdentities                  []config.NamedIdentity
+	PrefsConfig                      config.Preferences
 }
 
 // NewVirtualPeersHolder creates a new instance of a virtual peers holder
@@ -46,13 +47,14 @@ func NewVirtualPeersHolder(args ArgsVirtualPeersHolder) (*virtualPeersHolder, er
 	}
 
 	holder := &virtualPeersHolder{
-		data:                             make(map[string]*peerInfo),
+		data:                             createDataMap(args.PrefsConfig.NamedIdentity),
 		pids:                             make(map[core.PeerID]struct{}),
 		keyGenerator:                     args.KeyGenerator,
 		p2pIdentityGenerator:             args.P2PIdentityGenerator,
 		isMainMachine:                    args.IsMainMachine,
 		maxRoundsWithoutReceivedMessages: args.MaxRoundsWithoutReceivedMessages,
-		namedIdentitiesMap:               createNamedIdentitiesMap(args.NamedIdentities),
+		defaultName:                      args.PrefsConfig.Preferences.NodeDisplayName,
+		defaultIdentity:                  args.PrefsConfig.Preferences.Identity,
 	}
 
 	return holder, nil
@@ -69,38 +71,30 @@ func checkVirtualPeersHolderArgs(args ArgsVirtualPeersHolder) error {
 		return fmt.Errorf("%w for MaxRoundsWithoutReceivedMessages, minimum %d, got %d",
 			errInvalidValue, minRoundsWithoutReceivedMessages, args.MaxRoundsWithoutReceivedMessages)
 	}
-	if len(args.NamedIdentities) == 0 {
-		return errMissingNamedIdentity
-	}
 
 	return nil
 }
 
-func createNamedIdentitiesMap(namedIdentities []config.NamedIdentity) map[string]namedIdentity {
-	namedIdentitiesMap := make(map[string]namedIdentity)
+func createDataMap(namedIdentities []config.NamedIdentity) map[string]*peerInfo {
+	dataMap := make(map[string]*peerInfo)
 
 	for _, identity := range namedIdentities {
-		for idx, blsKey := range identity.BLSKeys {
+		for _, blsKey := range identity.BLSKeys {
 			bls, err := hex.DecodeString(blsKey)
 			if err != nil {
 				continue
 			}
 
 			blsStr := string(bls)
-			namedIdentitiesMap[blsStr] = namedIdentity{
-				name:     fmt.Sprintf("%s-%d", identity.NodeName, idx),
-				identity: identity.Identity,
+			dataMap[blsStr] = &peerInfo{
+				machineID:    generateRandomMachineID(),
+				nodeName:     identity.NodeName,
+				nodeIdentity: identity.Identity,
 			}
-
-			log.Trace(fmt.Sprintf("Found named identity: %s, %s, %s",
-				namedIdentitiesMap[blsStr].name,
-				namedIdentitiesMap[blsStr].identity,
-				core.GetTrimmedPk(blsKey)),
-			)
 		}
 	}
 
-	return namedIdentitiesMap
+	return dataMap
 }
 
 // AddVirtualPeer will try to add a new virtual peer providing the private key bytes.
@@ -126,27 +120,32 @@ func (holder *virtualPeersHolder) AddVirtualPeer(privateKeyBytes []byte) error {
 	holder.mut.Lock()
 	defer holder.mut.Unlock()
 
-	pInfo := &peerInfo{
-		pid:                pid,
-		p2pPrivateKeyBytes: p2pPrivateKeyBytes,
-		privateKey:         privateKey,
-		machineID:          generateRandomMachineID(),
-		namedIdentity:      holder.namedIdentitiesMap[string(publicKeyBytes)],
-	}
-
-	_, found := holder.data[string(publicKeyBytes)]
-	if found {
+	pInfo, found := holder.data[string(publicKeyBytes)]
+	if found && len(pInfo.pid.Bytes()) != 0 {
 		return fmt.Errorf("%w for provided bytes %s and generated public key %s",
 			errDuplicatedKey, hex.EncodeToString(privateKeyBytes), hex.EncodeToString(publicKeyBytes))
 	}
 
+	if !found {
+		pInfo = &peerInfo{
+			machineID:    generateRandomMachineID(),
+			nodeName:     holder.defaultName,
+			nodeIdentity: holder.defaultIdentity,
+		}
+	}
+
+	pInfo.pid = pid
+	pInfo.p2pPrivateKeyBytes = p2pPrivateKeyBytes
+	pInfo.privateKey = privateKey
 	holder.data[string(publicKeyBytes)] = pInfo
 	holder.pids[pid] = struct{}{}
 
 	log.Debug("added new key definition",
 		"hex public key", hex.EncodeToString(publicKeyBytes),
 		"pid", pid.Pretty(),
-		"machine ID", pInfo.machineID)
+		"machine ID", pInfo.machineID,
+		"name", pInfo.nodeName,
+		"identity", pInfo.nodeIdentity)
 
 	return nil
 }
