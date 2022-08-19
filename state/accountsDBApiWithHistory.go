@@ -214,10 +214,7 @@ func (accountsDB *accountsDBApiWithHistory) doGetCodeWithBlockInfoUnprotected(co
 }
 
 func (accountsDB *accountsDBApiWithHistory) shouldRecreateTrieUnprotected(rootHash []byte) bool {
-	if bytes.Equal(accountsDB.latestRecreatedRootHash, rootHash) {
-		return false
-	}
-	return true
+	return !bytes.Equal(accountsDB.latestRecreatedRootHash, rootHash)
 }
 
 func (accountsDB *accountsDBApiWithHistory) recreateTrieUnprotected(rootHash []byte) error {

@@ -257,7 +257,7 @@ func TestAccountsDBApiWithHistory_GetAccountWithBlockInfoWhenHighConcurrency(t *
 				dummyAccount = createDummyAccountWithBalanceString(string(rootHash))
 
 				// We also count the re-creation
-				counter, _ := recreationsCounterByRootHash[string(rootHash)]
+				counter := recreationsCounterByRootHash[string(rootHash)]
 				counter.Increment()
 				return nil
 			},
@@ -296,7 +296,7 @@ func TestAccountsDBApiWithHistory_GetAccountWithBlockInfoWhenHighConcurrency(t *
 
 	for i := 0; i < numRootHashes; i++ {
 		rootHashAsString := fmt.Sprintf("%d", i)
-		numRecreations, _ := recreationsCounterByRootHash[rootHashAsString]
+		numRecreations := recreationsCounterByRootHash[rootHashAsString]
 
 		assert.True(t, numRecreations.Get() > 0 && numRecreations.Get() <= int64(numCallsPerRootHash))
 	}
