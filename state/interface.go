@@ -207,6 +207,6 @@ type BlockInfoProvider interface {
 // AccountsAdapterAPI defines the extension of the AccountsAdapter that should be used in API calls
 type AccountsAdapterAPI interface {
 	AccountsAdapter
-	GetAccountWithBlockInfo(address []byte, options common.GetAccountsStateOptions) (vmcommon.AccountHandler, common.BlockInfo, error)
-	GetCodeWithBlockInfo(codeHash []byte, options common.GetAccountsStateOptions) ([]byte, common.BlockInfo, error)
+	GetAccountWithBlockInfo(address []byte, options common.RootHashHolder) (vmcommon.AccountHandler, common.BlockInfo, error)
+	GetCodeWithBlockInfo(codeHash []byte, options common.RootHashHolder) ([]byte, common.BlockInfo, error)
 }

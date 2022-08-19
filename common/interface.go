@@ -154,9 +154,9 @@ type ReceiptsHolder interface {
 	IsInterfaceNil() bool
 }
 
-// GetAccountsStateOptions holds options for getting the state of an account
-type GetAccountsStateOptions interface {
-	GetBlockRootHash() []byte
+// RootHashHolder holds a rootHash
+type RootHashHolder interface {
+	GetRootHash() []byte
 	IsInterfaceNil() bool
 }
 

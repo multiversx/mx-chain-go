@@ -77,7 +77,7 @@ func (accountsDB *accountsDBApi) doRecreateTrieWithBlockInfo(newBlockInfo common
 
 // GetExistingAccount will call the inner accountsAdapter method after trying to recreate the trie
 func (accountsDB *accountsDBApi) GetExistingAccount(address []byte) (vmcommon.AccountHandler, error) {
-	account, _, err := accountsDB.GetAccountWithBlockInfo(address, holders.NewGetAccountStateOptionsAsEmpty())
+	account, _, err := accountsDB.GetAccountWithBlockInfo(address, holders.NewRootHashHolderAsEmpty())
 
 	return account, err
 }
@@ -134,7 +134,7 @@ func (accountsDB *accountsDBApi) RevertToSnapshot(_ int) error {
 
 // GetCode will call the inner accountsAdapter method after trying to recreate the trie
 func (accountsDB *accountsDBApi) GetCode(codeHash []byte) []byte {
-	code, _, err := accountsDB.GetCodeWithBlockInfo(codeHash, holders.NewGetAccountStateOptionsAsEmpty())
+	code, _, err := accountsDB.GetCodeWithBlockInfo(codeHash, holders.NewRootHashHolderAsEmpty())
 	if err != nil {
 		log.Warn("accountsDBApi.GetCode", "error", err)
 	}
@@ -212,7 +212,7 @@ func (accountsDB *accountsDBApi) Close() error {
 }
 
 // GetAccountWithBlockInfo returns the account and the associated block info
-func (accountsDB *accountsDBApi) GetAccountWithBlockInfo(address []byte, options common.GetAccountsStateOptions) (vmcommon.AccountHandler, common.BlockInfo, error) {
+func (accountsDB *accountsDBApi) GetAccountWithBlockInfo(address []byte, _ common.RootHashHolder) (vmcommon.AccountHandler, common.BlockInfo, error) {
 	_, err := accountsDB.recreateTrieIfNecessary()
 	if err != nil {
 		return nil, nil, err
@@ -238,7 +238,7 @@ func (accountsDB *accountsDBApi) GetAccountWithBlockInfo(address []byte, options
 }
 
 // GetCodeWithBlockInfo returns the code and the associated block info
-func (accountsDB *accountsDBApi) GetCodeWithBlockInfo(codeHash []byte, options common.GetAccountsStateOptions) ([]byte, common.BlockInfo, error) {
+func (accountsDB *accountsDBApi) GetCodeWithBlockInfo(codeHash []byte, _ common.RootHashHolder) ([]byte, common.BlockInfo, error) {
 	blockInfo, err := accountsDB.recreateTrieIfNecessary()
 	if err != nil {
 		return nil, nil, err

@@ -59,7 +59,6 @@ func parseAccountQueryOptions(c *gin.Context) (api.AccountQueryOptions, error) {
 	return options, nil
 }
 
-// Question for review: should we move this validation logic in elrond-go-core, within the definition of AccountQueryOptions?
 func checkAccountQueryOptions(options api.AccountQueryOptions) error {
 	numSpecifiedBlockCoordinates := 0
 

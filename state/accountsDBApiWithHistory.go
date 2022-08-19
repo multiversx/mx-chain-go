@@ -28,17 +28,17 @@ func NewAccountsDBApiWithHistory(innerAccountsAdapter AccountsAdapter) (*account
 }
 
 // GetExistingAccount will return an error
-func (accountsDB *accountsDBApiWithHistory) GetExistingAccount(address []byte) (vmcommon.AccountHandler, error) {
+func (accountsDB *accountsDBApiWithHistory) GetExistingAccount(_ []byte) (vmcommon.AccountHandler, error) {
 	return nil, ErrFunctionalityNotImplemented
 }
 
 // GetAccountFromBytes will return an error
-func (accountsDB *accountsDBApiWithHistory) GetAccountFromBytes(address []byte, accountBytes []byte) (vmcommon.AccountHandler, error) {
+func (accountsDB *accountsDBApiWithHistory) GetAccountFromBytes(_ []byte, _ []byte) (vmcommon.AccountHandler, error) {
 	return nil, ErrFunctionalityNotImplemented
 }
 
 // LoadAccount will return an error
-func (accountsDB *accountsDBApiWithHistory) LoadAccount(address []byte) (vmcommon.AccountHandler, error) {
+func (accountsDB *accountsDBApiWithHistory) LoadAccount(_ []byte) (vmcommon.AccountHandler, error) {
 	return nil, ErrFunctionalityNotImplemented
 }
 
@@ -73,7 +73,7 @@ func (accountsDB *accountsDBApiWithHistory) RevertToSnapshot(_ int) error {
 }
 
 // GetCode will call the inner accountsAdapter method after trying to recreate the trie
-func (accountsDB *accountsDBApiWithHistory) GetCode(codeHash []byte) []byte {
+func (accountsDB *accountsDBApiWithHistory) GetCode(_ []byte) []byte {
 	return nil
 }
 
@@ -109,7 +109,7 @@ func (accountsDB *accountsDBApiWithHistory) IsPruningEnabled() bool {
 }
 
 // GetAllLeaves will return an error
-func (accountsDB *accountsDBApiWithHistory) GetAllLeaves(leavesChannel chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error {
+func (accountsDB *accountsDBApiWithHistory) GetAllLeaves(_ chan core.KeyValueHolder, _ context.Context, _ []byte) error {
 	return ErrOperationNotPermitted
 }
 
@@ -119,7 +119,7 @@ func (accountsDB *accountsDBApiWithHistory) RecreateAllTries(_ []byte) (map[stri
 }
 
 // GetTrie is not implemented
-func (accountsDB *accountsDBApiWithHistory) GetTrie(rootHash []byte) (common.Trie, error) {
+func (accountsDB *accountsDBApiWithHistory) GetTrie(_ []byte) (common.Trie, error) {
 	return nil, ErrFunctionalityNotImplemented
 }
 
@@ -134,14 +134,14 @@ func (accountsDB *accountsDBApiWithHistory) Close() error {
 }
 
 // GetAccountWithBlockInfo returns the account and the associated block info
-func (accountsDB *accountsDBApiWithHistory) GetAccountWithBlockInfo(address []byte, options common.GetAccountsStateOptions) (vmcommon.AccountHandler, common.BlockInfo, error) {
-	blockInfo := holders.NewBlockInfo(nil, 0, options.GetBlockRootHash())
+func (accountsDB *accountsDBApiWithHistory) GetAccountWithBlockInfo(address []byte, options common.RootHashHolder) (vmcommon.AccountHandler, common.BlockInfo, error) {
+	blockInfo := holders.NewBlockInfo(nil, 0, options.GetRootHash())
 
 	// We cannot allow concurrent requests to <recreate a trie & load state>.
 	accountsDB.mutRecreateAndGet.Lock()
 	defer accountsDB.mutRecreateAndGet.Unlock()
 
-	err := accountsDB.recreateTrie(options.GetBlockRootHash())
+	err := accountsDB.recreateTrie(options.GetRootHash())
 	if err != nil {
 		return nil, nil, err
 	}
@@ -158,14 +158,14 @@ func (accountsDB *accountsDBApiWithHistory) GetAccountWithBlockInfo(address []by
 }
 
 // GetCodeWithBlockInfo returns the code and the associated block info
-func (accountsDB *accountsDBApiWithHistory) GetCodeWithBlockInfo(codeHash []byte, options common.GetAccountsStateOptions) ([]byte, common.BlockInfo, error) {
-	blockInfo := holders.NewBlockInfo(nil, 0, options.GetBlockRootHash())
+func (accountsDB *accountsDBApiWithHistory) GetCodeWithBlockInfo(codeHash []byte, options common.RootHashHolder) ([]byte, common.BlockInfo, error) {
+	blockInfo := holders.NewBlockInfo(nil, 0, options.GetRootHash())
 
 	// We cannot allow concurrent requests to <recreate a trie & load state>.
 	accountsDB.mutRecreateAndGet.Lock()
 	defer accountsDB.mutRecreateAndGet.Unlock()
 
-	err := accountsDB.recreateTrie(options.GetBlockRootHash())
+	err := accountsDB.recreateTrie(options.GetRootHash())
 	if err != nil {
 		return nil, nil, err
 	}

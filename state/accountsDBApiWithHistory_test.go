@@ -94,7 +94,7 @@ func TestAccountsDBApiWithHistory_NotPermittedOrNotImplementedOperationsDoNotPan
 
 func TestAccountsDBApiWithHistory_GetAccountWithBlockInfo(t *testing.T) {
 	rootHash := []byte("rootHash")
-	options := holders.NewGetAccountStateOptions(rootHash)
+	options := holders.NewRootHashHolder(rootHash)
 	arbitraryError := errors.New("arbitrary error")
 
 	t.Run("recreate trie fails", func(t *testing.T) {
@@ -184,7 +184,7 @@ func TestAccountsDBApiWithHistory_GetAccountWithBlockInfo(t *testing.T) {
 func TestAccountsDBApiWithHistory_GetCodeWithBlockInfo(t *testing.T) {
 	contractCodeHash := []byte("codeHash")
 	rootHash := []byte("rootHash")
-	options := holders.NewGetAccountStateOptions(rootHash)
+	options := holders.NewRootHashHolder(rootHash)
 
 	t.Run("recreate trie fails", func(t *testing.T) {
 		expectedErr := errors.New("expected error")

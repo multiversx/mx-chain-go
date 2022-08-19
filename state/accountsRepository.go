@@ -57,8 +57,8 @@ func (repository *accountsRepository) GetAccountWithBlockInfo(address []byte, op
 	return accountsAdapter.GetAccountWithBlockInfo(address, convertedOptions)
 }
 
-func (repository *accountsRepository) convertAccountQueryOptions(options api.AccountQueryOptions) (common.GetAccountsStateOptions, error) {
-	return holders.NewGetAccountStateOptions(options.BlockRootHash), nil
+func (repository *accountsRepository) convertAccountQueryOptions(options api.AccountQueryOptions) (common.RootHashHolder, error) {
+	return holders.NewRootHashHolder(options.BlockRootHash), nil
 }
 
 // GetCodeWithBlockInfo will return the code with the block info providing the code hash and the query option
