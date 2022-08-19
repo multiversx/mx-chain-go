@@ -1165,7 +1165,7 @@ func (ihnc *indexHashedNodesCoordinator) createValidatorInfoFromBody(
 	body data.BodyHandler,
 	previousTotal uint64,
 	validatorInfoCacher epochStart.ValidatorInfoCacher,
-	currentEpoch uint32,
+	epoch uint32,
 ) ([]*state.ShardValidatorInfo, error) {
 	if check.IfNil(body) {
 		return nil, ErrNilBlockBody
@@ -1183,7 +1183,7 @@ func (ihnc *indexHashedNodesCoordinator) createValidatorInfoFromBody(
 		}
 
 		for _, txHash := range peerMiniBlock.TxHashes {
-			shardValidatorInfo, err := ihnc.getShardValidatorInfoData(txHash, validatorInfoCacher, currentEpoch)
+			shardValidatorInfo, err := ihnc.getShardValidatorInfoData(txHash, validatorInfoCacher, epoch)
 			if err != nil {
 				return nil, err
 			}
@@ -1195,8 +1195,8 @@ func (ihnc *indexHashedNodesCoordinator) createValidatorInfoFromBody(
 	return allValidatorInfo, nil
 }
 
-func (ihnc *indexHashedNodesCoordinator) getShardValidatorInfoData(txHash []byte, validatorInfoCacher epochStart.ValidatorInfoCacher, currentEpoch uint32) (*state.ShardValidatorInfo, error) {
-	if currentEpoch >= ihnc.enableEpochsHandler.RefactorPeersMiniBlocksEnableEpoch() {
+func (ihnc *indexHashedNodesCoordinator) getShardValidatorInfoData(txHash []byte, validatorInfoCacher epochStart.ValidatorInfoCacher, epoch uint32) (*state.ShardValidatorInfo, error) {
+	if epoch >= ihnc.enableEpochsHandler.RefactorPeersMiniBlocksEnableEpoch() {
 		shardValidatorInfo, err := validatorInfoCacher.GetValidatorInfo(txHash)
 		if err != nil {
 			return nil, err
