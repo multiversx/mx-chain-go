@@ -2,6 +2,7 @@ package node
 
 import (
 	"encoding/hex"
+	"errors"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
@@ -30,6 +31,13 @@ func (n *Node) loadUserAccountHandlerByPubKey(pubKey []byte, options api.Account
 
 	account, blockInfo, err := repository.GetAccountWithBlockInfo(pubKey, options)
 	if err != nil {
+		blockInfo, ok := extractBlockInfoIfErrAccountNotFoundAtBlock(err)
+		if ok {
+			blockInfo = mergeAccountQueryOptionsIntoBlockInfo(options, blockInfo)
+			// Return the same error (now with additional block info)
+			return nil, api.BlockInfo{}, state.NewErrAccountNotFoundAtBlock(blockInfo)
+		}
+
 		return nil, api.BlockInfo{}, err
 	}
 
@@ -137,4 +145,20 @@ func (n *Node) addBlockCoordinatesToAccountQueryOptions(options api.AccountQuery
 	}
 
 	return options, nil
+}
+
+func extractApiBlockInfoIfErrAccountNotFoundAtBlock(err error) (api.BlockInfo, bool) {
+	blockInfo, ok := extractBlockInfoIfErrAccountNotFoundAtBlock(err)
+	if ok {
+		return accountBlockInfoToApiResource(blockInfo), true
+	}
+	return api.BlockInfo{}, false
+}
+
+func extractBlockInfoIfErrAccountNotFoundAtBlock(err error) (common.BlockInfo, bool) {
+	var accountNotFoundErr *state.ErrAccountNotFoundAtBlock
+	if errors.As(err, &accountNotFoundErr) {
+		return accountNotFoundErr.BlockInfo, true
+	}
+	return nil, false
 }

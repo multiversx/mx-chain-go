@@ -243,3 +243,26 @@ func TestMergeAccountQueryOptionsIntoBlockInfo(t *testing.T) {
 
 	require.Equal(t, holders.NewBlockInfo([]byte("blockHash"), 7, []byte("rootHash")), mergedInfo)
 }
+
+func TestExtractApiBlockInfoIfErrAccountNotFoundAtBlock(t *testing.T) {
+	arbitraryError := errors.New("arbitraryError")
+	errAccountNotFoundAtBlockNil := state.NewErrAccountNotFoundAtBlock(nil)
+	errAccountNotFoundAtBlockWithRootHash := state.NewErrAccountNotFoundAtBlock(holders.NewBlockInfo(nil, 0, []byte{0xaa, 0xbb}))
+	errAccountNotFoundAtBlockWithAllCoordinates := state.NewErrAccountNotFoundAtBlock(holders.NewBlockInfo([]byte{0xcc, 0xdd}, 7, []byte{0xaa, 0xbb}))
+
+	apiBlockInfo, ok := node.ExtractApiBlockInfoIfErrAccountNotFoundAtBlock(arbitraryError)
+	require.Equal(t, api.BlockInfo{}, apiBlockInfo)
+	require.False(t, ok)
+
+	apiBlockInfo, ok = node.ExtractApiBlockInfoIfErrAccountNotFoundAtBlock(errAccountNotFoundAtBlockNil)
+	require.Equal(t, api.BlockInfo{}, apiBlockInfo)
+	require.True(t, ok)
+
+	apiBlockInfo, ok = node.ExtractApiBlockInfoIfErrAccountNotFoundAtBlock(errAccountNotFoundAtBlockWithRootHash)
+	require.Equal(t, api.BlockInfo{RootHash: "aabb"}, apiBlockInfo)
+	require.True(t, ok)
+
+	apiBlockInfo, ok = node.ExtractApiBlockInfoIfErrAccountNotFoundAtBlock(errAccountNotFoundAtBlockWithAllCoordinates)
+	require.Equal(t, api.BlockInfo{Hash: "ccdd", Nonce: 7, RootHash: "aabb"}, apiBlockInfo)
+	require.True(t, ok)
+}

@@ -30,3 +30,8 @@ func (n *Node) AddBlockCoordinatesToAccountQueryOptions(options api.AccountQuery
 func MergeAccountQueryOptionsIntoBlockInfo(options api.AccountQueryOptions, info common.BlockInfo) common.BlockInfo {
 	return mergeAccountQueryOptionsIntoBlockInfo(options, info)
 }
+
+// ExtractApiBlockInfoIfErrAccountNotFoundAtBlock -
+func ExtractApiBlockInfoIfErrAccountNotFoundAtBlock(err error) (api.BlockInfo, bool) {
+	return extractApiBlockInfoIfErrAccountNotFoundAtBlock(err)
+}
