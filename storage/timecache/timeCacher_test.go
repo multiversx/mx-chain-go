@@ -330,7 +330,7 @@ func TestTimeCacher_ConcurrentOperations(t *testing.T) {
 			case 13:
 				_ = tc.Close()
 			default:
-				assert.Fail(t, "test setup error, change this line 'switch idx%6{'")
+				assert.Fail(t, "test setup error, change the line 'switch idx % xxx {' from this test")
 			}
 
 			wg.Done()

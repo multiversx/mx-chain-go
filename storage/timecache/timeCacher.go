@@ -19,7 +19,7 @@ type ArgTimeCacher struct {
 	CacheExpiry time.Duration
 }
 
-// timeCacher implements a map cache with eviction and inner TimeCacher
+// timeCacher implements a time cacher with automatic sweeping mechanism
 type timeCacher struct {
 	timeCache   *timeCacheCore
 	cacheExpiry time.Duration

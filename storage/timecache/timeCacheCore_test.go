@@ -33,7 +33,7 @@ func TestTimeCacheCore_ConcurrentOperations(t *testing.T) {
 			case 4:
 				tcc.clear()
 			default:
-				assert.Fail(t, "test setup error, change this line 'switch idx%6{'")
+				assert.Fail(t, "test setup error, change the line 'switch idx % xxx {' from this test")
 			}
 
 			wg.Done()
