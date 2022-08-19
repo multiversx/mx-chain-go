@@ -13,16 +13,14 @@ import (
 
 // ArgInterceptedValidatorInfo is the argument used to create a new intercepted validator info
 type ArgInterceptedValidatorInfo struct {
-	DataBuff         []byte
-	Marshalizer      marshal.Marshalizer
-	Hasher           hashing.Hasher
-	NodesCoordinator process.NodesCoordinator
+	DataBuff    []byte
+	Marshalizer marshal.Marshalizer
+	Hasher      hashing.Hasher
 }
 
 // interceptedValidatorInfo is a wrapper over validatorInfo
 type interceptedValidatorInfo struct {
 	shardValidatorInfo *state.ShardValidatorInfo
-	nodesCoordinator   process.NodesCoordinator
 	hash               []byte
 }
 
@@ -40,7 +38,6 @@ func NewInterceptedValidatorInfo(args ArgInterceptedValidatorInfo) (*intercepted
 
 	return &interceptedValidatorInfo{
 		shardValidatorInfo: shardValidatorInfo,
-		nodesCoordinator:   args.NodesCoordinator,
 		hash:               args.Hasher.Compute(string(args.DataBuff)),
 	}, nil
 }
@@ -54,9 +51,6 @@ func checkArgs(args ArgInterceptedValidatorInfo) error {
 	}
 	if check.IfNil(args.Hasher) {
 		return process.ErrNilHasher
-	}
-	if check.IfNil(args.NodesCoordinator) {
-		return process.ErrNilNodesCoordinator
 	}
 
 	return nil
@@ -83,11 +77,6 @@ func (ivi *interceptedValidatorInfo) CheckValidity() error {
 	if err != nil {
 		return err
 	}
-
-	//TODO: Analyse if GetValidatorWithPublicKey is still needed to be called also in all other places
-	//// Check if the public key is a validator
-	//_, _, err = ivi.nodesCoordinator.GetValidatorWithPublicKey(ivi.shardValidatorInfo.PublicKey)
-	//return err
 
 	return nil
 }

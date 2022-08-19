@@ -9,9 +9,8 @@ import (
 )
 
 type interceptedValidatorInfoDataFactory struct {
-	marshaller       marshal.Marshalizer
-	hasher           hashing.Hasher
-	nodesCoordinator process.NodesCoordinator
+	marshaller marshal.Marshalizer
+	hasher     hashing.Hasher
 }
 
 // NewInterceptedValidatorInfoDataFactory creates an instance of interceptedValidatorInfoDataFactory
@@ -22,9 +21,8 @@ func NewInterceptedValidatorInfoDataFactory(args ArgInterceptedDataFactory) (*in
 	}
 
 	return &interceptedValidatorInfoDataFactory{
-		marshaller:       args.CoreComponents.InternalMarshalizer(),
-		hasher:           args.CoreComponents.Hasher(),
-		nodesCoordinator: args.NodesCoordinator,
+		marshaller: args.CoreComponents.InternalMarshalizer(),
+		hasher:     args.CoreComponents.Hasher(),
 	}, nil
 }
 
@@ -38,9 +36,6 @@ func checkInterceptedValidatorInfoDataFactoryArgs(args ArgInterceptedDataFactory
 	if check.IfNil(args.CoreComponents.Hasher()) {
 		return process.ErrNilHasher
 	}
-	if check.IfNil(args.NodesCoordinator) {
-		return process.ErrNilNodesCoordinator
-	}
 
 	return nil
 }
@@ -48,10 +43,9 @@ func checkInterceptedValidatorInfoDataFactoryArgs(args ArgInterceptedDataFactory
 // Create creates instances of InterceptedData by unmarshalling provided buffer
 func (ividf *interceptedValidatorInfoDataFactory) Create(buff []byte) (process.InterceptedData, error) {
 	args := peer.ArgInterceptedValidatorInfo{
-		DataBuff:         buff,
-		Marshalizer:      ividf.marshaller,
-		Hasher:           ividf.hasher,
-		NodesCoordinator: ividf.nodesCoordinator,
+		DataBuff:    buff,
+		Marshalizer: ividf.marshaller,
+		Hasher:      ividf.hasher,
 	}
 
 	return peer.NewInterceptedValidatorInfo(args)

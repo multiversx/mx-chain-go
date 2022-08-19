@@ -9,19 +9,16 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func createMockArgInterceptedValidatorInfo() ArgInterceptedValidatorInfo {
 	args := ArgInterceptedValidatorInfo{
-		Marshalizer:      testscommon.MarshalizerMock{},
-		Hasher:           &hashingMocks.HasherMock{},
-		NodesCoordinator: &shardingMocks.NodesCoordinatorStub{},
+		Marshalizer: testscommon.MarshalizerMock{},
+		Hasher:      &hashingMocks.HasherMock{},
 	}
 	args.DataBuff, _ = args.Marshalizer.Marshal(createMockShardValidatorInfo())
 
@@ -61,16 +58,6 @@ func TestNewInterceptedValidatorInfo(t *testing.T) {
 		assert.Equal(t, process.ErrNilHasher, err)
 		assert.True(t, check.IfNil(ivi))
 	})
-	t.Run("nil nodes coordinator should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockArgInterceptedValidatorInfo()
-		args.NodesCoordinator = nil
-
-		ivi, err := NewInterceptedValidatorInfo(args)
-		assert.Equal(t, process.ErrNilNodesCoordinator, err)
-		assert.True(t, check.IfNil(ivi))
-	})
 	t.Run("unmarshal returns error", func(t *testing.T) {
 		t.Parallel()
 
@@ -104,32 +91,10 @@ func TestInterceptedValidatorInfo_CheckValidity(t *testing.T) {
 	t.Run("listProperty too short", testInterceptedValidatorInfoPropertyLen(listProperty, false))
 	t.Run("listProperty too long", testInterceptedValidatorInfoPropertyLen(listProperty, true))
 
-	//TODO: Remove commented code
-	//t.Run("not validator should error", func(t *testing.T) {
-	//	t.Parallel()
-	//
-	//	expectedErr := errors.New("expected err")
-	//	args := createMockArgInterceptedValidatorInfo()
-	//	args.NodesCoordinator = &shardingMocks.NodesCoordinatorStub{
-	//		GetValidatorWithPublicKeyCalled: func(publicKey []byte) (validator nodesCoordinator.Validator, shardId uint32, err error) {
-	//			return nil, 0, expectedErr
-	//		},
-	//	}
-	//
-	//	ivi, _ := NewInterceptedValidatorInfo(args)
-	//	require.False(t, check.IfNil(ivi))
-	//	assert.Equal(t, expectedErr, ivi.CheckValidity())
-	//})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgInterceptedValidatorInfo()
-		args.NodesCoordinator = &shardingMocks.NodesCoordinatorStub{
-			GetValidatorWithPublicKeyCalled: func(publicKey []byte) (validator nodesCoordinator.Validator, shardId uint32, err error) {
-				return nil, 0, nil
-			},
-		}
-
 		ivi, _ := NewInterceptedValidatorInfo(args)
 		require.False(t, check.IfNil(ivi))
 		assert.Nil(t, ivi.CheckValidity())
