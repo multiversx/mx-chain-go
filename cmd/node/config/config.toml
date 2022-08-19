@@ -803,10 +803,10 @@
         ProcessDataTrieOnCommitEpoch = true
 
 [Health]
-    IntervalVerifyMemoryInSeconds = 5
+    IntervalVerifyMemoryInSeconds = 30
     IntervalDiagnoseComponentsInSeconds = 30
     IntervalDiagnoseComponentsDeeplyInSeconds = 120
-    MemoryUsageToCreateProfiles = 2415919104 # 2.25GB
+    MemoryUsageToCreateProfiles = 3221225472 # 3 GB
     NumMemoryUsageRecordsToKeep = 100
     FolderPath = "health-records"
 
