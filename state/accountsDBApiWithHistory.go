@@ -1,6 +1,7 @@
 package state
 
 import (
+	"bytes"
 	"context"
 	"sync"
 
@@ -12,8 +13,9 @@ import (
 )
 
 type accountsDBApiWithHistory struct {
-	innerAccountsAdapter AccountsAdapter
-	mutRecreateAndGet    sync.Mutex
+	innerAccountsAdapter    AccountsAdapter
+	latestRecreatedRootHash []byte
+	mutRecreateAndGet       sync.RWMutex
 }
 
 // NewAccountsDBApiWithHistory will create a new instance of type accountsDBApiWithHistory
@@ -135,16 +137,35 @@ func (accountsDB *accountsDBApiWithHistory) Close() error {
 
 // GetAccountWithBlockInfo returns the account and the associated block info
 func (accountsDB *accountsDBApiWithHistory) GetAccountWithBlockInfo(address []byte, options common.RootHashHolder) (vmcommon.AccountHandler, common.BlockInfo, error) {
-	blockInfo := holders.NewBlockInfo(nil, 0, options.GetRootHash())
+	rootHash := options.GetRootHash()
 
-	// We cannot allow concurrent requests to <recreate a trie & load state>.
+	// First check to avoid re-creation:
+	accountsDB.mutRecreateAndGet.RLock()
+	if !accountsDB.shouldRecreateTrieUnprotected(rootHash) {
+		// Re-creation is not necessary, but make sure no other routine re-creates it.
+		defer accountsDB.mutRecreateAndGet.RUnlock()
+		return accountsDB.doGetAccountWithBlockInfoUnprotected(address, rootHash)
+	}
+
+	accountsDB.mutRecreateAndGet.RUnlock()
+
+	// Re-creation seems to be necessary, promote to a "write" lock.
 	accountsDB.mutRecreateAndGet.Lock()
 	defer accountsDB.mutRecreateAndGet.Unlock()
 
-	err := accountsDB.recreateTrie(options.GetRootHash())
-	if err != nil {
-		return nil, nil, err
+	// Second check to avoid re-creation:
+	if accountsDB.shouldRecreateTrieUnprotected(rootHash) {
+		err := accountsDB.recreateTrieUnprotected(rootHash)
+		if err != nil {
+			return nil, nil, err
+		}
 	}
+
+	return accountsDB.doGetAccountWithBlockInfoUnprotected(address, rootHash)
+}
+
+func (accountsDB *accountsDBApiWithHistory) doGetAccountWithBlockInfoUnprotected(address []byte, rootHash []byte) (vmcommon.AccountHandler, common.BlockInfo, error) {
+	blockInfo := holders.NewBlockInfo(nil, 0, rootHash)
 
 	account, err := accountsDB.innerAccountsAdapter.GetExistingAccount(address)
 	if err == ErrAccNotFound {
@@ -159,24 +180,54 @@ func (accountsDB *accountsDBApiWithHistory) GetAccountWithBlockInfo(address []by
 
 // GetCodeWithBlockInfo returns the code and the associated block info
 func (accountsDB *accountsDBApiWithHistory) GetCodeWithBlockInfo(codeHash []byte, options common.RootHashHolder) ([]byte, common.BlockInfo, error) {
-	blockInfo := holders.NewBlockInfo(nil, 0, options.GetRootHash())
+	rootHash := options.GetRootHash()
 
-	// We cannot allow concurrent requests to <recreate a trie & load state>.
+	// First check to avoid re-creation:
+	accountsDB.mutRecreateAndGet.RLock()
+	if !accountsDB.shouldRecreateTrieUnprotected(rootHash) {
+		// Re-creation is not necessary, but make sure no other routine re-creates it.
+		defer accountsDB.mutRecreateAndGet.RUnlock()
+		return accountsDB.doGetCodeWithBlockInfoUnprotected(codeHash, rootHash)
+	}
+
+	accountsDB.mutRecreateAndGet.RUnlock()
+
+	// Re-creation seems to be necessary, promote to a "write" lock.
 	accountsDB.mutRecreateAndGet.Lock()
 	defer accountsDB.mutRecreateAndGet.Unlock()
 
-	err := accountsDB.recreateTrie(options.GetRootHash())
-	if err != nil {
-		return nil, nil, err
+	// Second check to avoid re-creation:
+	if accountsDB.shouldRecreateTrieUnprotected(rootHash) {
+		err := accountsDB.recreateTrieUnprotected(rootHash)
+		if err != nil {
+			return nil, nil, err
+		}
 	}
 
+	return accountsDB.doGetCodeWithBlockInfoUnprotected(codeHash, rootHash)
+}
+
+func (accountsDB *accountsDBApiWithHistory) doGetCodeWithBlockInfoUnprotected(codeHash []byte, rootHash []byte) ([]byte, common.BlockInfo, error) {
+	blockInfo := holders.NewBlockInfo(nil, 0, rootHash)
 	code := accountsDB.innerAccountsAdapter.GetCode(codeHash)
 	return code, blockInfo, nil
 }
 
-func (accountsDB *accountsDBApiWithHistory) recreateTrie(rootHash []byte) error {
-	// TODO: perhaps we can optimize this in the future: check the latest rootHash used for re-creation, and skip re-creation, if possible.
-	return accountsDB.innerAccountsAdapter.RecreateTrie(rootHash)
+func (accountsDB *accountsDBApiWithHistory) shouldRecreateTrieUnprotected(rootHash []byte) bool {
+	if bytes.Equal(accountsDB.latestRecreatedRootHash, rootHash) {
+		return false
+	}
+	return true
+}
+
+func (accountsDB *accountsDBApiWithHistory) recreateTrieUnprotected(rootHash []byte) error {
+	err := accountsDB.innerAccountsAdapter.RecreateTrie(rootHash)
+	if err != nil {
+		return err
+	}
+
+	accountsDB.latestRecreatedRootHash = rootHash
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -3,8 +3,12 @@ package state_test
 import (
 	"bytes"
 	"errors"
+	"fmt"
+	"math/big"
+	"sync"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/common/holders"
 	"github.com/ElrondNetwork/elrond-go/state"
@@ -226,4 +230,82 @@ func TestAccountsDBApiWithHistory_GetCodeWithBlockInfo(t *testing.T) {
 		assert.Equal(t, []byte("code"), code)
 		assert.Equal(t, rootHash, recreatedRootHash)
 	})
+}
+
+func TestAccountsDBApiWithHistory_GetAccountWithBlockInfoWhenHighConcurrency(t *testing.T) {
+	numTestRuns := 16
+	numRootHashes := 128
+	numCallsPerRootHash := 128
+	recreationsCounterByRootHash := make(map[string]*atomic.Counter)
+
+	for run := 0; run < numTestRuns; run++ {
+		for i := 0; i < numRootHashes; i++ {
+			rootHashAsString := fmt.Sprintf("%d", i)
+			recreationsCounterByRootHash[rootHashAsString] = &atomic.Counter{}
+		}
+
+		dummyAccount := createDummyAccountWithBalanceBytes([]byte{42, 0, 0, 0, 0, 0, 0, 0})
+		var dummyAccountMutex sync.RWMutex
+
+		accountsAdapter := &mockState.AccountsStub{
+			RecreateTrieCalled: func(rootHash []byte) error {
+				dummyAccountMutex.Lock()
+				defer dummyAccountMutex.Unlock()
+
+				// When a trie is recreated, we "add" to it a single account,
+				// having the balance correlated with the trie rootHash (for the sake of the test, for easier assertions).
+				dummyAccount = createDummyAccountWithBalanceString(string(rootHash))
+
+				// We also count the re-creation
+				counter, _ := recreationsCounterByRootHash[string(rootHash)]
+				counter.Increment()
+				return nil
+			},
+			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
+				dummyAccountMutex.RLock()
+				defer dummyAccountMutex.RUnlock()
+				return dummyAccount, nil
+			},
+		}
+
+		accountsApiWithHistory, _ := state.NewAccountsDBApiWithHistory(accountsAdapter)
+
+		var wg sync.WaitGroup
+
+		// Simulate many concurrent goroutines calling GetAccountWithBlockInfo()
+		for i := 0; i < numRootHashes; i++ {
+			for j := 0; j < numCallsPerRootHash; j++ {
+				wg.Add(1)
+
+				go func(rootHashAsInt int) {
+					rootHashAsString := fmt.Sprintf("%d", rootHashAsInt)
+					rootHash := []byte(rootHashAsString)
+					options := holders.NewRootHashHolder(rootHash)
+					account, blockInfo, _ := accountsApiWithHistory.GetAccountWithBlockInfo([]byte("address"), options)
+					userAccount := account.(state.UserAccountHandler)
+
+					assert.Equal(t, rootHash, blockInfo.GetRootHash())
+					assert.Equal(t, uint64(rootHashAsInt), userAccount.GetBalance().Uint64())
+					wg.Done()
+				}(i)
+			}
+		}
+
+		wg.Wait()
+	}
+
+	for i := 0; i < numRootHashes; i++ {
+		rootHashAsString := fmt.Sprintf("%d", i)
+		numRecreations, _ := recreationsCounterByRootHash[rootHashAsString]
+
+		assert.True(t, numRecreations.Get() > 0 && numRecreations.Get() <= int64(numCallsPerRootHash))
+	}
+}
+
+func createDummyAccountWithBalanceString(balanceString string) state.UserAccountHandler {
+	dummyAccount := state.NewEmptyUserAccount()
+	dummyBalance, _ := big.NewInt(0).SetString(balanceString, 10)
+	_ = dummyAccount.AddToBalance(dummyBalance)
+
+	return dummyAccount
 }
