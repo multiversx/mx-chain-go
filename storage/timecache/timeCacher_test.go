@@ -1,20 +1,21 @@
-package mapTimeCache_test
+package timecache_test
 
 import (
 	"bytes"
-	"encoding/gob"
+	"fmt"
 	"math"
 	"sort"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/mapTimeCache"
+	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/stretchr/testify/assert"
 )
 
-func createArgMapTimeCache() mapTimeCache.ArgMapTimeCacher {
-	return mapTimeCache.ArgMapTimeCacher{
+func createArgTimeCacher() timecache.ArgTimeCacher {
+	return timecache.ArgTimeCacher{
 		DefaultSpan: time.Minute,
 		CacheExpiry: time.Minute,
 	}
@@ -31,40 +32,40 @@ func createKeysVals(numOfPairs int) ([][]byte, [][]byte) {
 	return keys, vals
 }
 
-func TestNewMapTimeCache(t *testing.T) {
+func TestNewTimeCache(t *testing.T) {
 	t.Parallel()
 
 	t.Run("invalid DefaultSpan should error", func(t *testing.T) {
 		t.Parallel()
 
-		arg := createArgMapTimeCache()
+		arg := createArgTimeCacher()
 		arg.DefaultSpan = time.Second - time.Nanosecond
-		cacher, err := mapTimeCache.NewMapTimeCache(arg)
+		cacher, err := timecache.NewTimeCacher(arg)
 		assert.Nil(t, cacher)
 		assert.Equal(t, storage.ErrInvalidDefaultSpan, err)
 	})
 	t.Run("invalid CacheExpiry should error", func(t *testing.T) {
 		t.Parallel()
 
-		arg := createArgMapTimeCache()
+		arg := createArgTimeCacher()
 		arg.CacheExpiry = time.Second - time.Nanosecond
-		cacher, err := mapTimeCache.NewMapTimeCache(arg)
+		cacher, err := timecache.NewTimeCacher(arg)
 		assert.Nil(t, cacher)
 		assert.Equal(t, storage.ErrInvalidCacheExpiry, err)
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		cacher, err := mapTimeCache.NewMapTimeCache(createArgMapTimeCache())
+		cacher, err := timecache.NewTimeCacher(createArgTimeCacher())
 		assert.Nil(t, err)
 		assert.False(t, cacher.IsInterfaceNil())
 	})
 }
 
-func TestMapTimeCacher_Clear(t *testing.T) {
+func TestTimeCacher_Clear(t *testing.T) {
 	t.Parallel()
 
-	cacher, _ := mapTimeCache.NewMapTimeCache(createArgMapTimeCache())
+	cacher, _ := timecache.NewTimeCacher(createArgTimeCacher())
 	assert.False(t, cacher.IsInterfaceNil())
 
 	numOfPairs := 3
@@ -78,20 +79,20 @@ func TestMapTimeCacher_Clear(t *testing.T) {
 	assert.Equal(t, 0, cacher.Len())
 }
 
-func TestMapTimeCacher_Close(t *testing.T) {
+func TestTimeCacher_Close(t *testing.T) {
 	t.Parallel()
 
-	cacher, _ := mapTimeCache.NewMapTimeCache(createArgMapTimeCache())
+	cacher, _ := timecache.NewTimeCacher(createArgTimeCacher())
 	assert.False(t, cacher.IsInterfaceNil())
 
 	err := cacher.Close()
 	assert.Nil(t, err)
 }
 
-func TestMapTimeCacher_Get(t *testing.T) {
+func TestTimeCacher_Get(t *testing.T) {
 	t.Parallel()
 
-	cacher, _ := mapTimeCache.NewMapTimeCache(createArgMapTimeCache())
+	cacher, _ := timecache.NewTimeCacher(createArgTimeCacher())
 	assert.False(t, cacher.IsInterfaceNil())
 
 	providedKey, providedVal := []byte("key"), []byte("val")
@@ -106,10 +107,10 @@ func TestMapTimeCacher_Get(t *testing.T) {
 	assert.Nil(t, v)
 }
 
-func TestMapTimeCacher_Has(t *testing.T) {
+func TestTimeCacher_Has(t *testing.T) {
 	t.Parallel()
 
-	cacher, _ := mapTimeCache.NewMapTimeCache(createArgMapTimeCache())
+	cacher, _ := timecache.NewTimeCacher(createArgTimeCacher())
 	assert.False(t, cacher.IsInterfaceNil())
 
 	providedKey, providedVal := []byte("key"), []byte("val")
@@ -119,10 +120,10 @@ func TestMapTimeCacher_Has(t *testing.T) {
 	assert.False(t, cacher.Has([]byte("missing key")))
 }
 
-func TestMapTimeCacher_HasOrAdd(t *testing.T) {
+func TestTimeCacher_HasOrAdd(t *testing.T) {
 	t.Parallel()
 
-	cacher, _ := mapTimeCache.NewMapTimeCache(createArgMapTimeCache())
+	cacher, _ := timecache.NewTimeCacher(createArgTimeCacher())
 	assert.False(t, cacher.IsInterfaceNil())
 
 	providedKey, providedVal := []byte("key"), []byte("val")
@@ -135,10 +136,10 @@ func TestMapTimeCacher_HasOrAdd(t *testing.T) {
 	assert.False(t, added)
 }
 
-func TestMapTimeCacher_Keys(t *testing.T) {
+func TestTimeCacher_Keys(t *testing.T) {
 	t.Parallel()
 
-	cacher, _ := mapTimeCache.NewMapTimeCache(createArgMapTimeCache())
+	cacher, _ := timecache.NewTimeCacher(createArgTimeCacher())
 	assert.False(t, cacher.IsInterfaceNil())
 
 	numOfPairs := 10
@@ -159,13 +160,13 @@ func TestMapTimeCacher_Keys(t *testing.T) {
 	assert.Equal(t, providedKeys, receivedKeys)
 }
 
-func TestMapTimeCacher_Evicted(t *testing.T) {
+func TestTimeCacher_Evicted(t *testing.T) {
 	t.Parallel()
 
-	arg := createArgMapTimeCache()
+	arg := createArgTimeCacher()
 	arg.CacheExpiry = 2 * time.Second
 	arg.DefaultSpan = time.Second
-	cacher, _ := mapTimeCache.NewMapTimeCache(arg)
+	cacher, _ := timecache.NewTimeCacher(arg)
 	assert.False(t, cacher.IsInterfaceNil())
 
 	numOfPairs := 2
@@ -181,10 +182,10 @@ func TestMapTimeCacher_Evicted(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestMapTimeCacher_Peek(t *testing.T) {
+func TestTimeCacher_Peek(t *testing.T) {
 	t.Parallel()
 
-	cacher, _ := mapTimeCache.NewMapTimeCache(createArgMapTimeCache())
+	cacher, _ := timecache.NewTimeCacher(createArgTimeCacher())
 	assert.False(t, cacher.IsInterfaceNil())
 
 	providedKey, providedVal := []byte("key"), []byte("val")
@@ -199,10 +200,10 @@ func TestMapTimeCacher_Peek(t *testing.T) {
 	assert.Nil(t, v)
 }
 
-func TestMapTimeCacher_Put(t *testing.T) {
+func TestTimeCacher_Put(t *testing.T) {
 	t.Parallel()
 
-	cacher, _ := mapTimeCache.NewMapTimeCache(createArgMapTimeCache())
+	cacher, _ := timecache.NewTimeCacher(createArgTimeCacher())
 	assert.False(t, cacher.IsInterfaceNil())
 
 	numOfPairs := 2
@@ -215,7 +216,7 @@ func TestMapTimeCacher_Put(t *testing.T) {
 	assert.Equal(t, 1, cacher.Len())
 }
 
-func TestMapTimeCacher_Remove(t *testing.T) {
+func TestTimeCacher_Remove(t *testing.T) {
 	t.Parallel()
 
 	defer func() {
@@ -224,7 +225,7 @@ func TestMapTimeCacher_Remove(t *testing.T) {
 		}
 	}()
 
-	cacher, _ := mapTimeCache.NewMapTimeCache(createArgMapTimeCache())
+	cacher, _ := timecache.NewTimeCacher(createArgTimeCacher())
 	assert.False(t, cacher.IsInterfaceNil())
 
 	providedKey, providedVal := []byte("key"), []byte("val")
@@ -240,22 +241,19 @@ func TestMapTimeCacher_Remove(t *testing.T) {
 	cacher.Remove(providedKey)
 }
 
-func TestMapTimeCacher_SizeInBytesContained(t *testing.T) {
+func TestTimeCacher_SizeInBytesContained(t *testing.T) {
 	t.Parallel()
 
-	cacher, _ := mapTimeCache.NewMapTimeCache(createArgMapTimeCache())
+	cacher, _ := timecache.NewTimeCacher(createArgTimeCacher())
 	assert.False(t, cacher.IsInterfaceNil())
 
 	providedKey, providedVal := []byte("key"), []byte("val")
 	cacher.Put(providedKey, providedVal, len(providedVal))
 
-	b := new(bytes.Buffer)
-	err := gob.NewEncoder(b).Encode(providedVal)
-	assert.Nil(t, err)
-	assert.Equal(t, uint64(b.Len()), cacher.SizeInBytesContained())
+	assert.Zero(t, cacher.SizeInBytesContained())
 }
 
-func TestMapTimeCacher_RegisterHandler(t *testing.T) {
+func TestTimeCacher_RegisterHandler(t *testing.T) {
 	t.Parallel()
 
 	defer func() {
@@ -264,12 +262,12 @@ func TestMapTimeCacher_RegisterHandler(t *testing.T) {
 		}
 	}()
 
-	cacher, _ := mapTimeCache.NewMapTimeCache(createArgMapTimeCache())
+	cacher, _ := timecache.NewTimeCacher(createArgTimeCacher())
 	assert.False(t, cacher.IsInterfaceNil())
 	cacher.RegisterHandler(func(key []byte, value interface{}) {}, "0")
 }
 
-func TestMapTimeCacher_UnRegisterHandler(t *testing.T) {
+func TestTimeCacher_UnRegisterHandler(t *testing.T) {
 	t.Parallel()
 
 	defer func() {
@@ -278,15 +276,74 @@ func TestMapTimeCacher_UnRegisterHandler(t *testing.T) {
 		}
 	}()
 
-	cacher, _ := mapTimeCache.NewMapTimeCache(createArgMapTimeCache())
+	cacher, _ := timecache.NewTimeCacher(createArgTimeCacher())
 	assert.False(t, cacher.IsInterfaceNil())
 	cacher.UnRegisterHandler("0")
 }
 
-func TestMapTimeCacher_MaxSize(t *testing.T) {
+func TestTimeCacher_MaxSize(t *testing.T) {
 	t.Parallel()
 
-	cacher, _ := mapTimeCache.NewMapTimeCache(createArgMapTimeCache())
+	cacher, _ := timecache.NewTimeCacher(createArgTimeCacher())
 	assert.False(t, cacher.IsInterfaceNil())
 	assert.Equal(t, math.MaxInt32, cacher.MaxSize())
+}
+
+func TestTimeCacher_ConcurrentOperations(t *testing.T) {
+	t.Parallel()
+
+	tc, _ := timecache.NewTimeCacher(createArgTimeCacher())
+	numOperations := 1000
+	wg := &sync.WaitGroup{}
+	wg.Add(numOperations)
+	for i := 0; i < numOperations; i++ {
+		go func(idx int) {
+			time.Sleep(time.Millisecond * 10)
+
+			switch idx % 14 {
+			case 0:
+				tc.Clear()
+			case 1:
+				_ = tc.Put(createKeyByteSlice(idx), createValueByteSlice(idx), 0)
+			case 2:
+				_, _ = tc.Get(createKeyByteSlice(idx))
+			case 3:
+				_ = tc.Has([]byte(fmt.Sprintf("key%d", idx)))
+			case 4:
+				_, _ = tc.Peek(createKeyByteSlice(idx))
+			case 5:
+				_, _ = tc.HasOrAdd(createKeyByteSlice(idx), createValueByteSlice(idx), 0)
+			case 6:
+				tc.Remove(createKeyByteSlice(idx))
+			case 7:
+				_ = tc.Keys()
+			case 8:
+				_ = tc.Len()
+			case 9:
+				_ = tc.SizeInBytesContained()
+			case 10:
+				_ = tc.MaxSize()
+			case 11:
+				tc.RegisterHandler(nil, "")
+			case 12:
+				tc.UnRegisterHandler("")
+			case 13:
+				_ = tc.Close()
+			default:
+				assert.Fail(t, "test setup error, change this line 'switch idx%6{'")
+			}
+
+			wg.Done()
+		}(i)
+	}
+
+	wg.Wait()
+}
+
+func createKeyByteSlice(index int) []byte {
+	return []byte(fmt.Sprintf("key%d", index))
+}
+
+func createValueByteSlice(index int) []byte {
+	return []byte(fmt.Sprintf("value%d", index))
 }
