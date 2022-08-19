@@ -31,6 +31,46 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestDelegationSystemNodesOperationsTest(t *testing.T) {
+	tpn := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
+		MaxShards:            1,
+		NodeShardId:          core.MetachainShardId,
+		TxSignPrivKeyShardId: 0,
+	})
+	tpn.InitDelegationManager()
+	maxDelegationCap := big.NewInt(5000)
+	serviceFee := big.NewInt(1000)
+	value := big.NewInt(1000)
+
+	tpn.BlockchainHook.SetCurrentHeader(&block.MetaBlock{Nonce: 1})
+
+	tpn.EpochNotifier.CheckEpoch(&testscommon.HeaderHandlerStub{
+		EpochField: integrationTests.UnreachableEpoch + 1,
+	})
+
+	// create new delegation contract
+	delegationScAddress := deployNewSc(t, tpn, maxDelegationCap, serviceFee, value, tpn.OwnAccount.Address)
+
+	scrsHandler, _ := tpn.InterimProcContainer.Get(block.SmartContractResultBlock)
+	scrs := scrsHandler.GetAllCurrentFinishedTxs()
+
+	numExpectedScrsFound := 0
+	// we expect the following 2 scrs:
+	// Delegation Manager -> Delegation Contract Address - 1000 EGLD
+	// Delegation Contract Address -> Staking Address - 1000 EGLD
+	for _, scr := range scrs {
+		if bytes.Equal(scr.GetSndAddr(), vm.DelegationManagerSCAddress) && bytes.Equal(scr.GetRcvAddr(), delegationScAddress) && scr.GetValue().Cmp(value) == 0 {
+			numExpectedScrsFound++
+		}
+
+		if bytes.Equal(scr.GetSndAddr(), delegationScAddress) && bytes.Equal(scr.GetRcvAddr(), vm.ValidatorSCAddress) && scr.GetValue().Cmp(value) == 0 {
+			numExpectedScrsFound++
+		}
+	}
+
+	assert.Equal(t, 2, numExpectedScrsFound)
+}
+
 func TestDelegationSystemNodesOperations(t *testing.T) {
 	tpn := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
 		MaxShards:            1,
