@@ -264,6 +264,7 @@ type EnableEpochsHandler interface {
 	IsCheckTransferFlagEnabled() bool
 	IsTransferToMetaFlagEnabled() bool
 	IsESDTNFTImprovementV1FlagEnabled() bool
+	IsSetSenderInEeiOutputTransferFlagEnabled() bool
 
 	IsInterfaceNil() bool
 }

@@ -17,10 +17,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
-	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/mock"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -373,7 +371,8 @@ func TestStakingValidatorSC_ExecuteStakeAddedNewPubKeysShouldWork(t *testing.T) 
 	args := createMockArgumentsForValidatorSC()
 
 	atArgParser := parsers.NewCallArgsParser()
-	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), atArgParser, &stateMock.AccountsStub{}, &mock.RaterMock{})
+	eei := createDefaultEei()
+	eei.inputParser = atArgParser
 
 	argsStaking := createMockStakingScArguments()
 	argsStaking.StakingSCConfig.GenesisNodePrice = "10000000"
@@ -409,7 +408,8 @@ func TestStakingValidatorSC_ExecuteStakeDoubleKeyAndCleanup(t *testing.T) {
 	args := createMockArgumentsForValidatorSC()
 
 	atArgParser := parsers.NewCallArgsParser()
-	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), atArgParser, &stateMock.AccountsStub{}, &mock.RaterMock{})
+	eei := createDefaultEei()
+	eei.inputParser = atArgParser
 
 	argsStaking := createMockStakingScArguments()
 	argsStaking.StakingSCConfig.GenesisNodePrice = "10000000"
@@ -457,11 +457,11 @@ func TestStakingValidatorSC_ExecuteStakeWithRewardAddress(t *testing.T) {
 	stakerAddress := []byte("staker1")
 	stakerPubKey := []byte("stakerBLSPubKey")
 
-	blockChainHook := &mock.BlockChainHookStub{}
 	args := createMockArgumentsForValidatorSC()
 
 	atArgParser := parsers.NewCallArgsParser()
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), atArgParser, &stateMock.AccountsStub{}, &mock.RaterMock{})
+	eei := createDefaultEei()
+	eei.inputParser = atArgParser
 
 	argsStaking := createMockStakingScArguments()
 	argsStaking.StakingSCConfig.GenesisNodePrice = "10000000"
@@ -501,11 +501,11 @@ func TestStakingValidatorSC_ExecuteStakeUnJail(t *testing.T) {
 	stakerAddress := []byte("address")
 	stakerPubKey := []byte("blsPubKey")
 
-	blockChainHook := &mock.BlockChainHookStub{}
 	args := createMockArgumentsForValidatorSC()
 
 	atArgParser := parsers.NewCallArgsParser()
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), atArgParser, &stateMock.AccountsStub{}, &mock.RaterMock{})
+	eei := createDefaultEei()
+	eei.inputParser = atArgParser
 
 	argsStaking := createMockStakingScArguments()
 	argsStaking.StakingSCConfig.GenesisNodePrice = "10000000"
@@ -594,11 +594,11 @@ func TestStakingValidatorSC_ExecuteStakeStakeClaim(t *testing.T) {
 	stakerAddress := big.NewInt(100)
 	stakerPubKey := big.NewInt(100)
 
-	blockChainHook := &mock.BlockChainHookStub{}
 	args := createMockArgumentsForValidatorSC()
 
 	atArgParser := parsers.NewCallArgsParser()
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), atArgParser, &stateMock.AccountsStub{}, &mock.RaterMock{})
+	eei := createDefaultEei()
+	eei.inputParser = atArgParser
 
 	argsStaking := createMockStakingScArguments()
 	argsStaking.StakingSCConfig.GenesisNodePrice = "10000000"
@@ -665,7 +665,9 @@ func TestStakingValidatorSC_ExecuteStakeStakeTokensUnBondRestakeUnStake(t *testi
 	enableEpochsHandler.IsStakingV2FlagEnabledField = true
 
 	atArgParser := parsers.NewCallArgsParser()
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), atArgParser, &stateMock.AccountsStub{}, &mock.RaterMock{})
+	eei := createDefaultEei()
+	eei.blockChainHook = blockChainHook
+	eei.inputParser = atArgParser
 
 	argsStaking := createMockStakingScArguments()
 	argsStaking.StakingSCConfig.GenesisNodePrice = "10000000"
@@ -777,7 +779,9 @@ func TestStakingValidatorSC_ExecuteStakeUnStakeStakeClaim(t *testing.T) {
 	args := createMockArgumentsForValidatorSC()
 
 	atArgParser := parsers.NewCallArgsParser()
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), atArgParser, &stateMock.AccountsStub{}, &mock.RaterMock{})
+	eei := createDefaultEei()
+	eei.blockChainHook = blockChainHook
+	eei.inputParser = atArgParser
 
 	argsStaking := createMockStakingScArguments()
 	argsStaking.StakingSCConfig.GenesisNodePrice = "10000000"
@@ -839,11 +843,11 @@ func TestStakingValidatorSC_ExecuteStakeUnStakeOneBlsPubKeyAndRestake(t *testing
 	stakerAddress := big.NewInt(100)
 	stakerPubKey := big.NewInt(100)
 
-	blockChainHook := &mock.BlockChainHookStub{}
 	args := createMockArgumentsForValidatorSC()
 
 	atArgParser := parsers.NewCallArgsParser()
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), atArgParser, &stateMock.AccountsStub{}, &mock.RaterMock{})
+	eei := createDefaultEei()
+	eei.inputParser = atArgParser
 
 	argsStaking := createMockStakingScArguments()
 	argsStaking.StakingSCConfig.GenesisNodePrice = "10000000"
@@ -919,7 +923,9 @@ func TestStakingValidatorSC_ExecuteStakeUnStake1Stake1More(t *testing.T) {
 	args := createMockArgumentsForValidatorSC()
 
 	atArgParser := parsers.NewCallArgsParser()
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), atArgParser, &stateMock.AccountsStub{}, &mock.RaterMock{})
+	eei := createDefaultEei()
+	eei.blockChainHook = blockChainHook
+	eei.inputParser = atArgParser
 
 	argsStaking := createMockStakingScArguments()
 	argsStaking.StakingSCConfig.GenesisNodePrice = "10000000"
@@ -1019,7 +1025,9 @@ func TestStakingValidatorSC_ExecuteStakeUnStakeUnBondUnStakeUnBondOneBlsPubKey(t
 	args := createMockArgumentsForValidatorSC()
 
 	atArgParser := parsers.NewCallArgsParser()
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), atArgParser, &stateMock.AccountsStub{}, &mock.RaterMock{})
+	eei := createDefaultEei()
+	eei.blockChainHook = blockChainHook
+	eei.inputParser = atArgParser
 
 	argsStaking := createMockStakingScArguments()
 	argsStaking.StakingSCConfig.GenesisNodePrice = "10000000"
@@ -1117,7 +1125,9 @@ func TestStakingValidatorSC_StakeUnStake3XUnBond2xWaitingList(t *testing.T) {
 	args := createMockArgumentsForValidatorSC()
 	args.StakingSCConfig.MaxNumberOfNodesForStake = 1
 	atArgParser := parsers.NewCallArgsParser()
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), atArgParser, &stateMock.AccountsStub{}, &mock.RaterMock{})
+	eei := createDefaultEei()
+	eei.blockChainHook = blockChainHook
+	eei.inputParser = atArgParser
 
 	argsStaking := createMockStakingScArguments()
 	argsStaking.StakingSCConfig.GenesisNodePrice = "10000000"
@@ -1201,7 +1211,9 @@ func TestStakingValidatorSC_StakeUnStake3XRestake2(t *testing.T) {
 	enableEpochsHandler, _ := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
 	enableEpochsHandler.IsStakingV2FlagEnabledField = true
 	atArgParser := parsers.NewCallArgsParser()
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), atArgParser, &stateMock.AccountsStub{}, &mock.RaterMock{})
+	eei := createDefaultEei()
+	eei.blockChainHook = blockChainHook
+	eei.inputParser = atArgParser
 
 	argsStaking := createMockStakingScArguments()
 	argsStaking.StakingSCConfig.GenesisNodePrice = "10000000"
@@ -1271,7 +1283,6 @@ func TestStakingValidatorSC_StakeShouldSetOwnerIfStakingV2IsEnabled(t *testing.T
 	ownerAddress := []byte("owner")
 	blsKey := []byte("blsKey")
 
-	blockChainHook := &mock.BlockChainHookStub{}
 	args := createMockArgumentsForValidatorSC()
 	enableEpochsHandler, _ := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
 	enableEpochsHandler.IsStakingV2FlagEnabledField = true
@@ -1280,7 +1291,8 @@ func TestStakingValidatorSC_StakeShouldSetOwnerIfStakingV2IsEnabled(t *testing.T
 
 	argsStaking := createMockStakingScArguments()
 	argsStaking.StakingSCConfig.GenesisNodePrice = "10000000"
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), atArgParser, &stateMock.AccountsStub{}, &mock.RaterMock{})
+	eei := createDefaultEei()
+	eei.inputParser = atArgParser
 	argsStaking.Eei = eei
 	eei.SetSCAddress(args.ValidatorSCAddress)
 	argsStaking.StakingSCConfig.UnBondPeriod = 100000
@@ -1316,11 +1328,11 @@ func TestStakingValidatorSC_ExecuteStakeChangeRewardAddresStakeUnStake(t *testin
 	stakerAddress := []byte("staker111")
 	stakerPubKey := []byte("bls1")
 
-	blockChainHook := &mock.BlockChainHookStub{}
 	args := createMockArgumentsForValidatorSC()
 
 	atArgParser := parsers.NewCallArgsParser()
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), atArgParser, &stateMock.AccountsStub{}, &mock.RaterMock{})
+	eei := createDefaultEei()
+	eei.inputParser = atArgParser
 
 	argsStaking := createMockStakingScArguments()
 	argsStaking.StakingSCConfig.GenesisNodePrice = "10000000"
@@ -1396,7 +1408,9 @@ func TestStakingValidatorSC_ExecuteStakeUnStakeUnBondBlsPubKeyAndReStake(t *test
 	args := createMockArgumentsForValidatorSC()
 
 	atArgParser := parsers.NewCallArgsParser()
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), atArgParser, &stateMock.AccountsStub{}, &mock.RaterMock{})
+	eei := createDefaultEei()
+	eei.blockChainHook = blockChainHook
+	eei.inputParser = atArgParser
 
 	argsStaking := createMockStakingScArguments()
 	argsStaking.StakingSCConfig.GenesisNodePrice = "10000000"
@@ -1505,7 +1519,7 @@ func TestStakingValidatorSC_ExecuteUnBond(t *testing.T) {
 func TestValidatorStakingSC_ExecuteInit(t *testing.T) {
 	t.Parallel()
 
-	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), parsers.NewCallArgsParser(), &stateMock.AccountsStub{}, &mock.RaterMock{})
+	eei := createDefaultEei()
 	eei.SetSCAddress([]byte("addr"))
 
 	args := createMockArgumentsForValidatorSC()
@@ -1530,7 +1544,7 @@ func TestValidatorStakingSC_ExecuteInit(t *testing.T) {
 func TestValidatorStakingSC_ExecuteInitTwoTimeShouldReturnUserError(t *testing.T) {
 	t.Parallel()
 
-	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), parsers.NewCallArgsParser(), &stateMock.AccountsStub{}, &mock.RaterMock{})
+	eei := createDefaultEei()
 	eei.SetSCAddress([]byte("addr"))
 
 	args := createMockArgumentsForValidatorSC()
@@ -1555,7 +1569,9 @@ func TestValidatorStakingSC_ExecuteStakeOutOfGasShouldErr(t *testing.T) {
 			return 2
 		},
 	}
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), parsers.NewCallArgsParser(), &stateMock.AccountsStub{}, &mock.RaterMock{})
+	eei := createDefaultEei()
+	eei.blockChainHook = blockChainHook
+	eei.inputParser = parsers.NewCallArgsParser()
 	eei.SetSCAddress([]byte("addr"))
 
 	args := createMockArgumentsForValidatorSC()
@@ -1581,7 +1597,9 @@ func TestValidatorStakingSC_ExecuteStakeWrongStakeValueShouldErr(t *testing.T) {
 			return nil, state.ErrAccNotFound
 		},
 	}
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), parsers.NewCallArgsParser(), &stateMock.AccountsStub{}, &mock.RaterMock{})
+	eei := createDefaultEei()
+	eei.blockChainHook = blockChainHook
+	eei.inputParser = parsers.NewCallArgsParser()
 	eei.SetSCAddress([]byte("addr"))
 
 	args := createMockArgumentsForValidatorSC()
@@ -1632,7 +1650,7 @@ func TestValidatorStakingSC_ExecuteStakeAlreadyStakedShouldNotErr(t *testing.T) 
 		StakeValue:    nil,
 	}
 
-	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), parsers.NewCallArgsParser(), &stateMock.AccountsStub{}, &mock.RaterMock{})
+	eei := createDefaultEei()
 	eei.SetSCAddress([]byte("addr"))
 	args := createMockArgumentsForValidatorSC()
 	args.Eei = eei
@@ -1700,7 +1718,7 @@ func TestValidatorStakingSC_ExecuteStakeStakedInStakingButNotInValidatorShouldEr
 		StakeValue:    nil,
 	}
 
-	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), parsers.NewCallArgsParser(), &stateMock.AccountsStub{}, &mock.RaterMock{})
+	eei := createDefaultEei()
 	eei.SetSCAddress([]byte("addr"))
 	args := createMockArgumentsForValidatorSC()
 	args.Eei = eei
@@ -1762,7 +1780,7 @@ func TestValidatorStakingSC_ExecuteStakeWithMaxStakePerNode(t *testing.T) {
 	stakerBlsKey1 := big.NewInt(101)
 	expectedCallerAddress := []byte("caller")
 
-	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), parsers.NewCallArgsParser(), &stateMock.AccountsStub{}, &mock.RaterMock{})
+	eei := createDefaultEei()
 	eei.SetSCAddress([]byte("addr"))
 	args := createMockArgumentsForValidatorSC()
 	args.Eei = eei
@@ -1842,8 +1860,8 @@ func TestValidatorStakingSC_ExecuteStakeNotEnoughFundsForMultipleNodesShouldErr(
 	stakerPubKey2 := big.NewInt(102)
 	args := createMockArgumentsForValidatorSC()
 
-	blockChainHook := &mock.BlockChainHookStub{}
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), parsers.NewCallArgsParser(), &stateMock.AccountsStub{}, &mock.RaterMock{})
+	eei := createDefaultEei()
+	eei.inputParser = parsers.NewCallArgsParser()
 
 	argsStaking := createMockStakingScArguments()
 	argsStaking.StakingSCConfig = args.StakingSCConfig
@@ -1886,7 +1904,9 @@ func TestValidatorStakingSC_ExecuteStakeNotEnoughGasForMultipleNodesShouldErr(t 
 			return nil, state.ErrAccNotFound
 		},
 	}
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), parsers.NewCallArgsParser(), &stateMock.AccountsStub{}, &mock.RaterMock{})
+	eei := createDefaultEei()
+	eei.blockChainHook = blockChainHook
+	eei.inputParser = parsers.NewCallArgsParser()
 
 	argsStaking := createMockStakingScArguments()
 	argsStaking.StakingSCConfig = args.StakingSCConfig
@@ -1932,7 +1952,9 @@ func TestValidatorStakingSC_ExecuteStakeOneKeyFailsOneRegisterStakeSCShouldErr(t
 	nodePrice, _ := big.NewInt(0).SetString(args.StakingSCConfig.GenesisNodePrice, 10)
 
 	atArgParser := parsers.NewCallArgsParser()
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), atArgParser, &stateMock.AccountsStub{}, &mock.RaterMock{})
+	eei := createDefaultEei()
+	eei.blockChainHook = blockChainHook
+	eei.inputParser = atArgParser
 
 	argsStaking := createMockStakingScArguments()
 	argsStaking.StakingSCConfig = args.StakingSCConfig
@@ -1999,8 +2021,9 @@ func TestValidatorStakingSC_ExecuteStakeBeforeValidatorEnableNonce(t *testing.T)
 		NumRegistered:   1,
 	}
 
-	atArgParser := parsers.NewCallArgsParser()
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), atArgParser, &stateMock.AccountsStub{}, &mock.RaterMock{})
+	eei := createDefaultEei()
+	eei.blockChainHook = blockChainHook
+	eei.inputParser = parsers.NewCallArgsParser()
 
 	argsStaking := createMockStakingScArguments()
 	argsStaking.StakingSCConfig = args.StakingSCConfig
@@ -2051,8 +2074,9 @@ func TestValidatorStakingSC_ExecuteStake(t *testing.T) {
 		NumRegistered:   1,
 	}
 
-	atArgParser := parsers.NewCallArgsParser()
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), atArgParser, &stateMock.AccountsStub{}, &mock.RaterMock{})
+	eei := createDefaultEei()
+	eei.blockChainHook = blockChainHook
+	eei.inputParser = parsers.NewCallArgsParser()
 
 	argsStaking := createMockStakingScArguments()
 	argsStaking.StakingSCConfig = args.StakingSCConfig
@@ -2152,7 +2176,7 @@ func TestValidatorStakingSC_ExecuteUnStakeAlreadyUnStakedAddrShouldNotErr(t *tes
 		StakeValue:    nil,
 	}
 
-	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), parsers.NewCallArgsParser(), &stateMock.AccountsStub{}, &mock.RaterMock{})
+	eei := createDefaultEei()
 	eei.SetSCAddress([]byte("addr"))
 	args := createMockArgumentsForValidatorSC()
 	args.Eei = eei
@@ -2210,7 +2234,7 @@ func TestValidatorStakingSC_ExecuteUnStakeFailsWithWrongCaller(t *testing.T) {
 		StakeValue:    nil,
 	}
 
-	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), parsers.NewCallArgsParser(), &stateMock.AccountsStub{}, &mock.RaterMock{})
+	eei := createDefaultEei()
 	eei.SetSCAddress([]byte("addr"))
 	args := createMockArgumentsForValidatorSC()
 	args.Eei = eei
@@ -2252,8 +2276,8 @@ func TestValidatorStakingSC_ExecuteUnStake(t *testing.T) {
 		StakeValue:    nil,
 	}
 
-	atArgParser := parsers.NewCallArgsParser()
-	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), atArgParser, &stateMock.AccountsStub{}, &mock.RaterMock{})
+	eei := createDefaultEei()
+	eei.inputParser = parsers.NewCallArgsParser()
 
 	argsStaking := createMockStakingScArguments()
 	argsStaking.StakingSCConfig = args.StakingSCConfig
@@ -2542,11 +2566,13 @@ func TestValidatorStakingSC_ExecuteUnBond(t *testing.T) {
 
 	marshalizedStakedData, _ := json.Marshal(&stakedData)
 	atArgParser := parsers.NewCallArgsParser()
-	eei, _ := NewVMContext(&mock.BlockChainHookStub{
+	eei := createDefaultEei()
+	eei.blockChainHook = &mock.BlockChainHookStub{
 		CurrentNonceCalled: func() uint64 {
 			return unStakedNonce + unBondPeriod + 1
 		},
-	}, hooks.NewVMCryptoHook(), atArgParser, &stateMock.AccountsStub{}, &mock.RaterMock{})
+	}
+	eei.inputParser = atArgParser
 
 	scAddress := []byte("owner")
 	eei.SetSCAddress(scAddress)
@@ -2630,7 +2656,9 @@ func TestValidatorStakingSC_ExecuteUnStakeAndUnBondStake(t *testing.T) {
 	stakerPubKey := []byte("pubKey")
 	blockChainHook := &mock.BlockChainHookStub{}
 	atArgParser := parsers.NewCallArgsParser()
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), atArgParser, &stateMock.AccountsStub{}, &mock.RaterMock{})
+	eei := createDefaultEei()
+	eei.blockChainHook = blockChainHook
+	eei.inputParser = atArgParser
 
 	smartcontractAddress := "validator"
 	eei.SetSCAddress([]byte(smartcontractAddress))
@@ -2739,7 +2767,7 @@ func TestValidatorStakingSC_ExecuteGetShouldReturnUserErr(t *testing.T) {
 
 	arguments := CreateVmContractCallInput()
 	arguments.Function = "get"
-	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), parsers.NewCallArgsParser(), &stateMock.AccountsStub{}, &mock.RaterMock{})
+	eei := createDefaultEei()
 	args := createMockArgumentsForValidatorSC()
 	args.Eei = eei
 
@@ -2755,7 +2783,7 @@ func TestValidatorStakingSC_ExecuteGetShouldOk(t *testing.T) {
 	arguments := CreateVmContractCallInput()
 	arguments.Function = "get"
 	arguments.Arguments = [][]byte{arguments.CallerAddr}
-	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), parsers.NewCallArgsParser(), &stateMock.AccountsStub{}, &mock.RaterMock{})
+	eei := createDefaultEei()
 	args := createMockArgumentsForValidatorSC()
 	args.Eei = eei
 
@@ -4390,7 +4418,9 @@ func TestStakingValidatorSC_UnStakeUnBondFromWaitingList(t *testing.T) {
 		},
 	}
 	atArgParser := parsers.NewCallArgsParser()
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), atArgParser, &stateMock.AccountsStub{}, &mock.RaterMock{})
+	eei := createDefaultEei()
+	eei.blockChainHook = blockChainHook
+	eei.inputParser = atArgParser
 
 	argsStaking := createMockStakingScArguments()
 	argsStaking.StakingSCConfig.GenesisNodePrice = "10000000"
@@ -4467,7 +4497,9 @@ func TestStakingValidatorSC_StakeUnStakeUnBondTokensNoNodes(t *testing.T) {
 		},
 	}
 	atArgParser := parsers.NewCallArgsParser()
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), atArgParser, &stateMock.AccountsStub{}, &mock.RaterMock{})
+	eei := createDefaultEei()
+	eei.blockChainHook = blockChainHook
+	eei.inputParser = atArgParser
 
 	argsStaking := createMockStakingScArguments()
 	argsStaking.StakingSCConfig.GenesisNodePrice = "10000000"
@@ -4770,7 +4802,9 @@ func TestStakingValidatorSC_checkInputArgsForValidatorToDelegationErrors(t *test
 
 	blockChainHook := &mock.BlockChainHookStub{}
 	atArgParser := parsers.NewCallArgsParser()
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), atArgParser, &stateMock.AccountsStub{}, &mock.RaterMock{})
+	eei := createDefaultEei()
+	eei.blockChainHook = blockChainHook
+	eei.inputParser = atArgParser
 	args := createMockArgumentsForValidatorSC()
 	args.Eei = eei
 	enableEpochsHandler, _ := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
@@ -4834,7 +4868,9 @@ func TestStakingValidatorSC_getAndValidateRegistrationDataErrors(t *testing.T) {
 
 	blockChainHook := &mock.BlockChainHookStub{}
 	atArgParser := parsers.NewCallArgsParser()
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), atArgParser, &stateMock.AccountsStub{}, &mock.RaterMock{})
+	eei := createDefaultEei()
+	eei.blockChainHook = blockChainHook
+	eei.inputParser = atArgParser
 	args := createMockArgumentsForValidatorSC()
 	args.Eei = eei
 
@@ -4904,7 +4940,9 @@ func TestStakingValidatorSC_ChangeOwnerOfValidatorData(t *testing.T) {
 		},
 	}
 	atArgParser := parsers.NewCallArgsParser()
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), atArgParser, &stateMock.AccountsStub{}, &mock.RaterMock{})
+	eei := createDefaultEei()
+	eei.blockChainHook = blockChainHook
+	eei.inputParser = atArgParser
 
 	argsStaking := createMockStakingScArguments()
 	argsStaking.Eei = eei
@@ -5002,7 +5040,9 @@ func TestStakingValidatorSC_MergeValidatorData(t *testing.T) {
 		},
 	}
 	atArgParser := parsers.NewCallArgsParser()
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), atArgParser, &stateMock.AccountsStub{}, &mock.RaterMock{})
+	eei := createDefaultEei()
+	eei.blockChainHook = blockChainHook
+	eei.inputParser = atArgParser
 
 	argsStaking := createMockStakingScArguments()
 	argsStaking.Eei = eei
@@ -5127,7 +5167,9 @@ func TestValidatorSC_getMinUnStakeTokensValueFromDelegationManagerMarshalizerFai
 
 func createVmContextWithStakingSc(stakeValue *big.Int, unboundPeriod uint64, blockChainHook vm.BlockchainHook) *vmContext {
 	atArgParser := parsers.NewCallArgsParser()
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), atArgParser, &stateMock.AccountsStub{}, &mock.RaterMock{})
+	eei := createDefaultEei()
+	eei.blockChainHook = blockChainHook
+	eei.inputParser = atArgParser
 
 	argsStaking := createMockStakingScArguments()
 	argsStaking.StakingSCConfig.GenesisNodePrice = stakeValue.Text(10)
@@ -5145,7 +5187,9 @@ func createVmContextWithStakingSc(stakeValue *big.Int, unboundPeriod uint64, blo
 
 func createVmContextWithStakingScWithRealAddresses(stakeValue *big.Int, unboundPeriod uint64, blockChainHook vm.BlockchainHook) *vmContext {
 	atArgParser := parsers.NewCallArgsParser()
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), atArgParser, &stateMock.AccountsStub{}, &mock.RaterMock{})
+	eei := createDefaultEei()
+	eei.blockChainHook = blockChainHook
+	eei.inputParser = atArgParser
 
 	argsStaking := createMockStakingScArgumentsWithRealSystemScAddresses()
 	argsStaking.StakingSCConfig.GenesisNodePrice = stakeValue.Text(10)
