@@ -2,6 +2,7 @@ package guardedtx
 
 import (
 	"math/big"
+	"strings"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -142,6 +143,21 @@ func TestGuardedTxSigVerifier_VerifyGuardianSignature(t *testing.T) {
 
 		err = gtxSigVerifier.VerifyGuardianSignature(acc, inTx)
 		require.Nil(t, err)
+	})
+	t.Run("wrong type assertion intercepted signed tx", func(t *testing.T) {
+		inTxChanged := &interceptedTxMocks.InterceptedUnsignedTxHandlerStub{
+			TransactionCalled: func() data.TransactionHandler {
+				txCopy := *tx
+				return &txCopy
+			},
+		}
+
+		gtxSigVerifier, err := NewGuardedTxSigVerifier(args)
+		require.Nil(t, err)
+
+		err = gtxSigVerifier.VerifyGuardianSignature(acc, inTxChanged)
+		require.NotNil(t, err)
+		require.True(t, strings.Contains(err.Error(), "InterceptedSignedTransactionHandler"))
 	})
 	t.Run("invalid guardian signature", func(t *testing.T) {
 		gtxSigVerifier, err := NewGuardedTxSigVerifier(args)

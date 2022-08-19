@@ -1,6 +1,8 @@
 package guardedtx
 
 import (
+	"fmt"
+
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
@@ -73,7 +75,7 @@ func (gtx *guardedTxSigVerifier) VerifyGuardianSignature(account vmcommon.UserAc
 
 	inSignedTx, ok := inTx.(process.InterceptedSignedTransactionHandler)
 	if !ok {
-		return process.ErrWrongTypeAssertion
+		return fmt.Errorf("%w to InterceptedSignedTransactionHandler", process.ErrWrongTypeAssertion)
 	}
 
 	msgForSigVerification, err := inSignedTx.GetTxMessageForSignatureVerification()
