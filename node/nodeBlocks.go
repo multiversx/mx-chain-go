@@ -3,9 +3,7 @@ package node
 import (
 	"fmt"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -49,36 +47,20 @@ func (n *Node) getEpochByHash(hash []byte) (uint32, error) {
 
 func (n *Node) getBlockHeaderInEpochByHash(epoch uint32, headerHash []byte) (data.HeaderHandler, error) {
 	shardId := n.processComponents.ShardCoordinator().SelfId()
-
-	var blockHeader data.HeaderHandler
-	var unitType dataRetriever.UnitType
-
-	if shardId == core.MetachainShardId {
-		unitType = dataRetriever.MetaBlockUnit
-	} else {
-		unitType = dataRetriever.BlockHeaderUnit
-	}
-
+	unitType := dataRetriever.GetHeadersDataUnit(shardId)
 	storer := n.dataComponents.StorageService().GetStorer(unitType)
-	data, err := storer.GetFromEpoch(headerHash, epoch)
+
+	headerBuffer, err := storer.GetFromEpoch(headerHash, epoch)
 	if err != nil {
 		return nil, err
 	}
 
-	if shardId == core.MetachainShardId {
-		blockHeader = &block.MetaBlock{}
-		err = n.coreComponents.InternalMarshalizer().Unmarshal(blockHeader, data)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		blockHeader, err = process.CreateShardHeader(n.coreComponents.InternalMarshalizer(), data)
-		if err != nil {
-			return nil, err
-		}
+	header, err := process.CreateHeader(shardId, n.coreComponents.InternalMarshalizer(), headerBuffer)
+	if err != nil {
+		return nil, err
 	}
 
-	return blockHeader, nil
+	return header, nil
 }
 
 func (n *Node) getBlockRootHash(headerHash []byte, header data.HeaderHandler) []byte {

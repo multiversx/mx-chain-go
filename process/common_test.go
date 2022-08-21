@@ -2015,3 +2015,39 @@ func TestCheckIfIndexesAreOutOfBound(t *testing.T) {
 	err = process.CheckIfIndexesAreOutOfBound(indexOfFirstTxToBeProcessed, indexOfLastTxToBeProcessed, miniBlock)
 	assert.Nil(t, err)
 }
+
+func TestCreateHeader(t *testing.T) {
+	marshalizer := &mock.MarshalizerMock{}
+
+	shardHeaderV1 := &block.Header{Nonce: 42, EpochStartMetaHash: []byte{0xaa, 0xbb}}
+	shardHeaderV2 := &block.HeaderV2{Header: &block.Header{Nonce: 43, EpochStartMetaHash: []byte{0xaa, 0xbb}}}
+	metaHeader := &block.MetaBlock{Nonce: 7, ValidatorStatsRootHash: []byte{0xcc, 0xdd}}
+
+	shardHeaderV1Buffer, _ := marshalizer.Marshal(shardHeaderV1)
+	shardHeaderV2Buffer, _ := marshalizer.Marshal(shardHeaderV2)
+	metaHeaderBuffer, _ := marshalizer.Marshal(metaHeader)
+
+	t.Run("should work", func(t *testing.T) {
+		header, err := process.CreateHeader(1, marshalizer, shardHeaderV1Buffer)
+		assert.Nil(t, err)
+		assert.Equal(t, shardHeaderV1, header)
+
+		header, err = process.CreateHeader(1, marshalizer, shardHeaderV2Buffer)
+		assert.Nil(t, err)
+		assert.Equal(t, shardHeaderV2, header)
+
+		header, err = process.CreateHeader(core.MetachainShardId, marshalizer, metaHeaderBuffer)
+		assert.Nil(t, err)
+		assert.Equal(t, metaHeader, header)
+	})
+
+	t.Run("should err", func(t *testing.T) {
+		header, err := process.CreateHeader(1, marshalizer, []byte{0xb, 0xa, 0xd})
+		assert.NotNil(t, err)
+		assert.Nil(t, header)
+
+		header, err = process.CreateHeader(core.MetachainShardId, marshalizer, []byte{0xb, 0xa, 0xd})
+		assert.NotNil(t, err)
+		assert.Nil(t, header)
+	})
+}

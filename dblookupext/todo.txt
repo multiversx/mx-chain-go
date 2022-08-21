@@ -1,0 +1,3 @@
+ - Move the interface "HistoryRepository" where it's needed, not in the package where it's implemented
+ - Move "testscommon/dblookupext/historyRepositoryStub.go" directly to "testscommon". Currently, this cannot be done, since it would result to some cyclic imports (because the data structures used both by the real implementation and the stub reside under "dblookupext").
+ - Move the proto data structures / DTOs to a separate (sub)package, or to elrond-go-core (if appropriate).

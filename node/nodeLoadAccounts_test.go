@@ -139,6 +139,8 @@ func TestNode_AddBlockCoordinatesToAccountQueryOptions(t *testing.T) {
 			BlockRootHash: blockRootHash,
 			BlockNonce:    core.OptionalUint64{Value: 7, HasValue: true},
 			BlockHash:     []byte("ignored"),
+			// Ignored, as well
+			HintEpoch: core.OptionalUint32{Value: 123456, HasValue: true},
 		})
 
 		expectedOptions := api.AccountQueryOptions{
@@ -159,9 +161,10 @@ func TestNode_AddBlockCoordinatesToAccountQueryOptions(t *testing.T) {
 
 		expectedOptions := api.AccountQueryOptions{
 			BlockHash: blockHash,
-			// When "BlockHash" is provided, "BlockNonce" and "BlockRootHash" will be populated in the output, as well
+			// When "BlockHash" is provided, "BlockNonce", "BlockRootHash" and "HintEpoch" will be populated in the output, as well
 			BlockRootHash: blockRootHash,
 			BlockNonce:    core.OptionalUint64{Value: 42, HasValue: true},
+			HintEpoch:     core.OptionalUint32{Value: epoch, HasValue: true},
 		}
 
 		require.Nil(t, err)
@@ -177,9 +180,10 @@ func TestNode_AddBlockCoordinatesToAccountQueryOptions(t *testing.T) {
 
 		expectedOptions := api.AccountQueryOptions{
 			BlockHash: blockHash,
-			// When "BlockHash" is provided, "BlockNonce" and "BlockRootHash" will be populated in the output, as well
+			// When "BlockHash" is provided, "BlockNonce", "BlockRootHash" and "HintEpoch" will be populated in the output, as well
 			BlockRootHash: scheduledBlockRootHash,
 			BlockNonce:    core.OptionalUint64{Value: 42, HasValue: true},
+			HintEpoch:     core.OptionalUint32{Value: epoch, HasValue: true},
 		}
 
 		require.Nil(t, err)
@@ -195,9 +199,10 @@ func TestNode_AddBlockCoordinatesToAccountQueryOptions(t *testing.T) {
 
 		expectedOptions := api.AccountQueryOptions{
 			BlockHash: blockHash,
-			// When "BlockNonce" is provided, "BlockNonce" and "BlockRootHash" will be populated in the output, as well
+			// When "BlockNonce" is provided, "BlockNonce", "BlockRootHash" and "HintEpoch" will be populated in the output, as well
 			BlockRootHash: blockRootHash,
 			BlockNonce:    core.OptionalUint64{Value: 42, HasValue: true},
+			HintEpoch:     core.OptionalUint32{Value: epoch, HasValue: true},
 		}
 
 		require.Nil(t, err)
@@ -213,9 +218,10 @@ func TestNode_AddBlockCoordinatesToAccountQueryOptions(t *testing.T) {
 
 		expectedOptions := api.AccountQueryOptions{
 			BlockHash: blockHash,
-			// When "BlockNonce" is provided, "BlockNonce" and "BlockRootHash" will be populated in the output, as well
+			// When "BlockNonce" is provided, "BlockNonce", "BlockRootHash" and "HintEpoch" will be populated in the output, as well
 			BlockRootHash: scheduledBlockRootHash,
 			BlockNonce:    core.OptionalUint64{Value: 42, HasValue: true},
+			HintEpoch:     core.OptionalUint32{Value: epoch, HasValue: true},
 		}
 
 		require.Nil(t, err)

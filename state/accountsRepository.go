@@ -49,16 +49,15 @@ func (repository *accountsRepository) GetAccountWithBlockInfo(address []byte, op
 		return nil, nil, err
 	}
 
-	convertedOptions, err := repository.convertAccountQueryOptions(options)
-	if err != nil {
-		return nil, nil, err
-	}
-
+	convertedOptions := repository.convertAccountQueryOptions(options)
 	return accountsAdapter.GetAccountWithBlockInfo(address, convertedOptions)
 }
 
-func (repository *accountsRepository) convertAccountQueryOptions(options api.AccountQueryOptions) (common.RootHashHolder, error) {
-	return holders.NewRootHashHolder(options.BlockRootHash), nil
+func (repository *accountsRepository) convertAccountQueryOptions(options api.AccountQueryOptions) common.RootHashHolder {
+	if options.HintEpoch.HasValue {
+		return holders.NewRootHashHolderWithEpoch(options.BlockRootHash, options.HintEpoch.Value)
+	}
+	return holders.NewRootHashHolder(options.BlockRootHash)
 }
 
 // GetCodeWithBlockInfo will return the code with the block info providing the code hash and the query option
@@ -68,11 +67,7 @@ func (repository *accountsRepository) GetCodeWithBlockInfo(codeHash []byte, opti
 		return nil, nil, err
 	}
 
-	convertedOptions, err := repository.convertAccountQueryOptions(options)
-	if err != nil {
-		return nil, nil, err
-	}
-
+	convertedOptions := repository.convertAccountQueryOptions(options)
 	return accountsAdapter.GetCodeWithBlockInfo(codeHash, convertedOptions)
 }
 
