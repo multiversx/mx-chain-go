@@ -309,7 +309,7 @@ func GetShardHeaderFromStorageWithNonce(
 	marshalizer marshal.Marshalizer,
 ) (data.HeaderHandler, []byte, error) {
 
-	hash, err := getHeaderHashFromStorageWithNonce(
+	hash, err := GetHeaderHashFromStorageWithNonce(
 		nonce,
 		storageService,
 		uint64Converter,
@@ -335,7 +335,7 @@ func GetMetaHeaderFromStorageWithNonce(
 	marshalizer marshal.Marshalizer,
 ) (*block.MetaBlock, []byte, error) {
 
-	hash, err := getHeaderHashFromStorageWithNonce(
+	hash, err := GetHeaderHashFromStorageWithNonce(
 		nonce,
 		storageService,
 		uint64Converter,
@@ -544,7 +544,8 @@ func getHeaderFromPoolWithNonce(
 	return headers[len(headers)-1], hashes[len(hashes)-1], nil
 }
 
-func getHeaderHashFromStorageWithNonce(
+// GetHeaderHashFromStorageWithNonce gets a header hash, given a nonce
+func GetHeaderHashFromStorageWithNonce(
 	nonce uint64,
 	storageService dataRetriever.StorageService,
 	uint64Converter typeConverters.Uint64ByteSliceConverter,
