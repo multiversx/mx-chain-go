@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/common/holders"
 	"github.com/ElrondNetwork/elrond-go/node"
@@ -89,28 +90,27 @@ func TestNode_AddBlockCoordinatesToAccountQueryOptions(t *testing.T) {
 	dataComponents := getDefaultDataComponents()
 	processComponents := getDefaultProcessComponents()
 
+	blockHash := []byte("blockHash")
+	blockRootHash := []byte("blockRootHash")
+	scheduledBlockRootHash := []byte("scheduledBlockRootHash")
+
 	blockHeader := &block.Header{
 		Nonce:    42,
-		RootHash: []byte("blockRootHash"),
+		RootHash: blockRootHash,
 	}
+	scheduledSCRs := &scheduled.ScheduledSCRs{
+		RootHash: scheduledBlockRootHash,
+	}
+
 	blockHeaderBytes, _ := coreComponents.InternalMarshalizer().Marshal(blockHeader)
+	scheduledSCRsBytes, _ := coreComponents.InternalMarshalizer().Marshal(scheduledSCRs)
 
 	// Setup storage
 	chainStorerMock := genericMocks.NewChainStorerMock(0)
-	_ = chainStorerMock.BlockHeaders.Put([]byte("blockHash"), blockHeaderBytes)
+	_ = chainStorerMock.BlockHeaders.Put(blockHash, blockHeaderBytes)
 	nonceAsStorerKey := coreComponents.Uint64ByteSliceConverter().ToByteSlice(42)
-	_ = chainStorerMock.ShardHdrNonce.Put(nonceAsStorerKey, []byte("blockHash"))
+	_ = chainStorerMock.ShardHdrNonce.Put(nonceAsStorerKey, blockHash)
 	dataComponents.Store = chainStorerMock
-
-	// Setup scheduled txs
-	getScheduledRootHashForHeaderResult := []byte{}
-	getScheduledRootHashForHeaderError := errors.New("missing")
-	scheduledTxsStub := &testscommon.ScheduledTxsExecutionStub{
-		GetScheduledRootHashForHeaderCalled: func(headerHash []byte) ([]byte, error) {
-			return getScheduledRootHashForHeaderResult, getScheduledRootHashForHeaderError
-		},
-	}
-	processComponents.ScheduledTxsExecutionHandlerInternal = scheduledTxsStub
 
 	n, _ := node.NewNode(
 		node.WithCoreComponents(coreComponents),
@@ -121,13 +121,13 @@ func TestNode_AddBlockCoordinatesToAccountQueryOptions(t *testing.T) {
 
 	t.Run("blockRootHash is set", func(t *testing.T) {
 		options, err := n.AddBlockCoordinatesToAccountQueryOptions(api.AccountQueryOptions{
-			BlockRootHash: []byte("blockRootHash"),
+			BlockRootHash: blockRootHash,
 			BlockNonce:    core.OptionalUint64{Value: 7, HasValue: true},
-			BlockHash:     []byte("bbbb"),
+			BlockHash:     []byte("ignored"),
 		})
 
 		expectedOptions := api.AccountQueryOptions{
-			BlockRootHash: []byte("blockRootHash"),
+			BlockRootHash: blockRootHash,
 			// When "BlockRootHash" is provided, all other coordinates are ignored and reset.
 		}
 
@@ -136,17 +136,16 @@ func TestNode_AddBlockCoordinatesToAccountQueryOptions(t *testing.T) {
 	})
 
 	t.Run("blockHash is set (without scheduled)", func(t *testing.T) {
-		getScheduledRootHashForHeaderResult = []byte{}
-		getScheduledRootHashForHeaderError = errors.New("missing")
+		chainStorerMock.ScheduledSCRs.ClearAll()
 
 		options, err := n.AddBlockCoordinatesToAccountQueryOptions(api.AccountQueryOptions{
-			BlockHash: []byte("blockHash"),
+			BlockHash: blockHash,
 		})
 
 		expectedOptions := api.AccountQueryOptions{
-			BlockHash: []byte("blockHash"),
+			BlockHash: blockHash,
 			// When "BlockHash" is provided, "BlockNonce" and "BlockRootHash" will be populated in the output, as well
-			BlockRootHash: []byte("blockRootHash"),
+			BlockRootHash: blockRootHash,
 			BlockNonce:    core.OptionalUint64{Value: 42, HasValue: true},
 		}
 
@@ -155,17 +154,16 @@ func TestNode_AddBlockCoordinatesToAccountQueryOptions(t *testing.T) {
 	})
 
 	t.Run("blockHash is set (with scheduled)", func(t *testing.T) {
-		getScheduledRootHashForHeaderResult = []byte("scheduledBlockRootHash")
-		getScheduledRootHashForHeaderError = nil
+		_ = chainStorerMock.ScheduledSCRs.Put(blockHash, scheduledSCRsBytes)
 
 		options, err := n.AddBlockCoordinatesToAccountQueryOptions(api.AccountQueryOptions{
-			BlockHash: []byte("blockHash"),
+			BlockHash: blockHash,
 		})
 
 		expectedOptions := api.AccountQueryOptions{
-			BlockHash: []byte("blockHash"),
+			BlockHash: blockHash,
 			// When "BlockHash" is provided, "BlockNonce" and "BlockRootHash" will be populated in the output, as well
-			BlockRootHash: []byte("scheduledBlockRootHash"),
+			BlockRootHash: scheduledBlockRootHash,
 			BlockNonce:    core.OptionalUint64{Value: 42, HasValue: true},
 		}
 
@@ -174,17 +172,16 @@ func TestNode_AddBlockCoordinatesToAccountQueryOptions(t *testing.T) {
 	})
 
 	t.Run("blockNonce is set (without scheduled)", func(t *testing.T) {
-		getScheduledRootHashForHeaderResult = []byte{}
-		getScheduledRootHashForHeaderError = errors.New("missing")
+		chainStorerMock.ScheduledSCRs.ClearAll()
 
 		options, err := n.AddBlockCoordinatesToAccountQueryOptions(api.AccountQueryOptions{
 			BlockNonce: core.OptionalUint64{Value: 42, HasValue: true},
 		})
 
 		expectedOptions := api.AccountQueryOptions{
-			BlockHash: []byte("blockHash"),
+			BlockHash: blockHash,
 			// When "BlockNonce" is provided, "BlockNonce" and "BlockRootHash" will be populated in the output, as well
-			BlockRootHash: []byte("blockRootHash"),
+			BlockRootHash: blockRootHash,
 			BlockNonce:    core.OptionalUint64{Value: 42, HasValue: true},
 		}
 
@@ -193,17 +190,16 @@ func TestNode_AddBlockCoordinatesToAccountQueryOptions(t *testing.T) {
 	})
 
 	t.Run("blockNonce is set (with scheduled)", func(t *testing.T) {
-		getScheduledRootHashForHeaderResult = []byte("scheduledBlockRootHash")
-		getScheduledRootHashForHeaderError = nil
+		_ = chainStorerMock.ScheduledSCRs.Put(blockHash, scheduledSCRsBytes)
 
 		options, err := n.AddBlockCoordinatesToAccountQueryOptions(api.AccountQueryOptions{
 			BlockNonce: core.OptionalUint64{Value: 42, HasValue: true},
 		})
 
 		expectedOptions := api.AccountQueryOptions{
-			BlockHash: []byte("blockHash"),
+			BlockHash: blockHash,
 			// When "BlockNonce" is provided, "BlockNonce" and "BlockRootHash" will be populated in the output, as well
-			BlockRootHash: []byte("scheduledBlockRootHash"),
+			BlockRootHash: scheduledBlockRootHash,
 			BlockNonce:    core.OptionalUint64{Value: 42, HasValue: true},
 		}
 

@@ -186,6 +186,11 @@ func (sm *StorerMock) Remove(_ []byte) error {
 	return errors.New("not implemented")
 }
 
+// ClearAll removes all data from the mock (useful in unit tests)
+func (sm *StorerMock) ClearAll() {
+	sm.DataByEpoch = make(map[uint32]*container.MutexMap)
+}
+
 // ClearCache -
 func (sm *StorerMock) ClearCache() {
 }
