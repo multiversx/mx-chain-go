@@ -16,13 +16,13 @@ import (
 func createMockHdrArgument() *processor.ArgHdrInterceptorProcessor {
 	arg := &processor.ArgHdrInterceptorProcessor{
 		Headers:        &mock.HeadersCacherStub{},
-		BlockBlackList: &mock.BlackListHandlerStub{},
+		BlockBlackList: &testscommon.TimeCacheStub{},
 	}
 
 	return arg
 }
 
-//------- NewHdrInterceptorProcessor
+// ------- NewHdrInterceptorProcessor
 
 func TestNewHdrInterceptorProcessor_NilArgumentShouldErr(t *testing.T) {
 	t.Parallel()
@@ -66,7 +66,7 @@ func TestNewHdrInterceptorProcessor_ShouldWork(t *testing.T) {
 	assert.False(t, hip.IsInterfaceNil())
 }
 
-//------- Validate
+// ------- Validate
 
 func TestHdrInterceptorProcessor_ValidateNilHdrShouldErr(t *testing.T) {
 	t.Parallel()
@@ -82,7 +82,7 @@ func TestHdrInterceptorProcessor_ValidateHeaderIsBlackListedShouldErr(t *testing
 	t.Parallel()
 
 	arg := createMockHdrArgument()
-	arg.BlockBlackList = &mock.BlackListHandlerStub{
+	arg.BlockBlackList = &testscommon.TimeCacheStub{
 		HasCalled: func(key string) bool {
 			return true
 		},
@@ -108,7 +108,7 @@ func TestHdrInterceptorProcessor_ValidateReturnsNil(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockHdrArgument()
-	arg.BlockBlackList = &mock.BlackListHandlerStub{}
+	arg.BlockBlackList = &testscommon.TimeCacheStub{}
 	hip, _ := processor.NewHdrInterceptorProcessor(arg)
 
 	hdrInterceptedData := &struct {
@@ -126,7 +126,7 @@ func TestHdrInterceptorProcessor_ValidateReturnsNil(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-//------- Save
+// ------- Save
 
 func TestHdrInterceptorProcessor_SaveNilDataShouldErr(t *testing.T) {
 	t.Parallel()
@@ -195,7 +195,7 @@ func TestHdrInterceptorProcessor_RegisterHandlerNilHandler(t *testing.T) {
 	assert.Equal(t, 0, len(hip.RegisteredHandlers()))
 }
 
-//------- IsInterfaceNil
+// ------- IsInterfaceNil
 
 func TestHdrInterceptorProcessor_IsInterfaceNil(t *testing.T) {
 	t.Parallel()

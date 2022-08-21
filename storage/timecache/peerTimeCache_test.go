@@ -8,7 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -24,7 +24,7 @@ func TestNewPeerTimeCache_NilTimeCacheShouldErr(t *testing.T) {
 func TestNewPeerTimeCache_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	ptc, err := NewPeerTimeCache(&mock.TimeCacheStub{})
+	ptc, err := NewPeerTimeCache(&testscommon.TimeCacheStub{})
 
 	assert.Nil(t, err)
 	assert.False(t, check.IfNil(ptc))
@@ -38,7 +38,7 @@ func TestPeerTimeCache_Methods(t *testing.T) {
 	updateWasCalled := false
 	hasWasCalled := false
 	sweepWasCalled := false
-	ptc, _ := NewPeerTimeCache(&mock.TimeCacheStub{
+	ptc, _ := NewPeerTimeCache(&testscommon.TimeCacheStub{
 		UpsertCalled: func(key string, span time.Duration) error {
 			if key != string(pid) {
 				return unexpectedErr
