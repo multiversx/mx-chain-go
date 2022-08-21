@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
 	mockState "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -90,12 +91,15 @@ func TestNode_AddBlockCoordinatesToAccountQueryOptions(t *testing.T) {
 	dataComponents := getDefaultDataComponents()
 	processComponents := getDefaultProcessComponents()
 
+	epoch := uint32(7)
 	blockHash := []byte("blockHash")
 	blockRootHash := []byte("blockRootHash")
 	scheduledBlockRootHash := []byte("scheduledBlockRootHash")
+	isDbLookupExtEnabled := true
 
 	blockHeader := &block.Header{
 		Nonce:    42,
+		Epoch:    epoch,
 		RootHash: blockRootHash,
 	}
 	scheduledSCRs := &scheduled.ScheduledSCRs{
@@ -106,11 +110,22 @@ func TestNode_AddBlockCoordinatesToAccountQueryOptions(t *testing.T) {
 	scheduledSCRsBytes, _ := coreComponents.InternalMarshalizer().Marshal(scheduledSCRs)
 
 	// Setup storage
-	chainStorerMock := genericMocks.NewChainStorerMock(0)
-	_ = chainStorerMock.BlockHeaders.Put(blockHash, blockHeaderBytes)
+	chainStorerMock := genericMocks.NewChainStorerMock(epoch)
+	_ = chainStorerMock.BlockHeaders.PutInEpoch(blockHash, blockHeaderBytes, epoch)
 	nonceAsStorerKey := coreComponents.Uint64ByteSliceConverter().ToByteSlice(42)
-	_ = chainStorerMock.ShardHdrNonce.Put(nonceAsStorerKey, blockHash)
+	_ = chainStorerMock.ShardHdrNonce.PutInEpoch(nonceAsStorerKey, blockHash, epoch)
 	dataComponents.Store = chainStorerMock
+
+	// Setup dblookupext
+	historyRepository := &dblookupext.HistoryRepositoryStub{
+		IsEnabledCalled: func() bool {
+			return isDbLookupExtEnabled
+		},
+		GetEpochByHashCalled: func(hash []byte) (uint32, error) {
+			return epoch, nil
+		},
+	}
+	processComponents.HistoryRepositoryInternal = historyRepository
 
 	n, _ := node.NewNode(
 		node.WithCoreComponents(coreComponents),
@@ -154,7 +169,7 @@ func TestNode_AddBlockCoordinatesToAccountQueryOptions(t *testing.T) {
 	})
 
 	t.Run("blockHash is set (with scheduled)", func(t *testing.T) {
-		_ = chainStorerMock.ScheduledSCRs.Put(blockHash, scheduledSCRsBytes)
+		_ = chainStorerMock.ScheduledSCRs.PutInEpoch(blockHash, scheduledSCRsBytes, epoch)
 
 		options, err := n.AddBlockCoordinatesToAccountQueryOptions(api.AccountQueryOptions{
 			BlockHash: blockHash,
@@ -190,7 +205,7 @@ func TestNode_AddBlockCoordinatesToAccountQueryOptions(t *testing.T) {
 	})
 
 	t.Run("blockNonce is set (with scheduled)", func(t *testing.T) {
-		_ = chainStorerMock.ScheduledSCRs.Put(blockHash, scheduledSCRsBytes)
+		_ = chainStorerMock.ScheduledSCRs.PutInEpoch(blockHash, scheduledSCRsBytes, epoch)
 
 		options, err := n.AddBlockCoordinatesToAccountQueryOptions(api.AccountQueryOptions{
 			BlockNonce: core.OptionalUint64{Value: 42, HasValue: true},
@@ -205,6 +220,17 @@ func TestNode_AddBlockCoordinatesToAccountQueryOptions(t *testing.T) {
 
 		require.Nil(t, err)
 		require.Equal(t, expectedOptions, options)
+	})
+
+	t.Run("does not work when dblookupext is disabled", func(t *testing.T) {
+		isDbLookupExtEnabled = false
+
+		options, err := n.AddBlockCoordinatesToAccountQueryOptions(api.AccountQueryOptions{
+			BlockNonce: core.OptionalUint64{Value: 42, HasValue: true},
+		})
+
+		require.Error(t, err, node.ErrNotSupported)
+		require.Equal(t, api.AccountQueryOptions{}, options)
 	})
 }
 
