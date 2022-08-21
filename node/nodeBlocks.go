@@ -9,6 +9,20 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
+func (n *Node) getBlockHeaderByNonce(nonce uint64) (data.HeaderHandler, []byte, error) {
+	headerHash, err := n.getBlockHashByNonce(nonce)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	header, err := n.getBlockHeaderByHash(headerHash)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return header, headerHash, nil
+}
+
 func (n *Node) getBlockHashByNonce(nonce uint64) ([]byte, error) {
 	shardId := n.processComponents.ShardCoordinator().SelfId()
 	hashByNonceUnit := dataRetriever.GetHdrNonceHashDataUnit(shardId)
@@ -86,18 +100,4 @@ func (n *Node) getScheduledRootHash(epoch uint32, headerHash []byte) ([]byte, er
 	}
 
 	return scheduledSCRs.GetRootHash(), nil
-}
-
-func (n *Node) getBlockHeaderByNonce(nonce uint64) (data.HeaderHandler, []byte, error) {
-	headerHash, err := n.getBlockHashByNonce(nonce)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	header, err := n.getBlockHeaderByHash(headerHash)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return header, headerHash, nil
 }
