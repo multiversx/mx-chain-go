@@ -508,6 +508,8 @@ func processConfigImportDBMode(log logger.Logger, configs *config.Configs) error
 	}
 
 	if importDbFlags.ImportDBStartInEpoch == 0 {
+		// We need to increment this in order to make the storage resolvers work (since they open 2 epochs in advance)
+		generalConfigs.StoragePruning.NumActivePersisters++
 		generalConfigs.GeneralSettings.StartInEpochEnabled = false
 	}
 
