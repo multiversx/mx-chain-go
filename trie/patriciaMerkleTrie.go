@@ -247,10 +247,18 @@ func (tr *patriciaMerkleTrie) Recreate(root []byte) (common.Trie, error) {
 	tr.mutOperation.Lock()
 	defer tr.mutOperation.Unlock()
 
-	return tr.recreate(root)
+	return tr.recreate(root, core.OptionalUint32{})
 }
 
-func (tr *patriciaMerkleTrie) recreate(root []byte) (*patriciaMerkleTrie, error) {
+// RecreateFromEpoch returns a new trie, given the options
+func (tr *patriciaMerkleTrie) RecreateFromEpoch(options common.RootHashHolder) (common.Trie, error) {
+	tr.mutOperation.Lock()
+	defer tr.mutOperation.Unlock()
+
+	return tr.recreate(options.GetRootHash(), options.GetEpoch())
+}
+
+func (tr *patriciaMerkleTrie) recreate(root []byte, epoch core.OptionalUint32) (*patriciaMerkleTrie, error) {
 	if emptyTrie(root) {
 		return NewTrie(
 			tr.trieStorage,
@@ -277,14 +285,6 @@ func (tr *patriciaMerkleTrie) recreate(root []byte) (*patriciaMerkleTrie, error)
 	}
 
 	return newTr, nil
-}
-
-// RecreateFromEpoch returns a new trie, given a rootHash and an epoch
-func (tr *patriciaMerkleTrie) RecreateFromEpoch(root []byte, epoch uint32) (common.Trie, error) {
-	tr.mutOperation.Lock()
-	defer tr.mutOperation.Unlock()
-
-	return tr.recreate(root)
 }
 
 // String outputs a graphical view of the trie. Mainly used in tests/debugging
@@ -440,7 +440,7 @@ func (tr *patriciaMerkleTrie) GetAllLeavesOnChannel(
 	rootHash []byte,
 ) error {
 	tr.mutOperation.RLock()
-	newTrie, err := tr.recreate(rootHash)
+	newTrie, err := tr.recreate(rootHash, core.OptionalUint32{})
 	if err != nil {
 		tr.mutOperation.RUnlock()
 		close(leavesChannel)

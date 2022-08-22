@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/common/holders"
 	"github.com/ElrondNetwork/elrond-go/errors"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
@@ -794,7 +795,7 @@ func (adb *AccountsDB) RevertToSnapshot(snapshot int) error {
 
 	if snapshot == 0 {
 		log.Trace("revert snapshot to adb.lastRootHash", "hash", adb.lastRootHash)
-		return adb.recreateTrie(adb.lastRootHash)
+		return adb.recreateTrie(holders.NewRootHashHolder(adb.lastRootHash, core.OptionalUint32{}))
 	}
 
 	for i := len(adb.entries) - 1; i >= snapshot; i-- {
@@ -958,20 +959,25 @@ func (adb *AccountsDB) RootHash() ([]byte, error) {
 
 // RecreateTrie is used to reload the trie based on an existing rootHash
 func (adb *AccountsDB) RecreateTrie(rootHash []byte) error {
+	return adb.RecreateTrieFromEpoch(holders.NewRootHashHolder(rootHash, core.OptionalUint32{}))
+}
+
+// RecreateTrieFromEpoch is used to reload the trie based on the provided options
+func (adb *AccountsDB) RecreateTrieFromEpoch(options common.RootHashHolder) error {
 	adb.mutOp.Lock()
 	defer adb.mutOp.Unlock()
 
-	err := adb.recreateTrie(rootHash)
+	err := adb.recreateTrie(options)
 	if err != nil {
 		return err
 	}
-	adb.lastRootHash = rootHash
+	adb.lastRootHash = options.GetRootHash()
 
 	return nil
 }
 
-func (adb *AccountsDB) recreateTrie(rootHash []byte) error {
-	log.Trace("accountsDB.RecreateTrie", "root hash", rootHash)
+func (adb *AccountsDB) recreateTrie(options common.RootHashHolder) error {
+	log.Trace("accountsDB.RecreateTrie", "root hash", options.GetRootHash())
 	defer func() {
 		log.Trace("accountsDB.RecreateTrie ended")
 	}()
@@ -979,7 +985,7 @@ func (adb *AccountsDB) recreateTrie(rootHash []byte) error {
 	adb.obsoleteDataTrieHashes = make(map[string][][]byte)
 	adb.dataTries.Reset()
 	adb.entries = make([]JournalEntry, 0)
-	newTrie, err := adb.mainTrie.Recreate(rootHash)
+	newTrie, err := adb.mainTrie.RecreateFromEpoch(options)
 	if err != nil {
 		return err
 	}

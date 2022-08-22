@@ -26,7 +26,7 @@ type Trie interface {
 	RootHash() ([]byte, error)
 	Commit() error
 	Recreate(root []byte) (Trie, error)
-	RecreateFromEpoch(root []byte, epoch uint32) (Trie, error)
+	RecreateFromEpoch(options RootHashHolder) (Trie, error)
 	String() string
 	GetObsoleteHashes() [][]byte
 	GetDirtyHashes() (ModifiedHashes, error)
