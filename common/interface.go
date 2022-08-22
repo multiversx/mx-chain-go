@@ -26,6 +26,7 @@ type Trie interface {
 	RootHash() ([]byte, error)
 	Commit() error
 	Recreate(root []byte) (Trie, error)
+	RecreateFromEpoch(root []byte, epoch uint32) (Trie, error)
 	String() string
 	GetObsoleteHashes() [][]byte
 	GetDirtyHashes() (ModifiedHashes, error)
@@ -46,6 +47,7 @@ type Trie interface {
 // StorageManager manages all trie storage operations
 type StorageManager interface {
 	Get(key []byte) ([]byte, error)
+	GetFromEpoch(key []byte, epoch uint32) ([]byte, error)
 	GetFromCurrentEpoch(key []byte) ([]byte, error)
 	Put(key []byte, val []byte) error
 	PutInEpoch(key []byte, val []byte, epoch uint32) error

@@ -99,6 +99,7 @@ type snapshotPruningStorer interface {
 	PutInEpochWithoutCache(key []byte, data []byte, epoch uint32) error
 	GetLatestStorageEpoch() (uint32, error)
 	GetFromCurrentEpoch(key []byte) ([]byte, error)
+	GetFromEpoch(key []byte, epoch uint32) ([]byte, error)
 	RemoveFromCurrentEpoch(key []byte) error
 }
 

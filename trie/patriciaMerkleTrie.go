@@ -279,6 +279,14 @@ func (tr *patriciaMerkleTrie) recreate(root []byte) (*patriciaMerkleTrie, error)
 	return newTr, nil
 }
 
+// RecreateFromEpoch returns a new trie, given a rootHash and an epoch
+func (tr *patriciaMerkleTrie) RecreateFromEpoch(root []byte, epoch uint32) (common.Trie, error) {
+	tr.mutOperation.Lock()
+	defer tr.mutOperation.Unlock()
+
+	return tr.recreate(root)
+}
+
 // String outputs a graphical view of the trie. Mainly used in tests/debugging
 func (tr *patriciaMerkleTrie) String() string {
 	writer := bytes.NewBuffer(make([]byte, 0))
