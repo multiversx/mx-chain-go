@@ -68,7 +68,7 @@ func (n *Node) getBlockHeaderInEpochByHash(epoch uint32, headerHash []byte) (dat
 		return nil, err
 	}
 
-	header, err := process.CreateHeader(shardId, n.coreComponents.InternalMarshalizer(), headerBuffer)
+	header, err := process.UnmarshalHeader(shardId, n.coreComponents.InternalMarshalizer(), headerBuffer)
 	if err != nil {
 		return nil, err
 	}

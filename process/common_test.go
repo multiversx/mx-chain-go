@@ -2016,7 +2016,7 @@ func TestCheckIfIndexesAreOutOfBound(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestCreateHeader(t *testing.T) {
+func TestUnmarshalHeader(t *testing.T) {
 	marshalizer := &mock.MarshalizerMock{}
 
 	shardHeaderV1 := &block.Header{Nonce: 42, EpochStartMetaHash: []byte{0xaa, 0xbb}}
@@ -2028,25 +2028,25 @@ func TestCreateHeader(t *testing.T) {
 	metaHeaderBuffer, _ := marshalizer.Marshal(metaHeader)
 
 	t.Run("should work", func(t *testing.T) {
-		header, err := process.CreateHeader(1, marshalizer, shardHeaderV1Buffer)
+		header, err := process.UnmarshalHeader(1, marshalizer, shardHeaderV1Buffer)
 		assert.Nil(t, err)
 		assert.Equal(t, shardHeaderV1, header)
 
-		header, err = process.CreateHeader(1, marshalizer, shardHeaderV2Buffer)
+		header, err = process.UnmarshalHeader(1, marshalizer, shardHeaderV2Buffer)
 		assert.Nil(t, err)
 		assert.Equal(t, shardHeaderV2, header)
 
-		header, err = process.CreateHeader(core.MetachainShardId, marshalizer, metaHeaderBuffer)
+		header, err = process.UnmarshalHeader(core.MetachainShardId, marshalizer, metaHeaderBuffer)
 		assert.Nil(t, err)
 		assert.Equal(t, metaHeader, header)
 	})
 
 	t.Run("should err", func(t *testing.T) {
-		header, err := process.CreateHeader(1, marshalizer, []byte{0xb, 0xa, 0xd})
+		header, err := process.UnmarshalHeader(1, marshalizer, []byte{0xb, 0xa, 0xd})
 		assert.NotNil(t, err)
 		assert.Nil(t, header)
 
-		header, err = process.CreateHeader(core.MetachainShardId, marshalizer, []byte{0xb, 0xa, 0xd})
+		header, err = process.UnmarshalHeader(core.MetachainShardId, marshalizer, []byte{0xb, 0xa, 0xd})
 		assert.NotNil(t, err)
 		assert.Nil(t, header)
 	})
