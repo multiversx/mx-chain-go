@@ -1,8 +1,7 @@
 package node
 
 import (
-	"fmt"
-
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -36,12 +35,12 @@ func (n *Node) getBlockHashByNonce(nonce uint64) ([]byte, error) {
 }
 
 func (n *Node) getBlockHeaderByHash(headerHash []byte) (data.HeaderHandler, error) {
-	epoch, err := n.getEpochByHash(headerHash)
+	epoch, err := n.getOptionalEpochByHash(headerHash)
 	if err != nil {
 		return nil, err
 	}
 
-	header, err := n.getBlockHeaderInEpochByHash(epoch, headerHash)
+	header, err := n.getBlockHeaderInEpochByHash(headerHash, epoch)
 	if err != nil {
 		return nil, err
 	}
@@ -49,21 +48,33 @@ func (n *Node) getBlockHeaderByHash(headerHash []byte) (data.HeaderHandler, erro
 	return header, nil
 }
 
-func (n *Node) getEpochByHash(hash []byte) (uint32, error) {
+func (n *Node) getOptionalEpochByHash(hash []byte) (core.OptionalUint32, error) {
 	historyRepository := n.processComponents.HistoryRepository()
 	if !historyRepository.IsEnabled() {
-		return 0, fmt.Errorf("%w: history repository (dblookupext) is not enabled", ErrNotSupported)
+		return core.OptionalUint32{}, nil
 	}
 
-	return historyRepository.GetEpochByHash(hash)
+	epoch, err := historyRepository.GetEpochByHash(hash)
+	if err != nil {
+		return core.OptionalUint32{}, err
+	}
+
+	return core.OptionalUint32{Value: epoch, HasValue: true}, nil
 }
 
-func (n *Node) getBlockHeaderInEpochByHash(epoch uint32, headerHash []byte) (data.HeaderHandler, error) {
+func (n *Node) getBlockHeaderInEpochByHash(headerHash []byte, epoch core.OptionalUint32) (data.HeaderHandler, error) {
 	shardId := n.processComponents.ShardCoordinator().SelfId()
 	unitType := dataRetriever.GetHeadersDataUnit(shardId)
 	storer := n.dataComponents.StorageService().GetStorer(unitType)
 
-	headerBuffer, err := storer.GetFromEpoch(headerHash, epoch)
+	var headerBuffer []byte
+	var err error
+
+	if epoch.HasValue {
+		headerBuffer, err = storer.GetFromEpoch(headerHash, epoch.Value)
+	} else {
+		headerBuffer, err = storer.Get(headerHash)
+	}
 	if err != nil {
 		return nil, err
 	}
