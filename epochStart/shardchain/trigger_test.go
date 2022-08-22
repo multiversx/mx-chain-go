@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
+	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
@@ -604,4 +605,122 @@ func TestTrigger_ReceivedHeaderChangeEpochFinalityAttestingRound(t *testing.T) {
 	hash103, _ := core.CalculateHash(args.Marshalizer, args.Hasher, header102)
 	epochStartTrigger.receivedMetaBlock(header103, hash103)
 	require.Equal(t, uint64(102), epochStartTrigger.EpochFinalityAttestingRound())
+}
+
+func TestTrigger_ClearMissingValidatorsInfoMapShouldWork(t *testing.T) {
+	t.Parallel()
+
+	args := createMockShardEpochStartTriggerArguments()
+	epochStartTrigger, _ := NewEpochStartTrigger(args)
+
+	epochStartTrigger.mutMissingValidatorsInfo.Lock()
+	epochStartTrigger.mapMissingValidatorsInfo["a"] = 0
+	epochStartTrigger.mapMissingValidatorsInfo["b"] = 0
+	epochStartTrigger.mapMissingValidatorsInfo["c"] = 1
+	epochStartTrigger.mapMissingValidatorsInfo["d"] = 1
+	epochStartTrigger.mutMissingValidatorsInfo.Unlock()
+
+	epochStartTrigger.mutMissingValidatorsInfo.RLock()
+	numMissingValidatorsInfo := len(epochStartTrigger.mapMissingValidatorsInfo)
+	epochStartTrigger.mutMissingValidatorsInfo.RUnlock()
+	assert.Equal(t, 4, numMissingValidatorsInfo)
+
+	epochStartTrigger.clearMissingValidatorsInfoMap(0)
+
+	epochStartTrigger.mutMissingValidatorsInfo.RLock()
+	numMissingValidatorsInfo = len(epochStartTrigger.mapMissingValidatorsInfo)
+	epochStartTrigger.mutMissingValidatorsInfo.RUnlock()
+	assert.Equal(t, 2, len(epochStartTrigger.mapMissingValidatorsInfo))
+
+	assert.Equal(t, uint32(1), epochStartTrigger.mapMissingValidatorsInfo["c"])
+	assert.Equal(t, uint32(1), epochStartTrigger.mapMissingValidatorsInfo["d"])
+}
+
+func TestTrigger_UpdateMissingValidatorsInfo(t *testing.T) {
+	t.Parallel()
+
+	t.Run("update missing validators when there are no missing validators", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockShardEpochStartTriggerArguments()
+		epochStartTrigger, _ := NewEpochStartTrigger(args)
+
+		epochStartTrigger.updateMissingValidatorsInfo()
+
+		epochStartTrigger.mutMissingValidatorsInfo.RLock()
+		assert.Equal(t, 0, len(epochStartTrigger.mapMissingValidatorsInfo))
+		epochStartTrigger.mutMissingValidatorsInfo.RUnlock()
+	})
+
+	t.Run("update missing validators when there are missing validators", func(t *testing.T) {
+		t.Parallel()
+
+		svi1 := &state.ShardValidatorInfo{PublicKey: []byte("x")}
+		svi2 := &state.ShardValidatorInfo{PublicKey: []byte("y")}
+
+		args := createMockShardEpochStartTriggerArguments()
+
+		args.DataPool = &dataRetrieverMock.PoolsHolderStub{
+			HeadersCalled: func() dataRetriever.HeadersPool {
+				return &mock.HeadersCacherStub{}
+			},
+			MiniBlocksCalled: func() storage.Cacher {
+				return testscommon.NewCacherStub()
+			},
+			CurrEpochValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
+				return &validatorInfoCacherMock.ValidatorInfoCacherMock{}
+			},
+			ValidatorsInfoCalled: func() dataRetriever.ShardedDataCacherNotifier {
+				return &testscommon.ShardedDataStub{
+					SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
+						if bytes.Equal(key, []byte("a")) {
+							return svi1, true
+						}
+						if bytes.Equal(key, []byte("b")) {
+							return svi2, true
+						}
+
+						return nil, false
+					},
+				}
+			},
+		}
+
+		epochStartTrigger, _ := NewEpochStartTrigger(args)
+
+		epochStartTrigger.mutMissingValidatorsInfo.Lock()
+		epochStartTrigger.mapMissingValidatorsInfo["a"] = 1
+		epochStartTrigger.mapMissingValidatorsInfo["b"] = 1
+		epochStartTrigger.mapMissingValidatorsInfo["c"] = 1
+		epochStartTrigger.mutMissingValidatorsInfo.Unlock()
+
+		epochStartTrigger.updateMissingValidatorsInfo()
+
+		epochStartTrigger.mutMissingValidatorsInfo.RLock()
+		assert.Equal(t, 1, len(epochStartTrigger.mapMissingValidatorsInfo))
+		assert.Equal(t, uint32(1), epochStartTrigger.mapMissingValidatorsInfo["c"])
+		epochStartTrigger.mutMissingValidatorsInfo.RUnlock()
+	})
+}
+
+func TestTrigger_AddMissingValidatorsInfo(t *testing.T) {
+	t.Parallel()
+
+	args := createMockShardEpochStartTriggerArguments()
+	epochStartTrigger, _ := NewEpochStartTrigger(args)
+
+	missingValidatorsInfoHashes := [][]byte{
+		[]byte("a"),
+		[]byte("b"),
+		[]byte("c"),
+	}
+
+	epochStartTrigger.addMissingValidatorsInfo(1, missingValidatorsInfoHashes)
+
+	epochStartTrigger.mutMissingValidatorsInfo.RLock()
+	assert.Equal(t, 3, len(epochStartTrigger.mapMissingValidatorsInfo))
+	assert.Equal(t, uint32(1), epochStartTrigger.mapMissingValidatorsInfo["a"])
+	assert.Equal(t, uint32(1), epochStartTrigger.mapMissingValidatorsInfo["b"])
+	assert.Equal(t, uint32(1), epochStartTrigger.mapMissingValidatorsInfo["c"])
+	epochStartTrigger.mutMissingValidatorsInfo.RUnlock()
 }
