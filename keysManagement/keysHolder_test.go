@@ -3,6 +3,7 @@ package keysManagement
 import (
 	"bytes"
 	"crypto/rand"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"strings"
@@ -13,18 +14,21 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-crypto"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/keysManagement/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
 	"github.com/stretchr/testify/assert"
 )
 
 var (
-	p2pPrivateKey = []byte("p2p private key")
-	pid           = core.PeerID("pid")
-	skBytes0      = []byte("private key 0")
-	skBytes1      = []byte("private key 1")
-	pkBytes0      = []byte("public key 0")
-	pkBytes1      = []byte("public key 1")
+	p2pPrivateKey   = []byte("p2p private key")
+	pid             = core.PeerID("pid")
+	skBytes0        = []byte("private key 0")
+	skBytes1        = []byte("private key 1")
+	pkBytes0        = []byte("public key 0")
+	pkBytes1        = []byte("public key 1")
+	defaultName     = "default node name"
+	defaultIdentity = "default node identity"
 )
 
 func createMockArgsVirtualPeersHolder() ArgsVirtualPeersHolder {
@@ -37,6 +41,12 @@ func createMockArgsVirtualPeersHolder() ArgsVirtualPeersHolder {
 		},
 		IsMainMachine:                    true,
 		MaxRoundsWithoutReceivedMessages: 1,
+		PrefsConfig: config.Preferences{
+			Preferences: config.PreferencesConfig{
+				Identity:        defaultIdentity,
+				NodeDisplayName: defaultName,
+			},
+		},
 	}
 }
 
@@ -106,6 +116,22 @@ func TestNewVirtualPeersHolder(t *testing.T) {
 		assert.True(t, strings.Contains(err.Error(), "MaxRoundsWithoutReceivedMessages"))
 		assert.True(t, check.IfNil(holder))
 	})
+	t.Run("invalid key from config should error", func(t *testing.T) {
+		t.Parallel()
+
+		providedInvalidKey := "invalid key"
+		args := createMockArgsVirtualPeersHolder()
+		args.PrefsConfig.NamedIdentity = []config.NamedIdentity{
+			{
+				BLSKeys: []string{providedInvalidKey},
+			},
+		}
+		holder, err := NewVirtualPeersHolder(args)
+
+		assert.True(t, errors.Is(err, errInvalidKey))
+		assert.True(t, strings.Contains(err.Error(), providedInvalidKey))
+		assert.True(t, check.IfNil(holder))
+	})
 	t.Run("valid arguments should work", func(t *testing.T) {
 		t.Parallel()
 
@@ -160,7 +186,7 @@ func TestVirtualPeersHolder_AddVirtualPeer(t *testing.T) {
 
 		assert.True(t, errors.Is(err, expectedErr))
 	})
-	t.Run("identity creation errors should errors", func(t *testing.T) {
+	t.Run("identity creation errors", func(t *testing.T) {
 		args := createMockArgsVirtualPeersHolder()
 		args.P2PIdentityGenerator = &mock.IdentityGeneratorStub{
 			CreateRandomP2PIdentityCalled: func() ([]byte, core.PeerID, error) {
@@ -187,6 +213,52 @@ func TestVirtualPeersHolder_AddVirtualPeer(t *testing.T) {
 		skBytesRecovered, _ := pInfo.privateKey.ToByteArray()
 		assert.Equal(t, skBytes0, skBytesRecovered)
 		assert.Equal(t, 10, len(pInfo.machineID))
+		assert.Equal(t, defaultIdentity, pInfo.nodeIdentity)
+		assert.Equal(t, defaultName, pInfo.nodeName)
+	})
+	t.Run("should work for a new pk with identity from config", func(t *testing.T) {
+		providedAddress := []byte("erd1qyu5wthldzr8wx5c9ucg8kjagg0jfs53s8nr3zpz3hypefsdd8ssycr6th")
+		providedHex := hex.EncodeToString(providedAddress)
+		providedName := "provided name"
+		providedIdentity := "provided identity"
+		args := createMockArgsVirtualPeersHolder()
+		args.KeyGenerator = &cryptoMocks.KeyGenStub{
+			PrivateKeyFromByteArrayStub: func(b []byte) (crypto.PrivateKey, error) {
+				return &cryptoMocks.PrivateKeyStub{
+					GeneratePublicStub: func() crypto.PublicKey {
+						return &cryptoMocks.PublicKeyStub{
+							ToByteArrayStub: func() ([]byte, error) {
+								return providedAddress, nil
+							},
+						}
+					},
+					ToByteArrayStub: func() ([]byte, error) {
+						return providedAddress, nil
+					},
+				}, nil
+			},
+		}
+		args.PrefsConfig.NamedIdentity = []config.NamedIdentity{
+			{
+				Identity: providedIdentity,
+				NodeName: providedName,
+				BLSKeys:  []string{providedHex},
+			},
+		}
+
+		holder, _ := NewVirtualPeersHolder(args)
+		err := holder.AddVirtualPeer(skBytes0)
+		assert.Nil(t, err)
+
+		pInfo := holder.getPeerInfo(providedAddress)
+		assert.NotNil(t, pInfo)
+		assert.Equal(t, pid, pInfo.pid)
+		assert.Equal(t, p2pPrivateKey, pInfo.p2pPrivateKeyBytes)
+		skBytesRecovered, _ := pInfo.privateKey.ToByteArray()
+		assert.Equal(t, providedAddress, skBytesRecovered)
+		assert.Equal(t, 10, len(pInfo.machineID))
+		assert.Equal(t, providedIdentity, pInfo.nodeIdentity)
+		assert.Equal(t, providedName, pInfo.nodeName)
 	})
 	t.Run("should error when trying to add the same pk", func(t *testing.T) {
 		args := createMockArgsVirtualPeersHolder()
