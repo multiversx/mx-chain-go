@@ -275,7 +275,7 @@ func (bcf *bootstrapComponentsFactory) newGuardianSigVerifier(guardedAccountHand
 		SigVerifier:     bcf.cryptoComponents.TxSingleSigner(),
 		GuardianChecker: guardedAccountHandler,
 		PubKeyConverter: bcf.coreComponents.AddressPubKeyConverter(),
-		Marshaller:      bcf.coreComponents.InternalMarshalizer(),
+		Marshaller:      bcf.coreComponents.TxMarshalizer(),
 		KeyGen:          bcf.cryptoComponents.TxSignKeyGen(),
 	}
 

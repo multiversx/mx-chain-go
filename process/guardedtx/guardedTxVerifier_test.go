@@ -2,6 +2,7 @@ package guardedtx
 
 import (
 	"math/big"
+	"strings"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -143,6 +144,21 @@ func TestGuardedTxSigVerifier_VerifyGuardianSignature(t *testing.T) {
 		err = gtxSigVerifier.VerifyGuardianSignature(acc, inTx)
 		require.Nil(t, err)
 	})
+	t.Run("wrong type assertion intercepted signed tx", func(t *testing.T) {
+		inTxChanged := &interceptedTxMocks.InterceptedUnsignedTxHandlerStub{
+			TransactionCalled: func() data.TransactionHandler {
+				txCopy := *tx
+				return &txCopy
+			},
+		}
+
+		gtxSigVerifier, err := NewGuardedTxSigVerifier(args)
+		require.Nil(t, err)
+
+		err = gtxSigVerifier.VerifyGuardianSignature(acc, inTxChanged)
+		require.NotNil(t, err)
+		require.True(t, strings.Contains(err.Error(), "InterceptedSignedTransactionHandler"))
+	})
 	t.Run("invalid guardian signature", func(t *testing.T) {
 		gtxSigVerifier, err := NewGuardedTxSigVerifier(args)
 		require.Nil(t, err)
@@ -189,6 +205,10 @@ func createSignedInterceptedTx(
 		TransactionCalled: func() data.TransactionHandler {
 			return &txCopy
 		},
+		GetTxMessageForSignatureVerificationCalled: func() ([]byte, error) {
+			ftx := GetFrontEndTransaction(tx, converter)
+			return marshaller.Marshal(ftx)
+		},
 	}
 }
 
@@ -200,11 +220,20 @@ func signAndGuardTx(
 	converter core.PubkeyConverter,
 	marshaller data.Marshaller,
 ) ([]byte, []byte) {
+	ftx := GetFrontEndTransaction(tx, converter)
+	buff, _ := marshaller.Marshal(ftx)
+	signature, _ := signer.Sign(sk, buff)
+	guardianSignature, _ := signer.Sign(skGuardian, buff)
+
+	return signature, guardianSignature
+}
+
+func GetFrontEndTransaction(tx *txStruct.Transaction, converter core.PubkeyConverter) *txStruct.FrontendTransaction {
 	ftx := &txStruct.FrontendTransaction{
 		Nonce:             tx.Nonce,
 		Value:             tx.Value.String(),
 		Receiver:          converter.Encode(tx.RcvAddr),
-		Sender:            converter.Encode(tx.RcvAddr),
+		Sender:            converter.Encode(tx.SndAddr),
 		SenderUsername:    nil,
 		ReceiverUsername:  nil,
 		GasPrice:          tx.GasPrice,
@@ -215,12 +244,7 @@ func signAndGuardTx(
 		Version:           tx.Version,
 		GuardianSignature: "",
 	}
-
-	buff, _ := marshaller.Marshal(ftx)
-	signature, _ := signer.Sign(sk, buff)
-	guardianSignature, _ := signer.Sign(skGuardian, buff)
-
-	return signature, guardianSignature
+	return ftx
 }
 
 func TestGuardedTxSigVerifier_HasPendingGuardian(t *testing.T) {

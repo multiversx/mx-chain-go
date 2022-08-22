@@ -352,7 +352,7 @@ func (inTx *InterceptedTransaction) checkMaxGasPrice() error {
 
 // verifySig checks if the tx is correctly signed
 func (inTx *InterceptedTransaction) verifySig(tx *transaction.Transaction) error {
-	buffCopiedTx, err := tx.GetDataForSigning(inTx.pubkeyConv, inTx.signMarshalizer)
+	txMessageForSigVerification, err := inTx.getTxMessageForGivenTx(tx)
 	if err != nil {
 		return err
 	}
@@ -362,17 +362,31 @@ func (inTx *InterceptedTransaction) verifySig(tx *transaction.Transaction) error
 		return err
 	}
 
+	return inTx.singleSigner.Verify(senderPubKey, txMessageForSigVerification, tx.Signature)
+}
+
+func (inTx *InterceptedTransaction) getTxMessageForGivenTx(tx *transaction.Transaction) ([]byte, error) {
+	buffCopiedTx, err := tx.GetDataForSigning(inTx.pubkeyConv, inTx.signMarshalizer)
+	if err != nil {
+		return nil, err
+	}
+
 	if !inTx.txVersionChecker.IsSignedWithHash(tx) {
-		return inTx.singleSigner.Verify(senderPubKey, buffCopiedTx, tx.Signature)
+		return buffCopiedTx, nil
 	}
 
 	if !inTx.enableSignedTxWithHash {
-		return process.ErrTransactionSignedWithHashIsNotEnabled
+		return nil, process.ErrTransactionSignedWithHashIsNotEnabled
 	}
 
 	txHash := inTx.txSignHasher.Compute(string(buffCopiedTx))
 
-	return inTx.singleSigner.Verify(senderPubKey, txHash, tx.Signature)
+	return txHash, nil
+}
+
+// GetTxMessageForSignatureVerification returns the transaction data that the signature needs to be verified on
+func (inTx *InterceptedTransaction) GetTxMessageForSignatureVerification() ([]byte, error) {
+	return inTx.getTxMessageForGivenTx(inTx.tx)
 }
 
 // ReceiverShardId returns the receiver shard id

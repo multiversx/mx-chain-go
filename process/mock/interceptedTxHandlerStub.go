@@ -8,12 +8,13 @@ import (
 
 // InterceptedTxHandlerStub -
 type InterceptedTxHandlerStub struct {
-	SenderShardIdCalled                    func() uint32
-	ReceiverShardIdCalled                  func() uint32
-	NonceCalled                            func() uint64
-	SenderAddressCalled                    func() []byte
-	FeeCalled                              func() *big.Int
-	TransactionCalled                      func() data.TransactionHandler
+	SenderShardIdCalled                        func() uint32
+	ReceiverShardIdCalled                      func() uint32
+	NonceCalled                                func() uint64
+	SenderAddressCalled                        func() []byte
+	FeeCalled                                  func() *big.Int
+	TransactionCalled                          func() data.TransactionHandler
+	GetTxMessageForSignatureVerificationCalled func() ([]byte, error)
 }
 
 // SenderShardId -
@@ -62,4 +63,12 @@ func (iths *InterceptedTxHandlerStub) Transaction() data.TransactionHandler {
 		return iths.TransactionCalled()
 	}
 	return nil
+}
+
+// GetTxMessageForSignatureVerification -
+func (iths *InterceptedTxHandlerStub) GetTxMessageForSignatureVerification() ([]byte, error) {
+	if iths.GetTxMessageForSignatureVerificationCalled != nil {
+		return iths.GetTxMessageForSignatureVerificationCalled()
+	}
+	return nil, nil
 }

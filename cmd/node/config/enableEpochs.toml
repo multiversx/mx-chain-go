@@ -209,7 +209,7 @@
     CheckExecuteOnReadOnlyEnableEpoch = 4
 
     # FreezeAccountFeatureEnableEpoch represents the epoch when the freeze account feature is enabled in the protocol
-    FreezeAccountFeatureEnableEpoch = 10
+    FreezeAccountFeatureEnableEpoch = 2
 
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
