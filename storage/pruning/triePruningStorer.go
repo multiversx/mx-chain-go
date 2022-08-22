@@ -27,7 +27,7 @@ func NewTriePruningStorer(args *StorerArgs) (*triePruningStorer, error) {
 		return nil, err
 	}
 
-	activePersisters, persistersMapByEpoch, err := initPersistersInEpoch(args, "", NewTriePersisterTracker(args))
+	activePersisters, persistersMapByEpoch, err := initPersistersInEpoch(args, "", newTriePersisterTracker(args))
 	if err != nil {
 		return nil, err
 	}

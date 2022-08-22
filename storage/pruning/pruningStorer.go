@@ -109,7 +109,7 @@ func NewPruningStorer(args *StorerArgs) (*PruningStorer, error) {
 		return nil, err
 	}
 
-	activePersisters, persistersMapByEpoch, err := initPersistersInEpoch(args, "", NewPersistersTracker(args))
+	activePersisters, persistersMapByEpoch, err := initPersistersInEpoch(args, "", newPersistersTracker(args))
 	if err != nil {
 		return nil, err
 	}
@@ -220,7 +220,7 @@ func initPersistersInEpoch(
 	persistersMapByEpoch := make(map[uint32]*persisterData)
 
 	for epoch := int64(args.StartingEpoch); epoch >= 0; epoch-- {
-		if persistersTracker.HasInitializedEnoughPersisters(epoch) {
+		if persistersTracker.hasInitializedEnoughPersisters(epoch) {
 			break
 		}
 
@@ -232,7 +232,7 @@ func initPersistersInEpoch(
 
 		persistersMapByEpoch[uint32(epoch)] = p
 
-		if persistersTracker.ShouldClosePersister(p.persister, epoch) {
+		if persistersTracker.shouldClosePersister(p.persister, epoch) {
 			err = p.Close()
 			if err != nil {
 				log.Debug("persister.Close()", "identifier", args.Identifier, "error", err.Error())

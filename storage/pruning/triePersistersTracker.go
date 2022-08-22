@@ -14,8 +14,8 @@ type triePersistersTracker struct {
 	numDbsMarkedAsSynced int
 }
 
-// NewTriePersisterTracker creates a new instance of triePersistersTracker
-func NewTriePersisterTracker(args *StorerArgs) *triePersistersTracker {
+// This component is not safe to use in a concurrent manner
+func newTriePersisterTracker(args *StorerArgs) *triePersistersTracker {
 	oldestEpochActive, oldestEpochKeep := computeOldestEpochActiveAndToKeep(args)
 
 	return &triePersistersTracker{
@@ -26,8 +26,8 @@ func NewTriePersisterTracker(args *StorerArgs) *triePersistersTracker {
 	}
 }
 
-// HasInitializedEnoughPersisters returns true if enough persisters have been initialized
-func (tpi *triePersistersTracker) HasInitializedEnoughPersisters(epoch int64) bool {
+// hasInitializedEnoughPersisters returns true if enough persisters have been initialized
+func (tpi *triePersistersTracker) hasInitializedEnoughPersisters(epoch int64) bool {
 	shouldKeepEpoch := epoch >= tpi.oldestEpochKeep
 	if shouldKeepEpoch {
 		return false
@@ -45,8 +45,8 @@ func (tpi *triePersistersTracker) hasActiveDbsNecessary() bool {
 	return tpi.numDbsMarkedAsActive >= minNumOfActiveDBsNecessary
 }
 
-// ShouldClosePersister returns true if the given persister needs to be closed
-func (tpi *triePersistersTracker) ShouldClosePersister(p storage.Persister, epoch int64) bool {
+// shouldClosePersister returns true if the given persister needs to be closed
+func (tpi *triePersistersTracker) shouldClosePersister(p storage.Persister, epoch int64) bool {
 	shouldClosePersister := epoch < tpi.oldestEpochActive && tpi.hasActiveDbsNecessary()
 
 	if isDbMarkedAsActive(p) {

@@ -17,30 +17,30 @@ func getArgs() *StorerArgs {
 func TestNewPersistersTracker(t *testing.T) {
 	t.Parallel()
 
-	pt := NewPersistersTracker(getArgs())
+	pt := newPersistersTracker(getArgs())
 	assert.NotNil(t, pt)
 	assert.Equal(t, int64(7), pt.oldestEpochKeep)
 	assert.Equal(t, int64(8), pt.oldestEpochActive)
 }
 
-func TestPersistersTracker_HasInitializedEnoughPersisters(t *testing.T) {
+func TestPersistersTracker_hasInitializedEnoughPersisters(t *testing.T) {
 	t.Parallel()
 
-	pt := NewPersistersTracker(getArgs())
+	pt := newPersistersTracker(getArgs())
 	assert.NotNil(t, pt)
 	assert.Equal(t, int64(7), pt.oldestEpochKeep)
 
-	assert.False(t, pt.HasInitializedEnoughPersisters(7))
-	assert.True(t, pt.HasInitializedEnoughPersisters(6))
+	assert.False(t, pt.hasInitializedEnoughPersisters(7))
+	assert.True(t, pt.hasInitializedEnoughPersisters(6))
 }
 
-func TestPersistersTracker_ShouldClosePersister(t *testing.T) {
+func TestPersistersTracker_shouldClosePersister(t *testing.T) {
 	t.Parallel()
 
-	pt := NewPersistersTracker(getArgs())
+	pt := newPersistersTracker(getArgs())
 	assert.NotNil(t, pt)
 	assert.Equal(t, int64(8), pt.oldestEpochActive)
 
-	assert.False(t, pt.HasInitializedEnoughPersisters(7))
-	assert.True(t, pt.HasInitializedEnoughPersisters(6))
+	assert.False(t, pt.hasInitializedEnoughPersisters(7))
+	assert.True(t, pt.hasInitializedEnoughPersisters(6))
 }

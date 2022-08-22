@@ -7,8 +7,8 @@ type persistersTracker struct {
 	oldestEpochActive int64
 }
 
-// NewPersistersTracker creates a new instance of persistersTracker
-func NewPersistersTracker(args *StorerArgs) *persistersTracker {
+// This component is not safe to use in a concurrent manner
+func newPersistersTracker(args *StorerArgs) *persistersTracker {
 	oldestEpochActive, oldestEpochKeep := computeOldestEpochActiveAndToKeep(args)
 
 	return &persistersTracker{
@@ -17,12 +17,12 @@ func NewPersistersTracker(args *StorerArgs) *persistersTracker {
 	}
 }
 
-// HasInitializedEnoughPersisters returns true if enough persisters have been initialized
-func (pi *persistersTracker) HasInitializedEnoughPersisters(epoch int64) bool {
+// hasInitializedEnoughPersisters returns true if enough persisters have been initialized
+func (pi *persistersTracker) hasInitializedEnoughPersisters(epoch int64) bool {
 	return epoch < pi.oldestEpochKeep
 }
 
-// ShouldClosePersister returns true if the given persister needs to be closed
-func (pi *persistersTracker) ShouldClosePersister(_ storage.Persister, epoch int64) bool {
+// shouldClosePersister returns true if the given persister needs to be closed
+func (pi *persistersTracker) shouldClosePersister(_ storage.Persister, epoch int64) bool {
 	return epoch < pi.oldestEpochActive
 }
