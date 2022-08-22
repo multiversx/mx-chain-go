@@ -226,7 +226,10 @@ func TestPeerAccountsDB_SetSyncerAndStartSnapshotIfNeeded(t *testing.T) {
 	adb, err := state.NewPeerAccountsDB(args)
 	assert.Nil(t, err)
 	assert.NotNil(t, adb)
-	adb.SetSyncerAndStartSnapshotIfNeeded(&mock.AccountsDBSyncerStub{})
+	err = adb.SetSyncer(&mock.AccountsDBSyncerStub{})
+	assert.Nil(t, err)
+	err = adb.StartSnapshotIfNeeded()
+	assert.Nil(t, err)
 
 	time.Sleep(time.Second)
 	mutex.RLock()
@@ -357,7 +360,10 @@ func TestPeerAccountsDB_SetSyncerAndStartSnapshotIfNeededMarksActiveDB(t *testin
 		args := createMockAccountsDBArgs()
 		args.Trie = trieStub
 		adb, _ := state.NewPeerAccountsDB(args)
-		adb.SetSyncerAndStartSnapshotIfNeeded(&mock.AccountsDBSyncerStub{})
+		err := adb.SetSyncer(&mock.AccountsDBSyncerStub{})
+		assert.Nil(t, err)
+		err = adb.StartSnapshotIfNeeded()
+		assert.Nil(t, err)
 
 		assert.True(t, putCalled)
 	})
@@ -386,7 +392,10 @@ func TestPeerAccountsDB_SetSyncerAndStartSnapshotIfNeededMarksActiveDB(t *testin
 		args := createMockAccountsDBArgs()
 		args.Trie = trieStub
 		adb, _ := state.NewPeerAccountsDB(args)
-		adb.SetSyncerAndStartSnapshotIfNeeded(&mock.AccountsDBSyncerStub{})
+		err := adb.SetSyncer(&mock.AccountsDBSyncerStub{})
+		assert.Nil(t, err)
+		err = adb.StartSnapshotIfNeeded()
+		assert.Nil(t, err)
 	})
 	t.Run("in import DB mode", func(t *testing.T) {
 		putCalled := false
@@ -418,7 +427,10 @@ func TestPeerAccountsDB_SetSyncerAndStartSnapshotIfNeededMarksActiveDB(t *testin
 		args.ProcessingMode = common.ImportDb
 		args.Trie = trieStub
 		adb, _ := state.NewPeerAccountsDB(args)
-		adb.SetSyncerAndStartSnapshotIfNeeded(&mock.AccountsDBSyncerStub{})
+		err := adb.SetSyncer(&mock.AccountsDBSyncerStub{})
+		assert.Nil(t, err)
+		err = adb.StartSnapshotIfNeeded()
+		assert.Nil(t, err)
 
 		assert.True(t, putCalled)
 	})

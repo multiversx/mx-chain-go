@@ -196,16 +196,40 @@ func handleLoggingWhenError(message string, err error, extraArguments ...interfa
 	log.Warn(message, append(args, extraArguments...)...)
 }
 
-// SetSyncerAndStartSnapshotIfNeeded sets the given syncer as the syncer for the underlying trie and then
-// starts a snapshot process if needed
-func (adb *AccountsDB) SetSyncerAndStartSnapshotIfNeeded(syncer AccountsDBSyncer) {
-	adb.trieSyncer = syncer
+// SetSyncer sets the given syncer as the syncer for the underlying trie
+func (adb *AccountsDB) SetSyncer(syncer AccountsDBSyncer) error {
+	if check.IfNil(syncer) {
+		return ErrNilTrieSyncer
+	}
 
-	trieStorageManager := adb.mainTrie.GetStorageManager()
+	adb.mutOp.Lock()
+	defer adb.mutOp.Unlock()
+
+	adb.trieSyncer = syncer
+	return nil
+}
+
+// StartSnapshotIfNeeded starts the snapshot if the previous snapshot process was not fully completed
+func (adb *AccountsDB) StartSnapshotIfNeeded() error {
+	return startSnapshotIfNeeded(adb, adb.trieSyncer, adb.mainTrie.GetStorageManager(), adb.processingMode)
+}
+
+func startSnapshotIfNeeded(
+	adb AccountsAdapter,
+	trieSyncer AccountsDBSyncer,
+	trieStorageManager common.StorageManager,
+	processingMode common.NodeProcessingMode,
+) error {
+	if check.IfNil(trieSyncer) {
+		return ErrNilTrie
+	}
+
 	val, err := trieStorageManager.GetFromCurrentEpoch([]byte(common.ActiveDBKey))
 	if err != nil || !bytes.Equal(val, []byte(common.ActiveDBVal)) {
-		startSnapshotAfterRestart(adb, trieStorageManager, adb.processingMode)
+		startSnapshotAfterRestart(adb, trieStorageManager, processingMode)
 	}
+
+	return nil
 }
 
 // GetCode returns the code for the given account
@@ -1109,7 +1133,7 @@ func (adb *AccountsDB) SnapshotState(rootHash []byte) {
 		return
 	}
 
-	log.Info("starting snapshot", "rootHash", rootHash, "epoch", epoch)
+	log.Info("starting snapshot user trie", "rootHash", rootHash, "epoch", epoch)
 
 	adb.lastSnapshot.rootHash = rootHash
 	adb.lastSnapshot.epoch = epoch
@@ -1136,15 +1160,26 @@ func (adb *AccountsDB) SnapshotState(rootHash []byte) {
 	adb.waitForCompletionIfRunningInImportDB(stats)
 }
 
-func (adb *AccountsDB) markActiveDBAfterSnapshot(stats *snapshotStatistics, missingNodesCh chan []byte, errChan chan error, rootHash []byte, message string, epoch uint32) {
+func finishSnapshotOperation(
+	rootHash []byte,
+	stats *snapshotStatistics,
+	missingNodesCh chan []byte,
+	trieStorageManager common.StorageManager,
+	message string,
+) {
 	stats.WaitForSnapshotsToFinish()
 	close(missingNodesCh)
 	stats.WaitForSyncToFinish()
 
-	trieStorageManager := adb.mainTrie.GetStorageManager()
 	trieStorageManager.ExitPruningBufferingMode()
 
 	stats.PrintStats(message, rootHash)
+}
+
+func (adb *AccountsDB) markActiveDBAfterSnapshot(stats *snapshotStatistics, missingNodesCh chan []byte, errChan chan error, rootHash []byte, message string, epoch uint32) {
+	trieStorageManager := adb.mainTrie.GetStorageManager()
+
+	finishSnapshotOperation(rootHash, stats, missingNodesCh, trieStorageManager, message)
 
 	containsErrorDuringSnapshot := emptyErrChanReturningHadContained(errChan)
 	shouldNotMarkActive := trieStorageManager.IsClosed() || containsErrorDuringSnapshot
@@ -1167,9 +1202,9 @@ func (adb *AccountsDB) syncMissingNodes(missingNodesChan chan []byte, stats *sna
 	defer stats.SyncFinished()
 
 	if check.IfNil(adb.trieSyncer) {
-		log.Warn("nil trie syncer")
+		log.Error("nil trie syncer")
 		for missingNode := range missingNodesChan {
-			log.Debug("could not sync node", "hash", missingNode)
+			log.Warn("could not sync node", "hash", missingNode)
 		}
 
 		return
@@ -1255,16 +1290,9 @@ func (adb *AccountsDB) setStateCheckpoint(rootHash []byte) {
 
 	go adb.syncMissingNodes(missingNodesChannel, stats)
 
-	go func() {
-		stats.WaitForSnapshotsToFinish()
-		close(missingNodesChannel)
-		stats.WaitForSyncToFinish()
-		trieStorageManager.ExitPruningBufferingMode()
-
-		// TODO decide if we need to take some actions whenever we hit an error that occurred in the checkpoint process
-		//  that will be present in the errChan var
-		stats.PrintStats("setStateCheckpoint user trie", rootHash)
-	}()
+	// TODO decide if we need to take some actions whenever we hit an error that occurred in the checkpoint process
+	//  that will be present in the errChan var
+	go finishSnapshotOperation(rootHash, stats, missingNodesChannel, trieStorageManager, "setStateCheckpoint user trie")
 
 	adb.waitForCompletionIfRunningInImportDB(stats)
 }

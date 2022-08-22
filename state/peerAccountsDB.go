@@ -1,7 +1,6 @@
 package state
 
 import (
-	"bytes"
 	"fmt"
 	"sync"
 
@@ -42,16 +41,9 @@ func NewPeerAccountsDB(args ArgsAccountsDB) (*PeerAccountsDB, error) {
 	return adb, nil
 }
 
-// SetSyncerAndStartSnapshotIfNeeded sets the given syncer as the syncer for the underlying trie and then
-// starts a snapshot process if needed
-func (adb *PeerAccountsDB) SetSyncerAndStartSnapshotIfNeeded(syncer AccountsDBSyncer) {
-	adb.trieSyncer = syncer
-
-	trieStorageManager := adb.mainTrie.GetStorageManager()
-	val, err := trieStorageManager.GetFromCurrentEpoch([]byte(common.ActiveDBKey))
-	if err != nil || !bytes.Equal(val, []byte(common.ActiveDBVal)) {
-		startSnapshotAfterRestart(adb, trieStorageManager, adb.processingMode)
-	}
+// StartSnapshotIfNeeded starts the snapshot if the previous snapshot process was not fully completed
+func (adb *PeerAccountsDB) StartSnapshotIfNeeded() error {
+	return startSnapshotIfNeeded(adb, adb.trieSyncer, adb.mainTrie.GetStorageManager(), adb.processingMode)
 }
 
 // MarkSnapshotDone will mark that the snapshot process has been completed
@@ -90,7 +82,7 @@ func (adb *PeerAccountsDB) SnapshotState(rootHash []byte) {
 		return
 	}
 
-	log.Info("starting snapshot", "rootHash", rootHash, "epoch", epoch)
+	log.Info("starting snapshot peer trie", "rootHash", rootHash, "epoch", epoch)
 
 	adb.lastSnapshot.rootHash = rootHash
 	adb.lastSnapshot.epoch = epoch
@@ -129,16 +121,9 @@ func (adb *PeerAccountsDB) SetStateCheckpoint(rootHash []byte) {
 
 	go adb.syncMissingNodes(missingNodesChannel, stats)
 
-	go func() {
-		stats.WaitForSnapshotsToFinish()
-		close(missingNodesChannel)
-		stats.WaitForSyncToFinish()
-		trieStorageManager.ExitPruningBufferingMode()
-
-		// TODO decide if we need to take some actions whenever we hit an error that occurred in the checkpoint process
-		//  that will be present in the errChan var
-		go stats.PrintStats("setStateCheckpoint peer trie", rootHash)
-	}()
+	// TODO decide if we need to take some actions whenever we hit an error that occurred in the checkpoint process
+	//  that will be present in the errChan var
+	go finishSnapshotOperation(rootHash, stats, missingNodesChannel, trieStorageManager, "setStateCheckpoint peer trie")
 
 	adb.waitForCompletionIfRunningInImportDB(stats)
 }

@@ -2393,7 +2393,10 @@ func TestAccountsDB_SetSyncerAndStartSnapshotIfNeeded(t *testing.T) {
 		}
 
 		adb := generateAccountDBFromTrie(trieStub)
-		adb.SetSyncerAndStartSnapshotIfNeeded(&mock.AccountsDBSyncerStub{})
+		err := adb.SetSyncer(&mock.AccountsDBSyncerStub{})
+		assert.Nil(t, err)
+		err = adb.StartSnapshotIfNeeded()
+		assert.Nil(t, err)
 
 		assert.True(t, putCalled)
 	})
@@ -2420,7 +2423,10 @@ func TestAccountsDB_SetSyncerAndStartSnapshotIfNeeded(t *testing.T) {
 		}
 
 		adb := generateAccountDBFromTrie(trieStub)
-		adb.SetSyncerAndStartSnapshotIfNeeded(&mock.AccountsDBSyncerStub{})
+		err := adb.SetSyncer(&mock.AccountsDBSyncerStub{})
+		assert.Nil(t, err)
+		err = adb.StartSnapshotIfNeeded()
+		assert.Nil(t, err)
 	})
 	t.Run("in import DB mode", func(t *testing.T) {
 		putCalled := false
@@ -2453,7 +2459,10 @@ func TestAccountsDB_SetSyncerAndStartSnapshotIfNeeded(t *testing.T) {
 		args.Trie = trieStub
 
 		adb, _ := state.NewAccountsDB(args)
-		adb.SetSyncerAndStartSnapshotIfNeeded(&mock.AccountsDBSyncerStub{})
+		err := adb.SetSyncer(&mock.AccountsDBSyncerStub{})
+		assert.Nil(t, err)
+		err = adb.StartSnapshotIfNeeded()
+		assert.Nil(t, err)
 
 		assert.True(t, putCalled)
 	})
@@ -2490,7 +2499,10 @@ func TestAccountsDB_NewAccountsDbStartsSnapshotAfterRestart(t *testing.T) {
 	}
 
 	adb := generateAccountDBFromTrie(trieStub)
-	adb.SetSyncerAndStartSnapshotIfNeeded(&mock.AccountsDBSyncerStub{})
+	err := adb.SetSyncer(&mock.AccountsDBSyncerStub{})
+	assert.Nil(t, err)
+	err = adb.StartSnapshotIfNeeded()
+	assert.Nil(t, err)
 	time.Sleep(time.Second)
 	assert.True(t, takeSnapshotCalled.IsSet())
 }

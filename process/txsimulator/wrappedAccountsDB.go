@@ -24,8 +24,14 @@ func NewReadOnlyAccountsDB(accountsDB state.AccountsAdapter) (*readOnlyAccountsD
 	return &readOnlyAccountsDB{originalAccounts: accountsDB}, nil
 }
 
-// SetSyncerAndStartSnapshotIfNeeded won't do anything as write operations are disabled on this component
-func (r *readOnlyAccountsDB) SetSyncerAndStartSnapshotIfNeeded(_ state.AccountsDBSyncer) {
+// SetSyncer returns nil for this implementation
+func (r *readOnlyAccountsDB) SetSyncer(_ state.AccountsDBSyncer) error {
+	return nil
+}
+
+// StartSnapshotIfNeeded returns nil for this implementation
+func (r *readOnlyAccountsDB) StartSnapshotIfNeeded() error {
+	return nil
 }
 
 // GetCode returns the code for the given account

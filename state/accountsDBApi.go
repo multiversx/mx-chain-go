@@ -74,8 +74,14 @@ func (accountsDB *accountsDBApi) doRecreateTrieWithBlockInfo(newBlockInfo common
 	return newBlockInfo, nil
 }
 
-// SetSyncerAndStartSnapshotIfNeeded is a not permitted operation in this implementation and thus, does nothing
-func (accountsDB *accountsDBApi) SetSyncerAndStartSnapshotIfNeeded(_ AccountsDBSyncer) {
+// SetSyncer returns nil for this implementation
+func (accountsDB *accountsDBApi) SetSyncer(_ AccountsDBSyncer) error {
+	return nil
+}
+
+// StartSnapshotIfNeeded  returns nil for this implementation
+func (accountsDB *accountsDBApi) StartSnapshotIfNeeded() error {
+	return nil
 }
 
 // GetExistingAccount will call the inner accountsAdapter method after trying to recreate the trie

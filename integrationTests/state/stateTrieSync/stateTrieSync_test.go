@@ -439,7 +439,10 @@ func TestSyncMissingSnapshotNodes(t *testing.T) {
 	userAccSyncer, err := syncer.NewUserAccountsSyncer(syncerArgs)
 	assert.Nil(t, err)
 
-	nRequester.AccntState.SetSyncerAndStartSnapshotIfNeeded(userAccSyncer)
+	err = nRequester.AccntState.SetSyncer(userAccSyncer)
+	assert.Nil(t, err)
+	err = nRequester.AccntState.StartSnapshotIfNeeded()
+	assert.Nil(t, err)
 
 	tsm := nRequester.TrieStorageManagers[trieFactory.UserAccountTrie]
 	_ = tsm.PutInEpoch([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal), 0)

@@ -387,7 +387,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		return true, err
 	}
 
-	err = addSyncerToAccountsDB(
+	err = addSyncersToAccountsDB(
 		configs.GeneralConfig,
 		managedCoreComponents,
 		managedDataComponents,
@@ -520,7 +520,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	return false, nil
 }
 
-func addSyncerToAccountsDB(
+func addSyncersToAccountsDB(
 	config *config.Config,
 	coreComponents mainFactory.CoreComponentsHolder,
 	dataComponents mainFactory.DataComponentsHolder,
@@ -541,8 +541,15 @@ func addSyncerToAccountsDB(
 			return err
 		}
 
-		stateComponents.PeerAccounts().SetSyncerAndStartSnapshotIfNeeded(stateSyncer)
-		return nil
+		err = stateComponents.PeerAccounts().SetSyncer(stateSyncer)
+		if err != nil {
+			return err
+		}
+
+		err = stateComponents.PeerAccounts().StartSnapshotIfNeeded()
+		if err != nil {
+			return err
+		}
 	}
 
 	stateSyncer, err := getUserAccountSyncer(
@@ -556,9 +563,12 @@ func addSyncerToAccountsDB(
 	if err != nil {
 		return err
 	}
-	stateComponents.AccountsAdapter().SetSyncerAndStartSnapshotIfNeeded(stateSyncer)
+	err = stateComponents.AccountsAdapter().SetSyncer(stateSyncer)
+	if err != nil {
+		return err
+	}
 
-	return nil
+	return stateComponents.AccountsAdapter().StartSnapshotIfNeeded()
 }
 
 func getUserAccountSyncer(

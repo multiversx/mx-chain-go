@@ -124,7 +124,8 @@ type AccountsAdapter interface {
 	RecreateAllTries(rootHash []byte) (map[string]common.Trie, error)
 	GetTrie(rootHash []byte) (common.Trie, error)
 	GetStackDebugFirstEntry() []byte
-	SetSyncerAndStartSnapshotIfNeeded(syncer AccountsDBSyncer)
+	SetSyncer(syncer AccountsDBSyncer) error
+	StartSnapshotIfNeeded() error
 	Close() error
 	IsInterfaceNil() bool
 }
