@@ -268,12 +268,17 @@ func (tr *patriciaMerkleTrie) recreate(root []byte, epoch core.OptionalUint32) (
 		)
 	}
 
-	_, err := tr.trieStorage.Get(root)
+	var err error
+	if epoch.HasValue {
+		_, err = tr.trieStorage.GetFromEpoch(root, epoch.Value)
+	} else {
+		_, err = tr.trieStorage.Get(root)
+	}
 	if err != nil {
 		return nil, err
 	}
 
-	newTr, _, err := tr.recreateFromDb(root, tr.trieStorage)
+	newTr, _, err := tr.recreateFromDb(root, epoch, tr.trieStorage)
 	if err != nil {
 		if errors.IsClosingError(err) {
 			log.Debug("could not recreate", "rootHash", root, "error", err)
@@ -351,7 +356,7 @@ func (tr *patriciaMerkleTrie) GetDirtyHashes() (common.ModifiedHashes, error) {
 	return dirtyHashes, nil
 }
 
-func (tr *patriciaMerkleTrie) recreateFromDb(rootHash []byte, tsm common.StorageManager) (*patriciaMerkleTrie, snapshotNode, error) {
+func (tr *patriciaMerkleTrie) recreateFromDb(rootHash []byte, epoch core.OptionalUint32, tsm common.StorageManager) (*patriciaMerkleTrie, snapshotNode, error) {
 	newTr, err := NewTrie(
 		tsm,
 		tr.marshalizer,
@@ -362,7 +367,7 @@ func (tr *patriciaMerkleTrie) recreateFromDb(rootHash []byte, tsm common.Storage
 		return nil, nil, err
 	}
 
-	newRoot, err := getNodeFromDBAndDecode(rootHash, tsm, tr.marshalizer, tr.hasher)
+	newRoot, err := getNodeFromDBAndDecodeWithEpoch(rootHash, epoch, tsm, tr.marshalizer, tr.hasher)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -391,7 +396,7 @@ func (tr *patriciaMerkleTrie) GetSerializedNodes(rootHash []byte, maxBuffToSend 
 	log.Trace("GetSerializedNodes", "rootHash", rootHash)
 	size := uint64(0)
 
-	newTr, _, err := tr.recreateFromDb(rootHash, tr.trieStorage)
+	newTr, _, err := tr.recreateFromDb(rootHash, core.OptionalUint32{}, tr.trieStorage)
 	if err != nil {
 		return nil, 0, err
 	}

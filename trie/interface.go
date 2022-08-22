@@ -58,6 +58,10 @@ type node interface {
 	IsInterfaceNil() bool
 }
 
+type dbWithGetFromEpoch interface {
+	GetFromEpoch(key []byte, epoch uint32) ([]byte, error)
+}
+
 type snapshotNode interface {
 	commitCheckpoint(originDb common.DBWriteCacher, targetDb common.DBWriteCacher, checkpointHashes CheckpointHashesHolder, leavesChan chan core.KeyValueHolder, ctx context.Context, stats common.SnapshotStatisticsHandler, idleProvider IdleNodeProvider) error
 	commitSnapshot(originDb common.DBWriteCacher, leavesChan chan core.KeyValueHolder, ctx context.Context, stats common.SnapshotStatisticsHandler, idleProvider IdleNodeProvider) error
