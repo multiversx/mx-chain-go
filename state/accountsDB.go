@@ -1160,27 +1160,25 @@ func (adb *AccountsDB) SnapshotState(rootHash []byte) {
 	adb.waitForCompletionIfRunningInImportDB(stats)
 }
 
-func finishSnapshotOperation(
+func (adb *AccountsDB) finishSnapshotOperation(
 	rootHash []byte,
 	stats *snapshotStatistics,
 	missingNodesCh chan []byte,
-	trieStorageManager common.StorageManager,
 	message string,
 ) {
 	stats.WaitForSnapshotsToFinish()
 	close(missingNodesCh)
 	stats.WaitForSyncToFinish()
 
-	trieStorageManager.ExitPruningBufferingMode()
+	adb.mainTrie.GetStorageManager().ExitPruningBufferingMode()
 
 	stats.PrintStats(message, rootHash)
 }
 
 func (adb *AccountsDB) markActiveDBAfterSnapshot(stats *snapshotStatistics, missingNodesCh chan []byte, errChan chan error, rootHash []byte, message string, epoch uint32) {
+	adb.finishSnapshotOperation(rootHash, stats, missingNodesCh, message)
+
 	trieStorageManager := adb.mainTrie.GetStorageManager()
-
-	finishSnapshotOperation(rootHash, stats, missingNodesCh, trieStorageManager, message)
-
 	containsErrorDuringSnapshot := emptyErrChanReturningHadContained(errChan)
 	shouldNotMarkActive := trieStorageManager.IsClosed() || containsErrorDuringSnapshot
 	if shouldNotMarkActive {
@@ -1292,7 +1290,7 @@ func (adb *AccountsDB) setStateCheckpoint(rootHash []byte) {
 
 	// TODO decide if we need to take some actions whenever we hit an error that occurred in the checkpoint process
 	//  that will be present in the errChan var
-	go finishSnapshotOperation(rootHash, stats, missingNodesChannel, trieStorageManager, "setStateCheckpoint user trie")
+	go adb.finishSnapshotOperation(rootHash, stats, missingNodesChannel, "setStateCheckpoint user trie")
 
 	adb.waitForCompletionIfRunningInImportDB(stats)
 }

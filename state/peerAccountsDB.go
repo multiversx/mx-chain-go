@@ -123,7 +123,7 @@ func (adb *PeerAccountsDB) SetStateCheckpoint(rootHash []byte) {
 
 	// TODO decide if we need to take some actions whenever we hit an error that occurred in the checkpoint process
 	//  that will be present in the errChan var
-	go finishSnapshotOperation(rootHash, stats, missingNodesChannel, trieStorageManager, "setStateCheckpoint peer trie")
+	go adb.finishSnapshotOperation(rootHash, stats, missingNodesChannel, "setStateCheckpoint peer trie")
 
 	adb.waitForCompletionIfRunningInImportDB(stats)
 }

@@ -29,6 +29,16 @@ func NewAccountsDBApiWithHistory(innerAccountsAdapter AccountsAdapter) (*account
 	}, nil
 }
 
+// SetSyncer  is a not permitted operation in this implementation and thus, does nothing
+func (accountsDB *accountsDBApiWithHistory) SetSyncer(_ AccountsDBSyncer) error {
+	return nil
+}
+
+// StartSnapshotIfNeeded  is a not permitted operation in this implementation and thus, does nothing
+func (accountsDB *accountsDBApiWithHistory) StartSnapshotIfNeeded() error {
+	return nil
+}
+
 // GetExistingAccount will return an error
 func (accountsDB *accountsDBApiWithHistory) GetExistingAccount(_ []byte) (vmcommon.AccountHandler, error) {
 	return nil, ErrFunctionalityNotImplemented
