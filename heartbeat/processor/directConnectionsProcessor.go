@@ -95,7 +95,7 @@ func (dcp *directConnectionsProcessor) sendMessageToNewConnections() {
 	connectedPeers := dcp.messenger.ConnectedPeers()
 	newPeers := dcp.computeNewPeers(connectedPeers)
 	dcp.notifyNewPeers(newPeers)
-	dcp.recreateNotifiedPeers(newPeers, connectedPeers)
+	dcp.recreateNotifiedPeers(connectedPeers)
 }
 
 func (dcp *directConnectionsProcessor) computeNewPeers(connectedPeers []core.PeerID) []core.PeerID {
@@ -132,15 +132,10 @@ func (dcp *directConnectionsProcessor) notifyNewPeers(newPeers []core.PeerID) {
 	}
 }
 
-func (dcp *directConnectionsProcessor) recreateNotifiedPeers(newPeers []core.PeerID, connectedPeers []core.PeerID) {
+func (dcp *directConnectionsProcessor) recreateNotifiedPeers(connectedPeers []core.PeerID) {
 	dcp.notifiedPeersMap = make(map[core.PeerID]struct{})
 
-	dcp.addPeersToNotifiedPeersMap(newPeers)
-	dcp.addPeersToNotifiedPeersMap(connectedPeers)
-}
-
-func (dcp *directConnectionsProcessor) addPeersToNotifiedPeersMap(peers []core.PeerID) {
-	for _, peer := range peers {
+	for _, peer := range connectedPeers {
 		dcp.notifiedPeersMap[peer] = struct{}{}
 	}
 }
