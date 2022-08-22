@@ -2373,9 +2373,12 @@ func (tpn *TestProcessorNode) initNode() {
 	currentProvider, _ := blockInfoProviders.NewCurrentBlockInfo(dataComponents.BlockChain)
 	currentAccountsApi, _ := state.NewAccountsDBApi(tpn.AccntState, currentProvider)
 
+	historicalAccountsApi, _ := state.NewAccountsDBApiWithHistory(tpn.AccntState)
+
 	argsAccountsRepo := state.ArgsAccountsRepository{
-		FinalStateAccountsWrapper:   finalAccountsApi,
-		CurrentStateAccountsWrapper: currentAccountsApi,
+		FinalStateAccountsWrapper:      finalAccountsApi,
+		CurrentStateAccountsWrapper:    currentAccountsApi,
+		HistoricalStateAccountsWrapper: historicalAccountsApi,
 	}
 	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(argsAccountsRepo)
 

@@ -30,6 +30,9 @@ const (
 	getESDTNFTDataPath        = "/:address/nft/:tokenIdentifier/nonce/:nonce"
 	urlParamOnFinalBlock      = "onFinalBlock"
 	urlParamOnStartOfEpoch    = "onStartOfEpoch"
+	urlParamBlockNonce        = "blockNonce"
+	urlParamBlockHash         = "blockHash"
+	urlParamBlockRootHash     = "blockRootHash"
 )
 
 // addressFacadeHandler defines the methods to be implemented by a facade for handling address requests
@@ -153,9 +156,9 @@ func (ag *addressGroup) getAccount(c *gin.Context) {
 		return
 	}
 
-	options, err := parseAccountQueryOptions(c)
+	options, err := extractAccountQueryOptions(c)
 	if err != nil {
-		shared.RespondWithValidationError(c, errors.ErrCouldNotGetAccount, errors.ErrBadUrlParams)
+		shared.RespondWithValidationError(c, errors.ErrCouldNotGetAccount, err)
 		return
 	}
 
@@ -177,9 +180,9 @@ func (ag *addressGroup) getBalance(c *gin.Context) {
 		return
 	}
 
-	options, err := parseAccountQueryOptions(c)
+	options, err := extractAccountQueryOptions(c)
 	if err != nil {
-		shared.RespondWithValidationError(c, errors.ErrGetBalance, errors.ErrBadUrlParams)
+		shared.RespondWithValidationError(c, errors.ErrGetBalance, err)
 		return
 	}
 
@@ -200,9 +203,9 @@ func (ag *addressGroup) getUsername(c *gin.Context) {
 		return
 	}
 
-	options, err := parseAccountQueryOptions(c)
+	options, err := extractAccountQueryOptions(c)
 	if err != nil {
-		shared.RespondWithValidationError(c, errors.ErrGetUsername, errors.ErrBadUrlParams)
+		shared.RespondWithValidationError(c, errors.ErrGetUsername, err)
 		return
 	}
 
@@ -223,9 +226,9 @@ func (ag *addressGroup) getValueForKey(c *gin.Context) {
 		return
 	}
 
-	options, err := parseAccountQueryOptions(c)
+	options, err := extractAccountQueryOptions(c)
 	if err != nil {
-		shared.RespondWithValidationError(c, errors.ErrGetUsername, errors.ErrBadUrlParams)
+		shared.RespondWithValidationError(c, errors.ErrGetUsername, err)
 		return
 	}
 
@@ -252,9 +255,9 @@ func (ag *addressGroup) getKeyValuePairs(c *gin.Context) {
 		return
 	}
 
-	options, err := parseAccountQueryOptions(c)
+	options, err := extractAccountQueryOptions(c)
 	if err != nil {
-		shared.RespondWithValidationError(c, errors.ErrGetKeyValuePairs, errors.ErrBadUrlParams)
+		shared.RespondWithValidationError(c, errors.ErrGetKeyValuePairs, err)
 		return
 	}
 
@@ -275,9 +278,9 @@ func (ag *addressGroup) getESDTBalance(c *gin.Context) {
 		return
 	}
 
-	options, err := parseAccountQueryOptions(c)
+	options, err := extractAccountQueryOptions(c)
 	if err != nil {
-		shared.RespondWithValidationError(c, errors.ErrGetESDTBalance, errors.ErrBadUrlParams)
+		shared.RespondWithValidationError(c, errors.ErrGetESDTBalance, err)
 		return
 	}
 
@@ -310,9 +313,9 @@ func (ag *addressGroup) getESDTsRoles(c *gin.Context) {
 		return
 	}
 
-	options, err := parseAccountQueryOptions(c)
+	options, err := extractAccountQueryOptions(c)
 	if err != nil {
-		shared.RespondWithValidationError(c, errors.ErrGetRolesForAccount, errors.ErrBadUrlParams)
+		shared.RespondWithValidationError(c, errors.ErrGetRolesForAccount, err)
 		return
 	}
 
@@ -333,9 +336,9 @@ func (ag *addressGroup) getESDTTokensWithRole(c *gin.Context) {
 		return
 	}
 
-	options, err := parseAccountQueryOptions(c)
+	options, err := extractAccountQueryOptions(c)
 	if err != nil {
-		shared.RespondWithValidationError(c, errors.ErrGetESDTBalance, errors.ErrBadUrlParams)
+		shared.RespondWithValidationError(c, errors.ErrGetESDTBalance, err)
 		return
 	}
 
@@ -367,9 +370,9 @@ func (ag *addressGroup) getNFTTokenIDsRegisteredByAddress(c *gin.Context) {
 		return
 	}
 
-	options, err := parseAccountQueryOptions(c)
+	options, err := extractAccountQueryOptions(c)
 	if err != nil {
-		shared.RespondWithValidationError(c, errors.ErrGetESDTBalance, errors.ErrBadUrlParams)
+		shared.RespondWithValidationError(c, errors.ErrGetESDTBalance, err)
 		return
 	}
 
@@ -390,9 +393,9 @@ func (ag *addressGroup) getESDTNFTData(c *gin.Context) {
 		return
 	}
 
-	options, err := parseAccountQueryOptions(c)
+	options, err := extractAccountQueryOptions(c)
 	if err != nil {
-		shared.RespondWithValidationError(c, errors.ErrGetESDTNFTData, errors.ErrBadUrlParams)
+		shared.RespondWithValidationError(c, errors.ErrGetESDTNFTData, err)
 		return
 	}
 
@@ -432,9 +435,9 @@ func (ag *addressGroup) getAllESDTData(c *gin.Context) {
 		return
 	}
 
-	options, err := parseAccountQueryOptions(c)
+	options, err := extractAccountQueryOptions(c)
 	if err != nil {
-		shared.RespondWithValidationError(c, errors.ErrGetESDTNFTData, errors.ErrBadUrlParams)
+		shared.RespondWithValidationError(c, errors.ErrGetESDTNFTData, err)
 		return
 	}
 
@@ -500,19 +503,4 @@ func (ag *addressGroup) UpdateFacade(newFacade interface{}) error {
 // IsInterfaceNil returns true if there is no value under the interface
 func (ag *addressGroup) IsInterfaceNil() bool {
 	return ag == nil
-}
-
-func parseAccountQueryOptions(c *gin.Context) (api.AccountQueryOptions, error) {
-	onFinalBlock, err := parseBoolUrlParam(c, urlParamOnFinalBlock)
-	if err != nil {
-		return api.AccountQueryOptions{}, err
-	}
-
-	onStartOfEpoch, err := parseUintUrlParam(c, urlParamOnStartOfEpoch)
-	if err != nil {
-		return api.AccountQueryOptions{}, err
-	}
-
-	options := api.AccountQueryOptions{OnFinalBlock: onFinalBlock, OnStartOfEpoch: uint32(onStartOfEpoch)}
-	return options, nil
 }
