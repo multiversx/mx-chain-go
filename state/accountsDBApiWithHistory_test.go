@@ -8,6 +8,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/common/holders"
@@ -98,7 +99,7 @@ func TestAccountsDBApiWithHistory_NotPermittedOrNotImplementedOperationsDoNotPan
 
 func TestAccountsDBApiWithHistory_GetAccountWithBlockInfo(t *testing.T) {
 	rootHash := []byte("rootHash")
-	options := holders.NewRootHashHolder(rootHash)
+	options := holders.NewRootHashHolder(rootHash, core.OptionalUint32{})
 	arbitraryError := errors.New("arbitrary error")
 
 	t.Run("recreate trie fails", func(t *testing.T) {
@@ -188,7 +189,7 @@ func TestAccountsDBApiWithHistory_GetAccountWithBlockInfo(t *testing.T) {
 func TestAccountsDBApiWithHistory_GetCodeWithBlockInfo(t *testing.T) {
 	contractCodeHash := []byte("codeHash")
 	rootHash := []byte("rootHash")
-	options := holders.NewRootHashHolder(rootHash)
+	options := holders.NewRootHashHolder(rootHash, core.OptionalUint32{})
 
 	t.Run("recreate trie fails", func(t *testing.T) {
 		expectedErr := errors.New("expected error")
@@ -280,7 +281,7 @@ func TestAccountsDBApiWithHistory_GetAccountWithBlockInfoWhenHighConcurrency(t *
 				go func(rootHashAsInt int) {
 					rootHashAsString := fmt.Sprintf("%d", rootHashAsInt)
 					rootHash := []byte(rootHashAsString)
-					options := holders.NewRootHashHolder(rootHash)
+					options := holders.NewRootHashHolder(rootHash, core.OptionalUint32{})
 					account, blockInfo, _ := accountsApiWithHistory.GetAccountWithBlockInfo([]byte("address"), options)
 					userAccount := account.(state.UserAccountHandler)
 

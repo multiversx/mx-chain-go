@@ -712,6 +712,7 @@ func GetSortedStorageUpdates(account *vmcommon.OutputAccount) []*vmcommon.Storag
 	return storageUpdates
 }
 
+// CreateHeader creates a block header from the given byte array
 func CreateHeader(shardId uint32, marshalizer marshal.Marshalizer, headerBuffer []byte) (data.HeaderHandler, error) {
 	if shardId == core.MetachainShardId {
 		return CreateMetaHeader(marshalizer, headerBuffer)
@@ -720,6 +721,7 @@ func CreateHeader(shardId uint32, marshalizer marshal.Marshalizer, headerBuffer 
 	}
 }
 
+// CreateHeader creates a meta header from the given byte array
 func CreateMetaHeader(marshalizer marshal.Marshalizer, headerBuffer []byte) (data.MetaHeaderHandler, error) {
 	header := &block.MetaBlock{}
 	err := marshalizer.Unmarshal(header, headerBuffer)

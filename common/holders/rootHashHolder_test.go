@@ -8,16 +8,11 @@ import (
 )
 
 func TestNewRootHashHolder(t *testing.T) {
-	holder := NewRootHashHolder(nil)
+	holder := NewRootHashHolder(nil, core.OptionalUint32{})
 	require.Nil(t, holder.GetRootHash())
-
-	holder = NewRootHashHolder([]byte{0xab, 0xcd})
-	require.Equal(t, []byte{0xab, 0xcd}, holder.GetRootHash())
 	require.Equal(t, core.OptionalUint32{}, holder.GetEpoch())
-}
 
-func TestNewRootHashHolderWithEpoch(t *testing.T) {
-	holder := NewRootHashHolderWithEpoch([]byte{0xab, 0xcd}, 7)
+	holder = NewRootHashHolder([]byte{0xab, 0xcd}, core.OptionalUint32{Value: 7, HasValue: true})
 	require.Equal(t, []byte{0xab, 0xcd}, holder.GetRootHash())
 	require.Equal(t, core.OptionalUint32{Value: 7, HasValue: true}, holder.GetEpoch())
 }

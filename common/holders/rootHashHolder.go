@@ -8,18 +8,10 @@ type rootHashHolder struct {
 }
 
 // NewRootHashHolder creates a rootHashHolder
-func NewRootHashHolder(rootHash []byte) *rootHashHolder {
+func NewRootHashHolder(rootHash []byte, epoch core.OptionalUint32) *rootHashHolder {
 	return &rootHashHolder{
 		rootHash: rootHash,
-		epoch:    core.OptionalUint32{},
-	}
-}
-
-// NewRootHashHolderWithEpoch creates a rootHashHolder
-func NewRootHashHolderWithEpoch(rootHash []byte, epoch uint32) *rootHashHolder {
-	return &rootHashHolder{
-		rootHash: rootHash,
-		epoch:    core.OptionalUint32{Value: epoch, HasValue: true},
+		epoch:    epoch,
 	}
 }
 

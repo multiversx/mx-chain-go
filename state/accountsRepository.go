@@ -54,10 +54,7 @@ func (repository *accountsRepository) GetAccountWithBlockInfo(address []byte, op
 }
 
 func (repository *accountsRepository) convertAccountQueryOptions(options api.AccountQueryOptions) common.RootHashHolder {
-	if options.HintEpoch.HasValue {
-		return holders.NewRootHashHolderWithEpoch(options.BlockRootHash, options.HintEpoch.Value)
-	}
-	return holders.NewRootHashHolder(options.BlockRootHash)
+	return holders.NewRootHashHolder(options.BlockRootHash, options.HintEpoch)
 }
 
 // GetCodeWithBlockInfo will return the code with the block info providing the code hash and the query option
