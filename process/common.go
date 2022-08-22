@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
 	"math"
 	"math/big"
 	"sort"
@@ -14,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
@@ -110,6 +110,19 @@ func GetMetaHeaderFromPool(
 	}
 
 	return hdr, nil
+}
+
+// GetHeaderFromStorage method returns a block header from storage
+func GetHeaderFromStorage(
+	shardId uint32,
+	hash []byte,
+	marshalizer marshal.Marshalizer,
+	storageService dataRetriever.StorageService,
+) (data.HeaderHandler, error) {
+	if shardId == core.MetachainShardId {
+		return GetMetaHeaderFromStorage(hash, marshalizer, storageService)
+	}
+	return GetShardHeaderFromStorage(hash, marshalizer, storageService)
 }
 
 // GetShardHeaderFromStorage gets the header, which is associated with the given hash, from storage

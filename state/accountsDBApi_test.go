@@ -547,7 +547,7 @@ func TestAccountsDBApi_GetAccountWithBlockInfoWhenHighConcurrency(t *testing.T) 
 			wg.Add(1)
 
 			go func() {
-				account, blockInfo, _ := accountsApi.GetAccountWithBlockInfo([]byte("address"))
+				account, blockInfo, _ := accountsApi.GetAccountWithBlockInfo([]byte("address"), holders.NewRootHashHolderAsEmpty())
 				userAccount := account.(state.UserAccountHandler)
 				expectedDummyBalanceBytes := blockInfo.GetRootHash()
 				actualBalanceBytes := userAccount.GetBalance().Bytes()
