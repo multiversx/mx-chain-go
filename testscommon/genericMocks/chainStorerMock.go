@@ -7,6 +7,7 @@ import (
 
 // ChainStorerMock -
 type ChainStorerMock struct {
+	BlockHeaders  *StorerMock
 	Metablocks    *StorerMock
 	Miniblocks    *StorerMock
 	Transactions  *StorerMock
@@ -22,6 +23,7 @@ type ChainStorerMock struct {
 // NewChainStorerMock -
 func NewChainStorerMock(epoch uint32) *ChainStorerMock {
 	return &ChainStorerMock{
+		BlockHeaders:  NewStorerMockWithEpoch(epoch),
 		Metablocks:    NewStorerMockWithEpoch(epoch),
 		Miniblocks:    NewStorerMockWithEpoch(epoch),
 		Transactions:  NewStorerMockWithEpoch(epoch),
@@ -48,6 +50,8 @@ func (sm *ChainStorerMock) AddStorer(_ dataRetriever.UnitType, _ storage.Storer)
 // GetStorer -
 func (sm *ChainStorerMock) GetStorer(unitType dataRetriever.UnitType) storage.Storer {
 	switch unitType {
+	case dataRetriever.BlockHeaderUnit:
+		return sm.BlockHeaders
 	case dataRetriever.MetaBlockUnit:
 		return sm.Metablocks
 	case dataRetriever.MiniBlockUnit:
@@ -116,6 +120,7 @@ func (sm *ChainStorerMock) SetEpochForPutOperation(_ uint32) {
 // GetAllStorers -
 func (sm *ChainStorerMock) GetAllStorers() map[dataRetriever.UnitType]storage.Storer {
 	return map[dataRetriever.UnitType]storage.Storer{
+		dataRetriever.BlockHeaderUnit:           sm.BlockHeaders,
 		dataRetriever.MetaBlockUnit:             sm.Metablocks,
 		dataRetriever.MiniBlockUnit:             sm.Miniblocks,
 		dataRetriever.TransactionUnit:           sm.Transactions,
