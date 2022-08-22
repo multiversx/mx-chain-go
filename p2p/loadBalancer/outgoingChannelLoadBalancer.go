@@ -19,12 +19,12 @@ type OutgoingChannelLoadBalancer struct {
 	chans    []chan *p2p.SendableData
 	mainChan chan *p2p.SendableData
 	names    []string
-	//namesChans is defined only for performance purposes as to fast search by name
-	//iteration is done directly on slices as that is used very often and is about 50x
-	//faster then an iteration over a map
+	// namesChans is defined only for performance purposes as to fast search by name
+	// iteration is done directly on slices as that is used very often and is about 50x
+	// faster then an iteration over a map
 	namesChans map[string]chan *p2p.SendableData
 	cancelFunc context.CancelFunc
-	ctx        context.Context //we need the context saved here in order to call appendChannel from exported func AddChannel
+	ctx        context.Context // we need the context saved here in order to call appendChannel from exported func AddChannel
 }
 
 // NewOutgoingChannelLoadBalancer creates a new instance of a ChannelLoadBalancer instance
@@ -52,23 +52,26 @@ func (oplb *OutgoingChannelLoadBalancer) appendChannel(channel string) {
 	oplb.namesChans[channel] = ch
 
 	go func() {
+		log.Debug("p2p: started OutgoingChannelLoadBalancer go routine", "channel", channel)
 		for {
 			var obj *p2p.SendableData
 
 			select {
 			case obj = <-ch:
 			case <-oplb.ctx.Done():
-				log.Debug("closing OutgoingChannelLoadBalancer's append channel go routine")
+				log.Debug("p2p: closing OutgoingChannelLoadBalancer's append channel go routine", "channel", channel)
 				return
 			}
 
 			oplb.mainChan <- obj
+			log.Debug("p2p: wrote on mainChan", "channel", channel)
 		}
 	}()
 }
 
 // AddChannel adds a new channel to the throttler, if it does not exists
 func (oplb *OutgoingChannelLoadBalancer) AddChannel(channel string) error {
+	log.Debug("p2p: adding channel", "channel", channel)
 	if channel == defaultSendChannel {
 		return p2p.ErrChannelCanNotBeReAdded
 	}
@@ -78,11 +81,13 @@ func (oplb *OutgoingChannelLoadBalancer) AddChannel(channel string) error {
 
 	for _, name := range oplb.names {
 		if name == channel {
+			log.Debug("p2p: adding channel, channel already exists", "channel", channel)
 			return nil
 		}
 	}
 
 	oplb.appendChannel(channel)
+	log.Debug("p2p: adding channel, added", "channel", channel)
 
 	return nil
 }
@@ -111,12 +116,12 @@ func (oplb *OutgoingChannelLoadBalancer) RemoveChannel(channel string) error {
 
 	sendableChan := oplb.chans[index]
 
-	//remove the index-th element in the chan slice
+	// remove the index-th element in the chan slice
 	copy(oplb.chans[index:], oplb.chans[index+1:])
 	oplb.chans[len(oplb.chans)-1] = nil
 	oplb.chans = oplb.chans[:len(oplb.chans)-1]
 
-	//remove the index-th element in the names slice
+	// remove the index-th element in the names slice
 	copy(oplb.names[index:], oplb.names[index+1:])
 	oplb.names = oplb.names[:len(oplb.names)-1]
 

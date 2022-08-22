@@ -889,6 +889,7 @@ func (netMes *networkMessenger) BroadcastOnChannelBlocking(channel string, topic
 		return p2p.ErrTooManyGoroutines
 	}
 
+	log.Debug("p2p: writing on channel", "channel", channel)
 	netMes.goRoutinesThrottler.StartProcessing()
 
 	sendable := &p2p.SendableData{
@@ -897,6 +898,8 @@ func (netMes *networkMessenger) BroadcastOnChannelBlocking(channel string, topic
 	}
 	netMes.outgoingPLB.GetChannelOrDefault(channel) <- sendable
 	netMes.goRoutinesThrottler.EndProcessing()
+	log.Debug("p2p: finished writing on channel", "channel", channel)
+
 	return nil
 }
 
