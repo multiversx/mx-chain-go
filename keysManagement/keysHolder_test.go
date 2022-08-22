@@ -260,32 +260,6 @@ func TestVirtualPeersHolder_AddVirtualPeer(t *testing.T) {
 		assert.Equal(t, providedIdentity, pInfo.nodeIdentity)
 		assert.Equal(t, providedName, pInfo.nodeName)
 	})
-	t.Run("invalid key in config should use default values", func(t *testing.T) {
-		providedKey := []byte("invalid public key")
-		providedSk := []byte("invalid private key")
-		args := createMockArgsVirtualPeersHolder()
-		args.PrefsConfig.NamedIdentity = []config.NamedIdentity{
-			{
-				Identity: "invalid key identity",
-				NodeName: "invalid key name",
-				BLSKeys:  []string{string(providedKey)},
-			},
-		}
-
-		holder, _ := NewVirtualPeersHolder(args)
-		err := holder.AddVirtualPeer(providedSk)
-		assert.Nil(t, err)
-
-		pInfo := holder.getPeerInfo(providedKey)
-		assert.NotNil(t, pInfo)
-		assert.Equal(t, pid, pInfo.pid)
-		assert.Equal(t, p2pPrivateKey, pInfo.p2pPrivateKeyBytes)
-		skBytesRecovered, _ := pInfo.privateKey.ToByteArray()
-		assert.Equal(t, providedSk, skBytesRecovered)
-		assert.Equal(t, 10, len(pInfo.machineID))
-		assert.Equal(t, defaultIdentity, pInfo.nodeIdentity)
-		assert.Equal(t, defaultName, pInfo.nodeName)
-	})
 	t.Run("should error when trying to add the same pk", func(t *testing.T) {
 		args := createMockArgsVirtualPeersHolder()
 
