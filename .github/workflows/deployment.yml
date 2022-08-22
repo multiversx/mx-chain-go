@@ -38,7 +38,7 @@ jobs:
     steps:
 
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
@@ -49,7 +49,7 @@ jobs:
       # https://github.com/actions/checkout#Checkout-multiple-repos-side-by-side
       # https://github.com/actions/checkout
       - name: Checkout deployment config repo
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           repository: elrondnetwork/elrond-k8s-testnet
           token: ${{ secrets.PAT }} # `GitHub_PAT` is a secret that contains your PAT
@@ -57,7 +57,7 @@ jobs:
           ref: master
 
       - name: Checkout deployment config repo
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           repository: elrondnetwork/elrond-proxy-go
           token: ${{ secrets.PAT }}
@@ -65,7 +65,7 @@ jobs:
           ref: master
 
       - name: Checkout deployment config repo
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           repository: elrondnetwork/elrond-txgen-go
           token: ${{ secrets.PAT }}

@@ -20,14 +20,14 @@ jobs:
     runs-on: ${{ matrix.runs-on }}
     name: Build
     steps:
-      - name: Set up Go 1.x
-        uses: actions/setup-go@v2
+      - name: Set up Go 1.17.6
+        uses: actions/setup-go@v3
         with:
-          go-version: ^1.15.2
+          go-version: 1.17.6
         id: go
 
       - name: Check out code into the Go module directory
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           fetch-depth: "0"
 
@@ -87,7 +87,7 @@ jobs:
           stat ${GITHUB_WORKSPACE}/${ARCHIVE}
 
       - name: Save artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: ${{ env.ARCHIVE }}
           path: ${{ github.workspace }}/${{ env.ARCHIVE }}
