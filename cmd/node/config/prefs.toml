@@ -4,10 +4,12 @@
    # if "disabled" is provided then the node will start in the corresponding shard for its public key or 0 otherwise
    DestinationShardAsObserver = "disabled"
 
-   # NodeDisplayName represents the friendly name a user can pick for his node in the status monitor
+   # NodeDisplayName represents the friendly name a user can pick for his node in the status monitor when the node does not run in multikey mode
+   # In multikey mode, all bls keys not mentioned in NamedIdentity section will use this one as default
    NodeDisplayName = ""
 
-   # Identity represents the keybase's identity
+   # Identity represents the keybase's identity when the node does not run in multikey mode
+   # In multikey mode, all bls keys not mentioned in NamedIdentity section will use this one as default
    Identity = ""
 
    # RedundancyLevel represents the level of redundancy used by the node (-1 = disabled, 0 = main instance (default),
@@ -32,8 +34,8 @@
    #  - "print" - new connection found will be printed in the log file
    ConnectionWatcherType = "disabled"
 
-# NamedIdentity represents an identity that runs nodes on the multisig.
-# There can be multiple identities set just by dupplicating the NamedIdentity
+# NamedIdentity represents an identity that runs nodes on the multikey
+# There can be multiple identities set on the same node, each one of them having different bls keys, just by duplicating the NamedIdentity
 [[NamedIdentity]]
    # Identity represents the keybase identity for the current NamedIdentity
    Identity = ""
