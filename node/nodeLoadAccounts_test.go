@@ -94,7 +94,6 @@ func TestNode_AddBlockCoordinatesToAccountQueryOptions(t *testing.T) {
 	blockHash := []byte("blockHash")
 	blockRootHash := []byte("blockRootHash")
 	scheduledBlockRootHash := []byte("scheduledBlockRootHash")
-	isDbLookupExtEnabled := true
 
 	blockHeader := &block.Header{
 		Nonce:    42,
@@ -114,7 +113,7 @@ func TestNode_AddBlockCoordinatesToAccountQueryOptions(t *testing.T) {
 	// Setup dblookupext
 	historyRepository := &dblookupext.HistoryRepositoryStub{
 		IsEnabledCalled: func() bool {
-			return isDbLookupExtEnabled
+			return true
 		},
 		GetEpochByHashCalled: func(hash []byte) (uint32, error) {
 			return epoch, nil
@@ -249,17 +248,6 @@ func TestNode_AddBlockCoordinatesToAccountQueryOptions(t *testing.T) {
 		require.Equal(t, expectedOptions, options)
 		require.Equal(t, blockHash, headerHashPassedToGetScheduledRootHashForHeaderWithEpoch)
 		require.Equal(t, epoch, epochPassedToGetScheduledRootHashForHeaderWithEpoch)
-	})
-
-	t.Run("does not work when dblookupext is disabled", func(t *testing.T) {
-		isDbLookupExtEnabled = false
-
-		options, err := n.AddBlockCoordinatesToAccountQueryOptions(api.AccountQueryOptions{
-			BlockNonce: core.OptionalUint64{Value: 42, HasValue: true},
-		})
-
-		require.Error(t, err, node.ErrNotSupported)
-		require.Equal(t, api.AccountQueryOptions{}, options)
 	})
 }
 

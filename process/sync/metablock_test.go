@@ -69,7 +69,7 @@ func CreateMetaBootstrapMockArguments() sync.ArgMetaBootstrapper {
 		RequestHandler:               &testscommon.RequestHandlerStub{},
 		ShardCoordinator:             mock.NewOneShardCoordinatorMock(),
 		Accounts:                     &stateMock.AccountsStub{},
-		BlackListHandler:             &mock.BlackListHandlerStub{},
+		BlackListHandler:             &testscommon.TimeCacheStub{},
 		NetworkWatcher:               initNetworkWatcher(),
 		BootStorer:                   &mock.BoostrapStorerMock{},
 		StorageBootstrapper:          &mock.StorageBootstrapperMock{},
@@ -920,7 +920,7 @@ func TestMetaBootstrap_GetNodeStateShouldReturnNotSynchronizedWhenForkIsDetected
 	args.RoundHandler = &mock.RoundHandlerMock{RoundIndex: 2}
 	args.ForkDetector, _ = sync.NewMetaForkDetector(
 		args.RoundHandler,
-		&mock.BlackListHandlerStub{},
+		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
 		0,
 	)
@@ -985,7 +985,7 @@ func TestMetaBootstrap_GetNodeStateShouldReturnSynchronizedWhenForkIsDetectedAnd
 	args.RoundHandler = &mock.RoundHandlerMock{RoundIndex: 2}
 	args.ForkDetector, _ = sync.NewMetaForkDetector(
 		args.RoundHandler,
-		&mock.BlackListHandlerStub{},
+		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
 		0,
 	)
