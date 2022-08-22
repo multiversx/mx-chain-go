@@ -166,3 +166,16 @@ type GasScheduleNotifierAPI interface {
 	core.GasScheduleNotifier
 	LatestGasScheduleCopy() map[string]map[string]uint64
 }
+
+// PidQueueHandler defines the behavior of a queue of pids
+type PidQueueHandler interface {
+	Push(pid core.PeerID)
+	Pop() core.PeerID
+	IndexOf(pid core.PeerID) int
+	Promote(idx int)
+	Remove(pid core.PeerID)
+	DataSizeInBytes() int
+	Get(idx int) core.PeerID
+	Len() int
+	IsInterfaceNil() bool
+}

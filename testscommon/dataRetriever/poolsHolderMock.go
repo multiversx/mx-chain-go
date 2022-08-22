@@ -11,8 +11,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/shardedData"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/txpool"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/mapTimeCache"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/ElrondNetwork/elrond-go/testscommon/txcachemocks"
 )
 
@@ -90,7 +90,7 @@ func NewPoolsHolderMock() *PoolsHolderMock {
 	holder.smartContracts, err = storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 10000, Shards: 1, SizeInBytes: 0})
 	panicIfError("NewPoolsHolderMock", err)
 
-	holder.peerAuthentications, err = mapTimeCache.NewMapTimeCache(mapTimeCache.ArgMapTimeCacher{
+	holder.peerAuthentications, err = timecache.NewTimeCacher(timecache.ArgTimeCacher{
 		DefaultSpan: 10 * time.Second,
 		CacheExpiry: 10 * time.Second,
 	})
