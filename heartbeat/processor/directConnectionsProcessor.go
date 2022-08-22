@@ -95,6 +95,7 @@ func (dcp *directConnectionsProcessor) sendMessageToNewConnections() {
 	connectedPeers := dcp.messenger.ConnectedPeers()
 	newPeers := dcp.computeNewPeers(connectedPeers)
 	dcp.notifyNewPeers(newPeers)
+	dcp.recreateNotifiedPeers(newPeers, connectedPeers)
 }
 
 func (dcp *directConnectionsProcessor) computeNewPeers(connectedPeers []core.PeerID) []core.PeerID {
@@ -111,8 +112,6 @@ func (dcp *directConnectionsProcessor) computeNewPeers(connectedPeers []core.Pee
 }
 
 func (dcp *directConnectionsProcessor) notifyNewPeers(newPeers []core.PeerID) {
-	dcp.notifiedPeersMap = make(map[core.PeerID]struct{})
-
 	shardValidatorInfo := &message.DirectConnectionInfo{
 		ShardId: fmt.Sprintf("%d", dcp.shardCoordinator.SelfId()),
 	}
@@ -130,6 +129,19 @@ func (dcp *directConnectionsProcessor) notifyNewPeers(newPeers []core.PeerID) {
 		}
 
 		dcp.notifiedPeersMap[newPeer] = struct{}{}
+	}
+}
+
+func (dcp *directConnectionsProcessor) recreateNotifiedPeers(newPeers []core.PeerID, connectedPeers []core.PeerID) {
+	dcp.notifiedPeersMap = make(map[core.PeerID]struct{})
+
+	dcp.addPeersToNotifiedPeersMap(newPeers)
+	dcp.addPeersToNotifiedPeersMap(connectedPeers)
+}
+
+func (dcp *directConnectionsProcessor) addPeersToNotifiedPeersMap(peers []core.PeerID) {
+	for _, peer := range peers {
+		dcp.notifiedPeersMap[peer] = struct{}{}
 	}
 }
 

@@ -265,3 +265,115 @@ func Test_directConnectionsProcessor_notifyNewPeers(t *testing.T) {
 		assert.Equal(t, 4, len(cp.notifiedPeersMap))
 	})
 }
+
+func TestDirectConnectionsProcessor_sendMessageToNewConnections(t *testing.T) {
+	t.Parallel()
+
+	t.Run("same peers should send only once", func(t *testing.T) {
+		t.Parallel()
+
+		sentToPeers := make(map[core.PeerID]int)
+		args := createMockArgDirectConnectionsProcessor()
+		args.Messenger = &p2pmocks.MessengerStub{
+			SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
+				sentToPeers[peerID]++
+				return nil
+			},
+			ConnectedPeersCalled: func() []core.PeerID {
+				return []core.PeerID{"pid1", "pid2"}
+			},
+		}
+
+		cp, _ := NewDirectConnectionsProcessorNoGoRoutine(args)
+
+		numSends := 10
+		for i := 0; i < numSends; i++ {
+			cp.sendMessageToNewConnections()
+			assert.Equal(t, 2, len(sentToPeers))
+			assert.Equal(t, 1, sentToPeers["pid1"])
+			assert.Equal(t, 1, sentToPeers["pid2"])
+		}
+	})
+	t.Run("same peers should send only once, new peer should also send once", func(t *testing.T) {
+		t.Parallel()
+
+		sentToPeers := make(map[core.PeerID]int)
+		args := createMockArgDirectConnectionsProcessor()
+		connectedPeers := []core.PeerID{"pid1", "pid2"}
+		args.Messenger = &p2pmocks.MessengerStub{
+			SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
+				sentToPeers[peerID]++
+				return nil
+			},
+			ConnectedPeersCalled: func() []core.PeerID {
+				return connectedPeers
+			},
+		}
+
+		cp, _ := NewDirectConnectionsProcessorNoGoRoutine(args)
+
+		numSends := 10
+		for i := 0; i < numSends; i++ {
+			cp.sendMessageToNewConnections()
+			assert.Equal(t, 2, len(sentToPeers))
+			assert.Equal(t, 1, sentToPeers["pid1"])
+			assert.Equal(t, 1, sentToPeers["pid2"])
+		}
+
+		connectedPeers = append(connectedPeers, "pid3")
+		for i := 0; i < numSends; i++ {
+			cp.sendMessageToNewConnections()
+			assert.Equal(t, 3, len(sentToPeers))
+			assert.Equal(t, 1, sentToPeers["pid1"])
+			assert.Equal(t, 1, sentToPeers["pid2"])
+			assert.Equal(t, 1, sentToPeers["pid3"])
+		}
+	})
+	t.Run("same peers should send only once, old peer should be removed from map and resend when re-connecting", func(t *testing.T) {
+		t.Parallel()
+
+		sentToPeers := make(map[core.PeerID]int)
+		args := createMockArgDirectConnectionsProcessor()
+		connectedPeers := []core.PeerID{"pid1", "pid2"}
+		args.Messenger = &p2pmocks.MessengerStub{
+			SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
+				sentToPeers[peerID]++
+				return nil
+			},
+			ConnectedPeersCalled: func() []core.PeerID {
+				return connectedPeers
+			},
+		}
+
+		cp, _ := NewDirectConnectionsProcessorNoGoRoutine(args)
+
+		numSends := 10
+		for i := 0; i < numSends; i++ {
+			cp.sendMessageToNewConnections()
+			assert.Equal(t, 2, len(sentToPeers))
+			assert.Equal(t, 1, sentToPeers["pid1"])
+			assert.Equal(t, 1, sentToPeers["pid2"])
+		}
+
+		// pid2 got disconnected
+		connectedPeers = []core.PeerID{"pid1"}
+		for i := 0; i < numSends; i++ {
+			cp.sendMessageToNewConnections()
+			assert.Equal(t, 2, len(sentToPeers))
+			assert.Equal(t, 1, sentToPeers["pid1"])
+			assert.Equal(t, 1, sentToPeers["pid2"])
+
+			assert.Equal(t, 1, len(cp.notifiedPeersMap))
+		}
+
+		connectedPeers = append(connectedPeers, "pid2")
+		for i := 0; i < numSends; i++ {
+			cp.sendMessageToNewConnections()
+			assert.Equal(t, 2, len(sentToPeers))
+			assert.Equal(t, 1, sentToPeers["pid1"])
+			assert.Equal(t, 2, sentToPeers["pid2"]) // one before disconnection, one after reconnection
+
+			assert.Equal(t, 2, len(cp.notifiedPeersMap))
+		}
+	})
+}
