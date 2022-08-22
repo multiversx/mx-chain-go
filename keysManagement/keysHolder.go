@@ -46,8 +46,13 @@ func NewVirtualPeersHolder(args ArgsVirtualPeersHolder) (*virtualPeersHolder, er
 		return nil, err
 	}
 
+	dataMap, err := createDataMap(args.PrefsConfig.NamedIdentity)
+	if err != nil {
+		return nil, err
+	}
+
 	holder := &virtualPeersHolder{
-		data:                             createDataMap(args.PrefsConfig.NamedIdentity),
+		data:                             dataMap,
 		pids:                             make(map[core.PeerID]struct{}),
 		keyGenerator:                     args.KeyGenerator,
 		p2pIdentityGenerator:             args.P2PIdentityGenerator,
@@ -75,14 +80,14 @@ func checkVirtualPeersHolderArgs(args ArgsVirtualPeersHolder) error {
 	return nil
 }
 
-func createDataMap(namedIdentities []config.NamedIdentity) map[string]*peerInfo {
+func createDataMap(namedIdentities []config.NamedIdentity) (map[string]*peerInfo, error) {
 	dataMap := make(map[string]*peerInfo)
 
 	for _, identity := range namedIdentities {
 		for _, blsKey := range identity.BLSKeys {
 			bls, err := hex.DecodeString(blsKey)
 			if err != nil {
-				continue
+				return nil, fmt.Errorf("%w for key %s", errInvalidKey, blsKey)
 			}
 
 			blsStr := string(bls)
@@ -94,7 +99,7 @@ func createDataMap(namedIdentities []config.NamedIdentity) map[string]*peerInfo 
 		}
 	}
 
-	return dataMap
+	return dataMap, nil
 }
 
 // AddVirtualPeer will try to add a new virtual peer providing the private key bytes.

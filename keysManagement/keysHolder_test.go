@@ -116,6 +116,22 @@ func TestNewVirtualPeersHolder(t *testing.T) {
 		assert.True(t, strings.Contains(err.Error(), "MaxRoundsWithoutReceivedMessages"))
 		assert.True(t, check.IfNil(holder))
 	})
+	t.Run("invalid key from config should error", func(t *testing.T) {
+		t.Parallel()
+
+		providedInvalidKey := "invalid key"
+		args := createMockArgsVirtualPeersHolder()
+		args.PrefsConfig.NamedIdentity = []config.NamedIdentity{
+			{
+				BLSKeys: []string{providedInvalidKey},
+			},
+		}
+		holder, err := NewVirtualPeersHolder(args)
+
+		assert.True(t, errors.Is(err, errInvalidKey))
+		assert.True(t, strings.Contains(err.Error(), providedInvalidKey))
+		assert.True(t, check.IfNil(holder))
+	})
 	t.Run("valid arguments should work", func(t *testing.T) {
 		t.Parallel()
 
