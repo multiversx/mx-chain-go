@@ -22,6 +22,7 @@ type ArgDirectConnectionsProcessor struct {
 	Marshaller                marshal.Marshalizer
 	ShardCoordinator          sharding.Coordinator
 	DelayBetweenNotifications time.Duration
+	NodesCoordinator          NodesCoordinator
 }
 
 type directConnectionsProcessor struct {
@@ -31,6 +32,7 @@ type directConnectionsProcessor struct {
 	delayBetweenNotifications time.Duration
 	notifiedPeersMap          map[core.PeerID]struct{}
 	cancel                    func()
+	nodesCoordinator          NodesCoordinator
 }
 
 // NewDirectConnectionsProcessor creates a new instance of directConnectionsProcessor
@@ -46,6 +48,7 @@ func NewDirectConnectionsProcessor(args ArgDirectConnectionsProcessor) (*directC
 		shardCoordinator:          args.ShardCoordinator,
 		delayBetweenNotifications: args.DelayBetweenNotifications,
 		notifiedPeersMap:          make(map[core.PeerID]struct{}),
+		nodesCoordinator:          args.NodesCoordinator,
 	}
 
 	var ctx context.Context
@@ -70,6 +73,9 @@ func checkArgDirectConnectionsProcessor(args ArgDirectConnectionsProcessor) erro
 		return fmt.Errorf("%w for DelayBetweenNotifications, provided %d, min expected %d",
 			heartbeat.ErrInvalidTimeDuration, args.DelayBetweenNotifications, minDelayBetweenRequests)
 	}
+	if check.IfNil(args.NodesCoordinator) {
+		return heartbeat.ErrNilNodesCoordinator
+	}
 
 	return nil
 }
@@ -92,10 +98,22 @@ func (dcp *directConnectionsProcessor) startProcessLoop(ctx context.Context) {
 }
 
 func (dcp *directConnectionsProcessor) sendMessageToNewConnections() {
+	if dcp.isCurrentNodeValidator() {
+		log.Debug("directConnectionsProcessor.sendMessageToNewConnections current node is validator, will not send send messages to connected peers")
+		return
+	}
+
 	connectedPeers := dcp.messenger.ConnectedPeers()
 	newPeers := dcp.computeNewPeers(connectedPeers)
 	dcp.notifyNewPeers(newPeers)
 	dcp.recreateNotifiedPeers(connectedPeers)
+}
+
+func (dcp *directConnectionsProcessor) isCurrentNodeValidator() bool {
+	currentBLSKey := dcp.nodesCoordinator.GetOwnPublicKey()
+	_, _, err := dcp.nodesCoordinator.GetValidatorWithPublicKey(currentBLSKey)
+
+	return err == nil
 }
 
 func (dcp *directConnectionsProcessor) computeNewPeers(connectedPeers []core.PeerID) []core.PeerID {
@@ -122,6 +140,8 @@ func (dcp *directConnectionsProcessor) notifyNewPeers(newPeers []core.PeerID) {
 	}
 
 	for _, newPeer := range newPeers {
+		log.Trace("directConnectionsProcessor.notifyNewPeers sending message", "pid", newPeer.Pretty())
+
 		errNotCritical := dcp.messenger.SendToConnectedPeer(common.ConnectionTopic, shardValidatorInfoBuff, newPeer)
 		if errNotCritical != nil {
 			log.Trace("directConnectionsProcessor.notifyNewPeers", "pid", newPeer.Pretty(), "error", errNotCritical)
