@@ -150,14 +150,12 @@ func NewTestHeartbeatNode(
 	pidPk, _ := storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 1000})
 	pkShardId, _ := storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 1000})
 	pidShardId, _ := storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 1000})
-	startInEpoch := uint32(0)
 	arg := networksharding.ArgPeerShardMapper{
 		PeerIdPkCache:         pidPk,
 		FallbackPkShardCache:  pkShardId,
 		FallbackPidShardCache: pidShardId,
 		NodesCoordinator:      nodesCoordinatorInstance,
 		PreferredPeersHolder:  &p2pmocks.PeersHolderStub{},
-		StartEpoch:            startInEpoch,
 	}
 	peerShardMapper, err := networksharding.NewPeerShardMapper(arg)
 	if err != nil {
@@ -222,14 +220,12 @@ func NewTestHeartbeatNodeWithCoordinator(
 	pidPk, _ := storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 1000})
 	pkShardId, _ := storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 1000})
 	pidShardId, _ := storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 1000})
-	startInEpoch := uint32(0)
 	arg := networksharding.ArgPeerShardMapper{
 		PeerIdPkCache:         pidPk,
 		FallbackPkShardCache:  pkShardId,
 		FallbackPidShardCache: pidShardId,
 		NodesCoordinator:      coordinator,
 		PreferredPeersHolder:  &p2pmocks.PeersHolderStub{},
-		StartEpoch:            startInEpoch,
 	}
 	peerShardMapper, err := networksharding.NewPeerShardMapper(arg)
 	if err != nil {

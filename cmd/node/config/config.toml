@@ -803,10 +803,10 @@
         ProcessDataTrieOnCommitEpoch = true
 
 [Health]
-    IntervalVerifyMemoryInSeconds = 5
+    IntervalVerifyMemoryInSeconds = 30
     IntervalDiagnoseComponentsInSeconds = 30
     IntervalDiagnoseComponentsDeeplyInSeconds = 120
-    MemoryUsageToCreateProfiles = 2415919104 # 2.25GB
+    MemoryUsageToCreateProfiles = 3221225472 # 3 GB
     NumMemoryUsageRecordsToKeep = 100
     FolderPath = "health-records"
 
@@ -909,7 +909,7 @@
     NumFullHistoryPeers = 3
 
 [HeartbeatV2]
-    PeerAuthenticationTimeBetweenSendsInSec          = 7200 # 2h
+    PeerAuthenticationTimeBetweenSendsInSec          = 600  # 10min TODO: change this for mainnet/devnet/testnet
     PeerAuthenticationTimeBetweenSendsWhenErrorInSec = 60   # 1min
     PeerAuthenticationThresholdBetweenSends          = 0.1  # 10%
     HeartbeatTimeBetweenSendsInSec                   = 60   # 1min
@@ -924,7 +924,7 @@
     MaxMissingKeysInRequest                          = 1000
     MaxDurationPeerUnresponsiveInSec                 = 900  # 15min
     HideInactiveValidatorIntervalInSec               = 3600 # 1h
-    HardforkTimeBetweenSendsInSec                    = 10   # 10sec
+    HardforkTimeBetweenSendsInSec                    = 60   # 1min
     [HeartbeatV2.PeerAuthenticationPool]
         DefaultSpanInSec = 3600 # 1h
         CacheExpiryInSec = 3600 # 1h
