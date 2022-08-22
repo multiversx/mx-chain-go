@@ -15,7 +15,7 @@ type triePersistersTracker struct {
 }
 
 // This component is not safe to use in a concurrent manner
-func newTriePersisterTracker(args *StorerArgs) *triePersistersTracker {
+func newTriePersisterTracker(args *EpochArgs) *triePersistersTracker {
 	oldestEpochActive, oldestEpochKeep := computeOldestEpochActiveAndToKeep(args)
 
 	return &triePersistersTracker{
@@ -46,9 +46,11 @@ func (tpi *triePersistersTracker) hasActiveDbsNecessary() bool {
 }
 
 // shouldClosePersister returns true if the given persister needs to be closed
-func (tpi *triePersistersTracker) shouldClosePersister(p storage.Persister, epoch int64) bool {
-	shouldClosePersister := epoch < tpi.oldestEpochActive && tpi.hasActiveDbsNecessary()
+func (tpi *triePersistersTracker) shouldClosePersister(epoch int64) bool {
+	return epoch < tpi.oldestEpochActive && tpi.hasActiveDbsNecessary()
+}
 
+func (tpi *triePersistersTracker) collectPersisterData(p storage.Persister) {
 	if isDbMarkedAsActive(p) {
 		tpi.numDbsMarkedAsActive++
 	}
@@ -56,8 +58,6 @@ func (tpi *triePersistersTracker) shouldClosePersister(p storage.Persister, epoc
 	if isDbSynced(p) {
 		tpi.numDbsMarkedAsSynced++
 	}
-
-	return shouldClosePersister
 }
 
 func isDbSynced(p storage.Persister) bool {

@@ -668,7 +668,6 @@ func (psf *StorageServiceFactory) createPruningStorerArgs(
 	args := &pruning.StorerArgs{
 		Identifier:                storageConfig.DB.FilePath,
 		PruningEnabled:            pruningEnabled,
-		StartingEpoch:             psf.currentEpoch,
 		OldDataCleanerProvider:    psf.oldDataCleanerProvider,
 		CustomDatabaseRemover:     customDatabaseRemover,
 		ShardCoordinator:          psf.shardCoordinator,
@@ -676,11 +675,14 @@ func (psf *StorageServiceFactory) createPruningStorerArgs(
 		PathManager:               psf.pathManager,
 		DbPath:                    dbPath,
 		PersisterFactory:          NewPersisterFactory(storageConfig.DB),
-		NumOfEpochsToKeep:         numOfEpochsToKeep,
-		NumOfActivePersisters:     numOfActivePersisters,
 		Notifier:                  psf.epochStartNotifier,
 		MaxBatchSize:              storageConfig.DB.MaxBatchSize,
 		EnabledDbLookupExtensions: psf.generalConfig.DbLookupExtensions.Enabled,
+		EpochsData: &pruning.EpochArgs{
+			StartingEpoch:         psf.currentEpoch,
+			NumOfEpochsToKeep:     numOfEpochsToKeep,
+			NumOfActivePersisters: numOfActivePersisters,
+		},
 	}
 
 	return args

@@ -109,7 +109,7 @@ func NewPruningStorer(args *StorerArgs) (*PruningStorer, error) {
 		return nil, err
 	}
 
-	activePersisters, persistersMapByEpoch, err := initPersistersInEpoch(args, "", newPersistersTracker(args))
+	activePersisters, persistersMapByEpoch, err := initPersistersInEpoch(args, "", newPersistersTracker(args.EpochsData))
 	if err != nil {
 		return nil, err
 	}
@@ -149,11 +149,11 @@ func initPruningStorer(
 	pdb.shardCoordinator = args.ShardCoordinator
 	pdb.cacher = cache
 	pdb.epochPrepareHdr = &block.MetaBlock{Epoch: epochForDefaultEpochPrepareHdr}
-	pdb.epochForPutOperation = args.StartingEpoch
+	pdb.epochForPutOperation = args.EpochsData.StartingEpoch
 	pdb.pathManager = args.PathManager
 	pdb.dbPath = args.DbPath
-	pdb.numOfEpochsToKeep = args.NumOfEpochsToKeep
-	pdb.numOfActivePersisters = args.NumOfActivePersisters
+	pdb.numOfEpochsToKeep = args.EpochsData.NumOfEpochsToKeep
+	pdb.numOfActivePersisters = args.EpochsData.NumOfActivePersisters
 	pdb.oldDataCleanerProvider = args.OldDataCleanerProvider
 	pdb.customDatabaseRemover = args.CustomDatabaseRemover
 	pdb.persistersMapByEpoch = persistersMapByEpoch
@@ -164,7 +164,7 @@ func initPruningStorer(
 }
 
 func checkArgs(args *StorerArgs) error {
-	if args.NumOfActivePersisters < 1 {
+	if args.EpochsData.NumOfActivePersisters < 1 {
 		return storage.ErrInvalidNumberOfPersisters
 	}
 	if check.IfNil(args.Notifier) {
@@ -188,7 +188,7 @@ func checkArgs(args *StorerArgs) error {
 	if args.MaxBatchSize > int(args.CacheConf.Capacity) {
 		return storage.ErrCacheSizeIsLowerThanBatchSize
 	}
-	if args.NumOfEpochsToKeep < args.NumOfActivePersisters {
+	if args.EpochsData.NumOfEpochsToKeep < args.EpochsData.NumOfActivePersisters {
 		return storage.ErrEpochKeepIsLowerThanNumActive
 	}
 
@@ -206,20 +206,20 @@ func (ps *PruningStorer) lastEpochNeeded() uint32 {
 func initPersistersInEpoch(
 	args *StorerArgs,
 	shardIDStr string,
-	persistersTracker PersistersTracker,
+	persistersTracker persistersTracker,
 ) ([]*persisterData, map[uint32]*persisterData, error) {
 	if !args.PruningEnabled {
 		return createPersisterIfPruningDisabled(args, shardIDStr)
 	}
 
-	if args.NumOfEpochsToKeep < args.NumOfActivePersisters {
+	if args.EpochsData.NumOfEpochsToKeep < args.EpochsData.NumOfActivePersisters {
 		return nil, nil, fmt.Errorf("invalid epochs configuration")
 	}
 
 	var persisters []*persisterData
 	persistersMapByEpoch := make(map[uint32]*persisterData)
 
-	for epoch := int64(args.StartingEpoch); epoch >= 0; epoch-- {
+	for epoch := int64(args.EpochsData.StartingEpoch); epoch >= 0; epoch-- {
 		if persistersTracker.hasInitializedEnoughPersisters(epoch) {
 			break
 		}
@@ -232,7 +232,10 @@ func initPersistersInEpoch(
 
 		persistersMapByEpoch[uint32(epoch)] = p
 
-		if persistersTracker.shouldClosePersister(p.persister, epoch) {
+		shouldClosePersister := persistersTracker.shouldClosePersister(epoch)
+		persistersTracker.collectPersisterData(p.persister)
+
+		if shouldClosePersister {
 			err = p.Close()
 			if err != nil {
 				log.Debug("persister.Close()", "identifier", args.Identifier, "error", err.Error())
@@ -262,7 +265,7 @@ func createPersisterIfPruningDisabled(
 	return persisters, persistersMapByEpoch, nil
 }
 
-func computeOldestEpochActiveAndToKeep(args *StorerArgs) (int64, int64) {
+func computeOldestEpochActiveAndToKeep(args *EpochArgs) (int64, int64) {
 	oldestEpochKeep := int64(args.StartingEpoch) - int64(args.NumOfEpochsToKeep) + 1
 	if oldestEpochKeep < 0 {
 		oldestEpochKeep = 0

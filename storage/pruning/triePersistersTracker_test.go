@@ -76,7 +76,7 @@ func TestTriePersistersTracker_hasInitializedEnoughPersisters(t *testing.T) {
 	})
 }
 
-func TestTriePersistersTracker_shouldClosePersister(t *testing.T) {
+func TestTriePersistersTracker_collectPersisterData(t *testing.T) {
 	t.Parallel()
 
 	t.Run("increases numDbsMarkedAsActive", func(t *testing.T) {
@@ -95,7 +95,7 @@ func TestTriePersistersTracker_shouldClosePersister(t *testing.T) {
 		assert.Equal(t, 0, pt.numDbsMarkedAsSynced)
 		assert.Equal(t, 0, pt.numDbsMarkedAsActive)
 
-		_ = pt.shouldClosePersister(p, 0)
+		pt.collectPersisterData(p)
 		assert.Equal(t, 0, pt.numDbsMarkedAsSynced)
 		assert.Equal(t, 1, pt.numDbsMarkedAsActive)
 	})
@@ -116,24 +116,23 @@ func TestTriePersistersTracker_shouldClosePersister(t *testing.T) {
 		assert.Equal(t, 0, pt.numDbsMarkedAsSynced)
 		assert.Equal(t, 0, pt.numDbsMarkedAsActive)
 
-		_ = pt.shouldClosePersister(p, 0)
+		pt.collectPersisterData(p)
 		assert.Equal(t, 1, pt.numDbsMarkedAsSynced)
 		assert.Equal(t, 0, pt.numDbsMarkedAsActive)
 	})
+}
 
-	t.Run("should close persister", func(t *testing.T) {
-		t.Parallel()
+func TestTriePersistersTracker_shouldClosePersister(t *testing.T) {
+	t.Parallel()
 
-		p := &mock.PersisterStub{}
-		pt := newTriePersisterTracker(getArgs())
-		assert.Equal(t, int64(8), pt.oldestEpochActive)
+	pt := newTriePersisterTracker(getArgs())
+	assert.Equal(t, int64(8), pt.oldestEpochActive)
 
-		assert.Equal(t, 0, pt.numDbsMarkedAsActive)
-		assert.False(t, pt.shouldClosePersister(p, 7))
+	assert.Equal(t, 0, pt.numDbsMarkedAsActive)
+	assert.False(t, pt.shouldClosePersister(7))
 
-		pt.numDbsMarkedAsActive = 2
-		assert.True(t, pt.shouldClosePersister(p, 7))
+	pt.numDbsMarkedAsActive = 2
+	assert.True(t, pt.shouldClosePersister(7))
 
-		assert.False(t, pt.shouldClosePersister(p, 8))
-	})
+	assert.False(t, pt.shouldClosePersister(8))
 }
