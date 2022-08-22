@@ -9,7 +9,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/common/holders"
 	"github.com/ElrondNetwork/elrond-go/node"
@@ -102,12 +101,8 @@ func TestNode_AddBlockCoordinatesToAccountQueryOptions(t *testing.T) {
 		Epoch:    epoch,
 		RootHash: blockRootHash,
 	}
-	scheduledSCRs := &scheduled.ScheduledSCRs{
-		RootHash: scheduledBlockRootHash,
-	}
 
 	blockHeaderBytes, _ := coreComponents.InternalMarshalizer().Marshal(blockHeader)
-	scheduledSCRsBytes, _ := coreComponents.InternalMarshalizer().Marshal(scheduledSCRs)
 
 	// Setup storage
 	chainStorerMock := genericMocks.NewChainStorerMock(epoch)
@@ -126,6 +121,22 @@ func TestNode_AddBlockCoordinatesToAccountQueryOptions(t *testing.T) {
 		},
 	}
 	processComponents.HistoryRepositoryInternal = historyRepository
+
+	// Setup scheduled txs
+	var headerHashPassedToGetScheduledRootHashForHeaderWithEpoch []byte
+	var epochPassedToGetScheduledRootHashForHeaderWithEpoch uint32
+
+	getScheduledRootHashForHeaderResult := []byte{}
+	getScheduledRootHashForHeaderError := errors.New("missing")
+
+	scheduledTxsStub := &testscommon.ScheduledTxsExecutionStub{
+		GetScheduledRootHashForHeaderWithEpochCalled: func(headerHash []byte, epoch uint32) ([]byte, error) {
+			headerHashPassedToGetScheduledRootHashForHeaderWithEpoch = headerHash
+			epochPassedToGetScheduledRootHashForHeaderWithEpoch = epoch
+			return getScheduledRootHashForHeaderResult, getScheduledRootHashForHeaderError
+		},
+	}
+	processComponents.ScheduledTxsExecutionHandlerInternal = scheduledTxsStub
 
 	n, _ := node.NewNode(
 		node.WithCoreComponents(coreComponents),
@@ -153,7 +164,8 @@ func TestNode_AddBlockCoordinatesToAccountQueryOptions(t *testing.T) {
 	})
 
 	t.Run("blockHash is set (without scheduled)", func(t *testing.T) {
-		chainStorerMock.ScheduledSCRs.ClearAll()
+		getScheduledRootHashForHeaderResult = []byte{}
+		getScheduledRootHashForHeaderError = errors.New("missing")
 
 		options, err := n.AddBlockCoordinatesToAccountQueryOptions(api.AccountQueryOptions{
 			BlockHash: blockHash,
@@ -169,10 +181,13 @@ func TestNode_AddBlockCoordinatesToAccountQueryOptions(t *testing.T) {
 
 		require.Nil(t, err)
 		require.Equal(t, expectedOptions, options)
+		require.Equal(t, blockHash, headerHashPassedToGetScheduledRootHashForHeaderWithEpoch)
+		require.Equal(t, epoch, epochPassedToGetScheduledRootHashForHeaderWithEpoch)
 	})
 
 	t.Run("blockHash is set (with scheduled)", func(t *testing.T) {
-		_ = chainStorerMock.ScheduledSCRs.PutInEpoch(blockHash, scheduledSCRsBytes, epoch)
+		getScheduledRootHashForHeaderResult = scheduledBlockRootHash
+		getScheduledRootHashForHeaderError = nil
 
 		options, err := n.AddBlockCoordinatesToAccountQueryOptions(api.AccountQueryOptions{
 			BlockHash: blockHash,
@@ -188,10 +203,13 @@ func TestNode_AddBlockCoordinatesToAccountQueryOptions(t *testing.T) {
 
 		require.Nil(t, err)
 		require.Equal(t, expectedOptions, options)
+		require.Equal(t, blockHash, headerHashPassedToGetScheduledRootHashForHeaderWithEpoch)
+		require.Equal(t, epoch, epochPassedToGetScheduledRootHashForHeaderWithEpoch)
 	})
 
 	t.Run("blockNonce is set (without scheduled)", func(t *testing.T) {
-		chainStorerMock.ScheduledSCRs.ClearAll()
+		getScheduledRootHashForHeaderResult = []byte{}
+		getScheduledRootHashForHeaderError = errors.New("missing")
 
 		options, err := n.AddBlockCoordinatesToAccountQueryOptions(api.AccountQueryOptions{
 			BlockNonce: core.OptionalUint64{Value: 42, HasValue: true},
@@ -207,10 +225,13 @@ func TestNode_AddBlockCoordinatesToAccountQueryOptions(t *testing.T) {
 
 		require.Nil(t, err)
 		require.Equal(t, expectedOptions, options)
+		require.Equal(t, blockHash, headerHashPassedToGetScheduledRootHashForHeaderWithEpoch)
+		require.Equal(t, epoch, epochPassedToGetScheduledRootHashForHeaderWithEpoch)
 	})
 
 	t.Run("blockNonce is set (with scheduled)", func(t *testing.T) {
-		_ = chainStorerMock.ScheduledSCRs.PutInEpoch(blockHash, scheduledSCRsBytes, epoch)
+		getScheduledRootHashForHeaderResult = scheduledBlockRootHash
+		getScheduledRootHashForHeaderError = nil
 
 		options, err := n.AddBlockCoordinatesToAccountQueryOptions(api.AccountQueryOptions{
 			BlockNonce: core.OptionalUint64{Value: 42, HasValue: true},
@@ -226,6 +247,8 @@ func TestNode_AddBlockCoordinatesToAccountQueryOptions(t *testing.T) {
 
 		require.Nil(t, err)
 		require.Equal(t, expectedOptions, options)
+		require.Equal(t, blockHash, headerHashPassedToGetScheduledRootHashForHeaderWithEpoch)
+		require.Equal(t, epoch, epochPassedToGetScheduledRootHashForHeaderWithEpoch)
 	})
 
 	t.Run("does not work when dblookupext is disabled", func(t *testing.T) {

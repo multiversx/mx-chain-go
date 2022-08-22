@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
@@ -78,26 +77,12 @@ func (n *Node) getBlockHeaderInEpochByHash(epoch uint32, headerHash []byte) (dat
 }
 
 func (n *Node) getBlockRootHash(headerHash []byte, header data.HeaderHandler) []byte {
-	blockRootHash, err := n.getScheduledRootHash(header.GetEpoch(), headerHash)
+	blockRootHash, err := n.processComponents.ScheduledTxsExecutionHandler().GetScheduledRootHashForHeaderWithEpoch(
+		headerHash,
+		header.GetEpoch())
 	if err != nil {
 		blockRootHash = header.GetRootHash()
 	}
 
 	return blockRootHash
-}
-
-func (n *Node) getScheduledRootHash(epoch uint32, headerHash []byte) ([]byte, error) {
-	storer := n.dataComponents.StorageService().GetStorer(dataRetriever.ScheduledSCRsUnit)
-	data, err := storer.GetFromEpoch(headerHash, epoch)
-	if err != nil {
-		return nil, err
-	}
-
-	scheduledSCRs := &scheduled.ScheduledSCRs{}
-	err = n.coreComponents.InternalMarshalizer().Unmarshal(scheduledSCRs, data)
-	if err != nil {
-		return nil, err
-	}
-
-	return scheduledSCRs.GetRootHash(), nil
 }
