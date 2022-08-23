@@ -665,20 +665,9 @@ func isTrieSynced(stsm *snapshotTrieStorageManager) bool {
 	return false
 }
 
-func (tsm *trieStorageManager) lockMutex() {
-	tsm.storageOperationMutex.Lock()
-}
-
-func (tsm *trieStorageManager) unlockMutex() {
-	tsm.storageOperationMutex.Unlock()
-}
-
-func (tsm *trieStorageManager) isClosed() bool {
-	return tsm.closed
-}
-
-func (tsm *trieStorageManager) getStorer() common.DBWriteCacher {
-	return tsm.mainStorer
+// GetBaseTrieStorageManager returns the trie storage manager
+func (tsm *trieStorageManager) GetBaseTrieStorageManager() common.StorageManager {
+	return tsm
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

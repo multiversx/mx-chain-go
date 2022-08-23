@@ -3,44 +3,47 @@ package trie
 import (
 	"fmt"
 
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/errors"
 )
 
 type trieStorageManagerInEpoch struct {
-	common.StorageManager
-	storageManagerExtension storageManager
-	mainStorer              dbWithGetFromEpoch
-	epoch                   uint32
+	*trieStorageManager
+	mainStorer dbWithGetFromEpoch
+	epoch      uint32
 }
 
-func newTrieStorageManagerInEpoch(tsm common.StorageManager, epoch uint32) (*trieStorageManagerInEpoch, error) {
-	sme, ok := tsm.(storageManager)
+func newTrieStorageManagerInEpoch(storageManager common.StorageManager, epoch uint32) (*trieStorageManagerInEpoch, error) {
+	if check.IfNil(storageManager) {
+		return nil, ErrNilTrieStorage
+	}
+
+	tsm, ok := storageManager.GetBaseTrieStorageManager().(*trieStorageManager)
 	if !ok {
-		storerType := fmt.Sprintf("%T", tsm)
+		storerType := fmt.Sprintf("%T", storageManager.GetBaseTrieStorageManager())
 		return nil, fmt.Errorf("invalid storage manager, type is %s", storerType)
 	}
 
-	storer, ok := sme.getStorer().(dbWithGetFromEpoch)
+	storer, ok := tsm.mainStorer.(dbWithGetFromEpoch)
 	if !ok {
-		storerType := fmt.Sprintf("%T", sme.getStorer())
+		storerType := fmt.Sprintf("%T", tsm.mainStorer)
 		return nil, fmt.Errorf("invalid storer, type is %s", storerType)
 	}
 
 	return &trieStorageManagerInEpoch{
-		StorageManager:          tsm,
-		storageManagerExtension: sme,
-		mainStorer:              storer,
-		epoch:                   epoch,
+		trieStorageManager: tsm,
+		mainStorer:         storer,
+		epoch:              epoch,
 	}, nil
 }
 
 // Get checks all the storers for the given key, and returns it if it is found
 func (tsmie *trieStorageManagerInEpoch) Get(key []byte) ([]byte, error) {
-	tsmie.storageManagerExtension.lockMutex()
-	defer tsmie.storageManagerExtension.unlockMutex()
+	tsmie.storageOperationMutex.Lock()
+	defer tsmie.storageOperationMutex.Unlock()
 
-	if tsmie.storageManagerExtension.isClosed() {
+	if tsmie.closed {
 		log.Debug("trieStorageManagerInEpoch get context closing", "key", key)
 		return nil, errors.ErrContextClosing
 	}

@@ -11,23 +11,23 @@ import (
 // trieStorageManagerWithoutPruning manages the storage operations of the trie, but does not prune old values
 type trieStorageManagerWithoutPruning struct {
 	common.StorageManager
-	storageManagerExtension
+	storage *trieStorageManager
 }
 
 // NewTrieStorageManagerWithoutPruning creates a new instance of trieStorageManagerWithoutPruning
-func NewTrieStorageManagerWithoutPruning(tsm common.StorageManager) (*trieStorageManagerWithoutPruning, error) {
-	if check.IfNil(tsm) {
+func NewTrieStorageManagerWithoutPruning(sm common.StorageManager) (*trieStorageManagerWithoutPruning, error) {
+	if check.IfNil(sm) {
 		return nil, ErrNilTrieStorage
 	}
 
-	sm, ok := tsm.(storageManagerExtension)
+	tsm, ok := sm.GetBaseTrieStorageManager().(*trieStorageManager)
 	if !ok {
-		return nil, errors.New("invalid storage manager type" + fmt.Sprintf("%T", tsm))
+		return nil, errors.New("invalid storage manager type" + fmt.Sprintf("%T", sm.GetBaseTrieStorageManager()))
 	}
 
 	return &trieStorageManagerWithoutPruning{
-		StorageManager:          tsm,
-		storageManagerExtension: sm,
+		StorageManager: sm,
+		storage:        tsm,
 	}, nil
 }
 
@@ -38,6 +38,6 @@ func (tsm *trieStorageManagerWithoutPruning) IsPruningEnabled() bool {
 
 // Remove deletes the given hash from checkpointHashesHolder
 func (tsm *trieStorageManagerWithoutPruning) Remove(hash []byte) error {
-	tsm.storageManagerExtension.RemoveFromCheckpointHashesHolder(hash)
+	tsm.storage.RemoveFromCheckpointHashesHolder(hash)
 	return nil
 }
