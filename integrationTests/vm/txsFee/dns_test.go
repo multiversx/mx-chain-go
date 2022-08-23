@@ -76,7 +76,7 @@ func TestDeployDNSContract_TestRegisterAndResolveAndSendTxWithSndAndRcvUserName(
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
 
-	vm.TestAccount(t, testContext.Accounts, rcvAddr, 1, big.NewInt(9299330))
+	vm.TestAccount(t, testContext.Accounts, rcvAddr, 1, big.NewInt(9721810))
 	// check accumulated fees
 	accumulatedFees = testContext.TxFeeHandler.GetAccumulatedFees()
 	require.Equal(t, big.NewInt(556380), accumulatedFees)
