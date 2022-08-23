@@ -247,7 +247,7 @@ func (tr *patriciaMerkleTrie) Recreate(root []byte) (common.Trie, error) {
 	tr.mutOperation.Lock()
 	defer tr.mutOperation.Unlock()
 
-	return tr.recreate(root, core.OptionalUint32{})
+	return tr.recreate(root, tr.trieStorage)
 }
 
 // RecreateFromEpoch returns a new trie, given the options
@@ -255,10 +255,19 @@ func (tr *patriciaMerkleTrie) RecreateFromEpoch(options common.RootHashHolder) (
 	tr.mutOperation.Lock()
 	defer tr.mutOperation.Unlock()
 
-	return tr.recreate(options.GetRootHash(), options.GetEpoch())
+	if !options.GetEpoch().HasValue {
+		return tr.recreate(options.GetRootHash(), tr.trieStorage)
+	}
+
+	tsmie, err := newTrieStorageManagerInEpoch(tr.trieStorage, options.GetEpoch().Value)
+	if err != nil {
+		return nil, err
+	}
+
+	return tr.recreate(options.GetRootHash(), tsmie)
 }
 
-func (tr *patriciaMerkleTrie) recreate(root []byte, epoch core.OptionalUint32) (*patriciaMerkleTrie, error) {
+func (tr *patriciaMerkleTrie) recreate(root []byte, tsm common.StorageManager) (*patriciaMerkleTrie, error) {
 	if emptyTrie(root) {
 		return NewTrie(
 			tr.trieStorage,
@@ -268,17 +277,12 @@ func (tr *patriciaMerkleTrie) recreate(root []byte, epoch core.OptionalUint32) (
 		)
 	}
 
-	var err error
-	if epoch.HasValue {
-		_, err = tr.trieStorage.GetFromEpoch(root, epoch.Value)
-	} else {
-		_, err = tr.trieStorage.Get(root)
-	}
+	_, err := tsm.Get(root)
 	if err != nil {
 		return nil, err
 	}
 
-	newTr, _, err := tr.recreateFromDb(root, epoch, tr.trieStorage)
+	newTr, _, err := tr.recreateFromDb(root, tsm)
 	if err != nil {
 		if errors.IsClosingError(err) {
 			log.Debug("could not recreate", "rootHash", root, "error", err)
@@ -356,7 +360,7 @@ func (tr *patriciaMerkleTrie) GetDirtyHashes() (common.ModifiedHashes, error) {
 	return dirtyHashes, nil
 }
 
-func (tr *patriciaMerkleTrie) recreateFromDb(rootHash []byte, epoch core.OptionalUint32, tsm common.StorageManager) (*patriciaMerkleTrie, snapshotNode, error) {
+func (tr *patriciaMerkleTrie) recreateFromDb(rootHash []byte, tsm common.StorageManager) (*patriciaMerkleTrie, snapshotNode, error) {
 	newTr, err := NewTrie(
 		tsm,
 		tr.marshalizer,
@@ -367,7 +371,7 @@ func (tr *patriciaMerkleTrie) recreateFromDb(rootHash []byte, epoch core.Optiona
 		return nil, nil, err
 	}
 
-	newRoot, err := getNodeFromDBAndDecodeWithEpoch(rootHash, epoch, tsm, tr.marshalizer, tr.hasher)
+	newRoot, err := getNodeFromDBAndDecode(rootHash, tsm, tr.marshalizer, tr.hasher)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -396,7 +400,7 @@ func (tr *patriciaMerkleTrie) GetSerializedNodes(rootHash []byte, maxBuffToSend 
 	log.Trace("GetSerializedNodes", "rootHash", rootHash)
 	size := uint64(0)
 
-	newTr, _, err := tr.recreateFromDb(rootHash, core.OptionalUint32{}, tr.trieStorage)
+	newTr, _, err := tr.recreateFromDb(rootHash, tr.trieStorage)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -445,7 +449,7 @@ func (tr *patriciaMerkleTrie) GetAllLeavesOnChannel(
 	rootHash []byte,
 ) error {
 	tr.mutOperation.RLock()
-	newTrie, err := tr.recreate(rootHash, core.OptionalUint32{})
+	newTrie, err := tr.recreate(rootHash, tr.trieStorage)
 	if err != nil {
 		tr.mutOperation.RUnlock()
 		close(leavesChannel)

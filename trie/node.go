@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
@@ -113,34 +112,13 @@ func computeAndSetNodeHash(n node) ([]byte, error) {
 }
 
 func getNodeFromDBAndDecode(n []byte, db common.DBWriteCacher, marshalizer marshal.Marshalizer, hasher hashing.Hasher) (node, error) {
-	return getNodeFromDBAndDecodeWithEpoch(n, core.OptionalUint32{}, db, marshalizer, hasher)
-}
-
-func getNodeFromDBAndDecodeWithEpoch(n []byte, epoch core.OptionalUint32, db common.DBWriteCacher, marshalizer marshal.Marshalizer, hasher hashing.Hasher) (node, error) {
-	var data []byte
-	var err error
-
-	if epoch.HasValue {
-		dbWithEpoch, ok := db.(dbWithGetFromEpoch)
-		if !ok {
-			return nil, fmt.Errorf("db does not support GetFromEpoch()")
-		}
-
-		data, err = dbWithEpoch.GetFromEpoch(n, epoch.Value)
-	} else {
-		data, err = db.Get(n)
-	}
+	encChild, err := db.Get(n)
 	if err != nil {
 		log.Trace(common.GetNodeFromDBErrorString, "error", err, "key", n)
 		return nil, fmt.Errorf(common.GetNodeFromDBErrorString+" %w for key %v", err, hex.EncodeToString(n))
 	}
 
-	decodedNode, err := decodeNode(data, marshalizer, hasher)
-	if err != nil {
-		return nil, err
-	}
-
-	return decodedNode, nil
+	return decodeNode(encChild, marshalizer, hasher)
 }
 
 func resolveIfCollapsed(n node, pos byte, db common.DBWriteCacher) error {

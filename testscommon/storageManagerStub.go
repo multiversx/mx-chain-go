@@ -11,7 +11,6 @@ type StorageManagerStub struct {
 	PutInEpochCalled                       func([]byte, []byte, uint32) error
 	PutInEpochWithoutCacheCalled           func([]byte, []byte, uint32) error
 	GetCalled                              func([]byte) ([]byte, error)
-	GetFromEpochCalled                     func([]byte, uint32) ([]byte, error)
 	GetFromCurrentEpochCalled              func([]byte) ([]byte, error)
 	TakeSnapshotCalled                     func([]byte, []byte, chan core.KeyValueHolder, chan error, common.SnapshotStatisticsHandler, uint32)
 	SetCheckpointCalled                    func([]byte, []byte, chan core.KeyValueHolder, chan error, common.SnapshotStatisticsHandler)
@@ -62,15 +61,6 @@ func (sms *StorageManagerStub) PutInEpochWithoutCache(key []byte, val []byte, ep
 func (sms *StorageManagerStub) Get(key []byte) ([]byte, error) {
 	if sms.GetCalled != nil {
 		return sms.GetCalled(key)
-	}
-
-	return nil, nil
-}
-
-// GetFromEpoch -
-func (sms *StorageManagerStub) GetFromEpoch(key []byte, epoch uint32) ([]byte, error) {
-	if sms.GetFromEpochCalled != nil {
-		return sms.GetFromEpochCalled(key, epoch)
 	}
 
 	return nil, nil

@@ -47,7 +47,6 @@ type Trie interface {
 // StorageManager manages all trie storage operations
 type StorageManager interface {
 	Get(key []byte) ([]byte, error)
-	GetFromEpoch(key []byte, epoch uint32) ([]byte, error)
 	GetFromCurrentEpoch(key []byte) ([]byte, error)
 	Put(key []byte, val []byte) error
 	PutInEpoch(key []byte, val []byte, epoch uint32) error
