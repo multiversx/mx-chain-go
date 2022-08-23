@@ -1089,19 +1089,23 @@ func (sc *scProcessor) extractAsyncCallParamsFromTxData(data string) (*vmcommon.
 		return nil, nil, err
 	}
 
+	callIDIndex := len(args) - 3
+	callerCallIDIndex := len(args) - 2
 	asyncArgs := &vmcommon.AsyncArguments{
-		CallID:       args[0],
-		CallerCallID: args[1],
+		CallID:       args[callIDIndex],
+		CallerCallID: args[callerCallIDIndex],
 	}
 
-	for _, arg := range args[2:] {
-		dataAsString += "@" + hex.EncodeToString(arg)
+	for index, arg := range args {
+		if index != callIDIndex && index != callerCallIDIndex {
+			dataAsString += "@" + hex.EncodeToString(arg)
+		}
 	}
 
 	return asyncArgs, []byte(dataAsString), nil
 }
 
-func (sc *scProcessor) reapendAsyncParamsToTxData(data string, isCrossShardESDTCall bool, asyncArgs *vmcommon.AsyncArguments) (string, error) {
+func (sc *scProcessor) reAppendAsyncParamsToTxCallbackData(data string, isCrossShardESDTCall bool, asyncArgs *vmcommon.AsyncArguments) (string, error) {
 	newAsyncParams := contexts.CreateCallbackAsyncParams(hooks.NewVMCryptoHook(), asyncArgs)
 	var newArgs [][]byte
 	if isCrossShardESDTCall {
@@ -1116,7 +1120,7 @@ func (sc *scProcessor) reapendAsyncParamsToTxData(data string, isCrossShardESDTC
 			return "", err
 		}
 		data = function
-		newArgs = append(newAsyncParams, args...)
+		newArgs = append(args, newAsyncParams...)
 	} else {
 		newArgs = newAsyncParams
 	}
@@ -2157,15 +2161,15 @@ func (sc *scProcessor) createSCRsWhenError(
 				consumedFee = sc.economicsFee.ComputeFeeForProcessing(tx, tx.GetGasLimit()-gasLocked)
 			}
 
-			var err error
-			accumulatedSCRData, err = sc.reapendAsyncParamsToTxData(accumulatedSCRData, isCrossShardESDTCall, asyncArgs)
-			if err != nil {
-				return nil, nil
-			}
-
 			accumulatedSCRData += "@" + core.ConvertToEvenHex(int(vmcommon.UserError))
 			if sc.flagRepairCallBackData.IsSet() {
 				accumulatedSCRData += "@" + hex.EncodeToString(returnMessage)
+			}
+
+			var err error
+			accumulatedSCRData, err = sc.reAppendAsyncParamsToTxCallbackData(accumulatedSCRData, isCrossShardESDTCall, asyncArgs)
+			if err != nil {
+				return nil, nil
 			}
 		} else {
 			accumulatedSCRData += "@" + hex.EncodeToString([]byte(returnCode))

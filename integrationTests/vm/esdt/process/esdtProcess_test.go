@@ -343,6 +343,7 @@ func TestESDTIssueFromASmartContractSimulated(t *testing.T) {
 
 	txData.Clear().IssueESDTWithAsyncArgs("robertWhyNot", ticker, initialSupply.Int64(), numDecimals)
 	txData.CanFreeze(true).CanWipe(true).CanPause(true).CanMint(true).CanBurn(true).Int(1000)
+	txData.Bytes([]byte{}).Bytes([]byte{}) // async args
 	scr := &smartContractResult.SmartContractResult{
 		Nonce:          0,
 		Value:          issuePrice,

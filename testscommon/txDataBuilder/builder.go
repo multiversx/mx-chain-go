@@ -149,8 +149,6 @@ func (builder *TxDataBuilder) IssueESDT(token string, ticker string, supply int6
 // IssueESDTWithAsyncArgs appends to the data string all the elements required to request an ESDT issuing.
 func (builder *TxDataBuilder) IssueESDTWithAsyncArgs(token string, ticker string, supply int64, numDecimals byte) *TxDataBuilder {
 	return builder.Func("issue").
-		Bytes([]byte{}).
-		Bytes([]byte{}).
 		Str(token).
 		Str(ticker).
 		Int64(supply).
