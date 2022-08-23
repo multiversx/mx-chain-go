@@ -1194,6 +1194,7 @@ type ScheduledTxsExecutionHandler interface {
 	GetScheduledGasAndFees() scheduled.GasAndFees
 	SetScheduledInfo(scheduledInfo *ScheduledInfo)
 	GetScheduledRootHashForHeader(headerHash []byte) ([]byte, error)
+	GetScheduledRootHashForHeaderWithEpoch(headerHash []byte, epoch uint32) ([]byte, error)
 	RollBackToBlock(headerHash []byte) error
 	SaveStateIfNeeded(headerHash []byte)
 	SaveState(headerHash []byte, scheduledInfo *ScheduledInfo)

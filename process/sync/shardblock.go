@@ -254,7 +254,7 @@ func (boot *ShardBootstrap) getPrevHeader(
 		return nil, err
 	}
 
-	prevHeader, err := process.CreateShardHeader(boot.marshalizer, buffHeader)
+	prevHeader, err := process.UnmarshalShardHeader(boot.marshalizer, buffHeader)
 	if err != nil {
 		return nil, err
 	}

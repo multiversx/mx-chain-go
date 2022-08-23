@@ -108,7 +108,7 @@ func (n *Node) addBlockCoordinatesToAccountQueryOptions(options api.AccountQuery
 	blockRootHash := options.BlockRootHash
 
 	if len(blockRootHash) > 0 {
-		// We cannot infer other block coordinates (hash, nonce) at this moment
+		// We cannot infer other block coordinates (hash, nonce, hint for epoch) at this moment
 		return api.AccountQueryOptions{
 			BlockRootHash: options.BlockRootHash,
 		}, nil
@@ -126,6 +126,7 @@ func (n *Node) addBlockCoordinatesToAccountQueryOptions(options api.AccountQuery
 			BlockHash:     options.BlockHash,
 			BlockNonce:    core.OptionalUint64{Value: blockHeader.GetNonce(), HasValue: true},
 			BlockRootHash: blockRootHash,
+			HintEpoch:     core.OptionalUint32{Value: blockHeader.GetEpoch(), HasValue: true},
 		}, nil
 	}
 
@@ -141,6 +142,7 @@ func (n *Node) addBlockCoordinatesToAccountQueryOptions(options api.AccountQuery
 			BlockHash:     blockHash,
 			BlockNonce:    core.OptionalUint64{Value: blockHeader.GetNonce(), HasValue: true},
 			BlockRootHash: blockRootHash,
+			HintEpoch:     core.OptionalUint32{Value: blockHeader.GetEpoch(), HasValue: true},
 		}, nil
 	}
 

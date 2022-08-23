@@ -2373,9 +2373,9 @@ func (sp *shardProcessor) DecodeBlockHeader(dta []byte) data.HeaderHandler {
 		return nil
 	}
 
-	header, err := process.CreateShardHeader(sp.marshalizer, dta)
+	header, err := process.UnmarshalShardHeader(sp.marshalizer, dta)
 	if err != nil {
-		log.Debug("DecodeBlockHeader.CreateShardHeader", "error", err.Error())
+		log.Debug("DecodeBlockHeader.UnmarshalShardHeader", "error", err.Error())
 		return nil
 	}
 
