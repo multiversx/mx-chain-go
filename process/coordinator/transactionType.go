@@ -96,11 +96,6 @@ func (tth *txTypeHandler) ComputeTransactionType(tx data.TransactionHandler) (pr
 	funcName, args := tth.getFunctionFromArguments(tx.GetData())
 	isBuiltInFunction := tth.isBuiltInFunctionCall(funcName)
 	if isBuiltInFunction {
-		if isCallOfType(tx, vm.AsynchronousCall) {
-			args = args[2:]
-		} else if isCallOfType(tx, vm.AsynchronousCallBack) {
-			args = args[4:]
-		}
 		if tth.isSCCallAfterBuiltIn(funcName, args, tx) {
 			return process.BuiltInFunctionCall, process.SCInvoking
 		}

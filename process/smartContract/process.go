@@ -2480,12 +2480,13 @@ func (sc *scProcessor) prependAsyncParamsToData(asyncParams [][]byte, data []byt
 
 	callData := txDataBuilder.NewBuilder()
 	callData.Func(function)
-	for _, asyncParam := range asyncParams {
-		callData.Bytes(asyncParam)
-	}
 
 	for _, arg := range args {
 		callData.Bytes(arg)
+	}
+
+	for _, asyncParam := range asyncParams {
+		callData.Bytes(asyncParam)
 	}
 
 	return callData.ToBytes(), nil

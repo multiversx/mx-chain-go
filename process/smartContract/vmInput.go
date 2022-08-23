@@ -77,7 +77,7 @@ func (sc *scProcessor) createVMCallInput(
 	callType := determineCallType(tx)
 	txData := string(tx.GetData())
 	if !builtInFuncCall {
-		txData = string(prependCallbackToTxDataIfAsyncCallBack(tx.GetData(), callType))
+		txData = string(prependLegacyCallbackFunctionNameToTxDataIfAsyncCallBack(tx.GetData(), callType))
 	}
 
 	function, arguments, err := sc.argsParser.ParseCallData(txData)
@@ -157,11 +157,12 @@ func separateAsyncArguments(callType vm.CallType, arguments [][]byte) ([][]byte,
 		noOfAsyncArguments = 4
 	}
 
+	noOfCallArguments := len(arguments) - noOfAsyncArguments
 	asyncArguments := make([][]byte, noOfAsyncArguments)
-	callArguments := make([][]byte, len(arguments)-noOfAsyncArguments)
+	callArguments := make([][]byte, noOfCallArguments)
 
-	copy(asyncArguments, arguments[:noOfAsyncArguments])
-	copy(callArguments, arguments[noOfAsyncArguments:])
+	copy(callArguments, arguments[:noOfCallArguments])
+	copy(asyncArguments, arguments[noOfCallArguments:])
 
 	return asyncArguments, callArguments
 }
@@ -194,7 +195,7 @@ func determineCallType(tx data.TransactionHandler) vm.CallType {
 	return vm.DirectCall
 }
 
-func prependCallbackToTxDataIfAsyncCallBack(txData []byte, callType vm.CallType) []byte {
+func prependLegacyCallbackFunctionNameToTxDataIfAsyncCallBack(txData []byte, callType vm.CallType) []byte {
 	if callType == vm.AsynchronousCallBack {
 		return append([]byte("callBack"), txData...)
 	}
