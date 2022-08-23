@@ -1,14 +1,13 @@
 package pruning
 
 import (
-	"math"
-
+	storageCore "github.com/ElrondNetwork/elrond-go-core/storage"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 )
 
 type fullHistoryTriePruningStorer struct {
 	*triePruningStorer
+	fhps                           *FullHistoryPruningStorer
 	args                           *StorerArgs
 	shardId                        string
 	oldEpochsActivePersistersCache storage.Cacher
@@ -20,38 +19,38 @@ func NewFullHistoryTriePruningStorer(args *FullHistoryStorerArgs) (*fullHistoryT
 }
 
 func initFullHistoryTriePruningStorer(args *FullHistoryStorerArgs, shardId string) (*fullHistoryTriePruningStorer, error) {
-	err := checkArgs(args.StorerArgs)
+	fhps, err := initFullHistoryPruningStorer(args, shardId)
 	if err != nil {
 		return nil, err
 	}
 
-	activePersisters, persistersMapByEpoch, err := initPersistersInEpoch(args.StorerArgs, shardId)
-	if err != nil {
-		return nil, err
-	}
+	tps := &triePruningStorer{fhps.PruningStorer}
+	fhps.PruningStorer.extendPersisterLifeHandler = tps.extendPersisterLife
 
-	ps, err := initPruningStorer(args.StorerArgs, shardId, activePersisters, persistersMapByEpoch)
-	if err != nil {
-		return nil, err
-	}
-
-	tps := &triePruningStorer{ps}
-	ps.extendPersisterLifeHandler = tps.extendPersisterLife
-	tps.registerHandler(args.Notifier)
-
-	if args.NumOfOldActivePersisters < 1 || args.NumOfOldActivePersisters > math.MaxInt32 {
-		return nil, storage.ErrInvalidNumberOfOldPersisters
-	}
-
-	fhps := &fullHistoryTriePruningStorer{
+	return &fullHistoryTriePruningStorer{
 		triePruningStorer: tps,
+		fhps:              fhps,
 		args:              args.StorerArgs,
 		shardId:           shardId,
-	}
-	fhps.oldEpochsActivePersistersCache, err = lrucache.NewCacheWithEviction(int(args.NumOfOldActivePersisters), fhps.onEvicted)
-	if err != nil {
-		return nil, err
-	}
+	}, nil
+}
 
-	return fhps, nil
+// GetFromEpoch will call GetFromEpoch from the underlying FullHistoryPruningStorer
+func (fhtps *fullHistoryTriePruningStorer) GetFromEpoch(key []byte, epoch uint32) ([]byte, error) {
+	return fhtps.fhps.GetFromEpoch(key, epoch)
+}
+
+// GetBulkFromEpoch will call GetBulkFromEpoch from the underlying FullHistoryPruningStorer
+func (fhtps *fullHistoryTriePruningStorer) GetBulkFromEpoch(keys [][]byte, epoch uint32) ([]storageCore.KeyValuePair, error) {
+	return fhtps.fhps.GetBulkFromEpoch(keys, epoch)
+}
+
+// PutInEpoch will call PutInEpoch from the underlying FullHistoryPruningStorer
+func (fhtps *fullHistoryTriePruningStorer) PutInEpoch(key []byte, data []byte, epoch uint32) error {
+	return fhtps.fhps.PutInEpoch(key, data, epoch)
+}
+
+// Close will call Close from the underlying FullHistoryPruningStorer
+func (fhtps *fullHistoryTriePruningStorer) Close() error {
+	return fhtps.fhps.Close()
 }
