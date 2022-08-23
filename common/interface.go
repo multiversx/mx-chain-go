@@ -154,6 +154,13 @@ type ReceiptsHolder interface {
 	IsInterfaceNil() bool
 }
 
+// RootHashHolder holds a rootHash
+type RootHashHolder interface {
+	GetRootHash() []byte
+	GetEpoch() core.OptionalUint32
+	IsInterfaceNil() bool
+}
+
 // GasScheduleNotifierAPI defines the behavior of the gas schedule notifier components that is used for api
 type GasScheduleNotifierAPI interface {
 	core.GasScheduleNotifier

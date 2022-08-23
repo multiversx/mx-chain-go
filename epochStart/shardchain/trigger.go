@@ -935,7 +935,7 @@ func (t *trigger) RevertStateToBlock(header data.HeaderHandler) error {
 		return nil
 	}
 
-	shardHdr, err := process.CreateShardHeader(t.marshaller, shardHdrBuff)
+	shardHdr, err := process.UnmarshalShardHeader(t.marshaller, shardHdrBuff)
 	if err != nil {
 		log.Warn("RevertStateToBlock unmarshal error", "err", err)
 		return err

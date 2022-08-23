@@ -158,9 +158,15 @@ func (scf *stateComponentsFactory) createAccountsAdapters(triesContainer common.
 		return nil, nil, nil, fmt.Errorf("accounts adapter API on current: %w: %s", errors.ErrAccountsAdapterCreation, err.Error())
 	}
 
+	accountsAdapterApiOnHistorical, err := factoryState.CreateAccountsAdapterAPIOnHistorical(argsAPIAccountsDB)
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("accounts adapter API on historical: %w: %s", errors.ErrAccountsAdapterCreation, err.Error())
+	}
+
 	argsAccountsRepository := state.ArgsAccountsRepository{
-		FinalStateAccountsWrapper:   accountsAdapterApiOnFinal,
-		CurrentStateAccountsWrapper: accountsAdapterApiOnCurrent,
+		FinalStateAccountsWrapper:      accountsAdapterApiOnFinal,
+		CurrentStateAccountsWrapper:    accountsAdapterApiOnCurrent,
+		HistoricalStateAccountsWrapper: accountsAdapterApiOnHistorical,
 	}
 
 	accountsRepository, err := state.NewAccountsRepository(argsAccountsRepository)
