@@ -48,21 +48,20 @@ func (tsmie *trieStorageManagerInEpoch) Get(key []byte) ([]byte, error) {
 		return nil, errors.ErrContextClosing
 	}
 
-	val, err := tsmie.mainStorer.GetFromEpoch(key, tsmie.epoch)
-	if errors.IsClosingError(err) {
-		return nil, err
-	}
-	if len(val) != 0 {
-		return val, nil
-	}
+	numEpochsToVerify := uint32(2)
+	for i := uint32(0); i < numEpochsToVerify; i++ {
+		if i > tsmie.epoch {
+			break
+		}
+		epoch := tsmie.epoch - i
 
-	// Fallback to previous epoch:
-	val, err = tsmie.mainStorer.GetFromEpoch(key, tsmie.epoch-1)
-	if errors.IsClosingError(err) {
-		return nil, err
-	}
-	if len(val) != 0 {
-		return val, nil
+		val, err := tsmie.mainStorer.GetFromEpoch(key, epoch)
+		if errors.IsClosingError(err) {
+			return nil, err
+		}
+		if len(val) != 0 {
+			return val, nil
+		}
 	}
 
 	return nil, ErrKeyNotFound
