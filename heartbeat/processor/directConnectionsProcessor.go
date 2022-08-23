@@ -99,7 +99,7 @@ func (dcp *directConnectionsProcessor) startProcessLoop(ctx context.Context) {
 
 func (dcp *directConnectionsProcessor) sendMessageToNewConnections() {
 	if dcp.isCurrentNodeValidator() {
-		log.Debug("directConnectionsProcessor.sendMessageToNewConnections current node is validator, will not send send messages to connected peers")
+		log.Debug("directConnectionsProcessor.sendMessageToNewConnections current node is validator, will not send messages to connected peers")
 		return
 	}
 
