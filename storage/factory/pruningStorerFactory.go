@@ -270,7 +270,7 @@ func (psf *StorageServiceFactory) CreateForShard() (dataRetriever.StorageService
 	successfullyCreatedStorers = append(successfullyCreatedStorers, receiptsUnit)
 
 	scheduledSCRsUnitArgs := psf.createPruningStorerArgs(psf.generalConfig.ScheduledSCRsStorage, disabledCustomDatabaseRemover)
-	scheduledSCRsUnit, err = pruning.NewPruningStorer(scheduledSCRsUnitArgs)
+	scheduledSCRsUnit, err = psf.createPruningPersister(scheduledSCRsUnitArgs)
 	if err != nil {
 		return nil, err
 	}
