@@ -626,6 +626,7 @@ func setMiniBlocksInfoWithPendingMiniBlocks(epochShardData data.EpochStartShardD
 			"len(reserved)", len(mbHeader.GetReserved()),
 			"index of first tx processed", mbHeader.GetIndexOfFirstTxProcessed(),
 			"index of last tx processed", mbHeader.GetIndexOfLastTxProcessed(),
+			"num txs", mbHeader.GetTxCount(),
 		)
 
 		receiverShardID := mbHeader.GetReceiverShardID()
