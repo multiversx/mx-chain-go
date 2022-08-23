@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	esdtCommon "github.com/ElrondNetwork/elrond-go/integrationTests/vm/esdt"
 	"github.com/ElrondNetwork/elrond-go/testscommon/txDataBuilder"
@@ -300,6 +301,7 @@ func testESDTWithTransferRoleAndForwarder(t *testing.T, numShards int) {
 		integrationTests.AdditionalGasLimit+core.MinMetaTxExtraGasCost,
 	)
 	time.Sleep(time.Second)
+	_ = logger.SetLogLevel("process:TRACE,arwen:TRACE,gasTrace:TRACE")
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 15, nonce, round, idxProposers)
 	time.Sleep(time.Second)
 
