@@ -33,6 +33,7 @@ const (
 	urlParamBlockNonce        = "blockNonce"
 	urlParamBlockHash         = "blockHash"
 	urlParamBlockRootHash     = "blockRootHash"
+	urlParamHintEpoch         = "hintEpoch"
 )
 
 // addressFacadeHandler defines the methods to be implemented by a facade for handling address requests

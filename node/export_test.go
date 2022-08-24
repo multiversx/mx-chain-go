@@ -1,6 +1,7 @@
 package node
 
 import (
+	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/factory"
@@ -24,6 +25,11 @@ func (n *Node) AddClosableComponents(components ...factory.Closer) {
 // AddBlockCoordinatesToAccountQueryOptions -
 func (n *Node) AddBlockCoordinatesToAccountQueryOptions(options api.AccountQueryOptions) (api.AccountQueryOptions, error) {
 	return n.addBlockCoordinatesToAccountQueryOptions(options)
+}
+
+// GetBlockHeaderByHash -
+func (n *Node) GetBlockHeaderByHash(headerHash []byte) (data.HeaderHandler, error) {
+	return n.getBlockHeaderByHash(headerHash)
 }
 
 // MergeAccountQueryOptionsIntoBlockInfo -

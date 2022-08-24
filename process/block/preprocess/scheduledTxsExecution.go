@@ -493,7 +493,7 @@ func (ste *scheduledTxsExecution) SetTransactionCoordinator(txCoordinator proces
 func (ste *scheduledTxsExecution) GetScheduledRootHashForHeader(
 	headerHash []byte,
 ) ([]byte, error) {
-	scheduledInfo, err := ste.getScheduledInfoForHeader(headerHash)
+	scheduledInfo, err := ste.getScheduledInfoForHeader(headerHash, core.OptionalUint32{})
 	if err != nil {
 		return nil, err
 	}
@@ -503,9 +503,24 @@ func (ste *scheduledTxsExecution) GetScheduledRootHashForHeader(
 	return scheduledInfo.RootHash, nil
 }
 
+// GetScheduledRootHashForHeaderWithEpoch gets scheduled root hash of the given header (and) from storage
+func (ste *scheduledTxsExecution) GetScheduledRootHashForHeaderWithEpoch(
+	headerHash []byte,
+	epoch uint32,
+) ([]byte, error) {
+	scheduledInfo, err := ste.getScheduledInfoForHeader(headerHash, core.OptionalUint32{Value: epoch, HasValue: true})
+	if err != nil {
+		return nil, err
+	}
+
+	log.Debug("scheduledTxsExecution.GetScheduledRootHashForHeaderWithEpoch", "header hash", headerHash, "scheduled root hash", scheduledInfo.RootHash)
+
+	return scheduledInfo.RootHash, nil
+}
+
 // RollBackToBlock rolls back the scheduled txs execution handler to the given header
 func (ste *scheduledTxsExecution) RollBackToBlock(headerHash []byte) error {
-	scheduledInfo, err := ste.getScheduledInfoForHeader(headerHash)
+	scheduledInfo, err := ste.getScheduledInfoForHeader(headerHash, core.OptionalUint32{})
 	if err != nil {
 		return err
 	}
@@ -580,8 +595,10 @@ func (ste *scheduledTxsExecution) SaveState(headerHash []byte, scheduledInfo *pr
 }
 
 // getScheduledInfoForHeader gets scheduled mini blocks, root hash, intermediate txs, gas and fees of the given header from storage
-func (ste *scheduledTxsExecution) getScheduledInfoForHeader(headerHash []byte) (*process.ScheduledInfo, error) {
+func (ste *scheduledTxsExecution) getScheduledInfoForHeader(headerHash []byte, epoch core.OptionalUint32) (*process.ScheduledInfo, error) {
+	var data []byte
 	var err error
+
 	defer func() {
 		if err != nil {
 			log.Trace("getScheduledInfoForHeader: given header does not have scheduled txs",
@@ -590,13 +607,17 @@ func (ste *scheduledTxsExecution) getScheduledInfoForHeader(headerHash []byte) (
 		}
 	}()
 
-	marshalledSCRsSavedData, err := ste.storer.Get(headerHash)
+	if epoch.HasValue {
+		data, err = ste.storer.GetFromEpoch(headerHash, epoch.Value)
+	} else {
+		data, err = ste.storer.Get(headerHash)
+	}
 	if err != nil {
 		return nil, err
 	}
 
 	scheduledSCRs := &scheduled.ScheduledSCRs{}
-	err = ste.marshaller.Unmarshal(scheduledSCRs, marshalledSCRsSavedData)
+	err = ste.marshaller.Unmarshal(scheduledSCRs, data)
 	if err != nil {
 		return nil, err
 	}

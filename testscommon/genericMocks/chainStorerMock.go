@@ -17,6 +17,7 @@ type ChainStorerMock struct {
 	MetaHdrNonce  *StorerMock
 	ShardHdrNonce *StorerMock
 	Receipts      *StorerMock
+	ScheduledSCRs *StorerMock
 	Others        *StorerMock
 }
 
@@ -33,6 +34,7 @@ func NewChainStorerMock(epoch uint32) *ChainStorerMock {
 		MetaHdrNonce:  NewStorerMockWithEpoch(epoch),
 		ShardHdrNonce: NewStorerMockWithEpoch(epoch),
 		Receipts:      NewStorerMockWithEpoch(epoch),
+		ScheduledSCRs: NewStorerMockWithEpoch(epoch),
 		Others:        NewStorerMockWithEpoch(epoch),
 	}
 }
@@ -70,6 +72,8 @@ func (sm *ChainStorerMock) GetStorer(unitType dataRetriever.UnitType) storage.St
 		return sm.ShardHdrNonce
 	case dataRetriever.ReceiptsUnit:
 		return sm.Receipts
+	case dataRetriever.ScheduledSCRsUnit:
+		return sm.ScheduledSCRs
 	}
 
 	// According to: dataRetriever/interface.go
@@ -130,6 +134,7 @@ func (sm *ChainStorerMock) GetAllStorers() map[dataRetriever.UnitType]storage.St
 		dataRetriever.MetaHdrNonceHashDataUnit:  sm.MetaHdrNonce,
 		dataRetriever.ShardHdrNonceHashDataUnit: sm.ShardHdrNonce,
 		dataRetriever.ReceiptsUnit:              sm.Receipts,
+		dataRetriever.ScheduledSCRsUnit:         sm.ScheduledSCRs,
 	}
 }
 
