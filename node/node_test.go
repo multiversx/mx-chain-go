@@ -272,7 +272,7 @@ func TestGetCodeHash(t *testing.T) {
 
 	codeHash, _, err := n.GetCodeHash(testscommon.TestAddressAlice, api.AccountQueryOptions{})
 	assert.Nil(t, err)
-	assert.Equal(t, hex.EncodeToString(expectedCodeHash), codeHash)
+	assert.Equal(t, expectedCodeHash, codeHash)
 }
 
 func TestNode_GetKeyValuePairs(t *testing.T) {

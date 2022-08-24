@@ -1,6 +1,7 @@
 package groups_test
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -436,6 +437,7 @@ func TestGetCodeHash_ShouldWork(t *testing.T) {
 
 	testAddress := "address"
 	testCodeHash := []byte("value")
+	expectedResponseCodeHash := base64.StdEncoding.EncodeToString(testCodeHash)
 	facade := mock.FacadeStub{
 		GetCodeHashCalled: func(_ string, _ api.AccountQueryOptions) ([]byte, api.BlockInfo, error) {
 			return testCodeHash, api.BlockInfo{}, nil
@@ -454,7 +456,7 @@ func TestGetCodeHash_ShouldWork(t *testing.T) {
 	codeHashResponseObj := codeHashResponse{}
 	loadResponse(resp.Body, &codeHashResponseObj)
 	assert.Equal(t, http.StatusOK, resp.Code)
-	assert.Equal(t, testCodeHash, codeHashResponseObj.Data.CodeHash)
+	assert.Equal(t, expectedResponseCodeHash, codeHashResponseObj.Data.CodeHash)
 }
 
 func TestGetAccount_FailWhenFacadeStubGetAccountFails(t *testing.T) {
