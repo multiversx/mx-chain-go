@@ -38,6 +38,7 @@ type NodeStub struct {
 	GetValueForKeyCalled                           func(address string, key string, options api.AccountQueryOptions) (string, api.BlockInfo, error)
 	GetPeerInfoCalled                              func(pid string) ([]core.QueryP2PPeerInfo, error)
 	GetUsernameCalled                              func(address string, options api.AccountQueryOptions) (string, api.BlockInfo, error)
+	GetCodeHashCalled                              func(address string, options api.AccountQueryOptions) (string, api.BlockInfo, error)
 	GetESDTDataCalled                              func(address string, key string, nonce uint64, options api.AccountQueryOptions) (*esdt.ESDigitalToken, api.BlockInfo, error)
 	GetAllESDTTokensCalled                         func(address string, options api.AccountQueryOptions, ctx context.Context) (map[string]*esdt.ESDigitalToken, api.BlockInfo, error)
 	GetNFTTokenIDsRegisteredByAddressCalled        func(address string, options api.AccountQueryOptions, ctx context.Context) ([]string, api.BlockInfo, error)
@@ -81,6 +82,15 @@ func (ns *NodeStub) VerifyProof(rootHash string, address string, proof [][]byte)
 func (ns *NodeStub) GetUsername(address string, options api.AccountQueryOptions) (string, api.BlockInfo, error) {
 	if ns.GetUsernameCalled != nil {
 		return ns.GetUsernameCalled(address, options)
+	}
+
+	return "", api.BlockInfo{}, nil
+}
+
+// GetCodeHash -
+func (ns *NodeStub) GetCodeHash(address string, options api.AccountQueryOptions) (string, api.BlockInfo, error) {
+	if ns.GetCodeHashCalled != nil {
+		return ns.GetCodeHashCalled(address, options)
 	}
 
 	return "", api.BlockInfo{}, nil

@@ -83,6 +83,11 @@ func (inf *initialNodeFacade) GetUsername(_ string, _ api.AccountQueryOptions) (
 	return emptyString, api.BlockInfo{}, errNodeStarting
 }
 
+// GetCodeHash returns empty string and error
+func (inf *initialNodeFacade) GetCodeHash(_ string, _ api.AccountQueryOptions) (string, api.BlockInfo, error) {
+	return emptyString, api.BlockInfo{}, errNodeStarting
+}
+
 // GetValueForKey returns an empty string and error
 func (inf *initialNodeFacade) GetValueForKey(_ string, _ string, _ api.AccountQueryOptions) (string, api.BlockInfo, error) {
 	return emptyString, api.BlockInfo{}, errNodeStarting

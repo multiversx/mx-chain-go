@@ -26,6 +26,9 @@ type NodeHandler interface {
 	// GetUsername returns the username for a specific address
 	GetUsername(address string, options api.AccountQueryOptions) (string, api.BlockInfo, error)
 
+	// GetCodeHash returns the username for a specific address
+	GetCodeHash(address string, options api.AccountQueryOptions) (string, api.BlockInfo, error)
+
 	// GetValueForKey returns the value of a key from a given account
 	GetValueForKey(address string, key string, options api.AccountQueryOptions) (string, api.BlockInfo, error)
 

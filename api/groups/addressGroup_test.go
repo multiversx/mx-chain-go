@@ -139,6 +139,16 @@ type usernameResponse struct {
 	Code  string               `json:"code"`
 }
 
+type codeHashResponseData struct {
+	CodeHash string `json:"codeHash"`
+}
+
+type codeHashResponse struct {
+	Data  codeHashResponseData `json:"data"`
+	Error string               `json:"error"`
+	Code  string               `json:"code"`
+}
+
 func TestNewAddressGroup(t *testing.T) {
 	t.Parallel()
 
@@ -393,6 +403,58 @@ func TestGetUsername_ShouldWork(t *testing.T) {
 	loadResponse(resp.Body, &usernameResponseObj)
 	assert.Equal(t, http.StatusOK, resp.Code)
 	assert.Equal(t, testUsername, usernameResponseObj.Data.Username)
+}
+
+func TestGetCodeHash_NodeFailsShouldError(t *testing.T) {
+	t.Parallel()
+
+	testAddress := "address"
+	expectedErr := errors.New("expected error")
+	facade := mock.FacadeStub{
+		GetCodeHashCalled: func(_ string, _ api.AccountQueryOptions) (string, api.BlockInfo, error) {
+			return "", api.BlockInfo{}, expectedErr
+		},
+	}
+
+	addrGroup, err := groups.NewAddressGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(addrGroup, "address", getAddressRoutesConfig())
+
+	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/code-hash", testAddress), nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	codeHashResponseObj := codeHashResponse{}
+	loadResponse(resp.Body, &codeHashResponseObj)
+	assert.Equal(t, http.StatusInternalServerError, resp.Code)
+	assert.True(t, strings.Contains(codeHashResponseObj.Error, expectedErr.Error()))
+}
+
+func TestGetCodeHash_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	testAddress := "address"
+	testCodeHash := "value"
+	facade := mock.FacadeStub{
+		GetCodeHashCalled: func(_ string, _ api.AccountQueryOptions) (string, api.BlockInfo, error) {
+			return testCodeHash, api.BlockInfo{}, nil
+		},
+	}
+
+	addrGroup, err := groups.NewAddressGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(addrGroup, "address", getAddressRoutesConfig())
+
+	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/code-hash", testAddress), nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	codeHashResponseObj := codeHashResponse{}
+	loadResponse(resp.Body, &codeHashResponseObj)
+	assert.Equal(t, http.StatusOK, resp.Code)
+	assert.Equal(t, testCodeHash, codeHashResponseObj.Data.CodeHash)
 }
 
 func TestGetAccount_FailWhenFacadeStubGetAccountFails(t *testing.T) {
@@ -1034,6 +1096,7 @@ func getAddressRoutesConfig() config.ApiRoutesConfig {
 					{Name: "/:address", Open: true},
 					{Name: "/:address/balance", Open: true},
 					{Name: "/:address/username", Open: true},
+					{Name: "/:address/code-hash", Open: true},
 					{Name: "/:address/keys", Open: true},
 					{Name: "/:address/key/:key", Open: true},
 					{Name: "/:address/esdt", Open: true},

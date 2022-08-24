@@ -42,6 +42,7 @@ type FacadeStub struct {
 	GetPeerInfoCalled                           func(pid string) ([]core.QueryP2PPeerInfo, error)
 	GetThrottlerForEndpointCalled               func(endpoint string) (core.Throttler, bool)
 	GetUsernameCalled                           func(address string, options api.AccountQueryOptions) (string, api.BlockInfo, error)
+	GetCodeHashCalled                           func(address string, options api.AccountQueryOptions) (string, api.BlockInfo, error)
 	GetKeyValuePairsCalled                      func(address string, options api.AccountQueryOptions) (map[string]string, api.BlockInfo, error)
 	SimulateTransactionExecutionHandler         func(tx *transaction.Transaction) (*txSimData.SimulationResults, error)
 	GetESDTDataCalled                           func(address string, key string, nonce uint64, options api.AccountQueryOptions) (*esdt.ESDigitalToken, api.BlockInfo, error)
@@ -127,6 +128,15 @@ func (f *FacadeStub) VerifyProof(rootHash string, address string, proof [][]byte
 func (f *FacadeStub) GetUsername(address string, options api.AccountQueryOptions) (string, api.BlockInfo, error) {
 	if f.GetUsernameCalled != nil {
 		return f.GetUsernameCalled(address, options)
+	}
+
+	return "", api.BlockInfo{}, nil
+}
+
+// GetCodeHash -
+func (f *FacadeStub) GetCodeHash(address string, options api.AccountQueryOptions) (string, api.BlockInfo, error) {
+	if f.GetCodeHashCalled != nil {
+		return f.GetCodeHashCalled(address, options)
 	}
 
 	return "", api.BlockInfo{}, nil

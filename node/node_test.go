@@ -28,7 +28,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go-crypto"
+	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/common/holders"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -242,6 +242,37 @@ func TestGetUsername(t *testing.T) {
 	username, _, err := n.GetUsername(testscommon.TestAddressAlice, api.AccountQueryOptions{})
 	assert.Nil(t, err)
 	assert.Equal(t, string(expectedUsername), username)
+}
+
+func TestGetCodeHash(t *testing.T) {
+	expectedCodeHash := []byte("hash")
+
+	testAccount, _ := state.NewUserAccount(testscommon.TestPubKeyAlice)
+	testAccount.CodeHash = expectedCodeHash
+	accountsRepository := &stateMock.AccountsRepositoryStub{
+		GetAccountWithBlockInfoCalled: func(address []byte, options api.AccountQueryOptions) (vmcommon.AccountHandler, common.BlockInfo, error) {
+			return testAccount, nil, nil
+		},
+	}
+
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.IntMarsh = getMarshalizer()
+	coreComponents.VmMarsh = getMarshalizer()
+	coreComponents.Hash = getHasher()
+
+	dataComponents := getDefaultDataComponents()
+	stateComponents := getDefaultStateComponents()
+	stateComponents.AccountsRepo = accountsRepository
+
+	n, _ := node.NewNode(
+		node.WithDataComponents(dataComponents),
+		node.WithCoreComponents(coreComponents),
+		node.WithStateComponents(stateComponents),
+	)
+
+	codeHash, _, err := n.GetCodeHash(testscommon.TestAddressAlice, api.AccountQueryOptions{})
+	assert.Nil(t, err)
+	assert.Equal(t, hex.EncodeToString(expectedCodeHash), codeHash)
 }
 
 func TestNode_GetKeyValuePairs(t *testing.T) {
