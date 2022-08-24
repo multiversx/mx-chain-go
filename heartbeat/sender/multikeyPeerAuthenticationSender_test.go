@@ -18,8 +18,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl/singlesig"
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/mock"
-	"github.com/ElrondNetwork/elrond-go/keysManagement"
-	p2pCrypto "github.com/ElrondNetwork/elrond-go/p2p/crypto"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
@@ -60,17 +58,53 @@ func createMockMultikeyPeerAuthenticationSenderArgsSemiIntegrationTests(
 	keyGenForP2P := signing.NewKeyGenerator(ed25519.NewEd25519())
 	signerMessenger := ed25519SingleSig.Ed25519Signer{}
 
-	keysHolder, _ := keysManagement.NewVirtualPeersHolder(keysManagement.ArgsVirtualPeersHolder{
-		KeyGenerator:                     keyGenForP2P,
-		P2PIdentityGenerator:             p2pCrypto.NewIdentityGenerator(),
-		IsMainMachine:                    true,
-		MaxRoundsWithoutReceivedMessages: 10,
-	})
+	keyMap := make(map[string]crypto.PrivateKey)
 	for i := 0; i < numKeys; i++ {
-		sk, _ := keyGenForBLS.GeneratePair()
-		skBytes, _ := sk.ToByteArray()
+		sk, pk := keyGenForBLS.GeneratePair()
+		pkBytes, _ := pk.ToByteArray()
 
-		_ = keysHolder.AddVirtualPeer(skBytes)
+		keyMap[string(pkBytes)] = sk
+	}
+
+	p2pSkPkMap := make(map[string][]byte)
+	peerIdPkMap := make(map[string]core.PeerID)
+	for pk := range keyMap {
+		p2pSk, p2pPk := keyGenForP2P.GeneratePair()
+		p2pSkBytes, _ := p2pSk.ToByteArray()
+		p2pPkBytes, _ := p2pPk.ToByteArray()
+
+		p2pSkPkMap[pk] = p2pSkBytes
+		peerIdPkMap[pk] = core.PeerID(p2pPkBytes)
+	}
+
+	mutTimeMap := sync.RWMutex{}
+	peerAuthTimeMap := make(map[string]time.Time)
+	keysHolder := &testscommon.KeysHolderStub{
+		GetP2PIdentityCalled: func(pkBytes []byte) ([]byte, core.PeerID, error) {
+			//pid := core.PeerID("pid_of_" + hex.EncodeToString(pkBytes))
+			//sk := []byte("p2p_sk_of_" + hex.EncodeToString(pkBytes))
+			return p2pSkPkMap[string(pkBytes)], peerIdPkMap[string(pkBytes)], nil
+		},
+		GetManagedKeysByCurrentNodeCalled: func() map[string]crypto.PrivateKey {
+			return keyMap
+		},
+		IsKeyManagedByCurrentNodeCalled: func(pkBytes []byte) bool {
+			return true
+		},
+		IsKeyValidatorCalled: func(pkBytes []byte) (bool, error) {
+			return true, nil
+		},
+		GetNextPeerAuthenticationTimeCalled: func(pkBytes []byte) (time.Time, error) {
+			mutTimeMap.RLock()
+			defer mutTimeMap.RUnlock()
+			return peerAuthTimeMap[string(pkBytes)], nil
+		},
+		SetNextPeerAuthenticationTimeCalled: func(pkBytes []byte, nextTime time.Time) error {
+			mutTimeMap.Lock()
+			defer mutTimeMap.Unlock()
+			peerAuthTimeMap[string(pkBytes)] = nextTime
+			return nil
+		},
 	}
 
 	singleSigner := singlesig.NewBlsSigner()
