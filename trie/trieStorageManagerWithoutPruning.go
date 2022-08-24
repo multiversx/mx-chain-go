@@ -1,7 +1,6 @@
 package trie
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
@@ -11,7 +10,7 @@ import (
 // trieStorageManagerWithoutPruning manages the storage operations of the trie, but does not prune old values
 type trieStorageManagerWithoutPruning struct {
 	common.StorageManager
-	storage *trieStorageManager
+	storage storageManagerExtension
 }
 
 // NewTrieStorageManagerWithoutPruning creates a new instance of trieStorageManagerWithoutPruning
@@ -20,9 +19,9 @@ func NewTrieStorageManagerWithoutPruning(sm common.StorageManager) (*trieStorage
 		return nil, ErrNilTrieStorage
 	}
 
-	tsm, ok := sm.GetBaseTrieStorageManager().(*trieStorageManager)
+	tsm, ok := sm.GetBaseTrieStorageManager().(storageManagerExtension)
 	if !ok {
-		return nil, errors.New("invalid storage manager type" + fmt.Sprintf("%T", sm.GetBaseTrieStorageManager()))
+		return nil, fmt.Errorf("invalid storage manager type %T", sm.GetBaseTrieStorageManager())
 	}
 
 	return &trieStorageManagerWithoutPruning{

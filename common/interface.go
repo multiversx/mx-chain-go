@@ -156,10 +156,11 @@ type ReceiptsHolder interface {
 	IsInterfaceNil() bool
 }
 
-// RootHashHolder holds a rootHash
+// RootHashHolder holds a rootHash and the corresponding epoch
 type RootHashHolder interface {
 	GetRootHash() []byte
 	GetEpoch() core.OptionalUint32
+	String() string
 	IsInterfaceNil() bool
 }
 

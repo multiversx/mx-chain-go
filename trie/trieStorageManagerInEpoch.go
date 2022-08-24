@@ -8,6 +8,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go/errors"
 )
 
+// numEpochsToVerify needs to be at least 2 due to a snapshotting edge-case.
+// The trie nodes modified between when a start of epoch block is committed until it is notarized by meta
+// are not copied during snapshot to the new storer. So in order to have access to all trie data related
+// to a certain root hash, both current storer and previous storer need to be verified.
+const numEpochsToVerify = uint32(2)
+
 type trieStorageManagerInEpoch struct {
 	*trieStorageManager
 	mainStorer dbWithGetFromEpoch
@@ -21,14 +27,12 @@ func newTrieStorageManagerInEpoch(storageManager common.StorageManager, epoch ui
 
 	tsm, ok := storageManager.GetBaseTrieStorageManager().(*trieStorageManager)
 	if !ok {
-		storerType := fmt.Sprintf("%T", storageManager.GetBaseTrieStorageManager())
-		return nil, fmt.Errorf("invalid storage manager, type is %s", storerType)
+		return nil, fmt.Errorf("invalid storage manager, type is %T", storageManager.GetBaseTrieStorageManager())
 	}
 
 	storer, ok := tsm.mainStorer.(dbWithGetFromEpoch)
 	if !ok {
-		storerType := fmt.Sprintf("%T", tsm.mainStorer)
-		return nil, fmt.Errorf("invalid storer, type is %s", storerType)
+		return nil, fmt.Errorf("invalid storer, type is %T", tsm.mainStorer)
 	}
 
 	return &trieStorageManagerInEpoch{
@@ -48,7 +52,6 @@ func (tsmie *trieStorageManagerInEpoch) Get(key []byte) ([]byte, error) {
 		return nil, errors.ErrContextClosing
 	}
 
-	numEpochsToVerify := uint32(2)
 	for i := uint32(0); i < numEpochsToVerify; i++ {
 		if i > tsmie.epoch {
 			break
@@ -56,13 +59,24 @@ func (tsmie *trieStorageManagerInEpoch) Get(key []byte) ([]byte, error) {
 		epoch := tsmie.epoch - i
 
 		val, err := tsmie.mainStorer.GetFromEpoch(key, epoch)
-		if errors.IsClosingError(err) {
-			return nil, err
-		}
+		treatGetFromEpochError(err)
 		if len(val) != 0 {
 			return val, nil
 		}
 	}
 
 	return nil, ErrKeyNotFound
+}
+
+func treatGetFromEpochError(err error) {
+	if err == nil {
+		return
+	}
+
+	if errors.IsClosingError(err) {
+		log.Debug("trieStorageManagerInEpoch", "error", err.Error())
+		return
+	}
+
+	log.Warn("trieStorageManagerInEpoch", "error", err.Error())
 }

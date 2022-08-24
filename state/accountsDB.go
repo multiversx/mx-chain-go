@@ -977,7 +977,7 @@ func (adb *AccountsDB) RecreateTrieFromEpoch(options common.RootHashHolder) erro
 }
 
 func (adb *AccountsDB) recreateTrie(options common.RootHashHolder) error {
-	log.Trace("accountsDB.RecreateTrie", "root hash", options.GetRootHash())
+	log.Trace("accountsDB.RecreateTrie", "root hash holder", options.String())
 	defer func() {
 		log.Trace("accountsDB.RecreateTrie ended")
 	}()
