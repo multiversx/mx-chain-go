@@ -27,6 +27,8 @@ import (
 
 var log = logger.GetOrCreate("process")
 
+const VMStoragePrefix = "VM@"
+
 // GetShardHeader gets the header, which is associated with the given hash, from pool or storage
 func GetShardHeader(
 	hash []byte,
@@ -649,17 +651,25 @@ func DisplayProcessTxDetails(
 		"receiver", receiver)
 }
 
-// TODO remove this, keep only storage protection from Arwen ?
 // IsAllowedToSaveUnderKey returns if saving key-value in data tries under given key is allowed
-// func IsAllowedToSaveUnderKey(key []byte) bool {
-// 	prefixLen := len(core.ElrondProtectedKeyPrefix)
-// 	if len(key) < prefixLen {
-// 		return true
-// 	}
+func IsAllowedToSaveUnderKey(key []byte) bool {
+	vmStoragePrefix := core.ElrondProtectedKeyPrefix + VMStoragePrefix
+	vmPrefixLen := len(vmStoragePrefix)
+	if len(key) > vmPrefixLen {
+		trimmedKey := key[:len(vmStoragePrefix)]
+		if bytes.Equal(trimmedKey, []byte(vmStoragePrefix)) {
+			return true
+		}
+	}
 
-// 	trimmedKey := key[:prefixLen]
-// 	return !bytes.Equal(trimmedKey, []byte(core.ElrondProtectedKeyPrefix))
-// }
+	prefixLen := len(core.ElrondProtectedKeyPrefix)
+	if len(key) < prefixLen {
+		return true
+	}
+
+	trimmedKey := key[:prefixLen]
+	return !bytes.Equal(trimmedKey, []byte(core.ElrondProtectedKeyPrefix))
+}
 
 // SortVMOutputInsideData returns the output accounts as a sorted list
 func SortVMOutputInsideData(vmOutput *vmcommon.VMOutput) []*vmcommon.OutputAccount {
