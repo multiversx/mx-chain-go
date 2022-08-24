@@ -13,7 +13,6 @@ type HistoryRepositoryFactory interface {
 }
 
 // HistoryRepository provides methods needed for the history data processing
-// TODO: Move interface where it's needed, not in the package where it's implemented
 type HistoryRepository interface {
 	RecordBlock(blockHeaderHash []byte,
 		blockHeader data.HeaderHandler,

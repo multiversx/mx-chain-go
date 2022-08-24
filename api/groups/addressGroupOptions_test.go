@@ -27,9 +27,14 @@ func TestExtractAccountQueryOptions(t *testing.T) {
 		require.Nil(t, err)
 		require.Equal(t, []byte{0xaa, 0xaa}, options.BlockHash)
 
-		options, err = extractAccountQueryOptions(testscommon.CreateGinContextWithRawQuery("blockRootHash=bbbb"))
+		options, err = extractAccountQueryOptions(testscommon.CreateGinContextWithRawQuery("blockHash=aaaa"))
+		require.Nil(t, err)
+		require.Equal(t, []byte{0xaa, 0xaa}, options.BlockHash)
+
+		options, err = extractAccountQueryOptions(testscommon.CreateGinContextWithRawQuery("blockRootHash=bbbb&hintEpoch=7"))
 		require.Nil(t, err)
 		require.Equal(t, []byte{0xbb, 0xbb}, options.BlockRootHash)
+		require.Equal(t, uint32(7), options.HintEpoch.Value)
 	})
 
 	t.Run("bad options", func(t *testing.T) {
@@ -48,5 +53,14 @@ func TestExtractAccountQueryOptions(t *testing.T) {
 		options, err = extractAccountQueryOptions(testscommon.CreateGinContextWithRawQuery("onStartOfEpoch=7&blockRootHash=bbbb"))
 		require.ErrorContains(t, err, "onStartOfEpoch is not compatible")
 		require.Equal(t, api.AccountQueryOptions{}, options)
+
+		options, err = extractAccountQueryOptions(testscommon.CreateGinContextWithRawQuery("onFinalBlock=true&hintEpoch=7"))
+		require.ErrorContains(t, err, "hintEpoch is optional, but only compatible with blockRootHash")
+		require.Equal(t, api.AccountQueryOptions{}, options)
+
+		options, err = extractAccountQueryOptions(testscommon.CreateGinContextWithRawQuery("blockHash=aaaa&hintEpoch=7"))
+		require.ErrorContains(t, err, "hintEpoch is optional, but only compatible with blockRootHash")
+		require.Equal(t, api.AccountQueryOptions{}, options)
+
 	})
 }

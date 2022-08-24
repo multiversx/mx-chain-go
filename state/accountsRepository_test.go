@@ -19,7 +19,7 @@ import (
 var testApiOptOnFinal = api.AccountQueryOptions{OnFinalBlock: true}
 var testApiOptOnStartOfEpoch = api.AccountQueryOptions{OnStartOfEpoch: core.OptionalUint32{Value: 32, HasValue: true}}
 var testApiOptOnCurrent = api.AccountQueryOptions{}
-var testApiOptOnHistorical = api.AccountQueryOptions{BlockRootHash: []byte("abba")}
+var testApiOptOnHistorical = api.AccountQueryOptions{BlockRootHash: []byte("abba"), HintEpoch: core.OptionalUint32{Value: 7, HasValue: true}}
 
 func createMockArgsAccountsRepository() state.ArgsAccountsRepository {
 	return state.ArgsAccountsRepository{
@@ -79,16 +79,17 @@ func TestNewAccountsRepository(t *testing.T) {
 func TestAccountsRepository_GetAccountWithBlockInfo(t *testing.T) {
 	t.Parallel()
 
+	var optionsPassedToGetAccountWithBlockInfo common.RootHashHolder = holders.NewRootHashHolderAsEmpty()
+
 	commonAccount := &mockState.UserAccountStub{}
 	commonBlockInfo := holders.NewBlockInfo([]byte("hash"), 111, []byte("root hash"))
 	commonAddress := []byte("address")
 
 	t.Run("on final state should work", func(t *testing.T) {
-		t.Parallel()
-
 		args := createMockArgsAccountsRepository()
 		args.FinalStateAccountsWrapper = &mockState.AccountsStub{
 			GetAccountWithBlockInfoCalled: func(address []byte, options common.RootHashHolder) (vmcommon.AccountHandler, common.BlockInfo, error) {
+				optionsPassedToGetAccountWithBlockInfo = options
 				return commonAccount, commonBlockInfo, nil
 			},
 		}
@@ -98,13 +99,13 @@ func TestAccountsRepository_GetAccountWithBlockInfo(t *testing.T) {
 		assert.Equal(t, commonAccount, account)
 		assert.Equal(t, commonBlockInfo, bi)
 		assert.Nil(t, err)
+		assert.Equal(t, holders.NewRootHashHolderAsEmpty(), optionsPassedToGetAccountWithBlockInfo)
 	})
 	t.Run("on current state should work", func(t *testing.T) {
-		t.Parallel()
-
 		args := createMockArgsAccountsRepository()
 		args.CurrentStateAccountsWrapper = &mockState.AccountsStub{
 			GetAccountWithBlockInfoCalled: func(address []byte, options common.RootHashHolder) (vmcommon.AccountHandler, common.BlockInfo, error) {
+				optionsPassedToGetAccountWithBlockInfo = options
 				return commonAccount, commonBlockInfo, nil
 			},
 		}
@@ -114,13 +115,13 @@ func TestAccountsRepository_GetAccountWithBlockInfo(t *testing.T) {
 		assert.Equal(t, commonAccount, account)
 		assert.Equal(t, commonBlockInfo, bi)
 		assert.Nil(t, err)
+		assert.Equal(t, holders.NewRootHashHolderAsEmpty(), optionsPassedToGetAccountWithBlockInfo)
 	})
 	t.Run("on historical state should work", func(t *testing.T) {
-		t.Parallel()
-
 		args := createMockArgsAccountsRepository()
 		args.HistoricalStateAccountsWrapper = &mockState.AccountsStub{
 			GetAccountWithBlockInfoCalled: func(address []byte, options common.RootHashHolder) (vmcommon.AccountHandler, common.BlockInfo, error) {
+				optionsPassedToGetAccountWithBlockInfo = options
 				return commonAccount, commonBlockInfo, nil
 			},
 		}
@@ -130,10 +131,10 @@ func TestAccountsRepository_GetAccountWithBlockInfo(t *testing.T) {
 		assert.Equal(t, commonAccount, account)
 		assert.Equal(t, commonBlockInfo, bi)
 		assert.Nil(t, err)
+		assert.Equal(t, testApiOptOnHistorical.BlockRootHash, optionsPassedToGetAccountWithBlockInfo.GetRootHash())
+		assert.Equal(t, testApiOptOnHistorical.HintEpoch, optionsPassedToGetAccountWithBlockInfo.GetEpoch())
 	})
 	t.Run("on start of epoch should error", func(t *testing.T) {
-		t.Parallel()
-
 		args := createMockArgsAccountsRepository()
 		repository, _ := state.NewAccountsRepository(args)
 
@@ -147,16 +148,17 @@ func TestAccountsRepository_GetAccountWithBlockInfo(t *testing.T) {
 func TestAccountsRepository_GetCodeWithBlockInfo(t *testing.T) {
 	t.Parallel()
 
+	var optionsPassedToGetAccountWithBlockInfo common.RootHashHolder = holders.NewRootHashHolderAsEmpty()
+
 	commonCode := []byte("code")
 	commonBlockInfo := holders.NewBlockInfo([]byte("hash"), 111, []byte("root hash"))
 	commonAddress := []byte("address")
 
 	t.Run("on final state should work", func(t *testing.T) {
-		t.Parallel()
-
 		args := createMockArgsAccountsRepository()
 		args.FinalStateAccountsWrapper = &mockState.AccountsStub{
 			GetCodeWithBlockInfoCalled: func(codeHash []byte, options common.RootHashHolder) ([]byte, common.BlockInfo, error) {
+				optionsPassedToGetAccountWithBlockInfo = options
 				return commonCode, commonBlockInfo, nil
 			},
 		}
@@ -166,13 +168,13 @@ func TestAccountsRepository_GetCodeWithBlockInfo(t *testing.T) {
 		assert.Equal(t, commonCode, code)
 		assert.Equal(t, commonBlockInfo, bi)
 		assert.Nil(t, err)
+		assert.Equal(t, holders.NewRootHashHolderAsEmpty(), optionsPassedToGetAccountWithBlockInfo)
 	})
 	t.Run("on current state should work", func(t *testing.T) {
-		t.Parallel()
-
 		args := createMockArgsAccountsRepository()
 		args.CurrentStateAccountsWrapper = &mockState.AccountsStub{
 			GetCodeWithBlockInfoCalled: func(codeHash []byte, options common.RootHashHolder) ([]byte, common.BlockInfo, error) {
+				optionsPassedToGetAccountWithBlockInfo = options
 				return commonCode, commonBlockInfo, nil
 			},
 		}
@@ -182,13 +184,13 @@ func TestAccountsRepository_GetCodeWithBlockInfo(t *testing.T) {
 		assert.Equal(t, commonCode, code)
 		assert.Equal(t, commonBlockInfo, bi)
 		assert.Nil(t, err)
+		assert.Equal(t, holders.NewRootHashHolderAsEmpty(), optionsPassedToGetAccountWithBlockInfo)
 	})
 	t.Run("on historical state should work", func(t *testing.T) {
-		t.Parallel()
-
 		args := createMockArgsAccountsRepository()
 		args.HistoricalStateAccountsWrapper = &mockState.AccountsStub{
 			GetCodeWithBlockInfoCalled: func(codeHash []byte, options common.RootHashHolder) ([]byte, common.BlockInfo, error) {
+				optionsPassedToGetAccountWithBlockInfo = options
 				return commonCode, commonBlockInfo, nil
 			},
 		}
@@ -198,10 +200,10 @@ func TestAccountsRepository_GetCodeWithBlockInfo(t *testing.T) {
 		assert.Equal(t, commonCode, code)
 		assert.Equal(t, commonBlockInfo, bi)
 		assert.Nil(t, err)
+		assert.Equal(t, testApiOptOnHistorical.BlockRootHash, optionsPassedToGetAccountWithBlockInfo.GetRootHash())
+		assert.Equal(t, testApiOptOnHistorical.HintEpoch, optionsPassedToGetAccountWithBlockInfo.GetEpoch())
 	})
 	t.Run("on start of epoch should error", func(t *testing.T) {
-		t.Parallel()
-
 		args := createMockArgsAccountsRepository()
 		repository, _ := state.NewAccountsRepository(args)
 

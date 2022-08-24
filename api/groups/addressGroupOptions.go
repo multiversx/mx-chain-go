@@ -49,12 +49,18 @@ func parseAccountQueryOptions(c *gin.Context) (api.AccountQueryOptions, error) {
 		return api.AccountQueryOptions{}, err
 	}
 
+	hintEpoch, err := parseUint32UrlParam(c, urlParamHintEpoch)
+	if err != nil {
+		return api.AccountQueryOptions{}, err
+	}
+
 	options := api.AccountQueryOptions{
 		OnFinalBlock:   onFinalBlock,
 		OnStartOfEpoch: onStartOfEpoch,
 		BlockNonce:     blockNonce,
 		BlockHash:      blockHash,
 		BlockRootHash:  blockRootHash,
+		HintEpoch:      hintEpoch,
 	}
 	return options, nil
 }
@@ -80,6 +86,9 @@ func checkAccountQueryOptions(options api.AccountQueryOptions) error {
 	}
 	if options.OnStartOfEpoch.HasValue && numSpecifiedBlockCoordinates > 0 {
 		return errors.New("onStartOfEpoch is not compatible with any other block coordinates")
+	}
+	if options.HintEpoch.HasValue && len(options.BlockRootHash) == 0 {
+		return errors.New("hintEpoch is optional, but only compatible with blockRootHash")
 	}
 
 	return nil
