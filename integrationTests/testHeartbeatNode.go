@@ -87,7 +87,7 @@ type TestHeartbeatNode struct {
 	DataPool                   dataRetriever.PoolsHolder
 	Sender                     update.Closer
 	PeerAuthInterceptor        *interceptors.MultiDataInterceptor
-	HeartbeatInterceptor       *interceptors.MultiDataInterceptor
+	HeartbeatInterceptor       *interceptors.SingleDataInterceptor
 	ValidatorInfoInterceptor   *interceptors.SingleDataInterceptor
 	PeerSigHandler             crypto.PeerSignatureHandler
 	WhiteListHandler           process.WhiteListHandler
@@ -538,7 +538,7 @@ func (thn *TestHeartbeatNode) createHeartbeatInterceptor(argsFactory interceptor
 	hbProcessor, _ := interceptorsProcessor.NewHeartbeatInterceptorProcessor(args)
 	hbFactory, _ := interceptorFactory.NewInterceptedHeartbeatDataFactory(argsFactory)
 	identifierHeartbeat := common.HeartbeatV2Topic + thn.ShardCoordinator.CommunicationIdentifier(thn.ShardCoordinator.SelfId())
-	thn.HeartbeatInterceptor = thn.initMultiDataInterceptor(identifierHeartbeat, hbFactory, hbProcessor)
+	thn.HeartbeatInterceptor = thn.initSingleDataInterceptor(identifierHeartbeat, hbFactory, hbProcessor)
 }
 
 func (thn *TestHeartbeatNode) createDirectConnectionInfoInterceptor(argsFactory interceptorFactory.ArgInterceptedDataFactory) {
