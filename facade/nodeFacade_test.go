@@ -318,9 +318,9 @@ func TestNodeFacade_GetUsername(t *testing.T) {
 func TestNodeFacade_GetCodeHash(t *testing.T) {
 	t.Parallel()
 
-	expectedCodeHash := "hash"
+	expectedCodeHash := []byte("hash")
 	node := &mock.NodeStub{}
-	node.GetCodeHashCalled = func(address string, _ api.AccountQueryOptions) (string, api.BlockInfo, error) {
+	node.GetCodeHashCalled = func(address string, _ api.AccountQueryOptions) ([]byte, api.BlockInfo, error) {
 		return expectedCodeHash, api.BlockInfo{}, nil
 	}
 

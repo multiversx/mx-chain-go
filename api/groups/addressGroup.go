@@ -1,6 +1,7 @@
 package groups
 
 import (
+	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"math/big"
@@ -37,7 +38,7 @@ const (
 type addressFacadeHandler interface {
 	GetBalance(address string, options api.AccountQueryOptions) (*big.Int, api.BlockInfo, error)
 	GetUsername(address string, options api.AccountQueryOptions) (string, api.BlockInfo, error)
-	GetCodeHash(address string, options api.AccountQueryOptions) (string, api.BlockInfo, error)
+	GetCodeHash(address string, options api.AccountQueryOptions) ([]byte, api.BlockInfo, error)
 	GetValueForKey(address string, key string, options api.AccountQueryOptions) (string, api.BlockInfo, error)
 	GetAccount(address string, options api.AccountQueryOptions) (api.AccountResponse, api.BlockInfo, error)
 	GetESDTData(address string, key string, nonce uint64, options api.AccountQueryOptions) (*esdt.ESDigitalToken, api.BlockInfo, error)
@@ -242,7 +243,7 @@ func (ag *addressGroup) getCodeHash(c *gin.Context) {
 		return
 	}
 
-	shared.RespondWithSuccess(c, gin.H{"codeHash": codeHash, "blockInfo": blockInfo})
+	shared.RespondWithSuccess(c, gin.H{"codeHash": base64.StdEncoding.EncodeToString(codeHash), "blockInfo": blockInfo})
 }
 
 // getValueForKey returns the value for the given address and key

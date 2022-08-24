@@ -411,8 +411,8 @@ func TestGetCodeHash_NodeFailsShouldError(t *testing.T) {
 	testAddress := "address"
 	expectedErr := errors.New("expected error")
 	facade := mock.FacadeStub{
-		GetCodeHashCalled: func(_ string, _ api.AccountQueryOptions) (string, api.BlockInfo, error) {
-			return "", api.BlockInfo{}, expectedErr
+		GetCodeHashCalled: func(_ string, _ api.AccountQueryOptions) ([]byte, api.BlockInfo, error) {
+			return nil, api.BlockInfo{}, expectedErr
 		},
 	}
 
@@ -435,9 +435,9 @@ func TestGetCodeHash_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	testAddress := "address"
-	testCodeHash := "value"
+	testCodeHash := []byte("value")
 	facade := mock.FacadeStub{
-		GetCodeHashCalled: func(_ string, _ api.AccountQueryOptions) (string, api.BlockInfo, error) {
+		GetCodeHashCalled: func(_ string, _ api.AccountQueryOptions) ([]byte, api.BlockInfo, error) {
 			return testCodeHash, api.BlockInfo{}, nil
 		},
 	}

@@ -84,8 +84,8 @@ func (inf *initialNodeFacade) GetUsername(_ string, _ api.AccountQueryOptions) (
 }
 
 // GetCodeHash returns empty string and error
-func (inf *initialNodeFacade) GetCodeHash(_ string, _ api.AccountQueryOptions) (string, api.BlockInfo, error) {
-	return emptyString, api.BlockInfo{}, errNodeStarting
+func (inf *initialNodeFacade) GetCodeHash(_ string, _ api.AccountQueryOptions) ([]byte, api.BlockInfo, error) {
+	return nil, api.BlockInfo{}, errNodeStarting
 }
 
 // GetValueForKey returns an empty string and error

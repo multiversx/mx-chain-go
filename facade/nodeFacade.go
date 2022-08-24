@@ -176,7 +176,7 @@ func (nf *nodeFacade) GetUsername(address string, options apiData.AccountQueryOp
 }
 
 // GetCodeHash gets the code hash for a specified address
-func (nf *nodeFacade) GetCodeHash(address string, options apiData.AccountQueryOptions) (string, apiData.BlockInfo, error) {
+func (nf *nodeFacade) GetCodeHash(address string, options apiData.AccountQueryOptions) ([]byte, apiData.BlockInfo, error) {
 	return nf.node.GetCodeHash(address, options)
 }
 
