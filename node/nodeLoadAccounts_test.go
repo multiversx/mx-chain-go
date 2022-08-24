@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
 	mockState "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -89,24 +90,48 @@ func TestNode_AddBlockCoordinatesToAccountQueryOptions(t *testing.T) {
 	dataComponents := getDefaultDataComponents()
 	processComponents := getDefaultProcessComponents()
 
+	epoch := uint32(7)
+	blockHash := []byte("blockHash")
+	blockRootHash := []byte("blockRootHash")
+	scheduledBlockRootHash := []byte("scheduledBlockRootHash")
+
 	blockHeader := &block.Header{
 		Nonce:    42,
-		RootHash: []byte("blockRootHash"),
+		Epoch:    epoch,
+		RootHash: blockRootHash,
 	}
+
 	blockHeaderBytes, _ := coreComponents.InternalMarshalizer().Marshal(blockHeader)
 
 	// Setup storage
-	chainStorerMock := genericMocks.NewChainStorerMock(0)
-	_ = chainStorerMock.BlockHeaders.Put([]byte("blockHash"), blockHeaderBytes)
+	chainStorerMock := genericMocks.NewChainStorerMock(epoch)
+	_ = chainStorerMock.BlockHeaders.PutInEpoch(blockHash, blockHeaderBytes, epoch)
 	nonceAsStorerKey := coreComponents.Uint64ByteSliceConverter().ToByteSlice(42)
-	_ = chainStorerMock.ShardHdrNonce.Put(nonceAsStorerKey, []byte("blockHash"))
+	_ = chainStorerMock.ShardHdrNonce.PutInEpoch(nonceAsStorerKey, blockHash, epoch)
 	dataComponents.Store = chainStorerMock
 
+	// Setup dblookupext
+	historyRepository := &dblookupext.HistoryRepositoryStub{
+		IsEnabledCalled: func() bool {
+			return true
+		},
+		GetEpochByHashCalled: func(hash []byte) (uint32, error) {
+			return epoch, nil
+		},
+	}
+	processComponents.HistoryRepositoryInternal = historyRepository
+
 	// Setup scheduled txs
+	var headerHashPassedToGetScheduledRootHashForHeaderWithEpoch []byte
+	var epochPassedToGetScheduledRootHashForHeaderWithEpoch uint32
+
 	getScheduledRootHashForHeaderResult := []byte{}
 	getScheduledRootHashForHeaderError := errors.New("missing")
+
 	scheduledTxsStub := &testscommon.ScheduledTxsExecutionStub{
-		GetScheduledRootHashForHeaderCalled: func(headerHash []byte) ([]byte, error) {
+		GetScheduledRootHashForHeaderWithEpochCalled: func(headerHash []byte, epoch uint32) ([]byte, error) {
+			headerHashPassedToGetScheduledRootHashForHeaderWithEpoch = headerHash
+			epochPassedToGetScheduledRootHashForHeaderWithEpoch = epoch
 			return getScheduledRootHashForHeaderResult, getScheduledRootHashForHeaderError
 		},
 	}
@@ -121,13 +146,15 @@ func TestNode_AddBlockCoordinatesToAccountQueryOptions(t *testing.T) {
 
 	t.Run("blockRootHash is set", func(t *testing.T) {
 		options, err := n.AddBlockCoordinatesToAccountQueryOptions(api.AccountQueryOptions{
-			BlockRootHash: []byte("blockRootHash"),
+			BlockRootHash: blockRootHash,
 			BlockNonce:    core.OptionalUint64{Value: 7, HasValue: true},
-			BlockHash:     []byte("bbbb"),
+			BlockHash:     []byte("ignored"),
+			// Ignored, as well
+			HintEpoch: core.OptionalUint32{Value: 123456, HasValue: true},
 		})
 
 		expectedOptions := api.AccountQueryOptions{
-			BlockRootHash: []byte("blockRootHash"),
+			BlockRootHash: blockRootHash,
 			// When "BlockRootHash" is provided, all other coordinates are ignored and reset.
 		}
 
@@ -140,37 +167,43 @@ func TestNode_AddBlockCoordinatesToAccountQueryOptions(t *testing.T) {
 		getScheduledRootHashForHeaderError = errors.New("missing")
 
 		options, err := n.AddBlockCoordinatesToAccountQueryOptions(api.AccountQueryOptions{
-			BlockHash: []byte("blockHash"),
+			BlockHash: blockHash,
 		})
 
 		expectedOptions := api.AccountQueryOptions{
-			BlockHash: []byte("blockHash"),
-			// When "BlockHash" is provided, "BlockNonce" and "BlockRootHash" will be populated in the output, as well
-			BlockRootHash: []byte("blockRootHash"),
+			BlockHash: blockHash,
+			// When "BlockHash" is provided, "BlockNonce", "BlockRootHash" and "HintEpoch" will be populated in the output, as well
+			BlockRootHash: blockRootHash,
 			BlockNonce:    core.OptionalUint64{Value: 42, HasValue: true},
+			HintEpoch:     core.OptionalUint32{Value: epoch, HasValue: true},
 		}
 
 		require.Nil(t, err)
 		require.Equal(t, expectedOptions, options)
+		require.Equal(t, blockHash, headerHashPassedToGetScheduledRootHashForHeaderWithEpoch)
+		require.Equal(t, epoch, epochPassedToGetScheduledRootHashForHeaderWithEpoch)
 	})
 
 	t.Run("blockHash is set (with scheduled)", func(t *testing.T) {
-		getScheduledRootHashForHeaderResult = []byte("scheduledBlockRootHash")
+		getScheduledRootHashForHeaderResult = scheduledBlockRootHash
 		getScheduledRootHashForHeaderError = nil
 
 		options, err := n.AddBlockCoordinatesToAccountQueryOptions(api.AccountQueryOptions{
-			BlockHash: []byte("blockHash"),
+			BlockHash: blockHash,
 		})
 
 		expectedOptions := api.AccountQueryOptions{
-			BlockHash: []byte("blockHash"),
-			// When "BlockHash" is provided, "BlockNonce" and "BlockRootHash" will be populated in the output, as well
-			BlockRootHash: []byte("scheduledBlockRootHash"),
+			BlockHash: blockHash,
+			// When "BlockHash" is provided, "BlockNonce", "BlockRootHash" and "HintEpoch" will be populated in the output, as well
+			BlockRootHash: scheduledBlockRootHash,
 			BlockNonce:    core.OptionalUint64{Value: 42, HasValue: true},
+			HintEpoch:     core.OptionalUint32{Value: epoch, HasValue: true},
 		}
 
 		require.Nil(t, err)
 		require.Equal(t, expectedOptions, options)
+		require.Equal(t, blockHash, headerHashPassedToGetScheduledRootHashForHeaderWithEpoch)
+		require.Equal(t, epoch, epochPassedToGetScheduledRootHashForHeaderWithEpoch)
 	})
 
 	t.Run("blockNonce is set (without scheduled)", func(t *testing.T) {
@@ -182,18 +215,21 @@ func TestNode_AddBlockCoordinatesToAccountQueryOptions(t *testing.T) {
 		})
 
 		expectedOptions := api.AccountQueryOptions{
-			BlockHash: []byte("blockHash"),
-			// When "BlockNonce" is provided, "BlockNonce" and "BlockRootHash" will be populated in the output, as well
-			BlockRootHash: []byte("blockRootHash"),
+			BlockHash: blockHash,
+			// When "BlockNonce" is provided, "BlockNonce", "BlockRootHash" and "HintEpoch" will be populated in the output, as well
+			BlockRootHash: blockRootHash,
 			BlockNonce:    core.OptionalUint64{Value: 42, HasValue: true},
+			HintEpoch:     core.OptionalUint32{Value: epoch, HasValue: true},
 		}
 
 		require.Nil(t, err)
 		require.Equal(t, expectedOptions, options)
+		require.Equal(t, blockHash, headerHashPassedToGetScheduledRootHashForHeaderWithEpoch)
+		require.Equal(t, epoch, epochPassedToGetScheduledRootHashForHeaderWithEpoch)
 	})
 
 	t.Run("blockNonce is set (with scheduled)", func(t *testing.T) {
-		getScheduledRootHashForHeaderResult = []byte("scheduledBlockRootHash")
+		getScheduledRootHashForHeaderResult = scheduledBlockRootHash
 		getScheduledRootHashForHeaderError = nil
 
 		options, err := n.AddBlockCoordinatesToAccountQueryOptions(api.AccountQueryOptions{
@@ -201,14 +237,17 @@ func TestNode_AddBlockCoordinatesToAccountQueryOptions(t *testing.T) {
 		})
 
 		expectedOptions := api.AccountQueryOptions{
-			BlockHash: []byte("blockHash"),
-			// When "BlockNonce" is provided, "BlockNonce" and "BlockRootHash" will be populated in the output, as well
-			BlockRootHash: []byte("scheduledBlockRootHash"),
+			BlockHash: blockHash,
+			// When "BlockNonce" is provided, "BlockNonce", "BlockRootHash" and "HintEpoch" will be populated in the output, as well
+			BlockRootHash: scheduledBlockRootHash,
 			BlockNonce:    core.OptionalUint64{Value: 42, HasValue: true},
+			HintEpoch:     core.OptionalUint32{Value: epoch, HasValue: true},
 		}
 
 		require.Nil(t, err)
 		require.Equal(t, expectedOptions, options)
+		require.Equal(t, blockHash, headerHashPassedToGetScheduledRootHashForHeaderWithEpoch)
+		require.Equal(t, epoch, epochPassedToGetScheduledRootHashForHeaderWithEpoch)
 	})
 }
 

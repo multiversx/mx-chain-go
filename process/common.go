@@ -137,7 +137,7 @@ func GetShardHeaderFromStorage(
 		return nil, err
 	}
 
-	hdr, err := CreateShardHeader(marshalizer, buffHdr)
+	hdr, err := UnmarshalShardHeader(marshalizer, buffHdr)
 	if err != nil {
 		return nil, ErrUnmarshalWithoutSuccess
 	}
@@ -309,7 +309,7 @@ func GetShardHeaderFromStorageWithNonce(
 	marshalizer marshal.Marshalizer,
 ) (data.HeaderHandler, []byte, error) {
 
-	hash, err := getHeaderHashFromStorageWithNonce(
+	hash, err := GetHeaderHashFromStorageWithNonce(
 		nonce,
 		storageService,
 		uint64Converter,
@@ -335,7 +335,7 @@ func GetMetaHeaderFromStorageWithNonce(
 	marshalizer marshal.Marshalizer,
 ) (*block.MetaBlock, []byte, error) {
 
-	hash, err := getHeaderHashFromStorageWithNonce(
+	hash, err := GetHeaderHashFromStorageWithNonce(
 		nonce,
 		storageService,
 		uint64Converter,
@@ -544,7 +544,8 @@ func getHeaderFromPoolWithNonce(
 	return headers[len(headers)-1], hashes[len(hashes)-1], nil
 }
 
-func getHeaderHashFromStorageWithNonce(
+// GetHeaderHashFromStorageWithNonce gets a header hash, given a nonce
+func GetHeaderHashFromStorageWithNonce(
 	nonce uint64,
 	storageService dataRetriever.StorageService,
 	uint64Converter typeConverters.Uint64ByteSliceConverter,
@@ -711,19 +712,39 @@ func GetSortedStorageUpdates(account *vmcommon.OutputAccount) []*vmcommon.Storag
 	return storageUpdates
 }
 
-// CreateShardHeader creates a shard header from the given byte array
-func CreateShardHeader(marshalizer marshal.Marshalizer, hdrBuff []byte) (data.ShardHeaderHandler, error) {
-	hdr, err := CreateHeaderV2(marshalizer, hdrBuff)
+// UnmarshalHeader unmarshalls a block header
+func UnmarshalHeader(shardId uint32, marshalizer marshal.Marshalizer, headerBuffer []byte) (data.HeaderHandler, error) {
+	if shardId == core.MetachainShardId {
+		return UnmarshalMetaHeader(marshalizer, headerBuffer)
+	} else {
+		return UnmarshalShardHeader(marshalizer, headerBuffer)
+	}
+}
+
+// UnmarshalMetaHeader unmarshalls a meta header
+func UnmarshalMetaHeader(marshalizer marshal.Marshalizer, headerBuffer []byte) (data.MetaHeaderHandler, error) {
+	header := &block.MetaBlock{}
+	err := marshalizer.Unmarshal(header, headerBuffer)
+	if err != nil {
+		return nil, err
+	}
+
+	return header, nil
+}
+
+// UnmarshalShardHeader unmarshalls a shard header
+func UnmarshalShardHeader(marshalizer marshal.Marshalizer, hdrBuff []byte) (data.ShardHeaderHandler, error) {
+	hdr, err := UnmarshalShardHeaderV2(marshalizer, hdrBuff)
 	if err == nil {
 		return hdr, nil
 	}
 
-	hdr, err = CreateHeaderV1(marshalizer, hdrBuff)
+	hdr, err = UnmarshalShardHeaderV1(marshalizer, hdrBuff)
 	return hdr, err
 }
 
-// CreateHeaderV2 creates a header with version 2 from the given byte array
-func CreateHeaderV2(marshalizer marshal.Marshalizer, hdrBuff []byte) (data.ShardHeaderHandler, error) {
+// UnmarshalShardHeaderV2 unmarshalls a header with version 2
+func UnmarshalShardHeaderV2(marshalizer marshal.Marshalizer, hdrBuff []byte) (data.ShardHeaderHandler, error) {
 	hdrV2 := &block.HeaderV2{}
 	err := marshalizer.Unmarshal(hdrV2, hdrBuff)
 	if err != nil {
@@ -736,8 +757,8 @@ func CreateHeaderV2(marshalizer marshal.Marshalizer, hdrBuff []byte) (data.Shard
 	return hdrV2, nil
 }
 
-// CreateHeaderV1 creates a header with version 1 from the given byte array
-func CreateHeaderV1(marshalizer marshal.Marshalizer, hdrBuff []byte) (data.ShardHeaderHandler, error) {
+// UnmarshalShardHeaderV1 unmarshalls a header with version 1
+func UnmarshalShardHeaderV1(marshalizer marshal.Marshalizer, hdrBuff []byte) (data.ShardHeaderHandler, error) {
 	hdr := &block.Header{}
 	err := marshalizer.Unmarshal(hdr, hdrBuff)
 	if err != nil {
