@@ -12,6 +12,7 @@ import (
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/config"
 )
 
 const minRoundsWithoutReceivedMessages = 1
@@ -26,6 +27,8 @@ type virtualPeersHolder struct {
 	p2pIdentityGenerator             P2PIdentityGenerator
 	isMainMachine                    bool
 	maxRoundsWithoutReceivedMessages int
+	defaultName                      string
+	defaultIdentity                  string
 }
 
 // ArgsVirtualPeersHolder represents the argument for the virtual peers holder
@@ -34,6 +37,7 @@ type ArgsVirtualPeersHolder struct {
 	P2PIdentityGenerator             P2PIdentityGenerator
 	IsMainMachine                    bool
 	MaxRoundsWithoutReceivedMessages int
+	PrefsConfig                      config.Preferences
 }
 
 // NewVirtualPeersHolder creates a new instance of a virtual peers holder
@@ -43,14 +47,23 @@ func NewVirtualPeersHolder(args ArgsVirtualPeersHolder) (*virtualPeersHolder, er
 		return nil, err
 	}
 
-	return &virtualPeersHolder{
-		data:                             make(map[string]*peerInfo),
+	dataMap, err := createDataMap(args.PrefsConfig.NamedIdentity)
+	if err != nil {
+		return nil, err
+	}
+
+	holder := &virtualPeersHolder{
+		data:                             dataMap,
 		pids:                             make(map[core.PeerID]struct{}),
 		keyGenerator:                     args.KeyGenerator,
 		p2pIdentityGenerator:             args.P2PIdentityGenerator,
 		isMainMachine:                    args.IsMainMachine,
 		maxRoundsWithoutReceivedMessages: args.MaxRoundsWithoutReceivedMessages,
-	}, nil
+		defaultName:                      args.PrefsConfig.Preferences.NodeDisplayName,
+		defaultIdentity:                  args.PrefsConfig.Preferences.Identity,
+	}
+
+	return holder, nil
 }
 
 func checkVirtualPeersHolderArgs(args ArgsVirtualPeersHolder) error {
@@ -66,6 +79,28 @@ func checkVirtualPeersHolderArgs(args ArgsVirtualPeersHolder) error {
 	}
 
 	return nil
+}
+
+func createDataMap(namedIdentities []config.NamedIdentity) (map[string]*peerInfo, error) {
+	dataMap := make(map[string]*peerInfo)
+
+	for _, identity := range namedIdentities {
+		for _, blsKey := range identity.BLSKeys {
+			bls, err := hex.DecodeString(blsKey)
+			if err != nil {
+				return nil, fmt.Errorf("%w for key %s", errInvalidKey, blsKey)
+			}
+
+			blsStr := string(bls)
+			dataMap[blsStr] = &peerInfo{
+				machineID:    generateRandomMachineID(),
+				nodeName:     identity.NodeName,
+				nodeIdentity: identity.Identity,
+			}
+		}
+	}
+
+	return dataMap, nil
 }
 
 // AddVirtualPeer will try to add a new virtual peer providing the private key bytes.
@@ -88,29 +123,35 @@ func (holder *virtualPeersHolder) AddVirtualPeer(privateKeyBytes []byte) error {
 		return err
 	}
 
-	pInfo := &peerInfo{
-		pid:                pid,
-		p2pPrivateKeyBytes: p2pPrivateKeyBytes,
-		privateKey:         privateKey,
-		machineID:          generateRandomMachineID(),
-	}
-
 	holder.mut.Lock()
 	defer holder.mut.Unlock()
 
-	_, found := holder.data[string(publicKeyBytes)]
-	if found {
+	pInfo, found := holder.data[string(publicKeyBytes)]
+	if found && len(pInfo.pid.Bytes()) != 0 {
 		return fmt.Errorf("%w for provided bytes %s and generated public key %s",
 			errDuplicatedKey, hex.EncodeToString(privateKeyBytes), hex.EncodeToString(publicKeyBytes))
 	}
 
+	if !found {
+		pInfo = &peerInfo{
+			machineID:    generateRandomMachineID(),
+			nodeName:     holder.defaultName,
+			nodeIdentity: holder.defaultIdentity,
+		}
+	}
+
+	pInfo.pid = pid
+	pInfo.p2pPrivateKeyBytes = p2pPrivateKeyBytes
+	pInfo.privateKey = privateKey
 	holder.data[string(publicKeyBytes)] = pInfo
 	holder.pids[pid] = struct{}{}
 
 	log.Debug("added new key definition",
 		"hex public key", hex.EncodeToString(publicKeyBytes),
 		"pid", pid.Pretty(),
-		"machine ID", pInfo.machineID)
+		"machine ID", pInfo.machineID,
+		"name", pInfo.nodeName,
+		"identity", pInfo.nodeIdentity)
 
 	return nil
 }

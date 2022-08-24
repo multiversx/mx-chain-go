@@ -13,6 +13,8 @@ type peerInfo struct {
 	p2pPrivateKeyBytes []byte
 	privateKey         crypto.PrivateKey
 	machineID          string
+	nodeName           string
+	nodeIdentity       string
 
 	mutPeerAuthenticationData  sync.RWMutex
 	isValidator                bool
