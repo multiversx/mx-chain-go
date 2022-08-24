@@ -109,7 +109,7 @@ func (sender *peerAuthenticationSender) Execute() {
 		return
 	}
 
-	duration = sender.computeRandomDuration()
+	duration = sender.computeRandomDuration(sender.timeBetweenSends)
 	err, isHardforkTriggered := sender.execute()
 	if err != nil {
 		duration = sender.timeBetweenSendsWhenError
@@ -118,7 +118,7 @@ func (sender *peerAuthenticationSender) Execute() {
 	}
 
 	if isHardforkTriggered {
-		duration = sender.hardforkTimeBetweenSends
+		duration = sender.computeRandomDuration(sender.hardforkTimeBetweenSends)
 	}
 
 	log.Debug("peer authentication message sent", "is hardfork triggered", isHardforkTriggered, "next send will be in", duration)

@@ -43,6 +43,7 @@ type MessengerStub struct {
 	SignCalled                             func(payload []byte) ([]byte, error)
 	VerifyCalled                           func(payload []byte, pid core.PeerID, signature []byte) error
 	BroadcastWithSkCalled                  func(topic string, buff []byte, pid core.PeerID, skBytes []byte)
+	SignWithPrivateKeyCalled               func(skBytes []byte, payload []byte) ([]byte, error)
 }
 
 // ConnectedFullHistoryPeersOnTopic -
@@ -341,6 +342,15 @@ func (ms *MessengerStub) BroadcastWithSk(topic string, buff []byte, pid core.Pee
 	if ms.BroadcastWithSkCalled != nil {
 		ms.BroadcastWithSkCalled(topic, buff, pid, skBytes)
 	}
+}
+
+// SignWithPrivateKey -
+func (ms *MessengerStub) SignWithPrivateKey(skBytes []byte, payload []byte) ([]byte, error) {
+	if ms.SignWithPrivateKeyCalled != nil {
+		return ms.SignWithPrivateKeyCalled(skBytes, payload)
+	}
+
+	return make([]byte, 0), nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

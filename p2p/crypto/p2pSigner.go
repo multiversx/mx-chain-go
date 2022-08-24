@@ -51,3 +51,13 @@ func (signer *p2pSigner) Verify(payload []byte, pid core.PeerID, signature []byt
 
 	return nil
 }
+
+// SignWithPrivateKey will sign the payload with provided private key bytes
+func (signer *p2pSigner) SignWithPrivateKey(skBytes []byte, payload []byte) ([]byte, error) {
+	sk, err := libp2pCrypto.UnmarshalPrivateKey(skBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	return sk.Sign(payload)
+}

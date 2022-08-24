@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
@@ -242,6 +243,54 @@ func (holder *virtualPeersHolder) IsPidManagedByCurrentNode(pid core.PeerID) boo
 	_, found := holder.pids[pid]
 
 	return found
+}
+
+// IsKeyValidator returns true if the key validator status was set to true
+func (holder *virtualPeersHolder) IsKeyValidator(pkBytes []byte) (bool, error) {
+	pInfo := holder.getPeerInfo(pkBytes)
+	if pInfo == nil {
+		return false, fmt.Errorf("%w in IsKeyValidator for public key %s",
+			errMissingPublicKeyDefinition, hex.EncodeToString(pkBytes))
+	}
+
+	return pInfo.isNodeValidator(), nil
+}
+
+// SetValidatorState sets the provided validator status for the key
+func (holder *virtualPeersHolder) SetValidatorState(pkBytes []byte, state bool) error {
+	pInfo := holder.getPeerInfo(pkBytes)
+	if pInfo == nil {
+		return fmt.Errorf("%w in SetValidatorState for public key %s",
+			errMissingPublicKeyDefinition, hex.EncodeToString(pkBytes))
+	}
+
+	pInfo.setNodeValidator(state)
+
+	return nil
+}
+
+// GetNextPeerAuthenticationTime returns the next time the key should try to send peer authentication again
+func (holder *virtualPeersHolder) GetNextPeerAuthenticationTime(pkBytes []byte) (time.Time, error) {
+	pInfo := holder.getPeerInfo(pkBytes)
+	if pInfo == nil {
+		return time.Now(), fmt.Errorf("%w in GetNextPeerAuthenticationTime for public key %s",
+			errMissingPublicKeyDefinition, hex.EncodeToString(pkBytes))
+	}
+
+	return pInfo.getNextPeerAuthenticationTime(), nil
+}
+
+// SetNextPeerAuthenticationTime sets the next time the key should try to send peer authentication
+func (holder *virtualPeersHolder) SetNextPeerAuthenticationTime(pkBytes []byte, nextTime time.Time) error {
+	pInfo := holder.getPeerInfo(pkBytes)
+	if pInfo == nil {
+		return fmt.Errorf("%w in SetNextPeerAuthenticationTime for public key %s",
+			errMissingPublicKeyDefinition, hex.EncodeToString(pkBytes))
+	}
+
+	pInfo.setNextPeerAuthenticationTime(nextTime)
+
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

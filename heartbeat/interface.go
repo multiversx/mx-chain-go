@@ -16,8 +16,10 @@ import (
 // P2PMessenger defines a subset of the p2p.Messenger interface
 type P2PMessenger interface {
 	Broadcast(topic string, buff []byte)
+	BroadcastWithSk(topic string, buff []byte, pid core.PeerID, skBytes []byte)
 	ID() core.PeerID
 	Sign(payload []byte) ([]byte, error)
+	SignWithPrivateKey(skBytes []byte, payload []byte) ([]byte, error)
 	IsInterfaceNil() bool
 }
 

@@ -137,3 +137,6 @@ var ErrNilEnableEpochsHandler = errors.New("nil enable epochs handler")
 
 // ErrShouldSkipValidator signals that the validator should be skipped
 var ErrShouldSkipValidator = errors.New("validator should be skipped")
+
+// ErrNilKeysHolder signals that a nil keys holder has been provided
+var ErrNilKeysHolder = errors.New("nil keys holder")
