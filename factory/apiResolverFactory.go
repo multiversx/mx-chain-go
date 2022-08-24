@@ -567,15 +567,3 @@ func createLogsFacade(args *ApiResolverArgs) (LogsFacade, error) {
 		PubKeyConverter: args.CoreComponents.AddressPubKeyConverter(),
 	})
 }
-
-func decodeAddresses(pkConverter core.PubkeyConverter, automaticCrawlerAddressesStrings []string) ([][]byte, error) {
-	decodedAddresses := make([][]byte, len(automaticCrawlerAddressesStrings))
-	for i, stringAddress := range automaticCrawlerAddressesStrings {
-		decodedAddress, errDecode := pkConverter.Decode(stringAddress)
-		if errDecode != nil {
-			return nil, errDecode
-		}
-		decodedAddresses[i] = decodedAddress
-	}
-	return decodedAddresses, nil
-}
