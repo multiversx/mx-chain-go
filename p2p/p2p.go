@@ -172,6 +172,7 @@ type Messenger interface {
 	WaitForConnections(maxWaitingTime time.Duration, minNumOfPeers uint32)
 	Sign(payload []byte) ([]byte, error)
 	Verify(payload []byte, pid core.PeerID, signature []byte) error
+	SignWithPrivateKey(skBytes []byte, payload []byte) ([]byte, error)
 
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
