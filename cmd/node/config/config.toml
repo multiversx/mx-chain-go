@@ -710,7 +710,11 @@
         MetaMaxGasPerVmQuery = 0  #unlimited
 
 [BuiltInFunctions]
-    AutomaticCrawlerAddress = "erd1fpkcgel4gcmh8zqqdt043yfcn5tyx8373kg6q2qmkxzu4dqamc0swts65c"
+    AutomaticCrawlerAddresses =[
+        "erd17dgscjtcdqcmly4lq4pdgr4hd74cxksqdpyawmdnwe625mfw776qfyxx5y", #shard 0
+        "erd1fpkcgel4gcmh8zqqdt043yfcn5tyx8373kg6q2qmkxzu4dqamc0swts65c", #shard 1
+        "erd1najnxxweyw6plhg8efql330nttrj6l5cf87wqsuym85s9ha0hmdqnqgenp", #shard 2
+    ]
     MaxNumAddressesInTransferRole = 100
 
 [Hardfork]

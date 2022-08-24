@@ -1,6 +1,10 @@
 package builtInFunctions
 
 import (
+	"bytes"
+	"fmt"
+	"sort"
+
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
@@ -29,7 +33,7 @@ type ArgsCreateBuiltInFunctionContainer struct {
 	CheckFunctionArgumentEnableEpoch         uint32
 	ESDTMetadataContinuousCleanupEnableEpoch uint32
 	MaxNumNodesInTransferRole                uint32
-	AutomaticCrawlerAddress                  []byte
+	AutomaticCrawlerAddresses                [][]byte
 }
 
 // CreateBuiltInFunctionsFactory creates a container that will hold all the available built in functions
@@ -58,6 +62,13 @@ func CreateBuiltInFunctionsFactory(args ArgsCreateBuiltInFunctionContainer) (vmc
 		return nil, process.ErrWrongTypeAssertion
 	}
 
+	crawlerAllowedAddress, err := GetAllowedAddress(
+		args.ShardCoordinator,
+		args.AutomaticCrawlerAddresses)
+	if err != nil {
+		return nil, err
+	}
+
 	modifiedArgs := vmcommonBuiltInFunctions.ArgsCreateBuiltInFunctionContainer{
 		GasMap:                              args.GasSchedule.LatestGasSchedule(),
 		MapDNSAddresses:                     args.MapDNSAddresses,
@@ -76,7 +87,7 @@ func CreateBuiltInFunctionsFactory(args ArgsCreateBuiltInFunctionContainer) (vmc
 		SendESDTMetadataAlwaysEnableEpoch:   args.ESDTMetadataContinuousCleanupEnableEpoch,
 		MaxNumOfAddressesForTransferRole:    args.MaxNumNodesInTransferRole,
 		FixAsyncCallbackCheckEnableEpoch:    args.ESDTMetadataContinuousCleanupEnableEpoch,
-		ConfigAddress:                       args.AutomaticCrawlerAddress,
+		ConfigAddress:                       crawlerAllowedAddress,
 	}
 
 	bContainerFactory, err := vmcommonBuiltInFunctions.NewBuiltInFunctionsCreator(modifiedArgs)
@@ -92,4 +103,34 @@ func CreateBuiltInFunctionsFactory(args ArgsCreateBuiltInFunctionContainer) (vmc
 	args.GasSchedule.RegisterNotifyHandler(bContainerFactory)
 
 	return bContainerFactory, nil
+}
+
+func GetAllowedAddress(coordinator sharding.Coordinator, addresses [][]byte) ([]byte, error) {
+	if check.IfNil(coordinator) {
+		return nil, process.ErrNilShardCoordinator
+	}
+
+	if len(addresses) == 0 {
+		return nil, fmt.Errorf("%w for shard %d, provided count is %d", process.ErrNilCrawlerAllowedAddress, coordinator.SelfId(), len(addresses))
+	}
+
+	sortedAddresses := make([][]byte, len(addresses))
+	copy(sortedAddresses, addresses)
+
+	sort.Slice(sortedAddresses, func(i, j int) bool {
+		return bytes.Compare(sortedAddresses[i], sortedAddresses[j]) < 0
+	})
+
+	if coordinator.SelfId() == core.MetachainShardId {
+		return sortedAddresses[0], nil
+	}
+
+	for _, address := range sortedAddresses {
+		allowedAddressShardId := coordinator.ComputeId(address)
+		if allowedAddressShardId == coordinator.SelfId() {
+			return address, nil
+		}
+	}
+
+	return nil, fmt.Errorf("%w for shard %d, provided count is %d", process.ErrNilCrawlerAllowedAddress, coordinator.SelfId(), len(addresses))
 }

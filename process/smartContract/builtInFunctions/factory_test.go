@@ -19,14 +19,16 @@ func createMockArguments() ArgsCreateBuiltInFunctionContainer {
 
 	gasScheduleNotifier := testscommon.NewGasScheduleNotifierMock(gasMap)
 	args := ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:               gasScheduleNotifier,
-		MapDNSAddresses:           make(map[string]struct{}),
-		EnableUserNameChange:      false,
-		Marshalizer:               &mock.MarshalizerMock{},
-		Accounts:                  &stateMock.AccountsStub{},
-		ShardCoordinator:          mock.NewMultiShardsCoordinatorMock(1),
-		EpochNotifier:             &epochNotifier.EpochNotifierStub{},
-		AutomaticCrawlerAddress:   bytes.Repeat([]byte{1}, 32),
+		GasSchedule:          gasScheduleNotifier,
+		MapDNSAddresses:      make(map[string]struct{}),
+		EnableUserNameChange: false,
+		Marshalizer:          &mock.MarshalizerMock{},
+		Accounts:             &stateMock.AccountsStub{},
+		ShardCoordinator:     mock.NewMultiShardsCoordinatorMock(1),
+		EpochNotifier:        &epochNotifier.EpochNotifierStub{},
+		AutomaticCrawlerAddresses: [][]byte{
+			bytes.Repeat([]byte{1}, 32),
+		},
 		MaxNumNodesInTransferRole: 100,
 	}
 
