@@ -1,6 +1,7 @@
 package nodesCoordinator
 
 import (
+	"bytes"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -28,6 +29,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
+	validatorInfoCacherMock "github.com/ElrondNetwork/elrond-go/testscommon/validatorInfoCacher"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -2365,4 +2367,57 @@ func TestIndexHashedNodesCoordinator_IsInterfaceNil(t *testing.T) {
 	ihnc3, err := NewIndexHashedNodesCoordinator(arguments)
 	require.Nil(t, err)
 	require.False(t, check.IfNil(ihnc3))
+}
+
+func TestIndexHashedNodesCoordinator_GetShardValidatorInfoData(t *testing.T) {
+	t.Parallel()
+
+	t.Run("get shard validator info data before refactor peers mini block activation flag is set", func(t *testing.T) {
+		t.Parallel()
+
+		txHash := []byte("txHash")
+		svi := &state.ShardValidatorInfo{PublicKey: []byte("x")}
+
+		arguments := createArguments()
+		arguments.EnableEpochsHandler = &mock.EnableEpochsHandlerMock{
+			RefactorPeersMiniBlocksEnableEpochField: 1,
+		}
+		validatorInfoCacher := &validatorInfoCacherMock.ValidatorInfoCacherMock{
+			GetValidatorInfoCalled: func(validatorInfoHash []byte) (*state.ShardValidatorInfo, error) {
+				if bytes.Equal(validatorInfoHash, txHash) {
+					return svi, nil
+				}
+				return nil, errors.New("error")
+			},
+		}
+		ihnc, _ := NewIndexHashedNodesCoordinator(arguments)
+
+		marshalledSVI, _ := arguments.Marshalizer.Marshal(svi)
+		shardValidatorInfo, _ := ihnc.getShardValidatorInfoData(marshalledSVI, validatorInfoCacher, 0)
+		require.Equal(t, svi, shardValidatorInfo)
+	})
+
+	t.Run("get shard validator info data after refactor peers mini block activation flag is set", func(t *testing.T) {
+		t.Parallel()
+
+		txHash := []byte("txHash")
+		svi := &state.ShardValidatorInfo{PublicKey: []byte("x")}
+
+		arguments := createArguments()
+		arguments.EnableEpochsHandler = &mock.EnableEpochsHandlerMock{
+			RefactorPeersMiniBlocksEnableEpochField: 0,
+		}
+		validatorInfoCacher := &validatorInfoCacherMock.ValidatorInfoCacherMock{
+			GetValidatorInfoCalled: func(validatorInfoHash []byte) (*state.ShardValidatorInfo, error) {
+				if bytes.Equal(validatorInfoHash, txHash) {
+					return svi, nil
+				}
+				return nil, errors.New("error")
+			},
+		}
+		ihnc, _ := NewIndexHashedNodesCoordinator(arguments)
+
+		shardValidatorInfo, _ := ihnc.getShardValidatorInfoData(txHash, validatorInfoCacher, 0)
+		require.Equal(t, svi, shardValidatorInfo)
+	})
 }
