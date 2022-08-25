@@ -1,7 +1,6 @@
 package groups
 
 import (
-	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"math/big"
@@ -243,7 +242,7 @@ func (ag *addressGroup) getCodeHash(c *gin.Context) {
 		return
 	}
 
-	shared.RespondWithSuccess(c, gin.H{"codeHash": base64.StdEncoding.EncodeToString(codeHash), "blockInfo": blockInfo})
+	shared.RespondWithSuccess(c, gin.H{"codeHash": codeHash, "blockInfo": blockInfo})
 }
 
 // getValueForKey returns the value for the given address and key
