@@ -32,7 +32,7 @@ func NewHeartbeatDbStorer(
 		return nil, heartbeat.ErrNilMonitorDb
 	}
 	if check.IfNil(marshalizer) {
-		return nil, heartbeat.ErrNilMarshalizer
+		return nil, heartbeat.ErrNilMarshaller
 	}
 
 	return &HeartbeatDbStorer{

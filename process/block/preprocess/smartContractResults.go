@@ -48,6 +48,7 @@ func NewSmartContractResultPreprocessor(
 	balanceComputation BalanceComputationHandler,
 	epochNotifier process.EpochNotifier,
 	optimizeGasUsedInCrossMiniBlocksEnableEpoch uint32,
+	processedMiniBlocksTracker process.ProcessedMiniBlocksTracker,
 ) (*smartContractResults, error) {
 
 	if check.IfNil(hasher) {
@@ -92,6 +93,9 @@ func NewSmartContractResultPreprocessor(
 	if check.IfNil(epochNotifier) {
 		return nil, process.ErrNilEpochNotifier
 	}
+	if check.IfNil(processedMiniBlocksTracker) {
+		return nil, process.ErrNilProcessedMiniBlocksTracker
+	}
 
 	bpp := &basePreProcess{
 		hasher:      hasher,
@@ -107,6 +111,7 @@ func NewSmartContractResultPreprocessor(
 		pubkeyConverter:      pubkeyConverter,
 
 		optimizeGasUsedInCrossMiniBlocksEnableEpoch: optimizeGasUsedInCrossMiniBlocksEnableEpoch,
+		processedMiniBlocksTracker:                  processedMiniBlocksTracker,
 	}
 
 	scr := &smartContractResults{
@@ -226,7 +231,7 @@ func (scr *smartContractResults) RestoreBlockDataIntoPools(
 
 // ProcessBlockTransactions processes all the smartContractResult from the block.Body, updates the state
 func (scr *smartContractResults) ProcessBlockTransactions(
-	_ data.HeaderHandler,
+	headerHandler data.HeaderHandler,
 	body *block.Body,
 	haveTime func() bool,
 ) error {
@@ -274,7 +279,18 @@ func (scr *smartContractResults) ProcessBlockTransactions(
 			continue
 		}
 
-		for j := 0; j < len(miniBlock.TxHashes); j++ {
+		pi, err := scr.getIndexesOfLastTxProcessed(miniBlock, headerHandler)
+		if err != nil {
+			return err
+		}
+
+		indexOfFirstTxToBeProcessed := pi.indexOfLastTxProcessed + 1
+		err = process.CheckIfIndexesAreOutOfBound(indexOfFirstTxToBeProcessed, pi.indexOfLastTxProcessedByProposer, miniBlock)
+		if err != nil {
+			return err
+		}
+
+		for j := indexOfFirstTxToBeProcessed; j <= pi.indexOfLastTxProcessedByProposer; j++ {
 			if !haveTime() {
 				return process.ErrTimeIsOut
 			}
@@ -494,35 +510,36 @@ func (scr *smartContractResults) ProcessMiniBlock(
 	miniBlock *block.MiniBlock,
 	haveTime func() bool,
 	_ func() bool,
-	_ func() (int, int),
 	_ bool,
-) (processedTxHashes [][]byte, numProcessedSCRs int, err error) {
+	partialMbExecutionMode bool,
+	indexOfLastTxProcessed int,
+	preProcessorExecutionInfoHandler process.PreProcessorExecutionInfoHandler,
+) ([][]byte, int, bool, error) {
 
 	if miniBlock.Type != block.SmartContractResultBlock {
-		return nil, 0, process.ErrWrongTypeInMiniBlock
+		return nil, indexOfLastTxProcessed, false, process.ErrWrongTypeInMiniBlock
 	}
 
 	numSCRsProcessed := 0
 	var gasProvidedByTxInSelfShard uint64
-	processedTxHashes = make([][]byte, 0)
+	var err error
+	var txIndex int
+	processedTxHashes := make([][]byte, 0)
+
+	indexOfFirstTxToBeProcessed := indexOfLastTxProcessed + 1
+	err = process.CheckIfIndexesAreOutOfBound(int32(indexOfFirstTxToBeProcessed), int32(len(miniBlock.TxHashes))-1, miniBlock)
+	if err != nil {
+		return nil, indexOfLastTxProcessed, false, err
+	}
+
 	miniBlockScrs, miniBlockTxHashes, err := scr.getAllScrsFromMiniBlock(miniBlock, haveTime)
 	if err != nil {
-		return nil, 0, err
+		return nil, indexOfLastTxProcessed, false, err
 	}
 
-	if scr.blockSizeComputation.IsMaxBlockSizeWithoutThrottleReached(1, len(miniBlockScrs)) {
-		return nil, 0, process.ErrMaxBlockSizeReached
+	if scr.blockSizeComputation.IsMaxBlockSizeWithoutThrottleReached(1, len(miniBlock.TxHashes)) {
+		return nil, indexOfLastTxProcessed, false, process.ErrMaxBlockSizeReached
 	}
-
-	defer func() {
-		if err != nil {
-			for _, hash := range processedTxHashes {
-				log.Trace("smartContractResults.ProcessMiniBlock: defer func()", "tx hash", hash)
-			}
-
-			scr.gasHandler.RestoreGasSinceLastReset()
-		}
-	}()
 
 	gasInfo := gasConsumedInfo{
 		gasConsumedByMiniBlockInReceiverShard: uint64(0),
@@ -557,40 +574,47 @@ func (scr *smartContractResults) ProcessMiniBlock(
 		)
 	}()
 
-	for index := range miniBlockScrs {
+	for txIndex = indexOfFirstTxToBeProcessed; txIndex < len(miniBlockScrs); txIndex++ {
 		if !haveTime() {
-			return processedTxHashes, index, process.ErrTimeIsOut
+			err = process.ErrTimeIsOut
+			break
 		}
 
 		gasProvidedByTxInSelfShard, err = scr.computeGasProvided(
 			miniBlock.SenderShardID,
 			miniBlock.ReceiverShardID,
-			miniBlockScrs[index],
-			miniBlockTxHashes[index],
+			miniBlockScrs[txIndex],
+			miniBlockTxHashes[txIndex],
 			&gasInfo)
 
 		if err != nil {
-			return processedTxHashes, index, err
+			break
 		}
-
-		scr.gasHandler.SetGasProvided(gasProvidedByTxInSelfShard, miniBlockTxHashes[index])
-		processedTxHashes = append(processedTxHashes, miniBlockTxHashes[index])
 
 		if scr.flagOptimizeGasUsedInCrossMiniBlocks.IsSet() {
 			if gasInfo.totalGasConsumedInSelfShard > maxGasLimitUsedForDestMeTxs {
-				return processedTxHashes, index, process.ErrMaxGasLimitUsedForDestMeTxsIsReached
+				err = process.ErrMaxGasLimitUsedForDestMeTxsIsReached
+				break
 			}
 		}
 
-		scr.saveAccountBalanceForAddress(miniBlockScrs[index].GetRcvAddr())
+		scr.saveAccountBalanceForAddress(miniBlockScrs[txIndex].GetRcvAddr())
 
-		_, err = scr.scrProcessor.ProcessSmartContractResult(miniBlockScrs[index])
+		snapshot := scr.handleProcessTransactionInit(preProcessorExecutionInfoHandler, miniBlockTxHashes[txIndex])
+		_, err = scr.scrProcessor.ProcessSmartContractResult(miniBlockScrs[txIndex])
 		if err != nil {
-			return processedTxHashes, index, err
+			scr.handleProcessTransactionError(preProcessorExecutionInfoHandler, snapshot, miniBlockTxHashes[txIndex])
+			break
 		}
 
-		scr.updateGasConsumedWithGasRefundedAndGasPenalized(miniBlockTxHashes[index], &gasInfo)
+		scr.updateGasConsumedWithGasRefundedAndGasPenalized(miniBlockTxHashes[txIndex], &gasInfo)
+		scr.gasHandler.SetGasProvided(gasProvidedByTxInSelfShard, miniBlockTxHashes[txIndex])
+		processedTxHashes = append(processedTxHashes, miniBlockTxHashes[txIndex])
 		numSCRsProcessed++
+	}
+
+	if err != nil && !partialMbExecutionMode {
+		return processedTxHashes, txIndex - 1, true, err
 	}
 
 	txShardInfoToSet := &txShardInfo{senderShardID: miniBlock.SenderShardID, receiverShardID: miniBlock.ReceiverShardID}
@@ -602,9 +626,9 @@ func (scr *smartContractResults) ProcessMiniBlock(
 	scr.scrForBlock.mutTxsForBlock.Unlock()
 
 	scr.blockSizeComputation.AddNumMiniBlocks(1)
-	scr.blockSizeComputation.AddNumTxs(len(miniBlockScrs))
+	scr.blockSizeComputation.AddNumTxs(len(miniBlock.TxHashes))
 
-	return nil, len(processedTxHashes), nil
+	return nil, txIndex - 1, false, err
 }
 
 // CreateMarshalizedData marshalizes smartContractResults and creates and saves them into a new structure

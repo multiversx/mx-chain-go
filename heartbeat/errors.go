@@ -11,8 +11,8 @@ var ErrNilMessenger = errors.New("nil P2P Messenger")
 // ErrNilPrivateKey signals that a nil private key has been provided
 var ErrNilPrivateKey = errors.New("nil private key")
 
-// ErrNilMarshalizer signals that a nil marshalizer has been provided
-var ErrNilMarshalizer = errors.New("nil marshalizer")
+// ErrNilMarshaller signals that a nil marshaller has been provided
+var ErrNilMarshaller = errors.New("nil marshaller")
 
 // ErrNilMessage signals that a nil message has been received
 var ErrNilMessage = errors.New("nil message")
@@ -93,9 +93,6 @@ var ErrNegativeMinTimeToWaitBetweenBroadcastsInSec = errors.New("value MinTimeTo
 // ErrWrongValues signals that wrong values were provided
 var ErrWrongValues = errors.New("wrong values for heartbeat parameters")
 
-// ErrValidatorAlreadySet signals that a topic validator has already been set
-var ErrValidatorAlreadySet = errors.New("topic validator has already been set")
-
 // ErrNilPeerSignatureHandler signals that a nil peerSignatureHandler object has been provided
 var ErrNilPeerSignatureHandler = errors.New("trying to set nil peerSignatureHandler")
 
@@ -104,3 +101,39 @@ var ErrNilCurrentBlockProvider = errors.New("nil current block provider")
 
 // ErrNilRedundancyHandler signals that a nil redundancy handler was provided
 var ErrNilRedundancyHandler = errors.New("nil redundancy handler")
+
+// ErrEmptySendTopic signals that an empty topic string was provided
+var ErrEmptySendTopic = errors.New("empty topic for sending messages")
+
+// ErrInvalidTimeDuration signals that an invalid time duration was provided
+var ErrInvalidTimeDuration = errors.New("invalid time duration")
+
+// ErrInvalidThreshold signals that an invalid threshold was provided
+var ErrInvalidThreshold = errors.New("invalid threshold")
+
+// ErrNilRequestHandler signals that a nil request handler interface was provided
+var ErrNilRequestHandler = errors.New("nil request handler")
+
+// ErrNilNodesCoordinator signals that an operation has been attempted to or with a nil nodes coordinator
+var ErrNilNodesCoordinator = errors.New("nil nodes coordinator")
+
+// ErrNilPeerAuthenticationPool signals that a nil peer authentication pool has been provided
+var ErrNilPeerAuthenticationPool = errors.New("nil peer authentication pool")
+
+// ErrInvalidValue signals that an invalid value has been provided
+var ErrInvalidValue = errors.New("invalid value")
+
+// ErrNilRandomizer signals that a nil randomizer has been provided
+var ErrNilRandomizer = errors.New("nil randomizer")
+
+// ErrNilCacher signals that a nil cache has been provided
+var ErrNilCacher = errors.New("nil cacher")
+
+// ErrNilPeerShardMapper signals that a nil peer shard mapper has been provided
+var ErrNilPeerShardMapper = errors.New("nil peer shard mapper")
+
+// ErrNilEpochNotifier signals that a nil epoch notifier has been provided
+var ErrNilEpochNotifier = errors.New("nil epoch notifier")
+
+// ErrShouldSkipValidator signals that the validator should be skipped
+var ErrShouldSkipValidator = errors.New("validator should be skipped")

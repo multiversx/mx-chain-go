@@ -299,6 +299,15 @@ func (ti *testIndexer) GetIndexerPreparedTransaction(t *testing.T) *indexerTypes
 	err = json.Unmarshal(ss, &newTx)
 	require.Nil(t, err)
 
+	if newTx.Receiver != "" {
+		return newTx
+	}
+
+	splitAgain = bytes.Split(split[1], []byte(`"tx": `))
+	ss = splitAgain[1][:len(splitAgain[1])-15]
+	err = json.Unmarshal(ss, &newTx)
+	require.Nil(t, err)
+
 	return newTx
 }
 

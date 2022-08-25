@@ -560,14 +560,17 @@ func TestStartInEpochWithScheduledDataSyncer_getScheduledTransactionHashesWithDe
 		Hash: hashMb1,
 	}
 	_ = mbHeaderScheduled1.SetProcessingType(int32(block.Scheduled))
+	_ = mbHeaderScheduled1.SetIndexOfLastTxProcessed(1)
 	mbHeaderScheduled2 := block.MiniBlockHeader{
 		Hash: hashMb2,
 	}
 	_ = mbHeaderScheduled2.SetProcessingType(int32(block.Scheduled))
+	_ = mbHeaderScheduled2.SetIndexOfLastTxProcessed(1)
 	mbHeaderScheduled3 := block.MiniBlockHeader{
 		Hash: hashMb3,
 	}
 	_ = mbHeaderScheduled3.SetProcessingType(int32(block.Scheduled))
+	_ = mbHeaderScheduled3.SetIndexOfLastTxProcessed(1)
 	mbHeader := block.MiniBlockHeader{
 		Hash: hashMb4,
 	}
@@ -585,7 +588,7 @@ func TestStartInEpochWithScheduledDataSyncer_getScheduledTransactionHashesWithDe
 		scheduledMiniBlocksSyncer: &epochStartMocks.PendingMiniBlockSyncHandlerStub{
 			SyncPendingMiniBlocksCalled: func(miniBlockHeaders []data.MiniBlockHeaderHandler, ctx context.Context) error {
 				for i := range miniBlockHeaders {
-					require.Len(t, miniBlockHeaders[i].GetReserved(), 2)
+					require.Len(t, miniBlockHeaders[i].GetReserved(), 4)
 				}
 				return nil
 			},
@@ -746,17 +749,15 @@ func TestGetScheduledMiniBlocks(t *testing.T) {
 		},
 	}
 
-	schedulesTxHashes := map[string]uint32{
-		txHash1: 1,
-		txHash2: 2,
-	}
+	_ = header.MiniBlockHeaders[0].SetProcessingType(int32(block.Processed))
+	_ = header.MiniBlockHeaders[1].SetProcessingType(int32(block.Processed))
 
 	expectedMiniBlocks := block.MiniBlockSlice{
 		mb1,
 		mb2,
 	}
 
-	mbs := getScheduledMiniBlocks(header, miniBlocks, schedulesTxHashes)
+	mbs := getScheduledMiniBlocks(header, miniBlocks)
 	assert.Equal(t, expectedMiniBlocks, mbs)
 }
 
@@ -849,4 +850,101 @@ func Test_isScheduledIntermediateTx(t *testing.T) {
 
 		require.False(t, isScheduledIntermediateTx(miniBlocks, scheduledTxHashes, []byte(tx2Hash), tx2, selfShardID))
 	})
+}
+
+func Test_getMiniBlockAndProcessedIndexes(t *testing.T) {
+	t.Parallel()
+
+	neededMiniBlockHash := []byte("hash")
+	miniBlockHeader := &block.MiniBlockHeader{
+		Hash:    neededMiniBlockHash,
+		TxCount: 5,
+	}
+
+	miniBlocks := make(map[string]*block.MiniBlock)
+	pi, miniBlock, miniBlockHash, shouldSkip := getMiniBlockAndProcessedIndexes(miniBlockHeader, miniBlocks)
+	assert.Nil(t, pi)
+	assert.Nil(t, miniBlock)
+	assert.Nil(t, miniBlockHash)
+	assert.True(t, shouldSkip)
+
+	neededMiniBlock := &block.MiniBlock{}
+	miniBlocks[string(neededMiniBlockHash)] = neededMiniBlock
+
+	_ = miniBlockHeader.SetIndexOfFirstTxProcessed(int32(miniBlockHeader.TxCount - 2))
+	_ = miniBlockHeader.SetIndexOfLastTxProcessed(int32(miniBlockHeader.TxCount - 3))
+	pi, miniBlock, miniBlockHash, shouldSkip = getMiniBlockAndProcessedIndexes(miniBlockHeader, miniBlocks)
+	assert.Nil(t, pi)
+	assert.Nil(t, miniBlock)
+	assert.Nil(t, miniBlockHash)
+	assert.True(t, shouldSkip)
+
+	_ = miniBlockHeader.SetIndexOfFirstTxProcessed(int32(miniBlockHeader.TxCount - 3))
+	_ = miniBlockHeader.SetIndexOfLastTxProcessed(int32(miniBlockHeader.TxCount - 2))
+	pi, miniBlock, miniBlockHash, shouldSkip = getMiniBlockAndProcessedIndexes(miniBlockHeader, miniBlocks)
+	assert.Equal(t, int32(miniBlockHeader.TxCount-3), pi.firstIndex)
+	assert.Equal(t, int32(miniBlockHeader.TxCount-2), pi.lastIndex)
+	assert.Equal(t, neededMiniBlock, miniBlock)
+	assert.Equal(t, neededMiniBlockHash, miniBlockHash)
+	assert.False(t, shouldSkip)
+}
+
+func Test_createScheduledTxsForShardMap(t *testing.T) {
+	t.Parallel()
+
+	pi := &processedIndexes{
+		firstIndex: 1,
+		lastIndex:  3,
+	}
+
+	txHash1 := []byte("txHash1")
+	txHash2 := []byte("txHash2")
+	txHash3 := []byte("txHash3")
+	txHash4 := []byte("txHash4")
+	txHash5 := []byte("txHash5")
+	miniBlock := &block.MiniBlock{
+		ReceiverShardID: 1,
+		TxHashes:        [][]byte{txHash1, txHash2, txHash3, txHash4, txHash5},
+	}
+
+	scheduledTxsForShard := make(map[string]uint32)
+	miniBlockHash := []byte("mbHash")
+
+	createScheduledTxsForShardMap(pi, &block.MiniBlock{}, miniBlockHash, scheduledTxsForShard)
+	assert.Equal(t, 0, len(scheduledTxsForShard))
+
+	createScheduledTxsForShardMap(pi, miniBlock, miniBlockHash, scheduledTxsForShard)
+	require.Equal(t, 3, len(scheduledTxsForShard))
+
+	_, ok := scheduledTxsForShard[string(txHash1)]
+	assert.False(t, ok)
+	_, ok = scheduledTxsForShard[string(txHash2)]
+	assert.True(t, ok)
+	_, ok = scheduledTxsForShard[string(txHash3)]
+	assert.True(t, ok)
+	_, ok = scheduledTxsForShard[string(txHash4)]
+	assert.True(t, ok)
+	_, ok = scheduledTxsForShard[string(txHash5)]
+	assert.False(t, ok)
+}
+
+func Test_getNumScheduledIntermediateTxs(t *testing.T) {
+	t.Parallel()
+
+	mapScheduledIntermediateTxs := make(map[block.Type][]data.TransactionHandler)
+	mapScheduledIntermediateTxs[0] = []data.TransactionHandler{
+		&smartContractResult.SmartContractResult{Nonce: 1},
+		&smartContractResult.SmartContractResult{Nonce: 2},
+	}
+	mapScheduledIntermediateTxs[1] = []data.TransactionHandler{
+		&smartContractResult.SmartContractResult{Nonce: 1},
+	}
+	mapScheduledIntermediateTxs[2] = []data.TransactionHandler{
+		&smartContractResult.SmartContractResult{Nonce: 1},
+		&smartContractResult.SmartContractResult{Nonce: 2},
+		&smartContractResult.SmartContractResult{Nonce: 3},
+	}
+
+	numScheduledIntermediateTxs := getNumScheduledIntermediateTxs(mapScheduledIntermediateTxs)
+	assert.Equal(t, 6, numScheduledIntermediateTxs)
 }

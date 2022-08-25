@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 )
 
 // BlockProcessorMock mocks the implementation for a blockProcessor
@@ -31,10 +30,6 @@ type BlockProcessorMock struct {
 
 // SetNumProcessedObj -
 func (bpm *BlockProcessorMock) SetNumProcessedObj(_ uint64) {
-}
-
-// ApplyProcessedMiniBlocks -
-func (bpm *BlockProcessorMock) ApplyProcessedMiniBlocks(_ *processedMb.ProcessedMiniBlockTracker) {
 }
 
 // RestoreLastNotarizedHrdsToGenesis -

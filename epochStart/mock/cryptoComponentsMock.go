@@ -8,13 +8,14 @@ import (
 
 // CryptoComponentsMock -
 type CryptoComponentsMock struct {
-	PubKey    crypto.PublicKey
-	BlockSig  crypto.SingleSigner
-	TxSig     crypto.SingleSigner
-	MultiSig  crypto.MultiSigner
-	BlKeyGen  crypto.KeyGenerator
-	TxKeyGen  crypto.KeyGenerator
-	mutCrypto sync.RWMutex
+	PubKey          crypto.PublicKey
+	BlockSig        crypto.SingleSigner
+	TxSig           crypto.SingleSigner
+	MultiSig        crypto.MultiSigner
+	PeerSignHandler crypto.PeerSignatureHandler
+	BlKeyGen        crypto.KeyGenerator
+	TxKeyGen        crypto.KeyGenerator
+	mutCrypto       sync.RWMutex
 }
 
 // PublicKey -
@@ -49,6 +50,11 @@ func (ccm *CryptoComponentsMock) SetMultiSigner(m crypto.MultiSigner) error {
 	return nil
 }
 
+// PeerSignatureHandler -
+func (ccm *CryptoComponentsMock) PeerSignatureHandler() crypto.PeerSignatureHandler {
+	return ccm.PeerSignHandler
+}
+
 // BlockSignKeyGen -
 func (ccm *CryptoComponentsMock) BlockSignKeyGen() crypto.KeyGenerator {
 	return ccm.BlKeyGen
@@ -62,13 +68,14 @@ func (ccm *CryptoComponentsMock) TxSignKeyGen() crypto.KeyGenerator {
 // Clone -
 func (ccm *CryptoComponentsMock) Clone() interface{} {
 	return &CryptoComponentsMock{
-		PubKey:    ccm.PubKey,
-		BlockSig:  ccm.BlockSig,
-		TxSig:     ccm.TxSig,
-		MultiSig:  ccm.MultiSig,
-		BlKeyGen:  ccm.BlKeyGen,
-		TxKeyGen:  ccm.TxKeyGen,
-		mutCrypto: sync.RWMutex{},
+		PubKey:          ccm.PubKey,
+		BlockSig:        ccm.BlockSig,
+		TxSig:           ccm.TxSig,
+		MultiSig:        ccm.MultiSig,
+		PeerSignHandler: ccm.PeerSignHandler,
+		BlKeyGen:        ccm.BlKeyGen,
+		TxKeyGen:        ccm.TxKeyGen,
+		mutCrypto:       sync.RWMutex{},
 	}
 }
 

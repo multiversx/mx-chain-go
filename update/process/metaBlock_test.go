@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/ElrondNetwork/elrond-go/update"
@@ -31,6 +32,7 @@ func createMockBlockCreatorAfterHardFork() ArgsNewMetaBlockCreatorAfterHardFork 
 				return []byte("roothash"), nil
 			},
 		},
+		ReceiptsRepository: &testscommon.ReceiptsRepositoryStub{},
 	}
 }
 func TestNewMetaBlockCreatorAfterHardfork_NilImport(t *testing.T) {

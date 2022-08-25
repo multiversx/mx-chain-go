@@ -664,6 +664,12 @@ func TestEnableEpochConfig(t *testing.T) {
 	# ManagedCryptoAPIsEnableEpoch represents the epoch when the new managed crypto APIs are enabled
 	ManagedCryptoAPIsEnableEpoch = 54
 
+    # HeartbeatDisableEpoch represents the epoch when heartbeat v1 messages stop being sent and processed
+    HeartbeatDisableEpoch = 55
+
+	# ESDTMetadataContinuousCleanupEnableEpoch represents the epoch when esdt metadata is automatically deleted according to inshard liquidity
+	ESDTMetadataContinuousCleanupEnableEpoch = 56
+
 	# FreezeAccountFeatureEnableEpoch represents the epoch when freeze account feature is enabled
 	FreezeAccountFeatureEnableEpoch = 10
 
@@ -748,6 +754,8 @@ func TestEnableEpochConfig(t *testing.T) {
 			ESDTRegisterAndSetAllRolesEnableEpoch:       52,
 			FailExecutionOnEveryAPIErrorEnableEpoch:     53,
 			ManagedCryptoAPIsEnableEpoch:                54,
+			HeartbeatDisableEpoch:                       55,
+			ESDTMetadataContinuousCleanupEnableEpoch:    56,
 			FreezeAccountFeatureEnableEpoch:             10,
 		},
 		GasSchedule: GasScheduleConfig{

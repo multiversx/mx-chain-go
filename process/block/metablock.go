@@ -85,6 +85,9 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 	if check.IfNil(arguments.EpochSystemSCProcessor) {
 		return nil, process.ErrNilEpochStartSystemSCProcessor
 	}
+	if check.IfNil(arguments.ReceiptsRepository) {
+		return nil, process.ErrNilReceiptsRepository
+	}
 
 	pruningQueueSize := arguments.Config.StateTriesConfig.PeerStatePruningQueueSize
 	pruningDelay := uint32(pruningQueueSize * pruningDelayMultiplier)
@@ -132,6 +135,8 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		scheduledTxsExecutionHandler:   arguments.ScheduledTxsExecutionHandler,
 		scheduledMiniBlocksEnableEpoch: arguments.ScheduledMiniBlocksEnableEpoch,
 		pruningDelay:                   pruningDelay,
+		processedMiniBlocksTracker:     arguments.ProcessedMiniBlocksTracker,
+		receiptsRepository:             arguments.ReceiptsRepository,
 	}
 
 	mp := metaProcessor{
@@ -1442,7 +1447,7 @@ func (mp *metaProcessor) displayPoolsInfo() {
 	mp.displayMiniBlocksPool()
 }
 
-func (mp *metaProcessor) updateState(lastMetaBlock data.MetaHeaderHandler, _ []byte) {
+func (mp *metaProcessor) updateState(lastMetaBlock data.MetaHeaderHandler, lastMetaBlockHash []byte) {
 	if check.IfNil(lastMetaBlock) {
 		log.Debug("updateState nil header")
 		return
@@ -1499,6 +1504,7 @@ func (mp *metaProcessor) updateState(lastMetaBlock data.MetaHeaderHandler, _ []b
 	)
 
 	mp.setFinalizedHeaderHashInIndexer(lastMetaBlock.GetPrevHash())
+	mp.blockChain.SetFinalBlockInfo(lastMetaBlock.GetNonce(), lastMetaBlockHash, lastMetaBlock.GetRootHash())
 }
 
 func (mp *metaProcessor) getLastSelfNotarizedHeaderByShard(
@@ -1569,10 +1575,6 @@ func (mp *metaProcessor) getLastSelfNotarizedHeaderByShard(
 	}
 
 	return lastNotarizedMetaHeader, lastNotarizedMetaHeaderHash
-}
-
-// ApplyProcessedMiniBlocks will do nothing on meta processor
-func (mp *metaProcessor) ApplyProcessedMiniBlocks(_ *processedMb.ProcessedMiniBlockTracker) {
 }
 
 // getRewardsTxs must be called before method commitEpoch start because when commit is done rewards txs are removed from pool and saved in storage
@@ -2215,7 +2217,7 @@ func (mp *metaProcessor) applyBodyToHeader(metaHdr data.MetaHeaderHandler, bodyH
 		return nil, err
 	}
 
-	totalTxCount, miniBlockHeaderHandlers, err := mp.createMiniBlockHeaderHandlers(body)
+	totalTxCount, miniBlockHeaderHandlers, err := mp.createMiniBlockHeaderHandlers(body, make(map[string]*processedMb.ProcessedMiniBlockInfo))
 	if err != nil {
 		return nil, err
 	}

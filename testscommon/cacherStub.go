@@ -138,5 +138,6 @@ func (cacher *CacherStub) Close() error {
 	if cacher.CloseCalled != nil {
 		return cacher.CloseCalled()
 	}
+
 	return nil
 }

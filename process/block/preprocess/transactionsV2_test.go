@@ -74,6 +74,7 @@ func createTransactionPreprocessor() *transactions {
 			},
 		},
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
+		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 	}
 
 	preprocessor, _ := NewTransactionPreprocessor(txPreProcArgs)

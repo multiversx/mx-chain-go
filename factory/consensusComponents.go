@@ -28,7 +28,6 @@ import (
 type ConsensusComponentsFactoryArgs struct {
 	Config              config.Config
 	BootstrapRoundIndex uint64
-	HardforkTrigger     HardforkTrigger
 	CoreComponents      CoreComponentsHolder
 	NetworkComponents   NetworkComponentsHolder
 	CryptoComponents    CryptoComponentsHolder
@@ -43,7 +42,6 @@ type ConsensusComponentsFactoryArgs struct {
 type consensusComponentsFactory struct {
 	config              config.Config
 	bootstrapRoundIndex uint64
-	hardforkTrigger     HardforkTrigger
 	coreComponents      CoreComponentsHolder
 	networkComponents   NetworkComponentsHolder
 	cryptoComponents    CryptoComponentsHolder
@@ -60,7 +58,6 @@ type consensusComponents struct {
 	bootstrapper       process.Bootstrapper
 	broadcastMessenger consensus.BroadcastMessenger
 	worker             ConsensusWorker
-	hardforkTrigger    HardforkTrigger
 	consensusTopic     string
 	consensusGroupSize int
 }
@@ -88,9 +85,6 @@ func NewConsensusComponentsFactory(args ConsensusComponentsFactoryArgs) (*consen
 	if check.IfNil(args.StatusComponents) {
 		return nil, errors.ErrNilStatusComponentsHolder
 	}
-	if check.IfNil(args.HardforkTrigger) {
-		return nil, errors.ErrNilHardforkTrigger
-	}
 	if check.IfNil(args.ScheduledProcessor) {
 		return nil, errors.ErrNilScheduledProcessor
 	}
@@ -98,7 +92,6 @@ func NewConsensusComponentsFactory(args ConsensusComponentsFactoryArgs) (*consen
 	return &consensusComponentsFactory{
 		config:              args.Config,
 		bootstrapRoundIndex: args.BootstrapRoundIndex,
-		hardforkTrigger:     args.HardforkTrigger,
 		coreComponents:      args.CoreComponents,
 		networkComponents:   args.NetworkComponents,
 		cryptoComponents:    args.CryptoComponents,
@@ -128,7 +121,6 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 
 	cc.consensusGroupSize = int(consensusGroupSize)
 
-	cc.hardforkTrigger = ccf.hardforkTrigger
 	blockchain := ccf.dataComponents.Blockchain()
 	notInitializedGenesisBlock := len(blockchain.GetGenesisHeaderHash()) == 0 ||
 		check.IfNil(blockchain.GetGenesisHeader())
@@ -418,6 +410,8 @@ func (ccf *consensusComponentsFactory) createShardBootstrapper() (process.Bootst
 		ScheduledTxsExecutionHandler: ccf.processComponents.ScheduledTxsExecutionHandler(),
 		MiniblocksProvider:           ccf.dataComponents.MiniBlocksProvider(),
 		EpochNotifier:                ccf.coreComponents.EpochNotifier(),
+		ProcessedMiniBlocksTracker:   ccf.processComponents.ProcessedMiniBlocksTracker(),
+		AppStatusHandler:             ccf.coreComponents.StatusHandler(),
 	}
 
 	argsShardStorageBootstrapper := storageBootstrap.ArgsShardStorageBootstrapper{
@@ -487,6 +481,7 @@ func (ccf *consensusComponentsFactory) createArgsBaseAccountsSyncer(trieStorageM
 		MaxTrieLevelInMemory:      ccf.config.StateTriesConfig.MaxStateTrieLevelInMemory,
 		MaxHardCapForMissingNodes: ccf.config.TrieSync.MaxHardCapForMissingNodes,
 		TrieSyncerVersion:         ccf.config.TrieSync.TrieSyncerVersion,
+		CheckNodesOnDisk:          ccf.config.TrieSync.CheckNodesOnDisk,
 	}
 }
 
@@ -540,6 +535,8 @@ func (ccf *consensusComponentsFactory) createMetaChainBootstrapper() (process.Bo
 		ScheduledTxsExecutionHandler: ccf.processComponents.ScheduledTxsExecutionHandler(),
 		MiniblocksProvider:           ccf.dataComponents.MiniBlocksProvider(),
 		EpochNotifier:                ccf.coreComponents.EpochNotifier(),
+		ProcessedMiniBlocksTracker:   ccf.processComponents.ProcessedMiniBlocksTracker(),
+		AppStatusHandler:             ccf.coreComponents.StatusHandler(),
 	}
 
 	argsMetaStorageBootstrapper := storageBootstrap.ArgsMetaStorageBootstrapper{
@@ -630,8 +627,9 @@ func (ccf *consensusComponentsFactory) createConsensusTopic(cc *consensusCompone
 }
 
 func (ccf *consensusComponentsFactory) addCloserInstances(closers ...update.Closer) error {
+	hardforkTrigger := ccf.processComponents.HardforkTrigger()
 	for _, c := range closers {
-		err := ccf.hardforkTrigger.AddCloser(c)
+		err := hardforkTrigger.AddCloser(c)
 		if err != nil {
 			return err
 		}
@@ -660,6 +658,10 @@ func (ccf *consensusComponentsFactory) checkArgs() error {
 	netMessenger := ccf.networkComponents.NetworkMessenger()
 	if check.IfNil(netMessenger) {
 		return errors.ErrNilMessenger
+	}
+	hardforkTrigger := ccf.processComponents.HardforkTrigger()
+	if check.IfNil(hardforkTrigger) {
+		return errors.ErrNilHardforkTrigger
 	}
 
 	return nil

@@ -129,6 +129,18 @@ func (msc *managedStateComponents) AccountsAdapterAPI() state.AccountsAdapter {
 	return msc.stateComponents.accountsAdapterAPI
 }
 
+// AccountsRepository returns the accounts adapter for the user accounts to be used in REST API
+func (msc *managedStateComponents) AccountsRepository() state.AccountsRepository {
+	msc.mutStateComponents.RLock()
+	defer msc.mutStateComponents.RUnlock()
+
+	if msc.stateComponents == nil {
+		return nil
+	}
+
+	return msc.stateComponents.accountsRepository
+}
+
 // TriesContainer returns the tries container
 func (msc *managedStateComponents) TriesContainer() common.TriesHolder {
 	msc.mutStateComponents.RLock()
@@ -193,5 +205,5 @@ func (msc *managedStateComponents) IsInterfaceNil() bool {
 
 // String returns the name of the component
 func (msc *managedStateComponents) String() string {
-	return "managedStateComponents"
+	return stateComponentsName
 }

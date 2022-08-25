@@ -15,24 +15,24 @@ type IntermediateTransactionHandlerMock struct {
 	CreateBlockStartedCalled                 func()
 	CreateMarshalizedDataCalled              func(txHashes [][]byte) ([][]byte, error)
 	GetAllCurrentFinishedTxsCalled           func() map[string]data.TransactionHandler
-	RemoveProcessedResultsCalled             func() [][]byte
-	InitProcessedResultsCalled               func()
+	RemoveProcessedResultsCalled             func(key []byte) [][]byte
+	InitProcessedResultsCalled               func(key []byte)
 	GetCreatedInShardMiniBlockCalled         func() *block.MiniBlock
 	intermediateTransactions                 []data.TransactionHandler
 }
 
 // RemoveProcessedResults -
-func (ith *IntermediateTransactionHandlerMock) RemoveProcessedResults() [][]byte {
+func (ith *IntermediateTransactionHandlerMock) RemoveProcessedResults(key []byte) [][]byte {
 	if ith.RemoveProcessedResultsCalled != nil {
-		return ith.RemoveProcessedResultsCalled()
+		return ith.RemoveProcessedResultsCalled(key)
 	}
 	return nil
 }
 
 // InitProcessedResults -
-func (ith *IntermediateTransactionHandlerMock) InitProcessedResults() {
+func (ith *IntermediateTransactionHandlerMock) InitProcessedResults(key []byte) {
 	if ith.InitProcessedResultsCalled != nil {
-		ith.InitProcessedResultsCalled()
+		ith.InitProcessedResultsCalled(key)
 	}
 }
 

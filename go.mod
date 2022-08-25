@@ -3,16 +3,16 @@ module github.com/ElrondNetwork/elrond-go
 go 1.15
 
 require (
-	github.com/ElrondNetwork/arwen-wasm-vm/v1_2 v1.2.40
-	github.com/ElrondNetwork/arwen-wasm-vm/v1_3 v1.3.40
-	github.com/ElrondNetwork/arwen-wasm-vm/v1_4 v1.4.54-rc3
+	github.com/ElrondNetwork/arwen-wasm-vm/v1_2 v1.2.41
+	github.com/ElrondNetwork/arwen-wasm-vm/v1_3 v1.3.41
+	github.com/ElrondNetwork/arwen-wasm-vm/v1_4 v1.4.58
 	github.com/ElrondNetwork/concurrent-map v0.1.3
 	github.com/ElrondNetwork/covalent-indexer-go v1.0.6
-	github.com/ElrondNetwork/elastic-indexer-go v1.2.34
-	github.com/ElrondNetwork/elrond-go-core v1.1.16-0.20220711092037-f35a3a0faf0f
+	github.com/ElrondNetwork/elastic-indexer-go v1.2.38
+	github.com/ElrondNetwork/elrond-go-core v1.1.20-0.20220825075514-8e8d8ff0312b
 	github.com/ElrondNetwork/elrond-go-crypto v1.0.1
 	github.com/ElrondNetwork/elrond-go-logger v1.0.7
-	github.com/ElrondNetwork/elrond-vm-common v1.3.13-0.20220708125052-5343b3b65f3e
+	github.com/ElrondNetwork/elrond-vm-common v1.3.15-0.20220823131107-727e254268b6
 	github.com/ElrondNetwork/go-libp2p-pubsub v0.6.1-rc1
 	github.com/beevik/ntp v0.3.0
 	github.com/btcsuite/btcd v0.22.0-beta
@@ -50,8 +50,8 @@ require (
 
 replace github.com/gogo/protobuf => github.com/ElrondNetwork/protobuf v1.3.2
 
-replace github.com/ElrondNetwork/arwen-wasm-vm/v1_2 v1.2.40 => github.com/ElrondNetwork/arwen-wasm-vm v1.2.41-0.20220708132302-7590ce4497ec
+replace github.com/ElrondNetwork/arwen-wasm-vm/v1_2 v1.2.41 => github.com/ElrondNetwork/arwen-wasm-vm v1.2.42-0.20220825092831-7d45c37a8a73
 
-replace github.com/ElrondNetwork/arwen-wasm-vm/v1_3 v1.3.40 => github.com/ElrondNetwork/arwen-wasm-vm v1.3.41-0.20220708143408-ab05f75aa3a6
+replace github.com/ElrondNetwork/arwen-wasm-vm/v1_3 v1.3.41 => github.com/ElrondNetwork/arwen-wasm-vm v1.3.42-0.20220825091352-272f48a2c23c
 
-replace github.com/ElrondNetwork/arwen-wasm-vm/v1_4 v1.4.54-rc3 => github.com/ElrondNetwork/arwen-wasm-vm v1.4.57-0.20220708144802-8e7c159a12c6
+replace github.com/ElrondNetwork/arwen-wasm-vm/v1_4 v1.4.58 => github.com/ElrondNetwork/arwen-wasm-vm v1.4.59-0.20220825090722-70fbc73c9021

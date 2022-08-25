@@ -4,21 +4,23 @@ import "time"
 
 // RequestHandlerStub -
 type RequestHandlerStub struct {
-	RequestShardHeaderCalled           func(shardID uint32, hash []byte)
-	RequestMetaHeaderCalled            func(hash []byte)
-	RequestMetaHeaderByNonceCalled     func(nonce uint64)
-	RequestShardHeaderByNonceCalled    func(shardID uint32, nonce uint64)
-	RequestTransactionHandlerCalled    func(destShardID uint32, txHashes [][]byte)
-	RequestScrHandlerCalled            func(destShardID uint32, txHashes [][]byte)
-	RequestRewardTxHandlerCalled       func(destShardID uint32, txHashes [][]byte)
-	RequestMiniBlockHandlerCalled      func(destShardID uint32, miniblockHash []byte)
-	RequestMiniBlocksHandlerCalled     func(destShardID uint32, miniblocksHashes [][]byte)
-	RequestTrieNodesCalled             func(destShardID uint32, hashes [][]byte, topic string)
-	RequestStartOfEpochMetaBlockCalled func(epoch uint32)
-	SetNumPeersToQueryCalled           func(key string, intra int, cross int) error
-	GetNumPeersToQueryCalled           func(key string) (int, int, error)
-	RequestTrieNodeCalled              func(requestHash []byte, topic string, chunkIndex uint32)
-	CreateTrieNodeIdentifierCalled     func(requestHash []byte, chunkIndex uint32) []byte
+	RequestShardHeaderCalled                 func(shardID uint32, hash []byte)
+	RequestMetaHeaderCalled                  func(hash []byte)
+	RequestMetaHeaderByNonceCalled           func(nonce uint64)
+	RequestShardHeaderByNonceCalled          func(shardID uint32, nonce uint64)
+	RequestTransactionHandlerCalled          func(destShardID uint32, txHashes [][]byte)
+	RequestScrHandlerCalled                  func(destShardID uint32, txHashes [][]byte)
+	RequestRewardTxHandlerCalled             func(destShardID uint32, txHashes [][]byte)
+	RequestMiniBlockHandlerCalled            func(destShardID uint32, miniblockHash []byte)
+	RequestMiniBlocksHandlerCalled           func(destShardID uint32, miniblocksHashes [][]byte)
+	RequestTrieNodesCalled                   func(destShardID uint32, hashes [][]byte, topic string)
+	RequestStartOfEpochMetaBlockCalled       func(epoch uint32)
+	SetNumPeersToQueryCalled                 func(key string, intra int, cross int) error
+	GetNumPeersToQueryCalled                 func(key string) (int, int, error)
+	RequestTrieNodeCalled                    func(requestHash []byte, topic string, chunkIndex uint32)
+	CreateTrieNodeIdentifierCalled           func(requestHash []byte, chunkIndex uint32) []byte
+	RequestPeerAuthenticationsChunkCalled    func(destShardID uint32, chunkIndex uint32)
+	RequestPeerAuthenticationsByHashesCalled func(destShardID uint32, hashes [][]byte)
 }
 
 // SetNumPeersToQuery -
@@ -149,6 +151,20 @@ func (rhs *RequestHandlerStub) CreateTrieNodeIdentifier(requestHash []byte, chun
 func (rhs *RequestHandlerStub) RequestTrieNode(requestHash []byte, topic string, chunkIndex uint32) {
 	if rhs.RequestTrieNodeCalled != nil {
 		rhs.RequestTrieNodeCalled(requestHash, topic, chunkIndex)
+	}
+}
+
+// RequestPeerAuthenticationsChunk -
+func (rhs *RequestHandlerStub) RequestPeerAuthenticationsChunk(destShardID uint32, chunkIndex uint32) {
+	if rhs.RequestPeerAuthenticationsChunkCalled != nil {
+		rhs.RequestPeerAuthenticationsChunkCalled(destShardID, chunkIndex)
+	}
+}
+
+// RequestPeerAuthenticationsByHashes -
+func (rhs *RequestHandlerStub) RequestPeerAuthenticationsByHashes(destShardID uint32, hashes [][]byte) {
+	if rhs.RequestPeerAuthenticationsByHashesCalled != nil {
+		rhs.RequestPeerAuthenticationsByHashesCalled(destShardID, hashes)
 	}
 }
 

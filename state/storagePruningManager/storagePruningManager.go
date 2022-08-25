@@ -3,15 +3,14 @@ package storagePruningManager
 import (
 	"bytes"
 	"encoding/hex"
-	"strings"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager/pruningBuffer"
-	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 type pruningOperation byte
@@ -170,7 +169,7 @@ func (spm *storagePruningManager) prune(rootHash []byte, tsm common.StorageManag
 
 	err := spm.removeFromDb(rootHash, tsm, handler)
 	if err != nil {
-		if err == storage.ErrDBIsClosed || strings.Contains(err.Error(), storage.ErrDBIsClosed.Error()) {
+		if errors.IsClosingError(err) {
 			log.Debug("did not remove hash", "rootHash", rootHash, "error", err)
 			return
 		}

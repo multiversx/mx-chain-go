@@ -41,6 +41,7 @@ func TestNewPreProcessorsContainerFactory_NilShardCoordinator(t *testing.T) {
 		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
 	assert.Equal(t, process.ErrNilShardCoordinator, err)
@@ -72,6 +73,7 @@ func TestNewPreProcessorsContainerFactory_NilStore(t *testing.T) {
 		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
 	assert.Equal(t, process.ErrNilStore, err)
@@ -103,6 +105,7 @@ func TestNewPreProcessorsContainerFactory_NilMarshalizer(t *testing.T) {
 		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
 	assert.Equal(t, process.ErrNilMarshalizer, err)
@@ -134,6 +137,7 @@ func TestNewPreProcessorsContainerFactory_NilHasher(t *testing.T) {
 		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
 	assert.Equal(t, process.ErrNilHasher, err)
@@ -165,6 +169,7 @@ func TestNewPreProcessorsContainerFactory_NilDataPool(t *testing.T) {
 		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
 	assert.Equal(t, process.ErrNilDataPoolHolder, err)
@@ -196,6 +201,7 @@ func TestNewPreProcessorsContainerFactory_NilAccounts(t *testing.T) {
 		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
 	assert.Equal(t, process.ErrNilAccountsAdapter, err)
@@ -227,6 +233,7 @@ func TestNewPreProcessorsContainerFactory_NilFeeHandler(t *testing.T) {
 		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
 	assert.Equal(t, process.ErrNilEconomicsFeeHandler, err)
@@ -258,6 +265,7 @@ func TestNewPreProcessorsContainerFactory_NilTxProcessor(t *testing.T) {
 		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
 	assert.Equal(t, process.ErrNilTxProcessor, err)
@@ -289,6 +297,7 @@ func TestNewPreProcessorsContainerFactory_NilRequestHandler(t *testing.T) {
 		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 	assert.Equal(t, process.ErrNilRequestHandler, err)
 	assert.Nil(t, ppcm)
@@ -319,6 +328,7 @@ func TestNewPreProcessorsContainerFactory_NilGasHandler(t *testing.T) {
 		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 	assert.Equal(t, process.ErrNilGasHandler, err)
 	assert.Nil(t, ppcm)
@@ -349,6 +359,7 @@ func TestNewPreProcessorsContainerFactory_NilBlockTracker(t *testing.T) {
 		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 	assert.Equal(t, process.ErrNilBlockTracker, err)
 	assert.Nil(t, ppcm)
@@ -379,6 +390,7 @@ func TestNewPreProcessorsContainerFactory_NilPubkeyConverter(t *testing.T) {
 		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 	assert.Equal(t, process.ErrNilPubkeyConverter, err)
 	assert.Nil(t, ppcm)
@@ -409,6 +421,7 @@ func TestNewPreProcessorsContainerFactory_NilBlockSizeComputationHandler(t *test
 		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 	assert.Equal(t, process.ErrNilBlockSizeComputationHandler, err)
 	assert.Nil(t, ppcm)
@@ -439,6 +452,7 @@ func TestNewPreProcessorsContainerFactory_NilBalanceComputationHandler(t *testin
 		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 	assert.Equal(t, process.ErrNilBalanceComputationHandler, err)
 	assert.Nil(t, ppcm)
@@ -469,6 +483,7 @@ func TestNewPreProcessorsContainerFactory_NilEpochNotifier(t *testing.T) {
 		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 	assert.Equal(t, process.ErrNilEpochNotifier, err)
 	assert.Nil(t, ppcm)
@@ -499,6 +514,7 @@ func TestNewPreProcessorsContainerFactory_NilTxTypeHandler(t *testing.T) {
 		2,
 		nil,
 		&testscommon.ScheduledTxsExecutionStub{},
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 	assert.Equal(t, process.ErrNilTxTypeHandler, err)
 	assert.Nil(t, ppcm)
@@ -529,8 +545,40 @@ func TestNewPreProcessorsContainerFactory_NilScheduledTxsExecutionHandler(t *tes
 		2,
 		&testscommon.TxTypeHandlerMock{},
 		nil,
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 	assert.Equal(t, process.ErrNilScheduledTxsExecutionHandler, err)
+	assert.Nil(t, ppcm)
+}
+
+func TestNewPreProcessorsContainerFactory_NilProcessedMiniBlocksTracker(t *testing.T) {
+	t.Parallel()
+
+	ppcm, err := metachain.NewPreProcessorsContainerFactory(
+		mock.NewMultiShardsCoordinatorMock(3),
+		&mock.ChainStorerMock{},
+		&mock.MarshalizerMock{},
+		&hashingMocks.HasherMock{},
+		dataRetrieverMock.NewPoolsHolderMock(),
+		&stateMock.AccountsStub{},
+		&testscommon.RequestHandlerStub{},
+		&testscommon.TxProcessorMock{},
+		&testscommon.SmartContractResultsProcessorMock{},
+		&economicsmocks.EconomicsHandlerStub{},
+		&testscommon.GasHandlerStub{},
+		&mock.BlockTrackerMock{},
+		createMockPubkeyConverter(),
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
+		&epochNotifier.EpochNotifierStub{},
+		2,
+		2,
+		2,
+		&testscommon.TxTypeHandlerMock{},
+		&testscommon.ScheduledTxsExecutionStub{},
+		nil,
+	)
+	assert.Equal(t, process.ErrNilProcessedMiniBlocksTracker, err)
 	assert.Nil(t, ppcm)
 }
 
@@ -559,6 +607,7 @@ func TestNewPreProcessorsContainerFactory(t *testing.T) {
 		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
 	assert.Nil(t, err)
@@ -596,6 +645,7 @@ func TestPreProcessorsContainerFactory_CreateErrTxPreproc(t *testing.T) {
 		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
 	assert.Nil(t, err)
@@ -631,6 +681,7 @@ func TestPreProcessorsContainerFactory_Create(t *testing.T) {
 		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
 	assert.Nil(t, err)

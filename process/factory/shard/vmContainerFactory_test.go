@@ -37,7 +37,7 @@ func createMockVMAccountsArguments() ArgVMContainerFactory {
 	return ArgVMContainerFactory{
 		Config:             makeVMConfig(),
 		BlockGasLimit:      10000,
-		GasSchedule:        mock.NewGasScheduleNotifierMock(arwenConfig.MakeGasMapForTests()),
+		GasSchedule:        testscommon.NewGasScheduleNotifierMock(arwenConfig.MakeGasMapForTests()),
 		EpochNotifier:      &epochNotifier.EpochNotifierStub{},
 		EpochConfig:        config.EnableEpochs{},
 		ArwenChangeLocker:  &sync.RWMutex{},
@@ -153,7 +153,7 @@ func TestVmContainerFactory_ResolveArwenVersion(t *testing.T) {
 	epochNotifierInstance := forking.NewGenericEpochNotifier()
 
 	numCalled := 0
-	gasScheduleNotifier := mock.NewGasScheduleNotifierMock(arwenConfig.MakeGasMapForTests())
+	gasScheduleNotifier := testscommon.NewGasScheduleNotifierMock(arwenConfig.MakeGasMapForTests())
 	gasScheduleNotifier.RegisterNotifyHandlerCalled = func(handler core.GasScheduleSubscribeHandler) {
 		numCalled++
 		handler.GasScheduleChange(gasScheduleNotifier.GasSchedule)

@@ -170,5 +170,5 @@ func (mdc *managedDataComponents) IsInterfaceNil() bool {
 
 // String returns the name of the component
 func (mdc *managedDataComponents) String() string {
-	return "managedDataComponents"
+	return dataComponentsName
 }

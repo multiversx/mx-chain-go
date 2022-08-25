@@ -74,7 +74,7 @@ type ArgsNewEconomicsData struct {
 	TxVersionChecker               process.TxVersionCheckerHandler
 	BuiltInFunctionsCostHandler    BuiltInFunctionsCostHandler
 	Economics                      *config.EconomicsConfig
-	EpochNotifier                  process.EpochNotifier
+	EpochNotifier                  EpochNotifier
 	PenalizedTooMuchGasEnableEpoch uint32
 	GasPriceModifierEnableEpoch    uint32
 }

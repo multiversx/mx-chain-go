@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
+	disabledFactory "github.com/ElrondNetwork/elrond-go/factory/disabled"
 	disabledGenesis "github.com/ElrondNetwork/elrond-go/genesis/process/disabled"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory/interceptorscontainer"
@@ -40,6 +41,7 @@ type ArgsEpochStartInterceptorContainer struct {
 	EnableEpochs            config.EnableEpochs
 	EpochNotifier           process.EpochNotifier
 	RequestHandler          process.RequestHandler
+	SignaturesHandler       process.SignaturesHandler
 	GuardianSigVerifier     process.GuardianSigVerifier
 }
 
@@ -74,32 +76,40 @@ func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer)
 	sizeCheckDelta := 0
 	validityAttester := disabled.NewValidityAttester()
 	epochStartTrigger := disabled.NewEpochStartTrigger()
+	// TODO: move the peerShardMapper creation before boostrapComponents
+	peerShardMapper := disabled.NewPeerShardMapper()
+	hardforkTrigger := disabledFactory.HardforkTrigger()
 
 	containerFactoryArgs := interceptorscontainer.CommonInterceptorsContainerFactoryArgs{
-		CoreComponents:          args.CoreComponents,
-		CryptoComponents:        cryptoComponents,
-		ShardCoordinator:        args.ShardCoordinator,
-		NodesCoordinator:        nodesCoordinator,
-		Messenger:               args.Messenger,
-		Store:                   storer,
-		DataPool:                args.DataPool,
-		Accounts:                accountsAdapter,
-		MaxTxNonceDeltaAllowed:  common.MaxTxNonceDeltaAllowed,
-		TxFeeHandler:            feeHandler,
-		BlockBlackList:          blackListHandler,
-		HeaderSigVerifier:       headerSigVerifier,
-		HeaderIntegrityVerifier: args.HeaderIntegrityVerifier,
-		SizeCheckDelta:          uint32(sizeCheckDelta),
-		ValidityAttester:        validityAttester,
-		EpochStartTrigger:       epochStartTrigger,
-		WhiteListHandler:        args.WhiteListHandler,
-		WhiteListerVerifiedTxs:  args.WhiteListerVerifiedTxs,
-		AntifloodHandler:        antiFloodHandler,
-		ArgumentsParser:         args.ArgumentsParser,
-		EnableEpochs:            args.EnableEpochs,
-		PreferredPeersHolder:    disabled.NewPreferredPeersHolder(),
-		RequestHandler:          args.RequestHandler,
-		GuardianSigVerifier:     args.GuardianSigVerifier,
+		CoreComponents:               args.CoreComponents,
+		CryptoComponents:             cryptoComponents,
+		Accounts:                     accountsAdapter,
+		ShardCoordinator:             args.ShardCoordinator,
+		NodesCoordinator:             nodesCoordinator,
+		Messenger:                    args.Messenger,
+		Store:                        storer,
+		DataPool:                     args.DataPool,
+		MaxTxNonceDeltaAllowed:       common.MaxTxNonceDeltaAllowed,
+		TxFeeHandler:                 feeHandler,
+		BlockBlackList:               blackListHandler,
+		HeaderSigVerifier:            headerSigVerifier,
+		HeaderIntegrityVerifier:      args.HeaderIntegrityVerifier,
+		ValidityAttester:             validityAttester,
+		EpochStartTrigger:            epochStartTrigger,
+		WhiteListHandler:             args.WhiteListHandler,
+		WhiteListerVerifiedTxs:       args.WhiteListerVerifiedTxs,
+		AntifloodHandler:             antiFloodHandler,
+		ArgumentsParser:              args.ArgumentsParser,
+		PreferredPeersHolder:         disabled.NewPreferredPeersHolder(),
+		SizeCheckDelta:               uint32(sizeCheckDelta),
+		EnableEpochs:                 args.EnableEpochs,
+		RequestHandler:               args.RequestHandler,
+		PeerSignatureHandler:         cryptoComponents.PeerSignatureHandler(),
+		SignaturesHandler:            args.SignaturesHandler,
+		HeartbeatExpiryTimespanInSec: args.Config.HeartbeatV2.HeartbeatExpiryTimespanInSec,
+		PeerShardMapper:              peerShardMapper,
+		HardforkTrigger:              hardforkTrigger,
+		GuardianSigVerifier:          args.GuardianSigVerifier,
 	}
 
 	interceptorsContainerFactory, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(containerFactoryArgs)

@@ -31,9 +31,11 @@ type baseAccountsSyncer struct {
 	maxTrieLevelInMemory      uint
 	name                      string
 	maxHardCapForMissingNodes int
-	trieSyncerVersion         int
-	numTriesSynced            int32
-	numMaxTries               int32
+	checkNodesOnDisk          bool
+
+	trieSyncerVersion int
+	numTriesSynced    int32
+	numMaxTries       int32
 }
 
 const timeBetweenStatisticsPrints = time.Second * 2
@@ -49,6 +51,7 @@ type ArgsNewBaseAccountsSyncer struct {
 	MaxTrieLevelInMemory      uint
 	MaxHardCapForMissingNodes int
 	TrieSyncerVersion         int
+	CheckNodesOnDisk          bool
 }
 
 func checkArgs(args ArgsNewBaseAccountsSyncer) error {
@@ -101,6 +104,7 @@ func (b *baseAccountsSyncer) syncMainTrie(
 		TrieSyncStatistics:        ssh,
 		TimeoutHandler:            b.timeoutHandler,
 		MaxHardCapForMissingNodes: b.maxHardCapForMissingNodes,
+		CheckNodesOnDisk:          b.checkNodesOnDisk,
 	}
 	trieSyncer, err := trie.CreateTrieSyncer(arg, b.trieSyncerVersion)
 	if err != nil {

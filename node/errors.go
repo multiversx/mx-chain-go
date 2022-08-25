@@ -133,5 +133,11 @@ var ErrCannotCastUserAccountHandlerToVmCommonUserAccountHandler = errors.New("ca
 // ErrTrieOperationsTimeout signals that a trie operation took too long
 var ErrTrieOperationsTimeout = errors.New("trie operations timeout")
 
+// ErrNotImplemented signals that a feature is not yet implemented
+var ErrNotImplemented = errors.New("feature not implemented")
+
+// ErrNotSupported signals that an operation is not supported
+var ErrNotSupported = errors.New("operation not supported")
+
 // ErrNilCreateTransactionArgs signals that create transaction args is nil
 var ErrNilCreateTransactionArgs = errors.New("nil args for create transaction")
