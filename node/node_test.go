@@ -3930,6 +3930,7 @@ func getDefaultProcessComponents() *factoryMock.ProcessComponentsMock {
 		WhiteListerVerifiedTxsInternal:       &testscommon.WhiteListHandlerStub{},
 		TxsSenderHandlerField:                &txsSenderMock.TxsSenderHandlerMock{},
 		ScheduledTxsExecutionHandlerInternal: &testscommon.ScheduledTxsExecutionStub{},
+		HistoryRepositoryInternal:            &dblookupext.HistoryRepositoryStub{},
 	}
 }
 

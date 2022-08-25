@@ -4,6 +4,7 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
 	"github.com/stretchr/testify/require"
@@ -69,4 +70,20 @@ func TestSetEpochHandlerToHdrResolver_Ok(t *testing.T) {
 
 	err := dataRetriever.SetEpochHandlerToHdrResolver(resolverContainer, epochHandler)
 	require.Nil(t, err)
+}
+
+func TestGetHdrNonceHashDataUnit(t *testing.T) {
+	t.Parallel()
+
+	require.Equal(t, dataRetriever.ShardHdrNonceHashDataUnit, dataRetriever.GetHdrNonceHashDataUnit(0))
+	require.Equal(t, dataRetriever.ShardHdrNonceHashDataUnit+1, dataRetriever.GetHdrNonceHashDataUnit(1))
+	require.Equal(t, dataRetriever.MetaHdrNonceHashDataUnit, dataRetriever.GetHdrNonceHashDataUnit(core.MetachainShardId))
+}
+
+func TestGetHeadersDataUnit(t *testing.T) {
+	t.Parallel()
+
+	require.Equal(t, dataRetriever.BlockHeaderUnit, dataRetriever.GetHeadersDataUnit(0))
+	require.Equal(t, dataRetriever.BlockHeaderUnit, dataRetriever.GetHeadersDataUnit(1))
+	require.Equal(t, dataRetriever.MetaBlockUnit, dataRetriever.GetHeadersDataUnit(core.MetachainShardId))
 }
