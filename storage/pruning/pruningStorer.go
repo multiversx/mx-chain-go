@@ -109,7 +109,7 @@ func NewPruningStorer(args *StorerArgs) (*PruningStorer, error) {
 		return nil, err
 	}
 
-	activePersisters, persistersMapByEpoch, err := initPersistersInEpoch(args, "", newPersistersTracker(args.EpochsData))
+	activePersisters, persistersMapByEpoch, err := initPersistersInEpoch(args, "")
 	if err != nil {
 		return nil, err
 	}
@@ -206,7 +206,6 @@ func (ps *PruningStorer) lastEpochNeeded() uint32 {
 func initPersistersInEpoch(
 	args *StorerArgs,
 	shardIDStr string,
-	persistersTracker persistersTracker,
 ) ([]*persisterData, map[uint32]*persisterData, error) {
 	if !args.PruningEnabled {
 		return createPersisterIfPruningDisabled(args, shardIDStr)
@@ -220,7 +219,7 @@ func initPersistersInEpoch(
 	persistersMapByEpoch := make(map[uint32]*persisterData)
 
 	for epoch := int64(args.EpochsData.StartingEpoch); epoch >= 0; epoch-- {
-		if persistersTracker.hasInitializedEnoughPersisters(epoch) {
+		if args.PersistersTracker.HasInitializedEnoughPersisters(epoch) {
 			break
 		}
 
@@ -232,10 +231,10 @@ func initPersistersInEpoch(
 
 		persistersMapByEpoch[uint32(epoch)] = p
 
-		shouldClosePersister := persistersTracker.shouldClosePersister(epoch)
-		persistersTracker.collectPersisterData(p.persister)
+		ShouldClosePersister := args.PersistersTracker.ShouldClosePersister(epoch)
+		args.PersistersTracker.CollectPersisterData(p.persister)
 
-		if shouldClosePersister {
+		if ShouldClosePersister {
 			err = p.Close()
 			if err != nil {
 				log.Debug("persister.Close()", "identifier", args.Identifier, "error", err.Error())

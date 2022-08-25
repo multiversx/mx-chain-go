@@ -7,8 +7,9 @@ type normalPersistersTracker struct {
 	oldestEpochActive int64
 }
 
-// This component is not safe to use in a concurrent manner
-func newPersistersTracker(args *EpochArgs) *normalPersistersTracker {
+// NewPersistersTracker creates a new instance of normalPersistersTracker.
+// It is not safe to use in a concurrent manner
+func NewPersistersTracker(args *EpochArgs) *normalPersistersTracker {
 	oldestEpochActive, oldestEpochKeep := computeOldestEpochActiveAndToKeep(args)
 
 	return &normalPersistersTracker{
@@ -17,15 +18,21 @@ func newPersistersTracker(args *EpochArgs) *normalPersistersTracker {
 	}
 }
 
-// hasInitializedEnoughPersisters returns true if enough persisters have been initialized
-func (pi *normalPersistersTracker) hasInitializedEnoughPersisters(epoch int64) bool {
+// HasInitializedEnoughPersisters returns true if enough persisters have been initialized
+func (pi *normalPersistersTracker) HasInitializedEnoughPersisters(epoch int64) bool {
 	return epoch < pi.oldestEpochKeep
 }
 
-func (pi *normalPersistersTracker) collectPersisterData(_ storage.Persister) {
+// CollectPersisterData gathers data about the persisters
+func (pi *normalPersistersTracker) CollectPersisterData(_ storage.Persister) {
 }
 
-// shouldClosePersister returns true if the given persister needs to be closed
-func (pi *normalPersistersTracker) shouldClosePersister(epoch int64) bool {
+// ShouldClosePersister returns true if the given persister needs to be closed
+func (pi *normalPersistersTracker) ShouldClosePersister(epoch int64) bool {
 	return epoch < pi.oldestEpochActive
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (pi *normalPersistersTracker) IsInterfaceNil() bool {
+	return pi == nil
 }

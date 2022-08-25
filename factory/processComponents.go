@@ -1209,6 +1209,7 @@ func (pcf *processComponentsFactory) newStorageResolver() (dataRetriever.Resolve
 		pcf.coreData.NodeTypeProvider(),
 		pcf.bootstrapComponents.EpochBootstrapParams().Epoch(),
 		false,
+		storageFactory.ProcessStorageService,
 	)
 	if err != nil {
 		return nil, err

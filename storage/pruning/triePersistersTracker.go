@@ -14,8 +14,9 @@ type triePersistersTracker struct {
 	numDbsMarkedAsSynced int
 }
 
-// This component is not safe to use in a concurrent manner
-func newTriePersisterTracker(args *EpochArgs) *triePersistersTracker {
+// NewTriePersisterTracker creates a new instance of triePersistersTracker.
+// It is not safe to use in a concurrent manner
+func NewTriePersisterTracker(args *EpochArgs) *triePersistersTracker {
 	oldestEpochActive, oldestEpochKeep := computeOldestEpochActiveAndToKeep(args)
 
 	return &triePersistersTracker{
@@ -26,8 +27,8 @@ func newTriePersisterTracker(args *EpochArgs) *triePersistersTracker {
 	}
 }
 
-// hasInitializedEnoughPersisters returns true if enough persisters have been initialized
-func (tpi *triePersistersTracker) hasInitializedEnoughPersisters(epoch int64) bool {
+// HasInitializedEnoughPersisters returns true if enough persisters have been initialized
+func (tpi *triePersistersTracker) HasInitializedEnoughPersisters(epoch int64) bool {
 	shouldKeepEpoch := epoch >= tpi.oldestEpochKeep
 	if shouldKeepEpoch {
 		return false
@@ -45,12 +46,13 @@ func (tpi *triePersistersTracker) hasActiveDbsNecessary() bool {
 	return tpi.numDbsMarkedAsActive >= minNumOfActiveDBsNecessary
 }
 
-// shouldClosePersister returns true if the given persister needs to be closed
-func (tpi *triePersistersTracker) shouldClosePersister(epoch int64) bool {
+// ShouldClosePersister returns true if the given persister needs to be closed
+func (tpi *triePersistersTracker) ShouldClosePersister(epoch int64) bool {
 	return epoch < tpi.oldestEpochActive && tpi.hasActiveDbsNecessary()
 }
 
-func (tpi *triePersistersTracker) collectPersisterData(p storage.Persister) {
+// CollectPersisterData gathers data about the persisters
+func (tpi *triePersistersTracker) CollectPersisterData(p storage.Persister) {
 	if isDbMarkedAsActive(p) {
 		tpi.numDbsMarkedAsActive++
 	}
@@ -76,4 +78,9 @@ func isDbMarkedAsActive(p storage.Persister) bool {
 	}
 
 	return bytes.Equal(val, []byte(common.ActiveDBVal))
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (tpi *triePersistersTracker) IsInterfaceNil() bool {
+	return tpi == nil
 }

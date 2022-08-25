@@ -70,22 +70,25 @@ func getDefaultArgs() *pruning.StorerArgs {
 			return persister, nil
 		},
 	}
+
+	epochsData := &pruning.EpochArgs{
+		NumOfEpochsToKeep:     2,
+		NumOfActivePersisters: 2,
+	}
 	return &pruning.StorerArgs{
-		PruningEnabled:   true,
-		Identifier:       "id",
-		ShardCoordinator: mock.NewShardCoordinatorMock(0, 2),
-		PathManager:      &testscommon.PathManagerStub{},
-		CacheConf:        cacheConf,
-		DbPath:           dbConf.FilePath,
-		PersisterFactory: persisterFactory,
-		EpochsData: &pruning.EpochArgs{
-			NumOfEpochsToKeep:     2,
-			NumOfActivePersisters: 2,
-		},
+		PruningEnabled:         true,
+		Identifier:             "id",
+		ShardCoordinator:       mock.NewShardCoordinatorMock(0, 2),
+		PathManager:            &testscommon.PathManagerStub{},
+		CacheConf:              cacheConf,
+		DbPath:                 dbConf.FilePath,
+		PersisterFactory:       persisterFactory,
+		EpochsData:             epochsData,
 		Notifier:               &mock.EpochStartNotifierStub{},
 		OldDataCleanerProvider: &testscommon.OldDataCleanerProviderStub{},
 		CustomDatabaseRemover:  &testscommon.CustomDatabaseRemoverStub{},
 		MaxBatchSize:           10,
+		PersistersTracker:      pruning.NewPersistersTracker(epochsData),
 	}
 }
 
@@ -100,22 +103,24 @@ func getDefaultArgsSerialDB() *pruning.StorerArgs {
 	pathManager := &testscommon.PathManagerStub{PathForEpochCalled: func(shardId string, epoch uint32, identifier string) string {
 		return fmt.Sprintf("TestOnly-Epoch_%d/Shard_%s/%s", epoch, shardId, identifier)
 	}}
+	epochData := &pruning.EpochArgs{
+		NumOfEpochsToKeep:     3,
+		NumOfActivePersisters: 2,
+	}
 	return &pruning.StorerArgs{
-		PruningEnabled:   true,
-		Identifier:       "id",
-		ShardCoordinator: mock.NewShardCoordinatorMock(0, 2),
-		PathManager:      pathManager,
-		CacheConf:        cacheConf,
-		DbPath:           dbConf.FilePath,
-		PersisterFactory: persisterFactory,
-		EpochsData: &pruning.EpochArgs{
-			NumOfEpochsToKeep:     3,
-			NumOfActivePersisters: 2,
-		},
+		PruningEnabled:         true,
+		Identifier:             "id",
+		ShardCoordinator:       mock.NewShardCoordinatorMock(0, 2),
+		PathManager:            pathManager,
+		CacheConf:              cacheConf,
+		DbPath:                 dbConf.FilePath,
+		PersisterFactory:       persisterFactory,
+		EpochsData:             epochData,
 		Notifier:               &mock.EpochStartNotifierStub{},
 		OldDataCleanerProvider: &testscommon.OldDataCleanerProviderStub{},
 		CustomDatabaseRemover:  &testscommon.CustomDatabaseRemoverStub{},
 		MaxBatchSize:           20,
+		PersistersTracker:      pruning.NewPersistersTracker(epochData),
 	}
 }
 

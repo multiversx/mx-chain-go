@@ -21,6 +21,7 @@ type StorerArgs struct {
 	EpochsData                *EpochArgs
 	PruningEnabled            bool
 	EnabledDbLookupExtensions bool
+	PersistersTracker         PersistersTracker
 }
 
 // EpochArgs will hold the arguments needed for persistersTracker

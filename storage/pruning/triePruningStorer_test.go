@@ -275,8 +275,10 @@ func TestTriePruningStorer_OpenMoreDbsIfNecessary(t *testing.T) {
 
 	args.EpochsData.StartingEpoch = 4
 	args.EpochsData.NumOfEpochsToKeep = 5
+	args.PersistersTracker = pruning.NewPersistersTracker(args.EpochsData)
 	ps, _ := pruning.NewPruningStorer(args)
 	assert.Equal(t, 2, ps.GetNumActivePersisters())
+	args.PersistersTracker = pruning.NewTriePersisterTracker(args.EpochsData)
 	tps, _ = pruning.NewTriePruningStorer(args)
 	assert.Equal(t, 4, tps.GetNumActivePersisters())
 }

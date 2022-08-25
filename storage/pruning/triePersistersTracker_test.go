@@ -12,7 +12,7 @@ import (
 func TestNewTriePersistersTracker(t *testing.T) {
 	t.Parallel()
 
-	pt := newTriePersisterTracker(getArgs())
+	pt := NewTriePersisterTracker(getArgs())
 	assert.NotNil(t, pt)
 	assert.Equal(t, int64(7), pt.oldestEpochKeep)
 	assert.Equal(t, int64(8), pt.oldestEpochActive)
@@ -20,63 +20,63 @@ func TestNewTriePersistersTracker(t *testing.T) {
 	assert.Equal(t, 0, pt.numDbsMarkedAsSynced)
 }
 
-func TestTriePersistersTracker_hasInitializedEnoughPersisters(t *testing.T) {
+func TestTriePersistersTracker_HasInitializedEnoughPersisters(t *testing.T) {
 	t.Parallel()
 
 	t.Run("test epoch and oldestEpochKeep", func(t *testing.T) {
 		t.Parallel()
 
-		pt := newTriePersisterTracker(getArgs())
+		pt := NewTriePersisterTracker(getArgs())
 		assert.Equal(t, int64(7), pt.oldestEpochKeep)
 		pt.numDbsMarkedAsActive = 2
 
-		assert.True(t, pt.hasInitializedEnoughPersisters(6))
-		assert.False(t, pt.hasInitializedEnoughPersisters(7))
-		assert.False(t, pt.hasInitializedEnoughPersisters(8))
+		assert.True(t, pt.HasInitializedEnoughPersisters(6))
+		assert.False(t, pt.HasInitializedEnoughPersisters(7))
+		assert.False(t, pt.HasInitializedEnoughPersisters(8))
 	})
 
 	t.Run("test storageHashBeenSynced", func(t *testing.T) {
 		t.Parallel()
 
-		pt := newTriePersisterTracker(getArgs())
+		pt := NewTriePersisterTracker(getArgs())
 		assert.Equal(t, int64(7), pt.oldestEpochKeep)
 		pt.numDbsMarkedAsActive = 1
 		pt.numDbsMarkedAsSynced = 1
 
-		assert.True(t, pt.hasInitializedEnoughPersisters(6))
-		assert.False(t, pt.hasInitializedEnoughPersisters(7))
-		assert.False(t, pt.hasInitializedEnoughPersisters(8))
+		assert.True(t, pt.HasInitializedEnoughPersisters(6))
+		assert.False(t, pt.HasInitializedEnoughPersisters(7))
+		assert.False(t, pt.HasInitializedEnoughPersisters(8))
 
 		pt.numDbsMarkedAsActive = 0
-		assert.False(t, pt.hasInitializedEnoughPersisters(6))
+		assert.False(t, pt.HasInitializedEnoughPersisters(6))
 
 		pt.numDbsMarkedAsActive = 1
 		pt.numDbsMarkedAsSynced = 0
-		assert.False(t, pt.hasInitializedEnoughPersisters(6))
+		assert.False(t, pt.HasInitializedEnoughPersisters(6))
 	})
 
 	t.Run("test hasActiveDbsNecessary", func(t *testing.T) {
 		t.Parallel()
 
-		pt := newTriePersisterTracker(getArgs())
+		pt := NewTriePersisterTracker(getArgs())
 		assert.Equal(t, int64(7), pt.oldestEpochKeep)
 
-		assert.False(t, pt.hasInitializedEnoughPersisters(6))
-		assert.False(t, pt.hasInitializedEnoughPersisters(7))
-		assert.False(t, pt.hasInitializedEnoughPersisters(8))
+		assert.False(t, pt.HasInitializedEnoughPersisters(6))
+		assert.False(t, pt.HasInitializedEnoughPersisters(7))
+		assert.False(t, pt.HasInitializedEnoughPersisters(8))
 
 		pt.numDbsMarkedAsActive = 1
-		assert.False(t, pt.hasInitializedEnoughPersisters(6))
+		assert.False(t, pt.HasInitializedEnoughPersisters(6))
 
 		pt.numDbsMarkedAsActive = 2
-		assert.True(t, pt.hasInitializedEnoughPersisters(6))
+		assert.True(t, pt.HasInitializedEnoughPersisters(6))
 
 		pt.numDbsMarkedAsActive = 3
-		assert.True(t, pt.hasInitializedEnoughPersisters(6))
+		assert.True(t, pt.HasInitializedEnoughPersisters(6))
 	})
 }
 
-func TestTriePersistersTracker_collectPersisterData(t *testing.T) {
+func TestTriePersistersTracker_CollectPersisterData(t *testing.T) {
 	t.Parallel()
 
 	t.Run("increases numDbsMarkedAsActive", func(t *testing.T) {
@@ -90,12 +90,12 @@ func TestTriePersistersTracker_collectPersisterData(t *testing.T) {
 				return nil, nil
 			},
 		}
-		pt := newTriePersisterTracker(getArgs())
+		pt := NewTriePersisterTracker(getArgs())
 		assert.Equal(t, int64(8), pt.oldestEpochActive)
 		assert.Equal(t, 0, pt.numDbsMarkedAsSynced)
 		assert.Equal(t, 0, pt.numDbsMarkedAsActive)
 
-		pt.collectPersisterData(p)
+		pt.CollectPersisterData(p)
 		assert.Equal(t, 0, pt.numDbsMarkedAsSynced)
 		assert.Equal(t, 1, pt.numDbsMarkedAsActive)
 	})
@@ -111,28 +111,28 @@ func TestTriePersistersTracker_collectPersisterData(t *testing.T) {
 				return nil, nil
 			},
 		}
-		pt := newTriePersisterTracker(getArgs())
+		pt := NewTriePersisterTracker(getArgs())
 		assert.Equal(t, int64(8), pt.oldestEpochActive)
 		assert.Equal(t, 0, pt.numDbsMarkedAsSynced)
 		assert.Equal(t, 0, pt.numDbsMarkedAsActive)
 
-		pt.collectPersisterData(p)
+		pt.CollectPersisterData(p)
 		assert.Equal(t, 1, pt.numDbsMarkedAsSynced)
 		assert.Equal(t, 0, pt.numDbsMarkedAsActive)
 	})
 }
 
-func TestTriePersistersTracker_shouldClosePersister(t *testing.T) {
+func TestTriePersistersTracker_ShouldClosePersister(t *testing.T) {
 	t.Parallel()
 
-	pt := newTriePersisterTracker(getArgs())
+	pt := NewTriePersisterTracker(getArgs())
 	assert.Equal(t, int64(8), pt.oldestEpochActive)
 
 	assert.Equal(t, 0, pt.numDbsMarkedAsActive)
-	assert.False(t, pt.shouldClosePersister(7))
+	assert.False(t, pt.ShouldClosePersister(7))
 
 	pt.numDbsMarkedAsActive = 2
-	assert.True(t, pt.shouldClosePersister(7))
+	assert.True(t, pt.ShouldClosePersister(7))
 
-	assert.False(t, pt.shouldClosePersister(8))
+	assert.False(t, pt.ShouldClosePersister(8))
 }

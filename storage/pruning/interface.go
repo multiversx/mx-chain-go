@@ -18,9 +18,10 @@ type DbFactoryHandler interface {
 	IsInterfaceNil() bool
 }
 
-// persistersTracker defines what a persisters tracker should do
-type persistersTracker interface {
-	hasInitializedEnoughPersisters(epoch int64) bool
-	shouldClosePersister(epoch int64) bool
-	collectPersisterData(p storage.Persister)
+// PersistersTracker defines what a persisters tracker should do
+type PersistersTracker interface {
+	HasInitializedEnoughPersisters(epoch int64) bool
+	ShouldClosePersister(epoch int64) bool
+	CollectPersisterData(p storage.Persister)
+	IsInterfaceNil() bool
 }
