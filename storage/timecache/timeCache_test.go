@@ -1,6 +1,7 @@
 package timecache
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -10,7 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-//------- Add
+// ------- Add
 
 func TestTimeCache_EmptyKeyShouldErr(t *testing.T) {
 	t.Parallel()
@@ -95,7 +96,7 @@ func TestTimeCache_AddWithSpanShouldWork(t *testing.T) {
 	assert.Equal(t, duration, spanRecovered.span)
 }
 
-//------- Has
+// ------- Has
 
 func TestTimeCache_HasNotExistingShouldRetFalse(t *testing.T) {
 	t.Parallel()
@@ -145,7 +146,7 @@ func TestTimeCache_HasCheckHandlingInconsistency(t *testing.T) {
 	tc := NewTimeCache(time.Second)
 	key := "key1"
 	_ = tc.Add(key)
-	tc.ClearMap()
+	tc.timeCache.clear()
 	tc.Sweep()
 
 	exists := tc.Has(key)
@@ -154,7 +155,7 @@ func TestTimeCache_HasCheckHandlingInconsistency(t *testing.T) {
 	assert.Equal(t, 0, len(tc.Keys()))
 }
 
-//------- Upsert
+// ------- Upsert
 
 func TestTimeCache_UpsertEmptyKeyShouldErr(t *testing.T) {
 	t.Parallel()
@@ -215,7 +216,19 @@ func TestTimeCache_UpsertmoreSpanShouldUpdate(t *testing.T) {
 	assert.Equal(t, highSpan, recovered.span)
 }
 
-//------- IsInterfaceNil
+func TestTimeCache_Len(t *testing.T) {
+	t.Parallel()
+
+	tc := NewTimeCache(time.Second)
+	assert.Equal(t, 0, tc.Len())
+	numTests := 10
+	for i := 0; i < numTests; i++ {
+		_ = tc.Add(fmt.Sprintf("%d", i))
+		assert.Equal(t, i+1, tc.Len())
+	}
+}
+
+// ------- IsInterfaceNil
 
 func TestTimeCache_IsInterfaceNilNotNil(t *testing.T) {
 	t.Parallel()

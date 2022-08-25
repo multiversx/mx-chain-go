@@ -198,13 +198,19 @@ func (txc *transactionCounter) displayTxBlockBody(
 			processingTypeInMiniBlockHeaderStr = getProcessingTypeAsString(miniBlockHeaders[i])
 		}
 
+		constructionStateInMiniBlockHeaderStr := ""
+		if len(miniBlockHeaders) > i {
+			constructionStateInMiniBlockHeaderStr = getConstructionStateAsString(miniBlockHeaders[i])
+		}
+
 		processingTypeInMiniBlockStr := ""
 		if miniBlock.IsScheduledMiniBlock() {
 			processingTypeInMiniBlockStr = "S_"
 		}
 
-		part := fmt.Sprintf("%s%s_MiniBlock_%s%d->%d",
+		part := fmt.Sprintf("%s%s%s_MiniBlock_%s%d->%d",
 			processingTypeInMiniBlockHeaderStr,
+			constructionStateInMiniBlockHeaderStr,
 			miniBlock.Type.String(),
 			processingTypeInMiniBlockStr,
 			miniBlock.SenderShardID,
@@ -217,6 +223,8 @@ func (txc *transactionCounter) displayTxBlockBody(
 
 		if len(miniBlockHeaders) > i {
 			lines = append(lines, display.NewLineData(false, []string{"", "MbHash", logger.DisplayByteSlice(miniBlockHeaders[i].GetHash())}))
+			strProcessedRange := fmt.Sprintf("%d-%d", miniBlockHeaders[i].GetIndexOfFirstTxProcessed(), miniBlockHeaders[i].GetIndexOfLastTxProcessed())
+			lines = append(lines, display.NewLineData(false, []string{"", "TxsProcessedRange", strProcessedRange}))
 		}
 
 		currentBlockTxs += len(miniBlock.TxHashes)
@@ -258,6 +266,18 @@ func getProcessingTypeAsString(miniBlockHeader data.MiniBlockHeaderHandler) stri
 		return "Scheduled_"
 	case block.Processed:
 		return "Processed_"
+	}
+
+	return ""
+}
+
+func getConstructionStateAsString(miniBlockHeader data.MiniBlockHeaderHandler) string {
+	constructionState := block.MiniBlockState(miniBlockHeader.GetConstructionState())
+	switch constructionState {
+	case block.Proposed:
+		return "Proposed_"
+	case block.PartialExecuted:
+		return "Partial_"
 	}
 
 	return ""

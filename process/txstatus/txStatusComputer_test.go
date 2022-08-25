@@ -179,7 +179,7 @@ func TestStatusComputer_SetStatusIfIsRewardReverted(t *testing.T) {
 	headerHash := []byte("hash-1")
 	headerNonce := uint64(10)
 	nonceBytes := uint64Converter.ToByteSlice(headerNonce)
-	_ = chainStorer.HdrNonce.Put(nonceBytes, headerHash)
+	_ = chainStorer.MetaHdrNonce.Put(nonceBytes, headerHash)
 	statusComputer, err = NewStatusComputer(common.MetachainShardId, uint64Converter, chainStorer)
 	require.Nil(t, err)
 
@@ -194,7 +194,7 @@ func TestStatusComputer_SetStatusIfIsRewardReverted(t *testing.T) {
 	headerHash = []byte("hash-2")
 	headerNonce = uint64(12)
 	nonceBytes = uint64Converter.ToByteSlice(headerNonce)
-	_ = chainStorer.HdrNonce.Put(nonceBytes, headerHash)
+	_ = chainStorer.MetaHdrNonce.Put(nonceBytes, headerHash)
 	statusComputer, err = NewStatusComputer(0, uint64Converter, chainStorer)
 	require.Nil(t, err)
 
@@ -209,7 +209,7 @@ func TestStatusComputer_SetStatusIfIsRewardReverted(t *testing.T) {
 	headerHash = []byte("hash-3")
 	headerNonce = uint64(12)
 	nonceBytes = uint64Converter.ToByteSlice(headerNonce)
-	_ = chainStorer.HdrNonce.Put(nonceBytes, headerHash)
+	_ = chainStorer.MetaHdrNonce.Put(nonceBytes, headerHash)
 	statusComputer, err = NewStatusComputer(common.MetachainShardId, uint64Converter, chainStorer)
 	require.Nil(t, err)
 

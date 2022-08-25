@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package proto;
+
+option go_package = "message";
+option (gogoproto.stable_marshaler_all) = true;
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+
+// DirectConnectionInfo represents the data regarding a new direct connection`s info
+message DirectConnectionInfo {
+  string  ShardId = 1 [(gogoproto.jsontag) = "shardId"];
+}

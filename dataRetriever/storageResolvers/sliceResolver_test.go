@@ -20,7 +20,7 @@ func createMockSliceResolverArg() ArgSliceResolver {
 	return ArgSliceResolver{
 		Messenger:                &mock.MessageHandlerStub{},
 		ResponseTopicName:        "",
-		Storage:                  genericMocks.NewStorerMock("Storage", 0),
+		Storage:                  genericMocks.NewStorerMock(),
 		DataPacker:               &mock.DataPackerStub{},
 		Marshalizer:              &mock.MarshalizerMock{},
 		ManualEpochStartNotifier: &mock.ManualEpochStartNotifierStub{},

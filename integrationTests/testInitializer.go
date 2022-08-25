@@ -55,7 +55,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager/evictionWaitingList"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
-	storageMock "github.com/ElrondNetwork/elrond-go/storage/mock"
 	"github.com/ElrondNetwork/elrond-go/storage/pruning"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
@@ -64,6 +63,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/genesisMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/guardianMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
+	testStorage "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/trie/hashesHolder"
@@ -130,8 +130,7 @@ func GetConnectableAddress(mes p2p.Messenger) string {
 func createP2PConfig(initialPeerList []string) config.P2PConfig {
 	return config.P2PConfig{
 		Node: config.NodeConfig{
-			Port:                  "0",
-			ConnectionWatcherType: "print",
+			Port: "0",
 		},
 		KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
 			Enabled:                          true,
@@ -155,13 +154,14 @@ func CreateMessengerWithKadDht(initialAddr string) p2p.Messenger {
 		initialAddresses = append(initialAddresses, initialAddr)
 	}
 	arg := libp2p.ArgsNetworkMessenger{
-		Marshalizer:          TestMarshalizer,
-		ListenAddress:        libp2p.ListenLocalhostAddrWithIp4AndTcp,
-		P2pConfig:            createP2PConfig(initialAddresses),
-		SyncTimer:            &libp2p.LocalSyncTimer{},
-		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
-		NodeOperationMode:    p2p.NormalOperation,
-		PeersRatingHandler:   &p2pmocks.PeersRatingHandlerStub{},
+		Marshalizer:           TestMarshalizer,
+		ListenAddress:         libp2p.ListenLocalhostAddrWithIp4AndTcp,
+		P2pConfig:             createP2PConfig(initialAddresses),
+		SyncTimer:             &libp2p.LocalSyncTimer{},
+		PreferredPeersHolder:  &p2pmocks.PeersHolderStub{},
+		NodeOperationMode:     p2p.NormalOperation,
+		PeersRatingHandler:    &p2pmocks.PeersRatingHandlerStub{},
+		ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
 	}
 
 	libP2PMes, err := libp2p.NewNetworkMessenger(arg)
@@ -179,13 +179,14 @@ func CreateMessengerWithKadDhtAndProtocolID(initialAddr string, protocolID strin
 	p2pConfig := createP2PConfig(initialAddresses)
 	p2pConfig.KadDhtPeerDiscovery.ProtocolID = protocolID
 	arg := libp2p.ArgsNetworkMessenger{
-		Marshalizer:          TestMarshalizer,
-		ListenAddress:        libp2p.ListenLocalhostAddrWithIp4AndTcp,
-		P2pConfig:            p2pConfig,
-		SyncTimer:            &libp2p.LocalSyncTimer{},
-		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
-		NodeOperationMode:    p2p.NormalOperation,
-		PeersRatingHandler:   &p2pmocks.PeersRatingHandlerStub{},
+		Marshalizer:           TestMarshalizer,
+		ListenAddress:         libp2p.ListenLocalhostAddrWithIp4AndTcp,
+		P2pConfig:             p2pConfig,
+		SyncTimer:             &libp2p.LocalSyncTimer{},
+		PreferredPeersHolder:  &p2pmocks.PeersHolderStub{},
+		NodeOperationMode:     p2p.NormalOperation,
+		PeersRatingHandler:    &p2pmocks.PeersRatingHandlerStub{},
+		ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
 	}
 
 	libP2PMes, err := libp2p.NewNetworkMessenger(arg)
@@ -197,13 +198,14 @@ func CreateMessengerWithKadDhtAndProtocolID(initialAddr string, protocolID strin
 // CreateMessengerFromConfig creates a new libp2p messenger with provided configuration
 func CreateMessengerFromConfig(p2pConfig config.P2PConfig) p2p.Messenger {
 	arg := libp2p.ArgsNetworkMessenger{
-		Marshalizer:          TestMarshalizer,
-		ListenAddress:        libp2p.ListenLocalhostAddrWithIp4AndTcp,
-		P2pConfig:            p2pConfig,
-		SyncTimer:            &libp2p.LocalSyncTimer{},
-		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
-		NodeOperationMode:    p2p.NormalOperation,
-		PeersRatingHandler:   &p2pmocks.PeersRatingHandlerStub{},
+		Marshalizer:           TestMarshalizer,
+		ListenAddress:         libp2p.ListenLocalhostAddrWithIp4AndTcp,
+		P2pConfig:             p2pConfig,
+		SyncTimer:             &libp2p.LocalSyncTimer{},
+		PreferredPeersHolder:  &p2pmocks.PeersHolderStub{},
+		NodeOperationMode:     p2p.NormalOperation,
+		PeersRatingHandler:    &p2pmocks.PeersRatingHandlerStub{},
+		ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
 	}
 
 	if p2pConfig.Sharding.AdditionalConnections.MaxFullHistoryObservers > 0 {
@@ -220,13 +222,14 @@ func CreateMessengerFromConfig(p2pConfig config.P2PConfig) p2p.Messenger {
 // CreateMessengerFromConfigWithPeersRatingHandler creates a new libp2p messenger with provided configuration
 func CreateMessengerFromConfigWithPeersRatingHandler(p2pConfig config.P2PConfig, peersRatingHandler p2p.PeersRatingHandler) p2p.Messenger {
 	arg := libp2p.ArgsNetworkMessenger{
-		Marshalizer:          TestMarshalizer,
-		ListenAddress:        libp2p.ListenLocalhostAddrWithIp4AndTcp,
-		P2pConfig:            p2pConfig,
-		SyncTimer:            &libp2p.LocalSyncTimer{},
-		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
-		NodeOperationMode:    p2p.NormalOperation,
-		PeersRatingHandler:   peersRatingHandler,
+		Marshalizer:           TestMarshalizer,
+		ListenAddress:         libp2p.ListenLocalhostAddrWithIp4AndTcp,
+		P2pConfig:             p2pConfig,
+		SyncTimer:             &libp2p.LocalSyncTimer{},
+		PreferredPeersHolder:  &p2pmocks.PeersHolderStub{},
+		NodeOperationMode:     p2p.NormalOperation,
+		PeersRatingHandler:    peersRatingHandler,
+		ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
 	}
 
 	if p2pConfig.Sharding.AdditionalConnections.MaxFullHistoryObservers > 0 {
@@ -240,13 +243,12 @@ func CreateMessengerFromConfigWithPeersRatingHandler(p2pConfig config.P2PConfig,
 	return libP2PMes
 }
 
-// CreateMessengerWithNoDiscovery creates a new libp2p messenger with no peer discovery
-func CreateMessengerWithNoDiscovery() p2p.Messenger {
-	p2pConfig := config.P2PConfig{
+// CreateP2PConfigWithNoDiscovery creates a new libp2p messenger with no peer discovery
+func CreateP2PConfigWithNoDiscovery() config.P2PConfig {
+	return config.P2PConfig{
 		Node: config.NodeConfig{
-			Port:                  "0",
-			Seed:                  "",
-			ConnectionWatcherType: "print",
+			Port: "0",
+			Seed: "",
 		},
 		KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
 			Enabled: false,
@@ -255,6 +257,11 @@ func CreateMessengerWithNoDiscovery() p2p.Messenger {
 			Type: p2p.NilListSharder,
 		},
 	}
+}
+
+// CreateMessengerWithNoDiscovery creates a new libp2p messenger with no peer discovery
+func CreateMessengerWithNoDiscovery() p2p.Messenger {
+	p2pConfig := CreateP2PConfigWithNoDiscovery()
 
 	return CreateMessengerFromConfig(p2pConfig)
 }
@@ -263,9 +270,8 @@ func CreateMessengerWithNoDiscovery() p2p.Messenger {
 func CreateMessengerWithNoDiscoveryAndPeersRatingHandler(peersRatingHanlder p2p.PeersRatingHandler) p2p.Messenger {
 	p2pConfig := config.P2PConfig{
 		Node: config.NodeConfig{
-			Port:                  "0",
-			Seed:                  "",
-			ConnectionWatcherType: "print",
+			Port: "0",
+			Seed: "",
 		},
 		KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
 			Enabled: false,
@@ -415,11 +421,11 @@ func CreateTrieStorageManagerWithPruningStorer(coordinator sharding.Coordinator,
 		SnapshotsGoroutineNum: 1,
 	}
 
-	mainStorer, err := createTriePruningStorer(coordinator, notifier)
+	mainStorer, _, err := testStorage.CreateTestingTriePruningStorer(coordinator, notifier)
 	if err != nil {
 		fmt.Println("err creating main storer" + err.Error())
 	}
-	checkpointsStorer, err := createTriePruningStorer(coordinator, notifier)
+	checkpointsStorer, _, err := testStorage.CreateTestingTriePruningStorer(coordinator, notifier)
 	if err != nil {
 		fmt.Println("err creating checkpoints storer" + err.Error())
 	}
@@ -445,7 +451,7 @@ func CreateTrieStorageManager(store storage.Storer) (common.StorageManager, stor
 		SnapshotsGoroutineNum: 1,
 	}
 	args := trie.NewTrieStorageManagerArgs{
-		MainStorer:             CreateMemUnit(),
+		MainStorer:             store,
 		CheckpointsStorer:      CreateMemUnit(),
 		Marshalizer:            TestMarshalizer,
 		Hasher:                 TestHasher,
@@ -456,61 +462,6 @@ func CreateTrieStorageManager(store storage.Storer) (common.StorageManager, stor
 	trieStorageManager, _ := trie.NewTrieStorageManager(args)
 
 	return trieStorageManager, store
-}
-
-func createTriePruningStorer(coordinator sharding.Coordinator, notifier pruning.EpochStartNotifier) (storage.Storer, error) {
-	cacheConf, dbConf := getDummyConfig()
-
-	lockPersisterMap := sync.Mutex{}
-	persistersMap := make(map[string]storage.Persister)
-	persisterFactory := &storageMock.PersisterFactoryStub{
-		CreateCalled: func(path string) (storage.Persister, error) {
-			lockPersisterMap.Lock()
-			defer lockPersisterMap.Unlock()
-
-			persister, exists := persistersMap[path]
-			if !exists {
-				persister = memorydb.New()
-				persistersMap[path] = persister
-			}
-
-			return persister, nil
-		},
-	}
-	args := &pruning.StorerArgs{
-		PruningEnabled:         true,
-		Identifier:             "id",
-		ShardCoordinator:       coordinator,
-		PathManager:            &testscommon.PathManagerStub{},
-		CacheConf:              cacheConf,
-		DbPath:                 dbConf.FilePath,
-		PersisterFactory:       persisterFactory,
-		NumOfEpochsToKeep:      4,
-		NumOfActivePersisters:  4,
-		Notifier:               notifier,
-		OldDataCleanerProvider: &testscommon.OldDataCleanerProviderStub{},
-		CustomDatabaseRemover:  &testscommon.CustomDatabaseRemoverStub{},
-		MaxBatchSize:           10,
-	}
-
-	return pruning.NewTriePruningStorer(args)
-}
-
-func getDummyConfig() (storageUnit.CacheConfig, storageUnit.DBConfig) {
-	cacheConf := storageUnit.CacheConfig{
-		Capacity: 10,
-		Type:     "LRU",
-		Shards:   3,
-	}
-	dbConf := storageUnit.DBConfig{
-		FilePath:          "path/Epoch_0/Shard_1",
-		Type:              "LvlDBSerial",
-		BatchDelaySeconds: 500,
-		MaxBatchSize:      1,
-		MaxOpenFiles:      1000,
-	}
-
-	return cacheConf, dbConf
 }
 
 // CreateAccountsDB creates an account state with a valid trie implementation but with a memory storage

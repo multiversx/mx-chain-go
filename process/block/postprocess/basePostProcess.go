@@ -38,7 +38,7 @@ type basePostProcessor struct {
 
 	mutInterResultsForBlock sync.Mutex
 	interResultsForBlock    map[string]*txInfo
-	mapProcessedResult      map[string]struct{}
+	mapProcessedResult      map[string][][]byte
 	intraShardMiniBlock     *block.MiniBlock
 	economicsFee            process.FeeHandler
 }
@@ -76,7 +76,7 @@ func (bpp *basePostProcessor) CreateBlockStarted() {
 	bpp.mutInterResultsForBlock.Lock()
 	bpp.interResultsForBlock = make(map[string]*txInfo)
 	bpp.intraShardMiniBlock = nil
-	bpp.mapProcessedResult = make(map[string]struct{})
+	bpp.mapProcessedResult = make(map[string][][]byte)
 	bpp.mutInterResultsForBlock.Unlock()
 }
 
@@ -163,24 +163,28 @@ func (bpp *basePostProcessor) GetCreatedInShardMiniBlock() *block.MiniBlock {
 }
 
 // RemoveProcessedResults will remove the processed results since the last init
-func (bpp *basePostProcessor) RemoveProcessedResults() [][]byte {
+func (bpp *basePostProcessor) RemoveProcessedResults(key []byte) [][]byte {
 	bpp.mutInterResultsForBlock.Lock()
 	defer bpp.mutInterResultsForBlock.Unlock()
 
-	listHashes := make([][]byte, 0, len(bpp.mapProcessedResult))
-	for txHash := range bpp.mapProcessedResult {
-		listHashes = append(listHashes, []byte(txHash))
-		delete(bpp.interResultsForBlock, txHash)
+	txHashes, ok := bpp.mapProcessedResult[string(key)]
+	if !ok {
+		return nil
 	}
-	return listHashes
+
+	for _, txHash := range txHashes {
+		delete(bpp.interResultsForBlock, string(txHash))
+	}
+
+	return txHashes
 }
 
 // InitProcessedResults will initialize the processed results
-func (bpp *basePostProcessor) InitProcessedResults() {
+func (bpp *basePostProcessor) InitProcessedResults(key []byte) {
 	bpp.mutInterResultsForBlock.Lock()
 	defer bpp.mutInterResultsForBlock.Unlock()
 
-	bpp.mapProcessedResult = make(map[string]struct{})
+	bpp.mapProcessedResult[string(key)] = make([][]byte, 0)
 }
 
 func (bpp *basePostProcessor) splitMiniBlocksIfNeeded(miniBlocks []*block.MiniBlock) []*block.MiniBlock {
@@ -261,4 +265,19 @@ func createMiniBlocksMap(scrMbs []*block.MiniBlock) map[uint32][]*block.MiniBloc
 	}
 
 	return createdMapMbs
+}
+
+func (bpp *basePostProcessor) addIntermediateTxToResultsForBlock(
+	txHandler data.TransactionHandler,
+	txHash []byte,
+	sndShardID uint32,
+	rcvShardID uint32,
+) {
+	addScrShardInfo := &txShardInfo{receiverShardID: rcvShardID, senderShardID: sndShardID}
+	scrInfo := &txInfo{tx: txHandler, txShardInfo: addScrShardInfo}
+	bpp.interResultsForBlock[string(txHash)] = scrInfo
+
+	for key := range bpp.mapProcessedResult {
+		bpp.mapProcessedResult[key] = append(bpp.mapProcessedResult[key], txHash)
+	}
 }

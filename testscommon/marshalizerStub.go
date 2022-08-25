@@ -8,12 +8,18 @@ type MarshalizerStub struct {
 
 // Marshal -
 func (ms *MarshalizerStub) Marshal(obj interface{}) ([]byte, error) {
-	return ms.MarshalCalled(obj)
+	if ms.MarshalCalled != nil {
+		return ms.MarshalCalled(obj)
+	}
+	return nil, nil
 }
 
 // Unmarshal -
 func (ms *MarshalizerStub) Unmarshal(obj interface{}, buff []byte) error {
-	return ms.UnmarshalCalled(obj, buff)
+	if ms.UnmarshalCalled != nil {
+		return ms.UnmarshalCalled(obj, buff)
+	}
+	return nil
 }
 
 // IsInterfaceNil -

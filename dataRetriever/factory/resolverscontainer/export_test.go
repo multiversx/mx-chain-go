@@ -5,9 +5,9 @@ func (brcf *baseResolversContainerFactory) NumCrossShardPeers() int {
 	return brcf.numCrossShardPeers
 }
 
-// NumIntraShardPeers -
-func (brcf *baseResolversContainerFactory) NumIntraShardPeers() int {
-	return brcf.numIntraShardPeers
+// NumTotalPeers -
+func (brcf *baseResolversContainerFactory) NumTotalPeers() int {
+	return brcf.numTotalPeers
 }
 
 // NumFullHistoryPeers -

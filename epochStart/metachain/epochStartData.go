@@ -14,33 +14,36 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/davecgh/go-spew/spew"
 )
 
 var _ process.EpochStartDataCreator = (*epochStartData)(nil)
 
 type epochStartData struct {
-	marshalizer       marshal.Marshalizer
-	hasher            hashing.Hasher
-	store             dataRetriever.StorageService
-	dataPool          dataRetriever.PoolsHolder
-	blockTracker      process.BlockTracker
-	shardCoordinator  sharding.Coordinator
-	epochStartTrigger process.EpochStartTriggerHandler
-	requestHandler    epochStart.RequestHandler
-	genesisEpoch      uint32
+	marshalizer                          marshal.Marshalizer
+	hasher                               hashing.Hasher
+	store                                dataRetriever.StorageService
+	dataPool                             dataRetriever.PoolsHolder
+	blockTracker                         process.BlockTracker
+	shardCoordinator                     sharding.Coordinator
+	epochStartTrigger                    process.EpochStartTriggerHandler
+	requestHandler                       epochStart.RequestHandler
+	genesisEpoch                         uint32
+	miniBlockPartialExecutionEnableEpoch uint32
 }
 
 // ArgsNewEpochStartData defines the input parameters for epoch start data creator
 type ArgsNewEpochStartData struct {
-	Marshalizer       marshal.Marshalizer
-	Hasher            hashing.Hasher
-	Store             dataRetriever.StorageService
-	DataPool          dataRetriever.PoolsHolder
-	BlockTracker      process.BlockTracker
-	ShardCoordinator  sharding.Coordinator
-	EpochStartTrigger process.EpochStartTriggerHandler
-	RequestHandler    epochStart.RequestHandler
-	GenesisEpoch      uint32
+	Marshalizer                          marshal.Marshalizer
+	Hasher                               hashing.Hasher
+	Store                                dataRetriever.StorageService
+	DataPool                             dataRetriever.PoolsHolder
+	BlockTracker                         process.BlockTracker
+	ShardCoordinator                     sharding.Coordinator
+	EpochStartTrigger                    process.EpochStartTriggerHandler
+	RequestHandler                       epochStart.RequestHandler
+	GenesisEpoch                         uint32
+	MiniBlockPartialExecutionEnableEpoch uint32
 }
 
 // NewEpochStartData creates a new epoch start creator
@@ -68,15 +71,16 @@ func NewEpochStartData(args ArgsNewEpochStartData) (*epochStartData, error) {
 	}
 
 	e := &epochStartData{
-		marshalizer:       args.Marshalizer,
-		hasher:            args.Hasher,
-		store:             args.Store,
-		dataPool:          args.DataPool,
-		blockTracker:      args.BlockTracker,
-		shardCoordinator:  args.ShardCoordinator,
-		epochStartTrigger: args.EpochStartTrigger,
-		requestHandler:    args.RequestHandler,
-		genesisEpoch:      args.GenesisEpoch,
+		marshalizer:                          args.Marshalizer,
+		hasher:                               args.Hasher,
+		store:                                args.Store,
+		dataPool:                             args.DataPool,
+		blockTracker:                         args.BlockTracker,
+		shardCoordinator:                     args.ShardCoordinator,
+		epochStartTrigger:                    args.EpochStartTrigger,
+		requestHandler:                       args.RequestHandler,
+		genesisEpoch:                         args.GenesisEpoch,
+		miniBlockPartialExecutionEnableEpoch: args.MiniBlockPartialExecutionEnableEpoch,
 	}
 
 	return e, nil
@@ -106,11 +110,8 @@ func (e *epochStartData) VerifyEpochStartDataForMetablock(metaBlock *block.MetaB
 	}
 
 	if !bytes.Equal(receivedEpochStartHash, createdEpochStartHash) {
-		log.Warn("RECEIVED epoch start data")
-		displayEpochStartData(&metaBlock.EpochStart)
-
-		log.Warn("CREATED epoch start data")
-		displayEpochStartData(startData)
+		displayEpochStartData("received", receivedEpochStartHash, &metaBlock.EpochStart)
+		displayEpochStartData("created", createdEpochStartHash, startData)
 
 		return process.ErrEpochStartDataDoesNotMatch
 	}
@@ -118,9 +119,12 @@ func (e *epochStartData) VerifyEpochStartDataForMetablock(metaBlock *block.MetaB
 	return nil
 }
 
-func displayEpochStartData(startData *block.EpochStart) {
+func displayEpochStartData(mode string, hash []byte, startData *block.EpochStart) {
+	log.Warn(mode+" epoch start data",
+		"hash", hash, "startData", spew.Sdump(startData))
+
 	for _, shardData := range startData.LastFinalizedHeaders {
-		log.Debug("epoch start shard data",
+		log.Warn("epoch start shard data",
 			"shardID", shardData.ShardID,
 			"num pending miniblocks", len(shardData.PendingMiniBlockHeaders),
 			"first pending meta", shardData.FirstPendingMetaBlock,
@@ -319,7 +323,7 @@ func (e *epochStartData) computePendingMiniBlockList(
 	allPending := make([]block.MiniBlockHeader, 0)
 	for shId, shardData := range startData.LastFinalizedHeaders {
 		if shardData.Nonce == 0 {
-			//shard has only the genesis block
+			// shard has only the genesis block
 			continue
 		}
 		if len(shardData.FirstPendingMetaBlock) == 0 {
@@ -374,16 +378,15 @@ func (e *epochStartData) computeStillPending(
 	miniBlockHeaders map[string]block.MiniBlockHeader,
 ) []block.MiniBlockHeader {
 
-	pendingMiniBlocks := make([]block.MiniBlockHeader, 0)
+	e.initIndexesOfProcessedTxs(miniBlockHeaders, shardID)
 
 	for _, shardHdr := range shardHdrs {
-		for _, mbHeader := range shardHdr.GetMiniBlockHeaderHandlers() {
-			delete(miniBlockHeaders, string(mbHeader.GetHash()))
-		}
+		e.computeStillPendingInShardHeader(shardHdr, miniBlockHeaders, shardID)
 	}
 
+	pendingMiniBlocks := make([]block.MiniBlockHeader, 0)
 	for _, mbHeader := range miniBlockHeaders {
-		log.Debug("pending miniblock for shard ", "id", shardID, "hash", mbHeader.Hash)
+		log.Debug("pending mini block for", "shard", shardID, "mb hash", mbHeader.Hash)
 		pendingMiniBlocks = append(pendingMiniBlocks, mbHeader)
 	}
 
@@ -392,6 +395,100 @@ func (e *epochStartData) computeStillPending(
 	})
 
 	return pendingMiniBlocks
+}
+
+func (e *epochStartData) initIndexesOfProcessedTxs(miniBlockHeaders map[string]block.MiniBlockHeader, shardID uint32) {
+	for mbHash, mbHeader := range miniBlockHeaders {
+		log.Debug("epochStartData.initIndexesOfProcessedTxs",
+			"mb hash", mbHash,
+			"len(reserved)", len(mbHeader.GetReserved()),
+			"shard", shardID,
+		)
+
+		if len(mbHeader.GetReserved()) > 0 {
+			continue
+		}
+
+		e.setIndexOfFirstAndLastTxProcessed(&mbHeader, -1, -1)
+		miniBlockHeaders[mbHash] = mbHeader
+	}
+}
+
+func (e *epochStartData) computeStillPendingInShardHeader(
+	shardHdr data.HeaderHandler,
+	miniBlockHeaders map[string]block.MiniBlockHeader,
+	shardID uint32,
+) {
+	for _, shardMiniBlockHeader := range shardHdr.GetMiniBlockHeaderHandlers() {
+		shardMiniBlockHash := string(shardMiniBlockHeader.GetHash())
+		mbHeader, ok := miniBlockHeaders[shardMiniBlockHash]
+		if !ok {
+			continue
+		}
+
+		if shardMiniBlockHeader.IsFinal() {
+			log.Debug("epochStartData.computeStillPendingInShardHeader: IsFinal",
+				"mb hash", shardMiniBlockHash,
+				"shard", shardID,
+			)
+			delete(miniBlockHeaders, shardMiniBlockHash)
+			continue
+		}
+
+		e.updateIndexesOfProcessedTxs(mbHeader, shardMiniBlockHeader, shardMiniBlockHash, shardID, miniBlockHeaders)
+	}
+}
+
+func (e *epochStartData) updateIndexesOfProcessedTxs(
+	mbHeader block.MiniBlockHeader,
+	shardMiniBlockHeader data.MiniBlockHeaderHandler,
+	shardMiniBlockHash string,
+	shardID uint32,
+	miniBlockHeaders map[string]block.MiniBlockHeader,
+) {
+	currIndexOfFirstTxProcessed := mbHeader.GetIndexOfFirstTxProcessed()
+	currIndexOfLastTxProcessed := mbHeader.GetIndexOfLastTxProcessed()
+	currConstructionState := block.MiniBlockState(mbHeader.GetConstructionState()).String()
+	newIndexOfFirstTxProcessed := shardMiniBlockHeader.GetIndexOfFirstTxProcessed()
+	newIndexOfLastTxProcessed := shardMiniBlockHeader.GetIndexOfLastTxProcessed()
+	newConstructionState := block.MiniBlockState(shardMiniBlockHeader.GetConstructionState()).String()
+
+	if newIndexOfLastTxProcessed > currIndexOfLastTxProcessed {
+		log.Debug("epochStartData.updateIndexesOfProcessedTxs",
+			"mb hash", shardMiniBlockHash,
+			"shard", shardID,
+			"current index of first tx processed", currIndexOfFirstTxProcessed,
+			"current index of last tx processed", currIndexOfLastTxProcessed,
+			"current construction state", currConstructionState,
+			"new index of first tx processed", newIndexOfFirstTxProcessed,
+			"new index of last tx processed", newIndexOfLastTxProcessed,
+			"new construction state", newConstructionState,
+		)
+		e.setIndexOfFirstAndLastTxProcessed(&mbHeader, newIndexOfFirstTxProcessed, newIndexOfLastTxProcessed)
+
+		// this set is not particular needed but this will trigger the marshaller to save in the reserved field a
+		// non-empty slice so the rest of the code will run as designed
+		err := mbHeader.SetConstructionState(shardMiniBlockHeader.GetConstructionState())
+		if err != nil {
+			log.Warn("updateIndexesOfProcessedTxs: SetConstructionState", "error", err.Error())
+		}
+		miniBlockHeaders[shardMiniBlockHash] = mbHeader
+	}
+}
+
+func (e *epochStartData) setIndexOfFirstAndLastTxProcessed(mbHeader *block.MiniBlockHeader, indexOfFirstTxProcessed int32, indexOfLastTxProcessed int32) {
+	if e.epochStartTrigger.Epoch() < e.miniBlockPartialExecutionEnableEpoch {
+		return
+	}
+	err := mbHeader.SetIndexOfFirstTxProcessed(indexOfFirstTxProcessed)
+	if err != nil {
+		log.Warn("setIndexOfFirstAndLastTxProcessed: SetIndexOfFirstTxProcessed", "error", err.Error())
+	}
+
+	err = mbHeader.SetIndexOfLastTxProcessed(indexOfLastTxProcessed)
+	if err != nil {
+		log.Warn("setIndexOfFirstAndLastTxProcessed: SetIndexOfLastTxProcessed", "error", err.Error())
+	}
 }
 
 func getAllMiniBlocksWithDst(m *block.MetaBlock, destId uint32) map[string]block.MiniBlockHeader {

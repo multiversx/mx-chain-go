@@ -8,7 +8,7 @@ import (
 // GasHandlerMock -
 type GasHandlerMock struct {
 	InitCalled                          func()
-	ResetCalled                         func()
+	ResetCalled                         func(key []byte)
 	SetGasProvidedCalled                func(gasProvided uint64, hash []byte)
 	SetGasProvidedAsScheduledCalled     func(gasProvided uint64, hash []byte)
 	SetGasRefundedCalled                func(gasRefunded uint64, hash []byte)
@@ -26,7 +26,7 @@ type GasHandlerMock struct {
 	RemoveGasProvidedAsScheduledCalled  func(hashes [][]byte)
 	RemoveGasRefundedCalled             func(hashes [][]byte)
 	RemoveGasPenalizedCalled            func(hashes [][]byte)
-	RestoreGasSinceLastResetCalled      func()
+	RestoreGasSinceLastResetCalled      func(key []byte)
 	ComputeGasProvidedByMiniBlockCalled func(miniBlock *block.MiniBlock, mapHashTx map[string]data.TransactionHandler) (uint64, uint64, error)
 	ComputeGasProvidedByTxCalled        func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error)
 }
@@ -39,9 +39,9 @@ func (ghm *GasHandlerMock) Init() {
 }
 
 // Reset -
-func (ghm *GasHandlerMock) Reset() {
+func (ghm *GasHandlerMock) Reset(key []byte) {
 	if ghm.ResetCalled != nil {
-		ghm.ResetCalled()
+		ghm.ResetCalled(key)
 	}
 }
 
@@ -174,9 +174,9 @@ func (ghm *GasHandlerMock) RemoveGasPenalized(hashes [][]byte) {
 }
 
 // RestoreGasSinceLastReset -
-func (ghm *GasHandlerMock) RestoreGasSinceLastReset() {
+func (ghm *GasHandlerMock) RestoreGasSinceLastReset(key []byte) {
 	if ghm.RestoreGasSinceLastResetCalled != nil {
-		ghm.RestoreGasSinceLastResetCalled()
+		ghm.RestoreGasSinceLastResetCalled(key)
 	}
 }
 

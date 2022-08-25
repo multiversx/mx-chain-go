@@ -991,7 +991,7 @@ func TestEconomicsData_ComputeGasUsedAndFeeBasedOnRefundValueSpecialBuiltIn_ToMu
 	t.Parallel()
 
 	builtInCostHandler, _ := economics.NewBuiltInFunctionsCost(&economics.ArgsBuiltInFunctionCost{
-		GasSchedule: mock.NewGasScheduleNotifierMock(defaults.FillGasMapInternal(map[string]map[string]uint64{}, 1)),
+		GasSchedule: testscommon.NewGasScheduleNotifierMock(defaults.FillGasMapInternal(map[string]map[string]uint64{}, 1)),
 		ArgsParser:  smartContract.NewArgumentParser(),
 	})
 	economicData, _ := economics.NewEconomicsData(createArgsForEconomicsDataRealFees(builtInCostHandler))
@@ -1013,7 +1013,7 @@ func TestEconomicsData_ComputeGasUsedAndFeeBasedOnRefundValueSpecialBuiltIn_ToMu
 
 func TestEconomicsData_ComputeGasUsedAndFeeBasedOnRefundValueStakeTx(t *testing.T) {
 	builtInCostHandler, _ := economics.NewBuiltInFunctionsCost(&economics.ArgsBuiltInFunctionCost{
-		GasSchedule: mock.NewGasScheduleNotifierMock(defaults.FillGasMapInternal(map[string]map[string]uint64{}, 1)),
+		GasSchedule: testscommon.NewGasScheduleNotifierMock(defaults.FillGasMapInternal(map[string]map[string]uint64{}, 1)),
 		ArgsParser:  smartContract.NewArgumentParser(),
 	})
 
@@ -1041,7 +1041,7 @@ func TestEconomicsData_ComputeGasUsedAndFeeBasedOnRefundValueSpecialBuiltIn(t *t
 	t.Parallel()
 
 	builtInCostHandler, _ := economics.NewBuiltInFunctionsCost(&economics.ArgsBuiltInFunctionCost{
-		GasSchedule: mock.NewGasScheduleNotifierMock(defaults.FillGasMapInternal(map[string]map[string]uint64{}, 1)),
+		GasSchedule: testscommon.NewGasScheduleNotifierMock(defaults.FillGasMapInternal(map[string]map[string]uint64{}, 1)),
 		ArgsParser:  smartContract.NewArgumentParser(),
 	})
 	economicData, _ := economics.NewEconomicsData(createArgsForEconomicsDataRealFees(builtInCostHandler))
@@ -1065,7 +1065,7 @@ func TestEconomicsData_ComputeGasUsedAndFeeBasedOnRefundValueSpecialBuiltInTooMu
 	t.Parallel()
 
 	builtInCostHandler, _ := economics.NewBuiltInFunctionsCost(&economics.ArgsBuiltInFunctionCost{
-		GasSchedule: mock.NewGasScheduleNotifierMock(defaults.FillGasMapInternal(map[string]map[string]uint64{}, 1)),
+		GasSchedule: testscommon.NewGasScheduleNotifierMock(defaults.FillGasMapInternal(map[string]map[string]uint64{}, 1)),
 		ArgsParser:  smartContract.NewArgumentParser(),
 	})
 	economicData, _ := economics.NewEconomicsData(createArgsForEconomicsDataRealFees(builtInCostHandler))

@@ -1,6 +1,7 @@
 package arwen
 
 import (
+	"bytes"
 	"encoding/binary"
 	"encoding/hex"
 	"errors"
@@ -49,7 +50,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/guardianMocks"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
-	vmcommonBuiltInFunctions "github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 	"github.com/stretchr/testify/require"
 )
@@ -233,15 +233,17 @@ func (context *TestContext) initFeeHandlers() {
 
 func (context *TestContext) initVMAndBlockchainHook() {
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:           mock.NewGasScheduleNotifierMock(context.GasSchedule),
-		MapDNSAddresses:       DNSAddresses,
-		Marshalizer:           marshalizer,
-		Accounts:              context.Accounts,
-		ShardCoordinator:      oneShardCoordinator,
-		EpochNotifier:         context.EpochNotifier,
+		GasSchedule:               mock.NewGasScheduleNotifierMock(context.GasSchedule),
+		MapDNSAddresses:           DNSAddresses,
+		Marshalizer:               marshalizer,
+		Accounts:                  context.Accounts,
+		ShardCoordinator:          oneShardCoordinator,
+		EpochNotifier:             context.EpochNotifier,
+		AutomaticCrawlerAddress:   bytes.Repeat([]byte{1}, 32),
+		MaxNumNodesInTransferRole: 100,
 		GuardedAccountHandler: &guardianMocks.GuardedAccountHandlerStub{},
 	}
-	builtInFuncs, nftStorageHandler, globalSettingsHandler, err := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
+	builtInFuncFactory, err := builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)
 	require.Nil(context.T, err)
 
 	blockchainMock := &testscommon.ChainHandlerStub{}
@@ -255,9 +257,9 @@ func (context *TestContext) initVMAndBlockchainHook() {
 		ShardCoordinator:      oneShardCoordinator,
 		Marshalizer:           marshalizer,
 		Uint64Converter:       &mock.Uint64ByteSliceConverterMock{},
-		BuiltInFunctions:      builtInFuncs,
-		NFTStorageHandler:     nftStorageHandler,
-		GlobalSettingsHandler: globalSettingsHandler,
+		BuiltInFunctions:      builtInFuncFactory.BuiltInFunctionContainer(),
+		NFTStorageHandler:     builtInFuncFactory.NFTStorageHandler(),
+		GlobalSettingsHandler: builtInFuncFactory.ESDTGlobalSettingsHandler(),
 		DataPool:              datapool,
 		CompiledSCPool:        datapool.SmartContracts(),
 		EpochNotifier:         context.EpochNotifier,
@@ -303,7 +305,7 @@ func (context *TestContext) initVMAndBlockchainHook() {
 	require.Nil(context.T, err)
 
 	context.BlockchainHook = vmFactory.BlockChainHookImpl().(*hooks.BlockChainHookImpl)
-	_ = vmcommonBuiltInFunctions.SetPayableHandler(builtInFuncs, context.BlockchainHook)
+	_ = builtInFuncFactory.SetPayableHandler(context.BlockchainHook)
 }
 
 func (context *TestContext) initTxProcessorWithOneSCExecutorWithVMs() {
@@ -313,8 +315,8 @@ func (context *TestContext) initTxProcessorWithOneSCExecutorWithVMs() {
 		ShardCoordinator:   oneShardCoordinator,
 		BuiltInFunctions:   context.BlockchainHook.GetBuiltinFunctionsContainer(),
 		ArgumentParser:     parsers.NewCallArgsParser(),
-		EpochNotifier:      forking.NewGenericEpochNotifier(),
 		ESDTTransferParser: esdtTransferParser,
+		EpochNotifier:      forking.NewGenericEpochNotifier(),
 	}
 
 	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
@@ -667,28 +669,28 @@ func (context *TestContext) UpdateLastSCResults() error {
 
 // QuerySCInt -
 func (context *TestContext) QuerySCInt(function string, args [][]byte) uint64 {
-	bytes := context.querySC(function, args)
-	result := big.NewInt(0).SetBytes(bytes).Uint64()
+	bytesData := context.querySC(function, args)
+	result := big.NewInt(0).SetBytes(bytesData).Uint64()
 
 	return result
 }
 
 // QuerySCString -
 func (context *TestContext) QuerySCString(function string, args [][]byte) string {
-	bytes := context.querySC(function, args)
-	return string(bytes)
+	bytesData := context.querySC(function, args)
+	return string(bytesData)
 }
 
 // QuerySCBytes -
 func (context *TestContext) QuerySCBytes(function string, args [][]byte) []byte {
-	bytes := context.querySC(function, args)
-	return bytes
+	bytesData := context.querySC(function, args)
+	return bytesData
 }
 
 // QuerySCBigInt -
 func (context *TestContext) QuerySCBigInt(function string, args [][]byte) *big.Int {
-	bytes := context.querySC(function, args)
-	return big.NewInt(0).SetBytes(bytes)
+	bytesData := context.querySC(function, args)
+	return big.NewInt(0).SetBytes(bytesData)
 }
 
 func (context *TestContext) querySC(function string, args [][]byte) []byte {
@@ -718,8 +720,8 @@ func (context *TestContext) GetCompositeTestError() error {
 
 // FormatHexNumber -
 func FormatHexNumber(number uint64) string {
-	bytes := big.NewInt(0).SetUint64(number).Bytes()
-	str := hex.EncodeToString(bytes)
+	bytesData := big.NewInt(0).SetUint64(number).Bytes()
+	str := hex.EncodeToString(bytesData)
 
 	return str
 }

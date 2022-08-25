@@ -40,6 +40,7 @@ type preProcessorsContainerFactory struct {
 	scheduledMiniBlocksEnableEpoch              uint32
 	txTypeHandler                               process.TxTypeHandler
 	scheduledTxsExecutionHandler                process.ScheduledTxsExecutionHandler
+	processedMiniBlocksTracker                  process.ProcessedMiniBlocksTracker
 }
 
 // NewPreProcessorsContainerFactory is responsible for creating a new preProcessors factory object
@@ -67,6 +68,7 @@ func NewPreProcessorsContainerFactory(
 	scheduledMiniBlocksEnableEpoch uint32,
 	txTypeHandler process.TxTypeHandler,
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler,
+	processedMiniBlocksTracker process.ProcessedMiniBlocksTracker,
 ) (*preProcessorsContainerFactory, error) {
 
 	if check.IfNil(shardCoordinator) {
@@ -129,6 +131,9 @@ func NewPreProcessorsContainerFactory(
 	if check.IfNil(scheduledTxsExecutionHandler) {
 		return nil, process.ErrNilScheduledTxsExecutionHandler
 	}
+	if check.IfNil(processedMiniBlocksTracker) {
+		return nil, process.ErrNilProcessedMiniBlocksTracker
+	}
 
 	return &preProcessorsContainerFactory{
 		shardCoordinator:     shardCoordinator,
@@ -154,6 +159,7 @@ func NewPreProcessorsContainerFactory(
 		scheduledMiniBlocksEnableEpoch:              scheduledMiniBlocksEnableEpoch,
 		txTypeHandler:                               txTypeHandler,
 		scheduledTxsExecutionHandler:                scheduledTxsExecutionHandler,
+		processedMiniBlocksTracker:                  processedMiniBlocksTracker,
 	}, nil
 }
 
@@ -227,6 +233,7 @@ func (ppcm *preProcessorsContainerFactory) createTxPreProcessor() (process.PrePr
 		ScheduledMiniBlocksEnableEpoch:              ppcm.scheduledMiniBlocksEnableEpoch,
 		TxTypeHandler:                               ppcm.txTypeHandler,
 		ScheduledTxsExecutionHandler:                ppcm.scheduledTxsExecutionHandler,
+		ProcessedMiniBlocksTracker:                  ppcm.processedMiniBlocksTracker,
 	}
 
 	txPreprocessor, err := preprocess.NewTransactionPreprocessor(args)
@@ -251,6 +258,7 @@ func (ppcm *preProcessorsContainerFactory) createSmartContractResultPreProcessor
 		ppcm.balanceComputation,
 		ppcm.epochNotifier,
 		ppcm.optimizeGasUsedInCrossMiniBlocksEnableEpoch,
+		ppcm.processedMiniBlocksTracker,
 	)
 
 	return scrPreprocessor, err
@@ -270,6 +278,7 @@ func (ppcm *preProcessorsContainerFactory) createRewardsTransactionPreProcessor(
 		ppcm.pubkeyConverter,
 		ppcm.blockSizeComputation,
 		ppcm.balanceComputation,
+		ppcm.processedMiniBlocksTracker,
 	)
 
 	return rewardTxPreprocessor, err

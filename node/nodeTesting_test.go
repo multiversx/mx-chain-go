@@ -10,7 +10,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/data/batch"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go-crypto"
+	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/node"
@@ -408,6 +408,7 @@ func getDefaultStateComponents() *testscommon.StateComponentsMock {
 		PeersAcc:        &stateMock.AccountsStub{},
 		Accounts:        &stateMock.AccountsStub{},
 		AccountsAPI:     &stateMock.AccountsStub{},
+		AccountsRepo:    &stateMock.AccountsRepositoryStub{},
 		Tries:           &mock.TriesHolderStub{},
 		StorageManagers: map[string]common.StorageManager{"0": &testscommon.StorageManagerStub{}},
 	}

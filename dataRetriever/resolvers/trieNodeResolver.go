@@ -4,7 +4,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data/batch"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/p2p"
@@ -15,48 +14,47 @@ var logTrieNodes = logger.GetOrCreate("dataretriever/resolvers/trienoderesolver"
 
 // ArgTrieNodeResolver is the argument structure used to create new TrieNodeResolver instance
 type ArgTrieNodeResolver struct {
-	SenderResolver   dataRetriever.TopicResolverSender
-	TrieDataGetter   dataRetriever.TrieDataGetter
-	Marshalizer      marshal.Marshalizer
-	AntifloodHandler dataRetriever.P2PAntifloodHandler
-	Throttler        dataRetriever.ResolverThrottler
+	ArgBaseResolver
+	TrieDataGetter dataRetriever.TrieDataGetter
 }
 
 // TrieNodeResolver is a wrapper over Resolver that is specialized in resolving trie node requests
 type TrieNodeResolver struct {
-	dataRetriever.TopicResolverSender
+	*baseResolver
 	messageProcessor
 	trieDataGetter dataRetriever.TrieDataGetter
 }
 
 // NewTrieNodeResolver creates a new trie node resolver
 func NewTrieNodeResolver(arg ArgTrieNodeResolver) (*TrieNodeResolver, error) {
-	if check.IfNil(arg.SenderResolver) {
-		return nil, dataRetriever.ErrNilResolverSender
-	}
-	if check.IfNil(arg.TrieDataGetter) {
-		return nil, dataRetriever.ErrNilTrieDataGetter
-	}
-	if check.IfNil(arg.Marshalizer) {
-		return nil, dataRetriever.ErrNilMarshalizer
-	}
-	if check.IfNil(arg.AntifloodHandler) {
-		return nil, dataRetriever.ErrNilAntifloodHandler
-	}
-	if check.IfNil(arg.Throttler) {
-		return nil, dataRetriever.ErrNilThrottler
+	err := checkArgTrieNodeResolver(arg)
+	if err != nil {
+		return nil, err
 	}
 
 	return &TrieNodeResolver{
-		TopicResolverSender: arg.SenderResolver,
-		trieDataGetter:      arg.TrieDataGetter,
+		baseResolver: &baseResolver{
+			TopicResolverSender: arg.SenderResolver,
+		},
+		trieDataGetter: arg.TrieDataGetter,
 		messageProcessor: messageProcessor{
-			marshalizer:      arg.Marshalizer,
+			marshalizer:      arg.Marshaller,
 			antifloodHandler: arg.AntifloodHandler,
 			topic:            arg.SenderResolver.RequestTopic(),
 			throttler:        arg.Throttler,
 		},
 	}, nil
+}
+
+func checkArgTrieNodeResolver(arg ArgTrieNodeResolver) error {
+	err := checkArgBase(arg.ArgBaseResolver)
+	if err != nil {
+		return err
+	}
+	if check.IfNil(arg.TrieDataGetter) {
+		return dataRetriever.ErrNilTrieDataGetter
+	}
+	return nil
 }
 
 // ProcessReceivedMessage will be the callback func from the p2p.Messenger and will be called each time a new message was received
@@ -293,26 +291,6 @@ func (tnRes *TrieNodeResolver) RequestDataFromReferenceAndChunk(hash []byte, chu
 		},
 		[][]byte{hash},
 	)
-}
-
-// SetNumPeersToQuery will set the number of intra shard and cross shard number of peer to query
-func (tnRes *TrieNodeResolver) SetNumPeersToQuery(intra int, cross int) {
-	tnRes.TopicResolverSender.SetNumPeersToQuery(intra, cross)
-}
-
-// NumPeersToQuery will return the number of intra shard and cross shard number of peer to query
-func (tnRes *TrieNodeResolver) NumPeersToQuery() (int, int) {
-	return tnRes.TopicResolverSender.NumPeersToQuery()
-}
-
-// SetResolverDebugHandler will set a resolver debug handler
-func (tnRes *TrieNodeResolver) SetResolverDebugHandler(handler dataRetriever.ResolverDebugHandler) error {
-	return tnRes.TopicResolverSender.SetResolverDebugHandler(handler)
-}
-
-// Close returns nil
-func (tnRes *TrieNodeResolver) Close() error {
-	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

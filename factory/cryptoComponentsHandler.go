@@ -295,5 +295,5 @@ func (mcc *managedCryptoComponents) IsInterfaceNil() bool {
 
 // String returns the name of the component
 func (mcc *managedCryptoComponents) String() string {
-	return "managedCryptoComponents"
+	return cryptoComponentsName
 }

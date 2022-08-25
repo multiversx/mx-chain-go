@@ -195,5 +195,5 @@ func (mnc *managedNetworkComponents) IsInterfaceNil() bool {
 
 // String returns the name of the component
 func (mnc *managedNetworkComponents) String() string {
-	return "managedNetworkComponents"
+	return networkComponentsName
 }

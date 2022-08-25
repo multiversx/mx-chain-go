@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/common/forking"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
+	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	p2pRating "github.com/ElrondNetwork/elrond-go/p2p/rating"
@@ -52,7 +53,7 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 		},
 	}
 
-	nodesCoordinator := &shardingMocks.NodesCoordinatorStub{
+	nodesCoordinatorInstance := &shardingMocks.NodesCoordinatorStub{
 		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []nodesCoordinator.Validator, err error) {
 			v, _ := nodesCoordinator.NewValidator(pkBytes, defaultChancesSelection, 1)
 			return []nodesCoordinator.Validator{v}, nil
@@ -80,7 +81,7 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 	tpn := &TestProcessorNode{
 		ShardCoordinator:        shardCoordinator,
 		Messenger:               messenger,
-		NodesCoordinator:        nodesCoordinator,
+		NodesCoordinator:        nodesCoordinatorInstance,
 		HeaderSigVerifier:       &mock.HeaderSigVerifierStub{},
 		HeaderIntegrityVerifier: CreateHeaderIntegrityVerifier(),
 		ChainID:                 ChainID,
@@ -90,6 +91,7 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 		ArwenChangeLocker:       &sync.RWMutex{},
 		TransactionLogProcessor: logsProcessor,
 		PeersRatingHandler:      peersRatingHandler,
+		PeerShardMapper:         disabled.NewPeerShardMapper(),
 		GuardedAccountHandler:   &guardianMocks.GuardedAccountHandlerStub{},
 	}
 	tpn.NodesSetup = nodesSetup
@@ -131,7 +133,7 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 		tpn.EconomicsData,
 	)
 	tpn.initBlockTracker()
-	tpn.initInterceptors()
+	tpn.initInterceptors("")
 	tpn.initInnerProcessors(arwenConfig.MakeGasMapForTests())
 	argsNewScQueryService := smartContract.ArgsNewSCQueryService{
 		VmContainer:              tpn.VMContainer,

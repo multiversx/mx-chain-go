@@ -12,11 +12,15 @@ func NewPreferredPeersHolder() *disabledPreferredPeersHolder {
 	return &disabledPreferredPeersHolder{}
 }
 
-// Put won't do anything
-func (d *disabledPreferredPeersHolder) Put(_ []byte, _ core.PeerID, _ uint32) {
+// PutConnectionAddress does nothing as it is disabled
+func (d *disabledPreferredPeersHolder) PutConnectionAddress(_ core.PeerID, _ string) {
 }
 
-// Get will return an empty map
+// PutShardID does nothing as it is disabled
+func (d *disabledPreferredPeersHolder) PutShardID(_ core.PeerID, _ uint32) {
+}
+
+// Get does nothing as it is disabled
 func (d *disabledPreferredPeersHolder) Get() map[uint32][]core.PeerID {
 	return make(map[uint32][]core.PeerID)
 }
@@ -26,11 +30,11 @@ func (d *disabledPreferredPeersHolder) Contains(_ core.PeerID) bool {
 	return false
 }
 
-// Remove won't do anything
+// Remove does nothing as it is disabled
 func (d *disabledPreferredPeersHolder) Remove(_ core.PeerID) {
 }
 
-// Clear won't do anything
+// Clear does nothing as it is disabled
 func (d *disabledPreferredPeersHolder) Clear() {
 }
 

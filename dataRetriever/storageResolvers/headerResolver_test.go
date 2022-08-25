@@ -29,8 +29,8 @@ func createMockHeaderResolverArg() ArgHeaderResolver {
 				return 0, nil
 			},
 		},
-		HdrStorage:               genericMocks.NewStorerMock("Hdr", 0),
-		HeadersNoncesStorage:     genericMocks.NewStorerMock("HeadersNonces", 0),
+		HdrStorage:               genericMocks.NewStorerMock(),
+		HeadersNoncesStorage:     genericMocks.NewStorerMock(),
 		ManualEpochStartNotifier: &mock.ManualEpochStartNotifierStub{},
 		ChanGracefullyClose:      make(chan endProcess.ArgEndProcess),
 	}
