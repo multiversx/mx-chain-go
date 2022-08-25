@@ -53,7 +53,7 @@ func (sm *ChainStorerMock) AddStorer(_ dataRetriever.UnitType, _ storage.Storer)
 func (sm *ChainStorerMock) GetStorer(unitType dataRetriever.UnitType) (storage.Storer, error) {
 	switch unitType {
 	case dataRetriever.BlockHeaderUnit:
-		return sm.BlockHeaders
+		return sm.BlockHeaders, nil
 	case dataRetriever.MetaBlockUnit:
 		return sm.Metablocks, nil
 	case dataRetriever.MiniBlockUnit:
@@ -118,9 +118,9 @@ func (sm *ChainStorerMock) GetAll(unitType dataRetriever.UnitType, keys [][]byte
 
 	data := make(map[string][]byte)
 	for _, key := range keys {
-		buff, err := storer.Get(key)
-		if err != nil {
-			return nil, err
+		buff, errGet := storer.Get(key)
+		if errGet != nil {
+			return nil, errGet
 		}
 
 		data[string(key)] = buff

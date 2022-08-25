@@ -65,10 +65,12 @@ func (n *Node) getOptionalEpochByHash(hash []byte) (core.OptionalUint32, error) 
 func (n *Node) getBlockHeaderInEpochByHash(headerHash []byte, epoch core.OptionalUint32) (data.HeaderHandler, error) {
 	shardId := n.processComponents.ShardCoordinator().SelfId()
 	unitType := dataRetriever.GetHeadersDataUnit(shardId)
-	storer := n.dataComponents.StorageService().GetStorer(unitType)
+	storer, err := n.dataComponents.StorageService().GetStorer(unitType)
+	if err != nil {
+		return nil, err
+	}
 
 	var headerBuffer []byte
-	var err error
 
 	if epoch.HasValue {
 		headerBuffer, err = storer.GetFromEpoch(headerHash, epoch.Value)

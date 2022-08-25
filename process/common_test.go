@@ -277,8 +277,8 @@ func TestGetHeaderFromStorageShouldWork(t *testing.T) {
 	shardHeader := &block.Header{Nonce: 42}
 	metaHeader := &block.MetaBlock{Nonce: 43}
 	marshalizer := &mock.MarshalizerMock{}
-	storageService := &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+	storageService := &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 			return &storageStubs.StorerStub{
 				GetCalled: func(key []byte) ([]byte, error) {
 					if unitType == dataRetriever.BlockHeaderUnit && bytes.Equal(key, []byte("shard")) {
@@ -289,7 +289,7 @@ func TestGetHeaderFromStorageShouldWork(t *testing.T) {
 
 					return nil, errors.New("error")
 				},
-			}
+			}, nil
 		},
 	}
 

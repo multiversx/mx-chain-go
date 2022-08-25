@@ -899,7 +899,7 @@ func (d *delegation) checkBLSKeysIfExistsInStakingSC(blsKeys [][]byte) bool {
 }
 
 func (d *delegation) changeOwner(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !d.flagChangeDelegationOwner.IsSet() {
+	if !d.enableEpochsHandler.IsChangeDelegationOwnerFlagEnabled() {
 		d.eei.AddReturnMessage(args.Function + " is an unknown function")
 		return vmcommon.UserError
 	}
