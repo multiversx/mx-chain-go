@@ -169,7 +169,7 @@ func TestCreateBuiltInFunctionContainerGetAllowedAddress_Errors(t *testing.T) {
 		expectedMessage := fmt.Sprintf("for shard %d, provided count is %d", shardCoordinator.SelfId(), len(addresses))
 		assert.True(t, strings.Contains(err.Error(), expectedMessage))
 	})
-	t.Run("metachain takes first address", func(t *testing.T) {
+	t.Run("metachain takes core.SystemAccountAddress", func(t *testing.T) {
 		t.Parallel()
 
 		shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
@@ -180,7 +180,7 @@ func TestCreateBuiltInFunctionContainerGetAllowedAddress_Errors(t *testing.T) {
 
 		allowedAddressForShard, err := GetAllowedAddress(shardCoordinator, addresses)
 		assert.Nil(t, err)
-		assert.Equal(t, addresses[1], allowedAddressForShard)
+		assert.Equal(t, core.SystemAccountAddress, allowedAddressForShard)
 	})
 	t.Run("every shard gets an allowedCrawlerAddress", func(t *testing.T) {
 		t.Parallel()
