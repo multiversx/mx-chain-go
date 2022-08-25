@@ -88,7 +88,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		GasHandler:                   tpn.GasHandler,
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
-		ReceiptsRepository:             &testscommon.ReceiptsRepositoryStub{},
+		ReceiptsRepository:           &testscommon.ReceiptsRepositoryStub{},
 	}
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {

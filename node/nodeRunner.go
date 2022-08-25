@@ -18,6 +18,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/closing"
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go-storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go-storage/timecache"
 	"github.com/ElrondNetwork/elrond-go/api/gin"
 	"github.com/ElrondNetwork/elrond-go/api/shared"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
@@ -42,8 +44,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
-	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/ElrondNetwork/elrond-go/update/trigger"
 	"github.com/google/gops/agent"
 )

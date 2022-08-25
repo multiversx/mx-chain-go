@@ -25,6 +25,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go-storage/memorydb"
+	"github.com/ElrondNetwork/elrond-go-storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/blockchain"
@@ -36,8 +38,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
@@ -102,7 +102,7 @@ func createArgBaseProcessor(
 		BlockSizeThrottler:             &mock.BlockSizeThrottlerStub{},
 		Version:                        "softwareVersion",
 		HistoryRepository:              &dblookupext.HistoryRepositoryStub{},
-		EnableRoundsHandler:          &testscommon.EnableRoundsHandlerStub{},
+		EnableRoundsHandler:            &testscommon.EnableRoundsHandlerStub{},
 		GasHandler:                     &mock.GasHandlerMock{},
 		ScheduledTxsExecutionHandler:   &testscommon.ScheduledTxsExecutionStub{},
 		ScheduledMiniBlocksEnableEpoch: 2,

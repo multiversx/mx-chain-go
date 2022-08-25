@@ -10,10 +10,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/ed25519"
 	ed25519SingleSig "github.com/ElrondNetwork/elrond-go-crypto/signing/ed25519/singlesig"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl"
+	"github.com/ElrondNetwork/elrond-go-storage/lrucache"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
-	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 )
 

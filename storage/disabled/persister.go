@@ -1,6 +1,8 @@
 package disabled
 
-import "github.com/ElrondNetwork/elrond-go/storage"
+import (
+	storage "github.com/ElrondNetwork/elrond-go-storage/common/commonErrors"
+)
 
 type persister struct{}
 

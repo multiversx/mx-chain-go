@@ -6,9 +6,9 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-storage/lrucache"
 	"github.com/ElrondNetwork/elrond-go/common"
 	elrondErrors "github.com/ElrondNetwork/elrond-go/errors"
-	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"

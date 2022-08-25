@@ -13,6 +13,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	vmData "github.com/ElrondNetwork/elrond-go-core/data/vm"
+	"github.com/ElrondNetwork/elrond-go-storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go-storage/txcache"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/common/enablers"
 	"github.com/ElrondNetwork/elrond-go/common/forking"
@@ -23,8 +25,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
-	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
@@ -101,7 +101,7 @@ func createMockSmartContractProcessorArguments() ArgsNewSmartContractProcessor {
 		GasHandler: &testscommon.GasHandlerStub{
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
-		GasSchedule:       testscommon.NewGasScheduleNotifierMock(gasSchedule),
+		GasSchedule: testscommon.NewGasScheduleNotifierMock(gasSchedule),
 		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
 			IsSCDeployFlagEnabledField: true,
 		},

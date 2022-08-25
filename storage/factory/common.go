@@ -1,8 +1,8 @@
 package factory
 
 import (
+	"github.com/ElrondNetwork/elrond-go-storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
 
 // GetCacherFromConfig will return the cache config needed for storage unit from a config came from the toml file

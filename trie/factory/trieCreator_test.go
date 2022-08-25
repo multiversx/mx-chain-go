@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	storageErrors "github.com/ElrondNetwork/elrond-go-storage/common/commonErrors"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
@@ -187,14 +188,14 @@ func testWithMissingStorer(missingUnit dataRetriever.UnitType) func(t *testing.T
 			&storageStubs.ChainStorerStub{
 				GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 					if unitType == missingUnit {
-						return nil, fmt.Errorf("%w for %s", storage.ErrKeyNotFound, missingUnit.String())
+						return nil, fmt.Errorf("%w for %s", storageErrors.ErrKeyNotFound, missingUnit.String())
 					}
 					return &storageStubs.StorerStub{}, nil
 				},
 			})
 		require.True(t, check.IfNil(holder))
 		require.Nil(t, storageManager)
-		require.True(t, strings.Contains(err.Error(), storage.ErrKeyNotFound.Error()))
+		require.True(t, strings.Contains(err.Error(), storageErrors.ErrKeyNotFound.Error()))
 		require.True(t, strings.Contains(err.Error(), missingUnit.String()))
 	}
 }

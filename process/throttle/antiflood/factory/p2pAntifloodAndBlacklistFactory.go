@@ -8,6 +8,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go-storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go-storage/timecache"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -17,8 +19,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/floodPreventers"
 	"github.com/ElrondNetwork/elrond-go/statusHandler/p2pQuota"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
-	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 )
 
 var log = logger.GetOrCreate("p2p/antiflood/factory")

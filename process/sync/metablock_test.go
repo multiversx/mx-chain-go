@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	storageErrors "github.com/ElrondNetwork/elrond-go-storage/common/commonErrors"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/consensus/round"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -396,7 +397,7 @@ func testMetaWithMissingStorer(missingUnit dataRetriever.UnitType) func(t *testi
 		args.Store = &storageStubs.ChainStorerStub{
 			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 				if unitType == missingUnit {
-					return nil, fmt.Errorf("%w for %s", storage.ErrKeyNotFound, missingUnit.String())
+					return nil, fmt.Errorf("%w for %s", storageErrors.ErrKeyNotFound, missingUnit.String())
 				}
 				return &storageStubs.StorerStub{}, nil
 			},
@@ -404,7 +405,7 @@ func testMetaWithMissingStorer(missingUnit dataRetriever.UnitType) func(t *testi
 
 		bs, err := sync.NewMetaBootstrap(args)
 		assert.Nil(t, bs)
-		require.True(t, strings.Contains(err.Error(), storage.ErrKeyNotFound.Error()))
+		require.True(t, strings.Contains(err.Error(), storageErrors.ErrKeyNotFound.Error()))
 	}
 }
 

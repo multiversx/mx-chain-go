@@ -5,12 +5,12 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/common"
+	storageCommon "github.com/ElrondNetwork/elrond-go-storage/common"
+	"github.com/ElrondNetwork/elrond-go-storage/lrucache"
+	"github.com/ElrondNetwork/elrond-go-storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
 
 const cacheSize = 10
@@ -119,14 +119,14 @@ func (o *openStorageUnits) OpenDB(dbConfig config.DBConfig, shardID uint32, epoc
 func createDB(persisterFactory *PersisterFactory, persisterPath string) (storage.Persister, error) {
 	var persister storage.Persister
 	var err error
-	for i := 0; i < common.MaxRetriesToCreateDB; i++ {
+	for i := 0; i < storageCommon.MaxRetriesToCreateDB; i++ {
 		persister, err = persisterFactory.Create(persisterPath)
 		if err == nil {
 			return persister, nil
 		}
 		log.Warn("Create Persister failed", "path", persisterPath, "error", err)
 		//TODO: extract this in a parameter and inject it
-		time.Sleep(common.SleepTimeBetweenCreateDBRetries)
+		time.Sleep(storageCommon.SleepTimeBetweenCreateDBRetries)
 	}
 	return nil, err
 }

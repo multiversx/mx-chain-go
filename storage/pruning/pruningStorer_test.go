@@ -18,16 +18,17 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/random"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	storageErrors "github.com/ElrondNetwork/elrond-go-storage/common/commonErrors"
+	"github.com/ElrondNetwork/elrond-go-storage/directoryhandler"
+	"github.com/ElrondNetwork/elrond-go-storage/leveldb"
+	"github.com/ElrondNetwork/elrond-go-storage/memorydb"
+	"github.com/ElrondNetwork/elrond-go-storage/pathmanager"
+	"github.com/ElrondNetwork/elrond-go-storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/factory"
-	"github.com/ElrondNetwork/elrond-go/storage/factory/directoryhandler"
-	"github.com/ElrondNetwork/elrond-go/storage/leveldb"
-	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/mock"
-	"github.com/ElrondNetwork/elrond-go/storage/pathmanager"
 	"github.com/ElrondNetwork/elrond-go/storage/pruning"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -639,7 +640,7 @@ func TestPruningStorer_SearchFirst(t *testing.T) {
 	ps.ClearCache()
 	res, err = ps.SearchFirst(testKey)
 	assert.Nil(t, res)
-	assert.True(t, errors.Is(err, storage.ErrKeyNotFound))
+	assert.True(t, errors.Is(err, storageErrors.ErrKeyNotFound))
 }
 
 func TestPruningStorer_ChangeEpochWithKeepingFromOldestEpochInMetaBlock(t *testing.T) {

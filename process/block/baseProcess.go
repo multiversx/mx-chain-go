@@ -19,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go-storage/storageUnit"
 	nodeFactory "github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/common/holders"
@@ -33,7 +34,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
 
 var log = logger.GetOrCreate("process/block")
@@ -97,11 +97,11 @@ type baseProcessor struct {
 	gasConsumedProvider gasConsumedProvider
 	economicsData       process.EconomicsDataHandler
 
-	processDataTriesOnCommitEpoch  bool
-	lastRestartNonce               uint64
-	pruningDelay                   uint32
-	processedMiniBlocksTracker     process.ProcessedMiniBlocksTracker
-	receiptsRepository             receiptsRepository
+	processDataTriesOnCommitEpoch bool
+	lastRestartNonce              uint64
+	pruningDelay                  uint32
+	processedMiniBlocksTracker    process.ProcessedMiniBlocksTracker
+	receiptsRepository            receiptsRepository
 }
 
 type bootStorerDataArgs struct {

@@ -1,8 +1,8 @@
 package testscommon
 
 import (
+	"github.com/ElrondNetwork/elrond-go-storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
 
 // GetGeneralConfig returns the common configuration used for testing

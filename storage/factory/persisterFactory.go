@@ -3,11 +3,11 @@ package factory
 import (
 	"errors"
 
+	"github.com/ElrondNetwork/elrond-go-storage/leveldb"
+	"github.com/ElrondNetwork/elrond-go-storage/memorydb"
+	"github.com/ElrondNetwork/elrond-go-storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/leveldb"
-	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
 
 // PersisterFactory is the factory which will handle creating new databases

@@ -3,8 +3,8 @@ package libp2p
 import (
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go-storage/lrucache"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 )
 
 // MutexHolder holds a cache of mutexes: pairs of (key, *sync.Mutex)

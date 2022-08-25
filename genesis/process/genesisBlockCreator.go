@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/common/enablers"
 	"github.com/ElrondNetwork/elrond-go/common/forking"
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -26,14 +27,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/factory"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	triesFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/update"
+	hardfork "github.com/ElrondNetwork/elrond-go/update/genesis"
 	hardForkProcess "github.com/ElrondNetwork/elrond-go/update/process"
 	"github.com/ElrondNetwork/elrond-go/update/storing"
 	vmcommonBuiltInFunctions "github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
-
-	hardfork "github.com/ElrondNetwork/elrond-go/update/genesis"
 )
 
 const accountStartNonce = uint64(0)

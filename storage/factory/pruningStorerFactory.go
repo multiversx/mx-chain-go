@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go-storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -15,7 +16,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/databaseremover/disabled"
 	storageDisabled "github.com/ElrondNetwork/elrond-go/storage/disabled"
 	"github.com/ElrondNetwork/elrond-go/storage/pruning"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
 
 var log = logger.GetOrCreate("storage/factory")

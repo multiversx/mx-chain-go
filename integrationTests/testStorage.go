@@ -12,10 +12,10 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-storage/leveldb"
+	"github.com/ElrondNetwork/elrond-go-storage/lrucache"
+	"github.com/ElrondNetwork/elrond-go-storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/leveldb"
-	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
 
 const batchDelaySeconds = 10
