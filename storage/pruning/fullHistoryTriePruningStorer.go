@@ -37,22 +37,22 @@ func initFullHistoryTriePruningStorer(args *FullHistoryStorerArgs, shardId strin
 	}, nil
 }
 
-// GetFromEpoch will call GetFromEpoch from the underlying FullHistoryPruningStorer
+// GetFromEpoch will call the same function from the underlying FullHistoryPruningStorer
 func (fhtps *fullHistoryTriePruningStorer) GetFromEpoch(key []byte, epoch uint32) ([]byte, error) {
 	return fhtps.storerWithEpochOperations.GetFromEpoch(key, epoch)
 }
 
-// GetBulkFromEpoch will call GetBulkFromEpoch from the underlying FullHistoryPruningStorer
+// GetBulkFromEpoch will call the same function from the underlying FullHistoryPruningStorer
 func (fhtps *fullHistoryTriePruningStorer) GetBulkFromEpoch(keys [][]byte, epoch uint32) ([]storageCore.KeyValuePair, error) {
 	return fhtps.storerWithEpochOperations.GetBulkFromEpoch(keys, epoch)
 }
 
-// PutInEpoch will call PutInEpoch from the underlying FullHistoryPruningStorer
+// PutInEpoch will call the same function from the underlying FullHistoryPruningStorer
 func (fhtps *fullHistoryTriePruningStorer) PutInEpoch(key []byte, data []byte, epoch uint32) error {
 	return fhtps.storerWithEpochOperations.PutInEpoch(key, data, epoch)
 }
 
-// Close will call Close from the underlying FullHistoryPruningStorer
+// Close will call the same function from the underlying FullHistoryPruningStorer
 func (fhtps *fullHistoryTriePruningStorer) Close() error {
 	return fhtps.storerWithEpochOperations.Close()
 }

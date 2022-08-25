@@ -52,16 +52,47 @@ func TestNewTrieStorageManagerInEpoch(t *testing.T) {
 func TestTrieStorageManagerInEpoch_GetFromEpoch(t *testing.T) {
 	t.Parallel()
 
-	_, trieStorage := newEmptyTrie()
-	getFromEpochCalled := false
-	trieStorage.mainStorer = &trie.SnapshotPruningStorerStub{
-		GetFromEpochCalled: func(_ []byte, _ uint32) ([]byte, error) {
-			getFromEpochCalled = true
-			return nil, nil
-		},
-	}
-	tsmie, _ := newTrieStorageManagerInEpoch(trieStorage, 0)
+	t.Run("epoch 0 does not panic", func(t *testing.T) {
+		t.Parallel()
 
-	_, _ = tsmie.Get([]byte("key"))
-	assert.True(t, getFromEpochCalled)
+		_, trieStorage := newEmptyTrie()
+		getFromEpochCalled := false
+		trieStorage.mainStorer = &trie.SnapshotPruningStorerStub{
+			GetFromEpochCalled: func(_ []byte, _ uint32) ([]byte, error) {
+				getFromEpochCalled = true
+				return nil, nil
+			},
+		}
+		tsmie, _ := newTrieStorageManagerInEpoch(trieStorage, 0)
+
+		_, _ = tsmie.Get([]byte("key"))
+		assert.True(t, getFromEpochCalled)
+	})
+
+	t.Run("getFromEpoch searches more storers", func(t *testing.T) {
+		t.Parallel()
+
+		_, trieStorage := newEmptyTrie()
+		getFromCurrentEpochCalled := false
+		getFromPreviousEpochCalled := false
+		currentEpoch := uint32(5)
+		expectedKey := []byte("key")
+		trieStorage.mainStorer = &trie.SnapshotPruningStorerStub{
+			GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
+				assert.Equal(t, expectedKey, key)
+				if epoch == currentEpoch {
+					getFromCurrentEpochCalled = true
+				}
+				if epoch == currentEpoch-1 {
+					getFromPreviousEpochCalled = true
+				}
+				return nil, nil
+			},
+		}
+		tsmie, _ := newTrieStorageManagerInEpoch(trieStorage, 5)
+
+		_, _ = tsmie.Get(expectedKey)
+		assert.True(t, getFromCurrentEpochCalled)
+		assert.True(t, getFromPreviousEpochCalled)
+	})
 }

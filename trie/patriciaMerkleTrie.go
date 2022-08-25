@@ -252,6 +252,10 @@ func (tr *patriciaMerkleTrie) Recreate(root []byte) (common.Trie, error) {
 
 // RecreateFromEpoch returns a new trie, given the options
 func (tr *patriciaMerkleTrie) RecreateFromEpoch(options common.RootHashHolder) (common.Trie, error) {
+	if check.IfNil(options) {
+		return nil, ErrNilRootHashHolder
+	}
+
 	tr.mutOperation.Lock()
 	defer tr.mutOperation.Unlock()
 

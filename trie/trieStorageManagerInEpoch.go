@@ -74,7 +74,7 @@ func treatGetFromEpochError(err error) {
 	}
 
 	if errors.IsClosingError(err) {
-		log.Debug("trieStorageManagerInEpoch", "error", err.Error())
+		log.Debug("trieStorageManagerInEpoch closing err", "error", err.Error())
 		return
 	}
 

@@ -1,11 +1,11 @@
 package pruning_test
 
 import (
-	"github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"testing"
 
 	storageCore "github.com/ElrondNetwork/elrond-go-core/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/pruning"
+	"github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 )
 

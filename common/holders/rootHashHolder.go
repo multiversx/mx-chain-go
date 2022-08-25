@@ -2,6 +2,7 @@ package holders
 
 import (
 	"fmt"
+
 	"github.com/ElrondNetwork/elrond-go-core/core"
 )
 

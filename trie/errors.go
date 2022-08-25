@@ -103,8 +103,8 @@ var ErrTrieSyncTimeout = errors.New("trie sync timeout")
 // ErrKeyNotFound is raised when a key is not found
 var ErrKeyNotFound = errors.New("key not found")
 
-// ErrNilEpochNotifier signals that the provided EpochNotifier is nil
-var ErrNilEpochNotifier = errors.New("nil EpochNotifier")
-
 // ErrNilIdleNodeProvider signals that a nil idle node provider was provided
 var ErrNilIdleNodeProvider = errors.New("nil idle node provider")
+
+// ErrNilRootHashHolder signals that a nil root hash holder was provided
+var ErrNilRootHashHolder = errors.New("nil root hash holder provider")

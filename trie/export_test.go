@@ -81,3 +81,15 @@ func WriteInChanNonBlocking(errChan chan error, err error) {
 type StorageManagerExtensionStub struct {
 	*testscommon.StorageManagerStub
 }
+
+// IsBaseTrieStorageManager -
+func IsBaseTrieStorageManager(tsm common.StorageManager) bool {
+	_, ok := tsm.(*trieStorageManager)
+	return ok
+}
+
+// IsInEpochTrieStorageManager -
+func IsTrieStorageManagerInEpoch(tsm common.StorageManager) bool {
+	_, ok := tsm.(*trieStorageManagerInEpoch)
+	return ok
+}

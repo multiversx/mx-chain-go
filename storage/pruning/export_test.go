@@ -146,7 +146,7 @@ func (fhps *FullHistoryPruningStorer) IsEpochActive(epoch uint32) bool {
 	return fhps.isEpochActive(epoch)
 }
 
-// IsEpochActive -
+// SetStorerWithEpochOperations -
 func (fhtps *fullHistoryTriePruningStorer) SetStorerWithEpochOperations(storer storerWithEpochOperations) {
 	fhtps.storerWithEpochOperations = storer
 }
