@@ -61,31 +61,7 @@ func CreateAccountWithESDTBalance(
 	err = accnts.SaveAccount(account)
 	require.Nil(t, err)
 
-	saveNewTokenOnSystemAccount(t, accnts, key, esdtData)
-
 	_, err = accnts.Commit()
-	require.Nil(t, err)
-}
-
-func saveNewTokenOnSystemAccount(t *testing.T, accnts state.AccountsAdapter, tokenKey []byte, esdtData *esdt.ESDigitalToken) {
-	esdtDataOnSystemAcc := esdtData
-	esdtDataOnSystemAcc.Properties = nil
-	esdtDataOnSystemAcc.Reserved = []byte{1}
-	esdtDataOnSystemAcc.Value.Set(esdtData.Value)
-
-	esdtDataBytes, err := protoMarshalizer.Marshal(esdtData)
-	require.Nil(t, err)
-
-	sysAccount, err := accnts.LoadAccount(core.SystemAccountAddress)
-	require.Nil(t, err)
-
-	sysUserAccount, ok := sysAccount.(state.UserAccountHandler)
-	require.True(t, ok)
-
-	err = sysUserAccount.DataTrieTracker().SaveKeyValue(tokenKey, esdtDataBytes)
-	require.Nil(t, err)
-
-	err = accnts.SaveAccount(sysAccount)
 	require.Nil(t, err)
 }
 
