@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
@@ -213,7 +214,7 @@ func TestCreateBuiltInFunctionContainerGetAllowedAddress_Errors(t *testing.T) {
 		currentShardId = common.MetachainShardId
 		shardCoordinator.CurrentShard = currentShardId
 		allowedAddressForShard, _ = GetAllowedAddress(shardCoordinator, addresses)
-		assert.Equal(t, addresses[0], allowedAddressForShard)
+		assert.Equal(t, core.SystemAccountAddress, allowedAddressForShard)
 	})
 
 }

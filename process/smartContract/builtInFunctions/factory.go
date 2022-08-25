@@ -1,10 +1,7 @@
 package builtInFunctions
 
 import (
-	"bytes"
 	"fmt"
-	"sort"
-
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
@@ -122,18 +119,11 @@ func GetAllowedAddress(coordinator sharding.Coordinator, addresses [][]byte) ([]
 		return nil, fmt.Errorf("%w for shard %d, provided count is %d", process.ErrNilCrawlerAllowedAddress, coordinator.SelfId(), len(addresses))
 	}
 
-	sortedAddresses := make([][]byte, len(addresses))
-	copy(sortedAddresses, addresses)
-
-	sort.Slice(sortedAddresses, func(i, j int) bool {
-		return bytes.Compare(sortedAddresses[i], sortedAddresses[j]) < 0
-	})
-
 	if coordinator.SelfId() == core.MetachainShardId {
-		return sortedAddresses[0], nil
+		return core.SystemAccountAddress, nil
 	}
 
-	for _, address := range sortedAddresses {
+	for _, address := range addresses {
 		allowedAddressShardId := coordinator.ComputeId(address)
 		if allowedAddressShardId == coordinator.SelfId() {
 			return address, nil

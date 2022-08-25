@@ -35,14 +35,9 @@ func (bf *TestBuiltinFunction) IsInterfaceNil() bool {
 func GenerateOneAddressPerShard(shardCoordinator sharding.Coordinator) [][]byte {
 	addresses := make([][]byte, shardCoordinator.NumberOfShards())
 	for i := uint32(0); i < shardCoordinator.NumberOfShards(); i++ {
-		for j := byte(1); j < 255; j++ {
-			generatedAddress := bytes.Repeat([]byte{j}, 32)
-			computedShardId := shardCoordinator.ComputeId(generatedAddress)
-			if computedShardId == i {
-				addresses[i] = generatedAddress
-				break
-			}
-		}
+		generatedAddress := bytes.Repeat([]byte{1}, 32)
+		generatedAddress[len(generatedAddress)-1] = byte(i)
+		addresses[i] = generatedAddress
 	}
 	return addresses
 }
