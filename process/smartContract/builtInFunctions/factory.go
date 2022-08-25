@@ -54,7 +54,7 @@ func CreateBuiltInFunctionsFactory(args ArgsCreateBuiltInFunctionContainer) (vmc
 		return nil, process.ErrNilEpochNotifier
 	}
 	if check.IfNil(args.GuardedAccountHandler) {
-		return nil, nil, nil, process.ErrNilGuardedAccountHandler
+		return nil, process.ErrNilGuardedAccountHandler
 	}
 
 	vmcommonAccounts, ok := args.Accounts.(vmcommon.AccountsAdapter)

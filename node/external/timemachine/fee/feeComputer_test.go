@@ -16,6 +16,7 @@ func TestNewFeeComputer(t *testing.T) {
 		arguments := ArgsNewFeeComputer{
 			BuiltInFunctionsCostHandler: nil,
 			EconomicsConfig:             testscommon.GetEconomicsConfig(),
+			TxVersionChecker:            &testscommon.TxVersionCheckerStub{},
 		}
 
 		computer, err := NewFeeComputer(arguments)
@@ -27,6 +28,7 @@ func TestNewFeeComputer(t *testing.T) {
 		arguments := ArgsNewFeeComputer{
 			BuiltInFunctionsCostHandler: &testscommon.BuiltInCostHandlerStub{},
 			EconomicsConfig:             testscommon.GetEconomicsConfig(),
+			TxVersionChecker:            &testscommon.TxVersionCheckerStub{},
 		}
 
 		computer, err := NewFeeComputer(arguments)
@@ -41,6 +43,7 @@ func TestFeeComputer_ComputeTransactionFeeShouldWorkForDifferentEpochs(t *testin
 		EconomicsConfig:                testscommon.GetEconomicsConfig(),
 		PenalizedTooMuchGasEnableEpoch: 124,
 		GasPriceModifierEnableEpoch:    180,
+		TxVersionChecker:               &testscommon.TxVersionCheckerStub{},
 	}
 
 	contract, _ := hex.DecodeString("000000000000000000010000000000000000000000000000000000000000abba")

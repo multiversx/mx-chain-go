@@ -39,9 +39,9 @@ func NewMetaInterceptorsContainerFactory(
 		args.WhiteListerVerifiedTxs,
 		args.PreferredPeersHolder,
 		args.RequestHandler,
+		args.GuardianSigVerifier,
 		args.PeerShardMapper,
 		args.HardforkTrigger,
-		args.GuardianSigVerifier,
 	)
 	if err != nil {
 		return nil, err

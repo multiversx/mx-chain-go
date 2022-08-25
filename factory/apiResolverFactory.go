@@ -208,6 +208,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		EconomicsConfig:                *args.Configs.EconomicsConfig,
 		PenalizedTooMuchGasEnableEpoch: args.Configs.EpochConfig.EnableEpochs.PenalizedTooMuchGasEnableEpoch,
 		GasPriceModifierEnableEpoch:    args.Configs.EpochConfig.EnableEpochs.GasPriceModifierEnableEpoch,
+		TxVersionChecker:               args.CoreComponents.TxVersionChecker(),
 	})
 	if err != nil {
 		return nil, err

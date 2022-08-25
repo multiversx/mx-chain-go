@@ -234,6 +234,7 @@ func (tg *transactionGroup) simulateTransaction(c *gin.Context) {
 		Guardian:         gtx.GuardianAddr,
 		GuardianSigHex:   gtx.GuardianSignature,
 	}
+	start := time.Now()
 	tx, txHash, err := tg.getFacade().CreateTransaction(txArgs)
 	logging.LogAPIActionDurationIfNeeded(start, "API call: CreateTransaction")
 
@@ -323,6 +324,7 @@ func (tg *transactionGroup) sendTransaction(c *gin.Context) {
 		Guardian:         gtx.GuardianAddr,
 		GuardianSigHex:   gtx.GuardianSignature,
 	}
+	start := time.Now()
 	tx, txHash, err := tg.getFacade().CreateTransaction(txArgs)
 	logging.LogAPIActionDurationIfNeeded(start, "API call: CreateTransaction")
 	if err != nil {
@@ -549,6 +551,7 @@ func (tg *transactionGroup) computeTransactionGasLimit(c *gin.Context) {
 		Guardian:         gtx.GuardianAddr,
 		GuardianSigHex:   gtx.GuardianSignature,
 	}
+	start := time.Now()
 	tx, _, err := tg.getFacade().CreateTransaction(txArgs)
 	logging.LogAPIActionDurationIfNeeded(start, "API call: CreateTransaction")
 	if err != nil {

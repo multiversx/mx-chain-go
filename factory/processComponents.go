@@ -1331,15 +1331,15 @@ func (pcf *processComponentsFactory) newShardInterceptorContainerFactory(
 		WhiteListerVerifiedTxs:  pcf.whiteListerVerifiedTxs,
 		AntifloodHandler:        pcf.network.InputAntiFloodHandler(),
 		ArgumentsParser:         smartContract.NewArgumentParser(),
-		PreferredPeersHolder:         pcf.network.PreferredPeersHolderHandler(),SizeCheckDelta:          pcf.config.Marshalizer.SizeCheckDelta,
-		EnableEpochs:            pcf.epochConfig.EnableEpochs,
+		PreferredPeersHolder:    pcf.network.PreferredPeersHolderHandler(), SizeCheckDelta: pcf.config.Marshalizer.SizeCheckDelta,
+		EnableEpochs:                 pcf.epochConfig.EnableEpochs,
 		RequestHandler:               requestHandler,
 		PeerSignatureHandler:         pcf.crypto.PeerSignatureHandler(),
-		SignaturesHandler:    pcf.network.NetworkMessenger(),
+		SignaturesHandler:            pcf.network.NetworkMessenger(),
 		HeartbeatExpiryTimespanInSec: pcf.config.HeartbeatV2.HeartbeatExpiryTimespanInSec,
 		PeerShardMapper:              peerShardMapper,
 		HardforkTrigger:              hardforkTrigger,
-		GuardianSigVerifier:     pcf.bootstrapComponents.GuardianSigVerifier(),
+		GuardianSigVerifier:          pcf.bootstrapComponents.GuardianSigVerifier(),
 	}
 
 	interceptorContainerFactory, err := interceptorscontainer.NewShardInterceptorsContainerFactory(shardInterceptorsContainerFactoryArgs)
@@ -1381,7 +1381,7 @@ func (pcf *processComponentsFactory) newMetaInterceptorContainerFactory(
 		AntifloodHandler:             pcf.network.InputAntiFloodHandler(),
 		ArgumentsParser:              smartContract.NewArgumentParser(),
 		SizeCheckDelta:               pcf.config.Marshalizer.SizeCheckDelta,
-		EnableEpochs:            pcf.epochConfig.EnableEpochs,
+		EnableEpochs:                 pcf.epochConfig.EnableEpochs,
 		PreferredPeersHolder:         pcf.network.PreferredPeersHolderHandler(),
 		RequestHandler:               requestHandler,
 		PeerSignatureHandler:         pcf.crypto.PeerSignatureHandler(),
@@ -1389,7 +1389,7 @@ func (pcf *processComponentsFactory) newMetaInterceptorContainerFactory(
 		HeartbeatExpiryTimespanInSec: pcf.config.HeartbeatV2.HeartbeatExpiryTimespanInSec,
 		PeerShardMapper:              peerShardMapper,
 		HardforkTrigger:              hardforkTrigger,
-		GuardianSigVerifier:     pcf.bootstrapComponents.GuardianSigVerifier(),
+		GuardianSigVerifier:          pcf.bootstrapComponents.GuardianSigVerifier(),
 	}
 
 	interceptorContainerFactory, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(metaInterceptorsContainerFactoryArgs)
@@ -1482,7 +1482,7 @@ func (pcf *processComponentsFactory) createExportFactoryHandler(
 		OutputAntifloodHandler:    pcf.network.OutputAntiFloodHandler(),
 		RoundHandler:              pcf.coreData.RoundHandler(),
 		InterceptorDebugConfig:    pcf.config.Debug.InterceptorResolver,
-		EnableSignTxWithHashEpoch: pcf.epochConfig.EnableEpochs.TransactionSignedWithTxHashEnableEpoch,
+		EnableEpochs:              pcf.epochConfig.EnableEpochs,
 		MaxHardCapForMissingNodes: pcf.config.TrieSync.MaxHardCapForMissingNodes,
 		NumConcurrentTrieSyncers:  pcf.config.TrieSync.NumConcurrentTrieSyncers,
 		TrieSyncerVersion:         pcf.config.TrieSync.TrieSyncerVersion,
@@ -1631,7 +1631,7 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 	if check.IfNil(args.StatusComponents) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilStatusComponentsHolder)
 	}
-	if check.IfNil(args.BootstrapComponents.GuardianSigVerifier()){
+	if check.IfNil(args.BootstrapComponents.GuardianSigVerifier()) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilGuardianSigVerifier)
 	}
 

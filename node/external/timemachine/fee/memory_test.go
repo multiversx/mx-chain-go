@@ -21,6 +21,7 @@ func TestFeeComputer_MemoryFootprint(t *testing.T) {
 	computer, _ := NewFeeComputer(ArgsNewFeeComputer{
 		BuiltInFunctionsCostHandler: &testscommon.BuiltInCostHandlerStub{},
 		EconomicsConfig:             testscommon.GetEconomicsConfig(),
+		TxVersionChecker:            &testscommon.TxVersionCheckerStub{},
 	})
 
 	tx := &transaction.Transaction{

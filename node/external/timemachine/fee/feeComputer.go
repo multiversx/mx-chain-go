@@ -8,12 +8,14 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/node/external/timemachine"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 )
 
 var log = logger.GetOrCreate("node/external/timemachine/fee")
 
 type feeComputer struct {
+	txVersionChecker               process.TxVersionCheckerHandler
 	builtInFunctionsCostHandler    economics.BuiltInFunctionsCostHandler
 	economicsConfig                config.EconomicsConfig
 	penalizedTooMuchGasEnableEpoch uint32
@@ -36,6 +38,7 @@ func NewFeeComputer(args ArgsNewFeeComputer) (*feeComputer, error) {
 		gasPriceModifierEnableEpoch:    args.GasPriceModifierEnableEpoch,
 		// TODO: use a LRU cache instead
 		economicsInstances: make(map[uint32]economicsDataWithComputeFee),
+		txVersionChecker:   args.TxVersionChecker,
 	}
 
 	// Create some economics data instance (but do not save them) in order to validate the arguments:
@@ -103,6 +106,7 @@ func (computer *feeComputer) createEconomicsInstance(epoch uint32) (economicsDat
 		GasPriceModifierEnableEpoch:    computer.gasPriceModifierEnableEpoch,
 		BuiltInFunctionsCostHandler:    computer.builtInFunctionsCostHandler,
 		EpochNotifier:                  &timemachine.DisabledEpochNotifier{},
+		TxVersionChecker:               computer.txVersionChecker,
 	}
 
 	economicsData, err := economics.NewEconomicsData(args)

@@ -1,3 +1,4 @@
+package processor
 
 type interceptedDataSizeHandler interface {
 	SizeInBytes() int

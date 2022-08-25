@@ -1092,7 +1092,7 @@ func TestIntermediateResultsProcessor_addIntermediateTxToResultsForBlock(t *test
 		&mock.ChainStorerMock{},
 		block.TxBlock,
 		&mock.TxForCurrentBlockStub{},
-		&mock.FeeHandlerStub{},
+		&economicsmocks.EconomicsHandlerStub{},
 	)
 
 	key := []byte("key")
