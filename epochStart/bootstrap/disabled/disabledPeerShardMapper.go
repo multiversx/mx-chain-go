@@ -12,8 +12,8 @@ func NewPeerShardMapper() *peerShardMapper {
 }
 
 // GetLastKnownPeerID returns nothing
-func (p *peerShardMapper) GetLastKnownPeerID(_ []byte) (*core.PeerID, bool) {
-	return nil, false
+func (p *peerShardMapper) GetLastKnownPeerID(_ []byte) (core.PeerID, bool) {
+	return "", false
 }
 
 // UpdatePeerIDPublicKeyPair does nothing

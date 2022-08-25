@@ -261,6 +261,8 @@ func (d *delegation) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 		return d.addTokens(args)
 	case "correctNodesStatus":
 		return d.correctNodesStatus(args)
+	case "changeOwner":
+		return d.changeOwner(args)
 	}
 
 	d.eei.AddReturnMessage(args.Function + " is an unknown function")
@@ -894,6 +896,65 @@ func (d *delegation) checkBLSKeysIfExistsInStakingSC(blsKeys [][]byte) bool {
 		}
 	}
 	return false
+}
+
+func (d *delegation) changeOwner(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if !d.flagChangeDelegationOwner.IsSet() {
+		d.eei.AddReturnMessage(args.Function + " is an unknown function")
+		return vmcommon.UserError
+	}
+
+	returnCode := d.checkOwnerCallValueGasAndDuplicates(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+	if len(args.Arguments) != 1 {
+		d.eei.AddReturnMessage("wrong number of arguments, expected 1")
+		return vmcommon.UserError
+	}
+	if len(args.Arguments[0]) != len(args.CallerAddr) {
+		d.eei.AddReturnMessage("invalid argument, wanted an address")
+		return vmcommon.UserError
+	}
+
+	dataFromDelegationManager := d.eei.GetStorageFromAddress(d.delegationMgrSCAddress, args.Arguments[0])
+	if len(dataFromDelegationManager) > 0 {
+		d.eei.AddReturnMessage("destination already deployed a delegation sc")
+		return vmcommon.UserError
+	}
+
+	isNew, _, err := d.getOrCreateDelegatorData(args.Arguments[0])
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+	if !isNew {
+		d.eei.AddReturnMessage("destination should be a new account")
+		return vmcommon.UserError
+	}
+
+	isNew, ownerDelegatorData, err := d.getOrCreateDelegatorData(args.CallerAddr)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+	if isNew {
+		d.eei.AddReturnMessage("owner is new delegator")
+		return vmcommon.UserError
+	}
+
+	d.eei.SetStorage(args.CallerAddr, nil)
+	err = d.saveDelegatorData(args.Arguments[0], ownerDelegatorData)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	d.eei.SetStorageForAddress(d.delegationMgrSCAddress, args.Arguments[0], args.RecipientAddr)
+	d.eei.SetStorageForAddress(d.delegationMgrSCAddress, args.CallerAddr, []byte{})
+	d.eei.SetStorage([]byte(ownerKey), args.Arguments[0])
+
+	return vmcommon.Ok
 }
 
 func (d *delegation) addNodes(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {

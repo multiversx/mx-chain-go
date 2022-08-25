@@ -7,6 +7,7 @@ import (
 
 // ChainStorerMock -
 type ChainStorerMock struct {
+	BlockHeaders  *StorerMock
 	Metablocks    *StorerMock
 	Miniblocks    *StorerMock
 	Transactions  *StorerMock
@@ -16,12 +17,14 @@ type ChainStorerMock struct {
 	MetaHdrNonce  *StorerMock
 	ShardHdrNonce *StorerMock
 	Receipts      *StorerMock
+	ScheduledSCRs *StorerMock
 	Others        *StorerMock
 }
 
 // NewChainStorerMock -
 func NewChainStorerMock(epoch uint32) *ChainStorerMock {
 	return &ChainStorerMock{
+		BlockHeaders:  NewStorerMockWithEpoch(epoch),
 		Metablocks:    NewStorerMockWithEpoch(epoch),
 		Miniblocks:    NewStorerMockWithEpoch(epoch),
 		Transactions:  NewStorerMockWithEpoch(epoch),
@@ -31,6 +34,7 @@ func NewChainStorerMock(epoch uint32) *ChainStorerMock {
 		MetaHdrNonce:  NewStorerMockWithEpoch(epoch),
 		ShardHdrNonce: NewStorerMockWithEpoch(epoch),
 		Receipts:      NewStorerMockWithEpoch(epoch),
+		ScheduledSCRs: NewStorerMockWithEpoch(epoch),
 		Others:        NewStorerMockWithEpoch(epoch),
 	}
 }
@@ -48,6 +52,8 @@ func (sm *ChainStorerMock) AddStorer(_ dataRetriever.UnitType, _ storage.Storer)
 // GetStorer -
 func (sm *ChainStorerMock) GetStorer(unitType dataRetriever.UnitType) (storage.Storer, error) {
 	switch unitType {
+	case dataRetriever.BlockHeaderUnit:
+		return sm.BlockHeaders
 	case dataRetriever.MetaBlockUnit:
 		return sm.Metablocks, nil
 	case dataRetriever.MiniBlockUnit:
@@ -66,6 +72,8 @@ func (sm *ChainStorerMock) GetStorer(unitType dataRetriever.UnitType) (storage.S
 		return sm.ShardHdrNonce, nil
 	case dataRetriever.ReceiptsUnit:
 		return sm.Receipts, nil
+	case dataRetriever.ScheduledSCRsUnit:
+		return sm.ScheduledSCRs, nil
 	}
 
 	// According to: dataRetriever/interface.go
@@ -128,6 +136,7 @@ func (sm *ChainStorerMock) SetEpochForPutOperation(_ uint32) {
 // GetAllStorers -
 func (sm *ChainStorerMock) GetAllStorers() map[dataRetriever.UnitType]storage.Storer {
 	return map[dataRetriever.UnitType]storage.Storer{
+		dataRetriever.BlockHeaderUnit:           sm.BlockHeaders,
 		dataRetriever.MetaBlockUnit:             sm.Metablocks,
 		dataRetriever.MiniBlockUnit:             sm.Miniblocks,
 		dataRetriever.TransactionUnit:           sm.Transactions,
@@ -137,6 +146,7 @@ func (sm *ChainStorerMock) GetAllStorers() map[dataRetriever.UnitType]storage.St
 		dataRetriever.MetaHdrNonceHashDataUnit:  sm.MetaHdrNonce,
 		dataRetriever.ShardHdrNonceHashDataUnit: sm.ShardHdrNonce,
 		dataRetriever.ReceiptsUnit:              sm.Receipts,
+		dataRetriever.ScheduledSCRsUnit:         sm.ScheduledSCRs,
 	}
 }
 
