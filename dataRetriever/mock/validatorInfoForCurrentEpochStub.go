@@ -12,9 +12,9 @@ type ValidatorInfoForCurrentEpochStub struct {
 }
 
 // Clean -
-func (t *ValidatorInfoForCurrentEpochStub) Clean() {
-	if t.CleanCalled != nil {
-		t.CleanCalled()
+func (v *ValidatorInfoForCurrentEpochStub) Clean() {
+	if v.CleanCalled != nil {
+		v.CleanCalled()
 	}
 }
 

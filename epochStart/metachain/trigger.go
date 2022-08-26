@@ -256,7 +256,7 @@ func (t *trigger) SetProcessed(header data.HeaderHandler, body data.BodyHandler)
 	t.epochStartMeta = metaBlock
 	t.epochStartMetaHash = metaHash
 
-	t.epochStartNotifier.NotifyAllPrepare(metaBlock, body, t.validatorInfoPool)
+	t.epochStartNotifier.NotifyAllPrepare(metaBlock, body)
 	t.epochStartNotifier.NotifyAll(metaBlock)
 
 	t.saveCurrentState(metaBlock.Round)

@@ -126,7 +126,7 @@ func createMockEpochValidatorInfoCreatorsArguments() ArgsNewValidatorInfoCreator
 				}
 			},
 			CurrEpochValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
-				return &validatorInfoCacherMock.ValidatorInfoCacherMock{}
+				return &validatorInfoCacherMock.ValidatorInfoCacherStub{}
 			},
 		},
 		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{

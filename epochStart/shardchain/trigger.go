@@ -297,12 +297,17 @@ func (t *trigger) clearMissingValidatorsInfoMap(epoch uint32) {
 }
 
 func (t *trigger) requestMissingMiniBlocks(ctx context.Context) {
+	timer := time.NewTimer(sleepTime)
+	defer timer.Stop()
+
 	for {
+		timer.Reset(sleepTime)
+
 		select {
 		case <-ctx.Done():
 			log.Debug("requestMissingMiniBlocks: trigger's go routine is stopping...")
 			return
-		case <-time.After(sleepTime):
+		case <-timer.C:
 		}
 
 		t.mutMissingMiniBlocks.RLock()
@@ -320,11 +325,13 @@ func (t *trigger) requestMissingMiniBlocks(ctx context.Context) {
 
 		go t.requestHandler.RequestMiniBlocks(core.MetachainShardId, missingMiniBlocks)
 
+		timer.Reset(waitTime)
+
 		select {
 		case <-ctx.Done():
 			log.Debug("requestMissingMiniBlocks: trigger's go routine is stopping...")
 			return
-		case <-time.After(waitTime):
+		case <-timer.C:
 		}
 
 		t.updateMissingMiniBlocks()
@@ -332,12 +339,17 @@ func (t *trigger) requestMissingMiniBlocks(ctx context.Context) {
 }
 
 func (t *trigger) requestMissingValidatorsInfo(ctx context.Context) {
+	timer := time.NewTimer(sleepTime)
+	defer timer.Stop()
+
 	for {
+		timer.Reset(sleepTime)
+
 		select {
 		case <-ctx.Done():
 			log.Debug("requestMissingValidatorsInfo: trigger's go routine is stopping...")
 			return
-		case <-time.After(sleepTime):
+		case <-timer.C:
 		}
 
 		t.mutMissingValidatorsInfo.RLock()
@@ -355,11 +367,13 @@ func (t *trigger) requestMissingValidatorsInfo(ctx context.Context) {
 
 		go t.requestHandler.RequestValidatorsInfo(missingValidatorsInfo)
 
+		timer.Reset(waitTime)
+
 		select {
 		case <-ctx.Done():
 			log.Debug("requestMissingValidatorsInfo: trigger's go routine is stopping...")
 			return
-		case <-time.After(waitTime):
+		case <-timer.C:
 		}
 
 		t.updateMissingValidatorsInfo()
@@ -387,7 +401,8 @@ func (t *trigger) updateMissingMiniBlocks() {
 func (t *trigger) updateMissingValidatorsInfo() {
 	t.mutMissingValidatorsInfo.Lock()
 	for hash := range t.mapMissingValidatorsInfo {
-		if _, ok := t.validatorInfoPool.SearchFirstData([]byte(hash)); ok {
+		_, isValidatorInfoFound := t.validatorInfoPool.SearchFirstData([]byte(hash))
+		if isValidatorInfoFound {
 			delete(t.mapMissingValidatorsInfo, hash)
 		}
 	}
@@ -752,7 +767,7 @@ func (t *trigger) checkIfTriggerCanBeActivated(hash string, metaHdr data.HeaderH
 		}
 	}
 
-	t.epochStartNotifier.NotifyAllPrepare(metaHdr, blockBody, t.currentEpochValidatorInfoPool)
+	t.epochStartNotifier.NotifyAllPrepare(metaHdr, blockBody)
 
 	isMetaHdrFinal, finalityAttestingRound := t.isMetaBlockFinal(hash, metaHdr)
 	return isMetaHdrFinal, finalityAttestingRound

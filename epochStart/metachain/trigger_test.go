@@ -57,7 +57,7 @@ func createMockEpochStartTriggerArguments() *ArgsNewMetaEpochStartTrigger {
 		},
 		DataPool: &dataRetrieverMock.PoolsHolderStub{
 			CurrEpochValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
-				return &validatorInfoCacherMock.ValidatorInfoCacherMock{}
+				return &validatorInfoCacherMock.ValidatorInfoCacherStub{}
 			},
 		},
 	}

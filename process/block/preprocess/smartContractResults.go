@@ -186,7 +186,7 @@ func (scr *smartContractResults) RestoreBlockDataIntoPools(
 			continue
 		}
 
-		err := scr.restoreSmartContractResults(miniBlock)
+		err := scr.restoreSmartContractResultsIntoPool(miniBlock)
 		if err != nil {
 			return scrRestored, err
 		}
@@ -208,7 +208,7 @@ func (scr *smartContractResults) RestoreBlockDataIntoPools(
 	return scrRestored, nil
 }
 
-func (scr *smartContractResults) restoreSmartContractResults(miniBlock *block.MiniBlock) error {
+func (scr *smartContractResults) restoreSmartContractResultsIntoPool(miniBlock *block.MiniBlock) error {
 	strCache := process.ShardCacherIdentifier(miniBlock.SenderShardID, miniBlock.ReceiverShardID)
 	scrsBuff, err := scr.storage.GetAll(dataRetriever.UnsignedTransactionUnit, miniBlock.TxHashes)
 	if err != nil {

@@ -261,31 +261,38 @@ func (p *peerMiniBlockSyncer) computeMissingValidatorsInfo(body *block.Body) {
 	defer p.mutValidatorsInfoForBlock.Unlock()
 
 	numMissingValidatorsInfo := uint32(0)
-	for _, mb := range body.MiniBlocks {
-		if mb.Type != block.PeerBlock {
+	for _, miniBlock := range body.MiniBlocks {
+		if miniBlock.Type != block.PeerBlock {
 			continue
 		}
 
-		for _, txHash := range mb.TxHashes {
-			p.mapAllValidatorsInfo[string(txHash)] = nil
-
-			validatorInfoObjectFound, ok := p.validatorsInfoPool.SearchFirstData(txHash)
-			if !ok {
-				numMissingValidatorsInfo++
-				continue
-			}
-
-			validatorInfo, ok := validatorInfoObjectFound.(*state.ShardValidatorInfo)
-			if !ok {
-				numMissingValidatorsInfo++
-				continue
-			}
-
-			p.mapAllValidatorsInfo[string(txHash)] = validatorInfo
-		}
+		numMissingValidatorsInfo += p.setMissingValidatorsInfo(miniBlock)
 	}
 
 	p.numMissingValidatorsInfo = numMissingValidatorsInfo
+}
+
+func (p *peerMiniBlockSyncer) setMissingValidatorsInfo(miniBlock *block.MiniBlock) uint32 {
+	numMissingValidatorsInfo := uint32(0)
+	for _, txHash := range miniBlock.TxHashes {
+		p.mapAllValidatorsInfo[string(txHash)] = nil
+
+		validatorInfoObjectFound, ok := p.validatorsInfoPool.SearchFirstData(txHash)
+		if !ok {
+			numMissingValidatorsInfo++
+			continue
+		}
+
+		validatorInfo, ok := validatorInfoObjectFound.(*state.ShardValidatorInfo)
+		if !ok {
+			numMissingValidatorsInfo++
+			continue
+		}
+
+		p.mapAllValidatorsInfo[string(txHash)] = validatorInfo
+	}
+
+	return numMissingValidatorsInfo
 }
 
 func (p *peerMiniBlockSyncer) retrieveMissingMiniBlocks() ([][]byte, error) {

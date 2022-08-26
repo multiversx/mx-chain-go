@@ -70,7 +70,7 @@ func NewDataPool(args DataPoolArgs) (*dataPool, error) {
 		return nil, dataRetriever.ErrNilCurrBlockTxs
 	}
 	if check.IfNil(args.CurrentEpochValidatorInfo) {
-		return nil, dataRetriever.ErrNilCurrEpochValidatorInfo
+		return nil, dataRetriever.ErrNilCurrentEpochValidatorInfo
 	}
 	if check.IfNil(args.TrieNodes) {
 		return nil, dataRetriever.ErrNilTrieNodesPool

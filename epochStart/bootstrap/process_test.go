@@ -1756,7 +1756,7 @@ func TestRequestAndProcessing(t *testing.T) {
 				return &mock.HeadersCacherStub{}
 			},
 			CurrEpochValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
-				return &validatorInfoCacherMock.ValidatorInfoCacherMock{}
+				return &validatorInfoCacherStub.ValidatorInfoCacherStub{}
 			},
 		}
 		epochStartProvider.requestHandler = &testscommon.RequestHandlerStub{}
@@ -1826,7 +1826,7 @@ func TestRequestAndProcessing(t *testing.T) {
 				return &mock.HeadersCacherStub{}
 			},
 			CurrEpochValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
-				return &validatorInfoCacherMock.ValidatorInfoCacherMock{}
+				return &validatorInfoCacherStub.ValidatorInfoCacherStub{}
 			},
 		}
 		epochStartProvider.requestHandler = &testscommon.RequestHandlerStub{}
@@ -1984,7 +1984,7 @@ func TestEpochStartBootstrap_WithDisabledShardIDAsObserver(t *testing.T) {
 			return testscommon.NewCacherStub()
 		},
 		CurrEpochValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
-			return &validatorInfoCacherMock.ValidatorInfoCacherMock{}
+			return &validatorInfoCacherStub.ValidatorInfoCacherStub{}
 		},
 	}
 	epochStartProvider.requestHandler = &testscommon.RequestHandlerStub{}

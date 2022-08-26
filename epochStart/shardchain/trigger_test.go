@@ -43,7 +43,7 @@ func createMockShardEpochStartTriggerArguments() *ArgsShardEpochStartTrigger {
 				return testscommon.NewCacherStub()
 			},
 			CurrEpochValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
-				return &validatorInfoCacherMock.ValidatorInfoCacherMock{}
+				return &validatorInfoCacherMock.ValidatorInfoCacherStub{}
 			},
 		},
 		Storage: &storageStubs.ChainStorerStub{
@@ -360,7 +360,7 @@ func TestTrigger_ReceivedHeaderIsEpochStartTrueWithPeerMiniblocks(t *testing.T) 
 			}
 		},
 		CurrEpochValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
-			return &validatorInfoCacherMock.ValidatorInfoCacherMock{}
+			return &validatorInfoCacherMock.ValidatorInfoCacherStub{}
 		},
 	}
 	args.Uint64Converter = &mock.Uint64ByteSliceConverterMock{

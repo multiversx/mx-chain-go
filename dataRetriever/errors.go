@@ -152,8 +152,8 @@ var ErrNilTrieDataGetter = errors.New("nil trie data getter provided")
 // ErrNilCurrBlockTxs signals that nil current block txs holder was provided
 var ErrNilCurrBlockTxs = errors.New("nil current block txs holder")
 
-// ErrNilCurrEpochValidatorInfo signals that nil current epoch validator info holder was provided
-var ErrNilCurrEpochValidatorInfo = errors.New("nil current epoch validator info holder")
+// ErrNilCurrentEpochValidatorInfo signals that nil current epoch validator info holder was provided
+var ErrNilCurrentEpochValidatorInfo = errors.New("nil current epoch validator info holder")
 
 // ErrNilRequestedItemsHandler signals that a nil requested items handler was provided
 var ErrNilRequestedItemsHandler = errors.New("nil requested items handler")

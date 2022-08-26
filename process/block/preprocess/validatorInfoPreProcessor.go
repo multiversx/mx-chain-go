@@ -22,7 +22,6 @@ var _ process.PreProcessor = (*validatorInfoPreprocessor)(nil)
 type validatorInfoPreprocessor struct {
 	*basePreProcess
 	chReceivedAllValidatorsInfo chan bool
-	onRequestValidatorsInfo     func(txHashes [][]byte)
 	validatorsInfoForBlock      txsForBlock
 	validatorsInfoPool          dataRetriever.ShardedDataCacherNotifier
 	storage                     dataRetriever.StorageService
@@ -36,7 +35,6 @@ func NewValidatorInfoPreprocessor(
 	blockSizeComputation BlockSizeComputationHandler,
 	validatorsInfoPool dataRetriever.ShardedDataCacherNotifier,
 	store dataRetriever.StorageService,
-	onRequestValidatorsInfo func(txHashes [][]byte),
 	enableEpochsHandler common.EnableEpochsHandler,
 ) (*validatorInfoPreprocessor, error) {
 
@@ -55,9 +53,6 @@ func NewValidatorInfoPreprocessor(
 	if check.IfNil(store) {
 		return nil, process.ErrNilStorage
 	}
-	if onRequestValidatorsInfo == nil {
-		return nil, process.ErrNilRequestHandler
-	}
 	if check.IfNil(enableEpochsHandler) {
 		return nil, process.ErrNilEnableEpochsHandler
 	}
@@ -69,15 +64,13 @@ func NewValidatorInfoPreprocessor(
 	}
 
 	vip := &validatorInfoPreprocessor{
-		basePreProcess:          bpp,
-		storage:                 store,
-		validatorsInfoPool:      validatorsInfoPool,
-		onRequestValidatorsInfo: onRequestValidatorsInfo,
-		enableEpochsHandler:     enableEpochsHandler,
+		basePreProcess:      bpp,
+		storage:             store,
+		validatorsInfoPool:  validatorsInfoPool,
+		enableEpochsHandler: enableEpochsHandler,
 	}
 
 	vip.chReceivedAllValidatorsInfo = make(chan bool)
-	vip.validatorsInfoPool.RegisterOnAdded(vip.receivedValidatorInfoTransaction)
 	vip.validatorsInfoForBlock.txHashAndInfo = make(map[string]*txInfo)
 
 	return vip, nil
@@ -175,18 +168,6 @@ func (vip *validatorInfoPreprocessor) ProcessBlockTransactions(
 // SaveTxsToStorage does nothing
 func (vip *validatorInfoPreprocessor) SaveTxsToStorage(_ *block.Body) error {
 	return nil
-}
-
-// receivedValidatorInfoTransaction is a callback function called when a new validator info transaction
-// is added in the validator info transactions pool
-func (vip *validatorInfoPreprocessor) receivedValidatorInfoTransaction(txHash []byte, value interface{}) {
-	validatorInfo, ok := value.(*state.ShardValidatorInfo)
-	if !ok {
-		log.Warn("validatorInfoPreprocessor.receivedValidatorInfoTransaction", "error", process.ErrWrongTypeAssertion)
-		return
-	}
-
-	log.Trace("validatorInfoPreprocessor.receivedValidatorInfoTransaction", "tx hash", txHash, "pk", validatorInfo.PublicKey)
 }
 
 // CreateBlockStarted cleans the local cache map for processed/created validators info at this round
