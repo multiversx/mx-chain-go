@@ -18,9 +18,8 @@ import (
 
 // NodeStub -
 type NodeStub struct {
-
 	ConnectToAddressesHandler                      func([]string) error
-	GetBalanceCalled                              func(address string, options api.AccountQueryOptions) (*big.Int, api.BlockInfo,error)
+	GetBalanceCalled                               func(address string, options api.AccountQueryOptions) (*big.Int, api.BlockInfo, error)
 	GenerateTransactionHandler                     func(sender string, receiver string, amount string, code string) (*transaction.Transaction, error)
 	CreateTransactionHandler                       func(txArgs *external.ArgsCreateTransaction) (*transaction.Transaction, []byte, error)
 	ValidateTransactionHandler                     func(tx *transaction.Transaction) error
@@ -37,6 +36,7 @@ type NodeStub struct {
 	IsSelfTriggerCalled                            func() bool
 	GetQueryHandlerCalled                          func(name string) (debug.QueryHandler, error)
 	GetValueForKeyCalled                           func(address string, key string, options api.AccountQueryOptions) (string, api.BlockInfo, error)
+	GetGuardianDataCalled                          func(address string, options api.AccountQueryOptions) (api.GuardianData, api.BlockInfo, error)
 	GetPeerInfoCalled                              func(pid string) ([]core.QueryP2PPeerInfo, error)
 	GetUsernameCalled                              func(address string, options api.AccountQueryOptions) (string, api.BlockInfo, error)
 	GetESDTDataCalled                              func(address string, key string, nonce uint64, options api.AccountQueryOptions) (*esdt.ESDigitalToken, api.BlockInfo, error)
@@ -103,6 +103,14 @@ func (ns *NodeStub) GetValueForKey(address string, key string, options api.Accou
 	}
 
 	return "", api.BlockInfo{}, nil
+}
+
+// GetGuardianData -
+func (ns *NodeStub) GetGuardianData(address string, options api.AccountQueryOptions) (api.GuardianData, api.BlockInfo, error) {
+	if ns.GetGuardianDataCalled != nil {
+		return ns.GetGuardianDataCalled(address, options)
+	}
+	return api.GuardianData{}, api.BlockInfo{}, nil
 }
 
 // EncodeAddressPubkey -

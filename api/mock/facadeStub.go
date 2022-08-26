@@ -20,14 +20,14 @@ import (
 
 // FacadeStub is the mock implementation of a node router handler
 type FacadeStub struct {
-	ShouldErrorStart                        bool
-	ShouldErrorStop                         bool
-	GetHeartbeatsHandler                    func() ([]data.PubKeyHeartbeat, error)
-	GetBalanceCalled                          func(address string, options api.AccountQueryOptions) (*big.Int, api.BlockInfo, error)
-	GetAccountCalled                       func(address string, options api.AccountQueryOptions) (api.AccountResponse, api.BlockInfo,error)
-	GenerateTransactionHandler              func(sender string, receiver string, value *big.Int, code string) (*transaction.Transaction, error)
-	GetTransactionHandler                   func(hash string, withResults bool) (*transaction.ApiTransactionResult, error)
-	CreateTransactionHandler                func(txArgs *external.ArgsCreateTransaction) (*transaction.Transaction, []byte, error)
+	ShouldErrorStart                            bool
+	ShouldErrorStop                             bool
+	GetHeartbeatsHandler                        func() ([]data.PubKeyHeartbeat, error)
+	GetBalanceCalled                            func(address string, options api.AccountQueryOptions) (*big.Int, api.BlockInfo, error)
+	GetAccountCalled                            func(address string, options api.AccountQueryOptions) (api.AccountResponse, api.BlockInfo, error)
+	GenerateTransactionHandler                  func(sender string, receiver string, value *big.Int, code string) (*transaction.Transaction, error)
+	GetTransactionHandler                       func(hash string, withResults bool) (*transaction.ApiTransactionResult, error)
+	CreateTransactionHandler                    func(txArgs *external.ArgsCreateTransaction) (*transaction.Transaction, []byte, error)
 	ValidateTransactionHandler                  func(tx *transaction.Transaction) error
 	ValidateTransactionForSimulationHandler     func(tx *transaction.Transaction, bypassSignature bool) error
 	SendBulkTransactionsHandler                 func(txs []*transaction.Transaction) (uint64, error)
@@ -38,6 +38,7 @@ type FacadeStub struct {
 	NodeConfigCalled                            func() map[string]interface{}
 	GetQueryHandlerCalled                       func(name string) (debug.QueryHandler, error)
 	GetValueForKeyCalled                        func(address string, key string, options api.AccountQueryOptions) (string, api.BlockInfo, error)
+	GetGuardianDataCalled                       func(address string, options api.AccountQueryOptions) (api.GuardianData, api.BlockInfo, error)
 	GetPeerInfoCalled                           func(pid string) ([]core.QueryP2PPeerInfo, error)
 	GetThrottlerForEndpointCalled               func(endpoint string) (core.Throttler, bool)
 	GetUsernameCalled                           func(address string, options api.AccountQueryOptions) (string, api.BlockInfo, error)
@@ -181,6 +182,14 @@ func (f *FacadeStub) GetKeyValuePairs(address string, options api.AccountQueryOp
 	}
 
 	return nil, api.BlockInfo{}, nil
+}
+
+// GetGuardianData -
+func (f *FacadeStub) GetGuardianData(address string, options api.AccountQueryOptions) (api.GuardianData, api.BlockInfo, error) {
+	if f.GetGuardianDataCalled != nil {
+		return f.GetGuardianDataCalled(address, options)
+	}
+	return api.GuardianData{}, api.BlockInfo{}, nil
 }
 
 // GetESDTData -

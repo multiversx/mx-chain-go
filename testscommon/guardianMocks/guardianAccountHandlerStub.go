@@ -1,17 +1,19 @@
 package guardianMocks
 
 import (
+	"github.com/ElrondNetwork/elrond-go-core/data/guardians"
 	"github.com/ElrondNetwork/elrond-go/state"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // GuardedAccountHandlerStub -
 type GuardedAccountHandlerStub struct {
-	GetActiveGuardianCalled    func(handler vmcommon.UserAccountHandler) ([]byte, error)
-	SetGuardianCalled          func(uah vmcommon.UserAccountHandler, guardianAddress []byte, txGuardianAddress []byte) error
-	HasPendingGuardianCalled   func(uah state.UserAccountHandler) bool
-	HasActiveGuardianCalled    func(uah state.UserAccountHandler) bool
-	CleanOtherThanActiveCalled func(uah vmcommon.UserAccountHandler)
+	GetActiveGuardianCalled      func(handler vmcommon.UserAccountHandler) ([]byte, error)
+	SetGuardianCalled            func(uah vmcommon.UserAccountHandler, guardianAddress []byte, txGuardianAddress []byte) error
+	HasPendingGuardianCalled     func(uah state.UserAccountHandler) bool
+	HasActiveGuardianCalled      func(uah state.UserAccountHandler) bool
+	CleanOtherThanActiveCalled   func(uah vmcommon.UserAccountHandler)
+	GetConfiguredGuardiansCalled func(uah state.UserAccountHandler) (active *guardians.Guardian, pending *guardians.Guardian, err error)
 }
 
 // GetActiveGuardian -
@@ -51,6 +53,14 @@ func (gahs *GuardedAccountHandlerStub) CleanOtherThanActive(uah vmcommon.UserAcc
 	if gahs.CleanOtherThanActiveCalled != nil {
 		gahs.CleanOtherThanActiveCalled(uah)
 	}
+}
+
+// GetConfiguredGuardians -
+func (gahs *GuardedAccountHandlerStub) GetConfiguredGuardians(uah state.UserAccountHandler) (active *guardians.Guardian, pending *guardians.Guardian, err error) {
+	if gahs.GetConfiguredGuardiansCalled != nil {
+		return gahs.GetConfiguredGuardiansCalled(uah)
+	}
+	return nil, nil, nil
 }
 
 // IsInterfaceNil -
