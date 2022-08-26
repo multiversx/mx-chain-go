@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -674,6 +675,48 @@ func TestNodeFacade_GetKeyValuePairs(t *testing.T) {
 	res, _, err := nf.GetKeyValuePairs("addr", api.AccountQueryOptions{})
 	assert.NoError(t, err)
 	assert.Equal(t, expectedPairs, res)
+}
+
+func TestNodeFacade_GetGuardianData(t *testing.T) {
+	t.Parallel()
+	arg := createMockArguments()
+
+	emptyGuardianData := api.GuardianData{}
+	testAddress := "test address"
+	expectedErr := errors.New("expected error")
+
+	expectedGuardianData := api.GuardianData{
+		ActiveGuardian: &api.Guardian{
+			Address: "guardian1",
+			Epoch:   0,
+		},
+		PendingGuardian: &api.Guardian{
+			Address: "guardian2",
+			Epoch:   10,
+		},
+		Frozen: true,
+	}
+	arg.Node = &mock.NodeStub{
+		GetGuardianDataCalled: func(address string, options api.AccountQueryOptions) (api.GuardianData, api.BlockInfo, error) {
+			if strings.Compare(testAddress, address) == 0 {
+				return expectedGuardianData, api.BlockInfo{}, nil
+			}
+			return emptyGuardianData, api.BlockInfo{}, expectedErr
+		},
+	}
+
+	t.Run("with error", func(t *testing.T) {
+		nf, _ := NewNodeFacade(arg)
+		res, _, err := nf.GetGuardianData("", api.AccountQueryOptions{})
+		assert.Equal(t, expectedErr, err)
+		assert.Equal(t, emptyGuardianData, res)
+	})
+	t.Run("ok", func(t *testing.T) {
+		nf, _ := NewNodeFacade(arg)
+		res, _, err := nf.GetGuardianData(testAddress, api.AccountQueryOptions{})
+		assert.NoError(t, err)
+		assert.Equal(t, expectedGuardianData, res)
+	})
 }
 
 func TestNodeFacade_GetAllESDTTokens(t *testing.T) {
