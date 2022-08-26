@@ -191,6 +191,9 @@ func checkArgs(args *StorerArgs) error {
 	if args.EpochsData.NumOfEpochsToKeep < args.EpochsData.NumOfActivePersisters {
 		return storage.ErrEpochKeepIsLowerThanNumActive
 	}
+	if check.IfNil(args.PersistersTracker) {
+		return storage.ErrNilPersistersTracker
+	}
 
 	return nil
 }

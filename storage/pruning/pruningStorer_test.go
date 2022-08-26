@@ -136,6 +136,18 @@ func TestNewPruningStorer_InvalidNumberOfActivePersistersShouldErr(t *testing.T)
 	assert.Equal(t, storage.ErrInvalidNumberOfPersisters, err)
 }
 
+func TestNewPruningStorer_NilPersistersTrackerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := getDefaultArgs()
+	args.PersistersTracker = nil
+
+	ps, err := pruning.NewPruningStorer(args)
+
+	assert.Nil(t, ps)
+	assert.Equal(t, storage.ErrNilPersistersTracker, err)
+}
+
 func TestNewPruningStorer_NumEpochKeepLowerThanNumActiveShouldErr(t *testing.T) {
 	t.Parallel()
 

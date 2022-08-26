@@ -173,11 +173,7 @@ func (psf *StorageServiceFactory) CreateForShard() (dataRetriever.StorageService
 		return nil, err
 	}
 
-	userAccountsUnitArgs := psf.createPruningStorerArgs(psf.generalConfig.AccountsTrieStorage, customDatabaseRemover)
-	if psf.storageType == ProcessStorageService {
-		userAccountsUnitArgs.PersistersTracker = pruning.NewTriePersisterTracker(userAccountsUnitArgs.EpochsData)
-	}
-	userAccountsUnit, err = psf.createTrieUnit(psf.generalConfig.AccountsTrieStorage, userAccountsUnitArgs)
+	userAccountsUnit, err = psf.createTriePruningStorer(psf.generalConfig.AccountsTrieStorage, customDatabaseRemover)
 	if err != nil {
 		return nil, err
 	}
@@ -347,20 +343,12 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 		return nil, err
 	}
 
-	userAccountsUnitArgs := psf.createPruningStorerArgs(psf.generalConfig.AccountsTrieStorage, customDatabaseRemover)
-	if psf.storageType == ProcessStorageService {
-		userAccountsUnitArgs.PersistersTracker = pruning.NewTriePersisterTracker(userAccountsUnitArgs.EpochsData)
-	}
-	userAccountsUnit, err = psf.createTrieUnit(psf.generalConfig.AccountsTrieStorage, userAccountsUnitArgs)
+	userAccountsUnit, err = psf.createTriePruningStorer(psf.generalConfig.AccountsTrieStorage, customDatabaseRemover)
 	if err != nil {
 		return nil, err
 	}
 
-	peerAccountsUnitArgs := psf.createPruningStorerArgs(psf.generalConfig.PeerAccountsTrieStorage, customDatabaseRemover)
-	if psf.storageType == ProcessStorageService {
-		peerAccountsUnitArgs.PersistersTracker = pruning.NewTriePersisterTracker(peerAccountsUnitArgs.EpochsData)
-	}
-	peerAccountsUnit, err = psf.createTrieUnit(psf.generalConfig.PeerAccountsTrieStorage, peerAccountsUnitArgs)
+	peerAccountsUnit, err = psf.createTriePruningStorer(psf.generalConfig.PeerAccountsTrieStorage, customDatabaseRemover)
 	if err != nil {
 		return nil, err
 	}
@@ -511,6 +499,18 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 	}
 
 	return store, err
+}
+
+func (psf *StorageServiceFactory) createTriePruningStorer(
+	storageConfig config.StorageConfig,
+	customDatabaseRemover storage.CustomDatabaseRemoverHandler,
+) (storage.Storer, error) {
+	accountsUnitArgs := psf.createPruningStorerArgs(storageConfig, customDatabaseRemover)
+	if psf.storageType == ProcessStorageService {
+		accountsUnitArgs.PersistersTracker = pruning.NewTriePersisterTracker(accountsUnitArgs.EpochsData)
+	}
+
+	return psf.createTrieUnit(storageConfig, accountsUnitArgs)
 }
 
 func (psf *StorageServiceFactory) createTrieUnit(
