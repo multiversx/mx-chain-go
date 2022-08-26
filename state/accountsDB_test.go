@@ -1064,9 +1064,11 @@ func TestAccountsDB_SnapshotStateSnapshotSameRootHash(t *testing.T) {
 				GetLatestStorageEpochCalled: func() (uint32, error) {
 					return latestEpoch, nil
 				},
-				TakeSnapshotCalled: func(_ []byte, _ []byte, _ chan core.KeyValueHolder, _ chan error, _ common.SnapshotStatisticsHandler, _ uint32) {
+				TakeSnapshotCalled: func(_ []byte, _ []byte, leavesChan chan core.KeyValueHolder, _ chan error, stats common.SnapshotStatisticsHandler, _ uint32) {
 					snapshotMutex.Lock()
 					takeSnapshotCalled++
+					close(leavesChan)
+					stats.SnapshotFinished()
 					snapshotMutex.Unlock()
 				},
 			}
@@ -1126,6 +1128,41 @@ func TestAccountsDB_SnapshotStateSnapshotSameRootHash(t *testing.T) {
 	time.Sleep(waitForOpToFinish)
 	snapshotMutex.Lock()
 	assert.Equal(t, 5, takeSnapshotCalled)
+	snapshotMutex.Unlock()
+}
+
+func TestAccountsDB_SnapshotStateSkipSnapshotIfSnapshotInProgress(t *testing.T) {
+	t.Parallel()
+
+	rootHashes := [][]byte{[]byte("rootHash1"), []byte("rootHash2"), []byte("rootHash3"), []byte("rootHash4")}
+	latestEpoch := uint32(0)
+	snapshotMutex := sync.RWMutex{}
+	takeSnapshotCalled := 0
+	trieStub := &trieMock.TrieStub{
+		GetStorageManagerCalled: func() common.StorageManager {
+			return &testscommon.StorageManagerStub{
+				GetLatestStorageEpochCalled: func() (uint32, error) {
+					return latestEpoch, nil
+				},
+				TakeSnapshotCalled: func(_ []byte, _ []byte, leavesChan chan core.KeyValueHolder, _ chan error, stats common.SnapshotStatisticsHandler, _ uint32) {
+					snapshotMutex.Lock()
+					takeSnapshotCalled++
+					close(leavesChan)
+					stats.SnapshotFinished()
+					snapshotMutex.Unlock()
+				},
+			}
+		},
+	}
+	adb := generateAccountDBFromTrie(trieStub)
+	waitForOpToFinish := time.Millisecond * 100
+
+	for _, rootHash := range rootHashes {
+		adb.SnapshotState(rootHash)
+	}
+	time.Sleep(waitForOpToFinish)
+	snapshotMutex.Lock()
+	assert.Equal(t, 1, takeSnapshotCalled)
 	snapshotMutex.Unlock()
 }
 
