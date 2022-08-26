@@ -630,7 +630,7 @@ func getArgumentsMeta(
 		DataPool:                     createMetaDataPools(),
 		MaxTxNonceDeltaAllowed:       maxTxNonceDeltaAllowed,
 		TxFeeHandler:                 &mock.FeeHandlerStub{},
-		BlockBlackList:               &mock.BlackListHandlerStub{},
+		BlockBlackList:               &testscommon.TimeCacheStub{},
 		HeaderSigVerifier:            &mock.HeaderSigVerifierStub{},
 		HeaderIntegrityVerifier:      &mock.HeaderIntegrityVerifierStub{},
 		ValidityAttester:             &mock.ValidityAttesterStub{},

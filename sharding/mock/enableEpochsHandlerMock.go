@@ -519,6 +519,11 @@ func (mock *EnableEpochsHandlerMock) IsSetSenderInEeiOutputTransferFlagEnabled()
 	return false
 }
 
+// IsChangeDelegationOwnerFlagEnabled -
+func (mock *EnableEpochsHandlerMock) IsChangeDelegationOwnerFlagEnabled() bool {
+	return false
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (mock *EnableEpochsHandlerMock) IsInterfaceNil() bool {
 	return mock == nil

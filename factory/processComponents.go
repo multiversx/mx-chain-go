@@ -1432,9 +1432,7 @@ func (pcf *processComponentsFactory) prepareNetworkShardingCollector() (*network
 	networkShardingCollector, err := createNetworkShardingCollector(
 		&pcf.config,
 		pcf.nodesCoordinator,
-		pcf.coreData.EpochStartNotifierWithConfirm(),
 		pcf.network.PreferredPeersHolderHandler(),
-		pcf.bootstrapComponents.EpochBootstrapParams().Epoch(),
 	)
 	if err != nil {
 		return nil, err
@@ -1534,9 +1532,7 @@ func (pcf *processComponentsFactory) createHardforkTrigger(epochStartTrigger upd
 func createNetworkShardingCollector(
 	config *config.Config,
 	nodesCoordinator nodesCoordinator.NodesCoordinator,
-	epochStartRegistrationHandler epochStart.RegistrationHandler,
 	preferredPeersHolder PreferredPeersHolderHandler,
-	epochStart uint32,
 ) (*networksharding.PeerShardMapper, error) {
 
 	cacheConfig := config.PublicKeyPeerId
@@ -1563,14 +1559,11 @@ func createNetworkShardingCollector(
 		FallbackPidShardCache: cachePidShardID,
 		NodesCoordinator:      nodesCoordinator,
 		PreferredPeersHolder:  preferredPeersHolder,
-		StartEpoch:            epochStart,
 	}
 	psm, err := networksharding.NewPeerShardMapper(arg)
 	if err != nil {
 		return nil, err
 	}
-
-	epochStartRegistrationHandler.RegisterHandler(psm)
 
 	return psm, nil
 }

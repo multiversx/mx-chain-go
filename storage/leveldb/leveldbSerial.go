@@ -35,10 +35,17 @@ type SerialDB struct {
 // NewSerialDB is a constructor for the leveldb persister
 // It creates the files in the location given as parameter
 func NewSerialDB(path string, batchDelaySeconds int, maxBatchSize int, maxOpenFiles int) (s *SerialDB, err error) {
+	constructorName := "NewSerialDB"
+
+	sw := core.NewStopWatch()
+	sw.Start(constructorName)
+
+	sw.Start(mkdirAllFunction)
 	err = os.MkdirAll(path, rwxOwner)
 	if err != nil {
 		return nil, err
 	}
+	sw.Stop(mkdirAllFunction)
 
 	if maxOpenFiles < 1 {
 		return nil, storage.ErrInvalidNumOpenFiles
@@ -50,10 +57,12 @@ func NewSerialDB(path string, batchDelaySeconds int, maxBatchSize int, maxOpenFi
 		OpenFilesCacheCapacity: maxOpenFiles,
 	}
 
+	sw.Start(openLevelDBFunction)
 	db, err := openLevelDB(path, options)
 	if err != nil {
 		return nil, fmt.Errorf("%w for path %s", err, path)
 	}
+	sw.Stop(openLevelDBFunction)
 
 	bldb := &baseLevelDb{
 		db:   db,
@@ -81,7 +90,11 @@ func NewSerialDB(path string, batchDelaySeconds int, maxBatchSize int, maxOpenFi
 	})
 
 	crtCounter := atomic.AddUint32(&loggingDBCounter, 1)
-	log.Debug("opened serial level db persister", "path", path, "created pointer", fmt.Sprintf("%p", bldb.db), "global db counter", crtCounter)
+	sw.Stop(constructorName)
+
+	logArguments := []interface{}{"path", path, "created pointer", fmt.Sprintf("%p", bldb.db), "global db counter", crtCounter}
+	logArguments = append(logArguments, sw.GetMeasurements()...)
+	log.Debug("opened serial level db persister", logArguments...)
 
 	return dbStore, nil
 }
