@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/common/holders"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
@@ -106,7 +107,7 @@ func TestAccountsDBApiWithHistory_GetAccountWithBlockInfo(t *testing.T) {
 		expectedErr := errors.New("expected error")
 
 		accountsAdapter := &mockState.AccountsStub{
-			RecreateTrieCalled: func(rootHash []byte) error {
+			RecreateTrieFromEpochCalled: func(_ common.RootHashHolder) error {
 				return expectedErr
 			},
 		}
@@ -122,8 +123,8 @@ func TestAccountsDBApiWithHistory_GetAccountWithBlockInfo(t *testing.T) {
 		var recreatedRootHash []byte
 
 		accountsAdapter := &mockState.AccountsStub{
-			RecreateTrieCalled: func(rootHash []byte) error {
-				recreatedRootHash = rootHash
+			RecreateTrieFromEpochCalled: func(options common.RootHashHolder) error {
+				recreatedRootHash = options.GetRootHash()
 				return nil
 			},
 			GetExistingAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
@@ -147,8 +148,8 @@ func TestAccountsDBApiWithHistory_GetAccountWithBlockInfo(t *testing.T) {
 		var recreatedRootHash []byte
 
 		accountsAdapter := &mockState.AccountsStub{
-			RecreateTrieCalled: func(rootHash []byte) error {
-				recreatedRootHash = rootHash
+			RecreateTrieFromEpochCalled: func(options common.RootHashHolder) error {
+				recreatedRootHash = options.GetRootHash()
 				return nil
 			},
 			GetExistingAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
@@ -168,8 +169,8 @@ func TestAccountsDBApiWithHistory_GetAccountWithBlockInfo(t *testing.T) {
 		var recreatedRootHash []byte
 
 		accountsAdapter := &mockState.AccountsStub{
-			RecreateTrieCalled: func(rootHash []byte) error {
-				recreatedRootHash = rootHash
+			RecreateTrieFromEpochCalled: func(options common.RootHashHolder) error {
+				recreatedRootHash = options.GetRootHash()
 				return nil
 			},
 			GetExistingAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
@@ -195,7 +196,7 @@ func TestAccountsDBApiWithHistory_GetCodeWithBlockInfo(t *testing.T) {
 		expectedErr := errors.New("expected error")
 
 		accountsAdapter := &mockState.AccountsStub{
-			RecreateTrieCalled: func(rootHash []byte) error {
+			RecreateTrieFromEpochCalled: func(_ common.RootHashHolder) error {
 				return expectedErr
 			},
 		}
@@ -211,8 +212,8 @@ func TestAccountsDBApiWithHistory_GetCodeWithBlockInfo(t *testing.T) {
 		var recreatedRootHash []byte
 
 		accountsAdapter := &mockState.AccountsStub{
-			RecreateTrieCalled: func(rootHash []byte) error {
-				recreatedRootHash = rootHash
+			RecreateTrieFromEpochCalled: func(options common.RootHashHolder) error {
+				recreatedRootHash = options.GetRootHash()
 				return nil
 			},
 			GetCodeCalled: func(codeHash []byte) []byte {
@@ -249,7 +250,9 @@ func TestAccountsDBApiWithHistory_GetAccountWithBlockInfoWhenHighConcurrency(t *
 		var dummyAccountMutex sync.RWMutex
 
 		accountsAdapter := &mockState.AccountsStub{
-			RecreateTrieCalled: func(rootHash []byte) error {
+			RecreateTrieFromEpochCalled: func(options common.RootHashHolder) error {
+				rootHash := options.GetRootHash()
+
 				dummyAccountMutex.Lock()
 				defer dummyAccountMutex.Unlock()
 
