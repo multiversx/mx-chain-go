@@ -326,14 +326,28 @@ func (n *Node) GetGuardianData(address string, options api.AccountQueryOptions) 
 		return api.GuardianData{}, api.BlockInfo{}, err
 	}
 
-	var active, pending *guardians.Guardian
-	gah := n.bootstrapComponents.GuardedAccountHandler()
-	active, pending, err = gah.GetConfiguredGuardians(userAccount)
+	activeGuardian, pendingGuardian, err := n.getPendingAndActiveGuardians(userAccount)
 	if err != nil {
 		return api.GuardianData{}, api.BlockInfo{}, err
 	}
 
-	var activeGuardian, pendingGuardian *api.Guardian
+	return api.GuardianData{
+		ActiveGuardian:  activeGuardian,
+		PendingGuardian: pendingGuardian,
+		Frozen:          userAccount.IsFrozen(),
+	}, blockInfo, nil
+}
+
+func (n *Node) getPendingAndActiveGuardians(
+	userAccount state.UserAccountHandler,
+) (activeGuardian *api.Guardian, pendingGuardian *api.Guardian, err error) {
+	var active, pending *guardians.Guardian
+	gah := n.bootstrapComponents.GuardedAccountHandler()
+	active, pending, err = gah.GetConfiguredGuardians(userAccount)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	if active != nil {
 		activeGuardian = &api.Guardian{
 			Address: n.coreComponents.AddressPubKeyConverter().Encode(active.Address),
@@ -347,11 +361,7 @@ func (n *Node) GetGuardianData(address string, options api.AccountQueryOptions) 
 		}
 	}
 
-	return api.GuardianData{
-		ActiveGuardian:  activeGuardian,
-		PendingGuardian: pendingGuardian,
-		Frozen:          userAccount.IsFrozen(),
-	}, blockInfo, nil
+	return
 }
 
 // GetESDTData returns the esdt balance and properties from a given account

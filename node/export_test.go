@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/factory"
+	"github.com/ElrondNetwork/elrond-go/state"
 )
 
 // GetClosableComponentName -
@@ -46,4 +47,10 @@ func ExtractApiBlockInfoIfErrAccountNotFoundAtBlock(err error) (api.BlockInfo, b
 // SetTxGuardianData -
 func (n *Node) SetTxGuardianData(guardian string, guardianSigHex string, tx *transaction.Transaction) error {
 	return n.setTxGuardianData(guardian, guardianSigHex, tx)
+}
+
+func (n *Node) GetPendingAndActiveGuardians(
+	userAccount state.UserAccountHandler,
+) (activeGuardian *api.Guardian, pendingGuardian *api.Guardian, err error) {
+	return n.getPendingAndActiveGuardians(userAccount)
 }
