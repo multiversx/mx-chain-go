@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 )
 
 func (ts *trieSyncer) trieNodeIntercepted(hash []byte, val interface{}) {
@@ -75,4 +76,20 @@ func GetDirtyHashes(tr common.Trie) common.ModifiedHashes {
 // WriteInChanNonBlocking -
 func WriteInChanNonBlocking(errChan chan error, err error) {
 	writeInChanNonBlocking(errChan, err)
+}
+
+type StorageManagerExtensionStub struct {
+	*testscommon.StorageManagerStub
+}
+
+// IsBaseTrieStorageManager -
+func IsBaseTrieStorageManager(tsm common.StorageManager) bool {
+	_, ok := tsm.(*trieStorageManager)
+	return ok
+}
+
+// IsInEpochTrieStorageManager -
+func IsTrieStorageManagerInEpoch(tsm common.StorageManager) bool {
+	_, ok := tsm.(*trieStorageManagerInEpoch)
+	return ok
 }

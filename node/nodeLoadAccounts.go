@@ -102,6 +102,10 @@ func accountBlockInfoToApiResource(info common.BlockInfo) api.BlockInfo {
 	}
 }
 
+// Important note about "AccountQueryOptions.HintEpoch": for blocks right after an epoch change, we will actually need `epoch - 1`
+// for the purpose of historical lookup (which involves recreation of tries).
+// However, since the current implementation of "recreate trie in epoch N" also looks for data in epoch N - 1 (on different purposes),
+// it's sufficient (and non-ambigous) to set "HintEpoch" = N here.
 func (n *Node) addBlockCoordinatesToAccountQueryOptions(options api.AccountQueryOptions) (api.AccountQueryOptions, error) {
 	blockNonce := options.BlockNonce
 	blockHash := options.BlockHash

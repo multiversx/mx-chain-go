@@ -13,7 +13,7 @@ func TestNewSnapshotTrieStorageManagerInvalidStorerType(t *testing.T) {
 
 	stsm, err := newSnapshotTrieStorageManager(trieStorage, 0)
 	assert.Nil(t, stsm)
-	assert.True(t, strings.Contains(err.Error(), "invalid storer type"))
+	assert.True(t, strings.Contains(err.Error(), "invalid storer, type is"))
 }
 
 func TestNewSnapshotTrieStorageManager(t *testing.T) {
