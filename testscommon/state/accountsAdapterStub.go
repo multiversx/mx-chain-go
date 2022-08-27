@@ -35,8 +35,8 @@ type AccountsStub struct {
 	GetCodeCalled                 func([]byte) []byte
 	GetTrieCalled                 func([]byte) (common.Trie, error)
 	GetStackDebugFirstEntryCalled func() []byte
-	GetAccountWithBlockInfoCalled func(address []byte) (vmcommon.AccountHandler, common.BlockInfo, error)
-	GetCodeWithBlockInfoCalled    func(codeHash []byte) ([]byte, common.BlockInfo, error)
+	GetAccountWithBlockInfoCalled func(address []byte, options common.RootHashHolder) (vmcommon.AccountHandler, common.BlockInfo, error)
+	GetCodeWithBlockInfoCalled    func(codeHash []byte, options common.RootHashHolder) ([]byte, common.BlockInfo, error)
 	CloseCalled                   func() error
 }
 
@@ -215,18 +215,18 @@ func (as *AccountsStub) GetStackDebugFirstEntry() []byte {
 }
 
 // GetAccountWithBlockInfo -
-func (as *AccountsStub) GetAccountWithBlockInfo(address []byte) (vmcommon.AccountHandler, common.BlockInfo, error) {
+func (as *AccountsStub) GetAccountWithBlockInfo(address []byte, options common.RootHashHolder) (vmcommon.AccountHandler, common.BlockInfo, error) {
 	if as.GetAccountWithBlockInfoCalled != nil {
-		return as.GetAccountWithBlockInfoCalled(address)
+		return as.GetAccountWithBlockInfoCalled(address, options)
 	}
 
 	return nil, nil, nil
 }
 
 // GetCodeWithBlockInfo -
-func (as *AccountsStub) GetCodeWithBlockInfo(codeHash []byte) ([]byte, common.BlockInfo, error) {
+func (as *AccountsStub) GetCodeWithBlockInfo(codeHash []byte, options common.RootHashHolder) ([]byte, common.BlockInfo, error) {
 	if as.GetCodeWithBlockInfoCalled != nil {
-		return as.GetCodeWithBlockInfoCalled(codeHash)
+		return as.GetCodeWithBlockInfoCalled(codeHash, options)
 	}
 
 	return nil, nil, nil

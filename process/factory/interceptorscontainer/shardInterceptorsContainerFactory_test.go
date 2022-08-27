@@ -94,7 +94,7 @@ func createShardStore() *storageStubs.ChainStorerStub {
 	}
 }
 
-//------- NewInterceptorsContainerFactory
+// ------- NewInterceptorsContainerFactory
 func TestNewShardInterceptorsContainerFactory_NilAccountsAdapter(t *testing.T) {
 	t.Parallel()
 
@@ -425,7 +425,7 @@ func TestNewShardInterceptorsContainerFactory_ShouldWorkWithSizeCheck(t *testing
 	assert.Nil(t, err)
 }
 
-//------- Create
+// ------- Create
 
 func TestShardInterceptorsContainerFactory_CreateTopicCreationTxFailsShouldErr(t *testing.T) {
 	t.Parallel()
@@ -712,7 +712,7 @@ func getArgumentsShard(
 		DataPool:                     createShardDataPools(),
 		MaxTxNonceDeltaAllowed:       maxTxNonceDeltaAllowed,
 		TxFeeHandler:                 &mock.FeeHandlerStub{},
-		BlockBlackList:               &mock.BlackListHandlerStub{},
+		BlockBlackList:               &testscommon.TimeCacheStub{},
 		HeaderSigVerifier:            &mock.HeaderSigVerifierStub{},
 		HeaderIntegrityVerifier:      &mock.HeaderIntegrityVerifierStub{},
 		SizeCheckDelta:               0,

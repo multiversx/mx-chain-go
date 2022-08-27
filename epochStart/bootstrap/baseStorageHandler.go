@@ -18,7 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 )
 
-type miniBlockInfo struct {
+type miniBlocksInfo struct {
 	miniBlockHashes              [][]byte
 	fullyProcessed               []bool
 	indexOfLastTxProcessed       []int32

@@ -1,11 +1,11 @@
 package sender
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data/batch"
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
 )
 
@@ -53,7 +53,16 @@ func checkHeartbeatSenderArgs(args argHeartbeatSender) error {
 		return err
 	}
 	if len(args.versionNumber) > maxSizeInBytes {
-		return heartbeat.ErrPropertyTooLong
+		return fmt.Errorf("%w for versionNumber, received %s of size %d, max size allowed %d",
+			heartbeat.ErrPropertyTooLong, args.versionNumber, len(args.versionNumber), maxSizeInBytes)
+	}
+	if len(args.nodeDisplayName) > maxSizeInBytes {
+		return fmt.Errorf("%w for nodeDisplayName, received %s of size %d, max size allowed %d",
+			heartbeat.ErrPropertyTooLong, args.nodeDisplayName, len(args.nodeDisplayName), maxSizeInBytes)
+	}
+	if len(args.identity) > maxSizeInBytes {
+		return fmt.Errorf("%w for identity, received %s of size %d, max size allowed %d",
+			heartbeat.ErrPropertyTooLong, args.identity, len(args.identity), maxSizeInBytes)
 	}
 	if check.IfNil(args.currentBlockProvider) {
 		return heartbeat.ErrNilCurrentBlockProvider
@@ -64,7 +73,7 @@ func checkHeartbeatSenderArgs(args argHeartbeatSender) error {
 
 // Execute will handle the execution of a cycle in which the heartbeat message will be sent
 func (sender *heartbeatSender) Execute() {
-	duration := sender.computeRandomDuration()
+	duration := sender.computeRandomDuration(sender.timeBetweenSends)
 	err := sender.execute()
 	if err != nil {
 		duration = sender.timeBetweenSendsWhenError
@@ -106,16 +115,7 @@ func (sender *heartbeatSender) execute() error {
 		return err
 	}
 
-	b := &batch.Batch{
-		Data: make([][]byte, 1),
-	}
-	b.Data[0] = msgBytes
-	data, err := sender.marshaller.Marshal(b)
-	if err != nil {
-		return err
-	}
-
-	sender.messenger.Broadcast(sender.topic, data)
+	sender.messenger.Broadcast(sender.topic, msgBytes)
 
 	return nil
 }
