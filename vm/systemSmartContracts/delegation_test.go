@@ -4761,3 +4761,118 @@ func createDefaultEeiArgs() VMContextArgs {
 		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
 	}
 }
+
+func TestDelegationSystemSC_ExecuteChangeOwnerUserErrors(t *testing.T) {
+	t.Parallel()
+
+	vmInputArgs := make([][]byte, 0)
+	args := createMockArgumentsForDelegation()
+	argsVmContext := VMContextArgs{
+		BlockChainHook:      &mock.BlockChainHookStub{},
+		CryptoHook:          hooks.NewVMCryptoHook(),
+		InputParser:         &mock.ArgumentParserMock{},
+		ValidatorAccountsDB: &stateMock.AccountsStub{},
+		ChanceComputer:      &mock.RaterMock{},
+		EnableEpochsHandler: args.EnableEpochsHandler,
+	}
+	eei, err := NewVMContext(argsVmContext)
+	require.Nil(t, err)
+
+	delegationsMap := map[string][]byte{}
+	delegationsMap[ownerKey] = []byte("ownerAddr")
+	eei.storageUpdate[string(eei.scAddress)] = delegationsMap
+	args.Eei = eei
+
+	d, _ := NewDelegationSystemSC(args)
+	args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub).IsChangeDelegationOwnerFlagEnabledField = false
+	vmInput := getDefaultVmInputForFunc("changeOwner", vmInputArgs)
+	output := d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	assert.True(t, strings.Contains(eei.returnMessage, vmInput.Function+" is an unknown function"))
+
+	args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub).IsChangeDelegationOwnerFlagEnabledField = true
+	vmInput.CallValue = big.NewInt(0)
+	vmInput.CallerAddr = []byte("aaa")
+	output = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+
+	eei.returnMessage = ""
+	vmInput.CallerAddr = delegationsMap[ownerKey]
+	output = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	assert.True(t, strings.Contains(eei.returnMessage, "wrong number of arguments, expected 1"))
+
+	eei.returnMessage = ""
+	vmInput.Arguments = append(vmInput.Arguments, []byte("aaa"))
+	output = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	assert.True(t, strings.Contains(eei.returnMessage, "invalid argument, wanted an address"))
+
+	eei.returnMessage = ""
+	vmInput.Arguments[0] = []byte("second123")
+	delegationMgrMap := map[string][]byte{}
+	delegationMgrMap["second123"] = []byte("info")
+	eei.storageUpdate[string(d.delegationMgrSCAddress)] = delegationMgrMap
+	output = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	assert.True(t, strings.Contains(eei.returnMessage, "destination already deployed a delegation sc"))
+
+	eei.storageUpdate[string(d.delegationMgrSCAddress)] = map[string][]byte{}
+	output = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	assert.True(t, strings.Contains(eei.returnMessage, "owner is new delegator"))
+
+	marshalledData, _ := d.marshalizer.Marshal(&DelegatorData{RewardsCheckpoint: 10})
+	delegationsMap["second123"] = marshalledData
+	output = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	assert.True(t, strings.Contains(eei.returnMessage, "destination should be a new account"))
+}
+
+func TestDelegationSystemSC_ExecuteChangeOwner(t *testing.T) {
+	t.Parallel()
+
+	vmInputArgs := make([][]byte, 0)
+	args := createMockArgumentsForDelegation()
+	argsVmContext := VMContextArgs{
+		BlockChainHook:      &mock.BlockChainHookStub{},
+		CryptoHook:          hooks.NewVMCryptoHook(),
+		InputParser:         &mock.ArgumentParserMock{},
+		ValidatorAccountsDB: &stateMock.AccountsStub{},
+		ChanceComputer:      &mock.RaterMock{},
+		EnableEpochsHandler: args.EnableEpochsHandler,
+	}
+	args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub).IsChangeDelegationOwnerFlagEnabledField = true
+	eei, err := NewVMContext(argsVmContext)
+	require.Nil(t, err)
+
+	delegationsMap := map[string][]byte{}
+	delegationsMap[ownerKey] = []byte("ownerAddr")
+	marshalledData, _ := args.Marshalizer.Marshal(&DelegatorData{RewardsCheckpoint: 10})
+	delegationsMap["ownerAddr"] = marshalledData
+	eei.storageUpdate[string(eei.scAddress)] = delegationsMap
+	args.Eei = eei
+
+	d, _ := NewDelegationSystemSC(args)
+	vmInput := getDefaultVmInputForFunc("changeOwner", vmInputArgs)
+	vmInput.CallValue = big.NewInt(0)
+	vmInput.CallerAddr = delegationsMap[ownerKey]
+	vmInput.Arguments = append(vmInput.Arguments, []byte("second123"))
+
+	returnCode := d.Execute(vmInput)
+	assert.Equal(t, returnCode, vmcommon.Ok)
+	assert.Equal(t, delegationsMap[ownerKey], []byte("second123"))
+	assert.Equal(t, eei.storageUpdate[string(d.delegationMgrSCAddress)]["ownerAddr"], []byte{})
+	assert.Equal(t, eei.storageUpdate[string(d.delegationMgrSCAddress)]["second123"], vmInput.RecipientAddr)
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, returnCode, vmcommon.UserError)
+
+	vmInput.CallerAddr = []byte("second123")
+	vmInput.Arguments[0] = []byte("ownerAddr")
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, returnCode, vmcommon.Ok)
+	assert.Equal(t, delegationsMap[ownerKey], []byte("ownerAddr"))
+
+	assert.Equal(t, eei.storageUpdate[string(d.delegationMgrSCAddress)]["ownerAddr"], vmInput.RecipientAddr)
+	assert.Equal(t, eei.storageUpdate[string(d.delegationMgrSCAddress)]["second123"], []byte{})
+}

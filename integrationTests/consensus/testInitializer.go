@@ -430,7 +430,7 @@ func createConsensusOnlyNode(
 	processComponents.ResFinder = resolverFinder
 	processComponents.EpochTrigger = epochStartTrigger
 	processComponents.EpochNotifier = epochStartRegistrationHandler
-	processComponents.BlackListHdl = &mock.TimeCacheStub{}
+	processComponents.BlackListHdl = &testscommon.TimeCacheStub{}
 	processComponents.BootSore = &mock.BoostrapStorerMock{}
 	processComponents.HeaderSigVerif = &mock.HeaderSigVerifierStub{}
 	processComponents.HeaderIntegrVerif = &mock.HeaderIntegrityVerifierStub{}
