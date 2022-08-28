@@ -175,7 +175,7 @@ func (m *syncHeadersByHash) getHeaderFromPoolOrStorage(hash []byte) (data.Header
 		return nil, false
 	}
 
-	hdr, err := process.CreateShardHeader(m.marshalizer, hdrData)
+	hdr, err := process.UnmarshalShardHeader(m.marshalizer, hdrData)
 	if err != nil {
 		return nil, false
 	}
