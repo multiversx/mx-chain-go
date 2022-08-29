@@ -16,7 +16,7 @@ var _ process.GasHandler = (*gasComputation)(nil)
 type gasComputation struct {
 	economicsFee  process.FeeHandler
 	txTypeHandler process.TxTypeHandler
-	//TODO: Refactor these mutexes and maps in separated structures that handle the locking and unlocking for each operation required
+	// TODO: Refactor these mutexes and maps in separated structures that handle the locking and unlocking for each operation required
 	gasProvided                                      map[string]uint64
 	txHashesWithGasProvidedSinceLastReset            map[string][][]byte
 	gasProvidedAsScheduled                           map[string]uint64
@@ -56,11 +56,11 @@ func NewGasComputation(
 		gasProvided:                           make(map[string]uint64),
 		txHashesWithGasProvidedSinceLastReset: make(map[string][][]byte),
 		gasProvidedAsScheduled:                make(map[string]uint64),
-		txHashesWithGasProvidedAsScheduledSinceLastReset: make(map[string][][]byte, 0),
+		txHashesWithGasProvidedAsScheduledSinceLastReset: make(map[string][][]byte),
 		gasRefunded:                            make(map[string]uint64),
-		txHashesWithGasRefundedSinceLastReset:  make(map[string][][]byte, 0),
+		txHashesWithGasRefundedSinceLastReset:  make(map[string][][]byte),
 		gasPenalized:                           make(map[string]uint64),
-		txHashesWithGasPenalizedSinceLastReset: make(map[string][][]byte, 0),
+		txHashesWithGasPenalizedSinceLastReset: make(map[string][][]byte),
 		gasComputeV2EnableEpoch:                gasComputeV2EnableEpoch,
 	}
 	log.Debug("gasComputation: enable epoch for sc deploy", "epoch", g.gasComputeV2EnableEpoch)
