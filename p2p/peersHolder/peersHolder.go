@@ -134,10 +134,12 @@ func (ph *peersHolder) PutShardID(peerID core.PeerID, shardID uint32) {
 
 // Get will return a map containing the preferred peer IDs, split by shard ID
 func (ph *peersHolder) Get() map[uint32][]core.PeerID {
-	var peerIDsPerShardCopy map[uint32][]core.PeerID
+	peerIDsPerShardCopy := make(map[uint32][]core.PeerID)
 
 	ph.mut.RLock()
-	peerIDsPerShardCopy = ph.peerIDsPerShard
+	for shardId, peerIds := range ph.peerIDsPerShard {
+		peerIDsPerShardCopy[shardId] = peerIds
+	}
 	ph.mut.RUnlock()
 
 	return peerIDsPerShardCopy

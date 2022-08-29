@@ -159,6 +159,10 @@ func (n *Node) GetConsensusGroupSize() int {
 func (n *Node) GetBalance(address string, options api.AccountQueryOptions) (*big.Int, api.BlockInfo, error) {
 	userAccount, blockInfo, err := n.loadUserAccountHandlerByAddress(address, options)
 	if err != nil {
+		apiBlockInfo, ok := extractApiBlockInfoIfErrAccountNotFoundAtBlock(err)
+		if ok {
+			return big.NewInt(0), apiBlockInfo, nil
+		}
 		if err == ErrCannotCastAccountHandlerToUserAccountHandler {
 			return big.NewInt(0), api.BlockInfo{}, nil
 		}
@@ -791,18 +795,15 @@ func (n *Node) CreateTransaction(
 
 // GetAccount will return account details for a given address
 func (n *Node) GetAccount(address string, options api.AccountQueryOptions) (api.AccountResponse, api.BlockInfo, error) {
-	var accountNotFoundErr *state.ErrAccountNotFoundAtBlock
-
 	account, blockInfo, err := n.loadUserAccountHandlerByAddress(address, options)
 	if err != nil {
-		if errors.As(err, &accountNotFoundErr) {
-			blockInfo := accountBlockInfoToApiResource(accountNotFoundErr.BlockInfo)
-
+		apiBlockInfo, ok := extractApiBlockInfoIfErrAccountNotFoundAtBlock(err)
+		if ok {
 			return api.AccountResponse{
 				Address:         address,
 				Balance:         "0",
 				DeveloperReward: "0",
-			}, blockInfo, nil
+			}, apiBlockInfo, nil
 		}
 
 		return api.AccountResponse{}, api.BlockInfo{}, err
