@@ -52,6 +52,8 @@ type Worker struct {
 	headerIntegrityVerifier process.HeaderIntegrityVerifier
 	appStatusHandler        core.AppStatusHandler
 
+	networkShardingCollector consensus.NetworkShardingCollector
+
 	receivedMessages      map[consensus.MessageType][]*consensus.Message
 	receivedMessagesCalls map[consensus.MessageType]func(ctx context.Context, msg *consensus.Message) bool
 
@@ -78,29 +80,30 @@ type Worker struct {
 
 // WorkerArgs holds the consensus worker arguments
 type WorkerArgs struct {
-	ConsensusService        ConsensusService
-	BlockChain              data.ChainHandler
-	BlockProcessor          process.BlockProcessor
-	ScheduledProcessor      consensus.ScheduledProcessor
-	Bootstrapper            process.Bootstrapper
-	BroadcastMessenger      consensus.BroadcastMessenger
-	ConsensusState          *ConsensusState
-	ForkDetector            process.ForkDetector
-	Marshalizer             marshal.Marshalizer
-	Hasher                  hashing.Hasher
-	RoundHandler            consensus.RoundHandler
-	ShardCoordinator        sharding.Coordinator
-	PeerSignatureHandler    crypto.PeerSignatureHandler
-	SyncTimer               ntp.SyncTimer
-	HeaderSigVerifier       HeaderSigVerifier
-	HeaderIntegrityVerifier process.HeaderIntegrityVerifier
-	ChainID                 []byte
-	AntifloodHandler        consensus.P2PAntifloodHandler
-	PoolAdder               PoolAdder
-	SignatureSize           int
-	PublicKeySize           int
-	AppStatusHandler        core.AppStatusHandler
-	NodeRedundancyHandler   consensus.NodeRedundancyHandler
+	ConsensusService         ConsensusService
+	BlockChain               data.ChainHandler
+	BlockProcessor           process.BlockProcessor
+	ScheduledProcessor       consensus.ScheduledProcessor
+	Bootstrapper             process.Bootstrapper
+	BroadcastMessenger       consensus.BroadcastMessenger
+	ConsensusState           *ConsensusState
+	ForkDetector             process.ForkDetector
+	Marshalizer              marshal.Marshalizer
+	Hasher                   hashing.Hasher
+	RoundHandler             consensus.RoundHandler
+	ShardCoordinator         sharding.Coordinator
+	PeerSignatureHandler     crypto.PeerSignatureHandler
+	SyncTimer                ntp.SyncTimer
+	HeaderSigVerifier        HeaderSigVerifier
+	HeaderIntegrityVerifier  process.HeaderIntegrityVerifier
+	ChainID                  []byte
+	NetworkShardingCollector consensus.NetworkShardingCollector
+	AntifloodHandler         consensus.P2PAntifloodHandler
+	PoolAdder                PoolAdder
+	SignatureSize            int
+	PublicKeySize            int
+	AppStatusHandler         core.AppStatusHandler
+	NodeRedundancyHandler    consensus.NodeRedundancyHandler
 }
 
 // NewWorker creates a new Worker object
@@ -126,27 +129,28 @@ func NewWorker(args *WorkerArgs) (*Worker, error) {
 	}
 
 	wrk := Worker{
-		consensusService:        args.ConsensusService,
-		blockChain:              args.BlockChain,
-		blockProcessor:          args.BlockProcessor,
-		scheduledProcessor:      args.ScheduledProcessor,
-		bootstrapper:            args.Bootstrapper,
-		broadcastMessenger:      args.BroadcastMessenger,
-		consensusState:          args.ConsensusState,
-		forkDetector:            args.ForkDetector,
-		marshalizer:             args.Marshalizer,
-		hasher:                  args.Hasher,
-		roundHandler:            args.RoundHandler,
-		shardCoordinator:        args.ShardCoordinator,
-		peerSignatureHandler:    args.PeerSignatureHandler,
-		syncTimer:               args.SyncTimer,
-		headerSigVerifier:       args.HeaderSigVerifier,
-		headerIntegrityVerifier: args.HeaderIntegrityVerifier,
-		appStatusHandler:        args.AppStatusHandler,
-		antifloodHandler:        args.AntifloodHandler,
-		poolAdder:               args.PoolAdder,
-		nodeRedundancyHandler:   args.NodeRedundancyHandler,
-		closer:                  closing.NewSafeChanCloser(),
+		consensusService:         args.ConsensusService,
+		blockChain:               args.BlockChain,
+		blockProcessor:           args.BlockProcessor,
+		scheduledProcessor:       args.ScheduledProcessor,
+		bootstrapper:             args.Bootstrapper,
+		broadcastMessenger:       args.BroadcastMessenger,
+		consensusState:           args.ConsensusState,
+		forkDetector:             args.ForkDetector,
+		marshalizer:              args.Marshalizer,
+		hasher:                   args.Hasher,
+		roundHandler:             args.RoundHandler,
+		shardCoordinator:         args.ShardCoordinator,
+		peerSignatureHandler:     args.PeerSignatureHandler,
+		syncTimer:                args.SyncTimer,
+		headerSigVerifier:        args.HeaderSigVerifier,
+		headerIntegrityVerifier:  args.HeaderIntegrityVerifier,
+		appStatusHandler:         args.AppStatusHandler,
+		networkShardingCollector: args.NetworkShardingCollector,
+		antifloodHandler:         args.AntifloodHandler,
+		poolAdder:                args.PoolAdder,
+		nodeRedundancyHandler:    args.NodeRedundancyHandler,
+		closer:                   closing.NewSafeChanCloser(),
 	}
 
 	wrk.consensusMessageValidator = consensusMessageValidatorObj
@@ -228,6 +232,9 @@ func checkNewWorkerParams(args *WorkerArgs) error {
 	}
 	if len(args.ChainID) == 0 {
 		return ErrInvalidChainID
+	}
+	if check.IfNil(args.NetworkShardingCollector) {
+		return ErrNilNetworkShardingCollector
 	}
 	if check.IfNil(args.AntifloodHandler) {
 		return ErrNilAntifloodHandler
@@ -374,6 +381,8 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedP
 	if err != nil {
 		return err
 	}
+
+	wrk.networkShardingCollector.UpdatePeerIDInfo(message.Peer(), cnsMsg.PubKey, wrk.shardCoordinator.SelfId())
 
 	isMessageWithBlockBody := wrk.consensusService.IsMessageWithBlockBody(msgType)
 	isMessageWithBlockHeader := wrk.consensusService.IsMessageWithBlockHeader(msgType)

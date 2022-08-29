@@ -1,6 +1,7 @@
 package processing
 
 import (
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
@@ -51,4 +52,9 @@ func (pcf *processComponentsFactory) NewBlockProcessor(
 // IndexGenesisBlocks -
 func (pcf *processComponentsFactory) IndexGenesisBlocks(genesisBlocks map[uint32]data.HeaderHandler, indexingData map[uint32]*genesis.IndexingData) error {
 	return pcf.indexGenesisBlocks(genesisBlocks, indexingData)
+}
+
+// DecodeAddresses -
+func DecodeAddresses(pkConverter core.PubkeyConverter, automaticCrawlerAddressesStrings []string) ([][]byte, error) {
+	return decodeAddresses(pkConverter, automaticCrawlerAddressesStrings)
 }

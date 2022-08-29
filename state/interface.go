@@ -115,6 +115,7 @@ type AccountsAdapter interface {
 	GetCode(codeHash []byte) []byte
 	RootHash() ([]byte, error)
 	RecreateTrie(rootHash []byte) error
+	RecreateTrieFromEpoch(options common.RootHashHolder) error
 	PruneTrie(rootHash []byte, identifier TriePruningIdentifier, handler PruningHandler)
 	CancelPrune(rootHash []byte, identifier TriePruningIdentifier)
 	SnapshotState(rootHash []byte)
@@ -207,6 +208,6 @@ type BlockInfoProvider interface {
 // AccountsAdapterAPI defines the extension of the AccountsAdapter that should be used in API calls
 type AccountsAdapterAPI interface {
 	AccountsAdapter
-	GetAccountWithBlockInfo(address []byte) (vmcommon.AccountHandler, common.BlockInfo, error)
-	GetCodeWithBlockInfo(codeHash []byte) ([]byte, common.BlockInfo, error)
+	GetAccountWithBlockInfo(address []byte, options common.RootHashHolder) (vmcommon.AccountHandler, common.BlockInfo, error)
+	GetCodeWithBlockInfo(codeHash []byte, options common.RootHashHolder) ([]byte, common.BlockInfo, error)
 }
