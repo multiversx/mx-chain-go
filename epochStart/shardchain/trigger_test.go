@@ -668,7 +668,7 @@ func TestTrigger_UpdateMissingValidatorsInfo(t *testing.T) {
 				return testscommon.NewCacherStub()
 			},
 			CurrEpochValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
-				return &validatorInfoCacherMock.ValidatorInfoCacherMock{}
+				return &vic.ValidatorInfoCacherStub{}
 			},
 			ValidatorsInfoCalled: func() dataRetriever.ShardedDataCacherNotifier {
 				return &testscommon.ShardedDataStub{

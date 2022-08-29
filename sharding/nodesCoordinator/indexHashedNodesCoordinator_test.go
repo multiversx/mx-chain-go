@@ -2392,7 +2392,7 @@ func TestIndexHashedNodesCoordinator_GetShardValidatorInfoData(t *testing.T) {
 		arguments.EnableEpochsHandler = &mock.EnableEpochsHandlerMock{
 			RefactorPeersMiniBlocksEnableEpochField: 1,
 		}
-		validatorInfoCacher := &validatorInfoCacherMock.ValidatorInfoCacherMock{
+		arguments.ValidatorInfoCacher = &vic.ValidatorInfoCacherStub{
 			GetValidatorInfoCalled: func(validatorInfoHash []byte) (*state.ShardValidatorInfo, error) {
 				if bytes.Equal(validatorInfoHash, txHash) {
 					return svi, nil
@@ -2403,7 +2403,7 @@ func TestIndexHashedNodesCoordinator_GetShardValidatorInfoData(t *testing.T) {
 		ihnc, _ := NewIndexHashedNodesCoordinator(arguments)
 
 		marshalledSVI, _ := arguments.Marshalizer.Marshal(svi)
-		shardValidatorInfo, _ := ihnc.getShardValidatorInfoData(marshalledSVI, validatorInfoCacher, 0)
+		shardValidatorInfo, _ := ihnc.getShardValidatorInfoData(marshalledSVI, 0)
 		require.Equal(t, svi, shardValidatorInfo)
 	})
 
@@ -2417,7 +2417,7 @@ func TestIndexHashedNodesCoordinator_GetShardValidatorInfoData(t *testing.T) {
 		arguments.EnableEpochsHandler = &mock.EnableEpochsHandlerMock{
 			RefactorPeersMiniBlocksEnableEpochField: 0,
 		}
-		validatorInfoCacher := &validatorInfoCacherMock.ValidatorInfoCacherMock{
+		arguments.ValidatorInfoCacher = &vic.ValidatorInfoCacherStub{
 			GetValidatorInfoCalled: func(validatorInfoHash []byte) (*state.ShardValidatorInfo, error) {
 				if bytes.Equal(validatorInfoHash, txHash) {
 					return svi, nil
@@ -2427,7 +2427,7 @@ func TestIndexHashedNodesCoordinator_GetShardValidatorInfoData(t *testing.T) {
 		}
 		ihnc, _ := NewIndexHashedNodesCoordinator(arguments)
 
-		shardValidatorInfo, _ := ihnc.getShardValidatorInfoData(txHash, validatorInfoCacher, 0)
+		shardValidatorInfo, _ := ihnc.getShardValidatorInfoData(txHash, 0)
 		require.Equal(t, svi, shardValidatorInfo)
 	})
 }

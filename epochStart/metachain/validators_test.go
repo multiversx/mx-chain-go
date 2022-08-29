@@ -709,7 +709,7 @@ func TestEpochValidatorInfoCreator_CreateMarshalledData(t *testing.T) {
 		}
 		arguments.DataPool = &dataRetrieverMock.PoolsHolderStub{
 			CurrEpochValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
-				return &validatorInfoCacherMock.ValidatorInfoCacherMock{
+				return &vics.ValidatorInfoCacherStub{
 					GetValidatorInfoCalled: func(validatorInfoHash []byte) (*state.ShardValidatorInfo, error) {
 						return nil, errors.New("error")
 					},
@@ -756,7 +756,7 @@ func TestEpochValidatorInfoCreator_CreateMarshalledData(t *testing.T) {
 		}
 		arguments.DataPool = &dataRetrieverMock.PoolsHolderStub{
 			CurrEpochValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
-				return &validatorInfoCacherMock.ValidatorInfoCacherMock{
+				return &vics.ValidatorInfoCacherStub{
 					GetValidatorInfoCalled: func(validatorInfoHash []byte) (*state.ShardValidatorInfo, error) {
 						if bytes.Equal(validatorInfoHash, []byte("a")) {
 							return svi1, nil
@@ -814,7 +814,7 @@ func TestEpochValidatorInfoCreator_SetMarshalledValidatorInfoTxsShouldWork(t *te
 	}
 	arguments.DataPool = &dataRetrieverMock.PoolsHolderStub{
 		CurrEpochValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
-			return &validatorInfoCacherMock.ValidatorInfoCacherMock{
+			return &vics.ValidatorInfoCacherStub{
 				GetValidatorInfoCalled: func(validatorInfoHash []byte) (*state.ShardValidatorInfo, error) {
 					if bytes.Equal(validatorInfoHash, []byte("a")) {
 						return svi1, nil
@@ -840,13 +840,11 @@ func TestEpochValidatorInfoCreator_SetMarshalledValidatorInfoTxsShouldWork(t *te
 		},
 	}
 
-	marshalledValidatorInfoTxs := make(map[string][][]byte)
-	vic.setMarshalledValidatorInfoTxs(miniBlock, marshalledValidatorInfoTxs, common.ValidatorInfoTopic)
+	marshalledValidatorInfoTxs := vic.getMarshalledValidatorInfoTxs(miniBlock)
 
-	require.Equal(t, 1, len(marshalledValidatorInfoTxs))
-	require.Equal(t, 2, len(marshalledValidatorInfoTxs[common.ValidatorInfoTopic]))
-	assert.Equal(t, marshalledSVI1, marshalledValidatorInfoTxs[common.ValidatorInfoTopic][0])
-	assert.Equal(t, marshalledSVI2, marshalledValidatorInfoTxs[common.ValidatorInfoTopic][1])
+	require.Equal(t, 2, len(marshalledValidatorInfoTxs))
+	assert.Equal(t, marshalledSVI1, marshalledValidatorInfoTxs[0])
+	assert.Equal(t, marshalledSVI2, marshalledValidatorInfoTxs[1])
 }
 
 func TestEpochValidatorInfoCreator_GetValidatorInfoTxsShouldWork(t *testing.T) {
@@ -863,7 +861,7 @@ func TestEpochValidatorInfoCreator_GetValidatorInfoTxsShouldWork(t *testing.T) {
 	}
 	arguments.DataPool = &dataRetrieverMock.PoolsHolderStub{
 		CurrEpochValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
-			return &validatorInfoCacherMock.ValidatorInfoCacherMock{
+			return &vics.ValidatorInfoCacherStub{
 				GetValidatorInfoCalled: func(validatorInfoHash []byte) (*state.ShardValidatorInfo, error) {
 					if bytes.Equal(validatorInfoHash, []byte("a")) {
 						return svi1, nil
@@ -927,7 +925,7 @@ func TestEpochValidatorInfoCreator_SetMapShardValidatorInfoShouldWork(t *testing
 	}
 	arguments.DataPool = &dataRetrieverMock.PoolsHolderStub{
 		CurrEpochValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
-			return &validatorInfoCacherMock.ValidatorInfoCacherMock{
+			return &vics.ValidatorInfoCacherStub{
 				GetValidatorInfoCalled: func(validatorInfoHash []byte) (*state.ShardValidatorInfo, error) {
 					if bytes.Equal(validatorInfoHash, []byte("a")) {
 						return svi1, nil
@@ -977,7 +975,7 @@ func TestEpochValidatorInfoCreator_GetShardValidatorInfoShouldWork(t *testing.T)
 		}
 		arguments.DataPool = &dataRetrieverMock.PoolsHolderStub{
 			CurrEpochValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
-				return &validatorInfoCacherMock.ValidatorInfoCacherMock{
+				return &vics.ValidatorInfoCacherStub{
 					GetValidatorInfoCalled: func(validatorInfoHash []byte) (*state.ShardValidatorInfo, error) {
 						if bytes.Equal(validatorInfoHash, []byte("a")) {
 							return svi, nil
@@ -1005,7 +1003,7 @@ func TestEpochValidatorInfoCreator_GetShardValidatorInfoShouldWork(t *testing.T)
 		}
 		arguments.DataPool = &dataRetrieverMock.PoolsHolderStub{
 			CurrEpochValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
-				return &validatorInfoCacherMock.ValidatorInfoCacherMock{
+				return &vics.ValidatorInfoCacherStub{
 					GetValidatorInfoCalled: func(validatorInfoHash []byte) (*state.ShardValidatorInfo, error) {
 						if bytes.Equal(validatorInfoHash, []byte("a")) {
 							return svi, nil
@@ -1037,7 +1035,7 @@ func TestEpochValidatorInfoCreator_SaveValidatorInfoShouldWork(t *testing.T) {
 	arguments.ValidatorInfoStorage = storer
 	arguments.DataPool = &dataRetrieverMock.PoolsHolderStub{
 		CurrEpochValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
-			return &validatorInfoCacherMock.ValidatorInfoCacherMock{
+			return &vics.ValidatorInfoCacherStub{
 				GetValidatorInfoCalled: func(validatorInfoHash []byte) (*state.ShardValidatorInfo, error) {
 					if bytes.Equal(validatorInfoHash, []byte("a")) {
 						return svi1, nil
@@ -1078,7 +1076,7 @@ func TestEpochValidatorInfoCreator_SaveValidatorInfoShouldWork(t *testing.T) {
 	assert.Nil(t, msvi3)
 }
 
-func TestEpochValidatorInfoCreator_RemoveValidatorInfoFromStorageShouldWork(t *testing.T) {
+func TestEpochValidatorInfoCreator_RemoveValidatorInfoShouldWork(t *testing.T) {
 	t.Parallel()
 
 	arguments := createMockEpochValidatorInfoCreatorsArguments()
@@ -1117,7 +1115,7 @@ func TestEpochValidatorInfoCreator_RemoveValidatorInfoFromStorageShouldWork(t *t
 	_ = storer.Put([]byte("c"), []byte("cc"))
 	_ = storer.Put([]byte("d"), []byte("dd"))
 
-	vic.removeValidatorInfoFromStorage(body)
+	vic.removeValidatorInfo(body)
 
 	msvi, err := storer.Get([]byte("a"))
 	assert.NotNil(t, err)
@@ -1143,7 +1141,7 @@ func TestEpochValidatorInfoCreator_RemoveValidatorInfoFromPoolShouldWork(t *test
 	arguments := createMockEpochValidatorInfoCreatorsArguments()
 	arguments.DataPool = &dataRetrieverMock.PoolsHolderStub{
 		CurrEpochValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
-			return &validatorInfoCacherMock.ValidatorInfoCacherMock{}
+			return &vics.ValidatorInfoCacherStub{}
 		},
 		ValidatorsInfoCalled: func() dataRetriever.ShardedDataCacherNotifier {
 			return shardedDataCacheNotifierMock

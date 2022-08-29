@@ -443,7 +443,6 @@ func TestNewValidatorInfoPreprocessor_RestoreValidatorsInfo(t *testing.T) {
 			blockSizeComputation,
 			tdp.ValidatorsInfo(),
 			storer,
-			func(txHashes [][]byte) {},
 			&testscommon.EnableEpochsHandlerStub{},
 		)
 
@@ -487,7 +486,6 @@ func TestNewValidatorInfoPreprocessor_RestoreValidatorsInfo(t *testing.T) {
 			blockSizeComputation,
 			tdp.ValidatorsInfo(),
 			storer,
-			func(txHashes [][]byte) {},
 			&testscommon.EnableEpochsHandlerStub{},
 		)
 
