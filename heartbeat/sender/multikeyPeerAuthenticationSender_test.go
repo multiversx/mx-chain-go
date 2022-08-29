@@ -81,8 +81,6 @@ func createMockMultikeyPeerAuthenticationSenderArgsSemiIntegrationTests(
 	peerAuthTimeMap := make(map[string]time.Time)
 	keysHolder := &testscommon.KeysHolderStub{
 		GetP2PIdentityCalled: func(pkBytes []byte) ([]byte, core.PeerID, error) {
-			//pid := core.PeerID("pid_of_" + hex.EncodeToString(pkBytes))
-			//sk := []byte("p2p_sk_of_" + hex.EncodeToString(pkBytes))
 			return p2pSkPkMap[string(pkBytes)], peerIdPkMap[string(pkBytes)], nil
 		},
 		GetManagedKeysByCurrentNodeCalled: func() map[string]crypto.PrivateKey {
@@ -91,19 +89,18 @@ func createMockMultikeyPeerAuthenticationSenderArgsSemiIntegrationTests(
 		IsKeyManagedByCurrentNodeCalled: func(pkBytes []byte) bool {
 			return true
 		},
-		IsKeyValidatorCalled: func(pkBytes []byte) (bool, error) {
-			return true, nil
+		IsKeyValidatorCalled: func(pkBytes []byte) bool {
+			return true
 		},
 		GetNextPeerAuthenticationTimeCalled: func(pkBytes []byte) (time.Time, error) {
 			mutTimeMap.RLock()
 			defer mutTimeMap.RUnlock()
 			return peerAuthTimeMap[string(pkBytes)], nil
 		},
-		SetNextPeerAuthenticationTimeCalled: func(pkBytes []byte, nextTime time.Time) error {
+		SetNextPeerAuthenticationTimeCalled: func(pkBytes []byte, nextTime time.Time) {
 			mutTimeMap.Lock()
 			defer mutTimeMap.Unlock()
 			peerAuthTimeMap[string(pkBytes)] = nextTime
-			return nil
 		},
 	}
 
@@ -348,8 +345,6 @@ func TestNewMultikeyPeerAuthenticationSender_Execute(t *testing.T) {
 		senderInstance, _ := newMultikeyPeerAuthenticationSender(args)
 		senderInstance.Execute()
 
-		time.Sleep(time.Second * 2) // allow the go routines to finish
-
 		mutData.Lock()
 		testRecoveredMessages(t, args, buffResulted, pids, skBytesBroadcast, numKeys, "")
 		mutData.Unlock()
@@ -373,12 +368,11 @@ func TestNewMultikeyPeerAuthenticationSender_Execute(t *testing.T) {
 			skBytesBroadcast = append(skBytesBroadcast, skBytes)
 			mutData.Unlock()
 		}
-		args.timeBetweenSends = time.Second * 5
+		args.timeBetweenSends = time.Second * 3
 		args.thresholdBetweenSends = 0.20
 
 		senderInstance, _ := newMultikeyPeerAuthenticationSender(args)
 		senderInstance.Execute()
-		time.Sleep(time.Second * 2) // allow the go routines to finish
 
 		// reset data from initialization
 		mutData.Lock()
@@ -387,16 +381,14 @@ func TestNewMultikeyPeerAuthenticationSender_Execute(t *testing.T) {
 		skBytesBroadcast = make([][]byte, 0)
 		mutData.Unlock()
 
-		senderInstance.Execute()    // this will not add messages
-		time.Sleep(time.Second * 2) // allow the go routines to finish
+		senderInstance.Execute() // this will not add messages
 
 		mutData.Lock()
 		testRecoveredMessages(t, args, buffResulted, pids, skBytesBroadcast, 0, "")
 		mutData.Unlock()
 
-		time.Sleep(time.Second * 3) // allow the resending of the messages
+		time.Sleep(time.Second * 5) // allow the resending of the messages
 		senderInstance.Execute()
-		time.Sleep(time.Second * 2) // allow the go routines to finish
 
 		mutData.Lock()
 		testRecoveredMessages(t, args, buffResulted, pids, skBytesBroadcast, numKeys, "")
@@ -421,7 +413,7 @@ func TestNewMultikeyPeerAuthenticationSender_Execute(t *testing.T) {
 			skBytesBroadcast = append(skBytesBroadcast, skBytes)
 			mutData.Unlock()
 		}
-		args.timeBetweenSends = time.Second * 5
+		args.timeBetweenSends = time.Second * 3
 		args.thresholdBetweenSends = 0.20
 		firstKeyFound := ""
 		pkSkMap := args.keysHolder.GetManagedKeysByCurrentNode()
@@ -436,7 +428,6 @@ func TestNewMultikeyPeerAuthenticationSender_Execute(t *testing.T) {
 
 		senderInstance, _ := newMultikeyPeerAuthenticationSender(args)
 		senderInstance.Execute()
-		time.Sleep(time.Second * 2) // allow the go routines to finish
 
 		mutData.Lock()
 		testRecoveredMessages(t, args, buffResulted, pids, skBytesBroadcast, numKeys-1, "")
@@ -449,16 +440,14 @@ func TestNewMultikeyPeerAuthenticationSender_Execute(t *testing.T) {
 		skBytesBroadcast = make([][]byte, 0)
 		mutData.Unlock()
 
-		senderInstance.Execute()    // this will not add messages
-		time.Sleep(time.Second * 2) // allow the go routines to finish
+		senderInstance.Execute() // this will not add messages
 
 		mutData.Lock()
 		testRecoveredMessages(t, args, buffResulted, pids, skBytesBroadcast, 0, "")
 		mutData.Unlock()
 
-		time.Sleep(time.Second * 3) // allow the resending of the messages
+		time.Sleep(time.Second * 5) // allow the resending of the messages
 		senderInstance.Execute()
-		time.Sleep(time.Second * 2) // allow the go routines to finish
 
 		mutData.Lock()
 		testRecoveredMessages(t, args, buffResulted, pids, skBytesBroadcast, numKeys-1, "")
@@ -483,7 +472,7 @@ func TestNewMultikeyPeerAuthenticationSender_Execute(t *testing.T) {
 			skBytesBroadcast = append(skBytesBroadcast, skBytes)
 			mutData.Unlock()
 		}
-		args.timeBetweenSends = time.Second * 5
+		args.timeBetweenSends = time.Second * 3
 		args.thresholdBetweenSends = 0.20
 		firstKeyFound := ""
 		pkSkMap := args.keysHolder.GetManagedKeysByCurrentNode()
@@ -502,7 +491,6 @@ func TestNewMultikeyPeerAuthenticationSender_Execute(t *testing.T) {
 		}
 		senderInstance, _ := newMultikeyPeerAuthenticationSender(args)
 		senderInstance.Execute()
-		time.Sleep(time.Second * 2) // allow the go routines to finish
 
 		mutData.Lock()
 		testRecoveredMessages(t, args, buffResulted, pids, skBytesBroadcast, numKeys-1, "")
@@ -515,16 +503,14 @@ func TestNewMultikeyPeerAuthenticationSender_Execute(t *testing.T) {
 		skBytesBroadcast = make([][]byte, 0)
 		mutData.Unlock()
 
-		senderInstance.Execute()    // this will not add messages
-		time.Sleep(time.Second * 2) // allow the go routines to finish
+		senderInstance.Execute() // this will not add messages
 
 		mutData.Lock()
 		testRecoveredMessages(t, args, buffResulted, pids, skBytesBroadcast, 0, "")
 		mutData.Unlock()
 
-		time.Sleep(time.Second * 3) // allow the resending of the messages
+		time.Sleep(time.Second * 5) // allow the resending of the messages
 		senderInstance.Execute()
-		time.Sleep(time.Second * 2) // allow the go routines to finish
 
 		mutData.Lock()
 		testRecoveredMessages(t, args, buffResulted, pids, skBytesBroadcast, numKeys-1, "")
@@ -549,7 +535,7 @@ func TestNewMultikeyPeerAuthenticationSender_Execute(t *testing.T) {
 			skBytesBroadcast = append(skBytesBroadcast, skBytes)
 			mutData.Unlock()
 		}
-		args.timeBetweenSends = time.Second * 5
+		args.timeBetweenSends = time.Second * 3
 		args.thresholdBetweenSends = 0.20
 		firstKeyFound := ""
 		pkSkMap := args.keysHolder.GetManagedKeysByCurrentNode()
@@ -568,7 +554,6 @@ func TestNewMultikeyPeerAuthenticationSender_Execute(t *testing.T) {
 		}
 		senderInstance, _ := newMultikeyPeerAuthenticationSender(args)
 		senderInstance.Execute()
-		time.Sleep(time.Second * 2) // allow the go routines to finish
 
 		mutData.Lock()
 		testRecoveredMessages(t, args, buffResulted, pids, skBytesBroadcast, numKeys-1, "")
@@ -581,16 +566,14 @@ func TestNewMultikeyPeerAuthenticationSender_Execute(t *testing.T) {
 		skBytesBroadcast = make([][]byte, 0)
 		mutData.Unlock()
 
-		senderInstance.Execute()    // this will not add messages
-		time.Sleep(time.Second * 2) // allow the go routines to finish
+		senderInstance.Execute() // this will not add messages
 
 		mutData.Lock()
 		testRecoveredMessages(t, args, buffResulted, pids, skBytesBroadcast, 0, "")
 		mutData.Unlock()
 
-		time.Sleep(time.Second * 3) // allow the resending of the messages
+		time.Sleep(time.Second * 5) // allow the resending of the messages
 		senderInstance.Execute()
-		time.Sleep(time.Second * 2) // allow the go routines to finish
 
 		mutData.Lock()
 		testRecoveredMessages(t, args, buffResulted, pids, skBytesBroadcast, numKeys-1, "")
@@ -615,7 +598,7 @@ func TestNewMultikeyPeerAuthenticationSender_Execute(t *testing.T) {
 			skBytesBroadcast = append(skBytesBroadcast, skBytes)
 			mutData.Unlock()
 		}
-		args.timeBetweenSends = time.Second * 5
+		args.timeBetweenSends = time.Second * 3
 		args.thresholdBetweenSends = 0.20
 		hardforkTriggerPayload := []byte("hardfork payload")
 		args.hardforkTrigger = &testscommon.HardforkTriggerStub{
@@ -629,7 +612,6 @@ func TestNewMultikeyPeerAuthenticationSender_Execute(t *testing.T) {
 
 		senderInstance, _ := newMultikeyPeerAuthenticationSender(args)
 		senderInstance.Execute()
-		time.Sleep(time.Second * 2) // allow the go routines to finish
 
 		mutData.Lock()
 		testRecoveredMessages(t, args, buffResulted, pids, skBytesBroadcast, numKeys, string(hardforkTriggerPayload))
@@ -642,8 +624,8 @@ func TestNewMultikeyPeerAuthenticationSender_Execute(t *testing.T) {
 		skBytesBroadcast = make([][]byte, 0)
 		mutData.Unlock()
 
-		senderInstance.Execute()    // this will add messages because we are in hardfork mode
-		time.Sleep(time.Second * 2) // allow the go routines to finish
+		time.Sleep(time.Second * 2)
+		senderInstance.Execute() // this will add messages because we are in hardfork mode
 
 		mutData.Lock()
 		testRecoveredMessages(t, args, buffResulted, pids, skBytesBroadcast, numKeys, string(hardforkTriggerPayload))
@@ -656,9 +638,8 @@ func TestNewMultikeyPeerAuthenticationSender_Execute(t *testing.T) {
 		skBytesBroadcast = make([][]byte, 0)
 		mutData.Unlock()
 
-		time.Sleep(time.Second * 3) // allow the resending of the messages
+		time.Sleep(time.Second * 5) // allow the resending of the messages
 		senderInstance.Execute()
-		time.Sleep(time.Second * 2) // allow the go routines to finish
 
 		mutData.Lock()
 		testRecoveredMessages(t, args, buffResulted, pids, skBytesBroadcast, numKeys, string(hardforkTriggerPayload))

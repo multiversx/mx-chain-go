@@ -19,10 +19,10 @@ type KeysHolderStub struct {
 	IsKeyManagedByCurrentNodeCalled              func(pkBytes []byte) bool
 	IsKeyRegisteredCalled                        func(pkBytes []byte) bool
 	IsPidManagedByCurrentNodeCalled              func(pid core.PeerID) bool
-	IsKeyValidatorCalled                         func(pkBytes []byte) (bool, error)
-	SetValidatorStateCalled                      func(pkBytes []byte, state bool) error
+	IsKeyValidatorCalled                         func(pkBytes []byte) bool
+	SetValidatorStateCalled                      func(pkBytes []byte, state bool)
 	GetNextPeerAuthenticationTimeCalled          func(pkBytes []byte) (time.Time, error)
-	SetNextPeerAuthenticationTimeCalled          func(pkBytes []byte, nextTime time.Time) error
+	SetNextPeerAuthenticationTimeCalled          func(pkBytes []byte, nextTime time.Time)
 }
 
 // AddVirtualPeer -
@@ -106,19 +106,18 @@ func (stub *KeysHolderStub) IsPidManagedByCurrentNode(pid core.PeerID) bool {
 }
 
 // IsKeyValidator -
-func (stub *KeysHolderStub) IsKeyValidator(pkBytes []byte) (bool, error) {
+func (stub *KeysHolderStub) IsKeyValidator(pkBytes []byte) bool {
 	if stub.IsKeyValidatorCalled != nil {
 		return stub.IsKeyValidatorCalled(pkBytes)
 	}
-	return false, nil
+	return false
 }
 
 // SetValidatorState -
-func (stub *KeysHolderStub) SetValidatorState(pkBytes []byte, state bool) error {
+func (stub *KeysHolderStub) SetValidatorState(pkBytes []byte, state bool) {
 	if stub.SetValidatorStateCalled != nil {
-		return stub.SetValidatorStateCalled(pkBytes, state)
+		stub.SetValidatorStateCalled(pkBytes, state)
 	}
-	return nil
 }
 
 // GetNextPeerAuthenticationTime -
@@ -130,11 +129,10 @@ func (stub *KeysHolderStub) GetNextPeerAuthenticationTime(pkBytes []byte) (time.
 }
 
 // SetNextPeerAuthenticationTime -
-func (stub *KeysHolderStub) SetNextPeerAuthenticationTime(pkBytes []byte, nextTime time.Time) error {
+func (stub *KeysHolderStub) SetNextPeerAuthenticationTime(pkBytes []byte, nextTime time.Time) {
 	if stub.SetNextPeerAuthenticationTimeCalled != nil {
-		return stub.SetNextPeerAuthenticationTimeCalled(pkBytes, nextTime)
+		stub.SetNextPeerAuthenticationTimeCalled(pkBytes, nextTime)
 	}
-	return nil
 }
 
 // IsInterfaceNil -

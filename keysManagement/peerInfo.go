@@ -16,7 +16,6 @@ type peerInfo struct {
 	nodeName           string
 	nodeIdentity       string
 
-	mutPeerAuthenticationData  sync.RWMutex
 	isValidator                bool
 	nextPeerAuthenticationTime time.Time
 
@@ -44,29 +43,29 @@ func (pInfo *peerInfo) isNodeActiveOnMainMachine(maxRoundsWithoutReceivedMessage
 }
 
 func (pInfo *peerInfo) isNodeValidator() bool {
-	pInfo.mutPeerAuthenticationData.RLock()
-	defer pInfo.mutPeerAuthenticationData.RUnlock()
+	pInfo.mutChangeableData.RLock()
+	defer pInfo.mutChangeableData.RUnlock()
 
 	return pInfo.isValidator
 }
 
 func (pInfo *peerInfo) setNodeValidator(value bool) {
-	pInfo.mutPeerAuthenticationData.Lock()
-	defer pInfo.mutPeerAuthenticationData.Unlock()
+	pInfo.mutChangeableData.Lock()
+	defer pInfo.mutChangeableData.Unlock()
 
 	pInfo.isValidator = value
 }
 
 func (pInfo *peerInfo) getNextPeerAuthenticationTime() time.Time {
-	pInfo.mutPeerAuthenticationData.RLock()
-	defer pInfo.mutPeerAuthenticationData.RUnlock()
+	pInfo.mutChangeableData.RLock()
+	defer pInfo.mutChangeableData.RUnlock()
 
 	return pInfo.nextPeerAuthenticationTime
 }
 
 func (pInfo *peerInfo) setNextPeerAuthenticationTime(value time.Time) {
-	pInfo.mutPeerAuthenticationData.Lock()
-	defer pInfo.mutPeerAuthenticationData.Unlock()
+	pInfo.mutChangeableData.Lock()
+	defer pInfo.mutChangeableData.Unlock()
 
 	pInfo.nextPeerAuthenticationTime = value
 }

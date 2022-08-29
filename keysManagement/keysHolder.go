@@ -287,27 +287,23 @@ func (holder *virtualPeersHolder) IsPidManagedByCurrentNode(pid core.PeerID) boo
 }
 
 // IsKeyValidator returns true if the key validator status was set to true
-func (holder *virtualPeersHolder) IsKeyValidator(pkBytes []byte) (bool, error) {
+func (holder *virtualPeersHolder) IsKeyValidator(pkBytes []byte) bool {
 	pInfo := holder.getPeerInfo(pkBytes)
 	if pInfo == nil {
-		return false, fmt.Errorf("%w in IsKeyValidator for public key %s",
-			errMissingPublicKeyDefinition, hex.EncodeToString(pkBytes))
+		return false
 	}
 
-	return pInfo.isNodeValidator(), nil
+	return pInfo.isNodeValidator()
 }
 
 // SetValidatorState sets the provided validator status for the key
-func (holder *virtualPeersHolder) SetValidatorState(pkBytes []byte, state bool) error {
+func (holder *virtualPeersHolder) SetValidatorState(pkBytes []byte, state bool) {
 	pInfo := holder.getPeerInfo(pkBytes)
 	if pInfo == nil {
-		return fmt.Errorf("%w in SetValidatorState for public key %s",
-			errMissingPublicKeyDefinition, hex.EncodeToString(pkBytes))
+		return
 	}
 
 	pInfo.setNodeValidator(state)
-
-	return nil
 }
 
 // GetNextPeerAuthenticationTime returns the next time the key should try to send peer authentication again
@@ -322,16 +318,13 @@ func (holder *virtualPeersHolder) GetNextPeerAuthenticationTime(pkBytes []byte) 
 }
 
 // SetNextPeerAuthenticationTime sets the next time the key should try to send peer authentication
-func (holder *virtualPeersHolder) SetNextPeerAuthenticationTime(pkBytes []byte, nextTime time.Time) error {
+func (holder *virtualPeersHolder) SetNextPeerAuthenticationTime(pkBytes []byte, nextTime time.Time) {
 	pInfo := holder.getPeerInfo(pkBytes)
 	if pInfo == nil {
-		return fmt.Errorf("%w in SetNextPeerAuthenticationTime for public key %s",
-			errMissingPublicKeyDefinition, hex.EncodeToString(pkBytes))
+		return
 	}
 
 	pInfo.setNextPeerAuthenticationTime(nextTime)
-
-	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

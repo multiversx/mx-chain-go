@@ -122,3 +122,22 @@ type NodesCoordinator interface {
 	GetValidatorWithPublicKey(publicKey []byte) (validator nodesCoordinator.Validator, shardId uint32, err error)
 	IsInterfaceNil() bool
 }
+
+// KeysHolder defines the operations of an entity that holds virtual identities for a node
+type KeysHolder interface {
+	AddVirtualPeer(privateKeyBytes []byte) error
+	GetPrivateKey(pkBytes []byte) (crypto.PrivateKey, error)
+	GetP2PIdentity(pkBytes []byte) ([]byte, core.PeerID, error)
+	GetMachineID(pkBytes []byte) (string, error)
+	IncrementRoundsWithoutReceivedMessages(pkBytes []byte) error
+	ResetRoundsWithoutReceivedMessages(pkBytes []byte) error
+	GetManagedKeysByCurrentNode() map[string]crypto.PrivateKey
+	IsKeyManagedByCurrentNode(pkBytes []byte) bool
+	IsKeyRegistered(pkBytes []byte) bool
+	IsPidManagedByCurrentNode(pid core.PeerID) bool
+	IsKeyValidator(pkBytes []byte) bool
+	SetValidatorState(pkBytes []byte, state bool)
+	GetNextPeerAuthenticationTime(pkBytes []byte) (time.Time, error)
+	SetNextPeerAuthenticationTime(pkBytes []byte, nextTime time.Time)
+	IsInterfaceNil() bool
+}
