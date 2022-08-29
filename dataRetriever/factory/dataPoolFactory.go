@@ -139,27 +139,28 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 		return nil, fmt.Errorf("%w while creating the cache for the heartbeat messages", err)
 	}
 
-	cacherCfg = factory.GetCacherFromConfig(mainConfig.ValidatorInfoPool)
-	validatorsInfo, err := storageUnit.NewCache(cacherCfg)
+	validatorsInfo, err := shardedData.NewShardedData(dataRetriever.ValidatorsInfoPoolName, factory.GetCacherFromConfig(mainConfig.ValidatorInfoPool))
 	if err != nil {
 		return nil, fmt.Errorf("%w while creating the cache for the validator info results", err)
 	}
 
-	currBlockTxs := dataPool.NewCurrentBlockPool()
+	currBlockTransactions := dataPool.NewCurrentBlockTransactionsPool()
+	currEpochValidatorInfo := dataPool.NewCurrentEpochValidatorInfoPool()
 	dataPoolArgs := dataPool.DataPoolArgs{
-		Transactions:             txPool,
-		UnsignedTransactions:     uTxPool,
-		RewardTransactions:       rewardTxPool,
-		Headers:                  hdrPool,
-		MiniBlocks:               txBlockBody,
-		PeerChangesBlocks:        peerChangeBlockBody,
-		TrieNodes:                adaptedTrieNodesStorage,
-		TrieNodesChunks:          trieNodesChunks,
-		CurrentBlockTransactions: currBlockTxs,
-		SmartContracts:           smartContracts,
-		PeerAuthentications:      peerAuthPool,
-		Heartbeats:               heartbeatPool,
-		ValidatorsInfo:           validatorsInfo,
+		Transactions:              txPool,
+		UnsignedTransactions:      uTxPool,
+		RewardTransactions:        rewardTxPool,
+		Headers:                   hdrPool,
+		MiniBlocks:                txBlockBody,
+		PeerChangesBlocks:         peerChangeBlockBody,
+		TrieNodes:                 adaptedTrieNodesStorage,
+		TrieNodesChunks:           trieNodesChunks,
+		CurrentBlockTransactions:  currBlockTransactions,
+		CurrentEpochValidatorInfo: currEpochValidatorInfo,
+		SmartContracts:            smartContracts,
+		PeerAuthentications:       peerAuthPool,
+		Heartbeats:                heartbeatPool,
+		ValidatorsInfo:            validatorsInfo,
 	}
 	return dataPool.NewDataPool(dataPoolArgs)
 }

@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/state"
@@ -18,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	vics "github.com/ElrondNetwork/elrond-go/testscommon/validatorInfoCacher"
 	"github.com/stretchr/testify/require"
 )
 
@@ -112,22 +114,29 @@ func createMockEpochValidatorInfoCreatorsArguments() ArgsNewValidatorInfoCreator
 	_ = shardCoordinator.SetSelfId(core.MetachainShardId)
 
 	argsNewEpochEconomics := ArgsNewValidatorInfoCreator{
-		ShardCoordinator: shardCoordinator,
-		MiniBlockStorage: createMemUnit(),
-		Hasher:           &hashingMocks.HasherMock{},
-		Marshalizer:      &mock.MarshalizerMock{},
+		ShardCoordinator:     shardCoordinator,
+		ValidatorInfoStorage: createMemUnit(),
+		MiniBlockStorage:     createMemUnit(),
+		Hasher:               &hashingMocks.HasherMock{},
+		Marshalizer:          &mock.MarshalizerMock{},
 		DataPool: &dataRetrieverMock.PoolsHolderStub{
 			MiniBlocksCalled: func() storage.Cacher {
 				return &testscommon.CacherStub{
 					RemoveCalled: func(key []byte) {},
 				}
 			},
+			CurrEpochValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
+				return &vics.ValidatorInfoCacherStub{}
+			},
+		},
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
+			IsRefactorPeersMiniBlocksFlagEnabledField: true,
 		},
 	}
 	return argsNewEpochEconomics
 }
 
-func verifyMiniBlocks(bl *block.MiniBlock, infos []*state.ValidatorInfo, marshalizer marshal.Marshalizer) bool {
+func verifyMiniBlocks(bl *block.MiniBlock, infos []*state.ValidatorInfo, marshalledShardValidatorsInfo [][]byte, marshalizer marshal.Marshalizer) bool {
 	if bl.SenderShardID != core.MetachainShardId ||
 		bl.ReceiverShardID != core.AllShardId ||
 		len(bl.TxHashes) == 0 ||
@@ -141,10 +150,10 @@ func verifyMiniBlocks(bl *block.MiniBlock, infos []*state.ValidatorInfo, marshal
 		return bytes.Compare(validatorCopy[a].PublicKey, validatorCopy[b].PublicKey) < 0
 	})
 
-	for i, txHash := range bl.TxHashes {
-		vi := createShardValidatorInfo(validatorCopy[i])
+	for i, marshalledShardValidatorInfo := range marshalledShardValidatorsInfo {
+		vi := createShardValidatorInfo(infos[i])
 		unmarshaledVi := &state.ShardValidatorInfo{}
-		_ = marshalizer.Unmarshal(unmarshaledVi, txHash)
+		_ = marshalizer.Unmarshal(unmarshaledVi, marshalledShardValidatorInfo)
 		if !reflect.DeepEqual(unmarshaledVi, vi) {
 			return false
 		}
@@ -264,9 +273,22 @@ func TestEpochValidatorInfoCreator_CreateValidatorInfoMiniBlocksShouldBeCorrect(
 	vic, _ := NewValidatorInfoCreator(arguments)
 	mbs, _ := vic.CreateValidatorInfoMiniBlocks(validatorInfo)
 
-	correctMB0 := verifyMiniBlocks(mbs[0], validatorInfo[0], arguments.Marshalizer)
+	shardValidatorInfo := make([]*state.ShardValidatorInfo, len(validatorInfo[0]))
+	marshalledShardValidatorInfo := make([][]byte, len(validatorInfo[0]))
+	for i := 0; i < len(validatorInfo[0]); i++ {
+		shardValidatorInfo[i] = createShardValidatorInfo(validatorInfo[0][i])
+		marshalledShardValidatorInfo[i], _ = arguments.Marshalizer.Marshal(shardValidatorInfo[i])
+	}
+	correctMB0 := verifyMiniBlocks(mbs[0], validatorInfo[0], marshalledShardValidatorInfo, arguments.Marshalizer)
 	require.True(t, correctMB0)
-	correctMbMeta := verifyMiniBlocks(mbs[1], validatorInfo[core.MetachainShardId], arguments.Marshalizer)
+
+	shardValidatorInfo = make([]*state.ShardValidatorInfo, len(validatorInfo[core.MetachainShardId]))
+	marshalledShardValidatorInfo = make([][]byte, len(validatorInfo[core.MetachainShardId]))
+	for i := 0; i < len(validatorInfo[core.MetachainShardId]); i++ {
+		shardValidatorInfo[i] = createShardValidatorInfo(validatorInfo[core.MetachainShardId][i])
+		marshalledShardValidatorInfo[i], _ = arguments.Marshalizer.Marshal(shardValidatorInfo[i])
+	}
+	correctMbMeta := verifyMiniBlocks(mbs[1], validatorInfo[core.MetachainShardId], marshalledShardValidatorInfo, arguments.Marshalizer)
 	require.True(t, correctMbMeta)
 }
 
@@ -367,9 +389,9 @@ func createValidatorInfoMiniBlocks(
 		})
 
 		for index, validator := range validatorCopy {
-			shardValidator := createShardValidatorInfo(validator)
-			marshalizedValidator, _ := arguments.Marshalizer.Marshal(shardValidator)
-			miniBlock.TxHashes[index] = marshalizedValidator
+			shardValidatorInfo := createShardValidatorInfo(validator)
+			shardValidatorInfoHash, _ := core.CalculateHash(arguments.Marshalizer, arguments.Hasher, shardValidatorInfo)
+			miniBlock.TxHashes[index] = shardValidatorInfoHash
 		}
 
 		miniblocks = append(miniblocks, miniBlock)
@@ -377,7 +399,7 @@ func createValidatorInfoMiniBlocks(
 	return miniblocks
 }
 
-func TestEpochValidatorInfoCreator_SaveValidatorInfoBlocksToStorage(t *testing.T) {
+func TestEpochValidatorInfoCreator_SaveValidatorInfoBlockDataToStorage(t *testing.T) {
 	validatorInfo := createMockValidatorInfo()
 	arguments := createMockEpochValidatorInfoCreatorsArguments()
 	arguments.MiniBlockStorage = mock.NewStorerMock()
@@ -427,7 +449,7 @@ func TestEpochValidatorInfoCreator_SaveValidatorInfoBlocksToStorage(t *testing.T
 	}
 
 	body := &block.Body{MiniBlocks: miniblocks}
-	vic.SaveValidatorInfoBlocksToStorage(meta, body)
+	vic.SaveBlockDataToStorage(meta, body)
 
 	for i, mbHeader := range meta.MiniBlockHeaders {
 		mb, err := miniBlockStorage.Get(mbHeader.Hash)
@@ -440,15 +462,15 @@ func TestEpochValidatorInfoCreator_SaveValidatorInfoBlocksToStorage(t *testing.T
 	}
 }
 
-func TestEpochValidatorInfoCreator_DeleteValidatorInfoBlocksFromStorage(t *testing.T) {
-	testDeleteValidatorInfoBlock(t, block.PeerBlock, false)
+func TestEpochValidatorInfoCreator_DeleteValidatorInfoBlockDataFromStorage(t *testing.T) {
+	testDeleteValidatorInfoBlockData(t, block.PeerBlock, false)
 }
 
-func TestEpochValidatorInfoCreator_DeleteValidatorInfoBlocksFromStorageDoesDeleteOnlyPeerBlocks(t *testing.T) {
-	testDeleteValidatorInfoBlock(t, block.TxBlock, true)
+func TestEpochValidatorInfoCreator_DeleteValidatorInfoBlockDataFromStorageDoesDeleteOnlyPeerBlocks(t *testing.T) {
+	testDeleteValidatorInfoBlockData(t, block.TxBlock, true)
 }
 
-func testDeleteValidatorInfoBlock(t *testing.T, blockType block.Type, shouldExist bool) {
+func testDeleteValidatorInfoBlockData(t *testing.T, blockType block.Type, shouldExist bool) {
 	validatorInfo := createMockValidatorInfo()
 	arguments := createMockEpochValidatorInfoCreatorsArguments()
 	arguments.MiniBlockStorage = mock.NewStorerMock()
@@ -504,7 +526,8 @@ func testDeleteValidatorInfoBlock(t *testing.T, blockType block.Type, shouldExis
 		require.Nil(t, err)
 	}
 
-	vic.DeleteValidatorInfoBlocksFromStorage(meta)
+	body := &block.Body{}
+	vic.DeleteBlockDataFromStorage(meta, body)
 
 	for _, mbHeader := range meta.MiniBlockHeaders {
 		mb, err := mbStorage.Get(mbHeader.Hash)

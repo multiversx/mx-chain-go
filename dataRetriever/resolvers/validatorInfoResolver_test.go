@@ -29,7 +29,7 @@ func createMockArgValidatorInfoResolver() resolvers.ArgValidatorInfoResolver {
 		Marshaller:           &mock.MarshalizerMock{},
 		AntifloodHandler:     &mock.P2PAntifloodHandlerStub{},
 		Throttler:            &mock.ThrottlerStub{},
-		ValidatorInfoPool:    testscommon.NewCacherStub(),
+		ValidatorInfoPool:    testscommon.NewShardedDataStub(),
 		ValidatorInfoStorage: &storage.StorerStub{},
 		DataPacker:           &mock.DataPackerStub{},
 		IsFullHistoryNode:    false,
@@ -297,8 +297,8 @@ func TestValidatorInfoResolver_ProcessReceivedMessage(t *testing.T) {
 
 		expectedErr := errors.New("expected err")
 		args := createMockArgValidatorInfoResolver()
-		args.ValidatorInfoPool = &testscommon.CacherStub{
-			GetCalled: func(key []byte) (value interface{}, ok bool) {
+		args.ValidatorInfoPool = &testscommon.ShardedDataStub{
+			SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
 				return nil, false
 			},
 		}
@@ -319,8 +319,8 @@ func TestValidatorInfoResolver_ProcessReceivedMessage(t *testing.T) {
 		expectedErr := errors.New("expected err")
 		marshallerMock := testscommon.MarshalizerMock{}
 		args := createMockArgValidatorInfoResolver()
-		args.ValidatorInfoPool = &testscommon.CacherStub{
-			GetCalled: func(key []byte) (value interface{}, ok bool) {
+		args.ValidatorInfoPool = &testscommon.ShardedDataStub{
+			SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
 				return []byte("some value"), true
 			},
 		}
@@ -344,8 +344,8 @@ func TestValidatorInfoResolver_ProcessReceivedMessage(t *testing.T) {
 		expectedErr := errors.New("expected err")
 		marshallerMock := testscommon.MarshalizerMock{}
 		args := createMockArgValidatorInfoResolver()
-		args.ValidatorInfoPool = &testscommon.CacherStub{
-			GetCalled: func(key []byte) (value interface{}, ok bool) {
+		args.ValidatorInfoPool = &testscommon.ShardedDataStub{
+			SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
 				return nil, false
 			},
 		}
@@ -374,8 +374,8 @@ func TestValidatorInfoResolver_ProcessReceivedMessage(t *testing.T) {
 		wasCalled := false
 		providedValue := createMockValidatorInfo([]byte("provided pk"))
 		args := createMockArgValidatorInfoResolver()
-		args.ValidatorInfoPool = &testscommon.CacherStub{
-			GetCalled: func(key []byte) (value interface{}, ok bool) {
+		args.ValidatorInfoPool = &testscommon.ShardedDataStub{
+			SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
 				return providedValue, true
 			},
 		}
@@ -407,8 +407,8 @@ func TestValidatorInfoResolver_ProcessReceivedMessage(t *testing.T) {
 		wasCalled := false
 		providedValue := createMockValidatorInfo([]byte("provided pk"))
 		args := createMockArgValidatorInfoResolver()
-		args.ValidatorInfoPool = &testscommon.CacherStub{
-			GetCalled: func(key []byte) (value interface{}, ok bool) {
+		args.ValidatorInfoPool = &testscommon.ShardedDataStub{
+			SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
 				return nil, false
 			},
 		}
@@ -468,8 +468,8 @@ func TestValidatorInfoResolver_ProcessReceivedMessage(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgValidatorInfoResolver()
-		args.ValidatorInfoPool = &testscommon.CacherStub{
-			GetCalled: func(key []byte) (value interface{}, ok bool) {
+		args.ValidatorInfoPool = &testscommon.ShardedDataStub{
+			SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
 				return nil, false
 			},
 		}
@@ -494,8 +494,8 @@ func TestValidatorInfoResolver_ProcessReceivedMessage(t *testing.T) {
 
 		expectedErr := errors.New("expected err")
 		args := createMockArgValidatorInfoResolver()
-		args.ValidatorInfoPool = &testscommon.CacherStub{
-			GetCalled: func(key []byte) (value interface{}, ok bool) {
+		args.ValidatorInfoPool = &testscommon.ShardedDataStub{
+			SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
 				return key, true
 			},
 		}
@@ -534,8 +534,8 @@ func TestValidatorInfoResolver_ProcessReceivedMessage(t *testing.T) {
 		}
 		args := createMockArgValidatorInfoResolver()
 		numOfCalls := 0
-		args.ValidatorInfoPool = &testscommon.CacherStub{
-			GetCalled: func(key []byte) (value interface{}, ok bool) {
+		args.ValidatorInfoPool = &testscommon.ShardedDataStub{
+			SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
 				val := providedData[numOfCalls]
 				numOfCalls++
 				return val, true
@@ -591,8 +591,8 @@ func TestValidatorInfoResolver_ProcessReceivedMessage(t *testing.T) {
 			providedDataMap[string(hash)] = struct{}{}
 		}
 		numOfCalls := 0
-		args.ValidatorInfoPool = &testscommon.CacherStub{
-			GetCalled: func(key []byte) (value interface{}, ok bool) {
+		args.ValidatorInfoPool = &testscommon.ShardedDataStub{
+			SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
 				val := providedData[numOfCalls]
 				numOfCalls++
 				return val, true

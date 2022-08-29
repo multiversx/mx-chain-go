@@ -3,17 +3,17 @@ package processor
 import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 // ArgValidatorInfoInterceptorProcessor is the argument structure used to create a new validator info interceptor processor
 type ArgValidatorInfoInterceptorProcessor struct {
-	ValidatorInfoPool storage.Cacher
+	ValidatorInfoPool dataRetriever.ShardedDataCacherNotifier
 }
 
 type validatorInfoInterceptorProcessor struct {
-	validatorInfoPool storage.Cacher
+	validatorInfoPool dataRetriever.ShardedDataCacherNotifier
 }
 
 // NewValidatorInfoInterceptorProcessor creates a new validator info interceptor processor
@@ -51,7 +51,10 @@ func (viip *validatorInfoInterceptorProcessor) Save(data process.InterceptedData
 	validatorInfo := ivi.ValidatorInfo()
 	hash := ivi.Hash()
 
-	viip.validatorInfoPool.HasOrAdd(hash, validatorInfo, validatorInfo.Size())
+	log.Trace("validatorInfoInterceptorProcessor.Save", "tx hash", hash, "pk", validatorInfo.PublicKey)
+
+	strCache := process.ShardCacherIdentifier(core.MetachainShardId, core.AllShardId)
+	viip.validatorInfoPool.AddData(hash, validatorInfo, validatorInfo.Size(), strCache)
 
 	return nil
 }

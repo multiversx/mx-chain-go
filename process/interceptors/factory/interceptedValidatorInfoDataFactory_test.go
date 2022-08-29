@@ -62,16 +62,6 @@ func TestNewInterceptedValidatorInfoDataFactory(t *testing.T) {
 		assert.Equal(t, process.ErrNilHasher, err)
 		assert.True(t, check.IfNil(ividf))
 	})
-	t.Run("nil nodes coordinator should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockArgument(createMockComponentHolders())
-		args.NodesCoordinator = nil
-
-		ividf, err := NewInterceptedValidatorInfoDataFactory(*args)
-		assert.Equal(t, process.ErrNilNodesCoordinator, err)
-		assert.True(t, check.IfNil(ividf))
-	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
@@ -79,7 +69,6 @@ func TestNewInterceptedValidatorInfoDataFactory(t *testing.T) {
 		assert.Nil(t, err)
 		assert.False(t, check.IfNil(ividf))
 	})
-
 }
 
 func TestInterceptedValidatorInfoDataFactory_Create(t *testing.T) {

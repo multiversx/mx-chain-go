@@ -13,17 +13,15 @@ import (
 
 // ArgInterceptedValidatorInfo is the argument used to create a new intercepted validator info
 type ArgInterceptedValidatorInfo struct {
-	DataBuff         []byte
-	Marshalizer      marshal.Marshalizer
-	Hasher           hashing.Hasher
-	NodesCoordinator process.NodesCoordinator
+	DataBuff    []byte
+	Marshalizer marshal.Marshalizer
+	Hasher      hashing.Hasher
 }
 
 // interceptedValidatorInfo is a wrapper over validatorInfo
 type interceptedValidatorInfo struct {
-	validatorInfo    state.ValidatorInfo
-	nodesCoordinator process.NodesCoordinator
-	hash             []byte
+	shardValidatorInfo *state.ShardValidatorInfo
+	hash               []byte
 }
 
 // NewInterceptedValidatorInfo creates a new intercepted validator info instance
@@ -33,15 +31,14 @@ func NewInterceptedValidatorInfo(args ArgInterceptedValidatorInfo) (*intercepted
 		return nil, err
 	}
 
-	validatorInfo, err := createValidatorInfo(args.Marshalizer, args.DataBuff)
+	shardValidatorInfo, err := createShardValidatorInfo(args.Marshalizer, args.DataBuff)
 	if err != nil {
 		return nil, err
 	}
 
 	return &interceptedValidatorInfo{
-		validatorInfo:    *validatorInfo,
-		nodesCoordinator: args.NodesCoordinator,
-		hash:             args.Hasher.Compute(string(args.DataBuff)),
+		shardValidatorInfo: shardValidatorInfo,
+		hash:               args.Hasher.Compute(string(args.DataBuff)),
 	}, nil
 }
 
@@ -55,42 +52,33 @@ func checkArgs(args ArgInterceptedValidatorInfo) error {
 	if check.IfNil(args.Hasher) {
 		return process.ErrNilHasher
 	}
-	if check.IfNil(args.NodesCoordinator) {
-		return process.ErrNilNodesCoordinator
-	}
 
 	return nil
 }
 
-func createValidatorInfo(marshalizer marshal.Marshalizer, buff []byte) (*state.ValidatorInfo, error) {
-	validatorInfo := &state.ValidatorInfo{}
-	err := marshalizer.Unmarshal(validatorInfo, buff)
+func createShardValidatorInfo(marshalizer marshal.Marshalizer, buff []byte) (*state.ShardValidatorInfo, error) {
+	shardValidatorInfo := &state.ShardValidatorInfo{}
+	err := marshalizer.Unmarshal(shardValidatorInfo, buff)
 	if err != nil {
 		return nil, err
 	}
 
-	return validatorInfo, nil
+	return shardValidatorInfo, nil
 }
 
 // CheckValidity checks the validity of the received validator info
 func (ivi *interceptedValidatorInfo) CheckValidity() error {
 	// Verify string properties len
-	err := verifyPropertyLen(publicKeyProperty, ivi.validatorInfo.PublicKey, publicKeyPropertyRequiredBytesLen, minSizeInBytes, maxSizeInBytes)
+	err := verifyPropertyLen(publicKeyProperty, ivi.shardValidatorInfo.PublicKey, publicKeyPropertyRequiredBytesLen, minSizeInBytes, maxSizeInBytes)
 	if err != nil {
 		return err
 	}
-	err = verifyPropertyLen(listProperty, []byte(ivi.validatorInfo.List), 0, minSizeInBytes, maxSizeInBytes)
-	if err != nil {
-		return err
-	}
-	err = verifyPropertyLen(rewardAddressProperty, ivi.validatorInfo.RewardAddress, 0, minSizeInBytes, rewardAddressPropertyMaxPropertyBytesLen)
+	err = verifyPropertyLen(listProperty, []byte(ivi.shardValidatorInfo.List), 0, minSizeInBytes, maxSizeInBytes)
 	if err != nil {
 		return err
 	}
 
-	// Check if the public key is a validator
-	_, _, err = ivi.nodesCoordinator.GetValidatorWithPublicKey(ivi.validatorInfo.PublicKey)
-	return err
+	return nil
 }
 
 // IsForCurrentShard always returns true
@@ -99,8 +87,8 @@ func (ivi *interceptedValidatorInfo) IsForCurrentShard() bool {
 }
 
 // ValidatorInfo returns the current validator info structure
-func (ivi *interceptedValidatorInfo) ValidatorInfo() state.ValidatorInfo {
-	return ivi.validatorInfo
+func (ivi *interceptedValidatorInfo) ValidatorInfo() *state.ShardValidatorInfo {
+	return ivi.shardValidatorInfo
 }
 
 // Hash returns the hash of this validator info
@@ -120,13 +108,12 @@ func (ivi *interceptedValidatorInfo) Identifiers() [][]byte {
 
 // String returns the validator's info most important fields as string
 func (ivi *interceptedValidatorInfo) String() string {
-	return fmt.Sprintf("pk=%s, shard=%d, list=%s, index=%d, tempRating=%d, rating=%d",
-		logger.DisplayByteSlice(ivi.validatorInfo.PublicKey),
-		ivi.validatorInfo.ShardId,
-		ivi.validatorInfo.List,
-		ivi.validatorInfo.Index,
-		ivi.validatorInfo.TempRating,
-		ivi.validatorInfo.Rating,
+	return fmt.Sprintf("pk=%s, shard=%d, list=%s, index=%d, tempRating=%d",
+		logger.DisplayByteSlice(ivi.shardValidatorInfo.PublicKey),
+		ivi.shardValidatorInfo.ShardId,
+		ivi.shardValidatorInfo.List,
+		ivi.shardValidatorInfo.Index,
+		ivi.shardValidatorInfo.TempRating,
 	)
 }
 

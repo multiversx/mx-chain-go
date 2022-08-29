@@ -86,6 +86,7 @@ type EnableEpochs struct {
 	MiniBlockPartialExecutionEnableEpoch              uint32
 	ESDTMetadataContinuousCleanupEnableEpoch          uint32
 	SetSenderInEeiOutputTransferEnableEpoch           uint32
+	RefactorPeersMiniBlocksEnableEpoch                uint32
 }
 
 // GasScheduleByEpochs represents a gas schedule toml entry that will be applied from the provided epoch

@@ -9,21 +9,18 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func createMockArgInterceptedValidatorInfo() ArgInterceptedValidatorInfo {
 	args := ArgInterceptedValidatorInfo{
-		Marshalizer:      testscommon.MarshalizerMock{},
-		Hasher:           &hashingMocks.HasherMock{},
-		NodesCoordinator: &shardingMocks.NodesCoordinatorStub{},
+		Marshalizer: testscommon.MarshalizerMock{},
+		Hasher:      &hashingMocks.HasherMock{},
 	}
-	args.DataBuff, _ = args.Marshalizer.Marshal(createMockValidatorInfo())
+	args.DataBuff, _ = args.Marshalizer.Marshal(createMockShardValidatorInfo())
 
 	return args
 }
@@ -61,16 +58,6 @@ func TestNewInterceptedValidatorInfo(t *testing.T) {
 		assert.Equal(t, process.ErrNilHasher, err)
 		assert.True(t, check.IfNil(ivi))
 	})
-	t.Run("nil nodes coordinator should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockArgInterceptedValidatorInfo()
-		args.NodesCoordinator = nil
-
-		ivi, err := NewInterceptedValidatorInfo(args)
-		assert.Equal(t, process.ErrNilNodesCoordinator, err)
-		assert.True(t, check.IfNil(ivi))
-	})
 	t.Run("unmarshal returns error", func(t *testing.T) {
 		t.Parallel()
 
@@ -104,34 +91,10 @@ func TestInterceptedValidatorInfo_CheckValidity(t *testing.T) {
 	t.Run("listProperty too short", testInterceptedValidatorInfoPropertyLen(listProperty, false))
 	t.Run("listProperty too long", testInterceptedValidatorInfoPropertyLen(listProperty, true))
 
-	t.Run("rewardAddressProperty too short", testInterceptedValidatorInfoPropertyLen(rewardAddressProperty, false))
-	t.Run("rewardAddressProperty too long", testInterceptedValidatorInfoPropertyLen(rewardAddressProperty, true))
-
-	t.Run("not validator should error", func(t *testing.T) {
-		t.Parallel()
-
-		expectedErr := errors.New("expected err")
-		args := createMockArgInterceptedValidatorInfo()
-		args.NodesCoordinator = &shardingMocks.NodesCoordinatorStub{
-			GetValidatorWithPublicKeyCalled: func(publicKey []byte) (validator nodesCoordinator.Validator, shardId uint32, err error) {
-				return nil, 0, expectedErr
-			},
-		}
-
-		ivi, _ := NewInterceptedValidatorInfo(args)
-		require.False(t, check.IfNil(ivi))
-		assert.Equal(t, expectedErr, ivi.CheckValidity())
-	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgInterceptedValidatorInfo()
-		args.NodesCoordinator = &shardingMocks.NodesCoordinatorStub{
-			GetValidatorWithPublicKeyCalled: func(publicKey []byte) (validator nodesCoordinator.Validator, shardId uint32, err error) {
-				return nil, 0, nil
-			},
-		}
-
 		ivi, _ := NewInterceptedValidatorInfo(args)
 		require.False(t, check.IfNil(ivi))
 		assert.Nil(t, ivi.CheckValidity())
@@ -155,11 +118,9 @@ func testInterceptedValidatorInfoPropertyLen(property string, tooLong bool) func
 
 		switch property {
 		case publicKeyProperty:
-			ivi.validatorInfo.PublicKey = value
+			ivi.shardValidatorInfo.PublicKey = value
 		case listProperty:
-			ivi.validatorInfo.List = string(value)
-		case rewardAddressProperty:
-			ivi.validatorInfo.RewardAddress = value
+			ivi.shardValidatorInfo.List = string(value)
 		default:
 			assert.True(t, false)
 		}
@@ -176,12 +137,12 @@ func TestInterceptedValidatorInfo_Getters(t *testing.T) {
 	ivi, _ := NewInterceptedValidatorInfo(args)
 	require.False(t, check.IfNil(ivi))
 
-	validatorInfo := createMockValidatorInfo()
+	validatorInfo := createMockShardValidatorInfo()
 	validatorInfoBuff, _ := args.Marshalizer.Marshal(validatorInfo)
 	hash := args.Hasher.Compute(string(validatorInfoBuff))
 
 	assert.True(t, ivi.IsForCurrentShard())
-	assert.Equal(t, *validatorInfo, ivi.ValidatorInfo())
+	assert.Equal(t, validatorInfo, ivi.ValidatorInfo())
 	assert.Equal(t, hash, ivi.Hash())
 	assert.Equal(t, interceptedValidatorInfoType, ivi.Type())
 
@@ -190,10 +151,9 @@ func TestInterceptedValidatorInfo_Getters(t *testing.T) {
 	assert.Equal(t, hash, identifiers[0])
 
 	str := ivi.String()
-	assert.True(t, strings.Contains(str, fmt.Sprintf("pk=%s", logger.DisplayByteSlice(ivi.validatorInfo.PublicKey))))
+	assert.True(t, strings.Contains(str, fmt.Sprintf("pk=%s", logger.DisplayByteSlice(ivi.shardValidatorInfo.PublicKey))))
 	assert.True(t, strings.Contains(str, fmt.Sprintf("shard=%d", validatorInfo.ShardId)))
 	assert.True(t, strings.Contains(str, fmt.Sprintf("list=%s", validatorInfo.List)))
 	assert.True(t, strings.Contains(str, fmt.Sprintf("index=%d", validatorInfo.Index)))
 	assert.True(t, strings.Contains(str, fmt.Sprintf("tempRating=%d", validatorInfo.TempRating)))
-	assert.True(t, strings.Contains(str, fmt.Sprintf("rating=%d", validatorInfo.Rating)))
 }

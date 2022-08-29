@@ -13,7 +13,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -30,9 +29,8 @@ func createMockValidatorInfo() state.ValidatorInfo {
 
 func createMockInterceptedValidatorInfo() process.InterceptedData {
 	args := peer.ArgInterceptedValidatorInfo{
-		Marshalizer:      testscommon.MarshalizerMock{},
-		Hasher:           &hashingMocks.HasherMock{},
-		NodesCoordinator: &shardingMocks.NodesCoordinatorStub{},
+		Marshalizer: testscommon.MarshalizerMock{},
+		Hasher:      &hashingMocks.HasherMock{},
 	}
 	args.DataBuff, _ = args.Marshalizer.Marshal(createMockValidatorInfo())
 	ivi, _ := peer.NewInterceptedValidatorInfo(args)
@@ -42,7 +40,7 @@ func createMockInterceptedValidatorInfo() process.InterceptedData {
 
 func createMockArgValidatorInfoInterceptorProcessor() processor.ArgValidatorInfoInterceptorProcessor {
 	return processor.ArgValidatorInfoInterceptorProcessor{
-		ValidatorInfoPool: testscommon.NewCacherStub(),
+		ValidatorInfoPool: testscommon.NewShardedDataStub(),
 	}
 }
 
@@ -84,10 +82,9 @@ func TestValidatorInfoInterceptorProcessor_Save(t *testing.T) {
 		providedData := mock.NewInterceptedMetaBlockMock(nil, []byte("hash")) // unable to cast to intercepted validator info
 		wasCalled := false
 		args := createMockArgValidatorInfoInterceptorProcessor()
-		args.ValidatorInfoPool = &testscommon.CacherStub{
-			HasOrAddCalled: func(key []byte, value interface{}, sizeInBytes int) (has, added bool) {
+		args.ValidatorInfoPool = &testscommon.ShardedDataStub{
+			AddDataCalled: func(key []byte, data interface{}, sizeInBytes int, cacheID string) {
 				wasCalled = true
-				return false, false
 			},
 		}
 
@@ -109,11 +106,10 @@ func TestValidatorInfoInterceptorProcessor_Save(t *testing.T) {
 		hasher := hashingMocks.HasherMock{}
 		providedHash := hasher.Compute(string(providedBuff))
 
-		args.ValidatorInfoPool = &testscommon.CacherStub{
-			HasOrAddCalled: func(key []byte, value interface{}, sizeInBytes int) (has, added bool) {
+		args.ValidatorInfoPool = &testscommon.ShardedDataStub{
+			AddDataCalled: func(key []byte, data interface{}, sizeInBytes int, cacheID string) {
 				assert.Equal(t, providedHash, key)
 				wasHasOrAddCalled = true
-				return false, false
 			},
 		}
 

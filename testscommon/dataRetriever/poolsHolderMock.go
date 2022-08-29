@@ -18,19 +18,20 @@ import (
 
 // PoolsHolderMock -
 type PoolsHolderMock struct {
-	transactions         dataRetriever.ShardedDataCacherNotifier
-	unsignedTransactions dataRetriever.ShardedDataCacherNotifier
-	rewardTransactions   dataRetriever.ShardedDataCacherNotifier
-	headers              dataRetriever.HeadersPool
-	miniBlocks           storage.Cacher
-	peerChangesBlocks    storage.Cacher
-	trieNodes            storage.Cacher
-	trieNodesChunks      storage.Cacher
-	smartContracts       storage.Cacher
-	currBlockTxs         dataRetriever.TransactionCacher
-	peerAuthentications  storage.Cacher
-	heartbeats           storage.Cacher
-	validatorsInfo       storage.Cacher
+	transactions           dataRetriever.ShardedDataCacherNotifier
+	unsignedTransactions   dataRetriever.ShardedDataCacherNotifier
+	rewardTransactions     dataRetriever.ShardedDataCacherNotifier
+	headers                dataRetriever.HeadersPool
+	miniBlocks             storage.Cacher
+	peerChangesBlocks      storage.Cacher
+	trieNodes              storage.Cacher
+	trieNodesChunks        storage.Cacher
+	smartContracts         storage.Cacher
+	currBlockTxs           dataRetriever.TransactionCacher
+	currEpochValidatorInfo dataRetriever.ValidatorInfoCacher
+	peerAuthentications    storage.Cacher
+	heartbeats             storage.Cacher
+	validatorsInfo         dataRetriever.ShardedDataCacherNotifier
 }
 
 // NewPoolsHolderMock -
@@ -80,7 +81,8 @@ func NewPoolsHolderMock() *PoolsHolderMock {
 	holder.peerChangesBlocks, err = storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 10000, Shards: 1, SizeInBytes: 0})
 	panicIfError("NewPoolsHolderMock", err)
 
-	holder.currBlockTxs = dataPool.NewCurrentBlockPool()
+	holder.currBlockTxs = dataPool.NewCurrentBlockTransactionsPool()
+	holder.currEpochValidatorInfo = dataPool.NewCurrentEpochValidatorInfoPool()
 
 	holder.trieNodes, err = storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.SizeLRUCache, Capacity: 900000, Shards: 1, SizeInBytes: 314572800})
 	panicIfError("NewPoolsHolderMock", err)
@@ -100,7 +102,11 @@ func NewPoolsHolderMock() *PoolsHolderMock {
 	holder.heartbeats, err = storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 10000, Shards: 1, SizeInBytes: 0})
 	panicIfError("NewPoolsHolderMock", err)
 
-	holder.validatorsInfo, err = storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 10000, Shards: 1, SizeInBytes: 0})
+	holder.validatorsInfo, err = shardedData.NewShardedData("validatorsInfoPool", storageUnit.CacheConfig{
+		Capacity:    100,
+		SizeInBytes: 100000,
+		Shards:      1,
+	})
 	panicIfError("NewPoolsHolderMock", err)
 
 	return holder
@@ -109,6 +115,11 @@ func NewPoolsHolderMock() *PoolsHolderMock {
 // CurrentBlockTxs -
 func (holder *PoolsHolderMock) CurrentBlockTxs() dataRetriever.TransactionCacher {
 	return holder.currBlockTxs
+}
+
+// CurrentEpochValidatorInfo -
+func (holder *PoolsHolderMock) CurrentEpochValidatorInfo() dataRetriever.ValidatorInfoCacher {
+	return holder.currEpochValidatorInfo
 }
 
 // Transactions -
@@ -177,7 +188,7 @@ func (holder *PoolsHolderMock) Heartbeats() storage.Cacher {
 }
 
 // ValidatorsInfo -
-func (holder *PoolsHolderMock) ValidatorsInfo() storage.Cacher {
+func (holder *PoolsHolderMock) ValidatorsInfo() dataRetriever.ShardedDataCacherNotifier {
 	return holder.validatorsInfo
 }
 

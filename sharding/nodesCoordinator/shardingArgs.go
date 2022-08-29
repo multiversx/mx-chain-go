@@ -5,6 +5,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -30,4 +31,5 @@ type ArgNodesCoordinator struct {
 	NodeTypeProvider        NodeTypeProviderHandler
 	IsFullArchive           bool
 	EnableEpochsHandler     common.EnableEpochsHandler
+	ValidatorInfoCacher     epochStart.ValidatorInfoCacher
 }

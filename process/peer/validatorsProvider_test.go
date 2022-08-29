@@ -645,6 +645,17 @@ func createMockValidatorInfo() *state.ValidatorInfo {
 	return initialInfo
 }
 
+func createMockShardValidatorInfo() *state.ShardValidatorInfo {
+	initialInfo := &state.ShardValidatorInfo{
+		PublicKey:  bytes.Repeat([]byte("a"), 96),
+		ShardId:    0,
+		List:       "eligible",
+		Index:      1,
+		TempRating: 100,
+	}
+	return initialInfo
+}
+
 func createDefaultValidatorsProviderArg() ArgValidatorsProvider {
 	return ArgValidatorsProvider{
 		NodesCoordinator:                  &shardingMocks.NodesCoordinatorMock{},

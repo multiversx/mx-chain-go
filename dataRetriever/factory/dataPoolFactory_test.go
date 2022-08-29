@@ -146,11 +146,10 @@ func TestNewDataPoolFromConfig_BadConfigShouldErr(t *testing.T) {
 	require.True(t, strings.Contains(err.Error(), "the cache for the heartbeat messages"))
 
 	args = getGoodArgs()
-	args.Config.ValidatorInfoPool.Type = "invalid cache type"
+	args.Config.ValidatorInfoPool.Capacity = 0
 	holder, err = NewDataPoolFromConfig(args)
 	require.Nil(t, holder)
-	fmt.Println(err)
-	require.True(t, errors.Is(err, storage.ErrNotSupportedCacheType))
+	require.True(t, errors.Is(err, storage.ErrInvalidConfig))
 	require.True(t, strings.Contains(err.Error(), "the cache for the validator info results"))
 }
 

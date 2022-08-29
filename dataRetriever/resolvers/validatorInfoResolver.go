@@ -23,7 +23,7 @@ type ArgValidatorInfoResolver struct {
 	Marshaller           marshal.Marshalizer
 	AntifloodHandler     dataRetriever.P2PAntifloodHandler
 	Throttler            dataRetriever.ResolverThrottler
-	ValidatorInfoPool    storage.Cacher
+	ValidatorInfoPool    dataRetriever.ShardedDataCacherNotifier
 	ValidatorInfoStorage storage.Storer
 	DataPacker           dataRetriever.DataPacker
 	IsFullHistoryNode    bool
@@ -34,7 +34,7 @@ type validatorInfoResolver struct {
 	dataRetriever.TopicResolverSender
 	messageProcessor
 	baseStorageResolver
-	validatorInfoPool    storage.Cacher
+	validatorInfoPool    dataRetriever.ShardedDataCacherNotifier
 	validatorInfoStorage storage.Storer
 	dataPacker           dataRetriever.DataPacker
 }
@@ -209,7 +209,7 @@ func (res *validatorInfoResolver) fetchValidatorInfoForHashes(hashes [][]byte, e
 }
 
 func (res *validatorInfoResolver) fetchValidatorInfoByteSlice(hash []byte, epoch uint32) ([]byte, error) {
-	data, ok := res.validatorInfoPool.Get(hash)
+	data, ok := res.validatorInfoPool.SearchFirstData(hash)
 	if ok {
 		return res.marshalizer.Marshal(data)
 	}
