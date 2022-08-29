@@ -72,6 +72,7 @@ func (tep *transactionsFeeProcessor) prepareInvalidTxs(pool *outportcore.Pool) {
 		fee := tep.txFeeCalculator.ComputeTxFeeBasedOnGasUsed(invalidTx, invalidTx.GetGasLimit())
 		invalidTx.SetGasUsed(invalidTx.GetGasLimit())
 		invalidTx.SetFee(fee)
+		invalidTx.SetInitialPaidFee(fee)
 	}
 }
 
@@ -79,9 +80,11 @@ func (tep *transactionsFeeProcessor) prepareNormalTxs(transactionsAndScrs *trans
 	for txHash, txWithResult := range transactionsAndScrs.txsWithResults {
 		gasUsed := tep.txFeeCalculator.ComputeGasLimit(txWithResult)
 		fee := tep.txFeeCalculator.ComputeTxFeeBasedOnGasUsed(txWithResult, gasUsed)
+		initialPaidFee := tep.txFeeCalculator.ComputeTxFeeBasedOnGasUsed(txWithResult, txWithResult.GetGasLimit())
 
 		txWithResult.SetGasUsed(gasUsed)
 		txWithResult.SetFee(fee)
+		txWithResult.SetInitialPaidFee(initialPaidFee)
 
 		tep.prepareTxWithResults([]byte(txHash), txWithResult)
 	}
