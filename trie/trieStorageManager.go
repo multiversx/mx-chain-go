@@ -665,6 +665,11 @@ func isTrieSynced(stsm *snapshotTrieStorageManager) bool {
 	return false
 }
 
+// GetBaseTrieStorageManager returns the trie storage manager
+func (tsm *trieStorageManager) GetBaseTrieStorageManager() common.StorageManager {
+	return tsm
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (tsm *trieStorageManager) IsInterfaceNil() bool {
 	return tsm == nil
