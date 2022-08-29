@@ -736,7 +736,6 @@ func (dbb *delayedBlockBroadcaster) extractMbsFromMeTo(header data.HeaderHandler
 }
 
 // getFinalCrossMiniBlockHashes returns all the finalized miniblocks hashes, from the given header and with the given destination
-// TODO: duplicated code with process package
 func getFinalCrossMiniBlockHashes(header data.HeaderHandler, shardID uint32) map[string]uint32 {
 	crossMiniBlockHashes := header.GetMiniBlockHeadersWithDst(shardID)
 
@@ -744,7 +743,7 @@ func getFinalCrossMiniBlockHashes(header data.HeaderHandler, shardID uint32) map
 	for crossMiniBlockHash, senderShardID := range crossMiniBlockHashes {
 		miniBlockHeader := getMiniBlockHeaderWithHash(header, []byte(crossMiniBlockHash))
 		if miniBlockHeader != nil && !miniBlockHeader.IsFinal() {
-			log.Debug("GetFinalCrossMiniBlockHashes: skip mini block which is not final", "mb hash", miniBlockHeader.GetHash())
+			log.Debug("getFinalCrossMiniBlockHashes: skip mini block which is not final", "mb hash", miniBlockHeader.GetHash())
 			continue
 		}
 
