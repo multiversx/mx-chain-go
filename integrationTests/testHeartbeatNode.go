@@ -45,7 +45,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
-	validatorInfoCacherMock "github.com/ElrondNetwork/elrond-go/testscommon/validatorInfoCacher"
+	vic "github.com/ElrondNetwork/elrond-go/testscommon/validatorInfoCacher"
 	"github.com/ElrondNetwork/elrond-go/update"
 )
 
@@ -298,7 +298,7 @@ func CreateNodesWithTestHeartbeatNode(
 			NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
 			IsFullArchive:           false,
 			EnableEpochsHandler:     &testscommon.EnableEpochsHandlerStub{},
-			ValidatorInfoCacher:     &validatorInfoCacherMock.ValidatorInfoCacherStub{},
+			ValidatorInfoCacher:     &vic.ValidatorInfoCacherStub{},
 		}
 		nodesCoordinatorInstance, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 		log.LogIfError(err)
@@ -344,7 +344,7 @@ func CreateNodesWithTestHeartbeatNode(
 				NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
 				IsFullArchive:           false,
 				EnableEpochsHandler:     &testscommon.EnableEpochsHandlerStub{},
-				ValidatorInfoCacher:     &validatorInfoCacherMock.ValidatorInfoCacherStub{},
+				ValidatorInfoCacher:     &vic.ValidatorInfoCacherStub{},
 			}
 			nodesCoordinatorInstance, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 			log.LogIfError(err)

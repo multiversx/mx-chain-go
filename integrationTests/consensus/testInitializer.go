@@ -52,7 +52,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
-	validatorInfoCacherMock "github.com/ElrondNetwork/elrond-go/testscommon/validatorInfoCacher"
+	vic "github.com/ElrondNetwork/elrond-go/testscommon/validatorInfoCacher"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/trie/hashesHolder"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -536,7 +536,7 @@ func createNodes(
 			EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
 				IsWaitingListFixFlagEnabledField: true,
 			},
-			ValidatorInfoCacher: &validatorInfoCacherMock.ValidatorInfoCacherStub{},
+			ValidatorInfoCacher: &vic.ValidatorInfoCacherStub{},
 		}
 		nodesCoord, _ := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 

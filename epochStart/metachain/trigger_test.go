@@ -20,7 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
-	validatorInfoCacherMock "github.com/ElrondNetwork/elrond-go/testscommon/validatorInfoCacher"
+	vic "github.com/ElrondNetwork/elrond-go/testscommon/validatorInfoCacher"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -57,7 +57,7 @@ func createMockEpochStartTriggerArguments() *ArgsNewMetaEpochStartTrigger {
 		},
 		DataPool: &dataRetrieverMock.PoolsHolderStub{
 			CurrEpochValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
-				return &validatorInfoCacherMock.ValidatorInfoCacherStub{}
+				return &vic.ValidatorInfoCacherStub{}
 			},
 		},
 	}

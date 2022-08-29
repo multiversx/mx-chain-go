@@ -28,7 +28,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
-	validatorInfoCacherMock "github.com/ElrondNetwork/elrond-go/testscommon/validatorInfoCacher"
+	vic "github.com/ElrondNetwork/elrond-go/testscommon/validatorInfoCacher"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -118,7 +118,7 @@ func createArguments() ArgNodesCoordinator {
 		EnableEpochsHandler: &mock.EnableEpochsHandlerMock{
 			IsRefactorPeersMiniBlocksFlagEnabledField: true,
 		},
-		ValidatorInfoCacher: &validatorInfoCacherMock.ValidatorInfoCacherStub{},
+		ValidatorInfoCacher: &vic.ValidatorInfoCacherStub{},
 	}
 	return arguments
 }
@@ -268,7 +268,7 @@ func TestIndexHashedNodesCoordinator_OkValShouldWork(t *testing.T) {
 		ChanStopNode:            make(chan endProcess.ArgEndProcess),
 		NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
 		EnableEpochsHandler:     &mock.EnableEpochsHandlerMock{},
-		ValidatorInfoCacher:     &validatorInfoCacherMock.ValidatorInfoCacherStub{},
+		ValidatorInfoCacher:     &vic.ValidatorInfoCacherStub{},
 	}
 
 	ihnc, err := NewIndexHashedNodesCoordinator(arguments)
@@ -328,7 +328,7 @@ func TestIndexHashedNodesCoordinator_NewCoordinatorTooFewNodesShouldErr(t *testi
 		ChanStopNode:            make(chan endProcess.ArgEndProcess),
 		NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
 		EnableEpochsHandler:     &mock.EnableEpochsHandlerMock{},
-		ValidatorInfoCacher:     &validatorInfoCacherMock.ValidatorInfoCacherStub{},
+		ValidatorInfoCacher:     &vic.ValidatorInfoCacherStub{},
 	}
 	ihnc, err := NewIndexHashedNodesCoordinator(arguments)
 
@@ -402,7 +402,7 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroup1ValidatorShouldRetur
 		ChanStopNode:            make(chan endProcess.ArgEndProcess),
 		NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
 		EnableEpochsHandler:     &mock.EnableEpochsHandlerMock{},
-		ValidatorInfoCacher:     &validatorInfoCacherMock.ValidatorInfoCacherStub{},
+		ValidatorInfoCacher:     &vic.ValidatorInfoCacherStub{},
 	}
 	ihnc, _ := NewIndexHashedNodesCoordinator(arguments)
 	list2, err := ihnc.ComputeConsensusGroup([]byte("randomness"), 0, 0, 0)
@@ -462,7 +462,7 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroup400of400For10locksNoM
 		ChanStopNode:            make(chan endProcess.ArgEndProcess),
 		NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
 		EnableEpochsHandler:     &mock.EnableEpochsHandlerMock{},
-		ValidatorInfoCacher:     &validatorInfoCacherMock.ValidatorInfoCacherStub{},
+		ValidatorInfoCacher:     &vic.ValidatorInfoCacherStub{},
 	}
 
 	ihnc, err := NewIndexHashedNodesCoordinator(arguments)
@@ -550,7 +550,7 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroup400of400For10BlocksMe
 		ChanStopNode:            make(chan endProcess.ArgEndProcess),
 		NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
 		EnableEpochsHandler:     &mock.EnableEpochsHandlerMock{},
-		ValidatorInfoCacher:     &validatorInfoCacherMock.ValidatorInfoCacherStub{},
+		ValidatorInfoCacher:     &vic.ValidatorInfoCacherStub{},
 	}
 
 	ihnc, err := NewIndexHashedNodesCoordinator(arguments)
@@ -621,7 +621,7 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroup63of400TestEqualSameP
 		ChanStopNode:            make(chan endProcess.ArgEndProcess),
 		NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
 		EnableEpochsHandler:     &mock.EnableEpochsHandlerMock{},
-		ValidatorInfoCacher:     &validatorInfoCacherMock.ValidatorInfoCacherStub{},
+		ValidatorInfoCacher:     &vic.ValidatorInfoCacherStub{},
 	}
 
 	ihnc, err := NewIndexHashedNodesCoordinator(arguments)
@@ -685,7 +685,7 @@ func BenchmarkIndexHashedGroupSelector_ComputeValidatorsGroup21of400(b *testing.
 		ChanStopNode:            make(chan endProcess.ArgEndProcess),
 		NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
 		EnableEpochsHandler:     &mock.EnableEpochsHandlerMock{},
-		ValidatorInfoCacher:     &validatorInfoCacherMock.ValidatorInfoCacherStub{},
+		ValidatorInfoCacher:     &vic.ValidatorInfoCacherStub{},
 	}
 	ihnc, _ := NewIndexHashedNodesCoordinator(arguments)
 
@@ -758,7 +758,7 @@ func runBenchmark(consensusGroupCache Cacher, consensusGroupSize int, nodesMap m
 		ChanStopNode:            make(chan endProcess.ArgEndProcess),
 		NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
 		EnableEpochsHandler:     &mock.EnableEpochsHandlerMock{},
-		ValidatorInfoCacher:     &validatorInfoCacherMock.ValidatorInfoCacherStub{},
+		ValidatorInfoCacher:     &vic.ValidatorInfoCacherStub{},
 	}
 	ihnc, _ := NewIndexHashedNodesCoordinator(arguments)
 
@@ -808,7 +808,7 @@ func computeMemoryRequirements(consensusGroupCache Cacher, consensusGroupSize in
 		ChanStopNode:            make(chan endProcess.ArgEndProcess),
 		NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
 		EnableEpochsHandler:     &mock.EnableEpochsHandlerMock{},
-		ValidatorInfoCacher:     &validatorInfoCacherMock.ValidatorInfoCacherStub{},
+		ValidatorInfoCacher:     &vic.ValidatorInfoCacherStub{},
 	}
 	ihnc, err := NewIndexHashedNodesCoordinator(arguments)
 	require.Nil(b, err)
@@ -948,7 +948,7 @@ func TestIndexHashedNodesCoordinator_GetValidatorWithPublicKeyShouldWork(t *test
 		ChanStopNode:            make(chan endProcess.ArgEndProcess),
 		NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
 		EnableEpochsHandler:     &mock.EnableEpochsHandlerMock{},
-		ValidatorInfoCacher:     &validatorInfoCacherMock.ValidatorInfoCacherStub{},
+		ValidatorInfoCacher:     &vic.ValidatorInfoCacherStub{},
 	}
 	ihnc, _ := NewIndexHashedNodesCoordinator(arguments)
 
@@ -1032,7 +1032,7 @@ func TestIndexHashedGroupSelector_GetAllEligibleValidatorsPublicKeys(t *testing.
 		ChanStopNode:            make(chan endProcess.ArgEndProcess),
 		NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
 		EnableEpochsHandler:     &mock.EnableEpochsHandlerMock{},
-		ValidatorInfoCacher:     &validatorInfoCacherMock.ValidatorInfoCacherStub{},
+		ValidatorInfoCacher:     &vic.ValidatorInfoCacherStub{},
 	}
 
 	ihnc, _ := NewIndexHashedNodesCoordinator(arguments)
@@ -1111,7 +1111,7 @@ func TestIndexHashedGroupSelector_GetAllWaitingValidatorsPublicKeys(t *testing.T
 		ChanStopNode:            make(chan endProcess.ArgEndProcess),
 		NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
 		EnableEpochsHandler:     &mock.EnableEpochsHandlerMock{},
-		ValidatorInfoCacher:     &validatorInfoCacherMock.ValidatorInfoCacherStub{},
+		ValidatorInfoCacher:     &vic.ValidatorInfoCacherStub{},
 	}
 
 	ihnc, _ := NewIndexHashedNodesCoordinator(arguments)

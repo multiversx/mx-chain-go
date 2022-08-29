@@ -19,7 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
-	validatorInfoCacherMock "github.com/ElrondNetwork/elrond-go/testscommon/validatorInfoCacher"
+	vic "github.com/ElrondNetwork/elrond-go/testscommon/validatorInfoCacher"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -251,7 +251,7 @@ func getSyncValidatorStatusArgs() ArgsNewSyncValidatorStatus {
 				return testscommon.NewCacherStub()
 			},
 			CurrEpochValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
-				return &validatorInfoCacherMock.ValidatorInfoCacherStub{}
+				return &vic.ValidatorInfoCacherStub{}
 			},
 		},
 		Marshalizer:    &mock.MarshalizerMock{},

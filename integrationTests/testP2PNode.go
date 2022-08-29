@@ -32,7 +32,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
-	validatorInfoCacherMock "github.com/ElrondNetwork/elrond-go/testscommon/validatorInfoCacher"
+	vic "github.com/ElrondNetwork/elrond-go/testscommon/validatorInfoCacher"
 	"github.com/ElrondNetwork/elrond-go/update/trigger"
 )
 
@@ -356,7 +356,7 @@ func CreateNodesWithTestP2PNodes(
 			NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
 			IsFullArchive:           false,
 			EnableEpochsHandler:     &testscommon.EnableEpochsHandlerStub{},
-			ValidatorInfoCacher:     &validatorInfoCacherMock.ValidatorInfoCacherStub{},
+			ValidatorInfoCacher:     &vic.ValidatorInfoCacherStub{},
 		}
 		nodesCoord, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 		log.LogIfError(err)
@@ -402,7 +402,7 @@ func CreateNodesWithTestP2PNodes(
 				NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
 				IsFullArchive:           false,
 				EnableEpochsHandler:     &testscommon.EnableEpochsHandlerStub{},
-				ValidatorInfoCacher:     &validatorInfoCacherMock.ValidatorInfoCacherStub{},
+				ValidatorInfoCacher:     &vic.ValidatorInfoCacherStub{},
 			}
 			nodesCoord, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 			log.LogIfError(err)

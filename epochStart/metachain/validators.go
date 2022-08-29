@@ -3,7 +3,6 @@ package metachain
 import (
 	"bytes"
 	"sort"
-	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
@@ -40,7 +39,6 @@ type validatorInfoCreator struct {
 	hasher               hashing.Hasher
 	marshalizer          marshal.Marshalizer
 	dataPool             dataRetriever.PoolsHolder
-	mutValidatorInfo     sync.Mutex
 	enableEpochsHandler  common.EnableEpochsHandler
 }
 
@@ -367,7 +365,7 @@ func (vic *validatorInfoCreator) SaveBlockDataToStorage(_ data.HeaderHandler, bo
 		mbHash := vic.hasher.Compute(string(marshalledData))
 		err = vic.miniBlockStorage.Put(mbHash, marshalledData)
 		if err != nil {
-			log.Debug("validatorInfoCreator.SaveBlockDataToStorage.Put", "error", err)
+			log.Debug("validatorInfoCreator.SaveBlockDataToStorage.Put", "hash", mbHash, "error", err)
 		}
 	}
 }

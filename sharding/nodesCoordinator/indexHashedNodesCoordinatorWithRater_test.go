@@ -19,7 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
-	validatorInfoCacherMock "github.com/ElrondNetwork/elrond-go/testscommon/validatorInfoCacher"
+	vic "github.com/ElrondNetwork/elrond-go/testscommon/validatorInfoCacher"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -96,7 +96,7 @@ func TestIndexHashedGroupSelectorWithRater_OkValShouldWork(t *testing.T) {
 		NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
 		IsFullArchive:           false,
 		EnableEpochsHandler:     &mock.EnableEpochsHandlerMock{},
-		ValidatorInfoCacher:     &validatorInfoCacherMock.ValidatorInfoCacherStub{},
+		ValidatorInfoCacher:     &vic.ValidatorInfoCacherStub{},
 	}
 	nc, err := NewIndexHashedNodesCoordinator(arguments)
 	assert.Nil(t, err)
@@ -192,7 +192,7 @@ func BenchmarkIndexHashedGroupSelectorWithRater_ComputeValidatorsGroup63of400(b 
 		NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
 		IsFullArchive:           false,
 		EnableEpochsHandler:     &mock.EnableEpochsHandlerMock{},
-		ValidatorInfoCacher:     &validatorInfoCacherMock.ValidatorInfoCacherStub{},
+		ValidatorInfoCacher:     &vic.ValidatorInfoCacherStub{},
 	}
 	ihnc, err := NewIndexHashedNodesCoordinator(arguments)
 	require.Nil(b, err)
@@ -267,7 +267,7 @@ func Test_ComputeValidatorsGroup63of400(t *testing.T) {
 		NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
 		IsFullArchive:           false,
 		EnableEpochsHandler:     &mock.EnableEpochsHandlerMock{},
-		ValidatorInfoCacher:     &validatorInfoCacherMock.ValidatorInfoCacherStub{},
+		ValidatorInfoCacher:     &vic.ValidatorInfoCacherStub{},
 	}
 	ihnc, _ := NewIndexHashedNodesCoordinator(arguments)
 	numRounds := uint64(1000000)
@@ -342,7 +342,7 @@ func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldReturn
 		NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
 		IsFullArchive:           false,
 		EnableEpochsHandler:     &mock.EnableEpochsHandlerMock{},
-		ValidatorInfoCacher:     &validatorInfoCacherMock.ValidatorInfoCacherStub{},
+		ValidatorInfoCacher:     &vic.ValidatorInfoCacherStub{},
 	}
 	nc, _ := NewIndexHashedNodesCoordinator(arguments)
 	ihnc, _ := NewIndexHashedNodesCoordinatorWithRater(nc, &mock.RaterMock{})
@@ -396,7 +396,7 @@ func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldReturn
 		NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
 		IsFullArchive:           false,
 		EnableEpochsHandler:     &mock.EnableEpochsHandlerMock{},
-		ValidatorInfoCacher:     &validatorInfoCacherMock.ValidatorInfoCacherStub{},
+		ValidatorInfoCacher:     &vic.ValidatorInfoCacherStub{},
 	}
 	nc, _ := NewIndexHashedNodesCoordinator(arguments)
 	ihnc, _ := NewIndexHashedNodesCoordinatorWithRater(nc, &mock.RaterMock{})
@@ -464,7 +464,7 @@ func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldWork(t
 		NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
 		IsFullArchive:           false,
 		EnableEpochsHandler:     &mock.EnableEpochsHandlerMock{},
-		ValidatorInfoCacher:     &validatorInfoCacherMock.ValidatorInfoCacherStub{},
+		ValidatorInfoCacher:     &vic.ValidatorInfoCacherStub{},
 	}
 	nc, _ := NewIndexHashedNodesCoordinator(arguments)
 	ihnc, _ := NewIndexHashedNodesCoordinatorWithRater(nc, &mock.RaterMock{})
@@ -549,7 +549,7 @@ func TestIndexHashedGroupSelectorWithRater_GetAllEligibleValidatorsPublicKeys(t 
 		NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
 		IsFullArchive:           false,
 		EnableEpochsHandler:     &mock.EnableEpochsHandlerMock{},
-		ValidatorInfoCacher:     &validatorInfoCacherMock.ValidatorInfoCacherStub{},
+		ValidatorInfoCacher:     &vic.ValidatorInfoCacherStub{},
 	}
 
 	nc, _ := NewIndexHashedNodesCoordinator(arguments)
@@ -855,7 +855,7 @@ func BenchmarkIndexHashedWithRaterGroupSelector_ComputeValidatorsGroup21of400(b 
 		NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
 		IsFullArchive:           false,
 		EnableEpochsHandler:     &mock.EnableEpochsHandlerMock{},
-		ValidatorInfoCacher:     &validatorInfoCacherMock.ValidatorInfoCacherStub{},
+		ValidatorInfoCacher:     &vic.ValidatorInfoCacherStub{},
 	}
 	ihnc, err := NewIndexHashedNodesCoordinator(arguments)
 	require.Nil(b, err)

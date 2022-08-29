@@ -216,8 +216,8 @@ func (ts *transactionsSync) requestTransactionsForNonPeerMiniBlock(miniBlock *bl
 func (ts *transactionsSync) requestTransactionsForPeerMiniBlock(miniBlock *block.MiniBlock) int {
 	missingValidatorsInfo := make([][]byte, 0)
 	for _, txHash := range miniBlock.TxHashes {
-		_, bFoundValidatorInfo := ts.mapValidatorsInfo[string(txHash)]
-		if bFoundValidatorInfo {
+		_, isValidatorInfoFound := ts.mapValidatorsInfo[string(txHash)]
+		if isValidatorInfoFound {
 			continue
 		}
 
