@@ -109,18 +109,19 @@ func NewAccountsDB(args ArgsAccountsDB) (*AccountsDB, error) {
 		return nil, err
 	}
 
-	adb := getAccountsDb(args)
+	adb := createAccountsDb(args)
 
 	trieStorageManager := adb.mainTrie.GetStorageManager()
 	val, err := trieStorageManager.GetFromCurrentEpoch([]byte(common.ActiveDBKey))
-	if err != nil || !bytes.Equal(val, []byte(common.ActiveDBVal)) {
+	isActiveDBVal := bytes.Equal(val, []byte(common.ActiveDBVal))
+	if err != nil || !isActiveDBVal {
 		startSnapshotAfterRestart(adb, args)
 	}
 
 	return adb, nil
 }
 
-func getAccountsDb(args ArgsAccountsDB) *AccountsDB {
+func createAccountsDb(args ArgsAccountsDB) *AccountsDB {
 	return &AccountsDB{
 		mainTrie:               args.Trie,
 		hasher:                 args.Hasher,
@@ -1123,7 +1124,7 @@ func (adb *AccountsDB) SnapshotState(rootHash []byte) {
 		stats.wg.Done()
 	}()
 
-	go adb.markActiveDBAfterSnapshot(stats, errChan, rootHash, "snapshotState user trie", epoch)
+	go adb.processSnapshotCompletion(stats, errChan, rootHash, "snapshotState user trie", epoch)
 
 	adb.waitForCompletionIfRunningInImportDB(stats)
 }
@@ -1176,14 +1177,10 @@ func (adb *AccountsDB) shouldTakeSnapshot(trieStorageManager common.StorageManag
 		return false
 	}
 
-	if !trieStorageManager.ShouldTakeSnapshot() {
-		return false
-	}
-
-	return true
+	return trieStorageManager.ShouldTakeSnapshot()
 }
 
-func (adb *AccountsDB) markActiveDBAfterSnapshot(stats *snapshotStatistics, errChan chan error, rootHash []byte, message string, epoch uint32) {
+func (adb *AccountsDB) processSnapshotCompletion(stats *snapshotStatistics, errChan chan error, rootHash []byte, message string, epoch uint32) {
 	stats.PrintStats(message, rootHash)
 
 	defer adb.isSnapshotInProgress.Reset()

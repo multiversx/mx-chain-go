@@ -19,7 +19,7 @@ func NewPeerAccountsDB(args ArgsAccountsDB) (*PeerAccountsDB, error) {
 	}
 
 	adb := &PeerAccountsDB{
-		AccountsDB: getAccountsDb(args),
+		AccountsDB: createAccountsDb(args),
 	}
 
 	trieStorageManager := adb.mainTrie.GetStorageManager()
@@ -60,7 +60,7 @@ func (adb *PeerAccountsDB) SnapshotState(rootHash []byte) {
 	trieStorageManager.TakeSnapshot(rootHash, rootHash, nil, errChan, stats, epoch)
 	trieStorageManager.ExitPruningBufferingMode()
 
-	go adb.markActiveDBAfterSnapshot(stats, errChan, rootHash, "snapshotState peer trie", epoch)
+	go adb.processSnapshotCompletion(stats, errChan, rootHash, "snapshotState peer trie", epoch)
 
 	adb.waitForCompletionIfRunningInImportDB(stats)
 }
