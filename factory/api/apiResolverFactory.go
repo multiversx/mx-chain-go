@@ -113,7 +113,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 
 	pkConverter := args.CoreComponents.AddressPubKeyConverter()
 	automaticCrawlerAddressesStrings := args.Configs.GeneralConfig.BuiltInFunctions.AutomaticCrawlerAddresses
-	convertedAddresses, errDecode := decodeAddresses(pkConverter, automaticCrawlerAddressesStrings)
+	convertedAddresses, errDecode := factory.DecodeAddresses(pkConverter, automaticCrawlerAddressesStrings)
 	if errDecode != nil {
 		return nil, errDecode
 	}
@@ -333,7 +333,7 @@ func createScQueryElement(
 
 	pkConverter := args.coreComponents.AddressPubKeyConverter()
 	automaticCrawlerAddressesStrings := args.generalConfig.BuiltInFunctions.AutomaticCrawlerAddresses
-	convertedAddresses, errDecode := decodeAddresses(pkConverter, automaticCrawlerAddressesStrings)
+	convertedAddresses, errDecode := factory.DecodeAddresses(pkConverter, automaticCrawlerAddressesStrings)
 	if errDecode != nil {
 		return nil, errDecode
 	}

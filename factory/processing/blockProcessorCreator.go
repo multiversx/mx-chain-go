@@ -1194,7 +1194,7 @@ func (pcf *processComponentsFactory) createBuiltInFunctionContainer(
 	accounts state.AccountsAdapter,
 	mapDNSAddresses map[string]struct{},
 ) (vmcommon.BuiltInFunctionFactory, error) {
-	convertedAddresses, err := decodeAddresses(
+	convertedAddresses, err := mainFactory.DecodeAddresses(
 		pcf.coreData.AddressPubKeyConverter(),
 		pcf.config.BuiltInFunctions.AutomaticCrawlerAddresses,
 	)

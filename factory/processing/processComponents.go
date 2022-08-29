@@ -1520,13 +1520,7 @@ func (pcf *processComponentsFactory) createHardforkTrigger(epochStartTrigger upd
 func createNetworkShardingCollector(
 	config *config.Config,
 	nodesCoordinator nodesCoordinator.NodesCoordinator,
-<<<<<<< HEAD:factory/processing/processComponents.go
-	epochStartRegistrationHandler epochStart.RegistrationHandler,
 	preferredPeersHolder factory.PreferredPeersHolderHandler,
-	epochStart uint32,
-=======
-	preferredPeersHolder PreferredPeersHolderHandler,
->>>>>>> rc/2022-july:factory/processComponents.go
 ) (*networksharding.PeerShardMapper, error) {
 
 	cacheConfig := config.PublicKeyPeerId
