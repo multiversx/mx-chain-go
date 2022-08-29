@@ -647,7 +647,7 @@ func createMockValidatorInfo() *state.ValidatorInfo {
 
 func createMockShardValidatorInfo() *state.ShardValidatorInfo {
 	initialInfo := &state.ShardValidatorInfo{
-		PublicKey:  []byte("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
+		PublicKey:  bytes.Repeat([]byte("a"), 96),
 		ShardId:    0,
 		List:       "eligible",
 		Index:      1,

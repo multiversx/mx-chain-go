@@ -279,7 +279,6 @@ func (ppcm *preProcessorsContainerFactory) createValidatorInfoPreProcessor() (pr
 		ppcm.blockSizeComputation,
 		ppcm.dataPool.ValidatorsInfo(),
 		ppcm.store,
-		ppcm.requestHandler.RequestValidatorsInfo,
 		ppcm.enableEpochsHandler,
 	)
 

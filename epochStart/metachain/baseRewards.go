@@ -132,7 +132,7 @@ func (brc *baseRewardsCreator) CreateMarshalledData(body *block.Body) map[string
 			continue
 		}
 
-		broadcastTopic := createBroadcastTopic(factory.RewardsTransactionTopic, brc.shardCoordinator, miniBlock.ReceiverShardID)
+		broadcastTopic := createBroadcastTopic(brc.shardCoordinator, miniBlock.ReceiverShardID)
 		if _, ok := marshalledRewardsTxs[broadcastTopic]; !ok {
 			marshalledRewardsTxs[broadcastTopic] = make([][]byte, 0, len(miniBlock.TxHashes))
 		}
@@ -494,8 +494,8 @@ func getMiniBlockWithReceiverShardID(shardId uint32, miniBlocks block.MiniBlockS
 	return nil
 }
 
-func createBroadcastTopic(topic string, shardC sharding.Coordinator, destShId uint32) string {
-	transactionTopic := topic + shardC.CommunicationIdentifier(destShId)
+func createBroadcastTopic(shardC sharding.Coordinator, destShId uint32) string {
+	transactionTopic := factory.RewardsTransactionTopic + shardC.CommunicationIdentifier(destShId)
 	return transactionTopic
 }
 

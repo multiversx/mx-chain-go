@@ -9,7 +9,7 @@ import (
 type EpochStartNotifierStub struct {
 	RegisterHandlerCalled            func(handler epochStart.ActionHandler)
 	UnregisterHandlerCalled          func(handler epochStart.ActionHandler)
-	NotifyAllPrepareCalled           func(hdr data.HeaderHandler, body data.BodyHandler, validatorInfoCacher epochStart.ValidatorInfoCacher)
+	NotifyAllPrepareCalled           func(hdr data.HeaderHandler, body data.BodyHandler)
 	NotifyAllCalled                  func(hdr data.HeaderHandler)
 	NotifyEpochChangeConfirmedCalled func(epoch uint32)
 }
@@ -29,9 +29,9 @@ func (esnm *EpochStartNotifierStub) UnregisterHandler(handler epochStart.ActionH
 }
 
 // NotifyAllPrepare -
-func (esnm *EpochStartNotifierStub) NotifyAllPrepare(metaHdr data.HeaderHandler, body data.BodyHandler, validatorInfoCacher epochStart.ValidatorInfoCacher) {
+func (esnm *EpochStartNotifierStub) NotifyAllPrepare(metaHdr data.HeaderHandler, body data.BodyHandler) {
 	if esnm.NotifyAllPrepareCalled != nil {
-		esnm.NotifyAllPrepareCalled(metaHdr, body, validatorInfoCacher)
+		esnm.NotifyAllPrepareCalled(metaHdr, body)
 	}
 }
 

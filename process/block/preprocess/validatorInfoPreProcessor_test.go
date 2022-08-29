@@ -27,7 +27,6 @@ func TestNewValidatorInfoPreprocessor_NilHasherShouldErr(t *testing.T) {
 		&testscommon.BlockSizeComputationStub{},
 		tdp.ValidatorsInfo(),
 		genericMocks.NewChainStorerMock(0),
-		func(txHashes [][]byte) {},
 		&testscommon.EnableEpochsHandlerStub{},
 	)
 
@@ -45,7 +44,6 @@ func TestNewValidatorInfoPreprocessor_NilMarshalizerShouldErr(t *testing.T) {
 		&testscommon.BlockSizeComputationStub{},
 		tdp.ValidatorsInfo(),
 		genericMocks.NewChainStorerMock(0),
-		func(txHashes [][]byte) {},
 		&testscommon.EnableEpochsHandlerStub{},
 	)
 
@@ -63,7 +61,6 @@ func TestNewValidatorInfoPreprocessor_NilBlockSizeComputationHandlerShouldErr(t 
 		nil,
 		tdp.ValidatorsInfo(),
 		genericMocks.NewChainStorerMock(0),
-		func(txHashes [][]byte) {},
 		&testscommon.EnableEpochsHandlerStub{},
 	)
 
@@ -80,7 +77,6 @@ func TestNewValidatorInfoPreprocessor_NilValidatorInfoPoolShouldErr(t *testing.T
 		&testscommon.BlockSizeComputationStub{},
 		nil,
 		genericMocks.NewChainStorerMock(0),
-		func(txHashes [][]byte) {},
 		&testscommon.EnableEpochsHandlerStub{},
 	)
 
@@ -98,30 +94,11 @@ func TestNewValidatorInfoPreprocessor_NilStoreShouldErr(t *testing.T) {
 		&testscommon.BlockSizeComputationStub{},
 		tdp.ValidatorsInfo(),
 		nil,
-		func(txHashes [][]byte) {},
 		&testscommon.EnableEpochsHandlerStub{},
 	)
 
 	assert.Nil(t, rtp)
 	assert.Equal(t, process.ErrNilStorage, err)
-}
-
-func TestNewValidatorInfoPreprocessor_NilRequestHandlerShouldErr(t *testing.T) {
-	t.Parallel()
-
-	tdp := initDataPool()
-	rtp, err := NewValidatorInfoPreprocessor(
-		&hashingMocks.HasherMock{},
-		&testscommon.MarshalizerMock{},
-		&testscommon.BlockSizeComputationStub{},
-		tdp.ValidatorsInfo(),
-		genericMocks.NewChainStorerMock(0),
-		nil,
-		&testscommon.EnableEpochsHandlerStub{},
-	)
-
-	assert.Nil(t, rtp)
-	assert.Equal(t, process.ErrNilRequestHandler, err)
 }
 
 func TestNewValidatorInfoPreprocessor_NilEnableEpochHandlerShouldErr(t *testing.T) {
@@ -134,7 +111,6 @@ func TestNewValidatorInfoPreprocessor_NilEnableEpochHandlerShouldErr(t *testing.
 		&testscommon.BlockSizeComputationStub{},
 		tdp.ValidatorsInfo(),
 		genericMocks.NewChainStorerMock(0),
-		func(txHashes [][]byte) {},
 		nil,
 	)
 
@@ -152,7 +128,6 @@ func TestNewValidatorInfoPreprocessor_OkValsShouldWork(t *testing.T) {
 		&testscommon.BlockSizeComputationStub{},
 		tdp.ValidatorsInfo(),
 		genericMocks.NewChainStorerMock(0),
-		func(txHashes [][]byte) {},
 		&testscommon.EnableEpochsHandlerStub{},
 	)
 	assert.Nil(t, err)
@@ -169,7 +144,6 @@ func TestNewValidatorInfoPreprocessor_CreateMarshalizedDataShouldWork(t *testing
 		&testscommon.BlockSizeComputationStub{},
 		tdp.ValidatorsInfo(),
 		genericMocks.NewChainStorerMock(0),
-		func(txHashes [][]byte) {},
 		&testscommon.EnableEpochsHandlerStub{},
 	)
 
@@ -190,7 +164,6 @@ func TestNewValidatorInfoPreprocessor_ProcessMiniBlockInvalidMiniBlockTypeShould
 		&testscommon.BlockSizeComputationStub{},
 		tdp.ValidatorsInfo(),
 		genericMocks.NewChainStorerMock(0),
-		func(txHashes [][]byte) {},
 		&testscommon.EnableEpochsHandlerStub{},
 	)
 
@@ -220,7 +193,6 @@ func TestNewValidatorInfoPreprocessor_ProcessMiniBlockShouldWork(t *testing.T) {
 		&testscommon.BlockSizeComputationStub{},
 		tdp.ValidatorsInfo(),
 		genericMocks.NewChainStorerMock(0),
-		func(txHashes [][]byte) {},
 		&testscommon.EnableEpochsHandlerStub{},
 	)
 
@@ -250,7 +222,6 @@ func TestNewValidatorInfoPreprocessor_ProcessMiniBlockNotFromMeta(t *testing.T) 
 		&testscommon.BlockSizeComputationStub{},
 		tdp.ValidatorsInfo(),
 		genericMocks.NewChainStorerMock(0),
-		func(txHashes [][]byte) {},
 		&testscommon.EnableEpochsHandlerStub{},
 	)
 
@@ -284,7 +255,6 @@ func TestNewValidatorInfoPreprocessor_RestorePeerBlockIntoPools(t *testing.T) {
 		blockSizeComputation,
 		tdp.ValidatorsInfo(),
 		genericMocks.NewChainStorerMock(0),
-		func(txHashes [][]byte) {},
 		&testscommon.EnableEpochsHandlerStub{},
 	)
 
@@ -330,7 +300,6 @@ func TestNewValidatorInfoPreprocessor_RestoreOtherBlockTypeIntoPoolsShouldNotRes
 		blockSizeComputation,
 		tdp.ValidatorsInfo(),
 		genericMocks.NewChainStorerMock(0),
-		func(txHashes [][]byte) {},
 		&testscommon.EnableEpochsHandlerStub{},
 	)
 
@@ -376,7 +345,6 @@ func TestNewValidatorInfoPreprocessor_RemovePeerBlockFromPool(t *testing.T) {
 		blockSizeComputation,
 		tdp.ValidatorsInfo(),
 		genericMocks.NewChainStorerMock(0),
-		func(txHashes [][]byte) {},
 		&testscommon.EnableEpochsHandlerStub{},
 	)
 
@@ -422,7 +390,6 @@ func TestNewValidatorInfoPreprocessor_RemoveOtherBlockTypeFromPoolShouldNotRemov
 		blockSizeComputation,
 		tdp.ValidatorsInfo(),
 		genericMocks.NewChainStorerMock(0),
-		func(txHashes [][]byte) {},
 		&testscommon.EnableEpochsHandlerStub{},
 	)
 

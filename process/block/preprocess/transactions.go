@@ -243,7 +243,7 @@ func (txs *transactions) RestoreBlockDataIntoPools(
 			continue
 		}
 
-		err := txs.restoreTxs(miniBlock)
+		err := txs.restoreTxsIntoPool(miniBlock)
 		if err != nil {
 			return txsRestored, err
 		}
@@ -263,7 +263,7 @@ func (txs *transactions) RestoreBlockDataIntoPools(
 	return txsRestored, nil
 }
 
-func (txs *transactions) restoreTxs(miniBlock *block.MiniBlock) error {
+func (txs *transactions) restoreTxsIntoPool(miniBlock *block.MiniBlock) error {
 	miniBlockStrCache := process.ShardCacherIdentifier(miniBlock.SenderShardID, miniBlock.ReceiverShardID)
 	txsBuff, err := txs.storage.GetAll(dataRetriever.TransactionUnit, miniBlock.TxHashes)
 	if err != nil {
@@ -953,7 +953,7 @@ func (txs *transactions) computeMissingTxsHashesForMiniBlock(miniBlock *block.Mi
 			txs.txPool,
 			searchFirst)
 
-		if tx == nil || tx.IsInterfaceNil() {
+		if check.IfNil(tx) {
 			missingTransactionsHashes = append(missingTransactionsHashes, txHash)
 		}
 	}

@@ -11,7 +11,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -396,7 +395,7 @@ func (psm *PeerShardMapper) EpochStartAction(hdr data.HeaderHandler) {
 }
 
 // EpochStartPrepare is the method called whenever an action needs to be undertaken in respect to the epoch preparation change
-func (psm *PeerShardMapper) EpochStartPrepare(metaHdr data.HeaderHandler, _ data.BodyHandler, _ epochStart.ValidatorInfoCacher) {
+func (psm *PeerShardMapper) EpochStartPrepare(metaHdr data.HeaderHandler, _ data.BodyHandler) {
 	if check.IfNil(metaHdr) {
 		log.Warn("nil header on PeerShardMapper.EpochStartPrepare")
 		return

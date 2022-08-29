@@ -1,10 +1,11 @@
 package dataPool
 
 import (
+	"testing"
+
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func TestCurrentEpochValidatorInfoPool_AddGetCleanTx(t *testing.T) {

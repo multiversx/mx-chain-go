@@ -2,7 +2,6 @@ package bootstrap
 
 import (
 	"context"
-	validatorInfoCacherMock "github.com/ElrondNetwork/elrond-go/testscommon/validatorInfoCacher"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -11,7 +10,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -21,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
+	vic "github.com/ElrondNetwork/elrond-go/testscommon/validatorInfoCacher"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -140,7 +139,7 @@ func TestSyncValidatorStatus_processValidatorChangesFor(t *testing.T) {
 
 	wasCalled := false
 	svs.nodeCoordinator = &shardingMocks.NodesCoordinatorStub{
-		EpochStartPrepareCalled: func(metaHdr data.HeaderHandler, body data.BodyHandler, validatorInfoCacher epochStart.ValidatorInfoCacher) {
+		EpochStartPrepareCalled: func(metaHdr data.HeaderHandler, body data.BodyHandler) {
 			wasCalled = true
 			assert.Equal(t, metaBlock, metaHdr)
 			assert.Equal(t, expectedBody, body)
@@ -252,7 +251,7 @@ func getSyncValidatorStatusArgs() ArgsNewSyncValidatorStatus {
 				return testscommon.NewCacherStub()
 			},
 			CurrEpochValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
-				return &validatorInfoCacherMock.ValidatorInfoCacherMock{}
+				return &vic.ValidatorInfoCacherStub{}
 			},
 		},
 		Marshalizer:    &mock.MarshalizerMock{},

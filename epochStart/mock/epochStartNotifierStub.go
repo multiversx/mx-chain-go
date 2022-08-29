@@ -2,13 +2,12 @@ package mock
 
 import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go/epochStart"
 )
 
 // EpochStartNotifierStub -
 type EpochStartNotifierStub struct {
 	NotifyAllCalled                  func(hdr data.HeaderHandler)
-	NotifyAllPrepareCalled           func(hdr data.HeaderHandler, body data.BodyHandler, validatorInfoCacher epochStart.ValidatorInfoCacher)
+	NotifyAllPrepareCalled           func(hdr data.HeaderHandler, body data.BodyHandler)
 	NotifyEpochChangeConfirmedCalled func(epoch uint32)
 }
 
@@ -27,9 +26,9 @@ func (esnm *EpochStartNotifierStub) NotifyAll(hdr data.HeaderHandler) {
 }
 
 // NotifyAllPrepare -
-func (esnm *EpochStartNotifierStub) NotifyAllPrepare(metaHdr data.HeaderHandler, body data.BodyHandler, validatorInfoCacher epochStart.ValidatorInfoCacher) {
+func (esnm *EpochStartNotifierStub) NotifyAllPrepare(metaHdr data.HeaderHandler, body data.BodyHandler) {
 	if esnm.NotifyAllPrepareCalled != nil {
-		esnm.NotifyAllPrepareCalled(metaHdr, body, validatorInfoCacher)
+		esnm.NotifyAllPrepareCalled(metaHdr, body)
 	}
 }
 

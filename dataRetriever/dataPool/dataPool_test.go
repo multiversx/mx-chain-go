@@ -184,7 +184,7 @@ func TestNewDataPool_NilCurrEpochValidatorInfoShouldErr(t *testing.T) {
 	tdp, err := dataPool.NewDataPool(args)
 
 	require.Nil(t, tdp)
-	require.Equal(t, dataRetriever.ErrNilCurrEpochValidatorInfo, err)
+	require.Equal(t, dataRetriever.ErrNilCurrentEpochValidatorInfo, err)
 }
 
 func TestNewDataPool_OkValsShouldWork(t *testing.T) {

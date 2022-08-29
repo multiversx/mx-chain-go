@@ -66,7 +66,7 @@ type RequestHandler interface {
 // ActionHandler defines the action taken on epoch start event
 type ActionHandler interface {
 	EpochStartAction(hdr data.HeaderHandler)
-	EpochStartPrepare(metaHdr data.HeaderHandler, body data.BodyHandler, validatorInfoCacher ValidatorInfoCacher)
+	EpochStartPrepare(metaHdr data.HeaderHandler, body data.BodyHandler)
 	NotifyOrder() uint32
 }
 
@@ -80,7 +80,7 @@ type RegistrationHandler interface {
 // Notifier defines which actions should be done for handling new epoch's events
 type Notifier interface {
 	NotifyAll(hdr data.HeaderHandler)
-	NotifyAllPrepare(metaHdr data.HeaderHandler, body data.BodyHandler, validatorInfoCacher ValidatorInfoCacher)
+	NotifyAllPrepare(metaHdr data.HeaderHandler, body data.BodyHandler)
 	NotifyEpochChangeConfirmed(epoch uint32)
 	IsInterfaceNil() bool
 }

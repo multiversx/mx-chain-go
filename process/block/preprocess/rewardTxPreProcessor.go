@@ -175,7 +175,7 @@ func (rtp *rewardTxPreprocessor) RestoreBlockDataIntoPools(
 			continue
 		}
 
-		err := rtp.restoreRewardTxs(miniBlock)
+		err := rtp.restoreRewardTxsIntoPool(miniBlock)
 		if err != nil {
 			return rewardTxsRestored, err
 		}
@@ -193,7 +193,7 @@ func (rtp *rewardTxPreprocessor) RestoreBlockDataIntoPools(
 	return rewardTxsRestored, nil
 }
 
-func (rtp *rewardTxPreprocessor) restoreRewardTxs(miniBlock *block.MiniBlock) error {
+func (rtp *rewardTxPreprocessor) restoreRewardTxsIntoPool(miniBlock *block.MiniBlock) error {
 	strCache := process.ShardCacherIdentifier(miniBlock.SenderShardID, miniBlock.ReceiverShardID)
 	rewardTxsBuff, err := rtp.storage.GetAll(dataRetriever.RewardTransactionUnit, miniBlock.TxHashes)
 	if err != nil {
@@ -393,7 +393,7 @@ func (rtp *rewardTxPreprocessor) computeMissingRewardTxsHashesForMiniBlock(miniB
 			false,
 		)
 
-		if tx == nil {
+		if check.IfNil(tx) {
 			missingRewardTxsHashes = append(missingRewardTxsHashes, txHash)
 		}
 	}

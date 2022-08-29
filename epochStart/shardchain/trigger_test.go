@@ -21,7 +21,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
-	validatorInfoCacherMock "github.com/ElrondNetwork/elrond-go/testscommon/validatorInfoCacher"
+	vic "github.com/ElrondNetwork/elrond-go/testscommon/validatorInfoCacher"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -44,7 +44,7 @@ func createMockShardEpochStartTriggerArguments() *ArgsShardEpochStartTrigger {
 				return testscommon.NewCacherStub()
 			},
 			CurrEpochValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
-				return &validatorInfoCacherMock.ValidatorInfoCacherMock{}
+				return &vic.ValidatorInfoCacherStub{}
 			},
 		},
 		Storage: &storageStubs.ChainStorerStub{
@@ -372,7 +372,7 @@ func TestTrigger_ReceivedHeaderIsEpochStartTrueWithPeerMiniblocks(t *testing.T) 
 			}
 		},
 		CurrEpochValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
-			return &validatorInfoCacherMock.ValidatorInfoCacherMock{}
+			return &vic.ValidatorInfoCacherStub{}
 		},
 	}
 	args.Uint64Converter = &mock.Uint64ByteSliceConverterMock{
