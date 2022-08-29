@@ -1136,3 +1136,6 @@ var ErrNilReceiptsRepository = errors.New("nil receipts repository")
 
 // ErrNilESDTGlobalSettingsHandler signals that nil global settings handler was provided
 var ErrNilESDTGlobalSettingsHandler = errors.New("nil esdt global settings handler")
+
+// ErrNilCrawlerAllowedAddress signals that no crawler allowed address was found
+var ErrNilCrawlerAllowedAddress = errors.New("nil crawler allowed address")
