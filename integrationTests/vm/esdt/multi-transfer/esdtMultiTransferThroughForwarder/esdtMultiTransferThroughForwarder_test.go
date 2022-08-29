@@ -31,11 +31,11 @@ func TestESDTMultiTransferThroughForwarder(t *testing.T) {
 
 	// Create the fungible token
 	supply := int64(1000)
-	tokenID := multitransfer.IssueFungibleToken(t, net, senderNode, "FUNG1", supply)
+	tokenID := multitransfer.IssueFungibleTokenWithIssuerAddress(t, net, senderNode, senderNode.OwnAccount, "FUNG1", supply)
 
 	// Issue and create an SFT
-	sftID := multitransfer.IssueNft(net, senderNode, "SFT1", true)
-	multitransfer.CreateSFT(t, net, senderNode, sftID, 1, supply)
+	sftID := multitransfer.IssueNftWithIssuerAddress(net, senderNode, senderNode.OwnAccount, "SFT1", true)
+	multitransfer.CreateSFT(t, net, senderNode, senderNode.OwnAccount, sftID, 1, supply)
 
 	// Send the tokens to the forwarder SC
 	txData := txDataBuilder.NewBuilder()
@@ -209,7 +209,7 @@ func TestESDTMultiTransferWithWrongArgumentsSFT(t *testing.T) {
 	// Issue and create SFT
 	supply := int64(1000)
 	sftID := multitransfer.IssueNft(net, senderNode, "SFT1", true)
-	multitransfer.CreateSFT(t, net, senderNode, sftID, 1, supply)
+	multitransfer.CreateSFT(t, net, senderNode, senderNode.OwnAccount, sftID, 1, supply)
 
 	// Send the tokens to the forwarder SC
 	txData := txDataBuilder.NewBuilder()

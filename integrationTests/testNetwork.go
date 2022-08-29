@@ -150,13 +150,18 @@ func (net *TestNetwork) CreateWallets(count int) {
 	}
 }
 
+func (net *TestNetwork) SetWallet(walletIndex int, wallet *TestWalletAccount) {
+	net.Wallets[walletIndex] = wallet
+}
+
 func (net *TestNetwork) CreateUninitializedWallets(count int) {
 	net.Wallets = make([]*TestWalletAccount, count)
 }
 
-func (net *TestNetwork) CreateWalletOnShardAndNode(shardID uint32, nodeIndex int) *TestWalletAccount {
-	node := net.NodesSharded[shardID][nodeIndex]
-	return CreateTestWalletAccount(node.ShardCoordinator, shardID)
+func (net *TestNetwork) CreateWalletOnShard(walletIndex int, shardID uint32) *TestWalletAccount {
+	node := net.firstNodeInShard(shardID)
+	net.Wallets[walletIndex] = CreateTestWalletAccount(node.ShardCoordinator, shardID)
+	return net.Wallets[walletIndex]
 }
 
 // MintWallets adds the specified value to the test wallets.

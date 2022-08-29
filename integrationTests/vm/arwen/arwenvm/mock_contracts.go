@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/testscommon/txDataBuilder"
 	"github.com/stretchr/testify/require"
 )
 
@@ -34,30 +35,34 @@ func GetAddressForNewAccountOnWalletAndNode(
 	net *integrationTests.TestNetwork,
 	wallet *integrationTests.TestWalletAccount,
 	node *integrationTests.TestProcessorNode,
-) []byte {
+) ([]byte, state.UserAccountHandler) {
 	address := net.NewAddress(wallet)
 	account, _ := state.NewUserAccount(address)
 	account.Balance = MockInitialBalance
 	account.SetCode(address)
 	account.SetCodeHash(address)
+	// wallet.Nonce++
 	err := node.AccntState.SaveAccount(account)
 	require.Nil(t, err)
-	return address
+	return address, account
+}
+
+func SetCodeMetadata(
+	t *testing.T,
+	codeMetadata []byte,
+	node *integrationTests.TestProcessorNode,
+	account state.UserAccountHandler,
+) {
+	account.SetCodeMetadata(codeMetadata)
+	err := node.AccntState.SaveAccount(account)
+	require.Nil(t, err)
 }
 
 func GetAddressForNewAccount(
 	t *testing.T,
 	net *integrationTests.TestNetwork,
-	shardID uint32, node uint32) []byte {
-	return GetAddressForNewAccountOnWalletAndNode(t, net, net.Wallets[shardID], net.NodesSharded[shardID][node])
-	// address := net.NewAddress(net.Wallets[shardID])
-	// account, _ := state.NewUserAccount(address)
-	// account.Balance = MockInitialBalance
-	// account.SetCode(address)
-	// account.SetCodeHash(address)
-	// err := net.NodesSharded[shardID][node].AccntState.SaveAccount(account)
-	// require.Nil(t, err)
-	// return address
+	node *integrationTests.TestProcessorNode) ([]byte, state.UserAccountHandler) {
+	return GetAddressForNewAccountOnWalletAndNode(t, net, net.Wallets[node.ShardCoordinator.SelfId()], node)
 }
 
 func CreateHostAndInstanceBuilder(t *testing.T, net *integrationTests.TestNetwork, vmKey []byte) (map[uint32]arwen.VMHost, map[uint32]*contextmock.InstanceBuilderMock) {
@@ -77,12 +82,41 @@ func CreateHostAndInstanceBuilder(t *testing.T, net *integrationTests.TestNetwor
 
 	for shardID := uint32(0); shardID < numberOfShards; shardID++ {
 		node := net.NodesSharded[shardID][0]
-		host := testcommon.DefaultTestArwen(t, shardToWorld[shardID])
-		host.Runtime().ReplaceInstanceBuilder(shardToInstanceBuilder[shardID])
-		err := node.VMContainer.Replace(vmKey, host)
+		host, err := node.VMContainer.Get(factory.ArwenVirtualMachine)
+		require.NotNil(t, host)
 		require.Nil(t, err)
-		shardToHost[shardID] = host
+		host.(arwen.VMHost).Runtime().ReplaceInstanceBuilder(shardToInstanceBuilder[shardID])
+		err = node.VMContainer.Replace(vmKey, host)
+		require.Nil(t, err)
+		shardToHost[shardID] = host.(arwen.VMHost)
 	}
 
 	return shardToHost, shardToInstanceBuilder
+}
+
+// RegisterAsyncCallForMockContract is resued also in some tests before async context serialization
+func RegisterAsyncCallForMockContract(host arwen.VMHost, config interface{}, destinationAddress []byte, callData *txDataBuilder.TxDataBuilder) error {
+	testConfig := config.(*testcommon.TestConfig)
+
+	value := big.NewInt(testConfig.TransferFromParentToChild).Bytes()
+	async := host.Async()
+	if !testConfig.IsLegacyAsync {
+		err := host.Async().RegisterAsyncCall("testGroup", &arwen.AsyncCall{
+			Status:          arwen.AsyncCallPending,
+			Destination:     destinationAddress,
+			Data:            callData.ToBytes(),
+			ValueBytes:      value,
+			SuccessCallback: testConfig.SuccessCallback,
+			ErrorCallback:   testConfig.ErrorCallback,
+			GasLimit:        testConfig.GasProvidedToChild,
+			GasLocked:       testConfig.GasToLock,
+			CallbackClosure: nil,
+		})
+		if err != nil {
+			return err
+		}
+		return nil
+	} else {
+		return async.RegisterLegacyAsyncCall(destinationAddress, callData.ToBytes(), value)
+	}
 }

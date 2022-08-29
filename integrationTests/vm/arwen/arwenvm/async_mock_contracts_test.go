@@ -33,7 +33,7 @@ func TestMockContract_AsyncLegacy_InShard(t *testing.T) {
 	net.MintWalletsUint64(100000000000)
 	owner := net.Wallets[0]
 
-	parentAddress := GetAddressForNewAccount(t, net, 0, 0)
+	parentAddress, _ := GetAddressForNewAccount(t, net, net.NodesSharded[0][0])
 
 	InitializeMockContracts(
 		t, net,
@@ -76,8 +76,8 @@ func testMockContract_CrossShard(t *testing.T, asyncCallType []byte) {
 	net.MintWalletsUint64(100000000000)
 	ownerOfParent := net.Wallets[0]
 
-	parentAddress := GetAddressForNewAccount(t, net, 0, 0)
-	childAddress := GetAddressForNewAccount(t, net, 1, 0)
+	parentAddress, _ := GetAddressForNewAccount(t, net, net.NodesSharded[0][0])
+	childAddress, _ := GetAddressForNewAccount(t, net, net.NodesSharded[1][0])
 
 	thirdPartyAddress := arwen.MakeTestWalletAddress("thirdPartyAddress")
 	vaultAddress := arwen.MakeTestWalletAddress("vaultAddress")
