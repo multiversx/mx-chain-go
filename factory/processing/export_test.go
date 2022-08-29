@@ -56,5 +56,5 @@ func (pcf *processComponentsFactory) IndexGenesisBlocks(genesisBlocks map[uint32
 
 // DecodeAddresses -
 func DecodeAddresses(pkConverter core.PubkeyConverter, automaticCrawlerAddressesStrings []string) ([][]byte, error) {
-	return decodeAddresses(pkConverter, automaticCrawlerAddressesStrings)
+	return factory.DecodeAddresses(pkConverter, automaticCrawlerAddressesStrings)
 }
