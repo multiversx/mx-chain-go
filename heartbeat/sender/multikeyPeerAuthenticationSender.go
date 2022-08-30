@@ -192,14 +192,14 @@ func (sender *multikeyPeerAuthenticationSender) sendData(pkBytes []byte, data []
 
 	p2pSk, pid, err := sender.keysHolder.GetP2PIdentity(pkBytes)
 	if err != nil {
-		log.Error("could not get identity for pk", "pk", hex.EncodeToString(pkBytes))
+		log.Error("could not get identity for pk", "pk", hex.EncodeToString(pkBytes), "error", err)
 		return
 	}
 	sender.messenger.BroadcastWithSk(sender.topic, data, pid, p2pSk)
 
 	nextTimeToCheck, err := sender.keysHolder.GetNextPeerAuthenticationTime(pkBytes)
 	if err != nil {
-		log.Error("could not get next peer authentication time for pk", "pk", hex.EncodeToString(pkBytes))
+		log.Error("could not get next peer authentication time for pk", "pk", hex.EncodeToString(pkBytes), "error", err)
 		return
 	}
 

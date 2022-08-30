@@ -23,7 +23,6 @@ func (cpas *commonPeerAuthenticationSender) generateMessageBytes(
 	p2pSkBytes []byte,
 	pidBytes []byte,
 ) ([]byte, bool, error) {
-
 	msg := &heartbeat.PeerAuthentication{
 		Pid:    pidBytes,
 		Pubkey: pkBytes,
