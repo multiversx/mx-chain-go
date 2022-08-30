@@ -715,20 +715,15 @@ type PeerShardMapper interface {
 	UpdatePeerIDPublicKeyPair(pid core.PeerID, pk []byte)
 	PutPeerIdShardId(pid core.PeerID, shardID uint32)
 	PutPeerIdSubType(pid core.PeerID, peerSubType core.P2PPeerSubType)
-	GetLastKnownPeerID(pk []byte) (*core.PeerID, bool)
+	GetLastKnownPeerID(pk []byte) (core.PeerID, bool)
 	GetPeerInfo(pid core.PeerID) core.P2PPeerInfo
 	IsInterfaceNil() bool
 }
 
 // NetworkShardingCollector defines the updating methods used by the network sharding component
 type NetworkShardingCollector interface {
-	UpdatePeerIDPublicKeyPair(pid core.PeerID, pk []byte)
+	PeerShardMapper
 	UpdatePeerIDInfo(pid core.PeerID, pk []byte, shardID uint32)
-	PutPeerIdShardId(pid core.PeerID, shardID uint32)
-	PutPeerIdSubType(pid core.PeerID, peerSubType core.P2PPeerSubType)
-	GetLastKnownPeerID(pk []byte) (*core.PeerID, bool)
-	GetPeerInfo(pid core.PeerID) core.P2PPeerInfo
-	IsInterfaceNil() bool
 }
 
 // NetworkConnectionWatcher defines a watchdog functionality used to specify if the current node
@@ -1195,6 +1190,7 @@ type ScheduledTxsExecutionHandler interface {
 	GetScheduledGasAndFees() scheduled.GasAndFees
 	SetScheduledInfo(scheduledInfo *ScheduledInfo)
 	GetScheduledRootHashForHeader(headerHash []byte) ([]byte, error)
+	GetScheduledRootHashForHeaderWithEpoch(headerHash []byte, epoch uint32) ([]byte, error)
 	RollBackToBlock(headerHash []byte) error
 	SaveStateIfNeeded(headerHash []byte)
 	SaveState(headerHash []byte, scheduledInfo *ScheduledInfo)

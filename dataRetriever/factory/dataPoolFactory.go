@@ -21,9 +21,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/disabled"
 	"github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache/capacity"
-	"github.com/ElrondNetwork/elrond-go/storage/mapTimeCache"
 	"github.com/ElrondNetwork/elrond-go/storage/storageCacherAdapter"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
 )
 
@@ -125,7 +125,7 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 		return nil, fmt.Errorf("%w while creating the cache for the smartcontract results", err)
 	}
 
-	peerAuthPool, err := mapTimeCache.NewMapTimeCache(mapTimeCache.ArgMapTimeCacher{
+	peerAuthPool, err := timecache.NewTimeCacher(timecache.ArgTimeCacher{
 		DefaultSpan: time.Duration(mainConfig.HeartbeatV2.PeerAuthenticationPool.DefaultSpanInSec) * time.Second,
 		CacheExpiry: time.Duration(mainConfig.HeartbeatV2.PeerAuthenticationPool.CacheExpiryInSec) * time.Second,
 	})

@@ -380,7 +380,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		ShardCoordinator:          arg.ShardCoordinator,
 		EpochNotifier:             epochNotifier,
 		EnableEpochsHandler:       enableEpochsHandler,
-		AutomaticCrawlerAddress:   make([]byte, 32),
+		AutomaticCrawlerAddresses:                [][]byte{   make([]byte, 32)},
 		MaxNumNodesInTransferRole: math.MaxUint32,
 	}
 	builtInFuncFactory, err := builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)

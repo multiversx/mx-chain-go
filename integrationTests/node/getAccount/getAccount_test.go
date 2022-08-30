@@ -21,8 +21,9 @@ func createAccountsRepository(accDB state.AccountsAdapter, blockchain chainData.
 	wrapper, _ := state.NewAccountsDBApi(accDB, provider)
 
 	args := state.ArgsAccountsRepository{
-		FinalStateAccountsWrapper:   wrapper,
-		CurrentStateAccountsWrapper: wrapper,
+		FinalStateAccountsWrapper:      wrapper,
+		CurrentStateAccountsWrapper:    wrapper,
+		HistoricalStateAccountsWrapper: wrapper,
 	}
 	accountsRepo, _ := state.NewAccountsRepository(args)
 
