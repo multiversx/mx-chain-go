@@ -4051,6 +4051,200 @@ func TestNode_setTxGuardianData(t *testing.T) {
 	})
 }
 
+func TestNode_GetGuardianData(t *testing.T) {
+	userAddressBytes := bytes.Repeat([]byte{3}, 32)
+	acc, _ := state.NewUserAccount(userAddressBytes)
+	accDB := &stateMock.AccountsStub{
+		GetAccountWithBlockInfoCalled: func(address []byte, options common.RootHashHolder) (vmcommon.AccountHandler, common.BlockInfo, error) {
+			return acc, nil, nil
+		},
+		RecreateTrieCalled: func(_ []byte) error {
+			return nil
+		},
+	}
+	coreComponents := getDefaultCoreComponents()
+	dataComponents := getDefaultDataComponents()
+	coreComponents.IntMarsh = getMarshalizer()
+	coreComponents.VmMarsh = getMarshalizer()
+	coreComponents.Hash = getHasher()
+	coreComponents.AddrPubKeyConv = createMockPubkeyConverter()
+	stateComponents := getDefaultStateComponents()
+	args := state.ArgsAccountsRepository{
+		FinalStateAccountsWrapper:      accDB,
+		CurrentStateAccountsWrapper:    accDB,
+		HistoricalStateAccountsWrapper: accDB,
+	}
+	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(args)
+	userAddress := coreComponents.AddressPubKeyConverter().Encode(userAddressBytes)
+	g1 := &guardians.Guardian{
+		Address: bytes.Repeat([]byte{1}, 32),
+		ActivationEpoch: 0,
+	}
+	g2 := &guardians.Guardian{
+		Address: bytes.Repeat([]byte{2}, 32),
+		ActivationEpoch: 1,
+	}
+	apiG1 := &api.Guardian{
+		Address: coreComponents.AddressPubKeyConverter().Encode(g1.Address),
+		Epoch: g1.ActivationEpoch,
+	}
+	apiG2 := &api.Guardian{
+		Address: coreComponents.AddressPubKeyConverter().Encode(g2.Address),
+		Epoch: g2.ActivationEpoch,
+	}
+	t.Run("error on loadUserAccountHandlerByAddress", func(t *testing.T) {
+		accDB := &stateMock.AccountsStub{
+			GetAccountWithBlockInfoCalled: func(address []byte, options common.RootHashHolder) (vmcommon.AccountHandler, common.BlockInfo, error) {
+				return acc, nil, nil
+			},
+			RecreateTrieCalled: func(_ []byte) error {
+				return nil
+			},
+		}
+		stateComponents := getDefaultStateComponents()
+		args := state.ArgsAccountsRepository{
+			FinalStateAccountsWrapper:      accDB,
+			CurrentStateAccountsWrapper:    accDB,
+			HistoricalStateAccountsWrapper: accDB,
+		}
+		stateComponents.AccountsRepo, _ = state.NewAccountsRepository(args)
+		n, _ := node.NewNode(
+			node.WithDataComponents(dataComponents),
+			node.WithCoreComponents(coreComponents),
+			node.WithStateComponents(stateComponents),
+		)
+		guardianData, blockInfo, err := n.GetGuardianData("address", api.AccountQueryOptions{})
+		require.Equal(t, api.GuardianData{}, guardianData)
+		require.Equal(t, api.BlockInfo{}, blockInfo)
+		require.NotNil(t, err)
+		require.True(t, strings.Contains(err.Error(), "invalid address"))
+	})
+	t.Run("getPendingAndActiveGuardians with error", func(t *testing.T) {
+		expectedError := errors.New("expected error")
+		bootstrapComponents := getDefaultBootstrapComponents()
+		bootstrapComponents.GuardedAccountHandlerField = &guardianMocks.GuardedAccountHandlerStub{
+			GetConfiguredGuardiansCalled: func(uah state.UserAccountHandler) (active *guardians.Guardian, pending *guardians.Guardian, err error) {
+				return nil, nil, expectedError
+			},
+		}
+		n, _ := node.NewNode(
+			node.WithDataComponents(dataComponents),
+			node.WithCoreComponents(coreComponents),
+			node.WithStateComponents(stateComponents),
+			node.WithBootstrapComponents(bootstrapComponents),
+		)
+		guardianData, blockInfo, err := n.GetGuardianData(userAddress, api.AccountQueryOptions{})
+		require.Equal(t, api.GuardianData{}, guardianData)
+		require.Equal(t, api.BlockInfo{}, blockInfo)
+		require.Equal(t, expectedError, err)
+	})
+	t.Run("one active", func(t *testing.T) {
+		bootstrapComponents := getDefaultBootstrapComponents()
+		bootstrapComponents.GuardedAccountHandlerField = &guardianMocks.GuardedAccountHandlerStub{
+			GetConfiguredGuardiansCalled: func(uah state.UserAccountHandler) (active *guardians.Guardian, pending *guardians.Guardian, err error) {
+				return g1, nil, nil
+			},
+		}
+		n, _ := node.NewNode(
+			node.WithDataComponents(dataComponents),
+			node.WithCoreComponents(coreComponents),
+			node.WithStateComponents(stateComponents),
+			node.WithBootstrapComponents(bootstrapComponents),
+		)
+		guardianData, blockInfo, err := n.GetGuardianData(userAddress, api.AccountQueryOptions{})
+		require.Equal(t, api.GuardianData{
+			ActiveGuardian:  apiG1,
+			PendingGuardian: nil,
+			Frozen:          false,
+		}, guardianData)
+		require.Equal(t, api.BlockInfo{}, blockInfo)
+		require.Nil(t, err)
+	})
+	t.Run("one pending", func(t *testing.T) {
+		bootstrapComponents := getDefaultBootstrapComponents()
+		bootstrapComponents.GuardedAccountHandlerField = &guardianMocks.GuardedAccountHandlerStub{
+			GetConfiguredGuardiansCalled: func(uah state.UserAccountHandler) (active *guardians.Guardian, pending *guardians.Guardian, err error) {
+				return nil, g1, nil
+			},
+		}
+		n, _ := node.NewNode(
+			node.WithDataComponents(dataComponents),
+			node.WithCoreComponents(coreComponents),
+			node.WithStateComponents(stateComponents),
+			node.WithBootstrapComponents(bootstrapComponents),
+		)
+		guardianData, blockInfo, err := n.GetGuardianData(userAddress, api.AccountQueryOptions{})
+		require.Equal(t, api.GuardianData{
+			ActiveGuardian:  nil,
+			PendingGuardian: apiG1,
+			Frozen:          false,
+		}, guardianData)
+		require.Equal(t, api.BlockInfo{}, blockInfo)
+		require.Nil(t, err)
+	})
+	t.Run("one active and one pending", func(t *testing.T) {
+		bootstrapComponents := getDefaultBootstrapComponents()
+		bootstrapComponents.GuardedAccountHandlerField = &guardianMocks.GuardedAccountHandlerStub{
+			GetConfiguredGuardiansCalled: func(uah state.UserAccountHandler) (active *guardians.Guardian, pending *guardians.Guardian, err error) {
+				return g1, g2, nil
+			},
+		}
+		n, _ := node.NewNode(
+			node.WithDataComponents(dataComponents),
+			node.WithCoreComponents(coreComponents),
+			node.WithStateComponents(stateComponents),
+			node.WithBootstrapComponents(bootstrapComponents),
+		)
+		guardianData, blockInfo, err := n.GetGuardianData(userAddress, api.AccountQueryOptions{})
+		require.Equal(t, api.GuardianData{
+			ActiveGuardian:  apiG1,
+			PendingGuardian: apiG2,
+			Frozen:          false,
+		}, guardianData)
+		require.Equal(t, api.BlockInfo{}, blockInfo)
+		require.Nil(t, err)
+	})
+	t.Run("one active and one pending and account frozen", func(t *testing.T) {
+		acc, _ := state.NewUserAccount(userAddressBytes)
+		acc.CodeMetadata = (&vmcommon.CodeMetadata{Frozen: true}).ToBytes()
+		accDB := &stateMock.AccountsStub{
+			GetAccountWithBlockInfoCalled: func(address []byte, options common.RootHashHolder) (vmcommon.AccountHandler, common.BlockInfo, error) {
+				return acc, nil, nil
+			},
+			RecreateTrieCalled: func(_ []byte) error {
+				return nil
+			},
+		}
+		stateComponents := getDefaultStateComponents()
+		args := state.ArgsAccountsRepository{
+			FinalStateAccountsWrapper:      accDB,
+			CurrentStateAccountsWrapper:    accDB,
+			HistoricalStateAccountsWrapper: accDB,
+		}
+		stateComponents.AccountsRepo, _ = state.NewAccountsRepository(args)
+		bootstrapComponents := getDefaultBootstrapComponents()
+		bootstrapComponents.GuardedAccountHandlerField = &guardianMocks.GuardedAccountHandlerStub{
+			GetConfiguredGuardiansCalled: func(uah state.UserAccountHandler) (active *guardians.Guardian, pending *guardians.Guardian, err error) {
+				return g1, g2, nil
+			},
+		}
+		n, _ := node.NewNode(
+			node.WithDataComponents(dataComponents),
+			node.WithCoreComponents(coreComponents),
+			node.WithStateComponents(stateComponents),
+			node.WithBootstrapComponents(bootstrapComponents),
+		)
+		guardianData, blockInfo, err := n.GetGuardianData(userAddress, api.AccountQueryOptions{})
+		require.Equal(t, api.GuardianData{
+			ActiveGuardian:  apiG1,
+			PendingGuardian: apiG2,
+			Frozen:          true,
+		}, guardianData)
+		require.Equal(t, api.BlockInfo{}, blockInfo)
+		require.Nil(t, err)
+	})
+}
+
 func TestNode_getPendingAndActiveGuardians(t *testing.T) {
 	coreComponents := getDefaultCoreComponents()
 	bootstrapComponents := getDefaultBootstrapComponents()
