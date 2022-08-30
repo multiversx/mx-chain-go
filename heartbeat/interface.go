@@ -129,7 +129,6 @@ type KeysHolder interface {
 	GetPrivateKey(pkBytes []byte) (crypto.PrivateKey, error)
 	GetP2PIdentity(pkBytes []byte) ([]byte, core.PeerID, error)
 	GetMachineID(pkBytes []byte) (string, error)
-	GetNameAndIdentity(pkBytes []byte) (string, string, error)
 	IncrementRoundsWithoutReceivedMessages(pkBytes []byte) error
 	ResetRoundsWithoutReceivedMessages(pkBytes []byte) error
 	GetManagedKeysByCurrentNode() map[string]crypto.PrivateKey

@@ -13,7 +13,6 @@ type KeysHolderStub struct {
 	GetPrivateKeyCalled                          func(pkBytes []byte) (crypto.PrivateKey, error)
 	GetP2PIdentityCalled                         func(pkBytes []byte) ([]byte, core.PeerID, error)
 	GetMachineIDCalled                           func(pkBytes []byte) (string, error)
-	GetNameAndIdentityCalled                     func(pkBytes []byte) (string, string, error)
 	IncrementRoundsWithoutReceivedMessagesCalled func(pkBytes []byte) error
 	ResetRoundsWithoutReceivedMessagesCalled     func(pkBytes []byte) error
 	GetManagedKeysByCurrentNodeCalled            func() map[string]crypto.PrivateKey
@@ -56,14 +55,6 @@ func (stub *KeysHolderStub) GetMachineID(pkBytes []byte) (string, error) {
 		return stub.GetMachineIDCalled(pkBytes)
 	}
 	return "", nil
-}
-
-// GetNameAndIdentity -
-func (stub *KeysHolderStub) GetNameAndIdentity(pkBytes []byte) (string, string, error) {
-	if stub.GetNameAndIdentityCalled != nil {
-		return stub.GetNameAndIdentityCalled(pkBytes)
-	}
-	return "", "", nil
 }
 
 // IncrementRoundsWithoutReceivedMessages -
