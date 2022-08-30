@@ -3,6 +3,7 @@ package sender
 import (
 	"time"
 
+	"github.com/ElrondNetwork/covalent-indexer-go/process"
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
@@ -33,6 +34,9 @@ type ArgSender struct {
 	HardforkTrigger                             heartbeat.HardforkTrigger
 	HardforkTimeBetweenSends                    time.Duration
 	HardforkTriggerPubKey                       []byte
+	KeysHolder                                  heartbeat.KeysHolder
+	PeerAuthenticationTimeBetweenChecks         time.Duration
+	ShardCoordinator                            process.ShardCoordinator
 }
 
 // sender defines the component which sends authentication and heartbeat messages
@@ -47,7 +51,7 @@ func NewSender(args ArgSender) (*sender, error) {
 		return nil, err
 	}
 
-	pas, err := newPeerAuthenticationSender(argPeerAuthenticationSender{
+	peerAuthSenderFactory, err := newPeerAuthenticationSenderFactory(argPeerAuthenticationSenderFactory{
 		argBaseSender: argBaseSender{
 			messenger:                 args.Messenger,
 			marshaller:                args.Marshaller,
@@ -58,12 +62,20 @@ func NewSender(args ArgSender) (*sender, error) {
 		},
 		nodesCoordinator:         args.NodesCoordinator,
 		peerSignatureHandler:     args.PeerSignatureHandler,
-		privKey:                  args.PrivateKey,
-		redundancyHandler:        args.RedundancyHandler,
 		hardforkTrigger:          args.HardforkTrigger,
 		hardforkTimeBetweenSends: args.HardforkTimeBetweenSends,
 		hardforkTriggerPubKey:    args.HardforkTriggerPubKey,
+		keysHolder:               args.KeysHolder,
+		timeBetweenChecks:        args.PeerAuthenticationTimeBetweenChecks,
+		shardCoordinator:         args.ShardCoordinator,
+		privKey:                  args.PrivateKey,
+		redundancyHandler:        args.RedundancyHandler,
 	})
+	if err != nil {
+		return nil, err
+	}
+
+	pas, err := peerAuthSenderFactory.create()
 	if err != nil {
 		return nil, err
 	}
@@ -93,24 +105,16 @@ func NewSender(args ArgSender) (*sender, error) {
 }
 
 func checkSenderArgs(args ArgSender) error {
-	pasArg := argPeerAuthenticationSender{
-		argBaseSender: argBaseSender{
-			messenger:                 args.Messenger,
-			marshaller:                args.Marshaller,
-			topic:                     args.PeerAuthenticationTopic,
-			timeBetweenSends:          args.PeerAuthenticationTimeBetweenSends,
-			timeBetweenSendsWhenError: args.PeerAuthenticationTimeBetweenSendsWhenError,
-			thresholdBetweenSends:     args.PeerAuthenticationThresholdBetweenSends,
-		},
-		nodesCoordinator:         args.NodesCoordinator,
-		peerSignatureHandler:     args.PeerSignatureHandler,
-		privKey:                  args.PrivateKey,
-		redundancyHandler:        args.RedundancyHandler,
-		hardforkTrigger:          args.HardforkTrigger,
-		hardforkTimeBetweenSends: args.HardforkTimeBetweenSends,
-		hardforkTriggerPubKey:    args.HardforkTriggerPubKey,
+	// Only check base sender args, as further checks are done on factory Create, based on the type of sender
+	baseSenderArgs := argBaseSender{
+		messenger:                 args.Messenger,
+		marshaller:                args.Marshaller,
+		topic:                     args.PeerAuthenticationTopic,
+		timeBetweenSends:          args.PeerAuthenticationTimeBetweenSends,
+		timeBetweenSendsWhenError: args.PeerAuthenticationTimeBetweenSendsWhenError,
+		thresholdBetweenSends:     args.PeerAuthenticationThresholdBetweenSends,
 	}
-	err := checkPeerAuthenticationSenderArgs(pasArg)
+	err := checkBaseSenderArgs(baseSenderArgs)
 	if err != nil {
 		return err
 	}

@@ -140,3 +140,6 @@ var ErrShouldSkipValidator = errors.New("validator should be skipped")
 
 // ErrNilKeysHolder signals that a nil keys holder has been provided
 var ErrNilKeysHolder = errors.New("nil keys holder")
+
+// ErrInvalidConfiguration signals that an invalid configuration has been provided
+var ErrInvalidConfiguration = errors.New("invalid configuration")
