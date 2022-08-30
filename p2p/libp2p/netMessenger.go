@@ -926,9 +926,9 @@ func (netMes *networkMessenger) Broadcast(topic string, buff []byte) {
 	netMes.BroadcastOnChannel(topic, topic, buff)
 }
 
-// BroadcastOnChannelBlockingWithPrivateKey tries to send a byte buffer onto a topic using provided channel
+// BroadcastOnChannelBlockingUsingPrivateKey tries to send a byte buffer onto a topic using provided channel
 // It is a blocking method. It needs to be launched on a go routine
-func (netMes *networkMessenger) BroadcastOnChannelBlockingWithPrivateKey(
+func (netMes *networkMessenger) BroadcastOnChannelBlockingUsingPrivateKey(
 	channel string,
 	topic string,
 	buff []byte,
@@ -963,8 +963,8 @@ func (netMes *networkMessenger) BroadcastOnChannelBlockingWithPrivateKey(
 	return nil
 }
 
-// BroadcastOnChannelWithPrivateKey tries to send a byte buffer onto a topic using provided channel
-func (netMes *networkMessenger) BroadcastOnChannelWithPrivateKey(
+// BroadcastOnChannelUsingPrivateKey tries to send a byte buffer onto a topic using provided channel
+func (netMes *networkMessenger) BroadcastOnChannelUsingPrivateKey(
 	channel string,
 	topic string,
 	buff []byte,
@@ -972,21 +972,21 @@ func (netMes *networkMessenger) BroadcastOnChannelWithPrivateKey(
 	skBytes []byte,
 ) {
 	go func() {
-		err := netMes.BroadcastOnChannelBlockingWithPrivateKey(channel, topic, buff, pid, skBytes)
+		err := netMes.BroadcastOnChannelBlockingUsingPrivateKey(channel, topic, buff, pid, skBytes)
 		if err != nil {
 			log.Warn("p2p broadcast", "error", err.Error())
 		}
 	}()
 }
 
-// BroadcastWithPrivateKey tries to send a byte buffer onto a topic using the topic name as channel
-func (netMes *networkMessenger) BroadcastWithPrivateKey(
+// BroadcastUsingPrivateKey tries to send a byte buffer onto a topic using the topic name as channel
+func (netMes *networkMessenger) BroadcastUsingPrivateKey(
 	topic string,
 	buff []byte,
 	pid core.PeerID,
 	skBytes []byte,
 ) {
-	netMes.BroadcastOnChannelWithPrivateKey(topic, topic, buff, pid, skBytes)
+	netMes.BroadcastOnChannelUsingPrivateKey(topic, topic, buff, pid, skBytes)
 }
 
 // RegisterMessageProcessor registers a message process on a topic. The function allows registering multiple handlers

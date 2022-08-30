@@ -4,8 +4,8 @@ import "github.com/ElrondNetwork/elrond-go-core/core"
 
 // MessengerStub -
 type MessengerStub struct {
-	BroadcastWithPrivateKeyCalled func(topic string, buff []byte, pid core.PeerID, skBytes []byte)
-	BroadcastCalled               func(topic string, buff []byte)
+	BroadcastUsingPrivateKeyCalled func(topic string, buff []byte, pid core.PeerID, skBytes []byte)
+	BroadcastCalled                func(topic string, buff []byte)
 }
 
 // Broadcast -
@@ -13,10 +13,10 @@ func (ms *MessengerStub) Broadcast(topic string, buff []byte) {
 	ms.BroadcastCalled(topic, buff)
 }
 
-// BroadcastWithPrivateKey -
-func (ms *MessengerStub) BroadcastWithPrivateKey(topic string, buff []byte, pid core.PeerID, skBytes []byte) {
-	if ms.BroadcastWithPrivateKeyCalled != nil {
-		ms.BroadcastWithPrivateKeyCalled(topic, buff, pid, skBytes)
+// BroadcastUsingPrivateKey -
+func (ms *MessengerStub) BroadcastUsingPrivateKey(topic string, buff []byte, pid core.PeerID, skBytes []byte) {
+	if ms.BroadcastUsingPrivateKeyCalled != nil {
+		ms.BroadcastUsingPrivateKeyCalled(topic, buff, pid, skBytes)
 	}
 }
 

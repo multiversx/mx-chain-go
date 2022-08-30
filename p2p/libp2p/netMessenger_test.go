@@ -1937,7 +1937,7 @@ func TestLibp2pMessenger_ConnectionTopic(t *testing.T) {
 	})
 }
 
-func TestNetworkMessenger_BroadcastWithPrivateKey(t *testing.T) {
+func TestNetworkMessenger_BroadcastUsingPrivateKey(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -1969,7 +1969,7 @@ func TestNetworkMessenger_BroadcastWithPrivateKey(t *testing.T) {
 	assert.Nil(t, err)
 	fmt.Printf("new identity: %s\n", pid.Pretty())
 
-	mes1.BroadcastWithPrivateKey(topic, msg, pid, skBuff)
+	mes1.BroadcastUsingPrivateKey(topic, msg, pid, skBuff)
 
 	time.Sleep(time.Second * 2)
 
