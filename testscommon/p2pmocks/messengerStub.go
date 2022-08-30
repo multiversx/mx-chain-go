@@ -42,7 +42,7 @@ type MessengerStub struct {
 	WaitForConnectionsCalled               func(maxWaitingTime time.Duration, minNumOfPeers uint32)
 	SignCalled                             func(payload []byte) ([]byte, error)
 	VerifyCalled                           func(payload []byte, pid core.PeerID, signature []byte) error
-	BroadcastWithSkCalled                  func(topic string, buff []byte, pid core.PeerID, skBytes []byte)
+	BroadcastWithPrivateKeyCalled          func(topic string, buff []byte, pid core.PeerID, skBytes []byte)
 	SignWithPrivateKeyCalled               func(skBytes []byte, payload []byte) ([]byte, error)
 }
 
@@ -337,10 +337,10 @@ func (ms *MessengerStub) Verify(payload []byte, pid core.PeerID, signature []byt
 	return nil
 }
 
-// BroadcastWithSk -
-func (ms *MessengerStub) BroadcastWithSk(topic string, buff []byte, pid core.PeerID, skBytes []byte) {
-	if ms.BroadcastWithSkCalled != nil {
-		ms.BroadcastWithSkCalled(topic, buff, pid, skBytes)
+// BroadcastWithPrivateKey -
+func (ms *MessengerStub) BroadcastWithPrivateKey(topic string, buff []byte, pid core.PeerID, skBytes []byte) {
+	if ms.BroadcastWithPrivateKeyCalled != nil {
+		ms.BroadcastWithPrivateKeyCalled(topic, buff, pid, skBytes)
 	}
 }
 

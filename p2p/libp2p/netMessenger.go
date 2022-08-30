@@ -926,9 +926,9 @@ func (netMes *networkMessenger) Broadcast(topic string, buff []byte) {
 	netMes.BroadcastOnChannel(topic, topic, buff)
 }
 
-// BroadcastOnChannelBlockingWithSk tries to send a byte buffer onto a topic using provided channel
+// BroadcastOnChannelBlockingWithPrivateKey tries to send a byte buffer onto a topic using provided channel
 // It is a blocking method. It needs to be launched on a go routine
-func (netMes *networkMessenger) BroadcastOnChannelBlockingWithSk(
+func (netMes *networkMessenger) BroadcastOnChannelBlockingWithPrivateKey(
 	channel string,
 	topic string,
 	buff []byte,
@@ -963,8 +963,8 @@ func (netMes *networkMessenger) BroadcastOnChannelBlockingWithSk(
 	return nil
 }
 
-// BroadcastOnChannelWithSk tries to send a byte buffer onto a topic using provided channel
-func (netMes *networkMessenger) BroadcastOnChannelWithSk(
+// BroadcastOnChannelWithPrivateKey tries to send a byte buffer onto a topic using provided channel
+func (netMes *networkMessenger) BroadcastOnChannelWithPrivateKey(
 	channel string,
 	topic string,
 	buff []byte,
@@ -972,21 +972,21 @@ func (netMes *networkMessenger) BroadcastOnChannelWithSk(
 	skBytes []byte,
 ) {
 	go func() {
-		err := netMes.BroadcastOnChannelBlockingWithSk(channel, topic, buff, pid, skBytes)
+		err := netMes.BroadcastOnChannelBlockingWithPrivateKey(channel, topic, buff, pid, skBytes)
 		if err != nil {
 			log.Warn("p2p broadcast", "error", err.Error())
 		}
 	}()
 }
 
-// BroadcastWithSk tries to send a byte buffer onto a topic using the topic name as channel
-func (netMes *networkMessenger) BroadcastWithSk(
+// BroadcastWithPrivateKey tries to send a byte buffer onto a topic using the topic name as channel
+func (netMes *networkMessenger) BroadcastWithPrivateKey(
 	topic string,
 	buff []byte,
 	pid core.PeerID,
 	skBytes []byte,
 ) {
-	netMes.BroadcastOnChannelWithSk(topic, topic, buff, pid, skBytes)
+	netMes.BroadcastOnChannelWithPrivateKey(topic, topic, buff, pid, skBytes)
 }
 
 // RegisterMessageProcessor registers a message process on a topic. The function allows registering multiple handlers

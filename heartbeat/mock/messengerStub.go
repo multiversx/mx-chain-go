@@ -6,12 +6,12 @@ import (
 
 // MessengerStub -
 type MessengerStub struct {
-	IDCalled                 func() core.PeerID
-	BroadcastCalled          func(topic string, buff []byte)
-	BroadcastWithSkCalled    func(topic string, buff []byte, pid core.PeerID, skBytes []byte)
-	SignCalled               func(payload []byte) ([]byte, error)
-	SignWithPrivateKeyCalled func(skBytes []byte, payload []byte) ([]byte, error)
-	VerifyCalled             func(payload []byte, pid core.PeerID, signature []byte) error
+	IDCalled                      func() core.PeerID
+	BroadcastCalled               func(topic string, buff []byte)
+	BroadcastWithPrivateKeyCalled func(topic string, buff []byte, pid core.PeerID, skBytes []byte)
+	SignCalled                    func(payload []byte) ([]byte, error)
+	SignWithPrivateKeyCalled      func(skBytes []byte, payload []byte) ([]byte, error)
+	VerifyCalled                  func(payload []byte, pid core.PeerID, signature []byte) error
 }
 
 // ID -
@@ -30,10 +30,10 @@ func (ms *MessengerStub) Broadcast(topic string, buff []byte) {
 	}
 }
 
-// BroadcastWithSk -
-func (ms *MessengerStub) BroadcastWithSk(topic string, buff []byte, pid core.PeerID, skBytes []byte) {
-	if ms.BroadcastWithSkCalled != nil {
-		ms.BroadcastWithSkCalled(topic, buff, pid, skBytes)
+// BroadcastWithPrivateKey -
+func (ms *MessengerStub) BroadcastWithPrivateKey(topic string, buff []byte, pid core.PeerID, skBytes []byte) {
+	if ms.BroadcastWithPrivateKeyCalled != nil {
+		ms.BroadcastWithPrivateKeyCalled(topic, buff, pid, skBytes)
 	}
 }
 

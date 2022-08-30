@@ -73,7 +73,7 @@ type BroadcastMessenger interface {
 // P2PMessenger defines a subset of the p2p.Messenger interface
 type P2PMessenger interface {
 	Broadcast(topic string, buff []byte)
-	BroadcastWithSk(topic string, buff []byte, pid core.PeerID, skBytes []byte)
+	BroadcastWithPrivateKey(topic string, buff []byte, pid core.PeerID, skBytes []byte)
 	IsInterfaceNil() bool
 }
 

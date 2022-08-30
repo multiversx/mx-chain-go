@@ -149,8 +149,8 @@ type Messenger interface {
 	// through a specified channel.
 	BroadcastOnChannel(channel string, topic string, buff []byte)
 
-	// BroadcastWithSk tries to send a byte buffer onto a topic using the topic name as channel
-	BroadcastWithSk(topic string, buff []byte, pid core.PeerID, skBytes []byte)
+	// BroadcastWithPrivateKey tries to send a byte buffer onto a topic using the topic name as channel
+	BroadcastWithPrivateKey(topic string, buff []byte, pid core.PeerID, skBytes []byte)
 
 	// Broadcast is a convenience function that calls BroadcastOnChannelBlocking,
 	// but implicitly sets the channel to be identical to the specified topic.
