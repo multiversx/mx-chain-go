@@ -3,7 +3,6 @@ module github.com/ElrondNetwork/elrond-go
 go 1.15
 
 require (
-	github.com/ElrondNetwork/arwen-wasm-vm/v1_2 v1.2.42-0.20220729115258-b9f2fb2f6568
 	github.com/ElrondNetwork/arwen-wasm-vm/v1_3 v1.3.42-0.20220729115131-85ecca868e90
 	github.com/ElrondNetwork/arwen-wasm-vm/v1_4 v1.4.59-0.20220729115431-a6c93119bdda
 	github.com/ElrondNetwork/concurrent-map v0.1.3
@@ -14,13 +13,14 @@ require (
 	github.com/ElrondNetwork/elrond-go-logger v1.0.7
 	github.com/ElrondNetwork/elrond-vm-common v1.3.15-0.20220803072537-08e036d340bc
 	github.com/ElrondNetwork/go-libp2p-pubsub v0.6.1-rc1
+	github.com/ElrondNetwork/wasm-vm-v1_2 v1.2.42-0.20220830085332-b0b3550b5501
 	github.com/beevik/ntp v0.3.0
 	github.com/btcsuite/btcd v0.22.0-beta
 	github.com/davecgh/go-spew v1.1.1
 	github.com/elastic/go-elasticsearch/v7 v7.12.0
 	github.com/gin-contrib/cors v0.0.0-20190301062745-f9e10995c85a
 	github.com/gin-contrib/pprof v1.3.0
-	github.com/gin-gonic/gin v1.8.0
+	github.com/gin-gonic/gin v1.8.1
 	github.com/gizak/termui/v3 v3.1.0
 	github.com/gogo/protobuf v1.3.2
 	github.com/google/gops v0.3.18
@@ -49,8 +49,6 @@ require (
 )
 
 replace github.com/gogo/protobuf => github.com/ElrondNetwork/protobuf v1.3.2
-
-replace github.com/ElrondNetwork/arwen-wasm-vm/v1_2 v1.2.42-0.20220729115258-b9f2fb2f6568 => github.com/ElrondNetwork/arwen-wasm-vm v1.2.42-0.20220729115258-b9f2fb2f6568
 
 replace github.com/ElrondNetwork/arwen-wasm-vm/v1_3 v1.3.42-0.20220729115131-85ecca868e90 => github.com/ElrondNetwork/arwen-wasm-vm v1.3.42-0.20220729115131-85ecca868e90
 
