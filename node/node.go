@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
+	"github.com/ElrondNetwork/elrond-go-core/data/guardians"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	disabledSig "github.com/ElrondNetwork/elrond-go-crypto/signing/disabled/singlesig"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -316,6 +317,51 @@ func (n *Node) GetValueForKey(address string, key string, options api.AccountQue
 	}
 
 	return hex.EncodeToString(valueBytes), blockInfo, nil
+}
+
+// GetGuardianData returns the guardian data for given account
+func (n *Node) GetGuardianData(address string, options api.AccountQueryOptions) (api.GuardianData, api.BlockInfo, error) {
+	userAccount, blockInfo, err := n.loadUserAccountHandlerByAddress(address, options)
+	if err != nil {
+		return api.GuardianData{}, api.BlockInfo{}, err
+	}
+
+	activeGuardian, pendingGuardian, err := n.getPendingAndActiveGuardians(userAccount)
+	if err != nil {
+		return api.GuardianData{}, api.BlockInfo{}, err
+	}
+
+	return api.GuardianData{
+		ActiveGuardian:  activeGuardian,
+		PendingGuardian: pendingGuardian,
+		Frozen:          userAccount.IsFrozen(),
+	}, blockInfo, nil
+}
+
+func (n *Node) getPendingAndActiveGuardians(
+	userAccount state.UserAccountHandler,
+) (activeGuardian *api.Guardian, pendingGuardian *api.Guardian, err error) {
+	var active, pending *guardians.Guardian
+	gah := n.bootstrapComponents.GuardedAccountHandler()
+	active, pending, err = gah.GetConfiguredGuardians(userAccount)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if active != nil {
+		activeGuardian = &api.Guardian{
+			Address: n.coreComponents.AddressPubKeyConverter().Encode(active.Address),
+			Epoch:   active.ActivationEpoch,
+		}
+	}
+	if pending != nil {
+		pendingGuardian = &api.Guardian{
+			Address: n.coreComponents.AddressPubKeyConverter().Encode(pending.Address),
+			Epoch:   pending.ActivationEpoch,
+		}
+	}
+
+	return
 }
 
 // GetESDTData returns the esdt balance and properties from a given account

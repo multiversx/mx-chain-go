@@ -1,6 +1,7 @@
 package disabled
 
 import (
+	"github.com/ElrondNetwork/elrond-go-core/data/guardians"
 	"github.com/ElrondNetwork/elrond-go/state"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
@@ -34,6 +35,11 @@ func (dga *disabledGuardedAccount) SetGuardian(_ vmcommon.UserAccountHandler, _ 
 
 // CleanOtherThanActive does nothing as this is a disabled implementation
 func (dga *disabledGuardedAccount) CleanOtherThanActive(_ vmcommon.UserAccountHandler) {}
+
+// GetConfiguredGuardians returns nil, nil, nil as this is a disabled component
+func (dga *disabledGuardedAccount) GetConfiguredGuardians(_ state.UserAccountHandler) (active *guardians.Guardian, pending *guardians.Guardian, err error) {
+	return nil, nil, nil
+}
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (dga *disabledGuardedAccount) IsInterfaceNil() bool {

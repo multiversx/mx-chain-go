@@ -287,6 +287,19 @@ func (agc *guardedAccount) getActiveGuardian(gs *guardians.Guardians) (*guardian
 	return selectedGuardian, nil
 }
 
+// GetConfiguredGuardians returns the configured guardians for an account
+func (agc *guardedAccount) GetConfiguredGuardians(uah state.UserAccountHandler) (active *guardians.Guardian, pending *guardians.Guardian, err error) {
+	configuredGuardians, err := agc.getConfiguredGuardians(uah)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	active, _ = agc.getActiveGuardian(configuredGuardians)
+	pending, _ = agc.getPendingGuardian(configuredGuardians)
+
+	return
+}
+
 func (agc *guardedAccount) getPendingGuardian(gs *guardians.Guardians) (*guardians.Guardian, error) {
 	if gs == nil {
 		return nil, process.ErrAccountHasNoPendingGuardian

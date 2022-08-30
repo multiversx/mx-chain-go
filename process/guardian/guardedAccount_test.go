@@ -985,6 +985,99 @@ func TestGuardedAccount_CleanOtherThanActive(t *testing.T) {
 	})
 }
 
+func TestGuardedAccount_GetConfiguredGuardians(t *testing.T) {
+	currentEpoch := uint32(10)
+	g0 := &guardians.Guardian{
+		Address:         []byte("old guardian"),
+		ActivationEpoch: currentEpoch - 4,
+	}
+	g1 := &guardians.Guardian{
+		Address:         []byte("active guardian"),
+		ActivationEpoch: currentEpoch - 2,
+	}
+	g2 := &guardians.Guardian{
+		Address:         []byte("pending guardian"),
+		ActivationEpoch: currentEpoch + 2,
+	}
+	ga := createGuardedAccountWithEpoch(currentEpoch)
+
+	t.Run("unmarshall error", func(t *testing.T) {
+		t.Parallel()
+
+		acc := &stateMocks.UserAccountStub{
+			RetrieveValueFromDataTrieTrackerCalled: func(key []byte) ([]byte, error) {
+				return []byte("wrong data"), nil
+			},
+		}
+		active, pending, err := ga.GetConfiguredGuardians(acc)
+		require.Nil(t, active)
+		require.Nil(t, pending)
+		require.NotNil(t, err)
+	})
+	t.Run("empty configured guardians", func(t *testing.T) {
+		t.Parallel()
+
+		expectedErr := errors.New("expected error")
+		acc := &stateMocks.UserAccountStub{
+			RetrieveValueFromDataTrieTrackerCalled: func(key []byte) ([]byte, error) {
+				return nil, expectedErr
+			},
+		}
+		active, pending, err := ga.GetConfiguredGuardians(acc)
+		require.Nil(t, active)
+		require.Nil(t, pending)
+		require.Nil(t, err)
+	})
+	t.Run("one pending guardian", func(t *testing.T) {
+		configuredGuardians := &guardians.Guardians{Slice: []*guardians.Guardian{g2}}
+		acc := &stateMocks.UserAccountStub{
+			RetrieveValueFromDataTrieTrackerCalled: func(key []byte) ([]byte, error) {
+				return ga.marshaller.Marshal(configuredGuardians)
+			},
+		}
+		active, pending, err := ga.GetConfiguredGuardians(acc)
+		require.Nil(t, active)
+		require.Equal(t, g2, pending)
+		require.Nil(t, err)
+	})
+	t.Run("one active guardian", func(t *testing.T) {
+		configuredGuardians := &guardians.Guardians{Slice: []*guardians.Guardian{g1}}
+		acc := &stateMocks.UserAccountStub{
+			RetrieveValueFromDataTrieTrackerCalled: func(key []byte) ([]byte, error) {
+				return ga.marshaller.Marshal(configuredGuardians)
+			},
+		}
+		active, pending, err := ga.GetConfiguredGuardians(acc)
+		require.Equal(t, g1, active)
+		require.Nil(t, pending)
+		require.Nil(t, err)
+	})
+	t.Run("one active and one pending", func(t *testing.T) {
+		configuredGuardians := &guardians.Guardians{Slice: []*guardians.Guardian{g1, g2}}
+		acc := &stateMocks.UserAccountStub{
+			RetrieveValueFromDataTrieTrackerCalled: func(key []byte) ([]byte, error) {
+				return ga.marshaller.Marshal(configuredGuardians)
+			},
+		}
+		active, pending, err := ga.GetConfiguredGuardians(acc)
+		require.Equal(t, g1, active)
+		require.Equal(t, g2, pending)
+		require.Nil(t, err)
+	})
+	t.Run("one old and one active", func(t *testing.T) {
+		configuredGuardians := &guardians.Guardians{Slice: []*guardians.Guardian{g0, g1}}
+		acc := &stateMocks.UserAccountStub{
+			RetrieveValueFromDataTrieTrackerCalled: func(key []byte) ([]byte, error) {
+				return ga.marshaller.Marshal(configuredGuardians)
+			},
+		}
+		active, pending, err := ga.GetConfiguredGuardians(acc)
+		require.Equal(t, g1, active)
+		require.Nil(t, pending)
+		require.Nil(t, err)
+	})
+}
+
 func TestGuardedAccount_EpochConfirmed(t *testing.T) {
 	ga := createGuardedAccountWithEpoch(0)
 	ga.EpochConfirmed(1, 0)

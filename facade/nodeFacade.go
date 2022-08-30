@@ -218,6 +218,11 @@ func (nf *nodeFacade) GetKeyValuePairs(address string, options apiData.AccountQu
 	return nf.node.GetKeyValuePairs(address, options, ctx)
 }
 
+// GetGuardianData returns the guardian data for the provided address
+func (nf *nodeFacade) GetGuardianData(address string, options apiData.AccountQueryOptions) (apiData.GuardianData, apiData.BlockInfo, error) {
+	return nf.node.GetGuardianData(address, options)
+}
+
 // GetAllESDTTokens returns all the esdt tokens for a given address
 func (nf *nodeFacade) GetAllESDTTokens(address string, options apiData.AccountQueryOptions) (map[string]*esdt.ESDigitalToken, apiData.BlockInfo, error) {
 	ctx, cancel := nf.getContextForApiTrieRangeOperations()

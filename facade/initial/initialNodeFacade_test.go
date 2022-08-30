@@ -207,5 +207,9 @@ func TestDisabledNodeFacade_AllMethodsShouldNotPanic(t *testing.T) {
 	assert.Equal(t, uint64(0), nonce)
 	assert.Equal(t, errNodeStarting, err)
 
+	guardianData, _, err := inf.GetGuardianData("", api.AccountQueryOptions{})
+	assert.Equal(t, api.GuardianData{}, guardianData)
+	assert.Equal(t, errNodeStarting, err)
+
 	assert.False(t, check.IfNil(inf))
 }

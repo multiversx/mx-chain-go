@@ -288,6 +288,11 @@ func (inf *initialNodeFacade) GetKeyValuePairs(_ string, _ api.AccountQueryOptio
 	return nil, api.BlockInfo{}, errNodeStarting
 }
 
+// GetGuardianData returns error
+func (inf *initialNodeFacade) GetGuardianData(_ string, _ api.AccountQueryOptions) (api.GuardianData, api.BlockInfo, error) {
+	return api.GuardianData{}, api.BlockInfo{}, errNodeStarting
+}
+
 // GetDirectStakedList returns empty slice
 func (inf *initialNodeFacade) GetDirectStakedList() ([]*api.DirectStakedValue, error) {
 	return nil, errNodeStarting

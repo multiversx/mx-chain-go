@@ -29,6 +29,9 @@ type NodeHandler interface {
 	// GetValueForKey returns the value of a key from a given account
 	GetValueForKey(address string, key string, options api.AccountQueryOptions) (string, api.BlockInfo, error)
 
+	// GetGuardianData returns the guardian data for given account
+	GetGuardianData(address string, options api.AccountQueryOptions) (api.GuardianData, api.BlockInfo, error)
+
 	// GetKeyValuePairs returns the key-value pairs under a given address
 	GetKeyValuePairs(address string, options api.AccountQueryOptions, ctx context.Context) (map[string]string, api.BlockInfo, error)
 
