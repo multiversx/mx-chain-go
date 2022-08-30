@@ -84,7 +84,7 @@ func (sbp *shardAPIBlockProcessor) GetBlockByRound(round uint64, options api.Blo
 }
 
 func (sbp *shardAPIBlockProcessor) convertShardBlockBytesToAPIBlock(hash []byte, blockBytes []byte, options api.BlockQueryOptions) (*api.Block, error) {
-	blockHeader, err := process.CreateShardHeader(sbp.marshalizer, blockBytes)
+	blockHeader, err := process.UnmarshalShardHeader(sbp.marshalizer, blockBytes)
 	if err != nil {
 		return nil, err
 	}

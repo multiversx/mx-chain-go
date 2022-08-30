@@ -674,11 +674,9 @@ func (bicf *baseInterceptorsContainerFactory) generateHeartbeatInterceptor() err
 		return err
 	}
 
-	internalMarshalizer := bicf.argInterceptorFactory.CoreComponents.InternalMarshalizer()
-	mdInterceptor, err := interceptors.NewMultiDataInterceptor(
-		interceptors.ArgMultiDataInterceptor{
+	sdInterceptor, err := interceptors.NewSingleDataInterceptor(
+		interceptors.ArgSingleDataInterceptor{
 			Topic:                identifierHeartbeat,
-			Marshalizer:          internalMarshalizer,
 			DataFactory:          heartbeatFactory,
 			Processor:            heartbeatProcessor,
 			Throttler:            bicf.globalThrottler,
@@ -692,7 +690,7 @@ func (bicf *baseInterceptorsContainerFactory) generateHeartbeatInterceptor() err
 		return err
 	}
 
-	interceptor, err := bicf.createTopicAndAssignHandler(identifierHeartbeat, mdInterceptor, true)
+	interceptor, err := bicf.createTopicAndAssignHandler(identifierHeartbeat, sdInterceptor, true)
 	if err != nil {
 		return err
 	}

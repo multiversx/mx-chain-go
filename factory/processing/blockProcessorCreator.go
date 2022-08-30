@@ -1194,8 +1194,10 @@ func (pcf *processComponentsFactory) createBuiltInFunctionContainer(
 	accounts state.AccountsAdapter,
 	mapDNSAddresses map[string]struct{},
 ) (vmcommon.BuiltInFunctionFactory, error) {
-	pubKeyConverter := pcf.coreData.AddressPubKeyConverter()
-	convertedAddress, err := pubKeyConverter.Decode(pcf.config.BuiltInFunctions.AutomaticCrawlerAddress)
+	convertedAddresses, err := mainFactory.DecodeAddresses(
+		pcf.coreData.AddressPubKeyConverter(),
+		pcf.config.BuiltInFunctions.AutomaticCrawlerAddresses,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -1215,7 +1217,7 @@ func (pcf *processComponentsFactory) createBuiltInFunctionContainer(
 		CheckCorrectTokenIDEnableEpoch:           pcf.epochConfig.EnableEpochs.CheckCorrectTokenIDForTransferRoleEnableEpoch,
 		CheckFunctionArgumentEnableEpoch:         pcf.epochConfig.EnableEpochs.CheckFunctionArgumentEnableEpoch,
 		ESDTMetadataContinuousCleanupEnableEpoch: pcf.epochConfig.EnableEpochs.ESDTMetadataContinuousCleanupEnableEpoch,
-		AutomaticCrawlerAddress:                  convertedAddress,
+		AutomaticCrawlerAddresses:                convertedAddresses,
 		MaxNumNodesInTransferRole:                pcf.config.BuiltInFunctions.MaxNumAddressesInTransferRole,
 	}
 

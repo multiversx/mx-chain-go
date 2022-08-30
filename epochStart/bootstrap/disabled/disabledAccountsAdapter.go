@@ -81,6 +81,11 @@ func (a *accountsAdapter) RecreateTrie(_ []byte) error {
 	return nil
 }
 
+// RecreateTrieFromEpoch -
+func (a *accountsAdapter) RecreateTrieFromEpoch(_ common.RootHashHolder) error {
+	return nil
+}
+
 // CancelPrune -
 func (a *accountsAdapter) CancelPrune(_ []byte, _ state.TriePruningIdentifier) {
 }
