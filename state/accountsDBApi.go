@@ -160,6 +160,11 @@ func (accountsDB *accountsDBApi) RecreateTrie(_ []byte) error {
 	return ErrOperationNotPermitted
 }
 
+// RecreateTrieFromEpoch is a not permitted operation in this implementation and thus, will return an error
+func (accountsDB *accountsDBApi) RecreateTrieFromEpoch(_ common.RootHashHolder) error {
+	return ErrOperationNotPermitted
+}
+
 // PruneTrie is a not permitted operation in this implementation and thus, does nothing
 func (accountsDB *accountsDBApi) PruneTrie(_ []byte, _ TriePruningIdentifier, _ PruningHandler) {
 }

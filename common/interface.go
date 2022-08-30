@@ -26,6 +26,7 @@ type Trie interface {
 	RootHash() ([]byte, error)
 	Commit() error
 	Recreate(root []byte) (Trie, error)
+	RecreateFromEpoch(options RootHashHolder) (Trie, error)
 	String() string
 	GetObsoleteHashes() [][]byte
 	GetDirtyHashes() (ModifiedHashes, error)
@@ -61,6 +62,7 @@ type StorageManager interface {
 	Remove(hash []byte) error
 	SetEpochForPutOperation(uint32)
 	ShouldTakeSnapshot() bool
+	GetBaseTrieStorageManager() StorageManager
 	IsClosed() bool
 	Close() error
 	IsInterfaceNil() bool
@@ -154,10 +156,11 @@ type ReceiptsHolder interface {
 	IsInterfaceNil() bool
 }
 
-// RootHashHolder holds a rootHash
+// RootHashHolder holds a rootHash and the corresponding epoch
 type RootHashHolder interface {
 	GetRootHash() []byte
 	GetEpoch() core.OptionalUint32
+	String() string
 	IsInterfaceNil() bool
 }
 

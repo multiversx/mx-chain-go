@@ -25,6 +25,7 @@ type AccountsStub struct {
 	RevertToSnapshotCalled        func(snapshot int) error
 	RootHashCalled                func() ([]byte, error)
 	RecreateTrieCalled            func(rootHash []byte) error
+	RecreateTrieFromEpochCalled   func(options common.RootHashHolder) error
 	PruneTrieCalled               func(rootHash []byte, identifier state.TriePruningIdentifier, handler state.PruningHandler)
 	CancelPruneCalled             func(rootHash []byte, identifier state.TriePruningIdentifier)
 	SnapshotStateCalled           func(rootHash []byte)
@@ -156,6 +157,15 @@ func (as *AccountsStub) RootHash() ([]byte, error) {
 func (as *AccountsStub) RecreateTrie(rootHash []byte) error {
 	if as.RecreateTrieCalled != nil {
 		return as.RecreateTrieCalled(rootHash)
+	}
+
+	return errNotImplemented
+}
+
+// RecreateTrieFromEpoch -
+func (as *AccountsStub) RecreateTrieFromEpoch(options common.RootHashHolder) error {
+	if as.RecreateTrieFromEpochCalled != nil {
+		return as.RecreateTrieFromEpochCalled(options)
 	}
 
 	return errNotImplemented
