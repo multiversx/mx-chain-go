@@ -5,6 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/arwen-wasm-vm/v1_5/arwen/elrondapi"
 	mock "github.com/ElrondNetwork/arwen-wasm-vm/v1_5/mock/context"
+	test "github.com/ElrondNetwork/arwen-wasm-vm/v1_5/testcommon"
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen/arwenvm"
 	"github.com/ElrondNetwork/elrond-go/testscommon/txDataBuilder"
@@ -17,6 +18,8 @@ func MultiTransferViaAsyncMock(instanceMock *mock.InstanceMock, config interface
 	instanceMock.AddMockMethod("multi_transfer_via_async", func() *mock.InstanceMock {
 		host := instanceMock.Host
 		instance := mock.GetMockInstance(host)
+
+		testConfig := config.(*test.TestConfig)
 
 		scAddress := host.Runtime().GetContextAddress()
 
@@ -34,7 +37,8 @@ func MultiTransferViaAsyncMock(instanceMock *mock.InstanceMock, config interface
 		}
 		callData.Str("accept_multi_funds_echo")
 
-		err := arwenvm.RegisterAsyncCallForMockContract(host, config, scAddress, callData)
+		value := big.NewInt(testConfig.TransferFromParentToChild).Bytes()
+		err := arwenvm.RegisterAsyncCallForMockContract(host, config, scAddress, value, callData)
 		if err != nil {
 			host.Runtime().SignalUserError(err.Error())
 			return instance
@@ -139,6 +143,33 @@ func AcceptFundsEchoMock(instanceMock *mock.InstanceMock, config interface{}) {
 	instanceMock.AddMockMethod("accept_funds_echo", func() *mock.InstanceMock {
 		host := instanceMock.Host
 		instance := mock.GetMockInstance(host)
+		return instance
+	})
+}
+
+// DoAsyncCallMock is an exposed mock contract method
+func DoAsyncCallMock(instanceMock *mock.InstanceMock, config interface{}) {
+	instanceMock.AddMockMethod("doAsyncCall", func() *mock.InstanceMock {
+		host := instanceMock.Host
+		instance := mock.GetMockInstance(host)
+
+		args := host.Runtime().Arguments()
+		destAddress := args[0]
+		egldValue := args[1]
+		function := string(args[2])
+
+		callData := txDataBuilder.NewBuilder()
+		callData.Func(function)
+		for a := 2; a < len(args); a++ {
+			callData.Bytes(args[a])
+		}
+
+		err := arwenvm.RegisterAsyncCallForMockContract(host, config, destAddress, egldValue, callData)
+		if err != nil {
+			host.Runtime().SignalUserError(err.Error())
+			return instance
+		}
+
 		return instance
 	})
 }

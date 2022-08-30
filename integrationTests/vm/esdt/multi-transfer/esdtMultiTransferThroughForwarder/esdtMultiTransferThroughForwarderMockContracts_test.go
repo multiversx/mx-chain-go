@@ -4,13 +4,9 @@ import (
 	"testing"
 
 	test "github.com/ElrondNetwork/arwen-wasm-vm/v1_5/testcommon"
-	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	arwenvm "github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen/arwenvm"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/esdt"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/esdt/localFuncs"
-	multitransfer "github.com/ElrondNetwork/elrond-go/integrationTests/vm/esdt/multi-transfer"
-	"github.com/ElrondNetwork/elrond-go/testscommon/txDataBuilder"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
@@ -19,9 +15,32 @@ func TestESDTMultiTransferThroughForwarder_MockContracts(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
+	net, ownerShard1, ownerShard2, senderNode, forwarder, vaultShard1, vaultShard2 :=
+		ESDTMultiTransferThroughForwarder_MockContracts_SetupNetwork(t)
+	defer net.Close()
+
+	ESDTMultiTransferThroughForwarder_MockContracts_Deploy(t,
+		net,
+		forwarder,
+		ownerShard1,
+		vaultShard1,
+		vaultShard2,
+		ownerShard2)
+
+	ESDTMultiTransferThroughForwarder_RunStepsAndAsserts(t,
+		net,
+		senderNode,
+		ownerShard1,
+		ownerShard2,
+		forwarder,
+		vaultShard1,
+		vaultShard2,
+	)
+}
+
+func ESDTMultiTransferThroughForwarder_MockContracts_SetupNetwork(t *testing.T) (*integrationTests.TestNetwork, *integrationTests.TestWalletAccount, *integrationTests.TestWalletAccount, *integrationTests.TestProcessorNode, []byte, []byte, []byte) {
 	net := integrationTests.NewTestNetworkSized(t, 2, 1, 1)
 	net.Start()
-	defer net.Close()
 
 	initialVal := uint64(1000000000)
 	net.MintNodeAccountsUint64(initialVal)
@@ -43,29 +62,10 @@ func TestESDTMultiTransferThroughForwarder_MockContracts(t *testing.T) {
 
 	vaultShard2, _ := arwenvm.GetAddressForNewAccountOnWalletAndNode(t, net, owner2, node0shard1)
 
-	// Create the fungible token
-	supply := int64(1000)
-	tokenID := multitransfer.IssueFungibleTokenWithIssuerAddress(t, net, node0shard0, owner, "FUNG1", supply)
+	return net, owner, owner2, node0shard0, forwarder, vaultShard1, vaultShard2
+}
 
-	// Issue and create an SFT
-	sftID := multitransfer.IssueNftWithIssuerAddress(net, node0shard0, owner, "SFT1", true)
-	multitransfer.CreateSFT(t, net, node0shard0, owner, sftID, 1, supply)
-
-	// Send the tokens to the forwarder SC
-	txData := txDataBuilder.NewBuilder()
-	txData.Func(core.BuiltInFunctionMultiESDTNFTTransfer)
-	txData.Bytes(forwarder).Int(2)
-	txData.Str(tokenID).Int(0).Int64(supply)
-	txData.Str(sftID).Int(1).Int64(supply)
-
-	tx := net.CreateTxUint64(owner, owner.Address, 0, txData.ToBytes())
-	tx.GasLimit = net.MaxGasLimit / 2
-	_ = net.SignAndSendTx(owner, tx)
-	net.Steps(4)
-
-	esdt.CheckAddressHasTokens(t, forwarder, net.Nodes, []byte(sftID), 1, supply)
-	esdt.CheckAddressHasTokens(t, forwarder, net.Nodes, []byte(tokenID), 0, supply)
-
+func ESDTMultiTransferThroughForwarder_MockContracts_Deploy(t *testing.T, net *integrationTests.TestNetwork, forwarder []byte, ownerShard1 *integrationTests.TestWalletAccount, vaultShard1 []byte, vaultShard2 []byte, ownerShard2 *integrationTests.TestWalletAccount) {
 	testConfig := &test.TestConfig{
 		IsLegacyAsync: true,
 	}
@@ -73,8 +73,7 @@ func TestESDTMultiTransferThroughForwarder_MockContracts(t *testing.T) {
 	arwenvm.InitializeMockContracts(
 		t, net,
 		test.CreateMockContractOnShard(forwarder, 0).
-			WithOwnerAddress(owner.Address).
-			WithBalance(int64(initialVal)).
+			WithOwnerAddress(ownerShard1.Address).
 			WithConfig(testConfig).
 			WithMethods(
 				localFuncs.MultiTransferViaAsyncMock,
@@ -82,128 +81,58 @@ func TestESDTMultiTransferThroughForwarder_MockContracts(t *testing.T) {
 				localFuncs.MultiTransferExecuteMock,
 				localFuncs.EmptyCallbackMock),
 		test.CreateMockContractOnShard(vaultShard1, 0).
-			WithOwnerAddress(owner.Address).
-			WithBalance(int64(initialVal)).
+			WithOwnerAddress(ownerShard1.Address).
 			WithConfig(testConfig).
 			WithMethods(localFuncs.AcceptFundsEchoMock),
 		test.CreateMockContractOnShard(vaultShard2, 1).
-			WithOwnerAddress(owner2.Address).
-			WithBalance(int64(initialVal)).
+			WithOwnerAddress(ownerShard2.Address).
 			WithConfig(testConfig).
 			WithMethods(localFuncs.AcceptMultiFundsEchoMock),
 	)
+}
 
-	// transfer to a user from another shard
-	transfers := []*multitransfer.EsdtTransfer{
-		{
-			TokenIdentifier: tokenID,
-			Nonce:           0,
-			Amount:          100,
-		}}
-
-	multiTransferThroughForwarder(
-		net,
-		owner,
-		forwarder,
-		"multi_transfer_via_async",
-		transfers,
-		owner2.Address)
-
-	esdt.CheckAddressHasTokens(t, forwarder, net.Nodes, []byte(tokenID), 0, 900)
-	esdt.CheckAddressHasTokens(t, owner2.Address, net.Nodes, []byte(tokenID), 0, 100)
-
-	// transfer to vault, same shard
-	multiTransferThroughForwarder(
-		net,
-		owner,
-		forwarder,
-		"forward_sync_accept_funds_multi_transfer",
-		transfers,
-		vaultShard1)
-
-	esdt.CheckAddressHasTokens(t, forwarder, net.Nodes, []byte(tokenID), 0, 800)
-	esdt.CheckAddressHasTokens(t, vaultShard1, net.Nodes, []byte(tokenID), 0, 100)
-
-	// transfer fungible and non-fungible
-	// transfer to vault, same shard
-	transfers = []*multitransfer.EsdtTransfer{
-		{
-			TokenIdentifier: tokenID,
-			Nonce:           0,
-			Amount:          100,
-		},
-		{
-			TokenIdentifier: sftID,
-			Nonce:           1,
-			Amount:          100,
-		},
+func TestESDTMultiTransferWithWrongArgumentsSFT_MockContracts(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
 	}
-	multiTransferThroughForwarder(
-		net,
-		owner,
-		forwarder,
-		"forward_sync_accept_funds_multi_transfer",
-		transfers,
-		vaultShard1)
 
-	esdt.CheckAddressHasTokens(t, forwarder, net.Nodes, []byte(tokenID), 0, 700)
-	esdt.CheckAddressHasTokens(t, vaultShard1, net.Nodes, []byte(tokenID), 0, 200)
+	net, ownerShard1, ownerShard2, senderNode, forwarder, _, vaultShard2 :=
+		ESDTMultiTransferThroughForwarder_MockContracts_SetupNetwork(t)
+	defer net.Close()
 
-	esdt.CheckAddressHasTokens(t, forwarder, net.Nodes, []byte(sftID), 1, 900)
-	esdt.CheckAddressHasTokens(t, vaultShard1, net.Nodes, []byte(sftID), 1, 100)
+	ESDTMultiTransferWithWrongArguments_MockContracts_Deploy(t, net, ownerShard1, forwarder, vaultShard2, ownerShard2)
 
-	// transfer fungible and non-fungible
-	// transfer to vault, cross shard via transfer and execute
-	transfers = []*multitransfer.EsdtTransfer{
-		{
-			TokenIdentifier: tokenID,
-			Nonce:           0,
-			Amount:          100,
-		},
-		{
-			TokenIdentifier: sftID,
-			Nonce:           1,
-			Amount:          100,
-		},
+	ESDTMultiTransferWithWrongArgumentsSFT_RunStepsAndAsserts(t, net, senderNode, ownerShard1, forwarder, vaultShard2)
+}
+
+func TestESDTMultiTransferWithWrongArgumentsFungible_MockContracts(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
 	}
-	multiTransferThroughForwarder(
-		net,
-		owner,
-		forwarder,
-		"forward_transf_exec_accept_funds_multi_transfer",
-		transfers,
-		vaultShard2)
 
-	esdt.CheckAddressHasTokens(t, forwarder, net.Nodes, []byte(tokenID), 0, 600)
-	esdt.CheckAddressHasTokens(t, vaultShard2, net.Nodes, []byte(tokenID), 0, 100)
+	net, ownerShard1, ownerShard2, senderNode, forwarder, _, vaultShard2 :=
+		ESDTMultiTransferThroughForwarder_MockContracts_SetupNetwork(t)
+	defer net.Close()
 
-	esdt.CheckAddressHasTokens(t, forwarder, net.Nodes, []byte(sftID), 1, 800)
-	esdt.CheckAddressHasTokens(t, vaultShard2, net.Nodes, []byte(sftID), 1, 100)
+	ESDTMultiTransferWithWrongArguments_MockContracts_Deploy(t, net, ownerShard1, forwarder, vaultShard2, ownerShard2)
 
-	// transfer to vault, cross shard, via async call
-	transfers = []*multitransfer.EsdtTransfer{
-		{
-			TokenIdentifier: tokenID,
-			Nonce:           0,
-			Amount:          100,
-		},
-		{
-			TokenIdentifier: sftID,
-			Nonce:           1,
-			Amount:          100,
-		},
+	ESDTMultiTransferWithWrongArgumentsFungible_RunStepsAndAsserts(t, net, senderNode, ownerShard1, forwarder, vaultShard2)
+}
+
+func ESDTMultiTransferWithWrongArguments_MockContracts_Deploy(t *testing.T, net *integrationTests.TestNetwork, ownerShard1 *integrationTests.TestWalletAccount, forwarder []byte, vaultShard2 []byte, ownerShard2 *integrationTests.TestWalletAccount) {
+	testConfig := &test.TestConfig{
+		IsLegacyAsync: true,
 	}
-	multiTransferThroughForwarder(
-		net,
-		owner,
-		forwarder,
-		"multi_transfer_via_async",
-		transfers,
-		vaultShard2)
 
-	esdt.CheckAddressHasTokens(t, forwarder, net.Nodes, []byte(tokenID), 0, 500)
-	esdt.CheckAddressHasTokens(t, vaultShard2, net.Nodes, []byte(tokenID), 0, 200)
-
-	esdt.CheckAddressHasTokens(t, forwarder, net.Nodes, []byte(sftID), 1, 700)
-	esdt.CheckAddressHasTokens(t, vaultShard2, net.Nodes, []byte(sftID), 1, 200)
+	arwenvm.InitializeMockContracts(
+		t, net,
+		test.CreateMockContractOnShard(forwarder, 0).
+			WithOwnerAddress(ownerShard1.Address).
+			WithConfig(testConfig).
+			WithMethods(localFuncs.DoAsyncCallMock),
+		test.CreateMockContractOnShard(vaultShard2, 1).
+			WithOwnerAddress(ownerShard2.Address).
+			WithConfig(testConfig).
+			WithMethods(localFuncs.AcceptFundsEchoMock),
+	)
 }

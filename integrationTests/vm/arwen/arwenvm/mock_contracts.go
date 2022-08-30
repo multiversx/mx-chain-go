@@ -102,17 +102,16 @@ func CreateHostAndInstanceBuilder(t *testing.T, net *integrationTests.TestNetwor
 }
 
 // RegisterAsyncCallForMockContract is resued also in some tests before async context serialization
-func RegisterAsyncCallForMockContract(host arwen.VMHost, config interface{}, destinationAddress []byte, callData *txDataBuilder.TxDataBuilder) error {
+func RegisterAsyncCallForMockContract(host arwen.VMHost, config interface{}, destinationAddress []byte, egldValue []byte, callData *txDataBuilder.TxDataBuilder) error {
 	testConfig := config.(*testcommon.TestConfig)
 
-	value := big.NewInt(testConfig.TransferFromParentToChild).Bytes()
 	async := host.Async()
 	if !testConfig.IsLegacyAsync {
 		err := host.Async().RegisterAsyncCall("testGroup", &arwen.AsyncCall{
 			Status:          arwen.AsyncCallPending,
 			Destination:     destinationAddress,
 			Data:            callData.ToBytes(),
-			ValueBytes:      value,
+			ValueBytes:      egldValue,
 			SuccessCallback: testConfig.SuccessCallback,
 			ErrorCallback:   testConfig.ErrorCallback,
 			GasLimit:        testConfig.GasProvidedToChild,
@@ -124,6 +123,6 @@ func RegisterAsyncCallForMockContract(host arwen.VMHost, config interface{}, des
 		}
 		return nil
 	} else {
-		return async.RegisterLegacyAsyncCall(destinationAddress, callData.ToBytes(), value)
+		return async.RegisterLegacyAsyncCall(destinationAddress, callData.ToBytes(), egldValue)
 	}
 }
