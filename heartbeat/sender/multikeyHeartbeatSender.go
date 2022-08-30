@@ -163,7 +163,7 @@ func (sender *multikeyHeartbeatSender) sendAllInOne() error {
 			continue
 		}
 
-		sender.messenger.BroadcastUsingPrivateKey(sender.topic, buff, pid, p2pSk)
+		sender.messenger.BroadcastWithSk(sender.topic, buff, pid, p2pSk)
 	}
 
 	return nil
