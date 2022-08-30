@@ -956,7 +956,7 @@ func TestGetGuardianData(t *testing.T) {
 		assert.True(t, strings.Contains(response.Error, expectedErr.Error()))
 
 	})
-	t.Run("OK", func(t *testing.T) {
+	t.Run("should work", func(t *testing.T) {
 		expectedGuardianData := api.GuardianData{
 			ActiveGuardian: &api.Guardian{
 				Address: "guardian1",

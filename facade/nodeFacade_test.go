@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
-	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -698,7 +697,7 @@ func TestNodeFacade_GetGuardianData(t *testing.T) {
 	}
 	arg.Node = &mock.NodeStub{
 		GetGuardianDataCalled: func(address string, options api.AccountQueryOptions) (api.GuardianData, api.BlockInfo, error) {
-			if strings.Compare(testAddress, address) == 0 {
+			if testAddress == address {
 				return expectedGuardianData, api.BlockInfo{}, nil
 			}
 			return emptyGuardianData, api.BlockInfo{}, expectedErr
