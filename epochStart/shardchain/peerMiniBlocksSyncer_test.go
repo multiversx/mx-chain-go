@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
@@ -13,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -343,4 +345,384 @@ func TestValidatorInfoProcessor_ProcesStartOfEpochWithMissinPeerMiniblocksTimeou
 	_, _, processError := syncer.SyncMiniBlocks(epochStartHeader)
 
 	require.Equal(t, process.ErrTimeIsOut, processError)
+}
+
+func TestValidatorInfoProcessor_SyncValidatorsInfo(t *testing.T) {
+	t.Parallel()
+
+	t.Run("sync validators info with nil block body", func(t *testing.T) {
+		t.Parallel()
+
+		args := createDefaultArguments()
+		syncer, _ := NewPeerMiniBlockSyncer(args)
+
+		missingValidatorsInfoHashes, validatorsInfo, err := syncer.SyncValidatorsInfo(nil)
+		assert.Nil(t, missingValidatorsInfoHashes)
+		assert.Nil(t, validatorsInfo)
+		assert.Equal(t, epochStart.ErrNilBlockBody, err)
+	})
+
+	t.Run("sync validators info with missing validators info", func(t *testing.T) {
+		t.Parallel()
+
+		args := createDefaultArguments()
+		args.ValidatorsInfoPool = &testscommon.ShardedDataStub{
+			SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
+				return nil, false
+			},
+		}
+		syncer, _ := NewPeerMiniBlockSyncer(args)
+
+		body := &block.Body{}
+		body.MiniBlocks = append(body.MiniBlocks, createMockMiniBlock(core.MetachainShardId, 0, block.TxBlock))
+		body.MiniBlocks = append(body.MiniBlocks, createMockMiniBlock(core.MetachainShardId, 0, block.PeerBlock))
+		missingValidatorsInfoHashes, validatorsInfo, err := syncer.SyncValidatorsInfo(body)
+
+		assert.Equal(t, 3, len(missingValidatorsInfoHashes))
+		assert.Nil(t, validatorsInfo)
+		assert.Equal(t, process.ErrTimeIsOut, err)
+	})
+
+	t.Run("sync validators info without missing validators info", func(t *testing.T) {
+		t.Parallel()
+
+		svi1 := &state.ShardValidatorInfo{PublicKey: []byte("x")}
+		svi2 := &state.ShardValidatorInfo{PublicKey: []byte("y")}
+		svi3 := &state.ShardValidatorInfo{PublicKey: []byte("z")}
+
+		args := createDefaultArguments()
+		args.ValidatorsInfoPool = &testscommon.ShardedDataStub{
+			SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
+				if bytes.Equal(key, []byte("a")) {
+					return svi1, true
+				}
+				if bytes.Equal(key, []byte("b")) {
+					return svi2, true
+				}
+				if bytes.Equal(key, []byte("c")) {
+					return svi3, true
+				}
+				return nil, false
+			},
+		}
+		syncer, _ := NewPeerMiniBlockSyncer(args)
+
+		body := &block.Body{}
+		body.MiniBlocks = append(body.MiniBlocks, createMockMiniBlock(core.MetachainShardId, 0, block.TxBlock))
+		body.MiniBlocks = append(body.MiniBlocks, createMockMiniBlock(core.MetachainShardId, 0, block.PeerBlock))
+		missingValidatorsInfoHashes, validatorsInfo, err := syncer.SyncValidatorsInfo(body)
+
+		assert.Nil(t, err)
+		assert.Nil(t, missingValidatorsInfoHashes)
+		assert.Equal(t, 3, len(validatorsInfo))
+		assert.Equal(t, svi1, validatorsInfo["a"])
+		assert.Equal(t, svi2, validatorsInfo["b"])
+		assert.Equal(t, svi3, validatorsInfo["c"])
+	})
+}
+
+func TestValidatorInfoProcessor_ReceivedValidatorInfo(t *testing.T) {
+	t.Parallel()
+
+	t.Run("received validators info with wrong type assertion", func(t *testing.T) {
+		t.Parallel()
+
+		args := createDefaultArguments()
+		syncer, _ := NewPeerMiniBlockSyncer(args)
+		syncer.initValidatorsInfo()
+
+		syncer.mutValidatorsInfoForBlock.Lock()
+		syncer.mapAllValidatorsInfo["a"] = nil
+		syncer.numMissingValidatorsInfo = 1
+		syncer.mutValidatorsInfoForBlock.Unlock()
+
+		syncer.receivedValidatorInfo([]byte("a"), nil)
+
+		syncer.mutValidatorsInfoForBlock.RLock()
+		numMissingValidatorsInfo := syncer.numMissingValidatorsInfo
+		syncer.mutValidatorsInfoForBlock.RUnlock()
+
+		assert.Equal(t, uint32(1), numMissingValidatorsInfo)
+	})
+
+	t.Run("received validators info with not requested validator info", func(t *testing.T) {
+		t.Parallel()
+
+		svi := &state.ShardValidatorInfo{PublicKey: []byte("x")}
+
+		args := createDefaultArguments()
+		syncer, _ := NewPeerMiniBlockSyncer(args)
+		syncer.initValidatorsInfo()
+
+		syncer.mutValidatorsInfoForBlock.Lock()
+		syncer.mapAllValidatorsInfo["a"] = nil
+		syncer.numMissingValidatorsInfo = 1
+		syncer.mutValidatorsInfoForBlock.Unlock()
+
+		syncer.receivedValidatorInfo([]byte("b"), svi)
+
+		syncer.mutValidatorsInfoForBlock.RLock()
+		numMissingValidatorsInfo := syncer.numMissingValidatorsInfo
+		syncer.mutValidatorsInfoForBlock.RUnlock()
+
+		assert.Equal(t, uint32(1), numMissingValidatorsInfo)
+	})
+
+	t.Run("received validators info with already received validator info", func(t *testing.T) {
+		t.Parallel()
+
+		svi := &state.ShardValidatorInfo{PublicKey: []byte("x")}
+
+		args := createDefaultArguments()
+		syncer, _ := NewPeerMiniBlockSyncer(args)
+		syncer.initValidatorsInfo()
+
+		syncer.mutValidatorsInfoForBlock.Lock()
+		syncer.mapAllValidatorsInfo["a"] = svi
+		syncer.numMissingValidatorsInfo = 1
+		syncer.mutValidatorsInfoForBlock.Unlock()
+
+		syncer.receivedValidatorInfo([]byte("a"), svi)
+
+		syncer.mutValidatorsInfoForBlock.RLock()
+		numMissingValidatorsInfo := syncer.numMissingValidatorsInfo
+		syncer.mutValidatorsInfoForBlock.RUnlock()
+
+		assert.Equal(t, uint32(1), numMissingValidatorsInfo)
+	})
+
+	t.Run("received validators info with missing validator info", func(t *testing.T) {
+		t.Parallel()
+
+		svi := &state.ShardValidatorInfo{PublicKey: []byte("x")}
+
+		args := createDefaultArguments()
+		syncer, _ := NewPeerMiniBlockSyncer(args)
+		syncer.initValidatorsInfo()
+
+		syncer.mutValidatorsInfoForBlock.Lock()
+		syncer.mapAllValidatorsInfo["a"] = nil
+		syncer.numMissingValidatorsInfo = 1
+		syncer.mutValidatorsInfoForBlock.Unlock()
+
+		wasWithTimeOut := atomic.Flag{}
+		go func() {
+			select {
+			case <-syncer.chRcvAllValidatorsInfo:
+				return
+			case <-time.After(time.Second):
+				wasWithTimeOut.SetValue(true)
+				return
+			}
+		}()
+
+		syncer.receivedValidatorInfo([]byte("a"), svi)
+
+		syncer.mutValidatorsInfoForBlock.RLock()
+		numMissingValidatorsInfo := syncer.numMissingValidatorsInfo
+		syncer.mutValidatorsInfoForBlock.RUnlock()
+
+		assert.False(t, wasWithTimeOut.IsSet())
+		assert.Equal(t, uint32(0), numMissingValidatorsInfo)
+	})
+}
+
+func TestValidatorInfoProcessor_GetAllValidatorsInfoShouldWork(t *testing.T) {
+	t.Parallel()
+
+	svi1 := &state.ShardValidatorInfo{PublicKey: []byte("x")}
+	svi2 := &state.ShardValidatorInfo{PublicKey: []byte("y")}
+	svi3 := &state.ShardValidatorInfo{PublicKey: []byte("z")}
+
+	args := createDefaultArguments()
+	syncer, _ := NewPeerMiniBlockSyncer(args)
+	syncer.initValidatorsInfo()
+
+	syncer.mutValidatorsInfoForBlock.Lock()
+	syncer.mapAllValidatorsInfo["a"] = svi1
+	syncer.mapAllValidatorsInfo["b"] = svi2
+	syncer.mapAllValidatorsInfo["c"] = svi3
+	syncer.mutValidatorsInfoForBlock.Unlock()
+
+	body := &block.Body{}
+	body.MiniBlocks = append(body.MiniBlocks, createMockMiniBlock(core.MetachainShardId, 0, block.TxBlock))
+	body.MiniBlocks = append(body.MiniBlocks, createMockMiniBlock(core.MetachainShardId, 0, block.PeerBlock))
+	validatorsInfo := syncer.getAllValidatorsInfo(body)
+
+	assert.Equal(t, 3, len(validatorsInfo))
+	assert.Equal(t, svi1, validatorsInfo["a"])
+	assert.Equal(t, svi2, validatorsInfo["b"])
+	assert.Equal(t, svi3, validatorsInfo["c"])
+}
+
+func TestValidatorInfoProcessor_ComputeMissingValidatorsInfoShouldWork(t *testing.T) {
+	t.Parallel()
+
+	svi1 := &state.ShardValidatorInfo{PublicKey: []byte("x")}
+	svi2 := &state.ShardValidatorInfo{PublicKey: []byte("y")}
+
+	args := createDefaultArguments()
+	args.ValidatorsInfoPool = &testscommon.ShardedDataStub{
+		SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
+			if bytes.Equal(key, []byte("a")) {
+				return svi1, true
+			}
+			if bytes.Equal(key, []byte("b")) {
+				return svi2, true
+			}
+			return nil, false
+		},
+	}
+	syncer, _ := NewPeerMiniBlockSyncer(args)
+	syncer.initValidatorsInfo()
+
+	body := &block.Body{}
+	body.MiniBlocks = append(body.MiniBlocks, createMockMiniBlock(core.MetachainShardId, 0, block.TxBlock))
+	body.MiniBlocks = append(body.MiniBlocks, createMockMiniBlock(core.MetachainShardId, 0, block.PeerBlock))
+	syncer.computeMissingValidatorsInfo(body)
+
+	syncer.mutValidatorsInfoForBlock.RLock()
+	assert.Equal(t, uint32(1), syncer.numMissingValidatorsInfo)
+	assert.Equal(t, 3, len(syncer.mapAllValidatorsInfo))
+	assert.Equal(t, svi1, syncer.mapAllValidatorsInfo["a"])
+	assert.Equal(t, svi2, syncer.mapAllValidatorsInfo["b"])
+	assert.Nil(t, syncer.mapAllValidatorsInfo["c"])
+	syncer.mutValidatorsInfoForBlock.RUnlock()
+}
+
+func TestValidatorInfoProcessor_RetrieveMissingValidatorsInfo(t *testing.T) {
+	t.Parallel()
+
+	t.Run("retrieve missing validators info without missing validators info", func(t *testing.T) {
+		t.Parallel()
+
+		args := createDefaultArguments()
+		syncer, _ := NewPeerMiniBlockSyncer(args)
+
+		missingValidatorsInfoHashes, err := syncer.retrieveMissingValidatorsInfo()
+		assert.Nil(t, missingValidatorsInfoHashes)
+		assert.Nil(t, err)
+	})
+
+	t.Run("retrieve missing validators info with not all validators info received", func(t *testing.T) {
+		t.Parallel()
+
+		svi1 := &state.ShardValidatorInfo{PublicKey: []byte("x")}
+		svi2 := &state.ShardValidatorInfo{PublicKey: []byte("y")}
+		svi3 := &state.ShardValidatorInfo{PublicKey: []byte("z")}
+
+		args := createDefaultArguments()
+		syncer, _ := NewPeerMiniBlockSyncer(args)
+		syncer.initValidatorsInfo()
+		syncer.requestHandler = &testscommon.RequestHandlerStub{
+			RequestValidatorsInfoCalled: func(hashes [][]byte) {
+				syncer.mutValidatorsInfoForBlock.Lock()
+				for _, hash := range hashes {
+					if bytes.Equal(hash, []byte("a")) {
+						syncer.mapAllValidatorsInfo["a"] = svi1
+					}
+					if bytes.Equal(hash, []byte("b")) {
+						syncer.mapAllValidatorsInfo["b"] = svi2
+					}
+					if bytes.Equal(hash, []byte("c")) {
+						syncer.mapAllValidatorsInfo["c"] = svi3
+					}
+				}
+				syncer.mutValidatorsInfoForBlock.Unlock()
+			},
+		}
+
+		syncer.mutValidatorsInfoForBlock.Lock()
+		syncer.mapAllValidatorsInfo["a"] = nil
+		syncer.mapAllValidatorsInfo["b"] = nil
+		syncer.mapAllValidatorsInfo["c"] = nil
+		syncer.mapAllValidatorsInfo["d"] = nil
+		syncer.mutValidatorsInfoForBlock.Unlock()
+
+		missingValidatorsInfoHashes, err := syncer.retrieveMissingValidatorsInfo()
+		assert.Equal(t, process.ErrTimeIsOut, err)
+		require.Equal(t, 1, len(missingValidatorsInfoHashes))
+		assert.Equal(t, []byte("d"), missingValidatorsInfoHashes[0])
+	})
+
+	t.Run("retrieve missing validators info with all validators info received", func(t *testing.T) {
+		t.Parallel()
+
+		svi1 := &state.ShardValidatorInfo{PublicKey: []byte("x")}
+		svi2 := &state.ShardValidatorInfo{PublicKey: []byte("y")}
+		svi3 := &state.ShardValidatorInfo{PublicKey: []byte("z")}
+
+		args := createDefaultArguments()
+		syncer, _ := NewPeerMiniBlockSyncer(args)
+		syncer.initValidatorsInfo()
+		syncer.requestHandler = &testscommon.RequestHandlerStub{
+			RequestValidatorsInfoCalled: func(hashes [][]byte) {
+				syncer.mutValidatorsInfoForBlock.Lock()
+				for _, hash := range hashes {
+					if bytes.Equal(hash, []byte("a")) {
+						syncer.mapAllValidatorsInfo["a"] = svi1
+					}
+					if bytes.Equal(hash, []byte("b")) {
+						syncer.mapAllValidatorsInfo["b"] = svi2
+					}
+					if bytes.Equal(hash, []byte("c")) {
+						syncer.mapAllValidatorsInfo["c"] = svi3
+					}
+				}
+				syncer.mutValidatorsInfoForBlock.Unlock()
+			},
+		}
+
+		syncer.mutValidatorsInfoForBlock.Lock()
+		syncer.mapAllValidatorsInfo["a"] = nil
+		syncer.mapAllValidatorsInfo["b"] = nil
+		syncer.mapAllValidatorsInfo["c"] = nil
+		syncer.mutValidatorsInfoForBlock.Unlock()
+
+		go func() {
+			time.Sleep(waitTime / 2)
+			syncer.chRcvAllValidatorsInfo <- struct{}{}
+		}()
+
+		missingValidatorsInfoHashes, err := syncer.retrieveMissingValidatorsInfo()
+
+		assert.Nil(t, err)
+		assert.Nil(t, missingValidatorsInfoHashes)
+	})
+}
+
+func TestValidatorInfoProcessor_GetAllMissingValidatorsInfoHashesShouldWork(t *testing.T) {
+	t.Parallel()
+
+	svi1 := &state.ShardValidatorInfo{PublicKey: []byte("x")}
+	svi2 := &state.ShardValidatorInfo{PublicKey: []byte("y")}
+	svi3 := &state.ShardValidatorInfo{PublicKey: []byte("z")}
+
+	args := createDefaultArguments()
+	syncer, _ := NewPeerMiniBlockSyncer(args)
+	syncer.initValidatorsInfo()
+
+	syncer.mutValidatorsInfoForBlock.Lock()
+	syncer.mapAllValidatorsInfo["a"] = svi1
+	syncer.mapAllValidatorsInfo["b"] = svi2
+	syncer.mapAllValidatorsInfo["c"] = svi3
+	syncer.mapAllValidatorsInfo["d"] = nil
+	syncer.mutValidatorsInfoForBlock.Unlock()
+
+	missingValidatorsInfoHashes := syncer.getAllMissingValidatorsInfoHashes()
+	require.Equal(t, 1, len(missingValidatorsInfoHashes))
+	assert.Equal(t, []byte("d"), missingValidatorsInfoHashes[0])
+}
+
+func createMockMiniBlock(senderShardID, receiverShardID uint32, blockType block.Type) *block.MiniBlock {
+	return &block.MiniBlock{
+		SenderShardID:   senderShardID,
+		ReceiverShardID: receiverShardID,
+		Type:            blockType,
+		TxHashes: [][]byte{
+			[]byte("a"),
+			[]byte("b"),
+			[]byte("c"),
+		},
+	}
 }

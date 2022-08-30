@@ -1,14 +1,19 @@
 package preprocess
 
 import (
+	"bytes"
+	"errors"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -414,4 +419,79 @@ func TestNewValidatorInfoPreprocessor_RemoveOtherBlockTypeFromPoolShouldNotRemov
 	foundMb, ok = miniBlockPool.Get(mbHash)
 	assert.NotNil(t, foundMb)
 	assert.True(t, ok)
+}
+
+func TestNewValidatorInfoPreprocessor_RestoreValidatorsInfo(t *testing.T) {
+	t.Parallel()
+
+	t.Run("restore validators info with not all txs found in storage", func(t *testing.T) {
+		t.Parallel()
+
+		expectedErr := errors.New("error")
+		hasher := &hashingMocks.HasherMock{}
+		marshalizer := &testscommon.MarshalizerMock{}
+		blockSizeComputation := &testscommon.BlockSizeComputationStub{}
+		storer := &storage.ChainStorerStub{
+			GetAllCalled: func(unitType dataRetriever.UnitType, keys [][]byte) (map[string][]byte, error) {
+				return nil, expectedErr
+			},
+		}
+		tdp := initDataPool()
+		rtp, _ := NewValidatorInfoPreprocessor(
+			hasher,
+			marshalizer,
+			blockSizeComputation,
+			tdp.ValidatorsInfo(),
+			storer,
+			&testscommon.EnableEpochsHandlerStub{},
+		)
+
+		miniBlock := &block.MiniBlock{}
+		err := rtp.restoreValidatorsInfo(miniBlock)
+		assert.Equal(t, expectedErr, err)
+	})
+
+	t.Run("restore validators info with all txs found in storage", func(t *testing.T) {
+		t.Parallel()
+
+		hasher := &hashingMocks.HasherMock{}
+		marshalizer := &testscommon.MarshalizerMock{}
+		blockSizeComputation := &testscommon.BlockSizeComputationStub{}
+		shardValidatorInfoHash := []byte("hash")
+		shardValidatorInfo := &state.ShardValidatorInfo{
+			PublicKey: []byte("x"),
+		}
+		marshalledShardValidatorInfo, _ := marshalizer.Marshal(shardValidatorInfo)
+		storer := &storage.ChainStorerStub{
+			GetAllCalled: func(unitType dataRetriever.UnitType, keys [][]byte) (map[string][]byte, error) {
+				allShardValidatorsInfo := make(map[string][]byte)
+				allShardValidatorsInfo[string(shardValidatorInfoHash)] = marshalledShardValidatorInfo
+				return allShardValidatorsInfo, nil
+			},
+		}
+		tdp := initDataPool()
+		wasCalledWithExpectedKey := false
+		tdp.ValidatorsInfoCalled = func() dataRetriever.ShardedDataCacherNotifier {
+			return &testscommon.ShardedDataStub{
+				AddDataCalled: func(key []byte, data interface{}, sizeInBytes int, cacheID string) {
+					if bytes.Equal(key, shardValidatorInfoHash) {
+						wasCalledWithExpectedKey = true
+					}
+				},
+			}
+		}
+		rtp, _ := NewValidatorInfoPreprocessor(
+			hasher,
+			marshalizer,
+			blockSizeComputation,
+			tdp.ValidatorsInfo(),
+			storer,
+			&testscommon.EnableEpochsHandlerStub{},
+		)
+
+		miniBlock := &block.MiniBlock{}
+		err := rtp.restoreValidatorsInfo(miniBlock)
+		assert.Nil(t, err)
+		assert.True(t, wasCalledWithExpectedKey)
+	})
 }

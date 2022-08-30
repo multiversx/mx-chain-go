@@ -1,23 +1,28 @@
 package sync
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math/big"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	dataTransaction "github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
+	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/update/mock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -340,4 +345,521 @@ func TestSyncPendingTransactionsFor_ReceiveMissingTx(t *testing.T) {
 	err = pendingTxsSyncer.SyncTransactionsFor(miniBlocks, 1, ctx)
 	cancel()
 	require.Nil(t, err)
+}
+
+func TestTransactionsSync_RequestTransactionsForPeerMiniBlockShouldWork(t *testing.T) {
+	t.Parallel()
+
+	svi1 := &state.ShardValidatorInfo{
+		PublicKey: []byte("x"),
+	}
+	svi2 := &state.ShardValidatorInfo{
+		PublicKey: []byte("y"),
+	}
+
+	args := createMockArgs()
+	args.DataPools = getDataPoolsWithShardValidatorInfoAndTxHash(svi2, []byte("b"))
+	transactionsSyncer, _ := NewTransactionsSyncer(args)
+
+	miniBlock := &block.MiniBlock{
+		TxHashes: [][]byte{
+			[]byte("a"),
+			[]byte("b"),
+			[]byte("c"),
+		},
+	}
+	transactionsSyncer.mutPendingTx.Lock()
+	transactionsSyncer.mapValidatorsInfo["a"] = svi1
+	transactionsSyncer.mapTxsToMiniBlocks["b"] = miniBlock
+	numMissingValidatorsInfo := transactionsSyncer.requestTransactionsForPeerMiniBlock(miniBlock)
+
+	assert.Equal(t, 1, numMissingValidatorsInfo)
+	assert.Equal(t, 2, len(transactionsSyncer.mapValidatorsInfo))
+	assert.Equal(t, 2, len(transactionsSyncer.mapTxsToMiniBlocks))
+	assert.Equal(t, svi2, transactionsSyncer.mapValidatorsInfo["b"])
+	assert.Equal(t, miniBlock, transactionsSyncer.mapTxsToMiniBlocks["c"])
+	transactionsSyncer.mutPendingTx.Unlock()
+}
+
+func TestTransactionsSync_ReceivedValidatorInfo(t *testing.T) {
+	t.Parallel()
+
+	txHash := []byte("hash")
+	svi := &state.ShardValidatorInfo{
+		PublicKey: []byte("x"),
+	}
+
+	args := createMockArgs()
+	transactionsSyncer, _ := NewTransactionsSyncer(args)
+
+	// stop sync is true
+	transactionsSyncer.receivedValidatorInfo(txHash, svi)
+	transactionsSyncer.mutPendingTx.Lock()
+	assert.Equal(t, 0, len(transactionsSyncer.mapValidatorsInfo))
+	transactionsSyncer.mutPendingTx.Unlock()
+
+	// txHash does not exist in mapTxsToMiniBlocks
+	transactionsSyncer.stopSync = false
+	transactionsSyncer.receivedValidatorInfo(txHash, svi)
+	transactionsSyncer.mutPendingTx.Lock()
+	assert.Equal(t, 0, len(transactionsSyncer.mapValidatorsInfo))
+	transactionsSyncer.mutPendingTx.Unlock()
+
+	miniBlock := &block.MiniBlock{
+		TxHashes: [][]byte{
+			[]byte("a"),
+			[]byte("b"),
+			[]byte("c"),
+		},
+	}
+	transactionsSyncer.mutPendingTx.Lock()
+	transactionsSyncer.mapTxsToMiniBlocks[string(txHash)] = miniBlock
+	transactionsSyncer.mutPendingTx.Unlock()
+
+	// value received is not of type *state.ShardValidatorInfo
+	transactionsSyncer.receivedValidatorInfo(txHash, nil)
+	transactionsSyncer.mutPendingTx.Lock()
+	assert.Equal(t, 0, len(transactionsSyncer.mapValidatorsInfo))
+	transactionsSyncer.mutPendingTx.Unlock()
+
+	wasReceivedAll := atomic.Flag{}
+	go func() {
+		select {
+		case <-transactionsSyncer.chReceivedAll:
+			wasReceivedAll.SetValue(true)
+			return
+		case <-time.After(time.Second):
+		}
+	}()
+
+	// received all missing validators info with success
+	transactionsSyncer.receivedValidatorInfo(txHash, svi)
+	transactionsSyncer.mutPendingTx.Lock()
+	assert.Equal(t, 1, len(transactionsSyncer.mapValidatorsInfo))
+	transactionsSyncer.mutPendingTx.Unlock()
+	assert.True(t, wasReceivedAll.IsSet())
+}
+
+func TestTransactionsSync_GetValidatorInfoFromPoolShouldWork(t *testing.T) {
+	t.Parallel()
+
+	t.Run("get validator info from pool when tx hash does not exist in mapTxsToMiniBlocks", func(t *testing.T) {
+		t.Parallel()
+
+		txHash := []byte("hash")
+
+		args := createMockArgs()
+		transactionsSyncer, _ := NewTransactionsSyncer(args)
+
+		shardValidatorInfo, bFound := transactionsSyncer.getValidatorInfoFromPool(txHash)
+		assert.Nil(t, shardValidatorInfo)
+		assert.False(t, bFound)
+	})
+
+	t.Run("get validator info from pool when shard data store is missing", func(t *testing.T) {
+		t.Parallel()
+
+		txHash := []byte("hash")
+
+		args := createMockArgs()
+		args.DataPools = &dataRetrieverMock.PoolsHolderStub{
+			ValidatorsInfoCalled: func() dataRetriever.ShardedDataCacherNotifier {
+				return &testscommon.ShardedDataStub{
+					ShardDataStoreCalled: func(cacheID string) storage.Cacher {
+						return nil
+					},
+				}
+			},
+		}
+		transactionsSyncer, _ := NewTransactionsSyncer(args)
+
+		miniBlock := &block.MiniBlock{
+			TxHashes: [][]byte{
+				[]byte("a"),
+				[]byte("b"),
+				[]byte("c"),
+			},
+		}
+		transactionsSyncer.mutPendingTx.Lock()
+		transactionsSyncer.mapTxsToMiniBlocks[string(txHash)] = miniBlock
+		transactionsSyncer.mutPendingTx.Unlock()
+
+		shardValidatorInfo, bFound := transactionsSyncer.getValidatorInfoFromPool(txHash)
+		assert.Nil(t, shardValidatorInfo)
+		assert.False(t, bFound)
+	})
+
+	t.Run("get validator info from pool when tx hash is not found in shard data store", func(t *testing.T) {
+		t.Parallel()
+
+		txHash := []byte("hash")
+
+		args := createMockArgs()
+		args.DataPools = getDataPoolsWithShardValidatorInfoAndTxHash(nil, nil)
+		transactionsSyncer, _ := NewTransactionsSyncer(args)
+
+		miniBlock := &block.MiniBlock{
+			TxHashes: [][]byte{
+				[]byte("a"),
+				[]byte("b"),
+				[]byte("c"),
+			},
+		}
+		transactionsSyncer.mutPendingTx.Lock()
+		transactionsSyncer.mapTxsToMiniBlocks[string(txHash)] = miniBlock
+		transactionsSyncer.mutPendingTx.Unlock()
+
+		shardValidatorInfo, bFound := transactionsSyncer.getValidatorInfoFromPool(txHash)
+		assert.Nil(t, shardValidatorInfo)
+		assert.False(t, bFound)
+	})
+
+	t.Run("get validator info from pool when value received from pool is not of type *state.ShardValidatorInfo", func(t *testing.T) {
+		t.Parallel()
+
+		txHash := []byte("hash")
+
+		args := createMockArgs()
+		args.DataPools = &dataRetrieverMock.PoolsHolderStub{
+			ValidatorsInfoCalled: func() dataRetriever.ShardedDataCacherNotifier {
+				return &testscommon.ShardedDataStub{
+					ShardDataStoreCalled: func(cacheID string) storage.Cacher {
+						return &testscommon.CacherStub{
+							PeekCalled: func(key []byte) (value interface{}, ok bool) {
+								if bytes.Equal(key, txHash) {
+									return nil, true
+								}
+								return nil, false
+							},
+						}
+					},
+				}
+			},
+		}
+		transactionsSyncer, _ := NewTransactionsSyncer(args)
+
+		miniBlock := &block.MiniBlock{
+			TxHashes: [][]byte{
+				[]byte("a"),
+				[]byte("b"),
+				[]byte("c"),
+			},
+		}
+		transactionsSyncer.mutPendingTx.Lock()
+		transactionsSyncer.mapTxsToMiniBlocks[string(txHash)] = miniBlock
+		transactionsSyncer.mutPendingTx.Unlock()
+
+		shardValidatorInfo, bFound := transactionsSyncer.getValidatorInfoFromPool(txHash)
+		assert.Nil(t, shardValidatorInfo)
+		assert.False(t, bFound)
+	})
+
+	t.Run("get validator info from pool should work", func(t *testing.T) {
+		t.Parallel()
+
+		txHash := []byte("hash")
+		svi := &state.ShardValidatorInfo{
+			PublicKey: []byte("x"),
+		}
+
+		args := createMockArgs()
+		args.DataPools = getDataPoolsWithShardValidatorInfoAndTxHash(svi, txHash)
+		transactionsSyncer, _ := NewTransactionsSyncer(args)
+
+		miniBlock := &block.MiniBlock{
+			TxHashes: [][]byte{
+				[]byte("a"),
+				[]byte("b"),
+				[]byte("c"),
+			},
+		}
+		transactionsSyncer.mutPendingTx.Lock()
+		transactionsSyncer.mapTxsToMiniBlocks[string(txHash)] = miniBlock
+		transactionsSyncer.mutPendingTx.Unlock()
+
+		shardValidatorInfo, bFound := transactionsSyncer.getValidatorInfoFromPool(txHash)
+		assert.Equal(t, svi, shardValidatorInfo)
+		assert.True(t, bFound)
+	})
+}
+
+func TestTransactionsSync_GetValidatorInfoFromPoolWithSearchFirstShouldWork(t *testing.T) {
+	t.Parallel()
+
+	txHash := []byte("hash")
+	svi := &state.ShardValidatorInfo{
+		PublicKey: []byte("x"),
+	}
+
+	args := createMockArgs()
+	transactionsSyncer, _ := NewTransactionsSyncer(args)
+
+	// txHash is not found in validatorInfoPool
+	validatorsInfoPool := &testscommon.ShardedDataStub{
+		SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
+			return nil, false
+		},
+	}
+	shardValidatorInfo, bFound := transactionsSyncer.getValidatorInfoFromPoolWithSearchFirst(txHash, validatorsInfoPool)
+	assert.Nil(t, shardValidatorInfo)
+	assert.False(t, bFound)
+
+	// value received from validatorInfoPool is not of type *state.ShardValidatorInfo
+	validatorsInfoPool = &testscommon.ShardedDataStub{
+		SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
+			return nil, true
+		},
+	}
+	shardValidatorInfo, bFound = transactionsSyncer.getValidatorInfoFromPoolWithSearchFirst(txHash, validatorsInfoPool)
+	assert.Nil(t, shardValidatorInfo)
+	assert.False(t, bFound)
+
+	// get validator info from pool with search first should work
+	validatorsInfoPool = &testscommon.ShardedDataStub{
+		SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
+			if bytes.Equal(key, txHash) {
+				return svi, true
+			}
+			return nil, false
+		},
+	}
+	shardValidatorInfo, bFound = transactionsSyncer.getValidatorInfoFromPoolWithSearchFirst(txHash, validatorsInfoPool)
+	assert.Equal(t, svi, shardValidatorInfo)
+	assert.True(t, bFound)
+}
+
+func TestTransactionsSync_GetValidatorInfoFromPoolOrStorage(t *testing.T) {
+	t.Parallel()
+
+	t.Run("get validator info from pool or storage should work from pool", func(t *testing.T) {
+		t.Parallel()
+
+		txHash := []byte("hash")
+		svi := &state.ShardValidatorInfo{
+			PublicKey: []byte("x"),
+		}
+
+		args := createMockArgs()
+		args.DataPools = getDataPoolsWithShardValidatorInfoAndTxHash(svi, txHash)
+		transactionsSyncer, _ := NewTransactionsSyncer(args)
+
+		miniBlock := &block.MiniBlock{
+			TxHashes: [][]byte{
+				[]byte("a"),
+				[]byte("b"),
+				[]byte("c"),
+			},
+		}
+		transactionsSyncer.mutPendingTx.Lock()
+		transactionsSyncer.mapTxsToMiniBlocks[string(txHash)] = miniBlock
+		transactionsSyncer.mutPendingTx.Unlock()
+
+		shardValidatorInfo, bFound := transactionsSyncer.getValidatorInfoFromPoolOrStorage(txHash)
+		assert.Equal(t, svi, shardValidatorInfo)
+		assert.True(t, bFound)
+	})
+
+	t.Run("get validator info from pool or storage when txHash does not exist in mapTxsToMiniBlocks", func(t *testing.T) {
+		t.Parallel()
+
+		txHash := []byte("hash")
+
+		args := createMockArgs()
+		transactionsSyncer, _ := NewTransactionsSyncer(args)
+
+		shardValidatorInfo, bFound := transactionsSyncer.getValidatorInfoFromPoolOrStorage(txHash)
+		assert.Nil(t, shardValidatorInfo)
+		assert.False(t, bFound)
+	})
+
+	t.Run("get validator info from pool or storage should work using search first", func(t *testing.T) {
+		t.Parallel()
+
+		txHash := []byte("hash")
+		svi := &state.ShardValidatorInfo{
+			PublicKey: []byte("x"),
+		}
+
+		args := createMockArgs()
+		args.DataPools = &dataRetrieverMock.PoolsHolderStub{
+			ValidatorsInfoCalled: func() dataRetriever.ShardedDataCacherNotifier {
+				return &testscommon.ShardedDataStub{
+					ShardDataStoreCalled: func(cacheID string) storage.Cacher {
+						return &testscommon.CacherStub{
+							PeekCalled: func(key []byte) (value interface{}, ok bool) {
+								return nil, false
+							},
+						}
+					},
+					SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
+						return svi, true
+					},
+				}
+			},
+		}
+		transactionsSyncer, _ := NewTransactionsSyncer(args)
+
+		miniBlock := &block.MiniBlock{
+			TxHashes: [][]byte{
+				[]byte("a"),
+				[]byte("b"),
+				[]byte("c"),
+			},
+		}
+		transactionsSyncer.mutPendingTx.Lock()
+		transactionsSyncer.mapTxsToMiniBlocks[string(txHash)] = miniBlock
+		transactionsSyncer.mutPendingTx.Unlock()
+
+		shardValidatorInfo, bFound := transactionsSyncer.getValidatorInfoFromPoolOrStorage(txHash)
+		assert.Equal(t, svi, shardValidatorInfo)
+		assert.True(t, bFound)
+	})
+
+	t.Run("get validator info from pool or storage when txHash does not exist in storage", func(t *testing.T) {
+		t.Parallel()
+
+		txHash := []byte("hash")
+
+		args := createMockArgs()
+		args.Storages = &storageStubs.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+				return &storageStubs.StorerStub{
+					GetCalled: func(key []byte) ([]byte, error) {
+						return nil, errors.New("error")
+					},
+				}, nil
+			},
+		}
+		args.DataPools = getDataPoolsWithShardValidatorInfoAndTxHash(nil, nil)
+		transactionsSyncer, _ := NewTransactionsSyncer(args)
+
+		miniBlock := &block.MiniBlock{
+			TxHashes: [][]byte{
+				[]byte("a"),
+				[]byte("b"),
+				[]byte("c"),
+			},
+		}
+		transactionsSyncer.mutPendingTx.Lock()
+		transactionsSyncer.mapTxsToMiniBlocks[string(txHash)] = miniBlock
+		transactionsSyncer.mutPendingTx.Unlock()
+
+		shardValidatorInfo, bFound := transactionsSyncer.getValidatorInfoFromPoolOrStorage(txHash)
+		assert.Nil(t, shardValidatorInfo)
+		assert.False(t, bFound)
+	})
+
+	t.Run("get validator info from pool or storage should work from storage", func(t *testing.T) {
+		t.Parallel()
+
+		txHash := []byte("hash")
+		svi := &state.ShardValidatorInfo{
+			PublicKey: []byte("x"),
+		}
+
+		args := createMockArgs()
+		marshalledSVI, _ := args.Marshaller.Marshal(svi)
+		args.Storages = &storageStubs.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+				return &storageStubs.StorerStub{
+					GetCalled: func(key []byte) ([]byte, error) {
+						if bytes.Equal(key, txHash) {
+							return marshalledSVI, nil
+						}
+						return nil, errors.New("error")
+					},
+				}, nil
+			},
+		}
+		args.DataPools = getDataPoolsWithShardValidatorInfoAndTxHash(nil, nil)
+		transactionsSyncer, _ := NewTransactionsSyncer(args)
+
+		miniBlock := &block.MiniBlock{
+			TxHashes: [][]byte{
+				[]byte("a"),
+				[]byte("b"),
+				[]byte("c"),
+			},
+		}
+		transactionsSyncer.mutPendingTx.Lock()
+		transactionsSyncer.mapTxsToMiniBlocks[string(txHash)] = miniBlock
+		transactionsSyncer.mutPendingTx.Unlock()
+
+		shardValidatorInfo, bFound := transactionsSyncer.getValidatorInfoFromPoolOrStorage(txHash)
+		assert.Equal(t, svi, shardValidatorInfo)
+		assert.True(t, bFound)
+	})
+}
+
+func TestTransactionsSync_GetValidatorsInfoShouldWork(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgs()
+	transactionsSyncer, _ := NewTransactionsSyncer(args)
+
+	transactionsSyncer.syncedAll = false
+	mapShardValidatorInfo, err := transactionsSyncer.GetValidatorsInfo()
+	assert.Nil(t, mapShardValidatorInfo)
+	assert.Equal(t, update.ErrNotSynced, err)
+
+	txHash1 := []byte("hash1")
+	svi1 := &state.ShardValidatorInfo{
+		PublicKey: []byte("x"),
+	}
+	txHash2 := []byte("hash2")
+	svi2 := &state.ShardValidatorInfo{
+		PublicKey: []byte("y"),
+	}
+	transactionsSyncer.mapValidatorsInfo[string(txHash1)] = svi1
+	transactionsSyncer.mapValidatorsInfo[string(txHash2)] = svi2
+
+	transactionsSyncer.syncedAll = true
+	mapShardValidatorInfo, err = transactionsSyncer.GetValidatorsInfo()
+	assert.Equal(t, 2, len(mapShardValidatorInfo))
+	assert.Equal(t, svi1, mapShardValidatorInfo[string(txHash1)])
+	assert.Equal(t, svi2, mapShardValidatorInfo[string(txHash2)])
+	assert.Nil(t, err)
+}
+
+func TestTransactionsSync_ClearFieldsShouldWork(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgs()
+	transactionsSyncer, _ := NewTransactionsSyncer(args)
+
+	transactionsSyncer.mapTransactions["a"] = &dataTransaction.Transaction{}
+	transactionsSyncer.mapTxsToMiniBlocks["b"] = &block.MiniBlock{}
+	transactionsSyncer.mapValidatorsInfo["c"] = &state.ShardValidatorInfo{}
+
+	assert.Equal(t, 1, len(transactionsSyncer.mapTransactions))
+	assert.Equal(t, 1, len(transactionsSyncer.mapTxsToMiniBlocks))
+	assert.Equal(t, 1, len(transactionsSyncer.mapValidatorsInfo))
+
+	transactionsSyncer.ClearFields()
+
+	assert.Equal(t, 0, len(transactionsSyncer.mapTransactions))
+	assert.Equal(t, 0, len(transactionsSyncer.mapTxsToMiniBlocks))
+	assert.Equal(t, 0, len(transactionsSyncer.mapValidatorsInfo))
+}
+
+func getDataPoolsWithShardValidatorInfoAndTxHash(svi *state.ShardValidatorInfo, txHash []byte) dataRetriever.PoolsHolder {
+	return &dataRetrieverMock.PoolsHolderStub{
+		ValidatorsInfoCalled: func() dataRetriever.ShardedDataCacherNotifier {
+			return &testscommon.ShardedDataStub{
+				ShardDataStoreCalled: func(cacheID string) storage.Cacher {
+					return &testscommon.CacherStub{
+						PeekCalled: func(key []byte) (value interface{}, ok bool) {
+							if bytes.Equal(key, txHash) {
+								return svi, true
+							}
+							return nil, false
+						},
+					}
+				},
+				SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
+					return nil, false
+				},
+			}
+		},
+	}
 }
