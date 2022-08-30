@@ -11,7 +11,7 @@ require (
 	github.com/ElrondNetwork/elrond-go-logger v1.0.7
 	github.com/ElrondNetwork/elrond-vm-common v1.3.15-0.20220803072537-08e036d340bc
 	github.com/ElrondNetwork/go-libp2p-pubsub v0.6.1-rc1
-	github.com/ElrondNetwork/wasm-vm v1.4.59-0.20220830125535-d161a3553975
+	github.com/ElrondNetwork/wasm-vm v1.4.59-0.20220830135130-f4d8c00cf6dc
 	github.com/ElrondNetwork/wasm-vm-v1_2 v1.2.42-0.20220830085332-b0b3550b5501
 	github.com/ElrondNetwork/wasm-vm-v1_3 v1.3.42-0.20220830092946-83e5563c3a7e
 	github.com/beevik/ntp v0.3.0
