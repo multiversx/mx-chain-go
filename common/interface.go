@@ -26,6 +26,7 @@ type Trie interface {
 	RootHash() ([]byte, error)
 	Commit() error
 	Recreate(root []byte) (Trie, error)
+	RecreateFromEpoch(options RootHashHolder) (Trie, error)
 	String() string
 	GetObsoleteHashes() [][]byte
 	GetDirtyHashes() (ModifiedHashes, error)
@@ -61,6 +62,7 @@ type StorageManager interface {
 	Remove(hash []byte) error
 	SetEpochForPutOperation(uint32)
 	ShouldTakeSnapshot() bool
+	GetBaseTrieStorageManager() StorageManager
 	IsClosed() bool
 	Close() error
 	IsInterfaceNil() bool
@@ -154,10 +156,31 @@ type ReceiptsHolder interface {
 	IsInterfaceNil() bool
 }
 
+// RootHashHolder holds a rootHash and the corresponding epoch
+type RootHashHolder interface {
+	GetRootHash() []byte
+	GetEpoch() core.OptionalUint32
+	String() string
+	IsInterfaceNil() bool
+}
+
 // GasScheduleNotifierAPI defines the behavior of the gas schedule notifier components that is used for api
 type GasScheduleNotifierAPI interface {
 	core.GasScheduleNotifier
 	LatestGasScheduleCopy() map[string]map[string]uint64
+}
+
+// PidQueueHandler defines the behavior of a queue of pids
+type PidQueueHandler interface {
+	Push(pid core.PeerID)
+	Pop() core.PeerID
+	IndexOf(pid core.PeerID) int
+	Promote(idx int)
+	Remove(pid core.PeerID)
+	DataSizeInBytes() int
+	Get(idx int) core.PeerID
+	Len() int
+	IsInterfaceNil() bool
 }
 
 // EnableEpochsHandler is used to verify the which flags are set in the current epoch based on EnableEpochs config
@@ -266,6 +289,7 @@ type EnableEpochsHandler interface {
 	IsTransferToMetaFlagEnabled() bool
 	IsESDTNFTImprovementV1FlagEnabled() bool
 	IsSetSenderInEeiOutputTransferFlagEnabled() bool
+	IsChangeDelegationOwnerFlagEnabled() bool
 	IsRefactorPeersMiniBlocksFlagEnabled() bool
 
 	IsInterfaceNil() bool

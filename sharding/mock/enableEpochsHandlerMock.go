@@ -526,6 +526,11 @@ func (mock *EnableEpochsHandlerMock) IsSetSenderInEeiOutputTransferFlagEnabled()
 	return false
 }
 
+// IsChangeDelegationOwnerFlagEnabled -
+func (mock *EnableEpochsHandlerMock) IsChangeDelegationOwnerFlagEnabled() bool {
+	return false
+}
+
 // IsRefactorPeersMiniBlocksFlagEnabled returns false
 func (mock *EnableEpochsHandlerMock) IsRefactorPeersMiniBlocksFlagEnabled() bool {
 	return mock.IsRefactorPeersMiniBlocksFlagEnabledField
