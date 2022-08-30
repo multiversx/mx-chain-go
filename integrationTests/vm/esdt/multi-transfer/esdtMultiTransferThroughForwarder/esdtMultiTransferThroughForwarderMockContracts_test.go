@@ -76,17 +76,21 @@ func TestESDTMultiTransferThroughForwarder_MockContracts(t *testing.T) {
 			WithOwnerAddress(owner.Address).
 			WithBalance(int64(initialVal)).
 			WithConfig(testConfig).
-			WithMethods(localFuncs.MultiTransferViaAsyncMock, localFuncs.EmptyCallbackMock),
+			WithMethods(
+				localFuncs.MultiTransferViaAsyncMock,
+				localFuncs.SyncMultiTransferMock,
+				localFuncs.MultiTransferExecuteMock,
+				localFuncs.EmptyCallbackMock),
 		test.CreateMockContractOnShard(vaultShard1, 0).
 			WithOwnerAddress(owner.Address).
 			WithBalance(int64(initialVal)).
 			WithConfig(testConfig).
-			WithMethods(localFuncs.SyncAcceptMultiFundsEcho),
+			WithMethods(localFuncs.AcceptFundsEchoMock),
 		test.CreateMockContractOnShard(vaultShard2, 1).
 			WithOwnerAddress(owner2.Address).
 			WithBalance(int64(initialVal)).
 			WithConfig(testConfig).
-			WithMethods(localFuncs.AcceptMultiFundsEcho),
+			WithMethods(localFuncs.AcceptMultiFundsEchoMock),
 	)
 
 	// transfer to a user from another shard
@@ -103,15 +107,15 @@ func TestESDTMultiTransferThroughForwarder_MockContracts(t *testing.T) {
 		forwarder,
 		"multi_transfer_via_async",
 		transfers,
-		vaultShard2)
+		owner2.Address)
 
 	esdt.CheckAddressHasTokens(t, forwarder, net.Nodes, []byte(tokenID), 0, 900)
-	esdt.CheckAddressHasTokens(t, vaultShard2, net.Nodes, []byte(tokenID), 0, 100)
+	esdt.CheckAddressHasTokens(t, owner2.Address, net.Nodes, []byte(tokenID), 0, 100)
 
 	// transfer to vault, same shard
 	multiTransferThroughForwarder(
 		net,
-		owner2,
+		owner,
 		forwarder,
 		"forward_sync_accept_funds_multi_transfer",
 		transfers,
@@ -120,4 +124,86 @@ func TestESDTMultiTransferThroughForwarder_MockContracts(t *testing.T) {
 	esdt.CheckAddressHasTokens(t, forwarder, net.Nodes, []byte(tokenID), 0, 800)
 	esdt.CheckAddressHasTokens(t, vaultShard1, net.Nodes, []byte(tokenID), 0, 100)
 
+	// transfer fungible and non-fungible
+	// transfer to vault, same shard
+	transfers = []*multitransfer.EsdtTransfer{
+		{
+			TokenIdentifier: tokenID,
+			Nonce:           0,
+			Amount:          100,
+		},
+		{
+			TokenIdentifier: sftID,
+			Nonce:           1,
+			Amount:          100,
+		},
+	}
+	multiTransferThroughForwarder(
+		net,
+		owner,
+		forwarder,
+		"forward_sync_accept_funds_multi_transfer",
+		transfers,
+		vaultShard1)
+
+	esdt.CheckAddressHasTokens(t, forwarder, net.Nodes, []byte(tokenID), 0, 700)
+	esdt.CheckAddressHasTokens(t, vaultShard1, net.Nodes, []byte(tokenID), 0, 200)
+
+	esdt.CheckAddressHasTokens(t, forwarder, net.Nodes, []byte(sftID), 1, 900)
+	esdt.CheckAddressHasTokens(t, vaultShard1, net.Nodes, []byte(sftID), 1, 100)
+
+	// transfer fungible and non-fungible
+	// transfer to vault, cross shard via transfer and execute
+	transfers = []*multitransfer.EsdtTransfer{
+		{
+			TokenIdentifier: tokenID,
+			Nonce:           0,
+			Amount:          100,
+		},
+		{
+			TokenIdentifier: sftID,
+			Nonce:           1,
+			Amount:          100,
+		},
+	}
+	multiTransferThroughForwarder(
+		net,
+		owner,
+		forwarder,
+		"forward_transf_exec_accept_funds_multi_transfer",
+		transfers,
+		vaultShard2)
+
+	esdt.CheckAddressHasTokens(t, forwarder, net.Nodes, []byte(tokenID), 0, 600)
+	esdt.CheckAddressHasTokens(t, vaultShard2, net.Nodes, []byte(tokenID), 0, 100)
+
+	esdt.CheckAddressHasTokens(t, forwarder, net.Nodes, []byte(sftID), 1, 800)
+	esdt.CheckAddressHasTokens(t, vaultShard2, net.Nodes, []byte(sftID), 1, 100)
+
+	// transfer to vault, cross shard, via async call
+	transfers = []*multitransfer.EsdtTransfer{
+		{
+			TokenIdentifier: tokenID,
+			Nonce:           0,
+			Amount:          100,
+		},
+		{
+			TokenIdentifier: sftID,
+			Nonce:           1,
+			Amount:          100,
+		},
+	}
+	multiTransferThroughForwarder(
+		net,
+		owner,
+		forwarder,
+		"multi_transfer_via_async",
+		transfers,
+		vaultShard2)
+
+	esdt.CheckAddressHasTokens(t, forwarder, net.Nodes, []byte(tokenID), 0, 500)
+	esdt.CheckAddressHasTokens(t, vaultShard2, net.Nodes, []byte(tokenID), 0, 200)
+
+	esdt.CheckAddressHasTokens(t, forwarder, net.Nodes, []byte(sftID), 1, 700)
+	esdt.CheckAddressHasTokens(t, vaultShard2, net.Nodes, []byte(sftID), 1, 200)
 }

@@ -36,14 +36,21 @@ func GetAddressForNewAccountOnWalletAndNode(
 	wallet *integrationTests.TestWalletAccount,
 	node *integrationTests.TestProcessorNode,
 ) ([]byte, state.UserAccountHandler) {
+	walletAccount, err := node.AccntState.GetExistingAccount(wallet.Address)
+	require.Nil(t, err)
+	walletAccount.IncreaseNonce(1)
+	wallet.Nonce++
+	err = node.AccntState.SaveAccount(walletAccount)
+	require.Nil(t, err)
+
 	address := net.NewAddress(wallet)
 	account, _ := state.NewUserAccount(address)
 	account.Balance = MockInitialBalance
 	account.SetCode(address)
 	account.SetCodeHash(address)
-	// wallet.Nonce++
-	err := node.AccntState.SaveAccount(account)
+	err = node.AccntState.SaveAccount(account)
 	require.Nil(t, err)
+
 	return address, account
 }
 
