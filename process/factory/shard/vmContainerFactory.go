@@ -5,8 +5,8 @@ import (
 	"io"
 	"sort"
 
-	arwen14 "github.com/ElrondNetwork/arwen-wasm-vm/v1_4/arwen"
-	arwenHost14 "github.com/ElrondNetwork/arwen-wasm-vm/v1_4/arwen/host"
+	arwen14 "github.com/ElrondNetwork/wasm-vm/arwen"
+	arwenHost14 "github.com/ElrondNetwork/wasm-vm/arwen/host"
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	logger "github.com/ElrondNetwork/elrond-go-logger"

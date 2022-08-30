@@ -43,8 +43,6 @@ github.com/AndreasBriese/bbloom v0.0.0-20190306092124-e2d15f34fcf9/go.mod h1:bOv
 github.com/AndreasBriese/bbloom v0.0.0-20190825152654-46b345b51c96/go.mod h1:bOvUY6CB00SOBii9/FifXqc0awNKxLFCL/+pkDPuyl8=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
-github.com/ElrondNetwork/arwen-wasm-vm v1.4.59-0.20220729115431-a6c93119bdda h1:gEzwl9PLhlRyaAekt5p7/mURmv+472MpACfjj9bPEiA=
-github.com/ElrondNetwork/arwen-wasm-vm v1.4.59-0.20220729115431-a6c93119bdda/go.mod h1:wLq4eTVvNOv2HyIEnE3L/q/tjqxsm03FcbFX0PPLYyk=
 github.com/ElrondNetwork/big-int-util v0.1.0 h1:vTMoJ5azhVmr7jhpSD3JUjQdkdyXoEPVkOvhdw1RjV4=
 github.com/ElrondNetwork/big-int-util v0.1.0/go.mod h1:96viBvoTXLjZOhEvE0D+QnAwg1IJLPAK6GVHMbC7Aw4=
 github.com/ElrondNetwork/concurrent-map v0.1.3 h1:j2LtPrNJuerannC1cQDE79STvi/P04gd61sNYo04Zf0=
@@ -76,6 +74,8 @@ github.com/ElrondNetwork/go-libp2p-pubsub v0.6.1-rc1 h1:Nu/uwYQg/QbfoQ0uD6GahYTw
 github.com/ElrondNetwork/go-libp2p-pubsub v0.6.1-rc1/go.mod h1:pJfaShe+i5aWZx8NhSkQjvOYQYLoqPztmFUlKjToOzM=
 github.com/ElrondNetwork/protobuf v1.3.2 h1:qoCSYiO+8GtXBEZWEjw0WPcZfM3g7QuuJrwpN+y6Mvg=
 github.com/ElrondNetwork/protobuf v1.3.2/go.mod h1:SlYgWuQ5SjCEi6WLHjHCa1yvBfUnHcTbrrZtXPKa29o=
+github.com/ElrondNetwork/wasm-vm v1.4.59-0.20220830125535-d161a3553975 h1:Pcw5YvQaWLcfBy9KH8J4A5NhZIgteGNfTsGHgYtfFFo=
+github.com/ElrondNetwork/wasm-vm v1.4.59-0.20220830125535-d161a3553975/go.mod h1:V1SyWEnZSL5CvOhF3QevXuFNRXhzugOsnI79bBfcfJ0=
 github.com/ElrondNetwork/wasm-vm-v1_2 v1.2.42-0.20220830085332-b0b3550b5501 h1:EuF1BJUygvtuzb/T6ZS3f7wkZtJguccZPmWJR2L7osk=
 github.com/ElrondNetwork/wasm-vm-v1_2 v1.2.42-0.20220830085332-b0b3550b5501/go.mod h1:o/UiRa6FcKq8fiO4247O9irIkyWO7a722WYm++NVrBw=
 github.com/ElrondNetwork/wasm-vm-v1_3 v1.3.42-0.20220830092946-83e5563c3a7e h1:LBi77QVVWvxEESlEi0T4yeAsYNWVO/eKSlM5QMgSgiI=
@@ -253,7 +253,6 @@ github.com/gin-contrib/sse v0.1.0/go.mod h1:RHrZQHXnP2xjPF+u1gW/2HnVO7nvIa9PG3Gm
 github.com/gin-gonic/gin v1.3.0/go.mod h1:7cKuhb5qV2ggCFctp2fJQ+ErvciLZrIeoOSOm6mUr7Y=
 github.com/gin-gonic/gin v1.6.2/go.mod h1:75u5sXoLsGZoRN5Sgbi1eraJ4GU3++wFwWzhwvtwp4M=
 github.com/gin-gonic/gin v1.7.1/go.mod h1:jD2toBW3GZUr5UMcdrwQA10I7RuaFOl/SGeDjXkfUtY=
-github.com/gin-gonic/gin v1.7.6/go.mod h1:jD2toBW3GZUr5UMcdrwQA10I7RuaFOl/SGeDjXkfUtY=
 github.com/gin-gonic/gin v1.8.1 h1:4+fr/el88TOO3ewCmQr8cx/CtZ/umlIRIs5M4NTNjf8=
 github.com/gin-gonic/gin v1.8.1/go.mod h1:ji8BvRH1azfM+SYow9zQ6SZMvR8qOMZHmsCuWR9tTTk=
 github.com/gizak/termui/v3 v3.1.0 h1:ZZmVDgwHl7gR7elfKf1xc4IudXZ5qqfDh4wExk4Iajc=
