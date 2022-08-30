@@ -315,6 +315,24 @@ func TestNodeFacade_GetUsername(t *testing.T) {
 	assert.Equal(t, expectedUsername, username)
 }
 
+func TestNodeFacade_GetCodeHash(t *testing.T) {
+	t.Parallel()
+
+	expectedCodeHash := []byte("hash")
+	node := &mock.NodeStub{}
+	node.GetCodeHashCalled = func(address string, _ api.AccountQueryOptions) ([]byte, api.BlockInfo, error) {
+		return expectedCodeHash, api.BlockInfo{}, nil
+	}
+
+	arg := createMockArguments()
+	arg.Node = node
+	nf, _ := NewNodeFacade(arg)
+
+	codeHash, _, err := nf.GetCodeHash("test", api.AccountQueryOptions{})
+	assert.NoError(t, err)
+	assert.Equal(t, expectedCodeHash, codeHash)
+}
+
 func TestNodeFacade_GetHeartbeatsReturnsNilShouldErr(t *testing.T) {
 	t.Parallel()
 
