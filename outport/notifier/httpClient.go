@@ -85,6 +85,7 @@ func (h *httpClient) Post(
 	}
 
 	if resp.StatusCode != http.StatusOK {
+		log.Warn("httpClient: received HTTP status", "code", resp.StatusCode, "responseBody", string(resBody))
 		return fmt.Errorf("HTTP status code: %d, %s", resp.StatusCode, http.StatusText(resp.StatusCode))
 	}
 
