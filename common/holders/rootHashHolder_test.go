@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -21,4 +22,16 @@ func TestNewRootHashHolderAsEmpty(t *testing.T) {
 	holder := NewRootHashHolderAsEmpty()
 	require.Nil(t, holder.GetRootHash())
 	require.Equal(t, core.OptionalUint32{}, holder.GetEpoch())
+}
+
+func TestNewRootHashHolder_String(t *testing.T) {
+	holder := NewRootHashHolder(
+		[]byte("rootHash"),
+		core.OptionalUint32{
+			Value:    5,
+			HasValue: true,
+		},
+	)
+	expectedString := "root hash rootHash, epoch 5, has value true"
+	assert.Equal(t, expectedString, holder.String())
 }
