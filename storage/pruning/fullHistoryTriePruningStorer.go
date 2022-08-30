@@ -2,15 +2,13 @@ package pruning
 
 import (
 	storageCore "github.com/ElrondNetwork/elrond-go-core/storage"
-	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 type fullHistoryTriePruningStorer struct {
 	*triePruningStorer
-	storerWithEpochOperations      storerWithEpochOperations
-	args                           *StorerArgs
-	shardId                        string
-	oldEpochsActivePersistersCache storage.Cacher
+	storerWithEpochOperations storerWithEpochOperations
+	args                      *StorerArgs
+	shardId                   string
 }
 
 // NewFullHistoryTriePruningStorer will return a new instance of PruningStorer without sharded directories' naming scheme
