@@ -1,7 +1,6 @@
 package vm
 
 import (
-	"bytes"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -568,10 +567,10 @@ func CreateVMAndBlockchainHookAndDataPool(
 		Accounts:                  accnts,
 		ShardCoordinator:          shardCoordinator,
 		EpochNotifier:             epochNotifierInstance,
-		AutomaticCrawlerAddress:   bytes.Repeat([]byte{1}, 32),
 		MaxNumNodesInTransferRole: 100,
 		GuardedAccountHandler: &guardianMocks.GuardedAccountHandlerStub{},
 	}
+	argsBuiltIn.AutomaticCrawlerAddresses = integrationTests.GenerateOneAddressPerShard(argsBuiltIn.ShardCoordinator)
 	builtInFuncFactory, _ := builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)
 
 	datapool := dataRetrieverMock.NewPoolsHolderMock()
@@ -646,10 +645,10 @@ func CreateVMAndBlockchainHookMeta(
 		Accounts:                  accnts,
 		ShardCoordinator:          shardCoordinator,
 		EpochNotifier:             globalEpochNotifier,
-		AutomaticCrawlerAddress:   bytes.Repeat([]byte{1}, 32),
 		MaxNumNodesInTransferRole: 100,
 		GuardedAccountHandler: &guardianMocks.GuardedAccountHandlerStub{},
 	}
+	argsBuiltIn.AutomaticCrawlerAddresses = integrationTests.GenerateOneAddressPerShard(argsBuiltIn.ShardCoordinator)
 	builtInFuncFactory, _ := builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)
 
 	datapool := dataRetrieverMock.NewPoolsHolderMock()
