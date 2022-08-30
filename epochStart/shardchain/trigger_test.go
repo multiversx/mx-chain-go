@@ -630,7 +630,7 @@ func TestTrigger_ClearMissingValidatorsInfoMapShouldWork(t *testing.T) {
 	epochStartTrigger.mutMissingValidatorsInfo.RLock()
 	numMissingValidatorsInfo = len(epochStartTrigger.mapMissingValidatorsInfo)
 	epochStartTrigger.mutMissingValidatorsInfo.RUnlock()
-	assert.Equal(t, 2, len(epochStartTrigger.mapMissingValidatorsInfo))
+	assert.Equal(t, 2, numMissingValidatorsInfo)
 
 	assert.Equal(t, uint32(1), epochStartTrigger.mapMissingValidatorsInfo["c"])
 	assert.Equal(t, uint32(1), epochStartTrigger.mapMissingValidatorsInfo["d"])

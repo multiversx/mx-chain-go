@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	dataTransaction "github.com/ElrondNetwork/elrond-go-core/data/transaction"
@@ -357,22 +358,7 @@ func TestTransactionsSync_RequestTransactionsForPeerMiniBlockShouldWork(t *testi
 	}
 
 	args := createMockArgs()
-	args.DataPools = &dataRetrieverMock.PoolsHolderStub{
-		ValidatorsInfoCalled: func() dataRetriever.ShardedDataCacherNotifier {
-			return &testscommon.ShardedDataStub{
-				ShardDataStoreCalled: func(cacheID string) storage.Cacher {
-					return &testscommon.CacherStub{
-						PeekCalled: func(key []byte) (value interface{}, ok bool) {
-							if bytes.Equal(key, []byte("b")) {
-								return svi2, true
-							}
-							return nil, false
-						},
-					}
-				},
-			}
-		},
-	}
+	args.DataPools = getDataPoolsWithShardValidatorInfoAndTxHash(svi2, []byte("b"))
 	transactionsSyncer, _ := NewTransactionsSyncer(args)
 
 	miniBlock := &block.MiniBlock{
@@ -436,11 +422,11 @@ func TestTransactionsSync_ReceivedValidatorInfo(t *testing.T) {
 	assert.Equal(t, 0, len(transactionsSyncer.mapValidatorsInfo))
 	transactionsSyncer.mutPendingTx.Unlock()
 
-	wasReceivedAll := false
+	wasReceivedAll := atomic.Flag{}
 	go func() {
 		select {
 		case <-transactionsSyncer.chReceivedAll:
-			wasReceivedAll = true
+			wasReceivedAll.SetValue(true)
 			return
 		case <-time.After(time.Second):
 		}
@@ -451,7 +437,7 @@ func TestTransactionsSync_ReceivedValidatorInfo(t *testing.T) {
 	transactionsSyncer.mutPendingTx.Lock()
 	assert.Equal(t, 1, len(transactionsSyncer.mapValidatorsInfo))
 	transactionsSyncer.mutPendingTx.Unlock()
-	assert.True(t, wasReceivedAll)
+	assert.True(t, wasReceivedAll.IsSet())
 }
 
 func TestTransactionsSync_GetValidatorInfoFromPoolShouldWork(t *testing.T) {
@@ -509,19 +495,7 @@ func TestTransactionsSync_GetValidatorInfoFromPoolShouldWork(t *testing.T) {
 		txHash := []byte("hash")
 
 		args := createMockArgs()
-		args.DataPools = &dataRetrieverMock.PoolsHolderStub{
-			ValidatorsInfoCalled: func() dataRetriever.ShardedDataCacherNotifier {
-				return &testscommon.ShardedDataStub{
-					ShardDataStoreCalled: func(cacheID string) storage.Cacher {
-						return &testscommon.CacherStub{
-							PeekCalled: func(key []byte) (value interface{}, ok bool) {
-								return nil, false
-							},
-						}
-					},
-				}
-			},
-		}
+		args.DataPools = getDataPoolsWithShardValidatorInfoAndTxHash(nil, nil)
 		transactionsSyncer, _ := NewTransactionsSyncer(args)
 
 		miniBlock := &block.MiniBlock{
@@ -589,22 +563,7 @@ func TestTransactionsSync_GetValidatorInfoFromPoolShouldWork(t *testing.T) {
 		}
 
 		args := createMockArgs()
-		args.DataPools = &dataRetrieverMock.PoolsHolderStub{
-			ValidatorsInfoCalled: func() dataRetriever.ShardedDataCacherNotifier {
-				return &testscommon.ShardedDataStub{
-					ShardDataStoreCalled: func(cacheID string) storage.Cacher {
-						return &testscommon.CacherStub{
-							PeekCalled: func(key []byte) (value interface{}, ok bool) {
-								if bytes.Equal(key, txHash) {
-									return svi, true
-								}
-								return nil, false
-							},
-						}
-					},
-				}
-			},
-		}
+		args.DataPools = getDataPoolsWithShardValidatorInfoAndTxHash(svi, txHash)
 		transactionsSyncer, _ := NewTransactionsSyncer(args)
 
 		miniBlock := &block.MiniBlock{
@@ -681,22 +640,7 @@ func TestTransactionsSync_GetValidatorInfoFromPoolOrStorage(t *testing.T) {
 		}
 
 		args := createMockArgs()
-		args.DataPools = &dataRetrieverMock.PoolsHolderStub{
-			ValidatorsInfoCalled: func() dataRetriever.ShardedDataCacherNotifier {
-				return &testscommon.ShardedDataStub{
-					ShardDataStoreCalled: func(cacheID string) storage.Cacher {
-						return &testscommon.CacherStub{
-							PeekCalled: func(key []byte) (value interface{}, ok bool) {
-								if bytes.Equal(key, txHash) {
-									return svi, true
-								}
-								return nil, false
-							},
-						}
-					},
-				}
-			},
-		}
+		args.DataPools = getDataPoolsWithShardValidatorInfoAndTxHash(svi, txHash)
 		transactionsSyncer, _ := NewTransactionsSyncer(args)
 
 		miniBlock := &block.MiniBlock{
@@ -786,22 +730,7 @@ func TestTransactionsSync_GetValidatorInfoFromPoolOrStorage(t *testing.T) {
 				}, nil
 			},
 		}
-		args.DataPools = &dataRetrieverMock.PoolsHolderStub{
-			ValidatorsInfoCalled: func() dataRetriever.ShardedDataCacherNotifier {
-				return &testscommon.ShardedDataStub{
-					ShardDataStoreCalled: func(cacheID string) storage.Cacher {
-						return &testscommon.CacherStub{
-							PeekCalled: func(key []byte) (value interface{}, ok bool) {
-								return nil, false
-							},
-						}
-					},
-					SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
-						return nil, false
-					},
-				}
-			},
-		}
+		args.DataPools = getDataPoolsWithShardValidatorInfoAndTxHash(nil, nil)
 		transactionsSyncer, _ := NewTransactionsSyncer(args)
 
 		miniBlock := &block.MiniBlock{
@@ -842,22 +771,7 @@ func TestTransactionsSync_GetValidatorInfoFromPoolOrStorage(t *testing.T) {
 				}, nil
 			},
 		}
-		args.DataPools = &dataRetrieverMock.PoolsHolderStub{
-			ValidatorsInfoCalled: func() dataRetriever.ShardedDataCacherNotifier {
-				return &testscommon.ShardedDataStub{
-					ShardDataStoreCalled: func(cacheID string) storage.Cacher {
-						return &testscommon.CacherStub{
-							PeekCalled: func(key []byte) (value interface{}, ok bool) {
-								return nil, false
-							},
-						}
-					},
-					SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
-						return nil, false
-					},
-				}
-			},
-		}
+		args.DataPools = getDataPoolsWithShardValidatorInfoAndTxHash(nil, nil)
 		transactionsSyncer, _ := NewTransactionsSyncer(args)
 
 		miniBlock := &block.MiniBlock{
@@ -926,4 +840,26 @@ func TestTransactionsSync_ClearFieldsShouldWork(t *testing.T) {
 	assert.Equal(t, 0, len(transactionsSyncer.mapTransactions))
 	assert.Equal(t, 0, len(transactionsSyncer.mapTxsToMiniBlocks))
 	assert.Equal(t, 0, len(transactionsSyncer.mapValidatorsInfo))
+}
+
+func getDataPoolsWithShardValidatorInfoAndTxHash(svi *state.ShardValidatorInfo, txHash []byte) dataRetriever.PoolsHolder {
+	return &dataRetrieverMock.PoolsHolderStub{
+		ValidatorsInfoCalled: func() dataRetriever.ShardedDataCacherNotifier {
+			return &testscommon.ShardedDataStub{
+				ShardDataStoreCalled: func(cacheID string) storage.Cacher {
+					return &testscommon.CacherStub{
+						PeekCalled: func(key []byte) (value interface{}, ok bool) {
+							if bytes.Equal(key, txHash) {
+								return svi, true
+							}
+							return nil, false
+						},
+					}
+				},
+				SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
+					return nil, false
+				},
+			}
+		},
+	}
 }

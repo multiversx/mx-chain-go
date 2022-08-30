@@ -3560,9 +3560,7 @@ func TestMetaProcessor_getAllMarshalledTxs(t *testing.T) {
 				if miniBlock.Type != block.RewardsBlock {
 					continue
 				}
-				for _, txHash := range miniBlock.TxHashes {
-					marshalledData["rewards"] = append(marshalledData["rewards"], txHash)
-				}
+				marshalledData["rewards"] = append(marshalledData["rewards"], miniBlock.TxHashes...)
 			}
 			return marshalledData
 		},
@@ -3575,9 +3573,7 @@ func TestMetaProcessor_getAllMarshalledTxs(t *testing.T) {
 				if miniBlock.Type != block.PeerBlock {
 					continue
 				}
-				for _, txHash := range miniBlock.TxHashes {
-					marshalledData["validatorInfo"] = append(marshalledData["validatorInfo"], txHash)
-				}
+				marshalledData["validatorInfo"] = append(marshalledData["validatorInfo"], miniBlock.TxHashes...)
 			}
 			return marshalledData
 		},

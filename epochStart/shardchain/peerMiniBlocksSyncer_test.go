@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
@@ -372,31 +373,9 @@ func TestValidatorInfoProcessor_SyncValidatorsInfo(t *testing.T) {
 		}
 		syncer, _ := NewPeerMiniBlockSyncer(args)
 
-		body := &block.Body{
-			MiniBlocks: []*block.MiniBlock{
-				{
-					SenderShardID:   core.MetachainShardId,
-					ReceiverShardID: 0,
-					Type:            block.TxBlock,
-					TxHashes: [][]byte{
-						[]byte("a"),
-						[]byte("b"),
-						[]byte("c"),
-					},
-				},
-				{
-					SenderShardID:   core.MetachainShardId,
-					ReceiverShardID: 0,
-					Type:            block.PeerBlock,
-					TxHashes: [][]byte{
-						[]byte("a"),
-						[]byte("b"),
-						[]byte("c"),
-					},
-				},
-			},
-		}
-
+		body := &block.Body{}
+		body.MiniBlocks = append(body.MiniBlocks, getMiniBlock(core.MetachainShardId, 0, block.TxBlock))
+		body.MiniBlocks = append(body.MiniBlocks, getMiniBlock(core.MetachainShardId, 0, block.PeerBlock))
 		missingValidatorsInfoHashes, validatorsInfo, err := syncer.SyncValidatorsInfo(body)
 
 		assert.Equal(t, 3, len(missingValidatorsInfoHashes))
@@ -428,31 +407,9 @@ func TestValidatorInfoProcessor_SyncValidatorsInfo(t *testing.T) {
 		}
 		syncer, _ := NewPeerMiniBlockSyncer(args)
 
-		body := &block.Body{
-			MiniBlocks: []*block.MiniBlock{
-				{
-					SenderShardID:   core.MetachainShardId,
-					ReceiverShardID: 0,
-					Type:            block.TxBlock,
-					TxHashes: [][]byte{
-						[]byte("a"),
-						[]byte("b"),
-						[]byte("c"),
-					},
-				},
-				{
-					SenderShardID:   core.MetachainShardId,
-					ReceiverShardID: 0,
-					Type:            block.PeerBlock,
-					TxHashes: [][]byte{
-						[]byte("a"),
-						[]byte("b"),
-						[]byte("c"),
-					},
-				},
-			},
-		}
-
+		body := &block.Body{}
+		body.MiniBlocks = append(body.MiniBlocks, getMiniBlock(core.MetachainShardId, 0, block.TxBlock))
+		body.MiniBlocks = append(body.MiniBlocks, getMiniBlock(core.MetachainShardId, 0, block.PeerBlock))
 		missingValidatorsInfoHashes, validatorsInfo, err := syncer.SyncValidatorsInfo(body)
 
 		assert.Nil(t, err)
@@ -548,13 +505,13 @@ func TestValidatorInfoProcessor_ReceivedValidatorInfo(t *testing.T) {
 		syncer.numMissingValidatorsInfo = 1
 		syncer.mutValidatorsInfoForBlock.Unlock()
 
-		var err error
+		wasWithTimeOut := atomic.Flag{}
 		go func() {
 			select {
 			case <-syncer.chRcvAllValidatorsInfo:
 				return
 			case <-time.After(time.Second):
-				err = process.ErrTimeIsOut
+				wasWithTimeOut.SetValue(true)
 				return
 			}
 		}()
@@ -565,7 +522,7 @@ func TestValidatorInfoProcessor_ReceivedValidatorInfo(t *testing.T) {
 		numMissingValidatorsInfo := syncer.numMissingValidatorsInfo
 		syncer.mutValidatorsInfoForBlock.RUnlock()
 
-		assert.Nil(t, err)
+		assert.False(t, wasWithTimeOut.IsSet())
 		assert.Equal(t, uint32(0), numMissingValidatorsInfo)
 	})
 }
@@ -587,31 +544,9 @@ func TestValidatorInfoProcessor_GetAllValidatorsInfoShouldWork(t *testing.T) {
 	syncer.mapAllValidatorsInfo["c"] = svi3
 	syncer.mutValidatorsInfoForBlock.Unlock()
 
-	body := &block.Body{
-		MiniBlocks: []*block.MiniBlock{
-			{
-				SenderShardID:   core.MetachainShardId,
-				ReceiverShardID: 0,
-				Type:            block.TxBlock,
-				TxHashes: [][]byte{
-					[]byte("a"),
-					[]byte("b"),
-					[]byte("c"),
-				},
-			},
-			{
-				SenderShardID:   core.MetachainShardId,
-				ReceiverShardID: 0,
-				Type:            block.PeerBlock,
-				TxHashes: [][]byte{
-					[]byte("a"),
-					[]byte("b"),
-					[]byte("c"),
-				},
-			},
-		},
-	}
-
+	body := &block.Body{}
+	body.MiniBlocks = append(body.MiniBlocks, getMiniBlock(core.MetachainShardId, 0, block.TxBlock))
+	body.MiniBlocks = append(body.MiniBlocks, getMiniBlock(core.MetachainShardId, 0, block.PeerBlock))
 	validatorsInfo := syncer.getAllValidatorsInfo(body)
 
 	assert.Equal(t, 3, len(validatorsInfo))
@@ -641,31 +576,9 @@ func TestValidatorInfoProcessor_ComputeMissingValidatorsInfoShouldWork(t *testin
 	syncer, _ := NewPeerMiniBlockSyncer(args)
 	syncer.initValidatorsInfo()
 
-	body := &block.Body{
-		MiniBlocks: []*block.MiniBlock{
-			{
-				SenderShardID:   core.MetachainShardId,
-				ReceiverShardID: 0,
-				Type:            block.TxBlock,
-				TxHashes: [][]byte{
-					[]byte("a"),
-					[]byte("b"),
-					[]byte("c"),
-				},
-			},
-			{
-				SenderShardID:   core.MetachainShardId,
-				ReceiverShardID: 0,
-				Type:            block.PeerBlock,
-				TxHashes: [][]byte{
-					[]byte("a"),
-					[]byte("b"),
-					[]byte("c"),
-				},
-			},
-		},
-	}
-
+	body := &block.Body{}
+	body.MiniBlocks = append(body.MiniBlocks, getMiniBlock(core.MetachainShardId, 0, block.TxBlock))
+	body.MiniBlocks = append(body.MiniBlocks, getMiniBlock(core.MetachainShardId, 0, block.PeerBlock))
 	syncer.computeMissingValidatorsInfo(body)
 
 	syncer.mutValidatorsInfoForBlock.RLock()
@@ -799,4 +712,17 @@ func TestValidatorInfoProcessor_GetAllMissingValidatorsInfoHashesShouldWork(t *t
 	missingValidatorsInfoHashes := syncer.getAllMissingValidatorsInfoHashes()
 	require.Equal(t, 1, len(missingValidatorsInfoHashes))
 	assert.Equal(t, []byte("d"), missingValidatorsInfoHashes[0])
+}
+
+func getMiniBlock(senderShardID, receiverShardID uint32, blockType block.Type) *block.MiniBlock {
+	return &block.MiniBlock{
+		SenderShardID:   senderShardID,
+		ReceiverShardID: receiverShardID,
+		Type:            blockType,
+		TxHashes: [][]byte{
+			[]byte("a"),
+			[]byte("b"),
+			[]byte("c"),
+		},
+	}
 }
