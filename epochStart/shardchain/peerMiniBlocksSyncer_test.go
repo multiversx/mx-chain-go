@@ -374,8 +374,8 @@ func TestValidatorInfoProcessor_SyncValidatorsInfo(t *testing.T) {
 		syncer, _ := NewPeerMiniBlockSyncer(args)
 
 		body := &block.Body{}
-		body.MiniBlocks = append(body.MiniBlocks, getMiniBlock(core.MetachainShardId, 0, block.TxBlock))
-		body.MiniBlocks = append(body.MiniBlocks, getMiniBlock(core.MetachainShardId, 0, block.PeerBlock))
+		body.MiniBlocks = append(body.MiniBlocks, createMockMiniBlock(core.MetachainShardId, 0, block.TxBlock))
+		body.MiniBlocks = append(body.MiniBlocks, createMockMiniBlock(core.MetachainShardId, 0, block.PeerBlock))
 		missingValidatorsInfoHashes, validatorsInfo, err := syncer.SyncValidatorsInfo(body)
 
 		assert.Equal(t, 3, len(missingValidatorsInfoHashes))
@@ -408,8 +408,8 @@ func TestValidatorInfoProcessor_SyncValidatorsInfo(t *testing.T) {
 		syncer, _ := NewPeerMiniBlockSyncer(args)
 
 		body := &block.Body{}
-		body.MiniBlocks = append(body.MiniBlocks, getMiniBlock(core.MetachainShardId, 0, block.TxBlock))
-		body.MiniBlocks = append(body.MiniBlocks, getMiniBlock(core.MetachainShardId, 0, block.PeerBlock))
+		body.MiniBlocks = append(body.MiniBlocks, createMockMiniBlock(core.MetachainShardId, 0, block.TxBlock))
+		body.MiniBlocks = append(body.MiniBlocks, createMockMiniBlock(core.MetachainShardId, 0, block.PeerBlock))
 		missingValidatorsInfoHashes, validatorsInfo, err := syncer.SyncValidatorsInfo(body)
 
 		assert.Nil(t, err)
@@ -545,8 +545,8 @@ func TestValidatorInfoProcessor_GetAllValidatorsInfoShouldWork(t *testing.T) {
 	syncer.mutValidatorsInfoForBlock.Unlock()
 
 	body := &block.Body{}
-	body.MiniBlocks = append(body.MiniBlocks, getMiniBlock(core.MetachainShardId, 0, block.TxBlock))
-	body.MiniBlocks = append(body.MiniBlocks, getMiniBlock(core.MetachainShardId, 0, block.PeerBlock))
+	body.MiniBlocks = append(body.MiniBlocks, createMockMiniBlock(core.MetachainShardId, 0, block.TxBlock))
+	body.MiniBlocks = append(body.MiniBlocks, createMockMiniBlock(core.MetachainShardId, 0, block.PeerBlock))
 	validatorsInfo := syncer.getAllValidatorsInfo(body)
 
 	assert.Equal(t, 3, len(validatorsInfo))
@@ -577,8 +577,8 @@ func TestValidatorInfoProcessor_ComputeMissingValidatorsInfoShouldWork(t *testin
 	syncer.initValidatorsInfo()
 
 	body := &block.Body{}
-	body.MiniBlocks = append(body.MiniBlocks, getMiniBlock(core.MetachainShardId, 0, block.TxBlock))
-	body.MiniBlocks = append(body.MiniBlocks, getMiniBlock(core.MetachainShardId, 0, block.PeerBlock))
+	body.MiniBlocks = append(body.MiniBlocks, createMockMiniBlock(core.MetachainShardId, 0, block.TxBlock))
+	body.MiniBlocks = append(body.MiniBlocks, createMockMiniBlock(core.MetachainShardId, 0, block.PeerBlock))
 	syncer.computeMissingValidatorsInfo(body)
 
 	syncer.mutValidatorsInfoForBlock.RLock()
@@ -714,7 +714,7 @@ func TestValidatorInfoProcessor_GetAllMissingValidatorsInfoHashesShouldWork(t *t
 	assert.Equal(t, []byte("d"), missingValidatorsInfoHashes[0])
 }
 
-func getMiniBlock(senderShardID, receiverShardID uint32, blockType block.Type) *block.MiniBlock {
+func createMockMiniBlock(senderShardID, receiverShardID uint32, blockType block.Type) *block.MiniBlock {
 	return &block.MiniBlock{
 		SenderShardID:   senderShardID,
 		ReceiverShardID: receiverShardID,

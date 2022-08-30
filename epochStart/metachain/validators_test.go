@@ -612,7 +612,7 @@ func TestEpochValidatorInfoCreator_CreateMarshalledData(t *testing.T) {
 		}
 		vic, _ := NewValidatorInfoCreator(arguments)
 
-		body := getBlockBody(0, 1, block.TxBlock)
+		body := createMockBlockBody(0, 1, block.TxBlock)
 		marshalledData := vic.CreateMarshalledData(body)
 		assert.Nil(t, marshalledData)
 	})
@@ -639,7 +639,7 @@ func TestEpochValidatorInfoCreator_CreateMarshalledData(t *testing.T) {
 		}
 		vic, _ := NewValidatorInfoCreator(arguments)
 
-		body := getBlockBody(0, 1, block.TxBlock)
+		body := createMockBlockBody(0, 1, block.TxBlock)
 		marshalledData := vic.CreateMarshalledData(body)
 		assert.Equal(t, make(map[string][][]byte), marshalledData)
 	})
@@ -653,7 +653,7 @@ func TestEpochValidatorInfoCreator_CreateMarshalledData(t *testing.T) {
 		}
 		vic, _ := NewValidatorInfoCreator(arguments)
 
-		body := getBlockBody(0, 1, block.PeerBlock)
+		body := createMockBlockBody(0, 1, block.PeerBlock)
 		marshalledData := vic.CreateMarshalledData(body)
 		assert.Equal(t, make(map[string][][]byte), marshalledData)
 	})
@@ -676,7 +676,7 @@ func TestEpochValidatorInfoCreator_CreateMarshalledData(t *testing.T) {
 		}
 		vic, _ := NewValidatorInfoCreator(arguments)
 
-		body := getBlockBody(core.MetachainShardId, 0, block.PeerBlock)
+		body := createMockBlockBody(core.MetachainShardId, 0, block.PeerBlock)
 		marshalledData := vic.CreateMarshalledData(body)
 		assert.Equal(t, make(map[string][][]byte), marshalledData)
 	})
@@ -718,7 +718,7 @@ func TestEpochValidatorInfoCreator_CreateMarshalledData(t *testing.T) {
 		}
 		vic, _ := NewValidatorInfoCreator(arguments)
 
-		body := getBlockBody(core.MetachainShardId, 0, block.PeerBlock)
+		body := createMockBlockBody(core.MetachainShardId, 0, block.PeerBlock)
 		marshalledData := vic.CreateMarshalledData(body)
 		require.Equal(t, 1, len(marshalledData))
 		require.Equal(t, 3, len(marshalledData[common.ValidatorInfoTopic]))
@@ -759,7 +759,7 @@ func TestEpochValidatorInfoCreator_SetMarshalledValidatorInfoTxsShouldWork(t *te
 	}
 	vic, _ := NewValidatorInfoCreator(arguments)
 
-	miniBlock := getMiniBlock(core.MetachainShardId, 0, block.PeerBlock)
+	miniBlock := createMockMiniBlock(core.MetachainShardId, 0, block.PeerBlock)
 	marshalledValidatorInfoTxs := vic.getMarshalledValidatorInfoTxs(miniBlock)
 
 	require.Equal(t, 2, len(marshalledValidatorInfoTxs))
@@ -800,8 +800,8 @@ func TestEpochValidatorInfoCreator_GetValidatorInfoTxsShouldWork(t *testing.T) {
 	vic, _ := NewValidatorInfoCreator(arguments)
 
 	body := &block.Body{}
-	body.MiniBlocks = append(body.MiniBlocks, getMiniBlock(core.MetachainShardId, 0, block.TxBlock))
-	body.MiniBlocks = append(body.MiniBlocks, getMiniBlock(core.MetachainShardId, 0, block.PeerBlock))
+	body.MiniBlocks = append(body.MiniBlocks, createMockMiniBlock(core.MetachainShardId, 0, block.TxBlock))
+	body.MiniBlocks = append(body.MiniBlocks, createMockMiniBlock(core.MetachainShardId, 0, block.PeerBlock))
 	mapValidatorInfoTxs := vic.GetValidatorInfoTxs(body)
 
 	require.Equal(t, 3, len(mapValidatorInfoTxs))
@@ -838,7 +838,7 @@ func TestEpochValidatorInfoCreator_SetMapShardValidatorInfoShouldWork(t *testing
 	}
 	vic, _ := NewValidatorInfoCreator(arguments)
 
-	miniBlock := getMiniBlock(core.MetachainShardId, 0, block.TxBlock)
+	miniBlock := createMockMiniBlock(core.MetachainShardId, 0, block.TxBlock)
 	mapShardValidatorInfo := make(map[string]*state.ShardValidatorInfo)
 	vic.setMapShardValidatorInfo(miniBlock, mapShardValidatorInfo)
 
@@ -938,7 +938,7 @@ func TestEpochValidatorInfoCreator_SaveValidatorInfoShouldWork(t *testing.T) {
 	}
 	vic, _ := NewValidatorInfoCreator(arguments)
 
-	miniBlock := getMiniBlock(core.MetachainShardId, 0, block.TxBlock)
+	miniBlock := createMockMiniBlock(core.MetachainShardId, 0, block.TxBlock)
 	vic.saveValidatorInfo(miniBlock)
 
 	msvi1, err := storer.Get([]byte("a"))
@@ -964,8 +964,8 @@ func TestEpochValidatorInfoCreator_RemoveValidatorInfoShouldWork(t *testing.T) {
 	vic, _ := NewValidatorInfoCreator(arguments)
 
 	body := &block.Body{}
-	body.MiniBlocks = append(body.MiniBlocks, getMiniBlock(core.MetachainShardId, 0, block.TxBlock))
-	body.MiniBlocks = append(body.MiniBlocks, getMiniBlock(core.MetachainShardId, 0, block.PeerBlock))
+	body.MiniBlocks = append(body.MiniBlocks, createMockMiniBlock(core.MetachainShardId, 0, block.TxBlock))
+	body.MiniBlocks = append(body.MiniBlocks, createMockMiniBlock(core.MetachainShardId, 0, block.PeerBlock))
 
 	_ = storer.Put([]byte("a"), []byte("aa"))
 	_ = storer.Put([]byte("b"), []byte("bb"))
@@ -1008,8 +1008,8 @@ func TestEpochValidatorInfoCreator_RemoveValidatorInfoFromPoolShouldWork(t *test
 	vic, _ := NewValidatorInfoCreator(arguments)
 
 	body := &block.Body{}
-	body.MiniBlocks = append(body.MiniBlocks, getMiniBlock(core.MetachainShardId, 0, block.TxBlock))
-	body.MiniBlocks = append(body.MiniBlocks, getMiniBlock(core.MetachainShardId, 0, block.PeerBlock))
+	body.MiniBlocks = append(body.MiniBlocks, createMockMiniBlock(core.MetachainShardId, 0, block.TxBlock))
+	body.MiniBlocks = append(body.MiniBlocks, createMockMiniBlock(core.MetachainShardId, 0, block.PeerBlock))
 
 	svi1 := &state.ShardValidatorInfo{PublicKey: []byte("aa")}
 	svi2 := &state.ShardValidatorInfo{PublicKey: []byte("bb")}
@@ -1040,7 +1040,7 @@ func TestEpochValidatorInfoCreator_RemoveValidatorInfoFromPoolShouldWork(t *test
 	assert.Equal(t, svi4, svi)
 }
 
-func getBlockBody(senderShardID, receiverShardID uint32, blockType block.Type) *block.Body {
+func createMockBlockBody(senderShardID, receiverShardID uint32, blockType block.Type) *block.Body {
 	return &block.Body{
 		MiniBlocks: []*block.MiniBlock{
 			{
@@ -1057,7 +1057,7 @@ func getBlockBody(senderShardID, receiverShardID uint32, blockType block.Type) *
 	}
 }
 
-func getMiniBlock(senderShardID, receiverShardID uint32, blockType block.Type) *block.MiniBlock {
+func createMockMiniBlock(senderShardID, receiverShardID uint32, blockType block.Type) *block.MiniBlock {
 	return &block.MiniBlock{
 		SenderShardID:   senderShardID,
 		ReceiverShardID: receiverShardID,
