@@ -1042,18 +1042,7 @@ func TestEpochValidatorInfoCreator_RemoveValidatorInfoFromPoolShouldWork(t *test
 
 func createMockBlockBody(senderShardID, receiverShardID uint32, blockType block.Type) *block.Body {
 	return &block.Body{
-		MiniBlocks: []*block.MiniBlock{
-			{
-				SenderShardID:   senderShardID,
-				ReceiverShardID: receiverShardID,
-				Type:            blockType,
-				TxHashes: [][]byte{
-					[]byte("a"),
-					[]byte("b"),
-					[]byte("c"),
-				},
-			},
-		},
+		MiniBlocks: []*block.MiniBlock{createMockMiniBlock(senderShardID, receiverShardID, blockType)},
 	}
 }
 
