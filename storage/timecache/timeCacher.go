@@ -115,7 +115,15 @@ func (tc *timeCacher) Peek(key []byte) (value interface{}, ok bool) {
 // HasOrAdd checks if a key is in the cache.
 // If key exists, does not update the value. Otherwise, adds the key-value in the cache
 func (tc *timeCacher) HasOrAdd(key []byte, value interface{}, _ int) (has, added bool) {
-	return tc.timeCache.hasOrAdd(string(key), value, tc.timeCache.defaultSpan)
+	var err error
+	has, added, err = tc.timeCache.hasOrAdd(string(key), value, tc.timeCache.defaultSpan)
+	if err != nil {
+		log.Error("mapTimeCacher.HasOrAdd", "error", key)
+
+		return
+	}
+
+	return
 }
 
 // Remove removes the key from cache
