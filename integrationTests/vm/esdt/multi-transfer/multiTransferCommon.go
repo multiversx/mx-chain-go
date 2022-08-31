@@ -53,7 +53,7 @@ func IssueFungibleTokenWithIssuerAddress(
 	txData.IssueESDT(tokenName, ticker, initialSupply, 6)
 	txData.CanFreeze(true).CanWipe(true).CanPause(true).CanMint(true).CanBurn(true)
 
-	integrationTests.CreateAndSendTransactionWithIssuerAddress(
+	integrationTests.CreateAndSendTransactionWithSenderAccount(
 		issuerNode,
 		net.Nodes,
 		issuePrice,
@@ -102,7 +102,7 @@ func IssueNftWithIssuerAddress(
 	txData.Func(issueFunc).Str(tokenName).Str(ticker)
 	txData.CanFreeze(false).CanWipe(false).CanPause(false).CanTransferNFTCreateRole(true)
 
-	integrationTests.CreateAndSendTransactionWithIssuerAddress(
+	integrationTests.CreateAndSendTransactionWithSenderAccount(
 		issuerNode,
 		net.Nodes,
 		issuePrice,
@@ -142,7 +142,7 @@ func SetLocalRoles(
 		txData += "@" + hex.EncodeToString(role)
 	}
 
-	integrationTests.CreateAndSendTransactionWithIssuerAddress(
+	integrationTests.CreateAndSendTransactionWithSenderAccount(
 		issuerNode,
 		net.Nodes,
 		big.NewInt(0),
@@ -179,7 +179,7 @@ func CreateSFT(
 	txData.Str(attributes)
 	txData.Str(uri)
 
-	integrationTests.CreateAndSendTransactionWithIssuerAddress(
+	integrationTests.CreateAndSendTransactionWithSenderAccount(
 		issuerNode,
 		net.Nodes,
 		big.NewInt(0),

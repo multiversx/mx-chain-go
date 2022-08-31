@@ -1624,7 +1624,7 @@ func CreateAndSendTransaction(
 	txData string,
 	additionalGasLimit uint64,
 ) {
-	CreateAndSendTransactionWithIssuerAddress(
+	CreateAndSendTransactionWithSenderAccount(
 		node,
 		nodes,
 		txValue,
@@ -1636,19 +1636,19 @@ func CreateAndSendTransaction(
 
 // CreateAndSendTransaction will generate a transaction with provided parameters, sign it with the provided
 // node's tx sign private key and send it on the transaction topic using the correct node that can send the transaction
-func CreateAndSendTransactionWithIssuerAddress(
+func CreateAndSendTransactionWithSenderAccount(
 	node *TestProcessorNode,
 	nodes []*TestProcessorNode,
 	txValue *big.Int,
-	issuerAccount *TestWalletAccount,
+	senderAccount *TestWalletAccount,
 	rcvAddress []byte,
 	txData string,
 	additionalGasLimit uint64,
 ) {
 	tx := &transaction.Transaction{
-		Nonce:    issuerAccount.Nonce,
+		Nonce:    senderAccount.Nonce,
 		Value:    new(big.Int).Set(txValue),
-		SndAddr:  issuerAccount.Address,
+		SndAddr:  senderAccount.Address,
 		RcvAddr:  rcvAddress,
 		Data:     []byte(txData),
 		GasPrice: MinTxGasPrice,
@@ -1658,8 +1658,8 @@ func CreateAndSendTransactionWithIssuerAddress(
 	}
 
 	txBuff, _ := tx.GetDataForSigning(TestAddressPubkeyConverter, TestTxSignMarshalizer)
-	tx.Signature, _ = issuerAccount.SingleSigner.Sign(issuerAccount.SkTxSign, txBuff)
-	senderShardID := node.ShardCoordinator.ComputeId(issuerAccount.Address)
+	tx.Signature, _ = senderAccount.SingleSigner.Sign(senderAccount.SkTxSign, txBuff)
+	senderShardID := node.ShardCoordinator.ComputeId(senderAccount.Address)
 
 	wasSent := false
 	for _, senderNode := range nodes {
@@ -1669,7 +1669,7 @@ func CreateAndSendTransactionWithIssuerAddress(
 
 		_, err := senderNode.SendTransaction(tx)
 		if err != nil {
-			log.Error("could not send transaction", "address", issuerAccount.Address, "error", err)
+			log.Error("could not send transaction", "address", senderAccount.Address, "error", err)
 		} else {
 			wasSent = true
 		}
@@ -1677,9 +1677,9 @@ func CreateAndSendTransactionWithIssuerAddress(
 	}
 
 	if !wasSent {
-		log.Error("no suitable node found to send the provided transaction", "address", issuerAccount.Address)
+		log.Error("no suitable node found to send the provided transaction", "address", senderAccount.Address)
 	}
-	issuerAccount.Nonce++
+	senderAccount.Nonce++
 }
 
 // CreateAndSendTransactionWithGasLimit generates and send a transaction with provided gas limit/gas price

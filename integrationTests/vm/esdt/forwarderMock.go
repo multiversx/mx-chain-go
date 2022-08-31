@@ -1,4 +1,4 @@
-package localFuncs
+package esdt
 
 import (
 	"math/big"

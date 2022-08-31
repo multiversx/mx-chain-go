@@ -6,7 +6,7 @@ import (
 	test "github.com/ElrondNetwork/arwen-wasm-vm/v1_5/testcommon"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	arwenvm "github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen/arwenvm"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/esdt/localFuncs"
+	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/esdt"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
@@ -76,18 +76,18 @@ func ESDTMultiTransferThroughForwarder_MockContracts_Deploy(t *testing.T, net *i
 			WithOwnerAddress(ownerShard1.Address).
 			WithConfig(testConfig).
 			WithMethods(
-				localFuncs.MultiTransferViaAsyncMock,
-				localFuncs.SyncMultiTransferMock,
-				localFuncs.MultiTransferExecuteMock,
-				localFuncs.EmptyCallbackMock),
+				esdt.MultiTransferViaAsyncMock,
+				esdt.SyncMultiTransferMock,
+				esdt.MultiTransferExecuteMock,
+				esdt.EmptyCallbackMock),
 		test.CreateMockContractOnShard(vaultShard1, 0).
 			WithOwnerAddress(ownerShard1.Address).
 			WithConfig(testConfig).
-			WithMethods(localFuncs.AcceptFundsEchoMock),
+			WithMethods(esdt.AcceptFundsEchoMock),
 		test.CreateMockContractOnShard(vaultShard2, 1).
 			WithOwnerAddress(ownerShard2.Address).
 			WithConfig(testConfig).
-			WithMethods(localFuncs.AcceptMultiFundsEchoMock),
+			WithMethods(esdt.AcceptMultiFundsEchoMock),
 	)
 }
 
@@ -129,10 +129,10 @@ func ESDTMultiTransferWithWrongArguments_MockContracts_Deploy(t *testing.T, net 
 		test.CreateMockContractOnShard(forwarder, 0).
 			WithOwnerAddress(ownerShard1.Address).
 			WithConfig(testConfig).
-			WithMethods(localFuncs.DoAsyncCallMock),
+			WithMethods(esdt.DoAsyncCallMock),
 		test.CreateMockContractOnShard(vaultShard2, 1).
 			WithOwnerAddress(ownerShard2.Address).
 			WithConfig(testConfig).
-			WithMethods(localFuncs.AcceptFundsEchoMock),
+			WithMethods(esdt.AcceptFundsEchoMock),
 	)
 }
