@@ -23,6 +23,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
+	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
@@ -869,7 +870,11 @@ func (t *trigger) SetProcessed(header data.HeaderHandler, _ data.BodyHandler) {
 	epochStartIdentifier := core.EpochStartIdentifier(shardHdr.GetEpoch())
 	errNotCritical = t.shardHdrStorage.Put([]byte(epochStartIdentifier), shardHdrBuff)
 	if errNotCritical != nil {
-		log.Warn("SetProcessed put to shard header storage error", "error", errNotCritical)
+		logLevel := logger.LogWarning
+		if errors.IsClosingError(errNotCritical) {
+			logLevel = logger.LogDebug
+		}
+		log.Log(logLevel, "SetProcessed put to shard header storage error", "error", errNotCritical)
 	}
 
 	// save finished start of epoch meta hdrs to current storage
@@ -930,7 +935,7 @@ func (t *trigger) RevertStateToBlock(header data.HeaderHandler) error {
 		return nil
 	}
 
-	shardHdr, err := process.CreateShardHeader(t.marshaller, shardHdrBuff)
+	shardHdr, err := process.UnmarshalShardHeader(t.marshaller, shardHdrBuff)
 	if err != nil {
 		log.Warn("RevertStateToBlock unmarshal error", "err", err)
 		return err
