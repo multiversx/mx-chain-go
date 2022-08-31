@@ -149,8 +149,8 @@ type Messenger interface {
 	// through a specified channel.
 	BroadcastOnChannel(channel string, topic string, buff []byte)
 
-	// BroadcastWithSk tries to send a byte buffer onto a topic using the topic name as channel
-	BroadcastWithSk(topic string, buff []byte, pid core.PeerID, skBytes []byte)
+	// BroadcastUsingPrivateKey tries to send a byte buffer onto a topic using the topic name as channel
+	BroadcastUsingPrivateKey(topic string, buff []byte, pid core.PeerID, skBytes []byte)
 
 	// Broadcast is a convenience function that calls BroadcastOnChannelBlocking,
 	// but implicitly sets the channel to be identical to the specified topic.
@@ -172,7 +172,7 @@ type Messenger interface {
 	WaitForConnections(maxWaitingTime time.Duration, minNumOfPeers uint32)
 	Sign(payload []byte) ([]byte, error)
 	Verify(payload []byte, pid core.PeerID, signature []byte) error
-	SignWithPrivateKey(skBytes []byte, payload []byte) ([]byte, error)
+	SignUsingPrivateKey(skBytes []byte, payload []byte) ([]byte, error)
 
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool

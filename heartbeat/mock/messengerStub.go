@@ -6,12 +6,12 @@ import (
 
 // MessengerStub -
 type MessengerStub struct {
-	IDCalled                 func() core.PeerID
-	BroadcastCalled          func(topic string, buff []byte)
-	BroadcastWithSkCalled    func(topic string, buff []byte, pid core.PeerID, skBytes []byte)
-	SignCalled               func(payload []byte) ([]byte, error)
-	SignWithPrivateKeyCalled func(skBytes []byte, payload []byte) ([]byte, error)
-	VerifyCalled             func(payload []byte, pid core.PeerID, signature []byte) error
+	IDCalled                       func() core.PeerID
+	BroadcastCalled                func(topic string, buff []byte)
+	BroadcastUsingPrivateKeyCalled func(topic string, buff []byte, pid core.PeerID, skBytes []byte)
+	SignCalled                     func(payload []byte) ([]byte, error)
+	SignUsingPrivateKeyCalled      func(skBytes []byte, payload []byte) ([]byte, error)
+	VerifyCalled                   func(payload []byte, pid core.PeerID, signature []byte) error
 }
 
 // ID -
@@ -30,10 +30,10 @@ func (ms *MessengerStub) Broadcast(topic string, buff []byte) {
 	}
 }
 
-// BroadcastWithSk -
-func (ms *MessengerStub) BroadcastWithSk(topic string, buff []byte, pid core.PeerID, skBytes []byte) {
-	if ms.BroadcastWithSkCalled != nil {
-		ms.BroadcastWithSkCalled(topic, buff, pid, skBytes)
+// BroadcastUsingPrivateKey -
+func (ms *MessengerStub) BroadcastUsingPrivateKey(topic string, buff []byte, pid core.PeerID, skBytes []byte) {
+	if ms.BroadcastUsingPrivateKeyCalled != nil {
+		ms.BroadcastUsingPrivateKeyCalled(topic, buff, pid, skBytes)
 	}
 }
 
@@ -46,10 +46,10 @@ func (ms *MessengerStub) Sign(payload []byte) ([]byte, error) {
 	return make([]byte, 0), nil
 }
 
-// SignWithPrivateKey -
-func (ms *MessengerStub) SignWithPrivateKey(skBytes []byte, payload []byte) ([]byte, error) {
-	if ms.SignWithPrivateKeyCalled != nil {
-		return ms.SignWithPrivateKeyCalled(skBytes, payload)
+// SignUsingPrivateKey -
+func (ms *MessengerStub) SignUsingPrivateKey(skBytes []byte, payload []byte) ([]byte, error) {
+	if ms.SignUsingPrivateKeyCalled != nil {
+		return ms.SignUsingPrivateKeyCalled(skBytes, payload)
 	}
 
 	return make([]byte, 0), nil

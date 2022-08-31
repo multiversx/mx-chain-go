@@ -105,7 +105,7 @@ func TestP2pSigner_Verify(t *testing.T) {
 	})
 }
 
-func TestP2PSigner_SignWithPrivateKey(t *testing.T) {
+func TestP2PSigner_SignUsingPrivateKey(t *testing.T) {
 	t.Parallel()
 
 	payload := []byte("payload")
@@ -120,10 +120,10 @@ func TestP2PSigner_SignWithPrivateKey(t *testing.T) {
 
 	p2pSigner := &p2pSigner{}
 
-	sig1, err := p2pSigner.SignWithPrivateKey(skBytes1, payload)
+	sig1, err := p2pSigner.SignUsingPrivateKey(skBytes1, payload)
 	assert.Nil(t, err)
 
-	sig2, err := p2pSigner.SignWithPrivateKey(skBytes2, payload)
+	sig2, err := p2pSigner.SignUsingPrivateKey(skBytes2, payload)
 	assert.Nil(t, err)
 	assert.NotEqual(t, sig1, sig2)
 
@@ -165,7 +165,7 @@ func TestP2pSigner_ConcurrentOperations(t *testing.T) {
 				errVerify := signer.Verify(payload1, pid, sig1)
 				assert.Nil(t, errVerify)
 			case 2:
-				_, errSignWithSK := signer.SignWithPrivateKey(skBytes, payload3)
+				_, errSignWithSK := signer.SignUsingPrivateKey(skBytes, payload3)
 				assert.Nil(t, errSignWithSK)
 			}
 

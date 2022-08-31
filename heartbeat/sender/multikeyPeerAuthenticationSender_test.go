@@ -131,7 +131,7 @@ func createMockMultikeyPeerAuthenticationSenderArgsSemiIntegrationTests(
 	}
 
 	messenger := &mock.MessengerStub{
-		SignWithPrivateKeyCalled: func(skBytes []byte, payload []byte) ([]byte, error) {
+		SignUsingPrivateKeyCalled: func(skBytes []byte, payload []byte) ([]byte, error) {
 			p2pSk, _ := keyGenForP2P.PrivateKeyFromByteArray(skBytes)
 
 			return signerMessenger.Sign(p2pSk, payload)
@@ -332,7 +332,7 @@ func TestNewMultikeyPeerAuthenticationSender_Execute(t *testing.T) {
 		var skBytesBroadcast [][]byte
 
 		args, messenger := createMockMultikeyPeerAuthenticationSenderArgsSemiIntegrationTests(numKeys)
-		messenger.BroadcastWithSkCalled = func(topic string, buff []byte, pid core.PeerID, skBytes []byte) {
+		messenger.BroadcastUsingPrivateKeyCalled = func(topic string, buff []byte, pid core.PeerID, skBytes []byte) {
 			assert.Equal(t, args.topic, topic)
 
 			mutData.Lock()
@@ -359,7 +359,7 @@ func TestNewMultikeyPeerAuthenticationSender_Execute(t *testing.T) {
 		var skBytesBroadcast [][]byte
 
 		args, messenger := createMockMultikeyPeerAuthenticationSenderArgsSemiIntegrationTests(numKeys)
-		messenger.BroadcastWithSkCalled = func(topic string, buff []byte, pid core.PeerID, skBytes []byte) {
+		messenger.BroadcastUsingPrivateKeyCalled = func(topic string, buff []byte, pid core.PeerID, skBytes []byte) {
 			assert.Equal(t, args.topic, topic)
 
 			mutData.Lock()
@@ -404,7 +404,7 @@ func TestNewMultikeyPeerAuthenticationSender_Execute(t *testing.T) {
 		var skBytesBroadcast [][]byte
 
 		args, messenger := createMockMultikeyPeerAuthenticationSenderArgsSemiIntegrationTests(numKeys)
-		messenger.BroadcastWithSkCalled = func(topic string, buff []byte, pid core.PeerID, skBytes []byte) {
+		messenger.BroadcastUsingPrivateKeyCalled = func(topic string, buff []byte, pid core.PeerID, skBytes []byte) {
 			assert.Equal(t, args.topic, topic)
 
 			mutData.Lock()
@@ -463,7 +463,7 @@ func TestNewMultikeyPeerAuthenticationSender_Execute(t *testing.T) {
 		var skBytesBroadcast [][]byte
 
 		args, messenger := createMockMultikeyPeerAuthenticationSenderArgsSemiIntegrationTests(numKeys)
-		messenger.BroadcastWithSkCalled = func(topic string, buff []byte, pid core.PeerID, skBytes []byte) {
+		messenger.BroadcastUsingPrivateKeyCalled = func(topic string, buff []byte, pid core.PeerID, skBytes []byte) {
 			assert.Equal(t, args.topic, topic)
 
 			mutData.Lock()
@@ -526,7 +526,7 @@ func TestNewMultikeyPeerAuthenticationSender_Execute(t *testing.T) {
 		var skBytesBroadcast [][]byte
 
 		args, messenger := createMockMultikeyPeerAuthenticationSenderArgsSemiIntegrationTests(numKeys)
-		messenger.BroadcastWithSkCalled = func(topic string, buff []byte, pid core.PeerID, skBytes []byte) {
+		messenger.BroadcastUsingPrivateKeyCalled = func(topic string, buff []byte, pid core.PeerID, skBytes []byte) {
 			assert.Equal(t, args.topic, topic)
 
 			mutData.Lock()
@@ -589,7 +589,7 @@ func TestNewMultikeyPeerAuthenticationSender_Execute(t *testing.T) {
 		var skBytesBroadcast [][]byte
 
 		args, messenger := createMockMultikeyPeerAuthenticationSenderArgsSemiIntegrationTests(numKeys)
-		messenger.BroadcastWithSkCalled = func(topic string, buff []byte, pid core.PeerID, skBytes []byte) {
+		messenger.BroadcastUsingPrivateKeyCalled = func(topic string, buff []byte, pid core.PeerID, skBytes []byte) {
 			assert.Equal(t, args.topic, topic)
 
 			mutData.Lock()
