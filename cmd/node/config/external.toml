@@ -44,3 +44,10 @@
     RouteSendData = "/block"
     # Route used to acknowledge sent blocks
     RouteAcknowledgeData = "/acknowledge"
+
+[WebSocketsConnector]
+    # This flag shall only be used for observer nodes
+    Enabled = false
+    URL = "localhost:22111"
+    WithAcknowledge = true
+    MarshallerType = "json"

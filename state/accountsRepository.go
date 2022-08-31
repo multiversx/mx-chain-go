@@ -59,7 +59,7 @@ func (repository *accountsRepository) selectStateAccounts(options api.AccountQue
 	if options.OnFinalBlock {
 		return repository.finalStateAccountsWrapper, nil
 	}
-	if options.OnStartOfEpoch > 0 {
+	if options.OnStartOfEpoch.Value > 0 {
 		// TODO implement this
 		return nil, ErrFunctionalityNotImplemented
 	}

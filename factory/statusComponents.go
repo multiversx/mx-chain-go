@@ -9,6 +9,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	nodeData "github.com/ElrondNetwork/elrond-go-core/data"
+	factoryMarshalizer "github.com/ElrondNetwork/elrond-go-core/marshal/factory"
+	"github.com/ElrondNetwork/elrond-go-core/websocketOutportDriver/data"
+	wsDriverFactory "github.com/ElrondNetwork/elrond-go-core/websocketOutportDriver/factory"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/common/statistics"
 	"github.com/ElrondNetwork/elrond-go/common/statistics/softwareVersion/factory"
@@ -206,12 +209,20 @@ func (pc *statusComponents) Close() error {
 // createOutportDriver creates a new outport.OutportHandler which is used to register outport drivers
 // once a driver is subscribed it will receive data through the implemented outport.Driver methods
 func (scf *statusComponentsFactory) createOutportDriver() (outport.OutportHandler, error) {
+	webSocketSenderDriverFactoryArgs, err := scf.makeWebSocketsDriverArgs()
+	if err != nil {
+		return nil, err
+	}
 
 	outportFactoryArgs := &outportDriverFactory.OutportFactoryArgs{
 		RetrialInterval:            common.RetrialIntervalForOutportDriver,
 		ElasticIndexerFactoryArgs:  scf.makeElasticIndexerArgs(),
 		EventNotifierFactoryArgs:   scf.makeEventNotifierArgs(),
 		CovalentIndexerFactoryArgs: scf.makeCovalentIndexerArgs(),
+		WebSocketSenderDriverFactoryArgs: outportDriverFactory.WrappedOutportDriverWebSocketSenderFactoryArgs{
+			Enabled:                                 scf.externalConfig.WebSocketsConnector.Enabled,
+			OutportDriverWebSocketSenderFactoryArgs: webSocketSenderDriverFactoryArgs,
+		},
 	}
 
 	return outportDriverFactory.CreateOutport(outportFactoryArgs)
@@ -263,6 +274,24 @@ func (scf *statusComponentsFactory) makeCovalentIndexerArgs() *covalentFactory.A
 		Marshaller:           scf.coreComponents.InternalMarshalizer(),
 		ShardCoordinator:     scf.shardCoordinator,
 	}
+}
+
+func (scf *statusComponentsFactory) makeWebSocketsDriverArgs() (wsDriverFactory.OutportDriverWebSocketSenderFactoryArgs, error) {
+	marshaller, err := factoryMarshalizer.NewMarshalizer(scf.externalConfig.WebSocketsConnector.MarshallerType)
+	if err != nil {
+		return wsDriverFactory.OutportDriverWebSocketSenderFactoryArgs{}, err
+	}
+
+	return wsDriverFactory.OutportDriverWebSocketSenderFactoryArgs{
+		Marshaller: marshaller,
+		WebSocketConfig: data.WebSocketConfig{
+			URL:             scf.externalConfig.WebSocketsConnector.URL,
+			WithAcknowledge: scf.externalConfig.WebSocketsConnector.WithAcknowledge,
+		},
+		Uint64ByteSliceConverter: scf.coreComponents.Uint64ByteSliceConverter(),
+		Log:                      log,
+		WithAcknowledge:          scf.externalConfig.WebSocketsConnector.WithAcknowledge,
+	}, nil
 }
 
 func startStatisticsMonitor(
