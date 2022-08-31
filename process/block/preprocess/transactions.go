@@ -10,7 +10,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/core/sliceUtil"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
@@ -244,27 +243,9 @@ func (txs *transactions) RestoreBlockDataIntoPools(
 			continue
 		}
 
-		miniBlockStrCache := process.ShardCacherIdentifier(miniBlock.SenderShardID, miniBlock.ReceiverShardID)
-		txsBuff, err := txs.storage.GetAll(dataRetriever.TransactionUnit, miniBlock.TxHashes)
+		err := txs.restoreTxsIntoPool(miniBlock)
 		if err != nil {
-			log.Debug("tx from mini block was not found in TransactionUnit",
-				"sender shard ID", miniBlock.SenderShardID,
-				"receiver shard ID", miniBlock.ReceiverShardID,
-				"num txs", len(miniBlock.TxHashes),
-			)
-
 			return txsRestored, err
-		}
-
-		for txHash, txBuff := range txsBuff {
-			tx := transaction.Transaction{}
-			err = txs.marshalizer.Unmarshal(&tx, txBuff)
-			if err != nil {
-				return txsRestored, err
-			}
-
-			strCache := txs.computeCacheIdentifier(miniBlockStrCache, &tx, miniBlock.Type)
-			txs.txPool.AddData([]byte(txHash), &tx, tx.Size(), strCache)
 		}
 
 		if miniBlock.SenderShardID != txs.shardCoordinator.SelfId() {
@@ -280,6 +261,33 @@ func (txs *transactions) RestoreBlockDataIntoPools(
 	}
 
 	return txsRestored, nil
+}
+
+func (txs *transactions) restoreTxsIntoPool(miniBlock *block.MiniBlock) error {
+	miniBlockStrCache := process.ShardCacherIdentifier(miniBlock.SenderShardID, miniBlock.ReceiverShardID)
+	txsBuff, err := txs.storage.GetAll(dataRetriever.TransactionUnit, miniBlock.TxHashes)
+	if err != nil {
+		log.Debug("txs from mini block were not found in TransactionUnit",
+			"sender shard ID", miniBlock.SenderShardID,
+			"receiver shard ID", miniBlock.ReceiverShardID,
+			"num txs", len(miniBlock.TxHashes),
+		)
+
+		return err
+	}
+
+	for txHash, txBuff := range txsBuff {
+		tx := transaction.Transaction{}
+		err = txs.marshalizer.Unmarshal(&tx, txBuff)
+		if err != nil {
+			return err
+		}
+
+		strCache := txs.computeCacheIdentifier(miniBlockStrCache, &tx, miniBlock.Type)
+		txs.txPool.AddData([]byte(txHash), &tx, tx.Size(), strCache)
+	}
+
+	return nil
 }
 
 func (txs *transactions) computeCacheIdentifier(miniBlockStrCache string, tx *transaction.Transaction, miniBlockType block.Type) string {
@@ -919,21 +927,22 @@ func (txs *transactions) RequestTransactionsForMiniBlock(miniBlock *block.MiniBl
 		return 0
 	}
 
-	missingTxsForMiniBlock := txs.computeMissingTxsForMiniBlock(miniBlock)
-	if len(missingTxsForMiniBlock) > 0 {
-		txs.onRequestTransaction(miniBlock.SenderShardID, missingTxsForMiniBlock)
+	missingTxsHashesForMiniBlock := txs.computeMissingTxsHashesForMiniBlock(miniBlock)
+	if len(missingTxsHashesForMiniBlock) > 0 {
+		txs.onRequestTransaction(miniBlock.SenderShardID, missingTxsHashesForMiniBlock)
 	}
 
-	return len(missingTxsForMiniBlock)
+	return len(missingTxsHashesForMiniBlock)
 }
 
-// computeMissingTxsForMiniBlock computes missing transactions for a certain miniblock
-func (txs *transactions) computeMissingTxsForMiniBlock(miniBlock *block.MiniBlock) [][]byte {
+// computeMissingTxsHashesForMiniBlock computes missing transactions hashes for a certain miniblock
+func (txs *transactions) computeMissingTxsHashesForMiniBlock(miniBlock *block.MiniBlock) [][]byte {
+	missingTransactionsHashes := make([][]byte, 0)
+
 	if miniBlock.Type != txs.blockType {
-		return nil
+		return missingTransactionsHashes
 	}
 
-	missingTransactions := make([][]byte, 0, len(miniBlock.TxHashes))
 	searchFirst := txs.blockType == block.InvalidBlock
 
 	for _, txHash := range miniBlock.TxHashes {
@@ -944,12 +953,12 @@ func (txs *transactions) computeMissingTxsForMiniBlock(miniBlock *block.MiniBloc
 			txs.txPool,
 			searchFirst)
 
-		if tx == nil || tx.IsInterfaceNil() {
-			missingTransactions = append(missingTransactions, txHash)
+		if check.IfNil(tx) {
+			missingTransactionsHashes = append(missingTransactionsHashes, txHash)
 		}
 	}
 
-	return sliceUtil.TrimSliceSliceByte(missingTransactions)
+	return missingTransactionsHashes
 }
 
 // getAllTxsFromMiniBlock gets all the transactions from a miniblock into a new structure
@@ -1424,7 +1433,7 @@ func (txs *transactions) computeSortedTxs(
 	return selectedTxs, remainingTxs, nil
 }
 
-// ProcessMiniBlock processes all the transactions from a and saves the processed transactions in local cache complete miniblock
+// ProcessMiniBlock processes all the transactions from the given miniblock and saves the processed ones in a local cache
 func (txs *transactions) ProcessMiniBlock(
 	miniBlock *block.MiniBlock,
 	haveTime func() bool,
@@ -1611,27 +1620,26 @@ func (txs *transactions) processInNormalMode(
 	return nil
 }
 
-// CreateMarshalizedData marshalizes transactions and creates and saves them into a new structure
-func (txs *transactions) CreateMarshalizedData(txHashes [][]byte) ([][]byte, error) {
-	mrsScrs, err := txs.createMarshalizedData(txHashes, &txs.txsForCurrBlock)
+// CreateMarshalledData marshals transactions hashes and saves them into a new structure
+func (txs *transactions) CreateMarshalledData(txHashes [][]byte) ([][]byte, error) {
+	marshalledTxs, err := txs.createMarshalledData(txHashes, &txs.txsForCurrBlock)
 	if err != nil {
 		return nil, err
 	}
 
-	return mrsScrs, nil
+	return marshalledTxs, nil
 }
 
 // GetAllCurrentUsedTxs returns all the transactions used at current creation / processing
 func (txs *transactions) GetAllCurrentUsedTxs() map[string]data.TransactionHandler {
-	txPool := make(map[string]data.TransactionHandler, len(txs.txsForCurrBlock.txHashAndInfo))
-
 	txs.txsForCurrBlock.mutTxsForBlock.RLock()
+	txsPool := make(map[string]data.TransactionHandler, len(txs.txsForCurrBlock.txHashAndInfo))
 	for txHash, txInfoFromMap := range txs.txsForCurrBlock.txHashAndInfo {
-		txPool[txHash] = txInfoFromMap.tx
+		txsPool[txHash] = txInfoFromMap.tx
 	}
 	txs.txsForCurrBlock.mutTxsForBlock.RUnlock()
 
-	return txPool
+	return txsPool
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -68,6 +68,7 @@ func TestProcessComponents_Close_ShouldWork(t *testing.T) {
 		managedCoreComponents.ChanStopNodeProcess(),
 		managedCoreComponents.NodeTypeProvider(),
 		managedCoreComponents.EnableEpochsHandler(),
+		managedDataComponents.Datapool().CurrentEpochValidatorInfo(),
 	)
 	require.Nil(t, err)
 	managedStatusComponents, err := nr.CreateManagedStatusComponents(
