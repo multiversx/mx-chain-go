@@ -290,7 +290,7 @@ func TestBaseRewardsCreator_CreateMarshalizedDataNilMiniblocksEmptyMap(t *testin
 	require.Nil(t, err)
 	require.NotNil(t, rwd)
 
-	result := rwd.CreateMarshalizedData(nil)
+	result := rwd.CreateMarshalledData(nil)
 	require.Equal(t, 0, len(result))
 }
 
@@ -302,7 +302,7 @@ func TestBaseRewardsCreator_CreateMarshalizedDataEmptyMiniblocksEmptyMap(t *test
 	require.Nil(t, err)
 	require.NotNil(t, rwd)
 
-	result := rwd.CreateMarshalizedData(&block.Body{})
+	result := rwd.CreateMarshalledData(&block.Body{})
 	require.Equal(t, 0, len(result))
 }
 
@@ -327,7 +327,7 @@ func TestBaseRewardsCreator_CreateMarshalizedDataOnlyRewardsMiniblocksGetMarshal
 
 	for _, mbType := range miniBlockTypes {
 		dummyMiniBlock.Type = mbType
-		result := rwd.CreateMarshalizedData(&block.Body{
+		result := rwd.CreateMarshalledData(&block.Body{
 			MiniBlocks: block.MiniBlockSlice{
 				dummyMiniBlock,
 			},
@@ -336,7 +336,7 @@ func TestBaseRewardsCreator_CreateMarshalizedDataOnlyRewardsMiniblocksGetMarshal
 	}
 
 	dummyMiniBlock.Type = block.RewardsBlock
-	result := rwd.CreateMarshalizedData(&block.Body{
+	result := rwd.CreateMarshalledData(&block.Body{
 		MiniBlocks: block.MiniBlockSlice{
 			dummyMiniBlock,
 		},
@@ -367,7 +367,7 @@ func TestBaseRewardsCreator_CreateMarshalizedDataWrongSenderNotIncluded(t *testi
 	dummyMiniBlock := createDummyRewardTxMiniblock(rwd)
 	dummyMiniBlock.Type = block.RewardsBlock
 	dummyMiniBlock.SenderShardID = args.ShardCoordinator.SelfId() + 1
-	result := rwd.CreateMarshalizedData(&block.Body{
+	result := rwd.CreateMarshalledData(&block.Body{
 		MiniBlocks: block.MiniBlockSlice{
 			dummyMiniBlock,
 		},
@@ -386,7 +386,7 @@ func TestBaseRewardsCreator_CreateMarshalizedDataNotFoundTxHashIgnored(t *testin
 	dummyMiniBlock := createDummyRewardTxMiniblock(rwd)
 	dummyMiniBlock.Type = block.RewardsBlock
 	dummyMiniBlock.TxHashes = [][]byte{[]byte("not found txHash")}
-	result := rwd.CreateMarshalizedData(&block.Body{
+	result := rwd.CreateMarshalledData(&block.Body{
 		MiniBlocks: block.MiniBlockSlice{
 			dummyMiniBlock,
 		},
@@ -460,7 +460,7 @@ func TestBaseRewardsCreator_SaveTxBlockToStorageNilBodyNoPanic(t *testing.T) {
 	require.Nil(t, err)
 	require.NotNil(t, rwd)
 
-	rwd.SaveTxBlockToStorage(nil, nil)
+	rwd.SaveBlockDataToStorage(nil, nil)
 }
 
 func TestBaseRewardsCreator_SaveTxBlockToStorageNonRewardsMiniBlocksAreIgnored(t *testing.T) {
@@ -486,7 +486,7 @@ func TestBaseRewardsCreator_SaveTxBlockToStorageNonRewardsMiniBlocksAreIgnored(t
 	for _, mbType := range miniBlockTypes {
 		dummyMiniBlock.Type = mbType
 
-		rwd.SaveTxBlockToStorage(nil, &block.Body{
+		rwd.SaveBlockDataToStorage(nil, &block.Body{
 			MiniBlocks: block.MiniBlockSlice{
 				dummyMiniBlock,
 			},
@@ -501,7 +501,7 @@ func TestBaseRewardsCreator_SaveTxBlockToStorageNonRewardsMiniBlocksAreIgnored(t
 	}
 
 	dummyMiniBlock.Type = block.RewardsBlock
-	rwd.SaveTxBlockToStorage(nil, &block.Body{
+	rwd.SaveBlockDataToStorage(nil, &block.Body{
 		MiniBlocks: block.MiniBlockSlice{
 			dummyMiniBlock,
 		},
@@ -530,7 +530,7 @@ func TestBaseRewardsCreator_SaveTxBlockToStorageNotFoundTxIgnored(t *testing.T) 
 	dummyMb := createDummyRewardTxMiniblock(rwd)
 	dummyMb.TxHashes = [][]byte{rwTxHash}
 
-	rwd.SaveTxBlockToStorage(nil, &block.Body{MiniBlocks: block.MiniBlockSlice{dummyMb}})
+	rwd.SaveBlockDataToStorage(nil, &block.Body{MiniBlocks: block.MiniBlockSlice{dummyMb}})
 
 	mmb, err := args.Marshalizer.Marshal(dummyMb)
 	require.Nil(t, err)
@@ -558,7 +558,7 @@ func TestBaseRewardsCreator_DeleteTxsFromStorageNilMetablockNoPanic(t *testing.T
 	require.NotNil(t, rwd)
 
 	dummyMb := createDummyRewardTxMiniblock(rwd)
-	rwd.DeleteTxsFromStorage(nil, &block.Body{MiniBlocks: block.MiniBlockSlice{dummyMb}})
+	rwd.DeleteBlockDataFromStorage(nil, &block.Body{MiniBlocks: block.MiniBlockSlice{dummyMb}})
 }
 
 func TestBaseRewardsCreator_DeleteTxsFromStorageNilBlockBodyNoPanic(t *testing.T) {
@@ -579,7 +579,7 @@ func TestBaseRewardsCreator_DeleteTxsFromStorageNilBlockBodyNoPanic(t *testing.T
 		DevFeesInEpoch: big.NewInt(0),
 	}
 
-	rwd.DeleteTxsFromStorage(metaBlk, nil)
+	rwd.DeleteBlockDataFromStorage(metaBlk, nil)
 }
 
 func TestBaseRewardsCreator_DeleteTxsFromStorageNonRewardsMiniBlocksIgnored(t *testing.T) {
@@ -623,7 +623,7 @@ func TestBaseRewardsCreator_DeleteTxsFromStorageNonRewardsMiniBlocksIgnored(t *t
 		dummyMbMarshalled, _ := args.Marshalizer.Marshal(dummyMb)
 		_ = rwd.miniBlockStorage.Put(mbHash, dummyMbMarshalled)
 
-		rwd.DeleteTxsFromStorage(metaBlk, &block.Body{MiniBlocks: block.MiniBlockSlice{dummyMb}})
+		rwd.DeleteBlockDataFromStorage(metaBlk, &block.Body{MiniBlocks: block.MiniBlockSlice{dummyMb}})
 		tx, err = rwd.rewardsStorage.Get(rwTxHash)
 		require.Nil(t, err)
 		require.NotNil(t, tx)
@@ -665,7 +665,7 @@ func TestBaseRewardsCreator_DeleteTxsFromStorage(t *testing.T) {
 	dummyMbMarshalled, _ := args.Marshalizer.Marshal(dummyMb)
 	_ = rwd.miniBlockStorage.Put(mbHash, dummyMbMarshalled)
 
-	rwd.DeleteTxsFromStorage(metaBlk, &block.Body{MiniBlocks: block.MiniBlockSlice{dummyMb}})
+	rwd.DeleteBlockDataFromStorage(metaBlk, &block.Body{MiniBlocks: block.MiniBlockSlice{dummyMb}})
 	tx, err := rwd.rewardsStorage.Get(rwTxHash)
 	require.NotNil(t, err)
 	require.Nil(t, tx)
@@ -710,7 +710,7 @@ func TestBaseRewardsCreator_RemoveBlockDataFromPoolsNilBlockBodyNoPanic(t *testi
 		DevFeesInEpoch: big.NewInt(0),
 	}
 
-	rwd.DeleteTxsFromStorage(metaBlk, nil)
+	rwd.DeleteBlockDataFromStorage(metaBlk, nil)
 }
 
 func TestBaseRewardsCreator_RemoveBlockDataFromPoolsNonRewardsMiniBlocksIgnored(t *testing.T) {

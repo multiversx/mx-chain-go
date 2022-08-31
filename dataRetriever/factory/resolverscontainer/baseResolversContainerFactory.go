@@ -403,3 +403,39 @@ func (brcf *baseResolversContainerFactory) createTrieNodesResolver(
 
 	return resolver, nil
 }
+
+func (brcf *baseResolversContainerFactory) generateValidatorInfoResolver() error {
+	identifierValidatorInfo := common.ValidatorInfoTopic
+	shardC := brcf.shardCoordinator
+	resolverSender, err := brcf.createOneResolverSenderWithSpecifiedNumRequests(identifierValidatorInfo, EmptyExcludePeersOnTopic, shardC.SelfId(), brcf.numCrossShardPeers, brcf.numIntraShardPeers)
+	if err != nil {
+		return err
+	}
+
+	validatorInfoStorage, err := brcf.store.GetStorer(dataRetriever.UnsignedTransactionUnit)
+	if err != nil {
+		return err
+	}
+
+	arg := resolvers.ArgValidatorInfoResolver{
+		SenderResolver:       resolverSender,
+		Marshaller:           brcf.marshalizer,
+		AntifloodHandler:     brcf.inputAntifloodHandler,
+		Throttler:            brcf.throttler,
+		ValidatorInfoPool:    brcf.dataPools.ValidatorsInfo(),
+		ValidatorInfoStorage: validatorInfoStorage,
+		DataPacker:           brcf.dataPacker,
+		IsFullHistoryNode:    brcf.isFullHistoryNode,
+	}
+	validatorInfoResolver, err := resolvers.NewValidatorInfoResolver(arg)
+	if err != nil {
+		return err
+	}
+
+	err = brcf.messenger.RegisterMessageProcessor(validatorInfoResolver.RequestTopic(), common.DefaultResolversIdentifier, validatorInfoResolver)
+	if err != nil {
+		return err
+	}
+
+	return brcf.container.Add(identifierValidatorInfo, validatorInfoResolver)
+}

@@ -46,6 +46,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
+	vic "github.com/ElrondNetwork/elrond-go/testscommon/validatorInfoCacher"
 	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/stretchr/testify/require"
 )
@@ -296,6 +297,7 @@ func CreateNodesWithTestHeartbeatNode(
 			NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
 			IsFullArchive:           false,
 			EnableEpochsHandler:     &testscommon.EnableEpochsHandlerStub{},
+			ValidatorInfoCacher:     &vic.ValidatorInfoCacherStub{},
 		}
 		nodesCoordinatorInstance, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 		log.LogIfError(err)
@@ -341,6 +343,7 @@ func CreateNodesWithTestHeartbeatNode(
 				NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
 				IsFullArchive:           false,
 				EnableEpochsHandler:     &testscommon.EnableEpochsHandlerStub{},
+				ValidatorInfoCacher:     &vic.ValidatorInfoCacherStub{},
 			}
 			nodesCoordinatorInstance, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 			log.LogIfError(err)
