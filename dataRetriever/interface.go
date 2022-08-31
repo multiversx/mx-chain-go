@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/counting"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -53,6 +54,12 @@ type MiniBlocksResolver interface {
 type PeerAuthenticationResolver interface {
 	Resolver
 	RequestDataFromChunk(chunkIndex uint32, epoch uint32) error
+	RequestDataFromHashArray(hashes [][]byte, epoch uint32) error
+}
+
+// ValidatorInfoResolver defines what a validator info resolver should do
+type ValidatorInfoResolver interface {
+	Resolver
 	RequestDataFromHashArray(hashes [][]byte, epoch uint32) error
 }
 
@@ -204,11 +211,19 @@ type HeadersPool interface {
 	GetNumHeaders(shardId uint32) int
 }
 
-// TransactionCacher defines the methods for the local cacher, info for current round
+// TransactionCacher defines the methods for the local transaction cacher, needed for the current block
 type TransactionCacher interface {
 	Clean()
 	GetTx(txHash []byte) (data.TransactionHandler, error)
 	AddTx(txHash []byte, tx data.TransactionHandler)
+	IsInterfaceNil() bool
+}
+
+// ValidatorInfoCacher defines the methods for the local validator info cacher, needed for the current epoch
+type ValidatorInfoCacher interface {
+	Clean()
+	GetValidatorInfo(validatorInfoHash []byte) (*state.ShardValidatorInfo, error)
+	AddValidatorInfo(validatorInfoHash []byte, validatorInfo *state.ShardValidatorInfo)
 	IsInterfaceNil() bool
 }
 
@@ -224,8 +239,10 @@ type PoolsHolder interface {
 	TrieNodesChunks() storage.Cacher
 	SmartContracts() storage.Cacher
 	CurrentBlockTxs() TransactionCacher
+	CurrentEpochValidatorInfo() ValidatorInfoCacher
 	PeerAuthentications() storage.Cacher
 	Heartbeats() storage.Cacher
+	ValidatorsInfo() ShardedDataCacherNotifier
 	Close() error
 	IsInterfaceNil() bool
 }

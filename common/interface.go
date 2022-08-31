@@ -202,6 +202,7 @@ type EnableEpochsHandler interface {
 	CheckExecuteReadOnlyEnableEpoch() uint32
 	StorageAPICostOptimizationEnableEpoch() uint32
 	MiniBlockPartialExecutionEnableEpoch() uint32
+	RefactorPeersMiniBlocksEnableEpoch() uint32
 	IsSCDeployFlagEnabled() bool
 	IsBuiltInFunctionsFlagEnabled() bool
 	IsRelayedTransactionsFlagEnabled() bool
@@ -289,6 +290,7 @@ type EnableEpochsHandler interface {
 	IsESDTNFTImprovementV1FlagEnabled() bool
 	IsSetSenderInEeiOutputTransferFlagEnabled() bool
 	IsChangeDelegationOwnerFlagEnabled() bool
+	IsRefactorPeersMiniBlocksFlagEnabled() bool
 
 	IsInterfaceNil() bool
 }

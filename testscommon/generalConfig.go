@@ -152,6 +152,11 @@ func GetGeneralConfig() config.Config {
 			SizeInBytes: 1000000000,
 			Shards:      1,
 		},
+		ValidatorInfoPool: config.CacheConfig{
+			Capacity:    10000,
+			SizeInBytes: 1000000000,
+			Shards:      1,
+		},
 		HeadersPoolConfig: config.HeadersPoolConfig{
 			MaxHeadersPerShard:            100,
 			NumElementsToRemoveOnEviction: 1,

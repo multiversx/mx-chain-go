@@ -17,13 +17,13 @@ type EpochRewardsCreatorStub struct {
 	VerifyRewardsMiniBlocksCalled func(
 		metaBlock data.MetaHeaderHandler, validatorsInfo map[uint32][]*state.ValidatorInfo, computedEconomics *block.Economics,
 	) error
-	CreateMarshalizedDataCalled    func(body *block.Body) map[string][][]byte
-	SaveTxBlockToStorageCalled     func(metaBlock data.MetaHeaderHandler, body *block.Body)
-	DeleteTxsFromStorageCalled     func(metaBlock data.MetaHeaderHandler, body *block.Body)
-	RemoveBlockDataFromPoolsCalled func(metaBlock data.MetaHeaderHandler, body *block.Body)
-	GetRewardsTxsCalled            func(body *block.Body) map[string]data.TransactionHandler
-	GetProtocolSustainCalled       func() *big.Int
-	GetLocalTxCacheCalled          func() epochStart.TransactionCacher
+	CreateMarshalledDataCalled       func(body *block.Body) map[string][][]byte
+	SaveBlockDataToStorageCalled     func(metaBlock data.MetaHeaderHandler, body *block.Body)
+	DeleteBlockDataFromStorageCalled func(metaBlock data.MetaHeaderHandler, body *block.Body)
+	RemoveBlockDataFromPoolsCalled   func(metaBlock data.MetaHeaderHandler, body *block.Body)
+	GetRewardsTxsCalled              func(body *block.Body) map[string]data.TransactionHandler
+	GetProtocolSustainCalled         func() *big.Int
+	GetLocalTxCacheCalled            func() epochStart.TransactionCacher
 }
 
 // GetProtocolSustainabilityRewards -
@@ -54,7 +54,7 @@ func (e *EpochRewardsCreatorStub) CreateRewardsMiniBlocks(
 	return nil, nil
 }
 
-// GetRewardsTxs --
+// GetRewardsTxs -
 func (e *EpochRewardsCreatorStub) GetRewardsTxs(body *block.Body) map[string]data.TransactionHandler {
 	if e.GetRewardsTxsCalled != nil {
 		return e.GetRewardsTxsCalled(body)
@@ -74,25 +74,25 @@ func (e *EpochRewardsCreatorStub) VerifyRewardsMiniBlocks(
 	return nil
 }
 
-// CreateMarshalizedData -
-func (e *EpochRewardsCreatorStub) CreateMarshalizedData(body *block.Body) map[string][][]byte {
-	if e.CreateMarshalizedDataCalled != nil {
-		return e.CreateMarshalizedDataCalled(body)
+// CreateMarshalledData -
+func (e *EpochRewardsCreatorStub) CreateMarshalledData(body *block.Body) map[string][][]byte {
+	if e.CreateMarshalledDataCalled != nil {
+		return e.CreateMarshalledDataCalled(body)
 	}
 	return nil
 }
 
-// SaveTxBlockToStorage -
-func (e *EpochRewardsCreatorStub) SaveTxBlockToStorage(metaBlock data.MetaHeaderHandler, body *block.Body) {
-	if e.SaveTxBlockToStorageCalled != nil {
-		e.SaveTxBlockToStorageCalled(metaBlock, body)
+// SaveBlockDataToStorage -
+func (e *EpochRewardsCreatorStub) SaveBlockDataToStorage(metaBlock data.MetaHeaderHandler, body *block.Body) {
+	if e.SaveBlockDataToStorageCalled != nil {
+		e.SaveBlockDataToStorageCalled(metaBlock, body)
 	}
 }
 
-// DeleteTxsFromStorage -
-func (e *EpochRewardsCreatorStub) DeleteTxsFromStorage(metaBlock data.MetaHeaderHandler, body *block.Body) {
-	if e.DeleteTxsFromStorageCalled != nil {
-		e.DeleteTxsFromStorageCalled(metaBlock, body)
+// DeleteBlockDataFromStorage -
+func (e *EpochRewardsCreatorStub) DeleteBlockDataFromStorage(metaBlock data.MetaHeaderHandler, body *block.Body) {
+	if e.DeleteBlockDataFromStorageCalled != nil {
+		e.DeleteBlockDataFromStorageCalled(metaBlock, body)
 	}
 }
 

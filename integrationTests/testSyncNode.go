@@ -43,7 +43,9 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 	coreComponents.HasherField = TestHasher
 	coreComponents.Uint64ByteSliceConverterField = TestUint64Converter
 	coreComponents.EpochNotifierField = tpn.EpochNotifier
-	coreComponents.EnableEpochsHandlerField = &testscommon.EnableEpochsHandlerStub{}
+	coreComponents.EnableEpochsHandlerField = &testscommon.EnableEpochsHandlerStub{
+		RefactorPeersMiniBlocksEnableEpochField: UnreachableEpoch,
+	}
 
 	dataComponents := GetDefaultDataComponents()
 	dataComponents.Store = tpn.Storage
@@ -88,7 +90,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		GasHandler:                   tpn.GasHandler,
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
-		ReceiptsRepository:             &testscommon.ReceiptsRepositoryStub{},
+		ReceiptsRepository:           &testscommon.ReceiptsRepositoryStub{},
 	}
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
