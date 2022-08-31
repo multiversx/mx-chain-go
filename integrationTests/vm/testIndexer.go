@@ -121,7 +121,7 @@ func (ti *testIndexer) createElasticProcessor(
 	})
 
 	balanceConverter, _ := converters.NewBalanceConverter(18)
-	ap, _ := accounts.NewAccountsProcessor(testMarshalizer, pubkeyConv, &stateMock.AccountsStub{}, balanceConverter)
+	ap, _ := accounts.NewAccountsProcessor(testMarshalizer, pubkeyConv, &stateMock.AccountsStub{}, balanceConverter, shardCoordinator.SelfId())
 	bp, _ := blockProc.NewBlockProcessor(testHasher, testMarshalizer)
 	mp, _ := miniblocks.NewMiniblocksProcessor(shardCoordinator.SelfId(), testHasher, testMarshalizer, false)
 	sp := statistics.NewStatisticsProcessor()

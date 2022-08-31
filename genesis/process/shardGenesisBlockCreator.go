@@ -382,7 +382,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		OptimizeNFTStoreEnableEpoch:              enableEpochs.OptimizeNFTStoreEnableEpoch,
 		CheckCorrectTokenIDEnableEpoch:           enableEpochs.CheckCorrectTokenIDForTransferRoleEnableEpoch,
 		ESDTMetadataContinuousCleanupEnableEpoch: enableEpochs.ESDTMetadataContinuousCleanupEnableEpoch,
-		AutomaticCrawlerAddress:                  make([]byte, 32),
+		AutomaticCrawlerAddresses:                [][]byte{make([]byte, 32)},
 		MaxNumNodesInTransferRole:                math.MaxUint32,
 		GuardedAccountHandler:        disabledGuardian.NewDisabledGuardedAccountHandler(),
 	}
