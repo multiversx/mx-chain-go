@@ -687,11 +687,11 @@ func TestNodeFacade_GetGuardianData(t *testing.T) {
 	expectedGuardianData := api.GuardianData{
 		ActiveGuardian: &api.Guardian{
 			Address: "guardian1",
-			Epoch:   0,
+			ActivationEpoch:   0,
 		},
 		PendingGuardian: &api.Guardian{
 			Address: "guardian2",
-			Epoch:   10,
+			ActivationEpoch:   10,
 		},
 		Frozen: true,
 	}
