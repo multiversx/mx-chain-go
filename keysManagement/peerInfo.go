@@ -2,6 +2,7 @@ package keysManagement
 
 import (
 	"sync"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
@@ -14,6 +15,9 @@ type peerInfo struct {
 	machineID          string
 	nodeName           string
 	nodeIdentity       string
+
+	isValidator                bool
+	nextPeerAuthenticationTime time.Time
 
 	mutChangeableData             sync.RWMutex
 	roundsWithoutReceivedMessages int
@@ -36,4 +40,32 @@ func (pInfo *peerInfo) isNodeActiveOnMainMachine(maxRoundsWithoutReceivedMessage
 	defer pInfo.mutChangeableData.RUnlock()
 
 	return pInfo.roundsWithoutReceivedMessages < maxRoundsWithoutReceivedMessages
+}
+
+func (pInfo *peerInfo) isNodeValidator() bool {
+	pInfo.mutChangeableData.RLock()
+	defer pInfo.mutChangeableData.RUnlock()
+
+	return pInfo.isValidator
+}
+
+func (pInfo *peerInfo) setNodeValidator(value bool) {
+	pInfo.mutChangeableData.Lock()
+	defer pInfo.mutChangeableData.Unlock()
+
+	pInfo.isValidator = value
+}
+
+func (pInfo *peerInfo) getNextPeerAuthenticationTime() time.Time {
+	pInfo.mutChangeableData.RLock()
+	defer pInfo.mutChangeableData.RUnlock()
+
+	return pInfo.nextPeerAuthenticationTime
+}
+
+func (pInfo *peerInfo) setNextPeerAuthenticationTime(value time.Time) {
+	pInfo.mutChangeableData.Lock()
+	defer pInfo.mutChangeableData.Unlock()
+
+	pInfo.nextPeerAuthenticationTime = value
 }

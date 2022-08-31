@@ -25,4 +25,5 @@ type PeerDiscovererWithSharder interface {
 type p2pSigner interface {
 	Sign(payload []byte) ([]byte, error)
 	Verify(payload []byte, pid core.PeerID, signature []byte) error
+	SignUsingPrivateKey(skBytes []byte, payload []byte) ([]byte, error)
 }

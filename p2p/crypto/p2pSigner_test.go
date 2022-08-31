@@ -105,6 +105,32 @@ func TestP2pSigner_Verify(t *testing.T) {
 	})
 }
 
+func TestP2PSigner_SignUsingPrivateKey(t *testing.T) {
+	t.Parallel()
+
+	payload := []byte("payload")
+
+	generator := NewIdentityGenerator()
+	skBytes1, pid1, err := generator.CreateRandomP2PIdentity()
+	assert.Nil(t, err)
+
+	skBytes2, pid2, err := generator.CreateRandomP2PIdentity()
+	assert.Nil(t, err)
+	assert.NotEqual(t, skBytes1, skBytes2)
+
+	p2pSigner := &p2pSigner{}
+
+	sig1, err := p2pSigner.SignUsingPrivateKey(skBytes1, payload)
+	assert.Nil(t, err)
+
+	sig2, err := p2pSigner.SignUsingPrivateKey(skBytes2, payload)
+	assert.Nil(t, err)
+	assert.NotEqual(t, sig1, sig2)
+
+	assert.Nil(t, p2pSigner.Verify(payload, pid1, sig1))
+	assert.Nil(t, p2pSigner.Verify(payload, pid2, sig2))
+}
+
 func TestP2pSigner_ConcurrentOperations(t *testing.T) {
 	t.Parallel()
 
@@ -116,11 +142,16 @@ func TestP2pSigner_ConcurrentOperations(t *testing.T) {
 	pk := sk.GetPublic()
 	payload1 := []byte("payload1")
 	payload2 := []byte("payload2")
+	payload3 := []byte("payload3")
 	signer, _ := NewP2PSigner(sk)
 	libp2pPid, _ := peer.IDFromPublicKey(pk)
 	pid := core.PeerID(libp2pPid)
 
 	sig1, _ := signer.Sign(payload1)
+
+	generator := NewIdentityGenerator()
+	skBytes, _, err := generator.CreateRandomP2PIdentity()
+	assert.Nil(t, err)
 
 	for i := 0; i < numOps; i++ {
 		go func(idx int) {
@@ -133,10 +164,13 @@ func TestP2pSigner_ConcurrentOperations(t *testing.T) {
 			case 1:
 				errVerify := signer.Verify(payload1, pid, sig1)
 				assert.Nil(t, errVerify)
+			case 2:
+				_, errSignWithSK := signer.SignUsingPrivateKey(skBytes, payload3)
+				assert.Nil(t, errSignWithSK)
 			}
 
 			wg.Done()
-		}(i % 2)
+		}(i % 3)
 	}
 
 	wg.Wait()

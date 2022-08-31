@@ -1731,7 +1731,7 @@ func TestNetworkMessenger_Bootstrap(t *testing.T) {
 		},
 		SyncTimer:            &mock.SyncTimerStub{},
 		PeersRatingHandler:   &p2pmocks.PeersRatingHandlerStub{},
-		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
+		PreferredPeersHolder: &p2pmocks.PeersHolderStub{}, ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
 	}
 
 	netMes, err := libp2p.NewNetworkMessenger(args)
@@ -1937,7 +1937,7 @@ func TestLibp2pMessenger_ConnectionTopic(t *testing.T) {
 	})
 }
 
-func TestNetworkMessenger_BroadcastWithSk(t *testing.T) {
+func TestNetworkMessenger_BroadcastUsingPrivateKey(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -1969,7 +1969,7 @@ func TestNetworkMessenger_BroadcastWithSk(t *testing.T) {
 	assert.Nil(t, err)
 	fmt.Printf("new identity: %s\n", pid.Pretty())
 
-	mes1.BroadcastWithSk(topic, msg, pid, skBuff)
+	mes1.BroadcastUsingPrivateKey(topic, msg, pid, skBuff)
 
 	time.Sleep(time.Second * 2)
 

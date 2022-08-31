@@ -16,8 +16,10 @@ import (
 // P2PMessenger defines a subset of the p2p.Messenger interface
 type P2PMessenger interface {
 	Broadcast(topic string, buff []byte)
+	BroadcastUsingPrivateKey(topic string, buff []byte, pid core.PeerID, skBytes []byte)
 	ID() core.PeerID
 	Sign(payload []byte) ([]byte, error)
+	SignUsingPrivateKey(skBytes []byte, payload []byte) ([]byte, error)
 	IsInterfaceNil() bool
 }
 
@@ -118,5 +120,24 @@ type NodeRedundancyHandler interface {
 type NodesCoordinator interface {
 	GetAllEligibleValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error)
 	GetValidatorWithPublicKey(publicKey []byte) (validator nodesCoordinator.Validator, shardId uint32, err error)
+	IsInterfaceNil() bool
+}
+
+// KeysHolder defines the operations of an entity that holds virtual identities for a node
+type KeysHolder interface {
+	AddVirtualPeer(privateKeyBytes []byte) error
+	GetPrivateKey(pkBytes []byte) (crypto.PrivateKey, error)
+	GetP2PIdentity(pkBytes []byte) ([]byte, core.PeerID, error)
+	GetMachineID(pkBytes []byte) (string, error)
+	IncrementRoundsWithoutReceivedMessages(pkBytes []byte) error
+	ResetRoundsWithoutReceivedMessages(pkBytes []byte) error
+	GetManagedKeysByCurrentNode() map[string]crypto.PrivateKey
+	IsKeyManagedByCurrentNode(pkBytes []byte) bool
+	IsKeyRegistered(pkBytes []byte) bool
+	IsPidManagedByCurrentNode(pid core.PeerID) bool
+	IsKeyValidator(pkBytes []byte) bool
+	SetValidatorState(pkBytes []byte, state bool)
+	GetNextPeerAuthenticationTime(pkBytes []byte) (time.Time, error)
+	SetNextPeerAuthenticationTime(pkBytes []byte, nextTime time.Time)
 	IsInterfaceNil() bool
 }

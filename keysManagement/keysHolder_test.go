@@ -628,6 +628,56 @@ func TestVirtualPeersHolder_IsPidManagedByCurrentNode(t *testing.T) {
 	})
 }
 
+func TestVirtualPeersHolder_IsKeyValidator(t *testing.T) {
+	t.Parallel()
+
+	holder, _ := NewVirtualPeersHolder(createMockArgsVirtualPeersHolder())
+
+	t.Run("missing key should return false", func(t *testing.T) {
+		isValidator := holder.IsKeyValidator(pkBytes0)
+		assert.False(t, isValidator)
+	})
+
+	_ = holder.AddVirtualPeer(skBytes0)
+
+	t.Run("key found, but not validator should return false", func(t *testing.T) {
+		isValidator := holder.IsKeyValidator(pkBytes0)
+		assert.False(t, isValidator)
+	})
+	t.Run("key found and validator should return true", func(t *testing.T) {
+		holder.SetValidatorState(pkBytes0, true)
+		isValidator := holder.IsKeyValidator(pkBytes0)
+		assert.True(t, isValidator)
+	})
+}
+
+func TestVirtualPeersHolder_GetNextPeerAuthenticationTime(t *testing.T) {
+	t.Parallel()
+
+	holder, _ := NewVirtualPeersHolder(createMockArgsVirtualPeersHolder())
+
+	t.Run("missing key should return error", func(t *testing.T) {
+		timeBefore := time.Now()
+		nextTime, err := holder.GetNextPeerAuthenticationTime(pkBytes0)
+		timeAfter := time.Now()
+		assert.NotNil(t, err)
+		assert.True(t, errors.Is(err, errMissingPublicKeyDefinition))
+		assert.True(t, strings.Contains(err.Error(), hex.EncodeToString(pkBytes0)))
+		assert.LessOrEqual(t, nextTime, timeAfter)
+		assert.Greater(t, nextTime, timeBefore)
+	})
+
+	_ = holder.AddVirtualPeer(skBytes0)
+
+	t.Run("key found should work", func(t *testing.T) {
+		expectedNextTime := time.Now().Add(time.Hour)
+		holder.SetNextPeerAuthenticationTime(pkBytes0, expectedNextTime)
+		nextTime, err := holder.GetNextPeerAuthenticationTime(pkBytes0)
+		assert.Nil(t, err)
+		assert.Equal(t, expectedNextTime, nextTime)
+	})
+}
+
 func TestVirtualPeersHolder_ParallelOperationsShouldNotPanic(t *testing.T) {
 	defer func() {
 		r := recover()
@@ -639,7 +689,7 @@ func TestVirtualPeersHolder_ParallelOperationsShouldNotPanic(t *testing.T) {
 	args := createMockArgsVirtualPeersHolder()
 	holder, _ := NewVirtualPeersHolder(args)
 
-	numOperations := 1000
+	numOperations := 1500
 	wg := sync.WaitGroup{}
 	wg.Add(numOperations)
 	for i := 0; i < numOperations; i++ {
@@ -669,10 +719,18 @@ func TestVirtualPeersHolder_ParallelOperationsShouldNotPanic(t *testing.T) {
 				_ = holder.IsKeyRegistered(pkBytes0)
 			case 9:
 				_ = holder.IsPidManagedByCurrentNode("pid")
+			case 10:
+				_ = holder.IsKeyValidator(pkBytes0)
+			case 11:
+				holder.SetValidatorState(pkBytes0, true)
+			case 12:
+				_, _ = holder.GetNextPeerAuthenticationTime(pkBytes0)
+			case 13:
+				holder.SetNextPeerAuthenticationTime(pkBytes0, time.Now())
 			}
 
 			wg.Done()
-		}(i % 10)
+		}(i % 14)
 	}
 
 	wg.Wait()
