@@ -94,10 +94,8 @@ func (agc *guardedAccount) HasActiveGuardian(uah state.UserAccountHandler) bool 
 		return false
 	}
 	_, err = agc.getActiveGuardian(configuredGuardians)
-	if err != nil {
-		return false
-	}
-	return true
+
+	return err == nil
 }
 
 // HasPendingGuardian return true if the account has a pending guardian, false otherwise
@@ -112,10 +110,8 @@ func (agc *guardedAccount) HasPendingGuardian(uah state.UserAccountHandler) bool
 	}
 
 	_, err = agc.getPendingGuardian(configuredGuardians)
-	if err != nil {
-		return false
-	}
-	return true
+
+	return err == nil
 }
 
 // SetGuardian sets a guardian for an account
