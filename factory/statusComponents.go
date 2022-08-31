@@ -277,6 +277,10 @@ func (scf *statusComponentsFactory) makeCovalentIndexerArgs() *covalentFactory.A
 }
 
 func (scf *statusComponentsFactory) makeWebSocketsDriverArgs() (wsDriverFactory.OutportDriverWebSocketSenderFactoryArgs, error) {
+	if !scf.externalConfig.WebSocketsConnector.Enabled {
+		return wsDriverFactory.OutportDriverWebSocketSenderFactoryArgs{}, nil
+	}
+
 	marshaller, err := factoryMarshalizer.NewMarshalizer(scf.externalConfig.WebSocketsConnector.MarshallerType)
 	if err != nil {
 		return wsDriverFactory.OutportDriverWebSocketSenderFactoryArgs{}, err

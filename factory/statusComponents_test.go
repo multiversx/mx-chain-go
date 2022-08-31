@@ -197,6 +197,12 @@ func getStatusComponents(
 				Password:       elasticPassword,
 				EnabledIndexes: []string{"transactions", "blocks"},
 			},
+			WebSocketsConnector: config.WebSocketsDriverConfig{
+				Enabled:         false,
+				WithAcknowledge: false,
+				URL:             "",
+				MarshallerType:  "json",
+			},
 		},
 		EconomicsConfig:    config.EconomicsConfig{},
 		ShardCoordinator:   shardCoordinator,
