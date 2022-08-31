@@ -58,7 +58,7 @@ func (tcc *timeCacheCore) upsert(key string, value interface{}, duration time.Du
 }
 
 // put will add the key, value and provided duration, overriding values if the data already existed
-// It returns true if the value existed before this call. It also operates on the locker so the call is concurrent safe
+// It also operates on the locker so the call is concurrent safe
 func (tcc *timeCacheCore) put(key string, value interface{}, duration time.Duration) error {
 	if len(key) == 0 {
 		return storage.ErrEmptyKey
