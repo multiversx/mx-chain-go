@@ -308,7 +308,7 @@ func (agc *guardedAccount) getPendingGuardian(gs *guardians.Guardians) (*guardia
 		if guardian == nil {
 			continue
 		}
-		if guardian.ActivationEpoch < agc.currentEpoch {
+		if guardian.ActivationEpoch <= agc.currentEpoch {
 			continue
 		}
 		return guardian, nil
