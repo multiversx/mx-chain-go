@@ -44,7 +44,9 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 	coreComponents.HasherField = TestHasher
 	coreComponents.Uint64ByteSliceConverterField = TestUint64Converter
 	coreComponents.EpochNotifierField = tpn.EpochNotifier
-	coreComponents.EnableEpochsHandlerField = &testscommon.EnableEpochsHandlerStub{}
+	coreComponents.EnableEpochsHandlerField = &testscommon.EnableEpochsHandlerStub{
+		RefactorPeersMiniBlocksEnableEpochField: UnreachableEpoch,
+	}
 
 	dataComponents := GetDefaultDataComponents()
 	dataComponents.Store = tpn.Storage

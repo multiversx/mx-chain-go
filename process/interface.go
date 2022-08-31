@@ -24,6 +24,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -182,7 +183,7 @@ type IntermediateTransactionHandler interface {
 
 // DataMarshalizer defines the behavior of a structure that is able to marshalize containing data
 type DataMarshalizer interface {
-	CreateMarshalizedData(txHashes [][]byte) ([][]byte, error)
+	CreateMarshalledData(txHashes [][]byte) ([][]byte, error)
 }
 
 // TransactionVerifier interface validates if the transaction is good and if it should be processed
@@ -557,6 +558,8 @@ type RequestHandler interface {
 	CreateTrieNodeIdentifier(requestHash []byte, chunkIndex uint32) []byte
 	RequestPeerAuthenticationsChunk(destShardID uint32, chunkIndex uint32)
 	RequestPeerAuthenticationsByHashes(destShardID uint32, hashes [][]byte)
+	RequestValidatorInfo(hash []byte)
+	RequestValidatorsInfo(hashes [][]byte)
 	IsInterfaceNil() bool
 }
 
@@ -902,10 +905,10 @@ type RewardsCreator interface {
 	) error
 	GetProtocolSustainabilityRewards() *big.Int
 	GetLocalTxCache() epochStart.TransactionCacher
-	CreateMarshalizedData(body *block.Body) map[string][][]byte
+	CreateMarshalledData(body *block.Body) map[string][][]byte
 	GetRewardsTxs(body *block.Body) map[string]data.TransactionHandler
-	SaveTxBlockToStorage(metaBlock data.MetaHeaderHandler, body *block.Body)
-	DeleteTxsFromStorage(metaBlock data.MetaHeaderHandler, body *block.Body)
+	SaveBlockDataToStorage(metaBlock data.MetaHeaderHandler, body *block.Body)
+	DeleteBlockDataFromStorage(metaBlock data.MetaHeaderHandler, body *block.Body)
 	RemoveBlockDataFromPools(metaBlock data.MetaHeaderHandler, body *block.Body)
 	IsInterfaceNil() bool
 }
@@ -913,9 +916,12 @@ type RewardsCreator interface {
 // EpochStartValidatorInfoCreator defines the functionality for the metachain to create validator statistics at end of epoch
 type EpochStartValidatorInfoCreator interface {
 	CreateValidatorInfoMiniBlocks(validatorInfo map[uint32][]*state.ValidatorInfo) (block.MiniBlockSlice, error)
-	VerifyValidatorInfoMiniBlocks(miniblocks []*block.MiniBlock, validatorsInfo map[uint32][]*state.ValidatorInfo) error
-	SaveValidatorInfoBlocksToStorage(metaBlock data.HeaderHandler, body *block.Body)
-	DeleteValidatorInfoBlocksFromStorage(metaBlock data.HeaderHandler)
+	VerifyValidatorInfoMiniBlocks(miniBlocks []*block.MiniBlock, validatorsInfo map[uint32][]*state.ValidatorInfo) error
+	GetLocalValidatorInfoCache() epochStart.ValidatorInfoCacher
+	CreateMarshalledData(body *block.Body) map[string][][]byte
+	GetValidatorInfoTxs(body *block.Body) map[string]*state.ShardValidatorInfo
+	SaveBlockDataToStorage(metaBlock data.HeaderHandler, body *block.Body)
+	DeleteBlockDataFromStorage(metaBlock data.HeaderHandler, body *block.Body)
 	RemoveBlockDataFromPools(metaBlock data.HeaderHandler, body *block.Body)
 	IsInterfaceNil() bool
 }
@@ -988,7 +994,8 @@ type RatingsStepHandler interface {
 
 // ValidatorInfoSyncer defines the method needed for validatorInfoProcessing
 type ValidatorInfoSyncer interface {
-	SyncMiniBlocks(metaBlock data.HeaderHandler) ([][]byte, data.BodyHandler, error)
+	SyncMiniBlocks(headerHandler data.HeaderHandler) ([][]byte, data.BodyHandler, error)
+	SyncValidatorsInfo(bodyHandler data.BodyHandler) ([][]byte, map[string]*state.ShardValidatorInfo, error)
 	IsInterfaceNil() bool
 }
 
@@ -1054,6 +1061,7 @@ type EpochStartEventNotifier interface {
 
 // NodesCoordinator provides Validator methods needed for the peer processing
 type NodesCoordinator interface {
+	GetValidatorWithPublicKey(publicKey []byte) (validator nodesCoordinator.Validator, shardId uint32, err error)
 	GetAllEligibleValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error)
 	GetAllWaitingValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error)
 	GetAllLeavingValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error)

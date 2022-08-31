@@ -751,8 +751,9 @@ func (pcf *processComponentsFactory) newEpochStartTrigger(requestHandler epochSt
 		}
 
 		argsPeerMiniBlockSyncer := shardchain.ArgPeerMiniBlockSyncer{
-			MiniBlocksPool: pcf.data.Datapool().MiniBlocks(),
-			Requesthandler: requestHandler,
+			MiniBlocksPool:     pcf.data.Datapool().MiniBlocks(),
+			ValidatorsInfoPool: pcf.data.Datapool().ValidatorsInfo(),
+			RequestHandler:     requestHandler,
 		}
 
 		peerMiniBlockSyncer, err := shardchain.NewPeerMiniBlockSyncer(argsPeerMiniBlockSyncer)
@@ -775,6 +776,7 @@ func (pcf *processComponentsFactory) newEpochStartTrigger(requestHandler epochSt
 			PeerMiniBlocksSyncer: peerMiniBlockSyncer,
 			RoundHandler:         pcf.coreData.RoundHandler(),
 			AppStatusHandler:     pcf.coreData.StatusHandler(),
+			EnableEpochsHandler:  pcf.coreData.EnableEpochsHandler(),
 		}
 		epochStartTrigger, err := shardchain.NewEpochStartTrigger(argEpochStart)
 		if err != nil {
@@ -795,6 +797,7 @@ func (pcf *processComponentsFactory) newEpochStartTrigger(requestHandler epochSt
 			Marshalizer:        pcf.coreData.InternalMarshalizer(),
 			Hasher:             pcf.coreData.Hasher(),
 			AppStatusHandler:   pcf.coreData.StatusHandler(),
+			DataPool:           pcf.data.Datapool(),
 		}
 		epochStartTrigger, err := metachain.NewEpochStartTrigger(argEpochStart)
 		if err != nil {

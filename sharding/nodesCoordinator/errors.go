@@ -108,3 +108,6 @@ var ErrNilNodeTypeProvider = errors.New("nil node type provider")
 
 // ErrNilEnableEpochsHandler signals that a nil enable epochs handler has been provided
 var ErrNilEnableEpochsHandler = errors.New("nil enable epochs handler")
+
+// ErrNilValidatorInfoCacher signals that a nil value for the validator info cacher has been provided
+var ErrNilValidatorInfoCacher = errors.New("validator info cacher is nil")

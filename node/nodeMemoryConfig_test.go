@@ -44,6 +44,7 @@ func TestMemoryConfig(t *testing.T) {
 	plannedMemory += nodeConfig.UnsignedTransactionDataPool.SizeInBytes * uint64(numShardsIncludingMeta*(numShardsIncludingMeta-1)) / 2
 	// One cache for each pair (meta, shard)
 	plannedMemory += nodeConfig.RewardTransactionDataPool.SizeInBytes * uint64(numShards)
+	plannedMemory += nodeConfig.ValidatorInfoPool.SizeInBytes
 
 	require.LessOrEqual(t, int(plannedMemory), 3000*core.MegabyteSize)
 }
