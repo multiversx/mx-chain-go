@@ -1,6 +1,7 @@
 package sender
 
 import (
+	"bytes"
 	"errors"
 	"strings"
 	"testing"
@@ -88,6 +89,26 @@ func TestNewHeartbeatSender(t *testing.T) {
 		assert.Nil(t, sender)
 		assert.True(t, errors.Is(err, heartbeat.ErrInvalidTimeDuration))
 		assert.True(t, strings.Contains(err.Error(), "timeBetweenSendsWhenError"))
+	})
+	t.Run("nil private key should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockHeartbeatSenderArgs(createMockBaseArgs())
+		args.privKey = nil
+		sender, err := newHeartbeatSender(args)
+
+		assert.True(t, check.IfNil(sender))
+		assert.Equal(t, heartbeat.ErrNilPrivateKey, err)
+	})
+	t.Run("nil redundancy handler should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockHeartbeatSenderArgs(createMockBaseArgs())
+		args.redundancyHandler = nil
+		sender, err := newHeartbeatSender(args)
+
+		assert.True(t, check.IfNil(sender))
+		assert.Equal(t, heartbeat.ErrNilRedundancyHandler, err)
 	})
 	t.Run("version number too long should error", func(t *testing.T) {
 		t.Parallel()
@@ -269,6 +290,12 @@ func TestHeartbeatSender_execute(t *testing.T) {
 		argsBase.messenger = &mock.MessengerStub{
 			BroadcastCalled: func(topic string, buff []byte) {
 				assert.Equal(t, argsBase.topic, topic)
+				recoveredMessage := &heartbeat.HeartbeatV2{}
+				err := argsBase.marshaller.Unmarshal(recoveredMessage, buff)
+				assert.Nil(t, err)
+				pk := argsBase.privKey.GeneratePublic()
+				pkBytes, _ := pk.ToByteArray()
+				assert.True(t, bytes.Equal(pkBytes, recoveredMessage.Pubkey))
 				broadcastCalled = true
 			},
 		}
