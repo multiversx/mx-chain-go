@@ -40,11 +40,10 @@ func getSizeOfHeartbeat(hb *heartbeat.HeartbeatV2) int {
 		uint64Size + uint32Size
 }
 
-func createMockInterceptedHeartbeatArg(interceptedData *heartbeat.HeartbeatV2) ArgInterceptedHeartbeat {
-	arg := ArgInterceptedHeartbeat{}
+func createMockInterceptedHeartbeatArg(interceptedData *heartbeat.HeartbeatV2) ArgBaseInterceptedHeartbeat {
+	arg := ArgBaseInterceptedHeartbeat{}
 	arg.Marshaller = &marshal.GogoProtoMarshalizer{}
 	arg.DataBuff, _ = arg.Marshaller.Marshal(interceptedData)
-	arg.PeerId = "pid"
 
 	return arg
 }
@@ -71,16 +70,6 @@ func TestNewInterceptedHeartbeat(t *testing.T) {
 		ihb, err := NewInterceptedHeartbeat(arg)
 		assert.Nil(t, ihb)
 		assert.Equal(t, process.ErrNilMarshalizer, err)
-	})
-	t.Run("empty pid should error", func(t *testing.T) {
-		t.Parallel()
-
-		arg := createMockInterceptedHeartbeatArg(createDefaultInterceptedHeartbeat())
-		arg.PeerId = ""
-
-		ihb, err := NewInterceptedHeartbeat(arg)
-		assert.Nil(t, ihb)
-		assert.Equal(t, process.ErrEmptyPeerID, err)
 	})
 	t.Run("unmarshal returns error", func(t *testing.T) {
 		t.Parallel()
@@ -192,7 +181,6 @@ func TestInterceptedHeartbeat_Getters(t *testing.T) {
 	assert.True(t, ihb.IsForCurrentShard())
 	assert.Equal(t, interceptedHeartbeatType, ihb.Type())
 	assert.Equal(t, []byte(""), ihb.Hash())
-	assert.Equal(t, arg.PeerId.Bytes(), ihb.Identifiers()[0])
 	providedHBSize := getSizeOfHeartbeat(providedHB)
 	assert.Equal(t, providedHBSize, ihb.SizeInBytes())
 }

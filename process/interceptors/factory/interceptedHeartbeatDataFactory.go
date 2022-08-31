@@ -30,12 +30,9 @@ func NewInterceptedHeartbeatDataFactory(arg ArgInterceptedDataFactory) (*interce
 
 // Create creates instances of InterceptedData by unmarshalling provided buffer
 func (ihdf *interceptedHeartbeatDataFactory) Create(buff []byte) (process.InterceptedData, error) {
-	arg := heartbeat.ArgInterceptedHeartbeat{
-		ArgBaseInterceptedHeartbeat: heartbeat.ArgBaseInterceptedHeartbeat{
-			DataBuff:   buff,
-			Marshaller: ihdf.marshalizer,
-		},
-		PeerId: ihdf.peerID,
+	arg := heartbeat.ArgBaseInterceptedHeartbeat{
+		DataBuff:   buff,
+		Marshaller: ihdf.marshalizer,
 	}
 
 	return heartbeat.NewInterceptedHeartbeat(arg)

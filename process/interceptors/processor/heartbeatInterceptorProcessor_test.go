@@ -43,11 +43,8 @@ func createInterceptedHeartbeat() *heartbeatMessages.HeartbeatV2 {
 }
 
 func createMockInterceptedHeartbeat() process.InterceptedData {
-	arg := heartbeat.ArgInterceptedHeartbeat{
-		ArgBaseInterceptedHeartbeat: heartbeat.ArgBaseInterceptedHeartbeat{
-			Marshaller: &mock.MarshalizerMock{},
-		},
-		PeerId: "pid",
+	arg := heartbeat.ArgBaseInterceptedHeartbeat{
+		Marshaller: &mock.MarshalizerMock{},
 	}
 	arg.DataBuff, _ = arg.Marshaller.Marshal(createInterceptedHeartbeat())
 	ihb, _ := heartbeat.NewInterceptedHeartbeat(arg)
