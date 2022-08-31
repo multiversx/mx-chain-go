@@ -421,7 +421,7 @@ func TestPeerAuthenticationResolver_ProcessReceivedMessage(t *testing.T) {
 		providedHashes, err := arg.Marshaller.Marshal(batch.Batch{Data: hashes})
 		assert.Nil(t, err)
 		err = res.ProcessReceivedMessage(createRequestMsg(dataRetriever.HashArrayType, providedHashes), fromConnectedPeer)
-		expectedSubstrErr := fmt.Sprintf("%s %s", "from buff", providedHashes)
+		expectedSubstrErr := fmt.Sprintf("%s %x", "from buff", providedHashes)
 		assert.True(t, strings.Contains(fmt.Sprintf("%s", err), expectedSubstrErr))
 		assert.False(t, wasSent)
 	})
