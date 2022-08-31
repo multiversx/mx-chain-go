@@ -1,7 +1,6 @@
 package sender
 
 import (
-	"bytes"
 	"errors"
 	"strings"
 	"testing"
@@ -295,7 +294,7 @@ func TestHeartbeatSender_execute(t *testing.T) {
 				assert.Nil(t, err)
 				pk := argsBase.privKey.GeneratePublic()
 				pkBytes, _ := pk.ToByteArray()
-				assert.True(t, bytes.Equal(pkBytes, recoveredMessage.Pubkey))
+				assert.Equal(t, pkBytes, recoveredMessage.Pubkey)
 				broadcastCalled = true
 			},
 		}
