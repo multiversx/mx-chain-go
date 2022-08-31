@@ -1127,3 +1127,6 @@ var ErrNilESDTGlobalSettingsHandler = errors.New("nil esdt global settings handl
 
 // ErrNilEnableEpochsHandler signals that a nil enable epochs handler has been provided
 var ErrNilEnableEpochsHandler = errors.New("nil enable epochs handler")
+
+// ErrNilCrawlerAllowedAddress signals that no crawler allowed address was found
+var ErrNilCrawlerAllowedAddress = errors.New("nil crawler allowed address")

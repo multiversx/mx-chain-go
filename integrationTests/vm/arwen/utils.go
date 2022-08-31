@@ -1,7 +1,6 @@
 package arwen
 
 import (
-	"bytes"
 	"encoding/binary"
 	"encoding/hex"
 	"errors"
@@ -239,9 +238,10 @@ func (context *TestContext) initVMAndBlockchainHook() {
 		ShardCoordinator:          oneShardCoordinator,
 		EpochNotifier:             context.EpochNotifier,
 		EnableEpochsHandler:       context.EnableEpochsHandler,
-		AutomaticCrawlerAddress:   bytes.Repeat([]byte{1}, 32),
 		MaxNumNodesInTransferRole: 100,
 	}
+	argsBuiltIn.AutomaticCrawlerAddresses = integrationTests.GenerateOneAddressPerShard(argsBuiltIn.ShardCoordinator)
+
 	builtInFuncFactory, err := builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)
 	require.Nil(context.T, err)
 

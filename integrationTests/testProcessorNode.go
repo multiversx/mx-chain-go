@@ -729,9 +729,10 @@ func (tpn *TestProcessorNode) createFullSCQueryService(gasMap map[string]map[str
 		ShardCoordinator:          tpn.ShardCoordinator,
 		EpochNotifier:             tpn.EpochNotifier,
 		EnableEpochsHandler:       tpn.EnableEpochsHandler,
-		AutomaticCrawlerAddress:   bytes.Repeat([]byte{1}, 32),
+
 		MaxNumNodesInTransferRole: 100,
 	}
+	argsBuiltIn.AutomaticCrawlerAddresses = GenerateOneAddressPerShard(argsBuiltIn.ShardCoordinator)
 	builtInFuncFactory, _ := builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)
 
 	smartContractsCache := testscommon.NewCacherMock()
@@ -1362,9 +1363,10 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		ShardCoordinator:          tpn.ShardCoordinator,
 		EpochNotifier:             tpn.EpochNotifier,
 		EnableEpochsHandler:       tpn.EnableEpochsHandler,
-		AutomaticCrawlerAddress:   bytes.Repeat([]byte{1}, 32),
+
 		MaxNumNodesInTransferRole: 100,
 	}
+	argsBuiltIn.AutomaticCrawlerAddresses = GenerateOneAddressPerShard(argsBuiltIn.ShardCoordinator)
 	builtInFuncFactory, _ := builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)
 
 	for name, function := range TestBuiltinFunctions {
@@ -1574,9 +1576,10 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 		ShardCoordinator:          tpn.ShardCoordinator,
 		EpochNotifier:             tpn.EpochNotifier,
 		EnableEpochsHandler:       tpn.EnableEpochsHandler,
-		AutomaticCrawlerAddress:   bytes.Repeat([]byte{1}, 32),
+
 		MaxNumNodesInTransferRole: 100,
 	}
+	argsBuiltIn.AutomaticCrawlerAddresses = GenerateOneAddressPerShard(argsBuiltIn.ShardCoordinator)
 	builtInFuncFactory, _ := builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)
 	argsHook := hooks.ArgBlockChainHook{
 		Accounts:              tpn.AccntState,
@@ -2215,9 +2218,12 @@ func (tpn *TestProcessorNode) initNode() {
 	currentProvider, _ := blockInfoProviders.NewCurrentBlockInfo(dataComponents.BlockChain)
 	currentAccountsApi, _ := state.NewAccountsDBApi(tpn.AccntState, currentProvider)
 
+	historicalAccountsApi, _ := state.NewAccountsDBApiWithHistory(tpn.AccntState)
+
 	argsAccountsRepo := state.ArgsAccountsRepository{
-		FinalStateAccountsWrapper:   finalAccountsApi,
-		CurrentStateAccountsWrapper: currentAccountsApi,
+		FinalStateAccountsWrapper:      finalAccountsApi,
+		CurrentStateAccountsWrapper:    currentAccountsApi,
+		HistoricalStateAccountsWrapper: historicalAccountsApi,
 	}
 	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(argsAccountsRepo)
 

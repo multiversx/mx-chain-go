@@ -202,6 +202,7 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsRefactorContextFlagEnabled())
 		assert.True(t, handler.IsCheckFunctionArgumentFlagEnabled())
 		assert.True(t, handler.IsCheckExecuteOnReadOnlyFlagEnabled())
+		assert.True(t, handler.IsChangeDelegationOwnerFlagEnabled())
 	})
 	t.Run("flags with == condition should be set, along with all >=", func(t *testing.T) {
 		t.Parallel()
@@ -295,6 +296,7 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsRefactorContextFlagEnabled())
 		assert.True(t, handler.IsCheckFunctionArgumentFlagEnabled())
 		assert.True(t, handler.IsCheckExecuteOnReadOnlyFlagEnabled())
+		assert.True(t, handler.IsChangeDelegationOwnerFlagEnabled())
 	})
 	t.Run("flags with < should be set", func(t *testing.T) {
 		t.Parallel()
@@ -383,5 +385,6 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.False(t, handler.IsRefactorContextFlagEnabled())
 		assert.False(t, handler.IsCheckFunctionArgumentFlagEnabled())
 		assert.False(t, handler.IsCheckExecuteOnReadOnlyFlagEnabled())
+		assert.False(t, handler.IsChangeDelegationOwnerFlagEnabled())
 	})
 }

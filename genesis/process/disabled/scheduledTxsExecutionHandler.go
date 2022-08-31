@@ -67,6 +67,11 @@ func (steh *ScheduledTxsExecutionHandler) GetScheduledRootHashForHeader(_ []byte
 	return make([]byte, 0), nil
 }
 
+// GetScheduledRootHashForHeaderWithEpoch does nothing as it is disabled
+func (steh *ScheduledTxsExecutionHandler) GetScheduledRootHashForHeaderWithEpoch(_ []byte, _ uint32) ([]byte, error) {
+	return make([]byte, 0), nil
+}
+
 // RollBackToBlock does nothing as it is disabled
 func (steh *ScheduledTxsExecutionHandler) RollBackToBlock(_ []byte) error {
 	return nil
