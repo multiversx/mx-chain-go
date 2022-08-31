@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"strconv"
+	"testing"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -46,6 +47,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	"github.com/ElrondNetwork/elrond-go/update"
+	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -85,7 +87,7 @@ type TestHeartbeatNode struct {
 	DataPool                   dataRetriever.PoolsHolder
 	Sender                     update.Closer
 	PeerAuthInterceptor        *interceptors.MultiDataInterceptor
-	HeartbeatInterceptor       *interceptors.MultiDataInterceptor
+	HeartbeatInterceptor       *interceptors.SingleDataInterceptor
 	ValidatorInfoInterceptor   *interceptors.SingleDataInterceptor
 	PeerSigHandler             crypto.PeerSignatureHandler
 	WhiteListHandler           process.WhiteListHandler
@@ -101,6 +103,7 @@ type TestHeartbeatNode struct {
 
 // NewTestHeartbeatNode returns a new TestHeartbeatNode instance with a libp2p messenger
 func NewTestHeartbeatNode(
+	tb testing.TB,
 	maxShards uint32,
 	nodeShardId uint32,
 	minPeersWaiting int,
@@ -150,14 +153,12 @@ func NewTestHeartbeatNode(
 	pidPk, _ := storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 1000})
 	pkShardId, _ := storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 1000})
 	pidShardId, _ := storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 1000})
-	startInEpoch := uint32(0)
 	arg := networksharding.ArgPeerShardMapper{
 		PeerIdPkCache:         pidPk,
 		FallbackPkShardCache:  pkShardId,
 		FallbackPidShardCache: pidShardId,
 		NodesCoordinator:      nodesCoordinatorInstance,
 		PreferredPeersHolder:  &p2pmocks.PeersHolderStub{},
-		StartEpoch:            startInEpoch,
 	}
 	peerShardMapper, err := networksharding.NewPeerShardMapper(arg)
 	if err != nil {
@@ -186,7 +187,7 @@ func NewTestHeartbeatNode(
 	}
 
 	// start a go routine in order to allow peers to connect first
-	go thn.InitTestHeartbeatNode(minPeersWaiting)
+	go thn.InitTestHeartbeatNode(tb, minPeersWaiting)
 
 	return thn
 }
@@ -222,14 +223,12 @@ func NewTestHeartbeatNodeWithCoordinator(
 	pidPk, _ := storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 1000})
 	pkShardId, _ := storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 1000})
 	pidShardId, _ := storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 1000})
-	startInEpoch := uint32(0)
 	arg := networksharding.ArgPeerShardMapper{
 		PeerIdPkCache:         pidPk,
 		FallbackPkShardCache:  pkShardId,
 		FallbackPidShardCache: pidShardId,
 		NodesCoordinator:      coordinator,
 		PreferredPeersHolder:  &p2pmocks.PeersHolderStub{},
-		StartEpoch:            startInEpoch,
 	}
 	peerShardMapper, err := networksharding.NewPeerShardMapper(arg)
 	if err != nil {
@@ -362,13 +361,13 @@ func CreateNodesWithTestHeartbeatNode(
 }
 
 // InitTestHeartbeatNode initializes all the components and starts sender
-func (thn *TestHeartbeatNode) InitTestHeartbeatNode(minPeersWaiting int) {
+func (thn *TestHeartbeatNode) InitTestHeartbeatNode(tb testing.TB, minPeersWaiting int) {
 	thn.initStorage()
 	thn.initDataPools()
 	thn.initRequestedItemsHandler()
 	thn.initResolvers()
 	thn.initInterceptors()
-	thn.initDirectConnectionsProcessor()
+	thn.initDirectConnectionsProcessor(tb)
 
 	for len(thn.Messenger.Peers()) < minPeersWaiting {
 		time.Sleep(time.Second)
@@ -539,7 +538,7 @@ func (thn *TestHeartbeatNode) createHeartbeatInterceptor(argsFactory interceptor
 	hbProcessor, _ := interceptorsProcessor.NewHeartbeatInterceptorProcessor(args)
 	hbFactory, _ := interceptorFactory.NewInterceptedHeartbeatDataFactory(argsFactory)
 	identifierHeartbeat := common.HeartbeatV2Topic + thn.ShardCoordinator.CommunicationIdentifier(thn.ShardCoordinator.SelfId())
-	thn.HeartbeatInterceptor = thn.initMultiDataInterceptor(identifierHeartbeat, hbFactory, hbProcessor)
+	thn.HeartbeatInterceptor = thn.initSingleDataInterceptor(identifierHeartbeat, hbFactory, hbProcessor)
 }
 
 func (thn *TestHeartbeatNode) createDirectConnectionInfoInterceptor(argsFactory interceptorFactory.ArgInterceptedDataFactory) {
@@ -615,15 +614,18 @@ func (thn *TestHeartbeatNode) initRequestsProcessor() {
 	thn.RequestsProcessor, _ = processor.NewPeerAuthenticationRequestsProcessor(args)
 }
 
-func (thn *TestHeartbeatNode) initDirectConnectionsProcessor() {
+func (thn *TestHeartbeatNode) initDirectConnectionsProcessor(tb testing.TB) {
 	args := processor.ArgDirectConnectionsProcessor{
 		Messenger:                 thn.Messenger,
 		Marshaller:                TestMarshaller,
 		ShardCoordinator:          thn.ShardCoordinator,
 		DelayBetweenNotifications: 5 * time.Second,
+		NodesCoordinator:          thn.NodesCoordinator,
 	}
 
-	thn.DirectConnectionsProcessor, _ = processor.NewDirectConnectionsProcessor(args)
+	var err error
+	thn.DirectConnectionsProcessor, err = processor.NewDirectConnectionsProcessor(args)
+	require.Nil(tb, err)
 }
 
 // ConnectTo will try to initiate a connection to the provided parameter

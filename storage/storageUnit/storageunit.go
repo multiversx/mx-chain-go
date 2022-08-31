@@ -281,11 +281,8 @@ func NewStorageUnitFromConf(cacheConf CacheConfig, dbConf DBConfig) (*Unit, erro
 	var db storage.Persister
 	var err error
 
-	defer func() {
-		if err != nil && db != nil {
-			_ = db.Destroy()
-		}
-	}()
+	// TODO: if there will be a differentiation between the creation or opening of a DB, the DB could be destroyed
+	// in case of a failure while creating (not opening).
 
 	if dbConf.MaxBatchSize > int(cacheConf.Capacity) {
 		return nil, storage.ErrCacheSizeIsLowerThanBatchSize

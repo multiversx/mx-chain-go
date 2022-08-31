@@ -1,15 +1,19 @@
 package builtInFunctions
 
 import (
+	"fmt"
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	vmcommonBuiltInFunctions "github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
 )
+
+var log = logger.GetOrCreate("process/smartcontract/builtInFunctions")
 
 // ArgsCreateBuiltInFunctionContainer defines the argument structure to create new built in function container
 type ArgsCreateBuiltInFunctionContainer struct {
@@ -21,7 +25,7 @@ type ArgsCreateBuiltInFunctionContainer struct {
 	ShardCoordinator          sharding.Coordinator
 	EpochNotifier             vmcommon.EpochNotifier
 	EnableEpochsHandler       vmcommon.EnableEpochsHandler
-	AutomaticCrawlerAddress   []byte
+	AutomaticCrawlerAddresses [][]byte
 	MaxNumNodesInTransferRole uint32
 }
 
@@ -54,6 +58,18 @@ func CreateBuiltInFunctionsFactory(args ArgsCreateBuiltInFunctionContainer) (vmc
 		return nil, process.ErrWrongTypeAssertion
 	}
 
+	crawlerAllowedAddress, err := GetAllowedAddress(
+		args.ShardCoordinator,
+		args.AutomaticCrawlerAddresses)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Debug("createBuiltInFunctionsFactory",
+		"shardId", args.ShardCoordinator.SelfId(),
+		"crawlerAllowedAddress", crawlerAllowedAddress,
+	)
+
 	modifiedArgs := vmcommonBuiltInFunctions.ArgsCreateBuiltInFunctionContainer{
 		GasMap:                           args.GasSchedule.LatestGasSchedule(),
 		MapDNSAddresses:                  args.MapDNSAddresses,
@@ -62,7 +78,7 @@ func CreateBuiltInFunctionsFactory(args ArgsCreateBuiltInFunctionContainer) (vmc
 		Accounts:                         vmcommonAccounts,
 		ShardCoordinator:                 args.ShardCoordinator,
 		EnableEpochsHandler:              args.EnableEpochsHandler,
-		ConfigAddress:                    args.AutomaticCrawlerAddress,
+		ConfigAddress:                    crawlerAllowedAddress,
 		MaxNumOfAddressesForTransferRole: args.MaxNumNodesInTransferRole,
 	}
 
@@ -79,4 +95,27 @@ func CreateBuiltInFunctionsFactory(args ArgsCreateBuiltInFunctionContainer) (vmc
 	args.GasSchedule.RegisterNotifyHandler(bContainerFactory)
 
 	return bContainerFactory, nil
+}
+
+func GetAllowedAddress(coordinator sharding.Coordinator, addresses [][]byte) ([]byte, error) {
+	if check.IfNil(coordinator) {
+		return nil, process.ErrNilShardCoordinator
+	}
+
+	if len(addresses) == 0 {
+		return nil, fmt.Errorf("%w for shard %d, provided count is %d", process.ErrNilCrawlerAllowedAddress, coordinator.SelfId(), len(addresses))
+	}
+
+	if coordinator.SelfId() == core.MetachainShardId {
+		return core.SystemAccountAddress, nil
+	}
+
+	for _, address := range addresses {
+		allowedAddressShardId := coordinator.ComputeId(address)
+		if allowedAddressShardId == coordinator.SelfId() {
+			return address, nil
+		}
+	}
+
+	return nil, fmt.Errorf("%w for shard %d, provided count is %d", process.ErrNilCrawlerAllowedAddress, coordinator.SelfId(), len(addresses))
 }

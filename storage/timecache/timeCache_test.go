@@ -1,18 +1,17 @@
 package timecache
 
 import (
-	"bytes"
+	"fmt"
 	"testing"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/mock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-//------- Add
+// ------- Add
 
 func TestTimeCache_EmptyKeyShouldErr(t *testing.T) {
 	t.Parallel()
@@ -97,7 +96,7 @@ func TestTimeCache_AddWithSpanShouldWork(t *testing.T) {
 	assert.Equal(t, duration, spanRecovered.span)
 }
 
-//------- Has
+// ------- Has
 
 func TestTimeCache_HasNotExistingShouldRetFalse(t *testing.T) {
 	t.Parallel()
@@ -147,7 +146,7 @@ func TestTimeCache_HasCheckHandlingInconsistency(t *testing.T) {
 	tc := NewTimeCache(time.Second)
 	key := "key1"
 	_ = tc.Add(key)
-	tc.ClearMap()
+	tc.timeCache.clear()
 	tc.Sweep()
 
 	exists := tc.Has(key)
@@ -156,7 +155,7 @@ func TestTimeCache_HasCheckHandlingInconsistency(t *testing.T) {
 	assert.Equal(t, 0, len(tc.Keys()))
 }
 
-//------- Upsert
+// ------- Upsert
 
 func TestTimeCache_UpsertEmptyKeyShouldErr(t *testing.T) {
 	t.Parallel()
@@ -217,42 +216,19 @@ func TestTimeCache_UpsertmoreSpanShouldUpdate(t *testing.T) {
 	assert.Equal(t, highSpan, recovered.span)
 }
 
-//------- RegisterHandler
-
-func TestTimeCache_RegisterNilHandler(t *testing.T) {
+func TestTimeCache_Len(t *testing.T) {
 	t.Parallel()
 
 	tc := NewTimeCache(time.Second)
-	tc.RegisterEvictionHandler(nil)
-	assert.Equal(t, 0, len(tc.evictionHandlers))
-}
-
-func TestTimeCache_RegisterHandlerShouldWork(t *testing.T) {
-	t.Parallel()
-
-	providedKey := "key1"
-	wasCalled := false
-	eh := &mock.EvictionHandlerStub{
-		EvictedCalled: func(key []byte) {
-			assert.True(t, bytes.Equal([]byte(providedKey), key))
-			wasCalled = true
-		},
+	assert.Equal(t, 0, tc.Len())
+	numTests := 10
+	for i := 0; i < numTests; i++ {
+		_ = tc.Add(fmt.Sprintf("%d", i))
+		assert.Equal(t, i+1, tc.Len())
 	}
-	tc := NewTimeCache(time.Second)
-	tc.RegisterEvictionHandler(eh)
-	assert.Equal(t, 1, len(tc.evictionHandlers))
-	_ = tc.Add(providedKey)
-	time.Sleep(time.Second)
-	tc.Sweep()
-
-	exists := tc.Has(providedKey)
-
-	assert.False(t, exists)
-	assert.Equal(t, 0, len(tc.Keys()))
-	assert.True(t, wasCalled)
 }
 
-//------- IsInterfaceNil
+// ------- IsInterfaceNil
 
 func TestTimeCache_IsInterfaceNilNotNil(t *testing.T) {
 	t.Parallel()

@@ -1532,3 +1532,214 @@ func Test_getProcessedMiniBlocks(t *testing.T) {
 	assert.Equal(t, mbHash1, processedMiniBlocks[0].MiniBlocksHashes[idxOfMiniBlock0])
 	assert.Equal(t, mbHash2, processedMiniBlocks[0].MiniBlocksHashes[idxOfMiniBlock1])
 }
+
+func Test_setMiniBlocksInfoWithPendingMiniBlocks(t *testing.T) {
+	t.Parallel()
+
+	t.Run("set mini blocks info with pending mini blocks, having reserved field nil", func(t *testing.T) {
+		t.Parallel()
+
+		mbsInfo := &miniBlocksInfo{
+			miniBlockHashes:              make([][]byte, 0),
+			fullyProcessed:               make([]bool, 0),
+			indexOfLastTxProcessed:       make([]int32, 0),
+			pendingMiniBlocksMap:         make(map[string]struct{}),
+			pendingMiniBlocksPerShardMap: make(map[uint32][][]byte),
+		}
+
+		mbHash := []byte("x")
+		txCount := uint32(100)
+
+		mbh1 := block.MiniBlockHeader{
+			Hash:    mbHash,
+			TxCount: txCount,
+		}
+
+		epochStartShardData := &block.EpochStartShardData{
+			PendingMiniBlockHeaders: []block.MiniBlockHeader{
+				mbh1,
+			},
+		}
+		setMiniBlocksInfoWithPendingMiniBlocks(epochStartShardData, mbsInfo)
+		assert.Equal(t, 0, len(mbsInfo.miniBlockHashes))
+		assert.Equal(t, 0, len(mbsInfo.fullyProcessed))
+		assert.Equal(t, 0, len(mbsInfo.indexOfLastTxProcessed))
+	})
+
+	t.Run("set mini blocks info with pending mini blocks, having index of last tx processed set before first tx", func(t *testing.T) {
+		t.Parallel()
+
+		mbsInfo := &miniBlocksInfo{
+			miniBlockHashes:              make([][]byte, 0),
+			fullyProcessed:               make([]bool, 0),
+			indexOfLastTxProcessed:       make([]int32, 0),
+			pendingMiniBlocksMap:         make(map[string]struct{}),
+			pendingMiniBlocksPerShardMap: make(map[uint32][][]byte),
+		}
+
+		mbHash := []byte("x")
+		txCount := uint32(100)
+
+		mbh1 := block.MiniBlockHeader{
+			Hash:    mbHash,
+			TxCount: txCount,
+		}
+
+		indexOfLastTxProcessed := int32(-1)
+		_ = mbh1.SetIndexOfLastTxProcessed(indexOfLastTxProcessed)
+
+		epochStartShardData := &block.EpochStartShardData{
+			PendingMiniBlockHeaders: []block.MiniBlockHeader{
+				mbh1,
+			},
+		}
+		setMiniBlocksInfoWithPendingMiniBlocks(epochStartShardData, mbsInfo)
+		assert.Equal(t, 0, len(mbsInfo.miniBlockHashes))
+		assert.Equal(t, 0, len(mbsInfo.fullyProcessed))
+		assert.Equal(t, 0, len(mbsInfo.indexOfLastTxProcessed))
+	})
+
+	t.Run("set mini blocks info with pending mini blocks, having index of last tx processed set to last tx", func(t *testing.T) {
+		t.Parallel()
+
+		mbsInfo := &miniBlocksInfo{
+			miniBlockHashes:              make([][]byte, 0),
+			fullyProcessed:               make([]bool, 0),
+			indexOfLastTxProcessed:       make([]int32, 0),
+			pendingMiniBlocksMap:         make(map[string]struct{}),
+			pendingMiniBlocksPerShardMap: make(map[uint32][][]byte),
+		}
+
+		mbHash := []byte("x")
+		txCount := uint32(100)
+
+		mbh1 := block.MiniBlockHeader{
+			Hash:    mbHash,
+			TxCount: txCount,
+		}
+
+		indexOfLastTxProcessed := int32(txCount) - 1
+		_ = mbh1.SetIndexOfLastTxProcessed(indexOfLastTxProcessed)
+
+		epochStartShardData := &block.EpochStartShardData{
+			PendingMiniBlockHeaders: []block.MiniBlockHeader{
+				mbh1,
+			},
+		}
+		setMiniBlocksInfoWithPendingMiniBlocks(epochStartShardData, mbsInfo)
+		assert.Equal(t, 0, len(mbsInfo.miniBlockHashes))
+		assert.Equal(t, 0, len(mbsInfo.fullyProcessed))
+		assert.Equal(t, 0, len(mbsInfo.indexOfLastTxProcessed))
+	})
+
+	t.Run("set mini blocks info with pending mini blocks, having index of last tx processed set to first tx", func(t *testing.T) {
+		t.Parallel()
+
+		mbsInfo := &miniBlocksInfo{
+			miniBlockHashes:              make([][]byte, 0),
+			fullyProcessed:               make([]bool, 0),
+			indexOfLastTxProcessed:       make([]int32, 0),
+			pendingMiniBlocksMap:         make(map[string]struct{}),
+			pendingMiniBlocksPerShardMap: make(map[uint32][][]byte),
+		}
+
+		mbHash := []byte("x")
+		txCount := uint32(100)
+
+		mbh1 := block.MiniBlockHeader{
+			Hash:    mbHash,
+			TxCount: txCount,
+		}
+
+		indexOfLastTxProcessed := int32(0)
+		_ = mbh1.SetIndexOfLastTxProcessed(indexOfLastTxProcessed)
+		_ = mbh1.SetConstructionState(int32(block.PartialExecuted))
+
+		epochStartShardData := &block.EpochStartShardData{
+			PendingMiniBlockHeaders: []block.MiniBlockHeader{
+				mbh1,
+			},
+		}
+		setMiniBlocksInfoWithPendingMiniBlocks(epochStartShardData, mbsInfo)
+		require.Equal(t, 1, len(mbsInfo.miniBlockHashes))
+		require.Equal(t, 1, len(mbsInfo.fullyProcessed))
+		require.Equal(t, 1, len(mbsInfo.indexOfLastTxProcessed))
+		assert.Equal(t, mbHash, mbsInfo.miniBlockHashes[0])
+		assert.False(t, mbsInfo.fullyProcessed[0])
+		assert.Equal(t, indexOfLastTxProcessed, mbsInfo.indexOfLastTxProcessed[0])
+	})
+
+	t.Run("set mini blocks info with pending mini blocks, having index of last tx processed set to penultimate tx", func(t *testing.T) {
+		t.Parallel()
+
+		mbsInfo := &miniBlocksInfo{
+			miniBlockHashes:              make([][]byte, 0),
+			fullyProcessed:               make([]bool, 0),
+			indexOfLastTxProcessed:       make([]int32, 0),
+			pendingMiniBlocksMap:         make(map[string]struct{}),
+			pendingMiniBlocksPerShardMap: make(map[uint32][][]byte),
+		}
+
+		mbHash := []byte("x")
+		txCount := uint32(100)
+
+		mbh1 := block.MiniBlockHeader{
+			Hash:    mbHash,
+			TxCount: txCount,
+		}
+
+		indexOfLastTxProcessed := int32(txCount) - 2
+		_ = mbh1.SetIndexOfLastTxProcessed(indexOfLastTxProcessed)
+		_ = mbh1.SetConstructionState(int32(block.PartialExecuted))
+
+		epochStartShardData := &block.EpochStartShardData{
+			PendingMiniBlockHeaders: []block.MiniBlockHeader{
+				mbh1,
+			},
+		}
+		setMiniBlocksInfoWithPendingMiniBlocks(epochStartShardData, mbsInfo)
+		require.Equal(t, 1, len(mbsInfo.miniBlockHashes))
+		require.Equal(t, 1, len(mbsInfo.fullyProcessed))
+		require.Equal(t, 1, len(mbsInfo.indexOfLastTxProcessed))
+		assert.Equal(t, mbHash, mbsInfo.miniBlockHashes[0])
+		assert.False(t, mbsInfo.fullyProcessed[0])
+		assert.Equal(t, indexOfLastTxProcessed, mbsInfo.indexOfLastTxProcessed[0])
+	})
+
+	t.Run("set mini blocks info with pending mini blocks, having index of last tx processed set somewhere in the middle of the range", func(t *testing.T) {
+		t.Parallel()
+
+		mbsInfo := &miniBlocksInfo{
+			miniBlockHashes:              make([][]byte, 0),
+			fullyProcessed:               make([]bool, 0),
+			indexOfLastTxProcessed:       make([]int32, 0),
+			pendingMiniBlocksMap:         make(map[string]struct{}),
+			pendingMiniBlocksPerShardMap: make(map[uint32][][]byte),
+		}
+
+		mbHash := []byte("x")
+		txCount := uint32(100)
+
+		mbh1 := block.MiniBlockHeader{
+			Hash:    mbHash,
+			TxCount: txCount,
+		}
+
+		indexOfLastTxProcessed := int32(txCount / 2)
+		_ = mbh1.SetIndexOfLastTxProcessed(indexOfLastTxProcessed)
+		_ = mbh1.SetConstructionState(int32(block.PartialExecuted))
+
+		epochStartShardData := &block.EpochStartShardData{
+			PendingMiniBlockHeaders: []block.MiniBlockHeader{
+				mbh1,
+			},
+		}
+		setMiniBlocksInfoWithPendingMiniBlocks(epochStartShardData, mbsInfo)
+		require.Equal(t, 1, len(mbsInfo.miniBlockHashes))
+		require.Equal(t, 1, len(mbsInfo.fullyProcessed))
+		require.Equal(t, 1, len(mbsInfo.indexOfLastTxProcessed))
+		assert.Equal(t, mbHash, mbsInfo.miniBlockHashes[0])
+		assert.False(t, mbsInfo.fullyProcessed[0])
+		assert.Equal(t, indexOfLastTxProcessed, mbsInfo.indexOfLastTxProcessed[0])
+	})
+}

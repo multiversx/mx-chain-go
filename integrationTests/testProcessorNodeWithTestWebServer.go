@@ -1,7 +1,6 @@
 package integrationTests
 
 import (
-	"bytes"
 	"net/http"
 	"net/http/httptest"
 	"sync"
@@ -147,9 +146,9 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 		ShardCoordinator:          tpn.ShardCoordinator,
 		EpochNotifier:             tpn.EpochNotifier,
 		EnableEpochsHandler:       tpn.EnableEpochsHandler,
-		AutomaticCrawlerAddress:   bytes.Repeat([]byte{1}, 32),
 		MaxNumNodesInTransferRole: 100,
 	}
+	argsBuiltIn.AutomaticCrawlerAddresses = GenerateOneAddressPerShard(argsBuiltIn.ShardCoordinator)
 	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)
 	log.LogIfError(err)
 	esdtTransferParser, _ := parsers.NewESDTTransferParser(TestMarshalizer)
