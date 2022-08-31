@@ -240,7 +240,7 @@ func (res *peerAuthenticationResolver) resolveMultipleHashesRequest(hashesBuff [
 
 	peerAuthsForHashes, err := res.fetchPeerAuthenticationSlicesForPublicKeys(hashes)
 	if err != nil {
-		return fmt.Errorf("resolveMultipleHashesRequest error %w from buff %s", err, hashesBuff)
+		return fmt.Errorf("resolveMultipleHashesRequest error %w from buff %x", err, hashesBuff)
 	}
 
 	return res.sendPeerAuthsForHashes(peerAuthsForHashes, pid)
