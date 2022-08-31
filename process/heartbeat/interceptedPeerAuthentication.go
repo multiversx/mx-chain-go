@@ -226,7 +226,10 @@ func (ipa *interceptedPeerAuthentication) verifyPayloadTimestamp() error {
 	minTimestampAllowed := currentTimeStamp - ipa.expiryTimespanInSec
 	maxTimestampAllowed := currentTimeStamp + payloadExpiryThresholdInSec
 	if messageTimeStamp < minTimestampAllowed || messageTimeStamp > maxTimestampAllowed {
-		return process.ErrMessageExpired
+		if messageTimeStamp < minTimestampAllowed || messageTimeStamp > maxTimestampAllowed {
+			return fmt.Errorf("%w message time stamp: %v, minimum: %v, maximum: %v",
+				process.ErrMessageExpired, messageTimeStamp, minTimestampAllowed, maxTimestampAllowed)
+		}
 	}
 
 	return nil

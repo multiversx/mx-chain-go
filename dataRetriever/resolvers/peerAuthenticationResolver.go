@@ -12,7 +12,6 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -27,7 +26,6 @@ type ArgPeerAuthenticationResolver struct {
 	ArgBaseResolver
 	PeerAuthenticationPool               storage.Cacher
 	NodesCoordinator                     dataRetriever.NodesCoordinator
-	PeerShardMapper                      process.PeerShardMapper
 	DataPacker                           dataRetriever.DataPacker
 	MaxNumOfPeerAuthenticationInResponse int
 }
@@ -38,7 +36,6 @@ type peerAuthenticationResolver struct {
 	messageProcessor
 	peerAuthenticationPool               storage.Cacher
 	nodesCoordinator                     dataRetriever.NodesCoordinator
-	peerShardMapper                      process.PeerShardMapper
 	dataPacker                           dataRetriever.DataPacker
 	maxNumOfPeerAuthenticationInResponse int
 }
@@ -62,7 +59,6 @@ func NewPeerAuthenticationResolver(arg ArgPeerAuthenticationResolver) (*peerAuth
 		},
 		peerAuthenticationPool:               arg.PeerAuthenticationPool,
 		nodesCoordinator:                     arg.NodesCoordinator,
-		peerShardMapper:                      arg.PeerShardMapper,
 		dataPacker:                           arg.DataPacker,
 		maxNumOfPeerAuthenticationInResponse: arg.MaxNumOfPeerAuthenticationInResponse,
 	}, nil
@@ -78,9 +74,6 @@ func checkArgPeerAuthenticationResolver(arg ArgPeerAuthenticationResolver) error
 	}
 	if check.IfNil(arg.NodesCoordinator) {
 		return dataRetriever.ErrNilNodesCoordinator
-	}
-	if check.IfNil(arg.PeerShardMapper) {
-		return dataRetriever.ErrNilPeerShardMapper
 	}
 	if check.IfNil(arg.DataPacker) {
 		return dataRetriever.ErrNilDataPacker
@@ -298,12 +291,7 @@ func (res *peerAuthenticationResolver) fetchPeerAuthenticationSlicesForPublicKey
 
 // fetchPeerAuthenticationAsByteSlice returns the value from authentication pool if exists
 func (res *peerAuthenticationResolver) fetchPeerAuthenticationAsByteSlice(pk []byte) ([]byte, error) {
-	pid, ok := res.peerShardMapper.GetLastKnownPeerID(pk)
-	if !ok {
-		return nil, dataRetriever.ErrPeerAuthNotFound
-	}
-
-	value, ok := res.peerAuthenticationPool.Peek(pid.Bytes())
+	value, ok := res.peerAuthenticationPool.Peek(pk)
 	if ok {
 		return res.marshalizer.Marshal(value)
 	}

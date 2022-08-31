@@ -1403,7 +1403,6 @@ func (tpn *TestProcessorNode) initResolvers() {
 		PeersRatingHandler:                   tpn.PeersRatingHandler,
 		NodesCoordinator:                     tpn.NodesCoordinator,
 		MaxNumOfPeerAuthenticationInResponse: 5,
-		PeerShardMapper:                      tpn.PeerShardMapper,
 	}
 
 	var err error
