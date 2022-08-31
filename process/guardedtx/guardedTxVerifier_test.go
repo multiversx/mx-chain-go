@@ -38,35 +38,35 @@ func TestNewGuardedTxSigVerifier(t *testing.T) {
 	}
 
 	t.Run("nil guardian sig verifier ", func(t *testing.T) {
-		changedArgs := *&args
+		changedArgs := args
 		changedArgs.SigVerifier = nil
 		gtxSigVerifier, err := NewGuardedTxSigVerifier(changedArgs)
 		require.Equal(t, process.ErrNilSingleSigner, err)
 		require.True(t, check.IfNil(gtxSigVerifier))
 	})
 	t.Run("nil guardian checker", func(t *testing.T) {
-		changedArgs := *&args
+		changedArgs := args
 		changedArgs.GuardianChecker = nil
 		gtxSigVerifier, err := NewGuardedTxSigVerifier(changedArgs)
 		require.Equal(t, process.ErrNilGuardianChecker, err)
 		require.True(t, check.IfNil(gtxSigVerifier))
 	})
 	t.Run("nil public key converter", func(t *testing.T) {
-		changedArgs := *&args
+		changedArgs := args
 		changedArgs.PubKeyConverter = nil
 		gtxSigVerifier, err := NewGuardedTxSigVerifier(changedArgs)
 		require.Equal(t, process.ErrNilPubkeyConverter, err)
 		require.True(t, check.IfNil(gtxSigVerifier))
 	})
 	t.Run("nil marshaller", func(t *testing.T) {
-		changedArgs := *&args
+		changedArgs := args
 		changedArgs.Marshaller = nil
 		gtxSigVerifier, err := NewGuardedTxSigVerifier(changedArgs)
 		require.Equal(t, process.ErrNilMarshalizer, err)
 		require.True(t, check.IfNil(gtxSigVerifier))
 	})
 	t.Run("nil keyGen", func(t *testing.T) {
-		changedArgs := *&args
+		changedArgs := args
 		changedArgs.KeyGen = nil
 		gtxSigVerifier, err := NewGuardedTxSigVerifier(changedArgs)
 		require.Equal(t, process.ErrNilKeyGen, err)
