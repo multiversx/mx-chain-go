@@ -30,6 +30,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/heartbeat/validator"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
 	interceptorFactory "github.com/ElrondNetwork/elrond-go/process/interceptors/factory"
 	interceptorsProcessor "github.com/ElrondNetwork/elrond-go/process/interceptors/processor"
@@ -128,8 +129,8 @@ func NewTestHeartbeatNode(
 			return keys, nil
 		},
 		GetValidatorWithPublicKeyCalled: func(publicKey []byte) (nodesCoordinator.Validator, uint32, error) {
-			validator, _ := nodesCoordinator.NewValidator(publicKey, defaultChancesSelection, 1)
-			return validator, 0, nil
+			validatorInstance, _ := nodesCoordinator.NewValidator(publicKey, defaultChancesSelection, 1)
+			return validatorInstance, 0, nil
 		},
 	}
 	singleSigner := singlesig.NewBlsSigner()
@@ -425,6 +426,7 @@ func (thn *TestHeartbeatNode) initResolvers() {
 
 	_ = thn.Messenger.CreateTopic(common.ConsensusTopic+thn.ShardCoordinator.CommunicationIdentifier(thn.ShardCoordinator.SelfId()), true)
 
+	payloadValidator, _ := validator.NewPeerAuthenticationPayloadValidator(60)
 	resolverContainerFactory := resolverscontainer.FactoryArgs{
 		ShardCoordinator:         thn.ShardCoordinator,
 		Messenger:                thn.Messenger,
@@ -452,6 +454,7 @@ func (thn *TestHeartbeatNode) initResolvers() {
 		NodesCoordinator:                     thn.NodesCoordinator,
 		MaxNumOfPeerAuthenticationInResponse: 5,
 		PeersRatingHandler:                   &p2pmocks.PeersRatingHandlerStub{},
+		PayloadValidator:                     payloadValidator,
 	}
 
 	if thn.ShardCoordinator.SelfId() == core.MetachainShardId {

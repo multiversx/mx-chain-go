@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/batch"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
@@ -28,6 +29,7 @@ type ArgPeerAuthenticationResolver struct {
 	NodesCoordinator                     dataRetriever.NodesCoordinator
 	DataPacker                           dataRetriever.DataPacker
 	MaxNumOfPeerAuthenticationInResponse int
+	PayloadValidator                     dataRetriever.PeerAuthenticationPayloadValidator
 }
 
 // peerAuthenticationResolver is a wrapper over Resolver that is specialized in resolving peer authentication requests
@@ -38,6 +40,7 @@ type peerAuthenticationResolver struct {
 	nodesCoordinator                     dataRetriever.NodesCoordinator
 	dataPacker                           dataRetriever.DataPacker
 	maxNumOfPeerAuthenticationInResponse int
+	payloadValidator                     dataRetriever.PeerAuthenticationPayloadValidator
 }
 
 // NewPeerAuthenticationResolver creates a peer authentication resolver
@@ -61,6 +64,7 @@ func NewPeerAuthenticationResolver(arg ArgPeerAuthenticationResolver) (*peerAuth
 		nodesCoordinator:                     arg.NodesCoordinator,
 		dataPacker:                           arg.DataPacker,
 		maxNumOfPeerAuthenticationInResponse: arg.MaxNumOfPeerAuthenticationInResponse,
+		payloadValidator:                     arg.PayloadValidator,
 	}, nil
 }
 
@@ -80,6 +84,9 @@ func checkArgPeerAuthenticationResolver(arg ArgPeerAuthenticationResolver) error
 	}
 	if arg.MaxNumOfPeerAuthenticationInResponse < minNumOfPeerAuthentication {
 		return dataRetriever.ErrInvalidNumOfPeerAuthentication
+	}
+	if check.IfNil(arg.PayloadValidator) {
+		return dataRetriever.ErrNilPayloadValidator
 	}
 	return nil
 }
@@ -292,11 +299,29 @@ func (res *peerAuthenticationResolver) fetchPeerAuthenticationSlicesForPublicKey
 // fetchPeerAuthenticationAsByteSlice returns the value from authentication pool if exists
 func (res *peerAuthenticationResolver) fetchPeerAuthenticationAsByteSlice(pk []byte) ([]byte, error) {
 	value, ok := res.peerAuthenticationPool.Peek(pk)
-	if ok {
-		return res.marshalizer.Marshal(value)
+	if !ok {
+		return nil, dataRetriever.ErrPeerAuthNotFound
 	}
 
-	return nil, dataRetriever.ErrPeerAuthNotFound
+	interceptedPeerAuthenticationData, ok := value.(*heartbeat.PeerAuthentication)
+	if !ok {
+		return nil, dataRetriever.ErrWrongTypeAssertion
+	}
+
+	payloadBuff := interceptedPeerAuthenticationData.Payload
+	payload := &heartbeat.Payload{}
+	err := res.marshalizer.Unmarshal(payload, payloadBuff)
+	if err != nil {
+		return nil, err
+	}
+
+	err = res.payloadValidator.ValidateTimestamp(payload.Timestamp)
+	if err != nil {
+		log.Trace("found peer authentication payload with invalid value, will not send it", "error", err)
+		return nil, err
+	}
+
+	return res.marshalizer.Marshal(value)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -468,5 +468,6 @@ func getArgumentsShard() resolverscontainer.FactoryArgs {
 		NodesCoordinator:                     &shardingMocks.NodesCoordinatorStub{},
 		MaxNumOfPeerAuthenticationInResponse: 5,
 		PeersRatingHandler:                   &p2pmocks.PeersRatingHandlerStub{},
+		PayloadValidator:                     &testscommon.PeerAuthenticationPayloadValidatorStub{},
 	}
 }

@@ -58,6 +58,7 @@ func NewShardResolversContainerFactory(
 		numFullHistoryPeers:                  int(args.ResolverConfig.NumFullHistoryPeers),
 		nodesCoordinator:                     args.NodesCoordinator,
 		maxNumOfPeerAuthenticationInResponse: args.MaxNumOfPeerAuthenticationInResponse,
+		payloadValidator:                     args.PayloadValidator,
 	}
 
 	err = base.checkParams()
