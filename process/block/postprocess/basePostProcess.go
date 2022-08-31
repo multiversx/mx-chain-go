@@ -80,8 +80,8 @@ func (bpp *basePostProcessor) CreateBlockStarted() {
 	bpp.mutInterResultsForBlock.Unlock()
 }
 
-// CreateMarshalizedData creates the marshalized data for broadcasting purposes
-func (bpp *basePostProcessor) CreateMarshalizedData(txHashes [][]byte) ([][]byte, error) {
+// CreateMarshalledData creates the marshalled data for broadcasting purposes
+func (bpp *basePostProcessor) CreateMarshalledData(txHashes [][]byte) ([][]byte, error) {
 	bpp.mutInterResultsForBlock.Lock()
 	defer bpp.mutInterResultsForBlock.Unlock()
 
@@ -89,7 +89,7 @@ func (bpp *basePostProcessor) CreateMarshalizedData(txHashes [][]byte) ([][]byte
 	for _, txHash := range txHashes {
 		txInfoObject := bpp.interResultsForBlock[string(txHash)]
 		if txInfoObject == nil || check.IfNil(txInfoObject.tx) {
-			log.Warn("basePostProcessor.CreateMarshalizedData: tx not found", "hash", txHash)
+			log.Warn("basePostProcessor.CreateMarshalledData: tx not found", "hash", txHash)
 			continue
 		}
 

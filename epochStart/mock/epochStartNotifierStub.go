@@ -1,6 +1,8 @@
 package mock
 
-import "github.com/ElrondNetwork/elrond-go-core/data"
+import (
+	"github.com/ElrondNetwork/elrond-go-core/data"
+)
 
 // EpochStartNotifierStub -
 type EpochStartNotifierStub struct {

@@ -128,6 +128,11 @@ func (srcf *shardResolversContainerFactory) Create() (dataRetriever.ResolversCon
 		return nil, err
 	}
 
+	err = srcf.generateValidatorInfoResolver()
+	if err != nil {
+		return nil, err
+	}
+
 	return srcf.container, nil
 }
 

@@ -148,16 +148,16 @@ func NewShardProcessorEmptyWith3shards(
 					return nil
 				},
 			},
-			BlockTracker:                   mock.NewBlockTrackerMock(shardCoordinator, genesisBlocks),
-			BlockSizeThrottler:             &mock.BlockSizeThrottlerStub{},
-			Version:                        "softwareVersion",
-			HistoryRepository:              &dblookupext.HistoryRepositoryStub{},
+			BlockTracker:                 mock.NewBlockTrackerMock(shardCoordinator, genesisBlocks),
+			BlockSizeThrottler:           &mock.BlockSizeThrottlerStub{},
+			Version:                      "softwareVersion",
+			HistoryRepository:            &dblookupext.HistoryRepositoryStub{},
 			EnableRoundsHandler:          &testscommon.EnableRoundsHandlerStub{},
-			GasHandler:                     &mock.GasHandlerMock{},
-			OutportDataProvider:            &outport.OutportDataProviderStub{},
-			ScheduledTxsExecutionHandler:   &testscommon.ScheduledTxsExecutionStub{},
-			ProcessedMiniBlocksTracker:     &testscommon.ProcessedMiniBlocksTrackerStub{},
-			ReceiptsRepository:             &testscommon.ReceiptsRepositoryStub{},
+			GasHandler:                   &mock.GasHandlerMock{},
+			OutportDataProvider:          &outport.OutportDataProviderStub{},
+			ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
+			ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
+			ReceiptsRepository:           &testscommon.ReceiptsRepositoryStub{},
 		},
 	}
 	shardProc, err := NewShardProcessor(arguments)
@@ -538,4 +538,8 @@ func (sp *shardProcessor) RollBackProcessedMiniBlocksInfo(headerHandler data.Hea
 
 func (bp *baseProcessor) CheckConstructionStateAndIndexesCorrectness(mbh data.MiniBlockHeaderHandler) error {
 	return checkConstructionStateAndIndexesCorrectness(mbh)
+}
+
+func (mp *metaProcessor) GetAllMarshalledTxs(body *block.Body) map[string][][]byte {
+	return mp.getAllMarshalledTxs(body)
 }
