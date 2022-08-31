@@ -81,7 +81,7 @@ func (tc *timeCacher) Clear() {
 
 // Put adds a value to the cache. It will always return false since the eviction did not occur
 func (tc *timeCacher) Put(key []byte, value interface{}, _ int) (evicted bool) {
-	_, err := tc.timeCache.put(string(key), value, tc.timeCache.defaultSpan)
+	err := tc.timeCache.put(string(key), value, tc.timeCache.defaultSpan)
 	if err != nil {
 		log.Error("mapTimeCacher.Put", "error", key)
 	}
@@ -119,8 +119,6 @@ func (tc *timeCacher) HasOrAdd(key []byte, value interface{}, _ int) (has, added
 	has, added, err = tc.timeCache.hasOrAdd(string(key), value, tc.timeCache.defaultSpan)
 	if err != nil {
 		log.Error("mapTimeCacher.HasOrAdd", "error", key)
-
-		return
 	}
 
 	return

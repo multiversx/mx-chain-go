@@ -59,22 +59,20 @@ func (tcc *timeCacheCore) upsert(key string, value interface{}, duration time.Du
 
 // put will add the key, value and provided duration, overriding values if the data already existed
 // It returns true if the value existed before this call. It also operates on the locker so the call is concurrent safe
-func (tcc *timeCacheCore) put(key string, value interface{}, duration time.Duration) (bool, error) {
+func (tcc *timeCacheCore) put(key string, value interface{}, duration time.Duration) error {
 	if len(key) == 0 {
-		return false, storage.ErrEmptyKey
+		return storage.ErrEmptyKey
 	}
 
 	tcc.Lock()
 	defer tcc.Unlock()
-
-	_, found := tcc.data[key]
 
 	tcc.data[key] = &entry{
 		timestamp: time.Now(),
 		span:      duration,
 		value:     value,
 	}
-	return found, nil
+	return nil
 }
 
 // hasOrAdd will add the key, value and provided duration, if the key is not found
@@ -89,7 +87,7 @@ func (tcc *timeCacheCore) hasOrAdd(key string, value interface{}, duration time.
 
 	_, found := tcc.data[key]
 	if found {
-		return found, false, nil
+		return true, false, nil
 	}
 
 	tcc.data[key] = &entry{
