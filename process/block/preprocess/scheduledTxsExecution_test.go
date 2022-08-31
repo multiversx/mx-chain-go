@@ -11,6 +11,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
@@ -949,7 +950,7 @@ func TestScheduledTxsExecution_getScheduledInfoForHeaderShouldFail(t *testing.T)
 			&mock.ShardCoordinatorStub{},
 		)
 
-		scheduledInfo, err := scheduledTxsExec.getScheduledInfoForHeader(rootHash)
+		scheduledInfo, err := scheduledTxsExec.getScheduledInfoForHeader(rootHash, core.OptionalUint32{})
 		assert.Nil(t, scheduledInfo)
 		assert.Equal(t, expectedErr, err)
 	})
@@ -974,7 +975,7 @@ func TestScheduledTxsExecution_getScheduledInfoForHeaderShouldFail(t *testing.T)
 			&mock.ShardCoordinatorStub{},
 		)
 
-		scheduledInfo, err := scheduledTxsExec.getScheduledInfoForHeader(rootHash)
+		scheduledInfo, err := scheduledTxsExec.getScheduledInfoForHeader(rootHash, core.OptionalUint32{})
 		assert.Nil(t, scheduledInfo)
 		assert.Equal(t, expectedErr, err)
 	})
@@ -1012,7 +1013,7 @@ func TestScheduledTxsExecution_getScheduledInfoForHeaderShouldWork(t *testing.T)
 		&mock.ShardCoordinatorStub{},
 	)
 
-	scheduledInfo, _ := scheduledTxsExec.getScheduledInfoForHeader(headerHash)
+	scheduledInfo, _ := scheduledTxsExec.getScheduledInfoForHeader(headerHash, core.OptionalUint32{})
 
 	assert.Equal(t, headerHash, scheduledInfo.RootHash)
 	assert.Equal(t, expectedGasAndFees, scheduledInfo.GasAndFees)
@@ -1127,7 +1128,7 @@ func TestScheduledTxsExecution_RollBackToBlockShouldWork(t *testing.T) {
 	err := scheduledTxsExec.RollBackToBlock(headerHash)
 	assert.Nil(t, err)
 
-	scheduledInfo, err := scheduledTxsExec.getScheduledInfoForHeader(headerHash)
+	scheduledInfo, err := scheduledTxsExec.getScheduledInfoForHeader(headerHash, core.OptionalUint32{})
 	require.Nil(t, err)
 	assert.Equal(t, headerHash, scheduledInfo.RootHash)
 	assert.Equal(t, expectedGasAndFees, scheduledInfo.GasAndFees)
@@ -1423,13 +1424,18 @@ func TestScheduledTxsExecution_GetScheduledRootHashForHeaderWithErrorShouldFail(
 	t.Parallel()
 
 	headerHash := []byte("root hash")
-	expectedErr := errors.New("storer err")
+	storerGetErr := errors.New("storer.Get() error")
+	storerGetFromEpochErr := errors.New("storer.GetFromEpoch() err")
+
 	scheduledTxsExec, _ := NewScheduledTxsExecution(
 		&testscommon.TxProcessorMock{},
 		&testscommon.TransactionCoordinatorMock{},
 		&storageMocks.StorerStub{
 			GetCalled: func(_ []byte) ([]byte, error) {
-				return nil, expectedErr
+				return nil, storerGetErr
+			},
+			GetFromEpochCalled: func(_ []byte, _ uint32) ([]byte, error) {
+				return nil, storerGetFromEpochErr
 			},
 		},
 		&marshal.GogoProtoMarshalizer{},
@@ -1437,15 +1443,22 @@ func TestScheduledTxsExecution_GetScheduledRootHashForHeaderWithErrorShouldFail(
 		&mock.ShardCoordinatorStub{},
 	)
 
-	scheduledInfo, err := scheduledTxsExec.GetScheduledRootHashForHeader(headerHash)
-	assert.Nil(t, scheduledInfo)
-	assert.Equal(t, expectedErr, err)
+	t.Run("without epoch", func(t *testing.T) {
+		scheduledInfo, err := scheduledTxsExec.GetScheduledRootHashForHeader(headerHash)
+		assert.Nil(t, scheduledInfo)
+		assert.Equal(t, storerGetErr, err)
+	})
+
+	t.Run("with epoch", func(t *testing.T) {
+		scheduledInfo, err := scheduledTxsExec.GetScheduledRootHashForHeaderWithEpoch(headerHash, 7)
+		assert.Nil(t, scheduledInfo)
+		assert.Equal(t, storerGetFromEpochErr, err)
+	})
 }
 
 func TestScheduledTxsExecution_GetScheduledRootHashForHeaderShouldWork(t *testing.T) {
 	t.Parallel()
 
-	headerHash := []byte("root hash")
 	scheduledHash := []byte("scheduled hash")
 	expectedGasAndFees := scheduled.GasAndFees{
 		AccumulatedFees: big.NewInt(101),
@@ -1461,11 +1474,20 @@ func TestScheduledTxsExecution_GetScheduledRootHashForHeaderShouldWork(t *testin
 	}
 	marshalledSCRsSavedData, _ := json.Marshal(scheduledSCRs)
 
+	var keyPassedToStorerGet []byte
+	var epochPassedToStorerGet uint32
+
 	scheduledTxsExec, _ := NewScheduledTxsExecution(
 		&testscommon.TxProcessorMock{},
 		&testscommon.TransactionCoordinatorMock{},
 		&storageMocks.StorerStub{
-			GetCalled: func(_ []byte) ([]byte, error) {
+			GetCalled: func(key []byte) ([]byte, error) {
+				keyPassedToStorerGet = key
+				return marshalledSCRsSavedData, nil
+			},
+			GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
+				keyPassedToStorerGet = key
+				epochPassedToStorerGet = epoch
 				return marshalledSCRsSavedData, nil
 			},
 		},
@@ -1474,10 +1496,20 @@ func TestScheduledTxsExecution_GetScheduledRootHashForHeaderShouldWork(t *testin
 		&mock.ShardCoordinatorStub{},
 	)
 
-	scheduledRootHash, err := scheduledTxsExec.GetScheduledRootHashForHeader(headerHash)
+	t.Run("without epoch", func(t *testing.T) {
+		scheduledRootHash, err := scheduledTxsExec.GetScheduledRootHashForHeader([]byte("aabb"))
+		assert.Nil(t, err)
+		assert.Equal(t, scheduledHash, scheduledRootHash)
+		assert.Equal(t, keyPassedToStorerGet, []byte("aabb"))
+	})
 
-	assert.Nil(t, err)
-	assert.Equal(t, scheduledHash, scheduledRootHash)
+	t.Run("with epoch", func(t *testing.T) {
+		scheduledRootHash, err := scheduledTxsExec.GetScheduledRootHashForHeaderWithEpoch([]byte("ccdd"), 7)
+		assert.Nil(t, err)
+		assert.Equal(t, scheduledHash, scheduledRootHash)
+		assert.Equal(t, []byte("ccdd"), keyPassedToStorerGet)
+		assert.Equal(t, uint32(7), epochPassedToStorerGet)
+	})
 }
 
 func TestScheduledTxsExecution_removeInvalidTxsFromScheduledMiniBlocks(t *testing.T) {

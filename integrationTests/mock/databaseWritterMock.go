@@ -14,6 +14,15 @@ type DatabaseWriterStub struct {
 	DoMultiGetCalled    func(ids []string, index string, withSource bool, res interface{}) error
 }
 
+func (dws *DatabaseWriterStub) DoBulkRemove(_ string, _ []string) error {
+	return nil
+}
+
+//DoQueryRemove -
+func (dws *DatabaseWriterStub) DoQueryRemove(_ string, _ *bytes.Buffer) error {
+	return nil
+}
+
 // DoScrollRequest -
 func (dws *DatabaseWriterStub) DoScrollRequest(_ string, _ []byte, _ bool, _ func(responseBytes []byte) error) error {
 	return nil
@@ -44,15 +53,6 @@ func (dws *DatabaseWriterStub) DoBulkRequest(buff *bytes.Buffer, index string) e
 func (dws *DatabaseWriterStub) DoMultiGet(ids []string, index string, withSource bool, res interface{}) error {
 	if dws.DoMultiGetCalled != nil {
 		return dws.DoMultiGetCalled(ids, index, withSource, res)
-	}
-
-	return nil
-}
-
-// DoBulkRemove -
-func (dws *DatabaseWriterStub) DoBulkRemove(index string, hashes []string) error {
-	if dws.DoBulkRemoveCalled != nil {
-		return dws.DoBulkRemoveCalled(index, hashes)
 	}
 
 	return nil

@@ -140,7 +140,7 @@ func TestWithRequestedItemsHandler_OkRequestedItemsHandlerShouldWork(t *testing.
 
 	node, _ := NewNode()
 
-	requestedItemsHeanlder := &mock.TimeCacheStub{}
+	requestedItemsHeanlder := &testscommon.TimeCacheStub{}
 	opt := WithRequestedItemsHandler(requestedItemsHeanlder)
 	err := opt(node)
 

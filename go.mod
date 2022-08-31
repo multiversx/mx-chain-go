@@ -9,10 +9,10 @@ require (
 	github.com/ElrondNetwork/concurrent-map v0.1.3
 	github.com/ElrondNetwork/covalent-indexer-go v1.0.7-0.20220729091107-1f75a52be6e9
 	github.com/ElrondNetwork/elastic-indexer-go v1.2.35-partial-execution.0.20220729082923-f6dd4fb19165
-	github.com/ElrondNetwork/elrond-go-core v1.1.19-0.20220808113242-256bcac1fcfe
+	github.com/ElrondNetwork/elrond-go-core v1.1.20-0.20220831091042-a8722ecd7fba
 	github.com/ElrondNetwork/elrond-go-crypto v1.0.1
 	github.com/ElrondNetwork/elrond-go-logger v1.0.7
-	github.com/ElrondNetwork/elrond-vm-common v1.3.15-0.20220803072537-08e036d340bc
+	github.com/ElrondNetwork/elrond-vm-common v1.3.16
 	github.com/ElrondNetwork/go-libp2p-pubsub v0.6.1-rc1
 	github.com/beevik/ntp v0.3.0
 	github.com/btcsuite/btcd v0.22.0-beta
