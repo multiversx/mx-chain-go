@@ -68,6 +68,12 @@ func GetUserAccountWithAddress(
 // SetRoles -
 func SetRoles(nodes []*integrationTests.TestProcessorNode, addrForRole []byte, tokenIdentifier []byte, roles [][]byte) {
 	tokenIssuer := nodes[0]
+	SetRolesWithIssuerAccount(nodes, tokenIssuer.OwnAccount, addrForRole, tokenIdentifier, roles)
+}
+
+// SetRolesWithIssuerAccount -
+func SetRolesWithIssuerAccount(nodes []*integrationTests.TestProcessorNode, issuerAccount *integrationTests.TestWalletAccount, addrForRole []byte, tokenIdentifier []byte, roles [][]byte) {
+	tokenIssuer := nodes[0]
 
 	txData := "setSpecialRole" +
 		"@" + hex.EncodeToString(tokenIdentifier) +
@@ -77,7 +83,7 @@ func SetRoles(nodes []*integrationTests.TestProcessorNode, addrForRole []byte, t
 		txData += "@" + hex.EncodeToString(role)
 	}
 
-	integrationTests.CreateAndSendTransaction(tokenIssuer, nodes, big.NewInt(0), vm.ESDTSCAddress, txData, core.MinMetaTxExtraGasCost)
+	integrationTests.CreateAndSendTransactionWithSenderAccount(tokenIssuer, nodes, big.NewInt(0), issuerAccount, vm.ESDTSCAddress, txData, core.MinMetaTxExtraGasCost)
 }
 
 // DeployNonPayableSmartContract -
@@ -209,6 +215,10 @@ func IssueTestToken(nodes []*integrationTests.TestProcessorNode, initialSupply i
 	issueTestToken(nodes, initialSupply, ticker, core.MinMetaTxExtraGasCost)
 }
 
+func IssueTestTokenWithIssuerAccount(nodes []*integrationTests.TestProcessorNode, issuerAccount *integrationTests.TestWalletAccount, initialSupply int64, ticker string) {
+	issueTestTokenWithIssuerAccount(nodes, issuerAccount, initialSupply, ticker, core.MinMetaTxExtraGasCost)
+}
+
 // IssueTestTokenWithCustomGas -
 func IssueTestTokenWithCustomGas(nodes []*integrationTests.TestProcessorNode, initialSupply int64, ticker string, gas uint64) {
 	issueTestToken(nodes, initialSupply, ticker, gas)
@@ -220,6 +230,11 @@ func IssueTestTokenWithSpecialRoles(nodes []*integrationTests.TestProcessorNode,
 }
 
 func issueTestToken(nodes []*integrationTests.TestProcessorNode, initialSupply int64, ticker string, gas uint64) {
+	tokenIssuer := nodes[0]
+	issueTestTokenWithIssuerAccount(nodes, tokenIssuer.OwnAccount, initialSupply, ticker, gas)
+}
+
+func issueTestTokenWithIssuerAccount(nodes []*integrationTests.TestProcessorNode, issuerAccount *integrationTests.TestWalletAccount, initialSupply int64, ticker string, gas uint64) {
 	tokenName := "token"
 	issuePrice := big.NewInt(1000)
 
@@ -228,7 +243,7 @@ func issueTestToken(nodes []*integrationTests.TestProcessorNode, initialSupply i
 	txData.Clear().IssueESDT(tokenName, ticker, initialSupply, 6)
 	txData.CanFreeze(true).CanWipe(true).CanPause(true).CanMint(true).CanBurn(true)
 
-	integrationTests.CreateAndSendTransaction(tokenIssuer, nodes, issuePrice, vm.ESDTSCAddress, txData.ToString(), gas)
+	integrationTests.CreateAndSendTransactionWithSenderAccount(tokenIssuer, nodes, issuePrice, issuerAccount, vm.ESDTSCAddress, txData.ToString(), gas)
 }
 
 func issueTestTokenWithSpecialRoles(nodes []*integrationTests.TestProcessorNode, initialSupply int64, ticker string, gas uint64) {
@@ -356,7 +371,27 @@ func PrepareFungibleTokensWithLocalBurnAndMint(
 	round *uint64,
 	nonce *uint64,
 ) string {
-	IssueTestToken(nodes, 100, "TKN")
+	return PrepareFungibleTokensWithLocalBurnAndMintWithIssuerAccount(
+		t,
+		nodes,
+		nodes[0].OwnAccount,
+		addressWithRoles,
+		idxProposers,
+		round,
+		nonce)
+}
+
+// PrepareFungibleTokensWithLocalBurnAndMintWithIssuerAccount -
+func PrepareFungibleTokensWithLocalBurnAndMintWithIssuerAccount(
+	t *testing.T,
+	nodes []*integrationTests.TestProcessorNode,
+	issuerAccount *integrationTests.TestWalletAccount,
+	addressWithRoles []byte,
+	idxProposers []int,
+	round *uint64,
+	nonce *uint64,
+) string {
+	IssueTestTokenWithIssuerAccount(nodes, issuerAccount, 100, "TKN")
 
 	time.Sleep(time.Second)
 	nrRoundsToPropagateMultiShard := 5
@@ -365,7 +400,7 @@ func PrepareFungibleTokensWithLocalBurnAndMint(
 
 	tokenIdentifier := string(integrationTests.GetTokenIdentifier(nodes, []byte("TKN")))
 
-	SetRoles(nodes, addressWithRoles, []byte(tokenIdentifier), [][]byte{[]byte(core.ESDTRoleLocalMint), []byte(core.ESDTRoleLocalBurn)})
+	SetRolesWithIssuerAccount(nodes, issuerAccount, addressWithRoles, []byte(tokenIdentifier), [][]byte{[]byte(core.ESDTRoleLocalMint), []byte(core.ESDTRoleLocalBurn)})
 
 	time.Sleep(time.Second)
 	nrRoundsToPropagateMultiShard = 5

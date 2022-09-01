@@ -10,7 +10,15 @@ import (
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
-func TestESDTMultiTransferThroughForwarder_MockContracts(t *testing.T) {
+func TestESDTMultiTransferThroughForwarder_LegacyAsync_MockContracts(t *testing.T) {
+	ESDTMultiTransferThroughForwarder_MockContracts(t, true)
+}
+
+func TestESDTMultiTransferThroughForwarder_NewAsync_MockContracts(t *testing.T) {
+	ESDTMultiTransferThroughForwarder_MockContracts(t, false)
+}
+
+func ESDTMultiTransferThroughForwarder_MockContracts(t *testing.T, legacyAsync bool) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -20,12 +28,13 @@ func TestESDTMultiTransferThroughForwarder_MockContracts(t *testing.T) {
 	defer net.Close()
 
 	ESDTMultiTransferThroughForwarder_MockContracts_Deploy(t,
+		legacyAsync,
 		net,
-		forwarder,
 		ownerShard1,
+		ownerShard2,
+		forwarder,
 		vaultShard1,
-		vaultShard2,
-		ownerShard2)
+		vaultShard2)
 
 	ESDTMultiTransferThroughForwarder_RunStepsAndAsserts(t,
 		net,
@@ -40,15 +49,13 @@ func TestESDTMultiTransferThroughForwarder_MockContracts(t *testing.T) {
 
 func ESDTMultiTransferThroughForwarder_MockContracts_SetupNetwork(t *testing.T) (*integrationTests.TestNetwork, *integrationTests.TestWalletAccount, *integrationTests.TestWalletAccount, *integrationTests.TestProcessorNode, []byte, []byte, []byte) {
 	net := integrationTests.NewTestNetworkSized(t, 2, 1, 1)
-	net.Start()
-
-	initialVal := uint64(1000000000)
-	net.MintNodeAccountsUint64(initialVal)
-	net.Step()
+	net.Start().Step()
 
 	net.CreateUninitializedWallets(2)
 	owner := net.CreateWalletOnShard(0, 0)
 	owner2 := net.CreateWalletOnShard(1, 1)
+
+	initialVal := uint64(1000000000)
 	net.MintWalletsUint64(initialVal)
 
 	node0shard0 := net.NodesSharded[0][0]
@@ -65,9 +72,14 @@ func ESDTMultiTransferThroughForwarder_MockContracts_SetupNetwork(t *testing.T) 
 	return net, owner, owner2, node0shard0, forwarder, vaultShard1, vaultShard2
 }
 
-func ESDTMultiTransferThroughForwarder_MockContracts_Deploy(t *testing.T, net *integrationTests.TestNetwork, forwarder []byte, ownerShard1 *integrationTests.TestWalletAccount, vaultShard1 []byte, vaultShard2 []byte, ownerShard2 *integrationTests.TestWalletAccount) {
+func ESDTMultiTransferThroughForwarder_MockContracts_Deploy(t *testing.T, legacyAsync bool, net *integrationTests.TestNetwork, ownerShard1 *integrationTests.TestWalletAccount, ownerShard2 *integrationTests.TestWalletAccount, forwarder []byte, vaultShard1 []byte, vaultShard2 []byte) {
 	testConfig := &test.TestConfig{
-		IsLegacyAsync: true,
+		IsLegacyAsync: legacyAsync,
+		// used for new async
+		SuccessCallback:    "callBack",
+		ErrorCallback:      "callBack",
+		GasProvidedToChild: 500_000,
+		GasToLock:          300_000,
 	}
 
 	arwenvm.InitializeMockContracts(

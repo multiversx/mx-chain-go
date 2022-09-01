@@ -83,7 +83,7 @@ func NewTestNetworkSized(
 }
 
 // Start initializes the test network and starts its nodes
-func (net *TestNetwork) Start() {
+func (net *TestNetwork) Start() *TestNetwork {
 	net.Round = 0
 	net.Nonce = 0
 
@@ -92,6 +92,8 @@ func (net *TestNetwork) Start() {
 	net.startNodes()
 	net.mapNodesByShard()
 	net.initDefaults()
+
+	return net
 }
 
 // Increment only increments the Round and the Nonce, without triggering the

@@ -26,16 +26,11 @@ func MultiTransferViaAsyncMock(instanceMock *mock.InstanceMock, config interface
 		// destAddress + ESDT transfer tripplets (TokenIdentifier + Nonce + Amount)
 		args := host.Runtime().Arguments()
 		destAddress := args[0]
-		numOfTransfers := (len(args) - 1) / 3
 
 		callData := txDataBuilder.NewBuilder()
-		callData.Func(core.BuiltInFunctionMultiESDTNFTTransfer)
-		callData.Bytes(destAddress)
-		callData.Int(numOfTransfers) // no of triplets
-		for a := 1; a < len(args); a++ {
-			callData.Bytes(args[a])
-		}
-		callData.Str("accept_multi_funds_echo")
+		callData.
+			TransferMultiESDT(destAddress, args[1:]).
+			Str("accept_multi_funds_echo")
 
 		value := big.NewInt(testConfig.TransferFromParentToChild).Bytes()
 		err := arwenvm.RegisterAsyncCallForMockContract(host, config, scAddress, value, callData)
@@ -60,23 +55,19 @@ func SyncMultiTransferMock(instanceMock *mock.InstanceMock, config interface{}) 
 		// destAddress + ESDT transfer tripplets (TokenIdentifier + Nonce + Amount)
 		args := host.Runtime().Arguments()
 		destAddress := args[0]
-		numOfTransfers := (len(args) - 1) / 3
 
-		newArgs := make([][]byte, len(args)+1)
-		newArgs[0] = destAddress
-		newArgs[1] = big.NewInt(int64(numOfTransfers)).Bytes()
-		for i := 1; i < len(args); i++ {
-			newArgs[1+i] = args[i]
-		}
-		newArgs = append(newArgs, []byte("accept_funds_echo"))
+		callData := txDataBuilder.NewBuilder()
+		callData.
+			TransferMultiESDT(destAddress, args[1:]).
+			Str("accept_funds_echo")
 
 		elrondapi.ExecuteOnDestContextWithTypedArgs(
 			host,
 			1_000_000,
 			big.NewInt(0),
-			[]byte(core.BuiltInFunctionMultiESDTNFTTransfer),
+			[]byte(callData.Function()),
 			scAddress,
-			newArgs)
+			callData.ElementsAsBytes())
 
 		return instance
 	})
@@ -96,15 +87,7 @@ func MultiTransferExecuteMock(instanceMock *mock.InstanceMock, config interface{
 		transfers := make([]*vmcommon.ESDTTransfer, numOfTransfers)
 		for i := 0; i < numOfTransfers; i++ {
 			tokenStartIndex := 1 + i*parsers.ArgsPerTransfer
-			transfer := &vmcommon.ESDTTransfer{
-				ESDTTokenName:  args[tokenStartIndex],
-				ESDTTokenNonce: big.NewInt(0).SetBytes(args[tokenStartIndex+1]).Uint64(),
-				ESDTValue:      big.NewInt(0).SetBytes(args[tokenStartIndex+2]),
-				ESDTTokenType:  uint32(core.Fungible),
-			}
-			if transfer.ESDTTokenNonce > 0 {
-				transfer.ESDTTokenType = uint32(core.NonFungible)
-			}
+			transfer := createEsdtTransferFromArgs(args, tokenStartIndex)
 			transfers[i] = transfer
 		}
 
@@ -118,6 +101,19 @@ func MultiTransferExecuteMock(instanceMock *mock.InstanceMock, config interface{
 
 		return instance
 	})
+}
+
+func createEsdtTransferFromArgs(args [][]byte, transferTripletStartIndex int) *vmcommon.ESDTTransfer {
+	transfer := &vmcommon.ESDTTransfer{
+		ESDTTokenName:  args[transferTripletStartIndex],
+		ESDTTokenNonce: big.NewInt(0).SetBytes(args[transferTripletStartIndex+1]).Uint64(),
+		ESDTValue:      big.NewInt(0).SetBytes(args[transferTripletStartIndex+2]),
+		ESDTTokenType:  uint32(core.Fungible),
+	}
+	if transfer.ESDTTokenNonce > 0 {
+		transfer.ESDTTokenType = uint32(core.NonFungible)
+	}
+	return transfer
 }
 
 // EmptyCallbackMock is an exposed mock contract method
