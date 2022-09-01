@@ -6,7 +6,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
@@ -19,7 +18,7 @@ type metaForkDetector struct {
 
 // NewMetaForkDetector method creates a new metaForkDetector object
 func NewMetaForkDetector(
-	roundHandler consensus.RoundHandler,
+	roundHandler process.RoundHandler,
 	blackListHandler process.TimeCacher,
 	blockTracker process.BlockTracker,
 	genesisTime int64,

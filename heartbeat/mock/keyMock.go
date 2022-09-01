@@ -1,8 +1,8 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go-crypto"
-	"github.com/ElrondNetwork/elrond-go/consensus/mock"
+	crypto "github.com/ElrondNetwork/elrond-go-crypto"
+	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
 )
 
 // PublicKeyMock -
@@ -87,7 +87,7 @@ func (sk *PrivateKeyStub) IsInterfaceNil() bool {
 
 // GeneratePair -
 func (keyGen *KeyGenMock) GeneratePair() (crypto.PrivateKey, crypto.PublicKey) {
-	return &mock.PrivateKeyMock{}, &mock.PublicKeyMock{}
+	return &cryptoMocks.PrivateKeyStub{}, &cryptoMocks.PublicKeyStub{}
 }
 
 // PrivateKeyFromByteArray -

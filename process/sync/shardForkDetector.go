@@ -7,7 +7,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
@@ -20,7 +19,7 @@ type shardForkDetector struct {
 
 // NewShardForkDetector method creates a new shardForkDetector object
 func NewShardForkDetector(
-	roundHandler consensus.RoundHandler,
+	roundHandler process.RoundHandler,
 	blackListHandler process.TimeCacher,
 	blockTracker process.BlockTracker,
 	genesisTime int64,

@@ -8,7 +8,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/outport"
@@ -24,7 +23,7 @@ type ArgBaseBootstrapper struct {
 	PoolsHolder                  dataRetriever.PoolsHolder
 	Store                        dataRetriever.StorageService
 	ChainHandler                 data.ChainHandler
-	RoundHandler                 consensus.RoundHandler
+	RoundHandler                 process.RoundHandler
 	BlockProcessor               process.BlockProcessor
 	WaitTime                     time.Duration
 	Hasher                       hashing.Hasher

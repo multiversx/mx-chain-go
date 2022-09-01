@@ -8,7 +8,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
@@ -37,7 +36,7 @@ type forkInfo struct {
 
 // baseForkDetector defines a struct with necessary data needed for fork detection
 type baseForkDetector struct {
-	roundHandler consensus.RoundHandler
+	roundHandler process.RoundHandler
 
 	headers    map[uint64][]*headerInfo
 	mutHeaders sync.RWMutex

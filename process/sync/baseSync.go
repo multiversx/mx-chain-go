@@ -18,7 +18,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/outport"
@@ -59,7 +58,7 @@ type baseBootstrap struct {
 	blockProcessor process.BlockProcessor
 	store          dataRetriever.StorageService
 
-	roundHandler      consensus.RoundHandler
+	roundHandler      process.RoundHandler
 	hasher            hashing.Hasher
 	marshalizer       marshal.Marshalizer
 	epochHandler      dataRetriever.EpochHandler
