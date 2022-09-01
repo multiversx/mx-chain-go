@@ -33,10 +33,11 @@ func TestTimeCacheCore_ConcurrentOperations(t *testing.T) {
 			case 4:
 				tcc.clear()
 			case 5:
-				_, err := tcc.put(fmt.Sprintf("key%d", idx), fmt.Sprintf("valuey%d", idx), time.Second)
+				err := tcc.put(fmt.Sprintf("key%d", idx), fmt.Sprintf("valuey%d", idx), time.Second)
 				assert.Nil(t, err)
 			case 6:
-				_, _ = tcc.hasOrAdd(fmt.Sprintf("key%d", idx), fmt.Sprintf("valuey%d", idx), time.Second)
+				_, _, err := tcc.hasOrAdd(fmt.Sprintf("key%d", idx), fmt.Sprintf("valuey%d", idx), time.Second)
+				assert.Nil(t, err)
 			default:
 				assert.Fail(t, "test setup error, change the line 'switch idx % xxx {' from this test")
 			}
