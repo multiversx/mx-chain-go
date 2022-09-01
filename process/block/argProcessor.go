@@ -9,6 +9,7 @@ import (
 	nodeFactory "github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/outport"
@@ -22,7 +23,7 @@ type coreComponentsHolder interface {
 	Hasher() hashing.Hasher
 	InternalMarshalizer() marshal.Marshalizer
 	Uint64ByteSliceConverter() typeConverters.Uint64ByteSliceConverter
-	RoundHandler() process.RoundHandler
+	RoundHandler() consensus.RoundHandler
 	StatusHandler() core.AppStatusHandler
 	EconomicsData() process.EconomicsDataHandler
 	ProcessStatusHandler() common.ProcessStatusHandler

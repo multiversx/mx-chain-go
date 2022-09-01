@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/round"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/blockchain"
@@ -170,7 +171,7 @@ func initNetworkWatcher() process.NetworkConnectionWatcher {
 	}
 }
 
-func initRoundHandler() process.RoundHandler {
+func initRoundHandler() consensus.RoundHandler {
 	rnd, _ := round.NewRound(
 		time.Now(),
 		time.Now(),

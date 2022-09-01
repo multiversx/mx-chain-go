@@ -4,10 +4,11 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
-var _ process.P2PAntifloodHandler = (*AntiFlood)(nil)
+var _ consensus.P2PAntifloodHandler = (*AntiFlood)(nil)
 
 // AntiFlood is a mock implementation of the antiflood interface
 type AntiFlood struct {
