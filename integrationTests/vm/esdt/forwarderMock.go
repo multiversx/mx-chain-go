@@ -26,10 +26,11 @@ func MultiTransferViaAsyncMock(instanceMock *mock.InstanceMock, config interface
 		// destAddress + ESDT transfer tripplets (TokenIdentifier + Nonce + Amount)
 		args := host.Runtime().Arguments()
 		destAddress := args[0]
+		transfers := args[1:]
 
 		callData := txDataBuilder.NewBuilder()
 		callData.
-			TransferMultiESDT(destAddress, args[1:]).
+			TransferMultiESDT(destAddress, transfers).
 			Str("accept_multi_funds_echo")
 
 		value := big.NewInt(testConfig.TransferFromParentToChild).Bytes()
@@ -55,10 +56,11 @@ func SyncMultiTransferMock(instanceMock *mock.InstanceMock, config interface{}) 
 		// destAddress + ESDT transfer tripplets (TokenIdentifier + Nonce + Amount)
 		args := host.Runtime().Arguments()
 		destAddress := args[0]
+		transfers := args[1:]
 
 		callData := txDataBuilder.NewBuilder()
 		callData.
-			TransferMultiESDT(destAddress, args[1:]).
+			TransferMultiESDT(destAddress, transfers).
 			Str("accept_funds_echo")
 
 		elrondapi.ExecuteOnDestContextWithTypedArgs(

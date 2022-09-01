@@ -937,11 +937,6 @@ func (sc *scProcessor) doExecuteBuiltInFunction(
 		return returnCode, err
 	}
 
-	if err != nil {
-		log.Debug("processed built in functions error (async params extraction)", "error", err.Error())
-		return 0, err
-	}
-
 	snapshot := sc.accounts.JournalLen()
 	if !sc.flagBuiltin.IsSet() {
 		return vmcommon.UserError, sc.resolveFailedTransaction(acntSnd, tx, txHash, process.ErrBuiltInFunctionsAreDisabled.Error(), snapshot)
