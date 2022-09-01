@@ -109,7 +109,7 @@ func TestNewVirtualPeersHolder(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgsVirtualPeersHolder()
-		args.MaxRoundsWithoutReceivedMessages = 0
+		args.MaxRoundsWithoutReceivedMessages = -2
 		holder, err := NewVirtualPeersHolder(args)
 
 		assert.True(t, errors.Is(err, errInvalidValue))

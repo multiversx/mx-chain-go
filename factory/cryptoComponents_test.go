@@ -493,8 +493,10 @@ func getCryptoArgs(coreComponents factory.CoreComponentsHolder) factory.CryptoCo
 		},
 		PrefsConfig: config.Preferences{
 			Preferences: config.PreferencesConfig{
-				NodeDisplayName: "node name",
-				Identity:        "identity",
+				DestinationShardAsObserver: "",
+				NodeDisplayName:            "node name",
+				Identity:                   "identity",
+				RedundancyLevel:            1,
 			},
 			NamedIdentity: nil,
 		},
