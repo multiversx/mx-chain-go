@@ -486,10 +486,6 @@
     MaxRoundsToKeepUnprocessedMiniBlocks = 300   # max number of rounds unprocessed miniblocks are kept in pool
     MaxRoundsToKeepUnprocessedTransactions = 300 # max number of rounds unprocessed transactions are kept in pool
 
-[KeysHolderConfig]
-    IsMainMachine = false
-    MaxRoundsWithoutReceivedMessages = 5
-
 [TrieSyncStorage]
     Capacity = 300000
     SizeInBytes = 104857600 #100MB

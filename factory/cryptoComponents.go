@@ -34,7 +34,10 @@ import (
 	systemVM "github.com/ElrondNetwork/elrond-go/vm/process"
 )
 
-const disabledSigChecking = "disabled"
+const (
+	disabledSigChecking        = "disabled"
+	mainMachineRedundancyLevel = 0
+)
 
 // CryptoComponentsFactoryArgs holds the arguments needed for creating crypto components
 type CryptoComponentsFactoryArgs struct {
@@ -174,12 +177,14 @@ func (ccf *cryptoComponentsFactory) Create() (*cryptoComponents, error) {
 		return nil, err
 	}
 
-	blsKeyGenerator := signing.NewKeyGenerator(mcl.NewSuiteBLS12())
+	// TODO: refactor the logic for isMainMachine
+	redundancyLevel := int(ccf.prefsConfig.Preferences.RedundancyLevel)
+	isMainMachine := redundancyLevel == mainMachineRedundancyLevel
 	argsKeysHolder := keysManagement.ArgsVirtualPeersHolder{
-		KeyGenerator:                     blsKeyGenerator,
+		KeyGenerator:                     blockSignKeyGen,
 		P2PIdentityGenerator:             p2pCrypto.NewIdentityGenerator(),
-		IsMainMachine:                    ccf.config.KeysHolderConfig.IsMainMachine,
-		MaxRoundsWithoutReceivedMessages: ccf.config.KeysHolderConfig.MaxRoundsWithoutReceivedMessages,
+		IsMainMachine:                    isMainMachine,
+		MaxRoundsWithoutReceivedMessages: redundancyLevel,
 		PrefsConfig:                      ccf.prefsConfig,
 	}
 	keysHolder, err := keysManagement.NewVirtualPeersHolder(argsKeysHolder)

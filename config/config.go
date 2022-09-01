@@ -218,7 +218,6 @@ type Config struct {
 
 	PeersRatingConfig   PeersRatingConfig
 	PoolsCleanersConfig PoolsCleanersConfig
-	KeysHolderConfig    KeysHolderConfig
 }
 
 // PeersRatingConfig will hold settings related to peers rating
@@ -607,10 +606,4 @@ type ResolverConfig struct {
 type PoolsCleanersConfig struct {
 	MaxRoundsToKeepUnprocessedMiniBlocks   int64
 	MaxRoundsToKeepUnprocessedTransactions int64
-}
-
-// KeysHolderConfig represents the config options to be used by the virtual keys holder
-type KeysHolderConfig struct {
-	IsMainMachine                    bool
-	MaxRoundsWithoutReceivedMessages int
 }
