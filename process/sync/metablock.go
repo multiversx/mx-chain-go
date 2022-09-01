@@ -2,13 +2,11 @@ package sync
 
 import (
 	"context"
-	"strings"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/state"
@@ -173,13 +171,16 @@ func (boot *MetaBootstrap) setLastEpochStartRound() {
 // in the blockchain, and all this mechanism will be reiterated for the next block.
 func (boot *MetaBootstrap) SyncBlock(ctx context.Context) error {
 	err := boot.syncBlock()
-	isErrGetNodeFromDB := err != nil && strings.Contains(err.Error(), common.GetNodeFromDBErrorString)
-	if isErrGetNodeFromDB {
+	if isErrGetNodeFromDB(err) {
 		errSync := boot.syncAccountsDBs()
+<<<<<<< HEAD
 		shouldOutputLog := errSync != nil && !core.IsContextDone(ctx)
 		if shouldOutputLog {
 			log.Debug("SyncBlock syncTrie", "error", errSync)
 		}
+=======
+		boot.handleTrieSyncError(errSync, ctx)
+>>>>>>> feat/kosk-bls-multisigner
 	}
 
 	return err

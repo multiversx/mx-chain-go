@@ -299,6 +299,7 @@ type FacadeConfig struct {
 type StateTriesConfig struct {
 	CheckpointRoundsModulus     uint
 	CheckpointsEnabled          bool
+	SnapshotsEnabled            bool
 	AccountsStatePruningEnabled bool
 	PeerStatePruningEnabled     bool
 	MaxStateTrieLevelInMemory   uint
@@ -426,7 +427,7 @@ type VirtualMachineGasConfig struct {
 
 // BuiltInFunctionsConfig holds the configuration for the built in functions
 type BuiltInFunctionsConfig struct {
-	AutomaticCrawlerAddress       string
+	AutomaticCrawlerAddresses     []string
 	MaxNumAddressesInTransferRole uint32
 }
 
