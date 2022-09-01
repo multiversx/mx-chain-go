@@ -16,7 +16,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/p2p/message"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
@@ -30,7 +29,7 @@ func createMockArgDirectConnectionsProcessor() ArgDirectConnectionsProcessor {
 		ShardCoordinator:          &testscommon.ShardsCoordinatorMock{},
 		DelayBetweenNotifications: time.Second,
 		NodesCoordinator: &shardingMocks.NodesCoordinatorStub{
-			GetValidatorWithPublicKeyCalled: func(publicKey []byte) (validator nodesCoordinator.Validator, shardId uint32, err error) {
+			GetValidatorWithPublicKeyCalled: func(publicKey []byte) (validator core.Validator, shardId uint32, err error) {
 				return nil, 0, errors.New("the node is an observer")
 			},
 		},
@@ -301,7 +300,7 @@ func TestDirectConnectionsProcessor_sendMessageToNewConnections(t *testing.T) {
 			},
 		}
 		args.NodesCoordinator = &shardingMocks.NodesCoordinatorStub{
-			GetValidatorWithPublicKeyCalled: func(publicKey []byte) (validator nodesCoordinator.Validator, shardId uint32, err error) {
+			GetValidatorWithPublicKeyCalled: func(publicKey []byte) (validator core.Validator, shardId uint32, err error) {
 				return nil, 0, nil
 			},
 		}
