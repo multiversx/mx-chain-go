@@ -313,12 +313,14 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		log.Warn("cannot index genesis accounts", "error", err)
 	}
 
-	startEpochNum := pcf.bootstrapComponents.EpochBootstrapParams().Epoch()
-	if startEpochNum == 0 {
-		err = pcf.indexGenesisBlocks(genesisBlocks, initialTxs)
-		if err != nil {
-			return nil, err
-		}
+	genesisBlock, ok := genesisBlocks[core.MetachainShardId]
+	if !ok {
+		return nil, errors.New("genesis meta block does not exist")
+	}
+
+	genesisMetaBlock, ok := genesisBlock.(data.MetaHeaderHandler)
+	if !ok {
+		return nil, errors.New("genesis meta block invalid")
 	}
 
 	err = pcf.setGenesisHeader(genesisBlocks)
@@ -329,6 +331,24 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 	validatorStatisticsProcessor, err := pcf.newValidatorStatisticsProcessor()
 	if err != nil {
 		return nil, err
+	}
+
+	validatorStatsRootHash, err := validatorStatisticsProcessor.RootHash()
+	if err != nil {
+		return nil, err
+	}
+
+	err = genesisMetaBlock.SetValidatorStatsRootHash(validatorStatsRootHash)
+	if err != nil {
+		return nil, err
+	}
+
+	startEpochNum := pcf.bootstrapComponents.EpochBootstrapParams().Epoch()
+	if startEpochNum == 0 {
+		err = pcf.indexGenesisBlocks(genesisBlocks, initialTxs)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	cacheRefreshDuration := time.Duration(pcf.config.ValidatorStatistics.CacheRefreshIntervalInSec) * time.Second
@@ -359,27 +379,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
-	validatorStatsRootHash, err := validatorStatisticsProcessor.RootHash()
-	if err != nil {
-		return nil, err
-	}
-
 	log.Debug("Validator stats created", "validatorStatsRootHash", validatorStatsRootHash)
-
-	genesisBlock, ok := genesisBlocks[core.MetachainShardId]
-	if !ok {
-		return nil, errors.New("genesis meta block does not exist")
-	}
-
-	genesisMetaBlock, ok := genesisBlock.(data.MetaHeaderHandler)
-	if !ok {
-		return nil, errors.New("genesis meta block invalid")
-	}
-
-	err = genesisMetaBlock.SetValidatorStatsRootHash(validatorStatsRootHash)
-	if err != nil {
-		return nil, err
-	}
 
 	err = pcf.prepareGenesisBlock(genesisBlocks)
 	if err != nil {
