@@ -141,7 +141,7 @@ func TestHeartbeatV2_DeactivationOfHeartbeat(t *testing.T) {
 	nodes := make([]*integrationTests.TestHeartbeatNode, interactingNodes)
 	p2pConfig := integrationTests.CreateP2PConfigWithNoDiscovery()
 	for i := 0; i < interactingNodes; i++ {
-		nodes[i] = integrationTests.NewTestHeartbeatNode(3, 0, interactingNodes, p2pConfig)
+		nodes[i] = integrationTests.NewTestHeartbeatNode(t, 3, 0, interactingNodes, p2pConfig)
 	}
 	assert.Equal(t, interactingNodes, len(nodes))
 
@@ -163,7 +163,7 @@ func TestHeartbeatV2_DeactivationOfHeartbeat(t *testing.T) {
 	time.Sleep(time.Second * 6)
 
 	heartbeats := monitor.GetHeartbeats()
-	assert.False(t, heartbeats[0].IsActive) //first one is the monitor which is inactive
+	assert.False(t, heartbeats[0].IsActive) // first one is the monitor which is inactive
 
 	for _, hb := range heartbeats[1:] {
 		assert.True(t, hb.IsActive)

@@ -197,7 +197,7 @@ func CreateShardBootstrapMockArguments() sync.ArgShardBootstrapper {
 		RequestHandler:               &testscommon.RequestHandlerStub{},
 		ShardCoordinator:             mock.NewOneShardCoordinatorMock(),
 		Accounts:                     &stateMock.AccountsStub{},
-		BlackListHandler:             &mock.BlackListHandlerStub{},
+		BlackListHandler:             &testscommon.TimeCacheStub{},
 		NetworkWatcher:               initNetworkWatcher(),
 		BootStorer:                   &mock.BoostrapStorerMock{},
 		StorageBootstrapper:          &mock.StorageBootstrapperMock{},
@@ -1114,7 +1114,7 @@ func TestBootstrap_GetNodeStateShouldReturnNotSynchronizedWhenForkIsDetectedAndI
 	args.RoundHandler = &mock.RoundHandlerMock{RoundIndex: 2}
 	args.ForkDetector, _ = sync.NewShardForkDetector(
 		args.RoundHandler,
-		&mock.BlackListHandlerStub{},
+		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
 		0,
 	)
@@ -1189,7 +1189,7 @@ func TestBootstrap_GetNodeStateShouldReturnSynchronizedWhenForkIsDetectedAndItRe
 	args.RoundHandler = &mock.RoundHandlerMock{RoundIndex: 2}
 	args.ForkDetector, _ = sync.NewShardForkDetector(
 		args.RoundHandler,
-		&mock.BlackListHandlerStub{},
+		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
 		0,
 	)

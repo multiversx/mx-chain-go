@@ -123,14 +123,17 @@ func GetGeneralConfig() config.Config {
 		},
 		StateTriesConfig: config.StateTriesConfig{
 			CheckpointRoundsModulus:     100,
+			SnapshotsEnabled:            false,
+			CheckpointsEnabled:          false,
 			AccountsStatePruningEnabled: false,
 			PeerStatePruningEnabled:     false,
 			MaxStateTrieLevelInMemory:   5,
 			MaxPeerTrieLevelInMemory:    5,
 		},
 		TrieStorageManagerConfig: config.TrieStorageManagerConfig{
-			PruningBufferLen:   1000,
-			SnapshotsBufferLen: 10,
+			PruningBufferLen:      1000,
+			SnapshotsBufferLen:    10,
+			SnapshotsGoroutineNum: 2,
 		},
 		TxDataPool: config.CacheConfig{
 			Capacity:             10000,
@@ -423,7 +426,11 @@ func GetGeneralConfig() config.Config {
 			BadRatedCacheCapacity: 1000,
 		},
 		BuiltInFunctions: config.BuiltInFunctionsConfig{
-			AutomaticCrawlerAddress:       "erd1fpkcgel4gcmh8zqqdt043yfcn5tyx8373kg6q2qmkxzu4dqamc0swts65c",
+			AutomaticCrawlerAddresses: []string{
+				"erd1he8wwxn4az3j82p7wwqsdk794dm7hcrwny6f8dfegkfla34udx7qrf7xje", //shard 0
+				"erd1fpkcgel4gcmh8zqqdt043yfcn5tyx8373kg6q2qmkxzu4dqamc0swts65c", //shard 1
+				"erd1najnxxweyw6plhg8efql330nttrj6l5cf87wqsuym85s9ha0hmdqnqgenp", //shard 2
+			},
 			MaxNumAddressesInTransferRole: 100,
 		},
 	}

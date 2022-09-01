@@ -28,9 +28,9 @@ func TestBaseSender_computeRandomDuration(t *testing.T) {
 
 	var d1, d2, d3 time.Duration
 	for i := 0; i < 100; i++ {
-		d1 = bs.computeRandomDuration()
-		d2 = bs.computeRandomDuration()
-		d3 = bs.computeRandomDuration()
+		d1 = bs.computeRandomDuration(bs.timeBetweenSends)
+		d2 = bs.computeRandomDuration(bs.timeBetweenSends)
+		d3 = bs.computeRandomDuration(bs.timeBetweenSends)
 		if d1 != d2 && d2 != d3 && d1 != d3 {
 			break
 		}

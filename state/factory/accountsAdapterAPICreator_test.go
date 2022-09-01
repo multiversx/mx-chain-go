@@ -96,3 +96,28 @@ func TestCreateAccountsAdapterAPIOnCurrent(t *testing.T) {
 		assert.False(t, check.IfNil(accountsAdapterApi))
 	})
 }
+
+func TestCreateAccountsAdapterAPIOnHistorical(t *testing.T) {
+	t.Parallel()
+
+	t.Run("error while creating accounts adapter", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockAccountsArgs()
+		args.AccountFactory = nil
+		accountsAdapterApi, err := CreateAccountsAdapterAPIOnHistorical(args)
+
+		assert.NotNil(t, err)
+		assert.True(t, strings.Contains(err.Error(), "CreateAccountsAdapterAPIOnHistorical"))
+		assert.True(t, check.IfNil(accountsAdapterApi))
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockAccountsArgs()
+		accountsAdapterApi, err := CreateAccountsAdapterAPIOnHistorical(args)
+
+		assert.Nil(t, err)
+		assert.False(t, check.IfNil(accountsAdapterApi))
+	})
+}

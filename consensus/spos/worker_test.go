@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/bls"
+	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -79,29 +80,30 @@ func createDefaultWorkerArgs(appStatusHandler core.AppStatusHandler) *spos.Worke
 
 	peerSigHandler := &mock.PeerSignatureHandler{Signer: singleSignerMock, KeyGen: keyGeneratorMock}
 	workerArgs := &spos.WorkerArgs{
-		ConsensusService:        blsService,
-		BlockChain:              blockchainMock,
-		BlockProcessor:          blockProcessor,
-		ScheduledProcessor:      scheduledProcessor,
-		Bootstrapper:            bootstrapperMock,
-		BroadcastMessenger:      broadcastMessengerMock,
-		ConsensusState:          consensusState,
-		ForkDetector:            forkDetectorMock,
-		Marshalizer:             marshalizerMock,
-		Hasher:                  hasher,
-		RoundHandler:            roundHandlerMock,
-		ShardCoordinator:        shardCoordinatorMock,
-		PeerSignatureHandler:    peerSigHandler,
-		SyncTimer:               syncTimerMock,
-		HeaderSigVerifier:       &mock.HeaderSigVerifierStub{},
-		HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
-		ChainID:                 chainID,
-		AntifloodHandler:        createMockP2PAntifloodHandler(),
-		PoolAdder:               poolAdder,
-		SignatureSize:           SignatureSize,
-		PublicKeySize:           PublicKeySize,
-		AppStatusHandler:        appStatusHandler,
-		NodeRedundancyHandler:   &mock.NodeRedundancyHandlerStub{},
+		ConsensusService:         blsService,
+		BlockChain:               blockchainMock,
+		BlockProcessor:           blockProcessor,
+		ScheduledProcessor:       scheduledProcessor,
+		Bootstrapper:             bootstrapperMock,
+		BroadcastMessenger:       broadcastMessengerMock,
+		ConsensusState:           consensusState,
+		ForkDetector:             forkDetectorMock,
+		Marshalizer:              marshalizerMock,
+		Hasher:                   hasher,
+		RoundHandler:             roundHandlerMock,
+		ShardCoordinator:         shardCoordinatorMock,
+		PeerSignatureHandler:     peerSigHandler,
+		SyncTimer:                syncTimerMock,
+		HeaderSigVerifier:        &mock.HeaderSigVerifierStub{},
+		HeaderIntegrityVerifier:  &mock.HeaderIntegrityVerifierStub{},
+		ChainID:                  chainID,
+		NetworkShardingCollector: &p2pmocks.NetworkShardingCollectorStub{},
+		AntifloodHandler:         createMockP2PAntifloodHandler(),
+		PoolAdder:                poolAdder,
+		SignatureSize:            SignatureSize,
+		PublicKeySize:            PublicKeySize,
+		AppStatusHandler:         appStatusHandler,
+		NodeRedundancyHandler:    &mock.NodeRedundancyHandlerStub{},
 	}
 
 	return workerArgs
@@ -310,6 +312,17 @@ func TestWorker_NewWorkerEmptyChainIDShouldFail(t *testing.T) {
 
 	assert.Nil(t, wrk)
 	assert.Equal(t, spos.ErrInvalidChainID, err)
+}
+
+func TestWorker_NewWorkerNilNetworkShardingCollectorShouldFail(t *testing.T) {
+	t.Parallel()
+
+	workerArgs := createDefaultWorkerArgs(&mock.AppStatusHandlerStub{})
+	workerArgs.NetworkShardingCollector = nil
+	wrk, err := spos.NewWorker(workerArgs)
+
+	assert.Nil(t, wrk)
+	assert.Equal(t, spos.ErrNilNetworkShardingCollector, err)
 }
 
 func TestWorker_NewWorkerNilAntifloodHandlerShouldFail(t *testing.T) {
@@ -995,7 +1008,21 @@ func TestWorker_ProcessReceivedMessageWithABadOriginatorShouldErr(t *testing.T) 
 
 func TestWorker_ProcessReceivedMessageOkValsShouldWork(t *testing.T) {
 	t.Parallel()
-	wrk := *initWorker(&mock.AppStatusHandlerStub{})
+
+	workerArgs := createDefaultWorkerArgs(&mock.AppStatusHandlerStub{})
+	expectedShardID := workerArgs.ShardCoordinator.SelfId()
+	expectedPK := []byte(workerArgs.ConsensusState.ConsensusGroup()[0])
+	wasUpdatePeerIDInfoCalled := false
+	workerArgs.NetworkShardingCollector = &p2pmocks.NetworkShardingCollectorStub{
+		UpdatePeerIDInfoCalled: func(pid core.PeerID, pk []byte, shardID uint32) {
+			assert.Equal(t, currentPid, pid)
+			assert.Equal(t, expectedPK, pk)
+			assert.Equal(t, expectedShardID, shardID)
+			wasUpdatePeerIDInfoCalled = true
+		},
+	}
+	wrk, _ := spos.NewWorker(workerArgs)
+
 	wrk.SetBlockProcessor(
 		&mock.BlockProcessorMock{
 			DecodeBlockHeaderCalled: func(dta []byte) data.HeaderHandler {
@@ -1044,6 +1071,7 @@ func TestWorker_ProcessReceivedMessageOkValsShouldWork(t *testing.T) {
 
 	assert.Equal(t, 1, len(wrk.ReceivedMessages()[bls.MtBlockHeader]))
 	assert.Nil(t, err)
+	assert.True(t, wasUpdatePeerIDInfoCalled)
 }
 
 func TestWorker_CheckSelfStateShouldErrMessageFromItself(t *testing.T) {

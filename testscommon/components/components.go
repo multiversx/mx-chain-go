@@ -38,10 +38,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
+	"github.com/ElrondNetwork/elrond-go/trie/hashesHolder"
 	"github.com/stretchr/testify/require"
 )
 
@@ -417,12 +419,24 @@ func GetNetworkFactoryArgs() networkComp.NetworkComponentsFactoryArgs {
 	}
 }
 
+func getNewTrieStorageManagerArgs() trie.NewTrieStorageManagerArgs {
+	return trie.NewTrieStorageManagerArgs{
+		MainStorer:             testscommon.CreateMemUnit(),
+		CheckpointsStorer:      testscommon.CreateMemUnit(),
+		Marshalizer:            &mock.MarshalizerMock{},
+		Hasher:                 &hashingMocks.HasherMock{},
+		GeneralConfig:          config.TrieStorageManagerConfig{SnapshotsGoroutineNum: 1},
+		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10, 32),
+		IdleProvider:           &testscommon.ProcessStatusHandlerStub{},
+	}
+}
+
 // GetStateFactoryArgs -
 func GetStateFactoryArgs(coreComponents factory.CoreComponentsHolder, shardCoordinator sharding.Coordinator) stateComp.StateComponentsFactoryArgs {
-	memDBUsers := mock.NewMemDbMock()
-	memdbPeers := mock.NewMemDbMock()
-	storageManagerUser, _ := trie.NewTrieStorageManagerWithoutPruning(memDBUsers)
-	storageManagerPeer, _ := trie.NewTrieStorageManagerWithoutPruning(memdbPeers)
+	tsm, _ := trie.NewTrieStorageManager(getNewTrieStorageManagerArgs())
+	storageManagerUser, _ := trie.NewTrieStorageManagerWithoutPruning(tsm)
+	tsm, _ = trie.NewTrieStorageManager(getNewTrieStorageManagerArgs())
+	storageManagerPeer, _ := trie.NewTrieStorageManagerWithoutPruning(tsm)
 
 	trieStorageManagers := make(map[string]common.StorageManager)
 	trieStorageManagers[trieFactory.UserAccountTrie] = storageManagerUser

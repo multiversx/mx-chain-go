@@ -51,9 +51,8 @@ func createMockArgPeerAuthenticationResolver() resolvers.ArgPeerAuthenticationRe
 		},
 		MaxNumOfPeerAuthenticationInResponse: 5,
 		PeerShardMapper: &processMock.PeerShardMapperStub{
-			GetLastKnownPeerIDCalled: func(pk []byte) (*core.PeerID, bool) {
-				pid := core.PeerID("pid")
-				return &pid, true
+			GetLastKnownPeerIDCalled: func(pk []byte) (core.PeerID, bool) {
+				return "pid", true
 			},
 		},
 		DataPacker: &mock.DataPackerStub{},
@@ -482,9 +481,8 @@ func TestPeerAuthenticationResolver_ProcessReceivedMessage(t *testing.T) {
 			},
 		}
 		arg.PeerShardMapper = &processMock.PeerShardMapperStub{
-			GetLastKnownPeerIDCalled: func(pk []byte) (*core.PeerID, bool) {
-				pid := core.PeerID(pk)
-				return &pid, true
+			GetLastKnownPeerIDCalled: func(pk []byte) (core.PeerID, bool) {
+				return core.PeerID(pk), true
 			},
 		}
 		arg.DataPacker, _ = partitioning.NewSizeDataPacker(arg.Marshaller)
@@ -556,9 +554,8 @@ func TestPeerAuthenticationResolver_ProcessReceivedMessage(t *testing.T) {
 			},
 		}
 		arg.PeerShardMapper = &processMock.PeerShardMapperStub{
-			GetLastKnownPeerIDCalled: func(pk []byte) (*core.PeerID, bool) {
-				pid := core.PeerID(pk)
-				return &pid, true
+			GetLastKnownPeerIDCalled: func(pk []byte) (core.PeerID, bool) {
+				return core.PeerID(pk), true
 			},
 		}
 		// split data into 2 packs

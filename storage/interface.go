@@ -207,13 +207,7 @@ type TimeCacher interface {
 	Upsert(key string, span time.Duration) error
 	Has(key string) bool
 	Sweep()
-	RegisterEvictionHandler(handler EvictionHandler)
 	IsInterfaceNil() bool
-}
-
-// EvictionHandler defines a component which can be registered on TimeCaher
-type EvictionHandler interface {
-	Evicted(key []byte)
 }
 
 // AdaptedSizedLRUCache defines a cache that returns the evicted value

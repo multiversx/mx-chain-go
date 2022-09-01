@@ -173,6 +173,7 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 		Marshaller:                hcf.coreComponents.InternalMarshalizer(),
 		ShardCoordinator:          hcf.boostrapComponents.ShardCoordinator(),
 		DelayBetweenNotifications: time.Second * time.Duration(cfg.DelayBetweenConnectionNotificationsInSec),
+		NodesCoordinator:          hcf.processComponents.NodesCoordinator(),
 	}
 	directConnectionsProcessor, err := processor.NewDirectConnectionsProcessor(argsDirectConnectionsProcessor)
 	if err != nil {
