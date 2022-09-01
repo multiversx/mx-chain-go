@@ -16,8 +16,6 @@ type argPeerAuthenticationSender struct {
 	argBaseSender
 	nodesCoordinator         heartbeat.NodesCoordinator
 	peerSignatureHandler     crypto.PeerSignatureHandler
-	privKey                  crypto.PrivateKey
-	redundancyHandler        heartbeat.NodeRedundancyHandler
 	hardforkTrigger          heartbeat.HardforkTrigger
 	hardforkTimeBetweenSends time.Duration
 	hardforkTriggerPubKey    []byte
@@ -27,10 +25,6 @@ type peerAuthenticationSender struct {
 	baseSender
 	nodesCoordinator         heartbeat.NodesCoordinator
 	peerSignatureHandler     crypto.PeerSignatureHandler
-	redundancy               heartbeat.NodeRedundancyHandler
-	privKey                  crypto.PrivateKey
-	publicKey                crypto.PublicKey
-	observerPublicKey        crypto.PublicKey
 	hardforkTrigger          heartbeat.HardforkTrigger
 	hardforkTimeBetweenSends time.Duration
 	hardforkTriggerPubKey    []byte
@@ -43,15 +37,10 @@ func newPeerAuthenticationSender(args argPeerAuthenticationSender) (*peerAuthent
 		return nil, err
 	}
 
-	redundancyHandler := args.redundancyHandler
 	sender := &peerAuthenticationSender{
 		baseSender:               createBaseSender(args.argBaseSender),
 		nodesCoordinator:         args.nodesCoordinator,
 		peerSignatureHandler:     args.peerSignatureHandler,
-		redundancy:               redundancyHandler,
-		privKey:                  args.privKey,
-		publicKey:                args.privKey.GeneratePublic(),
-		observerPublicKey:        redundancyHandler.ObserverPrivateKey().GeneratePublic(),
 		hardforkTrigger:          args.hardforkTrigger,
 		hardforkTimeBetweenSends: args.hardforkTimeBetweenSends,
 		hardforkTriggerPubKey:    args.hardforkTriggerPubKey,
@@ -70,12 +59,6 @@ func checkPeerAuthenticationSenderArgs(args argPeerAuthenticationSender) error {
 	}
 	if check.IfNil(args.peerSignatureHandler) {
 		return heartbeat.ErrNilPeerSignatureHandler
-	}
-	if check.IfNil(args.privKey) {
-		return heartbeat.ErrNilPrivateKey
-	}
-	if check.IfNil(args.redundancyHandler) {
-		return heartbeat.ErrNilRedundancyHandler
 	}
 	if check.IfNil(args.hardforkTrigger) {
 		return heartbeat.ErrNilHardforkTrigger
@@ -178,15 +161,6 @@ func (sender *peerAuthenticationSender) execute() (error, bool) {
 // ShouldTriggerHardfork signals when hardfork message should be sent
 func (sender *peerAuthenticationSender) ShouldTriggerHardfork() <-chan struct{} {
 	return sender.hardforkTrigger.NotifyTriggerReceivedV2()
-}
-
-func (sender *peerAuthenticationSender) getCurrentPrivateAndPublicKeys() (crypto.PrivateKey, crypto.PublicKey) {
-	shouldUseOriginalKeys := !sender.redundancy.IsRedundancyNode() || (sender.redundancy.IsRedundancyNode() && !sender.redundancy.IsMainMachineActive())
-	if shouldUseOriginalKeys {
-		return sender.privKey, sender.publicKey
-	}
-
-	return sender.redundancy.ObserverPrivateKey(), sender.observerPublicKey
 }
 
 func (sender *peerAuthenticationSender) isValidator(pkBytes []byte) bool {
