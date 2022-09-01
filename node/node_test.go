@@ -4086,11 +4086,11 @@ func TestNode_GetGuardianData(t *testing.T) {
 	}
 	apiG1 := &api.Guardian{
 		Address: coreComponents.AddressPubKeyConverter().Encode(g1.Address),
-		Epoch: g1.ActivationEpoch,
+		ActivationEpoch: g1.ActivationEpoch,
 	}
 	apiG2 := &api.Guardian{
 		Address: coreComponents.AddressPubKeyConverter().Encode(g2.Address),
-		Epoch: g2.ActivationEpoch,
+		ActivationEpoch: g2.ActivationEpoch,
 	}
 	t.Run("error on loadUserAccountHandlerByAddress", func(t *testing.T) {
 		accDB := &stateMock.AccountsStub{
@@ -4262,11 +4262,11 @@ func TestNode_getPendingAndActiveGuardians(t *testing.T) {
 
 	expectedG1 := &api.Guardian{
 		Address: coreComponents.AddrPubKeyConv.Encode(g1.Address),
-		Epoch:   g1.ActivationEpoch,
+		ActivationEpoch:   g1.ActivationEpoch,
 	}
 	expectedG2 := &api.Guardian{
 		Address: coreComponents.AddrPubKeyConv.Encode(g2.Address),
-		Epoch:   g2.ActivationEpoch,
+		ActivationEpoch:   g2.ActivationEpoch,
 	}
 
 	t.Run("get configured guardians with error should propagate error", func(t *testing.T) {
