@@ -100,8 +100,7 @@ func NewSender(args ArgSender) (*sender, error) {
 }
 
 func checkSenderArgs(args ArgSender) error {
-	// Only check base sender args, as further checks are done on constructors, based on the type of sender
-	baseSenderArgs := argBaseSender{
+	basePeerAuthSenderArgs := argBaseSender{
 		messenger:                 args.Messenger,
 		marshaller:                args.Marshaller,
 		topic:                     args.PeerAuthenticationTopic,
@@ -109,7 +108,33 @@ func checkSenderArgs(args ArgSender) error {
 		timeBetweenSendsWhenError: args.PeerAuthenticationTimeBetweenSendsWhenError,
 		thresholdBetweenSends:     args.PeerAuthenticationThresholdBetweenSends,
 	}
-	err := checkBaseSenderArgs(baseSenderArgs)
+	pasArgs := argPeerAuthenticationSender{
+		argBaseSender:            basePeerAuthSenderArgs,
+		nodesCoordinator:         args.NodesCoordinator,
+		peerSignatureHandler:     args.PeerSignatureHandler,
+		privKey:                  args.PrivateKey,
+		redundancyHandler:        args.RedundancyHandler,
+		hardforkTrigger:          args.HardforkTrigger,
+		hardforkTimeBetweenSends: args.HardforkTimeBetweenSends,
+		hardforkTriggerPubKey:    args.HardforkTriggerPubKey,
+	}
+	err := checkPeerAuthenticationSenderArgs(pasArgs)
+	if err != nil {
+		return err
+	}
+
+	mpasArgs := argMultikeyPeerAuthenticationSender{
+		argBaseSender:            basePeerAuthSenderArgs,
+		nodesCoordinator:         args.NodesCoordinator,
+		peerSignatureHandler:     args.PeerSignatureHandler,
+		hardforkTrigger:          args.HardforkTrigger,
+		hardforkTimeBetweenSends: args.HardforkTimeBetweenSends,
+		hardforkTriggerPubKey:    args.HardforkTriggerPubKey,
+		keysHolder:               args.KeysHolder,
+		timeBetweenChecks:        args.PeerAuthenticationTimeBetweenChecks,
+		shardCoordinator:         args.ShardCoordinator,
+	}
+	err = checkMultikeyPeerAuthenticationSenderArgs(mpasArgs)
 	if err != nil {
 		return err
 	}

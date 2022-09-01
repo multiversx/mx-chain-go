@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl"
+	"github.com/ElrondNetwork/elrond-go/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
@@ -52,6 +53,30 @@ func TestPeerAuthenticationSenderFactory_Create(t *testing.T) {
 		}
 		peerAuthSender, err := createPeerAuthenticationSender(args)
 		assert.Equal(t, expectedErr, err)
+		assert.True(t, check.IfNil(peerAuthSender))
+	})
+	t.Run("validator with keys managed should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockPeerAuthenticationSenderFactoryArgs()
+		args.nodesCoordinator = &shardingMocks.NodesCoordinatorStub{
+			GetValidatorWithPublicKeyCalled: func(publicKey []byte) (validator nodesCoordinator.Validator, shardId uint32, err error) {
+				return nil, 0, nil
+			},
+		}
+		args.keysHolder = &testscommon.KeysHolderStub{
+			GetManagedKeysByCurrentNodeCalled: func() map[string]crypto.PrivateKey {
+				keygen := signing.NewKeyGenerator(&mcl.SuiteBLS12{})
+				sk, pk := keygen.GeneratePair()
+				pkBytes, err := pk.ToByteArray()
+				assert.Nil(t, err)
+				keysMap := make(map[string]crypto.PrivateKey)
+				keysMap[string(pkBytes)] = sk
+				return keysMap
+			},
+		}
+		peerAuthSender, err := createPeerAuthenticationSender(args)
+		assert.True(t, errors.Is(err, heartbeat.ErrInvalidConfiguration))
 		assert.True(t, check.IfNil(peerAuthSender))
 	})
 	t.Run("validator should create regular sender", func(t *testing.T) {

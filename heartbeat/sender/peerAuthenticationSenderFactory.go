@@ -1,6 +1,7 @@
 package sender
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/ElrondNetwork/covalent-indexer-go/process"
@@ -29,13 +30,18 @@ func createPeerAuthenticationSender(args argPeerAuthenticationSenderFactory) (pe
 		return nil, err
 	}
 
+	keysMap := args.keysHolder.GetManagedKeysByCurrentNode()
+	isMultikeyMode := len(keysMap) > 0
 	_, _, err = args.nodesCoordinator.GetValidatorWithPublicKey(pkBytes)
 	if err == nil {
+		if isMultikeyMode {
+			return nil, fmt.Errorf("%w while creating peer authentication, could not determine node's type", heartbeat.ErrInvalidConfiguration)
+		}
+
 		return createRegularSender(args)
 	}
 
-	keysMap := args.keysHolder.GetManagedKeysByCurrentNode()
-	if len(keysMap) == 0 {
+	if !isMultikeyMode {
 		return createRegularSender(args)
 	}
 
