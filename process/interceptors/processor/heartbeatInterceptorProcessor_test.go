@@ -39,6 +39,7 @@ func createInterceptedHeartbeat() *heartbeatMessages.HeartbeatV2 {
 		Identity:        "identity",
 		Nonce:           123,
 		PeerSubType:     uint32(core.RegularPeer),
+		Pubkey:          []byte("public key"),
 	}
 }
 

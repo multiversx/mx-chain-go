@@ -96,6 +96,10 @@ func (ihb *interceptedHeartbeat) CheckValidity() error {
 	if ihb.heartbeat.PeerSubType != uint32(core.RegularPeer) && ihb.heartbeat.PeerSubType != uint32(core.FullHistoryObserver) {
 		return process.ErrInvalidPeerSubType
 	}
+	err = verifyPropertyMinMaxLen(publicKeyProperty, ihb.heartbeat.Pubkey)
+	if err != nil {
+		return err
+	}
 
 	log.Trace("interceptedHeartbeat received valid data")
 
@@ -124,13 +128,14 @@ func (ihb *interceptedHeartbeat) Identifiers() [][]byte {
 
 // String returns the most important fields as string
 func (ihb *interceptedHeartbeat) String() string {
-	return fmt.Sprintf("version=%s, name=%s, identity=%s, nonce=%d, subtype=%d, payload=%s",
+	return fmt.Sprintf("version=%s, name=%s, identity=%s, nonce=%d, subtype=%d, payload=%s, pk=%s",
 		ihb.heartbeat.VersionNumber,
 		ihb.heartbeat.NodeDisplayName,
 		ihb.heartbeat.Identity,
 		ihb.heartbeat.Nonce,
 		ihb.heartbeat.PeerSubType,
-		logger.DisplayByteSlice(ihb.heartbeat.Payload))
+		logger.DisplayByteSlice(ihb.heartbeat.Payload),
+		logger.DisplayByteSlice(ihb.heartbeat.Pubkey))
 }
 
 // Message returns the heartbeat message
