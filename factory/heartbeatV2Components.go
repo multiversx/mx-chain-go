@@ -12,7 +12,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/heartbeat/monitor"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/processor"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/sender"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/update"
 )
 
@@ -143,7 +142,7 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 		HardforkTrigger:                             hcf.processComponents.HardforkTrigger(),
 		HardforkTimeBetweenSends:                    time.Second * time.Duration(cfg.HardforkTimeBetweenSendsInSec),
 		HardforkTriggerPubKey:                       hcf.coreComponents.HardforkTriggerPubKey(),
-		KeysHolder:                                  &testscommon.KeysHolderStub{}, // TODO: use the real component once it is completely integrated
+		KeysHolder:                                  hcf.cryptoComponents.KeysHolder(),
 		PeerAuthenticationTimeBetweenChecks:         time.Second * time.Duration(cfg.PeerAuthenticationTimeBetweenChecksInSec),
 		ShardCoordinator:                            hcf.processComponents.ShardCoordinator(),
 	}

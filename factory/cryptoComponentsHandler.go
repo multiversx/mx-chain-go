@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/errors"
+	"github.com/ElrondNetwork/elrond-go/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/vm"
 )
 
@@ -103,6 +104,9 @@ func (mcc *managedCryptoComponents) CheckSubcomponents() error {
 	}
 	if check.IfNil(mcc.cryptoComponents.messageSignVerifier) {
 		return errors.ErrNilMessageSignVerifier
+	}
+	if check.IfNil(mcc.cryptoComponents.keysHolder) {
+		return errors.ErrNilKeysHolder
 	}
 
 	return nil
@@ -265,6 +269,18 @@ func (mcc *managedCryptoComponents) MessageSignVerifier() vm.MessageSignVerifier
 	return mcc.cryptoComponents.messageSignVerifier
 }
 
+// KeysHolder returns the virtual keys holder
+func (mcc *managedCryptoComponents) KeysHolder() heartbeat.KeysHolder {
+	mcc.mutCryptoComponents.RLock()
+	defer mcc.mutCryptoComponents.RUnlock()
+
+	if mcc.cryptoComponents == nil {
+		return nil
+	}
+
+	return mcc.cryptoComponents.keysHolder
+}
+
 // Clone creates a shallow clone of a managedCryptoComponents
 func (mcc *managedCryptoComponents) Clone() interface{} {
 	cryptoComp := (*cryptoComponents)(nil)
@@ -277,6 +293,7 @@ func (mcc *managedCryptoComponents) Clone() interface{} {
 			blockSignKeyGen:     mcc.BlockSignKeyGen(),
 			txSignKeyGen:        mcc.TxSignKeyGen(),
 			messageSignVerifier: mcc.MessageSignVerifier(),
+			keysHolder:          mcc.KeysHolder(),
 			cryptoParams:        mcc.cryptoParams,
 		}
 	}
