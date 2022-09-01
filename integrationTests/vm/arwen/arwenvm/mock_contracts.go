@@ -107,7 +107,7 @@ func RegisterAsyncCallForMockContract(host arwen.VMHost, config interface{}, des
 
 	async := host.Async()
 	if !testConfig.IsLegacyAsync {
-		err := host.Async().RegisterAsyncCall("testGroup", &arwen.AsyncCall{
+		err := async.RegisterAsyncCall("testGroup", &arwen.AsyncCall{
 			Status:          arwen.AsyncCallPending,
 			Destination:     destinationAddress,
 			Data:            callData.ToBytes(),
