@@ -153,6 +153,9 @@ func (sender *peerAuthenticationSender) execute() (error, bool) {
 		return err, isTriggered
 	}
 
+	log.Debug("sending peer authentication message",
+		"public key", msg.Pubkey, "pid", sender.messenger.ID().Pretty(),
+		"timestamp", payload.Timestamp)
 	sender.messenger.Broadcast(sender.topic, data)
 
 	return nil, isTriggered

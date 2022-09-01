@@ -22,27 +22,17 @@ type ArgBaseInterceptedHeartbeat struct {
 	Marshaller marshal.Marshalizer
 }
 
-// ArgInterceptedHeartbeat is the argument used in the intercepted heartbeat constructor
-type ArgInterceptedHeartbeat struct {
-	ArgBaseInterceptedHeartbeat
-	PeerId core.PeerID
-}
-
 // interceptedHeartbeat is a wrapper over HeartbeatV2
 type interceptedHeartbeat struct {
 	heartbeat heartbeat.HeartbeatV2
 	payload   heartbeat.Payload
-	peerId    core.PeerID
 }
 
 // NewInterceptedHeartbeat tries to create a new intercepted heartbeat instance
-func NewInterceptedHeartbeat(arg ArgInterceptedHeartbeat) (*interceptedHeartbeat, error) {
-	err := checkBaseArg(arg.ArgBaseInterceptedHeartbeat)
+func NewInterceptedHeartbeat(arg ArgBaseInterceptedHeartbeat) (*interceptedHeartbeat, error) {
+	err := checkBaseArg(arg)
 	if err != nil {
 		return nil, err
-	}
-	if len(arg.PeerId) == 0 {
-		return nil, process.ErrEmptyPeerID
 	}
 
 	hb, payload, err := createHeartbeat(arg.Marshaller, arg.DataBuff)
@@ -53,7 +43,6 @@ func NewInterceptedHeartbeat(arg ArgInterceptedHeartbeat) (*interceptedHeartbeat
 	intercepted := &interceptedHeartbeat{
 		heartbeat: *hb,
 		payload:   *payload,
-		peerId:    arg.PeerId,
 	}
 
 	return intercepted, nil
@@ -134,13 +123,12 @@ func (ihb *interceptedHeartbeat) Type() string {
 
 // Identifiers returns the identifiers used in requests
 func (ihb *interceptedHeartbeat) Identifiers() [][]byte {
-	return [][]byte{ihb.peerId.Bytes()}
+	return [][]byte{[]byte(ihb.String())}
 }
 
 // String returns the most important fields as string
 func (ihb *interceptedHeartbeat) String() string {
-	return fmt.Sprintf("pid=%s, version=%s, name=%s, identity=%s, nonce=%d, subtype=%d, payload=%s, pk=%s",
-		ihb.peerId.Pretty(),
+	return fmt.Sprintf("version=%s, name=%s, identity=%s, nonce=%d, subtype=%d, payload=%s, pk=%s",
 		ihb.heartbeat.VersionNumber,
 		ihb.heartbeat.NodeDisplayName,
 		ihb.heartbeat.Identity,
