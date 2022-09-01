@@ -407,5 +407,6 @@ func getArgumentsMeta() resolverscontainer.FactoryArgs {
 		PeersRatingHandler:                   &p2pmocks.PeersRatingHandlerStub{},
 		NodesCoordinator:                     &shardingMocks.NodesCoordinatorStub{},
 		MaxNumOfPeerAuthenticationInResponse: 5,
+		PayloadValidator:                     &testscommon.PeerAuthenticationPayloadValidatorStub{},
 	}
 }

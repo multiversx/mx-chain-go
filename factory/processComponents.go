@@ -45,6 +45,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 	"github.com/ElrondNetwork/elrond-go/process/factory/interceptorscontainer"
 	"github.com/ElrondNetwork/elrond-go/process/headerCheck"
+	"github.com/ElrondNetwork/elrond-go/process/heartbeat/validator"
 	"github.com/ElrondNetwork/elrond-go/process/peer"
 	"github.com/ElrondNetwork/elrond-go/process/receipts"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
@@ -1056,11 +1057,17 @@ func (pcf *processComponentsFactory) newResolverContainerFactory(
 		log.Debug("starting with storage resolvers", "path", pcf.importDBConfig.ImportDBWorkingDir)
 		return pcf.newStorageResolver()
 	}
+
+	payloadValidator, err := validator.NewPeerAuthenticationPayloadValidator(pcf.config.HeartbeatV2.HeartbeatExpiryTimespanInSec)
+	if err != nil {
+		return nil, err
+	}
+
 	if pcf.bootstrapComponents.ShardCoordinator().SelfId() < pcf.bootstrapComponents.ShardCoordinator().NumberOfShards() {
-		return pcf.newShardResolverContainerFactory(currentEpochProvider)
+		return pcf.newShardResolverContainerFactory(currentEpochProvider, payloadValidator)
 	}
 	if pcf.bootstrapComponents.ShardCoordinator().SelfId() == core.MetachainShardId {
-		return pcf.newMetaResolverContainerFactory(currentEpochProvider)
+		return pcf.newMetaResolverContainerFactory(currentEpochProvider, payloadValidator)
 	}
 
 	return nil, errors.New("could not create interceptor and resolver container factory")
@@ -1068,6 +1075,7 @@ func (pcf *processComponentsFactory) newResolverContainerFactory(
 
 func (pcf *processComponentsFactory) newShardResolverContainerFactory(
 	currentEpochProvider dataRetriever.CurrentNetworkEpochProviderHandler,
+	payloadValidator process.PeerAuthenticationPayloadValidator,
 ) (dataRetriever.ResolversContainerFactory, error) {
 
 	dataPacker, err := partitioning.NewSimpleDataPacker(pcf.coreData.InternalMarshalizer())
@@ -1095,6 +1103,7 @@ func (pcf *processComponentsFactory) newShardResolverContainerFactory(
 		PeersRatingHandler:                   pcf.network.PeersRatingHandler(),
 		NodesCoordinator:                     pcf.nodesCoordinator,
 		MaxNumOfPeerAuthenticationInResponse: pcf.config.HeartbeatV2.MaxNumOfPeerAuthenticationInResponse,
+		PayloadValidator:                     payloadValidator,
 	}
 	resolversContainerFactory, err := resolverscontainer.NewShardResolversContainerFactory(resolversContainerFactoryArgs)
 	if err != nil {
@@ -1106,6 +1115,7 @@ func (pcf *processComponentsFactory) newShardResolverContainerFactory(
 
 func (pcf *processComponentsFactory) newMetaResolverContainerFactory(
 	currentEpochProvider dataRetriever.CurrentNetworkEpochProviderHandler,
+	payloadValidator process.PeerAuthenticationPayloadValidator,
 ) (dataRetriever.ResolversContainerFactory, error) {
 
 	dataPacker, err := partitioning.NewSimpleDataPacker(pcf.coreData.InternalMarshalizer())
@@ -1133,6 +1143,7 @@ func (pcf *processComponentsFactory) newMetaResolverContainerFactory(
 		PeersRatingHandler:                   pcf.network.PeersRatingHandler(),
 		NodesCoordinator:                     pcf.nodesCoordinator,
 		MaxNumOfPeerAuthenticationInResponse: pcf.config.HeartbeatV2.MaxNumOfPeerAuthenticationInResponse,
+		PayloadValidator:                     payloadValidator,
 	}
 	resolversContainerFactory, err := resolverscontainer.NewMetaResolversContainerFactory(resolversContainerFactoryArgs)
 	if err != nil {

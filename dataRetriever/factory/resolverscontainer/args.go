@@ -31,4 +31,5 @@ type FactoryArgs struct {
 	IsFullHistoryNode                    bool
 	NodesCoordinator                     dataRetriever.NodesCoordinator
 	MaxNumOfPeerAuthenticationInResponse int
+	PayloadValidator                     dataRetriever.PeerAuthenticationPayloadValidator
 }

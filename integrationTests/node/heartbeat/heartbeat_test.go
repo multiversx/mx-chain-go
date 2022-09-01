@@ -141,7 +141,7 @@ func TestHeartbeatV2_DeactivationOfHeartbeat(t *testing.T) {
 	nodes := make([]*integrationTests.TestHeartbeatNode, interactingNodes)
 	p2pConfig := integrationTests.CreateP2PConfigWithNoDiscovery()
 	for i := 0; i < interactingNodes; i++ {
-		nodes[i] = integrationTests.NewTestHeartbeatNode(t, 3, 0, interactingNodes, p2pConfig)
+		nodes[i] = integrationTests.NewTestHeartbeatNode(t, 3, 0, interactingNodes, p2pConfig, 60)
 	}
 	assert.Equal(t, interactingNodes, len(nodes))
 

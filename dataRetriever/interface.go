@@ -75,7 +75,7 @@ const (
 	HeartbeatUnit UnitType = 8
 	// BootstrapUnit is the bootstrap storage unit identifier
 	BootstrapUnit UnitType = 9
-	//StatusMetricsUnit is the status metrics storage unit identifier
+	// StatusMetricsUnit is the status metrics storage unit identifier
 	StatusMetricsUnit UnitType = 10
 	// TxLogsUnit is the transactions logs storage unit identifier
 	TxLogsUnit UnitType = 11
@@ -107,11 +107,11 @@ const (
 	ScheduledSCRsUnit UnitType = 24
 
 	// ShardHdrNonceHashDataUnit is the header nonce-hash pair data unit identifier
-	//TODO: Add only unit types lower than 100
+	// TODO: Add only unit types lower than 100
 	ShardHdrNonceHashDataUnit UnitType = 100
-	//TODO: Do not add unit type greater than 100 as the metachain creates this kind of unit type for each shard.
-	//100 -> shard 0, 101 -> shard 1 and so on. This should be replaced with a factory which will manage the unit types
-	//creation
+	// TODO: Do not add unit type greater than 100 as the metachain creates this kind of unit type for each shard.
+	// 100 -> shard 0, 101 -> shard 1 and so on. This should be replaced with a factory which will manage the unit types
+	// creation
 )
 
 // ResolverThrottler can monitor the number of the currently running resolver go routines
@@ -355,7 +355,7 @@ type StorageService interface {
 	GetAllStorers() map[UnitType]storage.Storer
 	// Destroy removes the underlying files/resources used by the storage service
 	Destroy() error
-	//CloseAll will close all the units
+	// CloseAll will close all the units
 	CloseAll() error
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
@@ -438,5 +438,12 @@ type SelfShardIDProvider interface {
 // NodesCoordinator provides Validator methods needed for the peer processing
 type NodesCoordinator interface {
 	GetAllEligibleValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error)
+	IsInterfaceNil() bool
+}
+
+// PeerAuthenticationPayloadValidator defines the operations supported by an entity able to validate timestamps
+// found in peer authentication messages
+type PeerAuthenticationPayloadValidator interface {
+	ValidateTimestamp(payloadTimestamp int64) error
 	IsInterfaceNil() bool
 }

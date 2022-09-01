@@ -1240,3 +1240,10 @@ type ProcessedMiniBlocksTracker interface {
 	DisplayProcessedMiniBlocks()
 	IsInterfaceNil() bool
 }
+
+// PeerAuthenticationPayloadValidator defines the operations supported by an entity able to validate timestamps
+// found in peer authentication messages
+type PeerAuthenticationPayloadValidator interface {
+	ValidateTimestamp(payloadTimestamp int64) error
+	IsInterfaceNil() bool
+}

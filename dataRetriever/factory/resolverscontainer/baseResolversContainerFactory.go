@@ -48,6 +48,7 @@ type baseResolversContainerFactory struct {
 	numFullHistoryPeers                  int
 	nodesCoordinator                     dataRetriever.NodesCoordinator
 	maxNumOfPeerAuthenticationInResponse int
+	payloadValidator                     dataRetriever.PeerAuthenticationPayloadValidator
 }
 
 func (brcf *baseResolversContainerFactory) checkParams() error {
@@ -294,6 +295,7 @@ func (brcf *baseResolversContainerFactory) generatePeerAuthenticationResolver() 
 		NodesCoordinator:                     brcf.nodesCoordinator,
 		MaxNumOfPeerAuthenticationInResponse: brcf.maxNumOfPeerAuthenticationInResponse,
 		DataPacker:                           brcf.dataPacker,
+		PayloadValidator:                     brcf.payloadValidator,
 	}
 	peerAuthResolver, err := resolvers.NewPeerAuthenticationResolver(arg)
 	if err != nil {
