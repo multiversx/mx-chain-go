@@ -15,7 +15,7 @@ type hardforkHandler interface {
 	Close()
 }
 
-type peerAuthenticationHandler interface {
+type peerAuthenticationSenderHandler interface {
 	senderHandler
 	hardforkHandler
 }

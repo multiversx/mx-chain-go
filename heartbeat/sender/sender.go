@@ -51,7 +51,7 @@ func NewSender(args ArgSender) (*sender, error) {
 		return nil, err
 	}
 
-	peerAuthSenderFactory, err := newPeerAuthenticationSenderFactory(argPeerAuthenticationSenderFactory{
+	pas, err := createPeerAuthenticationSender(argPeerAuthenticationSenderFactory{
 		argBaseSender: argBaseSender{
 			messenger:                 args.Messenger,
 			marshaller:                args.Marshaller,
@@ -71,11 +71,6 @@ func NewSender(args ArgSender) (*sender, error) {
 		privKey:                  args.PrivateKey,
 		redundancyHandler:        args.RedundancyHandler,
 	})
-	if err != nil {
-		return nil, err
-	}
-
-	pas, err := peerAuthSenderFactory.create()
 	if err != nil {
 		return nil, err
 	}
@@ -105,7 +100,7 @@ func NewSender(args ArgSender) (*sender, error) {
 }
 
 func checkSenderArgs(args ArgSender) error {
-	// Only check base sender args, as further checks are done on factory Create, based on the type of sender
+	// Only check base sender args, as further checks are done on constructors, based on the type of sender
 	baseSenderArgs := argBaseSender{
 		messenger:                 args.Messenger,
 		marshaller:                args.Marshaller,
