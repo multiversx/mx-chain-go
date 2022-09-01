@@ -251,7 +251,7 @@ func TestInterceptedPeerAuthentication_CheckValidity(t *testing.T) {
 		ipa, _ := NewInterceptedPeerAuthentication(arg)
 
 		err = ipa.CheckValidity()
-		assert.Equal(t, process.ErrMessageExpired, err)
+		assert.True(t, errors.Is(err, process.ErrMessageExpired))
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()

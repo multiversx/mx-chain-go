@@ -210,16 +210,19 @@ func checkMessages(t *testing.T, nodes []*integrationTests.TestHeartbeatNode, mo
 
 		// Check this node received messages from all peers
 		for _, node := range nodes {
-			assert.True(t, paCache.Has(node.Messenger.ID().Bytes()))
+			pkBytes, err := node.NodeKeys.Pk.ToByteArray()
+			assert.Nil(t, err)
+
+			assert.True(t, paCache.Has(pkBytes))
 			assert.True(t, hbCache.Has(node.Messenger.ID().Bytes()))
 
 			// Also check message age
-			value, _ := paCache.Get(node.Messenger.ID().Bytes())
+			value, _ := paCache.Get(pkBytes)
 			msg := value.(*heartbeat.PeerAuthentication)
 
 			marshaller := integrationTests.TestMarshaller
 			payload := &heartbeat.Payload{}
-			err := marshaller.Unmarshal(payload, msg.Payload)
+			err = marshaller.Unmarshal(payload, msg.Payload)
 			assert.Nil(t, err)
 
 			currentTimestamp := time.Now().Unix()
