@@ -74,47 +74,22 @@ type Worker struct {
 
 // WorkerArgs holds the consensus worker arguments
 type WorkerArgs struct {
-<<<<<<< HEAD
-	ConsensusService        ConsensusService
-	BlockChain              data.ChainHandler
-	BlockProcessor          consensus.BlockProcessor
-	ScheduledProcessor      consensus.ScheduledProcessor
-	Bootstrapper            consensus.Bootstrapper
-	BroadcastMessenger      consensus.BroadcastMessenger
-	ConsensusState          *ConsensusState
-	ForkDetector            consensus.ForkDetector
-	Marshalizer             marshal.Marshalizer
-	Hasher                  hashing.Hasher
-	RoundHandler            consensus.RoundHandler
-	ShardCoordinator        consensus.ShardCoordinator
-	PeerSignatureHandler    crypto.PeerSignatureHandler
-	SyncTimer               consensus.SyncTimer
-	HeaderSigVerifier       HeaderSigVerifier
-	HeaderIntegrityVerifier consensus.HeaderIntegrityVerifier
-	ChainID                 []byte
-	AntifloodHandler        consensus.P2PAntifloodHandler
-	PoolAdder               PoolAdder
-	SignatureSize           int
-	PublicKeySize           int
-	AppStatusHandler        core.AppStatusHandler
-	NodeRedundancyHandler   consensus.NodeRedundancyHandler
-=======
 	ConsensusService         ConsensusService
 	BlockChain               data.ChainHandler
-	BlockProcessor           process.BlockProcessor
+	BlockProcessor           consensus.BlockProcessor
 	ScheduledProcessor       consensus.ScheduledProcessor
-	Bootstrapper             process.Bootstrapper
+	Bootstrapper             consensus.Bootstrapper
 	BroadcastMessenger       consensus.BroadcastMessenger
 	ConsensusState           *ConsensusState
-	ForkDetector             process.ForkDetector
+	ForkDetector             consensus.ForkDetector
 	Marshalizer              marshal.Marshalizer
 	Hasher                   hashing.Hasher
 	RoundHandler             consensus.RoundHandler
-	ShardCoordinator         sharding.Coordinator
+	ShardCoordinator         consensus.ShardCoordinator
 	PeerSignatureHandler     crypto.PeerSignatureHandler
-	SyncTimer                ntp.SyncTimer
+	SyncTimer                consensus.SyncTimer
 	HeaderSigVerifier        HeaderSigVerifier
-	HeaderIntegrityVerifier  process.HeaderIntegrityVerifier
+	HeaderIntegrityVerifier  consensus.HeaderIntegrityVerifier
 	ChainID                  []byte
 	NetworkShardingCollector consensus.NetworkShardingCollector
 	AntifloodHandler         consensus.P2PAntifloodHandler
@@ -123,7 +98,6 @@ type WorkerArgs struct {
 	PublicKeySize            int
 	AppStatusHandler         core.AppStatusHandler
 	NodeRedundancyHandler    consensus.NodeRedundancyHandler
->>>>>>> feat/kosk-bls-multisigner
 }
 
 // NewWorker creates a new Worker object

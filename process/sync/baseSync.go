@@ -687,7 +687,7 @@ func (boot *baseBootstrap) syncBlock() error {
 }
 
 func (boot *baseBootstrap) handleTrieSyncError(err error, ctx context.Context) {
-	shouldOutputLog := err != nil && !common.IsContextDone(ctx)
+	shouldOutputLog := err != nil && !core.IsContextDone(ctx)
 	if shouldOutputLog {
 		log.Debug("SyncBlock syncTrie", "error", err)
 	}

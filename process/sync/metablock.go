@@ -173,14 +173,7 @@ func (boot *MetaBootstrap) SyncBlock(ctx context.Context) error {
 	err := boot.syncBlock()
 	if isErrGetNodeFromDB(err) {
 		errSync := boot.syncAccountsDBs()
-<<<<<<< HEAD
-		shouldOutputLog := errSync != nil && !core.IsContextDone(ctx)
-		if shouldOutputLog {
-			log.Debug("SyncBlock syncTrie", "error", errSync)
-		}
-=======
 		boot.handleTrieSyncError(errSync, ctx)
->>>>>>> feat/kosk-bls-multisigner
 	}
 
 	return err

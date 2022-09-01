@@ -17,15 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/bls"
-<<<<<<< HEAD
-=======
-	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
-	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
->>>>>>> feat/kosk-bls-multisigner
 	"github.com/stretchr/testify/assert"
 )
 
@@ -325,7 +317,7 @@ func TestWorker_NewWorkerEmptyChainIDShouldFail(t *testing.T) {
 func TestWorker_NewWorkerNilNetworkShardingCollectorShouldFail(t *testing.T) {
 	t.Parallel()
 
-	workerArgs := createDefaultWorkerArgs(&statusHandlerMock.AppStatusHandlerStub{})
+	workerArgs := createDefaultWorkerArgs(&mock.AppStatusHandlerStub{})
 	workerArgs.NetworkShardingCollector = nil
 	wrk, err := spos.NewWorker(workerArgs)
 
@@ -1016,11 +1008,8 @@ func TestWorker_ProcessReceivedMessageWithABadOriginatorShouldErr(t *testing.T) 
 
 func TestWorker_ProcessReceivedMessageOkValsShouldWork(t *testing.T) {
 	t.Parallel()
-<<<<<<< HEAD
-	wrk := *initWorker(&mock.AppStatusHandlerStub{})
-=======
 
-	workerArgs := createDefaultWorkerArgs(&statusHandlerMock.AppStatusHandlerStub{})
+	workerArgs := createDefaultWorkerArgs(&mock.AppStatusHandlerStub{})
 	expectedShardID := workerArgs.ShardCoordinator.SelfId()
 	expectedPK := []byte(workerArgs.ConsensusState.ConsensusGroup()[0])
 	wasUpdatePeerIDInfoCalled := false
@@ -1034,7 +1023,6 @@ func TestWorker_ProcessReceivedMessageOkValsShouldWork(t *testing.T) {
 	}
 	wrk, _ := spos.NewWorker(workerArgs)
 
->>>>>>> feat/kosk-bls-multisigner
 	wrk.SetBlockProcessor(
 		&mock.BlockProcessorMock{
 			DecodeBlockHeaderCalled: func(dta []byte) data.HeaderHandler {

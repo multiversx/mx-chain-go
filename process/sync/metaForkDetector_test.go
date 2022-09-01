@@ -73,13 +73,8 @@ func TestMetaForkDetector_AddHeaderNilHeaderShouldErr(t *testing.T) {
 	t.Parallel()
 
 	roundHandlerMock := &mock.RoundHandlerMock{RoundIndex: 100}
-<<<<<<< HEAD
-	bfd, _ := sync.NewMetaForkDetector(roundHandlerMock, &mock.BlackListHandlerStub{}, &mock.BlockTrackerMock{}, 0)
-	err := bfd.AddHeader(nil, make([]byte, 0), core.BHProcessed, nil, nil)
-=======
 	bfd, _ := sync.NewMetaForkDetector(roundHandlerMock, &testscommon.TimeCacheStub{}, &mock.BlockTrackerMock{}, 0)
-	err := bfd.AddHeader(nil, make([]byte, 0), process.BHProcessed, nil, nil)
->>>>>>> feat/kosk-bls-multisigner
+	err := bfd.AddHeader(nil, make([]byte, 0), core.BHProcessed, nil, nil)
 	assert.Equal(t, sync.ErrNilHeader, err)
 }
 
@@ -87,13 +82,8 @@ func TestMetaForkDetector_AddHeaderNilHashShouldErr(t *testing.T) {
 	t.Parallel()
 
 	roundHandlerMock := &mock.RoundHandlerMock{RoundIndex: 100}
-<<<<<<< HEAD
-	bfd, _ := sync.NewMetaForkDetector(roundHandlerMock, &mock.BlackListHandlerStub{}, &mock.BlockTrackerMock{}, 0)
-	err := bfd.AddHeader(&block.Header{}, nil, core.BHProcessed, nil, nil)
-=======
 	bfd, _ := sync.NewMetaForkDetector(roundHandlerMock, &testscommon.TimeCacheStub{}, &mock.BlockTrackerMock{}, 0)
-	err := bfd.AddHeader(&block.Header{}, nil, process.BHProcessed, nil, nil)
->>>>>>> feat/kosk-bls-multisigner
+	err := bfd.AddHeader(&block.Header{}, nil, core.BHProcessed, nil, nil)
 	assert.Equal(t, sync.ErrNilHash, err)
 }
 
@@ -139,13 +129,8 @@ func TestMetaForkDetector_AddHeaderWithProcessedBlockShouldSetCheckpoint(t *test
 	hdr1 := &block.Header{Nonce: 69, Round: 72, PubKeysBitmap: []byte("X")}
 	hash1 := []byte("hash1")
 	roundHandlerMock := &mock.RoundHandlerMock{RoundIndex: 73}
-<<<<<<< HEAD
-	bfd, _ := sync.NewMetaForkDetector(roundHandlerMock, &mock.BlackListHandlerStub{}, &mock.BlockTrackerMock{}, 0)
-	_ = bfd.AddHeader(hdr1, hash1, core.BHProcessed, nil, nil)
-=======
 	bfd, _ := sync.NewMetaForkDetector(roundHandlerMock, &testscommon.TimeCacheStub{}, &mock.BlockTrackerMock{}, 0)
-	_ = bfd.AddHeader(hdr1, hash1, process.BHProcessed, nil, nil)
->>>>>>> feat/kosk-bls-multisigner
+	_ = bfd.AddHeader(hdr1, hash1, core.BHProcessed, nil, nil)
 	assert.Equal(t, hdr1.Nonce, bfd.LastCheckpointNonce())
 }
 

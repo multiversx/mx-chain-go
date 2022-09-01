@@ -1,12 +1,8 @@
 package pruning
 
 import (
-<<<<<<< HEAD
 	"github.com/ElrondNetwork/elrond-go-core/core"
-=======
 	storageCore "github.com/ElrondNetwork/elrond-go-core/storage"
-	"github.com/ElrondNetwork/elrond-go/epochStart"
->>>>>>> feat/kosk-bls-multisigner
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
