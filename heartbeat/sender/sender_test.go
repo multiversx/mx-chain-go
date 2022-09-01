@@ -41,6 +41,9 @@ func createMockSenderArgs() ArgSender {
 		HardforkTrigger:                             &testscommon.HardforkTriggerStub{},
 		HardforkTimeBetweenSends:                    time.Second,
 		HardforkTriggerPubKey:                       providedHardforkPubKey,
+		KeysHolder:                                  &testscommon.KeysHolderStub{},
+		PeerAuthenticationTimeBetweenChecks:         time.Second,
+		ShardCoordinator:                            createShardCoordinatorInShard(0),
 	}
 }
 
@@ -247,6 +250,37 @@ func TestNewSender(t *testing.T) {
 		assert.Nil(t, sender)
 		assert.True(t, errors.Is(err, heartbeat.ErrInvalidValue))
 		assert.True(t, strings.Contains(err.Error(), "hardfork"))
+	})
+	t.Run("nil keys holder should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockSenderArgs()
+		args.KeysHolder = nil
+		sender, err := NewSender(args)
+
+		assert.Nil(t, sender)
+		assert.True(t, errors.Is(err, heartbeat.ErrNilKeysHolder))
+	})
+	t.Run("invalid time between checks should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockSenderArgs()
+		args.PeerAuthenticationTimeBetweenChecks = time.Second - time.Nanosecond
+		sender, err := NewSender(args)
+
+		assert.Nil(t, sender)
+		assert.True(t, errors.Is(err, heartbeat.ErrInvalidTimeDuration))
+		assert.True(t, strings.Contains(err.Error(), "timeBetweenChecks"))
+	})
+	t.Run("nil shard coordinator should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockSenderArgs()
+		args.ShardCoordinator = nil
+		sender, err := NewSender(args)
+
+		assert.Nil(t, sender)
+		assert.True(t, errors.Is(err, heartbeat.ErrNilShardCoordinator))
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()

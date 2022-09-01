@@ -15,6 +15,11 @@ type hardforkHandler interface {
 	Close()
 }
 
+type peerAuthenticationSenderHandler interface {
+	senderHandler
+	hardforkHandler
+}
+
 type timerHandler interface {
 	CreateNewTimer(duration time.Duration)
 	ExecutionReadyChannel() <-chan time.Time

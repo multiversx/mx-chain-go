@@ -25,19 +25,26 @@ import (
 	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/factory/peerSignatureHandler"
 	"github.com/ElrondNetwork/elrond-go/genesis/process/disabled"
+	"github.com/ElrondNetwork/elrond-go/heartbeat"
+	"github.com/ElrondNetwork/elrond-go/keysManagement"
+	p2pCrypto "github.com/ElrondNetwork/elrond-go/p2p/crypto"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	systemVM "github.com/ElrondNetwork/elrond-go/vm/process"
 )
 
-const disabledSigChecking = "disabled"
+const (
+	disabledSigChecking        = "disabled"
+	mainMachineRedundancyLevel = 0
+)
 
 // CryptoComponentsFactoryArgs holds the arguments needed for creating crypto components
 type CryptoComponentsFactoryArgs struct {
 	ValidatorKeyPemFileName              string
 	SkIndex                              int
 	Config                               config.Config
+	PrefsConfig                          config.Preferences
 	CoreComponentsHolder                 CoreComponentsHolder
 	KeyLoader                            KeyLoaderHandler
 	ActivateBLSPubKeyMessageVerification bool
@@ -51,6 +58,7 @@ type cryptoComponentsFactory struct {
 	validatorKeyPemFileName              string
 	skIndex                              int
 	config                               config.Config
+	prefsConfig                          config.Preferences
 	coreComponentsHolder                 CoreComponentsHolder
 	activateBLSPubKeyMessageVerification bool
 	keyLoader                            KeyLoaderHandler
@@ -77,6 +85,7 @@ type cryptoComponents struct {
 	blockSignKeyGen     crypto.KeyGenerator
 	txSignKeyGen        crypto.KeyGenerator
 	messageSignVerifier vm.MessageSignVerifier
+	keysHolder          heartbeat.KeysHolder
 	cryptoParams
 }
 
@@ -97,6 +106,7 @@ func NewCryptoComponentsFactory(args CryptoComponentsFactoryArgs) (*cryptoCompon
 		validatorKeyPemFileName:              args.ValidatorKeyPemFileName,
 		skIndex:                              args.SkIndex,
 		config:                               args.Config,
+		prefsConfig:                          args.PrefsConfig,
 		coreComponentsHolder:                 args.CoreComponentsHolder,
 		activateBLSPubKeyMessageVerification: args.ActivateBLSPubKeyMessageVerification,
 		keyLoader:                            args.KeyLoader,
@@ -167,6 +177,21 @@ func (ccf *cryptoComponentsFactory) Create() (*cryptoComponents, error) {
 		return nil, err
 	}
 
+	// TODO: refactor the logic for isMainMachine
+	redundancyLevel := int(ccf.prefsConfig.Preferences.RedundancyLevel)
+	isMainMachine := redundancyLevel == mainMachineRedundancyLevel
+	argsKeysHolder := keysManagement.ArgsVirtualPeersHolder{
+		KeyGenerator:                     blockSignKeyGen,
+		P2PIdentityGenerator:             p2pCrypto.NewIdentityGenerator(),
+		IsMainMachine:                    isMainMachine,
+		MaxRoundsWithoutReceivedMessages: redundancyLevel,
+		PrefsConfig:                      ccf.prefsConfig,
+	}
+	keysHolder, err := keysManagement.NewVirtualPeersHolder(argsKeysHolder)
+	if err != nil {
+		return nil, err
+	}
+
 	log.Debug("block sign pubkey", "value", cp.publicKeyString)
 
 	return &cryptoComponents{
@@ -177,6 +202,7 @@ func (ccf *cryptoComponentsFactory) Create() (*cryptoComponents, error) {
 		blockSignKeyGen:     blockSignKeyGen,
 		txSignKeyGen:        txSignKeyGen,
 		messageSignVerifier: messageSignVerifier,
+		keysHolder:          keysHolder,
 		cryptoParams:        *cp,
 	}, nil
 }

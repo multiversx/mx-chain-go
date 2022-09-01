@@ -2842,6 +2842,7 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger() {
 		MaxDurationPeerUnresponsiveInSec:                 10,
 		HideInactiveValidatorIntervalInSec:               60,
 		HardforkTimeBetweenSendsInSec:                    2,
+		PeerAuthenticationTimeBetweenChecksInSec:         1,
 		PeerAuthenticationPool: config.PeerAuthenticationPoolConfig{
 			DefaultSpanInSec: 30,
 			CacheExpiryInSec: 30,
