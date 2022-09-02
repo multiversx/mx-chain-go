@@ -73,6 +73,21 @@ func GetBroadcastMessenger(
 		return nil, spos.ErrNilShardCoordinator
 	}
 
+	dbbArgs := &broadcast.ArgsDelayedBlockBroadcaster{
+		InterceptorsContainer: interceptorsContainer,
+		HeadersSubscriber:     headersSubscriber,
+		LeaderCacheSize:       maxDelayCacheSize,
+		ValidatorCacheSize:    maxDelayCacheSize,
+		ShardCoordinator:      shardCoordinator,
+		AlarmScheduler:        alarmScheduler,
+		HeadersCache:          headersCache,
+	}
+
+	dbb, err := broadcast.NewDelayedBlockBroadcaster(dbbArgs)
+	if err != nil {
+		return nil, err
+	}
+
 	commonMessengerArgs := broadcast.CommonMessengerArgs{
 		Marshalizer:                marshalizer,
 		Hasher:                     hasher,
@@ -85,7 +100,7 @@ func GetBroadcastMessenger(
 		MaxValidatorDelayCacheSize: maxDelayCacheSize,
 		InterceptorsContainer:      interceptorsContainer,
 		AlarmScheduler:             alarmScheduler,
-		HeadersCache:               headersCache,
+		DelayBlockBroadcaster:      dbb,
 	}
 
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {

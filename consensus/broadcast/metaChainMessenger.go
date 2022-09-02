@@ -30,21 +30,6 @@ func NewMetaChainMessenger(
 		return nil, err
 	}
 
-	dbbArgs := &ArgsDelayedBlockBroadcaster{
-		InterceptorsContainer: args.InterceptorsContainer,
-		HeadersSubscriber:     args.HeadersSubscriber,
-		LeaderCacheSize:       args.MaxDelayCacheSize,
-		ValidatorCacheSize:    args.MaxValidatorDelayCacheSize,
-		ShardCoordinator:      args.ShardCoordinator,
-		AlarmScheduler:        args.AlarmScheduler,
-		HeadersCache:          args.HeadersCache,
-	}
-
-	dbb, err := NewDelayedBlockBroadcaster(dbbArgs)
-	if err != nil {
-		return nil, err
-	}
-
 	cm := &commonMessenger{
 		marshalizer:             args.Marshalizer,
 		hasher:                  args.Hasher,
@@ -52,14 +37,14 @@ func NewMetaChainMessenger(
 		privateKey:              args.PrivateKey,
 		shardCoordinator:        args.ShardCoordinator,
 		peerSignatureHandler:    args.PeerSignatureHandler,
-		delayedBlockBroadcaster: dbb,
+		delayedBlockBroadcaster: args.DelayBlockBroadcaster,
 	}
 
 	mcm := &metaChainMessenger{
 		commonMessenger: cm,
 	}
 
-	err = dbb.SetBroadcastHandlers(mcm.BroadcastMiniBlocks, mcm.BroadcastTransactions, mcm.BroadcastHeader)
+	err = cm.delayedBlockBroadcaster.SetBroadcastHandlers(mcm.BroadcastMiniBlocks, mcm.BroadcastTransactions, mcm.BroadcastHeader)
 	if err != nil {
 		return nil, err
 	}

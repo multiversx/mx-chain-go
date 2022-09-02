@@ -55,6 +55,7 @@ type CommonMessengerArgs struct {
 	MaxValidatorDelayCacheSize uint32
 	AlarmScheduler             core.TimersScheduler
 	HeadersCache               consensus.Cacher
+	DelayBlockBroadcaster      delayedBroadcaster
 }
 
 func checkCommonMessengerNilParameters(
