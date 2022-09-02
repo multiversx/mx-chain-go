@@ -148,7 +148,7 @@ func (monitor *heartbeatV2Monitor) parseMessage(pid core.PeerID, message interfa
 	crtTime := time.Now()
 	messageAge := monitor.getMessageAge(crtTime, payload.Timestamp)
 	stringType := monitor.computePeerType(peerInfo.PkBytes)
-	if monitor.shouldSkipMessage(messageAge, stringType) {
+	if monitor.shouldSkipMessage(messageAge) {
 		return pubKeyHeartbeat, heartbeat.ErrShouldSkipValidator
 	}
 
@@ -205,12 +205,9 @@ func (monitor *heartbeatV2Monitor) isActive(messageAge time.Duration) bool {
 	return messageAge <= monitor.maxDurationPeerUnresponsive
 }
 
-func (monitor *heartbeatV2Monitor) shouldSkipMessage(messageAge time.Duration, peerType string) bool {
+func (monitor *heartbeatV2Monitor) shouldSkipMessage(messageAge time.Duration) bool {
 	isActive := monitor.isActive(messageAge)
-	isInactiveObserver := !isActive &&
-		peerType != string(common.EligibleList) &&
-		peerType != string(common.WaitingList)
-	if isInactiveObserver {
+	if !isActive {
 		return messageAge > monitor.hideInactiveValidatorInterval
 	}
 

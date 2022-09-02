@@ -298,11 +298,11 @@ func TestHeartbeatV2Monitor_shouldSkipMessage(t *testing.T) {
 	assert.False(t, check.IfNil(monitor))
 
 	// active
-	assert.False(t, monitor.shouldSkipMessage(time.Second, string(common.EligibleList)))
-	// inactive observer but should not hide yet
-	assert.False(t, monitor.shouldSkipMessage(args.HideInactiveValidatorInterval-time.Second, string(common.ObserverList)))
-	// inactive observer and too old should be hidden
-	assert.True(t, monitor.shouldSkipMessage(args.HideInactiveValidatorInterval+time.Second, string(common.ObserverList)))
+	assert.False(t, monitor.shouldSkipMessage(time.Second))
+	// inactive but should not hide yet
+	assert.False(t, monitor.shouldSkipMessage(args.HideInactiveValidatorInterval-time.Second))
+	// inactive and too old should be hidden
+	assert.True(t, monitor.shouldSkipMessage(args.HideInactiveValidatorInterval+time.Second))
 }
 
 func TestHeartbeatV2Monitor_GetHeartbeats(t *testing.T) {

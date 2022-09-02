@@ -927,7 +927,7 @@
     DelayBetweenConnectionNotificationsInSec         = 60   # 1min
     MaxMissingKeysInRequest                          = 1000
     MaxDurationPeerUnresponsiveInSec                 = 900  # 15min
-    HideInactiveValidatorIntervalInSec               = 3600 # 1h
+    HideInactiveValidatorIntervalInSec               = 1800 # 30min TODO: change this for mainnet/devnet/testnet at ~1 epoch
     HardforkTimeBetweenSendsInSec                    = 60   # 1min
     [HeartbeatV2.PeerAuthenticationPool]
         DefaultSpanInSec = 3600 # 1h
