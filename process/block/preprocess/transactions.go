@@ -61,6 +61,8 @@ type transactions struct {
 	emptyAddress                 []byte
 	txTypeHandler                process.TxTypeHandler
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
+
+	scheduledTXContinueFunc func(isShardStuck func(uint32) bool, wrappedTx *txcache.WrappedTransaction, mapSCTxs map[string]struct{}, mbInfo *createScheduledMiniBlocksInfo) (*transaction.Transaction, *block.MiniBlock, bool)
 }
 
 // ArgsTransactionPreProcessor holds the arguments to create a txs pre processor
@@ -182,6 +184,7 @@ func NewTransactionPreprocessor(
 	txs.accountTxsShards.accountsInfo = make(map[string]*txShardInfo)
 
 	txs.emptyAddress = make([]byte, txs.pubkeyConverter.Len())
+	txs.scheduledTXContinueFunc = txs.shouldContinueProcessingScheduledTx
 
 	return txs, nil
 }

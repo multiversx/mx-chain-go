@@ -279,7 +279,7 @@ func (txs *transactions) createScheduledMiniBlocks(
 			break
 		}
 
-		tx, miniBlock, shouldContinue := txs.shouldContinueProcessingScheduledTx(
+		tx, miniBlock, shouldContinue := txs.scheduledTXContinueFunc(
 			isShardStuck,
 			sortedTxs[index],
 			mapSCTxs,
