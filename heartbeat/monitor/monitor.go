@@ -146,6 +146,7 @@ func (monitor *heartbeatV2Monitor) parseMessage(pid core.PeerID, message interfa
 	peerInfo := monitor.peerShardMapper.GetPeerInfo(pid)
 
 	crtTime := time.Now()
+	messageTime := time.Unix(payload.Timestamp, 0)
 	messageAge := monitor.getMessageAge(crtTime, payload.Timestamp)
 	stringType := monitor.computePeerType(peerInfo.PkBytes)
 	if monitor.shouldSkipMessage(messageAge) {
@@ -161,7 +162,7 @@ func (monitor *heartbeatV2Monitor) parseMessage(pid core.PeerID, message interfa
 
 	pubKeyHeartbeat = data.PubKeyHeartbeat{
 		PublicKey:       pk,
-		TimeStamp:       crtTime,
+		TimeStamp:       messageTime,
 		IsActive:        monitor.isActive(messageAge),
 		ReceivedShardID: monitor.shardId,
 		ComputedShardID: peerInfo.ShardID,
