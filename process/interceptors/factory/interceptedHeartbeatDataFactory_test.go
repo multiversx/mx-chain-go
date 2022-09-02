@@ -62,6 +62,7 @@ func TestNewInterceptedHeartbeatDataFactory(t *testing.T) {
 			Identity:        "identity",
 			Nonce:           10,
 			PeerSubType:     0,
+			Pubkey:          []byte("public key"),
 		}
 		marshaledHeartbeat, err := marshaller.Marshal(hb)
 		assert.Nil(t, err)

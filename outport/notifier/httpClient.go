@@ -84,5 +84,10 @@ func (h *httpClient) Post(
 		return err
 	}
 
+	if resp.StatusCode != http.StatusOK {
+		log.Warn("httpClient: received HTTP status", "code", resp.StatusCode, "responseBody", string(resBody))
+		return fmt.Errorf("HTTP status code: %d, %s", resp.StatusCode, http.StatusText(resp.StatusCode))
+	}
+
 	return json.Unmarshal(resBody, &response)
 }

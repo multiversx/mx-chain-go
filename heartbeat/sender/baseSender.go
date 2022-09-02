@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/core/random"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
 )
 
@@ -24,6 +25,8 @@ type argBaseSender struct {
 	timeBetweenSends          time.Duration
 	timeBetweenSendsWhenError time.Duration
 	thresholdBetweenSends     float64
+	redundancyHandler         heartbeat.NodeRedundancyHandler
+	privKey                   crypto.PrivateKey
 }
 
 type baseSender struct {
@@ -34,6 +37,10 @@ type baseSender struct {
 	timeBetweenSends          time.Duration
 	timeBetweenSendsWhenError time.Duration
 	thresholdBetweenSends     float64
+	redundancy                heartbeat.NodeRedundancyHandler
+	privKey                   crypto.PrivateKey
+	publicKey                 crypto.PublicKey
+	observerPublicKey         crypto.PublicKey
 }
 
 func createBaseSender(args argBaseSender) baseSender {
@@ -44,6 +51,10 @@ func createBaseSender(args argBaseSender) baseSender {
 		timeBetweenSends:          args.timeBetweenSends,
 		timeBetweenSendsWhenError: args.timeBetweenSendsWhenError,
 		thresholdBetweenSends:     args.thresholdBetweenSends,
+		redundancy:                args.redundancyHandler,
+		privKey:                   args.privKey,
+		publicKey:                 args.privKey.GeneratePublic(),
+		observerPublicKey:         args.redundancyHandler.ObserverPrivateKey().GeneratePublic(),
 	}
 	bs.timerHandler = &timerWrapper{
 		timer: time.NewTimer(bs.computeRandomDuration(bs.timeBetweenSends)),
@@ -72,6 +83,12 @@ func checkBaseSenderArgs(args argBaseSender) error {
 		return fmt.Errorf("%w for thresholdBetweenSends, receieved %f, min allowed %f, max allowed %f",
 			heartbeat.ErrInvalidThreshold, args.thresholdBetweenSends, minThresholdBetweenSends, maxThresholdBetweenSends)
 	}
+	if check.IfNil(args.privKey) {
+		return heartbeat.ErrNilPrivateKey
+	}
+	if check.IfNil(args.redundancyHandler) {
+		return heartbeat.ErrNilRedundancyHandler
+	}
 
 	return nil
 }
@@ -83,4 +100,13 @@ func (bs *baseSender) computeRandomDuration(baseDuration time.Duration) time.Dur
 
 	ret := time.Duration(timeBetweenSendsInNano + int64(randThreshold))
 	return ret
+}
+
+func (bs *baseSender) getCurrentPrivateAndPublicKeys() (crypto.PrivateKey, crypto.PublicKey) {
+	shouldUseOriginalKeys := !bs.redundancy.IsRedundancyNode() || (bs.redundancy.IsRedundancyNode() && !bs.redundancy.IsMainMachineActive())
+	if shouldUseOriginalKeys {
+		return bs.privKey, bs.publicKey
+	}
+
+	return bs.redundancy.ObserverPrivateKey(), bs.observerPublicKey
 }
