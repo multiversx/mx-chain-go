@@ -244,12 +244,13 @@ func NewTestHeartbeatNodeWithCoordinator(
 	}
 
 	thn := &TestHeartbeatNode{
-		ShardCoordinator: shardCoordinator,
-		NodesCoordinator: coordinator,
-		Messenger:        messenger,
-		PeerSigHandler:   peerSigHandler,
-		PeerShardMapper:  peerShardMapper,
-		Interceptor:      NewCountInterceptor(),
+		ShardCoordinator:             shardCoordinator,
+		NodesCoordinator:             coordinator,
+		Messenger:                    messenger,
+		PeerSigHandler:               peerSigHandler,
+		PeerShardMapper:              peerShardMapper,
+		Interceptor:                  NewCountInterceptor(),
+		heartbeatExpiryTimespanInSec: 30,
 	}
 
 	localId := thn.Messenger.ID()
