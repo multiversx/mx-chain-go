@@ -206,6 +206,8 @@ func TestNewHeartbeatV2Monitor(t *testing.T) {
 		message2 := createHeartbeatMessage(true)
 		args.Cache.Put(pid2, message2, message2.Size())
 		time.Sleep(time.Second) // allow goroutines to execute
+
+		assert.Nil(t, monitor.Close())
 	})
 }
 
