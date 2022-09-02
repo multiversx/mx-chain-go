@@ -199,6 +199,7 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 		HideInactiveValidatorInterval: time.Second * time.Duration(cfg.HideInactiveValidatorIntervalInSec),
 		ShardId:                       epochBootstrapParams.SelfShardID(),
 		PeerTypeProvider:              peerTypeProvider,
+		AppStatusHandler:              hcf.coreComponents.StatusHandler(),
 	}
 	heartbeatsMonitor, err := monitor.NewHeartbeatV2Monitor(argsMonitor)
 	if err != nil {
