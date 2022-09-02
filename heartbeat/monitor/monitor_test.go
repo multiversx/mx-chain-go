@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -141,9 +142,12 @@ func TestNewHeartbeatV2Monitor(t *testing.T) {
 		t.Parallel()
 
 		args := createMockHeartbeatV2MonitorArgs()
+		var mutCounters sync.Mutex
 		counterComputeForPubKeyCalled := 0
 		args.PeerTypeProvider = &mock.PeerTypeProviderStub{
 			ComputeForPubKeyCalled: func(pubKey []byte) (common.PeerType, uint32, error) {
+				mutCounters.Lock()
+				defer mutCounters.Unlock()
 				if counterComputeForPubKeyCalled < 2 { // first 2 calls are for the validator
 					counterComputeForPubKeyCalled++
 					return common.EligibleList, 0, nil
@@ -155,6 +159,8 @@ func TestNewHeartbeatV2Monitor(t *testing.T) {
 		counterSetUInt64ValueHandler := 0
 		args.AppStatusHandler = &statusHandler.AppStatusHandlerStub{
 			SetUInt64ValueHandler: func(key string, value uint64) {
+				mutCounters.Lock()
+				defer mutCounters.Unlock()
 				switch counterSetUInt64ValueHandler {
 				case 0:
 					assert.Equal(t, common.MetricLiveValidatorNodes, key)
