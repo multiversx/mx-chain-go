@@ -120,6 +120,16 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 
 	cfg := hcf.config.HeartbeatV2
 
+	argPeerTypeProvider := peer.ArgPeerTypeProvider{
+		NodesCoordinator:        hcf.processComponents.NodesCoordinator(),
+		StartEpoch:              hcf.processComponents.EpochStartTrigger().MetaEpoch(),
+		EpochStartEventNotifier: hcf.processComponents.EpochStartNotifier(),
+	}
+	peerTypeProvider, err := peer.NewPeerTypeProvider(argPeerTypeProvider)
+	if err != nil {
+		return nil, err
+	}
+
 	argsSender := sender.ArgSender{
 		Messenger:                          hcf.networkComponents.NetworkMessenger(),
 		Marshaller:                         hcf.coreComponents.InternalMarshalizer(),
@@ -143,6 +153,8 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 		HardforkTrigger:                             hcf.processComponents.HardforkTrigger(),
 		HardforkTimeBetweenSends:                    time.Second * time.Duration(cfg.HardforkTimeBetweenSendsInSec),
 		HardforkTriggerPubKey:                       hcf.coreComponents.HardforkTriggerPubKey(),
+		PeerTypeProvider:                            peerTypeProvider,
+		AppStatusHandler:                            hcf.coreComponents.StatusHandler(),
 	}
 	heartbeatV2Sender, err := sender.NewSender(argsSender)
 	if err != nil {
@@ -176,16 +188,6 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 		NodesCoordinator:          hcf.processComponents.NodesCoordinator(),
 	}
 	directConnectionsProcessor, err := processor.NewDirectConnectionsProcessor(argsDirectConnectionsProcessor)
-	if err != nil {
-		return nil, err
-	}
-
-	argPeerTypeProvider := peer.ArgPeerTypeProvider{
-		NodesCoordinator:        hcf.processComponents.NodesCoordinator(),
-		StartEpoch:              hcf.processComponents.EpochStartTrigger().MetaEpoch(),
-		EpochStartEventNotifier: hcf.processComponents.EpochStartNotifier(),
-	}
-	peerTypeProvider, err := peer.NewPeerTypeProvider(argPeerTypeProvider)
 	if err != nil {
 		return nil, err
 	}

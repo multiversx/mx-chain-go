@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"sync"
 	"testing"
 	"time"
 
@@ -154,26 +153,15 @@ func TestNewHeartbeatV2Monitor(t *testing.T) {
 		t.Parallel()
 
 		args := createMockHeartbeatV2MonitorArgs()
-		args.TimeBetweenConnectionsMetricsUpdate = time.Second
-		var mutCounters sync.Mutex
-		counterComputeForPubKeyCalled := 0
+		args.TimeBetweenConnectionsMetricsUpdate = time.Second * 3
 		args.PeerTypeProvider = &mock.PeerTypeProviderStub{
 			ComputeForPubKeyCalled: func(pubKey []byte) (common.PeerType, uint32, error) {
-				mutCounters.Lock()
-				defer mutCounters.Unlock()
-				if counterComputeForPubKeyCalled < 2 { // first 2 calls are for the validator
-					counterComputeForPubKeyCalled++
-					return common.EligibleList, 0, nil
-				}
-
-				return "", 0, errors.New("this node is observer")
+				return common.EligibleList, 0, nil
 			},
 		}
 		counterSetUInt64ValueHandler := 0
 		args.AppStatusHandler = &statusHandler.AppStatusHandlerStub{
 			SetUInt64ValueHandler: func(key string, value uint64) {
-				mutCounters.Lock()
-				defer mutCounters.Unlock()
 				switch counterSetUInt64ValueHandler {
 				case 0:
 					assert.Equal(t, common.MetricLiveValidatorNodes, key)
@@ -181,14 +169,8 @@ func TestNewHeartbeatV2Monitor(t *testing.T) {
 				case 1:
 					assert.Equal(t, common.MetricConnectedNodes, key)
 					assert.Equal(t, 1, int(value))
-				case 2:
-					assert.Equal(t, common.MetricLiveValidatorNodes, key)
-					assert.Equal(t, 1, int(value))
-				case 3:
-					assert.Equal(t, common.MetricConnectedNodes, key)
-					assert.Equal(t, 2, int(value))
 				default:
-					assert.Fail(t, "only 2 nodes in test")
+					assert.Fail(t, "only 1 node in test")
 				}
 				counterSetUInt64ValueHandler++
 			},
@@ -198,14 +180,8 @@ func TestNewHeartbeatV2Monitor(t *testing.T) {
 		assert.Nil(t, err)
 
 		pid1 := []byte("validator peer id")
-		message1 := createHeartbeatMessage(true)
-		args.Cache.Put(pid1, message1, message1.Size())
-		time.Sleep(time.Second) // allow goroutines to execute
-
-		pid2 := []byte("observer peer id")
-		message2 := createHeartbeatMessage(true)
-		args.Cache.Put(pid2, message2, message2.Size())
-		time.Sleep(time.Second) // allow goroutines to execute
+		message := createHeartbeatMessage(true)
+		args.Cache.Put(pid1, message, message.Size())
 
 		assert.Nil(t, monitor.Close())
 	})

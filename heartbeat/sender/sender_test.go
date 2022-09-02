@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -41,6 +42,8 @@ func createMockSenderArgs() ArgSender {
 		HardforkTrigger:                             &testscommon.HardforkTriggerStub{},
 		HardforkTimeBetweenSends:                    time.Second,
 		HardforkTriggerPubKey:                       providedHardforkPubKey,
+		PeerTypeProvider:                            &mock.PeerTypeProviderStub{},
+		AppStatusHandler:                            &statusHandler.AppStatusHandlerStub{},
 	}
 }
 
@@ -247,6 +250,26 @@ func TestNewSender(t *testing.T) {
 		assert.Nil(t, sender)
 		assert.True(t, errors.Is(err, heartbeat.ErrInvalidValue))
 		assert.True(t, strings.Contains(err.Error(), "hardfork"))
+	})
+	t.Run("nil peer type provider should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockSenderArgs()
+		args.PeerTypeProvider = nil
+		sender, err := NewSender(args)
+
+		assert.Nil(t, sender)
+		assert.Equal(t, heartbeat.ErrNilPeerTypeProvider, err)
+	})
+	t.Run("nil status handler should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockSenderArgs()
+		args.AppStatusHandler = nil
+		sender, err := NewSender(args)
+
+		assert.Nil(t, sender)
+		assert.Equal(t, heartbeat.ErrNilAppStatusHandler, err)
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
