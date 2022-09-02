@@ -191,15 +191,16 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 	}
 
 	argsMonitor := monitor.ArgHeartbeatV2Monitor{
-		Cache:                         hcf.dataComponents.Datapool().Heartbeats(),
-		PubKeyConverter:               hcf.coreComponents.ValidatorPubKeyConverter(),
-		Marshaller:                    hcf.coreComponents.InternalMarshalizer(),
-		PeerShardMapper:               hcf.processComponents.PeerShardMapper(),
-		MaxDurationPeerUnresponsive:   time.Second * time.Duration(cfg.MaxDurationPeerUnresponsiveInSec),
-		HideInactiveValidatorInterval: time.Second * time.Duration(cfg.HideInactiveValidatorIntervalInSec),
-		ShardId:                       epochBootstrapParams.SelfShardID(),
-		PeerTypeProvider:              peerTypeProvider,
-		AppStatusHandler:              hcf.coreComponents.StatusHandler(),
+		Cache:                               hcf.dataComponents.Datapool().Heartbeats(),
+		PubKeyConverter:                     hcf.coreComponents.ValidatorPubKeyConverter(),
+		Marshaller:                          hcf.coreComponents.InternalMarshalizer(),
+		PeerShardMapper:                     hcf.processComponents.PeerShardMapper(),
+		MaxDurationPeerUnresponsive:         time.Second * time.Duration(cfg.MaxDurationPeerUnresponsiveInSec),
+		HideInactiveValidatorInterval:       time.Second * time.Duration(cfg.HideInactiveValidatorIntervalInSec),
+		ShardId:                             epochBootstrapParams.SelfShardID(),
+		PeerTypeProvider:                    peerTypeProvider,
+		AppStatusHandler:                    hcf.coreComponents.StatusHandler(),
+		TimeBetweenConnectionsMetricsUpdate: time.Second * time.Duration(hcf.config.HeartbeatV2.TimeBetweenConnectionsMetricsUpdateInSec),
 	}
 	heartbeatsMonitor, err := monitor.NewHeartbeatV2Monitor(argsMonitor)
 	if err != nil {
@@ -228,6 +229,10 @@ func (hc *heartbeatV2Components) Close() error {
 
 	if !check.IfNil(hc.directConnectionsProcessor) {
 		log.LogIfError(hc.directConnectionsProcessor.Close())
+	}
+
+	if !check.IfNil(hc.monitor) {
+		log.LogIfError(hc.monitor.Close())
 	}
 
 	return nil

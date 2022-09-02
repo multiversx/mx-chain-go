@@ -24,15 +24,16 @@ import (
 
 func createMockHeartbeatV2MonitorArgs() ArgHeartbeatV2Monitor {
 	return ArgHeartbeatV2Monitor{
-		Cache:                         testscommon.NewCacherMock(),
-		PubKeyConverter:               &testscommon.PubkeyConverterMock{},
-		Marshaller:                    &testscommon.MarshalizerMock{},
-		PeerShardMapper:               &p2pmocks.NetworkShardingCollectorStub{},
-		MaxDurationPeerUnresponsive:   time.Second * 3,
-		HideInactiveValidatorInterval: time.Second * 5,
-		ShardId:                       0,
-		PeerTypeProvider:              &mock.PeerTypeProviderStub{},
-		AppStatusHandler:              &statusHandler.AppStatusHandlerStub{},
+		Cache:                               testscommon.NewCacherMock(),
+		PubKeyConverter:                     &testscommon.PubkeyConverterMock{},
+		Marshaller:                          &testscommon.MarshalizerMock{},
+		PeerShardMapper:                     &p2pmocks.NetworkShardingCollectorStub{},
+		MaxDurationPeerUnresponsive:         time.Second * 3,
+		HideInactiveValidatorInterval:       time.Second * 5,
+		ShardId:                             0,
+		PeerTypeProvider:                    &mock.PeerTypeProviderStub{},
+		AppStatusHandler:                    &statusHandler.AppStatusHandlerStub{},
+		TimeBetweenConnectionsMetricsUpdate: time.Second * 5,
 	}
 }
 
@@ -139,10 +140,21 @@ func TestNewHeartbeatV2Monitor(t *testing.T) {
 		assert.True(t, check.IfNil(monitor))
 		assert.Equal(t, heartbeat.ErrNilAppStatusHandler, err)
 	})
+	t.Run("invalid time between connections metrics should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockHeartbeatV2MonitorArgs()
+		args.TimeBetweenConnectionsMetricsUpdate = time.Second - time.Nanosecond
+		monitor, err := NewHeartbeatV2Monitor(args)
+		assert.True(t, check.IfNil(monitor))
+		assert.True(t, errors.Is(err, heartbeat.ErrInvalidTimeDuration))
+		assert.True(t, strings.Contains(err.Error(), "TimeBetweenConnectionsMetricsUpdate"))
+	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockHeartbeatV2MonitorArgs()
+		args.TimeBetweenConnectionsMetricsUpdate = time.Second
 		var mutCounters sync.Mutex
 		counterComputeForPubKeyCalled := 0
 		args.PeerTypeProvider = &mock.PeerTypeProviderStub{

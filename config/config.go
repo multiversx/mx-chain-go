@@ -123,6 +123,7 @@ type HeartbeatV2Config struct {
 	PeerAuthenticationPool                           PeerAuthenticationPoolConfig
 	HeartbeatPool                                    CacheConfig
 	HardforkTimeBetweenSendsInSec                    int64
+	TimeBetweenConnectionsMetricsUpdateInSec         int64
 }
 
 // PeerAuthenticationPoolConfig will hold the configuration for peer authentication pool
