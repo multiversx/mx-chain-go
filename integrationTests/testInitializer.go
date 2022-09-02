@@ -1641,7 +1641,7 @@ func CreateAndSendTransaction(
 		Version:  MinTransactionVersion,
 	}
 
-	txBuff, _ := tx.GetDataForSigning(TestAddressPubkeyConverter, TestTxSignMarshalizer)
+	txBuff, _ := tx.GetDataForSigning(TestAddressPubkeyConverter, TestTxSignMarshalizer, TestTxSignHasher)
 	tx.Signature, _ = node.OwnAccount.SingleSigner.Sign(node.OwnAccount.SkTxSign, txBuff)
 	senderShardID := node.ShardCoordinator.ComputeId(node.OwnAccount.Address)
 
@@ -1688,7 +1688,7 @@ func CreateAndSendTransactionWithGasLimit(
 		Version:  version,
 	}
 
-	txBuff, _ := tx.GetDataForSigning(TestAddressPubkeyConverter, TestTxSignMarshalizer)
+	txBuff, _ := tx.GetDataForSigning(TestAddressPubkeyConverter, TestTxSignMarshalizer, TestTxSignHasher)
 	tx.Signature, _ = node.OwnAccount.SingleSigner.Sign(node.OwnAccount.SkTxSign, txBuff)
 
 	_, _ = node.SendTransaction(tx)
@@ -1729,7 +1729,7 @@ func GenerateTransferTx(
 		ChainID:  chainID,
 		Version:  version,
 	}
-	txBuff, _ := tx.GetDataForSigning(TestAddressPubkeyConverter, TestTxSignMarshalizer)
+	txBuff, _ := tx.GetDataForSigning(TestAddressPubkeyConverter, TestTxSignMarshalizer, TestTxSignHasher)
 	signer := &ed25519SingleSig.Ed25519Signer{}
 	tx.Signature, _ = signer.Sign(senderPrivateKey, txBuff)
 
@@ -1752,7 +1752,7 @@ func generateTx(
 		ChainID:  ChainID,
 		Version:  MinTransactionVersion,
 	}
-	txBuff, _ := tx.GetDataForSigning(TestAddressPubkeyConverter, TestTxSignMarshalizer)
+	txBuff, _ := tx.GetDataForSigning(TestAddressPubkeyConverter, TestTxSignMarshalizer, TestTxSignHasher)
 	tx.Signature, _ = signer.Sign(skSign, txBuff)
 
 	return tx

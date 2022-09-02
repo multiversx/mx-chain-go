@@ -109,7 +109,7 @@ func createUserTx(
 		ChainID:  integrationTests.ChainID,
 		Version:  integrationTests.MinTransactionVersion,
 	}
-	txBuff, _ := tx.GetDataForSigning(integrationTests.TestAddressPubkeyConverter, integrationTests.TestTxSignMarshalizer)
+	txBuff, _ := tx.GetDataForSigning(integrationTests.TestAddressPubkeyConverter, integrationTests.TestTxSignMarshalizer, integrationTests.TestTxSignHasher)
 	tx.Signature, _ = player.SingleSigner.Sign(player.SkTxSign, txBuff)
 	player.Nonce++
 	return tx

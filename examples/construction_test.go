@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/hashing/blake2b"
+	"github.com/ElrondNetwork/elrond-go-core/hashing/keccak"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/ed25519"
@@ -22,6 +23,7 @@ import (
 var (
 	addressEncoder, _  = pubkeyConverter.NewBech32PubkeyConverter(32, &mock.LoggerMock{})
 	signingMarshalizer = &marshal.JsonMarshalizer{}
+	txSignHasher       = keccak.NewKeccak()
 	signer             = &singlesig.Ed25519Signer{}
 	signingCryptoSuite = ed25519.NewEd25519()
 	contentMarshalizer = &marshal.GogoProtoMarshalizer{}
@@ -189,7 +191,7 @@ func computeTransactionSignature(t *testing.T, senderSeedHex string, tx *transac
 	privateKey, err := keyGenerator.PrivateKeyFromByteArray(senderSeed)
 	require.Nil(t, err)
 
-	dataToSign, err := tx.GetDataForSigning(addressEncoder, signingMarshalizer)
+	dataToSign, err := tx.GetDataForSigning(addressEncoder, signingMarshalizer, txSignHasher)
 	require.Nil(t, err)
 
 	signature, err := signer.Sign(privateKey, dataToSign)
