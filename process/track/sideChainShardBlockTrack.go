@@ -15,9 +15,22 @@ func NewSideChainShardBlockTrack(shardBlockTrack *shardBlockTrack) (*sideChainSh
 		return nil, process.ErrNilBlockTracker
 	}
 
-	return &sideChainShardBlockTrack{
+	sideChainBlockTrack := &sideChainShardBlockTrack{
 		shardBlockTrack,
-	}, nil
+	}
+
+	originalBlockProcessor, ok := sideChainBlockTrack.blockProcessor.(*blockProcessor)
+	if !ok {
+		return nil, process.ErrWrongTypeAssertion
+	}
+
+	newBlockProcessor, err := NewSideChainBlockProcessor(originalBlockProcessor)
+	if err != nil {
+		return nil, err
+	}
+
+	sideChainBlockTrack.blockProcessor = newBlockProcessor
+	return sideChainBlockTrack, nil
 }
 
 // ComputeLongestSelfChain computes the longest chain from self shard
