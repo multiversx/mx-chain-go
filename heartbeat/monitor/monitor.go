@@ -31,6 +31,7 @@ type ArgHeartbeatV2Monitor struct {
 	HideInactiveValidatorInterval time.Duration
 	ShardId                       uint32
 	PeerTypeProvider              heartbeat.PeerTypeProviderHandler
+	AppStatusHandler              core.AppStatusHandler
 }
 
 type heartbeatV2Monitor struct {
@@ -42,6 +43,7 @@ type heartbeatV2Monitor struct {
 	hideInactiveValidatorInterval time.Duration
 	shardId                       uint32
 	peerTypeProvider              heartbeat.PeerTypeProviderHandler
+	appStatusHandler              core.AppStatusHandler
 }
 
 // NewHeartbeatV2Monitor creates a new instance of heartbeatV2Monitor
@@ -51,7 +53,7 @@ func NewHeartbeatV2Monitor(args ArgHeartbeatV2Monitor) (*heartbeatV2Monitor, err
 		return nil, err
 	}
 
-	return &heartbeatV2Monitor{
+	hbv2Monitor := &heartbeatV2Monitor{
 		cache:                         args.Cache,
 		pubKeyConverter:               args.PubKeyConverter,
 		marshaller:                    args.Marshaller,
@@ -60,7 +62,12 @@ func NewHeartbeatV2Monitor(args ArgHeartbeatV2Monitor) (*heartbeatV2Monitor, err
 		hideInactiveValidatorInterval: args.HideInactiveValidatorInterval,
 		shardId:                       args.ShardId,
 		peerTypeProvider:              args.PeerTypeProvider,
-	}, nil
+		appStatusHandler:              args.AppStatusHandler,
+	}
+
+	hbv2Monitor.cache.RegisterHandler(hbv2Monitor.updateMetrics, core.UniqueIdentifier())
+
+	return hbv2Monitor, nil
 }
 
 func checkArgs(args ArgHeartbeatV2Monitor) error {
@@ -86,6 +93,9 @@ func checkArgs(args ArgHeartbeatV2Monitor) error {
 	}
 	if check.IfNil(args.PeerTypeProvider) {
 		return heartbeat.ErrNilPeerTypeProvider
+	}
+	if check.IfNil(args.AppStatusHandler) {
+		return heartbeat.ErrNilAppStatusHandler
 	}
 
 	return nil
@@ -211,6 +221,29 @@ func (monitor *heartbeatV2Monitor) shouldSkipMessage(messageAge time.Duration, p
 	}
 
 	return false
+}
+
+func (monitor *heartbeatV2Monitor) updateMetrics(_ []byte, _ interface{}) {
+	heartbeats := monitor.GetHeartbeats()
+
+	counterActiveValidators := 0
+	counterConnectedNodes := 0
+	for _, heartbeatMessage := range heartbeats {
+		if heartbeatMessage.IsActive {
+			counterConnectedNodes++
+
+			if isValidator(heartbeatMessage.PeerType) {
+				counterActiveValidators++
+			}
+		}
+	}
+
+	monitor.appStatusHandler.SetUInt64Value(common.MetricLiveValidatorNodes, uint64(counterActiveValidators))
+	monitor.appStatusHandler.SetUInt64Value(common.MetricConnectedNodes, uint64(counterConnectedNodes))
+}
+
+func isValidator(peerType string) bool {
+	return peerType == string(common.EligibleList) || peerType == string(common.WaitingList)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

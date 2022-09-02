@@ -17,6 +17,7 @@ import (
 	processMocks "github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -30,6 +31,7 @@ func createMockHeartbeatV2MonitorArgs() ArgHeartbeatV2Monitor {
 		HideInactiveValidatorInterval: time.Second * 5,
 		ShardId:                       0,
 		PeerTypeProvider:              &mock.PeerTypeProviderStub{},
+		AppStatusHandler:              &statusHandler.AppStatusHandlerStub{},
 	}
 }
 
@@ -126,12 +128,65 @@ func TestNewHeartbeatV2Monitor(t *testing.T) {
 		assert.True(t, check.IfNil(monitor))
 		assert.Equal(t, heartbeat.ErrNilPeerTypeProvider, err)
 	})
+	t.Run("nil app status handler should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockHeartbeatV2MonitorArgs()
+		args.AppStatusHandler = nil
+		monitor, err := NewHeartbeatV2Monitor(args)
+		assert.True(t, check.IfNil(monitor))
+		assert.Equal(t, heartbeat.ErrNilAppStatusHandler, err)
+	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		monitor, err := NewHeartbeatV2Monitor(createMockHeartbeatV2MonitorArgs())
+		args := createMockHeartbeatV2MonitorArgs()
+		counterComputeForPubKeyCalled := 0
+		args.PeerTypeProvider = &mock.PeerTypeProviderStub{
+			ComputeForPubKeyCalled: func(pubKey []byte) (common.PeerType, uint32, error) {
+				if counterComputeForPubKeyCalled < 2 { // first 2 calls are for the validator
+					counterComputeForPubKeyCalled++
+					return common.EligibleList, 0, nil
+				}
+
+				return "", 0, errors.New("this node is observer")
+			},
+		}
+		counterSetUInt64ValueHandler := 0
+		args.AppStatusHandler = &statusHandler.AppStatusHandlerStub{
+			SetUInt64ValueHandler: func(key string, value uint64) {
+				switch counterSetUInt64ValueHandler {
+				case 0:
+					assert.Equal(t, common.MetricLiveValidatorNodes, key)
+					assert.Equal(t, 1, int(value))
+				case 1:
+					assert.Equal(t, common.MetricConnectedNodes, key)
+					assert.Equal(t, 1, int(value))
+				case 2:
+					assert.Equal(t, common.MetricLiveValidatorNodes, key)
+					assert.Equal(t, 1, int(value))
+				case 3:
+					assert.Equal(t, common.MetricConnectedNodes, key)
+					assert.Equal(t, 2, int(value))
+				default:
+					assert.Fail(t, "only 2 nodes in test")
+				}
+				counterSetUInt64ValueHandler++
+			},
+		}
+		monitor, err := NewHeartbeatV2Monitor(args)
 		assert.False(t, check.IfNil(monitor))
 		assert.Nil(t, err)
+
+		pid1 := []byte("validator peer id")
+		message1 := createHeartbeatMessage(true)
+		args.Cache.Put(pid1, message1, message1.Size())
+		time.Sleep(time.Second) // allow goroutines to execute
+
+		pid2 := []byte("observer peer id")
+		message2 := createHeartbeatMessage(true)
+		args.Cache.Put(pid2, message2, message2.Size())
+		time.Sleep(time.Second) // allow goroutines to execute
 	})
 }
 
