@@ -321,7 +321,7 @@ func (txs *transactions) ProcessBlockTransactions(
 	}
 
 	if txs.isBodyFromMe(body) {
-		return txs.processTxsFromMe(body, haveTime, header.GetPrevRandSeed())
+		return txs.processTxsFromMeAndCreateScheduled(body, haveTime, header.GetPrevRandSeed())
 	}
 
 	return process.ErrInvalidBody
@@ -600,18 +600,17 @@ func (txs *transactions) processTxsToMe(
 	return nil
 }
 
-func (txs *transactions) processTxsFromMe(
-	body *block.Body,
+func (txs *transactions) processTxsFromMe(body *block.Body,
 	haveTime func() bool,
 	randomness []byte,
-) error {
+) (block.MiniBlockSlice, map[string]struct{}, error) {
 	if check.IfNil(body) {
-		return process.ErrNilBlockBody
+		return nil, nil, process.ErrNilBlockBody
 	}
 
 	txsFromMe, err := txs.computeTxsFromMe(body)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	txs.sortTransactionsBySenderAndNonce(txsFromMe, randomness)
@@ -622,9 +621,6 @@ func (txs *transactions) processTxsFromMe(
 	isMaxBlockSizeReachedFalse := func(int, int) bool {
 		return false
 	}
-	haveAdditionalTimeFalse := func() bool {
-		return false
-	}
 
 	calculatedMiniBlocks, _, mapSCTxs, err := txs.createAndProcessMiniBlocksFromMe(
 		haveTime,
@@ -633,11 +629,34 @@ func (txs *transactions) processTxsFromMe(
 		txsFromMe,
 	)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	if !haveTime() {
-		return process.ErrTimeIsOut
+		return nil, nil, process.ErrTimeIsOut
+	}
+
+	return calculatedMiniBlocks, mapSCTxs, nil
+}
+
+func (txs *transactions) processTxsFromMeAndCreateScheduled(
+	body *block.Body,
+	haveTime func() bool,
+	randomness []byte,
+) error {
+	calculatedMiniBlocks, mapSCTxs, err := txs.processTxsFromMe(body, haveTime, randomness)
+	if err != nil {
+		return err
+	}
+
+	isShardStuckFalse := func(uint32) bool {
+		return false
+	}
+	isMaxBlockSizeReachedFalse := func(int, int) bool {
+		return false
+	}
+	haveAdditionalTimeFalse := func() bool {
+		return false
 	}
 
 	scheduledMiniBlocks, err := txs.createAndProcessScheduledMiniBlocksFromMeAsValidator(

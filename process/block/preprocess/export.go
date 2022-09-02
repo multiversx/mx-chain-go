@@ -42,3 +42,12 @@ func (txs *transactions) SetScheduledTXContinueFunc(newFunc func(isShardStuck fu
 		txs.scheduledTXContinueFunc = newFunc
 	}
 }
+
+// ProcessTxsFromMe exported function
+func (txs *transactions) ProcessTxsFromMe(
+	body *block.Body,
+	haveTime func() bool,
+	randomness []byte,
+) (block.MiniBlockSlice, map[string]struct{}, error) {
+	return txs.processTxsFromMe(body, haveTime, randomness)
+}
