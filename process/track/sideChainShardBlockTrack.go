@@ -44,3 +44,8 @@ func (scsbt *sideChainShardBlockTrack) ComputeLongestSelfChain() (data.HeaderHan
 	headers, hashes := scsbt.ComputeLongestChain(scsbt.shardCoordinator.SelfId(), lastSelfNotarizedHeader)
 	return lastSelfNotarizedHeader, lastSelfNotarizedHeaderHash, headers, hashes
 }
+
+// GetSelfNotarizedHeader returns a self notarized header for self shard with a given offset, behind last self notarized header
+func (scsbt *sideChainShardBlockTrack) GetSelfNotarizedHeader(_ uint32, offset uint64) (data.HeaderHandler, []byte, error) {
+	return scsbt.selfNotarizer.GetNotarizedHeader(scsbt.shardCoordinator.SelfId(), offset)
+}

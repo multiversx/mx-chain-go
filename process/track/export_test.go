@@ -31,6 +31,14 @@ func (sbt *shardBlockTrack) GetTrackedShardHeaderWithNonceAndHash(shardID uint32
 	return sbt.getTrackedShardHeaderWithNonceAndHash(shardID, nonce, hash)
 }
 
+func (sbt *shardBlockTrack) SetBlockProcessor(blockProcessor blockProcessorHandler) {
+	sbt.blockProcessor = blockProcessor
+}
+
+func (sbt *shardBlockTrack) SetSelfNotarizer(selfNotarizer blockNotarizerHandler) {
+	sbt.selfNotarizer = selfNotarizer
+}
+
 // metaBlockTrack
 
 func (mbt *metaBlockTrack) GetTrackedMetaBlockWithHash(hash []byte) (*block.MetaBlock, error) {
@@ -213,6 +221,12 @@ func (bp *blockProcessor) RequestHeaders(shardID uint32, fromNonce uint64) {
 
 func (bp *blockProcessor) ShouldProcessReceivedHeader(headerHandler data.HeaderHandler) bool {
 	return bp.shouldProcessReceivedHeader(headerHandler)
+}
+
+// sideChainBlockProcessor
+
+func (scbp *sideChainBlockProcessor) ShouldProcessReceivedHeader(headerHandler data.HeaderHandler) bool {
+	return scbp.shouldProcessReceivedHeader(headerHandler)
 }
 
 // miniBlockTrack
