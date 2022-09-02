@@ -58,7 +58,7 @@ func NewShardResolversContainerFactory(
 		numFullHistoryPeers:                  int(args.ResolverConfig.NumFullHistoryPeers),
 		nodesCoordinator:                     args.NodesCoordinator,
 		maxNumOfPeerAuthenticationInResponse: args.MaxNumOfPeerAuthenticationInResponse,
-		peerShardMapper:                      args.PeerShardMapper,
+		payloadValidator:                     args.PayloadValidator,
 	}
 
 	err = base.checkParams()
@@ -136,7 +136,7 @@ func (srcf *shardResolversContainerFactory) Create() (dataRetriever.ResolversCon
 	return srcf.container, nil
 }
 
-//------- Hdr resolver
+// ------- Hdr resolver
 
 func (srcf *shardResolversContainerFactory) generateHeaderResolvers() error {
 	shardC := srcf.shardCoordinator
@@ -186,7 +186,7 @@ func (srcf *shardResolversContainerFactory) generateHeaderResolvers() error {
 	return srcf.container.Add(identifierHdr, resolver)
 }
 
-//------- MetaBlockHeaderResolvers
+// ------- MetaBlockHeaderResolvers
 
 func (srcf *shardResolversContainerFactory) generateMetablockHeaderResolvers() error {
 	// only one metachain header block topic

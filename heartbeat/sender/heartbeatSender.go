@@ -42,8 +42,8 @@ func newHeartbeatSender(args argHeartbeatSender) (*heartbeatSender, error) {
 		versionNumber:        args.versionNumber,
 		nodeDisplayName:      args.nodeDisplayName,
 		identity:             args.identity,
-		currentBlockProvider: args.currentBlockProvider,
 		peerSubType:          args.peerSubType,
+		currentBlockProvider: args.currentBlockProvider,
 	}, nil
 }
 
@@ -101,6 +101,12 @@ func (sender *heartbeatSender) execute() error {
 		nonce = currentBlock.GetNonce()
 	}
 
+	_, pk := sender.getCurrentPrivateAndPublicKeys()
+	pkBytes, err := pk.ToByteArray()
+	if err != nil {
+		return err
+	}
+
 	msg := &heartbeat.HeartbeatV2{
 		Payload:         payloadBytes,
 		VersionNumber:   sender.versionNumber,
@@ -108,6 +114,7 @@ func (sender *heartbeatSender) execute() error {
 		Identity:        sender.identity,
 		Nonce:           nonce,
 		PeerSubType:     uint32(sender.peerSubType),
+		Pubkey:          pkBytes,
 	}
 
 	msgBytes, err := sender.marshaller.Marshal(msg)

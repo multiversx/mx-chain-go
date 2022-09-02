@@ -1134,6 +1134,9 @@ var ErrNilEnableEpochsHandler = errors.New("nil enable epochs handler")
 // ErrNilCrawlerAllowedAddress signals that no crawler allowed address was found
 var ErrNilCrawlerAllowedAddress = errors.New("nil crawler allowed address")
 
+// ErrNilPayloadValidator signals that a nil payload validator was provided
+var ErrNilPayloadValidator = errors.New("nil payload validator")
+
 // ErrNilValidatorInfoPool signals that a nil validator info pool has been provided
 var ErrNilValidatorInfoPool = errors.New("nil validator info pool")
 
