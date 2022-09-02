@@ -712,7 +712,6 @@ type PeerShardMapper interface {
 	UpdatePeerIDPublicKeyPair(pid core.PeerID, pk []byte)
 	PutPeerIdShardId(pid core.PeerID, shardID uint32)
 	PutPeerIdSubType(pid core.PeerID, peerSubType core.P2PPeerSubType)
-	GetLastKnownPeerID(pk []byte) (core.PeerID, bool)
 	GetPeerInfo(pid core.PeerID) core.P2PPeerInfo
 	IsInterfaceNil() bool
 }
@@ -1239,5 +1238,12 @@ type ProcessedMiniBlocksTracker interface {
 	ConvertProcessedMiniBlocksMapToSlice() []bootstrapStorage.MiniBlocksInMeta
 	ConvertSliceToProcessedMiniBlocksMap(miniBlocksInMetaBlocks []bootstrapStorage.MiniBlocksInMeta)
 	DisplayProcessedMiniBlocks()
+	IsInterfaceNil() bool
+}
+
+// PeerAuthenticationPayloadValidator defines the operations supported by an entity able to validate timestamps
+// found in peer authentication messages
+type PeerAuthenticationPayloadValidator interface {
+	ValidateTimestamp(payloadTimestamp int64) error
 	IsInterfaceNil() bool
 }

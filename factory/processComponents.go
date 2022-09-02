@@ -45,6 +45,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 	"github.com/ElrondNetwork/elrond-go/process/factory/interceptorscontainer"
 	"github.com/ElrondNetwork/elrond-go/process/headerCheck"
+	"github.com/ElrondNetwork/elrond-go/process/heartbeat/validator"
 	"github.com/ElrondNetwork/elrond-go/process/peer"
 	"github.com/ElrondNetwork/elrond-go/process/receipts"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
@@ -214,7 +215,7 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 	}, nil
 }
 
-//TODO: Think if it would make sense here to create an array of closable interfaces
+// TODO: Think if it would make sense here to create an array of closable interfaces
 
 // Create will create and return a struct containing process components
 func (pcf *processComponentsFactory) Create() (*processComponents, error) {
@@ -259,7 +260,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
-	resolversContainerFactory, err := pcf.newResolverContainerFactory(currentEpochProvider, peerShardMapper)
+	resolversContainerFactory, err := pcf.newResolverContainerFactory(currentEpochProvider)
 	if err != nil {
 		return nil, err
 	}
@@ -313,12 +314,14 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		log.Warn("cannot index genesis accounts", "error", err)
 	}
 
-	startEpochNum := pcf.bootstrapComponents.EpochBootstrapParams().Epoch()
-	if startEpochNum == 0 {
-		err = pcf.indexGenesisBlocks(genesisBlocks, initialTxs)
-		if err != nil {
-			return nil, err
-		}
+	genesisBlock, ok := genesisBlocks[core.MetachainShardId]
+	if !ok {
+		return nil, errors.New("genesis meta block does not exist")
+	}
+
+	genesisMetaBlock, ok := genesisBlock.(data.MetaHeaderHandler)
+	if !ok {
+		return nil, errors.New("genesis meta block invalid")
 	}
 
 	err = pcf.setGenesisHeader(genesisBlocks)
@@ -329,6 +332,24 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 	validatorStatisticsProcessor, err := pcf.newValidatorStatisticsProcessor()
 	if err != nil {
 		return nil, err
+	}
+
+	validatorStatsRootHash, err := validatorStatisticsProcessor.RootHash()
+	if err != nil {
+		return nil, err
+	}
+
+	err = genesisMetaBlock.SetValidatorStatsRootHash(validatorStatsRootHash)
+	if err != nil {
+		return nil, err
+	}
+
+	startEpochNum := pcf.bootstrapComponents.EpochBootstrapParams().Epoch()
+	if startEpochNum == 0 {
+		err = pcf.indexGenesisBlocks(genesisBlocks, initialTxs)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	cacheRefreshDuration := time.Duration(pcf.config.ValidatorStatistics.CacheRefreshIntervalInSec) * time.Second
@@ -359,27 +380,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
-	validatorStatsRootHash, err := validatorStatisticsProcessor.RootHash()
-	if err != nil {
-		return nil, err
-	}
-
 	log.Debug("Validator stats created", "validatorStatsRootHash", validatorStatsRootHash)
-
-	genesisBlock, ok := genesisBlocks[core.MetachainShardId]
-	if !ok {
-		return nil, errors.New("genesis meta block does not exist")
-	}
-
-	genesisMetaBlock, ok := genesisBlock.(data.MetaHeaderHandler)
-	if !ok {
-		return nil, errors.New("genesis meta block invalid")
-	}
-
-	err = genesisMetaBlock.SetValidatorStatsRootHash(validatorStatsRootHash)
-	if err != nil {
-		return nil, err
-	}
 
 	err = pcf.prepareGenesisBlock(genesisBlocks)
 	if err != nil {
@@ -1050,18 +1051,23 @@ func (pcf *processComponentsFactory) newBlockTracker(
 // -- Resolvers container Factory begin
 func (pcf *processComponentsFactory) newResolverContainerFactory(
 	currentEpochProvider dataRetriever.CurrentNetworkEpochProviderHandler,
-	peerShardMapper *networksharding.PeerShardMapper,
 ) (dataRetriever.ResolversContainerFactory, error) {
 
 	if pcf.importDBConfig.IsImportDBMode {
 		log.Debug("starting with storage resolvers", "path", pcf.importDBConfig.ImportDBWorkingDir)
 		return pcf.newStorageResolver()
 	}
+
+	payloadValidator, err := validator.NewPeerAuthenticationPayloadValidator(pcf.config.HeartbeatV2.HeartbeatExpiryTimespanInSec)
+	if err != nil {
+		return nil, err
+	}
+
 	if pcf.bootstrapComponents.ShardCoordinator().SelfId() < pcf.bootstrapComponents.ShardCoordinator().NumberOfShards() {
-		return pcf.newShardResolverContainerFactory(currentEpochProvider, peerShardMapper)
+		return pcf.newShardResolverContainerFactory(currentEpochProvider, payloadValidator)
 	}
 	if pcf.bootstrapComponents.ShardCoordinator().SelfId() == core.MetachainShardId {
-		return pcf.newMetaResolverContainerFactory(currentEpochProvider, peerShardMapper)
+		return pcf.newMetaResolverContainerFactory(currentEpochProvider, payloadValidator)
 	}
 
 	return nil, errors.New("could not create interceptor and resolver container factory")
@@ -1069,7 +1075,7 @@ func (pcf *processComponentsFactory) newResolverContainerFactory(
 
 func (pcf *processComponentsFactory) newShardResolverContainerFactory(
 	currentEpochProvider dataRetriever.CurrentNetworkEpochProviderHandler,
-	peerShardMapper *networksharding.PeerShardMapper,
+	payloadValidator process.PeerAuthenticationPayloadValidator,
 ) (dataRetriever.ResolversContainerFactory, error) {
 
 	dataPacker, err := partitioning.NewSimpleDataPacker(pcf.coreData.InternalMarshalizer())
@@ -1097,7 +1103,7 @@ func (pcf *processComponentsFactory) newShardResolverContainerFactory(
 		PeersRatingHandler:                   pcf.network.PeersRatingHandler(),
 		NodesCoordinator:                     pcf.nodesCoordinator,
 		MaxNumOfPeerAuthenticationInResponse: pcf.config.HeartbeatV2.MaxNumOfPeerAuthenticationInResponse,
-		PeerShardMapper:                      peerShardMapper,
+		PayloadValidator:                     payloadValidator,
 	}
 	resolversContainerFactory, err := resolverscontainer.NewShardResolversContainerFactory(resolversContainerFactoryArgs)
 	if err != nil {
@@ -1109,7 +1115,7 @@ func (pcf *processComponentsFactory) newShardResolverContainerFactory(
 
 func (pcf *processComponentsFactory) newMetaResolverContainerFactory(
 	currentEpochProvider dataRetriever.CurrentNetworkEpochProviderHandler,
-	peerShardMapper *networksharding.PeerShardMapper,
+	payloadValidator process.PeerAuthenticationPayloadValidator,
 ) (dataRetriever.ResolversContainerFactory, error) {
 
 	dataPacker, err := partitioning.NewSimpleDataPacker(pcf.coreData.InternalMarshalizer())
@@ -1137,7 +1143,7 @@ func (pcf *processComponentsFactory) newMetaResolverContainerFactory(
 		PeersRatingHandler:                   pcf.network.PeersRatingHandler(),
 		NodesCoordinator:                     pcf.nodesCoordinator,
 		MaxNumOfPeerAuthenticationInResponse: pcf.config.HeartbeatV2.MaxNumOfPeerAuthenticationInResponse,
-		PeerShardMapper:                      peerShardMapper,
+		PayloadValidator:                     payloadValidator,
 	}
 	resolversContainerFactory, err := resolverscontainer.NewMetaResolversContainerFactory(resolversContainerFactoryArgs)
 	if err != nil {

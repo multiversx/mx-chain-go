@@ -1139,3 +1139,6 @@ var ErrNilESDTGlobalSettingsHandler = errors.New("nil esdt global settings handl
 
 // ErrNilCrawlerAllowedAddress signals that no crawler allowed address was found
 var ErrNilCrawlerAllowedAddress = errors.New("nil crawler allowed address")
+
+// ErrNilPayloadValidator signals that a nil payload validator was provided
+var ErrNilPayloadValidator = errors.New("nil payload validator")

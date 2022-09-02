@@ -12,7 +12,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers/topicResolverSender"
-	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
@@ -49,7 +48,7 @@ type baseResolversContainerFactory struct {
 	numFullHistoryPeers                  int
 	nodesCoordinator                     dataRetriever.NodesCoordinator
 	maxNumOfPeerAuthenticationInResponse int
-	peerShardMapper                      process.PeerShardMapper
+	payloadValidator                     dataRetriever.PeerAuthenticationPayloadValidator
 }
 
 func (brcf *baseResolversContainerFactory) checkParams() error {
@@ -110,9 +109,6 @@ func (brcf *baseResolversContainerFactory) checkParams() error {
 	if brcf.maxNumOfPeerAuthenticationInResponse < minNumOfPeerAuthentication {
 		return fmt.Errorf("%w for maxNumOfPeerAuthenticationInResponse, expected %d, received %d",
 			dataRetriever.ErrInvalidValue, minNumOfPeerAuthentication, brcf.maxNumOfPeerAuthenticationInResponse)
-	}
-	if check.IfNil(brcf.peerShardMapper) {
-		return dataRetriever.ErrNilPeerShardMapper
 	}
 
 	return nil
@@ -298,8 +294,8 @@ func (brcf *baseResolversContainerFactory) generatePeerAuthenticationResolver() 
 		PeerAuthenticationPool:               brcf.dataPools.PeerAuthentications(),
 		NodesCoordinator:                     brcf.nodesCoordinator,
 		MaxNumOfPeerAuthenticationInResponse: brcf.maxNumOfPeerAuthenticationInResponse,
-		PeerShardMapper:                      brcf.peerShardMapper,
 		DataPacker:                           brcf.dataPacker,
+		PayloadValidator:                     brcf.payloadValidator,
 	}
 	peerAuthResolver, err := resolvers.NewPeerAuthenticationResolver(arg)
 	if err != nil {

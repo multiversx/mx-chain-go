@@ -162,7 +162,11 @@ func (monitor *heartbeatV2Monitor) parseMessage(pid core.PeerID, message interfa
 		return pubKeyHeartbeat, heartbeat.ErrShouldSkipValidator
 	}
 
-	pk := monitor.pubKeyConverter.Encode(peerInfo.PkBytes)
+	pkBytes := peerInfo.PkBytes
+	if stringType == string(common.ObserverList) {
+		pkBytes = heartbeatV2.GetPubkey()
+	}
+	pk := monitor.pubKeyConverter.Encode(pkBytes)
 	numInstances[pk]++
 
 	pubKeyHeartbeat = data.PubKeyHeartbeat{

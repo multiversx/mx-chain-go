@@ -58,6 +58,7 @@ func createHeartbeatMessage(active bool) *heartbeat.HeartbeatV2 {
 		Identity:        "identity",
 		Nonce:           0,
 		PeerSubType:     0,
+		Pubkey:          []byte("public key"),
 	}
 }
 
@@ -243,6 +244,7 @@ func TestHeartbeatV2Monitor_parseMessage(t *testing.T) {
 		t.Parallel()
 
 		providedPkBytes := []byte("provided pk")
+		providedPkBytesFromMessage := []byte("provided pk message")
 		args := createMockHeartbeatV2MonitorArgs()
 		args.PeerShardMapper = &processMocks.PeerShardMapperStub{
 			GetPeerInfoCalled: func(pid core.PeerID) core.P2PPeerInfo {
@@ -261,6 +263,7 @@ func TestHeartbeatV2Monitor_parseMessage(t *testing.T) {
 
 		numInstances := make(map[string]uint64)
 		message := createHeartbeatMessage(true)
+		message.Pubkey = providedPkBytesFromMessage
 		providedPid := core.PeerID("pid")
 		providedMap := map[string]struct{}{
 			providedPid.Pretty(): {},
@@ -269,11 +272,15 @@ func TestHeartbeatV2Monitor_parseMessage(t *testing.T) {
 		assert.Nil(t, err)
 		checkResults(t, *message, hb, true, providedMap, 0)
 		assert.Equal(t, 0, len(providedMap))
-		pid := args.PubKeyConverter.Encode(providedPkBytes)
-		entries, ok := numInstances[pid]
+		pkFromMsg := args.PubKeyConverter.Encode(providedPkBytesFromMessage)
+		entries, ok := numInstances[pkFromMsg]
 		assert.True(t, ok)
 		assert.Equal(t, uint64(1), entries)
 		assert.Equal(t, string(common.ObserverList), hb.PeerType)
+
+		pkFromPSM := args.PubKeyConverter.Encode(providedPkBytes)
+		_, ok = numInstances[pkFromPSM]
+		assert.False(t, ok)
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
@@ -306,8 +313,8 @@ func TestHeartbeatV2Monitor_parseMessage(t *testing.T) {
 		assert.Nil(t, err)
 		checkResults(t, *message, hb, true, providedMap, 0)
 		assert.Equal(t, 0, len(providedMap))
-		pid := args.PubKeyConverter.Encode(providedPkBytes)
-		entries, ok := numInstances[pid]
+		pk := args.PubKeyConverter.Encode(providedPkBytes)
+		entries, ok := numInstances[pk]
 		assert.True(t, ok)
 		assert.Equal(t, uint64(1), entries)
 		assert.Equal(t, string(expectedPeerType), hb.PeerType)
