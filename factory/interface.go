@@ -357,6 +357,7 @@ type HeartbeatComponentsHandler interface {
 type HeartbeatV2Monitor interface {
 	GetHeartbeats() []heartbeatData.PubKeyHeartbeat
 	IsInterfaceNil() bool
+	Close() error
 }
 
 // HeartbeatV2ComponentsHolder holds the heartbeatV2 components

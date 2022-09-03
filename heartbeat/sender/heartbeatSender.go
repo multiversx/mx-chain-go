@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
 )
 
@@ -19,6 +20,8 @@ type argHeartbeatSender struct {
 	identity             string
 	peerSubType          core.P2PPeerSubType
 	currentBlockProvider heartbeat.CurrentBlockProvider
+	peerTypeProvider     heartbeat.PeerTypeProviderHandler
+	appStatusHandler     core.AppStatusHandler
 }
 
 type heartbeatSender struct {
@@ -28,6 +31,8 @@ type heartbeatSender struct {
 	identity             string
 	peerSubType          core.P2PPeerSubType
 	currentBlockProvider heartbeat.CurrentBlockProvider
+	peerTypeProvider     heartbeat.PeerTypeProviderHandler
+	appStatusHandler     core.AppStatusHandler
 }
 
 // newHeartbeatSender creates a new instance of type heartbeatSender
@@ -44,6 +49,8 @@ func newHeartbeatSender(args argHeartbeatSender) (*heartbeatSender, error) {
 		identity:             args.identity,
 		peerSubType:          args.peerSubType,
 		currentBlockProvider: args.currentBlockProvider,
+		peerTypeProvider:     args.peerTypeProvider,
+		appStatusHandler:     args.appStatusHandler,
 	}, nil
 }
 
@@ -66,6 +73,12 @@ func checkHeartbeatSenderArgs(args argHeartbeatSender) error {
 	}
 	if check.IfNil(args.currentBlockProvider) {
 		return heartbeat.ErrNilCurrentBlockProvider
+	}
+	if check.IfNil(args.peerTypeProvider) {
+		return heartbeat.ErrNilPeerTypeProvider
+	}
+	if check.IfNil(args.appStatusHandler) {
+		return heartbeat.ErrNilAppStatusHandler
 	}
 
 	return nil
@@ -124,7 +137,36 @@ func (sender *heartbeatSender) execute() error {
 
 	sender.messenger.Broadcast(sender.topic, msgBytes)
 
+	sender.updateMetrics(msg)
+
 	return nil
+}
+
+func (sender *heartbeatSender) updateMetrics(hb *heartbeat.HeartbeatV2) {
+	result := sender.computePeerList(hb.Pubkey)
+
+	nodeType := ""
+	if result == string(common.ObserverList) {
+		nodeType = string(core.NodeTypeObserver)
+	} else {
+		nodeType = string(core.NodeTypeValidator)
+	}
+
+	subType := core.P2PPeerSubType(hb.PeerSubType)
+
+	sender.appStatusHandler.SetStringValue(common.MetricNodeType, nodeType)
+	sender.appStatusHandler.SetStringValue(common.MetricPeerType, result)
+	sender.appStatusHandler.SetStringValue(common.MetricPeerSubType, subType.String())
+}
+
+func (sender *heartbeatSender) computePeerList(pubkey []byte) string {
+	peerType, _, err := sender.peerTypeProvider.ComputeForPubKey(pubkey)
+	if err != nil {
+		log.Warn("heartbeatSender: compute peer type", "error", err)
+		return string(common.ObserverList)
+	}
+
+	return string(peerType)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

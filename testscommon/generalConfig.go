@@ -277,6 +277,7 @@ func GetGeneralConfig() config.Config {
 			MaxDurationPeerUnresponsiveInSec:                 10,
 			HideInactiveValidatorIntervalInSec:               60,
 			HardforkTimeBetweenSendsInSec:                    5,
+			TimeBetweenConnectionsMetricsUpdateInSec:         10,
 			PeerAuthenticationPool: config.PeerAuthenticationPoolConfig{
 				DefaultSpanInSec: 30,
 				CacheExpiryInSec: 30,

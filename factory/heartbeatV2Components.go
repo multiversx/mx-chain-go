@@ -120,6 +120,16 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 
 	cfg := hcf.config.HeartbeatV2
 
+	argPeerTypeProvider := peer.ArgPeerTypeProvider{
+		NodesCoordinator:        hcf.processComponents.NodesCoordinator(),
+		StartEpoch:              hcf.processComponents.EpochStartTrigger().MetaEpoch(),
+		EpochStartEventNotifier: hcf.processComponents.EpochStartNotifier(),
+	}
+	peerTypeProvider, err := peer.NewPeerTypeProvider(argPeerTypeProvider)
+	if err != nil {
+		return nil, err
+	}
+
 	argsSender := sender.ArgSender{
 		Messenger:                          hcf.networkComponents.NetworkMessenger(),
 		Marshaller:                         hcf.coreComponents.InternalMarshalizer(),
@@ -143,6 +153,8 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 		HardforkTrigger:                             hcf.processComponents.HardforkTrigger(),
 		HardforkTimeBetweenSends:                    time.Second * time.Duration(cfg.HardforkTimeBetweenSendsInSec),
 		HardforkTriggerPubKey:                       hcf.coreComponents.HardforkTriggerPubKey(),
+		PeerTypeProvider:                            peerTypeProvider,
+		AppStatusHandler:                            hcf.coreComponents.StatusHandler(),
 	}
 	heartbeatV2Sender, err := sender.NewSender(argsSender)
 	if err != nil {
@@ -180,25 +192,17 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 		return nil, err
 	}
 
-	argPeerTypeProvider := peer.ArgPeerTypeProvider{
-		NodesCoordinator:        hcf.processComponents.NodesCoordinator(),
-		StartEpoch:              hcf.processComponents.EpochStartTrigger().MetaEpoch(),
-		EpochStartEventNotifier: hcf.processComponents.EpochStartNotifier(),
-	}
-	peerTypeProvider, err := peer.NewPeerTypeProvider(argPeerTypeProvider)
-	if err != nil {
-		return nil, err
-	}
-
 	argsMonitor := monitor.ArgHeartbeatV2Monitor{
-		Cache:                         hcf.dataComponents.Datapool().Heartbeats(),
-		PubKeyConverter:               hcf.coreComponents.ValidatorPubKeyConverter(),
-		Marshaller:                    hcf.coreComponents.InternalMarshalizer(),
-		PeerShardMapper:               hcf.processComponents.PeerShardMapper(),
-		MaxDurationPeerUnresponsive:   time.Second * time.Duration(cfg.MaxDurationPeerUnresponsiveInSec),
-		HideInactiveValidatorInterval: time.Second * time.Duration(cfg.HideInactiveValidatorIntervalInSec),
-		ShardId:                       epochBootstrapParams.SelfShardID(),
-		PeerTypeProvider:              peerTypeProvider,
+		Cache:                               hcf.dataComponents.Datapool().Heartbeats(),
+		PubKeyConverter:                     hcf.coreComponents.ValidatorPubKeyConverter(),
+		Marshaller:                          hcf.coreComponents.InternalMarshalizer(),
+		PeerShardMapper:                     hcf.processComponents.PeerShardMapper(),
+		MaxDurationPeerUnresponsive:         time.Second * time.Duration(cfg.MaxDurationPeerUnresponsiveInSec),
+		HideInactiveValidatorInterval:       time.Second * time.Duration(cfg.HideInactiveValidatorIntervalInSec),
+		ShardId:                             epochBootstrapParams.SelfShardID(),
+		PeerTypeProvider:                    peerTypeProvider,
+		AppStatusHandler:                    hcf.coreComponents.StatusHandler(),
+		TimeBetweenConnectionsMetricsUpdate: time.Second * time.Duration(hcf.config.HeartbeatV2.TimeBetweenConnectionsMetricsUpdateInSec),
 	}
 	heartbeatsMonitor, err := monitor.NewHeartbeatV2Monitor(argsMonitor)
 	if err != nil {
@@ -227,6 +231,10 @@ func (hc *heartbeatV2Components) Close() error {
 
 	if !check.IfNil(hc.directConnectionsProcessor) {
 		log.LogIfError(hc.directConnectionsProcessor.Close())
+	}
+
+	if !check.IfNil(hc.monitor) {
+		log.LogIfError(hc.monitor.Close())
 	}
 
 	return nil

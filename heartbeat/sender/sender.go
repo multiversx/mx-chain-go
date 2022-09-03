@@ -33,6 +33,8 @@ type ArgSender struct {
 	HardforkTrigger                             heartbeat.HardforkTrigger
 	HardforkTimeBetweenSends                    time.Duration
 	HardforkTriggerPubKey                       []byte
+	PeerTypeProvider                            heartbeat.PeerTypeProviderHandler
+	AppStatusHandler                            core.AppStatusHandler
 }
 
 // sender defines the component which sends authentication and heartbeat messages
@@ -84,6 +86,8 @@ func NewSender(args ArgSender) (*sender, error) {
 		identity:             args.Identity,
 		peerSubType:          args.PeerSubType,
 		currentBlockProvider: args.CurrentBlockProvider,
+		peerTypeProvider:     args.PeerTypeProvider,
+		appStatusHandler:     args.AppStatusHandler,
 	})
 	if err != nil {
 		return nil, err
@@ -133,6 +137,8 @@ func checkSenderArgs(args ArgSender) error {
 		identity:             args.Identity,
 		peerSubType:          args.PeerSubType,
 		currentBlockProvider: args.CurrentBlockProvider,
+		peerTypeProvider:     args.PeerTypeProvider,
+		appStatusHandler:     args.AppStatusHandler,
 	}
 	return checkHeartbeatSenderArgs(hbsArgs)
 }
