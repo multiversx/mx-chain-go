@@ -168,7 +168,6 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 		PeerAuthenticationPool:  hcf.dataComponents.Datapool().PeerAuthentications(),
 		ShardId:                 epochBootstrapParams.SelfShardID(),
 		Epoch:                   epochBootstrapParams.Epoch(),
-		MessagesInChunk:         uint32(cfg.MaxNumOfPeerAuthenticationInResponse),
 		MinPeersThreshold:       cfg.MinPeersThreshold,
 		DelayBetweenRequests:    time.Second * time.Duration(cfg.DelayBetweenRequestsInSec),
 		MaxTimeout:              time.Second * time.Duration(cfg.MaxTimeoutInSec),

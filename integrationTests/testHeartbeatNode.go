@@ -60,7 +60,6 @@ const (
 	thresholdBetweenSends     = 0.2
 	timeBetweenHardforks      = 2 * time.Second
 
-	messagesInChunk         = 10
 	minPeersThreshold       = 1.0
 	delayBetweenRequests    = time.Second
 	maxTimeout              = time.Minute
@@ -458,10 +457,8 @@ func (thn *TestHeartbeatNode) initResolvers() {
 			NumTotalPeers:       3,
 			NumFullHistoryPeers: 3,
 		},
-		NodesCoordinator:                     thn.NodesCoordinator,
-		MaxNumOfPeerAuthenticationInResponse: 5,
-		PeersRatingHandler:                   &p2pmocks.PeersRatingHandlerStub{},
-		PayloadValidator:                     payloadValidator,
+		PeersRatingHandler: &p2pmocks.PeersRatingHandlerStub{},
+		PayloadValidator:   payloadValidator,
 	}
 
 	if thn.ShardCoordinator.SelfId() == core.MetachainShardId {
@@ -613,7 +610,6 @@ func (thn *TestHeartbeatNode) initRequestsProcessor() {
 		PeerAuthenticationPool:  thn.DataPool.PeerAuthentications(),
 		ShardId:                 thn.ShardCoordinator.SelfId(),
 		Epoch:                   0,
-		MessagesInChunk:         messagesInChunk,
 		MinPeersThreshold:       minPeersThreshold,
 		DelayBetweenRequests:    delayBetweenRequests,
 		MaxTimeout:              maxTimeout,

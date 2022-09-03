@@ -111,7 +111,6 @@ type HeartbeatV2Config struct {
 	HeartbeatTimeBetweenSendsInSec                   int64
 	HeartbeatTimeBetweenSendsWhenErrorInSec          int64
 	HeartbeatThresholdBetweenSends                   float64
-	MaxNumOfPeerAuthenticationInResponse             int
 	HeartbeatExpiryTimespanInSec                     int64
 	MinPeersThreshold                                float32
 	DelayBetweenRequestsInSec                        int64
@@ -120,16 +119,9 @@ type HeartbeatV2Config struct {
 	MaxMissingKeysInRequest                          uint32
 	MaxDurationPeerUnresponsiveInSec                 int64
 	HideInactiveValidatorIntervalInSec               int64
-	PeerAuthenticationPool                           PeerAuthenticationPoolConfig
 	HeartbeatPool                                    CacheConfig
 	HardforkTimeBetweenSendsInSec                    int64
 	TimeBetweenConnectionsMetricsUpdateInSec         int64
-}
-
-// PeerAuthenticationPoolConfig will hold the configuration for peer authentication pool
-type PeerAuthenticationPoolConfig struct {
-	DefaultSpanInSec int
-	CacheExpiryInSec int
 }
 
 // Config will hold the entire application configuration parameters

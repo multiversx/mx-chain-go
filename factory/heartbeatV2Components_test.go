@@ -33,7 +33,6 @@ func createMockHeartbeatV2ComponentsFactoryArgs() factory.ArgHeartbeatV2Componen
 				HeartbeatTimeBetweenSendsInSec:                   1,
 				HeartbeatTimeBetweenSendsWhenErrorInSec:          1,
 				HeartbeatThresholdBetweenSends:                   0.1,
-				MaxNumOfPeerAuthenticationInResponse:             5,
 				HeartbeatExpiryTimespanInSec:                     30,
 				MinPeersThreshold:                                0.8,
 				DelayBetweenRequestsInSec:                        10,
@@ -44,10 +43,6 @@ func createMockHeartbeatV2ComponentsFactoryArgs() factory.ArgHeartbeatV2Componen
 				HideInactiveValidatorIntervalInSec:               60,
 				HardforkTimeBetweenSendsInSec:                    5,
 				TimeBetweenConnectionsMetricsUpdateInSec:         10,
-				PeerAuthenticationPool: config.PeerAuthenticationPoolConfig{
-					DefaultSpanInSec: 30,
-					CacheExpiryInSec: 30,
-				},
 				HeartbeatPool: config.CacheConfig{
 					Type:     "LRU",
 					Capacity: 1000,

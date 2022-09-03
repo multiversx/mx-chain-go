@@ -19,7 +19,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -58,14 +57,8 @@ func createMockArgPeerAuthenticationResolver() resolvers.ArgPeerAuthenticationRe
 	return resolvers.ArgPeerAuthenticationResolver{
 		ArgBaseResolver:        createMockArgBaseResolver(),
 		PeerAuthenticationPool: testscommon.NewCacherStub(),
-		NodesCoordinator: &shardingMocks.NodesCoordinatorStub{
-			GetAllEligibleValidatorsPublicKeysCalled: func(epoch uint32) (map[uint32][][]byte, error) {
-				return pksMap, nil
-			},
-		},
-		MaxNumOfPeerAuthenticationInResponse: 5,
-		DataPacker:                           &mock.DataPackerStub{},
-		PayloadValidator:                     &testscommon.PeerAuthenticationPayloadValidatorStub{},
+		DataPacker:             &mock.DataPackerStub{},
+		PayloadValidator:       &testscommon.PeerAuthenticationPayloadValidatorStub{},
 	}
 }
 
@@ -131,15 +124,6 @@ func TestNewPeerAuthenticationResolver(t *testing.T) {
 		assert.Equal(t, dataRetriever.ErrNilPeerAuthenticationPool, err)
 		assert.Nil(t, res)
 	})
-	t.Run("nil NodesCoordinator should error", func(t *testing.T) {
-		t.Parallel()
-
-		arg := createMockArgPeerAuthenticationResolver()
-		arg.NodesCoordinator = nil
-		res, err := resolvers.NewPeerAuthenticationResolver(arg)
-		assert.Equal(t, dataRetriever.ErrNilNodesCoordinator, err)
-		assert.Nil(t, res)
-	})
 	t.Run("nil DataPacker should error", func(t *testing.T) {
 		t.Parallel()
 
@@ -147,15 +131,6 @@ func TestNewPeerAuthenticationResolver(t *testing.T) {
 		arg.DataPacker = nil
 		res, err := resolvers.NewPeerAuthenticationResolver(arg)
 		assert.Equal(t, dataRetriever.ErrNilDataPacker, err)
-		assert.Nil(t, res)
-	})
-	t.Run("invalid max num of peer authentication should error", func(t *testing.T) {
-		t.Parallel()
-
-		arg := createMockArgPeerAuthenticationResolver()
-		arg.MaxNumOfPeerAuthenticationInResponse = 1
-		res, err := resolvers.NewPeerAuthenticationResolver(arg)
-		assert.Equal(t, dataRetriever.ErrInvalidNumOfPeerAuthentication, err)
 		assert.Nil(t, res)
 	})
 	t.Run("nil payload validator should error", func(t *testing.T) {
@@ -239,172 +214,6 @@ func TestPeerAuthenticationResolver_ProcessReceivedMessage(t *testing.T) {
 
 		err = res.ProcessReceivedMessage(createRequestMsg(dataRetriever.HashType, requestedBuff), fromConnectedPeer)
 		assert.True(t, errors.Is(err, dataRetriever.ErrRequestTypeNotImplemented))
-	})
-
-	// =============== ChunkType -> resolveChunkRequest ===============
-
-	t.Run("resolveChunkRequest: GetAllEligibleValidatorsPublicKeys returns error", func(t *testing.T) {
-		t.Parallel()
-
-		arg := createMockArgPeerAuthenticationResolver()
-		arg.NodesCoordinator = &shardingMocks.NodesCoordinatorStub{
-			GetAllEligibleValidatorsPublicKeysCalled: func(epoch uint32) (map[uint32][][]byte, error) {
-				return nil, expectedErr
-			},
-		}
-		res, err := resolvers.NewPeerAuthenticationResolver(arg)
-		assert.Nil(t, err)
-		assert.False(t, res.IsInterfaceNil())
-
-		err = res.ProcessReceivedMessage(createRequestMsg(dataRetriever.ChunkType, []byte("data")), fromConnectedPeer)
-		assert.Equal(t, expectedErr, err)
-	})
-	t.Run("resolveChunkRequest: GetAllEligibleValidatorsPublicKeys returns empty", func(t *testing.T) {
-		t.Parallel()
-
-		arg := createMockArgPeerAuthenticationResolver()
-		arg.NodesCoordinator = &shardingMocks.NodesCoordinatorStub{
-			GetAllEligibleValidatorsPublicKeysCalled: func(epoch uint32) (map[uint32][][]byte, error) {
-				return make(map[uint32][][]byte), nil
-			},
-		}
-		res, err := resolvers.NewPeerAuthenticationResolver(arg)
-		assert.Nil(t, err)
-		assert.False(t, res.IsInterfaceNil())
-
-		err = res.ProcessReceivedMessage(createRequestMsg(dataRetriever.ChunkType, []byte("data")), fromConnectedPeer)
-		require.Nil(t, err)
-	})
-	t.Run("resolveChunkRequest: chunk index is out of bounds", func(t *testing.T) {
-		t.Parallel()
-
-		arg := createMockArgPeerAuthenticationResolver()
-		res, err := resolvers.NewPeerAuthenticationResolver(arg)
-		assert.Nil(t, err)
-		assert.False(t, res.IsInterfaceNil())
-
-		epoch := uint32(0)
-		chunkIndex := uint32(10) // out of range
-		err = res.ProcessReceivedMessage(createRequestMsgWithChunkIndex(dataRetriever.ChunkType, []byte(""), epoch, chunkIndex), fromConnectedPeer)
-		require.Equal(t, dataRetriever.InvalidChunkIndex, err)
-	})
-	t.Run("resolveChunkRequest: all data not found in cache should error", func(t *testing.T) {
-		t.Parallel()
-
-		cache := testscommon.NewCacherStub()
-		cache.PeekCalled = func(key []byte) (value interface{}, ok bool) {
-			return nil, false
-		}
-
-		arg := createMockArgPeerAuthenticationResolver()
-		arg.PeerAuthenticationPool = cache
-		wasSent := false
-		arg.SenderResolver = &mock.TopicResolverSenderStub{
-			SendCalled: func(buff []byte, peer core.PeerID) error {
-				wasSent = true
-				return nil
-			},
-		}
-		res, err := resolvers.NewPeerAuthenticationResolver(arg)
-		assert.Nil(t, err)
-		assert.False(t, res.IsInterfaceNil())
-
-		epoch := uint32(0)
-		chunkIndex := uint32(0)
-		err = res.ProcessReceivedMessage(createRequestMsgWithChunkIndex(dataRetriever.ChunkType, []byte(""), epoch, chunkIndex), fromConnectedPeer)
-		assert.True(t, errors.Is(err, dataRetriever.ErrPeerAuthNotFound))
-		expectedSubstrErr := fmt.Sprintf("%s %d", "from chunk", chunkIndex)
-		assert.True(t, strings.Contains(fmt.Sprintf("%s", err), expectedSubstrErr))
-		assert.False(t, wasSent)
-	})
-	t.Run("resolveChunkRequest: some data not found in cache should work", func(t *testing.T) {
-		t.Parallel()
-
-		expectedNumOfMissing := 3
-		cache := testscommon.NewCacherStub()
-		missingCount := 0
-		cache.PeekCalled = func(key []byte) (value interface{}, ok bool) {
-			if missingCount < expectedNumOfMissing {
-				missingCount++
-				return nil, false
-			}
-			return createMockPeerAuthenticationObject(), true
-		}
-
-		arg := createMockArgPeerAuthenticationResolver()
-		arg.PeerAuthenticationPool = cache
-		messagesSent := 0
-		arg.SenderResolver = &mock.TopicResolverSenderStub{
-			SendCalled: func(buff []byte, peer core.PeerID) error {
-				b := &batch.Batch{}
-				err := arg.Marshaller.Unmarshal(b, buff)
-				assert.Nil(t, err)
-				expectedDataLen := arg.MaxNumOfPeerAuthenticationInResponse - expectedNumOfMissing
-				assert.Equal(t, expectedDataLen, len(b.Data))
-				messagesSent++
-				return nil
-			},
-		}
-		arg.DataPacker, _ = partitioning.NewSizeDataPacker(arg.Marshaller)
-		res, err := resolvers.NewPeerAuthenticationResolver(arg)
-		assert.Nil(t, err)
-		assert.False(t, res.IsInterfaceNil())
-
-		epoch := uint32(0)
-		chunkIndex := uint32(0)
-		err = res.ProcessReceivedMessage(createRequestMsgWithChunkIndex(dataRetriever.ChunkType, []byte(""), epoch, chunkIndex), fromConnectedPeer)
-		assert.Nil(t, err)
-		assert.Equal(t, 1, messagesSent)
-	})
-	t.Run("resolveChunkRequest: Send returns error", func(t *testing.T) {
-		t.Parallel()
-
-		cache := testscommon.NewCacherStub()
-		cache.PeekCalled = func(key []byte) (value interface{}, ok bool) {
-			return createMockPeerAuthenticationObject(), true
-		}
-
-		arg := createMockArgPeerAuthenticationResolver()
-		arg.PeerAuthenticationPool = cache
-		arg.SenderResolver = &mock.TopicResolverSenderStub{
-			SendCalled: func(buff []byte, peer core.PeerID) error {
-				return expectedErr
-			},
-		}
-		res, err := resolvers.NewPeerAuthenticationResolver(arg)
-		assert.Nil(t, err)
-		assert.False(t, res.IsInterfaceNil())
-
-		err = res.ProcessReceivedMessage(createRequestMsg(dataRetriever.ChunkType, []byte("")), fromConnectedPeer)
-		assert.True(t, errors.Is(err, expectedErr))
-	})
-	t.Run("resolveChunkRequest: should work", func(t *testing.T) {
-		t.Parallel()
-
-		cache := testscommon.NewCacherStub()
-		cache.PeekCalled = func(key []byte) (value interface{}, ok bool) {
-			return createMockPeerAuthenticationObject(), true
-		}
-
-		arg := createMockArgPeerAuthenticationResolver()
-		arg.PeerAuthenticationPool = cache
-		messagesSent := 0
-		arg.SenderResolver = &mock.TopicResolverSenderStub{
-			SendCalled: func(buff []byte, peer core.PeerID) error {
-				messagesSent++
-				return nil
-			},
-		}
-		arg.DataPacker, _ = partitioning.NewSizeDataPacker(arg.Marshaller)
-		res, err := resolvers.NewPeerAuthenticationResolver(arg)
-		assert.Nil(t, err)
-		assert.False(t, res.IsInterfaceNil())
-
-		epoch := uint32(0)
-		chunkIndex := uint32(1)
-		err = res.ProcessReceivedMessage(createRequestMsgWithChunkIndex(dataRetriever.ChunkType, []byte(""), epoch, chunkIndex), fromConnectedPeer)
-		assert.Nil(t, err)
-		assert.Equal(t, 1, messagesSent)
 	})
 
 	// =============== HashArrayType -> resolveMultipleHashesRequest ===============
@@ -676,10 +485,6 @@ func TestPeerAuthenticationResolver_RequestShouldError(t *testing.T) {
 		err = res.RequestDataFromHash([]byte(""), 0)
 		assert.Equal(t, expectedErr, err)
 	})
-	t.Run("RequestDataFromChunk", func(t *testing.T) {
-		err = res.RequestDataFromChunk(0, 0)
-		assert.Equal(t, expectedErr, err)
-	})
 	t.Run("RequestDataFromChunk - error on SendOnRequestTopic", func(t *testing.T) {
 		hashes := make([][]byte, 0)
 		hashes = append(hashes, []byte("pk"))
@@ -703,10 +508,6 @@ func TestPeerAuthenticationResolver_RequestShouldWork(t *testing.T) {
 
 	t.Run("RequestDataFromHash", func(t *testing.T) {
 		err = res.RequestDataFromHash([]byte(""), 0)
-		assert.Nil(t, err)
-	})
-	t.Run("RequestDataFromChunk", func(t *testing.T) {
-		err = res.RequestDataFromChunk(0, 0)
 		assert.Nil(t, err)
 	})
 }
