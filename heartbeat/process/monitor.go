@@ -418,6 +418,11 @@ func (m *Monitor) computeAllHeartbeatMessages() {
 	m.mutHeartbeatMessages.Unlock()
 	go m.SaveMultipleHeartbeatMessageInfos(hbChangedStateToInactiveMap)
 
+	// this could have been done more cleanly, we will remove this file, anyway, in the upcoming releases
+	if m.flagHeartbeatDisableEpoch.IsSet() {
+		return
+	}
+
 	m.appStatusHandler.SetUInt64Value(common.MetricLiveValidatorNodes, uint64(counterActiveValidators))
 	m.appStatusHandler.SetUInt64Value(common.MetricConnectedNodes, uint64(counterConnectedNodes))
 }
