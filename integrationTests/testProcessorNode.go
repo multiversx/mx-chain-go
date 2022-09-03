@@ -3016,12 +3016,13 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger() {
 				PublicKeyToListenFrom: hardforkPubKey,
 			},
 		},
-		BoostrapComponents: tpn.Node.GetBootstrapComponents(),
-		CoreComponents:     tpn.Node.GetCoreComponents(),
-		DataComponents:     tpn.Node.GetDataComponents(),
-		NetworkComponents:  tpn.Node.GetNetworkComponents(),
-		CryptoComponents:   tpn.Node.GetCryptoComponents(),
-		ProcessComponents:  tpn.Node.GetProcessComponents(),
+		BoostrapComponents:      tpn.Node.GetBootstrapComponents(),
+		CoreComponents:          tpn.Node.GetCoreComponents(),
+		DataComponents:          tpn.Node.GetDataComponents(),
+		NetworkComponents:       tpn.Node.GetNetworkComponents(),
+		CryptoComponents:        tpn.Node.GetCryptoComponents(),
+		ProcessComponents:       tpn.Node.GetProcessComponents(),
+		HeartbeatV1DisableEpoch: 0,
 	}
 
 	heartbeatV2Factory, err := mainFactory.NewHeartbeatV2ComponentsFactory(hbv2FactoryArgs)

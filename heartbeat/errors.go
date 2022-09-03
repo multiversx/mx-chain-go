@@ -137,3 +137,9 @@ var ErrNilEpochNotifier = errors.New("nil epoch notifier")
 
 // ErrShouldSkipValidator signals that the validator should be skipped
 var ErrShouldSkipValidator = errors.New("validator should be skipped")
+
+// ErrNilMonitor signals that a nil heartbeat monitor was provided
+var ErrNilMonitor = errors.New("nil heartbeat monitor")
+
+// ErrNilSenderInfoProvider signals that a nil heartbeat sender info provider was provided
+var ErrNilSenderInfoProvider = errors.New("nil sender info provider")

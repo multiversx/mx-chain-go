@@ -13,7 +13,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -28,7 +27,6 @@ func createMockHeartbeatSenderArgs(argBase argBaseSender) argHeartbeatSender {
 		peerSubType:          core.RegularPeer,
 		currentBlockProvider: &mock.CurrentBlockProviderStub{},
 		peerTypeProvider:     &mock.PeerTypeProviderStub{},
-		appStatusHandler:     &statusHandler.AppStatusHandlerStub{},
 	}
 }
 
@@ -41,9 +39,9 @@ func TestNewHeartbeatSender(t *testing.T) {
 		argBase := createMockBaseArgs()
 		argBase.messenger = nil
 		args := createMockHeartbeatSenderArgs(argBase)
-		sender, err := newHeartbeatSender(args)
+		senderInstance, err := newHeartbeatSender(args)
 
-		assert.Nil(t, sender)
+		assert.Nil(t, senderInstance)
 		assert.Equal(t, heartbeat.ErrNilMessenger, err)
 	})
 	t.Run("nil marshaller should error", func(t *testing.T) {
@@ -52,9 +50,9 @@ func TestNewHeartbeatSender(t *testing.T) {
 		argBase := createMockBaseArgs()
 		argBase.marshaller = nil
 		args := createMockHeartbeatSenderArgs(argBase)
-		sender, err := newHeartbeatSender(args)
+		senderInstance, err := newHeartbeatSender(args)
 
-		assert.Nil(t, sender)
+		assert.Nil(t, senderInstance)
 		assert.Equal(t, heartbeat.ErrNilMarshaller, err)
 	})
 	t.Run("empty topic should error", func(t *testing.T) {
@@ -63,9 +61,9 @@ func TestNewHeartbeatSender(t *testing.T) {
 		argBase := createMockBaseArgs()
 		argBase.topic = ""
 		args := createMockHeartbeatSenderArgs(argBase)
-		sender, err := newHeartbeatSender(args)
+		senderInstance, err := newHeartbeatSender(args)
 
-		assert.Nil(t, sender)
+		assert.Nil(t, senderInstance)
 		assert.Equal(t, heartbeat.ErrEmptySendTopic, err)
 	})
 	t.Run("invalid time between sends should error", func(t *testing.T) {
@@ -74,9 +72,9 @@ func TestNewHeartbeatSender(t *testing.T) {
 		argBase := createMockBaseArgs()
 		argBase.timeBetweenSends = time.Second - time.Nanosecond
 		args := createMockHeartbeatSenderArgs(argBase)
-		sender, err := newHeartbeatSender(args)
+		senderInstance, err := newHeartbeatSender(args)
 
-		assert.Nil(t, sender)
+		assert.Nil(t, senderInstance)
 		assert.True(t, errors.Is(err, heartbeat.ErrInvalidTimeDuration))
 		assert.True(t, strings.Contains(err.Error(), "timeBetweenSends"))
 		assert.False(t, strings.Contains(err.Error(), "timeBetweenSendsWhenError"))
@@ -87,9 +85,9 @@ func TestNewHeartbeatSender(t *testing.T) {
 		argBase := createMockBaseArgs()
 		argBase.timeBetweenSendsWhenError = time.Second - time.Nanosecond
 		args := createMockHeartbeatSenderArgs(argBase)
-		sender, err := newHeartbeatSender(args)
+		senderInstance, err := newHeartbeatSender(args)
 
-		assert.Nil(t, sender)
+		assert.Nil(t, senderInstance)
 		assert.True(t, errors.Is(err, heartbeat.ErrInvalidTimeDuration))
 		assert.True(t, strings.Contains(err.Error(), "timeBetweenSendsWhenError"))
 	})
@@ -98,9 +96,9 @@ func TestNewHeartbeatSender(t *testing.T) {
 
 		args := createMockHeartbeatSenderArgs(createMockBaseArgs())
 		args.privKey = nil
-		sender, err := newHeartbeatSender(args)
+		senderInstance, err := newHeartbeatSender(args)
 
-		assert.True(t, check.IfNil(sender))
+		assert.True(t, check.IfNil(senderInstance))
 		assert.Equal(t, heartbeat.ErrNilPrivateKey, err)
 	})
 	t.Run("nil redundancy handler should error", func(t *testing.T) {
@@ -108,9 +106,9 @@ func TestNewHeartbeatSender(t *testing.T) {
 
 		args := createMockHeartbeatSenderArgs(createMockBaseArgs())
 		args.redundancyHandler = nil
-		sender, err := newHeartbeatSender(args)
+		senderInstance, err := newHeartbeatSender(args)
 
-		assert.True(t, check.IfNil(sender))
+		assert.True(t, check.IfNil(senderInstance))
 		assert.Equal(t, heartbeat.ErrNilRedundancyHandler, err)
 	})
 	t.Run("version number too long should error", func(t *testing.T) {
@@ -118,9 +116,9 @@ func TestNewHeartbeatSender(t *testing.T) {
 
 		args := createMockHeartbeatSenderArgs(createMockBaseArgs())
 		args.versionNumber = string(make([]byte, 150))
-		sender, err := newHeartbeatSender(args)
+		senderInstance, err := newHeartbeatSender(args)
 
-		assert.Nil(t, sender)
+		assert.Nil(t, senderInstance)
 		assert.True(t, errors.Is(err, heartbeat.ErrPropertyTooLong))
 		assert.True(t, strings.Contains(err.Error(), "versionNumber"))
 	})
@@ -129,9 +127,9 @@ func TestNewHeartbeatSender(t *testing.T) {
 
 		args := createMockHeartbeatSenderArgs(createMockBaseArgs())
 		args.nodeDisplayName = string(make([]byte, 150))
-		sender, err := newHeartbeatSender(args)
+		senderInstance, err := newHeartbeatSender(args)
 
-		assert.Nil(t, sender)
+		assert.Nil(t, senderInstance)
 		assert.True(t, errors.Is(err, heartbeat.ErrPropertyTooLong))
 		assert.True(t, strings.Contains(err.Error(), "nodeDisplayName"))
 	})
@@ -140,9 +138,9 @@ func TestNewHeartbeatSender(t *testing.T) {
 
 		args := createMockHeartbeatSenderArgs(createMockBaseArgs())
 		args.identity = string(make([]byte, 150))
-		sender, err := newHeartbeatSender(args)
+		senderInstance, err := newHeartbeatSender(args)
 
-		assert.Nil(t, sender)
+		assert.Nil(t, senderInstance)
 		assert.True(t, errors.Is(err, heartbeat.ErrPropertyTooLong))
 		assert.True(t, strings.Contains(err.Error(), "identity"))
 	})
@@ -151,9 +149,9 @@ func TestNewHeartbeatSender(t *testing.T) {
 
 		args := createMockHeartbeatSenderArgs(createMockBaseArgs())
 		args.currentBlockProvider = nil
-		sender, err := newHeartbeatSender(args)
+		senderInstance, err := newHeartbeatSender(args)
 
-		assert.Nil(t, sender)
+		assert.Nil(t, senderInstance)
 		assert.Equal(t, heartbeat.ErrNilCurrentBlockProvider, err)
 	})
 	t.Run("threshold too small should error", func(t *testing.T) {
@@ -161,9 +159,9 @@ func TestNewHeartbeatSender(t *testing.T) {
 
 		args := createMockHeartbeatSenderArgs(createMockBaseArgs())
 		args.thresholdBetweenSends = 0.001
-		sender, err := newHeartbeatSender(args)
+		senderInstance, err := newHeartbeatSender(args)
 
-		assert.Nil(t, sender)
+		assert.Nil(t, senderInstance)
 		assert.True(t, errors.Is(err, heartbeat.ErrInvalidThreshold))
 		assert.True(t, strings.Contains(err.Error(), "thresholdBetweenSends"))
 	})
@@ -172,9 +170,9 @@ func TestNewHeartbeatSender(t *testing.T) {
 
 		args := createMockHeartbeatSenderArgs(createMockBaseArgs())
 		args.thresholdBetweenSends = 1.001
-		sender, err := newHeartbeatSender(args)
+		senderInstance, err := newHeartbeatSender(args)
 
-		assert.Nil(t, sender)
+		assert.Nil(t, senderInstance)
 		assert.True(t, errors.Is(err, heartbeat.ErrInvalidThreshold))
 		assert.True(t, strings.Contains(err.Error(), "thresholdBetweenSends"))
 	})
@@ -183,28 +181,18 @@ func TestNewHeartbeatSender(t *testing.T) {
 
 		args := createMockHeartbeatSenderArgs(createMockBaseArgs())
 		args.peerTypeProvider = nil
-		sender, err := newHeartbeatSender(args)
+		senderInstance, err := newHeartbeatSender(args)
 
-		assert.Nil(t, sender)
+		assert.Nil(t, senderInstance)
 		assert.Equal(t, heartbeat.ErrNilPeerTypeProvider, err)
-	})
-	t.Run("nil peer messenger should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockHeartbeatSenderArgs(createMockBaseArgs())
-		args.appStatusHandler = nil
-		sender, err := newHeartbeatSender(args)
-
-		assert.Nil(t, sender)
-		assert.Equal(t, heartbeat.ErrNilAppStatusHandler, err)
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockHeartbeatSenderArgs(createMockBaseArgs())
-		sender, err := newHeartbeatSender(args)
+		senderInstance, err := newHeartbeatSender(args)
 
-		assert.False(t, check.IfNil(sender))
+		assert.False(t, check.IfNil(senderInstance))
 		assert.Nil(t, err)
 	})
 }
@@ -226,15 +214,15 @@ func TestHeartbeatSender_Execute(t *testing.T) {
 		}
 
 		args := createMockHeartbeatSenderArgs(argsBase)
-		sender, _ := newHeartbeatSender(args)
-		sender.timerHandler = &mock.TimerHandlerStub{
+		senderInstance, _ := newHeartbeatSender(args)
+		senderInstance.timerHandler = &mock.TimerHandlerStub{
 			CreateNewTimerCalled: func(duration time.Duration) {
 				assert.Equal(t, argsBase.timeBetweenSendsWhenError, duration)
 				wasCalled = true
 			},
 		}
 
-		sender.Execute()
+		senderInstance.Execute()
 		assert.True(t, wasCalled)
 	})
 	t.Run("execute worked, should set the normal time duration value", func(t *testing.T) {
@@ -246,8 +234,8 @@ func TestHeartbeatSender_Execute(t *testing.T) {
 		argsBase.timeBetweenSends = time.Second * 2
 
 		args := createMockHeartbeatSenderArgs(argsBase)
-		sender, _ := newHeartbeatSender(args)
-		sender.timerHandler = &mock.TimerHandlerStub{
+		senderInstance, _ := newHeartbeatSender(args)
+		senderInstance.timerHandler = &mock.TimerHandlerStub{
 			CreateNewTimerCalled: func(duration time.Duration) {
 				floatTBS := float64(argsBase.timeBetweenSends.Nanoseconds())
 				maxDuration := floatTBS + floatTBS*argsBase.thresholdBetweenSends
@@ -257,7 +245,7 @@ func TestHeartbeatSender_Execute(t *testing.T) {
 			},
 		}
 
-		sender.Execute()
+		senderInstance.Execute()
 		assert.True(t, wasCalled)
 	})
 }
@@ -276,10 +264,10 @@ func TestHeartbeatSender_execute(t *testing.T) {
 		}
 
 		args := createMockHeartbeatSenderArgs(argsBase)
-		sender, _ := newHeartbeatSender(args)
-		assert.False(t, check.IfNil(sender))
+		senderInstance, _ := newHeartbeatSender(args)
+		assert.False(t, check.IfNil(senderInstance))
 
-		err := sender.execute()
+		err := senderInstance.execute()
 		assert.Equal(t, expectedErr, err)
 	})
 	t.Run("marshal returns error second time", func(t *testing.T) {
@@ -299,10 +287,10 @@ func TestHeartbeatSender_execute(t *testing.T) {
 		}
 
 		args := createMockHeartbeatSenderArgs(argsBase)
-		sender, _ := newHeartbeatSender(args)
-		assert.False(t, check.IfNil(sender))
+		senderInstance, _ := newHeartbeatSender(args)
+		assert.False(t, check.IfNil(senderInstance))
 
-		err := sender.execute()
+		err := senderInstance.execute()
 		assert.Equal(t, expectedErr, err)
 	})
 	t.Run("should work", func(t *testing.T) {
@@ -338,25 +326,30 @@ func TestHeartbeatSender_execute(t *testing.T) {
 			},
 		}
 
-		args.appStatusHandler = &statusHandler.AppStatusHandlerStub{
-			SetStringValueHandler: func(key string, value string) {
-				switch key {
-				case common.MetricNodeType:
-					assert.Equal(t, string(core.NodeTypeValidator), value)
-				case common.MetricPeerType:
-					assert.Equal(t, string(providedPeerType), value)
-				case common.MetricPeerSubType:
-					assert.Equal(t, args.peerSubType.String(), value)
-				}
-			},
-		}
+		senderInstance, _ := newHeartbeatSender(args)
+		assert.False(t, check.IfNil(senderInstance))
 
-		sender, _ := newHeartbeatSender(args)
-		assert.False(t, check.IfNil(sender))
-
-		err := sender.execute()
+		err := senderInstance.execute()
 		assert.Nil(t, err)
 		assert.True(t, broadcastCalled)
 		assert.Equal(t, uint64(1), args.currentBlockProvider.GetCurrentBlockHeader().GetNonce())
 	})
+}
+
+func TestHeartbeatSender_getSenderInfo(t *testing.T) {
+	t.Parallel()
+
+	args := createMockHeartbeatSenderArgs(createMockBaseArgs())
+	args.peerSubType = core.FullHistoryObserver
+	args.peerTypeProvider = &mock.PeerTypeProviderStub{
+		ComputeForPubKeyCalled: func(pubKey []byte) (common.PeerType, uint32, error) {
+			return common.EligibleList, 0, nil
+		},
+	}
+	senderInstance, _ := newHeartbeatSender(args)
+
+	peerType, subType, err := senderInstance.getSenderInfo()
+	assert.Nil(t, err)
+	assert.Equal(t, string(common.EligibleList), peerType)
+	assert.Equal(t, core.FullHistoryObserver, subType)
 }

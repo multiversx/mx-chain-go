@@ -21,7 +21,6 @@ type argHeartbeatSender struct {
 	peerSubType          core.P2PPeerSubType
 	currentBlockProvider heartbeat.CurrentBlockProvider
 	peerTypeProvider     heartbeat.PeerTypeProviderHandler
-	appStatusHandler     core.AppStatusHandler
 }
 
 type heartbeatSender struct {
@@ -32,7 +31,6 @@ type heartbeatSender struct {
 	peerSubType          core.P2PPeerSubType
 	currentBlockProvider heartbeat.CurrentBlockProvider
 	peerTypeProvider     heartbeat.PeerTypeProviderHandler
-	appStatusHandler     core.AppStatusHandler
 }
 
 // newHeartbeatSender creates a new instance of type heartbeatSender
@@ -50,7 +48,6 @@ func newHeartbeatSender(args argHeartbeatSender) (*heartbeatSender, error) {
 		peerSubType:          args.peerSubType,
 		currentBlockProvider: args.currentBlockProvider,
 		peerTypeProvider:     args.peerTypeProvider,
-		appStatusHandler:     args.appStatusHandler,
 	}, nil
 }
 
@@ -76,9 +73,6 @@ func checkHeartbeatSenderArgs(args argHeartbeatSender) error {
 	}
 	if check.IfNil(args.peerTypeProvider) {
 		return heartbeat.ErrNilPeerTypeProvider
-	}
-	if check.IfNil(args.appStatusHandler) {
-		return heartbeat.ErrNilAppStatusHandler
 	}
 
 	return nil
@@ -137,26 +131,20 @@ func (sender *heartbeatSender) execute() error {
 
 	sender.messenger.Broadcast(sender.topic, msgBytes)
 
-	sender.updateMetrics(msg)
-
 	return nil
 }
 
-func (sender *heartbeatSender) updateMetrics(hb *heartbeat.HeartbeatV2) {
-	result := sender.computePeerList(hb.Pubkey)
-
-	nodeType := ""
-	if result == string(common.ObserverList) {
-		nodeType = string(core.NodeTypeObserver)
-	} else {
-		nodeType = string(core.NodeTypeValidator)
+// getSenderInfo will return the current sender info
+func (sender *heartbeatSender) getSenderInfo() (string, core.P2PPeerSubType, error) {
+	_, pk := sender.getCurrentPrivateAndPublicKeys()
+	pkBytes, err := pk.ToByteArray()
+	if err != nil {
+		return "", 0, err
 	}
 
-	subType := core.P2PPeerSubType(hb.PeerSubType)
+	peerType := sender.computePeerList(pkBytes)
 
-	sender.appStatusHandler.SetStringValue(common.MetricNodeType, nodeType)
-	sender.appStatusHandler.SetStringValue(common.MetricPeerType, result)
-	sender.appStatusHandler.SetStringValue(common.MetricPeerSubType, subType.String())
+	return peerType, sender.peerSubType, nil
 }
 
 func (sender *heartbeatSender) computePeerList(pubkey []byte) string {

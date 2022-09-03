@@ -745,15 +745,16 @@ func (nr *nodeRunner) CreateManagedHeartbeatV2Components(
 	processComponents mainFactory.ProcessComponentsHolder,
 ) (mainFactory.HeartbeatV2ComponentsHandler, error) {
 	heartbeatV2Args := mainFactory.ArgHeartbeatV2ComponentsFactory{
-		Config:             *nr.configs.GeneralConfig,
-		Prefs:              *nr.configs.PreferencesConfig,
-		AppVersion:         nr.configs.FlagsConfig.Version,
-		BoostrapComponents: bootstrapComponents,
-		CoreComponents:     coreComponents,
-		DataComponents:     dataComponents,
-		NetworkComponents:  networkComponents,
-		CryptoComponents:   cryptoComponents,
-		ProcessComponents:  processComponents,
+		Config:                  *nr.configs.GeneralConfig,
+		Prefs:                   *nr.configs.PreferencesConfig,
+		AppVersion:              nr.configs.FlagsConfig.Version,
+		BoostrapComponents:      bootstrapComponents,
+		CoreComponents:          coreComponents,
+		DataComponents:          dataComponents,
+		NetworkComponents:       networkComponents,
+		CryptoComponents:        cryptoComponents,
+		ProcessComponents:       processComponents,
+		HeartbeatV1DisableEpoch: nr.configs.EpochConfig.EnableEpochs.HeartbeatDisableEpoch,
 	}
 
 	heartbeatV2ComponentsFactory, err := mainFactory.NewHeartbeatV2ComponentsFactory(heartbeatV2Args)

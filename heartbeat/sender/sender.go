@@ -34,12 +34,12 @@ type ArgSender struct {
 	HardforkTimeBetweenSends                    time.Duration
 	HardforkTriggerPubKey                       []byte
 	PeerTypeProvider                            heartbeat.PeerTypeProviderHandler
-	AppStatusHandler                            core.AppStatusHandler
 }
 
 // sender defines the component which sends authentication and heartbeat messages
 type sender struct {
-	routineHandler *routineHandler
+	heartbeatSender *heartbeatSender
+	routineHandler  *routineHandler
 }
 
 // NewSender creates a new instance of sender
@@ -87,14 +87,14 @@ func NewSender(args ArgSender) (*sender, error) {
 		peerSubType:          args.PeerSubType,
 		currentBlockProvider: args.CurrentBlockProvider,
 		peerTypeProvider:     args.PeerTypeProvider,
-		appStatusHandler:     args.AppStatusHandler,
 	})
 	if err != nil {
 		return nil, err
 	}
 
 	return &sender{
-		routineHandler: newRoutineHandler(pas, hbs, pas),
+		heartbeatSender: hbs,
+		routineHandler:  newRoutineHandler(pas, hbs, pas),
 	}, nil
 }
 
@@ -138,7 +138,6 @@ func checkSenderArgs(args ArgSender) error {
 		peerSubType:          args.PeerSubType,
 		currentBlockProvider: args.CurrentBlockProvider,
 		peerTypeProvider:     args.PeerTypeProvider,
-		appStatusHandler:     args.AppStatusHandler,
 	}
 	return checkHeartbeatSenderArgs(hbsArgs)
 }
@@ -148,6 +147,11 @@ func (sender *sender) Close() error {
 	sender.routineHandler.closeProcessLoop()
 
 	return nil
+}
+
+// GetSenderInfo will return the current sender info
+func (sender *sender) GetSenderInfo() (string, core.P2PPeerSubType, error) {
+	return sender.heartbeatSender.getSenderInfo()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
