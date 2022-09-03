@@ -9,9 +9,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -25,6 +27,8 @@ func createMockHeartbeatSenderArgs(argBase argBaseSender) argHeartbeatSender {
 		identity:             "identity",
 		peerSubType:          core.RegularPeer,
 		currentBlockProvider: &mock.CurrentBlockProviderStub{},
+		peerTypeProvider:     &mock.PeerTypeProviderStub{},
+		appStatusHandler:     &statusHandler.AppStatusHandlerStub{},
 	}
 }
 
@@ -174,6 +178,26 @@ func TestNewHeartbeatSender(t *testing.T) {
 		assert.True(t, errors.Is(err, heartbeat.ErrInvalidThreshold))
 		assert.True(t, strings.Contains(err.Error(), "thresholdBetweenSends"))
 	})
+	t.Run("nil peer type provider should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockHeartbeatSenderArgs(createMockBaseArgs())
+		args.peerTypeProvider = nil
+		sender, err := newHeartbeatSender(args)
+
+		assert.Nil(t, sender)
+		assert.Equal(t, heartbeat.ErrNilPeerTypeProvider, err)
+	})
+	t.Run("nil peer messenger should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockHeartbeatSenderArgs(createMockBaseArgs())
+		args.appStatusHandler = nil
+		sender, err := newHeartbeatSender(args)
+
+		assert.Nil(t, sender)
+		assert.Equal(t, heartbeat.ErrNilAppStatusHandler, err)
+	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
@@ -304,6 +328,26 @@ func TestHeartbeatSender_execute(t *testing.T) {
 		args.currentBlockProvider = &mock.CurrentBlockProviderStub{
 			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 				return &testscommon.HeaderHandlerStub{}
+			},
+		}
+
+		providedPeerType := common.EligibleList
+		args.peerTypeProvider = &mock.PeerTypeProviderStub{
+			ComputeForPubKeyCalled: func(pubKey []byte) (common.PeerType, uint32, error) {
+				return providedPeerType, 0, nil
+			},
+		}
+
+		args.appStatusHandler = &statusHandler.AppStatusHandlerStub{
+			SetStringValueHandler: func(key string, value string) {
+				switch key {
+				case common.MetricNodeType:
+					assert.Equal(t, string(core.NodeTypeValidator), value)
+				case common.MetricPeerType:
+					assert.Equal(t, string(providedPeerType), value)
+				case common.MetricPeerSubType:
+					assert.Equal(t, args.peerSubType.String(), value)
+				}
 			},
 		}
 

@@ -17,19 +17,22 @@ import (
 	processMocks "github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/assert"
 )
 
 func createMockHeartbeatV2MonitorArgs() ArgHeartbeatV2Monitor {
 	return ArgHeartbeatV2Monitor{
-		Cache:                         testscommon.NewCacherMock(),
-		PubKeyConverter:               &testscommon.PubkeyConverterMock{},
-		Marshaller:                    &testscommon.MarshalizerMock{},
-		PeerShardMapper:               &p2pmocks.NetworkShardingCollectorStub{},
-		MaxDurationPeerUnresponsive:   time.Second * 3,
-		HideInactiveValidatorInterval: time.Second * 5,
-		ShardId:                       0,
-		PeerTypeProvider:              &mock.PeerTypeProviderStub{},
+		Cache:                               testscommon.NewCacherMock(),
+		PubKeyConverter:                     &testscommon.PubkeyConverterMock{},
+		Marshaller:                          &testscommon.MarshalizerMock{},
+		PeerShardMapper:                     &p2pmocks.NetworkShardingCollectorStub{},
+		MaxDurationPeerUnresponsive:         time.Second * 3,
+		HideInactiveValidatorInterval:       time.Second * 5,
+		ShardId:                             0,
+		PeerTypeProvider:                    &mock.PeerTypeProviderStub{},
+		AppStatusHandler:                    &statusHandler.AppStatusHandlerStub{},
+		TimeBetweenConnectionsMetricsUpdate: time.Second * 5,
 	}
 }
 
@@ -127,12 +130,60 @@ func TestNewHeartbeatV2Monitor(t *testing.T) {
 		assert.True(t, check.IfNil(monitor))
 		assert.Equal(t, heartbeat.ErrNilPeerTypeProvider, err)
 	})
+	t.Run("nil app status handler should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockHeartbeatV2MonitorArgs()
+		args.AppStatusHandler = nil
+		monitor, err := NewHeartbeatV2Monitor(args)
+		assert.True(t, check.IfNil(monitor))
+		assert.Equal(t, heartbeat.ErrNilAppStatusHandler, err)
+	})
+	t.Run("invalid time between connections metrics should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockHeartbeatV2MonitorArgs()
+		args.TimeBetweenConnectionsMetricsUpdate = time.Second - time.Nanosecond
+		monitor, err := NewHeartbeatV2Monitor(args)
+		assert.True(t, check.IfNil(monitor))
+		assert.True(t, errors.Is(err, heartbeat.ErrInvalidTimeDuration))
+		assert.True(t, strings.Contains(err.Error(), "TimeBetweenConnectionsMetricsUpdate"))
+	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		monitor, err := NewHeartbeatV2Monitor(createMockHeartbeatV2MonitorArgs())
+		args := createMockHeartbeatV2MonitorArgs()
+		args.TimeBetweenConnectionsMetricsUpdate = time.Second * 3
+		args.PeerTypeProvider = &mock.PeerTypeProviderStub{
+			ComputeForPubKeyCalled: func(pubKey []byte) (common.PeerType, uint32, error) {
+				return common.EligibleList, 0, nil
+			},
+		}
+		counterSetUInt64ValueHandler := 0
+		args.AppStatusHandler = &statusHandler.AppStatusHandlerStub{
+			SetUInt64ValueHandler: func(key string, value uint64) {
+				switch counterSetUInt64ValueHandler {
+				case 0:
+					assert.Equal(t, common.MetricLiveValidatorNodes, key)
+					assert.Equal(t, 1, int(value))
+				case 1:
+					assert.Equal(t, common.MetricConnectedNodes, key)
+					assert.Equal(t, 1, int(value))
+				default:
+					assert.Fail(t, "only 1 node in test")
+				}
+				counterSetUInt64ValueHandler++
+			},
+		}
+		monitor, err := NewHeartbeatV2Monitor(args)
 		assert.False(t, check.IfNil(monitor))
 		assert.Nil(t, err)
+
+		pid1 := []byte("validator peer id")
+		message := createHeartbeatMessage(true)
+		args.Cache.Put(pid1, message, message.Size())
+
+		assert.Nil(t, monitor.Close())
 	})
 }
 

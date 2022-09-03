@@ -929,6 +929,7 @@
     MaxDurationPeerUnresponsiveInSec                 = 900  # 15min
     HideInactiveValidatorIntervalInSec               = 1800 # 30min TODO: change this for mainnet/devnet/testnet to ~1h
     HardforkTimeBetweenSendsInSec                    = 60   # 1min
+    TimeBetweenConnectionsMetricsUpdateInSec         = 30   # 30sec
     [HeartbeatV2.PeerAuthenticationPool]
         DefaultSpanInSec = 3600 # 1h
         CacheExpiryInSec = 3600 # 1h

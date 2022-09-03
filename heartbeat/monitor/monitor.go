@@ -1,6 +1,7 @@
 package monitor
 
 import (
+	"context"
 	"fmt"
 	"sort"
 	"strings"
@@ -23,25 +24,30 @@ const minDuration = time.Second
 
 // ArgHeartbeatV2Monitor holds the arguments needed to create a new instance of heartbeatV2Monitor
 type ArgHeartbeatV2Monitor struct {
-	Cache                         storage.Cacher
-	PubKeyConverter               core.PubkeyConverter
-	Marshaller                    marshal.Marshalizer
-	PeerShardMapper               process.PeerShardMapper
-	MaxDurationPeerUnresponsive   time.Duration
-	HideInactiveValidatorInterval time.Duration
-	ShardId                       uint32
-	PeerTypeProvider              heartbeat.PeerTypeProviderHandler
+	Cache                               storage.Cacher
+	PubKeyConverter                     core.PubkeyConverter
+	Marshaller                          marshal.Marshalizer
+	PeerShardMapper                     process.PeerShardMapper
+	MaxDurationPeerUnresponsive         time.Duration
+	HideInactiveValidatorInterval       time.Duration
+	ShardId                             uint32
+	PeerTypeProvider                    heartbeat.PeerTypeProviderHandler
+	AppStatusHandler                    core.AppStatusHandler
+	TimeBetweenConnectionsMetricsUpdate time.Duration
 }
 
 type heartbeatV2Monitor struct {
-	cache                         storage.Cacher
-	pubKeyConverter               core.PubkeyConverter
-	marshaller                    marshal.Marshalizer
-	peerShardMapper               process.PeerShardMapper
-	maxDurationPeerUnresponsive   time.Duration
-	hideInactiveValidatorInterval time.Duration
-	shardId                       uint32
-	peerTypeProvider              heartbeat.PeerTypeProviderHandler
+	cache                               storage.Cacher
+	pubKeyConverter                     core.PubkeyConverter
+	marshaller                          marshal.Marshalizer
+	peerShardMapper                     process.PeerShardMapper
+	maxDurationPeerUnresponsive         time.Duration
+	hideInactiveValidatorInterval       time.Duration
+	shardId                             uint32
+	peerTypeProvider                    heartbeat.PeerTypeProviderHandler
+	appStatusHandler                    core.AppStatusHandler
+	timeBetweenConnectionsMetricsUpdate time.Duration
+	cancelFunc                          func()
 }
 
 // NewHeartbeatV2Monitor creates a new instance of heartbeatV2Monitor
@@ -51,16 +57,24 @@ func NewHeartbeatV2Monitor(args ArgHeartbeatV2Monitor) (*heartbeatV2Monitor, err
 		return nil, err
 	}
 
-	return &heartbeatV2Monitor{
-		cache:                         args.Cache,
-		pubKeyConverter:               args.PubKeyConverter,
-		marshaller:                    args.Marshaller,
-		peerShardMapper:               args.PeerShardMapper,
-		maxDurationPeerUnresponsive:   args.MaxDurationPeerUnresponsive,
-		hideInactiveValidatorInterval: args.HideInactiveValidatorInterval,
-		shardId:                       args.ShardId,
-		peerTypeProvider:              args.PeerTypeProvider,
-	}, nil
+	hbv2Monitor := &heartbeatV2Monitor{
+		cache:                               args.Cache,
+		pubKeyConverter:                     args.PubKeyConverter,
+		marshaller:                          args.Marshaller,
+		peerShardMapper:                     args.PeerShardMapper,
+		maxDurationPeerUnresponsive:         args.MaxDurationPeerUnresponsive,
+		hideInactiveValidatorInterval:       args.HideInactiveValidatorInterval,
+		shardId:                             args.ShardId,
+		peerTypeProvider:                    args.PeerTypeProvider,
+		appStatusHandler:                    args.AppStatusHandler,
+		timeBetweenConnectionsMetricsUpdate: args.TimeBetweenConnectionsMetricsUpdate,
+	}
+
+	var ctx context.Context
+	ctx, hbv2Monitor.cancelFunc = context.WithCancel(context.Background())
+	go hbv2Monitor.processConnectionsMetricsUpdate(ctx)
+
+	return hbv2Monitor, nil
 }
 
 func checkArgs(args ArgHeartbeatV2Monitor) error {
@@ -86,6 +100,13 @@ func checkArgs(args ArgHeartbeatV2Monitor) error {
 	}
 	if check.IfNil(args.PeerTypeProvider) {
 		return heartbeat.ErrNilPeerTypeProvider
+	}
+	if check.IfNil(args.AppStatusHandler) {
+		return heartbeat.ErrNilAppStatusHandler
+	}
+	if args.TimeBetweenConnectionsMetricsUpdate < minDuration {
+		return fmt.Errorf("%w on TimeBetweenConnectionsMetricsUpdate, provided %d, min expected %d",
+			heartbeat.ErrInvalidTimeDuration, args.TimeBetweenConnectionsMetricsUpdate, minDuration)
 	}
 
 	return nil
@@ -213,6 +234,53 @@ func (monitor *heartbeatV2Monitor) shouldSkipMessage(messageAge time.Duration) b
 	}
 
 	return false
+}
+
+func (monitor *heartbeatV2Monitor) processConnectionsMetricsUpdate(ctx context.Context) {
+	timer := time.NewTimer(monitor.timeBetweenConnectionsMetricsUpdate)
+	defer timer.Stop()
+
+	for {
+		timer.Reset(monitor.timeBetweenConnectionsMetricsUpdate)
+
+		select {
+		case <-timer.C:
+			monitor.updateConnectionsMetrics()
+		case <-ctx.Done():
+			log.Debug("closing heartbeat v2 monitor go routine")
+			return
+		}
+	}
+}
+
+func (monitor *heartbeatV2Monitor) updateConnectionsMetrics() {
+	heartbeats := monitor.GetHeartbeats()
+
+	counterActiveValidators := 0
+	counterConnectedNodes := 0
+	for _, heartbeatMessage := range heartbeats {
+		if heartbeatMessage.IsActive {
+			counterConnectedNodes++
+
+			if isValidator(heartbeatMessage.PeerType) {
+				counterActiveValidators++
+			}
+		}
+	}
+
+	monitor.appStatusHandler.SetUInt64Value(common.MetricLiveValidatorNodes, uint64(counterActiveValidators))
+	monitor.appStatusHandler.SetUInt64Value(common.MetricConnectedNodes, uint64(counterConnectedNodes))
+}
+
+func isValidator(peerType string) bool {
+	return peerType == string(common.EligibleList) || peerType == string(common.WaitingList)
+}
+
+// Close closes the internal go routine
+func (monitor *heartbeatV2Monitor) Close() error {
+	monitor.cancelFunc()
+
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
