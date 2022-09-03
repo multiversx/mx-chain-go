@@ -316,6 +316,10 @@ func (m *Monitor) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPe
 func (m *Monitor) EpochConfirmed(epoch uint32, _ uint64) {
 	m.flagHeartbeatDisableEpoch.SetValue(epoch >= m.heartbeatDisableEpoch)
 	log.Debug("heartbeat v1 monitor", "enabled", !m.flagHeartbeatDisableEpoch.IsSet())
+
+	if m.flagHeartbeatDisableEpoch.IsSet() {
+		m.cancelFunc()
+	}
 }
 
 func (m *Monitor) addHeartbeatMessageToMap(hb *data.Heartbeat) {
@@ -417,11 +421,6 @@ func (m *Monitor) computeAllHeartbeatMessages() {
 
 	m.mutHeartbeatMessages.Unlock()
 	go m.SaveMultipleHeartbeatMessageInfos(hbChangedStateToInactiveMap)
-
-	// this could have been done more cleanly, we will remove this file, anyway, in the upcoming releases
-	if m.flagHeartbeatDisableEpoch.IsSet() {
-		return
-	}
 
 	m.appStatusHandler.SetUInt64Value(common.MetricLiveValidatorNodes, uint64(counterActiveValidators))
 	m.appStatusHandler.SetUInt64Value(common.MetricConnectedNodes, uint64(counterConnectedNodes))
