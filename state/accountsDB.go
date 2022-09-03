@@ -1231,9 +1231,9 @@ func (adb *AccountsDB) setStateCheckpoint(rootHash []byte) {
 }
 
 func (adb *AccountsDB) waitForCompletionIfRunningInImportDB(stats common.SnapshotStatisticsHandler) {
-	if adb.processingMode != common.ImportDb {
-		return
-	}
+	// if adb.processingMode != common.ImportDb {
+	// 	return
+	// }
 
 	log.Debug("manually setting idle on the process status handler in order to be able to start & complete the snapshotting/checkpointing process")
 	adb.processStatusHandler.SetIdle()
