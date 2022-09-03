@@ -6,6 +6,7 @@ import (
 	"math"
 	"sort"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -127,17 +128,22 @@ func TestTimeCacher_HasOrAdd(t *testing.T) {
 		t.Parallel()
 
 		cacher, _ := timecache.NewTimeCacher(createArgTimeCacher())
+		cacher.RegisterHandler(func(key []byte, value interface{}) {
+			assert.Fail(t, "should have not added")
+		}, "test")
 		t.Run("nil key", func(t *testing.T) {
 			has, added := cacher.HasOrAdd(nil, nil, 0)
 			assert.False(t, has)
 			assert.False(t, added)
 			assert.Equal(t, 0, cacher.Len())
+			time.Sleep(time.Second)
 		})
 		t.Run("empty key", func(t *testing.T) {
 			has, added := cacher.HasOrAdd(make([]byte, 0), nil, 0)
 			assert.False(t, has)
 			assert.False(t, added)
 			assert.Equal(t, 0, cacher.Len())
+			time.Sleep(time.Second)
 		})
 	})
 	t.Run("should work", func(t *testing.T) {
@@ -145,15 +151,23 @@ func TestTimeCacher_HasOrAdd(t *testing.T) {
 
 		cacher, _ := timecache.NewTimeCacher(createArgTimeCacher())
 		assert.False(t, cacher.IsInterfaceNil())
+		numAdded := int64(0)
+		cacher.RegisterHandler(func(key []byte, value interface{}) {
+			atomic.AddInt64(&numAdded, 1)
+		}, "test")
 
 		providedKey, providedVal := []byte("key"), []byte("val")
 		has, added := cacher.HasOrAdd(providedKey, providedVal, len(providedVal))
 		assert.False(t, has)
 		assert.True(t, added)
+		time.Sleep(time.Second)
+		assert.Equal(t, int64(1), atomic.LoadInt64(&numAdded))
 
 		has, added = cacher.HasOrAdd(providedKey, providedVal, len(providedVal))
 		assert.True(t, has)
 		assert.False(t, added)
+		time.Sleep(time.Second)
+		assert.Equal(t, int64(1), atomic.LoadInt64(&numAdded))
 	})
 }
 
@@ -228,15 +242,20 @@ func TestTimeCacher_Put(t *testing.T) {
 		t.Parallel()
 
 		cacher, _ := timecache.NewTimeCacher(createArgTimeCacher())
+		cacher.RegisterHandler(func(key []byte, value interface{}) {
+			assert.Fail(t, "should have not added")
+		}, "test")
 		t.Run("nil key", func(t *testing.T) {
 			evicted := cacher.Put(nil, nil, 0)
 			assert.False(t, evicted)
 			assert.Equal(t, 0, cacher.Len())
+			time.Sleep(time.Second)
 		})
 		t.Run("empty key", func(t *testing.T) {
 			evicted := cacher.Put(make([]byte, 0), nil, 0)
 			assert.False(t, evicted)
 			assert.Equal(t, 0, cacher.Len())
+			time.Sleep(time.Second)
 		})
 	})
 	t.Run("should work", func(t *testing.T) {
@@ -244,15 +263,24 @@ func TestTimeCacher_Put(t *testing.T) {
 
 		cacher, _ := timecache.NewTimeCacher(createArgTimeCacher())
 		assert.False(t, cacher.IsInterfaceNil())
+		numAdded := int64(0)
+		cacher.RegisterHandler(func(key []byte, value interface{}) {
+			atomic.AddInt64(&numAdded, 1)
+		}, "test")
 
 		numOfPairs := 2
 		keys, vals := createKeysVals(numOfPairs)
 		evicted := cacher.Put(keys[0], vals[0], len(vals[0]))
 		assert.False(t, evicted)
 		assert.Equal(t, 1, cacher.Len())
+		time.Sleep(time.Second)
+		assert.Equal(t, int64(1), atomic.LoadInt64(&numAdded))
+
 		evicted = cacher.Put(keys[0], vals[1], len(vals[1]))
 		assert.False(t, evicted)
 		assert.Equal(t, 1, cacher.Len())
+		time.Sleep(time.Second)
+		assert.Equal(t, int64(2), atomic.LoadInt64(&numAdded))
 	})
 }
 
@@ -296,29 +324,35 @@ func TestTimeCacher_SizeInBytesContained(t *testing.T) {
 func TestTimeCacher_RegisterHandler(t *testing.T) {
 	t.Parallel()
 
-	defer func() {
-		if r := recover(); r != nil {
-			assert.Fail(t, "should not panic")
-		}
-	}()
-
 	cacher, _ := timecache.NewTimeCacher(createArgTimeCacher())
-	assert.False(t, cacher.IsInterfaceNil())
+	assert.Equal(t, 0, cacher.NumRegisteredHandlers())
+
+	cacher.RegisterHandler(nil, "")
+	assert.Equal(t, 0, cacher.NumRegisteredHandlers())
+
 	cacher.RegisterHandler(func(key []byte, value interface{}) {}, "0")
+	assert.Equal(t, 1, cacher.NumRegisteredHandlers())
+
+	cacher.RegisterHandler(nil, "")
+	assert.Equal(t, 1, cacher.NumRegisteredHandlers())
 }
 
 func TestTimeCacher_UnRegisterHandler(t *testing.T) {
 	t.Parallel()
 
-	defer func() {
-		if r := recover(); r != nil {
-			assert.Fail(t, "should not panic")
-		}
-	}()
-
 	cacher, _ := timecache.NewTimeCacher(createArgTimeCacher())
-	assert.False(t, cacher.IsInterfaceNil())
+	assert.Equal(t, 0, cacher.NumRegisteredHandlers())
+
 	cacher.UnRegisterHandler("0")
+
+	cacher.RegisterHandler(func(key []byte, value interface{}) {}, "0")
+	assert.Equal(t, 1, cacher.NumRegisteredHandlers())
+
+	cacher.UnRegisterHandler("1")
+	assert.Equal(t, 1, cacher.NumRegisteredHandlers())
+
+	cacher.UnRegisterHandler("0")
+	assert.Equal(t, 0, cacher.NumRegisteredHandlers())
 }
 
 func TestTimeCacher_MaxSize(t *testing.T) {

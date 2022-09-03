@@ -739,6 +739,7 @@ func (rrh *resolverRequestHandler) RequestPeerAuthenticationsByHashes(destShardI
 	log.Debug("requesting peer authentication messages from network",
 		"topic", common.PeerAuthenticationTopic,
 		"shard", destShardID,
+		"num hashes", len(hashes),
 	)
 
 	resolver, err := rrh.resolversFinder.MetaChainResolver(common.PeerAuthenticationTopic)

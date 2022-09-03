@@ -58,6 +58,7 @@ func NewMetricsUpdater(args ArgsMetricsUpdater) (*metricsUpdater, error) {
 	}
 
 	args.EpochNotifier.RegisterNotifyHandler(updater)
+	args.PeerAuthenticationCacher.RegisterHandler(updater.onAddedPeerAuthenticationMessage, "metricsUpdater")
 
 	var ctx context.Context
 	ctx, updater.cancelFunc = context.WithCancel(context.Background())
@@ -108,8 +109,7 @@ func (updater *metricsUpdater) processMetricsUpdate(ctx context.Context) {
 }
 
 func (updater *metricsUpdater) updateMetrics() {
-	heartbeatSubsystemV1IsActive := !updater.flagHeartbeatV1DisableEpoch.IsSet()
-	if heartbeatSubsystemV1IsActive {
+	if updater.shouldSkipUpdateMetrics() {
 		return
 	}
 
@@ -134,7 +134,6 @@ func (updater *metricsUpdater) updateConnectionsMetrics() {
 
 	updater.appStatusHandler.SetUInt64Value(common.MetricNumIntraShardValidatorNodes, uint64(counterActiveValidators))
 	updater.appStatusHandler.SetUInt64Value(common.MetricConnectedNodes, uint64(counterConnectedNodes))
-	updater.appStatusHandler.SetUInt64Value(common.MetricLiveValidatorNodes, uint64(updater.peerAuthenticationCacher.Len()))
 }
 
 func (updater *metricsUpdater) updateSenderMetrics() {
@@ -171,6 +170,19 @@ func (updater *metricsUpdater) Close() error {
 func (updater *metricsUpdater) EpochConfirmed(epoch uint32, _ uint64) {
 	updater.flagHeartbeatV1DisableEpoch.SetValue(epoch >= updater.heartbeatV1DisableEpoch)
 	log.Debug("heartbeat v1 subsystem", "enabled", !updater.flagHeartbeatV1DisableEpoch.IsSet())
+}
+
+func (updater *metricsUpdater) onAddedPeerAuthenticationMessage(_ []byte, _ interface{}) {
+	if updater.shouldSkipUpdateMetrics() {
+		return
+	}
+
+	updater.appStatusHandler.SetUInt64Value(common.MetricLiveValidatorNodes, uint64(updater.peerAuthenticationCacher.Len()))
+}
+
+func (updater *metricsUpdater) shouldSkipUpdateMetrics() bool {
+	heartbeatV1IsStillActive := !updater.flagHeartbeatV1DisableEpoch.IsSet()
+	return heartbeatV1IsStillActive
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

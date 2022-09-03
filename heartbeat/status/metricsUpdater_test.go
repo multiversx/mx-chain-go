@@ -276,6 +276,64 @@ func TestMetricsUpdater_updateMetrics(t *testing.T) {
 	})
 }
 
+func TestMetricsUpdater_MetricLiveValidatorNodesUpdatesDirectly(t *testing.T) {
+	t.Parallel()
+
+	t.Run("heartbeat v1 is still active", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgsMetricsUpdater()
+		args.EpochNotifier = &epochNotifier.EpochNotifierStub{
+			RegisterNotifyHandlerCalled: func(handler vmcommon.EpochSubscriberHandler) {
+				handler.EpochConfirmed(4, 0)
+			},
+		}
+
+		args.HeartbeatV1DisableEpoch = 3
+		args.AppStatusHandler = &statusHandler.AppStatusHandlerStub{
+			SetStringValueHandler: func(key string, value string) {
+				switch key {
+				case common.MetricLiveValidatorNodes:
+					assert.Equal(t, uint64(0), value)
+				}
+			},
+		}
+		updater, _ := NewMetricsUpdaterWithoutGoRoutineStart(args)
+		time.Sleep(time.Second)
+		updater.peerAuthenticationCacher.Put([]byte("key1"), "value1", 0)
+		time.Sleep(time.Second)
+		updater.peerAuthenticationCacher.Put([]byte("key2"), "value2", 0)
+		time.Sleep(time.Second)
+		updater.peerAuthenticationCacher.Put([]byte("key3"), "value3", 0)
+		time.Sleep(time.Second)
+	})
+	t.Run("heartbeat v1 is deactivated", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgsMetricsUpdater()
+		args.EpochNotifier = &epochNotifier.EpochNotifierStub{
+			RegisterNotifyHandlerCalled: func(handler vmcommon.EpochSubscriberHandler) {
+				handler.EpochConfirmed(4, 0)
+			},
+		}
+
+		args.HeartbeatV1DisableEpoch = 4
+		args.AppStatusHandler = &statusHandler.AppStatusHandlerStub{
+			SetStringValueHandler: func(key string, value string) {
+				switch key {
+				case common.MetricLiveValidatorNodes:
+					assert.Equal(t, uint64(1), value)
+				}
+			},
+		}
+		updater, _ := NewMetricsUpdaterWithoutGoRoutineStart(args)
+		time.Sleep(time.Second)
+		updater.peerAuthenticationCacher.Put([]byte("key1"), "value1", 0)
+		time.Sleep(time.Second)
+	})
+
+}
+
 func testUpdaterForConnectionMetrics(tb testing.TB, args ArgsMetricsUpdater) {
 	args.AppStatusHandler = &statusHandler.AppStatusHandlerStub{
 		SetUInt64ValueHandler: func(key string, value uint64) {
