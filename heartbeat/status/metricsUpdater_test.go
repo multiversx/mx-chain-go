@@ -2,7 +2,7 @@ package status
 
 import (
 	"errors"
-	"fmt"
+	atomicGo "sync/atomic"
 	"testing"
 	"time"
 
@@ -187,13 +187,8 @@ func TestMetricsUpdater_updateMetrics(t *testing.T) {
 				}
 			},
 		}
-		numEpochsToCheck := 4
-		for i := 4; i < numEpochsToCheck+4; i++ {
-			t.Run(fmt.Sprintf("test with epoch %d", i), func(t *testing.T) {
-				args.HeartbeatV1DisableEpoch = uint32(i)
-				testUpdaterForConnectionMetrics(t, args)
-			})
-		}
+		args.HeartbeatV1DisableEpoch = 4
+		testUpdaterForConnectionMetrics(t, args)
 	})
 	t.Run("heartbeat v1 is disabled should send sender metrics", func(t *testing.T) {
 		t.Run("eligible node", func(t *testing.T) {
@@ -202,18 +197,13 @@ func TestMetricsUpdater_updateMetrics(t *testing.T) {
 					return string(common.EligibleList), core.FullHistoryObserver, nil
 				},
 			}
-			numEpochsToCheck := 4
-			for i := 4; i < numEpochsToCheck+4; i++ {
-				t.Run(fmt.Sprintf("test with epoch %d", i), func(t *testing.T) {
-					args.HeartbeatV1DisableEpoch = uint32(i)
-					testUpdaterForSenderMetrics(
-						t,
-						args,
-						string(common.EligibleList),
-						string(core.NodeTypeValidator),
-						core.FullHistoryObserver)
-				})
-			}
+			args.HeartbeatV1DisableEpoch = 4
+			testUpdaterForSenderMetrics(
+				t,
+				args,
+				string(common.EligibleList),
+				string(core.NodeTypeValidator),
+				core.FullHistoryObserver)
 		})
 		t.Run("waiting node", func(t *testing.T) {
 			args.HeartbeatSenderInfoProvider = &mock.HeartbeatSenderInfoProviderStub{
@@ -221,18 +211,13 @@ func TestMetricsUpdater_updateMetrics(t *testing.T) {
 					return string(common.WaitingList), core.FullHistoryObserver, nil
 				},
 			}
-			numEpochsToCheck := 4
-			for i := 4; i < numEpochsToCheck+4; i++ {
-				t.Run(fmt.Sprintf("test with epoch %d", i), func(t *testing.T) {
-					args.HeartbeatV1DisableEpoch = uint32(i)
-					testUpdaterForSenderMetrics(
-						t,
-						args,
-						string(common.WaitingList),
-						string(core.NodeTypeValidator),
-						core.FullHistoryObserver)
-				})
-			}
+			args.HeartbeatV1DisableEpoch = 4
+			testUpdaterForSenderMetrics(
+				t,
+				args,
+				string(common.WaitingList),
+				string(core.NodeTypeValidator),
+				core.FullHistoryObserver)
 		})
 		t.Run("observer node", func(t *testing.T) {
 			args.HeartbeatSenderInfoProvider = &mock.HeartbeatSenderInfoProviderStub{
@@ -240,18 +225,13 @@ func TestMetricsUpdater_updateMetrics(t *testing.T) {
 					return string(common.ObserverList), core.FullHistoryObserver, nil
 				},
 			}
-			numEpochsToCheck := 4
-			for i := 4; i < numEpochsToCheck+4; i++ {
-				t.Run(fmt.Sprintf("test with epoch %d", i), func(t *testing.T) {
-					args.HeartbeatV1DisableEpoch = uint32(i)
-					testUpdaterForSenderMetrics(
-						t,
-						args,
-						string(common.ObserverList),
-						string(core.NodeTypeObserver),
-						core.FullHistoryObserver)
-				})
-			}
+			args.HeartbeatV1DisableEpoch = 4
+			testUpdaterForSenderMetrics(
+				t,
+				args,
+				string(common.ObserverList),
+				string(core.NodeTypeObserver),
+				core.FullHistoryObserver)
 		})
 	})
 	t.Run("heartbeat v1 is disabled GetSenderInfo errors", func(t *testing.T) {
@@ -336,6 +316,43 @@ func TestMetricsUpdater_MetricLiveValidatorNodesUpdatesDirectly(t *testing.T) {
 		updater.peerAuthenticationCacher.Put([]byte("key1"), "value1", 0)
 		time.Sleep(time.Second)
 		assert.True(t, wasCalled.IsSet())
+	})
+}
+
+func TestMetricsUpdater_EpochConfirmed(t *testing.T) {
+	t.Parallel()
+
+	crtEpoch := uint32(0)
+	args := createMockArgsMetricsUpdater()
+	args.EpochNotifier = &epochNotifier.EpochNotifierStub{
+		RegisterNotifyHandlerCalled: func(handler vmcommon.EpochSubscriberHandler) {
+			handler.EpochConfirmed(atomicGo.LoadUint32(&crtEpoch), 0)
+		},
+	}
+	args.HeartbeatV1DisableEpoch = 2
+	t.Run("current epoch 0, set epoch 2", func(t *testing.T) {
+		updater, _ := NewMetricsUpdater(args)
+		assert.False(t, updater.flagHeartbeatV1DisableEpoch.IsSet())
+	})
+	t.Run("current epoch 1, set epoch 2", func(t *testing.T) {
+		atomicGo.StoreUint32(&crtEpoch, 1)
+		updater, _ := NewMetricsUpdater(args)
+		assert.False(t, updater.flagHeartbeatV1DisableEpoch.IsSet())
+	})
+	t.Run("current epoch 2, set epoch 2", func(t *testing.T) {
+		atomicGo.StoreUint32(&crtEpoch, 2)
+		updater, _ := NewMetricsUpdater(args)
+		assert.True(t, updater.flagHeartbeatV1DisableEpoch.IsSet())
+	})
+	t.Run("current epoch 3, set epoch 2", func(t *testing.T) {
+		atomicGo.StoreUint32(&crtEpoch, 3)
+		updater, _ := NewMetricsUpdater(args)
+		assert.True(t, updater.flagHeartbeatV1DisableEpoch.IsSet())
+	})
+	t.Run("current epoch 4, set epoch 2", func(t *testing.T) {
+		atomicGo.StoreUint32(&crtEpoch, 3)
+		updater, _ := NewMetricsUpdater(args)
+		assert.True(t, updater.flagHeartbeatV1DisableEpoch.IsSet())
 	})
 }
 
