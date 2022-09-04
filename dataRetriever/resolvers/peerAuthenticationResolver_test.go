@@ -296,7 +296,6 @@ func TestPeerAuthenticationResolver_ProcessReceivedMessage(t *testing.T) {
 			return createMockPeerAuthenticationObject(), true
 		}
 
-		expectedErr = errors.New("expected error")
 		numValidationCalls := 0
 		arg.PayloadValidator = &testscommon.PeerAuthenticationPayloadValidatorStub{
 			ValidateTimestampCalled: func(payloadTimestamp int64) error {
