@@ -190,7 +190,7 @@ func TestMetricsUpdater_updateMetrics(t *testing.T) {
 		numEpochsToCheck := 4
 		for i := 4; i < numEpochsToCheck+4; i++ {
 			t.Run(fmt.Sprintf("test with epoch %d", i), func(t *testing.T) {
-				args.HeartbeatV1DisableEpoch = 4
+				args.HeartbeatV1DisableEpoch = uint32(i)
 				testUpdaterForConnectionMetrics(t, args)
 			})
 		}
@@ -205,7 +205,7 @@ func TestMetricsUpdater_updateMetrics(t *testing.T) {
 			numEpochsToCheck := 4
 			for i := 4; i < numEpochsToCheck+4; i++ {
 				t.Run(fmt.Sprintf("test with epoch %d", i), func(t *testing.T) {
-					args.HeartbeatV1DisableEpoch = 4
+					args.HeartbeatV1DisableEpoch = uint32(i)
 					testUpdaterForSenderMetrics(
 						t,
 						args,
@@ -224,7 +224,7 @@ func TestMetricsUpdater_updateMetrics(t *testing.T) {
 			numEpochsToCheck := 4
 			for i := 4; i < numEpochsToCheck+4; i++ {
 				t.Run(fmt.Sprintf("test with epoch %d", i), func(t *testing.T) {
-					args.HeartbeatV1DisableEpoch = 4
+					args.HeartbeatV1DisableEpoch = uint32(i)
 					testUpdaterForSenderMetrics(
 						t,
 						args,
@@ -243,7 +243,7 @@ func TestMetricsUpdater_updateMetrics(t *testing.T) {
 			numEpochsToCheck := 4
 			for i := 4; i < numEpochsToCheck+4; i++ {
 				t.Run(fmt.Sprintf("test with epoch %d", i), func(t *testing.T) {
-					args.HeartbeatV1DisableEpoch = 4
+					args.HeartbeatV1DisableEpoch = uint32(i)
 					testUpdaterForSenderMetrics(
 						t,
 						args,
@@ -289,12 +289,14 @@ func TestMetricsUpdater_MetricLiveValidatorNodesUpdatesDirectly(t *testing.T) {
 			},
 		}
 
-		args.HeartbeatV1DisableEpoch = 3
+		wasCalled := atomic.Flag{}
+		args.HeartbeatV1DisableEpoch = 5
 		args.AppStatusHandler = &statusHandler.AppStatusHandlerStub{
-			SetStringValueHandler: func(key string, value string) {
+			SetUInt64ValueHandler: func(key string, value uint64) {
 				switch key {
 				case common.MetricLiveValidatorNodes:
 					assert.Equal(t, uint64(0), value)
+					wasCalled.SetValue(true)
 				}
 			},
 		}
@@ -306,6 +308,7 @@ func TestMetricsUpdater_MetricLiveValidatorNodesUpdatesDirectly(t *testing.T) {
 		time.Sleep(time.Second)
 		updater.peerAuthenticationCacher.Put([]byte("key3"), "value3", 0)
 		time.Sleep(time.Second)
+		assert.False(t, wasCalled.IsSet())
 	})
 	t.Run("heartbeat v1 is deactivated", func(t *testing.T) {
 		t.Parallel()
@@ -317,12 +320,14 @@ func TestMetricsUpdater_MetricLiveValidatorNodesUpdatesDirectly(t *testing.T) {
 			},
 		}
 
+		wasCalled := atomic.Flag{}
 		args.HeartbeatV1DisableEpoch = 4
 		args.AppStatusHandler = &statusHandler.AppStatusHandlerStub{
-			SetStringValueHandler: func(key string, value string) {
+			SetUInt64ValueHandler: func(key string, value uint64) {
 				switch key {
 				case common.MetricLiveValidatorNodes:
 					assert.Equal(t, uint64(1), value)
+					wasCalled.SetValue(true)
 				}
 			},
 		}
@@ -330,8 +335,8 @@ func TestMetricsUpdater_MetricLiveValidatorNodesUpdatesDirectly(t *testing.T) {
 		time.Sleep(time.Second)
 		updater.peerAuthenticationCacher.Put([]byte("key1"), "value1", 0)
 		time.Sleep(time.Second)
+		assert.True(t, wasCalled.IsSet())
 	})
-
 }
 
 func testUpdaterForConnectionMetrics(tb testing.TB, args ArgsMetricsUpdater) {

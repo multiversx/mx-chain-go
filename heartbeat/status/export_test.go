@@ -17,6 +17,7 @@ func NewMetricsUpdaterWithoutGoRoutineStart(args ArgsMetricsUpdater) (*metricsUp
 	}
 
 	args.EpochNotifier.RegisterNotifyHandler(updater)
+	args.PeerAuthenticationCacher.RegisterHandler(updater.onAddedPeerAuthenticationMessage, "metricsUpdater")
 
 	return updater, nil
 }
