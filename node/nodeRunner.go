@@ -663,17 +663,18 @@ func (nr *nodeRunner) CreateManagedConsensusComponents(
 	}
 
 	consensusArgs := mainFactory.ConsensusComponentsFactoryArgs{
-		Config:              *nr.configs.GeneralConfig,
-		BootstrapRoundIndex: nr.configs.FlagsConfig.BootstrapRoundIndex,
-		CoreComponents:      coreComponents,
-		NetworkComponents:   networkComponents,
-		CryptoComponents:    cryptoComponents,
-		DataComponents:      dataComponents,
-		ProcessComponents:   processComponents,
-		StateComponents:     stateComponents,
-		StatusComponents:    statusComponents,
-		ScheduledProcessor:  scheduledProcessor,
-		IsInImportMode:      nr.configs.ImportDbConfig.IsImportDBMode,
+		Config:                *nr.configs.GeneralConfig,
+		BootstrapRoundIndex:   nr.configs.FlagsConfig.BootstrapRoundIndex,
+		CoreComponents:        coreComponents,
+		NetworkComponents:     networkComponents,
+		CryptoComponents:      cryptoComponents,
+		DataComponents:        dataComponents,
+		ProcessComponents:     processComponents,
+		StateComponents:       stateComponents,
+		StatusComponents:      statusComponents,
+		ScheduledProcessor:    scheduledProcessor,
+		IsInImportMode:        nr.configs.ImportDbConfig.IsImportDBMode,
+		ShouldDisableWatchdog: nr.configs.FlagsConfig.DisableConsensusWatchdog,
 	}
 
 	consensusFactory, err := mainFactory.NewConsensusComponentsFactory(consensusArgs)

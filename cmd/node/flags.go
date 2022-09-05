@@ -327,6 +327,11 @@ var (
 		Name:  "force-start-from-network",
 		Usage: "Flag that will force the start from network bootstrap process",
 	}
+	// disableConsensusWatchdog defines a flag that will disable the consensus watchdog
+	disableConsensusWatchdog = cli.BoolFlag{
+		Name:  "disable-consensus-watchdog",
+		Usage: "Flag that will disable the consensus watchdog",
+	}
 )
 
 func getFlags() []cli.Flag {
@@ -377,6 +382,7 @@ func getFlags() []cli.Flag {
 		memBallast,
 		memoryUsageToCreateProfiles,
 		forceStartFromNetwork,
+		disableConsensusWatchdog,
 	}
 }
 
@@ -400,6 +406,7 @@ func getFlagsConfig(ctx *cli.Context, log logger.Logger) *config.ContextFlagsCon
 	flagsConfig.UseLogView = ctx.GlobalBool(useLogView.Name)
 	flagsConfig.ValidatorKeyIndex = ctx.GlobalInt(validatorKeyIndex.Name)
 	flagsConfig.ForceStartFromNetwork = ctx.GlobalBool(forceStartFromNetwork.Name)
+	flagsConfig.DisableConsensusWatchdog = ctx.GlobalBool(disableConsensusWatchdog.Name)
 	return flagsConfig
 }
 
