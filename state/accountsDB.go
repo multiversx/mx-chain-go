@@ -79,10 +79,11 @@ type AccountsDB struct {
 	dataTries    common.TriesHolder
 	entries      []JournalEntry
 	// TODO use mutOp only for critical sections, and refactor to parallelize as much as possible
-	mutOp                sync.RWMutex
-	processingMode       common.NodeProcessingMode
-	loadCodeMeasurements *loadingMeasurements
-	processStatusHandler common.ProcessStatusHandler
+	mutOp                    sync.RWMutex
+	processingMode           common.NodeProcessingMode
+	shouldSerializeSnapshots bool
+	loadCodeMeasurements     *loadingMeasurements
+	processStatusHandler     common.ProcessStatusHandler
 
 	stackDebug []byte
 }
@@ -91,13 +92,14 @@ var log = logger.GetOrCreate("state")
 
 // ArgsAccountsDB is the arguments DTO for the AccountsDB instance
 type ArgsAccountsDB struct {
-	Trie                  common.Trie
-	Hasher                hashing.Hasher
-	Marshaller            marshal.Marshalizer
-	AccountFactory        AccountFactory
-	StoragePruningManager StoragePruningManager
-	ProcessingMode        common.NodeProcessingMode
-	ProcessStatusHandler  common.ProcessStatusHandler
+	Trie                     common.Trie
+	Hasher                   hashing.Hasher
+	Marshaller               marshal.Marshalizer
+	AccountFactory           AccountFactory
+	StoragePruningManager    StoragePruningManager
+	ProcessingMode           common.NodeProcessingMode
+	ShouldSerializeSnapshots bool
+	ProcessStatusHandler     common.ProcessStatusHandler
 }
 
 // NewAccountsDB creates a new account manager
@@ -120,9 +122,10 @@ func NewAccountsDB(args ArgsAccountsDB) (*AccountsDB, error) {
 		loadCodeMeasurements: &loadingMeasurements{
 			identifier: "load code",
 		},
-		processingMode:       args.ProcessingMode,
-		lastSnapshot:         &snapshotInfo{},
-		processStatusHandler: args.ProcessStatusHandler,
+		processingMode:           args.ProcessingMode,
+		shouldSerializeSnapshots: args.ShouldSerializeSnapshots,
+		lastSnapshot:             &snapshotInfo{},
+		processStatusHandler:     args.ProcessStatusHandler,
 	}
 
 	trieStorageManager := adb.mainTrie.GetStorageManager()
@@ -1130,7 +1133,7 @@ func (adb *AccountsDB) SnapshotState(rootHash []byte) {
 
 	go adb.markActiveDBAfterSnapshot(stats, errChan, rootHash, "snapshotState user trie", epoch)
 
-	adb.waitForCompletionIfRunningInImportDB(stats)
+	adb.waitForCompletionIfAppropriate(stats)
 }
 
 func (adb *AccountsDB) markActiveDBAfterSnapshot(stats *snapshotStatistics, errChan chan error, rootHash []byte, message string, epoch uint32) {
@@ -1227,13 +1230,14 @@ func (adb *AccountsDB) setStateCheckpoint(rootHash []byte) {
 	//  that will be present in the errChan var
 	go stats.PrintStats("setStateCheckpoint user trie", rootHash)
 
-	adb.waitForCompletionIfRunningInImportDB(stats)
+	adb.waitForCompletionIfAppropriate(stats)
 }
 
-func (adb *AccountsDB) waitForCompletionIfRunningInImportDB(stats common.SnapshotStatisticsHandler) {
-	// if adb.processingMode != common.ImportDb {
-	// 	return
-	// }
+func (adb *AccountsDB) waitForCompletionIfAppropriate(stats common.SnapshotStatisticsHandler) {
+	shouldSerializeSnapshots := adb.shouldSerializeSnapshots || adb.processingMode == common.ImportDb
+	if !shouldSerializeSnapshots {
+		return
+	}
 
 	log.Debug("manually setting idle on the process status handler in order to be able to start & complete the snapshotting/checkpointing process")
 	adb.processStatusHandler.SetIdle()

@@ -1141,13 +1141,14 @@ func (nr *nodeRunner) CreateManagedStateComponents(
 		processingMode = common.ImportDb
 	}
 	stateArgs := mainFactory.StateComponentsFactoryArgs{
-		Config:           *nr.configs.GeneralConfig,
-		EnableEpochs:     nr.configs.EpochConfig.EnableEpochs,
-		ShardCoordinator: bootstrapComponents.ShardCoordinator(),
-		Core:             coreComponents,
-		StorageService:   dataComponents.StorageService(),
-		ProcessingMode:   processingMode,
-		ChainHandler:     dataComponents.Blockchain(),
+		Config:                   *nr.configs.GeneralConfig,
+		EnableEpochs:             nr.configs.EpochConfig.EnableEpochs,
+		ShardCoordinator:         bootstrapComponents.ShardCoordinator(),
+		Core:                     coreComponents,
+		StorageService:           dataComponents.StorageService(),
+		ProcessingMode:           processingMode,
+		ShouldSerializeSnapshots: nr.configs.FlagsConfig.SerializeSnapshots,
+		ChainHandler:             dataComponents.Blockchain(),
 	}
 
 	stateComponentsFactory, err := mainFactory.NewStateComponentsFactory(stateArgs)
