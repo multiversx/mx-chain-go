@@ -68,11 +68,11 @@ func GetUserAccountWithAddress(
 // SetRoles -
 func SetRoles(nodes []*integrationTests.TestProcessorNode, addrForRole []byte, tokenIdentifier []byte, roles [][]byte) {
 	tokenIssuer := nodes[0]
-	SetRolesWithIssuerAccount(nodes, tokenIssuer.OwnAccount, addrForRole, tokenIdentifier, roles)
+	SetRolesWithSenderAccount(nodes, tokenIssuer.OwnAccount, addrForRole, tokenIdentifier, roles)
 }
 
-// SetRolesWithIssuerAccount -
-func SetRolesWithIssuerAccount(nodes []*integrationTests.TestProcessorNode, issuerAccount *integrationTests.TestWalletAccount, addrForRole []byte, tokenIdentifier []byte, roles [][]byte) {
+// SetRolesWithSenderAccount -
+func SetRolesWithSenderAccount(nodes []*integrationTests.TestProcessorNode, issuerAccount *integrationTests.TestWalletAccount, addrForRole []byte, tokenIdentifier []byte, roles [][]byte) {
 	tokenIssuer := nodes[0]
 
 	txData := "setSpecialRole" +
@@ -400,7 +400,7 @@ func PrepareFungibleTokensWithLocalBurnAndMintWithIssuerAccount(
 
 	tokenIdentifier := string(integrationTests.GetTokenIdentifier(nodes, []byte("TKN")))
 
-	SetRolesWithIssuerAccount(nodes, issuerAccount, addressWithRoles, []byte(tokenIdentifier), [][]byte{[]byte(core.ESDTRoleLocalMint), []byte(core.ESDTRoleLocalBurn)})
+	SetRolesWithSenderAccount(nodes, issuerAccount, addressWithRoles, []byte(tokenIdentifier), [][]byte{[]byte(core.ESDTRoleLocalMint), []byte(core.ESDTRoleLocalBurn)})
 
 	time.Sleep(time.Second)
 	nrRoundsToPropagateMultiShard = 5

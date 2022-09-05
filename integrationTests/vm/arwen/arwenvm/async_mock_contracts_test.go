@@ -90,9 +90,10 @@ func testMockContract_CrossShard(t *testing.T, asyncCallType []byte) {
 		GasProvidedToChild: 1_000_000,
 		GasUsedByParent:    400,
 
-		ChildAddress:      childAddress,
-		ThirdPartyAddress: thirdPartyAddress,
-		VaultAddress:      vaultAddress,
+		ChildAddress:              childAddress,
+		ThirdPartyAddress:         thirdPartyAddress,
+		VaultAddress:              vaultAddress,
+		TransferFromParentToChild: 8,
 
 		SuccessCallback: "myCallBack",
 		ErrorCallback:   "myCallBack",
