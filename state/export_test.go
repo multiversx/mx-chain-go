@@ -37,9 +37,9 @@ func (adb *AccountsDB) GetObsoleteHashes() map[string][][]byte {
 	return adb.obsoleteDataTrieHashes
 }
 
-// WaitForCompletionIfRunningInImportDB -
-func (adb *AccountsDB) WaitForCompletionIfRunningInImportDB(stats common.SnapshotStatisticsHandler) {
-	adb.waitForCompletionIfRunningInImportDB(stats)
+// WaitForCompletionIfAppropriate -
+func (adb *AccountsDB) WaitForCompletionIfAppropriate(stats common.SnapshotStatisticsHandler) {
+	adb.waitForCompletionIfAppropriate(stats)
 }
 
 // GetCode -
