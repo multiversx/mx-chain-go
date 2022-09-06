@@ -68,6 +68,7 @@ func NewShardForkDetector(
 	}
 
 	sfd.blockTracker.RegisterSelfNotarizedFromCrossHeadersHandler(sfd.ReceivedSelfNotarizedFromCrossHeaders)
+	sfd.doJobOnBHProcessedFunc = sfd.doJobOnBHProcessed
 
 	bfd.forkDetector = &sfd
 
@@ -88,7 +89,7 @@ func (sfd *shardForkDetector) AddHeader(
 		state,
 		selfNotarizedHeaders,
 		selfNotarizedHeadersHashes,
-		sfd.doJobOnBHProcessed,
+		sfd.doJobOnBHProcessedFunc,
 	)
 }
 

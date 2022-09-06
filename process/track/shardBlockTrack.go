@@ -57,6 +57,8 @@ func NewShardBlockTrack(arguments ArgShardTracker) (*shardBlockTrack, error) {
 	sbt.headers = make(map[uint32]map[uint64][]*HeaderInfo)
 	sbt.headersPool.RegisterHandler(sbt.receivedHeader)
 	sbt.headersPool.Clear()
+	sbt.ComputeLongestSelfChainFunc = sbt.ComputeLongestSelfChain
+	sbt.GetSelfNotarizedHeaderFunc = sbt.GetSelfNotarizedHeader
 
 	return &sbt, nil
 }
