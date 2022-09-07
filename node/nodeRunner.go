@@ -663,17 +663,18 @@ func (nr *nodeRunner) CreateManagedConsensusComponents(
 	}
 
 	consensusArgs := mainFactory.ConsensusComponentsFactoryArgs{
-		Config:              *nr.configs.GeneralConfig,
-		BootstrapRoundIndex: nr.configs.FlagsConfig.BootstrapRoundIndex,
-		CoreComponents:      coreComponents,
-		NetworkComponents:   networkComponents,
-		CryptoComponents:    cryptoComponents,
-		DataComponents:      dataComponents,
-		ProcessComponents:   processComponents,
-		StateComponents:     stateComponents,
-		StatusComponents:    statusComponents,
-		ScheduledProcessor:  scheduledProcessor,
-		IsInImportMode:      nr.configs.ImportDbConfig.IsImportDBMode,
+		Config:                *nr.configs.GeneralConfig,
+		BootstrapRoundIndex:   nr.configs.FlagsConfig.BootstrapRoundIndex,
+		CoreComponents:        coreComponents,
+		NetworkComponents:     networkComponents,
+		CryptoComponents:      cryptoComponents,
+		DataComponents:        dataComponents,
+		ProcessComponents:     processComponents,
+		StateComponents:       stateComponents,
+		StatusComponents:      statusComponents,
+		ScheduledProcessor:    scheduledProcessor,
+		IsInImportMode:        nr.configs.ImportDbConfig.IsImportDBMode,
+		ShouldDisableWatchdog: nr.configs.FlagsConfig.DisableConsensusWatchdog,
 	}
 
 	consensusFactory, err := mainFactory.NewConsensusComponentsFactory(consensusArgs)
@@ -1141,13 +1142,14 @@ func (nr *nodeRunner) CreateManagedStateComponents(
 		processingMode = common.ImportDb
 	}
 	stateArgs := mainFactory.StateComponentsFactoryArgs{
-		Config:           *nr.configs.GeneralConfig,
-		EnableEpochs:     nr.configs.EpochConfig.EnableEpochs,
-		ShardCoordinator: bootstrapComponents.ShardCoordinator(),
-		Core:             coreComponents,
-		StorageService:   dataComponents.StorageService(),
-		ProcessingMode:   processingMode,
-		ChainHandler:     dataComponents.Blockchain(),
+		Config:                   *nr.configs.GeneralConfig,
+		EnableEpochs:             nr.configs.EpochConfig.EnableEpochs,
+		ShardCoordinator:         bootstrapComponents.ShardCoordinator(),
+		Core:                     coreComponents,
+		StorageService:           dataComponents.StorageService(),
+		ProcessingMode:           processingMode,
+		ShouldSerializeSnapshots: nr.configs.FlagsConfig.SerializeSnapshots,
+		ChainHandler:             dataComponents.Blockchain(),
 	}
 
 	stateComponentsFactory, err := mainFactory.NewStateComponentsFactory(stateArgs)
