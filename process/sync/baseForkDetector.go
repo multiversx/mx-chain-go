@@ -43,15 +43,14 @@ type baseForkDetector struct {
 	fork       forkInfo
 	mutFork    sync.RWMutex
 
-	blackListHandler       process.TimeCacher
-	genesisTime            int64
-	blockTracker           process.BlockTracker
-	forkDetector           forkDetector
-	genesisNonce           uint64
-	genesisRound           uint64
-	maxForkHeaderEpoch     uint32
-	genesisEpoch           uint32
-	doJobOnBHProcessedFunc func(_ data.HeaderHandler, _ []byte, _ []data.HeaderHandler, _ [][]byte)
+	blackListHandler   process.TimeCacher
+	genesisTime        int64
+	blockTracker       process.BlockTracker
+	forkDetector       forkDetector
+	genesisNonce       uint64
+	genesisRound       uint64
+	maxForkHeaderEpoch uint32
+	genesisEpoch       uint32
 }
 
 // SetRollBackNonce sets the nonce where the chain should roll back
