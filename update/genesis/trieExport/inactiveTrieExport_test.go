@@ -1,6 +1,7 @@
 package trieExport
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
@@ -73,8 +74,8 @@ func TestInactiveTrieExport_ExportMainTrieGetAllLeavesOnChannelErrShouldErr(t *t
 		RootCalled: func() ([]byte, error) {
 			return nil, nil
 		},
-		GetAllLeavesOnChannelCalled: func(_ []byte) (chan core.KeyValueHolder, error) {
-			return nil, expectedErr
+		GetAllLeavesOnChannelCalled: func(leavesChannel chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error {
+			return expectedErr
 		},
 	}
 
@@ -103,13 +104,12 @@ func TestInactiveTrieExport_ExportMainTrieShouldReturnDataTrieRootHashes(t *test
 		RootCalled: func() ([]byte, error) {
 			return nil, nil
 		},
-		GetAllLeavesOnChannelCalled: func(_ []byte) (chan core.KeyValueHolder, error) {
-			leavesChannel := make(chan core.KeyValueHolder, 3)
+		GetAllLeavesOnChannelCalled: func(leavesChannel chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error {
 			leavesChannel <- keyValStorage.NewKeyValStorage([]byte("key1"), []byte("val1"))
 			leavesChannel <- keyValStorage.NewKeyValStorage([]byte("key2"), serializedAcc1)
 			leavesChannel <- keyValStorage.NewKeyValStorage([]byte("key3"), serializedAcc2)
 			close(leavesChannel)
-			return leavesChannel, nil
+			return nil
 		},
 	}
 

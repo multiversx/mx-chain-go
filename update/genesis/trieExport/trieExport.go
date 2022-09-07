@@ -1,6 +1,7 @@
 package trieExport
 
 import (
+	"context"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -92,7 +93,8 @@ func (te *trieExport) ExportValidatorTrie(trie common.Trie) error {
 		return err
 	}
 
-	leavesChannel, err := trie.GetAllLeavesOnChannel(rootHash)
+	leavesChannel := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
+	err = trie.GetAllLeavesOnChannel(leavesChannel, context.Background(), rootHash)
 	if err != nil {
 		return err
 	}
@@ -149,7 +151,8 @@ func (te *trieExport) getExportLeavesParameters(
 		return nil, 0, 0, "", err
 	}
 
-	leavesChannel, err := trie.GetAllLeavesOnChannel(rootHash)
+	leavesChannel := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
+	err = trie.GetAllLeavesOnChannel(leavesChannel, context.Background(), rootHash)
 	if err != nil {
 		return nil, 0, 0, "", err
 	}

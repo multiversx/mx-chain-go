@@ -1,6 +1,7 @@
 package trieExport
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -195,8 +196,8 @@ func TestTrieExport_ExportValidatorTrieGetAllLeavesOnChannelErrShouldErr(t *test
 		RootCalled: func() ([]byte, error) {
 			return nil, nil
 		},
-		GetAllLeavesOnChannelCalled: func(_ []byte) (chan core.KeyValueHolder, error) {
-			return nil, expectedErr
+		GetAllLeavesOnChannelCalled: func(leavesChannel chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error {
+			return expectedErr
 		},
 	}
 
@@ -265,8 +266,8 @@ func TestTrieExport_ExportMainTrieGetAllLeavesOnChannelErrShouldErr(t *testing.T
 		RootCalled: func() ([]byte, error) {
 			return nil, nil
 		},
-		GetAllLeavesOnChannelCalled: func(_ []byte) (chan core.KeyValueHolder, error) {
-			return nil, expectedErr
+		GetAllLeavesOnChannelCalled: func(leavesChannel chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error {
+			return expectedErr
 		},
 	}
 
@@ -292,8 +293,9 @@ func TestTrieExport_ExportMainTrieInvalidShardIdShouldErr(t *testing.T) {
 		RootCalled: func() ([]byte, error) {
 			return nil, nil
 		},
-		GetAllLeavesOnChannelCalled: func(_ []byte) (chan core.KeyValueHolder, error) {
-			return nil, nil
+		GetAllLeavesOnChannelCalled: func(leavesChannel chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error {
+			close(leavesChannel)
+			return nil
 		},
 	}
 
@@ -324,8 +326,9 @@ func TestTrieExport_ExportMainTrieHardforkStorerWriteErrShouldErr(t *testing.T) 
 		RootCalled: func() ([]byte, error) {
 			return nil, nil
 		},
-		GetAllLeavesOnChannelCalled: func(_ []byte) (chan core.KeyValueHolder, error) {
-			return nil, nil
+		GetAllLeavesOnChannelCalled: func(leavesChannel chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error {
+			close(leavesChannel)
+			return nil
 		},
 	}
 
@@ -374,13 +377,12 @@ func TestTrieExport_ExportMainTrieShouldWork(t *testing.T) {
 		RootCalled: func() ([]byte, error) {
 			return nil, nil
 		},
-		GetAllLeavesOnChannelCalled: func(_ []byte) (chan core.KeyValueHolder, error) {
-			leavesChannel := make(chan core.KeyValueHolder, 3)
+		GetAllLeavesOnChannelCalled: func(leavesChannel chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error {
 			leavesChannel <- keyValStorage.NewKeyValStorage([]byte("key1"), []byte("val1"))
 			leavesChannel <- keyValStorage.NewKeyValStorage([]byte("key2"), serializedAcc1)
 			leavesChannel <- keyValStorage.NewKeyValStorage([]byte("key3"), serializedAcc2)
 			close(leavesChannel)
-			return leavesChannel, nil
+			return nil
 		},
 	}
 
@@ -451,8 +453,8 @@ func TestTrieExport_ExportDataTrieGetAllLeavesOnChannelErrShouldErr(t *testing.T
 		RootCalled: func() ([]byte, error) {
 			return nil, nil
 		},
-		GetAllLeavesOnChannelCalled: func(_ []byte) (chan core.KeyValueHolder, error) {
-			return nil, expectedErr
+		GetAllLeavesOnChannelCalled: func(leavesChannel chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error {
+			return expectedErr
 		},
 	}
 
@@ -477,8 +479,8 @@ func TestTrieExport_ExportDataTrieInvalidShardIdShouldErr(t *testing.T) {
 		RootCalled: func() ([]byte, error) {
 			return nil, nil
 		},
-		GetAllLeavesOnChannelCalled: func(_ []byte) (chan core.KeyValueHolder, error) {
-			return nil, nil
+		GetAllLeavesOnChannelCalled: func(leavesChannel chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error {
+			return nil
 		},
 	}
 
@@ -508,8 +510,8 @@ func TestTrieExport_ExportDataTrieHardforkStorerWriteErrShouldErr(t *testing.T) 
 		RootCalled: func() ([]byte, error) {
 			return nil, nil
 		},
-		GetAllLeavesOnChannelCalled: func(_ []byte) (chan core.KeyValueHolder, error) {
-			return nil, nil
+		GetAllLeavesOnChannelCalled: func(leavesChannel chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error {
+			return nil
 		},
 	}
 
@@ -547,13 +549,12 @@ func TestTrieExport_ExportDataTrieShouldWork(t *testing.T) {
 		RootCalled: func() ([]byte, error) {
 			return nil, nil
 		},
-		GetAllLeavesOnChannelCalled: func(_ []byte) (chan core.KeyValueHolder, error) {
-			leavesChannel := make(chan core.KeyValueHolder, 3)
+		GetAllLeavesOnChannelCalled: func(leavesChannel chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error {
 			leavesChannel <- keyValStorage.NewKeyValStorage([]byte("key1"), []byte("val1"))
 			leavesChannel <- keyValStorage.NewKeyValStorage([]byte("key2"), []byte("val2"))
 			leavesChannel <- keyValStorage.NewKeyValStorage([]byte("key3"), []byte("val3"))
 			close(leavesChannel)
-			return leavesChannel, nil
+			return nil
 		},
 	}
 
@@ -589,19 +590,17 @@ func TestTrieExport_ExportTrieShouldExportNodesSetupJson(t *testing.T) {
 		RootCalled: func() ([]byte, error) {
 			return []byte{}, nil
 		},
-		GetAllLeavesOnChannelCalled: func(rootHash []byte) (chan core.KeyValueHolder, error) {
-			ch := make(chan core.KeyValueHolder)
-
+		GetAllLeavesOnChannelCalled: func(leavesChannel chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error {
 			mm := &mock.MarshalizerMock{}
 			valInfo := &state.ValidatorInfo{List: string(common.EligibleList)}
 			pacB, _ := mm.Marshal(valInfo)
 
 			go func() {
-				ch <- keyValStorage.NewKeyValStorage([]byte("test"), pacB)
-				close(ch)
+				leavesChannel <- keyValStorage.NewKeyValStorage([]byte("test"), pacB)
+				close(leavesChannel)
 			}()
 
-			return ch, nil
+			return nil
 		},
 	}
 

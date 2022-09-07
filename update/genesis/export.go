@@ -1,7 +1,6 @@
 package genesis
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 
@@ -13,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/update"
 )
 

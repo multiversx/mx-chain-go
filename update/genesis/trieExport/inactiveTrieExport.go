@@ -1,6 +1,9 @@
 package trieExport
 
 import (
+	"context"
+
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
@@ -33,7 +36,8 @@ func (ite *inactiveTrieExport) ExportMainTrie(_ string, trie common.Trie) ([][]b
 		return nil, err
 	}
 
-	leavesChannel, err := trie.GetAllLeavesOnChannel(mainRootHash)
+	leavesChannel := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
+	err = trie.GetAllLeavesOnChannel(leavesChannel, context.Background(), mainRootHash)
 	if err != nil {
 		return nil, err
 	}
