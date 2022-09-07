@@ -66,6 +66,8 @@ func NewMetaForkDetector(
 		baseForkDetector: bfd,
 	}
 
+	mfd.doJobOnBHProcessedFunc = mfd.doJobOnBHProcessed
+
 	bfd.forkDetector = &mfd
 
 	return &mfd, nil
@@ -85,7 +87,7 @@ func (mfd *metaForkDetector) AddHeader(
 		state,
 		selfNotarizedHeaders,
 		selfNotarizedHeadersHashes,
-		mfd.doJobOnBHProcessed,
+		mfd.doJobOnBHProcessedFunc,
 	)
 }
 

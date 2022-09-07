@@ -53,7 +53,7 @@ func TestSideChainShardForkDetector_DoJobOnBHProcessedShouldWork(t *testing.T) {
 
 	header := &block.Header{Round: 2, Nonce: 2}
 	headerHash := []byte("hash2")
-	sdsfd.doJobOnBHProcessed(header, headerHash, nil, nil)
+	sdsfd.doJobOnBHProcessedFunc(header, headerHash, nil, nil)
 
 	expectedCheckpoint := &checkpointInfo{
 		nonce: header.Nonce,

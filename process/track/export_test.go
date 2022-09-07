@@ -220,13 +220,13 @@ func (bp *blockProcessor) RequestHeaders(shardID uint32, fromNonce uint64) {
 }
 
 func (bp *blockProcessor) ShouldProcessReceivedHeader(headerHandler data.HeaderHandler) bool {
-	return bp.shouldProcessReceivedHeader(headerHandler)
+	return bp.shouldProcessReceivedHeaderFunc(headerHandler)
 }
 
 // sideChainBlockProcessor
 
 func (scbp *sideChainBlockProcessor) ShouldProcessReceivedHeader(headerHandler data.HeaderHandler) bool {
-	return scbp.shouldProcessReceivedHeader(headerHandler)
+	return scbp.shouldProcessReceivedHeaderFunc(headerHandler)
 }
 
 // miniBlockTrack
