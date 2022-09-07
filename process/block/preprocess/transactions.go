@@ -659,7 +659,7 @@ func (txs *transactions) processTxsFromMeAndCreateScheduled(
 		return false
 	}
 
-	scheduledMiniBlocks, err := txs.createAndProcessScheduledMiniBlocksFromMeAsValidator(
+	scheduledMiniBlocks, err := txs.createScheduledMiniBlocksFromMeAsValidator(
 		body,
 		haveTime,
 		haveAdditionalTimeFalse,
@@ -711,7 +711,7 @@ func (txs *transactions) processTxsFromMeAndCreateScheduled(
 	return nil
 }
 
-func (txs *transactions) createAndProcessScheduledMiniBlocksFromMeAsValidator(
+func (txs *transactions) createScheduledMiniBlocksFromMeAsValidator(
 	body *block.Body,
 	haveTime func() bool,
 	haveAdditionalTime func() bool,
@@ -1107,14 +1107,14 @@ func (txs *transactions) CreateAndProcessMiniBlocks(haveTime func() bool, random
 	txs.sortTransactionsBySenderAndNonce(sortedTxsForScheduled, randomness)
 
 	haveAdditionalTime := process.HaveAdditionalTime()
-	scheduledMiniBlocks, err := txs.createAndProcessScheduledMiniBlocksFromMeAsProposer(
+	scheduledMiniBlocks, err := txs.createScheduledMiniBlocksFromMeAsProposer(
 		haveTime,
 		haveAdditionalTime,
 		sortedTxsForScheduled,
 		mapSCTxs,
 	)
 	if err != nil {
-		log.Debug("createAndProcessScheduledMiniBlocksFromMeAsProposer", "error", err.Error())
+		log.Debug("createScheduledMiniBlocksFromMeAsProposer", "error", err.Error())
 		return make(block.MiniBlockSlice, 0), nil
 	}
 
@@ -1123,7 +1123,7 @@ func (txs *transactions) CreateAndProcessMiniBlocks(haveTime func() bool, random
 	return miniBlocks, nil
 }
 
-func (txs *transactions) createAndProcessScheduledMiniBlocksFromMeAsProposer(
+func (txs *transactions) createScheduledMiniBlocksFromMeAsProposer(
 	haveTime func() bool,
 	haveAdditionalTime func() bool,
 	sortedTxs []*txcache.WrappedTransaction,

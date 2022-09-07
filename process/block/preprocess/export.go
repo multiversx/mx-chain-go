@@ -3,7 +3,6 @@ package preprocess
 import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 	"time"
 )
@@ -15,7 +14,7 @@ func (txs *transactions) SetScheduledTXContinueFunc(newFunc func(isShardStuck fu
 	}
 }
 
-// ProcessTxsFromMe exported function
+// ProcessTxsFromMe exported function for internal function, will process given transactions
 func (txs *transactions) ProcessTxsFromMe(
 	body *block.Body,
 	haveTime func() bool,
@@ -24,7 +23,7 @@ func (txs *transactions) ProcessTxsFromMe(
 	return txs.processTxsFromMe(body, haveTime, randomness)
 }
 
-// CreateScheduledMiniBlocks only the scheduled miniblocks
+// CreateScheduledMiniBlocks selects the transactions for the next block
 func (txs *transactions) CreateScheduledMiniBlocks(haveTime func() bool, randomness []byte, gasBandwidth uint64) (block.MiniBlockSlice, error) {
 	startTime := time.Now()
 
@@ -55,24 +54,19 @@ func (txs *transactions) CreateScheduledMiniBlocks(haveTime func() bool, randomn
 		"time [s]", elapsedTime,
 	)
 
-	if txs.blockTracker.ShouldSkipMiniBlocksCreationFromSelf() {
-		log.Debug("CreateAndProcessMiniBlocks global stuck")
-		return make(block.MiniBlockSlice, 0), nil
-	}
-
 	sortedTxsForScheduled := append(sortedTxs, remainingTxsForScheduled...)
 	sortedTxsForScheduled, _ = txs.prefilterTransactions(nil, sortedTxsForScheduled, 0, gasBandwidth)
 	txs.sortTransactionsBySenderAndNonce(sortedTxsForScheduled, randomness)
 
-	haveAdditionalTime := process.HaveAdditionalTime()
-	scheduledMiniBlocks, err := txs.createAndProcessScheduledMiniBlocksFromMeAsProposer(
+	haveAdditionalTime := func() bool { return false }
+	scheduledMiniBlocks, err := txs.createScheduledMiniBlocksFromMeAsProposer(
 		haveTime,
 		haveAdditionalTime,
 		sortedTxsForScheduled,
 		make(map[string]struct{}),
 	)
 	if err != nil {
-		log.Debug("createAndProcessScheduledMiniBlocksFromMeAsProposer", "error", err.Error())
+		log.Debug("createScheduledMiniBlocksFromMeAsProposer", "error", err.Error())
 		return make(block.MiniBlockSlice, 0), nil
 	}
 
