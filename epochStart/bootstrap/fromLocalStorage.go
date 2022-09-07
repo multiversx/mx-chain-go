@@ -113,10 +113,7 @@ func (e *epochStartBootstrap) prepareEpochFromStorage() (Parameters, error) {
 	triesContainer, trieStorageManagers, err := factory.CreateTriesComponentsForShardId(
 		e.generalConfig,
 		e.coreComponentsHolder,
-		newShardId,
 		e.storageService,
-		e.enableEpochs.DisableOldTrieStorageEpoch,
-		e.epochNotifier,
 	)
 	if err != nil {
 		return Parameters{}, err
@@ -168,13 +165,14 @@ func (e *epochStartBootstrap) prepareEpochFromStorage() (Parameters, error) {
 		return Parameters{}, err
 	}
 
+	emptyPeerMiniBlocksSlice := make([]*block.MiniBlock, 0) // empty slice since we have bootstrapped from storage
 	if e.shardCoordinator.SelfId() == core.MetachainShardId {
-		err = e.requestAndProcessForMeta()
+		err = e.requestAndProcessForMeta(emptyPeerMiniBlocksSlice)
 		if err != nil {
 			return Parameters{}, err
 		}
 	} else {
-		err = e.requestAndProcessForShard()
+		err = e.requestAndProcessForShard(emptyPeerMiniBlocksSlice)
 		if err != nil {
 			return Parameters{}, err
 		}
@@ -196,6 +194,9 @@ func (e *epochStartBootstrap) checkIfShuffledOut(
 ) (uint32, bool) {
 	epochIDasString := fmt.Sprint(e.baseData.lastEpoch)
 	epochConfig := nodesConfig.EpochsConfig[epochIDasString]
+	if epochConfig == nil {
+		return e.baseData.shardId, false
+	}
 
 	newShardId, isWaitingForShard := checkIfPubkeyIsInMap(pubKey, epochConfig.WaitingValidators)
 	if isWaitingForShard {

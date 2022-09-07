@@ -7,12 +7,12 @@ import (
 	"fmt"
 	"time"
 
+	pubsub "github.com/ElrondNetwork/go-libp2p-pubsub"
 	"github.com/btcsuite/btcd/btcec"
 	"github.com/libp2p/go-libp2p"
 	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/peer"
-	pubsub "github.com/libp2p/go-libp2p-pubsub"
 )
 
 type messenger struct {
@@ -30,16 +30,13 @@ func newMessenger() *messenger {
 		libp2p.DefaultMuxers,
 		libp2p.DefaultSecurity,
 		libp2p.DefaultTransports,
-		//we need the disable relay option in order to save the node's bandwidth as much as possible
+		// we need the disable relay option in order to save the node's bandwidth as much as possible
 		libp2p.DisableRelay(),
 		libp2p.NATPortMap(),
 	}
 
-	h, _ := libp2p.New(context.Background(), opts...)
-
-	optsPS := []pubsub.Option{
-		pubsub.WithMessageSigning(true),
-	}
+	h, _ := libp2p.New(opts...)
+	optsPS := make([]pubsub.Option, 0)
 	pb, _ := pubsub.NewGossipSub(context.Background(), h, optsPS...)
 
 	return &messenger{
@@ -100,9 +97,9 @@ func main() {
 
 	go func() {
 		time.Sleep(time.Second * 2)
-		//TODO uncomment these 2 lines to make the pubsub create connections
-		//peers[3].subscr.Cancel()
-		//_ = peers[3].topic.Close()
+		// TODO uncomment these 2 lines to make the pubsub create connections
+		// peers[3].subscr.Cancel()
+		// _ = peers[3].topic.Close()
 	}()
 
 	for i := 0; i < 10; i++ {

@@ -105,9 +105,14 @@ func (dcf *dataComponentsFactory) Create() (*dataComponents, error) {
 		log.Warn("unable to close the trie nodes cacher...continuing", "error", errNotCritical)
 	}
 
+	miniBlockStorer, err := store.GetStorer(dataRetriever.MiniBlockUnit)
+	if err != nil {
+		return nil, err
+	}
+
 	arg := provider.ArgMiniBlockProvider{
 		MiniBlockPool:    datapool.MiniBlocks(),
-		MiniBlockStorage: store.GetStorer(dataRetriever.MiniBlockUnit),
+		MiniBlockStorage: miniBlockStorer,
 		Marshalizer:      dcf.core.InternalMarshalizer(),
 	}
 
@@ -167,21 +172,19 @@ func (dcf *dataComponentsFactory) createDataStoreFromConfig() (dataRetriever.Sto
 
 // Close closes all underlying components that need closing
 func (cc *dataComponents) Close() error {
+	var lastError error
 	if cc.store != nil {
 		log.Debug("closing all store units....")
 		err := cc.store.CloseAll()
 		if err != nil {
-			return err
+			log.Error("failed to close all store units", "error", err.Error())
+			lastError = err
 		}
 	}
 
-	if !check.IfNil(cc.datapool) && !check.IfNil(cc.datapool.TrieNodes()) {
-		log.Debug("closing trie nodes data pool....")
-		err := cc.datapool.TrieNodes().Close()
-		if err != nil {
-			return err
-		}
+	if !check.IfNil(cc.datapool) {
+		lastError = cc.datapool.Close()
 	}
 
-	return nil
+	return lastError
 }

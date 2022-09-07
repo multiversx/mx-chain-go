@@ -22,40 +22,43 @@ import (
 
 // CoreComponentsMock -
 type CoreComponentsMock struct {
-	IntMarsh                    marshal.Marshalizer
-	TxMarsh                     marshal.Marshalizer
-	VmMarsh                     marshal.Marshalizer
-	Hash                        hashing.Hasher
-	TxSignHasherField           hashing.Hasher
-	UInt64ByteSliceConv         typeConverters.Uint64ByteSliceConverter
-	AddrPubKeyConv              core.PubkeyConverter
-	ValPubKeyConv               core.PubkeyConverter
-	StatusHdlUtils              nodeFactory.StatusHandlersUtils
-	AppStatusHdl                core.AppStatusHandler
-	mutStatus                   sync.RWMutex
-	PathHdl                     storage.PathManagerHandler
-	WatchdogTimer               core.WatchdogTimer
-	AlarmSch                    core.TimersScheduler
-	NtpSyncTimer                ntp.SyncTimer
-	GenesisBlockTime            time.Time
-	ChainIdCalled               func() string
-	MinTransactionVersionCalled func() uint32
-	mutIntMarshalizer           sync.RWMutex
-	RoundHandlerField           consensus.RoundHandler
-	EconomicsHandler            process.EconomicsDataHandler
-	APIEconomicsHandler         process.EconomicsDataHandler
-	RatingsConfig               process.RatingsInfoHandler
-	RatingHandler               sharding.PeerAccountListAndRatingHandler
-	NodesConfig                 sharding.GenesisNodesSetupHandler
-	Shuffler                    nodesCoordinator.NodesShuffler
-	EpochChangeNotifier         process.EpochNotifier
-	RoundChangeNotifier         process.RoundNotifier
-	EpochNotifierWithConfirm    factory.EpochStartNotifierWithConfirm
-	TxVersionCheckHandler       process.TxVersionCheckerHandler
-	ChanStopProcess             chan endProcess.ArgEndProcess
-	StartTime                   time.Time
-	NodeTypeProviderField       core.NodeTypeProviderHandler
-	ArwenChangeLockerInternal   common.Locker
+	IntMarsh                     marshal.Marshalizer
+	TxMarsh                      marshal.Marshalizer
+	VmMarsh                      marshal.Marshalizer
+	Hash                         hashing.Hasher
+	TxSignHasherField            hashing.Hasher
+	UInt64ByteSliceConv          typeConverters.Uint64ByteSliceConverter
+	AddrPubKeyConv               core.PubkeyConverter
+	ValPubKeyConv                core.PubkeyConverter
+	StatusHdlUtils               nodeFactory.StatusHandlersUtils
+	AppStatusHdl                 core.AppStatusHandler
+	mutStatus                    sync.RWMutex
+	PathHdl                      storage.PathManagerHandler
+	WatchdogTimer                core.WatchdogTimer
+	AlarmSch                     core.TimersScheduler
+	NtpSyncTimer                 ntp.SyncTimer
+	GenesisBlockTime             time.Time
+	ChainIdCalled                func() string
+	MinTransactionVersionCalled  func() uint32
+	mutIntMarshalizer            sync.RWMutex
+	RoundHandlerField            consensus.RoundHandler
+	EconomicsHandler             process.EconomicsDataHandler
+	APIEconomicsHandler          process.EconomicsDataHandler
+	RatingsConfig                process.RatingsInfoHandler
+	RatingHandler                sharding.PeerAccountListAndRatingHandler
+	NodesConfig                  sharding.GenesisNodesSetupHandler
+	Shuffler                     nodesCoordinator.NodesShuffler
+	EpochChangeNotifier          process.EpochNotifier
+	EnableRoundsHandlerField     process.EnableRoundsHandler
+	EpochNotifierWithConfirm     factory.EpochStartNotifierWithConfirm
+	TxVersionCheckHandler        process.TxVersionCheckerHandler
+	ChanStopProcess              chan endProcess.ArgEndProcess
+	StartTime                    time.Time
+	NodeTypeProviderField        core.NodeTypeProviderHandler
+	ArwenChangeLockerInternal    common.Locker
+	ProcessStatusHandlerInternal common.ProcessStatusHandler
+	HardforkTriggerPubKeyField   []byte
+	EnableEpochsHandlerField     common.EnableEpochsHandler
 }
 
 // InternalMarshalizer -
@@ -217,9 +220,9 @@ func (ccm *CoreComponentsMock) EpochNotifier() process.EpochNotifier {
 	return ccm.EpochChangeNotifier
 }
 
-// RoundNotifier -
-func (ccm *CoreComponentsMock) RoundNotifier() process.RoundNotifier {
-	return ccm.RoundChangeNotifier
+// EnableRoundsHandler -
+func (ccm *CoreComponentsMock) EnableRoundsHandler() process.EnableRoundsHandler {
+	return ccm.EnableRoundsHandlerField
 }
 
 // EpochStartNotifierWithConfirm -
@@ -240,6 +243,21 @@ func (ccm *CoreComponentsMock) NodeTypeProvider() core.NodeTypeProviderHandler {
 // ArwenChangeLocker -
 func (ccm *CoreComponentsMock) ArwenChangeLocker() common.Locker {
 	return ccm.ArwenChangeLockerInternal
+}
+
+// ProcessStatusHandler -
+func (ccm *CoreComponentsMock) ProcessStatusHandler() common.ProcessStatusHandler {
+	return ccm.ProcessStatusHandlerInternal
+}
+
+// HardforkTriggerPubKey -
+func (ccm *CoreComponentsMock) HardforkTriggerPubKey() []byte {
+	return ccm.HardforkTriggerPubKeyField
+}
+
+// EnableEpochsHandler -
+func (ccm *CoreComponentsMock) EnableEpochsHandler() common.EnableEpochsHandler {
+	return ccm.EnableEpochsHandlerField
 }
 
 // IsInterfaceNil -

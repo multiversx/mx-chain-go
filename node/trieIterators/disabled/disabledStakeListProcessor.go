@@ -1,6 +1,7 @@
 package disabled
 
 import (
+	"context"
 	"errors"
 
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
@@ -16,7 +17,7 @@ func NewDisabledDirectStakedListProcessor() *directStakedListProcessor {
 }
 
 // GetDirectStakedList returns the errCannotReturnDirectStakedListFromShardNode error
-func (dslp *directStakedListProcessor) GetDirectStakedList() ([]*api.DirectStakedValue, error) {
+func (dslp *directStakedListProcessor) GetDirectStakedList(_ context.Context) ([]*api.DirectStakedValue, error) {
 	return nil, errCannotReturnDirectStakedListFromShardNode
 }
 

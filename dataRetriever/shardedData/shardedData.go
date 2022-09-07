@@ -256,6 +256,20 @@ func (sd *shardedData) RegisterOnAdded(handler func(key []byte, value interface{
 	sd.mutAddedDataHandlers.Unlock()
 }
 
+// Keys returns all the keys contained in shard caches
+func (sd *shardedData) Keys() [][]byte {
+	sd.mutShardedDataStore.RLock()
+	defer sd.mutShardedDataStore.RUnlock()
+
+	keys := make([][]byte, 0)
+	for _, shard := range sd.shardedDataStore {
+		cache := shard.cache
+		keys = append(keys, cache.Keys()...)
+	}
+
+	return keys
+}
+
 // GetCounts returns the total number of transactions in the pool
 func (sd *shardedData) GetCounts() counting.CountsWithSize {
 	sd.mutShardedDataStore.RLock()

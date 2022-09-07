@@ -2,10 +2,12 @@ package trieIterators
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"math/big"
 	"testing"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
@@ -72,7 +74,7 @@ func TestDelegatedListProc_GetDelegatorsListGetAllContractAddressesFailsShouldEr
 	}
 	dlp, _ := NewDelegatedListProcessor(arg)
 
-	list, err := dlp.GetDelegatorsList()
+	list, err := dlp.GetDelegatorsList(context.Background())
 	assert.Nil(t, list)
 	assert.Equal(t, expectedErr, err)
 
@@ -86,9 +88,56 @@ func TestDelegatedListProc_GetDelegatorsListGetAllContractAddressesFailsShouldEr
 	}
 	dlp, _ = NewDelegatedListProcessor(arg)
 
-	list, err = dlp.GetDelegatorsList()
+	list, err = dlp.GetDelegatorsList(context.Background())
 	assert.Nil(t, list)
 	assert.True(t, errors.Is(err, epochStart.ErrExecutingSystemScCode))
+}
+
+func TestDelegatedListProc_GetDelegatorsListContextShouldTimeout(t *testing.T) {
+	t.Parallel()
+
+	delegators := [][]byte{[]byte("delegator1"), []byte("delegator2")}
+
+	arg := createMockArgs()
+	arg.PublicKeyConverter = mock.NewPubkeyConverterMock(10)
+	delegationSc := [][]byte{[]byte("delegationSc1"), []byte("delegationSc2")}
+	arg.QueryService = &mock.SCQueryServiceStub{
+		ExecuteQueryCalled: func(query *process.SCQuery) (*vmcommon.VMOutput, error) {
+			switch query.FuncName {
+			case "getAllContractAddresses":
+				return &vmcommon.VMOutput{
+					ReturnData: delegationSc,
+				}, nil
+			case "getUserActiveStake":
+				for index, delegator := range delegators {
+					if bytes.Equal(delegator, query.Arguments[0]) {
+						value := big.NewInt(int64(index + 1))
+						return &vmcommon.VMOutput{
+							ReturnData: [][]byte{value.Bytes()},
+						}, nil
+					}
+				}
+			}
+
+			return nil, fmt.Errorf("not an expected call")
+		},
+	}
+	arg.Accounts.AccountsAdapter = &stateMock.AccountsStub{
+		GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
+			return createDelegationScAccount(addressContainer, delegators, addressContainer, time.Second), nil
+		},
+		RecreateTrieCalled: func(rootHash []byte) error {
+			return nil
+		},
+	}
+	dlp, _ := NewDelegatedListProcessor(arg)
+
+	ctxWithTimeout, cancel := context.WithTimeout(context.Background(), time.Millisecond)
+	defer cancel()
+
+	delegatorsValues, err := dlp.GetDelegatorsList(ctxWithTimeout)
+	require.Nil(t, delegatorsValues)
+	require.Equal(t, ErrTrieOperationsTimeout, err)
 }
 
 func TestDelegatedListProc_GetDelegatorsListShouldWork(t *testing.T) {
@@ -122,7 +171,7 @@ func TestDelegatedListProc_GetDelegatorsListShouldWork(t *testing.T) {
 	}
 	arg.Accounts.AccountsAdapter = &stateMock.AccountsStub{
 		GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
-			return createDelegationScAccount(addressContainer, delegators, addressContainer), nil
+			return createDelegationScAccount(addressContainer, delegators, addressContainer, 0), nil
 		},
 		RecreateTrieCalled: func(rootHash []byte) error {
 			return nil
@@ -130,7 +179,7 @@ func TestDelegatedListProc_GetDelegatorsListShouldWork(t *testing.T) {
 	}
 	dlp, _ := NewDelegatedListProcessor(arg)
 
-	delegatorsValues, err := dlp.GetDelegatorsList()
+	delegatorsValues, err := dlp.GetDelegatorsList(context.Background())
 	require.Nil(t, err)
 	require.Equal(t, 2, len(delegatorsValues))
 	expectedDelegator1 := api.Delegator{
@@ -168,16 +217,15 @@ func TestDelegatedListProc_GetDelegatorsListShouldWork(t *testing.T) {
 	assert.Equal(t, []*api.Delegator{&expectedDelegator1, &expectedDelegator2}, delegatorsValues)
 }
 
-func createDelegationScAccount(address []byte, leaves [][]byte, rootHash []byte) state.UserAccountHandler {
+func createDelegationScAccount(address []byte, leaves [][]byte, rootHash []byte, timeSleep time.Duration) state.UserAccountHandler {
 	acc, _ := state.NewUserAccount(address)
 	acc.SetDataTrie(&trieMock.TrieStub{
 		RootCalled: func() ([]byte, error) {
 			return rootHash, nil
 		},
-		GetAllLeavesOnChannelCalled: func(hash []byte) (chan core.KeyValueHolder, error) {
-			ch := make(chan core.KeyValueHolder)
-
+		GetAllLeavesOnChannelCalled: func(ch chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error {
 			go func() {
+				time.Sleep(timeSleep)
 				for _, leafBuff := range leaves {
 					leaf := keyValStorage.NewKeyValStorage(leafBuff, nil)
 					ch <- leaf
@@ -186,7 +234,7 @@ func createDelegationScAccount(address []byte, leaves [][]byte, rootHash []byte)
 				close(ch)
 			}()
 
-			return ch, nil
+			return nil
 		},
 	})
 

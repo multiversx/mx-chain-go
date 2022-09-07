@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
@@ -32,7 +33,7 @@ func NewShardBootstrap(arguments ArgShardBootstrapper) (*ShardBootstrap, error) 
 		return nil, process.ErrNilTxBlockBody
 	}
 
-	err := checkBootstrapNilParameters(arguments.ArgBaseBootstrapper)
+	err := checkBaseBootstrapParameters(arguments.ArgBaseBootstrapper)
 	if err != nil {
 		return nil, err
 	}
@@ -65,6 +66,7 @@ func NewShardBootstrap(arguments ArgShardBootstrapper) (*ShardBootstrap, error) 
 		isInImportMode:               arguments.IsInImportMode,
 		historyRepo:                  arguments.HistoryRepo,
 		scheduledTxsExecutionHandler: arguments.ScheduledTxsExecutionHandler,
+		processWaitTime:              arguments.ProcessWaitTime,
 	}
 
 	if base.isInImportMode {
@@ -81,9 +83,16 @@ func NewShardBootstrap(arguments ArgShardBootstrapper) (*ShardBootstrap, error) 
 	base.requestMiniBlocks = boot.requestMiniBlocksFromHeaderWithNonceIfMissing
 
 	// placed in struct fields for performance reasons
-	base.headerStore = boot.store.GetStorer(dataRetriever.BlockHeaderUnit)
+	base.headerStore, err = boot.store.GetStorer(dataRetriever.BlockHeaderUnit)
+	if err != nil {
+		return nil, err
+	}
+
 	hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(boot.shardCoordinator.SelfId())
-	base.headerNonceHashStore = boot.store.GetStorer(hdrNonceHashDataUnit)
+	base.headerNonceHashStore, err = boot.store.GetStorer(hdrNonceHashDataUnit)
+	if err != nil {
+		return nil, err
+	}
 
 	base.init()
 
@@ -121,9 +130,6 @@ func (boot *ShardBootstrap) StartSyncingBlocks() {
 		log.Debug("boot.syncFromStorer",
 			"error", errNotCritical.Error(),
 		)
-	} else {
-		numTxs, _ := updateMetricsFromStorage(boot.store, boot.uint64Converter, boot.marshalizer, boot.statusHandler, boot.storageBootstrapper.GetHighestBlockNonce())
-		boot.blockProcessor.SetNumProcessedObj(numTxs)
 	}
 
 	var ctx context.Context
@@ -139,16 +145,32 @@ func (boot *ShardBootstrap) StartSyncingBlocks() {
 // in the blockchain, and all this mechanism will be reiterated for the next block.
 func (boot *ShardBootstrap) SyncBlock(ctx context.Context) error {
 	err := boot.syncBlock()
-	isErrGetNodeFromDB := err != nil && strings.Contains(err.Error(), common.GetNodeFromDBErrorString)
-	if isErrGetNodeFromDB {
+	if isErrGetNodeFromDB(err) {
 		errSync := boot.syncUserAccountsState()
-		shouldOutputLog := errSync != nil && !common.IsContextDone(ctx)
-		if shouldOutputLog {
-			log.Debug("SyncBlock syncTrie", "error", errSync)
-		}
+		boot.handleTrieSyncError(errSync, ctx)
 	}
 
 	return err
+}
+
+func isErrGetNodeFromDB(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	if strings.Contains(err.Error(), errors.ErrDBIsClosed.Error()) {
+		return false
+	}
+
+	if strings.Contains(err.Error(), errors.ErrContextClosing.Error()) {
+		return false
+	}
+
+	if strings.Contains(err.Error(), common.GetNodeFromDBErrorString) {
+		return true
+	}
+
+	return false
 }
 
 // Close closes the synchronization loop
@@ -239,7 +261,7 @@ func (boot *ShardBootstrap) getPrevHeader(
 		return nil, err
 	}
 
-	prevHeader, err := process.CreateShardHeader(boot.marshalizer, buffHeader)
+	prevHeader, err := process.UnmarshalShardHeader(boot.marshalizer, buffHeader)
 	if err != nil {
 		return nil, err
 	}

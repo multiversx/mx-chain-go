@@ -11,37 +11,37 @@ type IntermediateTransactionHandlerMock struct {
 	GetNumOfCrossInterMbsAndTxsCalled        func() (int, int)
 	CreateAllInterMiniBlocksCalled           func() []*block.MiniBlock
 	VerifyInterMiniBlocksCalled              func(body *block.Body) error
-	SaveCurrentIntermediateTxToStorageCalled func() error
+	SaveCurrentIntermediateTxToStorageCalled func()
 	CreateBlockStartedCalled                 func()
-	CreateMarshalizedDataCalled              func(txHashes [][]byte) ([][]byte, error)
+	CreateMarshalledDataCalled               func(txHashes [][]byte) ([][]byte, error)
 	GetAllCurrentFinishedTxsCalled           func() map[string]data.TransactionHandler
-	RemoveProcessedResultsCalled             func() [][]byte
-	InitProcessedResultsCalled               func()
+	RemoveProcessedResultsCalled             func(key []byte) [][]byte
+	InitProcessedResultsCalled               func(key []byte)
 	GetCreatedInShardMiniBlockCalled         func() *block.MiniBlock
 	intermediateTransactions                 []data.TransactionHandler
 }
 
 // RemoveProcessedResults -
-func (ith *IntermediateTransactionHandlerMock) RemoveProcessedResults() [][]byte {
+func (ith *IntermediateTransactionHandlerMock) RemoveProcessedResults(key []byte) [][]byte {
 	if ith.RemoveProcessedResultsCalled != nil {
-		return ith.RemoveProcessedResultsCalled()
+		return ith.RemoveProcessedResultsCalled(key)
 	}
 	return nil
 }
 
 // InitProcessedResults -
-func (ith *IntermediateTransactionHandlerMock) InitProcessedResults() {
+func (ith *IntermediateTransactionHandlerMock) InitProcessedResults(key []byte) {
 	if ith.InitProcessedResultsCalled != nil {
-		ith.InitProcessedResultsCalled()
+		ith.InitProcessedResultsCalled(key)
 	}
 }
 
-// CreateMarshalizedData -
-func (ith *IntermediateTransactionHandlerMock) CreateMarshalizedData(txHashes [][]byte) ([][]byte, error) {
-	if ith.CreateMarshalizedDataCalled == nil {
+// CreateMarshalledData -
+func (ith *IntermediateTransactionHandlerMock) CreateMarshalledData(txHashes [][]byte) ([][]byte, error) {
+	if ith.CreateMarshalledDataCalled == nil {
 		return nil, nil
 	}
-	return ith.CreateMarshalizedDataCalled(txHashes)
+	return ith.CreateMarshalledDataCalled(txHashes)
 }
 
 // AddIntermediateTransactions -
@@ -83,11 +83,11 @@ func (ith *IntermediateTransactionHandlerMock) VerifyInterMiniBlocks(body *block
 }
 
 // SaveCurrentIntermediateTxToStorage -
-func (ith *IntermediateTransactionHandlerMock) SaveCurrentIntermediateTxToStorage() error {
+func (ith *IntermediateTransactionHandlerMock) SaveCurrentIntermediateTxToStorage() {
 	if ith.SaveCurrentIntermediateTxToStorageCalled == nil {
-		return nil
+		return
 	}
-	return ith.SaveCurrentIntermediateTxToStorageCalled()
+	ith.SaveCurrentIntermediateTxToStorageCalled()
 }
 
 // CreateBlockStarted -

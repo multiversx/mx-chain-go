@@ -34,7 +34,7 @@ func TestNewConnectionMonitorWrapper_ShouldWork(t *testing.T) {
 	assert.False(t, check.IfNil(cmw))
 }
 
-//------- Connected
+// ------- Connected
 
 func TestConnectionMonitorNotifier_ConnectedBlackListedShouldCallClose(t *testing.T) {
 	t.Parallel()
@@ -85,7 +85,7 @@ func TestConnectionMonitorNotifier_ConnectedNotBlackListedShouldCallConnected(t 
 	assert.True(t, peerConnectedCalled)
 }
 
-//------- Functions
+// ------- Functions
 
 func TestConnectionMonitorNotifier_FunctionsShouldCallHandler(t *testing.T) {
 	t.Parallel()
@@ -130,7 +130,7 @@ func TestConnectionMonitorNotifier_FunctionsShouldCallHandler(t *testing.T) {
 	assert.True(t, closedCalled)
 }
 
-//------- SetBlackListHandler
+// ------- SetBlackListHandler
 
 func TestConnectionMonitorWrapper_SetBlackListHandlerNilHandlerShouldErr(t *testing.T) {
 	t.Parallel()
@@ -159,12 +159,12 @@ func TestConnectionMonitorWrapper_SetBlackListHandlerShouldWork(t *testing.T) {
 	err := cmw.SetPeerDenialEvaluator(newPeerDenialEvaluator)
 
 	assert.Nil(t, err)
-	//pointer testing
+	// pointer testing
 	assert.True(t, newPeerDenialEvaluator == cmw.peerDenialEvaluator)
 	assert.True(t, newPeerDenialEvaluator == cmw.PeerDenialEvaluator())
 }
 
-//------- CheckConnectionsBlocking
+// ------- CheckConnectionsBlocking
 
 func TestConnectionMonitorWrapper_CheckConnectionsBlockingShouldWork(t *testing.T) {
 	t.Parallel()

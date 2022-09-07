@@ -8,6 +8,10 @@ import (
 // GetGeneralConfig returns the common configuration used for testing
 func GetGeneralConfig() config.Config {
 	return config.Config{
+		Hardfork: config.HardforkConfig{
+			PublicKeyToListenFrom:     "153dae6cb3963260f309959bf285537b77ae16d82e9933147be7827f7394de8dc97d9d9af41e970bc72aecb44b77e819621081658c37f7000d21e2d0e8963df83233407bde9f46369ba4fcd03b57f40b80b06c191a428cfb5c447ec510e79307",
+			CloseAfterExportInMinutes: 2,
+		},
 		PublicKeyPeerId: config.CacheConfig{
 			Type:     "LRU",
 			Capacity: 5000,
@@ -49,6 +53,7 @@ func GetGeneralConfig() config.Config {
 			GenesisMaxNumberOfShards:             100,
 			MaxComputableRounds:                  1000,
 			MaxConsecutiveRoundsOfRatingDecrease: 2000,
+			SyncProcessTimeInMillis:              6000,
 		},
 		EpochStartConfig: config.EpochStartConfig{
 			MinRoundsBetweenEpochs:            5,
@@ -76,23 +81,6 @@ func GetGeneralConfig() config.Config {
 				MaxOpenFiles:      10,
 			},
 		},
-		TrieSnapshotDB: config.DBConfig{
-			FilePath:          AddTimestampSuffix("TrieSnapshot"),
-			Type:              string(storageUnit.MemoryDB),
-			BatchDelaySeconds: 30,
-			MaxBatchSize:      6,
-			MaxOpenFiles:      10,
-		},
-		AccountsTrieStorageOld: config.StorageConfig{
-			Cache: getLRUCacheConfig(),
-			DB: config.DBConfig{
-				FilePath:          AddTimestampSuffix("AccountsTrie/MainDB"),
-				Type:              string(storageUnit.MemoryDB),
-				BatchDelaySeconds: 30,
-				MaxBatchSize:      6,
-				MaxOpenFiles:      10,
-			},
-		},
 		AccountsTrieStorage: config.StorageConfig{
 			Cache: getLRUCacheConfig(),
 			DB: config.DBConfig{
@@ -107,16 +95,6 @@ func GetGeneralConfig() config.Config {
 			Cache: getLRUCacheConfig(),
 			DB: config.DBConfig{
 				FilePath:          AddTimestampSuffix("AccountsTrieCheckpoints"),
-				Type:              string(storageUnit.MemoryDB),
-				BatchDelaySeconds: 30,
-				MaxBatchSize:      6,
-				MaxOpenFiles:      10,
-			},
-		},
-		PeerAccountsTrieStorageOld: config.StorageConfig{
-			Cache: getLRUCacheConfig(),
-			DB: config.DBConfig{
-				FilePath:          AddTimestampSuffix("PeerAccountsTrie/MainDB"),
 				Type:              string(storageUnit.MemoryDB),
 				BatchDelaySeconds: 30,
 				MaxBatchSize:      6,
@@ -145,15 +123,17 @@ func GetGeneralConfig() config.Config {
 		},
 		StateTriesConfig: config.StateTriesConfig{
 			CheckpointRoundsModulus:     100,
+			SnapshotsEnabled:            false,
+			CheckpointsEnabled:          false,
 			AccountsStatePruningEnabled: false,
 			PeerStatePruningEnabled:     false,
 			MaxStateTrieLevelInMemory:   5,
 			MaxPeerTrieLevelInMemory:    5,
 		},
 		TrieStorageManagerConfig: config.TrieStorageManagerConfig{
-			PruningBufferLen:   1000,
-			SnapshotsBufferLen: 10,
-			MaxSnapshots:       2,
+			PruningBufferLen:      1000,
+			SnapshotsBufferLen:    10,
+			SnapshotsGoroutineNum: 2,
 		},
 		TxDataPool: config.CacheConfig{
 			Capacity:             10000,
@@ -168,6 +148,11 @@ func GetGeneralConfig() config.Config {
 			Shards:      1,
 		},
 		RewardTransactionDataPool: config.CacheConfig{
+			Capacity:    10000,
+			SizeInBytes: 1000000000,
+			Shards:      1,
+		},
+		ValidatorInfoPool: config.CacheConfig{
 			Capacity:    10000,
 			SizeInBytes: 1000000000,
 			Shards:      1,
@@ -284,6 +269,25 @@ func GetGeneralConfig() config.Config {
 				},
 			},
 		},
+		HeartbeatV2: config.HeartbeatV2Config{
+			PeerAuthenticationTimeBetweenSendsInSec:          1,
+			PeerAuthenticationTimeBetweenSendsWhenErrorInSec: 1,
+			PeerAuthenticationThresholdBetweenSends:          0.1,
+			HeartbeatTimeBetweenSendsInSec:                   1,
+			HeartbeatTimeBetweenSendsWhenErrorInSec:          1,
+			HeartbeatThresholdBetweenSends:                   0.1,
+			MaxNumOfPeerAuthenticationInResponse:             5,
+			DelayBetweenConnectionNotificationsInSec:         5,
+			HeartbeatExpiryTimespanInSec:                     30,
+			MaxDurationPeerUnresponsiveInSec:                 10,
+			HideInactiveValidatorIntervalInSec:               60,
+			HardforkTimeBetweenSendsInSec:                    5,
+			PeerAuthenticationPool: config.PeerAuthenticationPoolConfig{
+				DefaultSpanInSec: 30,
+				CacheExpiryInSec: 30,
+			},
+			HeartbeatPool: getLRUCacheConfig(),
+		},
 		StatusMetricsStorage: config.StorageConfig{
 			Cache: getLRUCacheConfig(),
 			DB: config.DBConfig{
@@ -388,6 +392,7 @@ func GetGeneralConfig() config.Config {
 			NumConcurrentTrieSyncers:  50,
 			MaxHardCapForMissingNodes: 500,
 			TrieSyncerVersion:         2,
+			CheckNodesOnDisk:          false,
 		},
 		Antiflood: config.AntifloodConfig{
 			NumConcurrentResolverJobs: 2,
@@ -398,7 +403,7 @@ func GetGeneralConfig() config.Config {
 		},
 		Resolvers: config.ResolverConfig{
 			NumCrossShardPeers:  2,
-			NumIntraShardPeers:  1,
+			NumTotalPeers:       3,
 			NumFullHistoryPeers: 3,
 		},
 		VirtualMachine: config.VirtualMachineServicesConfig{
@@ -420,6 +425,22 @@ func GetGeneralConfig() config.Config {
 			Type:     "LRU",
 			Capacity: 10000,
 			Name:     "VMOutputCacher",
+		},
+		PeersRatingConfig: config.PeersRatingConfig{
+			TopRatedCacheCapacity: 1000,
+			BadRatedCacheCapacity: 1000,
+		},
+		PoolsCleanersConfig: config.PoolsCleanersConfig{
+			MaxRoundsToKeepUnprocessedMiniBlocks:   50,
+			MaxRoundsToKeepUnprocessedTransactions: 50,
+		},
+		BuiltInFunctions: config.BuiltInFunctionsConfig{
+			AutomaticCrawlerAddresses: []string{
+				"erd1he8wwxn4az3j82p7wwqsdk794dm7hcrwny6f8dfegkfla34udx7qrf7xje", //shard 0
+				"erd1fpkcgel4gcmh8zqqdt043yfcn5tyx8373kg6q2qmkxzu4dqamc0swts65c", //shard 1
+				"erd1najnxxweyw6plhg8efql330nttrj6l5cf87wqsuym85s9ha0hmdqnqgenp", //shard 2
+			},
+			MaxNumAddressesInTransferRole: 100,
 		},
 	}
 }

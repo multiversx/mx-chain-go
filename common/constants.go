@@ -63,6 +63,18 @@ const GenesisTxSignatureString = "GENESISGENESISGENESISGENESISGENESISGENESISGENE
 // HeartbeatTopic is the topic used for heartbeat signaling
 const HeartbeatTopic = "heartbeat"
 
+// HeartbeatV2Topic is the topic used for heartbeatV2 signaling
+const HeartbeatV2Topic = "heartbeatV2"
+
+// PeerAuthenticationTopic is the topic used for peer authentication signaling
+const PeerAuthenticationTopic = "peerAuthentication"
+
+// ConnectionTopic represents the topic used when sending the new connection message data
+const ConnectionTopic = "connection"
+
+// ValidatorInfoTopic is the topic used for validatorInfo signaling
+const ValidatorInfoTopic = "validatorInfo"
+
 // PathShardPlaceholder represents the placeholder for the shard ID in paths
 const PathShardPlaceholder = "[S]"
 
@@ -276,17 +288,26 @@ const MetricRoundsPassedInCurrentEpoch = "erd_rounds_passed_in_current_epoch"
 // MetricNoncesPassedInCurrentEpoch is the metric that tells the number of nonces passed in current epoch
 const MetricNoncesPassedInCurrentEpoch = "erd_nonces_passed_in_current_epoch"
 
-// MetricReceivedProposedBlock is the metric that specify the moment in the round when the received block has reached the
+// MetricReceivedProposedBlock is the metric that specifies the moment in the round when the received block has reached the
 // current node. The value is provided in percent (0 meaning it has been received just after the round started and
 // 100 meaning that the block has been received in the last moment of the round)
 const MetricReceivedProposedBlock = "erd_consensus_received_proposed_block"
 
-// MetricCreatedProposedBlock is the metric that specify the percent of the block subround used for header and body
+// MetricCreatedProposedBlock is the metric that specifies the percent of the block subround used for header and body
 // creation (0 meaning that the block was created in no-time and 100 meaning that the block creation used all the
 // subround spare duration)
 const MetricCreatedProposedBlock = "erd_consensus_created_proposed_block"
 
-// MetricProcessedProposedBlock is the metric that specify the percent of the block subround used for header and body
+// MetricRedundancyLevel is the metric that specifies the redundancy level of the current node
+const MetricRedundancyLevel = "erd_redundancy_level"
+
+// MetricRedundancyMainActive is the metrics that specifies data about the redundancy main machine
+const MetricRedundancyIsMainActive = "erd_redundancy_is_main_active"
+
+// MetricValueNA represents the value to be used when a metric is not available/applicable
+const MetricValueNA = "N/A"
+
+//MetricProcessedProposedBlock is the metric that specify the percent of the block subround used for header and body
 // processing (0 meaning that the block was processed in no-time and 100 meaning that the block processing used all the
 // subround spare duration)
 const MetricProcessedProposedBlock = "erd_consensus_processed_proposed_block"
@@ -476,6 +497,9 @@ const (
 	// MetricWaitingListFixEnableEpoch represents the epoch when the waiting list fix is enabled
 	MetricWaitingListFixEnableEpoch = "erd_waiting_list_fix_enable_epoch"
 
+	// MetricHeartbeatDisableEpoch represents the epoch when heartbeat v1 messages stop being sent and processed
+	MetricHeartbeatDisableEpoch = "erd_heartbeat_disable_epoch"
+
 	// MetricMaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
 	MetricMaxNodesChangeEnableEpoch = "erd_max_nodes_change_enable_epoch"
 
@@ -633,6 +657,10 @@ const MetricP2PUnknownPeers = "erd_p2p_unknown_shard_peers"
 
 // MetricP2PNumConnectedPeersClassification is the metric for monitoring the number of connected peers split on the connection type
 const MetricP2PNumConnectedPeersClassification = "erd_p2p_num_connected_peers_classification"
+
+// MetricAreVMQueriesReady will hold the string representation of the boolean that indicated if the node is ready
+// to process VM queries
+const MetricAreVMQueriesReady = "erd_are_vm_queries_ready"
 
 // HighestRoundFromBootStorage is the key for the highest round that is saved in storage
 const HighestRoundFromBootStorage = "highestRoundFromBootStorage"
@@ -794,6 +822,10 @@ const (
 
 	// TrieSyncedVal is the value that will be saved at TrieSyncedKey
 	TrieSyncedVal = "yes"
+
+	// TrieLeavesChannelDefaultCapacity represents the default value to be used as capacity for getting all trie leaves on
+	// a channel
+	TrieLeavesChannelDefaultCapacity = 100
 )
 
 // ApiOutputFormat represents the format type returned by api
@@ -806,3 +838,6 @@ const (
 	// ApiOutputFormatProto outport format returns the bytes of the proto object
 	ApiOutputFormatProto ApiOutputFormat = 1
 )
+
+// MaxIndexOfTxInMiniBlock defines the maximum index of a tx inside one mini block
+const MaxIndexOfTxInMiniBlock = int32(29999)

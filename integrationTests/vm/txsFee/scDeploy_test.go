@@ -36,7 +36,7 @@ func TestScDeployShouldWork(t *testing.T) {
 
 	_, err = testContext.TxProcessor.ProcessTransaction(tx)
 	require.Nil(t, err)
-	require.Nil(t, testContext.GetLatestError())
+	require.Nil(t, testContext.GetCompositeTestError())
 
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
@@ -118,7 +118,7 @@ func TestScDeployInsufficientGasLimitShouldNotConsumeGas(t *testing.T) {
 
 	_, err = testContext.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, process.ErrInsufficientGasLimitInTx, err)
-	require.Nil(t, testContext.GetLatestError())
+	require.Nil(t, testContext.GetCompositeTestError())
 
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)

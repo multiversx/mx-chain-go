@@ -16,7 +16,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const maxGasLimitPerBlock = uint64(1500000000)
@@ -33,7 +35,7 @@ func TestNewIntermediateResultsProcessor_NilHashes(t *testing.T) {
 		&mock.MarshalizerMock{},
 		mock.NewMultiShardsCoordinatorMock(5),
 		createMockPubkeyConverter(),
-		&mock.ChainStorerMock{},
+		&storage.ChainStorerStub{},
 		block.TxBlock,
 		&mock.TxForCurrentBlockStub{},
 		&mock.FeeHandlerStub{},
@@ -51,7 +53,7 @@ func TestNewIntermediateResultsProcessor_NilMarshalizer(t *testing.T) {
 		nil,
 		mock.NewMultiShardsCoordinatorMock(5),
 		createMockPubkeyConverter(),
-		&mock.ChainStorerMock{},
+		&storage.ChainStorerStub{},
 		block.TxBlock,
 		&mock.TxForCurrentBlockStub{},
 		&mock.FeeHandlerStub{},
@@ -69,7 +71,7 @@ func TestNewIntermediateResultsProcessor_NilShardCoordinator(t *testing.T) {
 		&mock.MarshalizerMock{},
 		nil,
 		createMockPubkeyConverter(),
-		&mock.ChainStorerMock{},
+		&storage.ChainStorerStub{},
 		block.TxBlock,
 		&mock.TxForCurrentBlockStub{},
 		&mock.FeeHandlerStub{},
@@ -87,7 +89,7 @@ func TestNewIntermediateResultsProcessor_NilPubkeyConverter(t *testing.T) {
 		&mock.MarshalizerMock{},
 		mock.NewMultiShardsCoordinatorMock(5),
 		nil,
-		&mock.ChainStorerMock{},
+		&storage.ChainStorerStub{},
 		block.TxBlock,
 		&mock.TxForCurrentBlockStub{},
 		&mock.FeeHandlerStub{},
@@ -123,7 +125,7 @@ func TestNewIntermediateResultsProcessor_NilTxForCurrentBlockHandler(t *testing.
 		&mock.MarshalizerMock{},
 		mock.NewMultiShardsCoordinatorMock(5),
 		createMockPubkeyConverter(),
-		&mock.ChainStorerMock{},
+		&storage.ChainStorerStub{},
 		block.TxBlock,
 		nil,
 		&mock.FeeHandlerStub{},
@@ -141,7 +143,7 @@ func TestNewIntermediateResultsProcessor_NilEconomicsFeeHandler(t *testing.T) {
 		&mock.MarshalizerMock{},
 		mock.NewMultiShardsCoordinatorMock(5),
 		createMockPubkeyConverter(),
-		&mock.ChainStorerMock{},
+		&storage.ChainStorerStub{},
 		block.TxBlock,
 		&mock.TxForCurrentBlockStub{},
 		nil,
@@ -159,7 +161,7 @@ func TestNewIntermediateResultsProcessor_Good(t *testing.T) {
 		&mock.MarshalizerMock{},
 		mock.NewMultiShardsCoordinatorMock(5),
 		createMockPubkeyConverter(),
-		&mock.ChainStorerMock{},
+		&storage.ChainStorerStub{},
 		block.TxBlock,
 		&mock.TxForCurrentBlockStub{},
 		&mock.FeeHandlerStub{},
@@ -178,7 +180,7 @@ func TestIntermediateResultsProcessor_getShardIdsFromAddressesGood(t *testing.T)
 		&mock.MarshalizerMock{},
 		mock.NewMultiShardsCoordinatorMock(uint32(nrShards)),
 		createMockPubkeyConverter(),
-		&mock.ChainStorerMock{},
+		&storage.ChainStorerStub{},
 		block.SmartContractResultBlock,
 		&mock.TxForCurrentBlockStub{},
 		&mock.FeeHandlerStub{},
@@ -203,7 +205,7 @@ func TestIntermediateResultsProcessor_AddIntermediateTransactions(t *testing.T) 
 		&mock.MarshalizerMock{},
 		mock.NewMultiShardsCoordinatorMock(uint32(nrShards)),
 		createMockPubkeyConverter(),
-		&mock.ChainStorerMock{},
+		&storage.ChainStorerStub{},
 		block.SmartContractResultBlock,
 		&mock.TxForCurrentBlockStub{},
 		&mock.FeeHandlerStub{},
@@ -225,7 +227,7 @@ func TestIntermediateResultsProcessor_AddIntermediateTransactionsWrongType(t *te
 		&mock.MarshalizerMock{},
 		mock.NewMultiShardsCoordinatorMock(uint32(nrShards)),
 		createMockPubkeyConverter(),
-		&mock.ChainStorerMock{},
+		&storage.ChainStorerStub{},
 		block.SmartContractResultBlock,
 		&mock.TxForCurrentBlockStub{},
 		&mock.FeeHandlerStub{},
@@ -250,7 +252,7 @@ func TestIntermediateResultsProcessor_AddIntermediateTransactionsNilSender(t *te
 		&mock.MarshalizerMock{},
 		shardC,
 		createMockPubkeyConverter(),
-		&mock.ChainStorerMock{},
+		&storage.ChainStorerStub{},
 		block.SmartContractResultBlock,
 		&mock.TxForCurrentBlockStub{},
 		&mock.FeeHandlerStub{},
@@ -283,7 +285,7 @@ func TestIntermediateResultsProcessor_AddIntermediateTransactionsNilReceiver(t *
 		&mock.MarshalizerMock{},
 		shardC,
 		createMockPubkeyConverter(),
-		&mock.ChainStorerMock{},
+		&storage.ChainStorerStub{},
 		block.SmartContractResultBlock,
 		&mock.TxForCurrentBlockStub{},
 		&mock.FeeHandlerStub{},
@@ -323,7 +325,7 @@ func TestIntermediateResultsProcessor_AddIntermediateTransactionsShardIdMismatch
 		&mock.MarshalizerMock{},
 		shardC,
 		createMockPubkeyConverter(),
-		&mock.ChainStorerMock{},
+		&storage.ChainStorerStub{},
 		block.SmartContractResultBlock,
 		&mock.TxForCurrentBlockStub{},
 		&mock.FeeHandlerStub{
@@ -357,7 +359,7 @@ func TestIntermediateResultsProcessor_AddIntermediateTransactionsNegativeValueIn
 		&mock.MarshalizerMock{},
 		shardC,
 		createMockPubkeyConverter(),
-		&mock.ChainStorerMock{},
+		&storage.ChainStorerStub{},
 		block.SmartContractResultBlock,
 		&mock.TxForCurrentBlockStub{},
 		&mock.FeeHandlerStub{},
@@ -397,7 +399,7 @@ func TestIntermediateResultsProcessor_AddIntermediateTransactionsAddrGood(t *tes
 		&mock.MarshalizerMock{},
 		mock.NewMultiShardsCoordinatorMock(uint32(nrShards)),
 		createMockPubkeyConverter(),
-		&mock.ChainStorerMock{},
+		&storage.ChainStorerStub{},
 		block.SmartContractResultBlock,
 		&mock.TxForCurrentBlockStub{},
 		&mock.FeeHandlerStub{
@@ -431,7 +433,7 @@ func TestIntermediateResultsProcessor_AddIntermediateTransactionsAddAndRevert(t 
 		&mock.MarshalizerMock{},
 		mock.NewMultiShardsCoordinatorMock(uint32(nrShards)),
 		createMockPubkeyConverter(),
-		&mock.ChainStorerMock{},
+		&storage.ChainStorerStub{},
 		block.SmartContractResultBlock,
 		&mock.TxForCurrentBlockStub{},
 		&mock.FeeHandlerStub{},
@@ -448,21 +450,24 @@ func TestIntermediateResultsProcessor_AddIntermediateTransactionsAddAndRevert(t 
 	txs = append(txs, &smartContractResult.SmartContractResult{RcvAddr: []byte("rcv"), SndAddr: []byte("snd"), Value: big.NewInt(0), PrevTxHash: txHash, Nonce: 3})
 	txs = append(txs, &smartContractResult.SmartContractResult{RcvAddr: []byte("rcv"), SndAddr: []byte("snd"), Value: big.NewInt(0), PrevTxHash: txHash, Nonce: 4})
 
+	key := []byte("key")
+	irp.InitProcessedResults(key)
+
 	err = irp.AddIntermediateTransactions(txs)
 	assert.Nil(t, err)
 	irp.mutInterResultsForBlock.Lock()
-	assert.Equal(t, len(irp.mapProcessedResult), len(txs))
+	assert.Equal(t, len(irp.mapProcessedResult[string(key)]), len(txs))
 	irp.mutInterResultsForBlock.Unlock()
 
-	irp.RemoveProcessedResults()
+	irp.RemoveProcessedResults(key)
 	irp.mutInterResultsForBlock.Lock()
 	assert.Equal(t, len(irp.interResultsForBlock), 0)
-	assert.Equal(t, len(irp.mapProcessedResult), len(txs))
+	assert.Equal(t, len(irp.mapProcessedResult[string(key)]), len(txs))
 	irp.mutInterResultsForBlock.Unlock()
 
-	irp.InitProcessedResults()
+	irp.InitProcessedResults(key)
 	irp.mutInterResultsForBlock.Lock()
-	assert.Equal(t, len(irp.mapProcessedResult), 0)
+	assert.Equal(t, len(irp.mapProcessedResult[string(key)]), 0)
 	irp.mutInterResultsForBlock.Unlock()
 }
 
@@ -475,7 +480,7 @@ func TestIntermediateResultsProcessor_CreateAllInterMiniBlocksNothingInCache(t *
 		&mock.MarshalizerMock{},
 		mock.NewMultiShardsCoordinatorMock(uint32(nrShards)),
 		createMockPubkeyConverter(),
-		&mock.ChainStorerMock{},
+		&storage.ChainStorerStub{},
 		block.SmartContractResultBlock,
 		&mock.TxForCurrentBlockStub{},
 		&mock.FeeHandlerStub{
@@ -501,7 +506,7 @@ func TestIntermediateResultsProcessor_CreateAllInterMiniBlocksNotCrossShard(t *t
 		&mock.MarshalizerMock{},
 		mock.NewMultiShardsCoordinatorMock(uint32(nrShards)),
 		createMockPubkeyConverter(),
-		&mock.ChainStorerMock{},
+		&storage.ChainStorerStub{},
 		block.SmartContractResultBlock,
 		&mock.TxForCurrentBlockStub{},
 		&mock.FeeHandlerStub{
@@ -539,7 +544,7 @@ func TestIntermediateResultsProcessor_CreateAllInterMiniBlocksCrossShard(t *test
 		&mock.MarshalizerMock{},
 		shardCoordinator,
 		createMockPubkeyConverter(),
-		&mock.ChainStorerMock{},
+		&storage.ChainStorerStub{},
 		block.SmartContractResultBlock,
 		&mock.TxForCurrentBlockStub{},
 		&mock.FeeHandlerStub{
@@ -602,7 +607,7 @@ func TestIntermediateResultsProcessor_GetNumOfCrossInterMbsAndTxsShouldWork(t *t
 		&mock.MarshalizerMock{},
 		shardCoordinator,
 		createMockPubkeyConverter(),
-		&mock.ChainStorerMock{},
+		&storage.ChainStorerStub{},
 		block.SmartContractResultBlock,
 		&mock.TxForCurrentBlockStub{},
 		&mock.FeeHandlerStub{},
@@ -637,7 +642,7 @@ func TestIntermediateResultsProcessor_VerifyInterMiniBlocksNilBody(t *testing.T)
 		&mock.MarshalizerMock{},
 		shardCoordinator,
 		createMockPubkeyConverter(),
-		&mock.ChainStorerMock{},
+		&storage.ChainStorerStub{},
 		block.SmartContractResultBlock,
 		&mock.TxForCurrentBlockStub{},
 		&mock.FeeHandlerStub{},
@@ -661,7 +666,7 @@ func TestIntermediateResultsProcessor_VerifyInterMiniBlocksBodyShouldpassAsNotCr
 		&mock.MarshalizerMock{},
 		shardCoordinator,
 		createMockPubkeyConverter(),
-		&mock.ChainStorerMock{},
+		&storage.ChainStorerStub{},
 		block.SmartContractResultBlock,
 		&mock.TxForCurrentBlockStub{},
 		&mock.FeeHandlerStub{},
@@ -690,7 +695,7 @@ func TestIntermediateResultsProcessor_VerifyInterMiniBlocksBodyMissingMiniblock(
 		&mock.MarshalizerMock{},
 		shardCoordinator,
 		createMockPubkeyConverter(),
-		&mock.ChainStorerMock{},
+		&storage.ChainStorerStub{},
 		block.SmartContractResultBlock,
 		&mock.TxForCurrentBlockStub{},
 		&mock.FeeHandlerStub{},
@@ -717,7 +722,7 @@ func TestIntermediateResultsProcessor_VerifyInterMiniBlocksBodyMiniBlockMissmatc
 		&mock.MarshalizerMock{},
 		shardCoordinator,
 		createMockPubkeyConverter(),
-		&mock.ChainStorerMock{},
+		&storage.ChainStorerStub{},
 		block.SmartContractResultBlock,
 		&mock.TxForCurrentBlockStub{},
 		&mock.FeeHandlerStub{
@@ -767,7 +772,7 @@ func TestIntermediateResultsProcessor_VerifyInterMiniBlocksBodyShouldPass(t *tes
 		&mock.MarshalizerMock{},
 		shardCoordinator,
 		createMockPubkeyConverter(),
-		&mock.ChainStorerMock{},
+		&storage.ChainStorerStub{},
 		block.SmartContractResultBlock,
 		&mock.TxForCurrentBlockStub{},
 		&mock.FeeHandlerStub{
@@ -834,7 +839,7 @@ func TestIntermediateResultsProcessor_SaveCurrentIntermediateTxToStorageShouldSa
 		&mock.MarshalizerMock{},
 		shardCoordinator,
 		createMockPubkeyConverter(),
-		&mock.ChainStorerMock{
+		&storage.ChainStorerStub{
 			PutCalled: func(unitType dataRetriever.UnitType, key []byte, value []byte) error {
 				if unitType == dataRetriever.UnsignedTransactionUnit {
 					putCounter++
@@ -869,8 +874,7 @@ func TestIntermediateResultsProcessor_SaveCurrentIntermediateTxToStorageShouldSa
 	err = irp.AddIntermediateTransactions(txs)
 	assert.Nil(t, err)
 
-	err = irp.SaveCurrentIntermediateTxToStorage()
-	assert.Nil(t, err)
+	irp.SaveCurrentIntermediateTxToStorage()
 	assert.Equal(t, len(txs), putCounter)
 }
 
@@ -886,7 +890,7 @@ func TestIntermediateResultsProcessor_CreateMarshalizedDataNothingToMarshal(t *t
 		marshalizer,
 		shardCoordinator,
 		createMockPubkeyConverter(),
-		&mock.ChainStorerMock{},
+		&storage.ChainStorerStub{},
 		block.SmartContractResultBlock,
 		&mock.TxForCurrentBlockStub{},
 		&mock.FeeHandlerStub{},
@@ -896,12 +900,12 @@ func TestIntermediateResultsProcessor_CreateMarshalizedDataNothingToMarshal(t *t
 	assert.Nil(t, err)
 
 	// nothing to marshal
-	mrsTxs, err := irp.CreateMarshalizedData(nil)
+	mrsTxs, err := irp.CreateMarshalledData(nil)
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(mrsTxs))
 
 	// nothing saved in local cacher to marshal
-	mrsTxs, err = irp.CreateMarshalizedData(nil)
+	mrsTxs, err = irp.CreateMarshalledData(nil)
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(mrsTxs))
 }
@@ -918,7 +922,7 @@ func TestIntermediateResultsProcessor_CreateMarshalizedData(t *testing.T) {
 		marshalizer,
 		shardCoordinator,
 		createMockPubkeyConverter(),
-		&mock.ChainStorerMock{},
+		&storage.ChainStorerStub{},
 		block.SmartContractResultBlock,
 		&mock.TxForCurrentBlockStub{},
 		&mock.FeeHandlerStub{},
@@ -962,7 +966,7 @@ func TestIntermediateResultsProcessor_CreateMarshalizedData(t *testing.T) {
 	err = irp.AddIntermediateTransactions(txs)
 	assert.Nil(t, err)
 
-	mrsTxs, err := irp.CreateMarshalizedData(txHashes)
+	mrsTxs, err := irp.CreateMarshalledData(txHashes)
 	assert.Nil(t, err)
 	assert.Equal(t, len(txs), len(mrsTxs))
 
@@ -986,7 +990,7 @@ func TestIntermediateResultsProcessor_GetAllCurrentUsedTxs(t *testing.T) {
 		marshalizer,
 		shardCoordinator,
 		createMockPubkeyConverter(),
-		&mock.ChainStorerMock{},
+		&storage.ChainStorerStub{},
 		block.SmartContractResultBlock,
 		&mock.TxForCurrentBlockStub{},
 		&mock.FeeHandlerStub{},
@@ -1030,7 +1034,7 @@ func TestIntermediateResultsProcessor_SplitMiniBlocksIfNeededShouldWork(t *testi
 		marshalizer,
 		shardCoordinator,
 		createMockPubkeyConverter(),
-		&mock.ChainStorerMock{},
+		&storage.ChainStorerStub{},
 		block.SmartContractResultBlock,
 		&mock.TxForCurrentBlockStub{},
 		&mock.FeeHandlerStub{
@@ -1075,4 +1079,42 @@ func TestIntermediateResultsProcessor_SplitMiniBlocksIfNeededShouldWork(t *testi
 	gasLimit = 199
 	splitMiniBlocks = irp.splitMiniBlocksIfNeeded(miniBlocks)
 	assert.Equal(t, 5, len(splitMiniBlocks))
+}
+
+func TestIntermediateResultsProcessor_addIntermediateTxToResultsForBlock(t *testing.T) {
+	t.Parallel()
+
+	irp, _ := NewIntermediateResultsProcessor(
+		&hashingMocks.HasherMock{},
+		&mock.MarshalizerMock{},
+		mock.NewMultiShardsCoordinatorMock(5),
+		createMockPubkeyConverter(),
+		&storage.ChainStorerStub{},
+		block.TxBlock,
+		&mock.TxForCurrentBlockStub{},
+		&mock.FeeHandlerStub{},
+	)
+
+	key := []byte("key")
+	irp.InitProcessedResults(key)
+
+	tx := &transaction.Transaction{}
+	txHash := []byte("txHash")
+	sndShardID := uint32(1)
+	rcvShardID := uint32(2)
+	irp.addIntermediateTxToResultsForBlock(tx, txHash, sndShardID, rcvShardID)
+
+	require.Equal(t, 1, len(irp.interResultsForBlock))
+	require.Equal(t, 1, len(irp.mapProcessedResult))
+
+	scrInfo, ok := irp.interResultsForBlock[string(txHash)]
+	require.True(t, ok)
+	assert.Equal(t, tx, scrInfo.tx)
+	assert.Equal(t, sndShardID, scrInfo.senderShardID)
+	assert.Equal(t, rcvShardID, scrInfo.receiverShardID)
+
+	intermediateResultsHashes, ok := irp.mapProcessedResult[string(key)]
+	require.True(t, ok)
+	require.Equal(t, 1, len(intermediateResultsHashes))
+	assert.Equal(t, txHash, intermediateResultsHashes[0])
 }

@@ -393,7 +393,7 @@ func (mbb *miniBlocksBuilder) handleCrossShardScCallOrSpecialTx() {
 		mbb.stats.firstCrossShardScCallOrSpecialTxFound = true
 		mbb.blockSizeComputation.AddNumMiniBlocks(1)
 	}
-	//we need to increment this as to account for the corresponding SCR hash
+	// we need to increment this as to account for the corresponding SCR hash
 	mbb.blockSizeComputation.AddNumTxs(common.AdditionalScrForEachScCallOrSpecialTx)
 	mbb.stats.numCrossShardSCCallsOrSpecialTxs++
 }

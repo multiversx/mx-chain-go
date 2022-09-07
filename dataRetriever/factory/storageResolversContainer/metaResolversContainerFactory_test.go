@@ -12,7 +12,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
@@ -48,14 +47,14 @@ func createStubTopicMessageHandlerForMeta(matchStrToErrOnCreate string, matchStr
 }
 
 func createStoreForMeta() dataRetriever.StorageService {
-	return &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return &storageStubs.StorerStub{}
+	return &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+			return &storageStubs.StorerStub{}, nil
 		},
 	}
 }
 
-//------- NewResolversContainerFactory
+// ------- NewResolversContainerFactory
 
 func TestNewMetaResolversContainerFactory_NilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
@@ -133,7 +132,7 @@ func TestNewMetaResolversContainerFactory_ShouldWork(t *testing.T) {
 	assert.False(t, check.IfNil(rcf))
 }
 
-//------- Create
+// ------- Create
 
 func TestMetaResolversContainerFactory_CreateShouldWork(t *testing.T) {
 	t.Parallel()
@@ -170,8 +169,9 @@ func TestMetaResolversContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	numResolversRewards := noOfShards
 	numResolversTxs := noOfShards + 1
 	numResolversTrieNodes := 2
+	numPeerAuthentication := 1
 	totalResolvers := numResolversShardHeadersForMetachain + numResolverMetablocks + numResolversMiniBlocks +
-		numResolversUnsigned + numResolversTxs + numResolversTrieNodes + numResolversRewards
+		numResolversUnsigned + numResolversTxs + numResolversTrieNodes + numResolversRewards + numPeerAuthentication
 
 	assert.Equal(t, totalResolvers, container.Len())
 	assert.Equal(t, totalResolvers, container.Len())
@@ -198,24 +198,16 @@ func getMockStorageConfig() config.StorageConfig {
 func getArgumentsMeta() storageResolversContainers.FactoryArgs {
 	return storageResolversContainers.FactoryArgs{
 		GeneralConfig: config.Config{
-			AccountsTrieStorage:        getMockStorageConfig(),
-			PeerAccountsTrieStorage:    getMockStorageConfig(),
-			AccountsTrieStorageOld:     getMockStorageConfig(),
-			PeerAccountsTrieStorageOld: getMockStorageConfig(),
-			TrieSnapshotDB: config.DBConfig{
-				FilePath:          "",
-				Type:              "MemoryDB",
-				BatchDelaySeconds: 1,
-				MaxBatchSize:      1,
-				MaxOpenFiles:      10,
-			},
+			AccountsTrieStorage:     getMockStorageConfig(),
+			PeerAccountsTrieStorage: getMockStorageConfig(),
 			TrieStorageManagerConfig: config.TrieStorageManagerConfig{
-				PruningBufferLen:   255,
-				SnapshotsBufferLen: 255,
-				MaxSnapshots:       255,
+				PruningBufferLen:      255,
+				SnapshotsBufferLen:    255,
+				SnapshotsGoroutineNum: 2,
 			},
 			StateTriesConfig: config.StateTriesConfig{
 				CheckpointRoundsModulus:     100,
+				SnapshotsEnabled:            true,
 				AccountsStatePruningEnabled: false,
 				PeerStatePruningEnabled:     false,
 				MaxStateTrieLevelInMemory:   5,
@@ -234,6 +226,5 @@ func getArgumentsMeta() storageResolversContainers.FactoryArgs {
 		DataPacker:               &mock.DataPackerStub{},
 		ManualEpochStartNotifier: &mock.ManualEpochStartNotifierStub{},
 		ChanGracefullyClose:      make(chan endProcess.ArgEndProcess),
-		EpochNotifier:            &epochNotifier.EpochNotifierStub{},
 	}
 }

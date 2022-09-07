@@ -607,6 +607,23 @@ func (bbt *baseBlockTrack) GetTrackedHeadersWithNonce(shardID uint32, nonce uint
 	return headers, headersHashes
 }
 
+// ShouldSkipMiniBlocksCreationFromSelf returns true if there are many pending miniBlocks and all shards
+// should stop producing miniBlocks so that the chain gets the chance to recover
+func (bbt *baseBlockTrack) ShouldSkipMiniBlocksCreationFromSelf() bool {
+	if bbt.shardCoordinator.SelfId() == core.MetachainShardId {
+		return false
+	}
+
+	shards := bbt.shardCoordinator.NumberOfShards()
+	for shardID := uint32(0); shardID < shards; shardID++ {
+		if bbt.isShardBehind(shardID, process.MaxMetaNoncesBehindForGlobalStuck) {
+			return true
+		}
+	}
+
+	return false
+}
+
 // IsShardStuck returns true if the given shard is stuck
 func (bbt *baseBlockTrack) IsShardStuck(shardID uint32) bool {
 	if bbt.shardCoordinator.SelfId() == core.MetachainShardId {
@@ -617,34 +634,56 @@ func (bbt *baseBlockTrack) IsShardStuck(shardID uint32) bool {
 		return bbt.isMetaStuck()
 	}
 
-	numPendingMiniBlocks := uint64(bbt.blockBalancer.GetNumPendingMiniBlocks(shardID))
-	lastShardProcessedMetaNonce := bbt.blockBalancer.GetLastShardProcessedMetaNonce(shardID)
-
-	isMetaDifferenceTooLarge := false
-	shouldCheckLastMetaNonceProcessed := lastShardProcessedMetaNonce > 0
-	if shouldCheckLastMetaNonceProcessed {
-		metaHeaders, _ := bbt.GetTrackedHeaders(core.MetachainShardId)
-		numMetaHeaders := len(metaHeaders)
-		if numMetaHeaders > 0 {
-			lastMetaHeader := metaHeaders[numMetaHeaders-1]
-			metaDiff := lastMetaHeader.GetNonce() - lastShardProcessedMetaNonce
-			isMetaDifferenceTooLarge = metaDiff > process.MaxMetaNoncesBehind
-		}
-	}
-
-	maxNumMiniBlocksForSameReceiverInOneBlock := bbt.feeHandler.MaxGasLimitPerBlockForSafeCrossShard() / bbt.feeHandler.MaxGasLimitPerMiniBlockForSafeCrossShard()
-	maxNumPendingMiniBlocks := maxNumMiniBlocksForSameReceiverInOneBlock * process.MaxMetaNoncesBehind * uint64(bbt.shardCoordinator.NumberOfShards())
-	isShardStuck := numPendingMiniBlocks >= maxNumPendingMiniBlocks || isMetaDifferenceTooLarge
-	return isShardStuck
+	return bbt.isShardBehind(shardID, process.MaxMetaNoncesBehind)
 }
 
-func (bbt *baseBlockTrack) isMetaStuck() bool {
+func (bbt *baseBlockTrack) isShardBehind(shardID uint32, maxMetaNoncesBehind uint64) bool {
+	metaDiff := bbt.computeMetaBlocksDifferenceForShard(shardID)
+	if metaDiff > int64(maxMetaNoncesBehind) {
+		return true
+	}
+
+	return bbt.tooManyPendingMiniBlocks(shardID, maxMetaNoncesBehind)
+}
+
+func (bbt *baseBlockTrack) tooManyPendingMiniBlocks(shardID uint32, maxMetaNoncesBehind uint64) bool {
+	maxNumPendingMiniBlocks := bbt.computeMaxPendingMiniBlocks(maxMetaNoncesBehind)
+	numPendingMiniBlocks := uint64(bbt.blockBalancer.GetNumPendingMiniBlocks(shardID))
+	return numPendingMiniBlocks >= maxNumPendingMiniBlocks
+}
+
+func (bbt *baseBlockTrack) computeMaxPendingMiniBlocks(maxMetaNoncesBehind uint64) uint64 {
+	maxNumMiniBlocksForSameReceiverInOneBlock := bbt.feeHandler.MaxGasLimitPerBlockForSafeCrossShard() / bbt.feeHandler.MaxGasLimitPerMiniBlockForSafeCrossShard()
+	maxNumPendingMiniBlocks := maxNumMiniBlocksForSameReceiverInOneBlock * maxMetaNoncesBehind * uint64(bbt.shardCoordinator.NumberOfShards())
+
+	return maxNumPendingMiniBlocks
+}
+
+func (bbt *baseBlockTrack) computeMetaBlocksDifferenceForShard(shardID uint32) int64 {
+	var metaDiff int64
+	lastShardProcessedMetaNonce := bbt.blockBalancer.GetLastShardProcessedMetaNonce(shardID)
+
+	if lastShardProcessedMetaNonce == 0 {
+		return 0
+	}
+
+	metaHeaders, _ := bbt.GetTrackedHeaders(core.MetachainShardId)
+	numMetaHeaders := len(metaHeaders)
+	if numMetaHeaders > 0 {
+		lastMetaHeader := metaHeaders[numMetaHeaders-1]
+		metaDiff = int64(lastMetaHeader.GetNonce()) - int64(lastShardProcessedMetaNonce)
+	}
+
+	return metaDiff
+}
+
+func (bbt *baseBlockTrack) computeMetaBlocksBehind() int64 {
 	selfHdrNotarizedByItself, _, err := bbt.GetLastSelfNotarizedHeader(bbt.shardCoordinator.SelfId())
 	if err != nil {
 		log.Debug("isMetaStuck.GetLastSelfNotarizedHeader",
 			"shard", bbt.shardCoordinator.SelfId(),
 			"error", err.Error())
-		return false
+		return 0
 	}
 
 	selfHdrNotarizedByMeta, _, err := bbt.GetLastSelfNotarizedHeader(core.MetachainShardId)
@@ -652,10 +691,15 @@ func (bbt *baseBlockTrack) isMetaStuck() bool {
 		log.Debug("isMetaStuck.GetLastSelfNotarizedHeader",
 			"shard", core.MetachainShardId,
 			"error", err.Error())
-		return false
+		return 0
 	}
 
-	isMetaStuck := selfHdrNotarizedByItself.GetNonce() > selfHdrNotarizedByMeta.GetNonce()+process.MaxShardNoncesBehind
+	return int64(selfHdrNotarizedByItself.GetNonce()) - int64(selfHdrNotarizedByMeta.GetNonce())
+}
+
+func (bbt *baseBlockTrack) isMetaStuck() bool {
+	noncesBehind := bbt.computeMetaBlocksBehind()
+	isMetaStuck := noncesBehind > process.MaxShardNoncesBehind
 	return isMetaStuck
 }
 

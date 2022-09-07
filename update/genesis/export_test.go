@@ -1,6 +1,7 @@
 package genesis
 
 import (
+	"encoding/json"
 	"errors"
 	"math/big"
 	"os"
@@ -250,18 +251,9 @@ func TestExportAll(t *testing.T) {
 		},
 	}
 
-	args := ArgsNewStateExporter{
-		ShardCoordinator:         mock.NewOneShardCoordinatorMock(),
-		Marshalizer:              &mock.MarshalizerMock{},
-		StateSyncer:              stateSyncer,
-		HardforkStorer:           hs,
-		Hasher:                   &hashingMocks.HasherMock{},
-		AddressPubKeyConverter:   &mock.PubkeyConverterStub{},
-		ValidatorPubKeyConverter: &mock.PubkeyConverterStub{},
-		ExportFolder:             "test",
-		GenesisNodesSetupHandler: &mock.GenesisNodesSetupHandlerStub{},
-	}
-
+	args := getDefaultStateExporterArgs()
+	args.StateSyncer = stateSyncer
+	args.HardforkStorer = hs
 	stateExporter, _ := NewStateExporter(args)
 	require.False(t, check.IfNil(stateExporter))
 
@@ -296,17 +288,9 @@ func TestStateExport_ExportUnfinishedMetaBlocksShouldWork(t *testing.T) {
 		},
 	}
 
-	args := ArgsNewStateExporter{
-		ShardCoordinator:         mock.NewOneShardCoordinatorMock(),
-		Marshalizer:              &mock.MarshalizerMock{},
-		StateSyncer:              stateSyncer,
-		HardforkStorer:           hs,
-		Hasher:                   &hashingMocks.HasherMock{},
-		AddressPubKeyConverter:   &mock.PubkeyConverterStub{},
-		ValidatorPubKeyConverter: &mock.PubkeyConverterStub{},
-		ExportFolder:             "test",
-		GenesisNodesSetupHandler: &mock.GenesisNodesSetupHandlerStub{},
-	}
+	args := getDefaultStateExporterArgs()
+	args.StateSyncer = stateSyncer
+	args.HardforkStorer = hs
 
 	stateExporter, _ := NewStateExporter(args)
 	require.False(t, check.IfNil(stateExporter))
@@ -315,4 +299,122 @@ func TestStateExport_ExportUnfinishedMetaBlocksShouldWork(t *testing.T) {
 	require.Nil(t, err)
 
 	assert.True(t, unFinishedMetablocksWereWrote)
+}
+
+func TestStateExport_ExportAllValidatorsInfo(t *testing.T) {
+	t.Parallel()
+
+	t.Run("export all validators info with state syncer error", func(t *testing.T) {
+		t.Parallel()
+
+		expectedStateSyncerErr := errors.New("state syncer error")
+		args := getDefaultStateExporterArgs()
+		args.StateSyncer = &mock.StateSyncStub{
+			GetAllValidatorsInfoCalled: func() (map[string]*state.ShardValidatorInfo, error) {
+				return nil, expectedStateSyncerErr
+			},
+		}
+
+		stateExporter, _ := NewStateExporter(args)
+		err := stateExporter.exportAllValidatorsInfo()
+		assert.Equal(t, expectedStateSyncerErr, err)
+	})
+
+	t.Run("export all validators info with hardfork storer error", func(t *testing.T) {
+		t.Parallel()
+
+		expectedHardforkStorerErr := errors.New("hardfork storer error")
+		args := getDefaultStateExporterArgs()
+		args.StateSyncer = &mock.StateSyncStub{
+			GetAllValidatorsInfoCalled: func() (map[string]*state.ShardValidatorInfo, error) {
+				mapShardValidatorInfo := make(map[string]*state.ShardValidatorInfo)
+				shardValidatorInfo := &state.ShardValidatorInfo{
+					PublicKey: []byte("x"),
+				}
+				mapShardValidatorInfo["key"] = shardValidatorInfo
+				return mapShardValidatorInfo, nil
+			},
+		}
+		args.HardforkStorer = &mock.HardforkStorerStub{
+			WriteCalled: func(identifier string, key []byte, value []byte) error {
+				return expectedHardforkStorerErr
+			},
+		}
+
+		stateExporter, _ := NewStateExporter(args)
+		err := stateExporter.exportAllValidatorsInfo()
+		assert.Equal(t, expectedHardforkStorerErr, err)
+	})
+
+	t.Run("export all validators info without error", func(t *testing.T) {
+		t.Parallel()
+
+		finishedIdentifierWasCalled := false
+		args := getDefaultStateExporterArgs()
+		args.HardforkStorer = &mock.HardforkStorerStub{
+			FinishedIdentifierCalled: func(identifier string) error {
+				finishedIdentifierWasCalled = true
+				return nil
+			},
+		}
+
+		stateExporter, _ := NewStateExporter(args)
+		err := stateExporter.exportAllValidatorsInfo()
+		assert.Nil(t, err)
+		assert.True(t, finishedIdentifierWasCalled)
+	})
+}
+
+func TestStateExport_ExportValidatorInfo(t *testing.T) {
+	t.Parallel()
+
+	t.Run("export validator info with error", func(t *testing.T) {
+		t.Parallel()
+
+		expectedErr := errors.New("error")
+		args := getDefaultStateExporterArgs()
+		args.HardforkStorer = &mock.HardforkStorerStub{
+			WriteCalled: func(identifier string, key []byte, value []byte) error {
+				return expectedErr
+			},
+		}
+
+		stateExporter, _ := NewStateExporter(args)
+		key := "key"
+		shardValidatorInfo := &state.ShardValidatorInfo{
+			PublicKey: []byte("x"),
+		}
+
+		err := stateExporter.exportValidatorInfo(key, shardValidatorInfo)
+		assert.Equal(t, expectedErr, err)
+	})
+
+	t.Run("export validator info without error", func(t *testing.T) {
+		t.Parallel()
+
+		args := getDefaultStateExporterArgs()
+
+		stateExporter, _ := NewStateExporter(args)
+		key := "key"
+		shardValidatorInfo := &state.ShardValidatorInfo{
+			PublicKey: []byte("x"),
+		}
+
+		err := stateExporter.exportValidatorInfo(key, shardValidatorInfo)
+		assert.Nil(t, err)
+	})
+}
+
+func getDefaultStateExporterArgs() ArgsNewStateExporter {
+	return ArgsNewStateExporter{
+		ShardCoordinator:         mock.NewOneShardCoordinatorMock(),
+		Marshalizer:              &mock.MarshalizerMock{},
+		StateSyncer:              &mock.StateSyncStub{},
+		HardforkStorer:           &mock.HardforkStorerStub{},
+		Hasher:                   &hashingMocks.HasherMock{},
+		AddressPubKeyConverter:   &mock.PubkeyConverterStub{},
+		ValidatorPubKeyConverter: &mock.PubkeyConverterStub{},
+		ExportFolder:             "test",
+		GenesisNodesSetupHandler: &mock.GenesisNodesSetupHandlerStub{},
+	}
 }

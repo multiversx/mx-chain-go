@@ -4,6 +4,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
+	commonDisabled "github.com/ElrondNetwork/elrond-go/common/disabled"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager/disabled"
 	"github.com/ElrondNetwork/elrond-go/trie"
@@ -12,24 +13,27 @@ import (
 const maxTrieLevelInMemory = uint(5)
 
 func createAccountAdapter(
-	marshalizer marshal.Marshalizer,
+	marshaller marshal.Marshalizer,
 	hasher hashing.Hasher,
 	accountFactory state.AccountFactory,
 	trieStorage common.StorageManager,
 ) (state.AccountsAdapter, error) {
-	tr, err := trie.NewTrie(trieStorage, marshalizer, hasher, maxTrieLevelInMemory)
+	tr, err := trie.NewTrie(trieStorage, marshaller, hasher, maxTrieLevelInMemory)
 	if err != nil {
 		return nil, err
 	}
 
-	adb, err := state.NewAccountsDB(
-		tr,
-		hasher,
-		marshalizer,
-		accountFactory,
-		disabled.NewDisabledStoragePruningManager(),
-		common.Normal,
-	)
+	args := state.ArgsAccountsDB{
+		Trie:                  tr,
+		Hasher:                hasher,
+		Marshaller:            marshaller,
+		AccountFactory:        accountFactory,
+		StoragePruningManager: disabled.NewDisabledStoragePruningManager(),
+		ProcessingMode:        common.Normal,
+		ProcessStatusHandler:  commonDisabled.NewProcessStatusHandler(),
+	}
+
+	adb, err := state.NewAccountsDB(args)
 	if err != nil {
 		return nil, err
 	}

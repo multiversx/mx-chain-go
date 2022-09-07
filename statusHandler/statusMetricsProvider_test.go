@@ -123,7 +123,7 @@ func TestStatusMetrics_StatusMetricsWithoutP2PPrometheusStringShouldPutDefaultSh
 	sm.SetUInt64Value(key1, value1)
 	sm.SetStringValue(key2, value2)
 
-	strRes := sm.StatusMetricsWithoutP2PPrometheusString()
+	strRes, _ := sm.StatusMetricsWithoutP2PPrometheusString()
 
 	expectedMetricOutput := fmt.Sprintf("%s{%s=\"%d\"} %v", key1, common.MetricShardId, 0, value1)
 	assert.True(t, strings.Contains(strRes, expectedMetricOutput))
@@ -141,7 +141,7 @@ func TestStatusMetrics_StatusMetricsWithoutP2PPrometheusStringShouldPutCorrectSh
 	sm.SetStringValue(key2, value2)
 	sm.SetUInt64Value(key3, uint64(value3))
 
-	strRes := sm.StatusMetricsWithoutP2PPrometheusString()
+	strRes, _ := sm.StatusMetricsWithoutP2PPrometheusString()
 
 	expectedMetricOutput := fmt.Sprintf("%s{%s=\"%d\"} %v", key1, common.MetricShardId, shardID, value1)
 	assert.True(t, strings.Contains(strRes, expectedMetricOutput))
@@ -198,7 +198,7 @@ func TestStatusMetrics_NetworkConfig(t *testing.T) {
 		"erd_hysteresis":                    "0.000000",
 	}
 
-	configMetrics := sm.ConfigMetrics()
+	configMetrics, _ := sm.ConfigMetrics()
 	assert.Equal(t, expectedConfig, configMetrics)
 }
 
@@ -227,8 +227,18 @@ func TestStatusMetrics_NetworkMetrics(t *testing.T) {
 		"erd_nonces_passed_in_current_epoch": uint64(85),
 	}
 
-	configMetrics := sm.NetworkMetrics()
-	assert.Equal(t, expectedConfig, configMetrics)
+	t.Run("no cross check value", func(t *testing.T) {
+		configMetrics, _ := sm.NetworkMetrics()
+		assert.Equal(t, expectedConfig, configMetrics)
+	})
+	t.Run("with cross check value", func(t *testing.T) {
+		crossCheckValue := "0: 9169897, 1: 9166353, 2: 9170524, "
+		sm.SetStringValue(common.MetricCrossCheckBlockHeight, crossCheckValue)
+
+		configMetrics, _ := sm.NetworkMetrics()
+		expectedConfig[common.MetricCrossCheckBlockHeight] = crossCheckValue
+		assert.Equal(t, expectedConfig, configMetrics)
+	})
 }
 
 func TestStatusMetrics_EnableEpochMetrics(t *testing.T) {
@@ -259,6 +269,7 @@ func TestStatusMetrics_EnableEpochMetrics(t *testing.T) {
 	sm.SetUInt64Value(common.MetricIncrementSCRNonceInMultiTransferEnableEpoch, 3)
 	sm.SetUInt64Value(common.MetricBalanceWaitingListsEnableEpoch, 4)
 	sm.SetUInt64Value(common.MetricWaitingListFixEnableEpoch, 1)
+	sm.SetUInt64Value(common.MetricHeartbeatDisableEpoch, 5)
 
 	maxNodesChangeConfig := []map[string]uint64{
 		{
@@ -321,9 +332,10 @@ func TestStatusMetrics_EnableEpochMetrics(t *testing.T) {
 				common.MetricNodesToShufflePerShard: uint64(5),
 			},
 		},
+		common.MetricHeartbeatDisableEpoch:                       uint64(5),
 	}
 
-	epochsMetrics := sm.EnableEpochsMetrics()
+	epochsMetrics, _ := sm.EnableEpochsMetrics()
 	assert.Equal(t, expectedMetrics, epochsMetrics)
 }
 
@@ -412,7 +424,8 @@ func TestStatusMetrics_RatingsConfig(t *testing.T) {
 		common.MetricRatingsPeerHonestyUnitValue:                    "1.0",
 	}
 
-	configMetrics := sm.RatingsMetrics()
+	configMetrics, err := sm.RatingsMetrics()
+	assert.NoError(t, err)
 	assert.Equal(t, expectedConfig, configMetrics)
 }
 
@@ -505,19 +518,19 @@ func TestStatusMetrics_ConcurrentOperations(t *testing.T) {
 			case 5:
 				sm.SetStringValue("test str", "test val")
 			case 6:
-				_ = sm.NetworkMetrics()
+				_, _ = sm.NetworkMetrics()
 			case 7:
-				_ = sm.ConfigMetrics()
+				_, _ = sm.ConfigMetrics()
 			case 8:
-				_ = sm.EconomicsMetrics()
+				_, _ = sm.EconomicsMetrics()
 			case 9:
 				_ = sm.StatusMetricsMap()
 			case 10:
-				_ = sm.StatusMetricsMapWithoutP2P()
+				_, _ = sm.StatusMetricsMapWithoutP2P()
 			case 11:
-				_ = sm.StatusMetricsWithoutP2PPrometheusString()
+				_, _ = sm.StatusMetricsWithoutP2PPrometheusString()
 			case 12:
-				_ = sm.StatusP2pMetricsMap()
+				_, _ = sm.StatusP2pMetricsMap()
 			}
 			wg.Done()
 		}(i)

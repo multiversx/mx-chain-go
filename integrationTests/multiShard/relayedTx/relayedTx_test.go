@@ -185,7 +185,7 @@ func TestRelayedTransactionInMultiShardEnvironmentWithESDTTX(t *testing.T) {
 	receiverAddress1 := []byte("12345678901234567890123456789012")
 	receiverAddress2 := []byte("12345678901234567890123456789011")
 
-	///////////------- send token issue
+	// ------- send token issue
 	issuePrice := big.NewInt(1000)
 	initalSupply := big.NewInt(10000000000)
 	tokenIssuer := nodes[0]
@@ -208,7 +208,7 @@ func TestRelayedTransactionInMultiShardEnvironmentWithESDTTX(t *testing.T) {
 	tokenIdenfitifer := string(integrationTests.GetTokenIdentifier(nodes, []byte("RBT")))
 	CheckAddressHasTokens(t, tokenIssuer.OwnAccount.Address, nodes, tokenIdenfitifer, initalSupply)
 
-	/////////------ send tx to players
+	// ------ send tx to players
 	valueToTopUp := big.NewInt(100000000)
 	txData = core.BuiltInFunctionESDTTransfer + "@" + hex.EncodeToString([]byte(tokenIdenfitifer)) + "@" + hex.EncodeToString(valueToTopUp.Bytes())
 	for _, player := range players {
@@ -376,7 +376,7 @@ func checkSCBalance(t *testing.T, node *integrationTests.TestProcessorNode, scAd
 	})
 	assert.Nil(t, err)
 	actualBalance := big.NewInt(0).SetBytes(vmOutput.ReturnData[0])
-	assert.Equal(t, actualBalance.Cmp(balance), 0)
+	assert.Equal(t, 0, actualBalance.Cmp(balance))
 }
 
 func checkPlayerBalances(

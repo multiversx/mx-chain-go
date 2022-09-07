@@ -1,6 +1,7 @@
 package factory
 
 import (
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
@@ -67,6 +68,8 @@ func (pcf *processComponentsFactory) NewBlockProcessor(
 	txSimulatorProcessorArgs *txsimulator.ArgsTxSimulator,
 	arwenChangeLocker common.Locker,
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler,
+	processedMiniBlocksTracker process.ProcessedMiniBlocksTracker,
+	receiptsRepository ReceiptsRepository,
 ) (process.BlockProcessor, process.VirtualMachinesContainerFactory, error) {
 	blockProcessorComponents, err := pcf.newBlockProcessor(
 		requestHandler,
@@ -80,6 +83,8 @@ func (pcf *processComponentsFactory) NewBlockProcessor(
 		txSimulatorProcessorArgs,
 		arwenChangeLocker,
 		scheduledTxsExecutionHandler,
+		processedMiniBlocksTracker,
+		receiptsRepository,
 	)
 	if err != nil {
 		return nil, nil, err
@@ -101,4 +106,9 @@ func SetShardCoordinator(shardCoordinator sharding.Coordinator, holder Bootstrap
 // IndexGenesisBlocks -
 func (pcf *processComponentsFactory) IndexGenesisBlocks(genesisBlocks map[uint32]data.HeaderHandler, indexingData map[uint32]*genesis.IndexingData) error {
 	return pcf.indexGenesisBlocks(genesisBlocks, indexingData)
+}
+
+// DecodeAddresses -
+func DecodeAddresses(pkConverter core.PubkeyConverter, automaticCrawlerAddressesStrings []string) ([][]byte, error) {
+	return decodeAddresses(pkConverter, automaticCrawlerAddressesStrings)
 }

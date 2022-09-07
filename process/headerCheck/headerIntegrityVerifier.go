@@ -12,7 +12,7 @@ import (
 )
 
 type headerIntegrityVerifier struct {
-	referenceChainID []byte
+	referenceChainID     []byte
 	headerVersionHandler factory.HeaderVersionHandler
 }
 
@@ -30,7 +30,7 @@ func NewHeaderIntegrityVerifier(
 	}
 
 	hdrIntVer := &headerIntegrityVerifier{
-		referenceChainID: referenceChainID,
+		referenceChainID:     referenceChainID,
 		headerVersionHandler: headerVersionHandler,
 	}
 

@@ -143,6 +143,12 @@ func (mcc *managedCoreComponents) CheckSubcomponents() error {
 	if check.IfNil(mcc.epochNotifier) {
 		return errors.ErrNilEpochNotifier
 	}
+	if check.IfNil(mcc.processStatusHandler) {
+		return errors.ErrNilProcessStatusHandler
+	}
+	if check.IfNil(mcc.enableEpochsHandler) {
+		return errors.ErrNilEnableEpochsHandler
+	}
 	if len(mcc.chainID) == 0 {
 		return errors.ErrInvalidChainID
 	}
@@ -491,8 +497,8 @@ func (mcc *managedCoreComponents) EpochNotifier() process.EpochNotifier {
 	return mcc.coreComponents.epochNotifier
 }
 
-// RoundNotifier returns the round notifier
-func (mcc *managedCoreComponents) RoundNotifier() process.RoundNotifier {
+// EnableRoundsHandler returns the rounds activation handler
+func (mcc *managedCoreComponents) EnableRoundsHandler() process.EnableRoundsHandler {
 	mcc.mutCoreComponents.RLock()
 	defer mcc.mutCoreComponents.RUnlock()
 
@@ -500,7 +506,7 @@ func (mcc *managedCoreComponents) RoundNotifier() process.RoundNotifier {
 		return nil
 	}
 
-	return mcc.coreComponents.roundNotifier
+	return mcc.coreComponents.enableRoundsHandler
 }
 
 // EpochStartNotifierWithConfirm returns the epoch notifier with confirm
@@ -551,6 +557,42 @@ func (mcc *managedCoreComponents) ArwenChangeLocker() common.Locker {
 	return mcc.coreComponents.arwenChangeLocker
 }
 
+// ProcessStatusHandler returns the process status handler
+func (mcc *managedCoreComponents) ProcessStatusHandler() common.ProcessStatusHandler {
+	mcc.mutCoreComponents.RLock()
+	defer mcc.mutCoreComponents.RUnlock()
+
+	if mcc.coreComponents == nil {
+		return nil
+	}
+
+	return mcc.coreComponents.processStatusHandler
+}
+
+// HardforkTriggerPubKey returns the hardfork source public key
+func (mcc *managedCoreComponents) HardforkTriggerPubKey() []byte {
+	mcc.mutCoreComponents.RLock()
+	defer mcc.mutCoreComponents.RUnlock()
+
+	if mcc.coreComponents == nil {
+		return nil
+	}
+
+	return mcc.coreComponents.hardforkTriggerPubKey
+}
+
+// EnableEpochsHandler returns the enable epochs handler
+func (mcc *managedCoreComponents) EnableEpochsHandler() common.EnableEpochsHandler {
+	mcc.mutCoreComponents.RLock()
+	defer mcc.mutCoreComponents.RUnlock()
+
+	if mcc.coreComponents == nil {
+		return nil
+	}
+
+	return mcc.coreComponents.enableEpochsHandler
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (mcc *managedCoreComponents) IsInterfaceNil() bool {
 	return mcc == nil
@@ -558,5 +600,5 @@ func (mcc *managedCoreComponents) IsInterfaceNil() bool {
 
 // String returns the name of the component
 func (mcc *managedCoreComponents) String() string {
-	return "managedCoreComponents"
+	return coreComponentsName
 }

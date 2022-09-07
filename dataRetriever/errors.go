@@ -13,8 +13,11 @@ var ErrSendRequest = errors.New("cannot send request: peer list is empty or erro
 // ErrNilValue signals the value is nil
 var ErrNilValue = errors.New("nil value")
 
-// ErrTxNotFoundInBlockPool signals the value is nil
-var ErrTxNotFoundInBlockPool = errors.New("cannot find tx in current block pool")
+// ErrTxNotFoundInBlockPool signals that transaction was not found in the current block pool
+var ErrTxNotFoundInBlockPool = errors.New("transaction was not found in the current block pool")
+
+// ErrValidatorInfoNotFoundInEpochPool signals that validator info was not found in the current epoch pool
+var ErrValidatorInfoNotFoundInEpochPool = errors.New("validator info was not found in the current epoch pool")
 
 // ErrNilMarshalizer signals that an operation has been attempted to or with a nil Marshalizer implementation
 var ErrNilMarshalizer = errors.New("nil Marshalizer")
@@ -140,11 +143,17 @@ var ErrInvalidMaxTxRequest = errors.New("max tx request number is invalid")
 // ErrNilPeerListCreator signals that a nil peer list creator implementation has been provided
 var ErrNilPeerListCreator = errors.New("nil peer list creator provided")
 
+// ErrNilPeersRatingHandler signals that a nil peers rating handler implementation has been provided
+var ErrNilPeersRatingHandler = errors.New("nil peers rating handler")
+
 // ErrNilTrieDataGetter signals that a nil trie data getter has been provided
 var ErrNilTrieDataGetter = errors.New("nil trie data getter provided")
 
-// ErrNilCurrBlockTxs signals that nil current blocks txs holder was provided
+// ErrNilCurrBlockTxs signals that nil current block txs holder was provided
 var ErrNilCurrBlockTxs = errors.New("nil current block txs holder")
+
+// ErrNilCurrentEpochValidatorInfo signals that nil current epoch validator info holder was provided
+var ErrNilCurrentEpochValidatorInfo = errors.New("nil current epoch validator info holder")
 
 // ErrNilRequestedItemsHandler signals that a nil requested items handler was provided
 var ErrNilRequestedItemsHandler = errors.New("nil requested items handler")
@@ -220,3 +229,39 @@ var ErrNilPathManager = errors.New("nil path manager")
 
 // ErrNilEpochNotifier signals that the provided EpochNotifier is nil
 var ErrNilEpochNotifier = errors.New("nil EpochNotifier")
+
+// ErrNilPeerAuthenticationPool signals that a nil peer authentication pool has been provided
+var ErrNilPeerAuthenticationPool = errors.New("nil peer authentication pool")
+
+// ErrNilHeartbeatPool signals that a nil heartbeat pool has been provided
+var ErrNilHeartbeatPool = errors.New("nil heartbeat pool")
+
+// ErrPeerAuthNotFound signals that no peer authentication found
+var ErrPeerAuthNotFound = errors.New("peer authentication not found")
+
+// ErrNilNodesCoordinator signals a nil nodes coordinator has been provided
+var ErrNilNodesCoordinator = errors.New("nil nodes coordinator")
+
+// InvalidChunkIndex signals that an invalid chunk was provided
+var InvalidChunkIndex = errors.New("invalid chunk index")
+
+// ErrInvalidNumOfPeerAuthentication signals that an invalid number of peer authentication was provided
+var ErrInvalidNumOfPeerAuthentication = errors.New("invalid num of peer authentication")
+
+// ErrNilPayloadValidator signals that a nil payload validator was provided
+var ErrNilPayloadValidator = errors.New("nil payload validator")
+
+// ErrWrongTypeAssertion signals that an type assertion failed
+var ErrWrongTypeAssertion = errors.New("wrong type assertion")
+
+// ErrStorerNotFound signals that the storer was not found
+var ErrStorerNotFound = errors.New("storer not found")
+
+// ErrNilValidatorInfoPool signals that a nil validator info pool has been provided
+var ErrNilValidatorInfoPool = errors.New("nil validator info pool")
+
+// ErrNilValidatorInfoStorage signals that a nil validator info storage has been provided
+var ErrNilValidatorInfoStorage = errors.New("nil validator info storage")
+
+// ErrValidatorInfoNotFound signals that no validator info was found
+var ErrValidatorInfoNotFound = errors.New("validator info not found")

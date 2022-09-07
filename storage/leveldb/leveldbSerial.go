@@ -1,7 +1,6 @@
 package leveldb
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"os"
@@ -12,6 +11,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/closing"
+	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/opt"
@@ -35,10 +35,17 @@ type SerialDB struct {
 // NewSerialDB is a constructor for the leveldb persister
 // It creates the files in the location given as parameter
 func NewSerialDB(path string, batchDelaySeconds int, maxBatchSize int, maxOpenFiles int) (s *SerialDB, err error) {
+	constructorName := "NewSerialDB"
+
+	sw := core.NewStopWatch()
+	sw.Start(constructorName)
+
+	sw.Start(mkdirAllFunction)
 	err = os.MkdirAll(path, rwxOwner)
 	if err != nil {
 		return nil, err
 	}
+	sw.Stop(mkdirAllFunction)
 
 	if maxOpenFiles < 1 {
 		return nil, storage.ErrInvalidNumOpenFiles
@@ -50,10 +57,12 @@ func NewSerialDB(path string, batchDelaySeconds int, maxBatchSize int, maxOpenFi
 		OpenFilesCacheCapacity: maxOpenFiles,
 	}
 
+	sw.Start(openLevelDBFunction)
 	db, err := openLevelDB(path, options)
 	if err != nil {
 		return nil, fmt.Errorf("%w for path %s", err, path)
 	}
+	sw.Stop(openLevelDBFunction)
 
 	bldb := &baseLevelDb{
 		db:   db,
@@ -81,7 +90,11 @@ func NewSerialDB(path string, batchDelaySeconds int, maxBatchSize int, maxOpenFi
 	})
 
 	crtCounter := atomic.AddUint32(&loggingDBCounter, 1)
-	log.Debug("opened serial level db persister", "path", path, "created pointer", fmt.Sprintf("%p", bldb.db), "global db counter", crtCounter)
+	sw.Stop(constructorName)
+
+	logArguments := []interface{}{"path", path, "created pointer", fmt.Sprintf("%p", bldb.db), "global db counter", crtCounter}
+	logArguments = append(logArguments, sw.GetMeasurements()...)
+	log.Debug("opened serial level db persister", logArguments...)
 
 	return dbStore, nil
 }
@@ -125,7 +138,7 @@ func (s *SerialDB) updateBatchWithIncrement() error {
 // Put adds the value to the (key, val) storage medium
 func (s *SerialDB) Put(key, val []byte) error {
 	if s.isClosed() {
-		return storage.ErrDBIsClosed
+		return errors.ErrDBIsClosed
 	}
 
 	s.mutBatch.RLock()
@@ -141,17 +154,19 @@ func (s *SerialDB) Put(key, val []byte) error {
 // Get returns the value associated to the key
 func (s *SerialDB) Get(key []byte) ([]byte, error) {
 	if s.isClosed() {
-		return nil, storage.ErrDBIsClosed
+		return nil, errors.ErrDBIsClosed
 	}
 
 	s.mutBatch.RLock()
+	if s.batch.IsRemoved(key) {
+		s.mutBatch.RUnlock()
+		return nil, storage.ErrKeyNotFound
+	}
+
 	data := s.batch.Get(key)
 	s.mutBatch.RUnlock()
 
 	if data != nil {
-		if bytes.Equal(data, []byte(removed)) {
-			return nil, storage.ErrKeyNotFound
-		}
 		return data, nil
 	}
 
@@ -181,17 +196,19 @@ func (s *SerialDB) Get(key []byte) ([]byte, error) {
 // Has returns nil if the given key is present in the persistence medium
 func (s *SerialDB) Has(key []byte) error {
 	if s.isClosed() {
-		return storage.ErrDBIsClosed
+		return errors.ErrDBIsClosed
 	}
 
 	s.mutBatch.RLock()
+	if s.batch.IsRemoved(key) {
+		s.mutBatch.RUnlock()
+		return storage.ErrKeyNotFound
+	}
+
 	data := s.batch.Get(key)
 	s.mutBatch.RUnlock()
 
 	if data != nil {
-		if bytes.Equal(data, []byte(removed)) {
-			return storage.ErrKeyNotFound
-		}
 		return nil
 	}
 
@@ -216,7 +233,7 @@ func (s *SerialDB) tryWriteInDbAccessChan(req serialQueryer) error {
 	case s.dbAccess <- req:
 		return nil
 	case <-s.closer.ChanClose():
-		return storage.ErrDBIsClosed
+		return errors.ErrDBIsClosed
 	}
 }
 
@@ -266,7 +283,7 @@ func (s *SerialDB) Close() error {
 // Remove removes the data associated to the given key
 func (s *SerialDB) Remove(key []byte) error {
 	if s.isClosed() {
-		return storage.ErrDBIsClosed
+		return errors.ErrDBIsClosed
 	}
 
 	s.mutBatch.Lock()

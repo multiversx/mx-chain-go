@@ -1,7 +1,6 @@
 package leveldb
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"os"
@@ -10,7 +9,9 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/opt"
@@ -20,6 +21,8 @@ var _ storage.Persister = (*DB)(nil)
 
 // read + write + execute for owner only
 const rwxOwner = 0700
+const mkdirAllFunction = "mkdirAll"
+const openLevelDBFunction = "openLevelDB"
 
 var log = logger.GetOrCreate("storage/leveldb")
 
@@ -37,10 +40,17 @@ type DB struct {
 // NewDB is a constructor for the leveldb persister
 // It creates the files in the location given as parameter
 func NewDB(path string, batchDelaySeconds int, maxBatchSize int, maxOpenFiles int) (s *DB, err error) {
+	constructorName := "NewDB"
+
+	sw := core.NewStopWatch()
+	sw.Start(constructorName)
+
+	sw.Start(mkdirAllFunction)
 	err = os.MkdirAll(path, rwxOwner)
 	if err != nil {
 		return nil, err
 	}
+	sw.Stop(mkdirAllFunction)
 
 	if maxOpenFiles < 1 {
 		return nil, storage.ErrInvalidNumOpenFiles
@@ -52,10 +62,12 @@ func NewDB(path string, batchDelaySeconds int, maxBatchSize int, maxOpenFiles in
 		OpenFilesCacheCapacity: maxOpenFiles,
 	}
 
+	sw.Start(openLevelDBFunction)
 	db, err := openLevelDB(path, options)
 	if err != nil {
 		return nil, fmt.Errorf("%w for path %s", err, path)
 	}
+	sw.Stop(openLevelDBFunction)
 
 	bldb := &baseLevelDb{
 		db:   db,
@@ -80,7 +92,11 @@ func NewDB(path string, batchDelaySeconds int, maxBatchSize int, maxOpenFiles in
 	})
 
 	crtCounter := atomic.AddUint32(&loggingDBCounter, 1)
-	log.Debug("opened level db persister", "path", path, "created pointer", fmt.Sprintf("%p", bldb.db), "global db counter", crtCounter)
+	sw.Stop(constructorName)
+
+	logArguments := []interface{}{"path", path, "created pointer", fmt.Sprintf("%p", bldb.db), "global db counter", crtCounter}
+	logArguments = append(logArguments, sw.GetMeasurements()...)
+	log.Debug("opened level db persister", logArguments...)
 
 	return dbStore, nil
 }
@@ -148,14 +164,15 @@ func (s *DB) Put(key, val []byte) error {
 func (s *DB) Get(key []byte) ([]byte, error) {
 	db := s.getDbPointer()
 	if db == nil {
-		return nil, storage.ErrDBIsClosed
+		return nil, errors.ErrDBIsClosed
+	}
+
+	if s.batch.IsRemoved(key) {
+		return nil, storage.ErrKeyNotFound
 	}
 
 	data := s.batch.Get(key)
 	if data != nil {
-		if bytes.Equal(data, []byte(removed)) {
-			return nil, storage.ErrKeyNotFound
-		}
 		return data, nil
 	}
 
@@ -174,14 +191,15 @@ func (s *DB) Get(key []byte) ([]byte, error) {
 func (s *DB) Has(key []byte) error {
 	db := s.getDbPointer()
 	if db == nil {
-		return storage.ErrDBIsClosed
+		return errors.ErrDBIsClosed
+	}
+
+	if s.batch.IsRemoved(key) {
+		return storage.ErrKeyNotFound
 	}
 
 	data := s.batch.Get(key)
 	if data != nil {
-		if bytes.Equal(data, []byte(removed)) {
-			return storage.ErrKeyNotFound
-		}
 		return nil
 	}
 
@@ -215,7 +233,7 @@ func (s *DB) putBatch(b storage.Batcher) error {
 
 	db := s.getDbPointer()
 	if db == nil {
-		return storage.ErrDBIsClosed
+		return errors.ErrDBIsClosed
 	}
 
 	return db.Write(dbBatch.batch, wopt)

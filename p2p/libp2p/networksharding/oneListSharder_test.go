@@ -34,7 +34,7 @@ func TestNewOneListSharder_ShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-//------- ComputeEvictionList
+// ------- ComputeEvictionList
 
 func TestOneListSharder_ComputeEvictionListNotReachedShouldRetEmpty(t *testing.T) {
 	t.Parallel()
@@ -71,7 +71,7 @@ func TestOneListSharder_ComputeEvictionListReachedIntraShardShouldSortAndEvict(t
 	assert.Equal(t, pid3, evictList[0])
 }
 
-//------- Has
+// ------- Has
 
 func TestOneListSharder_HasNotFound(t *testing.T) {
 	t.Parallel()

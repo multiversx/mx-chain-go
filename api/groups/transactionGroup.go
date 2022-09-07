@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strconv"
 	"sync"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
@@ -14,6 +15,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/middleware"
 	"github.com/ElrondNetwork/elrond-go/api/shared"
+	"github.com/ElrondNetwork/elrond-go/api/shared/logging"
+	"github.com/ElrondNetwork/elrond-go/common"
 	txSimData "github.com/ElrondNetwork/elrond-go/process/txsimulator/data"
 	"github.com/gin-gonic/gin"
 )
@@ -28,9 +31,14 @@ const (
 	costPath                         = "/cost"
 	sendMultiplePath                 = "/send-multiple"
 	getTransactionPath               = "/:txhash"
+	getTransactionsPool              = "/pool"
 
 	queryParamWithResults    = "withResults"
 	queryParamCheckSignature = "checkSignature"
+	queryParamSender         = "by-sender"
+	queryParamFields         = "fields"
+	queryParamLastNonce      = "last-nonce"
+	queryParamNonceGaps      = "nonce-gaps"
 )
 
 // transactionFacadeHandler defines the methods to be implemented by a facade for transaction requests
@@ -42,6 +50,10 @@ type transactionFacadeHandler interface {
 	SendBulkTransactions([]*transaction.Transaction) (uint64, error)
 	SimulateTransactionExecution(tx *transaction.Transaction) (*txSimData.SimulationResults, error)
 	GetTransaction(hash string, withResults bool) (*transaction.ApiTransactionResult, error)
+	GetTransactionsPool(fields string) (*common.TransactionsPoolAPIResponse, error)
+	GetTransactionsPoolForSender(sender, fields string) (*common.TransactionsPoolForSenderApiResponse, error)
+	GetLastPoolNonceForSender(sender string) (uint64, error)
+	GetTransactionsPoolNonceGapsForSender(sender string) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error)
 	ComputeTransactionGasLimit(tx *transaction.Transaction) (*transaction.CostResponse, error)
 	EncodeAddressPubkey(pk []byte) (string, error)
 	GetThrottlerForEndpoint(endpoint string) (core.Throttler, bool)
@@ -92,6 +104,17 @@ func NewTransactionGroup(facade transactionFacadeHandler) (*transactionGroup, er
 			Path:    costPath,
 			Method:  http.MethodPost,
 			Handler: tg.computeTransactionGasLimit,
+		},
+		{
+			Path:    getTransactionsPool,
+			Method:  http.MethodGet,
+			Handler: tg.getTransactionsPool,
+			AdditionalMiddlewares: []shared.AdditionalMiddleware{
+				{
+					Middleware: middleware.CreateEndpointThrottlerFromFacade(getTransactionPath, facade),
+					Position:   shared.Before,
+				},
+			},
 		},
 		{
 			Path:    sendMultiplePath,
@@ -192,6 +215,7 @@ func (tg *transactionGroup) simulateTransaction(c *gin.Context) {
 		return
 	}
 
+	start := time.Now()
 	tx, txHash, err := tg.getFacade().CreateTransaction(
 		gtx.Nonce,
 		gtx.Value,
@@ -207,6 +231,7 @@ func (tg *transactionGroup) simulateTransaction(c *gin.Context) {
 		gtx.Version,
 		gtx.Options,
 	)
+	logging.LogAPIActionDurationIfNeeded(start, "API call: CreateTransaction")
 	if err != nil {
 		c.JSON(
 			http.StatusBadRequest,
@@ -219,7 +244,9 @@ func (tg *transactionGroup) simulateTransaction(c *gin.Context) {
 		return
 	}
 
+	start = time.Now()
 	err = tg.getFacade().ValidateTransactionForSimulation(tx, checkSignature)
+	logging.LogAPIActionDurationIfNeeded(start, "API call: ValidateTransactionForSimulation")
 	if err != nil {
 		c.JSON(
 			http.StatusBadRequest,
@@ -232,7 +259,9 @@ func (tg *transactionGroup) simulateTransaction(c *gin.Context) {
 		return
 	}
 
+	start = time.Now()
 	executionResults, err := tg.getFacade().SimulateTransactionExecution(tx)
+	logging.LogAPIActionDurationIfNeeded(start, "API call: SimulateTransactionExecution")
 	if err != nil {
 		c.JSON(
 			http.StatusInternalServerError,
@@ -272,6 +301,7 @@ func (tg *transactionGroup) sendTransaction(c *gin.Context) {
 		return
 	}
 
+	start := time.Now()
 	tx, txHash, err := tg.getFacade().CreateTransaction(
 		gtx.Nonce,
 		gtx.Value,
@@ -287,6 +317,7 @@ func (tg *transactionGroup) sendTransaction(c *gin.Context) {
 		gtx.Version,
 		gtx.Options,
 	)
+	logging.LogAPIActionDurationIfNeeded(start, "API call: CreateTransaction")
 	if err != nil {
 		c.JSON(
 			http.StatusBadRequest,
@@ -299,7 +330,9 @@ func (tg *transactionGroup) sendTransaction(c *gin.Context) {
 		return
 	}
 
+	start = time.Now()
 	err = tg.getFacade().ValidateTransaction(tx)
+	logging.LogAPIActionDurationIfNeeded(start, "API call: ValidateTransaction")
 	if err != nil {
 		c.JSON(
 			http.StatusBadRequest,
@@ -312,7 +345,9 @@ func (tg *transactionGroup) sendTransaction(c *gin.Context) {
 		return
 	}
 
+	start = time.Now()
 	_, err = tg.getFacade().SendBulkTransactions([]*transaction.Transaction{tx})
+	logging.LogAPIActionDurationIfNeeded(start, "API call: SendBulkTransactions")
 	if err != nil {
 		c.JSON(
 			http.StatusInternalServerError,
@@ -358,8 +393,10 @@ func (tg *transactionGroup) sendMultipleTransactions(c *gin.Context) {
 		txHash []byte
 	)
 
+	var start time.Time
 	txsHashes := make(map[int]string)
 	for idx, receivedTx := range gtx {
+		start = time.Now()
 		tx, txHash, err = tg.getFacade().CreateTransaction(
 			receivedTx.Nonce,
 			receivedTx.Value,
@@ -375,6 +412,7 @@ func (tg *transactionGroup) sendMultipleTransactions(c *gin.Context) {
 			receivedTx.Version,
 			receivedTx.Options,
 		)
+		logging.LogAPIActionDurationIfNeeded(start, "API call: CreateTransaction")
 		if err != nil {
 			continue
 		}
@@ -388,7 +426,9 @@ func (tg *transactionGroup) sendMultipleTransactions(c *gin.Context) {
 		txsHashes[idx] = hex.EncodeToString(txHash)
 	}
 
+	start = time.Now()
 	numOfSentTxs, err := tg.getFacade().SendBulkTransactions(txs)
+	logging.LogAPIActionDurationIfNeeded(start, "API call: SendBulkTransactions")
 	if err != nil {
 		c.JSON(
 			http.StatusInternalServerError,
@@ -442,7 +482,9 @@ func (tg *transactionGroup) getTransaction(c *gin.Context) {
 		return
 	}
 
+	start := time.Now()
 	tx, err := tg.getFacade().GetTransaction(txhash, withResults)
+	logging.LogAPIActionDurationIfNeeded(start, "API call: GetTransaction")
 	if err != nil {
 		c.JSON(
 			http.StatusInternalServerError,
@@ -481,6 +523,7 @@ func (tg *transactionGroup) computeTransactionGasLimit(c *gin.Context) {
 		return
 	}
 
+	start := time.Now()
 	tx, _, err := tg.getFacade().CreateTransaction(
 		gtx.Nonce,
 		gtx.Value,
@@ -496,6 +539,7 @@ func (tg *transactionGroup) computeTransactionGasLimit(c *gin.Context) {
 		gtx.Version,
 		gtx.Options,
 	)
+	logging.LogAPIActionDurationIfNeeded(start, "API call: CreateTransaction")
 	if err != nil {
 		c.JSON(
 			http.StatusInternalServerError,
@@ -508,7 +552,9 @@ func (tg *transactionGroup) computeTransactionGasLimit(c *gin.Context) {
 		return
 	}
 
+	start = time.Now()
 	cost, err := tg.getFacade().ComputeTransactionGasLimit(tx)
+	logging.LogAPIActionDurationIfNeeded(start, "API call: ComputeTransactionGasLimit")
 	if err != nil {
 		c.JSON(
 			http.StatusInternalServerError,
@@ -531,6 +577,218 @@ func (tg *transactionGroup) computeTransactionGasLimit(c *gin.Context) {
 	)
 }
 
+// getTransactionsPool returns the transactions details in the pool
+func (tg *transactionGroup) getTransactionsPool(c *gin.Context) {
+	// extract and validate query parameters
+	sender, fields, lastNonce, nonceGaps, err := tg.extractQueryParameters(c)
+	if err != nil {
+		c.JSON(
+			http.StatusBadRequest,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: errors.ErrValidation.Error(),
+				Code:  shared.ReturnCodeRequestError,
+			},
+		)
+		return
+	}
+
+	err = validateQuery(sender, fields, lastNonce, nonceGaps)
+	if err != nil {
+		c.JSON(
+			http.StatusBadRequest,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), err.Error()),
+				Code:  shared.ReturnCodeRequestError,
+			},
+		)
+		return
+	}
+
+	// if no sender was provided, the fields for all transactions from pool should be returned in response
+	if sender == "" {
+		tg.getTxPool(fields, c)
+		return
+	}
+
+	if lastNonce {
+		tg.getLastPoolNonceForSender(sender, c)
+		return
+	}
+
+	if nonceGaps {
+		tg.getTransactionsPoolNonceGapsForSender(sender, c)
+		return
+	}
+
+	tg.getTxPoolForSender(sender, fields, c)
+}
+
+func (tg *transactionGroup) extractQueryParameters(c *gin.Context) (string, string, bool, bool, error) {
+	senderAddress := getQueryParameterSender(c)
+	fields := getQueryParameterFields(c)
+	lastNonce, err := getQueryParameterLastNonce(c)
+	if err != nil {
+		return "", "", false, false, err
+	}
+
+	nonceGaps, err := getQueryParameterNonceGaps(c)
+	if err != nil {
+		return "", "", false, false, err
+	}
+
+	return senderAddress, fields, lastNonce, nonceGaps, nil
+}
+
+// getTxPool returns the fields for all txs in pool
+func (tg *transactionGroup) getTxPool(fields string, c *gin.Context) {
+	start := time.Now()
+	txPool, err := tg.getFacade().GetTransactionsPool(fields)
+	logging.LogAPIActionDurationIfNeeded(start, "API call: GetTransactionsPool")
+	if err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: err.Error(),
+				Code:  shared.ReturnCodeInternalError,
+			},
+		)
+		return
+	}
+
+	c.JSON(
+		http.StatusOK,
+		shared.GenericAPIResponse{
+			Data:  gin.H{"txPool": txPool},
+			Error: "",
+			Code:  shared.ReturnCodeSuccess,
+		},
+	)
+}
+
+// getTxPoolForSender returns the fields for all txs in pool for the sender
+func (tg *transactionGroup) getTxPoolForSender(sender, fields string, c *gin.Context) {
+	start := time.Now()
+	txPool, err := tg.getFacade().GetTransactionsPoolForSender(sender, fields)
+	logging.LogAPIActionDurationIfNeeded(start, "API call: GetTransactionsPoolForSender")
+	if err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: err.Error(),
+				Code:  shared.ReturnCodeInternalError,
+			},
+		)
+		return
+	}
+
+	c.JSON(
+		http.StatusOK,
+		shared.GenericAPIResponse{
+			Data:  gin.H{"txPool": txPool},
+			Error: "",
+			Code:  shared.ReturnCodeSuccess,
+		},
+	)
+}
+
+// getLastPoolNonceForSender returns the last nonce in pool for sender
+func (tg *transactionGroup) getLastPoolNonceForSender(sender string, c *gin.Context) {
+	start := time.Now()
+	nonce, err := tg.getFacade().GetLastPoolNonceForSender(sender)
+	logging.LogAPIActionDurationIfNeeded(start, "API call: GetLastPoolNonceForSender")
+	if err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: err.Error(),
+				Code:  shared.ReturnCodeInternalError,
+			},
+		)
+		return
+	}
+
+	c.JSON(
+		http.StatusOK,
+		shared.GenericAPIResponse{
+			Data:  gin.H{"nonce": nonce},
+			Error: "",
+			Code:  shared.ReturnCodeSuccess,
+		},
+	)
+}
+
+// getTransactionsPoolNonceGapsForSender returns the nonce gaps in pool for sender
+func (tg *transactionGroup) getTransactionsPoolNonceGapsForSender(sender string, c *gin.Context) {
+	start := time.Now()
+	gaps, err := tg.getFacade().GetTransactionsPoolNonceGapsForSender(sender)
+	logging.LogAPIActionDurationIfNeeded(start, "API call: GetTransactionsPoolNonceGapsForSender")
+	if err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: err.Error(),
+				Code:  shared.ReturnCodeInternalError,
+			},
+		)
+		return
+	}
+
+	c.JSON(
+		http.StatusOK,
+		shared.GenericAPIResponse{
+			Data:  gin.H{"nonceGaps": gaps},
+			Error: "",
+			Code:  shared.ReturnCodeSuccess,
+		},
+	)
+}
+
+func validateQuery(sender, fields string, lastNonce, nonceGaps bool) error {
+	if fields != "" && lastNonce {
+		return errors.ErrFetchingLatestNonceCannotIncludeFields
+	}
+
+	if fields != "" && nonceGaps {
+		return errors.ErrFetchingNonceGapsCannotIncludeFields
+	}
+
+	if sender == "" && lastNonce {
+		return errors.ErrEmptySenderToGetLatestNonce
+	}
+
+	if sender == "" && nonceGaps {
+		return errors.ErrEmptySenderToGetNonceGaps
+	}
+
+	if fields != "" {
+		return validateFields(fields)
+	}
+
+	return nil
+}
+
+func validateFields(fields string) error {
+	for _, c := range fields {
+		if c == ',' {
+			continue
+		}
+
+		isLowerLetter := c >= 'a' && c <= 'z'
+		isUpperLetter := c >= 'A' && c <= 'Z'
+		if !isLowerLetter && !isUpperLetter {
+			return errors.ErrInvalidFields
+		}
+	}
+
+	return nil
+}
+
 func getQueryParamWithResults(c *gin.Context) (bool, error) {
 	withResultsStr := c.Request.URL.Query().Get(queryParamWithResults)
 	if withResultsStr == "" {
@@ -547,6 +805,34 @@ func getQueryParameterCheckSignature(c *gin.Context) (bool, error) {
 	}
 
 	return strconv.ParseBool(bypassSignatureStr)
+}
+
+func getQueryParameterSender(c *gin.Context) string {
+	senderAddress := c.Request.URL.Query().Get(queryParamSender)
+	return senderAddress
+}
+
+func getQueryParameterFields(c *gin.Context) string {
+	fieldsStr := c.Request.URL.Query().Get(queryParamFields)
+	return fieldsStr
+}
+
+func getQueryParameterLastNonce(c *gin.Context) (bool, error) {
+	lastNonceStr := c.Request.URL.Query().Get(queryParamLastNonce)
+	if lastNonceStr == "" {
+		return false, nil
+	}
+
+	return strconv.ParseBool(lastNonceStr)
+}
+
+func getQueryParameterNonceGaps(c *gin.Context) (bool, error) {
+	nonceGapsStr := c.Request.URL.Query().Get(queryParamNonceGaps)
+	if nonceGapsStr == "" {
+		return false, nil
+	}
+
+	return strconv.ParseBool(nonceGapsStr)
 }
 
 func (tg *transactionGroup) getFacade() transactionFacadeHandler {

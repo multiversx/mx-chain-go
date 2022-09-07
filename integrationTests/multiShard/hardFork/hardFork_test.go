@@ -80,7 +80,7 @@ func TestHardForkWithoutTransactionInMultiShardedEnvironment(t *testing.T) {
 	time.Sleep(time.Second)
 
 	nrRoundsToPropagateMultiShard := 5
-	/////////----- wait for epoch end period
+	// ----- wait for epoch end period
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, int(roundsPerEpoch), nonce, round, idxProposers)
 
 	time.Sleep(time.Second)
@@ -177,7 +177,7 @@ func TestHardForkWithContinuousTransactionsInMultiShardedEnvironment(t *testing.
 		integrationTests.MinTransactionVersion,
 	)
 	time.Sleep(time.Second)
-	/////////----- wait for epoch end period
+	// ----- wait for epoch end period
 	epoch := uint32(2)
 	nrRoundsToPropagateMultiShard := uint64(6)
 	for i := uint64(0); i <= (uint64(epoch)*roundsPerEpoch)+nrRoundsToPropagateMultiShard; i++ {
@@ -559,6 +559,7 @@ func createHardForkExporter(
 		coreComponents.ChainIdCalled = func() string {
 			return string(node.ChainID)
 		}
+		coreComponents.HardforkTriggerPubKeyField = []byte("provided hardfork pub key")
 
 		cryptoComponents := integrationTests.GetDefaultCryptoComponents()
 		cryptoComponents.BlockSig = node.OwnAccount.BlockSingleSigner
@@ -618,6 +619,8 @@ func createHardForkExporter(
 			MaxHardCapForMissingNodes: 500,
 			NumConcurrentTrieSyncers:  50,
 			TrieSyncerVersion:         2,
+			PeersRatingHandler:        node.PeersRatingHandler,
+			CheckNodesOnDisk:          false,
 		}
 
 		exportHandler, err := factory.NewExportHandlerFactory(argsExportHandler)
@@ -668,7 +671,8 @@ func verifyIfAddedShardHeadersAreWithNewEpoch(
 			assert.Fail(t, "metablock should have been in current block header")
 		}
 
-		shardHDrStorage := node.Storage.GetStorer(dataRetriever.BlockHeaderUnit)
+		shardHDrStorage, err := node.Storage.GetStorer(dataRetriever.BlockHeaderUnit)
+		assert.Nil(t, err)
 		for _, shardInfo := range currentMetaHdr.ShardInfo {
 			header, err := node.DataPool.Headers().GetHeaderByHash(shardInfo.HeaderHash)
 			if err == nil {

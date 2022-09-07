@@ -173,8 +173,8 @@ func (ste *scheduledTxsExecution) ExecuteAll(haveTime func() time.Duration) erro
 				"value", txHandler.GetValue(),
 				"gas limit", txHandler.GetGasLimit(),
 				"gas price", txHandler.GetGasPrice(),
-				"sender address", string(txHandler.GetSndAddr()),
-				"receiver address", string(txHandler.GetRcvAddr()),
+				"sender address", txHandler.GetSndAddr(),
+				"receiver address", txHandler.GetRcvAddr(),
 				"data", string(txHandler.GetData()),
 				"error", err.Error())
 			if !errors.Is(err, process.ErrFailedTransaction) {
@@ -267,6 +267,15 @@ func (ste *scheduledTxsExecution) removeInvalidTxsFromScheduledMiniBlocks(interm
 			}
 		}
 	}
+
+	resultedScheduledMbs := make(block.MiniBlockSlice, 0)
+	for _, miniBlock := range ste.scheduledMbs {
+		if len(miniBlock.TxHashes) == 0 {
+			continue
+		}
+		resultedScheduledMbs = append(resultedScheduledMbs, miniBlock)
+	}
+	ste.scheduledMbs = resultedScheduledMbs
 
 	log.Debug("scheduledTxsExecution.removeInvalidTxsFromScheduledMiniBlocks", "num of invalid txs removed", numInvalidTxsRemoved)
 }
@@ -484,7 +493,7 @@ func (ste *scheduledTxsExecution) SetTransactionCoordinator(txCoordinator proces
 func (ste *scheduledTxsExecution) GetScheduledRootHashForHeader(
 	headerHash []byte,
 ) ([]byte, error) {
-	scheduledInfo, err := ste.getScheduledInfoForHeader(headerHash)
+	scheduledInfo, err := ste.getScheduledInfoForHeader(headerHash, core.OptionalUint32{})
 	if err != nil {
 		return nil, err
 	}
@@ -494,9 +503,24 @@ func (ste *scheduledTxsExecution) GetScheduledRootHashForHeader(
 	return scheduledInfo.RootHash, nil
 }
 
+// GetScheduledRootHashForHeaderWithEpoch gets scheduled root hash of the given header (and) from storage
+func (ste *scheduledTxsExecution) GetScheduledRootHashForHeaderWithEpoch(
+	headerHash []byte,
+	epoch uint32,
+) ([]byte, error) {
+	scheduledInfo, err := ste.getScheduledInfoForHeader(headerHash, core.OptionalUint32{Value: epoch, HasValue: true})
+	if err != nil {
+		return nil, err
+	}
+
+	log.Debug("scheduledTxsExecution.GetScheduledRootHashForHeaderWithEpoch", "header hash", headerHash, "scheduled root hash", scheduledInfo.RootHash)
+
+	return scheduledInfo.RootHash, nil
+}
+
 // RollBackToBlock rolls back the scheduled txs execution handler to the given header
 func (ste *scheduledTxsExecution) RollBackToBlock(headerHash []byte) error {
-	scheduledInfo, err := ste.getScheduledInfoForHeader(headerHash)
+	scheduledInfo, err := ste.getScheduledInfoForHeader(headerHash, core.OptionalUint32{})
 	if err != nil {
 		return err
 	}
@@ -571,8 +595,10 @@ func (ste *scheduledTxsExecution) SaveState(headerHash []byte, scheduledInfo *pr
 }
 
 // getScheduledInfoForHeader gets scheduled mini blocks, root hash, intermediate txs, gas and fees of the given header from storage
-func (ste *scheduledTxsExecution) getScheduledInfoForHeader(headerHash []byte) (*process.ScheduledInfo, error) {
+func (ste *scheduledTxsExecution) getScheduledInfoForHeader(headerHash []byte, epoch core.OptionalUint32) (*process.ScheduledInfo, error) {
+	var data []byte
 	var err error
+
 	defer func() {
 		if err != nil {
 			log.Trace("getScheduledInfoForHeader: given header does not have scheduled txs",
@@ -581,13 +607,17 @@ func (ste *scheduledTxsExecution) getScheduledInfoForHeader(headerHash []byte) (
 		}
 	}()
 
-	marshalledSCRsSavedData, err := ste.storer.Get(headerHash)
+	if epoch.HasValue {
+		data, err = ste.storer.GetFromEpoch(headerHash, epoch.Value)
+	} else {
+		data, err = ste.storer.Get(headerHash)
+	}
 	if err != nil {
 		return nil, err
 	}
 
 	scheduledSCRs := &scheduled.ScheduledSCRs{}
-	err = ste.marshaller.Unmarshal(scheduledSCRs, marshalledSCRsSavedData)
+	err = ste.marshaller.Unmarshal(scheduledSCRs, data)
 	if err != nil {
 		return nil, err
 	}
@@ -630,9 +660,9 @@ func (ste *scheduledTxsExecution) IsScheduledTx(txHash []byte) bool {
 
 // IsMiniBlockExecuted returns true if the given mini block is already executed
 func (ste *scheduledTxsExecution) IsMiniBlockExecuted(mbHash []byte) bool {
-	//TODO: This method and also ste.mapScheduledMbHashes could be removed when we will have mini block header IsFinal method later,
-	//but only when we could differentiate between the final mini blocks executed as scheduled in the last block and the normal mini blocks
-	//from the current block which are also final, but not yet executed
+	// TODO: This method and also ste.mapScheduledMbHashes could be removed when we will have mini block header IsFinal method later,
+	// but only when we could differentiate between the final mini blocks executed as scheduled in the last block and the normal mini blocks
+	// from the current block which are also final, but not yet executed
 	ste.mutScheduledTxs.RLock()
 	_, ok := ste.mapScheduledMbHashes[string(mbHash)]
 	ste.mutScheduledTxs.RUnlock()

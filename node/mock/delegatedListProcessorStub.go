@@ -1,16 +1,20 @@
 package mock
 
-import "github.com/ElrondNetwork/elrond-go-core/data/api"
+import (
+	"context"
+
+	"github.com/ElrondNetwork/elrond-go-core/data/api"
+)
 
 // DelegatedListProcessorStub -
 type DelegatedListProcessorStub struct {
-	GetDelegatorsListCalled func() ([]*api.Delegator, error)
+	GetDelegatorsListCalled func(ctx context.Context) ([]*api.Delegator, error)
 }
 
 // GetDelegatorsList -
-func (dlps *DelegatedListProcessorStub) GetDelegatorsList() ([]*api.Delegator, error) {
+func (dlps *DelegatedListProcessorStub) GetDelegatorsList(ctx context.Context) ([]*api.Delegator, error) {
 	if dlps.GetDelegatorsListCalled != nil {
-		return dlps.GetDelegatorsListCalled()
+		return dlps.GetDelegatorsListCalled(ctx)
 	}
 
 	return nil, nil

@@ -105,6 +105,10 @@ func (fh *FeeHandler) GetAccumulatedFees() *big.Int {
 func (fh *FeeHandler) ProcessTransactionFee(_ *big.Int, _ *big.Int, _ []byte) {
 }
 
+// ProcessTransactionFeeRelayedUserTx does nothing
+func (fh *FeeHandler) ProcessTransactionFeeRelayedUserTx(_ *big.Int, _ *big.Int, _ []byte, _ []byte) {
+}
+
 // RevertFees does nothing
 func (fh *FeeHandler) RevertFees(_ [][]byte) {
 }

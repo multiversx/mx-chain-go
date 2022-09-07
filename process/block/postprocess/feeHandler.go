@@ -18,10 +18,11 @@ type feeData struct {
 var zero = big.NewInt(0)
 
 type feeHandler struct {
-	mut             sync.RWMutex
-	mapHashFee      map[string]*feeData
-	accumulatedFees *big.Int
-	developerFees   *big.Int
+	mut                sync.RWMutex
+	mapDependentHashes map[string][]byte
+	mapHashFee         map[string]*feeData
+	accumulatedFees    *big.Int
+	developerFees      *big.Int
 }
 
 // NewFeeAccumulator constructor for the fee accumulator
@@ -30,6 +31,7 @@ func NewFeeAccumulator() (*feeHandler, error) {
 	f.accumulatedFees = big.NewInt(0)
 	f.developerFees = big.NewInt(0)
 	f.mapHashFee = make(map[string]*feeData)
+	f.mapDependentHashes = make(map[string][]byte)
 	return f, nil
 }
 
@@ -37,6 +39,7 @@ func NewFeeAccumulator() (*feeHandler, error) {
 func (f *feeHandler) CreateBlockStarted(gasAndFees scheduled.GasAndFees) {
 	f.mut.Lock()
 	f.mapHashFee = make(map[string]*feeData)
+	f.mapDependentHashes = make(map[string][]byte)
 	f.accumulatedFees = big.NewInt(0)
 	if gasAndFees.AccumulatedFees != nil {
 		f.accumulatedFees = big.NewInt(0).Set(gasAndFees.AccumulatedFees)
@@ -69,6 +72,54 @@ func (f *feeHandler) GetDeveloperFees() *big.Int {
 
 // ProcessTransactionFee adds the tx cost to the accumulated amount
 func (f *feeHandler) ProcessTransactionFee(cost *big.Int, devFee *big.Int, txHash []byte) {
+	f.mut.Lock()
+	f.processTransactionFee(cost, devFee, txHash)
+	f.mut.Unlock()
+}
+
+// ProcessTransactionFeeRelayedUserTx processes the transaction fee for the execution of a relayed user transaction
+func (f *feeHandler) ProcessTransactionFeeRelayedUserTx(cost *big.Int, devFee *big.Int, userTxHash []byte, originalTxHash []byte) {
+	f.mut.Lock()
+	f.linkRelayedUserTxToOriginalTx(userTxHash, originalTxHash)
+	f.processTransactionFee(cost, devFee, userTxHash)
+	f.mut.Unlock()
+}
+
+// RevertFees reverts the accumulated fees for txHashes
+func (f *feeHandler) RevertFees(txHashes [][]byte) {
+	f.mut.Lock()
+	defer f.mut.Unlock()
+
+	for _, txHash := range txHashes {
+		f.revertFeesForDependentTxHash(txHash)
+		f.revertFee(txHash)
+	}
+}
+
+func (f *feeHandler) linkRelayedUserTxToOriginalTx(userTxHash []byte, originalTxHash []byte) {
+	f.mapDependentHashes[string(originalTxHash)] = userTxHash
+}
+
+func (f *feeHandler) revertFeesForDependentTxHash(txHash []byte) {
+	linkedTxHash, ok := f.mapDependentHashes[string(txHash)]
+	if !ok {
+		return
+	}
+	f.revertFee(linkedTxHash)
+	delete(f.mapDependentHashes, string(txHash))
+}
+
+func (f *feeHandler) revertFee(txHash []byte) {
+	fee, ok := f.mapHashFee[string(txHash)]
+	if !ok {
+		return
+	}
+	f.developerFees.Sub(f.developerFees, fee.devFee)
+	f.accumulatedFees.Sub(f.accumulatedFees, fee.cost)
+	delete(f.mapHashFee, string(txHash))
+}
+
+func (f *feeHandler) processTransactionFee(cost *big.Int, devFee *big.Int, txHash []byte) {
 	if cost == nil {
 		log.Error("nil cost in ProcessTransactionFee", "error", process.ErrNilValue.Error())
 		return
@@ -78,7 +129,6 @@ func (f *feeHandler) ProcessTransactionFee(cost *big.Int, devFee *big.Int, txHas
 		return
 	}
 
-	f.mut.Lock()
 	fee, ok := f.mapHashFee[string(txHash)]
 	if !ok {
 		fee = &feeData{
@@ -93,23 +143,6 @@ func (f *feeHandler) ProcessTransactionFee(cost *big.Int, devFee *big.Int, txHas
 	f.mapHashFee[string(txHash)] = fee
 	f.accumulatedFees.Add(f.accumulatedFees, cost)
 	f.developerFees.Add(f.developerFees, devFee)
-	f.mut.Unlock()
-}
-
-// RevertFees reverts the accumulated fees for txHashes
-func (f *feeHandler) RevertFees(txHashes [][]byte) {
-	f.mut.Lock()
-	defer f.mut.Unlock()
-
-	for _, txHash := range txHashes {
-		fee, ok := f.mapHashFee[string(txHash)]
-		if !ok {
-			continue
-		}
-		f.developerFees.Sub(f.developerFees, fee.devFee)
-		f.accumulatedFees.Sub(f.accumulatedFees, fee.cost)
-		delete(f.mapHashFee, string(txHash))
-	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -16,6 +16,7 @@ import (
 	blockProc "github.com/ElrondNetwork/elastic-indexer-go/process/block"
 	"github.com/ElrondNetwork/elastic-indexer-go/process/logsevents"
 	"github.com/ElrondNetwork/elastic-indexer-go/process/miniblocks"
+	"github.com/ElrondNetwork/elastic-indexer-go/process/operations"
 	"github.com/ElrondNetwork/elastic-indexer-go/process/statistics"
 	"github.com/ElrondNetwork/elastic-indexer-go/process/transactions"
 	"github.com/ElrondNetwork/elastic-indexer-go/process/validators"
@@ -120,11 +121,12 @@ func (ti *testIndexer) createElasticProcessor(
 	})
 
 	balanceConverter, _ := converters.NewBalanceConverter(18)
-	ap, _ := accounts.NewAccountsProcessor(testMarshalizer, pubkeyConv, &stateMock.AccountsStub{}, balanceConverter)
+	ap, _ := accounts.NewAccountsProcessor(testMarshalizer, pubkeyConv, &stateMock.AccountsStub{}, balanceConverter, shardCoordinator.SelfId())
 	bp, _ := blockProc.NewBlockProcessor(testHasher, testMarshalizer)
 	mp, _ := miniblocks.NewMiniblocksProcessor(shardCoordinator.SelfId(), testHasher, testMarshalizer, false)
 	sp := statistics.NewStatisticsProcessor()
-	vp, _ := validators.NewValidatorsProcessor(pubkeyConv)
+	vp, _ := validators.NewValidatorsProcessor(pubkeyConv, 0)
+	opp, _ := operations.NewOperationsProcessor(false, shardCoordinator)
 	args := &logsevents.ArgsLogsAndEventsProcessor{
 		ShardCoordinator: shardCoordinator,
 		PubKeyConverter:  pubkeyConv,
@@ -149,6 +151,7 @@ func (ti *testIndexer) createElasticProcessor(
 		ValidatorsProc:    vp,
 		LogsAndEventsProc: lp,
 		DBClient:          databaseClient,
+		OperationsProc:    opp,
 	}
 
 	esProcessor, _ := elasticProcessor.NewElasticProcessor(esIndexerArgs)
@@ -254,6 +257,7 @@ func (ti *testIndexer) createDatabaseClient(hasResults bool) elasticProcessor.Da
 		ti.indexerData[index] = buff
 		if !done {
 			done = true
+			ti.saveDoneChan <- struct{}{}
 			return nil
 		}
 		ti.saveDoneChan <- struct{}{}
@@ -270,7 +274,7 @@ func (ti *testIndexer) createDatabaseClient(hasResults bool) elasticProcessor.Da
 // GetIndexerPreparedTransaction -
 func (ti *testIndexer) GetIndexerPreparedTransaction(t *testing.T) *indexerTypes.Transaction {
 	ti.mutex.RLock()
-	txData, ok := ti.indexerData["transactions"]
+	txData, ok := ti.indexerData[""]
 	ti.mutex.RUnlock()
 
 	require.True(t, ok)
@@ -295,12 +299,21 @@ func (ti *testIndexer) GetIndexerPreparedTransaction(t *testing.T) *indexerTypes
 	err = json.Unmarshal(ss, &newTx)
 	require.Nil(t, err)
 
+	if newTx.Receiver != "" {
+		return newTx
+	}
+
+	splitAgain = bytes.Split(split[1], []byte(`"tx": `))
+	ss = splitAgain[1][:len(splitAgain[1])-15]
+	err = json.Unmarshal(ss, &newTx)
+	require.Nil(t, err)
+
 	return newTx
 }
 
 func (ti *testIndexer) printReceipt() {
 	ti.mutex.RLock()
-	receipts, ok := ti.indexerData["receipts"]
+	receipts, ok := ti.indexerData[""]
 	ti.mutex.RUnlock()
 
 	if !ok {
@@ -319,7 +332,7 @@ func (ti *testIndexer) printReceipt() {
 
 func (ti *testIndexer) putSCRSInTx(tx *indexerTypes.Transaction) {
 	ti.mutex.RLock()
-	scrData, ok := ti.indexerData["scresults"]
+	scrData, ok := ti.indexerData[""]
 	ti.mutex.RUnlock()
 
 	if !ok {
@@ -330,6 +343,10 @@ func (ti *testIndexer) putSCRSInTx(tx *indexerTypes.Transaction) {
 	require.True(ti.t, len(split) > 2)
 
 	for idx := 1; idx < len(split); idx += 2 {
+		if !bytes.Contains(split[idx], []byte("scresults")) {
+			continue
+		}
+
 		newSCR := &indexerTypes.ScResult{}
 		err := json.Unmarshal(split[idx], newSCR)
 		require.Nil(ti.t, err)

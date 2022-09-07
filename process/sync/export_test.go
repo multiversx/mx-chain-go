@@ -1,6 +1,8 @@
 package sync
 
 import (
+	"time"
+
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/common"
@@ -275,4 +277,9 @@ func (boot *baseBootstrap) CleanNoncesSyncedWithErrorsBehindFinal() {
 // IsInImportMode -
 func (boot *baseBootstrap) IsInImportMode() bool {
 	return boot.isInImportMode
+}
+
+// ProcessWaitTime -
+func (boot *baseBootstrap) ProcessWaitTime() time.Duration {
+	return boot.processWaitTime
 }

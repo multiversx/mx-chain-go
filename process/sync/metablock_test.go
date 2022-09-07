@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"reflect"
+	"strings"
 	goSync "sync"
 	"testing"
 	"time"
@@ -27,6 +29,7 @@ import (
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func createMetaBlockProcessor(blk data.ChainHandler) *mock.BlockProcessorMock {
@@ -52,6 +55,7 @@ func createMetaStore() dataRetriever.StorageService {
 	store := dataRetriever.NewChainStorer()
 	store.AddStorer(dataRetriever.MetaBlockUnit, generateTestUnit())
 	store.AddStorer(dataRetriever.ShardHdrNonceHashDataUnit, generateTestUnit())
+	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, generateTestUnit())
 	return store
 }
 
@@ -69,7 +73,7 @@ func CreateMetaBootstrapMockArguments() sync.ArgMetaBootstrapper {
 		RequestHandler:               &testscommon.RequestHandlerStub{},
 		ShardCoordinator:             mock.NewOneShardCoordinatorMock(),
 		Accounts:                     &stateMock.AccountsStub{},
-		BlackListHandler:             &mock.BlackListHandlerStub{},
+		BlackListHandler:             &testscommon.TimeCacheStub{},
 		NetworkWatcher:               initNetworkWatcher(),
 		BootStorer:                   &mock.BoostrapStorerMock{},
 		StorageBootstrapper:          &mock.StorageBootstrapperMock{},
@@ -82,6 +86,7 @@ func CreateMetaBootstrapMockArguments() sync.ArgMetaBootstrapper {
 		CurrentEpochProvider:         &testscommon.CurrentEpochProviderStub{},
 		HistoryRepo:                  &dblookupext.HistoryRepositoryStub{},
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
+		ProcessWaitTime:              testProcessWaitTime,
 	}
 
 	argsMetaBootstrapper := sync.ArgMetaBootstrapper{
@@ -364,6 +369,45 @@ func TestNewMetaBootstrap_NilCurrentEpochProviderShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilCurrentNetworkEpochProvider, err)
 }
 
+func TestNewMetaBootstrap_InvalidProcessTimeShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := CreateMetaBootstrapMockArguments()
+	args.ProcessWaitTime = time.Millisecond*100 - 1
+
+	bs, err := sync.NewMetaBootstrap(args)
+
+	assert.Nil(t, bs)
+	assert.True(t, errors.Is(err, process.ErrInvalidProcessWaitTime))
+}
+
+func TestNewMetaBootstrap_MissingStorer(t *testing.T) {
+	t.Parallel()
+
+	t.Run("missing MetaBlockUnit", testMetaWithMissingStorer(dataRetriever.MetaBlockUnit))
+	t.Run("missing MetaHdrNonceHashDataUnit", testMetaWithMissingStorer(dataRetriever.MetaHdrNonceHashDataUnit))
+}
+
+func testMetaWithMissingStorer(missingUnit dataRetriever.UnitType) func(t *testing.T) {
+	return func(t *testing.T) {
+		t.Parallel()
+
+		args := CreateMetaBootstrapMockArguments()
+		args.Store = &storageStubs.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+				if unitType == missingUnit {
+					return nil, fmt.Errorf("%w for %s", storage.ErrKeyNotFound, missingUnit.String())
+				}
+				return &storageStubs.StorerStub{}, nil
+			},
+		}
+
+		bs, err := sync.NewMetaBootstrap(args)
+		assert.Nil(t, bs)
+		require.True(t, strings.Contains(err.Error(), storage.ErrKeyNotFound.Error()))
+	}
+}
+
 func TestNewMetaBootstrap_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -398,50 +442,10 @@ func TestNewMetaBootstrap_OkValsShouldWork(t *testing.T) {
 	assert.NotNil(t, bs)
 	assert.Nil(t, err)
 	assert.False(t, bs.IsInImportMode())
+	assert.Equal(t, testProcessWaitTime, bs.ProcessWaitTime())
 }
 
 // ------- processing
-
-func TestMetaBootstrap_SyncBlockShouldCallRollBack(t *testing.T) {
-	t.Parallel()
-
-	args := CreateMetaBootstrapMockArguments()
-
-	hdr := block.MetaBlock{Nonce: 1, PubKeysBitmap: []byte("X")}
-
-	args.Store = createMetaStore()
-
-	blkc, _ := blockchain.NewMetaChain(&statusHandlerMock.AppStatusHandlerStub{})
-	_ = blkc.SetGenesisHeader(&block.MetaBlock{})
-	_ = blkc.SetCurrentBlockHeaderAndRootHash(&hdr, hdr.RootHash)
-	args.ChainHandler = blkc
-
-	forkDetector := &mock.ForkDetectorMock{}
-	forkDetector.CheckForkCalled = func() *process.ForkInfo {
-		return &process.ForkInfo{
-			IsDetected: true,
-			Nonce:      90,
-			Round:      90,
-			Hash:       []byte("hash"),
-		}
-	}
-	forkDetector.RemoveHeaderCalled = func(nonce uint64, hash []byte) {
-	}
-	forkDetector.GetHighestFinalBlockNonceCalled = func() uint64 {
-		return hdr.Nonce
-	}
-	forkDetector.ProbableHighestNonceCalled = func() uint64 {
-		return 100
-	}
-	args.ForkDetector = forkDetector
-	args.RoundHandler = initRoundHandler()
-	args.BlockProcessor = createMetaBlockProcessor(args.ChainHandler)
-
-	bs, _ := sync.NewMetaBootstrap(args)
-	r := bs.SyncBlock(context.Background())
-
-	assert.Equal(t, process.ErrNilHeadersNonceHashStorage, r)
-}
 
 func TestMetaBootstrap_ShouldReturnTimeIsOutWhenMissingHeader(t *testing.T) {
 	t.Parallel()
@@ -732,6 +736,9 @@ func TestMetaBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testi
 	forkDetector.GetHighestFinalBlockNonceCalled = func() uint64 {
 		return hdr.Nonce
 	}
+	forkDetector.GetHighestFinalBlockHashCalled = func() []byte {
+		return []byte("hash")
+	}
 	forkDetector.ProbableHighestNonceCalled = func() uint64 {
 		return 2
 	}
@@ -786,6 +793,9 @@ func TestMetaBootstrap_GetNodeStateShouldReturnNotSynchronizedWhenCurrentBlockIs
 	}
 	forkDetector.ProbableHighestNonceCalled = func() uint64 {
 		return 1
+	}
+	forkDetector.GetHighestFinalBlockHashCalled = func() []byte {
+		return []byte("hash")
 	}
 	args.ForkDetector = forkDetector
 	args.RoundHandler, _ = round.NewRound(time.Now(), time.Now().Add(100*time.Millisecond), 100*time.Millisecond, &mock.SyncTimerMock{}, 0)
@@ -900,7 +910,7 @@ func TestMetaBootstrap_GetNodeStateShouldReturnNotSynchronizedWhenForkIsDetected
 	args.RoundHandler = &mock.RoundHandlerMock{RoundIndex: 2}
 	args.ForkDetector, _ = sync.NewMetaForkDetector(
 		args.RoundHandler,
-		&mock.BlackListHandlerStub{},
+		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
 		0,
 	)
@@ -965,7 +975,7 @@ func TestMetaBootstrap_GetNodeStateShouldReturnSynchronizedWhenForkIsDetectedAnd
 	args.RoundHandler = &mock.RoundHandlerMock{RoundIndex: 2}
 	args.ForkDetector, _ = sync.NewMetaForkDetector(
 		args.RoundHandler,
-		&mock.BlackListHandlerStub{},
+		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
 		0,
 	)
@@ -1229,8 +1239,11 @@ func TestMetaBootstrap_RollBackIsNotEmptyShouldErr(t *testing.T) {
 			Nonce:         newHdrNonce,
 		}
 	}
+	blkc.GetCurrentBlockHeaderHashCalled = func() []byte {
+		return newHdrHash
+	}
 	args.ChainHandler = blkc
-	args.ForkDetector = createForkDetector(newHdrNonce, remFlags)
+	args.ForkDetector = createForkDetector(newHdrNonce, newHdrHash, remFlags)
 
 	bs, _ := sync.NewMetaBootstrap(args)
 	err := bs.RollBack(false)
@@ -1301,8 +1314,8 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockOkValsShouldWork(t *te
 		hdrHash = i
 	}
 	args.ChainHandler = blkc
-	args.Store = &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+	args.Store = &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 			return &storageStubs.StorerStub{
 				GetCalled: func(key []byte) ([]byte, error) {
 					return prevHdrBytes, nil
@@ -1311,7 +1324,7 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockOkValsShouldWork(t *te
 					remFlags.flagHdrRemovedFromStorage = true
 					return nil
 				},
-			}
+			}, nil
 		},
 	}
 	args.BlockProcessor = &mock.BlockProcessorMock{
@@ -1356,7 +1369,7 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockOkValsShouldWork(t *te
 			return nil
 		},
 	}
-	args.ForkDetector = createForkDetector(currentHdrNonce, remFlags)
+	args.ForkDetector = createForkDetector(currentHdrNonce, currentHdrHash, remFlags)
 	args.Accounts = &stateMock.AccountsStub{
 		RecreateTrieCalled: func(rootHash []byte) error {
 			return nil
@@ -1443,8 +1456,8 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockToGenesisShouldWork(t 
 		hdrHash = nil
 	}
 	args.ChainHandler = blkc
-	args.Store = &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+	args.Store = &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 			return &storageStubs.StorerStub{
 				GetCalled: func(key []byte) ([]byte, error) {
 					return prevHdrBytes, nil
@@ -1453,7 +1466,7 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockToGenesisShouldWork(t 
 					remFlags.flagHdrRemovedFromStorage = true
 					return nil
 				},
-			}
+			}, nil
 		},
 	}
 	args.BlockProcessor = &mock.BlockProcessorMock{
@@ -1497,7 +1510,7 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockToGenesisShouldWork(t 
 			return nil
 		},
 	}
-	args.ForkDetector = createForkDetector(currentHdrNonce, remFlags)
+	args.ForkDetector = createForkDetector(currentHdrNonce, currentHdrHash, remFlags)
 	args.Accounts = &stateMock.AccountsStub{
 		RecreateTrieCalled: func(rootHash []byte) error {
 			return nil
@@ -1640,6 +1653,9 @@ func TestMetaBootstrap_SyncBlockErrGetNodeDBShouldSyncAccounts(t *testing.T) {
 	}
 	forkDetector.GetHighestFinalBlockNonceCalled = func() uint64 {
 		return hdr.Nonce
+	}
+	forkDetector.GetHighestFinalBlockHashCalled = func() []byte {
+		return []byte("hash")
 	}
 	forkDetector.ProbableHighestNonceCalled = func() uint64 {
 		return 2

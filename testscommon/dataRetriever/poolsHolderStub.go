@@ -8,17 +8,22 @@ import (
 
 // PoolsHolderStub -
 type PoolsHolderStub struct {
-	HeadersCalled              func() dataRetriever.HeadersPool
-	TransactionsCalled         func() dataRetriever.ShardedDataCacherNotifier
-	UnsignedTransactionsCalled func() dataRetriever.ShardedDataCacherNotifier
-	RewardTransactionsCalled   func() dataRetriever.ShardedDataCacherNotifier
-	MiniBlocksCalled           func() storage.Cacher
-	MetaBlocksCalled           func() storage.Cacher
-	CurrBlockTxsCalled         func() dataRetriever.TransactionCacher
-	TrieNodesCalled            func() storage.Cacher
-	TrieNodesChunksCalled      func() storage.Cacher
-	PeerChangesBlocksCalled    func() storage.Cacher
-	SmartContractsCalled       func() storage.Cacher
+	HeadersCalled                func() dataRetriever.HeadersPool
+	TransactionsCalled           func() dataRetriever.ShardedDataCacherNotifier
+	UnsignedTransactionsCalled   func() dataRetriever.ShardedDataCacherNotifier
+	RewardTransactionsCalled     func() dataRetriever.ShardedDataCacherNotifier
+	MiniBlocksCalled             func() storage.Cacher
+	MetaBlocksCalled             func() storage.Cacher
+	CurrBlockTxsCalled           func() dataRetriever.TransactionCacher
+	CurrEpochValidatorInfoCalled func() dataRetriever.ValidatorInfoCacher
+	TrieNodesCalled              func() storage.Cacher
+	TrieNodesChunksCalled        func() storage.Cacher
+	PeerChangesBlocksCalled      func() storage.Cacher
+	SmartContractsCalled         func() storage.Cacher
+	PeerAuthenticationsCalled    func() storage.Cacher
+	HeartbeatsCalled             func() storage.Cacher
+	ValidatorsInfoCalled         func() dataRetriever.ShardedDataCacherNotifier
+	CloseCalled                  func() error
 }
 
 // NewPoolsHolderStub -
@@ -89,6 +94,15 @@ func (holder *PoolsHolderStub) CurrentBlockTxs() dataRetriever.TransactionCacher
 	return nil
 }
 
+// CurrentEpochValidatorInfo -
+func (holder *PoolsHolderStub) CurrentEpochValidatorInfo() dataRetriever.ValidatorInfoCacher {
+	if holder.CurrEpochValidatorInfoCalled != nil {
+		return holder.CurrEpochValidatorInfoCalled()
+	}
+
+	return nil
+}
+
 // TrieNodes -
 func (holder *PoolsHolderStub) TrieNodes() storage.Cacher {
 	if holder.TrieNodesCalled != nil {
@@ -123,6 +137,42 @@ func (holder *PoolsHolderStub) SmartContracts() storage.Cacher {
 	}
 
 	return testscommon.NewCacherStub()
+}
+
+// PeerAuthentications -
+func (holder *PoolsHolderStub) PeerAuthentications() storage.Cacher {
+	if holder.PeerAuthenticationsCalled != nil {
+		return holder.PeerAuthenticationsCalled()
+	}
+
+	return testscommon.NewCacherStub()
+}
+
+// Heartbeats -
+func (holder *PoolsHolderStub) Heartbeats() storage.Cacher {
+	if holder.HeartbeatsCalled != nil {
+		return holder.HeartbeatsCalled()
+	}
+
+	return testscommon.NewCacherStub()
+}
+
+// ValidatorsInfo -
+func (holder *PoolsHolderStub) ValidatorsInfo() dataRetriever.ShardedDataCacherNotifier {
+	if holder.ValidatorsInfoCalled != nil {
+		return holder.ValidatorsInfoCalled()
+	}
+
+	return testscommon.NewShardedDataStub()
+}
+
+// Close -
+func (holder *PoolsHolderStub) Close() error {
+	if holder.CloseCalled != nil {
+		return holder.CloseCalled()
+	}
+
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

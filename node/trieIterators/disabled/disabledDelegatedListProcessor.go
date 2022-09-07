@@ -1,6 +1,7 @@
 package disabled
 
 import (
+	"context"
 	"errors"
 
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
@@ -16,7 +17,7 @@ func NewDisabledDelegatedListProcessor() *delegatedListProcessor {
 }
 
 // GetDelegatorsList returns the errCannotReturnDelegatedListFromShardNode error
-func (dlp *delegatedListProcessor) GetDelegatorsList() ([]*api.Delegator, error) {
+func (dlp *delegatedListProcessor) GetDelegatorsList(_ context.Context) ([]*api.Delegator, error) {
 	return nil, errCannotReturnDelegatedListFromShardNode
 }
 

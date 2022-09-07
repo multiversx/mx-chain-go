@@ -47,6 +47,7 @@ func NewValidatorAccountsSyncer(args ArgsNewValidatorAccountsSyncer) (*validator
 		name:                      "peer accounts",
 		maxHardCapForMissingNodes: args.MaxHardCapForMissingNodes,
 		trieSyncerVersion:         args.TrieSyncerVersion,
+		checkNodesOnDisk:          args.CheckNodesOnDisk,
 		trieExporter:              args.TrieExporter,
 	}
 
@@ -77,6 +78,8 @@ func (v *validatorAccountsSyncer) SyncAccounts(rootHash []byte, _ uint32) error 
 	if err != nil {
 		return err
 	}
+
+	mainTrie.MarkStorerAsSyncedAndActive()
 
 	return v.trieExporter.ExportValidatorTrie(mainTrie)
 }

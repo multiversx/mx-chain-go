@@ -213,7 +213,7 @@ func (ls *listsSharder) ComputeEvictionList(pidList []peer.ID) []peer.ID {
 	numCrossShardValidators, remaining = computeUsedAndSpare(existingNumCrossShardValidators, ls.maxCrossShardValidators+remaining)
 	numIntraShardObservers, remaining = computeUsedAndSpare(existingNumIntraShardObservers, ls.maxIntraShardObservers+remaining)
 	numCrossShardObservers, remaining = computeUsedAndSpare(existingNumCrossShardObservers, ls.maxCrossShardObservers+remaining)
-	numSeeders, _ = computeUsedAndSpare(existingNumSeeders, ls.maxSeeders) //we are not mixing remaining value. We are strict with the number of seeders
+	numSeeders, _ = computeUsedAndSpare(existingNumSeeders, ls.maxSeeders) // we are not mixing remaining value. We are strict with the number of seeders
 	numFullHistoryObservers, _ = computeUsedAndSpare(existingNumFullHistoryObservers, ls.maxFullHistoryObservers)
 	numUnknown, _ = computeUsedAndSpare(existingNumUnknown, ls.maxUnknown+remaining)
 

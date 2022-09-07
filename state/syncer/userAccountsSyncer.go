@@ -88,6 +88,7 @@ func NewUserAccountsSyncer(args ArgsNewUserAccountsSyncer) (*userAccountsSyncer,
 		name:                      fmt.Sprintf("user accounts for shard %s", core.GetShardIDString(args.ShardId)),
 		maxHardCapForMissingNodes: args.MaxHardCapForMissingNodes,
 		trieSyncerVersion:         args.TrieSyncerVersion,
+		checkNodesOnDisk:          args.CheckNodesOnDisk,
 		trieExporter:              args.TrieExporter,
 	}
 
@@ -134,7 +135,14 @@ func (u *userAccountsSyncer) SyncAccounts(rootHash []byte, shardId uint32) error
 		return err
 	}
 
-	return u.syncAccountDataTries(mainTrie, tss, ctx, shardId)
+	err = u.syncAccountDataTries(mainTrie, tss, ctx, shardId)
+	if err != nil {
+		return err
+	}
+
+	mainTrie.MarkStorerAsSyncedAndActive()
+
+	return nil
 }
 
 func (u *userAccountsSyncer) syncDataTrie(
@@ -164,6 +172,7 @@ func (u *userAccountsSyncer) syncDataTrie(
 		TrieSyncStatistics:        ssh,
 		TimeoutHandler:            u.timeoutHandler,
 		MaxHardCapForMissingNodes: u.maxHardCapForMissingNodes,
+		CheckNodesOnDisk:          u.checkNodesOnDisk,
 	}
 	trieSyncer, err := trie.CreateTrieSyncer(arg, u.trieSyncerVersion)
 	if err != nil {
@@ -233,7 +242,8 @@ func (u *userAccountsSyncer) syncAccountDataTries(
 		return err
 	}
 
-	leavesChannel, err := mainTrie.GetAllLeavesOnChannel(mainRootHash)
+	leavesChannel := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
+	err = mainTrie.GetAllLeavesOnChannel(leavesChannel, context.Background(), mainRootHash)
 	if err != nil {
 		return err
 	}

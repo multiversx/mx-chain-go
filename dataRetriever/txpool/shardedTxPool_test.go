@@ -333,6 +333,19 @@ func Test_GetCounts(t *testing.T) {
 	require.Equal(t, int64(0), pool.GetCounts().GetTotal())
 }
 
+func Test_Keys(t *testing.T) {
+	poolAsInterface, _ := newTxPoolToTest()
+	pool := poolAsInterface.(*shardedTxPool)
+
+	txsHashes := [][]byte{[]byte("hash-w"), []byte("hash-x"), []byte("hash-y"), []byte("hash-z")}
+	pool.AddData(txsHashes[0], createTx("alice", 42), 0, "1")
+	pool.AddData(txsHashes[1], createTx("alice", 43), 0, "1")
+	pool.AddData(txsHashes[2], createTx("bob", 15), 0, "2")
+	pool.AddData(txsHashes[3], createTx("bob", 15), 0, "3")
+
+	require.ElementsMatch(t, txsHashes, pool.Keys())
+}
+
 func Test_IsInterfaceNil(t *testing.T) {
 	poolAsInterface, _ := newTxPoolToTest()
 	require.False(t, check.IfNil(poolAsInterface))

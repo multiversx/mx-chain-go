@@ -1,6 +1,7 @@
 package facade
 
 import (
+	"context"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -17,6 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-core/data/vm"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/debug"
@@ -41,9 +43,10 @@ func createMockArguments() ArgNodeFacade {
 		RestAPIServerDebugMode: false,
 		TxSimulatorProcessor:   &mock.TxExecutionSimulatorStub{},
 		WsAntifloodConfig: config.WebServerAntifloodConfig{
-			SimultaneousRequests:         1,
-			SameSourceRequests:           1,
-			SameSourceResetIntervalInSec: 1,
+			SimultaneousRequests:               1,
+			SameSourceRequests:                 1,
+			SameSourceResetIntervalInSec:       1,
+			TrieOperationsDeadlineMilliseconds: 1,
 		},
 		FacadeConfig: config.FacadeConfig{
 			RestApiInterface: "127.0.0.1:8080",
@@ -155,11 +158,11 @@ func TestNodeFacade_GetBalanceWithValidAddressShouldReturnBalance(t *testing.T) 
 	balance := big.NewInt(10)
 	addr := "testAddress"
 	node := &mock.NodeStub{
-		GetBalanceHandler: func(address string) (*big.Int, error) {
+		GetBalanceCalled: func(address string, _ api.AccountQueryOptions) (*big.Int, api.BlockInfo, error) {
 			if addr == address {
-				return balance, nil
+				return balance, api.BlockInfo{}, nil
 			}
-			return big.NewInt(0), nil
+			return big.NewInt(0), api.BlockInfo{}, nil
 		},
 	}
 
@@ -167,7 +170,7 @@ func TestNodeFacade_GetBalanceWithValidAddressShouldReturnBalance(t *testing.T) 
 	arg.Node = node
 	nf, _ := NewNodeFacade(arg)
 
-	amount, err := nf.GetBalance(addr)
+	amount, _, err := nf.GetBalance(addr, api.AccountQueryOptions{})
 
 	assert.Nil(t, err)
 	assert.Equal(t, balance, amount)
@@ -182,11 +185,11 @@ func TestNodeFacade_GetBalanceWithUnknownAddressShouldReturnZeroBalance(t *testi
 	zeroBalance := big.NewInt(0)
 
 	node := &mock.NodeStub{
-		GetBalanceHandler: func(address string) (*big.Int, error) {
+		GetBalanceCalled: func(address string, _ api.AccountQueryOptions) (*big.Int, api.BlockInfo, error) {
 			if addr == address {
-				return balance, nil
+				return balance, api.BlockInfo{}, nil
 			}
-			return big.NewInt(0), nil
+			return big.NewInt(0), api.BlockInfo{}, nil
 		},
 	}
 
@@ -194,7 +197,7 @@ func TestNodeFacade_GetBalanceWithUnknownAddressShouldReturnZeroBalance(t *testi
 	arg.Node = node
 	nf, _ := NewNodeFacade(arg)
 
-	amount, err := nf.GetBalance(unknownAddr)
+	amount, _, err := nf.GetBalance(unknownAddr, api.AccountQueryOptions{})
 	assert.Nil(t, err)
 	assert.Equal(t, zeroBalance, amount)
 }
@@ -206,8 +209,8 @@ func TestNodeFacade_GetBalanceWithErrorOnNodeShouldReturnZeroBalanceAndError(t *
 	zeroBalance := big.NewInt(0)
 
 	node := &mock.NodeStub{
-		GetBalanceHandler: func(address string) (*big.Int, error) {
-			return big.NewInt(0), errors.New("error on getBalance on node")
+		GetBalanceCalled: func(address string, _ api.AccountQueryOptions) (*big.Int, api.BlockInfo, error) {
+			return big.NewInt(0), api.BlockInfo{}, errors.New("error on getBalance on node")
 		},
 	}
 
@@ -215,7 +218,7 @@ func TestNodeFacade_GetBalanceWithErrorOnNodeShouldReturnZeroBalanceAndError(t *
 	arg.Node = node
 	nf, _ := NewNodeFacade(arg)
 
-	amount, err := nf.GetBalance(addr)
+	amount, _, err := nf.GetBalance(addr, api.AccountQueryOptions{})
 	assert.NotNil(t, err)
 	assert.Equal(t, zeroBalance, amount)
 }
@@ -281,16 +284,16 @@ func TestNodeFacade_GetAccount(t *testing.T) {
 
 	getAccountCalled := false
 	node := &mock.NodeStub{}
-	node.GetAccountHandler = func(address string) (api.AccountResponse, error) {
+	node.GetAccountCalled = func(address string, _ api.AccountQueryOptions) (api.AccountResponse, api.BlockInfo, error) {
 		getAccountCalled = true
-		return api.AccountResponse{}, nil
+		return api.AccountResponse{}, api.BlockInfo{}, nil
 	}
 
 	arg := createMockArguments()
 	arg.Node = node
 	nf, _ := NewNodeFacade(arg)
 
-	_, _ = nf.GetAccount("test")
+	_, _, _ = nf.GetAccount("test", api.AccountQueryOptions{})
 	assert.True(t, getAccountCalled)
 }
 
@@ -299,17 +302,35 @@ func TestNodeFacade_GetUsername(t *testing.T) {
 
 	expectedUsername := "username"
 	node := &mock.NodeStub{}
-	node.GetUsernameCalled = func(address string) (string, error) {
-		return expectedUsername, nil
+	node.GetUsernameCalled = func(address string, _ api.AccountQueryOptions) (string, api.BlockInfo, error) {
+		return expectedUsername, api.BlockInfo{}, nil
 	}
 
 	arg := createMockArguments()
 	arg.Node = node
 	nf, _ := NewNodeFacade(arg)
 
-	username, err := nf.GetUsername("test")
+	username, _, err := nf.GetUsername("test", api.AccountQueryOptions{})
 	assert.NoError(t, err)
 	assert.Equal(t, expectedUsername, username)
+}
+
+func TestNodeFacade_GetCodeHash(t *testing.T) {
+	t.Parallel()
+
+	expectedCodeHash := []byte("hash")
+	node := &mock.NodeStub{}
+	node.GetCodeHashCalled = func(address string, _ api.AccountQueryOptions) ([]byte, api.BlockInfo, error) {
+		return expectedCodeHash, api.BlockInfo{}, nil
+	}
+
+	arg := createMockArguments()
+	arg.Node = node
+	nf, _ := NewNodeFacade(arg)
+
+	codeHash, _, err := nf.GetCodeHash("test", api.AccountQueryOptions{})
+	assert.NoError(t, err)
+	assert.Equal(t, expectedCodeHash, codeHash)
 }
 
 func TestNodeFacade_GetHeartbeatsReturnsNilShouldErr(t *testing.T) {
@@ -661,14 +682,14 @@ func TestNodeFacade_GetKeyValuePairs(t *testing.T) {
 	expectedPairs := map[string]string{"k": "v"}
 	arg := createMockArguments()
 	arg.Node = &mock.NodeStub{
-		GetKeyValuePairsCalled: func(address string) (map[string]string, error) {
-			return expectedPairs, nil
+		GetKeyValuePairsCalled: func(address string, _ api.AccountQueryOptions, _ context.Context) (map[string]string, api.BlockInfo, error) {
+			return expectedPairs, api.BlockInfo{}, nil
 		},
 	}
 
 	nf, _ := NewNodeFacade(arg)
 
-	res, err := nf.GetKeyValuePairs("addr")
+	res, _, err := nf.GetKeyValuePairs("addr", api.AccountQueryOptions{})
 	assert.NoError(t, err)
 	assert.Equal(t, expectedPairs, res)
 }
@@ -682,14 +703,14 @@ func TestNodeFacade_GetAllESDTTokens(t *testing.T) {
 	}
 	arg := createMockArguments()
 	arg.Node = &mock.NodeStub{
-		GetAllESDTTokensCalled: func(_ string) (map[string]*esdt.ESDigitalToken, error) {
-			return expectedTokens, nil
+		GetAllESDTTokensCalled: func(_ string, _ api.AccountQueryOptions, _ context.Context) (map[string]*esdt.ESDigitalToken, api.BlockInfo, error) {
+			return expectedTokens, api.BlockInfo{}, nil
 		},
 	}
 
 	nf, _ := NewNodeFacade(arg)
 
-	res, err := nf.GetAllESDTTokens("addr")
+	res, _, err := nf.GetAllESDTTokens("addr", api.AccountQueryOptions{})
 	assert.NoError(t, err)
 	assert.Equal(t, expectedTokens, res)
 }
@@ -702,14 +723,14 @@ func TestNodeFacade_GetESDTData(t *testing.T) {
 	}
 	arg := createMockArguments()
 	arg.Node = &mock.NodeStub{
-		GetESDTDataCalled: func(_ string, _ string, _ uint64) (*esdt.ESDigitalToken, error) {
-			return expectedData, nil
+		GetESDTDataCalled: func(_ string, _ string, _ uint64, _ api.AccountQueryOptions) (*esdt.ESDigitalToken, api.BlockInfo, error) {
+			return expectedData, api.BlockInfo{}, nil
 		},
 	}
 
 	nf, _ := NewNodeFacade(arg)
 
-	res, err := nf.GetESDTData("addr", "tkn", 0)
+	res, _, err := nf.GetESDTData("addr", "tkn", 0, api.AccountQueryOptions{})
 	assert.NoError(t, err)
 	assert.Equal(t, expectedData, res)
 }
@@ -720,14 +741,14 @@ func TestNodeFacade_GetValueForKey(t *testing.T) {
 	expectedValue := "value"
 	arg := createMockArguments()
 	arg.Node = &mock.NodeStub{
-		GetValueForKeyCalled: func(_ string, _ string) (string, error) {
-			return expectedValue, nil
+		GetValueForKeyCalled: func(_ string, _ string, _ api.AccountQueryOptions) (string, api.BlockInfo, error) {
+			return expectedValue, api.BlockInfo{}, nil
 		},
 	}
 
 	nf, _ := NewNodeFacade(arg)
 
-	res, err := nf.GetValueForKey("addr", "key")
+	res, _, err := nf.GetValueForKey("addr", "key", api.AccountQueryOptions{})
 	assert.NoError(t, err)
 	assert.Equal(t, expectedValue, res)
 }
@@ -738,7 +759,7 @@ func TestNodeFacade_GetAllIssuedESDTs(t *testing.T) {
 	expectedValue := []string{"value"}
 	arg := createMockArguments()
 	arg.Node = &mock.NodeStub{
-		GetAllIssuedESDTsCalled: func(_ string) ([]string, error) {
+		GetAllIssuedESDTsCalled: func(_ string, _ context.Context) ([]string, error) {
 			return expectedValue, nil
 		},
 	}
@@ -757,14 +778,14 @@ func TestNodeFacade_GetESDTsWithRole(t *testing.T) {
 	args := createMockArguments()
 
 	args.Node = &mock.NodeStub{
-		GetESDTsWithRoleCalled: func(address string, role string) ([]string, error) {
-			return expectedResponse, nil
+		GetESDTsWithRoleCalled: func(address string, role string, _ api.AccountQueryOptions, _ context.Context) ([]string, api.BlockInfo, error) {
+			return expectedResponse, api.BlockInfo{}, nil
 		},
 	}
 
 	nf, _ := NewNodeFacade(args)
 
-	res, err := nf.GetESDTsWithRole("address", "role")
+	res, _, err := nf.GetESDTsWithRole("address", "role", api.AccountQueryOptions{})
 	require.NoError(t, err)
 	require.Equal(t, expectedResponse, res)
 }
@@ -776,14 +797,14 @@ func TestNodeFacade_GetNFTTokenIDsRegisteredByAddress(t *testing.T) {
 	args := createMockArguments()
 
 	args.Node = &mock.NodeStub{
-		GetNFTTokenIDsRegisteredByAddressCalled: func(address string) ([]string, error) {
-			return expectedResponse, nil
+		GetNFTTokenIDsRegisteredByAddressCalled: func(address string, _ api.AccountQueryOptions, _ context.Context) ([]string, api.BlockInfo, error) {
+			return expectedResponse, api.BlockInfo{}, nil
 		},
 	}
 
 	nf, _ := NewNodeFacade(args)
 
-	res, err := nf.GetNFTTokenIDsRegisteredByAddress("address")
+	res, _, err := nf.GetNFTTokenIDsRegisteredByAddress("address", api.AccountQueryOptions{})
 	require.NoError(t, err)
 	require.Equal(t, expectedResponse, res)
 }
@@ -794,7 +815,7 @@ func TestNodeFacade_GetAllIssuedESDTsWithError(t *testing.T) {
 	localErr := errors.New("local")
 	arg := createMockArguments()
 	arg.Node = &mock.NodeStub{
-		GetAllIssuedESDTsCalled: func(_ string) ([]string, error) {
+		GetAllIssuedESDTsCalled: func(_ string, _ context.Context) ([]string, error) {
 			return nil, localErr
 		},
 	}
@@ -829,7 +850,7 @@ func TestNodeFacade_GetTotalStakedValue(t *testing.T) {
 	called := false
 	arg := createMockArguments()
 	arg.ApiResolver = &mock.ApiResolverStub{
-		GetTotalStakedValueHandler: func() (*api.StakeValues, error) {
+		GetTotalStakedValueHandler: func(ctx context.Context) (*api.StakeValues, error) {
 			called = true
 			return nil, nil
 		},
@@ -847,7 +868,7 @@ func TestNodeFacade_GetDelegatorsList(t *testing.T) {
 	called := false
 	arg := createMockArguments()
 	arg.ApiResolver = &mock.ApiResolverStub{
-		GetDelegatorsListHandler: func() ([]*api.Delegator, error) {
+		GetDelegatorsListHandler: func(ctx context.Context) ([]*api.Delegator, error) {
 			called = true
 			return nil, nil
 		},
@@ -865,7 +886,7 @@ func TestNodeFacade_GetDirectStakedList(t *testing.T) {
 	called := false
 	arg := createMockArguments()
 	arg.ApiResolver = &mock.ApiResolverStub{
-		GetDirectStakedListHandler: func() ([]*api.DirectStakedValue, error) {
+		GetDirectStakedListHandler: func(ctx context.Context) ([]*api.DirectStakedValue, error) {
 			called = true
 			return nil, nil
 		},
@@ -1027,13 +1048,13 @@ func TestNodeFacade_GetBlockByRoundShouldWork(t *testing.T) {
 	}
 
 	arg.ApiResolver = &mock.ApiResolverStub{
-		GetBlockByRoundCalled: func(_ uint64, _ bool) (*api.Block, error) {
+		GetBlockByRoundCalled: func(_ uint64, _ api.BlockQueryOptions) (*api.Block, error) {
 			return blk, nil
 		},
 	}
 
 	nf, _ := NewNodeFacade(arg)
-	ret, err := nf.GetBlockByRound(0, false)
+	ret, err := nf.GetBlockByRound(0, api.BlockQueryOptions{})
 
 	assert.Nil(t, err)
 	assert.Equal(t, ret, blk)
@@ -1195,4 +1216,379 @@ func TestNodeFacade_GetInternalMiniBlockByHashShouldWork(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.Equal(t, ret, blk)
+}
+
+func TestFacade_convertVmOutputToApiResponse(t *testing.T) {
+	arg := createMockArguments()
+	nf, _ := NewNodeFacade(arg)
+
+	convertAddressFunc := func(input []byte) string {
+		// NodeStub uses hex.EncodeToString for the stubbed EncodeAddressPubkey() function
+		return hex.EncodeToString(input)
+	}
+
+	retData := [][]byte{[]byte("ret_data_0")}
+	outAcc, outAccStorageKey, outAccOffset := []byte("addr0"), []byte("out_acc_storage_key"), []byte("offset")
+	outAccTransferSndrAddr := []byte("addr1")
+	logId, logAddr, logTopics, logData := []byte("log_id"), []byte("log_addr"), [][]byte{[]byte("log_topic")}, []byte("log_data")
+	vmInput := vmcommon.VMOutput{
+		ReturnData: retData,
+		OutputAccounts: map[string]*vmcommon.OutputAccount{
+			string(outAcc): {
+				Address: outAcc,
+				StorageUpdates: map[string]*vmcommon.StorageUpdate{
+					string(outAccStorageKey): {
+						Offset: outAccOffset,
+					},
+				},
+				OutputTransfers: []vmcommon.OutputTransfer{
+					{
+						SenderAddress: outAccTransferSndrAddr,
+					},
+				},
+			},
+		},
+		Logs: []*vmcommon.LogEntry{
+			{
+				Identifier: logId,
+				Address:    logAddr,
+				Topics:     logTopics,
+				Data:       logData,
+			},
+		},
+	}
+
+	expectedOutputAccounts := map[string]*vm.OutputAccountApi{
+		convertAddressFunc(outAcc): {
+			Address: convertAddressFunc(outAcc),
+			StorageUpdates: map[string]*vm.StorageUpdateApi{
+				hex.EncodeToString(outAccStorageKey): {
+					Offset: outAccOffset,
+				},
+			},
+			OutputTransfers: []vm.OutputTransferApi{
+				{
+					SenderAddress: convertAddressFunc(outAccTransferSndrAddr),
+				},
+			},
+		},
+	}
+
+	expectedLogs := []*vm.LogEntryApi{
+		{
+			Identifier: logId,
+			Address:    convertAddressFunc(logAddr),
+			Topics:     logTopics,
+			Data:       logData,
+		},
+	}
+
+	res := nf.convertVmOutputToApiResponse(&vmInput)
+	require.Equal(t, retData, res.ReturnData)
+	require.Equal(t, expectedOutputAccounts, res.OutputAccounts)
+	require.Equal(t, expectedLogs, res.Logs)
+}
+
+func TestNodeFacade_GetTransactionsPool(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should error", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArguments()
+		expectedErr := errors.New("expected error")
+		arg.ApiResolver = &mock.ApiResolverStub{
+			GetTransactionsPoolCalled: func(fields string) (*common.TransactionsPoolAPIResponse, error) {
+				return nil, expectedErr
+			},
+		}
+
+		nf, _ := NewNodeFacade(arg)
+		res, err := nf.GetTransactionsPool("")
+		require.Nil(t, res)
+		require.Equal(t, expectedErr, err)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArguments()
+		expectedPool := &common.TransactionsPoolAPIResponse{
+			RegularTransactions: []common.Transaction{
+				{
+					TxFields: map[string]interface{}{
+						"hash": "tx0",
+					},
+				},
+				{
+					TxFields: map[string]interface{}{
+						"hash": "tx1",
+					},
+				},
+			},
+			SmartContractResults: []common.Transaction{
+				{
+					TxFields: map[string]interface{}{
+						"hash": "tx2",
+					},
+				},
+				{
+					TxFields: map[string]interface{}{
+						"hash": "tx3",
+					},
+				},
+			},
+			Rewards: []common.Transaction{
+				{
+					TxFields: map[string]interface{}{
+						"hash": "tx4",
+					},
+				},
+			},
+		}
+		arg.ApiResolver = &mock.ApiResolverStub{
+			GetTransactionsPoolCalled: func(fields string) (*common.TransactionsPoolAPIResponse, error) {
+				return expectedPool, nil
+			},
+		}
+
+		nf, _ := NewNodeFacade(arg)
+		res, err := nf.GetTransactionsPool("")
+		require.NoError(t, err)
+		require.Equal(t, expectedPool, res)
+	})
+}
+
+func TestNodeFacade_GetGenesisBalances(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should return error", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArguments()
+		expectedErr := errors.New("expected error")
+		arg.ApiResolver = &mock.ApiResolverStub{
+			GetGenesisBalancesCalled: func() ([]*common.InitialAccountAPI, error) {
+				return nil, expectedErr
+			},
+		}
+
+		nf, _ := NewNodeFacade(arg)
+		res, err := nf.GetGenesisBalances()
+		require.Nil(t, res)
+		require.Equal(t, expectedErr, err)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArguments()
+		expectedBalances := []*common.InitialAccountAPI{
+			{
+				Address: "addr",
+			},
+		}
+		arg.ApiResolver = &mock.ApiResolverStub{
+			GetGenesisBalancesCalled: func() ([]*common.InitialAccountAPI, error) {
+				return expectedBalances, nil
+			},
+		}
+
+		nf, _ := NewNodeFacade(arg)
+		res, err := nf.GetGenesisBalances()
+		require.NoError(t, err)
+		require.Equal(t, expectedBalances, res)
+	})
+}
+
+func TestGetGasConfigs(t *testing.T) {
+	t.Parallel()
+
+	t.Run("empty gas configs map", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArguments()
+
+		wasCalled := false
+		arg.ApiResolver = &mock.ApiResolverStub{
+			GetGasConfigsCalled: func() map[string]map[string]uint64 {
+				wasCalled = true
+				return make(map[string]map[string]uint64)
+			},
+		}
+
+		nf, _ := NewNodeFacade(arg)
+		_, err := nf.GetGasConfigs()
+		require.Equal(t, ErrEmptyGasConfigs, err)
+		require.True(t, wasCalled)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArguments()
+
+		providedMap := map[string]map[string]uint64{
+			"map1": {
+				"test1": 1,
+			},
+		}
+		wasCalled := false
+		arg.ApiResolver = &mock.ApiResolverStub{
+			GetGasConfigsCalled: func() map[string]map[string]uint64 {
+				wasCalled = true
+				return providedMap
+			},
+		}
+
+		nf, _ := NewNodeFacade(arg)
+		gasConfigMap, err := nf.GetGasConfigs()
+		require.NoError(t, err)
+		require.Equal(t, providedMap, gasConfigMap)
+		require.True(t, wasCalled)
+	})
+}
+
+func TestNodeFacade_GetTransactionsPoolForSender(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should error", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArguments()
+		expectedErr := errors.New("expected error")
+		arg.ApiResolver = &mock.ApiResolverStub{
+			GetTransactionsPoolForSenderCalled: func(sender, fields string) (*common.TransactionsPoolForSenderApiResponse, error) {
+				return nil, expectedErr
+			},
+		}
+
+		nf, _ := NewNodeFacade(arg)
+		res, err := nf.GetTransactionsPoolForSender("", "")
+		require.Nil(t, res)
+		require.Equal(t, expectedErr, err)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArguments()
+		expectedSender := "alice"
+		providedParameters := "sender,hash,receiver"
+		expectedResponse := &common.TransactionsPoolForSenderApiResponse{
+			Transactions: []common.Transaction{
+				{
+					TxFields: map[string]interface{}{
+						"hash":     "txhash1",
+						"sender":   expectedSender,
+						"receiver": "receiver1",
+					},
+				},
+				{
+					TxFields: map[string]interface{}{
+						"hash":     "txhash2",
+						"sender":   expectedSender,
+						"receiver": "receiver2",
+					},
+				},
+			},
+		}
+		arg.ApiResolver = &mock.ApiResolverStub{
+			GetTransactionsPoolForSenderCalled: func(sender, fields string) (*common.TransactionsPoolForSenderApiResponse, error) {
+				require.Equal(t, expectedSender, sender)
+				require.Equal(t, providedParameters, fields)
+				return expectedResponse, nil
+			},
+		}
+
+		nf, _ := NewNodeFacade(arg)
+		res, err := nf.GetTransactionsPoolForSender(expectedSender, providedParameters)
+		require.NoError(t, err)
+		require.Equal(t, expectedResponse, res)
+	})
+}
+
+func TestNodeFacade_GetLastPoolNonceForSender(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should error", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArguments()
+		expectedErr := errors.New("expected error")
+		arg.ApiResolver = &mock.ApiResolverStub{
+			GetLastPoolNonceForSenderCalled: func(sender string) (uint64, error) {
+				return 0, expectedErr
+			},
+		}
+
+		nf, _ := NewNodeFacade(arg)
+		res, err := nf.GetLastPoolNonceForSender("")
+		require.Equal(t, uint64(0), res)
+		require.Equal(t, expectedErr, err)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArguments()
+		expectedSender := "alice"
+		expectedNonce := uint64(33)
+		arg.ApiResolver = &mock.ApiResolverStub{
+			GetLastPoolNonceForSenderCalled: func(sender string) (uint64, error) {
+				return expectedNonce, nil
+			},
+		}
+
+		nf, _ := NewNodeFacade(arg)
+		res, err := nf.GetLastPoolNonceForSender(expectedSender)
+		require.NoError(t, err)
+		require.Equal(t, expectedNonce, res)
+	})
+}
+
+func TestNodeFacade_GetTransactionsPoolNonceGapsForSender(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should error", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArguments()
+		expectedErr := errors.New("expected error")
+		arg.ApiResolver = &mock.ApiResolverStub{
+			GetTransactionsPoolNonceGapsForSenderCalled: func(sender string) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error) {
+				return nil, expectedErr
+			},
+		}
+
+		nf, _ := NewNodeFacade(arg)
+		res, err := nf.GetTransactionsPoolNonceGapsForSender("")
+		require.Nil(t, res)
+		require.Equal(t, expectedErr, err)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArguments()
+		expectedSender := "alice"
+		expectedNonceGaps := &common.TransactionsPoolNonceGapsForSenderApiResponse{
+			Sender: expectedSender,
+			Gaps: []common.NonceGapApiResponse{
+				{
+					From: 33,
+					To:   60,
+				},
+			},
+		}
+		arg.ApiResolver = &mock.ApiResolverStub{
+			GetTransactionsPoolNonceGapsForSenderCalled: func(sender string) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error) {
+				return expectedNonceGaps, nil
+			},
+		}
+
+		nf, _ := NewNodeFacade(arg)
+		res, err := nf.GetTransactionsPoolNonceGapsForSender(expectedSender)
+		require.NoError(t, err)
+		require.Equal(t, expectedNonceGaps, res)
+	})
 }

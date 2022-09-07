@@ -34,7 +34,6 @@ $ mkdir -p $GOPATH/src/github.com/ElrondNetwork
 $ cd $GOPATH/src/github.com/ElrondNetwork
 $ git clone https://github.com/ElrondNetwork/elrond-go
 $ cd elrond-go && git checkout master
-$ GO111MODULE=on go mod vendor
 $ cd cmd/node && go build
 ```
 The node depends on the Arwen Virtual Machine, which is automatically managed by the node.
@@ -170,6 +169,7 @@ docker run -d -v /absolute/path/to/config/:/data/ elrondnetwork/elrond-go-node:l
 - [x] Testing
   - [x] Automate tests with AWS
   - [x] Nodes Monitoring
+- [x] DEX integration
 
 ### In progress
 
@@ -181,7 +181,6 @@ docker run -d -v /absolute/path/to/config/:/data/ elrondnetwork/elrond-go-node:l
   - [ ] Merging 
   - [ ] Redundancy
 - [ ] Privacy
-- [ ] DEX integration
 - [ ] Interoperability
 - [ ] Optimizations
   - [ ] Smart Contract 

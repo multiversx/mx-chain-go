@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"sort"
 	"sync"
 	"testing"
 	"time"
@@ -256,6 +257,46 @@ func Test_ForEachTransaction(t *testing.T) {
 	require.Equal(t, 2, counter)
 }
 
+func Test_GetTransactionsPoolForSender(t *testing.T) {
+	cache := newUnconstrainedCacheToTest()
+
+	txHashes1 := [][]byte{[]byte("hash-1"), []byte("hash-2")}
+	txSender1 := "alice"
+	wrappedTxs1 := []*WrappedTransaction{
+		createTx(txHashes1[1], txSender1, 2),
+		createTx(txHashes1[0], txSender1, 1),
+	}
+	txHashes2 := [][]byte{[]byte("hash-3"), []byte("hash-4"), []byte("hash-5")}
+	txSender2 := "bob"
+	wrappedTxs2 := []*WrappedTransaction{
+		createTx(txHashes2[1], txSender2, 4),
+		createTx(txHashes2[0], txSender2, 3),
+		createTx(txHashes2[2], txSender2, 5),
+	}
+	cache.AddTx(wrappedTxs1[0])
+	cache.AddTx(wrappedTxs1[1])
+	cache.AddTx(wrappedTxs2[0])
+	cache.AddTx(wrappedTxs2[1])
+	cache.AddTx(wrappedTxs2[2])
+
+	sort.Slice(wrappedTxs1, func(i, j int) bool {
+		return wrappedTxs1[i].Tx.GetNonce() < wrappedTxs1[j].Tx.GetNonce()
+	})
+	txs := cache.GetTransactionsPoolForSender(txSender1)
+	require.Equal(t, wrappedTxs1, txs)
+
+	sort.Slice(wrappedTxs2, func(i, j int) bool {
+		return wrappedTxs2[i].Tx.GetNonce() < wrappedTxs2[j].Tx.GetNonce()
+	})
+	txs = cache.GetTransactionsPoolForSender(txSender2)
+	require.Equal(t, wrappedTxs2, txs)
+
+	cache.RemoveTxByHash(txHashes2[0])
+	expectedTxs := wrappedTxs2[1:]
+	txs = cache.GetTransactionsPoolForSender(txSender2)
+	require.Equal(t, expectedTxs, txs)
+}
+
 func Test_SelectTransactions_Dummy(t *testing.T) {
 	cache := newUnconstrainedCacheToTest()
 
@@ -284,7 +325,7 @@ func Test_SelectTransactionsWithBandwidth_Dummy(t *testing.T) {
 	cache.AddTx(createTxWithGasLimit([]byte("hash-carol-1"), "carol", 1, 50000))
 
 	sorted := cache.SelectTransactionsWithBandwidth(5, 2, 200000)
-	numSelected := 1+1+3 // 1 alice, 1 carol, 3 bob
+	numSelected := 1 + 1 + 3 // 1 alice, 1 carol, 3 bob
 
 	require.Len(t, sorted, numSelected)
 }

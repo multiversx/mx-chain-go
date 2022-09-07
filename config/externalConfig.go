@@ -9,13 +9,14 @@ type ExternalConfig struct {
 
 // ElasticSearchConfig will hold the configuration for the elastic search
 type ElasticSearchConfig struct {
-	Enabled          bool
-	IndexerCacheSize int
-	URL              string
-	UseKibana        bool
-	Username         string
-	Password         string
-	EnabledIndexes   []string
+	Enabled                   bool
+	IndexerCacheSize          int
+	BulkRequestMaxSizeInBytes int
+	URL                       string
+	UseKibana                 bool
+	Username                  string
+	Password                  string
+	EnabledIndexes            []string
 }
 
 // EventNotifierConfig will hold the configuration for the events notifier driver

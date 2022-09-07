@@ -26,7 +26,7 @@ func (cache *DisabledCache) GetByTxHash(_ []byte) (*WrappedTransaction, bool) {
 }
 
 // SelectTransactionsWithBandwidth returns an empty slice
-func (cache *DisabledCache) SelectTransactionsWithBandwidth(_ int, _ int, _ uint64) []*WrappedTransaction  {
+func (cache *DisabledCache) SelectTransactionsWithBandwidth(_ int, _ int, _ uint64) []*WrappedTransaction {
 	return make([]*WrappedTransaction, 0)
 }
 
@@ -115,6 +115,11 @@ func (cache *DisabledCache) ImmunizeTxsAgainstEviction(_ [][]byte) {
 
 // Diagnose does nothing
 func (cache *DisabledCache) Diagnose(_ bool) {
+}
+
+// GetTransactionsPoolForSender returns an empty slice
+func (cache *DisabledCache) GetTransactionsPoolForSender(_ string) []*WrappedTransaction {
+	return make([]*WrappedTransaction, 0)
 }
 
 // Close does nothing

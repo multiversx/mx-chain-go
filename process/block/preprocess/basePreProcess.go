@@ -1,17 +1,18 @@
 package preprocess
 
 import (
+	"bytes"
 	"math/big"
 	"sync"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/state"
@@ -105,18 +106,22 @@ type txsForBlock struct {
 	txHashAndInfo  map[string]*txInfo
 }
 
+type processedIndexes struct {
+	indexOfLastTxProcessed           int32
+	indexOfLastTxProcessedByProposer int32
+}
+
+// basePreProcess is the base struct for all pre-processors
 type basePreProcess struct {
 	gasTracker
-	hasher                                      hashing.Hasher
-	marshalizer                                 marshal.Marshalizer
-	blockSizeComputation                        BlockSizeComputationHandler
-	balanceComputation                          BalanceComputationHandler
-	accounts                                    state.AccountsAdapter
-	pubkeyConverter                             core.PubkeyConverter
-	optimizeGasUsedInCrossMiniBlocksEnableEpoch uint32
-	flagOptimizeGasUsedInCrossMiniBlocks        atomic.Flag
-	frontRunningProtectionEnableEpoch           uint32
-	flagFrontRunningProtection                  atomic.Flag
+	hasher                     hashing.Hasher
+	marshalizer                marshal.Marshalizer
+	blockSizeComputation       BlockSizeComputationHandler
+	balanceComputation         BalanceComputationHandler
+	accounts                   state.AccountsAdapter
+	pubkeyConverter            core.PubkeyConverter
+	processedMiniBlocksTracker process.ProcessedMiniBlocksTracker
+	enableEpochsHandler        common.EnableEpochsHandler
 }
 
 func (bpp *basePreProcess) removeBlockDataFromPools(
@@ -196,7 +201,7 @@ func (bpp *basePreProcess) removeMiniBlocksFromPools(
 	return nil
 }
 
-func (bpp *basePreProcess) createMarshalizedData(txHashes [][]byte, forBlock *txsForBlock) ([][]byte, error) {
+func (bpp *basePreProcess) createMarshalledData(txHashes [][]byte, forBlock *txsForBlock) ([][]byte, error) {
 	mrsTxs := make([][]byte, 0, len(txHashes))
 	for _, txHash := range txHashes {
 		forBlock.mutTxsForBlock.RLock()
@@ -204,7 +209,7 @@ func (bpp *basePreProcess) createMarshalizedData(txHashes [][]byte, forBlock *tx
 		forBlock.mutTxsForBlock.RUnlock()
 
 		if txInfoFromMap == nil || check.IfNil(txInfoFromMap.tx) {
-			log.Warn("basePreProcess.createMarshalizedData: tx not found", "hash", txHash)
+			log.Warn("basePreProcess.createMarshalledData: tx not found", "hash", txHash)
 			continue
 		}
 
@@ -215,7 +220,7 @@ func (bpp *basePreProcess) createMarshalizedData(txHashes [][]byte, forBlock *tx
 		mrsTxs = append(mrsTxs, txMrs)
 	}
 
-	log.Trace("basePreProcess.createMarshalizedData",
+	log.Trace("basePreProcess.createMarshalledData",
 		"num txs", len(mrsTxs),
 	)
 
@@ -227,35 +232,41 @@ func (bpp *basePreProcess) saveTxsToStorage(
 	forBlock *txsForBlock,
 	store dataRetriever.StorageService,
 	dataUnit dataRetriever.UnitType,
-) error {
-
+) {
 	for i := 0; i < len(txHashes); i++ {
 		txHash := txHashes[i]
+		bpp.saveTransactionToStorage(txHash, forBlock, store, dataUnit)
+	}
+}
 
-		forBlock.mutTxsForBlock.RLock()
-		txInfoFromMap := forBlock.txHashAndInfo[string(txHash)]
-		forBlock.mutTxsForBlock.RUnlock()
+func (bpp *basePreProcess) saveTransactionToStorage(
+	txHash []byte,
+	forBlock *txsForBlock,
+	store dataRetriever.StorageService,
+	dataUnit dataRetriever.UnitType,
+) {
+	forBlock.mutTxsForBlock.RLock()
+	txInfoFromMap := forBlock.txHashAndInfo[string(txHash)]
+	forBlock.mutTxsForBlock.RUnlock()
 
-		if txInfoFromMap == nil || txInfoFromMap.tx == nil {
-			log.Debug("missing transaction in saveTxsToStorage ", "type", dataUnit, "txHash", txHash)
-			return process.ErrMissingTransaction
-		}
-
-		buff, err := bpp.marshalizer.Marshal(txInfoFromMap.tx)
-		if err != nil {
-			return err
-		}
-
-		errNotCritical := store.Put(dataUnit, txHash, buff)
-		if errNotCritical != nil {
-			log.Debug("store.Put",
-				"error", errNotCritical.Error(),
-				"dataUnit", dataUnit,
-			)
-		}
+	if txInfoFromMap == nil || txInfoFromMap.tx == nil {
+		log.Warn("basePreProcess.saveTransactionToStorage", "type", dataUnit, "txHash", txHash, "error", process.ErrMissingTransaction.Error())
+		return
 	}
 
-	return nil
+	buff, err := bpp.marshalizer.Marshal(txInfoFromMap.tx)
+	if err != nil {
+		log.Warn("basePreProcess.saveTransactionToStorage", "txHash", txHash, "error", err.Error())
+		return
+	}
+
+	errNotCritical := store.Put(dataUnit, txHash, buff)
+	if errNotCritical != nil {
+		log.Debug("store.Put",
+			"error", errNotCritical.Error(),
+			"dataUnit", dataUnit,
+		)
+	}
 }
 
 func (bpp *basePreProcess) baseReceivedTransaction(
@@ -425,7 +436,7 @@ func getTxMaxTotalCost(txHandler data.TransactionHandler) *big.Int {
 }
 
 func (bpp *basePreProcess) getTotalGasConsumed() uint64 {
-	if !bpp.flagOptimizeGasUsedInCrossMiniBlocks.IsSet() {
+	if !bpp.enableEpochsHandler.IsOptimizeGasUsedInCrossMiniBlocksFlagEnabled() {
 		return bpp.gasHandler.TotalGasProvided()
 	}
 
@@ -448,7 +459,7 @@ func (bpp *basePreProcess) updateGasConsumedWithGasRefundedAndGasPenalized(
 	txHash []byte,
 	gasInfo *gasConsumedInfo,
 ) {
-	if !bpp.flagOptimizeGasUsedInCrossMiniBlocks.IsSet() {
+	if !bpp.enableEpochsHandler.IsOptimizeGasUsedInCrossMiniBlocksFlagEnabled() {
 		return
 	}
 
@@ -472,10 +483,55 @@ func (bpp *basePreProcess) updateGasConsumedWithGasRefundedAndGasPenalized(
 	gasInfo.totalGasConsumedInSelfShard -= gasToBeSubtracted
 }
 
-// EpochConfirmed is called whenever a new epoch is confirmed
-func (bpp *basePreProcess) EpochConfirmed(epoch uint32, _ uint64) {
-	bpp.flagOptimizeGasUsedInCrossMiniBlocks.SetValue(epoch >= bpp.optimizeGasUsedInCrossMiniBlocksEnableEpoch)
-	log.Debug("basePreProcess: optimize gas used in cross mini blocks", "enabled", bpp.flagOptimizeGasUsedInCrossMiniBlocks.IsSet())
-	bpp.flagFrontRunningProtection.SetValue(epoch >= bpp.frontRunningProtectionEnableEpoch)
-	log.Debug("basePreProcess: front running protection", "enabled", bpp.flagFrontRunningProtection.IsSet())
+func (bpp *basePreProcess) handleProcessTransactionInit(preProcessorExecutionInfoHandler process.PreProcessorExecutionInfoHandler, txHash []byte) int {
+	snapshot := bpp.accounts.JournalLen()
+	preProcessorExecutionInfoHandler.InitProcessedTxsResults(txHash)
+	bpp.gasHandler.Reset(txHash)
+	return snapshot
+}
+
+func (bpp *basePreProcess) handleProcessTransactionError(preProcessorExecutionInfoHandler process.PreProcessorExecutionInfoHandler, snapshot int, txHash []byte) {
+	bpp.gasHandler.RestoreGasSinceLastReset(txHash)
+
+	errRevert := bpp.accounts.RevertToSnapshot(snapshot)
+	if errRevert != nil {
+		log.Debug("basePreProcess.handleProcessError: RevertToSnapshot", "error", errRevert.Error())
+	}
+
+	preProcessorExecutionInfoHandler.RevertProcessedTxsResults([][]byte{txHash}, txHash)
+}
+
+func getMiniBlockHeaderOfMiniBlock(headerHandler data.HeaderHandler, miniBlockHash []byte) (data.MiniBlockHeaderHandler, error) {
+	for _, miniBlockHeader := range headerHandler.GetMiniBlockHeaderHandlers() {
+		if bytes.Equal(miniBlockHeader.GetHash(), miniBlockHash) {
+			return miniBlockHeader, nil
+		}
+	}
+
+	return nil, process.ErrMissingMiniBlockHeader
+}
+
+func (bpp *basePreProcess) getIndexesOfLastTxProcessed(
+	miniBlock *block.MiniBlock,
+	headerHandler data.HeaderHandler,
+) (*processedIndexes, error) {
+
+	miniBlockHash, err := core.CalculateHash(bpp.marshalizer, bpp.hasher, miniBlock)
+	if err != nil {
+		return nil, err
+	}
+
+	pi := &processedIndexes{}
+
+	processedMiniBlockInfo, _ := bpp.processedMiniBlocksTracker.GetProcessedMiniBlockInfo(miniBlockHash)
+	pi.indexOfLastTxProcessed = processedMiniBlockInfo.IndexOfLastTxProcessed
+
+	miniBlockHeader, err := getMiniBlockHeaderOfMiniBlock(headerHandler, miniBlockHash)
+	if err != nil {
+		return nil, err
+	}
+
+	pi.indexOfLastTxProcessedByProposer = miniBlockHeader.GetIndexOfLastTxProcessed()
+
+	return pi, nil
 }

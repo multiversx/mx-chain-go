@@ -3,6 +3,7 @@ package mock
 import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go/state"
 )
 
 // StateSyncStub -
@@ -11,6 +12,7 @@ type StateSyncStub struct {
 	GetUnFinishedMetaBlocksCalled func() (map[string]data.MetaHeaderHandler, error)
 	SyncAllStateCalled            func(epoch uint32, ownShardId uint32) error
 	GetAllTransactionsCalled      func() (map[string]data.TransactionHandler, error)
+	GetAllValidatorsInfoCalled    func() (map[string]*state.ShardValidatorInfo, error)
 	GetAllMiniBlocksCalled        func() (map[string]*block.MiniBlock, error)
 }
 
@@ -42,6 +44,14 @@ func (sss *StateSyncStub) SyncAllState(epoch uint32, ownShardId uint32) error {
 func (sss *StateSyncStub) GetAllTransactions() (map[string]data.TransactionHandler, error) {
 	if sss.GetAllTransactionsCalled != nil {
 		return sss.GetAllTransactionsCalled()
+	}
+	return nil, nil
+}
+
+// GetAllValidatorsInfo -
+func (sss *StateSyncStub) GetAllValidatorsInfo() (map[string]*state.ShardValidatorInfo, error) {
+	if sss.GetAllValidatorsInfoCalled != nil {
+		return sss.GetAllValidatorsInfoCalled()
 	}
 	return nil, nil
 }

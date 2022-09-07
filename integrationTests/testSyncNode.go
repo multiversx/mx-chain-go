@@ -2,159 +2,19 @@ package integrationTests
 
 import (
 	"fmt"
-	syncGo "sync"
 
-	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/v1_4/config"
 	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/common/forking"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/provider"
-	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/process/block"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/sync"
-	"github.com/ElrondNetwork/elrond-go/process/transactionLog"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
-	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 )
-
-// NewTestSyncNode returns a new TestProcessorNode instance with sync capabilities
-func NewTestSyncNode(
-	maxShards uint32,
-	nodeShardId uint32,
-	txSignPrivKeyShardId uint32,
-) *TestProcessorNode {
-
-	shardCoordinator, _ := sharding.NewMultiShardCoordinator(maxShards, nodeShardId)
-	pkBytes := []byte("afafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafaf")
-	address := []byte("afafafafafafafafafafafafafafafaf")
-
-	nodesSetup := &mock.NodesSetupStub{
-		InitialNodesInfoCalled: func() (m map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, m2 map[uint32][]nodesCoordinator.GenesisNodeInfoHandler) {
-			oneMap := make(map[uint32][]nodesCoordinator.GenesisNodeInfoHandler)
-			oneMap[0] = append(oneMap[0], mock.NewNodeInfo(address, pkBytes, 0, InitialRating))
-			return oneMap, nil
-		},
-		InitialNodesInfoForShardCalled: func(shardId uint32) (handlers []nodesCoordinator.GenesisNodeInfoHandler, handlers2 []nodesCoordinator.GenesisNodeInfoHandler, err error) {
-			list := make([]nodesCoordinator.GenesisNodeInfoHandler, 0)
-			list = append(list, mock.NewNodeInfo(address, pkBytes, 0, InitialRating))
-			return list, nil, nil
-		},
-		GetMinTransactionVersionCalled: func() uint32 {
-			return MinTransactionVersion
-		},
-	}
-
-	nodesCoordinator := &shardingMocks.NodesCoordinatorStub{
-		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []nodesCoordinator.Validator, err error) {
-			v, _ := nodesCoordinator.NewValidator(pkBytes, 1, defaultChancesSelection)
-			return []nodesCoordinator.Validator{v}, nil
-		},
-		GetAllValidatorsPublicKeysCalled: func() (map[uint32][][]byte, error) {
-			keys := make(map[uint32][][]byte)
-			keys[0] = make([][]byte, 0)
-			keys[0] = append(keys[0], pkBytes)
-			return keys, nil
-		},
-		GetValidatorWithPublicKeyCalled: func(publicKey []byte) (nodesCoordinator.Validator, uint32, error) {
-			validator, _ := nodesCoordinator.NewValidator(publicKey, defaultChancesSelection, 1)
-			return validator, 0, nil
-		},
-	}
-
-	messenger := CreateMessengerWithNoDiscovery()
-
-	logsProcessor, _ := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{Marshalizer: TestMarshalizer})
-	tpn := &TestProcessorNode{
-		ShardCoordinator: shardCoordinator,
-		Messenger:        messenger,
-		NodesCoordinator: nodesCoordinator,
-		BootstrapStorer: &mock.BoostrapStorerMock{
-			PutCalled: func(round int64, bootData bootstrapStorage.BootstrapData) error {
-				return nil
-			},
-		},
-		StorageBootstrapper:     &mock.StorageBootstrapperMock{},
-		HeaderSigVerifier:       &mock.HeaderSigVerifierStub{},
-		HeaderIntegrityVerifier: CreateHeaderIntegrityVerifier(),
-		ChainID:                 ChainID,
-		EpochStartTrigger:       &mock.EpochStartTriggerStub{},
-		NodesSetup:              nodesSetup,
-		MinTransactionVersion:   MinTransactionVersion,
-		HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
-		EpochNotifier:           forking.NewGenericEpochNotifier(),
-		ArwenChangeLocker:       &syncGo.RWMutex{},
-		TransactionLogProcessor: logsProcessor,
-	}
-
-	kg := &mock.KeyGenMock{}
-	sk, pk := kg.GeneratePair()
-	tpn.NodeKeys = &TestKeyPair{
-		Sk: sk,
-		Pk: pk,
-	}
-
-	tpn.MultiSigner = TestMultiSig
-	tpn.OwnAccount = CreateTestWalletAccount(shardCoordinator, txSignPrivKeyShardId)
-	tpn.initDataPools()
-	tpn.initTestNodeWithSync()
-
-	return tpn
-}
-
-func (tpn *TestProcessorNode) initTestNodeWithSync() {
-	tpn.NetworkShardingCollector = mock.NewNetworkShardingCollectorMock()
-	tpn.initChainHandler()
-	tpn.initHeaderValidator()
-	tpn.initRoundHandler()
-	tpn.initStorage()
-	tpn.EpochStartNotifier = notifier.NewEpochStartSubscriptionHandler()
-	tpn.initAccountDBsWithPruningStorer(CreateMemUnit())
-	tpn.GenesisBlocks = CreateSimpleGenesisBlocks(tpn.ShardCoordinator)
-	tpn.initEconomicsData(tpn.createDefaultEconomicsConfig())
-	tpn.initRatingsData()
-	tpn.initRequestedItemsHandler()
-	tpn.initResolvers()
-	tpn.initBlockTracker()
-	tpn.initInterceptors()
-	tpn.initInnerProcessors(arwenConfig.MakeGasMapForTests())
-	tpn.initBlockProcessorWithSync()
-	tpn.BroadcastMessenger, _ = sposFactory.GetBroadcastMessenger(
-		TestMarshalizer,
-		TestHasher,
-		tpn.Messenger,
-		tpn.ShardCoordinator,
-		tpn.OwnAccount.SkTxSign,
-		tpn.OwnAccount.PeerSigHandler,
-		tpn.DataPool.Headers(),
-		tpn.InterceptorsContainer,
-		&testscommon.AlarmSchedulerStub{},
-	)
-	tpn.initBootstrapper()
-	tpn.setGenesisBlock()
-	tpn.initNode()
-	argsNewScQueryService := smartContract.ArgsNewSCQueryService{
-		VmContainer:              tpn.VMContainer,
-		EconomicsFee:             tpn.EconomicsData,
-		BlockChainHook:           tpn.BlockchainHook,
-		BlockChain:               tpn.BlockChain,
-		ArwenChangeLocker:        tpn.ArwenChangeLocker,
-		Bootstrapper:             tpn.Bootstrapper,
-		AllowExternalQueriesChan: common.GetClosedUnbufferedChannel(),
-	}
-	tpn.SCQueryService, _ = smartContract.NewSCQueryService(argsNewScQueryService)
-	tpn.addHandlersForCounters()
-	tpn.addGenesisBlocksIntoStorage()
-}
 
 func (tpn *TestProcessorNode) addGenesisBlocksIntoStorage() {
 	for shardId, header := range tpn.GenesisBlocks {
@@ -162,10 +22,10 @@ func (tpn *TestProcessorNode) addGenesisBlocksIntoStorage() {
 		headerHash := TestHasher.Compute(string(buffHeader))
 
 		if shardId == core.MetachainShardId {
-			metablockStorer := tpn.Storage.GetStorer(dataRetriever.MetaBlockUnit)
+			metablockStorer, _ := tpn.Storage.GetStorer(dataRetriever.MetaBlockUnit)
 			_ = metablockStorer.Put(headerHash, buffHeader)
 		} else {
-			shardblockStorer := tpn.Storage.GetStorer(dataRetriever.BlockHeaderUnit)
+			shardblockStorer, _ := tpn.Storage.GetStorer(dataRetriever.BlockHeaderUnit)
 			_ = shardblockStorer.Put(headerHash, buffHeader)
 		}
 	}
@@ -182,6 +42,10 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 	coreComponents.InternalMarshalizerField = TestMarshalizer
 	coreComponents.HasherField = TestHasher
 	coreComponents.Uint64ByteSliceConverterField = TestUint64Converter
+	coreComponents.EpochNotifierField = tpn.EpochNotifier
+	coreComponents.EnableEpochsHandlerField = &testscommon.EnableEpochsHandlerStub{
+		RefactorPeersMiniBlocksEnableEpochField: UnreachableEpoch,
+	}
 
 	dataComponents := GetDefaultDataComponents()
 	dataComponents.Store = tpn.Storage
@@ -195,6 +59,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 
 	triesConfig := config.Config{
 		StateTriesConfig: config.StateTriesConfig{
+			SnapshotsEnabled:        true,
 			CheckpointRoundsModulus: stateCheckpointModulus,
 		},
 	}
@@ -218,14 +83,14 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 				return nil
 			},
 		},
-		BlockTracker:                   tpn.BlockTracker,
-		BlockSizeThrottler:             TestBlockSizeThrottler,
-		HistoryRepository:              tpn.HistoryRepository,
-		EpochNotifier:                  tpn.EpochNotifier,
-		RoundNotifier:                  coreComponents.RoundNotifier(),
-		GasHandler:                     tpn.GasHandler,
-		ScheduledTxsExecutionHandler:   &testscommon.ScheduledTxsExecutionStub{},
-		ScheduledMiniBlocksEnableEpoch: ScheduledMiniBlocksEnableEpoch,
+		BlockTracker:                 tpn.BlockTracker,
+		BlockSizeThrottler:           TestBlockSizeThrottler,
+		HistoryRepository:            tpn.HistoryRepository,
+		EnableRoundsHandler:          coreComponents.EnableRoundsHandler(),
+		GasHandler:                   tpn.GasHandler,
+		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
+		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
+		ReceiptsRepository:           &testscommon.ReceiptsRepositoryStub{},
 	}
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
@@ -291,6 +156,7 @@ func (tpn *TestProcessorNode) createShardBootstrapper() (TestBootstrapper, error
 		IsInImportMode:               false,
 		HistoryRepo:                  &dblookupext.HistoryRepositoryStub{},
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
+		ProcessWaitTime:              tpn.RoundHandler.TimeDuration(),
 	}
 
 	argsShardBootstrapper := sync.ArgShardBootstrapper{
@@ -335,6 +201,7 @@ func (tpn *TestProcessorNode) createMetaChainBootstrapper() (TestBootstrapper, e
 		IsInImportMode:               false,
 		HistoryRepo:                  &dblookupext.HistoryRepositoryStub{},
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
+		ProcessWaitTime:              tpn.RoundHandler.TimeDuration(),
 	}
 
 	argsMetaBootstrapper := sync.ArgMetaBootstrapper{
@@ -365,9 +232,10 @@ func (tpn *TestProcessorNode) initBootstrapper() {
 }
 
 func (tpn *TestProcessorNode) createMiniblocksProvider() {
+	storer, _ := tpn.Storage.GetStorer(dataRetriever.MiniBlockUnit)
 	arg := provider.ArgMiniBlockProvider{
 		MiniBlockPool:    tpn.DataPool.MiniBlocks(),
-		MiniBlockStorage: tpn.Storage.GetStorer(dataRetriever.MiniBlockUnit),
+		MiniBlockStorage: storer,
 		Marshalizer:      TestMarshalizer,
 	}
 

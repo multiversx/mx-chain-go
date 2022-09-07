@@ -150,10 +150,7 @@ func (sesb *storageEpochStartBootstrap) prepareComponentsToSync() error {
 	triesContainer, trieStorageManagers, err := factory.CreateTriesComponentsForShardId(
 		sesb.generalConfig,
 		sesb.coreComponentsHolder,
-		core.MetachainShardId,
 		sesb.storageService,
-		sesb.enableEpochs.DisableOldTrieStorageEpoch,
-		sesb.epochNotifier,
 	)
 	if err != nil {
 		return err
@@ -240,21 +237,19 @@ func (sesb *storageEpochStartBootstrap) createStorageResolvers() error {
 	}
 
 	resolversContainerFactoryArgs := storageResolversContainers.FactoryArgs{
-		GeneralConfig:              sesb.generalConfig,
-		ShardIDForTries:            sesb.importDbConfig.ImportDBTargetShardID,
-		ChainID:                    sesb.chainID,
-		WorkingDirectory:           sesb.importDbConfig.ImportDBWorkingDir,
-		Hasher:                     sesb.coreComponentsHolder.Hasher(),
-		ShardCoordinator:           shardCoordinator,
-		Messenger:                  sesb.messenger,
-		Store:                      sesb.store,
-		Marshalizer:                sesb.coreComponentsHolder.InternalMarshalizer(),
-		Uint64ByteSliceConverter:   sesb.coreComponentsHolder.Uint64ByteSliceConverter(),
-		DataPacker:                 dataPacker,
-		ManualEpochStartNotifier:   mesn,
-		ChanGracefullyClose:        sesb.chanGracefullyClose,
-		DisableOldTrieStorageEpoch: sesb.enableEpochs.DisableOldTrieStorageEpoch,
-		EpochNotifier:              sesb.epochNotifier,
+		GeneralConfig:            sesb.generalConfig,
+		ShardIDForTries:          sesb.importDbConfig.ImportDBTargetShardID,
+		ChainID:                  sesb.chainID,
+		WorkingDirectory:         sesb.importDbConfig.ImportDBWorkingDir,
+		Hasher:                   sesb.coreComponentsHolder.Hasher(),
+		ShardCoordinator:         shardCoordinator,
+		Messenger:                sesb.messenger,
+		Store:                    sesb.store,
+		Marshalizer:              sesb.coreComponentsHolder.InternalMarshalizer(),
+		Uint64ByteSliceConverter: sesb.coreComponentsHolder.Uint64ByteSliceConverter(),
+		DataPacker:               dataPacker,
+		ManualEpochStartNotifier: mesn,
+		ChanGracefullyClose:      sesb.chanGracefullyClose,
 	}
 
 	var resolversContainerFactory dataRetriever.ResolversContainerFactory
@@ -335,13 +330,14 @@ func (sesb *storageEpochStartBootstrap) requestAndProcessFromStorage() (Paramete
 		return Parameters{}, err
 	}
 
+	emptyPeerMiniBlocksSlice := make([]*block.MiniBlock, 0) // empty slice since we have bootstrapped from storage
 	if sesb.shardCoordinator.SelfId() == core.MetachainShardId {
-		err = sesb.requestAndProcessForMeta()
+		err = sesb.requestAndProcessForMeta(emptyPeerMiniBlocksSlice)
 		if err != nil {
 			return Parameters{}, err
 		}
 	} else {
-		err = sesb.requestAndProcessForShard()
+		err = sesb.requestAndProcessForShard(emptyPeerMiniBlocksSlice)
 		if err != nil {
 			return Parameters{}, err
 		}
@@ -403,18 +399,19 @@ func (sesb *storageEpochStartBootstrap) processNodesConfig(pubKey []byte) error 
 		shardId = sesb.genesisShardCoordinator.SelfId()
 	}
 	argsNewValidatorStatusSyncers := ArgsNewSyncValidatorStatus{
-		DataPool:           sesb.dataPool,
-		Marshalizer:        sesb.coreComponentsHolder.InternalMarshalizer(),
-		RequestHandler:     sesb.requestHandler,
-		ChanceComputer:     sesb.rater,
-		GenesisNodesConfig: sesb.genesisNodesConfig,
-		NodeShuffler:       sesb.nodeShuffler,
-		Hasher:             sesb.coreComponentsHolder.Hasher(),
-		PubKey:             pubKey,
-		ShardIdAsObserver:  shardId,
-		ChanNodeStop:       sesb.coreComponentsHolder.ChanStopNodeProcess(),
-		NodeTypeProvider:   sesb.coreComponentsHolder.NodeTypeProvider(),
-		IsFullArchive:      sesb.prefsConfig.FullArchive,
+		DataPool:            sesb.dataPool,
+		Marshalizer:         sesb.coreComponentsHolder.InternalMarshalizer(),
+		RequestHandler:      sesb.requestHandler,
+		ChanceComputer:      sesb.rater,
+		GenesisNodesConfig:  sesb.genesisNodesConfig,
+		NodeShuffler:        sesb.nodeShuffler,
+		Hasher:              sesb.coreComponentsHolder.Hasher(),
+		PubKey:              pubKey,
+		ShardIdAsObserver:   shardId,
+		ChanNodeStop:        sesb.coreComponentsHolder.ChanStopNodeProcess(),
+		NodeTypeProvider:    sesb.coreComponentsHolder.NodeTypeProvider(),
+		IsFullArchive:       sesb.prefsConfig.FullArchive,
+		EnableEpochsHandler: sesb.coreComponentsHolder.EnableEpochsHandler(),
 	}
 	sesb.nodesConfigHandler, err = NewSyncValidatorStatus(argsNewValidatorStatusSyncers)
 	if err != nil {
@@ -442,7 +439,8 @@ func (sesb *storageEpochStartBootstrap) processNodesConfig(pubKey []byte) error 
 		return err
 	}
 
-	sesb.nodesConfig, sesb.baseData.shardId, err = sesb.nodesConfigHandler.NodesConfigFromMetaBlock(clonedEpochStartMeta, clonedPrevEpochStartMeta)
+	// no need to save the peers miniblocks here as they were already fetched from the DB
+	sesb.nodesConfig, sesb.baseData.shardId, _, err = sesb.nodesConfigHandler.NodesConfigFromMetaBlock(clonedEpochStartMeta, clonedPrevEpochStartMeta)
 	sesb.baseData.shardId = sesb.applyShardIDAsObserverIfNeeded(sesb.baseData.shardId)
 
 	return err
@@ -460,7 +458,7 @@ func (sesb *storageEpochStartBootstrap) applyCurrentShardIDOnMiniblocksCopy(meta
 
 	for i := range originalMiniblocksHeaders {
 		mb := originalMiniblocksHeaders[i].ShallowClone()
-		err = mb.SetSenderShardID(sesb.importDbConfig.ImportDBTargetShardID) //it is safe to modify here as mbh is passed by value
+		err = mb.SetSenderShardID(sesb.importDbConfig.ImportDBTargetShardID) // it is safe to modify here as mb is a shallow clone
 		if err != nil {
 			return err
 		}

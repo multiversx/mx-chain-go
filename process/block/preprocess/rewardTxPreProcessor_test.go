@@ -26,7 +26,7 @@ func TestNewRewardTxPreprocessor_NilRewardTxDataPoolShouldErr(t *testing.T) {
 
 	rtp, err := NewRewardTxPreprocessor(
 		nil,
-		&mock.ChainStorerMock{},
+		&storageStubs.ChainStorerStub{},
 		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		&testscommon.RewardTxProcessorMock{},
@@ -37,6 +37,7 @@ func TestNewRewardTxPreprocessor_NilRewardTxDataPoolShouldErr(t *testing.T) {
 		createMockPubkeyConverter(),
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
 	assert.Nil(t, rtp)
@@ -60,6 +61,7 @@ func TestNewRewardTxPreprocessor_NilStoreShouldErr(t *testing.T) {
 		createMockPubkeyConverter(),
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
 	assert.Nil(t, rtp)
@@ -72,7 +74,7 @@ func TestNewRewardTxPreprocessor_NilHasherShouldErr(t *testing.T) {
 	tdp := initDataPool()
 	rtp, err := NewRewardTxPreprocessor(
 		tdp.Transactions(),
-		&mock.ChainStorerMock{},
+		&storageStubs.ChainStorerStub{},
 		nil,
 		&mock.MarshalizerMock{},
 		&testscommon.RewardTxProcessorMock{},
@@ -83,6 +85,7 @@ func TestNewRewardTxPreprocessor_NilHasherShouldErr(t *testing.T) {
 		createMockPubkeyConverter(),
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
 	assert.Nil(t, rtp)
@@ -95,7 +98,7 @@ func TestNewRewardTxPreprocessor_NilMarshalizerShouldErr(t *testing.T) {
 	tdp := initDataPool()
 	rtp, err := NewRewardTxPreprocessor(
 		tdp.RewardTransactions(),
-		&mock.ChainStorerMock{},
+		&storageStubs.ChainStorerStub{},
 		&hashingMocks.HasherMock{},
 		nil,
 		&testscommon.RewardTxProcessorMock{},
@@ -106,6 +109,7 @@ func TestNewRewardTxPreprocessor_NilMarshalizerShouldErr(t *testing.T) {
 		createMockPubkeyConverter(),
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
 	assert.Nil(t, rtp)
@@ -118,7 +122,7 @@ func TestNewRewardTxPreprocessor_NilRewardTxProcessorShouldErr(t *testing.T) {
 	tdp := initDataPool()
 	rtp, err := NewRewardTxPreprocessor(
 		tdp.RewardTransactions(),
-		&mock.ChainStorerMock{},
+		&storageStubs.ChainStorerStub{},
 		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		nil,
@@ -129,6 +133,7 @@ func TestNewRewardTxPreprocessor_NilRewardTxProcessorShouldErr(t *testing.T) {
 		createMockPubkeyConverter(),
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
 	assert.Nil(t, rtp)
@@ -141,7 +146,7 @@ func TestNewRewardTxPreprocessor_NilShardCoordinatorShouldErr(t *testing.T) {
 	tdp := initDataPool()
 	rtp, err := NewRewardTxPreprocessor(
 		tdp.RewardTransactions(),
-		&mock.ChainStorerMock{},
+		&storageStubs.ChainStorerStub{},
 		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		&testscommon.RewardTxProcessorMock{},
@@ -152,6 +157,7 @@ func TestNewRewardTxPreprocessor_NilShardCoordinatorShouldErr(t *testing.T) {
 		createMockPubkeyConverter(),
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
 	assert.Nil(t, rtp)
@@ -164,7 +170,7 @@ func TestNewRewardTxPreprocessor_NilAccountsShouldErr(t *testing.T) {
 	tdp := initDataPool()
 	rtp, err := NewRewardTxPreprocessor(
 		tdp.RewardTransactions(),
-		&mock.ChainStorerMock{},
+		&storageStubs.ChainStorerStub{},
 		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		&testscommon.RewardTxProcessorMock{},
@@ -175,6 +181,7 @@ func TestNewRewardTxPreprocessor_NilAccountsShouldErr(t *testing.T) {
 		createMockPubkeyConverter(),
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
 	assert.Nil(t, rtp)
@@ -187,7 +194,7 @@ func TestNewRewardTxPreprocessor_NilRequestHandlerShouldErr(t *testing.T) {
 	tdp := initDataPool()
 	rtp, err := NewRewardTxPreprocessor(
 		tdp.RewardTransactions(),
-		&mock.ChainStorerMock{},
+		&storageStubs.ChainStorerStub{},
 		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		&testscommon.RewardTxProcessorMock{},
@@ -198,6 +205,7 @@ func TestNewRewardTxPreprocessor_NilRequestHandlerShouldErr(t *testing.T) {
 		createMockPubkeyConverter(),
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
 	assert.Nil(t, rtp)
@@ -210,7 +218,7 @@ func TestNewRewardTxPreprocessor_NilGasHandlerShouldErr(t *testing.T) {
 	tdp := initDataPool()
 	rtp, err := NewRewardTxPreprocessor(
 		tdp.RewardTransactions(),
-		&mock.ChainStorerMock{},
+		&storageStubs.ChainStorerStub{},
 		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		&testscommon.RewardTxProcessorMock{},
@@ -221,6 +229,7 @@ func TestNewRewardTxPreprocessor_NilGasHandlerShouldErr(t *testing.T) {
 		createMockPubkeyConverter(),
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
 	assert.Nil(t, rtp)
@@ -233,7 +242,7 @@ func TestNewRewardTxPreprocessor_NilPubkeyConverterShouldErr(t *testing.T) {
 	tdp := initDataPool()
 	rtp, err := NewRewardTxPreprocessor(
 		tdp.RewardTransactions(),
-		&mock.ChainStorerMock{},
+		&storageStubs.ChainStorerStub{},
 		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		&testscommon.RewardTxProcessorMock{},
@@ -244,6 +253,7 @@ func TestNewRewardTxPreprocessor_NilPubkeyConverterShouldErr(t *testing.T) {
 		nil,
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
 	assert.Nil(t, rtp)
@@ -256,7 +266,7 @@ func TestNewRewardTxPreprocessor_NilBlockSizeComputationHandlerShouldErr(t *test
 	tdp := initDataPool()
 	rtp, err := NewRewardTxPreprocessor(
 		tdp.RewardTransactions(),
-		&mock.ChainStorerMock{},
+		&storageStubs.ChainStorerStub{},
 		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		&testscommon.RewardTxProcessorMock{},
@@ -267,6 +277,7 @@ func TestNewRewardTxPreprocessor_NilBlockSizeComputationHandlerShouldErr(t *test
 		createMockPubkeyConverter(),
 		nil,
 		&testscommon.BalanceComputationStub{},
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
 	assert.Nil(t, rtp)
@@ -279,7 +290,7 @@ func TestNewRewardTxPreprocessor_NilBalanceComputationHandlerShouldErr(t *testin
 	tdp := initDataPool()
 	rtp, err := NewRewardTxPreprocessor(
 		tdp.RewardTransactions(),
-		&mock.ChainStorerMock{},
+		&storageStubs.ChainStorerStub{},
 		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		&testscommon.RewardTxProcessorMock{},
@@ -290,19 +301,20 @@ func TestNewRewardTxPreprocessor_NilBalanceComputationHandlerShouldErr(t *testin
 		createMockPubkeyConverter(),
 		&testscommon.BlockSizeComputationStub{},
 		nil,
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
 	assert.Nil(t, rtp)
 	assert.Equal(t, process.ErrNilBalanceComputationHandler, err)
 }
 
-func TestNewRewardTxPreprocessor_OkValsShouldWork(t *testing.T) {
+func TestNewRewardTxPreprocessor_NilProcessedMiniBlocksTrackerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	tdp := initDataPool()
 	rtp, err := NewRewardTxPreprocessor(
 		tdp.RewardTransactions(),
-		&mock.ChainStorerMock{},
+		&storageStubs.ChainStorerStub{},
 		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		&testscommon.RewardTxProcessorMock{},
@@ -313,6 +325,31 @@ func TestNewRewardTxPreprocessor_OkValsShouldWork(t *testing.T) {
 		createMockPubkeyConverter(),
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
+		nil,
+	)
+
+	assert.Nil(t, rtp)
+	assert.Equal(t, process.ErrNilProcessedMiniBlocksTracker, err)
+}
+
+func TestNewRewardTxPreprocessor_OkValsShouldWork(t *testing.T) {
+	t.Parallel()
+
+	tdp := initDataPool()
+	rtp, err := NewRewardTxPreprocessor(
+		tdp.RewardTransactions(),
+		&storageStubs.ChainStorerStub{},
+		&hashingMocks.HasherMock{},
+		&mock.MarshalizerMock{},
+		&testscommon.RewardTxProcessorMock{},
+		mock.NewMultiShardsCoordinatorMock(3),
+		&stateMock.AccountsStub{},
+		func(shardID uint32, txHashes [][]byte) {},
+		&testscommon.GasHandlerStub{},
+		createMockPubkeyConverter(),
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, rtp)
@@ -325,7 +362,7 @@ func TestRewardTxPreprocessor_CreateMarshalizedDataShouldWork(t *testing.T) {
 	tdp := initDataPool()
 	rtp, _ := NewRewardTxPreprocessor(
 		tdp.RewardTransactions(),
-		&mock.ChainStorerMock{},
+		&storageStubs.ChainStorerStub{},
 		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		&testscommon.RewardTxProcessorMock{},
@@ -336,13 +373,14 @@ func TestRewardTxPreprocessor_CreateMarshalizedDataShouldWork(t *testing.T) {
 		createMockPubkeyConverter(),
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
 	txHashes := [][]byte{[]byte(txHash)}
 	txs := []data.TransactionHandler{&rewardTx.RewardTx{}}
 	rtp.AddTxs(txHashes, txs)
 
-	res, err := rtp.CreateMarshalizedData(txHashes)
+	res, err := rtp.CreateMarshalledData(txHashes)
 
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(res))
@@ -355,7 +393,7 @@ func TestRewardTxPreprocessor_ProcessMiniBlockInvalidMiniBlockTypeShouldErr(t *t
 	tdp := initDataPool()
 	rtp, _ := NewRewardTxPreprocessor(
 		tdp.RewardTransactions(),
-		&mock.ChainStorerMock{},
+		&storageStubs.ChainStorerStub{},
 		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		&testscommon.RewardTxProcessorMock{},
@@ -366,6 +404,7 @@ func TestRewardTxPreprocessor_ProcessMiniBlockInvalidMiniBlockTypeShouldErr(t *t
 		createMockPubkeyConverter(),
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
 	txHashes := [][]byte{[]byte(txHash)}
@@ -376,7 +415,11 @@ func TestRewardTxPreprocessor_ProcessMiniBlockInvalidMiniBlockTypeShouldErr(t *t
 		Type:            0,
 	}
 
-	_, _, err := rtp.ProcessMiniBlock(&mb1, haveTimeTrue, haveAdditionalTimeFalse, getNumOfCrossInterMbsAndTxsZero, false)
+	preProcessorExecutionInfoHandlerMock := &testscommon.PreProcessorExecutionInfoHandlerMock{
+		GetNumOfCrossInterMbsAndTxsCalled: getNumOfCrossInterMbsAndTxsZero,
+	}
+
+	_, _, _, err := rtp.ProcessMiniBlock(&mb1, haveTimeTrue, haveAdditionalTimeFalse, false, false, -1, preProcessorExecutionInfoHandlerMock)
 	assert.Equal(t, process.ErrWrongTypeInMiniBlock, err)
 }
 
@@ -387,7 +430,7 @@ func TestRewardTxPreprocessor_ProcessMiniBlockShouldWork(t *testing.T) {
 	tdp := initDataPool()
 	rtp, _ := NewRewardTxPreprocessor(
 		tdp.RewardTransactions(),
-		&mock.ChainStorerMock{},
+		&storageStubs.ChainStorerStub{},
 		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		&testscommon.RewardTxProcessorMock{},
@@ -398,6 +441,7 @@ func TestRewardTxPreprocessor_ProcessMiniBlockShouldWork(t *testing.T) {
 		createMockPubkeyConverter(),
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
 	txHashes := [][]byte{[]byte(txHash)}
@@ -411,7 +455,11 @@ func TestRewardTxPreprocessor_ProcessMiniBlockShouldWork(t *testing.T) {
 	txs := []data.TransactionHandler{&rewardTx.RewardTx{}}
 	rtp.AddTxs(txHashes, txs)
 
-	_, _, err := rtp.ProcessMiniBlock(&mb1, haveTimeTrue, haveAdditionalTimeFalse, getNumOfCrossInterMbsAndTxsZero, false)
+	preProcessorExecutionInfoHandlerMock := &testscommon.PreProcessorExecutionInfoHandlerMock{
+		GetNumOfCrossInterMbsAndTxsCalled: getNumOfCrossInterMbsAndTxsZero,
+	}
+
+	_, _, _, err := rtp.ProcessMiniBlock(&mb1, haveTimeTrue, haveAdditionalTimeFalse, false, false, -1, preProcessorExecutionInfoHandlerMock)
 	assert.Nil(t, err)
 
 	txsMap := rtp.GetAllCurrentUsedTxs()
@@ -427,7 +475,7 @@ func TestRewardTxPreprocessor_ProcessMiniBlockNotFromMeta(t *testing.T) {
 	tdp := initDataPool()
 	rtp, _ := NewRewardTxPreprocessor(
 		tdp.RewardTransactions(),
-		&mock.ChainStorerMock{},
+		&storageStubs.ChainStorerStub{},
 		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		&testscommon.RewardTxProcessorMock{},
@@ -438,6 +486,7 @@ func TestRewardTxPreprocessor_ProcessMiniBlockNotFromMeta(t *testing.T) {
 		createMockPubkeyConverter(),
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
 	txHashes := [][]byte{[]byte(txHash)}
@@ -451,7 +500,11 @@ func TestRewardTxPreprocessor_ProcessMiniBlockNotFromMeta(t *testing.T) {
 	txs := []data.TransactionHandler{&rewardTx.RewardTx{}}
 	rtp.AddTxs(txHashes, txs)
 
-	_, _, err := rtp.ProcessMiniBlock(&mb1, haveTimeTrue, haveAdditionalTimeFalse, getNumOfCrossInterMbsAndTxsZero, false)
+	preProcessorExecutionInfoHandlerMock := &testscommon.PreProcessorExecutionInfoHandlerMock{
+		GetNumOfCrossInterMbsAndTxsCalled: getNumOfCrossInterMbsAndTxsZero,
+	}
+
+	_, _, _, err := rtp.ProcessMiniBlock(&mb1, haveTimeTrue, haveAdditionalTimeFalse, false, false, -1, preProcessorExecutionInfoHandlerMock)
 	assert.Equal(t, process.ErrRewardMiniBlockNotFromMeta, err)
 }
 
@@ -462,7 +515,7 @@ func TestRewardTxPreprocessor_SaveTxsToStorageShouldWork(t *testing.T) {
 	tdp := initDataPool()
 	rtp, _ := NewRewardTxPreprocessor(
 		tdp.RewardTransactions(),
-		&mock.ChainStorerMock{},
+		&storageStubs.ChainStorerStub{},
 		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		&testscommon.RewardTxProcessorMock{},
@@ -473,6 +526,7 @@ func TestRewardTxPreprocessor_SaveTxsToStorageShouldWork(t *testing.T) {
 		createMockPubkeyConverter(),
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
 	txHashes := [][]byte{[]byte(txHash)}
@@ -506,7 +560,7 @@ func TestRewardTxPreprocessor_RequestBlockTransactionsNoMissingTxsShouldWork(t *
 	tdp := initDataPool()
 	rtp, _ := NewRewardTxPreprocessor(
 		tdp.RewardTransactions(),
-		&mock.ChainStorerMock{},
+		&storageStubs.ChainStorerStub{},
 		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		&testscommon.RewardTxProcessorMock{},
@@ -517,6 +571,7 @@ func TestRewardTxPreprocessor_RequestBlockTransactionsNoMissingTxsShouldWork(t *
 		createMockPubkeyConverter(),
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
 	txHashes := [][]byte{[]byte(txHash)}
@@ -549,7 +604,7 @@ func TestRewardTxPreprocessor_RequestTransactionsForMiniBlockShouldWork(t *testi
 	tdp := initDataPool()
 	rtp, _ := NewRewardTxPreprocessor(
 		tdp.RewardTransactions(),
-		&mock.ChainStorerMock{},
+		&storageStubs.ChainStorerStub{},
 		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		&testscommon.RewardTxProcessorMock{},
@@ -560,6 +615,7 @@ func TestRewardTxPreprocessor_RequestTransactionsForMiniBlockShouldWork(t *testi
 		createMockPubkeyConverter(),
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
 	txHashes := [][]byte{[]byte(txHash)}
@@ -581,7 +637,7 @@ func TestRewardTxPreprocessor_ProcessBlockTransactions(t *testing.T) {
 	tdp := initDataPool()
 	rtp, _ := NewRewardTxPreprocessor(
 		tdp.RewardTransactions(),
-		&mock.ChainStorerMock{},
+		&storageStubs.ChainStorerStub{},
 		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		&testscommon.RewardTxProcessorMock{},
@@ -592,6 +648,7 @@ func TestRewardTxPreprocessor_ProcessBlockTransactions(t *testing.T) {
 		createMockPubkeyConverter(),
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
 	txHashes := [][]byte{[]byte(txHash)}
@@ -611,10 +668,13 @@ func TestRewardTxPreprocessor_ProcessBlockTransactions(t *testing.T) {
 		Type:            block.RewardsBlock,
 	}
 
+	mbHash1, _ := core.CalculateHash(rtp.marshalizer, rtp.hasher, &mb1)
+	mbHash2, _ := core.CalculateHash(rtp.marshalizer, rtp.hasher, &mb2)
+
 	var blockBody block.Body
 	blockBody.MiniBlocks = append(blockBody.MiniBlocks, &mb1, &mb2)
 
-	err := rtp.ProcessBlockTransactions(&block.Header{}, &blockBody, haveTimeTrue)
+	err := rtp.ProcessBlockTransactions(&block.Header{MiniBlockHeaders: []block.MiniBlockHeader{{TxCount: 1, Hash: mbHash1}, {TxCount: 1, Hash: mbHash2}}}, &blockBody, haveTimeTrue)
 	assert.Nil(t, err)
 }
 
@@ -624,7 +684,7 @@ func TestRewardTxPreprocessor_IsDataPreparedShouldErr(t *testing.T) {
 	tdp := initDataPool()
 	rtp, _ := NewRewardTxPreprocessor(
 		tdp.RewardTransactions(),
-		&mock.ChainStorerMock{},
+		&storageStubs.ChainStorerStub{},
 		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		&testscommon.RewardTxProcessorMock{},
@@ -635,6 +695,7 @@ func TestRewardTxPreprocessor_IsDataPreparedShouldErr(t *testing.T) {
 		createMockPubkeyConverter(),
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
 	err := rtp.IsDataPrepared(1, haveTime)
@@ -648,7 +709,7 @@ func TestRewardTxPreprocessor_IsDataPrepared(t *testing.T) {
 	tdp := initDataPool()
 	rtp, _ := NewRewardTxPreprocessor(
 		tdp.RewardTransactions(),
-		&mock.ChainStorerMock{},
+		&storageStubs.ChainStorerStub{},
 		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		&testscommon.RewardTxProcessorMock{},
@@ -659,6 +720,7 @@ func TestRewardTxPreprocessor_IsDataPrepared(t *testing.T) {
 		createMockPubkeyConverter(),
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
 	go func() {
@@ -675,7 +737,7 @@ func TestRewardTxPreprocessor_RestoreBlockDataIntoPools(t *testing.T) {
 	t.Parallel()
 
 	tdp := initDataPool()
-	storer := mock.ChainStorerMock{
+	storer := storageStubs.ChainStorerStub{
 		GetAllCalled: func(unitType dataRetriever.UnitType, keys [][]byte) (map[string][]byte, error) {
 			retMap := map[string][]byte{
 				"tx_hash1": []byte(`{"Round": 0}`),
@@ -683,12 +745,12 @@ func TestRewardTxPreprocessor_RestoreBlockDataIntoPools(t *testing.T) {
 
 			return retMap, nil
 		},
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 			return &storageStubs.StorerStub{
 				RemoveCalled: func(key []byte) error {
 					return nil
 				},
-			}
+			}, nil
 		},
 	}
 	rtp, _ := NewRewardTxPreprocessor(
@@ -704,6 +766,7 @@ func TestRewardTxPreprocessor_RestoreBlockDataIntoPools(t *testing.T) {
 		createMockPubkeyConverter(),
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
 	txHashes := [][]byte{[]byte("tx_hash1")}
@@ -730,7 +793,7 @@ func TestRewardTxPreprocessor_CreateAndProcessMiniBlocksShouldWork(t *testing.T)
 	tdp := initDataPool()
 	rtp, _ := NewRewardTxPreprocessor(
 		tdp.RewardTransactions(),
-		&mock.ChainStorerMock{},
+		&storageStubs.ChainStorerStub{},
 		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		&testscommon.RewardTxProcessorMock{},
@@ -748,6 +811,7 @@ func TestRewardTxPreprocessor_CreateAndProcessMiniBlocksShouldWork(t *testing.T)
 		createMockPubkeyConverter(),
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
 	mBlocksSlice, err := rtp.CreateAndProcessMiniBlocks(haveTimeTrue, []byte("randomness"))
@@ -761,7 +825,7 @@ func TestRewardTxPreprocessor_CreateBlockStartedShouldCleanMap(t *testing.T) {
 	tdp := initDataPool()
 	rtp, _ := NewRewardTxPreprocessor(
 		tdp.RewardTransactions(),
-		&mock.ChainStorerMock{},
+		&storageStubs.ChainStorerStub{},
 		&hashingMocks.HasherMock{},
 		&mock.MarshalizerMock{},
 		&testscommon.RewardTxProcessorMock{},
@@ -772,6 +836,7 @@ func TestRewardTxPreprocessor_CreateBlockStartedShouldCleanMap(t *testing.T) {
 		createMockPubkeyConverter(),
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 
 	rtp.CreateBlockStarted()

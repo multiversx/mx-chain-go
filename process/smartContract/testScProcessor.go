@@ -21,16 +21,16 @@ func NewTestScProcessor(internalData *scProcessor) *TestScProcessor {
 	return &TestScProcessor{internalData}
 }
 
-// GetLatestTestError locates the latest error in the collection of smart contracts results
-func (tsp *TestScProcessor) GetLatestTestError() error {
+// GetCompositeTestError composes all errors found in the logs or by parsing the scr forwarder's contents
+func (tsp *TestScProcessor) GetCompositeTestError() error {
+	var returnError error
 
-	if tsp.flagCleanUpInformativeSCRs.IsSet() {
+	if tsp.enableEpochsHandler.IsCleanUpInformativeSCRsFlagEnabled() {
 		allLogs := tsp.txLogsProcessor.GetAllCurrentLogs()
 		for _, logs := range allLogs {
 			for _, event := range logs.GetLogEvents() {
 				if string(event.GetIdentifier()) == signalError {
-					tsp.txLogsProcessor.Clean()
-					return fmt.Errorf(string(event.GetTopics()[1]))
+					returnError = wrapErrorIfNotContains(returnError, string(event.GetTopics()[1]))
 				}
 			}
 		}
@@ -40,7 +40,7 @@ func (tsp *TestScProcessor) GetLatestTestError() error {
 		GetIntermediateTransactions() []data.TransactionHandler
 	})
 	if !ok {
-		return nil
+		return returnError
 	}
 
 	scResults := scrProvider.GetIntermediateTransactions()
@@ -65,17 +65,31 @@ func (tsp *TestScProcessor) GetLatestTestError() error {
 		if err == nil {
 			returnCodeAsString := string(returnCode)
 			if returnCodeAsString == "ok" || returnCodeAsString == "" {
-				return nil
+				return returnError
 			}
-			return fmt.Errorf(returnCodeAsString)
+			return wrapErrorIfNotContains(returnError, returnCodeAsString)
 		}
 
-		return fmt.Errorf(returnCodeHex)
+		return wrapErrorIfNotContains(returnError, returnCodeHex)
 	}
 
+	tsp.txLogsProcessor.Clean()
 	tsp.scrForwarder.CreateBlockStarted()
 
-	return nil
+	return returnError
+}
+
+func wrapErrorIfNotContains(originalError error, msg string) error {
+	if originalError == nil {
+		return fmt.Errorf(msg)
+	}
+
+	alreadyContainsMessage := strings.Contains(originalError.Error(), msg)
+	if alreadyContainsMessage {
+		return originalError
+	}
+
+	return fmt.Errorf("%s: %s", originalError.Error(), msg)
 }
 
 // GetGasRemaining returns the remaining gas from the last transaction

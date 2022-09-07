@@ -42,10 +42,6 @@ func (txProc *baseTxProcessor) IsCrossTxFromMe(adrSrc, adrDst []byte) bool {
 	return txProc.isCrossTxFromMe(adrSrc, adrDst)
 }
 
-func (txProc *txProcessor) SetPenalizedTooMuchGasEnableEpoch(epoch uint32) {
-	txProc.penalizedTooMuchGasEnableEpoch = epoch
-}
-
 func (txProc *txProcessor) ProcessUserTx(
 	originalTx *transaction.Transaction,
 	userTx *transaction.Transaction,
@@ -60,8 +56,9 @@ func (txProc *txProcessor) ProcessMoveBalanceCostRelayedUserTx(
 	userTx *transaction.Transaction,
 	userScr *smartContractResult.SmartContractResult,
 	userAcc state.UserAccountHandler,
+	originalTxHash []byte,
 ) error {
-	return txProc.processMoveBalanceCostRelayedUserTx(userTx, userScr, userAcc)
+	return txProc.processMoveBalanceCostRelayedUserTx(userTx, userScr, userAcc, originalTxHash)
 }
 
 func (txProc *txProcessor) ExecuteFailedRelayedTransaction(
@@ -81,8 +78,4 @@ func (txProc *txProcessor) ExecuteFailedRelayedTransaction(
 		originalTx,
 		originalTxHash,
 		errorMsg)
-}
-
-func (txProc *metaTxProcessor) SetValueFlagMetaBuiltIn(set bool) {
-	txProc.flagBuiltInFunction.SetValue(set)
 }

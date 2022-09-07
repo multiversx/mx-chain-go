@@ -8,12 +8,15 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 var _ process.HdrValidatorHandler = (*InterceptedMetaHeader)(nil)
 var _ process.InterceptedData = (*InterceptedMetaHeader)(nil)
+
+var log = logger.GetOrCreate("process/block/interceptedBlocks")
 
 // InterceptedMetaHeader represents the wrapper over the meta block header struct
 type InterceptedMetaHeader struct {
@@ -91,6 +94,15 @@ func (imh *InterceptedMetaHeader) CheckValidity() error {
 		if err != nil {
 			return err
 		}
+
+		if imh.isMetaHeaderEpochOutOfRange() {
+			log.Trace("InterceptedMetaHeader.CheckValidity",
+				"trigger epoch", imh.epochStartTrigger.Epoch(),
+				"metaBlock epoch", imh.hdr.GetEpoch(),
+				"error", process.ErrMetaHeaderEpochOutOfRange)
+
+			return process.ErrMetaHeaderEpochOutOfRange
+		}
 	}
 
 	err = imh.validityAttester.CheckBlockAgainstRoundHandler(imh.HeaderHandler())
@@ -109,6 +121,18 @@ func (imh *InterceptedMetaHeader) CheckValidity() error {
 	}
 
 	return imh.integrityVerifier.Verify(imh.hdr)
+}
+
+func (imh *InterceptedMetaHeader) isMetaHeaderEpochOutOfRange() bool {
+	if imh.shardCoordinator.SelfId() == core.MetachainShardId {
+		return false
+	}
+
+	if imh.hdr.GetEpoch() > imh.epochStartTrigger.Epoch()+1 {
+		return true
+	}
+
+	return false
 }
 
 // integrity checks the integrity of the meta header block wrapper

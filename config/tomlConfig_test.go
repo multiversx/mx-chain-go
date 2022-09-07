@@ -40,11 +40,9 @@ func TestTomlParser(t *testing.T) {
 
 	consensusType := "bls"
 
-	vmConfig := VirtualMachineConfig{
-		ArwenVersions: []ArwenVersionByEpoch{
-			{StartEpoch: 12, Version: "v0.3"},
-			{StartEpoch: 88, Version: "v1.2"},
-		},
+	arwenVersions := []ArwenVersionByEpoch{
+		{StartEpoch: 12, Version: "v0.3"},
+		{StartEpoch: 88, Version: "v1.2"},
 	}
 
 	cfgExpected := Config{
@@ -99,10 +97,18 @@ func TestTomlParser(t *testing.T) {
 			Type: consensusType,
 		},
 		VirtualMachine: VirtualMachineServicesConfig{
-			Execution: vmConfig,
+			Execution: VirtualMachineConfig{
+				ArwenVersions:                       arwenVersions,
+				TimeOutForSCExecutionInMilliseconds: 10000,
+				WasmerSIGSEGVPassthrough:            true,
+			},
 			Querying: QueryVirtualMachineConfig{
 				NumConcurrentVMs:     16,
-				VirtualMachineConfig: vmConfig,
+				VirtualMachineConfig: VirtualMachineConfig{ArwenVersions: arwenVersions},
+			},
+			GasConfig: VirtualMachineGasConfig{
+				ShardMaxGasPerVmQuery: 1_500_000_000,
+				MetaMaxGasPerVmQuery:  0,
 			},
 		},
 		Debug: DebugConfig{
@@ -176,6 +182,8 @@ func TestTomlParser(t *testing.T) {
 
 [VirtualMachine]
     [VirtualMachine.Execution]
+        TimeOutForSCExecutionInMilliseconds = 10000 # 10 seconds = 10000 milliseconds
+        WasmerSIGSEGVPassthrough            = true
         ArwenVersions = [
             { StartEpoch = 12, Version = "v0.3" },
             { StartEpoch = 88, Version = "v1.2" },
@@ -187,6 +195,10 @@ func TestTomlParser(t *testing.T) {
             { StartEpoch = 12, Version = "v0.3" },
             { StartEpoch = 88, Version = "v1.2" },
         ]
+
+	[VirtualMachine.GasConfig]
+		ShardMaxGasPerVmQuery = 1500000000
+		MetaMaxGasPerVmQuery = 0
 
 [Debug]
     [Debug.InterceptorResolver]
@@ -644,6 +656,18 @@ func TestEnableEpochConfig(t *testing.T) {
 	# FailExecutionOnEveryAPIErrorEnableEpoch represent the epoch when new protection in VM is enabled to fail all wrong API calls
 	FailExecutionOnEveryAPIErrorEnableEpoch = 53
 
+	# ManagedCryptoAPIsEnableEpoch represents the epoch when the new managed crypto APIs are enabled
+	ManagedCryptoAPIsEnableEpoch = 54
+
+    # HeartbeatDisableEpoch represents the epoch when heartbeat v1 messages stop being sent and processed
+    HeartbeatDisableEpoch = 55
+
+	# ESDTMetadataContinuousCleanupEnableEpoch represents the epoch when esdt metadata is automatically deleted according to inshard liquidity
+	ESDTMetadataContinuousCleanupEnableEpoch = 56
+
+	# SetSenderInEeiOutputTransferEnableEpoch represents the epoch when setting the sender in eei output transfers will be enabled
+    SetSenderInEeiOutputTransferEnableEpoch = 57
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 44, MaxNumNodes = 2169, NodesToShufflePerShard = 80 },
@@ -724,6 +748,10 @@ func TestEnableEpochConfig(t *testing.T) {
 			TransformToMultiShardCreateEnableEpoch:      51,
 			ESDTRegisterAndSetAllRolesEnableEpoch:       52,
 			FailExecutionOnEveryAPIErrorEnableEpoch:     53,
+			ManagedCryptoAPIsEnableEpoch:                54,
+			HeartbeatDisableEpoch:                       55,
+			ESDTMetadataContinuousCleanupEnableEpoch:    56,
+			SetSenderInEeiOutputTransferEnableEpoch:     57,
 		},
 		GasSchedule: GasScheduleConfig{
 			GasScheduleByEpochs: []GasScheduleByEpochs{

@@ -21,6 +21,7 @@ type ShardedDataStub struct {
 	ImmunizeSetOfDataAgainstEvictionCalled func(keys [][]byte, cacheID string)
 	CreateShardStoreCalled                 func(destCacheID string)
 	GetCountsCalled                        func() counting.CountsWithSize
+	KeysCalled                             func() [][]byte
 }
 
 // NewShardedDataStub -
@@ -29,63 +30,81 @@ func NewShardedDataStub() *ShardedDataStub {
 }
 
 // RegisterOnAdded -
-func (shardedData *ShardedDataStub) RegisterOnAdded(handler func(key []byte, value interface{})) {
-	if shardedData.RegisterOnAddedCalled != nil {
-		shardedData.RegisterOnAddedCalled(handler)
+func (sd *ShardedDataStub) RegisterOnAdded(handler func(key []byte, value interface{})) {
+	if sd.RegisterOnAddedCalled != nil {
+		sd.RegisterOnAddedCalled(handler)
 	}
 }
 
 // ShardDataStore -
-func (shardedData *ShardedDataStub) ShardDataStore(cacheID string) storage.Cacher {
-	return shardedData.ShardDataStoreCalled(cacheID)
+func (sd *ShardedDataStub) ShardDataStore(cacheID string) storage.Cacher {
+	if sd.ShardDataStoreCalled != nil {
+		return sd.ShardDataStoreCalled(cacheID)
+	}
+	return nil
 }
 
 // AddData -
-func (shardedData *ShardedDataStub) AddData(key []byte, data interface{}, sizeInBytes int, cacheID string) {
-	if shardedData.AddDataCalled != nil {
-		shardedData.AddDataCalled(key, data, sizeInBytes, cacheID)
+func (sd *ShardedDataStub) AddData(key []byte, data interface{}, sizeInBytes int, cacheID string) {
+	if sd.AddDataCalled != nil {
+		sd.AddDataCalled(key, data, sizeInBytes, cacheID)
 	}
 }
 
 // SearchFirstData -
-func (shardedData *ShardedDataStub) SearchFirstData(key []byte) (value interface{}, ok bool) {
-	return shardedData.SearchFirstDataCalled(key)
+func (sd *ShardedDataStub) SearchFirstData(key []byte) (value interface{}, ok bool) {
+	if sd.SearchFirstDataCalled != nil {
+		return sd.SearchFirstDataCalled(key)
+	}
+	return nil, false
 }
 
 // RemoveData -
-func (shardedData *ShardedDataStub) RemoveData(key []byte, cacheID string) {
-	shardedData.RemoveDataCalled(key, cacheID)
+func (sd *ShardedDataStub) RemoveData(key []byte, cacheID string) {
+	if sd.RemoveDataCalled != nil {
+		sd.RemoveDataCalled(key, cacheID)
+	}
 }
 
 // RemoveDataFromAllShards -
-func (shardedData *ShardedDataStub) RemoveDataFromAllShards(key []byte) {
-	shardedData.RemoveDataFromAllShardsCalled(key)
+func (sd *ShardedDataStub) RemoveDataFromAllShards(key []byte) {
+	if sd.RemoveDataFromAllShardsCalled != nil {
+		sd.RemoveDataFromAllShardsCalled(key)
+	}
 }
 
 // MergeShardStores -
-func (shardedData *ShardedDataStub) MergeShardStores(sourceCacheID, destCacheID string) {
-	shardedData.MergeShardStoresCalled(sourceCacheID, destCacheID)
+func (sd *ShardedDataStub) MergeShardStores(sourceCacheID, destCacheID string) {
+	if sd.MergeShardStoresCalled != nil {
+		sd.MergeShardStoresCalled(sourceCacheID, destCacheID)
+	}
 }
 
 // Clear -
-func (shardedData *ShardedDataStub) Clear() {
-	shardedData.ClearCalled()
+func (sd *ShardedDataStub) Clear() {
+	if sd.ClearCalled != nil {
+		sd.ClearCalled()
+	}
 }
 
 // ClearShardStore -
-func (shardedData *ShardedDataStub) ClearShardStore(cacheID string) {
-	shardedData.ClearShardStoreCalled(cacheID)
+func (sd *ShardedDataStub) ClearShardStore(cacheID string) {
+	if sd.ClearShardStoreCalled != nil {
+		sd.ClearShardStoreCalled(cacheID)
+	}
 }
 
 // RemoveSetOfDataFromPool -
-func (shardedData *ShardedDataStub) RemoveSetOfDataFromPool(keys [][]byte, cacheID string) {
-	shardedData.RemoveSetOfDataFromPoolCalled(keys, cacheID)
+func (sd *ShardedDataStub) RemoveSetOfDataFromPool(keys [][]byte, cacheID string) {
+	if sd.RemoveSetOfDataFromPoolCalled != nil {
+		sd.RemoveSetOfDataFromPoolCalled(keys, cacheID)
+	}
 }
 
 // ImmunizeSetOfDataAgainstEviction -
-func (shardedData *ShardedDataStub) ImmunizeSetOfDataAgainstEviction(keys [][]byte, cacheID string) {
-	if shardedData.ImmunizeSetOfDataAgainstEvictionCalled != nil {
-		shardedData.ImmunizeSetOfDataAgainstEvictionCalled(keys, cacheID)
+func (sd *ShardedDataStub) ImmunizeSetOfDataAgainstEviction(keys [][]byte, cacheID string) {
+	if sd.ImmunizeSetOfDataAgainstEvictionCalled != nil {
+		sd.ImmunizeSetOfDataAgainstEvictionCalled(keys, cacheID)
 	}
 }
 
@@ -98,7 +117,16 @@ func (sd *ShardedDataStub) GetCounts() counting.CountsWithSize {
 	return &counting.NullCounts{}
 }
 
+// Keys -
+func (sd *ShardedDataStub) Keys() [][]byte {
+	if sd.KeysCalled != nil {
+		return sd.KeysCalled()
+	}
+
+	return nil
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
-func (shardedData *ShardedDataStub) IsInterfaceNil() bool {
-	return shardedData == nil
+func (sd *ShardedDataStub) IsInterfaceNil() bool {
+	return sd == nil
 }

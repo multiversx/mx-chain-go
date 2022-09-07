@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 )
 
 // TxCoordinator implements the TransactionCoordinator interface but does nothing as it is disabled
@@ -41,8 +42,7 @@ func (txCoordinator *TxCoordinator) IsDataPreparedForProcessing(_ func() time.Du
 }
 
 // SaveTxsToStorage does nothing as it is disabled
-func (txCoordinator *TxCoordinator) SaveTxsToStorage(_ *block.Body) error {
-	return nil
+func (txCoordinator *TxCoordinator) SaveTxsToStorage(_ *block.Body) {
 }
 
 // RestoreBlockDataFromStorage does nothing as it is disabled
@@ -72,7 +72,7 @@ func (txCoordinator *TxCoordinator) CreateBlockStarted() {
 // CreateMbsAndProcessCrossShardTransactionsDstMe does nothing as it is disabled
 func (txCoordinator *TxCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe(
 	_ data.HeaderHandler,
-	_ map[string]struct{},
+	_ map[string]*processedMb.ProcessedMiniBlockInfo,
 	_ func() bool,
 	_ func() bool,
 	_ bool,
@@ -100,9 +100,9 @@ func (txCoordinator *TxCoordinator) VerifyCreatedBlockTransactions(_ data.Header
 	return nil
 }
 
-// CreateMarshalizedReceipts does nothing as it is disabled
-func (txCoordinator *TxCoordinator) CreateMarshalizedReceipts() ([]byte, error) {
-	return nil, nil
+// GetCreatedInShardMiniBlocks returns nil as is it disabled
+func (txCoordinator *TxCoordinator) GetCreatedInShardMiniBlocks() []*block.MiniBlock {
+	return nil
 }
 
 // VerifyCreatedMiniBlocks does nothing as it is disabled
@@ -122,6 +122,10 @@ func (txCoordinator *TxCoordinator) GetAllIntermediateTxs() map[block.Type]map[s
 
 // AddTxsFromMiniBlocks does nothing as it is disabled
 func (txCoordinator *TxCoordinator) AddTxsFromMiniBlocks(_ block.MiniBlockSlice) {
+}
+
+// AddTransactions does nothing as it is disabled
+func (txCoordinator *TxCoordinator) AddTransactions(_ []data.TransactionHandler, _ block.Type) {
 }
 
 // GetAllCurrentLogs returns empty logs map

@@ -12,8 +12,8 @@ import (
 	vmData "github.com/ElrondNetwork/elrond-go-core/data/vm"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/vm"
-	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 	"github.com/stretchr/testify/assert"
@@ -26,8 +26,10 @@ func createMockArguments() ArgNewTxTypeHandler {
 		ShardCoordinator:   mock.NewMultiShardsCoordinatorMock(3),
 		BuiltInFunctions:   builtInFunctions.NewBuiltInFunctionContainer(),
 		ArgumentParser:     parsers.NewCallArgsParser(),
-		EpochNotifier:      &epochNotifier.EpochNotifierStub{},
 		ESDTTransferParser: esdtTransferParser,
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
+			IsESDTMetadataContinuousCleanupFlagEnabledField: true,
+		},
 	}
 }
 
@@ -77,17 +79,6 @@ func TestNewTxTypeHandler_NilBuiltInFuncs(t *testing.T) {
 
 	assert.Nil(t, tth)
 	assert.Equal(t, process.ErrNilBuiltInFunction, err)
-}
-
-func TestNewTxTypeHandler_NilEpochNotifier(t *testing.T) {
-	t.Parallel()
-
-	arg := createMockArguments()
-	arg.EpochNotifier = nil
-	tth, err := NewTxTypeHandler(arg)
-
-	assert.Nil(t, tth)
-	assert.Equal(t, process.ErrNilEpochNotifier, err)
 }
 
 func TestNewTxTypeHandler_ValsOk(t *testing.T) {
@@ -450,11 +441,6 @@ func TestTxTypeHandler_ComputeTransactionTypeRelayedV2Func(t *testing.T) {
 	txTypeIn, txTypeCross := tth.ComputeTransactionType(tx)
 	assert.Equal(t, process.RelayedTxV2, txTypeIn)
 	assert.Equal(t, process.RelayedTxV2, txTypeCross)
-
-	tth.flagRelayedTxV2.Reset()
-	txTypeIn, txTypeCross = tth.ComputeTransactionType(tx)
-	assert.Equal(t, process.MoveBalance, txTypeIn)
-	assert.Equal(t, process.MoveBalance, txTypeCross)
 }
 
 func TestTxTypeHandler_ComputeTransactionTypeForSCRCallBack(t *testing.T) {

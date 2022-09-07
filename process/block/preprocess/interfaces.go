@@ -23,6 +23,7 @@ type TxCache interface {
 // BlockTracker defines the functionality for node to track the blocks which are received from network
 type BlockTracker interface {
 	IsShardStuck(shardID uint32) bool
+	ShouldSkipMiniBlocksCreationFromSelf() bool
 	IsInterfaceNil() bool
 }
 

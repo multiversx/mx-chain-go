@@ -12,9 +12,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	storageCore "github.com/ElrondNetwork/elrond-go-core/storage"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
+	elrondErrors "github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/clean"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
@@ -92,6 +94,7 @@ type PruningStorer struct {
 	mutEpochPrepareHdr     sync.RWMutex
 	epochPrepareHdr        data.HeaderHandler
 	oldDataCleanerProvider clean.OldDataCleanerProvider
+	customDatabaseRemover  storage.CustomDatabaseRemoverHandler
 	identifier             string
 	numOfEpochsToKeep      uint32
 	numOfActivePersisters  uint32
@@ -152,6 +155,7 @@ func initPruningStorer(
 	pdb.numOfEpochsToKeep = args.NumOfEpochsToKeep
 	pdb.numOfActivePersisters = args.NumOfActivePersisters
 	pdb.oldDataCleanerProvider = args.OldDataCleanerProvider
+	pdb.customDatabaseRemover = args.CustomDatabaseRemover
 	pdb.persistersMapByEpoch = persistersMapByEpoch
 	pdb.activePersisters = activePersisters
 
@@ -177,6 +181,12 @@ func checkArgs(args *StorerArgs) error {
 	}
 	if check.IfNil(args.PathManager) {
 		return storage.ErrNilPathManager
+	}
+	if check.IfNil(args.CustomDatabaseRemover) {
+		return storage.ErrNilCustomDatabaseRemover
+	}
+	if check.IfNil(args.OldDataCleanerProvider) {
+		return storage.ErrNilOldDataCleanerProvider
 	}
 	if args.MaxBatchSize > int(args.CacheConf.Capacity) {
 		return storage.ErrCacheSizeIsLowerThanBatchSize
@@ -289,6 +299,7 @@ func (ps *PruningStorer) Put(key, data []byte) error {
 	ps.cacher.Put(key, data, len(data))
 
 	persisterToUse := ps.getPersisterToUse()
+
 	return ps.doPutInPersister(key, data, persisterToUse.getPersister())
 }
 
@@ -305,9 +316,16 @@ func (ps *PruningStorer) getPersisterToUse() *persisterData {
 	if ok && !persisterInSetEpoch.getIsClosed() {
 		persisterToUse = persisterInSetEpoch
 	} else {
+		returningPath := "<nil persisterToUse>"
+		if persisterToUse != nil {
+			returningPath = persisterToUse.path
+		}
+
 		log.Debug("active persister not found",
 			"epoch", ps.epochForPutOperation,
-			"used", persisterToUse.epoch)
+			"used", persisterToUse.epoch,
+			"path", ps.dbPath,
+			"returning persister", returningPath)
 	}
 
 	return persisterToUse
@@ -401,7 +419,7 @@ func (ps *PruningStorer) Get(key []byte) ([]byte, error) {
 	for idx := 0; idx < len(ps.activePersisters); idx++ {
 		val, err := ps.activePersisters[idx].persister.Get(key)
 		if err != nil {
-			if err == storage.ErrDBIsClosed {
+			if err == elrondErrors.ErrDBIsClosed {
 				numClosedDbs++
 			}
 
@@ -414,7 +432,7 @@ func (ps *PruningStorer) Get(key []byte) ([]byte, error) {
 	}
 
 	if numClosedDbs == len(ps.activePersisters) && len(ps.activePersisters) > 0 {
-		return nil, storage.ErrDBIsClosed
+		return nil, elrondErrors.ErrDBIsClosed
 	}
 
 	return nil, fmt.Errorf("key %s not found in %s", hex.EncodeToString(key), ps.identifier)
@@ -477,11 +495,10 @@ func (ps *PruningStorer) GetFromEpoch(key []byte, epoch uint32) ([]byte, error) 
 
 	return nil, fmt.Errorf("key %s not found in %s",
 		hex.EncodeToString(key), ps.identifier)
-
 }
 
 // GetBulkFromEpoch will return a slice of keys only in the persister for the given epoch
-func (ps *PruningStorer) GetBulkFromEpoch(keys [][]byte, epoch uint32) (map[string][]byte, error) {
+func (ps *PruningStorer) GetBulkFromEpoch(keys [][]byte, epoch uint32) ([]storageCore.KeyValuePair, error) {
 	ps.lock.RLock()
 	pd, exists := ps.persistersMapByEpoch[epoch]
 	ps.lock.RUnlock()
@@ -498,11 +515,12 @@ func (ps *PruningStorer) GetBulkFromEpoch(keys [][]byte, epoch uint32) (map[stri
 	}
 	defer closePersister()
 
-	returnMap := make(map[string][]byte)
+	results := make([]storageCore.KeyValuePair, 0, len(keys))
 	for _, key := range keys {
 		v, ok := ps.cacher.Get(key)
 		if ok {
-			returnMap[string(key)] = v.([]byte)
+			keyValue := storageCore.KeyValuePair{Key: key, Value: v.([]byte)}
+			results = append(results, keyValue)
 			continue
 		}
 
@@ -515,10 +533,11 @@ func (ps *PruningStorer) GetBulkFromEpoch(keys [][]byte, epoch uint32) (map[stri
 			continue
 		}
 
-		returnMap[string(key)] = res
+		keyValue := storageCore.KeyValuePair{Key: key, Value: res}
+		results = append(results, keyValue)
 	}
 
-	return returnMap, nil
+	return results, nil
 }
 
 // SearchFirst will search a given key in all the active persisters, from the newest to the oldest
@@ -761,7 +780,7 @@ func (ps *PruningStorer) changeEpoch(header data.HeaderHandler) error {
 		return nil
 	}
 
-	err = ps.closePersisters(epoch)
+	err = ps.closeAndDestroyPersisters(epoch)
 	if err != nil {
 		log.Warn("closing persisters", "error", err.Error())
 		return err
@@ -891,18 +910,19 @@ func (ps *PruningStorer) extendActivePersisters(from uint32, to uint32) error {
 }
 
 // should be called under mutex protection
-func (ps *PruningStorer) closePersisters(epoch uint32) error {
+func (ps *PruningStorer) closeAndDestroyPersisters(epoch uint32) error {
 	// activePersisters outside the numOfActivePersisters border have to he closed for both scenarios: full archive or not
 	persistersToClose := ps.processPersistersToClose()
 
-	if ps.oldDataCleanerProvider.ShouldClean() && uint32(len(ps.persistersMapByEpoch)) > ps.numOfEpochsToKeep {
-		idxToRemove := epoch - ps.numOfEpochsToKeep
+	epochsToRemove := make([]uint32, 0)
+	idxToRemove := epoch - ps.numOfEpochsToKeep
+	if uint32(len(ps.persistersMapByEpoch)) > ps.numOfEpochsToKeep {
 		for {
 			_, exists := ps.persistersMapByEpoch[idxToRemove]
 			if !exists {
 				break
 			}
-			delete(ps.persistersMapByEpoch, idxToRemove)
+			epochsToRemove = append(epochsToRemove, idxToRemove)
 			idxToRemove--
 		}
 	}
@@ -911,6 +931,26 @@ func (ps *PruningStorer) closePersisters(epoch uint32) error {
 		err := pd.Close()
 		if err != nil {
 			log.Warn("error closing persister", "error", err.Error(), "id", ps.identifier)
+		}
+	}
+
+	shouldRemoveFromMapDueToOldData := ps.oldDataCleanerProvider.ShouldClean()
+
+	for _, epochToRemove := range epochsToRemove {
+		persisterToRemove := ps.persistersMapByEpoch[epochToRemove]
+		if ps.customDatabaseRemover.ShouldRemove(persisterToRemove.path, epochToRemove) {
+			log.Debug("destroying persister", "path", persisterToRemove.path)
+			err := persisterToRemove.getPersister().DestroyClosed()
+			if err != nil {
+				return err
+			}
+
+			// destroyed persisters have to be removed from the map, regardless on the shouldRemoveFromMapDueToOldData value
+			delete(ps.persistersMapByEpoch, epochToRemove)
+		}
+
+		if shouldRemoveFromMapDueToOldData {
+			delete(ps.persistersMapByEpoch, epochToRemove)
 		}
 	}
 
@@ -941,7 +981,6 @@ func (ps *PruningStorer) processPersistersToClose() []*persisterData {
 		allEpochsAfterProcess = append(allEpochsAfterProcess, p.epoch)
 	}
 
-	// TODO remove this
 	log.Debug("PruningStorer.processPersistersToClose",
 		"epochs to close", epochsToClose,
 		"before process", allEpochsBeforeProcess,

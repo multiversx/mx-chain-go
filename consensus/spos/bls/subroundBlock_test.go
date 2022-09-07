@@ -998,9 +998,6 @@ func TestSubroundBlock_CallFuncRemainingTimeWithStructShouldWork(t *testing.T) {
 
 	time.Sleep(200 * time.Millisecond)
 	assert.True(t, remainingTimeInCurrentRound() < 0)
-
-	roundStartTime = roundStartTime.Add(500 * time.Millisecond)
-	assert.True(t, remainingTimeInCurrentRound() < 0)
 }
 
 func TestSubroundBlock_CallFuncRemainingTimeWithStructShouldNotWork(t *testing.T) {

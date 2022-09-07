@@ -1,6 +1,6 @@
 package config
 
-//ContextFlagsConfig will keep the values for the cli.Context flags
+// ContextFlagsConfig will keep the values for the cli.Context flags
 type ContextFlagsConfig struct {
 	WorkingDir                   string
 	EnableGops                   bool
@@ -20,6 +20,8 @@ type ContextFlagsConfig struct {
 	ValidatorKeyIndex            int
 	EnableRestAPIServerDebugMode bool
 	Version                      string
+	ForceStartFromNetwork        bool
+	NoKeyProvided                bool
 }
 
 // ImportDbConfig will hold the import-db parameters

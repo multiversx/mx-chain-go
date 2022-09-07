@@ -87,6 +87,7 @@ func (rtp *rewardTxProcessor) ProcessRewardTransaction(rTx *rewardTx.RewardTx) e
 		"ProcessRewardTransaction: receiver account details",
 		accHandler,
 		rTx,
+		nil,
 		rtp.pubkeyConv,
 	)
 

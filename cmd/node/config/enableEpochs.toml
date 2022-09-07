@@ -55,6 +55,7 @@
     # StakingV2EnableEpoch represents the epoch when staking v2 is enabled
     StakingV2EnableEpoch = 1
 
+    # DoubleKeyProtectionEnableEpoch represents the epoch when the double key protection will be enabled
     DoubleKeyProtectionEnableEpoch = 1
 
     # ESDTEnableEpoch represents the epoch when ESDT is enabled
@@ -135,7 +136,7 @@
     # CorrectFirstQueuedEpoch represents the epoch when the backward compatibility for setting the first queued node is enabled
     CorrectFirstQueuedEpoch = 1
 
-    # DeleteDelegatorAfterClaimRewardsEnableEpoch represents the epoch when the delegators data is deleted for delegators that have to claim rewards after they widrawal all funds
+    # DeleteDelegatorAfterClaimRewardsEnableEpoch represents the epoch when the delegators data is deleted for delegators that have to claim rewards after they withdraw all funds
     DeleteDelegatorAfterClaimRewardsEnableEpoch = 1
 
     # FixOOGReturnCodeEnableEpoch represents the epoch when the backward compatibility returning out of gas error is enabled
@@ -145,53 +146,83 @@
     RemoveNonUpdatedStorageEnableEpoch = 1
 
     # OptimizeNFTStoreEnableEpoch represents the epoch when optimizations on NFT metadata store and send are enabled
-    OptimizeNFTStoreEnableEpoch = 3
+    OptimizeNFTStoreEnableEpoch = 1
 
     # CreateNFTThroughExecByCallerEnableEpoch represents the epoch when nft creation through execution on destination by caller is enabled
-    CreateNFTThroughExecByCallerEnableEpoch = 3
+    CreateNFTThroughExecByCallerEnableEpoch = 1
 
     # StopDecreasingValidatorRatingWhenStuckEnableEpoch represents the epoch when we should stop decreasing validator's rating if, for instance, a shard gets stuck
-    StopDecreasingValidatorRatingWhenStuckEnableEpoch = 2
+    StopDecreasingValidatorRatingWhenStuckEnableEpoch = 1
 
     # FrontRunningProtectionEnableEpoch represents the epoch when the first version of protection against front running is enabled
-    FrontRunningProtectionEnableEpoch = 4
-
-    # DisableOldTrieStorageEpoch represents the epoch when the old trie storage implementation will be disabled
-    DisableOldTrieStorageEpoch = 4
+    FrontRunningProtectionEnableEpoch = 1
 
     # IsPayableBySCEnableEpoch represents the epoch when a new flag isPayable by SC is enabled
-    IsPayableBySCEnableEpoch = 3
+    IsPayableBySCEnableEpoch = 1
 
     # CleanUpInformativeSCRsEnableEpoch represents the epoch when the informative-only scrs are cleaned from miniblocks and logs are created from them
-    CleanUpInformativeSCRsEnableEpoch = 3
+    CleanUpInformativeSCRsEnableEpoch = 1
 
     # StorageAPICostOptimizationEnableEpoch represents the epoch when new storage helper functions are enabled and cost is reduced in Arwen
-    StorageAPICostOptimizationEnableEpoch = 3
+    StorageAPICostOptimizationEnableEpoch = 1
 
     # TransformToMultiShardCreateEnableEpoch represents the epoch when the new function on esdt system sc is enabled to transfer create role into multishard
-    TransformToMultiShardCreateEnableEpoch = 3
+    TransformToMultiShardCreateEnableEpoch = 1
 
     # ESDTRegisterAndSetAllRolesEnableEpoch represents the epoch when new function to register tickerID and set all roles is enabled
-    ESDTRegisterAndSetAllRolesEnableEpoch = 3
+    ESDTRegisterAndSetAllRolesEnableEpoch = 1
 
     # ScheduledMiniBlocksEnableEpoch represents the epoch when scheduled mini blocks would be created if needed
-    ScheduledMiniBlocksEnableEpoch = 2
+    ScheduledMiniBlocksEnableEpoch = 1
 
     # CorrectJailedNotUnstakedEpoch represents the epoch when the jailed validators will also be unstaked if the queue is empty
-    CorrectJailedNotUnstakedEmptyQueueEpoch = 2
+    CorrectJailedNotUnstakedEmptyQueueEpoch = 1
 
     # DoNotReturnOldBlockInBlockchainHookEnableEpoch represents the epoch when the fetch old block operation is
     # disabled in the blockchain hook component
-    DoNotReturnOldBlockInBlockchainHookEnableEpoch = 2
+    DoNotReturnOldBlockInBlockchainHookEnableEpoch = 1
 
     # AddFailedRelayedTxToInvalidMBsDisableEpoch represents the epoch when adding the failed relayed txs to invalid miniblocks is disabled
-    AddFailedRelayedTxToInvalidMBsDisableEpoch = 2
+    AddFailedRelayedTxToInvalidMBsDisableEpoch = 1
 
     # SCRSizeInvariantOnBuiltInResultEnableEpoch represents the epoch when scr size invariant on built in result is enabled
-    SCRSizeInvariantOnBuiltInResultEnableEpoch = 2
+    SCRSizeInvariantOnBuiltInResultEnableEpoch = 1
 
-   	# FailExecutionOnEveryAPIErrorEnableEpoch represent the epoch when new protection in VM is enabled to fail all wrong API calls
-   	FailExecutionOnEveryAPIErrorEnableEpoch = 3
+    # CheckCorrectTokenIDForTransferRoleEnableEpoch represents the epoch when the correct token ID check is applied for transfer role verification
+    CheckCorrectTokenIDForTransferRoleEnableEpoch = 1
+
+    # DisableExecByCallerEnableEpoch represents the epoch when the check on value is disabled on exec by caller
+    DisableExecByCallerEnableEpoch = 1
+
+    # RefactorContextEnableEpoch represents the epoch when refactoring/simplifying is enabled in contexts
+    RefactorContextEnableEpoch = 1
+
+    # FailExecutionOnEveryAPIErrorEnableEpoch represent the epoch when new protection in VM is enabled to fail all wrong API calls
+    FailExecutionOnEveryAPIErrorEnableEpoch = 1
+
+    # ManagedCryptoAPIsEnableEpoch represents the epoch when new managed crypto APIs are enabled in the wasm VM
+    ManagedCryptoAPIsEnableEpoch = 1
+
+    # CheckFunctionArgumentEnableEpoch represents the epoch when the extra argument check is enabled in vm-common
+    CheckFunctionArgumentEnableEpoch = 1
+
+    # CheckExecuteOnReadOnlyEnableEpoch represents the epoch when the extra checks are enabled for execution on read only
+    CheckExecuteOnReadOnlyEnableEpoch = 1
+
+    # ESDTMetadataContinuousCleanupEnableEpoch represents the epoch when esdt metadata is automatically deleted according to inshard liquidity
+    ESDTMetadataContinuousCleanupEnableEpoch = 4
+
+    # HeartbeatDisableEpoch represents the epoch when heartbeat v1 messages stop being sent and processed
+    HeartbeatDisableEpoch = 2
+
+    # MiniBlockPartialExecutionEnableEpoch represents the epoch when mini block partial execution will be enabled
+    MiniBlockPartialExecutionEnableEpoch = 3
+
+    # SetSenderInEeiOutputTransferEnableEpoch represents the epoch when setting the sender in eei output transfers will be enabled
+    SetSenderInEeiOutputTransferEnableEpoch = 4
+
+    # RefactorPeersMiniBlocksEnableEpoch represents the epoch when refactor of the peers mini blocks will be enabled
+    RefactorPeersMiniBlocksEnableEpoch = 5
 
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
@@ -200,8 +231,8 @@
     ]
 
 [GasSchedule]
+    # GasScheduleByEpochs holds the configuration for the gas schedule that will be applied from specific epochs
     GasScheduleByEpochs = [
         { StartEpoch = 0, FileName = "gasScheduleV1.toml" },
-        { StartEpoch = 1, FileName = "gasScheduleV5.toml" },
-        { StartEpoch = 3, FileName = "gasScheduleV6.toml" },
+        { StartEpoch = 1, FileName = "gasScheduleV6.toml" },
     ]

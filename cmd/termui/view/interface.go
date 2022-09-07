@@ -5,6 +5,8 @@ type Presenter interface {
 	GetAppVersion() string
 	GetNodeName() string
 	GetPublicKeyBlockSign() string
+	GetRedundancyLevel() int64
+	GetRedundancyIsMainActive() string
 	GetShardId() uint64
 	GetNodeType() string
 	GetPeerType() string
@@ -54,10 +56,6 @@ type Presenter interface {
 
 	GetNetworkSentBytesInEpoch() uint64
 	GetNetworkReceivedBytesInEpoch() uint64
-
-	GetTotalRewardsValue() (string, string)
-	CalculateRewardsPerHour() string
-	GetZeros() string
 
 	InvalidateCache()
 	IsInterfaceNil() bool

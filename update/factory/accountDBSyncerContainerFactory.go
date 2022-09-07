@@ -31,6 +31,7 @@ type ArgsNewAccountsDBSyncersContainerFactory struct {
 	NumConcurrentTrieSyncers  int
 	MaxHardCapForMissingNodes int
 	TrieSyncerVersion         int
+	CheckNodesOnDisk          bool
 	AddressPubKeyConverter    core.PubkeyConverter
 	TrieExporter              update.TrieExporter
 }
@@ -48,6 +49,7 @@ type accountDBSyncersContainerFactory struct {
 	numConcurrentTrieSyncers  int
 	maxHardCapForMissingNodes int
 	trieSyncerVersion         int
+	checkNodesOnDisk          bool
 	addressPubKeyConverter    core.PubkeyConverter
 	trieExporter              update.TrieExporter
 }
@@ -101,6 +103,7 @@ func NewAccountsDBSContainerFactory(args ArgsNewAccountsDBSyncersContainerFactor
 		numConcurrentTrieSyncers:  args.NumConcurrentTrieSyncers,
 		maxHardCapForMissingNodes: args.MaxHardCapForMissingNodes,
 		trieSyncerVersion:         args.TrieSyncerVersion,
+		checkNodesOnDisk:          args.CheckNodesOnDisk,
 		addressPubKeyConverter:    args.AddressPubKeyConverter,
 		trieExporter:              args.TrieExporter,
 	}
@@ -149,6 +152,7 @@ func (a *accountDBSyncersContainerFactory) createUserAccountsSyncer(shardId uint
 			MaxTrieLevelInMemory:      a.maxTrieLevelinMemory,
 			MaxHardCapForMissingNodes: a.maxHardCapForMissingNodes,
 			TrieSyncerVersion:         a.trieSyncerVersion,
+			CheckNodesOnDisk:          a.checkNodesOnDisk,
 			TrieExporter:              a.trieExporter,
 		},
 		ShardId:                shardId,
@@ -176,6 +180,7 @@ func (a *accountDBSyncersContainerFactory) createValidatorAccountsSyncer(shardId
 			MaxTrieLevelInMemory:      a.maxTrieLevelinMemory,
 			MaxHardCapForMissingNodes: a.maxHardCapForMissingNodes,
 			TrieSyncerVersion:         a.trieSyncerVersion,
+			CheckNodesOnDisk:          a.checkNodesOnDisk,
 			TrieExporter:              a.trieExporter,
 		},
 	}

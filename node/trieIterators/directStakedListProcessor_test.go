@@ -2,10 +2,12 @@ package trieIterators
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"math/big"
 	"testing"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
@@ -59,6 +61,36 @@ func TestNewDirectStakedListProcessor(t *testing.T) {
 	assert.False(t, check.IfNil(dslp))
 }
 
+func TestDirectStakedListProc_GetDelegatorsListContextShouldTimeout(t *testing.T) {
+	t.Parallel()
+
+	validators := [][]byte{[]byte("validator1"), []byte("validator2")}
+
+	arg := createMockArgs()
+	arg.PublicKeyConverter = mock.NewPubkeyConverterMock(10)
+	arg.QueryService = &mock.SCQueryServiceStub{
+		ExecuteQueryCalled: func(query *process.SCQuery) (*vmcommon.VMOutput, error) {
+			return nil, fmt.Errorf("not an expected call")
+		},
+	}
+	arg.Accounts.AccountsAdapter = &stateMock.AccountsStub{
+		GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
+			return createValidatorScAccount(addressContainer, validators, addressContainer, time.Second), nil
+		},
+		RecreateTrieCalled: func(rootHash []byte) error {
+			return nil
+		},
+	}
+	dslp, _ := NewDirectStakedListProcessor(arg)
+
+	ctxWithTimeout, cancel := context.WithTimeout(context.Background(), time.Millisecond)
+	defer cancel()
+
+	directStakedList, err := dslp.GetDirectStakedList(ctxWithTimeout)
+	require.Equal(t, ErrTrieOperationsTimeout, err)
+	require.Nil(t, directStakedList)
+}
+
 func TestDirectStakedListProc_GetDelegatorsListShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -87,7 +119,7 @@ func TestDirectStakedListProc_GetDelegatorsListShouldWork(t *testing.T) {
 	}
 	arg.Accounts.AccountsAdapter = &stateMock.AccountsStub{
 		GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
-			return createValidatorScAccount(addressContainer, validators, addressContainer), nil
+			return createValidatorScAccount(addressContainer, validators, addressContainer, 0), nil
 		},
 		RecreateTrieCalled: func(rootHash []byte) error {
 			return nil
@@ -95,7 +127,7 @@ func TestDirectStakedListProc_GetDelegatorsListShouldWork(t *testing.T) {
 	}
 	dslp, _ := NewDirectStakedListProcessor(arg)
 
-	directStakedList, err := dslp.GetDirectStakedList()
+	directStakedList, err := dslp.GetDirectStakedList(context.Background())
 	require.Nil(t, err)
 	require.Equal(t, 2, len(directStakedList))
 
@@ -115,17 +147,15 @@ func TestDirectStakedListProc_GetDelegatorsListShouldWork(t *testing.T) {
 	assert.Equal(t, []*api.DirectStakedValue{&expectedDirectStake1, &expectedDirectStake2}, directStakedList)
 }
 
-//
-func createValidatorScAccount(address []byte, leaves [][]byte, rootHash []byte) state.UserAccountHandler {
+func createValidatorScAccount(address []byte, leaves [][]byte, rootHash []byte, timeSleep time.Duration) state.UserAccountHandler {
 	acc, _ := state.NewUserAccount(address)
 	acc.SetDataTrie(&trieMock.TrieStub{
 		RootCalled: func() ([]byte, error) {
 			return rootHash, nil
 		},
-		GetAllLeavesOnChannelCalled: func(hash []byte) (chan core.KeyValueHolder, error) {
-			ch := make(chan core.KeyValueHolder)
-
+		GetAllLeavesOnChannelCalled: func(ch chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error {
 			go func() {
+				time.Sleep(timeSleep)
 				for _, leafBuff := range leaves {
 					leaf := keyValStorage.NewKeyValStorage(leafBuff, nil)
 					ch <- leaf
@@ -134,7 +164,7 @@ func createValidatorScAccount(address []byte, leaves [][]byte, rootHash []byte) 
 				close(ch)
 			}()
 
-			return ch, nil
+			return nil
 		},
 	})
 

@@ -33,6 +33,7 @@ type ArgHeartbeatSender struct {
 	HardforkTrigger      heartbeat.HardforkTrigger
 	CurrentBlockProvider heartbeat.CurrentBlockProvider
 	RedundancyHandler    heartbeat.NodeRedundancyHandler
+	EnableEpochsHandler  common.EnableEpochsHandler
 }
 
 // Sender periodically sends heartbeat messages on a pubsub topic
@@ -54,6 +55,7 @@ type Sender struct {
 	hardforkTrigger      heartbeat.HardforkTrigger
 	currentBlockProvider heartbeat.CurrentBlockProvider
 	redundancy           heartbeat.NodeRedundancyHandler
+	enableEpochsHandler  common.EnableEpochsHandler
 }
 
 // NewSender will create a new sender instance
@@ -68,7 +70,7 @@ func NewSender(arg ArgHeartbeatSender) (*Sender, error) {
 		return nil, fmt.Errorf("%w for arg.PrivKey", heartbeat.ErrNilPrivateKey)
 	}
 	if check.IfNil(arg.Marshalizer) {
-		return nil, heartbeat.ErrNilMarshalizer
+		return nil, heartbeat.ErrNilMarshaller
 	}
 	if check.IfNil(arg.ShardCoordinator) {
 		return nil, heartbeat.ErrNilShardCoordinator
@@ -92,13 +94,16 @@ func NewSender(arg ArgHeartbeatSender) (*Sender, error) {
 	if err != nil {
 		return nil, err
 	}
+	if check.IfNil(arg.EnableEpochsHandler) {
+		return nil, heartbeat.ErrNilEnableEpochsHandler
+	}
 
 	observerPrivateKey := arg.RedundancyHandler.ObserverPrivateKey()
 	if check.IfNil(observerPrivateKey) {
 		return nil, fmt.Errorf("%w for arg.RedundancyHandler.ObserverPrivateKey()", heartbeat.ErrNilPrivateKey)
 	}
 
-	sender := &Sender{
+	return &Sender{
 		peerMessenger:        arg.PeerMessenger,
 		peerSignatureHandler: arg.PeerSignatureHandler,
 		privKey:              arg.PrivKey,
@@ -116,13 +121,16 @@ func NewSender(arg ArgHeartbeatSender) (*Sender, error) {
 		hardforkTrigger:      arg.HardforkTrigger,
 		currentBlockProvider: arg.CurrentBlockProvider,
 		redundancy:           arg.RedundancyHandler,
-	}
-
-	return sender, nil
+		enableEpochsHandler:  arg.EnableEpochsHandler,
+	}, nil
 }
 
 // SendHeartbeat broadcasts a new heartbeat message
 func (s *Sender) SendHeartbeat() error {
+	if s.enableEpochsHandler.IsHeartbeatDisableFlagEnabled() {
+		return nil
+	}
+
 	nonce := uint64(0)
 	crtBlock := s.currentBlockProvider.GetCurrentBlockHeader()
 	if !check.IfNil(crtBlock) {
@@ -144,7 +152,7 @@ func (s *Sender) SendHeartbeat() error {
 	if isHardforkTriggered {
 		isPayloadRecorded := len(triggerMessage) != 0
 		if isPayloadRecorded {
-			//beside sending the regular heartbeat message, send also the initial payload hardfork trigger message
+			// beside sending the regular heartbeat message, send also the initial payload hardfork trigger message
 			// so that will be spread in an epidemic manner
 			log.Debug("broadcasting stored hardfork message")
 			s.peerMessenger.Broadcast(s.topic, triggerMessage)

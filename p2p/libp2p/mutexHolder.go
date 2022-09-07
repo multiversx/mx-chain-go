@@ -9,7 +9,7 @@ import (
 
 // MutexHolder holds a cache of mutexes: pairs of (key, *sync.Mutex)
 type MutexHolder struct {
-	//generalMutex is used to serialize the access to the already concurrent safe lrucache
+	// generalMutex is used to serialize the access to the already concurrent safe lrucache
 	generalMutex sync.Mutex
 	mutexes      storage.Cacher
 }

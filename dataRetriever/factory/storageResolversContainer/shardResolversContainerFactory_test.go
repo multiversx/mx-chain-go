@@ -12,7 +12,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
@@ -52,14 +51,14 @@ func createStubTopicMessageHandlerForShard(matchStrToErrOnCreate string, matchSt
 }
 
 func createStoreForShard() dataRetriever.StorageService {
-	return &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return &storageStubs.StorerStub{}
+	return &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+			return &storageStubs.StorerStub{}, nil
 		},
 	}
 }
 
-//------- NewResolversContainerFactory
+// ------- NewResolversContainerFactory
 
 func TestNewShardResolversContainerFactory_NilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
@@ -138,7 +137,7 @@ func TestNewShardResolversContainerFactory_ShouldWork(t *testing.T) {
 	require.False(t, rcf.IsInterfaceNil())
 }
 
-//------- Create
+// ------- Create
 
 func TestShardResolversContainerFactory_CreateShouldWork(t *testing.T) {
 	t.Parallel()
@@ -174,8 +173,9 @@ func TestShardResolversContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	numResolverMiniBlocks := noOfShards + 2
 	numResolverMetaBlockHeaders := 1
 	numResolverTrieNodes := 1
+	numPeerAuthentication := 1
 	totalResolvers := numResolverTxs + numResolverHeaders + numResolverMiniBlocks +
-		numResolverMetaBlockHeaders + numResolverSCRs + numResolverRewardTxs + numResolverTrieNodes
+		numResolverMetaBlockHeaders + numResolverSCRs + numResolverRewardTxs + numResolverTrieNodes + numPeerAuthentication
 
 	assert.Equal(t, totalResolvers, container.Len())
 }
@@ -183,24 +183,16 @@ func TestShardResolversContainerFactory_With4ShardsShouldWork(t *testing.T) {
 func getArgumentsShard() storageResolversContainers.FactoryArgs {
 	return storageResolversContainers.FactoryArgs{
 		GeneralConfig: config.Config{
-			AccountsTrieStorageOld:     getMockStorageConfig(),
-			AccountsTrieStorage:        getMockStorageConfig(),
-			PeerAccountsTrieStorage:    getMockStorageConfig(),
-			PeerAccountsTrieStorageOld: getMockStorageConfig(),
-			TrieSnapshotDB: config.DBConfig{
-				FilePath:          "",
-				Type:              "MemoryDB",
-				BatchDelaySeconds: 1,
-				MaxBatchSize:      1,
-				MaxOpenFiles:      10,
-			},
+			AccountsTrieStorage:     getMockStorageConfig(),
+			PeerAccountsTrieStorage: getMockStorageConfig(),
 			TrieStorageManagerConfig: config.TrieStorageManagerConfig{
-				PruningBufferLen:   255,
-				SnapshotsBufferLen: 255,
-				MaxSnapshots:       255,
+				PruningBufferLen:      255,
+				SnapshotsBufferLen:    255,
+				SnapshotsGoroutineNum: 2,
 			},
 			StateTriesConfig: config.StateTriesConfig{
 				CheckpointRoundsModulus:     100,
+				SnapshotsEnabled:            true,
 				AccountsStatePruningEnabled: false,
 				PeerStatePruningEnabled:     false,
 				MaxStateTrieLevelInMemory:   5,
@@ -219,6 +211,5 @@ func getArgumentsShard() storageResolversContainers.FactoryArgs {
 		DataPacker:               &mock.DataPackerStub{},
 		ManualEpochStartNotifier: &mock.ManualEpochStartNotifierStub{},
 		ChanGracefullyClose:      make(chan endProcess.ArgEndProcess),
-		EpochNotifier:            &epochNotifier.EpochNotifierStub{},
 	}
 }

@@ -13,14 +13,16 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
-	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 	"github.com/ElrondNetwork/elrond-go/process/sync"
+	"github.com/ElrondNetwork/elrond-go/process/sync/storageBootstrap/metricsLoader"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 var log = logger.GetOrCreate("process/sync")
+
+const maxNumOfConsecutiveNoncesNotFoundAccepted = 10
 
 // ArgsBaseStorageBootstrapper is structure used to create a new storage bootstrapper
 type ArgsBaseStorageBootstrapper struct {
@@ -39,6 +41,9 @@ type ArgsBaseStorageBootstrapper struct {
 	ChainID                      string
 	ScheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 	MiniblocksProvider           process.MiniBlockProvider
+	EpochNotifier                process.EpochNotifier
+	ProcessedMiniBlocksTracker   process.ProcessedMiniBlocksTracker
+	AppStatusHandler             core.AppStatusHandler
 }
 
 // ArgsShardStorageBootstrapper is structure used to create a new storage bootstrapper for shard
@@ -71,6 +76,9 @@ type storageBootstrapper struct {
 	chainID                      string
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 	miniBlocksProvider           process.MiniBlockProvider
+	epochNotifier                process.EpochNotifier
+	processedMiniBlocksTracker   process.ProcessedMiniBlocksTracker
+	appStatusHandler             core.AppStatusHandler
 }
 
 func (st *storageBootstrapper) loadBlocks() error {
@@ -115,6 +123,9 @@ func (st *storageBootstrapper) loadBlocks() error {
 			round = headerInfo.LastRound
 			continue
 		}
+
+		_, numHdrs := metricsLoader.UpdateMetricsFromStorage(st.store, st.uint64Converter, st.marshalizer, st.appStatusHandler, headerInfo.LastHeader.Nonce)
+		st.blkExecutor.SetNumProcessedObj(numHdrs)
 
 		err = st.applyHeaderInfo(headerInfo)
 		if err != nil {
@@ -162,13 +173,11 @@ func (st *storageBootstrapper) loadBlocks() error {
 
 	st.bootstrapper.applyNumPendingMiniBlocks(headerInfo.PendingMiniBlocks)
 
-	processedMiniBlocks := processedMb.NewProcessedMiniBlocks()
-	processedMiniBlocks.ConvertSliceToProcessedMiniBlocksMap(headerInfo.ProcessedMiniBlocks)
-	processedMiniBlocks.DisplayProcessedMiniBlocks()
-
-	st.blkExecutor.ApplyProcessedMiniBlocks(processedMiniBlocks)
+	st.processedMiniBlocksTracker.ConvertSliceToProcessedMiniBlocksMap(headerInfo.ProcessedMiniBlocks)
+	st.processedMiniBlocksTracker.DisplayProcessedMiniBlocks()
 
 	st.cleanupStorageForHigherNonceIfExist()
+	st.bootstrapper.cleanupNotarizedStorageForHigherNoncesIfExist(headerInfo.LastCrossNotarizedHeaders)
 
 	for i := 0; i < len(storageHeadersInfo)-1; i++ {
 		st.cleanupStorage(storageHeadersInfo[i].LastHeader)
@@ -192,6 +201,7 @@ func (st *storageBootstrapper) loadBlocks() error {
 	}
 
 	st.highestNonce = headerInfo.LastHeader.Nonce
+	st.epochNotifier.CheckEpoch(st.blkc.GetCurrentBlockHeader())
 
 	return nil
 }
@@ -454,7 +464,7 @@ func (st *storageBootstrapper) restoreBlockChainToGenesis() {
 	st.blkc.SetCurrentBlockHeaderHash(nil)
 }
 
-func checkBaseStorageBootrstrapperArguments(args ArgsBaseStorageBootstrapper) error {
+func checkBaseStorageBootstrapperArguments(args ArgsBaseStorageBootstrapper) error {
 	if check.IfNil(args.BootStorer) {
 		return process.ErrNilBootStorer
 	}
@@ -493,6 +503,15 @@ func checkBaseStorageBootrstrapperArguments(args ArgsBaseStorageBootstrapper) er
 	}
 	if check.IfNil(args.MiniblocksProvider) {
 		return process.ErrNilMiniBlocksProvider
+	}
+	if check.IfNil(args.EpochNotifier) {
+		return process.ErrNilEpochNotifier
+	}
+	if check.IfNil(args.ProcessedMiniBlocksTracker) {
+		return process.ErrNilProcessedMiniBlocksTracker
+	}
+	if check.IfNil(args.AppStatusHandler) {
+		return process.ErrNilAppStatusHandler
 	}
 
 	return nil

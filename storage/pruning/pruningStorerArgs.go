@@ -16,6 +16,7 @@ type StorerArgs struct {
 	PersisterFactory          DbFactoryHandler
 	Notifier                  EpochStartNotifier
 	OldDataCleanerProvider    clean.OldDataCleanerProvider
+	CustomDatabaseRemover     storage.CustomDatabaseRemoverHandler
 	MaxBatchSize              int
 	NumOfEpochsToKeep         uint32
 	NumOfActivePersisters     uint32

@@ -39,6 +39,7 @@ func createMockArgTopicResolverSender() topicResolverSender.ArgTopicResolverSend
 				return map[uint32][]core.PeerID{}
 			},
 		},
+		PeersRatingHandler: &p2pmocks.PeersRatingHandlerStub{},
 	}
 }
 
@@ -119,6 +120,17 @@ func TestNewTopicResolverSender_NilPreferredPeersHolderShouldErr(t *testing.T) {
 
 	assert.True(t, check.IfNil(trs))
 	assert.Equal(t, dataRetriever.ErrNilPreferredPeersHolder, err)
+}
+
+func TestNewTopicResolverSender_NilPeersRatingHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgTopicResolverSender()
+	arg.PeersRatingHandler = nil
+	trs, err := topicResolverSender.NewTopicResolverSender(arg)
+
+	assert.True(t, check.IfNil(trs))
+	assert.Equal(t, dataRetriever.ErrNilPeersRatingHandler, err)
 }
 
 func TestNewTopicResolverSender_NilSelfShardIDProviderShouldErr(t *testing.T) {
@@ -372,7 +384,6 @@ func TestTopicResolverSender_SendOnRequestTopicShouldWorkAndSendToPreferredPeers
 
 	err := trs.SendOnRequestTopic(&dataRetriever.RequestData{}, defaultHashes)
 	assert.Nil(t, err)
-	assert.Equal(t, 1, countPrefPeersSh0)
 	assert.Equal(t, 1, countPrefPeersSh1)
 }
 

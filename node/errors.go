@@ -16,9 +16,6 @@ var ErrNilPubkeyConverter = errors.New("trying to use a nil pubkey converter")
 // ErrNilPrivateKey signals that a nil private key has been provided
 var ErrNilPrivateKey = errors.New("trying to set nil private key")
 
-// ErrAccountNotFound signals that an account was not found in trie
-var ErrAccountNotFound = errors.New("account not found")
-
 // ErrZeroRoundDurationNotSupported signals that 0 seconds round duration is not supported
 var ErrZeroRoundDurationNotSupported = errors.New("0 round duration time is not supported")
 
@@ -63,9 +60,6 @@ var ErrInvalidReceiverUsernameLength = errors.New("invalid receiver username len
 
 // ErrDataFieldTooBig signals that the data field is too big
 var ErrDataFieldTooBig = errors.New("data field is too big")
-
-// ErrNilTxAccumulator signals that a nil Accumulator instance has been provided
-var ErrNilTxAccumulator = errors.New("nil tx accumulator")
 
 // ErrNilHardforkTrigger signals that a nil hardfork trigger has been provided
 var ErrNilHardforkTrigger = errors.New("nil hardfork trigger")
@@ -124,12 +118,6 @@ var ErrNodeCloseFailed = errors.New("node closing failed ")
 // ErrDifferentSenderShardId signals that a different shard ID was detected between the sender shard ID and the current node shard ID
 var ErrDifferentSenderShardId = errors.New("different shard ID between the transaction sender shard ID and current node shard ID")
 
-// ErrNilStatusComputer signals that user account has a nil data trie
-var ErrNilStatusComputer = errors.New("nil transaction status computer")
-
-// ErrEmptyRootHash signals that the current committed root hash is empty
-var ErrEmptyRootHash = errors.New("empty root hash")
-
 // ErrInvalidESDTRole signals that an invalid ESDT role has been provided
 var ErrInvalidESDTRole = errors.New("invalid ESDT role")
 
@@ -142,8 +130,11 @@ var ErrCannotCastAccountHandlerToUserAccountHandler = errors.New("cannot cast ac
 // ErrCannotCastUserAccountHandlerToVmCommonUserAccountHandler signals that an user account handler cannot be cast to vm common user account handler
 var ErrCannotCastUserAccountHandlerToVmCommonUserAccountHandler = errors.New("cannot cast user account handler to vm common user account handler")
 
-// ErrNilBlockHeader signals that current block header is nil
-var ErrNilBlockHeader = errors.New("nil block header")
+// ErrTrieOperationsTimeout signals that a trie operation took too long
+var ErrTrieOperationsTimeout = errors.New("trie operations timeout")
 
-// ErrShardOnlyEndpoint signals that an endpoint was called, but it is only available for shard nodes
-var ErrShardOnlyEndpoint = errors.New("the endpoint is only available on shard nodes")
+// ErrNotImplemented signals that a feature is not yet implemented
+var ErrNotImplemented = errors.New("feature not implemented")
+
+// ErrNotSupported signals that an operation is not supported
+var ErrNotSupported = errors.New("operation not supported")

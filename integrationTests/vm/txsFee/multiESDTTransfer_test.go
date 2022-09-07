@@ -39,7 +39,7 @@ func TestMultiESDTTransferShouldWork(t *testing.T) {
 	retCode, err := testContext.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, vmcommon.Ok, retCode)
 	require.Nil(t, err)
-	require.Nil(t, testContext.GetLatestError())
+	require.Nil(t, testContext.GetCompositeTestError())
 
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
@@ -68,8 +68,8 @@ func TestMultiESDTTransferShouldWork(t *testing.T) {
 	testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, uint64(4000), indexerTx.GasUsed)
-	require.Equal(t, "40000", indexerTx.Fee)
+	require.Equal(t, uint64(133), indexerTx.GasUsed)
+	require.Equal(t, "1330", indexerTx.Fee)
 
 	allLogs := testContext.TxsLogsProcessor.GetAllCurrentLogs()
 	require.NotNil(t, allLogs)

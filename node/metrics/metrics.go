@@ -3,6 +3,7 @@ package metrics
 import (
 	"fmt"
 	"sort"
+	"strconv"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
@@ -45,8 +46,6 @@ func InitBaseMetrics(statusHandlerUtils StatusHandlersUtils) error {
 	appStatusHandler.SetUInt64Value(common.MetricNumTimesInForkChoice, initUint)
 	appStatusHandler.SetUInt64Value(common.MetricHighestFinalBlock, initUint)
 	appStatusHandler.SetUInt64Value(common.MetricCountConsensusAcceptedBlocks, initUint)
-	appStatusHandler.SetUInt64Value(common.MetricRoundAtEpochStart, initUint)
-	appStatusHandler.SetUInt64Value(common.MetricNonceAtEpochStart, initUint)
 	appStatusHandler.SetUInt64Value(common.MetricRoundsPassedInCurrentEpoch, initUint)
 	appStatusHandler.SetUInt64Value(common.MetricNoncesPassedInCurrentEpoch, initUint)
 	appStatusHandler.SetUInt64Value(common.MetricNumConnectedPeers, initUint)
@@ -57,6 +56,7 @@ func InitBaseMetrics(statusHandlerUtils StatusHandlersUtils) error {
 	appStatusHandler.SetStringValue(common.MetricCurrentBlockHash, initString)
 	appStatusHandler.SetStringValue(common.MetricNumConnectedPeersClassification, initString)
 	appStatusHandler.SetStringValue(common.MetricLatestTagSoftwareVersion, initString)
+	appStatusHandler.SetStringValue(common.MetricAreVMQueriesReady, strconv.FormatBool(false))
 	appStatusHandler.SetStringValue(common.MetricP2PNumConnectedPeersClassification, initString)
 	appStatusHandler.SetStringValue(common.MetricP2PPeerInfo, initString)
 	appStatusHandler.SetStringValue(common.MetricP2PIntraShardValidators, initString)
@@ -121,6 +121,7 @@ func InitConfigMetrics(
 	appStatusHandler.SetUInt64Value(common.MetricGlobalMintBurnDisableEpoch, uint64(enableEpochs.GlobalMintBurnDisableEpoch))
 	appStatusHandler.SetUInt64Value(common.MetricESDTTransferRoleEnableEpoch, uint64(enableEpochs.ESDTTransferRoleEnableEpoch))
 	appStatusHandler.SetUInt64Value(common.MetricBuiltInFunctionOnMetaEnableEpoch, uint64(enableEpochs.BuiltInFunctionOnMetaEnableEpoch))
+	appStatusHandler.SetUInt64Value(common.MetricHeartbeatDisableEpoch, uint64(enableEpochs.HeartbeatDisableEpoch))
 	appStatusHandler.SetStringValue(common.MetricTotalSupply, economicsConfig.GlobalSettings.GenesisTotalSupply)
 	appStatusHandler.SetUInt64Value(common.MetricWaitingListFixEnableEpoch, uint64(enableEpochs.WaitingListFixEnableEpoch))
 

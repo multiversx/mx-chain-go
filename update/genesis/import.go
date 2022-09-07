@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
+	commonDisabled "github.com/ElrondNetwork/elrond-go/common/disabled"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/state/factory"
@@ -393,14 +394,16 @@ func (si *stateImport) getAccountsDB(accType Type, shardID uint32) (state.Accoun
 
 	if accType == ValidatorAccount {
 		if check.IfNil(si.validatorDB) {
-			accountsDB, errCreate := state.NewAccountsDB(
-				currentTrie,
-				si.hasher,
-				si.marshalizer,
-				accountFactory,
-				disabled.NewDisabledStoragePruningManager(),
-				common.Normal,
-			)
+			argsAccountDB := state.ArgsAccountsDB{
+				Trie:                  currentTrie,
+				Hasher:                si.hasher,
+				Marshaller:            si.marshalizer,
+				AccountFactory:        accountFactory,
+				StoragePruningManager: disabled.NewDisabledStoragePruningManager(),
+				ProcessingMode:        common.Normal,
+				ProcessStatusHandler:  commonDisabled.NewProcessStatusHandler(),
+			}
+			accountsDB, errCreate := state.NewAccountsDB(argsAccountDB)
 			if errCreate != nil {
 				return nil, nil, errCreate
 			}
@@ -414,14 +417,16 @@ func (si *stateImport) getAccountsDB(accType Type, shardID uint32) (state.Accoun
 		return accountsDB, currentTrie, nil
 	}
 
-	accountsDB, err = state.NewAccountsDB(
-		currentTrie,
-		si.hasher,
-		si.marshalizer,
-		accountFactory,
-		disabled.NewDisabledStoragePruningManager(),
-		common.Normal,
-	)
+	argsAccountDB := state.ArgsAccountsDB{
+		Trie:                  currentTrie,
+		Hasher:                si.hasher,
+		Marshaller:            si.marshalizer,
+		AccountFactory:        accountFactory,
+		StoragePruningManager: disabled.NewDisabledStoragePruningManager(),
+		ProcessingMode:        common.Normal,
+		ProcessStatusHandler:  commonDisabled.NewProcessStatusHandler(),
+	}
+	accountsDB, err = state.NewAccountsDB(argsAccountDB)
 	si.accountDBsMap[shardID] = accountsDB
 	return accountsDB, currentTrie, err
 }

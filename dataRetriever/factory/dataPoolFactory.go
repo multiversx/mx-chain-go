@@ -3,6 +3,7 @@ package factory
 import (
 	"fmt"
 	"io/ioutil"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
@@ -17,10 +18,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/disabled"
 	"github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache/capacity"
 	"github.com/ElrondNetwork/elrond-go/storage/storageCacherAdapter"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
 )
 
@@ -99,6 +102,77 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 		return nil, fmt.Errorf("%w while creating the cache for the trie nodes", err)
 	}
 
+	trieSyncDB, err := createTrieSyncDB(args)
+	if err != nil {
+		return nil, err
+	}
+
+	tnf := trieFactory.NewTrieNodeFactory()
+	adaptedTrieNodesStorage, err := storageCacherAdapter.NewStorageCacherAdapter(cacher, trieSyncDB, tnf, args.Marshalizer)
+	if err != nil {
+		return nil, fmt.Errorf("%w while creating the adapter for the trie nodes", err)
+	}
+
+	cacherCfg = factory.GetCacherFromConfig(mainConfig.TrieNodesChunksDataPool)
+	trieNodesChunks, err := storageUnit.NewCache(cacherCfg)
+	if err != nil {
+		return nil, fmt.Errorf("%w while creating the cache for the trie chunks", err)
+	}
+
+	cacherCfg = factory.GetCacherFromConfig(mainConfig.SmartContractDataPool)
+	smartContracts, err := storageUnit.NewCache(cacherCfg)
+	if err != nil {
+		return nil, fmt.Errorf("%w while creating the cache for the smartcontract results", err)
+	}
+
+	peerAuthPool, err := timecache.NewTimeCacher(timecache.ArgTimeCacher{
+		DefaultSpan: time.Duration(mainConfig.HeartbeatV2.PeerAuthenticationPool.DefaultSpanInSec) * time.Second,
+		CacheExpiry: time.Duration(mainConfig.HeartbeatV2.PeerAuthenticationPool.CacheExpiryInSec) * time.Second,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("%w while creating the cache for the peer authentication messages", err)
+	}
+
+	cacherCfg = factory.GetCacherFromConfig(mainConfig.HeartbeatV2.HeartbeatPool)
+	heartbeatPool, err := storageUnit.NewCache(cacherCfg)
+	if err != nil {
+		return nil, fmt.Errorf("%w while creating the cache for the heartbeat messages", err)
+	}
+
+	validatorsInfo, err := shardedData.NewShardedData(dataRetriever.ValidatorsInfoPoolName, factory.GetCacherFromConfig(mainConfig.ValidatorInfoPool))
+	if err != nil {
+		return nil, fmt.Errorf("%w while creating the cache for the validator info results", err)
+	}
+
+	currBlockTransactions := dataPool.NewCurrentBlockTransactionsPool()
+	currEpochValidatorInfo := dataPool.NewCurrentEpochValidatorInfoPool()
+	dataPoolArgs := dataPool.DataPoolArgs{
+		Transactions:              txPool,
+		UnsignedTransactions:      uTxPool,
+		RewardTransactions:        rewardTxPool,
+		Headers:                   hdrPool,
+		MiniBlocks:                txBlockBody,
+		PeerChangesBlocks:         peerChangeBlockBody,
+		TrieNodes:                 adaptedTrieNodesStorage,
+		TrieNodesChunks:           trieNodesChunks,
+		CurrentBlockTransactions:  currBlockTransactions,
+		CurrentEpochValidatorInfo: currEpochValidatorInfo,
+		SmartContracts:            smartContracts,
+		PeerAuthentications:       peerAuthPool,
+		Heartbeats:                heartbeatPool,
+		ValidatorsInfo:            validatorsInfo,
+	}
+	return dataPool.NewDataPool(dataPoolArgs)
+}
+
+func createTrieSyncDB(args ArgsDataPool) (storage.Persister, error) {
+	mainConfig := args.Config
+
+	if !mainConfig.TrieSyncStorage.EnableDB {
+		log.Debug("no DB for the intercepted trie nodes")
+		return disabled.NewPersister(), nil
+	}
+
 	dbCfg := factory.GetDBFromConfig(mainConfig.TrieSyncStorage.DB)
 	shardId := core.GetShardIDString(args.ShardCoordinator.SelfId())
 	argDB := storageUnit.ArgDB{
@@ -123,36 +197,5 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 		return nil, fmt.Errorf("%w while creating the db for the trie nodes", err)
 	}
 
-	tnf := trieFactory.NewTrieNodeFactory()
-	adaptedTrieNodesStorage, err := storageCacherAdapter.NewStorageCacherAdapter(cacher, db, tnf, args.Marshalizer)
-	if err != nil {
-		return nil, fmt.Errorf("%w while creating the adapter for the trie nodes", err)
-	}
-
-	cacherCfg = factory.GetCacherFromConfig(mainConfig.TrieNodesChunksDataPool)
-	trieNodesChunks, err := storageUnit.NewCache(cacherCfg)
-	if err != nil {
-		return nil, fmt.Errorf("%w while creating the cache for the trie chunks", err)
-	}
-
-	cacherCfg = factory.GetCacherFromConfig(mainConfig.SmartContractDataPool)
-	smartContracts, err := storageUnit.NewCache(cacherCfg)
-	if err != nil {
-		return nil, fmt.Errorf("%w while creating the cache for the smartcontract results", err)
-	}
-
-	currBlockTxs := dataPool.NewCurrentBlockPool()
-	dataPoolArgs := dataPool.DataPoolArgs{
-		Transactions:             txPool,
-		UnsignedTransactions:     uTxPool,
-		RewardTransactions:       rewardTxPool,
-		Headers:                  hdrPool,
-		MiniBlocks:               txBlockBody,
-		PeerChangesBlocks:        peerChangeBlockBody,
-		TrieNodes:                adaptedTrieNodesStorage,
-		TrieNodesChunks:          trieNodesChunks,
-		CurrentBlockTransactions: currBlockTxs,
-		SmartContracts:           smartContracts,
-	}
-	return dataPool.NewDataPool(dataPoolArgs)
+	return db, nil
 }

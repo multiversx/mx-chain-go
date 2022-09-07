@@ -11,7 +11,11 @@
     # available in local disk
     StartInEpochEnabled = true
 
-    # ChainID identifies the blockChain
+    # ChainID represents the chain identifier
+    # The currently supported constants are:
+    #   "1" for Mainnet
+    #   "D" for Devnet
+    #   "T" for Testnet
     ChainID = "undefined"
 
     # MinTransactionVersion represents the minimum transaction version accepted
@@ -28,12 +32,15 @@
     # than this value, then the validators rating decrease should stop so they won't get jailed
     MaxConsecutiveRoundsOfRatingDecrease = 600
 
+    # SyncProcessTimeInMillis is the value in milliseconds used when processing blocks while synchronizing blocks
+    SyncProcessTimeInMillis = 12000
+
 [Versions]
     DefaultVersion = "default"
     VersionsByEpochs = [
         { StartEpoch = 0, Version = "*" },
         # The value of StartEpoch parameter for version 2 should be the same with the ScheduledMiniBlocksEnableEpoch flag from enableEpoch.toml file
-        { StartEpoch = 2, Version = "2" },
+        { StartEpoch = 1, Version = "2" },
     ]
     [Versions.Cache]
         Name = "VersionsCache"
@@ -51,6 +58,20 @@
     # If this flag is set to false, the node won't delete any database between epochs
     # Applicable only for observers
     ObserverCleanOldEpochsData = false
+
+    # If this flag is set to false, the node won't delete the AccountsTrie database for old epochs
+    # Applicable for both observers and validators
+    # WARNING! Setting this to false will increase each epoch's directory size with the trie snapshot,
+    # which might easily cause the node to run out of disk space.
+    AccountsTrieCleanOldEpochsData = true
+
+    # AccountsTrieSkipRemovalCustomPattern represents the custom pattern that determines when AccountsTrie database
+    # doesn't have to be cleaned
+    # Format: %x,%y - if an epoch is divisible by x or by y, then the AccountsTrie database won't be removed
+    # If empty, then all databases will be removed
+    # If invalid format, then an error will be returned
+    # Applicable only if AccountsTrieCleanOldEpochsData is set to true
+    AccountsTrieSkipRemovalCustomPattern = "%50"
 
     # NumEpochsToKeep - if the flag above is set to true, this will set the number of epochs to keep in the storage.
     # Epochs older that (current epoch - NumOfEpochsToKeep) will be removed
@@ -286,32 +307,6 @@
         MaxBatchSize = 100
         MaxOpenFiles = 10
 
-[AccountsTrieStorageOld]
-    [AccountsTrieStorageOld.Cache]
-        Name = "AccountsTrieStorage"
-        Capacity = 500000
-        Type = "SizeLRU"
-        SizeInBytes = 52428800 #50MB
-    [AccountsTrieStorageOld.DB]
-        FilePath = "AccountsTrie/MainDB"
-        Type = "LvlDBSerial"
-        BatchDelaySeconds = 2
-        MaxBatchSize = 45000
-        MaxOpenFiles = 10
-
-[PeerAccountsTrieStorageOld]
-    [PeerAccountsTrieStorageOld.Cache]
-        Name = "PeerAccountsTrieStorage"
-        Capacity = 5000
-        Type = "SizeLRU"
-        SizeInBytes = 52428800 #50MB
-    [PeerAccountsTrieStorageOld.DB]
-        FilePath = "PeerAccountsTrie/MainDB"
-        Type = "LvlDBSerial"
-        BatchDelaySeconds = 2
-        MaxBatchSize = 1000
-        MaxOpenFiles = 10
-
 [AccountsTrieStorage]
     [AccountsTrieStorage.Cache]
         Name = "AccountsTrieStorage"
@@ -375,19 +370,10 @@
         MaxBatchSize = 100
         MaxOpenFiles = 10
 
-[TrieSnapshotDB]
-    FilePath = "TrieSnapshot"
-    Type = "LvlDBSerial"
-    BatchDelaySeconds = 2
-    MaxBatchSize = 40000
-    MaxOpenFiles = 10
-
 [TrieStorageManagerConfig]
     PruningBufferLen = 100000
     SnapshotsBufferLen = 1000000
     SnapshotsGoroutineNum = 200
-    MaxSnapshots = 3
-    KeepSnapshots = false
     CheckpointHashesHolderMaxSize = 52428800 #50MB
 
 [HeadersPoolConfig]
@@ -402,7 +388,7 @@
 
 [TxBlockBodyDataPool]
     Name = "TxBlockBodyDataPool"
-    Capacity = 1000
+    Capacity = 100000
     Type = "SizeLRU"
     SizeInBytes = 314572800 #300MB
 
@@ -457,6 +443,12 @@
     SizeInBytes = 26214400  # 25MB per each pair (metachain, destinationShard)
     Shards = 4
 
+[ValidatorInfoPool]
+    Name = "ValidatorInfoPool"
+    Capacity = 10000
+    SizeInBytes = 31457280  #30MB
+    Shards = 4
+
 #PublicKeyPeerId represents the main cache used to map Elrond block signing public keys to their associated peer id's.
 [PublicKeyPeerId]
     Name = "PublicKeyPeerId"
@@ -492,9 +484,18 @@
     Capacity = 10000
     Type = "LRU"
 
+[PeersRatingConfig]
+    TopRatedCacheCapacity = 5000
+    BadRatedCacheCapacity = 5000
+
+[PoolsCleanersConfig]
+    MaxRoundsToKeepUnprocessedMiniBlocks = 300   # max number of rounds unprocessed miniblocks are kept in pool
+    MaxRoundsToKeepUnprocessedTransactions = 300 # max number of rounds unprocessed transactions are kept in pool
+
 [TrieSyncStorage]
     Capacity = 300000
     SizeInBytes = 104857600 #100MB
+    EnableDB = false
     [TrieSyncStorage.DB]
         FilePath = "TrieSyncStorageDB"
         Type = "LvlDBSerial"
@@ -573,6 +574,9 @@
         SameSourceRequests = 10000
         # SameSourceResetIntervalInSec time frame between counter reset, in seconds
         SameSourceResetIntervalInSec = 1
+        # TrieOperationsDeadlineMilliseconds represents the maximum duration that an API call targeting a trie operation
+        # can take.
+        TrieOperationsDeadlineMilliseconds = 10000
         # EndpointsThrottlers represents a map for maximum simultaneous go routines for an endpoint
         EndpointsThrottlers = [{ Endpoint = "/transaction/:hash", MaxNumGoRoutines = 10 },
                                { Endpoint = "/transaction/send", MaxNumGoRoutines = 2 },
@@ -586,10 +590,6 @@
         # less than the specified max value. This is used to create desynchronizations between senders as to not
         # clutter the network exactly in the same moment
         MaxDeviationTimeInMilliseconds = 25
-
-[Logger]
-    Path = "logs"
-    StackTraceDepth = 2
 
 [AddressPubkeyConverter]
     Length = 32
@@ -683,6 +683,7 @@
 [StateTriesConfig]
     CheckpointRoundsModulus = 100
     CheckpointsEnabled = false
+    SnapshotsEnabled = true
     AccountsStatePruningEnabled = true
     PeerStatePruningEnabled = true
     MaxStateTrieLevelInMemory = 5
@@ -696,6 +697,8 @@
 
 [VirtualMachine]
     [VirtualMachine.Execution]
+        TimeOutForSCExecutionInMilliseconds = 10000 # 10 seconds = 10000 milliseconds
+        WasmerSIGSEGVPassthrough            = false # must be false for release
         ArwenVersions = [
             { StartEpoch = 0, Version = "v1.3" },
             { StartEpoch = 1, Version = "v1.4" },
@@ -703,10 +706,26 @@
 
     [VirtualMachine.Querying]
         NumConcurrentVMs = 1
+        TimeOutForSCExecutionInMilliseconds = 10000 # 10 seconds = 10000 milliseconds
+        WasmerSIGSEGVPassthrough            = false # must be false for release
         ArwenVersions = [
             { StartEpoch = 0, Version = "v1.3" },
             { StartEpoch = 1, Version = "v1.4" },
         ]
+
+    [VirtualMachine.GasConfig]
+        # The following values define the maximum amount of gas to be allocated for VM Queries coming from API
+        # If set to 0, then MaxUInt64 will be used
+        ShardMaxGasPerVmQuery = 1500000000  #1.5b
+        MetaMaxGasPerVmQuery = 0  #unlimited
+
+[BuiltInFunctions]
+    AutomaticCrawlerAddresses =[
+        "erd1he8wwxn4az3j82p7wwqsdk794dm7hcrwny6f8dfegkfla34udx7qrf7xje", #shard 0
+        "erd1fpkcgel4gcmh8zqqdt043yfcn5tyx8373kg6q2qmkxzu4dqamc0swts65c", #shard 1
+        "erd1najnxxweyw6plhg8efql330nttrj6l5cf87wqsuym85s9ha0hmdqnqgenp", #shard 2
+    ]
+    MaxNumAddressesInTransferRole = 100
 
 [Hardfork]
     EnableTrigger = true
@@ -798,10 +817,10 @@
         ProcessDataTrieOnCommitEpoch = true
 
 [Health]
-    IntervalVerifyMemoryInSeconds = 5
+    IntervalVerifyMemoryInSeconds = 30
     IntervalDiagnoseComponentsInSeconds = 30
     IntervalDiagnoseComponentsDeeplyInSeconds = 120
-    MemoryUsageToCreateProfiles = 2415919104 # 2.25GB
+    MemoryUsageToCreateProfiles = 3221225472 # 3 GB
     NumMemoryUsageRecordsToKeep = 100
     FolderPath = "health-records"
 
@@ -888,15 +907,43 @@
         MaxOpenFiles = 10
 
 [Logs]
-    LogFileLifeSpanInSec = 86400
+    LogFileLifeSpanInMB = 1024 # 1GB
+    LogFileLifeSpanInSec = 86400 # 1 day
 
 [TrieSync]
     NumConcurrentTrieSyncers  = 200
     MaxHardCapForMissingNodes = 5000
     #available versions: 1 and 2. 1 is the initial version, 2 is updated, more efficient version
     TrieSyncerVersion         = 2
+    CheckNodesOnDisk          = false
 
 [Resolvers]
     NumCrossShardPeers  = 2
-    NumIntraShardPeers  = 1
+    NumTotalPeers       = 3 # NumCrossShardPeers + num intra shard
     NumFullHistoryPeers = 3
+
+[HeartbeatV2]
+    PeerAuthenticationTimeBetweenSendsInSec          = 600  # 10min TODO: change this for mainnet/devnet/testnet
+    PeerAuthenticationTimeBetweenSendsWhenErrorInSec = 60   # 1min
+    PeerAuthenticationThresholdBetweenSends          = 0.1  # 10%
+    HeartbeatTimeBetweenSendsInSec                   = 60   # 1min
+    HeartbeatTimeBetweenSendsWhenErrorInSec          = 60   # 1min
+    HeartbeatThresholdBetweenSends                   = 0.1  # 10%
+    MaxNumOfPeerAuthenticationInResponse             = 10
+    HeartbeatExpiryTimespanInSec                     = 3600 # 1h
+    MinPeersThreshold                                = 0.8  # 80%
+    DelayBetweenRequestsInSec                        = 10   # 10sec
+    MaxTimeoutInSec                                  = 7200 # 2h
+    DelayBetweenConnectionNotificationsInSec         = 60   # 1min
+    MaxMissingKeysInRequest                          = 1000
+    MaxDurationPeerUnresponsiveInSec                 = 900  # 15min
+    HideInactiveValidatorIntervalInSec               = 3600 # 1h
+    HardforkTimeBetweenSendsInSec                    = 60   # 1min
+    [HeartbeatV2.PeerAuthenticationPool]
+        DefaultSpanInSec = 3600 # 1h
+        CacheExpiryInSec = 3600 # 1h
+    [HeartbeatV2.HeartbeatPool]
+        Name = "HeartbeatPool"
+        Capacity = 1000
+        Type = "SizeLRU"
+        SizeInBytes = 314572800 #300MB

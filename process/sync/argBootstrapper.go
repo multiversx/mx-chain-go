@@ -46,6 +46,7 @@ type ArgBaseBootstrapper struct {
 	CurrentEpochProvider         process.CurrentNetworkEpochProviderHandler
 	IsInImportMode               bool
 	ScheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
+	ProcessWaitTime              time.Duration
 }
 
 // ArgShardBootstrapper holds all dependencies required by the bootstrap data factory in order to create

@@ -154,7 +154,7 @@ func Benchmark_TestEllipticCurveInitialVariablesAndCalls(b *testing.B) {
 	runWASMVMBenchmark(b, "../testdata/c-api-tests/ecBenchmark/output/ecBenchmark.wasm", 0, "initialVariablesAndCallsTest", nil, b.N, nil)
 }
 
-/// ELLIPTIC CURVES
+// elliptic curves
 
 func Benchmark_TestEllipticCurve(b *testing.B) {
 	testEllipticCurve(b, "p224Add")

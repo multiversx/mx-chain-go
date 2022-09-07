@@ -3,6 +3,7 @@ package storage
 import (
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/storage"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 )
@@ -38,6 +39,8 @@ type Batcher interface {
 	Delete(key []byte) error
 	// Reset clears the contents of the batch
 	Reset()
+	// IsRemoved returns true if the provided key is marked for deletion
+	IsRemoved(key []byte) bool
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }
@@ -93,7 +96,7 @@ type Storer interface {
 	ClearCache()
 	DestroyUnit() error
 	GetFromEpoch(key []byte, epoch uint32) ([]byte, error)
-	GetBulkFromEpoch(keys [][]byte, epoch uint32) (map[string][]byte, error)
+	GetBulkFromEpoch(keys [][]byte, epoch uint32) ([]storage.KeyValuePair, error)
 	GetOldestEpoch() (uint32, error)
 	RangeKeys(handler func(key []byte, val []byte) bool)
 	Close() error
@@ -200,6 +203,7 @@ type SizedLRUCacheHandler interface {
 
 // TimeCacher defines the cache that can keep a record for a bounded time
 type TimeCacher interface {
+	Add(key string) error
 	Upsert(key string, span time.Duration) error
 	Has(key string) bool
 	Sweep()
@@ -223,4 +227,10 @@ type StoredDataFactory interface {
 type SerializedStoredData interface {
 	GetSerialized() []byte
 	SetSerialized([]byte)
+}
+
+// CustomDatabaseRemoverHandler defines the behaviour of a component that should tell if a database is removable or not
+type CustomDatabaseRemoverHandler interface {
+	ShouldRemove(dbIdentifier string, epoch uint32) bool
+	IsInterfaceNil() bool
 }

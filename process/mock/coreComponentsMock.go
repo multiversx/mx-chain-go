@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -29,11 +30,14 @@ type CoreComponentsMock struct {
 	GenesisNodesSetupCalled     func() sharding.GenesisNodesSetupHandler
 	TxVersionCheckField         process.TxVersionCheckerHandler
 	EpochNotifierField          process.EpochNotifier
+	EnableEpochsHandlerField    common.EnableEpochsHandler
 	RoundField                  consensus.RoundHandler
 	StatusField                 core.AppStatusHandler
 	ChanStopNode                chan endProcess.ArgEndProcess
 	NodeTypeProviderField       core.NodeTypeProviderHandler
 	EconomicsDataField          process.EconomicsDataHandler
+	ProcessStatusHandlerField   common.ProcessStatusHandler
+	HardforkTriggerPubKeyField  []byte
 }
 
 // ChanStopNodeProcess -
@@ -125,6 +129,11 @@ func (ccm *CoreComponentsMock) EpochNotifier() process.EpochNotifier {
 	return ccm.EpochNotifierField
 }
 
+// EnableEpochsHandler -
+func (ccm *CoreComponentsMock) EnableEpochsHandler() common.EnableEpochsHandler {
+	return ccm.EnableEpochsHandlerField
+}
+
 // RoundHandler -
 func (ccm *CoreComponentsMock) RoundHandler() consensus.RoundHandler {
 	return ccm.RoundField
@@ -147,6 +156,16 @@ func (ccm *CoreComponentsMock) EconomicsData() process.EconomicsDataHandler {
 	}
 
 	return &economicsmocks.EconomicsHandlerStub{}
+}
+
+// ProcessStatusHandler -
+func (ccm *CoreComponentsMock) ProcessStatusHandler() common.ProcessStatusHandler {
+	return ccm.ProcessStatusHandlerField
+}
+
+// HardforkTriggerPubKey -
+func (ccm *CoreComponentsMock) HardforkTriggerPubKey() []byte {
+	return ccm.HardforkTriggerPubKeyField
 }
 
 // IsInterfaceNil -

@@ -1,16 +1,20 @@
 package mock
 
-import "github.com/ElrondNetwork/elrond-go-core/data/api"
+import (
+	"context"
+
+	"github.com/ElrondNetwork/elrond-go-core/data/api"
+)
 
 // StakeValuesProcessorStub -
 type StakeValuesProcessorStub struct {
-	GetTotalStakedValueCalled func() (*api.StakeValues, error)
+	GetTotalStakedValueCalled func(ctx context.Context) (*api.StakeValues, error)
 }
 
 // GetTotalStakedValue -
-func (svps *StakeValuesProcessorStub) GetTotalStakedValue() (*api.StakeValues, error) {
+func (svps *StakeValuesProcessorStub) GetTotalStakedValue(ctx context.Context) (*api.StakeValues, error) {
 	if svps.GetTotalStakedValueCalled != nil {
-		return svps.GetTotalStakedValueCalled()
+		return svps.GetTotalStakedValueCalled(ctx)
 	}
 
 	return nil, nil

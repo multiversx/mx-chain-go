@@ -9,10 +9,10 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/core/peersholder"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/mock"
+	"github.com/ElrondNetwork/elrond-go/p2p/peersHolder"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/stretchr/testify/assert"
@@ -226,7 +226,7 @@ func TestNewListsSharder_FullArchiveShouldWork(t *testing.T) {
 	assert.Equal(t, 5, ls.maxUnknown)
 }
 
-//------- ComputeEvictionList
+// ------- ComputeEvictionList
 
 func TestListsSharder_ComputeEvictionListNotReachedValidatorsShouldRetEmpty(t *testing.T) {
 	t.Parallel()
@@ -422,33 +422,31 @@ func TestListsSharder_ComputeEvictionListShouldNotContainPreferredPeers(t *testi
 func TestListsSharder_ComputeEvictionListWithRealPreferredPeersHandler(t *testing.T) {
 	arg := createMockListSharderArguments()
 
-	prefP0 := hex.EncodeToString([]byte("preferredPeer0"))
-	prefP1 := hex.EncodeToString([]byte("preferredPeer1"))
-	prefP2 := hex.EncodeToString([]byte("preferredPeer2"))
-	preferredHexPrefix := hex.EncodeToString([]byte("preferred"))
+	preferredHexPrefix := "preferred"
+	prefP0 := preferredHexPrefix + "preferredPeer0"
+	prefP1 := preferredHexPrefix + "preferredPeer1"
+	prefP2 := preferredHexPrefix + "preferredPeer2"
 	pubKeyHexSuffix := hex.EncodeToString([]byte("pubKey"))
 	pids := []peer.ID{
-		peer.ID(prefP0),
+		peer.ID(core.PeerID(prefP0).Pretty()),
 		"peer0",
 		"peer1",
-		peer.ID(prefP1),
+		peer.ID(core.PeerID(prefP1).Pretty()),
 		"peer2",
-		peer.ID(prefP2),
+		peer.ID(core.PeerID(prefP2).Pretty()),
 	}
 
-	prefP0PkBytes, _ := hex.DecodeString(prefP0 + pubKeyHexSuffix)
-	prefP1PkBytes, _ := hex.DecodeString(prefP1 + pubKeyHexSuffix)
-	prefP2PkBytes, _ := hex.DecodeString(prefP2 + pubKeyHexSuffix)
-	prefPeers := [][]byte{
-		prefP0PkBytes,
-		prefP1PkBytes,
-		prefP2PkBytes,
+	prefPeers := []string{
+		core.PeerID(prefP0).Pretty(),
+		core.PeerID(prefP1).Pretty(),
+		core.PeerID(prefP2).Pretty(),
 	}
 
-	arg.PreferredPeersHolder = peersholder.NewPeersHolder(prefPeers)
-	for _, prefPk := range prefPeers {
-		pid := strings.Replace(hex.EncodeToString(prefPk), pubKeyHexSuffix, "", 1)
-		arg.PreferredPeersHolder.Put(prefPk, core.PeerID(pid), 0)
+	arg.PreferredPeersHolder, _ = peersHolder.NewPeersHolder(prefPeers)
+	for _, prefPid := range prefPeers {
+		peerId := core.PeerID(prefPid)
+		arg.PreferredPeersHolder.PutConnectionAddress(peerId, prefPid)
+		arg.PreferredPeersHolder.PutShardID(peerId, 0)
 	}
 
 	arg.PeerResolver = &mock.PeerShardResolverStub{
@@ -476,27 +474,27 @@ func TestListsSharder_ComputeEvictionListWithRealPreferredPeersHandler(t *testin
 		require.False(t, strings.HasPrefix(string(peerID), preferredHexPrefix))
 	}
 
-	found := arg.PreferredPeersHolder.Contains(core.PeerID(prefP0))
+	found := arg.PreferredPeersHolder.Contains(core.PeerID(peer.ID(prefP0).Pretty()))
 	require.True(t, found)
 
-	found = arg.PreferredPeersHolder.Contains(core.PeerID(prefP1))
+	found = arg.PreferredPeersHolder.Contains(core.PeerID(peer.ID(prefP1).Pretty()))
 	require.True(t, found)
 
-	found = arg.PreferredPeersHolder.Contains(core.PeerID(prefP2))
+	found = arg.PreferredPeersHolder.Contains(core.PeerID(peer.ID(prefP2).Pretty()))
 	require.True(t, found)
 
 	peers := arg.PreferredPeersHolder.Get()
 	expectedMap := map[uint32][]core.PeerID{
 		0: {
-			core.PeerID(prefP0),
-			core.PeerID(prefP1),
-			core.PeerID(prefP2),
+			core.PeerID(peer.ID(prefP0).Pretty()),
+			core.PeerID(peer.ID(prefP1).Pretty()),
+			core.PeerID(peer.ID(prefP2).Pretty()),
 		},
 	}
 	require.Equal(t, expectedMap, peers)
 }
 
-//------- Has
+// ------- Has
 
 func TestListsSharder_HasNotFound(t *testing.T) {
 	t.Parallel()
@@ -525,12 +523,12 @@ func TestListsSharder_HasFound(t *testing.T) {
 	assert.True(t, lks.Has("pid2", list))
 }
 
-//------- computeDistance
+// ------- computeDistance
 
 func TestComputeDistanceByCountingBits(t *testing.T) {
 	t.Parallel()
 
-	//compute will be done on hashes. Impossible to predict the outcome in this test
+	// compute will be done on hashes. Impossible to predict the outcome in this test
 	assert.Equal(t, uint64(0), computeDistanceByCountingBits("", "").Uint64())
 	assert.Equal(t, uint64(0), computeDistanceByCountingBits("a", "a").Uint64())
 	assert.Equal(t, uint64(139), computeDistanceByCountingBits(peer.ID([]byte{0}), peer.ID([]byte{1})).Uint64())
@@ -541,7 +539,7 @@ func TestComputeDistanceByCountingBits(t *testing.T) {
 func TestComputeDistanceLog2Based(t *testing.T) {
 	t.Parallel()
 
-	//compute will be done on hashes. Impossible to predict the outcome in this test
+	// compute will be done on hashes. Impossible to predict the outcome in this test
 	assert.Equal(t, uint64(0), computeDistanceLog2Based("", "").Uint64())
 	assert.Equal(t, uint64(0), computeDistanceLog2Based("a", "a").Uint64())
 	assert.Equal(t, uint64(254), computeDistanceLog2Based(peer.ID([]byte{0}), peer.ID([]byte{1})).Uint64())
@@ -568,7 +566,7 @@ func TestListsSharder_SetPeerShardResolverShouldWork(t *testing.T) {
 	newPeerShardResolver := &mock.PeerShardResolverStub{}
 	err := lks.SetPeerShardResolver(newPeerShardResolver)
 
-	//pointer testing
+	// pointer testing
 	assert.True(t, lks.peerShardResolver == newPeerShardResolver)
 	assert.Nil(t, err)
 }

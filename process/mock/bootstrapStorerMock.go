@@ -7,6 +7,7 @@ type BoostrapStorerMock struct {
 	PutCalled             func(round int64, bootData bootstrapStorage.BootstrapData) error
 	GetCalled             func(round int64) (bootstrapStorage.BootstrapData, error)
 	GetHighestRoundCalled func() int64
+	SaveLastRoundCalled   func(round int64) error
 }
 
 // Put -
@@ -25,7 +26,11 @@ func (bsm *BoostrapStorerMock) GetHighestRound() int64 {
 }
 
 // SaveLastRound -
-func (bsm *BoostrapStorerMock) SaveLastRound(_ int64) error {
+func (bsm *BoostrapStorerMock) SaveLastRound(round int64) error {
+	if bsm.SaveLastRoundCalled != nil {
+		return bsm.SaveLastRoundCalled(round)
+	}
+
 	return nil
 }
 

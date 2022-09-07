@@ -3,6 +3,7 @@ package sync
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"math"
 	"sync"
 	"time"
@@ -22,6 +23,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/outport"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/sync/storageBootstrap/metricsLoader"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -33,6 +35,7 @@ var _ closing.Closer = (*baseBootstrap)(nil)
 
 // sleepTime defines the time in milliseconds between each iteration made in syncBlocks method
 const sleepTime = 5 * time.Millisecond
+const minimumProcessWaitTime = time.Millisecond * 100
 
 // hdrInfo hold the data related to a header
 type hdrInfo struct {
@@ -119,6 +122,7 @@ type baseBootstrap struct {
 	cancelFunc                   func()
 	isInImportMode               bool
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
+	processWaitTime              time.Duration
 }
 
 // setRequestedHeaderNonce method sets the header nonce requested by the sync mechanism
@@ -417,8 +421,8 @@ func (boot *baseBootstrap) cleanCachesAndStorageOnRollback(header data.HeaderHan
 	_ = boot.headerNonceHashStore.Remove(nonceToByteSlice)
 }
 
-// checkBootstrapNilParameters will check the imput parameters for nil values
-func checkBootstrapNilParameters(arguments ArgBaseBootstrapper) error {
+// checkBaseBootstrapParameters will check the correctness of the provided parameters
+func checkBaseBootstrapParameters(arguments ArgBaseBootstrapper) error {
 	if check.IfNil(arguments.ChainHandler) {
 		return process.ErrNilBlockChain
 	}
@@ -478,6 +482,9 @@ func checkBootstrapNilParameters(arguments ArgBaseBootstrapper) error {
 	}
 	if check.IfNil(arguments.ScheduledTxsExecutionHandler) {
 		return process.ErrNilScheduledTxsExecutionHandler
+	}
+	if arguments.ProcessWaitTime < minimumProcessWaitTime {
+		return fmt.Errorf("%w, minimum is %v, provided is %v", process.ErrInvalidProcessWaitTime, minimumProcessWaitTime, arguments.ProcessWaitTime)
 	}
 
 	return nil
@@ -631,7 +638,7 @@ func (boot *baseBootstrap) syncBlock() error {
 	}
 
 	startTime := time.Now()
-	waitTime := boot.roundHandler.TimeDuration() * process.TimeDurationMultiplierForProcessBlockWhenSync
+	waitTime := boot.processWaitTime
 	haveTime := func() time.Duration {
 		return waitTime - time.Since(startTime)
 	}
@@ -679,6 +686,13 @@ func (boot *baseBootstrap) syncBlock() error {
 	return nil
 }
 
+func (boot *baseBootstrap) handleTrieSyncError(err error, ctx context.Context) {
+	shouldOutputLog := err != nil && !common.IsContextDone(ctx)
+	if shouldOutputLog {
+		log.Debug("SyncBlock syncTrie", "error", err)
+	}
+}
+
 func (boot *baseBootstrap) syncUserAccountsState() error {
 	rootHash, err := boot.accounts.RootHash()
 	if err != nil {
@@ -703,13 +717,6 @@ func (boot *baseBootstrap) cleanNoncesSyncedWithErrorsBehindFinal() {
 
 // rollBack decides if rollBackOneBlock must be called
 func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
-	if boot.headerStore == nil {
-		return process.ErrNilHeadersStorage
-	}
-	if boot.headerNonceHashStore == nil {
-		return process.ErrNilHeadersNonceHashStorage
-	}
-
 	var roleBackOneBlockExecuted bool
 	var err error
 	var currHeaderHash []byte
@@ -743,7 +750,9 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 		if err != nil {
 			return err
 		}
-		if !revertUsingForkNonce && currHeader.GetNonce() <= boot.forkDetector.GetHighestFinalBlockNonce() {
+
+		allowRollBack := boot.shouldAllowRollback(currHeader, currHeaderHash)
+		if !revertUsingForkNonce && !allowRollBack {
 			return ErrRollBackBehindFinalHeader
 		}
 
@@ -777,7 +786,7 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 			return err
 		}
 
-		_, _ = updateMetricsFromStorage(boot.store, boot.uint64Converter, boot.marshalizer, boot.statusHandler, prevHeader.GetNonce())
+		_, _ = metricsLoader.UpdateMetricsFromStorage(boot.store, boot.uint64Converter, boot.marshalizer, boot.statusHandler, prevHeader.GetNonce())
 
 		err = boot.bootStorer.SaveLastRound(int64(prevHeader.GetRound()))
 		if err != nil {
@@ -824,6 +833,29 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 
 	log.Debug("ending roll back")
 	return nil
+}
+
+func (boot *baseBootstrap) shouldAllowRollback(currHeader data.HeaderHandler, currHeaderHash []byte) bool {
+	finalBlockNonce := boot.forkDetector.GetHighestFinalBlockNonce()
+	finalBlockHash := boot.forkDetector.GetHighestFinalBlockHash()
+	isRollBackBehindFinal := currHeader.GetNonce() <= finalBlockNonce
+	isFinalBlockRollBack := currHeader.GetNonce() == finalBlockNonce
+
+	headerWithScheduledMiniBlocks := currHeader.HasScheduledMiniBlocks()
+	headerHashDoesNotMatchWithFinalBlockHash := !bytes.Equal(currHeaderHash, finalBlockHash)
+	allowFinalBlockRollBack := (headerWithScheduledMiniBlocks || headerHashDoesNotMatchWithFinalBlockHash) && isFinalBlockRollBack
+	allowRollBack := !isRollBackBehindFinal || allowFinalBlockRollBack
+
+	log.Debug("baseBootstrap.shouldAllowRollback",
+		"isRollBackBehindFinal", isRollBackBehindFinal,
+		"isFinalBlockRollBack", isFinalBlockRollBack,
+		"headerWithScheduledMiniBlocks", headerWithScheduledMiniBlocks,
+		"headerHashDoesNotMatchWithFinalBlockHash", headerHashDoesNotMatchWithFinalBlockHash,
+		"allowFinalBlockRollBack", allowFinalBlockRollBack,
+		"allowRollBack", allowRollBack,
+	)
+
+	return allowRollBack
 }
 
 func (boot *baseBootstrap) rollBackOneBlock(

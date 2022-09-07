@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
 	"github.com/stretchr/testify/require"
@@ -20,6 +21,9 @@ import (
 
 func TestNewStateComponentsFactory_NilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	coreComponents := getCoreComponents()
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
@@ -33,6 +37,9 @@ func TestNewStateComponentsFactory_NilShardCoordinatorShouldErr(t *testing.T) {
 
 func TestNewStateComponentsFactory_NilCoreComponents(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	coreComponents := getCoreComponents()
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
@@ -46,6 +53,9 @@ func TestNewStateComponentsFactory_NilCoreComponents(t *testing.T) {
 
 func TestNewStateComponentsFactory_ShouldWork(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	coreComponents := getCoreComponents()
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
@@ -56,8 +66,11 @@ func TestNewStateComponentsFactory_ShouldWork(t *testing.T) {
 	require.NotNil(t, scf)
 }
 
-func TestStateComponentsFactory_Create_ShouldWork(t *testing.T) {
+func TestStateComponentsFactory_CreateShouldWork(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	coreComponents := getCoreComponents()
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
@@ -71,8 +84,11 @@ func TestStateComponentsFactory_Create_ShouldWork(t *testing.T) {
 }
 
 // ------------ Test StateComponents --------------------
-func TestStateComponents_Close_ShouldWork(t *testing.T) {
+func TestStateComponents_CloseShouldWork(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	coreComponents := getCoreComponents()
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
@@ -88,8 +104,24 @@ func TestStateComponents_Close_ShouldWork(t *testing.T) {
 func getStateArgs(coreComponents factory.CoreComponentsHolder, shardCoordinator sharding.Coordinator) factory.StateComponentsFactoryArgs {
 	memDBUsers := mock.NewMemDbMock()
 	memdbPeers := mock.NewMemDbMock()
-	storageManagerUser, _ := trie.NewTrieStorageManagerWithoutPruning(memDBUsers)
-	storageManagerPeer, _ := trie.NewTrieStorageManagerWithoutPruning(memdbPeers)
+	generalConfig := getGeneralConfig()
+
+	storageManagerArgs, options := stateMock.GetStorageManagerArgsAndOptions()
+	storageManagerArgs.Marshalizer = coreComponents.InternalMarshalizer()
+	storageManagerArgs.Hasher = coreComponents.Hasher()
+	storageManagerArgs.MainStorer = memDBUsers
+	storageManagerArgs.CheckpointsStorer = memDBUsers
+	storageManagerArgs.GeneralConfig = generalConfig.TrieStorageManagerConfig
+	options.PruningEnabled = generalConfig.StateTriesConfig.AccountsStatePruningEnabled
+	options.SnapshotsEnabled = generalConfig.StateTriesConfig.SnapshotsEnabled
+	options.CheckpointsEnabled = generalConfig.StateTriesConfig.CheckpointsEnabled
+
+	storageManagerUser, _ := trie.CreateTrieStorageManager(storageManagerArgs, options)
+
+	storageManagerArgs.MainStorer = memdbPeers
+	storageManagerArgs.CheckpointsStorer = memdbPeers
+	options.PruningEnabled = generalConfig.StateTriesConfig.PeerStatePruningEnabled
+	storageManagerPeer, _ := trie.CreateTrieStorageManager(storageManagerArgs, options)
 
 	trieStorageManagers := make(map[string]common.StorageManager)
 	trieStorageManagers[trieFactory.UserAccountTrie] = storageManagerUser
@@ -102,7 +134,7 @@ func getStateArgs(coreComponents factory.CoreComponentsHolder, shardCoordinator 
 	triesHolder.Put([]byte(trieFactory.PeerAccountTrie), triePeers)
 
 	stateComponentsFactoryArgs := factory.StateComponentsFactoryArgs{
-		Config:           getGeneralConfig(),
+		Config:           generalConfig,
 		ShardCoordinator: shardCoordinator,
 		Core:             coreComponents,
 		StorageService:   disabled.NewChainStorer(),
@@ -127,6 +159,7 @@ func getGeneralConfig() config.Config {
 		},
 		StateTriesConfig: config.StateTriesConfig{
 			CheckpointRoundsModulus:     5,
+			SnapshotsEnabled:            true,
 			AccountsStatePruningEnabled: true,
 			PeerStatePruningEnabled:     true,
 			MaxStateTrieLevelInMemory:   5,
@@ -137,27 +170,6 @@ func getGeneralConfig() config.Config {
 			RootHashesSize: 100,
 			DB: config.DBConfig{
 				FilePath:          "EvictionWaitingList",
-				Type:              "MemoryDB",
-				BatchDelaySeconds: 30,
-				MaxBatchSize:      6,
-				MaxOpenFiles:      10,
-			},
-		},
-		TrieSnapshotDB: config.DBConfig{
-			FilePath:          "TrieSnapshot",
-			Type:              "MemoryDB",
-			BatchDelaySeconds: 30,
-			MaxBatchSize:      6,
-			MaxOpenFiles:      10,
-		},
-		AccountsTrieStorageOld: config.StorageConfig{
-			Cache: config.CacheConfig{
-				Capacity: 10000,
-				Type:     "LRU",
-				Shards:   1,
-			},
-			DB: config.DBConfig{
-				FilePath:          "AccountsTrie",
 				Type:              "MemoryDB",
 				BatchDelaySeconds: 30,
 				MaxBatchSize:      6,
@@ -186,20 +198,6 @@ func getGeneralConfig() config.Config {
 			},
 			DB: config.DBConfig{
 				FilePath:          "AccountsTrieCheckpoints",
-				Type:              "MemoryDB",
-				BatchDelaySeconds: 30,
-				MaxBatchSize:      6,
-				MaxOpenFiles:      10,
-			},
-		},
-		PeerAccountsTrieStorageOld: config.StorageConfig{
-			Cache: config.CacheConfig{
-				Capacity: 10000,
-				Type:     "LRU",
-				Shards:   1,
-			},
-			DB: config.DBConfig{
-				FilePath:          "PeerAccountsTrie",
 				Type:              "MemoryDB",
 				BatchDelaySeconds: 30,
 				MaxBatchSize:      6,
@@ -237,7 +235,6 @@ func getGeneralConfig() config.Config {
 		TrieStorageManagerConfig: config.TrieStorageManagerConfig{
 			PruningBufferLen:      1000,
 			SnapshotsBufferLen:    10,
-			MaxSnapshots:          2,
 			SnapshotsGoroutineNum: 1,
 		},
 		VirtualMachine: config.VirtualMachineServicesConfig{
@@ -254,6 +251,10 @@ func getGeneralConfig() config.Config {
 					{StartEpoch: 0, Version: "v0.3"},
 				},
 			},
+			GasConfig: config.VirtualMachineGasConfig{
+				ShardMaxGasPerVmQuery: 1_500_000_000,
+				MetaMaxGasPerVmQuery:  0,
+			},
 		},
 		SmartContractsStorageForSCQuery: config.StorageConfig{
 			Cache: config.CacheConfig{
@@ -266,6 +267,22 @@ func getGeneralConfig() config.Config {
 			Capacity: 10000,
 			Type:     "LRU",
 			Shards:   1,
+		},
+		PeersRatingConfig: config.PeersRatingConfig{
+			TopRatedCacheCapacity: 1000,
+			BadRatedCacheCapacity: 1000,
+		},
+		PoolsCleanersConfig: config.PoolsCleanersConfig{
+			MaxRoundsToKeepUnprocessedMiniBlocks:   50,
+			MaxRoundsToKeepUnprocessedTransactions: 50,
+		},
+		BuiltInFunctions: config.BuiltInFunctionsConfig{
+			AutomaticCrawlerAddresses: []string{
+				"erd1he8wwxn4az3j82p7wwqsdk794dm7hcrwny6f8dfegkfla34udx7qrf7xje", //shard 0
+				"erd1fpkcgel4gcmh8zqqdt043yfcn5tyx8373kg6q2qmkxzu4dqamc0swts65c", //shard 1
+				"erd1najnxxweyw6plhg8efql330nttrj6l5cf87wqsuym85s9ha0hmdqnqgenp", //shard 2
+			},
+			MaxNumAddressesInTransferRole: 100,
 		},
 	}
 }

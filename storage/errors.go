@@ -2,6 +2,7 @@ package storage
 
 import (
 	"errors"
+	"strings"
 )
 
 // ErrNilPersister is raised when a nil persister is provided
@@ -21,9 +22,6 @@ var ErrNotSupportedHashType = errors.New("hash type not supported")
 
 // ErrKeyNotFound is raised when a key is not found
 var ErrKeyNotFound = errors.New("key not found")
-
-// ErrDBIsClosed is raised when the DB is closed
-var ErrDBIsClosed = errors.New("DB is closed")
 
 // ErrInvalidBatch is raised when the used batch is invalid
 var ErrInvalidBatch = errors.New("batch is invalid")
@@ -60,6 +58,9 @@ var ErrNilShardCoordinator = errors.New("nil shard coordinator")
 
 // ErrNilPathManager signals that a nil path manager has been provided
 var ErrNilPathManager = errors.New("nil path manager")
+
+// ErrNilCustomDatabaseRemover signals that a nil custom database remover has been provided
+var ErrNilCustomDatabaseRemover = errors.New("custom database remover")
 
 // ErrNilStorageListProvider signals that a nil storage list provided has been provided
 var ErrNilStorageListProvider = errors.New("nil storage list provider")
@@ -139,8 +140,25 @@ var ErrCannotComputeStorageOldestEpoch = errors.New("could not compute the oldes
 // ErrNilNodeTypeProvider signals that a nil node type provider has been provided
 var ErrNilNodeTypeProvider = errors.New("nil node type provider")
 
-// ErrNilOldDataCleanerProvider signals that a nil old data cleaner provider has been given
+// ErrNilOldDataCleanerProvider signals that a nil old data cleaner provider has been provided
 var ErrNilOldDataCleanerProvider = errors.New("nil old data cleaner provider")
 
 // ErrNilStoredDataFactory signals that a nil stored data factory has been provided
 var ErrNilStoredDataFactory = errors.New("nil stored data factory")
+
+// ErrInvalidDefaultSpan signals that an invalid default span was provided
+var ErrInvalidDefaultSpan = errors.New("invalid default span")
+
+// ErrInvalidCacheExpiry signals that an invalid cache expiry was provided
+var ErrInvalidCacheExpiry = errors.New("invalid cache expiry")
+
+// IsNotFoundInStorageErr returns whether an error is a "not found in storage" error.
+// Currently, "item not found" storage errors are untyped (thus not distinguishable from others). E.g. see "pruningStorer.go".
+// As a workaround, we test the error message for a match.
+func IsNotFoundInStorageErr(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	return strings.Contains(err.Error(), "not found")
+}

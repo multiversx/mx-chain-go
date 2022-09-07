@@ -237,6 +237,18 @@ func TestShardedData_RegisterAddedDataHandlerReallyAddsAhandler(t *testing.T) {
 	assert.Equal(t, 1, len(sd.addedDataHandlers))
 }
 
+func TestShardedData_Keys(t *testing.T) {
+	sd, _ := NewShardedData("", defaultTestConfig)
+
+	txsHashes := [][]byte{[]byte("hash-w"), []byte("hash-x"), []byte("hash-y"), []byte("hash-z")}
+	sd.AddData(txsHashes[0], nil, 0, "1")
+	sd.AddData(txsHashes[1], nil, 0, "1")
+	sd.AddData(txsHashes[2], nil, 0, "2")
+	sd.AddData(txsHashes[3], nil, 0, "3")
+
+	assert.ElementsMatch(t, txsHashes, sd.Keys())
+}
+
 func TestShardedData_RegisterAddedDataHandlerNotAddedShouldNotCall(t *testing.T) {
 	t.Parallel()
 

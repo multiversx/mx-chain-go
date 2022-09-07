@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/update"
 )
 
@@ -204,6 +205,11 @@ func (ss *syncState) GetUnFinishedMetaBlocks() (map[string]data.MetaHeaderHandle
 // GetAllTransactions returns the synced transactions
 func (ss *syncState) GetAllTransactions() (map[string]data.TransactionHandler, error) {
 	return ss.transactions.GetTransactions()
+}
+
+// GetAllValidatorsInfo returns the synced validators info
+func (ss *syncState) GetAllValidatorsInfo() (map[string]*state.ShardValidatorInfo, error) {
+	return ss.transactions.GetValidatorsInfo()
 }
 
 // GetAllMiniBlocks returns the synced miniblocks

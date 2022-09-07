@@ -13,8 +13,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func getDefaultInterceptedTrieNodeParameters(t *testing.T) ([]byte, marshal.Marshalizer, hashing.Hasher) {
-	tr := initTrie(t)
+func getDefaultInterceptedTrieNodeParameters() ([]byte, marshal.Marshalizer, hashing.Hasher) {
+	tr := initTrie()
 	nodes, _ := getEncodedTrieNodesAndHashes(tr)
 
 	return nodes[0], &testscommon.ProtobufMarshalizerMock{}, &testscommon.KeccakMock{}
@@ -46,7 +46,7 @@ func getEncodedTrieNodesAndHashes(tr common.Trie) ([][]byte, [][]byte) {
 func TestNewInterceptedTrieNode_EmptyBufferShouldFail(t *testing.T) {
 	t.Parallel()
 
-	_, marsh, hasher := getDefaultInterceptedTrieNodeParameters(t)
+	_, marsh, hasher := getDefaultInterceptedTrieNodeParameters()
 	interceptedNode, err := trie.NewInterceptedTrieNode([]byte{}, marsh, hasher)
 	assert.True(t, check.IfNil(interceptedNode))
 	assert.Equal(t, trie.ErrValueTooShort, err)
@@ -55,7 +55,7 @@ func TestNewInterceptedTrieNode_EmptyBufferShouldFail(t *testing.T) {
 func TestNewInterceptedTrieNode_NilMarshalizerShouldFail(t *testing.T) {
 	t.Parallel()
 
-	buff, _, hasher := getDefaultInterceptedTrieNodeParameters(t)
+	buff, _, hasher := getDefaultInterceptedTrieNodeParameters()
 	interceptedNode, err := trie.NewInterceptedTrieNode(buff, nil, hasher)
 	assert.True(t, check.IfNil(interceptedNode))
 	assert.Equal(t, trie.ErrNilMarshalizer, err)
@@ -64,7 +64,7 @@ func TestNewInterceptedTrieNode_NilMarshalizerShouldFail(t *testing.T) {
 func TestNewInterceptedTrieNode_NilHasherShouldFail(t *testing.T) {
 	t.Parallel()
 
-	buff, marsh, _ := getDefaultInterceptedTrieNodeParameters(t)
+	buff, marsh, _ := getDefaultInterceptedTrieNodeParameters()
 	interceptedNode, err := trie.NewInterceptedTrieNode(buff, marsh, nil)
 	assert.True(t, check.IfNil(interceptedNode))
 	assert.Equal(t, trie.ErrNilHasher, err)
@@ -73,7 +73,7 @@ func TestNewInterceptedTrieNode_NilHasherShouldFail(t *testing.T) {
 func TestNewInterceptedTrieNode_OkParametersShouldWork(t *testing.T) {
 	t.Parallel()
 
-	interceptedNode, err := trie.NewInterceptedTrieNode(getDefaultInterceptedTrieNodeParameters(t))
+	interceptedNode, err := trie.NewInterceptedTrieNode(getDefaultInterceptedTrieNodeParameters())
 	assert.False(t, check.IfNil(interceptedNode))
 	assert.Nil(t, err)
 }
@@ -81,7 +81,7 @@ func TestNewInterceptedTrieNode_OkParametersShouldWork(t *testing.T) {
 func TestInterceptedTrieNode_CheckValidity(t *testing.T) {
 	t.Parallel()
 
-	interceptedNode, _ := trie.NewInterceptedTrieNode(getDefaultInterceptedTrieNodeParameters(t))
+	interceptedNode, _ := trie.NewInterceptedTrieNode(getDefaultInterceptedTrieNodeParameters())
 
 	err := interceptedNode.CheckValidity()
 	assert.Nil(t, err)
@@ -90,8 +90,8 @@ func TestInterceptedTrieNode_CheckValidity(t *testing.T) {
 func TestInterceptedTrieNode_Hash(t *testing.T) {
 	t.Parallel()
 
-	interceptedNode, _ := trie.NewInterceptedTrieNode(getDefaultInterceptedTrieNodeParameters(t))
-	tr := initTrie(t)
+	interceptedNode, _ := trie.NewInterceptedTrieNode(getDefaultInterceptedTrieNodeParameters())
+	tr := initTrie()
 	_, hashes := getEncodedTrieNodesAndHashes(tr)
 
 	hash := interceptedNode.Hash()
@@ -101,8 +101,8 @@ func TestInterceptedTrieNode_Hash(t *testing.T) {
 func TestInterceptedTrieNode_GetSerialized(t *testing.T) {
 	t.Parallel()
 
-	interceptedNode, _ := trie.NewInterceptedTrieNode(getDefaultInterceptedTrieNodeParameters(t))
-	tr := initTrie(t)
+	interceptedNode, _ := trie.NewInterceptedTrieNode(getDefaultInterceptedTrieNodeParameters())
+	tr := initTrie()
 	nodes, _ := getEncodedTrieNodesAndHashes(tr)
 
 	encNode := interceptedNode.GetSerialized()
@@ -112,7 +112,7 @@ func TestInterceptedTrieNode_GetSerialized(t *testing.T) {
 func TestInterceptedTrieNode_SetSerialized(t *testing.T) {
 	t.Parallel()
 
-	interceptedNode, _ := trie.NewInterceptedTrieNode(getDefaultInterceptedTrieNodeParameters(t))
+	interceptedNode, _ := trie.NewInterceptedTrieNode(getDefaultInterceptedTrieNodeParameters())
 	serializedNode := []byte("serialized node")
 
 	interceptedNode.SetSerialized(serializedNode)
@@ -122,69 +122,69 @@ func TestInterceptedTrieNode_SetSerialized(t *testing.T) {
 func TestInterceptedTrieNode_IsForCurrentShard(t *testing.T) {
 	t.Parallel()
 
-	interceptedNode, _ := trie.NewInterceptedTrieNode(getDefaultInterceptedTrieNodeParameters(t))
+	interceptedNode, _ := trie.NewInterceptedTrieNode(getDefaultInterceptedTrieNodeParameters())
 	assert.True(t, interceptedNode.IsForCurrentShard())
 }
 
 func TestInterceptedTrieNode_Type(t *testing.T) {
 	t.Parallel()
 
-	interceptedNode, _ := trie.NewInterceptedTrieNode(getDefaultInterceptedTrieNodeParameters(t))
+	interceptedNode, _ := trie.NewInterceptedTrieNode(getDefaultInterceptedTrieNodeParameters())
 	assert.Equal(t, "intercepted trie node", interceptedNode.Type())
 }
 
 func TestInterceptedTrieNode_String(t *testing.T) {
 	t.Parallel()
 
-	interceptedNode, _ := trie.NewInterceptedTrieNode(getDefaultInterceptedTrieNodeParameters(t))
+	interceptedNode, _ := trie.NewInterceptedTrieNode(getDefaultInterceptedTrieNodeParameters())
 	assert.NotEqual(t, 0, interceptedNode.String())
 }
 
 func TestInterceptedTrieNode_SenderShardId(t *testing.T) {
 	t.Parallel()
 
-	interceptedNode, _ := trie.NewInterceptedTrieNode(getDefaultInterceptedTrieNodeParameters(t))
+	interceptedNode, _ := trie.NewInterceptedTrieNode(getDefaultInterceptedTrieNodeParameters())
 	assert.NotEqual(t, 0, interceptedNode.SenderShardId())
 }
 
 func TestInterceptedTrieNode_ReceiverShardId(t *testing.T) {
 	t.Parallel()
 
-	interceptedNode, _ := trie.NewInterceptedTrieNode(getDefaultInterceptedTrieNodeParameters(t))
+	interceptedNode, _ := trie.NewInterceptedTrieNode(getDefaultInterceptedTrieNodeParameters())
 	assert.NotEqual(t, 0, interceptedNode.ReceiverShardId())
 }
 
 func TestInterceptedTrieNode_Nonce(t *testing.T) {
 	t.Parallel()
 
-	interceptedNode, _ := trie.NewInterceptedTrieNode(getDefaultInterceptedTrieNodeParameters(t))
+	interceptedNode, _ := trie.NewInterceptedTrieNode(getDefaultInterceptedTrieNodeParameters())
 	assert.NotEqual(t, 0, interceptedNode.Nonce())
 }
 
 func TestInterceptedTrieNode_SenderAddress(t *testing.T) {
 	t.Parallel()
 
-	interceptedNode, _ := trie.NewInterceptedTrieNode(getDefaultInterceptedTrieNodeParameters(t))
+	interceptedNode, _ := trie.NewInterceptedTrieNode(getDefaultInterceptedTrieNodeParameters())
 	assert.Nil(t, interceptedNode.SenderAddress())
 }
 
 func TestInterceptedTrieNode_Fee(t *testing.T) {
 	t.Parallel()
 
-	interceptedNode, _ := trie.NewInterceptedTrieNode(getDefaultInterceptedTrieNodeParameters(t))
+	interceptedNode, _ := trie.NewInterceptedTrieNode(getDefaultInterceptedTrieNodeParameters())
 	assert.Equal(t, big.NewInt(0), interceptedNode.Fee())
 }
 
 func TestInterceptedTrieNode_Identifiers(t *testing.T) {
 	t.Parallel()
 
-	interceptedNode, _ := trie.NewInterceptedTrieNode(getDefaultInterceptedTrieNodeParameters(t))
+	interceptedNode, _ := trie.NewInterceptedTrieNode(getDefaultInterceptedTrieNodeParameters())
 	assert.Equal(t, [][]byte{interceptedNode.Hash()}, interceptedNode.Identifiers())
 }
 
 func TestInterceptedTrieNode_SizeInBytes(t *testing.T) {
 	t.Parallel()
 
-	interceptedNode, _ := trie.NewInterceptedTrieNode(getDefaultInterceptedTrieNodeParameters(t))
+	interceptedNode, _ := trie.NewInterceptedTrieNode(getDefaultInterceptedTrieNodeParameters())
 	assert.Equal(t, 380, interceptedNode.SizeInBytes())
 }

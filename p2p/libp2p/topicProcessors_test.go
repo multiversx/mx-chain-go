@@ -30,7 +30,7 @@ func TestTopicProcessorsAddShouldWork(t *testing.T) {
 
 	assert.Nil(t, err)
 	require.Equal(t, 1, len(tp.processors))
-	assert.True(t, proc == tp.processors[identifier]) //pointer testing
+	assert.True(t, proc == tp.processors[identifier]) // pointer testing
 }
 
 func TestTopicProcessorsDoubleAddShouldErr(t *testing.T) {

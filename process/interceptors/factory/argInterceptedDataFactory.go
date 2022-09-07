@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
@@ -23,7 +24,8 @@ type interceptedDataCoreComponentsHolder interface {
 	ChainID() string
 	MinTransactionVersion() uint32
 	IsInterfaceNil() bool
-	EpochNotifier() process.EpochNotifier
+	HardforkTriggerPubKey() []byte
+	EnableEpochsHandler() common.EnableEpochsHandler
 }
 
 // interceptedDataCryptoComponentsHolder holds the crypto components required by the intercepted data factory
@@ -40,16 +42,19 @@ type interceptedDataCryptoComponentsHolder interface {
 // ArgInterceptedDataFactory holds all dependencies required by the shard and meta intercepted data factory in order to create
 // new instances
 type ArgInterceptedDataFactory struct {
-	CoreComponents            interceptedDataCoreComponentsHolder
-	CryptoComponents          interceptedDataCryptoComponentsHolder
-	ShardCoordinator          sharding.Coordinator
-	NodesCoordinator          nodesCoordinator.NodesCoordinator
-	FeeHandler                process.FeeHandler
-	WhiteListerVerifiedTxs    process.WhiteListHandler
-	HeaderSigVerifier         process.InterceptedHeaderSigVerifier
-	ValidityAttester          process.ValidityAttester
-	HeaderIntegrityVerifier   process.HeaderIntegrityVerifier
-	EpochStartTrigger         process.EpochStartTriggerHandler
-	ArgsParser                process.ArgumentsParser
-	EnableSignTxWithHashEpoch uint32
+	CoreComponents               interceptedDataCoreComponentsHolder
+	CryptoComponents             interceptedDataCryptoComponentsHolder
+	ShardCoordinator             sharding.Coordinator
+	NodesCoordinator             nodesCoordinator.NodesCoordinator
+	FeeHandler                   process.FeeHandler
+	WhiteListerVerifiedTxs       process.WhiteListHandler
+	HeaderSigVerifier            process.InterceptedHeaderSigVerifier
+	ValidityAttester             process.ValidityAttester
+	HeaderIntegrityVerifier      process.HeaderIntegrityVerifier
+	EpochStartTrigger            process.EpochStartTriggerHandler
+	ArgsParser                   process.ArgumentsParser
+	PeerSignatureHandler         crypto.PeerSignatureHandler
+	SignaturesHandler            process.SignaturesHandler
+	HeartbeatExpiryTimespanInSec int64
+	PeerID                       core.PeerID
 }

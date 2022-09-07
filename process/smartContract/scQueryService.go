@@ -42,6 +42,7 @@ type ArgsNewSCQueryService struct {
 	ArwenChangeLocker        common.Locker
 	Bootstrapper             process.Bootstrapper
 	AllowExternalQueriesChan chan struct{}
+	MaxGasLimitPerQuery      uint64
 }
 
 // NewSCQueryService returns a new instance of SCQueryService
@@ -70,6 +71,10 @@ func NewSCQueryService(
 		return nil, process.ErrNilAllowExternalQueriesChan
 	}
 
+	gasForQuery := uint64(math.MaxUint64)
+	if args.MaxGasLimitPerQuery > 0 {
+		gasForQuery = args.MaxGasLimitPerQuery
+	}
 	return &SCQueryService{
 		vmContainer:              args.VmContainer,
 		economicsFee:             args.EconomicsFee,
@@ -77,7 +82,7 @@ func NewSCQueryService(
 		blockChainHook:           args.BlockChainHook,
 		arwenChangeLocker:        args.ArwenChangeLocker,
 		bootstrapper:             args.Bootstrapper,
-		gasForQuery:              math.MaxUint64,
+		gasForQuery:              gasForQuery,
 		allowExternalQueriesChan: args.AllowExternalQueriesChan,
 	}, nil
 }

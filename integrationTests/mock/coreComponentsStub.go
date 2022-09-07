@@ -45,13 +45,16 @@ type CoreComponentsStub struct {
 	GenesisNodesSetupField             sharding.GenesisNodesSetupHandler
 	NodesShufflerField                 nodesCoordinator.NodesShuffler
 	EpochNotifierField                 process.EpochNotifier
-	RoundNotifierField                 process.RoundNotifier
+	EnableRoundsHandlerField           process.EnableRoundsHandler
 	EpochStartNotifierWithConfirmField factory.EpochStartNotifierWithConfirm
 	ChanStopNodeProcessField           chan endProcess.ArgEndProcess
 	GenesisTimeField                   time.Time
 	TxVersionCheckField                process.TxVersionCheckerHandler
 	NodeTypeProviderField              core.NodeTypeProviderHandler
 	ArwenChangeLockerInternal          common.Locker
+	ProcessStatusHandlerInternal       common.ProcessStatusHandler
+	HardforkTriggerPubKeyField         []byte
+	EnableEpochsHandlerField           common.EnableEpochsHandler
 }
 
 // Create -
@@ -140,9 +143,9 @@ func (ccs *CoreComponentsStub) EpochNotifier() process.EpochNotifier {
 	return ccs.EpochNotifierField
 }
 
-// RoundNotifier -
-func (ccs *CoreComponentsStub) RoundNotifier() process.RoundNotifier {
-	return ccs.RoundNotifierField
+// EnableRoundsHandler -
+func (ccs *CoreComponentsStub) EnableRoundsHandler() process.EnableRoundsHandler {
+	return ccs.EnableRoundsHandlerField
 }
 
 // EpochStartNotifierWithConfirm -
@@ -242,9 +245,24 @@ func (ccs *CoreComponentsStub) ArwenChangeLocker() common.Locker {
 	return ccs.ArwenChangeLockerInternal
 }
 
+// ProcessStatusHandler -
+func (ccs *CoreComponentsStub) ProcessStatusHandler() common.ProcessStatusHandler {
+	return ccs.ProcessStatusHandlerInternal
+}
+
 // String -
 func (ccs *CoreComponentsStub) String() string {
 	return "CoreComponentsStub"
+}
+
+// HardforkTriggerPubKey -
+func (ccs *CoreComponentsStub) HardforkTriggerPubKey() []byte {
+	return ccs.HardforkTriggerPubKeyField
+}
+
+// EnableEpochsHandler -
+func (ccs *CoreComponentsStub) EnableEpochsHandler() common.EnableEpochsHandler {
+	return ccs.EnableEpochsHandlerField
 }
 
 // IsInterfaceNil -

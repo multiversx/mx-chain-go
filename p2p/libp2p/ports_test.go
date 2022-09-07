@@ -118,9 +118,9 @@ func TestCheckFreePort_InvalidPortShouldErr(t *testing.T) {
 }
 
 func TestCheckFreePort_OccupiedPortShouldErr(t *testing.T) {
-	//1. get a free port from OS, open a TCP listner
-	//2. get the allocated port
-	//3. test if that port is occupied
+	// 1. get a free port from OS, open a TCP listner
+	// 2. get the allocated port
+	// 3. test if that port is occupied
 	addr, err := net.ResolveTCPAddr("tcp", "localhost:0")
 	if err != nil {
 		assert.Fail(t, err.Error())

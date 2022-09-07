@@ -4,8 +4,9 @@
 #     the reencoded version (in percents).
 #     0 disables the feature.
 [Marshalizer]
-   Type = "gogo protobuf"
-   SizeCheckDelta = 10
+    Type = "gogo protobuf"
+    SizeCheckDelta = 10
 
 [Logs]
-   LogFileLifeSpanInSec = 86400
+    LogFileLifeSpanInMB = 1024 # 1GB
+    LogFileLifeSpanInSec = 86400 # 1 day

@@ -13,11 +13,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/mock"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/process"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/assert"
 )
 
-//------- NewSender
+// ------- NewSender
 
 func createMockArgHeartbeatSender() process.ArgHeartbeatSender {
 	return process.ArgHeartbeatSender{
@@ -26,8 +27,8 @@ func createMockArgHeartbeatSender() process.ArgHeartbeatSender {
 		},
 		PeerSignatureHandler: &mock.PeerSignatureHandler{},
 		PrivKey:              &mock.PrivateKeyStub{},
-		Marshalizer: &mock.MarshalizerStub{
-			MarshalHandler: func(obj interface{}) (i []byte, e error) {
+		Marshalizer: &testscommon.MarshalizerStub{
+			MarshalCalled: func(obj interface{}) (i []byte, e error) {
 				return nil, nil
 			},
 		},
@@ -37,9 +38,10 @@ func createMockArgHeartbeatSender() process.ArgHeartbeatSender {
 		StatusHandler:        &statusHandlerMock.AppStatusHandlerStub{},
 		VersionNumber:        "v0.1",
 		NodeDisplayName:      "undefined",
-		HardforkTrigger:      &mock.HardforkTriggerStub{},
+		HardforkTrigger:      &testscommon.HardforkTriggerStub{},
 		CurrentBlockProvider: &mock.CurrentBlockProviderStub{},
 		RedundancyHandler:    &mock.RedundancyHandlerStub{},
+		EnableEpochsHandler:  &testscommon.EnableEpochsHandlerStub{},
 	}
 }
 
@@ -87,7 +89,7 @@ func TestNewSender_NilPrivateKeyShouldErr(t *testing.T) {
 	assert.True(t, errors.Is(err, heartbeat.ErrNilPrivateKey))
 }
 
-func TestNewSender_NilMarshalizerShouldErr(t *testing.T) {
+func TestNewSender_NilMarshallerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockArgHeartbeatSender()
@@ -95,7 +97,7 @@ func TestNewSender_NilMarshalizerShouldErr(t *testing.T) {
 	sender, err := process.NewSender(arg)
 
 	assert.Nil(t, sender)
-	assert.Equal(t, heartbeat.ErrNilMarshalizer, err)
+	assert.Equal(t, heartbeat.ErrNilMarshaller, err)
 }
 
 func TestNewSender_NilPeerTypeProviderShouldErr(t *testing.T) {
@@ -179,6 +181,17 @@ func TestNewSender_RedundancyHandlerReturnsANilObserverPrivateKeyShouldErr(t *te
 	assert.True(t, errors.Is(err, heartbeat.ErrNilPrivateKey))
 }
 
+func TestNewSender_NilEnableEpochsHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgHeartbeatSender()
+	arg.EnableEpochsHandler = nil
+	sender, err := process.NewSender(arg)
+
+	assert.Nil(t, sender)
+	assert.Equal(t, heartbeat.ErrNilEnableEpochsHandler, err)
+}
+
 func TestNewSender_ShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -189,7 +202,7 @@ func TestNewSender_ShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-//------- SendHeartbeat
+// ------- SendHeartbeat
 
 func TestSender_SendHeartbeatGeneratePublicKeyErrShouldErr(t *testing.T) {
 	t.Parallel()
@@ -240,8 +253,8 @@ func testSendHeartbeat(t *testing.T, pubKeyErr, signErr, marshalErr error) {
 	}
 	arg.PeerSignatureHandler = &mock.PeerSignatureHandler{Signer: singleSigner}
 
-	arg.Marshalizer = &mock.MarshalizerStub{
-		MarshalHandler: func(obj interface{}) (i []byte, e error) {
+	arg.Marshalizer = &testscommon.MarshalizerStub{
+		MarshalCalled: func(obj interface{}) (i []byte, e error) {
 			expectedErr = marshalErr
 			return nil, marshalErr
 		},
@@ -294,8 +307,8 @@ func TestSender_SendHeartbeatShouldWork(t *testing.T) {
 			return pubKey
 		},
 	}
-	arg.Marshalizer = &mock.MarshalizerStub{
-		MarshalHandler: func(obj interface{}) (i []byte, e error) {
+	arg.Marshalizer = &testscommon.MarshalizerStub{
+		MarshalCalled: func(obj interface{}) (i []byte, e error) {
 			hb, ok := obj.(*data.Heartbeat)
 			if ok {
 				pubkeyBytes, _ := pubKey.ToByteArray()
@@ -338,7 +351,7 @@ func TestSender_SendHeartbeatNotABackupNodeShouldWork(t *testing.T) {
 	genPubKeyCalled := false
 
 	arg := createMockArgHeartbeatSender()
-	arg.Marshalizer = &mock.MarshalizerMock{}
+	arg.Marshalizer = &testscommon.MarshalizerMock{}
 	arg.Topic = testTopic
 	arg.PeerMessenger = &mock.MessengerStub{
 		BroadcastCalled: func(topic string, buff []byte) {
@@ -410,7 +423,7 @@ func TestSender_SendHeartbeatBackupNodeShouldWork(t *testing.T) {
 			}
 		},
 	}
-	arg.Marshalizer = &mock.MarshalizerMock{}
+	arg.Marshalizer = &testscommon.MarshalizerMock{}
 	arg.Topic = testTopic
 	arg.PeerMessenger = &mock.MessengerStub{
 		BroadcastCalled: func(topic string, buff []byte) {
@@ -482,7 +495,7 @@ func TestSender_SendHeartbeatIsBackupNodeButMainIsNotActiveShouldWork(t *testing
 			}
 		},
 	}
-	arg.Marshalizer = &mock.MarshalizerMock{}
+	arg.Marshalizer = &testscommon.MarshalizerMock{}
 	arg.Topic = testTopic
 	arg.PeerMessenger = &mock.MessengerStub{
 		BroadcastCalled: func(topic string, buff []byte) {
@@ -561,8 +574,8 @@ func TestSender_SendHeartbeatAfterTriggerShouldWork(t *testing.T) {
 			return pubKey
 		},
 	}
-	arg.Marshalizer = &mock.MarshalizerStub{
-		MarshalHandler: func(obj interface{}) (i []byte, e error) {
+	arg.Marshalizer = &testscommon.MarshalizerStub{
+		MarshalCalled: func(obj interface{}) (i []byte, e error) {
 			hb, ok := obj.(*data.Heartbeat)
 			if ok {
 				pubkeyBytes, _ := pubKey.ToByteArray()
@@ -578,7 +591,7 @@ func TestSender_SendHeartbeatAfterTriggerShouldWork(t *testing.T) {
 			return nil, nil
 		},
 	}
-	arg.HardforkTrigger = &mock.HardforkTriggerStub{
+	arg.HardforkTrigger = &testscommon.HardforkTriggerStub{
 		RecordedTriggerMessageCalled: func() (i []byte, b bool) {
 			return nil, true
 		},
@@ -645,8 +658,8 @@ func TestSender_SendHeartbeatAfterTriggerWithRecorededPayloadShouldWork(t *testi
 			return pubKey
 		},
 	}
-	arg.Marshalizer = &mock.MarshalizerStub{
-		MarshalHandler: func(obj interface{}) (i []byte, e error) {
+	arg.Marshalizer = &testscommon.MarshalizerStub{
+		MarshalCalled: func(obj interface{}) (i []byte, e error) {
 			hb, ok := obj.(*data.Heartbeat)
 			if ok {
 				pubkeyBytes, _ := pubKey.ToByteArray()
@@ -661,7 +674,7 @@ func TestSender_SendHeartbeatAfterTriggerWithRecorededPayloadShouldWork(t *testi
 			return nil, nil
 		},
 	}
-	arg.HardforkTrigger = &mock.HardforkTriggerStub{
+	arg.HardforkTrigger = &testscommon.HardforkTriggerStub{
 		RecordedTriggerMessageCalled: func() (i []byte, b bool) {
 			return originalTriggerPayload, true
 		},
@@ -676,4 +689,32 @@ func TestSender_SendHeartbeatAfterTriggerWithRecorededPayloadShouldWork(t *testi
 	assert.True(t, signCalled)
 	assert.True(t, genPubKeyCalled)
 	assert.True(t, marshalCalled)
+}
+
+func TestSender_SendHeartbeatShouldNotSendAfterEpoch(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgHeartbeatSender()
+	stub, _ := arg.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
+	stub.IsHeartbeatDisableFlagEnabledField = true
+
+	wasBroadcastCalled := false
+	arg.PeerMessenger = &mock.MessengerStub{
+		BroadcastCalled: func(topic string, buff []byte) {
+			wasBroadcastCalled = true
+		},
+	}
+
+	sender, _ := process.NewSender(arg)
+
+	stub.IsHeartbeatDisableFlagEnabledField = false
+	err := sender.SendHeartbeat()
+	assert.Nil(t, err)
+	assert.True(t, wasBroadcastCalled)
+
+	wasBroadcastCalled = false
+	stub.IsHeartbeatDisableFlagEnabledField = true
+	err = sender.SendHeartbeat()
+	assert.Nil(t, err)
+	assert.False(t, wasBroadcastCalled)
 }

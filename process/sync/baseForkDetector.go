@@ -210,6 +210,14 @@ func (bfd *baseForkDetector) computeProbableHighestNonce() uint64 {
 
 // RemoveHeader removes the stored header with the given nonce and hash
 func (bfd *baseForkDetector) RemoveHeader(nonce uint64, hash []byte) {
+	finalCheckpointNonce := bfd.finalCheckpoint().nonce
+	if nonce <= finalCheckpointNonce {
+		log.Debug("baseForkDetector.RemoveHeader: given nonce is lower or equal than final checkpoint",
+			"nonce", nonce,
+			"final checkpoint nonce", finalCheckpointNonce)
+		return
+	}
+
 	bfd.removeCheckpointWithNonce(nonce)
 
 	preservedHdrsInfo := make([]*headerInfo, 0)
@@ -242,7 +250,7 @@ func (bfd *baseForkDetector) RemoveHeader(nonce uint64, hash []byte) {
 		"nonce", nonce,
 		"hash", hash,
 		"probable highest nonce", probableHighestNonce,
-		"final check point nonce", bfd.finalCheckpoint().nonce)
+		"final checkpoint nonce", bfd.finalCheckpoint().nonce)
 }
 
 func (bfd *baseForkDetector) removeCheckpointWithNonce(nonce uint64) {
@@ -262,7 +270,7 @@ func (bfd *baseForkDetector) removeCheckpointWithNonce(nonce uint64) {
 
 	log.Debug("forkDetector.removeCheckpointWithNonce",
 		"nonce", nonce,
-		"last check point nonce", bfd.lastCheckpoint().nonce)
+		"last checkpoint nonce", bfd.lastCheckpoint().nonce)
 }
 
 // append adds a new header in the slice found in nonce position
@@ -717,8 +725,8 @@ func (bfd *baseForkDetector) processReceivedBlock(
 		"hash", headerHash,
 		"state", state,
 		"probable highest nonce", bfd.probableHighestNonce(),
-		"last check point nonce", bfd.lastCheckpoint().nonce,
-		"final check point nonce", bfd.finalCheckpoint().nonce)
+		"last checkpoint nonce", bfd.lastCheckpoint().nonce,
+		"final checkpoint nonce", bfd.finalCheckpoint().nonce)
 }
 
 // SetFinalToLastCheckpoint sets the final checkpoint to the last checkpoint added in list

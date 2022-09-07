@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 )
 
 // TransactionCoordinatorMock -
@@ -14,23 +15,24 @@ type TransactionCoordinatorMock struct {
 	RequestMiniBlocksCalled                              func(header data.HeaderHandler)
 	RequestBlockTransactionsCalled                       func(body *block.Body)
 	IsDataPreparedForProcessingCalled                    func(haveTime func() time.Duration) error
-	SaveTxsToStorageCalled                               func(body *block.Body) error
+	SaveTxsToStorageCalled                               func(body *block.Body)
 	RestoreBlockDataFromStorageCalled                    func(body *block.Body) (int, error)
 	RemoveBlockDataFromPoolCalled                        func(body *block.Body) error
 	RemoveTxsFromPoolCalled                              func(body *block.Body) error
 	ProcessBlockTransactionCalled                        func(header data.HeaderHandler, body *block.Body, haveTime func() time.Duration) error
 	CreateBlockStartedCalled                             func()
-	CreateMbsAndProcessCrossShardTransactionsDstMeCalled func(header data.HeaderHandler, processedMiniBlocksHashes map[string]struct{}, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool) (block.MiniBlockSlice, uint32, bool, error)
+	CreateMbsAndProcessCrossShardTransactionsDstMeCalled func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool) (block.MiniBlockSlice, uint32, bool, error)
 	CreateMbsAndProcessTransactionsFromMeCalled          func(haveTime func() bool) block.MiniBlockSlice
 	CreateMarshalizedDataCalled                          func(body *block.Body) map[string][][]byte
+	GetCreatedInShardMiniBlocksCalled                    func() []*block.MiniBlock
 	GetAllCurrentUsedTxsCalled                           func(blockType block.Type) map[string]data.TransactionHandler
 	VerifyCreatedBlockTransactionsCalled                 func(hdr data.HeaderHandler, body *block.Body) error
 	CreatePostProcessMiniBlocksCalled                    func() block.MiniBlockSlice
-	CreateMarshalizedReceiptsCalled                      func() ([]byte, error)
 	VerifyCreatedMiniBlocksCalled                        func(hdr data.HeaderHandler, body *block.Body) error
 	AddIntermediateTransactionsCalled                    func(mapSCRs map[block.Type][]data.TransactionHandler) error
 	GetAllIntermediateTxsCalled                          func() map[block.Type]map[string]data.TransactionHandler
 	AddTxsFromMiniBlocksCalled                           func(miniBlocks block.MiniBlockSlice)
+	AddTransactionsCalled                                func(txHandlers []data.TransactionHandler, blockType block.Type)
 }
 
 // GetAllCurrentLogs -
@@ -79,12 +81,12 @@ func (tcm *TransactionCoordinatorMock) IsDataPreparedForProcessing(haveTime func
 }
 
 // SaveTxsToStorage -
-func (tcm *TransactionCoordinatorMock) SaveTxsToStorage(body *block.Body) error {
+func (tcm *TransactionCoordinatorMock) SaveTxsToStorage(body *block.Body) {
 	if tcm.SaveTxsToStorageCalled == nil {
-		return nil
+		return
 	}
 
-	return tcm.SaveTxsToStorageCalled(body)
+	tcm.SaveTxsToStorageCalled(body)
 }
 
 // RestoreBlockDataFromStorage -
@@ -135,7 +137,7 @@ func (tcm *TransactionCoordinatorMock) CreateBlockStarted() {
 // CreateMbsAndProcessCrossShardTransactionsDstMe -
 func (tcm *TransactionCoordinatorMock) CreateMbsAndProcessCrossShardTransactionsDstMe(
 	header data.HeaderHandler,
-	processedMiniBlocksHashes map[string]struct{},
+	processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo,
 	haveTime func() bool,
 	haveAdditionalTime func() bool,
 	scheduledMode bool,
@@ -144,7 +146,7 @@ func (tcm *TransactionCoordinatorMock) CreateMbsAndProcessCrossShardTransactions
 		return nil, 0, false, nil
 	}
 
-	return tcm.CreateMbsAndProcessCrossShardTransactionsDstMeCalled(header, processedMiniBlocksHashes, haveTime, haveAdditionalTime, scheduledMode)
+	return tcm.CreateMbsAndProcessCrossShardTransactionsDstMeCalled(header, processedMiniBlocksInfo, haveTime, haveAdditionalTime, scheduledMode)
 }
 
 // CreateMbsAndProcessTransactionsFromMe -
@@ -183,13 +185,13 @@ func (tcm *TransactionCoordinatorMock) VerifyCreatedBlockTransactions(hdr data.H
 	return tcm.VerifyCreatedBlockTransactionsCalled(hdr, body)
 }
 
-// CreateMarshalizedReceipts -
-func (tcm *TransactionCoordinatorMock) CreateMarshalizedReceipts() ([]byte, error) {
-	if tcm.CreateMarshalizedReceiptsCalled == nil {
-		return nil, nil
+// GetCreatedInShardMiniBlocks -
+func (tcm *TransactionCoordinatorMock) GetCreatedInShardMiniBlocks() []*block.MiniBlock {
+	if tcm.GetCreatedInShardMiniBlocksCalled != nil {
+		return tcm.GetCreatedInShardMiniBlocksCalled()
 	}
 
-	return tcm.CreateMarshalizedReceiptsCalled()
+	return nil
 }
 
 // VerifyCreatedMiniBlocks -
@@ -226,6 +228,15 @@ func (tcm *TransactionCoordinatorMock) AddTxsFromMiniBlocks(miniBlocks block.Min
 	}
 
 	tcm.AddTxsFromMiniBlocksCalled(miniBlocks)
+}
+
+// AddTransactions -
+func (tcm *TransactionCoordinatorMock) AddTransactions(txHandlers []data.TransactionHandler, blockType block.Type) {
+	if tcm.AddTransactionsCalled == nil {
+		return
+	}
+
+	tcm.AddTransactionsCalled(txHandlers, blockType)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

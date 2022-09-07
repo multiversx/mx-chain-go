@@ -141,7 +141,7 @@ func (pa *peerAccount) SetConsecutiveProposerMisses(consecutiveMisses uint32) {
 	pa.ConsecutiveProposerMisses = consecutiveMisses
 }
 
-//IncreaseNonce adds the given value to the current nonce
+// IncreaseNonce adds the given value to the current nonce
 func (pa *peerAccount) IncreaseNonce(value uint64) {
 	pa.Nonce = pa.Nonce + value
 }

@@ -222,6 +222,11 @@ func (s *SystemEIStub) AddReturnMessage(msg string) {
 	}
 }
 
+// GetReturnMessage -
+func (s *SystemEIStub) GetReturnMessage() string {
+	return s.ReturnMessage
+}
+
 // GetStorage -
 func (s *SystemEIStub) GetStorage(key []byte) []byte {
 	if s.GetStorageCalled != nil {

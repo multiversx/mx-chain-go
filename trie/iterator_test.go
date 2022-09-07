@@ -11,7 +11,7 @@ import (
 func TestNewIterator(t *testing.T) {
 	t.Parallel()
 
-	tr := initTrie(t)
+	tr := initTrie()
 
 	it, err := trie.NewIterator(tr)
 	assert.Nil(t, err)
@@ -31,7 +31,7 @@ func TestNewIteratorNilTrieShouldErr(t *testing.T) {
 func TestIterator_HasNext(t *testing.T) {
 	t.Parallel()
 
-	tr := emptyTrie(t)
+	tr := emptyTrie()
 	_ = tr.Update([]byte("dog"), []byte("dog"))
 	it, _ := trie.NewIterator(tr)
 	assert.False(t, it.HasNext())
@@ -44,7 +44,7 @@ func TestIterator_HasNext(t *testing.T) {
 func TestIterator_Next(t *testing.T) {
 	t.Parallel()
 
-	tr := initTrie(t)
+	tr := initTrie()
 
 	it, _ := trie.NewIterator(tr)
 	for it.HasNext() {
@@ -56,7 +56,7 @@ func TestIterator_Next(t *testing.T) {
 func TestIterator_GetMarshalizedNode(t *testing.T) {
 	t.Parallel()
 
-	tr := initTrie(t)
+	tr := initTrie()
 	it, _ := trie.NewIterator(tr)
 
 	encNode, err := it.MarshalizedNode()
@@ -71,7 +71,7 @@ func TestIterator_GetMarshalizedNode(t *testing.T) {
 func TestIterator_GetHash(t *testing.T) {
 	t.Parallel()
 
-	tr := initTrie(t)
+	tr := initTrie()
 	rootHash, _ := tr.RootHash()
 	it, _ := trie.NewIterator(tr)
 

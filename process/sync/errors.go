@@ -44,3 +44,6 @@ var ErrRollBackBehindForkNonce = errors.New("roll back behind fork nonce is not 
 
 // ErrGenesisTimeMissmatch signals that a received header has a genesis time missmatch
 var ErrGenesisTimeMissmatch = errors.New("genesis time missmatch")
+
+// ErrHeaderNotFound signals that the needed header is not found
+var ErrHeaderNotFound = errors.New("header is not found")

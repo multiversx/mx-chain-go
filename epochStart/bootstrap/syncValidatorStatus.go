@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
@@ -17,36 +18,39 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
+	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/update/sync"
 )
 
 const consensusGroupCacheSize = 50
 
 type syncValidatorStatus struct {
-	miniBlocksSyncer   epochStart.PendingMiniBlocksSyncHandler
-	dataPool           dataRetriever.PoolsHolder
-	marshalizer        marshal.Marshalizer
-	requestHandler     process.RequestHandler
-	nodeCoordinator    StartInEpochNodesCoordinator
-	genesisNodesConfig sharding.GenesisNodesSetupHandler
-	memDB              storage.Storer
+	miniBlocksSyncer    epochStart.PendingMiniBlocksSyncHandler
+	transactionsSyncer  update.TransactionsSyncHandler
+	dataPool            dataRetriever.PoolsHolder
+	marshalizer         marshal.Marshalizer
+	requestHandler      process.RequestHandler
+	nodeCoordinator     StartInEpochNodesCoordinator
+	genesisNodesConfig  sharding.GenesisNodesSetupHandler
+	memDB               storage.Storer
+	enableEpochsHandler common.EnableEpochsHandler
 }
 
 // ArgsNewSyncValidatorStatus holds the arguments needed for creating a new validator status process component
 type ArgsNewSyncValidatorStatus struct {
-	DataPool                  dataRetriever.PoolsHolder
-	Marshalizer               marshal.Marshalizer
-	Hasher                    hashing.Hasher
-	RequestHandler            process.RequestHandler
-	ChanceComputer            nodesCoordinator.ChanceComputer
-	GenesisNodesConfig        sharding.GenesisNodesSetupHandler
-	NodeShuffler              nodesCoordinator.NodesShuffler
-	PubKey                    []byte
-	ShardIdAsObserver         uint32
-	WaitingListFixEnableEpoch uint32
-	ChanNodeStop              chan endProcess.ArgEndProcess
-	NodeTypeProvider          NodeTypeProviderHandler
-	IsFullArchive             bool
+	DataPool            dataRetriever.PoolsHolder
+	Marshalizer         marshal.Marshalizer
+	Hasher              hashing.Hasher
+	RequestHandler      process.RequestHandler
+	ChanceComputer      nodesCoordinator.ChanceComputer
+	GenesisNodesConfig  sharding.GenesisNodesSetupHandler
+	NodeShuffler        nodesCoordinator.NodesShuffler
+	PubKey              []byte
+	ShardIdAsObserver   uint32
+	ChanNodeStop        chan endProcess.ArgEndProcess
+	NodeTypeProvider    NodeTypeProviderHandler
+	IsFullArchive       bool
+	EnableEpochsHandler common.EnableEpochsHandler
 }
 
 // NewSyncValidatorStatus creates a new validator status process component
@@ -56,19 +60,33 @@ func NewSyncValidatorStatus(args ArgsNewSyncValidatorStatus) (*syncValidatorStat
 	}
 
 	s := &syncValidatorStatus{
-		dataPool:           args.DataPool,
-		marshalizer:        args.Marshalizer,
-		requestHandler:     args.RequestHandler,
-		genesisNodesConfig: args.GenesisNodesConfig,
+		dataPool:            args.DataPool,
+		marshalizer:         args.Marshalizer,
+		requestHandler:      args.RequestHandler,
+		genesisNodesConfig:  args.GenesisNodesConfig,
+		enableEpochsHandler: args.EnableEpochsHandler,
 	}
+
+	var err error
+
 	syncMiniBlocksArgs := sync.ArgsNewPendingMiniBlocksSyncer{
 		Storage:        disabled.CreateMemUnit(),
 		Cache:          s.dataPool.MiniBlocks(),
 		Marshalizer:    s.marshalizer,
 		RequestHandler: s.requestHandler,
 	}
-	var err error
 	s.miniBlocksSyncer, err = sync.NewPendingMiniBlocksSyncer(syncMiniBlocksArgs)
+	if err != nil {
+		return nil, err
+	}
+
+	syncTxsArgs := sync.ArgsNewTransactionsSyncer{
+		DataPools:      s.dataPool,
+		Storages:       disabled.NewChainStorer(),
+		Marshaller:     s.marshalizer,
+		RequestHandler: s.requestHandler,
+	}
+	s.transactionsSyncer, err = sync.NewTransactionsSyncer(syncTxsArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -93,24 +111,25 @@ func NewSyncValidatorStatus(args ArgsNewSyncValidatorStatus) (*syncValidatorStat
 	s.memDB = disabled.CreateMemUnit()
 
 	argsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
-		ShardConsensusGroupSize:    int(args.GenesisNodesConfig.GetShardConsensusGroupSize()),
-		MetaConsensusGroupSize:     int(args.GenesisNodesConfig.GetMetaConsensusGroupSize()),
-		Marshalizer:                args.Marshalizer,
-		Hasher:                     args.Hasher,
-		Shuffler:                   args.NodeShuffler,
-		EpochStartNotifier:         &disabled.EpochStartNotifier{},
-		BootStorer:                 s.memDB,
-		ShardIDAsObserver:          args.ShardIdAsObserver,
-		NbShards:                   args.GenesisNodesConfig.NumberOfShards(),
-		EligibleNodes:              eligibleValidators,
-		WaitingNodes:               waitingValidators,
-		SelfPublicKey:              args.PubKey,
-		ConsensusGroupCache:        consensusGroupCache,
-		ShuffledOutHandler:         disabled.NewShuffledOutHandler(),
-		WaitingListFixEnabledEpoch: args.WaitingListFixEnableEpoch,
-		ChanStopNode:               args.ChanNodeStop,
-		NodeTypeProvider:           args.NodeTypeProvider,
-		IsFullArchive:              args.IsFullArchive,
+		ShardConsensusGroupSize: int(args.GenesisNodesConfig.GetShardConsensusGroupSize()),
+		MetaConsensusGroupSize:  int(args.GenesisNodesConfig.GetMetaConsensusGroupSize()),
+		Marshalizer:             args.Marshalizer,
+		Hasher:                  args.Hasher,
+		Shuffler:                args.NodeShuffler,
+		EpochStartNotifier:      &disabled.EpochStartNotifier{},
+		BootStorer:              s.memDB,
+		ShardIDAsObserver:       args.ShardIdAsObserver,
+		NbShards:                args.GenesisNodesConfig.NumberOfShards(),
+		EligibleNodes:           eligibleValidators,
+		WaitingNodes:            waitingValidators,
+		SelfPublicKey:           args.PubKey,
+		ConsensusGroupCache:     consensusGroupCache,
+		ShuffledOutHandler:      disabled.NewShuffledOutHandler(),
+		ChanStopNode:            args.ChanNodeStop,
+		NodeTypeProvider:        args.NodeTypeProvider,
+		IsFullArchive:           args.IsFullArchive,
+		EnableEpochsHandler:     args.EnableEpochsHandler,
+		ValidatorInfoCacher:     s.dataPool.CurrentEpochValidatorInfo(),
 	}
 	baseNodesCoordinator, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argsNodesCoordinator)
 	if err != nil {
@@ -131,47 +150,50 @@ func NewSyncValidatorStatus(args ArgsNewSyncValidatorStatus) (*syncValidatorStat
 func (s *syncValidatorStatus) NodesConfigFromMetaBlock(
 	currMetaBlock data.HeaderHandler,
 	prevMetaBlock data.HeaderHandler,
-) (*nodesCoordinator.NodesCoordinatorRegistry, uint32, error) {
+) (*nodesCoordinator.NodesCoordinatorRegistry, uint32, []*block.MiniBlock, error) {
 	if currMetaBlock.GetNonce() > 1 && !currMetaBlock.IsStartOfEpochBlock() {
-		return nil, 0, epochStart.ErrNotEpochStartBlock
+		return nil, 0, nil, epochStart.ErrNotEpochStartBlock
 	}
 	if prevMetaBlock.GetNonce() > 1 && !prevMetaBlock.IsStartOfEpochBlock() {
-		return nil, 0, epochStart.ErrNotEpochStartBlock
+		return nil, 0, nil, epochStart.ErrNotEpochStartBlock
 	}
 
-	err := s.processValidatorChangesFor(prevMetaBlock)
+	allMiniblocks := make([]*block.MiniBlock, 0)
+	prevMiniBlocks, err := s.processValidatorChangesFor(prevMetaBlock)
 	if err != nil {
-		return nil, 0, err
+		return nil, 0, nil, err
 	}
+	allMiniblocks = append(allMiniblocks, prevMiniBlocks...)
 
-	err = s.processValidatorChangesFor(currMetaBlock)
+	currentMiniBlocks, err := s.processValidatorChangesFor(currMetaBlock)
 	if err != nil {
-		return nil, 0, err
+		return nil, 0, nil, err
 	}
+	allMiniblocks = append(allMiniblocks, currentMiniBlocks...)
 
 	selfShardId, err := s.nodeCoordinator.ShardIdForEpoch(currMetaBlock.GetEpoch())
 	if err != nil {
-		return nil, 0, err
+		return nil, 0, nil, err
 	}
 
 	nodesConfig := s.nodeCoordinator.NodesCoordinatorToRegistry()
 	nodesConfig.CurrentEpoch = currMetaBlock.GetEpoch()
-	return nodesConfig, selfShardId, nil
+	return nodesConfig, selfShardId, allMiniblocks, nil
 }
 
-func (s *syncValidatorStatus) processValidatorChangesFor(metaBlock data.HeaderHandler) error {
+func (s *syncValidatorStatus) processValidatorChangesFor(metaBlock data.HeaderHandler) ([]*block.MiniBlock, error) {
 	if metaBlock.GetEpoch() == 0 {
 		// no need to process for genesis - already created
-		return nil
+		return make([]*block.MiniBlock, 0), nil
 	}
 
-	blockBody, err := s.getPeerBlockBodyForMeta(metaBlock)
+	blockBody, miniBlocks, err := s.getPeerBlockBodyForMeta(metaBlock)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	s.nodeCoordinator.EpochStartPrepare(metaBlock, blockBody)
 
-	return nil
+	return miniBlocks, nil
 }
 
 func findPeerMiniBlockHeaders(metaBlock data.HeaderHandler) []data.MiniBlockHeaderHandler {
@@ -189,7 +211,7 @@ func findPeerMiniBlockHeaders(metaBlock data.HeaderHandler) []data.MiniBlockHead
 
 func (s *syncValidatorStatus) getPeerBlockBodyForMeta(
 	metaBlock data.HeaderHandler,
-) (data.BodyHandler, error) {
+) (data.BodyHandler, []*block.MiniBlock, error) {
 	shardMBHeaders := findPeerMiniBlockHeaders(metaBlock)
 
 	s.miniBlocksSyncer.ClearFields()
@@ -197,12 +219,32 @@ func (s *syncValidatorStatus) getPeerBlockBodyForMeta(
 	err := s.miniBlocksSyncer.SyncPendingMiniBlocks(shardMBHeaders, ctx)
 	cancel()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	peerMiniBlocks, err := s.miniBlocksSyncer.GetMiniBlocks()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
+	}
+
+	if metaBlock.GetEpoch() >= s.enableEpochsHandler.RefactorPeersMiniBlocksEnableEpoch() {
+		s.transactionsSyncer.ClearFields()
+		ctx, cancel = context.WithTimeout(context.Background(), time.Minute)
+		err = s.transactionsSyncer.SyncTransactionsFor(peerMiniBlocks, metaBlock.GetEpoch(), ctx)
+		cancel()
+		if err != nil {
+			return nil, nil, err
+		}
+
+		validatorsInfo, err := s.transactionsSyncer.GetValidatorsInfo()
+		if err != nil {
+			return nil, nil, err
+		}
+
+		currentEpochValidatorInfoPool := s.dataPool.CurrentEpochValidatorInfo()
+		for validatorInfoHash, validatorInfo := range validatorsInfo {
+			currentEpochValidatorInfoPool.AddValidatorInfo([]byte(validatorInfoHash), validatorInfo)
+		}
 	}
 
 	blockBody := &block.Body{MiniBlocks: make([]*block.MiniBlock, 0, len(peerMiniBlocks))}
@@ -210,7 +252,7 @@ func (s *syncValidatorStatus) getPeerBlockBodyForMeta(
 		blockBody.MiniBlocks = append(blockBody.MiniBlocks, peerMiniBlocks[string(mbHeader.GetHash())])
 	}
 
-	return blockBody, nil
+	return blockBody, blockBody.MiniBlocks, nil
 }
 
 // IsInterfaceNil returns true if underlying object is nil

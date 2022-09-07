@@ -25,6 +25,7 @@ type ArgsNewMetaBlockCreatorAfterHardFork struct {
 	Storage            dataRetriever.StorageService
 	TxCoordinator      process.TransactionCoordinator
 	ValidatorAccounts  state.AccountsAdapter
+	ReceiptsRepository receiptsRepository
 	SelfShardID        uint32
 }
 
@@ -43,6 +44,7 @@ func NewMetaBlockCreatorAfterHardfork(args ArgsNewMetaBlockCreatorAfterHardFork)
 		args.ShardCoordinator,
 		args.Storage,
 		args.TxCoordinator,
+		args.ReceiptsRepository,
 	)
 	if err != nil {
 		return nil, err
@@ -59,6 +61,7 @@ func NewMetaBlockCreatorAfterHardfork(args ArgsNewMetaBlockCreatorAfterHardFork)
 		shardCoordinator:   args.ShardCoordinator,
 		storage:            args.Storage,
 		txCoordinator:      args.TxCoordinator,
+		receiptsRepository: args.ReceiptsRepository,
 		selfShardID:        args.SelfShardID,
 	}
 
@@ -91,8 +94,8 @@ func (m *metaBlockCreator) CreateBlock(
 	}
 
 	hardForkMeta := m.importHandler.GetHardForkMetaBlock()
-	epochStart, ok:= hardForkMeta.GetEpochStartHandler().(*block.EpochStart)
-	if !ok{
+	epochStart, ok := hardForkMeta.GetEpochStartHandler().(*block.EpochStart)
+	if !ok {
 		return nil, update.ErrWrongTypeAssertion
 	}
 

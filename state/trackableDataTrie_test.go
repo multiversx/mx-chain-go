@@ -158,7 +158,7 @@ func TestTrackableDataTrie_SaveKeyValueShouldSaveOnlyInDirty(t *testing.T) {
 
 	_ = mdaw.SaveKeyValue(keyExpected, value)
 
-	//test in dirty
+	// test in dirty
 	assert.Equal(t, expectedVal, mdaw.DirtyData()[string(keyExpected)])
 }
 
@@ -173,11 +173,11 @@ func TestTrackableDataTrie_ClearDataCachesValidDataShouldWork(t *testing.T) {
 
 	assert.Equal(t, 0, len(mdaw.DirtyData()))
 
-	//add something
+	// add something
 	_ = mdaw.SaveKeyValue([]byte("ABC"), []byte("123"))
 	assert.Equal(t, 1, len(mdaw.DirtyData()))
 
-	//clear
+	// clear
 	mdaw.ClearDataCaches()
 	assert.Equal(t, 0, len(mdaw.DirtyData()))
 }

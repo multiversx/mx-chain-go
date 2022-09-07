@@ -39,6 +39,7 @@ type ArgHeartbeatMonitor struct {
 	HeartbeatRefreshIntervalInSec      uint32
 	HideInactiveValidatorIntervalInSec uint32
 	AppStatusHandler                   core.AppStatusHandler
+	EnableEpochsHandler                common.EnableEpochsHandler
 }
 
 // Monitor represents the heartbeat component that processes received heartbeat messages
@@ -62,13 +63,14 @@ type Monitor struct {
 	validatorPubkeyConverter           core.PubkeyConverter
 	heartbeatRefreshIntervalInSec      uint32
 	hideInactiveValidatorIntervalInSec uint32
+	enableEpochsHandler                common.EnableEpochsHandler
 	cancelFunc                         context.CancelFunc
 }
 
 // NewMonitor returns a new monitor instance
 func NewMonitor(arg ArgHeartbeatMonitor) (*Monitor, error) {
 	if check.IfNil(arg.Marshalizer) {
-		return nil, heartbeat.ErrNilMarshalizer
+		return nil, heartbeat.ErrNilMarshaller
 	}
 	if check.IfNil(arg.PeerTypeProvider) {
 		return nil, heartbeat.ErrNilPeerTypeProvider
@@ -103,6 +105,9 @@ func NewMonitor(arg ArgHeartbeatMonitor) (*Monitor, error) {
 	if arg.HideInactiveValidatorIntervalInSec == 0 {
 		return nil, heartbeat.ErrZeroHideInactiveValidatorIntervalInSec
 	}
+	if check.IfNil(arg.EnableEpochsHandler) {
+		return nil, heartbeat.ErrNilEnableEpochsHandler
+	}
 
 	ctx, cancelFunc := context.WithCancel(context.Background())
 
@@ -122,6 +127,7 @@ func NewMonitor(arg ArgHeartbeatMonitor) (*Monitor, error) {
 		heartbeatRefreshIntervalInSec:      arg.HeartbeatRefreshIntervalInSec,
 		hideInactiveValidatorIntervalInSec: arg.HideInactiveValidatorIntervalInSec,
 		doubleSignerPeers:                  make(map[string]process.TimeCacher),
+		enableEpochsHandler:                arg.EnableEpochsHandler,
 		cancelFunc:                         cancelFunc,
 	}
 
@@ -242,6 +248,10 @@ func (m *Monitor) loadHeartbeatsFromStorer(pubKey string) (*heartbeatMessageInfo
 // ProcessReceivedMessage satisfies the p2p.MessageProcessor interface so it can be called
 // by the p2p subsystem each time a new heartbeat message arrives
 func (m *Monitor) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
+	if m.enableEpochsHandler.IsHeartbeatDisableFlagEnabled() {
+		return nil
+	}
+
 	if check.IfNil(message) {
 		return heartbeat.ErrNilMessage
 	}

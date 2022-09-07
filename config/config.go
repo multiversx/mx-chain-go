@@ -35,9 +35,10 @@ type StorageConfig struct {
 
 // TrieSyncStorageConfig will map trie sync storage configuration
 type TrieSyncStorageConfig struct {
-	DB          DBConfig
 	Capacity    uint32
 	SizeInBytes uint64
+	EnableDB    bool
+	DB          DBConfig
 }
 
 // PubkeyConfig will map the public key configuration
@@ -102,6 +103,34 @@ type SoftwareVersionConfig struct {
 	PollingIntervalInMinutes int
 }
 
+// HeartbeatV2Config will hold the configuration for heartbeat v2
+type HeartbeatV2Config struct {
+	PeerAuthenticationTimeBetweenSendsInSec          int64
+	PeerAuthenticationTimeBetweenSendsWhenErrorInSec int64
+	PeerAuthenticationThresholdBetweenSends          float64
+	HeartbeatTimeBetweenSendsInSec                   int64
+	HeartbeatTimeBetweenSendsWhenErrorInSec          int64
+	HeartbeatThresholdBetweenSends                   float64
+	MaxNumOfPeerAuthenticationInResponse             int
+	HeartbeatExpiryTimespanInSec                     int64
+	MinPeersThreshold                                float32
+	DelayBetweenRequestsInSec                        int64
+	MaxTimeoutInSec                                  int64
+	DelayBetweenConnectionNotificationsInSec         int64
+	MaxMissingKeysInRequest                          uint32
+	MaxDurationPeerUnresponsiveInSec                 int64
+	HideInactiveValidatorIntervalInSec               int64
+	PeerAuthenticationPool                           PeerAuthenticationPoolConfig
+	HeartbeatPool                                    CacheConfig
+	HardforkTimeBetweenSendsInSec                    int64
+}
+
+// PeerAuthenticationPoolConfig will hold the configuration for peer authentication pool
+type PeerAuthenticationPoolConfig struct {
+	DefaultSpanInSec int
+	CacheExpiryInSec int
+}
+
 // Config will hold the entire application configuration parameters
 type Config struct {
 	MiniBlocksStorage               StorageConfig
@@ -123,13 +152,10 @@ type Config struct {
 	BootstrapStorage StorageConfig
 	MetaBlockStorage StorageConfig
 
-	AccountsTrieStorageOld             StorageConfig
-	PeerAccountsTrieStorageOld         StorageConfig
 	AccountsTrieStorage                StorageConfig
 	PeerAccountsTrieStorage            StorageConfig
 	AccountsTrieCheckpointsStorage     StorageConfig
 	PeerAccountsTrieCheckpointsStorage StorageConfig
-	TrieSnapshotDB                     DBConfig
 	EvictionWaitingList                EvictionWaitingListConfig
 	StateTriesConfig                   StateTriesConfig
 	TrieStorageManagerConfig           TrieStorageManagerConfig
@@ -144,6 +170,7 @@ type Config struct {
 	WhiteListPool               CacheConfig
 	WhiteListerVerifiedTxs      CacheConfig
 	SmartContractDataPool       CacheConfig
+	ValidatorInfoPool           CacheConfig
 	TrieSyncStorage             TrieSyncStorageConfig
 	EpochStartConfig            EpochStartConfig
 	AddressPubkeyConverter      PubkeyConfig
@@ -164,6 +191,7 @@ type Config struct {
 	Antiflood           AntifloodConfig
 	ResourceStats       ResourceStatsConfig
 	Heartbeat           HeartbeatConfig
+	HeartbeatV2         HeartbeatV2Config
 	ValidatorStatistics ValidatorStatisticsConfig
 	GeneralSettings     GeneralSettingsConfig
 	Consensus           ConsensusConfig
@@ -174,6 +202,7 @@ type Config struct {
 	HeadersPoolConfig       HeadersPoolConfig
 	BlockSizeThrottleConfig BlockSizeThrottleConfig
 	VirtualMachine          VirtualMachineServicesConfig
+	BuiltInFunctions        BuiltInFunctionsConfig
 
 	Hardfork HardforkConfig
 	Debug    DebugConfig
@@ -186,21 +215,33 @@ type Config struct {
 	TrieSync              TrieSyncConfig
 	Resolvers             ResolverConfig
 	VMOutputCacher        CacheConfig
+
+	PeersRatingConfig   PeersRatingConfig
+	PoolsCleanersConfig PoolsCleanersConfig
+}
+
+// PeersRatingConfig will hold settings related to peers rating
+type PeersRatingConfig struct {
+	TopRatedCacheCapacity int
+	BadRatedCacheCapacity int
 }
 
 // LogsConfig will hold settings related to the logging sub-system
 type LogsConfig struct {
 	LogFileLifeSpanInSec int
+	LogFileLifeSpanInMB  int
 }
 
 // StoragePruningConfig will hold settings related to storage pruning
 type StoragePruningConfig struct {
-	Enabled                        bool
-	ValidatorCleanOldEpochsData    bool
-	ObserverCleanOldEpochsData     bool
-	NumEpochsToKeep                uint64
-	NumActivePersisters            uint64
-	FullArchiveNumActivePersisters uint32
+	Enabled                              bool
+	ValidatorCleanOldEpochsData          bool
+	ObserverCleanOldEpochsData           bool
+	AccountsTrieCleanOldEpochsData       bool
+	AccountsTrieSkipRemovalCustomPattern string
+	NumEpochsToKeep                      uint64
+	NumActivePersisters                  uint64
+	FullArchiveNumActivePersisters       uint32
 }
 
 // ResourceStatsConfig will hold all resource stats settings
@@ -241,6 +282,7 @@ type GeneralSettingsConfig struct {
 	MinTransactionVersion                uint32
 	GenesisString                        string
 	GenesisMaxNumberOfShards             uint32
+	SyncProcessTimeInMillis              uint32
 }
 
 // FacadeConfig will hold different configuration option that will be passed to the main ElrondFacade
@@ -253,6 +295,7 @@ type FacadeConfig struct {
 type StateTriesConfig struct {
 	CheckpointRoundsModulus     uint
 	CheckpointsEnabled          bool
+	SnapshotsEnabled            bool
 	AccountsStatePruningEnabled bool
 	PeerStatePruningEnabled     bool
 	MaxStateTrieLevelInMemory   uint
@@ -266,8 +309,6 @@ type TrieStorageManagerConfig struct {
 	PruningBufferLen              uint32
 	SnapshotsBufferLen            uint32
 	SnapshotsGoroutineNum         uint32
-	MaxSnapshots                  uint32
-	KeepSnapshots                 bool
 	CheckpointHashesHolderMaxSize uint64
 }
 
@@ -279,10 +320,11 @@ type EndpointsThrottlersConfig struct {
 
 // WebServerAntifloodConfig will hold the anti-flooding parameters for the web server
 type WebServerAntifloodConfig struct {
-	SimultaneousRequests         uint32
-	SameSourceRequests           uint32
-	SameSourceResetIntervalInSec uint32
-	EndpointsThrottlers          []EndpointsThrottlersConfig
+	SimultaneousRequests               uint32
+	SameSourceRequests                 uint32
+	SameSourceResetIntervalInSec       uint32
+	TrieOperationsDeadlineMilliseconds uint32
+	EndpointsThrottlers                []EndpointsThrottlersConfig
 }
 
 // BlackListConfig will hold the p2p peer black list threshold values
@@ -351,11 +393,14 @@ type IncreaseFactorConfig struct {
 type VirtualMachineServicesConfig struct {
 	Execution VirtualMachineConfig
 	Querying  QueryVirtualMachineConfig
+	GasConfig VirtualMachineGasConfig
 }
 
 // VirtualMachineConfig holds configuration for a Virtual Machine service
 type VirtualMachineConfig struct {
-	ArwenVersions []ArwenVersionByEpoch
+	ArwenVersions                       []ArwenVersionByEpoch
+	TimeOutForSCExecutionInMilliseconds uint32
+	WasmerSIGSEGVPassthrough            bool
 }
 
 // ArwenVersionByEpoch represents the Arwen version to be used starting with an epoch
@@ -368,6 +413,18 @@ type ArwenVersionByEpoch struct {
 type QueryVirtualMachineConfig struct {
 	VirtualMachineConfig
 	NumConcurrentVMs int
+}
+
+// VirtualMachineGasConfig holds the configuration for the virtual machine(s) gas operations
+type VirtualMachineGasConfig struct {
+	ShardMaxGasPerVmQuery uint64
+	MetaMaxGasPerVmQuery  uint64
+}
+
+// BuiltInFunctionsConfig holds the configuration for the built in functions
+type BuiltInFunctionsConfig struct {
+	AutomaticCrawlerAddresses     []string
+	MaxNumAddressesInTransferRole uint32
 }
 
 // HardforkConfig holds the configuration for the hardfork trigger
@@ -535,11 +592,18 @@ type TrieSyncConfig struct {
 	NumConcurrentTrieSyncers  int
 	MaxHardCapForMissingNodes int
 	TrieSyncerVersion         int
+	CheckNodesOnDisk          bool
 }
 
 // ResolverConfig represents the config options to be used when setting up the resolver instances
 type ResolverConfig struct {
 	NumCrossShardPeers  uint32
-	NumIntraShardPeers  uint32
+	NumTotalPeers       uint32
 	NumFullHistoryPeers uint32
+}
+
+// PoolsCleanersConfig represents the config options to be used by the pools cleaners
+type PoolsCleanersConfig struct {
+	MaxRoundsToKeepUnprocessedMiniBlocks   int64
+	MaxRoundsToKeepUnprocessedTransactions int64
 }

@@ -53,13 +53,13 @@ type P2PAntifloodHandler interface {
 
 // FileLoggingHandler will handle log file rotation
 type FileLoggingHandler interface {
-	ChangeFileLifeSpan(newDuration time.Duration) error
+	ChangeFileLifeSpan(newDuration time.Duration, newSizeInMB uint64) error
 	Close() error
 	IsInterfaceNil() bool
 }
 
-// TODO: find a better naming
 // StatusHandlersUtils provides some functionality for statusHandlers
+// TODO: find a better naming
 type StatusHandlersUtils interface {
 	StatusHandler() core.AppStatusHandler
 	Metrics() external.StatusMetricsHandler

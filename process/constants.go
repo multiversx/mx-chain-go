@@ -1,6 +1,8 @@
 package process
 
-import "time"
+import (
+	"fmt"
+)
 
 // BlockHeaderState specifies which is the state of the block header received
 type BlockHeaderState int
@@ -39,6 +41,29 @@ const (
 	// InvalidTransaction defines unknown transaction type
 	InvalidTransaction
 )
+
+func (transactionType TransactionType) String() string {
+	switch transactionType {
+	case MoveBalance:
+		return "MoveBalance"
+	case SCDeployment:
+		return "SCDeployment"
+	case SCInvoking:
+		return "SCInvoking"
+	case BuiltInFunctionCall:
+		return "BuiltInFunctionCall"
+	case RelayedTx:
+		return "RelayedTx"
+	case RelayedTxV2:
+		return "RelayedTxV2"
+	case RewardTx:
+		return "RewardTx"
+	case InvalidTransaction:
+		return "InvalidTransaction"
+	default:
+		return fmt.Sprintf("type %d", transactionType)
+	}
+}
 
 // BlockFinality defines the block finality which is used in meta-chain/shards (the real finality in shards is given
 // by meta-chain)
@@ -88,6 +113,10 @@ const MinForkRound = uint64(0)
 // nonce before a shard is considered stuck
 const MaxMetaNoncesBehind = 15
 
+// MaxMetaNoncesBehindForGlobalStuck defines the maximum difference between the current meta block nonce and the processed
+// meta block nonce for any shard, where the chain is considered stuck and enters recovery
+const MaxMetaNoncesBehindForGlobalStuck = 30
+
 // MaxShardNoncesBehind defines the maximum difference between the current shard block nonce and the last notarized
 // shard block nonce by meta, before meta is considered stuck
 const MaxShardNoncesBehind = 15
@@ -112,12 +141,6 @@ const MaxNumOfTxsToSelect = 30000
 // MaxGasBandwidthPerBatchPerSender defines the maximum gas bandwidth that should be selected for a sender per batch from the cache
 const MaxGasBandwidthPerBatchPerSender = 5000000
 
-// MaxRoundsToKeepUnprocessedMiniBlocks defines the maximum number of rounds for which unprocessed miniblocks are kept in pool
-const MaxRoundsToKeepUnprocessedMiniBlocks = 100
-
-// MaxRoundsToKeepUnprocessedTransactions defines the maximum number of rounds for which unprocessed transactions are kept in pool
-const MaxRoundsToKeepUnprocessedTransactions = 100
-
 // MaxHeadersToWhitelistInAdvance defines the maximum number of headers whose miniblocks will be whitelisted in advance
 const MaxHeadersToWhitelistInAdvance = 300
 
@@ -125,7 +148,3 @@ const MaxHeadersToWhitelistInAdvance = 300
 // the real gas used, after which the transaction will be considered an attack and all the gas will be consumed and
 // nothing will be refunded to the sender
 const MaxGasFeeHigherFactorAccepted = 10
-
-// TimeDurationMultiplierForProcessBlockWhenSync represents the constant that will be multiplied with the round duration
-// when considering the maximum available time window for block processing when syncing blocks
-const TimeDurationMultiplierForProcessBlockWhenSync = time.Duration(2)

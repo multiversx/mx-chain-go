@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	nodeFactory "github.com/ElrondNetwork/elrond-go/cmd/node/factory"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -22,9 +23,12 @@ type coreComponentsHolder interface {
 	Hasher() hashing.Hasher
 	InternalMarshalizer() marshal.Marshalizer
 	Uint64ByteSliceConverter() typeConverters.Uint64ByteSliceConverter
+	EpochNotifier() process.EpochNotifier
+	EnableEpochsHandler() common.EnableEpochsHandler
 	RoundHandler() consensus.RoundHandler
 	StatusHandler() core.AppStatusHandler
 	EconomicsData() process.EconomicsDataHandler
+	ProcessStatusHandler() common.ProcessStatusHandler
 	IsInterfaceNil() bool
 }
 
@@ -70,13 +74,14 @@ type ArgBaseProcessor struct {
 	BlockSizeThrottler             process.BlockSizeThrottler
 	Version                        string
 	HistoryRepository              dblookupext.HistoryRepository
-	EpochNotifier                  process.EpochNotifier
-	RoundNotifier                  process.RoundNotifier
+	EnableRoundsHandler            process.EnableRoundsHandler
 	VMContainersFactory            process.VirtualMachinesContainerFactory
 	VmContainer                    process.VirtualMachinesContainer
 	GasHandler                     gasConsumedProvider
 	ScheduledTxsExecutionHandler   process.ScheduledTxsExecutionHandler
 	ScheduledMiniBlocksEnableEpoch uint32
+	ProcessedMiniBlocksTracker     process.ProcessedMiniBlocksTracker
+	ReceiptsRepository             receiptsRepository
 }
 
 // ArgShardProcessor holds all dependencies required by the process data factory in order to create
@@ -97,5 +102,4 @@ type ArgMetaProcessor struct {
 	EpochValidatorInfoCreator    process.EpochStartValidatorInfoCreator
 	EpochSystemSCProcessor       process.EpochStartSystemSCProcessor
 	ValidatorStatisticsProcessor process.ValidatorStatisticsProcessor
-	RewardsV2EnableEpoch         uint32
 }

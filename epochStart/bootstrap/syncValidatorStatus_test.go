@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -18,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
+	vic "github.com/ElrondNetwork/elrond-go/testscommon/validatorInfoCacher"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -95,9 +97,10 @@ func TestSyncValidatorStatus_NodesConfigFromMetaBlock(t *testing.T) {
 		},
 	}
 
-	registry, _, err := svs.NodesConfigFromMetaBlock(currMb, prevMb)
+	registry, _, miniBlocks, err := svs.NodesConfigFromMetaBlock(currMb, prevMb)
 	require.NoError(t, err)
 	require.NotNil(t, registry)
+	require.Empty(t, miniBlocks)
 }
 
 func TestSyncValidatorStatus_processValidatorChangesFor(t *testing.T) {
@@ -153,9 +156,10 @@ func TestSyncValidatorStatus_processValidatorChangesFor(t *testing.T) {
 		},
 	}
 
-	err := svs.processValidatorChangesFor(metaBlock)
+	miniBlocks, err := svs.processValidatorChangesFor(metaBlock)
 	require.NoError(t, err)
 	assert.True(t, wasCalled)
+	assert.Equal(t, []*block.MiniBlock{mb}, miniBlocks)
 }
 
 func TestSyncValidatorStatus_findPeerMiniBlockHeaders(t *testing.T) {
@@ -234,9 +238,10 @@ func TestSyncValidatorStatus_getPeerBlockBodyForMeta(t *testing.T) {
 		},
 	}
 
-	body, err := svs.getPeerBlockBodyForMeta(metaBlock)
+	body, miniBlocks, err := svs.getPeerBlockBodyForMeta(metaBlock)
 	require.NoError(t, err)
 	require.Equal(t, expectedBody, body)
+	require.Equal(t, expectedBody.MiniBlocks, miniBlocks)
 }
 
 func getSyncValidatorStatusArgs() ArgsNewSyncValidatorStatus {
@@ -244,6 +249,9 @@ func getSyncValidatorStatusArgs() ArgsNewSyncValidatorStatus {
 		DataPool: &dataRetrieverMock.PoolsHolderStub{
 			MiniBlocksCalled: func() storage.Cacher {
 				return testscommon.NewCacherStub()
+			},
+			CurrEpochValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
+				return &vic.ValidatorInfoCacherStub{}
 			},
 		},
 		Marshalizer:    &mock.MarshalizerMock{},
@@ -292,11 +300,12 @@ func getSyncValidatorStatusArgs() ArgsNewSyncValidatorStatus {
 				return 2
 			},
 		},
-		NodeShuffler:      &shardingMocks.NodeShufflerMock{},
-		PubKey:            []byte("public key"),
-		ShardIdAsObserver: 0,
-		ChanNodeStop:      endProcess.GetDummyEndProcessChannel(),
-		NodeTypeProvider:  &nodeTypeProviderMock.NodeTypeProviderStub{},
-		IsFullArchive:     false,
+		NodeShuffler:        &shardingMocks.NodeShufflerMock{},
+		PubKey:              []byte("public key"),
+		ShardIdAsObserver:   0,
+		ChanNodeStop:        endProcess.GetDummyEndProcessChannel(),
+		NodeTypeProvider:    &nodeTypeProviderMock.NodeTypeProviderStub{},
+		IsFullArchive:       false,
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
 	}
 }

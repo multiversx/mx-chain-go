@@ -22,22 +22,20 @@ func NewShardResolversContainerFactory(
 ) (*shardResolversContainerFactory, error) {
 	container := containers.NewResolversContainer()
 	base := &baseResolversContainerFactory{
-		container:                  container,
-		shardCoordinator:           args.ShardCoordinator,
-		messenger:                  args.Messenger,
-		store:                      args.Store,
-		marshalizer:                args.Marshalizer,
-		hasher:                     args.Hasher,
-		uint64ByteSliceConverter:   args.Uint64ByteSliceConverter,
-		dataPacker:                 args.DataPacker,
-		manualEpochStartNotifier:   args.ManualEpochStartNotifier,
-		chanGracefullyClose:        args.ChanGracefullyClose,
-		generalConfig:              args.GeneralConfig,
-		shardIDForTries:            args.ShardIDForTries,
-		chainID:                    args.ChainID,
-		workingDir:                 args.WorkingDirectory,
-		disableOldTrieStorageEpoch: args.DisableOldTrieStorageEpoch,
-		epochNotifier:              args.EpochNotifier,
+		container:                container,
+		shardCoordinator:         args.ShardCoordinator,
+		messenger:                args.Messenger,
+		store:                    args.Store,
+		marshalizer:              args.Marshalizer,
+		hasher:                   args.Hasher,
+		uint64ByteSliceConverter: args.Uint64ByteSliceConverter,
+		dataPacker:               args.DataPacker,
+		manualEpochStartNotifier: args.ManualEpochStartNotifier,
+		chanGracefullyClose:      args.ChanGracefullyClose,
+		generalConfig:            args.GeneralConfig,
+		shardIDForTries:          args.ShardIDForTries,
+		chainID:                  args.ChainID,
+		workingDir:               args.WorkingDirectory,
 	}
 
 	err := base.checkParams()
@@ -96,21 +94,33 @@ func (srcf *shardResolversContainerFactory) Create() (dataRetriever.ResolversCon
 		return nil, err
 	}
 
+	err = srcf.generatePeerAuthenticationResolver()
+	if err != nil {
+		return nil, err
+	}
+
 	return srcf.container, nil
 }
 
-//------- Hdr resolver
+// ------- Hdr resolver
 
 func (srcf *shardResolversContainerFactory) generateHeaderResolvers() error {
 	shardC := srcf.shardCoordinator
 
-	//only one shard header topic, for example: shardBlocks_0_META
+	// only one shard header topic, for example: shardBlocks_0_META
 	identifierHdr := factory.ShardBlocksTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
 
-	hdrStorer := srcf.store.GetStorer(dataRetriever.BlockHeaderUnit)
+	hdrStorer, err := srcf.store.GetStorer(dataRetriever.BlockHeaderUnit)
+	if err != nil {
+		return err
+	}
 
 	hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(shardC.SelfId())
-	hdrNonceStore := srcf.store.GetStorer(hdrNonceHashDataUnit)
+	hdrNonceStore, err := srcf.store.GetStorer(hdrNonceHashDataUnit)
+	if err != nil {
+		return err
+	}
+
 	arg := storageResolvers.ArgHeaderResolver{
 		Messenger:                srcf.messenger,
 		ResponseTopicName:        identifierHdr,
@@ -129,15 +139,22 @@ func (srcf *shardResolversContainerFactory) generateHeaderResolvers() error {
 	return srcf.container.Add(identifierHdr, resolver)
 }
 
-//------- MetaBlockHeaderResolvers
+// ------- MetaBlockHeaderResolvers
 
 func (srcf *shardResolversContainerFactory) generateMetablockHeaderResolvers() error {
-	//only one metachain header block topic
-	//this is: metachainBlocks
+	// only one metachain header block topic
+	// this is: metachainBlocks
 	identifierHdr := factory.MetachainBlocksTopic
-	hdrStorer := srcf.store.GetStorer(dataRetriever.MetaBlockUnit)
+	hdrStorer, err := srcf.store.GetStorer(dataRetriever.MetaBlockUnit)
+	if err != nil {
+		return err
+	}
 
-	hdrNonceStore := srcf.store.GetStorer(dataRetriever.MetaHdrNonceHashDataUnit)
+	hdrNonceStore, err := srcf.store.GetStorer(dataRetriever.MetaHdrNonceHashDataUnit)
+	if err != nil {
+		return err
+	}
+
 	arg := storageResolvers.ArgHeaderResolver{
 		Messenger:                srcf.messenger,
 		ResponseTopicName:        identifierHdr,
@@ -162,11 +179,20 @@ func (srcf *shardResolversContainerFactory) generateTrieNodesResolvers() error {
 	keys := make([]string, 0)
 	resolversSlice := make([]dataRetriever.Resolver, 0)
 
+	userAccountsStorer, err := srcf.store.GetStorer(dataRetriever.UserAccountsUnit)
+	if err != nil {
+		return err
+	}
+
+	userAccountsCheckpointStorer, err := srcf.store.GetStorer(dataRetriever.UserAccountsCheckpointsUnit)
+	if err != nil {
+		return err
+	}
+
 	identifierTrieNodes := factory.AccountTrieNodesTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
 	storageManager, userAccountsDataTrie, err := srcf.newImportDBTrieStorage(
-		srcf.generalConfig.AccountsTrieStorageOld,
-		srcf.store.GetStorer(dataRetriever.UserAccountsUnit),
-		srcf.store.GetStorer(dataRetriever.UserAccountsCheckpointsUnit),
+		userAccountsStorer,
+		userAccountsCheckpointStorer,
 	)
 	if err != nil {
 		return fmt.Errorf("%w while creating user accounts data trie storage getter", err)

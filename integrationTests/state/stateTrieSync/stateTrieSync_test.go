@@ -13,15 +13,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/throttler"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/state/syncer"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	testStorage "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/trie/statistics"
@@ -33,41 +32,27 @@ import (
 
 var log = logger.GetOrCreate("integrationtests/state/statetriesync")
 
+const timeout = 30 * time.Second
+
 func createTestProcessorNodeAndTrieStorage(
 	t *testing.T,
 	numOfShards uint32,
 	shardID uint32,
 	txSignPrivKeyShardId uint32,
 ) (*integrationTests.TestProcessorNode, storage.Storer) {
+	mainStorer, _, err := testStorage.CreateTestingTriePruningStorer(&testscommon.ShardsCoordinatorMock{}, notifier.NewEpochStartSubscriptionHandler())
+	assert.Nil(t, err)
 
-	cacheConfig := storageUnit.CacheConfig{
-		Name:        "trie",
-		Type:        "SizeLRU",
-		SizeInBytes: 314572800, // 300MB
-		Capacity:    500000,
-	}
-	trieCache, err := storageUnit.NewCache(cacheConfig)
-	require.Nil(t, err)
-
-	dbConfig := config.DBConfig{
-		FilePath:          "trie",
-		Type:              "LvlDBSerial",
-		BatchDelaySeconds: 2,
-		MaxBatchSize:      45000,
-		MaxOpenFiles:      10,
-	}
-	persisterFactory := storageFactory.NewPersisterFactory(dbConfig)
-
-	triePersister, err := persisterFactory.Create(t.TempDir())
-	require.Nil(t, err)
-
-	trieStorage, err := storageUnit.NewStorageUnit(trieCache, triePersister)
-	require.Nil(t, err)
-
-	node := integrationTests.NewTestProcessorNodeWithStorageTrieAndGasModel(numOfShards, shardID, txSignPrivKeyShardId, trieStorage, createTestGasMap())
+	node := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
+		MaxShards:            numOfShards,
+		NodeShardId:          shardID,
+		TxSignPrivKeyShardId: txSignPrivKeyShardId,
+		TrieStore:            mainStorer,
+		GasScheduleMap:       createTestGasMap(),
+	})
 	_ = node.Messenger.CreateTopic(common.ConsensusTopic+node.ShardCoordinator.CommunicationIdentifier(node.ShardCoordinator.SelfId()), true)
 
-	return node, trieStorage
+	return node, mainStorer
 }
 
 func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
@@ -75,15 +60,15 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	var nrOfShards uint32 = 1
+	var numOfShards uint32 = 1
 	var shardID uint32 = 0
 	var txSignPrivKeyShardId uint32 = 0
 
 	fmt.Println("Requester:	")
-	nRequester, trieStorageRequester := createTestProcessorNodeAndTrieStorage(t, nrOfShards, shardID, txSignPrivKeyShardId)
+	nRequester, trieStorageRequester := createTestProcessorNodeAndTrieStorage(t, numOfShards, shardID, txSignPrivKeyShardId)
 
 	fmt.Println("Resolver:")
-	nResolver, trieStorageResolver := createTestProcessorNodeAndTrieStorage(t, nrOfShards, shardID, txSignPrivKeyShardId)
+	nResolver, trieStorageResolver := createTestProcessorNodeAndTrieStorage(t, numOfShards, shardID, txSignPrivKeyShardId)
 
 	defer func() {
 		_ = trieStorageRequester.DestroyUnit()
@@ -118,7 +103,8 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 	_ = resolverTrie.Commit()
 	rootHash, _ := resolverTrie.RootHash()
 
-	leavesChannel, _ := resolverTrie.GetAllLeavesOnChannel(rootHash)
+	leavesChannel := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
+	_ = resolverTrie.GetAllLeavesOnChannel(leavesChannel, context.Background(), rootHash)
 	numLeaves := 0
 	for range leavesChannel {
 		numLeaves++
@@ -128,7 +114,6 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 	requesterTrie := nRequester.TrieContainer.Get([]byte(trieFactory.UserAccountTrie))
 	nilRootHash, _ := requesterTrie.RootHash()
 
-	timeout := 10 * time.Second
 	tss := statistics.NewTrieSyncStatistics()
 	arg := trie.ArgTrieSyncer{
 		RequestHandler:            nRequester.RequestHandler,
@@ -141,6 +126,7 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 		TrieSyncStatistics:        tss,
 		TimeoutHandler:            testscommon.NewTimeoutHandlerMock(timeout),
 		MaxHardCapForMissingNodes: 10000,
+		CheckNodesOnDisk:          false,
 	}
 	trieSyncer, _ := trie.NewDoubleListTrieSyncer(arg)
 
@@ -158,7 +144,8 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 	assert.NotEqual(t, nilRootHash, newRootHash)
 	assert.Equal(t, rootHash, newRootHash)
 
-	leavesChannel, _ = requesterTrie.GetAllLeavesOnChannel(newRootHash)
+	leavesChannel = make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
+	_ = requesterTrie.GetAllLeavesOnChannel(leavesChannel, context.Background(), newRootHash)
 	numLeaves = 0
 	for range leavesChannel {
 		numLeaves++
@@ -204,15 +191,15 @@ func TestNode_RequestInterceptTrieNodesWithMessengerNotSyncingShouldErr(t *testi
 		t.Skip("this is not a short test")
 	}
 
-	var nrOfShards uint32 = 1
+	var numOfShards uint32 = 1
 	var shardID uint32 = 0
 	var txSignPrivKeyShardId uint32 = 0
 
 	fmt.Println("Requester:	")
-	nRequester, trieStorageRequester := createTestProcessorNodeAndTrieStorage(t, nrOfShards, shardID, txSignPrivKeyShardId)
+	nRequester, trieStorageRequester := createTestProcessorNodeAndTrieStorage(t, numOfShards, shardID, txSignPrivKeyShardId)
 
 	fmt.Println("Resolver:")
-	nResolver, trieStorageResolver := createTestProcessorNodeAndTrieStorage(t, nrOfShards, shardID, txSignPrivKeyShardId)
+	nResolver, trieStorageResolver := createTestProcessorNodeAndTrieStorage(t, numOfShards, shardID, txSignPrivKeyShardId)
 
 	defer func() {
 		_ = trieStorageRequester.DestroyUnit()
@@ -247,7 +234,8 @@ func TestNode_RequestInterceptTrieNodesWithMessengerNotSyncingShouldErr(t *testi
 	_ = resolverTrie.Commit()
 	rootHash, _ := resolverTrie.RootHash()
 
-	leavesChannel, _ := resolverTrie.GetAllLeavesOnChannel(rootHash)
+	leavesChannel := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
+	_ = resolverTrie.GetAllLeavesOnChannel(leavesChannel, context.Background(), rootHash)
 	numLeaves := 0
 	for range leavesChannel {
 		numLeaves++
@@ -256,7 +244,6 @@ func TestNode_RequestInterceptTrieNodesWithMessengerNotSyncingShouldErr(t *testi
 
 	requesterTrie := nRequester.TrieContainer.Get([]byte(trieFactory.UserAccountTrie))
 
-	timeout := 10 * time.Second
 	tss := statistics.NewTrieSyncStatistics()
 	arg := trie.ArgTrieSyncer{
 		RequestHandler:            nRequester.RequestHandler,
@@ -269,6 +256,7 @@ func TestNode_RequestInterceptTrieNodesWithMessengerNotSyncingShouldErr(t *testi
 		TrieSyncStatistics:        tss,
 		TimeoutHandler:            testscommon.NewTimeoutHandlerMock(timeout),
 		MaxHardCapForMissingNodes: 10000,
+		CheckNodesOnDisk:          false,
 	}
 	trieSyncer, _ := trie.NewDoubleListTrieSyncer(arg)
 
@@ -315,15 +303,15 @@ func testMultipleDataTriesSync(t *testing.T, numAccounts int, numDataTrieLeaves 
 		t.Skip("this is not a short test")
 	}
 
-	var nrOfShards uint32 = 1
+	var numOfShards uint32 = 1
 	var shardID uint32 = 0
 	var txSignPrivKeyShardId uint32 = 0
 
 	fmt.Println("Requester:	")
-	nRequester, trieStorageRequester := createTestProcessorNodeAndTrieStorage(t, nrOfShards, shardID, txSignPrivKeyShardId)
+	nRequester, trieStorageRequester := createTestProcessorNodeAndTrieStorage(t, numOfShards, shardID, txSignPrivKeyShardId)
 
 	fmt.Println("Resolver:")
-	nResolver, trieStorageResolver := createTestProcessorNodeAndTrieStorage(t, nrOfShards, shardID, txSignPrivKeyShardId)
+	nResolver, trieStorageResolver := createTestProcessorNodeAndTrieStorage(t, numOfShards, shardID, txSignPrivKeyShardId)
 
 	defer func() {
 		_ = trieStorageRequester.DestroyUnit()
@@ -353,7 +341,8 @@ func testMultipleDataTriesSync(t *testing.T, numAccounts int, numDataTrieLeaves 
 	}
 
 	rootHash, _ := accState.RootHash()
-	leavesChannel, err := accState.GetAllLeaves(rootHash)
+	leavesChannel := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
+	err = accState.GetAllLeaves(leavesChannel, context.Background(), rootHash)
 	for range leavesChannel {
 	}
 	require.Nil(t, err)
@@ -375,6 +364,7 @@ func testMultipleDataTriesSync(t *testing.T, numAccounts int, numDataTrieLeaves 
 			MaxTrieLevelInMemory:      200,
 			MaxHardCapForMissingNodes: 5000,
 			TrieSyncerVersion:         2,
+			CheckNodesOnDisk:          false,
 			TrieExporter:              inactiveTrieExporter,
 		},
 		ShardId:                shardID,
@@ -394,7 +384,8 @@ func testMultipleDataTriesSync(t *testing.T, numAccounts int, numDataTrieLeaves 
 	assert.NotEqual(t, nilRootHash, newRootHash)
 	assert.Equal(t, rootHash, newRootHash)
 
-	leavesChannel, err = nRequester.AccntState.GetAllLeaves(rootHash)
+	leavesChannel = make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
+	err = nRequester.AccntState.GetAllLeaves(leavesChannel, context.Background(), rootHash)
 	assert.Nil(t, err)
 	numLeaves := 0
 	for range leavesChannel {
@@ -406,7 +397,8 @@ func testMultipleDataTriesSync(t *testing.T, numAccounts int, numDataTrieLeaves 
 
 func checkAllDataTriesAreSynced(t *testing.T, numDataTrieLeaves int, adb state.AccountsAdapter, dataTriesRootHashes [][]byte) {
 	for i := range dataTriesRootHashes {
-		dataTrieLeaves, err := adb.GetAllLeaves(dataTriesRootHashes[i])
+		dataTrieLeaves := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
+		err := adb.GetAllLeaves(dataTrieLeaves, context.Background(), dataTriesRootHashes[i])
 		assert.Nil(t, err)
 		numLeaves := 0
 		for range dataTrieLeaves {

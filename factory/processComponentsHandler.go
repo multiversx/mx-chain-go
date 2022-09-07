@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/errors"
+	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
@@ -154,6 +155,9 @@ func (m *managedProcessComponents) CheckSubcomponents() error {
 	}
 	if check.IfNil(m.processComponents.txsSender) {
 		return errors.ErrNilTxsSender
+	}
+	if check.IfNil(m.processComponents.processedMiniBlocksTracker) {
+		return process.ErrNilProcessedMiniBlocksTracker
 	}
 	return nil
 }
@@ -506,6 +510,18 @@ func (m *managedProcessComponents) NodeRedundancyHandler() consensus.NodeRedunda
 	return m.processComponents.nodeRedundancyHandler
 }
 
+// AccountsParser returns the genesis accounts parser
+func (m *managedProcessComponents) AccountsParser() genesis.AccountsParser {
+	m.mutProcessComponents.RLock()
+	defer m.mutProcessComponents.RUnlock()
+
+	if m.processComponents == nil {
+		return nil
+	}
+
+	return m.processComponents.accountsParser
+}
+
 // CurrentEpochProvider returns the current epoch provider that can decide if an epoch is active or not on the network
 func (m *managedProcessComponents) CurrentEpochProvider() process.CurrentNetworkEpochProviderHandler {
 	m.mutProcessComponents.RLock()
@@ -542,6 +558,42 @@ func (m *managedProcessComponents) TxsSenderHandler() process.TxsSenderHandler {
 	return m.processComponents.txsSender
 }
 
+// HardforkTrigger returns the hardfork trigger
+func (m *managedProcessComponents) HardforkTrigger() HardforkTrigger {
+	m.mutProcessComponents.RLock()
+	defer m.mutProcessComponents.RUnlock()
+
+	if m.processComponents == nil {
+		return nil
+	}
+
+	return m.processComponents.hardforkTrigger
+}
+
+// ProcessedMiniBlocksTracker returns the processed mini blocks tracker
+func (m *managedProcessComponents) ProcessedMiniBlocksTracker() process.ProcessedMiniBlocksTracker {
+	m.mutProcessComponents.RLock()
+	defer m.mutProcessComponents.RUnlock()
+
+	if m.processComponents == nil {
+		return nil
+	}
+
+	return m.processComponents.processedMiniBlocksTracker
+}
+
+// ReceiptsRepository returns the receipts repository
+func (m *managedProcessComponents) ReceiptsRepository() ReceiptsRepository {
+	m.mutProcessComponents.RLock()
+	defer m.mutProcessComponents.RUnlock()
+
+	if m.receiptsRepository == nil {
+		return nil
+	}
+
+	return m.processComponents.receiptsRepository
+}
+
 // IsInterfaceNil returns true if the interface is nil
 func (m *managedProcessComponents) IsInterfaceNil() bool {
 	return m == nil
@@ -549,5 +601,5 @@ func (m *managedProcessComponents) IsInterfaceNil() bool {
 
 // String returns the name of the component
 func (m *managedProcessComponents) String() string {
-	return "managedProcessComponents"
+	return processComponentsName
 }
