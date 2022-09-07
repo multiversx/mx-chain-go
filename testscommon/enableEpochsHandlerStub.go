@@ -20,6 +20,7 @@ type EnableEpochsHandlerStub struct {
 	CheckExecuteReadOnlyEnableEpochField                         uint32
 	StorageAPICostOptimizationEnableEpochField                   uint32
 	MiniBlockPartialExecutionEnableEpochField                    uint32
+	RefactorPeersMiniBlocksEnableEpochField                      uint32
 	IsSCDeployFlagEnabledField                                   bool
 	IsBuiltInFunctionsFlagEnabledField                           bool
 	IsRelayedTransactionsFlagEnabledField                        bool
@@ -106,6 +107,7 @@ type EnableEpochsHandlerStub struct {
 	IsESDTNFTImprovementV1FlagEnabledField                       bool
 	IsSetSenderInEeiOutputTransferFlagEnabledField               bool
 	IsChangeDelegationOwnerFlagEnabledField                      bool
+	IsRefactorPeersMiniBlocksFlagEnabledField                    bool
 }
 
 // ResetPenalizedTooMuchGasFlag -
@@ -198,6 +200,11 @@ func (stub *EnableEpochsHandlerStub) StorageAPICostOptimizationEnableEpoch() uin
 // MiniBlockPartialExecutionEnableEpoch -
 func (stub *EnableEpochsHandlerStub) MiniBlockPartialExecutionEnableEpoch() uint32 {
 	return stub.MiniBlockPartialExecutionEnableEpochField
+}
+
+// RefactorPeersMiniBlocksEnableEpoch -
+func (stub *EnableEpochsHandlerStub) RefactorPeersMiniBlocksEnableEpoch() uint32 {
+	return stub.RefactorPeersMiniBlocksEnableEpochField
 }
 
 // IsSCDeployFlagEnabled -
@@ -628,6 +635,11 @@ func (stub *EnableEpochsHandlerStub) IsSetSenderInEeiOutputTransferFlagEnabled()
 // IsChangeDelegationOwnerFlagEnabled -
 func (stub *EnableEpochsHandlerStub) IsChangeDelegationOwnerFlagEnabled() bool {
 	return stub.IsChangeDelegationOwnerFlagEnabledField
+}
+
+// IsRefactorPeersMiniBlocksFlagEnabled -
+func (stub *EnableEpochsHandlerStub) IsRefactorPeersMiniBlocksFlagEnabled() bool {
+	return stub.IsRefactorPeersMiniBlocksFlagEnabledField
 }
 
 // IsInterfaceNil -

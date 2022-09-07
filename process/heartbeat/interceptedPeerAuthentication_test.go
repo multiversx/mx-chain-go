@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	processMocks "github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	"github.com/stretchr/testify/assert"
@@ -56,7 +57,7 @@ func createMockInterceptedPeerAuthenticationArg(interceptedData *heartbeat.PeerA
 		NodesCoordinator:      &shardingMocks.NodesCoordinatorStub{},
 		SignaturesHandler:     &processMocks.SignaturesHandlerStub{},
 		PeerSignatureHandler:  &cryptoMocks.PeerSignatureHandlerStub{},
-		ExpiryTimespanInSec:   30,
+		PayloadValidator:      &testscommon.PeerAuthenticationPayloadValidatorStub{},
 		HardforkTriggerPubKey: providedHardforkPubKey,
 	}
 	arg.DataBuff, _ = arg.Marshaller.Marshal(interceptedData)
@@ -107,15 +108,15 @@ func TestNewInterceptedPeerAuthentication(t *testing.T) {
 		assert.True(t, check.IfNil(ipa))
 		assert.Equal(t, process.ErrNilSignaturesHandler, err)
 	})
-	t.Run("invalid expiry timespan should error", func(t *testing.T) {
+	t.Run("nil payload validator should error", func(t *testing.T) {
 		t.Parallel()
 
 		arg := createMockInterceptedPeerAuthenticationArg(createDefaultInterceptedPeerAuthentication())
-		arg.ExpiryTimespanInSec = 1
+		arg.PayloadValidator = nil
 
 		ipa, err := NewInterceptedPeerAuthentication(arg)
 		assert.True(t, check.IfNil(ipa))
-		assert.Equal(t, process.ErrInvalidExpiryTimespan, err)
+		assert.Equal(t, process.ErrNilPayloadValidator, err)
 	})
 	t.Run("nil peer signature handler should error", func(t *testing.T) {
 		t.Parallel()
@@ -230,15 +231,13 @@ func TestInterceptedPeerAuthentication_CheckValidity(t *testing.T) {
 		err := ipa.CheckValidity()
 		assert.Equal(t, expectedErr, err)
 	})
-	t.Run("message is expired", func(t *testing.T) {
+	t.Run("message does not have a valid payload timestamp", func(t *testing.T) {
 		t.Parallel()
 
 		marshaller := &marshal.GogoProtoMarshalizer{}
-		expiryTimespanInSec := int64(30)
 		interceptedData := createDefaultInterceptedPeerAuthentication()
-		expiredTimestamp := time.Now().Unix() - expiryTimespanInSec - 1
 		payload := &heartbeat.Payload{
-			Timestamp: expiredTimestamp,
+			Timestamp: time.Now().Unix(),
 		}
 		payloadBytes, err := marshaller.Marshal(payload)
 		assert.Nil(t, err)
@@ -246,12 +245,16 @@ func TestInterceptedPeerAuthentication_CheckValidity(t *testing.T) {
 		interceptedData.Payload = payloadBytes
 		arg := createMockInterceptedPeerAuthenticationArg(interceptedData)
 		arg.Marshaller = marshaller
-		arg.ExpiryTimespanInSec = expiryTimespanInSec
+		arg.PayloadValidator = &testscommon.PeerAuthenticationPayloadValidatorStub{
+			ValidateTimestampCalled: func(payloadTimestamp int64) error {
+				return expectedErr
+			},
+		}
 
 		ipa, _ := NewInterceptedPeerAuthentication(arg)
 
 		err = ipa.CheckValidity()
-		assert.Equal(t, process.ErrMessageExpired, err)
+		assert.True(t, errors.Is(err, expectedErr))
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()

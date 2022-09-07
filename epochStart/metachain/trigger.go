@@ -46,6 +46,7 @@ type ArgsNewMetaEpochStartTrigger struct {
 	Hasher             hashing.Hasher
 	Storage            dataRetriever.StorageService
 	AppStatusHandler   core.AppStatusHandler
+	DataPool           dataRetriever.PoolsHolder
 }
 
 type trigger struct {
@@ -69,6 +70,7 @@ type trigger struct {
 	marshaller                  marshal.Marshalizer
 	hasher                      hashing.Hasher
 	appStatusHandler            core.AppStatusHandler
+	validatorInfoPool           epochStart.ValidatorInfoCacher
 }
 
 // NewEpochStartTrigger creates a trigger for start of epoch
@@ -103,6 +105,12 @@ func NewEpochStartTrigger(args *ArgsNewMetaEpochStartTrigger) (*trigger, error) 
 	if check.IfNil(args.AppStatusHandler) {
 		return nil, epochStart.ErrNilStatusHandler
 	}
+	if check.IfNil(args.DataPool) {
+		return nil, epochStart.ErrNilDataPoolsHolder
+	}
+	if check.IfNil(args.DataPool.CurrentEpochValidatorInfo()) {
+		return nil, epochStart.ErrNilCurrentEpochValidatorsInfoPool
+	}
 
 	triggerStorage, err := args.Storage.GetStorer(dataRetriever.BootstrapUnit)
 	if err != nil {
@@ -133,6 +141,7 @@ func NewEpochStartTrigger(args *ArgsNewMetaEpochStartTrigger) (*trigger, error) 
 		epochStartMeta:              &block.MetaBlock{},
 		appStatusHandler:            args.AppStatusHandler,
 		nextEpochStartRound:         disabledRoundForForceEpochStart,
+		validatorInfoPool:           args.DataPool.CurrentEpochValidatorInfo(),
 	}
 
 	err = trig.saveState(trig.triggerStateKey)

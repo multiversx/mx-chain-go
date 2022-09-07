@@ -15,22 +15,22 @@ type transactionMapCacher struct {
 	txsForBlock map[string]data.TransactionHandler
 }
 
-// NewCurrentBlockPool returns a new pool to be used for current block
-func NewCurrentBlockPool() *transactionMapCacher {
+// NewCurrentBlockTransactionsPool returns a new transactions pool to be used for the current block
+func NewCurrentBlockTransactionsPool() *transactionMapCacher {
 	return &transactionMapCacher{
 		mutTxs:      sync.RWMutex{},
 		txsForBlock: make(map[string]data.TransactionHandler),
 	}
 }
 
-// Clean creates a new pool
+// Clean creates a new transaction pool
 func (tmc *transactionMapCacher) Clean() {
 	tmc.mutTxs.Lock()
 	tmc.txsForBlock = make(map[string]data.TransactionHandler)
 	tmc.mutTxs.Unlock()
 }
 
-// GetTx returns the element saved for the hash
+// GetTx gets the transaction for the given hash
 func (tmc *transactionMapCacher) GetTx(txHash []byte) (data.TransactionHandler, error) {
 	tmc.mutTxs.RLock()
 	defer tmc.mutTxs.RUnlock()
@@ -43,7 +43,7 @@ func (tmc *transactionMapCacher) GetTx(txHash []byte) (data.TransactionHandler, 
 	return tx, nil
 }
 
-// AddTx writes the tx to the map
+// AddTx adds the transaction for the given hash
 func (tmc *transactionMapCacher) AddTx(txHash []byte, tx data.TransactionHandler) {
 	if check.IfNil(tx) {
 		return
