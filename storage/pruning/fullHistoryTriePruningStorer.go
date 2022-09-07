@@ -27,13 +27,8 @@ func initFullHistoryTriePruningStorer(args *FullHistoryStorerArgs, shardId strin
 	tps := &triePruningStorer{
 		PruningStorer: fhps.PruningStorer,
 	}
-	fhps.PruningStorer.extendPersisterLifeHandler = tps.extendPersisterLife
 	fhps.PruningStorer.lastEpochNeededHandler = tps.lastEpochNeeded
 	tps.registerHandler(args.Notifier)
-
-	if args.NumOfOldActivePersisters < 1 || args.NumOfOldActivePersisters > math.MaxInt32 {
-		return nil, storage.ErrInvalidNumberOfOldPersisters
-	}
 
 	return &fullHistoryTriePruningStorer{
 		triePruningStorer:         tps,
