@@ -16,7 +16,7 @@ var _ process.ForkDetector = (*shardForkDetector)(nil)
 // shardForkDetector implements the shard fork detector mechanism
 type shardForkDetector struct {
 	*baseForkDetector
-	doJobOnBHProcessedFunc func(_ data.HeaderHandler, _ []byte, _ []data.HeaderHandler, _ [][]byte)
+	doJobOnBHProcessedFunc func(header data.HeaderHandler, headerHash []byte, selfNotarizedHeaders []data.HeaderHandler, selfNotarizedHeadersHashes [][]byte)
 }
 
 // NewShardForkDetector method creates a new shardForkDetector object

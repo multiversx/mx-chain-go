@@ -432,7 +432,7 @@ func TestShardComputeLongestSelfChain_ShouldReturnNilWhenErrGetLastNotarizedHead
 	shardArguments.StartHeaders = make(map[uint32]data.HeaderHandler)
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
-	_, _, headers, _ := sbt.ComputeLongestSelfChainFunc()
+	_, _, headers, _ := sbt.ComputeLongestSelfChain()
 
 	assert.Nil(t, headers)
 }
@@ -443,7 +443,7 @@ func TestShardComputeLongestSelfChain_ShouldReturnEmptySliceWhenComputeLongestCh
 	shardArguments := CreateShardTrackerMockArguments()
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
-	_, _, headers, _ := sbt.ComputeLongestSelfChainFunc()
+	_, _, headers, _ := sbt.ComputeLongestSelfChain()
 
 	assert.Zero(t, len(headers))
 }
@@ -485,7 +485,7 @@ func TestShardComputeLongestSelfChain_ShouldWork(t *testing.T) {
 	sbt.AddTrackedHeader(hdr2, hdr2Hash)
 	sbt.AddTrackedHeader(hdr3, hdr3Hash)
 
-	lastNotarizedHeader, lastNotarizedHeaderHash, headers, hashes := sbt.ComputeLongestSelfChainFunc()
+	lastNotarizedHeader, lastNotarizedHeaderHash, headers, hashes := sbt.ComputeLongestSelfChain()
 
 	require.Equal(t, 2, len(headers))
 	assert.Equal(t, startHeaderHash, lastNotarizedHeaderHash)
@@ -503,7 +503,7 @@ func TestMetaComputeLongestSelfChain_ShouldReturnNilWhenErrGetLastNotarizedHeade
 	metaArguments.StartHeaders = make(map[uint32]data.HeaderHandler)
 	mbt, _ := track.NewMetaBlockTrack(metaArguments)
 
-	_, _, headers, _ := mbt.ComputeLongestSelfChainFunc()
+	_, _, headers, _ := mbt.ComputeLongestSelfChain()
 
 	assert.Nil(t, headers)
 }
@@ -514,7 +514,7 @@ func TestMetaComputeLongestSelfChain_ShouldReturnEmptySliceWhenComputeLongestCha
 	metaArguments := CreateMetaTrackerMockArguments()
 	mbt, _ := track.NewMetaBlockTrack(metaArguments)
 
-	_, _, headers, _ := mbt.ComputeLongestSelfChainFunc()
+	_, _, headers, _ := mbt.ComputeLongestSelfChain()
 
 	assert.Zero(t, len(headers))
 }
@@ -556,7 +556,7 @@ func TestMetaComputeLongestSelfChain_ShouldWork(t *testing.T) {
 	mbt.AddTrackedHeader(hdr2, hdr2Hash)
 	mbt.AddTrackedHeader(hdr3, hdr3Hash)
 
-	lastNotarizedHeader, lastNotarizedHeaderHash, headers, hashes := mbt.ComputeLongestSelfChainFunc()
+	lastNotarizedHeader, lastNotarizedHeaderHash, headers, hashes := mbt.ComputeLongestSelfChain()
 
 	require.Equal(t, 2, len(headers))
 	assert.Equal(t, startHeaderHash, lastNotarizedHeaderHash)
@@ -1533,10 +1533,10 @@ func TestGetSelfNotarizedHeader_ShouldWork(t *testing.T) {
 	headerHash2 := []byte("hash")
 	sbt.AddSelfNotarizedHeader(shardArguments.ShardCoordinator.SelfId(), header2, headerHash2)
 
-	selfNotarizedHeader, _, _ := sbt.GetSelfNotarizedHeaderFunc(shardArguments.ShardCoordinator.SelfId(), 0)
+	selfNotarizedHeader, _, _ := sbt.GetSelfNotarizedHeader(shardArguments.ShardCoordinator.SelfId(), 0)
 	assert.Equal(t, header2, selfNotarizedHeader)
 
-	selfNotarizedHeader, _, _ = sbt.GetSelfNotarizedHeaderFunc(shardArguments.ShardCoordinator.SelfId(), 1)
+	selfNotarizedHeader, _, _ = sbt.GetSelfNotarizedHeader(shardArguments.ShardCoordinator.SelfId(), 1)
 	assert.Equal(t, header1, selfNotarizedHeader)
 }
 

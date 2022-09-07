@@ -65,7 +65,7 @@ func TestSideChainShardBlockTrack_ComputeLongestSelfChainShouldWork(t *testing.T
 	sbt.SetSelfNotarizer(selfNotarizer)
 	scsbt, _ := track.NewSideChainShardBlockTrack(sbt)
 
-	header, hash, headers, hashes := scsbt.ComputeLongestSelfChainFunc()
+	header, hash, headers, hashes := scsbt.ComputeLongestSelfChain()
 
 	assert.Equal(t, lastNotarizedHeader, header)
 	assert.NotNil(t, lastNotarizedHash, hash)
@@ -94,7 +94,7 @@ func TestSideChainShardBlockTrack_GetSelfNotarizedHeaderShouldWork(t *testing.T)
 	sbt.SetSelfNotarizer(selfNotarizer)
 	scsbt, _ := track.NewSideChainShardBlockTrack(sbt)
 
-	header, hash, err := scsbt.GetSelfNotarizedHeaderFunc(core.MetachainShardId, 0)
+	header, hash, err := scsbt.GetSelfNotarizedHeader(core.MetachainShardId, 0)
 
 	assert.Equal(t, lastNotarizedHeader, header)
 	assert.NotNil(t, lastNotarizedHash, hash)

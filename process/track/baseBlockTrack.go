@@ -51,8 +51,6 @@ type baseBlockTrack struct {
 	mutHeaders                  sync.RWMutex
 	headers                     map[uint32]map[uint64][]*HeaderInfo
 	maxNumHeadersToKeepPerShard int
-	ComputeLongestSelfChainFunc func() (data.HeaderHandler, []byte, []data.HeaderHandler, [][]byte)
-	GetSelfNotarizedHeaderFunc  func(_ uint32, _ uint64) (data.HeaderHandler, []byte, error)
 }
 
 func createBaseBlockTrack(arguments ArgBaseTracker) (*baseBlockTrack, error) {

@@ -26,7 +26,7 @@ type blockProcessor struct {
 	roundHandler                          process.RoundHandler
 
 	blockFinality                   uint64
-	shouldProcessReceivedHeaderFunc func(_ data.HeaderHandler) bool
+	shouldProcessReceivedHeaderFunc func(headerHandler data.HeaderHandler) bool
 }
 
 // NewBlockProcessor creates a block processor object which implements blockProcessorHandler interface

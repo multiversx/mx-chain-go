@@ -30,8 +30,6 @@ func NewSideChainShardBlockTrack(shardBlockTrack *shardBlockTrack) (*sideChainSh
 	}
 
 	scsbt.blockProcessor = newBlockProcessor
-	scsbt.ComputeLongestSelfChainFunc = scsbt.ComputeLongestSelfChain
-	scsbt.GetSelfNotarizedHeaderFunc = scsbt.GetSelfNotarizedHeader
 
 	return scsbt, nil
 }
