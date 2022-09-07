@@ -277,6 +277,9 @@ func (ppcm *preProcessorsContainerFactory) createValidatorInfoPreProcessor() (pr
 		ppcm.hasher,
 		ppcm.marshalizer,
 		ppcm.blockSizeComputation,
+		ppcm.dataPool.ValidatorsInfo(),
+		ppcm.store,
+		ppcm.enableEpochsHandler,
 	)
 
 	return validatorInfoPreprocessor, err

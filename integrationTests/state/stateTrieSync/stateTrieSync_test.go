@@ -31,6 +31,8 @@ import (
 
 var log = logger.GetOrCreate("integrationtests/state/statetriesync")
 
+const timeout = 30 * time.Second
+
 func createTestProcessorNodeAndTrieStorage(
 	t *testing.T,
 	numOfShards uint32,
@@ -111,7 +113,6 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 	requesterTrie := nRequester.TrieContainer.Get([]byte(trieFactory.UserAccountTrie))
 	nilRootHash, _ := requesterTrie.RootHash()
 
-	timeout := 10 * time.Second
 	tss := statistics.NewTrieSyncStatistics()
 	arg := trie.ArgTrieSyncer{
 		RequestHandler:            nRequester.RequestHandler,
@@ -242,7 +243,6 @@ func TestNode_RequestInterceptTrieNodesWithMessengerNotSyncingShouldErr(t *testi
 
 	requesterTrie := nRequester.TrieContainer.Get([]byte(trieFactory.UserAccountTrie))
 
-	timeout := 10 * time.Second
 	tss := statistics.NewTrieSyncStatistics()
 	arg := trie.ArgTrieSyncer{
 		RequestHandler:            nRequester.RequestHandler,

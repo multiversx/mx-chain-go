@@ -170,6 +170,7 @@ type Config struct {
 	WhiteListPool               CacheConfig
 	WhiteListerVerifiedTxs      CacheConfig
 	SmartContractDataPool       CacheConfig
+	ValidatorInfoPool           CacheConfig
 	TrieSyncStorage             TrieSyncStorageConfig
 	EpochStartConfig            EpochStartConfig
 	AddressPubkeyConverter      PubkeyConfig
@@ -422,7 +423,7 @@ type VirtualMachineGasConfig struct {
 
 // BuiltInFunctionsConfig holds the configuration for the built in functions
 type BuiltInFunctionsConfig struct {
-	AutomaticCrawlerAddress       string
+	AutomaticCrawlerAddresses     []string
 	MaxNumAddressesInTransferRole uint32
 }
 

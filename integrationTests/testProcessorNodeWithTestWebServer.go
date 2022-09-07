@@ -1,7 +1,6 @@
 package integrationTests
 
 import (
-	"bytes"
 	"net/http"
 	"net/http/httptest"
 	"sync"
@@ -105,7 +104,7 @@ func createFacadeArg(tpn *TestProcessorNode) nodeFacade.ArgNodeFacade {
 func createTestApiConfig() config.ApiRoutesConfig {
 	routes := map[string][]string{
 		"node":        {"/status", "/metrics", "/heartbeatstatus", "/statistics", "/p2pstatus", "/debug", "/peerinfo"},
-		"address":     {"/:address", "/:address/balance", "/:address/username", "/:address/key/:key", "/:address/esdt", "/:address/esdt/:tokenIdentifier"},
+		"address":     {"/:address", "/:address/balance", "/:address/username", "/:address/code-hash", "/:address/key/:key", "/:address/esdt", "/:address/esdt/:tokenIdentifier"},
 		"hardfork":    {"/trigger"},
 		"network":     {"/status", "/total-staked", "/economics", "/config"},
 		"log":         {"/log"},
@@ -147,9 +146,9 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 		ShardCoordinator:          tpn.ShardCoordinator,
 		EpochNotifier:             tpn.EpochNotifier,
 		EnableEpochsHandler:       tpn.EnableEpochsHandler,
-		AutomaticCrawlerAddress:   bytes.Repeat([]byte{1}, 32),
 		MaxNumNodesInTransferRole: 100,
 	}
+	argsBuiltIn.AutomaticCrawlerAddresses = GenerateOneAddressPerShard(argsBuiltIn.ShardCoordinator)
 	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)
 	log.LogIfError(err)
 	esdtTransferParser, _ := parsers.NewESDTTransferParser(TestMarshalizer)

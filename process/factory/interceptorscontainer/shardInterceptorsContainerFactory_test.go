@@ -659,9 +659,10 @@ func TestShardInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	numInterceptorPeerAuth := 1
 	numInterceptorHeartbeat := 1
 	numInterceptorsShardValidatorInfo := 1
+	numInterceptorValidatorInfo := 1
 	totalInterceptors := numInterceptorTxs + numInterceptorsUnsignedTxs + numInterceptorsRewardTxs +
 		numInterceptorHeaders + numInterceptorMiniBlocks + numInterceptorMetachainHeaders + numInterceptorTrieNodes +
-		numInterceptorPeerAuth + numInterceptorHeartbeat + numInterceptorsShardValidatorInfo
+		numInterceptorPeerAuth + numInterceptorHeartbeat + numInterceptorsShardValidatorInfo + numInterceptorValidatorInfo
 
 	assert.Nil(t, err)
 	assert.Equal(t, totalInterceptors, container.Len())

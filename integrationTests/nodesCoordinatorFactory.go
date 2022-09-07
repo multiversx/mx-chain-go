@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
+	vic "github.com/ElrondNetwork/elrond-go/testscommon/validatorInfoCacher"
 )
 
 // ArgIndexHashedNodesCoordinatorFactory -
@@ -69,7 +70,10 @@ func (tpn *IndexHashedNodesCoordinatorFactory) CreateNodesCoordinator(arg ArgInd
 		ChanStopNode:            endProcess.GetDummyEndProcessChannel(),
 		NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
 		IsFullArchive:           false,
-		EnableEpochsHandler:     &testscommon.EnableEpochsHandlerStub{},
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
+			RefactorPeersMiniBlocksEnableEpochField: UnreachableEpoch,
+		},
+		ValidatorInfoCacher: &vic.ValidatorInfoCacherStub{},
 	}
 	nodesCoord, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 	if err != nil {
@@ -124,8 +128,10 @@ func (ihncrf *IndexHashedNodesCoordinatorWithRaterFactory) CreateNodesCoordinato
 		NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
 		IsFullArchive:           false,
 		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
-			IsWaitingListFixFlagEnabledField: true,
+			IsWaitingListFixFlagEnabledField:        true,
+			RefactorPeersMiniBlocksEnableEpochField: UnreachableEpoch,
 		},
+		ValidatorInfoCacher: &vic.ValidatorInfoCacherStub{},
 	}
 
 	baseCoordinator, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)

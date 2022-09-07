@@ -19,10 +19,10 @@ type RewardsCreatorStub struct {
 	) error
 	GetProtocolSustainabilityRewardsCalled func() *big.Int
 	GetLocalTxCacheCalled                  func() epochStart.TransactionCacher
-	CreateMarshalizedDataCalled            func(body *block.Body) map[string][][]byte
+	CreateMarshalledDataCalled             func(body *block.Body) map[string][][]byte
 	GetRewardsTxsCalled                    func(body *block.Body) map[string]data.TransactionHandler
-	SaveTxBlockToStorageCalled             func(metaBlock data.MetaHeaderHandler, body *block.Body)
-	DeleteTxsFromStorageCalled             func(metaBlock data.MetaHeaderHandler, body *block.Body)
+	SaveBlockDataToStorageCalled           func(metaBlock data.MetaHeaderHandler, body *block.Body)
+	DeleteBlockDataFromStorageCalled       func(metaBlock data.MetaHeaderHandler, body *block.Body)
 	RemoveBlockDataFromPoolsCalled         func(metaBlock data.MetaHeaderHandler, body *block.Body)
 }
 
@@ -68,10 +68,10 @@ func (rcs *RewardsCreatorStub) GetLocalTxCache() epochStart.TransactionCacher {
 	return nil
 }
 
-// CreateMarshalizedData -
-func (rcs *RewardsCreatorStub) CreateMarshalizedData(body *block.Body) map[string][][]byte {
-	if rcs.CreateMarshalizedDataCalled != nil {
-		return rcs.CreateMarshalizedDataCalled(body)
+// CreateMarshalledData -
+func (rcs *RewardsCreatorStub) CreateMarshalledData(body *block.Body) map[string][][]byte {
+	if rcs.CreateMarshalledDataCalled != nil {
+		return rcs.CreateMarshalledDataCalled(body)
 	}
 	return nil
 }
@@ -84,17 +84,17 @@ func (rcs *RewardsCreatorStub) GetRewardsTxs(body *block.Body) map[string]data.T
 	return nil
 }
 
-// SaveTxBlockToStorage -
-func (rcs *RewardsCreatorStub) SaveTxBlockToStorage(metaBlock data.MetaHeaderHandler, body *block.Body) {
-	if rcs.SaveTxBlockToStorageCalled != nil {
-		rcs.SaveTxBlockToStorageCalled(metaBlock, body)
+// SaveBlockDataToStorage -
+func (rcs *RewardsCreatorStub) SaveBlockDataToStorage(metaBlock data.MetaHeaderHandler, body *block.Body) {
+	if rcs.SaveBlockDataToStorageCalled != nil {
+		rcs.SaveBlockDataToStorageCalled(metaBlock, body)
 	}
 }
 
-// DeleteTxsFromStorage -
-func (rcs *RewardsCreatorStub) DeleteTxsFromStorage(metaBlock data.MetaHeaderHandler, body *block.Body) {
-	if rcs.DeleteTxsFromStorageCalled != nil {
-		rcs.DeleteTxsFromStorageCalled(metaBlock, body)
+// DeleteBlockDataFromStorage -
+func (rcs *RewardsCreatorStub) DeleteBlockDataFromStorage(metaBlock data.MetaHeaderHandler, body *block.Body) {
+	if rcs.DeleteBlockDataFromStorageCalled != nil {
+		rcs.DeleteBlockDataFromStorageCalled(metaBlock, body)
 	}
 }
 

@@ -90,7 +90,7 @@ func createTriesHolderForMeta() common.TriesHolder {
 	return triesHolder
 }
 
-//------- NewResolversContainerFactory
+// ------- NewResolversContainerFactory
 
 func TestNewMetaResolversContainerFactory_NilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
@@ -290,17 +290,6 @@ func TestNewMetaResolversContainerFactory_InvalidNumFullHistoryPeersShouldErr(t 
 	assert.True(t, errors.Is(err, dataRetriever.ErrInvalidValue))
 }
 
-func TestNewMetaResolversContainerFactory_NilPeerShardMapperShouldErr(t *testing.T) {
-	t.Parallel()
-
-	args := getArgumentsMeta()
-	args.PeerShardMapper = nil
-	rcf, err := resolverscontainer.NewMetaResolversContainerFactory(args)
-
-	assert.Nil(t, rcf)
-	assert.Equal(t, dataRetriever.ErrNilPeerShardMapper, err)
-}
-
 func TestNewMetaResolversContainerFactory_NilNodesCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -336,7 +325,7 @@ func TestNewMetaResolversContainerFactory_ShouldWork(t *testing.T) {
 	assert.Equal(t, int(args.ResolverConfig.NumFullHistoryPeers), rcf.NumFullHistoryPeers())
 }
 
-//------- Create
+// ------- Create
 
 func TestMetaResolversContainerFactory_CreateRegisterShardHeadersForMetachainFailsShouldErr(t *testing.T) {
 	t.Parallel()
@@ -384,8 +373,9 @@ func TestMetaResolversContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	numResolversTxs := noOfShards + 1
 	numResolversTrieNodes := 2
 	numResolversPeerAuth := 1
+	numResolverValidatorInfo := 1
 	totalResolvers := numResolversShardHeadersForMetachain + numResolverMetablocks + numResolversMiniBlocks +
-		numResolversUnsigned + numResolversTxs + numResolversTrieNodes + numResolversRewards + numResolversPeerAuth
+		numResolversUnsigned + numResolversTxs + numResolversTrieNodes + numResolversRewards + numResolversPeerAuth + numResolverValidatorInfo
 
 	assert.Equal(t, totalResolvers, container.Len())
 
@@ -418,6 +408,6 @@ func getArgumentsMeta() resolverscontainer.FactoryArgs {
 		PeersRatingHandler:                   &p2pmocks.PeersRatingHandlerStub{},
 		NodesCoordinator:                     &shardingMocks.NodesCoordinatorStub{},
 		MaxNumOfPeerAuthenticationInResponse: 5,
-		PeerShardMapper:                      &p2pmocks.NetworkShardingCollectorStub{},
+		PayloadValidator:                     &testscommon.PeerAuthenticationPayloadValidatorStub{},
 	}
 }
