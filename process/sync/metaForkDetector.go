@@ -15,6 +15,7 @@ var _ process.ForkDetector = (*metaForkDetector)(nil)
 // metaForkDetector implements the meta fork detector mechanism
 type metaForkDetector struct {
 	*baseForkDetector
+	doJobOnBHProcessedFunc func(header data.HeaderHandler, headerHash []byte, selfNotarizedHeaders []data.HeaderHandler, selfNotarizedHeadersHashes [][]byte)
 }
 
 // NewMetaForkDetector method creates a new metaForkDetector object
@@ -66,6 +67,8 @@ func NewMetaForkDetector(
 		baseForkDetector: bfd,
 	}
 
+	mfd.doJobOnBHProcessedFunc = mfd.doJobOnBHProcessed
+
 	bfd.forkDetector = &mfd
 
 	return &mfd, nil
@@ -85,7 +88,7 @@ func (mfd *metaForkDetector) AddHeader(
 		state,
 		selfNotarizedHeaders,
 		selfNotarizedHeadersHashes,
-		mfd.doJobOnBHProcessed,
+		mfd.doJobOnBHProcessedFunc,
 	)
 }
 

@@ -15,9 +15,13 @@ func NewSideChainBlockProcessor(blockProcessor *blockProcessor) (*sideChainBlock
 		return nil, process.ErrNilBlockProcessor
 	}
 
-	return &sideChainBlockProcessor{
+	scbp := &sideChainBlockProcessor{
 		blockProcessor,
-	}, nil
+	}
+
+	scbp.shouldProcessReceivedHeaderFunc = scbp.shouldProcessReceivedHeader
+
+	return scbp, nil
 }
 
 func (scbp *sideChainBlockProcessor) shouldProcessReceivedHeader(headerHandler data.HeaderHandler) bool {

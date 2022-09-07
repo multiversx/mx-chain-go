@@ -15,9 +15,23 @@ func NewSideChainShardBlockTrack(shardBlockTrack *shardBlockTrack) (*sideChainSh
 		return nil, process.ErrNilBlockTracker
 	}
 
-	return &sideChainShardBlockTrack{
+	scsbt := &sideChainShardBlockTrack{
 		shardBlockTrack,
-	}, nil
+	}
+
+	originalBlockProcessor, ok := scsbt.blockProcessor.(*blockProcessor)
+	if !ok {
+		return nil, process.ErrWrongTypeAssertion
+	}
+
+	newBlockProcessor, err := NewSideChainBlockProcessor(originalBlockProcessor)
+	if err != nil {
+		return nil, err
+	}
+
+	scsbt.blockProcessor = newBlockProcessor
+
+	return scsbt, nil
 }
 
 // ComputeLongestSelfChain computes the longest chain from self shard
@@ -30,4 +44,9 @@ func (scsbt *sideChainShardBlockTrack) ComputeLongestSelfChain() (data.HeaderHan
 
 	headers, hashes := scsbt.ComputeLongestChain(scsbt.shardCoordinator.SelfId(), lastSelfNotarizedHeader)
 	return lastSelfNotarizedHeader, lastSelfNotarizedHeaderHash, headers, hashes
+}
+
+// GetSelfNotarizedHeader returns a self notarized header for self shard with a given offset, behind last self notarized header
+func (scsbt *sideChainShardBlockTrack) GetSelfNotarizedHeader(_ uint32, offset uint64) (data.HeaderHandler, []byte, error) {
+	return scsbt.selfNotarizer.GetNotarizedHeader(scsbt.shardCoordinator.SelfId(), offset)
 }

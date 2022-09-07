@@ -15,9 +15,12 @@ func NewSideChainShardForkDetector(shardForkDetector *shardForkDetector) (*sideC
 		return nil, process.ErrNilForkDetector
 	}
 
-	return &sideChainShardForkDetector{
+	scsfd := &sideChainShardForkDetector{
 		shardForkDetector,
-	}, nil
+	}
+
+	scsfd.doJobOnBHProcessedFunc = scsfd.doJobOnBHProcessed
+	return scsfd, nil
 }
 
 func (scsfd *sideChainShardForkDetector) doJobOnBHProcessed(
