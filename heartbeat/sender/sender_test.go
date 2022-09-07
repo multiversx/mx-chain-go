@@ -2,6 +2,7 @@ package sender
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -14,7 +15,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -43,7 +43,6 @@ func createMockSenderArgs() ArgSender {
 		HardforkTimeBetweenSends:                    time.Second,
 		HardforkTriggerPubKey:                       providedHardforkPubKey,
 		PeerTypeProvider:                            &mock.PeerTypeProviderStub{},
-		AppStatusHandler:                            &statusHandler.AppStatusHandlerStub{},
 	}
 }
 
@@ -55,9 +54,9 @@ func TestNewSender(t *testing.T) {
 
 		args := createMockSenderArgs()
 		args.Messenger = nil
-		sender, err := NewSender(args)
+		senderInstance, err := NewSender(args)
 
-		assert.Nil(t, sender)
+		assert.Nil(t, senderInstance)
 		assert.Equal(t, heartbeat.ErrNilMessenger, err)
 	})
 	t.Run("nil marshaller should error", func(t *testing.T) {
@@ -65,9 +64,9 @@ func TestNewSender(t *testing.T) {
 
 		args := createMockSenderArgs()
 		args.Marshaller = nil
-		sender, err := NewSender(args)
+		senderInstance, err := NewSender(args)
 
-		assert.Nil(t, sender)
+		assert.Nil(t, senderInstance)
 		assert.Equal(t, heartbeat.ErrNilMarshaller, err)
 	})
 	t.Run("empty peer auth topic should error", func(t *testing.T) {
@@ -75,9 +74,9 @@ func TestNewSender(t *testing.T) {
 
 		args := createMockSenderArgs()
 		args.PeerAuthenticationTopic = ""
-		sender, err := NewSender(args)
+		senderInstance, err := NewSender(args)
 
-		assert.Nil(t, sender)
+		assert.Nil(t, senderInstance)
 		assert.Equal(t, heartbeat.ErrEmptySendTopic, err)
 	})
 	t.Run("empty heartbeat topic should error", func(t *testing.T) {
@@ -85,9 +84,9 @@ func TestNewSender(t *testing.T) {
 
 		args := createMockSenderArgs()
 		args.HeartbeatTopic = ""
-		sender, err := NewSender(args)
+		senderInstance, err := NewSender(args)
 
-		assert.Nil(t, sender)
+		assert.Nil(t, senderInstance)
 		assert.Equal(t, heartbeat.ErrEmptySendTopic, err)
 	})
 	t.Run("invalid peer auth time between sends should error", func(t *testing.T) {
@@ -95,9 +94,9 @@ func TestNewSender(t *testing.T) {
 
 		args := createMockSenderArgs()
 		args.PeerAuthenticationTimeBetweenSends = time.Second - time.Nanosecond
-		sender, err := NewSender(args)
+		senderInstance, err := NewSender(args)
 
-		assert.Nil(t, sender)
+		assert.Nil(t, senderInstance)
 		assert.True(t, errors.Is(err, heartbeat.ErrInvalidTimeDuration))
 		assert.True(t, strings.Contains(err.Error(), "timeBetweenSends"))
 		assert.False(t, strings.Contains(err.Error(), "timeBetweenSendsWhenError"))
@@ -107,9 +106,9 @@ func TestNewSender(t *testing.T) {
 
 		args := createMockSenderArgs()
 		args.PeerAuthenticationTimeBetweenSendsWhenError = time.Second - time.Nanosecond
-		sender, err := NewSender(args)
+		senderInstance, err := NewSender(args)
 
-		assert.Nil(t, sender)
+		assert.Nil(t, senderInstance)
 		assert.True(t, errors.Is(err, heartbeat.ErrInvalidTimeDuration))
 		assert.True(t, strings.Contains(err.Error(), "timeBetweenSendsWhenError"))
 	})
@@ -118,9 +117,9 @@ func TestNewSender(t *testing.T) {
 
 		args := createMockSenderArgs()
 		args.HeartbeatTimeBetweenSends = time.Second - time.Nanosecond
-		sender, err := NewSender(args)
+		senderInstance, err := NewSender(args)
 
-		assert.Nil(t, sender)
+		assert.Nil(t, senderInstance)
 		assert.True(t, errors.Is(err, heartbeat.ErrInvalidTimeDuration))
 		assert.True(t, strings.Contains(err.Error(), "timeBetweenSends"))
 		assert.False(t, strings.Contains(err.Error(), "timeBetweenSendsWhenError"))
@@ -130,9 +129,9 @@ func TestNewSender(t *testing.T) {
 
 		args := createMockSenderArgs()
 		args.HeartbeatTimeBetweenSendsWhenError = time.Second - time.Nanosecond
-		sender, err := NewSender(args)
+		senderInstance, err := NewSender(args)
 
-		assert.Nil(t, sender)
+		assert.Nil(t, senderInstance)
 		assert.True(t, errors.Is(err, heartbeat.ErrInvalidTimeDuration))
 		assert.True(t, strings.Contains(err.Error(), "timeBetweenSendsWhenError"))
 	})
@@ -141,9 +140,9 @@ func TestNewSender(t *testing.T) {
 
 		args := createMockSenderArgs()
 		args.VersionNumber = string(make([]byte, 150))
-		sender, err := NewSender(args)
+		senderInstance, err := NewSender(args)
 
-		assert.Nil(t, sender)
+		assert.Nil(t, senderInstance)
 		assert.True(t, errors.Is(err, heartbeat.ErrPropertyTooLong))
 		assert.True(t, strings.Contains(err.Error(), "versionNumber"))
 	})
@@ -152,9 +151,9 @@ func TestNewSender(t *testing.T) {
 
 		args := createMockSenderArgs()
 		args.NodeDisplayName = string(make([]byte, 150))
-		sender, err := NewSender(args)
+		senderInstance, err := NewSender(args)
 
-		assert.Nil(t, sender)
+		assert.Nil(t, senderInstance)
 		assert.True(t, errors.Is(err, heartbeat.ErrPropertyTooLong))
 		assert.True(t, strings.Contains(err.Error(), "nodeDisplayName"))
 	})
@@ -163,9 +162,9 @@ func TestNewSender(t *testing.T) {
 
 		args := createMockSenderArgs()
 		args.Identity = string(make([]byte, 150))
-		sender, err := NewSender(args)
+		senderInstance, err := NewSender(args)
 
-		assert.Nil(t, sender)
+		assert.Nil(t, senderInstance)
 		assert.True(t, errors.Is(err, heartbeat.ErrPropertyTooLong))
 		assert.True(t, strings.Contains(err.Error(), "identity"))
 	})
@@ -174,9 +173,9 @@ func TestNewSender(t *testing.T) {
 
 		args := createMockSenderArgs()
 		args.CurrentBlockProvider = nil
-		sender, err := NewSender(args)
+		senderInstance, err := NewSender(args)
 
-		assert.Nil(t, sender)
+		assert.Nil(t, senderInstance)
 		assert.Equal(t, heartbeat.ErrNilCurrentBlockProvider, err)
 	})
 	t.Run("nil nodes coordinator should error", func(t *testing.T) {
@@ -184,9 +183,9 @@ func TestNewSender(t *testing.T) {
 
 		args := createMockSenderArgs()
 		args.NodesCoordinator = nil
-		sender, err := NewSender(args)
+		senderInstance, err := NewSender(args)
 
-		assert.Nil(t, sender)
+		assert.Nil(t, senderInstance)
 		assert.Equal(t, heartbeat.ErrNilNodesCoordinator, err)
 	})
 	t.Run("nil peer signature handler should error", func(t *testing.T) {
@@ -194,9 +193,9 @@ func TestNewSender(t *testing.T) {
 
 		args := createMockSenderArgs()
 		args.PeerSignatureHandler = nil
-		sender, err := NewSender(args)
+		senderInstance, err := NewSender(args)
 
-		assert.Nil(t, sender)
+		assert.Nil(t, senderInstance)
 		assert.Equal(t, heartbeat.ErrNilPeerSignatureHandler, err)
 	})
 	t.Run("nil private key should error", func(t *testing.T) {
@@ -204,9 +203,9 @@ func TestNewSender(t *testing.T) {
 
 		args := createMockSenderArgs()
 		args.PrivateKey = nil
-		sender, err := NewSender(args)
+		senderInstance, err := NewSender(args)
 
-		assert.Nil(t, sender)
+		assert.Nil(t, senderInstance)
 		assert.Equal(t, heartbeat.ErrNilPrivateKey, err)
 	})
 	t.Run("nil redundancy handler should error", func(t *testing.T) {
@@ -214,9 +213,9 @@ func TestNewSender(t *testing.T) {
 
 		args := createMockSenderArgs()
 		args.RedundancyHandler = nil
-		sender, err := NewSender(args)
+		senderInstance, err := NewSender(args)
 
-		assert.Nil(t, sender)
+		assert.Nil(t, senderInstance)
 		assert.Equal(t, heartbeat.ErrNilRedundancyHandler, err)
 	})
 	t.Run("nil hardfork trigger should error", func(t *testing.T) {
@@ -224,9 +223,9 @@ func TestNewSender(t *testing.T) {
 
 		args := createMockSenderArgs()
 		args.HardforkTrigger = nil
-		sender, err := NewSender(args)
+		senderInstance, err := NewSender(args)
 
-		assert.Nil(t, sender)
+		assert.Nil(t, senderInstance)
 		assert.Equal(t, heartbeat.ErrNilHardforkTrigger, err)
 	})
 	t.Run("invalid time between hardforks should error", func(t *testing.T) {
@@ -234,9 +233,9 @@ func TestNewSender(t *testing.T) {
 
 		args := createMockSenderArgs()
 		args.HardforkTimeBetweenSends = time.Second - time.Nanosecond
-		sender, err := NewSender(args)
+		senderInstance, err := NewSender(args)
 
-		assert.Nil(t, sender)
+		assert.Nil(t, senderInstance)
 		assert.True(t, errors.Is(err, heartbeat.ErrInvalidTimeDuration))
 		assert.True(t, strings.Contains(err.Error(), "hardforkTimeBetweenSends"))
 	})
@@ -245,9 +244,9 @@ func TestNewSender(t *testing.T) {
 
 		args := createMockSenderArgs()
 		args.HardforkTriggerPubKey = make([]byte, 0)
-		sender, err := NewSender(args)
+		senderInstance, err := NewSender(args)
 
-		assert.Nil(t, sender)
+		assert.Nil(t, senderInstance)
 		assert.True(t, errors.Is(err, heartbeat.ErrInvalidValue))
 		assert.True(t, strings.Contains(err.Error(), "hardfork"))
 	})
@@ -256,28 +255,18 @@ func TestNewSender(t *testing.T) {
 
 		args := createMockSenderArgs()
 		args.PeerTypeProvider = nil
-		sender, err := NewSender(args)
+		senderInstance, err := NewSender(args)
 
-		assert.Nil(t, sender)
+		assert.Nil(t, senderInstance)
 		assert.Equal(t, heartbeat.ErrNilPeerTypeProvider, err)
-	})
-	t.Run("nil status handler should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockSenderArgs()
-		args.AppStatusHandler = nil
-		sender, err := NewSender(args)
-
-		assert.Nil(t, sender)
-		assert.Equal(t, heartbeat.ErrNilAppStatusHandler, err)
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockSenderArgs()
-		sender, err := NewSender(args)
+		senderInstance, err := NewSender(args)
 
-		assert.False(t, check.IfNil(sender))
+		assert.False(t, check.IfNil(senderInstance))
 		assert.Nil(t, err)
 	})
 }
@@ -293,7 +282,26 @@ func TestSender_Close(t *testing.T) {
 	}()
 
 	args := createMockSenderArgs()
-	sender, _ := NewSender(args)
-	err := sender.Close()
+	senderInstance, _ := NewSender(args)
+	err := senderInstance.Close()
 	assert.Nil(t, err)
+}
+
+func TestSender_GetSenderInfoShouldNotPanic(t *testing.T) {
+	t.Parallel()
+
+	defer func() {
+		r := recover()
+		if r != nil {
+			assert.Fail(t, fmt.Sprintf("should have not panicked %v", r))
+		}
+	}()
+
+	args := createMockSenderArgs()
+	senderInstance, _ := NewSender(args)
+
+	_, _, err := senderInstance.GetSenderInfo()
+	assert.Nil(t, err)
+
+	_ = senderInstance.Close()
 }

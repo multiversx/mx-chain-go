@@ -156,7 +156,6 @@ type MiniBlocksResolver interface {
 // PeerAuthenticationResolver defines what a peer authentication resolver should do
 type PeerAuthenticationResolver interface {
 	Resolver
-	RequestDataFromChunk(chunkIndex uint32, epoch uint32) error
 	RequestDataFromHashArray(hashes [][]byte, epoch uint32) error
 }
 

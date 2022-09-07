@@ -316,6 +316,10 @@ func (m *Monitor) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPe
 func (m *Monitor) EpochConfirmed(epoch uint32, _ uint64) {
 	m.flagHeartbeatDisableEpoch.SetValue(epoch >= m.heartbeatDisableEpoch)
 	log.Debug("heartbeat v1 monitor", "enabled", !m.flagHeartbeatDisableEpoch.IsSet())
+
+	if m.flagHeartbeatDisableEpoch.IsSet() {
+		m.cancelFunc()
+	}
 }
 
 func (m *Monitor) addHeartbeatMessageToMap(hb *data.Heartbeat) {
