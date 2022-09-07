@@ -52,17 +52,17 @@ func TestNewMetricsUpdater(t *testing.T) {
 		args.HeartbeatMonitor = nil
 		updater, err := NewMetricsUpdater(args)
 
-		assert.Equal(t, heartbeat.ErrNilMonitor, err)
+		assert.Equal(t, heartbeat.ErrNilHeartbeatMonitor, err)
 		assert.True(t, check.IfNil(updater))
 	})
-	t.Run("nil sender info provider should error", func(t *testing.T) {
+	t.Run("nil heartbeat sender info provider should error", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgsMetricsUpdater()
 		args.HeartbeatSenderInfoProvider = nil
 		updater, err := NewMetricsUpdater(args)
 
-		assert.Equal(t, heartbeat.ErrNilSenderInfoProvider, err)
+		assert.Equal(t, heartbeat.ErrNilHeartbeatSenderInfoProvider, err)
 		assert.True(t, check.IfNil(updater))
 	})
 	t.Run("nil app status handler should error", func(t *testing.T) {

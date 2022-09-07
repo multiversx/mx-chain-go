@@ -1,7 +1,6 @@
 package factory
 
 import (
-	"io"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -50,7 +49,7 @@ type heartbeatV2Components struct {
 	peerAuthRequestsProcessor  update.Closer
 	directConnectionsProcessor update.Closer
 	monitor                    HeartbeatV2Monitor
-	statusHandler              io.Closer
+	statusHandler              update.Closer
 }
 
 // NewHeartbeatV2ComponentsFactory creates a new instance of heartbeatV2ComponentsFactory
@@ -250,7 +249,7 @@ func (hc *heartbeatV2Components) Close() error {
 		log.LogIfError(hc.directConnectionsProcessor.Close())
 	}
 
-	if !check.IfNilReflect(hc.statusHandler) {
+	if !check.IfNil(hc.statusHandler) {
 		log.LogIfError(hc.statusHandler.Close())
 	}
 

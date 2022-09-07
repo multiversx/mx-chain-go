@@ -75,10 +75,10 @@ func checkArgs(args ArgsMetricsUpdater) error {
 		return heartbeat.ErrNilAppStatusHandler
 	}
 	if check.IfNil(args.HeartbeatMonitor) {
-		return heartbeat.ErrNilMonitor
+		return heartbeat.ErrNilHeartbeatMonitor
 	}
 	if check.IfNil(args.HeartbeatSenderInfoProvider) {
-		return heartbeat.ErrNilSenderInfoProvider
+		return heartbeat.ErrNilHeartbeatSenderInfoProvider
 	}
 	if args.TimeBetweenConnectionsMetricsUpdate < minDuration {
 		return fmt.Errorf("%w on TimeBetweenConnectionsMetricsUpdate, provided %d, min expected %d",

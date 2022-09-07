@@ -88,7 +88,7 @@ func (tc *timeCacher) Clear() {
 func (tc *timeCacher) Put(key []byte, value interface{}, _ int) (evicted bool) {
 	err := tc.timeCache.put(string(key), value, tc.timeCache.defaultSpan)
 	if err != nil {
-		log.Error("mapTimeCacher.Put", "error", key)
+		log.Error("mapTimeCacher.Put", "key", key, "error", err)
 		return
 	}
 
@@ -126,7 +126,7 @@ func (tc *timeCacher) HasOrAdd(key []byte, value interface{}, _ int) (has, added
 	var err error
 	has, added, err = tc.timeCache.hasOrAdd(string(key), value, tc.timeCache.defaultSpan)
 	if err != nil {
-		log.Error("mapTimeCacher.HasOrAdd", "error", key)
+		log.Error("mapTimeCacher.HasOrAdd", "key", key, "error", err)
 		return
 	}
 
@@ -182,7 +182,7 @@ func (tc *timeCacher) MaxSize() int {
 // RegisterHandler registers a new handler to be called when a new data is added
 func (tc *timeCacher) RegisterHandler(handler func(key []byte, value interface{}), id string) {
 	if handler == nil {
-		log.Error("attempt to register a nil handler to a cacher object")
+		log.Error("attempt to register a nil handler to a cacher object", "id", id)
 		return
 	}
 
