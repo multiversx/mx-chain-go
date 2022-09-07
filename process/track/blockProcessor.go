@@ -25,7 +25,8 @@ type blockProcessor struct {
 	finalMetachainHeadersNotifier         blockNotifierHandler
 	roundHandler                          process.RoundHandler
 
-	blockFinality uint64
+	blockFinality                   uint64
+	shouldProcessReceivedHeaderFunc func(headerHandler data.HeaderHandler) bool
 }
 
 // NewBlockProcessor creates a block processor object which implements blockProcessorHandler interface
@@ -50,6 +51,7 @@ func NewBlockProcessor(arguments ArgBlockProcessor) (*blockProcessor, error) {
 	}
 
 	bp.blockFinality = process.BlockFinality
+	bp.shouldProcessReceivedHeaderFunc = bp.shouldProcessReceivedHeader
 
 	return &bp, nil
 }
@@ -60,7 +62,7 @@ func (bp *blockProcessor) ProcessReceivedHeader(header data.HeaderHandler) {
 		return
 	}
 
-	if !bp.shouldProcessReceivedHeader(header) {
+	if !bp.shouldProcessReceivedHeaderFunc(header) {
 		return
 	}
 
