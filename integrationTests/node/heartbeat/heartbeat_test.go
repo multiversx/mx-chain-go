@@ -6,13 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/heartbeat"
-	mock2 "github.com/ElrondNetwork/elrond-go/heartbeat/mock"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
-	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
-
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go-crypto"
@@ -20,19 +13,25 @@ import (
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl"
 	mclsig "github.com/ElrondNetwork/elrond-go-crypto/signing/mcl/singlesig"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/common/enablers"
+	"github.com/ElrondNetwork/elrond-go/common/forking"
+	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
+	mock2 "github.com/ElrondNetwork/elrond-go/heartbeat/mock"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/process"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/assert"
 )
 
 var log = logger.GetOrCreate("integrationtests/node")
-
-var handlers []vmcommon.EpochSubscriberHandler
 
 const (
 	stepDelay                 = time.Second / 10
@@ -51,9 +50,9 @@ func TestHeartbeatMonitorWillUpdateAnInactivePeer(t *testing.T) {
 	nodes := make([]p2p.Messenger, interactingNodes)
 
 	maxUnresposiveTime := time.Second * 10
-	monitor := createMonitor(maxUnresposiveTime)
+	monitor := createMonitor(maxUnresposiveTime, &testscommon.EnableEpochsHandlerStub{})
 
-	senders, pks := prepareNodes(nodes, monitor, interactingNodes, "nodeName")
+	senders, pks := prepareNodes(nodes, monitor, interactingNodes, "nodeName", &testscommon.EnableEpochsHandlerStub{})
 
 	defer func() {
 		for _, n := range nodes {
@@ -105,9 +104,9 @@ func TestHeartbeatMonitorWillNotUpdateTooLongHeartbeatMessages(t *testing.T) {
 	nodes := make([]p2p.Messenger, interactingNodes)
 
 	maxUnresposiveTime := time.Second * 10
-	monitor := createMonitor(maxUnresposiveTime)
+	monitor := createMonitor(maxUnresposiveTime, &testscommon.EnableEpochsHandlerStub{})
 
-	senders, pks := prepareNodes(nodes, monitor, interactingNodes, bigNodeName)
+	senders, pks := prepareNodes(nodes, monitor, interactingNodes, bigNodeName, &testscommon.EnableEpochsHandlerStub{})
 
 	defer func() {
 		for _, n := range nodes {
@@ -150,9 +149,11 @@ func TestHeartbeatV2_DeactivationOfHeartbeat(t *testing.T) {
 		messengers[i] = nodes[i].Messenger
 	}
 
+	epochNotifierInstance := forking.NewGenericEpochNotifier()
+	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(config.EnableEpochs{HeartbeatDisableEpoch: providedEpoch}, epochNotifierInstance)
 	maxUnresposiveTime := time.Second * 10
-	monitor := createMonitor(maxUnresposiveTime)
-	senders, _ := prepareNodes(messengers, monitor, interactingNodes, "nodeName")
+	monitor := createMonitor(maxUnresposiveTime, enableEpochsHandler)
+	senders, _ := prepareNodes(messengers, monitor, interactingNodes, "nodeName", enableEpochsHandler)
 
 	// Start sending heartbeats
 	timer := time.NewTimer(durationBetweenHeartbeats)
@@ -170,9 +171,9 @@ func TestHeartbeatV2_DeactivationOfHeartbeat(t *testing.T) {
 	}
 
 	// Stop sending heartbeats
-	for _, handler := range handlers {
-		handler.EpochConfirmed(providedEpoch+1, 0)
-	}
+	epochNotifierInstance.CheckEpoch(&testscommon.HeaderHandlerStub{
+		EpochField: providedEpoch + 1,
+	})
 
 	// Wait enough time to make sure some heartbeats should have been sent
 	time.Sleep(time.Second * 15)
@@ -234,13 +235,13 @@ func prepareNodes(
 	monitor *process.Monitor,
 	interactingNodes int,
 	defaultNodeName string,
+	enableEpochsHandler common.EnableEpochsHandler,
 ) ([]*process.Sender, []crypto.PublicKey) {
 
 	senderIdxs := []int{0, 1}
 	topicHeartbeat := "topic"
 	senders := make([]*process.Sender, 0)
 	pks := make([]crypto.PublicKey, 0)
-	handlers = make([]vmcommon.EpochSubscriberHandler, 0)
 
 	for i := 0; i < interactingNodes; i++ {
 		if nodes[i] == nil {
@@ -250,7 +251,7 @@ func prepareNodes(
 
 		isSender := integrationTests.IsIntInSlice(i, senderIdxs)
 		if isSender {
-			sender, pk := createSenderWithName(nodes[i], topicHeartbeat, defaultNodeName)
+			sender, pk := createSenderWithName(nodes[i], topicHeartbeat, defaultNodeName, enableEpochsHandler)
 			senders = append(senders, sender)
 			pks = append(pks, pk)
 		} else {
@@ -319,7 +320,7 @@ func isMessageCorrectLen(heartbeats []data.PubKeyHeartbeat, pk crypto.PublicKey,
 	return false
 }
 
-func createSenderWithName(messenger p2p.Messenger, topic string, nodeName string) (*process.Sender, crypto.PublicKey) {
+func createSenderWithName(messenger p2p.Messenger, topic string, nodeName string, enableEpochsHandler common.EnableEpochsHandler) (*process.Sender, crypto.PublicKey) {
 	suite := mcl.NewSuiteBLS12()
 	signer := &mclsig.BlsSingleSigner{}
 	keyGen := signing.NewKeyGenerator(suite)
@@ -340,19 +341,14 @@ func createSenderWithName(messenger p2p.Messenger, topic string, nodeName string
 		HardforkTrigger:      &testscommon.HardforkTriggerStub{},
 		CurrentBlockProvider: &testscommon.ChainHandlerStub{},
 		RedundancyHandler:    &mock.RedundancyHandlerStub{},
-		EpochNotifier: &epochNotifier.EpochNotifierStub{
-			RegisterNotifyHandlerCalled: func(handler vmcommon.EpochSubscriberHandler) {
-				handlers = append(handlers, handler)
-			},
-		},
-		HeartbeatDisableEpoch: providedEpoch,
+		EnableEpochsHandler:  enableEpochsHandler,
 	}
 
 	sender, _ := process.NewSender(argSender)
 	return sender, pk
 }
 
-func createMonitor(maxDurationPeerUnresponsive time.Duration) *process.Monitor {
+func createMonitor(maxDurationPeerUnresponsive time.Duration, enableEpochsHandler common.EnableEpochsHandler) *process.Monitor {
 	suite := mcl.NewSuiteBLS12()
 	singlesigner := &mclsig.BlsSingleSigner{}
 	keyGen := signing.NewKeyGenerator(suite)
@@ -399,8 +395,7 @@ func createMonitor(maxDurationPeerUnresponsive time.Duration) *process.Monitor {
 		HeartbeatRefreshIntervalInSec:      1,
 		HideInactiveValidatorIntervalInSec: 600,
 		AppStatusHandler:                   &statusHandlerMock.AppStatusHandlerStub{},
-		EpochNotifier:                      &epochNotifier.EpochNotifierStub{},
-		HeartbeatDisableEpoch:              providedEpoch,
+		EnableEpochsHandler:                enableEpochsHandler,
 	}
 
 	monitor, _ := process.NewMonitor(argMonitor)

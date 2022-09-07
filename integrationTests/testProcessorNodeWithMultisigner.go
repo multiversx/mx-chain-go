@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"strconv"
-	"sync"
 	"testing"
 	"time"
 
@@ -18,104 +17,21 @@ import (
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	mclmultisig "github.com/ElrondNetwork/elrond-go-crypto/signing/mcl/multisig"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/multisig"
-	"github.com/ElrondNetwork/elrond-go/common/forking"
-	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/factory/peerSignatureHandler"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
-	p2pRating "github.com/ElrondNetwork/elrond-go/p2p/rating"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/headerCheck"
 	"github.com/ElrondNetwork/elrond-go/process/rating"
-	"github.com/ElrondNetwork/elrond-go/process/transactionLog"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 )
-
-// NewTestProcessorNodeWithCustomNodesCoordinator returns a new TestProcessorNode instance with custom NodesCoordinator
-func NewTestProcessorNodeWithCustomNodesCoordinator(
-	maxShards uint32,
-	nodeShardId uint32,
-	epochStartNotifier notifier.EpochStartNotifier,
-	nodesCoordinator nodesCoordinator.NodesCoordinator,
-	ratingsData *rating.RatingsData,
-	cp *CryptoParams,
-	keyIndex int,
-	ownAccount *TestWalletAccount,
-	headerSigVerifier process.InterceptedHeaderSigVerifier,
-	headerIntegrityVerifier process.HeaderIntegrityVerifier,
-	nodeSetup sharding.GenesisNodesSetupHandler,
-) *TestProcessorNode {
-
-	shardCoordinator, _ := sharding.NewMultiShardCoordinator(maxShards, nodeShardId)
-
-	logsProcessor, _ := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{Marshalizer: TestMarshalizer})
-	peersRatingHandler, _ := p2pRating.NewPeersRatingHandler(
-		p2pRating.ArgPeersRatingHandler{
-			TopRatedCache: testscommon.NewCacherMock(),
-			BadRatedCache: testscommon.NewCacherMock(),
-		})
-	messenger := CreateMessengerWithNoDiscoveryAndPeersRatingHandler(peersRatingHandler)
-	tpn := &TestProcessorNode{
-		ShardCoordinator:        shardCoordinator,
-		Messenger:               messenger,
-		NodesCoordinator:        nodesCoordinator,
-		HeaderSigVerifier:       headerSigVerifier,
-		HeaderIntegrityVerifier: headerIntegrityVerifier,
-		ChainID:                 ChainID,
-		NodesSetup:              nodeSetup,
-		RatingsData:             ratingsData,
-		MinTransactionVersion:   MinTransactionVersion,
-		HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
-		EpochNotifier:           forking.NewGenericEpochNotifier(),
-		ArwenChangeLocker:       &sync.RWMutex{},
-		TransactionLogProcessor: logsProcessor,
-		Bootstrapper:            mock.NewTestBootstrapperMock(),
-		PeersRatingHandler:      peersRatingHandler,
-		PeerShardMapper:         mock.NewNetworkShardingCollectorMock(),
-	}
-
-	tpn.EnableEpochs.ScheduledMiniBlocksEnableEpoch = uint32(1000000)
-	tpn.EnableEpochs.MiniBlockPartialExecutionEnableEpoch = uint32(1000000)
-	tpn.NodeKeys = cp.Keys[nodeShardId][keyIndex]
-	blsHasher, _ := blake2b.NewBlake2bWithSize(hashing.BlsHashSize)
-	llsig := &mclmultisig.BlsMultiSigner{Hasher: blsHasher}
-
-	pubKeysMap := PubKeysMapFromKeysMap(cp.Keys)
-
-	tpn.MultiSigner, _ = multisig.NewBLSMultisig(
-		llsig,
-		pubKeysMap[nodeShardId],
-		tpn.NodeKeys.Sk,
-		cp.KeyGen,
-		0,
-	)
-	if tpn.MultiSigner == nil {
-		fmt.Println("Error generating multisigner")
-	}
-	accountShardId := nodeShardId
-	if nodeShardId == core.MetachainShardId {
-		accountShardId = 0
-	}
-
-	if ownAccount == nil {
-		tpn.OwnAccount = CreateTestWalletAccount(shardCoordinator, accountShardId)
-	} else {
-		tpn.OwnAccount = ownAccount
-	}
-
-	tpn.EpochStartNotifier = epochStartNotifier
-	tpn.initDataPools()
-	tpn.initTestNode()
-
-	return tpn
-}
 
 // CreateNodesWithNodesCoordinator returns a map with nodes per shard each using a real nodes coordinator
 func CreateNodesWithNodesCoordinator(
@@ -228,71 +144,6 @@ func CreateNodeWithBLSAndTxKeys(
 	ratingsData *rating.RatingsData,
 ) *TestProcessorNode {
 
-	epochStartSubscriber := notifier.NewEpochStartSubscriptionHandler()
-	bootStorer := CreateMemUnit()
-	argFactory := ArgIndexHashedNodesCoordinatorFactory{
-		nodesPerShard:           nodesPerShard,
-		nbMetaNodes:             nbMetaNodes,
-		shardConsensusGroupSize: shardConsensusGroupSize,
-		metaConsensusGroupSize:  metaConsensusGroupSize,
-		shardId:                 shardId,
-		nbShards:                nbShards,
-		validatorsMap:           validatorsMap,
-		waitingMap:              waitingMap,
-		keyIndex:                keyIndex,
-		cp:                      cp,
-		epochStartSubscriber:    epochStartSubscriber,
-		hasher:                  TestHasher,
-		consensusGroupCache:     cache,
-		bootStorer:              bootStorer,
-	}
-	nodesCoordinatorInstance := coordinatorFactory.CreateNodesCoordinator(argFactory)
-
-	shardCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(nbShards), shardId)
-
-	logsProcessor, _ := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{Marshalizer: TestMarshalizer})
-	peersRatingHandler, _ := p2pRating.NewPeersRatingHandler(
-		p2pRating.ArgPeersRatingHandler{
-			TopRatedCache: testscommon.NewCacherMock(),
-			BadRatedCache: testscommon.NewCacherMock(),
-		})
-	messenger := CreateMessengerWithNoDiscoveryAndPeersRatingHandler(peersRatingHandler)
-	tpn := &TestProcessorNode{
-		ShardCoordinator:        shardCoordinator,
-		Messenger:               messenger,
-		NodesCoordinator:        nodesCoordinatorInstance,
-		HeaderSigVerifier:       &mock.HeaderSigVerifierStub{},
-		HeaderIntegrityVerifier: CreateHeaderIntegrityVerifier(),
-		ChainID:                 ChainID,
-		NodesSetup:              nodesSetup,
-		RatingsData:             ratingsData,
-		MinTransactionVersion:   MinTransactionVersion,
-		HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
-		EpochNotifier:           forking.NewGenericEpochNotifier(),
-		ArwenChangeLocker:       &sync.RWMutex{},
-		TransactionLogProcessor: logsProcessor,
-		PeersRatingHandler:      peersRatingHandler,
-		PeerShardMapper:         disabled.NewPeerShardMapper(),
-	}
-
-	tpn.EnableEpochs.ScheduledMiniBlocksEnableEpoch = uint32(1000000)
-	tpn.EnableEpochs.MiniBlockPartialExecutionEnableEpoch = uint32(1000000)
-	tpn.NodeKeys = cp.Keys[shardId][keyIndex]
-	blsHasher, _ := blake2b.NewBlake2bWithSize(hashing.BlsHashSize)
-	llsig := &mclmultisig.BlsMultiSigner{Hasher: blsHasher}
-
-	pubKeysMap := PubKeysMapFromKeysMap(cp.Keys)
-
-	tpn.MultiSigner, _ = multisig.NewBLSMultisig(
-		llsig,
-		pubKeysMap[shardId],
-		tpn.NodeKeys.Sk,
-		cp.KeyGen,
-		0,
-	)
-	if tpn.MultiSigner == nil {
-		fmt.Println("Error generating multisigner")
-	}
 	twa := &TestWalletAccount{}
 	twa.SingleSigner = cp.SingleSigner
 	twa.BlockSingleSigner = &mock.SignerMock{
@@ -316,13 +167,33 @@ func CreateNodeWithBLSAndTxKeys(
 
 	peerSigCache, _ := storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 1000})
 	twa.PeerSigHandler, _ = peerSignatureHandler.NewPeerSignatureHandler(peerSigCache, twa.SingleSigner, keyGen)
-	tpn.OwnAccount = twa
 
-	tpn.EpochStartNotifier = epochStartSubscriber
-	tpn.initDataPools()
-	tpn.initTestNode()
+	epochsConfig := config.EnableEpochs{
+		StakingV2EnableEpoch:                 1,
+		DelegationManagerEnableEpoch:         1,
+		DelegationSmartContractEnableEpoch:   1,
+		ScheduledMiniBlocksEnableEpoch:       UnreachableEpoch,
+		MiniBlockPartialExecutionEnableEpoch: UnreachableEpoch,
+	}
 
-	return tpn
+	return CreateNode(
+		nodesPerShard,
+		nbMetaNodes,
+		shardConsensusGroupSize,
+		metaConsensusGroupSize,
+		shardId,
+		nbShards,
+		validatorsMap,
+		waitingMap,
+		keyIndex,
+		cp,
+		cache,
+		coordinatorFactory,
+		nodesSetup,
+		ratingsData,
+		twa,
+		epochsConfig,
+	)
 }
 
 // CreateNodesWithNodesCoordinatorFactory returns a map with nodes per shard each using a real nodes coordinator
@@ -355,6 +226,12 @@ func CreateNodesWithNodesCoordinatorFactory(
 		},
 	}
 
+	epochsConfig := config.EnableEpochs{
+		StakingV2EnableEpoch:                 UnreachableEpoch,
+		ScheduledMiniBlocksEnableEpoch:       UnreachableEpoch,
+		MiniBlockPartialExecutionEnableEpoch: UnreachableEpoch,
+	}
+
 	nodesMap := make(map[uint32][]*TestProcessorNode)
 	completeNodesList := make([]Connectable, 0)
 	for shardId, validatorList := range validatorsMap {
@@ -378,6 +255,8 @@ func CreateNodesWithNodesCoordinatorFactory(
 				nodesCoordinatorFactory,
 				nodesSetup,
 				nil,
+				nil,
+				epochsConfig,
 			)
 			nodesList[i] = tpn
 			completeNodesList = append(completeNodesList, tpn)
@@ -400,6 +279,8 @@ func CreateNodesWithNodesCoordinatorFactory(
 				nodesCoordinatorFactory,
 				nodesSetup,
 				nil,
+				nil,
+				epochsConfig,
 			)
 			nodesListWaiting[i] = tpn
 			completeNodesList = append(completeNodesList, tpn)
@@ -429,6 +310,8 @@ func CreateNode(
 	coordinatorFactory NodesCoordinatorFactory,
 	nodesSetup sharding.GenesisNodesSetupHandler,
 	ratingsData *rating.RatingsData,
+	ownAccount *TestWalletAccount,
+	epochsConfig config.EnableEpochs,
 ) *TestProcessorNode {
 
 	epochStartSubscriber := notifier.NewEpochStartSubscriptionHandler()
@@ -452,19 +335,30 @@ func CreateNode(
 	}
 	nodesCoordinatorInstance := coordinatorFactory.CreateNodesCoordinator(argFactory)
 
-	return NewTestProcessorNodeWithCustomNodesCoordinator(
-		uint32(nbShards),
-		shardId,
-		epochStartSubscriber,
-		nodesCoordinatorInstance,
-		ratingsData,
-		cp,
-		keyIndex,
-		nil,
-		&mock.HeaderSigVerifierStub{},
-		CreateHeaderIntegrityVerifier(),
-		nodesSetup,
-	)
+	txSignPrivKeyShardId := shardId
+	if shardId == core.MetachainShardId {
+		txSignPrivKeyShardId = 0
+	}
+
+	multiSigner, err := createMultiSigner(*cp, shardId, keyIndex)
+	if err != nil {
+		log.Error("error generating multisigner: %s\n", err)
+		return nil
+	}
+
+	return NewTestProcessorNode(ArgTestProcessorNode{
+		MaxShards:            uint32(nbShards),
+		NodeShardId:          shardId,
+		TxSignPrivKeyShardId: txSignPrivKeyShardId,
+		EpochsConfig:         &epochsConfig,
+		NodeKeys:             cp.Keys[shardId][keyIndex],
+		NodesSetup:           nodesSetup,
+		NodesCoordinator:     nodesCoordinatorInstance,
+		RatingsData:          ratingsData,
+		MultiSigner:          multiSigner,
+		EpochStartSubscriber: epochStartSubscriber,
+		OwnAccount:           ownAccount,
+	})
 }
 
 func createHeaderIntegrityVerifier() process.HeaderIntegrityVerifier {
@@ -494,14 +388,13 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 	nodesMap := make(map[uint32][]*TestProcessorNode)
 
 	shufflerArgs := &nodesCoordinator.NodesShufflerArgs{
-		NodesShard:                     uint32(nodesPerShard),
-		NodesMeta:                      uint32(nbMetaNodes),
-		Hysteresis:                     hysteresis,
-		Adaptivity:                     adaptivity,
-		ShuffleBetweenShards:           shuffleBetweenShards,
-		MaxNodesEnableConfig:           nil,
-		WaitingListFixEnableEpoch:      0,
-		BalanceWaitingListsEnableEpoch: 0,
+		NodesShard:           uint32(nodesPerShard),
+		NodesMeta:            uint32(nbMetaNodes),
+		Hysteresis:           hysteresis,
+		Adaptivity:           adaptivity,
+		ShuffleBetweenShards: shuffleBetweenShards,
+		MaxNodesEnableConfig: nil,
+		EnableEpochsHandler:  &testscommon.EnableEpochsHandlerStub{},
 	}
 	nodeShuffler, _ := nodesCoordinator.NewHashValidatorsShuffler(shufflerArgs)
 	epochStartSubscriber := notifier.NewEpochStartSubscriptionHandler()
@@ -515,24 +408,24 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 	for shardId, validatorList := range validatorsMap {
 		consensusCache, _ := lrucache.NewCache(10000)
 		argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
-			ShardConsensusGroupSize:    shardConsensusGroupSize,
-			MetaConsensusGroupSize:     metaConsensusGroupSize,
-			Marshalizer:                TestMarshalizer,
-			Hasher:                     TestHasher,
-			Shuffler:                   nodeShuffler,
-			BootStorer:                 bootStorer,
-			EpochStartNotifier:         epochStartSubscriber,
-			ShardIDAsObserver:          shardId,
-			NbShards:                   uint32(nbShards),
-			EligibleNodes:              validatorsMapForNodesCoordinator,
-			WaitingNodes:               make(map[uint32][]nodesCoordinator.Validator),
-			SelfPublicKey:              []byte(strconv.Itoa(int(shardId))),
-			ConsensusGroupCache:        consensusCache,
-			ShuffledOutHandler:         &mock.ShuffledOutHandlerStub{},
-			WaitingListFixEnabledEpoch: 0,
-			ChanStopNode:               endProcess.GetDummyEndProcessChannel(),
-			NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
-			IsFullArchive:              false,
+			ShardConsensusGroupSize: shardConsensusGroupSize,
+			MetaConsensusGroupSize:  metaConsensusGroupSize,
+			Marshalizer:             TestMarshalizer,
+			Hasher:                  TestHasher,
+			Shuffler:                nodeShuffler,
+			BootStorer:              bootStorer,
+			EpochStartNotifier:      epochStartSubscriber,
+			ShardIDAsObserver:       shardId,
+			NbShards:                uint32(nbShards),
+			EligibleNodes:           validatorsMapForNodesCoordinator,
+			WaitingNodes:            make(map[uint32][]nodesCoordinator.Validator),
+			SelfPublicKey:           []byte(strconv.Itoa(int(shardId))),
+			ConsensusGroupCache:     consensusCache,
+			ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
+			ChanStopNode:            endProcess.GetDummyEndProcessChannel(),
+			NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
+			IsFullArchive:           false,
+			EnableEpochsHandler:     &testscommon.EnableEpochsHandlerStub{},
 		}
 		nodesCoordinatorInstance, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 
@@ -552,20 +445,35 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 		}
 		headerSig, _ := headerCheck.NewHeaderSigVerifier(&args)
 
+		txSignPrivKeyShardId := shardId
+		if shardId == core.MetachainShardId {
+			txSignPrivKeyShardId = 0
+		}
+
 		for i := range validatorList {
-			tpn := NewTestProcessorNodeWithCustomNodesCoordinator(
-				uint32(nbShards),
-				shardId,
-				epochStartSubscriber,
-				nodesCoordinatorInstance,
-				nil,
-				cp,
-				i,
-				nil,
-				headerSig,
-				createHeaderIntegrityVerifier(),
-				nodesSetup,
-			)
+			multiSigner, err := createMultiSigner(*cp, shardId, i)
+			if err != nil {
+				log.Error("error generating multisigner: %s\n", err)
+				return nil
+			}
+
+			tpn := NewTestProcessorNode(ArgTestProcessorNode{
+				MaxShards:            uint32(nbShards),
+				NodeShardId:          shardId,
+				TxSignPrivKeyShardId: txSignPrivKeyShardId,
+				EpochsConfig: &config.EnableEpochs{
+					StakingV2EnableEpoch:                 UnreachableEpoch,
+					ScheduledMiniBlocksEnableEpoch:       UnreachableEpoch,
+					MiniBlockPartialExecutionEnableEpoch: UnreachableEpoch,
+				},
+				NodeKeys:                cp.Keys[shardId][i],
+				NodesSetup:              nodesSetup,
+				NodesCoordinator:        nodesCoordinatorInstance,
+				MultiSigner:             multiSigner,
+				EpochStartSubscriber:    epochStartSubscriber,
+				HeaderSigVerifier:       headerSig,
+				HeaderIntegrityVerifier: createHeaderIntegrityVerifier(),
+			})
 
 			nodesList[i] = tpn
 			completeNodesList = append(completeNodesList, tpn)
@@ -614,29 +522,34 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 		bootStorer := CreateMemUnit()
 		cache, _ := lrucache.NewCache(10000)
 		argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
-			ShardConsensusGroupSize:    shardConsensusGroupSize,
-			MetaConsensusGroupSize:     metaConsensusGroupSize,
-			Marshalizer:                TestMarshalizer,
-			Hasher:                     TestHasher,
-			Shuffler:                   nodeShuffler,
-			EpochStartNotifier:         epochStartSubscriber,
-			BootStorer:                 bootStorer,
-			ShardIDAsObserver:          shardId,
-			NbShards:                   uint32(nbShards),
-			EligibleNodes:              validatorsMapForNodesCoordinator,
-			WaitingNodes:               waitingMapForNodesCoordinator,
-			SelfPublicKey:              []byte(strconv.Itoa(int(shardId))),
-			ConsensusGroupCache:        cache,
-			ShuffledOutHandler:         &mock.ShuffledOutHandlerStub{},
-			WaitingListFixEnabledEpoch: 0,
-			ChanStopNode:               endProcess.GetDummyEndProcessChannel(),
-			NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
-			IsFullArchive:              false,
+			ShardConsensusGroupSize: shardConsensusGroupSize,
+			MetaConsensusGroupSize:  metaConsensusGroupSize,
+			Marshalizer:             TestMarshalizer,
+			Hasher:                  TestHasher,
+			Shuffler:                nodeShuffler,
+			EpochStartNotifier:      epochStartSubscriber,
+			BootStorer:              bootStorer,
+			ShardIDAsObserver:       shardId,
+			NbShards:                uint32(nbShards),
+			EligibleNodes:           validatorsMapForNodesCoordinator,
+			WaitingNodes:            waitingMapForNodesCoordinator,
+			SelfPublicKey:           []byte(strconv.Itoa(int(shardId))),
+			ConsensusGroupCache:     cache,
+			ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
+			ChanStopNode:            endProcess.GetDummyEndProcessChannel(),
+			NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
+			IsFullArchive:           false,
+			EnableEpochsHandler:     &testscommon.EnableEpochsHandlerStub{},
 		}
 		nodesCoord, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 
 		if err != nil {
 			fmt.Println("Error creating node coordinator")
+		}
+
+		txSignPrivKeyShardId := shardId
+		if shardId == core.MetachainShardId {
+			txSignPrivKeyShardId = 0
 		}
 
 		nodesList := make([]*TestProcessorNode, len(validatorList))
@@ -660,19 +573,32 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 			}
 
 			headerSig, _ := headerCheck.NewHeaderSigVerifier(&args)
-			tpn := NewTestProcessorNodeWithCustomNodesCoordinator(
-				uint32(nbShards),
-				shardId,
-				epochStartSubscriber,
-				nodesCoord,
-				nil,
-				cp,
-				i,
-				ownAccount,
-				headerSig,
-				createHeaderIntegrityVerifier(),
-				nodesSetup,
-			)
+
+			multiSigner, err := createMultiSigner(*cp, shardId, i)
+			if err != nil {
+				log.Error("error generating multisigner: %s\n", err)
+				return nil
+			}
+
+			tpn := NewTestProcessorNode(ArgTestProcessorNode{
+				MaxShards:            uint32(nbShards),
+				NodeShardId:          shardId,
+				TxSignPrivKeyShardId: txSignPrivKeyShardId,
+				EpochsConfig: &config.EnableEpochs{
+					StakingV2EnableEpoch:                 UnreachableEpoch,
+					ScheduledMiniBlocksEnableEpoch:       UnreachableEpoch,
+					MiniBlockPartialExecutionEnableEpoch: UnreachableEpoch,
+				},
+				NodeKeys:                cp.Keys[shardId][i],
+				NodesSetup:              nodesSetup,
+				NodesCoordinator:        nodesCoord,
+				MultiSigner:             multiSigner,
+				EpochStartSubscriber:    epochStartSubscriber,
+				HeaderSigVerifier:       headerSig,
+				HeaderIntegrityVerifier: createHeaderIntegrityVerifier(),
+				OwnAccount:              ownAccount,
+			})
+
 			nodesList[i] = tpn
 			completeNodesList = append(completeNodesList, tpn)
 		}
@@ -855,4 +781,19 @@ func SyncAllShardsWithRoundBlock(
 		SyncBlock(t, nodeList, []int{indexProposers[shard]}, round)
 	}
 	time.Sleep(4 * StepDelay)
+}
+
+func createMultiSigner(cp CryptoParams, shardId uint32, ownKeyIndex int) (crypto.MultiSigner, error) {
+	blsHasher, _ := blake2b.NewBlake2bWithSize(hashing.BlsHashSize)
+	llsig := &mclmultisig.BlsMultiSigner{Hasher: blsHasher}
+
+	pubKeysMap := PubKeysMapFromKeysMap(cp.Keys)
+
+	return multisig.NewBLSMultisig(
+		llsig,
+		pubKeysMap[shardId],
+		cp.Keys[shardId][ownKeyIndex].Sk,
+		cp.KeyGen,
+		0,
+	)
 }

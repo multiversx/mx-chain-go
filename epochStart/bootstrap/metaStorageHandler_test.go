@@ -1,7 +1,9 @@
 package bootstrap
 
 import (
+	"fmt"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -9,12 +11,16 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
+	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
+	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewMetaStorageHandler_InvalidConfigErr(t *testing.T) {
@@ -161,4 +167,63 @@ func TestMetaStorageHandler_saveDataToStorage(t *testing.T) {
 
 	err := mtStrHandler.SaveDataToStorage(components)
 	assert.Nil(t, err)
+}
+
+func TestMetaStorageHandler_SaveDataToStorageMissingStorer(t *testing.T) {
+	t.Parallel()
+
+	t.Run("missing BootstrapUnit", testMetaWithMissingStorer(dataRetriever.BootstrapUnit, 1))
+	t.Run("missing MetaBlockUnit", testMetaWithMissingStorer(dataRetriever.MetaBlockUnit, 1))
+	t.Run("missing MetaHdrNonceHashDataUnit", testMetaWithMissingStorer(dataRetriever.MetaHdrNonceHashDataUnit, 1))
+	t.Run("missing MetaBlockUnit", testMetaWithMissingStorer(dataRetriever.MetaBlockUnit, 2))                       // saveMetaHdrForEpochTrigger(components.EpochStartMetaBlock)
+	t.Run("missing BootstrapUnit", testMetaWithMissingStorer(dataRetriever.BootstrapUnit, 2))                       // saveMetaHdrForEpochTrigger(components.EpochStartMetaBlock)
+	t.Run("missing MetaBlockUnit", testMetaWithMissingStorer(dataRetriever.MetaBlockUnit, 3))                       // saveMetaHdrForEpochTrigger(components.PreviousEpochStart)
+	t.Run("missing BootstrapUnit", testMetaWithMissingStorer(dataRetriever.BootstrapUnit, 3))                       // saveMetaHdrForEpochTrigger(components.PreviousEpochStart)
+	t.Run("missing MetaBlockUnit", testMetaWithMissingStorer(dataRetriever.MetaBlockUnit, 4))                       // saveMetaHdrToStorage(components.PreviousEpochStart)
+	t.Run("missing MetaHdrNonceHashDataUnit", testMetaWithMissingStorer(dataRetriever.MetaHdrNonceHashDataUnit, 2)) // saveMetaHdrToStorage(components.PreviousEpochStart)
+}
+
+func testMetaWithMissingStorer(missingUnit dataRetriever.UnitType, atCallNumber int) func(t *testing.T) {
+	return func(t *testing.T) {
+		t.Parallel()
+
+		defer func() {
+			_ = os.RemoveAll("./Epoch_0")
+		}()
+
+		gCfg := testscommon.GetGeneralConfig()
+		prefsConfig := config.PreferencesConfig{}
+		coordinator := &mock.ShardCoordinatorStub{}
+		pathManager := &testscommon.PathManagerStub{}
+		marshalizer := &mock.MarshalizerMock{}
+		hasher := &hashingMocks.HasherMock{}
+		uit64Cvt := &mock.Uint64ByteSliceConverterMock{}
+		nodeTypeProvider := &nodeTypeProviderMock.NodeTypeProviderStub{}
+
+		mtStrHandler, _ := NewMetaStorageHandler(gCfg, prefsConfig, coordinator, pathManager, marshalizer, hasher, 1, uit64Cvt, nodeTypeProvider)
+		counter := 0
+		mtStrHandler.storageService = &storageStubs.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+				counter++
+				if counter < atCallNumber {
+					return &storageStubs.StorerStub{}, nil
+				}
+
+				if unitType == missingUnit ||
+					strings.Contains(unitType.String(), missingUnit.String()) {
+					return nil, fmt.Errorf("%w for %s", storage.ErrKeyNotFound, missingUnit.String())
+				}
+
+				return &storageStubs.StorerStub{}, nil
+			},
+		}
+		components := &ComponentsNeededForBootstrap{
+			EpochStartMetaBlock: &block.MetaBlock{Nonce: 3},
+			PreviousEpochStart:  &block.MetaBlock{Nonce: 2},
+		}
+
+		err := mtStrHandler.SaveDataToStorage(components)
+		require.True(t, strings.Contains(err.Error(), storage.ErrKeyNotFound.Error()))
+		require.True(t, strings.Contains(err.Error(), missingUnit.String()))
+	}
 }
