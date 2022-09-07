@@ -21,7 +21,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/txstatus"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 )
 
@@ -351,34 +350,16 @@ func (atp *apiTransactionProcessor) extractRequestedTxInfo(wrappedTx *txcache.Wr
 	return tx
 }
 
-func (atp *apiTransactionProcessor) getDataStoresForSender(senderShard uint32) []storage.Cacher {
-	cachers := make([]storage.Cacher, 0)
-	numOfShards := atp.shardCoordinator.NumberOfShards()
-	for shard := uint32(0); shard < numOfShards; shard++ {
-		cacheId := process.ShardCacherIdentifier(senderShard, shard)
-		shardCache := atp.dataPool.Transactions().ShardDataStore(cacheId)
-		cachers = append(cachers, shardCache)
-	}
-
-	cacheId := process.ShardCacherIdentifier(senderShard, common.MetachainShardId)
-	shardCache := atp.dataPool.Transactions().ShardDataStore(cacheId)
-	cachers = append(cachers, shardCache)
-
-	return cachers
-}
-
 func (atp *apiTransactionProcessor) fetchTxsForSender(sender string, senderShard uint32) []*txcache.WrappedTransaction {
-	txsForSender := make([]*txcache.WrappedTransaction, 0)
-	cachers := atp.getDataStoresForSender(senderShard)
-	for _, cache := range cachers {
-		txCache, ok := cache.(*txcache.TxCache)
-		if !ok {
-			continue
-		}
-
-		txs := txCache.GetTransactionsPoolForSender(sender)
-		txsForSender = append(txsForSender, txs...)
+	cacheId := process.ShardCacherIdentifier(senderShard, senderShard)
+	cache := atp.dataPool.Transactions().ShardDataStore(cacheId)
+	txCache, ok := cache.(*txcache.TxCache)
+	if !ok {
+		log.Warn("fetchTxsForSender could not cast to TxCache")
+		return nil
 	}
+
+	txsForSender := txCache.GetTransactionsPoolForSender(sender)
 
 	sort.Slice(txsForSender, func(i, j int) bool {
 		return txsForSender[i].Tx.GetNonce() < txsForSender[j].Tx.GetNonce()

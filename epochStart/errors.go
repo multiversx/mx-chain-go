@@ -128,8 +128,17 @@ var ErrValidatorInfoMiniBlocksNumDoesNotMatch = errors.New("number of created an
 // ErrNilValidatorInfo signals that a nil value for the validatorInfo has been provided
 var ErrNilValidatorInfo = errors.New("validator info is nil")
 
-// ErrNilMetaBlock signals that a nil metablock has been provided
-var ErrNilMetaBlock = errors.New("nil metablock")
+// ErrNilValidatorsInfoPool signals that a nil value for the validatorsInfoPool has been provided
+var ErrNilValidatorsInfoPool = errors.New("validators info pool is nil")
+
+// ErrNilCurrentEpochValidatorsInfoPool signals that a nil value for the currentEpochValidatorsInfoPool has been provided
+var ErrNilCurrentEpochValidatorsInfoPool = errors.New("current epoch validators info pool is nil")
+
+// ErrNilMetaBlock signals that a nil meta block has been provided
+var ErrNilMetaBlock = errors.New("nil meta block")
+
+// ErrNilBlockBody signals that a nil block body has been provided
+var ErrNilBlockBody = errors.New("nil block body")
 
 // ErrNilMiniBlockPool signals that a nil mini blocks pool was used
 var ErrNilMiniBlockPool = errors.New("nil mini block pool")
@@ -310,3 +319,6 @@ var ErrNilScheduledDataSyncerFactory = errors.New("nil scheduled data syncer fac
 
 // ErrNilEnableEpochsHandler signals that a nil enable epochs handler has been provided
 var ErrNilEnableEpochsHandler = errors.New("nil enable epochs handler")
+
+// ErrNilValidatorInfoStorage signals that nil validator info storage has been provided
+var ErrNilValidatorInfoStorage = errors.New("nil validator info storage")
