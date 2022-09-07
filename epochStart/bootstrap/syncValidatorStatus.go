@@ -18,19 +18,22 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
+	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/update/sync"
 )
 
 const consensusGroupCacheSize = 50
 
 type syncValidatorStatus struct {
-	miniBlocksSyncer   epochStart.PendingMiniBlocksSyncHandler
-	dataPool           dataRetriever.PoolsHolder
-	marshalizer        marshal.Marshalizer
-	requestHandler     process.RequestHandler
-	nodeCoordinator    StartInEpochNodesCoordinator
-	genesisNodesConfig sharding.GenesisNodesSetupHandler
-	memDB              storage.Storer
+	miniBlocksSyncer    epochStart.PendingMiniBlocksSyncHandler
+	transactionsSyncer  update.TransactionsSyncHandler
+	dataPool            dataRetriever.PoolsHolder
+	marshalizer         marshal.Marshalizer
+	requestHandler      process.RequestHandler
+	nodeCoordinator     StartInEpochNodesCoordinator
+	genesisNodesConfig  sharding.GenesisNodesSetupHandler
+	memDB               storage.Storer
+	enableEpochsHandler common.EnableEpochsHandler
 }
 
 // ArgsNewSyncValidatorStatus holds the arguments needed for creating a new validator status process component
@@ -57,19 +60,33 @@ func NewSyncValidatorStatus(args ArgsNewSyncValidatorStatus) (*syncValidatorStat
 	}
 
 	s := &syncValidatorStatus{
-		dataPool:           args.DataPool,
-		marshalizer:        args.Marshalizer,
-		requestHandler:     args.RequestHandler,
-		genesisNodesConfig: args.GenesisNodesConfig,
+		dataPool:            args.DataPool,
+		marshalizer:         args.Marshalizer,
+		requestHandler:      args.RequestHandler,
+		genesisNodesConfig:  args.GenesisNodesConfig,
+		enableEpochsHandler: args.EnableEpochsHandler,
 	}
+
+	var err error
+
 	syncMiniBlocksArgs := sync.ArgsNewPendingMiniBlocksSyncer{
 		Storage:        disabled.CreateMemUnit(),
 		Cache:          s.dataPool.MiniBlocks(),
 		Marshalizer:    s.marshalizer,
 		RequestHandler: s.requestHandler,
 	}
-	var err error
 	s.miniBlocksSyncer, err = sync.NewPendingMiniBlocksSyncer(syncMiniBlocksArgs)
+	if err != nil {
+		return nil, err
+	}
+
+	syncTxsArgs := sync.ArgsNewTransactionsSyncer{
+		DataPools:      s.dataPool,
+		Storages:       disabled.NewChainStorer(),
+		Marshaller:     s.marshalizer,
+		RequestHandler: s.requestHandler,
+	}
+	s.transactionsSyncer, err = sync.NewTransactionsSyncer(syncTxsArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -112,6 +129,7 @@ func NewSyncValidatorStatus(args ArgsNewSyncValidatorStatus) (*syncValidatorStat
 		NodeTypeProvider:        args.NodeTypeProvider,
 		IsFullArchive:           args.IsFullArchive,
 		EnableEpochsHandler:     args.EnableEpochsHandler,
+		ValidatorInfoCacher:     s.dataPool.CurrentEpochValidatorInfo(),
 	}
 	baseNodesCoordinator, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argsNodesCoordinator)
 	if err != nil {
@@ -207,6 +225,26 @@ func (s *syncValidatorStatus) getPeerBlockBodyForMeta(
 	peerMiniBlocks, err := s.miniBlocksSyncer.GetMiniBlocks()
 	if err != nil {
 		return nil, nil, err
+	}
+
+	if metaBlock.GetEpoch() >= s.enableEpochsHandler.RefactorPeersMiniBlocksEnableEpoch() {
+		s.transactionsSyncer.ClearFields()
+		ctx, cancel = context.WithTimeout(context.Background(), time.Minute)
+		err = s.transactionsSyncer.SyncTransactionsFor(peerMiniBlocks, metaBlock.GetEpoch(), ctx)
+		cancel()
+		if err != nil {
+			return nil, nil, err
+		}
+
+		validatorsInfo, err := s.transactionsSyncer.GetValidatorsInfo()
+		if err != nil {
+			return nil, nil, err
+		}
+
+		currentEpochValidatorInfoPool := s.dataPool.CurrentEpochValidatorInfo()
+		for validatorInfoHash, validatorInfo := range validatorsInfo {
+			currentEpochValidatorInfoPool.AddValidatorInfo([]byte(validatorInfoHash), validatorInfo)
+		}
 	}
 
 	blockBody := &block.Body{MiniBlocks: make([]*block.MiniBlock, 0, len(peerMiniBlocks))}

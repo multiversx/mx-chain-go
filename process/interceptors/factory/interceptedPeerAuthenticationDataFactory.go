@@ -8,6 +8,7 @@ import (
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/heartbeat"
+	"github.com/ElrondNetwork/elrond-go/process/heartbeat/validator"
 )
 
 const minDurationInSec = 10
@@ -17,8 +18,8 @@ type interceptedPeerAuthenticationDataFactory struct {
 	nodesCoordinator      heartbeat.NodesCoordinator
 	signaturesHandler     heartbeat.SignaturesHandler
 	peerSignatureHandler  crypto.PeerSignatureHandler
-	expiryTimespanInSec   int64
 	hardforkTriggerPubKey []byte
+	payloadValidator      process.PeerAuthenticationPayloadValidator
 }
 
 // NewInterceptedPeerAuthenticationDataFactory creates an instance of interceptedPeerAuthenticationDataFactory
@@ -28,12 +29,17 @@ func NewInterceptedPeerAuthenticationDataFactory(arg ArgInterceptedDataFactory) 
 		return nil, err
 	}
 
+	payloadValidator, err := validator.NewPeerAuthenticationPayloadValidator(arg.HeartbeatExpiryTimespanInSec)
+	if err != nil {
+		return nil, err
+	}
+
 	return &interceptedPeerAuthenticationDataFactory{
 		marshalizer:           arg.CoreComponents.InternalMarshalizer(),
 		nodesCoordinator:      arg.NodesCoordinator,
 		signaturesHandler:     arg.SignaturesHandler,
 		peerSignatureHandler:  arg.PeerSignatureHandler,
-		expiryTimespanInSec:   arg.HeartbeatExpiryTimespanInSec,
+		payloadValidator:      payloadValidator,
 		hardforkTriggerPubKey: arg.CoreComponents.HardforkTriggerPubKey(),
 	}, nil
 }
@@ -74,7 +80,7 @@ func (ipadf *interceptedPeerAuthenticationDataFactory) Create(buff []byte) (proc
 		NodesCoordinator:      ipadf.nodesCoordinator,
 		SignaturesHandler:     ipadf.signaturesHandler,
 		PeerSignatureHandler:  ipadf.peerSignatureHandler,
-		ExpiryTimespanInSec:   ipadf.expiryTimespanInSec,
+		PayloadValidator:      ipadf.payloadValidator,
 		HardforkTriggerPubKey: ipadf.hardforkTriggerPubKey,
 	}
 

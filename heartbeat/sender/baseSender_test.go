@@ -4,7 +4,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/heartbeat/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/stretchr/testify/assert"
 )
@@ -17,6 +19,8 @@ func createMockBaseArgs() argBaseSender {
 		timeBetweenSends:          time.Second,
 		timeBetweenSendsWhenError: time.Second,
 		thresholdBetweenSends:     0.1,
+		privKey:                   &cryptoMocks.PrivateKeyStub{},
+		redundancyHandler:         &mock.RedundancyHandlerStub{},
 	}
 }
 

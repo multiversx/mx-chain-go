@@ -900,12 +900,12 @@ func TestIntermediateResultsProcessor_CreateMarshalizedDataNothingToMarshal(t *t
 	assert.Nil(t, err)
 
 	// nothing to marshal
-	mrsTxs, err := irp.CreateMarshalizedData(nil)
+	mrsTxs, err := irp.CreateMarshalledData(nil)
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(mrsTxs))
 
 	// nothing saved in local cacher to marshal
-	mrsTxs, err = irp.CreateMarshalizedData(nil)
+	mrsTxs, err = irp.CreateMarshalledData(nil)
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(mrsTxs))
 }
@@ -966,7 +966,7 @@ func TestIntermediateResultsProcessor_CreateMarshalizedData(t *testing.T) {
 	err = irp.AddIntermediateTransactions(txs)
 	assert.Nil(t, err)
 
-	mrsTxs, err := irp.CreateMarshalizedData(txHashes)
+	mrsTxs, err := irp.CreateMarshalledData(txHashes)
 	assert.Nil(t, err)
 	assert.Equal(t, len(txs), len(mrsTxs))
 

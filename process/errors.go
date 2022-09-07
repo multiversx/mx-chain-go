@@ -221,8 +221,20 @@ var ErrNilShardedDataCacherNotifier = errors.New("nil sharded data cacher notifi
 // ErrInvalidTxInPool signals an invalid transaction in the transactions pool
 var ErrInvalidTxInPool = errors.New("invalid transaction in the transactions pool")
 
+// ErrInvalidValidatorInfoInPool signals an invalid validator info in the validators info pool
+var ErrInvalidValidatorInfoInPool = errors.New("invalid validator info in the validators info pool")
+
 // ErrTxNotFound signals that a transaction has not found
 var ErrTxNotFound = errors.New("transaction not found")
+
+// ErrValidatorInfoNotFound signals that a validator info has not found
+var ErrValidatorInfoNotFound = errors.New("validator info not found")
+
+// ErrNilHeadersStorage signals that a nil header storage has been provided
+var ErrNilHeadersStorage = errors.New("nil headers storage")
+
+// ErrNilHeadersNonceHashStorage signals that a nil header nonce hash storage has been provided
+var ErrNilHeadersNonceHashStorage = errors.New("nil headers nonce hash storage")
 
 // ErrNilTransactionPool signals that a nil transaction pool was used
 var ErrNilTransactionPool = errors.New("nil transaction pool")
@@ -1062,12 +1074,6 @@ var ErrNilDoubleTransactionsDetector = errors.New("nil double transactions detec
 // ErrNoTxToProcess signals that no transaction were sent for processing
 var ErrNoTxToProcess = errors.New("no transaction to process")
 
-// ErrPropertyTooLong signals that a heartbeat property was too long
-var ErrPropertyTooLong = errors.New("property too long")
-
-// ErrPropertyTooShort signals that a heartbeat property was too short
-var ErrPropertyTooShort = errors.New("property too short")
-
 // ErrInvalidPeerSubType signals that an invalid peer subtype was provided
 var ErrInvalidPeerSubType = errors.New("invalid peer subtype")
 
@@ -1127,3 +1133,15 @@ var ErrNilEnableEpochsHandler = errors.New("nil enable epochs handler")
 
 // ErrNilCrawlerAllowedAddress signals that no crawler allowed address was found
 var ErrNilCrawlerAllowedAddress = errors.New("nil crawler allowed address")
+
+// ErrNilPayloadValidator signals that a nil payload validator was provided
+var ErrNilPayloadValidator = errors.New("nil payload validator")
+
+// ErrNilValidatorInfoPool signals that a nil validator info pool has been provided
+var ErrNilValidatorInfoPool = errors.New("nil validator info pool")
+
+// ErrPropertyTooLong signals that a heartbeat property was too long
+var ErrPropertyTooLong = errors.New("property too long")
+
+// ErrPropertyTooShort signals that a heartbeat property was too short
+var ErrPropertyTooShort = errors.New("property too short")
