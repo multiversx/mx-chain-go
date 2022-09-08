@@ -141,3 +141,9 @@ type KeysHolder interface {
 	SetNextPeerAuthenticationTime(pkBytes []byte, nextTime time.Time)
 	IsInterfaceNil() bool
 }
+
+// ShardCoordinator defines the operations of a shard coordinator
+type ShardCoordinator interface {
+	SelfId() uint32
+	IsInterfaceNil() bool
+}

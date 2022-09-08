@@ -120,14 +120,14 @@ func (sender *peerAuthenticationSender) execute() (error, bool) {
 		return err, false
 	}
 
-	data, isTriggered, err := sender.generateMessageBytes(pkBytes, sk, nil, sender.messenger.ID().Bytes())
+	data, isTriggered, msgTimestamp, err := sender.generateMessageBytes(pkBytes, sk, nil, sender.messenger.ID().Bytes())
 	if err != nil {
 		return err, isTriggered
 	}
 
 	log.Debug("sending peer authentication message",
-		"public key", msg.Pubkey, "pid", sender.messenger.ID().Pretty(),
-		"timestamp", payload.Timestamp)
+		"public key", pkBytes, "pid", sender.messenger.ID().Pretty(),
+		"timestamp", msgTimestamp)
 	sender.messenger.Broadcast(sender.topic, data)
 
 	return nil, isTriggered

@@ -11,7 +11,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-crypto/signing"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl"
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
-	"github.com/ElrondNetwork/elrond-go/heartbeat/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
@@ -30,8 +29,6 @@ func createMockPeerAuthenticationSenderFactoryArgs() argPeerAuthenticationSender
 		keysHolder:               &testscommon.KeysHolderStub{},
 		timeBetweenChecks:        time.Second,
 		shardCoordinator:         createShardCoordinatorInShard(0),
-		privKey:                  &cryptoMocks.PrivateKeyStub{},
-		redundancyHandler:        &mock.RedundancyHandlerStub{},
 	}
 }
 

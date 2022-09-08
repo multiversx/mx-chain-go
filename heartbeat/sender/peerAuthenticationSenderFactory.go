@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ElrondNetwork/covalent-indexer-go/process"
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
 )
@@ -18,9 +17,7 @@ type argPeerAuthenticationSenderFactory struct {
 	hardforkTriggerPubKey    []byte
 	keysHolder               heartbeat.KeysHolder
 	timeBetweenChecks        time.Duration
-	shardCoordinator         process.ShardCoordinator
-	privKey                  crypto.PrivateKey
-	redundancyHandler        heartbeat.NodeRedundancyHandler
+	shardCoordinator         heartbeat.ShardCoordinator
 }
 
 func createPeerAuthenticationSender(args argPeerAuthenticationSenderFactory) (peerAuthenticationSenderHandler, error) {
@@ -53,8 +50,6 @@ func createRegularSender(args argPeerAuthenticationSenderFactory) (*peerAuthenti
 		argBaseSender:            args.argBaseSender,
 		nodesCoordinator:         args.nodesCoordinator,
 		peerSignatureHandler:     args.peerSignatureHandler,
-		privKey:                  args.privKey,
-		redundancyHandler:        args.redundancyHandler,
 		hardforkTrigger:          args.hardforkTrigger,
 		hardforkTimeBetweenSends: args.hardforkTimeBetweenSends,
 		hardforkTriggerPubKey:    args.hardforkTriggerPubKey,
@@ -64,17 +59,6 @@ func createRegularSender(args argPeerAuthenticationSenderFactory) (*peerAuthenti
 }
 
 func createMultikeySender(args argPeerAuthenticationSenderFactory) (*multikeyPeerAuthenticationSender, error) {
-	argsSender := argMultikeyPeerAuthenticationSender{
-		argBaseSender:            args.argBaseSender,
-		nodesCoordinator:         args.nodesCoordinator,
-		peerSignatureHandler:     args.peerSignatureHandler,
-		hardforkTrigger:          args.hardforkTrigger,
-		hardforkTimeBetweenSends: args.hardforkTimeBetweenSends,
-		hardforkTriggerPubKey:    args.hardforkTriggerPubKey,
-		keysHolder:               args.keysHolder,
-		timeBetweenChecks:        args.timeBetweenChecks,
-		shardCoordinator:         args.shardCoordinator,
-	}
-
+	argsSender := argMultikeyPeerAuthenticationSender(args)
 	return newMultikeyPeerAuthenticationSender(argsSender)
 }

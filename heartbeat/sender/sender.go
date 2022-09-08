@@ -35,7 +35,7 @@ type ArgSender struct {
 	HardforkTriggerPubKey                       []byte
 	KeysHolder                                  heartbeat.KeysHolder
 	PeerAuthenticationTimeBetweenChecks         time.Duration
-	ShardCoordinator                            process.ShardCoordinator
+	ShardCoordinator                            heartbeat.ShardCoordinator
 }
 
 // sender defines the component which sends authentication and heartbeat messages
@@ -58,8 +58,8 @@ func NewSender(args ArgSender) (*sender, error) {
 			timeBetweenSends:          args.PeerAuthenticationTimeBetweenSends,
 			timeBetweenSendsWhenError: args.PeerAuthenticationTimeBetweenSendsWhenError,
 			thresholdBetweenSends:     args.PeerAuthenticationThresholdBetweenSends,
-			privKey:                  args.PrivateKey,
-			redundancyHandler:        args.RedundancyHandler,
+			privKey:                   args.PrivateKey,
+			redundancyHandler:         args.RedundancyHandler,
 		},
 		nodesCoordinator:         args.NodesCoordinator,
 		peerSignatureHandler:     args.PeerSignatureHandler,
@@ -108,8 +108,8 @@ func checkSenderArgs(args ArgSender) error {
 		timeBetweenSends:          args.PeerAuthenticationTimeBetweenSends,
 		timeBetweenSendsWhenError: args.PeerAuthenticationTimeBetweenSendsWhenError,
 		thresholdBetweenSends:     args.PeerAuthenticationThresholdBetweenSends,
-		privKey:                  args.PrivateKey,
-		redundancyHandler:        args.RedundancyHandler,
+		privKey:                   args.PrivateKey,
+		redundancyHandler:         args.RedundancyHandler,
 	}
 	pasArgs := argPeerAuthenticationSender{
 		argBaseSender:            basePeerAuthSenderArgs,

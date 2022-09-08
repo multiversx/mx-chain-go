@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ElrondNetwork/covalent-indexer-go/process"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
@@ -23,7 +22,7 @@ type argMultikeyPeerAuthenticationSender struct {
 	hardforkTriggerPubKey    []byte
 	keysHolder               heartbeat.KeysHolder
 	timeBetweenChecks        time.Duration
-	shardCoordinator         process.ShardCoordinator
+	shardCoordinator         heartbeat.ShardCoordinator
 }
 
 type multikeyPeerAuthenticationSender struct {
@@ -31,7 +30,7 @@ type multikeyPeerAuthenticationSender struct {
 	hardforkTimeBetweenSends time.Duration
 	keysHolder               heartbeat.KeysHolder
 	timeBetweenChecks        time.Duration
-	shardCoordinator         process.ShardCoordinator
+	shardCoordinator         heartbeat.ShardCoordinator
 	getCurrentTimeHandler    func() time.Time
 }
 
@@ -126,7 +125,7 @@ func (sender *multikeyPeerAuthenticationSender) process(pk string, sk crypto.Pri
 
 	currentTimeStamp := time.Unix(currentTimeAsUnix, 0)
 
-	data, isHardforkTriggered, err := sender.prepareMessage([]byte(pk), sk)
+	data, isHardforkTriggered, _, err := sender.prepareMessage([]byte(pk), sk)
 	if err != nil {
 		sender.keysHolder.SetNextPeerAuthenticationTime(pkBytes, currentTimeStamp.Add(sender.timeBetweenSendsWhenError))
 		return err
@@ -177,10 +176,10 @@ func (sender *multikeyPeerAuthenticationSender) processIfShouldSend(pkBytes []by
 	return false
 }
 
-func (sender *multikeyPeerAuthenticationSender) prepareMessage(pkBytes []byte, privateKey crypto.PrivateKey) ([]byte, bool, error) {
+func (sender *multikeyPeerAuthenticationSender) prepareMessage(pkBytes []byte, privateKey crypto.PrivateKey) ([]byte, bool, int64, error) {
 	p2pSkBytes, pid, err := sender.keysHolder.GetP2PIdentity(pkBytes)
 	if err != nil {
-		return nil, false, err
+		return nil, false, 0, err
 	}
 
 	return sender.generateMessageBytes(pkBytes, privateKey, p2pSkBytes, pid.Bytes())
