@@ -38,7 +38,10 @@ func (sd *ShardedDataStub) RegisterOnAdded(handler func(key []byte, value interf
 
 // ShardDataStore -
 func (sd *ShardedDataStub) ShardDataStore(cacheID string) storage.Cacher {
-	return sd.ShardDataStoreCalled(cacheID)
+	if sd.ShardDataStoreCalled != nil {
+		return sd.ShardDataStoreCalled(cacheID)
+	}
+	return nil
 }
 
 // AddData -
@@ -50,37 +53,52 @@ func (sd *ShardedDataStub) AddData(key []byte, data interface{}, sizeInBytes int
 
 // SearchFirstData -
 func (sd *ShardedDataStub) SearchFirstData(key []byte) (value interface{}, ok bool) {
-	return sd.SearchFirstDataCalled(key)
+	if sd.SearchFirstDataCalled != nil {
+		return sd.SearchFirstDataCalled(key)
+	}
+	return nil, false
 }
 
 // RemoveData -
 func (sd *ShardedDataStub) RemoveData(key []byte, cacheID string) {
-	sd.RemoveDataCalled(key, cacheID)
+	if sd.RemoveDataCalled != nil {
+		sd.RemoveDataCalled(key, cacheID)
+	}
 }
 
 // RemoveDataFromAllShards -
 func (sd *ShardedDataStub) RemoveDataFromAllShards(key []byte) {
-	sd.RemoveDataFromAllShardsCalled(key)
+	if sd.RemoveDataFromAllShardsCalled != nil {
+		sd.RemoveDataFromAllShardsCalled(key)
+	}
 }
 
 // MergeShardStores -
 func (sd *ShardedDataStub) MergeShardStores(sourceCacheID, destCacheID string) {
-	sd.MergeShardStoresCalled(sourceCacheID, destCacheID)
+	if sd.MergeShardStoresCalled != nil {
+		sd.MergeShardStoresCalled(sourceCacheID, destCacheID)
+	}
 }
 
 // Clear -
 func (sd *ShardedDataStub) Clear() {
-	sd.ClearCalled()
+	if sd.ClearCalled != nil {
+		sd.ClearCalled()
+	}
 }
 
 // ClearShardStore -
 func (sd *ShardedDataStub) ClearShardStore(cacheID string) {
-	sd.ClearShardStoreCalled(cacheID)
+	if sd.ClearShardStoreCalled != nil {
+		sd.ClearShardStoreCalled(cacheID)
+	}
 }
 
 // RemoveSetOfDataFromPool -
 func (sd *ShardedDataStub) RemoveSetOfDataFromPool(keys [][]byte, cacheID string) {
-	sd.RemoveSetOfDataFromPoolCalled(keys, cacheID)
+	if sd.RemoveSetOfDataFromPoolCalled != nil {
+		sd.RemoveSetOfDataFromPoolCalled(keys, cacheID)
+	}
 }
 
 // ImmunizeSetOfDataAgainstEviction -

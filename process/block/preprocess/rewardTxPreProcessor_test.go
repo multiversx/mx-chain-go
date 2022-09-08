@@ -380,7 +380,7 @@ func TestRewardTxPreprocessor_CreateMarshalizedDataShouldWork(t *testing.T) {
 	txs := []data.TransactionHandler{&rewardTx.RewardTx{}}
 	rtp.AddTxs(txHashes, txs)
 
-	res, err := rtp.CreateMarshalizedData(txHashes)
+	res, err := rtp.CreateMarshalledData(txHashes)
 
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(res))

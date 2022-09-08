@@ -48,9 +48,13 @@ func cloneTrigger(t *trigger) *trigger {
 	rt.peerMiniBlocksSyncer = t.peerMiniBlocksSyncer
 	rt.appStatusHandler = t.appStatusHandler
 	rt.miniBlocksPool = t.miniBlocksPool
-	rt.mapMissingMiniblocks = t.mapMissingMiniblocks
+	rt.currentEpochValidatorInfoPool = t.currentEpochValidatorInfoPool
+	rt.validatorInfoPool = t.validatorInfoPool
+	rt.mapMissingValidatorsInfo = t.mapMissingValidatorsInfo
+	rt.mapMissingMiniBlocks = t.mapMissingMiniBlocks
 	rt.mapFinalizedEpochs = t.mapFinalizedEpochs
 	rt.roundHandler = t.roundHandler
+	rt.enableEpochsHandler = t.enableEpochsHandler
 	return rt
 }
 

@@ -107,11 +107,13 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		return nil, err
 	}
 
-	pubKeyConverter := args.CoreComponents.AddressPubKeyConverter()
-	convertedAddress, err := pubKeyConverter.Decode(args.Configs.GeneralConfig.BuiltInFunctions.AutomaticCrawlerAddress)
-	if err != nil {
-		return nil, err
+	pkConverter := args.CoreComponents.AddressPubKeyConverter()
+	automaticCrawlerAddressesStrings := args.Configs.GeneralConfig.BuiltInFunctions.AutomaticCrawlerAddresses
+	convertedAddresses, errDecode := decodeAddresses(pkConverter, automaticCrawlerAddressesStrings)
+	if errDecode != nil {
+		return nil, errDecode
 	}
+
 	builtInFuncFactory, err := createBuiltinFuncs(
 		args.GasScheduleNotifier,
 		args.CoreComponents.InternalMarshalizer(),
@@ -119,7 +121,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		args.BootstrapComponents.ShardCoordinator(),
 		args.CoreComponents.EpochNotifier(),
 		args.CoreComponents.EnableEpochsHandler(),
-		convertedAddress,
+		convertedAddresses,
 		args.Configs.GeneralConfig.BuiltInFunctions.MaxNumAddressesInTransferRole,
 	)
 	if err != nil {
@@ -315,11 +317,13 @@ func createScQueryElement(
 	var vmFactory process.VirtualMachinesContainerFactory
 	var err error
 
-	pubKeyConverter := args.coreComponents.AddressPubKeyConverter()
-	convertedAddress, err := pubKeyConverter.Decode(args.generalConfig.BuiltInFunctions.AutomaticCrawlerAddress)
-	if err != nil {
-		return nil, err
+	pkConverter := args.coreComponents.AddressPubKeyConverter()
+	automaticCrawlerAddressesStrings := args.generalConfig.BuiltInFunctions.AutomaticCrawlerAddresses
+	convertedAddresses, errDecode := decodeAddresses(pkConverter, automaticCrawlerAddressesStrings)
+	if errDecode != nil {
+		return nil, errDecode
 	}
+
 	builtInFuncFactory, err := createBuiltinFuncs(
 		args.gasScheduleNotifier,
 		args.coreComponents.InternalMarshalizer(),
@@ -327,7 +331,7 @@ func createScQueryElement(
 		args.processComponents.ShardCoordinator(),
 		args.coreComponents.EpochNotifier(),
 		args.coreComponents.EnableEpochsHandler(),
-		convertedAddress,
+		convertedAddresses,
 		args.generalConfig.BuiltInFunctions.MaxNumAddressesInTransferRole,
 	)
 	if err != nil {
@@ -457,7 +461,7 @@ func createBuiltinFuncs(
 	shardCoordinator sharding.Coordinator,
 	epochNotifier vmcommon.EpochNotifier,
 	enableEpochsHandler vmcommon.EnableEpochsHandler,
-	automaticCrawlerAddress []byte,
+	automaticCrawlerAddresses [][]byte,
 	maxNumAddressesInTransferRole uint32,
 ) (vmcommon.BuiltInFunctionFactory, error) {
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
@@ -468,7 +472,7 @@ func createBuiltinFuncs(
 		ShardCoordinator:          shardCoordinator,
 		EpochNotifier:             epochNotifier,
 		EnableEpochsHandler:       enableEpochsHandler,
-		AutomaticCrawlerAddress:   automaticCrawlerAddress,
+		AutomaticCrawlerAddresses:                automaticCrawlerAddresses,
 		MaxNumNodesInTransferRole: maxNumAddressesInTransferRole,
 	}
 	return builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)
