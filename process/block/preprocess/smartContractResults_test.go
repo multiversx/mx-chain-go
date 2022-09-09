@@ -32,17 +32,6 @@ func haveTimeTrue() bool {
 	return true
 }
 
-func haveAdditionalTimeFalse() bool {
-	return false
-}
-
-func isShardStuckFalse(uint32) bool {
-	return false
-}
-func isMaxBlockSizeReachedFalse(int, int) bool {
-	return false
-}
-
 func getNumOfCrossInterMbsAndTxsZero() (int, int) {
 	return 0, 0
 }
