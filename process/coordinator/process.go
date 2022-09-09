@@ -1005,7 +1005,7 @@ func (tc *transactionCoordinator) CreateMarshalizedData(body *block.Body) map[st
 			dataMarshalizer, ok := preproc.(process.DataMarshalizer)
 			if ok {
 				// preproc supports marshalizing items
-				tc.appendMarshalizedItems(
+				tc.appendMarshalledItems(
 					dataMarshalizer,
 					miniBlock.TxHashes,
 					mrsTxs,
@@ -1019,7 +1019,7 @@ func (tc *transactionCoordinator) CreateMarshalizedData(body *block.Body) map[st
 			dataMarshalizer, ok := interimProc.(process.DataMarshalizer)
 			if ok {
 				// interimProc supports marshalizing items
-				tc.appendMarshalizedItems(
+				tc.appendMarshalledItems(
 					dataMarshalizer,
 					miniBlock.TxHashes,
 					mrsTxs,
@@ -1032,15 +1032,15 @@ func (tc *transactionCoordinator) CreateMarshalizedData(body *block.Body) map[st
 	return mrsTxs
 }
 
-func (tc *transactionCoordinator) appendMarshalizedItems(
+func (tc *transactionCoordinator) appendMarshalledItems(
 	dataMarshalizer process.DataMarshalizer,
 	txHashes [][]byte,
 	mrsTxs map[string][][]byte,
 	broadcastTopic string,
 ) {
-	currMrsTxs, err := dataMarshalizer.CreateMarshalizedData(txHashes)
+	currMrsTxs, err := dataMarshalizer.CreateMarshalledData(txHashes)
 	if err != nil {
-		log.Debug("appendMarshalizedItems.CreateMarshalizedData", "error", err.Error())
+		log.Debug("appendMarshalledItems.CreateMarshalledData", "error", err.Error())
 		return
 	}
 

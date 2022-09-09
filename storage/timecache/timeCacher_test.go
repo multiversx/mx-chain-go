@@ -123,17 +123,38 @@ func TestTimeCacher_Has(t *testing.T) {
 func TestTimeCacher_HasOrAdd(t *testing.T) {
 	t.Parallel()
 
-	cacher, _ := timecache.NewTimeCacher(createArgTimeCacher())
-	assert.False(t, cacher.IsInterfaceNil())
+	t.Run("empty or nil key should return false, false", func(t *testing.T) {
+		t.Parallel()
 
-	providedKey, providedVal := []byte("key"), []byte("val")
-	has, added := cacher.HasOrAdd(providedKey, providedVal, len(providedVal))
-	assert.False(t, has)
-	assert.True(t, added)
+		cacher, _ := timecache.NewTimeCacher(createArgTimeCacher())
+		t.Run("nil key", func(t *testing.T) {
+			has, added := cacher.HasOrAdd(nil, nil, 0)
+			assert.False(t, has)
+			assert.False(t, added)
+			assert.Equal(t, 0, cacher.Len())
+		})
+		t.Run("empty key", func(t *testing.T) {
+			has, added := cacher.HasOrAdd(make([]byte, 0), nil, 0)
+			assert.False(t, has)
+			assert.False(t, added)
+			assert.Equal(t, 0, cacher.Len())
+		})
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
 
-	has, added = cacher.HasOrAdd(providedKey, providedVal, len(providedVal))
-	assert.True(t, has)
-	assert.False(t, added)
+		cacher, _ := timecache.NewTimeCacher(createArgTimeCacher())
+		assert.False(t, cacher.IsInterfaceNil())
+
+		providedKey, providedVal := []byte("key"), []byte("val")
+		has, added := cacher.HasOrAdd(providedKey, providedVal, len(providedVal))
+		assert.False(t, has)
+		assert.True(t, added)
+
+		has, added = cacher.HasOrAdd(providedKey, providedVal, len(providedVal))
+		assert.True(t, has)
+		assert.False(t, added)
+	})
 }
 
 func TestTimeCacher_Keys(t *testing.T) {
@@ -203,17 +224,36 @@ func TestTimeCacher_Peek(t *testing.T) {
 func TestTimeCacher_Put(t *testing.T) {
 	t.Parallel()
 
-	cacher, _ := timecache.NewTimeCacher(createArgTimeCacher())
-	assert.False(t, cacher.IsInterfaceNil())
+	t.Run("empty or nil key should return false, false", func(t *testing.T) {
+		t.Parallel()
 
-	numOfPairs := 2
-	keys, vals := createKeysVals(numOfPairs)
-	evicted := cacher.Put(keys[0], vals[0], len(vals[0]))
-	assert.False(t, evicted)
-	assert.Equal(t, 1, cacher.Len())
-	evicted = cacher.Put(keys[0], vals[1], len(vals[1]))
-	assert.False(t, evicted)
-	assert.Equal(t, 1, cacher.Len())
+		cacher, _ := timecache.NewTimeCacher(createArgTimeCacher())
+		t.Run("nil key", func(t *testing.T) {
+			evicted := cacher.Put(nil, nil, 0)
+			assert.False(t, evicted)
+			assert.Equal(t, 0, cacher.Len())
+		})
+		t.Run("empty key", func(t *testing.T) {
+			evicted := cacher.Put(make([]byte, 0), nil, 0)
+			assert.False(t, evicted)
+			assert.Equal(t, 0, cacher.Len())
+		})
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		cacher, _ := timecache.NewTimeCacher(createArgTimeCacher())
+		assert.False(t, cacher.IsInterfaceNil())
+
+		numOfPairs := 2
+		keys, vals := createKeysVals(numOfPairs)
+		evicted := cacher.Put(keys[0], vals[0], len(vals[0]))
+		assert.False(t, evicted)
+		assert.Equal(t, 1, cacher.Len())
+		evicted = cacher.Put(keys[0], vals[1], len(vals[1]))
+		assert.False(t, evicted)
+		assert.Equal(t, 1, cacher.Len())
+	})
 }
 
 func TestTimeCacher_Remove(t *testing.T) {

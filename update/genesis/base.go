@@ -25,6 +25,9 @@ const UnFinishedMetaBlocksIdentifier = "unFinishedMetaBlocks"
 // TransactionsIdentifier is the constant which defines the export/import identifier for transactions
 const TransactionsIdentifier = "transactions"
 
+// ValidatorsInfoIdentifier is the constant which defines the export/import identifier for validators info
+const ValidatorsInfoIdentifier = "validatorsInfo"
+
 // MiniBlocksIdentifier is the constant which defines the export/import identifier for miniBlocks
 const MiniBlocksIdentifier = "miniBlocks"
 
@@ -248,4 +251,9 @@ func CreateTransactionKey(key string, tx data.TransactionHandler) string {
 	default:
 		return "tx" + atSep + "ukw" + atSep + hex.EncodeToString([]byte(key))
 	}
+}
+
+// CreateValidatorInfoKey returns a validator info key
+func CreateValidatorInfoKey(key string) string {
+	return "vi" + atSep + hex.EncodeToString([]byte(key))
 }

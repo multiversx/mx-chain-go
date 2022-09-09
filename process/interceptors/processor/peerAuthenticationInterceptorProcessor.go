@@ -92,7 +92,7 @@ func (paip *peerAuthenticationInterceptorProcessor) updatePeerInfo(message inter
 	}
 
 	pidBytes := peerAuthenticationData.GetPid()
-	paip.peerAuthenticationCacher.Put(pidBytes, message, messageSize)
+	paip.peerAuthenticationCacher.Put(peerAuthenticationData.Pubkey, message, messageSize)
 	paip.peerShardMapper.UpdatePeerIDPublicKeyPair(core.PeerID(pidBytes), peerAuthenticationData.GetPubkey())
 
 	log.Trace("PeerAuthentication message saved")

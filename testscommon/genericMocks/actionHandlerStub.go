@@ -1,6 +1,8 @@
 package genericMocks
 
-import "github.com/ElrondNetwork/elrond-go-core/data"
+import (
+	"github.com/ElrondNetwork/elrond-go-core/data"
+)
 
 // ActionHandlerStub -
 type ActionHandlerStub struct {
