@@ -195,7 +195,7 @@ func TestMetricsUpdater_updateMetrics(t *testing.T) {
 				},
 			}
 			args.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
-				IsHeartbeatDisableFlagEnabledField: false,
+				IsHeartbeatDisableFlagEnabledField: true,
 			}
 			testUpdaterForSenderMetrics(
 				t,
