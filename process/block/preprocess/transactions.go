@@ -44,6 +44,10 @@ type accountTxsShards struct {
 
 // TODO: increase code coverage with unit test
 
+var isShardStuckFalse = func(uint32) bool { return false }
+var isMaxBlockSizeReachedFalse = func(int, int) bool { return false }
+var haveAdditionalTimeFalse = func() bool { return false }
+
 type transactions struct {
 	*basePreProcess
 	chRcvAllTxs                  chan bool
@@ -647,16 +651,6 @@ func (txs *transactions) processTxsFromMeAndCreateScheduled(
 	calculatedMiniBlocks, mapSCTxs, err := txs.processTxsFromMe(body, haveTime, randomness)
 	if err != nil {
 		return err
-	}
-
-	isShardStuckFalse := func(uint32) bool {
-		return false
-	}
-	isMaxBlockSizeReachedFalse := func(int, int) bool {
-		return false
-	}
-	haveAdditionalTimeFalse := func() bool {
-		return false
 	}
 
 	scheduledMiniBlocks, err := txs.createScheduledMiniBlocksFromMeAsValidator(

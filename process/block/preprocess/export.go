@@ -1,10 +1,11 @@
 package preprocess
 
 import (
+	"time"
+
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
-	"time"
 )
 
 // SetScheduledTXContinueFunc sets a new scheduled tx verifier function
@@ -58,10 +59,9 @@ func (txs *transactions) CreateScheduledMiniBlocks(haveTime func() bool, randomn
 	sortedTxsForScheduled, _ = txs.prefilterTransactions(nil, sortedTxsForScheduled, 0, gasBandwidth)
 	txs.sortTransactionsBySenderAndNonce(sortedTxsForScheduled, randomness)
 
-	haveAdditionalTime := func() bool { return false }
 	scheduledMiniBlocks, err := txs.createScheduledMiniBlocksFromMeAsProposer(
 		haveTime,
-		haveAdditionalTime,
+		haveAdditionalTimeFalse,
 		sortedTxsForScheduled,
 		make(map[string]struct{}),
 	)
