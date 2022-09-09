@@ -2,21 +2,30 @@ package broadcast
 
 import "github.com/ElrondNetwork/elrond-go-core/data"
 
-type DisabledDelayedBroadcaster struct{}
+type disabledDelayedBroadcaster struct{}
 
-func (ddb *DisabledDelayedBroadcaster) SetLeaderData(data *delayedBroadcastData) error {
+// NewDisabledDelayedBroadcaster will create a new instance of disabledDelayedBroadcaster
+func NewDisabledDelayedBroadcaster() *disabledDelayedBroadcaster {
+	return new(disabledDelayedBroadcaster)
+}
+
+// SetLeaderData returns nil
+func (ddb *disabledDelayedBroadcaster) SetLeaderData(data *delayedBroadcastData) error {
 	return nil
 }
 
-func (ddb *DisabledDelayedBroadcaster) SetValidatorData(data *delayedBroadcastData) error {
+// SetValidatorData returns nil
+func (ddb *disabledDelayedBroadcaster) SetValidatorData(data *delayedBroadcastData) error {
 	return nil
 }
 
-func (ddb *DisabledDelayedBroadcaster) SetHeaderForValidator(vData *validatorHeaderBroadcastData) error {
+// SetHeaderForValidator returns nil
+func (ddb *disabledDelayedBroadcaster) SetHeaderForValidator(vData *validatorHeaderBroadcastData) error {
 	return nil
 }
 
-func (ddb *DisabledDelayedBroadcaster) SetBroadcastHandlers(
+// SetBroadcastHandlers returns nil
+func (ddb *disabledDelayedBroadcaster) SetBroadcastHandlers(
 	mbBroadcast func(mbData map[uint32][]byte) error,
 	txBroadcast func(txData map[string][][]byte) error,
 	headerBroadcast func(header data.HeaderHandler) error,
@@ -24,5 +33,11 @@ func (ddb *DisabledDelayedBroadcaster) SetBroadcastHandlers(
 	return nil
 }
 
-func (ddb *DisabledDelayedBroadcaster) Close() {
+// Close does nothing
+func (ddb *disabledDelayedBroadcaster) Close() {
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (ddb *disabledDelayedBroadcaster) IsInterfaceNil() bool {
+	return ddb == nil
 }
