@@ -722,13 +722,13 @@ func (tpn *TestProcessorNode) createFullSCQueryService(gasMap map[string]map[str
 
 	gasSchedule := mock.NewGasScheduleNotifierMock(gasMap)
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:               gasSchedule,
-		MapDNSAddresses:           make(map[string]struct{}),
-		Marshalizer:               TestMarshalizer,
-		Accounts:                  tpn.AccntState,
-		ShardCoordinator:          tpn.ShardCoordinator,
-		EpochNotifier:             tpn.EpochNotifier,
-		EnableEpochsHandler:       tpn.EnableEpochsHandler,
+		GasSchedule:         gasSchedule,
+		MapDNSAddresses:     make(map[string]struct{}),
+		Marshalizer:         TestMarshalizer,
+		Accounts:            tpn.AccntState,
+		ShardCoordinator:    tpn.ShardCoordinator,
+		EpochNotifier:       tpn.EpochNotifier,
+		EnableEpochsHandler: tpn.EnableEpochsHandler,
 
 		MaxNumNodesInTransferRole: 100,
 	}
@@ -1358,13 +1358,13 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 
 	gasSchedule := mock.NewGasScheduleNotifierMock(gasMap)
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:               gasSchedule,
-		MapDNSAddresses:           mapDNSAddresses,
-		Marshalizer:               TestMarshalizer,
-		Accounts:                  tpn.AccntState,
-		ShardCoordinator:          tpn.ShardCoordinator,
-		EpochNotifier:             tpn.EpochNotifier,
-		EnableEpochsHandler:       tpn.EnableEpochsHandler,
+		GasSchedule:         gasSchedule,
+		MapDNSAddresses:     mapDNSAddresses,
+		Marshalizer:         TestMarshalizer,
+		Accounts:            tpn.AccntState,
+		ShardCoordinator:    tpn.ShardCoordinator,
+		EpochNotifier:       tpn.EpochNotifier,
+		EnableEpochsHandler: tpn.EnableEpochsHandler,
 
 		MaxNumNodesInTransferRole: 100,
 	}
@@ -1571,13 +1571,13 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 
 	gasSchedule := mock.NewGasScheduleNotifierMock(gasMap)
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:               gasSchedule,
-		MapDNSAddresses:           make(map[string]struct{}),
-		Marshalizer:               TestMarshalizer,
-		Accounts:                  tpn.AccntState,
-		ShardCoordinator:          tpn.ShardCoordinator,
-		EpochNotifier:             tpn.EpochNotifier,
-		EnableEpochsHandler:       tpn.EnableEpochsHandler,
+		GasSchedule:         gasSchedule,
+		MapDNSAddresses:     make(map[string]struct{}),
+		Marshalizer:         TestMarshalizer,
+		Accounts:            tpn.AccntState,
+		ShardCoordinator:    tpn.ShardCoordinator,
+		EpochNotifier:       tpn.EpochNotifier,
+		EnableEpochsHandler: tpn.EnableEpochsHandler,
 
 		MaxNumNodesInTransferRole: 100,
 	}
@@ -2868,13 +2868,12 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger() {
 				PublicKeyToListenFrom: hardforkPubKey,
 			},
 		},
-		BoostrapComponents:      tpn.Node.GetBootstrapComponents(),
-		CoreComponents:          tpn.Node.GetCoreComponents(),
-		DataComponents:          tpn.Node.GetDataComponents(),
-		NetworkComponents:       tpn.Node.GetNetworkComponents(),
-		CryptoComponents:        tpn.Node.GetCryptoComponents(),
-		ProcessComponents:       tpn.Node.GetProcessComponents(),
-		HeartbeatV1DisableEpoch: 0,
+		BoostrapComponents: tpn.Node.GetBootstrapComponents(),
+		CoreComponents:     tpn.Node.GetCoreComponents(),
+		DataComponents:     tpn.Node.GetDataComponents(),
+		NetworkComponents:  tpn.Node.GetNetworkComponents(),
+		CryptoComponents:   tpn.Node.GetCryptoComponents(),
+		ProcessComponents:  tpn.Node.GetProcessComponents(),
 	}
 
 	heartbeatV2Factory, err := mainFactory.NewHeartbeatV2ComponentsFactory(hbv2FactoryArgs)
@@ -2892,6 +2891,7 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger() {
 	log.LogIfError(err)
 }
 
+// CreateEnableEpochsConfig creates enable epochs definitions to be used in tests
 func CreateEnableEpochsConfig() config.EnableEpochs {
 	return config.EnableEpochs{
 		SCDeployEnableEpoch:                               UnreachableEpoch,
@@ -3234,8 +3234,8 @@ func getDefaultNodesCoordinator(maxShards uint32, pksBytes map[uint32][]byte) no
 			return keys, nil
 		},
 		GetValidatorWithPublicKeyCalled: func(publicKey []byte) (nodesCoordinator.Validator, uint32, error) {
-			validator, _ := nodesCoordinator.NewValidator(publicKey, defaultChancesSelection, 1)
-			return validator, 0, nil
+			validatorInstance, _ := nodesCoordinator.NewValidator(publicKey, defaultChancesSelection, 1)
+			return validatorInstance, 0, nil
 		},
 	}
 }

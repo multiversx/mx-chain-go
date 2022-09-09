@@ -19,29 +19,27 @@ import (
 
 // ArgHeartbeatV2ComponentsFactory represents the argument for the heartbeat v2 components factory
 type ArgHeartbeatV2ComponentsFactory struct {
-	Config                  config.Config
-	Prefs                   config.Preferences
-	AppVersion              string
-	BoostrapComponents      BootstrapComponentsHolder
-	CoreComponents          CoreComponentsHolder
-	DataComponents          DataComponentsHolder
-	NetworkComponents       NetworkComponentsHolder
-	CryptoComponents        CryptoComponentsHolder
-	ProcessComponents       ProcessComponentsHolder
-	HeartbeatV1DisableEpoch uint32
+	Config             config.Config
+	Prefs              config.Preferences
+	AppVersion         string
+	BoostrapComponents BootstrapComponentsHolder
+	CoreComponents     CoreComponentsHolder
+	DataComponents     DataComponentsHolder
+	NetworkComponents  NetworkComponentsHolder
+	CryptoComponents   CryptoComponentsHolder
+	ProcessComponents  ProcessComponentsHolder
 }
 
 type heartbeatV2ComponentsFactory struct {
-	config                  config.Config
-	prefs                   config.Preferences
-	version                 string
-	boostrapComponents      BootstrapComponentsHolder
-	coreComponents          CoreComponentsHolder
-	dataComponents          DataComponentsHolder
-	networkComponents       NetworkComponentsHolder
-	cryptoComponents        CryptoComponentsHolder
-	processComponents       ProcessComponentsHolder
-	heartbeatV1DisableEpoch uint32
+	config             config.Config
+	prefs              config.Preferences
+	version            string
+	boostrapComponents BootstrapComponentsHolder
+	coreComponents     CoreComponentsHolder
+	dataComponents     DataComponentsHolder
+	networkComponents  NetworkComponentsHolder
+	cryptoComponents   CryptoComponentsHolder
+	processComponents  ProcessComponentsHolder
 }
 
 type heartbeatV2Components struct {
@@ -60,16 +58,15 @@ func NewHeartbeatV2ComponentsFactory(args ArgHeartbeatV2ComponentsFactory) (*hea
 	}
 
 	return &heartbeatV2ComponentsFactory{
-		config:                  args.Config,
-		prefs:                   args.Prefs,
-		version:                 args.AppVersion,
-		boostrapComponents:      args.BoostrapComponents,
-		coreComponents:          args.CoreComponents,
-		dataComponents:          args.DataComponents,
-		networkComponents:       args.NetworkComponents,
-		cryptoComponents:        args.CryptoComponents,
-		processComponents:       args.ProcessComponents,
-		heartbeatV1DisableEpoch: args.HeartbeatV1DisableEpoch,
+		config:             args.Config,
+		prefs:              args.Prefs,
+		version:            args.AppVersion,
+		boostrapComponents: args.BoostrapComponents,
+		coreComponents:     args.CoreComponents,
+		dataComponents:     args.DataComponents,
+		networkComponents:  args.NetworkComponents,
+		cryptoComponents:   args.CryptoComponents,
+		processComponents:  args.ProcessComponents,
 	}, nil
 }
 
@@ -216,8 +213,7 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 		HeartbeatSenderInfoProvider:         heartbeatV2Sender,
 		AppStatusHandler:                    hcf.coreComponents.StatusHandler(),
 		TimeBetweenConnectionsMetricsUpdate: time.Second * time.Duration(hcf.config.HeartbeatV2.TimeBetweenConnectionsMetricsUpdateInSec),
-		EpochNotifier:                       hcf.coreComponents.EpochNotifier(),
-		HeartbeatV1DisableEpoch:             hcf.heartbeatV1DisableEpoch,
+		EnableEpochsHandler:                 hcf.coreComponents.EnableEpochsHandler(),
 	}
 	statusHandler, err := status.NewMetricsUpdater(argsMetricsUpdater)
 	if err != nil {

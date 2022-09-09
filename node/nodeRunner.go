@@ -752,16 +752,15 @@ func (nr *nodeRunner) CreateManagedHeartbeatV2Components(
 	processComponents mainFactory.ProcessComponentsHolder,
 ) (mainFactory.HeartbeatV2ComponentsHandler, error) {
 	heartbeatV2Args := mainFactory.ArgHeartbeatV2ComponentsFactory{
-		Config:                  *nr.configs.GeneralConfig,
-		Prefs:                   *nr.configs.PreferencesConfig,
-		AppVersion:              nr.configs.FlagsConfig.Version,
-		BoostrapComponents:      bootstrapComponents,
-		CoreComponents:          coreComponents,
-		DataComponents:          dataComponents,
-		NetworkComponents:       networkComponents,
-		CryptoComponents:        cryptoComponents,
-		ProcessComponents:       processComponents,
-		HeartbeatV1DisableEpoch: nr.configs.EpochConfig.EnableEpochs.HeartbeatDisableEpoch,
+		Config:             *nr.configs.GeneralConfig,
+		Prefs:              *nr.configs.PreferencesConfig,
+		AppVersion:         nr.configs.FlagsConfig.Version,
+		BoostrapComponents: bootstrapComponents,
+		CoreComponents:     coreComponents,
+		DataComponents:     dataComponents,
+		NetworkComponents:  networkComponents,
+		CryptoComponents:   cryptoComponents,
+		ProcessComponents:  processComponents,
 	}
 
 	heartbeatV2ComponentsFactory, err := mainFactory.NewHeartbeatV2ComponentsFactory(heartbeatV2Args)
@@ -1152,10 +1151,10 @@ func (nr *nodeRunner) CreateManagedStateComponents(
 	}
 	stateArgs := mainFactory.StateComponentsFactoryArgs{
 		Config:                   *nr.configs.GeneralConfig,
-		ShardCoordinator: bootstrapComponents.ShardCoordinator(),
-		Core:             coreComponents,
-		StorageService:   dataComponents.StorageService(),
-		ProcessingMode:   processingMode,
+		ShardCoordinator:         bootstrapComponents.ShardCoordinator(),
+		Core:                     coreComponents,
+		StorageService:           dataComponents.StorageService(),
+		ProcessingMode:           processingMode,
 		ShouldSerializeSnapshots: nr.configs.FlagsConfig.SerializeSnapshots,
 		ChainHandler:             dataComponents.Blockchain(),
 	}
