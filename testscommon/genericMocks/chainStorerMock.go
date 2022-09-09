@@ -50,38 +50,38 @@ func (sm *ChainStorerMock) AddStorer(_ dataRetriever.UnitType, _ storage.Storer)
 }
 
 // GetStorer -
-func (sm *ChainStorerMock) GetStorer(unitType dataRetriever.UnitType) storage.Storer {
+func (sm *ChainStorerMock) GetStorer(unitType dataRetriever.UnitType) (storage.Storer, error) {
 	switch unitType {
 	case dataRetriever.BlockHeaderUnit:
-		return sm.BlockHeaders
+		return sm.BlockHeaders, nil
 	case dataRetriever.MetaBlockUnit:
-		return sm.Metablocks
+		return sm.Metablocks, nil
 	case dataRetriever.MiniBlockUnit:
-		return sm.Miniblocks
+		return sm.Miniblocks, nil
 	case dataRetriever.TransactionUnit:
-		return sm.Transactions
+		return sm.Transactions, nil
 	case dataRetriever.RewardTransactionUnit:
-		return sm.Rewards
+		return sm.Rewards, nil
 	case dataRetriever.UnsignedTransactionUnit:
-		return sm.Unsigned
+		return sm.Unsigned, nil
 	case dataRetriever.TxLogsUnit:
-		return sm.Logs
+		return sm.Logs, nil
 	case dataRetriever.MetaHdrNonceHashDataUnit:
-		return sm.MetaHdrNonce
+		return sm.MetaHdrNonce, nil
 	case dataRetriever.ShardHdrNonceHashDataUnit:
-		return sm.ShardHdrNonce
+		return sm.ShardHdrNonce, nil
 	case dataRetriever.ReceiptsUnit:
-		return sm.Receipts
+		return sm.Receipts, nil
 	case dataRetriever.ScheduledSCRsUnit:
-		return sm.ScheduledSCRs
+		return sm.ScheduledSCRs, nil
 	}
 
 	// According to: dataRetriever/interface.go
 	if unitType > dataRetriever.ShardHdrNonceHashDataUnit {
-		return sm.MetaHdrNonce
+		return sm.MetaHdrNonce, nil
 	}
 
-	return sm.Others
+	return sm.Others, nil
 }
 
 // Has -
@@ -91,23 +91,36 @@ func (sm *ChainStorerMock) Has(_ dataRetriever.UnitType, _ []byte) error {
 
 // Get -
 func (sm *ChainStorerMock) Get(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
-	return sm.GetStorer(unitType).Get(key)
+	storer, err := sm.GetStorer(unitType)
+	if err != nil {
+		return nil, err
+	}
+
+	return storer.Get(key)
 }
 
 // Put -
 func (sm *ChainStorerMock) Put(unitType dataRetriever.UnitType, key []byte, value []byte) error {
-	return sm.GetStorer(unitType).Put(key, value)
+	storer, err := sm.GetStorer(unitType)
+	if err != nil {
+		return err
+	}
+
+	return storer.Put(key, value)
 }
 
 // GetAll -
 func (sm *ChainStorerMock) GetAll(unitType dataRetriever.UnitType, keys [][]byte) (map[string][]byte, error) {
-	storer := sm.GetStorer(unitType)
+	storer, err := sm.GetStorer(unitType)
+	if err != nil {
+		return nil, err
+	}
 
 	data := make(map[string][]byte)
 	for _, key := range keys {
-		buff, err := storer.Get(key)
-		if err != nil {
-			return nil, err
+		buff, errGet := storer.Get(key)
+		if errGet != nil {
+			return nil, errGet
 		}
 
 		data[string(key)] = buff
@@ -118,7 +131,6 @@ func (sm *ChainStorerMock) GetAll(unitType dataRetriever.UnitType, keys [][]byte
 
 // SetEpochForPutOperation -
 func (sm *ChainStorerMock) SetEpochForPutOperation(_ uint32) {
-	panic("not supported")
 }
 
 // GetAllStorers -

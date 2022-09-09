@@ -228,28 +228,6 @@ func (psm *PeerShardMapper) getPeerInfoSearchingPidInFallbackCache(pid core.Peer
 	}
 }
 
-// GetLastKnownPeerID returns the newest updated peer id for the given public key
-func (psm *PeerShardMapper) GetLastKnownPeerID(pk []byte) (core.PeerID, bool) {
-	objPidsQueue, found := psm.pkPeerIdCache.Get(pk)
-	if !found {
-		return "", false
-	}
-
-	pq, ok := objPidsQueue.(common.PidQueueHandler)
-	if !ok {
-		log.Warn("PeerShardMapper.GetLastKnownPeerID: the contained element should have been of type pidQueue")
-		return "", false
-	}
-
-	if pq.Len() == 0 {
-		log.Warn("PeerShardMapper.GetLastKnownPeerID: empty pidQueue element")
-		return "", false
-	}
-
-	latestPeerId := pq.Get(pq.Len() - 1)
-	return latestPeerId, true
-}
-
 // UpdatePeerIDPublicKeyPair updates the public key - peer ID pair in the corresponding maps
 // It also uses the intermediate pkPeerId cache that will prevent having thousands of peer ID's with
 // the same Elrond PK that will make the node prone to an eclipse attack

@@ -20,7 +20,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/common/forking"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
@@ -161,7 +160,7 @@ func TestSCMoveBalanceBeforeSCDeploy(t *testing.T) {
 		ownerAddressBytes,
 		ownerBalance,
 		config.EnableEpochs{
-			PenalizedTooMuchGasEnableEpoch: 100,
+			PenalizedTooMuchGasEnableEpoch: integrationTests.UnreachableEpoch,
 		},
 	)
 	require.Nil(t, err)
@@ -252,7 +251,7 @@ func TestWASMMetering(t *testing.T) {
 		ownerAddressBytes,
 		ownerBalance,
 		config.EnableEpochs{
-			PenalizedTooMuchGasEnableEpoch: 100,
+			PenalizedTooMuchGasEnableEpoch: integrationTests.UnreachableEpoch,
 		},
 	)
 	require.Nil(t, err)
@@ -506,12 +505,12 @@ func TestExecuteTransactionAndTimeToProcessChange(t *testing.T) {
 	accnts := vm.CreateInMemoryShardAccountsDB()
 	esdtTransferParser, _ := parsers.NewESDTTransferParser(testMarshalizer)
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
-		PubkeyConverter:    pubkeyConv,
-		ShardCoordinator:   shardCoordinator,
-		BuiltInFunctions:   builtInFunctions.NewBuiltInFunctionContainer(),
-		ArgumentParser:     parsers.NewCallArgsParser(),
-		ESDTTransferParser: esdtTransferParser,
-		EpochNotifier:      forking.NewGenericEpochNotifier(),
+		PubkeyConverter:     pubkeyConv,
+		ShardCoordinator:    shardCoordinator,
+		BuiltInFunctions:    builtInFunctions.NewBuiltInFunctionContainer(),
+		ArgumentParser:      parsers.NewCallArgsParser(),
+		ESDTTransferParser:  esdtTransferParser,
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
 	}
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	feeHandler := &mock.FeeHandlerStub{
@@ -527,21 +526,21 @@ func TestExecuteTransactionAndTimeToProcessChange(t *testing.T) {
 
 	_, _ = vm.CreateAccount(accnts, ownerAddressBytes, ownerNonce, ownerBalance)
 	argsNewTxProcessor := processTransaction.ArgsNewTxProcessor{
-		Accounts:         accnts,
-		Hasher:           testHasher,
-		PubkeyConv:       pubkeyConv,
-		Marshalizer:      testMarshalizer,
-		SignMarshalizer:  testMarshalizer,
-		ShardCoordinator: shardCoordinator,
-		ScProcessor:      &testscommon.SCProcessorMock{},
-		TxFeeHandler:     &testscommon.UnsignedTxHandlerStub{},
-		TxTypeHandler:    txTypeHandler,
-		EconomicsFee:     &mock.FeeHandlerStub{},
-		ReceiptForwarder: &mock.IntermediateTransactionHandlerMock{},
-		BadTxForwarder:   &mock.IntermediateTransactionHandlerMock{},
-		ArgsParser:       smartContract.NewArgumentParser(),
-		ScrForwarder:     &mock.IntermediateTransactionHandlerMock{},
-		EpochNotifier:    forking.NewGenericEpochNotifier(),
+		Accounts:            accnts,
+		Hasher:              testHasher,
+		PubkeyConv:          pubkeyConv,
+		Marshalizer:         testMarshalizer,
+		SignMarshalizer:     testMarshalizer,
+		ShardCoordinator:    shardCoordinator,
+		ScProcessor:         &testscommon.SCProcessorMock{},
+		TxFeeHandler:        &testscommon.UnsignedTxHandlerStub{},
+		TxTypeHandler:       txTypeHandler,
+		EconomicsFee:        &mock.FeeHandlerStub{},
+		ReceiptForwarder:    &mock.IntermediateTransactionHandlerMock{},
+		BadTxForwarder:      &mock.IntermediateTransactionHandlerMock{},
+		ArgsParser:          smartContract.NewArgumentParser(),
+		ScrForwarder:        &mock.IntermediateTransactionHandlerMock{},
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
 	}
 	txProc, _ := processTransaction.NewTxProcessor(argsNewTxProcessor)
 

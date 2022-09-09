@@ -29,15 +29,23 @@ func TestNode_GenerateSendInterceptHeaderByNonceWithNetMessenger(t *testing.T) {
 	hasher := integrationTests.TestHasher
 	marshalizer := integrationTests.TestMarshalizer
 	uint64Converter := uint64ByteSlice.NewBigEndianConverter()
-	var nrOfShards uint32 = 1
+	var numOfShards uint32 = 1
 	var shardID uint32 = 0
 	var txSignPrivKeyShardId uint32 = 0
 
 	fmt.Println("Requester:	")
-	nRequester := integrationTests.NewTestProcessorNode(nrOfShards, shardID, txSignPrivKeyShardId)
+	nRequester := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
+		MaxShards:            numOfShards,
+		NodeShardId:          shardID,
+		TxSignPrivKeyShardId: txSignPrivKeyShardId,
+	})
 
 	fmt.Println("Resolver:")
-	nResolver := integrationTests.NewTestProcessorNode(nrOfShards, shardID, txSignPrivKeyShardId)
+	nResolver := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
+		MaxShards:            numOfShards,
+		NodeShardId:          shardID,
+		TxSignPrivKeyShardId: txSignPrivKeyShardId,
+	})
 
 	defer func() {
 		_ = nRequester.Messenger.Close()
@@ -60,8 +68,12 @@ func TestNode_GenerateSendInterceptHeaderByNonceWithNetMessenger(t *testing.T) {
 	//resolver has the headers
 	nResolver.DataPool.Headers().AddHeader(hdrHash1, hdr1)
 
-	_ = nResolver.Storage.GetStorer(dataRetriever.BlockHeaderUnit).Put(hdrHash2, hdrBuff2)
-	_ = nResolver.Storage.GetStorer(dataRetriever.ShardHdrNonceHashDataUnit).Put(uint64Converter.ToByteSlice(1), hdrHash2)
+	storer, err := nResolver.Storage.GetStorer(dataRetriever.BlockHeaderUnit)
+	assert.Nil(t, err)
+	_ = storer.Put(hdrHash2, hdrBuff2)
+	storer, err = nResolver.Storage.GetStorer(dataRetriever.ShardHdrNonceHashDataUnit)
+	assert.Nil(t, err)
+	_ = storer.Put(uint64Converter.ToByteSlice(1), hdrHash2)
 
 	chanDone1, chanDone2 := wireUpHandler(nRequester, hdr1, hdr2)
 
@@ -85,15 +97,23 @@ func TestNode_InterceptedHeaderWithWrongChainIDShouldBeDiscarded(t *testing.T) {
 	hasher := integrationTests.TestHasher
 	marshalizer := integrationTests.TestMarshalizer
 	uint64Converter := uint64ByteSlice.NewBigEndianConverter()
-	var nrOfShards uint32 = 1
+	var numOfShards uint32 = 1
 	var shardID uint32 = 0
 	var txSignPrivKeyShardId uint32 = 0
 
 	fmt.Println("Requester:	")
-	nRequester := integrationTests.NewTestProcessorNode(nrOfShards, shardID, txSignPrivKeyShardId)
+	nRequester := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
+		MaxShards:            numOfShards,
+		NodeShardId:          shardID,
+		TxSignPrivKeyShardId: txSignPrivKeyShardId,
+	})
 
 	fmt.Println("Resolver:")
-	nResolver := integrationTests.NewTestProcessorNode(nrOfShards, shardID, txSignPrivKeyShardId)
+	nResolver := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
+		MaxShards:            numOfShards,
+		NodeShardId:          shardID,
+		TxSignPrivKeyShardId: txSignPrivKeyShardId,
+	})
 
 	defer func() {
 		_ = nRequester.Messenger.Close()
@@ -117,8 +137,12 @@ func TestNode_InterceptedHeaderWithWrongChainIDShouldBeDiscarded(t *testing.T) {
 	//resolver has the headers
 	nResolver.DataPool.Headers().AddHeader(hdrHash1, hdr1)
 
-	_ = nResolver.Storage.GetStorer(dataRetriever.BlockHeaderUnit).Put(hdrHash2, hdrBuff2)
-	_ = nResolver.Storage.GetStorer(dataRetriever.ShardHdrNonceHashDataUnit).Put(uint64Converter.ToByteSlice(1), hdrHash2)
+	storer, err := nResolver.Storage.GetStorer(dataRetriever.BlockHeaderUnit)
+	assert.Nil(t, err)
+	_ = storer.Put(hdrHash2, hdrBuff2)
+	storer, err = nResolver.Storage.GetStorer(dataRetriever.ShardHdrNonceHashDataUnit)
+	assert.Nil(t, err)
+	_ = storer.Put(uint64Converter.ToByteSlice(1), hdrHash2)
 
 	chanDone1, chanDone2 := wireUpHandler(nRequester, hdr1, hdr2)
 

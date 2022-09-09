@@ -67,15 +67,15 @@ func createMockEpochStartCreatorArguments() ArgsNewEpochStartData {
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	startHeaders := createGenesisBlocks(shardCoordinator)
 	argsNewEpochStartData := ArgsNewEpochStartData{
-		Marshalizer:                          &mock.MarshalizerMock{},
-		Hasher:                               &mock.HasherStub{},
-		Store:                                createMetaStore(),
-		DataPool:                             dataRetrieverMock.NewPoolsHolderStub(),
-		BlockTracker:                         mock.NewBlockTrackerMock(shardCoordinator, startHeaders),
-		ShardCoordinator:                     shardCoordinator,
-		EpochStartTrigger:                    &mock.EpochStartTriggerStub{},
-		RequestHandler:                       &testscommon.RequestHandlerStub{},
-		MiniBlockPartialExecutionEnableEpoch: 0,
+		Marshalizer:         &mock.MarshalizerMock{},
+		Hasher:              &mock.HasherStub{},
+		Store:               createMetaStore(),
+		DataPool:            dataRetrieverMock.NewPoolsHolderStub(),
+		BlockTracker:        mock.NewBlockTrackerMock(shardCoordinator, startHeaders),
+		ShardCoordinator:    shardCoordinator,
+		EpochStartTrigger:   &mock.EpochStartTriggerStub{},
+		RequestHandler:      &testscommon.RequestHandlerStub{},
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
 	}
 	return argsNewEpochStartData
 }
@@ -174,6 +174,17 @@ func TestEpochStartData_NilRequestHandler(t *testing.T) {
 	esd, err := NewEpochStartData(arguments)
 	require.Nil(t, esd)
 	require.Equal(t, process.ErrNilRequestHandler, err)
+}
+
+func TestEpochStartData_NilEnableEpochsHandler(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockEpochStartCreatorArguments()
+	arguments.EnableEpochsHandler = nil
+
+	esd, err := NewEpochStartData(arguments)
+	require.Nil(t, esd)
+	require.Equal(t, process.ErrNilEnableEpochsHandler, err)
 }
 
 func TestVerifyEpochStartDataForMetablock_NotEpochStartBlock(t *testing.T) {
@@ -346,7 +357,7 @@ func TestMetaProcessor_CreateEpochStartFromMetaBlockShouldWork(t *testing.T) {
 		return cs
 	}
 	arguments.DataPool = dPool
-	metaHdrStorage := arguments.Store.GetStorer(dataRetriever.MetaBlockUnit)
+	metaHdrStorage, _ := arguments.Store.GetStorer(dataRetriever.MetaBlockUnit)
 	meta1 := &block.MetaBlock{Nonce: 100}
 
 	var hdrs []block.MiniBlockHeader
@@ -401,7 +412,7 @@ func TestMetaProcessor_CreateEpochStartFromMetaBlockEdgeCaseChecking(t *testing.
 	blockTracker := mock.NewBlockTrackerMock(arguments.ShardCoordinator, startHeaders)
 
 	mbHashes := [][]byte{[]byte("mb_hash1"), []byte("mb_hash2"), []byte("mb_hash3"), []byte("mb_hash4")}
-	metaHdrStorage := arguments.Store.GetStorer(dataRetriever.MetaBlockUnit)
+	metaHdrStorage, _ := arguments.Store.GetStorer(dataRetriever.MetaBlockUnit)
 	var mbHdrs1 []block.MiniBlockHeader
 	mbHdrs1 = append(mbHdrs1, block.MiniBlockHeader{
 		Hash:            mbHashes[0],
@@ -695,7 +706,9 @@ func Test_setIndexOfFirstAndLastTxProcessedShouldNotSetReserved(t *testing.T) {
 	partialExecutionEnableEpoch := uint32(5)
 
 	arguments := createMockEpochStartCreatorArguments()
-	arguments.MiniBlockPartialExecutionEnableEpoch = partialExecutionEnableEpoch
+	arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+		MiniBlockPartialExecutionEnableEpochField: partialExecutionEnableEpoch,
+	}
 	arguments.EpochStartTrigger = &mock.EpochStartTriggerStub{
 		IsEpochStartCalled: func() bool {
 			return true
@@ -719,7 +732,9 @@ func Test_setIndexOfFirstAndLastTxProcessedShouldSetReserved(t *testing.T) {
 	partialExecutionEnableEpoch := uint32(5)
 
 	arguments := createMockEpochStartCreatorArguments()
-	arguments.MiniBlockPartialExecutionEnableEpoch = partialExecutionEnableEpoch
+	arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+		MiniBlockPartialExecutionEnableEpochField: partialExecutionEnableEpoch,
+	}
 	arguments.EpochStartTrigger = &mock.EpochStartTriggerStub{
 		IsEpochStartCalled: func() bool {
 			return true

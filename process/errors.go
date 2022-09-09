@@ -221,8 +221,14 @@ var ErrNilShardedDataCacherNotifier = errors.New("nil sharded data cacher notifi
 // ErrInvalidTxInPool signals an invalid transaction in the transactions pool
 var ErrInvalidTxInPool = errors.New("invalid transaction in the transactions pool")
 
+// ErrInvalidValidatorInfoInPool signals an invalid validator info in the validators info pool
+var ErrInvalidValidatorInfoInPool = errors.New("invalid validator info in the validators info pool")
+
 // ErrTxNotFound signals that a transaction has not found
 var ErrTxNotFound = errors.New("transaction not found")
+
+// ErrValidatorInfoNotFound signals that a validator info has not found
+var ErrValidatorInfoNotFound = errors.New("validator info not found")
 
 // ErrNilHeadersStorage signals that a nil header storage has been provided
 var ErrNilHeadersStorage = errors.New("nil headers storage")
@@ -1026,17 +1032,8 @@ var ErrNodeIsNotSynced = errors.New("node is not synced")
 // ErrStateChangedWhileExecutingVmQuery signals that the state has been changed while executing a vm query and the request required not to
 var ErrStateChangedWhileExecutingVmQuery = errors.New("state changed while executing vm query")
 
-// ErrDuplicateRoundActivationName signals a round activation name is already taken
-var ErrDuplicateRoundActivationName = errors.New("round activation name already exists in config file")
-
-// ErrNilActivationRoundName signals an empty activation round name has been set in config file
-var ErrNilActivationRoundName = errors.New("round activation name is empty in config file")
-
-// ErrInvalidRoundActivationConfig signals that RoundConfig struct is invalid
-var ErrInvalidRoundActivationConfig = errors.New("invalid round config struct; should be of type config.ActivationRoundByName")
-
-// ErrNilRoundNotifier signals a nil round notifier has been provided
-var ErrNilRoundNotifier = errors.New("nil round notifier has been provided")
+// ErrNilEnableRoundsHandler signals a nil enable rounds handler has been provided
+var ErrNilEnableRoundsHandler = errors.New("nil enable rounds handler has been provided")
 
 // ErrNilScheduledTxsExecutionHandler signals that scheduled txs execution handler is nil
 var ErrNilScheduledTxsExecutionHandler = errors.New("nil scheduled txs execution handler")
@@ -1076,12 +1073,6 @@ var ErrNilDoubleTransactionsDetector = errors.New("nil double transactions detec
 
 // ErrNoTxToProcess signals that no transaction were sent for processing
 var ErrNoTxToProcess = errors.New("no transaction to process")
-
-// ErrPropertyTooLong signals that a heartbeat property was too long
-var ErrPropertyTooLong = errors.New("property too long")
-
-// ErrPropertyTooShort signals that a heartbeat property was too short
-var ErrPropertyTooShort = errors.New("property too short")
 
 // ErrInvalidPeerSubType signals that an invalid peer subtype was provided
 var ErrInvalidPeerSubType = errors.New("invalid peer subtype")
@@ -1137,5 +1128,20 @@ var ErrNilReceiptsRepository = errors.New("nil receipts repository")
 // ErrNilESDTGlobalSettingsHandler signals that nil global settings handler was provided
 var ErrNilESDTGlobalSettingsHandler = errors.New("nil esdt global settings handler")
 
+// ErrNilEnableEpochsHandler signals that a nil enable epochs handler has been provided
+var ErrNilEnableEpochsHandler = errors.New("nil enable epochs handler")
+
 // ErrNilCrawlerAllowedAddress signals that no crawler allowed address was found
 var ErrNilCrawlerAllowedAddress = errors.New("nil crawler allowed address")
+
+// ErrNilPayloadValidator signals that a nil payload validator was provided
+var ErrNilPayloadValidator = errors.New("nil payload validator")
+
+// ErrNilValidatorInfoPool signals that a nil validator info pool has been provided
+var ErrNilValidatorInfoPool = errors.New("nil validator info pool")
+
+// ErrPropertyTooLong signals that a heartbeat property was too long
+var ErrPropertyTooLong = errors.New("property too long")
+
+// ErrPropertyTooShort signals that a heartbeat property was too short
+var ErrPropertyTooShort = errors.New("property too short")

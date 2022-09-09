@@ -52,6 +52,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
+	vic "github.com/ElrondNetwork/elrond-go/testscommon/validatorInfoCacher"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/trie/hashesHolder"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -154,6 +155,8 @@ func createTestStore() dataRetriever.StorageService {
 	store.AddStorer(dataRetriever.BootstrapUnit, createMemUnit())
 	store.AddStorer(dataRetriever.ReceiptsUnit, createMemUnit())
 	store.AddStorer(dataRetriever.ScheduledSCRsUnit, createMemUnit())
+	store.AddStorer(dataRetriever.ShardHdrNonceHashDataUnit, createMemUnit())
+
 	return store
 }
 
@@ -333,6 +336,8 @@ func createConsensusOnlyNode(
 		syncer,
 		0)
 
+	dataPool := dataRetrieverMock.CreatePoolsHolder(1, 0)
+
 	argsNewMetaEpochStart := &metachain.ArgsNewMetaEpochStartTrigger{
 		GenesisTime:        time.Unix(startTime, 0),
 		EpochStartNotifier: notifier.NewEpochStartSubscriptionHandler(),
@@ -345,6 +350,7 @@ func createConsensusOnlyNode(
 		Marshalizer:      testMarshalizer,
 		Hasher:           testHasher,
 		AppStatusHandler: &statusHandlerMock.AppStatusHandlerStub{},
+		DataPool:         dataPool,
 	}
 	epochStartTrigger, _ := metachain.NewEpochStartTrigger(argsNewMetaEpochStart)
 
@@ -440,7 +446,7 @@ func createConsensusOnlyNode(
 
 	dataComponents := integrationTests.GetDefaultDataComponents()
 	dataComponents.BlockChain = blockChain
-	dataComponents.DataPool = dataRetrieverMock.CreatePoolsHolder(1, 0)
+	dataComponents.DataPool = dataPool
 	dataComponents.Store = createTestStore()
 
 	stateComponents := integrationTests.GetDefaultStateComponents()
@@ -511,23 +517,26 @@ func createNodes(
 		consensusCache, _ := lrucache.NewCache(10000)
 
 		argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
-			ShardConsensusGroupSize:    consensusSize,
-			MetaConsensusGroupSize:     1,
-			Marshalizer:                integrationTests.TestMarshalizer,
-			Hasher:                     createHasher(consensusType),
-			Shuffler:                   nodeShuffler,
-			EpochStartNotifier:         epochStartRegistrationHandler,
-			BootStorer:                 bootStorer,
-			NbShards:                   1,
-			EligibleNodes:              eligibleMap,
-			WaitingNodes:               waitingMap,
-			SelfPublicKey:              []byte(strconv.Itoa(i)),
-			ConsensusGroupCache:        consensusCache,
-			ShuffledOutHandler:         &mock.ShuffledOutHandlerStub{},
-			WaitingListFixEnabledEpoch: 0,
-			ChanStopNode:               endProcess.GetDummyEndProcessChannel(),
-			NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
-			IsFullArchive:              false,
+			ShardConsensusGroupSize: consensusSize,
+			MetaConsensusGroupSize:  1,
+			Marshalizer:             integrationTests.TestMarshalizer,
+			Hasher:                  createHasher(consensusType),
+			Shuffler:                nodeShuffler,
+			EpochStartNotifier:      epochStartRegistrationHandler,
+			BootStorer:              bootStorer,
+			NbShards:                1,
+			EligibleNodes:           eligibleMap,
+			WaitingNodes:            waitingMap,
+			SelfPublicKey:           []byte(strconv.Itoa(i)),
+			ConsensusGroupCache:     consensusCache,
+			ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
+			ChanStopNode:            endProcess.GetDummyEndProcessChannel(),
+			NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
+			IsFullArchive:           false,
+			EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
+				IsWaitingListFixFlagEnabledField: true,
+			},
+			ValidatorInfoCacher: &vic.ValidatorInfoCacherStub{},
 		}
 		nodesCoord, _ := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 

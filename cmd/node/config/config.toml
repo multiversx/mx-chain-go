@@ -443,6 +443,12 @@
     SizeInBytes = 26214400  # 25MB per each pair (metachain, destinationShard)
     Shards = 4
 
+[ValidatorInfoPool]
+    Name = "ValidatorInfoPool"
+    Capacity = 10000
+    SizeInBytes = 31457280  #30MB
+    Shards = 4
+
 #PublicKeyPeerId represents the main cache used to map Elrond block signing public keys to their associated peer id's.
 [PublicKeyPeerId]
     Name = "PublicKeyPeerId"
@@ -481,6 +487,10 @@
 [PeersRatingConfig]
     TopRatedCacheCapacity = 5000
     BadRatedCacheCapacity = 5000
+
+[PoolsCleanersConfig]
+    MaxRoundsToKeepUnprocessedMiniBlocks = 300   # max number of rounds unprocessed miniblocks are kept in pool
+    MaxRoundsToKeepUnprocessedTransactions = 300 # max number of rounds unprocessed transactions are kept in pool
 
 [TrieSyncStorage]
     Capacity = 300000

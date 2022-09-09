@@ -12,7 +12,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers/topicResolverSender"
-	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
@@ -49,7 +48,7 @@ type baseResolversContainerFactory struct {
 	numFullHistoryPeers                  int
 	nodesCoordinator                     dataRetriever.NodesCoordinator
 	maxNumOfPeerAuthenticationInResponse int
-	peerShardMapper                      process.PeerShardMapper
+	payloadValidator                     dataRetriever.PeerAuthenticationPayloadValidator
 }
 
 func (brcf *baseResolversContainerFactory) checkParams() error {
@@ -111,9 +110,6 @@ func (brcf *baseResolversContainerFactory) checkParams() error {
 		return fmt.Errorf("%w for maxNumOfPeerAuthenticationInResponse, expected %d, received %d",
 			dataRetriever.ErrInvalidValue, minNumOfPeerAuthentication, brcf.maxNumOfPeerAuthenticationInResponse)
 	}
-	if check.IfNil(brcf.peerShardMapper) {
-		return dataRetriever.ErrNilPeerShardMapper
-	}
 
 	return nil
 }
@@ -167,7 +163,10 @@ func (brcf *baseResolversContainerFactory) createTxResolver(
 	numIntraShardPeers int,
 ) (dataRetriever.Resolver, error) {
 
-	txStorer := brcf.store.GetStorer(unit)
+	txStorer, err := brcf.store.GetStorer(unit)
+	if err != nil {
+		return nil, err
+	}
 
 	resolverSender, err := brcf.createOneResolverSenderWithSpecifiedNumRequests(topic, excludedTopic, targetShardID, numCrossShardPeers, numIntraShardPeers)
 	if err != nil {
@@ -248,7 +247,10 @@ func (brcf *baseResolversContainerFactory) createMiniBlocksResolver(
 	numCrossShardPeers int,
 	numIntraShardPeers int,
 ) (dataRetriever.Resolver, error) {
-	miniBlocksStorer := brcf.store.GetStorer(dataRetriever.MiniBlockUnit)
+	miniBlocksStorer, err := brcf.store.GetStorer(dataRetriever.MiniBlockUnit)
+	if err != nil {
+		return nil, err
+	}
 
 	resolverSender, err := brcf.createOneResolverSenderWithSpecifiedNumRequests(topic, excludedTopic, targetShardID, numCrossShardPeers, numIntraShardPeers)
 	if err != nil {
@@ -298,8 +300,8 @@ func (brcf *baseResolversContainerFactory) generatePeerAuthenticationResolver() 
 		PeerAuthenticationPool:               brcf.dataPools.PeerAuthentications(),
 		NodesCoordinator:                     brcf.nodesCoordinator,
 		MaxNumOfPeerAuthenticationInResponse: brcf.maxNumOfPeerAuthenticationInResponse,
-		PeerShardMapper:                      brcf.peerShardMapper,
 		DataPacker:                           brcf.dataPacker,
+		PayloadValidator:                     brcf.payloadValidator,
 	}
 	peerAuthResolver, err := resolvers.NewPeerAuthenticationResolver(arg)
 	if err != nil {
@@ -396,4 +398,40 @@ func (brcf *baseResolversContainerFactory) createTrieNodesResolver(
 	}
 
 	return resolver, nil
+}
+
+func (brcf *baseResolversContainerFactory) generateValidatorInfoResolver() error {
+	identifierValidatorInfo := common.ValidatorInfoTopic
+	shardC := brcf.shardCoordinator
+	resolverSender, err := brcf.createOneResolverSenderWithSpecifiedNumRequests(identifierValidatorInfo, EmptyExcludePeersOnTopic, shardC.SelfId(), brcf.numCrossShardPeers, brcf.numIntraShardPeers)
+	if err != nil {
+		return err
+	}
+
+	validatorInfoStorage, err := brcf.store.GetStorer(dataRetriever.UnsignedTransactionUnit)
+	if err != nil {
+		return err
+	}
+
+	arg := resolvers.ArgValidatorInfoResolver{
+		SenderResolver:       resolverSender,
+		Marshaller:           brcf.marshalizer,
+		AntifloodHandler:     brcf.inputAntifloodHandler,
+		Throttler:            brcf.throttler,
+		ValidatorInfoPool:    brcf.dataPools.ValidatorsInfo(),
+		ValidatorInfoStorage: validatorInfoStorage,
+		DataPacker:           brcf.dataPacker,
+		IsFullHistoryNode:    brcf.isFullHistoryNode,
+	}
+	validatorInfoResolver, err := resolvers.NewValidatorInfoResolver(arg)
+	if err != nil {
+		return err
+	}
+
+	err = brcf.messenger.RegisterMessageProcessor(validatorInfoResolver.RequestTopic(), common.DefaultResolversIdentifier, validatorInfoResolver)
+	if err != nil {
+		return err
+	}
+
+	return brcf.container.Add(identifierValidatorInfo, validatorInfoResolver)
 }
