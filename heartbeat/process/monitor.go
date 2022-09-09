@@ -13,12 +13,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go-storage/timecache"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/storage/cache"
 )
 
 var log = logger.GetOrCreate("heartbeat/process")
@@ -588,7 +588,7 @@ func (m *Monitor) addDoubleSignerPeers(hb *data.Heartbeat) {
 	pubKeyStr := string(hb.Pubkey)
 	tc, ok := m.doubleSignerPeers[pubKeyStr]
 	if !ok {
-		tc = timecache.NewTimeCache(m.maxDurationPeerUnresponsive)
+		tc = cache.NewTimeCache(m.maxDurationPeerUnresponsive)
 		err := tc.Add(string(hb.Pid))
 		if err != nil {
 			log.Warn("cannot add heartbeat in cache", "peer id", hb.Pid, "error", err)

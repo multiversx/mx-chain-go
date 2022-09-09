@@ -17,7 +17,6 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	storageRepoFactory "github.com/ElrondNetwork/elrond-go-storage/factory"
 	"github.com/ElrondNetwork/elrond-go-storage/storageUnit"
-	"github.com/ElrondNetwork/elrond-go-storage/timecache"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -62,6 +61,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/cache"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/update"
 	updateDisabled "github.com/ElrondNetwork/elrond-go/update/disabled"
@@ -1327,7 +1327,7 @@ func (pcf *processComponentsFactory) newShardInterceptorContainerFactory(
 	peerShardMapper *networksharding.PeerShardMapper,
 	hardforkTrigger HardforkTrigger,
 ) (process.InterceptorsContainerFactory, process.TimeCacher, error) {
-	headerBlackList := timecache.NewTimeCache(timeSpanForBadHeaders)
+	headerBlackList := cache.NewTimeCache(timeSpanForBadHeaders)
 	shardInterceptorsContainerFactoryArgs := interceptorscontainer.CommonInterceptorsContainerFactoryArgs{
 		CoreComponents:               pcf.coreData,
 		CryptoComponents:             pcf.crypto,
@@ -1375,7 +1375,7 @@ func (pcf *processComponentsFactory) newMetaInterceptorContainerFactory(
 	peerShardMapper *networksharding.PeerShardMapper,
 	hardforkTrigger HardforkTrigger,
 ) (process.InterceptorsContainerFactory, process.TimeCacher, error) {
-	headerBlackList := timecache.NewTimeCache(timeSpanForBadHeaders)
+	headerBlackList := cache.NewTimeCache(timeSpanForBadHeaders)
 	metaInterceptorsContainerFactoryArgs := interceptorscontainer.CommonInterceptorsContainerFactoryArgs{
 		CoreComponents:               pcf.coreData,
 		CryptoComponents:             pcf.crypto,

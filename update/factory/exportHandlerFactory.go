@@ -10,7 +10,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go-storage/storageUnit"
-	"github.com/ElrondNetwork/elrond-go-storage/timecache"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -25,6 +24,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/cache"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/update"
@@ -529,7 +529,7 @@ func (e *exportHandlerFactory) createInterceptors() error {
 		DataPool:                e.dataPool,
 		MaxTxNonceDeltaAllowed:  math.MaxInt32,
 		TxFeeHandler:            &disabled.FeeHandler{},
-		BlockBlackList:          timecache.NewTimeCache(time.Second),
+		BlockBlackList:          cache.NewTimeCache(time.Second),
 		HeaderSigVerifier:       e.headerSigVerifier,
 		HeaderIntegrityVerifier: e.headerIntegrityVerifier,
 		SizeCheckDelta:          math.MaxUint32,

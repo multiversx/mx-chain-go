@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go-storage/lrucache/capacity"
 	"github.com/ElrondNetwork/elrond-go-storage/mapTimeCache"
 	"github.com/ElrondNetwork/elrond-go-storage/storageCacherAdapter"
 	"github.com/ElrondNetwork/elrond-go-storage/storageUnit"
@@ -16,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool/headersCache"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/shardedData"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/txpool"
+	"github.com/ElrondNetwork/elrond-go/storage/cache"
 	"github.com/ElrondNetwork/elrond-go/testscommon/txcachemocks"
 	"github.com/ElrondNetwork/elrond-go/trie/factory"
 )
@@ -86,7 +86,7 @@ func CreatePoolsHolder(numShards uint32, selfShard uint32) dataRetriever.PoolsHo
 	panicIfError("CreatePoolsHolder", err)
 
 	cacherConfig = storageUnit.CacheConfig{Capacity: 50000, Type: storageUnit.LRUCache}
-	cacher, err := capacity.NewCapacityLRU(10, 10000)
+	cacher, err := cache.NewCapacityLRU(10, 10000)
 	panicIfError("Create trieSync cacher", err)
 
 	tempDir, _ := ioutil.TempDir("", "integrationTests")

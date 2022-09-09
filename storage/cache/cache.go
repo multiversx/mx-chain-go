@@ -75,3 +75,8 @@ func NewPeerTimeCache(cache TimeCacher) (PeerBlackListCacher, error) {
 func NewCapacityLRU(size int, byteCapacity int64) (AdaptedSizedLRUCache, error) {
 	return capacity.NewCapacityLRU(size, byteCapacity)
 }
+
+// NewLRUCacheWithEviction creates a new sized LRU cache instance with eviction function
+func NewLRUCacheWithEviction(size int, onEvicted func(key interface{}, value interface{})) (storage.Cacher, error) {
+	return lrucache.NewCacheWithEviction(size, onEvicted)
+}

@@ -6,11 +6,11 @@ import (
 	"time"
 
 	storageCommon "github.com/ElrondNetwork/elrond-go-storage/common"
-	"github.com/ElrondNetwork/elrond-go-storage/lrucache"
 	"github.com/ElrondNetwork/elrond-go-storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/cache"
 )
 
 const cacheSize = 10
@@ -68,7 +68,7 @@ func (o *openStorageUnits) GetMostRecentStorageUnit(dbConfig config.DBConfig) (s
 		return nil, err
 	}
 
-	cacher, err := lrucache.NewCache(cacheSize)
+	cacher, err := cache.NewLRUCache(cacheSize)
 	if err != nil {
 		return nil, err
 	}
@@ -108,12 +108,12 @@ func (o *openStorageUnits) OpenDB(dbConfig config.DBConfig, shardID uint32, epoc
 		return nil, err
 	}
 
-	cache, err := lrucache.NewCache(cacheSize)
+	lruCache, err := cache.NewLRUCache(cacheSize)
 	if err != nil {
 		return nil, err
 	}
 
-	return storageUnit.NewStorageUnit(cache, persister)
+	return storageUnit.NewStorageUnit(lruCache, persister)
 }
 
 func createDB(persisterFactory *PersisterFactory, persisterPath string) (storage.Persister, error) {

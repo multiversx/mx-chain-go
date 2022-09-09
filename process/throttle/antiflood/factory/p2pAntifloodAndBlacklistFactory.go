@@ -9,7 +9,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go-storage/storageUnit"
-	"github.com/ElrondNetwork/elrond-go-storage/timecache"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -18,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/disabled"
 	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/floodPreventers"
 	"github.com/ElrondNetwork/elrond-go/statusHandler/p2pQuota"
+	"github.com/ElrondNetwork/elrond-go/storage/cache"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 )
 
@@ -64,13 +64,13 @@ func initP2PAntiFloodComponents(
 	statusHandler core.AppStatusHandler,
 	currentPid core.PeerID,
 ) (*AntiFloodComponents, error) {
-	cache := timecache.NewTimeCache(defaultSpan)
-	p2pPeerBlackList, err := timecache.NewPeerTimeCache(cache)
+	timeCache := cache.NewTimeCache(defaultSpan)
+	p2pPeerBlackList, err := cache.NewPeerTimeCache(timeCache)
 	if err != nil {
 		return nil, err
 	}
 
-	publicKeysCache := timecache.NewTimeCache(defaultSpan)
+	publicKeysCache := cache.NewTimeCache(defaultSpan)
 
 	fastReactingFloodPreventer, err := createFloodPreventer(
 		ctx,
