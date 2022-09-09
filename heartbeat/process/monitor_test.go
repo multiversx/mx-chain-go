@@ -639,7 +639,9 @@ func TestMonitor_ProcessReceivedMessageShouldNotProcessAfterEpoch(t *testing.T) 
 
 	args := createMockArgHeartbeatMonitor()
 	stub, _ := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
+	stub.Lock()
 	stub.IsHeartbeatDisableFlagEnabledField = true
+	stub.Unlock()
 
 	wasCanProcessMessageCalled := false
 	args.AntifloodHandler = &mock.P2PAntifloodHandlerStub{
@@ -655,13 +657,17 @@ func TestMonitor_ProcessReceivedMessageShouldNotProcessAfterEpoch(t *testing.T) 
 
 	message := &mock.P2PMessageStub{DataField: []byte("data field")}
 
+	stub.Lock()
 	stub.IsHeartbeatDisableFlagEnabledField = false
+	stub.Unlock()
 	err = mon.ProcessReceivedMessage(message, "pid")
 	assert.Nil(t, err)
 	assert.True(t, wasCanProcessMessageCalled)
 
 	wasCanProcessMessageCalled = false
+	stub.Lock()
 	stub.IsHeartbeatDisableFlagEnabledField = true
+	stub.Unlock()
 	err = mon.ProcessReceivedMessage(message, "pid")
 	assert.Nil(t, err)
 	assert.False(t, wasCanProcessMessageCalled)

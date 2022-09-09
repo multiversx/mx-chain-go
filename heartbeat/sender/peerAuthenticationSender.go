@@ -37,7 +37,7 @@ func newPeerAuthenticationSender(args argPeerAuthenticationSender) (*peerAuthent
 		return nil, err
 	}
 
-	sender := &peerAuthenticationSender{
+	senderInstance := &peerAuthenticationSender{
 		baseSender:               createBaseSender(args.argBaseSender),
 		nodesCoordinator:         args.nodesCoordinator,
 		peerSignatureHandler:     args.peerSignatureHandler,
@@ -46,7 +46,7 @@ func newPeerAuthenticationSender(args argPeerAuthenticationSender) (*peerAuthent
 		hardforkTriggerPubKey:    args.hardforkTriggerPubKey,
 	}
 
-	return sender, nil
+	return senderInstance, nil
 }
 
 func checkPeerAuthenticationSenderArgs(args argPeerAuthenticationSender) error {
