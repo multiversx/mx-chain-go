@@ -32,8 +32,6 @@ func createMockPeerAuthenticationSenderArgs(argBase argBaseSender) argPeerAuthen
 		argBaseSender:            argBase,
 		nodesCoordinator:         &shardingMocks.NodesCoordinatorStub{},
 		peerSignatureHandler:     &cryptoMocks.PeerSignatureHandlerStub{},
-		privKey:                  &cryptoMocks.PrivateKeyStub{},
-		redundancyHandler:        &mock.RedundancyHandlerStub{},
 		hardforkTrigger:          &testscommon.HardforkTriggerStub{},
 		hardforkTimeBetweenSends: time.Second,
 		hardforkTriggerPubKey:    providedHardforkPubKey,
@@ -43,6 +41,7 @@ func createMockPeerAuthenticationSenderArgs(argBase argBaseSender) argPeerAuthen
 func createMockPeerAuthenticationSenderArgsSemiIntegrationTests(baseArg argBaseSender) argPeerAuthenticationSender {
 	keyGen := signing.NewKeyGenerator(mcl.NewSuiteBLS12())
 	sk, _ := keyGen.GeneratePair()
+	baseArg.privKey = sk
 	singleSigner := singlesig.NewBlsSigner()
 
 	return argPeerAuthenticationSender{
@@ -60,8 +59,6 @@ func createMockPeerAuthenticationSenderArgsSemiIntegrationTests(baseArg argBaseS
 				return singleSigner.Sign(privateKey, pid)
 			},
 		},
-		privKey:                  sk,
-		redundancyHandler:        &mock.RedundancyHandlerStub{},
 		hardforkTrigger:          &testscommon.HardforkTriggerStub{},
 		hardforkTimeBetweenSends: time.Second,
 		hardforkTriggerPubKey:    providedHardforkPubKey,
@@ -352,6 +349,7 @@ func TestPeerAuthenticationSender_execute(t *testing.T) {
 		signerMessenger := ed25519SingleSig.Ed25519Signer{}
 
 		argsBase := createMockBaseArgs()
+		argsBase.privKey = skMessenger
 		var buffResulted []byte
 		messenger := &mock.MessengerStub{
 			BroadcastCalled: func(topic string, buff []byte) {
