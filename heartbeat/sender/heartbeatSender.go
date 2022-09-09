@@ -2,7 +2,6 @@ package sender
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
@@ -87,7 +86,13 @@ func (sender *heartbeatSender) Execute() {
 }
 
 func (sender *heartbeatSender) execute() error {
-	msgBytes, err := sender.generateMessageBytes(sender.versionNumber, sender.nodeDisplayName, sender.identity, uint32(sender.peerSubType))
+	_, pk := sender.getCurrentPrivateAndPublicKeys()
+	pkBytes, err := pk.ToByteArray()
+	if err != nil {
+		return err
+	}
+
+	msgBytes, err := sender.generateMessageBytes(sender.versionNumber, sender.nodeDisplayName, sender.identity, uint32(sender.peerSubType), pkBytes)
 	if err != nil {
 		return err
 	}

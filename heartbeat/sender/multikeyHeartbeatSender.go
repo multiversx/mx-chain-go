@@ -107,11 +107,18 @@ func (sender *multikeyHeartbeatSender) Execute() {
 }
 
 func (sender *multikeyHeartbeatSender) execute() error {
+	_, pk := sender.getCurrentPrivateAndPublicKeys()
+	pkBytes, err := pk.ToByteArray()
+	if err != nil {
+		return err
+	}
+
 	buff, err := sender.generateMessageBytes(
 		sender.versionNumber,
 		sender.nodeDisplayName,
 		sender.identity,
 		uint32(sender.peerSubType),
+		pkBytes,
 	)
 	if err != nil {
 		return err
@@ -151,6 +158,7 @@ func (sender *multikeyHeartbeatSender) sendAllInOne() error {
 			name,
 			identity,
 			uint32(core.RegularPeer), // force all in one peers to be of type regular peers
+			pkBytes,
 		)
 		if errNotCritical != nil {
 			log.Warn("multikeyHeartbeatSender.sendAllInOne generateMessageBytes", "error", errNotCritical)

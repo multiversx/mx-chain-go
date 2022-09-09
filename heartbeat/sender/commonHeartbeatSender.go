@@ -17,6 +17,7 @@ func (chs *commonHeartbeatSender) generateMessageBytes(
 	nodeDisplayName string,
 	identity string,
 	peerSubType uint32,
+	pkBytes []byte,
 ) ([]byte, error) {
 	if len(versionNumber) > maxSizeInBytes {
 		return nil, fmt.Errorf("%w for versionNumber, received %s of size %d, max size allowed %d",
@@ -53,6 +54,7 @@ func (chs *commonHeartbeatSender) generateMessageBytes(
 		Identity:        identity,
 		Nonce:           nonce,
 		PeerSubType:     peerSubType,
+		Pubkey:          pkBytes,
 	}
 
 	return chs.marshaller.Marshal(msg)
