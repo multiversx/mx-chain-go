@@ -457,6 +457,9 @@ func (m *Monitor) computeInactiveHeartbeatMessages() {
 // GetHeartbeats returns the heartbeat status
 func (m *Monitor) GetHeartbeats() []data.PubKeyHeartbeat {
 	m.Cleanup()
+	if m.flagHeartbeatDisableEpoch.IsSet() {
+		return make([]data.PubKeyHeartbeat, 0)
+	}
 
 	m.mutHeartbeatMessages.Lock()
 	status := make([]data.PubKeyHeartbeat, 0, len(m.heartbeatMessages))

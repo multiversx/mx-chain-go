@@ -670,17 +670,18 @@ func (nr *nodeRunner) CreateManagedConsensusComponents(
 	}
 
 	consensusArgs := mainFactory.ConsensusComponentsFactoryArgs{
-		Config:              *nr.configs.GeneralConfig,
-		BootstrapRoundIndex: nr.configs.FlagsConfig.BootstrapRoundIndex,
-		CoreComponents:      coreComponents,
-		NetworkComponents:   networkComponents,
-		CryptoComponents:    cryptoComponents,
-		DataComponents:      dataComponents,
-		ProcessComponents:   processComponents,
-		StateComponents:     stateComponents,
-		StatusComponents:    statusComponents,
-		ScheduledProcessor:  scheduledProcessor,
-		IsInImportMode:      nr.configs.ImportDbConfig.IsImportDBMode,
+		Config:                *nr.configs.GeneralConfig,
+		BootstrapRoundIndex:   nr.configs.FlagsConfig.BootstrapRoundIndex,
+		CoreComponents:        coreComponents,
+		NetworkComponents:     networkComponents,
+		CryptoComponents:      cryptoComponents,
+		DataComponents:        dataComponents,
+		ProcessComponents:     processComponents,
+		StateComponents:       stateComponents,
+		StatusComponents:      statusComponents,
+		ScheduledProcessor:    scheduledProcessor,
+		IsInImportMode:        nr.configs.ImportDbConfig.IsImportDBMode,
+		ShouldDisableWatchdog: nr.configs.FlagsConfig.DisableConsensusWatchdog,
 	}
 
 	consensusFactory, err := mainFactory.NewConsensusComponentsFactory(consensusArgs)
@@ -751,15 +752,16 @@ func (nr *nodeRunner) CreateManagedHeartbeatV2Components(
 	processComponents mainFactory.ProcessComponentsHolder,
 ) (mainFactory.HeartbeatV2ComponentsHandler, error) {
 	heartbeatV2Args := mainFactory.ArgHeartbeatV2ComponentsFactory{
-		Config:             *nr.configs.GeneralConfig,
-		Prefs:              *nr.configs.PreferencesConfig,
-		AppVersion:         nr.configs.FlagsConfig.Version,
-		BoostrapComponents: bootstrapComponents,
-		CoreComponents:     coreComponents,
-		DataComponents:     dataComponents,
-		NetworkComponents:  networkComponents,
-		CryptoComponents:   cryptoComponents,
-		ProcessComponents:  processComponents,
+		Config:                  *nr.configs.GeneralConfig,
+		Prefs:                   *nr.configs.PreferencesConfig,
+		AppVersion:              nr.configs.FlagsConfig.Version,
+		BoostrapComponents:      bootstrapComponents,
+		CoreComponents:          coreComponents,
+		DataComponents:          dataComponents,
+		NetworkComponents:       networkComponents,
+		CryptoComponents:        cryptoComponents,
+		ProcessComponents:       processComponents,
+		HeartbeatV1DisableEpoch: nr.configs.EpochConfig.EnableEpochs.HeartbeatDisableEpoch,
 	}
 
 	heartbeatV2ComponentsFactory, err := mainFactory.NewHeartbeatV2ComponentsFactory(heartbeatV2Args)
@@ -1149,12 +1151,13 @@ func (nr *nodeRunner) CreateManagedStateComponents(
 		processingMode = common.ImportDb
 	}
 	stateArgs := mainFactory.StateComponentsFactoryArgs{
-		Config:           *nr.configs.GeneralConfig,
+		Config:                   *nr.configs.GeneralConfig,
 		ShardCoordinator: bootstrapComponents.ShardCoordinator(),
 		Core:             coreComponents,
 		StorageService:   dataComponents.StorageService(),
 		ProcessingMode:   processingMode,
-		ChainHandler:     dataComponents.Blockchain(),
+		ShouldSerializeSnapshots: nr.configs.FlagsConfig.SerializeSnapshots,
+		ChainHandler:             dataComponents.Blockchain(),
 	}
 
 	stateComponentsFactory, err := mainFactory.NewStateComponentsFactory(stateArgs)

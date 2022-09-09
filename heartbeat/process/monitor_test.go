@@ -548,6 +548,7 @@ func TestMonitor_RemoveInactiveValidatorsIfIntervalExceeded(t *testing.T) {
 		HideInactiveValidatorIntervalInSec: 600,
 		AppStatusHandler:                   &statusHandlerMock.AppStatusHandlerStub{},
 		EnableEpochsHandler:                &testscommon.EnableEpochsHandlerStub{},
+		HeartbeatDisableEpoch:              10000,
 	}
 	mon, _ := process.NewMonitor(arg)
 	mon.SendHeartbeatMessage(&data.Heartbeat{Pubkey: []byte(pkValidator)})
@@ -729,4 +730,19 @@ func TestMonitor_CleanupShouldWork(t *testing.T) {
 
 	assert.Equal(t, 0, mon.GetNumHearbeatMessages())
 	assert.Equal(t, 0, mon.GetNumDoubleSignerPeers())
+}
+
+func TestNewMonitor_GetHeartbeatsReturnsEmptySliceIfDisabled(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgHeartbeatMonitor()
+	arg.HeartbeatDisableEpoch = 0
+	arg.PubKeysMap = map[uint32][]string{0: {"pk1", "pk2"}}
+	mon, err := process.NewMonitor(arg)
+
+	assert.Nil(t, err)
+	assert.False(t, check.IfNil(mon))
+
+	hbStatus := mon.GetHeartbeats()
+	assert.Equal(t, 0, len(hbStatus))
 }
