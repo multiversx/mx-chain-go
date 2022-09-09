@@ -31,7 +31,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl"
 	mclsig "github.com/ElrondNetwork/elrond-go-crypto/signing/mcl/singlesig"
 	"github.com/ElrondNetwork/elrond-go-storage/storageUnit"
-	"github.com/ElrondNetwork/elrond-go-storage/timecache"
 	"github.com/ElrondNetwork/elrond-go-storage/txcache"
 	nodeFactory "github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/common"
@@ -92,6 +91,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/state/blockInfoProviders"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/cache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/bootstrapMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
@@ -889,8 +889,8 @@ func (tpn *TestProcessorNode) InitializeProcessors(gasMap map[string]map[string]
 func (tpn *TestProcessorNode) initDataPools() {
 	tpn.DataPool = dataRetrieverMock.CreatePoolsHolder(1, tpn.ShardCoordinator.SelfId())
 	cacherCfg := storageUnit.CacheConfig{Capacity: 10000, Type: storageUnit.LRUCache, Shards: 1}
-	cache, _ := storageUnit.NewCache(cacherCfg)
-	tpn.WhiteListHandler, _ = interceptors.NewWhiteListDataVerifier(cache)
+	suCache, _ := storageUnit.NewCache(cacherCfg)
+	tpn.WhiteListHandler, _ = interceptors.NewWhiteListDataVerifier(suCache)
 
 	cacherVerifiedCfg := storageUnit.CacheConfig{Capacity: 5000, Type: storageUnit.LRUCache, Shards: 1}
 	cacheVerified, _ := storageUnit.NewCache(cacherVerifiedCfg)
@@ -1063,7 +1063,7 @@ func CreateRatingsData() *rating.RatingsData {
 
 func (tpn *TestProcessorNode) initInterceptors(heartbeatPk string) {
 	var err error
-	tpn.BlockBlackListHandler = timecache.NewTimeCache(TimeSpanForBadHeaders)
+	tpn.BlockBlackListHandler = cache.NewTimeCache(TimeSpanForBadHeaders)
 	if check.IfNil(tpn.EpochStartNotifier) {
 		tpn.EpochStartNotifier = notifier.NewEpochStartSubscriptionHandler()
 	}
@@ -2685,7 +2685,7 @@ func (tpn *TestProcessorNode) initRoundHandler() {
 }
 
 func (tpn *TestProcessorNode) initRequestedItemsHandler() {
-	tpn.RequestedItemsHandler = timecache.NewTimeCache(roundDuration)
+	tpn.RequestedItemsHandler = cache.NewTimeCache(roundDuration)
 }
 
 func (tpn *TestProcessorNode) initBlockTracker() {

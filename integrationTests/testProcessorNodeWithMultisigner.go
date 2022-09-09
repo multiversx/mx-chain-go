@@ -17,7 +17,6 @@ import (
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	mclmultisig "github.com/ElrondNetwork/elrond-go-crypto/signing/mcl/multisig"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/multisig"
-	"github.com/ElrondNetwork/elrond-go-storage/lrucache"
 	"github.com/ElrondNetwork/elrond-go-storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
@@ -28,6 +27,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/rating"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
+	"github.com/ElrondNetwork/elrond-go/storage/cache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
@@ -96,7 +96,7 @@ func CreateNodesWithNodesCoordinatorAndTxKeys(
 		nodesList := make([]*TestProcessorNode, len(validatorList))
 
 		for i := range validatorList {
-			dataCache, _ := lrucache.NewCache(10000)
+			dataCache, _ := cache.NewLRUCache(10000)
 			tpn := CreateNodeWithBLSAndTxKeys(
 				nodesPerShard,
 				nbMetaNodes,
@@ -239,7 +239,7 @@ func CreateNodesWithNodesCoordinatorFactory(
 		nodesListWaiting := make([]*TestProcessorNode, len(waitingMap[shardId]))
 
 		for i := range validatorList {
-			dataCache, _ := lrucache.NewCache(10000)
+			dataCache, _ := cache.NewLRUCache(10000)
 			tpn := CreateNode(
 				nodesPerShard,
 				nbMetaNodes,
@@ -263,7 +263,7 @@ func CreateNodesWithNodesCoordinatorFactory(
 		}
 
 		for i := range waitingMap[shardId] {
-			dataCache, _ := lrucache.NewCache(10000)
+			dataCache, _ := cache.NewLRUCache(10000)
 			tpn := CreateNode(
 				nodesPerShard,
 				nbMetaNodes,
@@ -406,7 +406,7 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 
 	completeNodesList := make([]Connectable, 0)
 	for shardId, validatorList := range validatorsMap {
-		consensusCache, _ := lrucache.NewCache(10000)
+		consensusCache, _ := cache.NewLRUCache(10000)
 		argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
 			ShardConsensusGroupSize: shardConsensusGroupSize,
 			MetaConsensusGroupSize:  metaConsensusGroupSize,
@@ -520,7 +520,7 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 	completeNodesList := make([]Connectable, 0)
 	for shardId, validatorList := range validatorsMap {
 		bootStorer := CreateMemUnit()
-		cache, _ := lrucache.NewCache(10000)
+		lruCache, _ := cache.NewLRUCache(10000)
 		argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
 			ShardConsensusGroupSize: shardConsensusGroupSize,
 			MetaConsensusGroupSize:  metaConsensusGroupSize,
@@ -534,7 +534,7 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 			EligibleNodes:           validatorsMapForNodesCoordinator,
 			WaitingNodes:            waitingMapForNodesCoordinator,
 			SelfPublicKey:           []byte(strconv.Itoa(int(shardId))),
-			ConsensusGroupCache:     cache,
+			ConsensusGroupCache:     lruCache,
 			ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
 			ChanStopNode:            endProcess.GetDummyEndProcessChannel(),
 			NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},

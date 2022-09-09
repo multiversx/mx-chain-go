@@ -9,7 +9,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go-storage/lrucache/capacity"
 	"github.com/ElrondNetwork/elrond-go-storage/mapTimeCache"
 	"github.com/ElrondNetwork/elrond-go-storage/storageCacherAdapter"
 	"github.com/ElrondNetwork/elrond-go-storage/storageUnit"
@@ -22,6 +21,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/cache"
 	"github.com/ElrondNetwork/elrond-go/storage/disabled"
 	"github.com/ElrondNetwork/elrond-go/storage/factory"
 	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
@@ -94,7 +94,7 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 		return nil, fmt.Errorf("%w while creating the cache for the peer mini block body", err)
 	}
 
-	cacher, err := capacity.NewCapacityLRU(
+	cacher, err := cache.NewCapacityLRU(
 		int(mainConfig.TrieSyncStorage.Capacity),
 		int64(mainConfig.TrieSyncStorage.SizeInBytes),
 	)

@@ -7,8 +7,6 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go-storage/lrucache"
-	"github.com/ElrondNetwork/elrond-go-storage/timecache"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/p2p/antiflood"
@@ -16,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/blackList"
 	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/floodPreventers"
+	"github.com/ElrondNetwork/elrond-go/storage/cache"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -164,8 +163,8 @@ func createBlacklistHandlersAndProcessors(
 	blacklistProcessors := make([]floodPreventers.QuotaStatusHandler, len(peers))
 	blacklistCachers := make([]process.PeerBlackListCacher, len(peers))
 	for i := range peers {
-		blacklistCache, _ := lrucache.NewCache(5000)
-		blacklistCachers[i], _ = timecache.NewPeerTimeCache(timecache.NewTimeCache(time.Minute * 5))
+		blacklistCache, _ := cache.NewLRUCache(5000)
+		blacklistCachers[i], _ = cache.NewPeerTimeCache(cache.NewTimeCache(time.Minute * 5))
 
 		blacklistProcessors[i], err = blackList.NewP2PBlackListProcessor(
 			blacklistCache,

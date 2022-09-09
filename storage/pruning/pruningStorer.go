@@ -133,7 +133,7 @@ func initPruningStorer(
 ) (*PruningStorer, error) {
 	pdb := &PruningStorer{}
 
-	cache, err := storageUnit.NewCache(args.CacheConf)
+	suCache, err := storageUnit.NewCache(args.CacheConf)
 	if err != nil {
 		return nil, err
 	}
@@ -147,7 +147,7 @@ func initPruningStorer(
 	pdb.identifier = identifier
 	pdb.persisterFactory = args.PersisterFactory
 	pdb.shardCoordinator = args.ShardCoordinator
-	pdb.cacher = cache
+	pdb.cacher = suCache
 	pdb.epochPrepareHdr = &block.MetaBlock{Epoch: epochForDefaultEpochPrepareHdr}
 	pdb.epochForPutOperation = args.StartingEpoch
 	pdb.pathManager = args.PathManager
@@ -319,13 +319,17 @@ func (ps *PruningStorer) getPersisterToUse() *persisterData {
 		returningPath := "<nil persisterToUse>"
 		if persisterToUse != nil {
 			returningPath = persisterToUse.path
+			log.Debug("active persister not found",
+				"epoch", ps.epochForPutOperation,
+				"used", persisterToUse.epoch,
+				"path", ps.dbPath,
+				"returning persister", returningPath)
+		} else {
+			log.Debug("active persister not found",
+				"epoch", ps.epochForPutOperation,
+				"path", ps.dbPath,
+				"returning persister", returningPath)
 		}
-
-		log.Debug("active persister not found",
-			"epoch", ps.epochForPutOperation,
-			"used", persisterToUse.epoch,
-			"path", ps.dbPath,
-			"returning persister", returningPath)
 	}
 
 	return persisterToUse
