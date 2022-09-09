@@ -33,6 +33,10 @@ func CreateTestingTriePruningStorer(coordinator sharding.Coordinator, notifier p
 			return persistersMap.GetPersister(path), nil
 		},
 	}
+	epochsData := &pruning.EpochArgs{
+		NumOfEpochsToKeep:     4,
+		NumOfActivePersisters: 4,
+	}
 	args := &pruning.StorerArgs{
 		PruningEnabled:         true,
 		Identifier:             "id",
@@ -41,12 +45,12 @@ func CreateTestingTriePruningStorer(coordinator sharding.Coordinator, notifier p
 		CacheConf:              cacheConf,
 		DbPath:                 dbConf.FilePath,
 		PersisterFactory:       persisterFactory,
-		NumOfEpochsToKeep:      4,
-		NumOfActivePersisters:  4,
+		EpochsData:             epochsData,
 		Notifier:               notifier,
 		OldDataCleanerProvider: &testscommon.OldDataCleanerProviderStub{},
 		CustomDatabaseRemover:  &testscommon.CustomDatabaseRemoverStub{},
 		MaxBatchSize:           10,
+		PersistersTracker:      pruning.NewPersistersTracker(epochsData),
 	}
 
 	tps, err := pruning.NewTriePruningStorer(args)
