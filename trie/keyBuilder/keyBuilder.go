@@ -4,8 +4,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 )
 
-// NibbleSize marks the size of a byte nibble
-const NibbleSize = 4
+const (
+	// NibbleSize marks the size of a byte nibble
+	NibbleSize = 4
+
+	keyLength = 32
+)
 
 type keyBuilder struct {
 	key []byte
@@ -15,7 +19,7 @@ type keyBuilder struct {
 // Use this only if you traverse the trie from the root, else hexToTrieKeyBytes might fail
 func NewKeyBuilder() *keyBuilder {
 	return &keyBuilder{
-		key: []byte{},
+		key: make([]byte, 0, keyLength),
 	}
 }
 
@@ -24,7 +28,8 @@ func (kb *keyBuilder) BuildKey(keyPart []byte) {
 	kb.key = append(kb.key, keyPart...)
 }
 
-// GetKey transforms the key from hex to trie key, and returns it
+// GetKey transforms the key from hex to trie key, and returns it.
+// Is mandatory that GetKey always returns a new byte slice, not a pointer to an existing one
 func (kb *keyBuilder) GetKey() ([]byte, error) {
 	return hexToTrieKeyBytes(kb.key)
 }
