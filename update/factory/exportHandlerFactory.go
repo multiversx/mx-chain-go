@@ -7,6 +7,7 @@ import (
 	"path"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
@@ -502,7 +503,7 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 		return nil, err
 	}
 
-	e.interceptorsContainer.Iterate(func(key string, interceptor process.Interceptor) bool {
+	e.interceptorsContainer.Iterate(func(key string, interceptor core.Interceptor) bool {
 		errNotCritical = interceptor.SetInterceptedDebugHandler(debugger)
 		if errNotCritical != nil {
 			log.Warn("error setting debugger", "interceptor", key, "error", errNotCritical)

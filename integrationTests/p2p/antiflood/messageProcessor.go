@@ -6,7 +6,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
-	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	antiflood2 "github.com/ElrondNetwork/elrond-go/process/throttle/antiflood"
 )
@@ -19,18 +18,18 @@ type MessageProcessor struct {
 	sizeMessagesReceived  uint64
 
 	mutMessages    sync.Mutex
-	messages       map[core.PeerID][]p2p.MessageP2P
+	messages       map[core.PeerID][]core.MessageP2P
 	FloodPreventer process.FloodPreventer
 }
 
 func newMessageProcessor() *MessageProcessor {
 	return &MessageProcessor{
-		messages: make(map[core.PeerID][]p2p.MessageP2P),
+		messages: make(map[core.PeerID][]core.MessageP2P),
 	}
 }
 
 // ProcessReceivedMessage is the callback function from the p2p side whenever a new message is received
-func (mp *MessageProcessor) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
+func (mp *MessageProcessor) ProcessReceivedMessage(message core.MessageP2P, fromConnectedPeer core.PeerID) error {
 	atomic.AddUint32(&mp.numMessagesReceived, 1)
 	atomic.AddUint64(&mp.sizeMessagesReceived, uint64(len(message.Data())))
 

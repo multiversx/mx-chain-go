@@ -3,8 +3,8 @@ package block
 import (
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/assert"
@@ -29,8 +29,8 @@ func TestMetrics_IncrementCountAcceptedBlocks_KeyNotFoundShouldNotIncrement(t *t
 	incrementWasCalled := false
 
 	nodesCoord := &shardingMocks.NodesCoordinatorMock{
-		ComputeValidatorsGroupCalled: func(_ []byte, _ uint64, _ uint32, _ uint32) ([]nodesCoordinator.Validator, error) {
-			return []nodesCoordinator.Validator{
+		ComputeValidatorsGroupCalled: func(_ []byte, _ uint64, _ uint32, _ uint32) ([]core.Validator, error) {
+			return []core.Validator{
 				shardingMocks.NewValidatorMock([]byte("wrong-key1"), 1, 1), // nodes coordinator default return for OwnPubKey()
 				shardingMocks.NewValidatorMock([]byte("wrong-key2"), 1, 1),
 			}, nil
@@ -52,8 +52,8 @@ func TestMetrics_IncrementCountAcceptedBlocks_IndexOutOfBoundsShouldNotIncrement
 	incrementWasCalled := false
 
 	nodesCoord := &shardingMocks.NodesCoordinatorMock{
-		ComputeValidatorsGroupCalled: func(_ []byte, _ uint64, _ uint32, _ uint32) ([]nodesCoordinator.Validator, error) {
-			return []nodesCoordinator.Validator{
+		ComputeValidatorsGroupCalled: func(_ []byte, _ uint64, _ uint32, _ uint32) ([]core.Validator, error) {
+			return []core.Validator{
 				shardingMocks.NewValidatorMock([]byte("key"), 1, 1), // nodes coordinator default return for OwnPubKey()
 				shardingMocks.NewValidatorMock([]byte("wrong-key2"), 1, 1),
 			}, nil
@@ -75,8 +75,8 @@ func TestMetrics_IncrementCountAcceptedBlocks_ShouldWork(t *testing.T) {
 	incrementWasCalled := false
 
 	nodesCoord := &shardingMocks.NodesCoordinatorMock{
-		ComputeValidatorsGroupCalled: func(_ []byte, _ uint64, _ uint32, _ uint32) ([]nodesCoordinator.Validator, error) {
-			return []nodesCoordinator.Validator{
+		ComputeValidatorsGroupCalled: func(_ []byte, _ uint64, _ uint32, _ uint32) ([]core.Validator, error) {
+			return []core.Validator{
 				shardingMocks.NewValidatorMock([]byte("another-key"), 1, 1),
 				shardingMocks.NewValidatorMock([]byte("key"), 1, 1), // nodes coordinator default return for OwnPubKey()
 			}, nil

@@ -3,9 +3,10 @@ package libp2p
 import (
 	"context"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/go-libp2p-pubsub"
+	pubsub "github.com/ElrondNetwork/go-libp2p-pubsub"
 	pb "github.com/ElrondNetwork/go-libp2p-pubsub/pb"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/whyrusleeping/timecache"
@@ -43,7 +44,7 @@ func (netMes *networkMessenger) PubsubCallback(handler p2p.MessageProcessor, top
 }
 
 // ValidMessageByTimestamp -
-func (netMes *networkMessenger) ValidMessageByTimestamp(msg p2p.MessageP2P) error {
+func (netMes *networkMessenger) ValidMessageByTimestamp(msg core.MessageP2P) error {
 	return netMes.validMessageByTimestamp(msg)
 }
 

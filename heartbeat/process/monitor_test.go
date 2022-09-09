@@ -15,7 +15,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/heartbeat/mock"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/process"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/storage"
-	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
@@ -27,7 +26,7 @@ var fromConnectedPeerId = core.PeerID("from connected peer Id")
 
 func createMockP2PAntifloodHandler() *mock.P2PAntifloodHandlerStub {
 	return &mock.P2PAntifloodHandlerStub{
-		CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
+		CanProcessMessageCalled: func(message core.MessageP2P, fromConnectedPeer core.PeerID) error {
 			return nil
 		},
 		CanProcessMessagesOnTopicCalled: func(peer core.PeerID, topic string, numMessages uint32, totalSize uint64, sequence []byte) error {
@@ -271,7 +270,7 @@ func TestMonitor_ProcessReceivedMessageShouldWork(t *testing.T) {
 	arg.MaxDurationPeerUnresponsive = time.Second * 1000
 	arg.PubKeysMap = map[uint32][]string{0: {pubKey}}
 	arg.MessageHandler = &mock.MessageHandlerStub{
-		CreateHeartbeatFromP2PMessageCalled: func(message p2p.MessageP2P) (*data.Heartbeat, error) {
+		CreateHeartbeatFromP2PMessageCalled: func(message core.MessageP2P) (*data.Heartbeat, error) {
 			var rcvHb data.Heartbeat
 			_ = json.Unmarshal(message.Data(), &rcvHb)
 			return &rcvHb, nil
@@ -305,7 +304,7 @@ func TestMonitor_ProcessReceivedMessageProcessTriggerErrorShouldErr(t *testing.T
 	arg.MaxDurationPeerUnresponsive = time.Second * 1000
 	arg.PubKeysMap = map[uint32][]string{0: {pubKey}}
 	arg.MessageHandler = &mock.MessageHandlerStub{
-		CreateHeartbeatFromP2PMessageCalled: func(message p2p.MessageP2P) (*data.Heartbeat, error) {
+		CreateHeartbeatFromP2PMessageCalled: func(message core.MessageP2P) (*data.Heartbeat, error) {
 			var rcvHb data.Heartbeat
 			_ = json.Unmarshal(message.Data(), &rcvHb)
 			return &rcvHb, nil
@@ -348,7 +347,7 @@ func TestMonitor_ProcessReceivedMessageWithNewPublicKey(t *testing.T) {
 	arg.MaxDurationPeerUnresponsive = time.Second * 1000
 	arg.PubKeysMap = map[uint32][]string{0: {"pk2"}}
 	arg.MessageHandler = &mock.MessageHandlerStub{
-		CreateHeartbeatFromP2PMessageCalled: func(message p2p.MessageP2P) (*data.Heartbeat, error) {
+		CreateHeartbeatFromP2PMessageCalled: func(message core.MessageP2P) (*data.Heartbeat, error) {
 			var rcvHb data.Heartbeat
 			_ = json.Unmarshal(message.Data(), &rcvHb)
 			return &rcvHb, nil
@@ -390,7 +389,7 @@ func TestMonitor_ProcessReceivedMessageWithNewShardID(t *testing.T) {
 	arg.MaxDurationPeerUnresponsive = time.Second * 1000
 	arg.PubKeysMap = map[uint32][]string{0: {"pk1"}}
 	arg.MessageHandler = &mock.MessageHandlerStub{
-		CreateHeartbeatFromP2PMessageCalled: func(message p2p.MessageP2P) (*data.Heartbeat, error) {
+		CreateHeartbeatFromP2PMessageCalled: func(message core.MessageP2P) (*data.Heartbeat, error) {
 			var rcvHb data.Heartbeat
 			_ = json.Unmarshal(message.Data(), &rcvHb)
 			return &rcvHb, nil
@@ -457,7 +456,7 @@ func TestMonitor_ProcessReceivedMessageShouldSetPeerInactive(t *testing.T) {
 		},
 	}
 	arg.MessageHandler = &mock.MessageHandlerStub{
-		CreateHeartbeatFromP2PMessageCalled: func(message p2p.MessageP2P) (*data.Heartbeat, error) {
+		CreateHeartbeatFromP2PMessageCalled: func(message core.MessageP2P) (*data.Heartbeat, error) {
 			var rcvHb data.Heartbeat
 			_ = json.Unmarshal(message.Data(), &rcvHb)
 			return &rcvHb, nil
@@ -592,7 +591,7 @@ func TestMonitor_ProcessReceivedMessageImpersonatedMessageShouldErr(t *testing.T
 	arg.MaxDurationPeerUnresponsive = time.Second * 1000
 	arg.PubKeysMap = map[uint32][]string{0: {"pk2"}}
 	arg.MessageHandler = &mock.MessageHandlerStub{
-		CreateHeartbeatFromP2PMessageCalled: func(message p2p.MessageP2P) (*data.Heartbeat, error) {
+		CreateHeartbeatFromP2PMessageCalled: func(message core.MessageP2P) (*data.Heartbeat, error) {
 			var rcvHb data.Heartbeat
 			_ = json.Unmarshal(message.Data(), &rcvHb)
 			return &rcvHb, nil
@@ -645,7 +644,7 @@ func TestMonitor_ProcessReceivedMessageShouldNotProcessAfterEpoch(t *testing.T) 
 
 	wasCanProcessMessageCalled := false
 	args.AntifloodHandler = &mock.P2PAntifloodHandlerStub{
-		CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
+		CanProcessMessageCalled: func(message core.MessageP2P, fromConnectedPeer core.PeerID) error {
 			wasCanProcessMessageCalled = true
 			return nil
 		},

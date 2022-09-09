@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
@@ -26,7 +27,7 @@ type epochStartMetaSyncer struct {
 	messenger             Messenger
 	marshalizer           marshal.Marshalizer
 	hasher                hashing.Hasher
-	singleDataInterceptor process.Interceptor
+	singleDataInterceptor core.Interceptor
 	metaBlockProcessor    EpochStartMetaBlockInterceptorProcessor
 }
 

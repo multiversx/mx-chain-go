@@ -142,7 +142,7 @@ func (dlp *delegatedListProcessor) getDelegatorsList(delegationSC []byte, ctx co
 		delegators = append(delegators, leafKey)
 	}
 
-	if common.IsContextDone(ctx) {
+	if core.IsContextDone(ctx) {
 		return nil, ErrTrieOperationsTimeout
 	}
 

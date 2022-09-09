@@ -11,7 +11,7 @@ import (
 
 // NodesCoordinatorMock defines the behaviour of a struct able to do validator group selection
 type NodesCoordinatorMock struct {
-	Validators                               map[uint32][]nodesCoordinator.Validator
+	Validators                               map[uint32][]core.Validator
 	ShardConsensusSize                       uint32
 	MetaConsensusSize                        uint32
 	ShardId                                  uint32
@@ -19,9 +19,9 @@ type NodesCoordinatorMock struct {
 	GetSelectedPublicKeysCalled              func(selection []byte, shardId uint32, epoch uint32) (publicKeys []string, err error)
 	GetValidatorsPublicKeysCalled            func(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]string, error)
 	GetValidatorsRewardsAddressesCalled      func(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]string, error)
-	SetNodesPerShardsCalled                  func(nodes map[uint32][]nodesCoordinator.Validator, epoch uint32) error
-	ComputeValidatorsGroupCalled             func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []nodesCoordinator.Validator, err error)
-	GetValidatorWithPublicKeyCalled          func(publicKey []byte) (validator nodesCoordinator.Validator, shardId uint32, err error)
+	SetNodesPerShardsCalled                  func(nodes map[uint32][]core.Validator, epoch uint32) error
+	ComputeValidatorsGroupCalled             func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []core.Validator, err error)
+	GetValidatorWithPublicKeyCalled          func(publicKey []byte) (validator core.Validator, shardId uint32, err error)
 	GetAllEligibleValidatorsPublicKeysCalled func(epoch uint32) (map[uint32][][]byte, error)
 	GetAllWaitingValidatorsPublicKeysCalled  func() (map[uint32][][]byte, error)
 	ConsensusGroupSizeCalled                 func(uint32) int
@@ -31,10 +31,10 @@ type NodesCoordinatorMock struct {
 func NewNodesCoordinatorMock() *NodesCoordinatorMock {
 	nbShards := uint32(1)
 	nodesPerShard := 2
-	validatorsMap := make(map[uint32][]nodesCoordinator.Validator)
+	validatorsMap := make(map[uint32][]core.Validator)
 
 	for sh := uint32(0); sh < nbShards; sh++ {
-		validatorsList := make([]nodesCoordinator.Validator, nodesPerShard)
+		validatorsList := make([]core.Validator, nodesPerShard)
 		for v := 0; v < nodesPerShard; v++ {
 			validatorsList[v], _ = nodesCoordinator.NewValidator(
 				[]byte(fmt.Sprintf("pubKey%d%d", sh, v)),
@@ -45,7 +45,7 @@ func NewNodesCoordinatorMock() *NodesCoordinatorMock {
 		validatorsMap[sh] = validatorsList
 	}
 
-	validatorsList := make([]nodesCoordinator.Validator, nodesPerShard)
+	validatorsList := make([]core.Validator, nodesPerShard)
 	for v := 0; v < nodesPerShard; v++ {
 		validatorsList[v], _ = nodesCoordinator.NewValidator(
 			[]byte(fmt.Sprintf("pubKey%d%d", core.MetachainShardId, v)),
@@ -147,8 +147,8 @@ func (ncm *NodesCoordinatorMock) GetConsensusValidatorsPublicKeys(
 
 // SetNodesPerShards -
 func (ncm *NodesCoordinatorMock) SetNodesPerShards(
-	eligible map[uint32][]nodesCoordinator.Validator,
-	_ map[uint32][]nodesCoordinator.Validator,
+	eligible map[uint32][]core.Validator,
+	_ map[uint32][]core.Validator,
 	epoch uint32,
 ) error {
 	if ncm.SetNodesPerShardsCalled != nil {
@@ -165,8 +165,8 @@ func (ncm *NodesCoordinatorMock) SetNodesPerShards(
 }
 
 // ComputeAdditionalLeaving -
-func (ncm *NodesCoordinatorMock) ComputeAdditionalLeaving(_ []*state.ShardValidatorInfo) (map[uint32][]nodesCoordinator.Validator, error) {
-	return make(map[uint32][]nodesCoordinator.Validator), nil
+func (ncm *NodesCoordinatorMock) ComputeAdditionalLeaving(_ []*state.ShardValidatorInfo) (map[uint32][]core.Validator, error) {
+	return make(map[uint32][]core.Validator), nil
 }
 
 // ComputeConsensusGroup -
@@ -175,7 +175,7 @@ func (ncm *NodesCoordinatorMock) ComputeConsensusGroup(
 	round uint64,
 	shardId uint32,
 	epoch uint32,
-) ([]nodesCoordinator.Validator, error) {
+) ([]core.Validator, error) {
 	var consensusSize uint32
 
 	if ncm.ComputeValidatorsGroupCalled != nil {
@@ -192,7 +192,7 @@ func (ncm *NodesCoordinatorMock) ComputeConsensusGroup(
 		return nil, nodesCoordinator.ErrNilRandomness
 	}
 
-	validatorsGroup := make([]nodesCoordinator.Validator, 0)
+	validatorsGroup := make([]core.Validator, 0)
 
 	for i := uint32(0); i < consensusSize; i++ {
 		validatorsGroup = append(validatorsGroup, ncm.Validators[shardId][i])
@@ -210,7 +210,7 @@ func (ncm *NodesCoordinatorMock) ConsensusGroupSize(shardId uint32) int {
 }
 
 // GetValidatorWithPublicKey -
-func (ncm *NodesCoordinatorMock) GetValidatorWithPublicKey(publicKey []byte) (nodesCoordinator.Validator, uint32, error) {
+func (ncm *NodesCoordinatorMock) GetValidatorWithPublicKey(publicKey []byte) (core.Validator, uint32, error) {
 	if ncm.GetValidatorWithPublicKeyCalled != nil {
 		return ncm.GetValidatorWithPublicKeyCalled(publicKey)
 	}
@@ -263,7 +263,7 @@ func (ncm *NodesCoordinatorMock) GetConsensusWhitelistedNodes(
 }
 
 // ValidatorsWeights -
-func (ncm *NodesCoordinatorMock) ValidatorsWeights(validators []nodesCoordinator.Validator) ([]uint32, error) {
+func (ncm *NodesCoordinatorMock) ValidatorsWeights(validators []core.Validator) ([]uint32, error) {
 	weights := make([]uint32, len(validators))
 	for i := range validators {
 		weights[i] = 1

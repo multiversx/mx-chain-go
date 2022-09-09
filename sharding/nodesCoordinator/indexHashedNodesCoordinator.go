@@ -34,11 +34,11 @@ const (
 const nodesCoordinatorStoredEpochs = 4
 
 type validatorWithShardID struct {
-	validator Validator
+	validator core.Validator
 	shardID   uint32
 }
 
-type validatorList []Validator
+type validatorList []core.Validator
 
 // Len will return the length of the validatorList
 func (v validatorList) Len() int { return len(v) }
@@ -59,11 +59,11 @@ func (v validatorList) Less(i, j int) bool {
 type epochNodesConfig struct {
 	nbShards     uint32
 	shardID      uint32
-	eligibleMap  map[uint32][]Validator
-	waitingMap   map[uint32][]Validator
+	eligibleMap  map[uint32][]core.Validator
+	waitingMap   map[uint32][]core.Validator
 	selectors    map[uint32]RandomSelector
-	leavingMap   map[uint32][]Validator
-	newList      []Validator
+	leavingMap   map[uint32][]core.Validator
+	newList      []core.Validator
 	mutNodesMaps sync.RWMutex
 }
 
@@ -108,11 +108,11 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 	nodesConfig[arguments.Epoch] = &epochNodesConfig{
 		nbShards:    arguments.NbShards,
 		shardID:     arguments.ShardIDAsObserver,
-		eligibleMap: make(map[uint32][]Validator),
-		waitingMap:  make(map[uint32][]Validator),
+		eligibleMap: make(map[uint32][]core.Validator),
+		waitingMap:  make(map[uint32][]core.Validator),
 		selectors:   make(map[uint32]RandomSelector),
-		leavingMap:  make(map[uint32][]Validator),
-		newList:     make([]Validator, 0),
+		leavingMap:  make(map[uint32][]core.Validator),
+		newList:     make([]core.Validator, 0),
 	}
 
 	savedKey := arguments.Hasher.Compute(string(arguments.SelfPublicKey))
@@ -158,19 +158,19 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 	log.Info("new nodes config is set for epoch", "epoch", arguments.Epoch)
 	currentNodesConfig := ihnc.nodesConfig[arguments.Epoch]
 	if currentNodesConfig == nil {
-		return nil, fmt.Errorf("%w epoch=%v", ErrEpochNodesConfigDoesNotExist, arguments.Epoch)
+		return nil, fmt.Errorf("%w epoch=%v", errors.ErrEpochNodesConfigDoesNotExist, arguments.Epoch)
 	}
 
 	currentConfig := nodesConfig[arguments.Epoch]
 	if currentConfig == nil {
-		return nil, fmt.Errorf("%w epoch=%v", ErrEpochNodesConfigDoesNotExist, arguments.Epoch)
+		return nil, fmt.Errorf("%w epoch=%v", errors.ErrEpochNodesConfigDoesNotExist, arguments.Epoch)
 	}
 
 	displayNodesConfiguration(
 		currentConfig.eligibleMap,
 		currentConfig.waitingMap,
 		currentConfig.leavingMap,
-		make(map[uint32][]Validator),
+		make(map[uint32][]core.Validator),
 		currentConfig.nbShards)
 
 	ihnc.epochStartRegistrationHandler.RegisterHandler(ihnc)
@@ -221,9 +221,9 @@ func checkArguments(arguments ArgNodesCoordinator) error {
 
 // setNodesPerShards loads the distribution of nodes per shard into the nodes management component
 func (ihnc *indexHashedNodesCoordinator) setNodesPerShards(
-	eligible map[uint32][]Validator,
-	waiting map[uint32][]Validator,
-	leaving map[uint32][]Validator,
+	eligible map[uint32][]core.Validator,
+	waiting map[uint32][]core.Validator,
+	leaving map[uint32][]core.Validator,
 	epoch uint32,
 ) error {
 	ihnc.mutNodesConfig.Lock()
@@ -295,8 +295,8 @@ func (ihnc *indexHashedNodesCoordinator) setNodeType(isValidator bool) {
 }
 
 // ComputeAdditionalLeaving - computes extra leaving validators based on computation at the start of epoch
-func (ihnc *indexHashedNodesCoordinator) ComputeAdditionalLeaving(_ []*state.ShardValidatorInfo) (map[uint32][]Validator, error) {
-	return make(map[uint32][]Validator), nil
+func (ihnc *indexHashedNodesCoordinator) ComputeAdditionalLeaving(_ []*state.ShardValidatorInfo) (map[uint32][]core.Validator, error) {
+	return make(map[uint32][]core.Validator), nil
 }
 
 // ComputeConsensusGroup will generate a list of validators based on the the eligible list
@@ -306,9 +306,9 @@ func (ihnc *indexHashedNodesCoordinator) ComputeConsensusGroup(
 	round uint64,
 	shardID uint32,
 	epoch uint32,
-) (validatorsGroup []Validator, err error) {
+) (validatorsGroup []core.Validator, err error) {
 	var selector RandomSelector
-	var eligibleList []Validator
+	var eligibleList []core.Validator
 
 	log.Trace("computing consensus group for",
 		"epoch", epoch,
@@ -334,7 +334,7 @@ func (ihnc *indexHashedNodesCoordinator) ComputeConsensusGroup(
 	ihnc.mutNodesConfig.RUnlock()
 
 	if !ok {
-		return nil, fmt.Errorf("%w epoch=%v", ErrEpochNodesConfigDoesNotExist, epoch)
+		return nil, fmt.Errorf("%w epoch=%v", errors.ErrEpochNodesConfigDoesNotExist, epoch)
 	}
 
 	key := []byte(fmt.Sprintf(keyFormat, string(randomness), round, shardID, epoch))
@@ -369,10 +369,10 @@ func (ihnc *indexHashedNodesCoordinator) ComputeConsensusGroup(
 	return tempList, nil
 }
 
-func (ihnc *indexHashedNodesCoordinator) searchConsensusForKey(key []byte) []Validator {
+func (ihnc *indexHashedNodesCoordinator) searchConsensusForKey(key []byte) []core.Validator {
 	value, ok := ihnc.consensusGroupCacher.Get(key)
 	if ok {
-		consensusGroup, typeOk := value.([]Validator)
+		consensusGroup, typeOk := value.([]core.Validator)
 		if typeOk {
 			return consensusGroup
 		}
@@ -381,7 +381,7 @@ func (ihnc *indexHashedNodesCoordinator) searchConsensusForKey(key []byte) []Val
 }
 
 // GetValidatorWithPublicKey gets the validator with the given public key
-func (ihnc *indexHashedNodesCoordinator) GetValidatorWithPublicKey(publicKey []byte) (Validator, uint32, error) {
+func (ihnc *indexHashedNodesCoordinator) GetValidatorWithPublicKey(publicKey []byte) (core.Validator, uint32, error) {
 	if len(publicKey) == 0 {
 		return nil, 0, ErrNilPubKey
 	}
@@ -426,7 +426,7 @@ func (ihnc *indexHashedNodesCoordinator) GetAllEligibleValidatorsPublicKeys(epoc
 	ihnc.mutNodesConfig.RUnlock()
 
 	if !ok {
-		return nil, fmt.Errorf("%w epoch=%v", ErrEpochNodesConfigDoesNotExist, epoch)
+		return nil, fmt.Errorf("%w epoch=%v", errors.ErrEpochNodesConfigDoesNotExist, epoch)
 	}
 
 	nodesConfig.mutNodesMaps.RLock()
@@ -450,7 +450,7 @@ func (ihnc *indexHashedNodesCoordinator) GetAllWaitingValidatorsPublicKeys(epoch
 	ihnc.mutNodesConfig.RUnlock()
 
 	if !ok {
-		return nil, fmt.Errorf("%w epoch=%v", ErrEpochNodesConfigDoesNotExist, epoch)
+		return nil, fmt.Errorf("%w epoch=%v", errors.ErrEpochNodesConfigDoesNotExist, epoch)
 	}
 
 	nodesConfig.mutNodesMaps.RLock()
@@ -474,7 +474,7 @@ func (ihnc *indexHashedNodesCoordinator) GetAllLeavingValidatorsPublicKeys(epoch
 	ihnc.mutNodesConfig.RUnlock()
 
 	if !ok {
-		return nil, fmt.Errorf("%w epoch=%v", ErrEpochNodesConfigDoesNotExist, epoch)
+		return nil, fmt.Errorf("%w epoch=%v", errors.ErrEpochNodesConfigDoesNotExist, epoch)
 	}
 
 	nodesConfig.mutNodesMaps.RLock()
@@ -679,8 +679,8 @@ func (ihnc *indexHashedNodesCoordinator) fillPublicKeyToValidatorMap() {
 	}
 }
 
-func (ihnc *indexHashedNodesCoordinator) createSortedListFromMap(validatorsMap map[uint32][]Validator) []Validator {
-	sortedList := make([]Validator, 0)
+func (ihnc *indexHashedNodesCoordinator) createSortedListFromMap(validatorsMap map[uint32][]core.Validator) []core.Validator {
+	sortedList := make([]core.Validator, 0)
 	for _, validators := range validatorsMap {
 		sortedList = append(sortedList, validators...)
 	}
@@ -697,10 +697,10 @@ func (ihnc *indexHashedNodesCoordinator) computeNodesConfigFromList(
 	previousEpochConfig *epochNodesConfig,
 	validatorInfos []*state.ShardValidatorInfo,
 ) (*epochNodesConfig, error) {
-	eligibleMap := make(map[uint32][]Validator)
-	waitingMap := make(map[uint32][]Validator)
-	leavingMap := make(map[uint32][]Validator)
-	newNodesList := make([]Validator, 0)
+	eligibleMap := make(map[uint32][]core.Validator)
+	waitingMap := make(map[uint32][]core.Validator)
+	leavingMap := make(map[uint32][]core.Validator)
+	newNodesList := make([]core.Validator, 0)
 
 	if ihnc.flagWaitingListFix.IsSet() && previousEpochConfig == nil {
 		return nil, ErrNilPreviousEpochConfig
@@ -771,8 +771,8 @@ func (ihnc *indexHashedNodesCoordinator) computeNodesConfigFromList(
 
 func (ihnc *indexHashedNodesCoordinator) addValidatorToPreviousMap(
 	previousEpochConfig *epochNodesConfig,
-	eligibleMap map[uint32][]Validator,
-	waitingMap map[uint32][]Validator,
+	eligibleMap map[uint32][]core.Validator,
+	waitingMap map[uint32][]core.Validator,
 	currentValidator *validator,
 	currentValidatorShardId uint32) {
 
@@ -833,7 +833,7 @@ func (ihnc *indexHashedNodesCoordinator) EpochStartAction(hdr data.HeaderHandler
 
 // NotifyOrder returns the notification order for a start of epoch event
 func (ihnc *indexHashedNodesCoordinator) NotifyOrder() uint32 {
-	return common.NodesCoordinatorOrder
+	return core.NodesCoordinatorOrder
 }
 
 // GetSavedStateKey returns the key for the last nodes coordinator saved state
@@ -853,7 +853,7 @@ func (ihnc *indexHashedNodesCoordinator) ShardIdForEpoch(epoch uint32) (uint32, 
 	ihnc.mutNodesConfig.RUnlock()
 
 	if !ok {
-		return 0, fmt.Errorf("%w epoch=%v", ErrEpochNodesConfigDoesNotExist, epoch)
+		return 0, fmt.Errorf("%w epoch=%v", errors.ErrEpochNodesConfigDoesNotExist, epoch)
 	}
 
 	return nodesConfig.shardID, nil
@@ -870,7 +870,7 @@ func (ihnc *indexHashedNodesCoordinator) ShuffleOutForEpoch(epoch uint32) {
 	if nodesConfig == nil {
 		log.Warn("shuffleOutForEpoch failed",
 			"epoch", epoch,
-			"error", ErrEpochNodesConfigDoesNotExist)
+			"error", errors.ErrEpochNodesConfigDoesNotExist)
 		return
 	}
 
@@ -900,7 +900,7 @@ func isValidator(config *epochNodesConfig, pk []byte) bool {
 	return found
 }
 
-func searchInMap(validatorMap map[uint32][]Validator, pk []byte) (bool, uint32) {
+func searchInMap(validatorMap map[uint32][]core.Validator, pk []byte) (bool, uint32) {
 	for shardId, validatorsInShard := range validatorMap {
 		for _, val := range validatorsInShard {
 			if bytes.Equal(val.PubKey(), pk) {
@@ -959,8 +959,8 @@ func (ihnc *indexHashedNodesCoordinator) GetConsensusWhitelistedNodes(
 }
 
 func (ihnc *indexHashedNodesCoordinator) createPublicKeyToValidatorMap(
-	eligible map[uint32][]Validator,
-	waiting map[uint32][]Validator,
+	eligible map[uint32][]core.Validator,
+	waiting map[uint32][]core.Validator,
 ) map[string]*validatorWithShardID {
 	publicKeyToValidatorMap := make(map[string]*validatorWithShardID)
 	for shardId, shardEligible := range eligible {
@@ -1083,7 +1083,7 @@ func (ihnc *indexHashedNodesCoordinator) createSelectors(
 }
 
 // ValidatorsWeights returns the weights/chances for each of the given validators
-func (ihnc *indexHashedNodesCoordinator) ValidatorsWeights(validators []Validator) ([]uint32, error) {
+func (ihnc *indexHashedNodesCoordinator) ValidatorsWeights(validators []core.Validator) ([]uint32, error) {
 	weights := make([]uint32, len(validators))
 	for i := range validators {
 		weights[i] = defaultSelectionChances
@@ -1093,12 +1093,12 @@ func (ihnc *indexHashedNodesCoordinator) ValidatorsWeights(validators []Validato
 }
 
 func createActuallyLeavingPerShards(
-	unstakeLeaving map[uint32][]Validator,
-	additionalLeaving map[uint32][]Validator,
-	leaving []Validator,
-) (map[uint32][]Validator, map[uint32][]Validator) {
-	actuallyLeaving := make(map[uint32][]Validator)
-	actuallyRemaining := make(map[uint32][]Validator)
+	unstakeLeaving map[uint32][]core.Validator,
+	additionalLeaving map[uint32][]core.Validator,
+	leaving []core.Validator,
+) (map[uint32][]core.Validator, map[uint32][]core.Validator) {
+	actuallyLeaving := make(map[uint32][]core.Validator)
+	actuallyRemaining := make(map[uint32][]core.Validator)
 	processedValidatorsMap := make(map[string]bool)
 
 	computeActuallyLeaving(unstakeLeaving, leaving, actuallyLeaving, actuallyRemaining, processedValidatorsMap)
@@ -1108,10 +1108,10 @@ func createActuallyLeavingPerShards(
 }
 
 func computeActuallyLeaving(
-	unstakeLeaving map[uint32][]Validator,
-	leaving []Validator,
-	actuallyLeaving map[uint32][]Validator,
-	actuallyRemaining map[uint32][]Validator,
+	unstakeLeaving map[uint32][]core.Validator,
+	leaving []core.Validator,
+	actuallyLeaving map[uint32][]core.Validator,
+	actuallyRemaining map[uint32][]core.Validator,
 	processedValidatorsMap map[string]bool,
 ) {
 	sortedShardIds := sortKeys(unstakeLeaving)
@@ -1142,8 +1142,8 @@ func selectValidators(
 	selector RandomSelector,
 	randomness []byte,
 	consensusSize uint32,
-	eligibleList []Validator,
-) ([]Validator, error) {
+	eligibleList []core.Validator,
+) ([]core.Validator, error) {
 	if check.IfNil(selector) {
 		return nil, ErrNilRandomSelector
 	}
@@ -1157,7 +1157,7 @@ func selectValidators(
 		return nil, err
 	}
 
-	consensusGroup := make([]Validator, consensusSize)
+	consensusGroup := make([]core.Validator, consensusSize)
 	for i := range consensusGroup {
 		consensusGroup[i] = eligibleList[selectedIndexes[i]]
 	}

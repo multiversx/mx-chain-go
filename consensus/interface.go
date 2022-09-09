@@ -6,8 +6,8 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
-	"github.com/ElrondNetwork/elrond-go/p2p"
 )
 
 // BlsConsensusType specifies the signature scheme used in the consensus
@@ -88,7 +88,7 @@ type NetworkShardingCollector interface {
 // P2PAntifloodHandler defines the behavior of a component able to signal that the system is too busy (or flooded) processing
 // p2p messages
 type P2PAntifloodHandler interface {
-	CanProcessMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error
+	CanProcessMessage(message core.MessageP2P, fromConnectedPeer core.PeerID) error
 	CanProcessMessagesOnTopic(peer core.PeerID, topic string, numMessages uint32, totalSize uint64, sequence []byte) error
 	ResetForTopic(topic string)
 	SetMaxMessagesForTopic(topic string, maxNum uint32)
@@ -158,5 +158,123 @@ type SignatureHandler interface {
 	AggregateSigs(bitmap []byte, epoch uint32) ([]byte, error)
 	SetAggregatedSig([]byte) error
 	Verify(msg []byte, bitmap []byte, epoch uint32) error
+	IsInterfaceNil() bool
+}
+
+// InterceptorsContainer defines an interceptors holder data type with basic functionality
+type InterceptorsContainer interface {
+	Get(key string) (core.Interceptor, error)
+	Add(key string, val core.Interceptor) error
+	AddMultiple(keys []string, interceptors []core.Interceptor) error
+	Replace(key string, val core.Interceptor) error
+	Remove(key string)
+	Len() int
+	Iterate(handler func(key string, interceptor core.Interceptor) bool)
+	Close() error
+	IsInterfaceNil() bool
+}
+
+// ShardCoordinator defines what a shard state coordinator should hold
+type ShardCoordinator interface {
+	NumberOfShards() uint32
+	ComputeId(address []byte) uint32
+	SelfId() uint32
+	SameShard(firstAddress, secondAddress []byte) bool
+	CommunicationIdentifier(destShardID uint32) string
+	IsInterfaceNil() bool
+}
+
+// Cacher provides caching services
+type Cacher interface {
+	Put(key []byte, value interface{}, sizeInBytes int) (evicted bool)
+	Get(key []byte) (value interface{}, ok bool)
+	IsInterfaceNil() bool
+}
+
+// OutportHandler is interface that defines what a proxy implementation should be able to do
+// The node is able to talk only with this interface
+type OutportHandler interface {
+	SaveRoundsInfo(roundsInfos []*indexer.RoundInfo)
+	HasDrivers() bool
+	IsInterfaceNil() bool
+}
+
+// SyncTimer defines an interface for time synchronization
+type SyncTimer interface {
+	CurrentTime() time.Time
+	FormattedCurrentTime() string
+	IsInterfaceNil() bool
+}
+
+// RegistrationHandler provides Register and Unregister functionality for the end of epoch events
+type RegistrationHandler interface {
+	RegisterHandler(handler core.EpochStartActionHandler)
+	UnregisterHandler(handler core.EpochStartActionHandler)
+	IsInterfaceNil() bool
+}
+
+// BlockProcessor is the main interface for block execution engine
+type BlockProcessor interface {
+	ProcessBlock(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
+	ProcessScheduledBlock(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
+	CommitBlock(header data.HeaderHandler, body data.BodyHandler) error
+	CreateBlock(initialHdr data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error)
+	CreateNewHeader(round uint64, nonce uint64) (data.HeaderHandler, error)
+	MarshalizedDataToBroadcast(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error)
+	DecodeBlockBody(dta []byte) data.BodyHandler
+	DecodeBlockHeader(dta []byte) data.HeaderHandler
+	RevertCurrentBlock()
+	IsInterfaceNil() bool
+}
+
+// Bootstrapper is an interface that defines the behaviour of a struct that is able
+// to synchronize the node
+type Bootstrapper interface {
+	Close() error
+	AddSyncStateListener(func(isSyncing bool))
+	GetNodeState() core.NodeState
+	StartSyncingBlocks()
+	IsInterfaceNil() bool
+}
+
+// NodesCoordinator defines the behaviour of a struct able to do validator group selection
+type NodesCoordinator interface {
+	GetValidatorsIndexes(publicKeys []string, epoch uint32) ([]uint64, error)
+	ComputeConsensusGroup(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []core.Validator, err error)
+	ShardIdForEpoch(epoch uint32) (uint32, error)
+	GetConsensusWhitelistedNodes(epoch uint32) (map[string]struct{}, error)
+	ConsensusGroupSize(uint32) int
+	IsInterfaceNil() bool
+}
+
+// ScheduledBlockProcessor is the interface for the scheduled miniBlocks execution part of the block processor
+type ScheduledBlockProcessor interface {
+	ProcessScheduledBlock(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
+	IsInterfaceNil() bool
+}
+
+// RoundTimeDurationHandler defines the methods to get the time duration of a round
+type RoundTimeDurationHandler interface {
+	TimeDuration() time.Duration
+	IsInterfaceNil() bool
+}
+
+// ForkDetector is an interface that defines the behaviour of a struct that is able
+// to detect forks
+type ForkDetector interface {
+	AddHeader(header data.HeaderHandler, headerHash []byte, state core.BlockHeaderState, selfNotarizedHeaders []data.HeaderHandler, selfNotarizedHeadersHashes [][]byte) error
+	IsInterfaceNil() bool
+}
+
+// HeaderIntegrityVerifier encapsulates methods useful to check that a header's integrity is correct
+type HeaderIntegrityVerifier interface {
+	Verify(header data.HeaderHandler) error
+	GetVersion(epoch uint32) string
+	IsInterfaceNil() bool
+}
+
+// MultiSignerContainer defines the container for different versioned multiSigner instances
+type MultiSignerContainer interface {
+	GetMultiSigner(epoch uint32) (crypto.MultiSigner, error)
 	IsInterfaceNil() bool
 }

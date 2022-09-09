@@ -6,8 +6,8 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
+	"github.com/ElrondNetwork/elrond-go/consensus/mock"
 	"github.com/ElrondNetwork/elrond-go/consensus/signing"
-	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
 	"github.com/stretchr/testify/require"
 )
 
@@ -15,8 +15,8 @@ func createMockArgsSignatureHolder() signing.ArgsSignatureHolder {
 	return signing.ArgsSignatureHolder{
 		PubKeys:              []string{"pubkey1"},
 		PrivKeyBytes:         []byte("privKey"),
-		MultiSignerContainer: &cryptoMocks.MultiSignerContainerMock{},
-		KeyGenerator:         &cryptoMocks.KeyGenStub{},
+		MultiSignerContainer: &mock.MultiSignerContainerMock{},
+		KeyGenerator:         &mock.KeyGenMock{},
 	}
 }
 
@@ -166,12 +166,12 @@ func TestSignatureHolder_CreateSignatureShare(t *testing.T) {
 		args := createMockArgsSignatureHolder()
 
 		expectedErr := errors.New("expected error")
-		multiSigner := &cryptoMocks.MultiSignerStub{
+		multiSigner := &mock.MultiSignerStub{
 			CreateSignatureShareCalled: func(privateKeyBytes, message []byte) ([]byte, error) {
 				return nil, expectedErr
 			},
 		}
-		args.MultiSignerContainer = cryptoMocks.NewMultiSignerContainerMock(multiSigner)
+		args.MultiSignerContainer = mock.NewMultiSignerContainerMock(multiSigner)
 
 		signer, _ := signing.NewSignatureHolder(args)
 		sigShare, err := signer.CreateSignatureShare([]byte("msg1"), selfIndex, epoch)
@@ -185,12 +185,12 @@ func TestSignatureHolder_CreateSignatureShare(t *testing.T) {
 		args := createMockArgsSignatureHolder()
 
 		expectedSigShare := []byte("sigShare")
-		multiSigner := &cryptoMocks.MultiSignerStub{
+		multiSigner := &mock.MultiSignerStub{
 			CreateSignatureShareCalled: func(privateKeyBytes, message []byte) ([]byte, error) {
 				return expectedSigShare, nil
 			},
 		}
-		args.MultiSignerContainer = cryptoMocks.NewMultiSignerContainerMock(multiSigner)
+		args.MultiSignerContainer = mock.NewMultiSignerContainerMock(multiSigner)
 
 		signer, _ := signing.NewSignatureHolder(args)
 		sigShare, err := signer.CreateSignatureShare([]byte("msg1"), selfIndex, epoch)
@@ -229,12 +229,12 @@ func TestSignatureHolder_VerifySignatureShare(t *testing.T) {
 		args.PubKeys = []string{"pk1", "pk2"}
 
 		expectedErr := errors.New("expected error")
-		multiSigner := &cryptoMocks.MultiSignerStub{
+		multiSigner := &mock.MultiSignerStub{
 			VerifySignatureShareCalled: func(publicKey, message, sig []byte) error {
 				return expectedErr
 			},
 		}
-		args.MultiSignerContainer = cryptoMocks.NewMultiSignerContainerMock(multiSigner)
+		args.MultiSignerContainer = mock.NewMultiSignerContainerMock(multiSigner)
 
 		signer, _ := signing.NewSignatureHolder(args)
 
@@ -249,7 +249,7 @@ func TestSignatureHolder_VerifySignatureShare(t *testing.T) {
 		args.PubKeys = []string{"pk1", "pk2"}
 
 		expectedErr := errors.New("expected error")
-		args.MultiSignerContainer = &cryptoMocks.MultiSignerContainerStub{
+		args.MultiSignerContainer = &mock.MultiSignerContainerStub{
 			GetMultiSignerCalled: func(epoch uint32) (crypto.MultiSigner, error) {
 				return nil, expectedErr
 			},
@@ -267,12 +267,12 @@ func TestSignatureHolder_VerifySignatureShare(t *testing.T) {
 		args := createMockArgsSignatureHolder()
 		args.PubKeys = []string{"pk1", "pk2"}
 
-		multiSigner := &cryptoMocks.MultiSignerStub{
+		multiSigner := &mock.MultiSignerStub{
 			VerifySignatureShareCalled: func(publicKey, message, sig []byte) error {
 				return nil
 			},
 		}
-		args.MultiSignerContainer = cryptoMocks.NewMultiSignerContainerMock(multiSigner)
+		args.MultiSignerContainer = mock.NewMultiSignerContainerMock(multiSigner)
 
 		signer, _ := signing.NewSignatureHolder(args)
 
@@ -302,7 +302,7 @@ func TestSignatureHolder_StoreSignatureShare(t *testing.T) {
 		args := createMockArgsSignatureHolder()
 
 		expectedErr := errors.New("expected error")
-		args.MultiSignerContainer = &cryptoMocks.MultiSignerContainerStub{
+		args.MultiSignerContainer = &mock.MultiSignerContainerStub{
 			GetMultiSignerCalled: func(epoch uint32) (crypto.MultiSigner, error) {
 				return nil, expectedErr
 			},
@@ -321,12 +321,12 @@ func TestSignatureHolder_StoreSignatureShare(t *testing.T) {
 		args := createMockArgsSignatureHolder()
 		args.PubKeys = []string{"pk1", "pk2", "pk3", "pk4"}
 
-		multiSigner := &cryptoMocks.MultiSignerStub{
+		multiSigner := &mock.MultiSignerStub{
 			CreateSignatureShareCalled: func(privateKeyBytes, message []byte) ([]byte, error) {
 				return []byte("sigshare"), nil
 			},
 		}
-		args.MultiSignerContainer = cryptoMocks.NewMultiSignerContainerMock(multiSigner)
+		args.MultiSignerContainer = mock.NewMultiSignerContainerMock(multiSigner)
 
 		signer, _ := signing.NewSignatureHolder(args)
 
@@ -443,12 +443,12 @@ func TestSignatureHolder_AggregateSigs(t *testing.T) {
 		args.PubKeys = []string{"pk1", "pk2", "pk3", "pk4"}
 
 		expectedErr := errors.New("expected error")
-		multiSigner := &cryptoMocks.MultiSignerStub{
+		multiSigner := &mock.MultiSignerStub{
 			AggregateSigsCalled: func(pubKeysSigners, signatures [][]byte) ([]byte, error) {
 				return nil, expectedErr
 			},
 		}
-		args.MultiSignerContainer = cryptoMocks.NewMultiSignerContainerMock(multiSigner)
+		args.MultiSignerContainer = mock.NewMultiSignerContainerMock(multiSigner)
 
 		signer, _ := signing.NewSignatureHolder(args)
 
@@ -470,7 +470,7 @@ func TestSignatureHolder_AggregateSigs(t *testing.T) {
 		args := createMockArgsSignatureHolder()
 
 		expectedErr := errors.New("expected error")
-		args.MultiSignerContainer = &cryptoMocks.MultiSignerContainerStub{
+		args.MultiSignerContainer = &mock.MultiSignerContainerStub{
 			GetMultiSignerCalled: func(epoch uint32) (crypto.MultiSigner, error) {
 				return nil, expectedErr
 			},
@@ -493,14 +493,14 @@ func TestSignatureHolder_AggregateSigs(t *testing.T) {
 		args.PubKeys = []string{"pk1", "pk2", "pk3", "pk4"}
 
 		expectedAggSig := []byte("agg sig")
-		multiSigner := &cryptoMocks.MultiSignerStub{
+		multiSigner := &mock.MultiSignerStub{
 			AggregateSigsCalled: func(pubKeysSigners, signatures [][]byte) ([]byte, error) {
 				require.Equal(t, len(args.PubKeys)-1, len(pubKeysSigners))
 				require.Equal(t, len(args.PubKeys)-1, len(signatures))
 				return expectedAggSig, nil
 			},
 		}
-		args.MultiSignerContainer = cryptoMocks.NewMultiSignerContainerMock(multiSigner)
+		args.MultiSignerContainer = mock.NewMultiSignerContainerMock(multiSigner)
 
 		signer, _ := signing.NewSignatureHolder(args)
 
@@ -558,12 +558,12 @@ func TestSignatureHolder_Verify(t *testing.T) {
 		args.PubKeys = []string{"pk1", "pk2", "pk3", "pk4"}
 
 		expectedErr := errors.New("expected error")
-		multiSigner := &cryptoMocks.MultiSignerStub{
+		multiSigner := &mock.MultiSignerStub{
 			VerifyAggregatedSigCalled: func(pubKeysSigners [][]byte, message, aggSig []byte) error {
 				return expectedErr
 			},
 		}
-		args.MultiSignerContainer = cryptoMocks.NewMultiSignerContainerMock(multiSigner)
+		args.MultiSignerContainer = mock.NewMultiSignerContainerMock(multiSigner)
 
 		signer, _ := signing.NewSignatureHolder(args)
 
@@ -580,7 +580,7 @@ func TestSignatureHolder_Verify(t *testing.T) {
 		args := createMockArgsSignatureHolder()
 
 		expectedErr := errors.New("expected error")
-		args.MultiSignerContainer = &cryptoMocks.MultiSignerContainerStub{
+		args.MultiSignerContainer = &mock.MultiSignerContainerStub{
 			GetMultiSignerCalled: func(epoch uint32) (crypto.MultiSigner, error) {
 				return nil, expectedErr
 			},
@@ -603,14 +603,14 @@ func TestSignatureHolder_Verify(t *testing.T) {
 
 		expAggSig := []byte("aggSig")
 
-		multiSigner := &cryptoMocks.MultiSignerStub{
+		multiSigner := &mock.MultiSignerStub{
 			VerifyAggregatedSigCalled: func(pubKeysSigners [][]byte, message, aggSig []byte) error {
 				require.Equal(t, len(args.PubKeys)-1, len(pubKeysSigners))
 				require.Equal(t, expAggSig, aggSig)
 				return nil
 			},
 		}
-		args.MultiSignerContainer = cryptoMocks.NewMultiSignerContainerMock(multiSigner)
+		args.MultiSignerContainer = mock.NewMultiSignerContainerMock(multiSigner)
 
 		signer, _ := signing.NewSignatureHolder(args)
 

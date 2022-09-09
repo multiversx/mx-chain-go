@@ -296,7 +296,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateShardHeaderInterceptor
 	}
 
 	keys := make([]string, numShards)
-	interceptorsSlice := make([]process.Interceptor, numShards)
+	interceptorsSlice := make([]core.Interceptor, numShards)
 
 	//wire up to topics: shardBlocks_0_META, shardBlocks_1_META ...
 	for idx := uint32(0); idx < numShards; idx++ {
@@ -317,7 +317,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateShardHeaderInterceptor
 	return ficf.container.AddMultiple(keys, interceptorsSlice)
 }
 
-func (ficf *fullSyncInterceptorsContainerFactory) createOneShardHeaderInterceptor(topic string) (process.Interceptor, error) {
+func (ficf *fullSyncInterceptorsContainerFactory) createOneShardHeaderInterceptor(topic string) (core.Interceptor, error) {
 	hdrFactory, err := interceptorFactory.NewInterceptedShardHeaderDataFactory(ficf.argInterceptorFactory)
 	if err != nil {
 		return nil, err
@@ -356,7 +356,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateUnsignedTxsInterceptor
 	numShards := shardC.NumberOfShards()
 
 	keys := make([]string, numShards+1)
-	interceptorsSlice := make([]process.Interceptor, numShards+1)
+	interceptorsSlice := make([]core.Interceptor, numShards+1)
 
 	for idx := uint32(0); idx < numShards; idx++ {
 		identifierScr := factory.UnsignedTransactionTopic + shardC.CommunicationIdentifier(idx)
@@ -391,7 +391,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateTrieNodesInterceptors(
 	numShards := ficf.shardCoordinator.NumberOfShards()
 
 	keys := make([]string, 0)
-	trieInterceptors := make([]process.Interceptor, 0)
+	trieInterceptors := make([]core.Interceptor, 0)
 
 	for i := uint32(0); i < numShards; i++ {
 		identifierTrieNodes := factory.AccountTrieNodesTopic + core.CommunicationIdentifierBetweenShards(i, core.MetachainShardId)
@@ -435,9 +435,9 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateTrieNodesInterceptors(
 
 func (ficf *fullSyncInterceptorsContainerFactory) createTopicAndAssignHandler(
 	topic string,
-	interceptor process.Interceptor,
+	interceptor core.Interceptor,
 	createChannel bool,
-) (process.Interceptor, error) {
+) (core.Interceptor, error) {
 
 	err := ficf.messenger.CreateTopic(topic, createChannel)
 	if err != nil {
@@ -453,7 +453,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateTxInterceptors() error
 	numShards := shardC.NumberOfShards()
 
 	keys := make([]string, numShards)
-	interceptorSlice := make([]process.Interceptor, numShards)
+	interceptorSlice := make([]core.Interceptor, numShards)
 
 	for idx := uint32(0); idx < numShards; idx++ {
 		identifierTx := factory.TransactionTopic + shardC.CommunicationIdentifier(idx)
@@ -485,7 +485,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateTxInterceptors() error
 	return ficf.container.AddMultiple(keys, interceptorSlice)
 }
 
-func (ficf *fullSyncInterceptorsContainerFactory) createOneTxInterceptor(topic string) (process.Interceptor, error) {
+func (ficf *fullSyncInterceptorsContainerFactory) createOneTxInterceptor(topic string) (core.Interceptor, error) {
 	txValidator, err := dataValidators.NewTxValidator(
 		ficf.accounts,
 		ficf.shardCoordinator,
@@ -531,7 +531,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneTxInterceptor(topic s
 	return ficf.createTopicAndAssignHandler(topic, interceptor, true)
 }
 
-func (ficf *fullSyncInterceptorsContainerFactory) createOneUnsignedTxInterceptor(topic string) (process.Interceptor, error) {
+func (ficf *fullSyncInterceptorsContainerFactory) createOneUnsignedTxInterceptor(topic string) (core.Interceptor, error) {
 	argProcessor := &processor.ArgTxInterceptorProcessor{
 		ShardedDataCache: ficf.dataPool.UnsignedTransactions(),
 		TxValidator:      dataValidators.NewDisabledTxValidator(),
@@ -566,7 +566,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneUnsignedTxInterceptor
 	return ficf.createTopicAndAssignHandler(topic, interceptor, true)
 }
 
-func (ficf *fullSyncInterceptorsContainerFactory) createOneRewardTxInterceptor(topic string) (process.Interceptor, error) {
+func (ficf *fullSyncInterceptorsContainerFactory) createOneRewardTxInterceptor(topic string) (core.Interceptor, error) {
 	argProcessor := &processor.ArgTxInterceptorProcessor{
 		ShardedDataCache: ficf.dataPool.RewardTransactions(),
 		TxValidator:      dataValidators.NewDisabledTxValidator(),
@@ -605,7 +605,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateMiniBlocksInterceptors
 	shardC := ficf.shardCoordinator
 	numShards := shardC.NumberOfShards()
 	keys := make([]string, numShards+1)
-	interceptorsSlice := make([]process.Interceptor, numShards+1)
+	interceptorsSlice := make([]core.Interceptor, numShards+1)
 
 	for idx := uint32(0); idx < numShards; idx++ {
 		identifierMiniBlocks := factory.MiniBlocksTopic + shardC.CommunicationIdentifier(idx)
@@ -636,7 +636,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateMiniBlocksInterceptors
 	return ficf.container.AddMultiple(keys, interceptorsSlice)
 }
 
-func (ficf *fullSyncInterceptorsContainerFactory) createOneMiniBlocksInterceptor(topic string) (process.Interceptor, error) {
+func (ficf *fullSyncInterceptorsContainerFactory) createOneMiniBlocksInterceptor(topic string) (core.Interceptor, error) {
 	argProcessor := &processor.ArgMiniblockInterceptorProcessor{
 		MiniblockCache:   ficf.dataPool.MiniBlocks(),
 		Marshalizer:      ficf.argInterceptorFactory.CoreComponents.InternalMarshalizer(),
@@ -718,7 +718,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateMetachainHeaderInterce
 	return ficf.container.Add(identifierHdr, interceptor)
 }
 
-func (ficf *fullSyncInterceptorsContainerFactory) createOneTrieNodesInterceptor(topic string) (process.Interceptor, error) {
+func (ficf *fullSyncInterceptorsContainerFactory) createOneTrieNodesInterceptor(topic string) (core.Interceptor, error) {
 	trieNodesProcessor, err := processor.NewTrieNodesInterceptorProcessor(ficf.dataPool.TrieNodes())
 	if err != nil {
 		return nil, err
@@ -758,7 +758,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateRewardTxInterceptors()
 	}
 
 	keys := make([]string, numShards)
-	interceptorSlice := make([]process.Interceptor, numShards)
+	interceptorSlice := make([]core.Interceptor, numShards)
 
 	for idx := uint32(0); idx < numShards; idx++ {
 		identifierScr := factory.RewardsTransactionTopic + tmpSC.CommunicationIdentifier(idx)
@@ -766,7 +766,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateRewardTxInterceptors()
 			return nil
 		}
 
-		var interceptor process.Interceptor
+		var interceptor core.Interceptor
 		interceptor, err = ficf.createOneRewardTxInterceptor(identifierScr)
 		if err != nil {
 			return err

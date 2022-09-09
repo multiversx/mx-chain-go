@@ -10,14 +10,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go-crypto"
+	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 var log = logger.GetOrCreate("consensus/broadcast")
@@ -40,7 +36,7 @@ type commonMessenger struct {
 	hasher                  hashing.Hasher
 	messenger               consensus.P2PMessenger
 	privateKey              crypto.PrivateKey
-	shardCoordinator        sharding.Coordinator
+	shardCoordinator        consensus.ShardCoordinator
 	peerSignatureHandler    crypto.PeerSignatureHandler
 	delayedBlockBroadcaster delayedBroadcaster
 }
@@ -51,13 +47,14 @@ type CommonMessengerArgs struct {
 	Hasher                     hashing.Hasher
 	Messenger                  consensus.P2PMessenger
 	PrivateKey                 crypto.PrivateKey
-	ShardCoordinator           sharding.Coordinator
+	ShardCoordinator           consensus.ShardCoordinator
 	PeerSignatureHandler       crypto.PeerSignatureHandler
 	HeadersSubscriber          consensus.HeadersPoolSubscriber
-	InterceptorsContainer      process.InterceptorsContainer
+	InterceptorsContainer      consensus.InterceptorsContainer
 	MaxDelayCacheSize          uint32
 	MaxValidatorDelayCacheSize uint32
 	AlarmScheduler             core.TimersScheduler
+	HeadersCache               consensus.Cacher
 }
 
 func checkCommonMessengerNilParameters(
@@ -111,7 +108,7 @@ func (cm *commonMessenger) BroadcastConsensusMessage(message *consensus.Message)
 		return err
 	}
 
-	consensusTopic := common.ConsensusTopic +
+	consensusTopic := consensus.ConsensusTopic +
 		cm.shardCoordinator.CommunicationIdentifier(cm.shardCoordinator.SelfId())
 
 	cm.messenger.Broadcast(consensusTopic, buff)
@@ -122,7 +119,7 @@ func (cm *commonMessenger) BroadcastConsensusMessage(message *consensus.Message)
 // BroadcastMiniBlocks will send on miniblocks topic the cross-shard miniblocks
 func (cm *commonMessenger) BroadcastMiniBlocks(miniBlocks map[uint32][]byte) error {
 	for k, v := range miniBlocks {
-		miniBlocksTopic := factory.MiniBlocksTopic +
+		miniBlocksTopic := consensus.MiniBlocksTopic +
 			cm.shardCoordinator.CommunicationIdentifier(k)
 
 		cm.messenger.Broadcast(miniBlocksTopic, v)
@@ -149,7 +146,7 @@ func (cm *commonMessenger) BroadcastTransactions(transactions map[string][][]byt
 	for topic, v := range transactions {
 		txs += len(v)
 		// forward txs to the destination shards in packets
-		packets, err = dataPacker.PackDataInChunks(v, common.MaxBulkTransactionSize)
+		packets, err = dataPacker.PackDataInChunks(v, consensus.MaxBulkTransactionSize)
 		if err != nil {
 			return err
 		}
@@ -183,7 +180,7 @@ func (cm *commonMessenger) BroadcastBlockData(
 		}
 	}
 
-	time.Sleep(common.ExtraDelayBetweenBroadcastMbsAndTxs)
+	time.Sleep(consensus.ExtraDelayBetweenBroadcastMbsAndTxs)
 
 	if len(transactions) > 0 {
 		err := cm.BroadcastTransactions(transactions)

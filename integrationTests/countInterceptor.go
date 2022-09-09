@@ -4,7 +4,6 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go/p2p"
 )
 
 // CountInterceptor represents an interceptors that counts received messages on topics
@@ -21,7 +20,7 @@ func NewCountInterceptor() *CountInterceptor {
 }
 
 // ProcessReceivedMessage is called each time a new message is received
-func (ci *CountInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, _ core.PeerID) error {
+func (ci *CountInterceptor) ProcessReceivedMessage(message core.MessageP2P, _ core.PeerID) error {
 	ci.mutMessagesCount.Lock()
 	ci.messagesCount[message.Topic()]++
 	ci.mutMessagesCount.Unlock()

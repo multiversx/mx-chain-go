@@ -52,7 +52,7 @@ func prepareMessengerForMatchDataReceive(messenger p2p.Messenger, matchData []by
 
 	_ = messenger.RegisterMessageProcessor("test", "identifier",
 		&mock.MessageProcessorStub{
-			ProcessMessageCalled: func(message p2p.MessageP2P, _ core.PeerID) error {
+			ProcessMessageCalled: func(message core.MessageP2P, _ core.PeerID) error {
 				if bytes.Equal(matchData, message.Data()) {
 					fmt.Printf("%s got the message\n", messenger.ID().Pretty())
 					wg.Done()
@@ -1321,7 +1321,7 @@ func TestNetworkMessenger_PreventReprocessingShouldWork(t *testing.T) {
 
 	numCalled := uint32(0)
 	handler := &mock.MessageProcessorStub{
-		ProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
+		ProcessMessageCalled: func(message core.MessageP2P, fromConnectedPeer core.PeerID) error {
 			atomic.AddUint32(&numCalled, 1)
 			return nil
 		},
@@ -1398,7 +1398,7 @@ func TestNetworkMessenger_PubsubCallbackNotMessageNotValidShouldNotCallHandler(t
 
 	numCalled := uint32(0)
 	handler := &mock.MessageProcessorStub{
-		ProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
+		ProcessMessageCalled: func(message core.MessageP2P, fromConnectedPeer core.PeerID) error {
 			atomic.AddUint32(&numCalled, 1)
 			return nil
 		},
@@ -1461,7 +1461,7 @@ func TestNetworkMessenger_PubsubCallbackReturnsFalseIfHandlerErrors(t *testing.T
 	numCalled := uint32(0)
 	expectedErr := errors.New("expected error")
 	handler := &mock.MessageProcessorStub{
-		ProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
+		ProcessMessageCalled: func(message core.MessageP2P, fromConnectedPeer core.PeerID) error {
 			atomic.AddUint32(&numCalled, 1)
 			return expectedErr
 		},

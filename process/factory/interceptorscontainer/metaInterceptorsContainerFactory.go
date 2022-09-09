@@ -198,7 +198,7 @@ func (micf *metaInterceptorsContainerFactory) AddShardTrieNodeInterceptors(conta
 	shardC := micf.shardCoordinator
 
 	keys := make([]string, 0)
-	trieInterceptors := make([]process.Interceptor, 0)
+	trieInterceptors := make([]core.Interceptor, 0)
 
 	for i := uint32(0); i < shardC.NumberOfShards(); i++ {
 		identifierTrieNodes := factory.AccountTrieNodesTopic + shardC.CommunicationIdentifier(i)
@@ -220,7 +220,7 @@ func (micf *metaInterceptorsContainerFactory) generateShardHeaderInterceptors() 
 	shardC := micf.shardCoordinator
 	noOfShards := shardC.NumberOfShards()
 	keys := make([]string, noOfShards)
-	interceptorsSlice := make([]process.Interceptor, noOfShards)
+	interceptorsSlice := make([]core.Interceptor, noOfShards)
 
 	//wire up to topics: shardBlocks_0_META, shardBlocks_1_META ...
 	for idx := uint32(0); idx < noOfShards; idx++ {
@@ -237,7 +237,7 @@ func (micf *metaInterceptorsContainerFactory) generateShardHeaderInterceptors() 
 	return micf.container.AddMultiple(keys, interceptorsSlice)
 }
 
-func (micf *metaInterceptorsContainerFactory) createOneShardHeaderInterceptor(topic string) (process.Interceptor, error) {
+func (micf *metaInterceptorsContainerFactory) createOneShardHeaderInterceptor(topic string) (core.Interceptor, error) {
 	hdrFactory, err := interceptorFactory.NewInterceptedShardHeaderDataFactory(micf.argInterceptorFactory)
 	if err != nil {
 		return nil, err
@@ -273,7 +273,7 @@ func (micf *metaInterceptorsContainerFactory) createOneShardHeaderInterceptor(to
 
 func (micf *metaInterceptorsContainerFactory) generateTrieNodesInterceptors() error {
 	keys := make([]string, 0)
-	trieInterceptors := make([]process.Interceptor, 0)
+	trieInterceptors := make([]core.Interceptor, 0)
 
 	identifierTrieNodes := factory.ValidatorTrieNodesTopic + core.CommunicationIdentifierBetweenShards(core.MetachainShardId, core.MetachainShardId)
 	interceptor, err := micf.createOneTrieNodesInterceptor(identifierTrieNodes)
@@ -304,7 +304,7 @@ func (micf *metaInterceptorsContainerFactory) generateRewardTxInterceptors() err
 	noOfShards := shardC.NumberOfShards()
 
 	keys := make([]string, noOfShards)
-	interceptorSlice := make([]process.Interceptor, noOfShards)
+	interceptorSlice := make([]core.Interceptor, noOfShards)
 
 	for idx := uint32(0); idx < noOfShards; idx++ {
 		identifierScr := factory.RewardsTransactionTopic + shardC.CommunicationIdentifier(idx)

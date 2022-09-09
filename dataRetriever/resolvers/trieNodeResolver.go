@@ -6,7 +6,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/batch"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/p2p"
 )
 
 var _ dataRetriever.Resolver = (*TrieNodeResolver)(nil)
@@ -59,7 +58,7 @@ func checkArgTrieNodeResolver(arg ArgTrieNodeResolver) error {
 
 // ProcessReceivedMessage will be the callback func from the p2p.Messenger and will be called each time a new message was received
 // (for the topic this validator was registered to, usually a request topic)
-func (tnRes *TrieNodeResolver) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
+func (tnRes *TrieNodeResolver) ProcessReceivedMessage(message core.MessageP2P, fromConnectedPeer core.PeerID) error {
 	err := tnRes.canProcessMessage(message, fromConnectedPeer)
 	if err != nil {
 		return err
@@ -83,7 +82,7 @@ func (tnRes *TrieNodeResolver) ProcessReceivedMessage(message p2p.MessageP2P, fr
 	}
 }
 
-func (tnRes *TrieNodeResolver) resolveMultipleHashes(hashesBuff []byte, message p2p.MessageP2P) error {
+func (tnRes *TrieNodeResolver) resolveMultipleHashes(hashesBuff []byte, message core.MessageP2P) error {
 	b := batch.Batch{}
 	err := tnRes.marshalizer.Unmarshal(&b, hashesBuff)
 	if err != nil {
@@ -167,7 +166,7 @@ func convertMapToSlice(m map[string]struct{}) [][]byte {
 	return buff
 }
 
-func (tnRes *TrieNodeResolver) resolveOneHash(hash []byte, chunkIndex uint32, message p2p.MessageP2P) error {
+func (tnRes *TrieNodeResolver) resolveOneHash(hash []byte, chunkIndex uint32, message core.MessageP2P) error {
 	serializedNode, err := tnRes.trieDataGetter.GetSerializedNode(hash)
 	if err != nil {
 		return err
@@ -197,7 +196,7 @@ func (tnRes *TrieNodeResolver) sendResponse(
 	serializedNodes [][]byte,
 	hashes [][]byte,
 	chunkIndex uint32,
-	message p2p.MessageP2P,
+	message core.MessageP2P,
 ) error {
 
 	if len(serializedNodes) == 0 {
@@ -221,7 +220,7 @@ func (tnRes *TrieNodeResolver) sendLargeMessage(
 	largeBuff []byte,
 	reference []byte,
 	chunkIndex int,
-	message p2p.MessageP2P,
+	message core.MessageP2P,
 ) error {
 
 	logTrieNodes.Trace("assembling chunk", "reference", reference, "len", len(largeBuff))

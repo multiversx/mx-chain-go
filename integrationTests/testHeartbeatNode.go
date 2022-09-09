@@ -127,7 +127,7 @@ func NewTestHeartbeatNode(
 
 			return keys, nil
 		},
-		GetValidatorWithPublicKeyCalled: func(publicKey []byte) (nodesCoordinator.Validator, uint32, error) {
+		GetValidatorWithPublicKeyCalled: func(publicKey []byte) (core.Validator, uint32, error) {
 			validator, _ := nodesCoordinator.NewValidator(publicKey, defaultChancesSelection, 1)
 			return validator, 0, nil
 		},
@@ -288,7 +288,7 @@ func CreateNodesWithTestHeartbeatNode(
 			ConsensusGroupCache:        cache,
 			Shuffler:                   &shardingMocks.NodeShufflerMock{},
 			BootStorer:                 CreateMemUnit(),
-			WaitingNodes:               make(map[uint32][]nodesCoordinator.Validator),
+			WaitingNodes:               make(map[uint32][]core.Validator),
 			Epoch:                      0,
 			EpochStartNotifier:         notifier.NewEpochStartSubscriptionHandler(),
 			ShuffledOutHandler:         &mock.ShuffledOutHandlerStub{},
@@ -333,7 +333,7 @@ func CreateNodesWithTestHeartbeatNode(
 				ConsensusGroupCache:        cache,
 				Shuffler:                   &shardingMocks.NodeShufflerMock{},
 				BootStorer:                 CreateMemUnit(),
-				WaitingNodes:               make(map[uint32][]nodesCoordinator.Validator),
+				WaitingNodes:               make(map[uint32][]core.Validator),
 				Epoch:                      0,
 				EpochStartNotifier:         notifier.NewEpochStartSubscriptionHandler(),
 				ShuffledOutHandler:         &mock.ShuffledOutHandlerStub{},

@@ -1,16 +1,16 @@
 package epochNotifier
 
 import (
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go/epochStart"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // EpochNotifierStub -
 type EpochNotifierStub struct {
 	NewEpochCalled              func(epoch uint32, timestamp uint64)
-	RegisterHandlerCalled       func(handler epochStart.ActionHandler)
+	RegisterHandlerCalled       func(handler core.EpochStartActionHandler)
 	CheckEpochCalled            func(header data.HeaderHandler)
 	CurrentEpochCalled          func() uint32
 	RegisterNotifyHandlerCalled func(handler vmcommon.EpochSubscriberHandler)
@@ -24,7 +24,7 @@ func (ens *EpochNotifierStub) NewEpoch(epoch uint32, timestamp uint64) {
 }
 
 // RegisterHandler -
-func (ens *EpochNotifierStub) RegisterHandler(handler epochStart.ActionHandler) {
+func (ens *EpochNotifierStub) RegisterHandler(handler core.EpochStartActionHandler) {
 	if ens.RegisterHandlerCalled != nil {
 		ens.RegisterHandlerCalled(handler)
 	}

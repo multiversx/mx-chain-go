@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
@@ -567,8 +568,8 @@ func TestSCQueryService_ShouldFailIfNodeIsNotSynced(t *testing.T) {
 
 	args := createMockArgumentsForSCQuery()
 	args.Bootstrapper = &mock.BootstrapperStub{
-		GetNodeStateCalled: func() common.NodeState {
-			return common.NsNotSynchronized
+		GetNodeStateCalled: func() core.NodeState {
+			return core.NsNotSynchronized
 		},
 	}
 
@@ -588,8 +589,8 @@ func TestSCQueryService_ShouldWorkIfNodeIsSynced(t *testing.T) {
 
 	args := createMockArgumentsForSCQuery()
 	args.Bootstrapper = &mock.BootstrapperStub{
-		GetNodeStateCalled: func() common.NodeState {
-			return common.NsSynchronized
+		GetNodeStateCalled: func() core.NodeState {
+			return core.NsSynchronized
 		},
 	}
 

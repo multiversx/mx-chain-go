@@ -789,7 +789,7 @@ func TestMetaBootstrap_GetNodeStateShouldReturnSynchronizedWhenCurrentBlockIsNil
 	assert.Nil(t, err)
 
 	bs.ComputeNodeState()
-	assert.Equal(t, common.NsSynchronized, bs.GetNodeState())
+	assert.Equal(t, core.NsSynchronized, bs.GetNodeState())
 }
 
 func TestMetaBootstrap_GetNodeStateShouldReturnNotSynchronizedWhenCurrentBlockIsNilAndRoundIndexIsGreaterThanZero(t *testing.T) {
@@ -813,7 +813,7 @@ func TestMetaBootstrap_GetNodeStateShouldReturnNotSynchronizedWhenCurrentBlockIs
 	bs, _ := sync.NewMetaBootstrap(args)
 	bs.ComputeNodeState()
 
-	assert.Equal(t, common.NsNotSynchronized, bs.GetNodeState())
+	assert.Equal(t, core.NsNotSynchronized, bs.GetNodeState())
 }
 
 func TestMetaBootstrap_GetNodeStateShouldReturnSynchronizedWhenNodeIsSynced(t *testing.T) {
@@ -845,7 +845,7 @@ func TestMetaBootstrap_GetNodeStateShouldReturnSynchronizedWhenNodeIsSynced(t *t
 	bs, _ := sync.NewMetaBootstrap(args)
 	bs.ComputeNodeState()
 
-	assert.Equal(t, common.NsSynchronized, bs.GetNodeState())
+	assert.Equal(t, core.NsSynchronized, bs.GetNodeState())
 }
 
 func TestMetaBootstrap_GetNodeStateShouldReturnNotSynchronizedWhenNodeIsNotSynced(t *testing.T) {
@@ -877,7 +877,7 @@ func TestMetaBootstrap_GetNodeStateShouldReturnNotSynchronizedWhenNodeIsNotSynce
 	bs, _ := sync.NewMetaBootstrap(args)
 	bs.ComputeNodeState()
 
-	assert.Equal(t, common.NsNotSynchronized, bs.GetNodeState())
+	assert.Equal(t, core.NsNotSynchronized, bs.GetNodeState())
 }
 
 func TestMetaBootstrap_GetNodeStateShouldReturnNotSynchronizedWhenForkIsDetectedAndItReceivesTheSameWrongHeader(t *testing.T) {
@@ -927,21 +927,21 @@ func TestMetaBootstrap_GetNodeStateShouldReturnNotSynchronizedWhenForkIsDetected
 
 	bs, _ := sync.NewMetaBootstrap(args)
 
-	_ = args.ForkDetector.AddHeader(&hdr1, hash1, process.BHProcessed, nil, nil)
-	_ = args.ForkDetector.AddHeader(&hdr2, hash2, process.BHReceived, nil, nil)
+	_ = args.ForkDetector.AddHeader(&hdr1, hash1, core.BHProcessed, nil, nil)
+	_ = args.ForkDetector.AddHeader(&hdr2, hash2, core.BHReceived, nil, nil)
 
 	bs.ComputeNodeState()
-	assert.Equal(t, common.NsNotSynchronized, bs.GetNodeState())
+	assert.Equal(t, core.NsNotSynchronized, bs.GetNodeState())
 	assert.True(t, bs.IsForkDetected())
 
-	if bs.GetNodeState() == common.NsNotSynchronized && bs.IsForkDetected() {
+	if bs.GetNodeState() == core.NsNotSynchronized && bs.IsForkDetected() {
 		args.ForkDetector.RemoveHeader(hdr1.GetNonce(), hash1)
 		bs.ReceivedHeaders(&hdr1, hash1)
-		_ = args.ForkDetector.AddHeader(&hdr1, hash1, process.BHProcessed, nil, nil)
+		_ = args.ForkDetector.AddHeader(&hdr1, hash1, core.BHProcessed, nil, nil)
 	}
 
 	bs.ComputeNodeState()
-	assert.Equal(t, common.NsNotSynchronized, bs.GetNodeState())
+	assert.Equal(t, core.NsNotSynchronized, bs.GetNodeState())
 	assert.True(t, bs.IsForkDetected())
 }
 
@@ -992,24 +992,24 @@ func TestMetaBootstrap_GetNodeStateShouldReturnSynchronizedWhenForkIsDetectedAnd
 
 	bs, _ := sync.NewMetaBootstrap(args)
 
-	_ = args.ForkDetector.AddHeader(&hdr1, hash1, process.BHProcessed, nil, nil)
-	_ = args.ForkDetector.AddHeader(&hdr2, hash2, process.BHReceived, nil, nil)
+	_ = args.ForkDetector.AddHeader(&hdr1, hash1, core.BHProcessed, nil, nil)
+	_ = args.ForkDetector.AddHeader(&hdr2, hash2, core.BHReceived, nil, nil)
 
 	bs.ComputeNodeState()
-	assert.Equal(t, common.NsNotSynchronized, bs.GetNodeState())
+	assert.Equal(t, core.NsNotSynchronized, bs.GetNodeState())
 	assert.True(t, bs.IsForkDetected())
 
-	if bs.GetNodeState() == common.NsNotSynchronized && bs.IsForkDetected() {
+	if bs.GetNodeState() == core.NsNotSynchronized && bs.IsForkDetected() {
 		args.ForkDetector.RemoveHeader(hdr1.GetNonce(), hash1)
 		bs.ReceivedHeaders(&hdr2, hash2)
-		_ = args.ForkDetector.AddHeader(&hdr2, hash2, process.BHProcessed, nil, nil)
+		_ = args.ForkDetector.AddHeader(&hdr2, hash2, core.BHProcessed, nil, nil)
 		bs.SetNodeStateCalculated(false)
 	}
 
 	time.Sleep(500 * time.Millisecond)
 
 	bs.ComputeNodeState()
-	assert.Equal(t, common.NsSynchronized, bs.GetNodeState())
+	assert.Equal(t, core.NsSynchronized, bs.GetNodeState())
 	assert.False(t, bs.IsForkDetected())
 }
 
@@ -1107,8 +1107,8 @@ func TestMetaBootstrap_ReceivedHeadersFoundInPoolShouldAddToForkDetector(t *test
 	wasAdded := false
 
 	forkDetector := &mock.ForkDetectorMock{}
-	forkDetector.AddHeaderCalled = func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, selfNotarizedHeaders []data.HeaderHandler, selfNotarizedHeadersHashes [][]byte) error {
-		if state == process.BHProcessed {
+	forkDetector.AddHeaderCalled = func(header data.HeaderHandler, hash []byte, state core.BlockHeaderState, selfNotarizedHeaders []data.HeaderHandler, selfNotarizedHeadersHashes [][]byte) error {
+		if state == core.BHProcessed {
 			return errors.New("processed")
 		}
 
@@ -1151,8 +1151,8 @@ func TestMetaBootstrap_ReceivedHeadersNotFoundInPoolShouldNotAddToForkDetector(t
 	wasAdded := false
 
 	forkDetector := &mock.ForkDetectorMock{}
-	forkDetector.AddHeaderCalled = func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, selfNotarizedHeaders []data.HeaderHandler, selfNotarizedHeadersHashes [][]byte) error {
-		if state == process.BHProcessed {
+	forkDetector.AddHeaderCalled = func(header data.HeaderHandler, hash []byte, state core.BlockHeaderState, selfNotarizedHeaders []data.HeaderHandler, selfNotarizedHeadersHashes [][]byte) error {
+		if state == core.BHProcessed {
 			return errors.New("processed")
 		}
 

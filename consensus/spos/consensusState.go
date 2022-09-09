@@ -8,7 +8,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 )
 
 var log = logger.GetOrCreate("consensus/spos")
@@ -129,7 +128,7 @@ func (cns *ConsensusState) GetNextConsensusGroup(
 	randomSource []byte,
 	round uint64,
 	shardId uint32,
-	nodesCoordinator nodesCoordinator.NodesCoordinator,
+	nodesCoordinator consensus.NodesCoordinator,
 	epoch uint32,
 ) ([]string, error) {
 	validatorsGroup, err := nodesCoordinator.ComputeConsensusGroup(randomSource, round, shardId, epoch)

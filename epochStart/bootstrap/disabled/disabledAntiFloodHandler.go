@@ -5,7 +5,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
@@ -20,7 +19,7 @@ func NewAntiFloodHandler() *antiFloodHandler {
 }
 
 // CanProcessMessage returns nil regardless of the input
-func (a *antiFloodHandler) CanProcessMessage(_ p2p.MessageP2P, _ core.PeerID) error {
+func (a *antiFloodHandler) CanProcessMessage(_ core.MessageP2P, _ core.PeerID) error {
 	return nil
 }
 

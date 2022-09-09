@@ -439,7 +439,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateComputeValidatorErrShouldEr
 
 	arguments := createMockArguments()
 	arguments.NodesCoordinator = &shardingMocks.NodesCoordinatorMock{
-		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []nodesCoordinator.Validator, err error) {
+		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []core.Validator, err error) {
 			return nil, computeValidatorsErr
 		},
 	}
@@ -465,8 +465,8 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateGetExistingAccountErr(t *te
 
 	arguments := createMockArguments()
 	arguments.NodesCoordinator = &shardingMocks.NodesCoordinatorMock{
-		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []nodesCoordinator.Validator, err error) {
-			return []nodesCoordinator.Validator{&shardingMocks.ValidatorMock{}}, nil
+		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []core.Validator, err error) {
+			return []core.Validator{&shardingMocks.ValidatorMock{}}, nil
 		},
 	}
 	arguments.PeerAdapter = adapter
@@ -490,8 +490,8 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateGetExistingAccountInvalidTy
 
 	arguments := createMockArguments()
 	arguments.NodesCoordinator = &shardingMocks.NodesCoordinatorMock{
-		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []nodesCoordinator.Validator, err error) {
-			return []nodesCoordinator.Validator{&shardingMocks.ValidatorMock{}}, nil
+		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []core.Validator, err error) {
+			return []core.Validator{&shardingMocks.ValidatorMock{}}, nil
 		},
 	}
 	arguments.PeerAdapter = adapter
@@ -534,8 +534,8 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateGetHeaderError(t *testing.T
 		},
 	}
 	arguments.NodesCoordinator = &shardingMocks.NodesCoordinatorMock{
-		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []nodesCoordinator.Validator, err error) {
-			return []nodesCoordinator.Validator{&shardingMocks.ValidatorMock{}, &shardingMocks.ValidatorMock{}}, nil
+		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []core.Validator, err error) {
+			return []core.Validator{&shardingMocks.ValidatorMock{}, &shardingMocks.ValidatorMock{}}, nil
 		},
 	}
 	arguments.ShardCoordinator = shardCoordinatorMock
@@ -590,8 +590,8 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateCallsIncrease(t *testing.T)
 		},
 	}
 	arguments.NodesCoordinator = &shardingMocks.NodesCoordinatorMock{
-		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []nodesCoordinator.Validator, err error) {
-			return []nodesCoordinator.Validator{&shardingMocks.ValidatorMock{}, &shardingMocks.ValidatorMock{}}, nil
+		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []core.Validator, err error) {
+			return []core.Validator{&shardingMocks.ValidatorMock{}, &shardingMocks.ValidatorMock{}}, nil
 		},
 	}
 	arguments.ShardCoordinator = shardCoordinatorMock
@@ -637,7 +637,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateCallsIncrease(t *testing.T)
 func TestValidatorStatisticsProcessor_UpdatePeerState_IncreasesConsensusPreviousMetaBlock_SameEpoch(t *testing.T) {
 	t.Parallel()
 
-	consensusGroup := make(map[string][]nodesCoordinator.Validator)
+	consensusGroup := make(map[string][]core.Validator)
 
 	arguments := createUpdateTestArgs(consensusGroup)
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
@@ -654,11 +654,11 @@ func TestValidatorStatisticsProcessor_UpdatePeerState_IncreasesConsensusPrevious
 	v4 := shardingMocks.NewValidatorMock([]byte("pk4"), 1, 1)
 
 	prevHeaderConsensusKey := fmt.Sprintf(consensusGroupFormat, prevHeader.PrevRandSeed, prevHeader.Round, prevHeader.GetShardID(), prevHeader.Epoch)
-	prevHeaderConsensus := []nodesCoordinator.Validator{v1, v2}
+	prevHeaderConsensus := []core.Validator{v1, v2}
 	consensusGroup[prevHeaderConsensusKey] = prevHeaderConsensus
 
 	currentHeaderConsensusKey := fmt.Sprintf(consensusGroupFormat, header.PrevRandSeed, header.Round, header.GetShardID(), header.Epoch)
-	currentHeaderConsensus := []nodesCoordinator.Validator{v3, v4}
+	currentHeaderConsensus := []core.Validator{v3, v4}
 	consensusGroup[currentHeaderConsensusKey] = currentHeaderConsensus
 
 	_, err := validatorStatistics.UpdatePeerState(header, cache)
@@ -676,7 +676,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerState_IncreasesConsensusPrevious
 func TestValidatorStatisticsProcessor_UpdatePeerState_IncreasesIgnoredSignatures_SameEpoch(t *testing.T) {
 	t.Parallel()
 
-	consensusGroup := make(map[string][]nodesCoordinator.Validator)
+	consensusGroup := make(map[string][]core.Validator)
 
 	arguments := createUpdateTestArgs(consensusGroup)
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
@@ -693,11 +693,11 @@ func TestValidatorStatisticsProcessor_UpdatePeerState_IncreasesIgnoredSignatures
 	v4 := shardingMocks.NewValidatorMock([]byte("pk4"), 1, 1)
 
 	prevHeaderConsensusKey := fmt.Sprintf(consensusGroupFormat, prevHeader.PrevRandSeed, prevHeader.Round, prevHeader.GetShardID(), prevHeader.Epoch)
-	prevHeaderConsensus := []nodesCoordinator.Validator{v1, v2, v3}
+	prevHeaderConsensus := []core.Validator{v1, v2, v3}
 	consensusGroup[prevHeaderConsensusKey] = prevHeaderConsensus
 
 	currentHeaderConsensusKey := fmt.Sprintf(consensusGroupFormat, header.PrevRandSeed, header.Round, header.GetShardID(), header.Epoch)
-	currentHeaderConsensus := []nodesCoordinator.Validator{v3, v4, v1}
+	currentHeaderConsensus := []core.Validator{v3, v4, v1}
 	consensusGroup[currentHeaderConsensusKey] = currentHeaderConsensus
 
 	_, err := validatorStatistics.UpdatePeerState(header, cache)
@@ -759,7 +759,7 @@ func generateTestShardBlockHeaders(cache map[string]data.HeaderHandler) (*block.
 func TestValidatorStatisticsProcessor_UpdatePeerState_DecreasesMissedMetaBlock_SameEpoch(t *testing.T) {
 	t.Parallel()
 
-	consensusGroup := make(map[string][]nodesCoordinator.Validator)
+	consensusGroup := make(map[string][]core.Validator)
 
 	arguments := createUpdateTestArgs(consensusGroup)
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
@@ -777,15 +777,15 @@ func TestValidatorStatisticsProcessor_UpdatePeerState_DecreasesMissedMetaBlock_S
 	v4 := shardingMocks.NewValidatorMock([]byte("pk4"), 1, 1)
 
 	prevHeaderConsensusKey := fmt.Sprintf(consensusGroupFormat, prevHeader.PrevRandSeed, prevHeader.Round, prevHeader.GetShardID(), prevHeader.Epoch)
-	prevHeaderConsensus := []nodesCoordinator.Validator{v1, v2}
+	prevHeaderConsensus := []core.Validator{v1, v2}
 	consensusGroup[prevHeaderConsensusKey] = prevHeaderConsensus
 
 	missedHeaderConsensusKey := fmt.Sprintf(consensusGroupFormat, prevHeader.RandSeed, prevHeader.Round+1, prevHeader.GetShardID(), prevHeader.Epoch)
-	missedHeaderConsensus := []nodesCoordinator.Validator{v2, v3}
+	missedHeaderConsensus := []core.Validator{v2, v3}
 	consensusGroup[missedHeaderConsensusKey] = missedHeaderConsensus
 
 	currentHeaderConsensusKey := fmt.Sprintf(consensusGroupFormat, header.PrevRandSeed, header.Round, header.GetShardID(), header.Epoch)
-	currentHeaderConsensus := []nodesCoordinator.Validator{v3, v4}
+	currentHeaderConsensus := []core.Validator{v3, v4}
 	consensusGroup[currentHeaderConsensusKey] = currentHeaderConsensus
 
 	_, err := validatorStatistics.UpdatePeerState(header, cache)
@@ -803,7 +803,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerState_DecreasesMissedMetaBlock_S
 func TestValidatorStatisticsProcessor_UpdatePeerState_IncreasesConsensusPreviousMetaBlock_StartOfEpoch(t *testing.T) {
 	t.Parallel()
 
-	consensusGroup := make(map[string][]nodesCoordinator.Validator)
+	consensusGroup := make(map[string][]core.Validator)
 
 	arguments := createUpdateTestArgs(consensusGroup)
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
@@ -821,11 +821,11 @@ func TestValidatorStatisticsProcessor_UpdatePeerState_IncreasesConsensusPrevious
 	v4 := shardingMocks.NewValidatorMock([]byte("pk4"), 1, 1)
 
 	prevHeaderConsensusKey := fmt.Sprintf(consensusGroupFormat, prevHeader.PrevRandSeed, prevHeader.Round, prevHeader.GetShardID(), prevHeader.Epoch)
-	prevHeaderConsensus := []nodesCoordinator.Validator{v1, v2}
+	prevHeaderConsensus := []core.Validator{v1, v2}
 	consensusGroup[prevHeaderConsensusKey] = prevHeaderConsensus
 
 	currentHeaderConsensusKey := fmt.Sprintf(consensusGroupFormat, header.PrevRandSeed, header.Round, header.GetShardID(), header.Epoch-1)
-	currentHeaderConsensus := []nodesCoordinator.Validator{v3, v4}
+	currentHeaderConsensus := []core.Validator{v3, v4}
 	consensusGroup[currentHeaderConsensusKey] = currentHeaderConsensus
 
 	_, err := validatorStatistics.UpdatePeerState(header, cache)
@@ -843,7 +843,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerState_IncreasesConsensusPrevious
 func TestValidatorStatisticsProcessor_UpdatePeerState_DecreasesMissedMetaBlock_StartOfEpoch(t *testing.T) {
 	t.Parallel()
 
-	consensusGroup := make(map[string][]nodesCoordinator.Validator)
+	consensusGroup := make(map[string][]core.Validator)
 
 	arguments := createUpdateTestArgs(consensusGroup)
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
@@ -862,15 +862,15 @@ func TestValidatorStatisticsProcessor_UpdatePeerState_DecreasesMissedMetaBlock_S
 	v4 := shardingMocks.NewValidatorMock([]byte("pk4"), 1, 1)
 
 	prevHeaderConsensusKey := fmt.Sprintf(consensusGroupFormat, prevHeader.PrevRandSeed, prevHeader.Round, prevHeader.GetShardID(), prevHeader.Epoch)
-	prevHeaderConsensus := []nodesCoordinator.Validator{v1, v2}
+	prevHeaderConsensus := []core.Validator{v1, v2}
 	consensusGroup[prevHeaderConsensusKey] = prevHeaderConsensus
 
 	missedHeaderConsensusKey := fmt.Sprintf(consensusGroupFormat, prevHeader.RandSeed, prevHeader.Round+1, prevHeader.GetShardID(), prevHeader.Epoch)
-	missedHeaderConsensus := []nodesCoordinator.Validator{v2, v3}
+	missedHeaderConsensus := []core.Validator{v2, v3}
 	consensusGroup[missedHeaderConsensusKey] = missedHeaderConsensus
 
 	currentHeaderConsensusKey := fmt.Sprintf(consensusGroupFormat, header.PrevRandSeed, header.Round, header.GetShardID(), header.Epoch-1)
-	currentHeaderConsensus := []nodesCoordinator.Validator{v3, v4}
+	currentHeaderConsensus := []core.Validator{v3, v4}
 	consensusGroup[currentHeaderConsensusKey] = currentHeaderConsensus
 
 	_, err := validatorStatistics.UpdatePeerState(header, cache)
@@ -888,7 +888,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerState_DecreasesMissedMetaBlock_S
 func TestValidatorStatisticsProcessor_UpdatePeerState_IncreasesConsensusPreviousMetaBlock_PrevStartOfEpoch(t *testing.T) {
 	t.Parallel()
 
-	consensusGroup := make(map[string][]nodesCoordinator.Validator)
+	consensusGroup := make(map[string][]core.Validator)
 
 	arguments := createUpdateTestArgs(consensusGroup)
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
@@ -908,11 +908,11 @@ func TestValidatorStatisticsProcessor_UpdatePeerState_IncreasesConsensusPrevious
 	v4 := shardingMocks.NewValidatorMock([]byte("pk4"), 1, 1)
 
 	prevHeaderConsensusKey := fmt.Sprintf(consensusGroupFormat, prevHeader.PrevRandSeed, prevHeader.Round, prevHeader.GetShardID(), prevHeader.Epoch-1)
-	prevHeaderConsensus := []nodesCoordinator.Validator{v1, v2}
+	prevHeaderConsensus := []core.Validator{v1, v2}
 	consensusGroup[prevHeaderConsensusKey] = prevHeaderConsensus
 
 	currentHeaderConsensusKey := fmt.Sprintf(consensusGroupFormat, header.PrevRandSeed, header.Round, header.GetShardID(), header.Epoch)
-	currentHeaderConsensus := []nodesCoordinator.Validator{v3, v4}
+	currentHeaderConsensus := []core.Validator{v3, v4}
 	consensusGroup[currentHeaderConsensusKey] = currentHeaderConsensus
 
 	_, err := validatorStatistics.UpdatePeerState(header, cache)
@@ -930,7 +930,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerState_IncreasesConsensusPrevious
 func TestValidatorStatisticsProcessor_UpdatePeerState_DecreasesMissedMetaBlock_PrevStartOfEpoch(t *testing.T) {
 	t.Parallel()
 
-	consensusGroup := make(map[string][]nodesCoordinator.Validator)
+	consensusGroup := make(map[string][]core.Validator)
 
 	arguments := createUpdateTestArgs(consensusGroup)
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
@@ -950,15 +950,15 @@ func TestValidatorStatisticsProcessor_UpdatePeerState_DecreasesMissedMetaBlock_P
 	v4 := shardingMocks.NewValidatorMock([]byte("pk4"), 1, 1)
 
 	prevHeaderConsensusKey := fmt.Sprintf(consensusGroupFormat, prevHeader.PrevRandSeed, prevHeader.Round, prevHeader.GetShardID(), prevHeader.Epoch-1)
-	prevHeaderConsensus := []nodesCoordinator.Validator{v1, v2}
+	prevHeaderConsensus := []core.Validator{v1, v2}
 	consensusGroup[prevHeaderConsensusKey] = prevHeaderConsensus
 
 	missedHeaderConsensusKey := fmt.Sprintf(consensusGroupFormat, prevHeader.RandSeed, prevHeader.Round+1, prevHeader.GetShardID(), prevHeader.Epoch)
-	missedHeaderConsensus := []nodesCoordinator.Validator{v2, v3}
+	missedHeaderConsensus := []core.Validator{v2, v3}
 	consensusGroup[missedHeaderConsensusKey] = missedHeaderConsensus
 
 	currentHeaderConsensusKey := fmt.Sprintf(consensusGroupFormat, header.PrevRandSeed, header.Round, header.GetShardID(), header.Epoch)
-	currentHeaderConsensus := []nodesCoordinator.Validator{v3, v4}
+	currentHeaderConsensus := []core.Validator{v3, v4}
 	consensusGroup[currentHeaderConsensusKey] = currentHeaderConsensus
 
 	_, err := validatorStatistics.UpdatePeerState(header, cache)
@@ -976,7 +976,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerState_DecreasesMissedMetaBlock_P
 func TestValidatorStatisticsProcessor_UpdateShardDataPeerState_IncreasesConsensusCurrentShardBlock_SameEpoch(t *testing.T) {
 	t.Parallel()
 
-	consensusGroup := make(map[string][]nodesCoordinator.Validator)
+	consensusGroup := make(map[string][]core.Validator)
 
 	arguments := createUpdateTestArgs(consensusGroup)
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
@@ -1011,11 +1011,11 @@ func TestValidatorStatisticsProcessor_UpdateShardDataPeerState_IncreasesConsensu
 	v4 := shardingMocks.NewValidatorMock([]byte("pk4"), 1, 1)
 
 	prevHeaderConsensusKey := fmt.Sprintf(consensusGroupFormat, prevHeader.PrevRandSeed, prevHeader.Round, prevHeader.GetShardID(), prevHeader.Epoch)
-	prevHeaderConsensus := []nodesCoordinator.Validator{v1, v2}
+	prevHeaderConsensus := []core.Validator{v1, v2}
 	consensusGroup[prevHeaderConsensusKey] = prevHeaderConsensus
 
 	currentHeaderConsensusKey := fmt.Sprintf(consensusGroupFormat, header.PrevRandSeed, header.Round, header.GetShardID(), header.Epoch)
-	currentHeaderConsensus := []nodesCoordinator.Validator{v3, v4}
+	currentHeaderConsensus := []core.Validator{v3, v4}
 	consensusGroup[currentHeaderConsensusKey] = currentHeaderConsensus
 
 	err := validatorStatistics.UpdateShardDataPeerState(metaHeader, cache)
@@ -1033,7 +1033,7 @@ func TestValidatorStatisticsProcessor_UpdateShardDataPeerState_IncreasesConsensu
 func TestValidatorStatisticsProcessor_UpdateShardDataPeerState_DecreasesMissedShardBlock_SameEpoch(t *testing.T) {
 	t.Parallel()
 
-	consensusGroup := make(map[string][]nodesCoordinator.Validator)
+	consensusGroup := make(map[string][]core.Validator)
 
 	arguments := createUpdateTestArgs(consensusGroup)
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
@@ -1068,15 +1068,15 @@ func TestValidatorStatisticsProcessor_UpdateShardDataPeerState_DecreasesMissedSh
 	v4 := shardingMocks.NewValidatorMock([]byte("pk4"), 1, 1)
 
 	prevHeaderConsensusKey := fmt.Sprintf(consensusGroupFormat, prevHeader.PrevRandSeed, prevHeader.Round, prevHeader.GetShardID(), prevHeader.Epoch)
-	prevHeaderConsensus := []nodesCoordinator.Validator{v1, v2}
+	prevHeaderConsensus := []core.Validator{v1, v2}
 	consensusGroup[prevHeaderConsensusKey] = prevHeaderConsensus
 
 	missedHeaderConsensusKey := fmt.Sprintf(consensusGroupFormat, prevHeader.RandSeed, prevHeader.Round+1, prevHeader.GetShardID(), prevHeader.Epoch)
-	missedHeaderConsensus := []nodesCoordinator.Validator{v2, v3}
+	missedHeaderConsensus := []core.Validator{v2, v3}
 	consensusGroup[missedHeaderConsensusKey] = missedHeaderConsensus
 
 	currentHeaderConsensusKey := fmt.Sprintf(consensusGroupFormat, header.PrevRandSeed, header.Round, header.GetShardID(), header.Epoch)
-	currentHeaderConsensus := []nodesCoordinator.Validator{v3, v4}
+	currentHeaderConsensus := []core.Validator{v3, v4}
 	consensusGroup[currentHeaderConsensusKey] = currentHeaderConsensus
 
 	err := validatorStatistics.UpdateShardDataPeerState(metaHeader, cache)
@@ -1097,7 +1097,7 @@ func TestValidatorStatisticsProcessor_UpdateShardDataPeerState_DecreasesMissedSh
 func TestValidatorStatisticsProcessor_UpdateShardDataPeerState_IncreasesConsensusShardBlock_StartOfEpoch(t *testing.T) {
 	t.Parallel()
 
-	consensusGroup := make(map[string][]nodesCoordinator.Validator)
+	consensusGroup := make(map[string][]core.Validator)
 
 	arguments := createUpdateTestArgs(consensusGroup)
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
@@ -1133,11 +1133,11 @@ func TestValidatorStatisticsProcessor_UpdateShardDataPeerState_IncreasesConsensu
 	v4 := shardingMocks.NewValidatorMock([]byte("pk4"), 1, 1)
 
 	prevHeaderConsensusKey := fmt.Sprintf(consensusGroupFormat, prevHeader.PrevRandSeed, prevHeader.Round, prevHeader.GetShardID(), prevHeader.Epoch)
-	prevHeaderConsensus := []nodesCoordinator.Validator{v1, v2}
+	prevHeaderConsensus := []core.Validator{v1, v2}
 	consensusGroup[prevHeaderConsensusKey] = prevHeaderConsensus
 
 	currentHeaderConsensusKey := fmt.Sprintf(consensusGroupFormat, header.PrevRandSeed, header.Round, header.GetShardID(), header.Epoch-1)
-	currentHeaderConsensus := []nodesCoordinator.Validator{v3, v4}
+	currentHeaderConsensus := []core.Validator{v3, v4}
 	consensusGroup[currentHeaderConsensusKey] = currentHeaderConsensus
 
 	err := validatorStatistics.UpdateShardDataPeerState(metaHeader, cache)
@@ -1158,7 +1158,7 @@ func TestValidatorStatisticsProcessor_UpdateShardDataPeerState_IncreasesConsensu
 func TestValidatorStatisticsProcessor_UpdateShardDataPeerState_DecreasesMissedShardBlock_StartOfEpoch(t *testing.T) {
 	t.Parallel()
 
-	consensusGroup := make(map[string][]nodesCoordinator.Validator)
+	consensusGroup := make(map[string][]core.Validator)
 
 	arguments := createUpdateTestArgs(consensusGroup)
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
@@ -1193,15 +1193,15 @@ func TestValidatorStatisticsProcessor_UpdateShardDataPeerState_DecreasesMissedSh
 	v4 := shardingMocks.NewValidatorMock([]byte("pk4"), 1, 1)
 
 	prevHeaderConsensusKey := fmt.Sprintf(consensusGroupFormat, prevHeader.PrevRandSeed, prevHeader.Round, prevHeader.GetShardID(), prevHeader.Epoch)
-	prevHeaderConsensus := []nodesCoordinator.Validator{v1, v2}
+	prevHeaderConsensus := []core.Validator{v1, v2}
 	consensusGroup[prevHeaderConsensusKey] = prevHeaderConsensus
 
 	missedHeaderConsensusKey := fmt.Sprintf(consensusGroupFormat, prevHeader.RandSeed, prevHeader.Round+1, prevHeader.GetShardID(), prevHeader.Epoch)
-	missedHeaderConsensus := []nodesCoordinator.Validator{v2, v3}
+	missedHeaderConsensus := []core.Validator{v2, v3}
 	consensusGroup[missedHeaderConsensusKey] = missedHeaderConsensus
 
 	currentHeaderConsensusKey := fmt.Sprintf(consensusGroupFormat, header.PrevRandSeed, header.Round, header.GetShardID(), header.Epoch)
-	currentHeaderConsensus := []nodesCoordinator.Validator{v3, v4}
+	currentHeaderConsensus := []core.Validator{v3, v4}
 	consensusGroup[currentHeaderConsensusKey] = currentHeaderConsensus
 
 	err := validatorStatistics.UpdateShardDataPeerState(metaHeader, cache)
@@ -1262,8 +1262,8 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateCheckForMissedBlocksErr(t *
 		},
 	}
 	arguments.NodesCoordinator = &shardingMocks.NodesCoordinatorMock{
-		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []nodesCoordinator.Validator, err error) {
-			return []nodesCoordinator.Validator{&shardingMocks.ValidatorMock{}, &shardingMocks.ValidatorMock{}}, nil
+		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []core.Validator, err error) {
+			return []core.Validator{&shardingMocks.ValidatorMock{}, &shardingMocks.ValidatorMock{}}, nil
 		},
 	}
 	arguments.ShardCoordinator = shardCoordinatorMock
@@ -1329,7 +1329,7 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksNoMissedBlocks(t *test
 	arguments.DataPool = dataRetrieverMock.NewPoolsHolderStub()
 	arguments.StorageService = &mock.ChainStorerMock{}
 	arguments.NodesCoordinator = &shardingMocks.NodesCoordinatorMock{
-		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []nodesCoordinator.Validator, err error) {
+		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []core.Validator, err error) {
 			computeValidatorGroupCalled = true
 			return nil, nil
 		},
@@ -1414,7 +1414,7 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksErrOnComputeValidatorL
 	arguments.DataPool = dataRetrieverMock.NewPoolsHolderStub()
 	arguments.StorageService = &mock.ChainStorerMock{}
 	arguments.NodesCoordinator = &shardingMocks.NodesCoordinatorMock{
-		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []nodesCoordinator.Validator, err error) {
+		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []core.Validator, err error) {
 			return nil, computeErr
 		},
 	}
@@ -1442,8 +1442,8 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksErrOnDecrease(t *testi
 
 	arguments := createMockArguments()
 	arguments.NodesCoordinator = &shardingMocks.NodesCoordinatorMock{
-		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []nodesCoordinator.Validator, err error) {
-			return []nodesCoordinator.Validator{
+		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []core.Validator, err error) {
+			return []core.Validator{
 				&shardingMocks.ValidatorMock{},
 			}, nil
 		},
@@ -1476,8 +1476,8 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksCallsDecrease(t *testi
 
 	arguments := createMockArguments()
 	arguments.NodesCoordinator = &shardingMocks.NodesCoordinatorMock{
-		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []nodesCoordinator.Validator, err error) {
-			return []nodesCoordinator.Validator{
+		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []core.Validator, err error) {
+			return []core.Validator{
 				&shardingMocks.ValidatorMock{
 					PubKeyCalled: func() []byte {
 						return pubKey
@@ -1527,15 +1527,15 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksWithRoundDifferenceGre
 
 	arguments := createMockArguments()
 	arguments.NodesCoordinator = &shardingMocks.NodesCoordinatorMock{
-		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, _ uint32) (validatorsGroup []nodesCoordinator.Validator, err error) {
-			return []nodesCoordinator.Validator{
+		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, _ uint32) (validatorsGroup []core.Validator, err error) {
+			return []core.Validator{
 				&shardingMocks.ValidatorMock{},
 			}, nil
 		},
 		GetAllEligibleValidatorsPublicKeysCalled: func(_ uint32) (map[uint32][][]byte, error) {
 			return validatorPublicKeys, nil
 		},
-		GetValidatorWithPublicKeyCalled: func(publicKey []byte) (nodesCoordinator.Validator, uint32, error) {
+		GetValidatorWithPublicKeyCalled: func(publicKey []byte) (core.Validator, uint32, error) {
 			validator, _ := nodesCoordinator.NewValidator(publicKey, defaultChancesSelection, 1)
 			return validator, 0, nil
 		},
@@ -1586,15 +1586,15 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksWithRoundDifferenceGre
 
 	arguments := createMockArguments()
 	arguments.NodesCoordinator = &shardingMocks.NodesCoordinatorMock{
-		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, _ uint32) (validatorsGroup []nodesCoordinator.Validator, err error) {
-			return []nodesCoordinator.Validator{
+		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, _ uint32) (validatorsGroup []core.Validator, err error) {
+			return []core.Validator{
 				&shardingMocks.ValidatorMock{},
 			}, nil
 		},
 		GetAllEligibleValidatorsPublicKeysCalled: func(_ uint32) (map[uint32][][]byte, error) {
 			return validatorPublicKeys, nil
 		},
-		GetValidatorWithPublicKeyCalled: func(publicKey []byte) (nodesCoordinator.Validator, uint32, error) {
+		GetValidatorWithPublicKeyCalled: func(publicKey []byte) (core.Validator, uint32, error) {
 			validator, _ := nodesCoordinator.NewValidator(publicKey, defaultChancesSelection, 1)
 			return validator, 0, nil
 		},
@@ -1745,7 +1745,7 @@ func DoComputeMissingBlocks(
 		validatorPublicKeys[0][i] = []byte(fmt.Sprintf("testpk_%v", i))
 	}
 
-	consensus := make([]nodesCoordinator.Validator, consensusGroupSize)
+	consensus := make([]core.Validator, consensusGroupSize)
 	for i := 0; i < consensusGroupSize; i++ {
 		consensus[i] = &shardingMocks.ValidatorMock{}
 	}
@@ -1787,7 +1787,7 @@ func DoComputeMissingBlocks(
 
 	arguments := createMockArguments()
 	arguments.NodesCoordinator = &shardingMocks.NodesCoordinatorMock{
-		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, _ uint32) (validatorsGroup []nodesCoordinator.Validator, err error) {
+		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, _ uint32) (validatorsGroup []core.Validator, err error) {
 			return consensus, nil
 		},
 		GetAllEligibleValidatorsPublicKeysCalled: func(_ uint32) (map[uint32][][]byte, error) {
@@ -1796,7 +1796,7 @@ func DoComputeMissingBlocks(
 		ConsensusGroupSizeCalled: func(uint32) int {
 			return consensusGroupSize
 		},
-		GetValidatorWithPublicKeyCalled: func(publicKey []byte) (nodesCoordinator.Validator, uint32, error) {
+		GetValidatorWithPublicKeyCalled: func(publicKey []byte) (core.Validator, uint32, error) {
 			validator, _ := nodesCoordinator.NewValidator(publicKey, defaultChancesSelection, 1)
 			return validator, 0, nil
 		},
@@ -1855,8 +1855,8 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateCallsPubKeyForValidator(t *
 	pubKeyCalled := false
 	arguments := createMockArguments()
 	arguments.NodesCoordinator = &shardingMocks.NodesCoordinatorMock{
-		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []nodesCoordinator.Validator, err error) {
-			return []nodesCoordinator.Validator{&shardingMocks.ValidatorMock{
+		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []core.Validator, err error) {
+			return []core.Validator{&shardingMocks.ValidatorMock{
 				PubKeyCalled: func() []byte {
 					pubKeyCalled = true
 					return make([]byte, 0)
@@ -2505,7 +2505,7 @@ func updateArgumentsWithNeeded(arguments peer.ArgValidatorStatisticsProcessor) {
 	arguments.PeerAdapter = peerAdapter
 }
 
-func createUpdateTestArgs(consensusGroup map[string][]nodesCoordinator.Validator) peer.ArgValidatorStatisticsProcessor {
+func createUpdateTestArgs(consensusGroup map[string][]core.Validator) peer.ArgValidatorStatisticsProcessor {
 	peerAccountsMap := make(map[string]state.PeerAccountHandler)
 	arguments := createMockArguments()
 
@@ -2525,7 +2525,7 @@ func createUpdateTestArgs(consensusGroup map[string][]nodesCoordinator.Validator
 	arguments.PeerAdapter = adapter
 
 	arguments.NodesCoordinator = &shardingMocks.NodesCoordinatorMock{
-		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []nodesCoordinator.Validator, err error) {
+		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []core.Validator, err error) {
 			key := fmt.Sprintf(consensusGroupFormat, string(randomness), round, shardId, epoch)
 			validatorsArray, ok := consensusGroup[key]
 			if !ok {

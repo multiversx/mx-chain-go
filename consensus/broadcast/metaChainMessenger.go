@@ -5,10 +5,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
-	"github.com/ElrondNetwork/elrond-go/process/factory"
 )
 
 var _ consensus.BroadcastMessenger = (*metaChainMessenger)(nil)
@@ -39,6 +37,7 @@ func NewMetaChainMessenger(
 		ValidatorCacheSize:    args.MaxValidatorDelayCacheSize,
 		ShardCoordinator:      args.ShardCoordinator,
 		AlarmScheduler:        args.AlarmScheduler,
+		HeadersCache:          args.HeadersCache,
 	}
 
 	dbb, err := NewDelayedBlockBroadcaster(dbbArgs)
@@ -102,8 +101,8 @@ func (mcm *metaChainMessenger) BroadcastBlock(blockBody data.BodyHandler, header
 
 	selfIdentifier := mcm.shardCoordinator.CommunicationIdentifier(mcm.shardCoordinator.SelfId())
 
-	mcm.messenger.Broadcast(factory.MetachainBlocksTopic, msgHeader)
-	mcm.messenger.Broadcast(factory.MiniBlocksTopic+selfIdentifier, msgBlockBody)
+	mcm.messenger.Broadcast(consensus.MetachainBlocksTopic, msgHeader)
+	mcm.messenger.Broadcast(consensus.MiniBlocksTopic+selfIdentifier, msgBlockBody)
 
 	return nil
 }
@@ -119,7 +118,7 @@ func (mcm *metaChainMessenger) BroadcastHeader(header data.HeaderHandler) error 
 		return err
 	}
 
-	mcm.messenger.Broadcast(factory.MetachainBlocksTopic, msgHeader)
+	mcm.messenger.Broadcast(consensus.MetachainBlocksTopic, msgHeader)
 
 	return nil
 }
@@ -130,7 +129,7 @@ func (mcm *metaChainMessenger) BroadcastBlockDataLeader(
 	miniBlocks map[uint32][]byte,
 	transactions map[string][][]byte,
 ) error {
-	go mcm.BroadcastBlockData(miniBlocks, transactions, common.ExtraDelayForBroadcastBlockInfo)
+	go mcm.BroadcastBlockData(miniBlocks, transactions, consensus.ExtraDelayForBroadcastBlockInfo)
 	return nil
 }
 

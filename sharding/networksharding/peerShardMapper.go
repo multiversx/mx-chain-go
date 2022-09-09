@@ -373,7 +373,7 @@ func (psm *PeerShardMapper) PutPeerIdSubType(pid core.PeerID, peerSubType core.P
 
 // NotifyOrder returns the notification order of this component
 func (psm *PeerShardMapper) NotifyOrder() uint32 {
-	return common.NetworkShardingOrder
+	return core.NetworkShardingOrder
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

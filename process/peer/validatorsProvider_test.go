@@ -15,7 +15,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/state"
@@ -160,7 +159,7 @@ func TestValidatorsProvider_CallsPopulateAndRegister(t *testing.T) {
 	arg := createDefaultValidatorsProviderArg()
 	arg.CacheRefreshIntervalDurationInSec = 10 * time.Millisecond
 	arg.EpochStartEventNotifier = &mock.EpochStartNotifierStub{
-		RegisterHandlerCalled: func(handler epochStart.ActionHandler) {
+		RegisterHandlerCalled: func(handler core.EpochStartActionHandler) {
 			atomic.AddInt32(&numRegisterHandlerCalled, 1)
 		},
 	}

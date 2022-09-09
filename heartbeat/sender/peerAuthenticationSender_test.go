@@ -11,7 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data/batch"
-	"github.com/ElrondNetwork/elrond-go-crypto"
+	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/ed25519"
 	ed25519SingleSig "github.com/ElrondNetwork/elrond-go-crypto/signing/ed25519/singlesig"
@@ -19,7 +19,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl/singlesig"
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/mock"
-	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
@@ -428,7 +427,7 @@ func TestPeerAuthenticationSender_Execute(t *testing.T) {
 		}
 		args := createMockPeerAuthenticationSenderArgs(argsBase)
 		args.nodesCoordinator = &shardingMocks.NodesCoordinatorStub{
-			GetValidatorWithPublicKeyCalled: func(publicKey []byte) (validator nodesCoordinator.Validator, shardId uint32, err error) {
+			GetValidatorWithPublicKeyCalled: func(publicKey []byte) (validator core.Validator, shardId uint32, err error) {
 				return nil, 0, errors.New("observer")
 			},
 		}
@@ -499,7 +498,7 @@ func TestPeerAuthenticationSender_Execute(t *testing.T) {
 		args := createMockPeerAuthenticationSenderArgs(argsBase)
 		counter := 0
 		args.nodesCoordinator = &shardingMocks.NodesCoordinatorStub{
-			GetValidatorWithPublicKeyCalled: func(publicKey []byte) (validator nodesCoordinator.Validator, shardId uint32, err error) {
+			GetValidatorWithPublicKeyCalled: func(publicKey []byte) (validator core.Validator, shardId uint32, err error) {
 				counter++
 				if counter == 2 {
 					return nil, 0, nil // validator

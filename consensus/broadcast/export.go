@@ -7,7 +7,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 // HeaderDataForValidator -
@@ -176,7 +175,7 @@ func NewCommonMessenger(
 	marshalizer marshal.Marshalizer,
 	messenger consensus.P2PMessenger,
 	privateKey crypto.PrivateKey,
-	shardCoordinator sharding.Coordinator,
+	shardCoordinator consensus.ShardCoordinator,
 	peerSigHandler crypto.PeerSignatureHandler,
 ) (*commonMessenger, error) {
 

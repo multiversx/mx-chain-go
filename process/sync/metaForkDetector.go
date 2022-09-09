@@ -75,7 +75,7 @@ func NewMetaForkDetector(
 func (mfd *metaForkDetector) AddHeader(
 	header data.HeaderHandler,
 	headerHash []byte,
-	state process.BlockHeaderState,
+	state core.BlockHeaderState,
 	selfNotarizedHeaders []data.HeaderHandler,
 	selfNotarizedHeadersHashes [][]byte,
 ) error {

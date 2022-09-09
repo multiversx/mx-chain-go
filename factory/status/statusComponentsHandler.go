@@ -438,7 +438,7 @@ func (msc *managedStatusComponents) attachEpochGoRoutineAnalyser() {
 
 		subscribeHandler := notifier.NewHandlerForEpochStart(func(hdr data.HeaderHandler) {
 			analyser.DumpGoRoutinesToLogWithTypes()
-		}, func(_ data.HeaderHandler) {}, common.NetStatisticsOrder)
+		}, func(_ data.HeaderHandler) {}, core.NetStatisticsOrder)
 
 		msc.statusComponentsFactory.epochStartNotifier.RegisterHandler(subscribeHandler)
 	}

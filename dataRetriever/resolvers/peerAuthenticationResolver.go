@@ -11,7 +11,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/batch"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
@@ -149,7 +148,7 @@ func (res *peerAuthenticationResolver) RequestDataFromHashArray(hashes [][]byte,
 
 // ProcessReceivedMessage represents the callback func from the p2p.Messenger that is called each time a new message is received
 // (for the topic this validator was registered to, usually a request topic)
-func (res *peerAuthenticationResolver) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
+func (res *peerAuthenticationResolver) ProcessReceivedMessage(message core.MessageP2P, fromConnectedPeer core.PeerID) error {
 	err := res.canProcessMessage(message, fromConnectedPeer)
 	if err != nil {
 		return err

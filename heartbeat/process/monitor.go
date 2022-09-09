@@ -253,7 +253,7 @@ func (m *Monitor) loadHeartbeatsFromStorer(pubKey string) (*heartbeatMessageInfo
 
 // ProcessReceivedMessage satisfies the p2p.MessageProcessor interface so it can be called
 // by the p2p subsystem each time a new heartbeat message arrives
-func (m *Monitor) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
+func (m *Monitor) ProcessReceivedMessage(message core.MessageP2P, fromConnectedPeer core.PeerID) error {
 	if m.flagHeartbeatDisableEpoch.IsSet() {
 		return nil
 	}

@@ -3,16 +3,11 @@ package mock
 import (
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	consensusMocks "github.com/ElrondNetwork/elrond-go/testscommon/consensus"
-	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 )
 
 // InitChronologyHandlerMock -
@@ -97,8 +92,8 @@ func InitBlockProcessorHeaderV2Mock() *BlockProcessorMock {
 }
 
 // InitMultiSignerMock -
-func InitMultiSignerMock() *cryptoMocks.MultisignerMock {
-	multiSigner := cryptoMocks.NewMultiSigner()
+func InitMultiSignerMock() *MultisignerMock {
+	multiSigner := NewMultiSigner()
 	multiSigner.VerifySignatureShareCalled = func(publicKey []byte, message []byte, sig []byte) error {
 		return nil
 	}
@@ -155,7 +150,7 @@ func InitConsensusCore() *ConsensusCoreMock {
 
 // InitConsensusCoreWithMultiSigner -
 func InitConsensusCoreWithMultiSigner(multiSigner crypto.MultiSigner) *ConsensusCoreMock {
-	blockChain := &testscommon.ChainHandlerStub{
+	blockChain := &ChainHandlerStub{
 		GetGenesisHeaderCalled: func() data.HeaderHandler {
 			return &block.Header{}
 		},
@@ -169,7 +164,7 @@ func InitConsensusCoreWithMultiSigner(multiSigner crypto.MultiSigner) *Consensus
 	}
 
 	chronologyHandlerMock := InitChronologyHandlerMock()
-	hasherMock := &hashingMocks.HasherMock{}
+	hasherMock := &HasherMock{}
 	marshalizerMock := MarshalizerMock{}
 	blsPrivateKeyMock := &PrivateKeyMock{}
 	blsSingleSignerMock := &SingleSignerMock{
@@ -180,31 +175,31 @@ func InitConsensusCoreWithMultiSigner(multiSigner crypto.MultiSigner) *Consensus
 	roundHandlerMock := &RoundHandlerMock{}
 	shardCoordinatorMock := ShardCoordinatorMock{}
 	syncTimerMock := &SyncTimerMock{}
-	validatorGroupSelector := &shardingMocks.NodesCoordinatorMock{
-		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]nodesCoordinator.Validator, error) {
+	validatorGroupSelector := &NodesCoordinatorMock{
+		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]core.Validator, error) {
 			defaultSelectionChances := uint32(1)
-			return []nodesCoordinator.Validator{
-				shardingMocks.NewValidatorMock([]byte("A"), 1, defaultSelectionChances),
-				shardingMocks.NewValidatorMock([]byte("B"), 1, defaultSelectionChances),
-				shardingMocks.NewValidatorMock([]byte("C"), 1, defaultSelectionChances),
-				shardingMocks.NewValidatorMock([]byte("D"), 1, defaultSelectionChances),
-				shardingMocks.NewValidatorMock([]byte("E"), 1, defaultSelectionChances),
-				shardingMocks.NewValidatorMock([]byte("F"), 1, defaultSelectionChances),
-				shardingMocks.NewValidatorMock([]byte("G"), 1, defaultSelectionChances),
-				shardingMocks.NewValidatorMock([]byte("H"), 1, defaultSelectionChances),
-				shardingMocks.NewValidatorMock([]byte("I"), 1, defaultSelectionChances),
+			return []core.Validator{
+				NewValidatorMock([]byte("A"), 1, defaultSelectionChances),
+				NewValidatorMock([]byte("B"), 1, defaultSelectionChances),
+				NewValidatorMock([]byte("C"), 1, defaultSelectionChances),
+				NewValidatorMock([]byte("D"), 1, defaultSelectionChances),
+				NewValidatorMock([]byte("E"), 1, defaultSelectionChances),
+				NewValidatorMock([]byte("F"), 1, defaultSelectionChances),
+				NewValidatorMock([]byte("G"), 1, defaultSelectionChances),
+				NewValidatorMock([]byte("H"), 1, defaultSelectionChances),
+				NewValidatorMock([]byte("I"), 1, defaultSelectionChances),
 			}, nil
 		},
 	}
 	epochStartSubscriber := &EpochStartNotifierStub{}
 	antifloodHandler := &P2PAntifloodHandlerStub{}
 	headerPoolSubscriber := &HeadersCacherStub{}
-	peerHonestyHandler := &testscommon.PeerHonestyHandlerStub{}
+	peerHonestyHandler := &PeerHonestyHandlerStub{}
 	headerSigVerifier := &HeaderSigVerifierStub{}
-	fallbackHeaderValidator := &testscommon.FallBackHeaderValidatorStub{}
+	fallbackHeaderValidator := &FallBackHeaderValidatorStub{}
 	nodeRedundancyHandler := &NodeRedundancyHandlerStub{}
-	scheduledProcessor := &consensusMocks.ScheduledProcessorStub{}
-	multiSignerContainer := cryptoMocks.NewMultiSignerContainerMock(multiSigner)
+	scheduledProcessor := &ScheduledProcessorStub{}
+	multiSignerContainer := NewMultiSignerContainerMock(multiSigner)
 	signatureHandler := &SignatureHandlerStub{}
 
 	container := &ConsensusCoreMock{

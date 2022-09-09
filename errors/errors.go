@@ -514,3 +514,6 @@ var ErrInvalidSignature = errors.New("invalid signature")
 
 // ErrDBIsClosed is raised when the DB is closed
 var ErrDBIsClosed = errors.New("DB is closed")
+
+// ErrEpochNodesConfigDoesNotExist signals that the epoch nodes configuration is missing
+var ErrEpochNodesConfigDoesNotExist = errors.New("epoch nodes configuration does not exist")

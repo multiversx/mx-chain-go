@@ -1000,7 +1000,7 @@ func (netMes *networkMessenger) pubsubCallback(topicProcs *topicProcessors, topi
 	}
 }
 
-func (netMes *networkMessenger) transformAndCheckMessage(pbMsg *pubsub.Message, pid core.PeerID, topic string) (p2p.MessageP2P, error) {
+func (netMes *networkMessenger) transformAndCheckMessage(pbMsg *pubsub.Message, pid core.PeerID, topic string) (core.MessageP2P, error) {
 	msg, errUnmarshal := NewMessage(pbMsg, netMes.marshalizer)
 	if errUnmarshal != nil {
 		// this error is so severe that will need to blacklist both the originator and the connected peer as there is
@@ -1054,7 +1054,7 @@ func (netMes *networkMessenger) blacklistPid(pid core.PeerID, banDuration time.D
 
 // invalidMessageByTimestamp will check that the message time stamp should be in the interval
 // (now-pubsubTimeCacheDuration+acceptMessagesInAdvanceDuration, now+acceptMessagesInAdvanceDuration)
-func (netMes *networkMessenger) validMessageByTimestamp(msg p2p.MessageP2P) error {
+func (netMes *networkMessenger) validMessageByTimestamp(msg core.MessageP2P) error {
 	now := netMes.syncTimer.CurrentTime()
 	isInFuture := now.Add(acceptMessagesInAdvanceDuration).Unix() < msg.Timestamp()
 	if isInFuture {
@@ -1206,7 +1206,7 @@ func (netMes *networkMessenger) directMessageHandler(message *pubsub.Message, fr
 	}
 	identifiers, handlers := topicProcs.getList()
 
-	go func(msg p2p.MessageP2P) {
+	go func(msg core.MessageP2P) {
 		if check.IfNil(msg) {
 			return
 		}

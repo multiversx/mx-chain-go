@@ -373,7 +373,7 @@ func (st *storageBootstrapper) applyBootInfos(bootInfos []bootstrapStorage.Boots
 			"nonce", header.GetNonce(),
 			"hash", bootInfos[i].LastHeader.Hash)
 
-		err = st.forkDetector.AddHeader(header, bootInfos[i].LastHeader.Hash, process.BHProcessed, selfNotarizedHeaders, selfNotarizedHeadersHashes)
+		err = st.forkDetector.AddHeader(header, bootInfos[i].LastHeader.Hash, core.BHProcessed, selfNotarizedHeaders, selfNotarizedHeadersHashes)
 		if err != nil {
 			log.Warn("cannot add header to fork detector", "error", err.Error())
 		}

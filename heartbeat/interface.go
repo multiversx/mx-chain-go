@@ -5,11 +5,9 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-crypto"
+	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/common"
 	heartbeatData "github.com/ElrondNetwork/elrond-go/heartbeat/data"
-	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
 )
 
@@ -23,7 +21,7 @@ type P2PMessenger interface {
 
 // MessageHandler defines what a message processor for heartbeat should do
 type MessageHandler interface {
-	CreateHeartbeatFromP2PMessage(message p2p.MessageP2P) (*heartbeatData.Heartbeat, error)
+	CreateHeartbeatFromP2PMessage(message core.MessageP2P) (*heartbeatData.Heartbeat, error)
 	IsInterfaceNil() bool
 }
 
@@ -62,7 +60,7 @@ type NetworkShardingCollector interface {
 // P2PAntifloodHandler defines the behavior of a component able to signal that the system is too busy (or flooded) processing
 // p2p messages
 type P2PAntifloodHandler interface {
-	CanProcessMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error
+	CanProcessMessage(message core.MessageP2P, fromConnectedPeer core.PeerID) error
 	CanProcessMessagesOnTopic(peer core.PeerID, topic string, numMessages uint32, totalSize uint64, sequence []byte) error
 	BlacklistPeer(peer core.PeerID, reason string, duration time.Duration)
 	IsInterfaceNil() bool
@@ -117,6 +115,6 @@ type NodeRedundancyHandler interface {
 // NodesCoordinator defines the behavior of a struct able to do validator selection
 type NodesCoordinator interface {
 	GetAllEligibleValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error)
-	GetValidatorWithPublicKey(publicKey []byte) (validator nodesCoordinator.Validator, shardId uint32, err error)
+	GetValidatorWithPublicKey(publicKey []byte) (validator core.Validator, shardId uint32, err error)
 	IsInterfaceNil() bool
 }

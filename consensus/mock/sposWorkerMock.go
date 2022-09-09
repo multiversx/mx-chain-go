@@ -6,7 +6,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/p2p"
 )
 
 // SposWorkerMock -
@@ -17,7 +16,7 @@ type SposWorkerMock struct {
 	)
 	AddReceivedHeaderHandlerCalled         func(handler func(data.HeaderHandler))
 	RemoveAllReceivedMessagesCallsCalled   func()
-	ProcessReceivedMessageCalled           func(message p2p.MessageP2P) error
+	ProcessReceivedMessageCalled           func(message core.MessageP2P) error
 	SendConsensusMessageCalled             func(cnsDta *consensus.Message) bool
 	ExtendCalled                           func(subroundId int)
 	GetConsensusStateChangedChannelsCalled func() chan bool
@@ -49,7 +48,7 @@ func (sposWorkerMock *SposWorkerMock) RemoveAllReceivedMessagesCalls() {
 }
 
 // ProcessReceivedMessage -
-func (sposWorkerMock *SposWorkerMock) ProcessReceivedMessage(message p2p.MessageP2P, _ core.PeerID) error {
+func (sposWorkerMock *SposWorkerMock) ProcessReceivedMessage(message core.MessageP2P, _ core.PeerID) error {
 	return sposWorkerMock.ProcessReceivedMessageCalled(message)
 }
 

@@ -8,7 +8,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/p2p"
 )
 
 // messageProcessor is used for basic message validity and parsing
@@ -19,7 +18,7 @@ type messageProcessor struct {
 	topic            string
 }
 
-func (mp *messageProcessor) canProcessMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
+func (mp *messageProcessor) canProcessMessage(message core.MessageP2P, fromConnectedPeer core.PeerID) error {
 	if check.IfNil(message) {
 		return dataRetriever.ErrNilMessage
 	}
@@ -39,7 +38,7 @@ func (mp *messageProcessor) canProcessMessage(message p2p.MessageP2P, fromConnec
 }
 
 // parseReceivedMessage will transform the received p2p.Message in a RequestData object.
-func (mp *messageProcessor) parseReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) (*dataRetriever.RequestData, error) {
+func (mp *messageProcessor) parseReceivedMessage(message core.MessageP2P, fromConnectedPeer core.PeerID) (*dataRetriever.RequestData, error) {
 	rd := &dataRetriever.RequestData{}
 	err := rd.UnmarshalWith(mp.marshalizer, message)
 	if err != nil {

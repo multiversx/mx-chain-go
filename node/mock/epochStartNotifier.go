@@ -1,22 +1,22 @@
 package mock
 
 import (
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go/epochStart"
 )
 
 // EpochStartNotifierStub -
 type EpochStartNotifierStub struct {
-	RegisterHandlerCalled            func(handler epochStart.ActionHandler)
-	UnregisterHandlerCalled          func(handler epochStart.ActionHandler)
+	RegisterHandlerCalled            func(handler core.EpochStartActionHandler)
+	UnregisterHandlerCalled          func(handler core.EpochStartActionHandler)
 	NotifyAllCalled                  func(hdr data.HeaderHandler)
 	NotifyAllPrepareCalled           func(hdr data.HeaderHandler, body data.BodyHandler)
 	NotifyEpochChangeConfirmedCalled func(epoch uint32)
-	epochStartHdls                   []epochStart.ActionHandler
+	epochStartHdls                   []core.EpochStartActionHandler
 }
 
 // RegisterHandler -
-func (esnm *EpochStartNotifierStub) RegisterHandler(handler epochStart.ActionHandler) {
+func (esnm *EpochStartNotifierStub) RegisterHandler(handler core.EpochStartActionHandler) {
 	if esnm.RegisterHandlerCalled != nil {
 		esnm.RegisterHandlerCalled(handler)
 	}
@@ -25,7 +25,7 @@ func (esnm *EpochStartNotifierStub) RegisterHandler(handler epochStart.ActionHan
 }
 
 // UnregisterHandler -
-func (esnm *EpochStartNotifierStub) UnregisterHandler(handler epochStart.ActionHandler) {
+func (esnm *EpochStartNotifierStub) UnregisterHandler(handler core.EpochStartActionHandler) {
 	if esnm.UnregisterHandlerCalled != nil {
 		esnm.UnregisterHandlerCalled(handler)
 	}

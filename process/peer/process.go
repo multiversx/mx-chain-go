@@ -832,7 +832,7 @@ func (vs *validatorStatistics) computeDecrease(
 }
 
 func (vs *validatorStatistics) decreaseForConsensusValidators(
-	consensusGroup []nodesCoordinator.Validator,
+	consensusGroup []core.Validator,
 	shardId uint32,
 	epoch uint32,
 ) error {
@@ -992,7 +992,7 @@ func (vs *validatorStatistics) savePeerAccountData(
 }
 
 func (vs *validatorStatistics) updateValidatorInfoOnSuccessfulBlock(
-	validatorList []nodesCoordinator.Validator,
+	validatorList []core.Validator,
 	signingBitmap []byte,
 	accumulatedFees *big.Int,
 	shardId uint32,

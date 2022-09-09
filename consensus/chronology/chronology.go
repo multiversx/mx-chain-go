@@ -10,10 +10,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/core/closing"
 	"github.com/ElrondNetwork/elrond-go-core/display"
-	"github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/common"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/ntp"
 )
 
 var _ consensus.ChronologyHandler = (*chronology)(nil)
@@ -32,7 +30,7 @@ type chronology struct {
 	genesisTime time.Time
 
 	roundHandler consensus.RoundHandler
-	syncTimer    ntp.SyncTimer
+	syncTimer    consensus.SyncTimer
 
 	subroundId int
 
@@ -182,8 +180,8 @@ func (chr *chronology) initRound() {
 
 	if hasSubroundsAndGenesisTimePassed {
 		chr.subroundId = chr.subroundHandlers[0].Current()
-		chr.appStatusHandler.SetUInt64Value(common.MetricCurrentRound, uint64(chr.roundHandler.Index()))
-		chr.appStatusHandler.SetUInt64Value(common.MetricCurrentRoundTimestamp, uint64(chr.roundHandler.TimeStamp().Unix()))
+		chr.appStatusHandler.SetUInt64Value(consensus.MetricCurrentRound, uint64(chr.roundHandler.Index()))
+		chr.appStatusHandler.SetUInt64Value(consensus.MetricCurrentRoundTimestamp, uint64(chr.roundHandler.TimeStamp().Unix()))
 	}
 
 	chr.mutSubrounds.RUnlock()

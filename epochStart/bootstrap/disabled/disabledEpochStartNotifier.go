@@ -1,8 +1,8 @@
 package disabled
 
 import (
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go/epochStart"
 )
 
 // EpochStartNotifier -
@@ -15,11 +15,11 @@ func NewEpochStartNotifier() *EpochStartNotifier {
 }
 
 // RegisterHandler -
-func (desn *EpochStartNotifier) RegisterHandler(_ epochStart.ActionHandler) {
+func (desn *EpochStartNotifier) RegisterHandler(_ core.EpochStartActionHandler) {
 }
 
 // UnregisterHandler -
-func (desn *EpochStartNotifier) UnregisterHandler(_ epochStart.ActionHandler) {
+func (desn *EpochStartNotifier) UnregisterHandler(_ core.EpochStartActionHandler) {
 }
 
 // NotifyAllPrepare -

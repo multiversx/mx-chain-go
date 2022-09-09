@@ -1024,7 +1024,7 @@ func (sp *shardProcessor) CommitBlock(
 		log.Debug("updateCrossShardInfo", "error", errNotCritical.Error())
 	}
 
-	errNotCritical = sp.forkDetector.AddHeader(header, headerHash, process.BHProcessed, selfNotarizedHeaders, selfNotarizedHeadersHashes)
+	errNotCritical = sp.forkDetector.AddHeader(header, headerHash, core.BHProcessed, selfNotarizedHeaders, selfNotarizedHeadersHashes)
 	if errNotCritical != nil {
 		log.Debug("forkDetector.AddHeader", "error", errNotCritical.Error())
 	}

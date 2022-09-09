@@ -231,7 +231,7 @@ func (n *Node) GetAllIssuedESDTs(tokenType string, ctx context.Context) ([]strin
 		}
 	}
 
-	if common.IsContextDone(ctx) {
+	if core.IsContextDone(ctx) {
 		return nil, ErrTrieOperationsTimeout
 	}
 
@@ -290,7 +290,7 @@ func (n *Node) GetKeyValuePairs(address string, options api.AccountQueryOptions,
 		mapToReturn[hex.EncodeToString(leaf.Key())] = hex.EncodeToString(value)
 	}
 
-	if common.IsContextDone(ctx) {
+	if core.IsContextDone(ctx) {
 		return nil, api.BlockInfo{}, ErrTrieOperationsTimeout
 	}
 
@@ -388,7 +388,7 @@ func (n *Node) getTokensIDsWithFilter(
 		}
 	}
 
-	if common.IsContextDone(ctx) {
+	if core.IsContextDone(ctx) {
 		return nil, api.BlockInfo{}, ErrTrieOperationsTimeout
 	}
 
@@ -525,7 +525,7 @@ func (n *Node) GetAllESDTTokens(address string, options api.AccountQueryOptions,
 		allESDTs[tokenName] = esdtToken
 	}
 
-	if common.IsContextDone(ctx) {
+	if core.IsContextDone(ctx) {
 		return nil, api.BlockInfo{}, ErrTrieOperationsTimeout
 	}
 

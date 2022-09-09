@@ -5,11 +5,11 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/debug"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
-	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
@@ -85,9 +85,9 @@ func TestCreateInterceptedDebugHandler_SettingOnInterceptorsErrShouldErr(t *test
 			},
 		},
 		&testscommon.InterceptorsContainerStub{
-			IterateCalled: func(handler func(key string, interceptor process.Interceptor) bool) {
+			IterateCalled: func(handler func(key string, interceptor core.Interceptor) bool) {
 				handler("key", &testscommon.InterceptorStub{
-					SetInterceptedDebugHandlerCalled: func(handler process.InterceptedDebugger) error {
+					SetInterceptedDebugHandlerCalled: func(handler core.InterceptedDebugger) error {
 						return expectedErr
 					},
 				})
@@ -126,7 +126,7 @@ func TestCreateInterceptedDebugHandler_SettingOnResolverErrShouldErr(t *testing.
 			},
 		},
 		&testscommon.InterceptorsContainerStub{
-			IterateCalled: func(handler func(key string, interceptor process.Interceptor) bool) {
+			IterateCalled: func(handler func(key string, interceptor core.Interceptor) bool) {
 				handler("key", &testscommon.InterceptorStub{})
 				interceptorsIterateCalled = true
 			},
@@ -166,7 +166,7 @@ func TestCreateInterceptedDebugHandler_ShouldWork(t *testing.T) {
 			},
 		},
 		&testscommon.InterceptorsContainerStub{
-			IterateCalled: func(handler func(key string, interceptor process.Interceptor) bool) {
+			IterateCalled: func(handler func(key string, interceptor core.Interceptor) bool) {
 				handler("key", &testscommon.InterceptorStub{})
 				interceptorsIterateCalled = true
 			},

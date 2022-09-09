@@ -152,7 +152,7 @@ func (vp *validatorsProvider) epochStartEventHandler() nodesCoordinator.EpochSta
 			}()
 		},
 		func(_ data.HeaderHandler) {},
-		common.IndexerOrder,
+		core.IndexerOrder,
 	)
 
 	return subscribeHandler

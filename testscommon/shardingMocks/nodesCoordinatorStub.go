@@ -1,6 +1,7 @@
 package shardingMocks
 
 import (
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	state "github.com/ElrondNetwork/elrond-go/state"
@@ -8,14 +9,14 @@ import (
 
 // NodesCoordinatorStub -
 type NodesCoordinatorStub struct {
-	ComputeValidatorsGroupCalled             func(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]nodesCoordinator.Validator, error)
+	ComputeValidatorsGroupCalled             func(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]core.Validator, error)
 	GetValidatorsPublicKeysCalled            func(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]string, error)
 	GetValidatorsRewardsAddressesCalled      func(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]string, error)
-	GetValidatorWithPublicKeyCalled          func(publicKey []byte) (validator nodesCoordinator.Validator, shardId uint32, err error)
+	GetValidatorWithPublicKeyCalled          func(publicKey []byte) (validator core.Validator, shardId uint32, err error)
 	GetAllValidatorsPublicKeysCalled         func() (map[uint32][][]byte, error)
 	GetAllEligibleValidatorsPublicKeysCalled func(epoch uint32) (map[uint32][][]byte, error)
 	ConsensusGroupSizeCalled                 func(shardID uint32) int
-	ComputeConsensusGroupCalled              func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []nodesCoordinator.Validator, err error)
+	ComputeConsensusGroupCalled              func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []core.Validator, err error)
 	EpochStartPrepareCalled                  func(metaHdr data.HeaderHandler, body data.BodyHandler)
 }
 
@@ -37,7 +38,7 @@ func (ncm *NodesCoordinatorStub) GetChance(uint32) uint32 {
 }
 
 // ValidatorsWeights -
-func (ncm *NodesCoordinatorStub) ValidatorsWeights(_ []nodesCoordinator.Validator) ([]uint32, error) {
+func (ncm *NodesCoordinatorStub) ValidatorsWeights(_ []core.Validator) ([]uint32, error) {
 	return nil, nil
 }
 
@@ -52,7 +53,7 @@ func (ncm *NodesCoordinatorStub) SetConfig(_ *nodesCoordinator.NodesCoordinatorR
 }
 
 // ComputeAdditionalLeaving -
-func (ncm *NodesCoordinatorStub) ComputeAdditionalLeaving(_ []*state.ShardValidatorInfo) (map[uint32][]nodesCoordinator.Validator, error) {
+func (ncm *NodesCoordinatorStub) ComputeAdditionalLeaving(_ []*state.ShardValidatorInfo) (map[uint32][]core.Validator, error) {
 	return nil, nil
 }
 
@@ -94,12 +95,12 @@ func (ncm *NodesCoordinatorStub) ComputeConsensusGroup(
 	round uint64,
 	shardId uint32,
 	epoch uint32,
-) (validatorsGroup []nodesCoordinator.Validator, err error) {
+) (validatorsGroup []core.Validator, err error) {
 	if ncm.ComputeValidatorsGroupCalled != nil {
 		return ncm.ComputeValidatorsGroupCalled(randomness, round, shardId, epoch)
 	}
 
-	var list []nodesCoordinator.Validator
+	var list []core.Validator
 
 	return list, nil
 }
@@ -127,7 +128,7 @@ func (ncm *NodesCoordinatorStub) GetConsensusValidatorsPublicKeys(
 }
 
 // SetNodesPerShards -
-func (ncm *NodesCoordinatorStub) SetNodesPerShards(_ map[uint32][]nodesCoordinator.Validator, _ map[uint32][]nodesCoordinator.Validator, _ []nodesCoordinator.Validator, _ uint32) error {
+func (ncm *NodesCoordinatorStub) SetNodesPerShards(_ map[uint32][]core.Validator, _ map[uint32][]core.Validator, _ []core.Validator, _ uint32) error {
 	return nil
 }
 
@@ -162,7 +163,7 @@ func (ncm *NodesCoordinatorStub) GetSelectedPublicKeys(_ []byte, _ uint32, _ uin
 }
 
 // GetValidatorWithPublicKey -
-func (ncm *NodesCoordinatorStub) GetValidatorWithPublicKey(publicKey []byte) (nodesCoordinator.Validator, uint32, error) {
+func (ncm *NodesCoordinatorStub) GetValidatorWithPublicKey(publicKey []byte) (core.Validator, uint32, error) {
 	if ncm.GetValidatorWithPublicKeyCalled != nil {
 		return ncm.GetValidatorWithPublicKeyCalled(publicKey)
 	}

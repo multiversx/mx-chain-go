@@ -1,16 +1,16 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
+	"github.com/ElrondNetwork/elrond-go-core/core"
 )
 
 // NodesCoordinatorStub -
 type NodesCoordinatorStub struct {
-	GetValidatorWithPublicKeyCalled func(publicKey []byte) (validator nodesCoordinator.Validator, shardId uint32, err error)
+	GetValidatorWithPublicKeyCalled func(publicKey []byte) (validator core.Validator, shardId uint32, err error)
 }
 
 // GetValidatorWithPublicKey -
-func (nc *NodesCoordinatorStub) GetValidatorWithPublicKey(publicKey []byte) (validator nodesCoordinator.Validator, shardId uint32, err error) {
+func (nc *NodesCoordinatorStub) GetValidatorWithPublicKey(publicKey []byte) (validator core.Validator, shardId uint32, err error) {
 	if nc.GetValidatorWithPublicKeyCalled != nil {
 		return nc.GetValidatorWithPublicKeyCalled(publicKey)
 	}

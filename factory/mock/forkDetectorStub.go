@@ -1,13 +1,14 @@
 package mock
 
 import (
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
 // ForkDetectorStub -
 type ForkDetectorStub struct {
-	AddHeaderCalled                 func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, selfNotarizedHeaders []data.HeaderHandler, selfNotarizedHeadersHashes [][]byte) error
+	AddHeaderCalled                 func(header data.HeaderHandler, hash []byte, state core.BlockHeaderState, selfNotarizedHeaders []data.HeaderHandler, selfNotarizedHeadersHashes [][]byte) error
 	RemoveHeaderCalled              func(nonce uint64, hash []byte)
 	CheckForkCalled                 func() *process.ForkInfo
 	GetHighestFinalBlockNonceCalled func() uint64
@@ -27,7 +28,7 @@ func (fdm *ForkDetectorStub) RestoreToGenesis() {
 }
 
 // AddHeader -
-func (fdm *ForkDetectorStub) AddHeader(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, selfNotarizedHeaders []data.HeaderHandler, selfNotarizedHeadersHashes [][]byte) error {
+func (fdm *ForkDetectorStub) AddHeader(header data.HeaderHandler, hash []byte, state core.BlockHeaderState, selfNotarizedHeaders []data.HeaderHandler, selfNotarizedHeadersHashes [][]byte) error {
 	return fdm.AddHeaderCalled(header, hash, state, selfNotarizedHeaders, selfNotarizedHeadersHashes)
 }
 

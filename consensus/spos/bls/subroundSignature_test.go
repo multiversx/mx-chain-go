@@ -9,8 +9,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/bls"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
@@ -32,13 +30,13 @@ func initSubroundSignatureWithContainer(container *mock.ConsensusCoreMock) bls.S
 		container,
 		chainID,
 		currentPid,
-		&statusHandler.AppStatusHandlerStub{},
+		&mock.AppStatusHandlerStub{},
 	)
 
 	srSignature, _ := bls.NewSubroundSignature(
 		sr,
 		extend,
-		&statusHandler.AppStatusHandlerStub{},
+		&mock.AppStatusHandlerStub{},
 	)
 
 	return srSignature
@@ -55,7 +53,7 @@ func TestSubroundSignature_NewSubroundSignatureNilSubroundShouldFail(t *testing.
 	srSignature, err := bls.NewSubroundSignature(
 		nil,
 		extend,
-		&statusHandler.AppStatusHandlerStub{},
+		&mock.AppStatusHandlerStub{},
 	)
 
 	assert.Nil(t, srSignature)
@@ -82,14 +80,14 @@ func TestSubroundSignature_NewSubroundSignatureNilConsensusStateShouldFail(t *te
 		container,
 		chainID,
 		currentPid,
-		&statusHandler.AppStatusHandlerStub{},
+		&mock.AppStatusHandlerStub{},
 	)
 
 	sr.ConsensusState = nil
 	srSignature, err := bls.NewSubroundSignature(
 		sr,
 		extend,
-		&statusHandler.AppStatusHandlerStub{},
+		&mock.AppStatusHandlerStub{},
 	)
 
 	assert.Nil(t, srSignature)
@@ -116,13 +114,13 @@ func TestSubroundSignature_NewSubroundSignatureNilHasherShouldFail(t *testing.T)
 		container,
 		chainID,
 		currentPid,
-		&statusHandler.AppStatusHandlerStub{},
+		&mock.AppStatusHandlerStub{},
 	)
 	container.SetHasher(nil)
 	srSignature, err := bls.NewSubroundSignature(
 		sr,
 		extend,
-		&statusHandler.AppStatusHandlerStub{},
+		&mock.AppStatusHandlerStub{},
 	)
 
 	assert.Nil(t, srSignature)
@@ -149,13 +147,13 @@ func TestSubroundSignature_NewSubroundSignatureNilMultiSignerContainerShouldFail
 		container,
 		chainID,
 		currentPid,
-		&statusHandler.AppStatusHandlerStub{},
+		&mock.AppStatusHandlerStub{},
 	)
 	container.SetMultiSignerContainer(nil)
 	srSignature, err := bls.NewSubroundSignature(
 		sr,
 		extend,
-		&statusHandler.AppStatusHandlerStub{},
+		&mock.AppStatusHandlerStub{},
 	)
 
 	assert.Nil(t, srSignature)
@@ -182,14 +180,14 @@ func TestSubroundSignature_NewSubroundSignatureNilRoundHandlerShouldFail(t *test
 		container,
 		chainID,
 		currentPid,
-		&statusHandler.AppStatusHandlerStub{},
+		&mock.AppStatusHandlerStub{},
 	)
 	container.SetRoundHandler(nil)
 
 	srSignature, err := bls.NewSubroundSignature(
 		sr,
 		extend,
-		&statusHandler.AppStatusHandlerStub{},
+		&mock.AppStatusHandlerStub{},
 	)
 
 	assert.Nil(t, srSignature)
@@ -216,13 +214,13 @@ func TestSubroundSignature_NewSubroundSignatureNilSyncTimerShouldFail(t *testing
 		container,
 		chainID,
 		currentPid,
-		&statusHandler.AppStatusHandlerStub{},
+		&mock.AppStatusHandlerStub{},
 	)
 	container.SetSyncTimer(nil)
 	srSignature, err := bls.NewSubroundSignature(
 		sr,
 		extend,
-		&statusHandler.AppStatusHandlerStub{},
+		&mock.AppStatusHandlerStub{},
 	)
 
 	assert.Nil(t, srSignature)
@@ -249,13 +247,13 @@ func TestSubroundSignature_NewSubroundSignatureShouldWork(t *testing.T) {
 		container,
 		chainID,
 		currentPid,
-		&statusHandler.AppStatusHandlerStub{},
+		&mock.AppStatusHandlerStub{},
 	)
 
 	srSignature, err := bls.NewSubroundSignature(
 		sr,
 		extend,
-		&statusHandler.AppStatusHandlerStub{},
+		&mock.AppStatusHandlerStub{},
 	)
 
 	assert.NotNil(t, srSignature)
@@ -546,7 +544,7 @@ func TestSubroundSignature_DoSignatureConsensusCheckShouldReturnFalseWhenFallbac
 	t.Parallel()
 
 	container := mock.InitConsensusCore()
-	container.SetFallbackHeaderValidator(&testscommon.FallBackHeaderValidatorStub{
+	container.SetFallbackHeaderValidator(&mock.FallBackHeaderValidatorStub{
 		ShouldApplyFallbackValidationCalled: func(headerHandler data.HeaderHandler) bool {
 			return false
 		},
@@ -567,7 +565,7 @@ func TestSubroundSignature_DoSignatureConsensusCheckShouldReturnTrueWhenFallback
 	t.Parallel()
 
 	container := mock.InitConsensusCore()
-	container.SetFallbackHeaderValidator(&testscommon.FallBackHeaderValidatorStub{
+	container.SetFallbackHeaderValidator(&mock.FallBackHeaderValidatorStub{
 		ShouldApplyFallbackValidationCalled: func(headerHandler data.HeaderHandler) bool {
 			return true
 		},

@@ -181,9 +181,9 @@ func TestBasicForkDetector_RemoveHeadersShouldWork(t *testing.T) {
 	)
 
 	roundHandlerMock.RoundIndex = 1
-	_ = bfd.AddHeader(hdr1, hash1, process.BHProcessed, nil, nil)
+	_ = bfd.AddHeader(hdr1, hash1, core.BHProcessed, nil, nil)
 	roundHandlerMock.RoundIndex = 2
-	_ = bfd.AddHeader(hdr2, hash2, process.BHProcessed, nil, nil)
+	_ = bfd.AddHeader(hdr2, hash2, core.BHProcessed, nil, nil)
 
 	hInfos := bfd.GetHeaders(1)
 	assert.Equal(t, 1, len(hInfos))
@@ -213,13 +213,13 @@ func TestBasicForkDetector_CheckForkOnlyOneShardHeaderOnANonceShouldReturnFalse(
 	_ = bfd.AddHeader(
 		&block.Header{Nonce: 0, PubKeysBitmap: []byte("X")},
 		[]byte("hash1"),
-		process.BHProcessed,
+		core.BHProcessed,
 		nil,
 		nil)
 	_ = bfd.AddHeader(
 		&block.Header{Nonce: 1, Round: 1, PubKeysBitmap: []byte("X")},
 		[]byte("hash2"),
-		process.BHProcessed,
+		core.BHProcessed,
 		nil,
 		nil)
 	forkInfo := bfd.CheckFork()
@@ -241,14 +241,14 @@ func TestBasicForkDetector_CheckForkOnlyReceivedHeadersShouldReturnFalse(t *test
 	_ = bfd.AddHeader(
 		&block.Header{Nonce: 0, PubKeysBitmap: []byte("X")},
 		[]byte("hash1"),
-		process.BHReceived,
+		core.BHReceived,
 		nil,
 		nil,
 	)
 	_ = bfd.AddHeader(
 		&block.Header{Nonce: 1, Round: 1, PubKeysBitmap: []byte("X")},
 		[]byte("hash1"),
-		process.BHReceived,
+		core.BHReceived,
 		nil,
 		nil,
 	)
@@ -271,14 +271,14 @@ func TestBasicForkDetector_CheckForkOnlyOneShardHeaderOnANonceReceivedAndProcess
 	_ = bfd.AddHeader(
 		&block.Header{Nonce: 0, PubKeysBitmap: []byte("X")},
 		[]byte("hash1"),
-		process.BHProcessed,
+		core.BHProcessed,
 		nil,
 		nil,
 	)
 	_ = bfd.AddHeader(
 		&block.Header{Nonce: 1, Round: 1, PubKeysBitmap: []byte("X")},
 		[]byte("hash2"),
-		process.BHReceived,
+		core.BHReceived,
 		nil,
 		nil,
 	)
@@ -301,13 +301,13 @@ func TestBasicForkDetector_CheckForkMetaHeaderProcessedShouldReturnFalse(t *test
 	_ = bfd.AddHeader(
 		&block.MetaBlock{Nonce: 1, Round: 3, PubKeysBitmap: []byte("X")},
 		[]byte("hash1"),
-		process.BHProcessed,
+		core.BHProcessed,
 		nil,
 		nil)
 	_ = bfd.AddHeader(
 		&block.MetaBlock{Nonce: 1, Round: 2, PubKeysBitmap: []byte("X")},
 		[]byte("hash2"),
-		process.BHProcessed,
+		core.BHProcessed,
 		nil,
 		nil)
 	forkInfo := bfd.CheckFork()
@@ -330,21 +330,21 @@ func TestBasicForkDetector_CheckForkMetaHeaderProcessedShouldReturnFalseWhenLowe
 	_ = bfd.AddHeader(
 		&block.MetaBlock{Nonce: 1, Round: 4, PubKeysBitmap: []byte("X")},
 		[]byte("hash1"),
-		process.BHReceived,
+		core.BHReceived,
 		nil,
 		nil)
 	roundHandlerMock.RoundIndex = 4
 	_ = bfd.AddHeader(
 		&block.MetaBlock{Nonce: 1, Round: 3, PubKeysBitmap: []byte("X")},
 		[]byte("hash2"),
-		process.BHReceived,
+		core.BHReceived,
 		nil,
 		nil)
 	roundHandlerMock.RoundIndex = 3
 	_ = bfd.AddHeader(
 		&block.MetaBlock{Nonce: 1, Round: 2, PubKeysBitmap: []byte("X")},
 		[]byte("hash3"),
-		process.BHProcessed,
+		core.BHProcessed,
 		nil,
 		nil)
 
@@ -374,19 +374,19 @@ func TestBasicForkDetector_CheckForkMetaHeaderProcessedShouldReturnFalseWhenEqua
 	_ = bfd.AddHeader(
 		&block.MetaBlock{Nonce: 1, Round: 4, PubKeysBitmap: []byte("X")},
 		[]byte("hash1"),
-		process.BHProcessed,
+		core.BHProcessed,
 		nil,
 		nil)
 	_ = bfd.AddHeader(
 		&block.MetaBlock{Nonce: 1, Round: 4, PubKeysBitmap: []byte("X")},
 		[]byte("hash2"),
-		process.BHReceived,
+		core.BHReceived,
 		nil,
 		nil)
 	_ = bfd.AddHeader(
 		&block.MetaBlock{Nonce: 1, Round: 4, PubKeysBitmap: []byte("X")},
 		[]byte("hash3"),
-		process.BHReceived,
+		core.BHReceived,
 		nil,
 		nil)
 
@@ -438,19 +438,19 @@ func TestBasicForkDetector_CheckForkShardHeaderProcessedShouldReturnTrueWhenEqua
 	_ = bfd.AddHeader(
 		hdr1,
 		hash1,
-		process.BHProcessed,
+		core.BHProcessed,
 		nil,
 		nil)
 	_ = bfd.AddHeader(
 		hdr2,
 		hash2,
-		process.BHNotarized,
+		core.BHNotarized,
 		selfNotarizedHeaders2,
 		selfNotarizedHeadersHashes2)
 	_ = bfd.AddHeader(
 		hdr3,
 		hash3,
-		process.BHNotarized,
+		core.BHNotarized,
 		selfNotarizedHeaders3,
 		selfNotarizedHeadersHashes3)
 
@@ -481,19 +481,19 @@ func TestBasicForkDetector_CheckForkMetaHeaderProcessedShouldReturnTrueWhenEqual
 	_ = bfd.AddHeader(
 		&block.MetaBlock{Nonce: 1, Round: 4, PubKeysBitmap: []byte("X")},
 		[]byte("hash2"),
-		process.BHProcessed,
+		core.BHProcessed,
 		nil,
 		nil)
 	_ = bfd.AddHeader(
 		&block.MetaBlock{Nonce: 1, Round: 4, PubKeysBitmap: []byte("X")},
 		[]byte("hash3"),
-		process.BHReceived,
+		core.BHReceived,
 		nil,
 		nil)
 	_ = bfd.AddHeader(
 		&block.MetaBlock{Nonce: 1, Round: 4, PubKeysBitmap: []byte("X")},
 		[]byte("hash1"),
-		process.BHReceived,
+		core.BHReceived,
 		nil,
 		nil)
 
@@ -544,19 +544,19 @@ func TestBasicForkDetector_CheckForkShardHeaderProcessedShouldReturnTrueWhenEqua
 	_ = bfd.AddHeader(
 		hdr2,
 		hash2,
-		process.BHProcessed,
+		core.BHProcessed,
 		nil,
 		nil)
 	_ = bfd.AddHeader(
 		hdr3,
 		hash3,
-		process.BHNotarized,
+		core.BHNotarized,
 		selfNotarizedHeaders3,
 		selfNotarizedHeadersHashes3)
 	_ = bfd.AddHeader(
 		hdr1,
 		hash1,
-		process.BHNotarized,
+		core.BHNotarized,
 		selfNotarizedHeaders1,
 		selfNotarizedHeadersHashes1)
 
@@ -586,21 +586,21 @@ func TestBasicForkDetector_CheckForkShouldReturnTrue(t *testing.T) {
 	_ = bfd.AddHeader(
 		&block.MetaBlock{Nonce: 1, Round: 3, PubKeysBitmap: []byte("X")},
 		[]byte("hash1"),
-		process.BHReceived,
+		core.BHReceived,
 		nil,
 		nil)
 	roundHandlerMock.RoundIndex = 3
 	_ = bfd.AddHeader(
 		&block.MetaBlock{Nonce: 1, Round: 2, PubKeysBitmap: []byte("X")},
 		[]byte("hash2"),
-		process.BHReceived,
+		core.BHReceived,
 		nil,
 		nil)
 	roundHandlerMock.RoundIndex = 4
 	_ = bfd.AddHeader(
 		&block.MetaBlock{Nonce: 1, Round: 3, PubKeysBitmap: []byte("X")},
 		[]byte("hash3"),
-		process.BHProcessed,
+		core.BHProcessed,
 		nil,
 		nil)
 
@@ -630,21 +630,21 @@ func TestBasicForkDetector_CheckForkShouldReturnFalseWhenForkIsOnFinalCheckpoint
 	_ = bfd.AddHeader(
 		&block.MetaBlock{Epoch: 0, Nonce: 1, Round: 1, PubKeysBitmap: []byte("X")},
 		[]byte("hash1"),
-		process.BHProcessed,
+		core.BHProcessed,
 		nil,
 		nil)
 	roundHandlerMock.RoundIndex = 4
 	_ = bfd.AddHeader(
 		&block.MetaBlock{Epoch: 1, Nonce: 1, Round: 2, PubKeysBitmap: []byte("X")},
 		[]byte("hash2"),
-		process.BHReceived,
+		core.BHReceived,
 		nil,
 		nil)
 	roundHandlerMock.RoundIndex = 5
 	_ = bfd.AddHeader(
 		&block.MetaBlock{Epoch: 1, Nonce: 2, Round: 5, PubKeysBitmap: []byte("X")},
 		[]byte("hash3"),
-		process.BHProcessed,
+		core.BHProcessed,
 		nil,
 		nil)
 
@@ -666,21 +666,21 @@ func TestBasicForkDetector_CheckForkShouldReturnFalseWhenForkIsOnHigherEpochBloc
 	_ = bfd.AddHeader(
 		&block.MetaBlock{Epoch: 0, Nonce: 1, Round: 2, PubKeysBitmap: []byte("X")},
 		[]byte("hash2"),
-		process.BHProcessed,
+		core.BHProcessed,
 		nil,
 		nil)
 	roundHandlerMock.RoundIndex = 3
 	_ = bfd.AddHeader(
 		&block.MetaBlock{Epoch: 0, Nonce: 2, Round: 3, PubKeysBitmap: []byte("X")},
 		[]byte("hash3"),
-		process.BHProposed,
+		core.BHProposed,
 		nil,
 		nil)
 	roundHandlerMock.RoundIndex = 3
 	_ = bfd.AddHeader(
 		&block.MetaBlock{Epoch: 1, Nonce: 1, Round: 1, PubKeysBitmap: []byte("X")},
 		[]byte("hash1"),
-		process.BHReceived,
+		core.BHReceived,
 		nil,
 		nil)
 
@@ -704,9 +704,9 @@ func TestBasicForkDetector_RemovePastHeadersShouldWork(t *testing.T) {
 		&mock.BlockTrackerMock{},
 		0,
 	)
-	_ = bfd.AddHeader(hdr1, hash1, process.BHReceived, nil, nil)
-	_ = bfd.AddHeader(hdr2, hash2, process.BHReceived, nil, nil)
-	_ = bfd.AddHeader(hdr3, hash3, process.BHReceived, nil, nil)
+	_ = bfd.AddHeader(hdr1, hash1, core.BHReceived, nil, nil)
+	_ = bfd.AddHeader(hdr2, hash2, core.BHReceived, nil, nil)
+	_ = bfd.AddHeader(hdr3, hash3, core.BHReceived, nil, nil)
 	bfd.SetFinalCheckpoint(4, 4, nil)
 	bfd.RemovePastHeaders()
 
@@ -739,13 +739,13 @@ func TestBasicForkDetector_RemoveInvalidReceivedHeadersShouldWork(t *testing.T) 
 		0,
 	)
 	roundHandlerMock.RoundIndex = 11
-	_ = bfd.AddHeader(hdr0, hash0, process.BHReceived, nil, nil)
+	_ = bfd.AddHeader(hdr0, hash0, core.BHReceived, nil, nil)
 	roundHandlerMock.RoundIndex = 13
-	_ = bfd.AddHeader(hdr1, hash1, process.BHReceived, nil, nil)
+	_ = bfd.AddHeader(hdr1, hash1, core.BHReceived, nil, nil)
 	roundHandlerMock.RoundIndex = 16
-	_ = bfd.AddHeader(hdr2, hash2, process.BHReceived, nil, nil)
+	_ = bfd.AddHeader(hdr2, hash2, core.BHReceived, nil, nil)
 	roundHandlerMock.RoundIndex = 15
-	_ = bfd.AddHeader(hdr3, hash3, process.BHReceived, nil, nil)
+	_ = bfd.AddHeader(hdr3, hash3, core.BHReceived, nil, nil)
 	bfd.SetFinalCheckpoint(9, 12, nil)
 	bfd.RemoveInvalidReceivedHeaders()
 
@@ -777,7 +777,7 @@ func TestBasicForkDetector_RemoveCheckpointHeaderNonceShouldResetCheckpoint(t *t
 		0,
 	)
 
-	_ = bfd.AddHeader(hdr1, hash1, process.BHProcessed, nil, nil)
+	_ = bfd.AddHeader(hdr1, hash1, core.BHProcessed, nil, nil)
 	assert.Equal(t, uint64(2), bfd.LastCheckpointNonce())
 
 	bfd.RemoveHeader(2, hash1)
@@ -799,25 +799,25 @@ func TestBasicForkDetector_GetHighestFinalBlockNonce(t *testing.T) {
 	hdr1 := &block.MetaBlock{Nonce: 2, Round: 1, PubKeysBitmap: []byte("X")}
 	hash1 := []byte("hash1")
 	roundHandlerMock.RoundIndex = 1
-	_ = bfd.AddHeader(hdr1, hash1, process.BHProcessed, nil, nil)
+	_ = bfd.AddHeader(hdr1, hash1, core.BHProcessed, nil, nil)
 	assert.Equal(t, uint64(0), bfd.GetHighestFinalBlockNonce())
 
 	hdr2 := &block.MetaBlock{Nonce: 3, Round: 3, PubKeysBitmap: []byte("X")}
 	hash2 := []byte("hash2")
 	roundHandlerMock.RoundIndex = 3
-	_ = bfd.AddHeader(hdr2, hash2, process.BHProcessed, nil, nil)
+	_ = bfd.AddHeader(hdr2, hash2, core.BHProcessed, nil, nil)
 	assert.Equal(t, uint64(0), bfd.GetHighestFinalBlockNonce())
 
 	hdr3 := &block.MetaBlock{Nonce: 4, Round: 4, PubKeysBitmap: []byte("X")}
 	hash3 := []byte("hash3")
 	roundHandlerMock.RoundIndex = 4
-	_ = bfd.AddHeader(hdr3, hash3, process.BHProcessed, nil, nil)
+	_ = bfd.AddHeader(hdr3, hash3, core.BHProcessed, nil, nil)
 	assert.Equal(t, uint64(3), bfd.GetHighestFinalBlockNonce())
 
 	hdr4 := &block.MetaBlock{Nonce: 6, Round: 5, PubKeysBitmap: []byte("X")}
 	hash4 := []byte("hash4")
 	roundHandlerMock.RoundIndex = 5
-	_ = bfd.AddHeader(hdr4, hash4, process.BHProcessed, nil, nil)
+	_ = bfd.AddHeader(hdr4, hash4, core.BHProcessed, nil, nil)
 	assert.Equal(t, uint64(3), bfd.GetHighestFinalBlockNonce())
 }
 
@@ -836,7 +836,7 @@ func TestBasicForkDetector_ProbableHighestNonce(t *testing.T) {
 	_ = bfd.AddHeader(
 		&block.MetaBlock{PubKeysBitmap: []byte("X"), Nonce: 8, Round: 10},
 		[]byte("hash0"),
-		process.BHReceived,
+		core.BHReceived,
 		nil,
 		nil)
 	assert.Equal(t, uint64(8), bfd.ProbableHighestNonce())
@@ -845,7 +845,7 @@ func TestBasicForkDetector_ProbableHighestNonce(t *testing.T) {
 	_ = bfd.AddHeader(
 		&block.MetaBlock{PubKeysBitmap: []byte("X"), Nonce: 9, Round: 12},
 		[]byte("hash1"),
-		process.BHProcessed,
+		core.BHProcessed,
 		nil,
 		nil)
 	assert.Equal(t, uint64(9), bfd.ProbableHighestNonce())
@@ -854,7 +854,7 @@ func TestBasicForkDetector_ProbableHighestNonce(t *testing.T) {
 	_ = bfd.AddHeader(
 		&block.MetaBlock{PubKeysBitmap: []byte("X"), Nonce: 13, Round: 15},
 		[]byte("hash2"),
-		process.BHReceived,
+		core.BHReceived,
 		nil,
 		nil)
 	assert.Equal(t, uint64(13), bfd.ProbableHighestNonce())
@@ -863,7 +863,7 @@ func TestBasicForkDetector_ProbableHighestNonce(t *testing.T) {
 	_ = bfd.AddHeader(
 		&block.MetaBlock{PubKeysBitmap: []byte("X"), Nonce: 10, Round: 14},
 		[]byte("hash3"),
-		process.BHProcessed,
+		core.BHProcessed,
 		nil,
 		nil)
 	assert.Equal(t, uint64(10), bfd.ProbableHighestNonce())
@@ -872,7 +872,7 @@ func TestBasicForkDetector_ProbableHighestNonce(t *testing.T) {
 	_ = bfd.AddHeader(
 		&block.MetaBlock{PubKeysBitmap: []byte("X"), Nonce: 11, Round: 15},
 		[]byte("hash3"),
-		process.BHReceived,
+		core.BHReceived,
 		nil,
 		nil)
 	assert.Equal(t, uint64(11), bfd.ProbableHighestNonce())
@@ -885,14 +885,14 @@ func TestShardForkDetector_ShouldAddBlockInForkDetectorShouldWork(t *testing.T) 
 	sfd, _ := sync.NewShardForkDetector(roundHandlerMock, &testscommon.TimeCacheStub{}, &mock.BlockTrackerMock{}, 0)
 
 	hdr := &block.Header{Nonce: 1, Round: 1}
-	receivedTooLate := sfd.IsHeaderReceivedTooLate(hdr, process.BHProcessed, process.BlockFinality)
+	receivedTooLate := sfd.IsHeaderReceivedTooLate(hdr, core.BHProcessed, process.BlockFinality)
 	assert.False(t, receivedTooLate)
 
-	receivedTooLate = sfd.IsHeaderReceivedTooLate(hdr, process.BHReceived, process.BlockFinality)
+	receivedTooLate = sfd.IsHeaderReceivedTooLate(hdr, core.BHReceived, process.BlockFinality)
 	assert.True(t, receivedTooLate)
 
 	hdr.Round = uint64(roundHandlerMock.RoundIndex - process.BlockFinality)
-	receivedTooLate = sfd.IsHeaderReceivedTooLate(hdr, process.BHReceived, process.BlockFinality)
+	receivedTooLate = sfd.IsHeaderReceivedTooLate(hdr, core.BHReceived, process.BlockFinality)
 	assert.False(t, receivedTooLate)
 }
 
@@ -904,7 +904,7 @@ func TestShardForkDetector_ShouldAddBlockInForkDetectorShouldErrLowerRoundInBloc
 	hdr := &block.Header{Nonce: 1, Round: 1}
 
 	hdr.Round = uint64(roundHandlerMock.RoundIndex - process.BlockFinality - 1)
-	receivedTooLate := sfd.IsHeaderReceivedTooLate(hdr, process.BHReceived, process.BlockFinality)
+	receivedTooLate := sfd.IsHeaderReceivedTooLate(hdr, core.BHReceived, process.BlockFinality)
 	assert.True(t, receivedTooLate)
 }
 
@@ -915,14 +915,14 @@ func TestMetaForkDetector_ShouldAddBlockInForkDetectorShouldWork(t *testing.T) {
 	mfd, _ := sync.NewMetaForkDetector(roundHandlerMock, &testscommon.TimeCacheStub{}, &mock.BlockTrackerMock{}, 0)
 
 	hdr := &block.MetaBlock{Nonce: 1, Round: 1}
-	receivedTooLate := mfd.IsHeaderReceivedTooLate(hdr, process.BHProcessed, process.BlockFinality)
+	receivedTooLate := mfd.IsHeaderReceivedTooLate(hdr, core.BHProcessed, process.BlockFinality)
 	assert.False(t, receivedTooLate)
 
-	receivedTooLate = mfd.IsHeaderReceivedTooLate(hdr, process.BHReceived, process.BlockFinality)
+	receivedTooLate = mfd.IsHeaderReceivedTooLate(hdr, core.BHReceived, process.BlockFinality)
 	assert.True(t, receivedTooLate)
 
 	hdr.Round = uint64(roundHandlerMock.RoundIndex - process.BlockFinality)
-	receivedTooLate = mfd.IsHeaderReceivedTooLate(hdr, process.BHReceived, process.BlockFinality)
+	receivedTooLate = mfd.IsHeaderReceivedTooLate(hdr, core.BHReceived, process.BlockFinality)
 	assert.False(t, receivedTooLate)
 }
 
@@ -934,7 +934,7 @@ func TestMetaForkDetector_ShouldAddBlockInForkDetectorShouldErrLowerRoundInBlock
 	hdr := &block.MetaBlock{Nonce: 1, Round: 1}
 
 	hdr.Round = uint64(roundHandlerMock.RoundIndex - process.BlockFinality - 1)
-	receivedTooLate := mfd.IsHeaderReceivedTooLate(hdr, process.BHReceived, process.BlockFinality)
+	receivedTooLate := mfd.IsHeaderReceivedTooLate(hdr, core.BHReceived, process.BlockFinality)
 	assert.True(t, receivedTooLate)
 }
 
@@ -958,7 +958,7 @@ func TestShardForkDetector_AddNotarizedHeadersShouldNotChangeTheFinalCheckpoint(
 	sfd.ReceivedSelfNotarizedFromCrossHeaders(core.MetachainShardId, hdrs, hashes)
 	assert.Equal(t, uint64(0), sfd.FinalCheckpointNonce())
 
-	_ = sfd.AddHeader(hdr1, hash1, process.BHProcessed, hdrs, hashes)
+	_ = sfd.AddHeader(hdr1, hash1, core.BHProcessed, hdrs, hashes)
 	assert.Equal(t, hdr1.Nonce, sfd.FinalCheckpointNonce())
 
 	hdrs = make([]data.HeaderHandler, 0)
@@ -969,7 +969,7 @@ func TestShardForkDetector_AddNotarizedHeadersShouldNotChangeTheFinalCheckpoint(
 	sfd.ReceivedSelfNotarizedFromCrossHeaders(core.MetachainShardId, hdrs, hashes)
 	assert.Equal(t, hdr1.Nonce, sfd.FinalCheckpointNonce())
 
-	_ = sfd.AddHeader(hdr2, hash2, process.BHProcessed, hdrs, hashes)
+	_ = sfd.AddHeader(hdr2, hash2, core.BHProcessed, hdrs, hashes)
 	assert.Equal(t, hdr2.Nonce, sfd.FinalCheckpointNonce())
 
 	hdrs = make([]data.HeaderHandler, 0)
@@ -980,7 +980,7 @@ func TestShardForkDetector_AddNotarizedHeadersShouldNotChangeTheFinalCheckpoint(
 	sfd.ReceivedSelfNotarizedFromCrossHeaders(core.MetachainShardId, hdrs, hashes)
 	assert.Equal(t, hdr2.Nonce, sfd.FinalCheckpointNonce())
 
-	_ = sfd.AddHeader(hdr3, hash3, process.BHProcessed, hdrs, hashes)
+	_ = sfd.AddHeader(hdr3, hash3, core.BHProcessed, hdrs, hashes)
 	assert.Equal(t, hdr3.Nonce, sfd.FinalCheckpointNonce())
 }
 
@@ -1084,7 +1084,7 @@ func TestShardForkDetector_RemoveHeaderShouldComputeFinalCheckpoint(t *testing.T
 	hdrs = append(hdrs, hdr1)
 	hashes = append(hashes, hash1)
 
-	_ = sfd.AddHeader(hdr1, hash1, process.BHProcessed, nil, nil)
+	_ = sfd.AddHeader(hdr1, hash1, core.BHProcessed, nil, nil)
 	assert.Equal(t, uint64(0), sfd.FinalCheckpointNonce())
 
 	sfd.ReceivedSelfNotarizedFromCrossHeaders(core.MetachainShardId, hdrs, hashes)
@@ -1095,7 +1095,7 @@ func TestShardForkDetector_RemoveHeaderShouldComputeFinalCheckpoint(t *testing.T
 	hdrs = append(hdrs, hdr2)
 	hashes = append(hashes, hash2)
 
-	_ = sfd.AddHeader(hdr2, hash2, process.BHProcessed, nil, nil)
+	_ = sfd.AddHeader(hdr2, hash2, core.BHProcessed, nil, nil)
 	assert.Equal(t, hdr1.Nonce, sfd.FinalCheckpointNonce())
 
 	sfd.ReceivedSelfNotarizedFromCrossHeaders(core.MetachainShardId, hdrs, hashes)
@@ -1119,19 +1119,19 @@ func TestBasicForkDetector_CheckForkMetaHeaderProcessedShouldWorkOnEqualRoundWit
 	_ = bfd.AddHeader(
 		&block.MetaBlock{Nonce: 1, Round: 4, PubKeysBitmap: []byte("X")},
 		[]byte("hash3"),
-		process.BHProcessed,
+		core.BHProcessed,
 		nil,
 		nil)
 	_ = bfd.AddHeader(
 		&block.MetaBlock{Nonce: 1, Round: 4, PubKeysBitmap: []byte("X")},
 		[]byte("hash2"),
-		process.BHReceived,
+		core.BHReceived,
 		nil,
 		nil)
 	_ = bfd.AddHeader(
 		&block.MetaBlock{Nonce: 1, Round: 4, PubKeysBitmap: []byte("X")},
 		[]byte("hash1"),
-		process.BHReceived,
+		core.BHReceived,
 		nil,
 		nil)
 
@@ -1144,7 +1144,7 @@ func TestBasicForkDetector_CheckForkMetaHeaderProcessedShouldWorkOnEqualRoundWit
 	_ = bfd.AddHeader(
 		&block.MetaBlock{Nonce: 2, Round: 5, PubKeysBitmap: []byte("X")},
 		[]byte("hash"),
-		process.BHProposed,
+		core.BHProposed,
 		nil,
 		nil)
 
@@ -1168,7 +1168,7 @@ func TestBasicForkDetector_SetFinalToLastCheckpointShouldWork(t *testing.T) {
 	_ = bfd.AddHeader(
 		&block.MetaBlock{Nonce: 900, Round: 1000, PubKeysBitmap: []byte("X")},
 		[]byte("hash"),
-		process.BHProcessed,
+		core.BHProcessed,
 		nil,
 		nil)
 

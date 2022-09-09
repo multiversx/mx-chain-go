@@ -5,7 +5,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
@@ -24,7 +23,7 @@ func (af *AntiFlood) SetMaxMessagesForTopic(_ string, _ uint32) {
 }
 
 // CanProcessMessage will always return nil
-func (af *AntiFlood) CanProcessMessage(_ p2p.MessageP2P, _ core.PeerID) error {
+func (af *AntiFlood) CanProcessMessage(_ core.MessageP2P, _ core.PeerID) error {
 	return nil
 }
 

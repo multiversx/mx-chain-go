@@ -161,9 +161,9 @@ func checkBaseParams(
 
 func (bicf *baseInterceptorsContainerFactory) createTopicAndAssignHandler(
 	topic string,
-	interceptor process.Interceptor,
+	interceptor core.Interceptor,
 	createChannel bool,
-) (process.Interceptor, error) {
+) (core.Interceptor, error) {
 
 	err := bicf.messenger.CreateTopic(topic, createChannel)
 	if err != nil {
@@ -181,7 +181,7 @@ func (bicf *baseInterceptorsContainerFactory) generateTxInterceptors() error {
 	noOfShards := shardC.NumberOfShards()
 
 	keys := make([]string, noOfShards)
-	interceptorSlice := make([]process.Interceptor, noOfShards)
+	interceptorSlice := make([]core.Interceptor, noOfShards)
 
 	for idx := uint32(0); idx < noOfShards; idx++ {
 		identifierTx := factory.TransactionTopic + shardC.CommunicationIdentifier(idx)
@@ -209,7 +209,7 @@ func (bicf *baseInterceptorsContainerFactory) generateTxInterceptors() error {
 	return bicf.container.AddMultiple(keys, interceptorSlice)
 }
 
-func (bicf *baseInterceptorsContainerFactory) createOneTxInterceptor(topic string) (process.Interceptor, error) {
+func (bicf *baseInterceptorsContainerFactory) createOneTxInterceptor(topic string) (core.Interceptor, error) {
 	if bicf.argInterceptorFactory == nil {
 		return nil, process.ErrNilArgumentStruct
 	}
@@ -265,7 +265,7 @@ func (bicf *baseInterceptorsContainerFactory) createOneTxInterceptor(topic strin
 	return bicf.createTopicAndAssignHandler(topic, interceptor, true)
 }
 
-func (bicf *baseInterceptorsContainerFactory) createOneUnsignedTxInterceptor(topic string) (process.Interceptor, error) {
+func (bicf *baseInterceptorsContainerFactory) createOneUnsignedTxInterceptor(topic string) (core.Interceptor, error) {
 	if bicf.argInterceptorFactory == nil {
 		return nil, process.ErrNilArgumentStruct
 	}
@@ -308,7 +308,7 @@ func (bicf *baseInterceptorsContainerFactory) createOneUnsignedTxInterceptor(top
 	return bicf.createTopicAndAssignHandler(topic, interceptor, true)
 }
 
-func (bicf *baseInterceptorsContainerFactory) createOneRewardTxInterceptor(topic string) (process.Interceptor, error) {
+func (bicf *baseInterceptorsContainerFactory) createOneRewardTxInterceptor(topic string) (core.Interceptor, error) {
 	if bicf.argInterceptorFactory == nil {
 		return nil, process.ErrNilArgumentStruct
 	}
@@ -404,7 +404,7 @@ func (bicf *baseInterceptorsContainerFactory) generateMiniBlocksInterceptors() e
 	shardC := bicf.shardCoordinator
 	noOfShards := shardC.NumberOfShards()
 	keys := make([]string, noOfShards+2)
-	interceptorsSlice := make([]process.Interceptor, noOfShards+2)
+	interceptorsSlice := make([]core.Interceptor, noOfShards+2)
 
 	for idx := uint32(0); idx < noOfShards; idx++ {
 		identifierMiniBlocks := factory.MiniBlocksTopic + shardC.CommunicationIdentifier(idx)
@@ -441,7 +441,7 @@ func (bicf *baseInterceptorsContainerFactory) generateMiniBlocksInterceptors() e
 	return bicf.container.AddMultiple(keys, interceptorsSlice)
 }
 
-func (bicf *baseInterceptorsContainerFactory) createOneMiniBlocksInterceptor(topic string) (process.Interceptor, error) {
+func (bicf *baseInterceptorsContainerFactory) createOneMiniBlocksInterceptor(topic string) (core.Interceptor, error) {
 	internalMarshalizer := bicf.argInterceptorFactory.CoreComponents.InternalMarshalizer()
 	hasher := bicf.argInterceptorFactory.CoreComponents.Hasher()
 	argProcessor := &processor.ArgMiniblockInterceptorProcessor{
@@ -525,7 +525,7 @@ func (bicf *baseInterceptorsContainerFactory) generateMetachainHeaderInterceptor
 	return bicf.container.Add(identifierHdr, interceptor)
 }
 
-func (bicf *baseInterceptorsContainerFactory) createOneTrieNodesInterceptor(topic string) (process.Interceptor, error) {
+func (bicf *baseInterceptorsContainerFactory) createOneTrieNodesInterceptor(topic string) (core.Interceptor, error) {
 	trieNodesProcessor, err := processor.NewTrieNodesInterceptorProcessor(bicf.dataPool.TrieNodes())
 	if err != nil {
 		return nil, err
@@ -581,7 +581,7 @@ func (bicf *baseInterceptorsContainerFactory) generateUnsignedTxsInterceptors() 
 	noOfShards := shardC.NumberOfShards()
 
 	keys := make([]string, noOfShards, noOfShards+1)
-	interceptorsSlice := make([]process.Interceptor, noOfShards, noOfShards+1)
+	interceptorsSlice := make([]core.Interceptor, noOfShards, noOfShards+1)
 
 	for idx := uint32(0); idx < noOfShards; idx++ {
 		identifierScr := factory.UnsignedTransactionTopic + shardC.CommunicationIdentifier(idx)

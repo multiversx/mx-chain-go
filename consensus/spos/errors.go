@@ -225,3 +225,15 @@ var ErrNilScheduledProcessor = errors.New("nil scheduled processor")
 
 // ErrNilSignatureHandler signals that provided signature handler is nil
 var ErrNilSignatureHandler = errors.New("nil signature handler")
+
+// ErrNilDriver signals that a nil driver has been provided
+var ErrNilDriver = errors.New("nil driver")
+
+// ErrNilRoundTimeDurationHandler signals that an operation has been attempted to or with a nil RoundTimeDurationHandler implementation
+var ErrNilRoundTimeDurationHandler = errors.New("nil RoundTimeDurationHandler")
+
+// ErrNilHeadersCache signals that a nil header cache has been provided
+var ErrNilHeadersCache = errors.New("nil headers cache")
+
+// ErrHeaderUnitNil defines the error for using a nil storage unit for block headers
+var ErrHeaderUnitNil = errors.New("header unit nil")

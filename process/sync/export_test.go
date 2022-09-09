@@ -3,10 +3,9 @@ package sync
 import (
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/process"
 )
 
 // RequestHeaderWithNonce -
@@ -112,19 +111,19 @@ func (hi *headerInfo) Hash() []byte {
 }
 
 // GetBlockHeaderState -
-func (hi *headerInfo) GetBlockHeaderState() process.BlockHeaderState {
+func (hi *headerInfo) GetBlockHeaderState() core.BlockHeaderState {
 	return hi.state
 }
 
 // NotifySyncStateListeners -
 func (boot *ShardBootstrap) NotifySyncStateListeners() {
-	isNodeSynchronized := boot.GetNodeState() == common.NsSynchronized
+	isNodeSynchronized := boot.GetNodeState() == core.NsSynchronized
 	boot.notifySyncStateListeners(isNodeSynchronized)
 }
 
 // NotifySyncStateListeners -
 func (boot *MetaBootstrap) NotifySyncStateListeners() {
-	isNodeSynchronized := boot.GetNodeState() == common.NsSynchronized
+	isNodeSynchronized := boot.GetNodeState() == core.NsSynchronized
 	boot.notifySyncStateListeners(isNodeSynchronized)
 }
 
@@ -186,7 +185,7 @@ func (boot *ShardBootstrap) RequestMiniBlocksFromHeaderWithNonceIfMissing(header
 }
 
 // IsHeaderReceivedTooLate -
-func (bfd *baseForkDetector) IsHeaderReceivedTooLate(header data.HeaderHandler, state process.BlockHeaderState, finality int64) bool {
+func (bfd *baseForkDetector) IsHeaderReceivedTooLate(header data.HeaderHandler, state core.BlockHeaderState, finality int64) bool {
 	return bfd.isHeaderReceivedTooLate(header, state, finality)
 }
 

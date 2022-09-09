@@ -6,11 +6,12 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func sameValidatorsMaps(map1, map2 map[uint32][]Validator) bool {
+func sameValidatorsMaps(map1, map2 map[uint32][]core.Validator) bool {
 	if len(map1) != len(map2) {
 		return false
 	}
@@ -24,7 +25,7 @@ func sameValidatorsMaps(map1, map2 map[uint32][]Validator) bool {
 	return true
 }
 
-func sameValidatorsDifferentMapTypes(map1 map[uint32][]Validator, map2 map[string][]*SerializableValidator) bool {
+func sameValidatorsDifferentMapTypes(map1 map[uint32][]core.Validator, map2 map[string][]*SerializableValidator) bool {
 	if len(map1) != len(map2) {
 		return false
 	}
@@ -38,7 +39,7 @@ func sameValidatorsDifferentMapTypes(map1 map[uint32][]Validator, map2 map[strin
 	return true
 }
 
-func sameValidators(list1 []Validator, list2 []Validator) bool {
+func sameValidators(list1 []core.Validator, list2 []core.Validator) bool {
 	if len(list1) != len(list2) {
 		return false
 	}
@@ -58,7 +59,7 @@ func sameValidators(list1 []Validator, list2 []Validator) bool {
 	return true
 }
 
-func validatorsEqualSerializableValidators(validators []Validator, sValidators []*SerializableValidator) bool {
+func validatorsEqualSerializableValidators(validators []core.Validator, sValidators []*SerializableValidator) bool {
 	if len(validators) != len(sValidators) {
 		return false
 	}
@@ -142,8 +143,8 @@ func TestIndexHashedNodesCooridinator_nodesCoordinatorToRegistryLimitNumEpochsIn
 			eligibleMap: eligibleMap,
 			waitingMap:  waitingMap,
 			selectors:   make(map[uint32]RandomSelector),
-			leavingMap:  make(map[uint32][]Validator),
-			newList:     make([]Validator, 0),
+			leavingMap:  make(map[uint32][]core.Validator),
+			newList:     make([]core.Validator, 0),
 		}
 	}
 

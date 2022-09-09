@@ -4,12 +4,11 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go/p2p"
 )
 
 // P2PAntifloodHandlerStub -
 type P2PAntifloodHandlerStub struct {
-	CanProcessMessageCalled         func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error
+	CanProcessMessageCalled         func(message core.MessageP2P, fromConnectedPeer core.PeerID) error
 	CanProcessMessagesOnTopicCalled func(peer core.PeerID, topic string, numMessages uint32, totalSize uint64, sequence []byte) error
 	BlacklistPeerCalled             func(peer core.PeerID, reason string, duration time.Duration)
 }
@@ -23,7 +22,7 @@ func (p2pahs *P2PAntifloodHandlerStub) SetMaxMessagesForTopic(_ string, _ uint32
 }
 
 // CanProcessMessage -
-func (p2pahs *P2PAntifloodHandlerStub) CanProcessMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
+func (p2pahs *P2PAntifloodHandlerStub) CanProcessMessage(message core.MessageP2P, fromConnectedPeer core.PeerID) error {
 	if p2pahs.CanProcessMessageCalled != nil {
 		return p2pahs.CanProcessMessageCalled(message, fromConnectedPeer)
 	}

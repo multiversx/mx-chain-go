@@ -6,11 +6,10 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/broadcast"
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
-	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -21,7 +20,7 @@ func createDefaultMetaChainArgs() broadcast.MetaChainMessengerArgs {
 	privateKeyMock := &mock.PrivateKeyMock{}
 	shardCoordinatorMock := &mock.ShardCoordinatorMock{}
 	singleSignerMock := &mock.SingleSignerMock{}
-	hasher := &hashingMocks.HasherMock{}
+	hasher := &mock.HasherMock{}
 	headersSubscriber := &mock.HeadersCacherStub{}
 	interceptorsContainer := createInterceptorContainer()
 	peerSigHandler := &mock.PeerSignatureHandler{Signer: singleSignerMock}
@@ -40,6 +39,7 @@ func createDefaultMetaChainArgs() broadcast.MetaChainMessengerArgs {
 			MaxValidatorDelayCacheSize: 2,
 			MaxDelayCacheSize:          2,
 			AlarmScheduler:             alarmScheduler,
+			HeadersCache:               &mock.CacherStub{},
 		},
 	}
 }
@@ -206,8 +206,8 @@ func TestMetaChainMessenger_BroadcastBlockDataLeader(t *testing.T) {
 
 	err := mcm.BroadcastBlockDataLeader(nil, miniBlocks, transactions)
 	require.Nil(t, err)
-	sleepTime := common.ExtraDelayBetweenBroadcastMbsAndTxs +
-		common.ExtraDelayForBroadcastBlockInfo +
+	sleepTime := consensus.ExtraDelayBetweenBroadcastMbsAndTxs +
+		consensus.ExtraDelayForBroadcastBlockInfo +
 		time.Millisecond*100
 	time.Sleep(sleepTime)
 

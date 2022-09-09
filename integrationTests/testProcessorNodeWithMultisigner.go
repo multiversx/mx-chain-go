@@ -160,11 +160,11 @@ func CreateNodesWithNodesCoordinatorAndTxKeys(
 	}
 	waitingMap[core.MetachainShardId] = make([]nodesCoordinator.GenesisNodeInfoHandler, 0)
 
-	waitingMapForNodesCoordinator := make(map[uint32][]nodesCoordinator.Validator)
+	waitingMapForNodesCoordinator := make(map[uint32][]core.Validator)
 	for i := 0; i < nbShards; i++ {
-		waitingMapForNodesCoordinator[uint32(i)] = make([]nodesCoordinator.Validator, 0)
+		waitingMapForNodesCoordinator[uint32(i)] = make([]core.Validator, 0)
 	}
-	waitingMapForNodesCoordinator[core.MetachainShardId] = make([]nodesCoordinator.Validator, 0)
+	waitingMapForNodesCoordinator[core.MetachainShardId] = make([]core.Validator, 0)
 
 	nodesSetup := &mock.NodesSetupStub{InitialNodesInfoCalled: func() (m map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, m2 map[uint32][]nodesCoordinator.GenesisNodeInfoHandler) {
 		return validatorsMap, waitingMap
@@ -214,8 +214,8 @@ func CreateNodeWithBLSAndTxKeys(
 	metaConsensusGroupSize int,
 	shardId uint32,
 	nbShards int,
-	validatorsMap map[uint32][]nodesCoordinator.Validator,
-	waitingMap map[uint32][]nodesCoordinator.Validator,
+	validatorsMap map[uint32][]core.Validator,
+	waitingMap map[uint32][]core.Validator,
 	keyIndex int,
 	cp *CryptoParams,
 	cache nodesCoordinator.Cacher,
@@ -412,8 +412,8 @@ func CreateNode(
 	metaConsensusGroupSize int,
 	shardId uint32,
 	nbShards int,
-	validatorsMap map[uint32][]nodesCoordinator.Validator,
-	waitingMap map[uint32][]nodesCoordinator.Validator,
+	validatorsMap map[uint32][]core.Validator,
+	waitingMap map[uint32][]core.Validator,
 	keyIndex int,
 	cp *CryptoParams,
 	cache nodesCoordinator.Cacher,
@@ -516,7 +516,7 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 			ShardIDAsObserver:          shardId,
 			NbShards:                   uint32(nbShards),
 			EligibleNodes:              validatorsMapForNodesCoordinator,
-			WaitingNodes:               make(map[uint32][]nodesCoordinator.Validator),
+			WaitingNodes:               make(map[uint32][]core.Validator),
 			SelfPublicKey:              []byte(strconv.Itoa(int(shardId))),
 			ConsensusGroupCache:        consensusCache,
 			ShuffledOutHandler:         &mock.ShuffledOutHandlerStub{},

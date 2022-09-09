@@ -3,6 +3,7 @@ package containers
 import (
 	"fmt"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/core/container"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -26,13 +27,13 @@ func NewInterceptorsContainer() *interceptorsContainer {
 
 // Get returns the object stored at a certain key.
 // Returns an error if the element does not exist
-func (ic *interceptorsContainer) Get(key string) (process.Interceptor, error) {
+func (ic *interceptorsContainer) Get(key string) (core.Interceptor, error) {
 	value, ok := ic.objects.Get(key)
 	if !ok {
 		return nil, fmt.Errorf("%w in interceptors container for key %v", process.ErrInvalidContainerKey, key)
 	}
 
-	interceptor, ok := value.(process.Interceptor)
+	interceptor, ok := value.(core.Interceptor)
 	if !ok {
 		return nil, process.ErrWrongTypeInContainer
 	}
@@ -42,7 +43,7 @@ func (ic *interceptorsContainer) Get(key string) (process.Interceptor, error) {
 
 // Add will add an object at a given key. Returns
 // an error if the element already exists
-func (ic *interceptorsContainer) Add(key string, interceptor process.Interceptor) error {
+func (ic *interceptorsContainer) Add(key string, interceptor core.Interceptor) error {
 	if check.IfNil(interceptor) {
 		return process.ErrNilContainerElement
 	}
@@ -57,7 +58,7 @@ func (ic *interceptorsContainer) Add(key string, interceptor process.Interceptor
 
 // AddMultiple will add objects with given keys. Returns
 // an error if one element already exists, lengths mismatch or an interceptor is nil
-func (ic *interceptorsContainer) AddMultiple(keys []string, interceptors []process.Interceptor) error {
+func (ic *interceptorsContainer) AddMultiple(keys []string, interceptors []core.Interceptor) error {
 	if len(keys) != len(interceptors) {
 		return process.ErrLenMismatch
 	}
@@ -77,7 +78,7 @@ func (ic *interceptorsContainer) AddMultiple(keys []string, interceptors []proce
 }
 
 // Replace will add (or replace if it already exists) an object at a given key
-func (ic *interceptorsContainer) Replace(key string, interceptor process.Interceptor) error {
+func (ic *interceptorsContainer) Replace(key string, interceptor core.Interceptor) error {
 	if check.IfNil(interceptor) {
 		return process.ErrNilContainerElement
 	}
@@ -97,7 +98,7 @@ func (ic *interceptorsContainer) Len() int {
 }
 
 // Iterate will call the provided handler for each and every key-value pair
-func (ic *interceptorsContainer) Iterate(handler func(key string, interceptor process.Interceptor) bool) {
+func (ic *interceptorsContainer) Iterate(handler func(key string, interceptor core.Interceptor) bool) {
 	if handler == nil {
 		return
 	}
@@ -113,7 +114,7 @@ func (ic *interceptorsContainer) Iterate(handler func(key string, interceptor pr
 			continue
 		}
 
-		interceptor, ok := val.(process.Interceptor)
+		interceptor, ok := val.(core.Interceptor)
 		if !ok {
 			continue
 		}
@@ -128,7 +129,7 @@ func (ic *interceptorsContainer) Iterate(handler func(key string, interceptor pr
 // Close will call the close method on all contained interceptors
 func (ic *interceptorsContainer) Close() error {
 	var errFound error
-	ic.Iterate(func(key string, interceptor process.Interceptor) bool {
+	ic.Iterate(func(key string, interceptor core.Interceptor) bool {
 		log.Debug("interceptorsContainer closing interceptor", "key", key)
 		err := interceptor.Close()
 		if err != nil {

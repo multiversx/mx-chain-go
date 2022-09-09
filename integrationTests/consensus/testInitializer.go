@@ -86,11 +86,11 @@ type cryptoParams struct {
 	singleSigner   crypto.SingleSigner
 }
 
-func genValidatorsFromPubKeys(pubKeysMap map[uint32][]string) map[uint32][]nodesCoordinator.Validator {
-	validatorsMap := make(map[uint32][]nodesCoordinator.Validator)
+func genValidatorsFromPubKeys(pubKeysMap map[uint32][]string) map[uint32][]core.Validator {
+	validatorsMap := make(map[uint32][]core.Validator)
 
 	for shardId, shardNodesPks := range pubKeysMap {
-		shardValidators := make([]nodesCoordinator.Validator, 0)
+		shardValidators := make([]core.Validator, 0)
 		for i := 0; i < len(shardNodesPks); i++ {
 			v, _ := nodesCoordinator.NewValidator([]byte(shardNodesPks[i]), 1, uint32(i))
 			shardValidators = append(shardValidators, v)
@@ -486,7 +486,7 @@ func createNodes(
 	cp := createCryptoParams(nodesPerShard, 1, 1)
 	keysMap := pubKeysMapFromKeysMap(cp.keys)
 	eligibleMap := genValidatorsFromPubKeys(keysMap)
-	waitingMap := make(map[uint32][]nodesCoordinator.Validator)
+	waitingMap := make(map[uint32][]core.Validator)
 	nodesList := make([]*testNode, nodesPerShard)
 	connectableNodes := make([]integrationTests.Connectable, 0)
 

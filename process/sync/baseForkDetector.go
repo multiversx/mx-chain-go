@@ -5,6 +5,7 @@ import (
 	"math"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go/consensus"
@@ -16,7 +17,7 @@ type headerInfo struct {
 	nonce uint64
 	round uint64
 	hash  []byte
-	state process.BlockHeaderState
+	state core.BlockHeaderState
 }
 
 type checkpointInfo struct {
@@ -154,7 +155,7 @@ func (bfd *baseForkDetector) removeInvalidReceivedHeaders() {
 		for i := 0; i < len(hdrInfos); i++ {
 			roundDif := int64(hdrInfos[i].round) - int64(finalCheckpointRound)
 			nonceDif := int64(hdrInfos[i].nonce) - int64(finalCheckpointNonce)
-			hasStateReceived := hdrInfos[i].state == process.BHReceived || hdrInfos[i].state == process.BHReceivedTooLate
+			hasStateReceived := hdrInfos[i].state == core.BHReceived || hdrInfos[i].state == core.BHReceivedTooLate
 			isReceivedHeaderInvalid := hasStateReceived && roundDif < nonceDif
 			if isReceivedHeaderInvalid {
 				continue
@@ -226,7 +227,7 @@ func (bfd *baseForkDetector) RemoveHeader(nonce uint64, hash []byte) {
 
 	hdrsInfo := bfd.headers[nonce]
 	for _, hdrInfo := range hdrsInfo {
-		if hdrInfo.state != process.BHNotarized && bytes.Equal(hash, hdrInfo.hash) {
+		if hdrInfo.state != core.BHNotarized && bytes.Equal(hash, hdrInfo.hash) {
 			continue
 		}
 
@@ -467,7 +468,7 @@ func (bfd *baseForkDetector) CheckFork() *process.ForkInfo {
 		bfd.maxForkHeaderEpoch = getMaxEpochFromHdrsInfo(hdrsInfo)
 
 		for i := 0; i < len(hdrsInfo); i++ {
-			if hdrsInfo[i].state == process.BHProcessed {
+			if hdrsInfo[i].state == core.BHProcessed {
 				selfHdrInfo = hdrsInfo[i]
 				continue
 			}
@@ -516,12 +517,12 @@ func (bfd *baseForkDetector) computeForkInfo(
 	lastForkEpoch uint32,
 ) ([]byte, uint64, uint32) {
 
-	if hdrInfo.state == process.BHReceivedTooLate && bfd.highestNonceReceived() > hdrInfo.nonce {
+	if hdrInfo.state == core.BHReceivedTooLate && bfd.highestNonceReceived() > hdrInfo.nonce {
 		return lastForkHash, lastForkRound, lastForkEpoch
 	}
 
 	currentForkRound := hdrInfo.round
-	if hdrInfo.state == process.BHNotarized {
+	if hdrInfo.state == core.BHNotarized {
 		currentForkRound = process.MinForkRound
 	} else {
 		if hdrInfo.epoch < bfd.maxForkHeaderEpoch {
@@ -575,10 +576,10 @@ func (bfd *baseForkDetector) shouldSignalFork(
 
 func (bfd *baseForkDetector) isHeaderReceivedTooLate(
 	header data.HeaderHandler,
-	state process.BlockHeaderState,
+	state core.BlockHeaderState,
 	finality int64,
 ) bool {
-	if state == process.BHProcessed {
+	if state == core.BHProcessed {
 		return false
 	}
 
@@ -624,7 +625,7 @@ func (bfd *baseForkDetector) GetNotarizedHeaderHash(nonce uint64) []byte {
 
 	hdrInfos := bfd.headers[nonce]
 	for _, hdrInfo := range hdrInfos {
-		if hdrInfo.state == process.BHNotarized {
+		if hdrInfo.state == core.BHNotarized {
 			return hdrInfo.hash
 		}
 	}
@@ -642,7 +643,7 @@ func (bfd *baseForkDetector) cleanupReceivedHeadersHigherThanNonce(nonce uint64)
 		preservedHdrsInfo := make([]*headerInfo, 0)
 
 		for _, hdrInfo := range hdrsInfo {
-			if hdrInfo.state != process.BHNotarized {
+			if hdrInfo.state != core.BHNotarized {
 				continue
 			}
 
@@ -667,7 +668,7 @@ func (bfd *baseForkDetector) computeGenesisTimeFromHeader(headerHandler data.Hea
 func (bfd *baseForkDetector) addHeader(
 	header data.HeaderHandler,
 	headerHash []byte,
-	state process.BlockHeaderState,
+	state core.BlockHeaderState,
 	selfNotarizedHeaders []data.HeaderHandler,
 	selfNotarizedHeadersHashes [][]byte,
 	doJobOnBHProcessed func(data.HeaderHandler, []byte, []data.HeaderHandler, [][]byte),
@@ -685,20 +686,20 @@ func (bfd *baseForkDetector) addHeader(
 func (bfd *baseForkDetector) processReceivedBlock(
 	header data.HeaderHandler,
 	headerHash []byte,
-	state process.BlockHeaderState,
+	state core.BlockHeaderState,
 	selfNotarizedHeaders []data.HeaderHandler,
 	selfNotarizedHeadersHashes [][]byte,
 	doJobOnBHProcessed func(data.HeaderHandler, []byte, []data.HeaderHandler, [][]byte),
 ) {
 	bfd.setHighestNonceReceived(header.GetNonce())
 
-	if state == process.BHProposed {
+	if state == core.BHProposed {
 		return
 	}
 
 	isHeaderReceivedTooLate := bfd.isHeaderReceivedTooLate(header, state, process.BlockFinality)
 	if isHeaderReceivedTooLate {
-		state = process.BHReceivedTooLate
+		state = core.BHReceivedTooLate
 	}
 
 	appended := bfd.append(&headerInfo{
@@ -712,7 +713,7 @@ func (bfd *baseForkDetector) processReceivedBlock(
 		return
 	}
 
-	if state == process.BHProcessed {
+	if state == core.BHProcessed {
 		doJobOnBHProcessed(header, headerHash, selfNotarizedHeaders, selfNotarizedHeadersHashes)
 	}
 

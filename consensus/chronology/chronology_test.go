@@ -8,7 +8,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/chronology"
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
-	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -288,7 +287,7 @@ func TestChronology_CheckIfStatusHandlerWorks(t *testing.T) {
 	chanDone := make(chan bool, 2)
 	arg := getDefaultChronologyArg()
 	arg.GenesisTime = arg.SyncTimer.CurrentTime()
-	arg.AppStatusHandler = &statusHandlerMock.AppStatusHandlerStub{
+	arg.AppStatusHandler = &mock.AppStatusHandlerStub{
 		SetUInt64ValueHandler: func(key string, value uint64) {
 			chanDone <- true
 		},
@@ -317,7 +316,7 @@ func getDefaultChronologyArg() chronology.ArgChronology {
 		GenesisTime:      time.Now(),
 		RoundHandler:     &mock.RoundHandlerMock{},
 		SyncTimer:        &mock.SyncTimerMock{},
-		AppStatusHandler: statusHandlerMock.NewAppStatusHandlerMock(),
+		AppStatusHandler: mock.NewAppStatusHandlerMock(),
 		Watchdog:         &mock.WatchdogMock{},
 	}
 }

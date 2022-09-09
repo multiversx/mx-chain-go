@@ -3,13 +3,12 @@ package mock
 import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/p2p"
 )
 
 // ResolverStub -
 type ResolverStub struct {
 	RequestDataFromHashCalled     func(hash []byte, epoch uint32) error
-	ProcessReceivedMessageCalled  func(message p2p.MessageP2P) error
+	ProcessReceivedMessageCalled  func(message core.MessageP2P) error
 	SetNumPeersToQueryCalled      func(intra int, cross int)
 	NumPeersToQueryCalled         func() (int, int)
 	SetResolverDebugHandlerCalled func(handler dataRetriever.ResolverDebugHandler) error
@@ -38,7 +37,7 @@ func (rs *ResolverStub) RequestDataFromHash(hash []byte, epoch uint32) error {
 }
 
 // ProcessReceivedMessage -
-func (rs *ResolverStub) ProcessReceivedMessage(message p2p.MessageP2P, _ core.PeerID) error {
+func (rs *ResolverStub) ProcessReceivedMessage(message core.MessageP2P, _ core.PeerID) error {
 	return rs.ProcessReceivedMessageCalled(message)
 }
 

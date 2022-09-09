@@ -3,6 +3,7 @@ package nodeDebugFactory
 import (
 	"fmt"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -36,7 +37,7 @@ func CreateInterceptedDebugHandler(
 	}
 
 	var errFound error
-	interceptors.Iterate(func(key string, interceptor process.Interceptor) bool {
+	interceptors.Iterate(func(key string, interceptor core.Interceptor) bool {
 		err = interceptor.SetInterceptedDebugHandler(debugHandler)
 		if err != nil {
 			errFound = err

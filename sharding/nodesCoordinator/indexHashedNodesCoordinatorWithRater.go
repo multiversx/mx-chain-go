@@ -1,6 +1,7 @@
 package nodesCoordinator
 
 import (
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/state"
@@ -55,8 +56,8 @@ func NewIndexHashedNodesCoordinatorWithRater(
 }
 
 // ComputeAdditionalLeaving - computes the extra leaving validators that have a threshold below the minimum rating
-func (ihnc *indexHashedNodesCoordinatorWithRater) ComputeAdditionalLeaving(allValidators []*state.ShardValidatorInfo) (map[uint32][]Validator, error) {
-	extraLeavingNodesMap := make(map[uint32][]Validator)
+func (ihnc *indexHashedNodesCoordinatorWithRater) ComputeAdditionalLeaving(allValidators []*state.ShardValidatorInfo) (map[uint32][]core.Validator, error) {
+	extraLeavingNodesMap := make(map[uint32][]core.Validator)
 	minChances := ihnc.GetChance(0)
 	for _, vInfo := range allValidators {
 		if vInfo.List == string(common.InactiveList) || vInfo.List == string(common.JailedList) {
@@ -87,7 +88,7 @@ func (ihnc *indexHashedNodesCoordinatorWithRater) GetChance(rating uint32) uint3
 }
 
 // ValidatorsWeights returns the weights/chances for each given validator
-func (ihnc *indexHashedNodesCoordinatorWithRater) ValidatorsWeights(validators []Validator) ([]uint32, error) {
+func (ihnc *indexHashedNodesCoordinatorWithRater) ValidatorsWeights(validators []core.Validator) ([]uint32, error) {
 	minChance := ihnc.GetChance(0)
 	weights := make([]uint32, len(validators))
 

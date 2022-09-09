@@ -9,7 +9,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
-	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/stretchr/testify/require"
 )
 
@@ -48,7 +47,7 @@ func TestNewScheduledProcessorWrapper_NilBlockProcessorShouldErr(t *testing.T) {
 
 	sp, err := NewScheduledProcessorWrapper(args)
 	require.Nil(t, sp)
-	require.Equal(t, process.ErrNilBlockProcessor, err)
+	require.Equal(t, ErrNilBlockProcessor, err)
 }
 
 func TestNewScheduledProcessorWrapper_NilRoundTimeDurationHandlerShouldErr(t *testing.T) {
@@ -62,7 +61,7 @@ func TestNewScheduledProcessorWrapper_NilRoundTimeDurationHandlerShouldErr(t *te
 
 	sp, err := NewScheduledProcessorWrapper(args)
 	require.Nil(t, sp)
-	require.Equal(t, process.ErrNilRoundTimeDurationHandler, err)
+	require.Equal(t, ErrNilRoundTimeDurationHandler, err)
 }
 
 func TestNewScheduledProcessorWrapper_NilBlockProcessorOK(t *testing.T) {

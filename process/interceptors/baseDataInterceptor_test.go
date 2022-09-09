@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
@@ -69,7 +68,7 @@ func TestPreProcessMessage_AntifloodCanNotProcessShouldErr(t *testing.T) {
 	}
 	expectedErr := errors.New("expected error")
 	antifloodHandler := &mock.P2PAntifloodHandlerStub{
-		CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
+		CanProcessMessageCalled: func(message core.MessageP2P, fromConnectedPeer core.PeerID) error {
 			return expectedErr
 		},
 	}
@@ -158,7 +157,7 @@ func TestPreProcessMessage_CanProcessFromSelf(t *testing.T) {
 		},
 	}
 	antifloodHandler := &mock.P2PAntifloodHandlerStub{
-		CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
+		CanProcessMessageCalled: func(message core.MessageP2P, fromConnectedPeer core.PeerID) error {
 			assert.Fail(t, "should have not called CanProcessMessageCalled")
 			return nil
 		},
@@ -192,7 +191,7 @@ func TestPreProcessMessage_CanProcessFromPreferredPeer(t *testing.T) {
 		},
 	}
 	antifloodHandler := &mock.P2PAntifloodHandlerStub{
-		CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
+		CanProcessMessageCalled: func(message core.MessageP2P, fromConnectedPeer core.PeerID) error {
 			assert.Fail(t, "should have not called CanProcessMessageCalled")
 			return nil
 		},

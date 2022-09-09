@@ -4,10 +4,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go-crypto"
+	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
-	"github.com/ElrondNetwork/elrond-go/p2p"
 )
 
 // MessageProcessor is the struct that will handle heartbeat message verifications and conversion between
@@ -42,7 +41,7 @@ func NewMessageProcessor(
 }
 
 // CreateHeartbeatFromP2PMessage will return a heartbeat if all the checks pass
-func (mp *MessageProcessor) CreateHeartbeatFromP2PMessage(message p2p.MessageP2P) (*data.Heartbeat, error) {
+func (mp *MessageProcessor) CreateHeartbeatFromP2PMessage(message core.MessageP2P) (*data.Heartbeat, error) {
 	if check.IfNil(message) {
 		return nil, heartbeat.ErrNilMessage
 	}

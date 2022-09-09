@@ -5,33 +5,27 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
-	cryptoCommon "github.com/ElrondNetwork/elrond-go/common/crypto"
 	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/epochStart"
-	"github.com/ElrondNetwork/elrond-go/ntp"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 )
 
 // ConsensusCoreMock -
 type ConsensusCoreMock struct {
 	blockChain              data.ChainHandler
-	blockProcessor          process.BlockProcessor
+	blockProcessor          consensus.BlockProcessor
 	headersSubscriber       consensus.HeadersPoolSubscriber
-	bootstrapper            process.Bootstrapper
+	bootstrapper            consensus.Bootstrapper
 	broadcastMessenger      consensus.BroadcastMessenger
 	chronologyHandler       consensus.ChronologyHandler
 	hasher                  hashing.Hasher
 	marshalizer             marshal.Marshalizer
 	blsPrivateKey           crypto.PrivateKey
 	blsSingleSigner         crypto.SingleSigner
-	multiSignerContainer    cryptoCommon.MultiSignerContainer
+	multiSignerContainer    consensus.MultiSignerContainer
 	roundHandler            consensus.RoundHandler
-	shardCoordinator        sharding.Coordinator
-	syncTimer               ntp.SyncTimer
-	validatorGroupSelector  nodesCoordinator.NodesCoordinator
-	epochStartNotifier      epochStart.RegistrationHandler
+	shardCoordinator        consensus.ShardCoordinator
+	syncTimer               consensus.SyncTimer
+	validatorGroupSelector  consensus.NodesCoordinator
+	epochStartNotifier      consensus.RegistrationHandler
 	antifloodHandler        consensus.P2PAntifloodHandler
 	peerHonestyHandler      consensus.PeerHonestyHandler
 	headerSigVerifier       consensus.HeaderSigVerifier
@@ -52,7 +46,7 @@ func (ccm *ConsensusCoreMock) Blockchain() data.ChainHandler {
 }
 
 // BlockProcessor -
-func (ccm *ConsensusCoreMock) BlockProcessor() process.BlockProcessor {
+func (ccm *ConsensusCoreMock) BlockProcessor() consensus.BlockProcessor {
 	return ccm.blockProcessor
 }
 
@@ -62,7 +56,7 @@ func (ccm *ConsensusCoreMock) HeadersPoolSubscriber() consensus.HeadersPoolSubsc
 }
 
 // BootStrapper -
-func (ccm *ConsensusCoreMock) BootStrapper() process.Bootstrapper {
+func (ccm *ConsensusCoreMock) BootStrapper() consensus.Bootstrapper {
 	return ccm.bootstrapper
 }
 
@@ -87,7 +81,7 @@ func (ccm *ConsensusCoreMock) Marshalizer() marshal.Marshalizer {
 }
 
 // MultiSignerContainer -
-func (ccm *ConsensusCoreMock) MultiSignerContainer() cryptoCommon.MultiSignerContainer {
+func (ccm *ConsensusCoreMock) MultiSignerContainer() consensus.MultiSignerContainer {
 	return ccm.multiSignerContainer
 }
 
@@ -97,22 +91,22 @@ func (ccm *ConsensusCoreMock) RoundHandler() consensus.RoundHandler {
 }
 
 // ShardCoordinator -
-func (ccm *ConsensusCoreMock) ShardCoordinator() sharding.Coordinator {
+func (ccm *ConsensusCoreMock) ShardCoordinator() consensus.ShardCoordinator {
 	return ccm.shardCoordinator
 }
 
 // SyncTimer -
-func (ccm *ConsensusCoreMock) SyncTimer() ntp.SyncTimer {
+func (ccm *ConsensusCoreMock) SyncTimer() consensus.SyncTimer {
 	return ccm.syncTimer
 }
 
 // NodesCoordinator -
-func (ccm *ConsensusCoreMock) NodesCoordinator() nodesCoordinator.NodesCoordinator {
+func (ccm *ConsensusCoreMock) NodesCoordinator() consensus.NodesCoordinator {
 	return ccm.validatorGroupSelector
 }
 
 // EpochStartRegistrationHandler -
-func (ccm *ConsensusCoreMock) EpochStartRegistrationHandler() epochStart.RegistrationHandler {
+func (ccm *ConsensusCoreMock) EpochStartRegistrationHandler() consensus.RegistrationHandler {
 	return ccm.epochStartNotifier
 }
 
@@ -127,12 +121,12 @@ func (ccm *ConsensusCoreMock) SetSingleSigner(signer crypto.SingleSigner) {
 }
 
 // SetBlockProcessor -
-func (ccm *ConsensusCoreMock) SetBlockProcessor(blockProcessor process.BlockProcessor) {
+func (ccm *ConsensusCoreMock) SetBlockProcessor(blockProcessor consensus.BlockProcessor) {
 	ccm.blockProcessor = blockProcessor
 }
 
 // SetBootStrapper -
-func (ccm *ConsensusCoreMock) SetBootStrapper(bootstrapper process.Bootstrapper) {
+func (ccm *ConsensusCoreMock) SetBootStrapper(bootstrapper consensus.Bootstrapper) {
 	ccm.bootstrapper = bootstrapper
 }
 
@@ -157,7 +151,7 @@ func (ccm *ConsensusCoreMock) SetMarshalizer(marshalizer marshal.Marshalizer) {
 }
 
 // SetMultiSignerContainer -
-func (ccm *ConsensusCoreMock) SetMultiSignerContainer(multiSignerContainer cryptoCommon.MultiSignerContainer) {
+func (ccm *ConsensusCoreMock) SetMultiSignerContainer(multiSignerContainer consensus.MultiSignerContainer) {
 	ccm.multiSignerContainer = multiSignerContainer
 }
 
@@ -167,17 +161,17 @@ func (ccm *ConsensusCoreMock) SetRoundHandler(roundHandler consensus.RoundHandle
 }
 
 // SetShardCoordinator -
-func (ccm *ConsensusCoreMock) SetShardCoordinator(shardCoordinator sharding.Coordinator) {
+func (ccm *ConsensusCoreMock) SetShardCoordinator(shardCoordinator consensus.ShardCoordinator) {
 	ccm.shardCoordinator = shardCoordinator
 }
 
 // SetSyncTimer -
-func (ccm *ConsensusCoreMock) SetSyncTimer(syncTimer ntp.SyncTimer) {
+func (ccm *ConsensusCoreMock) SetSyncTimer(syncTimer consensus.SyncTimer) {
 	ccm.syncTimer = syncTimer
 }
 
 // SetValidatorGroupSelector -
-func (ccm *ConsensusCoreMock) SetValidatorGroupSelector(validatorGroupSelector nodesCoordinator.NodesCoordinator) {
+func (ccm *ConsensusCoreMock) SetValidatorGroupSelector(validatorGroupSelector consensus.NodesCoordinator) {
 	ccm.validatorGroupSelector = validatorGroupSelector
 }
 
