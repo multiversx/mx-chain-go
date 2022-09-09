@@ -39,10 +39,11 @@ type CryptoComponentsFactoryArgs struct {
 	SkIndex                              int
 	Config                               config.Config
 	CoreComponentsHolder                 CoreComponentsHolder
-	ActivateBLSPubKeyMessageVerification bool
 	KeyLoader                            KeyLoaderHandler
+	ActivateBLSPubKeyMessageVerification bool
 	IsInImportMode                       bool
 	ImportModeNoSigCheck                 bool
+	NoKeyProvided                        bool
 }
 
 type cryptoComponentsFactory struct {
@@ -55,6 +56,7 @@ type cryptoComponentsFactory struct {
 	keyLoader                            KeyLoaderHandler
 	isInImportMode                       bool
 	importModeNoSigCheck                 bool
+	noKeyProvided                        bool
 }
 
 // cryptoParams holds the node public/private key data
@@ -100,6 +102,7 @@ func NewCryptoComponentsFactory(args CryptoComponentsFactoryArgs) (*cryptoCompon
 		keyLoader:                            args.KeyLoader,
 		isInImportMode:                       args.IsInImportMode,
 		importModeNoSigCheck:                 args.ImportModeNoSigCheck,
+		noKeyProvided:                        args.NoKeyProvided,
 	}
 
 	return ccf, nil
@@ -252,7 +255,8 @@ func (ccf *cryptoComponentsFactory) createCryptoParams(
 	keygen crypto.KeyGenerator,
 ) (*cryptoParams, error) {
 
-	if ccf.isInImportMode {
+	shouldGenerateCryptoParams := ccf.isInImportMode || ccf.noKeyProvided
+	if shouldGenerateCryptoParams {
 		return ccf.generateCryptoParams(keygen)
 	}
 
@@ -290,7 +294,14 @@ func (ccf *cryptoComponentsFactory) readCryptoParams(keygen crypto.KeyGenerator)
 }
 
 func (ccf *cryptoComponentsFactory) generateCryptoParams(keygen crypto.KeyGenerator) (*cryptoParams, error) {
-	log.Warn("the node is in import mode! Will generate a fresh new BLS key")
+	var message string
+	if ccf.noKeyProvided {
+		message = "with no-key flag enabled"
+	} else {
+		message = "in import mode"
+	}
+
+	log.Warn(fmt.Sprintf("the node is %s! Will generate a fresh new BLS key", message))
 	cp := &cryptoParams{}
 	cp.privateKey, cp.publicKey = keygen.GeneratePair()
 

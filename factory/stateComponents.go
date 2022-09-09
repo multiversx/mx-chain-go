@@ -22,7 +22,6 @@ import (
 // StateComponentsFactoryArgs holds the arguments needed for creating a state components factory
 type StateComponentsFactoryArgs struct {
 	Config           config.Config
-	EnableEpochs     config.EnableEpochs
 	ShardCoordinator sharding.Coordinator
 	Core             CoreComponentsHolder
 	StorageService   dataRetriever.StorageService
@@ -35,7 +34,6 @@ type stateComponentsFactory struct {
 	shardCoordinator sharding.Coordinator
 	core             CoreComponentsHolder
 	storageService   dataRetriever.StorageService
-	enableEpochs     config.EnableEpochs
 	processingMode   common.NodeProcessingMode
 	chainHandler     chainData.ChainHandler
 }
@@ -79,7 +77,6 @@ func NewStateComponentsFactory(args StateComponentsFactoryArgs) (*stateComponent
 		shardCoordinator: args.ShardCoordinator,
 		core:             args.Core,
 		storageService:   args.StorageService,
-		enableEpochs:     args.EnableEpochs,
 		processingMode:   args.ProcessingMode,
 		chainHandler:     args.ChainHandler,
 	}, nil
@@ -158,9 +155,15 @@ func (scf *stateComponentsFactory) createAccountsAdapters(triesContainer common.
 		return nil, nil, nil, fmt.Errorf("accounts adapter API on current: %w: %s", errors.ErrAccountsAdapterCreation, err.Error())
 	}
 
+	accountsAdapterApiOnHistorical, err := factoryState.CreateAccountsAdapterAPIOnHistorical(argsAPIAccountsDB)
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("accounts adapter API on historical: %w: %s", errors.ErrAccountsAdapterCreation, err.Error())
+	}
+
 	argsAccountsRepository := state.ArgsAccountsRepository{
-		FinalStateAccountsWrapper:   accountsAdapterApiOnFinal,
-		CurrentStateAccountsWrapper: accountsAdapterApiOnCurrent,
+		FinalStateAccountsWrapper:      accountsAdapterApiOnFinal,
+		CurrentStateAccountsWrapper:    accountsAdapterApiOnCurrent,
+		HistoricalStateAccountsWrapper: accountsAdapterApiOnHistorical,
 	}
 
 	accountsRepository, err := state.NewAccountsRepository(argsAccountsRepository)

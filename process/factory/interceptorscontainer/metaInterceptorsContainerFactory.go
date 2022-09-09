@@ -93,7 +93,6 @@ func NewMetaInterceptorsContainerFactory(
 		HeaderIntegrityVerifier:      args.HeaderIntegrityVerifier,
 		EpochStartTrigger:            args.EpochStartTrigger,
 		ArgsParser:                   args.ArgumentsParser,
-		EnableSignTxWithHashEpoch:    args.EnableSignTxWithHashEpoch,
 		PeerSignatureHandler:         args.PeerSignatureHandler,
 		SignaturesHandler:            args.SignaturesHandler,
 		HeartbeatExpiryTimespanInSec: args.HeartbeatExpiryTimespanInSec,
@@ -182,6 +181,11 @@ func (micf *metaInterceptorsContainerFactory) Create() (process.InterceptorsCont
 	}
 
 	err = micf.generateDirectConnectionInfoInterceptor()
+	if err != nil {
+		return nil, err
+	}
+
+	err = micf.generateValidatorInfoInterceptor()
 	if err != nil {
 		return nil, err
 	}

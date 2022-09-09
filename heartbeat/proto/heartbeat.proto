@@ -13,6 +13,7 @@ message HeartbeatV2 {
   string  Identity        = 4;
   uint64  Nonce           = 5;
   uint32  PeerSubType     = 6;
+  bytes   Pubkey          = 7;
 }
 
 // PeerAuthentication represents the DTO used to pass peer authentication information such as public key, peer id,

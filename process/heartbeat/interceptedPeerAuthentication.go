@@ -3,7 +3,6 @@ package heartbeat
 import (
 	"bytes"
 	"fmt"
-	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
@@ -20,7 +19,7 @@ type ArgInterceptedPeerAuthentication struct {
 	NodesCoordinator      NodesCoordinator
 	SignaturesHandler     SignaturesHandler
 	PeerSignatureHandler  crypto.PeerSignatureHandler
-	ExpiryTimespanInSec   int64
+	PayloadValidator      process.PeerAuthenticationPayloadValidator
 	HardforkTriggerPubKey []byte
 }
 
@@ -32,7 +31,7 @@ type interceptedPeerAuthentication struct {
 	nodesCoordinator      NodesCoordinator
 	signaturesHandler     SignaturesHandler
 	peerSignatureHandler  crypto.PeerSignatureHandler
-	expiryTimespanInSec   int64
+	payloadValidator      process.PeerAuthenticationPayloadValidator
 	hardforkTriggerPubKey []byte
 }
 
@@ -54,7 +53,7 @@ func NewInterceptedPeerAuthentication(arg ArgInterceptedPeerAuthentication) (*in
 		nodesCoordinator:      arg.NodesCoordinator,
 		signaturesHandler:     arg.SignaturesHandler,
 		peerSignatureHandler:  arg.PeerSignatureHandler,
-		expiryTimespanInSec:   arg.ExpiryTimespanInSec,
+		payloadValidator:      arg.PayloadValidator,
 		hardforkTriggerPubKey: arg.HardforkTriggerPubKey,
 	}
 	intercepted.peerId = core.PeerID(intercepted.peerAuthentication.Pid)
@@ -73,8 +72,8 @@ func checkArg(arg ArgInterceptedPeerAuthentication) error {
 	if check.IfNil(arg.SignaturesHandler) {
 		return process.ErrNilSignaturesHandler
 	}
-	if arg.ExpiryTimespanInSec < minDurationInSec {
-		return process.ErrInvalidExpiryTimespan
+	if check.IfNil(arg.PayloadValidator) {
+		return process.ErrNilPayloadValidator
 	}
 	if check.IfNil(arg.PeerSignatureHandler) {
 		return process.ErrNilPeerSignatureHandler
@@ -143,7 +142,7 @@ func (ipa *interceptedPeerAuthentication) CheckValidity() error {
 	}
 
 	// Verify payload
-	err = ipa.verifyPayloadTimestamp()
+	err = ipa.payloadValidator.ValidateTimestamp(ipa.payload.Timestamp)
 	if err != nil {
 		return err
 	}
@@ -218,18 +217,6 @@ func (ipa *interceptedPeerAuthentication) String() string {
 		logger.DisplayByteSlice(ipa.peerAuthentication.Payload),
 		logger.DisplayByteSlice(ipa.peerAuthentication.PayloadSignature),
 	)
-}
-
-func (ipa *interceptedPeerAuthentication) verifyPayloadTimestamp() error {
-	currentTimeStamp := time.Now().Unix()
-	messageTimeStamp := ipa.payload.Timestamp
-	minTimestampAllowed := currentTimeStamp - ipa.expiryTimespanInSec
-	maxTimestampAllowed := currentTimeStamp + payloadExpiryThresholdInSec
-	if messageTimeStamp < minTimestampAllowed || messageTimeStamp > maxTimestampAllowed {
-		return process.ErrMessageExpired
-	}
-
-	return nil
 }
 
 func (ipa *interceptedPeerAuthentication) isHardforkFromSource() bool {

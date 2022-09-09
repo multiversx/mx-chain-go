@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
+	"github.com/ElrondNetwork/elrond-go/heartbeat/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
 	processMocks "github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
@@ -28,6 +29,7 @@ func createMockHeartbeatV2MonitorArgs() ArgHeartbeatV2Monitor {
 		MaxDurationPeerUnresponsive:   time.Second * 3,
 		HideInactiveValidatorInterval: time.Second * 5,
 		ShardId:                       0,
+		PeerTypeProvider:              &mock.PeerTypeProviderStub{},
 	}
 }
 
@@ -53,6 +55,7 @@ func createHeartbeatMessage(active bool) *heartbeat.HeartbeatV2 {
 		Identity:        "identity",
 		Nonce:           0,
 		PeerSubType:     0,
+		Pubkey:          []byte("public key"),
 	}
 }
 
@@ -115,6 +118,15 @@ func TestNewHeartbeatV2Monitor(t *testing.T) {
 		assert.True(t, errors.Is(err, heartbeat.ErrInvalidTimeDuration))
 		assert.True(t, strings.Contains(err.Error(), "HideInactiveValidatorInterval"))
 	})
+	t.Run("nil peer type provider should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockHeartbeatV2MonitorArgs()
+		args.PeerTypeProvider = nil
+		monitor, err := NewHeartbeatV2Monitor(args)
+		assert.True(t, check.IfNil(monitor))
+		assert.Equal(t, heartbeat.ErrNilPeerTypeProvider, err)
+	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
@@ -167,6 +179,48 @@ func TestHeartbeatV2Monitor_parseMessage(t *testing.T) {
 		_, err := monitor.parseMessage("pid", message, nil)
 		assert.Equal(t, heartbeat.ErrShouldSkipValidator, err)
 	})
+	t.Run("should work, peer type provider returns error", func(t *testing.T) {
+		t.Parallel()
+
+		providedPkBytes := []byte("provided pk")
+		providedPkBytesFromMessage := []byte("provided pk message")
+		args := createMockHeartbeatV2MonitorArgs()
+		args.PeerShardMapper = &processMocks.PeerShardMapperStub{
+			GetPeerInfoCalled: func(pid core.PeerID) core.P2PPeerInfo {
+				return core.P2PPeerInfo{
+					PkBytes: providedPkBytes,
+				}
+			},
+		}
+		args.PeerTypeProvider = &mock.PeerTypeProviderStub{
+			ComputeForPubKeyCalled: func(pubKey []byte) (common.PeerType, uint32, error) {
+				return "", 0, errors.New("some error")
+			},
+		}
+		monitor, _ := NewHeartbeatV2Monitor(args)
+		assert.False(t, check.IfNil(monitor))
+
+		numInstances := make(map[string]uint64)
+		message := createHeartbeatMessage(true)
+		message.Pubkey = providedPkBytesFromMessage
+		providedPid := core.PeerID("pid")
+		providedMap := map[string]struct{}{
+			providedPid.Pretty(): {},
+		}
+		hb, err := monitor.parseMessage(providedPid, message, numInstances)
+		assert.Nil(t, err)
+		checkResults(t, *message, hb, true, providedMap, 0)
+		assert.Equal(t, 0, len(providedMap))
+		pkFromMsg := args.PubKeyConverter.Encode(providedPkBytesFromMessage)
+		entries, ok := numInstances[pkFromMsg]
+		assert.True(t, ok)
+		assert.Equal(t, uint64(1), entries)
+		assert.Equal(t, string(common.ObserverList), hb.PeerType)
+
+		pkFromPSM := args.PubKeyConverter.Encode(providedPkBytes)
+		_, ok = numInstances[pkFromPSM]
+		assert.False(t, ok)
+	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
@@ -177,6 +231,12 @@ func TestHeartbeatV2Monitor_parseMessage(t *testing.T) {
 				return core.P2PPeerInfo{
 					PkBytes: providedPkBytes,
 				}
+			},
+		}
+		expectedPeerType := common.EligibleList
+		args.PeerTypeProvider = &mock.PeerTypeProviderStub{
+			ComputeForPubKeyCalled: func(pubKey []byte) (common.PeerType, uint32, error) {
+				return expectedPeerType, 0, nil
 			},
 		}
 		monitor, _ := NewHeartbeatV2Monitor(args)
@@ -192,10 +252,11 @@ func TestHeartbeatV2Monitor_parseMessage(t *testing.T) {
 		assert.Nil(t, err)
 		checkResults(t, *message, hb, true, providedMap, 0)
 		assert.Equal(t, 0, len(providedMap))
-		pid := args.PubKeyConverter.Encode(providedPkBytes)
-		entries, ok := numInstances[pid]
+		pk := args.PubKeyConverter.Encode(providedPkBytes)
+		entries, ok := numInstances[pk]
 		assert.True(t, ok)
 		assert.Equal(t, uint64(1), entries)
+		assert.Equal(t, string(expectedPeerType), hb.PeerType)
 	})
 }
 
@@ -275,7 +336,8 @@ func TestHeartbeatV2Monitor_GetHeartbeats(t *testing.T) {
 		assert.False(t, check.IfNil(monitor))
 
 		heartbeats := monitor.GetHeartbeats()
-		assert.Equal(t, args.Cache.Len()-1, len(heartbeats))
+		assert.Equal(t, len(providedStatuses)-1, len(heartbeats))
+		assert.Equal(t, len(providedStatuses)-1, args.Cache.Len()) // faulty message was removed from cache
 		for i := 0; i < len(heartbeats); i++ {
 			checkResults(t, *providedMessages[i], heartbeats[i], providedStatuses[i], providedPids, 1)
 		}

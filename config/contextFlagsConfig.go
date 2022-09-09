@@ -21,6 +21,7 @@ type ContextFlagsConfig struct {
 	EnableRestAPIServerDebugMode bool
 	Version                      string
 	ForceStartFromNetwork        bool
+	NoKeyProvided                bool
 }
 
 // ImportDbConfig will hold the import-db parameters

@@ -173,29 +173,30 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 	}
 
 	workerArgs := &spos.WorkerArgs{
-		ConsensusService:        consensusService,
-		BlockChain:              ccf.dataComponents.Blockchain(),
-		BlockProcessor:          ccf.processComponents.BlockProcessor(),
-		ScheduledProcessor:      ccf.scheduledProcessor,
-		Bootstrapper:            cc.bootstrapper,
-		BroadcastMessenger:      cc.broadcastMessenger,
-		ConsensusState:          consensusState,
-		ForkDetector:            ccf.processComponents.ForkDetector(),
-		PeerSignatureHandler:    ccf.cryptoComponents.PeerSignatureHandler(),
-		Marshalizer:             marshalizer,
-		Hasher:                  ccf.coreComponents.Hasher(),
-		RoundHandler:            ccf.processComponents.RoundHandler(),
-		ShardCoordinator:        ccf.processComponents.ShardCoordinator(),
-		SyncTimer:               ccf.coreComponents.SyncTimer(),
-		HeaderSigVerifier:       ccf.processComponents.HeaderSigVerifier(),
-		HeaderIntegrityVerifier: ccf.processComponents.HeaderIntegrityVerifier(),
-		ChainID:                 []byte(ccf.coreComponents.ChainID()),
-		AntifloodHandler:        ccf.networkComponents.InputAntiFloodHandler(),
-		PoolAdder:               ccf.dataComponents.Datapool().MiniBlocks(),
-		SignatureSize:           ccf.config.ValidatorPubkeyConverter.SignatureLength,
-		PublicKeySize:           ccf.config.ValidatorPubkeyConverter.Length,
-		AppStatusHandler:        ccf.coreComponents.StatusHandler(),
-		NodeRedundancyHandler:   ccf.processComponents.NodeRedundancyHandler(),
+		ConsensusService:         consensusService,
+		BlockChain:               ccf.dataComponents.Blockchain(),
+		BlockProcessor:           ccf.processComponents.BlockProcessor(),
+		ScheduledProcessor:       ccf.scheduledProcessor,
+		Bootstrapper:             cc.bootstrapper,
+		BroadcastMessenger:       cc.broadcastMessenger,
+		ConsensusState:           consensusState,
+		ForkDetector:             ccf.processComponents.ForkDetector(),
+		PeerSignatureHandler:     ccf.cryptoComponents.PeerSignatureHandler(),
+		Marshalizer:              marshalizer,
+		Hasher:                   ccf.coreComponents.Hasher(),
+		RoundHandler:             ccf.processComponents.RoundHandler(),
+		ShardCoordinator:         ccf.processComponents.ShardCoordinator(),
+		SyncTimer:                ccf.coreComponents.SyncTimer(),
+		HeaderSigVerifier:        ccf.processComponents.HeaderSigVerifier(),
+		HeaderIntegrityVerifier:  ccf.processComponents.HeaderIntegrityVerifier(),
+		ChainID:                  []byte(ccf.coreComponents.ChainID()),
+		NetworkShardingCollector: ccf.processComponents.PeerShardMapper(),
+		AntifloodHandler:         ccf.networkComponents.InputAntiFloodHandler(),
+		PoolAdder:                ccf.dataComponents.Datapool().MiniBlocks(),
+		SignatureSize:            ccf.config.ValidatorPubkeyConverter.SignatureLength,
+		PublicKeySize:            ccf.config.ValidatorPubkeyConverter.Length,
+		AppStatusHandler:         ccf.coreComponents.StatusHandler(),
+		NodeRedundancyHandler:    ccf.processComponents.NodeRedundancyHandler(),
 	}
 
 	cc.worker, err = spos.NewWorker(workerArgs)
@@ -410,6 +411,7 @@ func (ccf *consensusComponentsFactory) createShardBootstrapper() (process.Bootst
 		MiniblocksProvider:           ccf.dataComponents.MiniBlocksProvider(),
 		EpochNotifier:                ccf.coreComponents.EpochNotifier(),
 		ProcessedMiniBlocksTracker:   ccf.processComponents.ProcessedMiniBlocksTracker(),
+		AppStatusHandler:             ccf.coreComponents.StatusHandler(),
 	}
 
 	argsShardStorageBootstrapper := storageBootstrap.ArgsShardStorageBootstrapper{
@@ -534,6 +536,7 @@ func (ccf *consensusComponentsFactory) createMetaChainBootstrapper() (process.Bo
 		MiniblocksProvider:           ccf.dataComponents.MiniBlocksProvider(),
 		EpochNotifier:                ccf.coreComponents.EpochNotifier(),
 		ProcessedMiniBlocksTracker:   ccf.processComponents.ProcessedMiniBlocksTracker(),
+		AppStatusHandler:             ccf.coreComponents.StatusHandler(),
 	}
 
 	argsMetaStorageBootstrapper := storageBootstrap.ArgsMetaStorageBootstrapper{

@@ -120,7 +120,7 @@ type CoreComponentsHolder interface {
 	GenesisNodesSetup() sharding.GenesisNodesSetupHandler
 	NodesShuffler() nodesCoordinator.NodesShuffler
 	EpochNotifier() process.EpochNotifier
-	RoundNotifier() process.RoundNotifier
+	EnableRoundsHandler() process.EnableRoundsHandler
 	EpochStartNotifierWithConfirm() EpochStartNotifierWithConfirm
 	ChanStopNodeProcess() chan endProcess.ArgEndProcess
 	GenesisTime() time.Time
@@ -132,6 +132,7 @@ type CoreComponentsHolder interface {
 	ArwenChangeLocker() common.Locker
 	ProcessStatusHandler() common.ProcessStatusHandler
 	HardforkTriggerPubKey() []byte
+	EnableEpochsHandler() common.EnableEpochsHandler
 	IsInterfaceNil() bool
 }
 
@@ -271,6 +272,7 @@ type ProcessComponentsHolder interface {
 	HardforkTrigger() HardforkTrigger
 	ProcessedMiniBlocksTracker() process.ProcessedMiniBlocksTracker
 	AccountsParser() genesis.AccountsParser
+	ReceiptsRepository() ReceiptsRepository
 	IsInterfaceNil() bool
 }
 
@@ -446,7 +448,6 @@ type EpochStartBootstrapper interface {
 
 // BootstrapComponentsHolder holds the bootstrap components
 type BootstrapComponentsHolder interface {
-	RoundActivationHandler() process.RoundActivationHandler
 	EpochStartBootstrapper() EpochStartBootstrapper
 	EpochBootstrapParams() BootstrapParamsHolder
 	NodeType() core.NodeType
@@ -495,6 +496,13 @@ type EconomicsHandler interface {
 type LogsFacade interface {
 	GetLog(logKey []byte, epoch uint32) (*transaction.ApiLogs, error)
 	IncludeLogsInTransactions(txs []*transaction.ApiTransactionResult, logsKeys [][]byte, epoch uint32) error
+	IsInterfaceNil() bool
+}
+
+// ReceiptsRepository defines the interface of a receiptsRepository
+type ReceiptsRepository interface {
+	SaveReceipts(holder common.ReceiptsHolder, header data.HeaderHandler, headerHash []byte) error
+	LoadReceipts(header data.HeaderHandler, headerHash []byte) (common.ReceiptsHolder, error)
 	IsInterfaceNil() bool
 }
 

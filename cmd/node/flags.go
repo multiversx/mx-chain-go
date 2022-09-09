@@ -327,6 +327,13 @@ var (
 		Name:  "force-start-from-network",
 		Usage: "Flag that will force the start from network bootstrap process",
 	}
+
+	// noKey defines a flag that, if set, will generate every time when node starts a new signing key
+	noKey = cli.BoolFlag{
+		Name: "no-key",
+		Usage: "Boolean flag for enabling the node to generate a signing key when it starts (if the validatorKey.pem" +
+			" file is present, setting this flag to true will overwrite the BLS key used by the node)",
+	}
 )
 
 func getFlags() []cli.Flag {
@@ -377,6 +384,7 @@ func getFlags() []cli.Flag {
 		memBallast,
 		memoryUsageToCreateProfiles,
 		forceStartFromNetwork,
+		noKey,
 	}
 }
 
@@ -400,6 +408,8 @@ func getFlagsConfig(ctx *cli.Context, log logger.Logger) *config.ContextFlagsCon
 	flagsConfig.UseLogView = ctx.GlobalBool(useLogView.Name)
 	flagsConfig.ValidatorKeyIndex = ctx.GlobalInt(validatorKeyIndex.Name)
 	flagsConfig.ForceStartFromNetwork = ctx.GlobalBool(forceStartFromNetwork.Name)
+	flagsConfig.NoKeyProvided = ctx.GlobalBool(noKey.Name)
+
 	return flagsConfig
 }
 
@@ -511,7 +521,8 @@ func processConfigImportDBMode(log logger.Logger, configs *config.Configs) error
 		generalConfigs.GeneralSettings.StartInEpochEnabled = false
 	}
 
-	generalConfigs.StoragePruning.NumActivePersisters = generalConfigs.StoragePruning.NumEpochsToKeep
+	// We need to increment "NumActivePersisters" in order to make the storage resolvers work (since they open 2 epochs in advance)
+	generalConfigs.StoragePruning.NumActivePersisters++
 	generalConfigs.StateTriesConfig.CheckpointsEnabled = false
 	generalConfigs.StateTriesConfig.CheckpointRoundsModulus = 100000000
 	p2pConfigs.Node.ThresholdMinConnectedPeers = 0
@@ -523,7 +534,8 @@ func processConfigImportDBMode(log logger.Logger, configs *config.Configs) error
 		"GeneralSettings.StartInEpochEnabled", generalConfigs.GeneralSettings.StartInEpochEnabled,
 		"StateTriesConfig.CheckpointsEnabled", generalConfigs.StateTriesConfig.CheckpointsEnabled,
 		"StateTriesConfig.CheckpointRoundsModulus", generalConfigs.StateTriesConfig.CheckpointRoundsModulus,
-		"StoragePruning.NumActivePersisters", generalConfigs.StoragePruning.NumEpochsToKeep,
+		"StoragePruning.NumEpochsToKeep", generalConfigs.StoragePruning.NumEpochsToKeep,
+		"StoragePruning.NumActivePersisters", generalConfigs.StoragePruning.NumActivePersisters,
 		"p2p.ThresholdMinConnectedPeers", p2pConfigs.Node.ThresholdMinConnectedPeers,
 		"no sig check", importDbFlags.ImportDbNoSigCheckFlag,
 		"import save trie epoch root hash", importDbFlags.ImportDbSaveTrieEpochRootHash,

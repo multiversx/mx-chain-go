@@ -13,8 +13,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
+	storageMocks "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -29,9 +31,9 @@ func createMockMetaAPIProcessor(
 		APITransactionHandler: &mock.TransactionAPIHandlerStub{},
 		SelfShardID:           core.MetachainShardId,
 		Marshalizer:           &mock.MarshalizerFake{},
-		Store: &mock.ChainStorerMock{
-			GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-				return storerMock
+		Store: &storageMocks.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+				return storerMock, nil
 			},
 			GetCalled: func(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
 				if withKey {
@@ -49,6 +51,7 @@ func createMockMetaAPIProcessor(
 				return withHistory
 			},
 		},
+		ReceiptsRepository: &testscommon.ReceiptsRepositoryStub{},
 	}, nil)
 }
 
@@ -418,7 +421,62 @@ func TestMetaAPIBlockProcessor_GetBlockByRound_GetBlockByNonce_EpochStartBlock(t
 			},
 		},
 		EpochStart: block.EpochStart{
-			LastFinalizedHeaders: []block.EpochStartShardData{{}},
+			LastFinalizedHeaders: []block.EpochStartShardData{
+				{
+					ShardID:               1,
+					Nonce:                 1234,
+					Round:                 1500,
+					Epoch:                 10,
+					HeaderHash:            []byte("hh"),
+					RootHash:              []byte("rh"),
+					ScheduledRootHash:     []byte("sch"),
+					FirstPendingMetaBlock: []byte("fpmb"),
+					LastFinishedMetaBlock: []byte("lfmb"),
+					PendingMiniBlockHeaders: []block.MiniBlockHeader{
+						{
+							Hash:            []byte("mbh1"),
+							SenderShardID:   0,
+							ReceiverShardID: 1,
+							Type:            block.TxBlock,
+							Reserved:        []byte("rrr"),
+						},
+						{
+							Hash:            []byte("mbh2"),
+							SenderShardID:   1,
+							ReceiverShardID: 2,
+							Type:            block.SmartContractResultBlock,
+							Reserved:        []byte("rrr"),
+						},
+					},
+				},
+				{
+					ShardID:               2,
+					Nonce:                 2200,
+					Round:                 2340,
+					Epoch:                 10,
+					HeaderHash:            []byte("hh2"),
+					RootHash:              []byte("rh2"),
+					ScheduledRootHash:     []byte("sch2"),
+					FirstPendingMetaBlock: []byte("fpmb2"),
+					LastFinishedMetaBlock: []byte("lfmb2"),
+					PendingMiniBlockHeaders: []block.MiniBlockHeader{
+						{
+							Hash:            []byte("mmm1"),
+							SenderShardID:   1,
+							ReceiverShardID: 0,
+							Type:            block.TxBlock,
+							Reserved:        []byte("rrr"),
+						},
+						{
+							Hash:            []byte("mmm2"),
+							SenderShardID:   0,
+							ReceiverShardID: 2,
+							Type:            block.SmartContractResultBlock,
+							Reserved:        []byte("rrr"),
+						},
+					},
+				},
+			},
 			Economics: block.Economics{
 				TotalSupply:                      big.NewInt(100),
 				TotalToDistribute:                big.NewInt(55),
@@ -475,6 +533,58 @@ func TestMetaAPIBlockProcessor_GetBlockByRound_GetBlockByNonce_EpochStartBlock(t
 			NodePrice:                        "10",
 			PrevEpochStartRound:              222,
 			PrevEpochStartHash:               "7072657645706f6368",
+		},
+		EpochStartShardsData: []*api.EpochStartShardData{
+			{
+				ShardID:               1,
+				Epoch:                 10,
+				Round:                 1500,
+				Nonce:                 1234,
+				HeaderHash:            "6868",
+				RootHash:              "7268",
+				ScheduledRootHash:     "736368",
+				FirstPendingMetaBlock: "66706d62",
+				LastFinishedMetaBlock: "6c666d62",
+				PendingMiniBlockHeaders: []*api.MiniBlock{
+					{
+						Hash:             "6d626831",
+						SourceShard:      0,
+						DestinationShard: 1,
+						Type:             "TxBlock",
+					},
+					{
+						Hash:             "6d626832",
+						SourceShard:      1,
+						DestinationShard: 2,
+						Type:             "SmartContractResultBlock",
+					},
+				},
+			},
+			{
+				ShardID:               2,
+				Epoch:                 10,
+				Round:                 2340,
+				Nonce:                 2200,
+				HeaderHash:            "686832",
+				RootHash:              "726832",
+				ScheduledRootHash:     "73636832",
+				FirstPendingMetaBlock: "66706d6232",
+				LastFinishedMetaBlock: "6c666d6232",
+				PendingMiniBlockHeaders: []*api.MiniBlock{
+					{
+						Hash:             "6d6d6d31",
+						SourceShard:      1,
+						DestinationShard: 0,
+						Type:             "TxBlock",
+					},
+					{
+						Hash:             "6d6d6d32",
+						SourceShard:      0,
+						DestinationShard: 2,
+						Type:             "SmartContractResultBlock",
+					},
+				},
+			},
 		},
 	}
 

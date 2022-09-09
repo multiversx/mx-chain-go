@@ -20,6 +20,7 @@ const (
 	getAccountPath            = "/:address"
 	getBalancePath            = "/:address/balance"
 	getUsernamePath           = "/:address/username"
+	getCodeHashPath           = "/:address/code-hash"
 	getKeysPath               = "/:address/keys"
 	getKeyPath                = "/:address/key/:key"
 	getESDTTokensPath         = "/:address/esdt"
@@ -30,12 +31,17 @@ const (
 	getESDTNFTDataPath        = "/:address/nft/:tokenIdentifier/nonce/:nonce"
 	urlParamOnFinalBlock      = "onFinalBlock"
 	urlParamOnStartOfEpoch    = "onStartOfEpoch"
+	urlParamBlockNonce        = "blockNonce"
+	urlParamBlockHash         = "blockHash"
+	urlParamBlockRootHash     = "blockRootHash"
+	urlParamHintEpoch         = "hintEpoch"
 )
 
 // addressFacadeHandler defines the methods to be implemented by a facade for handling address requests
 type addressFacadeHandler interface {
 	GetBalance(address string, options api.AccountQueryOptions) (*big.Int, api.BlockInfo, error)
 	GetUsername(address string, options api.AccountQueryOptions) (string, api.BlockInfo, error)
+	GetCodeHash(address string, options api.AccountQueryOptions) ([]byte, api.BlockInfo, error)
 	GetValueForKey(address string, key string, options api.AccountQueryOptions) (string, api.BlockInfo, error)
 	GetAccount(address string, options api.AccountQueryOptions) (api.AccountResponse, api.BlockInfo, error)
 	GetESDTData(address string, key string, nonce uint64, options api.AccountQueryOptions) (*esdt.ESDigitalToken, api.BlockInfo, error)
@@ -100,6 +106,11 @@ func NewAddressGroup(facade addressFacadeHandler) (*addressGroup, error) {
 			Handler: ag.getUsername,
 		},
 		{
+			Path: 	 getCodeHashPath,
+			Method:  http.MethodGet,
+			Handler: ag.getCodeHash,
+		},
+		{
 			Path:    getKeyPath,
 			Method:  http.MethodGet,
 			Handler: ag.getValueForKey,
@@ -153,9 +164,9 @@ func (ag *addressGroup) getAccount(c *gin.Context) {
 		return
 	}
 
-	options, err := parseAccountQueryOptions(c)
+	options, err := extractAccountQueryOptions(c)
 	if err != nil {
-		shared.RespondWithValidationError(c, errors.ErrCouldNotGetAccount, errors.ErrBadUrlParams)
+		shared.RespondWithValidationError(c, errors.ErrCouldNotGetAccount, err)
 		return
 	}
 
@@ -177,9 +188,9 @@ func (ag *addressGroup) getBalance(c *gin.Context) {
 		return
 	}
 
-	options, err := parseAccountQueryOptions(c)
+	options, err := extractAccountQueryOptions(c)
 	if err != nil {
-		shared.RespondWithValidationError(c, errors.ErrGetBalance, errors.ErrBadUrlParams)
+		shared.RespondWithValidationError(c, errors.ErrGetBalance, err)
 		return
 	}
 
@@ -200,9 +211,9 @@ func (ag *addressGroup) getUsername(c *gin.Context) {
 		return
 	}
 
-	options, err := parseAccountQueryOptions(c)
+	options, err := extractAccountQueryOptions(c)
 	if err != nil {
-		shared.RespondWithValidationError(c, errors.ErrGetUsername, errors.ErrBadUrlParams)
+		shared.RespondWithValidationError(c, errors.ErrGetUsername, err)
 		return
 	}
 
@@ -215,6 +226,29 @@ func (ag *addressGroup) getUsername(c *gin.Context) {
 	shared.RespondWithSuccess(c, gin.H{"username": userName, "blockInfo": blockInfo})
 }
 
+// getCodeHash returns the code hash for the address parameter
+func (ag *addressGroup) getCodeHash(c *gin.Context) {
+	addr := c.Param("address")
+	if addr == "" {
+		shared.RespondWithValidationError(c, errors.ErrGetCodeHash, errors.ErrEmptyAddress)
+		return
+	}
+
+	options, err := parseAccountQueryOptions(c)
+	if err != nil {
+		shared.RespondWithValidationError(c, errors.ErrGetCodeHash, errors.ErrBadUrlParams)
+		return
+	}
+
+	codeHash, blockInfo, err := ag.getFacade().GetCodeHash(addr, options)
+	if err != nil {
+		shared.RespondWithInternalError(c, errors.ErrGetCodeHash, err)
+		return
+	}
+
+	shared.RespondWithSuccess(c, gin.H{"codeHash": codeHash, "blockInfo": blockInfo})
+}
+
 // getValueForKey returns the value for the given address and key
 func (ag *addressGroup) getValueForKey(c *gin.Context) {
 	addr := c.Param("address")
@@ -223,9 +257,9 @@ func (ag *addressGroup) getValueForKey(c *gin.Context) {
 		return
 	}
 
-	options, err := parseAccountQueryOptions(c)
+	options, err := extractAccountQueryOptions(c)
 	if err != nil {
-		shared.RespondWithValidationError(c, errors.ErrGetUsername, errors.ErrBadUrlParams)
+		shared.RespondWithValidationError(c, errors.ErrGetUsername, err)
 		return
 	}
 
@@ -252,9 +286,9 @@ func (ag *addressGroup) getKeyValuePairs(c *gin.Context) {
 		return
 	}
 
-	options, err := parseAccountQueryOptions(c)
+	options, err := extractAccountQueryOptions(c)
 	if err != nil {
-		shared.RespondWithValidationError(c, errors.ErrGetKeyValuePairs, errors.ErrBadUrlParams)
+		shared.RespondWithValidationError(c, errors.ErrGetKeyValuePairs, err)
 		return
 	}
 
@@ -275,9 +309,9 @@ func (ag *addressGroup) getESDTBalance(c *gin.Context) {
 		return
 	}
 
-	options, err := parseAccountQueryOptions(c)
+	options, err := extractAccountQueryOptions(c)
 	if err != nil {
-		shared.RespondWithValidationError(c, errors.ErrGetESDTBalance, errors.ErrBadUrlParams)
+		shared.RespondWithValidationError(c, errors.ErrGetESDTBalance, err)
 		return
 	}
 
@@ -310,9 +344,9 @@ func (ag *addressGroup) getESDTsRoles(c *gin.Context) {
 		return
 	}
 
-	options, err := parseAccountQueryOptions(c)
+	options, err := extractAccountQueryOptions(c)
 	if err != nil {
-		shared.RespondWithValidationError(c, errors.ErrGetRolesForAccount, errors.ErrBadUrlParams)
+		shared.RespondWithValidationError(c, errors.ErrGetRolesForAccount, err)
 		return
 	}
 
@@ -333,9 +367,9 @@ func (ag *addressGroup) getESDTTokensWithRole(c *gin.Context) {
 		return
 	}
 
-	options, err := parseAccountQueryOptions(c)
+	options, err := extractAccountQueryOptions(c)
 	if err != nil {
-		shared.RespondWithValidationError(c, errors.ErrGetESDTBalance, errors.ErrBadUrlParams)
+		shared.RespondWithValidationError(c, errors.ErrGetESDTBalance, err)
 		return
 	}
 
@@ -367,9 +401,9 @@ func (ag *addressGroup) getNFTTokenIDsRegisteredByAddress(c *gin.Context) {
 		return
 	}
 
-	options, err := parseAccountQueryOptions(c)
+	options, err := extractAccountQueryOptions(c)
 	if err != nil {
-		shared.RespondWithValidationError(c, errors.ErrGetESDTBalance, errors.ErrBadUrlParams)
+		shared.RespondWithValidationError(c, errors.ErrGetESDTBalance, err)
 		return
 	}
 
@@ -390,9 +424,9 @@ func (ag *addressGroup) getESDTNFTData(c *gin.Context) {
 		return
 	}
 
-	options, err := parseAccountQueryOptions(c)
+	options, err := extractAccountQueryOptions(c)
 	if err != nil {
-		shared.RespondWithValidationError(c, errors.ErrGetESDTNFTData, errors.ErrBadUrlParams)
+		shared.RespondWithValidationError(c, errors.ErrGetESDTNFTData, err)
 		return
 	}
 
@@ -432,9 +466,9 @@ func (ag *addressGroup) getAllESDTData(c *gin.Context) {
 		return
 	}
 
-	options, err := parseAccountQueryOptions(c)
+	options, err := extractAccountQueryOptions(c)
 	if err != nil {
-		shared.RespondWithValidationError(c, errors.ErrGetESDTNFTData, errors.ErrBadUrlParams)
+		shared.RespondWithValidationError(c, errors.ErrGetESDTNFTData, err)
 		return
 	}
 
@@ -500,19 +534,4 @@ func (ag *addressGroup) UpdateFacade(newFacade interface{}) error {
 // IsInterfaceNil returns true if there is no value under the interface
 func (ag *addressGroup) IsInterfaceNil() bool {
 	return ag == nil
-}
-
-func parseAccountQueryOptions(c *gin.Context) (api.AccountQueryOptions, error) {
-	onFinalBlock, err := parseBoolUrlParam(c, urlParamOnFinalBlock)
-	if err != nil {
-		return api.AccountQueryOptions{}, err
-	}
-
-	onStartOfEpoch, err := parseUintUrlParam(c, urlParamOnStartOfEpoch)
-	if err != nil {
-		return api.AccountQueryOptions{}, err
-	}
-
-	options := api.AccountQueryOptions{OnFinalBlock: onFinalBlock, OnStartOfEpoch: uint32(onStartOfEpoch)}
-	return options, nil
 }

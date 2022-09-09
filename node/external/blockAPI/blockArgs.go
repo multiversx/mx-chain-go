@@ -21,5 +21,6 @@ type ArgAPIBlockProcessor struct {
 	StatusComputer           transaction.StatusComputerHandler
 	Hasher                   hashing.Hasher
 	AddressPubkeyConverter   core.PubkeyConverter
-	LogsFacade               LogsFacade
+	LogsFacade               logsFacade
+	ReceiptsRepository       receiptsRepository
 }

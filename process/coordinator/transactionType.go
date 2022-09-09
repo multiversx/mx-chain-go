@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go-core/data/vm"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -16,20 +17,22 @@ import (
 var _ process.TxTypeHandler = (*txTypeHandler)(nil)
 
 type txTypeHandler struct {
-	pubkeyConv         core.PubkeyConverter
-	shardCoordinator   sharding.Coordinator
-	builtInFunctions   vmcommon.BuiltInFunctionContainer
-	argumentParser     process.CallArgumentsParser
-	esdtTransferParser vmcommon.ESDTTransferParser
+	pubkeyConv          core.PubkeyConverter
+	shardCoordinator    sharding.Coordinator
+	builtInFunctions    vmcommon.BuiltInFunctionContainer
+	argumentParser      process.CallArgumentsParser
+	esdtTransferParser  vmcommon.ESDTTransferParser
+	enableEpochsHandler common.EnableEpochsHandler
 }
 
 // ArgNewTxTypeHandler defines the arguments needed to create a new tx type handler
 type ArgNewTxTypeHandler struct {
-	PubkeyConverter    core.PubkeyConverter
-	ShardCoordinator   sharding.Coordinator
-	BuiltInFunctions   vmcommon.BuiltInFunctionContainer
-	ArgumentParser     process.CallArgumentsParser
-	ESDTTransferParser vmcommon.ESDTTransferParser
+	PubkeyConverter     core.PubkeyConverter
+	ShardCoordinator    sharding.Coordinator
+	BuiltInFunctions    vmcommon.BuiltInFunctionContainer
+	ArgumentParser      process.CallArgumentsParser
+	ESDTTransferParser  vmcommon.ESDTTransferParser
+	EnableEpochsHandler common.EnableEpochsHandler
 }
 
 // NewTxTypeHandler creates a transaction type handler
@@ -51,13 +54,17 @@ func NewTxTypeHandler(
 	if check.IfNil(args.ESDTTransferParser) {
 		return nil, process.ErrNilESDTTransferParser
 	}
+	if check.IfNil(args.EnableEpochsHandler) {
+		return nil, process.ErrNilEnableEpochsHandler
+	}
 
 	tc := &txTypeHandler{
-		pubkeyConv:         args.PubkeyConverter,
-		shardCoordinator:   args.ShardCoordinator,
-		argumentParser:     args.ArgumentParser,
-		builtInFunctions:   args.BuiltInFunctions,
-		esdtTransferParser: args.ESDTTransferParser,
+		pubkeyConv:          args.PubkeyConverter,
+		shardCoordinator:    args.ShardCoordinator,
+		argumentParser:      args.ArgumentParser,
+		builtInFunctions:    args.BuiltInFunctions,
+		esdtTransferParser:  args.ESDTTransferParser,
+		enableEpochsHandler: args.EnableEpochsHandler,
 	}
 
 	return tc, nil
@@ -130,6 +137,10 @@ func isAsynchronousCallBack(tx data.TransactionHandler) bool {
 }
 
 func (tth *txTypeHandler) isSCCallAfterBuiltIn(function string, args [][]byte, tx data.TransactionHandler) bool {
+	isTransferAndAsyncCallbackFixFlagSet := tth.enableEpochsHandler.IsESDTMetadataContinuousCleanupFlagEnabled()
+	if isTransferAndAsyncCallbackFixFlagSet && isAsynchronousCallBack(tx) {
+		return true
+	}
 	if len(args) <= 2 {
 		return false
 	}

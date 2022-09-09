@@ -25,7 +25,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
-	"github.com/ElrondNetwork/go-libp2p-pubsub"
+	pubsub "github.com/ElrondNetwork/go-libp2p-pubsub"
 	pb "github.com/ElrondNetwork/go-libp2p-pubsub/pb"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -81,8 +81,7 @@ func createMockNetworkArgs() libp2p.ArgsNetworkMessenger {
 		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
 		P2pConfig: config.P2PConfig{
 			Node: config.NodeConfig{
-				Port:                  "0",
-				ConnectionWatcherType: "print",
+				Port: "0",
 			},
 			KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
 				Enabled: false,
@@ -91,9 +90,10 @@ func createMockNetworkArgs() libp2p.ArgsNetworkMessenger {
 				Type: p2p.NilListSharder,
 			},
 		},
-		SyncTimer:            &libp2p.LocalSyncTimer{},
-		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
-		PeersRatingHandler:   &p2pmocks.PeersRatingHandlerStub{},
+		SyncTimer:             &libp2p.LocalSyncTimer{},
+		PreferredPeersHolder:  &p2pmocks.PeersHolderStub{},
+		PeersRatingHandler:    &p2pmocks.PeersRatingHandlerStub{},
+		ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
 	}
 }
 
@@ -1302,8 +1302,7 @@ func TestNetworkMessenger_PreventReprocessingShouldWork(t *testing.T) {
 		Marshalizer:   &testscommon.ProtoMarshalizerMock{},
 		P2pConfig: config.P2PConfig{
 			Node: config.NodeConfig{
-				Port:                  "0",
-				ConnectionWatcherType: "print",
+				Port: "0",
 			},
 			KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
 				Enabled: false,
@@ -1312,9 +1311,10 @@ func TestNetworkMessenger_PreventReprocessingShouldWork(t *testing.T) {
 				Type: p2p.NilListSharder,
 			},
 		},
-		SyncTimer:            &libp2p.LocalSyncTimer{},
-		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
-		PeersRatingHandler:   &p2pmocks.PeersRatingHandlerStub{},
+		SyncTimer:             &libp2p.LocalSyncTimer{},
+		PreferredPeersHolder:  &p2pmocks.PeersHolderStub{},
+		PeersRatingHandler:    &p2pmocks.PeersRatingHandlerStub{},
+		ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
 	}
 
 	mes, _ := libp2p.NewNetworkMessenger(args)
@@ -1368,8 +1368,7 @@ func TestNetworkMessenger_PubsubCallbackNotMessageNotValidShouldNotCallHandler(t
 		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
 		P2pConfig: config.P2PConfig{
 			Node: config.NodeConfig{
-				Port:                  "0",
-				ConnectionWatcherType: "print",
+				Port: "0",
 			},
 			KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
 				Enabled: false,
@@ -1378,9 +1377,10 @@ func TestNetworkMessenger_PubsubCallbackNotMessageNotValidShouldNotCallHandler(t
 				Type: p2p.NilListSharder,
 			},
 		},
-		SyncTimer:            &libp2p.LocalSyncTimer{},
-		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
-		PeersRatingHandler:   &p2pmocks.PeersRatingHandlerStub{},
+		SyncTimer:             &libp2p.LocalSyncTimer{},
+		PreferredPeersHolder:  &p2pmocks.PeersHolderStub{},
+		PeersRatingHandler:    &p2pmocks.PeersRatingHandlerStub{},
+		ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
 	}
 
 	mes, _ := libp2p.NewNetworkMessenger(args)
@@ -1441,8 +1441,7 @@ func TestNetworkMessenger_PubsubCallbackReturnsFalseIfHandlerErrors(t *testing.T
 		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
 		P2pConfig: config.P2PConfig{
 			Node: config.NodeConfig{
-				Port:                  "0",
-				ConnectionWatcherType: "print",
+				Port: "0",
 			},
 			KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
 				Enabled: false,
@@ -1451,9 +1450,10 @@ func TestNetworkMessenger_PubsubCallbackReturnsFalseIfHandlerErrors(t *testing.T
 				Type: p2p.NilListSharder,
 			},
 		},
-		SyncTimer:            &libp2p.LocalSyncTimer{},
-		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
-		PeersRatingHandler:   &p2pmocks.PeersRatingHandlerStub{},
+		SyncTimer:             &libp2p.LocalSyncTimer{},
+		PreferredPeersHolder:  &p2pmocks.PeersHolderStub{},
+		PeersRatingHandler:    &p2pmocks.PeersRatingHandlerStub{},
+		ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
 	}
 
 	mes, _ := libp2p.NewNetworkMessenger(args)
@@ -1505,8 +1505,7 @@ func TestNetworkMessenger_UnjoinAllTopicsShouldWork(t *testing.T) {
 		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
 		P2pConfig: config.P2PConfig{
 			Node: config.NodeConfig{
-				Port:                  "0",
-				ConnectionWatcherType: "print",
+				Port: "0",
 			},
 			KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
 				Enabled: false,
@@ -1515,9 +1514,10 @@ func TestNetworkMessenger_UnjoinAllTopicsShouldWork(t *testing.T) {
 				Type: p2p.NilListSharder,
 			},
 		},
-		SyncTimer:            &libp2p.LocalSyncTimer{},
-		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
-		PeersRatingHandler:   &p2pmocks.PeersRatingHandlerStub{},
+		SyncTimer:             &libp2p.LocalSyncTimer{},
+		PreferredPeersHolder:  &p2pmocks.PeersHolderStub{},
+		PeersRatingHandler:    &p2pmocks.PeersRatingHandlerStub{},
+		ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
 	}
 
 	mes, _ := libp2p.NewNetworkMessenger(args)
@@ -1708,7 +1708,6 @@ func TestNetworkMessenger_Bootstrap(t *testing.T) {
 				Seed:                       "",
 				MaximumExpectedPeerCount:   1,
 				ThresholdMinConnectedPeers: 1,
-				ConnectionWatcherType:      "print",
 			},
 			KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
 				Enabled:                          true,
@@ -1729,9 +1728,10 @@ func TestNetworkMessenger_Bootstrap(t *testing.T) {
 				Type:                    "NilListSharder",
 			},
 		},
-		SyncTimer:          &mock.SyncTimerStub{},
-		PeersRatingHandler: &p2pmocks.PeersRatingHandlerStub{},
-		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
+		SyncTimer:             &mock.SyncTimerStub{},
+		PeersRatingHandler:    &p2pmocks.PeersRatingHandlerStub{},
+		PreferredPeersHolder:  &p2pmocks.PeersHolderStub{},
+		ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
 	}
 
 	netMes, err := libp2p.NewNetworkMessenger(args)

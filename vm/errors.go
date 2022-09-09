@@ -95,9 +95,6 @@ var ErrNilValidatorSmartContractAddress = errors.New("nil validator smart contra
 // ErrInvalidStakingAccessAddress signals that invalid staking access address was provided
 var ErrInvalidStakingAccessAddress = errors.New("invalid staking access address")
 
-// ErrInvalidGovernanceSCAddress signals that invalid governance address was provided
-var ErrInvalidGovernanceSCAddress = errors.New("invalid governance smart contract address")
-
 // ErrInvalidJailAccessAddress signals that invalid jailing access address was provided
 var ErrInvalidJailAccessAddress = errors.New("invalid jailing access address")
 
@@ -185,9 +182,6 @@ var ErrInvalidEndOfEpochAccessAddress = errors.New("invalid end of epoch access 
 // ErrNilChanceComputer signals that nil chance computer has been provided
 var ErrNilChanceComputer = errors.New("nil chance computer")
 
-// ErrNilEpochNotifier signals that the provided EpochNotifier is nil
-var ErrNilEpochNotifier = errors.New("nil EpochNotifier")
-
 // ErrNilAddressPubKeyConverter signals that the provided public key converter is nil
 var ErrNilAddressPubKeyConverter = errors.New("nil address public key converter")
 
@@ -247,3 +241,6 @@ var ErrProposalNotFound = errors.New("proposal was not found in storage")
 
 // ErrInvalidNumOfInitialWhiteListedAddress signals that 0 initial whiteListed addresses were provided to the governance contract
 var ErrInvalidNumOfInitialWhiteListedAddress = errors.New("0 initial whiteListed addresses provided to the governance contract")
+
+// ErrNilEnableEpochsHandler signals that a nil enable epochs handler has been provided
+var ErrNilEnableEpochsHandler = errors.New("nil enable epochs handler")
