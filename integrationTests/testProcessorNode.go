@@ -1402,10 +1402,8 @@ func (tpn *TestProcessorNode) initResolvers() {
 			NumTotalPeers:       3,
 			NumFullHistoryPeers: 3,
 		},
-		PeersRatingHandler:                   tpn.PeersRatingHandler,
-		NodesCoordinator:                     tpn.NodesCoordinator,
-		MaxNumOfPeerAuthenticationInResponse: 5,
-		PayloadValidator:                     payloadValidator,
+		PeersRatingHandler: tpn.PeersRatingHandler,
+		PayloadValidator:   payloadValidator,
 	}
 
 	var err error
@@ -2994,7 +2992,6 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger() {
 		HeartbeatTimeBetweenSendsInSec:                   2,
 		HeartbeatTimeBetweenSendsWhenErrorInSec:          1,
 		HeartbeatThresholdBetweenSends:                   0.1,
-		MaxNumOfPeerAuthenticationInResponse:             5,
 		HeartbeatExpiryTimespanInSec:                     300,
 		MinPeersThreshold:                                0.8,
 		DelayBetweenRequestsInSec:                        10,
@@ -3004,10 +3001,7 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger() {
 		MaxDurationPeerUnresponsiveInSec:                 10,
 		HideInactiveValidatorIntervalInSec:               60,
 		HardforkTimeBetweenSendsInSec:                    2,
-		PeerAuthenticationPool: config.PeerAuthenticationPoolConfig{
-			DefaultSpanInSec: 30,
-			CacheExpiryInSec: 30,
-		},
+		TimeBetweenConnectionsMetricsUpdateInSec:         10,
 		HeartbeatPool: config.CacheConfig{
 			Type:     "LRU",
 			Capacity: 1000,
@@ -3022,12 +3016,13 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger() {
 				PublicKeyToListenFrom: hardforkPubKey,
 			},
 		},
-		BoostrapComponents: tpn.Node.GetBootstrapComponents(),
-		CoreComponents:     tpn.Node.GetCoreComponents(),
-		DataComponents:     tpn.Node.GetDataComponents(),
-		NetworkComponents:  tpn.Node.GetNetworkComponents(),
-		CryptoComponents:   tpn.Node.GetCryptoComponents(),
-		ProcessComponents:  tpn.Node.GetProcessComponents(),
+		BoostrapComponents:      tpn.Node.GetBootstrapComponents(),
+		CoreComponents:          tpn.Node.GetCoreComponents(),
+		DataComponents:          tpn.Node.GetDataComponents(),
+		NetworkComponents:       tpn.Node.GetNetworkComponents(),
+		CryptoComponents:        tpn.Node.GetCryptoComponents(),
+		ProcessComponents:       tpn.Node.GetProcessComponents(),
+		HeartbeatV1DisableEpoch: 0,
 	}
 
 	heartbeatV2Factory, err := mainFactory.NewHeartbeatV2ComponentsFactory(hbv2FactoryArgs)

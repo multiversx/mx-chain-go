@@ -555,7 +555,6 @@ type RequestHandler interface {
 	GetNumPeersToQuery(key string) (int, int, error)
 	RequestTrieNode(requestHash []byte, topic string, chunkIndex uint32)
 	CreateTrieNodeIdentifier(requestHash []byte, chunkIndex uint32) []byte
-	RequestPeerAuthenticationsChunk(destShardID uint32, chunkIndex uint32)
 	RequestPeerAuthenticationsByHashes(destShardID uint32, hashes [][]byte)
 	IsInterfaceNil() bool
 }

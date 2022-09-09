@@ -126,11 +126,14 @@ const MetricCountAcceptedBlocks = "erd_count_accepted_blocks"
 // MetricNodeType is the metric for monitoring the type of the node
 const MetricNodeType = "erd_node_type"
 
-// MetricLiveValidatorNodes is the metric for monitoring live validators on the network
+// MetricLiveValidatorNodes is the metric for the number of live validators on the network
 const MetricLiveValidatorNodes = "erd_live_validator_nodes"
 
 // MetricConnectedNodes is the metric for monitoring total connected nodes on the network
 const MetricConnectedNodes = "erd_connected_nodes"
+
+// MetricNumIntraShardValidatorNodes is the metric for the number of intra-shard validators
+const MetricNumIntraShardValidatorNodes = "erd_intra_shard_validator_nodes"
 
 // MetricCpuLoadPercent is the metric for monitoring CPU load [%]
 const MetricCpuLoadPercent = "erd_cpu_load_percent"
@@ -222,7 +225,7 @@ const MetricNumShardHeadersFromPool = "erd_num_shard_headers_from_pool"
 // MetricNumShardHeadersProcessed is the metric that stores number of shard header processed
 const MetricNumShardHeadersProcessed = "erd_num_shard_headers_processed"
 
-// MetricNumTimesInForkChoice is the metric that counts how many time a node was in fork choice
+// MetricNumTimesInForkChoice is the metric that counts how many times a node was in fork choice
 const MetricNumTimesInForkChoice = "erd_fork_choice_count"
 
 // MetricHighestFinalBlock is the metric for the nonce of the highest final block
@@ -233,9 +236,6 @@ const MetricLatestTagSoftwareVersion = "erd_latest_tag_software_version"
 
 // MetricCountConsensusAcceptedBlocks is the metric for monitoring number of blocks accepted when the node was in consensus group
 const MetricCountConsensusAcceptedBlocks = "erd_count_consensus_accepted_blocks"
-
-// MetricRewardsValue is the metric that stores rewards value
-const MetricRewardsValue = "erd_rewards_value"
 
 // MetricNodeDisplayName is the metric that stores the name of the node
 const MetricNodeDisplayName = "erd_node_display_name"
@@ -298,7 +298,7 @@ const MetricCreatedProposedBlock = "erd_consensus_created_proposed_block"
 // MetricRedundancyLevel is the metric that specifies the redundancy level of the current node
 const MetricRedundancyLevel = "erd_redundancy_level"
 
-// MetricRedundancyMainActive is the metrics that specifies data about the redundancy main machine
+// MetricRedundancyIsMainActive is the metrics that specifies data about the redundancy main machine
 const MetricRedundancyIsMainActive = "erd_redundancy_is_main_active"
 
 // MetricValueNA represents the value to be used when a metric is not available/applicable
