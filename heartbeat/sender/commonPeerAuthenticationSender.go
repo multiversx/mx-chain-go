@@ -22,7 +22,7 @@ func (cpas *commonPeerAuthenticationSender) generateMessageBytes(
 	privateKey crypto.PrivateKey,
 	p2pSkBytes []byte,
 	pidBytes []byte,
-) ([]byte, bool, error) {
+) ([]byte, bool, int64, error) {
 	msg := &heartbeat.PeerAuthentication{
 		Pid:    pidBytes,
 		Pubkey: pkBytes,
@@ -35,30 +35,30 @@ func (cpas *commonPeerAuthenticationSender) generateMessageBytes(
 	}
 	payloadBytes, err := cpas.marshaller.Marshal(payload)
 	if err != nil {
-		return nil, isTriggered, err
+		return nil, isTriggered, 0, err
 	}
 	msg.Payload = payloadBytes
 
 	if p2pSkBytes != nil {
 		msg.PayloadSignature, err = cpas.messenger.SignUsingPrivateKey(p2pSkBytes, payloadBytes)
 		if err != nil {
-			return nil, isTriggered, err
+			return nil, isTriggered, 0, err
 		}
 	} else {
 		msg.PayloadSignature, err = cpas.messenger.Sign(payloadBytes)
 		if err != nil {
-			return nil, isTriggered, err
+			return nil, isTriggered, 0, err
 		}
 	}
 
 	msg.Signature, err = cpas.peerSignatureHandler.GetPeerSignature(privateKey, msg.Pid)
 	if err != nil {
-		return nil, isTriggered, err
+		return nil, isTriggered, 0, err
 	}
 
 	msgBytes, err := cpas.marshaller.Marshal(msg)
 	if err != nil {
-		return nil, isTriggered, err
+		return nil, isTriggered, 0, err
 	}
 
 	b := &batch.Batch{
@@ -67,10 +67,10 @@ func (cpas *commonPeerAuthenticationSender) generateMessageBytes(
 	b.Data[0] = msgBytes
 	data, err := cpas.marshaller.Marshal(b)
 	if err != nil {
-		return nil, isTriggered, err
+		return nil, isTriggered, 0, err
 	}
 
-	return data, isTriggered, nil
+	return data, isTriggered, payload.Timestamp, nil
 }
 
 func (cpas *commonPeerAuthenticationSender) isValidator(pkBytes []byte) bool {

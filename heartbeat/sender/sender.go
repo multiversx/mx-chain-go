@@ -3,7 +3,6 @@ package sender
 import (
 	"time"
 
-	"github.com/ElrondNetwork/covalent-indexer-go/process"
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
@@ -36,7 +35,7 @@ type ArgSender struct {
 	HardforkTriggerPubKey                       []byte
 	KeysHolder                                  heartbeat.KeysHolder
 	PeerAuthenticationTimeBetweenChecks         time.Duration
-	ShardCoordinator                            process.ShardCoordinator
+	ShardCoordinator                            heartbeat.ShardCoordinator
 }
 
 // sender defines the component which sends authentication and heartbeat messages
@@ -59,6 +58,8 @@ func NewSender(args ArgSender) (*sender, error) {
 			timeBetweenSends:          args.PeerAuthenticationTimeBetweenSends,
 			timeBetweenSendsWhenError: args.PeerAuthenticationTimeBetweenSendsWhenError,
 			thresholdBetweenSends:     args.PeerAuthenticationThresholdBetweenSends,
+			privKey:                   args.PrivateKey,
+			redundancyHandler:         args.RedundancyHandler,
 		},
 		nodesCoordinator:         args.NodesCoordinator,
 		peerSignatureHandler:     args.PeerSignatureHandler,
@@ -68,8 +69,6 @@ func NewSender(args ArgSender) (*sender, error) {
 		keysHolder:               args.KeysHolder,
 		timeBetweenChecks:        args.PeerAuthenticationTimeBetweenChecks,
 		shardCoordinator:         args.ShardCoordinator,
-		privKey:                  args.PrivateKey,
-		redundancyHandler:        args.RedundancyHandler,
 	})
 	if err != nil {
 		return nil, err
@@ -83,6 +82,8 @@ func NewSender(args ArgSender) (*sender, error) {
 			timeBetweenSends:          args.HeartbeatTimeBetweenSends,
 			timeBetweenSendsWhenError: args.HeartbeatTimeBetweenSendsWhenError,
 			thresholdBetweenSends:     args.HeartbeatThresholdBetweenSends,
+			privKey:                   args.PrivateKey,
+			redundancyHandler:         args.RedundancyHandler,
 		},
 		versionNumber:        args.VersionNumber,
 		nodeDisplayName:      args.NodeDisplayName,
@@ -107,13 +108,13 @@ func checkSenderArgs(args ArgSender) error {
 		timeBetweenSends:          args.PeerAuthenticationTimeBetweenSends,
 		timeBetweenSendsWhenError: args.PeerAuthenticationTimeBetweenSendsWhenError,
 		thresholdBetweenSends:     args.PeerAuthenticationThresholdBetweenSends,
+		privKey:                   args.PrivateKey,
+		redundancyHandler:         args.RedundancyHandler,
 	}
 	pasArgs := argPeerAuthenticationSender{
 		argBaseSender:            basePeerAuthSenderArgs,
 		nodesCoordinator:         args.NodesCoordinator,
 		peerSignatureHandler:     args.PeerSignatureHandler,
-		privKey:                  args.PrivateKey,
-		redundancyHandler:        args.RedundancyHandler,
 		hardforkTrigger:          args.HardforkTrigger,
 		hardforkTimeBetweenSends: args.HardforkTimeBetweenSends,
 		hardforkTriggerPubKey:    args.HardforkTriggerPubKey,
@@ -147,6 +148,8 @@ func checkSenderArgs(args ArgSender) error {
 			timeBetweenSends:          args.HeartbeatTimeBetweenSends,
 			timeBetweenSendsWhenError: args.HeartbeatTimeBetweenSendsWhenError,
 			thresholdBetweenSends:     args.HeartbeatThresholdBetweenSends,
+			privKey:                   args.PrivateKey,
+			redundancyHandler:         args.RedundancyHandler,
 		},
 		versionNumber:        args.VersionNumber,
 		nodeDisplayName:      args.NodeDisplayName,

@@ -96,9 +96,9 @@ func (rcp *rewardsCreatorProxy) GetLocalTxCache() epochStart.TransactionCacher {
 	return rcp.rc.GetLocalTxCache()
 }
 
-// CreateMarshalizedData proxies the same method of the configured rewardsCreator instance
-func (rcp *rewardsCreatorProxy) CreateMarshalizedData(body *block.Body) map[string][][]byte {
-	return rcp.rc.CreateMarshalizedData(body)
+// CreateMarshalledData proxies the same method of the configured rewardsCreator instance
+func (rcp *rewardsCreatorProxy) CreateMarshalledData(body *block.Body) map[string][][]byte {
+	return rcp.rc.CreateMarshalledData(body)
 }
 
 // GetRewardsTxs proxies the same method of the configured rewardsCreator instance
@@ -106,14 +106,14 @@ func (rcp *rewardsCreatorProxy) GetRewardsTxs(body *block.Body) map[string]data.
 	return rcp.rc.GetRewardsTxs(body)
 }
 
-// SaveTxBlockToStorage proxies the same method of the configured rewardsCreator instance
-func (rcp *rewardsCreatorProxy) SaveTxBlockToStorage(metaBlock data.MetaHeaderHandler, body *block.Body) {
-	rcp.rc.SaveTxBlockToStorage(metaBlock, body)
+// SaveBlockDataToStorage proxies the same method of the configured rewardsCreator instance
+func (rcp *rewardsCreatorProxy) SaveBlockDataToStorage(metaBlock data.MetaHeaderHandler, body *block.Body) {
+	rcp.rc.SaveBlockDataToStorage(metaBlock, body)
 }
 
-// DeleteTxsFromStorage proxies the same method of the configured rewardsCreator instance
-func (rcp *rewardsCreatorProxy) DeleteTxsFromStorage(metaBlock data.MetaHeaderHandler, body *block.Body) {
-	rcp.rc.DeleteTxsFromStorage(metaBlock, body)
+// DeleteBlockDataFromStorage proxies the same method of the configured rewardsCreator instance
+func (rcp *rewardsCreatorProxy) DeleteBlockDataFromStorage(metaBlock data.MetaHeaderHandler, body *block.Body) {
+	rcp.rc.DeleteBlockDataFromStorage(metaBlock, body)
 }
 
 // RemoveBlockDataFromPools proxies the same method of the configured rewardsCreator instance

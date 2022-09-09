@@ -14,8 +14,6 @@ type argPeerAuthenticationSender struct {
 	argBaseSender
 	nodesCoordinator         heartbeat.NodesCoordinator
 	peerSignatureHandler     crypto.PeerSignatureHandler
-	privKey                  crypto.PrivateKey
-	redundancyHandler        heartbeat.NodeRedundancyHandler
 	hardforkTrigger          heartbeat.HardforkTrigger
 	hardforkTimeBetweenSends time.Duration
 	hardforkTriggerPubKey    []byte
@@ -66,12 +64,6 @@ func checkPeerAuthenticationSenderArgs(args argPeerAuthenticationSender) error {
 	}
 	if check.IfNil(args.peerSignatureHandler) {
 		return heartbeat.ErrNilPeerSignatureHandler
-	}
-	if check.IfNil(args.privKey) {
-		return heartbeat.ErrNilPrivateKey
-	}
-	if check.IfNil(args.redundancyHandler) {
-		return heartbeat.ErrNilRedundancyHandler
 	}
 	if check.IfNil(args.hardforkTrigger) {
 		return heartbeat.ErrNilHardforkTrigger
@@ -128,11 +120,14 @@ func (sender *peerAuthenticationSender) execute() (error, bool) {
 		return err, false
 	}
 
-	data, isTriggered, err := sender.generateMessageBytes(pkBytes, sk, nil, sender.messenger.ID().Bytes())
+	data, isTriggered, msgTimestamp, err := sender.generateMessageBytes(pkBytes, sk, nil, sender.messenger.ID().Bytes())
 	if err != nil {
 		return err, isTriggered
 	}
 
+	log.Debug("sending peer authentication message",
+		"public key", pkBytes, "pid", sender.messenger.ID().Pretty(),
+		"timestamp", msgTimestamp)
 	sender.messenger.Broadcast(sender.topic, data)
 
 	return nil, isTriggered

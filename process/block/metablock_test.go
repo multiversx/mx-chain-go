@@ -130,13 +130,13 @@ func createMockMetaArguments(
 					return nil
 				},
 			},
-			BlockTracker:                   mock.NewBlockTrackerMock(bootstrapComponents.ShardCoordinator(), startHeaders),
-			BlockSizeThrottler:             &mock.BlockSizeThrottlerStub{},
-			HistoryRepository:              &dblookupext.HistoryRepositoryStub{},
+			BlockTracker:                 mock.NewBlockTrackerMock(bootstrapComponents.ShardCoordinator(), startHeaders),
+			BlockSizeThrottler:           &mock.BlockSizeThrottlerStub{},
+			HistoryRepository:            &dblookupext.HistoryRepositoryStub{},
 			EnableRoundsHandler:          &testscommon.EnableRoundsHandlerStub{},
-			ScheduledTxsExecutionHandler:   &testscommon.ScheduledTxsExecutionStub{},
-			ProcessedMiniBlocksTracker:     &testscommon.ProcessedMiniBlocksTrackerStub{},
-			ReceiptsRepository:             &testscommon.ReceiptsRepositoryStub{},
+			ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
+			ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
+			ReceiptsRepository:           &testscommon.ReceiptsRepositoryStub{},
 		},
 		SCToProtocol:                 &mock.SCToProtocolStub{},
 		PendingMiniBlocksHandler:     &mock.PendingMiniBlocksHandlerStub{},
@@ -3546,4 +3546,88 @@ func TestMetaProcessor_getFinalMiniBlockHashes(t *testing.T) {
 		retMbHeaders := mp.GetFinalMiniBlockHeaders(mbHeaders)
 		assert.Equal(t, expectedMbHeaders, retMbHeaders)
 	})
+}
+
+func TestMetaProcessor_getAllMarshalledTxs(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockMetaArguments(createMockComponentHolders())
+
+	arguments.EpochRewardsCreator = &mock.EpochRewardsCreatorStub{
+		CreateMarshalledDataCalled: func(body *block.Body) map[string][][]byte {
+			marshalledData := make(map[string][][]byte)
+			for _, miniBlock := range body.MiniBlocks {
+				if miniBlock.Type != block.RewardsBlock {
+					continue
+				}
+				marshalledData["rewards"] = append(marshalledData["rewards"], miniBlock.TxHashes...)
+			}
+			return marshalledData
+		},
+	}
+
+	arguments.EpochValidatorInfoCreator = &mock.EpochValidatorInfoCreatorStub{
+		CreateMarshalledDataCalled: func(body *block.Body) map[string][][]byte {
+			marshalledData := make(map[string][][]byte)
+			for _, miniBlock := range body.MiniBlocks {
+				if miniBlock.Type != block.PeerBlock {
+					continue
+				}
+				marshalledData["validatorInfo"] = append(marshalledData["validatorInfo"], miniBlock.TxHashes...)
+			}
+			return marshalledData
+		},
+	}
+
+	mp, _ := blproc.NewMetaProcessor(arguments)
+
+	body := &block.Body{
+		MiniBlocks: []*block.MiniBlock{
+			{
+				SenderShardID:   core.MetachainShardId,
+				ReceiverShardID: 0,
+				Type:            block.TxBlock,
+				TxHashes: [][]byte{
+					[]byte("a"),
+					[]byte("b"),
+					[]byte("c"),
+				},
+			},
+			{
+				SenderShardID:   core.MetachainShardId,
+				ReceiverShardID: 0,
+				Type:            block.RewardsBlock,
+				TxHashes: [][]byte{
+					[]byte("d"),
+					[]byte("e"),
+					[]byte("f"),
+				},
+			},
+			{
+				SenderShardID:   core.MetachainShardId,
+				ReceiverShardID: 0,
+				Type:            block.PeerBlock,
+				TxHashes: [][]byte{
+					[]byte("g"),
+					[]byte("h"),
+					[]byte("i"),
+				},
+			},
+		},
+	}
+
+	allMarshalledTxs := mp.GetAllMarshalledTxs(body)
+
+	require.Equal(t, 2, len(allMarshalledTxs))
+
+	require.Equal(t, 3, len(allMarshalledTxs["rewards"]))
+	require.Equal(t, 3, len(allMarshalledTxs["validatorInfo"]))
+
+	assert.Equal(t, []byte("d"), allMarshalledTxs["rewards"][0])
+	assert.Equal(t, []byte("e"), allMarshalledTxs["rewards"][1])
+	assert.Equal(t, []byte("f"), allMarshalledTxs["rewards"][2])
+
+	assert.Equal(t, []byte("g"), allMarshalledTxs["validatorInfo"][0])
+	assert.Equal(t, []byte("h"), allMarshalledTxs["validatorInfo"][1])
+	assert.Equal(t, []byte("i"), allMarshalledTxs["validatorInfo"][2])
 }

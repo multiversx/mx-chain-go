@@ -72,6 +72,9 @@ const PeerAuthenticationTopic = "peerAuthentication"
 // ConnectionTopic represents the topic used when sending the new connection message data
 const ConnectionTopic = "connection"
 
+// ValidatorInfoTopic is the topic used for validatorInfo signaling
+const ValidatorInfoTopic = "validatorInfo"
+
 // PathShardPlaceholder represents the placeholder for the shard ID in paths
 const PathShardPlaceholder = "[S]"
 

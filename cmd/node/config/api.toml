@@ -43,6 +43,9 @@
         # /address/:address/username will return the username of a given account
         { Name = "/:address/username", Open = true },
 
+        # /address/:address/code-hash will return the code hash of a given account
+        { Name = "/:address/code-hash", Open = true },
+
         # /address/:address/keys will return all the key-value pairs of a given account
         { Name = "/:address/keys", Open = true },
 

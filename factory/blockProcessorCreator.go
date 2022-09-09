@@ -756,12 +756,18 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		return nil, err
 	}
 
+	validatorInfoStorage, err := pcf.data.StorageService().GetStorer(dataRetriever.UnsignedTransactionUnit)
+	if err != nil {
+		return nil, err
+	}
 	argsEpochValidatorInfo := metachainEpochStart.ArgsNewValidatorInfoCreator{
-		ShardCoordinator: pcf.bootstrapComponents.ShardCoordinator(),
-		MiniBlockStorage: miniBlockStorage,
-		Hasher:           pcf.coreData.Hasher(),
-		Marshalizer:      pcf.coreData.InternalMarshalizer(),
-		DataPool:         pcf.data.Datapool(),
+		ShardCoordinator:     pcf.bootstrapComponents.ShardCoordinator(),
+		ValidatorInfoStorage: validatorInfoStorage,
+		MiniBlockStorage:     miniBlockStorage,
+		Hasher:               pcf.coreData.Hasher(),
+		Marshalizer:          pcf.coreData.InternalMarshalizer(),
+		DataPool:             pcf.data.Datapool(),
+		EnableEpochsHandler:  pcf.coreData.EnableEpochsHandler(),
 	}
 	validatorInfoCreator, err := metachainEpochStart.NewValidatorInfoCreator(argsEpochValidatorInfo)
 	if err != nil {
@@ -1156,8 +1162,10 @@ func (pcf *processComponentsFactory) createBuiltInFunctionContainer(
 	accounts state.AccountsAdapter,
 	mapDNSAddresses map[string]struct{},
 ) (vmcommon.BuiltInFunctionFactory, error) {
-	pubKeyConverter := pcf.coreData.AddressPubKeyConverter()
-	convertedAddress, err := pubKeyConverter.Decode(pcf.config.BuiltInFunctions.AutomaticCrawlerAddress)
+	convertedAddresses, err := decodeAddresses(
+		pcf.coreData.AddressPubKeyConverter(),
+		pcf.config.BuiltInFunctions.AutomaticCrawlerAddresses,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -1170,7 +1178,7 @@ func (pcf *processComponentsFactory) createBuiltInFunctionContainer(
 		ShardCoordinator:          pcf.bootstrapComponents.ShardCoordinator(),
 		EpochNotifier:             pcf.coreData.EpochNotifier(),
 		EnableEpochsHandler:       pcf.coreData.EnableEpochsHandler(),
-		AutomaticCrawlerAddress:   convertedAddress,
+		AutomaticCrawlerAddresses:                convertedAddresses,
 		MaxNumNodesInTransferRole: pcf.config.BuiltInFunctions.MaxNumAddressesInTransferRole,
 	}
 

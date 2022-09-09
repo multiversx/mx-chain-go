@@ -1,7 +1,6 @@
 package processor_test
 
 import (
-	"bytes"
 	"errors"
 	"testing"
 	"time"
@@ -10,6 +9,7 @@ import (
 	heartbeatMessages "github.com/ElrondNetwork/elrond-go/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/heartbeat"
+	"github.com/ElrondNetwork/elrond-go/process/heartbeat/validator"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors/processor"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
@@ -49,6 +49,8 @@ func createInterceptedPeerAuthentication() *heartbeatMessages.PeerAuthentication
 }
 
 func createMockInterceptedPeerAuthentication() process.InterceptedData {
+	payloadValidator, _ := validator.NewPeerAuthenticationPayloadValidator(30)
+
 	arg := heartbeat.ArgInterceptedPeerAuthentication{
 		ArgBaseInterceptedHeartbeat: heartbeat.ArgBaseInterceptedHeartbeat{
 			Marshaller: &mock.MarshalizerMock{},
@@ -56,7 +58,7 @@ func createMockInterceptedPeerAuthentication() process.InterceptedData {
 		NodesCoordinator:      &mock.NodesCoordinatorStub{},
 		SignaturesHandler:     &mock.SignaturesHandlerStub{},
 		PeerSignatureHandler:  &mock.PeerSignatureHandlerStub{},
-		ExpiryTimespanInSec:   30,
+		PayloadValidator:      payloadValidator,
 		HardforkTriggerPubKey: []byte("provided hardfork pub key"),
 	}
 	arg.DataBuff, _ = arg.Marshaller.Marshal(createInterceptedPeerAuthentication())
@@ -187,7 +189,7 @@ func TestPeerAuthenticationInterceptorProcessor_Save(t *testing.T) {
 		arg := createPeerAuthenticationInterceptorProcessArg()
 		arg.PeerAuthenticationCacher = &testscommon.CacherStub{
 			PutCalled: func(key []byte, value interface{}, sizeInBytes int) (evicted bool) {
-				assert.True(t, bytes.Equal(providedIPAMessage.Pid, key))
+				assert.Equal(t, providedIPAMessage.Pubkey, key)
 				ipa := value.(*heartbeatMessages.PeerAuthentication)
 				assert.Equal(t, providedIPAMessage.Pid, ipa.Pid)
 				assert.Equal(t, providedIPAMessage.Payload, ipa.Payload)
