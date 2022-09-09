@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-crypto"
+	"github.com/ElrondNetwork/elrond-go/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/vm"
 )
 
@@ -21,6 +22,7 @@ type CryptoComponentsStub struct {
 	BlKeyGen        crypto.KeyGenerator
 	TxKeyGen        crypto.KeyGenerator
 	MsgSigVerifier  vm.MessageSignVerifier
+	KeysHolderField heartbeat.KeysHolder
 	mutMultiSig     sync.RWMutex
 }
 
@@ -114,6 +116,11 @@ func (ccs *CryptoComponentsStub) MessageSignVerifier() vm.MessageSignVerifier {
 	return ccs.MsgSigVerifier
 }
 
+// KeysHolder -
+func (ccs *CryptoComponentsStub) KeysHolder() heartbeat.KeysHolder {
+	return ccs.KeysHolderField
+}
+
 // Clone -
 func (ccs *CryptoComponentsStub) Clone() interface{} {
 	return &CryptoComponentsStub{
@@ -129,6 +136,7 @@ func (ccs *CryptoComponentsStub) Clone() interface{} {
 		BlKeyGen:        ccs.BlKeyGen,
 		TxKeyGen:        ccs.TxKeyGen,
 		MsgSigVerifier:  ccs.MsgSigVerifier,
+		KeysHolderField: ccs.KeysHolderField,
 		mutMultiSig:     sync.RWMutex{},
 	}
 }

@@ -15,7 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 )
 
-const minRoundsWithoutReceivedMessages = 1
+const minRoundsWithoutReceivedMessages = -1
 
 var log = logger.GetOrCreate("keysManagement")
 

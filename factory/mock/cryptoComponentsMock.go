@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-crypto"
+	"github.com/ElrondNetwork/elrond-go/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/vm"
 )
 
@@ -21,6 +22,7 @@ type CryptoComponentsMock struct {
 	BlKeyGen        crypto.KeyGenerator
 	TxKeyGen        crypto.KeyGenerator
 	MsgSigVerifier  vm.MessageSignVerifier
+	KeysHolderField heartbeat.KeysHolder
 	mutMultiSig     sync.RWMutex
 }
 
@@ -99,6 +101,11 @@ func (ccm *CryptoComponentsMock) MessageSignVerifier() vm.MessageSignVerifier {
 	return ccm.MsgSigVerifier
 }
 
+// KeysHolder -
+func (ccm *CryptoComponentsMock) KeysHolder() heartbeat.KeysHolder {
+	return ccm.KeysHolderField
+}
+
 // Clone -
 func (ccm *CryptoComponentsMock) Clone() interface{} {
 	return &CryptoComponentsMock{
@@ -114,6 +121,7 @@ func (ccm *CryptoComponentsMock) Clone() interface{} {
 		BlKeyGen:        ccm.BlKeyGen,
 		TxKeyGen:        ccm.TxKeyGen,
 		MsgSigVerifier:  ccm.MsgSigVerifier,
+		KeysHolderField: ccm.KeysHolderField,
 		mutMultiSig:     sync.RWMutex{},
 	}
 }

@@ -491,6 +491,15 @@ func getCryptoArgs(coreComponents factory.CoreComponentsHolder) factory.CryptoCo
 			},
 			Hasher: config.TypeConfig{Type: "blake2b"},
 		},
+		PrefsConfig: config.Preferences{
+			Preferences: config.PreferencesConfig{
+				DestinationShardAsObserver: "",
+				NodeDisplayName:            "node name",
+				Identity:                   "identity",
+				RedundancyLevel:            1,
+			},
+			NamedIdentity: nil,
+		},
 		SkIndex:                              0,
 		ValidatorKeyPemFileName:              "validatorKey.pem",
 		CoreComponentsHolder:                 coreComponents,

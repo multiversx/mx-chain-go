@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/heartbeat/monitor"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/processor"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/sender"
+	"github.com/ElrondNetwork/elrond-go/process/peer"
 	"github.com/ElrondNetwork/elrond-go/update"
 )
 
@@ -142,6 +143,9 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 		HardforkTrigger:                             hcf.processComponents.HardforkTrigger(),
 		HardforkTimeBetweenSends:                    time.Second * time.Duration(cfg.HardforkTimeBetweenSendsInSec),
 		HardforkTriggerPubKey:                       hcf.coreComponents.HardforkTriggerPubKey(),
+		KeysHolder:                                  hcf.cryptoComponents.KeysHolder(),
+		PeerAuthenticationTimeBetweenChecks:         time.Second * time.Duration(cfg.PeerAuthenticationTimeBetweenChecksInSec),
+		ShardCoordinator:                            hcf.processComponents.ShardCoordinator(),
 	}
 	heartbeatV2Sender, err := sender.NewSender(argsSender)
 	if err != nil {
@@ -179,6 +183,16 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 		return nil, err
 	}
 
+	argPeerTypeProvider := peer.ArgPeerTypeProvider{
+		NodesCoordinator:        hcf.processComponents.NodesCoordinator(),
+		StartEpoch:              hcf.processComponents.EpochStartTrigger().MetaEpoch(),
+		EpochStartEventNotifier: hcf.processComponents.EpochStartNotifier(),
+	}
+	peerTypeProvider, err := peer.NewPeerTypeProvider(argPeerTypeProvider)
+	if err != nil {
+		return nil, err
+	}
+
 	argsMonitor := monitor.ArgHeartbeatV2Monitor{
 		Cache:                         hcf.dataComponents.Datapool().Heartbeats(),
 		PubKeyConverter:               hcf.coreComponents.ValidatorPubKeyConverter(),
@@ -187,6 +201,7 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 		MaxDurationPeerUnresponsive:   time.Second * time.Duration(cfg.MaxDurationPeerUnresponsiveInSec),
 		HideInactiveValidatorInterval: time.Second * time.Duration(cfg.HideInactiveValidatorIntervalInSec),
 		ShardId:                       epochBootstrapParams.SelfShardID(),
+		PeerTypeProvider:              peerTypeProvider,
 	}
 	heartbeatsMonitor, err := monitor.NewHeartbeatV2Monitor(argsMonitor)
 	if err != nil {

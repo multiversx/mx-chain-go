@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -94,6 +95,7 @@ type indexHashedNodesCoordinator struct {
 	flagWaitingListFix            atomicFlags.Flag
 	nodeTypeProvider              NodeTypeProviderHandler
 	enableEpochsHandler           common.EnableEpochsHandler
+	validatorInfoCacher           epochStart.ValidatorInfoCacher
 }
 
 // NewIndexHashedNodesCoordinator creates a new index hashed group selector
@@ -138,6 +140,7 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 		nodeTypeProvider:              arguments.NodeTypeProvider,
 		isFullArchive:                 arguments.IsFullArchive,
 		enableEpochsHandler:           arguments.EnableEpochsHandler,
+		validatorInfoCacher:           arguments.ValidatorInfoCacher,
 	}
 
 	ihnc.loadingFromDisk.Store(false)
@@ -216,6 +219,9 @@ func checkArguments(arguments ArgNodesCoordinator) error {
 	}
 	if check.IfNil(arguments.EnableEpochsHandler) {
 		return ErrNilEnableEpochsHandler
+	}
+	if check.IfNil(arguments.ValidatorInfoCacher) {
+		return ErrNilValidatorInfoCacher
 	}
 
 	return nil
@@ -558,13 +564,13 @@ func (ihnc *indexHashedNodesCoordinator) EpochStartPrepare(metaHdr data.HeaderHa
 		return
 	}
 
-	allValidatorInfo, err := createValidatorInfoFromBody(body, ihnc.marshalizer, ihnc.numTotalEligible)
+	ihnc.updateEpochFlags(newEpoch)
+
+	allValidatorInfo, err := ihnc.createValidatorInfoFromBody(body, ihnc.numTotalEligible, newEpoch)
 	if err != nil {
-		log.Error("could not create validator info from body - do nothing on nodesCoordinator epochStartPrepare")
+		log.Error("could not create validator info from body - do nothing on nodesCoordinator epochStartPrepare", "error", err.Error())
 		return
 	}
-
-	ihnc.updateEpochFlags(newEpoch)
 
 	ihnc.mutNodesConfig.RLock()
 	previousConfig := ihnc.nodesConfig[ihnc.currentEpoch]
@@ -1170,10 +1176,10 @@ func selectValidators(
 }
 
 // createValidatorInfoFromBody unmarshalls body data to create validator info
-func createValidatorInfoFromBody(
+func (ihnc *indexHashedNodesCoordinator) createValidatorInfoFromBody(
 	body data.BodyHandler,
-	marshalizer marshal.Marshalizer,
 	previousTotal uint64,
+	epoch uint32,
 ) ([]*state.ShardValidatorInfo, error) {
 	if check.IfNil(body) {
 		return nil, ErrNilBlockBody
@@ -1191,17 +1197,35 @@ func createValidatorInfoFromBody(
 		}
 
 		for _, txHash := range peerMiniBlock.TxHashes {
-			vid := &state.ShardValidatorInfo{}
-			err := marshalizer.Unmarshal(vid, txHash)
+			shardValidatorInfo, err := ihnc.getShardValidatorInfoData(txHash, epoch)
 			if err != nil {
 				return nil, err
 			}
 
-			allValidatorInfo = append(allValidatorInfo, vid)
+			allValidatorInfo = append(allValidatorInfo, shardValidatorInfo)
 		}
 	}
 
 	return allValidatorInfo, nil
+}
+
+func (ihnc *indexHashedNodesCoordinator) getShardValidatorInfoData(txHash []byte, epoch uint32) (*state.ShardValidatorInfo, error) {
+	if epoch >= ihnc.enableEpochsHandler.RefactorPeersMiniBlocksEnableEpoch() {
+		shardValidatorInfo, err := ihnc.validatorInfoCacher.GetValidatorInfo(txHash)
+		if err != nil {
+			return nil, err
+		}
+
+		return shardValidatorInfo, nil
+	}
+
+	shardValidatorInfo := &state.ShardValidatorInfo{}
+	err := ihnc.marshalizer.Unmarshal(shardValidatorInfo, txHash)
+	if err != nil {
+		return nil, err
+	}
+
+	return shardValidatorInfo, nil
 }
 
 func (ihnc *indexHashedNodesCoordinator) updateEpochFlags(epoch uint32) {
