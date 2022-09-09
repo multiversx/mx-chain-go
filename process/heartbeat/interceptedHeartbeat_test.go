@@ -31,6 +31,7 @@ func createDefaultInterceptedHeartbeat() *heartbeat.HeartbeatV2 {
 		Identity:        "identity",
 		Nonce:           123,
 		PeerSubType:     uint32(core.RegularPeer),
+		Pubkey:          []byte("public key"),
 	}
 }
 
@@ -130,6 +131,9 @@ func TestInterceptedHeartbeat_CheckValidity(t *testing.T) {
 
 	t.Run("identityProperty too long", testInterceptedHeartbeatPropertyLen(identityProperty, true))
 
+	t.Run("publicKeyProperty too short", testInterceptedHeartbeatPropertyLen(publicKeyProperty, false))
+	t.Run("publicKeyProperty too short", testInterceptedHeartbeatPropertyLen(publicKeyProperty, true))
+
 	t.Run("invalid peer subtype should error", func(t *testing.T) {
 		t.Parallel()
 
@@ -171,6 +175,8 @@ func testInterceptedHeartbeatPropertyLen(property string, tooLong bool) func(t *
 			ihb.heartbeat.NodeDisplayName = string(value)
 		case identityProperty:
 			ihb.heartbeat.Identity = string(value)
+		case publicKeyProperty:
+			ihb.heartbeat.Pubkey = value
 		default:
 			assert.True(t, false)
 		}
