@@ -15,7 +15,7 @@ type snapshotTrieStorageManager struct {
 func newSnapshotTrieStorageManager(tsm *trieStorageManager, epoch uint32) (*snapshotTrieStorageManager, error) {
 	storer, ok := tsm.mainStorer.(snapshotPruningStorer)
 	if !ok {
-		return nil, fmt.Errorf("invalid storer type")
+		return nil, fmt.Errorf("invalid storer, type is %T", tsm.mainStorer)
 	}
 
 	return &snapshotTrieStorageManager{

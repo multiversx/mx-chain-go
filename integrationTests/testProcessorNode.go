@@ -69,6 +69,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory/interceptorscontainer"
 	metaProcess "github.com/ElrondNetwork/elrond-go/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
+	"github.com/ElrondNetwork/elrond-go/process/heartbeat/validator"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
 	processMock "github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/peer"
@@ -403,8 +404,8 @@ func newBaseTestProcessorNode(
 			return keys, nil
 		},
 		GetValidatorWithPublicKeyCalled: func(publicKey []byte) (nodesCoordinator.Validator, uint32, error) {
-			validator, _ := nodesCoordinator.NewValidator(publicKey, defaultChancesSelection, 1)
-			return validator, 0, nil
+			validatorInstance, _ := nodesCoordinator.NewValidator(publicKey, defaultChancesSelection, 1)
+			return validatorInstance, 0, nil
 		},
 	}
 
@@ -858,9 +859,9 @@ func (tpn *TestProcessorNode) createFullSCQueryService() {
 		ShardCoordinator:           tpn.ShardCoordinator,
 		EpochNotifier:              tpn.EpochNotifier,
 		GlobalMintBurnDisableEpoch: tpn.EnableEpochs.GlobalMintBurnDisableEpoch,
-		AutomaticCrawlerAddress:    bytes.Repeat([]byte{1}, 32),
 		MaxNumNodesInTransferRole:  100,
 	}
+	argsBuiltIn.AutomaticCrawlerAddresses = GenerateOneAddressPerShard(argsBuiltIn.ShardCoordinator)
 	builtInFuncFactory, _ := builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)
 
 	smartContractsCache := testscommon.NewCacherMock()
@@ -1379,6 +1380,7 @@ func (tpn *TestProcessorNode) initResolvers() {
 	dataPacker, _ := partitioning.NewSimpleDataPacker(TestMarshalizer)
 
 	_ = tpn.Messenger.CreateTopic(common.ConsensusTopic+tpn.ShardCoordinator.CommunicationIdentifier(tpn.ShardCoordinator.SelfId()), true)
+	payloadValidator, _ := validator.NewPeerAuthenticationPayloadValidator(60)
 
 	resolverContainerFactory := resolverscontainer.FactoryArgs{
 		ShardCoordinator:            tpn.ShardCoordinator,
@@ -1403,7 +1405,7 @@ func (tpn *TestProcessorNode) initResolvers() {
 		PeersRatingHandler:                   tpn.PeersRatingHandler,
 		NodesCoordinator:                     tpn.NodesCoordinator,
 		MaxNumOfPeerAuthenticationInResponse: 5,
-		PeerShardMapper:                      tpn.PeerShardMapper,
+		PayloadValidator:                     payloadValidator,
 	}
 
 	var err error
@@ -1495,9 +1497,9 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		ShardCoordinator:           tpn.ShardCoordinator,
 		EpochNotifier:              tpn.EpochNotifier,
 		GlobalMintBurnDisableEpoch: tpn.EnableEpochs.GlobalMintBurnDisableEpoch,
-		AutomaticCrawlerAddress:    bytes.Repeat([]byte{1}, 32),
 		MaxNumNodesInTransferRole:  100,
 	}
+	argsBuiltIn.AutomaticCrawlerAddresses = GenerateOneAddressPerShard(argsBuiltIn.ShardCoordinator)
 	builtInFuncFactory, _ := builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)
 
 	for name, function := range TestBuiltinFunctions {
@@ -1720,9 +1722,9 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		ShardCoordinator:           tpn.ShardCoordinator,
 		EpochNotifier:              tpn.EpochNotifier,
 		GlobalMintBurnDisableEpoch: tpn.EnableEpochs.GlobalMintBurnDisableEpoch,
-		AutomaticCrawlerAddress:    bytes.Repeat([]byte{1}, 32),
 		MaxNumNodesInTransferRole:  100,
 	}
+	argsBuiltIn.AutomaticCrawlerAddresses = GenerateOneAddressPerShard(argsBuiltIn.ShardCoordinator)
 	builtInFuncFactory, _ := builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)
 	argsHook := hooks.ArgBlockChainHook{
 		Accounts:              tpn.AccntState,
@@ -2372,9 +2374,12 @@ func (tpn *TestProcessorNode) initNode() {
 	currentProvider, _ := blockInfoProviders.NewCurrentBlockInfo(dataComponents.BlockChain)
 	currentAccountsApi, _ := state.NewAccountsDBApi(tpn.AccntState, currentProvider)
 
+	historicalAccountsApi, _ := state.NewAccountsDBApiWithHistory(tpn.AccntState)
+
 	argsAccountsRepo := state.ArgsAccountsRepository{
-		FinalStateAccountsWrapper:   finalAccountsApi,
-		CurrentStateAccountsWrapper: currentAccountsApi,
+		FinalStateAccountsWrapper:      finalAccountsApi,
+		CurrentStateAccountsWrapper:    currentAccountsApi,
+		HistoricalStateAccountsWrapper: historicalAccountsApi,
 	}
 	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(argsAccountsRepo)
 

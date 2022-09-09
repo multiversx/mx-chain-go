@@ -96,7 +96,7 @@ func createTriesHolderForShard() common.TriesHolder {
 	return triesHolder
 }
 
-//------- NewResolversContainerFactory
+// ------- NewResolversContainerFactory
 
 func TestNewShardResolversContainerFactory_NilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
@@ -322,17 +322,6 @@ func TestNewShardResolversContainerFactory_NilCurrentNetworkEpochProviderShouldE
 	assert.Equal(t, dataRetriever.ErrNilCurrentNetworkEpochProvider, err)
 }
 
-func TestNewShardResolversContainerFactory_NilPeerShardMapperShouldErr(t *testing.T) {
-	t.Parallel()
-
-	args := getArgumentsShard()
-	args.PeerShardMapper = nil
-	rcf, err := resolverscontainer.NewShardResolversContainerFactory(args)
-
-	assert.Nil(t, rcf)
-	assert.Equal(t, dataRetriever.ErrNilPeerShardMapper, err)
-}
-
 func TestNewShardResolversContainerFactory_ShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -347,7 +336,7 @@ func TestNewShardResolversContainerFactory_ShouldWork(t *testing.T) {
 	assert.Equal(t, int(args.ResolverConfig.NumFullHistoryPeers), rcf.NumFullHistoryPeers())
 }
 
-//------- Create
+// ------- Create
 
 func TestShardResolversContainerFactory_CreateRegisterTxFailsShouldErr(t *testing.T) {
 	t.Parallel()
@@ -478,7 +467,7 @@ func getArgumentsShard() resolverscontainer.FactoryArgs {
 		},
 		NodesCoordinator:                     &shardingMocks.NodesCoordinatorStub{},
 		MaxNumOfPeerAuthenticationInResponse: 5,
-		PeerShardMapper:                      &p2pmocks.NetworkShardingCollectorStub{},
 		PeersRatingHandler:                   &p2pmocks.PeersRatingHandlerStub{},
+		PayloadValidator:                     &testscommon.PeerAuthenticationPayloadValidatorStub{},
 	}
 }

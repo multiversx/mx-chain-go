@@ -839,7 +839,7 @@ func TestAccountsDB_RecreateTrieMalfunctionTrieShouldErr(t *testing.T) {
 			return &testscommon.StorageManagerStub{}
 		},
 	}
-	trieStub.RecreateCalled = func(root []byte) (tree common.Trie, e error) {
+	trieStub.RecreateFromEpochCalled = func(_ common.RootHashHolder) (tree common.Trie, e error) {
 		wasCalled = true
 		return nil, errExpected
 	}
@@ -861,7 +861,7 @@ func TestAccountsDB_RecreateTrieOutputsNilTrieShouldErr(t *testing.T) {
 			return &testscommon.StorageManagerStub{}
 		},
 	}
-	trieStub.RecreateCalled = func(root []byte) (tree common.Trie, e error) {
+	trieStub.RecreateFromEpochCalled = func(_ common.RootHashHolder) (tree common.Trie, e error) {
 		wasCalled = true
 		return nil, nil
 	}
@@ -883,7 +883,7 @@ func TestAccountsDB_RecreateTrieOkValsShouldWork(t *testing.T) {
 		GetStorageManagerCalled: func() common.StorageManager {
 			return &testscommon.StorageManagerStub{}
 		},
-		RecreateCalled: func(root []byte) (common.Trie, error) {
+		RecreateFromEpochCalled: func(_ common.RootHashHolder) (common.Trie, error) {
 			wasCalled = true
 			return &trieMock.TrieStub{}, nil
 		},
@@ -894,7 +894,6 @@ func TestAccountsDB_RecreateTrieOkValsShouldWork(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.True(t, wasCalled)
-
 }
 
 func TestAccountsDB_SnapshotState(t *testing.T) {
@@ -2542,7 +2541,7 @@ func BenchmarkAccountsDb_GetCodeEntry(b *testing.B) {
 	}
 }
 
-func TestAccountsDB_waitForCompletionIfRunningInImportDB(t *testing.T) {
+func TestAccountsDB_waitForCompletionIfAppropriate(t *testing.T) {
 	t.Parallel()
 
 	t.Run("not in import db", func(t *testing.T) {
@@ -2556,7 +2555,7 @@ func TestAccountsDB_waitForCompletionIfRunningInImportDB(t *testing.T) {
 			},
 		}
 		adb, _ := state.NewAccountsDB(argsAccountsDB)
-		adb.WaitForCompletionIfRunningInImportDB(&trieMock.MockStatistics{})
+		adb.WaitForCompletionIfAppropriate(&trieMock.MockStatistics{})
 	})
 	t.Run("in import db", func(t *testing.T) {
 		t.Parallel()
@@ -2576,7 +2575,7 @@ func TestAccountsDB_waitForCompletionIfRunningInImportDB(t *testing.T) {
 			waitForSnapshotsToFinishCalled = true
 		}
 		adb, _ := state.NewAccountsDB(argsAccountsDB)
-		adb.WaitForCompletionIfRunningInImportDB(stats)
+		adb.WaitForCompletionIfAppropriate(stats)
 		assert.True(t, idleWasSet)
 		assert.True(t, waitForSnapshotsToFinishCalled)
 	})

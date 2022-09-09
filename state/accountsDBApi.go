@@ -8,14 +8,15 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/common/holders"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 type accountsDBApi struct {
-	innerAccountsAdapter AccountsAdapter
-	blockInfoProvider    BlockInfoProvider
-	mutBlockInfo         sync.RWMutex
-	blockInfo            common.BlockInfo
+	innerAccountsAdapter      AccountsAdapter
+	blockInfoProvider         BlockInfoProvider
+	mutRecreatedTrieBlockInfo sync.RWMutex
+	blockInfo                 common.BlockInfo
 }
 
 // NewAccountsDBApi will create a new instance of type accountsDBApi
@@ -42,9 +43,9 @@ func (accountsDB *accountsDBApi) recreateTrieIfNecessary() (common.BlockInfo, er
 		return nil, fmt.Errorf("%w in accountsDBApi.recreateTrieIfNecessary", ErrNilRootHash)
 	}
 
-	accountsDB.mutBlockInfo.RLock()
+	accountsDB.mutRecreatedTrieBlockInfo.RLock()
 	currentBlockInfo := accountsDB.blockInfo
-	accountsDB.mutBlockInfo.RUnlock()
+	accountsDB.mutRecreatedTrieBlockInfo.RUnlock()
 
 	if newBlockInfo.Equal(currentBlockInfo) {
 		return currentBlockInfo, nil
@@ -54,8 +55,8 @@ func (accountsDB *accountsDBApi) recreateTrieIfNecessary() (common.BlockInfo, er
 }
 
 func (accountsDB *accountsDBApi) doRecreateTrieWithBlockInfo(newBlockInfo common.BlockInfo) (common.BlockInfo, error) {
-	accountsDB.mutBlockInfo.Lock()
-	defer accountsDB.mutBlockInfo.Unlock()
+	accountsDB.mutRecreatedTrieBlockInfo.Lock()
+	defer accountsDB.mutRecreatedTrieBlockInfo.Unlock()
 
 	// early exit for possible multiple re-entrances here
 	currentBlockInfo := accountsDB.blockInfo
@@ -76,7 +77,7 @@ func (accountsDB *accountsDBApi) doRecreateTrieWithBlockInfo(newBlockInfo common
 
 // GetExistingAccount will call the inner accountsAdapter method after trying to recreate the trie
 func (accountsDB *accountsDBApi) GetExistingAccount(address []byte) (vmcommon.AccountHandler, error) {
-	account, _, err := accountsDB.GetAccountWithBlockInfo(address)
+	account, _, err := accountsDB.GetAccountWithBlockInfo(address, holders.NewRootHashHolderAsEmpty())
 
 	return account, err
 }
@@ -133,7 +134,7 @@ func (accountsDB *accountsDBApi) RevertToSnapshot(_ int) error {
 
 // GetCode will call the inner accountsAdapter method after trying to recreate the trie
 func (accountsDB *accountsDBApi) GetCode(codeHash []byte) []byte {
-	code, _, err := accountsDB.GetCodeWithBlockInfo(codeHash)
+	code, _, err := accountsDB.GetCodeWithBlockInfo(codeHash, holders.NewRootHashHolderAsEmpty())
 	if err != nil {
 		log.Warn("accountsDBApi.GetCode", "error", err)
 	}
@@ -143,8 +144,8 @@ func (accountsDB *accountsDBApi) GetCode(codeHash []byte) []byte {
 
 // RootHash will return last loaded root hash
 func (accountsDB *accountsDBApi) RootHash() ([]byte, error) {
-	accountsDB.mutBlockInfo.RLock()
-	defer accountsDB.mutBlockInfo.RUnlock()
+	accountsDB.mutRecreatedTrieBlockInfo.RLock()
+	defer accountsDB.mutRecreatedTrieBlockInfo.RUnlock()
 
 	blockInfo := accountsDB.blockInfo
 	if check.IfNil(blockInfo) || blockInfo.GetRootHash() == nil {
@@ -156,6 +157,11 @@ func (accountsDB *accountsDBApi) RootHash() ([]byte, error) {
 
 // RecreateTrie is a not permitted operation in this implementation and thus, will return an error
 func (accountsDB *accountsDBApi) RecreateTrie(_ []byte) error {
+	return ErrOperationNotPermitted
+}
+
+// RecreateTrieFromEpoch is a not permitted operation in this implementation and thus, will return an error
+func (accountsDB *accountsDBApi) RecreateTrieFromEpoch(_ common.RootHashHolder) error {
 	return ErrOperationNotPermitted
 }
 
@@ -211,11 +217,19 @@ func (accountsDB *accountsDBApi) Close() error {
 }
 
 // GetAccountWithBlockInfo returns the account and the associated block info
-func (accountsDB *accountsDBApi) GetAccountWithBlockInfo(address []byte) (vmcommon.AccountHandler, common.BlockInfo, error) {
-	blockInfo, err := accountsDB.recreateTrieIfNecessary()
+func (accountsDB *accountsDBApi) GetAccountWithBlockInfo(address []byte, _ common.RootHashHolder) (vmcommon.AccountHandler, common.BlockInfo, error) {
+	_, err := accountsDB.recreateTrieIfNecessary()
 	if err != nil {
 		return nil, nil, err
 	}
+
+	// We hold the read mutex over both <getting the current block info> AND <getting the account>.
+	// -> desired side-effect: any concurrent "recreateTrieIfNecessary()" waits until the mutex is released.
+	// -> under normal circumstances (node already synchronized), performance of GET account should not be impacted.
+	accountsDB.mutRecreatedTrieBlockInfo.RLock()
+	defer accountsDB.mutRecreatedTrieBlockInfo.RUnlock()
+
+	blockInfo := accountsDB.blockInfo
 
 	account, err := accountsDB.innerAccountsAdapter.GetExistingAccount(address)
 	if err == ErrAccNotFound {
@@ -229,7 +243,7 @@ func (accountsDB *accountsDBApi) GetAccountWithBlockInfo(address []byte) (vmcomm
 }
 
 // GetCodeWithBlockInfo returns the code and the associated block info
-func (accountsDB *accountsDBApi) GetCodeWithBlockInfo(codeHash []byte) ([]byte, common.BlockInfo, error) {
+func (accountsDB *accountsDBApi) GetCodeWithBlockInfo(codeHash []byte, _ common.RootHashHolder) ([]byte, common.BlockInfo, error) {
 	blockInfo, err := accountsDB.recreateTrieIfNecessary()
 	if err != nil {
 		return nil, nil, err

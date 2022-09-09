@@ -4,6 +4,7 @@ import (
 	"context"
 	cryptoRand "crypto/rand"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/common/holders"
 	"math/rand"
 	"strconv"
 	"sync"
@@ -372,6 +373,52 @@ func TestPatriciaMerkleTrie_Recreate(t *testing.T) {
 
 	root, _ := newTr.RootHash()
 	assert.Equal(t, rootHash, root)
+}
+
+func TestPatriciaMerkleTrie_RecreateFromEpoch(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nil options", func(t *testing.T) {
+		t.Parallel()
+
+		tr := initTrie()
+
+		newTr, err := tr.RecreateFromEpoch(nil)
+		assert.Nil(t, newTr)
+		assert.Equal(t, trie.ErrNilRootHashHolder, err)
+	})
+
+	t.Run("no epoch data", func(t *testing.T) {
+		t.Parallel()
+
+		tr := initTrie()
+		rootHash, _ := tr.RootHash()
+		_ = tr.Commit()
+
+		rootHashHolder := holders.NewRootHashHolder(rootHash, core.OptionalUint32{})
+		newTr, err := tr.RecreateFromEpoch(rootHashHolder)
+		assert.Nil(t, err)
+
+		assert.True(t, trie.IsBaseTrieStorageManager(newTr.GetStorageManager()))
+	})
+
+	t.Run("with epoch data", func(t *testing.T) {
+		t.Parallel()
+
+		tr := initTrie()
+		rootHash, _ := tr.RootHash()
+		_ = tr.Commit()
+
+		optionalUint32 := core.OptionalUint32{
+			Value:    5,
+			HasValue: true,
+		}
+		rootHashHolder := holders.NewRootHashHolder(rootHash, optionalUint32)
+		newTr, err := tr.RecreateFromEpoch(rootHashHolder)
+		assert.Nil(t, err)
+
+		assert.True(t, trie.IsTrieStorageManagerInEpoch(newTr.GetStorageManager()))
+	})
 }
 
 func TestPatriciaMerkleTrie_RecreateWithInvalidRootHash(t *testing.T) {
