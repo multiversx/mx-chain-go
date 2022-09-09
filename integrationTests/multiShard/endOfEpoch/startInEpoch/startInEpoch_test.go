@@ -59,10 +59,18 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 	numNodesPerShard := 3
 	numMetachainNodes := 3
 
-	nodes := integrationTests.CreateNodes(
+	enableEpochsConfig := config.EnableEpochs{
+		StakingV2EnableEpoch:                 integrationTests.UnreachableEpoch,
+		ScheduledMiniBlocksEnableEpoch:       integrationTests.UnreachableEpoch,
+		MiniBlockPartialExecutionEnableEpoch: integrationTests.UnreachableEpoch,
+		RefactorPeersMiniBlocksEnableEpoch:   integrationTests.UnreachableEpoch,
+	}
+
+	nodes := integrationTests.CreateNodesWithEnableEpochs(
 		numOfShards,
 		numNodesPerShard,
 		numMetachainNodes,
+		enableEpochsConfig,
 	)
 
 	roundsPerEpoch := uint64(10)
@@ -179,7 +187,11 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 
 	uint64Converter := uint64ByteSlice.NewBigEndianConverter()
 
-	nodeToJoinLate := integrationTests.NewTestProcessorNode(uint32(numOfShards), shardID, shardID)
+	nodeToJoinLate := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
+		MaxShards:            uint32(numOfShards),
+		NodeShardId:          shardID,
+		TxSignPrivKeyShardId: shardID,
+	})
 	messenger := integrationTests.CreateMessengerWithNoDiscovery()
 	time.Sleep(integrationTests.P2pBootstrapDelay)
 	nodeToJoinLate.Messenger = messenger
@@ -267,13 +279,14 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		&nodeTypeProviderMock.NodeTypeProviderStub{},
 		0,
 		false,
+		factory.ProcessStorageService,
 	)
 	assert.NoError(t, err)
 	storageServiceShard, err := storageFactory.CreateForMeta()
 	assert.NoError(t, err)
 	assert.NotNil(t, storageServiceShard)
 
-	bootstrapUnit := storageServiceShard.GetStorer(dataRetriever.BootstrapUnit)
+	bootstrapUnit, _ := storageServiceShard.GetStorer(dataRetriever.BootstrapUnit)
 	assert.NotNil(t, bootstrapUnit)
 
 	bootstrapStorer, err := bootstrapStorage.NewBootstrapStorer(integrationTests.TestMarshalizer, bootstrapUnit)

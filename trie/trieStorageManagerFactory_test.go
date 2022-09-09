@@ -96,6 +96,10 @@ func TestTrieStorageManager_SerialFuncShadowingCallsExpectedImpl(t *testing.T) {
 		AddDirtyCheckpointHashesCalled: func(_ []byte, _ common.ModifiedHashes) bool {
 			return true
 		},
+		GetBaseTrieStorageManagerCalled: func() common.StorageManager {
+			tsm, _ = trie.NewTrieStorageManager(getNewTrieStorageManagerArgs())
+			return tsm
+		},
 	}
 
 	err := tsm.Remove([]byte("hash"))

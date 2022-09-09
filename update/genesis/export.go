@@ -135,6 +135,11 @@ func (se *stateExport) ExportAll(epoch uint32) error {
 		return err
 	}
 
+	err = se.exportAllValidatorsInfo()
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -153,6 +158,23 @@ func (se *stateExport) exportAllTransactions() error {
 	}
 
 	return se.hardforkStorer.FinishedIdentifier(TransactionsIdentifier)
+}
+
+func (se *stateExport) exportAllValidatorsInfo() error {
+	toExportValidatorsInfo, err := se.stateSyncer.GetAllValidatorsInfo()
+	if err != nil {
+		return err
+	}
+
+	log.Debug("Starting export for validators info", "len", len(toExportValidatorsInfo))
+	for key, validatorInfo := range toExportValidatorsInfo {
+		errExport := se.exportValidatorInfo(key, validatorInfo)
+		if errExport != nil {
+			return errExport
+		}
+	}
+
+	return se.hardforkStorer.FinishedIdentifier(ValidatorsInfoIdentifier)
 }
 
 func (se *stateExport) exportAllMiniBlocks() error {
@@ -387,6 +409,22 @@ func (se *stateExport) exportTx(key string, tx data.TransactionHandler) error {
 	keyToSave := CreateTransactionKey(key, tx)
 
 	err = se.hardforkStorer.Write(TransactionsIdentifier, []byte(keyToSave), marshaledData)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (se *stateExport) exportValidatorInfo(key string, validatorInfo *state.ShardValidatorInfo) error {
+	marshaledData, err := json.Marshal(validatorInfo)
+	if err != nil {
+		return err
+	}
+
+	keyToSave := CreateValidatorInfoKey(key)
+
+	err = se.hardforkStorer.Write(ValidatorsInfoIdentifier, []byte(keyToSave), marshaledData)
 	if err != nil {
 		return err
 	}

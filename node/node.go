@@ -184,6 +184,17 @@ func (n *Node) GetUsername(address string, options api.AccountQueryOptions) (str
 	return string(username), blockInfo, nil
 }
 
+// GetCodeHash gets the code hash for a specific address
+func (n *Node) GetCodeHash(address string, options api.AccountQueryOptions) ([]byte, api.BlockInfo, error) {
+	userAccount, blockInfo, err := n.loadUserAccountHandlerByAddress(address, options)
+	if err != nil {
+		return nil, api.BlockInfo{}, err
+	}
+
+	codeHash := userAccount.GetCodeHash()
+	return codeHash, blockInfo, nil
+}
+
 // GetAllIssuedESDTs returns all the issued esdt tokens, works only on metachain
 func (n *Node) GetAllIssuedESDTs(tokenType string, ctx context.Context) ([]string, error) {
 	if n.processComponents.ShardCoordinator().SelfId() != core.MetachainShardId {

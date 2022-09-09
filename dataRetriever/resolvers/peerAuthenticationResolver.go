@@ -11,8 +11,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/batch"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -27,9 +27,9 @@ type ArgPeerAuthenticationResolver struct {
 	ArgBaseResolver
 	PeerAuthenticationPool               storage.Cacher
 	NodesCoordinator                     dataRetriever.NodesCoordinator
-	PeerShardMapper                      process.PeerShardMapper
 	DataPacker                           dataRetriever.DataPacker
 	MaxNumOfPeerAuthenticationInResponse int
+	PayloadValidator                     dataRetriever.PeerAuthenticationPayloadValidator
 }
 
 // peerAuthenticationResolver is a wrapper over Resolver that is specialized in resolving peer authentication requests
@@ -38,9 +38,9 @@ type peerAuthenticationResolver struct {
 	messageProcessor
 	peerAuthenticationPool               storage.Cacher
 	nodesCoordinator                     dataRetriever.NodesCoordinator
-	peerShardMapper                      process.PeerShardMapper
 	dataPacker                           dataRetriever.DataPacker
 	maxNumOfPeerAuthenticationInResponse int
+	payloadValidator                     dataRetriever.PeerAuthenticationPayloadValidator
 }
 
 // NewPeerAuthenticationResolver creates a peer authentication resolver
@@ -62,9 +62,9 @@ func NewPeerAuthenticationResolver(arg ArgPeerAuthenticationResolver) (*peerAuth
 		},
 		peerAuthenticationPool:               arg.PeerAuthenticationPool,
 		nodesCoordinator:                     arg.NodesCoordinator,
-		peerShardMapper:                      arg.PeerShardMapper,
 		dataPacker:                           arg.DataPacker,
 		maxNumOfPeerAuthenticationInResponse: arg.MaxNumOfPeerAuthenticationInResponse,
+		payloadValidator:                     arg.PayloadValidator,
 	}, nil
 }
 
@@ -79,14 +79,14 @@ func checkArgPeerAuthenticationResolver(arg ArgPeerAuthenticationResolver) error
 	if check.IfNil(arg.NodesCoordinator) {
 		return dataRetriever.ErrNilNodesCoordinator
 	}
-	if check.IfNil(arg.PeerShardMapper) {
-		return dataRetriever.ErrNilPeerShardMapper
-	}
 	if check.IfNil(arg.DataPacker) {
 		return dataRetriever.ErrNilDataPacker
 	}
 	if arg.MaxNumOfPeerAuthenticationInResponse < minNumOfPeerAuthentication {
 		return dataRetriever.ErrInvalidNumOfPeerAuthentication
+	}
+	if check.IfNil(arg.PayloadValidator) {
+		return dataRetriever.ErrNilPayloadValidator
 	}
 	return nil
 }
@@ -247,7 +247,7 @@ func (res *peerAuthenticationResolver) resolveMultipleHashesRequest(hashesBuff [
 
 	peerAuthsForHashes, err := res.fetchPeerAuthenticationSlicesForPublicKeys(hashes)
 	if err != nil {
-		return fmt.Errorf("resolveMultipleHashesRequest error %w from buff %s", err, hashesBuff)
+		return fmt.Errorf("resolveMultipleHashesRequest error %w from buff %x", err, hashesBuff)
 	}
 
 	return res.sendPeerAuthsForHashes(peerAuthsForHashes, pid)
@@ -298,17 +298,30 @@ func (res *peerAuthenticationResolver) fetchPeerAuthenticationSlicesForPublicKey
 
 // fetchPeerAuthenticationAsByteSlice returns the value from authentication pool if exists
 func (res *peerAuthenticationResolver) fetchPeerAuthenticationAsByteSlice(pk []byte) ([]byte, error) {
-	pid, ok := res.peerShardMapper.GetLastKnownPeerID(pk)
+	value, ok := res.peerAuthenticationPool.Peek(pk)
 	if !ok {
 		return nil, dataRetriever.ErrPeerAuthNotFound
 	}
 
-	value, ok := res.peerAuthenticationPool.Peek(pid.Bytes())
-	if ok {
-		return res.marshalizer.Marshal(value)
+	interceptedPeerAuthenticationData, ok := value.(*heartbeat.PeerAuthentication)
+	if !ok {
+		return nil, dataRetriever.ErrWrongTypeAssertion
 	}
 
-	return nil, dataRetriever.ErrPeerAuthNotFound
+	payloadBuff := interceptedPeerAuthenticationData.Payload
+	payload := &heartbeat.Payload{}
+	err := res.marshalizer.Unmarshal(payload, payloadBuff)
+	if err != nil {
+		return nil, err
+	}
+
+	err = res.payloadValidator.ValidateTimestamp(payload.Timestamp)
+	if err != nil {
+		log.Trace("found peer authentication payload with invalid value, will not send it", "error", err)
+		return nil, err
+	}
+
+	return res.marshalizer.Marshal(value)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

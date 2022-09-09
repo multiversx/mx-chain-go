@@ -68,8 +68,8 @@ func (ps *PruningStorer) PersistersMapByEpochToSlice() []uint32 {
 }
 
 // ProcessPersistersToClose -
-func (ps *PruningStorer) ProcessPersistersToClose() []uint32 {
-	persistersToClose := ps.processPersistersToClose()
+func (ps *PruningStorer) ProcessPersistersToClose(lastEpochNeeded uint32) []uint32 {
+	persistersToClose := ps.processPersistersToClose(lastEpochNeeded)
 	slice := make([]uint32, 0)
 	for _, p := range persistersToClose {
 		slice = append(slice, p.epoch)
@@ -144,4 +144,9 @@ func (fhps *FullHistoryPruningStorer) GetOldEpochsActivePersisters() storage.Cac
 // IsEpochActive -
 func (fhps *FullHistoryPruningStorer) IsEpochActive(epoch uint32) bool {
 	return fhps.isEpochActive(epoch)
+}
+
+// SetStorerWithEpochOperations -
+func (fhtps *fullHistoryTriePruningStorer) SetStorerWithEpochOperations(storer storerWithEpochOperations) {
+	fhtps.storerWithEpochOperations = storer
 }

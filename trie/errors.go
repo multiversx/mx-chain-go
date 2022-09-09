@@ -102,3 +102,6 @@ var ErrKeyNotFound = errors.New("key not found")
 
 // ErrNilIdleNodeProvider signals that a nil idle node provider was provided
 var ErrNilIdleNodeProvider = errors.New("nil idle node provider")
+
+// ErrNilRootHashHolder signals that a nil root hash holder was provided
+var ErrNilRootHashHolder = errors.New("nil root hash holder provided")

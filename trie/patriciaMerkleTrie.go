@@ -247,10 +247,31 @@ func (tr *patriciaMerkleTrie) Recreate(root []byte) (common.Trie, error) {
 	tr.mutOperation.Lock()
 	defer tr.mutOperation.Unlock()
 
-	return tr.recreate(root)
+	return tr.recreate(root, tr.trieStorage)
 }
 
-func (tr *patriciaMerkleTrie) recreate(root []byte) (*patriciaMerkleTrie, error) {
+// RecreateFromEpoch returns a new trie, given the options
+func (tr *patriciaMerkleTrie) RecreateFromEpoch(options common.RootHashHolder) (common.Trie, error) {
+	if check.IfNil(options) {
+		return nil, ErrNilRootHashHolder
+	}
+
+	tr.mutOperation.Lock()
+	defer tr.mutOperation.Unlock()
+
+	if !options.GetEpoch().HasValue {
+		return tr.recreate(options.GetRootHash(), tr.trieStorage)
+	}
+
+	tsmie, err := newTrieStorageManagerInEpoch(tr.trieStorage, options.GetEpoch().Value)
+	if err != nil {
+		return nil, err
+	}
+
+	return tr.recreate(options.GetRootHash(), tsmie)
+}
+
+func (tr *patriciaMerkleTrie) recreate(root []byte, tsm common.StorageManager) (*patriciaMerkleTrie, error) {
 	if emptyTrie(root) {
 		return NewTrie(
 			tr.trieStorage,
@@ -260,12 +281,12 @@ func (tr *patriciaMerkleTrie) recreate(root []byte) (*patriciaMerkleTrie, error)
 		)
 	}
 
-	_, err := tr.trieStorage.Get(root)
+	_, err := tsm.Get(root)
 	if err != nil {
 		return nil, err
 	}
 
-	newTr, _, err := tr.recreateFromDb(root, tr.trieStorage)
+	newTr, _, err := tr.recreateFromDb(root, tsm)
 	if err != nil {
 		if errors.IsClosingError(err) {
 			log.Debug("could not recreate", "rootHash", root, "error", err)
@@ -433,7 +454,7 @@ func (tr *patriciaMerkleTrie) GetAllLeavesOnChannel(
 	keyBuilder common.KeyBuilder,
 ) error {
 	tr.mutOperation.RLock()
-	newTrie, err := tr.recreate(rootHash)
+	newTrie, err := tr.recreate(rootHash, tr.trieStorage)
 	if err != nil {
 		tr.mutOperation.RUnlock()
 		close(leavesChannel)

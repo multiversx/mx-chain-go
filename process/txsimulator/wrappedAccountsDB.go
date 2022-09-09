@@ -89,6 +89,11 @@ func (r *readOnlyAccountsDB) RecreateTrie(_ []byte) error {
 	return nil
 }
 
+// RecreateTrieFromEpoch won't do anything as write operations are disabled on this component
+func (r *readOnlyAccountsDB) RecreateTrieFromEpoch(_ common.RootHashHolder) error {
+	return nil
+}
+
 // PruneTrie won't do anything as write operations are disabled on this component
 func (r *readOnlyAccountsDB) PruneTrie(_ []byte, _ state.TriePruningIdentifier, _ state.PruningHandler) {
 }

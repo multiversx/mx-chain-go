@@ -26,15 +26,13 @@ type RewardsCreatorProxyArgs struct {
 	StakingDataProvider   epochStart.StakingDataProvider
 	EconomicsDataProvider epochStart.EpochEconomicsDataProvider
 	RewardsHandler        process.RewardsHandler
-	EpochEnableV2         uint32
 }
 
 type rewardsCreatorProxy struct {
-	rc            epochStart.RewardsCreator
-	epochEnableV2 uint32
-	configuredRC  configuredRewardsCreator
-	args          *RewardsCreatorProxyArgs
-	mutRc         sync.Mutex
+	rc           epochStart.RewardsCreator
+	configuredRC configuredRewardsCreator
+	args         *RewardsCreatorProxyArgs
+	mutRc        sync.Mutex
 }
 
 // NewRewardsCreatorProxy creates a rewards creator proxy instance
@@ -42,12 +40,9 @@ func NewRewardsCreatorProxy(args RewardsCreatorProxyArgs) (*rewardsCreatorProxy,
 	var err error
 
 	rcProxy := &rewardsCreatorProxy{
-		epochEnableV2: args.EpochEnableV2,
-		configuredRC:  rCreatorV1,
-		args:          &args,
+		configuredRC: rCreatorV1,
+		args:         &args,
 	}
-	log.Debug("rewardsProxy: enable epoch for switch jail waiting", "epoch", args.BaseRewardsCreatorArgs.RewardsFix1EpochEnable)
-	log.Debug("rewardsProxy: enable epoch for staking v2", "epoch", args.EpochEnableV2)
 
 	rcProxy.rc, err = rcProxy.createRewardsCreatorV1()
 	if err != nil {
@@ -101,9 +96,9 @@ func (rcp *rewardsCreatorProxy) GetLocalTxCache() epochStart.TransactionCacher {
 	return rcp.rc.GetLocalTxCache()
 }
 
-// CreateMarshalizedData proxies the same method of the configured rewardsCreator instance
-func (rcp *rewardsCreatorProxy) CreateMarshalizedData(body *block.Body) map[string][][]byte {
-	return rcp.rc.CreateMarshalizedData(body)
+// CreateMarshalledData proxies the same method of the configured rewardsCreator instance
+func (rcp *rewardsCreatorProxy) CreateMarshalledData(body *block.Body) map[string][][]byte {
+	return rcp.rc.CreateMarshalledData(body)
 }
 
 // GetRewardsTxs proxies the same method of the configured rewardsCreator instance
@@ -111,14 +106,14 @@ func (rcp *rewardsCreatorProxy) GetRewardsTxs(body *block.Body) map[string]data.
 	return rcp.rc.GetRewardsTxs(body)
 }
 
-// SaveTxBlockToStorage proxies the same method of the configured rewardsCreator instance
-func (rcp *rewardsCreatorProxy) SaveTxBlockToStorage(metaBlock data.MetaHeaderHandler, body *block.Body) {
-	rcp.rc.SaveTxBlockToStorage(metaBlock, body)
+// SaveBlockDataToStorage proxies the same method of the configured rewardsCreator instance
+func (rcp *rewardsCreatorProxy) SaveBlockDataToStorage(metaBlock data.MetaHeaderHandler, body *block.Body) {
+	rcp.rc.SaveBlockDataToStorage(metaBlock, body)
 }
 
-// DeleteTxsFromStorage proxies the same method of the configured rewardsCreator instance
-func (rcp *rewardsCreatorProxy) DeleteTxsFromStorage(metaBlock data.MetaHeaderHandler, body *block.Body) {
-	rcp.rc.DeleteTxsFromStorage(metaBlock, body)
+// DeleteBlockDataFromStorage proxies the same method of the configured rewardsCreator instance
+func (rcp *rewardsCreatorProxy) DeleteBlockDataFromStorage(metaBlock data.MetaHeaderHandler, body *block.Body) {
+	rcp.rc.DeleteBlockDataFromStorage(metaBlock, body)
 }
 
 // RemoveBlockDataFromPools proxies the same method of the configured rewardsCreator instance
@@ -135,7 +130,7 @@ func (rcp *rewardsCreatorProxy) changeRewardCreatorIfNeeded(epoch uint32) error 
 	rcp.mutRc.Lock()
 	defer rcp.mutRc.Unlock()
 
-	if epoch > rcp.epochEnableV2 {
+	if epoch > rcp.args.EnableEpochsHandler.StakingV2EnableEpoch() {
 		if rcp.configuredRC != rCreatorV2 {
 			return rcp.switchToRewardsCreatorV2()
 		}

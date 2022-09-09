@@ -671,7 +671,8 @@ func verifyIfAddedShardHeadersAreWithNewEpoch(
 			assert.Fail(t, "metablock should have been in current block header")
 		}
 
-		shardHDrStorage := node.Storage.GetStorer(dataRetriever.BlockHeaderUnit)
+		shardHDrStorage, err := node.Storage.GetStorer(dataRetriever.BlockHeaderUnit)
+		assert.Nil(t, err)
 		for _, shardInfo := range currentMetaHdr.ShardInfo {
 			header, err := node.DataPool.Headers().GetHeaderByHash(shardInfo.HeaderHash)
 			if err == nil {

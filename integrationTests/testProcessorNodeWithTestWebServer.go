@@ -1,7 +1,6 @@
 package integrationTests
 
 import (
-	"bytes"
 	"net/http"
 	"net/http/httptest"
 	"sync"
@@ -48,8 +47,11 @@ func NewTestProcessorNodeWithTestWebServer(
 	txSignPrivKeyShardId uint32,
 ) *TestProcessorNodeWithTestWebServer {
 
-	tpn := newBaseTestProcessorNode(maxShards, nodeShardId, txSignPrivKeyShardId)
-	tpn.initTestNode()
+	tpn := NewTestProcessorNode(ArgTestProcessorNode{
+		MaxShards:            maxShards,
+		NodeShardId:          nodeShardId,
+		TxSignPrivKeyShardId: txSignPrivKeyShardId,
+	})
 
 	argFacade := createFacadeArg(tpn)
 	facade, err := nodeFacade.NewNodeFacade(argFacade)
@@ -102,7 +104,7 @@ func createFacadeArg(tpn *TestProcessorNode) nodeFacade.ArgNodeFacade {
 func createTestApiConfig() config.ApiRoutesConfig {
 	routes := map[string][]string{
 		"node":        {"/status", "/metrics", "/heartbeatstatus", "/statistics", "/p2pstatus", "/debug", "/peerinfo"},
-		"address":     {"/:address", "/:address/balance", "/:address/username", "/:address/key/:key", "/:address/esdt", "/:address/esdt/:tokenIdentifier"},
+		"address":     {"/:address", "/:address/balance", "/:address/username", "/:address/code-hash", "/:address/key/:key", "/:address/esdt", "/:address/esdt/:tokenIdentifier"},
 		"hardfork":    {"/trigger"},
 		"network":     {"/status", "/total-staked", "/economics", "/config"},
 		"log":         {"/log"},
@@ -143,19 +145,20 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 		Accounts:                  tpn.AccntState,
 		ShardCoordinator:          tpn.ShardCoordinator,
 		EpochNotifier:             tpn.EpochNotifier,
-		AutomaticCrawlerAddress:   bytes.Repeat([]byte{1}, 32),
+		EnableEpochsHandler:       tpn.EnableEpochsHandler,
 		MaxNumNodesInTransferRole: 100,
 	}
+	argsBuiltIn.AutomaticCrawlerAddresses = GenerateOneAddressPerShard(argsBuiltIn.ShardCoordinator)
 	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)
 	log.LogIfError(err)
 	esdtTransferParser, _ := parsers.NewESDTTransferParser(TestMarshalizer)
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
-		PubkeyConverter:    TestAddressPubkeyConverter,
-		ShardCoordinator:   tpn.ShardCoordinator,
-		BuiltInFunctions:   builtInFuncs.BuiltInFunctionContainer(),
-		ArgumentParser:     parsers.NewCallArgsParser(),
-		ESDTTransferParser: esdtTransferParser,
-		EpochNotifier:      tpn.EpochNotifier,
+		PubkeyConverter:     TestAddressPubkeyConverter,
+		ShardCoordinator:    tpn.ShardCoordinator,
+		BuiltInFunctions:    builtInFuncs.BuiltInFunctionContainer(),
+		ArgumentParser:      parsers.NewCallArgsParser(),
+		ESDTTransferParser:  esdtTransferParser,
+		EnableEpochsHandler: tpn.EnableEpochsHandler,
 	}
 	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	log.LogIfError(err)
@@ -170,8 +173,7 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 		},
 		tpn.AccntState,
 		tpn.ShardCoordinator,
-		tpn.EpochNotifier,
-		0,
+		tpn.EnableEpochsHandler,
 	)
 	log.LogIfError(err)
 

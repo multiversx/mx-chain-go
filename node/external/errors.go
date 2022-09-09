@@ -40,3 +40,6 @@ var ErrNilAccountsParser = errors.New("nil accounts parser")
 
 // ErrNilGasScheduler signals that a nil gas scheduler has been provided
 var ErrNilGasScheduler = errors.New("nil gas scheduler")
+
+// ErrEpochSubscriberHandlerWrongTypeAssertion signals that a type conversion to an epoch subscriber handler type failed
+var ErrEpochSubscriberHandlerWrongTypeAssertion = errors.New("epoch subscriber handler - wrong type assertion")

@@ -1,6 +1,10 @@
 package holders
 
-import "github.com/ElrondNetwork/elrond-go-core/core"
+import (
+	"fmt"
+
+	"github.com/ElrondNetwork/elrond-go-core/core"
+)
 
 type rootHashHolder struct {
 	rootHash []byte
@@ -31,6 +35,11 @@ func (holder *rootHashHolder) GetRootHash() []byte {
 // GetEpoch returns the epoch of the contained rootHash
 func (holder *rootHashHolder) GetEpoch() core.OptionalUint32 {
 	return holder.epoch
+}
+
+// String returns rootHashesHolder as a string
+func (holder *rootHashHolder) String() string {
+	return fmt.Sprintf("root hash %s, epoch %v, has value %v", holder.rootHash, holder.epoch.Value, holder.epoch.HasValue)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

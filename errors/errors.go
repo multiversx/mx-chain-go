@@ -478,3 +478,6 @@ var ErrNilProcessStatusHandler = errors.New("nil process status handler")
 
 // ErrDBIsClosed is raised when the DB is closed
 var ErrDBIsClosed = errors.New("DB is closed")
+
+// ErrNilEnableEpochsHandler signals that a nil enable epochs handler was provided
+var ErrNilEnableEpochsHandler = errors.New("nil enable epochs handler")

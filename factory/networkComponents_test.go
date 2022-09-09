@@ -146,6 +146,10 @@ func getNetworkArgs() factory.NetworkComponentsFactoryArgs {
 			TopRatedCacheCapacity: 1000,
 			BadRatedCacheCapacity: 1000,
 		},
+		PoolsCleanersConfig: config.PoolsCleanersConfig{
+			MaxRoundsToKeepUnprocessedMiniBlocks:   50,
+			MaxRoundsToKeepUnprocessedTransactions: 50,
+		},
 	}
 
 	appStatusHandler := statusHandlerMock.NewAppStatusHandlerMock()

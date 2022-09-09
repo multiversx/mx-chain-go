@@ -99,6 +99,11 @@ func (accountsDB *accountsDBApiWithHistory) RecreateTrie(_ []byte) error {
 	return ErrOperationNotPermitted
 }
 
+// RecreateTrieFromEpoch is a not permitted operation in this implementation and thus, will return an error
+func (accountsDB *accountsDBApiWithHistory) RecreateTrieFromEpoch(_ common.RootHashHolder) error {
+	return ErrOperationNotPermitted
+}
+
 // PruneTrie is a not permitted operation in this implementation and thus, does nothing
 func (accountsDB *accountsDBApiWithHistory) PruneTrie(_ []byte, _ TriePruningIdentifier, _ PruningHandler) {
 }
@@ -165,7 +170,7 @@ func (accountsDB *accountsDBApiWithHistory) GetAccountWithBlockInfo(address []by
 
 	// Second check to avoid re-creation:
 	if accountsDB.shouldRecreateTrieUnprotected(rootHash) {
-		err := accountsDB.recreateTrieUnprotected(rootHash)
+		err := accountsDB.recreateTrieUnprotected(options)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -208,7 +213,7 @@ func (accountsDB *accountsDBApiWithHistory) GetCodeWithBlockInfo(codeHash []byte
 
 	// Second check to avoid re-creation:
 	if accountsDB.shouldRecreateTrieUnprotected(rootHash) {
-		err := accountsDB.recreateTrieUnprotected(rootHash)
+		err := accountsDB.recreateTrieUnprotected(options)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -227,13 +232,13 @@ func (accountsDB *accountsDBApiWithHistory) shouldRecreateTrieUnprotected(rootHa
 	return !bytes.Equal(accountsDB.latestRecreatedRootHash, rootHash)
 }
 
-func (accountsDB *accountsDBApiWithHistory) recreateTrieUnprotected(rootHash []byte) error {
-	err := accountsDB.innerAccountsAdapter.RecreateTrie(rootHash)
+func (accountsDB *accountsDBApiWithHistory) recreateTrieUnprotected(options common.RootHashHolder) error {
+	err := accountsDB.innerAccountsAdapter.RecreateTrieFromEpoch(options)
 	if err != nil {
 		return err
 	}
 
-	accountsDB.latestRecreatedRootHash = rootHash
+	accountsDB.latestRecreatedRootHash = options.GetRootHash()
 	return nil
 }
 

@@ -1,9 +1,6 @@
 package trie
 
 import (
-	"errors"
-	"fmt"
-
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/common"
@@ -11,7 +8,6 @@ import (
 
 type trieStorageManagerWithoutSnapshot struct {
 	common.StorageManager
-	storageManagerExtension
 }
 
 // NewTrieStorageManagerWithoutSnapshot creates a new trieStorageManagerWithoutSnapshot
@@ -20,14 +16,8 @@ func NewTrieStorageManagerWithoutSnapshot(tsm common.StorageManager) (*trieStora
 		return nil, ErrNilTrieStorage
 	}
 
-	sm, ok := tsm.(storageManagerExtension)
-	if !ok {
-		return nil, errors.New("invalid storage manager type" + fmt.Sprintf("%T", tsm))
-	}
-
 	return &trieStorageManagerWithoutSnapshot{
-		StorageManager:          tsm,
-		storageManagerExtension: sm,
+		StorageManager: tsm,
 	}, nil
 }
 
