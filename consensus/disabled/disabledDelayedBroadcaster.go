@@ -1,6 +1,9 @@
-package broadcast
+package disabled
 
-import "github.com/ElrondNetwork/elrond-go-core/data"
+import (
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go/consensus/broadcast/delayed"
+)
 
 type disabledDelayedBroadcaster struct{}
 
@@ -10,17 +13,17 @@ func NewDisabledDelayedBroadcaster() *disabledDelayedBroadcaster {
 }
 
 // SetLeaderData returns nil
-func (ddb *disabledDelayedBroadcaster) SetLeaderData(data *delayedBroadcastData) error {
+func (ddb *disabledDelayedBroadcaster) SetLeaderData(data *delayed.DelayedBroadcastData) error {
 	return nil
 }
 
 // SetValidatorData returns nil
-func (ddb *disabledDelayedBroadcaster) SetValidatorData(data *delayedBroadcastData) error {
+func (ddb *disabledDelayedBroadcaster) SetValidatorData(data *delayed.DelayedBroadcastData) error {
 	return nil
 }
 
 // SetHeaderForValidator returns nil
-func (ddb *disabledDelayedBroadcaster) SetHeaderForValidator(vData *validatorHeaderBroadcastData) error {
+func (ddb *disabledDelayedBroadcaster) SetHeaderForValidator(vData *delayed.ValidatorHeaderBroadcastData) error {
 	return nil
 }
 

@@ -8,6 +8,7 @@ import (
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/broadcast"
+	"github.com/ElrondNetwork/elrond-go/consensus/broadcast/delayed"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/bls"
 )
@@ -73,7 +74,7 @@ func GetBroadcastMessenger(
 		return nil, spos.ErrNilShardCoordinator
 	}
 
-	dbbArgs := &broadcast.ArgsDelayedBlockBroadcaster{
+	dbbArgs := &delayed.ArgsDelayedBlockBroadcaster{
 		InterceptorsContainer: interceptorsContainer,
 		HeadersSubscriber:     headersSubscriber,
 		LeaderCacheSize:       maxDelayCacheSize,
@@ -83,7 +84,7 @@ func GetBroadcastMessenger(
 		HeadersCache:          headersCache,
 	}
 
-	dbb, err := broadcast.NewDelayedBlockBroadcaster(dbbArgs)
+	dbb, err := delayed.NewDelayedBlockBroadcaster(dbbArgs)
 	if err != nil {
 		return nil, err
 	}

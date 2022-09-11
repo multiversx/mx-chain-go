@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/broadcast"
+	broadcastMocks "github.com/ElrondNetwork/elrond-go/consensus/broadcast/mock"
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/stretchr/testify/assert"
@@ -25,6 +26,7 @@ func createDefaultMetaChainArgs() broadcast.MetaChainMessengerArgs {
 	interceptorsContainer := createInterceptorContainer()
 	peerSigHandler := &mock.PeerSignatureHandler{Signer: singleSignerMock}
 	alarmScheduler := &mock.AlarmSchedulerStub{}
+	delayedBlockBroadcaster := &broadcastMocks.DelayBlockBroadcasterStub{}
 
 	return broadcast.MetaChainMessengerArgs{
 		CommonMessengerArgs: broadcast.CommonMessengerArgs{
@@ -40,6 +42,7 @@ func createDefaultMetaChainArgs() broadcast.MetaChainMessengerArgs {
 			MaxDelayCacheSize:          2,
 			AlarmScheduler:             alarmScheduler,
 			HeadersCache:               &mock.CacherStub{},
+			DelayBlockBroadcaster:      delayedBlockBroadcaster,
 		},
 	}
 }

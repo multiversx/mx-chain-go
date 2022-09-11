@@ -13,6 +13,7 @@ import (
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/consensus"
+	"github.com/ElrondNetwork/elrond-go/consensus/broadcast/delayed"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 )
 
@@ -20,15 +21,16 @@ var log = logger.GetOrCreate("consensus/broadcast")
 
 // delayedBroadcaster exposes functionality for handling the consensus members broadcasting of delay data
 type delayedBroadcaster interface {
-	SetLeaderData(data *delayedBroadcastData) error
-	SetValidatorData(data *delayedBroadcastData) error
-	SetHeaderForValidator(vData *validatorHeaderBroadcastData) error
+	SetLeaderData(data *delayed.DelayedBroadcastData) error
+	SetValidatorData(data *delayed.DelayedBroadcastData) error
+	SetHeaderForValidator(vData *delayed.ValidatorHeaderBroadcastData) error
 	SetBroadcastHandlers(
 		mbBroadcast func(mbData map[uint32][]byte) error,
 		txBroadcast func(txData map[string][][]byte) error,
 		headerBroadcast func(header data.HeaderHandler) error,
 	) error
 	Close()
+	IsInterfaceNil() bool
 }
 
 type commonMessenger struct {
@@ -87,6 +89,9 @@ func checkCommonMessengerNilParameters(
 	}
 	if check.IfNil(args.AlarmScheduler) {
 		return spos.ErrNilAlarmScheduler
+	}
+	if check.IfNil(args.DelayBlockBroadcaster) {
+		return spos.ErrNilDelayBlockBroadcaster
 	}
 	if args.MaxDelayCacheSize == 0 || args.MaxValidatorDelayCacheSize == 0 {
 		return spos.ErrInvalidCacheSize
