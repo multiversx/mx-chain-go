@@ -8,6 +8,7 @@ import (
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/broadcast"
+	"github.com/ElrondNetwork/elrond-go/consensus/broadcast/delayed"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/bls"
 )
@@ -73,6 +74,21 @@ func GetBroadcastMessenger(
 		return nil, spos.ErrNilShardCoordinator
 	}
 
+	dbbArgs := &delayed.ArgsDelayedBlockBroadcaster{
+		InterceptorsContainer: interceptorsContainer,
+		HeadersSubscriber:     headersSubscriber,
+		LeaderCacheSize:       maxDelayCacheSize,
+		ValidatorCacheSize:    maxDelayCacheSize,
+		ShardCoordinator:      shardCoordinator,
+		AlarmScheduler:        alarmScheduler,
+		HeadersCache:          headersCache,
+	}
+
+	dbb, err := delayed.NewDelayedBlockBroadcaster(dbbArgs)
+	if err != nil {
+		return nil, err
+	}
+
 	commonMessengerArgs := broadcast.CommonMessengerArgs{
 		Marshalizer:                marshalizer,
 		Hasher:                     hasher,
@@ -85,7 +101,7 @@ func GetBroadcastMessenger(
 		MaxValidatorDelayCacheSize: maxDelayCacheSize,
 		InterceptorsContainer:      interceptorsContainer,
 		AlarmScheduler:             alarmScheduler,
-		HeadersCache:               headersCache,
+		DelayBlockBroadcaster:      dbb,
 	}
 
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {

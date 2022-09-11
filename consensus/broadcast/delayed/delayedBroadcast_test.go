@@ -1,4 +1,4 @@
-package broadcast_test
+package delayed_test
 
 import (
 	"encoding/hex"
@@ -14,7 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/consensus/broadcast"
+	"github.com/ElrondNetwork/elrond-go/consensus/broadcast/delayed"
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/stretchr/testify/assert"
@@ -61,6 +61,22 @@ func createValidatorDelayArgs(index int) *validatorDelayArgs {
 	}
 }
 
+func createDelayData(prefix string) ([]byte, map[uint32][]byte, map[string][][]byte) {
+	miniblocks := make(map[uint32][]byte)
+	receiverShardID := uint32(1)
+	miniblocks[receiverShardID] = []byte(prefix + "miniblock data")
+
+	transactions := make(map[string][][]byte)
+	topic := "txBlockBodies_0_1"
+	transactions[topic] = [][]byte{
+		[]byte(prefix + "tx0"),
+		[]byte(prefix + "tx1"),
+	}
+	headerHash := []byte(prefix + "header hash")
+
+	return headerHash, miniblocks, transactions
+}
+
 func getDataToNotifyFromArgs(args *validatorDelayArgs) map[string][][]byte {
 	mbHashesToNotify := make(map[string][][]byte)
 
@@ -94,10 +110,22 @@ func createMetaBlock() *block.MetaBlock {
 	}
 }
 
-func createDefaultDelayedBroadcasterArgs() *broadcast.ArgsDelayedBlockBroadcaster {
+func createInterceptorContainer() consensus.InterceptorsContainer {
+	return &mock.InterceptorsContainerStub{
+		GetCalled: func(topic string) (core.Interceptor, error) {
+			return &mock.InterceptorStub{
+				ProcessReceivedMessageCalled: func(message core.MessageP2P) error {
+					return nil
+				},
+			}, nil
+		},
+	}
+}
+
+func createDefaultDelayedBroadcasterArgs() *delayed.ArgsDelayedBlockBroadcaster {
 	headersSubscriber := &mock.HeadersCacherStub{}
 	interceptorsContainer := createInterceptorContainer()
-	dbbArgs := &broadcast.ArgsDelayedBlockBroadcaster{
+	dbbArgs := &delayed.ArgsDelayedBlockBroadcaster{
 		ShardCoordinator:      &mock.ShardCoordinatorMock{},
 		InterceptorsContainer: interceptorsContainer,
 		HeadersSubscriber:     headersSubscriber,
@@ -115,7 +143,7 @@ func TestNewDelayedBlockBroadcaster_NilShardCoordinatorShouldErr(t *testing.T) {
 
 	delayBroadcasterArgs := createDefaultDelayedBroadcasterArgs()
 	delayBroadcasterArgs.ShardCoordinator = nil
-	dbb, err := broadcast.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
+	dbb, err := delayed.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
 	require.Equal(t, spos.ErrNilShardCoordinator, err)
 	require.Nil(t, dbb)
 }
@@ -125,7 +153,7 @@ func TestNewDelayedBlockBroadcaster_NilHeadersSubscriberShouldErr(t *testing.T) 
 
 	delayBroadcasterArgs := createDefaultDelayedBroadcasterArgs()
 	delayBroadcasterArgs.HeadersSubscriber = nil
-	dbb, err := broadcast.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
+	dbb, err := delayed.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
 	require.Equal(t, spos.ErrNilHeadersSubscriber, err)
 	require.Nil(t, dbb)
 }
@@ -135,7 +163,7 @@ func TestNewDelayedBlockBroadcaster_NilInterceptorsContainerShouldErr(t *testing
 
 	delayBroadcasterArgs := createDefaultDelayedBroadcasterArgs()
 	delayBroadcasterArgs.InterceptorsContainer = nil
-	dbb, err := broadcast.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
+	dbb, err := delayed.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
 	require.Equal(t, spos.ErrNilInterceptorsContainer, err)
 	require.Nil(t, dbb)
 }
@@ -145,7 +173,7 @@ func TestNewDelayedBlockBroadcaster_NilAlarmSchedulerShouldErr(t *testing.T) {
 
 	delayBroadcasterArgs := createDefaultDelayedBroadcasterArgs()
 	delayBroadcasterArgs.AlarmScheduler = nil
-	dbb, err := broadcast.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
+	dbb, err := delayed.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
 	require.Equal(t, spos.ErrNilAlarmScheduler, err)
 	require.Nil(t, dbb)
 }
@@ -154,7 +182,7 @@ func TestNewDelayedBlockBroadcasterOK(t *testing.T) {
 	t.Parallel()
 
 	delayBroadcasterArgs := createDefaultDelayedBroadcasterArgs()
-	dbb, err := broadcast.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
+	dbb, err := delayed.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
 	require.Nil(t, err)
 	require.NotNil(t, dbb)
 }
@@ -178,7 +206,7 @@ func TestDelayedBlockBroadcaster_HeaderReceivedNoDelayedDataRegistered(t *testin
 	}
 
 	delayBroadcasterArgs := createDefaultDelayedBroadcasterArgs()
-	dbb, err := broadcast.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
+	dbb, err := delayed.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
 	require.Nil(t, err)
 
 	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader)
@@ -211,14 +239,14 @@ func TestDelayedBlockBroadcaster_HeaderReceivedForRegisteredDelayedDataShouldBro
 	}
 
 	delayBroadcasterArgs := createDefaultDelayedBroadcasterArgs()
-	dbb, err := broadcast.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
+	dbb, err := delayed.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
 	require.Nil(t, err)
 
 	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader)
 	require.Nil(t, err)
 
-	headerHash, _, miniblocksData, transactionsData := createDelayData("1")
-	delayedData := broadcast.CreateDelayBroadcastDataForLeader(headerHash, miniblocksData, transactionsData)
+	headerHash, miniblocksData, transactionsData := createDelayData("1")
+	delayedData := delayed.CreateDelayBroadcastDataForLeader(headerHash, miniblocksData, transactionsData)
 	err = dbb.SetLeaderData(delayedData)
 
 	metaBlock := createMetaBlock()
@@ -257,14 +285,14 @@ func TestDelayedBlockBroadcaster_HeaderReceivedForNotRegisteredDelayedDataShould
 	}
 
 	delayBroadcasterArgs := createDefaultDelayedBroadcasterArgs()
-	dbb, err := broadcast.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
+	dbb, err := delayed.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
 	require.Nil(t, err)
 
 	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader)
 	require.Nil(t, err)
 
-	headerHash, _, miniblocksData, transactionsData := createDelayData("1")
-	delayedData := broadcast.CreateDelayBroadcastDataForLeader(headerHash, miniblocksData, transactionsData)
+	headerHash, miniblocksData, transactionsData := createDelayData("1")
+	delayedData := delayed.CreateDelayBroadcastDataForLeader(headerHash, miniblocksData, transactionsData)
 	err = dbb.SetLeaderData(delayedData)
 	require.Nil(t, err)
 
@@ -302,22 +330,22 @@ func TestDelayedBlockBroadcaster_HeaderReceivedForNextRegisteredDelayedDataShoul
 	}
 
 	delayBroadcasterArgs := createDefaultDelayedBroadcasterArgs()
-	dbb, err := broadcast.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
+	dbb, err := delayed.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
 	require.Nil(t, err)
 
 	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader)
 	require.Nil(t, err)
 
-	headerHash, _, miniblocksData, transactionsData := createDelayData("1")
-	delayedData := broadcast.CreateDelayBroadcastDataForLeader(headerHash, miniblocksData, transactionsData)
+	headerHash, miniblocksData, transactionsData := createDelayData("1")
+	delayedData := delayed.CreateDelayBroadcastDataForLeader(headerHash, miniblocksData, transactionsData)
 	err = dbb.SetLeaderData(delayedData)
 	require.Nil(t, err)
 	time.Sleep(10 * time.Millisecond)
 	assert.Equal(t, int64(0), mbBroadcastCalled.Get())
 	assert.Equal(t, int64(0), txBroadcastCalled.Get())
 
-	headerHash2, _, miniBlockData2, transactionsData2 := createDelayData("2")
-	delayedData = broadcast.CreateDelayBroadcastDataForLeader(headerHash2, miniBlockData2, transactionsData2)
+	headerHash2, miniBlockData2, transactionsData2 := createDelayData("2")
+	delayedData = delayed.CreateDelayBroadcastDataForLeader(headerHash2, miniBlockData2, transactionsData2)
 	err = dbb.SetLeaderData(delayedData)
 	require.Nil(t, err)
 	time.Sleep(10 * time.Millisecond)
@@ -344,7 +372,7 @@ func TestDelayedBlockBroadcaster_SetLeaderDataNilDataShouldErr(t *testing.T) {
 	t.Parallel()
 
 	delayBroadcasterArgs := createDefaultDelayedBroadcasterArgs()
-	dbb, err := broadcast.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
+	dbb, err := delayed.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
 	require.Nil(t, err)
 
 	err = dbb.SetLeaderData(nil)
@@ -355,11 +383,11 @@ func TestDelayedBlockBroadcaster_SetLeaderData(t *testing.T) {
 	t.Parallel()
 
 	delayBroadcasterArgs := createDefaultDelayedBroadcasterArgs()
-	dbb, err := broadcast.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
+	dbb, err := delayed.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
 	require.Nil(t, err)
 
-	headerHash, _, miniBlockData, transactionsData := createDelayData("1")
-	delayedData := broadcast.CreateDelayBroadcastDataForLeader(headerHash, miniBlockData, transactionsData)
+	headerHash, miniBlockData, transactionsData := createDelayData("1")
+	delayedData := delayed.CreateDelayBroadcastDataForLeader(headerHash, miniBlockData, transactionsData)
 	err = dbb.SetLeaderData(delayedData)
 	require.Nil(t, err)
 
@@ -371,7 +399,7 @@ func TestDelayedBlockBroadcaster_SetValidatorDataNilDataShouldErr(t *testing.T) 
 	t.Parallel()
 
 	delayBroadcasterArgs := createDefaultDelayedBroadcasterArgs()
-	dbb, err := broadcast.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
+	dbb, err := delayed.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
 	require.Nil(t, err)
 
 	err = dbb.SetValidatorData(nil)
@@ -385,11 +413,11 @@ func TestDelayedBlockBroadcaster_SetValidatorData(t *testing.T) {
 	t.Parallel()
 
 	delayBroadcasterArgs := createDefaultDelayedBroadcasterArgs()
-	dbb, err := broadcast.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
+	dbb, err := delayed.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
 	require.Nil(t, err)
 
 	vArgs := createValidatorDelayArgs(0)
-	delayedData := broadcast.CreateDelayBroadcastDataForValidator(
+	delayedData := delayed.CreateDelayBroadcastDataForValidator(
 		vArgs.headerHash,
 		vArgs.header,
 		vArgs.miniBlocks,
@@ -425,7 +453,7 @@ func TestDelayedBlockBroadcaster_SetHeaderForValidatorShouldSetAlarmAndBroadcast
 	}
 
 	delayBroadcasterArgs := createDefaultDelayedBroadcasterArgs()
-	dbb, err := broadcast.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
+	dbb, err := delayed.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
 	require.Nil(t, err)
 
 	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader)
@@ -435,7 +463,7 @@ func TestDelayedBlockBroadcaster_SetHeaderForValidatorShouldSetAlarmAndBroadcast
 	err = vArgs.header.SetSignature([]byte("agg sig"))
 	require.Nil(t, err)
 
-	valHeaderData := broadcast.CreateValidatorHeaderBroadcastData(
+	valHeaderData := delayed.CreateValidatorHeaderBroadcastData(
 		vArgs.headerHash,
 		vArgs.header,
 		vArgs.metaMiniBlocks,
@@ -451,7 +479,7 @@ func TestDelayedBlockBroadcaster_SetHeaderForValidatorShouldSetAlarmAndBroadcast
 	require.Equal(t, int64(0), mbBroadcastCalled.Get())
 	require.Equal(t, int64(0), txBroadcastCalled.Get())
 
-	sleepTime := broadcast.ValidatorDelayPerOrder()*time.Duration(vArgs.order) +
+	sleepTime := delayed.ValidatorDelayPerOrder()*time.Duration(vArgs.order) +
 		time.Millisecond*100
 	time.Sleep(sleepTime)
 
@@ -488,7 +516,7 @@ func TestDelayedBlockBroadcaster_SetValidatorDataFinalizedMetaHeaderShouldSetAla
 	delayBroadcasterArgs.ShardCoordinator = mock.ShardCoordinatorMock{
 		ShardID: core.MetachainShardId,
 	}
-	dbb, err := broadcast.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
+	dbb, err := delayed.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
 	require.Nil(t, err)
 
 	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader)
@@ -501,7 +529,7 @@ func TestDelayedBlockBroadcaster_SetValidatorDataFinalizedMetaHeaderShouldSetAla
 	err = vArgs.header.SetShardID(core.MetachainShardId)
 	require.Nil(t, err)
 
-	valData := broadcast.CreateValidatorHeaderBroadcastData(
+	valData := delayed.CreateValidatorHeaderBroadcastData(
 		vArgs.headerHash,
 		vArgs.header,
 		vArgs.metaMiniBlocks,
@@ -517,7 +545,7 @@ func TestDelayedBlockBroadcaster_SetValidatorDataFinalizedMetaHeaderShouldSetAla
 	require.Equal(t, int64(0), mbBroadcastCalled.Get())
 	require.Equal(t, int64(0), txBroadcastCalled.Get())
 
-	sleepTime := broadcast.ValidatorDelayPerOrder()*time.Duration(vArgs.order) +
+	sleepTime := delayed.ValidatorDelayPerOrder()*time.Duration(vArgs.order) +
 		consensus.ExtraDelayForBroadcastBlockInfo +
 		consensus.ExtraDelayBetweenBroadcastMbsAndTxs +
 		time.Millisecond*100
@@ -556,7 +584,7 @@ func TestDelayedBlockBroadcaster_InterceptedHeaderShouldCancelAlarm(t *testing.T
 	delayBroadcasterArgs.ShardCoordinator = mock.ShardCoordinatorMock{
 		ShardID: core.MetachainShardId,
 	}
-	dbb, err := broadcast.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
+	dbb, err := delayed.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
 	require.Nil(t, err)
 
 	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader)
@@ -569,7 +597,7 @@ func TestDelayedBlockBroadcaster_InterceptedHeaderShouldCancelAlarm(t *testing.T
 	err = vArgs.header.SetShardID(core.MetachainShardId)
 	require.Nil(t, err)
 
-	delayedData := broadcast.CreateDelayBroadcastDataForValidator(
+	delayedData := delayed.CreateDelayBroadcastDataForValidator(
 		vArgs.headerHash,
 		vArgs.header,
 		vArgs.miniBlocks,
@@ -586,7 +614,7 @@ func TestDelayedBlockBroadcaster_InterceptedHeaderShouldCancelAlarm(t *testing.T
 	require.Equal(t, int64(0), mbBroadcastCalled.Get())
 	require.Equal(t, int64(0), txBroadcastCalled.Get())
 
-	sleepTime := broadcast.ValidatorDelayPerOrder()*time.Duration(vArgs.order) +
+	sleepTime := delayed.ValidatorDelayPerOrder()*time.Duration(vArgs.order) +
 		time.Second
 
 	// should cancel alarm
@@ -625,7 +653,7 @@ func TestDelayedBlockBroadcaster_InterceptedHeaderShouldCancelAlarmForHeaderBroa
 	delayBroadcasterArgs.ShardCoordinator = mock.ShardCoordinatorMock{
 		ShardID: core.MetachainShardId,
 	}
-	dbb, err := broadcast.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
+	dbb, err := delayed.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
 	require.Nil(t, err)
 
 	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader)
@@ -638,7 +666,7 @@ func TestDelayedBlockBroadcaster_InterceptedHeaderShouldCancelAlarmForHeaderBroa
 	err = vArgs.header.SetShardID(core.MetachainShardId)
 	require.Nil(t, err)
 
-	validatorHeaderBroadcastData := broadcast.CreateValidatorHeaderBroadcastData(
+	validatorHeaderBroadcastData := delayed.CreateValidatorHeaderBroadcastData(
 		vArgs.headerHash,
 		vArgs.header,
 		vArgs.metaMiniBlocks,
@@ -654,7 +682,7 @@ func TestDelayedBlockBroadcaster_InterceptedHeaderShouldCancelAlarmForHeaderBroa
 	require.Equal(t, int64(0), mbBroadcastCalled.Get())
 	require.Equal(t, int64(0), txBroadcastCalled.Get())
 
-	sleepTime := broadcast.ValidatorDelayPerOrder()*time.Duration(vArgs.order) +
+	sleepTime := delayed.ValidatorDelayPerOrder()*time.Duration(vArgs.order) +
 		time.Second
 
 	// should cancel alarm
@@ -693,7 +721,7 @@ func TestDelayedBlockBroadcaster_InterceptedHeaderInvalidOrDifferentShouldIgnore
 	delayBroadcasterArgs.ShardCoordinator = mock.ShardCoordinatorMock{
 		ShardID: core.MetachainShardId,
 	}
-	dbb, err := broadcast.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
+	dbb, err := delayed.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
 	require.Nil(t, err)
 
 	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader)
@@ -706,7 +734,7 @@ func TestDelayedBlockBroadcaster_InterceptedHeaderInvalidOrDifferentShouldIgnore
 	err = vArgs.header.SetShardID(core.MetachainShardId)
 	require.Nil(t, err)
 
-	valHeaderData := broadcast.CreateValidatorHeaderBroadcastData(
+	valHeaderData := delayed.CreateValidatorHeaderBroadcastData(
 		vArgs.headerHash,
 		vArgs.header,
 		vArgs.metaMiniBlocks,
@@ -735,7 +763,7 @@ func TestDelayedBlockBroadcaster_InterceptedHeaderInvalidOrDifferentShouldIgnore
 	// should not cancel alarm
 	dbb.InterceptedHeaderData("headerTopic", headerHash, differentHeader)
 	dbb.InterceptedMiniBlockData("headerTopic", headerHash, invalidHeader)
-	sleepTime := broadcast.ValidatorDelayPerOrder()*time.Duration(vArgs.order) +
+	sleepTime := delayed.ValidatorDelayPerOrder()*time.Duration(vArgs.order) +
 		consensus.ExtraDelayForBroadcastBlockInfo +
 		consensus.ExtraDelayBetweenBroadcastMbsAndTxs +
 		time.Millisecond*100
@@ -754,7 +782,7 @@ func TestDelayedBlockBroadcaster_SetValidatorDelayBroadcastAccumulatedDataBounde
 	t.Parallel()
 
 	delayBroadcasterArgs := createDefaultDelayedBroadcasterArgs()
-	dbb, err := broadcast.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
+	dbb, err := delayed.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
 	require.Nil(t, err)
 
 	vbd := dbb.GetValidatorBroadcastData()
@@ -763,7 +791,7 @@ func TestDelayedBlockBroadcaster_SetValidatorDelayBroadcastAccumulatedDataBounde
 
 	for i := 1; i < 100; i++ {
 		vArgs := createValidatorDelayArgs(i)
-		delayedData := broadcast.CreateDelayBroadcastDataForValidator(
+		delayedData := delayed.CreateDelayBroadcastDataForValidator(
 			vArgs.headerHash,
 			vArgs.header,
 			vArgs.miniBlocks,
@@ -803,14 +831,14 @@ func TestDelayedBlockBroadcaster_ScheduleValidatorBroadcastDifferentHeaderRoundS
 	}
 
 	delayBroadcasterArgs := createDefaultDelayedBroadcasterArgs()
-	dbb, err := broadcast.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
+	dbb, err := delayed.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
 	require.Nil(t, err)
 
 	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader)
 	require.Nil(t, err)
 
 	vArgs := createValidatorDelayArgs(0)
-	delayedData := broadcast.CreateDelayBroadcastDataForValidator(
+	delayedData := delayed.CreateDelayBroadcastDataForValidator(
 		vArgs.headerHash,
 		vArgs.header,
 		vArgs.miniBlocks,
@@ -824,13 +852,13 @@ func TestDelayedBlockBroadcaster_ScheduleValidatorBroadcastDifferentHeaderRoundS
 	vbd := dbb.GetValidatorBroadcastData()
 	require.Equal(t, 1, len(vbd))
 
-	hdfv := &broadcast.HeaderDataForValidator{
+	hdfv := &delayed.HeaderDataForValidator{
 		Round:        vArgs.header.GetRound() + 1,
 		PrevRandSeed: vArgs.header.GetPrevRandSeed(),
 	}
 
-	dbb.ScheduleValidatorBroadcast([]*broadcast.HeaderDataForValidator{hdfv})
-	sleepTime := time.Duration(vArgs.order)*broadcast.ValidatorDelayPerOrder() +
+	dbb.ScheduleValidatorBroadcast([]*delayed.HeaderDataForValidator{hdfv})
+	sleepTime := time.Duration(vArgs.order)*delayed.ValidatorDelayPerOrder() +
 		100*time.Millisecond
 	time.Sleep(sleepTime)
 
@@ -860,14 +888,14 @@ func TestDelayedBlockBroadcaster_ScheduleValidatorBroadcastDifferentPrevRandShou
 	}
 
 	delayBroadcasterArgs := createDefaultDelayedBroadcasterArgs()
-	dbb, err := broadcast.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
+	dbb, err := delayed.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
 	require.Nil(t, err)
 
 	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader)
 	require.Nil(t, err)
 
 	vArgs := createValidatorDelayArgs(0)
-	delayedData := broadcast.CreateDelayBroadcastDataForValidator(
+	delayedData := delayed.CreateDelayBroadcastDataForValidator(
 		vArgs.headerHash,
 		vArgs.header,
 		vArgs.miniBlocks,
@@ -884,13 +912,13 @@ func TestDelayedBlockBroadcaster_ScheduleValidatorBroadcastDifferentPrevRandShou
 	differentPrevRandSeed := make([]byte, len(vArgs.header.GetPrevRandSeed()))
 	copy(differentPrevRandSeed, vArgs.header.GetPrevRandSeed())
 	differentPrevRandSeed[0] = ^differentPrevRandSeed[0]
-	hdfv := &broadcast.HeaderDataForValidator{
+	hdfv := &delayed.HeaderDataForValidator{
 		Round:        vArgs.header.GetRound(),
 		PrevRandSeed: differentPrevRandSeed,
 	}
 
-	dbb.ScheduleValidatorBroadcast([]*broadcast.HeaderDataForValidator{hdfv})
-	sleepTime := time.Duration(vArgs.order)*broadcast.ValidatorDelayPerOrder() +
+	dbb.ScheduleValidatorBroadcast([]*delayed.HeaderDataForValidator{hdfv})
+	sleepTime := time.Duration(vArgs.order)*delayed.ValidatorDelayPerOrder() +
 		100*time.Millisecond
 	time.Sleep(sleepTime)
 
@@ -920,14 +948,14 @@ func TestDelayedBlockBroadcaster_ScheduleValidatorBroadcastSameRoundAndPrevRandS
 	}
 
 	delayBroadcasterArgs := createDefaultDelayedBroadcasterArgs()
-	dbb, err := broadcast.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
+	dbb, err := delayed.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
 	require.Nil(t, err)
 
 	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader)
 	require.Nil(t, err)
 
 	vArgs := createValidatorDelayArgs(0)
-	delayedData := broadcast.CreateDelayBroadcastDataForValidator(
+	delayedData := delayed.CreateDelayBroadcastDataForValidator(
 		vArgs.headerHash,
 		vArgs.header,
 		vArgs.miniBlocks,
@@ -941,13 +969,13 @@ func TestDelayedBlockBroadcaster_ScheduleValidatorBroadcastSameRoundAndPrevRandS
 	vbd := dbb.GetValidatorBroadcastData()
 	require.Equal(t, 1, len(vbd))
 
-	hdfv := &broadcast.HeaderDataForValidator{
+	hdfv := &delayed.HeaderDataForValidator{
 		Round:        vArgs.header.GetRound(),
 		PrevRandSeed: vArgs.header.GetPrevRandSeed(),
 	}
 
-	dbb.ScheduleValidatorBroadcast([]*broadcast.HeaderDataForValidator{hdfv})
-	sleepTime := time.Duration(vArgs.order)*broadcast.ValidatorDelayPerOrder() +
+	dbb.ScheduleValidatorBroadcast([]*delayed.HeaderDataForValidator{hdfv})
+	sleepTime := time.Duration(vArgs.order)*delayed.ValidatorDelayPerOrder() +
 		consensus.ExtraDelayForBroadcastBlockInfo +
 		consensus.ExtraDelayBetweenBroadcastMbsAndTxs +
 		100*time.Millisecond
@@ -980,14 +1008,14 @@ func TestDelayedBlockBroadcaster_AlarmExpiredShouldBroadcastTheDataForRegistered
 	}
 
 	delayBroadcasterArgs := createDefaultDelayedBroadcasterArgs()
-	dbb, err := broadcast.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
+	dbb, err := delayed.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
 	require.Nil(t, err)
 
 	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader)
 	require.Nil(t, err)
 
 	vArgs := createValidatorDelayArgs(0)
-	delayedData := broadcast.CreateDelayBroadcastDataForValidator(
+	delayedData := delayed.CreateDelayBroadcastDataForValidator(
 		vArgs.headerHash,
 		vArgs.header,
 		vArgs.miniBlocks,
@@ -1033,14 +1061,14 @@ func TestDelayedBlockBroadcaster_AlarmExpiredShouldDoNothingForNotRegisteredData
 	}
 
 	delayBroadcasterArgs := createDefaultDelayedBroadcasterArgs()
-	dbb, err := broadcast.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
+	dbb, err := delayed.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
 	require.Nil(t, err)
 
 	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader)
 	require.Nil(t, err)
 
 	vArgs := createValidatorDelayArgs(0)
-	delayedData := broadcast.CreateDelayBroadcastDataForValidator(
+	delayedData := delayed.CreateDelayBroadcastDataForValidator(
 		vArgs.headerHash,
 		vArgs.header,
 		vArgs.miniBlocks,
@@ -1105,11 +1133,11 @@ func TestDelayedBlockBroadcaster_RegisterInterceptorCallback(t *testing.T) {
 		},
 	}
 
-	dbb, err := broadcast.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
+	dbb, err := delayed.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
 	require.Nil(t, err)
 
 	vArgs := createValidatorDelayArgs(0)
-	delayedData := broadcast.CreateDelayBroadcastDataForValidator(
+	delayedData := delayed.CreateDelayBroadcastDataForValidator(
 		vArgs.headerHash,
 		vArgs.header,
 		vArgs.miniBlocks,
@@ -1143,20 +1171,20 @@ func TestDelayedBlockBroadcaster_GetShardDataFromMetaChainBlock(t *testing.T) {
 	shardID := uint32(0)
 
 	expHeaderHashes := make([][]byte, 0)
-	valData := make([]*broadcast.HeaderDataForValidator, 0)
+	valData := make([]*delayed.HeaderDataForValidator, 0)
 
 	for _, shInfo := range metaHeader.ShardInfo {
 		if shInfo.ShardID != shardID {
 			continue
 		}
-		valData = append(valData, &broadcast.HeaderDataForValidator{
+		valData = append(valData, &delayed.HeaderDataForValidator{
 			Round:        shInfo.Round,
 			PrevRandSeed: shInfo.PrevRandSeed,
 		})
 		expHeaderHashes = append(expHeaderHashes, shInfo.HeaderHash)
 	}
 
-	headerHashes, dfv, err := broadcast.GetShardDataFromMetaChainBlock(metaHeader, shardID)
+	headerHashes, dfv, err := delayed.GetShardDataFromMetaChainBlock(metaHeader, shardID)
 	require.Nil(t, err)
 	require.Equal(t, expHeaderHashes, headerHashes)
 	require.Equal(t, valData, dfv)
@@ -1181,14 +1209,14 @@ func TestDelayedBlockBroadcaster_InterceptedMiniBlockForNotSetValDataShouldBroad
 	}
 
 	delayBroadcasterArgs := createDefaultDelayedBroadcasterArgs()
-	dbb, err := broadcast.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
+	dbb, err := delayed.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
 	require.Nil(t, err)
 
 	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader)
 	require.Nil(t, err)
 
 	vArgs := createValidatorDelayArgs(0)
-	delayedData := broadcast.CreateDelayBroadcastDataForValidator(
+	delayedData := delayed.CreateDelayBroadcastDataForValidator(
 		vArgs.headerHash,
 		vArgs.header,
 		vArgs.miniBlocks,
@@ -1201,7 +1229,7 @@ func TestDelayedBlockBroadcaster_InterceptedMiniBlockForNotSetValDataShouldBroad
 
 	vbd := dbb.GetValidatorBroadcastData()
 	require.Equal(t, 1, len(vbd))
-	hdfv := &broadcast.HeaderDataForValidator{
+	hdfv := &delayed.HeaderDataForValidator{
 		Round:        vArgs.header.GetRound(),
 		PrevRandSeed: vArgs.header.GetPrevRandSeed(),
 	}
@@ -1210,8 +1238,8 @@ func TestDelayedBlockBroadcaster_InterceptedMiniBlockForNotSetValDataShouldBroad
 	vbd = dbb.GetValidatorBroadcastData()
 	require.Equal(t, 1, len(vbd))
 
-	dbb.ScheduleValidatorBroadcast([]*broadcast.HeaderDataForValidator{hdfv})
-	sleepTime := time.Duration(vArgs.order)*broadcast.ValidatorDelayPerOrder() +
+	dbb.ScheduleValidatorBroadcast([]*delayed.HeaderDataForValidator{hdfv})
+	sleepTime := time.Duration(vArgs.order)*delayed.ValidatorDelayPerOrder() +
 		consensus.ExtraDelayForBroadcastBlockInfo +
 		consensus.ExtraDelayBetweenBroadcastMbsAndTxs +
 		100*time.Millisecond
@@ -1244,7 +1272,7 @@ func TestDelayedBlockBroadcaster_InterceptedMiniBlockOutOfManyForSetValDataShoul
 	}
 
 	delayBroadcasterArgs := createDefaultDelayedBroadcasterArgs()
-	dbb, err := broadcast.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
+	dbb, err := delayed.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
 	require.Nil(t, err)
 
 	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader)
@@ -1254,7 +1282,7 @@ func TestDelayedBlockBroadcaster_InterceptedMiniBlockOutOfManyForSetValDataShoul
 	miniBlockHashToNotify := []byte("miniBlockHash to notify")
 	destShardID := 1
 	vArgs.miniBlockHashes["txBlockBodies_0_"+strconv.Itoa(destShardID)][string(miniBlockHashToNotify)] = struct{}{}
-	delayedData := broadcast.CreateDelayBroadcastDataForValidator(
+	delayedData := delayed.CreateDelayBroadcastDataForValidator(
 		vArgs.headerHash,
 		vArgs.header,
 		vArgs.miniBlocks,
@@ -1268,14 +1296,14 @@ func TestDelayedBlockBroadcaster_InterceptedMiniBlockOutOfManyForSetValDataShoul
 	vbd := dbb.GetValidatorBroadcastData()
 	require.Equal(t, 1, len(vbd))
 
-	hdfv := &broadcast.HeaderDataForValidator{
+	hdfv := &delayed.HeaderDataForValidator{
 		Round:        vArgs.header.GetRound(),
 		PrevRandSeed: vArgs.header.GetPrevRandSeed(),
 	}
 
-	dbb.ScheduleValidatorBroadcast([]*broadcast.HeaderDataForValidator{hdfv})
+	dbb.ScheduleValidatorBroadcast([]*delayed.HeaderDataForValidator{hdfv})
 	dbb.InterceptedMiniBlockData("txBlockBodies_0_"+strconv.Itoa(destShardID), miniBlockHashToNotify, &block.MiniBlock{})
-	sleepTime := time.Duration(vArgs.order)*broadcast.ValidatorDelayPerOrder() +
+	sleepTime := time.Duration(vArgs.order)*delayed.ValidatorDelayPerOrder() +
 		consensus.ExtraDelayForBroadcastBlockInfo +
 		consensus.ExtraDelayBetweenBroadcastMbsAndTxs +
 		100*time.Millisecond
@@ -1308,7 +1336,7 @@ func TestDelayedBlockBroadcaster_InterceptedMiniBlockFinalForSetValDataShouldNot
 	}
 
 	delayBroadcasterArgs := createDefaultDelayedBroadcasterArgs()
-	dbb, err := broadcast.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
+	dbb, err := delayed.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
 	require.Nil(t, err)
 
 	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader)
@@ -1316,7 +1344,7 @@ func TestDelayedBlockBroadcaster_InterceptedMiniBlockFinalForSetValDataShouldNot
 
 	vArgs := createValidatorDelayArgs(0)
 	mbHahsesToNotify := getDataToNotifyFromArgs(vArgs)
-	delayedData := broadcast.CreateDelayBroadcastDataForValidator(
+	delayedData := delayed.CreateDelayBroadcastDataForValidator(
 		vArgs.headerHash,
 		vArgs.header,
 		vArgs.miniBlocks,
@@ -1330,18 +1358,18 @@ func TestDelayedBlockBroadcaster_InterceptedMiniBlockFinalForSetValDataShouldNot
 	vbd := dbb.GetValidatorBroadcastData()
 	require.Equal(t, 1, len(vbd))
 
-	hdfv := &broadcast.HeaderDataForValidator{
+	hdfv := &delayed.HeaderDataForValidator{
 		Round:        vArgs.header.GetRound(),
 		PrevRandSeed: vArgs.header.GetPrevRandSeed(),
 	}
 
-	dbb.ScheduleValidatorBroadcast([]*broadcast.HeaderDataForValidator{hdfv})
+	dbb.ScheduleValidatorBroadcast([]*delayed.HeaderDataForValidator{hdfv})
 	for destShardID, hashes := range mbHahsesToNotify {
 		for _, hash := range hashes {
 			dbb.InterceptedMiniBlockData(destShardID, hash, &block.MiniBlock{})
 		}
 	}
-	sleepTime := time.Duration(vArgs.order)*broadcast.ValidatorDelayPerOrder() +
+	sleepTime := time.Duration(vArgs.order)*delayed.ValidatorDelayPerOrder() +
 		100*time.Millisecond
 	time.Sleep(sleepTime)
 
@@ -1372,14 +1400,14 @@ func TestDelayedBlockBroadcaster_Close(t *testing.T) {
 	}
 
 	delayBroadcasterArgs := createDefaultDelayedBroadcasterArgs()
-	dbb, err := broadcast.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
+	dbb, err := delayed.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
 	require.Nil(t, err)
 
 	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader)
 	require.Nil(t, err)
 
 	vArgs := createValidatorDelayArgs(0)
-	delayedData := broadcast.CreateDelayBroadcastDataForValidator(
+	delayedData := delayed.CreateDelayBroadcastDataForValidator(
 		vArgs.headerHash,
 		vArgs.header,
 		vArgs.miniBlocks,
@@ -1393,15 +1421,15 @@ func TestDelayedBlockBroadcaster_Close(t *testing.T) {
 	vbd := dbb.GetValidatorBroadcastData()
 	require.Equal(t, 1, len(vbd))
 
-	hdfv := &broadcast.HeaderDataForValidator{
+	hdfv := &delayed.HeaderDataForValidator{
 		Round:        vArgs.header.GetRound(),
 		PrevRandSeed: vArgs.header.GetPrevRandSeed(),
 	}
 
-	dbb.ScheduleValidatorBroadcast([]*broadcast.HeaderDataForValidator{hdfv})
+	dbb.ScheduleValidatorBroadcast([]*delayed.HeaderDataForValidator{hdfv})
 	dbb.Close()
 
-	sleepTime := time.Duration(vArgs.order)*broadcast.ValidatorDelayPerOrder() +
+	sleepTime := time.Duration(vArgs.order)*delayed.ValidatorDelayPerOrder() +
 		100*time.Millisecond
 	time.Sleep(sleepTime)
 

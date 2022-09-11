@@ -9,12 +9,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/broadcast"
+	"github.com/ElrondNetwork/elrond-go/consensus/broadcast/delayed"
+	broadcastMocks "github.com/ElrondNetwork/elrond-go/consensus/broadcast/mock"
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/stretchr/testify/assert"
 )
 
-func createDelayData(prefix string) ([]byte, *block.Header, map[uint32][]byte, map[string][][]byte) {
+func createDelayData(prefix string) (*block.Header, map[uint32][]byte, map[string][][]byte) {
 	miniblocks := make(map[uint32][]byte)
 	receiverShardID := uint32(1)
 	miniblocks[receiverShardID] = []byte(prefix + "miniblock data")
@@ -25,13 +27,12 @@ func createDelayData(prefix string) ([]byte, *block.Header, map[uint32][]byte, m
 		[]byte(prefix + "tx0"),
 		[]byte(prefix + "tx1"),
 	}
-	headerHash := []byte(prefix + "header hash")
 	header := &block.Header{
 		Round:        0,
 		PrevRandSeed: []byte(prefix),
 	}
 
-	return headerHash, header, miniblocks, transactions
+	return header, miniblocks, transactions
 }
 
 func createInterceptorContainer() consensus.InterceptorsContainer {
@@ -59,6 +60,7 @@ func createDefaultShardChainArgs() broadcast.ShardChainMessengerArgs {
 		Signer: singleSignerMock,
 	}
 	alarmScheduler := &mock.AlarmSchedulerStub{}
+	delayedBlockBroadcaster := &broadcastMocks.DelayBlockBroadcasterStub{}
 
 	return broadcast.ShardChainMessengerArgs{
 		CommonMessengerArgs: broadcast.CommonMessengerArgs{
@@ -74,6 +76,7 @@ func createDefaultShardChainArgs() broadcast.ShardChainMessengerArgs {
 			MaxValidatorDelayCacheSize: 1,
 			AlarmScheduler:             alarmScheduler,
 			HeadersCache:               &mock.CacherStub{},
+			DelayBlockBroadcaster:      delayedBlockBroadcaster,
 		},
 	}
 }
@@ -331,7 +334,7 @@ func TestShardChainMessenger_BroadcastBlockDataLeaderNilHeaderShouldErr(t *testi
 	args := createDefaultShardChainArgs()
 	scm, _ := broadcast.NewShardChainMessenger(args)
 
-	_, _, miniblocks, transactions := createDelayData("1")
+	_, miniblocks, transactions := createDelayData("1")
 
 	err := scm.BroadcastBlockDataLeader(nil, miniblocks, transactions)
 	assert.Equal(t, spos.ErrNilHeader, err)
@@ -341,7 +344,7 @@ func TestShardChainMessenger_BroadcastBlockDataLeaderNilMiniblocksShouldReturnNi
 	args := createDefaultShardChainArgs()
 	scm, _ := broadcast.NewShardChainMessenger(args)
 
-	_, header, _, transactions := createDelayData("1")
+	header, _, transactions := createDelayData("1")
 
 	err := scm.BroadcastBlockDataLeader(header, nil, transactions)
 	assert.Nil(t, err)
@@ -349,23 +352,30 @@ func TestShardChainMessenger_BroadcastBlockDataLeaderNilMiniblocksShouldReturnNi
 
 func TestShardChainMessenger_BroadcastBlockDataLeaderShouldTriggerWaitingDelayedMessage(t *testing.T) {
 	wasCalled := atomic.Flag{}
-	messenger := &mock.MessengerStub{
-		BroadcastCalled: func(topic string, buff []byte) {
-			_ = wasCalled.SetReturningPrevious()
+	args := createDefaultShardChainArgs()
+
+	dataToBroadcastCount := 0
+	args.DelayBlockBroadcaster = &broadcastMocks.DelayBlockBroadcasterStub{
+		SetLeaderDataCalled: func(data *delayed.DelayedBroadcastData) error {
+			dataToBroadcastCount++
+
+			if dataToBroadcastCount > 1 {
+				wasCalled.SetValue(true)
+			}
+
+			return nil
 		},
 	}
-	args := createDefaultShardChainArgs()
-	args.Messenger = messenger
 	scm, _ := broadcast.NewShardChainMessenger(args)
 
-	_, header, miniBlocksMarshalled, transactions := createDelayData("1")
+	header, miniBlocksMarshalled, transactions := createDelayData("1")
 	err := scm.BroadcastBlockDataLeader(header, miniBlocksMarshalled, transactions)
 	time.Sleep(10 * time.Millisecond)
 	assert.Nil(t, err)
 	assert.False(t, wasCalled.IsSet())
 
 	wasCalled.Reset()
-	_, header2, miniBlocksMarshalled2, transactions2 := createDelayData("2")
+	header2, miniBlocksMarshalled2, transactions2 := createDelayData("2")
 	err = scm.BroadcastBlockDataLeader(header2, miniBlocksMarshalled2, transactions2)
 	time.Sleep(10 * time.Millisecond)
 	assert.Nil(t, err)

@@ -61,6 +61,9 @@ var ErrNilHeadersSubscriber = errors.New("headers subscriber is nil")
 // ErrNilAlarmScheduler is raised when a valid alarm scheduler is expected but nil is provided
 var ErrNilAlarmScheduler = errors.New("alarm scheduler is nil")
 
+// ErrNilDelayBlockBroadcaster is raised when a valid delay block broadcaster is expected but nil is provided
+var ErrNilDelayBlockBroadcaster = errors.New("delay block broadcaster is nil")
+
 // ErrInvalidKey is raised when an invalid key is used with a map
 var ErrInvalidKey = errors.New("map key is invalid")
 
