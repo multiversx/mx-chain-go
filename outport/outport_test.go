@@ -521,3 +521,37 @@ func TestOutport_SaveBlockDriverStuck(t *testing.T) {
 	assert.True(t, logErrorCalled.IsSet())
 	assert.Equal(t, uint32(1), atomicGo.LoadUint32(&numLogDebugCalled))
 }
+
+func TestOutport_SaveBlockDriverIsNotStuck(t *testing.T) {
+	t.Parallel()
+
+	outportHandler, _ := NewOutport(minimumRetrialInterval)
+	outportHandler.timeForDriverCall = time.Second
+	numLogDebugCalled := uint32(0)
+	outportHandler.logHandler = func(logLevel logger.LogLevel, message string, args ...interface{}) {
+		if logLevel == logger.LogError {
+			assert.Fail(t, "should have not called log error")
+		}
+		if logLevel == logger.LogDebug {
+			if atomicGo.LoadUint32(&numLogDebugCalled) == 0 {
+				assert.Equal(t, "outport.monitorCompletionOnDriver starting", message)
+			}
+			if atomicGo.LoadUint32(&numLogDebugCalled) == 1 {
+				assert.Equal(t, "outport.monitorCompletionOnDriver ended", message)
+			}
+
+			atomicGo.AddUint32(&numLogDebugCalled, 1)
+		}
+	}
+
+	_ = outportHandler.SubscribeDriver(&mock.DriverStub{
+		SaveBlockCalled: func(args *indexer.ArgsSaveBlockData) error {
+			return nil
+		},
+	})
+
+	outportHandler.SaveBlock(nil)
+	time.Sleep(time.Second)
+
+	assert.Equal(t, uint32(2), atomicGo.LoadUint32(&numLogDebugCalled))
+}
