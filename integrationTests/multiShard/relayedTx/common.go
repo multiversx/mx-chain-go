@@ -115,7 +115,7 @@ func createUserTx(
 		ChainID:  integrationTests.ChainID,
 		Version:  integrationTests.MinTransactionVersion,
 	}
-	txBuff, _ := tx.GetDataForSigning(integrationTests.TestAddressPubkeyConverter, integrationTests.TestTxSignMarshalizer)
+	txBuff, _ := tx.GetDataForSigning(integrationTests.TestAddressPubkeyConverter, integrationTests.TestTxSignMarshalizer, integrationTests.TestTxSignHasher)
 	tx.Signature, _ = player.SingleSigner.Sign(player.SkTxSign, txBuff)
 	player.Nonce++
 	return tx
@@ -142,7 +142,7 @@ func createRelayedTx(
 	gasLimit := economicsFee.ComputeGasLimit(tx)
 	tx.GasLimit = userTx.GasLimit + gasLimit
 
-	txBuff, _ := tx.GetDataForSigning(integrationTests.TestAddressPubkeyConverter, integrationTests.TestTxSignMarshalizer)
+	txBuff, _ := tx.GetDataForSigning(integrationTests.TestAddressPubkeyConverter, integrationTests.TestTxSignMarshalizer, integrationTests.TestTxSignHasher)
 	tx.Signature, _ = relayer.SingleSigner.Sign(relayer.SkTxSign, txBuff)
 	relayer.Nonce++
 	txFee := economicsFee.ComputeTxFee(tx)
@@ -179,7 +179,7 @@ func createRelayedTxV2(
 	gasLimit := economicsFee.ComputeGasLimit(tx)
 	tx.GasLimit = gasLimitForUserTx + gasLimit
 
-	txBuff, _ := tx.GetDataForSigning(integrationTests.TestAddressPubkeyConverter, integrationTests.TestTxSignMarshalizer)
+	txBuff, _ := tx.GetDataForSigning(integrationTests.TestAddressPubkeyConverter, integrationTests.TestTxSignMarshalizer, integrationTests.TestTxSignHasher)
 	tx.Signature, _ = relayer.SingleSigner.Sign(relayer.SkTxSign, txBuff)
 	relayer.Nonce++
 	txFee := economicsFee.ComputeTxFee(tx)

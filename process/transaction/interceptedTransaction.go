@@ -12,7 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go-crypto"
+	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -365,22 +365,16 @@ func (inTx *InterceptedTransaction) verifySig(tx *transaction.Transaction) error
 }
 
 func (inTx *InterceptedTransaction) getTxMessageForGivenTx(tx *transaction.Transaction) ([]byte, error) {
-	buffCopiedTx, err := tx.GetDataForSigning(inTx.pubkeyConv, inTx.signMarshalizer)
+	if inTx.txVersionChecker.IsSignedWithHash(tx) && !inTx.enableSignedTxWithHash {
+		return nil, process.ErrTransactionSignedWithHashIsNotEnabled
+	}
+
+	txSigningData, err := tx.GetDataForSigning(inTx.pubkeyConv, inTx.signMarshalizer, inTx.txSignHasher)
 	if err != nil {
 		return nil, err
 	}
 
-	if !inTx.txVersionChecker.IsSignedWithHash(tx) {
-		return buffCopiedTx, nil
-	}
-
-	if !inTx.enableSignedTxWithHash {
-		return nil, process.ErrTransactionSignedWithHashIsNotEnabled
-	}
-
-	txHash := inTx.txSignHasher.Compute(string(buffCopiedTx))
-
-	return txHash, nil
+	return txSigningData, nil
 }
 
 // GetTxMessageForSignatureVerification returns the transaction data that the signature needs to be verified on
