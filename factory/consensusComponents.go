@@ -489,6 +489,7 @@ func (ccf *consensusComponentsFactory) createArgsBaseAccountsSyncer(trieStorageM
 		MaxHardCapForMissingNodes: ccf.config.TrieSync.MaxHardCapForMissingNodes,
 		TrieSyncerVersion:         ccf.config.TrieSync.TrieSyncerVersion,
 		CheckNodesOnDisk:          ccf.config.TrieSync.CheckNodesOnDisk,
+		TimeBetweenRechecks:       time.Millisecond * time.Duration(ccf.config.TrieSync.TimeBetweenRechecksInMillis),
 	}
 }
 

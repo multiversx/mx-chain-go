@@ -911,11 +911,12 @@
     LogFileLifeSpanInSec = 86400 # 1 day
 
 [TrieSync]
-    NumConcurrentTrieSyncers  = 200
-    MaxHardCapForMissingNodes = 5000
+    NumConcurrentTrieSyncers    = 200
+    MaxHardCapForMissingNodes   = 5000
     #available versions: 1 and 2. 1 is the initial version, 2 is updated, more efficient version
-    TrieSyncerVersion         = 2
-    CheckNodesOnDisk          = false
+    TrieSyncerVersion           = 2
+    CheckNodesOnDisk            = false
+    TimeBetweenRechecksInMillis = 10
 
 [Resolvers]
     NumCrossShardPeers  = 2

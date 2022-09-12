@@ -121,23 +121,24 @@ func hashInList(hash []byte, list [][]byte) bool {
 	return false
 }
 
-func TestNewDoubleListTrieSyncer_InvalidParametersShouldErr(t *testing.T) {
-	t.Parallel()
-
-	arg := createMockArgument(time.Minute)
-	arg.RequestHandler = nil
-	d, err := NewDoubleListTrieSyncer(arg)
-	assert.True(t, check.IfNil(d))
-	assert.Equal(t, ErrNilRequestHandler, err)
-}
-
 func TestNewDoubleListTrieSyncer(t *testing.T) {
-	t.Parallel()
+	t.Run("invalid request handler should error", func(t *testing.T) {
+		t.Parallel()
 
-	arg := createMockArgument(time.Minute)
-	d, err := NewDoubleListTrieSyncer(arg)
-	assert.False(t, check.IfNil(d))
-	assert.Nil(t, err)
+		arg := createMockArgument(time.Minute)
+		arg.RequestHandler = nil
+		d, err := NewDoubleListTrieSyncer(arg)
+		assert.True(t, check.IfNil(d))
+		assert.Equal(t, ErrNilRequestHandler, err)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArgument(time.Minute)
+		d, err := NewDoubleListTrieSyncer(arg)
+		assert.False(t, check.IfNil(d))
+		assert.Nil(t, err)
+	})
 }
 
 func TestDoubleListTrieSyncer_StartSyncingNilRootHashShouldReturnNil(t *testing.T) {

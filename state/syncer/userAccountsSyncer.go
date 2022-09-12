@@ -88,6 +88,7 @@ func NewUserAccountsSyncer(args ArgsNewUserAccountsSyncer) (*userAccountsSyncer,
 		maxHardCapForMissingNodes: args.MaxHardCapForMissingNodes,
 		trieSyncerVersion:         args.TrieSyncerVersion,
 		checkNodesOnDisk:          args.CheckNodesOnDisk,
+		timeBetweenRechecks:       args.TimeBetweenRechecks,
 	}
 
 	u := &userAccountsSyncer{
@@ -160,6 +161,7 @@ func (u *userAccountsSyncer) syncDataTrie(rootHash []byte, ssh common.SizeSyncSt
 		TimeoutHandler:            u.timeoutHandler,
 		MaxHardCapForMissingNodes: u.maxHardCapForMissingNodes,
 		CheckNodesOnDisk:          u.checkNodesOnDisk,
+		TimeBetweenRechecks:       u.timeBetweenRechecks,
 	}
 	trieSyncer, err := trie.CreateTrieSyncer(arg, u.trieSyncerVersion)
 	if err != nil {

@@ -621,6 +621,7 @@ func createHardForkExporter(
 			TrieSyncerVersion:         2,
 			PeersRatingHandler:        node.PeersRatingHandler,
 			CheckNodesOnDisk:          false,
+			TimeBetweenRechecks:       time.Millisecond * 10,
 		}
 
 		exportHandler, err := factory.NewExportHandlerFactory(argsExportHandler)
@@ -674,18 +675,18 @@ func verifyIfAddedShardHeadersAreWithNewEpoch(
 		shardHDrStorage, err := node.Storage.GetStorer(dataRetriever.BlockHeaderUnit)
 		assert.Nil(t, err)
 		for _, shardInfo := range currentMetaHdr.ShardInfo {
-			header, err := node.DataPool.Headers().GetHeaderByHash(shardInfo.HeaderHash)
-			if err == nil {
+			header, errGet := node.DataPool.Headers().GetHeaderByHash(shardInfo.HeaderHash)
+			if errGet == nil {
 				assert.Equal(t, currentMetaHdr.GetEpoch(), header.GetEpoch())
 				continue
 			}
 
-			buff, err := shardHDrStorage.Get(shardInfo.HeaderHash)
-			assert.Nil(t, err)
+			buff, errGet := shardHDrStorage.Get(shardInfo.HeaderHash)
+			assert.Nil(t, errGet)
 
 			shardHeader := block.Header{}
-			err = integrationTests.TestMarshalizer.Unmarshal(&shardHeader, buff)
-			assert.Nil(t, err)
+			errUnmarshal := integrationTests.TestMarshalizer.Unmarshal(&shardHeader, buff)
+			assert.Nil(t, errUnmarshal)
 			assert.Equal(t, shardHeader.GetEpoch(), currentMetaHdr.GetEpoch())
 		}
 	}

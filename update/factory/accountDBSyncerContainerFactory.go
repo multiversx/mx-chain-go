@@ -33,6 +33,7 @@ type ArgsNewAccountsDBSyncersContainerFactory struct {
 	TrieSyncerVersion         int
 	CheckNodesOnDisk          bool
 	AddressPubKeyConverter    core.PubkeyConverter
+	TimeBetweenRechecks       time.Duration
 }
 
 type accountDBSyncersContainerFactory struct {
@@ -50,6 +51,7 @@ type accountDBSyncersContainerFactory struct {
 	trieSyncerVersion         int
 	checkNodesOnDisk          bool
 	addressPubKeyConverter    core.PubkeyConverter
+	timeBetweenRechecks       time.Duration
 }
 
 // NewAccountsDBSContainerFactory creates a factory for trie syncers container
@@ -100,6 +102,7 @@ func NewAccountsDBSContainerFactory(args ArgsNewAccountsDBSyncersContainerFactor
 		trieSyncerVersion:         args.TrieSyncerVersion,
 		checkNodesOnDisk:          args.CheckNodesOnDisk,
 		addressPubKeyConverter:    args.AddressPubKeyConverter,
+		timeBetweenRechecks:       args.TimeBetweenRechecks,
 	}
 
 	return t, nil
@@ -147,6 +150,7 @@ func (a *accountDBSyncersContainerFactory) createUserAccountsSyncer(shardId uint
 			MaxHardCapForMissingNodes: a.maxHardCapForMissingNodes,
 			TrieSyncerVersion:         a.trieSyncerVersion,
 			CheckNodesOnDisk:          a.checkNodesOnDisk,
+			TimeBetweenRechecks:       a.timeBetweenRechecks,
 		},
 		ShardId:                shardId,
 		Throttler:              thr,
@@ -174,6 +178,7 @@ func (a *accountDBSyncersContainerFactory) createValidatorAccountsSyncer(shardId
 			MaxHardCapForMissingNodes: a.maxHardCapForMissingNodes,
 			TrieSyncerVersion:         a.trieSyncerVersion,
 			CheckNodesOnDisk:          a.checkNodesOnDisk,
+			TimeBetweenRechecks:       a.timeBetweenRechecks,
 		},
 	}
 	accountSyncer, err := syncer.NewValidatorAccountsSyncer(args)

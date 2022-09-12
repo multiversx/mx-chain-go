@@ -17,6 +17,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
+const minTimeBetweenRechecks = time.Millisecond
+
 type trieNodeInfo struct {
 	trieNode node
 	received bool
@@ -29,7 +31,7 @@ type trieSyncer struct {
 	topic                     string
 	rootHash                  []byte
 	nodesForTrie              map[string]trieNodeInfo
-	waitTimeBetweenRequests   time.Duration
+	timeBetweenRechecks       time.Duration
 	marshalizer               marshal.Marshalizer
 	hasher                    hashing.Hasher
 	db                        common.DBWriteCacher
@@ -57,6 +59,7 @@ type ArgTrieSyncer struct {
 	MaxHardCapForMissingNodes int
 	CheckNodesOnDisk          bool
 	TimeoutHandler            TimeoutHandler
+	TimeBetweenRechecks       time.Duration
 }
 
 // NewTrieSyncer creates a new instance of trieSyncer
@@ -80,7 +83,7 @@ func NewTrieSyncer(arg ArgTrieSyncer) (*trieSyncer, error) {
 		nodesForTrie:              make(map[string]trieNodeInfo),
 		topic:                     arg.Topic,
 		shardId:                   arg.ShardId,
-		waitTimeBetweenRequests:   time.Second,
+		timeBetweenRechecks:       arg.TimeBetweenRechecks,
 		handlerID:                 core.UniqueIdentifier(),
 		trieSyncStatistics:        arg.TrieSyncStatistics,
 		timeoutHandler:            arg.TimeoutHandler,
@@ -117,6 +120,15 @@ func checkArguments(arg ArgTrieSyncer) error {
 	}
 	if arg.MaxHardCapForMissingNodes < 1 {
 		return fmt.Errorf("%w provided: %v", ErrInvalidMaxHardCapForMissingNodes, arg.MaxHardCapForMissingNodes)
+	}
+
+	return CheckTimeBetweenRechecks(arg.TimeBetweenRechecks)
+}
+
+// CheckTimeBetweenRechecks will check the provided value against the minimum allowed
+func CheckTimeBetweenRechecks(timeBetweenRechecks time.Duration) error {
+	if timeBetweenRechecks < minTimeBetweenRechecks {
+		return fmt.Errorf("%w for TimeBetweenRechecks", ErrInvalidValue)
 	}
 
 	return nil
@@ -156,7 +168,7 @@ func (ts *trieSyncer) StartSyncing(rootHash []byte, ctx context.Context) error {
 		}
 
 		select {
-		case <-time.After(ts.waitTimeBetweenRequests):
+		case <-time.After(ts.timeBetweenRechecks):
 			continue
 		case <-ctx.Done():
 			return errors.ErrContextClosing

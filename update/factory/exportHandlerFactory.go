@@ -68,6 +68,7 @@ type ArgsExporter struct {
 	NumConcurrentTrieSyncers  int
 	TrieSyncerVersion         int
 	CheckNodesOnDisk          bool
+	TimeBetweenRechecks       time.Duration
 }
 
 type exportHandlerFactory struct {
@@ -105,6 +106,7 @@ type exportHandlerFactory struct {
 	numConcurrentTrieSyncers  int
 	trieSyncerVersion         int
 	checkNodesOnDisk          bool
+	timeBetweenRechecks       time.Duration
 }
 
 // NewExportHandlerFactory creates an exporter factory
@@ -252,6 +254,7 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 		numConcurrentTrieSyncers:  args.NumConcurrentTrieSyncers,
 		trieSyncerVersion:         args.TrieSyncerVersion,
 		checkNodesOnDisk:          args.CheckNodesOnDisk,
+		timeBetweenRechecks:       args.TimeBetweenRechecks,
 	}
 
 	return e, nil
@@ -371,6 +374,7 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 		TrieSyncerVersion:         e.trieSyncerVersion,
 		CheckNodesOnDisk:          e.checkNodesOnDisk,
 		AddressPubKeyConverter:    e.CoreComponents.AddressPubKeyConverter(),
+		TimeBetweenRechecks:       e.timeBetweenRechecks,
 	}
 	accountsDBSyncerFactory, err := NewAccountsDBSContainerFactory(argsAccountsSyncers)
 	if err != nil {

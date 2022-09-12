@@ -1505,6 +1505,7 @@ func (pcf *processComponentsFactory) createExportFactoryHandler(
 		NumConcurrentTrieSyncers:  pcf.config.TrieSync.NumConcurrentTrieSyncers,
 		TrieSyncerVersion:         pcf.config.TrieSync.TrieSyncerVersion,
 		PeersRatingHandler:        pcf.network.PeersRatingHandler(),
+		TimeBetweenRechecks:       time.Millisecond * time.Duration(pcf.config.TrieSync.TimeBetweenRechecksInMillis),
 	}
 	return updateFactory.NewExportHandlerFactory(argsExporter)
 }

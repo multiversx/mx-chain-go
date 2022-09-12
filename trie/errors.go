@@ -108,3 +108,6 @@ var ErrNilIdleNodeProvider = errors.New("nil idle node provider")
 
 // ErrNilRootHashHolder signals that a nil root hash holder was provided
 var ErrNilRootHashHolder = errors.New("nil root hash holder provided")
+
+// ErrInvalidValue signals that an invalid value was provided
+var ErrInvalidValue = errors.New("invalid value provided")

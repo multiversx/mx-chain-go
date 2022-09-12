@@ -582,10 +582,11 @@ type ConfigurationPathsHolder struct {
 
 // TrieSyncConfig represents the trie synchronization configuration area
 type TrieSyncConfig struct {
-	NumConcurrentTrieSyncers  int
-	MaxHardCapForMissingNodes int
-	TrieSyncerVersion         int
-	CheckNodesOnDisk          bool
+	NumConcurrentTrieSyncers    int
+	MaxHardCapForMissingNodes   int
+	TrieSyncerVersion           int
+	CheckNodesOnDisk            bool
+	TimeBetweenRechecksInMillis uint32
 }
 
 // ResolverConfig represents the config options to be used when setting up the resolver instances
