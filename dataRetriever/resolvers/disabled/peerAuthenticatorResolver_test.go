@@ -27,10 +27,7 @@ func TestPeerAuthenticatorResolver_MethodsShouldNotPanicAndReturnNil(t *testing.
 
 	resolver := NewDisabledPeerAuthenticatorResolver()
 
-	err := resolver.RequestDataFromChunk(0, 0)
-	assert.Nil(t, err)
-
-	err = resolver.ProcessReceivedMessage(nil, "")
+	err := resolver.ProcessReceivedMessage(nil, "")
 	assert.Nil(t, err)
 
 	err = resolver.RequestDataFromHash(nil, 0)

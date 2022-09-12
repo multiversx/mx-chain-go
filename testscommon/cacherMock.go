@@ -102,6 +102,9 @@ func (cacher *CacherMock) Remove(key []byte) {
 
 // Keys -
 func (cacher *CacherMock) Keys() [][]byte {
+	cacher.mut.RLock()
+	defer cacher.mut.RUnlock()
+
 	keys := make([][]byte, len(cacher.dataMap))
 	idx := 0
 	for k := range cacher.dataMap {
