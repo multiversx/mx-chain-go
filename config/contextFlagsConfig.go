@@ -21,6 +21,8 @@ type ContextFlagsConfig struct {
 	EnableRestAPIServerDebugMode bool
 	Version                      string
 	ForceStartFromNetwork        bool
+	DisableConsensusWatchdog     bool
+	SerializeSnapshots           bool
 	NoKeyProvided                bool
 }
 

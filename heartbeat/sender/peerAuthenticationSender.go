@@ -36,7 +36,7 @@ func newPeerAuthenticationSender(args argPeerAuthenticationSender) (*peerAuthent
 	}
 
 	redundancyHandler := args.redundancyHandler
-	sender := &peerAuthenticationSender{
+	senderInstance := &peerAuthenticationSender{
 		commonPeerAuthenticationSender: commonPeerAuthenticationSender{
 			baseSender:            createBaseSender(args.argBaseSender),
 			nodesCoordinator:      args.nodesCoordinator,
@@ -51,7 +51,7 @@ func newPeerAuthenticationSender(args argPeerAuthenticationSender) (*peerAuthent
 		hardforkTimeBetweenSends: args.hardforkTimeBetweenSends,
 	}
 
-	return sender, nil
+	return senderInstance, nil
 }
 
 func checkPeerAuthenticationSenderArgs(args argPeerAuthenticationSender) error {
