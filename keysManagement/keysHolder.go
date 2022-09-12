@@ -203,6 +203,17 @@ func (holder *virtualPeersHolder) GetMachineID(pkBytes []byte) (string, error) {
 	return pInfo.machineID, nil
 }
 
+// GetNameAndIdentity returns the associated name and identity with the provided public key bytes
+func (holder *virtualPeersHolder) GetNameAndIdentity(pkBytes []byte) (string, string, error) {
+	pInfo := holder.getPeerInfo(pkBytes)
+	if pInfo == nil {
+		return "", "", fmt.Errorf("%w in GetNameAndIdentity for public key %s",
+			errMissingPublicKeyDefinition, hex.EncodeToString(pkBytes))
+	}
+
+	return pInfo.nodeName, pInfo.nodeIdentity, nil
+}
+
 // IncrementRoundsWithoutReceivedMessages increments the number of rounds without received messages on a provided public key
 func (holder *virtualPeersHolder) IncrementRoundsWithoutReceivedMessages(pkBytes []byte) error {
 	if holder.isMainMachine {
