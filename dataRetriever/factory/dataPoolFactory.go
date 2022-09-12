@@ -9,7 +9,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go-storage/mapTimeCache"
 	"github.com/ElrondNetwork/elrond-go-storage/storageCacherAdapter"
 	"github.com/ElrondNetwork/elrond-go-storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -125,7 +124,7 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 		return nil, fmt.Errorf("%w while creating the cache for the smartcontract results", err)
 	}
 
-	peerAuthPool, err := mapTimeCache.NewMapTimeCache(mapTimeCache.ArgMapTimeCacher{
+	peerAuthPool, err := cache.NewMapTimeCache(cache.ArgMapTimeCacher{
 		DefaultSpan: time.Duration(mainConfig.HeartbeatV2.PeerAuthenticationPool.DefaultSpanInSec) * time.Second,
 		CacheExpiry: time.Duration(mainConfig.HeartbeatV2.PeerAuthenticationPool.CacheExpiryInSec) * time.Second,
 	})

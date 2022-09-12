@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/clean"
 	"github.com/ElrondNetwork/elrond-go/storage/databaseremover"
@@ -31,7 +32,7 @@ type StorageServiceFactory struct {
 	prefsConfig                   *config.PreferencesConfig
 	shardCoordinator              storage.ShardCoordinator
 	pathManager                   storage.PathManagerHandler
-	epochStartNotifier            storage.EpochStartNotifier
+	epochStartNotifier            epochStart.EpochStartNotifier
 	oldDataCleanerProvider        clean.OldDataCleanerProvider
 	createTrieEpochRootHashStorer bool
 	currentEpoch                  uint32
@@ -43,7 +44,7 @@ func NewStorageServiceFactory(
 	prefsConfig *config.PreferencesConfig,
 	shardCoordinator storage.ShardCoordinator,
 	pathManager storage.PathManagerHandler,
-	epochStartNotifier storage.EpochStartNotifier,
+	epochStartNotifier epochStart.EpochStartNotifier,
 	nodeTypeProvider NodeTypeProviderHandler,
 	currentEpoch uint32,
 	createTrieEpochRootHashStorer bool,

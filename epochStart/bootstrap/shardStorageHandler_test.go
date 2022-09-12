@@ -1145,7 +1145,7 @@ func createPendingAndProcessedMiniBlocksScenario() scenarioData {
 	expectedPendingMbsWithScheduled := []bootstrapStorage.PendingMiniBlocksInfo{
 		{ShardID: 0, MiniBlocksHashes: [][]byte{crossMbHeaders[1].Hash, crossMbHeaders[2].Hash, crossMbHeaders[3].Hash, crossMbHeaders[4].Hash, crossMbHeaders[0].Hash}},
 	}
-	var expectedProcessedMbsWithScheduled []bootstrapStorage.MiniBlocksInMeta
+	expectedProcessedMbsWithScheduled := make([]bootstrapStorage.MiniBlocksInMeta, 0)
 
 	headers := map[string]data.HeaderHandler{
 		lastFinishedMetaBlockHash: &block.MetaBlock{

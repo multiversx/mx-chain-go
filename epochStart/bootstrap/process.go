@@ -1064,7 +1064,7 @@ func (e *epochStartBootstrap) syncUserAccountsState(rootHash []byte) error {
 func (e *epochStartBootstrap) createStorageService(
 	shardCoordinator sharding.Coordinator,
 	pathManager storage.PathManagerHandler,
-	epochStartNotifier storage.EpochStartNotifier,
+	epochStartNotifier epochStart.EpochStartNotifier,
 	startEpoch uint32,
 	createTrieEpochRootHashStorer bool,
 	targetShardId uint32,

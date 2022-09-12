@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go-storage/mapTimeCache"
 	"github.com/ElrondNetwork/elrond-go-storage/storageCacherAdapter"
 	"github.com/ElrondNetwork/elrond-go-storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -116,7 +115,7 @@ func CreatePoolsHolder(numShards uint32, selfShard uint32) dataRetriever.PoolsHo
 	smartContracts, err := storageUnit.NewCache(cacherConfig)
 	panicIfError("CreatePoolsHolder", err)
 
-	peerAuthPool, err := mapTimeCache.NewMapTimeCache(mapTimeCache.ArgMapTimeCacher{
+	peerAuthPool, err := cache.NewMapTimeCache(cache.ArgMapTimeCacher{
 		DefaultSpan: 60 * time.Second,
 		CacheExpiry: 60 * time.Second,
 	})
@@ -190,7 +189,7 @@ func CreatePoolsHolderWithTxPool(txPool dataRetriever.ShardedDataCacherNotifier)
 	smartContracts, err := storageUnit.NewCache(cacherConfig)
 	panicIfError("CreatePoolsHolderWithTxPool", err)
 
-	peerAuthPool, err := mapTimeCache.NewMapTimeCache(mapTimeCache.ArgMapTimeCacher{
+	peerAuthPool, err := cache.NewMapTimeCache(cache.ArgMapTimeCacher{
 		DefaultSpan: peerAuthDuration,
 		CacheExpiry: peerAuthDuration,
 	})

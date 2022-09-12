@@ -6,8 +6,8 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-storage/storageUnit"
-	"github.com/ElrondNetwork/elrond-go-storage/txcache"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 )
 
 // ArgShardedTxPool is the argument for ShardedTxPool's constructor

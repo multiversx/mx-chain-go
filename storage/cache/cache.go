@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-storage/lrucache"
 	"github.com/ElrondNetwork/elrond-go-storage/lrucache/capacity"
+	"github.com/ElrondNetwork/elrond-go-storage/mapTimeCache"
 	"github.com/ElrondNetwork/elrond-go-storage/timecache"
 	"github.com/ElrondNetwork/elrond-go-storage/types"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -16,6 +17,9 @@ type TimeCache = timecache.TimeCache
 
 // EvictionHandler is an alias to the imported EvictionHandler
 type EvictionHandler = types.EvictionHandler
+
+// ArgMapTimeCacher is an alias for the imported ArgMapTimeCacher
+type ArgMapTimeCacher = mapTimeCache.ArgMapTimeCacher
 
 // TimeCacher defines the cache that can keep a record for a bounded time
 type TimeCacher interface {
@@ -79,4 +83,9 @@ func NewCapacityLRU(size int, byteCapacity int64) (AdaptedSizedLRUCache, error) 
 // NewLRUCacheWithEviction creates a new sized LRU cache instance with eviction function
 func NewLRUCacheWithEviction(size int, onEvicted func(key interface{}, value interface{})) (storage.Cacher, error) {
 	return lrucache.NewCacheWithEviction(size, onEvicted)
+}
+
+// NewMapTimeCache creates a new mapTimeCacher
+func NewMapTimeCache(arg ArgMapTimeCacher) (storage.Cacher, error) {
+	return mapTimeCache.NewMapTimeCache(arg)
 }

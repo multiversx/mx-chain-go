@@ -6,7 +6,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/storage"
 	"github.com/ElrondNetwork/elrond-go-storage/types"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/epochStart"
 )
 
 // Cacher provides caching services
@@ -108,12 +107,6 @@ type Storer interface {
 type StorerWithPutInEpoch interface {
 	Storer
 	SetEpochForPutOperation(epoch uint32)
-}
-
-// EpochStartNotifier defines which actions should be done for handling new epoch's events
-type EpochStartNotifier interface {
-	RegisterHandler(handler epochStart.ActionHandler)
-	IsInterfaceNil() bool
 }
 
 // PathManagerHandler defines which actions should be done for generating paths for databases directories
