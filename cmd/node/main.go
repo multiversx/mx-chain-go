@@ -119,6 +119,7 @@ func startNodeRunner(c *cli.Context, log logger.Logger, version string) error {
 		log.Debug("initialized memory ballast object", "size", core.ConvertBytes(uint64(len(memoryBallastObject))))
 	}
 
+	cfgs.FlagsConfig.BaseVersion = fmt.Sprintf("%s-base", version)
 	cfgs.FlagsConfig.Version = version
 
 	nodeRunner, errRunner := node.NewNodeRunner(cfgs)

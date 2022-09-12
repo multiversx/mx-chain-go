@@ -30,6 +30,7 @@ func createMockSenderArgs() ArgSender {
 		HeartbeatTimeBetweenSends:                   time.Second,
 		HeartbeatTimeBetweenSendsWhenError:          time.Second,
 		HeartbeatThresholdBetweenSends:              0.1,
+		BaseVersionNumber:                           "v1-base",
 		VersionNumber:                               "v1",
 		NodeDisplayName:                             "node",
 		Identity:                                    "identity",
@@ -321,7 +322,7 @@ func TestSender_Close(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestSender_GetSenderInfoShouldNotPanic(t *testing.T) {
+func TestSender_GetCurrentNodeTypeShouldNotPanic(t *testing.T) {
 	t.Parallel()
 
 	defer func() {
@@ -334,7 +335,7 @@ func TestSender_GetSenderInfoShouldNotPanic(t *testing.T) {
 	args := createMockSenderArgs()
 	senderInstance, _ := NewSender(args)
 
-	_, _, err := senderInstance.GetSenderInfo()
+	_, _, err := senderInstance.GetCurrentNodeType()
 	assert.Nil(t, err)
 
 	_ = senderInstance.Close()

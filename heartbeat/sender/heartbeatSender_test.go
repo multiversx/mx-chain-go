@@ -336,7 +336,7 @@ func TestHeartbeatSender_execute(t *testing.T) {
 	})
 }
 
-func TestHeartbeatSender_getSenderInfo(t *testing.T) {
+func TestHeartbeatSender_GetCurrentNodeType(t *testing.T) {
 	t.Parallel()
 
 	args := createMockHeartbeatSenderArgs(createMockBaseArgs())
@@ -348,7 +348,7 @@ func TestHeartbeatSender_getSenderInfo(t *testing.T) {
 	}
 	senderInstance, _ := newHeartbeatSender(args)
 
-	peerType, subType, err := senderInstance.getSenderInfo()
+	peerType, subType, err := senderInstance.GetCurrentNodeType()
 	assert.Nil(t, err)
 	assert.Equal(t, string(common.EligibleList), peerType)
 	assert.Equal(t, core.FullHistoryObserver, subType)

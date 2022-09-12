@@ -1,6 +1,10 @@
 package sender
 
-import "time"
+import (
+	"time"
+
+	"github.com/ElrondNetwork/elrond-go-core/core"
+)
 
 type senderHandler interface {
 	ExecutionReadyChannel() <-chan time.Time
@@ -18,6 +22,11 @@ type hardforkHandler interface {
 type peerAuthenticationSenderHandler interface {
 	senderHandler
 	hardforkHandler
+}
+
+type heartbeatSenderHandler interface {
+	senderHandler
+	GetCurrentNodeType() (string, core.P2PPeerSubType, error)
 }
 
 type timerHandler interface {

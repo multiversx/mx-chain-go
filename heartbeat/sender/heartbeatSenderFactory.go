@@ -23,7 +23,7 @@ type argHeartbeatSenderFactory struct {
 	nodesCoordinator     heartbeat.NodesCoordinator
 }
 
-func createHeartbeatSender(args argHeartbeatSenderFactory) (senderHandler, error) {
+func createHeartbeatSender(args argHeartbeatSenderFactory) (heartbeatSenderHandler, error) {
 	isMultikey, err := isMultikeyMode(args.privKey, args.keysHolder, args.nodesCoordinator)
 	if err != nil {
 		return nil, fmt.Errorf("%w while creating heartbeat sender", err)
@@ -53,6 +53,7 @@ func createRegularHeartbeatSender(args argHeartbeatSenderFactory) (*heartbeatSen
 		identity:             args.identity,
 		peerSubType:          args.peerSubType,
 		currentBlockProvider: args.currentBlockProvider,
+		peerTypeProvider:     args.peerTypeProvider,
 	}
 
 	return newHeartbeatSender(argsSender)

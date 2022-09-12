@@ -60,6 +60,7 @@ func createMockHeartbeatV2ComponentsFactoryArgs() factory.ArgHeartbeatV2Componen
 				Identity:        "identity",
 			},
 		},
+		BaseVersion:        "test-base",
 		AppVersion:         "test",
 		BoostrapComponents: bootstrapC,
 		CoreComponents:     coreC,

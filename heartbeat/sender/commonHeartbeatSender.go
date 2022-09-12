@@ -4,12 +4,19 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
 )
 
 type commonHeartbeatSender struct {
 	baseSender
+	versionNumber        string
+	nodeDisplayName      string
+	identity             string
+	peerSubType          core.P2PPeerSubType
 	currentBlockProvider heartbeat.CurrentBlockProvider
+	peerTypeProvider     heartbeat.PeerTypeProviderHandler
 }
 
 func (chs *commonHeartbeatSender) generateMessageBytes(
@@ -58,4 +65,27 @@ func (chs *commonHeartbeatSender) generateMessageBytes(
 	}
 
 	return chs.marshaller.Marshal(msg)
+}
+
+// GetCurrentNodeType will return the current sender type and subtype
+func (chs *commonHeartbeatSender) GetCurrentNodeType() (string, core.P2PPeerSubType, error) {
+	_, pk := chs.getCurrentPrivateAndPublicKeys()
+	pkBytes, err := pk.ToByteArray()
+	if err != nil {
+		return "", 0, err
+	}
+
+	peerType := chs.computePeerList(pkBytes)
+
+	return peerType, chs.peerSubType, nil
+}
+
+func (chs *commonHeartbeatSender) computePeerList(pubkey []byte) string {
+	peerType, _, err := chs.peerTypeProvider.ComputeForPubKey(pubkey)
+	if err != nil {
+		log.Warn("heartbeatSender: compute peer type", "error", err)
+		return string(common.ObserverList)
+	}
+
+	return string(peerType)
 }

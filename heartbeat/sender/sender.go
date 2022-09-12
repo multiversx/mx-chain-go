@@ -21,6 +21,7 @@ type ArgSender struct {
 	HeartbeatTimeBetweenSends                   time.Duration
 	HeartbeatTimeBetweenSendsWhenError          time.Duration
 	HeartbeatThresholdBetweenSends              float64
+	BaseVersionNumber                           string
 	VersionNumber                               string
 	NodeDisplayName                             string
 	Identity                                    string
@@ -41,7 +42,7 @@ type ArgSender struct {
 
 // sender defines the component which sends authentication and heartbeat messages
 type sender struct {
-	heartbeatSender *heartbeatSender
+	heartbeatSender heartbeatSenderHandler
 	routineHandler  *routineHandler
 }
 
@@ -87,7 +88,7 @@ func NewSender(args ArgSender) (*sender, error) {
 			privKey:                   args.PrivateKey,
 			redundancyHandler:         args.RedundancyHandler,
 		},
-		baseVersionNumber:    "",
+		baseVersionNumber:    args.BaseVersionNumber,
 		versionNumber:        args.VersionNumber,
 		nodeDisplayName:      args.NodeDisplayName,
 		identity:             args.Identity,
@@ -182,9 +183,9 @@ func checkSenderArgs(args ArgSender) error {
 			privKey:                   args.PrivateKey,
 			redundancyHandler:         args.RedundancyHandler,
 		},
-		peerTypeProvider:     nil,
+		peerTypeProvider:     args.PeerTypeProvider,
 		versionNumber:        args.VersionNumber,
-		baseVersionNumber:    "",
+		baseVersionNumber:    args.BaseVersionNumber,
 		nodeDisplayName:      args.NodeDisplayName,
 		identity:             args.Identity,
 		peerSubType:          args.PeerSubType,
@@ -203,9 +204,9 @@ func (sender *sender) Close() error {
 	return nil
 }
 
-// GetSenderInfo will return the current sender info
-func (sender *sender) GetSenderInfo() (string, core.P2PPeerSubType, error) {
-	return sender.heartbeatSender.getSenderInfo()
+// GetCurrentNodeType will return the current peer details
+func (sender *sender) GetCurrentNodeType() (string, core.P2PPeerSubType, error) {
+	return sender.heartbeatSender.GetCurrentNodeType()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

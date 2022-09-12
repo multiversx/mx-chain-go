@@ -403,6 +403,7 @@ func (thn *TestHeartbeatNode) initSender() {
 		Marshaller:              TestMarshaller,
 		PeerAuthenticationTopic: common.PeerAuthenticationTopic,
 		HeartbeatTopic:          identifierHeartbeat,
+		BaseVersionNumber:       "v01-base",
 		VersionNumber:           "v01",
 		NodeDisplayName:         defaultNodeName,
 		Identity:                defaultNodeName + "_identity",
