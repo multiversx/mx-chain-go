@@ -27,7 +27,7 @@ func NewTriePruningStorer(args *StorerArgs) (*triePruningStorer, error) {
 		return nil, err
 	}
 
-	activePersisters, persistersMapByEpoch, err := initTriePersisterInEpoch(args, "")
+	activePersisters, persistersMapByEpoch, err := initPersistersInEpoch(args, "")
 	if err != nil {
 		return nil, err
 	}
@@ -38,19 +38,17 @@ func NewTriePruningStorer(args *StorerArgs) (*triePruningStorer, error) {
 	}
 
 	tps := &triePruningStorer{ps}
-	ps.extendPersisterLifeHandler = tps.extendPersisterLife
+	ps.lastEpochNeededHandler = tps.lastEpochNeeded
 	tps.registerHandler(args.Notifier)
 
 	return tps, nil
 }
 
-func (ps *triePruningStorer) extendPersisterLife() bool {
+func (ps *triePruningStorer) lastEpochNeeded() uint32 {
 	numActiveDBs := 0
-	for i := 0; i < int(ps.numOfActivePersisters); i++ {
-		if i >= len(ps.activePersisters) {
-			continue
-		}
-
+	lastEpochNeeded := uint32(0)
+	for i := 0; i < len(ps.activePersisters); i++ {
+		lastEpochNeeded = ps.activePersisters[i].epoch
 		val, err := ps.activePersisters[i].persister.Get([]byte(common.ActiveDBKey))
 		if err != nil {
 			continue
@@ -59,71 +57,13 @@ func (ps *triePruningStorer) extendPersisterLife() bool {
 		if bytes.Equal(val, []byte(common.ActiveDBVal)) {
 			numActiveDBs++
 		}
-	}
 
-	if numActiveDBs < minNumOfActiveDBsNecessary {
-		log.Debug("extendPersisterLife", "path", ps.dbPath)
-		return true
-	}
-
-	return false
-}
-
-func initTriePersisterInEpoch(
-	args *StorerArgs,
-	shardIDStr string,
-) ([]*persisterData, map[uint32]*persisterData, error) {
-	if !args.PruningEnabled {
-		return createPersisterIfPruningDisabled(args, shardIDStr)
-	}
-
-	if args.NumOfEpochsToKeep < args.NumOfActivePersisters {
-		return nil, nil, fmt.Errorf("invalid epochs configuration")
-	}
-
-	oldestEpochActive, oldestEpochKeep := computeOldestEpochActiveAndToKeep(args)
-	var persisters []*persisterData
-	persistersMapByEpoch := make(map[uint32]*persisterData)
-
-	closeOldPersisters := false
-	for epoch := int64(args.StartingEpoch); epoch >= oldestEpochKeep; epoch-- {
-		log.Debug("initTriePersisterInEpoch(): createPersisterDataForEpoch", "identifier", args.Identifier, "epoch", epoch, "shardID", shardIDStr)
-		p, err := createPersisterDataForEpoch(args, uint32(epoch), shardIDStr)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		persistersMapByEpoch[uint32(epoch)] = p
-
-		if epoch < oldestEpochActive && closeOldPersisters {
-			err = p.Close()
-			if err != nil {
-				log.Debug("persister.Close()", "identifier", args.Identifier, "error", err.Error())
-			}
-		} else {
-			persisters = append(persisters, p)
-			log.Debug("appended a pruning active persister", "epoch", epoch, "identifier", args.Identifier)
-		}
-
-		if !closeOldPersisters {
-			closeOldPersisters = shouldCloseOldPersisters(p)
+		if numActiveDBs == minNumOfActiveDBsNecessary {
+			break
 		}
 	}
 
-	return persisters, persistersMapByEpoch, nil
-}
-
-func shouldCloseOldPersisters(pd *persisterData) bool {
-	val, err := pd.persister.Get([]byte(common.ActiveDBKey))
-	if err != nil {
-		return false
-	}
-
-	if bytes.Equal(val, []byte(common.ActiveDBVal)) {
-		return true
-	}
-
-	return false
+	return lastEpochNeeded
 }
 
 // PutInEpochWithoutCache adds data to persistence medium related to the specified epoch

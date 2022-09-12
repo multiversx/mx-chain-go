@@ -279,6 +279,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		&nodeTypeProviderMock.NodeTypeProviderStub{},
 		0,
 		false,
+		factory.ProcessStorageService,
 	)
 	assert.NoError(t, err)
 	storageServiceShard, err := storageFactory.CreateForMeta()
