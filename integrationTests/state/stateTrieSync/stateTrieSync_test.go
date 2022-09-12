@@ -388,10 +388,13 @@ func TestSyncMissingSnapshotNodes(t *testing.T) {
 	nodesPerShard := 2
 	numMetachainNodes := 1
 
-	nodes := integrationTests.CreateNodes(
+	enableEpochsConfig := integrationTests.GetDefaultEnableEpochsConfig()
+	enableEpochsConfig.StakingV2EnableEpoch = integrationTests.UnreachableEpoch
+	nodes := integrationTests.CreateNodesWithEnableEpochsConfig(
 		numOfShards,
 		nodesPerShard,
 		numMetachainNodes,
+		enableEpochsConfig,
 	)
 
 	for _, node := range nodes {
