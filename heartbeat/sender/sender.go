@@ -74,7 +74,7 @@ func NewSender(args ArgSender) (*sender, error) {
 		return nil, err
 	}
 
-	hbs, err := newHeartbeatSender(argHeartbeatSender{
+	hbs, err := createHeartbeatSender(argHeartbeatSenderFactory{
 		argBaseSender: argBaseSender{
 			messenger:                 args.Messenger,
 			marshaller:                args.Marshaller,
@@ -85,11 +85,16 @@ func NewSender(args ArgSender) (*sender, error) {
 			privKey:                   args.PrivateKey,
 			redundancyHandler:         args.RedundancyHandler,
 		},
+		baseVersionNumber:    "",
 		versionNumber:        args.VersionNumber,
 		nodeDisplayName:      args.NodeDisplayName,
 		identity:             args.Identity,
 		peerSubType:          args.PeerSubType,
 		currentBlockProvider: args.CurrentBlockProvider,
+		peerTypeProvider:     nil,
+		keysHolder:           args.KeysHolder,
+		shardCoordinator:     args.ShardCoordinator,
+		nodesCoordinator:     args.NodesCoordinator,
 	})
 	if err != nil {
 		return nil, err
@@ -157,7 +162,34 @@ func checkSenderArgs(args ArgSender) error {
 		peerSubType:          args.PeerSubType,
 		currentBlockProvider: args.CurrentBlockProvider,
 	}
-	return checkHeartbeatSenderArgs(hbsArgs)
+	err = checkHeartbeatSenderArgs(hbsArgs)
+	if err != nil {
+		return err
+	}
+
+	mhbsArgs := argMultikeyHeartbeatSender{
+		argBaseSender: argBaseSender{
+			messenger:                 args.Messenger,
+			marshaller:                args.Marshaller,
+			topic:                     args.HeartbeatTopic,
+			timeBetweenSends:          args.HeartbeatTimeBetweenSends,
+			timeBetweenSendsWhenError: args.HeartbeatTimeBetweenSendsWhenError,
+			thresholdBetweenSends:     args.HeartbeatThresholdBetweenSends,
+			privKey:                   args.PrivateKey,
+			redundancyHandler:         args.RedundancyHandler,
+		},
+		peerTypeProvider:     nil,
+		versionNumber:        args.VersionNumber,
+		baseVersionNumber:    "",
+		nodeDisplayName:      args.NodeDisplayName,
+		identity:             args.Identity,
+		peerSubType:          args.PeerSubType,
+		currentBlockProvider: args.CurrentBlockProvider,
+		keysHolder:           args.KeysHolder,
+		shardCoordinator:     args.ShardCoordinator,
+	}
+
+	return checkMultikeyHeartbeatSenderArgs(mhbsArgs)
 }
 
 // Close closes the internal components

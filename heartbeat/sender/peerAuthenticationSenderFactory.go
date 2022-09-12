@@ -21,31 +21,19 @@ type argPeerAuthenticationSenderFactory struct {
 }
 
 func createPeerAuthenticationSender(args argPeerAuthenticationSenderFactory) (peerAuthenticationSenderHandler, error) {
-	pk := args.privKey.GeneratePublic()
-	pkBytes, err := pk.ToByteArray()
+	isMultikey, err := isMultikeyMode(args.privKey, args.keysHolder, args.nodesCoordinator)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w while creating peer authentication sender", err)
 	}
 
-	keysMap := args.keysHolder.GetManagedKeysByCurrentNode()
-	isMultikeyMode := len(keysMap) > 0
-	_, _, err = args.nodesCoordinator.GetValidatorWithPublicKey(pkBytes)
-	if err == nil {
-		if isMultikeyMode {
-			return nil, fmt.Errorf("%w while creating peer authentication, could not determine node's type", heartbeat.ErrInvalidConfiguration)
-		}
-
-		return createRegularSender(args)
+	if isMultikey {
+		return createMultikeyPeerAuthenticationSender(args)
 	}
 
-	if !isMultikeyMode {
-		return createRegularSender(args)
-	}
-
-	return createMultikeySender(args)
+	return createRegularPeerAuthenticationSender(args)
 }
 
-func createRegularSender(args argPeerAuthenticationSenderFactory) (*peerAuthenticationSender, error) {
+func createRegularPeerAuthenticationSender(args argPeerAuthenticationSenderFactory) (*peerAuthenticationSender, error) {
 	argsSender := argPeerAuthenticationSender{
 		argBaseSender:            args.argBaseSender,
 		nodesCoordinator:         args.nodesCoordinator,
@@ -58,7 +46,7 @@ func createRegularSender(args argPeerAuthenticationSenderFactory) (*peerAuthenti
 	return newPeerAuthenticationSender(argsSender)
 }
 
-func createMultikeySender(args argPeerAuthenticationSenderFactory) (*multikeyPeerAuthenticationSender, error) {
+func createMultikeyPeerAuthenticationSender(args argPeerAuthenticationSenderFactory) (*multikeyPeerAuthenticationSender, error) {
 	argsSender := argMultikeyPeerAuthenticationSender(args)
 	return newMultikeyPeerAuthenticationSender(argsSender)
 }

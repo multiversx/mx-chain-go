@@ -146,5 +146,6 @@ type KeysHolder interface {
 // ShardCoordinator defines the operations of a shard coordinator
 type ShardCoordinator interface {
 	SelfId() uint32
+	ComputeId(address []byte) uint32
 	IsInterfaceNil() bool
 }
