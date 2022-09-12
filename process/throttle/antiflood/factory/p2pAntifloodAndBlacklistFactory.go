@@ -8,7 +8,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go-storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -19,6 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/statusHandler/p2pQuota"
 	"github.com/ElrondNetwork/elrond-go/storage/cache"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
+	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 )
 
 var log = logger.GetOrCreate("p2p/antiflood/factory")
@@ -207,7 +207,7 @@ func createFloodPreventer(
 	selfPid core.PeerID,
 ) (process.FloodPreventer, error) {
 	cacheConfig := storageFactory.GetCacherFromConfig(antifloodCacheConfig)
-	blackListCache, err := storageUnit.NewCache(cacheConfig)
+	blackListCache, err := storageunit.NewCache(cacheConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -226,7 +226,7 @@ func createFloodPreventer(
 		return nil, err
 	}
 
-	antifloodCache, err := storageUnit.NewCache(cacheConfig)
+	antifloodCache, err := storageunit.NewCache(cacheConfig)
 	if err != nil {
 		return nil, err
 	}

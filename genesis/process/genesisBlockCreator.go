@@ -11,7 +11,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/common/enablers"
 	"github.com/ElrondNetwork/elrond-go/common/forking"
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -27,6 +26,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/factory"
+	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 	triesFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/update"
 	hardfork "github.com/ElrondNetwork/elrond-go/update/genesis"
@@ -127,7 +127,7 @@ func (gbc *genesisBlockCreator) createHardForkImportHandler() error {
 func createStorer(storageConfig config.StorageConfig, folder string) (storage.Storer, error) {
 	dbConfig := factory.GetDBFromConfig(storageConfig.DB)
 	dbConfig.FilePath = path.Join(folder, storageConfig.DB.FilePath)
-	store, err := storageUnit.NewStorageUnitFromConf(
+	store, err := storageunit.NewStorageUnitFromConf(
 		factory.GetCacherFromConfig(storageConfig.Cache),
 		dbConfig,
 	)

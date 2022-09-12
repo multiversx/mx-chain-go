@@ -8,9 +8,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go-storage/immunitycache"
-	"github.com/ElrondNetwork/elrond-go-storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 )
 
 var log = logger.GetOrCreate("dataretriever/shardeddata")
@@ -44,7 +44,7 @@ type shardStore struct {
 }
 
 // NewShardedData is responsible for creating an empty pool of data
-func NewShardedData(name string, config storageUnit.CacheConfig) (*shardedData, error) {
+func NewShardedData(name string, config storageunit.CacheConfig) (*shardedData, error) {
 	log.Debug("NewShardedData", "name", name, "config", config.String())
 
 	configPrototype := immunitycache.CacheConfig{

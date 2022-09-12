@@ -14,11 +14,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	storageCore "github.com/ElrondNetwork/elrond-go-core/storage"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go-storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/clean"
+	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 )
 
 var _ storage.Storer = (*PruningStorer)(nil)
@@ -132,7 +132,7 @@ func initPruningStorer(
 ) (*PruningStorer, error) {
 	pdb := &PruningStorer{}
 
-	suCache, err := storageUnit.NewCache(args.CacheConf)
+	suCache, err := storageunit.NewCache(args.CacheConf)
 	if err != nil {
 		return nil, err
 	}

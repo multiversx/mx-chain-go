@@ -8,7 +8,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go-storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/debug/antiflood"
@@ -22,6 +21,7 @@ import (
 	antifloodFactory "github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/cache"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
+	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 )
 
 // NetworkComponentsFactoryArgs holds the arguments to create a network component handler instance
@@ -220,7 +220,7 @@ func (ncf *networkComponentsFactory) createPeerHonestyHandler(
 	pkTimeCache process.TimeCacher,
 ) (consensus.PeerHonestyHandler, error) {
 
-	suCache, err := storageUnit.NewCache(storageFactory.GetCacherFromConfig(config.PeerHonesty))
+	suCache, err := storageunit.NewCache(storageFactory.GetCacherFromConfig(config.PeerHonesty))
 	if err != nil {
 		return nil, err
 	}

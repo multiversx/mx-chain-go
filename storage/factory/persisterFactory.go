@@ -5,9 +5,9 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-storage/leveldb"
 	"github.com/ElrondNetwork/elrond-go-storage/memorydb"
-	"github.com/ElrondNetwork/elrond-go-storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 )
 
 // PersisterFactory is the factory which will handle creating new databases
@@ -34,12 +34,12 @@ func (pf *PersisterFactory) Create(path string) (storage.Persister, error) {
 		return nil, errors.New("invalid file path")
 	}
 
-	switch storageUnit.DBType(pf.dbType) {
-	case storageUnit.LvlDB:
+	switch storageunit.DBType(pf.dbType) {
+	case storageunit.LvlDB:
 		return leveldb.NewDB(path, pf.batchDelaySeconds, pf.maxBatchSize, pf.maxOpenFiles)
-	case storageUnit.LvlDBSerial:
+	case storageunit.LvlDBSerial:
 		return leveldb.NewSerialDB(path, pf.batchDelaySeconds, pf.maxBatchSize, pf.maxOpenFiles)
-	case storageUnit.MemoryDB:
+	case storageunit.MemoryDB:
 		return memorydb.New(), nil
 	default:
 		return nil, storage.ErrNotSupportedDBType

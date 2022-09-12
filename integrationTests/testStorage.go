@@ -13,9 +13,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-storage/leveldb"
-	"github.com/ElrondNetwork/elrond-go-storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/cache"
+	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 )
 
 const batchDelaySeconds = 10
@@ -79,7 +79,7 @@ func (ts *TestStorage) CreateStoredData(nonce uint64) ([]byte, []byte) {
 func (ts *TestStorage) CreateStorageLevelDB() storage.Storer {
 	db, _ := leveldb.NewDB("Transactions", batchDelaySeconds, maxBatchSize, maxOpenFiles)
 	cacher, _ := cache.NewLRUCache(50000)
-	store, _ := storageUnit.NewStorageUnit(
+	store, _ := storageunit.NewStorageUnit(
 		cacher,
 		db,
 	)
@@ -91,7 +91,7 @@ func (ts *TestStorage) CreateStorageLevelDB() storage.Storer {
 func (ts *TestStorage) CreateStorageLevelDBSerial() storage.Storer {
 	db, _ := leveldb.NewSerialDB("Transactions", batchDelaySeconds, maxBatchSize, maxOpenFiles)
 	cacher, _ := cache.NewLRUCache(50000)
-	store, _ := storageUnit.NewStorageUnit(
+	store, _ := storageunit.NewStorageUnit(
 		cacher,
 		db,
 	)

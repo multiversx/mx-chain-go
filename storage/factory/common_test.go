@@ -3,8 +3,8 @@ package factory
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -19,10 +19,10 @@ func TestGetCacherFromConfig(t *testing.T) {
 	}
 
 	storageCacheConfig := GetCacherFromConfig(cfg)
-	assert.Equal(t, storageUnit.CacheConfig{
+	assert.Equal(t, storageunit.CacheConfig{
 		Capacity:    cfg.Capacity,
 		SizeInBytes: cfg.SizeInBytes,
-		Type:        storageUnit.CacheType(cfg.Type),
+		Type:        storageunit.CacheType(cfg.Type),
 		Shards:      cfg.Shards,
 	}, storageCacheConfig)
 }
@@ -38,8 +38,8 @@ func TestGetDBFromConfig(t *testing.T) {
 	}
 
 	storageDBConfig := GetDBFromConfig(cfg)
-	assert.Equal(t, storageUnit.DBConfig{
-		Type:              storageUnit.DBType(cfg.Type),
+	assert.Equal(t, storageunit.DBConfig{
+		Type:              storageunit.DBType(cfg.Type),
 		MaxBatchSize:      cfg.MaxBatchSize,
 		BatchDelaySeconds: cfg.BatchDelaySeconds,
 		MaxOpenFiles:      cfg.MaxOpenFiles,

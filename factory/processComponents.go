@@ -16,7 +16,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	storageRepoFactory "github.com/ElrondNetwork/elrond-go-storage/factory"
-	"github.com/ElrondNetwork/elrond-go-storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -63,6 +62,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/cache"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
+	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 	"github.com/ElrondNetwork/elrond-go/update"
 	updateDisabled "github.com/ElrondNetwork/elrond-go/update/disabled"
 	updateFactory "github.com/ElrondNetwork/elrond-go/update/factory"
@@ -517,7 +517,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 	}
 
 	vmOutputCacherConfig := storageFactory.GetCacherFromConfig(pcf.config.VMOutputCacher)
-	vmOutputCacher, err := storageUnit.NewCache(vmOutputCacherConfig)
+	vmOutputCacher, err := storageunit.NewCache(vmOutputCacherConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -1577,7 +1577,7 @@ func createNetworkShardingCollector(
 }
 
 func createCache(cacheConfig config.CacheConfig) (storage.Cacher, error) {
-	return storageUnit.NewCache(storageFactory.GetCacherFromConfig(cacheConfig))
+	return storageunit.NewCache(storageFactory.GetCacherFromConfig(cacheConfig))
 }
 
 func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {

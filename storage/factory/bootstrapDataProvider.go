@@ -3,11 +3,11 @@ package factory
 import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go-storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/cache"
+	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 )
 
 type bootstrapDataProvider struct {
@@ -50,7 +50,7 @@ func (bdp *bootstrapDataProvider) LoadForPath(
 		return nil, nil, err
 	}
 
-	storer, err := storageUnit.NewStorageUnit(cacher, persister)
+	storer, err := storageunit.NewStorageUnit(cacher, persister)
 	if err != nil {
 		return nil, nil, err
 	}

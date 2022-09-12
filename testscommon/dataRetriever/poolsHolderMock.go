@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
@@ -13,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/txpool"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/cache"
+	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 	"github.com/ElrondNetwork/elrond-go/testscommon/txcachemocks"
 )
 
@@ -39,7 +39,7 @@ func NewPoolsHolderMock() *PoolsHolderMock {
 
 	holder.transactions, err = txpool.NewShardedTxPool(
 		txpool.ArgShardedTxPool{
-			Config: storageUnit.CacheConfig{
+			Config: storageunit.CacheConfig{
 				Capacity:             100000,
 				SizePerSender:        1000,
 				SizeInBytes:          1000000000,
@@ -56,14 +56,14 @@ func NewPoolsHolderMock() *PoolsHolderMock {
 	)
 	panicIfError("NewPoolsHolderMock", err)
 
-	holder.unsignedTransactions, err = shardedData.NewShardedData("unsignedTxPool", storageUnit.CacheConfig{
+	holder.unsignedTransactions, err = shardedData.NewShardedData("unsignedTxPool", storageunit.CacheConfig{
 		Capacity:    10000,
 		SizeInBytes: 1000000000,
 		Shards:      1,
 	})
 	panicIfError("NewPoolsHolderMock", err)
 
-	holder.rewardTransactions, err = shardedData.NewShardedData("rewardsTxPool", storageUnit.CacheConfig{
+	holder.rewardTransactions, err = shardedData.NewShardedData("rewardsTxPool", storageunit.CacheConfig{
 		Capacity:    100,
 		SizeInBytes: 100000,
 		Shards:      1,
@@ -73,21 +73,21 @@ func NewPoolsHolderMock() *PoolsHolderMock {
 	holder.headers, err = headersCache.NewHeadersPool(config.HeadersPoolConfig{MaxHeadersPerShard: 1000, NumElementsToRemoveOnEviction: 100})
 	panicIfError("NewPoolsHolderMock", err)
 
-	holder.miniBlocks, err = storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 10000, Shards: 1, SizeInBytes: 0})
+	holder.miniBlocks, err = storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 10000, Shards: 1, SizeInBytes: 0})
 	panicIfError("NewPoolsHolderMock", err)
 
-	holder.peerChangesBlocks, err = storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 10000, Shards: 1, SizeInBytes: 0})
+	holder.peerChangesBlocks, err = storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 10000, Shards: 1, SizeInBytes: 0})
 	panicIfError("NewPoolsHolderMock", err)
 
 	holder.currBlockTxs = dataPool.NewCurrentBlockPool()
 
-	holder.trieNodes, err = storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.SizeLRUCache, Capacity: 900000, Shards: 1, SizeInBytes: 314572800})
+	holder.trieNodes, err = storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.SizeLRUCache, Capacity: 900000, Shards: 1, SizeInBytes: 314572800})
 	panicIfError("NewPoolsHolderMock", err)
 
-	holder.trieNodesChunks, err = storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.SizeLRUCache, Capacity: 900000, Shards: 1, SizeInBytes: 314572800})
+	holder.trieNodesChunks, err = storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.SizeLRUCache, Capacity: 900000, Shards: 1, SizeInBytes: 314572800})
 	panicIfError("NewPoolsHolderMock", err)
 
-	holder.smartContracts, err = storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 10000, Shards: 1, SizeInBytes: 0})
+	holder.smartContracts, err = storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 10000, Shards: 1, SizeInBytes: 0})
 	panicIfError("NewPoolsHolderMock", err)
 
 	holder.peerAuthentications, err = cache.NewMapTimeCache(cache.ArgMapTimeCacher{
@@ -96,7 +96,7 @@ func NewPoolsHolderMock() *PoolsHolderMock {
 	})
 	panicIfError("NewPoolsHolderMock", err)
 
-	holder.heartbeats, err = storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 10000, Shards: 1, SizeInBytes: 0})
+	holder.heartbeats, err = storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 10000, Shards: 1, SizeInBytes: 0})
 	panicIfError("NewPoolsHolderMock", err)
 
 	return holder

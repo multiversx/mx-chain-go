@@ -10,9 +10,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go-storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
@@ -44,7 +44,7 @@ func NewTxLogProcessor(args ArgTxLogProcessor) (*txLogProcessor, error) {
 	}
 
 	if !args.SaveInStorageEnabled {
-		storer = storageUnit.NewNilStorer()
+		storer = storageunit.NewNilStorer()
 	}
 
 	if check.IfNil(args.Marshalizer) {

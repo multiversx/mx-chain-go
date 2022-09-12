@@ -8,10 +8,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go-storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 )
 
 var log = logger.GetOrCreate("statusHandler/persister")
@@ -38,7 +38,7 @@ func NewPersistentStatusHandler(
 	}
 
 	psh := new(PersistentStatusHandler)
-	psh.store = storageUnit.NewNilStorer()
+	psh.store = storageunit.NewNilStorer()
 	psh.uint64ByteSliceConverter = uint64ByteSliceConverter
 	psh.marshalizer = marshalizer
 	psh.persistentMetrics = &sync.Map{}

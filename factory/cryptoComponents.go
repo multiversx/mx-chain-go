@@ -20,13 +20,13 @@ import (
 	mclMultiSig "github.com/ElrondNetwork/elrond-go-crypto/signing/mcl/multisig"
 	mclSig "github.com/ElrondNetwork/elrond-go-crypto/signing/mcl/singlesig"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/multisig"
-	"github.com/ElrondNetwork/elrond-go-storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/factory/peerSignatureHandler"
 	"github.com/ElrondNetwork/elrond-go/genesis/process/disabled"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
+	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	systemVM "github.com/ElrondNetwork/elrond-go/vm/process"
 )
@@ -157,7 +157,7 @@ func (ccf *cryptoComponentsFactory) Create() (*cryptoComponents, error) {
 	}
 
 	cacheConfig := ccf.config.PublicKeyPIDSignature
-	cachePkPIDSignature, err := storageUnit.NewCache(storageFactory.GetCacherFromConfig(cacheConfig))
+	cachePkPIDSignature, err := storageunit.NewCache(storageFactory.GetCacherFromConfig(cacheConfig))
 	if err != nil {
 		return nil, err
 	}

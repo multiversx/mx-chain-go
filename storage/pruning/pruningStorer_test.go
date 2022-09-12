@@ -22,12 +22,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go-storage/leveldb"
 	"github.com/ElrondNetwork/elrond-go-storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go-storage/pathmanager"
-	"github.com/ElrondNetwork/elrond-go-storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/mock"
 	"github.com/ElrondNetwork/elrond-go/storage/pruning"
+	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -35,13 +35,13 @@ import (
 
 var log = logger.GetOrCreate("storage/pruning_test")
 
-func getDummyConfig() (storageUnit.CacheConfig, storageUnit.DBConfig) {
-	cacheConf := storageUnit.CacheConfig{
+func getDummyConfig() (storageunit.CacheConfig, storageunit.DBConfig) {
+	cacheConf := storageunit.CacheConfig{
 		Capacity: 10,
 		Type:     "LRU",
 		Shards:   3,
 	}
-	dbConf := storageUnit.DBConfig{
+	dbConf := storageunit.DBConfig{
 		FilePath:          "path/Epoch_0/Shard_1",
 		Type:              "LvlDBSerial",
 		BatchDelaySeconds: 500,

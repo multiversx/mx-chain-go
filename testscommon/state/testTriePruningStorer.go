@@ -4,22 +4,22 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-storage/memorydb"
-	"github.com/ElrondNetwork/elrond-go-storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	storageMock "github.com/ElrondNetwork/elrond-go/storage/mock"
 	"github.com/ElrondNetwork/elrond-go/storage/pruning"
+	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 )
 
 // CreateTestingTriePruningStorer creates a new trie pruning storer that is used for testing
 func CreateTestingTriePruningStorer(coordinator sharding.Coordinator, notifier pruning.EpochStartNotifier) (storage.Storer, *persisterMap, error) {
-	cacheConf := storageUnit.CacheConfig{
+	cacheConf := storageunit.CacheConfig{
 		Capacity: 10,
 		Type:     "LRU",
 		Shards:   3,
 	}
-	dbConf := storageUnit.DBConfig{
+	dbConf := storageunit.DBConfig{
 		FilePath:          "path/Epoch_0/Shard_1",
 		Type:              "LvlDBSerial",
 		BatchDelaySeconds: 500,
