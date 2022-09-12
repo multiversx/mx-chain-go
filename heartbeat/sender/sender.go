@@ -33,6 +33,7 @@ type ArgSender struct {
 	HardforkTrigger                             heartbeat.HardforkTrigger
 	HardforkTimeBetweenSends                    time.Duration
 	HardforkTriggerPubKey                       []byte
+	PeerTypeProvider                            heartbeat.PeerTypeProviderHandler
 	KeysHolder                                  heartbeat.KeysHolder
 	PeerAuthenticationTimeBetweenChecks         time.Duration
 	ShardCoordinator                            heartbeat.ShardCoordinator
@@ -40,7 +41,8 @@ type ArgSender struct {
 
 // sender defines the component which sends authentication and heartbeat messages
 type sender struct {
-	routineHandler *routineHandler
+	heartbeatSender *heartbeatSender
+	routineHandler  *routineHandler
 }
 
 // NewSender creates a new instance of sender
@@ -91,7 +93,7 @@ func NewSender(args ArgSender) (*sender, error) {
 		identity:             args.Identity,
 		peerSubType:          args.PeerSubType,
 		currentBlockProvider: args.CurrentBlockProvider,
-		peerTypeProvider:     nil,
+		peerTypeProvider:     args.PeerTypeProvider,
 		keysHolder:           args.KeysHolder,
 		shardCoordinator:     args.ShardCoordinator,
 		nodesCoordinator:     args.NodesCoordinator,
@@ -101,7 +103,8 @@ func NewSender(args ArgSender) (*sender, error) {
 	}
 
 	return &sender{
-		routineHandler: newRoutineHandler(pas, hbs, pas),
+		heartbeatSender: hbs,
+		routineHandler:  newRoutineHandler(pas, hbs, pas),
 	}, nil
 }
 
@@ -161,6 +164,7 @@ func checkSenderArgs(args ArgSender) error {
 		identity:             args.Identity,
 		peerSubType:          args.PeerSubType,
 		currentBlockProvider: args.CurrentBlockProvider,
+		peerTypeProvider:     args.PeerTypeProvider,
 	}
 	err = checkHeartbeatSenderArgs(hbsArgs)
 	if err != nil {
@@ -197,6 +201,11 @@ func (sender *sender) Close() error {
 	sender.routineHandler.closeProcessLoop()
 
 	return nil
+}
+
+// GetSenderInfo will return the current sender info
+func (sender *sender) GetSenderInfo() (string, core.P2PPeerSubType, error) {
+	return sender.heartbeatSender.getSenderInfo()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
