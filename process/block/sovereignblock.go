@@ -38,14 +38,31 @@ func (s *sovereignBlockProcessor) ProcessBlock(header data.HeaderHandler, body d
 	panic("implement me")
 }
 
-// ProcessScheduledBlock does nothing - as this uses new execution model
-func (s *sovereignBlockProcessor) ProcessScheduledBlock(_ data.HeaderHandler, _ data.BodyHandler, _ func() time.Duration) error {
-	return nil
-}
-
 func (s *sovereignBlockProcessor) CommitBlock(header data.HeaderHandler, body data.BodyHandler) error {
 	//TODO implement me
 	panic("implement me")
+}
+
+func (s *sovereignBlockProcessor) CreateNewHeader(round uint64, nonce uint64) (data.HeaderHandler, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (s *sovereignBlockProcessor) CreateBlock(initialHdr data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+// RestoreBlockIntoPools restore block into pools
+func (s *sovereignBlockProcessor) RestoreBlockIntoPools(_ data.HeaderHandler, body data.BodyHandler) error {
+	s.restoreBlockBody(body)
+	s.blockTracker.RemoveLastNotarizedHeaders()
+	return nil
+}
+
+// RevertStateToBlock reverts state in tries
+func (s *sovereignBlockProcessor) RevertStateToBlock(header data.HeaderHandler, rootHash []byte) error {
+	return s.revertAccountsStates(header, rootHash)
 }
 
 // RevertCurrentBlock reverts the current block for cleanup failed process
@@ -70,24 +87,9 @@ func (s *sovereignBlockProcessor) PruneStateOnRollback(currHeader data.HeaderHan
 	}
 }
 
-// RevertStateToBlock reverts state in tries
-func (s *sovereignBlockProcessor) RevertStateToBlock(header data.HeaderHandler, rootHash []byte) error {
-	return s.revertAccountsStates(header, rootHash)
-}
-
-func (s *sovereignBlockProcessor) CreateNewHeader(round uint64, nonce uint64) (data.HeaderHandler, error) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (s *sovereignBlockProcessor) RestoreBlockIntoPools(header data.HeaderHandler, body data.BodyHandler) error {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (s *sovereignBlockProcessor) CreateBlock(initialHdr data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error) {
-	//TODO implement me
-	panic("implement me")
+// ProcessScheduledBlock does nothing - as this uses new execution model
+func (s *sovereignBlockProcessor) ProcessScheduledBlock(_ data.HeaderHandler, _ data.BodyHandler, _ func() time.Duration) error {
+	return nil
 }
 
 func (s *sovereignBlockProcessor) DecodeBlockHeader(dta []byte) data.HeaderHandler {
