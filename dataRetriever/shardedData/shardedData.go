@@ -7,7 +7,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/counting"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go-storage/common"
 	"github.com/ElrondNetwork/elrond-go-storage/immunitycache"
 	"github.com/ElrondNetwork/elrond-go-storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -53,7 +52,7 @@ func NewShardedData(name string, config storageUnit.CacheConfig) (*shardedData, 
 		NumChunks:                   config.Shards,
 		MaxNumItems:                 config.Capacity,
 		MaxNumBytes:                 uint32(config.SizeInBytes),
-		NumItemsToPreemptivelyEvict: common.TxPoolNumTxsToPreemptivelyEvict,
+		NumItemsToPreemptivelyEvict: storage.TxPoolNumTxsToPreemptivelyEvict,
 	}
 
 	err := configPrototype.Verify()

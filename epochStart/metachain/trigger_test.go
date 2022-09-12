@@ -11,7 +11,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	storageErrors "github.com/ElrondNetwork/elrond-go-storage/common/commonErrors"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
@@ -130,7 +129,7 @@ func TestNewEpochStartTrigger_MissingBootstrapUnit(t *testing.T) {
 	arguments.Storage = &storageStubs.ChainStorerStub{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 			if unitType == dataRetriever.BootstrapUnit {
-				return nil, storageErrors.ErrKeyNotFound
+				return nil, storage.ErrKeyNotFound
 			}
 			return &storageStubs.StorerStub{}, nil
 		},
@@ -138,7 +137,7 @@ func TestNewEpochStartTrigger_MissingBootstrapUnit(t *testing.T) {
 
 	epochStartTrigger, err := NewEpochStartTrigger(arguments)
 	assert.True(t, check.IfNil(epochStartTrigger))
-	assert.Equal(t, storageErrors.ErrKeyNotFound, err)
+	assert.Equal(t, storage.ErrKeyNotFound, err)
 }
 
 func TestNewEpochStartTrigger_MissingMetaBlockUnit(t *testing.T) {
@@ -148,7 +147,7 @@ func TestNewEpochStartTrigger_MissingMetaBlockUnit(t *testing.T) {
 	arguments.Storage = &storageStubs.ChainStorerStub{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 			if unitType == dataRetriever.MetaBlockUnit {
-				return nil, storageErrors.ErrKeyNotFound
+				return nil, storage.ErrKeyNotFound
 			}
 			return &storageStubs.StorerStub{}, nil
 		},
@@ -156,7 +155,7 @@ func TestNewEpochStartTrigger_MissingMetaBlockUnit(t *testing.T) {
 
 	epochStartTrigger, err := NewEpochStartTrigger(arguments)
 	assert.True(t, check.IfNil(epochStartTrigger))
-	assert.Equal(t, storageErrors.ErrKeyNotFound, err)
+	assert.Equal(t, storage.ErrKeyNotFound, err)
 }
 
 func TestNewEpochStartTrigger_ShouldOk(t *testing.T) {

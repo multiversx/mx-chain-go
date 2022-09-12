@@ -6,7 +6,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	storageCommon "github.com/ElrondNetwork/elrond-go-storage/common"
 	"github.com/ElrondNetwork/elrond-go-storage/directoryhandler"
 	"github.com/ElrondNetwork/elrond-go-storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
@@ -137,8 +136,8 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		bootstrapDataProvider,
 		bcf.config,
 		parentDir,
-		storageCommon.DefaultEpochString,
-		storageCommon.DefaultShardString,
+		storage.DefaultEpochString,
+		storage.DefaultShardString,
 	)
 	if err != nil {
 		return nil, err
@@ -147,8 +146,8 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 	unitOpener, err := createUnitOpener(
 		bootstrapDataProvider,
 		latestStorageDataProvider,
-		storageCommon.DefaultEpochString,
-		storageCommon.DefaultShardString,
+		storage.DefaultEpochString,
+		storage.DefaultShardString,
 	)
 	if err != nil {
 		return nil, err

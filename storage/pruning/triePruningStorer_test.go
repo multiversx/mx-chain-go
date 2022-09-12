@@ -4,7 +4,6 @@ import (
 	"strings"
 	"testing"
 
-	storageCommon "github.com/ElrondNetwork/elrond-go-storage/common/commonErrors"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/mock"
@@ -105,7 +104,7 @@ func TestTriePruningStorer_GetFromOldEpochsWithoutCacheAllPersistersClosed(t *te
 			if !exists {
 				persister = &mock.PersisterStub{
 					GetCalled: func(key []byte) ([]byte, error) {
-						return nil, storageCommon.ErrDBIsClosed
+						return nil, storage.ErrDBIsClosed
 					},
 				}
 				persistersMap[path] = persister
@@ -124,7 +123,7 @@ func TestTriePruningStorer_GetFromOldEpochsWithoutCacheAllPersistersClosed(t *te
 
 	val, err := ps.GetFromOldEpochsWithoutAddingToCache([]byte("key"))
 	assert.Nil(t, val)
-	assert.Equal(t, storageCommon.ErrDBIsClosed, err)
+	assert.Equal(t, storage.ErrDBIsClosed, err)
 }
 
 func TestTriePruningStorer_GetFromOldEpochsWithoutCacheDoesNotSearchInCurrentStorer(t *testing.T) {

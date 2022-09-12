@@ -5,7 +5,6 @@ import (
 	"path/filepath"
 	"time"
 
-	storageCommon "github.com/ElrondNetwork/elrond-go-storage/common"
 	"github.com/ElrondNetwork/elrond-go-storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
@@ -119,14 +118,14 @@ func (o *openStorageUnits) OpenDB(dbConfig config.DBConfig, shardID uint32, epoc
 func createDB(persisterFactory *PersisterFactory, persisterPath string) (storage.Persister, error) {
 	var persister storage.Persister
 	var err error
-	for i := 0; i < storageCommon.MaxRetriesToCreateDB; i++ {
+	for i := 0; i < storage.MaxRetriesToCreateDB; i++ {
 		persister, err = persisterFactory.Create(persisterPath)
 		if err == nil {
 			return persister, nil
 		}
 		log.Warn("Create Persister failed", "path", persisterPath, "error", err)
 		//TODO: extract this in a parameter and inject it
-		time.Sleep(storageCommon.SleepTimeBetweenCreateDBRetries)
+		time.Sleep(storage.SleepTimeBetweenCreateDBRetries)
 	}
 	return nil, err
 }

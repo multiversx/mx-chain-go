@@ -12,7 +12,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	storageErrors "github.com/ElrondNetwork/elrond-go-storage/common/commonErrors"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -177,7 +176,7 @@ func (lp *logsProcessor) updateTokenSupply(tokenSupply *SupplyESDT, valueFromEve
 func (lp *logsProcessor) getESDTSupply(tokenIdentifier []byte) (*SupplyESDT, error) {
 	supplyFromStorageBytes, err := lp.suppliesStorer.Get(tokenIdentifier)
 	if err != nil {
-		if err == storageErrors.ErrKeyNotFound {
+		if err == storage.ErrKeyNotFound {
 			return newSupplyESDTZero(), nil
 		}
 
