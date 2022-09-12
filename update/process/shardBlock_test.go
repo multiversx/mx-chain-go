@@ -9,9 +9,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go-storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/database"
 	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
@@ -29,7 +29,7 @@ func generateTestCache() storage.Cacher {
 func generateTestUnit() storage.Storer {
 	storer, _ := storageunit.NewStorageUnit(
 		generateTestCache(),
-		memorydb.New(),
+		database.NewMemDB(),
 	)
 
 	return storer

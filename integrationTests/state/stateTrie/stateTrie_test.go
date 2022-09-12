@@ -23,7 +23,6 @@ import (
 	dataTx "github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/hashing/sha256"
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
-	"github.com/ElrondNetwork/elrond-go-storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
@@ -34,6 +33,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager"
 	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager/evictionWaitingList"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/database"
 	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
@@ -1049,7 +1049,7 @@ func createAccounts(
 	store, _ := storageunit.NewStorageUnit(cache, persist)
 	evictionWaitListSize := uint(100)
 
-	ewl, _ := evictionWaitingList.NewEvictionWaitingList(evictionWaitListSize, memorydb.New(), integrationTests.TestMarshalizer)
+	ewl, _ := evictionWaitingList.NewEvictionWaitingList(evictionWaitListSize, database.NewMemDB(), integrationTests.TestMarshalizer)
 	args := getNewTrieStorageManagerArgs()
 	args.MainStorer = store
 	trieStorage, _ := trie.NewTrieStorageManager(args)
@@ -2392,7 +2392,7 @@ func createAccountsDBTestSetup() *state.AccountsDB {
 		SnapshotsGoroutineNum: 1,
 	}
 	evictionWaitListSize := uint(100)
-	ewl, _ := evictionWaitingList.NewEvictionWaitingList(evictionWaitListSize, memorydb.New(), integrationTests.TestMarshalizer)
+	ewl, _ := evictionWaitingList.NewEvictionWaitingList(evictionWaitListSize, database.NewMemDB(), integrationTests.TestMarshalizer)
 	args := getNewTrieStorageManagerArgs()
 	args.GeneralConfig = generalCfg
 	trieStorage, _ := trie.NewTrieStorageManager(args)

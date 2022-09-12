@@ -20,7 +20,6 @@ import (
 	ed25519SingleSig "github.com/ElrondNetwork/elrond-go-crypto/signing/ed25519/singlesig"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl"
 	mclsinglesig "github.com/ElrondNetwork/elrond-go-crypto/signing/mcl/singlesig"
-	"github.com/ElrondNetwork/elrond-go-storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus/round"
@@ -44,6 +43,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager/evictionWaitingList"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/cache"
+	"github.com/ElrondNetwork/elrond-go/storage/database"
 	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
@@ -138,7 +138,7 @@ func createTestBlockChain() data.ChainHandler {
 func createMemUnit() storage.Storer {
 	suCache, _ := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 10, Shards: 1, SizeInBytes: 0})
 
-	unit, _ := storageunit.NewStorageUnit(suCache, memorydb.New())
+	unit, _ := storageunit.NewStorageUnit(suCache, database.NewMemDB())
 	return unit
 }
 
@@ -162,7 +162,7 @@ func createAccountsDB(marshaller marshal.Marshalizer) state.AccountsAdapter {
 	marsh := &marshal.GogoProtoMarshalizer{}
 	hasher := sha256.NewSha256()
 	evictionWaitListSize := uint(100)
-	ewl, _ := evictionWaitingList.NewEvictionWaitingList(evictionWaitListSize, memorydb.New(), marsh)
+	ewl, _ := evictionWaitingList.NewEvictionWaitingList(evictionWaitListSize, database.NewMemDB(), marsh)
 
 	// TODO change this implementation with a factory
 	generalCfg := config.TrieStorageManagerConfig{

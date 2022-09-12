@@ -7,12 +7,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go-storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/common"
 	commonDisabled "github.com/ElrondNetwork/elrond-go/common/disabled"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/storage/database"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 	"github.com/ElrondNetwork/elrond-go/trie"
@@ -65,7 +65,7 @@ func NewDataTrieFactory(args ArgsNewDataTrieFactory) (*dataTrieFactory, error) {
 	}
 	tsmArgs := trie.NewTrieStorageManagerArgs{
 		MainStorer:        accountsTrieStorage,
-		CheckpointsStorer: memorydb.New(),
+		CheckpointsStorer: database.NewMemDB(),
 		Marshalizer:       args.Marshalizer,
 		Hasher:            args.Hasher,
 		GeneralConfig: config.TrieStorageManagerConfig{

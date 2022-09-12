@@ -1,8 +1,8 @@
 package disabled
 
 import (
-	"github.com/ElrondNetwork/elrond-go-storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/database"
 	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 )
 
@@ -17,7 +17,7 @@ func CreateMemUnit() storage.Storer {
 		return nil
 	}
 
-	unit, err := storageunit.NewStorageUnit(cache, memorydb.New())
+	unit, err := storageunit.NewStorageUnit(cache, database.NewMemDB())
 	if err != nil {
 		return nil
 	}

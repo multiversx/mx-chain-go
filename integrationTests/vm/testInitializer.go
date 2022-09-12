@@ -23,7 +23,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go-storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/common/enablers"
 	"github.com/ElrondNetwork/elrond-go/common/forking"
@@ -53,6 +52,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager"
 	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager/evictionWaitingList"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/database"
 	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
@@ -284,14 +284,14 @@ func CreateMemUnit() storage.Storer {
 	sizeInBytes := uint64(0)
 	cache, _ := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: capacity, Shards: shards, SizeInBytes: sizeInBytes})
 
-	unit, _ := storageunit.NewStorageUnit(cache, memorydb.New())
+	unit, _ := storageunit.NewStorageUnit(cache, database.NewMemDB())
 	return unit
 }
 
 // CreateInMemoryShardAccountsDB -
 func CreateInMemoryShardAccountsDB() *state.AccountsDB {
 	marshaller := &marshal.GogoProtoMarshalizer{}
-	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, memorydb.New(), marshaller)
+	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, database.NewMemDB(), marshaller)
 	generalCfg := config.TrieStorageManagerConfig{
 		PruningBufferLen:      1000,
 		SnapshotsBufferLen:    10,

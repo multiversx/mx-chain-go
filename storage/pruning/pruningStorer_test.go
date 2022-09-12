@@ -20,10 +20,10 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go-storage/directoryhandler"
 	"github.com/ElrondNetwork/elrond-go-storage/leveldb"
-	"github.com/ElrondNetwork/elrond-go-storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go-storage/pathmanager"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/database"
 	"github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/mock"
 	"github.com/ElrondNetwork/elrond-go/storage/pruning"
@@ -63,7 +63,7 @@ func getDefaultArgs() *pruning.StorerArgs {
 
 			persister, exists := persistersMap[path]
 			if !exists {
-				persister = memorydb.New()
+				persister = database.NewMemDB()
 				persistersMap[path] = persister
 			}
 
@@ -236,14 +236,14 @@ func TestPruningStorer_Put_EpochWhichWasSetDoesNotExistShouldNotFind(t *testing.
 	args := getDefaultArgs()
 
 	persistersByPath := make(map[string]storage.Persister)
-	persistersByPath["Epoch_0"] = memorydb.New()
+	persistersByPath["Epoch_0"] = database.NewMemDB()
 	args.PersisterFactory = &mock.PersisterFactoryStub{
 		// simulate an opening of an existing database from the file path by saving activePersisters in a map based on their path
 		CreateCalled: func(path string) (storage.Persister, error) {
 			if _, ok := persistersByPath[path]; ok {
 				return persistersByPath[path], nil
 			}
-			newPers := memorydb.New()
+			newPers := database.NewMemDB()
 			persistersByPath[path] = newPers
 
 			return newPers, nil
@@ -267,17 +267,17 @@ func TestPruningStorer_Put_ShouldPutInSpecifiedEpoch(t *testing.T) {
 	args := getDefaultArgs()
 
 	persistersByPath := make(map[string]storage.Persister)
-	persistersByPath["Epoch_0"] = memorydb.New()
+	persistersByPath["Epoch_0"] = database.NewMemDB()
 	expectedEpoch := uint32(37)
 	key := fmt.Sprintf("Epoch_%d", expectedEpoch)
-	persistersByPath[key] = memorydb.New()
+	persistersByPath[key] = database.NewMemDB()
 	args.PersisterFactory = &mock.PersisterFactoryStub{
 		// simulate an opening of an existing database from the file path by saving activePersisters in a map based on their path
 		CreateCalled: func(path string) (storage.Persister, error) {
 			if _, ok := persistersByPath[path]; ok {
 				return persistersByPath[path], nil
 			}
-			newPers := memorydb.New()
+			newPers := database.NewMemDB()
 			persistersByPath[path] = newPers
 
 			return newPers, nil
@@ -408,7 +408,7 @@ func TestNewPruningStorer_GetDataFromClosedPersister(t *testing.T) {
 	t.Parallel()
 
 	persistersByPath := make(map[string]storage.Persister)
-	persistersByPath["Epoch_0"] = memorydb.New()
+	persistersByPath["Epoch_0"] = database.NewMemDB()
 	args := getDefaultArgs()
 	args.DbPath = "Epoch_0"
 	args.PersisterFactory = &mock.PersisterFactoryStub{
@@ -417,7 +417,7 @@ func TestNewPruningStorer_GetDataFromClosedPersister(t *testing.T) {
 			if _, ok := persistersByPath[path]; ok {
 				return persistersByPath[path], nil
 			}
-			newPers := memorydb.New()
+			newPers := database.NewMemDB()
 			persistersByPath[path] = newPers
 
 			return newPers, nil
@@ -455,7 +455,7 @@ func TestNewPruningStorer_GetBulkFromEpoch(t *testing.T) {
 	t.Parallel()
 
 	persistersByPath := make(map[string]storage.Persister)
-	persistersByPath["Epoch_0"] = memorydb.New()
+	persistersByPath["Epoch_0"] = database.NewMemDB()
 	args := getDefaultArgs()
 	args.DbPath = "Epoch_0"
 	args.PersisterFactory = &mock.PersisterFactoryStub{
@@ -464,7 +464,7 @@ func TestNewPruningStorer_GetBulkFromEpoch(t *testing.T) {
 			if _, ok := persistersByPath[path]; ok {
 				return persistersByPath[path], nil
 			}
-			newPers := memorydb.New()
+			newPers := database.NewMemDB()
 			persistersByPath[path] = newPers
 
 			return newPers, nil
@@ -509,7 +509,7 @@ func TestNewPruningStorer_ChangeEpochDbsShouldNotBeDeletedIfPruningIsDisabled(t 
 			if _, ok := persistersByPath[path]; ok {
 				return persistersByPath[path], nil
 			}
-			newPers := memorydb.New()
+			newPers := database.NewMemDB()
 			persistersByPath[path] = newPers
 
 			return newPers, nil
@@ -590,7 +590,7 @@ func TestPruningStorer_SearchFirst(t *testing.T) {
 	t.Parallel()
 
 	persistersByPath := make(map[string]storage.Persister)
-	persistersByPath["Epoch_0"] = memorydb.New()
+	persistersByPath["Epoch_0"] = database.NewMemDB()
 	args := getDefaultArgs()
 	args.DbPath = "Epoch_0"
 	args.PersisterFactory = &mock.PersisterFactoryStub{
@@ -599,7 +599,7 @@ func TestPruningStorer_SearchFirst(t *testing.T) {
 			if _, ok := persistersByPath[path]; ok {
 				return persistersByPath[path], nil
 			}
-			newPers := memorydb.New()
+			newPers := database.NewMemDB()
 			persistersByPath[path] = newPers
 
 			return newPers, nil
@@ -646,7 +646,7 @@ func TestPruningStorer_ChangeEpochWithKeepingFromOldestEpochInMetaBlock(t *testi
 	t.Parallel()
 
 	persistersByPath := make(map[string]storage.Persister)
-	persistersByPath["Epoch_0"] = memorydb.New()
+	persistersByPath["Epoch_0"] = database.NewMemDB()
 	args := getDefaultArgs()
 	args.DbPath = "Epoch_0"
 	args.PersisterFactory = &mock.PersisterFactoryStub{
@@ -655,7 +655,7 @@ func TestPruningStorer_ChangeEpochWithKeepingFromOldestEpochInMetaBlock(t *testi
 			if _, ok := persistersByPath[path]; ok {
 				return persistersByPath[path], nil
 			}
-			newPers := memorydb.New()
+			newPers := database.NewMemDB()
 			persistersByPath[path] = newPers
 
 			return newPers, nil
@@ -716,7 +716,7 @@ func TestPruningStorer_ChangeEpochShouldUseMetaBlockFromEpochPrepare(t *testing.
 	t.Parallel()
 
 	persistersByPath := make(map[string]storage.Persister)
-	persistersByPath["Epoch_0"] = memorydb.New()
+	persistersByPath["Epoch_0"] = database.NewMemDB()
 	args := getDefaultArgs()
 	args.DbPath = "Epoch_0"
 	args.PersisterFactory = &mock.PersisterFactoryStub{
@@ -725,7 +725,7 @@ func TestPruningStorer_ChangeEpochShouldUseMetaBlockFromEpochPrepare(t *testing.
 			if _, ok := persistersByPath[path]; ok {
 				return persistersByPath[path], nil
 			}
-			newPers := memorydb.New()
+			newPers := database.NewMemDB()
 			persistersByPath[path] = newPers
 
 			return newPers, nil
@@ -759,7 +759,7 @@ func TestPruningStorer_ChangeEpochWithExisting(t *testing.T) {
 	t.Parallel()
 
 	persistersByPath := make(map[string]storage.Persister)
-	persistersByPath["Epoch_0/Shard_0/id"] = memorydb.New()
+	persistersByPath["Epoch_0/Shard_0/id"] = database.NewMemDB()
 	args := getDefaultArgs()
 	args.DbPath = "Epoch_0"
 	args.PersisterFactory = &mock.PersisterFactoryStub{
@@ -768,7 +768,7 @@ func TestPruningStorer_ChangeEpochWithExisting(t *testing.T) {
 			if _, ok := persistersByPath[path]; ok {
 				return persistersByPath[path], nil
 			}
-			newPers := memorydb.New()
+			newPers := database.NewMemDB()
 			persistersByPath[path] = newPers
 
 			return newPers, nil

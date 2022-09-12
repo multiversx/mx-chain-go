@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/database"
 	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 )
 
@@ -24,7 +24,7 @@ func CreateMemUnit() storage.Storer {
 	shards := uint32(1)
 	sizeInBytes := uint64(0)
 	cache, _ := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: capacity, Shards: shards, SizeInBytes: sizeInBytes})
-	persist, _ := memorydb.NewlruDB(100000)
+	persist, _ := database.NewlruDB(100000)
 	unit, _ := storageunit.NewStorageUnit(cache, persist)
 
 	return unit

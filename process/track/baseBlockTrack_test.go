@@ -10,7 +10,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go-storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	processBlock "github.com/ElrondNetwork/elrond-go/process/block"
@@ -18,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/track"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/database"
 	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
@@ -85,7 +85,7 @@ func initStore() *dataRetriever.ChainStorer {
 }
 
 func generateStorageUnit() storage.Storer {
-	memDB := memorydb.New()
+	memDB := database.NewMemDB()
 
 	storer, _ := storageunit.NewStorageUnit(
 		generateTestCache(),
