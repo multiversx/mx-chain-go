@@ -71,6 +71,10 @@ func checkMultikeyHeartbeatSenderArgs(args argMultikeyHeartbeatSender) error {
 		return fmt.Errorf("%w for versionNumber, received %s of size %d, max size allowed %d",
 			heartbeat.ErrPropertyTooLong, args.versionNumber, len(args.versionNumber), maxSizeInBytes)
 	}
+	if len(args.baseVersionNumber) > maxSizeInBytes {
+		return fmt.Errorf("%w for baseVersionNumber, received %s of size %d, max size allowed %d",
+			heartbeat.ErrPropertyTooLong, args.baseVersionNumber, len(args.baseVersionNumber), maxSizeInBytes)
+	}
 	if len(args.nodeDisplayName) > maxSizeInBytes {
 		return fmt.Errorf("%w for nodeDisplayName, received %s of size %d, max size allowed %d",
 			heartbeat.ErrPropertyTooLong, args.nodeDisplayName, len(args.nodeDisplayName), maxSizeInBytes)
@@ -126,10 +130,10 @@ func (sender *multikeyHeartbeatSender) execute() error {
 
 	sender.messenger.Broadcast(sender.topic, buff)
 
-	return sender.sendAllInOne()
+	return sender.sendMultiKeysInfo()
 }
 
-func (sender *multikeyHeartbeatSender) sendAllInOne() error {
+func (sender *multikeyHeartbeatSender) sendMultiKeysInfo() error {
 	managedKeys := sender.keysHolder.GetManagedKeysByCurrentNode()
 	for pk := range managedKeys {
 		pkBytes := []byte(pk)
@@ -138,41 +142,46 @@ func (sender *multikeyHeartbeatSender) sendAllInOne() error {
 			continue
 		}
 
-		time.Sleep(delayedBroadcast)
-
-		name, identity, errNotCritical := sender.keysHolder.GetNameAndIdentity(pkBytes)
-		if errNotCritical != nil {
-			log.Warn("multikeyHeartbeatSender.sendAllInOne GetNameAndIdentity", "error", errNotCritical)
-			continue
+		err := sender.sendMessageForKey(pkBytes)
+		if err != nil {
+			log.Warn("could not broadcast for pk", "pk", pkBytes, "error", err)
 		}
-
-		machineID, errNotCritical := sender.keysHolder.GetMachineID(pkBytes)
-		if errNotCritical != nil {
-			log.Warn("multikeyHeartbeatSender.sendAllInOne GetMachineID", "error", errNotCritical)
-			continue
-		}
-		versionNumber := fmt.Sprintf("%s/%s", sender.baseVersionNumber, machineID)
-
-		buff, errNotCritical := sender.generateMessageBytes(
-			versionNumber,
-			name,
-			identity,
-			uint32(core.RegularPeer), // force all in one peers to be of type regular peers
-			pkBytes,
-		)
-		if errNotCritical != nil {
-			log.Warn("multikeyHeartbeatSender.sendAllInOne generateMessageBytes", "error", errNotCritical)
-			continue
-		}
-
-		p2pSk, pid, errNotCritical := sender.keysHolder.GetP2PIdentity(pkBytes)
-		if errNotCritical != nil {
-			log.Warn("multikeyHeartbeatSender.sendAllInOne ToByteArray", "error", errNotCritical)
-			continue
-		}
-
-		sender.messenger.BroadcastUsingPrivateKey(sender.topic, buff, pid, p2pSk)
 	}
+
+	return nil
+}
+
+func (sender *multikeyHeartbeatSender) sendMessageForKey(pkBytes []byte) error {
+	time.Sleep(delayedBroadcast)
+
+	name, identity, err := sender.keysHolder.GetNameAndIdentity(pkBytes)
+	if err != nil {
+		return err
+	}
+
+	machineID, err := sender.keysHolder.GetMachineID(pkBytes)
+	if err != nil {
+		return err
+	}
+	versionNumber := fmt.Sprintf("%s/%s", sender.baseVersionNumber, machineID)
+
+	buff, err := sender.generateMessageBytes(
+		versionNumber,
+		name,
+		identity,
+		uint32(core.RegularPeer), // force all in one peers to be of type regular peers
+		pkBytes,
+	)
+	if err != nil {
+		return err
+	}
+
+	p2pSk, pid, err := sender.keysHolder.GetP2PIdentity(pkBytes)
+	if err != nil {
+		return err
+	}
+
+	sender.messenger.BroadcastUsingPrivateKey(sender.topic, buff, pid, p2pSk)
 
 	return nil
 }
@@ -183,12 +192,12 @@ func (sender *multikeyHeartbeatSender) processIfShouldSend(pk []byte) bool {
 	}
 	_, shardID, err := sender.peerTypeProvider.ComputeForPubKey(pk)
 	if err != nil {
-		log.Debug("SendAllInOneHeartbeat.ComputeForPubKey", "error", err)
+		log.Debug("processIfShouldSend.ComputeForPubKey", "error", err)
 		return false
 	}
 
 	if shardID != sender.shardCoordinator.SelfId() {
-		log.Debug("SendAllInOneHeartbeat: shard id does not match",
+		log.Debug("processIfShouldSend: shard id does not match",
 			"pk", pk,
 			"self shard", sender.shardCoordinator.SelfId(),
 			"pk shard", shardID)

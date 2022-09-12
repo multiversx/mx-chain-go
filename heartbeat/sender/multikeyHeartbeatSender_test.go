@@ -149,6 +149,17 @@ func TestNewMultikeyHeartbeatSender(t *testing.T) {
 		assert.True(t, errors.Is(err, heartbeat.ErrPropertyTooLong))
 		assert.True(t, strings.Contains(err.Error(), "versionNumber"))
 	})
+	t.Run("base version number too long should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockMultikeyHeartbeatSenderArgs(createMockBaseArgs())
+		args.baseVersionNumber = strings.Repeat("a", maxSizeInBytes+1)
+		senderInstance, err := newMultikeyHeartbeatSender(args)
+
+		assert.Nil(t, senderInstance)
+		assert.True(t, errors.Is(err, heartbeat.ErrPropertyTooLong))
+		assert.True(t, strings.Contains(err.Error(), "baseVersionNumber"))
+	})
 	t.Run("node display name too long should error", func(t *testing.T) {
 		t.Parallel()
 
