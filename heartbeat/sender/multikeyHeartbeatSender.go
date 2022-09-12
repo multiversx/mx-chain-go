@@ -71,6 +71,10 @@ func checkMultikeyHeartbeatSenderArgs(args argMultikeyHeartbeatSender) error {
 		return fmt.Errorf("%w for versionNumber, received %s of size %d, max size allowed %d",
 			heartbeat.ErrPropertyTooLong, args.versionNumber, len(args.versionNumber), maxSizeInBytes)
 	}
+	if len(args.baseVersionNumber) > maxSizeInBytes {
+		return fmt.Errorf("%w for baseVersionNumber, received %s of size %d, max size allowed %d",
+			heartbeat.ErrPropertyTooLong, args.baseVersionNumber, len(args.baseVersionNumber), maxSizeInBytes)
+	}
 	if len(args.nodeDisplayName) > maxSizeInBytes {
 		return fmt.Errorf("%w for nodeDisplayName, received %s of size %d, max size allowed %d",
 			heartbeat.ErrPropertyTooLong, args.nodeDisplayName, len(args.nodeDisplayName), maxSizeInBytes)
