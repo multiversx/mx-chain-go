@@ -98,11 +98,11 @@ type baseProcessor struct {
 	gasConsumedProvider gasConsumedProvider
 	economicsData       process.EconomicsDataHandler
 
-	processDataTriesOnCommitEpoch  bool
-	lastRestartNonce               uint64
-	pruningDelay                   uint32
-	processedMiniBlocksTracker     process.ProcessedMiniBlocksTracker
-	receiptsRepository             receiptsRepository
+	processDataTriesOnCommitEpoch bool
+	lastRestartNonce              uint64
+	pruningDelay                  uint32
+	processedMiniBlocksTracker    process.ProcessedMiniBlocksTracker
+	receiptsRepository            receiptsRepository
 }
 
 type bootStorerDataArgs struct {
@@ -1552,11 +1552,11 @@ func (bp *baseProcessor) getRootHashes(currHeader data.HeaderHandler, prevHeader
 	case state.UserAccountsState:
 		return currHeader.GetRootHash(), prevHeader.GetRootHash()
 	case state.PeerAccountsState:
-		currMetaHeader, ok := currHeader.(data.MetaHeaderHandler)
+		currMetaHeader, ok := currHeader.(data.ValidatorStatisticsInfoHandler)
 		if !ok {
 			return []byte{}, []byte{}
 		}
-		prevMetaHeader, ok := prevHeader.(data.MetaHeaderHandler)
+		prevMetaHeader, ok := prevHeader.(data.ValidatorStatisticsInfoHandler)
 		if !ok {
 			return []byte{}, []byte{}
 		}
@@ -1564,6 +1564,38 @@ func (bp *baseProcessor) getRootHashes(currHeader data.HeaderHandler, prevHeader
 	default:
 		return []byte{}, []byte{}
 	}
+}
+
+func (bp *baseProcessor) revertAccountsStates(header data.HeaderHandler, rootHash []byte) error {
+	err := bp.accountsDB[state.UserAccountsState].RecreateTrie(rootHash)
+	if err != nil {
+		log.Debug("recreate trie with error for header",
+			"nonce", header.GetNonce(),
+			"header root hash", header.GetRootHash(),
+			"given root hash", rootHash,
+			"error", err.Error(),
+		)
+
+		return err
+	}
+
+	validatorInfo, ok := header.(data.ValidatorStatisticsInfoHandler)
+	if !ok {
+		return process.ErrWrongTypeAssertion
+	}
+
+	err = bp.accountsDB[state.UserAccountsState].RecreateTrie(validatorInfo.GetValidatorStatsRootHash())
+	if err != nil {
+		log.Debug("revert peer state with error for header",
+			"nonce", header.GetNonce(),
+			"validators root hash", validatorInfo.GetValidatorStatsRootHash(),
+			"error", err.Error(),
+		)
+
+		return err
+	}
+
+	return nil
 }
 
 func (bp *baseProcessor) displayMiniBlocksPool() {

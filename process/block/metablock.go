@@ -1606,32 +1606,14 @@ func (mp *metaProcessor) commitEpochStart(header *block.MetaBlock, body *block.B
 
 // RevertStateToBlock recreates the state tries to the root hashes indicated by the provided root hash and header
 func (mp *metaProcessor) RevertStateToBlock(header data.HeaderHandler, rootHash []byte) error {
-	err := mp.accountsDB[state.UserAccountsState].RecreateTrie(rootHash)
+	err := mp.revertAccountsStates(header, rootHash)
 	if err != nil {
-		log.Debug("recreate trie with error for header",
-			"nonce", header.GetNonce(),
-			"header root hash", header.GetRootHash(),
-			"given root hash", rootHash,
-			"error", err.Error(),
-		)
-
 		return err
 	}
 
 	metaHeader, ok := header.(data.MetaHeaderHandler)
 	if !ok {
 		return process.ErrWrongTypeAssertion
-	}
-
-	err = mp.validatorStatisticsProcessor.RevertPeerState(metaHeader)
-	if err != nil {
-		log.Debug("revert peer state with error for header",
-			"nonce", metaHeader.GetNonce(),
-			"validators root hash", metaHeader.GetValidatorStatsRootHash(),
-			"error", err.Error(),
-		)
-
-		return err
 	}
 
 	err = mp.epochStartTrigger.RevertStateToBlock(metaHeader)

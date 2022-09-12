@@ -254,7 +254,7 @@ type ScheduledBlockProcessor interface {
 // ValidatorStatisticsProcessor is the main interface for validators' consensus participation statistics
 type ValidatorStatisticsProcessor interface {
 	UpdatePeerState(header data.MetaHeaderHandler, cache map[string]data.HeaderHandler) ([]byte, error)
-	RevertPeerState(header data.MetaHeaderHandler) error
+	RevertPeerState(header data.ValidatorStatisticsInfoHandler) error
 	Process(shardValidatorInfo data.ShardValidatorInfoHandler) error
 	IsInterfaceNil() bool
 	RootHash() ([]byte, error)
