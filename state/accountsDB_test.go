@@ -2558,7 +2558,7 @@ func BenchmarkAccountsDb_GetCodeEntry(b *testing.B) {
 	}
 }
 
-func TestAccountsDB_waitForCompletionIfRunningInImportDB(t *testing.T) {
+func TestAccountsDB_waitForCompletionIfAppropriate(t *testing.T) {
 	t.Parallel()
 
 	t.Run("not in import db", func(t *testing.T) {
@@ -2572,7 +2572,7 @@ func TestAccountsDB_waitForCompletionIfRunningInImportDB(t *testing.T) {
 			},
 		}
 		adb, _ := state.NewAccountsDB(argsAccountsDB)
-		adb.WaitForCompletionIfRunningInImportDB(&trieMock.MockStatistics{})
+		adb.WaitForCompletionIfAppropriate(&trieMock.MockStatistics{})
 	})
 	t.Run("in import db", func(t *testing.T) {
 		t.Parallel()
@@ -2592,7 +2592,7 @@ func TestAccountsDB_waitForCompletionIfRunningInImportDB(t *testing.T) {
 			waitForSnapshotsToFinishCalled = true
 		}
 		adb, _ := state.NewAccountsDB(argsAccountsDB)
-		adb.WaitForCompletionIfRunningInImportDB(stats)
+		adb.WaitForCompletionIfAppropriate(stats)
 		assert.True(t, idleWasSet)
 		assert.True(t, waitForSnapshotsToFinishCalled)
 	})

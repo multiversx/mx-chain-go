@@ -327,6 +327,16 @@ var (
 		Name:  "force-start-from-network",
 		Usage: "Flag that will force the start from network bootstrap process",
 	}
+	// disableConsensusWatchdog defines a flag that will disable the consensus watchdog
+	disableConsensusWatchdog = cli.BoolFlag{
+		Name:  "disable-consensus-watchdog",
+		Usage: "Flag that will disable the consensus watchdog",
+	}
+	// serializeSnapshots defines a flag that will serialize `state snapshotting` and `processing`
+	serializeSnapshots = cli.BoolFlag{
+		Name:  "serialize-snapshots",
+		Usage: "Flag that will serialize `state snapshotting` and `processing`",
+	}
 
 	// noKey defines a flag that, if set, will generate every time when node starts a new signing key
 	noKey = cli.BoolFlag{
@@ -384,6 +394,8 @@ func getFlags() []cli.Flag {
 		memBallast,
 		memoryUsageToCreateProfiles,
 		forceStartFromNetwork,
+		disableConsensusWatchdog,
+		serializeSnapshots,
 		noKey,
 	}
 }
@@ -408,6 +420,8 @@ func getFlagsConfig(ctx *cli.Context, log logger.Logger) *config.ContextFlagsCon
 	flagsConfig.UseLogView = ctx.GlobalBool(useLogView.Name)
 	flagsConfig.ValidatorKeyIndex = ctx.GlobalInt(validatorKeyIndex.Name)
 	flagsConfig.ForceStartFromNetwork = ctx.GlobalBool(forceStartFromNetwork.Name)
+	flagsConfig.DisableConsensusWatchdog = ctx.GlobalBool(disableConsensusWatchdog.Name)
+	flagsConfig.SerializeSnapshots = ctx.GlobalBool(serializeSnapshots.Name)
 	flagsConfig.NoKeyProvided = ctx.GlobalBool(noKey.Name)
 
 	return flagsConfig

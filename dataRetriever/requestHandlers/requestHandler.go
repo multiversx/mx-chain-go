@@ -820,50 +820,12 @@ func (rrh *resolverRequestHandler) GetNumPeersToQuery(key string) (int, int, err
 	return intra, cross, nil
 }
 
-// RequestPeerAuthenticationsChunk asks for a chunk of peer authentication messages from connected peers
-func (rrh *resolverRequestHandler) RequestPeerAuthenticationsChunk(destShardID uint32, chunkIndex uint32) {
-	log.Debug("requesting peer authentication messages from network",
-		"topic", common.PeerAuthenticationTopic,
-		"shard", destShardID,
-		"chunk", chunkIndex,
-		"epoch", rrh.epoch,
-	)
-
-	resolver, err := rrh.resolversFinder.MetaChainResolver(common.PeerAuthenticationTopic)
-	if err != nil {
-		log.Error("RequestPeerAuthenticationsChunk.MetaChainResolver",
-			"error", err.Error(),
-			"topic", common.PeerAuthenticationTopic,
-			"shard", destShardID,
-			"chunk", chunkIndex,
-			"epoch", rrh.epoch,
-		)
-		return
-	}
-
-	peerAuthResolver, ok := resolver.(dataRetriever.PeerAuthenticationResolver)
-	if !ok {
-		log.Warn("wrong assertion type when creating peer authentication resolver")
-		return
-	}
-
-	err = peerAuthResolver.RequestDataFromChunk(chunkIndex, rrh.epoch)
-	if err != nil {
-		log.Debug("RequestPeerAuthenticationsChunk.RequestDataFromChunk",
-			"error", err.Error(),
-			"topic", common.PeerAuthenticationTopic,
-			"shard", destShardID,
-			"chunk", chunkIndex,
-			"epoch", rrh.epoch,
-		)
-	}
-}
-
 // RequestPeerAuthenticationsByHashes asks for peer authentication messages from specific peers hashes
 func (rrh *resolverRequestHandler) RequestPeerAuthenticationsByHashes(destShardID uint32, hashes [][]byte) {
 	log.Debug("requesting peer authentication messages from network",
 		"topic", common.PeerAuthenticationTopic,
 		"shard", destShardID,
+		"num hashes", len(hashes),
 	)
 
 	resolver, err := rrh.resolversFinder.MetaChainResolver(common.PeerAuthenticationTopic)

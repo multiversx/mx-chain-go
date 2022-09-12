@@ -82,10 +82,11 @@ type AccountsDB struct {
 	dataTries    common.TriesHolder
 	entries      []JournalEntry
 	// TODO use mutOp only for critical sections, and refactor to parallelize as much as possible
-	mutOp                sync.RWMutex
-	processingMode       common.NodeProcessingMode
-	loadCodeMeasurements *loadingMeasurements
-	processStatusHandler common.ProcessStatusHandler
+	mutOp                    sync.RWMutex
+	processingMode           common.NodeProcessingMode
+	shouldSerializeSnapshots bool
+	loadCodeMeasurements     *loadingMeasurements
+	processStatusHandler     common.ProcessStatusHandler
 
 	stackDebug []byte
 }
@@ -94,13 +95,14 @@ var log = logger.GetOrCreate("state")
 
 // ArgsAccountsDB is the arguments DTO for the AccountsDB instance
 type ArgsAccountsDB struct {
-	Trie                  common.Trie
-	Hasher                hashing.Hasher
-	Marshaller            marshal.Marshalizer
-	AccountFactory        AccountFactory
-	StoragePruningManager StoragePruningManager
-	ProcessingMode        common.NodeProcessingMode
-	ProcessStatusHandler  common.ProcessStatusHandler
+	Trie                     common.Trie
+	Hasher                   hashing.Hasher
+	Marshaller               marshal.Marshalizer
+	AccountFactory           AccountFactory
+	StoragePruningManager    StoragePruningManager
+	ProcessingMode           common.NodeProcessingMode
+	ShouldSerializeSnapshots bool
+	ProcessStatusHandler     common.ProcessStatusHandler
 }
 
 // NewAccountsDB creates a new account manager
@@ -123,9 +125,10 @@ func NewAccountsDB(args ArgsAccountsDB) (*AccountsDB, error) {
 		loadCodeMeasurements: &loadingMeasurements{
 			identifier: "load code",
 		},
-		processingMode:       args.ProcessingMode,
-		lastSnapshot:         &snapshotInfo{},
-		processStatusHandler: args.ProcessStatusHandler,
+		processingMode:           args.ProcessingMode,
+		shouldSerializeSnapshots: args.ShouldSerializeSnapshots,
+		lastSnapshot:             &snapshotInfo{},
+		processStatusHandler:     args.ProcessStatusHandler,
 	}
 
 	return adb, nil
@@ -1163,7 +1166,7 @@ func (adb *AccountsDB) SnapshotState(rootHash []byte) {
 
 	go adb.markActiveDBAfterSnapshot(stats, missingNodesChannel, errChan, rootHash, "snapshotState user trie", epoch)
 
-	adb.waitForCompletionIfRunningInImportDB(stats)
+	adb.waitForCompletionIfAppropriate(stats)
 }
 
 func (adb *AccountsDB) finishSnapshotOperation(
@@ -1298,11 +1301,12 @@ func (adb *AccountsDB) setStateCheckpoint(rootHash []byte) {
 	//  that will be present in the errChan var
 	go adb.finishSnapshotOperation(rootHash, stats, missingNodesChannel, "setStateCheckpoint user trie")
 
-	adb.waitForCompletionIfRunningInImportDB(stats)
+	adb.waitForCompletionIfAppropriate(stats)
 }
 
-func (adb *AccountsDB) waitForCompletionIfRunningInImportDB(stats common.SnapshotStatisticsHandler) {
-	if adb.processingMode != common.ImportDb {
+func (adb *AccountsDB) waitForCompletionIfAppropriate(stats common.SnapshotStatisticsHandler) {
+	shouldSerializeSnapshots := adb.shouldSerializeSnapshots || adb.processingMode == common.ImportDb
+	if !shouldSerializeSnapshots {
 		return
 	}
 

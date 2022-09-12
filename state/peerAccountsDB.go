@@ -103,7 +103,7 @@ func (adb *PeerAccountsDB) SnapshotState(rootHash []byte) {
 
 	go adb.markActiveDBAfterSnapshot(stats, missingNodesChannel, errChan, rootHash, "snapshotState peer trie", epoch)
 
-	adb.waitForCompletionIfRunningInImportDB(stats)
+	adb.waitForCompletionIfAppropriate(stats)
 }
 
 // SetStateCheckpoint triggers the checkpointing process of the state trie
@@ -125,7 +125,7 @@ func (adb *PeerAccountsDB) SetStateCheckpoint(rootHash []byte) {
 	//  that will be present in the errChan var
 	go adb.finishSnapshotOperation(rootHash, stats, missingNodesChannel, "setStateCheckpoint peer trie")
 
-	adb.waitForCompletionIfRunningInImportDB(stats)
+	adb.waitForCompletionIfAppropriate(stats)
 }
 
 // RecreateAllTries recreates all the tries from the accounts DB

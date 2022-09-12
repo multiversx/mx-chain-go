@@ -27,31 +27,33 @@ import (
 
 // ConsensusComponentsFactoryArgs holds the arguments needed to create a consensus components factory
 type ConsensusComponentsFactoryArgs struct {
-	Config              config.Config
-	BootstrapRoundIndex uint64
-	CoreComponents      CoreComponentsHolder
-	NetworkComponents   NetworkComponentsHolder
-	CryptoComponents    CryptoComponentsHolder
-	DataComponents      DataComponentsHolder
-	ProcessComponents   ProcessComponentsHolder
-	StateComponents     StateComponentsHolder
-	StatusComponents    StatusComponentsHolder
-	ScheduledProcessor  consensus.ScheduledProcessor
-	IsInImportMode      bool
+	Config                config.Config
+	BootstrapRoundIndex   uint64
+	CoreComponents        CoreComponentsHolder
+	NetworkComponents     NetworkComponentsHolder
+	CryptoComponents      CryptoComponentsHolder
+	DataComponents        DataComponentsHolder
+	ProcessComponents     ProcessComponentsHolder
+	StateComponents       StateComponentsHolder
+	StatusComponents      StatusComponentsHolder
+	ScheduledProcessor    consensus.ScheduledProcessor
+	IsInImportMode        bool
+	ShouldDisableWatchdog bool
 }
 
 type consensusComponentsFactory struct {
-	config              config.Config
-	bootstrapRoundIndex uint64
-	coreComponents      CoreComponentsHolder
-	networkComponents   NetworkComponentsHolder
-	cryptoComponents    CryptoComponentsHolder
-	dataComponents      DataComponentsHolder
-	processComponents   ProcessComponentsHolder
-	stateComponents     StateComponentsHolder
-	statusComponents    StatusComponentsHolder
-	scheduledProcessor  consensus.ScheduledProcessor
-	isInImportMode      bool
+	config                config.Config
+	bootstrapRoundIndex   uint64
+	coreComponents        CoreComponentsHolder
+	networkComponents     NetworkComponentsHolder
+	cryptoComponents      CryptoComponentsHolder
+	dataComponents        DataComponentsHolder
+	processComponents     ProcessComponentsHolder
+	stateComponents       StateComponentsHolder
+	statusComponents      StatusComponentsHolder
+	scheduledProcessor    consensus.ScheduledProcessor
+	isInImportMode        bool
+	shouldDisableWatchdog bool
 }
 
 type consensusComponents struct {
@@ -91,17 +93,18 @@ func NewConsensusComponentsFactory(args ConsensusComponentsFactoryArgs) (*consen
 	}
 
 	return &consensusComponentsFactory{
-		config:              args.Config,
-		bootstrapRoundIndex: args.BootstrapRoundIndex,
-		coreComponents:      args.CoreComponents,
-		networkComponents:   args.NetworkComponents,
-		cryptoComponents:    args.CryptoComponents,
-		dataComponents:      args.DataComponents,
-		processComponents:   args.ProcessComponents,
-		stateComponents:     args.StateComponents,
-		statusComponents:    args.StatusComponents,
-		scheduledProcessor:  args.ScheduledProcessor,
-		isInImportMode:      args.IsInImportMode,
+		config:                args.Config,
+		bootstrapRoundIndex:   args.BootstrapRoundIndex,
+		coreComponents:        args.CoreComponents,
+		networkComponents:     args.NetworkComponents,
+		cryptoComponents:      args.CryptoComponents,
+		dataComponents:        args.DataComponents,
+		processComponents:     args.ProcessComponents,
+		stateComponents:       args.StateComponents,
+		statusComponents:      args.StatusComponents,
+		scheduledProcessor:    args.ScheduledProcessor,
+		isInImportMode:        args.IsInImportMode,
+		shouldDisableWatchdog: args.ShouldDisableWatchdog,
 	}, nil
 }
 
@@ -307,6 +310,10 @@ func (ccf *consensusComponentsFactory) createChronology() (consensus.ChronologyH
 	if ccf.isInImportMode {
 		log.Warn("node is running in import mode. Chronology watchdog will be turned off as " +
 			"it is incompatible with the import-db process.")
+		wd = &watchdog.DisabledWatchdog{}
+	}
+	if ccf.shouldDisableWatchdog {
+		log.Warn("Chronology watchdog will be turned off (explicitly).")
 		wd = &watchdog.DisabledWatchdog{}
 	}
 

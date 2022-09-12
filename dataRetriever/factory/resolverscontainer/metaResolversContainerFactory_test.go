@@ -18,7 +18,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	triesFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
@@ -290,28 +289,6 @@ func TestNewMetaResolversContainerFactory_InvalidNumFullHistoryPeersShouldErr(t 
 	assert.True(t, errors.Is(err, dataRetriever.ErrInvalidValue))
 }
 
-func TestNewMetaResolversContainerFactory_NilNodesCoordinatorShouldErr(t *testing.T) {
-	t.Parallel()
-
-	args := getArgumentsMeta()
-	args.NodesCoordinator = nil
-	rcf, err := resolverscontainer.NewMetaResolversContainerFactory(args)
-
-	assert.Nil(t, rcf)
-	assert.Equal(t, dataRetriever.ErrNilNodesCoordinator, err)
-}
-
-func TestNewMetaResolversContainerFactory_InvalidMaxNumOfPeerAuthenticationInResponseShouldErr(t *testing.T) {
-	t.Parallel()
-
-	args := getArgumentsMeta()
-	args.MaxNumOfPeerAuthenticationInResponse = 0
-	rcf, err := resolverscontainer.NewMetaResolversContainerFactory(args)
-
-	assert.Nil(t, rcf)
-	assert.True(t, strings.Contains(err.Error(), dataRetriever.ErrInvalidValue.Error()))
-}
-
 func TestNewMetaResolversContainerFactory_ShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -405,9 +382,7 @@ func getArgumentsMeta() resolverscontainer.FactoryArgs {
 			NumTotalPeers:       3,
 			NumFullHistoryPeers: 3,
 		},
-		PeersRatingHandler:                   &p2pmocks.PeersRatingHandlerStub{},
-		NodesCoordinator:                     &shardingMocks.NodesCoordinatorStub{},
-		MaxNumOfPeerAuthenticationInResponse: 5,
-		PayloadValidator:                     &testscommon.PeerAuthenticationPayloadValidatorStub{},
+		PeersRatingHandler: &p2pmocks.PeersRatingHandlerStub{},
+		PayloadValidator:   &testscommon.PeerAuthenticationPayloadValidatorStub{},
 	}
 }

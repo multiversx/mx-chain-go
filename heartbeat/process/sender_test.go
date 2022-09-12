@@ -696,7 +696,9 @@ func TestSender_SendHeartbeatShouldNotSendAfterEpoch(t *testing.T) {
 
 	arg := createMockArgHeartbeatSender()
 	stub, _ := arg.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
+	stub.Lock()
 	stub.IsHeartbeatDisableFlagEnabledField = true
+	stub.Unlock()
 
 	wasBroadcastCalled := false
 	arg.PeerMessenger = &mock.MessengerStub{
@@ -707,13 +709,17 @@ func TestSender_SendHeartbeatShouldNotSendAfterEpoch(t *testing.T) {
 
 	sender, _ := process.NewSender(arg)
 
+	stub.Lock()
 	stub.IsHeartbeatDisableFlagEnabledField = false
+	stub.Unlock()
 	err := sender.SendHeartbeat()
 	assert.Nil(t, err)
 	assert.True(t, wasBroadcastCalled)
 
 	wasBroadcastCalled = false
+	stub.Lock()
 	stub.IsHeartbeatDisableFlagEnabledField = true
+	stub.Unlock()
 	err = sender.SendHeartbeat()
 	assert.Nil(t, err)
 	assert.False(t, wasBroadcastCalled)

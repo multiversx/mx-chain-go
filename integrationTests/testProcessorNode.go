@@ -1272,10 +1272,8 @@ func (tpn *TestProcessorNode) initResolvers() {
 			NumTotalPeers:       3,
 			NumFullHistoryPeers: 3,
 		},
-		PeersRatingHandler:                   tpn.PeersRatingHandler,
-		NodesCoordinator:                     tpn.NodesCoordinator,
-		MaxNumOfPeerAuthenticationInResponse: 5,
-		PayloadValidator:                     payloadValidator,
+		PeersRatingHandler: tpn.PeersRatingHandler,
+		PayloadValidator:   payloadValidator,
 	}
 
 	var err error
@@ -2844,7 +2842,6 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger() {
 		HeartbeatTimeBetweenSendsInSec:                   2,
 		HeartbeatTimeBetweenSendsWhenErrorInSec:          1,
 		HeartbeatThresholdBetweenSends:                   0.1,
-		MaxNumOfPeerAuthenticationInResponse:             5,
 		HeartbeatExpiryTimespanInSec:                     300,
 		MinPeersThreshold:                                0.8,
 		DelayBetweenRequestsInSec:                        10,
@@ -2854,10 +2851,7 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger() {
 		MaxDurationPeerUnresponsiveInSec:                 10,
 		HideInactiveValidatorIntervalInSec:               60,
 		HardforkTimeBetweenSendsInSec:                    2,
-		PeerAuthenticationPool: config.PeerAuthenticationPoolConfig{
-			DefaultSpanInSec: 30,
-			CacheExpiryInSec: 30,
-		},
+		TimeBetweenConnectionsMetricsUpdateInSec:         10,
 		HeartbeatPool: config.CacheConfig{
 			Type:     "LRU",
 			Capacity: 1000,
@@ -2895,6 +2889,7 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger() {
 	log.LogIfError(err)
 }
 
+// CreateEnableEpochsConfig creates enable epochs definitions to be used in tests
 func CreateEnableEpochsConfig() config.EnableEpochs {
 	return config.EnableEpochs{
 		SCDeployEnableEpoch:                               UnreachableEpoch,
@@ -3237,8 +3232,8 @@ func getDefaultNodesCoordinator(maxShards uint32, pksBytes map[uint32][]byte) no
 			return keys, nil
 		},
 		GetValidatorWithPublicKeyCalled: func(publicKey []byte) (nodesCoordinator.Validator, uint32, error) {
-			validator, _ := nodesCoordinator.NewValidator(publicKey, defaultChancesSelection, 1)
-			return validator, 0, nil
+			validatorInstance, _ := nodesCoordinator.NewValidator(publicKey, defaultChancesSelection, 1)
+			return validatorInstance, 0, nil
 		},
 	}
 }

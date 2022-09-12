@@ -8,6 +8,7 @@ type Presenter interface {
 	GetRedundancyLevel() int64
 	GetRedundancyIsMainActive() string
 	GetShardId() uint64
+	GetChainID() string
 	GetNodeType() string
 	GetPeerType() string
 	GetPeerSubType() string
@@ -24,6 +25,7 @@ type Presenter interface {
 	GetLiveValidatorNodes() uint64
 	GetConnectedNodes() uint64
 	GetNumConnectedPeers() uint64
+	GetIntraShardValidators() uint64
 	GetCurrentRound() uint64
 	GetNumTxInBlock() uint64
 	GetNumMiniBlocks() uint64
