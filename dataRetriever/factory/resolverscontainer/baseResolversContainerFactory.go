@@ -19,36 +19,32 @@ import (
 // EmptyExcludePeersOnTopic is an empty topic
 const EmptyExcludePeersOnTopic = ""
 
-const minNumOfPeerAuthentication = 5
-
 var log = logger.GetOrCreate("dataRetriever/factory/resolverscontainer")
 
 type baseResolversContainerFactory struct {
-	container                            dataRetriever.ResolversContainer
-	shardCoordinator                     sharding.Coordinator
-	messenger                            dataRetriever.TopicMessageHandler
-	store                                dataRetriever.StorageService
-	marshalizer                          marshal.Marshalizer
-	dataPools                            dataRetriever.PoolsHolder
-	uint64ByteSliceConverter             typeConverters.Uint64ByteSliceConverter
-	intRandomizer                        dataRetriever.IntRandomizer
-	dataPacker                           dataRetriever.DataPacker
-	triesContainer                       common.TriesHolder
-	inputAntifloodHandler                dataRetriever.P2PAntifloodHandler
-	outputAntifloodHandler               dataRetriever.P2PAntifloodHandler
-	throttler                            dataRetriever.ResolverThrottler
-	intraShardTopic                      string
-	isFullHistoryNode                    bool
-	currentNetworkEpochProvider          dataRetriever.CurrentNetworkEpochProviderHandler
-	preferredPeersHolder                 dataRetriever.PreferredPeersHolderHandler
-	peersRatingHandler                   dataRetriever.PeersRatingHandler
-	numCrossShardPeers                   int
-	numIntraShardPeers                   int
-	numTotalPeers                        int
-	numFullHistoryPeers                  int
-	nodesCoordinator                     dataRetriever.NodesCoordinator
-	maxNumOfPeerAuthenticationInResponse int
-	payloadValidator                     dataRetriever.PeerAuthenticationPayloadValidator
+	container                   dataRetriever.ResolversContainer
+	shardCoordinator            sharding.Coordinator
+	messenger                   dataRetriever.TopicMessageHandler
+	store                       dataRetriever.StorageService
+	marshalizer                 marshal.Marshalizer
+	dataPools                   dataRetriever.PoolsHolder
+	uint64ByteSliceConverter    typeConverters.Uint64ByteSliceConverter
+	intRandomizer               dataRetriever.IntRandomizer
+	dataPacker                  dataRetriever.DataPacker
+	triesContainer              common.TriesHolder
+	inputAntifloodHandler       dataRetriever.P2PAntifloodHandler
+	outputAntifloodHandler      dataRetriever.P2PAntifloodHandler
+	throttler                   dataRetriever.ResolverThrottler
+	intraShardTopic             string
+	isFullHistoryNode           bool
+	currentNetworkEpochProvider dataRetriever.CurrentNetworkEpochProviderHandler
+	preferredPeersHolder        dataRetriever.PreferredPeersHolderHandler
+	peersRatingHandler          dataRetriever.PeersRatingHandler
+	numCrossShardPeers          int
+	numIntraShardPeers          int
+	numTotalPeers               int
+	numFullHistoryPeers         int
+	payloadValidator            dataRetriever.PeerAuthenticationPayloadValidator
 }
 
 func (brcf *baseResolversContainerFactory) checkParams() error {
@@ -102,13 +98,6 @@ func (brcf *baseResolversContainerFactory) checkParams() error {
 	}
 	if brcf.numFullHistoryPeers <= 0 {
 		return fmt.Errorf("%w for numFullHistoryPeers", dataRetriever.ErrInvalidValue)
-	}
-	if check.IfNil(brcf.nodesCoordinator) {
-		return dataRetriever.ErrNilNodesCoordinator
-	}
-	if brcf.maxNumOfPeerAuthenticationInResponse < minNumOfPeerAuthentication {
-		return fmt.Errorf("%w for maxNumOfPeerAuthenticationInResponse, expected %d, received %d",
-			dataRetriever.ErrInvalidValue, minNumOfPeerAuthentication, brcf.maxNumOfPeerAuthenticationInResponse)
 	}
 
 	return nil
@@ -297,11 +286,9 @@ func (brcf *baseResolversContainerFactory) generatePeerAuthenticationResolver() 
 			AntifloodHandler: brcf.inputAntifloodHandler,
 			Throttler:        brcf.throttler,
 		},
-		PeerAuthenticationPool:               brcf.dataPools.PeerAuthentications(),
-		NodesCoordinator:                     brcf.nodesCoordinator,
-		MaxNumOfPeerAuthenticationInResponse: brcf.maxNumOfPeerAuthenticationInResponse,
-		DataPacker:                           brcf.dataPacker,
-		PayloadValidator:                     brcf.payloadValidator,
+		PeerAuthenticationPool: brcf.dataPools.PeerAuthentications(),
+		DataPacker:             brcf.dataPacker,
+		PayloadValidator:       brcf.payloadValidator,
 	}
 	peerAuthResolver, err := resolvers.NewPeerAuthenticationResolver(arg)
 	if err != nil {

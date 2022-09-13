@@ -51,7 +51,7 @@ func NewHeartbeatV2Monitor(args ArgHeartbeatV2Monitor) (*heartbeatV2Monitor, err
 		return nil, err
 	}
 
-	return &heartbeatV2Monitor{
+	hbv2Monitor := &heartbeatV2Monitor{
 		cache:                         args.Cache,
 		pubKeyConverter:               args.PubKeyConverter,
 		marshaller:                    args.Marshaller,
@@ -60,7 +60,9 @@ func NewHeartbeatV2Monitor(args ArgHeartbeatV2Monitor) (*heartbeatV2Monitor, err
 		hideInactiveValidatorInterval: args.HideInactiveValidatorInterval,
 		shardId:                       args.ShardId,
 		peerTypeProvider:              args.PeerTypeProvider,
-	}, nil
+	}
+
+	return hbv2Monitor, nil
 }
 
 func checkArgs(args ArgHeartbeatV2Monitor) error {
@@ -146,9 +148,10 @@ func (monitor *heartbeatV2Monitor) parseMessage(pid core.PeerID, message interfa
 	peerInfo := monitor.peerShardMapper.GetPeerInfo(pid)
 
 	crtTime := time.Now()
+	messageTime := time.Unix(payload.Timestamp, 0)
 	messageAge := monitor.getMessageAge(crtTime, payload.Timestamp)
 	stringType := monitor.computePeerType(peerInfo.PkBytes)
-	if monitor.shouldSkipMessage(messageAge, stringType) {
+	if monitor.shouldSkipMessage(messageAge) {
 		return pubKeyHeartbeat, heartbeat.ErrShouldSkipValidator
 	}
 
@@ -161,7 +164,7 @@ func (monitor *heartbeatV2Monitor) parseMessage(pid core.PeerID, message interfa
 
 	pubKeyHeartbeat = data.PubKeyHeartbeat{
 		PublicKey:       pk,
-		TimeStamp:       crtTime,
+		TimeStamp:       messageTime,
 		IsActive:        monitor.isActive(messageAge),
 		ReceivedShardID: monitor.shardId,
 		ComputedShardID: peerInfo.ShardID,
@@ -205,12 +208,9 @@ func (monitor *heartbeatV2Monitor) isActive(messageAge time.Duration) bool {
 	return messageAge <= monitor.maxDurationPeerUnresponsive
 }
 
-func (monitor *heartbeatV2Monitor) shouldSkipMessage(messageAge time.Duration, peerType string) bool {
+func (monitor *heartbeatV2Monitor) shouldSkipMessage(messageAge time.Duration) bool {
 	isActive := monitor.isActive(messageAge)
-	isInactiveObserver := !isActive &&
-		peerType != string(common.EligibleList) &&
-		peerType != string(common.WaitingList)
-	if isInactiveObserver {
+	if !isActive {
 		return messageAge > monitor.hideInactiveValidatorInterval
 	}
 
