@@ -7,9 +7,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/counting"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go-storage/immunitycache"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/cache"
 	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 )
 
@@ -32,7 +32,7 @@ type shardedData struct {
 	// Each key represents a destination shard id and the value will contain all
 	// data hashes that have that shard as destination
 	shardedDataStore map[string]*shardStore
-	configPrototype  immunitycache.CacheConfig
+	configPrototype  cache.CacheConfig
 
 	mutAddedDataHandlers sync.RWMutex
 	addedDataHandlers    []func(key []byte, value interface{})
@@ -47,7 +47,7 @@ type shardStore struct {
 func NewShardedData(name string, config storageunit.CacheConfig) (*shardedData, error) {
 	log.Debug("NewShardedData", "name", name, "config", config.String())
 
-	configPrototype := immunitycache.CacheConfig{
+	configPrototype := cache.CacheConfig{
 		Name:                        untitledCacheName,
 		NumChunks:                   config.Shards,
 		MaxNumItems:                 config.Capacity,
@@ -128,14 +128,14 @@ func (sd *shardedData) addShardStoreNoLock(cacheID string) *shardStore {
 func (sd *shardedData) newShardStore(cacheID string) (*shardStore, error) {
 	config := sd.configPrototype
 	config.Name = fmt.Sprintf("%s:%s", sd.name, cacheID)
-	cache, err := immunitycache.NewImmunityCache(config)
+	newImmunityCache, err := cache.NewImmunityCache(config)
 	if err != nil {
 		return nil, err
 	}
 
 	return &shardStore{
 		cacheID: cacheID,
-		cache:   cache,
+		cache:   newImmunityCache,
 	}, nil
 }
 
@@ -263,8 +263,8 @@ func (sd *shardedData) Keys() [][]byte {
 
 	keys := make([][]byte, 0)
 	for _, shard := range sd.shardedDataStore {
-		cache := shard.cache
-		keys = append(keys, cache.Keys()...)
+		c := shard.cache
+		keys = append(keys, c.Keys()...)
 	}
 
 	return keys
@@ -278,8 +278,8 @@ func (sd *shardedData) GetCounts() counting.CountsWithSize {
 	counts := counting.NewConcurrentShardedCountsWithSize()
 
 	for cacheID, shard := range sd.shardedDataStore {
-		cache := shard.cache
-		counts.PutCounts(cacheID, int64(cache.Len()), int64(cache.NumBytes()))
+		c := shard.cache
+		counts.PutCounts(cacheID, int64(c.Len()), int64(c.NumBytes()))
 	}
 
 	return counts

@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-storage/immunitycache"
 	"github.com/ElrondNetwork/elrond-go-storage/lrucache"
 	"github.com/ElrondNetwork/elrond-go-storage/lrucache/capacity"
 	"github.com/ElrondNetwork/elrond-go-storage/mapTimeCache"
@@ -20,6 +21,12 @@ type EvictionHandler = types.EvictionHandler
 
 // ArgMapTimeCacher is an alias for the imported ArgMapTimeCacher
 type ArgMapTimeCacher = mapTimeCache.ArgMapTimeCacher
+
+// ImmunityCache is a cache-like structure
+type ImmunityCache = immunitycache.ImmunityCache
+
+// CacheConfig holds cache configuration
+type CacheConfig = immunitycache.CacheConfig
 
 // TimeCacher defines the cache that can keep a record for a bounded time
 type TimeCacher interface {
@@ -67,4 +74,9 @@ func NewLRUCacheWithEviction(size int, onEvicted func(key interface{}, value int
 // NewMapTimeCache creates a new mapTimeCacher
 func NewMapTimeCache(arg ArgMapTimeCacher) (storage.Cacher, error) {
 	return mapTimeCache.NewMapTimeCache(arg)
+}
+
+// NewImmunityCache creates a new cache
+func NewImmunityCache(config CacheConfig) (*ImmunityCache, error) {
+	return immunitycache.NewImmunityCache(config)
 }

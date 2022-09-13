@@ -4,7 +4,7 @@ import (
 	"errors"
 	"strings"
 
-	storageErrors "github.com/ElrondNetwork/elrond-go-storage/common/commonErrors"
+	storageErrors "github.com/ElrondNetwork/elrond-go-storage/common"
 )
 
 // ErrInvalidNumberOfPersisters signals that an invalid number of persisters has been provided
