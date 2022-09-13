@@ -3,6 +3,7 @@ package sender
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -77,6 +78,7 @@ func TestHeartbeatSenderFactory_createHeartbeatSender(t *testing.T) {
 		}
 		hbSender, err := createHeartbeatSender(args)
 		assert.True(t, errors.Is(err, heartbeat.ErrInvalidConfiguration))
+		assert.True(t, strings.Contains(err.Error(), "isValidator"))
 		assert.True(t, check.IfNil(hbSender))
 	})
 	t.Run("validator should create regular sender", func(t *testing.T) {

@@ -97,7 +97,7 @@ func isMultikeyMode(privKey crypto.PrivateKey, keysHolder heartbeat.KeysHolder, 
 
 	_, _, err = nodesCoordinator.GetValidatorWithPublicKey(pkBytes)
 	if err == nil && isMultikey {
-		return false, heartbeat.ErrInvalidConfiguration
+		return false, fmt.Errorf("%w, len(keysMap) = %d, isValidator = %v", heartbeat.ErrInvalidConfiguration, len(keysMap), err == nil)
 	}
 
 	return isMultikey, nil

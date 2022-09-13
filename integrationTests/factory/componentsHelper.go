@@ -68,7 +68,7 @@ func CreateDefaultConfig() *config.Configs {
 	configs.FlagsConfig = &config.ContextFlagsConfig{
 		WorkingDir:  "workingDir",
 		UseLogView:  true,
-		BaseVersion: fmt.Sprintf("%s-base", Version),
+		BaseVersion: BaseVersion,
 		Version:     Version,
 	}
 	configs.ConfigurationPathsHolder = configPathsHolder
