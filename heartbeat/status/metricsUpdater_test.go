@@ -190,7 +190,7 @@ func TestMetricsUpdater_updateMetrics(t *testing.T) {
 	t.Run("heartbeat v1 is disabled should send sender metrics", func(t *testing.T) {
 		t.Run("eligible node", func(t *testing.T) {
 			args.HeartbeatSenderInfoProvider = &mock.HeartbeatSenderInfoProviderStub{
-				GetSenderInfoCalled: func() (string, core.P2PPeerSubType, error) {
+				GetCurrentNodeTypeCalled: func() (string, core.P2PPeerSubType, error) {
 					return string(common.EligibleList), core.FullHistoryObserver, nil
 				},
 			}
@@ -206,7 +206,7 @@ func TestMetricsUpdater_updateMetrics(t *testing.T) {
 		})
 		t.Run("waiting node", func(t *testing.T) {
 			args.HeartbeatSenderInfoProvider = &mock.HeartbeatSenderInfoProviderStub{
-				GetSenderInfoCalled: func() (string, core.P2PPeerSubType, error) {
+				GetCurrentNodeTypeCalled: func() (string, core.P2PPeerSubType, error) {
 					return string(common.WaitingList), core.FullHistoryObserver, nil
 				},
 			}
@@ -222,7 +222,7 @@ func TestMetricsUpdater_updateMetrics(t *testing.T) {
 		})
 		t.Run("observer node", func(t *testing.T) {
 			args.HeartbeatSenderInfoProvider = &mock.HeartbeatSenderInfoProviderStub{
-				GetSenderInfoCalled: func() (string, core.P2PPeerSubType, error) {
+				GetCurrentNodeTypeCalled: func() (string, core.P2PPeerSubType, error) {
 					return string(common.ObserverList), core.FullHistoryObserver, nil
 				},
 			}
@@ -237,9 +237,9 @@ func TestMetricsUpdater_updateMetrics(t *testing.T) {
 				core.FullHistoryObserver)
 		})
 	})
-	t.Run("heartbeat v1 is disabled GetSenderInfo errors", func(t *testing.T) {
+	t.Run("heartbeat v1 is disabled GetCurrentNodeType errors", func(t *testing.T) {
 		args.HeartbeatSenderInfoProvider = &mock.HeartbeatSenderInfoProviderStub{
-			GetSenderInfoCalled: func() (string, core.P2PPeerSubType, error) {
+			GetCurrentNodeTypeCalled: func() (string, core.P2PPeerSubType, error) {
 				return "", 0, errors.New("expected error")
 			},
 		}

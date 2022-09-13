@@ -21,6 +21,7 @@ import (
 type ArgHeartbeatV2ComponentsFactory struct {
 	Config             config.Config
 	Prefs              config.Preferences
+	BaseVersion        string
 	AppVersion         string
 	BoostrapComponents BootstrapComponentsHolder
 	CoreComponents     CoreComponentsHolder
@@ -33,6 +34,7 @@ type ArgHeartbeatV2ComponentsFactory struct {
 type heartbeatV2ComponentsFactory struct {
 	config             config.Config
 	prefs              config.Preferences
+	baseVersion        string
 	version            string
 	boostrapComponents BootstrapComponentsHolder
 	coreComponents     CoreComponentsHolder
@@ -60,6 +62,7 @@ func NewHeartbeatV2ComponentsFactory(args ArgHeartbeatV2ComponentsFactory) (*hea
 	return &heartbeatV2ComponentsFactory{
 		config:             args.Config,
 		prefs:              args.Prefs,
+		baseVersion:        args.BaseVersion,
 		version:            args.AppVersion,
 		boostrapComponents: args.BoostrapComponents,
 		coreComponents:     args.CoreComponents,
@@ -143,6 +146,7 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 		HeartbeatTimeBetweenSends:                   time.Second * time.Duration(cfg.HeartbeatTimeBetweenSendsInSec),
 		HeartbeatTimeBetweenSendsWhenError:          time.Second * time.Duration(cfg.HeartbeatTimeBetweenSendsWhenErrorInSec),
 		HeartbeatThresholdBetweenSends:              cfg.HeartbeatThresholdBetweenSends,
+		BaseVersionNumber:                           hcf.baseVersion,
 		VersionNumber:                               hcf.version,
 		NodeDisplayName:                             hcf.prefs.Preferences.NodeDisplayName,
 		Identity:                                    hcf.prefs.Preferences.Identity,

@@ -754,6 +754,7 @@ func (nr *nodeRunner) CreateManagedHeartbeatV2Components(
 	heartbeatV2Args := mainFactory.ArgHeartbeatV2ComponentsFactory{
 		Config:             *nr.configs.GeneralConfig,
 		Prefs:              *nr.configs.PreferencesConfig,
+		BaseVersion:        nr.configs.FlagsConfig.BaseVersion,
 		AppVersion:         nr.configs.FlagsConfig.Version,
 		BoostrapComponents: bootstrapComponents,
 		CoreComponents:     coreComponents,

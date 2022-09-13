@@ -3,14 +3,16 @@ package sender
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"testing"
-	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-crypto"
+	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl"
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
+	"github.com/ElrondNetwork/elrond-go/heartbeat/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
@@ -18,27 +20,29 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func createMockPeerAuthenticationSenderFactoryArgs() argPeerAuthenticationSenderFactory {
-	return argPeerAuthenticationSenderFactory{
-		argBaseSender:            createMockBaseArgs(),
-		nodesCoordinator:         &shardingMocks.NodesCoordinatorStub{},
-		peerSignatureHandler:     &cryptoMocks.PeerSignatureHandlerStub{},
-		hardforkTrigger:          &testscommon.HardforkTriggerStub{},
-		hardforkTimeBetweenSends: time.Second,
-		hardforkTriggerPubKey:    providedHardforkPubKey,
-		keysHolder:               &testscommon.KeysHolderStub{},
-		timeBetweenChecks:        time.Second,
-		shardCoordinator:         createShardCoordinatorInShard(0),
+func createMockHeartbeatSenderFactoryArgs() argHeartbeatSenderFactory {
+	return argHeartbeatSenderFactory{
+		argBaseSender:        createMockBaseArgs(),
+		baseVersionNumber:    "base version number",
+		versionNumber:        "version number",
+		nodeDisplayName:      "node name",
+		identity:             "identity",
+		peerSubType:          core.RegularPeer,
+		currentBlockProvider: &mock.CurrentBlockProviderStub{},
+		peerTypeProvider:     &mock.PeerTypeProviderStub{},
+		keysHolder:           &testscommon.KeysHolderStub{},
+		shardCoordinator:     createShardCoordinatorInShard(0),
+		nodesCoordinator:     &shardingMocks.NodesCoordinatorStub{},
 	}
 }
 
-func TestPeerAuthenticationSenderFactory_createPeerAuthenticationSender(t *testing.T) {
+func TestHeartbeatSenderFactory_createHeartbeatSender(t *testing.T) {
 	t.Parallel()
 
 	t.Run("ToByteArray fails should error", func(t *testing.T) {
 		t.Parallel()
 
-		args := createMockPeerAuthenticationSenderFactoryArgs()
+		args := createMockHeartbeatSenderFactoryArgs()
 		args.privKey = &cryptoMocks.PrivateKeyStub{
 			GeneratePublicStub: func() crypto.PublicKey {
 				return &cryptoMocks.PublicKeyStub{
@@ -48,14 +52,14 @@ func TestPeerAuthenticationSenderFactory_createPeerAuthenticationSender(t *testi
 				}
 			},
 		}
-		peerAuthSender, err := createPeerAuthenticationSender(args)
+		hbSender, err := createHeartbeatSender(args)
 		assert.True(t, errors.Is(err, expectedErr))
-		assert.True(t, check.IfNil(peerAuthSender))
+		assert.True(t, check.IfNil(hbSender))
 	})
 	t.Run("validator with keys managed should error", func(t *testing.T) {
 		t.Parallel()
 
-		args := createMockPeerAuthenticationSenderFactoryArgs()
+		args := createMockHeartbeatSenderFactoryArgs()
 		args.nodesCoordinator = &shardingMocks.NodesCoordinatorStub{
 			GetValidatorWithPublicKeyCalled: func(publicKey []byte) (validator nodesCoordinator.Validator, shardId uint32, err error) {
 				return nil, 0, nil
@@ -72,28 +76,29 @@ func TestPeerAuthenticationSenderFactory_createPeerAuthenticationSender(t *testi
 				return keysMap
 			},
 		}
-		peerAuthSender, err := createPeerAuthenticationSender(args)
+		hbSender, err := createHeartbeatSender(args)
 		assert.True(t, errors.Is(err, heartbeat.ErrInvalidConfiguration))
-		assert.True(t, check.IfNil(peerAuthSender))
+		assert.True(t, strings.Contains(err.Error(), "isValidator"))
+		assert.True(t, check.IfNil(hbSender))
 	})
 	t.Run("validator should create regular sender", func(t *testing.T) {
 		t.Parallel()
 
-		args := createMockPeerAuthenticationSenderFactoryArgs()
+		args := createMockHeartbeatSenderFactoryArgs()
 		args.nodesCoordinator = &shardingMocks.NodesCoordinatorStub{
 			GetValidatorWithPublicKeyCalled: func(publicKey []byte) (validator nodesCoordinator.Validator, shardId uint32, err error) {
 				return nil, 0, nil
 			},
 		}
-		peerAuthSender, err := createPeerAuthenticationSender(args)
+		hbSender, err := createHeartbeatSender(args)
 		assert.Nil(t, err)
-		assert.False(t, check.IfNil(peerAuthSender))
-		assert.Equal(t, "*sender.peerAuthenticationSender", fmt.Sprintf("%T", peerAuthSender))
+		assert.False(t, check.IfNil(hbSender))
+		assert.Equal(t, "*sender.heartbeatSender", fmt.Sprintf("%T", hbSender))
 	})
 	t.Run("regular observer should create regular sender", func(t *testing.T) {
 		t.Parallel()
 
-		args := createMockPeerAuthenticationSenderFactoryArgs()
+		args := createMockHeartbeatSenderFactoryArgs()
 		args.nodesCoordinator = &shardingMocks.NodesCoordinatorStub{
 			GetValidatorWithPublicKeyCalled: func(publicKey []byte) (validator nodesCoordinator.Validator, shardId uint32, err error) {
 				return nil, 0, errors.New("not validator")
@@ -104,15 +109,15 @@ func TestPeerAuthenticationSenderFactory_createPeerAuthenticationSender(t *testi
 				return make(map[string]crypto.PrivateKey)
 			},
 		}
-		peerAuthSender, err := createPeerAuthenticationSender(args)
+		hbSender, err := createHeartbeatSender(args)
 		assert.Nil(t, err)
-		assert.False(t, check.IfNil(peerAuthSender))
-		assert.Equal(t, "*sender.peerAuthenticationSender", fmt.Sprintf("%T", peerAuthSender))
+		assert.False(t, check.IfNil(hbSender))
+		assert.Equal(t, "*sender.heartbeatSender", fmt.Sprintf("%T", hbSender))
 	})
 	t.Run("not validator with keys managed should create multikey sender", func(t *testing.T) {
 		t.Parallel()
 
-		args := createMockPeerAuthenticationSenderFactoryArgs()
+		args := createMockHeartbeatSenderFactoryArgs()
 		args.nodesCoordinator = &shardingMocks.NodesCoordinatorStub{
 			GetValidatorWithPublicKeyCalled: func(publicKey []byte) (validator nodesCoordinator.Validator, shardId uint32, err error) {
 				return nil, 0, errors.New("not validator")
@@ -133,9 +138,9 @@ func TestPeerAuthenticationSenderFactory_createPeerAuthenticationSender(t *testi
 				return keysMap
 			},
 		}
-		peerAuthSender, err := createPeerAuthenticationSender(args)
+		hbSender, err := createHeartbeatSender(args)
 		assert.Nil(t, err)
-		assert.False(t, check.IfNil(peerAuthSender))
-		assert.Equal(t, "*sender.multikeyPeerAuthenticationSender", fmt.Sprintf("%T", peerAuthSender))
+		assert.False(t, check.IfNil(hbSender))
+		assert.Equal(t, "*sender.multikeyHeartbeatSender", fmt.Sprintf("%T", hbSender))
 	})
 }
