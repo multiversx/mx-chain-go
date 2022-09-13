@@ -141,7 +141,7 @@ func createAccountsDb(args ArgsAccountsDB) *AccountsDB {
 		shouldSerializeSnapshots: args.ShouldSerializeSnapshots,
 		lastSnapshot:             &snapshotInfo{},
 		processStatusHandler:     args.ProcessStatusHandler,
-		isSnapshotInProgress: 	  atomic.Flag{},
+		isSnapshotInProgress:     atomic.Flag{},
 	}
 }
 
