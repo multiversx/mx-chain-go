@@ -2028,3 +2028,11 @@ func displayCleanupErrorMessage(message string, shardID uint32, noncesToPrevFina
 		"nonces to previous final", noncesToPrevFinal,
 		"error", err.Error())
 }
+
+func makeCommonHeaderHandlerHashMap(hdrMap map[string]data.HeaderHandler) map[string]data.CommonHeaderHandler {
+	commonHdrMap := make(map[string]data.CommonHeaderHandler)
+	for key, val := range hdrMap {
+		commonHdrMap[key] = val
+	}
+	return commonHdrMap
+}

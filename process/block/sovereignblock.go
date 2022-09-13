@@ -2,9 +2,13 @@ package block
 
 import (
 	"bytes"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go/genesis/process/disabled"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/state"
+	"math/big"
 	"time"
 )
 
@@ -30,25 +34,83 @@ func NewSovereignBlockProcessor(arguments ArgsSovereignBlockProcessor) (*soverei
 		validatorStatisticsProcessor: arguments.ValidatorStatisticsProcessor,
 	}
 
+	sovereign.scheduledTxsExecutionHandler = &disabled.ScheduledTxsExecutionHandler{}
+
 	return sovereign, nil
 }
 
+// CreateNewHeader creates a new header
+func (s *sovereignBlockProcessor) CreateNewHeader(round uint64, nonce uint64) (data.HeaderHandler, error) {
+	s.enableRoundsHandler.CheckRound(round)
+	header := &block.HeaderWithValidatorStats{
+		Header: &block.Header{
+			SoftwareVersion: []byte("1"),
+		},
+	}
+
+	err := header.SetRound(round)
+	if err != nil {
+		return nil, err
+	}
+
+	err = header.SetNonce(nonce)
+	if err != nil {
+		return nil, err
+	}
+
+	err = header.SetAccumulatedFees(big.NewInt(0))
+	if err != nil {
+		return nil, err
+	}
+
+	err = header.SetDeveloperFees(big.NewInt(0))
+	if err != nil {
+		return nil, err
+	}
+
+	return header, nil
+}
+
+// CreateBlock selects and puts transaction into the temporary block body
+func (s *sovereignBlockProcessor) CreateBlock(initialHdr data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error) {
+	if check.IfNil(initialHdr) {
+		return nil, nil, process.ErrNilBlockHeader
+	}
+	shardHdr, ok := initialHdr.(data.ShardHeaderHandler)
+	if !ok {
+		return nil, nil, process.ErrWrongTypeAssertion
+	}
+
+	s.processStatusHandler.SetBusy("shardProcessor.CreateBlock")
+	defer s.processStatusHandler.SetIdle()
+
+	err := s.createBlockStarted()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	s.blockChainHook.SetCurrentHeader(shardHdr)
+	body, processedMiniBlocksDestMeInfo, err := sp.createBlockBody(shardHdr, haveTime)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	finalBody, err := sp.applyBodyToHeader(shardHdr, body, processedMiniBlocksDestMeInfo)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return shardHdr, finalBody, nil
+}
+
+// ProcessBlock actually process the selected transaction and will create the final block body
 func (s *sovereignBlockProcessor) ProcessBlock(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
 	//TODO implement me
 	panic("implement me")
 }
 
+// CommitBlock - will do a lot of verification
 func (s *sovereignBlockProcessor) CommitBlock(header data.HeaderHandler, body data.BodyHandler) error {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (s *sovereignBlockProcessor) CreateNewHeader(round uint64, nonce uint64) (data.HeaderHandler, error) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (s *sovereignBlockProcessor) CreateBlock(initialHdr data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error) {
 	//TODO implement me
 	panic("implement me")
 }
@@ -92,9 +154,19 @@ func (s *sovereignBlockProcessor) ProcessScheduledBlock(_ data.HeaderHandler, _ 
 	return nil
 }
 
+// DecodeBlockHeader decodes the current header
 func (s *sovereignBlockProcessor) DecodeBlockHeader(dta []byte) data.HeaderHandler {
-	//TODO implement me
-	panic("implement me")
+	if dta == nil {
+		return nil
+	}
+
+	header, err := process.UnmarshalHeaderWithValidatorStats(s.marshalizer, dta)
+	if err != nil {
+		log.Debug("DecodeBlockHeader.UnmarshalShardHeader", "error", err.Error())
+		return nil
+	}
+
+	return header
 }
 
 // IsInterfaceNil returns true if underlying object is nil

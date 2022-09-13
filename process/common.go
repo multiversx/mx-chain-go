@@ -732,6 +732,17 @@ func UnmarshalMetaHeader(marshalizer marshal.Marshalizer, headerBuffer []byte) (
 	return header, nil
 }
 
+// UnmarshalHeaderWithValidatorStats unmarshalls a header with validator stats
+func UnmarshalHeaderWithValidatorStats(marshalizer marshal.Marshalizer, headerBuffer []byte) (data.CommonHeaderHandler, error) {
+	header := &block.HeaderWithValidatorStats{}
+	err := marshalizer.Unmarshal(header, headerBuffer)
+	if err != nil {
+		return nil, err
+	}
+
+	return header, nil
+}
+
 // UnmarshalShardHeader unmarshalls a shard header
 func UnmarshalShardHeader(marshalizer marshal.Marshalizer, hdrBuff []byte) (data.ShardHeaderHandler, error) {
 	hdr, err := UnmarshalShardHeaderV2(marshalizer, hdrBuff)

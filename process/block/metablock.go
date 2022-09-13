@@ -2051,7 +2051,7 @@ func (mp *metaProcessor) createShardInfo() ([]data.ShardDataHandler, error) {
 			shardMiniBlockHeader.ReceiverShardID = shardHdr.GetMiniBlockHeaderHandlers()[i].GetReceiverShardID()
 			shardMiniBlockHeader.Hash = shardHdr.GetMiniBlockHeaderHandlers()[i].GetHash()
 			shardMiniBlockHeader.TxCount = shardHdr.GetMiniBlockHeaderHandlers()[i].GetTxCount()
-			shardMiniBlockHeader.Type = block.Type(shardHdr.GetMiniBlockHeaderHandlers()[i].GetTypeInt32())
+			shardMiniBlockHeader.Type = shardHdr.GetMiniBlockHeaderHandlers()[i].GetTypeInt32()
 
 			shardData.ShardMiniBlockHeaders = append(shardData.ShardMiniBlockHeaders, shardMiniBlockHeader)
 		}
@@ -2217,7 +2217,7 @@ func (mp *metaProcessor) applyBodyToHeader(metaHdr data.MetaHeaderHandler, bodyH
 
 	sw.Start("UpdatePeerState")
 	mp.prepareBlockHeaderInternalMapForValidatorProcessor()
-	valStatRootHash, err := mp.validatorStatisticsProcessor.UpdatePeerState(metaHdr, mp.hdrsForCurrBlock.getHdrHashMap())
+	valStatRootHash, err := mp.validatorStatisticsProcessor.UpdatePeerState(metaHdr, makeCommonHeaderHandlerHashMap(mp.hdrsForCurrBlock.getHdrHashMap()))
 	sw.Stop("UpdatePeerState")
 	if err != nil {
 		return nil, err
@@ -2254,7 +2254,7 @@ func (mp *metaProcessor) prepareBlockHeaderInternalMapForValidatorProcessor() {
 
 func (mp *metaProcessor) verifyValidatorStatisticsRootHash(header *block.MetaBlock) error {
 	mp.prepareBlockHeaderInternalMapForValidatorProcessor()
-	validatorStatsRH, err := mp.validatorStatisticsProcessor.UpdatePeerState(header, mp.hdrsForCurrBlock.getHdrHashMap())
+	validatorStatsRH, err := mp.validatorStatisticsProcessor.UpdatePeerState(header, makeCommonHeaderHandlerHashMap(mp.hdrsForCurrBlock.getHdrHashMap()))
 	if err != nil {
 		return err
 	}
