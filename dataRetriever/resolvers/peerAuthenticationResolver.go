@@ -74,18 +74,19 @@ func checkArgPeerAuthenticationResolver(arg ArgPeerAuthenticationResolver) error
 }
 
 // RequestDataFromHash requests peer authentication data from other peers having input a public key hash
-func (res *peerAuthenticationResolver) RequestDataFromHash(hash []byte, _ uint32) error {
+func (res *peerAuthenticationResolver) RequestDataFromHash(hash []byte, epoch uint32) error {
 	return res.SendOnRequestTopic(
 		&dataRetriever.RequestData{
 			Type:  dataRetriever.HashType,
 			Value: hash,
+			Epoch: epoch,
 		},
 		[][]byte{hash},
 	)
 }
 
 // RequestDataFromHashArray requests peer authentication data from other peers having input multiple public key hashes
-func (res *peerAuthenticationResolver) RequestDataFromHashArray(hashes [][]byte, _ uint32) error {
+func (res *peerAuthenticationResolver) RequestDataFromHashArray(hashes [][]byte, epoch uint32) error {
 	b := &batch.Batch{
 		Data: hashes,
 	}
@@ -98,6 +99,7 @@ func (res *peerAuthenticationResolver) RequestDataFromHashArray(hashes [][]byte,
 		&dataRetriever.RequestData{
 			Type:  dataRetriever.HashArrayType,
 			Value: buffHashes,
+			Epoch: epoch,
 		},
 		hashes,
 	)
