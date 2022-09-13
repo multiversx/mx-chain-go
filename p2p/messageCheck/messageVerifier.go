@@ -40,7 +40,7 @@ func checkArgs(args ArgsMessageVerifier) error {
 
 // Verify will check the signature of a p2p message
 func (m *messageVerifier) Verify(message p2p.MessageP2P) error {
-	pubsubMsg, err := m.convertP2PMessagetoPubSubMessage(message)
+	pubsubMsg, err := convertP2PMessagetoPubSubMessage(message)
 	if err != nil {
 		return err
 	}
@@ -53,7 +53,7 @@ func (m *messageVerifier) Verify(message p2p.MessageP2P) error {
 	return nil
 }
 
-func (m *messageVerifier) convertP2PMessagetoPubSubMessage(msg p2p.MessageP2P) (*pubsub_pb.Message, error) {
+func convertP2PMessagetoPubSubMessage(msg p2p.MessageP2P) (*pubsub_pb.Message, error) {
 	if check.IfNil(msg) {
 		return nil, p2p.ErrNilMessage
 	}
@@ -72,7 +72,7 @@ func (m *messageVerifier) convertP2PMessagetoPubSubMessage(msg p2p.MessageP2P) (
 	return newMsg, nil
 }
 
-func (m *messageVerifier) convertPubSubMessagestoP2PMessage(msg *pubsub_pb.Message) (p2p.MessageP2P, error) {
+func convertPubSubMessagestoP2PMessage(msg *pubsub_pb.Message) (p2p.MessageP2P, error) {
 	if msg == nil {
 		return nil, p2p.ErrNilMessage
 	}
@@ -93,7 +93,7 @@ func (m *messageVerifier) convertPubSubMessagestoP2PMessage(msg *pubsub_pb.Messa
 func (m *messageVerifier) Serialize(messages []p2p.MessageP2P) ([]byte, error) {
 	pubsubMessages := make([]*pubsub_pb.Message, 0, len(messages))
 	for _, message := range messages {
-		pubsubMsg, err := m.convertP2PMessagetoPubSubMessage(message)
+		pubsubMsg, err := convertP2PMessagetoPubSubMessage(message)
 		if err != nil {
 			continue
 		}
@@ -119,7 +119,7 @@ func (m *messageVerifier) Deserialize(messagesBytes []byte) ([]p2p.MessageP2P, e
 
 	p2pMessages := make([]p2p.MessageP2P, 0)
 	for _, pubsubMessage := range pubsubMessages {
-		p2pMsg, err := m.convertPubSubMessagestoP2PMessage(pubsubMessage)
+		p2pMsg, err := convertPubSubMessagestoP2PMessage(pubsubMessage)
 		if err != nil {
 			continue
 		}
