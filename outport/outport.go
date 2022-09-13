@@ -3,6 +3,7 @@ package outport
 import (
 	"fmt"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
@@ -13,7 +14,7 @@ import (
 
 var log = logger.GetOrCreate("outport")
 
-const maxTimeForDriverCall = time.Second * 30
+const maxTimeForDriverCall = time.Second * 300
 const minimumRetrialInterval = time.Millisecond * 10
 
 type outport struct {
@@ -23,6 +24,7 @@ type outport struct {
 	chanClose         chan struct{}
 	logHandler        func(logLevel logger.LogLevel, message string, args ...interface{})
 	timeForDriverCall time.Duration
+	messageCounter    uint64
 }
 
 // NewOutport will create a new instance of proxy
@@ -52,8 +54,10 @@ func (o *outport) SaveBlock(args *indexer.ArgsSaveBlockData) {
 }
 
 func (o *outport) monitorCompletionOnDriver(function string, driver Driver) chan struct{} {
+	counter := atomic.AddUint64(&o.messageCounter, 1)
+
 	o.logHandler(logger.LogDebug, "outport.monitorCompletionOnDriver starting",
-		"function", function, "driver", driverString(driver))
+		"function", function, "driver", driverString(driver), "message counter", counter)
 	ch := make(chan struct{})
 	go func() {
 		timer := time.NewTimer(o.timeForDriverCall)
@@ -61,10 +65,10 @@ func (o *outport) monitorCompletionOnDriver(function string, driver Driver) chan
 		select {
 		case <-ch:
 			o.logHandler(logger.LogDebug, "outport.monitorCompletionOnDriver ended",
-				"function", function, "driver", driverString(driver))
+				"function", function, "driver", driverString(driver), "message counter", counter)
 		case <-timer.C:
 			o.logHandler(logger.LogError, "outport.monitorCompletionOnDriver took too long",
-				"function", function, "driver", driverString(driver), "time", o.timeForDriverCall)
+				"function", function, "driver", driverString(driver), "message counter", counter, "time", o.timeForDriverCall)
 		}
 
 		timer.Stop()

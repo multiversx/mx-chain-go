@@ -17,6 +17,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const counterPositionInLogMessage = 5
+
 func TestNewOutport(t *testing.T) {
 	t.Parallel()
 
@@ -495,7 +497,9 @@ func TestOutport_CloseWhileDriverIsStuckInContinuousErrors(t *testing.T) {
 func TestOutport_SaveBlockDriverStuck(t *testing.T) {
 	t.Parallel()
 
+	currentCounter := uint64(778)
 	outportHandler, _ := NewOutport(minimumRetrialInterval)
+	outportHandler.messageCounter = currentCounter
 	outportHandler.timeForDriverCall = time.Second
 	logErrorCalled := atomic.Flag{}
 	numLogDebugCalled := uint32(0)
@@ -503,9 +507,11 @@ func TestOutport_SaveBlockDriverStuck(t *testing.T) {
 		if logLevel == logger.LogError {
 			logErrorCalled.SetValue(true)
 			assert.Equal(t, "outport.monitorCompletionOnDriver took too long", message)
+			assert.Equal(t, currentCounter+1, args[counterPositionInLogMessage])
 		}
 		if logLevel == logger.LogDebug {
 			atomicGo.AddUint32(&numLogDebugCalled, 1)
+			assert.Equal(t, currentCounter+1, args[counterPositionInLogMessage])
 		}
 	}
 
@@ -525,7 +531,9 @@ func TestOutport_SaveBlockDriverStuck(t *testing.T) {
 func TestOutport_SaveBlockDriverIsNotStuck(t *testing.T) {
 	t.Parallel()
 
+	currentCounter := uint64(778)
 	outportHandler, _ := NewOutport(minimumRetrialInterval)
+	outportHandler.messageCounter = currentCounter
 	outportHandler.timeForDriverCall = time.Second
 	numLogDebugCalled := uint32(0)
 	outportHandler.logHandler = func(logLevel logger.LogLevel, message string, args ...interface{}) {
@@ -535,9 +543,11 @@ func TestOutport_SaveBlockDriverIsNotStuck(t *testing.T) {
 		if logLevel == logger.LogDebug {
 			if atomicGo.LoadUint32(&numLogDebugCalled) == 0 {
 				assert.Equal(t, "outport.monitorCompletionOnDriver starting", message)
+				assert.Equal(t, currentCounter+1, args[counterPositionInLogMessage])
 			}
 			if atomicGo.LoadUint32(&numLogDebugCalled) == 1 {
 				assert.Equal(t, "outport.monitorCompletionOnDriver ended", message)
+				assert.Equal(t, currentCounter+1, args[counterPositionInLogMessage])
 			}
 
 			atomicGo.AddUint32(&numLogDebugCalled, 1)
