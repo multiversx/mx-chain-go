@@ -389,7 +389,7 @@ func (s *sovereignBlockProcessor) CommitBlock(headerHandler data.HeaderHandler, 
 	lastHeader := s.blockChain.GetCurrentBlockHeader()
 	lastMetaBlockHash := s.blockChain.GetCurrentBlockHeaderHash()
 
-	s.updateState(lastHeader, lastMetaBlockHash)
+	s.updateState(lastHeader)
 
 	committedRootHash, err := s.accountsDB[state.UserAccountsState].RootHash()
 	if err != nil {
@@ -404,6 +404,13 @@ func (s *sovereignBlockProcessor) CommitBlock(headerHandler data.HeaderHandler, 
 	s.blockChain.SetCurrentBlockHeaderHash(headerHash)
 	s.indexBlock(header, headerHash, body, lastMetaBlock, notarizedHeadersHashes, rewardsTxs)
 	s.recordBlockInHistory(headerHash, headerHandler, bodyHandler)
+
+	headerInfo := bootstrapStorage.BootstrapHeaderInfo{
+		ShardId: header.GetShardID(),
+		Epoch:   header.GetEpoch(),
+		Nonce:   header.GetNonce(),
+		Hash:    headerHash,
+	}
 
 	args := bootStorerDataArgs{
 		headerInfo:                 headerInfo,

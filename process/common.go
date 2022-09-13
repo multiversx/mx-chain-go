@@ -93,6 +93,25 @@ func GetShardHeaderFromPool(
 	return hdr, nil
 }
 
+// GetCommonHeaderFromPool gets the header, which is associated with the given hash, from pool
+func GetCommonHeaderFromPool(
+	hash []byte,
+	headersCacher dataRetriever.HeadersPool,
+) (data.CommonHeaderHandler, error) {
+
+	obj, err := getHeaderFromPool(hash, headersCacher)
+	if err != nil {
+		return nil, err
+	}
+
+	hdr, ok := obj.(data.CommonHeaderHandler)
+	if !ok {
+		return nil, ErrWrongTypeAssertion
+	}
+
+	return hdr, nil
+}
+
 // GetMetaHeaderFromPool gets the header, which is associated with the given hash, from pool
 func GetMetaHeaderFromPool(
 	hash []byte,
