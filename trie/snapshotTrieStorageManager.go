@@ -67,6 +67,7 @@ func (stsm *snapshotTrieStorageManager) putInPreviousStorerIfAbsent(key []byte, 
 		return
 	}
 
+	log.Trace("put missing hash in snapshot storer", "hash", key, "epoch", stsm.epoch-1)
 	err := stsm.mainSnapshotStorer.PutInEpoch(key, val, stsm.epoch-1)
 	if err != nil {
 		log.Warn("can not put in epoch",
