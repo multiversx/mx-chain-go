@@ -826,6 +826,7 @@ func (rrh *resolverRequestHandler) RequestPeerAuthenticationsByHashes(destShardI
 		"topic", common.PeerAuthenticationTopic,
 		"shard", destShardID,
 		"num hashes", len(hashes),
+		"epoch", rrh.epoch,
 	)
 
 	resolver, err := rrh.resolversFinder.MetaChainResolver(common.PeerAuthenticationTopic)
@@ -834,6 +835,7 @@ func (rrh *resolverRequestHandler) RequestPeerAuthenticationsByHashes(destShardI
 			"error", err.Error(),
 			"topic", common.PeerAuthenticationTopic,
 			"shard", destShardID,
+			"epoch", rrh.epoch,
 		)
 		return
 	}
@@ -850,6 +852,7 @@ func (rrh *resolverRequestHandler) RequestPeerAuthenticationsByHashes(destShardI
 			"error", err.Error(),
 			"topic", common.PeerAuthenticationTopic,
 			"shard", destShardID,
+			"epoch", rrh.epoch,
 		)
 	}
 }
