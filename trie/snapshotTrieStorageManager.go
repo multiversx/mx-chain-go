@@ -55,6 +55,10 @@ func (stsm *snapshotTrieStorageManager) putInPreviousStorerIfAbsent(key []byte, 
 		return
 	}
 
+	if stsm.epoch == 0 {
+		return
+	}
+
 	if epoch.Value >= stsm.epoch-1 {
 		return
 	}

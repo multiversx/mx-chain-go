@@ -122,6 +122,27 @@ func TestSnapshotTrieStorageManager_AlsoAddInPreviousEpoch(t *testing.T) {
 		returnedVal, _ := stsm.Get([]byte("key"))
 		assert.Equal(t, val, returnedVal)
 	})
+	t.Run("epoch is 0", func(t *testing.T) {
+		val := []byte("val")
+		_, trieStorage := newEmptyTrie()
+		trieStorage.mainStorer = &trie.SnapshotPruningStorerStub{
+			GetFromOldEpochsWithoutAddingToCacheCalled: func(_ []byte) ([]byte, core.OptionalUint32, error) {
+				epoch := core.OptionalUint32{
+					Value:    4,
+					HasValue: true,
+				}
+				return []byte("val"), epoch, nil
+			},
+			PutInEpochCalled: func(_ []byte, _ []byte, _ uint32) error {
+				assert.Fail(t, "this should not have been called")
+				return nil
+			},
+		}
+		stsm, _ := newSnapshotTrieStorageManager(trieStorage, 0)
+
+		returnedVal, _ := stsm.Get([]byte("key"))
+		assert.Equal(t, val, returnedVal)
+	})
 	t.Run("key is ActiveDBKey", func(t *testing.T) {
 		val := []byte("val")
 		_, trieStorage := newEmptyTrie()
