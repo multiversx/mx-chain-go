@@ -470,9 +470,11 @@ func TestPeerAuthenticationResolver_ProcessReceivedMessage(t *testing.T) {
 func TestPeerAuthenticationResolver_RequestShouldError(t *testing.T) {
 	t.Parallel()
 
+	providedEpoch := uint32(30)
 	arg := createMockArgPeerAuthenticationResolver()
 	arg.SenderResolver = &mock.TopicResolverSenderStub{
 		SendOnRequestTopicCalled: func(rd *dataRetriever.RequestData, originalHashes [][]byte) error {
+			assert.Equal(t, providedEpoch, rd.Epoch)
 			return expectedErr
 		},
 	}
@@ -481,13 +483,13 @@ func TestPeerAuthenticationResolver_RequestShouldError(t *testing.T) {
 	assert.False(t, res.IsInterfaceNil())
 
 	t.Run("RequestDataFromHash", func(t *testing.T) {
-		err = res.RequestDataFromHash([]byte(""), 0)
+		err = res.RequestDataFromHash([]byte(""), providedEpoch)
 		assert.Equal(t, expectedErr, err)
 	})
 	t.Run("RequestDataFromChunk - error on SendOnRequestTopic", func(t *testing.T) {
 		hashes := make([][]byte, 0)
 		hashes = append(hashes, []byte("pk"))
-		err = res.RequestDataFromHashArray(hashes, 0)
+		err = res.RequestDataFromHashArray(hashes, providedEpoch)
 		assert.Equal(t, expectedErr, err)
 	})
 }
@@ -495,9 +497,11 @@ func TestPeerAuthenticationResolver_RequestShouldError(t *testing.T) {
 func TestPeerAuthenticationResolver_RequestShouldWork(t *testing.T) {
 	t.Parallel()
 
+	providedEpoch := uint32(30)
 	arg := createMockArgPeerAuthenticationResolver()
 	arg.SenderResolver = &mock.TopicResolverSenderStub{
 		SendOnRequestTopicCalled: func(rd *dataRetriever.RequestData, originalHashes [][]byte) error {
+			assert.Equal(t, providedEpoch, rd.Epoch)
 			return nil
 		},
 	}
@@ -506,7 +510,7 @@ func TestPeerAuthenticationResolver_RequestShouldWork(t *testing.T) {
 	assert.False(t, res.IsInterfaceNil())
 
 	t.Run("RequestDataFromHash", func(t *testing.T) {
-		err = res.RequestDataFromHash([]byte(""), 0)
+		err = res.RequestDataFromHash([]byte(""), providedEpoch)
 		assert.Nil(t, err)
 	})
 }
