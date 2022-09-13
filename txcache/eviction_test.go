@@ -5,7 +5,6 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-storage/common"
 	"github.com/stretchr/testify/require"
 )
 
@@ -254,7 +253,7 @@ func Test_AddWithEviction_UniformDistribution_25000x10(t *testing.T) {
 		EvictionEnabled:               true,
 		NumBytesThreshold:             1000000000,
 		CountThreshold:                240000,
-		NumSendersToPreemptivelyEvict: common.TxPoolNumTxsToPreemptivelyEvict,
+		NumSendersToPreemptivelyEvict: 1000,
 		NumBytesPerSenderThreshold:    maxNumBytesPerSenderUpperBound,
 		CountPerSenderThreshold:       math.MaxUint32,
 	}

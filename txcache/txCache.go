@@ -5,7 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-storage/common/commonErrors"
+	"github.com/ElrondNetwork/elrond-go-storage/common"
 	"github.com/ElrondNetwork/elrond-go-storage/monitoring"
 	"github.com/ElrondNetwork/elrond-go-storage/types"
 )
@@ -41,7 +41,7 @@ func NewTxCache(config ConfigSourceMe, txGasHandler TxGasHandler) (*TxCache, err
 		return nil, err
 	}
 	if check.IfNil(txGasHandler) {
-		return nil, commonErrors.ErrNilTxGasHandler
+		return nil, common.ErrNilTxGasHandler
 	}
 
 	// Note: for simplicity, we use the same "numChunks" for both internal concurrent maps
