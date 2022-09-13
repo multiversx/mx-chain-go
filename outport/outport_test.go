@@ -504,7 +504,7 @@ func TestOutport_SaveBlockDriverStuck(t *testing.T) {
 	logErrorCalled := atomic.Flag{}
 	numLogDebugCalled := uint32(0)
 	outportHandler.logHandler = func(logLevel logger.LogLevel, message string, args ...interface{}) {
-		if logLevel == logger.LogError {
+		if logLevel == logger.LogWarning {
 			logErrorCalled.SetValue(true)
 			assert.Equal(t, "outport.monitorCompletionOnDriver took too long", message)
 			assert.Equal(t, currentCounter+1, args[counterPositionInLogMessage])

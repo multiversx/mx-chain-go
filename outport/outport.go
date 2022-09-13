@@ -14,7 +14,7 @@ import (
 
 var log = logger.GetOrCreate("outport")
 
-const maxTimeForDriverCall = time.Second * 300
+const maxTimeForDriverCall = time.Second * 30
 const minimumRetrialInterval = time.Millisecond * 10
 
 type outport struct {
@@ -67,7 +67,7 @@ func (o *outport) monitorCompletionOnDriver(function string, driver Driver) chan
 			o.logHandler(logger.LogDebug, "outport.monitorCompletionOnDriver ended",
 				"function", function, "driver", driverString(driver), "message counter", counter)
 		case <-timer.C:
-			o.logHandler(logger.LogError, "outport.monitorCompletionOnDriver took too long",
+			o.logHandler(logger.LogWarning, "outport.monitorCompletionOnDriver took too long",
 				"function", function, "driver", driverString(driver), "message counter", counter, "time", o.timeForDriverCall)
 		}
 
