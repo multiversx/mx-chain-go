@@ -2238,20 +2238,6 @@ func (mp *metaProcessor) applyBodyToHeader(metaHdr data.MetaHeaderHandler, bodyH
 	return body, nil
 }
 
-func (mp *metaProcessor) prepareBlockHeaderInternalMapForValidatorProcessor() {
-	currentBlockHeader := mp.blockChain.GetCurrentBlockHeader()
-	currentBlockHeaderHash := mp.blockChain.GetCurrentBlockHeaderHash()
-
-	if check.IfNil(currentBlockHeader) {
-		currentBlockHeader = mp.blockChain.GetGenesisHeader()
-		currentBlockHeaderHash = mp.blockChain.GetGenesisHeaderHash()
-	}
-
-	mp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
-	mp.hdrsForCurrBlock.hdrHashAndInfo[string(currentBlockHeaderHash)] = &hdrInfo{false, currentBlockHeader}
-	mp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
-}
-
 func (mp *metaProcessor) verifyValidatorStatisticsRootHash(header *block.MetaBlock) error {
 	mp.prepareBlockHeaderInternalMapForValidatorProcessor()
 	validatorStatsRH, err := mp.validatorStatisticsProcessor.UpdatePeerState(header, makeCommonHeaderHandlerHashMap(mp.hdrsForCurrBlock.getHdrHashMap()))

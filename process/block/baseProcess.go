@@ -640,6 +640,20 @@ func (bp *baseProcessor) createMiniBlockHeaderHandlers(
 	return totalTxCount, miniBlockHeaderHandlers, nil
 }
 
+func (bp *baseProcessor) prepareBlockHeaderInternalMapForValidatorProcessor() {
+	currentBlockHeader := bp.blockChain.GetCurrentBlockHeader()
+	currentBlockHeaderHash := bp.blockChain.GetCurrentBlockHeaderHash()
+
+	if check.IfNil(currentBlockHeader) {
+		currentBlockHeader = bp.blockChain.GetGenesisHeader()
+		currentBlockHeaderHash = bp.blockChain.GetGenesisHeaderHash()
+	}
+
+	bp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
+	bp.hdrsForCurrBlock.hdrHashAndInfo[string(currentBlockHeaderHash)] = &hdrInfo{false, currentBlockHeader}
+	bp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
+}
+
 func (bp *baseProcessor) setMiniBlockHeaderReservedField(
 	miniBlock *block.MiniBlock,
 	miniBlockHeaderHandler data.MiniBlockHeaderHandler,
