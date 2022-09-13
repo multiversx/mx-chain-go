@@ -54,22 +54,7 @@ func (s *sovereignBlockProcessor) CreateNewHeader(round uint64, nonce uint64) (d
 		},
 	}
 
-	err := header.SetRound(round)
-	if err != nil {
-		return nil, err
-	}
-
-	err = header.SetNonce(nonce)
-	if err != nil {
-		return nil, err
-	}
-
-	err = header.SetAccumulatedFees(big.NewInt(0))
-	if err != nil {
-		return nil, err
-	}
-
-	err = header.SetDeveloperFees(big.NewInt(0))
+	err := s.setRoundNonceInitFees(round, nonce, header)
 	if err != nil {
 		return nil, err
 	}
@@ -87,12 +72,12 @@ func (s *sovereignBlockProcessor) CreateBlock(initialHdr data.HeaderHandler, hav
 		return nil, nil, process.ErrWrongTypeAssertion
 	}
 
-	s.processStatusHandler.SetBusy("shardProcessor.CreateBlock")
+	s.processStatusHandler.SetBusy("sovereignBlockProcessor.CreateBlock")
 	defer s.processStatusHandler.SetIdle()
 
 	for _, accounts := range s.accountsDB {
 		if accounts.JournalLen() != 0 {
-			log.Error("metaProcessor.CreateBlock first entry", "stack", accounts.GetStackDebugFirstEntry()))
+			log.Error("sovereignBlockProcessor.CreateBlock first entry", "stack", accounts.GetStackDebugFirstEntry()))
 			return nil, nil, process.ErrAccountStateDirty
 		}
 	}
@@ -133,11 +118,6 @@ func (s *sovereignBlockProcessor) ProcessBlock(
 		return err
 	}
 
-	sovereignHdr, ok := headerHandler.(*block.HeaderWithValidatorStats)
-	if !ok {
-		return process.ErrWrongTypeAssertion
-	}
-
 	blockBody, ok := bodyHandler.(*block.Body)
 	if !ok {
 		return process.ErrWrongTypeAssertion
@@ -149,11 +129,6 @@ func (s *sovereignBlockProcessor) ProcessBlock(
 	}
 
 	s.txCoordinator.RequestBlockTransactions(blockBody)
-
-	if haveTime() < 0 {
-		return process.ErrTimeIsOut
-	}
-
 	err = s.txCoordinator.IsDataPreparedForProcessing(haveTime)
 	if err != nil {
 		return err
@@ -173,7 +148,7 @@ func (s *sovereignBlockProcessor) ProcessBlock(
 	}()
 
 	startTime := time.Now()
-	err = s.txCoordinator.ProcessBlockTransaction(sovereignHdr, blockBody, haveTime)
+	err = s.txCoordinator.ProcessBlockTransaction(headerHandler, blockBody, haveTime)
 	elapsedTime := time.Since(startTime)
 	log.Debug("elapsed time to process block transaction",
 		"time [s]", elapsedTime,
@@ -183,17 +158,12 @@ func (s *sovereignBlockProcessor) ProcessBlock(
 	}
 
 	s.prepareBlockHeaderInternalMapForValidatorProcessor()
-	validatorStatsRH, err := s.validatorStatisticsProcessor.UpdatePeerState(sovereignHdr, makeCommonHeaderHandlerHashMap(s.hdrsForCurrBlock.getHdrHashMap()))
+	_, err = s.validatorStatisticsProcessor.UpdatePeerState(headerHandler, makeCommonHeaderHandlerHashMap(s.hdrsForCurrBlock.getHdrHashMap()))
 	if err != nil {
 		return err
 	}
 
-	err = sovereignHdr.SetValidatorStatsRootHash(validatorStatsRH)
-	if err != nil {
-		return err
-	}
-
-	finalBody, err := s.applyBodyToHeader(sovereignHdr, blockBody)
+	finalBody, err := s.applyBodyToHeader(headerHandler, blockBody)
 	if err != nil {
 		return err
 	}
@@ -204,7 +174,7 @@ func (s *sovereignBlockProcessor) ProcessBlock(
 
 // applyBodyToHeader creates a miniblock header list given a block body
 func (s* sovereignBlockProcessor) applyBodyToHeader(
-	sovereignHdr *block.HeaderWithValidatorStats,
+	headerHandler data.HeaderHandler,
 	body *block.Body,
 ) (*block.Body, error) {
 	sw := core.NewStopWatch()
@@ -213,6 +183,11 @@ func (s* sovereignBlockProcessor) applyBodyToHeader(
 		sw.Stop("applyBodyToHeader")
 		log.Debug("measurements", sw.GetMeasurements()...)
 	}()
+
+	sovereignHdr, ok := headerHandler.(*block.HeaderWithValidatorStats)
+	if !ok {
+		return nil, process.ErrWrongTypeAssertion
+	}
 
 	var err error
 	err = sovereignHdr.SetMiniBlockHeaderHandlers(nil)
@@ -238,66 +213,11 @@ func (s* sovereignBlockProcessor) applyBodyToHeader(
 		return nil, err
 	}
 
-	if check.IfNil(body) {
-		return nil, process.ErrNilBlockBody
-	}
-
-	var receiptsHash []byte
-	sw.Start("CreateReceiptsHash")
-	receiptsHash, err = s.txCoordinator.CreateReceiptsHash()
-	sw.Stop("CreateReceiptsHash")
-	if err != nil {
-		return nil, err
-	}
-
-	err = sovereignHdr.SetReceiptsHash(receiptsHash)
-	if err != nil {
-		return nil, err
-	}
-
 	newBody := deleteSelfReceiptsMiniBlocks(body)
-
-	sw.Start("createMiniBlockHeaders")
-	totalTxCount, miniBlockHeaderHandlers, err := s.createMiniBlockHeaderHandlers(newBody, nil)
-	sw.Stop("createMiniBlockHeaders")
+	err = s.applyBodyInfoOnCommonHeader(sovereignHdr, newBody, nil)
 	if err != nil {
 		return nil, err
 	}
-
-	err = sovereignHdr.SetMiniBlockHeaderHandlers(miniBlockHeaderHandlers)
-	if err != nil {
-		return nil, err
-	}
-
-	err = sovereignHdr.SetTxCount(uint32(totalTxCount))
-	if err != nil {
-		return nil, err
-	}
-
-	err = sovereignHdr.SetAccumulatedFees(s.feeHandler.GetAccumulatedFees())
-	if err != nil {
-		return nil, err
-	}
-
-	err = sovereignHdr.SetDeveloperFees(s.feeHandler.GetDeveloperFees())
-	if err != nil {
-		return nil, err
-	}
-
-	err = s.txCoordinator.VerifyCreatedMiniBlocks(sovereignHdr, newBody)
-	if err != nil {
-		return nil, err
-	}
-
-	s.appStatusHandler.SetUInt64Value(common.MetricNumTxInBlock, uint64(totalTxCount))
-	s.appStatusHandler.SetUInt64Value(common.MetricNumMiniBlocks, uint64(len(body.MiniBlocks)))
-
-	marshaledBody, err := s.marshalizer.Marshal(newBody)
-	if err != nil {
-		return nil, err
-	}
-	s.blockSizeThrottler.Add(sovereignHdr.GetRound(), uint32(len(marshaledBody)))
-
 	return newBody, nil
 }
 
@@ -390,45 +310,7 @@ func (s *sovereignBlockProcessor) CommitBlock(headerHandler data.HeaderHandler, 
 	lastMetaBlockHash := s.blockChain.GetCurrentBlockHeaderHash()
 
 	s.updateState(lastHeader)
-
-	committedRootHash, err := s.accountsDB[state.UserAccountsState].RootHash()
-	if err != nil {
-		return err
-	}
-
-	err = s.blockChain.SetCurrentBlockHeaderAndRootHash(header, committedRootHash)
-	if err != nil {
-		return err
-	}
-
-	s.blockChain.SetCurrentBlockHeaderHash(headerHash)
-	s.indexBlock(header, headerHash, body, lastMetaBlock, notarizedHeadersHashes, rewardsTxs)
-	s.recordBlockInHistory(headerHash, headerHandler, bodyHandler)
-
-	headerInfo := bootstrapStorage.BootstrapHeaderInfo{
-		ShardId: header.GetShardID(),
-		Epoch:   header.GetEpoch(),
-		Nonce:   header.GetNonce(),
-		Hash:    headerHash,
-	}
-
-	args := bootStorerDataArgs{
-		headerInfo:                 headerInfo,
-		round:                      header.GetRound(),
-		lastSelfNotarizedHeaders:   s.getLastSelfNotarizedHeaders(),
-		highestFinalBlockNonce:     s.forkDetector.GetHighestFinalBlockNonce(),
-	}
-
-	s.prepareDataForBootStorer(args)
-	s.blockSizeThrottler.Succeed(header.GetRound())
-	s.displayPoolsInfo()
-
-	errNotCritical := s.removeTxsFromPools(header, body)
-	if errNotCritical != nil {
-		log.Debug("removeTxsFromPools", "error", errNotCritical.Error())
-	}
-
-	s.cleanupPools(headerHandler)
+	err = s.commonHeaderBodyCommit(header, body, headerHash)
 
 	return nil
 }

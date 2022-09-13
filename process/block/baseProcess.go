@@ -1373,6 +1373,96 @@ func getLastSelfNotarizedHeaderByItself(chainHandler data.ChainHandler) (data.He
 	return currentHeader, currentBlockHash
 }
 
+func (bp *baseProcessor) setRoundNonceInitFees(
+	round, nonce uint64,
+	header data.CommonHeaderHandler,
+) error {
+	err := header.SetRound(round)
+	if err != nil {
+		return err
+	}
+
+	err = header.SetNonce(nonce)
+	if err != nil {
+		return err
+	}
+
+	err = header.SetAccumulatedFees(big.NewInt(0))
+	if err != nil {
+		return err
+	}
+
+	err = header.SetDeveloperFees(big.NewInt(0))
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (bp *baseProcessor) applyBodyInfoOnCommonHeader(
+	hdr data.CommonHeaderHandler,
+	newBody *block.Body,
+	processedMiniBlocksDestMeInfo map[string]*processedMb.ProcessedMiniBlockInfo,
+) error {
+	var receiptsHash []byte
+	sw := core.NewStopWatch()
+	sw.Start("CreateReceiptsHash")
+	receiptsHash, err := bp.txCoordinator.CreateReceiptsHash()
+	sw.Stop("CreateReceiptsHash")
+	if err != nil {
+		return nil
+	}
+
+	err = hdr.SetReceiptsHash(receiptsHash)
+	if err != nil {
+		return err
+	}
+
+	sw.Start("createMiniBlockHeaders")
+	totalTxCount, miniBlockHeaderHandlers, err := bp.createMiniBlockHeaderHandlers(newBody, processedMiniBlocksDestMeInfo)
+	sw.Stop("createMiniBlockHeaders")
+	if err != nil {
+		return err
+	}
+
+	err = hdr.SetMiniBlockHeaderHandlers(miniBlockHeaderHandlers)
+	if err != nil {
+		return err
+	}
+
+	err = hdr.SetTxCount(uint32(totalTxCount))
+	if err != nil {
+		return err
+	}
+
+	err = hdr.SetAccumulatedFees(bp.feeHandler.GetAccumulatedFees())
+	if err != nil {
+		return err
+	}
+
+	err = hdr.SetDeveloperFees(bp.feeHandler.GetDeveloperFees())
+	if err != nil {
+		return err
+	}
+
+	err = bp.txCoordinator.VerifyCreatedMiniBlocks(hdr, newBody)
+	if err != nil {
+		return err
+	}
+
+	bp.appStatusHandler.SetUInt64Value(common.MetricNumTxInBlock, uint64(totalTxCount))
+	bp.appStatusHandler.SetUInt64Value(common.MetricNumMiniBlocks, uint64(len(newBody.MiniBlocks)))
+
+	marshaledBody, err := bp.marshalizer.Marshal(newBody)
+	if err != nil {
+		return err
+	}
+	bp.blockSizeThrottler.Add(hdr.GetRound(), uint32(len(marshaledBody)))
+
+	return nil
+}
+
 func (bp *baseProcessor) setFinalizedHeaderHashInIndexer(hdrHash []byte) {
 	log.Debug("baseProcessor.setFinalizedBlockInIndexer", "finalized header hash", hdrHash)
 
