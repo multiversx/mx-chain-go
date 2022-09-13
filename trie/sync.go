@@ -128,7 +128,8 @@ func checkArguments(arg ArgTrieSyncer) error {
 // CheckTimeBetweenRechecks will check the provided value against the minimum allowed
 func CheckTimeBetweenRechecks(timeBetweenRechecks time.Duration) error {
 	if timeBetweenRechecks < minTimeBetweenRechecks {
-		return fmt.Errorf("%w for TimeBetweenRechecks", ErrInvalidValue)
+		return fmt.Errorf("%w for TimeBetweenRechecks, provided %v, minimum %v",
+			ErrInvalidValue, timeBetweenRechecks, minTimeBetweenRechecks)
 	}
 
 	return nil

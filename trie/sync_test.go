@@ -3,6 +3,8 @@ package trie
 import (
 	"context"
 	"errors"
+	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -143,6 +145,8 @@ func TestNewTrieSyncer(t *testing.T) {
 		ts, err := NewTrieSyncer(arg)
 		assert.True(t, check.IfNil(ts))
 		assert.True(t, errors.Is(err, ErrInvalidValue))
+		expectedString := fmt.Sprintf("for TimeBetweenRechecks, provided %v, minimum 1ms", arg.TimeBetweenRechecks)
+		assert.True(t, strings.Contains(err.Error(), expectedString))
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
