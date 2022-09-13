@@ -11,11 +11,13 @@ import (
 
 type messageVerifier struct {
 	marshaller marshal.Marshalizer
+	p2pSigner  p2pSigner
 }
 
 // ArgsMessageVerifier defines the arguments needed to create a messageVerifier
 type ArgsMessageVerifier struct {
 	Marshaller marshal.Marshalizer
+	P2PSigner  p2pSigner
 }
 
 // NewMessageVerifier will create a new instance of messageVerifier
@@ -27,6 +29,7 @@ func NewMessageVerifier(args ArgsMessageVerifier) (*messageVerifier, error) {
 
 	return &messageVerifier{
 		marshaller: args.Marshaller,
+		p2pSigner:  args.P2PSigner,
 	}, nil
 }
 
@@ -34,23 +37,54 @@ func checkArgs(args ArgsMessageVerifier) error {
 	if check.IfNil(args.Marshaller) {
 		return p2p.ErrNilMarshalizer
 	}
+	if args.P2PSigner == nil {
+		return p2p.ErrNilP2PSigner
+	}
 
 	return nil
 }
 
 // Verify will check the signature of a p2p message
-func (m *messageVerifier) Verify(message p2p.MessageP2P) error {
-	pubsubMsg, err := convertP2PMessagetoPubSubMessage(message)
+func (m *messageVerifier) Verify(msg p2p.MessageP2P) error {
+	if check.IfNil(msg) {
+		return p2p.ErrNilMessage
+	}
+
+	payload, err := preparePubSubMessagePayload(msg)
 	if err != nil {
 		return err
 	}
 
-	err = pubsub.VerifyMessageSignature(pubsubMsg)
+	err = m.p2pSigner.Verify(payload, msg.Peer(), msg.Signature())
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func preparePubSubMessagePayload(msg p2p.MessageP2P) ([]byte, error) {
+	pubsubMsg, err := convertP2PMessagetoPubSubMessage(msg)
+	if err != nil {
+		return nil, err
+	}
+
+	xm := *pubsubMsg
+	xm.Signature = nil
+	xm.Key = nil
+
+	pubsubMsgBytes, err := xm.Marshal()
+	if err != nil {
+		return nil, err
+	}
+
+	pubsubMsgBytes = withSignPrefix(pubsubMsgBytes)
+
+	return pubsubMsgBytes, nil
+}
+
+func withSignPrefix(bytes []byte) []byte {
+	return append([]byte(pubsub.SignPrefix), bytes...)
 }
 
 func convertP2PMessagetoPubSubMessage(msg p2p.MessageP2P) (*pubsub_pb.Message, error) {
@@ -91,14 +125,19 @@ func convertPubSubMessagestoP2PMessage(msg *pubsub_pb.Message) (p2p.MessageP2P, 
 
 // Serialize will serialize a list of p2p messages
 func (m *messageVerifier) Serialize(messages []p2p.MessageP2P) ([]byte, error) {
-	pubsubMessages := make([]*pubsub_pb.Message, 0, len(messages))
+	pubsubMessages := make([][]byte, 0, len(messages))
 	for _, message := range messages {
 		pubsubMsg, err := convertP2PMessagetoPubSubMessage(message)
 		if err != nil {
 			continue
 		}
 
-		pubsubMessages = append(pubsubMessages, pubsubMsg)
+		pubsubMsgBytes, err := pubsubMsg.Marshal()
+		if err != nil {
+			return nil, err
+		}
+
+		pubsubMessages = append(pubsubMessages, pubsubMsgBytes)
 	}
 
 	messagesBytes, err := m.marshaller.Marshal(pubsubMessages)
@@ -111,15 +150,21 @@ func (m *messageVerifier) Serialize(messages []p2p.MessageP2P) ([]byte, error) {
 
 // Deserialize will deserialize into a list of p2p messages
 func (m *messageVerifier) Deserialize(messagesBytes []byte) ([]p2p.MessageP2P, error) {
-	var pubsubMessages []*pubsub_pb.Message
-	err := m.marshaller.Unmarshal(&pubsubMessages, messagesBytes)
+	var pubsubMessagesBytes [][]byte
+	err := m.marshaller.Unmarshal(&pubsubMessagesBytes, messagesBytes)
 	if err != nil {
 		return nil, err
 	}
 
 	p2pMessages := make([]p2p.MessageP2P, 0)
-	for _, pubsubMessage := range pubsubMessages {
-		p2pMsg, err := convertPubSubMessagestoP2PMessage(pubsubMessage)
+	for _, pubsubMessageBytes := range pubsubMessagesBytes {
+		var pubsubMsg pubsub_pb.Message
+		err = pubsubMsg.Unmarshal(pubsubMessageBytes)
+		if err != nil {
+			return nil, err
+		}
+
+		p2pMsg, err := convertPubSubMessagestoP2PMessage(&pubsubMsg)
 		if err != nil {
 			continue
 		}
