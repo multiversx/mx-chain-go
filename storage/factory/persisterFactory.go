@@ -3,7 +3,6 @@ package factory
 import (
 	"errors"
 
-	"github.com/ElrondNetwork/elrond-go-storage/leveldb"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/database"
@@ -36,9 +35,9 @@ func (pf *PersisterFactory) Create(path string) (storage.Persister, error) {
 
 	switch storageunit.DBType(pf.dbType) {
 	case storageunit.LvlDB:
-		return leveldb.NewDB(path, pf.batchDelaySeconds, pf.maxBatchSize, pf.maxOpenFiles)
+		return database.NewLevelDB(path, pf.batchDelaySeconds, pf.maxBatchSize, pf.maxOpenFiles)
 	case storageunit.LvlDBSerial:
-		return leveldb.NewSerialDB(path, pf.batchDelaySeconds, pf.maxBatchSize, pf.maxOpenFiles)
+		return database.NewSerialDB(path, pf.batchDelaySeconds, pf.maxBatchSize, pf.maxOpenFiles)
 	case storageunit.MemoryDB:
 		return database.NewMemDB(), nil
 	default:

@@ -1,6 +1,8 @@
 package txcache
 
-import "github.com/ElrondNetwork/elrond-go-storage/txcache"
+import (
+	"github.com/ElrondNetwork/elrond-go-storage/txcache"
+)
 
 // WrappedTransaction contains a transaction, its hash and extra information
 type WrappedTransaction = txcache.WrappedTransaction

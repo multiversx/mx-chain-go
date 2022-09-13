@@ -6,8 +6,8 @@ import (
 	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go-storage/leveldb"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/database"
 	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 	"github.com/stretchr/testify/assert"
 )
@@ -20,7 +20,7 @@ func TestPutRemove(t *testing.T) {
 	cache, _ := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 5000, Shards: 16, SizeInBytes: 0})
 	dir := t.TempDir()
 	log.Info("opened in", "directory", dir)
-	lvdb1, err := leveldb.NewDB(dir, 2, 1000, 10)
+	lvdb1, err := database.NewLevelDB(dir, 2, 1000, 10)
 	assert.NoError(t, err)
 
 	defer func() {

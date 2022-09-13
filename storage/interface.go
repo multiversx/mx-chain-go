@@ -206,3 +206,24 @@ type CustomDatabaseRemoverHandler interface {
 	ShouldRemove(dbIdentifier string, epoch uint32) bool
 	IsInterfaceNil() bool
 }
+
+// SizedLRUCacheHandler is the interface for size capable LRU cache.
+type SizedLRUCacheHandler interface {
+	AddSized(key, value interface{}, sizeInBytes int64) bool
+	Get(key interface{}) (value interface{}, ok bool)
+	Contains(key interface{}) (ok bool)
+	AddSizedIfMissing(key, value interface{}, sizeInBytes int64) (ok, evicted bool)
+	Peek(key interface{}) (value interface{}, ok bool)
+	Remove(key interface{}) bool
+	Keys() []interface{}
+	Len() int
+	SizeInBytesContained() uint64
+	Purge()
+}
+
+// AdaptedSizedLRUCache defines a cache that returns the evicted value
+type AdaptedSizedLRUCache interface {
+	SizedLRUCacheHandler
+	AddSizedAndReturnEvicted(key, value interface{}, sizeInBytes int64) map[interface{}]interface{}
+	IsInterfaceNil() bool
+}

@@ -8,7 +8,7 @@ import (
 var _ storage.Persister = (*countingDB)(nil)
 
 type countingDB struct {
-	db      *database.DB
+	db      *database.MemDB
 	nrOfPut int
 }
 

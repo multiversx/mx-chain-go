@@ -39,27 +39,6 @@ type PeerBlackListCacher interface {
 	IsInterfaceNil() bool
 }
 
-// SizedLRUCacheHandler is the interface for size capable LRU cache.
-type SizedLRUCacheHandler interface {
-	AddSized(key, value interface{}, sizeInBytes int64) bool
-	Get(key interface{}) (value interface{}, ok bool)
-	Contains(key interface{}) (ok bool)
-	AddSizedIfMissing(key, value interface{}, sizeInBytes int64) (ok, evicted bool)
-	Peek(key interface{}) (value interface{}, ok bool)
-	Remove(key interface{}) bool
-	Keys() []interface{}
-	Len() int
-	SizeInBytesContained() uint64
-	Purge()
-}
-
-// AdaptedSizedLRUCache defines a cache that returns the evicted value
-type AdaptedSizedLRUCache interface {
-	SizedLRUCacheHandler
-	AddSizedAndReturnEvicted(key, value interface{}, sizeInBytes int64) map[interface{}]interface{}
-	IsInterfaceNil() bool
-}
-
 // NewTimeCache returns an instance of a time cache
 func NewTimeCache(defaultSpan time.Duration) *TimeCache {
 	return timecache.NewTimeCache(defaultSpan)
@@ -76,7 +55,7 @@ func NewPeerTimeCache(cache TimeCacher) (PeerBlackListCacher, error) {
 }
 
 // NewCapacityLRU constructs an LRU cache of the given size with a byte size capacity
-func NewCapacityLRU(size int, byteCapacity int64) (AdaptedSizedLRUCache, error) {
+func NewCapacityLRU(size int, byteCapacity int64) (storage.AdaptedSizedLRUCache, error) {
 	return capacity.NewCapacityLRU(size, byteCapacity)
 }
 

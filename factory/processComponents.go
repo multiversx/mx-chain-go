@@ -15,7 +15,6 @@ import (
 	dataBlock "github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	storageRepoFactory "github.com/ElrondNetwork/elrond-go-storage/factory"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -1199,8 +1198,8 @@ func (pcf *processComponentsFactory) newInterceptorContainerFactory(
 }
 
 func (pcf *processComponentsFactory) newStorageResolver() (dataRetriever.ResolversContainerFactory, error) {
-	pathManager, err := storageRepoFactory.CreatePathManager(
-		storageRepoFactory.ArgCreatePathManager{
+	pathManager, err := storageFactory.CreatePathManager(
+		storageFactory.ArgCreatePathManager{
 			WorkingDir: pcf.importDBConfig.ImportDBWorkingDir,
 			ChainID:    pcf.coreData.ChainID(),
 		},

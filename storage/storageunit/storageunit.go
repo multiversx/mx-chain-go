@@ -1,6 +1,8 @@
 package storageunit
 
 import (
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go-storage/storageCacherAdapter"
 	"github.com/ElrondNetwork/elrond-go-storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
@@ -51,4 +53,14 @@ func NewStorageUnitFromConf(cacheConf CacheConfig, dbConf DBConfig) (*Unit, erro
 // NewNilStorer will return a nil storer
 func NewNilStorer() *NilStorer {
 	return storageUnit.NewNilStorer()
+}
+
+// NewStorageCacherAdapter creates a new storageCacherAdapter
+func NewStorageCacherAdapter(
+	cacher storage.AdaptedSizedLRUCache,
+	db storage.Persister,
+	storedDataFactory storage.StoredDataFactory,
+	marshaller marshal.Marshalizer,
+) (storage.Cacher, error) {
+	return storageCacherAdapter.NewStorageCacherAdapter(cacher, db, storedDataFactory, marshaller)
 }

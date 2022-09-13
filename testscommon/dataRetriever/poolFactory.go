@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go-storage/storageCacherAdapter"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
@@ -100,7 +99,7 @@ func CreatePoolsHolder(numShards uint32, selfShard uint32) dataRetriever.PoolsHo
 	panicIfError("Create trieSync DB", err)
 	tnf := factory.NewTrieNodeFactory()
 
-	adaptedTrieNodesStorage, err := storageCacherAdapter.NewStorageCacherAdapter(
+	adaptedTrieNodesStorage, err := storageunit.NewStorageCacherAdapter(
 		cacher,
 		persister,
 		tnf,
