@@ -167,6 +167,7 @@ func (s *sovereignBlockProcessor) ProcessBlock(
 	if err != nil {
 		return err
 	}
+	bodyHandler = &block.Body{MiniBlocks: blockBody.MiniBlocks}
 
 	return nil
 }
