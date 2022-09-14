@@ -112,7 +112,7 @@ func TestSerializeDeserialize(t *testing.T) {
 		args := createMessageVerifierArgs()
 		args.Marshaller = &testscommon.MarshalizerMock{}
 
-		messages := []p2p.MessageP2P{
+		expectedMessages := []p2p.MessageP2P{
 			&message.Message{
 				FromField:      []byte("from1"),
 				PayloadField:   []byte("payload1"), // it is used as data field for pubsub
@@ -134,13 +134,13 @@ func TestSerializeDeserialize(t *testing.T) {
 		mv, err := messagecheck.NewMessageVerifier(args)
 		require.Nil(t, err)
 
-		messagesBytes, err := mv.Serialize(messages)
+		messagesBytes, err := mv.Serialize(expectedMessages)
 		require.Nil(t, err)
 
-		expectedMessages, err := mv.Deserialize(messagesBytes)
+		messages, err := mv.Deserialize(messagesBytes)
 		require.Nil(t, err)
 
-		require.Equal(t, messages, expectedMessages)
+		require.Equal(t, expectedMessages, messages)
 	})
 }
 
