@@ -3,19 +3,17 @@ package block
 import (
 	"bytes"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go-core/core/queue"
+	"time"
+
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/genesis/process/disabled"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
-	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 	"github.com/ElrondNetwork/elrond-go/state"
-	"math/big"
-	"time"
 )
 
 type ArgsSovereignBlockProcessor struct {
@@ -26,6 +24,7 @@ type ArgsSovereignBlockProcessor struct {
 type sovereignBlockProcessor struct {
 	*shardProcessor
 	validatorStatisticsProcessor process.ValidatorStatisticsProcessor
+	peerStatePruningQueue        core.Queue
 }
 
 // NewSovereignBlockProcessor creates a new sovereign block processor
@@ -41,6 +40,7 @@ func NewSovereignBlockProcessor(arguments ArgsSovereignBlockProcessor) (*soverei
 	}
 
 	sovereign.scheduledTxsExecutionHandler = &disabled.ScheduledTxsExecutionHandler{}
+	sovereign.peerStatePruningQueue = queue.NewSliceQueue(arguments.Config.StateTriesConfig.PeerStatePruningQueueSize)
 
 	return sovereign, nil
 }
@@ -67,7 +67,7 @@ func (s *sovereignBlockProcessor) CreateBlock(initialHdr data.HeaderHandler, hav
 	if check.IfNil(initialHdr) {
 		return nil, nil, process.ErrNilBlockHeader
 	}
-	commonHdr, ok := initialHdr.(data.CommonHeaderHandler)
+	commonHdr, ok := initialHdr.(*block.HeaderWithValidatorStats)
 	if !ok {
 		return nil, nil, process.ErrWrongTypeAssertion
 	}
@@ -77,7 +77,7 @@ func (s *sovereignBlockProcessor) CreateBlock(initialHdr data.HeaderHandler, hav
 
 	for _, accounts := range s.accountsDB {
 		if accounts.JournalLen() != 0 {
-			log.Error("sovereignBlockProcessor.CreateBlock first entry", "stack", accounts.GetStackDebugFirstEntry()))
+			log.Error("sovereignBlockProcessor.CreateBlock first entry", "stack", accounts.GetStackDebugFirstEntry())
 			return nil, nil, process.ErrAccountStateDirty
 		}
 	}
@@ -136,7 +136,7 @@ func (s *sovereignBlockProcessor) ProcessBlock(
 
 	for _, accounts := range s.accountsDB {
 		if accounts.JournalLen() != 0 {
-			log.Error("metaProcessor.CreateBlock first entry", "stack", accounts.GetStackDebugFirstEntry()))
+			log.Error("metaProcessor.CreateBlock first entry", "stack", accounts.GetStackDebugFirstEntry())
 			return process.ErrAccountStateDirty
 		}
 	}
@@ -173,7 +173,7 @@ func (s *sovereignBlockProcessor) ProcessBlock(
 }
 
 // applyBodyToHeader creates a miniblock header list given a block body
-func (s* sovereignBlockProcessor) applyBodyToHeader(
+func (s *sovereignBlockProcessor) applyBodyToHeader(
 	headerHandler data.HeaderHandler,
 	body *block.Body,
 ) (*block.Body, error) {
@@ -309,8 +309,11 @@ func (s *sovereignBlockProcessor) CommitBlock(headerHandler data.HeaderHandler, 
 	lastHeader := s.blockChain.GetCurrentBlockHeader()
 	lastMetaBlockHash := s.blockChain.GetCurrentBlockHeaderHash()
 
-	s.updateState(lastHeader)
-	err = s.commonHeaderBodyCommit(header, body, headerHash)
+	s.updateState(lastHeader.(*block.HeaderWithValidatorStats), lastMetaBlockHash)
+	err = s.commonHeaderBodyCommit(header, body, headerHash, []data.HeaderHandler{currentHeader}, [][]byte{currentHeaderHash})
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -396,7 +399,7 @@ func (s *sovereignBlockProcessor) verifyValidatorStatisticsRootHash(header data.
 	return nil
 }
 
-func (s *sovereignBlockProcessor) updateState(lastHdr *block.HeaderWithValidatorStats) {
+func (s *sovereignBlockProcessor) updateState(lastHdr *block.HeaderWithValidatorStats, lastHash []byte) {
 	if check.IfNil(lastHdr) {
 		log.Debug("updateState nil header")
 		return
@@ -404,9 +407,9 @@ func (s *sovereignBlockProcessor) updateState(lastHdr *block.HeaderWithValidator
 
 	s.validatorStatisticsProcessor.SetLastFinalizedRootHash(lastHdr.GetValidatorStatsRootHash())
 
-	prevMetaBlockHash := lastHdr.GetPrevHash()
-	prevMetaBlock, errNotCritical := process.GetShardHeader(
-		prevMetaBlockHash,
+	prevBlockHash := lastHdr.GetPrevHash()
+	prevBlock, errNotCritical := process.GetHeaderWithValidatorStats(
+		prevBlockHash,
 		s.dataPool.Headers(),
 		s.marshalizer,
 		s.store,
@@ -416,10 +419,16 @@ func (s *sovereignBlockProcessor) updateState(lastHdr *block.HeaderWithValidator
 		return
 	}
 
+	validatorInfo, ok := prevBlock.(data.ValidatorStatisticsInfoHandler)
+	if !ok {
+		log.Debug("wrong type assertion")
+		return
+	}
+
 	s.updateStateStorage(
 		lastHdr,
 		lastHdr.GetRootHash(),
-		prevMetaBlock.GetRootHash(),
+		prevBlock.GetRootHash(),
 		s.accountsDB[state.UserAccountsState],
 		s.userStatePruningQueue,
 	)
@@ -427,15 +436,14 @@ func (s *sovereignBlockProcessor) updateState(lastHdr *block.HeaderWithValidator
 	s.updateStateStorage(
 		lastHdr,
 		lastHdr.GetValidatorStatsRootHash(),
-		prevMetaBlock.GetValidatorStatsRootHash(),
+		validatorInfo.GetValidatorStatsRootHash(),
 		s.accountsDB[state.PeerAccountsState],
 		s.peerStatePruningQueue,
 	)
 
 	s.setFinalizedHeaderHashInIndexer(lastHdr.GetPrevHash())
-	s.blockChain.SetFinalBlockInfo(lastHdr.GetNonce(), lastMetaBlockHash, lastHdr.GetRootHash())
+	s.blockChain.SetFinalBlockInfo(lastHdr.GetNonce(), lastHash, lastHdr.GetRootHash())
 }
-
 
 // IsInterfaceNil returns true if underlying object is nil
 func (s *sovereignBlockProcessor) IsInterfaceNil() bool {

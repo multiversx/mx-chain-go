@@ -1075,7 +1075,7 @@ func (sp *shardProcessor) CommitBlock(
 		header,
 	)
 
-	err = sp.commonHeaderBodyCommit(header, body, headerHash)
+	err = sp.commonHeaderBodyCommit(header, body, headerHash, selfNotarizedHeaders, selfNotarizedHeadersHashes)
 	if err != nil {
 		return err
 	}
@@ -1084,9 +1084,11 @@ func (sp *shardProcessor) CommitBlock(
 }
 
 func (sp *shardProcessor) commonHeaderBodyCommit(
-	header data.CommonHeaderHandler,
-	body data.BodyHandler,
+	header data.HeaderHandler,
+	body *block.Body,
 	headerHash []byte,
+	selfNotarizedHeaders []data.HeaderHandler,
+	selfNotarizedHeadersHashes [][]byte,
 ) error {
 	lastBlockHeader := sp.blockChain.GetCurrentBlockHeader()
 
@@ -1148,6 +1150,8 @@ func (sp *shardProcessor) commonHeaderBodyCommit(
 	}
 
 	sp.cleanupPools(header)
+
+	return nil
 }
 
 func (sp *shardProcessor) notifyFinalMetaHdrs(processedMetaHeaders []data.HeaderHandler) {

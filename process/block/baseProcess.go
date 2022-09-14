@@ -1401,7 +1401,7 @@ func (bp *baseProcessor) setRoundNonceInitFees(
 }
 
 func (bp *baseProcessor) applyBodyInfoOnCommonHeader(
-	hdr data.CommonHeaderHandler,
+	hdr data.HeaderHandler,
 	newBody *block.Body,
 	processedMiniBlocksDestMeInfo map[string]*processedMb.ProcessedMiniBlockInfo,
 ) error {
