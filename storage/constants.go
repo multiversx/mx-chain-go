@@ -1,14 +1,14 @@
 package storage
 
 import (
-	"time"
+	"github.com/ElrondNetwork/elrond-go-storage/storageUnit"
 )
 
 // MaxRetriesToCreateDB represents the maximum number of times to try to create DB if it failed
-const MaxRetriesToCreateDB = 10
+const MaxRetriesToCreateDB = storageUnit.MaxRetriesToCreateDB
 
 // SleepTimeBetweenCreateDBRetries represents the number of seconds to sleep between DB creates
-const SleepTimeBetweenCreateDBRetries = 5 * time.Second
+const SleepTimeBetweenCreateDBRetries = storageUnit.SleepTimeBetweenCreateDBRetries
 
 // PathShardPlaceholder represents the placeholder for the shard ID in paths
 const PathShardPlaceholder = "[S]"

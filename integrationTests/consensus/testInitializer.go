@@ -136,9 +136,9 @@ func createTestBlockChain() data.ChainHandler {
 }
 
 func createMemUnit() storage.Storer {
-	suCache, _ := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 10, Shards: 1, SizeInBytes: 0})
+	cacheInstance, _ := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 10, Shards: 1, SizeInBytes: 0})
 
-	unit, _ := storageunit.NewStorageUnit(suCache, database.NewMemDB())
+	unit, _ := storageunit.NewStorageUnit(cacheInstance, database.NewMemDB())
 	return unit
 }
 

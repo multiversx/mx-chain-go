@@ -70,9 +70,6 @@ var ErrNilNodeTypeProvider = errors.New("nil node type provider")
 // ErrNilOldDataCleanerProvider signals that a nil old data cleaner provider has been provided
 var ErrNilOldDataCleanerProvider = errors.New("nil old data cleaner provider")
 
-// ErrNilCacher is raised when a nil cacher is provided
-var ErrNilCacher = storageErrors.ErrNilCacher
-
 // ErrKeyNotFound is raised when a key is not found
 var ErrKeyNotFound = storageErrors.ErrKeyNotFound
 

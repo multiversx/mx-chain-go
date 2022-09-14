@@ -229,11 +229,9 @@ func pprofHeap(scenario *scenario, step string) {
 
 	defer func() {
 		errClose := file.Close()
-		errMsg := "nil"
 		if errClose != nil {
-			errMsg = errClose.Error()
+			panic(fmt.Sprintf("cannot close file: %s", errClose.Error()))
 		}
-		panic(fmt.Sprintf("cannot close file: %s", errMsg))
 	}()
 
 	err = pprof.WriteHeapProfile(file)
