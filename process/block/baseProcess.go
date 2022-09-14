@@ -1411,7 +1411,7 @@ func (bp *baseProcessor) applyBodyInfoOnCommonHeader(
 	receiptsHash, err := bp.txCoordinator.CreateReceiptsHash()
 	sw.Stop("CreateReceiptsHash")
 	if err != nil {
-		return nil
+		return err
 	}
 
 	err = hdr.SetReceiptsHash(receiptsHash)

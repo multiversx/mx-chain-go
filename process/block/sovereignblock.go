@@ -167,7 +167,16 @@ func (s *sovereignBlockProcessor) ProcessBlock(
 	if err != nil {
 		return err
 	}
-	bodyHandler = &block.Body{MiniBlocks: blockBody.MiniBlocks}
+
+	listMiniBlockHandlers := make([]data.MiniBlockHandler, len(blockBody.MiniBlocks))
+	for i, mb := range blockBody.MiniBlocks {
+		listMiniBlockHandlers[i] = mb
+	}
+
+	err = bodyHandler.SetMiniBlocks(listMiniBlockHandlers)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

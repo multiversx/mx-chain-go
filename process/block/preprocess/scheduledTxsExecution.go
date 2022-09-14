@@ -124,7 +124,7 @@ func (ste *scheduledTxsExecution) AddScheduledMiniBlocks(miniBlocks block.MiniBl
 
 	ste.scheduledMbs = make(block.MiniBlockSlice, len(miniBlocks))
 	for index, miniBlock := range miniBlocks {
-		ste.scheduledMbs[index] = miniBlock.Clone()
+		ste.scheduledMbs[index] = miniBlock.DeepClone()
 	}
 
 	log.Debug("scheduledTxsExecution.AddMiniBlocks", "num of scheduled mbs", len(ste.scheduledMbs))
@@ -372,7 +372,7 @@ func (ste *scheduledTxsExecution) GetScheduledMiniBlocks() block.MiniBlockSlice 
 
 	miniBlocks := make(block.MiniBlockSlice, len(ste.scheduledMbs))
 	for index, scheduledMb := range ste.scheduledMbs {
-		miniBlock := scheduledMb.Clone()
+		miniBlock := scheduledMb.DeepClone()
 		miniBlocks[index] = miniBlock
 	}
 
@@ -408,7 +408,7 @@ func (ste *scheduledTxsExecution) SetScheduledInfo(scheduledInfo *process.Schedu
 
 	ste.scheduledMbs = make(block.MiniBlockSlice, len(scheduledInfo.MiniBlocks))
 	for index, scheduledMiniBlock := range scheduledInfo.MiniBlocks {
-		miniBlock := scheduledMiniBlock.Clone()
+		miniBlock := scheduledMiniBlock.DeepClone()
 		ste.scheduledMbs[index] = miniBlock
 	}
 
@@ -596,7 +596,7 @@ func (ste *scheduledTxsExecution) SaveState(headerHash []byte, scheduledInfo *pr
 
 // getScheduledInfoForHeader gets scheduled mini blocks, root hash, intermediate txs, gas and fees of the given header from storage
 func (ste *scheduledTxsExecution) getScheduledInfoForHeader(headerHash []byte, epoch core.OptionalUint32) (*process.ScheduledInfo, error) {
-	var data []byte
+	var readData []byte
 	var err error
 
 	defer func() {
@@ -608,16 +608,16 @@ func (ste *scheduledTxsExecution) getScheduledInfoForHeader(headerHash []byte, e
 	}()
 
 	if epoch.HasValue {
-		data, err = ste.storer.GetFromEpoch(headerHash, epoch.Value)
+		readData, err = ste.storer.GetFromEpoch(headerHash, epoch.Value)
 	} else {
-		data, err = ste.storer.Get(headerHash)
+		readData, err = ste.storer.Get(headerHash)
 	}
 	if err != nil {
 		return nil, err
 	}
 
 	scheduledSCRs := &scheduled.ScheduledSCRs{}
-	err = ste.marshaller.Unmarshal(scheduledSCRs, data)
+	err = ste.marshaller.Unmarshal(scheduledSCRs, readData)
 	if err != nil {
 		return nil, err
 	}
