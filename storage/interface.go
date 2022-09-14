@@ -160,22 +160,6 @@ type ShardCoordinator interface {
 	IsInterfaceNil() bool
 }
 
-// ForEachItem is an iterator callback
-type ForEachItem func(key []byte, value interface{})
-
-// LRUCacheHandler is the interface for LRU cache.
-type LRUCacheHandler interface {
-	Add(key, value interface{}) bool
-	Get(key interface{}) (value interface{}, ok bool)
-	Contains(key interface{}) (ok bool)
-	ContainsOrAdd(key, value interface{}) (ok, evicted bool)
-	Peek(key interface{}) (value interface{}, ok bool)
-	Remove(key interface{}) bool
-	Keys() []interface{}
-	Len() int
-	Purge()
-}
-
 // TimeCacher defines the cache that can keep a record for a bounded time
 type TimeCacher interface {
 	Add(key string) error
@@ -193,12 +177,6 @@ type EvictionHandler = types.EvictionHandler
 type StoredDataFactory interface {
 	CreateEmpty() interface{}
 	IsInterfaceNil() bool
-}
-
-// SerializedStoredData defines a data type that has the serialized data as a field
-type SerializedStoredData interface {
-	GetSerialized() []byte
-	SetSerialized([]byte)
 }
 
 // CustomDatabaseRemoverHandler defines the behaviour of a component that should tell if a database is removable or not
