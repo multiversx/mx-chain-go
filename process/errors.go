@@ -1145,3 +1145,6 @@ var ErrPropertyTooLong = errors.New("property too long")
 
 // ErrPropertyTooShort signals that a heartbeat property was too short
 var ErrPropertyTooShort = errors.New("property too short")
+
+// ErrNilProcessDebugger signals that a nil process debugger was provided
+var ErrNilProcessDebugger = errors.New("nil process debugger")
