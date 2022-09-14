@@ -230,7 +230,7 @@ func startSnapshotIfNeeded(
 	processingMode common.NodeProcessingMode,
 ) error {
 	if check.IfNil(trieSyncer) {
-		return ErrNilTrie
+		return ErrNilTrieSyncer
 	}
 
 	val, err := trieStorageManager.GetFromCurrentEpoch([]byte(common.ActiveDBKey))
@@ -1152,7 +1152,6 @@ func (adb *AccountsDB) SnapshotState(rootHash []byte) {
 		stats.NewSnapshotStarted()
 		trieStorageManager.TakeSnapshot(rootHash, rootHash, leavesChannel, missingNodesChannel, errChan, stats, epoch)
 		adb.snapshotUserAccountDataTrie(true, rootHash, leavesChannel, missingNodesChannel, errChan, stats, epoch)
-		trieStorageManager.ExitPruningBufferingMode()
 
 		stats.SnapshotFinished()
 	}()
@@ -1167,7 +1166,7 @@ func (adb *AccountsDB) SnapshotState(rootHash []byte) {
 func (adb *AccountsDB) prepareSnapshot(rootHash []byte) (common.StorageManager, uint32, bool) {
 	trieStorageManager, epoch, err := adb.getTrieStorageManagerAndLatestEpoch()
 	if err != nil {
-		log.Error("snapshot user state error", "err", err.Error())
+		log.Error("prepareSnapshot error", "err", err.Error())
 		return nil, 0, false
 	}
 
@@ -1181,8 +1180,6 @@ func (adb *AccountsDB) prepareSnapshot(rootHash []byte) (common.StorageManager, 
 		)
 		return nil, 0, false
 	}
-
-	log.Info("starting snapshot user trie", "rootHash", rootHash, "epoch", epoch)
 
 	adb.isSnapshotInProgress.SetValue(true)
 	adb.lastSnapshot.rootHash = rootHash
