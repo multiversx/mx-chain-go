@@ -1007,6 +1007,20 @@ func TestMetaProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
+	debuggerMethodWasCalled := false
+	debugger := &testscommon.ProcessDebuggerStub{
+		SetLastCommittedBlockRoundCalled: func(round uint64) {
+			assert.Equal(t, hdr.Round, round)
+			debuggerMethodWasCalled = true
+		},
+	}
+
+	err := mp.SetProcessDebugger(nil)
+	assert.Equal(t, process.ErrNilProcessDebugger, err)
+
+	err = mp.SetProcessDebugger(debugger)
+	assert.Nil(t, err)
+
 	mdp.HeadersCalled = func() dataRetriever.HeadersPool {
 		cs := &mock.HeadersCacherStub{}
 		cs.RegisterHandlerCalled = func(i func(header data.HeaderHandler, key []byte)) {
@@ -1027,9 +1041,10 @@ func TestMetaProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 	}
 
 	mp.SetHdrForCurrentBlock([]byte("hdr_hash1"), &block.Header{}, true)
-	err := mp.CommitBlock(hdr, body)
+	err = mp.CommitBlock(hdr, body)
 	assert.Nil(t, err)
 	assert.True(t, forkDetectorAddCalled)
+	assert.True(t, debuggerMethodWasCalled)
 	// this should sleep as there is an async call to display current header and block in CommitBlock
 	time.Sleep(time.Second)
 }

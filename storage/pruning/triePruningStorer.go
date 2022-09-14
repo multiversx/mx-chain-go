@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/common"
 	elrondErrors "github.com/ElrondNetwork/elrond-go/errors"
 )
@@ -90,10 +91,10 @@ func (ps *triePruningStorer) PutInEpochWithoutCache(key []byte, data []byte, epo
 }
 
 // GetFromOldEpochsWithoutAddingToCache searches the old epochs for the given key without adding to the cache
-func (ps *triePruningStorer) GetFromOldEpochsWithoutAddingToCache(key []byte) ([]byte, error) {
+func (ps *triePruningStorer) GetFromOldEpochsWithoutAddingToCache(key []byte) ([]byte, core.OptionalUint32, error) {
 	v, ok := ps.cacher.Get(key)
 	if ok && !bytes.Equal([]byte(common.ActiveDBKey), key) {
-		return v.([]byte), nil
+		return v.([]byte), core.OptionalUint32{}, nil
 	}
 
 	ps.lock.RLock()
@@ -110,14 +111,18 @@ func (ps *triePruningStorer) GetFromOldEpochsWithoutAddingToCache(key []byte) ([
 			continue
 		}
 
-		return val, nil
+		epoch := core.OptionalUint32{
+			Value:    ps.activePersisters[idx].epoch,
+			HasValue: true,
+		}
+		return val, epoch, nil
 	}
 
 	if numClosedDbs+1 == len(ps.activePersisters) && len(ps.activePersisters) > 1 {
-		return nil, elrondErrors.ErrDBIsClosed
+		return nil, core.OptionalUint32{}, elrondErrors.ErrDBIsClosed
 	}
 
-	return nil, fmt.Errorf("key %s not found in %s", hex.EncodeToString(key), ps.identifier)
+	return nil, core.OptionalUint32{}, fmt.Errorf("key %s not found in %s", hex.EncodeToString(key), ps.identifier)
 }
 
 // GetFromLastEpoch searches only the last epoch storer for the given key
