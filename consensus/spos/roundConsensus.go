@@ -2,6 +2,10 @@ package spos
 
 import (
 	"sync"
+
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	crypto "github.com/ElrondNetwork/elrond-go-crypto"
+	"github.com/ElrondNetwork/elrond-go/consensus"
 )
 
 // roundConsensus defines the data needed by spos to do the consensus in each round
@@ -13,6 +17,7 @@ type roundConsensus struct {
 	selfPubKey           string
 	validatorRoundStates map[string]*roundState
 	mut                  sync.RWMutex
+	keysHolder           consensus.KeysHolder
 }
 
 // NewRoundConsensus creates a new roundConsensus object
@@ -20,18 +25,20 @@ func NewRoundConsensus(
 	eligibleNodes map[string]struct{},
 	consensusGroupSize int,
 	selfId string,
-) *roundConsensus {
-
-	rcns := roundConsensus{
-		eligibleNodes:      eligibleNodes,
-		consensusGroupSize: consensusGroupSize,
-		selfPubKey:         selfId,
-		mutEligible:        sync.RWMutex{},
+	keysHolder consensus.KeysHolder,
+) (*roundConsensus, error) {
+	if check.IfNil(keysHolder) {
+		return nil, ErrNilKeysHolder
 	}
 
-	rcns.validatorRoundStates = make(map[string]*roundState)
-
-	return &rcns
+	return &roundConsensus{
+		eligibleNodes:        eligibleNodes,
+		consensusGroupSize:   consensusGroupSize,
+		selfPubKey:           selfId,
+		mutEligible:          sync.RWMutex{},
+		validatorRoundStates: make(map[string]*roundState),
+		keysHolder:           keysHolder,
+	}, nil
 }
 
 // ConsensusGroupIndex returns the index of given public key in the current consensus group
@@ -198,4 +205,32 @@ func (rcns *roundConsensus) ResetRoundState() {
 	}
 
 	rcns.mut.Unlock()
+}
+
+// IsMultiKeyInConsensusGroup method checks if one of the nodes which are controlled by this instance
+// is in consensus group in the current round
+func (rcns *roundConsensus) IsMultiKeyInConsensusGroup() bool {
+	for i := 0; i < len(rcns.consensusGroup); i++ {
+		if rcns.IsKeyManagedByCurrentNode([]byte(rcns.consensusGroup[i])) {
+			return true
+		}
+	}
+
+	return false
+}
+
+// GetManagedKeysByCurrentNode returns all keys that will be managed by this node
+func (rcns *roundConsensus) GetManagedKeysByCurrentNode() map[string]crypto.PrivateKey {
+	return rcns.keysHolder.GetManagedKeysByCurrentNode()
+}
+
+// IsKeyManagedByCurrentNode returns true if the key is managed by the current node
+func (rcns *roundConsensus) IsKeyManagedByCurrentNode(pkBytes []byte) bool {
+	return rcns.keysHolder.IsKeyManagedByCurrentNode(pkBytes)
+}
+
+// IncrementRoundsWithoutReceivedMessages increments the number of rounds without received messages on a provided public key
+// TODO(jls) add tests
+func (rcns *roundConsensus) IncrementRoundsWithoutReceivedMessages(pkBytes []byte) {
+	rcns.keysHolder.IncrementRoundsWithoutReceivedMessages(pkBytes)
 }

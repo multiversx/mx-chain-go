@@ -60,13 +60,13 @@ type ChronologyHandler interface {
 // BroadcastMessenger defines the behaviour of the broadcast messages by the consensus group
 type BroadcastMessenger interface {
 	BroadcastBlock(data.BodyHandler, data.HeaderHandler) error
-	BroadcastHeader(data.HeaderHandler) error
-	BroadcastMiniBlocks(map[uint32][]byte) error
-	BroadcastTransactions(map[string][][]byte) error
+	BroadcastHeader(data.HeaderHandler, []byte) error
+	BroadcastMiniBlocks(map[uint32][]byte, []byte) error
+	BroadcastTransactions(map[string][][]byte, []byte) error
 	BroadcastConsensusMessage(*Message) error
-	BroadcastBlockDataLeader(header data.HeaderHandler, miniBlocks map[uint32][]byte, transactions map[string][][]byte) error
-	PrepareBroadcastHeaderValidator(header data.HeaderHandler, miniBlocks map[uint32][]byte, transactions map[string][][]byte, order int)
-	PrepareBroadcastBlockDataValidator(header data.HeaderHandler, miniBlocks map[uint32][]byte, transactions map[string][][]byte, idx int)
+	BroadcastBlockDataLeader(header data.HeaderHandler, miniBlocks map[uint32][]byte, transactions map[string][][]byte, pkBytes []byte) error
+	PrepareBroadcastHeaderValidator(header data.HeaderHandler, miniBlocks map[uint32][]byte, transactions map[string][][]byte, idx int, pkBytes []byte)
+	PrepareBroadcastBlockDataValidator(header data.HeaderHandler, miniBlocks map[uint32][]byte, transactions map[string][][]byte, idx int, pkBytes []byte)
 	IsInterfaceNil() bool
 }
 
@@ -146,5 +146,17 @@ type ScheduledProcessor interface {
 	StartScheduledProcessing(header data.HeaderHandler, body data.BodyHandler, startTime time.Time)
 	ForceStopScheduledExecutionBlocking()
 	IsProcessedOKWithTimeout() bool
+	IsInterfaceNil() bool
+}
+
+// KeysHolder defines the component able to provide multi-key support
+type KeysHolder interface {
+	IsKeyManagedByCurrentNode(pkBytes []byte) bool
+	GetPrivateKey(pkBytes []byte) (crypto.PrivateKey, error)
+	GetP2PIdentity(pkBytes []byte) ([]byte, core.PeerID, error)
+	GetManagedKeysByCurrentNode() map[string]crypto.PrivateKey
+	IsPidManagedByCurrentNode(pid core.PeerID) bool
+	ResetRoundsWithoutReceivedMessages(pkBytes []byte)
+	IncrementRoundsWithoutReceivedMessages(pkBytes []byte)
 	IsInterfaceNil() bool
 }

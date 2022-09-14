@@ -219,3 +219,6 @@ var ErrNilNodeRedundancyHandler = errors.New("nil node redundancy handler")
 
 // ErrNilScheduledProcessor signals that the provided scheduled processor is nil
 var ErrNilScheduledProcessor = errors.New("nil scheduled processor")
+
+// ErrNilKeysHolder signals that a nil keys holder was provided
+var ErrNilKeysHolder = errors.New("nil keys holder")

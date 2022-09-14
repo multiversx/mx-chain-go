@@ -358,6 +358,8 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedP
 		return err
 	}
 
+	wrk.updatePublicKeyLiveness(cnsMsg.GetPubKey(), message.Peer())
+
 	if wrk.nodeRedundancyHandler.IsRedundancyNode() {
 		wrk.nodeRedundancyHandler.ResetInactivityIfNeeded(
 			wrk.consensusState.SelfPubKey(),
@@ -413,6 +415,14 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedP
 	go wrk.executeReceivedMessages(cnsMsg)
 
 	return nil
+}
+
+func (wrk *Worker) updatePublicKeyLiveness(pkBytes []byte, pid core.PeerID) {
+	if wrk.consensusState.keysHolder.IsPidManagedByCurrentNode(pid) {
+		return
+	}
+
+	wrk.consensusState.keysHolder.ResetRoundsWithoutReceivedMessages(pkBytes)
 }
 
 func (wrk *Worker) shouldBlacklistPeer(err error) bool {
@@ -519,7 +529,8 @@ func (wrk *Worker) processReceivedHeaderMetric(cnsDta *consensus.Message) {
 }
 
 func (wrk *Worker) checkSelfState(cnsDta *consensus.Message) error {
-	if wrk.consensusState.SelfPubKey() == string(cnsDta.PubKey) {
+	isMultiKeyManagedBySelf := wrk.consensusState.keysHolder.IsKeyManagedByCurrentNode(cnsDta.PubKey)
+	if wrk.consensusState.SelfPubKey() == string(cnsDta.PubKey) || isMultiKeyManagedBySelf {
 		return ErrMessageFromItself
 	}
 

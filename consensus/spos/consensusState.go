@@ -220,7 +220,12 @@ func (cns *ConsensusState) CanDoSubroundJob(currentSubroundId int) bool {
 		return false
 	}
 
-	if cns.IsSelfJobDone(currentSubroundId) {
+	selfJobDone := true
+	if cns.IsNodeInConsensusGroup(cns.SelfPubKey()) {
+		selfJobDone = cns.IsSelfJobDone(currentSubroundId)
+	}
+	allInOneJobDone := cns.IsMultiKeyJobDone(currentSubroundId)
+	if selfJobDone && allInOneJobDone {
 		return false
 	}
 
@@ -299,4 +304,44 @@ func (cns *ConsensusState) SetProcessingBlock(processingBlock bool) {
 // GetData gets the Data of the consensusState
 func (cns *ConsensusState) GetData() []byte {
 	return cns.Data
+}
+
+// IsMultiKeyLeaderInCurrentRound method checks if one of the nodes which are controlled by this instance
+// is leader in the current round
+func (cns *ConsensusState) IsMultiKeyLeaderInCurrentRound() bool {
+	managedKeys := cns.keysHolder.GetManagedKeysByCurrentNode()
+	for pk := range managedKeys {
+		if cns.IsNodeLeaderInCurrentRound(pk) {
+			return true
+		}
+	}
+
+	return false
+}
+
+// IsLeaderJobDone method returns true if the leader job for the current subround is done and false otherwise
+func (cns *ConsensusState) IsLeaderJobDone(currentSubroundId int) bool {
+	leader, err := cns.GetLeader()
+	if err != nil {
+		log.Debug("GetLeader", "error", err.Error())
+		return false
+	}
+
+	return cns.IsJobDone(leader, currentSubroundId)
+}
+
+// IsMultiKeyJobDone method returns true if all the nodes controlled by this instance finished the current job for
+// the current subround and false otherwise
+func (cns *ConsensusState) IsMultiKeyJobDone(currentSubroundId int) bool {
+	managedKeys := cns.keysHolder.GetManagedKeysByCurrentNode()
+	for pk := range managedKeys {
+		if !cns.IsNodeInConsensusGroup(pk) {
+			continue
+		}
+		if !cns.IsJobDone(pk, currentSubroundId) {
+			return false
+		}
+	}
+
+	return true
 }

@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/consensus/broadcast"
@@ -76,6 +77,7 @@ func createDefaultShardChainArgs() broadcast.ShardChainMessengerArgs {
 			MaxDelayCacheSize:          1,
 			MaxValidatorDelayCacheSize: 1,
 			AlarmScheduler:             alarmScheduler,
+			KeysHolder:                 &testscommon.KeysHolderStub{},
 		},
 	}
 }
@@ -143,6 +145,15 @@ func TestShardChainMessenger_NewShardChainMessengerNilHeadersSubscriberShouldFai
 	assert.Equal(t, spos.ErrNilHeadersSubscriber, err)
 }
 
+func TestShardChainMessenger_NilKeysHolderShouldError(t *testing.T) {
+	args := createDefaultShardChainArgs()
+	args.KeysHolder = nil
+	scm, err := broadcast.NewShardChainMessenger(args)
+
+	assert.Nil(t, scm)
+	assert.Equal(t, spos.ErrNilKeysHolder, err)
+}
+
 func TestShardChainMessenger_NewShardChainMessengerShouldWork(t *testing.T) {
 	args := createDefaultShardChainArgs()
 	scm, err := broadcast.NewShardChainMessenger(args)
@@ -194,11 +205,15 @@ func TestShardChainMessenger_BroadcastBlockShouldWork(t *testing.T) {
 }
 
 func TestShardChainMessenger_BroadcastMiniBlocksShouldBeDone(t *testing.T) {
-	channelCalled := make(chan bool, 100)
+	channelBroadcastCalled := make(chan bool, 100)
+	channelBroadcastUsingPrivateKeyCalled := make(chan bool, 100)
 
 	messenger := &mock.MessengerStub{
 		BroadcastCalled: func(topic string, buff []byte) {
-			channelCalled <- true
+			channelBroadcastCalled <- true
+		},
+		BroadcastUsingPrivateKeyCalled: func(topic string, buff []byte, pid core.PeerID, skBytes []byte) {
+			channelBroadcastUsingPrivateKeyCalled <- true
 		},
 	}
 	args := createDefaultShardChainArgs()
@@ -210,20 +225,40 @@ func TestShardChainMessenger_BroadcastMiniBlocksShouldBeDone(t *testing.T) {
 	miniBlocks[1] = make([]byte, 0)
 	miniBlocks[2] = make([]byte, 0)
 	miniBlocks[3] = make([]byte, 0)
-	err := scm.BroadcastMiniBlocks(miniBlocks)
 
-	called := 0
-	for i := 0; i < 4; i++ {
-		select {
-		case <-channelCalled:
-			called++
-		case <-time.After(time.Millisecond * 100):
-			break
+	t.Run("original public key of the node", func(t *testing.T) {
+		pkBytes, _ := args.PrivateKey.GeneratePublic().ToByteArray()
+		err := scm.BroadcastMiniBlocks(miniBlocks, pkBytes)
+
+		called := 0
+		for i := 0; i < 4; i++ {
+			select {
+			case <-channelBroadcastCalled:
+				called++
+			case <-time.After(time.Millisecond * 100):
+				break
+			}
 		}
-	}
 
-	assert.Nil(t, err)
-	assert.Equal(t, 4, called)
+		assert.Nil(t, err)
+		assert.Equal(t, 4, called)
+	})
+	t.Run("managed key", func(t *testing.T) {
+		err := scm.BroadcastMiniBlocks(miniBlocks, []byte("managed key"))
+
+		called := 0
+		for i := 0; i < 4; i++ {
+			select {
+			case <-channelBroadcastUsingPrivateKeyCalled:
+				called++
+			case <-time.After(time.Millisecond * 100):
+				break
+			}
+		}
+
+		assert.Nil(t, err)
+		assert.Equal(t, 4, called)
+	})
 }
 
 func TestShardChainMessenger_BroadcastTransactionsShouldNotBeCalled(t *testing.T) {
@@ -239,7 +274,7 @@ func TestShardChainMessenger_BroadcastTransactionsShouldNotBeCalled(t *testing.T
 	scm, _ := broadcast.NewShardChainMessenger(args)
 
 	transactions := make(map[string][][]byte)
-	err := scm.BroadcastTransactions(transactions)
+	err := scm.BroadcastTransactions(transactions, []byte("pk bytes"))
 
 	wasCalled := false
 	select {
@@ -252,7 +287,7 @@ func TestShardChainMessenger_BroadcastTransactionsShouldNotBeCalled(t *testing.T
 	assert.False(t, wasCalled)
 
 	transactions[factory.TransactionTopic] = make([][]byte, 0)
-	err = scm.BroadcastTransactions(transactions)
+	err = scm.BroadcastTransactions(transactions, []byte("pk bytes"))
 
 	wasCalled = false
 	select {
@@ -266,11 +301,15 @@ func TestShardChainMessenger_BroadcastTransactionsShouldNotBeCalled(t *testing.T
 }
 
 func TestShardChainMessenger_BroadcastTransactionsShouldBeCalled(t *testing.T) {
-	channelCalled := make(chan bool, 1)
+	channelBroadcastCalled := make(chan bool, 1)
+	channelBroadcastUsingPrivateKeyCalled := make(chan bool, 1)
 
 	messenger := &mock.MessengerStub{
 		BroadcastCalled: func(topic string, buff []byte) {
-			channelCalled <- true
+			channelBroadcastCalled <- true
+		},
+		BroadcastUsingPrivateKeyCalled: func(topic string, buff []byte, pid core.PeerID, skBytes []byte) {
+			channelBroadcastUsingPrivateKeyCalled <- true
 		},
 	}
 
@@ -282,51 +321,99 @@ func TestShardChainMessenger_BroadcastTransactionsShouldBeCalled(t *testing.T) {
 	txs := make([][]byte, 0)
 	txs = append(txs, []byte(""))
 	transactions[factory.TransactionTopic] = txs
-	err := scm.BroadcastTransactions(transactions)
+	t.Run("original public key of the node", func(t *testing.T) {
+		pkBytes, _ := args.PrivateKey.GeneratePublic().ToByteArray()
+		err := scm.BroadcastTransactions(transactions, pkBytes)
 
-	wasCalled := false
-	select {
-	case <-channelCalled:
-		wasCalled = true
-	case <-time.After(time.Millisecond * 100):
-	}
+		wasCalled := false
+		for i := 0; i < 4; i++ {
+			select {
+			case <-channelBroadcastCalled:
+				wasCalled = true
+			case <-time.After(time.Millisecond * 100):
+				break
+			}
+		}
 
-	assert.Nil(t, err)
-	assert.True(t, wasCalled)
+		assert.Nil(t, err)
+		assert.True(t, wasCalled)
+	})
+	t.Run("managed key", func(t *testing.T) {
+		err := scm.BroadcastTransactions(transactions, []byte("managed key"))
+
+		wasCalled := false
+		for i := 0; i < 4; i++ {
+			select {
+			case <-channelBroadcastUsingPrivateKeyCalled:
+				wasCalled = true
+			case <-time.After(time.Millisecond * 100):
+				break
+			}
+		}
+
+		assert.Nil(t, err)
+		assert.True(t, wasCalled)
+	})
 }
 
 func TestShardChainMessenger_BroadcastHeaderNilHeaderShouldErr(t *testing.T) {
 	args := createDefaultShardChainArgs()
 	scm, _ := broadcast.NewShardChainMessenger(args)
 
-	err := scm.BroadcastHeader(nil)
+	err := scm.BroadcastHeader(nil, []byte("pk bytes"))
 	assert.Equal(t, spos.ErrNilHeader, err)
 }
 
 func TestShardChainMessenger_BroadcastHeaderShouldWork(t *testing.T) {
-	channelCalled := make(chan bool, 1)
+	channelBroadcastCalled := make(chan bool, 1)
+	channelBroadcastUsingPrivateKeyCalled := make(chan bool, 1)
 
 	messenger := &mock.MessengerStub{
 		BroadcastCalled: func(topic string, buff []byte) {
-			channelCalled <- true
+			channelBroadcastCalled <- true
+		},
+		BroadcastUsingPrivateKeyCalled: func(topic string, buff []byte, pid core.PeerID, skBytes []byte) {
+			channelBroadcastUsingPrivateKeyCalled <- true
 		},
 	}
 	args := createDefaultShardChainArgs()
 	args.Messenger = messenger
 	scm, _ := broadcast.NewShardChainMessenger(args)
 
-	hdr := block.MetaBlock{Nonce: 10}
-	err := scm.BroadcastHeader(&hdr)
+	hdr := &block.MetaBlock{Nonce: 10}
+	t.Run("original public key of the node", func(t *testing.T) {
+		pkBytes, _ := args.PrivateKey.GeneratePublic().ToByteArray()
+		err := scm.BroadcastHeader(hdr, pkBytes)
 
-	wasCalled := false
-	select {
-	case <-channelCalled:
-		wasCalled = true
-	case <-time.After(time.Millisecond * 100):
-	}
+		wasCalled := false
+		for i := 0; i < 4; i++ {
+			select {
+			case <-channelBroadcastCalled:
+				wasCalled = true
+			case <-time.After(time.Millisecond * 100):
+				break
+			}
+		}
 
-	assert.Nil(t, err)
-	assert.True(t, wasCalled)
+		assert.Nil(t, err)
+		assert.True(t, wasCalled)
+	})
+	t.Run("managed key", func(t *testing.T) {
+		err := scm.BroadcastHeader(hdr, []byte("managed key"))
+
+		wasCalled := false
+		for i := 0; i < 4; i++ {
+			select {
+			case <-channelBroadcastUsingPrivateKeyCalled:
+				wasCalled = true
+			case <-time.After(time.Millisecond * 100):
+				break
+			}
+		}
+
+		assert.Nil(t, err)
+		assert.True(t, wasCalled)
+	})
 }
 
 func TestShardChainMessenger_BroadcastBlockDataLeaderNilHeaderShouldErr(t *testing.T) {
@@ -335,7 +422,7 @@ func TestShardChainMessenger_BroadcastBlockDataLeaderNilHeaderShouldErr(t *testi
 
 	_, _, miniblocks, transactions := createDelayData("1")
 
-	err := scm.BroadcastBlockDataLeader(nil, miniblocks, transactions)
+	err := scm.BroadcastBlockDataLeader(nil, miniblocks, transactions, []byte("pk bytes"))
 	assert.Equal(t, spos.ErrNilHeader, err)
 }
 
@@ -345,31 +432,52 @@ func TestShardChainMessenger_BroadcastBlockDataLeaderNilMiniblocksShouldReturnNi
 
 	_, header, _, transactions := createDelayData("1")
 
-	err := scm.BroadcastBlockDataLeader(header, nil, transactions)
+	err := scm.BroadcastBlockDataLeader(header, nil, transactions, []byte("pk bytes"))
 	assert.Nil(t, err)
 }
 
 func TestShardChainMessenger_BroadcastBlockDataLeaderShouldTriggerWaitingDelayedMessage(t *testing.T) {
-	wasCalled := atomic.Flag{}
+	broadcastWasCalled := atomic.Flag{}
+	broadcastUsingPrivateKeyWasCalled := atomic.Flag{}
 	messenger := &mock.MessengerStub{
 		BroadcastCalled: func(topic string, buff []byte) {
-			_ = wasCalled.SetReturningPrevious()
+			broadcastWasCalled.SetValue(true)
+		},
+		BroadcastUsingPrivateKeyCalled: func(topic string, buff []byte, pid core.PeerID, skBytes []byte) {
+			broadcastUsingPrivateKeyWasCalled.SetValue(true)
 		},
 	}
 	args := createDefaultShardChainArgs()
 	args.Messenger = messenger
 	scm, _ := broadcast.NewShardChainMessenger(args)
 
-	_, header, miniBlocksMarshalled, transactions := createDelayData("1")
-	err := scm.BroadcastBlockDataLeader(header, miniBlocksMarshalled, transactions)
-	time.Sleep(10 * time.Millisecond)
-	assert.Nil(t, err)
-	assert.False(t, wasCalled.IsSet())
+	t.Run("original public key of the node", func(t *testing.T) {
+		pkBytes, _ := args.PrivateKey.GeneratePublic().ToByteArray()
+		_, header, miniBlocksMarshalled, transactions := createDelayData("1")
+		err := scm.BroadcastBlockDataLeader(header, miniBlocksMarshalled, transactions, pkBytes)
+		time.Sleep(10 * time.Millisecond)
+		assert.Nil(t, err)
+		assert.False(t, broadcastWasCalled.IsSet())
 
-	wasCalled.Reset()
-	_, header2, miniBlocksMarshalled2, transactions2 := createDelayData("2")
-	err = scm.BroadcastBlockDataLeader(header2, miniBlocksMarshalled2, transactions2)
-	time.Sleep(10 * time.Millisecond)
-	assert.Nil(t, err)
-	assert.True(t, wasCalled.IsSet())
+		broadcastWasCalled.Reset()
+		_, header2, miniBlocksMarshalled2, transactions2 := createDelayData("2")
+		err = scm.BroadcastBlockDataLeader(header2, miniBlocksMarshalled2, transactions2, pkBytes)
+		time.Sleep(10 * time.Millisecond)
+		assert.Nil(t, err)
+		assert.True(t, broadcastWasCalled.IsSet())
+	})
+	t.Run("managed key", func(t *testing.T) {
+		_, header, miniBlocksMarshalled, transactions := createDelayData("1")
+		err := scm.BroadcastBlockDataLeader(header, miniBlocksMarshalled, transactions, []byte("managed key"))
+		time.Sleep(10 * time.Millisecond)
+		assert.Nil(t, err)
+		assert.False(t, broadcastUsingPrivateKeyWasCalled.IsSet())
+
+		broadcastWasCalled.Reset()
+		_, header2, miniBlocksMarshalled2, transactions2 := createDelayData("2")
+		err = scm.BroadcastBlockDataLeader(header2, miniBlocksMarshalled2, transactions2, []byte("managed key"))
+		time.Sleep(10 * time.Millisecond)
+		assert.Nil(t, err)
+		assert.True(t, broadcastUsingPrivateKeyWasCalled.IsSet())
+	})
 }

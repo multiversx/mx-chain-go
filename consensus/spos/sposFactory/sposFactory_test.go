@@ -149,6 +149,7 @@ func TestGetBroadcastMessenger_ShardShouldWork(t *testing.T) {
 		headersSubscriber,
 		interceptosContainer,
 		alarmSchedulerStub,
+		&testscommon.KeysHolderStub{},
 	)
 
 	assert.Nil(t, err)
@@ -181,6 +182,7 @@ func TestGetBroadcastMessenger_MetachainShouldWork(t *testing.T) {
 		headersSubscriber,
 		interceptosContainer,
 		alarmSchedulerStub,
+		&testscommon.KeysHolderStub{},
 	)
 
 	assert.Nil(t, err)
@@ -204,6 +206,7 @@ func TestGetBroadcastMessenger_NilShardCoordinatorShouldErr(t *testing.T) {
 		headersSubscriber,
 		interceptosContainer,
 		alarmSchedulerStub,
+		&testscommon.KeysHolderStub{},
 	)
 
 	assert.Nil(t, bm)
@@ -231,6 +234,7 @@ func TestGetBroadcastMessenger_InvalidShardIdShouldErr(t *testing.T) {
 		headersSubscriber,
 		interceptosContainer,
 		alarmSchedulerStub,
+		&testscommon.KeysHolderStub{},
 	)
 
 	assert.Nil(t, bm)

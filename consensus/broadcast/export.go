@@ -178,13 +178,28 @@ func NewCommonMessenger(
 	privateKey crypto.PrivateKey,
 	shardCoordinator sharding.Coordinator,
 	peerSigHandler crypto.PeerSignatureHandler,
+	keysHolder consensus.KeysHolder,
 ) (*commonMessenger, error) {
 
+	pkBytes, _ := privateKey.GeneratePublic().ToByteArray()
+
 	return &commonMessenger{
-		marshalizer:          marshalizer,
-		messenger:            messenger,
-		privateKey:           privateKey,
-		shardCoordinator:     shardCoordinator,
-		peerSignatureHandler: peerSigHandler,
+		marshalizer:           marshalizer,
+		messenger:             messenger,
+		privateKey:            privateKey,
+		shardCoordinator:      shardCoordinator,
+		peerSignatureHandler:  peerSigHandler,
+		keysHolder:            keysHolder,
+		currentPublicKeyBytes: pkBytes,
 	}, nil
+}
+
+// Broadcast -
+func (cm *commonMessenger) Broadcast(topic string, data []byte, pkBytes []byte) {
+	cm.broadcast(topic, data, pkBytes)
+}
+
+// GetPrivateKey -
+func (cm *commonMessenger) GetPrivateKey(message *consensus.Message) crypto.PrivateKey {
+	return cm.getPrivateKey(message)
 }

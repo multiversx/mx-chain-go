@@ -702,6 +702,7 @@ func (tpn *TestProcessorNode) initTestNodeWithArgs(args ArgTestProcessorNode) {
 		tpn.DataPool.Headers(),
 		tpn.InterceptorsContainer,
 		&testscommon.AlarmSchedulerStub{},
+		&testscommon.KeysHolderStub{},
 	)
 
 	if args.WithSync {
@@ -722,13 +723,13 @@ func (tpn *TestProcessorNode) createFullSCQueryService(gasMap map[string]map[str
 
 	gasSchedule := mock.NewGasScheduleNotifierMock(gasMap)
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:               gasSchedule,
-		MapDNSAddresses:           make(map[string]struct{}),
-		Marshalizer:               TestMarshalizer,
-		Accounts:                  tpn.AccntState,
-		ShardCoordinator:          tpn.ShardCoordinator,
-		EpochNotifier:             tpn.EpochNotifier,
-		EnableEpochsHandler:       tpn.EnableEpochsHandler,
+		GasSchedule:         gasSchedule,
+		MapDNSAddresses:     make(map[string]struct{}),
+		Marshalizer:         TestMarshalizer,
+		Accounts:            tpn.AccntState,
+		ShardCoordinator:    tpn.ShardCoordinator,
+		EpochNotifier:       tpn.EpochNotifier,
+		EnableEpochsHandler: tpn.EnableEpochsHandler,
 
 		MaxNumNodesInTransferRole: 100,
 	}
@@ -881,6 +882,7 @@ func (tpn *TestProcessorNode) InitializeProcessors(gasMap map[string]map[string]
 		tpn.DataPool.Headers(),
 		tpn.InterceptorsContainer,
 		&testscommon.AlarmSchedulerStub{},
+		&testscommon.KeysHolderStub{},
 	)
 	tpn.setGenesisBlock()
 	tpn.initNode()
@@ -1360,13 +1362,13 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 
 	gasSchedule := mock.NewGasScheduleNotifierMock(gasMap)
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:               gasSchedule,
-		MapDNSAddresses:           mapDNSAddresses,
-		Marshalizer:               TestMarshalizer,
-		Accounts:                  tpn.AccntState,
-		ShardCoordinator:          tpn.ShardCoordinator,
-		EpochNotifier:             tpn.EpochNotifier,
-		EnableEpochsHandler:       tpn.EnableEpochsHandler,
+		GasSchedule:         gasSchedule,
+		MapDNSAddresses:     mapDNSAddresses,
+		Marshalizer:         TestMarshalizer,
+		Accounts:            tpn.AccntState,
+		ShardCoordinator:    tpn.ShardCoordinator,
+		EpochNotifier:       tpn.EpochNotifier,
+		EnableEpochsHandler: tpn.EnableEpochsHandler,
 
 		MaxNumNodesInTransferRole: 100,
 	}
@@ -1573,13 +1575,13 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 
 	gasSchedule := mock.NewGasScheduleNotifierMock(gasMap)
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:               gasSchedule,
-		MapDNSAddresses:           make(map[string]struct{}),
-		Marshalizer:               TestMarshalizer,
-		Accounts:                  tpn.AccntState,
-		ShardCoordinator:          tpn.ShardCoordinator,
-		EpochNotifier:             tpn.EpochNotifier,
-		EnableEpochsHandler:       tpn.EnableEpochsHandler,
+		GasSchedule:         gasSchedule,
+		MapDNSAddresses:     make(map[string]struct{}),
+		Marshalizer:         TestMarshalizer,
+		Accounts:            tpn.AccntState,
+		ShardCoordinator:    tpn.ShardCoordinator,
+		EpochNotifier:       tpn.EpochNotifier,
+		EnableEpochsHandler: tpn.EnableEpochsHandler,
 
 		MaxNumNodesInTransferRole: 100,
 	}
@@ -2457,14 +2459,16 @@ func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.Bod
 }
 
 // BroadcastBlock broadcasts the block and body to the connected peers
-func (tpn *TestProcessorNode) BroadcastBlock(body data.BodyHandler, header data.HeaderHandler) {
+func (tpn *TestProcessorNode) BroadcastBlock(body data.BodyHandler, header data.HeaderHandler, publicKey crypto.PublicKey) {
 	_ = tpn.BroadcastMessenger.BroadcastBlock(body, header)
 
 	time.Sleep(tpn.WaitTime)
 
+	pkBytes, _ := publicKey.ToByteArray()
+
 	miniBlocks, transactions, _ := tpn.BlockProcessor.MarshalizedDataToBroadcast(header, body)
-	_ = tpn.BroadcastMessenger.BroadcastMiniBlocks(miniBlocks)
-	_ = tpn.BroadcastMessenger.BroadcastTransactions(transactions)
+	_ = tpn.BroadcastMessenger.BroadcastMiniBlocks(miniBlocks, pkBytes)
+	_ = tpn.BroadcastMessenger.BroadcastTransactions(transactions, pkBytes)
 }
 
 // WhiteListBody will whitelist all miniblocks from the given body for all the given nodes
@@ -2898,6 +2902,7 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger() {
 	log.LogIfError(err)
 }
 
+// CreateEnableEpochsConfig creates a testing EnableEpochs struct
 func CreateEnableEpochsConfig() config.EnableEpochs {
 	return config.EnableEpochs{
 		SCDeployEnableEpoch:                               UnreachableEpoch,
@@ -3078,6 +3083,7 @@ func GetDefaultCryptoComponents() *mock.CryptoComponentsStub {
 		BlKeyGen:        &mock.KeyGenMock{},
 		TxKeyGen:        &mock.KeyGenMock{},
 		MsgSigVerifier:  &testscommon.MessageSignVerifierMock{},
+		KeysHolderField: &testscommon.KeysHolderStub{},
 	}
 }
 
@@ -3240,8 +3246,8 @@ func getDefaultNodesCoordinator(maxShards uint32, pksBytes map[uint32][]byte) no
 			return keys, nil
 		},
 		GetValidatorWithPublicKeyCalled: func(publicKey []byte) (nodesCoordinator.Validator, uint32, error) {
-			validator, _ := nodesCoordinator.NewValidator(publicKey, defaultChancesSelection, 1)
-			return validator, 0, nil
+			validatorInstance, _ := nodesCoordinator.NewValidator(publicKey, defaultChancesSelection, 1)
+			return validatorInstance, 0, nil
 		},
 	}
 }

@@ -69,6 +69,7 @@ func GetBroadcastMessenger(
 	headersSubscriber consensus.HeadersPoolSubscriber,
 	interceptorsContainer process.InterceptorsContainer,
 	alarmScheduler core.TimersScheduler,
+	keysHolder consensus.KeysHolder,
 ) (consensus.BroadcastMessenger, error) {
 
 	if check.IfNil(shardCoordinator) {
@@ -87,6 +88,7 @@ func GetBroadcastMessenger(
 		MaxValidatorDelayCacheSize: maxDelayCacheSize,
 		InterceptorsContainer:      interceptorsContainer,
 		AlarmScheduler:             alarmScheduler,
+		KeysHolder:                 keysHolder,
 	}
 
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {

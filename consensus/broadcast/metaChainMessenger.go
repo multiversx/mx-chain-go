@@ -46,6 +46,11 @@ func NewMetaChainMessenger(
 		return nil, err
 	}
 
+	pkBytes, err := args.PrivateKey.GeneratePublic().ToByteArray()
+	if err != nil {
+		return nil, err
+	}
+
 	cm := &commonMessenger{
 		marshalizer:             args.Marshalizer,
 		hasher:                  args.Hasher,
@@ -54,6 +59,8 @@ func NewMetaChainMessenger(
 		shardCoordinator:        args.ShardCoordinator,
 		peerSignatureHandler:    args.PeerSignatureHandler,
 		delayedBlockBroadcaster: dbb,
+		currentPublicKeyBytes:   pkBytes,
+		keysHolder:              args.KeysHolder,
 	}
 
 	mcm := &metaChainMessenger{
@@ -109,7 +116,7 @@ func (mcm *metaChainMessenger) BroadcastBlock(blockBody data.BodyHandler, header
 }
 
 // BroadcastHeader will send on metachain blocks topic the header
-func (mcm *metaChainMessenger) BroadcastHeader(header data.HeaderHandler) error {
+func (mcm *metaChainMessenger) BroadcastHeader(header data.HeaderHandler, pkBytes []byte) error {
 	if check.IfNil(header) {
 		return spos.ErrNilHeader
 	}
@@ -119,7 +126,7 @@ func (mcm *metaChainMessenger) BroadcastHeader(header data.HeaderHandler) error 
 		return err
 	}
 
-	mcm.messenger.Broadcast(factory.MetachainBlocksTopic, msgHeader)
+	mcm.broadcast(factory.MetachainBlocksTopic, msgHeader, pkBytes)
 
 	return nil
 }
@@ -129,8 +136,9 @@ func (mcm *metaChainMessenger) BroadcastBlockDataLeader(
 	_ data.HeaderHandler,
 	miniBlocks map[uint32][]byte,
 	transactions map[string][][]byte,
+	pkBytes []byte,
 ) error {
-	go mcm.BroadcastBlockData(miniBlocks, transactions, common.ExtraDelayForBroadcastBlockInfo)
+	go mcm.BroadcastBlockData(miniBlocks, transactions, pkBytes, common.ExtraDelayForBroadcastBlockInfo)
 	return nil
 }
 
@@ -140,6 +148,7 @@ func (mcm *metaChainMessenger) PrepareBroadcastHeaderValidator(
 	miniBlocks map[uint32][]byte,
 	transactions map[string][][]byte,
 	idx int,
+	pkBytes []byte,
 ) {
 	if check.IfNil(header) {
 		log.Error("metaChainMessenger.PrepareBroadcastHeaderValidator", "error", spos.ErrNilHeader)
@@ -158,6 +167,7 @@ func (mcm *metaChainMessenger) PrepareBroadcastHeaderValidator(
 		metaMiniBlocksData:   miniBlocks,
 		metaTransactionsData: transactions,
 		order:                uint32(idx),
+		pkBytes:              pkBytes,
 	}
 
 	err = mcm.delayedBlockBroadcaster.SetHeaderForValidator(vData)
@@ -173,6 +183,7 @@ func (mcm *metaChainMessenger) PrepareBroadcastBlockDataValidator(
 	_ map[uint32][]byte,
 	_ map[string][][]byte,
 	_ int,
+	_ []byte,
 ) {
 }
 

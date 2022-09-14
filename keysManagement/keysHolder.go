@@ -215,37 +215,31 @@ func (holder *virtualPeersHolder) GetNameAndIdentity(pkBytes []byte) (string, st
 }
 
 // IncrementRoundsWithoutReceivedMessages increments the number of rounds without received messages on a provided public key
-func (holder *virtualPeersHolder) IncrementRoundsWithoutReceivedMessages(pkBytes []byte) error {
+func (holder *virtualPeersHolder) IncrementRoundsWithoutReceivedMessages(pkBytes []byte) {
 	if holder.isMainMachine {
-		return nil
+		return
 	}
 
 	pInfo := holder.getPeerInfo(pkBytes)
 	if pInfo == nil {
-		return fmt.Errorf("%w in IncrementRoundsWithoutReceivedMessages for public key %s",
-			errMissingPublicKeyDefinition, hex.EncodeToString(pkBytes))
+		return
 	}
 
 	pInfo.incrementRoundsWithoutReceivedMessages()
-
-	return nil
 }
 
 // ResetRoundsWithoutReceivedMessages resets the number of rounds without received messages on a provided public key
-func (holder *virtualPeersHolder) ResetRoundsWithoutReceivedMessages(pkBytes []byte) error {
+func (holder *virtualPeersHolder) ResetRoundsWithoutReceivedMessages(pkBytes []byte) {
 	if holder.isMainMachine {
-		return nil
+		return
 	}
 
 	pInfo := holder.getPeerInfo(pkBytes)
 	if pInfo == nil {
-		return fmt.Errorf("%w in ResetRoundsWithoutReceivedMessages for public key %s",
-			errMissingPublicKeyDefinition, hex.EncodeToString(pkBytes))
+		return
 	}
 
 	pInfo.resetRoundsWithoutReceivedMessages()
-
-	return nil
 }
 
 // GetManagedKeysByCurrentNode returns all keys that will be managed by this node

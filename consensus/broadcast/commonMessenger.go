@@ -1,6 +1,7 @@
 package broadcast
 
 import (
+	"bytes"
 	"strings"
 	"time"
 
@@ -28,9 +29,9 @@ type delayedBroadcaster interface {
 	SetValidatorData(data *delayedBroadcastData) error
 	SetHeaderForValidator(vData *validatorHeaderBroadcastData) error
 	SetBroadcastHandlers(
-		mbBroadcast func(mbData map[uint32][]byte) error,
-		txBroadcast func(txData map[string][][]byte) error,
-		headerBroadcast func(header data.HeaderHandler) error,
+		mbBroadcast func(mbData map[uint32][]byte, pkBytes []byte) error,
+		txBroadcast func(txData map[string][][]byte, pkBytes []byte) error,
+		headerBroadcast func(header data.HeaderHandler, pkBytes []byte) error,
 	) error
 	Close()
 }
@@ -43,6 +44,8 @@ type commonMessenger struct {
 	shardCoordinator        sharding.Coordinator
 	peerSignatureHandler    crypto.PeerSignatureHandler
 	delayedBlockBroadcaster delayedBroadcaster
+	keysHolder              consensus.KeysHolder
+	currentPublicKeyBytes   []byte
 }
 
 // CommonMessengerArgs holds the arguments for creating commonMessenger instance
@@ -58,6 +61,7 @@ type CommonMessengerArgs struct {
 	MaxDelayCacheSize          uint32
 	MaxValidatorDelayCacheSize uint32
 	AlarmScheduler             core.TimersScheduler
+	KeysHolder                 consensus.KeysHolder
 }
 
 func checkCommonMessengerNilParameters(
@@ -93,13 +97,17 @@ func checkCommonMessengerNilParameters(
 	if args.MaxDelayCacheSize == 0 || args.MaxValidatorDelayCacheSize == 0 {
 		return spos.ErrInvalidCacheSize
 	}
+	if check.IfNil(args.KeysHolder) {
+		return ErrNilKeysHolder
+	}
 
 	return nil
 }
 
 // BroadcastConsensusMessage will send on consensus topic the consensus message
 func (cm *commonMessenger) BroadcastConsensusMessage(message *consensus.Message) error {
-	signature, err := cm.peerSignatureHandler.GetPeerSignature(cm.privateKey, message.OriginatorPid)
+	privateKey := cm.getPrivateKey(message)
+	signature, err := cm.peerSignatureHandler.GetPeerSignature(privateKey, message.OriginatorPid)
 	if err != nil {
 		return err
 	}
@@ -114,18 +122,35 @@ func (cm *commonMessenger) BroadcastConsensusMessage(message *consensus.Message)
 	consensusTopic := common.ConsensusTopic +
 		cm.shardCoordinator.CommunicationIdentifier(cm.shardCoordinator.SelfId())
 
-	cm.messenger.Broadcast(consensusTopic, buff)
+	cm.broadcast(consensusTopic, buff, message.PubKey)
 
 	return nil
 }
 
+func (cm *commonMessenger) getPrivateKey(message *consensus.Message) crypto.PrivateKey {
+	publicKey := message.PubKey
+	if !cm.keysHolder.IsKeyManagedByCurrentNode(publicKey) {
+		return cm.privateKey
+	}
+
+	privateKey, err := cm.keysHolder.GetPrivateKey(publicKey)
+	if err != nil {
+		log.Error("setup error in commonMessenger.getPrivateKey - public key is managed but does not contain a private key",
+			"pk", publicKey, "error", err)
+
+		return cm.privateKey
+	}
+
+	return privateKey
+}
+
 // BroadcastMiniBlocks will send on miniblocks topic the cross-shard miniblocks
-func (cm *commonMessenger) BroadcastMiniBlocks(miniBlocks map[uint32][]byte) error {
+func (cm *commonMessenger) BroadcastMiniBlocks(miniBlocks map[uint32][]byte, pkBytes []byte) error {
 	for k, v := range miniBlocks {
 		miniBlocksTopic := factory.MiniBlocksTopic +
 			cm.shardCoordinator.CommunicationIdentifier(k)
 
-		cm.messenger.Broadcast(miniBlocksTopic, v)
+		cm.broadcast(miniBlocksTopic, v, pkBytes)
 	}
 
 	if len(miniBlocks) > 0 {
@@ -138,7 +163,7 @@ func (cm *commonMessenger) BroadcastMiniBlocks(miniBlocks map[uint32][]byte) err
 }
 
 // BroadcastTransactions will send on transaction topic the transactions
-func (cm *commonMessenger) BroadcastTransactions(transactions map[string][][]byte) error {
+func (cm *commonMessenger) BroadcastTransactions(transactions map[string][][]byte, pkBytes []byte) error {
 	dataPacker, err := partitioning.NewSimpleDataPacker(cm.marshalizer)
 	if err != nil {
 		return err
@@ -155,7 +180,7 @@ func (cm *commonMessenger) BroadcastTransactions(transactions map[string][][]byt
 		}
 
 		for _, buff := range packets {
-			cm.messenger.Broadcast(topic, buff)
+			cm.broadcast(topic, buff, pkBytes)
 		}
 	}
 
@@ -172,12 +197,13 @@ func (cm *commonMessenger) BroadcastTransactions(transactions map[string][][]byt
 func (cm *commonMessenger) BroadcastBlockData(
 	miniBlocks map[uint32][]byte,
 	transactions map[string][][]byte,
+	pkBytes []byte,
 	extraDelayForBroadcast time.Duration,
 ) {
 	time.Sleep(extraDelayForBroadcast)
 
 	if len(miniBlocks) > 0 {
-		err := cm.BroadcastMiniBlocks(miniBlocks)
+		err := cm.BroadcastMiniBlocks(miniBlocks, pkBytes)
 		if err != nil {
 			log.Warn("commonMessenger.BroadcastBlockData: broadcast miniblocks", "error", err.Error())
 		}
@@ -186,7 +212,7 @@ func (cm *commonMessenger) BroadcastBlockData(
 	time.Sleep(common.ExtraDelayBetweenBroadcastMbsAndTxs)
 
 	if len(transactions) > 0 {
-		err := cm.BroadcastTransactions(transactions)
+		err := cm.BroadcastTransactions(transactions, pkBytes)
 		if err != nil {
 			log.Warn("commonMessenger.BroadcastBlockData: broadcast transactions", "error", err.Error())
 		}
@@ -222,4 +248,20 @@ func (cm *commonMessenger) extractMetaMiniBlocksAndTransactions(
 	}
 
 	return metaMiniBlocks, metaTransactions
+}
+
+func (cm *commonMessenger) broadcast(topic string, data []byte, pkBytes []byte) {
+	if bytes.Equal(pkBytes, cm.currentPublicKeyBytes) {
+		cm.messenger.Broadcast(topic, data)
+		return
+	}
+
+	skBytes, pid, err := cm.keysHolder.GetP2PIdentity(pkBytes)
+	if err != nil {
+		log.Error("setup error in commonMessenger.broadcast - public key is managed but does not contain p2p sign info",
+			"pk", pkBytes, "error", err)
+		return
+	}
+
+	cm.messenger.BroadcastUsingPrivateKey(topic, data, pid, skBytes)
 }

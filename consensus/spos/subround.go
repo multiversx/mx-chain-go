@@ -1,18 +1,20 @@
 package spos
 
 import (
+	"bytes"
 	"context"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 )
 
 var _ consensus.SubroundHandler = (*Subround)(nil)
 
 // Subround struct contains the needed data for one Subround and the Subround properties. It defines a Subround
-// with it's properties (it's ID, next Subround ID, it's duration, it's name) and also it has some handler functions
+// with its properties (its ID, next Subround ID, its duration, its name) and also it has some handler functions
 // which should be set. Job function will be the main function of this Subround, Extend function will handle the overtime
 // situation of the Subround and Check function will decide if in this Subround the consensus is achieved
 type Subround struct {
@@ -202,6 +204,30 @@ func (sr *Subround) AppStatusHandler() core.AppStatusHandler {
 // ConsensusChannel method returns the consensus channel
 func (sr *Subround) ConsensusChannel() chan bool {
 	return sr.consensusStateChangedChannel
+}
+
+// GetAssociatedPid returns the associated PeerID to the provided public key bytes
+func (sr *Subround) GetAssociatedPid(pkBytes []byte) core.PeerID {
+	if bytes.Equal(pkBytes, []byte(sr.SelfPubKey())) {
+		return sr.currentPid
+	}
+
+	_, pid, err := sr.keysHolder.GetP2PIdentity(pkBytes)
+	if err != nil {
+		log.Error("setup error in Subround.ConsensusChannel - public key is managed but does not contain p2p identity")
+		return sr.currentPid
+	}
+
+	return pid
+}
+
+// GetMessageSigningPrivateKey returns the correct private key based on the provided pkBytes
+func (sr *Subround) GetMessageSigningPrivateKey(pkBytes []byte) (crypto.PrivateKey, error) {
+	if bytes.Equal(pkBytes, []byte(sr.SelfPubKey())) {
+		return sr.PrivateKey(), nil
+	}
+
+	return sr.keysHolder.GetPrivateKey(pkBytes)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

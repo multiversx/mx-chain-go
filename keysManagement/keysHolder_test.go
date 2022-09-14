@@ -373,13 +373,20 @@ func TestVirtualPeersHolder_IncrementRoundsWithoutReceivedMessages(t *testing.T)
 		holder, _ := NewVirtualPeersHolder(args)
 		_ = holder.AddVirtualPeer(skBytes0)
 
-		t.Run("missing public key", func(t *testing.T) {
-			err := holder.IncrementRoundsWithoutReceivedMessages(pkBytes1)
-			assert.Nil(t, err)
+		t.Run("missing public key should not panic", func(t *testing.T) {
+			defer func() {
+				r := recover()
+				if r != nil {
+					assert.Fail(t, fmt.Sprintf("should have not panicked %v", r))
+				}
+			}()
+
+			holder.IncrementRoundsWithoutReceivedMessages(pkBytes1)
+			pInfoRecovered := holder.getPeerInfo(pkBytes1)
+			assert.Nil(t, pInfoRecovered)
 		})
 		t.Run("existing public key", func(t *testing.T) {
-			err := holder.IncrementRoundsWithoutReceivedMessages(pkBytes0)
-			assert.Nil(t, err)
+			holder.IncrementRoundsWithoutReceivedMessages(pkBytes0)
 
 			pInfoRecovered := holder.getPeerInfo(pkBytes0)
 			assert.Zero(t, pInfoRecovered.getRoundsWithoutReceivedMessages())
@@ -391,22 +398,28 @@ func TestVirtualPeersHolder_IncrementRoundsWithoutReceivedMessages(t *testing.T)
 		holder, _ := NewVirtualPeersHolder(args)
 		_ = holder.AddVirtualPeer(skBytes0)
 
-		t.Run("missing public key should error", func(t *testing.T) {
-			err := holder.IncrementRoundsWithoutReceivedMessages(pkBytes1)
-			assert.True(t, errors.Is(err, errMissingPublicKeyDefinition))
+		t.Run("missing public key should not panic", func(t *testing.T) {
+			defer func() {
+				r := recover()
+				if r != nil {
+					assert.Fail(t, fmt.Sprintf("should have not panicked %v", r))
+				}
+			}()
+
+			holder.IncrementRoundsWithoutReceivedMessages(pkBytes1)
+			pInfoRecovered := holder.getPeerInfo(pkBytes1)
+			assert.Nil(t, pInfoRecovered)
 		})
 		t.Run("existing public key should increment", func(t *testing.T) {
 			pInfoRecovered := holder.getPeerInfo(pkBytes0)
 			assert.Zero(t, pInfoRecovered.getRoundsWithoutReceivedMessages())
 
-			err := holder.IncrementRoundsWithoutReceivedMessages(pkBytes0)
-			assert.Nil(t, err)
+			holder.IncrementRoundsWithoutReceivedMessages(pkBytes0)
 
 			pInfoRecovered = holder.getPeerInfo(pkBytes0)
 			assert.Equal(t, 1, pInfoRecovered.getRoundsWithoutReceivedMessages())
 
-			err = holder.IncrementRoundsWithoutReceivedMessages(pkBytes0)
-			assert.Nil(t, err)
+			holder.IncrementRoundsWithoutReceivedMessages(pkBytes0)
 
 			pInfoRecovered = holder.getPeerInfo(pkBytes0)
 			assert.Equal(t, 2, pInfoRecovered.getRoundsWithoutReceivedMessages())
@@ -423,13 +436,18 @@ func TestVirtualPeersHolder_ResetRoundsWithoutReceivedMessages(t *testing.T) {
 		holder, _ := NewVirtualPeersHolder(args)
 		_ = holder.AddVirtualPeer(skBytes0)
 
-		t.Run("missing public key", func(t *testing.T) {
-			err := holder.ResetRoundsWithoutReceivedMessages(pkBytes1)
-			assert.Nil(t, err)
+		t.Run("missing public key should not panic", func(t *testing.T) {
+			defer func() {
+				r := recover()
+				if r != nil {
+					assert.Fail(t, fmt.Sprintf("should have not panicked %v", r))
+				}
+			}()
+
+			holder.ResetRoundsWithoutReceivedMessages(pkBytes1)
 		})
 		t.Run("existing public key", func(t *testing.T) {
-			err := holder.ResetRoundsWithoutReceivedMessages(pkBytes0)
-			assert.Nil(t, err)
+			holder.ResetRoundsWithoutReceivedMessages(pkBytes0)
 
 			pInfoRecovered := holder.getPeerInfo(pkBytes0)
 			assert.Zero(t, pInfoRecovered.getRoundsWithoutReceivedMessages())
@@ -441,32 +459,36 @@ func TestVirtualPeersHolder_ResetRoundsWithoutReceivedMessages(t *testing.T) {
 		holder, _ := NewVirtualPeersHolder(args)
 		_ = holder.AddVirtualPeer(skBytes0)
 
-		t.Run("missing public key should error", func(t *testing.T) {
-			err := holder.ResetRoundsWithoutReceivedMessages(pkBytes1)
-			assert.True(t, errors.Is(err, errMissingPublicKeyDefinition))
+		t.Run("missing public key should not panic", func(t *testing.T) {
+			defer func() {
+				r := recover()
+				if r != nil {
+					assert.Fail(t, fmt.Sprintf("should have not panicked %v", r))
+				}
+			}()
+
+			holder.ResetRoundsWithoutReceivedMessages(pkBytes1)
 		})
 		t.Run("existing public key should reset", func(t *testing.T) {
 			pInfoRecovered := holder.getPeerInfo(pkBytes0)
 			assert.Zero(t, pInfoRecovered.getRoundsWithoutReceivedMessages())
 
-			_ = holder.IncrementRoundsWithoutReceivedMessages(pkBytes0)
+			holder.IncrementRoundsWithoutReceivedMessages(pkBytes0)
 			pInfoRecovered = holder.getPeerInfo(pkBytes0)
 			assert.Equal(t, 1, pInfoRecovered.getRoundsWithoutReceivedMessages())
 
-			err := holder.ResetRoundsWithoutReceivedMessages(pkBytes0)
-			assert.Nil(t, err)
+			holder.ResetRoundsWithoutReceivedMessages(pkBytes0)
 
 			pInfoRecovered = holder.getPeerInfo(pkBytes0)
 			assert.Equal(t, 0, pInfoRecovered.getRoundsWithoutReceivedMessages())
 
-			_ = holder.IncrementRoundsWithoutReceivedMessages(pkBytes0)
-			_ = holder.IncrementRoundsWithoutReceivedMessages(pkBytes0)
-			_ = holder.IncrementRoundsWithoutReceivedMessages(pkBytes0)
+			holder.IncrementRoundsWithoutReceivedMessages(pkBytes0)
+			holder.IncrementRoundsWithoutReceivedMessages(pkBytes0)
+			holder.IncrementRoundsWithoutReceivedMessages(pkBytes0)
 			pInfoRecovered = holder.getPeerInfo(pkBytes0)
 			assert.Equal(t, 3, pInfoRecovered.getRoundsWithoutReceivedMessages())
 
-			err = holder.ResetRoundsWithoutReceivedMessages(pkBytes0)
-			assert.Nil(t, err)
+			holder.ResetRoundsWithoutReceivedMessages(pkBytes0)
 
 			pInfoRecovered = holder.getPeerInfo(pkBytes0)
 			assert.Equal(t, 0, pInfoRecovered.getRoundsWithoutReceivedMessages())
@@ -485,7 +507,7 @@ func TestVirtualPeersHolder_GetManagedKeysByCurrentNode(t *testing.T) {
 		_ = holder.AddVirtualPeer(skBytes1)
 
 		for i := 0; i < 10; i++ {
-			_ = holder.IncrementRoundsWithoutReceivedMessages(pkBytes0)
+			holder.IncrementRoundsWithoutReceivedMessages(pkBytes0)
 		}
 
 		result := holder.GetManagedKeysByCurrentNode()
@@ -503,18 +525,18 @@ func TestVirtualPeersHolder_GetManagedKeysByCurrentNode(t *testing.T) {
 			result := holder.GetManagedKeysByCurrentNode()
 			testManagedKeys(t, result)
 
-			_ = holder.IncrementRoundsWithoutReceivedMessages(pkBytes0)
+			holder.IncrementRoundsWithoutReceivedMessages(pkBytes0)
 
 			result = holder.GetManagedKeysByCurrentNode()
 			testManagedKeys(t, result)
 		})
 		t.Run("MaxRoundsWithoutReceivedMessages reached, should return failed pk", func(t *testing.T) {
-			_ = holder.IncrementRoundsWithoutReceivedMessages(pkBytes0)
+			holder.IncrementRoundsWithoutReceivedMessages(pkBytes0)
 
 			result := holder.GetManagedKeysByCurrentNode()
 			testManagedKeys(t, result, pkBytes0)
 
-			_ = holder.IncrementRoundsWithoutReceivedMessages(pkBytes0)
+			holder.IncrementRoundsWithoutReceivedMessages(pkBytes0)
 			result = holder.GetManagedKeysByCurrentNode()
 			testManagedKeys(t, result, pkBytes0)
 		})
@@ -554,15 +576,15 @@ func TestVirtualPeersHolder_IsKeyManagedByCurrentNode(t *testing.T) {
 			isManaged := holder.IsKeyManagedByCurrentNode(pkBytes0)
 			assert.False(t, isManaged)
 
-			_ = holder.IncrementRoundsWithoutReceivedMessages(pkBytes0)
+			holder.IncrementRoundsWithoutReceivedMessages(pkBytes0)
 			isManaged = holder.IsKeyManagedByCurrentNode(pkBytes0)
 			assert.False(t, isManaged)
 
-			_ = holder.IncrementRoundsWithoutReceivedMessages(pkBytes0)
+			holder.IncrementRoundsWithoutReceivedMessages(pkBytes0)
 			isManaged = holder.IsKeyManagedByCurrentNode(pkBytes0)
 			assert.True(t, isManaged)
 
-			_ = holder.ResetRoundsWithoutReceivedMessages(pkBytes0)
+			holder.ResetRoundsWithoutReceivedMessages(pkBytes0)
 			isManaged = holder.IsKeyManagedByCurrentNode(pkBytes0)
 			assert.False(t, isManaged)
 		})
@@ -708,9 +730,9 @@ func TestVirtualPeersHolder_ParallelOperationsShouldNotPanic(t *testing.T) {
 			case 3:
 				_, _ = holder.GetPrivateKey(pkBytes1)
 			case 4:
-				_ = holder.IncrementRoundsWithoutReceivedMessages(pkBytes0)
+				holder.IncrementRoundsWithoutReceivedMessages(pkBytes0)
 			case 5:
-				_ = holder.ResetRoundsWithoutReceivedMessages(pkBytes0)
+				holder.ResetRoundsWithoutReceivedMessages(pkBytes0)
 			case 6:
 				_ = holder.GetManagedKeysByCurrentNode()
 			case 7:

@@ -62,61 +62,63 @@ func checkNewSubroundSignatureParams(
 
 // doSignatureJob method does the job of the subround Signature
 func (sr *subroundSignature) doSignatureJob(_ context.Context) bool {
-	if !sr.IsNodeInConsensusGroup(sr.SelfPubKey()) {
+	if !sr.IsNodeInConsensusGroup(sr.SelfPubKey()) && !sr.IsMultiKeyInConsensusGroup() {
 		return true
 	}
 	if !sr.CanDoSubroundJob(sr.Current()) {
 		return false
 	}
 
-	signatureShare, err := sr.MultiSigner().CreateSignatureShare(sr.GetData(), nil)
-	if err != nil {
-		log.Debug("doSignatureJob.CreateSignatureShare", "error", err.Error())
-		return false
-	}
-
-	isSelfLeader := sr.IsSelfLeaderInCurrentRound()
-
-	if !isSelfLeader {
-		// TODO: Analyze it is possible to send message only to leader with O(1) instead of O(n)
-		cnsMsg := consensus.NewConsensusMessage(
-			sr.GetData(),
-			signatureShare,
-			nil,
-			nil,
-			[]byte(sr.SelfPubKey()),
-			nil,
-			int(MtSignature),
-			sr.RoundHandler().Index(),
-			sr.ChainID(),
-			nil,
-			nil,
-			nil,
-			sr.CurrentPid(),
-		)
-
-		err = sr.BroadcastMessenger().BroadcastConsensusMessage(cnsMsg)
+	if sr.IsSelfLeaderInCurrentRound() || sr.IsNodeInConsensusGroup(sr.SelfPubKey()) {
+		signatureShare, err := sr.MultiSigner().CreateSignatureShare(sr.GetData(), nil)
 		if err != nil {
-			log.Debug("doSignatureJob.BroadcastConsensusMessage", "error", err.Error())
+			log.Debug("doSignatureJob.CreateSignatureShare", "error", err.Error())
 			return false
 		}
 
-		log.Debug("step 2: signature has been sent")
+		isSelfLeader := sr.IsSelfLeaderInCurrentRound()
+
+		if !isSelfLeader {
+			// TODO: Analyze it is possible to send message only to leader with O(1) instead of O(n)
+			cnsMsg := consensus.NewConsensusMessage(
+				sr.GetData(),
+				signatureShare,
+				nil,
+				nil,
+				[]byte(sr.SelfPubKey()),
+				nil,
+				int(MtSignature),
+				sr.RoundHandler().Index(),
+				sr.ChainID(),
+				nil,
+				nil,
+				nil,
+				sr.GetAssociatedPid([]byte(sr.SelfPubKey())),
+			)
+
+			err = sr.BroadcastMessenger().BroadcastConsensusMessage(cnsMsg)
+			if err != nil {
+				log.Debug("doSignatureJob.BroadcastConsensusMessage", "error", err.Error())
+				return false
+			}
+
+			log.Debug("step 2: signature has been sent")
+		}
+
+		err = sr.SetSelfJobDone(sr.Current(), true)
+		if err != nil {
+			log.Debug("doSignatureJob.SetSelfJobDone",
+				"subround", sr.Name(),
+				"error", err.Error())
+			return false
+		}
+
+		if isSelfLeader {
+			go sr.waitAllSignatures()
+		}
 	}
 
-	err = sr.SetSelfJobDone(sr.Current(), true)
-	if err != nil {
-		log.Debug("doSignatureJob.SetSelfJobDone",
-			"subround", sr.Name(),
-			"error", err.Error())
-		return false
-	}
-
-	if isSelfLeader {
-		go sr.waitAllSignatures()
-	}
-
-	return true
+	return sr.doSignatureJobForManagedKeys()
 }
 
 // receivedSignature method is called when a signature is received through the signature channel.
@@ -140,7 +142,7 @@ func (sr *subroundSignature) receivedSignature(_ context.Context, cnsDta *consen
 		return false
 	}
 
-	if !sr.IsSelfLeaderInCurrentRound() {
+	if !sr.IsSelfLeaderInCurrentRound() && !sr.IsMultiKeyLeaderInCurrentRound() {
 		return false
 	}
 
@@ -210,8 +212,8 @@ func (sr *subroundSignature) doSignatureConsensusCheck() bool {
 		return true
 	}
 
-	isSelfLeader := sr.IsSelfLeaderInCurrentRound()
-	isSelfInConsensusGroup := sr.IsNodeInConsensusGroup(sr.SelfPubKey())
+	isSelfLeader := sr.IsSelfLeaderInCurrentRound() || sr.IsMultiKeyLeaderInCurrentRound()
+	isSelfInConsensusGroup := sr.IsNodeInConsensusGroup(sr.SelfPubKey()) || sr.IsMultiKeyInConsensusGroup()
 
 	threshold := sr.Threshold(sr.Current())
 	if sr.FallbackHeaderValidator().ShouldApplyFallbackValidation(sr.Header) {
@@ -226,7 +228,13 @@ func (sr *subroundSignature) doSignatureConsensusCheck() bool {
 	areAllSignaturesCollected := numSigs == sr.ConsensusGroupSize()
 
 	isJobDoneByLeader := isSelfLeader && (areAllSignaturesCollected || (areSignaturesCollected && sr.WaitingAllSignaturesTimeOut))
-	isJobDoneByConsensusNode := !isSelfLeader && isSelfInConsensusGroup && sr.IsSelfJobDone(sr.Current())
+
+	selfJobDone := true
+	if sr.IsNodeInConsensusGroup(sr.SelfPubKey()) {
+		selfJobDone = sr.IsSelfJobDone(sr.Current())
+	}
+	allInOneJobDone := sr.IsMultiKeyJobDone(sr.Current())
+	isJobDoneByConsensusNode := !isSelfLeader && isSelfInConsensusGroup && selfJobDone && allInOneJobDone
 
 	isSubroundFinished := !isSelfInConsensusGroup || isJobDoneByConsensusNode || isJobDoneByLeader
 
@@ -301,4 +309,72 @@ func (sr *subroundSignature) remainingTime() time.Duration {
 	remainigTime := sr.RoundHandler().RemainingTime(startTime, maxTime)
 
 	return remainigTime
+}
+
+func (sr *subroundSignature) doSignatureJobForManagedKeys() bool {
+	isAllInOneLeader := sr.IsMultiKeyLeaderInCurrentRound()
+
+	managedKeys := sr.GetManagedKeysByCurrentNode()
+	numMultiKeysSignaturesSent := 0
+	for pk, sk := range managedKeys {
+		if !sr.IsNodeInConsensusGroup(pk) {
+			continue
+		}
+
+		if sr.IsJobDone(pk, sr.Current()) {
+			continue
+		}
+
+		signatureShare, err := sr.MultiSigner().CreateAndAddSignatureShareForKey(sr.GetData(), sk, []byte(pk))
+		if err != nil {
+			log.Debug("doSignatureJob.CreateAndAddSignatureShareForKey", "error", err.Error())
+			return false
+		}
+
+		if !isAllInOneLeader {
+			cnsMsg := consensus.NewConsensusMessage(
+				sr.GetData(),
+				signatureShare,
+				nil,
+				nil,
+				[]byte(pk),
+				nil,
+				int(MtSignature),
+				sr.RoundHandler().Index(),
+				sr.ChainID(),
+				nil,
+				nil,
+				nil,
+				sr.GetAssociatedPid([]byte(pk)),
+			)
+
+			err = sr.BroadcastMessenger().BroadcastConsensusMessage(cnsMsg)
+			if err != nil {
+				log.Debug("doSignatureJob.BroadcastConsensusMessage", "error", err.Error())
+				return false
+			}
+
+			numMultiKeysSignaturesSent++
+			log.Trace("step 2: signature has been sent",
+				"pk", core.GetTrimmedPk(hex.EncodeToString([]byte(pk))))
+		}
+
+		err = sr.SetJobDone(pk, sr.Current(), true)
+		if err != nil {
+			log.Debug("doSignatureJob.SetSelfJobDone",
+				"subround", sr.Name(),
+				"error", err.Error())
+			return false
+		}
+
+		if sr.IsNodeLeaderInCurrentRound(pk) {
+			go sr.waitAllSignatures()
+		}
+	}
+
+	if numMultiKeysSignaturesSent > 0 {
+		log.Debug("step 2: multi keys signatures has been sent", "num", numMultiKeysSignaturesSent)
+	}
+
+	return true
 }

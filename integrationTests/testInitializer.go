@@ -70,10 +70,10 @@ import (
 )
 
 // StepDelay is used so that transactions can disseminate properly
-var StepDelay = time.Millisecond * 180
+var StepDelay = time.Second
 
 // SyncDelay is used so that nodes have enough time to sync
-var SyncDelay = time.Second / 5
+var SyncDelay = time.Second * 2
 
 // P2pBootstrapDelay is used so that nodes have enough time to bootstrap
 var P2pBootstrapDelay = 5 * time.Second
@@ -1114,7 +1114,8 @@ func ProposeBlock(nodes []*TestProcessorNode, idxProposers []int, round uint64, 
 
 		body, header, _ := n.ProposeBlock(round, nonce)
 		n.WhiteListBody(nodes, body)
-		n.BroadcastBlock(body, header)
+		pk := n.NodeKeys.Pk
+		n.BroadcastBlock(body, header, pk)
 		n.CommitBlock(body, header)
 	}
 
@@ -1975,7 +1976,8 @@ func ProposeBlockSignalsEmptyBlock(
 	log.Info("Proposing block without commit...")
 
 	body, header, txHashes := node.ProposeBlock(round, nonce)
-	node.BroadcastBlock(body, header)
+	pk := node.NodeKeys.Pk
+	node.BroadcastBlock(body, header, pk)
 	isEmptyBlock := len(txHashes) == 0
 
 	log.Info("Delaying for disseminating headers and miniblocks...")

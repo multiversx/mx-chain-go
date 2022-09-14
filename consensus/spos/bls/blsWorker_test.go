@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/bls"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -19,6 +20,10 @@ func createEligibleList(size int) []string {
 }
 
 func initConsensusState() *spos.ConsensusState {
+	return initConsensusStateWithKeysHolder(&testscommon.KeysHolderStub{})
+}
+
+func initConsensusStateWithKeysHolder(keysHolder consensus.KeysHolder) *spos.ConsensusState {
 	consensusGroupSize := 9
 	eligibleList := createEligibleList(consensusGroupSize)
 
@@ -28,10 +33,12 @@ func initConsensusState() *spos.ConsensusState {
 	}
 
 	indexLeader := 1
-	rcns := spos.NewRoundConsensus(
+	rcns, _ := spos.NewRoundConsensus(
 		eligibleNodesPubKeys,
 		consensusGroupSize,
-		eligibleList[indexLeader])
+		eligibleList[indexLeader],
+		keysHolder,
+	)
 
 	rcns.SetConsensusGroup(eligibleList)
 	rcns.ResetRoundState()

@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/bls"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/blockchain"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -420,10 +421,10 @@ func TestSubroundEndRound_DoEndRoundJobErrMarshalizedDataToBroadcastOK(t *testin
 		BroadcastBlockCalled: func(handler data.BodyHandler, handler2 data.HeaderHandler) error {
 			return nil
 		},
-		BroadcastMiniBlocksCalled: func(bytes map[uint32][]byte) error {
+		BroadcastMiniBlocksCalled: func(bytes map[uint32][]byte, pkBytes []byte) error {
 			return nil
 		},
-		BroadcastTransactionsCalled: func(bytes map[string][][]byte) error {
+		BroadcastTransactionsCalled: func(bytes map[string][][]byte, pkBytes []byte) error {
 			return nil
 		},
 	}
@@ -454,11 +455,11 @@ func TestSubroundEndRound_DoEndRoundJobErrBroadcastMiniBlocksOK(t *testing.T) {
 		BroadcastBlockCalled: func(handler data.BodyHandler, handler2 data.HeaderHandler) error {
 			return nil
 		},
-		BroadcastMiniBlocksCalled: func(bytes map[uint32][]byte) error {
+		BroadcastMiniBlocksCalled: func(bytes map[uint32][]byte, pkBytes []byte) error {
 			err = errors.New("error broadcast miniblocks")
 			return err
 		},
-		BroadcastTransactionsCalled: func(bytes map[string][][]byte) error {
+		BroadcastTransactionsCalled: func(bytes map[string][][]byte, pkBytes []byte) error {
 			return nil
 		},
 	}
@@ -490,10 +491,10 @@ func TestSubroundEndRound_DoEndRoundJobErrBroadcastTransactionsOK(t *testing.T) 
 		BroadcastBlockCalled: func(handler data.BodyHandler, handler2 data.HeaderHandler) error {
 			return nil
 		},
-		BroadcastMiniBlocksCalled: func(bytes map[uint32][]byte) error {
+		BroadcastMiniBlocksCalled: func(bytes map[uint32][]byte, pkBytes []byte) error {
 			return nil
 		},
-		BroadcastTransactionsCalled: func(bytes map[string][][]byte) error {
+		BroadcastTransactionsCalled: func(bytes map[string][][]byte, pkBytes []byte) error {
 			err = errors.New("error broadcast transactions")
 			return err
 		},
@@ -936,4 +937,88 @@ func TestSubroundEndRound_IsBlockHeaderFinalInfoValidShouldReturnTrue(t *testing
 	sr.Header = &block.Header{}
 	isValid := sr.IsBlockHeaderFinalInfoValid(cnsDta)
 	assert.True(t, isValid)
+}
+
+func TestSubroundEndRound_getMinConsensusGroupIndexOfManagedKeys(t *testing.T) {
+	t.Parallel()
+
+	container := mock.InitConsensusCore()
+	keysHolder := &testscommon.KeysHolderStub{}
+	ch := make(chan bool, 1)
+	consensusState := initConsensusStateWithKeysHolder(keysHolder)
+	sr, _ := spos.NewSubround(
+		bls.SrSignature,
+		bls.SrEndRound,
+		-1,
+		int64(85*roundTimeDuration/100),
+		int64(95*roundTimeDuration/100),
+		"(END_ROUND)",
+		consensusState,
+		ch,
+		executeStoredMessages,
+		container,
+		chainID,
+		currentPid,
+		&statusHandler.AppStatusHandlerStub{},
+	)
+
+	srEndRound, _ := bls.NewSubroundEndRound(
+		sr,
+		extend,
+		bls.ProcessingThresholdPercent,
+		displayStatistics,
+		&statusHandler.AppStatusHandlerStub{},
+	)
+
+	t.Run("no managed keys should return consensus group size", func(t *testing.T) {
+		keysHolder.GetManagedKeysByCurrentNodeCalled = func() map[string]crypto.PrivateKey {
+			return make(map[string]crypto.PrivateKey)
+		}
+
+		assert.Equal(t, 9, srEndRound.GetMinConsensusGroupIndexOfManagedKeys())
+	})
+	t.Run("no managed keys in consensus group should return consensus group size", func(t *testing.T) {
+		keysHolder.GetManagedKeysByCurrentNodeCalled = func() map[string]crypto.PrivateKey {
+			managedKeys := map[string]crypto.PrivateKey{
+				"managed key": &mock.PrivateKeyMock{},
+			}
+
+			return managedKeys
+		}
+
+		assert.Equal(t, 9, srEndRound.GetMinConsensusGroupIndexOfManagedKeys())
+	})
+	t.Run("first managed key in consensus group should return 0", func(t *testing.T) {
+		keysHolder.GetManagedKeysByCurrentNodeCalled = func() map[string]crypto.PrivateKey {
+			managedKeys := map[string]crypto.PrivateKey{
+				"A": &mock.PrivateKeyMock{},
+			}
+
+			return managedKeys
+		}
+
+		assert.Equal(t, 0, srEndRound.GetMinConsensusGroupIndexOfManagedKeys())
+	})
+	t.Run("third managed key in consensus group should return 2", func(t *testing.T) {
+		keysHolder.GetManagedKeysByCurrentNodeCalled = func() map[string]crypto.PrivateKey {
+			managedKeys := map[string]crypto.PrivateKey{
+				"C": &mock.PrivateKeyMock{},
+			}
+
+			return managedKeys
+		}
+
+		assert.Equal(t, 2, srEndRound.GetMinConsensusGroupIndexOfManagedKeys())
+	})
+	t.Run("last managed key in consensus group should return 8", func(t *testing.T) {
+		keysHolder.GetManagedKeysByCurrentNodeCalled = func() map[string]crypto.PrivateKey {
+			managedKeys := map[string]crypto.PrivateKey{
+				"I": &mock.PrivateKeyMock{},
+			}
+
+			return managedKeys
+		}
+
+		assert.Equal(t, 8, srEndRound.GetMinConsensusGroupIndexOfManagedKeys())
+	})
 }
