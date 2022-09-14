@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math/big"
 	"sort"
+	"sync"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -23,9 +24,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/common/holders"
 	"github.com/ElrondNetwork/elrond-go/common/logging"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dblookupext"
+	debugFactory "github.com/ElrondNetwork/elrond-go/debug/factory"
 	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/outport"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -78,6 +81,8 @@ type baseProcessor struct {
 	blockChain              data.ChainHandler
 	hdrsForCurrBlock        *hdrForBlock
 	genesisNonce            uint64
+	mutProcessDebugger      sync.RWMutex
+	processDebugger         process.Debugger
 
 	versionedHeaderFactory       nodeFactory.VersionedHeaderFactory
 	headerIntegrityVerifier      process.HeaderIntegrityVerifier
@@ -1808,15 +1813,17 @@ func unmarshalUserAccount(address []byte, userAccountsBytes []byte, marshalizer 
 
 // Close - closes all underlying components
 func (bp *baseProcessor) Close() error {
-	var err1, err2 error
+	var err1, err2, err3 error
 	if !check.IfNil(bp.vmContainer) {
 		err1 = bp.vmContainer.Close()
 	}
 	if !check.IfNil(bp.vmContainerFactory) {
 		err2 = bp.vmContainerFactory.Close()
 	}
-	if err1 != nil || err2 != nil {
-		return fmt.Errorf("vmContainer close error: %v, vmContainerFactory close error: %v", err1, err2)
+	err3 = bp.processDebugger.Close()
+	if err1 != nil || err2 != nil || err3 != nil {
+		return fmt.Errorf("vmContainer close error: %v, vmContainerFactory close error: %v, processDebugger close: %v",
+			err1, err2, err3)
 	}
 
 	return nil
@@ -1995,4 +2002,31 @@ func displayCleanupErrorMessage(message string, shardID uint32, noncesToPrevFina
 		"shard", shardID,
 		"nonces to previous final", noncesToPrevFinal,
 		"error", err.Error())
+}
+
+// SetProcessDebugger sets the process debugger associated to this block processor
+func (bp *baseProcessor) SetProcessDebugger(debugger process.Debugger) error {
+	if check.IfNil(debugger) {
+		return process.ErrNilProcessDebugger
+	}
+
+	bp.mutProcessDebugger.Lock()
+	bp.processDebugger = debugger
+	bp.mutProcessDebugger.Unlock()
+
+	return nil
+}
+
+func (bp *baseProcessor) updateLastCommittedInDebugger(round uint64) {
+	bp.mutProcessDebugger.RLock()
+	bp.processDebugger.SetLastCommittedBlockRound(round)
+	bp.mutProcessDebugger.RUnlock()
+}
+
+func createDisabledProcessDebugger() (process.Debugger, error) {
+	configs := config.ProcessDebugConfig{
+		Enabled: false,
+	}
+
+	return debugFactory.CreateProcessDebugger(configs)
 }
