@@ -102,7 +102,7 @@ func createArgBaseProcessor(
 		BlockSizeThrottler:             &mock.BlockSizeThrottlerStub{},
 		Version:                        "softwareVersion",
 		HistoryRepository:              &dblookupext.HistoryRepositoryStub{},
-		EnableRoundsHandler:          &testscommon.EnableRoundsHandlerStub{},
+		EnableRoundsHandler:            &testscommon.EnableRoundsHandlerStub{},
 		GasHandler:                     &mock.GasHandlerMock{},
 		ScheduledTxsExecutionHandler:   &testscommon.ScheduledTxsExecutionStub{},
 		ScheduledMiniBlocksEnableEpoch: 2,
@@ -339,6 +339,10 @@ func (wr *wrongBody) Clone() data.BodyHandler {
 	wrCopy := *wr
 
 	return &wrCopy
+}
+
+func (wr *wrongBody) SetMiniBlocks(_ []data.MiniBlockHandler) error {
+	return nil
 }
 
 func (wr *wrongBody) IntegrityAndValidity() error {
