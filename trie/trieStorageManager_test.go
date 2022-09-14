@@ -356,6 +356,7 @@ func TestTrieStorageManager_TakeSnapshotWithGetNodeFromDBError(t *testing.T) {
 	t.Parallel()
 
 	args := getNewTrieStorageManagerArgs()
+	args.MainStorer = testscommon.NewSnapshotPruningStorerMock()
 	ts, _ := trie.NewTrieStorageManager(args)
 
 	rootHash := []byte("rootHash")

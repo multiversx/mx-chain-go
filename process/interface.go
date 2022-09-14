@@ -556,7 +556,6 @@ type RequestHandler interface {
 	GetNumPeersToQuery(key string) (int, int, error)
 	RequestTrieNode(requestHash []byte, topic string, chunkIndex uint32)
 	CreateTrieNodeIdentifier(requestHash []byte, chunkIndex uint32) []byte
-	RequestPeerAuthenticationsChunk(destShardID uint32, chunkIndex uint32)
 	RequestPeerAuthenticationsByHashes(destShardID uint32, hashes [][]byte)
 	RequestValidatorInfo(hash []byte)
 	RequestValidatorsInfo(hashes [][]byte)
@@ -1241,5 +1240,12 @@ type ProcessedMiniBlocksTracker interface {
 // found in peer authentication messages
 type PeerAuthenticationPayloadValidator interface {
 	ValidateTimestamp(payloadTimestamp int64) error
+	IsInterfaceNil() bool
+}
+
+// Debugger defines what a process debugger implementation should do
+type Debugger interface {
+	SetLastCommittedBlockRound(round uint64)
+	Close() error
 	IsInterfaceNil() bool
 }

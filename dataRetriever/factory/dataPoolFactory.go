@@ -27,6 +27,11 @@ import (
 	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
 )
 
+const (
+	peerAuthenticationCacheRefresh = time.Minute * 5
+	peerAuthExpiryMultiplier       = time.Duration(2) // 2 times the computed duration
+)
+
 var log = logger.GetOrCreate("dataRetriever/factory")
 
 // ArgsDataPool holds the arguments needed for NewDataPoolFromConfig function
@@ -126,8 +131,8 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 	}
 
 	peerAuthPool, err := timecache.NewTimeCacher(timecache.ArgTimeCacher{
-		DefaultSpan: time.Duration(mainConfig.HeartbeatV2.PeerAuthenticationPool.DefaultSpanInSec) * time.Second,
-		CacheExpiry: time.Duration(mainConfig.HeartbeatV2.PeerAuthenticationPool.CacheExpiryInSec) * time.Second,
+		DefaultSpan: time.Duration(mainConfig.HeartbeatV2.PeerAuthenticationTimeBetweenSendsInSec) * time.Second * peerAuthExpiryMultiplier,
+		CacheExpiry: peerAuthenticationCacheRefresh,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("%w while creating the cache for the peer authentication messages", err)

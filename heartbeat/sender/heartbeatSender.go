@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
 )
 
@@ -19,6 +20,7 @@ type argHeartbeatSender struct {
 	identity             string
 	peerSubType          core.P2PPeerSubType
 	currentBlockProvider heartbeat.CurrentBlockProvider
+	peerTypeProvider     heartbeat.PeerTypeProviderHandler
 }
 
 type heartbeatSender struct {
@@ -28,6 +30,7 @@ type heartbeatSender struct {
 	identity             string
 	peerSubType          core.P2PPeerSubType
 	currentBlockProvider heartbeat.CurrentBlockProvider
+	peerTypeProvider     heartbeat.PeerTypeProviderHandler
 }
 
 // newHeartbeatSender creates a new instance of type heartbeatSender
@@ -44,6 +47,7 @@ func newHeartbeatSender(args argHeartbeatSender) (*heartbeatSender, error) {
 		identity:             args.identity,
 		peerSubType:          args.peerSubType,
 		currentBlockProvider: args.currentBlockProvider,
+		peerTypeProvider:     args.peerTypeProvider,
 	}, nil
 }
 
@@ -66,6 +70,9 @@ func checkHeartbeatSenderArgs(args argHeartbeatSender) error {
 	}
 	if check.IfNil(args.currentBlockProvider) {
 		return heartbeat.ErrNilCurrentBlockProvider
+	}
+	if check.IfNil(args.peerTypeProvider) {
+		return heartbeat.ErrNilPeerTypeProvider
 	}
 
 	return nil
@@ -125,6 +132,29 @@ func (sender *heartbeatSender) execute() error {
 	sender.messenger.Broadcast(sender.topic, msgBytes)
 
 	return nil
+}
+
+// getSenderInfo will return the current sender info
+func (sender *heartbeatSender) getSenderInfo() (string, core.P2PPeerSubType, error) {
+	_, pk := sender.getCurrentPrivateAndPublicKeys()
+	pkBytes, err := pk.ToByteArray()
+	if err != nil {
+		return "", 0, err
+	}
+
+	peerType := sender.computePeerList(pkBytes)
+
+	return peerType, sender.peerSubType, nil
+}
+
+func (sender *heartbeatSender) computePeerList(pubkey []byte) string {
+	peerType, _, err := sender.peerTypeProvider.ComputeForPubKey(pubkey)
+	if err != nil {
+		log.Warn("heartbeatSender: compute peer type", "error", err)
+		return string(common.ObserverList)
+	}
+
+	return string(peerType)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

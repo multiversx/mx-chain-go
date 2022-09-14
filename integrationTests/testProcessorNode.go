@@ -722,13 +722,13 @@ func (tpn *TestProcessorNode) createFullSCQueryService(gasMap map[string]map[str
 
 	gasSchedule := mock.NewGasScheduleNotifierMock(gasMap)
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:               gasSchedule,
-		MapDNSAddresses:           make(map[string]struct{}),
-		Marshalizer:               TestMarshalizer,
-		Accounts:                  tpn.AccntState,
-		ShardCoordinator:          tpn.ShardCoordinator,
-		EpochNotifier:             tpn.EpochNotifier,
-		EnableEpochsHandler:       tpn.EnableEpochsHandler,
+		GasSchedule:         gasSchedule,
+		MapDNSAddresses:     make(map[string]struct{}),
+		Marshalizer:         TestMarshalizer,
+		Accounts:            tpn.AccntState,
+		ShardCoordinator:    tpn.ShardCoordinator,
+		EpochNotifier:       tpn.EpochNotifier,
+		EnableEpochsHandler: tpn.EnableEpochsHandler,
 
 		MaxNumNodesInTransferRole: 100,
 	}
@@ -1272,10 +1272,8 @@ func (tpn *TestProcessorNode) initResolvers() {
 			NumTotalPeers:       3,
 			NumFullHistoryPeers: 3,
 		},
-		PeersRatingHandler:                   tpn.PeersRatingHandler,
-		NodesCoordinator:                     tpn.NodesCoordinator,
-		MaxNumOfPeerAuthenticationInResponse: 5,
-		PayloadValidator:                     payloadValidator,
+		PeersRatingHandler: tpn.PeersRatingHandler,
+		PayloadValidator:   payloadValidator,
 	}
 
 	var err error
@@ -1360,13 +1358,13 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 
 	gasSchedule := mock.NewGasScheduleNotifierMock(gasMap)
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:               gasSchedule,
-		MapDNSAddresses:           mapDNSAddresses,
-		Marshalizer:               TestMarshalizer,
-		Accounts:                  tpn.AccntState,
-		ShardCoordinator:          tpn.ShardCoordinator,
-		EpochNotifier:             tpn.EpochNotifier,
-		EnableEpochsHandler:       tpn.EnableEpochsHandler,
+		GasSchedule:         gasSchedule,
+		MapDNSAddresses:     mapDNSAddresses,
+		Marshalizer:         TestMarshalizer,
+		Accounts:            tpn.AccntState,
+		ShardCoordinator:    tpn.ShardCoordinator,
+		EpochNotifier:       tpn.EpochNotifier,
+		EnableEpochsHandler: tpn.EnableEpochsHandler,
 
 		MaxNumNodesInTransferRole: 100,
 	}
@@ -1573,13 +1571,13 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 
 	gasSchedule := mock.NewGasScheduleNotifierMock(gasMap)
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:               gasSchedule,
-		MapDNSAddresses:           make(map[string]struct{}),
-		Marshalizer:               TestMarshalizer,
-		Accounts:                  tpn.AccntState,
-		ShardCoordinator:          tpn.ShardCoordinator,
-		EpochNotifier:             tpn.EpochNotifier,
-		EnableEpochsHandler:       tpn.EnableEpochsHandler,
+		GasSchedule:         gasSchedule,
+		MapDNSAddresses:     make(map[string]struct{}),
+		Marshalizer:         TestMarshalizer,
+		Accounts:            tpn.AccntState,
+		ShardCoordinator:    tpn.ShardCoordinator,
+		EpochNotifier:       tpn.EpochNotifier,
+		EnableEpochsHandler: tpn.EnableEpochsHandler,
 
 		MaxNumNodesInTransferRole: 100,
 	}
@@ -2846,7 +2844,6 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger() {
 		HeartbeatTimeBetweenSendsInSec:                   2,
 		HeartbeatTimeBetweenSendsWhenErrorInSec:          1,
 		HeartbeatThresholdBetweenSends:                   0.1,
-		MaxNumOfPeerAuthenticationInResponse:             5,
 		HeartbeatExpiryTimespanInSec:                     300,
 		MinPeersThreshold:                                0.8,
 		DelayBetweenRequestsInSec:                        10,
@@ -2856,10 +2853,7 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger() {
 		MaxDurationPeerUnresponsiveInSec:                 10,
 		HideInactiveValidatorIntervalInSec:               60,
 		HardforkTimeBetweenSendsInSec:                    2,
-		PeerAuthenticationPool: config.PeerAuthenticationPoolConfig{
-			DefaultSpanInSec: 30,
-			CacheExpiryInSec: 30,
-		},
+		TimeBetweenConnectionsMetricsUpdateInSec:         10,
 		HeartbeatPool: config.CacheConfig{
 			Type:     "LRU",
 			Capacity: 1000,
@@ -2897,6 +2891,7 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger() {
 	log.LogIfError(err)
 }
 
+// CreateEnableEpochsConfig creates enable epochs definitions to be used in tests
 func CreateEnableEpochsConfig() config.EnableEpochs {
 	return config.EnableEpochs{
 		SCDeployEnableEpoch:                               UnreachableEpoch,
@@ -3239,8 +3234,8 @@ func getDefaultNodesCoordinator(maxShards uint32, pksBytes map[uint32][]byte) no
 			return keys, nil
 		},
 		GetValidatorWithPublicKeyCalled: func(publicKey []byte) (nodesCoordinator.Validator, uint32, error) {
-			validator, _ := nodesCoordinator.NewValidator(publicKey, defaultChancesSelection, 1)
-			return validator, 0, nil
+			validatorInstance, _ := nodesCoordinator.NewValidator(publicKey, defaultChancesSelection, 1)
+			return validatorInstance, 0, nil
 		},
 	}
 }

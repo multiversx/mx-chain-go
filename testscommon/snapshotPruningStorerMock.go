@@ -1,5 +1,7 @@
 package testscommon
 
+import "github.com/ElrondNetwork/elrond-go-core/core"
+
 // SnapshotPruningStorerMock -
 type SnapshotPruningStorerMock struct {
 	*MemDbMock
@@ -11,8 +13,10 @@ func NewSnapshotPruningStorerMock() *SnapshotPruningStorerMock {
 }
 
 // GetFromOldEpochsWithoutAddingToCache -
-func (spsm *SnapshotPruningStorerMock) GetFromOldEpochsWithoutAddingToCache(key []byte) ([]byte, error) {
-	return spsm.Get(key)
+func (spsm *SnapshotPruningStorerMock) GetFromOldEpochsWithoutAddingToCache(key []byte) ([]byte, core.OptionalUint32, error) {
+	val, err := spsm.Get(key)
+
+	return val, core.OptionalUint32{}, err
 }
 
 // PutInEpoch -
