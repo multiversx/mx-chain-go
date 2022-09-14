@@ -124,6 +124,7 @@ func (wr *WidgetsRender) prepareInstanceInfo() {
 	shardId := wr.presenter.GetShardId()
 	instanceType := wr.presenter.GetNodeType()
 	peerType := wr.presenter.GetPeerType()
+	chainID := wr.presenter.GetChainID()
 
 	nodeTypeAndListDisplay := instanceType
 	if peerType != string(common.ObserverList) && !strings.Contains(peerType, invalidKey) {
@@ -166,7 +167,7 @@ func (wr *WidgetsRender) prepareInstanceInfo() {
 	rows[4] = []string{fmt.Sprintf("Blocks proposed: %d | Blocks accepted:  %d", countLeader, countAcceptedBlocks)}
 
 	rows[5] = []string{computeRedundancyStr(wr.presenter.GetRedundancyLevel(), wr.presenter.GetRedundancyIsMainActive())}
-	rows[6] = []string{""}
+	rows[6] = []string{fmt.Sprintf("Chain ID: %s", chainID)}
 
 	wr.instanceInfo.Title = "Elrond instance info"
 	wr.instanceInfo.RowSeparator = false
@@ -237,8 +238,10 @@ func (wr *WidgetsRender) prepareChainInfo(numMillisecondsRefreshTime int) {
 	numConnectedPeers := wr.presenter.GetNumConnectedPeers()
 	numLiveValidators := wr.presenter.GetLiveValidatorNodes()
 	numConnectedNodes := wr.presenter.GetConnectedNodes()
-	rows[8] = []string{fmt.Sprintf("Peers / Validators / Nodes: %d / %d / %d",
-		numConnectedPeers, numLiveValidators, numConnectedNodes)}
+	numIntraShardValidators := wr.presenter.GetIntraShardValidators()
+	rows[8] = []string{fmt.Sprintf("Intra shard peers / validators / nodes: %d / %d / %d",
+		numConnectedPeers, numIntraShardValidators, numConnectedNodes)}
+	rows[9] = []string{fmt.Sprintf("All known validators: %d", numLiveValidators)}
 
 	wr.chainInfo.Title = "Chain info"
 	wr.chainInfo.RowSeparator = false

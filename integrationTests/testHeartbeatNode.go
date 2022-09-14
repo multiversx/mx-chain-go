@@ -60,7 +60,6 @@ const (
 	thresholdBetweenSends     = 0.2
 	timeBetweenHardforks      = 2 * time.Second
 
-	messagesInChunk         = 10
 	minPeersThreshold       = 1.0
 	delayBetweenRequests    = time.Second
 	maxTimeout              = time.Minute
@@ -400,31 +399,34 @@ func (thn *TestHeartbeatNode) initStorage() {
 func (thn *TestHeartbeatNode) initSender() {
 	identifierHeartbeat := common.HeartbeatV2Topic + thn.ShardCoordinator.CommunicationIdentifier(thn.ShardCoordinator.SelfId())
 	argsSender := sender.ArgSender{
-		Messenger:                          thn.Messenger,
-		Marshaller:                         TestMarshaller,
-		PeerAuthenticationTopic:            common.PeerAuthenticationTopic,
-		HeartbeatTopic:                     identifierHeartbeat,
-		PeerAuthenticationTimeBetweenSends: timeBetweenPeerAuths,
+		Messenger:               thn.Messenger,
+		Marshaller:              TestMarshaller,
+		PeerAuthenticationTopic: common.PeerAuthenticationTopic,
+		HeartbeatTopic:          identifierHeartbeat,
+		BaseVersionNumber:       "v01-base",
+		VersionNumber:           "v01",
+		NodeDisplayName:         defaultNodeName,
+		Identity:                defaultNodeName + "_identity",
+		PeerSubType:             core.RegularPeer,
+		CurrentBlockProvider:    &testscommon.ChainHandlerStub{},
+		PeerSignatureHandler:    thn.PeerSigHandler,
+		PrivateKey:              thn.NodeKeys.Sk,
+		RedundancyHandler:       &mock.RedundancyHandlerStub{},
+		NodesCoordinator:        thn.NodesCoordinator,
+		HardforkTrigger:         &testscommon.HardforkTriggerStub{},
+		HardforkTriggerPubKey:   []byte(providedHardforkPubKey),
+		PeerTypeProvider:        &mock.PeerTypeProviderStub{},
+		KeysHolder:              &testscommon.KeysHolderStub{},
+		ShardCoordinator:        thn.ShardCoordinator,
+
+		PeerAuthenticationTimeBetweenSends:          timeBetweenPeerAuths,
 		PeerAuthenticationTimeBetweenSendsWhenError: timeBetweenSendsWhenError,
 		PeerAuthenticationThresholdBetweenSends:     thresholdBetweenSends,
 		HeartbeatTimeBetweenSends:                   timeBetweenHeartbeats,
 		HeartbeatTimeBetweenSendsWhenError:          timeBetweenSendsWhenError,
 		HeartbeatThresholdBetweenSends:              thresholdBetweenSends,
-		VersionNumber:                               "v01",
-		NodeDisplayName:                             defaultNodeName,
-		Identity:                                    defaultNodeName + "_identity",
-		PeerSubType:                                 core.RegularPeer,
-		CurrentBlockProvider:                        &testscommon.ChainHandlerStub{},
-		PeerSignatureHandler:                        thn.PeerSigHandler,
-		PrivateKey:                                  thn.NodeKeys.Sk,
-		RedundancyHandler:                           &mock.RedundancyHandlerStub{},
-		NodesCoordinator:                            thn.NodesCoordinator,
-		HardforkTrigger:                             &testscommon.HardforkTriggerStub{},
 		HardforkTimeBetweenSends:                    timeBetweenHardforks,
-		HardforkTriggerPubKey:                       []byte(providedHardforkPubKey),
-		KeysHolder:                                  &testscommon.KeysHolderStub{},
 		PeerAuthenticationTimeBetweenChecks:         time.Second * 2,
-		ShardCoordinator:                            thn.ShardCoordinator,
 	}
 
 	thn.Sender, _ = sender.NewSender(argsSender)
@@ -460,10 +462,8 @@ func (thn *TestHeartbeatNode) initResolvers() {
 			NumTotalPeers:       3,
 			NumFullHistoryPeers: 3,
 		},
-		NodesCoordinator:                     thn.NodesCoordinator,
-		MaxNumOfPeerAuthenticationInResponse: 5,
-		PeersRatingHandler:                   &p2pmocks.PeersRatingHandlerStub{},
-		PayloadValidator:                     payloadValidator,
+		PeersRatingHandler: &p2pmocks.PeersRatingHandlerStub{},
+		PayloadValidator:   payloadValidator,
 	}
 
 	if thn.ShardCoordinator.SelfId() == core.MetachainShardId {
@@ -615,7 +615,6 @@ func (thn *TestHeartbeatNode) initRequestsProcessor() {
 		PeerAuthenticationPool:  thn.DataPool.PeerAuthentications(),
 		ShardId:                 thn.ShardCoordinator.SelfId(),
 		Epoch:                   0,
-		MessagesInChunk:         messagesInChunk,
 		MinPeersThreshold:       minPeersThreshold,
 		DelayBetweenRequests:    delayBetweenRequests,
 		MaxTimeout:              maxTimeout,

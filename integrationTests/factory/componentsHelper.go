@@ -66,9 +66,10 @@ func CreateDefaultConfig() *config.Configs {
 	configs.EpochConfig = epochConfig
 	configs.RoundConfig = roundConfig
 	configs.FlagsConfig = &config.ContextFlagsConfig{
-		WorkingDir: "workingDir",
-		UseLogView: true,
-		Version:    Version,
+		WorkingDir:  "workingDir",
+		UseLogView:  true,
+		BaseVersion: BaseVersion,
+		Version:     Version,
 	}
 	configs.ConfigurationPathsHolder = configPathsHolder
 	configs.ImportDbConfig = &config.ImportDbConfig{}

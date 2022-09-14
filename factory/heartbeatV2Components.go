@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/heartbeat/monitor"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/processor"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/sender"
+	"github.com/ElrondNetwork/elrond-go/heartbeat/status"
 	"github.com/ElrondNetwork/elrond-go/process/peer"
 	"github.com/ElrondNetwork/elrond-go/update"
 )
@@ -20,6 +21,7 @@ import (
 type ArgHeartbeatV2ComponentsFactory struct {
 	Config             config.Config
 	Prefs              config.Preferences
+	BaseVersion        string
 	AppVersion         string
 	BoostrapComponents BootstrapComponentsHolder
 	CoreComponents     CoreComponentsHolder
@@ -32,6 +34,7 @@ type ArgHeartbeatV2ComponentsFactory struct {
 type heartbeatV2ComponentsFactory struct {
 	config             config.Config
 	prefs              config.Preferences
+	baseVersion        string
 	version            string
 	boostrapComponents BootstrapComponentsHolder
 	coreComponents     CoreComponentsHolder
@@ -46,6 +49,7 @@ type heartbeatV2Components struct {
 	peerAuthRequestsProcessor  update.Closer
 	directConnectionsProcessor update.Closer
 	monitor                    HeartbeatV2Monitor
+	statusHandler              update.Closer
 }
 
 // NewHeartbeatV2ComponentsFactory creates a new instance of heartbeatV2ComponentsFactory
@@ -58,6 +62,7 @@ func NewHeartbeatV2ComponentsFactory(args ArgHeartbeatV2ComponentsFactory) (*hea
 	return &heartbeatV2ComponentsFactory{
 		config:             args.Config,
 		prefs:              args.Prefs,
+		baseVersion:        args.BaseVersion,
 		version:            args.AppVersion,
 		boostrapComponents: args.BoostrapComponents,
 		coreComponents:     args.CoreComponents,
@@ -120,6 +125,16 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 
 	cfg := hcf.config.HeartbeatV2
 
+	argPeerTypeProvider := peer.ArgPeerTypeProvider{
+		NodesCoordinator:        hcf.processComponents.NodesCoordinator(),
+		StartEpoch:              hcf.processComponents.EpochStartTrigger().MetaEpoch(),
+		EpochStartEventNotifier: hcf.processComponents.EpochStartNotifier(),
+	}
+	peerTypeProvider, err := peer.NewPeerTypeProvider(argPeerTypeProvider)
+	if err != nil {
+		return nil, err
+	}
+
 	argsSender := sender.ArgSender{
 		Messenger:                          hcf.networkComponents.NetworkMessenger(),
 		Marshaller:                         hcf.coreComponents.InternalMarshalizer(),
@@ -131,6 +146,7 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 		HeartbeatTimeBetweenSends:                   time.Second * time.Duration(cfg.HeartbeatTimeBetweenSendsInSec),
 		HeartbeatTimeBetweenSendsWhenError:          time.Second * time.Duration(cfg.HeartbeatTimeBetweenSendsWhenErrorInSec),
 		HeartbeatThresholdBetweenSends:              cfg.HeartbeatThresholdBetweenSends,
+		BaseVersionNumber:                           hcf.baseVersion,
 		VersionNumber:                               hcf.version,
 		NodeDisplayName:                             hcf.prefs.Preferences.NodeDisplayName,
 		Identity:                                    hcf.prefs.Preferences.Identity,
@@ -143,6 +159,7 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 		HardforkTrigger:                             hcf.processComponents.HardforkTrigger(),
 		HardforkTimeBetweenSends:                    time.Second * time.Duration(cfg.HardforkTimeBetweenSendsInSec),
 		HardforkTriggerPubKey:                       hcf.coreComponents.HardforkTriggerPubKey(),
+		PeerTypeProvider:                            peerTypeProvider,
 		KeysHolder:                                  hcf.cryptoComponents.KeysHolder(),
 		PeerAuthenticationTimeBetweenChecks:         time.Second * time.Duration(cfg.PeerAuthenticationTimeBetweenChecksInSec),
 		ShardCoordinator:                            hcf.processComponents.ShardCoordinator(),
@@ -159,7 +176,6 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 		PeerAuthenticationPool:  hcf.dataComponents.Datapool().PeerAuthentications(),
 		ShardId:                 epochBootstrapParams.SelfShardID(),
 		Epoch:                   epochBootstrapParams.Epoch(),
-		MessagesInChunk:         uint32(cfg.MaxNumOfPeerAuthenticationInResponse),
 		MinPeersThreshold:       cfg.MinPeersThreshold,
 		DelayBetweenRequests:    time.Second * time.Duration(cfg.DelayBetweenRequestsInSec),
 		MaxTimeout:              time.Second * time.Duration(cfg.MaxTimeoutInSec),
@@ -183,16 +199,6 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 		return nil, err
 	}
 
-	argPeerTypeProvider := peer.ArgPeerTypeProvider{
-		NodesCoordinator:        hcf.processComponents.NodesCoordinator(),
-		StartEpoch:              hcf.processComponents.EpochStartTrigger().MetaEpoch(),
-		EpochStartEventNotifier: hcf.processComponents.EpochStartNotifier(),
-	}
-	peerTypeProvider, err := peer.NewPeerTypeProvider(argPeerTypeProvider)
-	if err != nil {
-		return nil, err
-	}
-
 	argsMonitor := monitor.ArgHeartbeatV2Monitor{
 		Cache:                         hcf.dataComponents.Datapool().Heartbeats(),
 		PubKeyConverter:               hcf.coreComponents.ValidatorPubKeyConverter(),
@@ -208,11 +214,25 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 		return nil, err
 	}
 
+	argsMetricsUpdater := status.ArgsMetricsUpdater{
+		PeerAuthenticationCacher:            hcf.dataComponents.Datapool().PeerAuthentications(),
+		HeartbeatMonitor:                    heartbeatsMonitor,
+		HeartbeatSenderInfoProvider:         heartbeatV2Sender,
+		AppStatusHandler:                    hcf.coreComponents.StatusHandler(),
+		TimeBetweenConnectionsMetricsUpdate: time.Second * time.Duration(hcf.config.HeartbeatV2.TimeBetweenConnectionsMetricsUpdateInSec),
+		EnableEpochsHandler:                 hcf.coreComponents.EnableEpochsHandler(),
+	}
+	statusHandler, err := status.NewMetricsUpdater(argsMetricsUpdater)
+	if err != nil {
+		return nil, err
+	}
+
 	return &heartbeatV2Components{
 		sender:                     heartbeatV2Sender,
 		peerAuthRequestsProcessor:  paRequestsProcessor,
 		directConnectionsProcessor: directConnectionsProcessor,
 		monitor:                    heartbeatsMonitor,
+		statusHandler:              statusHandler,
 	}, nil
 }
 
@@ -230,6 +250,10 @@ func (hc *heartbeatV2Components) Close() error {
 
 	if !check.IfNil(hc.directConnectionsProcessor) {
 		log.LogIfError(hc.directConnectionsProcessor.Close())
+	}
+
+	if !check.IfNil(hc.statusHandler) {
+		log.LogIfError(hc.statusHandler.Close())
 	}
 
 	return nil

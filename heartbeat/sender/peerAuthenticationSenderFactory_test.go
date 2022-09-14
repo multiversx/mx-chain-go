@@ -32,7 +32,7 @@ func createMockPeerAuthenticationSenderFactoryArgs() argPeerAuthenticationSender
 	}
 }
 
-func TestPeerAuthenticationSenderFactory_Create(t *testing.T) {
+func TestPeerAuthenticationSenderFactory_createPeerAuthenticationSender(t *testing.T) {
 	t.Parallel()
 
 	t.Run("ToByteArray fails should error", func(t *testing.T) {
@@ -49,7 +49,7 @@ func TestPeerAuthenticationSenderFactory_Create(t *testing.T) {
 			},
 		}
 		peerAuthSender, err := createPeerAuthenticationSender(args)
-		assert.Equal(t, expectedErr, err)
+		assert.True(t, errors.Is(err, expectedErr))
 		assert.True(t, check.IfNil(peerAuthSender))
 	})
 	t.Run("validator with keys managed should error", func(t *testing.T) {
@@ -138,5 +138,4 @@ func TestPeerAuthenticationSenderFactory_Create(t *testing.T) {
 		assert.False(t, check.IfNil(peerAuthSender))
 		assert.Equal(t, "*sender.multikeyPeerAuthenticationSender", fmt.Sprintf("%T", peerAuthSender))
 	})
-
 }

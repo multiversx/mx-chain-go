@@ -18,14 +18,11 @@ type argHeartbeatSender struct {
 	identity             string
 	peerSubType          core.P2PPeerSubType
 	currentBlockProvider heartbeat.CurrentBlockProvider
+	peerTypeProvider     heartbeat.PeerTypeProviderHandler
 }
 
 type heartbeatSender struct {
 	commonHeartbeatSender
-	versionNumber   string
-	nodeDisplayName string
-	identity        string
-	peerSubType     core.P2PPeerSubType
 }
 
 // newHeartbeatSender creates a new instance of type heartbeatSender
@@ -39,11 +36,12 @@ func newHeartbeatSender(args argHeartbeatSender) (*heartbeatSender, error) {
 		commonHeartbeatSender: commonHeartbeatSender{
 			baseSender:           createBaseSender(args.argBaseSender),
 			currentBlockProvider: args.currentBlockProvider,
+			peerTypeProvider:     args.peerTypeProvider,
+			versionNumber:        args.versionNumber,
+			nodeDisplayName:      args.nodeDisplayName,
+			identity:             args.identity,
+			peerSubType:          args.peerSubType,
 		},
-		versionNumber:   args.versionNumber,
-		nodeDisplayName: args.nodeDisplayName,
-		identity:        args.identity,
-		peerSubType:     args.peerSubType,
 	}, nil
 }
 
@@ -66,6 +64,9 @@ func checkHeartbeatSenderArgs(args argHeartbeatSender) error {
 	}
 	if check.IfNil(args.currentBlockProvider) {
 		return heartbeat.ErrNilCurrentBlockProvider
+	}
+	if check.IfNil(args.peerTypeProvider) {
+		return heartbeat.ErrNilPeerTypeProvider
 	}
 
 	return nil

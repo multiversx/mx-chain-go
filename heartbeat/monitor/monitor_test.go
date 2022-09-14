@@ -130,9 +130,19 @@ func TestNewHeartbeatV2Monitor(t *testing.T) {
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		monitor, err := NewHeartbeatV2Monitor(createMockHeartbeatV2MonitorArgs())
+		args := createMockHeartbeatV2MonitorArgs()
+		args.PeerTypeProvider = &mock.PeerTypeProviderStub{
+			ComputeForPubKeyCalled: func(pubKey []byte) (common.PeerType, uint32, error) {
+				return common.EligibleList, 0, nil
+			},
+		}
+		monitor, err := NewHeartbeatV2Monitor(args)
 		assert.False(t, check.IfNil(monitor))
 		assert.Nil(t, err)
+
+		pid1 := []byte("validator peer id")
+		message := createHeartbeatMessage(true)
+		args.Cache.Put(pid1, message, message.Size())
 	})
 }
 
@@ -298,11 +308,11 @@ func TestHeartbeatV2Monitor_shouldSkipMessage(t *testing.T) {
 	assert.False(t, check.IfNil(monitor))
 
 	// active
-	assert.False(t, monitor.shouldSkipMessage(time.Second, string(common.EligibleList)))
-	// inactive observer but should not hide yet
-	assert.False(t, monitor.shouldSkipMessage(args.HideInactiveValidatorInterval-time.Second, string(common.ObserverList)))
-	// inactive observer and too old should be hidden
-	assert.True(t, monitor.shouldSkipMessage(args.HideInactiveValidatorInterval+time.Second, string(common.ObserverList)))
+	assert.False(t, monitor.shouldSkipMessage(time.Second))
+	// inactive but should not hide yet
+	assert.False(t, monitor.shouldSkipMessage(args.HideInactiveValidatorInterval-time.Second))
+	// inactive and too old should be hidden
+	assert.True(t, monitor.shouldSkipMessage(args.HideInactiveValidatorInterval+time.Second))
 }
 
 func TestHeartbeatV2Monitor_GetHeartbeats(t *testing.T) {

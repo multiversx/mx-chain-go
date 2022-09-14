@@ -26,12 +26,7 @@ type argMultikeyHeartbeatSender struct {
 
 type multikeyHeartbeatSender struct {
 	commonHeartbeatSender
-	peerTypeProvider  heartbeat.PeerTypeProviderHandler
-	versionNumber     string
 	baseVersionNumber string
-	nodeDisplayName   string
-	identity          string
-	peerSubType       core.P2PPeerSubType
 	keysHolder        heartbeat.KeysHolder
 	shardCoordinator  process.ShardCoordinator
 }
@@ -47,13 +42,13 @@ func newMultikeyHeartbeatSender(args argMultikeyHeartbeatSender) (*multikeyHeart
 		commonHeartbeatSender: commonHeartbeatSender{
 			baseSender:           createBaseSender(args.argBaseSender),
 			currentBlockProvider: args.currentBlockProvider,
+			peerTypeProvider:     args.peerTypeProvider,
+			versionNumber:        args.versionNumber,
+			nodeDisplayName:      args.nodeDisplayName,
+			identity:             args.identity,
+			peerSubType:          args.peerSubType,
 		},
-		versionNumber:     args.versionNumber,
 		baseVersionNumber: args.baseVersionNumber,
-		nodeDisplayName:   args.nodeDisplayName,
-		identity:          args.identity,
-		peerSubType:       args.peerSubType,
-		peerTypeProvider:  args.peerTypeProvider,
 		keysHolder:        args.keysHolder,
 		shardCoordinator:  args.shardCoordinator,
 	}, nil

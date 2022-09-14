@@ -152,6 +152,12 @@ var ErrInvalidDefaultSpan = errors.New("invalid default span")
 // ErrInvalidCacheExpiry signals that an invalid cache expiry was provided
 var ErrInvalidCacheExpiry = errors.New("invalid cache expiry")
 
+// ErrEpochKeepIsLowerThanNumActive signals that num epochs to keep is lower than num active epochs
+var ErrEpochKeepIsLowerThanNumActive = errors.New("num epochs to keep is lower than num active epochs")
+
+// ErrNilPersistersTracker signals that a nil persisters tracker has been provided
+var ErrNilPersistersTracker = errors.New("nil persisters tracker provided")
+
 // IsNotFoundInStorageErr returns whether an error is a "not found in storage" error.
 // Currently, "item not found" storage errors are untyped (thus not distinguishable from others). E.g. see "pruningStorer.go".
 // As a workaround, we test the error message for a match.

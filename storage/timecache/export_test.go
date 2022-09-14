@@ -22,3 +22,11 @@ func (tc *TimeCache) Value(key string) (*entry, bool) {
 
 	return val, ok
 }
+
+// NumRegisteredHandlers -
+func (tc *timeCacher) NumRegisteredHandlers() int {
+	tc.mutAddedDataHandlers.RLock()
+	defer tc.mutAddedDataHandlers.RUnlock()
+
+	return len(tc.mapDataHandlers)
+}

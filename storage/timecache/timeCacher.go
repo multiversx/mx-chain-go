@@ -3,6 +3,7 @@ package timecache
 import (
 	"context"
 	"math"
+	"sync"
 	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -24,6 +25,9 @@ type timeCacher struct {
 	timeCache   *timeCacheCore
 	cacheExpiry time.Duration
 	cancelFunc  func()
+
+	mutAddedDataHandlers sync.RWMutex
+	mapDataHandlers      map[string]func(key []byte, value interface{})
 }
 
 // NewTimeCacher creates a new timeCacher
@@ -34,8 +38,9 @@ func NewTimeCacher(arg ArgTimeCacher) (*timeCacher, error) {
 	}
 
 	tc := &timeCacher{
-		timeCache:   newTimeCacheCore(arg.DefaultSpan),
-		cacheExpiry: arg.CacheExpiry,
+		timeCache:       newTimeCacheCore(arg.DefaultSpan),
+		cacheExpiry:     arg.CacheExpiry,
+		mapDataHandlers: make(map[string]func(key []byte, value interface{})),
 	}
 
 	var ctx context.Context
@@ -83,8 +88,11 @@ func (tc *timeCacher) Clear() {
 func (tc *timeCacher) Put(key []byte, value interface{}, _ int) (evicted bool) {
 	err := tc.timeCache.put(string(key), value, tc.timeCache.defaultSpan)
 	if err != nil {
-		log.Error("mapTimeCacher.Put", "error", key)
+		log.Error("mapTimeCacher.Put", "key", key, "error", err)
+		return
 	}
+
+	tc.callAddedDataHandlers(key, value)
 
 	return false
 }
@@ -118,7 +126,12 @@ func (tc *timeCacher) HasOrAdd(key []byte, value interface{}, _ int) (has, added
 	var err error
 	has, added, err = tc.timeCache.hasOrAdd(string(key), value, tc.timeCache.defaultSpan)
 	if err != nil {
-		log.Error("mapTimeCacher.HasOrAdd", "error", key)
+		log.Error("mapTimeCacher.HasOrAdd", "key", key, "error", err)
+		return
+	}
+
+	if !has {
+		tc.callAddedDataHandlers(key, value)
 	}
 
 	return
@@ -166,12 +179,31 @@ func (tc *timeCacher) MaxSize() int {
 	return math.MaxInt32
 }
 
-// RegisterHandler registers a handler, currently not needed
-func (tc *timeCacher) RegisterHandler(_ func(key []byte, value interface{}), _ string) {
+// RegisterHandler registers a new handler to be called when a new data is added
+func (tc *timeCacher) RegisterHandler(handler func(key []byte, value interface{}), id string) {
+	if handler == nil {
+		log.Error("attempt to register a nil handler to a cacher object", "id", id)
+		return
+	}
+
+	tc.mutAddedDataHandlers.Lock()
+	tc.mapDataHandlers[id] = handler
+	tc.mutAddedDataHandlers.Unlock()
 }
 
-// UnRegisterHandler unregisters a handler, currently not needed
-func (tc *timeCacher) UnRegisterHandler(_ string) {
+// UnRegisterHandler removes the handler from the list
+func (tc *timeCacher) UnRegisterHandler(id string) {
+	tc.mutAddedDataHandlers.Lock()
+	delete(tc.mapDataHandlers, id)
+	tc.mutAddedDataHandlers.Unlock()
+}
+
+func (tc *timeCacher) callAddedDataHandlers(key []byte, value interface{}) {
+	tc.mutAddedDataHandlers.RLock()
+	for _, handler := range tc.mapDataHandlers {
+		go handler(key, value)
+	}
+	tc.mutAddedDataHandlers.RUnlock()
 }
 
 // Close will close the internal sweep go routine
