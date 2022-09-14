@@ -1656,15 +1656,15 @@ func (bp *baseProcessor) getRootHashes(currHeader data.HeaderHandler, prevHeader
 	case state.UserAccountsState:
 		return currHeader.GetRootHash(), prevHeader.GetRootHash()
 	case state.PeerAccountsState:
-		currMetaHeader, ok := currHeader.(data.ValidatorStatisticsInfoHandler)
+		currValidatorInfo, ok := currHeader.(data.ValidatorStatisticsInfoHandler)
 		if !ok {
 			return []byte{}, []byte{}
 		}
-		prevMetaHeader, ok := prevHeader.(data.ValidatorStatisticsInfoHandler)
+		prevValidatorInfo, ok := prevHeader.(data.ValidatorStatisticsInfoHandler)
 		if !ok {
 			return []byte{}, []byte{}
 		}
-		return currMetaHeader.GetValidatorStatsRootHash(), prevMetaHeader.GetValidatorStatsRootHash()
+		return currValidatorInfo.GetValidatorStatsRootHash(), prevValidatorInfo.GetValidatorStatsRootHash()
 	default:
 		return []byte{}, []byte{}
 	}
@@ -1688,10 +1688,11 @@ func (bp *baseProcessor) revertAccountsStates(header data.HeaderHandler, rootHas
 		return process.ErrWrongTypeAssertion
 	}
 
-	err = bp.accountsDB[state.UserAccountsState].RecreateTrie(validatorInfo.GetValidatorStatsRootHash())
+	err = bp.accountsDB[state.PeerAccountsState].RecreateTrie(validatorInfo.GetValidatorStatsRootHash())
 	if err != nil {
 		log.Debug("revert peer state with error for header",
 			"nonce", header.GetNonce(),
+			"header root hash", header.GetRootHash(),
 			"validators root hash", validatorInfo.GetValidatorStatsRootHash(),
 			"error", err.Error(),
 		)

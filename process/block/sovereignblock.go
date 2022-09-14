@@ -3,11 +3,11 @@ package block
 import (
 	"bytes"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go-core/core/queue"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/core/queue"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -96,7 +96,7 @@ func (s *sovereignBlockProcessor) CreateBlock(initialHdr data.HeaderHandler, hav
 	return initialHdr, &block.Body{MiniBlocks: mbsFromMe}, nil
 }
 
-// ProcessBlock actually process the selected transaction and will create the final block body
+// ProcessBlock actually processes the selected transaction and will create the final block body
 func (s *sovereignBlockProcessor) ProcessBlock(
 	headerHandler data.HeaderHandler,
 	bodyHandler data.BodyHandler,
@@ -106,7 +106,7 @@ func (s *sovereignBlockProcessor) ProcessBlock(
 		return process.ErrNilHaveTimeHandler
 	}
 
-	s.processStatusHandler.SetBusy("shardProcessor.ProcessBlock")
+	s.processStatusHandler.SetBusy("sovereignBlockProcessor.ProcessBlock")
 	defer s.processStatusHandler.SetIdle()
 
 	err := s.checkBlockValidity(headerHandler, bodyHandler)
@@ -235,7 +235,7 @@ func (s *sovereignBlockProcessor) applyBodyToHeader(
 
 // CommitBlock - will do a lot of verification
 func (s *sovereignBlockProcessor) CommitBlock(headerHandler data.HeaderHandler, bodyHandler data.BodyHandler) error {
-	s.processStatusHandler.SetBusy("metaProcessor.CommitBlock")
+	s.processStatusHandler.SetBusy("sovereignBlockProcessor.CommitBlock")
 	var err error
 	defer func() {
 		if err != nil {
@@ -316,10 +316,10 @@ func (s *sovereignBlockProcessor) CommitBlock(headerHandler data.HeaderHandler, 
 	go s.historyRepo.OnNotarizedBlocks(s.shardCoordinator.SelfId(), []data.HeaderHandler{currentHeader}, [][]byte{currentHeaderHash})
 
 	lastHeader := s.blockChain.GetCurrentBlockHeader()
-	lastMetaBlockHash := s.blockChain.GetCurrentBlockHeaderHash()
+	lastBlockHash := s.blockChain.GetCurrentBlockHeaderHash()
 
-	s.updateState(lastHeader.(*block.HeaderWithValidatorStats), lastMetaBlockHash)
-	err = s.commonHeaderBodyCommit(header, body, headerHash, []data.HeaderHandler{currentHeader}, [][]byte{currentHeaderHash})
+	s.updateState(lastHeader.(*block.HeaderWithValidatorStats), lastBlockHash)
+	err = s.commonHeaderAndBodyCommit(header, body, headerHash, []data.HeaderHandler{currentHeader}, [][]byte{currentHeaderHash})
 	if err != nil {
 		return err
 	}
@@ -327,7 +327,7 @@ func (s *sovereignBlockProcessor) CommitBlock(headerHandler data.HeaderHandler, 
 	return nil
 }
 
-// RestoreBlockIntoPools restore block into pools
+// RestoreBlockIntoPools restores block into pools
 func (s *sovereignBlockProcessor) RestoreBlockIntoPools(_ data.HeaderHandler, body data.BodyHandler) error {
 	s.restoreBlockBody(body)
 	s.blockTracker.RemoveLastNotarizedHeaders()
@@ -344,7 +344,7 @@ func (s *sovereignBlockProcessor) RevertCurrentBlock() {
 	s.revertAccountState()
 }
 
-// PruneStateOnRollback prune states of all accounts DBs
+// PruneStateOnRollback prunes states of all accounts DBs
 func (s *sovereignBlockProcessor) PruneStateOnRollback(currHeader data.HeaderHandler, _ []byte, prevHeader data.HeaderHandler, _ []byte) {
 	for key := range s.accountsDB {
 		if !s.accountsDB[key].IsPruningEnabled() {

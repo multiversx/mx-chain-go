@@ -1075,7 +1075,7 @@ func (sp *shardProcessor) CommitBlock(
 		header,
 	)
 
-	err = sp.commonHeaderBodyCommit(header, body, headerHash, selfNotarizedHeaders, selfNotarizedHeadersHashes)
+	err = sp.commonHeaderAndBodyCommit(header, body, headerHash, selfNotarizedHeaders, selfNotarizedHeadersHashes)
 	if err != nil {
 		return err
 	}
@@ -1083,7 +1083,7 @@ func (sp *shardProcessor) CommitBlock(
 	return nil
 }
 
-func (sp *shardProcessor) commonHeaderBodyCommit(
+func (sp *shardProcessor) commonHeaderAndBodyCommit(
 	header data.HeaderHandler,
 	body *block.Body,
 	headerHash []byte,
