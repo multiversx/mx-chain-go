@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers/topicResolverSender"
@@ -45,6 +46,7 @@ type baseResolversContainerFactory struct {
 	numTotalPeers               int
 	numFullHistoryPeers         int
 	payloadValidator            dataRetriever.PeerAuthenticationPayloadValidator
+	trieResolverConfig          config.TrieResolverConfig
 }
 
 func (brcf *baseResolversContainerFactory) checkParams() error {

@@ -183,7 +183,7 @@ func TestNewTopicResolverSender_InvalidNumberOfPeersShouldErr(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockArgTopicResolverSender()
-	arg.NumIntraShardPeers = 1
+	arg.NumIntraShardPeers = 0
 	arg.NumCrossShardPeers = 0
 	trs, err := topicResolverSender.NewTopicResolverSender(arg)
 

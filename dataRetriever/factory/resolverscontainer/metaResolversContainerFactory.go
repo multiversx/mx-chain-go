@@ -59,6 +59,7 @@ func NewMetaResolversContainerFactory(
 		numTotalPeers:               int(args.ResolverConfig.NumTotalPeers),
 		numFullHistoryPeers:         int(args.ResolverConfig.NumFullHistoryPeers),
 		payloadValidator:            args.PayloadValidator,
+		trieResolverConfig:          args.TrieResolverConfig,
 	}
 
 	err = base.checkParams()
@@ -311,8 +312,8 @@ func (mrcf *metaResolversContainerFactory) generateTrieNodesResolvers() error {
 	resolver, err := mrcf.createTrieNodesResolver(
 		identifierTrieNodes,
 		triesFactory.UserAccountTrie,
-		0,
-		mrcf.numTotalPeers,
+		int(mrcf.trieResolverConfig.NumCrossShardPeers),
+		int(mrcf.trieResolverConfig.NumIntraShardPeers),
 		core.MetachainShardId,
 	)
 	if err != nil {
@@ -326,8 +327,8 @@ func (mrcf *metaResolversContainerFactory) generateTrieNodesResolvers() error {
 	resolver, err = mrcf.createTrieNodesResolver(
 		identifierTrieNodes,
 		triesFactory.PeerAccountTrie,
-		0,
-		mrcf.numTotalPeers,
+		int(mrcf.trieResolverConfig.NumCrossShardPeers),
+		int(mrcf.trieResolverConfig.NumIntraShardPeers),
 		core.MetachainShardId,
 	)
 	if err != nil {

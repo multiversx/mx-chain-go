@@ -207,6 +207,7 @@ type Config struct {
 	Logs                  LogsConfig
 	TrieSync              TrieSyncConfig
 	Resolvers             ResolverConfig
+	TrieResolver          TrieResolverConfig
 	VMOutputCacher        CacheConfig
 
 	PeersRatingConfig   PeersRatingConfig
@@ -592,6 +593,13 @@ type TrieSyncConfig struct {
 type ResolverConfig struct {
 	NumCrossShardPeers  uint32
 	NumTotalPeers       uint32
+	NumFullHistoryPeers uint32
+}
+
+// TrieResolverConfig represents the config options to be used when setting up the trie resolver instance
+type TrieResolverConfig struct {
+	NumCrossShardPeers  uint32
+	NumIntraShardPeers  uint32
 	NumFullHistoryPeers uint32
 }
 

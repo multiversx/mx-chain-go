@@ -402,6 +402,11 @@ func GetGeneralConfig() config.Config {
 			NumTotalPeers:       3,
 			NumFullHistoryPeers: 3,
 		},
+		TrieResolver: config.TrieResolverConfig{
+			NumCrossShardPeers:  0,
+			NumIntraShardPeers:  1,
+			NumFullHistoryPeers: 3,
+		},
 		VirtualMachine: config.VirtualMachineServicesConfig{
 			Execution: config.VirtualMachineConfig{
 				ArwenVersions: []config.ArwenVersionByEpoch{

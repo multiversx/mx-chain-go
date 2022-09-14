@@ -18,7 +18,7 @@ import (
 const (
 	// topicRequestSuffix represents the topic name suffix
 	topicRequestSuffix = "_REQUEST"
-	minPeersToQuery    = 2
+	minPeersToQuery    = 1
 	preferredPeerIndex = -1
 )
 

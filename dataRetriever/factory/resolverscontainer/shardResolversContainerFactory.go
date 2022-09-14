@@ -57,6 +57,7 @@ func NewShardResolversContainerFactory(
 		numTotalPeers:               int(args.ResolverConfig.NumTotalPeers),
 		numFullHistoryPeers:         int(args.ResolverConfig.NumFullHistoryPeers),
 		payloadValidator:            args.PayloadValidator,
+		trieResolverConfig:          args.TrieResolverConfig,
 	}
 
 	err = base.checkParams()
@@ -242,8 +243,8 @@ func (srcf *shardResolversContainerFactory) generateTrieNodesResolvers() error {
 	resolver, err := srcf.createTrieNodesResolver(
 		identifierTrieNodes,
 		triesFactory.UserAccountTrie,
-		0,
-		srcf.numTotalPeers,
+		int(srcf.trieResolverConfig.NumCrossShardPeers),
+		int(srcf.trieResolverConfig.NumIntraShardPeers),
 		core.MetachainShardId,
 	)
 	if err != nil {

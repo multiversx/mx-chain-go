@@ -1156,6 +1156,7 @@ func (e *epochStartBootstrap) createRequestHandler() error {
 		CurrentNetworkEpochProvider: disabled.NewCurrentNetworkEpochProviderHandler(),
 		PreferredPeersHolder:        disabled.NewPreferredPeersHolder(),
 		ResolverConfig:              e.generalConfig.Resolvers,
+		TrieResolverConfig:          e.generalConfig.TrieResolver,
 		PeersRatingHandler:          disabled.NewDisabledPeersRatingHandler(),
 		PayloadValidator:            payloadValidator,
 	}

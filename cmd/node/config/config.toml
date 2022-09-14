@@ -922,6 +922,11 @@
     NumTotalPeers       = 3 # NumCrossShardPeers + num intra shard
     NumFullHistoryPeers = 3
 
+[TrieResolver]
+    NumCrossShardPeers  = 0
+    NumIntraShardPeers  = 1
+    NumFullHistoryPeers = 3
+
 [HeartbeatV2]
     PeerAuthenticationTimeBetweenSendsInSec          = 600  # 10min TODO: change this for mainnet/devnet/testnet
     PeerAuthenticationTimeBetweenSendsWhenErrorInSec = 60   # 1min

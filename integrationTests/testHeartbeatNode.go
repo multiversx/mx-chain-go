@@ -458,6 +458,11 @@ func (thn *TestHeartbeatNode) initResolvers() {
 			NumTotalPeers:       3,
 			NumFullHistoryPeers: 3,
 		},
+		TrieResolverConfig: config.TrieResolverConfig{
+			NumCrossShardPeers:  0,
+			NumIntraShardPeers:  1,
+			NumFullHistoryPeers: 3,
+		},
 		PeersRatingHandler: &p2pmocks.PeersRatingHandlerStub{},
 		PayloadValidator:   payloadValidator,
 	}

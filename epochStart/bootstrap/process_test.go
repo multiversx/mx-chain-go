@@ -186,7 +186,8 @@ func createMockEpochStartBootstrapArgs(
 				Capacity: 10,
 				Shards:   10,
 			},
-			Resolvers: generalCfg.Resolvers,
+			Resolvers:    generalCfg.Resolvers,
+			TrieResolver: generalCfg.TrieResolver,
 		},
 		EconomicsData: &economicsmocks.EconomicsHandlerStub{
 			MinGasPriceCalled: func() uint64 {

@@ -13,6 +13,7 @@ import (
 // FactoryArgs will hold the arguments for ResolversContainerFactory for both shard and meta
 type FactoryArgs struct {
 	ResolverConfig              config.ResolverConfig
+	TrieResolverConfig          config.TrieResolverConfig
 	NumConcurrentResolvingJobs  int32
 	ShardCoordinator            sharding.Coordinator
 	Messenger                   dataRetriever.TopicMessageHandler
