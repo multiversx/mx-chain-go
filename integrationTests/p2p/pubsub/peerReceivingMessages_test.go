@@ -1,6 +1,8 @@
 package peerDisconnecting
 
 import (
+	"crypto/ecdsa"
+	cryptoRand "crypto/rand"
 	"encoding/hex"
 	"fmt"
 	"sync"
@@ -10,7 +12,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
+	messagecheck "github.com/ElrondNetwork/elrond-go/p2p/messageCheck"
+	"github.com/btcsuite/btcd/btcec"
+	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var durationTest = 30 * time.Second
@@ -165,6 +172,60 @@ func TestBroadcastMessageComesFormTheConnectedPeers(t *testing.T) {
 	}
 
 	assert.Equal(t, 1, countReceivedMessages)
+}
+
+func generatePrivateKey() *libp2pCrypto.Secp256k1PrivateKey {
+	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), cryptoRand.Reader)
+
+	return (*libp2pCrypto.Secp256k1PrivateKey)(prvKey)
+}
+
+func TestP2PMessageSinging(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	p2pSigner, err := libp2p.NewP2PSigner(generatePrivateKey())
+	require.Nil(t, err)
+
+	messageVerifierArgs := messagecheck.ArgsMessageVerifier{
+		Marshaller: integrationTests.TestTxSignMarshalizer,
+		P2PSigner:  p2pSigner,
+	}
+	messageVerifier, err := messagecheck.NewMessageVerifier(messageVerifierArgs)
+	require.Nil(t, err)
+
+	topic := "test_topic"
+
+	peers := make([]p2p.Messenger, 0)
+
+	peer1 := integrationTests.CreateMessengerWithNoDiscovery()
+	peers = append(peers, peer1)
+	peer2 := integrationTests.CreateMessengerWithNoDiscovery()
+	peers = append(peers, peer2)
+
+	err = peer1.ConnectToPeer(peer2.Addresses()[0])
+	assert.Nil(t, err)
+
+	defer func() {
+		integrationTests.ClosePeers(peers)
+	}()
+
+	interceptors, err := createTopicsAndMockInterceptors(peers, topic)
+	assert.Nil(t, err)
+
+	err = peer1.SendToConnectedPeer(topic, []byte("dummy"), peer2.ID())
+	assert.Nil(t, err)
+
+	time.Sleep(time.Second * 2)
+
+	receiverInterceptor := interceptors[1]
+	p2pMessages := receiverInterceptor.Messages(peer1.ID())
+
+	for _, p2pMsg := range p2pMessages {
+		err := messageVerifier.Verify(p2pMsg)
+		require.Nil(t, err)
+	}
 }
 
 func createTopicsAndMockInterceptors(peers []p2p.Messenger, topic string) ([]*messageProcessor, error) {
