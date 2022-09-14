@@ -163,11 +163,10 @@ func (s *sovereignBlockProcessor) ProcessBlock(
 		return err
 	}
 
-	finalBody, err := s.applyBodyToHeader(headerHandler, blockBody)
+	blockBody, err = s.applyBodyToHeader(headerHandler, blockBody)
 	if err != nil {
 		return err
 	}
-	blockBody = finalBody
 
 	return nil
 }
