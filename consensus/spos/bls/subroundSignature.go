@@ -233,8 +233,11 @@ func (sr *subroundSignature) doSignatureConsensusCheck() bool {
 	if sr.IsNodeInConsensusGroup(sr.SelfPubKey()) {
 		selfJobDone = sr.IsSelfJobDone(sr.Current())
 	}
-	allInOneJobDone := sr.IsMultiKeyJobDone(sr.Current())
-	isJobDoneByConsensusNode := !isSelfLeader && isSelfInConsensusGroup && selfJobDone && allInOneJobDone
+	multiKeyJobDone := true
+	if sr.IsMultiKeyInConsensusGroup() {
+		multiKeyJobDone = sr.IsMultiKeyJobDone(sr.Current())
+	}
+	isJobDoneByConsensusNode := !isSelfLeader && isSelfInConsensusGroup && selfJobDone && multiKeyJobDone
 
 	isSubroundFinished := !isSelfInConsensusGroup || isJobDoneByConsensusNode || isJobDoneByLeader
 
@@ -312,7 +315,7 @@ func (sr *subroundSignature) remainingTime() time.Duration {
 }
 
 func (sr *subroundSignature) doSignatureJobForManagedKeys() bool {
-	isAllInOneLeader := sr.IsMultiKeyLeaderInCurrentRound()
+	isMultiKeyLeader := sr.IsMultiKeyLeaderInCurrentRound()
 
 	managedKeys := sr.GetManagedKeysByCurrentNode()
 	numMultiKeysSignaturesSent := 0
@@ -331,7 +334,7 @@ func (sr *subroundSignature) doSignatureJobForManagedKeys() bool {
 			return false
 		}
 
-		if !isAllInOneLeader {
+		if !isMultiKeyLeader {
 			cnsMsg := consensus.NewConsensusMessage(
 				sr.GetData(),
 				signatureShare,

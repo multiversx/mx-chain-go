@@ -230,7 +230,6 @@ func (rcns *roundConsensus) IsKeyManagedByCurrentNode(pkBytes []byte) bool {
 }
 
 // IncrementRoundsWithoutReceivedMessages increments the number of rounds without received messages on a provided public key
-// TODO(jls) add tests
 func (rcns *roundConsensus) IncrementRoundsWithoutReceivedMessages(pkBytes []byte) {
 	rcns.keysHolder.IncrementRoundsWithoutReceivedMessages(pkBytes)
 }

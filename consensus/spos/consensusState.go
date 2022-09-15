@@ -224,8 +224,12 @@ func (cns *ConsensusState) CanDoSubroundJob(currentSubroundId int) bool {
 	if cns.IsNodeInConsensusGroup(cns.SelfPubKey()) {
 		selfJobDone = cns.IsSelfJobDone(currentSubroundId)
 	}
-	allInOneJobDone := cns.IsMultiKeyJobDone(currentSubroundId)
-	if selfJobDone && allInOneJobDone {
+	multiKeyJobDone := true
+	if cns.IsMultiKeyInConsensusGroup() {
+		multiKeyJobDone = cns.IsMultiKeyJobDone(currentSubroundId)
+	}
+
+	if selfJobDone && multiKeyJobDone {
 		return false
 	}
 
