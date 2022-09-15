@@ -123,14 +123,17 @@ func GetGeneralConfig() config.Config {
 		},
 		StateTriesConfig: config.StateTriesConfig{
 			CheckpointRoundsModulus:     100,
+			SnapshotsEnabled:            false,
+			CheckpointsEnabled:          false,
 			AccountsStatePruningEnabled: false,
 			PeerStatePruningEnabled:     false,
 			MaxStateTrieLevelInMemory:   5,
 			MaxPeerTrieLevelInMemory:    5,
 		},
 		TrieStorageManagerConfig: config.TrieStorageManagerConfig{
-			PruningBufferLen:   1000,
-			SnapshotsBufferLen: 10,
+			PruningBufferLen:      1000,
+			SnapshotsBufferLen:    10,
+			SnapshotsGoroutineNum: 2,
 		},
 		TxDataPool: config.CacheConfig{
 			Capacity:             10000,
@@ -268,17 +271,13 @@ func GetGeneralConfig() config.Config {
 			HeartbeatTimeBetweenSendsInSec:                   1,
 			HeartbeatTimeBetweenSendsWhenErrorInSec:          1,
 			HeartbeatThresholdBetweenSends:                   0.1,
-			MaxNumOfPeerAuthenticationInResponse:             5,
 			DelayBetweenConnectionNotificationsInSec:         5,
 			HeartbeatExpiryTimespanInSec:                     30,
 			MaxDurationPeerUnresponsiveInSec:                 10,
 			HideInactiveValidatorIntervalInSec:               60,
 			HardforkTimeBetweenSendsInSec:                    5,
-			PeerAuthenticationPool: config.PeerAuthenticationPoolConfig{
-				DefaultSpanInSec: 30,
-				CacheExpiryInSec: 30,
-			},
-			HeartbeatPool: getLRUCacheConfig(),
+			TimeBetweenConnectionsMetricsUpdateInSec:         10,
+			HeartbeatPool:                                    getLRUCacheConfig(),
 		},
 		StatusMetricsStorage: config.StorageConfig{
 			Cache: getLRUCacheConfig(),
@@ -384,6 +383,7 @@ func GetGeneralConfig() config.Config {
 			NumConcurrentTrieSyncers:  50,
 			MaxHardCapForMissingNodes: 500,
 			TrieSyncerVersion:         2,
+			CheckNodesOnDisk:          false,
 		},
 		Antiflood: config.AntifloodConfig{
 			NumConcurrentResolverJobs: 2,
@@ -420,6 +420,14 @@ func GetGeneralConfig() config.Config {
 		PeersRatingConfig: config.PeersRatingConfig{
 			TopRatedCacheCapacity: 1000,
 			BadRatedCacheCapacity: 1000,
+		},
+		BuiltInFunctions: config.BuiltInFunctionsConfig{
+			AutomaticCrawlerAddresses: []string{
+				"erd1he8wwxn4az3j82p7wwqsdk794dm7hcrwny6f8dfegkfla34udx7qrf7xje", //shard 0
+				"erd1fpkcgel4gcmh8zqqdt043yfcn5tyx8373kg6q2qmkxzu4dqamc0swts65c", //shard 1
+				"erd1najnxxweyw6plhg8efql330nttrj6l5cf87wqsuym85s9ha0hmdqnqgenp", //shard 2
+			},
+			MaxNumAddressesInTransferRole: 100,
 		},
 	}
 }

@@ -187,8 +187,7 @@ func (sr *subroundEndRound) receivedInvalidSignersInfo(_ context.Context, cnsDta
 		return false
 	}
 
-	// TODO: evaluate better debug logs
-	log.Debug("step 4: invalid signers info has been received")
+	log.Debug("step 3: invalid signers info has been evaluated")
 
 	sr.PeerHonestyHandler().ChangeScore(
 		node,
@@ -238,7 +237,7 @@ func (sr *subroundEndRound) verifyInvalidSigner(msg p2p.MessageP2P) error {
 	singleSigner := sr.SingleSigner()
 	err = singleSigner.Verify(pubKey, cnsMsg.BlockHeaderHash, cnsMsg.SignatureShare)
 	if err != nil {
-		log.Debug("confirmed that node provided invalid signature")
+		log.Trace("verifyInvalidSigner: confirmed that node provided invalid signature", "pubKey", pubKey)
 		err = sr.applyBlacklistOnNode(msg.Peer())
 		if err != nil {
 			return err
@@ -574,7 +573,7 @@ func (sr *subroundEndRound) createAndBroadcastInvalidSigners(invalidSigners []by
 		return
 	}
 
-	log.Debug("step 4: invalid signers info has been sent")
+	log.Debug("step 3: invalid signers info has been sent")
 }
 
 func (sr *subroundEndRound) doEndRoundJobByParticipant(cnsDta *consensus.Message) bool {

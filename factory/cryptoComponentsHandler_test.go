@@ -9,8 +9,11 @@ import (
 )
 
 // ------------ Test ManagedCryptoComponents --------------------
-func TestManagedCryptoComponents_CreateWithInvalidArgs_ShouldErr(t *testing.T) {
+func TestManagedCryptoComponents_CreateWithInvalidArgsShouldErr(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	coreComponents := getCoreComponents()
 	args := getCryptoArgs(coreComponents)
@@ -23,8 +26,11 @@ func TestManagedCryptoComponents_CreateWithInvalidArgs_ShouldErr(t *testing.T) {
 	require.Nil(t, managedCryptoComponents.BlockSignKeyGen())
 }
 
-func TestManagedCryptoComponents_Create_ShouldWork(t *testing.T) {
+func TestManagedCryptoComponents_CreateShouldWork(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	coreComponents := getCoreComponents()
 	args := getCryptoArgs(coreComponents)
@@ -50,6 +56,9 @@ func TestManagedCryptoComponents_Create_ShouldWork(t *testing.T) {
 
 func TestManagedCryptoComponents_CheckSubcomponents(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	managedCryptoComponents := getManagedCryptoComponents(t)
 
@@ -59,6 +68,9 @@ func TestManagedCryptoComponents_CheckSubcomponents(t *testing.T) {
 
 func TestManagedCryptoComponents_SetMultiSigner(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	managedCryptoComponents := getManagedCryptoComponents(t)
 
@@ -71,6 +83,9 @@ func TestManagedCryptoComponents_SetMultiSigner(t *testing.T) {
 
 func TestManagedCryptoComponents_Close(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	managedCryptoComponents := getManagedCryptoComponents(t)
 
@@ -94,6 +109,9 @@ func getManagedCryptoComponents(t *testing.T) factory.CryptoComponentsHandler {
 
 func TestManagedCryptoComponents_Clone(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	coreComponents := getCoreComponents()
 	args := getCryptoArgs(coreComponents)

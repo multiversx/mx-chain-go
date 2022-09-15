@@ -3,6 +3,7 @@ package metrics
 import (
 	"fmt"
 	"sort"
+	"strconv"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
@@ -55,6 +56,7 @@ func InitBaseMetrics(statusHandlerUtils StatusHandlersUtils) error {
 	appStatusHandler.SetStringValue(common.MetricCurrentBlockHash, initString)
 	appStatusHandler.SetStringValue(common.MetricNumConnectedPeersClassification, initString)
 	appStatusHandler.SetStringValue(common.MetricLatestTagSoftwareVersion, initString)
+	appStatusHandler.SetStringValue(common.MetricAreVMQueriesReady, strconv.FormatBool(false))
 	appStatusHandler.SetStringValue(common.MetricP2PNumConnectedPeersClassification, initString)
 	appStatusHandler.SetStringValue(common.MetricP2PPeerInfo, initString)
 	appStatusHandler.SetStringValue(common.MetricP2PIntraShardValidators, initString)

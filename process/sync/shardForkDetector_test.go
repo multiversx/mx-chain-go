@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/sync"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -15,7 +16,7 @@ func TestNewShardForkDetector_NilRoundHandlerShouldErr(t *testing.T) {
 
 	sfd, err := sync.NewShardForkDetector(
 		nil,
-		&mock.BlackListHandlerStub{},
+		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
 		0,
 	)
@@ -41,7 +42,7 @@ func TestNewShardForkDetector_NilBlockTrackerShouldErr(t *testing.T) {
 
 	sfd, err := sync.NewShardForkDetector(
 		&mock.RoundHandlerMock{},
-		&mock.BlackListHandlerStub{},
+		&testscommon.TimeCacheStub{},
 		nil,
 		0,
 	)
@@ -54,7 +55,7 @@ func TestNewShardForkDetector_OkParamsShouldWork(t *testing.T) {
 
 	sfd, err := sync.NewShardForkDetector(
 		&mock.RoundHandlerMock{},
-		&mock.BlackListHandlerStub{},
+		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
 		0,
 	)
@@ -73,7 +74,7 @@ func TestShardForkDetector_AddHeaderNilHeaderShouldErr(t *testing.T) {
 	roundHandlerMock := &mock.RoundHandlerMock{RoundIndex: 100}
 	bfd, _ := sync.NewShardForkDetector(
 		roundHandlerMock,
-		&mock.BlackListHandlerStub{},
+		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
 		0,
 	)
@@ -87,7 +88,7 @@ func TestShardForkDetector_AddHeaderNilHashShouldErr(t *testing.T) {
 	roundHandlerMock := &mock.RoundHandlerMock{RoundIndex: 100}
 	bfd, _ := sync.NewShardForkDetector(
 		roundHandlerMock,
-		&mock.BlackListHandlerStub{},
+		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
 		0,
 	)
@@ -103,7 +104,7 @@ func TestShardForkDetector_AddHeaderNotPresentShouldWork(t *testing.T) {
 	roundHandlerMock := &mock.RoundHandlerMock{RoundIndex: 1}
 	bfd, _ := sync.NewShardForkDetector(
 		roundHandlerMock,
-		&mock.BlackListHandlerStub{},
+		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
 		0,
 	)
@@ -125,7 +126,7 @@ func TestShardForkDetector_AddHeaderPresentShouldAppend(t *testing.T) {
 	roundHandlerMock := &mock.RoundHandlerMock{RoundIndex: 1}
 	bfd, _ := sync.NewShardForkDetector(
 		roundHandlerMock,
-		&mock.BlackListHandlerStub{},
+		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
 		0,
 	)
@@ -147,7 +148,7 @@ func TestShardForkDetector_AddHeaderWithProcessedBlockShouldSetCheckpoint(t *tes
 	roundHandlerMock := &mock.RoundHandlerMock{RoundIndex: 73}
 	bfd, _ := sync.NewShardForkDetector(
 		roundHandlerMock,
-		&mock.BlackListHandlerStub{},
+		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
 		0,
 	)
@@ -164,7 +165,7 @@ func TestShardForkDetector_AddHeaderPresentShouldNotRewriteState(t *testing.T) {
 	roundHandlerMock := &mock.RoundHandlerMock{RoundIndex: 1}
 	bfd, _ := sync.NewShardForkDetector(
 		roundHandlerMock,
-		&mock.BlackListHandlerStub{},
+		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
 		0,
 	)
@@ -185,7 +186,7 @@ func TestShardForkDetector_AddHeaderHigherNonceThanRoundShouldErr(t *testing.T) 
 	roundHandlerMock := &mock.RoundHandlerMock{RoundIndex: 100}
 	bfd, _ := sync.NewShardForkDetector(
 		roundHandlerMock,
-		&mock.BlackListHandlerStub{},
+		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
 		0,
 	)

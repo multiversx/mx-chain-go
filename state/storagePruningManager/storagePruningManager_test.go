@@ -68,7 +68,7 @@ func TestAccountsDB_TriePruneAndCancelPruneWhileSnapshotInProgressAddsToPruningB
 	newRootHash, _ := tr.RootHash()
 
 	trieStorage.EnterPruningBufferingMode()
-	spm.PruneTrie(oldRootHash, state.OldRoot, trieStorage)
+	spm.PruneTrie(oldRootHash, state.OldRoot, trieStorage, state.NewPruningHandler(state.EnableDataRemoval))
 	spm.CancelPrune(newRootHash, state.NewRoot, trieStorage)
 	trieStorage.ExitPruningBufferingMode()
 
@@ -92,7 +92,7 @@ func TestAccountsDB_TriePruneOnRollbackWhileSnapshotInProgressCancelsPrune(t *te
 
 	trieStorage.EnterPruningBufferingMode()
 	spm.CancelPrune(oldRootHash, state.OldRoot, trieStorage)
-	spm.PruneTrie(newRootHash, state.NewRoot, trieStorage)
+	spm.PruneTrie(newRootHash, state.NewRoot, trieStorage, state.NewPruningHandler(state.EnableDataRemoval))
 	trieStorage.ExitPruningBufferingMode()
 
 	assert.Equal(t, 1, spm.pruningBuffer.Len())
@@ -114,12 +114,12 @@ func TestAccountsDB_TriePruneAfterSnapshotIsDonePrunesBufferedHashes(t *testing.
 	newRootHash, _ := tr.RootHash()
 
 	trieStorage.EnterPruningBufferingMode()
-	spm.PruneTrie(oldRootHash, state.OldRoot, trieStorage)
+	spm.PruneTrie(oldRootHash, state.OldRoot, trieStorage, state.NewPruningHandler(state.EnableDataRemoval))
 	spm.CancelPrune(newRootHash, state.NewRoot, trieStorage)
 	trieStorage.ExitPruningBufferingMode()
 	assert.Equal(t, 2, spm.pruningBuffer.Len())
 
-	adb.PruneTrie(oldRootHash, state.NewRoot)
+	adb.PruneTrie(oldRootHash, state.NewRoot, state.NewPruningHandler(state.EnableDataRemoval))
 	assert.Equal(t, 0, spm.pruningBuffer.Len())
 }
 
@@ -140,7 +140,7 @@ func TestAccountsDB_TrieCancelPruneAndPruningBufferNotEmptyAddsToPruningBuffer(t
 	newRootHash, _ := tr.RootHash()
 
 	trieStorage.EnterPruningBufferingMode()
-	spm.PruneTrie(oldRootHash, state.OldRoot, trieStorage)
+	spm.PruneTrie(oldRootHash, state.OldRoot, trieStorage, state.NewPruningHandler(state.EnableDataRemoval))
 	spm.CancelPrune(newRootHash, state.NewRoot, trieStorage)
 	trieStorage.ExitPruningBufferingMode()
 	assert.Equal(t, 2, spm.pruningBuffer.Len())
@@ -166,7 +166,7 @@ func TestAccountsDB_TriePruneAndCancelPruneAddedToBufferInOrder(t *testing.T) {
 	newRootHash, _ := tr.RootHash()
 
 	trieStorage.EnterPruningBufferingMode()
-	spm.PruneTrie(oldRootHash, state.OldRoot, trieStorage)
+	spm.PruneTrie(oldRootHash, state.OldRoot, trieStorage, state.NewPruningHandler(state.EnableDataRemoval))
 	spm.CancelPrune(newRootHash, state.NewRoot, trieStorage)
 	trieStorage.ExitPruningBufferingMode()
 
@@ -201,7 +201,7 @@ func TestAccountsDB_PruneAfterCancelPruneShouldFail(t *testing.T) {
 	spm.CancelPrune(rootHash, state.NewRoot, trieStorage)
 
 	spm.CancelPrune(rootHash, state.OldRoot, trieStorage)
-	spm.PruneTrie(rootHash, state.OldRoot, trieStorage)
+	spm.PruneTrie(rootHash, state.OldRoot, trieStorage, state.NewPruningHandler(state.EnableDataRemoval))
 
 	newTr, err := tr.Recreate(rootHash)
 	assert.Nil(t, err)

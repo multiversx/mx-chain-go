@@ -242,13 +242,14 @@ func loadMainConfig(filepath string) (*config.Config, error) {
 
 func createNode(p2pConfig config.P2PConfig, marshalizer marshal.Marshalizer) (p2p.Messenger, error) {
 	arg := libp2p.ArgsNetworkMessenger{
-		Marshalizer:          marshalizer,
-		ListenAddress:        libp2p.ListenAddrWithIp4AndTcp,
-		P2pConfig:            p2pConfig,
-		SyncTimer:            &libp2p.LocalSyncTimer{},
-		PreferredPeersHolder: disabled.NewPreferredPeersHolder(),
-		NodeOperationMode:    p2p.NormalOperation,
-		PeersRatingHandler:   disabled.NewDisabledPeersRatingHandler(),
+		Marshalizer:           marshalizer,
+		ListenAddress:         libp2p.ListenAddrWithIp4AndTcp,
+		P2pConfig:             p2pConfig,
+		SyncTimer:             &libp2p.LocalSyncTimer{},
+		PreferredPeersHolder:  disabled.NewPreferredPeersHolder(),
+		NodeOperationMode:     p2p.NormalOperation,
+		PeersRatingHandler:    disabled.NewDisabledPeersRatingHandler(),
+		ConnectionWatcherType: "disabled",
 	}
 
 	return libp2p.NewNetworkMessenger(arg)

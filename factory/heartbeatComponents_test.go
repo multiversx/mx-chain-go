@@ -13,8 +13,11 @@ import (
 )
 
 // ------------ Test HeartbeatComponents --------------------
-func TestHeartbeatComponents_Close_ShouldWork(t *testing.T) {
+func TestHeartbeatComponents_CloseShouldWork(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	heartbeatArgs := getDefaultHeartbeatComponents(shardCoordinator)

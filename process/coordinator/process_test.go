@@ -16,7 +16,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/batch"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
@@ -358,7 +357,7 @@ func TestNewTransactionCoordinator_NilGasHandler(t *testing.T) {
 	assert.Equal(t, process.ErrNilGasHandler, err)
 }
 
-func TestNewTransactionCoordinator_NilFeeAcumulator(t *testing.T) {
+func TestNewTransactionCoordinator_NilFeeAccumulator(t *testing.T) {
 	t.Parallel()
 
 	argsTransactionCoordinator := createMockTransactionCoordinatorArguments()
@@ -1006,6 +1005,51 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsWithSki
 	assert.False(t, finalized)
 	require.Equal(t, 1, len(mbs[0].TxHashes))
 	assert.Equal(t, []byte("tx_hash_from_mb0"), mbs[0].TxHashes[0])
+}
+
+func TestTransactionCoordinator_HandleProcessMiniBlockInit(t *testing.T) {
+	mbHash := []byte("miniblock hash")
+	numResetGasHandler := 0
+	numInitInterimProc := 0
+	shardCoord := testscommon.NewMultiShardsCoordinatorMock(1)
+	tc := &transactionCoordinator{
+		accounts: initAccountsMock(),
+		gasHandler: &testscommon.GasHandlerStub{
+			ResetCalled: func(key []byte) {
+				assert.Equal(t, key, mbHash)
+				numResetGasHandler++
+			},
+		},
+		keysInterimProcs: []block.Type{block.SmartContractResultBlock},
+		interimProcessors: map[block.Type]process.IntermediateTransactionHandler{
+			block.SmartContractResultBlock: &mock.IntermediateTransactionHandlerStub{
+				InitProcessedResultsCalled: func(key []byte) {
+					assert.Equal(t, mbHash, key)
+					numInitInterimProc++
+				},
+			},
+		},
+		shardCoordinator: shardCoord,
+	}
+
+	t.Run("shard 0 should call init", func(t *testing.T) {
+		numResetGasHandler = 0
+		numInitInterimProc = 0
+		shardCoord.CurrentShard = 0
+
+		tc.handleProcessMiniBlockInit(mbHash)
+		assert.Equal(t, 1, numResetGasHandler)
+		assert.Equal(t, 1, numInitInterimProc)
+	})
+	t.Run("shard meta should call init", func(t *testing.T) {
+		numResetGasHandler = 0
+		numInitInterimProc = 0
+		shardCoord.CurrentShard = core.MetachainShardId
+
+		tc.handleProcessMiniBlockInit(mbHash)
+		assert.Equal(t, 1, numResetGasHandler)
+		assert.Equal(t, 1, numInitInterimProc)
+	})
 }
 
 func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsNilPreProcessor(t *testing.T) {
@@ -2360,7 +2404,7 @@ func TestTransactionCoordinator_PreprocessorsHasToBeOrderedRewardsAreLast(t *tes
 	assert.Equal(t, block.RewardsBlock, lastKey)
 }
 
-func TestTransactionCoordinator_CreateMarshalizedReceiptsShouldWork(t *testing.T) {
+func TestTransactionCoordinator_GetCreatedInShardMiniBlocksShouldWork(t *testing.T) {
 	t.Parallel()
 
 	argsTransactionCoordinator := createMockTransactionCoordinatorArguments()
@@ -2372,13 +2416,6 @@ func TestTransactionCoordinator_CreateMarshalizedReceiptsShouldWork(t *testing.T
 	mb2 := &block.MiniBlock{
 		Type: block.ReceiptBlock,
 	}
-
-	mbsBatch := &batch.Batch{}
-	marshalizedMb1, _ := tc.marshalizer.Marshal(mb1)
-	marshalizedMb2, _ := tc.marshalizer.Marshal(mb2)
-	mbsBatch.Data = append(mbsBatch.Data, marshalizedMb1)
-	mbsBatch.Data = append(mbsBatch.Data, marshalizedMb2)
-	expectedMarshalizedReceipts, _ := tc.marshalizer.Marshal(mbsBatch)
 
 	tc.keysInterimProcs = append(tc.keysInterimProcs, block.SmartContractResultBlock)
 	tc.keysInterimProcs = append(tc.keysInterimProcs, block.ReceiptBlock)
@@ -2394,10 +2431,8 @@ func TestTransactionCoordinator_CreateMarshalizedReceiptsShouldWork(t *testing.T
 		},
 	}
 
-	marshalizedReceipts, err := tc.CreateMarshalizedReceipts()
-
-	assert.Nil(t, err)
-	assert.Equal(t, expectedMarshalizedReceipts, marshalizedReceipts)
+	miniblocks := tc.GetCreatedInShardMiniBlocks()
+	assert.Equal(t, []*block.MiniBlock{mb1, mb2}, miniblocks)
 }
 
 func TestTransactionCoordinator_GetNumOfCrossInterMbsAndTxsShouldWork(t *testing.T) {
