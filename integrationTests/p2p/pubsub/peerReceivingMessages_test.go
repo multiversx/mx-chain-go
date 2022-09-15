@@ -185,6 +185,9 @@ func TestP2PMessageSinging(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
+	topic := "test_topic"
+	broadcastMessageDuration := time.Second * 2
+
 	p2pSigner, err := libp2p.NewP2PSigner(generatePrivateKey())
 	require.Nil(t, err)
 
@@ -194,8 +197,6 @@ func TestP2PMessageSinging(t *testing.T) {
 	}
 	messageVerifier, err := messagecheck.NewMessageVerifier(messageVerifierArgs)
 	require.Nil(t, err)
-
-	topic := "test_topic"
 
 	peers := make([]p2p.Messenger, 0)
 
@@ -214,10 +215,9 @@ func TestP2PMessageSinging(t *testing.T) {
 	interceptors, err := createTopicsAndMockInterceptors(peers, topic)
 	assert.Nil(t, err)
 
-	err = peer1.SendToConnectedPeer(topic, []byte("dummy"), peer2.ID())
-	assert.Nil(t, err)
+	peer1.Broadcast(topic, []byte("dummy"))
 
-	time.Sleep(time.Second * 2)
+	time.Sleep(broadcastMessageDuration)
 
 	receiverInterceptor := interceptors[1]
 	p2pMessages := receiverInterceptor.Messages(peer1.ID())
