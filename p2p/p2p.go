@@ -187,7 +187,7 @@ type ChannelLoadBalancer interface {
 
 // DirectSender defines a component that can send direct messages to connected peers
 type DirectSender interface {
-	NextSeqno() []byte
+	NextSequenceNumber() []byte
 	Send(topic string, buff []byte, peer core.PeerID) error
 	IsInterfaceNil() bool
 }

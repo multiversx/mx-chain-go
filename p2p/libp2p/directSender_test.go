@@ -7,6 +7,7 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -68,6 +69,8 @@ func createLibP2PCredentialsDirectSender() (peer.ID, libp2pCrypto.PrivKey) {
 }
 
 func TestNewDirectSender(t *testing.T) {
+	t.Parallel()
+
 	t.Run("nil context", func(t *testing.T) {
 		t.Parallel()
 
@@ -137,6 +140,8 @@ func TestNewDirectSender(t *testing.T) {
 }
 
 func TestNewDirectSender_OkValsShouldCallSetStreamHandlerWithCorrectValues(t *testing.T) {
+	t.Parallel()
+
 	var pidCalled protocol.ID
 	var handlerCalled network.StreamHandler
 
@@ -161,6 +166,8 @@ func TestNewDirectSender_OkValsShouldCallSetStreamHandlerWithCorrectValues(t *te
 // ------- ProcessReceivedDirectMessage
 
 func TestDirectSender_ProcessReceivedDirectMessageNilMessageShouldErr(t *testing.T) {
+	t.Parallel()
+
 	ds, _ := libp2p.NewDirectSender(
 		context.Background(),
 		generateHostStub(),
@@ -174,6 +181,8 @@ func TestDirectSender_ProcessReceivedDirectMessageNilMessageShouldErr(t *testing
 }
 
 func TestDirectSender_ProcessReceivedDirectMessageNilTopicIdsShouldErr(t *testing.T) {
+	t.Parallel()
+
 	ds, _ := libp2p.NewDirectSender(
 		context.Background(),
 		generateHostStub(),
@@ -194,7 +203,68 @@ func TestDirectSender_ProcessReceivedDirectMessageNilTopicIdsShouldErr(t *testin
 	assert.Equal(t, p2p.ErrNilTopic, err)
 }
 
+func TestDirectSender_ProcessReceivedDirectMessageKeyFieldIsNotNilShouldErr(t *testing.T) {
+	t.Parallel()
+
+	ds, _ := libp2p.NewDirectSender(
+		context.Background(),
+		generateHostStub(),
+		blankMessageHandler,
+		&mock.P2PSignerStub{},
+	)
+
+	id, _ := createLibP2PCredentialsDirectSender()
+
+	msg := &pubsubPb.Message{}
+	msg.Data = []byte("data")
+	msg.Seqno = []byte("111")
+	msg.From = []byte(id)
+	topic := "topic"
+	msg.Topic = &topic
+
+	t.Run("Key contains a non-empty byte slice", func(t *testing.T) {
+		msg.Key = []byte("random key")
+
+		err := ds.ProcessReceivedDirectMessage(msg, id)
+		assert.True(t, errors.Is(err, p2p.ErrInvalidValue))
+		assert.True(t, strings.Contains(err.Error(), "for Key field as the node accepts only nil on this field"))
+	})
+	t.Run("Key contains an empty byte slice", func(t *testing.T) {
+		msg.Key = make([]byte, 0)
+
+		err := ds.ProcessReceivedDirectMessage(msg, id)
+		assert.True(t, errors.Is(err, p2p.ErrInvalidValue))
+		assert.True(t, strings.Contains(err.Error(), "for Key field as the node accepts only nil on this field"))
+	})
+}
+
+func TestDirectSender_ProcessReceivedDirectMessageAbnormalSeqNoFieldShouldErr(t *testing.T) {
+	t.Parallel()
+
+	ds, _ := libp2p.NewDirectSender(
+		context.Background(),
+		generateHostStub(),
+		blankMessageHandler,
+		&mock.P2PSignerStub{},
+	)
+
+	id, _ := createLibP2PCredentialsDirectSender()
+
+	msg := &pubsubPb.Message{}
+	msg.Data = []byte("data")
+	msg.Seqno = bytes.Repeat([]byte{0x00}, libp2p.SequenceNumberSize+1)
+	msg.From = []byte(id)
+	topic := "topic"
+	msg.Topic = &topic
+
+	err := ds.ProcessReceivedDirectMessage(msg, id)
+	assert.True(t, errors.Is(err, p2p.ErrInvalidValue))
+	assert.True(t, strings.Contains(err.Error(), "for SeqNo field as the node accepts only a maximum"))
+}
+
 func TestDirectSender_ProcessReceivedDirectMessageAlreadySeenMsgShouldErr(t *testing.T) {
+	t.Parallel()
+
 	ds, _ := libp2p.NewDirectSender(
 		context.Background(),
 		generateHostStub(),
@@ -220,6 +290,8 @@ func TestDirectSender_ProcessReceivedDirectMessageAlreadySeenMsgShouldErr(t *tes
 }
 
 func TestDirectSender_ProcessReceivedDirectMessageShouldWork(t *testing.T) {
+	t.Parallel()
+
 	ds, _ := libp2p.NewDirectSender(
 		context.Background(),
 		generateHostStub(),
@@ -231,17 +303,35 @@ func TestDirectSender_ProcessReceivedDirectMessageShouldWork(t *testing.T) {
 
 	msg := &pubsubPb.Message{}
 	msg.Data = []byte("data")
-	msg.Seqno = []byte("111")
 	msg.From = []byte(id)
 	topic := "topic"
 	msg.Topic = &topic
 
-	err := ds.ProcessReceivedDirectMessage(msg, id)
-
-	assert.Nil(t, err)
+	t.Run("Seqno contains bytes", func(t *testing.T) {
+		msg.Seqno = []byte("111")
+		err := ds.ProcessReceivedDirectMessage(msg, id)
+		assert.Nil(t, err)
+	})
+	t.Run("empty Seqno", func(t *testing.T) {
+		msg.Seqno = make([]byte, 0)
+		err := ds.ProcessReceivedDirectMessage(msg, id)
+		assert.Nil(t, err)
+	})
+	t.Run("max Seqno", func(t *testing.T) {
+		msg.Seqno = bytes.Repeat([]byte{0xFF}, libp2p.SequenceNumberSize)
+		err := ds.ProcessReceivedDirectMessage(msg, id)
+		assert.Nil(t, err)
+	})
+	t.Run("min Seqno", func(t *testing.T) {
+		msg.Seqno = bytes.Repeat([]byte{0x00}, libp2p.SequenceNumberSize)
+		err := ds.ProcessReceivedDirectMessage(msg, id)
+		assert.Nil(t, err)
+	})
 }
 
 func TestDirectSender_ProcessReceivedDirectMessageShouldCallMessageHandler(t *testing.T) {
+	t.Parallel()
+
 	wasCalled := false
 
 	ds, _ := libp2p.NewDirectSender(
@@ -269,6 +359,8 @@ func TestDirectSender_ProcessReceivedDirectMessageShouldCallMessageHandler(t *te
 }
 
 func TestDirectSender_ProcessReceivedDirectMessageShouldReturnHandlersError(t *testing.T) {
+	t.Parallel()
+
 	checkErr := errors.New("checking error")
 
 	ds, _ := libp2p.NewDirectSender(
@@ -297,6 +389,8 @@ func TestDirectSender_ProcessReceivedDirectMessageShouldReturnHandlersError(t *t
 // ------- SendDirectToConnectedPeer
 
 func TestDirectSender_SendDirectToConnectedPeerBufferToLargeShouldErr(t *testing.T) {
+	t.Parallel()
+
 	netw := &mock.NetworkStub{}
 
 	id, sk := createLibP2PCredentialsDirectSender()
@@ -331,6 +425,8 @@ func TestDirectSender_SendDirectToConnectedPeerBufferToLargeShouldErr(t *testing
 }
 
 func TestDirectSender_SendDirectToConnectedPeerNotConnectedPeerShouldErr(t *testing.T) {
+	t.Parallel()
+
 	netw := &mock.NetworkStub{
 		ConnsToPeerCalled: func(p peer.ID) []network.Conn {
 			return make([]network.Conn, 0)
@@ -395,6 +491,8 @@ func TestDirectSender_SendDirectToConnectedPeerNewStreamErrorsShouldErr(t *testi
 }
 
 func TestDirectSender_SendDirectToConnectedPeerSignFails(t *testing.T) {
+	t.Parallel()
+
 	netw := &mock.NetworkStub{}
 
 	expectedErr := errors.New("expected error")
@@ -434,6 +532,8 @@ func TestDirectSender_SendDirectToConnectedPeerSignFails(t *testing.T) {
 }
 
 func TestDirectSender_SendDirectToConnectedPeerExistingStreamShouldSendToStream(t *testing.T) {
+	t.Parallel()
+
 	netw := &mock.NetworkStub{}
 
 	ds, _ := libp2p.NewDirectSender(
@@ -493,6 +593,8 @@ func TestDirectSender_SendDirectToConnectedPeerExistingStreamShouldSendToStream(
 }
 
 func TestDirectSender_SendDirectToConnectedPeerNewStreamShouldSendToStream(t *testing.T) {
+	t.Parallel()
+
 	netw := &mock.NetworkStub{}
 
 	hs := &mock.ConnectableHostStub{
@@ -563,6 +665,8 @@ func TestDirectSender_SendDirectToConnectedPeerNewStreamShouldSendToStream(t *te
 // ------- received messages tests
 
 func TestDirectSender_ReceivedSentMessageShouldCallMessageHandlerTestFullCycle(t *testing.T) {
+	t.Parallel()
+
 	var streamHandler network.StreamHandler
 	netw := &mock.NetworkStub{}
 
@@ -629,6 +733,8 @@ func TestDirectSender_ReceivedSentMessageShouldCallMessageHandlerTestFullCycle(t
 }
 
 func TestDirectSender_ProcessReceivedDirectMessageFromMismatchesFromConnectedPeerShouldErr(t *testing.T) {
+	t.Parallel()
+
 	ds, _ := libp2p.NewDirectSender(
 		context.Background(),
 		generateHostStub(),
@@ -651,6 +757,8 @@ func TestDirectSender_ProcessReceivedDirectMessageFromMismatchesFromConnectedPee
 }
 
 func TestDirectSender_ProcessReceivedDirectMessageSignatureFails(t *testing.T) {
+	t.Parallel()
+
 	verifyCalled := false
 	expectedErr := fmt.Errorf("expected error")
 	ds, _ := libp2p.NewDirectSender(

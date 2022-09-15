@@ -1205,7 +1205,7 @@ func (netMes *networkMessenger) sendDirectToSelf(topic string, buff []byte) erro
 		Message: &pubsubPb.Message{
 			From:      netMes.ID().Bytes(),
 			Data:      buff,
-			Seqno:     netMes.ds.NextSeqno(),
+			Seqno:     netMes.ds.NextSequenceNumber(),
 			Topic:     &topic,
 			Signature: netMes.ID().Bytes(),
 		},

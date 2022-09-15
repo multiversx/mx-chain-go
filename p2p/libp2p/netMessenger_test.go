@@ -36,7 +36,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const testTopic = "test"
+
 var timeoutWaitResponses = time.Second * 2
+var log = logger.GetOrCreate("p2p/libp2p/tests")
+var noSigCheckHandler = func(sigSize int) bool { return true }
 
 type noSigner struct {
 	p2p.SignerVerifier
@@ -56,16 +60,21 @@ func waitDoneWithTimeout(t *testing.T, chanDone chan bool, timeout time.Duration
 	}
 }
 
-func prepareMessengerForMatchDataReceive(messenger p2p.Messenger, matchData []byte, wg *sync.WaitGroup) {
-	_ = messenger.CreateTopic("test", false)
+func prepareMessengerForMatchDataReceive(messenger p2p.Messenger, matchData []byte, wg *sync.WaitGroup, checkSigSize func(sigSize int) bool) {
+	_ = messenger.CreateTopic(testTopic, false)
 
-	_ = messenger.RegisterMessageProcessor("test", "identifier",
+	_ = messenger.RegisterMessageProcessor(testTopic, "identifier",
 		&mock.MessageProcessorStub{
 			ProcessMessageCalled: func(message p2p.MessageP2P, _ core.PeerID) error {
-				if bytes.Equal(matchData, message.Data()) {
-					fmt.Printf("%s got the message\n", messenger.ID().Pretty())
-					wg.Done()
+				if !bytes.Equal(matchData, message.Data()) {
+					return nil
 				}
+				if !checkSigSize(len(message.Signature())) {
+					return nil
+				}
+
+				log.Info("got the message", "matchData", string(matchData), "pid", messenger.ID().Pretty())
+				wg.Done()
 
 				return nil
 			},
@@ -527,8 +536,8 @@ func TestLibp2pMessenger_BroadcastDataBetween2PeersShouldWork(t *testing.T) {
 		chanDone <- true
 	}()
 
-	prepareMessengerForMatchDataReceive(messenger1, msg, wg)
-	prepareMessengerForMatchDataReceive(messenger2, msg, wg)
+	prepareMessengerForMatchDataReceive(messenger1, msg, wg, noSigCheckHandler)
+	prepareMessengerForMatchDataReceive(messenger2, msg, wg, noSigCheckHandler)
 
 	fmt.Println("Delaying as to allow peers to announce themselves on the opened topic...")
 	time.Sleep(time.Second)
@@ -614,8 +623,8 @@ func TestLibp2pMessenger_BroadcastDataBetween2PeersWithLargeMsgShouldWork(t *tes
 		chanDone <- true
 	}()
 
-	prepareMessengerForMatchDataReceive(messenger1, msg, wg)
-	prepareMessengerForMatchDataReceive(messenger2, msg, wg)
+	prepareMessengerForMatchDataReceive(messenger1, msg, wg, noSigCheckHandler)
+	prepareMessengerForMatchDataReceive(messenger2, msg, wg, noSigCheckHandler)
 
 	fmt.Println("Delaying as to allow peers to announce themselves on the opened topic...")
 	time.Sleep(time.Second)
@@ -1125,15 +1134,23 @@ func TestLibp2pMessenger_SendDirectWithRealMessengersShouldWork(t *testing.T) {
 		chanDone <- true
 	}()
 
-	prepareMessengerForMatchDataReceive(messenger2, msg, wg)
+	minimumSigSize := 70
+	_ = messenger1.CreateTopic(testTopic, false)
+	prepareMessengerForMatchDataReceive(
+		messenger2,
+		msg,
+		wg,
+		func(sigSize int) bool {
+			return sigSize >= minimumSigSize // message has a non-empty signature
+		},
+	)
 
-	fmt.Println("Delaying as to allow peers to announce themselves on the opened topic...")
+	log.Info("Delaying as to allow peers to announce themselves on the opened topic...")
 	time.Sleep(time.Second)
 
-	fmt.Printf("sending message from %s...\n", messenger1.ID().Pretty())
+	log.Info("sending message", "from", messenger1.ID().Pretty(), "to", messenger2.ID().Pretty())
 
 	err := messenger1.SendToConnectedPeer("test", msg, messenger2.ID())
-
 	assert.Nil(t, err)
 
 	waitDoneWithTimeout(t, chanDone, timeoutWaitResponses)
@@ -1185,7 +1202,16 @@ func TestLibp2pMessenger_SendDirectWithRealMessengersWithoutSignatureShouldWork(
 		chanDone <- true
 	}()
 
-	prepareMessengerForMatchDataReceive(messenger2, msg, wg)
+	expectedSigSize := 0
+	_ = messenger1.CreateTopic(testTopic, false)
+	prepareMessengerForMatchDataReceive(
+		messenger2,
+		msg,
+		wg,
+		func(sigSize int) bool {
+			return sigSize == expectedSigSize // message an empty signature
+		},
+	)
 
 	fmt.Println("Delaying as to allow peers to announce themselves on the opened topic...")
 	time.Sleep(time.Second)
@@ -1193,7 +1219,6 @@ func TestLibp2pMessenger_SendDirectWithRealMessengersWithoutSignatureShouldWork(
 	fmt.Printf("sending message from %s...\n", messenger1.ID().Pretty())
 
 	err := messenger1.SendToConnectedPeer("test", msg, messenger2.ID())
-
 	assert.Nil(t, err)
 
 	waitDoneWithTimeout(t, chanDone, timeoutWaitResponses)
@@ -1223,8 +1248,8 @@ func TestLibp2pMessenger_SendDirectWithRealNetToConnectedPeerShouldWork(t *testi
 		chanDone <- true
 	}()
 
-	prepareMessengerForMatchDataReceive(messenger1, msg, wg)
-	prepareMessengerForMatchDataReceive(messenger2, msg, wg)
+	prepareMessengerForMatchDataReceive(messenger1, msg, wg, noSigCheckHandler)
+	prepareMessengerForMatchDataReceive(messenger2, msg, wg, noSigCheckHandler)
 
 	fmt.Println("Delaying as to allow peers to announce themselves on the opened topic...")
 	time.Sleep(time.Second)
@@ -1259,7 +1284,7 @@ func TestLibp2pMessenger_SendDirectWithRealNetToSelfShouldWork(t *testing.T) {
 		chanDone <- true
 	}()
 
-	prepareMessengerForMatchDataReceive(mes, msg, wg)
+	prepareMessengerForMatchDataReceive(mes, msg, wg, noSigCheckHandler)
 
 	fmt.Printf("Messenger 1 is sending message from %s to self...\n", mes.ID().Pretty())
 	err := mes.SendToConnectedPeer("test", msg, mes.ID())
@@ -1829,7 +1854,6 @@ func TestNetworkMessenger_Bootstrap(t *testing.T) {
 	t.Parallel()
 
 	_ = logger.SetLogLevel("*:DEBUG")
-	log := logger.GetOrCreate("internal tests")
 
 	args := libp2p.ArgsNetworkMessenger{
 		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,

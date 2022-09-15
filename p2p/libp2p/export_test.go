@@ -15,6 +15,7 @@ var MaxSendBuffSize = maxSendBuffSize
 var BroadcastGoRoutines = broadcastGoRoutines
 var PubsubTimeCacheDuration = pubsubTimeCacheDuration
 var AcceptMessagesInAdvanceDuration = acceptMessagesInAdvanceDuration
+var SequenceNumberSize = sequenceNumberSize
 
 const CurrentTopicMessageVersion = currentTopicMessageVersion
 const PollWaitForConnectionsInterval = pollWaitForConnectionsInterval

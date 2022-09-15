@@ -27,6 +27,8 @@ var _ p2p.DirectSender = (*directSender)(nil)
 
 const timeSeenMessages = time.Second * 120
 const maxMutexes = 10000
+const signPrefix = "en-directsend:"
+const sequenceNumberSize = 8
 
 type directSender struct {
 	counter         uint64
@@ -124,13 +126,18 @@ func (ds *directSender) processReceivedDirectMessage(message *pubsubPb.Message, 
 	if !bytes.Equal(message.GetFrom(), []byte(fromConnectedPeer)) {
 		return fmt.Errorf("%w mismatch between From and fromConnectedPeer values", p2p.ErrInvalidValue)
 	}
+	if message.Key != nil {
+		return fmt.Errorf("%w for Key field as the node accepts only nil on this field", p2p.ErrInvalidValue)
+	}
+	if len(message.Seqno) > sequenceNumberSize {
+		return fmt.Errorf("%w for SeqNo field as the node accepts only a maximum %d bytes", p2p.ErrInvalidValue, sequenceNumberSize)
+	}
+	if ds.checkAndSetSeenMessage(message) {
+		return p2p.ErrAlreadySeenMessage
+	}
 	err := ds.checkSig(message)
 	if err != nil {
 		return err
-	}
-
-	if ds.checkAndSetSeenMessage(message) {
-		return p2p.ErrAlreadySeenMessage
 	}
 
 	pbMessage := &pubsub.Message{
@@ -154,9 +161,9 @@ func (ds *directSender) checkAndSetSeenMessage(msg *pubsubPb.Message) bool {
 	return false
 }
 
-// NextSeqno returns the next uint64 found in *counter as byte slice
-func (ds *directSender) NextSeqno() []byte {
-	seqno := make([]byte, 8)
+// NextSequenceNumber returns the next uint64 found in *counter as byte slice
+func (ds *directSender) NextSequenceNumber() []byte {
+	seqno := make([]byte, sequenceNumberSize)
 	newVal := atomic.AddUint64(&ds.counter, 1)
 	binary.BigEndian.PutUint64(seqno, newVal)
 	return seqno
@@ -253,17 +260,20 @@ func (ds *directSender) getOrCreateStream(conn network.Conn) (network.Stream, er
 }
 
 func (ds *directSender) createMessage(topic string, buff []byte, conn network.Conn) (*pubsubPb.Message, error) {
-	seqno := ds.NextSeqno()
+	seqno := ds.NextSequenceNumber()
 	mes := pubsubPb.Message{}
 	mes.Data = buff
 	mes.Topic = &topic
 	mes.From = []byte(conn.LocalPeer())
 	mes.Seqno = seqno
+	mes.Key = nil
 
 	buff, err := mes.Marshal()
 	if err != nil {
 		return nil, err
 	}
+
+	buff = withSignPrefix(buff)
 
 	mes.Signature, err = ds.signer.Sign(buff)
 	if err != nil {
@@ -280,13 +290,20 @@ func (ds *directSender) checkSig(message *pubsubPb.Message) error {
 
 	copyMessage := *message
 	copyMessage.Signature = nil
+	copyMessage.Key = nil
 
 	buff, err := copyMessage.Marshal()
 	if err != nil {
 		return err
 	}
 
+	buff = withSignPrefix(buff)
+
 	return ds.signer.Verify(buff, core.PeerID(message.From), message.Signature)
+}
+
+func withSignPrefix(bytes []byte) []byte {
+	return append([]byte(signPrefix), bytes...)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
