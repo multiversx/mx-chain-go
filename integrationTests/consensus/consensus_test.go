@@ -51,7 +51,6 @@ func initNodesAndTest(
 
 	nodes := integrationTests.CreateNodesWithTestConsensusNode(
 		1,
-		1,
 		int(numNodes),
 		int(consensusSize),
 		roundTime,

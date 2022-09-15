@@ -42,14 +42,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	vic "github.com/ElrondNetwork/elrond-go/testscommon/validatorInfoCacher"
-	"github.com/ElrondNetwork/elrond-go/trie"
-	"github.com/ElrondNetwork/elrond-go/trie/hashesHolder"
 )
 
 const (
 	blsConsensusType = "bls"
 	signatureSize    = 48
 	publicKeySize    = 96
+	maxShards        = 1
+	nodeShardId      = 0
 )
 
 var testPubkeyConverter, _ = pubkeyConverter.NewHexPubkeyConverter(32)
@@ -69,8 +69,6 @@ type TestConsensusNode struct {
 
 // NewTestConsensusNode returns a new TestConsensusNode
 func NewTestConsensusNode(
-	maxShards uint32,
-	nodeShardId uint32,
 	consensusSize int,
 	roundTime uint64,
 	consensusType string,
@@ -93,7 +91,6 @@ func NewTestConsensusNode(
 
 // CreateNodesWithTestConsensusNode returns a map with nodes per shard each using TestConsensusNode
 func CreateNodesWithTestConsensusNode(
-	numShards int,
 	numMetaNodes int,
 	nodesPerShard int,
 	consensusSize int,
@@ -101,35 +98,28 @@ func CreateNodesWithTestConsensusNode(
 	consensusType string,
 ) map[uint32][]*TestConsensusNode {
 
-	nodes := make(map[uint32][]*TestConsensusNode, numShards*nodesPerShard)
-	cp := CreateCryptoParams(nodesPerShard, numMetaNodes, uint32(numShards))
+	nodes := make(map[uint32][]*TestConsensusNode, nodesPerShard)
+	cp := CreateCryptoParams(nodesPerShard, numMetaNodes, maxShards)
 	keysMap := PubKeysMapFromKeysMap(cp.Keys)
-	validatorsMap := GenValidatorsFromPubKeys(keysMap, uint32(numShards))
+	validatorsMap := GenValidatorsFromPubKeys(keysMap, maxShards)
 	eligibleMap, _ := nodesCoordinator.NodesInfoToValidators(validatorsMap)
 	waitingMap := make(map[uint32][]nodesCoordinator.Validator)
 	connectableNodes := make([]Connectable, 0)
 
-	for shardId, keys := range cp.Keys {
-		for _, keysPair := range keys {
-			tcn := NewTestConsensusNode(
-				uint32(numShards),
-				shardId,
-				consensusSize,
-				roundTime,
-				consensusType,
-				*keysPair,
-				eligibleMap,
-				waitingMap,
-				cp.KeyGen)
-			nodes[shardId] = append(nodes[shardId], tcn)
-			connectableNodes = append(connectableNodes, tcn)
-		}
-
-		ConnectNodes(connectableNodes)
+	for _, keysPair := range cp.Keys[0] {
+		tcn := NewTestConsensusNode(
+			consensusSize,
+			roundTime,
+			consensusType,
+			*keysPair,
+			eligibleMap,
+			waitingMap,
+			cp.KeyGen)
+		nodes[nodeShardId] = append(nodes[nodeShardId], tcn)
+		connectableNodes = append(connectableNodes, tcn)
 	}
 
-	for i := 0; i < nodesPerShard; i++ {
-	}
+	ConnectNodes(connectableNodes)
 
 	return nodes
 }
@@ -148,7 +138,7 @@ func (tcn *TestConsensusNode) initNode(
 	consensusCache, _ := lrucache.NewCache(10000)
 	pkBytes, _ := tcn.NodeKeys.Pk.ToByteArray()
 
-	tcn.initShardCoordinator(consensusSize, testHasher, epochStartRegistrationHandler, eligibleMap, waitingMap, pkBytes, consensusCache)
+	tcn.initNodesCoordinator(consensusSize, testHasher, epochStartRegistrationHandler, eligibleMap, waitingMap, pkBytes, consensusCache)
 	tcn.Messenger = CreateMessengerWithNoDiscovery()
 	tcn.initBlockChain(testHasher)
 	tcn.initBlockProcessor()
@@ -200,7 +190,7 @@ func (tcn *TestConsensusNode) initNode(
 	peerSigCache, _ := storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 1000})
 	peerSigHandler, _ := peerSignatureHandler.NewPeerSignatureHandler(peerSigCache, singleBlsSigner, keyGen)
 
-	tcn.initAccountsDB(testHasher)
+	tcn.initAccountsDB()
 
 	coreComponents := GetDefaultCoreComponents()
 	coreComponents.SyncTimerField = syncer
@@ -283,7 +273,7 @@ func (tcn *TestConsensusNode) initNode(
 	}
 }
 
-func (tcn *TestConsensusNode) initShardCoordinator(
+func (tcn *TestConsensusNode) initNodesCoordinator(
 	consensusSize int,
 	hasher hashing.Hasher,
 	epochStartRegistrationHandler notifier.EpochStartNotifier,
@@ -300,7 +290,7 @@ func (tcn *TestConsensusNode) initShardCoordinator(
 		Shuffler:                &shardingMocks.NodeShufflerMock{},
 		EpochStartNotifier:      epochStartRegistrationHandler,
 		BootStorer:              CreateMemUnit(),
-		NbShards:                1,
+		NbShards:                maxShards,
 		EligibleNodes:           eligibleMap,
 		WaitingNodes:            waitingMap,
 		SelfPublicKey:           pkBytes,
@@ -315,7 +305,9 @@ func (tcn *TestConsensusNode) initShardCoordinator(
 		ValidatorInfoCacher: &vic.ValidatorInfoCacherStub{},
 	}
 
-	tcn.NodesCoordinator, _ = nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
+	var err error
+	tcn.NodesCoordinator, err = nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
+	println(err)
 }
 
 func (tcn *TestConsensusNode) initBlockChain(hasher hashing.Hasher) {
@@ -324,7 +316,6 @@ func (tcn *TestConsensusNode) initBlockChain(hasher hashing.Hasher) {
 	} else {
 		tcn.ChainHandler = CreateShardChain()
 	}
-	//_ = tcn.ChainHandler.SetGenesisHeader(&dataBlock.Header{})
 
 	rootHash := []byte("roothash")
 	header := &dataBlock.Header{
@@ -344,11 +335,9 @@ func (tcn *TestConsensusNode) initBlockChain(hasher hashing.Hasher) {
 
 func (tcn *TestConsensusNode) initBlockProcessor() {
 	tcn.BlockProcessor = &mock.BlockProcessorMock{
-		ProcessBlockCalled: func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
+		CommitBlockCalled: func(header data.HeaderHandler, body data.BodyHandler) error {
 			_ = tcn.ChainHandler.SetCurrentBlockHeaderAndRootHash(header, header.GetRootHash())
 			return nil
-		},
-		RevertCurrentBlockCalled: func() {
 		},
 		CreateBlockCalled: func(header data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error) {
 			return header, &dataBlock.Body{}, nil
@@ -394,23 +383,8 @@ func (tcn *TestConsensusNode) initResolverFinder() {
 	}
 }
 
-func (tcn *TestConsensusNode) initAccountsDB(hasher hashing.Hasher) {
-	// TODO change this implementation with a factory
-	generalCfg := config.TrieStorageManagerConfig{
-		PruningBufferLen:      1000,
-		SnapshotsBufferLen:    10,
-		SnapshotsGoroutineNum: 1,
-	}
-	args := trie.NewTrieStorageManagerArgs{
-		MainStorer:             CreateMemUnit(),
-		CheckpointsStorer:      CreateMemUnit(),
-		Marshalizer:            TestMarshaller,
-		Hasher:                 hasher,
-		GeneralConfig:          generalCfg,
-		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10000000, uint64(hasher.Size())),
-		IdleProvider:           &testscommon.ProcessStatusHandlerStub{},
-	}
-	trieStorage, _ := trie.NewTrieStorageManager(args)
+func (tcn *TestConsensusNode) initAccountsDB() {
+	trieStorage, _ := CreateTrieStorageManager(CreateMemUnit())
 	tcn.AccountsDB, _ = CreateAccountsDB(UserAccount, trieStorage)
 }
 
