@@ -29,6 +29,7 @@ func getCreateArgs() factory.TrieCreateArgs {
 		CheckpointsStorer:  testscommon.CreateMemUnit(),
 		PruningEnabled:     false,
 		CheckpointsEnabled: false,
+		SnapshotsEnabled:   true,
 		MaxTrieLevelInMem:  5,
 		IdleProvider:       &testscommon.ProcessStatusHandlerStub{},
 	}
@@ -96,6 +97,20 @@ func TestTrieCreator_CreateWithPruningShouldWork(t *testing.T) {
 
 	createArgs := getCreateArgs()
 	createArgs.PruningEnabled = true
+	_, tr, err := tf.Create(createArgs)
+	require.Nil(t, err)
+	require.NotNil(t, tr)
+}
+
+func TestTrieCreator_CreateWithoutSnapshotsShouldWork(t *testing.T) {
+	t.Parallel()
+
+	args := getArgs()
+	tf, _ := factory.NewTrieFactory(args)
+
+	createArgs := getCreateArgs()
+	createArgs.PruningEnabled = true
+	createArgs.SnapshotsEnabled = false
 	_, tr, err := tf.Create(createArgs)
 	require.Nil(t, err)
 	require.NotNil(t, tr)

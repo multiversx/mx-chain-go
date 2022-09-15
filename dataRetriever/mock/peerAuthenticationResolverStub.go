@@ -14,7 +14,6 @@ type PeerAuthenticationResolverStub struct {
 	SetNumPeersToQueryCalled       func(intra int, cross int)
 	NumPeersToQueryCalled          func() (int, int)
 	CloseCalled                    func() error
-	RequestDataFromChunkCalled     func(chunkIndex uint32, epoch uint32) error
 	RequestDataFromHashArrayCalled func(hashes [][]byte, epoch uint32) error
 }
 
@@ -64,15 +63,6 @@ func (pars *PeerAuthenticationResolverStub) NumPeersToQuery() (int, int) {
 func (pars *PeerAuthenticationResolverStub) Close() error {
 	if pars.CloseCalled != nil {
 		return pars.CloseCalled()
-	}
-
-	return nil
-}
-
-// RequestDataFromChunk -
-func (pars *PeerAuthenticationResolverStub) RequestDataFromChunk(chunkIndex uint32, epoch uint32) error {
-	if pars.RequestDataFromChunkCalled != nil {
-		return pars.RequestDataFromChunkCalled(chunkIndex, epoch)
 	}
 
 	return nil

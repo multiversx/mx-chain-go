@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/mock"
@@ -20,7 +21,7 @@ import (
 func createMockNewSystemScFactoryArgs() ArgsNewSystemSCFactory {
 	gasMap := arwenConfig.MakeGasMapForTests()
 	gasMap = defaults.FillGasMapInternal(gasMap, 1)
-	gasSchedule := mock.NewGasScheduleNotifierMock(gasMap)
+	gasSchedule := testscommon.NewGasScheduleNotifierMock(gasMap)
 	return ArgsNewSystemSCFactory{
 		SystemEI:            &mock.SystemEIStub{},
 		Economics:           &mock.EconomicsHandlerStub{},

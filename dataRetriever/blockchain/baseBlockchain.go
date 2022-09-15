@@ -15,6 +15,13 @@ type baseBlockChain struct {
 	genesisHeaderHash      []byte
 	currentBlockHeader     data.HeaderHandler
 	currentBlockHeaderHash []byte
+	finalBlockInfo         *blockInfo
+}
+
+type blockInfo struct {
+	nonce             uint64
+	hash              []byte
+	committedRootHash []byte
 }
 
 // GetGenesisHeader returns the genesis block header pointer
@@ -69,4 +76,27 @@ func (bbc *baseBlockChain) SetCurrentBlockHeaderHash(hash []byte) {
 	bbc.mut.Lock()
 	bbc.currentBlockHeaderHash = hash
 	bbc.mut.Unlock()
+}
+
+// SetFinalBlockInfo sets the nonce, hash and rootHash associated with the previous-to-final block
+func (bbc *baseBlockChain) SetFinalBlockInfo(nonce uint64, headerHash []byte, rootHash []byte) {
+	bbc.mut.Lock()
+
+	bbc.finalBlockInfo.nonce = nonce
+	bbc.finalBlockInfo.hash = headerHash
+	bbc.finalBlockInfo.committedRootHash = rootHash
+
+	bbc.mut.Unlock()
+}
+
+// GetFinalBlockInfo returns the nonce, hash and rootHash associated with the previous-to-final block
+func (bbc *baseBlockChain) GetFinalBlockInfo() (uint64, []byte, []byte) {
+	bbc.mut.RLock()
+	defer bbc.mut.RUnlock()
+
+	nonce := bbc.finalBlockInfo.nonce
+	hash := bbc.finalBlockInfo.hash
+	rootHash := bbc.finalBlockInfo.committedRootHash
+
+	return nonce, hash, rootHash
 }

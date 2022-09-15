@@ -3,12 +3,14 @@ package external
 import (
 	"context"
 	"encoding/hex"
+	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/node/external/blockAPI"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -29,6 +31,8 @@ type ArgNodeApiResolver struct {
 	APIInternalBlockHandler  blockAPI.APIInternalBlockHandler
 	GenesisNodesSetupHandler sharding.GenesisNodesSetupHandler
 	ValidatorPubKeyConverter core.PubkeyConverter
+	AccountsParser           genesis.AccountsParser
+	GasScheduleNotifier      common.GasScheduleNotifierAPI
 }
 
 // nodeApiResolver can resolve API requests
@@ -44,6 +48,8 @@ type nodeApiResolver struct {
 	apiInternalBlockHandler  blockAPI.APIInternalBlockHandler
 	genesisNodesSetupHandler sharding.GenesisNodesSetupHandler
 	validatorPubKeyConverter core.PubkeyConverter
+	accountsParser           genesis.AccountsParser
+	gasScheduleNotifier      common.GasScheduleNotifierAPI
 }
 
 // NewNodeApiResolver creates a new nodeApiResolver instance
@@ -81,6 +87,12 @@ func NewNodeApiResolver(arg ArgNodeApiResolver) (*nodeApiResolver, error) {
 	if check.IfNil(arg.ValidatorPubKeyConverter) {
 		return nil, ErrNilValidatorPubKeyConverter
 	}
+	if check.IfNil(arg.AccountsParser) {
+		return nil, ErrNilAccountsParser
+	}
+	if check.IfNil(arg.GasScheduleNotifier) {
+		return nil, ErrNilGasScheduler
+	}
 
 	return &nodeApiResolver{
 		scQueryService:           arg.SCQueryService,
@@ -94,6 +106,8 @@ func NewNodeApiResolver(arg ArgNodeApiResolver) (*nodeApiResolver, error) {
 		apiInternalBlockHandler:  arg.APIInternalBlockHandler,
 		genesisNodesSetupHandler: arg.GenesisNodesSetupHandler,
 		validatorPubKeyConverter: arg.ValidatorPubKeyConverter,
+		accountsParser:           arg.AccountsParser,
+		gasScheduleNotifier:      arg.GasScheduleNotifier,
 	}, nil
 }
 
@@ -138,28 +152,43 @@ func (nar *nodeApiResolver) GetTransaction(hash string, withResults bool) (*tran
 }
 
 // GetTransactionsPool will return a structure containing the transactions pool that is to be returned on API calls
-func (nar *nodeApiResolver) GetTransactionsPool() (*common.TransactionsPoolAPIResponse, error) {
-	return nar.apiTransactionHandler.GetTransactionsPool()
+func (nar *nodeApiResolver) GetTransactionsPool(fields string) (*common.TransactionsPoolAPIResponse, error) {
+	return nar.apiTransactionHandler.GetTransactionsPool(fields)
+}
+
+// GetTransactionsPoolForSender will return a structure containing the transactions for sender that is to be returned on API calls
+func (nar *nodeApiResolver) GetTransactionsPoolForSender(sender, fields string) (*common.TransactionsPoolForSenderApiResponse, error) {
+	return nar.apiTransactionHandler.GetTransactionsPoolForSender(sender, fields)
+}
+
+// GetLastPoolNonceForSender will return the last nonce from pool for sender that is to be returned on API calls
+func (nar *nodeApiResolver) GetLastPoolNonceForSender(sender string) (uint64, error) {
+	return nar.apiTransactionHandler.GetLastPoolNonceForSender(sender)
+}
+
+// GetTransactionsPoolNonceGapsForSender will return the nonce gaps from pool for sender, if exists, that is to be returned on API calls
+func (nar *nodeApiResolver) GetTransactionsPoolNonceGapsForSender(sender string) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error) {
+	return nar.apiTransactionHandler.GetTransactionsPoolNonceGapsForSender(sender)
 }
 
 // GetBlockByHash will return the block with the given hash and optionally with transactions
-func (nar *nodeApiResolver) GetBlockByHash(hash string, withTxs bool) (*api.Block, error) {
+func (nar *nodeApiResolver) GetBlockByHash(hash string, options api.BlockQueryOptions) (*api.Block, error) {
 	decodedHash, err := hex.DecodeString(hash)
 	if err != nil {
 		return nil, err
 	}
 
-	return nar.apiBlockHandler.GetBlockByHash(decodedHash, withTxs)
+	return nar.apiBlockHandler.GetBlockByHash(decodedHash, options)
 }
 
 // GetBlockByNonce will return the block with the given nonce and optionally with transactions
-func (nar *nodeApiResolver) GetBlockByNonce(nonce uint64, withTxs bool) (*api.Block, error) {
-	return nar.apiBlockHandler.GetBlockByNonce(nonce, withTxs)
+func (nar *nodeApiResolver) GetBlockByNonce(nonce uint64, options api.BlockQueryOptions) (*api.Block, error) {
+	return nar.apiBlockHandler.GetBlockByNonce(nonce, options)
 }
 
 // GetBlockByRound will return the block with the given round and optionally with transactions
-func (nar *nodeApiResolver) GetBlockByRound(round uint64, withTxs bool) (*api.Block, error) {
-	return nar.apiBlockHandler.GetBlockByRound(round, withTxs)
+func (nar *nodeApiResolver) GetBlockByRound(round uint64, options api.BlockQueryOptions) (*api.Block, error) {
+	return nar.apiBlockHandler.GetBlockByRound(round, options)
 }
 
 // GetInternalMetaBlockByHash will return a meta block by hash
@@ -218,6 +247,37 @@ func (nar *nodeApiResolver) GetInternalMiniBlock(format common.ApiOutputFormat, 
 	return nar.apiInternalBlockHandler.GetInternalMiniBlock(format, decodedHash, epoch)
 }
 
+// GetGenesisBalances will return the initial balances of the accounts on genesis time
+func (nar *nodeApiResolver) GetGenesisBalances() ([]*common.InitialAccountAPI, error) {
+	originalAccounts := nar.accountsParser.InitialAccounts()
+	resultedAccounts := make([]*common.InitialAccountAPI, 0, len(originalAccounts))
+
+	for _, acc := range originalAccounts {
+		delegationData := common.DelegationDataAPI{}
+		if acc.GetDelegationHandler() != nil {
+			delegationData.Address = acc.GetDelegationHandler().GetAddress()
+			delegationData.Value = bigInToString(acc.GetDelegationHandler().GetValue())
+		}
+		resultedAccounts = append(resultedAccounts, &common.InitialAccountAPI{
+			Address:      acc.GetAddress(),
+			Supply:       bigInToString(acc.GetSupply()),
+			Balance:      bigInToString(acc.GetBalanceValue()),
+			StakingValue: bigInToString(acc.GetStakingValue()),
+			Delegation:   delegationData,
+		})
+	}
+
+	return resultedAccounts, nil
+}
+
+func bigInToString(input *big.Int) string {
+	if input == nil {
+		return "0"
+	}
+
+	return input.String()
+}
+
 // GetGenesisNodesPubKeys will return genesis nodes public keys by shard
 func (nar *nodeApiResolver) GetGenesisNodesPubKeys() (map[uint32][]string, map[uint32][]string) {
 	eligibleNodesConfig, waitingNodesConfig := nar.genesisNodesSetupHandler.InitialNodesInfo()
@@ -234,6 +294,11 @@ func (nar *nodeApiResolver) getInitialNodesPubKeysBytes(nodesInfo map[uint32][]n
 	}
 
 	return nodesInfoPubkeys
+}
+
+// GetGasConfigs return currently used gas schedule config
+func (nar *nodeApiResolver) GetGasConfigs() map[string]map[string]uint64 {
+	return nar.gasScheduleNotifier.LatestGasScheduleCopy()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

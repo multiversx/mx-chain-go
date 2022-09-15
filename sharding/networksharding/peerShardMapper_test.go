@@ -19,8 +19,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const epochZero = uint32(0)
-
 // ------- NewPeerShardMapper
 
 func createMockArgumentForPeerShardMapper() networksharding.ArgPeerShardMapper {
@@ -30,7 +28,6 @@ func createMockArgumentForPeerShardMapper() networksharding.ArgPeerShardMapper {
 		FallbackPidShardCache: testscommon.NewCacherMock(),
 		NodesCoordinator:      &shardingMocks.NodesCoordinatorMock{},
 		PreferredPeersHolder:  &p2pmocks.PeersHolderStub{},
-		StartEpoch:            epochZero,
 	}
 }
 
@@ -97,14 +94,11 @@ func TestNewPeerShardMapper_NilPreferredShouldErr(t *testing.T) {
 func TestNewPeerShardMapper_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	epoch := uint32(8843)
 	arg := createMockArgumentForPeerShardMapper()
-	arg.StartEpoch = epoch
 	psm, err := networksharding.NewPeerShardMapper(arg)
 
 	assert.False(t, check.IfNil(psm))
 	assert.Nil(t, err)
-	assert.Equal(t, epoch, psm.Epoch())
 }
 
 // ------- UpdatePeerIdPublicKey
@@ -481,55 +475,6 @@ func TestPeerShardMapper_NotifyOrder(t *testing.T) {
 	assert.Equal(t, uint32(common.NetworkShardingOrder), psm.NotifyOrder())
 }
 
-func TestPeerShardMapper_EpochStartPrepareShouldNotPanic(t *testing.T) {
-	t.Parallel()
-
-	defer func() {
-		r := recover()
-		if r != nil {
-			assert.Fail(t, "should not have panicked", r)
-		}
-	}()
-
-	psm := createPeerShardMapper()
-	psm.EpochStartPrepare(nil, nil)
-	psm.EpochStartPrepare(
-		&testscommon.HeaderHandlerStub{
-			EpochField: 0,
-		},
-		nil,
-	)
-}
-
-func TestPeerShardMapper_EpochStartActionWithnilHeaderShouldNotPanic(t *testing.T) {
-	t.Parallel()
-
-	defer func() {
-		r := recover()
-		if r != nil {
-			assert.Fail(t, "should not have panicked", r)
-		}
-	}()
-
-	psm := createPeerShardMapper()
-	psm.EpochStartAction(nil)
-}
-
-func TestPeerShardMapper_EpochStartActionShouldWork(t *testing.T) {
-	t.Parallel()
-
-	psm := createPeerShardMapper()
-
-	epoch := uint32(676)
-	psm.EpochStartAction(
-		&testscommon.HeaderHandlerStub{
-			EpochField: epoch,
-		},
-	)
-
-	assert.Equal(t, epoch, psm.Epoch())
-}
-
 func TestPeerShardMapper_UpdatePeerIDPublicKey(t *testing.T) {
 	t.Parallel()
 
@@ -575,49 +520,6 @@ func TestPeerShardMapper_UpdatePeerIDPublicKey(t *testing.T) {
 		assert.True(t, psm.UpdatePeerIDPublicKey(pid2, pk1))
 		assert.False(t, psm.UpdatePeerIDPublicKey(pid1, pk1))
 		assert.False(t, psm.UpdatePeerIDPublicKey(pid2, pk1))
-	})
-}
-
-func TestPeerShardMapper_GetLastKnownPeerID(t *testing.T) {
-	t.Parallel()
-
-	pid1 := core.PeerID("pid1")
-	pid2 := core.PeerID("pid2")
-	pk1 := []byte("pk1")
-	pk2 := []byte("pk2")
-
-	t.Run("no pk in cache should return false", func(t *testing.T) {
-		t.Parallel()
-
-		psm := createPeerShardMapper()
-		pid, ok := psm.GetLastKnownPeerID(pk1)
-		assert.Nil(t, pid)
-		assert.False(t, ok)
-	})
-	t.Run("cast error should return false", func(t *testing.T) {
-		t.Parallel()
-
-		psm := createPeerShardMapper()
-		dummyData := "dummy data"
-		psm.PkPeerId().Put(pk1, dummyData, len(dummyData))
-
-		pid, ok := psm.GetLastKnownPeerID(pk1)
-		assert.Nil(t, pid)
-		assert.False(t, ok)
-	})
-	t.Run("should work", func(t *testing.T) {
-		t.Parallel()
-
-		psm := createPeerShardMapper()
-		psm.UpdatePeerIDPublicKeyPair(pid1, pk1)
-		pid, ok := psm.GetLastKnownPeerID(pk1)
-		assert.True(t, ok)
-		assert.Equal(t, &pid1, pid)
-
-		psm.UpdatePeerIDPublicKeyPair(pid2, pk2)
-		pid, ok = psm.GetLastKnownPeerID(pk2)
-		assert.True(t, ok)
-		assert.Equal(t, &pid2, pid)
 	})
 }
 

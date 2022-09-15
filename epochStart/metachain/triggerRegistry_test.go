@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
 	"github.com/stretchr/testify/require"
 )
 
@@ -44,7 +45,7 @@ func TestTrigger_LoadStateAfterSave(t *testing.T) {
 	epoch := uint32(5)
 	arguments := createMockEpochStartTriggerArguments()
 	arguments.Epoch = epoch
-	bootStorer := mock.NewStorerMock()
+	bootStorer := genericMocks.NewStorerMock()
 
 	arguments.Storage = &mock.ChainStorerStub{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
@@ -77,7 +78,7 @@ func TestTrigger_LoadStateBackwardsCompatibility(t *testing.T) {
 	epoch := uint32(5)
 	arguments := createMockEpochStartTriggerArguments()
 	arguments.Epoch = epoch
-	bootStorer := mock.NewStorerMock()
+	bootStorer := genericMocks.NewStorerMock()
 
 	arguments.Storage = &mock.ChainStorerStub{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {

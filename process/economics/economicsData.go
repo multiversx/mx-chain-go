@@ -65,7 +65,7 @@ type economicsData struct {
 type ArgsNewEconomicsData struct {
 	BuiltInFunctionsCostHandler    BuiltInFunctionsCostHandler
 	Economics                      *config.EconomicsConfig
-	EpochNotifier                  process.EpochNotifier
+	EpochNotifier                  EpochNotifier
 	PenalizedTooMuchGasEnableEpoch uint32
 	GasPriceModifierEnableEpoch    uint32
 }

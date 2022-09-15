@@ -10,8 +10,11 @@ import (
 )
 
 // ------------ Test ManagedDataComponents --------------------
-func TestManagedDataComponents_CreateWithInvalidArgs_ShouldErr(t *testing.T) {
+func TestManagedDataComponents_CreateWithInvalidArgsShouldErr(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	coreComponents := getCoreComponents()
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
@@ -25,8 +28,11 @@ func TestManagedDataComponents_CreateWithInvalidArgs_ShouldErr(t *testing.T) {
 	require.Nil(t, managedDataComponents.Blockchain())
 }
 
-func TestManagedDataComponents_Create_ShouldWork(t *testing.T) {
+func TestManagedDataComponents_CreateShouldWork(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	coreComponents := getCoreComponents()
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
@@ -47,6 +53,9 @@ func TestManagedDataComponents_Create_ShouldWork(t *testing.T) {
 
 func TestManagedDataComponents_Close(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	coreComponents := getCoreComponents()
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
@@ -63,6 +72,9 @@ func TestManagedDataComponents_Close(t *testing.T) {
 
 func TestManagedDataComponents_Clone(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	coreComponents := getCoreComponents()
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)

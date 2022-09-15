@@ -27,31 +27,33 @@ import (
 
 // ConsensusComponentsFactoryArgs holds the arguments needed to create a consensus components factory
 type ConsensusComponentsFactoryArgs struct {
-	Config              config.Config
-	BootstrapRoundIndex uint64
-	CoreComponents      CoreComponentsHolder
-	NetworkComponents   NetworkComponentsHolder
-	CryptoComponents    CryptoComponentsHolder
-	DataComponents      DataComponentsHolder
-	ProcessComponents   ProcessComponentsHolder
-	StateComponents     StateComponentsHolder
-	StatusComponents    StatusComponentsHolder
-	ScheduledProcessor  consensus.ScheduledProcessor
-	IsInImportMode      bool
+	Config                config.Config
+	BootstrapRoundIndex   uint64
+	CoreComponents        CoreComponentsHolder
+	NetworkComponents     NetworkComponentsHolder
+	CryptoComponents      CryptoComponentsHolder
+	DataComponents        DataComponentsHolder
+	ProcessComponents     ProcessComponentsHolder
+	StateComponents       StateComponentsHolder
+	StatusComponents      StatusComponentsHolder
+	ScheduledProcessor    consensus.ScheduledProcessor
+	IsInImportMode        bool
+	ShouldDisableWatchdog bool
 }
 
 type consensusComponentsFactory struct {
-	config              config.Config
-	bootstrapRoundIndex uint64
-	coreComponents      CoreComponentsHolder
-	networkComponents   NetworkComponentsHolder
-	cryptoComponents    CryptoComponentsHolder
-	dataComponents      DataComponentsHolder
-	processComponents   ProcessComponentsHolder
-	stateComponents     StateComponentsHolder
-	statusComponents    StatusComponentsHolder
-	scheduledProcessor  consensus.ScheduledProcessor
-	isInImportMode      bool
+	config                config.Config
+	bootstrapRoundIndex   uint64
+	coreComponents        CoreComponentsHolder
+	networkComponents     NetworkComponentsHolder
+	cryptoComponents      CryptoComponentsHolder
+	dataComponents        DataComponentsHolder
+	processComponents     ProcessComponentsHolder
+	stateComponents       StateComponentsHolder
+	statusComponents      StatusComponentsHolder
+	scheduledProcessor    consensus.ScheduledProcessor
+	isInImportMode        bool
+	shouldDisableWatchdog bool
 }
 
 type consensusComponents struct {
@@ -91,17 +93,18 @@ func NewConsensusComponentsFactory(args ConsensusComponentsFactoryArgs) (*consen
 	}
 
 	return &consensusComponentsFactory{
-		config:              args.Config,
-		bootstrapRoundIndex: args.BootstrapRoundIndex,
-		coreComponents:      args.CoreComponents,
-		networkComponents:   args.NetworkComponents,
-		cryptoComponents:    args.CryptoComponents,
-		dataComponents:      args.DataComponents,
-		processComponents:   args.ProcessComponents,
-		stateComponents:     args.StateComponents,
-		statusComponents:    args.StatusComponents,
-		scheduledProcessor:  args.ScheduledProcessor,
-		isInImportMode:      args.IsInImportMode,
+		config:                args.Config,
+		bootstrapRoundIndex:   args.BootstrapRoundIndex,
+		coreComponents:        args.CoreComponents,
+		networkComponents:     args.NetworkComponents,
+		cryptoComponents:      args.CryptoComponents,
+		dataComponents:        args.DataComponents,
+		processComponents:     args.ProcessComponents,
+		stateComponents:       args.StateComponents,
+		statusComponents:      args.StatusComponents,
+		scheduledProcessor:    args.ScheduledProcessor,
+		isInImportMode:        args.IsInImportMode,
+		shouldDisableWatchdog: args.ShouldDisableWatchdog,
 	}, nil
 }
 
@@ -174,29 +177,30 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 	}
 
 	workerArgs := &spos.WorkerArgs{
-		ConsensusService:        consensusService,
-		BlockChain:              ccf.dataComponents.Blockchain(),
-		BlockProcessor:          ccf.processComponents.BlockProcessor(),
-		ScheduledProcessor:      ccf.scheduledProcessor,
-		Bootstrapper:            cc.bootstrapper,
-		BroadcastMessenger:      cc.broadcastMessenger,
-		ConsensusState:          consensusState,
-		ForkDetector:            ccf.processComponents.ForkDetector(),
-		PeerSignatureHandler:    ccf.cryptoComponents.PeerSignatureHandler(),
-		Marshalizer:             marshalizer,
-		Hasher:                  ccf.coreComponents.Hasher(),
-		RoundHandler:            ccf.processComponents.RoundHandler(),
-		ShardCoordinator:        ccf.processComponents.ShardCoordinator(),
-		SyncTimer:               ccf.coreComponents.SyncTimer(),
-		HeaderSigVerifier:       ccf.processComponents.HeaderSigVerifier(),
-		HeaderIntegrityVerifier: ccf.processComponents.HeaderIntegrityVerifier(),
-		ChainID:                 []byte(ccf.coreComponents.ChainID()),
-		AntifloodHandler:        ccf.networkComponents.InputAntiFloodHandler(),
-		PoolAdder:               ccf.dataComponents.Datapool().MiniBlocks(),
-		SignatureSize:           ccf.config.ValidatorPubkeyConverter.SignatureLength,
-		PublicKeySize:           ccf.config.ValidatorPubkeyConverter.Length,
-		AppStatusHandler:        ccf.coreComponents.StatusHandler(),
-		NodeRedundancyHandler:   ccf.processComponents.NodeRedundancyHandler(),
+		ConsensusService:         consensusService,
+		BlockChain:               ccf.dataComponents.Blockchain(),
+		BlockProcessor:           ccf.processComponents.BlockProcessor(),
+		ScheduledProcessor:       ccf.scheduledProcessor,
+		Bootstrapper:             cc.bootstrapper,
+		BroadcastMessenger:       cc.broadcastMessenger,
+		ConsensusState:           consensusState,
+		ForkDetector:             ccf.processComponents.ForkDetector(),
+		PeerSignatureHandler:     ccf.cryptoComponents.PeerSignatureHandler(),
+		Marshalizer:              marshalizer,
+		Hasher:                   ccf.coreComponents.Hasher(),
+		RoundHandler:             ccf.processComponents.RoundHandler(),
+		ShardCoordinator:         ccf.processComponents.ShardCoordinator(),
+		SyncTimer:                ccf.coreComponents.SyncTimer(),
+		HeaderSigVerifier:        ccf.processComponents.HeaderSigVerifier(),
+		HeaderIntegrityVerifier:  ccf.processComponents.HeaderIntegrityVerifier(),
+		ChainID:                  []byte(ccf.coreComponents.ChainID()),
+		NetworkShardingCollector: ccf.processComponents.PeerShardMapper(),
+		AntifloodHandler:         ccf.networkComponents.InputAntiFloodHandler(),
+		PoolAdder:                ccf.dataComponents.Datapool().MiniBlocks(),
+		SignatureSize:            ccf.config.ValidatorPubkeyConverter.SignatureLength,
+		PublicKeySize:            ccf.config.ValidatorPubkeyConverter.Length,
+		AppStatusHandler:         ccf.coreComponents.StatusHandler(),
+		NodeRedundancyHandler:    ccf.processComponents.NodeRedundancyHandler(),
 	}
 
 	cc.worker, err = spos.NewWorker(workerArgs)
@@ -310,6 +314,10 @@ func (ccf *consensusComponentsFactory) createChronology() (consensus.ChronologyH
 			"it is incompatible with the import-db process.")
 		wd = &watchdog.DisabledWatchdog{}
 	}
+	if ccf.shouldDisableWatchdog {
+		log.Warn("Chronology watchdog will be turned off (explicitly).")
+		wd = &watchdog.DisabledWatchdog{}
+	}
 
 	chronologyArg := chronology.ArgChronology{
 		GenesisTime:      ccf.coreComponents.GenesisTime(),
@@ -413,6 +421,7 @@ func (ccf *consensusComponentsFactory) createShardBootstrapper() (process.Bootst
 		MiniblocksProvider:           ccf.dataComponents.MiniBlocksProvider(),
 		EpochNotifier:                ccf.coreComponents.EpochNotifier(),
 		ProcessedMiniBlocksTracker:   ccf.processComponents.ProcessedMiniBlocksTracker(),
+		AppStatusHandler:             ccf.coreComponents.StatusHandler(),
 	}
 
 	argsShardStorageBootstrapper := storageBootstrap.ArgsShardStorageBootstrapper{
@@ -482,6 +491,7 @@ func (ccf *consensusComponentsFactory) createArgsBaseAccountsSyncer(trieStorageM
 		MaxTrieLevelInMemory:      ccf.config.StateTriesConfig.MaxStateTrieLevelInMemory,
 		MaxHardCapForMissingNodes: ccf.config.TrieSync.MaxHardCapForMissingNodes,
 		TrieSyncerVersion:         ccf.config.TrieSync.TrieSyncerVersion,
+		CheckNodesOnDisk:          ccf.config.TrieSync.CheckNodesOnDisk,
 	}
 }
 
@@ -536,6 +546,7 @@ func (ccf *consensusComponentsFactory) createMetaChainBootstrapper() (process.Bo
 		MiniblocksProvider:           ccf.dataComponents.MiniBlocksProvider(),
 		EpochNotifier:                ccf.coreComponents.EpochNotifier(),
 		ProcessedMiniBlocksTracker:   ccf.processComponents.ProcessedMiniBlocksTracker(),
+		AppStatusHandler:             ccf.coreComponents.StatusHandler(),
 	}
 
 	argsMetaStorageBootstrapper := storageBootstrap.ArgsMetaStorageBootstrapper{
