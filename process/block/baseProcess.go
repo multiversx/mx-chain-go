@@ -98,11 +98,11 @@ type baseProcessor struct {
 	gasConsumedProvider gasConsumedProvider
 	economicsData       process.EconomicsDataHandler
 
-	processDataTriesOnCommitEpoch  bool
-	lastRestartNonce               uint64
-	pruningDelay                   uint32
-	processedMiniBlocksTracker     process.ProcessedMiniBlocksTracker
-	receiptsRepository             receiptsRepository
+	processDataTriesOnCommitEpoch bool
+	lastRestartNonce              uint64
+	pruningDelay                  uint32
+	processedMiniBlocksTracker    process.ProcessedMiniBlocksTracker
+	receiptsRepository            receiptsRepository
 }
 
 type bootStorerDataArgs struct {
@@ -638,6 +638,20 @@ func (bp *baseProcessor) createMiniBlockHeaderHandlers(
 	}
 
 	return totalTxCount, miniBlockHeaderHandlers, nil
+}
+
+func (bp *baseProcessor) prepareBlockHeaderInternalMapForValidatorProcessor() {
+	currentBlockHeader := bp.blockChain.GetCurrentBlockHeader()
+	currentBlockHeaderHash := bp.blockChain.GetCurrentBlockHeaderHash()
+
+	if check.IfNil(currentBlockHeader) {
+		currentBlockHeader = bp.blockChain.GetGenesisHeader()
+		currentBlockHeaderHash = bp.blockChain.GetGenesisHeaderHash()
+	}
+
+	bp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
+	bp.hdrsForCurrBlock.hdrHashAndInfo[string(currentBlockHeaderHash)] = &hdrInfo{false, currentBlockHeader}
+	bp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 }
 
 func (bp *baseProcessor) setMiniBlockHeaderReservedField(
@@ -1359,6 +1373,96 @@ func getLastSelfNotarizedHeaderByItself(chainHandler data.ChainHandler) (data.He
 	return currentHeader, currentBlockHash
 }
 
+func (bp *baseProcessor) setRoundNonceInitFees(
+	round, nonce uint64,
+	header data.CommonHeaderHandler,
+) error {
+	err := header.SetRound(round)
+	if err != nil {
+		return err
+	}
+
+	err = header.SetNonce(nonce)
+	if err != nil {
+		return err
+	}
+
+	err = header.SetAccumulatedFees(big.NewInt(0))
+	if err != nil {
+		return err
+	}
+
+	err = header.SetDeveloperFees(big.NewInt(0))
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (bp *baseProcessor) applyBodyInfoOnCommonHeader(
+	hdr data.HeaderHandler,
+	newBody *block.Body,
+	processedMiniBlocksDestMeInfo map[string]*processedMb.ProcessedMiniBlockInfo,
+) error {
+	var receiptsHash []byte
+	sw := core.NewStopWatch()
+	sw.Start("CreateReceiptsHash")
+	receiptsHash, err := bp.txCoordinator.CreateReceiptsHash()
+	sw.Stop("CreateReceiptsHash")
+	if err != nil {
+		return err
+	}
+
+	err = hdr.SetReceiptsHash(receiptsHash)
+	if err != nil {
+		return err
+	}
+
+	sw.Start("createMiniBlockHeaders")
+	totalTxCount, miniBlockHeaderHandlers, err := bp.createMiniBlockHeaderHandlers(newBody, processedMiniBlocksDestMeInfo)
+	sw.Stop("createMiniBlockHeaders")
+	if err != nil {
+		return err
+	}
+
+	err = hdr.SetMiniBlockHeaderHandlers(miniBlockHeaderHandlers)
+	if err != nil {
+		return err
+	}
+
+	err = hdr.SetTxCount(uint32(totalTxCount))
+	if err != nil {
+		return err
+	}
+
+	err = hdr.SetAccumulatedFees(bp.feeHandler.GetAccumulatedFees())
+	if err != nil {
+		return err
+	}
+
+	err = hdr.SetDeveloperFees(bp.feeHandler.GetDeveloperFees())
+	if err != nil {
+		return err
+	}
+
+	err = bp.txCoordinator.VerifyCreatedMiniBlocks(hdr, newBody)
+	if err != nil {
+		return err
+	}
+
+	bp.appStatusHandler.SetUInt64Value(common.MetricNumTxInBlock, uint64(totalTxCount))
+	bp.appStatusHandler.SetUInt64Value(common.MetricNumMiniBlocks, uint64(len(newBody.MiniBlocks)))
+
+	marshaledBody, err := bp.marshalizer.Marshal(newBody)
+	if err != nil {
+		return err
+	}
+	bp.blockSizeThrottler.Add(hdr.GetRound(), uint32(len(marshaledBody)))
+
+	return nil
+}
+
 func (bp *baseProcessor) setFinalizedHeaderHashInIndexer(hdrHash []byte) {
 	log.Debug("baseProcessor.setFinalizedBlockInIndexer", "finalized header hash", hdrHash)
 
@@ -1552,18 +1656,51 @@ func (bp *baseProcessor) getRootHashes(currHeader data.HeaderHandler, prevHeader
 	case state.UserAccountsState:
 		return currHeader.GetRootHash(), prevHeader.GetRootHash()
 	case state.PeerAccountsState:
-		currMetaHeader, ok := currHeader.(data.MetaHeaderHandler)
+		currValidatorInfo, ok := currHeader.(data.ValidatorStatisticsInfoHandler)
 		if !ok {
 			return []byte{}, []byte{}
 		}
-		prevMetaHeader, ok := prevHeader.(data.MetaHeaderHandler)
+		prevValidatorInfo, ok := prevHeader.(data.ValidatorStatisticsInfoHandler)
 		if !ok {
 			return []byte{}, []byte{}
 		}
-		return currMetaHeader.GetValidatorStatsRootHash(), prevMetaHeader.GetValidatorStatsRootHash()
+		return currValidatorInfo.GetValidatorStatsRootHash(), prevValidatorInfo.GetValidatorStatsRootHash()
 	default:
 		return []byte{}, []byte{}
 	}
+}
+
+func (bp *baseProcessor) revertAccountsStates(header data.HeaderHandler, rootHash []byte) error {
+	err := bp.accountsDB[state.UserAccountsState].RecreateTrie(rootHash)
+	if err != nil {
+		log.Debug("recreate trie with error for header",
+			"nonce", header.GetNonce(),
+			"header root hash", header.GetRootHash(),
+			"given root hash", rootHash,
+			"error", err.Error(),
+		)
+
+		return err
+	}
+
+	validatorInfo, ok := header.(data.ValidatorStatisticsInfoHandler)
+	if !ok {
+		return process.ErrWrongTypeAssertion
+	}
+
+	err = bp.accountsDB[state.PeerAccountsState].RecreateTrie(validatorInfo.GetValidatorStatsRootHash())
+	if err != nil {
+		log.Debug("revert peer state with error for header",
+			"nonce", header.GetNonce(),
+			"header root hash", header.GetRootHash(),
+			"validators root hash", validatorInfo.GetValidatorStatsRootHash(),
+			"error", err.Error(),
+		)
+
+		return err
+	}
+
+	return nil
 }
 
 func (bp *baseProcessor) displayMiniBlocksPool() {
@@ -1995,4 +2132,12 @@ func displayCleanupErrorMessage(message string, shardID uint32, noncesToPrevFina
 		"shard", shardID,
 		"nonces to previous final", noncesToPrevFinal,
 		"error", err.Error())
+}
+
+func makeCommonHeaderHandlerHashMap(hdrMap map[string]data.HeaderHandler) map[string]data.CommonHeaderHandler {
+	commonHdrMap := make(map[string]data.CommonHeaderHandler)
+	for key, val := range hdrMap {
+		commonHdrMap[key] = val
+	}
+	return commonHdrMap
 }

@@ -74,6 +74,7 @@ type validatorStatistics struct {
 	ratingEnableEpoch                    uint32
 	lastFinalizedRootHash                []byte
 	enableEpochsHandler                  common.EnableEpochsHandler
+	updateShardDataPeerStateHandler      func(header data.CommonHeaderHandler, cacheMap map[string]data.CommonHeaderHandler) error
 }
 
 // NewValidatorStatisticsProcessor instantiates a new validatorStatistics structure responsible of keeping account of
@@ -135,6 +136,8 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 		genesisNonce:                         arguments.GenesisNonce,
 		enableEpochsHandler:                  arguments.EnableEpochsHandler,
 	}
+
+	vs.updateShardDataPeerStateHandler = vs.updateShardDataPeerState
 
 	err := vs.saveInitialState(arguments.NodesSetup)
 	if err != nil {
@@ -310,7 +313,7 @@ func (vs *validatorStatistics) SaveNodesCoordinatorUpdates(epoch uint32) (bool, 
 
 // UpdatePeerState takes a header, updates the peer state for all of the
 // consensus members and returns the new root hash
-func (vs *validatorStatistics) UpdatePeerState(header data.MetaHeaderHandler, cache map[string]data.HeaderHandler) ([]byte, error) {
+func (vs *validatorStatistics) UpdatePeerState(header data.CommonHeaderHandler, cache map[string]data.CommonHeaderHandler) ([]byte, error) {
 	if header.GetNonce() == vs.genesisNonce {
 		return vs.peerAdapter.RootHash()
 	}
@@ -340,7 +343,7 @@ func (vs *validatorStatistics) UpdatePeerState(header data.MetaHeaderHandler, ca
 		return nil, err
 	}
 
-	err = vs.updateShardDataPeerState(header, cache)
+	err = vs.updateShardDataPeerStateHandler(header, cache)
 	if err != nil {
 		return nil, err
 	}
@@ -386,9 +389,7 @@ func (vs *validatorStatistics) UpdatePeerState(header data.MetaHeaderHandler, ca
 	return rootHash, nil
 }
 
-func computeEpoch(header data.HeaderHandler) uint32 {
-	// TODO: change if start of epoch block needs to be validated by the new epoch nodes
-	// previous block was proposed by the consensus group of the previous epoch
+func computeEpoch(header data.CommonHeaderHandler) uint32 {
 	epoch := header.GetEpoch()
 	if header.IsStartOfEpochBlock() && epoch > 0 {
 		epoch = epoch - 1
@@ -841,22 +842,16 @@ func (vs *validatorStatistics) decreaseForConsensusValidators(
 	return nil
 }
 
-// RevertPeerState takes the current and previous headers and undos the peer state
-//  for all of the consensus members
-func (vs *validatorStatistics) RevertPeerState(header data.MetaHeaderHandler) error {
-	return vs.peerAdapter.RecreateTrie(header.GetValidatorStatsRootHash())
-}
-
 func (vs *validatorStatistics) updateShardDataPeerState(
-	header data.HeaderHandler,
-	cacheMap map[string]data.HeaderHandler,
+	header data.CommonHeaderHandler,
+	cacheMap map[string]data.CommonHeaderHandler,
 ) error {
 	metaHeader, ok := header.(*block.MetaBlock)
 	if !ok {
 		return process.ErrInvalidMetaHeader
 	}
 
-	var currentHeader data.HeaderHandler
+	var currentHeader data.CommonHeaderHandler
 	for _, h := range metaHeader.ShardInfo {
 		if h.Nonce == vs.genesisNonce {
 			continue
@@ -912,7 +907,7 @@ func (vs *validatorStatistics) updateShardDataPeerState(
 	return nil
 }
 
-func (vs *validatorStatistics) searchInMap(hash []byte, cacheMap map[string]data.HeaderHandler) (data.HeaderHandler, error) {
+func (vs *validatorStatistics) searchInMap(hash []byte, cacheMap map[string]data.CommonHeaderHandler) (data.CommonHeaderHandler, error) {
 	blkHandler := cacheMap[string(hash)]
 	if check.IfNil(blkHandler) {
 		return nil, fmt.Errorf("%w : searchInMap hash = %s",

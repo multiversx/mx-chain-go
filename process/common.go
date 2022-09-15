@@ -74,6 +74,30 @@ func GetMetaHeader(
 	return hdr, nil
 }
 
+// GetHeaderWithValidatorStats gets the header, which is associated with the given hash, from pool or storage
+func GetHeaderWithValidatorStats(
+	hash []byte,
+	headersCacher dataRetriever.HeadersPool,
+	marshalizer marshal.Marshalizer,
+	storageService dataRetriever.StorageService,
+) (data.HeaderHandler, error) {
+
+	err := checkGetHeaderParamsForNil(headersCacher, marshalizer, storageService)
+	if err != nil {
+		return nil, err
+	}
+
+	hdr, err := GetCommonHeaderFromPool(hash, headersCacher)
+	if err != nil {
+		hdr, err = GetHeaderWithValidatorStatsFromStorage(hash, marshalizer, storageService)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return hdr, nil
+}
+
 // GetShardHeaderFromPool gets the header, which is associated with the given hash, from pool
 func GetShardHeaderFromPool(
 	hash []byte,
@@ -86,6 +110,25 @@ func GetShardHeaderFromPool(
 	}
 
 	hdr, ok := obj.(data.ShardHeaderHandler)
+	if !ok {
+		return nil, ErrWrongTypeAssertion
+	}
+
+	return hdr, nil
+}
+
+// GetCommonHeaderFromPool gets the header, which is associated with the given hash, from pool
+func GetCommonHeaderFromPool(
+	hash []byte,
+	headersCacher dataRetriever.HeadersPool,
+) (data.HeaderHandler, error) {
+
+	obj, err := getHeaderFromPool(hash, headersCacher)
+	if err != nil {
+		return nil, err
+	}
+
+	hdr, ok := obj.(data.HeaderHandler)
 	if !ok {
 		return nil, ErrWrongTypeAssertion
 	}
@@ -138,6 +181,26 @@ func GetShardHeaderFromStorage(
 	}
 
 	hdr, err := UnmarshalShardHeader(marshalizer, buffHdr)
+	if err != nil {
+		return nil, ErrUnmarshalWithoutSuccess
+	}
+
+	return hdr, nil
+}
+
+// GetHeaderWithValidatorStatsFromStorage gets the header, which is associated with the given hash, from storage
+func GetHeaderWithValidatorStatsFromStorage(
+	hash []byte,
+	marshalizer marshal.Marshalizer,
+	storageService dataRetriever.StorageService,
+) (data.HeaderHandler, error) {
+
+	buffHdr, err := GetMarshalizedHeaderFromStorage(dataRetriever.BlockHeaderUnit, hash, marshalizer, storageService)
+	if err != nil {
+		return nil, err
+	}
+
+	hdr, err := UnmarshalHeaderWithValidatorStats(marshalizer, buffHdr)
 	if err != nil {
 		return nil, ErrUnmarshalWithoutSuccess
 	}
@@ -724,6 +787,17 @@ func UnmarshalHeader(shardId uint32, marshalizer marshal.Marshalizer, headerBuff
 // UnmarshalMetaHeader unmarshalls a meta header
 func UnmarshalMetaHeader(marshalizer marshal.Marshalizer, headerBuffer []byte) (data.MetaHeaderHandler, error) {
 	header := &block.MetaBlock{}
+	err := marshalizer.Unmarshal(header, headerBuffer)
+	if err != nil {
+		return nil, err
+	}
+
+	return header, nil
+}
+
+// UnmarshalHeaderWithValidatorStats unmarshalls a header with validator stats
+func UnmarshalHeaderWithValidatorStats(marshalizer marshal.Marshalizer, headerBuffer []byte) (data.HeaderHandler, error) {
+	header := &block.HeaderWithValidatorStats{}
 	err := marshalizer.Unmarshal(header, headerBuffer)
 	if err != nil {
 		return nil, err

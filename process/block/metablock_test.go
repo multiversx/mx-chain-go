@@ -1134,35 +1134,9 @@ func TestMetaProcessor_CommitBlockShouldRevertCurrentBlockWhenErr(t *testing.T) 
 	assert.Equal(t, 0, journalEntries)
 }
 
-func TestMetaProcessor_RevertStateRevertPeerStateFailsShouldErr(t *testing.T) {
-	expectedErr := errors.New("err")
-	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
-	dataComponents.DataPool = initDataPool([]byte("tx_hash"))
-	dataComponents.Storage = initStore()
-	arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-	arguments.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{}
-	arguments.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{
-		RecreateTrieCalled: func(rootHash []byte) error {
-			return nil
-		},
-	}
-	arguments.ValidatorStatisticsProcessor = &mock.ValidatorStatisticsProcessorStub{
-		RevertPeerStateCalled: func(header data.MetaHeaderHandler) error {
-			return expectedErr
-		},
-	}
-	mp, err := blproc.NewMetaProcessor(arguments)
-	require.Nil(t, err)
-	require.NotNil(t, mp)
-
-	hdr := block.MetaBlock{Nonce: 37}
-	err = mp.RevertStateToBlock(&hdr, hdr.RootHash)
-	require.Equal(t, expectedErr, err)
-}
-
 func TestMetaProcessor_RevertStateShouldWork(t *testing.T) {
 	recreateTrieWasCalled := false
-	revertePeerStateWasCalled := false
+	recreatePeerTrieWasCalled := false
 
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
 	dataComponents.DataPool = initDataPool([]byte("tx_hash"))
@@ -1175,9 +1149,9 @@ func TestMetaProcessor_RevertStateShouldWork(t *testing.T) {
 			return nil
 		},
 	}
-	arguments.ValidatorStatisticsProcessor = &mock.ValidatorStatisticsProcessorStub{
-		RevertPeerStateCalled: func(header data.MetaHeaderHandler) error {
-			revertePeerStateWasCalled = true
+	arguments.AccountsDB[state.PeerAccountsState] = &stateMock.AccountsStub{
+		RecreateTrieCalled: func(rootHash []byte) error {
+			recreatePeerTrieWasCalled = true
 			return nil
 		},
 	}
@@ -1186,7 +1160,7 @@ func TestMetaProcessor_RevertStateShouldWork(t *testing.T) {
 	hdr := block.MetaBlock{Nonce: 37}
 	err := mp.RevertStateToBlock(&hdr, hdr.RootHash)
 	assert.Nil(t, err)
-	assert.True(t, revertePeerStateWasCalled)
+	assert.True(t, recreatePeerTrieWasCalled)
 	assert.True(t, recreateTrieWasCalled)
 }
 

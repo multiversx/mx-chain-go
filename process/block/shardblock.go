@@ -3,7 +3,6 @@ package block
 import (
 	"bytes"
 	"fmt"
-	"math/big"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -83,45 +82,45 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 	}
 
 	base := &baseProcessor{
-		accountsDB:                     arguments.AccountsDB,
-		blockSizeThrottler:             arguments.BlockSizeThrottler,
-		forkDetector:                   arguments.ForkDetector,
-		hasher:                         arguments.CoreComponents.Hasher(),
-		marshalizer:                    arguments.CoreComponents.InternalMarshalizer(),
-		store:                          arguments.DataComponents.StorageService(),
-		shardCoordinator:               arguments.BootstrapComponents.ShardCoordinator(),
-		nodesCoordinator:               arguments.NodesCoordinator,
-		uint64Converter:                arguments.CoreComponents.Uint64ByteSliceConverter(),
-		requestHandler:                 arguments.RequestHandler,
-		appStatusHandler:               arguments.CoreComponents.StatusHandler(),
-		blockChainHook:                 arguments.BlockChainHook,
-		txCoordinator:                  arguments.TxCoordinator,
-		roundHandler:                   arguments.CoreComponents.RoundHandler(),
-		epochStartTrigger:              arguments.EpochStartTrigger,
-		headerValidator:                arguments.HeaderValidator,
-		bootStorer:                     arguments.BootStorer,
-		blockTracker:                   arguments.BlockTracker,
-		dataPool:                       arguments.DataComponents.Datapool(),
-		stateCheckpointModulus:         arguments.Config.StateTriesConfig.CheckpointRoundsModulus,
-		blockChain:                     arguments.DataComponents.Blockchain(),
-		feeHandler:                     arguments.FeeHandler,
-		outportHandler:                 arguments.StatusComponents.OutportHandler(),
-		genesisNonce:                   genesisHdr.GetNonce(),
-		versionedHeaderFactory:         arguments.BootstrapComponents.VersionedHeaderFactory(),
-		headerIntegrityVerifier:        arguments.BootstrapComponents.HeaderIntegrityVerifier(),
-		historyRepo:                    arguments.HistoryRepository,
+		accountsDB:                    arguments.AccountsDB,
+		blockSizeThrottler:            arguments.BlockSizeThrottler,
+		forkDetector:                  arguments.ForkDetector,
+		hasher:                        arguments.CoreComponents.Hasher(),
+		marshalizer:                   arguments.CoreComponents.InternalMarshalizer(),
+		store:                         arguments.DataComponents.StorageService(),
+		shardCoordinator:              arguments.BootstrapComponents.ShardCoordinator(),
+		nodesCoordinator:              arguments.NodesCoordinator,
+		uint64Converter:               arguments.CoreComponents.Uint64ByteSliceConverter(),
+		requestHandler:                arguments.RequestHandler,
+		appStatusHandler:              arguments.CoreComponents.StatusHandler(),
+		blockChainHook:                arguments.BlockChainHook,
+		txCoordinator:                 arguments.TxCoordinator,
+		roundHandler:                  arguments.CoreComponents.RoundHandler(),
+		epochStartTrigger:             arguments.EpochStartTrigger,
+		headerValidator:               arguments.HeaderValidator,
+		bootStorer:                    arguments.BootStorer,
+		blockTracker:                  arguments.BlockTracker,
+		dataPool:                      arguments.DataComponents.Datapool(),
+		stateCheckpointModulus:        arguments.Config.StateTriesConfig.CheckpointRoundsModulus,
+		blockChain:                    arguments.DataComponents.Blockchain(),
+		feeHandler:                    arguments.FeeHandler,
+		outportHandler:                arguments.StatusComponents.OutportHandler(),
+		genesisNonce:                  genesisHdr.GetNonce(),
+		versionedHeaderFactory:        arguments.BootstrapComponents.VersionedHeaderFactory(),
+		headerIntegrityVerifier:       arguments.BootstrapComponents.HeaderIntegrityVerifier(),
+		historyRepo:                   arguments.HistoryRepository,
 		epochNotifier:                 arguments.CoreComponents.EpochNotifier(),
 		enableEpochsHandler:           arguments.CoreComponents.EnableEpochsHandler(),
 		enableRoundsHandler:           arguments.EnableRoundsHandler,
-		vmContainerFactory:             arguments.VMContainersFactory,
-		vmContainer:                    arguments.VmContainer,
-		processDataTriesOnCommitEpoch:  arguments.Config.Debug.EpochStart.ProcessDataTrieOnCommitEpoch,
-		gasConsumedProvider:            arguments.GasHandler,
-		economicsData:                  arguments.CoreComponents.EconomicsData(),
-		scheduledTxsExecutionHandler:   arguments.ScheduledTxsExecutionHandler,
-		pruningDelay:                   pruningDelay,
-		processedMiniBlocksTracker:     arguments.ProcessedMiniBlocksTracker,
-		receiptsRepository:             arguments.ReceiptsRepository,
+		vmContainerFactory:            arguments.VMContainersFactory,
+		vmContainer:                   arguments.VmContainer,
+		processDataTriesOnCommitEpoch: arguments.Config.Debug.EpochStart.ProcessDataTrieOnCommitEpoch,
+		gasConsumedProvider:           arguments.GasHandler,
+		economicsData:                 arguments.CoreComponents.EconomicsData(),
+		scheduledTxsExecutionHandler:  arguments.ScheduledTxsExecutionHandler,
+		pruningDelay:                  pruningDelay,
+		processedMiniBlocksTracker:    arguments.ProcessedMiniBlocksTracker,
+		receiptsRepository:            arguments.ReceiptsRepository,
 	}
 
 	sp := shardProcessor{
@@ -1062,22 +1061,6 @@ func (sp *shardProcessor) CommitBlock(
 		"nonce", highestFinalBlockNonce,
 	)
 
-	lastBlockHeader := sp.blockChain.GetCurrentBlockHeader()
-
-	committedRootHash, err := sp.accountsDB[state.UserAccountsState].RootHash()
-	if err != nil {
-		return err
-	}
-
-	err = sp.blockChain.SetCurrentBlockHeaderAndRootHash(header, committedRootHash)
-	if err != nil {
-		return err
-	}
-
-	sp.blockChain.SetCurrentBlockHeaderHash(headerHash)
-	sp.indexBlockIfNeeded(bodyHandler, headerHash, headerHandler, lastBlockHeader)
-	sp.recordBlockInHistory(headerHash, headerHandler, bodyHandler)
-
 	lastCrossNotarizedHeader, _, err := sp.blockTracker.GetLastCrossNotarizedHeader(core.MetachainShardId)
 	if err != nil {
 		return err
@@ -1091,6 +1074,37 @@ func (sp *shardProcessor) CommitBlock(
 		lastCrossNotarizedHeader,
 		header,
 	)
+
+	err = sp.commonHeaderAndBodyCommit(header, body, headerHash, selfNotarizedHeaders, selfNotarizedHeadersHashes)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (sp *shardProcessor) commonHeaderAndBodyCommit(
+	header data.HeaderHandler,
+	body *block.Body,
+	headerHash []byte,
+	selfNotarizedHeaders []data.HeaderHandler,
+	selfNotarizedHeadersHashes [][]byte,
+) error {
+	lastBlockHeader := sp.blockChain.GetCurrentBlockHeader()
+
+	committedRootHash, err := sp.accountsDB[state.UserAccountsState].RootHash()
+	if err != nil {
+		return err
+	}
+
+	err = sp.blockChain.SetCurrentBlockHeaderAndRootHash(header, committedRootHash)
+	if err != nil {
+		return err
+	}
+
+	sp.blockChain.SetCurrentBlockHeaderHash(headerHash)
+	sp.indexBlockIfNeeded(body, headerHash, header, lastBlockHeader)
+	sp.recordBlockInHistory(headerHash, header, body)
 
 	headerInfo := bootstrapStorage.BootstrapHeaderInfo{
 		ShardId: header.GetShardID(),
@@ -1130,12 +1144,12 @@ func (sp *shardProcessor) CommitBlock(
 
 	sp.displayPoolsInfo()
 
-	errNotCritical = sp.removeTxsFromPools(header, body)
+	errNotCritical := sp.removeTxsFromPools(header, body)
 	if errNotCritical != nil {
 		log.Debug("removeTxsFromPools", "error", errNotCritical.Error())
 	}
 
-	sp.cleanupPools(headerHandler)
+	sp.cleanupPools(header)
 
 	return nil
 }
@@ -1429,22 +1443,7 @@ func (sp *shardProcessor) CreateNewHeader(round uint64, nonce uint64) (data.Head
 		return nil, process.ErrWrongTypeAssertion
 	}
 
-	err := shardHeader.SetRound(round)
-	if err != nil {
-		return nil, err
-	}
-
-	err = shardHeader.SetNonce(nonce)
-	if err != nil {
-		return nil, err
-	}
-
-	err = shardHeader.SetAccumulatedFees(big.NewInt(0))
-	if err != nil {
-		return nil, err
-	}
-
-	err = shardHeader.SetDeveloperFees(big.NewInt(0))
+	err := sp.setRoundNonceInitFees(round, nonce, shardHeader)
 	if err != nil {
 		return nil, err
 	}
@@ -2168,44 +2167,8 @@ func (sp *shardProcessor) applyBodyToHeader(
 		return nil, process.ErrNilBlockBody
 	}
 
-	var receiptsHash []byte
-	sw.Start("CreateReceiptsHash")
-	receiptsHash, err = sp.txCoordinator.CreateReceiptsHash()
-	sw.Stop("CreateReceiptsHash")
-	if err != nil {
-		return nil, err
-	}
-
-	err = shardHeader.SetReceiptsHash(receiptsHash)
-	if err != nil {
-		return nil, err
-	}
-
 	newBody := deleteSelfReceiptsMiniBlocks(body)
-
-	sw.Start("createMiniBlockHeaders")
-	totalTxCount, miniBlockHeaderHandlers, err := sp.createMiniBlockHeaderHandlers(newBody, processedMiniBlocksDestMeInfo)
-	sw.Stop("createMiniBlockHeaders")
-	if err != nil {
-		return nil, err
-	}
-
-	err = shardHeader.SetMiniBlockHeaderHandlers(miniBlockHeaderHandlers)
-	if err != nil {
-		return nil, err
-	}
-
-	err = shardHeader.SetTxCount(uint32(totalTxCount))
-	if err != nil {
-		return nil, err
-	}
-
-	err = shardHeader.SetAccumulatedFees(sp.feeHandler.GetAccumulatedFees())
-	if err != nil {
-		return nil, err
-	}
-
-	err = shardHeader.SetDeveloperFees(sp.feeHandler.GetDeveloperFees())
+	err = sp.applyBodyInfoOnCommonHeader(shardHeader, newBody, processedMiniBlocksDestMeInfo)
 	if err != nil {
 		return nil, err
 	}
@@ -2217,20 +2180,6 @@ func (sp *shardProcessor) applyBodyToHeader(
 	if err != nil {
 		return nil, err
 	}
-
-	err = sp.txCoordinator.VerifyCreatedMiniBlocks(shardHeader, newBody)
-	if err != nil {
-		return nil, err
-	}
-
-	sp.appStatusHandler.SetUInt64Value(common.MetricNumTxInBlock, uint64(totalTxCount))
-	sp.appStatusHandler.SetUInt64Value(common.MetricNumMiniBlocks, uint64(len(body.MiniBlocks)))
-
-	marshalizedBody, err := sp.marshalizer.Marshal(newBody)
-	if err != nil {
-		return nil, err
-	}
-	sp.blockSizeThrottler.Add(shardHeader.GetRound(), uint32(len(marshalizedBody)))
 
 	return newBody, nil
 }

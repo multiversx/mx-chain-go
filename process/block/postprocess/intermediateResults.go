@@ -144,7 +144,7 @@ func (irp *intermediateResultsProcessor) CreateAllInterMiniBlocks() []*block.Min
 			finalMBs = append(finalMBs, miniblock)
 
 			if miniblock.ReceiverShardID == irp.shardCoordinator.SelfId() {
-				irp.intraShardMiniBlock = miniblock.Clone()
+				irp.intraShardMiniBlock = miniblock.DeepClone()
 			}
 		}
 	}
