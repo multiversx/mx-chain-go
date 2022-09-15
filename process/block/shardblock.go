@@ -82,6 +82,11 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		pruningDelay = defaultPruningDelay
 	}
 
+	processDebugger, err := createDisabledProcessDebugger()
+	if err != nil {
+		return nil, err
+	}
+
 	base := &baseProcessor{
 		accountsDB:                    arguments.AccountsDB,
 		blockSizeThrottler:            arguments.BlockSizeThrottler,
@@ -122,6 +127,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		pruningDelay:                  pruningDelay,
 		processedMiniBlocksTracker:    arguments.ProcessedMiniBlocksTracker,
 		receiptsRepository:            arguments.ReceiptsRepository,
+		processDebugger:               processDebugger,
 	}
 
 	sp := shardProcessor{
@@ -1032,6 +1038,8 @@ func (sp *shardProcessor) CommitBlock(
 		"hash", headerHash,
 	)
 
+	sp.updateLastCommittedInDebugger(headerHandler.GetRound())
+
 	errNotCritical := sp.updateCrossShardInfo(processedMetaHdrs)
 	if errNotCritical != nil {
 		log.Debug("updateCrossShardInfo", "error", errNotCritical.Error())
@@ -1271,9 +1279,6 @@ func (sp *shardProcessor) updateState(headers []data.HeaderHandler, currentHeade
 
 func (sp *shardProcessor) snapShotEpochStartFromMeta(header data.ShardHeaderHandler) {
 	accounts := sp.accountsDB[state.UserAccountsState]
-	if !accounts.IsPruningEnabled() {
-		return
-	}
 
 	sp.hdrsForCurrBlock.mutHdrsForBlock.RLock()
 	defer sp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
@@ -2389,9 +2394,9 @@ func (sp *shardProcessor) DecodeBlockHeader(dta []byte) data.HeaderHandler {
 		return nil
 	}
 
-	header, err := process.CreateShardHeader(sp.marshalizer, dta)
+	header, err := process.UnmarshalShardHeader(sp.marshalizer, dta)
 	if err != nil {
-		log.Debug("DecodeBlockHeader.CreateShardHeader", "error", err.Error())
+		log.Debug("DecodeBlockHeader.UnmarshalShardHeader", "error", err.Error())
 		return nil
 	}
 

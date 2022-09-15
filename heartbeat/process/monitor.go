@@ -457,6 +457,9 @@ func (m *Monitor) computeInactiveHeartbeatMessages() {
 // GetHeartbeats returns the heartbeat status
 func (m *Monitor) GetHeartbeats() []data.PubKeyHeartbeat {
 	m.Cleanup()
+	if m.enableEpochsHandler.IsHeartbeatDisableFlagEnabled() {
+		return make([]data.PubKeyHeartbeat, 0)
+	}
 
 	m.mutHeartbeatMessages.Lock()
 	status := make([]data.PubKeyHeartbeat, 0, len(m.heartbeatMessages))
@@ -580,6 +583,11 @@ func (m *Monitor) startValidatorProcessing(ctx context.Context) {
 }
 
 func (m *Monitor) refreshHeartbeatMessageInfo() {
+	if m.enableEpochsHandler.IsHeartbeatDisableFlagEnabled() {
+		m.cancelFunc()
+		return
+	}
+
 	m.computeAllHeartbeatMessages()
 	m.computeInactiveHeartbeatMessages()
 }

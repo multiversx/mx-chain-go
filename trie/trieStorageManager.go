@@ -431,17 +431,6 @@ func (tsm *trieStorageManager) takeSnapshot(snapshotEntry *snapshotsQueueEntry, 
 
 	log.Trace("trie snapshot started", "rootHash", snapshotEntry.rootHash)
 
-	newRoot, err := newSnapshotNode(tsm, msh, hsh, snapshotEntry.rootHash)
-	if err != nil {
-		writeInChanNonBlocking(snapshotEntry.errChan, err)
-		treatSnapshotError(err,
-			"trie storage manager: newSnapshotNode takeSnapshot",
-			snapshotEntry.rootHash,
-			snapshotEntry.mainTrieRootHash,
-		)
-		return
-	}
-
 	stsm, err := newSnapshotTrieStorageManager(tsm, snapshotEntry.epoch)
 	if err != nil {
 		writeInChanNonBlocking(snapshotEntry.errChan, err)
@@ -449,6 +438,17 @@ func (tsm *trieStorageManager) takeSnapshot(snapshotEntry *snapshotsQueueEntry, 
 			"rootHash", snapshotEntry.rootHash,
 			"main trie rootHash", snapshotEntry.mainTrieRootHash,
 			"err", err.Error())
+		return
+	}
+
+	newRoot, err := newSnapshotNode(stsm, msh, hsh, snapshotEntry.rootHash)
+	if err != nil {
+		writeInChanNonBlocking(snapshotEntry.errChan, err)
+		treatSnapshotError(err,
+			"trie storage manager: newSnapshotNode takeSnapshot",
+			snapshotEntry.rootHash,
+			snapshotEntry.mainTrieRootHash,
+		)
 		return
 	}
 
@@ -663,6 +663,11 @@ func isTrieSynced(stsm *snapshotTrieStorageManager) bool {
 
 	log.Debug("isTrieSynced invalid value", "value", val)
 	return false
+}
+
+// GetBaseTrieStorageManager returns the trie storage manager
+func (tsm *trieStorageManager) GetBaseTrieStorageManager() common.StorageManager {
+	return tsm
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

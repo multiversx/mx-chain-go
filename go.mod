@@ -7,20 +7,20 @@ require (
 	github.com/ElrondNetwork/arwen-wasm-vm/v1_3 v1.3.42-0.20220729115131-85ecca868e90
 	github.com/ElrondNetwork/arwen-wasm-vm/v1_4 v1.4.59-0.20220729115431-a6c93119bdda
 	github.com/ElrondNetwork/covalent-indexer-go v1.0.6
-	github.com/ElrondNetwork/elastic-indexer-go v1.2.38
-	github.com/ElrondNetwork/elrond-go-core v1.1.18
+	github.com/ElrondNetwork/elastic-indexer-go v1.2.39
+	github.com/ElrondNetwork/elrond-go-core v1.1.19
 	github.com/ElrondNetwork/elrond-go-crypto v1.0.1
 	github.com/ElrondNetwork/elrond-go-logger v1.0.7
 	github.com/ElrondNetwork/elrond-go-storage v1.0.1-0.20220913144125-a47ce9bff84e
-	github.com/ElrondNetwork/elrond-vm-common v1.3.15-0.20220803072537-08e036d340bc
+	github.com/ElrondNetwork/elrond-vm-common v1.3.16
 	github.com/ElrondNetwork/go-libp2p-pubsub v0.6.1-rc1
 	github.com/beevik/ntp v0.3.0
 	github.com/btcsuite/btcd v0.22.0-beta
 	github.com/davecgh/go-spew v1.1.1
 	github.com/elastic/go-elasticsearch/v7 v7.12.0
 	github.com/gin-contrib/cors v0.0.0-20190301062745-f9e10995c85a
-	github.com/gin-contrib/pprof v1.3.0
-	github.com/gin-gonic/gin v1.8.0
+	github.com/gin-contrib/pprof v1.4.0
+	github.com/gin-gonic/gin v1.8.1
 	github.com/gizak/termui/v3 v3.1.0
 	github.com/gogo/protobuf v1.3.2
 	github.com/google/gops v0.3.18
@@ -37,7 +37,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/shirou/gopsutil v3.21.11+incompatible
 	github.com/stretchr/testify v1.7.1
-	github.com/urfave/cli v1.22.9
+	github.com/urfave/cli v1.22.10
 	github.com/whyrusleeping/timecache v0.0.0-20160911033111-cfcb2f1abfee
 	github.com/yusufpapurcu/wmi v1.2.2 // indirect
 	golang.org/x/crypto v0.0.0-20220411220226-7b82a4e95df4

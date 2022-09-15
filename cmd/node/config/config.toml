@@ -443,6 +443,12 @@
     SizeInBytes = 26214400  # 25MB per each pair (metachain, destinationShard)
     Shards = 4
 
+[ValidatorInfoPool]
+    Name = "ValidatorInfoPool"
+    Capacity = 10000
+    SizeInBytes = 31457280  #30MB
+    Shards = 4
+
 #PublicKeyPeerId represents the main cache used to map Elrond block signing public keys to their associated peer id's.
 [PublicKeyPeerId]
     Name = "PublicKeyPeerId"
@@ -714,7 +720,11 @@
         MetaMaxGasPerVmQuery = 0  #unlimited
 
 [BuiltInFunctions]
-    AutomaticCrawlerAddress = "erd1fpkcgel4gcmh8zqqdt043yfcn5tyx8373kg6q2qmkxzu4dqamc0swts65c"
+    AutomaticCrawlerAddresses =[
+        "erd1he8wwxn4az3j82p7wwqsdk794dm7hcrwny6f8dfegkfla34udx7qrf7xje", #shard 0
+        "erd1fpkcgel4gcmh8zqqdt043yfcn5tyx8373kg6q2qmkxzu4dqamc0swts65c", #shard 1
+        "erd1najnxxweyw6plhg8efql330nttrj6l5cf87wqsuym85s9ha0hmdqnqgenp", #shard 2
+    ]
     MaxNumAddressesInTransferRole = 100
 
 [Hardfork]
@@ -805,12 +815,17 @@
     [Debug.EpochStart]
         GoRoutineAnalyserEnabled = true
         ProcessDataTrieOnCommitEpoch = true
+    [Debug.Process]
+        Enabled = true
+        DebuggingLogLevel = "*:DEBUG,p2p:TRACE,debug:DEBUG,process:TRACE,intercept:TRACE"
+        GoRoutinesDump = true
+        PollingTimeInSeconds = 240 # 4 minutes
 
 [Health]
-    IntervalVerifyMemoryInSeconds = 5
+    IntervalVerifyMemoryInSeconds = 30
     IntervalDiagnoseComponentsInSeconds = 30
     IntervalDiagnoseComponentsDeeplyInSeconds = 120
-    MemoryUsageToCreateProfiles = 2415919104 # 2.25GB
+    MemoryUsageToCreateProfiles = 3221225472 # 3 GB
     NumMemoryUsageRecordsToKeep = 100
     FolderPath = "health-records"
 
@@ -913,13 +928,12 @@
     NumFullHistoryPeers = 3
 
 [HeartbeatV2]
-    PeerAuthenticationTimeBetweenSendsInSec          = 7200 # 2h
+    PeerAuthenticationTimeBetweenSendsInSec          = 600  # 10min TODO: change this for mainnet/devnet/testnet
     PeerAuthenticationTimeBetweenSendsWhenErrorInSec = 60   # 1min
     PeerAuthenticationThresholdBetweenSends          = 0.1  # 10%
     HeartbeatTimeBetweenSendsInSec                   = 60   # 1min
     HeartbeatTimeBetweenSendsWhenErrorInSec          = 60   # 1min
     HeartbeatThresholdBetweenSends                   = 0.1  # 10%
-    MaxNumOfPeerAuthenticationInResponse             = 10
     HeartbeatExpiryTimespanInSec                     = 3600 # 1h
     MinPeersThreshold                                = 0.8  # 80%
     DelayBetweenRequestsInSec                        = 10   # 10sec
@@ -928,10 +942,8 @@
     MaxMissingKeysInRequest                          = 1000
     MaxDurationPeerUnresponsiveInSec                 = 900  # 15min
     HideInactiveValidatorIntervalInSec               = 3600 # 1h
-    HardforkTimeBetweenSendsInSec                    = 10   # 10sec
-    [HeartbeatV2.PeerAuthenticationPool]
-        DefaultSpanInSec = 3600 # 1h
-        CacheExpiryInSec = 3600 # 1h
+    HardforkTimeBetweenSendsInSec                    = 60   # 1min
+    TimeBetweenConnectionsMetricsUpdateInSec         = 30   # 30sec
     [HeartbeatV2.HeartbeatPool]
         Name = "HeartbeatPool"
         Capacity = 1000

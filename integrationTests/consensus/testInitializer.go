@@ -51,6 +51,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
+	vic "github.com/ElrondNetwork/elrond-go/testscommon/validatorInfoCacher"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/trie/hashesHolder"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -334,6 +335,8 @@ func createConsensusOnlyNode(
 		syncer,
 		0)
 
+	dataPool := dataRetrieverMock.CreatePoolsHolder(1, 0)
+
 	argsNewMetaEpochStart := &metachain.ArgsNewMetaEpochStartTrigger{
 		GenesisTime:        time.Unix(startTime, 0),
 		EpochStartNotifier: notifier.NewEpochStartSubscriptionHandler(),
@@ -346,6 +349,7 @@ func createConsensusOnlyNode(
 		Marshalizer:      testMarshalizer,
 		Hasher:           testHasher,
 		AppStatusHandler: &statusHandlerMock.AppStatusHandlerStub{},
+		DataPool:         dataPool,
 	}
 	epochStartTrigger, _ := metachain.NewEpochStartTrigger(argsNewMetaEpochStart)
 
@@ -429,7 +433,7 @@ func createConsensusOnlyNode(
 	processComponents.ResFinder = resolverFinder
 	processComponents.EpochTrigger = epochStartTrigger
 	processComponents.EpochNotifier = epochStartRegistrationHandler
-	processComponents.BlackListHdl = &mock.TimeCacheStub{}
+	processComponents.BlackListHdl = &testscommon.TimeCacheStub{}
 	processComponents.BootSore = &mock.BoostrapStorerMock{}
 	processComponents.HeaderSigVerif = &mock.HeaderSigVerifierStub{}
 	processComponents.HeaderIntegrVerif = &mock.HeaderIntegrityVerifierStub{}
@@ -441,7 +445,7 @@ func createConsensusOnlyNode(
 
 	dataComponents := integrationTests.GetDefaultDataComponents()
 	dataComponents.BlockChain = blockChain
-	dataComponents.DataPool = dataRetrieverMock.CreatePoolsHolder(1, 0)
+	dataComponents.DataPool = dataPool
 	dataComponents.Store = createTestStore()
 
 	stateComponents := integrationTests.GetDefaultStateComponents()
@@ -531,6 +535,7 @@ func createNodes(
 			EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
 				IsWaitingListFixFlagEnabledField: true,
 			},
+			ValidatorInfoCacher: &vic.ValidatorInfoCacherStub{},
 		}
 		nodesCoord, _ := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 

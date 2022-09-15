@@ -602,10 +602,11 @@ func TestMetaInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	numInterceptorsPeerAuthForMetachain := 1
 	numInterceptorsHeartbeatForMetachain := 1
 	numInterceptorsShardValidatorInfoForMetachain := 1
+	numInterceptorValidatorInfo := 1
 	totalInterceptors := numInterceptorsMetablock + numInterceptorsShardHeadersForMetachain + numInterceptorsTrieNodes +
 		numInterceptorsTransactionsForMetachain + numInterceptorsUnsignedTxsForMetachain + numInterceptorsMiniBlocksForMetachain +
 		numInterceptorsRewardsTxsForMetachain + numInterceptorsPeerAuthForMetachain + numInterceptorsHeartbeatForMetachain +
-		numInterceptorsShardValidatorInfoForMetachain
+		numInterceptorsShardValidatorInfoForMetachain + numInterceptorValidatorInfo
 
 	assert.Nil(t, err)
 	assert.Equal(t, totalInterceptors, container.Len())
@@ -630,7 +631,7 @@ func getArgumentsMeta(
 		DataPool:                     createMetaDataPools(),
 		MaxTxNonceDeltaAllowed:       maxTxNonceDeltaAllowed,
 		TxFeeHandler:                 &mock.FeeHandlerStub{},
-		BlockBlackList:               &mock.BlackListHandlerStub{},
+		BlockBlackList:               &testscommon.TimeCacheStub{},
 		HeaderSigVerifier:            &mock.HeaderSigVerifierStub{},
 		HeaderIntegrityVerifier:      &mock.HeaderIntegrityVerifierStub{},
 		ValidityAttester:             &mock.ValidityAttesterStub{},

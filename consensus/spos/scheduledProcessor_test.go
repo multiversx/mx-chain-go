@@ -394,7 +394,7 @@ func TestScheduledProcessorWrapper_StartScheduledProcessingHeaderV2ForceStopAfte
 	hdr := &block.HeaderV2{}
 	blkBody := &block.Body{}
 	spw.StartScheduledProcessing(hdr, blkBody, time.Now())
-	time.Sleep(20 * time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 	spw.ForceStopScheduledExecutionBlocking()
 	status := spw.getStatus()
 	require.True(t, processScheduledCalled.IsSet())

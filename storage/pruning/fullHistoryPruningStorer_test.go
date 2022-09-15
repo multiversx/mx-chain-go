@@ -118,8 +118,8 @@ func TestNewFullHistoryPruningStorer_GetAfterEvictShouldWork(t *testing.T) {
 	persistersByPath["Epoch_0"] = database.NewMemDB()
 	args := getDefaultArgs()
 	args.DbPath = "Epoch_0"
-	args.NumOfActivePersisters = 1
-	args.NumOfEpochsToKeep = 2
+	args.EpochsData.NumOfActivePersisters = 1
+	args.EpochsData.NumOfEpochsToKeep = 2
 
 	fhArgs := &pruning.FullHistoryStorerArgs{
 		StorerArgs:               args,

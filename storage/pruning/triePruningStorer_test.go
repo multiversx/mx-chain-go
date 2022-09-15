@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestTriePruningStorer_GetFromOldEpochsWithoutCacheSearchesOnlyOldEpochs(t *testing.T) {
+func TestTriePruningStorer_GetFromOldEpochsWithoutCacheSearchesOnlyOldEpochsAndReturnsEpoch(t *testing.T) {
 	t.Parallel()
 
 	args := getDefaultArgs()
@@ -37,13 +37,16 @@ func TestTriePruningStorer_GetFromOldEpochsWithoutCacheSearchesOnlyOldEpochs(t *
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(cacher.Keys()))
 
-	res, err := ps.GetFromOldEpochsWithoutAddingToCache(testKey1)
+	res, epoch, err := ps.GetFromOldEpochsWithoutAddingToCache(testKey1)
 	assert.Equal(t, testVal1, res)
 	assert.Nil(t, err)
+	assert.True(t, epoch.HasValue)
+	assert.Equal(t, uint32(0), epoch.Value)
 
-	res, err = ps.GetFromOldEpochsWithoutAddingToCache(testKey2)
+	res, epoch, err = ps.GetFromOldEpochsWithoutAddingToCache(testKey2)
 	assert.Nil(t, res)
 	assert.NotNil(t, err)
+	assert.False(t, epoch.HasValue)
 	assert.True(t, strings.Contains(err.Error(), "not found"))
 }
 
@@ -51,7 +54,7 @@ func TestTriePruningStorer_GetFromOldEpochsWithoutCacheLessActivePersisters(t *t
 	t.Parallel()
 
 	args := getDefaultArgs()
-	args.NumOfActivePersisters = 2
+	args.EpochsData.NumOfActivePersisters = 2
 	ps, _ := pruning.NewTriePruningStorer(args)
 
 	testKey1 := []byte("key1")
@@ -62,7 +65,7 @@ func TestTriePruningStorer_GetFromOldEpochsWithoutCacheLessActivePersisters(t *t
 	assert.Equal(t, 1, ps.GetNumActivePersisters())
 	_ = ps.ChangeEpochSimple(1)
 
-	val, err := ps.GetFromOldEpochsWithoutAddingToCache(testKey1)
+	val, _, err := ps.GetFromOldEpochsWithoutAddingToCache(testKey1)
 	assert.Nil(t, err)
 	assert.Equal(t, testVal1, val)
 }
@@ -71,8 +74,8 @@ func TestTriePruningStorer_GetFromOldEpochsWithoutCacheMoreActivePersisters(t *t
 	t.Parallel()
 
 	args := getDefaultArgs()
-	args.NumOfActivePersisters = 2
-	args.NumOfEpochsToKeep = 4
+	args.EpochsData.NumOfActivePersisters = 2
+	args.EpochsData.NumOfEpochsToKeep = 4
 	ps, _ := pruning.NewTriePruningStorer(args)
 
 	testKey1 := []byte("key1")
@@ -85,7 +88,7 @@ func TestTriePruningStorer_GetFromOldEpochsWithoutCacheMoreActivePersisters(t *t
 	_ = ps.ChangeEpochSimple(2)
 	_ = ps.ChangeEpochSimple(3)
 
-	val, err := ps.GetFromOldEpochsWithoutAddingToCache(testKey1)
+	val, _, err := ps.GetFromOldEpochsWithoutAddingToCache(testKey1)
 	assert.Nil(t, err)
 	assert.Equal(t, testVal1, val)
 }
@@ -94,8 +97,8 @@ func TestTriePruningStorer_GetFromOldEpochsWithoutCacheAllPersistersClosed(t *te
 	t.Parallel()
 
 	args := getDefaultArgs()
-	args.NumOfActivePersisters = 2
-	args.NumOfEpochsToKeep = 4
+	args.EpochsData.NumOfActivePersisters = 2
+	args.EpochsData.NumOfEpochsToKeep = 4
 
 	persistersMap := make(map[string]storage.Persister)
 	persisterFactory := &mock.PersisterFactoryStub{
@@ -121,7 +124,7 @@ func TestTriePruningStorer_GetFromOldEpochsWithoutCacheAllPersistersClosed(t *te
 	_ = ps.ChangeEpochSimple(3)
 	_ = ps.Close()
 
-	val, err := ps.GetFromOldEpochsWithoutAddingToCache([]byte("key"))
+	val, _, err := ps.GetFromOldEpochsWithoutAddingToCache([]byte("key"))
 	assert.Nil(t, val)
 	assert.Equal(t, storage.ErrDBIsClosed, err)
 }
@@ -144,7 +147,7 @@ func TestTriePruningStorer_GetFromOldEpochsWithoutCacheDoesNotSearchInCurrentSto
 	assert.Nil(t, err)
 	ps.ClearCache()
 
-	res, err := ps.GetFromOldEpochsWithoutAddingToCache(testKey1)
+	res, _, err := ps.GetFromOldEpochsWithoutAddingToCache(testKey1)
 	assert.Nil(t, res)
 	assert.NotNil(t, err)
 	assert.True(t, strings.Contains(err.Error(), "not found"))
@@ -261,16 +264,23 @@ func TestTriePruningStorer_OpenMoreDbsIfNecessary(t *testing.T) {
 	assert.Nil(t, err)
 
 	_ = tps.ChangeEpochSimple(2)
+
+	tps.SetEpochForPutOperation(2)
+	err = tps.Put([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal))
+	assert.Nil(t, err)
+
 	_ = tps.ChangeEpochSimple(3)
 	_ = tps.ChangeEpochSimple(4)
 
 	err = tps.Close()
 	assert.Nil(t, err)
 
-	args.StartingEpoch = 4
-	args.NumOfEpochsToKeep = 5
+	args.EpochsData.StartingEpoch = 4
+	args.EpochsData.NumOfEpochsToKeep = 5
+	args.PersistersTracker = pruning.NewPersistersTracker(args.EpochsData)
 	ps, _ := pruning.NewPruningStorer(args)
 	assert.Equal(t, 2, ps.GetNumActivePersisters())
+	args.PersistersTracker = pruning.NewTriePersisterTracker(args.EpochsData)
 	tps, _ = pruning.NewTriePruningStorer(args)
 	assert.Equal(t, 4, tps.GetNumActivePersisters())
 }
@@ -279,8 +289,8 @@ func TestTriePruningStorer_KeepMoreDbsOpenIfNecessary(t *testing.T) {
 	t.Parallel()
 
 	args := getDefaultArgs()
-	args.NumOfActivePersisters = 3
-	args.NumOfEpochsToKeep = 3
+	args.EpochsData.NumOfActivePersisters = 3
+	args.EpochsData.NumOfEpochsToKeep = 3
 	tps, _ := pruning.NewTriePruningStorer(args)
 
 	assert.Equal(t, 1, tps.GetNumActivePersisters())

@@ -29,6 +29,7 @@ import (
 	factoryDisabled "github.com/ElrondNetwork/elrond-go/factory/disabled"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
+	"github.com/ElrondNetwork/elrond-go/process/heartbeat/validator"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
 	disabledInterceptors "github.com/ElrondNetwork/elrond-go/process/interceptors/disabled"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -565,7 +566,7 @@ func (e *epochStartBootstrap) createSyncers() error {
 	syncTxsArgs := updateSync.ArgsNewTransactionsSyncer{
 		DataPools:      e.dataPool,
 		Storages:       disabled.NewChainStorer(),
-		Marshalizer:    e.coreComponentsHolder.InternalMarshalizer(),
+		Marshaller:     e.coreComponentsHolder.InternalMarshalizer(),
 		RequestHandler: e.requestHandler,
 	}
 
@@ -1078,6 +1079,7 @@ func (e *epochStartBootstrap) createStorageService(
 		e.coreComponentsHolder.NodeTypeProvider(),
 		startEpoch,
 		createTrieEpochRootHashStorer,
+		storageFactory.BootstrapStorageService,
 	)
 	if err != nil {
 		return nil, err
@@ -1130,29 +1132,32 @@ func (e *epochStartBootstrap) createRequestHandler() error {
 
 	storageService := disabled.NewChainStorer()
 
+	payloadValidator, err := validator.NewPeerAuthenticationPayloadValidator(e.generalConfig.HeartbeatV2.HeartbeatExpiryTimespanInSec)
+	if err != nil {
+		return err
+	}
+
 	// TODO - create a dedicated request handler to be used when fetching required data with the correct shard coordinator
 	//  this one should only be used before determining the correct shard where the node should reside
 	log.Debug("epochStartBootstrap.createRequestHandler", "shard", e.shardCoordinator.SelfId())
 	resolversContainerArgs := resolverscontainer.FactoryArgs{
-		ShardCoordinator:                     e.shardCoordinator,
-		Messenger:                            e.messenger,
-		Store:                                storageService,
-		Marshalizer:                          e.coreComponentsHolder.InternalMarshalizer(),
-		DataPools:                            e.dataPool,
-		Uint64ByteSliceConverter:             uint64ByteSlice.NewBigEndianConverter(),
-		NumConcurrentResolvingJobs:           10,
-		DataPacker:                           dataPacker,
-		TriesContainer:                       e.trieContainer,
-		SizeCheckDelta:                       0,
-		InputAntifloodHandler:                disabled.NewAntiFloodHandler(),
-		OutputAntifloodHandler:               disabled.NewAntiFloodHandler(),
-		CurrentNetworkEpochProvider:          disabled.NewCurrentNetworkEpochProviderHandler(),
-		PreferredPeersHolder:                 disabled.NewPreferredPeersHolder(),
-		ResolverConfig:                       e.generalConfig.Resolvers,
-		PeersRatingHandler:                   disabled.NewDisabledPeersRatingHandler(),
-		NodesCoordinator:                     disabled.NewNodesCoordinator(),
-		MaxNumOfPeerAuthenticationInResponse: e.generalConfig.HeartbeatV2.MaxNumOfPeerAuthenticationInResponse,
-		PeerShardMapper:                      disabled.NewPeerShardMapper(),
+		ShardCoordinator:            e.shardCoordinator,
+		Messenger:                   e.messenger,
+		Store:                       storageService,
+		Marshalizer:                 e.coreComponentsHolder.InternalMarshalizer(),
+		DataPools:                   e.dataPool,
+		Uint64ByteSliceConverter:    uint64ByteSlice.NewBigEndianConverter(),
+		NumConcurrentResolvingJobs:  10,
+		DataPacker:                  dataPacker,
+		TriesContainer:              e.trieContainer,
+		SizeCheckDelta:              0,
+		InputAntifloodHandler:       disabled.NewAntiFloodHandler(),
+		OutputAntifloodHandler:      disabled.NewAntiFloodHandler(),
+		CurrentNetworkEpochProvider: disabled.NewCurrentNetworkEpochProviderHandler(),
+		PreferredPeersHolder:        disabled.NewPreferredPeersHolder(),
+		ResolverConfig:              e.generalConfig.Resolvers,
+		PeersRatingHandler:          disabled.NewDisabledPeersRatingHandler(),
+		PayloadValidator:            payloadValidator,
 	}
 	resolverFactory, err := resolverscontainer.NewMetaResolversContainerFactory(resolversContainerArgs)
 	if err != nil {

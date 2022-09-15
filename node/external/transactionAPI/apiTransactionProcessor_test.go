@@ -840,7 +840,7 @@ func TestApiTransactionProcessor_GetTransactionsPoolForSender(t *testing.T) {
 func TestApiTransactionProcessor_GetLastPoolNonceForSender(t *testing.T) {
 	t.Parallel()
 
-	txHash0, txHash1, txHash2 := []byte("txHash0"), []byte("txHash1"), []byte("txHash2")
+	txHash0, txHash1, txHash2, txHash3, txHash4 := []byte("txHash0"), []byte("txHash1"), []byte("txHash2"), []byte("txHash3"), []byte("txHash4")
 	sender := "alice"
 	lastNonce := uint64(10)
 	txCacheIntraShard, _ := txcache.NewTxCache(txcache.ConfigSourceMe{
@@ -856,31 +856,15 @@ func TestApiTransactionProcessor_GetLastPoolNonceForSender(t *testing.T) {
 	txCacheIntraShard.AddTx(createTx(txHash2, sender, 3))
 	txCacheIntraShard.AddTx(createTx(txHash0, sender, 1))
 	txCacheIntraShard.AddTx(createTx(txHash1, sender, 2))
-
-	txHash3, txHash4 := []byte("txHash3"), []byte("txHash4")
-	txCacheWithMeta, _ := txcache.NewTxCache(txcache.ConfigSourceMe{
-		Name:                       "test-meta",
-		NumChunks:                  4,
-		NumBytesPerSenderThreshold: 1_048_576, // 1 MB
-		CountPerSenderThreshold:    math.MaxUint32,
-	}, &txcachemocks.TxGasHandlerMock{
-		MinimumGasMove:       1,
-		MinimumGasPrice:      1,
-		GasProcessingDivisor: 1,
-	})
-	txCacheWithMeta.AddTx(createTx(txHash3, sender, lastNonce))
-	txCacheWithMeta.AddTx(createTx(txHash4, sender, 5))
+	txCacheIntraShard.AddTx(createTx(txHash3, sender, lastNonce))
+	txCacheIntraShard.AddTx(createTx(txHash4, sender, 5))
 
 	args := createMockArgAPITransactionProcessor()
 	args.DataPool = &dataRetrieverMock.PoolsHolderStub{
 		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 			return &testscommon.ShardedDataStub{
 				ShardDataStoreCalled: func(cacheID string) storage.Cacher {
-					if len(cacheID) == 1 { // self shard
-						return txCacheIntraShard
-					}
-
-					return txCacheWithMeta
+					return txCacheIntraShard
 				},
 			}
 		},

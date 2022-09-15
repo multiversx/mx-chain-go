@@ -19,11 +19,6 @@ func (res *peerAuthenticatorResolver) RequestDataFromHash(_ []byte, _ uint32) er
 	return nil
 }
 
-// RequestDataFromChunk does nothing and returns nil
-func (res *peerAuthenticatorResolver) RequestDataFromChunk(_ uint32, _ uint32) error {
-	return nil
-}
-
 // RequestDataFromHashArray does nothing and returns nil
 func (res *peerAuthenticatorResolver) RequestDataFromHashArray(_ [][]byte, _ uint32) error {
 	return nil

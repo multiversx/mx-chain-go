@@ -95,6 +95,11 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		pruningDelay = defaultPruningDelay
 	}
 
+	processDebugger, err := createDisabledProcessDebugger()
+	if err != nil {
+		return nil, err
+	}
+
 	genesisHdr := arguments.DataComponents.Blockchain().GetGenesisHeader()
 	base := &baseProcessor{
 		accountsDB:                    arguments.AccountsDB,
@@ -136,6 +141,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		pruningDelay:                  pruningDelay,
 		processedMiniBlocksTracker:    arguments.ProcessedMiniBlocksTracker,
 		receiptsRepository:            arguments.ReceiptsRepository,
+		processDebugger:               processDebugger,
 	}
 
 	mp := metaProcessor{
@@ -1270,6 +1276,8 @@ func (mp *metaProcessor) CommitBlock(
 		"nonce", headerHandler.GetNonce(),
 		"hash", headerHash)
 
+	mp.updateLastCommittedInDebugger(headerHandler.GetRound())
+
 	notarizedHeadersHashes, errNotCritical := mp.updateCrossShardInfo(header)
 	if errNotCritical != nil {
 		log.Debug("updateCrossShardInfo", "error", errNotCritical.Error())
@@ -1326,6 +1334,7 @@ func (mp *metaProcessor) CommitBlock(
 		mp.blockTracker.CleanupInvalidCrossHeaders(header.Epoch, header.Round)
 	}
 
+	// TODO: Should be sent also validatorInfoTxs alongside rewardsTxs -> mp.validatorInfoCreator.GetValidatorInfoTxs(body) ?
 	mp.indexBlock(header, headerHash, body, lastMetaBlock, notarizedHeadersHashes, rewardsTxs)
 	mp.recordBlockInHistory(headerHash, headerHandler, bodyHandler)
 
@@ -1592,8 +1601,8 @@ func (mp *metaProcessor) getRewardsTxs(header *block.MetaBlock, body *block.Body
 func (mp *metaProcessor) commitEpochStart(header *block.MetaBlock, body *block.Body) {
 	if header.IsStartOfEpochBlock() {
 		mp.epochStartTrigger.SetProcessed(header, body)
-		go mp.epochRewardsCreator.SaveTxBlockToStorage(header, body)
-		go mp.validatorInfoCreator.SaveValidatorInfoBlocksToStorage(header, body)
+		go mp.epochRewardsCreator.SaveBlockDataToStorage(header, body)
+		go mp.validatorInfoCreator.SaveBlockDataToStorage(header, body)
 	} else {
 		currentHeader := mp.blockChain.GetCurrentBlockHeader()
 		if !check.IfNil(currentHeader) && currentHeader.IsStartOfEpochBlock() {
@@ -2394,7 +2403,7 @@ func (mp *metaProcessor) MarshalizedDataToBroadcast(
 
 	var mrsTxs map[string][][]byte
 	if hdr.IsStartOfEpochBlock() {
-		mrsTxs = mp.epochRewardsCreator.CreateMarshalizedData(body)
+		mrsTxs = mp.getAllMarshalledTxs(body)
 	} else {
 		mrsTxs = mp.txCoordinator.CreateMarshalizedData(body)
 	}
@@ -2419,6 +2428,25 @@ func (mp *metaProcessor) MarshalizedDataToBroadcast(
 	}
 
 	return mrsData, mrsTxs, nil
+}
+
+func (mp *metaProcessor) getAllMarshalledTxs(body *block.Body) map[string][][]byte {
+	allMarshalledTxs := make(map[string][][]byte)
+
+	marshalledRewardsTxs := mp.epochRewardsCreator.CreateMarshalledData(body)
+	marshalledValidatorInfoTxs := mp.validatorInfoCreator.CreateMarshalledData(body)
+
+	for topic, marshalledTxs := range marshalledRewardsTxs {
+		allMarshalledTxs[topic] = append(allMarshalledTxs[topic], marshalledTxs...)
+		log.Trace("metaProcessor.getAllMarshalledTxs", "topic", topic, "num rewards txs", len(marshalledTxs))
+	}
+
+	for topic, marshalledTxs := range marshalledValidatorInfoTxs {
+		allMarshalledTxs[topic] = append(allMarshalledTxs[topic], marshalledTxs...)
+		log.Trace("metaProcessor.getAllMarshalledTxs", "topic", topic, "num validator info txs", len(marshalledTxs))
+	}
+
+	return allMarshalledTxs
 }
 
 func getTxCount(shardInfo []data.ShardDataHandler) uint32 {

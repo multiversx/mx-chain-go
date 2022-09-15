@@ -2,7 +2,10 @@ package state_test
 
 import (
 	"context"
+	"encoding/binary"
 	"errors"
+	"math/big"
+	"sync"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -486,4 +489,90 @@ func TestAccountsDBApi_GetAllLeaves(t *testing.T) {
 		assert.Nil(t, err)
 		assert.True(t, recreateTrieCalled)
 	})
+}
+
+func TestAccountsDBApi_GetAccountWithBlockInfoWhenHighConcurrency(t *testing.T) {
+	numTestRuns := 500
+	numChangesOfCurrentBlockInfo := 100
+	numConcurrentRoutinesReadingAccount := 100
+
+	for run := 0; run < numTestRuns; run++ {
+		dummyAccount := createDummyAccountWithBalanceBytes([]byte{42, 0, 0, 0, 0, 0, 0, 0})
+		currentBlockInfo := createDummyBlockInfoWithNonce(42)
+		var dummyAccountMutex sync.RWMutex
+		var currentBlockInfoMutex sync.RWMutex
+
+		accountsAdapter := &mockState.AccountsStub{
+			RecreateTrieCalled: func(rootHash []byte) error {
+				dummyAccountMutex.Lock()
+				defer dummyAccountMutex.Unlock()
+
+				// When a trie is recreated, we "add" to it a single account,
+				// having the balance correlated with the trie rootHash (for the sake of the test, for easier assertions).
+				dummyAccount = createDummyAccountWithBalanceBytes(rootHash)
+				return nil
+			},
+			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
+				dummyAccountMutex.RLock()
+				defer dummyAccountMutex.RUnlock()
+				return dummyAccount, nil
+			},
+		}
+
+		blockInfoProvider := &testscommon.BlockInfoProviderStub{
+			GetBlockInfoCalled: func() common.BlockInfo {
+				currentBlockInfoMutex.RLock()
+				defer currentBlockInfoMutex.RUnlock()
+				return currentBlockInfo
+			},
+		}
+
+		accountsApi, _ := state.NewAccountsDBApi(accountsAdapter, blockInfoProvider)
+
+		var wg sync.WaitGroup
+
+		// Simulate the processing goroutine
+		wg.Add(1)
+		go func() {
+			for i := 1; i <= numChangesOfCurrentBlockInfo; i++ {
+				currentBlockInfoMutex.Lock()
+				currentBlockInfo = createDummyBlockInfoWithNonce(uint64(i))
+				currentBlockInfoMutex.Unlock()
+			}
+			wg.Done()
+		}()
+
+		// Simulate many concurrent goroutines calling GetAccountWithBlockInfo()
+		for i := 0; i < numConcurrentRoutinesReadingAccount; i++ {
+			wg.Add(1)
+
+			go func() {
+				account, blockInfo, _ := accountsApi.GetAccountWithBlockInfo([]byte("address"), holders.NewRootHashHolderAsEmpty())
+				userAccount := account.(state.UserAccountHandler)
+				expectedDummyBalanceBytes := blockInfo.GetRootHash()
+				actualBalanceBytes := userAccount.GetBalance().Bytes()
+
+				assert.Equal(t, expectedDummyBalanceBytes, actualBalanceBytes)
+				wg.Done()
+			}()
+		}
+
+		wg.Wait()
+	}
+}
+
+func createDummyAccountWithBalanceBytes(balanceBytes []byte) state.UserAccountHandler {
+	dummyAccount := state.NewEmptyUserAccount()
+	dummyBalance := big.NewInt(0).SetBytes(balanceBytes)
+	_ = dummyAccount.AddToBalance(dummyBalance)
+
+	return dummyAccount
+}
+
+func createDummyBlockInfoWithNonce(nonce uint64) common.BlockInfo {
+	nonceBytes := make([]byte, 8)
+	binary.LittleEndian.PutUint64(nonceBytes, nonce)
+	dummyBlockInfo := holders.NewBlockInfo(nonceBytes, nonce, nonceBytes)
+
+	return dummyBlockInfo
 }

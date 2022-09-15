@@ -118,12 +118,7 @@ func getNodeFromDBAndDecode(n []byte, db common.DBWriteCacher, marshalizer marsh
 		return nil, fmt.Errorf(common.GetNodeFromDBErrorString+" %w for key %v", err, hex.EncodeToString(n))
 	}
 
-	decodedNode, err := decodeNode(encChild, marshalizer, hasher)
-	if err != nil {
-		return nil, err
-	}
-
-	return decodedNode, nil
+	return decodeNode(encChild, marshalizer, hasher)
 }
 
 func resolveIfCollapsed(n node, pos byte, db common.DBWriteCacher) error {

@@ -58,6 +58,10 @@ type node interface {
 	IsInterfaceNil() bool
 }
 
+type dbWithGetFromEpoch interface {
+	GetFromEpoch(key []byte, epoch uint32) ([]byte, error)
+}
+
 type snapshotNode interface {
 	commitCheckpoint(originDb common.DBWriteCacher, targetDb common.DBWriteCacher, checkpointHashes CheckpointHashesHolder, leavesChan chan core.KeyValueHolder, ctx context.Context, stats common.SnapshotStatisticsHandler, idleProvider IdleNodeProvider) error
 	commitSnapshot(originDb common.DBWriteCacher, leavesChan chan core.KeyValueHolder, ctx context.Context, stats common.SnapshotStatisticsHandler, idleProvider IdleNodeProvider) error
@@ -93,12 +97,13 @@ type epochStorer interface {
 
 type snapshotPruningStorer interface {
 	common.DBWriteCacher
-	GetFromOldEpochsWithoutAddingToCache(key []byte) ([]byte, error)
+	GetFromOldEpochsWithoutAddingToCache(key []byte) ([]byte, core.OptionalUint32, error)
 	GetFromLastEpoch(key []byte) ([]byte, error)
 	PutInEpoch(key []byte, data []byte, epoch uint32) error
 	PutInEpochWithoutCache(key []byte, data []byte, epoch uint32) error
 	GetLatestStorageEpoch() (uint32, error)
 	GetFromCurrentEpoch(key []byte) ([]byte, error)
+	GetFromEpoch(key []byte, epoch uint32) ([]byte, error)
 	RemoveFromCurrentEpoch(key []byte) error
 }
 

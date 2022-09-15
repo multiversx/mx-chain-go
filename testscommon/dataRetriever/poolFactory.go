@@ -114,7 +114,7 @@ func CreatePoolsHolder(numShards uint32, selfShard uint32) dataRetriever.PoolsHo
 	smartContracts, err := storageunit.NewCache(cacherConfig)
 	panicIfError("CreatePoolsHolder", err)
 
-	peerAuthPool, err := cache.NewMapTimeCache(cache.ArgMapTimeCacher{
+	peerAuthPool, err := cache.NewTimeCacher(cache.ArgTimeCacher{
 		DefaultSpan: 60 * time.Second,
 		CacheExpiry: 60 * time.Second,
 	})
@@ -124,20 +124,30 @@ func CreatePoolsHolder(numShards uint32, selfShard uint32) dataRetriever.PoolsHo
 	heartbeatPool, err := storageunit.NewCache(cacherConfig)
 	panicIfError("CreatePoolsHolder", err)
 
-	currentTx := dataPool.NewCurrentBlockPool()
+	validatorsInfo, err := shardedData.NewShardedData("validatorsInfoPool", storageUnit.CacheConfig{
+		Capacity:    300,
+		SizeInBytes: 300000,
+		Shards:      1,
+	})
+	panicIfError("CreatePoolsHolder", err)
+
+	currentBlockTransactions := dataPool.NewCurrentBlockTransactionsPool()
+	currentEpochValidatorInfo := dataPool.NewCurrentEpochValidatorInfoPool()
 	dataPoolArgs := dataPool.DataPoolArgs{
-		Transactions:             txPool,
-		UnsignedTransactions:     unsignedTxPool,
-		RewardTransactions:       rewardsTxPool,
-		Headers:                  headersPool,
-		MiniBlocks:               txBlockBody,
-		PeerChangesBlocks:        peerChangeBlockBody,
-		TrieNodes:                adaptedTrieNodesStorage,
-		TrieNodesChunks:          trieNodesChunks,
-		CurrentBlockTransactions: currentTx,
-		SmartContracts:           smartContracts,
-		PeerAuthentications:      peerAuthPool,
-		Heartbeats:               heartbeatPool,
+		Transactions:              txPool,
+		UnsignedTransactions:      unsignedTxPool,
+		RewardTransactions:        rewardsTxPool,
+		Headers:                   headersPool,
+		MiniBlocks:                txBlockBody,
+		PeerChangesBlocks:         peerChangeBlockBody,
+		TrieNodes:                 adaptedTrieNodesStorage,
+		TrieNodesChunks:           trieNodesChunks,
+		CurrentBlockTransactions:  currentBlockTransactions,
+		CurrentEpochValidatorInfo: currentEpochValidatorInfo,
+		SmartContracts:            smartContracts,
+		PeerAuthentications:       peerAuthPool,
+		Heartbeats:                heartbeatPool,
+		ValidatorsInfo:            validatorsInfo,
 	}
 	holder, err := dataPool.NewDataPool(dataPoolArgs)
 	panicIfError("CreatePoolsHolder", err)
@@ -188,7 +198,14 @@ func CreatePoolsHolderWithTxPool(txPool dataRetriever.ShardedDataCacherNotifier)
 	smartContracts, err := storageunit.NewCache(cacherConfig)
 	panicIfError("CreatePoolsHolderWithTxPool", err)
 
-	peerAuthPool, err := cache.NewMapTimeCache(cache.ArgMapTimeCacher{
+	validatorsInfo, err := shardedData.NewShardedData("validatorsInfoPool", storageUnit.CacheConfig{
+		Capacity:    300,
+		SizeInBytes: 300000,
+		Shards:      1,
+	})
+	panicIfError("CreatePoolsHolderWithTxPool", err)
+
+	peerAuthPool, err := cache.NewTimeCacher(cache.ArgTimeCacher{
 		DefaultSpan: peerAuthDuration,
 		CacheExpiry: peerAuthDuration,
 	})
@@ -198,20 +215,23 @@ func CreatePoolsHolderWithTxPool(txPool dataRetriever.ShardedDataCacherNotifier)
 	heartbeatPool, err := storageunit.NewCache(cacherConfig)
 	panicIfError("CreatePoolsHolderWithTxPool", err)
 
-	currentTx := dataPool.NewCurrentBlockPool()
+	currentBlockTransactions := dataPool.NewCurrentBlockTransactionsPool()
+	currentEpochValidatorInfo := dataPool.NewCurrentEpochValidatorInfoPool()
 	dataPoolArgs := dataPool.DataPoolArgs{
-		Transactions:             txPool,
-		UnsignedTransactions:     unsignedTxPool,
-		RewardTransactions:       rewardsTxPool,
-		Headers:                  headersPool,
-		MiniBlocks:               txBlockBody,
-		PeerChangesBlocks:        peerChangeBlockBody,
-		TrieNodes:                trieNodes,
-		TrieNodesChunks:          trieNodesChunks,
-		CurrentBlockTransactions: currentTx,
-		SmartContracts:           smartContracts,
-		PeerAuthentications:      peerAuthPool,
-		Heartbeats:               heartbeatPool,
+		Transactions:              txPool,
+		UnsignedTransactions:      unsignedTxPool,
+		RewardTransactions:        rewardsTxPool,
+		Headers:                   headersPool,
+		MiniBlocks:                txBlockBody,
+		PeerChangesBlocks:         peerChangeBlockBody,
+		TrieNodes:                 trieNodes,
+		TrieNodesChunks:           trieNodesChunks,
+		CurrentBlockTransactions:  currentBlockTransactions,
+		CurrentEpochValidatorInfo: currentEpochValidatorInfo,
+		SmartContracts:            smartContracts,
+		PeerAuthentications:       peerAuthPool,
+		Heartbeats:                heartbeatPool,
+		ValidatorsInfo:            validatorsInfo,
 	}
 	holder, err := dataPool.NewDataPool(dataPoolArgs)
 	panicIfError("CreatePoolsHolderWithTxPool", err)

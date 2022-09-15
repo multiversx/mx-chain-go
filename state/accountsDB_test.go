@@ -839,7 +839,7 @@ func TestAccountsDB_RecreateTrieMalfunctionTrieShouldErr(t *testing.T) {
 			return &testscommon.StorageManagerStub{}
 		},
 	}
-	trieStub.RecreateCalled = func(root []byte) (tree common.Trie, e error) {
+	trieStub.RecreateFromEpochCalled = func(_ common.RootHashHolder) (tree common.Trie, e error) {
 		wasCalled = true
 		return nil, errExpected
 	}
@@ -861,7 +861,7 @@ func TestAccountsDB_RecreateTrieOutputsNilTrieShouldErr(t *testing.T) {
 			return &testscommon.StorageManagerStub{}
 		},
 	}
-	trieStub.RecreateCalled = func(root []byte) (tree common.Trie, e error) {
+	trieStub.RecreateFromEpochCalled = func(_ common.RootHashHolder) (tree common.Trie, e error) {
 		wasCalled = true
 		return nil, nil
 	}
@@ -883,7 +883,7 @@ func TestAccountsDB_RecreateTrieOkValsShouldWork(t *testing.T) {
 		GetStorageManagerCalled: func() common.StorageManager {
 			return &testscommon.StorageManagerStub{}
 		},
-		RecreateCalled: func(root []byte) (common.Trie, error) {
+		RecreateFromEpochCalled: func(_ common.RootHashHolder) (common.Trie, error) {
 			wasCalled = true
 			return &trieMock.TrieStub{}, nil
 		},
@@ -894,7 +894,6 @@ func TestAccountsDB_RecreateTrieOkValsShouldWork(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.True(t, wasCalled)
-
 }
 
 func TestAccountsDB_SnapshotState(t *testing.T) {
@@ -1065,9 +1064,11 @@ func TestAccountsDB_SnapshotStateSnapshotSameRootHash(t *testing.T) {
 				GetLatestStorageEpochCalled: func() (uint32, error) {
 					return latestEpoch, nil
 				},
-				TakeSnapshotCalled: func(_ []byte, _ []byte, _ chan core.KeyValueHolder, _ chan error, _ common.SnapshotStatisticsHandler, _ uint32) {
+				TakeSnapshotCalled: func(_ []byte, _ []byte, leavesChan chan core.KeyValueHolder, _ chan error, stats common.SnapshotStatisticsHandler, _ uint32) {
 					snapshotMutex.Lock()
 					takeSnapshotCalled++
+					close(leavesChan)
+					stats.SnapshotFinished()
 					snapshotMutex.Unlock()
 				},
 			}
@@ -1127,6 +1128,41 @@ func TestAccountsDB_SnapshotStateSnapshotSameRootHash(t *testing.T) {
 	time.Sleep(waitForOpToFinish)
 	snapshotMutex.Lock()
 	assert.Equal(t, 5, takeSnapshotCalled)
+	snapshotMutex.Unlock()
+}
+
+func TestAccountsDB_SnapshotStateSkipSnapshotIfSnapshotInProgress(t *testing.T) {
+	t.Parallel()
+
+	rootHashes := [][]byte{[]byte("rootHash1"), []byte("rootHash2"), []byte("rootHash3"), []byte("rootHash4")}
+	latestEpoch := uint32(0)
+	snapshotMutex := sync.RWMutex{}
+	takeSnapshotCalled := 0
+	trieStub := &trieMock.TrieStub{
+		GetStorageManagerCalled: func() common.StorageManager {
+			return &testscommon.StorageManagerStub{
+				GetLatestStorageEpochCalled: func() (uint32, error) {
+					return latestEpoch, nil
+				},
+				TakeSnapshotCalled: func(_ []byte, _ []byte, leavesChan chan core.KeyValueHolder, _ chan error, stats common.SnapshotStatisticsHandler, _ uint32) {
+					snapshotMutex.Lock()
+					takeSnapshotCalled++
+					close(leavesChan)
+					stats.SnapshotFinished()
+					snapshotMutex.Unlock()
+				},
+			}
+		},
+	}
+	adb := generateAccountDBFromTrie(trieStub)
+	waitForOpToFinish := time.Millisecond * 100
+
+	for _, rootHash := range rootHashes {
+		adb.SnapshotState(rootHash)
+	}
+	time.Sleep(waitForOpToFinish)
+	snapshotMutex.Lock()
+	assert.Equal(t, 1, takeSnapshotCalled)
 	snapshotMutex.Unlock()
 }
 
@@ -2542,7 +2578,7 @@ func BenchmarkAccountsDb_GetCodeEntry(b *testing.B) {
 	}
 }
 
-func TestAccountsDB_waitForCompletionIfRunningInImportDB(t *testing.T) {
+func TestAccountsDB_waitForCompletionIfAppropriate(t *testing.T) {
 	t.Parallel()
 
 	t.Run("not in import db", func(t *testing.T) {
@@ -2556,7 +2592,7 @@ func TestAccountsDB_waitForCompletionIfRunningInImportDB(t *testing.T) {
 			},
 		}
 		adb, _ := state.NewAccountsDB(argsAccountsDB)
-		adb.WaitForCompletionIfRunningInImportDB(&trieMock.MockStatistics{})
+		adb.WaitForCompletionIfAppropriate(&trieMock.MockStatistics{})
 	})
 	t.Run("in import db", func(t *testing.T) {
 		t.Parallel()
@@ -2576,7 +2612,7 @@ func TestAccountsDB_waitForCompletionIfRunningInImportDB(t *testing.T) {
 			waitForSnapshotsToFinishCalled = true
 		}
 		adb, _ := state.NewAccountsDB(argsAccountsDB)
-		adb.WaitForCompletionIfRunningInImportDB(stats)
+		adb.WaitForCompletionIfAppropriate(stats)
 		assert.True(t, idleWasSet)
 		assert.True(t, waitForSnapshotsToFinishCalled)
 	})

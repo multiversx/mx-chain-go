@@ -80,6 +80,8 @@ type epochFlagsHolder struct {
 	checkFunctionArgumentFlag                   *atomic.Flag
 	checkExecuteOnReadOnlyFlag                  *atomic.Flag
 	setSenderInEeiOutputTransferFlag            *atomic.Flag
+	changeDelegationOwnerFlag                   *atomic.Flag
+	refactorPeersMiniBlocksFlag                 *atomic.Flag
 }
 
 func newEpochFlagsHolder() *epochFlagsHolder {
@@ -161,6 +163,8 @@ func newEpochFlagsHolder() *epochFlagsHolder {
 		checkFunctionArgumentFlag:                   &atomic.Flag{},
 		checkExecuteOnReadOnlyFlag:                  &atomic.Flag{},
 		setSenderInEeiOutputTransferFlag:            &atomic.Flag{},
+		changeDelegationOwnerFlag:                   &atomic.Flag{},
+		refactorPeersMiniBlocksFlag:                 &atomic.Flag{},
 	}
 }
 
@@ -600,4 +604,14 @@ func (holder *epochFlagsHolder) IsTransferToMetaFlagEnabled() bool {
 // this is a duplicate for ESDTMultiTransferEnableEpoch needed for consistency into vm-common
 func (holder *epochFlagsHolder) IsESDTNFTImprovementV1FlagEnabled() bool {
 	return holder.esdtMultiTransferFlag.IsSet()
+}
+
+// IsChangeDelegationOwnerFlagEnabled returns true if the change delegation owner feature is enabled
+func (holder *epochFlagsHolder) IsChangeDelegationOwnerFlagEnabled() bool {
+	return holder.changeDelegationOwnerFlag.IsSet()
+}
+
+// IsRefactorPeersMiniBlocksFlagEnabled returns true if refactorPeersMiniBlocksFlag is enabled
+func (holder *epochFlagsHolder) IsRefactorPeersMiniBlocksFlagEnabled() bool {
+	return holder.refactorPeersMiniBlocksFlag.IsSet()
 }
