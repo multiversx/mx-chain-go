@@ -2360,7 +2360,7 @@ func (sc *scProcessor) useLastTransferAsAsyncCallBackWhenNeeded(
 	addReturnDataToSCR(vmOutput, result)
 	result.CallType = vmData.AsynchronousCallBack
 	result.GasLimit, _ = core.SafeAddUint64(result.GasLimit, vmOutput.GasRemaining)
-	log.Error("result", "data", string(result.Data))
+
 	return true
 }
 
