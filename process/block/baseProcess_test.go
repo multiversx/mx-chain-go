@@ -335,16 +335,19 @@ func isInTxHashes(searched []byte, list [][]byte) bool {
 type wrongBody struct {
 }
 
+// Clone -
 func (wr *wrongBody) Clone() data.BodyHandler {
 	wrCopy := *wr
 
 	return &wrCopy
 }
 
+// SetMiniBlocks -
 func (wr *wrongBody) SetMiniBlocks(_ []data.MiniBlockHandler) error {
 	return nil
 }
 
+// IntegrityAndValidity -
 func (wr *wrongBody) IntegrityAndValidity() error {
 	return nil
 }

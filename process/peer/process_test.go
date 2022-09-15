@@ -54,14 +54,6 @@ func createMockPubkeyConverter() *mock.PubkeyConverterMock {
 	return mock.NewPubkeyConverterMock(32)
 }
 
-func createCommonHeaderCacheMap(cacheMap map[string]data.HeaderHandler) map[string]data.CommonHeaderHandler {
-	newCacheMap := make(map[string]data.CommonHeaderHandler)
-	for k, v := range cacheMap {
-		newCacheMap[k] = v
-	}
-	return newCacheMap
-}
-
 func createMockArguments() peer.ArgValidatorStatisticsProcessor {
 	argsNewEconomicsData := economics.ArgsNewEconomicsData{
 		Economics: &config.EconomicsConfig{
@@ -671,7 +663,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerState_IncreasesConsensusPrevious
 	currentHeaderConsensus := []nodesCoordinator.Validator{v3, v4}
 	consensusGroup[currentHeaderConsensusKey] = currentHeaderConsensus
 
-	_, err := validatorStatistics.UpdatePeerState(header, createCommonHeaderCacheMap(cache))
+	_, err := validatorStatistics.UpdatePeerState(header, peer.CreateCommonHeaderCacheMap(cache))
 	assert.Nil(t, err)
 
 	pa1, _ := validatorStatistics.LoadPeerAccount(v1.PubKey())
@@ -710,7 +702,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerState_IncreasesIgnoredSignatures
 	currentHeaderConsensus := []nodesCoordinator.Validator{v3, v4, v1}
 	consensusGroup[currentHeaderConsensusKey] = currentHeaderConsensus
 
-	_, err := validatorStatistics.UpdatePeerState(header, createCommonHeaderCacheMap(cache))
+	_, err := validatorStatistics.UpdatePeerState(header, peer.CreateCommonHeaderCacheMap(cache))
 	assert.Nil(t, err)
 
 	pa1, _ := validatorStatistics.LoadPeerAccount(v1.PubKey())
@@ -798,7 +790,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerState_DecreasesMissedMetaBlock_S
 	currentHeaderConsensus := []nodesCoordinator.Validator{v3, v4}
 	consensusGroup[currentHeaderConsensusKey] = currentHeaderConsensus
 
-	_, err := validatorStatistics.UpdatePeerState(header, createCommonHeaderCacheMap(cache))
+	_, err := validatorStatistics.UpdatePeerState(header, peer.CreateCommonHeaderCacheMap(cache))
 	assert.Nil(t, err)
 
 	pa1, _ := validatorStatistics.LoadPeerAccount(v2.PubKey())
@@ -838,7 +830,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerState_IncreasesConsensusPrevious
 	currentHeaderConsensus := []nodesCoordinator.Validator{v3, v4}
 	consensusGroup[currentHeaderConsensusKey] = currentHeaderConsensus
 
-	_, err := validatorStatistics.UpdatePeerState(header, createCommonHeaderCacheMap(cache))
+	_, err := validatorStatistics.UpdatePeerState(header, peer.CreateCommonHeaderCacheMap(cache))
 	assert.Nil(t, err)
 
 	pa1, _ := validatorStatistics.LoadPeerAccount(v1.PubKey())
@@ -883,7 +875,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerState_DecreasesMissedMetaBlock_S
 	currentHeaderConsensus := []nodesCoordinator.Validator{v3, v4}
 	consensusGroup[currentHeaderConsensusKey] = currentHeaderConsensus
 
-	_, err := validatorStatistics.UpdatePeerState(header, createCommonHeaderCacheMap(cache))
+	_, err := validatorStatistics.UpdatePeerState(header, peer.CreateCommonHeaderCacheMap(cache))
 	assert.Nil(t, err)
 
 	pa1, _ := validatorStatistics.LoadPeerAccount(v2.PubKey())
@@ -925,7 +917,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerState_IncreasesConsensusPrevious
 	currentHeaderConsensus := []nodesCoordinator.Validator{v3, v4}
 	consensusGroup[currentHeaderConsensusKey] = currentHeaderConsensus
 
-	_, err := validatorStatistics.UpdatePeerState(header, createCommonHeaderCacheMap(cache))
+	_, err := validatorStatistics.UpdatePeerState(header, peer.CreateCommonHeaderCacheMap(cache))
 	assert.Nil(t, err)
 
 	pa1, _ := validatorStatistics.LoadPeerAccount(v1.PubKey())
@@ -971,7 +963,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerState_DecreasesMissedMetaBlock_P
 	currentHeaderConsensus := []nodesCoordinator.Validator{v3, v4}
 	consensusGroup[currentHeaderConsensusKey] = currentHeaderConsensus
 
-	_, err := validatorStatistics.UpdatePeerState(header, createCommonHeaderCacheMap(cache))
+	_, err := validatorStatistics.UpdatePeerState(header, peer.CreateCommonHeaderCacheMap(cache))
 	assert.Nil(t, err)
 
 	pa1, _ := validatorStatistics.LoadPeerAccount(v2.PubKey())
@@ -1307,7 +1299,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateCheckForMissedBlocksErr(t *
 		Nonce:         0,
 		PubKeysBitmap: []byte{0, 0},
 	}
-	_, err := validatorStatistics.UpdatePeerState(header, createCommonHeaderCacheMap(cache))
+	_, err := validatorStatistics.UpdatePeerState(header, peer.CreateCommonHeaderCacheMap(cache))
 
 	assert.Equal(t, missedBlocksErr, err)
 }

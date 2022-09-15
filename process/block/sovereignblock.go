@@ -16,6 +16,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/state"
 )
 
+var headerVersion = []byte("1")
+
+// ArgsSovereignBlockProcessor holds all dependencies required by the process data factory in order to create
+//// new instances of sovereign block processor
 type ArgsSovereignBlockProcessor struct {
 	ArgShardProcessor
 	ValidatorStatisticsProcessor process.ValidatorStatisticsProcessor
@@ -50,7 +54,7 @@ func (s *sovereignBlockProcessor) CreateNewHeader(round uint64, nonce uint64) (d
 	s.enableRoundsHandler.CheckRound(round)
 	header := &block.HeaderWithValidatorStats{
 		Header: &block.Header{
-			SoftwareVersion: []byte("1"),
+			SoftwareVersion: headerVersion,
 		},
 	}
 
@@ -397,7 +401,7 @@ func (s *sovereignBlockProcessor) verifyValidatorStatisticsRootHash(header data.
 			"computed", validatorStatsRH,
 			"received", validatorStatsInfo.GetValidatorStatsRootHash(),
 		)
-		return fmt.Errorf("%s, metachain, computed: %s, received: %s, meta header nonce: %d",
+		return fmt.Errorf("%s, sovereign, computed: %s, received: %s, header nonce: %d",
 			process.ErrValidatorStatsRootHashDoesNotMatch,
 			logger.DisplayByteSlice(validatorStatsRH),
 			logger.DisplayByteSlice(validatorStatsInfo.GetValidatorStatsRootHash()),
