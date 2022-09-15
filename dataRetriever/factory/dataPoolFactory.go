@@ -9,10 +9,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go-storage/lrucache/capacity"
-	"github.com/ElrondNetwork/elrond-go-storage/mapTimeCache"
-	"github.com/ElrondNetwork/elrond-go-storage/storageCacherAdapter"
-	"github.com/ElrondNetwork/elrond-go-storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
@@ -22,8 +18,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/cache"
 	"github.com/ElrondNetwork/elrond-go/storage/disabled"
 	"github.com/ElrondNetwork/elrond-go/storage/factory"
+	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
 )
 
@@ -83,18 +81,18 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 	}
 
 	cacherCfg := factory.GetCacherFromConfig(mainConfig.TxBlockBodyDataPool)
-	txBlockBody, err := storageUnit.NewCache(cacherCfg)
+	txBlockBody, err := storageunit.NewCache(cacherCfg)
 	if err != nil {
 		return nil, fmt.Errorf("%w while creating the cache for the miniblocks", err)
 	}
 
 	cacherCfg = factory.GetCacherFromConfig(mainConfig.PeerBlockBodyDataPool)
-	peerChangeBlockBody, err := storageUnit.NewCache(cacherCfg)
+	peerChangeBlockBody, err := storageunit.NewCache(cacherCfg)
 	if err != nil {
 		return nil, fmt.Errorf("%w while creating the cache for the peer mini block body", err)
 	}
 
-	cacher, err := capacity.NewCapacityLRU(
+	cacher, err := cache.NewCapacityLRU(
 		int(mainConfig.TrieSyncStorage.Capacity),
 		int64(mainConfig.TrieSyncStorage.SizeInBytes),
 	)
@@ -108,24 +106,24 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 	}
 
 	tnf := trieFactory.NewTrieNodeFactory()
-	adaptedTrieNodesStorage, err := storageCacherAdapter.NewStorageCacherAdapter(cacher, trieSyncDB, tnf, args.Marshalizer)
+	adaptedTrieNodesStorage, err := storageunit.NewStorageCacherAdapter(cacher, trieSyncDB, tnf, args.Marshalizer)
 	if err != nil {
 		return nil, fmt.Errorf("%w while creating the adapter for the trie nodes", err)
 	}
 
 	cacherCfg = factory.GetCacherFromConfig(mainConfig.TrieNodesChunksDataPool)
-	trieNodesChunks, err := storageUnit.NewCache(cacherCfg)
+	trieNodesChunks, err := storageunit.NewCache(cacherCfg)
 	if err != nil {
 		return nil, fmt.Errorf("%w while creating the cache for the trie chunks", err)
 	}
 
 	cacherCfg = factory.GetCacherFromConfig(mainConfig.SmartContractDataPool)
-	smartContracts, err := storageUnit.NewCache(cacherCfg)
+	smartContracts, err := storageunit.NewCache(cacherCfg)
 	if err != nil {
 		return nil, fmt.Errorf("%w while creating the cache for the smartcontract results", err)
 	}
 
-	peerAuthPool, err := mapTimeCache.NewMapTimeCache(mapTimeCache.ArgMapTimeCacher{
+	peerAuthPool, err := cache.NewMapTimeCache(cache.ArgMapTimeCacher{
 		DefaultSpan: time.Duration(mainConfig.HeartbeatV2.PeerAuthenticationPool.DefaultSpanInSec) * time.Second,
 		CacheExpiry: time.Duration(mainConfig.HeartbeatV2.PeerAuthenticationPool.CacheExpiryInSec) * time.Second,
 	})
@@ -134,7 +132,7 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 	}
 
 	cacherCfg = factory.GetCacherFromConfig(mainConfig.HeartbeatV2.HeartbeatPool)
-	heartbeatPool, err := storageUnit.NewCache(cacherCfg)
+	heartbeatPool, err := storageunit.NewCache(cacherCfg)
 	if err != nil {
 		return nil, fmt.Errorf("%w while creating the cache for the heartbeat messages", err)
 	}
@@ -167,7 +165,7 @@ func createTrieSyncDB(args ArgsDataPool) (storage.Persister, error) {
 
 	dbCfg := factory.GetDBFromConfig(mainConfig.TrieSyncStorage.DB)
 	shardId := core.GetShardIDString(args.ShardCoordinator.SelfId())
-	argDB := storageUnit.ArgDB{
+	argDB := storageunit.ArgDB{
 		DBType:            dbCfg.Type,
 		Path:              args.PathManager.PathForStatic(shardId, mainConfig.TrieSyncStorage.DB.FilePath),
 		BatchDelaySeconds: dbCfg.BatchDelaySeconds,
@@ -184,7 +182,7 @@ func createTrieSyncDB(args ArgsDataPool) (storage.Persister, error) {
 		argDB.Path = filePath
 	}
 
-	db, err := storageUnit.NewDB(argDB)
+	db, err := storageunit.NewDB(argDB)
 	if err != nil {
 		return nil, fmt.Errorf("%w while creating the db for the trie nodes", err)
 	}

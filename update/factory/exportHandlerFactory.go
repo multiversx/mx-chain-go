@@ -9,8 +9,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go-storage/storageUnit"
-	"github.com/ElrondNetwork/elrond-go-storage/timecache"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -25,7 +23,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/cache"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
+	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/update/genesis"
@@ -529,7 +529,7 @@ func (e *exportHandlerFactory) createInterceptors() error {
 		DataPool:                e.dataPool,
 		MaxTxNonceDeltaAllowed:  math.MaxInt32,
 		TxFeeHandler:            &disabled.FeeHandler{},
-		BlockBlackList:          timecache.NewTimeCache(time.Second),
+		BlockBlackList:          cache.NewTimeCache(time.Second),
 		HeaderSigVerifier:       e.headerSigVerifier,
 		HeaderIntegrityVerifier: e.headerIntegrityVerifier,
 		SizeCheckDelta:          math.MaxUint32,
@@ -557,7 +557,7 @@ func (e *exportHandlerFactory) createInterceptors() error {
 func createStorer(storageConfig config.StorageConfig, folder string) (storage.Storer, error) {
 	dbConfig := storageFactory.GetDBFromConfig(storageConfig.DB)
 	dbConfig.FilePath = path.Join(folder, storageConfig.DB.FilePath)
-	accountsTrieStorage, err := storageUnit.NewStorageUnitFromConf(
+	accountsTrieStorage, err := storageunit.NewStorageUnitFromConf(
 		storageFactory.GetCacherFromConfig(storageConfig.Cache),
 		dbConfig,
 	)

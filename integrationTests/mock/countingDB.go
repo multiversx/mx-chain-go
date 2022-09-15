@@ -1,20 +1,20 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go-storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/database"
 )
 
 var _ storage.Persister = (*countingDB)(nil)
 
 type countingDB struct {
-	db      *memorydb.DB
+	db      *database.MemDB
 	nrOfPut int
 }
 
 // NewCountingDB returns a new instance of countingDB
 func NewCountingDB() *countingDB {
-	return &countingDB{memorydb.New(), 0}
+	return &countingDB{database.NewMemDB(), 0}
 }
 
 // Put will add the given key-value pair in the db

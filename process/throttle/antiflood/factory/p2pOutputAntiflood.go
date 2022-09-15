@@ -3,13 +3,13 @@ package factory
 import (
 	"context"
 
-	"github.com/ElrondNetwork/elrond-go-storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood"
 	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/disabled"
 	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/floodPreventers"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
+	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 )
 
 const outputReservedPercent = float32(0)
@@ -25,7 +25,7 @@ func NewP2POutputAntiFlood(ctx context.Context, mainConfig config.Config) (proce
 
 func initP2POutputAntiFlood(ctx context.Context, mainConfig config.Config) (process.P2PAntifloodHandler, error) {
 	cacheConfig := storageFactory.GetCacherFromConfig(mainConfig.Antiflood.Cache)
-	antifloodCache, err := storageUnit.NewCache(cacheConfig)
+	antifloodCache, err := storageunit.NewCache(cacheConfig)
 	if err != nil {
 		return nil, err
 	}

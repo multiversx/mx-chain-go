@@ -11,7 +11,7 @@ require (
 	github.com/ElrondNetwork/elrond-go-core v1.1.18
 	github.com/ElrondNetwork/elrond-go-crypto v1.0.1
 	github.com/ElrondNetwork/elrond-go-logger v1.0.7
-	github.com/ElrondNetwork/elrond-go-storage v1.0.0
+	github.com/ElrondNetwork/elrond-go-storage v1.0.1-0.20220913144125-a47ce9bff84e
 	github.com/ElrondNetwork/elrond-vm-common v1.3.15-0.20220803072537-08e036d340bc
 	github.com/ElrondNetwork/go-libp2p-pubsub v0.6.1-rc1
 	github.com/beevik/ntp v0.3.0

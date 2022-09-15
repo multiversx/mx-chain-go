@@ -19,7 +19,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go-storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/common/enablers"
 	"github.com/ElrondNetwork/elrond-go/common/forking"
@@ -42,6 +41,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager"
 	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager/evictionWaitingList"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
@@ -66,7 +66,7 @@ type testKeyPair struct {
 }
 
 func createPhysicalUnit(t *testing.T) (storage.Storer, string) {
-	cacheConfig := storageUnit.CacheConfig{
+	cacheConfig := storageunit.CacheConfig{
 		Name:                 "test",
 		Type:                 "SizeLRU",
 		SizeInBytes:          314572800,
@@ -76,7 +76,7 @@ func createPhysicalUnit(t *testing.T) (storage.Storer, string) {
 		Shards:               0,
 	}
 	dir := t.TempDir()
-	persisterConfig := storageUnit.ArgDB{
+	persisterConfig := storageunit.ArgDB{
 		Path:              dir,
 		DBType:            "LvlDBSerial",
 		BatchDelaySeconds: 2,
@@ -84,9 +84,9 @@ func createPhysicalUnit(t *testing.T) (storage.Storer, string) {
 		MaxOpenFiles:      10,
 	}
 
-	cache, _ := storageUnit.NewCache(cacheConfig)
-	persist, _ := storageUnit.NewDB(persisterConfig)
-	unit, _ := storageUnit.NewStorageUnit(cache, persist)
+	cache, _ := storageunit.NewCache(cacheConfig)
+	persist, _ := storageunit.NewDB(persisterConfig)
+	unit, _ := storageunit.NewStorageUnit(cache, persist)
 
 	return unit, dir
 }

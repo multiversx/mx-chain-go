@@ -7,14 +7,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go-storage/memorydb"
-	"github.com/ElrondNetwork/elrond-go-storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/common"
 	commonDisabled "github.com/ElrondNetwork/elrond-go/common/disabled"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/storage/database"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
+	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/trie/hashesHolder/disabled"
 	"github.com/ElrondNetwork/elrond-go/update"
@@ -56,7 +56,7 @@ func NewDataTrieFactory(args ArgsNewDataTrieFactory) (*dataTrieFactory, error) {
 
 	dbConfig := storageFactory.GetDBFromConfig(args.StorageConfig.DB)
 	dbConfig.FilePath = path.Join(args.SyncFolder, args.StorageConfig.DB.FilePath)
-	accountsTrieStorage, err := storageUnit.NewStorageUnitFromConf(
+	accountsTrieStorage, err := storageunit.NewStorageUnitFromConf(
 		storageFactory.GetCacherFromConfig(args.StorageConfig.Cache),
 		dbConfig,
 	)
@@ -65,7 +65,7 @@ func NewDataTrieFactory(args ArgsNewDataTrieFactory) (*dataTrieFactory, error) {
 	}
 	tsmArgs := trie.NewTrieStorageManagerArgs{
 		MainStorer:        accountsTrieStorage,
-		CheckpointsStorer: memorydb.New(),
+		CheckpointsStorer: database.NewMemDB(),
 		Marshalizer:       args.Marshalizer,
 		Hasher:            args.Hasher,
 		GeneralConfig: config.TrieStorageManagerConfig{

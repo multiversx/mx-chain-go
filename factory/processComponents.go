@@ -15,9 +15,6 @@ import (
 	dataBlock "github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	storageRepoFactory "github.com/ElrondNetwork/elrond-go-storage/factory"
-	"github.com/ElrondNetwork/elrond-go-storage/storageUnit"
-	"github.com/ElrondNetwork/elrond-go-storage/timecache"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -62,7 +59,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/cache"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
+	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 	"github.com/ElrondNetwork/elrond-go/update"
 	updateDisabled "github.com/ElrondNetwork/elrond-go/update/disabled"
 	updateFactory "github.com/ElrondNetwork/elrond-go/update/factory"
@@ -517,7 +516,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 	}
 
 	vmOutputCacherConfig := storageFactory.GetCacherFromConfig(pcf.config.VMOutputCacher)
-	vmOutputCacher, err := storageUnit.NewCache(vmOutputCacherConfig)
+	vmOutputCacher, err := storageunit.NewCache(vmOutputCacherConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -1199,8 +1198,8 @@ func (pcf *processComponentsFactory) newInterceptorContainerFactory(
 }
 
 func (pcf *processComponentsFactory) newStorageResolver() (dataRetriever.ResolversContainerFactory, error) {
-	pathManager, err := storageRepoFactory.CreatePathManager(
-		storageRepoFactory.ArgCreatePathManager{
+	pathManager, err := storageFactory.CreatePathManager(
+		storageFactory.ArgCreatePathManager{
 			WorkingDir: pcf.importDBConfig.ImportDBWorkingDir,
 			ChainID:    pcf.coreData.ChainID(),
 		},
@@ -1327,7 +1326,7 @@ func (pcf *processComponentsFactory) newShardInterceptorContainerFactory(
 	peerShardMapper *networksharding.PeerShardMapper,
 	hardforkTrigger HardforkTrigger,
 ) (process.InterceptorsContainerFactory, process.TimeCacher, error) {
-	headerBlackList := timecache.NewTimeCache(timeSpanForBadHeaders)
+	headerBlackList := cache.NewTimeCache(timeSpanForBadHeaders)
 	shardInterceptorsContainerFactoryArgs := interceptorscontainer.CommonInterceptorsContainerFactoryArgs{
 		CoreComponents:               pcf.coreData,
 		CryptoComponents:             pcf.crypto,
@@ -1375,7 +1374,7 @@ func (pcf *processComponentsFactory) newMetaInterceptorContainerFactory(
 	peerShardMapper *networksharding.PeerShardMapper,
 	hardforkTrigger HardforkTrigger,
 ) (process.InterceptorsContainerFactory, process.TimeCacher, error) {
-	headerBlackList := timecache.NewTimeCache(timeSpanForBadHeaders)
+	headerBlackList := cache.NewTimeCache(timeSpanForBadHeaders)
 	metaInterceptorsContainerFactoryArgs := interceptorscontainer.CommonInterceptorsContainerFactoryArgs{
 		CoreComponents:               pcf.coreData,
 		CryptoComponents:             pcf.crypto,
@@ -1577,7 +1576,7 @@ func createNetworkShardingCollector(
 }
 
 func createCache(cacheConfig config.CacheConfig) (storage.Cacher, error) {
-	return storageUnit.NewCache(storageFactory.GetCacherFromConfig(cacheConfig))
+	return storageunit.NewCache(storageFactory.GetCacherFromConfig(cacheConfig))
 }
 
 func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {

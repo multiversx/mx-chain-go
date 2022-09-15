@@ -20,10 +20,6 @@ import (
 	ed25519SingleSig "github.com/ElrondNetwork/elrond-go-crypto/signing/ed25519/singlesig"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl"
 	mclsinglesig "github.com/ElrondNetwork/elrond-go-crypto/signing/mcl/singlesig"
-	"github.com/ElrondNetwork/elrond-go-storage/lrucache"
-	"github.com/ElrondNetwork/elrond-go-storage/memorydb"
-	"github.com/ElrondNetwork/elrond-go-storage/storageUnit"
-	"github.com/ElrondNetwork/elrond-go-storage/timecache"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus/round"
@@ -46,6 +42,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager"
 	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager/evictionWaitingList"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/cache"
+	"github.com/ElrondNetwork/elrond-go/storage/database"
+	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
@@ -137,9 +136,9 @@ func createTestBlockChain() data.ChainHandler {
 }
 
 func createMemUnit() storage.Storer {
-	cache, _ := storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 10, Shards: 1, SizeInBytes: 0})
+	cacheInstance, _ := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 10, Shards: 1, SizeInBytes: 0})
 
-	unit, _ := storageUnit.NewStorageUnit(cache, memorydb.New())
+	unit, _ := storageunit.NewStorageUnit(cacheInstance, database.NewMemDB())
 	return unit
 }
 
@@ -163,7 +162,7 @@ func createAccountsDB(marshaller marshal.Marshalizer) state.AccountsAdapter {
 	marsh := &marshal.GogoProtoMarshalizer{}
 	hasher := sha256.NewSha256()
 	evictionWaitListSize := uint(100)
-	ewl, _ := evictionWaitingList.NewEvictionWaitingList(evictionWaitListSize, memorydb.New(), marsh)
+	ewl, _ := evictionWaitingList.NewEvictionWaitingList(evictionWaitListSize, database.NewMemDB(), marsh)
 
 	// TODO change this implementation with a factory
 	generalCfg := config.TrieStorageManagerConfig{
@@ -352,7 +351,7 @@ func createConsensusOnlyNode(
 
 	forkDetector, _ := syncFork.NewShardForkDetector(
 		roundHandler,
-		timecache.NewTimeCache(time.Second),
+		cache.NewTimeCache(time.Second),
 		&mock.BlockTrackerStub{},
 		0,
 	)
@@ -383,7 +382,7 @@ func createConsensusOnlyNode(
 	testMultiSig := cryptoMocks.NewMultiSigner(consensusSize)
 	_ = testMultiSig.Reset(inPubKeys[shardId], uint16(selfId))
 
-	peerSigCache, _ := storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 1000})
+	peerSigCache, _ := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 1000})
 	peerSigHandler, _ := peerSignatureHandler.NewPeerSignatureHandler(peerSigCache, singleBlsSigner, testKeyGen)
 	accntAdapter := createAccountsDB(testMarshalizer)
 	networkShardingCollector := mock.NewNetworkShardingCollectorMock()
@@ -510,7 +509,7 @@ func createNodes(
 		shardCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(1), uint32(0))
 		epochStartRegistrationHandler := notifier.NewEpochStartSubscriptionHandler()
 		bootStorer := integrationTests.CreateMemUnit()
-		consensusCache, _ := lrucache.NewCache(10000)
+		consensusCache, _ := cache.NewLRUCache(10000)
 
 		argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
 			ShardConsensusGroupSize: consensusSize,

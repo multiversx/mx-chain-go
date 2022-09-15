@@ -10,10 +10,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/ed25519"
 	ed25519SingleSig "github.com/ElrondNetwork/elrond-go-crypto/signing/ed25519/singlesig"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl"
-	"github.com/ElrondNetwork/elrond-go-storage/lrucache"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
+	"github.com/ElrondNetwork/elrond-go/storage/cache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 )
 
@@ -58,7 +58,7 @@ func CreateProcessorNodesWithNodesCoordinator(
 	for shardId, validatorList := range validatorsMap {
 		nodesList := make([]*TestProcessorNode, len(validatorList))
 		for i, v := range validatorList {
-			cache, _ := lrucache.NewCache(10000)
+			lruCache, _ := cache.NewLRUCache(10000)
 			argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
 				ShardConsensusGroupSize: shardConsensusGroupSize,
 				MetaConsensusGroupSize:  metaConsensusGroupSize,
@@ -69,7 +69,7 @@ func CreateProcessorNodesWithNodesCoordinator(
 				EligibleNodes:           validatorsMapForNodesCoordinator,
 				WaitingNodes:            waitingMapForNodesCoordinator,
 				SelfPublicKey:           v.PubKeyBytes(),
-				ConsensusGroupCache:     cache,
+				ConsensusGroupCache:     lruCache,
 				ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
 				ChanStopNode:            endProcess.GetDummyEndProcessChannel(),
 				IsFullArchive:           false,

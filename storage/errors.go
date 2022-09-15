@@ -3,16 +3,9 @@ package storage
 import (
 	"errors"
 	"strings"
+
+	storageErrors "github.com/ElrondNetwork/elrond-go-storage/common"
 )
-
-// ErrNilCacher is raised when a nil cacher is provided
-var ErrNilCacher = errors.New("expected not nil cacher")
-
-// ErrNotSupportedCacheType is raised when an unsupported cache type is provided
-var ErrNotSupportedCacheType = errors.New("not supported cache type")
-
-// ErrNotSupportedDBType is raised when an unsupported database type is provided
-var ErrNotSupportedDBType = errors.New("not supported db type")
 
 // ErrInvalidNumberOfPersisters signals that an invalid number of persisters has been provided
 var ErrInvalidNumberOfPersisters = errors.New("invalid number of active persisters")
@@ -76,6 +69,27 @@ var ErrNilNodeTypeProvider = errors.New("nil node type provider")
 
 // ErrNilOldDataCleanerProvider signals that a nil old data cleaner provider has been provided
 var ErrNilOldDataCleanerProvider = errors.New("nil old data cleaner provider")
+
+// ErrKeyNotFound is raised when a key is not found
+var ErrKeyNotFound = storageErrors.ErrKeyNotFound
+
+// ErrInvalidConfig signals an invalid config
+var ErrInvalidConfig = storageErrors.ErrInvalidConfig
+
+// ErrCacheSizeInvalid signals that size of cache is less than 1
+var ErrCacheSizeInvalid = storageErrors.ErrCacheSizeInvalid
+
+// ErrNotSupportedDBType is raised when an unsupported database type is provided
+var ErrNotSupportedDBType = storageErrors.ErrNotSupportedDBType
+
+// ErrNotSupportedCacheType is raised when an unsupported cache type is provided
+var ErrNotSupportedCacheType = storageErrors.ErrNotSupportedCacheType
+
+// ErrInvalidCacheExpiry signals that an invalid cache expiry was provided
+var ErrInvalidCacheExpiry = storageErrors.ErrInvalidCacheExpiry
+
+// ErrDBIsClosed is raised when the DB is closed
+var ErrDBIsClosed = storageErrors.ErrDBIsClosed
 
 // IsNotFoundInStorageErr returns whether an error is a "not found in storage" error.
 // Currently, "item not found" storage errors are untyped (thus not distinguishable from others). E.g. see "pruningStorer.go".

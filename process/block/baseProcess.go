@@ -19,7 +19,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go-storage/storageUnit"
 	nodeFactory "github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/common/holders"
@@ -34,6 +33,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 )
 
 var log = logger.GetOrCreate("process/block")
@@ -1699,7 +1699,7 @@ func (bp *baseProcessor) commitTrieEpochRootHashIfNeeded(metaBlock *block.MetaBl
 	if check.IfNil(trieEpochRootHashStorageUnit) {
 		return nil
 	}
-	_, isStorerDisabled := trieEpochRootHashStorageUnit.(*storageUnit.NilStorer)
+	_, isStorerDisabled := trieEpochRootHashStorageUnit.(*storageunit.NilStorer)
 	if isStorerDisabled {
 		return nil
 	}

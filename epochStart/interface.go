@@ -205,3 +205,9 @@ type EpochNotifier interface {
 	CheckEpoch(epoch uint32)
 	IsInterfaceNil() bool
 }
+
+// EpochStartNotifier defines which actions should be done for handling new epoch's events
+type EpochStartNotifier interface {
+	RegisterHandler(handler ActionHandler)
+	IsInterfaceNil() bool
+}

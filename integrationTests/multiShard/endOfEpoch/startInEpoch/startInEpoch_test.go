@@ -11,7 +11,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters/uint64ByteSlice"
-	"github.com/ElrondNetwork/elrond-go-storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap"
@@ -28,6 +27,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/storage/factory"
+	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	epochNotifierMock "github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
@@ -350,14 +350,14 @@ func getBootstrapper(shardID uint32, baseArgs storageBootstrap.ArgsBaseStorageBo
 
 func getGeneralConfig() config.Config {
 	generalConfig := testscommon.GetGeneralConfig()
-	generalConfig.MiniBlocksStorage.DB.Type = string(storageUnit.LvlDBSerial)
-	generalConfig.ShardHdrNonceHashStorage.DB.Type = string(storageUnit.LvlDBSerial)
-	generalConfig.MetaBlockStorage.DB.Type = string(storageUnit.LvlDBSerial)
-	generalConfig.MetaHdrNonceHashStorage.DB.Type = string(storageUnit.LvlDBSerial)
-	generalConfig.BlockHeaderStorage.DB.Type = string(storageUnit.LvlDBSerial)
-	generalConfig.BootstrapStorage.DB.Type = string(storageUnit.LvlDBSerial)
-	generalConfig.ReceiptsStorage.DB.Type = string(storageUnit.LvlDBSerial)
-	generalConfig.ScheduledSCRsStorage.DB.Type = string(storageUnit.LvlDBSerial)
+	generalConfig.MiniBlocksStorage.DB.Type = string(storageunit.LvlDBSerial)
+	generalConfig.ShardHdrNonceHashStorage.DB.Type = string(storageunit.LvlDBSerial)
+	generalConfig.MetaBlockStorage.DB.Type = string(storageunit.LvlDBSerial)
+	generalConfig.MetaHdrNonceHashStorage.DB.Type = string(storageunit.LvlDBSerial)
+	generalConfig.BlockHeaderStorage.DB.Type = string(storageunit.LvlDBSerial)
+	generalConfig.BootstrapStorage.DB.Type = string(storageunit.LvlDBSerial)
+	generalConfig.ReceiptsStorage.DB.Type = string(storageunit.LvlDBSerial)
+	generalConfig.ScheduledSCRsStorage.DB.Type = string(storageunit.LvlDBSerial)
 
 	return generalConfig
 }

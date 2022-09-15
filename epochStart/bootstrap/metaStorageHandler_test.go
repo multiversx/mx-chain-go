@@ -10,7 +10,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	storageErrors "github.com/ElrondNetwork/elrond-go-storage/common/commonErrors"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
@@ -212,7 +211,7 @@ func testMetaWithMissingStorer(missingUnit dataRetriever.UnitType, atCallNumber 
 
 				if unitType == missingUnit ||
 					strings.Contains(unitType.String(), missingUnit.String()) {
-					return nil, fmt.Errorf("%w for %s", storageErrors.ErrKeyNotFound, missingUnit.String())
+					return nil, fmt.Errorf("%w for %s", storage.ErrKeyNotFound, missingUnit.String())
 				}
 
 				return &storageStubs.StorerStub{}, nil
@@ -224,7 +223,8 @@ func testMetaWithMissingStorer(missingUnit dataRetriever.UnitType, atCallNumber 
 		}
 
 		err := mtStrHandler.SaveDataToStorage(components)
-		require.True(t, strings.Contains(err.Error(), storageErrors.ErrKeyNotFound.Error()))
+		require.NotNil(t, err)
+		require.True(t, strings.Contains(err.Error(), storage.ErrKeyNotFound.Error()))
 		require.True(t, strings.Contains(err.Error(), missingUnit.String()))
 	}
 }

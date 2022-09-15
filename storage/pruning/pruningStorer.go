@@ -14,12 +14,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	storageCore "github.com/ElrondNetwork/elrond-go-core/storage"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	storageErrors "github.com/ElrondNetwork/elrond-go-storage/common/commonErrors"
-	"github.com/ElrondNetwork/elrond-go-storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/clean"
+	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 )
 
 var _ storage.Storer = (*PruningStorer)(nil)
@@ -133,7 +132,7 @@ func initPruningStorer(
 ) (*PruningStorer, error) {
 	pdb := &PruningStorer{}
 
-	cache, err := storageUnit.NewCache(args.CacheConf)
+	suCache, err := storageunit.NewCache(args.CacheConf)
 	if err != nil {
 		return nil, err
 	}
@@ -147,7 +146,7 @@ func initPruningStorer(
 	pdb.identifier = identifier
 	pdb.persisterFactory = args.PersisterFactory
 	pdb.shardCoordinator = args.ShardCoordinator
-	pdb.cacher = cache
+	pdb.cacher = suCache
 	pdb.epochPrepareHdr = &block.MetaBlock{Epoch: epochForDefaultEpochPrepareHdr}
 	pdb.epochForPutOperation = args.StartingEpoch
 	pdb.pathManager = args.PathManager
@@ -319,13 +318,17 @@ func (ps *PruningStorer) getPersisterToUse() *persisterData {
 		returningPath := "<nil persisterToUse>"
 		if persisterToUse != nil {
 			returningPath = persisterToUse.path
+			log.Debug("active persister not found",
+				"epoch", ps.epochForPutOperation,
+				"used", persisterToUse.epoch,
+				"path", ps.dbPath,
+				"returning persister", returningPath)
+		} else {
+			log.Debug("active persister not found",
+				"epoch", ps.epochForPutOperation,
+				"path", ps.dbPath,
+				"returning persister", returningPath)
 		}
-
-		log.Debug("active persister not found",
-			"epoch", ps.epochForPutOperation,
-			"used", persisterToUse.epoch,
-			"path", ps.dbPath,
-			"returning persister", returningPath)
 	}
 
 	return persisterToUse
@@ -419,7 +422,7 @@ func (ps *PruningStorer) Get(key []byte) ([]byte, error) {
 	for idx := 0; idx < len(ps.activePersisters); idx++ {
 		val, err := ps.activePersisters[idx].persister.Get(key)
 		if err != nil {
-			if err == storageErrors.ErrDBIsClosed {
+			if err == storage.ErrDBIsClosed {
 				numClosedDbs++
 			}
 
@@ -432,7 +435,7 @@ func (ps *PruningStorer) Get(key []byte) ([]byte, error) {
 	}
 
 	if numClosedDbs == len(ps.activePersisters) && len(ps.activePersisters) > 0 {
-		return nil, storageErrors.ErrDBIsClosed
+		return nil, storage.ErrDBIsClosed
 	}
 
 	return nil, fmt.Errorf("key %s not found in %s", hex.EncodeToString(key), ps.identifier)
@@ -560,7 +563,7 @@ func (ps *PruningStorer) SearchFirst(key []byte) ([]byte, error) {
 	}
 
 	return nil, fmt.Errorf("%w - SearchFirst, unit = %s, key = %s, num active persisters = %d",
-		storageErrors.ErrKeyNotFound,
+		storage.ErrKeyNotFound,
 		ps.identifier,
 		hex.EncodeToString(key),
 		len(ps.activePersisters),
@@ -586,7 +589,7 @@ func (ps *PruningStorer) Has(key []byte) error {
 		return nil
 	}
 
-	return storageErrors.ErrKeyNotFound
+	return storage.ErrKeyNotFound
 }
 
 // SetEpochForPutOperation will set the epoch to be used when using the put operation
