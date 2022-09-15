@@ -353,6 +353,16 @@ func (stub *BlockChainHookStub) ApplyFiltersOnCodeMetadata(codeMetadata vmcommon
 	return codeMetadata
 }
 
+// IsPaused -
+func (stub *BlockChainHookStub) IsPaused(_ []byte) bool {
+	return false
+}
+
+// IsLimitedTransfer -
+func (stub *BlockChainHookStub) IsLimitedTransfer(_ []byte) bool {
+	return false
+}
+
 // Close -
 func (stub *BlockChainHookStub) Close() error {
 	if stub.CloseCalled != nil {

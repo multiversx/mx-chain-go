@@ -17,6 +17,7 @@ func NewDirectConnectionsProcessorNoGoRoutine(args ArgDirectConnectionsProcessor
 		shardCoordinator:          args.ShardCoordinator,
 		delayBetweenNotifications: args.DelayBetweenNotifications,
 		notifiedPeersMap:          make(map[core.PeerID]struct{}),
+		nodesCoordinator:          args.NodesCoordinator,
 	}
 
 	return dcp, nil

@@ -146,7 +146,7 @@ type TransactionCoordinator interface {
 
 	CreateReceiptsHash() ([]byte, error)
 	VerifyCreatedBlockTransactions(hdr data.HeaderHandler, body *block.Body) error
-	CreateMarshalizedReceipts() ([]byte, error)
+	GetCreatedInShardMiniBlocks() []*block.MiniBlock
 	VerifyCreatedMiniBlocks(hdr data.HeaderHandler, body *block.Body) error
 	AddIntermediateTransactions(mapSCRs map[block.Type][]data.TransactionHandler) error
 	GetAllIntermediateTxs() map[block.Type]map[string]data.TransactionHandler
@@ -488,6 +488,8 @@ type BlockChainHookHandler interface {
 	GetBuiltinFunctionsContainer() vmcommon.BuiltInFunctionContainer
 	GetAllState(_ []byte) (map[string][]byte, error)
 	GetESDTToken(address []byte, tokenID []byte, nonce uint64) (*esdt.ESDigitalToken, error)
+	IsPaused(tokenID []byte) bool
+	IsLimitedTransfer(tokenID []byte) bool
 	NumberOfShards() uint32
 	SetCurrentHeader(hdr data.HeaderHandler)
 	SaveCompiledCode(codeHash []byte, code []byte)
@@ -553,7 +555,6 @@ type RequestHandler interface {
 	GetNumPeersToQuery(key string) (int, int, error)
 	RequestTrieNode(requestHash []byte, topic string, chunkIndex uint32)
 	CreateTrieNodeIdentifier(requestHash []byte, chunkIndex uint32) []byte
-	RequestPeerAuthenticationsChunk(destShardID uint32, chunkIndex uint32)
 	RequestPeerAuthenticationsByHashes(destShardID uint32, hashes [][]byte)
 	IsInterfaceNil() bool
 }
@@ -561,6 +562,7 @@ type RequestHandler interface {
 // CallArgumentsParser defines the functionality to parse transaction data into call arguments
 type CallArgumentsParser interface {
 	ParseData(data string) (string, [][]byte, error)
+	ParseArguments(data string) ([][]byte, error)
 	IsInterfaceNil() bool
 }
 
@@ -580,6 +582,7 @@ type StorageArgumentsParser interface {
 // ArgumentsParser defines the functionality to parse transaction data into arguments and code for smart contracts
 type ArgumentsParser interface {
 	ParseCallData(data string) (string, [][]byte, error)
+	ParseArguments(data string) ([][]byte, error)
 	ParseDeployData(data string) (*parsers.DeployArgs, error)
 
 	CreateDataFromStorageUpdate(storageUpdates []*vmcommon.StorageUpdate) string
@@ -708,20 +711,14 @@ type PeerShardMapper interface {
 	UpdatePeerIDPublicKeyPair(pid core.PeerID, pk []byte)
 	PutPeerIdShardId(pid core.PeerID, shardID uint32)
 	PutPeerIdSubType(pid core.PeerID, peerSubType core.P2PPeerSubType)
-	GetLastKnownPeerID(pk []byte) (*core.PeerID, bool)
 	GetPeerInfo(pid core.PeerID) core.P2PPeerInfo
 	IsInterfaceNil() bool
 }
 
 // NetworkShardingCollector defines the updating methods used by the network sharding component
 type NetworkShardingCollector interface {
-	UpdatePeerIDPublicKeyPair(pid core.PeerID, pk []byte)
+	PeerShardMapper
 	UpdatePeerIDInfo(pid core.PeerID, pk []byte, shardID uint32)
-	PutPeerIdShardId(pid core.PeerID, shardID uint32)
-	PutPeerIdSubType(pid core.PeerID, peerSubType core.P2PPeerSubType)
-	GetLastKnownPeerID(pk []byte) (*core.PeerID, bool)
-	GetPeerInfo(pid core.PeerID) core.P2PPeerInfo
-	IsInterfaceNil() bool
 }
 
 // NetworkConnectionWatcher defines a watchdog functionality used to specify if the current node
@@ -1195,6 +1192,7 @@ type ScheduledTxsExecutionHandler interface {
 	GetScheduledGasAndFees() scheduled.GasAndFees
 	SetScheduledInfo(scheduledInfo *ScheduledInfo)
 	GetScheduledRootHashForHeader(headerHash []byte) ([]byte, error)
+	GetScheduledRootHashForHeaderWithEpoch(headerHash []byte, epoch uint32) ([]byte, error)
 	RollBackToBlock(headerHash []byte) error
 	SaveStateIfNeeded(headerHash []byte)
 	SaveState(headerHash []byte, scheduledInfo *ScheduledInfo)
@@ -1239,5 +1237,12 @@ type ProcessedMiniBlocksTracker interface {
 	ConvertProcessedMiniBlocksMapToSlice() []bootstrapStorage.MiniBlocksInMeta
 	ConvertSliceToProcessedMiniBlocksMap(miniBlocksInMetaBlocks []bootstrapStorage.MiniBlocksInMeta)
 	DisplayProcessedMiniBlocks()
+	IsInterfaceNil() bool
+}
+
+// PeerAuthenticationPayloadValidator defines the operations supported by an entity able to validate timestamps
+// found in peer authentication messages
+type PeerAuthenticationPayloadValidator interface {
+	ValidateTimestamp(payloadTimestamp int64) error
 	IsInterfaceNil() bool
 }

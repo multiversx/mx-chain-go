@@ -19,7 +19,6 @@ type RequestHandlerStub struct {
 	GetNumPeersToQueryCalled                 func(key string) (int, int, error)
 	RequestTrieNodeCalled                    func(requestHash []byte, topic string, chunkIndex uint32)
 	CreateTrieNodeIdentifierCalled           func(requestHash []byte, chunkIndex uint32) []byte
-	RequestPeerAuthenticationsChunkCalled    func(destShardID uint32, chunkIndex uint32)
 	RequestPeerAuthenticationsByHashesCalled func(destShardID uint32, hashes [][]byte)
 }
 
@@ -151,13 +150,6 @@ func (rhs *RequestHandlerStub) CreateTrieNodeIdentifier(requestHash []byte, chun
 func (rhs *RequestHandlerStub) RequestTrieNode(requestHash []byte, topic string, chunkIndex uint32) {
 	if rhs.RequestTrieNodeCalled != nil {
 		rhs.RequestTrieNodeCalled(requestHash, topic, chunkIndex)
-	}
-}
-
-// RequestPeerAuthenticationsChunk -
-func (rhs *RequestHandlerStub) RequestPeerAuthenticationsChunk(destShardID uint32, chunkIndex uint32) {
-	if rhs.RequestPeerAuthenticationsChunkCalled != nil {
-		rhs.RequestPeerAuthenticationsChunkCalled(destShardID, chunkIndex)
 	}
 }
 

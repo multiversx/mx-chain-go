@@ -9,23 +9,27 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
+	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func createMockMetaAPIProcessor(
 	blockHeaderHash []byte,
-	storerMock *mock.StorerMock,
+	storerMock *genericMocks.StorerMock,
 	withHistory bool,
 	withKey bool,
 ) *metaAPIBlockProcessor {
 	return newMetaApiBlockProcessor(&ArgAPIBlockProcessor{
-		TxUnmarshaller: &mock.TransactionAPIHandlerStub{},
-		SelfShardID:    core.MetachainShardId,
-		Marshalizer:    &mock.MarshalizerFake{},
+		APITransactionHandler: &mock.TransactionAPIHandlerStub{},
+		SelfShardID:           core.MetachainShardId,
+		Marshalizer:           &mock.MarshalizerFake{},
 		Store: &mock.ChainStorerMock{
 			GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 				return storerMock
@@ -46,6 +50,7 @@ func createMockMetaAPIProcessor(
 				return withHistory
 			},
 		},
+		ReceiptsRepository: &testscommon.ReceiptsRepositoryStub{},
 	}, nil)
 }
 
@@ -54,7 +59,7 @@ func TestMetaAPIBlockProcessor_GetBlockByHashInvalidHashShouldErr(t *testing.T) 
 
 	headerHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
 
-	storerMock := mock.NewStorerMock()
+	storerMock := genericMocks.NewStorerMock()
 
 	metaAPIBlockProcessor := createMockMetaAPIProcessor(
 		headerHash,
@@ -63,7 +68,7 @@ func TestMetaAPIBlockProcessor_GetBlockByHashInvalidHashShouldErr(t *testing.T) 
 		false,
 	)
 
-	blk, err := metaAPIBlockProcessor.GetBlockByHash([]byte("invalidHash"), false)
+	blk, err := metaAPIBlockProcessor.GetBlockByHash([]byte("invalidHash"), api.BlockQueryOptions{})
 	assert.Nil(t, blk)
 	assert.Error(t, err)
 }
@@ -73,7 +78,7 @@ func TestMetaAPIBlockProcessor_GetBlockByNonceInvalidNonceShouldErr(t *testing.T
 
 	headerHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
 
-	storerMock := mock.NewStorerMock()
+	storerMock := genericMocks.NewStorerMock()
 
 	metaAPIBlockProcessor := createMockMetaAPIProcessor(
 		headerHash,
@@ -82,7 +87,7 @@ func TestMetaAPIBlockProcessor_GetBlockByNonceInvalidNonceShouldErr(t *testing.T
 		false,
 	)
 
-	blk, err := metaAPIBlockProcessor.GetBlockByNonce(100, false)
+	blk, err := metaAPIBlockProcessor.GetBlockByNonce(100, api.BlockQueryOptions{})
 	assert.Nil(t, blk)
 	assert.Error(t, err)
 }
@@ -92,7 +97,7 @@ func TestMetaAPIBlockProcessor_GetBlockByRoundInvalidRoundShouldErr(t *testing.T
 
 	headerHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
 
-	storerMock := mock.NewStorerMock()
+	storerMock := genericMocks.NewStorerMock()
 
 	metaAPIBlockProcessor := createMockMetaAPIProcessor(
 		headerHash,
@@ -101,7 +106,7 @@ func TestMetaAPIBlockProcessor_GetBlockByRoundInvalidRoundShouldErr(t *testing.T
 		true,
 	)
 
-	blk, err := metaAPIBlockProcessor.GetBlockByRound(100, false)
+	blk, err := metaAPIBlockProcessor.GetBlockByRound(100, api.BlockQueryOptions{})
 	assert.Nil(t, blk)
 	assert.Error(t, err)
 }
@@ -115,9 +120,7 @@ func TestMetaAPIBlockProcessor_GetBlockByHashFromHistoryNode(t *testing.T) {
 	miniblockHeader := []byte("miniBlockHash")
 	headerHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
 
-	storerMock := mock.NewStorerMock()
-	uint64Converter := mock.NewNonceHashConverterMock()
-
+	storerMock := genericMocks.NewStorerMockWithEpoch(epoch)
 	metaAPIBlockProcessor := createMockMetaAPIProcessor(
 		headerHash,
 		storerMock,
@@ -143,9 +146,6 @@ func TestMetaAPIBlockProcessor_GetBlockByHashFromHistoryNode(t *testing.T) {
 	headerBytes, _ := json.Marshal(header)
 	_ = storerMock.Put(headerHash, headerBytes)
 
-	nonceBytes := uint64Converter.ToByteSlice(nonce)
-	_ = storerMock.Put(nonceBytes, headerHash)
-
 	expectedBlock := &api.Block{
 		Nonce:           nonce,
 		Round:           round,
@@ -166,7 +166,7 @@ func TestMetaAPIBlockProcessor_GetBlockByHashFromHistoryNode(t *testing.T) {
 		Status:                 BlockStatusOnChain,
 	}
 
-	blk, err := metaAPIBlockProcessor.GetBlockByHash(headerHash, false)
+	blk, err := metaAPIBlockProcessor.GetBlockByHash(headerHash, api.BlockQueryOptions{})
 	assert.Nil(t, err)
 	assert.Equal(t, expectedBlock, blk)
 }
@@ -174,28 +174,37 @@ func TestMetaAPIBlockProcessor_GetBlockByHashFromHistoryNode(t *testing.T) {
 func TestMetaAPIBlockProcessor_GetBlockByNonceFromHistoryNode(t *testing.T) {
 	t.Parallel()
 
-	nonce := uint64(1)
-	round := uint64(2)
-	epoch := uint32(1)
-	miniblockHeader := []byte("miniBlockHash")
-	headerHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
+	testEpoch := uint32(7)
+	testNonce := uint64(42)
 
-	storerMock := mock.NewStorerMock()
+	marshalizer := &marshal.GogoProtoMarshalizer{}
+	storageService := genericMocks.NewChainStorerMock(testEpoch)
+	historyRepository := &dblookupext.HistoryRepositoryStub{
+		GetEpochByHashCalled: func(hash []byte) (uint32, error) {
+			return testEpoch, nil
+		},
+	}
 
-	metaAPIBlockProcessor := createMockMetaAPIProcessor(
-		headerHash,
-		storerMock,
-		true,
-		false,
-	)
+	processor := createMockMetaAPIProcessor(nil, nil, true, false)
+	processor.store = storageService
+	processor.marshalizer = marshalizer
+	processor.historyRepo = historyRepository
 
-	header := &block.MetaBlock{
-		Nonce: nonce,
-		Round: round,
-		Epoch: epoch,
+	// Setup a miniblock
+	miniblockHash := []byte{0xff}
+	miniblock := &block.MiniBlock{
+		Type:     block.TxBlock,
+		TxHashes: [][]byte{},
+	}
+
+	// Setup a block containing the miniblock
+	metablockHash := []byte{0xaa, 0xbb}
+	metablock := &block.MetaBlock{
+		Nonce: testNonce,
+		Epoch: testEpoch,
 		MiniBlockHeaders: []block.MiniBlockHeader{
 			{
-				Hash: miniblockHeader,
+				Hash: miniblockHash,
 				Type: block.TxBlock,
 			},
 		},
@@ -205,19 +214,23 @@ func TestMetaAPIBlockProcessor_GetBlockByNonceFromHistoryNode(t *testing.T) {
 		DevFeesInEpoch:         big.NewInt(5),
 	}
 
-	headerBytes, _ := json.Marshal(header)
-	_ = storerMock.Put(headerHash, headerBytes)
+	// Store the miniblock and the metablock
+	miniblockBytes, _ := processor.marshalizer.Marshal(miniblock)
+	metablockBytes, _ := processor.marshalizer.Marshal(metablock)
+	metablockNonceBytes := mock.NewNonceHashConverterMock().ToByteSlice(testNonce)
+	_ = storageService.Miniblocks.PutInEpoch(miniblockHash, miniblockBytes, testEpoch)
+	_ = storageService.Metablocks.PutInEpoch(metablockHash, metablockBytes, testEpoch)
+	_ = storageService.MetaHdrNonce.PutInEpoch(metablockNonceBytes, metablockHash, testEpoch)
 
-	expectedBlock := &api.Block{
-		Nonce:           nonce,
-		Round:           round,
+	expectedApiBlock := &api.Block{
+		Epoch:           testEpoch,
+		Nonce:           testNonce,
 		Shard:           core.MetachainShardId,
-		Epoch:           epoch,
-		Hash:            hex.EncodeToString(headerHash),
+		Hash:            hex.EncodeToString(metablockHash),
 		NotarizedBlocks: []*api.NotarizedBlock{},
 		MiniBlocks: []*api.MiniBlock{
 			{
-				Hash: hex.EncodeToString(miniblockHeader),
+				Hash: hex.EncodeToString(miniblockHash),
 				Type: block.TxBlock.String(),
 			},
 		},
@@ -228,9 +241,9 @@ func TestMetaAPIBlockProcessor_GetBlockByNonceFromHistoryNode(t *testing.T) {
 		Status:                 BlockStatusOnChain,
 	}
 
-	blk, err := metaAPIBlockProcessor.GetBlockByNonce(1, true)
-	assert.Nil(t, err)
-	assert.Equal(t, expectedBlock, blk)
+	fetchedApiBlock, err := processor.GetBlockByHash(metablockHash, api.BlockQueryOptions{})
+	require.Nil(t, err)
+	require.Equal(t, expectedApiBlock, fetchedApiBlock)
 }
 
 func TestMetaAPIBlockProcessor_GetBlockByRoundFromStorer(t *testing.T) {
@@ -241,7 +254,7 @@ func TestMetaAPIBlockProcessor_GetBlockByRoundFromStorer(t *testing.T) {
 	miniblockHeader := []byte("miniBlockHash")
 	headerHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
 
-	storerMock := mock.NewStorerMock()
+	storerMock := genericMocks.NewStorerMockWithEpoch(epoch)
 
 	metaAPIBlockProcessor := createMockMetaAPIProcessor(
 		headerHash,
@@ -291,11 +304,11 @@ func TestMetaAPIBlockProcessor_GetBlockByRoundFromStorer(t *testing.T) {
 		Status:                 BlockStatusOnChain,
 	}
 
-	blk, err := metaAPIBlockProcessor.GetBlockByRound(round+1, true)
+	blk, err := metaAPIBlockProcessor.GetBlockByRound(round+1, api.BlockQueryOptions{})
 	assert.NotNil(t, err)
 	assert.Nil(t, blk)
 
-	blk, err = metaAPIBlockProcessor.GetBlockByRound(round, true)
+	blk, err = metaAPIBlockProcessor.GetBlockByRound(round, api.BlockQueryOptions{})
 	assert.Nil(t, err)
 	assert.Equal(t, expectedBlock, blk)
 }
@@ -309,7 +322,7 @@ func TestMetaAPIBlockProcessor_GetBlockByHashFromHistoryNodeStatusReverted(t *te
 	miniblockHeader := []byte("miniBlockHash")
 	headerHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
 
-	storerMock := mock.NewStorerMock()
+	storerMock := genericMocks.NewStorerMockWithEpoch(epoch)
 	uint64Converter := mock.NewNonceHashConverterMock()
 
 	metaAPIBlockProcessor := createMockMetaAPIProcessor(
@@ -361,7 +374,7 @@ func TestMetaAPIBlockProcessor_GetBlockByHashFromHistoryNodeStatusReverted(t *te
 		Status:                 BlockStatusReverted,
 	}
 
-	blk, err := metaAPIBlockProcessor.GetBlockByHash(headerHash, false)
+	blk, err := metaAPIBlockProcessor.GetBlockByHash(headerHash, api.BlockQueryOptions{})
 	assert.Nil(t, err)
 	assert.Equal(t, expectedBlock, blk)
 }
@@ -375,7 +388,7 @@ func TestMetaAPIBlockProcessor_GetBlockByRound_GetBlockByNonce_EpochStartBlock(t
 	miniblockHeader := []byte("miniBlockHash")
 	headerHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
 
-	storerMock := mock.NewStorerMock()
+	storerMock := genericMocks.NewStorerMockWithEpoch(epoch)
 
 	metaAPIBlockProc := createMockMetaAPIProcessor(
 		headerHash,
@@ -407,7 +420,62 @@ func TestMetaAPIBlockProcessor_GetBlockByRound_GetBlockByNonce_EpochStartBlock(t
 			},
 		},
 		EpochStart: block.EpochStart{
-			LastFinalizedHeaders: []block.EpochStartShardData{{}},
+			LastFinalizedHeaders: []block.EpochStartShardData{
+				{
+					ShardID:               1,
+					Nonce:                 1234,
+					Round:                 1500,
+					Epoch:                 10,
+					HeaderHash:            []byte("hh"),
+					RootHash:              []byte("rh"),
+					ScheduledRootHash:     []byte("sch"),
+					FirstPendingMetaBlock: []byte("fpmb"),
+					LastFinishedMetaBlock: []byte("lfmb"),
+					PendingMiniBlockHeaders: []block.MiniBlockHeader{
+						{
+							Hash:            []byte("mbh1"),
+							SenderShardID:   0,
+							ReceiverShardID: 1,
+							Type:            block.TxBlock,
+							Reserved:        []byte("rrr"),
+						},
+						{
+							Hash:            []byte("mbh2"),
+							SenderShardID:   1,
+							ReceiverShardID: 2,
+							Type:            block.SmartContractResultBlock,
+							Reserved:        []byte("rrr"),
+						},
+					},
+				},
+				{
+					ShardID:               2,
+					Nonce:                 2200,
+					Round:                 2340,
+					Epoch:                 10,
+					HeaderHash:            []byte("hh2"),
+					RootHash:              []byte("rh2"),
+					ScheduledRootHash:     []byte("sch2"),
+					FirstPendingMetaBlock: []byte("fpmb2"),
+					LastFinishedMetaBlock: []byte("lfmb2"),
+					PendingMiniBlockHeaders: []block.MiniBlockHeader{
+						{
+							Hash:            []byte("mmm1"),
+							SenderShardID:   1,
+							ReceiverShardID: 0,
+							Type:            block.TxBlock,
+							Reserved:        []byte("rrr"),
+						},
+						{
+							Hash:            []byte("mmm2"),
+							SenderShardID:   0,
+							ReceiverShardID: 2,
+							Type:            block.SmartContractResultBlock,
+							Reserved:        []byte("rrr"),
+						},
+					},
+				},
+			},
 			Economics: block.Economics{
 				TotalSupply:                      big.NewInt(100),
 				TotalToDistribute:                big.NewInt(55),
@@ -465,13 +533,65 @@ func TestMetaAPIBlockProcessor_GetBlockByRound_GetBlockByNonce_EpochStartBlock(t
 			PrevEpochStartRound:              222,
 			PrevEpochStartHash:               "7072657645706f6368",
 		},
+		EpochStartShardsData: []*api.EpochStartShardData{
+			{
+				ShardID:               1,
+				Epoch:                 10,
+				Round:                 1500,
+				Nonce:                 1234,
+				HeaderHash:            "6868",
+				RootHash:              "7268",
+				ScheduledRootHash:     "736368",
+				FirstPendingMetaBlock: "66706d62",
+				LastFinishedMetaBlock: "6c666d62",
+				PendingMiniBlockHeaders: []*api.MiniBlock{
+					{
+						Hash:             "6d626831",
+						SourceShard:      0,
+						DestinationShard: 1,
+						Type:             "TxBlock",
+					},
+					{
+						Hash:             "6d626832",
+						SourceShard:      1,
+						DestinationShard: 2,
+						Type:             "SmartContractResultBlock",
+					},
+				},
+			},
+			{
+				ShardID:               2,
+				Epoch:                 10,
+				Round:                 2340,
+				Nonce:                 2200,
+				HeaderHash:            "686832",
+				RootHash:              "726832",
+				ScheduledRootHash:     "73636832",
+				FirstPendingMetaBlock: "66706d6232",
+				LastFinishedMetaBlock: "6c666d6232",
+				PendingMiniBlockHeaders: []*api.MiniBlock{
+					{
+						Hash:             "6d6d6d31",
+						SourceShard:      1,
+						DestinationShard: 0,
+						Type:             "TxBlock",
+					},
+					{
+						Hash:             "6d6d6d32",
+						SourceShard:      0,
+						DestinationShard: 2,
+						Type:             "SmartContractResultBlock",
+					},
+				},
+			},
+		},
 	}
 
-	blk, err := metaAPIBlockProc.GetBlockByNonce(nonce, false)
+	blk, err := metaAPIBlockProc.GetBlockByNonce(nonce, api.BlockQueryOptions{})
 	assert.Nil(t, err)
 	assert.Equal(t, expectedBlock, blk)
 
-	blk, err = metaAPIBlockProc.GetBlockByRound(round, false)
+	blk, err = metaAPIBlockProc.GetBlockByRound(round, api.BlockQueryOptions{})
 	assert.Nil(t, err)
 	assert.Equal(t, expectedBlock, blk)
 }

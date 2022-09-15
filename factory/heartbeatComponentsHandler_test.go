@@ -9,8 +9,11 @@ import (
 )
 
 // ------------ Test ManagedHeartbeatComponents --------------------
-func TestManagedHeartbeatComponents_CreateWithInvalidArgs_ShouldErr(t *testing.T) {
+func TestManagedHeartbeatComponents_CreateWithInvalidArgsShouldErr(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	heartbeatArgs := getDefaultHeartbeatComponents(shardCoordinator)
@@ -23,8 +26,11 @@ func TestManagedHeartbeatComponents_CreateWithInvalidArgs_ShouldErr(t *testing.T
 	require.Nil(t, managedHeartbeatComponents.Monitor())
 }
 
-func TestManagedHeartbeatComponents_Create_ShouldWork(t *testing.T) {
+func TestManagedHeartbeatComponents_CreateShouldWork(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	heartbeatArgs := getDefaultHeartbeatComponents(shardCoordinator)
@@ -46,6 +52,9 @@ func TestManagedHeartbeatComponents_Create_ShouldWork(t *testing.T) {
 
 func TestManagedHeartbeatComponents_Close(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	heartbeatArgs := getDefaultHeartbeatComponents(shardCoordinator)

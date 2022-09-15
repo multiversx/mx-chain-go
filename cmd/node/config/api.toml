@@ -116,7 +116,13 @@
         { Name = "/ratings", Open = true },
 
         # /network/genesis-nodes will return the genesis nodes public keys
-        { Name = "/genesis-nodes", Open = true }
+        { Name = "/genesis-nodes", Open = true },
+
+        # /network/genesis-balances will return the balances minted at genesis
+        { Name = "/genesis-balances", Open = true },
+
+        # /network/gas-configs will return currently scheduled gas configs
+        { Name = "/gas-configs", Open = true }
     ]
 
 [APIPackages.log]
@@ -164,6 +170,11 @@
         { Name = "/cost", Open = true },
 
         # /transaction/pool will return the hashes of the transactions that are currently in the pool
+        # /transaction/pool?fields=sender,receiver,gaslimit,gasprice will return hashes and all the optional fields mentioned that are currently in the pool
+        # /transaction/pool?by-sender=erd1... will return the hashes of the transactions that are currently in the pool for the sender
+        # /transaction/pool?by-sender=erd1...&fields=sender,receiver,gaslimit,gasprice will return the hashes and all the optional fields mentioned of the transactions that are currently in the pool for the sender
+        # /transaction/pool?by-sender=erd1...&last-nonce=true will return the last nonce for the sender from the pool
+        # /transaction/pool?by-sender=erd1...&nonce-gaps=true will return all nonce gaps for the sender from the pool, if applicable
         { Name = "/pool", Open = true },
 
         # /transaction/:txhash will return the transaction in JSON format based on its hash

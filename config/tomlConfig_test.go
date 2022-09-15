@@ -107,7 +107,8 @@ func TestTomlParser(t *testing.T) {
 				VirtualMachineConfig: VirtualMachineConfig{ArwenVersions: arwenVersions},
 			},
 			GasConfig: VirtualMachineGasConfig{
-				MaxGasPerVmQuery: 1_500_000_000,
+				ShardMaxGasPerVmQuery: 1_500_000_000,
+				MetaMaxGasPerVmQuery:  0,
 			},
 		},
 		Debug: DebugConfig{
@@ -196,7 +197,8 @@ func TestTomlParser(t *testing.T) {
         ]
 
 	[VirtualMachine.GasConfig]
-		MaxGasPerVmQuery = 1500000000
+		ShardMaxGasPerVmQuery = 1500000000
+		MetaMaxGasPerVmQuery = 0
 
 [Debug]
     [Debug.InterceptorResolver]
@@ -654,8 +656,14 @@ func TestEnableEpochConfig(t *testing.T) {
 	# FailExecutionOnEveryAPIErrorEnableEpoch represent the epoch when new protection in VM is enabled to fail all wrong API calls
 	FailExecutionOnEveryAPIErrorEnableEpoch = 53
 
+	# ManagedCryptoAPIsEnableEpoch represents the epoch when the new managed crypto APIs are enabled
+	ManagedCryptoAPIsEnableEpoch = 54
+
     # HeartbeatDisableEpoch represents the epoch when heartbeat v1 messages stop being sent and processed
-    HeartbeatDisableEpoch = 54
+    HeartbeatDisableEpoch = 55
+
+	# ESDTMetadataContinuousCleanupEnableEpoch represents the epoch when esdt metadata is automatically deleted according to inshard liquidity
+	ESDTMetadataContinuousCleanupEnableEpoch = 56
 
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
@@ -737,7 +745,9 @@ func TestEnableEpochConfig(t *testing.T) {
 			TransformToMultiShardCreateEnableEpoch:      51,
 			ESDTRegisterAndSetAllRolesEnableEpoch:       52,
 			FailExecutionOnEveryAPIErrorEnableEpoch:     53,
-			HeartbeatDisableEpoch:                       54,
+			ManagedCryptoAPIsEnableEpoch:                54,
+			HeartbeatDisableEpoch:                       55,
+			ESDTMetadataContinuousCleanupEnableEpoch:    56,
 		},
 		GasSchedule: GasScheduleConfig{
 			GasScheduleByEpochs: []GasScheduleByEpochs{

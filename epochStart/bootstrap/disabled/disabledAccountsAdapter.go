@@ -38,7 +38,7 @@ func (a *accountsAdapter) SaveAccount(_ vmcommon.AccountHandler) error {
 }
 
 // PruneTrie -
-func (a *accountsAdapter) PruneTrie(_ []byte, _ state.TriePruningIdentifier) {
+func (a *accountsAdapter) PruneTrie(_ []byte, _ state.TriePruningIdentifier, _ state.PruningHandler) {
 }
 
 // GetExistingAccount -
@@ -78,6 +78,11 @@ func (a *accountsAdapter) RootHash() ([]byte, error) {
 
 // RecreateTrie -
 func (a *accountsAdapter) RecreateTrie(_ []byte) error {
+	return nil
+}
+
+// RecreateTrieFromEpoch -
+func (a *accountsAdapter) RecreateTrieFromEpoch(_ common.RootHashHolder) error {
 	return nil
 }
 

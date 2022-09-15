@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/update/mock"
@@ -58,6 +59,7 @@ func createMockArgsNewShardBlockCreatorAfterHardFork() ArgsNewShardBlockCreatorA
 		ShardCoordinator:   mock.NewOneShardCoordinatorMock(),
 		Storage:            initStore(),
 		TxCoordinator:      &mock.TransactionCoordinatorMock{},
+		ReceiptsRepository: &testscommon.ReceiptsRepositoryStub{},
 	}
 }
 

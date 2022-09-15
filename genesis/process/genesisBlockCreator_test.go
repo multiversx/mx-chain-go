@@ -24,8 +24,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
+	storageCommon "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/update"
@@ -46,8 +48,8 @@ func createMockArgument(
 	entireSupply *big.Int,
 ) ArgsGenesisBlockCreator {
 
-	memDBMock := mock.NewMemDbMock()
-	storageManager, _ := trie.NewTrieStorageManagerWithoutPruning(memDBMock)
+	storageManagerArgs, options := storageCommon.GetStorageManagerArgsAndOptions()
+	storageManager, _ := trie.CreateTrieStorageManager(storageManagerArgs, options)
 
 	trieStorageManagers := make(map[string]common.StorageManager)
 	trieStorageManagers[factory.UserAccountTrie] = storageManager
@@ -68,7 +70,7 @@ func createMockArgument(
 		Data: &mock.DataComponentsMock{
 			Storage: &mock.ChainStorerStub{
 				GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-					return mock.NewStorerMock()
+					return genericMocks.NewStorerMock()
 				},
 			},
 			Blkc:     &testscommon.ChainHandlerStub{},
@@ -164,7 +166,7 @@ func createMockArgument(
 
 	gasMap := arwenConfig.MakeGasMapForTests()
 	defaults.FillGasMapInternal(gasMap, 1)
-	arg.GasSchedule = mock.NewGasScheduleNotifierMock(gasMap)
+	arg.GasSchedule = testscommon.NewGasScheduleNotifierMock(gasMap)
 	ted := &economicsmocks.EconomicsHandlerStub{
 		GenesisTotalSupplyCalled: func() *big.Int {
 			return entireSupply

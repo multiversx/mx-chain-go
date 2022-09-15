@@ -32,8 +32,8 @@
     # than this value, then the validators rating decrease should stop so they won't get jailed
     MaxConsecutiveRoundsOfRatingDecrease = 600
 
-   # SyncProcessTimeInMillis is the value in milliseconds used when processing blocks while synchronizing blocks
-   SyncProcessTimeInMillis = 12000
+    # SyncProcessTimeInMillis is the value in milliseconds used when processing blocks while synchronizing blocks
+    SyncProcessTimeInMillis = 12000
 
 [Versions]
     DefaultVersion = "default"
@@ -673,6 +673,7 @@
 [StateTriesConfig]
     CheckpointRoundsModulus = 100
     CheckpointsEnabled = false
+    SnapshotsEnabled = true
     AccountsStatePruningEnabled = true
     PeerStatePruningEnabled = true
     MaxStateTrieLevelInMemory = 5
@@ -703,9 +704,18 @@
         ]
 
     [VirtualMachine.GasConfig]
-        # MaxGasPerVmQuery defines the maximum amount of gas to be allocated for VM Queries coming from API
+        # The following values define the maximum amount of gas to be allocated for VM Queries coming from API
         # If set to 0, then MaxUInt64 will be used
-        MaxGasPerVmQuery = 1500000000  #1.5b
+        ShardMaxGasPerVmQuery = 1500000000  #1.5b
+        MetaMaxGasPerVmQuery = 0  #unlimited
+
+[BuiltInFunctions]
+    AutomaticCrawlerAddresses =[
+        "erd1he8wwxn4az3j82p7wwqsdk794dm7hcrwny6f8dfegkfla34udx7qrf7xje", #shard 0
+        "erd1fpkcgel4gcmh8zqqdt043yfcn5tyx8373kg6q2qmkxzu4dqamc0swts65c", #shard 1
+        "erd1najnxxweyw6plhg8efql330nttrj6l5cf87wqsuym85s9ha0hmdqnqgenp", #shard 2
+    ]
+    MaxNumAddressesInTransferRole = 100
 
 [Hardfork]
     EnableTrigger = true
@@ -797,10 +807,10 @@
         ProcessDataTrieOnCommitEpoch = true
 
 [Health]
-    IntervalVerifyMemoryInSeconds = 5
+    IntervalVerifyMemoryInSeconds = 30
     IntervalDiagnoseComponentsInSeconds = 30
     IntervalDiagnoseComponentsDeeplyInSeconds = 120
-    MemoryUsageToCreateProfiles = 2415919104 # 2.25GB
+    MemoryUsageToCreateProfiles = 3221225472 # 3 GB
     NumMemoryUsageRecordsToKeep = 100
     FolderPath = "health-records"
 
@@ -895,6 +905,7 @@
     MaxHardCapForMissingNodes = 5000
     #available versions: 1 and 2. 1 is the initial version, 2 is updated, more efficient version
     TrieSyncerVersion         = 2
+    CheckNodesOnDisk          = false
 
 [Resolvers]
     NumCrossShardPeers  = 2
@@ -902,13 +913,12 @@
     NumFullHistoryPeers = 3
 
 [HeartbeatV2]
-    PeerAuthenticationTimeBetweenSendsInSec          = 7200 # 2h
+    PeerAuthenticationTimeBetweenSendsInSec          = 600  # 10min TODO: change this for mainnet/devnet/testnet
     PeerAuthenticationTimeBetweenSendsWhenErrorInSec = 60   # 1min
     PeerAuthenticationThresholdBetweenSends          = 0.1  # 10%
     HeartbeatTimeBetweenSendsInSec                   = 60   # 1min
     HeartbeatTimeBetweenSendsWhenErrorInSec          = 60   # 1min
     HeartbeatThresholdBetweenSends                   = 0.1  # 10%
-    MaxNumOfPeerAuthenticationInResponse             = 10
     HeartbeatExpiryTimespanInSec                     = 3600 # 1h
     MinPeersThreshold                                = 0.8  # 80%
     DelayBetweenRequestsInSec                        = 10   # 10sec
@@ -917,10 +927,8 @@
     MaxMissingKeysInRequest                          = 1000
     MaxDurationPeerUnresponsiveInSec                 = 900  # 15min
     HideInactiveValidatorIntervalInSec               = 3600 # 1h
-    HardforkTimeBetweenSendsInSec                    = 10   # 10sec
-    [HeartbeatV2.PeerAuthenticationPool]
-        DefaultSpanInSec = 3600 # 1h
-        CacheExpiryInSec = 3600 # 1h
+    HardforkTimeBetweenSendsInSec                    = 60   # 1min
+    TimeBetweenConnectionsMetricsUpdateInSec         = 30   # 30sec
     [HeartbeatV2.HeartbeatPool]
         Name = "HeartbeatPool"
         Capacity = 1000
