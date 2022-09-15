@@ -9,8 +9,11 @@ import (
 )
 
 // ------------ Test ManagedStatusComponents --------------------
-func TestManagedStatusComponents_CreateWithInvalidArgs_ShouldErr(t *testing.T) {
+func TestManagedStatusComponents_CreateWithInvalidArgsShouldErr(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	statusArgs, _ := getStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator)
@@ -26,8 +29,11 @@ func TestManagedStatusComponents_CreateWithInvalidArgs_ShouldErr(t *testing.T) {
 	require.Error(t, err)
 }
 
-func TestManagedStatusComponents_Create_ShouldWork(t *testing.T) {
+func TestManagedStatusComponents_CreateShouldWork(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	statusArgs, _ := getStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator)
@@ -45,6 +51,9 @@ func TestManagedStatusComponents_Create_ShouldWork(t *testing.T) {
 
 func TestManagedStatusComponents_Close(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	statusArgs, _ := getStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator)
@@ -59,6 +68,9 @@ func TestManagedStatusComponents_Close(t *testing.T) {
 
 func TestManagedStatusComponents_CheckSubcomponents(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	statusArgs, _ := getStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator)

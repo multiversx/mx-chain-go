@@ -99,11 +99,26 @@ func DoDeploySecond(
 	args [][]byte,
 	value *big.Int,
 ) (scAddr []byte) {
+	return DoDeployWithMetadata(t, testContext, pathToContract, senderAccount, gasPrice, gasLimit, []byte(arwen.DummyCodeMetadataHex), args, value)
+}
+
+// DoDeployWithMetadata -
+func DoDeployWithMetadata(
+	t *testing.T,
+	testContext *vm.VMTestContext,
+	pathToContract string,
+	senderAccount vmcommon.AccountHandler,
+	gasPrice uint64,
+	gasLimit uint64,
+	metadata []byte,
+	args [][]byte,
+	value *big.Int,
+) (scAddr []byte) {
 	ownerNonce := senderAccount.GetNonce()
 	owner := senderAccount.AddressBytes()
 	scCode := []byte(arwen.GetSCCode(pathToContract))
 
-	txData := bytes.Join([][]byte{scCode, []byte(arwen.VMTypeHex), []byte(arwen.DummyCodeMetadataHex)}, []byte("@"))
+	txData := bytes.Join([][]byte{scCode, []byte(arwen.VMTypeHex), metadata}, []byte("@"))
 	if args != nil {
 		txData = []byte(string(txData) + "@" + string(bytes.Join(args, []byte("@"))))
 	}

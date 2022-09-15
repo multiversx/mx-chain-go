@@ -30,6 +30,7 @@ type ArgHeartbeatV2Monitor struct {
 	MaxDurationPeerUnresponsive   time.Duration
 	HideInactiveValidatorInterval time.Duration
 	ShardId                       uint32
+	PeerTypeProvider              heartbeat.PeerTypeProviderHandler
 }
 
 type heartbeatV2Monitor struct {
@@ -40,6 +41,7 @@ type heartbeatV2Monitor struct {
 	maxDurationPeerUnresponsive   time.Duration
 	hideInactiveValidatorInterval time.Duration
 	shardId                       uint32
+	peerTypeProvider              heartbeat.PeerTypeProviderHandler
 }
 
 // NewHeartbeatV2Monitor creates a new instance of heartbeatV2Monitor
@@ -49,7 +51,7 @@ func NewHeartbeatV2Monitor(args ArgHeartbeatV2Monitor) (*heartbeatV2Monitor, err
 		return nil, err
 	}
 
-	return &heartbeatV2Monitor{
+	hbv2Monitor := &heartbeatV2Monitor{
 		cache:                         args.Cache,
 		pubKeyConverter:               args.PubKeyConverter,
 		marshaller:                    args.Marshaller,
@@ -57,7 +59,10 @@ func NewHeartbeatV2Monitor(args ArgHeartbeatV2Monitor) (*heartbeatV2Monitor, err
 		maxDurationPeerUnresponsive:   args.MaxDurationPeerUnresponsive,
 		hideInactiveValidatorInterval: args.HideInactiveValidatorInterval,
 		shardId:                       args.ShardId,
-	}, nil
+		peerTypeProvider:              args.PeerTypeProvider,
+	}
+
+	return hbv2Monitor, nil
 }
 
 func checkArgs(args ArgHeartbeatV2Monitor) error {
@@ -81,6 +86,9 @@ func checkArgs(args ArgHeartbeatV2Monitor) error {
 		return fmt.Errorf("%w on HideInactiveValidatorInterval, provided %d, min expected %d",
 			heartbeat.ErrInvalidTimeDuration, args.HideInactiveValidatorInterval, minDuration)
 	}
+	if check.IfNil(args.PeerTypeProvider) {
+		return heartbeat.ErrNilPeerTypeProvider
+	}
 
 	return nil
 }
@@ -102,7 +110,8 @@ func (monitor *heartbeatV2Monitor) GetHeartbeats() []data.PubKeyHeartbeat {
 		peerId := core.PeerID(pid)
 		heartbeatData, err := monitor.parseMessage(peerId, hb, numInstances)
 		if err != nil {
-			log.Debug("could not parse message for pid", "pid", peerId.Pretty(), "error", err.Error())
+			monitor.cache.Remove(pid)
+			log.Trace("could not parse message for pid, removed message", "pid", peerId.Pretty(), "error", err.Error())
 			continue
 		}
 
@@ -139,18 +148,23 @@ func (monitor *heartbeatV2Monitor) parseMessage(pid core.PeerID, message interfa
 	peerInfo := monitor.peerShardMapper.GetPeerInfo(pid)
 
 	crtTime := time.Now()
+	messageTime := time.Unix(payload.Timestamp, 0)
 	messageAge := monitor.getMessageAge(crtTime, payload.Timestamp)
-	stringType := peerInfo.PeerType.String()
-	if monitor.shouldSkipMessage(messageAge, stringType) {
+	stringType := monitor.computePeerType(peerInfo.PkBytes)
+	if monitor.shouldSkipMessage(messageAge) {
 		return pubKeyHeartbeat, heartbeat.ErrShouldSkipValidator
 	}
 
-	pk := monitor.pubKeyConverter.Encode(peerInfo.PkBytes)
+	pkBytes := peerInfo.PkBytes
+	if stringType == string(common.ObserverList) {
+		pkBytes = heartbeatV2.GetPubkey()
+	}
+	pk := monitor.pubKeyConverter.Encode(pkBytes)
 	numInstances[pk]++
 
 	pubKeyHeartbeat = data.PubKeyHeartbeat{
 		PublicKey:       pk,
-		TimeStamp:       crtTime,
+		TimeStamp:       messageTime,
 		IsActive:        monitor.isActive(messageAge),
 		ReceivedShardID: monitor.shardId,
 		ComputedShardID: peerInfo.ShardID,
@@ -164,6 +178,16 @@ func (monitor *heartbeatV2Monitor) parseMessage(pid core.PeerID, message interfa
 	}
 
 	return pubKeyHeartbeat, nil
+}
+
+func (monitor *heartbeatV2Monitor) computePeerType(pk []byte) string {
+	peerType, _, err := monitor.peerTypeProvider.ComputeForPubKey(pk)
+	if err != nil {
+		log.Warn("heartbeatV2Monitor: computePeerType", "error", err)
+		return string(common.ObserverList)
+	}
+
+	return string(peerType)
 }
 
 func (monitor *heartbeatV2Monitor) getMessageAge(crtTime time.Time, messageTimestamp int64) time.Duration {
@@ -184,12 +208,9 @@ func (monitor *heartbeatV2Monitor) isActive(messageAge time.Duration) bool {
 	return messageAge <= monitor.maxDurationPeerUnresponsive
 }
 
-func (monitor *heartbeatV2Monitor) shouldSkipMessage(messageAge time.Duration, peerType string) bool {
+func (monitor *heartbeatV2Monitor) shouldSkipMessage(messageAge time.Duration) bool {
 	isActive := monitor.isActive(messageAge)
-	isInactiveObserver := !isActive &&
-		peerType != string(common.EligibleList) &&
-		peerType != string(common.WaitingList)
-	if isInactiveObserver {
+	if !isActive {
 		return messageAge > monitor.hideInactiveValidatorInterval
 	}
 

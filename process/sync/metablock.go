@@ -2,13 +2,11 @@ package sync
 
 import (
 	"context"
-	"strings"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/state"
@@ -136,9 +134,6 @@ func (boot *MetaBootstrap) StartSyncingBlocks() {
 	if errNotCritical != nil {
 		log.Debug("syncFromStorer", "error", errNotCritical.Error())
 	} else {
-		_, numHdrs := updateMetricsFromStorage(boot.store, boot.uint64Converter, boot.marshalizer, boot.statusHandler, boot.storageBootstrapper.GetHighestBlockNonce())
-		boot.blockProcessor.SetNumProcessedObj(numHdrs)
-
 		boot.setLastEpochStartRound()
 	}
 
@@ -176,13 +171,9 @@ func (boot *MetaBootstrap) setLastEpochStartRound() {
 // in the blockchain, and all this mechanism will be reiterated for the next block.
 func (boot *MetaBootstrap) SyncBlock(ctx context.Context) error {
 	err := boot.syncBlock()
-	isErrGetNodeFromDB := err != nil && strings.Contains(err.Error(), common.GetNodeFromDBErrorString)
-	if isErrGetNodeFromDB {
+	if isErrGetNodeFromDB(err) {
 		errSync := boot.syncAccountsDBs()
-		shouldOutputLog := errSync != nil && !common.IsContextDone(ctx)
-		if shouldOutputLog {
-			log.Debug("SyncBlock syncTrie", "error", errSync)
-		}
+		boot.handleTrieSyncError(errSync, ctx)
 	}
 
 	return err

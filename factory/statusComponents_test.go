@@ -21,6 +21,9 @@ var log = logger.GetOrCreate("factory/factory_test")
 
 func TestNewStatusComponentsFactory_NilCoreComponentsShouldErr(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	args, _ := getStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator)
@@ -32,6 +35,9 @@ func TestNewStatusComponentsFactory_NilCoreComponentsShouldErr(t *testing.T) {
 
 func TestNewStatusComponentsFactory_NilNodesCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	args, _ := getStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator)
@@ -43,6 +49,9 @@ func TestNewStatusComponentsFactory_NilNodesCoordinatorShouldErr(t *testing.T) {
 
 func TestNewStatusComponentsFactory_NilEpochStartNotifierShouldErr(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	args, _ := getStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator)
@@ -54,6 +63,9 @@ func TestNewStatusComponentsFactory_NilEpochStartNotifierShouldErr(t *testing.T)
 
 func TestNewStatusComponentsFactory_NilNetworkComponentsShouldErr(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	args, _ := getStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator)
@@ -65,6 +77,9 @@ func TestNewStatusComponentsFactory_NilNetworkComponentsShouldErr(t *testing.T) 
 
 func TestNewStatusComponentsFactory_NilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	args, _ := getStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator)
@@ -76,6 +91,9 @@ func TestNewStatusComponentsFactory_NilShardCoordinatorShouldErr(t *testing.T) {
 
 func TestNewStatusComponents_InvalidRoundDurationShouldErr(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	coreArgs := getCoreArgs()
@@ -114,6 +132,9 @@ func TestNewStatusComponents_InvalidRoundDurationShouldErr(t *testing.T) {
 
 func TestNewStatusComponentsFactory_ShouldWork(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	args, _ := getStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator)
@@ -124,6 +145,9 @@ func TestNewStatusComponentsFactory_ShouldWork(t *testing.T) {
 
 func TestStatusComponentsFactory_Create(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	args, _ := getStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator)
@@ -136,7 +160,12 @@ func TestStatusComponentsFactory_Create(t *testing.T) {
 }
 
 // ------------ Test StatusComponents --------------------
-func TestStatusComponents_Close_ShouldWork(t *testing.T) {
+func TestStatusComponents_CloseShouldWork(t *testing.T) {
+	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	statusArgs, _ := getStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator)
 	scf, _ := factory.NewStatusComponentsFactory(statusArgs)

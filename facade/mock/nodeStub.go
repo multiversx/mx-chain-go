@@ -17,17 +17,16 @@ import (
 
 // NodeStub -
 type NodeStub struct {
-	AddressHandler             func() (string, error)
 	ConnectToAddressesHandler  func([]string) error
-	GetBalanceHandler          func(address string) (*big.Int, error)
+	GetBalanceCalled           func(address string, options api.AccountQueryOptions) (*big.Int, api.BlockInfo, error)
 	GenerateTransactionHandler func(sender string, receiver string, amount string, code string) (*transaction.Transaction, error)
 	CreateTransactionHandler   func(nonce uint64, value string, receiver string, receiverUsername []byte, sender string, senderUsername []byte, gasPrice uint64,
 		gasLimit uint64, data []byte, signatureHex string, chainID string, version, options uint32) (*transaction.Transaction, []byte, error)
 	ValidateTransactionHandler                     func(tx *transaction.Transaction) error
 	ValidateTransactionForSimulationCalled         func(tx *transaction.Transaction, bypassSignature bool) error
 	SendBulkTransactionsHandler                    func(txs []*transaction.Transaction) (uint64, error)
-	GetAccountHandler                              func(address string) (api.AccountResponse, error)
-	GetCodeCalled                                  func(codeHash []byte) []byte
+	GetAccountCalled                               func(address string, options api.AccountQueryOptions) (api.AccountResponse, api.BlockInfo, error)
+	GetCodeCalled                                  func(codeHash []byte, options api.AccountQueryOptions) ([]byte, api.BlockInfo)
 	GetCurrentPublicKeyHandler                     func() string
 	GenerateAndSendBulkTransactionsHandler         func(destination string, value *big.Int, nrTransactions uint64) error
 	GenerateAndSendBulkTransactionsOneByOneHandler func(destination string, value *big.Int, nrTransactions uint64) error
@@ -36,15 +35,15 @@ type NodeStub struct {
 	DirectTriggerCalled                            func(epoch uint32, withEarlyEndOfEpoch bool) error
 	IsSelfTriggerCalled                            func() bool
 	GetQueryHandlerCalled                          func(name string) (debug.QueryHandler, error)
-	GetValueForKeyCalled                           func(address string, key string) (string, error)
+	GetValueForKeyCalled                           func(address string, key string, options api.AccountQueryOptions) (string, api.BlockInfo, error)
 	GetPeerInfoCalled                              func(pid string) ([]core.QueryP2PPeerInfo, error)
-	GetUsernameCalled                              func(address string) (string, error)
-	GetESDTDataCalled                              func(address string, key string, nonce uint64) (*esdt.ESDigitalToken, error)
-	GetAllESDTTokensCalled                         func(address string, ctx context.Context) (map[string]*esdt.ESDigitalToken, error)
-	GetNFTTokenIDsRegisteredByAddressCalled        func(address string, ctx context.Context) ([]string, error)
-	GetESDTsWithRoleCalled                         func(address string, role string, ctx context.Context) ([]string, error)
-	GetESDTsRolesCalled                            func(address string, ctx context.Context) (map[string][]string, error)
-	GetKeyValuePairsCalled                         func(address string, ctx context.Context) (map[string]string, error)
+	GetUsernameCalled                              func(address string, options api.AccountQueryOptions) (string, api.BlockInfo, error)
+	GetESDTDataCalled                              func(address string, key string, nonce uint64, options api.AccountQueryOptions) (*esdt.ESDigitalToken, api.BlockInfo, error)
+	GetAllESDTTokensCalled                         func(address string, options api.AccountQueryOptions, ctx context.Context) (map[string]*esdt.ESDigitalToken, api.BlockInfo, error)
+	GetNFTTokenIDsRegisteredByAddressCalled        func(address string, options api.AccountQueryOptions, ctx context.Context) ([]string, api.BlockInfo, error)
+	GetESDTsWithRoleCalled                         func(address string, role string, options api.AccountQueryOptions, ctx context.Context) ([]string, api.BlockInfo, error)
+	GetESDTsRolesCalled                            func(address string, options api.AccountQueryOptions, ctx context.Context) (map[string][]string, api.BlockInfo, error)
+	GetKeyValuePairsCalled                         func(address string, options api.AccountQueryOptions, ctx context.Context) (map[string]string, api.BlockInfo, error)
 	GetAllIssuedESDTsCalled                        func(tokenType string, ctx context.Context) ([]string, error)
 	GetProofCalled                                 func(rootHash string, key string) (*common.GetProofResponse, error)
 	GetProofDataTrieCalled                         func(rootHash string, address string, key string) (*common.GetProofResponse, *common.GetProofResponse, error)
@@ -79,30 +78,30 @@ func (ns *NodeStub) VerifyProof(rootHash string, address string, proof [][]byte)
 }
 
 // GetUsername -
-func (ns *NodeStub) GetUsername(address string) (string, error) {
+func (ns *NodeStub) GetUsername(address string, options api.AccountQueryOptions) (string, api.BlockInfo, error) {
 	if ns.GetUsernameCalled != nil {
-		return ns.GetUsernameCalled(address)
+		return ns.GetUsernameCalled(address, options)
 	}
 
-	return "", nil
+	return "", api.BlockInfo{}, nil
 }
 
 // GetKeyValuePairs -
-func (ns *NodeStub) GetKeyValuePairs(address string, ctx context.Context) (map[string]string, error) {
+func (ns *NodeStub) GetKeyValuePairs(address string, options api.AccountQueryOptions, ctx context.Context) (map[string]string, api.BlockInfo, error) {
 	if ns.GetKeyValuePairsCalled != nil {
-		return ns.GetKeyValuePairsCalled(address, ctx)
+		return ns.GetKeyValuePairsCalled(address, options, ctx)
 	}
 
-	return nil, nil
+	return nil, api.BlockInfo{}, nil
 }
 
 // GetValueForKey -
-func (ns *NodeStub) GetValueForKey(address string, key string) (string, error) {
+func (ns *NodeStub) GetValueForKey(address string, key string, options api.AccountQueryOptions) (string, api.BlockInfo, error) {
 	if ns.GetValueForKeyCalled != nil {
-		return ns.GetValueForKeyCalled(address, key)
+		return ns.GetValueForKeyCalled(address, key, options)
 	}
 
-	return "", nil
+	return "", api.BlockInfo{}, nil
 }
 
 // EncodeAddressPubkey -
@@ -116,8 +115,8 @@ func (ns *NodeStub) DecodeAddressPubkey(pk string) ([]byte, error) {
 }
 
 // GetBalance -
-func (ns *NodeStub) GetBalance(address string) (*big.Int, error) {
-	return ns.GetBalanceHandler(address)
+func (ns *NodeStub) GetBalance(address string, options api.AccountQueryOptions) (*big.Int, api.BlockInfo, error) {
+	return ns.GetBalanceCalled(address, options)
 }
 
 // CreateTransaction -
@@ -143,17 +142,17 @@ func (ns *NodeStub) SendBulkTransactions(txs []*transaction.Transaction) (uint64
 }
 
 // GetAccount -
-func (ns *NodeStub) GetAccount(address string) (api.AccountResponse, error) {
-	return ns.GetAccountHandler(address)
+func (ns *NodeStub) GetAccount(address string, options api.AccountQueryOptions) (api.AccountResponse, api.BlockInfo, error) {
+	return ns.GetAccountCalled(address, options)
 }
 
 // GetCode -
-func (ns *NodeStub) GetCode(codeHash []byte) []byte {
+func (ns *NodeStub) GetCode(codeHash []byte, options api.AccountQueryOptions) ([]byte, api.BlockInfo) {
 	if ns.GetCodeCalled != nil {
-		return ns.GetCodeCalled(codeHash)
+		return ns.GetCodeCalled(codeHash, options)
 	}
 
-	return nil
+	return nil, api.BlockInfo{}
 }
 
 // GetHeartbeats -
@@ -195,39 +194,39 @@ func (ns *NodeStub) GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error) {
 }
 
 // GetESDTData -
-func (ns *NodeStub) GetESDTData(address, tokenID string, nonce uint64) (*esdt.ESDigitalToken, error) {
+func (ns *NodeStub) GetESDTData(address, tokenID string, nonce uint64, options api.AccountQueryOptions) (*esdt.ESDigitalToken, api.BlockInfo, error) {
 	if ns.GetESDTDataCalled != nil {
-		return ns.GetESDTDataCalled(address, tokenID, nonce)
+		return ns.GetESDTDataCalled(address, tokenID, nonce, options)
 	}
 
-	return &esdt.ESDigitalToken{Value: big.NewInt(0)}, nil
+	return &esdt.ESDigitalToken{Value: big.NewInt(0)}, api.BlockInfo{}, nil
 }
 
 // GetESDTsRoles -
-func (ns *NodeStub) GetESDTsRoles(address string, ctx context.Context) (map[string][]string, error) {
+func (ns *NodeStub) GetESDTsRoles(address string, options api.AccountQueryOptions, ctx context.Context) (map[string][]string, api.BlockInfo, error) {
 	if ns.GetESDTsRolesCalled != nil {
-		return ns.GetESDTsRolesCalled(address, ctx)
+		return ns.GetESDTsRolesCalled(address, options, ctx)
 	}
 
-	return map[string][]string{}, nil
+	return map[string][]string{}, api.BlockInfo{}, nil
 }
 
 // GetESDTsWithRole -
-func (ns *NodeStub) GetESDTsWithRole(address string, role string, ctx context.Context) ([]string, error) {
+func (ns *NodeStub) GetESDTsWithRole(address string, role string, options api.AccountQueryOptions, ctx context.Context) ([]string, api.BlockInfo, error) {
 	if ns.GetESDTsWithRoleCalled != nil {
-		return ns.GetESDTsWithRoleCalled(address, role, ctx)
+		return ns.GetESDTsWithRoleCalled(address, role, options, ctx)
 	}
 
-	return make([]string, 0), nil
+	return make([]string, 0), api.BlockInfo{}, nil
 }
 
 // GetAllESDTTokens -
-func (ns *NodeStub) GetAllESDTTokens(address string, ctx context.Context) (map[string]*esdt.ESDigitalToken, error) {
+func (ns *NodeStub) GetAllESDTTokens(address string, options api.AccountQueryOptions, ctx context.Context) (map[string]*esdt.ESDigitalToken, api.BlockInfo, error) {
 	if ns.GetAllESDTTokensCalled != nil {
-		return ns.GetAllESDTTokensCalled(address, ctx)
+		return ns.GetAllESDTTokensCalled(address, options, ctx)
 	}
 
-	return make(map[string]*esdt.ESDigitalToken), nil
+	return make(map[string]*esdt.ESDigitalToken), api.BlockInfo{}, nil
 }
 
 // GetTokenSupply -
@@ -244,12 +243,12 @@ func (ns *NodeStub) GetAllIssuedESDTs(tokenType string, ctx context.Context) ([]
 }
 
 // GetNFTTokenIDsRegisteredByAddress -
-func (ns *NodeStub) GetNFTTokenIDsRegisteredByAddress(address string, ctx context.Context) ([]string, error) {
+func (ns *NodeStub) GetNFTTokenIDsRegisteredByAddress(address string, options api.AccountQueryOptions, ctx context.Context) ([]string, api.BlockInfo, error) {
 	if ns.GetNFTTokenIDsRegisteredByAddressCalled != nil {
-		return ns.GetNFTTokenIDsRegisteredByAddressCalled(address, ctx)
+		return ns.GetNFTTokenIDsRegisteredByAddressCalled(address, options, ctx)
 	}
 
-	return make([]string, 0), nil
+	return make([]string, 0), api.BlockInfo{}, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

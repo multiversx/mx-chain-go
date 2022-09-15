@@ -48,7 +48,8 @@ func TestRoutineHandler_ShouldWork(t *testing.T) {
 			},
 		}
 
-		_ = newRoutineHandler(handler1, handler2, handler3)
+		handler := newRoutineHandler(handler1, handler2, handler3)
+		handler.delayAfterHardforkMessageBroadcast = time.Second
 		time.Sleep(time.Second) // wait for the go routine start
 
 		assert.Equal(t, uint32(1), atomic.LoadUint32(&numExecuteCalled1)) // initial call
@@ -67,7 +68,7 @@ func TestRoutineHandler_ShouldWork(t *testing.T) {
 			ch3 <- struct{}{}
 		}()
 
-		time.Sleep(time.Second) // wait for the iteration
+		time.Sleep(time.Second * 3) // wait for the iteration
 
 		assert.Equal(t, uint32(2), atomic.LoadUint32(&numExecuteCalled1))
 		assert.Equal(t, uint32(2), atomic.LoadUint32(&numExecuteCalled2))
@@ -126,4 +127,74 @@ func TestRoutineHandler_ShouldWork(t *testing.T) {
 		assert.Equal(t, uint32(1), atomic.LoadUint32(&numCloseCalled1))
 		assert.Equal(t, uint32(1), atomic.LoadUint32(&numCloseCalled2))
 	})
+}
+
+func TestRoutineHandler_Close(t *testing.T) {
+	t.Parallel()
+
+	t.Run("Close() call should end the go routine", func(t *testing.T) {
+		t.Parallel()
+
+		numCloseCalled := uint32(0)
+		handler1 := &mock.SenderHandlerStub{
+			CloseCalled: func() {
+				atomic.AddUint32(&numCloseCalled, 1)
+			},
+		}
+		handler2 := &mock.SenderHandlerStub{
+			CloseCalled: func() {
+				atomic.AddUint32(&numCloseCalled, 1)
+			},
+		}
+		handler3 := &mock.HardforkHandlerStub{
+			CloseCalled: func() {
+				atomic.AddUint32(&numCloseCalled, 1)
+			},
+		}
+
+		rh := newRoutineHandler(handler1, handler2, handler3)
+
+		rh.closeProcessLoop()
+		time.Sleep(time.Second)
+
+		assert.Equal(t, uint32(3), atomic.LoadUint32(&numCloseCalled))
+	})
+	t.Run("Close() call while hardfork handler is triggered should close immediately", func(t *testing.T) {
+		t.Parallel()
+
+		ch := make(chan struct{})
+		numCloseCalled := uint32(0)
+		handler1 := &mock.SenderHandlerStub{
+			CloseCalled: func() {
+				atomic.AddUint32(&numCloseCalled, 1)
+			},
+		}
+		handler2 := &mock.SenderHandlerStub{
+			CloseCalled: func() {
+				atomic.AddUint32(&numCloseCalled, 1)
+			},
+		}
+		handler3 := &mock.HardforkHandlerStub{
+			CloseCalled: func() {
+				atomic.AddUint32(&numCloseCalled, 1)
+			},
+			ShouldTriggerHardforkCalled: func() <-chan struct{} {
+				return ch
+			},
+		}
+
+		go func() {
+			ch <- struct{}{}
+		}()
+
+		rh := newRoutineHandler(handler1, handler2, handler3)
+
+		time.Sleep(time.Second)
+
+		rh.closeProcessLoop()
+		time.Sleep(time.Second)
+
+		assert.Equal(t, uint32(3), atomic.LoadUint32(&numCloseCalled))
+	})
+
 }

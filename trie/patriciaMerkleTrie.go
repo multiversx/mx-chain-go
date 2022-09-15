@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
-	"strings"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -15,7 +14,7 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/errors"
 )
 
 var log = logger.GetOrCreate("trie")
@@ -248,10 +247,31 @@ func (tr *patriciaMerkleTrie) Recreate(root []byte) (common.Trie, error) {
 	tr.mutOperation.Lock()
 	defer tr.mutOperation.Unlock()
 
-	return tr.recreate(root)
+	return tr.recreate(root, tr.trieStorage)
 }
 
-func (tr *patriciaMerkleTrie) recreate(root []byte) (*patriciaMerkleTrie, error) {
+// RecreateFromEpoch returns a new trie, given the options
+func (tr *patriciaMerkleTrie) RecreateFromEpoch(options common.RootHashHolder) (common.Trie, error) {
+	if check.IfNil(options) {
+		return nil, ErrNilRootHashHolder
+	}
+
+	tr.mutOperation.Lock()
+	defer tr.mutOperation.Unlock()
+
+	if !options.GetEpoch().HasValue {
+		return tr.recreate(options.GetRootHash(), tr.trieStorage)
+	}
+
+	tsmie, err := newTrieStorageManagerInEpoch(tr.trieStorage, options.GetEpoch().Value)
+	if err != nil {
+		return nil, err
+	}
+
+	return tr.recreate(options.GetRootHash(), tsmie)
+}
+
+func (tr *patriciaMerkleTrie) recreate(root []byte, tsm common.StorageManager) (*patriciaMerkleTrie, error) {
 	if emptyTrie(root) {
 		return NewTrie(
 			tr.trieStorage,
@@ -261,14 +281,14 @@ func (tr *patriciaMerkleTrie) recreate(root []byte) (*patriciaMerkleTrie, error)
 		)
 	}
 
-	_, err := tr.trieStorage.Get(root)
+	_, err := tsm.Get(root)
 	if err != nil {
 		return nil, err
 	}
 
-	newTr, _, err := tr.recreateFromDb(root, tr.trieStorage)
+	newTr, _, err := tr.recreateFromDb(root, tsm)
 	if err != nil {
-		if err == storage.ErrDBIsClosed || strings.Contains(err.Error(), storage.ErrDBIsClosed.Error()) {
+		if errors.IsClosingError(err) {
 			log.Debug("could not recreate", "rootHash", root, "error", err)
 			return nil, err
 		}
@@ -433,7 +453,7 @@ func (tr *patriciaMerkleTrie) GetAllLeavesOnChannel(
 	rootHash []byte,
 ) error {
 	tr.mutOperation.RLock()
-	newTrie, err := tr.recreate(rootHash)
+	newTrie, err := tr.recreate(rootHash, tr.trieStorage)
 	if err != nil {
 		tr.mutOperation.RUnlock()
 		close(leavesChannel)
@@ -619,6 +639,29 @@ func (tr *patriciaMerkleTrie) Close() error {
 	}
 
 	return nil
+}
+
+// MarkStorerAsSyncedAndActive marks the storage as synced and active
+func (tr *patriciaMerkleTrie) MarkStorerAsSyncedAndActive() {
+	epoch, err := tr.trieStorage.GetLatestStorageEpoch()
+	if err != nil {
+		log.Error("getLatestStorageEpoch error", "error", err)
+	}
+
+	err = tr.trieStorage.Put([]byte(common.TrieSyncedKey), []byte(common.TrieSyncedVal))
+	if err != nil {
+		log.Error("error while putting trieSynced value into main storer after sync", "error", err)
+	}
+
+	lastEpoch := epoch - 1
+	if epoch == 0 {
+		lastEpoch = 0
+	}
+
+	err = tr.trieStorage.PutInEpochWithoutCache([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal), lastEpoch)
+	if err != nil {
+		log.Error("error while putting activeDB value into main storer after sync", "error", err)
+	}
 }
 
 func isChannelClosed(ch chan struct{}) bool {

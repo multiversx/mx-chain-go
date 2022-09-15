@@ -16,7 +16,7 @@ func (ms *MessageSignerMock) Verify(message p2p.MessageP2P) error {
 	return nil
 }
 
-// Serialize does nothing
+// Serialize will serialize the list of p2p messages
 func (ms *MessageSignerMock) Serialize(messages []p2p.MessageP2P) ([]byte, error) {
 	messagesBytes, err := json.Marshal(messages)
 	if err != nil {
@@ -26,7 +26,7 @@ func (ms *MessageSignerMock) Serialize(messages []p2p.MessageP2P) ([]byte, error
 	return messagesBytes, nil
 }
 
-// Deserialize does nothing
+// Deserialize will unmarshal into a list of p2p messages
 func (ms *MessageSignerMock) Deserialize(messagesBytes []byte) ([]p2p.MessageP2P, error) {
 	var messages []*message.Message
 	err := json.Unmarshal(messagesBytes, &messages)

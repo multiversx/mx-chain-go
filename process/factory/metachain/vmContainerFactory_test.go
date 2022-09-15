@@ -360,7 +360,7 @@ func TestVmContainerFactory_Create(t *testing.T) {
 func makeGasSchedule() core.GasScheduleNotifier {
 	gasSchedule := arwenConfig.MakeGasMapForTests()
 	FillGasMapInternal(gasSchedule, 1)
-	return mock.NewGasScheduleNotifierMock(gasSchedule)
+	return testscommon.NewGasScheduleNotifierMock(gasSchedule)
 }
 
 func FillGasMapInternal(gasMap map[string]map[string]uint64, value uint64) map[string]map[string]uint64 {

@@ -17,8 +17,10 @@ type ArgAPIBlockProcessor struct {
 	Marshalizer              marshal.Marshalizer
 	Uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
 	HistoryRepo              dblookupext.HistoryRepository
-	TxUnmarshaller           TransactionUnmarshaller
+	APITransactionHandler    APITransactionHandler
 	StatusComputer           transaction.StatusComputerHandler
 	Hasher                   hashing.Hasher
 	AddressPubkeyConverter   core.PubkeyConverter
+	LogsFacade               logsFacade
+	ReceiptsRepository       receiptsRepository
 }
