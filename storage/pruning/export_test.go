@@ -145,3 +145,8 @@ func (fhps *FullHistoryPruningStorer) GetOldEpochsActivePersisters() storage.Cac
 func (fhps *FullHistoryPruningStorer) IsEpochActive(epoch uint32) bool {
 	return fhps.isEpochActive(epoch)
 }
+
+// SetStorerWithEpochOperations -
+func (fhtps *fullHistoryTriePruningStorer) SetStorerWithEpochOperations(storer storerWithEpochOperations) {
+	fhtps.storerWithEpochOperations = storer
+}

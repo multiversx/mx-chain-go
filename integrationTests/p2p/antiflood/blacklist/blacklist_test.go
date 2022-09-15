@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/floodPreventers"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -42,13 +43,13 @@ func TestAntifloodAndBlacklistWithNumMessages(t *testing.T) {
 		integrationTests.ClosePeers(peers)
 	}()
 
-	//node 3 is connected to 0, 2, 4 and 6 (check integrationTests.CreateFixedNetworkOf7Peers function)
-	//large number of broadcast messages from 3 might flood above mentioned peers but should not flood 5 and 7
+	// node 3 is connected to 0, 2, 4 and 6 (check integrationTests.CreateFixedNetworkOf7Peers function)
+	// large number of broadcast messages from 3 might flood above mentioned peers but should not flood 5 and 7
 
 	topic := "test_topic"
 	broadcastMessageDuration := time.Second * 2
 	peerMaxNumProcessMessages := uint32(5)
-	maxMessageSize := uint64(1 << 20) //1MB
+	maxMessageSize := uint64(1 << 20) // 1MB
 
 	blacklistProcessors, blacklistHandlers := createBlacklistHandlersAndProcessors(
 		peers,
@@ -76,7 +77,7 @@ func TestAntifloodAndBlacklistWithNumMessages(t *testing.T) {
 		floodedIdxesConnections[i] = len(peers[idx].ConnectedPeers())
 	}
 
-	//flooder will deactivate its flooding mechanism as to be able to flood the network
+	// flooder will deactivate its flooding mechanism as to be able to flood the network
 	interceptors[flooderIdx].FloodPreventer = nil
 
 	go resetAntifloodStatsOnInterceptors(interceptors)
@@ -125,10 +126,10 @@ func testConnections(
 	floodedIdxes []int,
 	floodedIdxesConnections []int,
 ) {
-	//flooder has 0 connections
+	// flooder has 0 connections
 	assert.Equal(t, 0, len(peers[flooderIdx].ConnectedPeers()))
 
-	//flooded peers have initial connection - 1 (they eliminated the flooder)
+	// flooded peers have initial connection - 1 (they eliminated the flooder)
 	for i, idx := range floodedIdxes {
 		assert.Equal(t, floodedIdxesConnections[i]-1, len(peers[idx].ConnectedPeers()))
 	}
@@ -145,7 +146,7 @@ func applyBlacklistComponents(peers []p2p.Messenger, blacklistHandler []process.
 	for idx, peer := range peers {
 		pde, _ := blackList.NewPeerDenialEvaluator(
 			blacklistHandler[idx],
-			&mock.TimeCacheStub{},
+			&testscommon.TimeCacheStub{},
 			&mock.PeerShardMapperStub{},
 		)
 

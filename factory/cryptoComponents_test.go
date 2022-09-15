@@ -23,6 +23,9 @@ type LoadKeysFunc func(string, int) ([]byte, string, error)
 
 func TestNewCryptoComponentsFactory_NiCoreComponentsHandlerShouldErr(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	args := getCryptoArgs(nil)
 	ccf, err := factory.NewCryptoComponentsFactory(args)
@@ -32,6 +35,9 @@ func TestNewCryptoComponentsFactory_NiCoreComponentsHandlerShouldErr(t *testing.
 
 func TestNewCryptoComponentsFactory_NilPemFileShouldErr(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	coreComponents := getCoreComponents()
 	args := getCryptoArgs(coreComponents)
@@ -43,6 +49,9 @@ func TestNewCryptoComponentsFactory_NilPemFileShouldErr(t *testing.T) {
 
 func TestCryptoComponentsFactory_CreateCryptoParamsNilKeyLoaderShouldErr(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	coreComponents := getCoreComponents()
 	args := getCryptoArgs(coreComponents)
@@ -55,6 +64,9 @@ func TestCryptoComponentsFactory_CreateCryptoParamsNilKeyLoaderShouldErr(t *test
 
 func TestNewCryptoComponentsFactory_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	coreComponents := getCoreComponents()
 	args := getCryptoArgs(coreComponents)
@@ -65,6 +77,9 @@ func TestNewCryptoComponentsFactory_OkValsShouldWork(t *testing.T) {
 
 func TestNewCryptoComponentsFactory_DisabledSigShouldWork(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	coreComponents := getCoreComponents()
 	args := getCryptoArgs(coreComponents)
@@ -76,6 +91,9 @@ func TestNewCryptoComponentsFactory_DisabledSigShouldWork(t *testing.T) {
 
 func TestNewCryptoComponentsFactory_CreateInvalidConsensusTypeShouldErr(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	coreComponents := getCoreComponents()
 	args := getCryptoArgs(coreComponents)
@@ -89,6 +107,9 @@ func TestNewCryptoComponentsFactory_CreateInvalidConsensusTypeShouldErr(t *testi
 
 func TestCryptoComponentsFactory_CreateShouldErrDueToMissingConfig(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	coreComponents := getCoreComponents()
 	args := getCryptoArgs(coreComponents)
@@ -109,6 +130,9 @@ func TestCryptoComponentsFactory_CreateShouldErrDueToMissingConfig(t *testing.T)
 
 func TestCryptoComponentsFactory_CreateInvalidMultiSigHasherShouldErr(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	coreComponents := getCoreComponents()
 	args := getCryptoArgs(coreComponents)
@@ -123,6 +147,9 @@ func TestCryptoComponentsFactory_CreateInvalidMultiSigHasherShouldErr(t *testing
 
 func TestCryptoComponentsFactory_CreateOK(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	coreComponents := getCoreComponents()
 	args := getCryptoArgs(coreComponents)
@@ -135,6 +162,9 @@ func TestCryptoComponentsFactory_CreateOK(t *testing.T) {
 
 func TestCryptoComponentsFactory_CreateWithDisabledSig(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	coreComponents := getCoreComponents()
 	args := getCryptoArgs(coreComponents)
@@ -148,6 +178,9 @@ func TestCryptoComponentsFactory_CreateWithDisabledSig(t *testing.T) {
 
 func TestCryptoComponentsFactory_CreateSingleSignerInvalidConsensusTypeShouldErr(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	coreComponents := getCoreComponents()
 	args := getCryptoArgs(coreComponents)
@@ -163,6 +196,9 @@ func TestCryptoComponentsFactory_CreateSingleSignerInvalidConsensusTypeShouldErr
 
 func TestCryptoComponentsFactory_CreateSingleSignerOK(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	coreComponents := getCoreComponents()
 	args := getCryptoArgs(coreComponents)
@@ -177,6 +213,9 @@ func TestCryptoComponentsFactory_CreateSingleSignerOK(t *testing.T) {
 
 func TestCryptoComponentsFactory_GetMultiSigHasherFromConfigInvalidHasherShouldErr(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	coreComponents := getCoreComponents()
 	args := getCryptoArgs(coreComponents)
@@ -191,8 +230,11 @@ func TestCryptoComponentsFactory_GetMultiSigHasherFromConfigInvalidHasherShouldE
 	require.Equal(t, errErd.ErrMissingMultiHasherConfig, err)
 }
 
-func TestCryptoComponentsFactory_GetMultiSigHasherFromConfigMissmatchConsensusTypeMultiSigHasher(t *testing.T) {
+func TestCryptoComponentsFactory_GetMultiSigHasherFromConfigMismatchConsensusTypeMultiSigHasher(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	coreComponents := getCoreComponents()
 	args := getCryptoArgs(coreComponents)
@@ -208,6 +250,9 @@ func TestCryptoComponentsFactory_GetMultiSigHasherFromConfigMissmatchConsensusTy
 
 func TestCryptoComponentsFactory_GetMultiSigHasherFromConfigOK(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	coreComponents := getCoreComponents()
 	args := getCryptoArgs(coreComponents)
@@ -224,6 +269,9 @@ func TestCryptoComponentsFactory_GetMultiSigHasherFromConfigOK(t *testing.T) {
 
 func TestCryptoComponentsFactory_CreateMultiSignerInvalidConsensusTypeShouldErr(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	coreComponents := getCoreComponents()
 	args := getCryptoArgs(coreComponents)
@@ -240,6 +288,9 @@ func TestCryptoComponentsFactory_CreateMultiSignerInvalidConsensusTypeShouldErr(
 
 func TestCryptoComponentsFactory_CreateMultiSignerOK(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	coreComponents := getCoreComponents()
 	args := getCryptoArgs(coreComponents)
@@ -259,6 +310,9 @@ func TestCryptoComponentsFactory_CreateMultiSignerOK(t *testing.T) {
 
 func TestCryptoComponentsFactory_GetSuiteInvalidConsensusTypeShouldErr(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	coreComponents := getCoreComponents()
 	args := getCryptoArgs(coreComponents)
@@ -274,6 +328,9 @@ func TestCryptoComponentsFactory_GetSuiteInvalidConsensusTypeShouldErr(t *testin
 
 func TestCryptoComponentsFactory_GetSuiteOK(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	coreComponents := getCoreComponents()
 	args := getCryptoArgs(coreComponents)
@@ -289,6 +346,9 @@ func TestCryptoComponentsFactory_GetSuiteOK(t *testing.T) {
 
 func TestCryptoComponentsFactory_CreateCryptoParamsInvalidPrivateKeyByteArrayShouldErr(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	coreComponents := getCoreComponents()
 	args := getCryptoArgs(coreComponents)
@@ -305,6 +365,10 @@ func TestCryptoComponentsFactory_CreateCryptoParamsInvalidPrivateKeyByteArraySho
 
 func TestCryptoComponentsFactory_CreateCryptoParamsLoadKeysFailShouldErr(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	expectedError := errors.New("expected error")
 
 	coreComponents := getCoreComponents()
@@ -322,6 +386,9 @@ func TestCryptoComponentsFactory_CreateCryptoParamsLoadKeysFailShouldErr(t *test
 
 func TestCryptoComponentsFactory_CreateCryptoParamsOK(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	coreComponents := getCoreComponents()
 	args := getCryptoArgs(coreComponents)
@@ -337,6 +404,9 @@ func TestCryptoComponentsFactory_CreateCryptoParamsOK(t *testing.T) {
 
 func TestCryptoComponentsFactory_GetSkPkInvalidSkBytesShouldErr(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	setSk := []byte("zxwY")
 	setPk := []byte(dummyPk)
@@ -353,6 +423,10 @@ func TestCryptoComponentsFactory_GetSkPkInvalidSkBytesShouldErr(t *testing.T) {
 
 func TestCryptoComponentsFactory_GetSkPkInvalidPkBytesShouldErr(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	setSk := []byte(dummySk)
 	setPk := "0"
 
@@ -369,6 +443,9 @@ func TestCryptoComponentsFactory_GetSkPkInvalidPkBytesShouldErr(t *testing.T) {
 
 func TestCryptoComponentsFactory_GetSkPkOK(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	coreComponents := getCoreComponents()
 	args := getCryptoArgs(coreComponents)

@@ -48,13 +48,14 @@ const maxNewMissingAddedPerTurn = 10
 type ArgTrieSyncer struct {
 	Marshalizer               marshal.Marshalizer
 	Hasher                    hashing.Hasher
-	DB                        common.DBWriteCacher
+	DB                        common.StorageManager
 	RequestHandler            RequestHandler
 	InterceptedNodes          storage.Cacher
 	ShardId                   uint32
 	Topic                     string
 	TrieSyncStatistics        common.SizeSyncStatisticsHandler
 	MaxHardCapForMissingNodes int
+	CheckNodesOnDisk          bool
 	TimeoutHandler            TimeoutHandler
 }
 
@@ -65,10 +66,15 @@ func NewTrieSyncer(arg ArgTrieSyncer) (*trieSyncer, error) {
 		return nil, err
 	}
 
+	stsm, err := NewSyncTrieStorageManager(arg.DB)
+	if err != nil {
+		return nil, err
+	}
+
 	ts := &trieSyncer{
 		requestHandler:            arg.RequestHandler,
 		interceptedNodesCacher:    arg.InterceptedNodes,
-		db:                        arg.DB,
+		db:                        stsm,
 		marshalizer:               arg.Marshalizer,
 		hasher:                    arg.Hasher,
 		nodesForTrie:              make(map[string]trieNodeInfo),

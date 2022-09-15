@@ -26,7 +26,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	pubsub "github.com/ElrondNetwork/go-libp2p-pubsub"
-	pubsubPb "github.com/ElrondNetwork/go-libp2p-pubsub/pb"
+	pb "github.com/ElrondNetwork/go-libp2p-pubsub/pb"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/peerstore"
@@ -99,8 +99,7 @@ func createMockNetworkArgs() libp2p.ArgsNetworkMessenger {
 		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
 		P2pConfig: config.P2PConfig{
 			Node: config.NodeConfig{
-				Port:                  "0",
-				ConnectionWatcherType: "print",
+				Port: "0",
 			},
 			KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
 				Enabled: false,
@@ -109,14 +108,15 @@ func createMockNetworkArgs() libp2p.ArgsNetworkMessenger {
 				Type: p2p.NilListSharder,
 			},
 		},
-		SyncTimer:            &libp2p.LocalSyncTimer{},
-		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
-		PeersRatingHandler:   &p2pmocks.PeersRatingHandlerStub{},
+		SyncTimer:             &libp2p.LocalSyncTimer{},
+		PreferredPeersHolder:  &p2pmocks.PeersHolderStub{},
+		PeersRatingHandler:    &p2pmocks.PeersRatingHandlerStub{},
+		ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
 	}
 }
 
 func createMockNetworkOf2() (mocknet.Mocknet, p2p.Messenger, p2p.Messenger) {
-	netw := mocknet.New(context.Background())
+	netw := mocknet.New()
 
 	messenger1, _ := libp2p.NewMockMessenger(createMockNetworkArgs(), netw)
 	messenger2, _ := libp2p.NewMockMessenger(createMockNetworkArgs(), netw)
@@ -127,7 +127,7 @@ func createMockNetworkOf2() (mocknet.Mocknet, p2p.Messenger, p2p.Messenger) {
 }
 
 func createMockNetworkOf3() (p2p.Messenger, p2p.Messenger, p2p.Messenger) {
-	netw := mocknet.New(context.Background())
+	netw := mocknet.New()
 
 	messenger1, _ := libp2p.NewMockMessenger(createMockNetworkArgs(), netw)
 	messenger2, _ := libp2p.NewMockMessenger(createMockNetworkArgs(), netw)
@@ -157,7 +157,7 @@ func createMockNetworkOf3() (p2p.Messenger, p2p.Messenger, p2p.Messenger) {
 }
 
 func createMockMessenger() p2p.Messenger {
-	netw := mocknet.New(context.Background())
+	netw := mocknet.New()
 
 	messenger, _ := libp2p.NewMockMessenger(createMockNetworkArgs(), netw)
 
@@ -184,7 +184,7 @@ func TestNewMemoryLibp2pMessenger_NilMockNetShouldErr(t *testing.T) {
 }
 
 func TestNewMemoryLibp2pMessenger_OkValsWithoutDiscoveryShouldWork(t *testing.T) {
-	netw := mocknet.New(context.Background())
+	netw := mocknet.New()
 
 	messenger, err := libp2p.NewMockMessenger(createMockNetworkArgs(), netw)
 
@@ -286,7 +286,7 @@ func TestNewNetworkMessenger_WithKadDiscovererListSharderShouldWork(t *testing.T
 // ------- Messenger functionality
 
 func TestLibp2pMessenger_ConnectToPeerShouldCallUpgradedHost(t *testing.T) {
-	netw := mocknet.New(context.Background())
+	netw := mocknet.New()
 
 	messenger, _ := libp2p.NewMockMessenger(createMockNetworkArgs(), netw)
 	_ = messenger.Close()
@@ -771,7 +771,7 @@ func TestLibp2pMessenger_PeerAddressConnectedPeerShouldWork(t *testing.T) {
 }
 
 func TestLibp2pMessenger_PeerAddressNotConnectedShouldReturnFromPeerstore(t *testing.T) {
-	netw := mocknet.New(context.Background())
+	netw := mocknet.New()
 	messenger, _ := libp2p.NewMockMessenger(createMockNetworkArgs(), netw)
 
 	networkHandler := &mock.NetworkStub{
@@ -1060,7 +1060,7 @@ func TestLibp2pMessenger_ConnectedPeersShouldReturnUniquePeers(t *testing.T) {
 		},
 	}
 
-	netw := mocknet.New(context.Background())
+	netw := mocknet.New()
 	mes, _ := libp2p.NewMockMessenger(createMockNetworkArgs(), netw)
 	// we can safely close the host as the next operations will be done on a mock
 	_ = mes.Close()
@@ -1302,7 +1302,7 @@ func TestLibp2pMessenger_SendDirectWithRealNetToSelfShouldWork(t *testing.T) {
 func TestNetworkMessenger_BootstrapPeerDiscoveryShouldCallPeerBootstrapper(t *testing.T) {
 	wasCalled := false
 
-	netw := mocknet.New(context.Background())
+	netw := mocknet.New()
 	pdm := &mock.PeerDiscovererStub{
 		BootstrapCalled: func() error {
 			wasCalled = true
@@ -1416,8 +1416,7 @@ func TestNetworkMessenger_PreventReprocessingShouldWork(t *testing.T) {
 		Marshalizer:   &testscommon.ProtoMarshalizerMock{},
 		P2pConfig: config.P2PConfig{
 			Node: config.NodeConfig{
-				Port:                  "0",
-				ConnectionWatcherType: "print",
+				Port: "0",
 			},
 			KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
 				Enabled: false,
@@ -1426,9 +1425,10 @@ func TestNetworkMessenger_PreventReprocessingShouldWork(t *testing.T) {
 				Type: p2p.NilListSharder,
 			},
 		},
-		SyncTimer:            &libp2p.LocalSyncTimer{},
-		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
-		PeersRatingHandler:   &p2pmocks.PeersRatingHandlerStub{},
+		SyncTimer:             &libp2p.LocalSyncTimer{},
+		PreferredPeersHolder:  &p2pmocks.PeersHolderStub{},
+		PeersRatingHandler:    &p2pmocks.PeersRatingHandlerStub{},
+		ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
 	}
 
 	mes, _ := libp2p.NewNetworkMessenger(args)
@@ -1454,7 +1454,7 @@ func TestNetworkMessenger_PreventReprocessingShouldWork(t *testing.T) {
 	}
 	buff, _ := args.Marshalizer.Marshal(innerMessage)
 	msg := &pubsub.Message{
-		Message: &pubsubPb.Message{
+		Message: &pb.Message{
 			From:                 []byte(pid),
 			Data:                 buff,
 			Seqno:                []byte{0, 0, 0, 1},
@@ -1482,8 +1482,7 @@ func TestNetworkMessenger_PubsubCallbackNotMessageNotValidShouldNotCallHandler(t
 		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
 		P2pConfig: config.P2PConfig{
 			Node: config.NodeConfig{
-				Port:                  "0",
-				ConnectionWatcherType: "print",
+				Port: "0",
 			},
 			KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
 				Enabled: false,
@@ -1492,9 +1491,10 @@ func TestNetworkMessenger_PubsubCallbackNotMessageNotValidShouldNotCallHandler(t
 				Type: p2p.NilListSharder,
 			},
 		},
-		SyncTimer:            &libp2p.LocalSyncTimer{},
-		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
-		PeersRatingHandler:   &p2pmocks.PeersRatingHandlerStub{},
+		SyncTimer:             &libp2p.LocalSyncTimer{},
+		PreferredPeersHolder:  &p2pmocks.PeersHolderStub{},
+		PeersRatingHandler:    &p2pmocks.PeersRatingHandlerStub{},
+		ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
 	}
 
 	mes, _ := libp2p.NewNetworkMessenger(args)
@@ -1527,7 +1527,7 @@ func TestNetworkMessenger_PubsubCallbackNotMessageNotValidShouldNotCallHandler(t
 	}
 	buff, _ := args.Marshalizer.Marshal(innerMessage)
 	msg := &pubsub.Message{
-		Message: &pubsubPb.Message{
+		Message: &pb.Message{
 			From:                 []byte("not a valid pid"),
 			Data:                 buff,
 			Seqno:                []byte{0, 0, 0, 1},
@@ -1555,8 +1555,7 @@ func TestNetworkMessenger_PubsubCallbackReturnsFalseIfHandlerErrors(t *testing.T
 		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
 		P2pConfig: config.P2PConfig{
 			Node: config.NodeConfig{
-				Port:                  "0",
-				ConnectionWatcherType: "print",
+				Port: "0",
 			},
 			KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
 				Enabled: false,
@@ -1565,9 +1564,10 @@ func TestNetworkMessenger_PubsubCallbackReturnsFalseIfHandlerErrors(t *testing.T
 				Type: p2p.NilListSharder,
 			},
 		},
-		SyncTimer:            &libp2p.LocalSyncTimer{},
-		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
-		PeersRatingHandler:   &p2pmocks.PeersRatingHandlerStub{},
+		SyncTimer:             &libp2p.LocalSyncTimer{},
+		PreferredPeersHolder:  &p2pmocks.PeersHolderStub{},
+		PeersRatingHandler:    &p2pmocks.PeersRatingHandlerStub{},
+		ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
 	}
 
 	mes, _ := libp2p.NewNetworkMessenger(args)
@@ -1592,7 +1592,7 @@ func TestNetworkMessenger_PubsubCallbackReturnsFalseIfHandlerErrors(t *testing.T
 	buff, _ := args.Marshalizer.Marshal(innerMessage)
 	topic := "topic"
 	msg := &pubsub.Message{
-		Message: &pubsubPb.Message{
+		Message: &pb.Message{
 			From:                 []byte(mes.ID()),
 			Data:                 buff,
 			Seqno:                []byte{0, 0, 0, 1},
@@ -1619,8 +1619,7 @@ func TestNetworkMessenger_UnjoinAllTopicsShouldWork(t *testing.T) {
 		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
 		P2pConfig: config.P2PConfig{
 			Node: config.NodeConfig{
-				Port:                  "0",
-				ConnectionWatcherType: "print",
+				Port: "0",
 			},
 			KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
 				Enabled: false,
@@ -1629,9 +1628,10 @@ func TestNetworkMessenger_UnjoinAllTopicsShouldWork(t *testing.T) {
 				Type: p2p.NilListSharder,
 			},
 		},
-		SyncTimer:            &libp2p.LocalSyncTimer{},
-		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
-		PeersRatingHandler:   &p2pmocks.PeersRatingHandlerStub{},
+		SyncTimer:             &libp2p.LocalSyncTimer{},
+		PreferredPeersHolder:  &p2pmocks.PeersHolderStub{},
+		PeersRatingHandler:    &p2pmocks.PeersRatingHandlerStub{},
+		ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
 	}
 
 	mes, _ := libp2p.NewNetworkMessenger(args)
@@ -1713,7 +1713,7 @@ func TestNetworkMessenger_ValidMessageByTimestampMessageAtUpperLimitShouldWork(t
 }
 
 func TestNetworkMessenger_GetConnectedPeersInfo(t *testing.T) {
-	netw := mocknet.New(context.Background())
+	netw := mocknet.New()
 
 	peers := []peer.ID{
 		"valI1",
@@ -1805,49 +1805,6 @@ func TestNetworkMessenger_mapHistogram(t *testing.T) {
 	require.Equal(t, output, netMes.MapHistogram(inp))
 }
 
-func TestNetworkMessenger_ChooseAnotherPortIfBindFails(t *testing.T) {
-	t.Skip("complex test used to debug port reuse mechanism on netMessenger")
-
-	port := "37000-37010"
-	mutMessengers := sync.Mutex{}
-	messengers := make([]p2p.Messenger, 0)
-
-	numMessengers := 10
-	for i := 0; i < numMessengers; i++ {
-		go func() {
-			time.Sleep(time.Millisecond)
-			args := createMockNetworkArgs()
-			args.P2pConfig.Node.Port = port
-
-			netMes, err := libp2p.NewNetworkMessengerWithoutPortReuse(args)
-			assert.Nil(t, err)
-			require.False(t, check.IfNil(netMes))
-
-			mutMessengers.Lock()
-			messengers = append(messengers, netMes)
-			mutMessengers.Unlock()
-		}()
-	}
-
-	time.Sleep(time.Second)
-
-	mutMessengers.Lock()
-	for index1, messenger1 := range messengers {
-		for index2, messenger2 := range messengers {
-			if index1 == index2 {
-				continue
-			}
-
-			assert.NotEqual(t, messenger1.Port(), messenger2.Port())
-		}
-	}
-
-	for _, messenger := range messengers {
-		_ = messenger.Close()
-	}
-	mutMessengers.Unlock()
-}
-
 func TestNetworkMessenger_Bootstrap(t *testing.T) {
 	t.Skip("long test used to debug go routines closing on the netMessenger")
 
@@ -1864,7 +1821,6 @@ func TestNetworkMessenger_Bootstrap(t *testing.T) {
 				Seed:                       "",
 				MaximumExpectedPeerCount:   1,
 				ThresholdMinConnectedPeers: 1,
-				ConnectionWatcherType:      "print",
 			},
 			KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
 				Enabled:                          true,
@@ -1887,7 +1843,7 @@ func TestNetworkMessenger_Bootstrap(t *testing.T) {
 		},
 		SyncTimer:            &mock.SyncTimerStub{},
 		PeersRatingHandler:   &p2pmocks.PeersRatingHandlerStub{},
-		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
+		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
 	}
 
 	netMes, err := libp2p.NewNetworkMessenger(args)

@@ -45,18 +45,19 @@ func createMockBlockChainHookArgs() hooks.ArgBlockChainHook {
 				return &mock.AccountWrapMock{}, nil
 			},
 		},
-		PubkeyConv:         mock.NewPubkeyConverterMock(32),
-		StorageService:     &mock.ChainStorerMock{},
-		BlockChain:         &testscommon.ChainHandlerStub{},
-		ShardCoordinator:   mock.NewOneShardCoordinatorMock(),
-		Marshalizer:        &mock.MarshalizerMock{},
-		Uint64Converter:    &mock.Uint64ByteSliceConverterMock{},
-		BuiltInFunctions:   vmcommonBuiltInFunctions.NewBuiltInFunctionContainer(),
-		NFTStorageHandler:  &testscommon.SimpleNFTStorageHandlerStub{},
-		DataPool:           datapool,
-		CompiledSCPool:     datapool.SmartContracts(),
-		EpochNotifier:      &epochNotifier.EpochNotifierStub{},
-		NilCompiledSCStore: true,
+		PubkeyConv:            mock.NewPubkeyConverterMock(32),
+		StorageService:        &mock.ChainStorerMock{},
+		BlockChain:            &testscommon.ChainHandlerStub{},
+		ShardCoordinator:      mock.NewOneShardCoordinatorMock(),
+		Marshalizer:           &mock.MarshalizerMock{},
+		Uint64Converter:       &mock.Uint64ByteSliceConverterMock{},
+		BuiltInFunctions:      vmcommonBuiltInFunctions.NewBuiltInFunctionContainer(),
+		NFTStorageHandler:     &testscommon.SimpleNFTStorageHandlerStub{},
+		GlobalSettingsHandler: &testscommon.ESDTGlobalSettingsHandlerStub{},
+		DataPool:              datapool,
+		CompiledSCPool:        datapool.SmartContracts(),
+		EpochNotifier:         &epochNotifier.EpochNotifierStub{},
+		NilCompiledSCStore:    true,
 		EnableEpochs: config.EnableEpochs{
 			DoNotReturnOldBlockInBlockchainHookEnableEpoch: math.MaxUint32,
 		},
@@ -172,6 +173,14 @@ func TestNewBlockChainHookImpl(t *testing.T) {
 		{
 			args: func() hooks.ArgBlockChainHook {
 				args := createMockBlockChainHookArgs()
+				args.GlobalSettingsHandler = nil
+				return args
+			},
+			expectedErr: process.ErrNilESDTGlobalSettingsHandler,
+		},
+		{
+			args: func() hooks.ArgBlockChainHook {
+				args := createMockBlockChainHookArgs()
 				args.NilCompiledSCStore = false
 				args.ConfigSCStorage = config.StorageConfig{
 					Cache: config.CacheConfig{
@@ -201,6 +210,7 @@ func TestNewBlockChainHookImpl(t *testing.T) {
 			require.Nil(t, bh)
 		} else {
 			require.NotNil(t, bh)
+			require.Equal(t, len(bh.GetMapActivationEpochs()), 2)
 		}
 	}
 }
@@ -1863,4 +1873,31 @@ func TestBlockChainHookImpl_FilterCodeMetadataForUpgrade(t *testing.T) {
 		assert.Nil(t, resultBytes)
 		assert.Equal(t, parsers.ErrInvalidCodeMetadata, err)
 	})
+}
+
+func TestBlockChainHookImpl_ClearCompiledCodes(t *testing.T) {
+	t.Parallel()
+
+	args := createMockBlockChainHookArgs()
+	args.EnableEpochs.DoNotReturnOldBlockInBlockchainHookEnableEpoch = 0
+	args.EnableEpochs.ESDTEnableEpoch = 10
+	args.EnableEpochs.IsPayableBySCEnableEpoch = 11
+
+	clearCalled := 0
+	args.CompiledSCPool = &testscommon.CacherStub{ClearCalled: func() {
+		clearCalled++
+	}}
+
+	bh, _ := hooks.NewBlockChainHookImpl(args)
+	assert.Equal(t, len(bh.GetMapActivationEpochs()), 3)
+	assert.Equal(t, clearCalled, 2)
+
+	bh.EpochConfirmed(100, 0)
+	assert.Equal(t, clearCalled, 2)
+
+	bh.EpochConfirmed(10, 0)
+	assert.Equal(t, clearCalled, 3)
+
+	bh.EpochConfirmed(11, 0)
+	assert.Equal(t, clearCalled, 4)
 }

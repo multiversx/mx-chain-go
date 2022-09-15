@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/mock"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -21,7 +22,7 @@ func createMockArguments() ArgsNewSystemVM {
 		SystemEI:        &mock.SystemEIStub{},
 		SystemContracts: &mock.SystemSCContainerStub{},
 		VmType:          factory.SystemVirtualMachine,
-		GasSchedule:     mock.NewGasScheduleNotifierMock(gasMap),
+		GasSchedule:     testscommon.NewGasScheduleNotifierMock(gasMap),
 	}
 	return args
 }
@@ -75,14 +76,14 @@ func TestNewSystemVM_NoApiCost(t *testing.T) {
 
 	args := createMockArguments()
 	gasMap := make(map[string]map[string]uint64)
-	args.GasSchedule = mock.NewGasScheduleNotifierMock(gasMap)
+	args.GasSchedule = testscommon.NewGasScheduleNotifierMock(gasMap)
 	sVM, err := NewSystemVM(args)
 
 	assert.Nil(t, sVM)
 	assert.Equal(t, vm.ErrNilGasSchedule, err)
 
 	gasMap[common.ElrondAPICost] = make(map[string]uint64)
-	args.GasSchedule = mock.NewGasScheduleNotifierMock(gasMap)
+	args.GasSchedule = testscommon.NewGasScheduleNotifierMock(gasMap)
 	sVM, err = NewSystemVM(args)
 
 	assert.Nil(t, sVM)

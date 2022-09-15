@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing/blake2b"
 	"github.com/ElrondNetwork/elrond-go-core/hashing/fnv"
 	"github.com/ElrondNetwork/elrond-go-core/hashing/keccak"
+	storageCore "github.com/ElrondNetwork/elrond-go-core/storage"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -185,8 +186,8 @@ func (u *Unit) GetFromEpoch(key []byte, _ uint32) ([]byte, error) {
 }
 
 // GetBulkFromEpoch will call the Get method for all keys as this storer doesn't handle epochs
-func (u *Unit) GetBulkFromEpoch(keys [][]byte, _ uint32) (map[string][]byte, error) {
-	retMap := make(map[string][]byte)
+func (u *Unit) GetBulkFromEpoch(keys [][]byte, _ uint32) ([]storageCore.KeyValuePair, error) {
+	results := make([]storageCore.KeyValuePair, 0, len(keys))
 	for _, key := range keys {
 		value, err := u.Get(key)
 		if err != nil {
@@ -196,9 +197,10 @@ func (u *Unit) GetBulkFromEpoch(keys [][]byte, _ uint32) (map[string][]byte, err
 			)
 			continue
 		}
-		retMap[string(key)] = value
+		keyValue := storageCore.KeyValuePair{Key: key, Value: value}
+		results = append(results, keyValue)
 	}
-	return retMap, nil
+	return results, nil
 }
 
 // Has checks if the key is in the Unit.
@@ -279,11 +281,8 @@ func NewStorageUnitFromConf(cacheConf CacheConfig, dbConf DBConfig) (*Unit, erro
 	var db storage.Persister
 	var err error
 
-	defer func() {
-		if err != nil && db != nil {
-			_ = db.Destroy()
-		}
-	}()
+	// TODO: if there will be a differentiation between the creation or opening of a DB, the DB could be destroyed
+	// in case of a failure while creating (not opening).
 
 	if dbConf.MaxBatchSize > int(cacheConf.Capacity) {
 		return nil, storage.ErrCacheSizeIsLowerThanBatchSize

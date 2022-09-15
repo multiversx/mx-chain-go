@@ -1200,130 +1200,6 @@ func TestResolverRequestHandler_RequestTrieNodeNotAValidResolver(t *testing.T) {
 
 //------- RequestPeerAuthentications
 
-func TestResolverRequestHandler_RequestPeerAuthenticationsChunk(t *testing.T) {
-	t.Parallel()
-
-	providedChunkId := uint32(123)
-	providedShardId := uint32(15)
-	t.Run("CrossShardResolver returns error", func(t *testing.T) {
-		t.Parallel()
-
-		wasCalled := false
-		paResolver := &mock.PeerAuthenticationResolverStub{
-			RequestDataFromChunkCalled: func(chunkIndex uint32, epoch uint32) error {
-				wasCalled = true
-				return nil
-			},
-		}
-		rrh, _ := NewResolverRequestHandler(
-			&mock.ResolversFinderStub{
-				MetaChainResolverCalled: func(baseTopic string) (dataRetriever.Resolver, error) {
-					assert.Equal(t, common.PeerAuthenticationTopic, baseTopic)
-					return paResolver, errExpected
-				},
-			},
-			&mock.RequestedItemsHandlerStub{},
-			&mock.WhiteListHandlerStub{},
-			1,
-			0,
-			time.Second,
-		)
-
-		rrh.RequestPeerAuthenticationsChunk(providedShardId, providedChunkId)
-		assert.False(t, wasCalled)
-	})
-	t.Run("cast fails", func(t *testing.T) {
-		t.Parallel()
-
-		wasCalled := false
-		mbResolver := &mock.ResolverStub{
-			RequestDataFromHashCalled: func(hash []byte, epoch uint32) error {
-				wasCalled = true
-				return nil
-			},
-		}
-		rrh, _ := NewResolverRequestHandler(
-			&mock.ResolversFinderStub{
-				MetaChainResolverCalled: func(baseTopic string) (dataRetriever.Resolver, error) {
-					assert.Equal(t, common.PeerAuthenticationTopic, baseTopic)
-					return mbResolver, nil
-				},
-			},
-			&mock.RequestedItemsHandlerStub{},
-			&mock.WhiteListHandlerStub{},
-			1,
-			0,
-			time.Second,
-		)
-
-		rrh.RequestPeerAuthenticationsChunk(providedShardId, providedChunkId)
-		assert.False(t, wasCalled)
-	})
-	t.Run("RequestDataFromChunk returns error", func(t *testing.T) {
-		t.Parallel()
-
-		wasCalled := false
-		paResolver := &mock.PeerAuthenticationResolverStub{
-			RequestDataFromChunkCalled: func(chunkIndex uint32, epoch uint32) error {
-				wasCalled = true
-				assert.Equal(t, providedChunkId, chunkIndex)
-				return errExpected
-			},
-		}
-		rrh, _ := NewResolverRequestHandler(
-			&mock.ResolversFinderStub{
-				MetaChainResolverCalled: func(baseTopic string) (dataRetriever.Resolver, error) {
-					assert.Equal(t, common.PeerAuthenticationTopic, baseTopic)
-					return paResolver, nil
-				},
-			},
-			&mock.RequestedItemsHandlerStub{},
-			&mock.WhiteListHandlerStub{},
-			1,
-			0,
-			time.Second,
-		)
-
-		rrh.RequestPeerAuthenticationsChunk(providedShardId, providedChunkId)
-		assert.True(t, wasCalled)
-	})
-	t.Run("should work", func(t *testing.T) {
-		t.Parallel()
-
-		defer func() {
-			r := recover()
-			if r != nil {
-				assert.Fail(t, "should not panic")
-			}
-		}()
-
-		wasCalled := false
-		paResolver := &mock.PeerAuthenticationResolverStub{
-			RequestDataFromChunkCalled: func(chunkIndex uint32, epoch uint32) error {
-				wasCalled = true
-				assert.Equal(t, providedChunkId, chunkIndex)
-				return nil
-			},
-		}
-		rrh, _ := NewResolverRequestHandler(
-			&mock.ResolversFinderStub{
-				MetaChainResolverCalled: func(baseTopic string) (dataRetriever.Resolver, error) {
-					assert.Equal(t, common.PeerAuthenticationTopic, baseTopic)
-					return paResolver, nil
-				},
-			},
-			&mock.RequestedItemsHandlerStub{},
-			&mock.WhiteListHandlerStub{},
-			1,
-			0,
-			time.Second,
-		)
-
-		rrh.RequestPeerAuthenticationsChunk(providedShardId, providedChunkId)
-		assert.True(t, wasCalled)
-	})
-}
-
 func TestResolverRequestHandler_RequestPeerAuthenticationsByHashes(t *testing.T) {
 	t.Parallel()
 
@@ -1334,7 +1210,7 @@ func TestResolverRequestHandler_RequestPeerAuthenticationsByHashes(t *testing.T)
 
 		wasCalled := false
 		paResolver := &mock.PeerAuthenticationResolverStub{
-			RequestDataFromChunkCalled: func(chunkIndex uint32, epoch uint32) error {
+			RequestDataFromHashArrayCalled: func(hashes [][]byte, epoch uint32) error {
 				wasCalled = true
 				return nil
 			},

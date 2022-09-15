@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go-core/core/container"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	storageCore "github.com/ElrondNetwork/elrond-go-core/storage"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -22,9 +23,14 @@ type StorerMock struct {
 }
 
 // NewStorerMock -
-func NewStorerMock(name string, currentEpoch uint32) *StorerMock {
+func NewStorerMock() *StorerMock {
+	return NewStorerMockWithEpoch(0)
+}
+
+// NewStorerMockWithEpoch -
+func NewStorerMockWithEpoch(currentEpoch uint32) *StorerMock {
 	sm := &StorerMock{
-		Name:        name,
+		Name:        "",
 		DataByEpoch: make(map[uint32]*container.MutexMap),
 	}
 
@@ -33,8 +39,8 @@ func NewStorerMock(name string, currentEpoch uint32) *StorerMock {
 }
 
 // NewStorerMockWithErrKeyNotFound -
-func NewStorerMockWithErrKeyNotFound(name string, currentEpoch uint32) *StorerMock {
-	sm := NewStorerMock(name, currentEpoch)
+func NewStorerMockWithErrKeyNotFound(currentEpoch uint32) *StorerMock {
+	sm := NewStorerMockWithEpoch(currentEpoch)
 	sm.shouldReturnErrKeyNotFound = true
 
 	return sm
@@ -78,18 +84,19 @@ func (sm *StorerMock) GetFromEpoch(key []byte, epoch uint32) ([]byte, error) {
 }
 
 // GetBulkFromEpoch -
-func (sm *StorerMock) GetBulkFromEpoch(keys [][]byte, epoch uint32) (map[string][]byte, error) {
+func (sm *StorerMock) GetBulkFromEpoch(keys [][]byte, epoch uint32) ([]storageCore.KeyValuePair, error) {
 	data := sm.GetEpochData(epoch)
-	result := map[string][]byte{}
+	results := make([]storageCore.KeyValuePair, 0, len(keys))
 
 	for _, key := range keys {
 		value, ok := data.Get(string(key))
 		if ok {
-			result[string(key)] = value.([]byte)
+			keyValue := storageCore.KeyValuePair{Key: key, Value: value.([]byte)}
+			results = append(results, keyValue)
 		}
 	}
 
-	return result, nil
+	return results, nil
 }
 
 // hasInEpoch -
@@ -179,6 +186,11 @@ func (sm *StorerMock) Remove(_ []byte) error {
 	return errors.New("not implemented")
 }
 
+// ClearAll removes all data from the mock (useful in unit tests)
+func (sm *StorerMock) ClearAll() {
+	sm.DataByEpoch = make(map[uint32]*container.MutexMap)
+}
+
 // ClearCache -
 func (sm *StorerMock) ClearCache() {
 }
@@ -224,5 +236,5 @@ func (sm *StorerMock) newErrNotFound(key []byte, epoch uint32) error {
 		return storage.ErrKeyNotFound
 	}
 
-	return fmt.Errorf("StorerMock: not found in %s: key = %s, epoch = %d", sm.Name, hex.EncodeToString(key), epoch)
+	return fmt.Errorf("StorerMock: not found; key = %s, epoch = %d", hex.EncodeToString(key), epoch)
 }
