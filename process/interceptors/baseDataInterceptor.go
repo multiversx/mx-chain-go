@@ -105,12 +105,18 @@ func (bdi *baseDataInterceptor) processInterceptedData(data process.InterceptedD
 
 func (bdi *baseDataInterceptor) processDebugInterceptedData(interceptedData process.InterceptedData, err error) {
 	identifiers := interceptedData.Identifiers()
+
+	bdi.mutDebugHandler.RLock()
 	bdi.debugHandler.LogProcessedHashes(bdi.topic, identifiers, err)
+	bdi.mutDebugHandler.RUnlock()
 }
 
 func (bdi *baseDataInterceptor) receivedDebugInterceptedData(interceptedData process.InterceptedData) {
 	identifiers := interceptedData.Identifiers()
+
+	bdi.mutDebugHandler.RLock()
 	bdi.debugHandler.LogReceivedHashes(bdi.topic, identifiers)
+	bdi.mutDebugHandler.RUnlock()
 }
 
 // SetInterceptedDebugHandler will set a new intercepted debug handler

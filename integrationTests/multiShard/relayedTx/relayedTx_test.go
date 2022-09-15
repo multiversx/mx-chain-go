@@ -376,7 +376,7 @@ func checkSCBalance(t *testing.T, node *integrationTests.TestProcessorNode, scAd
 	})
 	assert.Nil(t, err)
 	actualBalance := big.NewInt(0).SetBytes(vmOutput.ReturnData[0])
-	assert.Equal(t, actualBalance.Cmp(balance), 0)
+	assert.Equal(t, 0, actualBalance.Cmp(balance))
 }
 
 func checkPlayerBalances(

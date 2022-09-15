@@ -121,7 +121,7 @@ func (ti *testIndexer) createElasticProcessor(
 	})
 
 	balanceConverter, _ := converters.NewBalanceConverter(18)
-	ap, _ := accounts.NewAccountsProcessor(testMarshalizer, pubkeyConv, &stateMock.AccountsStub{}, balanceConverter)
+	ap, _ := accounts.NewAccountsProcessor(testMarshalizer, pubkeyConv, &stateMock.AccountsStub{}, balanceConverter, shardCoordinator.SelfId())
 	bp, _ := blockProc.NewBlockProcessor(testHasher, testMarshalizer)
 	mp, _ := miniblocks.NewMiniblocksProcessor(shardCoordinator.SelfId(), testHasher, testMarshalizer, false)
 	sp := statistics.NewStatisticsProcessor()
@@ -296,6 +296,15 @@ func (ti *testIndexer) GetIndexerPreparedTransaction(t *testing.T) *indexerTypes
 	require.True(t, len(split) > 1)
 
 	ss := splitAgain[1][:len(splitAgain[1])-1]
+	err = json.Unmarshal(ss, &newTx)
+	require.Nil(t, err)
+
+	if newTx.Receiver != "" {
+		return newTx
+	}
+
+	splitAgain = bytes.Split(split[1], []byte(`"tx": `))
+	ss = splitAgain[1][:len(splitAgain[1])-15]
 	err = json.Unmarshal(ss, &newTx)
 	require.Nil(t, err)
 

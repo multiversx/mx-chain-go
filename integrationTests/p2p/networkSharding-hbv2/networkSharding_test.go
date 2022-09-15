@@ -16,8 +16,7 @@ var p2pBootstrapStepDelay = 2 * time.Second
 func createDefaultConfig() config.P2PConfig {
 	return config.P2PConfig{
 		Node: config.NodeConfig{
-			Port:                  "0",
-			ConnectionWatcherType: "print",
+			Port: "0",
 		},
 		KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
 			Enabled:                          true,
@@ -97,7 +96,7 @@ func testConnectionsInNetworkSharding(t *testing.T, p2pConfig config.P2PConfig) 
 	}
 
 	fmt.Println("Initializing nodes components...")
-	initNodes(nodesMap)
+	initNodes(t, nodesMap)
 
 	for i := 0; i < 5; i++ {
 		fmt.Println("\n" + integrationTests.MakeDisplayTableForHeartbeatNodes(nodesMap))
@@ -136,10 +135,10 @@ func startNodes(nodesMap map[uint32][]*integrationTests.TestHeartbeatNode) {
 	}
 }
 
-func initNodes(nodesMap map[uint32][]*integrationTests.TestHeartbeatNode) {
+func initNodes(tb testing.TB, nodesMap map[uint32][]*integrationTests.TestHeartbeatNode) {
 	for _, nodes := range nodesMap {
 		for _, n := range nodes {
-			n.InitTestHeartbeatNode(0)
+			n.InitTestHeartbeatNode(tb, 0)
 		}
 	}
 }

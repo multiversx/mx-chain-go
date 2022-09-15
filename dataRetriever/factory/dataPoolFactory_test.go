@@ -130,14 +130,6 @@ func TestNewDataPoolFromConfig_BadConfigShouldErr(t *testing.T) {
 	require.True(t, strings.Contains(err.Error(), "the cache for the smartcontract results"))
 
 	args = getGoodArgs()
-	args.Config.HeartbeatV2.PeerAuthenticationPool.CacheExpiryInSec = 0
-	holder, err = NewDataPoolFromConfig(args)
-	require.Nil(t, holder)
-	fmt.Println(err)
-	require.True(t, errors.Is(err, storage.ErrInvalidCacheExpiry))
-	require.True(t, strings.Contains(err.Error(), "the cache for the peer authentication messages"))
-
-	args = getGoodArgs()
 	args.Config.HeartbeatV2.HeartbeatPool.Type = "invalid cache type"
 	holder, err = NewDataPoolFromConfig(args)
 	require.Nil(t, holder)

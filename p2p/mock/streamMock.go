@@ -32,7 +32,7 @@ func NewStreamMock() *streamMock {
 
 // Read -
 func (sm *streamMock) Read(p []byte) (int, error) {
-	//just a mock implementation of blocking read
+	// just a mock implementation of blocking read
 	for {
 		time.Sleep(time.Millisecond * 10)
 
@@ -105,13 +105,15 @@ func (sm *streamMock) Protocol() protocol.ID {
 }
 
 // SetProtocol -
-func (sm *streamMock) SetProtocol(pid protocol.ID) {
+func (sm *streamMock) SetProtocol(pid protocol.ID) error {
 	sm.pid = pid
+
+	return nil
 }
 
 // Stat -
-func (sm *streamMock) Stat() network.Stat {
-	return network.Stat{
+func (sm *streamMock) Stat() network.Stats {
+	return network.Stats{
 		Direction: network.DirOutbound,
 	}
 }
@@ -152,4 +154,9 @@ func (sm *streamMock) CloseRead() error {
 
 	sm.streamClosed = true
 	return nil
+}
+
+// Scope -
+func (sm *streamMock) Scope() network.StreamScope {
+	return network.NullScope
 }

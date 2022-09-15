@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 )
@@ -139,7 +140,7 @@ func TestWithRequestedItemsHandler_OkRequestedItemsHandlerShouldWork(t *testing.
 
 	node, _ := NewNode()
 
-	requestedItemsHeanlder := &mock.TimeCacheStub{}
+	requestedItemsHeanlder := &testscommon.TimeCacheStub{}
 	opt := WithRequestedItemsHandler(requestedItemsHeanlder)
 	err := opt(node)
 

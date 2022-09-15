@@ -13,8 +13,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p/data"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
-	pubsub "github.com/ElrondNetwork/go-libp2p-pubsub"
-	pubsubpb "github.com/ElrondNetwork/go-libp2p-pubsub/pb"
+	"github.com/ElrondNetwork/go-libp2p-pubsub"
+	pb "github.com/ElrondNetwork/go-libp2p-pubsub/pb"
 	"github.com/btcsuite/btcd/btcec"
 	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -53,7 +53,7 @@ func TestMessage_ShouldErrBecauseOfFromField(t *testing.T) {
 	}
 	buff, _ := marshalizer.Marshal(topicMessage)
 	topic := "topic"
-	mes := &pubsubpb.Message{
+	mes := &pb.Message{
 		From:  from,
 		Data:  buff,
 		Topic: &topic,
@@ -76,7 +76,7 @@ func TestMessage_ShouldWork(t *testing.T) {
 	}
 	buff, _ := marshalizer.Marshal(topicMessage)
 	topic := "topic"
-	mes := &pubsubpb.Message{
+	mes := &pb.Message{
 		From:  getRandomID(),
 		Data:  buff,
 		Topic: &topic,
@@ -101,7 +101,7 @@ func TestMessage_From(t *testing.T) {
 	}
 	buff, _ := marshalizer.Marshal(topicMessage)
 	topic := "topic"
-	mes := &pubsubpb.Message{
+	mes := &pb.Message{
 		From:  from,
 		Data:  buff,
 		Topic: &topic,
@@ -126,7 +126,7 @@ func TestMessage_Peer(t *testing.T) {
 	}
 	buff, _ := marshalizer.Marshal(topicMessage)
 	topic := "topic"
-	mes := &pubsubpb.Message{
+	mes := &pb.Message{
 		From:  id,
 		Data:  buff,
 		Topic: &topic,
@@ -150,7 +150,7 @@ func TestMessage_WrongVersionShouldErr(t *testing.T) {
 	}
 	buff, _ := marshalizer.Marshal(topicMessage)
 	topic := "topic"
-	mes := &pubsubpb.Message{
+	mes := &pb.Message{
 		From:  getRandomID(),
 		Data:  buff,
 		Topic: &topic,
@@ -176,7 +176,7 @@ func TestMessage_PopulatedPkFieldShouldErr(t *testing.T) {
 	}
 	buff, _ := marshalizer.Marshal(topicMessage)
 	topic := "topic"
-	mes := &pubsubpb.Message{
+	mes := &pb.Message{
 		From:  getRandomID(),
 		Data:  buff,
 		Topic: &topic,
@@ -202,7 +202,7 @@ func TestMessage_PopulatedSigFieldShouldErr(t *testing.T) {
 	}
 	buff, _ := marshalizer.Marshal(topicMessage)
 	topic := "topic"
-	mes := &pubsubpb.Message{
+	mes := &pb.Message{
 		From:  getRandomID(),
 		Data:  buff,
 		Topic: &topic,
@@ -227,7 +227,7 @@ func TestMessage_NilTopic(t *testing.T) {
 		Payload:   []byte("data"),
 	}
 	buff, _ := marshalizer.Marshal(topicMessage)
-	mes := &pubsubpb.Message{
+	mes := &pb.Message{
 		From:  id,
 		Data:  buff,
 		Topic: nil,
