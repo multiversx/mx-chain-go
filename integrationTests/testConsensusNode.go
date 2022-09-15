@@ -305,9 +305,7 @@ func (tcn *TestConsensusNode) initNodesCoordinator(
 		ValidatorInfoCacher: &vic.ValidatorInfoCacherStub{},
 	}
 
-	var err error
-	tcn.NodesCoordinator, err = nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
-	println(err)
+	tcn.NodesCoordinator, _ = nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 }
 
 func (tcn *TestConsensusNode) initBlockChain(hasher hashing.Hasher) {
