@@ -169,9 +169,6 @@ var ErrNilHeaderIntegrityVerifier = errors.New("nil header integrity verifier")
 // ErrInvalidChainID signals that an invalid chain ID has been provided
 var ErrInvalidChainID = errors.New("invalid chain ID in consensus")
 
-// ErrNilNetworkShardingCollector defines the error for setting a nil network sharding collector
-var ErrNilNetworkShardingCollector = errors.New("nil network sharding collector")
-
 // ErrInvalidMessageType signals that an invalid message type has been received from consensus topic
 var ErrInvalidMessageType = errors.New("invalid message type")
 
@@ -222,3 +219,6 @@ var ErrNilScheduledProcessor = errors.New("nil scheduled processor")
 
 // ErrInvalidNumSigShares signals that an invalid number of signature shares has been provided
 var ErrInvalidNumSigShares = errors.New("invalid number of sig shares")
+
+// ErrNilSignatureOnP2PMessage signals that a p2p message without signature was received
+var ErrNilSignatureOnP2PMessage = errors.New("nil signature on the p2p message")

@@ -38,6 +38,15 @@ import (
 
 var timeoutWaitResponses = time.Second * 2
 
+type noSigner struct {
+	p2p.SignerVerifier
+}
+
+// Sign -
+func (signer *noSigner) Sign(_ []byte) ([]byte, error) {
+	return make([]byte, 0), nil
+}
+
 func waitDoneWithTimeout(t *testing.T, chanDone chan bool, timeout time.Duration) {
 	select {
 	case <-chanDone:
@@ -1076,10 +1085,90 @@ func generateConnWithRemotePeer(pid core.PeerID) network.Conn {
 	}
 }
 
-func TestLibp2pMessenger_SendDirectWithMockNetToConnectedPeerShouldWork(t *testing.T) {
+func TestLibp2pMessenger_SendDirectWithRealMessengersShouldWork(t *testing.T) {
 	msg := []byte("test message")
 
-	_, messenger1, messenger2 := createMockNetworkOf2()
+	args := libp2p.ArgsNetworkMessenger{
+		Marshalizer:   &testscommon.ProtoMarshalizerMock{},
+		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
+		P2pConfig: config.P2PConfig{
+			Node: config.NodeConfig{
+				Port:                  "0",
+				ConnectionWatcherType: "print",
+			},
+			KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
+				Enabled: false,
+			},
+			Sharding: config.ShardingConfig{
+				Type: p2p.NilListSharder,
+			},
+		},
+		SyncTimer:            &libp2p.LocalSyncTimer{},
+		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
+		PeersRatingHandler:   &p2pmocks.PeersRatingHandlerStub{},
+	}
+	messenger1, _ := libp2p.NewNetworkMessenger(args)
+	messenger2, _ := libp2p.NewNetworkMessenger(args)
+
+	adr2 := messenger2.Addresses()[0]
+
+	fmt.Printf("Connecting to %s...\n", adr2)
+
+	_ = messenger1.ConnectToPeer(adr2)
+
+	wg := &sync.WaitGroup{}
+	chanDone := make(chan bool)
+	wg.Add(1)
+
+	go func() {
+		wg.Wait()
+		chanDone <- true
+	}()
+
+	prepareMessengerForMatchDataReceive(messenger2, msg, wg)
+
+	fmt.Println("Delaying as to allow peers to announce themselves on the opened topic...")
+	time.Sleep(time.Second)
+
+	fmt.Printf("sending message from %s...\n", messenger1.ID().Pretty())
+
+	err := messenger1.SendToConnectedPeer("test", msg, messenger2.ID())
+
+	assert.Nil(t, err)
+
+	waitDoneWithTimeout(t, chanDone, timeoutWaitResponses)
+
+	_ = messenger1.Close()
+	_ = messenger2.Close()
+}
+
+func TestLibp2pMessenger_SendDirectWithRealMessengersWithoutSignatureShouldWork(t *testing.T) {
+	msg := []byte("test message")
+
+	args := libp2p.ArgsNetworkMessenger{
+		Marshalizer:   &testscommon.ProtoMarshalizerMock{},
+		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
+		P2pConfig: config.P2PConfig{
+			Node: config.NodeConfig{
+				Port:                  "0",
+				ConnectionWatcherType: "print",
+			},
+			KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
+				Enabled: false,
+			},
+			Sharding: config.ShardingConfig{
+				Type: p2p.NilListSharder,
+			},
+		},
+		SyncTimer:            &libp2p.LocalSyncTimer{},
+		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
+		PeersRatingHandler:   &p2pmocks.PeersRatingHandlerStub{},
+	}
+	messenger1, _ := libp2p.NewNetworkMessenger(args)
+	// force messenger1 not to sign a direct message
+	messenger1.SetSignerInDirectSender(&noSigner{messenger1})
+
+	messenger2, _ := libp2p.NewNetworkMessenger(args)
 
 	adr2 := messenger2.Addresses()[0]
 
@@ -1772,8 +1861,8 @@ func TestNetworkMessenger_Bootstrap(t *testing.T) {
 				Type:                    "NilListSharder",
 			},
 		},
-		SyncTimer:          &mock.SyncTimerStub{},
-		PeersRatingHandler: &p2pmocks.PeersRatingHandlerStub{},
+		SyncTimer:            &mock.SyncTimerStub{},
+		PeersRatingHandler:   &p2pmocks.PeersRatingHandlerStub{},
 		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
 	}
 

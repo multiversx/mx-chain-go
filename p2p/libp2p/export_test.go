@@ -93,6 +93,11 @@ func (mh *MutexHolder) Mutexes() storage.Cacher {
 	return mh.mutexes
 }
 
+// SetSignerInDirectSender sets the signer in the direct sender
+func (netMes *networkMessenger) SetSignerInDirectSender(signer p2p.SignerVerifier) {
+	netMes.ds.(*directSender).signer = signer
+}
+
 // NewNetworkMessengerWithoutPortReuse creates a libP2P messenger by opening a port on the current machine but is
 // not able to reuse ports
 func NewNetworkMessengerWithoutPortReuse(args ArgsNetworkMessenger) (*networkMessenger, error) {

@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	pubsub "github.com/ElrondNetwork/go-libp2p-pubsub"
 	pubsubPb "github.com/ElrondNetwork/go-libp2p-pubsub/pb"
@@ -35,6 +36,7 @@ type directSender struct {
 	mutSeenMessages sync.Mutex
 	seenMessages    *timecache.TimeCache
 	mutexForPeer    *MutexHolder
+	signer          p2p.SignerVerifier
 }
 
 // NewDirectSender returns a new instance of direct sender object
@@ -42,6 +44,7 @@ func NewDirectSender(
 	ctx context.Context,
 	h host.Host,
 	messageHandler func(msg *pubsub.Message, fromConnectedPeer core.PeerID) error,
+	signer p2p.SignerVerifier,
 ) (*directSender, error) {
 
 	if h == nil {
@@ -52,6 +55,9 @@ func NewDirectSender(
 	}
 	if messageHandler == nil {
 		return nil, p2p.ErrNilDirectSendMessageHandler
+	}
+	if check.IfNil(signer) {
+		return nil, p2p.ErrNilP2PSigner
 	}
 
 	mutexForPeer, err := NewMutexHolder(maxMutexes)
@@ -66,6 +72,7 @@ func NewDirectSender(
 		seenMessages:   timecache.NewTimeCache(timeSeenMessages),
 		messageHandler: messageHandler,
 		mutexForPeer:   mutexForPeer,
+		signer:         signer,
 	}
 
 	// wire-up a handler for direct messages
@@ -117,6 +124,11 @@ func (ds *directSender) processReceivedDirectMessage(message *pubsubPb.Message, 
 	if !bytes.Equal(message.GetFrom(), []byte(fromConnectedPeer)) {
 		return fmt.Errorf("%w mismatch between From and fromConnectedPeer values", p2p.ErrInvalidValue)
 	}
+	err := ds.checkSig(message)
+	if err != nil {
+		return err
+	}
+
 	if ds.checkAndSetSeenMessage(message) {
 		return p2p.ErrAlreadySeenMessage
 	}
@@ -170,7 +182,10 @@ func (ds *directSender) Send(topic string, buff []byte, peer core.PeerID) error 
 		return err
 	}
 
-	msg := ds.createMessage(topic, buff, conn)
+	msg, err := ds.createMessage(topic, buff, conn)
+	if err != nil {
+		return err
+	}
 
 	bufw := bufio.NewWriter(stream)
 	w := ggio.NewDelimitedWriter(bufw)
@@ -237,7 +252,7 @@ func (ds *directSender) getOrCreateStream(conn network.Conn) (network.Stream, er
 	return foundStream, nil
 }
 
-func (ds *directSender) createMessage(topic string, buff []byte, conn network.Conn) *pubsubPb.Message {
+func (ds *directSender) createMessage(topic string, buff []byte, conn network.Conn) (*pubsubPb.Message, error) {
 	seqno := ds.NextSeqno()
 	mes := pubsubPb.Message{}
 	mes.Data = buff
@@ -245,7 +260,33 @@ func (ds *directSender) createMessage(topic string, buff []byte, conn network.Co
 	mes.From = []byte(conn.LocalPeer())
 	mes.Seqno = seqno
 
-	return &mes
+	buff, err := mes.Marshal()
+	if err != nil {
+		return nil, err
+	}
+
+	mes.Signature, err = ds.signer.Sign(buff)
+	if err != nil {
+		return nil, err
+	}
+
+	return &mes, nil
+}
+
+func (ds *directSender) checkSig(message *pubsubPb.Message) error {
+	if len(message.Signature) == 0 {
+		return nil // TODO will remove this in the future
+	}
+
+	copyMessage := *message
+	copyMessage.Signature = nil
+
+	buff, err := copyMessage.Marshal()
+	if err != nil {
+		return err
+	}
+
+	return ds.signer.Verify(buff, core.PeerID(message.From), message.Signature)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -109,26 +109,26 @@ type networkMessenger struct {
 	pb         *pubsub.PubSub
 	ds         p2p.DirectSender
 	// TODO refactor this (connMonitor & connMonitorWrapper)
-	connMonitor          ConnectionMonitor
-	connMonitorWrapper   p2p.ConnectionMonitorWrapper
-	peerDiscoverer       p2p.PeerDiscoverer
-	sharder              p2p.Sharder
-	peerShardResolver    p2p.PeerShardResolver
-	mutPeerResolver      sync.RWMutex
-	mutTopics            sync.RWMutex
-	processors           map[string]*topicProcessors
-	topics               map[string]*pubsub.Topic
-	subscriptions        map[string]*pubsub.Subscription
-	outgoingPLB          p2p.ChannelLoadBalancer
-	poc                  *peersOnChannel
-	goRoutinesThrottler  *throttler.NumGoRoutinesThrottler
-	connectionsMetric    *metrics.Connections
-	debugger             p2p.Debugger
-	marshalizer          p2p.Marshalizer
-	syncTimer            p2p.SyncTimer
-	preferredPeersHolder p2p.PreferredPeersHolderHandler
-	printConnectionsWatcher   p2p.ConnectionsWatcher
-	peersRatingHandler   p2p.PeersRatingHandler
+	connMonitor             ConnectionMonitor
+	connMonitorWrapper      p2p.ConnectionMonitorWrapper
+	peerDiscoverer          p2p.PeerDiscoverer
+	sharder                 p2p.Sharder
+	peerShardResolver       p2p.PeerShardResolver
+	mutPeerResolver         sync.RWMutex
+	mutTopics               sync.RWMutex
+	processors              map[string]*topicProcessors
+	topics                  map[string]*pubsub.Topic
+	subscriptions           map[string]*pubsub.Subscription
+	outgoingPLB             p2p.ChannelLoadBalancer
+	poc                     *peersOnChannel
+	goRoutinesThrottler     *throttler.NumGoRoutinesThrottler
+	connectionsMetric       *metrics.Connections
+	debugger                p2p.Debugger
+	marshalizer             p2p.Marshalizer
+	syncTimer               p2p.SyncTimer
+	preferredPeersHolder    p2p.PreferredPeersHolderHandler
+	printConnectionsWatcher p2p.ConnectionsWatcher
+	peersRatingHandler      p2p.PeersRatingHandler
 }
 
 // ArgsNetworkMessenger defines the options used to create a p2p wrapper
@@ -147,7 +147,11 @@ func NewNetworkMessenger(args ArgsNetworkMessenger) (*networkMessenger, error) {
 	return newNetworkMessenger(args, withMessageSigning, allowReusePorts)
 }
 
-func newNetworkMessenger(args ArgsNetworkMessenger, messageSigning messageSigningConfig, reusePort reusePortsConfig) (*networkMessenger, error) {
+func newNetworkMessenger(
+	args ArgsNetworkMessenger,
+	messageSigning messageSigningConfig,
+	reusePort reusePortsConfig,
+) (*networkMessenger, error) {
 	if check.IfNil(args.Marshalizer) {
 		return nil, fmt.Errorf("%w when creating a new network messenger", p2p.ErrNilMarshalizer)
 	}
@@ -236,7 +240,7 @@ func constructNode(
 		p2pHost:                 NewConnectableHost(h),
 		port:                    port,
 		printConnectionsWatcher: connWatcher,
-		peersRatingHandler: args.PeersRatingHandler,
+		peersRatingHandler:      args.PeersRatingHandler,
 	}
 
 	return p2pNode, nil
@@ -329,7 +333,7 @@ func addComponentsToNode(
 
 	p2pNode.createConnectionsMetric()
 
-	p2pNode.ds, err = NewDirectSender(p2pNode.ctx, p2pNode.p2pHost, p2pNode.directMessageHandler)
+	p2pNode.ds, err = NewDirectSender(p2pNode.ctx, p2pNode.p2pHost, p2pNode.directMessageHandler, p2pNode)
 	if err != nil {
 		return err
 	}

@@ -67,43 +67,73 @@ func createLibP2PCredentialsDirectSender() (peer.ID, libp2pCrypto.PrivKey) {
 	return id, sk
 }
 
-// ------- NewDirectSender
+func TestNewDirectSender(t *testing.T) {
+	t.Run("nil context", func(t *testing.T) {
+		t.Parallel()
 
-func TestNewDirectSender_NilContextShouldErr(t *testing.T) {
-	hs := &mock.ConnectableHostStub{}
+		var ctx context.Context = nil
+		ds, err := libp2p.NewDirectSender(
+			ctx,
+			&mock.ConnectableHostStub{},
+			blankMessageHandler,
+			&mock.P2PSignerStub{},
+		)
 
-	var ctx context.Context = nil
-	ds, err := libp2p.NewDirectSender(ctx, hs, func(msg *pubsub.Message, fromConnectedPeer core.PeerID) error {
-		return nil
+		assert.True(t, check.IfNil(ds))
+		assert.Equal(t, p2p.ErrNilContext, err)
 	})
+	t.Run("nil host", func(t *testing.T) {
+		t.Parallel()
 
-	assert.True(t, check.IfNil(ds))
-	assert.Equal(t, p2p.ErrNilContext, err)
-}
+		ds, err := libp2p.NewDirectSender(
+			context.Background(),
+			nil,
+			blankMessageHandler,
+			&mock.P2PSignerStub{},
+		)
 
-func TestNewDirectSender_NilHostShouldErr(t *testing.T) {
-	ds, err := libp2p.NewDirectSender(context.Background(), nil, func(msg *pubsub.Message, fromConnectedPeer core.PeerID) error {
-		return nil
+		assert.True(t, check.IfNil(ds))
+		assert.Equal(t, p2p.ErrNilHost, err)
 	})
+	t.Run("nil message handler", func(t *testing.T) {
+		t.Parallel()
 
-	assert.True(t, check.IfNil(ds))
-	assert.Equal(t, p2p.ErrNilHost, err)
-}
+		ds, err := libp2p.NewDirectSender(
+			context.Background(),
+			generateHostStub(),
+			nil,
+			&mock.P2PSignerStub{},
+		)
 
-func TestNewDirectSender_NilMessageHandlerShouldErr(t *testing.T) {
-	ds, err := libp2p.NewDirectSender(context.Background(), generateHostStub(), nil)
-
-	assert.True(t, check.IfNil(ds))
-	assert.Equal(t, p2p.ErrNilDirectSendMessageHandler, err)
-}
-
-func TestNewDirectSender_OkValsShouldWork(t *testing.T) {
-	ds, err := libp2p.NewDirectSender(context.Background(), generateHostStub(), func(msg *pubsub.Message, fromConnectedPeer core.PeerID) error {
-		return nil
+		assert.True(t, check.IfNil(ds))
+		assert.Equal(t, p2p.ErrNilDirectSendMessageHandler, err)
 	})
+	t.Run("nil signer", func(t *testing.T) {
+		t.Parallel()
 
-	assert.False(t, check.IfNil(ds))
-	assert.Nil(t, err)
+		ds, err := libp2p.NewDirectSender(
+			context.Background(),
+			generateHostStub(),
+			blankMessageHandler,
+			nil,
+		)
+
+		assert.True(t, check.IfNil(ds))
+		assert.Equal(t, p2p.ErrNilP2PSigner, err)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		ds, err := libp2p.NewDirectSender(
+			context.Background(),
+			generateHostStub(),
+			blankMessageHandler,
+			&mock.P2PSignerStub{},
+		)
+
+		assert.False(t, check.IfNil(ds))
+		assert.Nil(t, err)
+	})
 }
 
 func TestNewDirectSender_OkValsShouldCallSetStreamHandlerWithCorrectValues(t *testing.T) {
@@ -117,9 +147,12 @@ func TestNewDirectSender_OkValsShouldCallSetStreamHandlerWithCorrectValues(t *te
 		},
 	}
 
-	_, _ = libp2p.NewDirectSender(context.Background(), hs, func(msg *pubsub.Message, fromConnectedPeer core.PeerID) error {
-		return nil
-	})
+	_, _ = libp2p.NewDirectSender(
+		context.Background(),
+		hs,
+		blankMessageHandler,
+		&mock.P2PSignerStub{},
+	)
 
 	assert.NotNil(t, handlerCalled)
 	assert.Equal(t, libp2p.DirectSendID, pidCalled)
@@ -132,6 +165,7 @@ func TestDirectSender_ProcessReceivedDirectMessageNilMessageShouldErr(t *testing
 		context.Background(),
 		generateHostStub(),
 		blankMessageHandler,
+		&mock.P2PSignerStub{},
 	)
 
 	err := ds.ProcessReceivedDirectMessage(nil, "peer id")
@@ -144,6 +178,7 @@ func TestDirectSender_ProcessReceivedDirectMessageNilTopicIdsShouldErr(t *testin
 		context.Background(),
 		generateHostStub(),
 		blankMessageHandler,
+		&mock.P2PSignerStub{},
 	)
 
 	id, _ := createLibP2PCredentialsDirectSender()
@@ -164,6 +199,7 @@ func TestDirectSender_ProcessReceivedDirectMessageAlreadySeenMsgShouldErr(t *tes
 		context.Background(),
 		generateHostStub(),
 		blankMessageHandler,
+		&mock.P2PSignerStub{},
 	)
 
 	id, _ := createLibP2PCredentialsDirectSender()
@@ -188,6 +224,7 @@ func TestDirectSender_ProcessReceivedDirectMessageShouldWork(t *testing.T) {
 		context.Background(),
 		generateHostStub(),
 		blankMessageHandler,
+		&mock.P2PSignerStub{},
 	)
 
 	id, _ := createLibP2PCredentialsDirectSender()
@@ -214,6 +251,7 @@ func TestDirectSender_ProcessReceivedDirectMessageShouldCallMessageHandler(t *te
 			wasCalled = true
 			return nil
 		},
+		&mock.P2PSignerStub{},
 	)
 
 	id, _ := createLibP2PCredentialsDirectSender()
@@ -239,6 +277,7 @@ func TestDirectSender_ProcessReceivedDirectMessageShouldReturnHandlersError(t *t
 		func(msg *pubsub.Message, fromConnectedPeer core.PeerID) error {
 			return checkErr
 		},
+		&mock.P2PSignerStub{},
 	)
 
 	id, _ := createLibP2PCredentialsDirectSender()
@@ -281,6 +320,7 @@ func TestDirectSender_SendDirectToConnectedPeerBufferToLargeShouldErr(t *testing
 			},
 		},
 		blankMessageHandler,
+		&mock.P2PSignerStub{},
 	)
 
 	messageTooLarge := bytes.Repeat([]byte{65}, libp2p.MaxSendBuffSize)
@@ -306,6 +346,7 @@ func TestDirectSender_SendDirectToConnectedPeerNotConnectedPeerShouldErr(t *test
 			},
 		},
 		blankMessageHandler,
+		&mock.P2PSignerStub{},
 	)
 
 	err := ds.Send("topic", []byte("data"), "not connected peer")
@@ -329,6 +370,7 @@ func TestDirectSender_SendDirectToConnectedPeerNewStreamErrorsShouldErr(t *testi
 		context.Background(),
 		hs,
 		blankMessageHandler,
+		&mock.P2PSignerStub{},
 	)
 
 	id, sk := createLibP2PCredentialsDirectSender()
@@ -352,6 +394,45 @@ func TestDirectSender_SendDirectToConnectedPeerNewStreamErrorsShouldErr(t *testi
 	assert.Equal(t, errNewStream, err)
 }
 
+func TestDirectSender_SendDirectToConnectedPeerSignFails(t *testing.T) {
+	netw := &mock.NetworkStub{}
+
+	expectedErr := errors.New("expected error")
+	ds, _ := libp2p.NewDirectSender(
+		context.Background(),
+		&mock.ConnectableHostStub{
+			SetStreamHandlerCalled: func(pid protocol.ID, handler network.StreamHandler) {},
+			NetworkCalled: func() network.Network {
+				return netw
+			},
+		},
+		blankMessageHandler,
+		&mock.P2PSignerStub{
+			SignCalled: func(payload []byte) ([]byte, error) {
+				return nil, expectedErr
+			},
+		},
+	)
+
+	id, sk := createLibP2PCredentialsDirectSender()
+	remotePeer := peer.ID("remote peer")
+
+	stream := mock.NewStreamMock()
+	stream.SetProtocol(libp2p.DirectSendID)
+
+	cs := createConnStub(stream, id, sk, remotePeer)
+
+	netw.ConnsToPeerCalled = func(p peer.ID) []network.Conn {
+		return []network.Conn{cs}
+	}
+
+	data := []byte("data")
+	topic := "topic"
+	err := ds.Send(topic, data, core.PeerID(cs.RemotePeer()))
+
+	assert.Equal(t, expectedErr, err)
+}
+
 func TestDirectSender_SendDirectToConnectedPeerExistingStreamShouldSendToStream(t *testing.T) {
 	netw := &mock.NetworkStub{}
 
@@ -364,6 +445,7 @@ func TestDirectSender_SendDirectToConnectedPeerExistingStreamShouldSendToStream(
 			},
 		},
 		blankMessageHandler,
+		&mock.P2PSignerStub{},
 	)
 
 	id, sk := createLibP2PCredentialsDirectSender()
@@ -424,6 +506,7 @@ func TestDirectSender_SendDirectToConnectedPeerNewStreamShouldSendToStream(t *te
 		context.Background(),
 		hs,
 		blankMessageHandler,
+		&mock.P2PSignerStub{},
 	)
 
 	id, sk := createLibP2PCredentialsDirectSender()
@@ -503,6 +586,7 @@ func TestDirectSender_ReceivedSentMessageShouldCallMessageHandlerTestFullCycle(t
 			chanDone <- true
 			return nil
 		},
+		&mock.P2PSignerStub{},
 	)
 
 	id, sk := createLibP2PCredentialsDirectSender()
@@ -549,6 +633,7 @@ func TestDirectSender_ProcessReceivedDirectMessageFromMismatchesFromConnectedPee
 		context.Background(),
 		generateHostStub(),
 		blankMessageHandler,
+		&mock.P2PSignerStub{},
 	)
 
 	id, _ := createLibP2PCredentialsDirectSender()
@@ -563,4 +648,35 @@ func TestDirectSender_ProcessReceivedDirectMessageFromMismatchesFromConnectedPee
 	err := ds.ProcessReceivedDirectMessage(msg, "not the same peer id")
 
 	assert.True(t, errors.Is(err, p2p.ErrInvalidValue))
+}
+
+func TestDirectSender_ProcessReceivedDirectMessageSignatureFails(t *testing.T) {
+	verifyCalled := false
+	expectedErr := fmt.Errorf("expected error")
+	ds, _ := libp2p.NewDirectSender(
+		context.Background(),
+		generateHostStub(),
+		blankMessageHandler,
+		&mock.P2PSignerStub{
+			VerifyCalled: func(payload []byte, pid core.PeerID, signature []byte) error {
+				verifyCalled = true
+				return expectedErr
+			},
+		},
+	)
+
+	id, _ := createLibP2PCredentialsDirectSender()
+
+	msg := &pubsubPb.Message{}
+	msg.Data = []byte("data")
+	msg.Seqno = []byte("111")
+	msg.From = []byte(id)
+	msg.Signature = []byte("signature")
+	topic := "topic"
+	msg.Topic = &topic
+
+	err := ds.ProcessReceivedDirectMessage(msg, peer.ID(msg.From))
+
+	assert.True(t, errors.Is(err, expectedErr))
+	assert.True(t, verifyCalled)
 }
