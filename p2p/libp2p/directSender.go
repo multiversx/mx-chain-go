@@ -27,7 +27,6 @@ var _ p2p.DirectSender = (*directSender)(nil)
 
 const timeSeenMessages = time.Second * 120
 const maxMutexes = 10000
-const signPrefix = "en-directsend:"
 const sequenceNumberSize = 8
 
 type directSender struct {
@@ -303,7 +302,7 @@ func (ds *directSender) checkSig(message *pubsubPb.Message) error {
 }
 
 func withSignPrefix(bytes []byte) []byte {
-	return append([]byte(signPrefix), bytes...)
+	return append([]byte(pubsub.SignPrefix), bytes...)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

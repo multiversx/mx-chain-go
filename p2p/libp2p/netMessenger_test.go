@@ -1102,8 +1102,7 @@ func TestLibp2pMessenger_SendDirectWithRealMessengersShouldWork(t *testing.T) {
 		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
 		P2pConfig: config.P2PConfig{
 			Node: config.NodeConfig{
-				Port:                  "0",
-				ConnectionWatcherType: "print",
+				Port: "0",
 			},
 			KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
 				Enabled: false,
@@ -1112,9 +1111,10 @@ func TestLibp2pMessenger_SendDirectWithRealMessengersShouldWork(t *testing.T) {
 				Type: p2p.NilListSharder,
 			},
 		},
-		SyncTimer:            &libp2p.LocalSyncTimer{},
-		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
-		PeersRatingHandler:   &p2pmocks.PeersRatingHandlerStub{},
+		SyncTimer:             &libp2p.LocalSyncTimer{},
+		PreferredPeersHolder:  &p2pmocks.PeersHolderStub{},
+		PeersRatingHandler:    &p2pmocks.PeersRatingHandlerStub{},
+		ConnectionWatcherType: "print",
 	}
 	messenger1, _ := libp2p.NewNetworkMessenger(args)
 	messenger2, _ := libp2p.NewNetworkMessenger(args)
@@ -1167,8 +1167,7 @@ func TestLibp2pMessenger_SendDirectWithRealMessengersWithoutSignatureShouldWork(
 		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
 		P2pConfig: config.P2PConfig{
 			Node: config.NodeConfig{
-				Port:                  "0",
-				ConnectionWatcherType: "print",
+				Port: "0",
 			},
 			KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
 				Enabled: false,
@@ -1177,9 +1176,10 @@ func TestLibp2pMessenger_SendDirectWithRealMessengersWithoutSignatureShouldWork(
 				Type: p2p.NilListSharder,
 			},
 		},
-		SyncTimer:            &libp2p.LocalSyncTimer{},
-		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
-		PeersRatingHandler:   &p2pmocks.PeersRatingHandlerStub{},
+		SyncTimer:             &libp2p.LocalSyncTimer{},
+		PreferredPeersHolder:  &p2pmocks.PeersHolderStub{},
+		PeersRatingHandler:    &p2pmocks.PeersRatingHandlerStub{},
+		ConnectionWatcherType: "print",
 	}
 	messenger1, _ := libp2p.NewNetworkMessenger(args)
 	// force messenger1 not to sign a direct message
@@ -1843,7 +1843,7 @@ func TestNetworkMessenger_Bootstrap(t *testing.T) {
 		},
 		SyncTimer:            &mock.SyncTimerStub{},
 		PeersRatingHandler:   &p2pmocks.PeersRatingHandlerStub{},
-		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
+		PreferredPeersHolder: &p2pmocks.PeersHolderStub{}, ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
 	}
 
 	netMes, err := libp2p.NewNetworkMessenger(args)
@@ -1971,7 +1971,6 @@ func TestLibp2pMessenger_ConnectionTopic(t *testing.T) {
 		assert.False(t, netMes.HasTopic(topic))
 		assert.False(t, netMes.PubsubHasTopic(topic))
 
-		testTopic := "test topic"
 		err = netMes.CreateTopic(testTopic, true)
 		assert.Nil(t, err)
 		assert.True(t, netMes.HasTopic(testTopic))
@@ -2013,7 +2012,6 @@ func TestLibp2pMessenger_ConnectionTopic(t *testing.T) {
 		assert.Nil(t, err)
 		assert.True(t, netMes.HasProcessorForTopic(topic))
 
-		testTopic := "test topic"
 		err = netMes.RegisterMessageProcessor(testTopic, "identifier", &mock.MessageProcessorStub{})
 		assert.Nil(t, err)
 		assert.True(t, netMes.HasProcessorForTopic(testTopic))
@@ -2035,7 +2033,6 @@ func TestLibp2pMessenger_ConnectionTopic(t *testing.T) {
 		assert.Nil(t, err)
 		assert.True(t, netMes.HasProcessorForTopic(topic))
 
-		testTopic := "test topic"
 		err = netMes.RegisterMessageProcessor(testTopic, "identifier", &mock.MessageProcessorStub{})
 		assert.Nil(t, err)
 		assert.True(t, netMes.HasProcessorForTopic(testTopic))

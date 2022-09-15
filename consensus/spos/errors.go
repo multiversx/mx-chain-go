@@ -169,6 +169,9 @@ var ErrNilHeaderIntegrityVerifier = errors.New("nil header integrity verifier")
 // ErrInvalidChainID signals that an invalid chain ID has been provided
 var ErrInvalidChainID = errors.New("invalid chain ID in consensus")
 
+// ErrNilNetworkShardingCollector defines the error for setting a nil network sharding collector
+var ErrNilNetworkShardingCollector = errors.New("nil network sharding collector")
+
 // ErrInvalidMessageType signals that an invalid message type has been received from consensus topic
 var ErrInvalidMessageType = errors.New("invalid message type")
 

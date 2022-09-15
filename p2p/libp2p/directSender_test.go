@@ -216,7 +216,7 @@ func TestDirectSender_ProcessReceivedDirectMessageKeyFieldIsNotNilShouldErr(t *t
 
 	id, _ := createLibP2PCredentialsDirectSender()
 
-	msg := &pubsubPb.Message{}
+	msg := &pb.Message{}
 	msg.Data = []byte("data")
 	msg.Seqno = []byte("111")
 	msg.From = []byte(id)
@@ -251,7 +251,7 @@ func TestDirectSender_ProcessReceivedDirectMessageAbnormalSeqNoFieldShouldErr(t 
 
 	id, _ := createLibP2PCredentialsDirectSender()
 
-	msg := &pubsubPb.Message{}
+	msg := &pb.Message{}
 	msg.Data = []byte("data")
 	msg.Seqno = bytes.Repeat([]byte{0x00}, libp2p.SequenceNumberSize+1)
 	msg.From = []byte(id)
@@ -517,7 +517,7 @@ func TestDirectSender_SendDirectToConnectedPeerSignFails(t *testing.T) {
 	remotePeer := peer.ID("remote peer")
 
 	stream := mock.NewStreamMock()
-	stream.SetProtocol(libp2p.DirectSendID)
+	_ = stream.SetProtocol(libp2p.DirectSendID)
 
 	cs := createConnStub(stream, id, sk, remotePeer)
 
@@ -778,7 +778,7 @@ func TestDirectSender_ProcessReceivedDirectMessageSignatureFails(t *testing.T) {
 
 	id, _ := createLibP2PCredentialsDirectSender()
 
-	msg := &pubsubPb.Message{}
+	msg := &pb.Message{}
 	msg.Data = []byte("data")
 	msg.Seqno = []byte("111")
 	msg.From = []byte(id)
