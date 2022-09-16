@@ -328,14 +328,12 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 		return nil, err
 	}
 
-	userAccountsUnitArgs := psf.createPruningStorerArgs(psf.generalConfig.AccountsTrieStorage, customDatabaseRemover)
-	userAccountsUnit, err = psf.createTriePruningPersister(userAccountsUnitArgs)
+	userAccountsUnit, err = psf.createTriePersister(psf.generalConfig.AccountsTrieStorage, psf.generalConfig.StateTriesConfig, customDatabaseRemover)
 	if err != nil {
 		return nil, err
 	}
 
-	peerAccountsUnitArgs := psf.createPruningStorerArgs(psf.generalConfig.PeerAccountsTrieStorage, customDatabaseRemover)
-	peerAccountsUnit, err = psf.createTriePruningPersister(peerAccountsUnitArgs)
+	peerAccountsUnit, err = psf.createTriePersister(psf.generalConfig.PeerAccountsTrieStorage, psf.generalConfig.StateTriesConfig, customDatabaseRemover)
 	if err != nil {
 		return nil, err
 	}
