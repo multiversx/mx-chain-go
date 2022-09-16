@@ -39,7 +39,6 @@ import (
 const testTopic = "test"
 
 var timeoutWaitResponses = time.Second * 2
-var log = logger.GetOrCreate("p2p/libp2p/tests")
 var noSigCheckHandler = func(sigSize int) bool { return true }
 
 type noSigner struct {
@@ -73,7 +72,7 @@ func prepareMessengerForMatchDataReceive(messenger p2p.Messenger, matchData []by
 					return nil
 				}
 
-				log.Info("got the message", "matchData", string(matchData), "pid", messenger.ID().Pretty())
+				fmt.Printf("%s got the message %s\n", string(matchData), messenger.ID().Pretty())
 				wg.Done()
 
 				return nil
@@ -1145,10 +1144,10 @@ func TestLibp2pMessenger_SendDirectWithRealMessengersShouldWork(t *testing.T) {
 		},
 	)
 
-	log.Info("Delaying as to allow peers to announce themselves on the opened topic...")
+	fmt.Println("Delaying as to allow peers to announce themselves on the opened topic...")
 	time.Sleep(time.Second)
 
-	log.Info("sending message", "from", messenger1.ID().Pretty(), "to", messenger2.ID().Pretty())
+	fmt.Printf("sending message from %s to %s\n", messenger1.ID().Pretty(), messenger2.ID().Pretty())
 
 	err := messenger1.SendToConnectedPeer("test", msg, messenger2.ID())
 	assert.Nil(t, err)
@@ -1810,8 +1809,6 @@ func TestNetworkMessenger_Bootstrap(t *testing.T) {
 
 	t.Parallel()
 
-	_ = logger.SetLogLevel("*:DEBUG")
-
 	args := libp2p.ArgsNetworkMessenger{
 		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
 		Marshalizer:   &marshal.GogoProtoMarshalizer{},
@@ -1852,7 +1849,7 @@ func TestNetworkMessenger_Bootstrap(t *testing.T) {
 	go func() {
 		time.Sleep(time.Second * 1)
 		goRoutinesNumberStart := runtime.NumGoroutine()
-		log.Info("before closing", "num go routines", goRoutinesNumberStart)
+		fmt.Printf("before closing num go routines %d\n", goRoutinesNumberStart)
 
 		_ = netMes.Close()
 	}()
@@ -1862,6 +1859,7 @@ func TestNetworkMessenger_Bootstrap(t *testing.T) {
 	time.Sleep(time.Second * 5)
 
 	goRoutinesNumberStart := runtime.NumGoroutine()
+	log := logger.GetOrCreate("p2p/libp2p/test")
 	core.DumpGoRoutinesToLog(goRoutinesNumberStart, log)
 }
 
