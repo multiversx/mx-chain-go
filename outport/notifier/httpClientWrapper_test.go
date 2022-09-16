@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/outport/notifier"
 	"github.com/stretchr/testify/require"
 )
@@ -35,7 +36,7 @@ func TestNewHTTPClient(t *testing.T) {
 		args := createMockHTTPClientArgs()
 		args.RequestTimeoutSec = 0
 		client, err := notifier.NewHTTPWrapperClient(args)
-		require.Nil(t, client)
+		require.True(t, check.IfNil(client))
 		require.True(t, errors.Is(err, notifier.ErrInvalidValue))
 	})
 
@@ -45,7 +46,7 @@ func TestNewHTTPClient(t *testing.T) {
 		args := createMockHTTPClientArgs()
 		client, err := notifier.NewHTTPWrapperClient(args)
 		require.Nil(t, err)
-		require.NotNil(t, client)
+		require.False(t, check.IfNil(client))
 	})
 }
 

@@ -99,7 +99,7 @@ func checkEventNotifierArgs(args ArgsEventNotifier) error {
 		return ErrNilHasher
 	}
 	if check.IfNil(args.PubKeyConverter) {
-		return core.ErrNilPubkeyConverter
+		return ErrNilPubKeyConverter
 	}
 
 	return nil
