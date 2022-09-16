@@ -36,20 +36,13 @@ func NewShardChainMessenger(
 		return nil, err
 	}
 
-	pkBytes, err := args.PrivateKey.GeneratePublic().ToByteArray()
-	if err != nil {
-		return nil, err
-	}
-
 	cm := &commonMessenger{
-		marshalizer:           args.Marshalizer,
-		hasher:                args.Hasher,
-		messenger:             args.Messenger,
-		privateKey:            args.PrivateKey,
-		shardCoordinator:      args.ShardCoordinator,
-		peerSignatureHandler:  args.PeerSignatureHandler,
-		currentPublicKeyBytes: pkBytes,
-		keysHolder:            args.KeysHolder,
+		marshalizer:          args.Marshalizer,
+		hasher:               args.Hasher,
+		messenger:            args.Messenger,
+		shardCoordinator:     args.ShardCoordinator,
+		peerSignatureHandler: args.PeerSignatureHandler,
+		keysHandler:          args.KeysHandler,
 	}
 
 	dbbArgs := &ArgsDelayedBlockBroadcaster{

@@ -16,11 +16,6 @@ type HeaderDataForValidator struct {
 	PrevRandSeed []byte
 }
 
-// SignMessage will sign and return the given message
-func (cm *commonMessenger) SignMessage(message *consensus.Message) ([]byte, error) {
-	return cm.peerSignatureHandler.GetPeerSignature(cm.privateKey, message.OriginatorPid)
-}
-
 // ExtractMetaMiniBlocksAndTransactions -
 func (cm *commonMessenger) ExtractMetaMiniBlocksAndTransactions(
 	miniBlocks map[uint32][]byte,
@@ -175,31 +170,21 @@ func (dbb *delayedBlockBroadcaster) InterceptedHeaderData(topic string, hash []b
 func NewCommonMessenger(
 	marshalizer marshal.Marshalizer,
 	messenger consensus.P2PMessenger,
-	privateKey crypto.PrivateKey,
 	shardCoordinator sharding.Coordinator,
 	peerSigHandler crypto.PeerSignatureHandler,
-	keysHolder consensus.KeysHolder,
+	keysHandler consensus.KeysHandler,
 ) (*commonMessenger, error) {
 
-	pkBytes, _ := privateKey.GeneratePublic().ToByteArray()
-
 	return &commonMessenger{
-		marshalizer:           marshalizer,
-		messenger:             messenger,
-		privateKey:            privateKey,
-		shardCoordinator:      shardCoordinator,
-		peerSignatureHandler:  peerSigHandler,
-		keysHolder:            keysHolder,
-		currentPublicKeyBytes: pkBytes,
+		marshalizer:          marshalizer,
+		messenger:            messenger,
+		shardCoordinator:     shardCoordinator,
+		peerSignatureHandler: peerSigHandler,
+		keysHandler:          keysHandler,
 	}, nil
 }
 
 // Broadcast -
 func (cm *commonMessenger) Broadcast(topic string, data []byte, pkBytes []byte) {
 	cm.broadcast(topic, data, pkBytes)
-}
-
-// GetPrivateKey -
-func (cm *commonMessenger) GetPrivateKey(message *consensus.Message) crypto.PrivateKey {
-	return cm.getPrivateKey(message)
 }

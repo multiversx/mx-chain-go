@@ -1,6 +1,7 @@
 package bls_test
 
 import (
+	"bytes"
 	"errors"
 	"testing"
 	"time"
@@ -943,9 +944,9 @@ func TestSubroundEndRound_getMinConsensusGroupIndexOfManagedKeys(t *testing.T) {
 	t.Parallel()
 
 	container := mock.InitConsensusCore()
-	keysHolder := &testscommon.KeysHolderStub{}
+	keysHolder := &testscommon.KeysHandlerStub{}
 	ch := make(chan bool, 1)
-	consensusState := initConsensusStateWithKeysHolder(keysHolder)
+	consensusState := initConsensusStateWithKeysHandler(keysHolder)
 	sr, _ := spos.NewSubround(
 		bls.SrSignature,
 		bls.SrEndRound,
@@ -970,53 +971,30 @@ func TestSubroundEndRound_getMinConsensusGroupIndexOfManagedKeys(t *testing.T) {
 		&statusHandler.AppStatusHandlerStub{},
 	)
 
-	t.Run("no managed keys should return consensus group size", func(t *testing.T) {
-		keysHolder.GetManagedKeysByCurrentNodeCalled = func() map[string]crypto.PrivateKey {
-			return make(map[string]crypto.PrivateKey)
-		}
-
-		assert.Equal(t, 9, srEndRound.GetMinConsensusGroupIndexOfManagedKeys())
-	})
-	t.Run("no managed keys in consensus group should return consensus group size", func(t *testing.T) {
-		keysHolder.GetManagedKeysByCurrentNodeCalled = func() map[string]crypto.PrivateKey {
-			managedKeys := map[string]crypto.PrivateKey{
-				"managed key": &mock.PrivateKeyMock{},
-			}
-
-			return managedKeys
+	t.Run("no managed keys from consensus group", func(t *testing.T) {
+		keysHolder.IsKeyManagedByCurrentNodeCalled = func(pkBytes []byte) bool {
+			return false
 		}
 
 		assert.Equal(t, 9, srEndRound.GetMinConsensusGroupIndexOfManagedKeys())
 	})
 	t.Run("first managed key in consensus group should return 0", func(t *testing.T) {
-		keysHolder.GetManagedKeysByCurrentNodeCalled = func() map[string]crypto.PrivateKey {
-			managedKeys := map[string]crypto.PrivateKey{
-				"A": &mock.PrivateKeyMock{},
-			}
-
-			return managedKeys
+		keysHolder.IsKeyManagedByCurrentNodeCalled = func(pkBytes []byte) bool {
+			return bytes.Equal([]byte("A"), pkBytes)
 		}
 
 		assert.Equal(t, 0, srEndRound.GetMinConsensusGroupIndexOfManagedKeys())
 	})
 	t.Run("third managed key in consensus group should return 2", func(t *testing.T) {
-		keysHolder.GetManagedKeysByCurrentNodeCalled = func() map[string]crypto.PrivateKey {
-			managedKeys := map[string]crypto.PrivateKey{
-				"C": &mock.PrivateKeyMock{},
-			}
-
-			return managedKeys
+		keysHolder.IsKeyManagedByCurrentNodeCalled = func(pkBytes []byte) bool {
+			return bytes.Equal([]byte("C"), pkBytes)
 		}
 
 		assert.Equal(t, 2, srEndRound.GetMinConsensusGroupIndexOfManagedKeys())
 	})
 	t.Run("last managed key in consensus group should return 8", func(t *testing.T) {
-		keysHolder.GetManagedKeysByCurrentNodeCalled = func() map[string]crypto.PrivateKey {
-			managedKeys := map[string]crypto.PrivateKey{
-				"I": &mock.PrivateKeyMock{},
-			}
-
-			return managedKeys
+		keysHolder.IsKeyManagedByCurrentNodeCalled = func(pkBytes []byte) bool {
+			return bytes.Equal([]byte("I"), pkBytes)
 		}
 
 		assert.Equal(t, 8, srEndRound.GetMinConsensusGroupIndexOfManagedKeys())

@@ -500,10 +500,7 @@ func (sr *subroundEndRound) signBlockHeader() ([]byte, error) {
 		return nil, errGetLeader
 	}
 
-	privateKey, errGetPrivateKey := sr.GetMessageSigningPrivateKey([]byte(leader))
-	if errGetPrivateKey != nil {
-		return nil, errGetPrivateKey
-	}
+	privateKey := sr.GetMessageSigningPrivateKey([]byte(leader))
 
 	return sr.SingleSigner().Sign(privateKey, marshalizedHdr)
 }
@@ -637,10 +634,8 @@ func (sr *subroundEndRound) getIndexPkAndDataToBroadcast() (int, []byte, map[uin
 func (sr *subroundEndRound) getMinConsensusGroupIndexOfManagedKeys() int {
 	minIdx := sr.ConsensusGroupSize()
 
-	managedKeys := sr.GetManagedKeysByCurrentNode()
-	for pk := range managedKeys {
-		idx, err := sr.ConsensusGroupIndex(pk)
-		if err != nil {
+	for idx, validator := range sr.ConsensusGroup() {
+		if !sr.IsKeyManagedByCurrentNode([]byte(validator)) {
 			continue
 		}
 

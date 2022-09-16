@@ -149,14 +149,15 @@ type ScheduledProcessor interface {
 	IsInterfaceNil() bool
 }
 
-// KeysHolder defines the component able to provide multi-key support
-type KeysHolder interface {
-	IsKeyManagedByCurrentNode(pkBytes []byte) bool
-	GetPrivateKey(pkBytes []byte) (crypto.PrivateKey, error)
+// KeysHandler defines the operations implemented by a component that will manage all keys,
+// including the single signer keys or the set of multi-keys
+type KeysHandler interface {
+	GetHandledPrivateKey(pkBytes []byte) crypto.PrivateKey
 	GetP2PIdentity(pkBytes []byte) ([]byte, core.PeerID, error)
-	GetManagedKeysByCurrentNode() map[string]crypto.PrivateKey
-	IsPidManagedByCurrentNode(pid core.PeerID) bool
-	ResetRoundsWithoutReceivedMessages(pkBytes []byte)
+	IsKeyManagedByCurrentNode(pkBytes []byte) bool
 	IncrementRoundsWithoutReceivedMessages(pkBytes []byte)
+	GetAssociatedPid(pkBytes []byte) core.PeerID
+	IsOriginalPublicKeyOfTheNode(pkBytes []byte) bool
+	UpdatePublicKeyLiveness(pkBytes []byte, pid core.PeerID)
 	IsInterfaceNil() bool
 }

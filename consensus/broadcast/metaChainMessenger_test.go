@@ -1,6 +1,7 @@
 package broadcast_test
 
 import (
+	"bytes"
 	"sync"
 	"testing"
 	"time"
@@ -17,10 +18,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var nodePkBytes = []byte("node public key bytes")
+
 func createDefaultMetaChainArgs() broadcast.MetaChainMessengerArgs {
 	marshalizerMock := &mock.MarshalizerMock{}
 	messengerMock := &mock.MessengerStub{}
-	privateKeyMock := &mock.PrivateKeyMock{}
 	shardCoordinatorMock := &mock.ShardCoordinatorMock{}
 	singleSignerMock := &mock.SingleSignerMock{}
 	hasher := &hashingMocks.HasherMock{}
@@ -34,7 +36,6 @@ func createDefaultMetaChainArgs() broadcast.MetaChainMessengerArgs {
 			Marshalizer:                marshalizerMock,
 			Hasher:                     hasher,
 			Messenger:                  messengerMock,
-			PrivateKey:                 privateKeyMock,
 			ShardCoordinator:           shardCoordinatorMock,
 			PeerSignatureHandler:       peerSigHandler,
 			HeadersSubscriber:          headersSubscriber,
@@ -42,7 +43,7 @@ func createDefaultMetaChainArgs() broadcast.MetaChainMessengerArgs {
 			MaxValidatorDelayCacheSize: 2,
 			MaxDelayCacheSize:          2,
 			AlarmScheduler:             alarmScheduler,
-			KeysHolder:                 &testscommon.KeysHolderStub{},
+			KeysHandler:                &testscommon.KeysHandlerStub{},
 		},
 	}
 }
@@ -65,15 +66,6 @@ func TestMetaChainMessenger_NewMetaChainMessengerNilMessengerShouldFail(t *testi
 	assert.Equal(t, spos.ErrNilMessenger, err)
 }
 
-func TestMetaChainMessenger_NewMetaChainMessengerNilPrivateKeyShouldFail(t *testing.T) {
-	args := createDefaultMetaChainArgs()
-	args.PrivateKey = nil
-	mcm, err := broadcast.NewMetaChainMessenger(args)
-
-	assert.Nil(t, mcm)
-	assert.Equal(t, spos.ErrNilPrivateKey, err)
-}
-
 func TestMetaChainMessenger_NewMetaChainMessengerNilShardCoordinatorShouldFail(t *testing.T) {
 	args := createDefaultMetaChainArgs()
 	args.ShardCoordinator = nil
@@ -92,13 +84,13 @@ func TestMetaChainMessenger_NewMetaChainMessengerNilPeerSignatureHandlerShouldFa
 	assert.Equal(t, spos.ErrNilPeerSignatureHandler, err)
 }
 
-func TestMetaChainMessenger_NilKeysHolderShouldError(t *testing.T) {
+func TestMetaChainMessenger_NilKeysHandlerShouldError(t *testing.T) {
 	args := createDefaultMetaChainArgs()
-	args.KeysHolder = nil
+	args.KeysHandler = nil
 	mcm, err := broadcast.NewMetaChainMessenger(args)
 
 	assert.Nil(t, mcm)
-	assert.Equal(t, spos.ErrNilKeysHolder, err)
+	assert.Equal(t, broadcast.ErrNilKeysHandler, err)
 }
 
 func TestMetaChainMessenger_NewMetaChainMessengerShouldWork(t *testing.T) {
@@ -180,6 +172,11 @@ func TestMetaChainMessenger_BroadcastHeaderOkHeaderShouldWork(t *testing.T) {
 		},
 	}
 	args := createDefaultMetaChainArgs()
+	args.KeysHandler = &testscommon.KeysHandlerStub{
+		IsOriginalPublicKeyOfTheNodeCalled: func(pkBytes []byte) bool {
+			return bytes.Equal(pkBytes, nodePkBytes)
+		},
+	}
 	args.Messenger = messenger
 	mcm, _ := broadcast.NewMetaChainMessenger(args)
 
@@ -188,8 +185,7 @@ func TestMetaChainMessenger_BroadcastHeaderOkHeaderShouldWork(t *testing.T) {
 	}
 
 	t.Run("original public key of the node", func(t *testing.T) {
-		pkBytes, _ := args.PrivateKey.GeneratePublic().ToByteArray()
-		err := mcm.BroadcastHeader(&hdr, pkBytes)
+		err := mcm.BroadcastHeader(&hdr, nodePkBytes)
 		assert.Nil(t, err)
 
 		wasCalled := false
@@ -237,6 +233,11 @@ func TestMetaChainMessenger_BroadcastBlockDataLeader(t *testing.T) {
 	}
 
 	args := createDefaultMetaChainArgs()
+	args.KeysHandler = &testscommon.KeysHandlerStub{
+		IsOriginalPublicKeyOfTheNodeCalled: func(pkBytes []byte) bool {
+			return bytes.Equal(pkBytes, nodePkBytes)
+		},
+	}
 	args.Messenger = messengerMock
 	mcm, _ := broadcast.NewMetaChainMessenger(args)
 
@@ -248,8 +249,7 @@ func TestMetaChainMessenger_BroadcastBlockDataLeader(t *testing.T) {
 		countersBroadcast = make(map[string]int)
 		mutCounters.Unlock()
 
-		pkBytes, _ := args.PrivateKey.GeneratePublic().ToByteArray()
-		err := mcm.BroadcastBlockDataLeader(nil, miniBlocks, transactions, pkBytes)
+		err := mcm.BroadcastBlockDataLeader(nil, miniBlocks, transactions, nodePkBytes)
 		require.Nil(t, err)
 		sleepTime := common.ExtraDelayBetweenBroadcastMbsAndTxs +
 			common.ExtraDelayForBroadcastBlockInfo +

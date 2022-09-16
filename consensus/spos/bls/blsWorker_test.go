@@ -20,10 +20,14 @@ func createEligibleList(size int) []string {
 }
 
 func initConsensusState() *spos.ConsensusState {
-	return initConsensusStateWithKeysHolder(&testscommon.KeysHolderStub{})
+	return initConsensusStateWithKeysHandler(&testscommon.KeysHandlerStub{
+		IsOriginalPublicKeyOfTheNodeCalled: func(pkBytes []byte) bool {
+			return true
+		},
+	})
 }
 
-func initConsensusStateWithKeysHolder(keysHolder consensus.KeysHolder) *spos.ConsensusState {
+func initConsensusStateWithKeysHandler(keysHolder consensus.KeysHandler) *spos.ConsensusState {
 	consensusGroupSize := 9
 	eligibleList := createEligibleList(consensusGroupSize)
 

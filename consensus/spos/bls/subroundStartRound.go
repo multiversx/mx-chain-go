@@ -170,21 +170,7 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 		"messsage", msg)
 
 	pubKeys := sr.ConsensusGroup()
-
-	numMultiKeysInConsensusGroup := 0
-	for _, pk := range pubKeys {
-		pkBytes := []byte(pk)
-		if sr.IsKeyManagedByCurrentNode(pkBytes) {
-			sr.IncrementRoundsWithoutReceivedMessages(pkBytes)
-			numMultiKeysInConsensusGroup++
-			log.Trace("in consensus group with multi key",
-				"pk", core.GetTrimmedPk(hex.EncodeToString(pkBytes)))
-		}
-	}
-
-	if numMultiKeysInConsensusGroup > 0 {
-		log.Debug("in consensus group with multi keys identities", "num", numMultiKeysInConsensusGroup)
-	}
+	numMultiKeysInConsensusGroup := sr.computeNumManagedKeysInConsensusGroup(pubKeys)
 
 	sr.indexRoundIfNeeded(pubKeys)
 
@@ -228,6 +214,25 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 	go sr.executeStoredMessages()
 
 	return true
+}
+
+func (sr *subroundStartRound) computeNumManagedKeysInConsensusGroup(pubKeys []string) int {
+	numMultiKeysInConsensusGroup := 0
+	for _, pk := range pubKeys {
+		pkBytes := []byte(pk)
+		if sr.IsKeyManagedByCurrentNode(pkBytes) {
+			sr.IncrementRoundsWithoutReceivedMessages(pkBytes)
+			numMultiKeysInConsensusGroup++
+			log.Trace("in consensus group with multi key",
+				"pk", core.GetTrimmedPk(hex.EncodeToString(pkBytes)))
+		}
+	}
+
+	if numMultiKeysInConsensusGroup > 0 {
+		log.Debug("in consensus group with multi keys identities", "num", numMultiKeysInConsensusGroup)
+	}
+
+	return numMultiKeysInConsensusGroup
 }
 
 func (sr *subroundStartRound) indexRoundIfNeeded(pubKeys []string) {

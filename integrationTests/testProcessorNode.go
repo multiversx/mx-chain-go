@@ -697,12 +697,14 @@ func (tpn *TestProcessorNode) initTestNodeWithArgs(args ArgTestProcessorNode) {
 		TestHasher,
 		tpn.Messenger,
 		tpn.ShardCoordinator,
-		tpn.OwnAccount.SkTxSign,
 		tpn.OwnAccount.PeerSigHandler,
 		tpn.DataPool.Headers(),
 		tpn.InterceptorsContainer,
 		&testscommon.AlarmSchedulerStub{},
-		&testscommon.KeysHolderStub{},
+		testscommon.NewKeysHandlerSingleSignerMock(
+			tpn.NodeKeys.Sk,
+			tpn.Messenger.ID(),
+		),
 	)
 
 	if args.WithSync {
@@ -877,12 +879,14 @@ func (tpn *TestProcessorNode) InitializeProcessors(gasMap map[string]map[string]
 		TestHasher,
 		tpn.Messenger,
 		tpn.ShardCoordinator,
-		tpn.OwnAccount.SkTxSign,
 		tpn.OwnAccount.PeerSigHandler,
 		tpn.DataPool.Headers(),
 		tpn.InterceptorsContainer,
 		&testscommon.AlarmSchedulerStub{},
-		&testscommon.KeysHolderStub{},
+		testscommon.NewKeysHandlerSingleSignerMock(
+			tpn.NodeKeys.Sk,
+			tpn.Messenger.ID(),
+		),
 	)
 	tpn.setGenesisBlock()
 	tpn.initNode()

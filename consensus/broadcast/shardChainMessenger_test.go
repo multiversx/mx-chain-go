@@ -1,6 +1,7 @@
 package broadcast_test
 
 import (
+	"bytes"
 	"testing"
 	"time"
 
@@ -54,7 +55,6 @@ func createDefaultShardChainArgs() broadcast.ShardChainMessengerArgs {
 	marshalizerMock := &mock.MarshalizerMock{}
 	hasher := &hashingMocks.HasherMock{}
 	messengerMock := &mock.MessengerStub{}
-	privateKeyMock := &mock.PrivateKeyMock{}
 	shardCoordinatorMock := &mock.ShardCoordinatorMock{}
 	singleSignerMock := &mock.SingleSignerMock{}
 	headersSubscriber := &mock.HeadersCacherStub{}
@@ -69,7 +69,6 @@ func createDefaultShardChainArgs() broadcast.ShardChainMessengerArgs {
 			Marshalizer:                marshalizerMock,
 			Hasher:                     hasher,
 			Messenger:                  messengerMock,
-			PrivateKey:                 privateKeyMock,
 			ShardCoordinator:           shardCoordinatorMock,
 			PeerSignatureHandler:       peerSigHandler,
 			HeadersSubscriber:          headersSubscriber,
@@ -77,7 +76,7 @@ func createDefaultShardChainArgs() broadcast.ShardChainMessengerArgs {
 			MaxDelayCacheSize:          1,
 			MaxValidatorDelayCacheSize: 1,
 			AlarmScheduler:             alarmScheduler,
-			KeysHolder:                 &testscommon.KeysHolderStub{},
+			KeysHandler:                &testscommon.KeysHandlerStub{},
 		},
 	}
 }
@@ -98,15 +97,6 @@ func TestShardChainMessenger_NewShardChainMessengerNilMessengerShouldFail(t *tes
 
 	assert.Nil(t, scm)
 	assert.Equal(t, spos.ErrNilMessenger, err)
-}
-
-func TestShardChainMessenger_NewShardChainMessengerNilPrivateKeyShouldFail(t *testing.T) {
-	args := createDefaultShardChainArgs()
-	args.PrivateKey = nil
-	scm, err := broadcast.NewShardChainMessenger(args)
-
-	assert.Nil(t, scm)
-	assert.Equal(t, spos.ErrNilPrivateKey, err)
 }
 
 func TestShardChainMessenger_NewShardChainMessengerNilShardCoordinatorShouldFail(t *testing.T) {
@@ -145,13 +135,13 @@ func TestShardChainMessenger_NewShardChainMessengerNilHeadersSubscriberShouldFai
 	assert.Equal(t, spos.ErrNilHeadersSubscriber, err)
 }
 
-func TestShardChainMessenger_NilKeysHolderShouldError(t *testing.T) {
+func TestShardChainMessenger_NilKeysHandlerShouldError(t *testing.T) {
 	args := createDefaultShardChainArgs()
-	args.KeysHolder = nil
+	args.KeysHandler = nil
 	scm, err := broadcast.NewShardChainMessenger(args)
 
 	assert.Nil(t, scm)
-	assert.Equal(t, spos.ErrNilKeysHolder, err)
+	assert.Equal(t, broadcast.ErrNilKeysHandler, err)
 }
 
 func TestShardChainMessenger_NewShardChainMessengerShouldWork(t *testing.T) {
@@ -218,6 +208,11 @@ func TestShardChainMessenger_BroadcastMiniBlocksShouldBeDone(t *testing.T) {
 	}
 	args := createDefaultShardChainArgs()
 	args.Messenger = messenger
+	args.KeysHandler = &testscommon.KeysHandlerStub{
+		IsOriginalPublicKeyOfTheNodeCalled: func(pkBytes []byte) bool {
+			return bytes.Equal(nodePkBytes, pkBytes)
+		},
+	}
 	scm, _ := broadcast.NewShardChainMessenger(args)
 
 	miniBlocks := make(map[uint32][]byte)
@@ -227,8 +222,7 @@ func TestShardChainMessenger_BroadcastMiniBlocksShouldBeDone(t *testing.T) {
 	miniBlocks[3] = make([]byte, 0)
 
 	t.Run("original public key of the node", func(t *testing.T) {
-		pkBytes, _ := args.PrivateKey.GeneratePublic().ToByteArray()
-		err := scm.BroadcastMiniBlocks(miniBlocks, pkBytes)
+		err := scm.BroadcastMiniBlocks(miniBlocks, nodePkBytes)
 
 		called := 0
 		for i := 0; i < 4; i++ {
@@ -315,6 +309,11 @@ func TestShardChainMessenger_BroadcastTransactionsShouldBeCalled(t *testing.T) {
 
 	args := createDefaultShardChainArgs()
 	args.Messenger = messenger
+	args.KeysHandler = &testscommon.KeysHandlerStub{
+		IsOriginalPublicKeyOfTheNodeCalled: func(pkBytes []byte) bool {
+			return bytes.Equal(pkBytes, nodePkBytes)
+		},
+	}
 	scm, _ := broadcast.NewShardChainMessenger(args)
 
 	transactions := make(map[string][][]byte)
@@ -322,8 +321,7 @@ func TestShardChainMessenger_BroadcastTransactionsShouldBeCalled(t *testing.T) {
 	txs = append(txs, []byte(""))
 	transactions[factory.TransactionTopic] = txs
 	t.Run("original public key of the node", func(t *testing.T) {
-		pkBytes, _ := args.PrivateKey.GeneratePublic().ToByteArray()
-		err := scm.BroadcastTransactions(transactions, pkBytes)
+		err := scm.BroadcastTransactions(transactions, nodePkBytes)
 
 		wasCalled := false
 		for i := 0; i < 4; i++ {
@@ -377,13 +375,17 @@ func TestShardChainMessenger_BroadcastHeaderShouldWork(t *testing.T) {
 		},
 	}
 	args := createDefaultShardChainArgs()
+	args.KeysHandler = &testscommon.KeysHandlerStub{
+		IsOriginalPublicKeyOfTheNodeCalled: func(pkBytes []byte) bool {
+			return bytes.Equal(pkBytes, nodePkBytes)
+		},
+	}
 	args.Messenger = messenger
 	scm, _ := broadcast.NewShardChainMessenger(args)
 
 	hdr := &block.MetaBlock{Nonce: 10}
 	t.Run("original public key of the node", func(t *testing.T) {
-		pkBytes, _ := args.PrivateKey.GeneratePublic().ToByteArray()
-		err := scm.BroadcastHeader(hdr, pkBytes)
+		err := scm.BroadcastHeader(hdr, nodePkBytes)
 
 		wasCalled := false
 		for i := 0; i < 4; i++ {
@@ -449,19 +451,23 @@ func TestShardChainMessenger_BroadcastBlockDataLeaderShouldTriggerWaitingDelayed
 	}
 	args := createDefaultShardChainArgs()
 	args.Messenger = messenger
+	args.KeysHandler = &testscommon.KeysHandlerStub{
+		IsOriginalPublicKeyOfTheNodeCalled: func(pkBytes []byte) bool {
+			return bytes.Equal(pkBytes, nodePkBytes)
+		},
+	}
 	scm, _ := broadcast.NewShardChainMessenger(args)
 
 	t.Run("original public key of the node", func(t *testing.T) {
-		pkBytes, _ := args.PrivateKey.GeneratePublic().ToByteArray()
 		_, header, miniBlocksMarshalled, transactions := createDelayData("1")
-		err := scm.BroadcastBlockDataLeader(header, miniBlocksMarshalled, transactions, pkBytes)
+		err := scm.BroadcastBlockDataLeader(header, miniBlocksMarshalled, transactions, nodePkBytes)
 		time.Sleep(10 * time.Millisecond)
 		assert.Nil(t, err)
 		assert.False(t, broadcastWasCalled.IsSet())
 
 		broadcastWasCalled.Reset()
 		_, header2, miniBlocksMarshalled2, transactions2 := createDelayData("2")
-		err = scm.BroadcastBlockDataLeader(header2, miniBlocksMarshalled2, transactions2, pkBytes)
+		err = scm.BroadcastBlockDataLeader(header2, miniBlocksMarshalled2, transactions2, nodePkBytes)
 		time.Sleep(10 * time.Millisecond)
 		assert.Nil(t, err)
 		assert.True(t, broadcastWasCalled.IsSet())

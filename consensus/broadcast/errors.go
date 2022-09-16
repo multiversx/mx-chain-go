@@ -2,5 +2,5 @@ package broadcast
 
 import "errors"
 
-// ErrNilKeysHolder signals that a nil keys holder was provided
-var ErrNilKeysHolder = errors.New("nil keys holder")
+// ErrNilKeysHandler signals that a nil keys handler was provided
+var ErrNilKeysHandler = errors.New("nil keys handler")

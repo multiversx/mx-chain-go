@@ -69,56 +69,77 @@ func (sr *subroundSignature) doSignatureJob(_ context.Context) bool {
 		return false
 	}
 
-	if sr.IsSelfLeaderInCurrentRound() || sr.IsNodeInConsensusGroup(sr.SelfPubKey()) {
+	isSelfLeader := sr.IsSelfLeaderInCurrentRound()
+
+	if isSelfLeader || sr.IsNodeInConsensusGroup(sr.SelfPubKey()) {
 		signatureShare, err := sr.MultiSigner().CreateSignatureShare(sr.GetData(), nil)
 		if err != nil {
 			log.Debug("doSignatureJob.CreateSignatureShare", "error", err.Error())
 			return false
 		}
 
-		isSelfLeader := sr.IsSelfLeaderInCurrentRound()
-
 		if !isSelfLeader {
-			// TODO: Analyze it is possible to send message only to leader with O(1) instead of O(n)
-			cnsMsg := consensus.NewConsensusMessage(
-				sr.GetData(),
-				signatureShare,
-				nil,
-				nil,
-				[]byte(sr.SelfPubKey()),
-				nil,
-				int(MtSignature),
-				sr.RoundHandler().Index(),
-				sr.ChainID(),
-				nil,
-				nil,
-				nil,
-				sr.GetAssociatedPid([]byte(sr.SelfPubKey())),
-			)
-
-			err = sr.BroadcastMessenger().BroadcastConsensusMessage(cnsMsg)
-			if err != nil {
-				log.Debug("doSignatureJob.BroadcastConsensusMessage", "error", err.Error())
+			ok := sr.createAndSendSignatureMessage(signatureShare, []byte(sr.SelfPubKey()))
+			if !ok {
 				return false
 			}
-
-			log.Debug("step 2: signature has been sent")
 		}
 
-		err = sr.SetSelfJobDone(sr.Current(), true)
-		if err != nil {
-			log.Debug("doSignatureJob.SetSelfJobDone",
-				"subround", sr.Name(),
-				"error", err.Error())
+		ok := sr.completeSignatureSubRound(sr.SelfPubKey(), isSelfLeader)
+		if !ok {
 			return false
-		}
-
-		if isSelfLeader {
-			go sr.waitAllSignatures()
 		}
 	}
 
 	return sr.doSignatureJobForManagedKeys()
+}
+
+func (sr *subroundSignature) createAndSendSignatureMessage(signatureShare []byte, pkBytes []byte) bool {
+	// TODO: Analyze it is possible to send message only to leader with O(1) instead of O(n)
+	cnsMsg := consensus.NewConsensusMessage(
+		sr.GetData(),
+		signatureShare,
+		nil,
+		nil,
+		pkBytes,
+		nil,
+		int(MtSignature),
+		sr.RoundHandler().Index(),
+		sr.ChainID(),
+		nil,
+		nil,
+		nil,
+		sr.GetAssociatedPid(pkBytes),
+	)
+
+	err := sr.BroadcastMessenger().BroadcastConsensusMessage(cnsMsg)
+	if err != nil {
+		log.Debug("createAndSendSignatureMessage.BroadcastConsensusMessage",
+			"error", err.Error(), "pk", pkBytes)
+		return false
+	}
+
+	log.Debug("step 2: signature has been sent", "pk", pkBytes)
+
+	return true
+}
+
+func (sr *subroundSignature) completeSignatureSubRound(pk string, shouldWaitForAllSigsAsync bool) bool {
+	err := sr.SetJobDone(pk, sr.Current(), true)
+	if err != nil {
+		log.Debug("doSignatureJob.SetSelfJobDone",
+			"subround", sr.Name(),
+			"error", err.Error(),
+			"pk", []byte(pk),
+		)
+		return false
+	}
+
+	if shouldWaitForAllSigsAsync {
+		go sr.waitAllSignatures()
+	}
+
+	return true
 }
 
 // receivedSignature method is called when a signature is received through the signature channel.
@@ -317,66 +338,40 @@ func (sr *subroundSignature) remainingTime() time.Duration {
 func (sr *subroundSignature) doSignatureJobForManagedKeys() bool {
 	isMultiKeyLeader := sr.IsMultiKeyLeaderInCurrentRound()
 
-	managedKeys := sr.GetManagedKeysByCurrentNode()
 	numMultiKeysSignaturesSent := 0
-	for pk, sk := range managedKeys {
-		if !sr.IsNodeInConsensusGroup(pk) {
-			continue
-		}
-
+	for idx, pk := range sr.ConsensusGroup() {
+		pkBytes := []byte(pk)
 		if sr.IsJobDone(pk, sr.Current()) {
 			continue
 		}
+		if !sr.IsKeyManagedByCurrentNode(pkBytes) {
+			continue
+		}
 
-		signatureShare, err := sr.MultiSigner().CreateAndAddSignatureShareForKey(sr.GetData(), sk, []byte(pk))
+		managedPrivateKey := sr.GetMessageSigningPrivateKey(pkBytes)
+		signatureShare, err := sr.MultiSigner().CreateAndAddSignatureShareForKey(sr.GetData(), managedPrivateKey, pkBytes)
 		if err != nil {
-			log.Debug("doSignatureJob.CreateAndAddSignatureShareForKey", "error", err.Error())
+			log.Debug("doSignatureJobForManagedKeys.CreateAndAddSignatureShareForKey", "error", err.Error())
 			return false
 		}
 
 		if !isMultiKeyLeader {
-			cnsMsg := consensus.NewConsensusMessage(
-				sr.GetData(),
-				signatureShare,
-				nil,
-				nil,
-				[]byte(pk),
-				nil,
-				int(MtSignature),
-				sr.RoundHandler().Index(),
-				sr.ChainID(),
-				nil,
-				nil,
-				nil,
-				sr.GetAssociatedPid([]byte(pk)),
-			)
-
-			err = sr.BroadcastMessenger().BroadcastConsensusMessage(cnsMsg)
-			if err != nil {
-				log.Debug("doSignatureJob.BroadcastConsensusMessage", "error", err.Error())
+			numMultiKeysSignaturesSent++
+			ok := sr.createAndSendSignatureMessage(signatureShare, pkBytes)
+			if !ok {
 				return false
 			}
-
-			numMultiKeysSignaturesSent++
-			log.Trace("step 2: signature has been sent",
-				"pk", core.GetTrimmedPk(hex.EncodeToString([]byte(pk))))
 		}
 
-		err = sr.SetJobDone(pk, sr.Current(), true)
-		if err != nil {
-			log.Debug("doSignatureJob.SetSelfJobDone",
-				"subround", sr.Name(),
-				"error", err.Error())
+		isLeader := idx == spos.IndexOfLeaderInConsensusGroup
+		ok := sr.completeSignatureSubRound(pk, isLeader)
+		if !ok {
 			return false
-		}
-
-		if sr.IsNodeLeaderInCurrentRound(pk) {
-			go sr.waitAllSignatures()
 		}
 	}
 
 	if numMultiKeysSignaturesSent > 0 {
-		log.Debug("step 2: multi keys signatures has been sent", "num", numMultiKeysSignaturesSent)
+		log.Debug("step 2: multi keys signatures have been sent", "num", numMultiKeysSignaturesSent)
 	}
 
 	return true

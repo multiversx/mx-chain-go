@@ -1,7 +1,6 @@
 package broadcast
 
 import (
-	"bytes"
 	"strings"
 	"time"
 
@@ -40,12 +39,10 @@ type commonMessenger struct {
 	marshalizer             marshal.Marshalizer
 	hasher                  hashing.Hasher
 	messenger               consensus.P2PMessenger
-	privateKey              crypto.PrivateKey
 	shardCoordinator        sharding.Coordinator
 	peerSignatureHandler    crypto.PeerSignatureHandler
 	delayedBlockBroadcaster delayedBroadcaster
-	keysHolder              consensus.KeysHolder
-	currentPublicKeyBytes   []byte
+	keysHandler             consensus.KeysHandler
 }
 
 // CommonMessengerArgs holds the arguments for creating commonMessenger instance
@@ -53,7 +50,6 @@ type CommonMessengerArgs struct {
 	Marshalizer                marshal.Marshalizer
 	Hasher                     hashing.Hasher
 	Messenger                  consensus.P2PMessenger
-	PrivateKey                 crypto.PrivateKey
 	ShardCoordinator           sharding.Coordinator
 	PeerSignatureHandler       crypto.PeerSignatureHandler
 	HeadersSubscriber          consensus.HeadersPoolSubscriber
@@ -61,7 +57,7 @@ type CommonMessengerArgs struct {
 	MaxDelayCacheSize          uint32
 	MaxValidatorDelayCacheSize uint32
 	AlarmScheduler             core.TimersScheduler
-	KeysHolder                 consensus.KeysHolder
+	KeysHandler                consensus.KeysHandler
 }
 
 func checkCommonMessengerNilParameters(
@@ -75,9 +71,6 @@ func checkCommonMessengerNilParameters(
 	}
 	if check.IfNil(args.Messenger) {
 		return spos.ErrNilMessenger
-	}
-	if check.IfNil(args.PrivateKey) {
-		return spos.ErrNilPrivateKey
 	}
 	if check.IfNil(args.ShardCoordinator) {
 		return spos.ErrNilShardCoordinator
@@ -97,8 +90,8 @@ func checkCommonMessengerNilParameters(
 	if args.MaxDelayCacheSize == 0 || args.MaxValidatorDelayCacheSize == 0 {
 		return spos.ErrInvalidCacheSize
 	}
-	if check.IfNil(args.KeysHolder) {
-		return ErrNilKeysHolder
+	if check.IfNil(args.KeysHandler) {
+		return ErrNilKeysHandler
 	}
 
 	return nil
@@ -106,7 +99,7 @@ func checkCommonMessengerNilParameters(
 
 // BroadcastConsensusMessage will send on consensus topic the consensus message
 func (cm *commonMessenger) BroadcastConsensusMessage(message *consensus.Message) error {
-	privateKey := cm.getPrivateKey(message)
+	privateKey := cm.keysHandler.GetHandledPrivateKey(message.PubKey)
 	signature, err := cm.peerSignatureHandler.GetPeerSignature(privateKey, message.OriginatorPid)
 	if err != nil {
 		return err
@@ -125,23 +118,6 @@ func (cm *commonMessenger) BroadcastConsensusMessage(message *consensus.Message)
 	cm.broadcast(consensusTopic, buff, message.PubKey)
 
 	return nil
-}
-
-func (cm *commonMessenger) getPrivateKey(message *consensus.Message) crypto.PrivateKey {
-	publicKey := message.PubKey
-	if !cm.keysHolder.IsKeyManagedByCurrentNode(publicKey) {
-		return cm.privateKey
-	}
-
-	privateKey, err := cm.keysHolder.GetPrivateKey(publicKey)
-	if err != nil {
-		log.Error("setup error in commonMessenger.getPrivateKey - public key is managed but does not contain a private key",
-			"pk", publicKey, "error", err)
-
-		return cm.privateKey
-	}
-
-	return privateKey
 }
 
 // BroadcastMiniBlocks will send on miniblocks topic the cross-shard miniblocks
@@ -251,12 +227,12 @@ func (cm *commonMessenger) extractMetaMiniBlocksAndTransactions(
 }
 
 func (cm *commonMessenger) broadcast(topic string, data []byte, pkBytes []byte) {
-	if bytes.Equal(pkBytes, cm.currentPublicKeyBytes) {
+	if cm.keysHandler.IsOriginalPublicKeyOfTheNode(pkBytes) {
 		cm.messenger.Broadcast(topic, data)
 		return
 	}
 
-	skBytes, pid, err := cm.keysHolder.GetP2PIdentity(pkBytes)
+	skBytes, pid, err := cm.keysHandler.GetP2PIdentity(pkBytes)
 	if err != nil {
 		log.Error("setup error in commonMessenger.broadcast - public key is managed but does not contain p2p sign info",
 			"pk", pkBytes, "error", err)

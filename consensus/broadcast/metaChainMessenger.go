@@ -46,21 +46,14 @@ func NewMetaChainMessenger(
 		return nil, err
 	}
 
-	pkBytes, err := args.PrivateKey.GeneratePublic().ToByteArray()
-	if err != nil {
-		return nil, err
-	}
-
 	cm := &commonMessenger{
 		marshalizer:             args.Marshalizer,
 		hasher:                  args.Hasher,
 		messenger:               args.Messenger,
-		privateKey:              args.PrivateKey,
 		shardCoordinator:        args.ShardCoordinator,
 		peerSignatureHandler:    args.PeerSignatureHandler,
 		delayedBlockBroadcaster: dbb,
-		currentPublicKeyBytes:   pkBytes,
-		keysHolder:              args.KeysHolder,
+		keysHandler:             args.KeysHandler,
 	}
 
 	mcm := &metaChainMessenger{

@@ -338,11 +338,7 @@ func (sr *subroundBlock) createHeader() (data.HeaderHandler, error) {
 		return nil, errGetLeader
 	}
 
-	privateKey, errGetPrivateKey := sr.GetMessageSigningPrivateKey([]byte(leader))
-	if errGetPrivateKey != nil {
-		return nil, errGetPrivateKey
-	}
-
+	privateKey := sr.GetMessageSigningPrivateKey([]byte(leader))
 	randSeed, err := sr.SingleSigner().Sign(privateKey, prevRandSeed)
 	if err != nil {
 		return nil, err

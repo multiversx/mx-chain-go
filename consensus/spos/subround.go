@@ -1,7 +1,6 @@
 package spos
 
 import (
-	"bytes"
 	"context"
 	"time"
 
@@ -208,26 +207,12 @@ func (sr *Subround) ConsensusChannel() chan bool {
 
 // GetAssociatedPid returns the associated PeerID to the provided public key bytes
 func (sr *Subround) GetAssociatedPid(pkBytes []byte) core.PeerID {
-	if bytes.Equal(pkBytes, []byte(sr.SelfPubKey())) {
-		return sr.currentPid
-	}
-
-	_, pid, err := sr.keysHolder.GetP2PIdentity(pkBytes)
-	if err != nil {
-		log.Error("setup error in Subround.ConsensusChannel - public key is managed but does not contain p2p identity")
-		return sr.currentPid
-	}
-
-	return pid
+	return sr.keysHandler.GetAssociatedPid(pkBytes)
 }
 
 // GetMessageSigningPrivateKey returns the correct private key based on the provided pkBytes
-func (sr *Subround) GetMessageSigningPrivateKey(pkBytes []byte) (crypto.PrivateKey, error) {
-	if bytes.Equal(pkBytes, []byte(sr.SelfPubKey())) {
-		return sr.PrivateKey(), nil
-	}
-
-	return sr.keysHolder.GetPrivateKey(pkBytes)
+func (sr *Subround) GetMessageSigningPrivateKey(pkBytes []byte) crypto.PrivateKey {
+	return sr.keysHandler.GetHandledPrivateKey(pkBytes)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

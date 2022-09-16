@@ -40,7 +40,6 @@ func TestCommonMessenger_BroadcastConsensusMessageShouldErrWhenSignMessageFail(t
 	err := errors.New("sign message error")
 	marshalizerMock := &mock.MarshalizerMock{}
 	messengerMock := &mock.MessengerStub{}
-	privateKeyMock := &mock.PrivateKeyMock{}
 	shardCoordinatorMock := &mock.ShardCoordinatorMock{}
 	singleSignerMock := &mock.SingleSignerMock{
 		SignStub: func(private crypto.PrivateKey, msg []byte) ([]byte, error) {
@@ -52,10 +51,9 @@ func TestCommonMessenger_BroadcastConsensusMessageShouldErrWhenSignMessageFail(t
 	cm, _ := broadcast.NewCommonMessenger(
 		marshalizerMock,
 		messengerMock,
-		privateKeyMock,
 		shardCoordinatorMock,
 		peerSigHandler,
-		&testscommon.KeysHolderStub{},
+		&testscommon.KeysHandlerStub{},
 	)
 
 	msg := &consensus.Message{}
@@ -69,7 +67,6 @@ func TestCommonMessenger_BroadcastConsensusMessageShouldWork(t *testing.T) {
 		BroadcastCalled: func(topic string, buff []byte) {
 		},
 	}
-	privateKeyMock := &mock.PrivateKeyMock{}
 	shardCoordinatorMock := &mock.ShardCoordinatorMock{}
 	singleSignerMock := &mock.SingleSignerMock{
 		SignStub: func(private crypto.PrivateKey, msg []byte) ([]byte, error) {
@@ -81,42 +78,14 @@ func TestCommonMessenger_BroadcastConsensusMessageShouldWork(t *testing.T) {
 	cm, _ := broadcast.NewCommonMessenger(
 		marshalizerMock,
 		messengerMock,
-		privateKeyMock,
 		shardCoordinatorMock,
 		peerSigHandler,
-		&testscommon.KeysHolderStub{},
+		&testscommon.KeysHandlerStub{},
 	)
 
 	msg := &consensus.Message{}
 	err := cm.BroadcastConsensusMessage(msg)
 	assert.Nil(t, err)
-}
-
-func TestCommonMessenger_SignMessageShouldErrWhenSignFail(t *testing.T) {
-	err := errors.New("sign message error")
-	marshalizerMock := &mock.MarshalizerMock{}
-	messengerMock := &mock.MessengerStub{}
-	privateKeyMock := &mock.PrivateKeyMock{}
-	shardCoordinatorMock := &mock.ShardCoordinatorMock{}
-	singleSignerMock := &mock.SingleSignerMock{
-		SignStub: func(private crypto.PrivateKey, msg []byte) ([]byte, error) {
-			return nil, err
-		},
-	}
-	peerSigHandler := &mock.PeerSignatureHandler{Signer: singleSignerMock}
-
-	cm, _ := broadcast.NewCommonMessenger(
-		marshalizerMock,
-		messengerMock,
-		privateKeyMock,
-		shardCoordinatorMock,
-		peerSigHandler,
-		&testscommon.KeysHolderStub{},
-	)
-
-	msg := &consensus.Message{}
-	_, err2 := cm.SignMessage(msg)
-	assert.Equal(t, err, err2)
 }
 
 func TestSubroundEndRound_ExtractMiniBlocksAndTransactionsShouldWork(t *testing.T) {
@@ -152,7 +121,6 @@ func TestSubroundEndRound_ExtractMiniBlocksAndTransactionsShouldWork(t *testing.
 		BroadcastCalled: func(topic string, buff []byte) {
 		},
 	}
-	privateKeyMock := &mock.PrivateKeyMock{}
 	shardCoordinatorMock := &mock.ShardCoordinatorMock{}
 	singleSignerMock := &mock.SingleSignerMock{
 		SignStub: func(private crypto.PrivateKey, msg []byte) ([]byte, error) {
@@ -164,10 +132,9 @@ func TestSubroundEndRound_ExtractMiniBlocksAndTransactionsShouldWork(t *testing.
 	cm, _ := broadcast.NewCommonMessenger(
 		marshalizerMock,
 		messengerMock,
-		privateKeyMock,
 		shardCoordinatorMock,
 		peerSigHandler,
-		&testscommon.KeysHolderStub{},
+		&testscommon.KeysHandlerStub{},
 	)
 
 	metaMiniBlocks, metaTransactions := cm.ExtractMetaMiniBlocksAndTransactions(miniBlocks, transactions)
@@ -200,7 +167,6 @@ func TestCommonMessenger_BroadcastBlockData(t *testing.T) {
 			mutCounters.Unlock()
 		},
 	}
-	privateKeyMock := &mock.PrivateKeyMock{}
 	shardCoordinatorMock := &mock.ShardCoordinatorMock{}
 	singleSignerMock := &mock.SingleSignerMock{
 		SignStub: func(private crypto.PrivateKey, msg []byte) ([]byte, error) {
@@ -212,10 +178,13 @@ func TestCommonMessenger_BroadcastBlockData(t *testing.T) {
 	cm, _ := broadcast.NewCommonMessenger(
 		marshalizerMock,
 		messengerMock,
-		privateKeyMock,
 		shardCoordinatorMock,
 		peerSigHandler,
-		&testscommon.KeysHolderStub{},
+		&testscommon.KeysHandlerStub{
+			IsOriginalPublicKeyOfTheNodeCalled: func(pkBytes []byte) bool {
+				return bytes.Equal(pkBytes, nodePkBytes)
+			},
+		},
 	)
 
 	miniBlocks := map[uint32][]byte{0: []byte("mbs data1"), 1: []byte("mbs data2")}
@@ -227,8 +196,7 @@ func TestCommonMessenger_BroadcastBlockData(t *testing.T) {
 		countersBroadcast = make(map[string]int)
 		mutCounters.Unlock()
 
-		pkBytes, _ := privateKeyMock.GeneratePublic().ToByteArray()
-		cm.BroadcastBlockData(miniBlocks, transactions, pkBytes, delay)
+		cm.BroadcastBlockData(miniBlocks, transactions, nodePkBytes, delay)
 		time.Sleep(delay * 2)
 
 		mutCounters.Lock()
@@ -284,7 +252,6 @@ func TestCommonMessenger_broadcast(t *testing.T) {
 			mutCounters.Unlock()
 		},
 	}
-	privateKeyMock := &mock.PrivateKeyMock{}
 	shardCoordinatorMock := &mock.ShardCoordinatorMock{}
 	singleSignerMock := &mock.SingleSignerMock{
 		SignStub: func(private crypto.PrivateKey, msg []byte) ([]byte, error) {
@@ -298,17 +265,20 @@ func TestCommonMessenger_broadcast(t *testing.T) {
 		countersBroadcast = make(map[string]int)
 		mutCounters.Unlock()
 
+		pkBytesProvided := []byte("public key")
 		cm, _ := broadcast.NewCommonMessenger(
 			marshallerMock,
 			messengerMock,
-			privateKeyMock,
 			shardCoordinatorMock,
 			peerSigHandler,
-			&testscommon.KeysHolderStub{},
+			&testscommon.KeysHandlerStub{
+				IsOriginalPublicKeyOfTheNodeCalled: func(pkBytes []byte) bool {
+					return bytes.Equal(pkBytesProvided, pkBytes)
+				},
+			},
 		)
 
-		pkBytes, _ := privateKeyMock.GeneratePublic().ToByteArray()
-		cm.Broadcast(testTopic, []byte("data"), pkBytes)
+		cm.Broadcast(testTopic, []byte("data"), pkBytesProvided)
 
 		mutCounters.Lock()
 		assert.Equal(t, 1, countersBroadcast[broadcastMethodPrefix+testTopic])
@@ -323,10 +293,13 @@ func TestCommonMessenger_broadcast(t *testing.T) {
 		cm, _ := broadcast.NewCommonMessenger(
 			marshallerMock,
 			messengerMock,
-			privateKeyMock,
 			shardCoordinatorMock,
 			peerSigHandler,
-			&testscommon.KeysHolderStub{},
+			&testscommon.KeysHandlerStub{
+				IsOriginalPublicKeyOfTheNodeCalled: func(pkBytes []byte) bool {
+					return false
+				},
+			},
 		)
 
 		cm.Broadcast(testTopic, []byte("data"), []byte("managed key"))
@@ -344,10 +317,9 @@ func TestCommonMessenger_broadcast(t *testing.T) {
 		cm, _ := broadcast.NewCommonMessenger(
 			marshallerMock,
 			messengerMock,
-			privateKeyMock,
 			shardCoordinatorMock,
 			peerSigHandler,
-			&testscommon.KeysHolderStub{
+			&testscommon.KeysHandlerStub{
 				GetP2PIdentityCalled: func(pkBytes []byte) ([]byte, core.PeerID, error) {
 					return nil, "", expectedErr
 				},
@@ -360,93 +332,5 @@ func TestCommonMessenger_broadcast(t *testing.T) {
 		assert.Equal(t, 0, countersBroadcast[broadcastUsingPrivateKeyCalledMethodPrefix+testTopic])
 		assert.Equal(t, 0, countersBroadcast[broadcastMethodPrefix+testTopic])
 		mutCounters.Unlock()
-	})
-}
-
-func TestCommonMessenger_getPrivateKey(t *testing.T) {
-	t.Parallel()
-
-	expectedErr := errors.New("expected error")
-	marshallerMock := &mock.MarshalizerMock{}
-
-	messengerMock := &mock.MessengerStub{}
-	privateKeyMock := &mock.PrivateKeyMock{}
-	shardCoordinatorMock := &mock.ShardCoordinatorMock{}
-	singleSignerMock := &mock.SingleSignerMock{
-		SignStub: func(private crypto.PrivateKey, msg []byte) ([]byte, error) {
-			return []byte(""), nil
-		},
-	}
-	peerSigHandler := &mock.PeerSignatureHandler{Signer: singleSignerMock}
-	managedKeyBytes := []byte("managed key")
-	managedPrivateKey := &mock.PrivateKeyMock{}
-
-	t.Run("using the original public key bytes of the node", func(t *testing.T) {
-		cm, _ := broadcast.NewCommonMessenger(
-			marshallerMock,
-			messengerMock,
-			privateKeyMock,
-			shardCoordinatorMock,
-			peerSigHandler,
-			&testscommon.KeysHolderStub{},
-		)
-
-		pkBytes, _ := privateKeyMock.GeneratePublic().ToByteArray()
-		retrievedPrivateKey := cm.GetPrivateKey(&consensus.Message{
-			PubKey: pkBytes,
-		})
-
-		assert.True(t, privateKeyMock == retrievedPrivateKey) // pointer testing
-	})
-	t.Run("using a managed key", func(t *testing.T) {
-		cm, _ := broadcast.NewCommonMessenger(
-			marshallerMock,
-			messengerMock,
-			privateKeyMock,
-			shardCoordinatorMock,
-			peerSigHandler,
-			&testscommon.KeysHolderStub{
-				GetPrivateKeyCalled: func(pkBytes []byte) (crypto.PrivateKey, error) {
-					if bytes.Equal(pkBytes, managedKeyBytes) {
-						return managedPrivateKey, nil
-					}
-
-					return privateKeyMock, nil
-				},
-				IsKeyManagedByCurrentNodeCalled: func(pkBytes []byte) bool {
-					return bytes.Equal(pkBytes, managedKeyBytes)
-				},
-			},
-		)
-
-		retrievedPrivateKey := cm.GetPrivateKey(&consensus.Message{
-			PubKey: managedKeyBytes,
-		})
-
-		assert.True(t, managedPrivateKey == retrievedPrivateKey) // pointer testing
-	})
-	t.Run("keys holder fails", func(t *testing.T) {
-		cm, _ := broadcast.NewCommonMessenger(
-			marshallerMock,
-			messengerMock,
-			privateKeyMock,
-			shardCoordinatorMock,
-			peerSigHandler,
-			&testscommon.KeysHolderStub{
-				GetPrivateKeyCalled: func(pkBytes []byte) (crypto.PrivateKey, error) {
-					if bytes.Equal(pkBytes, managedKeyBytes) {
-						return nil, expectedErr
-					}
-
-					return privateKeyMock, nil
-				},
-			},
-		)
-
-		retrievedPrivateKey := cm.GetPrivateKey(&consensus.Message{
-			PubKey: managedKeyBytes,
-		})
-
-		assert.True(t, privateKeyMock == retrievedPrivateKey) // pointer testing with the original private key node
 	})
 }

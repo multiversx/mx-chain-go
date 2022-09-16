@@ -2,13 +2,11 @@ package spos_test
 
 import (
 	"context"
-	"fmt"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/bls"
@@ -54,7 +52,7 @@ func initConsensusState() *spos.ConsensusState {
 		eligibleNodesKeys,
 		consensusGroupSize,
 		eligibleList[indexLeader],
-		&testscommon.KeysHolderStub{},
+		&testscommon.KeysHandlerStub{},
 	)
 
 	rcns.SetConsensusGroup(eligibleList)
@@ -939,8 +937,8 @@ func TestSubround_Name(t *testing.T) {
 func TestSubround_GetAssociatedPid(t *testing.T) {
 	t.Parallel()
 
-	keysHolder := &testscommon.KeysHolderStub{}
-	consensusState := internalInitConsensusStateWithKeysHolder(keysHolder)
+	keysHandler := &testscommon.KeysHandlerStub{}
+	consensusState := internalInitConsensusStateWithKeysHandler(keysHandler)
 	ch := make(chan bool, 1)
 	container := mock.InitConsensusCore()
 
@@ -960,63 +958,15 @@ func TestSubround_GetAssociatedPid(t *testing.T) {
 		&statusHandler.AppStatusHandlerStub{},
 	)
 
-	t.Run("original public key node", func(t *testing.T) {
-		keysHolder.GetP2PIdentityCalled = func(pkBytes []byte) ([]byte, core.PeerID, error) {
-			return nil, "", nil
-		}
-		assert.Equal(t, currentPid, subround.GetAssociatedPid([]byte(subround.SelfPubKey())))
-	})
-	t.Run("not a managed key", func(t *testing.T) {
-		keysHolder.GetP2PIdentityCalled = func(pkBytes []byte) ([]byte, core.PeerID, error) {
-			return nil, "", fmt.Errorf("not found")
-		}
-		assert.Equal(t, currentPid, subround.GetAssociatedPid([]byte("not managed")))
-	})
-	t.Run("managed key", func(t *testing.T) {
-		pid := core.PeerID("managed peer id")
-		keysHolder.GetP2PIdentityCalled = func(pkBytes []byte) ([]byte, core.PeerID, error) {
-			return []byte("pk"), pid, nil
-		}
-		assert.Equal(t, pid, subround.GetAssociatedPid([]byte("managed")))
-	})
-}
+	wasCalled := false
+	pid := core.PeerID("a pid")
+	providedPkBytes := []byte("pk bytes")
+	keysHandler.GetAssociatedPidCalled = func(pkBytes []byte) core.PeerID {
+		assert.Equal(t, providedPkBytes, pkBytes)
+		wasCalled = true
+		return pid
+	}
 
-func TestSubround_GetMessageSigningPrivateKey(t *testing.T) {
-	t.Parallel()
-
-	keysHolder := &testscommon.KeysHolderStub{}
-	consensusState := internalInitConsensusStateWithKeysHolder(keysHolder)
-	ch := make(chan bool, 1)
-	container := mock.InitConsensusCore()
-
-	subround, _ := spos.NewSubround(
-		bls.SrStartRound,
-		bls.SrBlock,
-		bls.SrSignature,
-		int64(5*roundTimeDuration/100),
-		int64(25*roundTimeDuration/100),
-		"(BLOCK)",
-		consensusState,
-		ch,
-		executeStoredMessages,
-		container,
-		chainID,
-		currentPid,
-		&statusHandler.AppStatusHandlerStub{},
-	)
-
-	t.Run("original public key node", func(t *testing.T) {
-		receivedPrivateKey, err := subround.GetMessageSigningPrivateKey([]byte(subround.SelfPubKey()))
-		assert.Nil(t, err)
-		assert.True(t, receivedPrivateKey == subround.PrivateKey()) // pointer testing
-	})
-	t.Run("managed key", func(t *testing.T) {
-		managedPrivateKey := &mock.PrivateKeyMock{}
-		keysHolder.GetPrivateKeyCalled = func(pkBytes []byte) (crypto.PrivateKey, error) {
-			return managedPrivateKey, nil
-		}
-		receivedPrivateKey, err := subround.GetMessageSigningPrivateKey([]byte("managed key"))
-		assert.Nil(t, err)
-		assert.True(t, managedPrivateKey == receivedPrivateKey) // pointer testing
-	})
+	assert.Equal(t, pid, subround.GetAssociatedPid(providedPkBytes))
+	assert.True(t, wasCalled)
 }
