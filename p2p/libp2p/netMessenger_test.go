@@ -1094,6 +1094,8 @@ func generateConnWithRemotePeer(pid core.PeerID) network.Conn {
 }
 
 func TestLibp2pMessenger_SendDirectWithRealMessengersShouldWork(t *testing.T) {
+	t.Skip("test")
+
 	msg := []byte("test message")
 
 	args := libp2p.ArgsNetworkMessenger{
@@ -1159,6 +1161,8 @@ func TestLibp2pMessenger_SendDirectWithRealMessengersShouldWork(t *testing.T) {
 }
 
 func TestLibp2pMessenger_SendDirectWithRealMessengersWithoutSignatureShouldWork(t *testing.T) {
+	t.Skip("test")
+
 	msg := []byte("test message")
 
 	args := libp2p.ArgsNetworkMessenger{
