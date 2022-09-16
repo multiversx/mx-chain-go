@@ -67,7 +67,7 @@ type logEvent struct {
 // ArgsEventNotifier defines the arguments needed for event notifier creation
 type ArgsEventNotifier struct {
 	HttpClient      httpClientHandler
-	Marshalizer     marshal.Marshalizer
+	Marshaller      marshal.Marshalizer
 	Hasher          hashing.Hasher
 	PubKeyConverter core.PubkeyConverter
 }
@@ -75,12 +75,34 @@ type ArgsEventNotifier struct {
 // NewEventNotifier creates a new instance of the eventNotifier
 // It implements all methods of process.Indexer
 func NewEventNotifier(args ArgsEventNotifier) (*eventNotifier, error) {
+	err := checkEventNotifierArgs(args)
+	if err != nil {
+		return nil, err
+	}
+
 	return &eventNotifier{
 		httpClient:      args.HttpClient,
-		marshalizer:     args.Marshalizer,
+		marshalizer:     args.Marshaller,
 		hasher:          args.Hasher,
 		pubKeyConverter: args.PubKeyConverter,
 	}, nil
+}
+
+func checkEventNotifierArgs(args ArgsEventNotifier) error {
+	if check.IfNil(args.HttpClient) {
+		return ErrNilHTTPClientWrapper
+	}
+	if check.IfNil(args.Marshaller) {
+		return ErrNilMarshaller
+	}
+	if check.IfNil(args.Hasher) {
+		return ErrNilHasher
+	}
+	if check.IfNil(args.PubKeyConverter) {
+		return core.ErrNilPubkeyConverter
+	}
+
+	return nil
 }
 
 // SaveBlock converts block data in order to be pushed to subscribers
@@ -103,7 +125,7 @@ func (en *eventNotifier) SaveBlock(args *indexer.ArgsSaveBlockData) error {
 		LogEvents: events,
 	}
 
-	err := en.httpClient.Post(pushEventEndpoint, blockData, nil)
+	err := en.httpClient.Post(pushEventEndpoint, blockData)
 	if err != nil {
 		return fmt.Errorf("%w in eventNotifier.SaveBlock while posting block data", err)
 	}
@@ -175,7 +197,7 @@ func (en *eventNotifier) RevertIndexedBlock(header nodeData.HeaderHandler, _ nod
 		Epoch: header.GetEpoch(),
 	}
 
-	err = en.httpClient.Post(revertEventsEndpoint, revertBlock, nil)
+	err = en.httpClient.Post(revertEventsEndpoint, revertBlock)
 	if err != nil {
 		return fmt.Errorf("%w in eventNotifier.RevertIndexedBlock while posting event data", err)
 	}
@@ -189,7 +211,7 @@ func (en *eventNotifier) FinalizedBlock(headerHash []byte) error {
 		Hash: hex.EncodeToString(headerHash),
 	}
 
-	err := en.httpClient.Post(finalizedEventsEndpoint, finalizedBlock, nil)
+	err := en.httpClient.Post(finalizedEventsEndpoint, finalizedBlock)
 	if err != nil {
 		return fmt.Errorf("%w in eventNotifier.FinalizedBlock while posting event data", err)
 	}

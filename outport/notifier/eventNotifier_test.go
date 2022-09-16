@@ -20,7 +20,7 @@ import (
 func createMockEventNotifierArgs() notifier.ArgsEventNotifier {
 	return notifier.ArgsEventNotifier{
 		HttpClient:      &mock.HTTPClientStub{},
-		Marshalizer:     &testscommon.MarshalizerMock{},
+		Marshaller:      &testscommon.MarshalizerMock{},
 		Hasher:          &hashingMocks.HasherMock{},
 		PubKeyConverter: &testscommon.PubkeyConverterMock{},
 	}
@@ -41,7 +41,7 @@ func TestSaveBlock(t *testing.T) {
 
 	wasCalled := false
 	args.HttpClient = &mock.HTTPClientStub{
-		PostCalled: func(route string, payload, response interface{}) error {
+		PostCalled: func(route string, payload interface{}) error {
 			wasCalled = true
 			return nil
 		},
@@ -75,7 +75,7 @@ func TestRevertIndexedBlock(t *testing.T) {
 
 	wasCalled := false
 	args.HttpClient = &mock.HTTPClientStub{
-		PostCalled: func(route string, payload, response interface{}) error {
+		PostCalled: func(route string, payload interface{}) error {
 			wasCalled = true
 			return nil
 		},
@@ -101,7 +101,7 @@ func TestFinalizedBlock(t *testing.T) {
 
 	wasCalled := false
 	args.HttpClient = &mock.HTTPClientStub{
-		PostCalled: func(route string, payload, response interface{}) error {
+		PostCalled: func(route string, payload interface{}) error {
 			wasCalled = true
 			return nil
 		},
