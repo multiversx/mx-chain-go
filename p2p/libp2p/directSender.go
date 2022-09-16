@@ -37,7 +37,7 @@ type directSender struct {
 	mutSeenMessages sync.Mutex
 	seenMessages    *timecache.TimeCache
 	mutexForPeer    *MutexHolder
-	signer          p2p.SignerVerifier
+	// signer          p2p.SignerVerifier
 }
 
 // NewDirectSender returns a new instance of direct sender object
@@ -73,7 +73,7 @@ func NewDirectSender(
 		seenMessages:   timecache.NewTimeCache(timeSeenMessages),
 		messageHandler: messageHandler,
 		mutexForPeer:   mutexForPeer,
-		signer:         signer,
+		// 	signer:         signer,
 	}
 
 	// wire-up a handler for direct messages
@@ -267,17 +267,17 @@ func (ds *directSender) createMessage(topic string, buff []byte, conn network.Co
 	mes.Seqno = seqno
 	mes.Key = nil
 
-	buff, err := mes.Marshal()
-	if err != nil {
-		return nil, err
-	}
-
-	buff = withSignPrefix(buff)
-
-	mes.Signature, err = ds.signer.Sign(buff)
-	if err != nil {
-		return nil, err
-	}
+	//buff, err := mes.Marshal()
+	//if err != nil {
+	//	return nil, err
+	//}
+	//
+	//buff = withSignPrefix(buff)
+	//
+	//mes.Signature, err = ds.signer.Sign(buff)
+	//if err != nil {
+	//	return nil, err
+	//}
 
 	return &mes, nil
 }
@@ -287,18 +287,20 @@ func (ds *directSender) checkSig(message *pubsubPb.Message) error {
 		return nil // TODO will remove this in the future
 	}
 
-	copyMessage := *message
-	copyMessage.Signature = nil
-	copyMessage.Key = nil
+	//copyMessage := *message
+	//copyMessage.Signature = nil
+	//copyMessage.Key = nil
+	//
+	//buff, err := copyMessage.Marshal()
+	//if err != nil {
+	//	return err
+	//}
+	//
+	//buff = withSignPrefix(buff)
+	//
+	//return ds.signer.Verify(buff, core.PeerID(message.From), message.Signature)
 
-	buff, err := copyMessage.Marshal()
-	if err != nil {
-		return err
-	}
-
-	buff = withSignPrefix(buff)
-
-	return ds.signer.Verify(buff, core.PeerID(message.From), message.Signature)
+	return nil
 }
 
 func withSignPrefix(bytes []byte) []byte {

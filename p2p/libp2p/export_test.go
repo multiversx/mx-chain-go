@@ -96,5 +96,5 @@ func (mh *MutexHolder) Mutexes() storage.Cacher {
 
 // SetSignerInDirectSender sets the signer in the direct sender
 func (netMes *networkMessenger) SetSignerInDirectSender(signer p2p.SignerVerifier) {
-	netMes.ds.(*directSender).signer = signer
+	// netMes.ds.(*directSender).signer = signer
 }
