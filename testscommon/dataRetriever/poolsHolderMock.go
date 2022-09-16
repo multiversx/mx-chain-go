@@ -102,7 +102,7 @@ func NewPoolsHolderMock() *PoolsHolderMock {
 	holder.heartbeats, err = storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 10000, Shards: 1, SizeInBytes: 0})
 	panicIfError("NewPoolsHolderMock", err)
 
-	holder.validatorsInfo, err = shardedData.NewShardedData("validatorsInfoPool", storageUnit.CacheConfig{
+	holder.validatorsInfo, err = shardedData.NewShardedData("validatorsInfoPool", storageunit.CacheConfig{
 		Capacity:    100,
 		SizeInBytes: 100000,
 		Shards:      1,

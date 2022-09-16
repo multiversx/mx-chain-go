@@ -7,20 +7,19 @@ import (
 	"github.com/ElrondNetwork/elrond-go-storage/immunitycache"
 	"github.com/ElrondNetwork/elrond-go-storage/lrucache"
 	"github.com/ElrondNetwork/elrond-go-storage/lrucache/capacity"
-	"github.com/ElrondNetwork/elrond-go-storage/mapTimeCache"
 	"github.com/ElrondNetwork/elrond-go-storage/timecache"
 	"github.com/ElrondNetwork/elrond-go-storage/types"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
+
+// ArgTimeCacher is the argument used to create a new timeCacher instance
+type ArgTimeCacher = timecache.ArgTimeCacher
 
 // TimeCache is an alias for the imported TimeCache structure
 type TimeCache = timecache.TimeCache
 
 // EvictionHandler is an alias to the imported EvictionHandler
 type EvictionHandler = types.EvictionHandler
-
-// ArgMapTimeCacher is an alias for the imported ArgMapTimeCacher
-type ArgMapTimeCacher = mapTimeCache.ArgMapTimeCacher
 
 // ImmunityCache is a cache-like structure
 type ImmunityCache = immunitycache.ImmunityCache
@@ -34,7 +33,6 @@ type TimeCacher interface {
 	Upsert(key string, span time.Duration) error
 	Has(key string) bool
 	Sweep()
-	RegisterEvictionHandler(handler EvictionHandler)
 	IsInterfaceNil() bool
 }
 
@@ -47,8 +45,13 @@ type PeerBlackListCacher interface {
 }
 
 // NewTimeCache returns an instance of a time cache
-func NewTimeCache(defaultSpan time.Duration) *TimeCache {
+func NewTimeCache(defaultSpan time.Duration) *timecache.TimeCache {
 	return timecache.NewTimeCache(defaultSpan)
+}
+
+// NewTimeCacher creates a new timeCacher
+func NewTimeCacher(arg ArgTimeCacher) (storage.Cacher, error) {
+	return timecache.NewTimeCacher(arg)
 }
 
 // NewLRUCache returns an instance of a LRU cache
@@ -71,12 +74,7 @@ func NewLRUCacheWithEviction(size int, onEvicted func(key interface{}, value int
 	return lrucache.NewCacheWithEviction(size, onEvicted)
 }
 
-// NewMapTimeCache creates a new mapTimeCacher
-func NewMapTimeCache(arg ArgMapTimeCacher) (storage.Cacher, error) {
-	return mapTimeCache.NewMapTimeCache(arg)
-}
-
 // NewImmunityCache creates a new cache
-func NewImmunityCache(config CacheConfig) (*ImmunityCache, error) {
+func NewImmunityCache(config CacheConfig) (*immunitycache.ImmunityCache, error) {
 	return immunitycache.NewImmunityCache(config)
 }

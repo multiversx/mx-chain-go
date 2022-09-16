@@ -124,7 +124,7 @@ func CreatePoolsHolder(numShards uint32, selfShard uint32) dataRetriever.PoolsHo
 	heartbeatPool, err := storageunit.NewCache(cacherConfig)
 	panicIfError("CreatePoolsHolder", err)
 
-	validatorsInfo, err := shardedData.NewShardedData("validatorsInfoPool", storageUnit.CacheConfig{
+	validatorsInfo, err := shardedData.NewShardedData("validatorsInfoPool", storageunit.CacheConfig{
 		Capacity:    300,
 		SizeInBytes: 300000,
 		Shards:      1,
@@ -198,7 +198,7 @@ func CreatePoolsHolderWithTxPool(txPool dataRetriever.ShardedDataCacherNotifier)
 	smartContracts, err := storageunit.NewCache(cacherConfig)
 	panicIfError("CreatePoolsHolderWithTxPool", err)
 
-	validatorsInfo, err := shardedData.NewShardedData("validatorsInfoPool", storageUnit.CacheConfig{
+	validatorsInfo, err := shardedData.NewShardedData("validatorsInfoPool", storageunit.CacheConfig{
 		Capacity:    300,
 		SizeInBytes: 300000,
 		Shards:      1,
