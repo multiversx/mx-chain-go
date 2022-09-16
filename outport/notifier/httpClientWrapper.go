@@ -39,7 +39,7 @@ func NewHTTPWrapperClient(args HTTPClientWrapperArgs) (*httpClientWrapper, error
 		return nil, err
 	}
 
-	httpClient := http.DefaultClient
+	httpClient := &http.Client{}
 	httpClient.Timeout = time.Duration(args.RequestTimeoutSec) * time.Second
 
 	return &httpClientWrapper{
