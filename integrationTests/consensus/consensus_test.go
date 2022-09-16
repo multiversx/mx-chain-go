@@ -23,8 +23,10 @@ const (
 	blsConsensusType           = "bls"
 )
 
-var p2pBootstrapDelay = time.Second * 5
-var testPubkeyConverter, _ = pubkeyConverter.NewHexPubkeyConverter(32)
+var (
+	p2pBootstrapDelay      = time.Second * 5
+	testPubkeyConverter, _ = pubkeyConverter.NewHexPubkeyConverter(32)
+)
 
 func encodeAddress(address []byte) string {
 	return hex.EncodeToString(address)

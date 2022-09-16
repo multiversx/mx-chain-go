@@ -11,7 +11,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl"
-	mclsig "github.com/ElrondNetwork/elrond-go-crypto/signing/mcl/singlesig"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/common/enablers"
@@ -325,7 +324,7 @@ func isMessageCorrectLen(heartbeats []data.PubKeyHeartbeat, pk crypto.PublicKey,
 
 func createSenderWithName(messenger p2p.Messenger, topic string, nodeName string, enableEpochsHandler common.EnableEpochsHandler) (*process.Sender, crypto.PublicKey) {
 	suite := mcl.NewSuiteBLS12()
-	signer := &mclsig.BlsSingleSigner{}
+	signer := integrationTests.TestSingleBlsSigner
 	keyGen := signing.NewKeyGenerator(suite)
 	sk, pk := keyGen.GeneratePair()
 	version := "v01"
@@ -353,7 +352,7 @@ func createSenderWithName(messenger p2p.Messenger, topic string, nodeName string
 
 func createMonitor(maxDurationPeerUnresponsive time.Duration, enableEpochsHandler common.EnableEpochsHandler) *process.Monitor {
 	suite := mcl.NewSuiteBLS12()
-	singlesigner := &mclsig.BlsSingleSigner{}
+	singlesigner := integrationTests.TestSingleBlsSigner
 	keyGen := signing.NewKeyGenerator(suite)
 	marshalizer := &marshal.GogoProtoMarshalizer{}
 

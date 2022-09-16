@@ -13,8 +13,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/hashing/blake2b"
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
-	ed25519SingleSig "github.com/ElrondNetwork/elrond-go-crypto/signing/ed25519/singlesig"
-	mclsinglesig "github.com/ElrondNetwork/elrond-go-crypto/signing/mcl/singlesig"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus/round"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -145,9 +143,6 @@ func (tcn *TestConsensusNode) initNode(
 
 	startTime := time.Now().Unix()
 
-	singlesigner := &ed25519SingleSig.Ed25519Signer{}
-	singleBlsSigner := &mclsinglesig.BlsSingleSigner{}
-
 	syncer := ntp.NewSyncTime(ntp.NewNTPGoogleConfig(), nil)
 	syncer.StartSyncingTime()
 
@@ -188,7 +183,7 @@ func (tcn *TestConsensusNode) initNode(
 	testMultiSig := cryptoMocks.NewMultiSigner(uint32(consensusSize))
 
 	peerSigCache, _ := storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 1000})
-	peerSigHandler, _ := peerSignatureHandler.NewPeerSignatureHandler(peerSigCache, singleBlsSigner, keyGen)
+	peerSigHandler, _ := peerSignatureHandler.NewPeerSignatureHandler(peerSigCache, TestSingleBlsSigner, keyGen)
 
 	tcn.initAccountsDB()
 
@@ -214,8 +209,8 @@ func (tcn *TestConsensusNode) initNode(
 	cryptoComponents := GetDefaultCryptoComponents()
 	cryptoComponents.PrivKey = tcn.NodeKeys.Sk
 	cryptoComponents.PubKey = tcn.NodeKeys.Sk.GeneratePublic()
-	cryptoComponents.BlockSig = singleBlsSigner
-	cryptoComponents.TxSig = singlesigner
+	cryptoComponents.BlockSig = TestSingleBlsSigner
+	cryptoComponents.TxSig = TestSingleSigner
 	cryptoComponents.MultiSig = testMultiSig
 	cryptoComponents.BlKeyGen = keyGen
 	cryptoComponents.PeerSignHandler = peerSigHandler
