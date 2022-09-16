@@ -2800,6 +2800,7 @@ func TestScProcessor_CreateCrossShardTransactionsWithAsyncCalls(t *testing.T) {
 
 	lastScTx := scTxs[len(scTxs)-1].(*smartContractResult.SmartContractResult)
 	require.Equal(t, vmData.AsynchronousCallBack, lastScTx.CallType)
+	require.Equal(t, lastScTx.Data, []byte("@"+core.ConvertToEvenHex(int(vmcommon.Ok))))
 
 	tx.Value = big.NewInt(0)
 	scTxs, err = sc.processVMOutput(&vmcommon.VMOutput{GasRemaining: 1000}, txHash, tx, vmData.AsynchronousCall, 10000)
