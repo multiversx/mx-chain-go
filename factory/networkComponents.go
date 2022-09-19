@@ -2,14 +2,13 @@ package factory
 
 import (
 	"context"
-	"encoding/hex"
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/debug/antiflood"
@@ -85,9 +84,6 @@ func NewNetworkComponentsFactory(
 	if check.IfNil(args.Syncer) {
 		return nil, errors.ErrNilSyncTimer
 	}
-	if len(args.P2pKeyPemFileName) == 0 {
-		return nil, errors.ErrNilPath
-	}
 
 	return &networkComponentsFactory{
 		p2pConfig:             args.P2pConfig,
@@ -129,7 +125,7 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 		return nil, err
 	}
 
-	p2pPrivKeyBytes, err := ncf.getP2pSkBytes()
+	p2pPrivKeyBytes, err := common.GetSkBytesFromP2pKey(ncf.p2pKeyPemFileName)
 	if err != nil {
 		return nil, err
 	}
@@ -240,25 +236,6 @@ func (ncf *networkComponentsFactory) createPeerHonestyHandler(
 	}
 
 	return peerHonesty.NewP2pPeerHonesty(ratingConfig.PeerHonesty, pkTimeCache, cache)
-}
-
-func (ncf *networkComponentsFactory) getP2pSkBytes() ([]byte, error) {
-	skIndex := 0
-	encodedSk, _, err := core.LoadSkPkFromPemFile(ncf.p2pKeyPemFileName, skIndex)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return []byte{}, nil
-		}
-
-		return nil, err
-	}
-
-	skBytes, err := hex.DecodeString(string(encodedSk))
-	if err != nil {
-		return nil, fmt.Errorf("%w for encoded secret key", err)
-	}
-
-	return skBytes, nil
 }
 
 // Close closes all underlying components that need closing

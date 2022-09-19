@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/hex"
 	"fmt"
 	"os"
 	"os/signal"
@@ -95,7 +94,7 @@ VERSION:
 	p2pKeyPemFile = cli.StringFlag{
 		Name:  "p2p-key-pem-file",
 		Usage: "The `filepath` for the PEM file which contains the secret keys for the p2p key. If this is not specified a new key will be generated (internally) by default.",
-		Value: "./config/p2pKey.pem",
+		Value: "./a",
 	}
 
 	p2pConfigurationFile = "./config/p2p.toml"
@@ -204,7 +203,8 @@ func startNode(ctx *cli.Context) error {
 		return err
 	}
 
-	p2pKeyBytes, err := getP2pFromFile(ctx)
+	p2pKeyPemFileName := ctx.GlobalString(p2pKeyPemFile.Name)
+	p2pKeyBytes, err := common.GetSkBytesFromP2pKey(p2pKeyPemFileName)
 	if err != nil {
 		return err
 	}
@@ -252,28 +252,6 @@ func loadMainConfig(filepath string) (*config.Config, error) {
 	}
 
 	return cfg, nil
-}
-
-func getP2pFromFile(ctx *cli.Context) ([]byte, error) {
-	p2pKeyPemFileName := ctx.GlobalString(p2pKeyPemFile.Name)
-
-	skIndex := 0
-	encodedSk, _, err := core.LoadSkPkFromPemFile(p2pKeyPemFileName, skIndex)
-	if err != nil {
-		if os.IsNotExist(err) {
-			log.Debug("p2p key pem file does not exist")
-			return []byte{}, nil
-		}
-
-		return nil, err
-	}
-
-	skBytes, err := hex.DecodeString(string(encodedSk))
-	if err != nil {
-		return nil, fmt.Errorf("%w for encoded secret key", err)
-	}
-
-	return skBytes, nil
 }
 
 func createNode(p2pConfig config.P2PConfig, marshalizer marshal.Marshalizer, p2pKeyBytes []byte) (p2p.Messenger, error) {
