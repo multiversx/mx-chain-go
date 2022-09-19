@@ -222,3 +222,6 @@ var ErrNilScheduledProcessor = errors.New("nil scheduled processor")
 
 // ErrInvalidNumSigShares signals that an invalid number of signature shares has been provided
 var ErrInvalidNumSigShares = errors.New("invalid number of sig shares")
+
+// ErrNilSignatureOnP2PMessage signals that a p2p message without signature was received
+var ErrNilSignatureOnP2PMessage = errors.New("nil signature on the p2p message")

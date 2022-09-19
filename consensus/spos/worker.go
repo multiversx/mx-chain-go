@@ -334,6 +334,9 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedP
 	if message.Data() == nil {
 		return ErrNilDataToProcess
 	}
+	if len(message.Signature()) == 0 {
+		return ErrNilSignatureOnP2PMessage
+	}
 
 	topic := GetConsensusTopicID(wrk.shardCoordinator)
 	err := wrk.antifloodHandler.CanProcessMessagesOnTopic(message.Peer(), topic, 1, uint64(len(message.Data())), message.SeqNo())
