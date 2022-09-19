@@ -86,6 +86,7 @@ type scProcessor struct {
 	scrSizeInvariantOnBuiltInResultEnableEpoch  uint32
 	deleteWrongArgAsyncAfterBuiltInEnableEpoch  uint32
 	fixAsyncCallBackArgParserEnableEpoch        uint32
+	fixAsyncCallBackArgsListEnableEpoch         uint32
 	flagStakingV2                               atomic.Flag
 	flagDeploy                                  atomic.Flag
 	flagBuiltin                                 atomic.Flag
@@ -108,6 +109,7 @@ type scProcessor struct {
 	flagSCRSizeInvariantOnBuiltInResult         atomic.Flag
 	flagDeleteWrongArgAsyncAfterBuiltIn         atomic.Flag
 	flagFixAsyncCallBackArgumentsParser         atomic.Flag
+	flagFixAsyncCallBackArgumentsList           atomic.Flag
 
 	badTxForwarder process.IntermediateTransactionHandler
 	scrForwarder   process.IntermediateTransactionHandler
@@ -260,6 +262,7 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 		scrSizeInvariantOnBuiltInResultEnableEpoch:  args.EnableEpochs.SCRSizeInvariantOnBuiltInResultEnableEpoch,
 		deleteWrongArgAsyncAfterBuiltInEnableEpoch:  args.EnableEpochs.ManagedCryptoAPIsEnableEpoch,
 		fixAsyncCallBackArgParserEnableEpoch:        args.EnableEpochs.ESDTMetadataContinuousCleanupEnableEpoch,
+		fixAsyncCallBackArgsListEnableEpoch:         args.EnableEpochs.FixAsyncCallBackArgsListEnableEpoch,
 	}
 
 	var err error
@@ -2353,7 +2356,7 @@ func (sc *scProcessor) useLastTransferAsAsyncCallBackWhenNeeded(
 		return false
 	}
 
-	if sc.flagFixAsyncCallBackArgumentsParser.IsSet() {
+	if sc.flagFixAsyncCallBackArgumentsList.IsSet() {
 		result.Data = append(result.Data, []byte("@"+core.ConvertToEvenHex(int(vmOutput.ReturnCode)))...)
 	}
 
@@ -2952,6 +2955,9 @@ func (sc *scProcessor) EpochConfirmed(epoch uint32, _ uint64) {
 
 	sc.flagFixAsyncCallBackArgumentsParser.SetValue(epoch >= sc.fixAsyncCallBackArgParserEnableEpoch)
 	log.Debug("scProcessor: fix async callback arguments parser", "enabled", sc.flagFixAsyncCallBackArgumentsParser.IsSet())
+
+	sc.flagFixAsyncCallBackArgumentsList.SetValue(epoch >= sc.fixAsyncCallBackArgsListEnableEpoch)
+	log.Debug("scProcessor: fix async callback arguments list", "enabled", sc.flagFixAsyncCallBackArgumentsList.IsSet())
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
