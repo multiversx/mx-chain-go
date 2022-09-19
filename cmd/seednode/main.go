@@ -94,7 +94,7 @@ VERSION:
 	p2pKeyPemFile = cli.StringFlag{
 		Name:  "p2p-key-pem-file",
 		Usage: "The `filepath` for the PEM file which contains the secret keys for the p2p key. If this is not specified a new key will be generated (internally) by default.",
-		Value: "./a",
+		Value: "./config/p2pKey.pem",
 	}
 
 	p2pConfigurationFile = "./config/p2p.toml"
