@@ -3,6 +3,7 @@ package libp2p
 import (
 	"context"
 	"crypto/ecdsa"
+	cryptoRand "crypto/rand"
 	"encoding/hex"
 	"fmt"
 	"sort"
@@ -25,7 +26,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/metrics"
 	metricsFactory "github.com/ElrondNetwork/elrond-go/p2p/libp2p/metrics/factory"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/networksharding/factory"
-	randFactory "github.com/ElrondNetwork/elrond-go/p2p/libp2p/rand/factory"
 	"github.com/ElrondNetwork/elrond-go/p2p/loadBalancer"
 	pubsub "github.com/ElrondNetwork/go-libp2p-pubsub"
 	pubsubPb "github.com/ElrondNetwork/go-libp2p-pubsub/pb"
@@ -131,6 +131,7 @@ type ArgsNetworkMessenger struct {
 	NodeOperationMode     p2p.NodeOperation
 	PeersRatingHandler    p2p.PeersRatingHandler
 	ConnectionWatcherType string
+	P2pPrivKeyBytes       []byte
 }
 
 // NewNetworkMessenger creates a libP2P messenger by opening a port on the current machine
@@ -152,7 +153,7 @@ func newNetworkMessenger(args ArgsNetworkMessenger, messageSigning messageSignin
 		return nil, fmt.Errorf("%w when creating a new network messenger", p2p.ErrNilPeersRatingHandler)
 	}
 
-	p2pPrivKey, err := createP2PPrivKey(args.P2pConfig.Node.Seed)
+	p2pPrivKey, err := createP2PPrivKey(args.P2pPrivKeyBytes)
 	if err != nil {
 		return nil, err
 	}
@@ -258,15 +259,24 @@ func setupExternalP2PLoggers() {
 	}
 }
 
-func createP2PPrivKey(seed string) (*libp2pCrypto.Secp256k1PrivateKey, error) {
-	randReader, err := randFactory.NewRandFactory(seed)
+func createP2PPrivKey(p2pPrivKeyBytes []byte) (*libp2pCrypto.Secp256k1PrivateKey, error) {
+	if len(p2pPrivKeyBytes) == 0 {
+		randReader := cryptoRand.Reader
+		prvKey, _ := ecdsa.GenerateKey(btcec.S256(), randReader)
+
+		return (*libp2pCrypto.Secp256k1PrivateKey)(prvKey), nil
+	}
+
+	prvKey, err := libp2pCrypto.UnmarshalSecp256k1PrivateKey(p2pPrivKeyBytes)
 	if err != nil {
 		return nil, err
 	}
 
-	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), randReader)
+	log.Warn("createP2PPrivKey: using an already existing privary key for p2p signing")
 
-	return (*libp2pCrypto.Secp256k1PrivateKey)(prvKey), nil
+	p2pPrivKey := prvKey.(*libp2pCrypto.Secp256k1PrivateKey)
+
+	return p2pPrivKey, nil
 }
 
 func addComponentsToNode(

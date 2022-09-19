@@ -2,7 +2,9 @@ package factory
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -36,6 +38,7 @@ type NetworkComponentsFactoryArgs struct {
 	BootstrapWaitTime     time.Duration
 	NodeOperationMode     p2p.NodeOperation
 	ConnectionWatcherType string
+	P2pKeyPemFileName     string
 }
 
 type networkComponentsFactory struct {
@@ -50,6 +53,7 @@ type networkComponentsFactory struct {
 	bootstrapWaitTime     time.Duration
 	nodeOperationMode     p2p.NodeOperation
 	connectionWatcherType string
+	p2pKeyPemFileName     string
 }
 
 // networkComponents struct holds the network components
@@ -81,6 +85,9 @@ func NewNetworkComponentsFactory(
 	if check.IfNil(args.Syncer) {
 		return nil, errors.ErrNilSyncTimer
 	}
+	if len(args.P2pKeyPemFileName) == 0 {
+		return nil, errors.ErrNilPath
+	}
 
 	return &networkComponentsFactory{
 		p2pConfig:             args.P2pConfig,
@@ -94,6 +101,7 @@ func NewNetworkComponentsFactory(
 		preferredPeersSlices:  args.PreferredPeersSlices,
 		nodeOperationMode:     args.NodeOperationMode,
 		connectionWatcherType: args.ConnectionWatcherType,
+		p2pKeyPemFileName:     args.P2pKeyPemFileName,
 	}, nil
 }
 
@@ -121,6 +129,11 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 		return nil, err
 	}
 
+	p2pPrivKeyBytes, err := ncf.getP2pSkBytes()
+	if err != nil {
+		return nil, err
+	}
+
 	arg := libp2p.ArgsNetworkMessenger{
 		Marshalizer:           ncf.marshalizer,
 		ListenAddress:         ncf.listenAddress,
@@ -130,6 +143,7 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 		NodeOperationMode:     ncf.nodeOperationMode,
 		PeersRatingHandler:    peersRatingHandler,
 		ConnectionWatcherType: ncf.connectionWatcherType,
+		P2pPrivKeyBytes:       p2pPrivKeyBytes,
 	}
 	netMessenger, err := libp2p.NewNetworkMessenger(arg)
 	if err != nil {
@@ -226,6 +240,27 @@ func (ncf *networkComponentsFactory) createPeerHonestyHandler(
 	}
 
 	return peerHonesty.NewP2pPeerHonesty(ratingConfig.PeerHonesty, pkTimeCache, cache)
+}
+
+func (ncf *networkComponentsFactory) getP2pSkBytes() ([]byte, error) {
+	keyLoader := &core.KeyLoader{}
+
+	skIndex := 0
+	encodedSk, _, err := keyLoader.LoadKey(ncf.p2pKeyPemFileName, skIndex)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return []byte{}, nil
+		}
+
+		return nil, err
+	}
+
+	skBytes, err := hex.DecodeString(string(encodedSk))
+	if err != nil {
+		return nil, fmt.Errorf("%w for encoded secret key", err)
+	}
+
+	return skBytes, nil
 }
 
 // Close closes all underlying components that need closing

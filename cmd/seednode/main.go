@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/hex"
 	"fmt"
 	"os"
 	"os/signal"
@@ -90,6 +91,13 @@ VERSION:
 			"configurations such as the marshalizer type",
 		Value: "./config/config.toml",
 	}
+	// p2pKeyPemFile defines the flag for the path to the key pem file used for p2p signing
+	p2pKeyPemFile = cli.StringFlag{
+		Name:  "p2p-key-pem-file",
+		Usage: "The `filepath` for the PEM file which contains the secret keys for the p2p key. If this is not specified a new key will be generated (internally) by default.",
+		Value: "./config/p2pKey.pem",
+	}
+
 	p2pConfigurationFile = "./config/p2p.toml"
 )
 
@@ -107,6 +115,7 @@ func main() {
 		logLevel,
 		logSaveFile,
 		configurationFile,
+		p2pKeyPemFile,
 	}
 	app.Version = "v0.0.1"
 	app.Authors = []cli.Author{
@@ -195,7 +204,12 @@ func startNode(ctx *cli.Context) error {
 		return err
 	}
 
-	messenger, err := createNode(*p2pConfig, internalMarshalizer)
+	p2pKeyBytes, err := getP2pFromFile(ctx)
+	if err != nil {
+		return err
+	}
+
+	messenger, err := createNode(*p2pConfig, internalMarshalizer, p2pKeyBytes)
 	if err != nil {
 		return err
 	}
@@ -240,7 +254,31 @@ func loadMainConfig(filepath string) (*config.Config, error) {
 	return cfg, nil
 }
 
-func createNode(p2pConfig config.P2PConfig, marshalizer marshal.Marshalizer) (p2p.Messenger, error) {
+func getP2pFromFile(ctx *cli.Context) ([]byte, error) {
+	p2pKeyPemFileName := ctx.GlobalString(p2pKeyPemFile.Name)
+
+	keyLoader := &core.KeyLoader{}
+
+	skIndex := 0
+	encodedSk, _, err := keyLoader.LoadKey(p2pKeyPemFileName, skIndex)
+	if err != nil {
+		if os.IsNotExist(err) {
+			log.Info("p2p key pem file does not exist")
+			return []byte{}, nil
+		}
+
+		return nil, err
+	}
+
+	skBytes, err := hex.DecodeString(string(encodedSk))
+	if err != nil {
+		return nil, fmt.Errorf("%w for encoded secret key", err)
+	}
+
+	return skBytes, nil
+}
+
+func createNode(p2pConfig config.P2PConfig, marshalizer marshal.Marshalizer, p2pKeyBytes []byte) (p2p.Messenger, error) {
 	arg := libp2p.ArgsNetworkMessenger{
 		Marshalizer:           marshalizer,
 		ListenAddress:         libp2p.ListenAddrWithIp4AndTcp,
@@ -250,6 +288,7 @@ func createNode(p2pConfig config.P2PConfig, marshalizer marshal.Marshalizer) (p2
 		NodeOperationMode:     p2p.NormalOperation,
 		PeersRatingHandler:    disabled.NewDisabledPeersRatingHandler(),
 		ConnectionWatcherType: "disabled",
+		P2pPrivKeyBytes:       p2pKeyBytes,
 	}
 
 	return libp2p.NewNetworkMessenger(arg)

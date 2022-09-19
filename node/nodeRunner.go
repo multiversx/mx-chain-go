@@ -267,7 +267,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	}
 
 	log.Debug("creating network components")
-	managedNetworkComponents, err := nr.CreateManagedNetworkComponents(managedCoreComponents)
+	managedNetworkComponents, err := nr.CreateManagedNetworkComponents(managedCoreComponents, managedCryptoComponents)
 	if err != nil {
 		return true, err
 	}
@@ -1215,6 +1215,7 @@ func (nr *nodeRunner) CreateManagedBootstrapComponents(
 // CreateManagedNetworkComponents is the managed network components factory
 func (nr *nodeRunner) CreateManagedNetworkComponents(
 	coreComponents mainFactory.CoreComponentsHolder,
+	cryptoComponents mainFactory.CryptoComponentsHandler,
 ) (mainFactory.NetworkComponentsHandler, error) {
 	decodedPreferredPeers, err := decodePreferredPeers(*nr.configs.PreferencesConfig, coreComponents.ValidatorPubKeyConverter())
 	if err != nil {
@@ -1232,6 +1233,7 @@ func (nr *nodeRunner) CreateManagedNetworkComponents(
 		BootstrapWaitTime:     common.TimeToWaitForP2PBootstrap,
 		NodeOperationMode:     p2p.NormalOperation,
 		ConnectionWatcherType: nr.configs.PreferencesConfig.Preferences.ConnectionWatcherType,
+		P2pKeyPemFileName:     nr.configs.ConfigurationPathsHolder.P2pKey,
 	}
 	if nr.configs.ImportDbConfig.IsImportDBMode {
 		networkComponentsFactoryArgs.BootstrapWaitTime = 0
