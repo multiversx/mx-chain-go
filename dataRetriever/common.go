@@ -36,3 +36,12 @@ func GetHdrNonceHashDataUnit(shard uint32) UnitType {
 
 	return ShardHdrNonceHashDataUnit + UnitType(shard)
 }
+
+// GetHeadersDataUnit gets the unit for block headers, by shard
+func GetHeadersDataUnit(shard uint32) UnitType {
+	if shard == core.MetachainShardId {
+		return MetaBlockUnit
+	}
+
+	return BlockHeaderUnit
+}

@@ -2,7 +2,9 @@ package mock
 
 // EnableEpochsHandlerMock -
 type EnableEpochsHandlerMock struct {
-	WaitingListFixEnableEpochField uint32
+	WaitingListFixEnableEpochField            uint32
+	RefactorPeersMiniBlocksEnableEpochField   uint32
+	IsRefactorPeersMiniBlocksFlagEnabledField bool
 }
 
 // BlockGasAndFeesReCheckEnableEpoch returns 0
@@ -88,6 +90,11 @@ func (mock *EnableEpochsHandlerMock) StorageAPICostOptimizationEnableEpoch() uin
 // MiniBlockPartialExecutionEnableEpoch returns 0
 func (mock *EnableEpochsHandlerMock) MiniBlockPartialExecutionEnableEpoch() uint32 {
 	return 0
+}
+
+// RefactorPeersMiniBlocksEnableEpoch returns 0
+func (mock *EnableEpochsHandlerMock) RefactorPeersMiniBlocksEnableEpoch() uint32 {
+	return mock.RefactorPeersMiniBlocksEnableEpochField
 }
 
 // IsSCDeployFlagEnabled returns false
@@ -517,6 +524,16 @@ func (mock *EnableEpochsHandlerMock) IsESDTNFTImprovementV1FlagEnabled() bool {
 // IsSetSenderInEeiOutputTransferFlagEnabled -
 func (mock *EnableEpochsHandlerMock) IsSetSenderInEeiOutputTransferFlagEnabled() bool {
 	return false
+}
+
+// IsChangeDelegationOwnerFlagEnabled -
+func (mock *EnableEpochsHandlerMock) IsChangeDelegationOwnerFlagEnabled() bool {
+	return false
+}
+
+// IsRefactorPeersMiniBlocksFlagEnabled returns false
+func (mock *EnableEpochsHandlerMock) IsRefactorPeersMiniBlocksFlagEnabled() bool {
+	return mock.IsRefactorPeersMiniBlocksFlagEnabledField
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

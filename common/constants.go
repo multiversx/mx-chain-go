@@ -72,6 +72,9 @@ const PeerAuthenticationTopic = "peerAuthentication"
 // ConnectionTopic represents the topic used when sending the new connection message data
 const ConnectionTopic = "connection"
 
+// ValidatorInfoTopic is the topic used for validatorInfo signaling
+const ValidatorInfoTopic = "validatorInfo"
+
 // MetricCurrentRound is the metric for monitoring the current round of a node
 const MetricCurrentRound = "erd_current_round"
 
@@ -117,11 +120,14 @@ const MetricCountAcceptedBlocks = "erd_count_accepted_blocks"
 // MetricNodeType is the metric for monitoring the type of the node
 const MetricNodeType = "erd_node_type"
 
-// MetricLiveValidatorNodes is the metric for monitoring live validators on the network
+// MetricLiveValidatorNodes is the metric for the number of live validators on the network
 const MetricLiveValidatorNodes = "erd_live_validator_nodes"
 
 // MetricConnectedNodes is the metric for monitoring total connected nodes on the network
 const MetricConnectedNodes = "erd_connected_nodes"
+
+// MetricNumIntraShardValidatorNodes is the metric for the number of intra-shard validators
+const MetricNumIntraShardValidatorNodes = "erd_intra_shard_validator_nodes"
 
 // MetricCpuLoadPercent is the metric for monitoring CPU load [%]
 const MetricCpuLoadPercent = "erd_cpu_load_percent"
@@ -213,7 +219,7 @@ const MetricNumShardHeadersFromPool = "erd_num_shard_headers_from_pool"
 // MetricNumShardHeadersProcessed is the metric that stores number of shard header processed
 const MetricNumShardHeadersProcessed = "erd_num_shard_headers_processed"
 
-// MetricNumTimesInForkChoice is the metric that counts how many time a node was in fork choice
+// MetricNumTimesInForkChoice is the metric that counts how many times a node was in fork choice
 const MetricNumTimesInForkChoice = "erd_fork_choice_count"
 
 // MetricHighestFinalBlock is the metric for the nonce of the highest final block

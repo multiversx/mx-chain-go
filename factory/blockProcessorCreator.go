@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	debugFactory "github.com/ElrondNetwork/elrond-go/debug/factory"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
 	metachainEpochStart "github.com/ElrondNetwork/elrond-go/epochStart/metachain"
@@ -412,6 +413,11 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		return nil, errors.New("could not create block statisticsProcessor: " + err.Error())
 	}
 
+	err = pcf.attachProcessDebugger(blockProcessor, pcf.config.Debug.Process)
+	if err != nil {
+		return nil, err
+	}
+
 	blockProcessorComponents := &blockProcessorAndVmFactories{
 		blockProcessor:         blockProcessor,
 		vmFactoryForTxSimulate: vmFactoryTxSimulator,
@@ -756,12 +762,18 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		return nil, err
 	}
 
+	validatorInfoStorage, err := pcf.data.StorageService().GetStorer(dataRetriever.UnsignedTransactionUnit)
+	if err != nil {
+		return nil, err
+	}
 	argsEpochValidatorInfo := metachainEpochStart.ArgsNewValidatorInfoCreator{
-		ShardCoordinator: pcf.bootstrapComponents.ShardCoordinator(),
-		MiniBlockStorage: miniBlockStorage,
-		Hasher:           pcf.coreData.Hasher(),
-		Marshalizer:      pcf.coreData.InternalMarshalizer(),
-		DataPool:         pcf.data.Datapool(),
+		ShardCoordinator:     pcf.bootstrapComponents.ShardCoordinator(),
+		ValidatorInfoStorage: validatorInfoStorage,
+		MiniBlockStorage:     miniBlockStorage,
+		Hasher:               pcf.coreData.Hasher(),
+		Marshalizer:          pcf.coreData.InternalMarshalizer(),
+		DataPool:             pcf.data.Datapool(),
+		EnableEpochsHandler:  pcf.coreData.EnableEpochsHandler(),
 	}
 	validatorInfoCreator, err := metachainEpochStart.NewValidatorInfoCreator(argsEpochValidatorInfo)
 	if err != nil {
@@ -848,6 +860,11 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		return nil, errors.New("could not create block processor: " + err.Error())
 	}
 
+	err = pcf.attachProcessDebugger(metaProcessor, pcf.config.Debug.Process)
+	if err != nil {
+		return nil, err
+	}
+
 	blockProcessorComponents := &blockProcessorAndVmFactories{
 		blockProcessor:         metaProcessor,
 		vmFactoryForTxSimulate: vmFactoryTxSimulator,
@@ -855,6 +872,18 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	}
 
 	return blockProcessorComponents, nil
+}
+
+func (pcf *processComponentsFactory) attachProcessDebugger(
+	processor processDebuggerSetter,
+	configs config.ProcessDebugConfig,
+) error {
+	processDebugger, err := debugFactory.CreateProcessDebugger(configs)
+	if err != nil {
+		return err
+	}
+
+	return processor.SetProcessDebugger(processDebugger)
 }
 
 func (pcf *processComponentsFactory) createShardTxSimulatorProcessor(
@@ -1156,8 +1185,10 @@ func (pcf *processComponentsFactory) createBuiltInFunctionContainer(
 	accounts state.AccountsAdapter,
 	mapDNSAddresses map[string]struct{},
 ) (vmcommon.BuiltInFunctionFactory, error) {
-	pubKeyConverter := pcf.coreData.AddressPubKeyConverter()
-	convertedAddress, err := pubKeyConverter.Decode(pcf.config.BuiltInFunctions.AutomaticCrawlerAddress)
+	convertedAddresses, err := decodeAddresses(
+		pcf.coreData.AddressPubKeyConverter(),
+		pcf.config.BuiltInFunctions.AutomaticCrawlerAddresses,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -1170,7 +1201,7 @@ func (pcf *processComponentsFactory) createBuiltInFunctionContainer(
 		ShardCoordinator:          pcf.bootstrapComponents.ShardCoordinator(),
 		EpochNotifier:             pcf.coreData.EpochNotifier(),
 		EnableEpochsHandler:       pcf.coreData.EnableEpochsHandler(),
-		AutomaticCrawlerAddress:   convertedAddress,
+		AutomaticCrawlerAddresses:                convertedAddresses,
 		MaxNumNodesInTransferRole: pcf.config.BuiltInFunctions.MaxNumAddressesInTransferRole,
 	}
 

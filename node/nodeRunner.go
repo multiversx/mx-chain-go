@@ -183,6 +183,7 @@ func printEnableEpochs(configs *config.Configs) {
 	log.Debug(readEpochFor("disable heartbeat v1"), "epoch", enableEpochs.HeartbeatDisableEpoch)
 	log.Debug(readEpochFor("mini block partial execution"), "epoch", enableEpochs.MiniBlockPartialExecutionEnableEpoch)
 	log.Debug(readEpochFor("set sender in eei output transfer"), "epoch", enableEpochs.SetSenderInEeiOutputTransferEnableEpoch)
+	log.Debug(readEpochFor("refactor peers mini blocks"), "epoch", enableEpochs.RefactorPeersMiniBlocksEnableEpoch)
 	gasSchedule := configs.EpochConfig.GasSchedule
 
 	log.Debug(readEpochFor("gas schedule directories paths"), "epoch", gasSchedule.GasScheduleByEpochs)
@@ -343,6 +344,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		managedCoreComponents.ChanStopNodeProcess(),
 		managedCoreComponents.NodeTypeProvider(),
 		managedCoreComponents.EnableEpochsHandler(),
+		managedDataComponents.Datapool().CurrentEpochValidatorInfo(),
 	)
 	if err != nil {
 		return true, err
@@ -668,17 +670,18 @@ func (nr *nodeRunner) CreateManagedConsensusComponents(
 	}
 
 	consensusArgs := mainFactory.ConsensusComponentsFactoryArgs{
-		Config:              *nr.configs.GeneralConfig,
-		BootstrapRoundIndex: nr.configs.FlagsConfig.BootstrapRoundIndex,
-		CoreComponents:      coreComponents,
-		NetworkComponents:   networkComponents,
-		CryptoComponents:    cryptoComponents,
-		DataComponents:      dataComponents,
-		ProcessComponents:   processComponents,
-		StateComponents:     stateComponents,
-		StatusComponents:    statusComponents,
-		ScheduledProcessor:  scheduledProcessor,
-		IsInImportMode:      nr.configs.ImportDbConfig.IsImportDBMode,
+		Config:                *nr.configs.GeneralConfig,
+		BootstrapRoundIndex:   nr.configs.FlagsConfig.BootstrapRoundIndex,
+		CoreComponents:        coreComponents,
+		NetworkComponents:     networkComponents,
+		CryptoComponents:      cryptoComponents,
+		DataComponents:        dataComponents,
+		ProcessComponents:     processComponents,
+		StateComponents:       stateComponents,
+		StatusComponents:      statusComponents,
+		ScheduledProcessor:    scheduledProcessor,
+		IsInImportMode:        nr.configs.ImportDbConfig.IsImportDBMode,
+		ShouldDisableWatchdog: nr.configs.FlagsConfig.DisableConsensusWatchdog,
 	}
 
 	consensusFactory, err := mainFactory.NewConsensusComponentsFactory(consensusArgs)
@@ -1147,12 +1150,13 @@ func (nr *nodeRunner) CreateManagedStateComponents(
 		processingMode = common.ImportDb
 	}
 	stateArgs := mainFactory.StateComponentsFactoryArgs{
-		Config:           *nr.configs.GeneralConfig,
-		ShardCoordinator: bootstrapComponents.ShardCoordinator(),
-		Core:             coreComponents,
-		StorageService:   dataComponents.StorageService(),
-		ProcessingMode:   processingMode,
-		ChainHandler:     dataComponents.Blockchain(),
+		Config:                   *nr.configs.GeneralConfig,
+		ShardCoordinator:         bootstrapComponents.ShardCoordinator(),
+		Core:                     coreComponents,
+		StorageService:           dataComponents.StorageService(),
+		ProcessingMode:           processingMode,
+		ShouldSerializeSnapshots: nr.configs.FlagsConfig.SerializeSnapshots,
+		ChainHandler:             dataComponents.Blockchain(),
 	}
 
 	stateComponentsFactory, err := mainFactory.NewStateComponentsFactory(stateArgs)

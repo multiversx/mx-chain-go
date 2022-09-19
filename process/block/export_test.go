@@ -537,3 +537,7 @@ func (sp *shardProcessor) RollBackProcessedMiniBlocksInfo(headerHandler data.Hea
 func (bp *baseProcessor) CheckConstructionStateAndIndexesCorrectness(mbh data.MiniBlockHeaderHandler) error {
 	return checkConstructionStateAndIndexesCorrectness(mbh)
 }
+
+func (mp *metaProcessor) GetAllMarshalledTxs(body *block.Body) map[string][][]byte {
+	return mp.getAllMarshalledTxs(body)
+}

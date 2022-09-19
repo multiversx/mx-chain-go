@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
@@ -144,16 +145,32 @@ func (boot *ShardBootstrap) StartSyncingBlocks() {
 // in the blockchain, and all this mechanism will be reiterated for the next block.
 func (boot *ShardBootstrap) SyncBlock(ctx context.Context) error {
 	err := boot.syncBlock()
-	isErrGetNodeFromDB := err != nil && strings.Contains(err.Error(), common.GetNodeFromDBErrorString)
-	if isErrGetNodeFromDB {
+	if isErrGetNodeFromDB(err) {
 		errSync := boot.syncUserAccountsState()
-		shouldOutputLog := errSync != nil && !common.IsContextDone(ctx)
-		if shouldOutputLog {
-			log.Debug("SyncBlock syncTrie", "error", errSync)
-		}
+		boot.handleTrieSyncError(errSync, ctx)
 	}
 
 	return err
+}
+
+func isErrGetNodeFromDB(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	if strings.Contains(err.Error(), storage.ErrDBIsClosed.Error()) {
+		return false
+	}
+
+	if strings.Contains(err.Error(), errors.ErrContextClosing.Error()) {
+		return false
+	}
+
+	if strings.Contains(err.Error(), common.GetNodeFromDBErrorString) {
+		return true
+	}
+
+	return false
 }
 
 // Close closes the synchronization loop
@@ -244,7 +261,7 @@ func (boot *ShardBootstrap) getPrevHeader(
 		return nil, err
 	}
 
-	prevHeader, err := process.CreateShardHeader(boot.marshalizer, buffHeader)
+	prevHeader, err := process.UnmarshalShardHeader(boot.marshalizer, buffHeader)
 	if err != nil {
 		return nil, err
 	}

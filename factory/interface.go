@@ -505,3 +505,7 @@ type ReceiptsRepository interface {
 	LoadReceipts(header data.HeaderHandler, headerHash []byte) (common.ReceiptsHolder, error)
 	IsInterfaceNil() bool
 }
+
+type processDebuggerSetter interface {
+	SetProcessDebugger(debugger process.Debugger) error
+}

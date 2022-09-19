@@ -3,6 +3,8 @@ package trie_test
 import (
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/stretchr/testify/assert"
 )
@@ -35,7 +37,19 @@ func TestTrieStorageManagerWithoutPruning_IsPruningEnabled(t *testing.T) {
 func TestTrieStorageManagerWithoutPruning_Remove(t *testing.T) {
 	t.Parallel()
 
-	tsm, _ := trie.NewTrieStorageManager(getNewTrieStorageManagerArgs())
+	removeFromCheckpointHashesHolderCalled := false
+	tsm := &trie.StorageManagerExtensionStub{
+		StorageManagerStub: &testscommon.StorageManagerStub{
+			RemoveFromCheckpointHashesHolderCalled: func(hash []byte) {
+				removeFromCheckpointHashesHolderCalled = true
+			},
+		},
+	}
+	tsm.GetBaseTrieStorageManagerCalled = func() common.StorageManager {
+		return tsm
+	}
+
 	ts, _ := trie.NewTrieStorageManagerWithoutPruning(tsm)
 	assert.Nil(t, ts.Remove([]byte("key")))
+	assert.True(t, removeFromCheckpointHashesHolderCalled)
 }
