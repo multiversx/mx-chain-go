@@ -16,10 +16,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/directoryhandler"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
-	"github.com/ElrondNetwork/elrond-go/storage/factory/directoryhandler"
 	"github.com/ElrondNetwork/elrond-go/storage/latestData"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 )
 
 // BootstrapComponentsFactoryArgs holds the arguments needed to create a botstrap components factory
@@ -90,7 +90,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		return nil, err
 	}
 
-	versionsCache, err := storageUnit.NewCache(storageFactory.GetCacherFromConfig(bcf.config.Versions.Cache))
+	versionsCache, err := storageunit.NewCache(storageFactory.GetCacherFromConfig(bcf.config.Versions.Cache))
 	if err != nil {
 		return nil, err
 	}
@@ -136,8 +136,8 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		bootstrapDataProvider,
 		bcf.config,
 		parentDir,
-		common.DefaultEpochString,
-		common.DefaultShardString,
+		storage.DefaultEpochString,
+		storage.DefaultShardString,
 	)
 	if err != nil {
 		return nil, err
@@ -146,8 +146,8 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 	unitOpener, err := createUnitOpener(
 		bootstrapDataProvider,
 		latestStorageDataProvider,
-		common.DefaultEpochString,
-		common.DefaultShardString,
+		storage.DefaultEpochString,
+		storage.DefaultShardString,
 	)
 	if err != nil {
 		return nil, err

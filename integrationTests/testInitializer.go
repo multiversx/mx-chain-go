@@ -27,7 +27,6 @@ import (
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/ed25519"
-	ed25519SingleSig "github.com/ElrondNetwork/elrond-go-crypto/signing/ed25519/singlesig"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
@@ -52,9 +51,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager"
 	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager/evictionWaitingList"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
+	"github.com/ElrondNetwork/elrond-go/storage/database"
 	"github.com/ElrondNetwork/elrond-go/storage/pruning"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
@@ -376,9 +375,9 @@ func CreateMemUnit() storage.Storer {
 	capacity := uint32(10)
 	shards := uint32(1)
 	sizeInBytes := uint64(0)
-	cache, _ := storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: capacity, Shards: shards, SizeInBytes: sizeInBytes})
-	persist, _ := memorydb.NewlruDB(10000000)
-	unit, _ := storageUnit.NewStorageUnit(cache, persist)
+	cache, _ := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: capacity, Shards: shards, SizeInBytes: sizeInBytes})
+	persist, _ := database.NewlruDB(10000000)
+	unit, _ := storageunit.NewStorageUnit(cache, persist)
 
 	return unit
 }
@@ -466,7 +465,7 @@ func CreateAccountsDB(
 ) (*state.AccountsDB, common.Trie) {
 	tr, _ := trie.NewTrie(trieStorageManager, TestMarshalizer, TestHasher, maxTrieLevelInMemory)
 
-	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, memorydb.New(), TestMarshalizer)
+	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, database.NewMemDB(), TestMarshalizer)
 	accountFactory := getAccountFactory(accountType)
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
 	args := state.ArgsAccountsDB{
@@ -1746,7 +1745,7 @@ func GenerateTransferTx(
 		Version:  version,
 	}
 	txBuff, _ := tx.GetDataForSigning(TestAddressPubkeyConverter, TestTxSignMarshalizer)
-	signer := &ed25519SingleSig.Ed25519Signer{}
+	signer := TestSingleSigner
 	tx.Signature, _ = signer.Sign(senderPrivateKey, txBuff)
 
 	return &tx
@@ -2114,7 +2113,7 @@ func generateValidTx(
 	coreComponents.ValidatorPubKeyConverterField = TestValidatorPubkeyConverter
 
 	cryptoComponents := GetDefaultCryptoComponents()
-	cryptoComponents.TxSig = &ed25519SingleSig.Ed25519Signer{}
+	cryptoComponents.TxSig = TestSingleSigner
 	cryptoComponents.TxKeyGen = signing.NewKeyGenerator(ed25519.NewEd25519())
 	cryptoComponents.BlKeyGen = signing.NewKeyGenerator(ed25519.NewEd25519())
 
@@ -2235,7 +2234,7 @@ func CreateCryptoParams(nodesPerShard int, nbMetaNodes int, nbShards uint32) *Cr
 	txSuite := ed25519.NewEd25519()
 	txKeyGen := signing.NewKeyGenerator(txSuite)
 	suite := mcl.NewSuiteBLS12()
-	singleSigner := &ed25519SingleSig.Ed25519Signer{}
+	singleSigner := TestSingleSigner
 	keyGen := signing.NewKeyGenerator(suite)
 
 	txKeysMap := make(map[uint32][]*TestKeyPair)
