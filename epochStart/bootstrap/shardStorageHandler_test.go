@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"sort"
+	"strings"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -16,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
@@ -26,6 +28,7 @@ import (
 	epochStartMocks "github.com/ElrondNetwork/elrond-go/testscommon/bootstrapMocks/epochStart"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
+	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -83,6 +86,63 @@ func TestShardStorageHandler_SaveDataToStorageMissingHeader(t *testing.T) {
 
 	err := shardStorage.SaveDataToStorage(components, components.ShardHeader, false)
 	assert.True(t, errors.Is(err, epochStart.ErrMissingHeader))
+}
+
+func TestShardStorageHandler_SaveDataToStorageMissingStorer(t *testing.T) {
+	t.Parallel()
+
+	t.Run("missing BootstrapUnit", testShardWithMissingStorer(dataRetriever.BootstrapUnit, 1))
+	t.Run("missing BlockHeaderUnit", testShardWithMissingStorer(dataRetriever.BlockHeaderUnit, 1))
+	t.Run("missing ShardHdrNonceHashDataUnit", testShardWithMissingStorer(dataRetriever.ShardHdrNonceHashDataUnit, 1))
+	t.Run("missing MetaBlockUnit", testShardWithMissingStorer(dataRetriever.MetaBlockUnit, 1)) // saveMetaHdrForEpochTrigger(components.EpochStartMetaBlock)
+	t.Run("missing BootstrapUnit", testShardWithMissingStorer(dataRetriever.BootstrapUnit, 2)) // saveMetaHdrForEpochTrigger(components.EpochStartMetaBlock)
+	t.Run("missing MetaBlockUnit", testShardWithMissingStorer(dataRetriever.MetaBlockUnit, 2)) // saveMetaHdrForEpochTrigger(components.PreviousEpochStart)
+	t.Run("missing BootstrapUnit", testShardWithMissingStorer(dataRetriever.BootstrapUnit, 3)) // saveMetaHdrForEpochTrigger(components.PreviousEpochStart)
+}
+
+func testShardWithMissingStorer(missingUnit dataRetriever.UnitType, atCallNumber int) func(t *testing.T) {
+	return func(t *testing.T) {
+		t.Parallel()
+
+		defer func() {
+			_ = os.RemoveAll("./Epoch_0")
+		}()
+
+		counter := 0
+		args := createDefaultShardStorageArgs()
+		shardStorage, _ := NewShardStorageHandler(args.generalConfig, args.prefsConfig, args.shardCoordinator, args.pathManagerHandler, args.marshalizer, args.hasher, 1, args.uint64Converter, args.nodeTypeProvider)
+		shardStorage.storageService = &storageStubs.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+				counter++
+				if counter < atCallNumber {
+					return &storageStubs.StorerStub{}, nil
+				}
+
+				if unitType == missingUnit ||
+					strings.Contains(unitType.String(), missingUnit.String()) {
+					return nil, fmt.Errorf("%w for %s", storage.ErrKeyNotFound, missingUnit.String())
+				}
+
+				return &storageStubs.StorerStub{}, nil
+			},
+		}
+		components := &ComponentsNeededForBootstrap{
+			EpochStartMetaBlock: &block.MetaBlock{
+				Epoch: 1,
+				EpochStart: block.EpochStart{
+					LastFinalizedHeaders: []block.EpochStartShardData{
+						{ShardID: 0, Nonce: 1},
+					},
+				},
+			},
+			PreviousEpochStart: &block.MetaBlock{Epoch: 1},
+			ShardHeader:        &block.Header{Nonce: 1},
+		}
+
+		err := shardStorage.SaveDataToStorage(components, components.ShardHeader, false)
+		require.True(t, strings.Contains(err.Error(), storage.ErrKeyNotFound.Error()))
+		require.True(t, strings.Contains(err.Error(), missingUnit.String()))
+	}
 }
 
 func TestShardStorageHandler_SaveDataToStorage(t *testing.T) {
@@ -1471,4 +1531,215 @@ func Test_getProcessedMiniBlocks(t *testing.T) {
 	assert.True(t, processedMiniBlocks[0].FullyProcessed[idxOfMiniBlock1])
 	assert.Equal(t, mbHash1, processedMiniBlocks[0].MiniBlocksHashes[idxOfMiniBlock0])
 	assert.Equal(t, mbHash2, processedMiniBlocks[0].MiniBlocksHashes[idxOfMiniBlock1])
+}
+
+func Test_setMiniBlocksInfoWithPendingMiniBlocks(t *testing.T) {
+	t.Parallel()
+
+	t.Run("set mini blocks info with pending mini blocks, having reserved field nil", func(t *testing.T) {
+		t.Parallel()
+
+		mbsInfo := &miniBlocksInfo{
+			miniBlockHashes:              make([][]byte, 0),
+			fullyProcessed:               make([]bool, 0),
+			indexOfLastTxProcessed:       make([]int32, 0),
+			pendingMiniBlocksMap:         make(map[string]struct{}),
+			pendingMiniBlocksPerShardMap: make(map[uint32][][]byte),
+		}
+
+		mbHash := []byte("x")
+		txCount := uint32(100)
+
+		mbh1 := block.MiniBlockHeader{
+			Hash:    mbHash,
+			TxCount: txCount,
+		}
+
+		epochStartShardData := &block.EpochStartShardData{
+			PendingMiniBlockHeaders: []block.MiniBlockHeader{
+				mbh1,
+			},
+		}
+		setMiniBlocksInfoWithPendingMiniBlocks(epochStartShardData, mbsInfo)
+		assert.Equal(t, 0, len(mbsInfo.miniBlockHashes))
+		assert.Equal(t, 0, len(mbsInfo.fullyProcessed))
+		assert.Equal(t, 0, len(mbsInfo.indexOfLastTxProcessed))
+	})
+
+	t.Run("set mini blocks info with pending mini blocks, having index of last tx processed set before first tx", func(t *testing.T) {
+		t.Parallel()
+
+		mbsInfo := &miniBlocksInfo{
+			miniBlockHashes:              make([][]byte, 0),
+			fullyProcessed:               make([]bool, 0),
+			indexOfLastTxProcessed:       make([]int32, 0),
+			pendingMiniBlocksMap:         make(map[string]struct{}),
+			pendingMiniBlocksPerShardMap: make(map[uint32][][]byte),
+		}
+
+		mbHash := []byte("x")
+		txCount := uint32(100)
+
+		mbh1 := block.MiniBlockHeader{
+			Hash:    mbHash,
+			TxCount: txCount,
+		}
+
+		indexOfLastTxProcessed := int32(-1)
+		_ = mbh1.SetIndexOfLastTxProcessed(indexOfLastTxProcessed)
+
+		epochStartShardData := &block.EpochStartShardData{
+			PendingMiniBlockHeaders: []block.MiniBlockHeader{
+				mbh1,
+			},
+		}
+		setMiniBlocksInfoWithPendingMiniBlocks(epochStartShardData, mbsInfo)
+		assert.Equal(t, 0, len(mbsInfo.miniBlockHashes))
+		assert.Equal(t, 0, len(mbsInfo.fullyProcessed))
+		assert.Equal(t, 0, len(mbsInfo.indexOfLastTxProcessed))
+	})
+
+	t.Run("set mini blocks info with pending mini blocks, having index of last tx processed set to last tx", func(t *testing.T) {
+		t.Parallel()
+
+		mbsInfo := &miniBlocksInfo{
+			miniBlockHashes:              make([][]byte, 0),
+			fullyProcessed:               make([]bool, 0),
+			indexOfLastTxProcessed:       make([]int32, 0),
+			pendingMiniBlocksMap:         make(map[string]struct{}),
+			pendingMiniBlocksPerShardMap: make(map[uint32][][]byte),
+		}
+
+		mbHash := []byte("x")
+		txCount := uint32(100)
+
+		mbh1 := block.MiniBlockHeader{
+			Hash:    mbHash,
+			TxCount: txCount,
+		}
+
+		indexOfLastTxProcessed := int32(txCount) - 1
+		_ = mbh1.SetIndexOfLastTxProcessed(indexOfLastTxProcessed)
+
+		epochStartShardData := &block.EpochStartShardData{
+			PendingMiniBlockHeaders: []block.MiniBlockHeader{
+				mbh1,
+			},
+		}
+		setMiniBlocksInfoWithPendingMiniBlocks(epochStartShardData, mbsInfo)
+		assert.Equal(t, 0, len(mbsInfo.miniBlockHashes))
+		assert.Equal(t, 0, len(mbsInfo.fullyProcessed))
+		assert.Equal(t, 0, len(mbsInfo.indexOfLastTxProcessed))
+	})
+
+	t.Run("set mini blocks info with pending mini blocks, having index of last tx processed set to first tx", func(t *testing.T) {
+		t.Parallel()
+
+		mbsInfo := &miniBlocksInfo{
+			miniBlockHashes:              make([][]byte, 0),
+			fullyProcessed:               make([]bool, 0),
+			indexOfLastTxProcessed:       make([]int32, 0),
+			pendingMiniBlocksMap:         make(map[string]struct{}),
+			pendingMiniBlocksPerShardMap: make(map[uint32][][]byte),
+		}
+
+		mbHash := []byte("x")
+		txCount := uint32(100)
+
+		mbh1 := block.MiniBlockHeader{
+			Hash:    mbHash,
+			TxCount: txCount,
+		}
+
+		indexOfLastTxProcessed := int32(0)
+		_ = mbh1.SetIndexOfLastTxProcessed(indexOfLastTxProcessed)
+		_ = mbh1.SetConstructionState(int32(block.PartialExecuted))
+
+		epochStartShardData := &block.EpochStartShardData{
+			PendingMiniBlockHeaders: []block.MiniBlockHeader{
+				mbh1,
+			},
+		}
+		setMiniBlocksInfoWithPendingMiniBlocks(epochStartShardData, mbsInfo)
+		require.Equal(t, 1, len(mbsInfo.miniBlockHashes))
+		require.Equal(t, 1, len(mbsInfo.fullyProcessed))
+		require.Equal(t, 1, len(mbsInfo.indexOfLastTxProcessed))
+		assert.Equal(t, mbHash, mbsInfo.miniBlockHashes[0])
+		assert.False(t, mbsInfo.fullyProcessed[0])
+		assert.Equal(t, indexOfLastTxProcessed, mbsInfo.indexOfLastTxProcessed[0])
+	})
+
+	t.Run("set mini blocks info with pending mini blocks, having index of last tx processed set to penultimate tx", func(t *testing.T) {
+		t.Parallel()
+
+		mbsInfo := &miniBlocksInfo{
+			miniBlockHashes:              make([][]byte, 0),
+			fullyProcessed:               make([]bool, 0),
+			indexOfLastTxProcessed:       make([]int32, 0),
+			pendingMiniBlocksMap:         make(map[string]struct{}),
+			pendingMiniBlocksPerShardMap: make(map[uint32][][]byte),
+		}
+
+		mbHash := []byte("x")
+		txCount := uint32(100)
+
+		mbh1 := block.MiniBlockHeader{
+			Hash:    mbHash,
+			TxCount: txCount,
+		}
+
+		indexOfLastTxProcessed := int32(txCount) - 2
+		_ = mbh1.SetIndexOfLastTxProcessed(indexOfLastTxProcessed)
+		_ = mbh1.SetConstructionState(int32(block.PartialExecuted))
+
+		epochStartShardData := &block.EpochStartShardData{
+			PendingMiniBlockHeaders: []block.MiniBlockHeader{
+				mbh1,
+			},
+		}
+		setMiniBlocksInfoWithPendingMiniBlocks(epochStartShardData, mbsInfo)
+		require.Equal(t, 1, len(mbsInfo.miniBlockHashes))
+		require.Equal(t, 1, len(mbsInfo.fullyProcessed))
+		require.Equal(t, 1, len(mbsInfo.indexOfLastTxProcessed))
+		assert.Equal(t, mbHash, mbsInfo.miniBlockHashes[0])
+		assert.False(t, mbsInfo.fullyProcessed[0])
+		assert.Equal(t, indexOfLastTxProcessed, mbsInfo.indexOfLastTxProcessed[0])
+	})
+
+	t.Run("set mini blocks info with pending mini blocks, having index of last tx processed set somewhere in the middle of the range", func(t *testing.T) {
+		t.Parallel()
+
+		mbsInfo := &miniBlocksInfo{
+			miniBlockHashes:              make([][]byte, 0),
+			fullyProcessed:               make([]bool, 0),
+			indexOfLastTxProcessed:       make([]int32, 0),
+			pendingMiniBlocksMap:         make(map[string]struct{}),
+			pendingMiniBlocksPerShardMap: make(map[uint32][][]byte),
+		}
+
+		mbHash := []byte("x")
+		txCount := uint32(100)
+
+		mbh1 := block.MiniBlockHeader{
+			Hash:    mbHash,
+			TxCount: txCount,
+		}
+
+		indexOfLastTxProcessed := int32(txCount / 2)
+		_ = mbh1.SetIndexOfLastTxProcessed(indexOfLastTxProcessed)
+		_ = mbh1.SetConstructionState(int32(block.PartialExecuted))
+
+		epochStartShardData := &block.EpochStartShardData{
+			PendingMiniBlockHeaders: []block.MiniBlockHeader{
+				mbh1,
+			},
+		}
+		setMiniBlocksInfoWithPendingMiniBlocks(epochStartShardData, mbsInfo)
+		require.Equal(t, 1, len(mbsInfo.miniBlockHashes))
+		require.Equal(t, 1, len(mbsInfo.fullyProcessed))
+		require.Equal(t, 1, len(mbsInfo.indexOfLastTxProcessed))
+		assert.Equal(t, mbHash, mbsInfo.miniBlockHashes[0])
+		assert.False(t, mbsInfo.fullyProcessed[0])
+		assert.Equal(t, indexOfLastTxProcessed, mbsInfo.indexOfLastTxProcessed[0])
+	})
 }

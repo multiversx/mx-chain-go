@@ -1,22 +1,14 @@
 package groups
 
 import (
-	"net/http"
-	"net/url"
 	"testing"
 
-	"github.com/gin-gonic/gin"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/require"
 )
 
 func TestParseBoolUrlParam(t *testing.T) {
-	c := &gin.Context{
-		Request: &http.Request{
-			URL: &url.URL{
-				RawQuery: "a=true&b=false&c=foobar&d",
-			},
-		},
-	}
+	c := testscommon.CreateGinContextWithRawQuery("a=true&b=false&c=foobar&d")
 
 	value, err := parseBoolUrlParam(c, "a")
 	require.Nil(t, err)
@@ -39,32 +31,52 @@ func TestParseBoolUrlParam(t *testing.T) {
 	require.False(t, value)
 }
 
-func TestParseUintUrlParam(t *testing.T) {
-	c := &gin.Context{
-		Request: &http.Request{
-			URL: &url.URL{
-				RawQuery: "a=7&b=0&c=foobar&d=-1&e=1234567898765432112345678987654321",
-			},
-		},
-	}
+func TestParseUint32UrlParam(t *testing.T) {
+	c := testscommon.CreateGinContextWithRawQuery("a=7&b=0&c=foobar&d=-1&e=4294967295&f=4294967296")
 
-	value, err := parseUintUrlParam(c, "a")
+	value, err := parseUint32UrlParam(c, "a")
 	require.Nil(t, err)
-	require.Equal(t, uint64(7), value)
+	require.True(t, value.HasValue)
+	require.Equal(t, uint32(7), value.Value)
 
-	value, err = parseUintUrlParam(c, "b")
+	value, err = parseUint32UrlParam(c, "b")
 	require.Nil(t, err)
-	require.Equal(t, uint64(0), value)
+	require.True(t, value.HasValue)
+	require.Equal(t, uint32(0), value.Value)
 
-	value, err = parseUintUrlParam(c, "c")
+	value, err = parseUint32UrlParam(c, "c")
 	require.NotNil(t, err)
-	require.Equal(t, uint64(0), value)
+	require.False(t, value.HasValue)
+	require.Equal(t, uint32(0), value.Value)
 
-	value, err = parseUintUrlParam(c, "d")
+	value, err = parseUint32UrlParam(c, "d")
 	require.NotNil(t, err)
-	require.Equal(t, uint64(0), value)
+	require.False(t, value.HasValue)
+	require.Equal(t, uint32(0), value.Value)
 
-	value, err = parseUintUrlParam(c, "e")
+	value, err = parseUint32UrlParam(c, "e")
+	require.Nil(t, err)
+	require.True(t, value.HasValue)
+	require.Equal(t, uint32(0xffffffff), value.Value)
+
+	value, err = parseUint32UrlParam(c, "f")
 	require.NotNil(t, err)
-	require.Equal(t, uint64(0xffffffffffffffff), value)
+	require.False(t, value.HasValue)
+	require.Equal(t, uint32(0), value.Value)
+}
+
+func TestParseHexBytesUrlParam(t *testing.T) {
+	c := testscommon.CreateGinContextWithRawQuery("a=aaaa&b=test&c")
+
+	value, err := parseHexBytesUrlParam(c, "a")
+	require.Nil(t, err)
+	require.Equal(t, []byte{0xaa, 0xaa}, value)
+
+	value, err = parseHexBytesUrlParam(c, "b")
+	require.NotNil(t, err)
+	require.Nil(t, value)
+
+	value, err = parseHexBytesUrlParam(c, "c")
+	require.Nil(t, err)
+	require.Equal(t, []byte(nil), value)
 }

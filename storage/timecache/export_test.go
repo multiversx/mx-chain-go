@@ -1,29 +1,32 @@
 package timecache
 
+// Keys -
 func (tc *TimeCache) Keys() []string {
-	tc.mut.Lock()
-	defer tc.mut.Unlock()
+	tc.timeCache.Lock()
+	defer tc.timeCache.Unlock()
 
-	keys := make([]string, 0, len(tc.data))
-	for key := range tc.data {
+	keys := make([]string, 0, len(tc.timeCache.data))
+	for key := range tc.timeCache.data {
 		keys = append(keys, key)
 	}
 
 	return keys
 }
 
-func (tc *TimeCache) Value(key string) (*span, bool) {
-	tc.mut.Lock()
-	defer tc.mut.Unlock()
+// Value -
+func (tc *TimeCache) Value(key string) (*entry, bool) {
+	tc.timeCache.Lock()
+	defer tc.timeCache.Unlock()
 
-	val, ok := tc.data[key]
+	val, ok := tc.timeCache.data[key]
 
 	return val, ok
 }
 
-func (tc *TimeCache) ClearMap() {
-	tc.mut.Lock()
-	defer tc.mut.Unlock()
+// NumRegisteredHandlers -
+func (tc *timeCacher) NumRegisteredHandlers() int {
+	tc.mutAddedDataHandlers.RLock()
+	defer tc.mutAddedDataHandlers.RUnlock()
 
-	tc.data = make(map[string]*span)
+	return len(tc.mapDataHandlers)
 }

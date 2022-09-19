@@ -37,9 +37,9 @@ func (adb *AccountsDB) GetObsoleteHashes() map[string][][]byte {
 	return adb.obsoleteDataTrieHashes
 }
 
-// WaitForCompletionIfRunningInImportDB -
-func (adb *AccountsDB) WaitForCompletionIfRunningInImportDB(stats common.SnapshotStatisticsHandler) {
-	adb.waitForCompletionIfRunningInImportDB(stats)
+// WaitForCompletionIfAppropriate -
+func (adb *AccountsDB) WaitForCompletionIfAppropriate(stats common.SnapshotStatisticsHandler) {
+	adb.waitForCompletionIfAppropriate(stats)
 }
 
 // GetCode -
@@ -68,9 +68,9 @@ func (accountsDB *accountsDBApi) DoRecreateTrieWithBlockInfo(blockInfo common.Bl
 
 // SetCurrentBlockInfo -
 func (accountsDB *accountsDBApi) SetCurrentBlockInfo(blockInfo common.BlockInfo) {
-	accountsDB.mutBlockInfo.Lock()
+	accountsDB.mutRecreatedTrieBlockInfo.Lock()
 	accountsDB.blockInfo = blockInfo
-	accountsDB.mutBlockInfo.Unlock()
+	accountsDB.mutRecreatedTrieBlockInfo.Unlock()
 }
 
 // EmptyErrChanReturningHadContained -

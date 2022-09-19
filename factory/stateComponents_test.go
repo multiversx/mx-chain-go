@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
 	"github.com/stretchr/testify/require"
@@ -103,8 +104,24 @@ func TestStateComponents_CloseShouldWork(t *testing.T) {
 func getStateArgs(coreComponents factory.CoreComponentsHolder, shardCoordinator sharding.Coordinator) factory.StateComponentsFactoryArgs {
 	memDBUsers := mock.NewMemDbMock()
 	memdbPeers := mock.NewMemDbMock()
-	storageManagerUser, _ := trie.NewTrieStorageManagerWithoutPruning(memDBUsers)
-	storageManagerPeer, _ := trie.NewTrieStorageManagerWithoutPruning(memdbPeers)
+	generalConfig := getGeneralConfig()
+
+	storageManagerArgs, options := stateMock.GetStorageManagerArgsAndOptions()
+	storageManagerArgs.Marshalizer = coreComponents.InternalMarshalizer()
+	storageManagerArgs.Hasher = coreComponents.Hasher()
+	storageManagerArgs.MainStorer = memDBUsers
+	storageManagerArgs.CheckpointsStorer = memDBUsers
+	storageManagerArgs.GeneralConfig = generalConfig.TrieStorageManagerConfig
+	options.PruningEnabled = generalConfig.StateTriesConfig.AccountsStatePruningEnabled
+	options.SnapshotsEnabled = generalConfig.StateTriesConfig.SnapshotsEnabled
+	options.CheckpointsEnabled = generalConfig.StateTriesConfig.CheckpointsEnabled
+
+	storageManagerUser, _ := trie.CreateTrieStorageManager(storageManagerArgs, options)
+
+	storageManagerArgs.MainStorer = memdbPeers
+	storageManagerArgs.CheckpointsStorer = memdbPeers
+	options.PruningEnabled = generalConfig.StateTriesConfig.PeerStatePruningEnabled
+	storageManagerPeer, _ := trie.CreateTrieStorageManager(storageManagerArgs, options)
 
 	trieStorageManagers := make(map[string]common.StorageManager)
 	trieStorageManagers[trieFactory.UserAccountTrie] = storageManagerUser
@@ -117,7 +134,7 @@ func getStateArgs(coreComponents factory.CoreComponentsHolder, shardCoordinator 
 	triesHolder.Put([]byte(trieFactory.PeerAccountTrie), triePeers)
 
 	stateComponentsFactoryArgs := factory.StateComponentsFactoryArgs{
-		Config:           getGeneralConfig(),
+		Config:           generalConfig,
 		ShardCoordinator: shardCoordinator,
 		Core:             coreComponents,
 		StorageService:   disabled.NewChainStorer(),
@@ -142,6 +159,7 @@ func getGeneralConfig() config.Config {
 		},
 		StateTriesConfig: config.StateTriesConfig{
 			CheckpointRoundsModulus:     5,
+			SnapshotsEnabled:            true,
 			AccountsStatePruningEnabled: true,
 			PeerStatePruningEnabled:     true,
 			MaxStateTrieLevelInMemory:   5,
@@ -254,8 +272,16 @@ func getGeneralConfig() config.Config {
 			TopRatedCacheCapacity: 1000,
 			BadRatedCacheCapacity: 1000,
 		},
+		PoolsCleanersConfig: config.PoolsCleanersConfig{
+			MaxRoundsToKeepUnprocessedMiniBlocks:   50,
+			MaxRoundsToKeepUnprocessedTransactions: 50,
+		},
 		BuiltInFunctions: config.BuiltInFunctionsConfig{
-			AutomaticCrawlerAddress:       "erd1fpkcgel4gcmh8zqqdt043yfcn5tyx8373kg6q2qmkxzu4dqamc0swts65c",
+			AutomaticCrawlerAddresses: []string{
+				"erd1he8wwxn4az3j82p7wwqsdk794dm7hcrwny6f8dfegkfla34udx7qrf7xje", //shard 0
+				"erd1fpkcgel4gcmh8zqqdt043yfcn5tyx8373kg6q2qmkxzu4dqamc0swts65c", //shard 1
+				"erd1najnxxweyw6plhg8efql330nttrj6l5cf87wqsuym85s9ha0hmdqnqgenp", //shard 2
+			},
 			MaxNumAddressesInTransferRole: 100,
 		},
 	}

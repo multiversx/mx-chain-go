@@ -366,8 +366,15 @@ func getCoreArgs() factory.CoreComponentsFactoryArgs {
 				TopRatedCacheCapacity: 1000,
 				BadRatedCacheCapacity: 1000,
 			},
+			PoolsCleanersConfig: config.PoolsCleanersConfig{
+				MaxRoundsToKeepUnprocessedMiniBlocks:   50,
+				MaxRoundsToKeepUnprocessedTransactions: 50,
+			},
 			Hardfork: config.HardforkConfig{
 				PublicKeyToListenFrom: dummyPk,
+			},
+			HeartbeatV2: config.HeartbeatV2Config{
+				HeartbeatExpiryTimespanInSec: 10,
 			},
 		},
 		ConfigPathsHolder: config.ConfigurationPathsHolder{
@@ -386,6 +393,13 @@ func getCoreArgs() factory.CoreComponentsFactoryArgs {
 						StartEpoch: 0,
 						FileName:   "gasScheduleV1.toml",
 					},
+				},
+			},
+		},
+		RoundConfig: config.RoundConfig{
+			RoundActivations: map[string]config.ActivationRoundByName{
+				"Example": {
+					Round: "18446744073709551615",
 				},
 			},
 		},

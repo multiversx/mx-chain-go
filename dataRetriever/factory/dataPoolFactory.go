@@ -21,10 +21,15 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/disabled"
 	"github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache/capacity"
-	"github.com/ElrondNetwork/elrond-go/storage/mapTimeCache"
 	"github.com/ElrondNetwork/elrond-go/storage/storageCacherAdapter"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
+)
+
+const (
+	peerAuthenticationCacheRefresh = time.Minute * 5
+	peerAuthExpiryMultiplier       = time.Duration(2) // 2 times the computed duration
 )
 
 var log = logger.GetOrCreate("dataRetriever/factory")
@@ -125,9 +130,9 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 		return nil, fmt.Errorf("%w while creating the cache for the smartcontract results", err)
 	}
 
-	peerAuthPool, err := mapTimeCache.NewMapTimeCache(mapTimeCache.ArgMapTimeCacher{
-		DefaultSpan: time.Duration(mainConfig.HeartbeatV2.PeerAuthenticationPool.DefaultSpanInSec) * time.Second,
-		CacheExpiry: time.Duration(mainConfig.HeartbeatV2.PeerAuthenticationPool.CacheExpiryInSec) * time.Second,
+	peerAuthPool, err := timecache.NewTimeCacher(timecache.ArgTimeCacher{
+		DefaultSpan: time.Duration(mainConfig.HeartbeatV2.PeerAuthenticationTimeBetweenSendsInSec) * time.Second * peerAuthExpiryMultiplier,
+		CacheExpiry: peerAuthenticationCacheRefresh,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("%w while creating the cache for the peer authentication messages", err)
@@ -139,20 +144,28 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 		return nil, fmt.Errorf("%w while creating the cache for the heartbeat messages", err)
 	}
 
-	currBlockTxs := dataPool.NewCurrentBlockPool()
+	validatorsInfo, err := shardedData.NewShardedData(dataRetriever.ValidatorsInfoPoolName, factory.GetCacherFromConfig(mainConfig.ValidatorInfoPool))
+	if err != nil {
+		return nil, fmt.Errorf("%w while creating the cache for the validator info results", err)
+	}
+
+	currBlockTransactions := dataPool.NewCurrentBlockTransactionsPool()
+	currEpochValidatorInfo := dataPool.NewCurrentEpochValidatorInfoPool()
 	dataPoolArgs := dataPool.DataPoolArgs{
-		Transactions:             txPool,
-		UnsignedTransactions:     uTxPool,
-		RewardTransactions:       rewardTxPool,
-		Headers:                  hdrPool,
-		MiniBlocks:               txBlockBody,
-		PeerChangesBlocks:        peerChangeBlockBody,
-		TrieNodes:                adaptedTrieNodesStorage,
-		TrieNodesChunks:          trieNodesChunks,
-		CurrentBlockTransactions: currBlockTxs,
-		SmartContracts:           smartContracts,
-		PeerAuthentications:      peerAuthPool,
-		Heartbeats:               heartbeatPool,
+		Transactions:              txPool,
+		UnsignedTransactions:      uTxPool,
+		RewardTransactions:        rewardTxPool,
+		Headers:                   hdrPool,
+		MiniBlocks:                txBlockBody,
+		PeerChangesBlocks:         peerChangeBlockBody,
+		TrieNodes:                 adaptedTrieNodesStorage,
+		TrieNodesChunks:           trieNodesChunks,
+		CurrentBlockTransactions:  currBlockTransactions,
+		CurrentEpochValidatorInfo: currEpochValidatorInfo,
+		SmartContracts:            smartContracts,
+		PeerAuthentications:       peerAuthPool,
+		Heartbeats:                heartbeatPool,
+		ValidatorsInfo:            validatorsInfo,
 	}
 	return dataPool.NewDataPool(dataPoolArgs)
 }

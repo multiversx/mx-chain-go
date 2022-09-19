@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	coreAtomic "github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -139,8 +140,8 @@ func TestPeersOnChannel_RefreshShouldBeDone(t *testing.T) {
 
 	retPeerIDs := []core.PeerID{"peer1", "peer2"}
 	testTopic := "test_topic"
-	wasFetchCalled := atomic.Value{}
-	wasFetchCalled.Store(false)
+	wasFetchCalled := coreAtomic.Flag{}
+	wasFetchCalled.Reset()
 
 	refreshInterval := time.Millisecond * 100
 	ttlInterval := time.Duration(2)
@@ -148,7 +149,7 @@ func TestPeersOnChannel_RefreshShouldBeDone(t *testing.T) {
 	poc, _ := newPeersOnChannel(
 		&p2pmocks.PeersRatingHandlerStub{},
 		func(topic string) []peer.ID {
-			wasFetchCalled.Store(true)
+			wasFetchCalled.SetValue(true)
 			return nil
 		},
 		refreshInterval,
@@ -163,15 +164,10 @@ func TestPeersOnChannel_RefreshShouldBeDone(t *testing.T) {
 	poc.lastUpdated[testTopic] = time.Unix(0, 1)
 	poc.mutPeers.Unlock()
 
-	// To be 100% sure it triggers at least once, the time.sleep should be at least twice the refreshInterval.
-	// The reason behind this is that, when instantiating newPeersOnChannel, the go routine starts and it begins
-	// to iterate in the lastUpdated map. Maybe the instruction
-	//  poc.lastUpdated[testTopic] = time.Unix(0, 1)
-	// will be executed after the first for range iteration and thus, causing a time.sleep in the
-	// peersOnChannel.refreshPeersOnAllKnownTopics loop
-	time.Sleep(refreshInterval * 2)
+	// wait for the go routine cycle finish up
+	time.Sleep(time.Second)
 
-	assert.True(t, wasFetchCalled.Load().(bool))
+	assert.True(t, wasFetchCalled.IsSet())
 	poc.mutPeers.Lock()
 	assert.Empty(t, poc.peers[testTopic])
 	poc.mutPeers.Unlock()

@@ -137,7 +137,7 @@ func (en *eventNotifier) getLogEventsFromTransactionsPool(logs []*nodeData.LogDa
 
 	events := make([]Event, 0, len(logEvents))
 	for _, event := range logEvents {
-		if event == nil || event.eventHandler.IsInterfaceNil() {
+		if event == nil || check.IfNil(event.eventHandler) {
 			continue
 		}
 

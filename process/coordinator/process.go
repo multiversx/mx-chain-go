@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/batch"
@@ -47,28 +46,25 @@ type processedIndexes struct {
 
 // ArgTransactionCoordinator holds all dependencies required by the transaction coordinator factory in order to create new instances
 type ArgTransactionCoordinator struct {
-	Hasher                               hashing.Hasher
-	Marshalizer                          marshal.Marshalizer
-	ShardCoordinator                     sharding.Coordinator
-	Accounts                             state.AccountsAdapter
-	MiniBlockPool                        storage.Cacher
-	RequestHandler                       process.RequestHandler
-	PreProcessors                        process.PreProcessorsContainer
-	InterProcessors                      process.IntermediateProcessorContainer
-	GasHandler                           process.GasHandler
-	FeeHandler                           process.TransactionFeeHandler
-	BlockSizeComputation                 preprocess.BlockSizeComputationHandler
-	BalanceComputation                   preprocess.BalanceComputationHandler
-	EconomicsFee                         process.FeeHandler
-	TxTypeHandler                        process.TxTypeHandler
-	TransactionsLogProcessor             process.TransactionLogProcessor
-	BlockGasAndFeesReCheckEnableEpoch    uint32
-	EpochNotifier                        process.EpochNotifier
-	ScheduledTxsExecutionHandler         process.ScheduledTxsExecutionHandler
-	ScheduledMiniBlocksEnableEpoch       uint32
-	DoubleTransactionsDetector           process.DoubleTransactionDetector
-	MiniBlockPartialExecutionEnableEpoch uint32
-	ProcessedMiniBlocksTracker           process.ProcessedMiniBlocksTracker
+	Hasher                       hashing.Hasher
+	Marshalizer                  marshal.Marshalizer
+	ShardCoordinator             sharding.Coordinator
+	Accounts                     state.AccountsAdapter
+	MiniBlockPool                storage.Cacher
+	RequestHandler               process.RequestHandler
+	PreProcessors                process.PreProcessorsContainer
+	InterProcessors              process.IntermediateProcessorContainer
+	GasHandler                   process.GasHandler
+	FeeHandler                   process.TransactionFeeHandler
+	BlockSizeComputation         preprocess.BlockSizeComputationHandler
+	BalanceComputation           preprocess.BalanceComputationHandler
+	EconomicsFee                 process.FeeHandler
+	TxTypeHandler                process.TxTypeHandler
+	TransactionsLogProcessor     process.TransactionLogProcessor
+	EnableEpochsHandler          common.EnableEpochsHandler
+	ScheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
+	DoubleTransactionsDetector   process.DoubleTransactionDetector
+	ProcessedMiniBlocksTracker   process.ProcessedMiniBlocksTracker
 }
 
 type transactionCoordinator struct {
@@ -89,23 +85,19 @@ type transactionCoordinator struct {
 	mutRequestedTxs sync.RWMutex
 	requestedTxs    map[block.Type]int
 
-	onRequestMiniBlock                   func(shardId uint32, mbHash []byte)
-	gasHandler                           process.GasHandler
-	feeHandler                           process.TransactionFeeHandler
-	blockSizeComputation                 preprocess.BlockSizeComputationHandler
-	balanceComputation                   preprocess.BalanceComputationHandler
-	requestedItemsHandler                process.TimeCacher
-	economicsFee                         process.FeeHandler
-	txTypeHandler                        process.TxTypeHandler
-	transactionsLogProcessor             process.TransactionLogProcessor
-	blockGasAndFeesReCheckEnableEpoch    uint32
-	scheduledTxsExecutionHandler         process.ScheduledTxsExecutionHandler
-	scheduledMiniBlocksEnableEpoch       uint32
-	flagScheduledMiniBlocks              atomic.Flag
-	doubleTransactionsDetector           process.DoubleTransactionDetector
-	miniBlockPartialExecutionEnableEpoch uint32
-	flagMiniBlockPartialExecution        atomic.Flag
-	processedMiniBlocksTracker           process.ProcessedMiniBlocksTracker
+	onRequestMiniBlock           func(shardId uint32, mbHash []byte)
+	gasHandler                   process.GasHandler
+	feeHandler                   process.TransactionFeeHandler
+	blockSizeComputation         preprocess.BlockSizeComputationHandler
+	balanceComputation           preprocess.BalanceComputationHandler
+	requestedItemsHandler        process.TimeCacher
+	economicsFee                 process.FeeHandler
+	txTypeHandler                process.TxTypeHandler
+	transactionsLogProcessor     process.TransactionLogProcessor
+	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
+	doubleTransactionsDetector   process.DoubleTransactionDetector
+	processedMiniBlocksTracker   process.ProcessedMiniBlocksTracker
+	enableEpochsHandler          common.EnableEpochsHandler
 }
 
 // NewTransactionCoordinator creates a transaction coordinator to run and coordinate preprocessors and processors
@@ -116,27 +108,22 @@ func NewTransactionCoordinator(args ArgTransactionCoordinator) (*transactionCoor
 	}
 
 	tc := &transactionCoordinator{
-		shardCoordinator:                     args.ShardCoordinator,
-		accounts:                             args.Accounts,
-		gasHandler:                           args.GasHandler,
-		hasher:                               args.Hasher,
-		marshalizer:                          args.Marshalizer,
-		feeHandler:                           args.FeeHandler,
-		blockSizeComputation:                 args.BlockSizeComputation,
-		balanceComputation:                   args.BalanceComputation,
-		economicsFee:                         args.EconomicsFee,
-		txTypeHandler:                        args.TxTypeHandler,
-		blockGasAndFeesReCheckEnableEpoch:    args.BlockGasAndFeesReCheckEnableEpoch,
-		transactionsLogProcessor:             args.TransactionsLogProcessor,
-		scheduledTxsExecutionHandler:         args.ScheduledTxsExecutionHandler,
-		scheduledMiniBlocksEnableEpoch:       args.ScheduledMiniBlocksEnableEpoch,
-		doubleTransactionsDetector:           args.DoubleTransactionsDetector,
-		miniBlockPartialExecutionEnableEpoch: args.MiniBlockPartialExecutionEnableEpoch,
-		processedMiniBlocksTracker:           args.ProcessedMiniBlocksTracker,
+		shardCoordinator:             args.ShardCoordinator,
+		accounts:                     args.Accounts,
+		gasHandler:                   args.GasHandler,
+		hasher:                       args.Hasher,
+		marshalizer:                  args.Marshalizer,
+		feeHandler:                   args.FeeHandler,
+		blockSizeComputation:         args.BlockSizeComputation,
+		balanceComputation:           args.BalanceComputation,
+		economicsFee:                 args.EconomicsFee,
+		txTypeHandler:                args.TxTypeHandler,
+		transactionsLogProcessor:     args.TransactionsLogProcessor,
+		scheduledTxsExecutionHandler: args.ScheduledTxsExecutionHandler,
+		doubleTransactionsDetector:   args.DoubleTransactionsDetector,
+		processedMiniBlocksTracker:   args.ProcessedMiniBlocksTracker,
+		enableEpochsHandler:          args.EnableEpochsHandler,
 	}
-	log.Debug("coordinator/process: enable epoch for block gas and fees re-check", "epoch", tc.blockGasAndFeesReCheckEnableEpoch)
-	log.Debug("coordinator/process: enable epoch for scheduled txs execution", "epoch", tc.scheduledMiniBlocksEnableEpoch)
-	log.Debug("coordinator/process: enable epoch for mini block partial execution", "epoch", tc.miniBlockPartialExecutionEnableEpoch)
 
 	tc.miniBlockPool = args.MiniBlockPool
 	tc.onRequestMiniBlock = args.RequestHandler.RequestMiniBlock
@@ -170,7 +157,6 @@ func NewTransactionCoordinator(args ArgTransactionCoordinator) (*transactionCoor
 
 	tc.requestedItemsHandler = timecache.NewTimeCache(common.MaxWaitingTimeToReceiveRequestedItem)
 	tc.miniBlockPool.RegisterHandler(tc.receivedMiniBlock, core.UniqueIdentifier())
-	args.EpochNotifier.RegisterNotifyHandler(tc)
 
 	return tc, nil
 }
@@ -830,7 +816,7 @@ func (tc *transactionCoordinator) getFinalCrossMiniBlockInfos(
 	header data.HeaderHandler,
 ) []*data.MiniBlockInfo {
 
-	if !tc.flagScheduledMiniBlocks.IsSet() {
+	if !tc.enableEpochsHandler.IsScheduledMiniBlocksFlagEnabled() {
 		return crossMiniBlockInfos
 	}
 
@@ -1019,7 +1005,7 @@ func (tc *transactionCoordinator) CreateMarshalizedData(body *block.Body) map[st
 			dataMarshalizer, ok := preproc.(process.DataMarshalizer)
 			if ok {
 				// preproc supports marshalizing items
-				tc.appendMarshalizedItems(
+				tc.appendMarshalledItems(
 					dataMarshalizer,
 					miniBlock.TxHashes,
 					mrsTxs,
@@ -1033,7 +1019,7 @@ func (tc *transactionCoordinator) CreateMarshalizedData(body *block.Body) map[st
 			dataMarshalizer, ok := interimProc.(process.DataMarshalizer)
 			if ok {
 				// interimProc supports marshalizing items
-				tc.appendMarshalizedItems(
+				tc.appendMarshalledItems(
 					dataMarshalizer,
 					miniBlock.TxHashes,
 					mrsTxs,
@@ -1046,15 +1032,15 @@ func (tc *transactionCoordinator) CreateMarshalizedData(body *block.Body) map[st
 	return mrsTxs
 }
 
-func (tc *transactionCoordinator) appendMarshalizedItems(
+func (tc *transactionCoordinator) appendMarshalledItems(
 	dataMarshalizer process.DataMarshalizer,
 	txHashes [][]byte,
 	mrsTxs map[string][][]byte,
 	broadcastTopic string,
 ) {
-	currMrsTxs, err := dataMarshalizer.CreateMarshalizedData(txHashes)
+	currMrsTxs, err := dataMarshalizer.CreateMarshalledData(txHashes)
 	if err != nil {
-		log.Debug("appendMarshalizedItems.CreateMarshalizedData", "error", err.Error())
+		log.Debug("appendMarshalledItems.CreateMarshalledData", "error", err.Error())
 		return
 	}
 
@@ -1109,7 +1095,7 @@ func (tc *transactionCoordinator) RequestMiniBlocks(header data.HeaderHandler) {
 }
 
 func (tc *transactionCoordinator) getFinalCrossMiniBlockHashes(headerHandler data.HeaderHandler) map[string]uint32 {
-	if !tc.flagScheduledMiniBlocks.IsSet() {
+	if !tc.enableEpochsHandler.IsScheduledMiniBlocksFlagEnabled() {
 		return headerHandler.GetMiniBlockHeadersWithDst(tc.shardCoordinator.SelfId())
 	}
 	return process.GetFinalCrossMiniBlockHashes(headerHandler, tc.shardCoordinator.SelfId())
@@ -1176,7 +1162,7 @@ func (tc *transactionCoordinator) processCompleteMiniBlock(
 		haveTime,
 		haveAdditionalTime,
 		scheduledMode,
-		tc.flagMiniBlockPartialExecution.IsSet(),
+		tc.enableEpochsHandler.IsMiniBlockPartialExecutionFlagEnabled(),
 		int(processedMbInfo.IndexOfLastTxProcessed),
 		tc,
 	)
@@ -1209,7 +1195,7 @@ func (tc *transactionCoordinator) processCompleteMiniBlock(
 		if shouldRevert {
 			tc.handleProcessTransactionError(snapshot, miniBlockHash, txsToBeReverted)
 		} else {
-			if tc.flagMiniBlockPartialExecution.IsSet() {
+			if tc.enableEpochsHandler.IsMiniBlockPartialExecutionFlagEnabled() {
 				processedMbInfo.IndexOfLastTxProcessed = int32(indexOfLastTxProcessed)
 				processedMbInfo.FullyProcessed = false
 			}
@@ -1385,27 +1371,6 @@ func (tc *transactionCoordinator) CreateReceiptsHash() ([]byte, error) {
 	return finalReceiptHash, err
 }
 
-// CreateMarshalizedReceipts will return all the receipts list in one marshalized object
-func (tc *transactionCoordinator) CreateMarshalizedReceipts() ([]byte, error) {
-	inShardMiniBlocks := tc.GetCreatedInShardMiniBlocks()
-
-	receiptsBatch := &batch.Batch{}
-	for _, miniBlock := range inShardMiniBlocks {
-		marshalizedMiniBlock, err := tc.marshalizer.Marshal(miniBlock)
-		if err != nil {
-			return nil, err
-		}
-
-		receiptsBatch.Data = append(receiptsBatch.Data, marshalizedMiniBlock)
-	}
-
-	if len(receiptsBatch.Data) == 0 {
-		return make([]byte, 0), nil
-	}
-
-	return tc.marshalizer.Marshal(receiptsBatch)
-}
-
 // GetCreatedInShardMiniBlocks will return the intra-shard created miniblocks
 func (tc *transactionCoordinator) GetCreatedInShardMiniBlocks() []*block.MiniBlock {
 	tc.mutInterimProcessors.RLock()
@@ -1522,7 +1487,7 @@ func (tc *transactionCoordinator) VerifyCreatedMiniBlocks(
 	header data.HeaderHandler,
 	body *block.Body,
 ) error {
-	if header.GetEpoch() < tc.blockGasAndFeesReCheckEnableEpoch {
+	if header.GetEpoch() < tc.enableEpochsHandler.BlockGasAndFeesReCheckEnableEpoch() {
 		return nil
 	}
 
@@ -1573,7 +1538,7 @@ func (tc *transactionCoordinator) verifyGasLimit(
 		if miniBlock.Type == block.SmartContractResultBlock {
 			continue
 		}
-		if tc.flagScheduledMiniBlocks.IsSet() {
+		if tc.enableEpochsHandler.IsScheduledMiniBlocksFlagEnabled() {
 			miniBlockHeader := header.GetMiniBlockHeaderHandlers()[index]
 			if miniBlockHeader.GetProcessingType() == int32(block.Processed) {
 				log.Debug("transactionCoordinator.verifyGasLimit: do not verify gas limit for mini block executed as scheduled in previous block", "mb hash", miniBlockHeader.GetHash())
@@ -1640,7 +1605,7 @@ func (tc *transactionCoordinator) verifyFees(
 	totalMaxAccumulatedFees := big.NewInt(0)
 	totalMaxDeveloperFees := big.NewInt(0)
 
-	if tc.flagScheduledMiniBlocks.IsSet() {
+	if tc.enableEpochsHandler.IsScheduledMiniBlocksFlagEnabled() {
 		scheduledGasAndFees := tc.scheduledTxsExecutionHandler.GetScheduledGasAndFees()
 		totalMaxAccumulatedFees.Add(totalMaxAccumulatedFees, scheduledGasAndFees.AccumulatedFees)
 		totalMaxDeveloperFees.Add(totalMaxDeveloperFees, scheduledGasAndFees.DeveloperFees)
@@ -1655,7 +1620,7 @@ func (tc *transactionCoordinator) verifyFees(
 		if miniBlock.Type == block.PeerBlock {
 			continue
 		}
-		if tc.flagScheduledMiniBlocks.IsSet() {
+		if tc.enableEpochsHandler.IsScheduledMiniBlocksFlagEnabled() {
 			miniBlockHeader := header.GetMiniBlockHeaderHandlers()[index]
 			if miniBlockHeader.GetProcessingType() == int32(block.Processed) {
 				log.Debug("transactionCoordinator.verifyFees: do not verify fees for mini block executed as scheduled in previous block", "mb hash", miniBlockHeader.GetHash())
@@ -1788,8 +1753,8 @@ func checkTransactionCoordinatorNilParameters(arguments ArgTransactionCoordinato
 	if check.IfNil(arguments.TransactionsLogProcessor) {
 		return process.ErrNilTxLogsProcessor
 	}
-	if check.IfNil(arguments.EpochNotifier) {
-		return process.ErrNilEpochNotifier
+	if check.IfNil(arguments.EnableEpochsHandler) {
+		return process.ErrNilEnableEpochsHandler
 	}
 	if check.IfNil(arguments.ScheduledTxsExecutionHandler) {
 		return process.ErrNilScheduledTxsExecutionHandler
@@ -1834,15 +1799,6 @@ func (tc *transactionCoordinator) GetAllIntermediateTxs() map[block.Type]map[str
 	}
 
 	return mapIntermediateTxs
-}
-
-// EpochConfirmed is called whenever a new epoch is confirmed
-func (tc *transactionCoordinator) EpochConfirmed(epoch uint32, _ uint64) {
-	tc.flagScheduledMiniBlocks.SetValue(epoch >= tc.scheduledMiniBlocksEnableEpoch)
-	log.Debug("transactionCoordinator: scheduled mini blocks", "enabled", tc.flagScheduledMiniBlocks.IsSet())
-
-	tc.flagMiniBlockPartialExecution.SetValue(epoch >= tc.miniBlockPartialExecutionEnableEpoch)
-	log.Debug("transactionCoordinator: mini block partial execution", "enabled", tc.flagMiniBlockPartialExecution.IsSet())
 }
 
 // AddTxsFromMiniBlocks adds transactions from given mini blocks needed by the current block

@@ -23,8 +23,7 @@ func createMessenger() p2p.Messenger {
 		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
 		P2pConfig: config.P2PConfig{
 			Node: config.NodeConfig{
-				Port:                  "0",
-				ConnectionWatcherType: "print",
+				Port: "0",
 			},
 			KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
 				Enabled: false,
@@ -33,10 +32,11 @@ func createMessenger() p2p.Messenger {
 				Type: p2p.NilListSharder,
 			},
 		},
-		SyncTimer:            &libp2p.LocalSyncTimer{},
-		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
-		NodeOperationMode:    p2p.NormalOperation,
-		PeersRatingHandler:   &p2pmocks.PeersRatingHandlerStub{},
+		SyncTimer:             &libp2p.LocalSyncTimer{},
+		PreferredPeersHolder:  &p2pmocks.PeersHolderStub{},
+		NodeOperationMode:     p2p.NormalOperation,
+		PeersRatingHandler:    &p2pmocks.PeersRatingHandlerStub{},
+		ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
 	}
 
 	libP2PMes, err := libp2p.NewNetworkMessenger(args)

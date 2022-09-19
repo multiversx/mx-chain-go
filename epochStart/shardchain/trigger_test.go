@@ -3,21 +3,25 @@ package shardchain
 import (
 	"bytes"
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
+	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
+	vic "github.com/ElrondNetwork/elrond-go/testscommon/validatorInfoCacher"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -39,9 +43,12 @@ func createMockShardEpochStartTriggerArguments() *ArgsShardEpochStartTrigger {
 			MiniBlocksCalled: func() storage.Cacher {
 				return testscommon.NewCacherStub()
 			},
+			CurrEpochValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
+				return &vic.ValidatorInfoCacherStub{}
+			},
 		},
-		Storage: &mock.ChainStorerStub{
-			GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+		Storage: &storageStubs.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 				return &storageStubs.StorerStub{
 					GetCalled: func(key []byte) (bytes []byte, err error) {
 						return []byte("hash"), nil
@@ -49,7 +56,7 @@ func createMockShardEpochStartTriggerArguments() *ArgsShardEpochStartTrigger {
 					PutCalled: func(key, data []byte) error {
 						return nil
 					},
-				}
+				}, nil
 			},
 		},
 		RequestHandler:       &testscommon.RequestHandlerStub{},
@@ -57,6 +64,7 @@ func createMockShardEpochStartTriggerArguments() *ArgsShardEpochStartTrigger {
 		PeerMiniBlocksSyncer: &mock.ValidatorInfoSyncerStub{},
 		RoundHandler:         &mock.RoundHandlerStub{},
 		AppStatusHandler:     &statusHandlerMock.AppStatusHandlerStub{},
+		EnableEpochsHandler:  &testscommon.EnableEpochsHandlerStub{},
 	}
 }
 
@@ -157,39 +165,34 @@ func TestNewEpochStartTrigger_NilEpochStartNotifierShouldErr(t *testing.T) {
 	assert.Equal(t, epochStart.ErrNilEpochStartNotifier, err)
 }
 
-func TestNewEpochStartTrigger_NilMetaBlockUnitShouldErr(t *testing.T) {
+func TestNewEpochStartTrigger_GetStorerReturnsErr(t *testing.T) {
 	t.Parallel()
 
-	args := createMockShardEpochStartTriggerArguments()
-	args.Storage = &mock.ChainStorerStub{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return nil
-		},
-	}
-	epochStartTrigger, err := NewEpochStartTrigger(args)
-
-	assert.Nil(t, epochStartTrigger)
-	assert.Equal(t, epochStart.ErrNilMetaBlockStorage, err)
+	t.Run("missing MetaBlockUnit", testWithMissingStorer(dataRetriever.MetaBlockUnit))
+	t.Run("missing BootstrapUnit", testWithMissingStorer(dataRetriever.BootstrapUnit))
+	t.Run("missing MetaHdrNonceHashDataUnit", testWithMissingStorer(dataRetriever.MetaHdrNonceHashDataUnit))
+	t.Run("missing BlockHeaderUnit", testWithMissingStorer(dataRetriever.BlockHeaderUnit))
 }
 
-func TestNewEpochStartTrigger_NilMetaNonceHashStorageShouldErr(t *testing.T) {
-	t.Parallel()
+func testWithMissingStorer(missingUnit dataRetriever.UnitType) func(t *testing.T) {
+	return func(t *testing.T) {
+		t.Parallel()
 
-	args := createMockShardEpochStartTriggerArguments()
-	args.Storage = &mock.ChainStorerStub{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			switch unitType {
-			case dataRetriever.MetaHdrNonceHashDataUnit:
-				return nil
-			default:
-				return &storageStubs.StorerStub{}
-			}
-		},
+		args := createMockShardEpochStartTriggerArguments()
+		args.Storage = &storageStubs.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+				if unitType == missingUnit {
+					return nil, fmt.Errorf("%w for %s", storage.ErrKeyNotFound, missingUnit.String())
+				}
+				return &storageStubs.StorerStub{}, nil
+			},
+		}
+
+		epochStartTrigger, err := NewEpochStartTrigger(args)
+		require.True(t, strings.Contains(err.Error(), storage.ErrKeyNotFound.Error()))
+		require.True(t, strings.Contains(err.Error(), missingUnit.String()))
+		require.True(t, check.IfNil(epochStartTrigger))
 	}
-	epochStartTrigger, err := NewEpochStartTrigger(args)
-
-	assert.Nil(t, epochStartTrigger)
-	assert.Equal(t, epochStart.ErrNilMetaNonceHashStorage, err)
 }
 
 func TestNewEpochStartTrigger_NilHeadersPoolShouldErr(t *testing.T) {
@@ -221,46 +224,6 @@ func TestNewEpochStartTrigger_NilValidatorInfoProcessorShouldErr(t *testing.T) {
 	assert.Equal(t, epochStart.ErrNilValidatorInfoProcessor, err)
 }
 
-func TestNewEpochStartTrigger_NiBootstrapUnitStorageShouldErr(t *testing.T) {
-	t.Parallel()
-
-	args := createMockShardEpochStartTriggerArguments()
-	args.Storage = &mock.ChainStorerStub{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			switch unitType {
-			case dataRetriever.BootstrapUnit:
-				return nil
-			default:
-				return &storageStubs.StorerStub{}
-			}
-		},
-	}
-	epochStartTrigger, err := NewEpochStartTrigger(args)
-
-	assert.Nil(t, epochStartTrigger)
-	assert.Equal(t, epochStart.ErrNilTriggerStorage, err)
-}
-
-func TestNewEpochStartTrigger_NilBlockHeaderUnitStorageErr(t *testing.T) {
-	t.Parallel()
-
-	args := createMockShardEpochStartTriggerArguments()
-	args.Storage = &mock.ChainStorerStub{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			switch unitType {
-			case dataRetriever.BlockHeaderUnit:
-				return nil
-			default:
-				return &storageStubs.StorerStub{}
-			}
-		},
-	}
-	epochStartTrigger, err := NewEpochStartTrigger(args)
-
-	assert.Nil(t, epochStartTrigger)
-	assert.Equal(t, epochStart.ErrNilShardHeaderStorage, err)
-}
-
 func TestNewEpochStartTrigger_NilRoundHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -270,6 +233,17 @@ func TestNewEpochStartTrigger_NilRoundHandlerShouldErr(t *testing.T) {
 
 	assert.Nil(t, epochStartTrigger)
 	assert.Equal(t, epochStart.ErrNilRoundHandler, err)
+}
+
+func TestNewEpochStartTrigger_NilEnableEpochsHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createMockShardEpochStartTriggerArguments()
+	args.EnableEpochsHandler = nil
+	epochStartTrigger, err := NewEpochStartTrigger(args)
+
+	assert.Nil(t, epochStartTrigger)
+	assert.Equal(t, epochStart.ErrNilEnableEpochsHandler, err)
 }
 
 func TestNewEpochStartTrigger_ShouldOk(t *testing.T) {
@@ -397,14 +371,17 @@ func TestTrigger_ReceivedHeaderIsEpochStartTrueWithPeerMiniblocks(t *testing.T) 
 				},
 			}
 		},
+		CurrEpochValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
+			return &vic.ValidatorInfoCacherStub{}
+		},
 	}
 	args.Uint64Converter = &mock.Uint64ByteSliceConverterMock{
 		ToByteSliceCalled: func(u uint64) []byte {
 			return []byte(fmt.Sprint(u))
 		},
 	}
-	args.Storage = &mock.ChainStorerStub{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+	args.Storage = &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 			return &storageStubs.StorerStub{
 				GetCalled: func(key []byte) (bytes []byte, err error) {
 					return noncesToHeader[string(key)], nil
@@ -412,7 +389,7 @@ func TestTrigger_ReceivedHeaderIsEpochStartTrueWithPeerMiniblocks(t *testing.T) 
 				PutCalled: func(key, data []byte) error {
 					return nil
 				},
-			}
+			}, nil
 		},
 	}
 
@@ -494,8 +471,8 @@ func TestTrigger_RevertStateToBlockBehindEpochStart(t *testing.T) {
 	prevEpochHdr := &block.Header{Round: 20, Epoch: 2}
 	prevEpochHdrBuff, _ := args.Marshalizer.Marshal(prevEpochHdr)
 
-	args.Storage = &mock.ChainStorerStub{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+	args.Storage = &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 			return &storageStubs.StorerStub{
 				GetCalled: func(key []byte) (bytes []byte, err error) {
 					return []byte("hash"), nil
@@ -509,7 +486,7 @@ func TestTrigger_RevertStateToBlockBehindEpochStart(t *testing.T) {
 				RemoveCalled: func(key []byte) error {
 					return nil
 				},
-			}
+			}, nil
 		},
 	}
 	et, _ := NewEpochStartTrigger(args)
@@ -546,8 +523,8 @@ func TestTrigger_RevertStateToBlockBehindEpochStartNoBlockInAnEpoch(t *testing.T
 
 	epochStartKey := core.EpochStartIdentifier(prevEpochHdr.Epoch)
 
-	args.Storage = &mock.ChainStorerStub{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+	args.Storage = &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 			return &storageStubs.StorerStub{
 				GetCalled: func(key []byte) (bytes []byte, err error) {
 					return []byte("hash"), nil
@@ -564,7 +541,7 @@ func TestTrigger_RevertStateToBlockBehindEpochStartNoBlockInAnEpoch(t *testing.T
 				RemoveCalled: func(key []byte) error {
 					return nil
 				},
-			}
+			}, nil
 		},
 	}
 	et, _ := NewEpochStartTrigger(args)
@@ -628,4 +605,122 @@ func TestTrigger_ReceivedHeaderChangeEpochFinalityAttestingRound(t *testing.T) {
 	hash103, _ := core.CalculateHash(args.Marshalizer, args.Hasher, header102)
 	epochStartTrigger.receivedMetaBlock(header103, hash103)
 	require.Equal(t, uint64(102), epochStartTrigger.EpochFinalityAttestingRound())
+}
+
+func TestTrigger_ClearMissingValidatorsInfoMapShouldWork(t *testing.T) {
+	t.Parallel()
+
+	args := createMockShardEpochStartTriggerArguments()
+	epochStartTrigger, _ := NewEpochStartTrigger(args)
+
+	epochStartTrigger.mutMissingValidatorsInfo.Lock()
+	epochStartTrigger.mapMissingValidatorsInfo["a"] = 0
+	epochStartTrigger.mapMissingValidatorsInfo["b"] = 0
+	epochStartTrigger.mapMissingValidatorsInfo["c"] = 1
+	epochStartTrigger.mapMissingValidatorsInfo["d"] = 1
+	epochStartTrigger.mutMissingValidatorsInfo.Unlock()
+
+	epochStartTrigger.mutMissingValidatorsInfo.RLock()
+	numMissingValidatorsInfo := len(epochStartTrigger.mapMissingValidatorsInfo)
+	epochStartTrigger.mutMissingValidatorsInfo.RUnlock()
+	assert.Equal(t, 4, numMissingValidatorsInfo)
+
+	epochStartTrigger.clearMissingValidatorsInfoMap(0)
+
+	epochStartTrigger.mutMissingValidatorsInfo.RLock()
+	numMissingValidatorsInfo = len(epochStartTrigger.mapMissingValidatorsInfo)
+	epochStartTrigger.mutMissingValidatorsInfo.RUnlock()
+	assert.Equal(t, 2, numMissingValidatorsInfo)
+
+	assert.Equal(t, uint32(1), epochStartTrigger.mapMissingValidatorsInfo["c"])
+	assert.Equal(t, uint32(1), epochStartTrigger.mapMissingValidatorsInfo["d"])
+}
+
+func TestTrigger_UpdateMissingValidatorsInfo(t *testing.T) {
+	t.Parallel()
+
+	t.Run("update missing validators when there are no missing validators", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockShardEpochStartTriggerArguments()
+		epochStartTrigger, _ := NewEpochStartTrigger(args)
+
+		epochStartTrigger.updateMissingValidatorsInfo()
+
+		epochStartTrigger.mutMissingValidatorsInfo.RLock()
+		assert.Equal(t, 0, len(epochStartTrigger.mapMissingValidatorsInfo))
+		epochStartTrigger.mutMissingValidatorsInfo.RUnlock()
+	})
+
+	t.Run("update missing validators when there are missing validators", func(t *testing.T) {
+		t.Parallel()
+
+		svi1 := &state.ShardValidatorInfo{PublicKey: []byte("x")}
+		svi2 := &state.ShardValidatorInfo{PublicKey: []byte("y")}
+
+		args := createMockShardEpochStartTriggerArguments()
+
+		args.DataPool = &dataRetrieverMock.PoolsHolderStub{
+			HeadersCalled: func() dataRetriever.HeadersPool {
+				return &mock.HeadersCacherStub{}
+			},
+			MiniBlocksCalled: func() storage.Cacher {
+				return testscommon.NewCacherStub()
+			},
+			CurrEpochValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
+				return &vic.ValidatorInfoCacherStub{}
+			},
+			ValidatorsInfoCalled: func() dataRetriever.ShardedDataCacherNotifier {
+				return &testscommon.ShardedDataStub{
+					SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
+						if bytes.Equal(key, []byte("a")) {
+							return svi1, true
+						}
+						if bytes.Equal(key, []byte("b")) {
+							return svi2, true
+						}
+
+						return nil, false
+					},
+				}
+			},
+		}
+
+		epochStartTrigger, _ := NewEpochStartTrigger(args)
+
+		epochStartTrigger.mutMissingValidatorsInfo.Lock()
+		epochStartTrigger.mapMissingValidatorsInfo["a"] = 1
+		epochStartTrigger.mapMissingValidatorsInfo["b"] = 1
+		epochStartTrigger.mapMissingValidatorsInfo["c"] = 1
+		epochStartTrigger.mutMissingValidatorsInfo.Unlock()
+
+		epochStartTrigger.updateMissingValidatorsInfo()
+
+		epochStartTrigger.mutMissingValidatorsInfo.RLock()
+		assert.Equal(t, 1, len(epochStartTrigger.mapMissingValidatorsInfo))
+		assert.Equal(t, uint32(1), epochStartTrigger.mapMissingValidatorsInfo["c"])
+		epochStartTrigger.mutMissingValidatorsInfo.RUnlock()
+	})
+}
+
+func TestTrigger_AddMissingValidatorsInfo(t *testing.T) {
+	t.Parallel()
+
+	args := createMockShardEpochStartTriggerArguments()
+	epochStartTrigger, _ := NewEpochStartTrigger(args)
+
+	missingValidatorsInfoHashes := [][]byte{
+		[]byte("a"),
+		[]byte("b"),
+		[]byte("c"),
+	}
+
+	epochStartTrigger.addMissingValidatorsInfo(1, missingValidatorsInfoHashes)
+
+	epochStartTrigger.mutMissingValidatorsInfo.RLock()
+	assert.Equal(t, 3, len(epochStartTrigger.mapMissingValidatorsInfo))
+	assert.Equal(t, uint32(1), epochStartTrigger.mapMissingValidatorsInfo["a"])
+	assert.Equal(t, uint32(1), epochStartTrigger.mapMissingValidatorsInfo["b"])
+	assert.Equal(t, uint32(1), epochStartTrigger.mapMissingValidatorsInfo["c"])
+	epochStartTrigger.mutMissingValidatorsInfo.RUnlock()
 }
