@@ -3,16 +3,10 @@ module github.com/ElrondNetwork/elrond-go
 go 1.15
 
 require (
-<<<<<<< HEAD
-	github.com/ElrondNetwork/arwen-wasm-vm/v1_2 v1.2.41
-	github.com/ElrondNetwork/arwen-wasm-vm/v1_3 v1.3.41
-	github.com/ElrondNetwork/arwen-wasm-vm/v1_4 v1.4.58
-	github.com/ElrondNetwork/arwen-wasm-vm/v1_5 v1.5.0
-=======
 	github.com/ElrondNetwork/arwen-wasm-vm/v1_2 v1.2.42-0.20220729115258-b9f2fb2f6568
 	github.com/ElrondNetwork/arwen-wasm-vm/v1_3 v1.3.42-0.20220729115131-85ecca868e90
 	github.com/ElrondNetwork/arwen-wasm-vm/v1_4 v1.4.59-0.20220729115431-a6c93119bdda
->>>>>>> rc/v1.4.0
+	github.com/ElrondNetwork/arwen-wasm-vm/v1_5 v1.5.0
 	github.com/ElrondNetwork/concurrent-map v0.1.3
 	github.com/ElrondNetwork/covalent-indexer-go v1.0.6
 	github.com/ElrondNetwork/elastic-indexer-go v1.2.39
@@ -65,4 +59,4 @@ replace github.com/ElrondNetwork/arwen-wasm-vm/v1_4 v1.4.59-0.20220729115431-a6c
 
 replace github.com/ElrondNetwork/arwen-wasm-vm/v1_5 v1.5.0 => github.com/ElrondNetwork/arwen-wasm-vm v1.5.1-0.20220823135210-f1562f252102
 
-replace github.com/ElrondNetwork/elrond-vm-common v1.3.14 => /home/bogdan/Elrond/elrond-vm-common
+replace github.com/ElrondNetwork/elrond-vm-common v1.3.16 => github.com/ElrondNetwork/elrond-vm-common v1.3.15-0.20220801094847-731ef3a96f6b
