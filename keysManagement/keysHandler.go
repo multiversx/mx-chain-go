@@ -43,7 +43,7 @@ func (handler *keysHandler) GetAssociatedPid(pkBytes []byte) core.PeerID {
 
 // IsOriginalPublicKeyOfTheNode returns true if the provided public key bytes are the original ones used by the node
 func (handler *keysHandler) IsOriginalPublicKeyOfTheNode(pkBytes []byte) bool {
-	return false
+	return true
 }
 
 // UpdatePublicKeyLiveness update the provided public key liveness if the provided pid is not managed by the current node

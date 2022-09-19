@@ -66,7 +66,7 @@ func (stub *KeysHandlerStub) IsOriginalPublicKeyOfTheNode(pkBytes []byte) bool {
 		return stub.IsOriginalPublicKeyOfTheNodeCalled(pkBytes)
 	}
 
-	return false
+	return true
 }
 
 // UpdatePublicKeyLiveness -

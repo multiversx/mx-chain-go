@@ -356,11 +356,12 @@ func (sr *subroundSignature) doSignatureJobForManagedKeys() bool {
 		}
 
 		if !isMultiKeyLeader {
-			numMultiKeysSignaturesSent++
 			ok := sr.createAndSendSignatureMessage(signatureShare, pkBytes)
 			if !ok {
 				return false
 			}
+
+			numMultiKeysSignaturesSent++
 		}
 
 		isLeader := idx == spos.IndexOfLeaderInConsensusGroup

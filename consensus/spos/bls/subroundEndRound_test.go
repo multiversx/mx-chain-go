@@ -944,9 +944,9 @@ func TestSubroundEndRound_getMinConsensusGroupIndexOfManagedKeys(t *testing.T) {
 	t.Parallel()
 
 	container := mock.InitConsensusCore()
-	keysHolder := &testscommon.KeysHandlerStub{}
+	keysHandler := &testscommon.KeysHandlerStub{}
 	ch := make(chan bool, 1)
-	consensusState := initConsensusStateWithKeysHandler(keysHolder)
+	consensusState := initConsensusStateWithKeysHandler(keysHandler)
 	sr, _ := spos.NewSubround(
 		bls.SrSignature,
 		bls.SrEndRound,
@@ -972,28 +972,28 @@ func TestSubroundEndRound_getMinConsensusGroupIndexOfManagedKeys(t *testing.T) {
 	)
 
 	t.Run("no managed keys from consensus group", func(t *testing.T) {
-		keysHolder.IsKeyManagedByCurrentNodeCalled = func(pkBytes []byte) bool {
+		keysHandler.IsKeyManagedByCurrentNodeCalled = func(pkBytes []byte) bool {
 			return false
 		}
 
 		assert.Equal(t, 9, srEndRound.GetMinConsensusGroupIndexOfManagedKeys())
 	})
 	t.Run("first managed key in consensus group should return 0", func(t *testing.T) {
-		keysHolder.IsKeyManagedByCurrentNodeCalled = func(pkBytes []byte) bool {
+		keysHandler.IsKeyManagedByCurrentNodeCalled = func(pkBytes []byte) bool {
 			return bytes.Equal([]byte("A"), pkBytes)
 		}
 
 		assert.Equal(t, 0, srEndRound.GetMinConsensusGroupIndexOfManagedKeys())
 	})
 	t.Run("third managed key in consensus group should return 2", func(t *testing.T) {
-		keysHolder.IsKeyManagedByCurrentNodeCalled = func(pkBytes []byte) bool {
+		keysHandler.IsKeyManagedByCurrentNodeCalled = func(pkBytes []byte) bool {
 			return bytes.Equal([]byte("C"), pkBytes)
 		}
 
 		assert.Equal(t, 2, srEndRound.GetMinConsensusGroupIndexOfManagedKeys())
 	})
 	t.Run("last managed key in consensus group should return 8", func(t *testing.T) {
-		keysHolder.IsKeyManagedByCurrentNodeCalled = func(pkBytes []byte) bool {
+		keysHandler.IsKeyManagedByCurrentNodeCalled = func(pkBytes []byte) bool {
 			return bytes.Equal([]byte("I"), pkBytes)
 		}
 

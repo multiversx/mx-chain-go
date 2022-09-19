@@ -510,7 +510,6 @@ func TestConsensusState_IsMultiKeyLeaderInCurrentRound(t *testing.T) {
 
 	keysHandler := &testscommon.KeysHandlerStub{}
 	cns := internalInitConsensusStateWithKeysHandler(keysHandler)
-	// managedKey := []byte("managed key")
 	t.Run("no managed keys from consensus group should return false", func(t *testing.T) {
 		keysHandler.IsKeyManagedByCurrentNodeCalled = func(pkBytes []byte) bool {
 			return false

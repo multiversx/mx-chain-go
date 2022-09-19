@@ -265,7 +265,6 @@ func TestCommonMessenger_broadcast(t *testing.T) {
 		countersBroadcast = make(map[string]int)
 		mutCounters.Unlock()
 
-		pkBytesProvided := []byte("public key")
 		cm, _ := broadcast.NewCommonMessenger(
 			marshallerMock,
 			messengerMock,
@@ -273,12 +272,12 @@ func TestCommonMessenger_broadcast(t *testing.T) {
 			peerSigHandler,
 			&testscommon.KeysHandlerStub{
 				IsOriginalPublicKeyOfTheNodeCalled: func(pkBytes []byte) bool {
-					return bytes.Equal(pkBytesProvided, pkBytes)
+					return bytes.Equal(nodePkBytes, pkBytes)
 				},
 			},
 		)
 
-		cm.Broadcast(testTopic, []byte("data"), pkBytesProvided)
+		cm.Broadcast(testTopic, []byte("data"), nodePkBytes)
 
 		mutCounters.Lock()
 		assert.Equal(t, 1, countersBroadcast[broadcastMethodPrefix+testTopic])
@@ -309,7 +308,7 @@ func TestCommonMessenger_broadcast(t *testing.T) {
 		assert.Equal(t, 0, countersBroadcast[broadcastMethodPrefix+testTopic])
 		mutCounters.Unlock()
 	})
-	t.Run("keys holder fails", func(t *testing.T) {
+	t.Run("managed key and the keys handler fails", func(t *testing.T) {
 		mutCounters.Lock()
 		countersBroadcast = make(map[string]int)
 		mutCounters.Unlock()
@@ -322,6 +321,9 @@ func TestCommonMessenger_broadcast(t *testing.T) {
 			&testscommon.KeysHandlerStub{
 				GetP2PIdentityCalled: func(pkBytes []byte) ([]byte, core.PeerID, error) {
 					return nil, "", expectedErr
+				},
+				IsOriginalPublicKeyOfTheNodeCalled: func(pkBytes []byte) bool {
+					return false
 				},
 			},
 		)
