@@ -3,10 +3,6 @@ package integrationTests
 import (
 	"fmt"
 
-<<<<<<< HEAD
-	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/v1_5/config"
-=======
->>>>>>> rc/v1.4.0
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
