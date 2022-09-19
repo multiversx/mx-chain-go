@@ -125,7 +125,7 @@ VERSION:
 	log = logger.GetOrCreate("keygenerator")
 
 	validatorPubKeyConverter, _ = pubkeyConverter.NewHexPubkeyConverter(blsPubkeyLen)
-	p2pPubKeyConverter, _       = pubkeyConverter.NewHexPubkeyConverter(blsPubkeyLen)
+	p2pPubKeyConverter          = NewP2pConverter()
 	walletPubKeyConverter, _    = pubkeyConverter.NewBech32PubkeyConverter(txSignPubkeyLen, log)
 )
 

@@ -272,7 +272,7 @@ func createP2PPrivKey(p2pPrivKeyBytes []byte) (libp2pCrypto.PrivKey, error) {
 		return nil, err
 	}
 
-	log.Info("createP2PPrivKey: using an already existing private key for p2p signing")
+	log.Info("createP2PPrivKey: using the provided private key for p2p signing")
 
 	return prvKey, nil
 }
