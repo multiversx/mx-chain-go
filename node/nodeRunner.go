@@ -267,7 +267,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	}
 
 	log.Debug("creating network components")
-	managedNetworkComponents, err := nr.CreateManagedNetworkComponents(managedCoreComponents, managedCryptoComponents)
+	managedNetworkComponents, err := nr.CreateManagedNetworkComponents(managedCoreComponents)
 	if err != nil {
 		return true, err
 	}
@@ -1215,7 +1215,6 @@ func (nr *nodeRunner) CreateManagedBootstrapComponents(
 // CreateManagedNetworkComponents is the managed network components factory
 func (nr *nodeRunner) CreateManagedNetworkComponents(
 	coreComponents mainFactory.CoreComponentsHolder,
-	cryptoComponents mainFactory.CryptoComponentsHandler,
 ) (mainFactory.NetworkComponentsHandler, error) {
 	decodedPreferredPeers, err := decodePreferredPeers(*nr.configs.PreferencesConfig, coreComponents.ValidatorPubKeyConverter())
 	if err != nil {
