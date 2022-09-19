@@ -72,7 +72,7 @@ func prepareMessengerForMatchDataReceive(messenger p2p.Messenger, matchData []by
 					return nil
 				}
 
-				fmt.Printf("%s got the message %s\n", string(matchData), messenger.ID().Pretty())
+				//fmt.Printf("%s got the message %s\n", string(matchData), messenger.ID().Pretty())
 				wg.Done()
 
 				return nil
