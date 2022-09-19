@@ -57,6 +57,6 @@ replace github.com/ElrondNetwork/arwen-wasm-vm/v1_3 v1.3.42-0.20220729115131-85e
 
 replace github.com/ElrondNetwork/arwen-wasm-vm/v1_4 v1.4.59-0.20220729115431-a6c93119bdda => github.com/ElrondNetwork/arwen-wasm-vm v1.4.59-0.20220729115431-a6c93119bdda
 
-replace github.com/ElrondNetwork/arwen-wasm-vm/v1_5 v1.5.0 => github.com/ElrondNetwork/arwen-wasm-vm v1.5.1-0.20220823135210-f1562f252102
+replace github.com/ElrondNetwork/arwen-wasm-vm/v1_5 v1.5.0 => github.com/ElrondNetwork/arwen-wasm-vm v1.5.1-0.20220824142748-983567b894d4
 
 replace github.com/ElrondNetwork/elrond-vm-common v1.3.16 => github.com/ElrondNetwork/elrond-vm-common v1.3.17-0.20220919101133-149c0edcc821
