@@ -12,7 +12,6 @@ import (
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl"
-	mclsig "github.com/ElrondNetwork/elrond-go-crypto/signing/mcl/singlesig"
 	"github.com/ElrondNetwork/elrond-go/common/enablers"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -116,7 +115,7 @@ func (tP2pNode *TestP2PNode) initStorage() {
 }
 
 func (tP2pNode *TestP2PNode) initCrypto() {
-	tP2pNode.SingleSigner = &mclsig.BlsSingleSigner{}
+	tP2pNode.SingleSigner = TestSingleBlsSigner
 	suite := mcl.NewSuiteBLS12()
 	tP2pNode.KeyGen = signing.NewKeyGenerator(suite)
 }
