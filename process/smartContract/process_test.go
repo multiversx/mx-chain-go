@@ -2801,9 +2801,9 @@ func TestScProcessor_CreateCrossShardTransactionsWithAsyncCalls(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, len(outputAccounts), len(scTxs))
 	require.True(t, createdAsyncSCR)
+	lastScTx := scTxs[len(scTxs)-1].(*smartContractResult.SmartContractResult)
 
 	t.Run("backwards compatibility", func(t *testing.T) {
-		lastScTx := scTxs[len(scTxs)-1].(*smartContractResult.SmartContractResult)
 		require.Equal(t, vmData.AsynchronousCallBack, lastScTx.CallType)
 		require.Equal(t, []byte(nil), lastScTx.Data)
 	})
@@ -2813,9 +2813,12 @@ func TestScProcessor_CreateCrossShardTransactionsWithAsyncCalls(t *testing.T) {
 		},
 	)
 
-	createdAsyncSCR, scTxs, err = sc.processSCOutputAccounts(&vmcommon.VMOutput{GasRemaining: 1000}, vmData.AsynchronousCall, outputAccounts, tx, txHash)
+	_, scTxs, err = sc.processSCOutputAccounts(&vmcommon.VMOutput{GasRemaining: 1000}, vmData.AsynchronousCall, outputAccounts, tx, txHash)
+	require.Nil(t, err)
+	require.Equal(t, len(outputAccounts), len(scTxs))
+	require.True(t, createdAsyncSCR)
+	lastScTx = scTxs[len(scTxs)-1].(*smartContractResult.SmartContractResult)
 	t.Run("fix enabled, data field is correctly populated", func(t *testing.T) {
-		lastScTx := scTxs[len(scTxs)-1].(*smartContractResult.SmartContractResult)
 		require.Equal(t, vmData.AsynchronousCallBack, lastScTx.CallType)
 		require.Equal(t, []byte("@"+core.ConvertToEvenHex(int(vmcommon.Ok))), lastScTx.Data)
 	})
@@ -2824,7 +2827,6 @@ func TestScProcessor_CreateCrossShardTransactionsWithAsyncCalls(t *testing.T) {
 	scTxs, err = sc.processVMOutput(&vmcommon.VMOutput{GasRemaining: 1000}, txHash, tx, vmData.AsynchronousCall, 10000)
 	require.Nil(t, err)
 	require.Equal(t, 1, len(scTxs))
-	lastScTx := scTxs[len(scTxs)-1].(*smartContractResult.SmartContractResult)
 	lastScTx = scTxs[len(scTxs)-1].(*smartContractResult.SmartContractResult)
 	require.Equal(t, vmData.AsynchronousCallBack, lastScTx.CallType)
 }
