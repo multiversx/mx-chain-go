@@ -263,7 +263,7 @@ func getP2pFromFile(ctx *cli.Context) ([]byte, error) {
 	encodedSk, _, err := keyLoader.LoadKey(p2pKeyPemFileName, skIndex)
 	if err != nil {
 		if os.IsNotExist(err) {
-			log.Info("p2p key pem file does not exist")
+			log.Debug("p2p key pem file does not exist")
 			return []byte{}, nil
 		}
 
