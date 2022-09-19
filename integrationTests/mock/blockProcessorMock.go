@@ -66,7 +66,7 @@ func (bpm *BlockProcessorMock) CommitBlock(header data.HeaderHandler, body data.
 
 // RevertCurrentBlock mocks revert of the current block
 func (bpm *BlockProcessorMock) RevertCurrentBlock() {
-	if bpm.CommitBlockCalled != nil {
+	if bpm.RevertCurrentBlockCalled != nil {
 		bpm.RevertCurrentBlockCalled()
 	}
 }
