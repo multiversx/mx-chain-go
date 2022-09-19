@@ -8,7 +8,6 @@ import (
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/ed25519"
-	ed25519SingleSig "github.com/ElrondNetwork/elrond-go-crypto/signing/ed25519/singlesig"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -92,8 +91,8 @@ func CreateProcessorNodesWithNodesCoordinator(
 			kp := ncp[shardId][i]
 
 			ownAccount := &TestWalletAccount{
-				SingleSigner:      createTestSingleSigner(),
-				BlockSingleSigner: createTestSingleSigner(),
+				SingleSigner:      TestSingleSigner,
+				BlockSingleSigner: TestSingleSigner,
 				SkTxSign:          kp.TxSignSk,
 				PkTxSign:          kp.TxSignPk,
 				PkTxSignBytes:     kp.TxSignPkBytes,
@@ -126,10 +125,6 @@ func CreateProcessorNodesWithNodesCoordinator(
 	ConnectNodes(completeNodesList)
 
 	return nodesMap, numShards
-}
-
-func createTestSingleSigner() crypto.SingleSigner {
-	return &ed25519SingleSig.Ed25519Signer{}
 }
 
 func createNodesCryptoParams(rewardsAddrsAssignments map[uint32][]uint32) (map[uint32][]*nodeKeys, uint32) {
