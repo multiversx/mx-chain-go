@@ -10,7 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
-	"github.com/ElrondNetwork/elrond-go/storage/timecache"
+	cache "github.com/ElrondNetwork/elrond-go/storage/cache"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -203,14 +203,14 @@ func TestResolverRequestHandler_RequestTransactionShouldRequest4TimesIfDifferent
 	}
 
 	timeSpan := time.Second
-	cache := timecache.NewTimeCache(timeSpan)
+	timeCache := cache.NewTimeCache(timeSpan)
 	rrh, _ := NewResolverRequestHandler(
 		&mock.ResolversFinderStub{
 			CrossShardResolverCalled: func(baseTopic string, crossShard uint32) (resolver dataRetriever.Resolver, e error) {
 				return txResolver, nil
 			},
 		},
-		cache,
+		timeCache,
 		&mock.WhiteListHandlerStub{},
 		1,
 		0,

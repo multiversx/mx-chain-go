@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/errors"
+	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -24,7 +25,7 @@ func TestIsClosingError(t *testing.T) {
 	t.Run("DB closed error should return true", func(t *testing.T) {
 		t.Parallel()
 
-		assert.True(t, errors.IsClosingError(fmt.Errorf("%w random string", errors.ErrDBIsClosed)))
+		assert.True(t, errors.IsClosingError(fmt.Errorf("%w random string", storage.ErrDBIsClosed)))
 	})
 	t.Run("contains 'DB is closed' should return true", func(t *testing.T) {
 		t.Parallel()
