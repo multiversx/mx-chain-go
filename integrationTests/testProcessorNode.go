@@ -28,6 +28,7 @@ import (
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/ed25519"
+	ed25519SingleSig "github.com/ElrondNetwork/elrond-go-crypto/signing/ed25519/singlesig"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl"
 	mclsig "github.com/ElrondNetwork/elrond-go-crypto/signing/mcl/singlesig"
 	nodeFactory "github.com/ElrondNetwork/elrond-go/cmd/node/factory"
@@ -211,6 +212,12 @@ const stateCheckpointModulus = uint(100)
 
 // UnreachableEpoch defines an unreachable epoch for integration tests
 const UnreachableEpoch = uint32(1000000)
+
+// TestSingleSigner defines a Ed25519Signer
+var TestSingleSigner = &ed25519SingleSig.Ed25519Signer{}
+
+// TestSingleBlsSigner defines a BlsSingleSigner
+var TestSingleBlsSigner = &mclsig.BlsSingleSigner{}
 
 // TestKeyPair holds a pair of private/public Keys
 type TestKeyPair struct {
