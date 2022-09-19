@@ -665,6 +665,9 @@ func TestEnableEpochConfig(t *testing.T) {
 	# ESDTMetadataContinuousCleanupEnableEpoch represents the epoch when esdt metadata is automatically deleted according to inshard liquidity
 	ESDTMetadataContinuousCleanupEnableEpoch = 56
 
+    # FixAsyncCallBackArgsListEnableEpoch represents the epoch when the async callback arguments lists fix will be enabled
+    FixAsyncCallBackArgsListEnableEpoch = 57
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 44, MaxNumNodes = 2169, NodesToShufflePerShard = 80 },
@@ -748,6 +751,7 @@ func TestEnableEpochConfig(t *testing.T) {
 			ManagedCryptoAPIsEnableEpoch:                54,
 			HeartbeatDisableEpoch:                       55,
 			ESDTMetadataContinuousCleanupEnableEpoch:    56,
+			FixAsyncCallBackArgsListEnableEpoch:         57,
 		},
 		GasSchedule: GasScheduleConfig{
 			GasScheduleByEpochs: []GasScheduleByEpochs{
