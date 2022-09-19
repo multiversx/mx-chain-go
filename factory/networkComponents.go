@@ -243,10 +243,8 @@ func (ncf *networkComponentsFactory) createPeerHonestyHandler(
 }
 
 func (ncf *networkComponentsFactory) getP2pSkBytes() ([]byte, error) {
-	keyLoader := &core.KeyLoader{}
-
 	skIndex := 0
-	encodedSk, _, err := keyLoader.LoadKey(ncf.p2pKeyPemFileName, skIndex)
+	encodedSk, _, err := core.LoadSkPkFromPemFile(ncf.p2pKeyPemFileName, skIndex)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return []byte{}, nil

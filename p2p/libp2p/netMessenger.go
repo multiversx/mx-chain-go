@@ -176,7 +176,7 @@ func newNetworkMessenger(args ArgsNetworkMessenger, messageSigning messageSignin
 
 func constructNode(
 	args ArgsNetworkMessenger,
-	p2pPrivKey *libp2pCrypto.Secp256k1PrivateKey,
+	p2pPrivKey libp2pCrypto.PrivKey,
 ) (*networkMessenger, error) {
 
 	port, err := getPort(args.P2pConfig.Node.Port, checkFreePort)
@@ -226,7 +226,7 @@ func constructNode(
 
 func constructNodeWithPortRetry(
 	args ArgsNetworkMessenger,
-	p2pPrivKey *libp2pCrypto.Secp256k1PrivateKey,
+	p2pPrivKey libp2pCrypto.PrivKey,
 ) (*networkMessenger, error) {
 
 	var lastErr error
@@ -259,7 +259,7 @@ func setupExternalP2PLoggers() {
 	}
 }
 
-func createP2PPrivKey(p2pPrivKeyBytes []byte) (*libp2pCrypto.Secp256k1PrivateKey, error) {
+func createP2PPrivKey(p2pPrivKeyBytes []byte) (libp2pCrypto.PrivKey, error) {
 	if len(p2pPrivKeyBytes) == 0 {
 		randReader := cryptoRand.Reader
 		prvKey, _ := ecdsa.GenerateKey(btcec.S256(), randReader)
@@ -274,9 +274,7 @@ func createP2PPrivKey(p2pPrivKeyBytes []byte) (*libp2pCrypto.Secp256k1PrivateKey
 
 	log.Warn("createP2PPrivKey: using an already existing privary key for p2p signing")
 
-	p2pPrivKey := prvKey.(*libp2pCrypto.Secp256k1PrivateKey)
-
-	return p2pPrivKey, nil
+	return prvKey, nil
 }
 
 func addComponentsToNode(

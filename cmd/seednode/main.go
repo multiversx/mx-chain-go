@@ -257,10 +257,8 @@ func loadMainConfig(filepath string) (*config.Config, error) {
 func getP2pFromFile(ctx *cli.Context) ([]byte, error) {
 	p2pKeyPemFileName := ctx.GlobalString(p2pKeyPemFile.Name)
 
-	keyLoader := &core.KeyLoader{}
-
 	skIndex := 0
-	encodedSk, _, err := keyLoader.LoadKey(p2pKeyPemFileName, skIndex)
+	encodedSk, _, err := core.LoadSkPkFromPemFile(p2pKeyPemFileName, skIndex)
 	if err != nil {
 		if os.IsNotExist(err) {
 			log.Debug("p2p key pem file does not exist")
