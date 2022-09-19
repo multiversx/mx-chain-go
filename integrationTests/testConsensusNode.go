@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/hashing/blake2b"
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
+	"github.com/ElrondNetwork/elrond-go-storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus/round"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -30,9 +31,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
-	"github.com/ElrondNetwork/elrond-go/storage/timecache"
+	"github.com/ElrondNetwork/elrond-go/storage/cache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
@@ -133,7 +132,7 @@ func (tcn *TestConsensusNode) initNode(
 
 	testHasher := createHasher(consensusType)
 	epochStartRegistrationHandler := notifier.NewEpochStartSubscriptionHandler()
-	consensusCache, _ := lrucache.NewCache(10000)
+	consensusCache, _ := cache.NewLRUCache(10000)
 	pkBytes, _ := tcn.NodeKeys.Pk.ToByteArray()
 
 	tcn.initNodesCoordinator(consensusSize, testHasher, epochStartRegistrationHandler, eligibleMap, waitingMap, pkBytes, consensusCache)
@@ -173,7 +172,7 @@ func (tcn *TestConsensusNode) initNode(
 
 	forkDetector, _ := syncFork.NewShardForkDetector(
 		roundHandler,
-		timecache.NewTimeCache(time.Second),
+		cache.NewTimeCache(time.Second),
 		&mock.BlockTrackerStub{},
 		0,
 	)
