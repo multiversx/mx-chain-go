@@ -10,6 +10,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	vmData "github.com/ElrondNetwork/elrond-go-core/data/vm"
@@ -2749,6 +2750,8 @@ func TestScProcessor_CreateCrossShardTransactionsWithAsyncCalls(t *testing.T) {
 	}
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
 	arguments := createMockSmartContractProcessorArguments()
+	arguments.EpochNotifier = forking.NewGenericEpochNotifier()
+	arguments.EnableEpochs.FixAsyncCallBackArgsListEnableEpoch = 1
 	arguments.AccountsDB = accountsDB
 	arguments.ShardCoordinator = shardCoordinator
 	sc, err := NewSmartContractProcessor(arguments)
@@ -2797,9 +2800,27 @@ func TestScProcessor_CreateCrossShardTransactionsWithAsyncCalls(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, len(outputAccounts), len(scTxs))
 	require.True(t, createdAsyncSCR)
-
 	lastScTx := scTxs[len(scTxs)-1].(*smartContractResult.SmartContractResult)
-	require.Equal(t, vmData.AsynchronousCallBack, lastScTx.CallType)
+
+	t.Run("backwards compatibility", func(t *testing.T) {
+		require.Equal(t, vmData.AsynchronousCallBack, lastScTx.CallType)
+		require.Equal(t, []byte(nil), lastScTx.Data)
+	})
+	arguments.EpochNotifier.CheckEpoch(
+		&block.Header{
+			Epoch: 1,
+		},
+	)
+
+	_, scTxs, err = sc.processSCOutputAccounts(&vmcommon.VMOutput{GasRemaining: 1000}, vmData.AsynchronousCall, outputAccounts, tx, txHash)
+	require.Nil(t, err)
+	require.Equal(t, len(outputAccounts), len(scTxs))
+	require.True(t, createdAsyncSCR)
+	lastScTx = scTxs[len(scTxs)-1].(*smartContractResult.SmartContractResult)
+	t.Run("fix enabled, data field is correctly populated", func(t *testing.T) {
+		require.Equal(t, vmData.AsynchronousCallBack, lastScTx.CallType)
+		require.Equal(t, []byte("@"+core.ConvertToEvenHex(int(vmcommon.Ok))), lastScTx.Data)
+	})
 
 	tx.Value = big.NewInt(0)
 	scTxs, err = sc.processVMOutput(&vmcommon.VMOutput{GasRemaining: 1000}, txHash, tx, vmData.AsynchronousCall, 10000)
