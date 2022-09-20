@@ -22,7 +22,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
@@ -1100,11 +1100,11 @@ func TestBlockChainHookImpl_SaveCompiledCode(t *testing.T) {
 		args.ConfigSCStorage = config.StorageConfig{
 			Cache: config.CacheConfig{
 				Capacity: 10,
-				Type:     string(storageUnit.LRUCache),
+				Type:     string(storageunit.LRUCache),
 			},
 			DB: config.DBConfig{
 				FilePath:     "test1",
-				Type:         string(storageUnit.MemoryDB),
+				Type:         string(storageunit.MemoryDB),
 				MaxBatchSize: 1,
 				MaxOpenFiles: 10,
 			},
@@ -1137,11 +1137,11 @@ func TestBlockChainHookImpl_SaveCompiledCode(t *testing.T) {
 		args.ConfigSCStorage = config.StorageConfig{
 			Cache: config.CacheConfig{
 				Capacity: 10,
-				Type:     string(storageUnit.LRUCache),
+				Type:     string(storageunit.LRUCache),
 			},
 			DB: config.DBConfig{
 				FilePath:     "test2",
-				Type:         string(storageUnit.MemoryDB),
+				Type:         string(storageunit.MemoryDB),
 				MaxBatchSize: 1,
 				MaxOpenFiles: 10,
 			},

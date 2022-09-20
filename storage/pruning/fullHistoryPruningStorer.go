@@ -7,7 +7,7 @@ import (
 
 	storageCore "github.com/ElrondNetwork/elrond-go-core/storage"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
+	"github.com/ElrondNetwork/elrond-go/storage/cache"
 )
 
 // FullHistoryPruningStorer represents a storer for full history nodes
@@ -60,7 +60,7 @@ func initFullHistoryPruningStorer(args *FullHistoryStorerArgs, shardId string) (
 		args:          args.StorerArgs,
 		shardId:       shardId,
 	}
-	fhps.oldEpochsActivePersistersCache, err = lrucache.NewCacheWithEviction(int(args.NumOfOldActivePersisters), fhps.onEvicted)
+	fhps.oldEpochsActivePersistersCache, err = cache.NewLRUCacheWithEviction(int(args.NumOfOldActivePersisters), fhps.onEvicted)
 	if err != nil {
 		return nil, err
 	}
