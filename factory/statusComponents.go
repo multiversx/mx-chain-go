@@ -243,14 +243,15 @@ func (scf *statusComponentsFactory) makeElasticIndexerArgs() *indexerFactory.Arg
 func (scf *statusComponentsFactory) makeEventNotifierArgs() *outportDriverFactory.EventNotifierFactoryArgs {
 	eventNotifierConfig := scf.externalConfig.EventNotifierConnector
 	return &outportDriverFactory.EventNotifierFactoryArgs{
-		Enabled:          eventNotifierConfig.Enabled,
-		UseAuthorization: eventNotifierConfig.UseAuthorization,
-		ProxyUrl:         eventNotifierConfig.ProxyUrl,
-		Username:         eventNotifierConfig.Username,
-		Password:         eventNotifierConfig.Password,
-		Marshaller:       scf.coreComponents.InternalMarshalizer(),
-		Hasher:           scf.coreComponents.Hasher(),
-		PubKeyConverter:  scf.coreComponents.AddressPubKeyConverter(),
+		Enabled:           eventNotifierConfig.Enabled,
+		UseAuthorization:  eventNotifierConfig.UseAuthorization,
+		ProxyUrl:          eventNotifierConfig.ProxyUrl,
+		Username:          eventNotifierConfig.Username,
+		Password:          eventNotifierConfig.Password,
+		RequestTimeoutSec: eventNotifierConfig.RequestTimeoutSec,
+		Marshaller:        scf.coreComponents.InternalMarshalizer(),
+		Hasher:            scf.coreComponents.Hasher(),
+		PubKeyConverter:   scf.coreComponents.AddressPubKeyConverter(),
 	}
 }
 
