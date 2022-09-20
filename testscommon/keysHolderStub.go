@@ -14,8 +14,8 @@ type KeysHolderStub struct {
 	GetP2PIdentityCalled                         func(pkBytes []byte) ([]byte, core.PeerID, error)
 	GetMachineIDCalled                           func(pkBytes []byte) (string, error)
 	GetNameAndIdentityCalled                     func(pkBytes []byte) (string, string, error)
-	IncrementRoundsWithoutReceivedMessagesCalled func(pkBytes []byte) error
-	ResetRoundsWithoutReceivedMessagesCalled     func(pkBytes []byte) error
+	IncrementRoundsWithoutReceivedMessagesCalled func(pkBytes []byte)
+	ResetRoundsWithoutReceivedMessagesCalled     func(pkBytes []byte)
 	GetManagedKeysByCurrentNodeCalled            func() map[string]crypto.PrivateKey
 	IsKeyManagedByCurrentNodeCalled              func(pkBytes []byte) bool
 	IsKeyRegisteredCalled                        func(pkBytes []byte) bool
@@ -67,19 +67,17 @@ func (stub *KeysHolderStub) GetNameAndIdentity(pkBytes []byte) (string, string, 
 }
 
 // IncrementRoundsWithoutReceivedMessages -
-func (stub *KeysHolderStub) IncrementRoundsWithoutReceivedMessages(pkBytes []byte) error {
+func (stub *KeysHolderStub) IncrementRoundsWithoutReceivedMessages(pkBytes []byte) {
 	if stub.IncrementRoundsWithoutReceivedMessagesCalled != nil {
-		return stub.IncrementRoundsWithoutReceivedMessagesCalled(pkBytes)
+		stub.IncrementRoundsWithoutReceivedMessagesCalled(pkBytes)
 	}
-	return nil
 }
 
 // ResetRoundsWithoutReceivedMessages -
-func (stub *KeysHolderStub) ResetRoundsWithoutReceivedMessages(pkBytes []byte) error {
+func (stub *KeysHolderStub) ResetRoundsWithoutReceivedMessages(pkBytes []byte) {
 	if stub.ResetRoundsWithoutReceivedMessagesCalled != nil {
-		return stub.ResetRoundsWithoutReceivedMessagesCalled(pkBytes)
+		stub.ResetRoundsWithoutReceivedMessagesCalled(pkBytes)
 	}
-	return nil
 }
 
 // GetManagedKeysByCurrentNode -

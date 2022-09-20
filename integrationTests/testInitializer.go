@@ -1114,7 +1114,8 @@ func ProposeBlock(nodes []*TestProcessorNode, idxProposers []int, round uint64, 
 
 		body, header, _ := n.ProposeBlock(round, nonce)
 		n.WhiteListBody(nodes, body)
-		n.BroadcastBlock(body, header)
+		pk := n.NodeKeys.Pk
+		n.BroadcastBlock(body, header, pk)
 		n.CommitBlock(body, header)
 	}
 
@@ -1975,7 +1976,8 @@ func ProposeBlockSignalsEmptyBlock(
 	log.Info("Proposing block without commit...")
 
 	body, header, txHashes := node.ProposeBlock(round, nonce)
-	node.BroadcastBlock(body, header)
+	pk := node.NodeKeys.Pk
+	node.BroadcastBlock(body, header, pk)
 	isEmptyBlock := len(txHashes) == 0
 
 	log.Info("Delaying for disseminating headers and miniblocks...")

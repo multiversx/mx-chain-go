@@ -293,6 +293,11 @@ func (sr *subroundEndRound) IsOutOfTime() bool {
 	return sr.isOutOfTime()
 }
 
+// GetMinConsensusGroupIndexOfManagedKeys -
+func (sr *subroundEndRound) GetMinConsensusGroupIndexOfManagedKeys() int {
+	return sr.getMinConsensusGroupIndexOfManagedKeys()
+}
+
 // GetStringValue gets the name of the message type
 func GetStringValue(messageType consensus.MessageType) string {
 	return getStringValue(messageType)

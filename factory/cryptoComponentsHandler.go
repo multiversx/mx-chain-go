@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-crypto"
+	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/vm"
@@ -269,7 +270,8 @@ func (mcc *managedCryptoComponents) MessageSignVerifier() vm.MessageSignVerifier
 	return mcc.cryptoComponents.messageSignVerifier
 }
 
-// KeysHolder returns the virtual keys holder
+// KeysHolder returns the managed keys holder
+// TODO (next PR) rename this to ManagedKeysHolder
 func (mcc *managedCryptoComponents) KeysHolder() heartbeat.KeysHolder {
 	mcc.mutCryptoComponents.RLock()
 	defer mcc.mutCryptoComponents.RUnlock()
@@ -279,6 +281,18 @@ func (mcc *managedCryptoComponents) KeysHolder() heartbeat.KeysHolder {
 	}
 
 	return mcc.cryptoComponents.keysHolder
+}
+
+// KeysHandler returns the handler that manages keys either in single sign mode or multi key mode
+func (mcc *managedCryptoComponents) KeysHandler() consensus.KeysHandler {
+	mcc.mutCryptoComponents.RLock()
+	defer mcc.mutCryptoComponents.RUnlock()
+
+	if mcc.cryptoComponents == nil {
+		return nil
+	}
+
+	return mcc.cryptoComponents.keysHandler
 }
 
 // Clone creates a shallow clone of a managedCryptoComponents
@@ -294,6 +308,7 @@ func (mcc *managedCryptoComponents) Clone() interface{} {
 			txSignKeyGen:        mcc.TxSignKeyGen(),
 			messageSignVerifier: mcc.MessageSignVerifier(),
 			keysHolder:          mcc.KeysHolder(),
+			keysHandler:         mcc.KeysHandler(),
 			cryptoParams:        mcc.cryptoParams,
 		}
 	}

@@ -164,7 +164,7 @@ func (sender *multikeyHeartbeatSender) sendMessageForKey(pkBytes []byte) error {
 		versionNumber,
 		name,
 		identity,
-		uint32(core.RegularPeer), // force all in one peers to be of type regular peers
+		uint32(core.RegularPeer), // force multi key handled peers to be of type regular peers
 		pkBytes,
 	)
 	if err != nil {

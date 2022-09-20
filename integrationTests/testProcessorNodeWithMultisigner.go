@@ -766,7 +766,8 @@ func AllShardsProposeBlock(
 
 	// propagate blocks
 	for i := range nodesMap {
-		consensusNodes[i][0].BroadcastBlock(body[i], header[i])
+		pk := consensusNodes[i][0].NodeKeys.Pk
+		consensusNodes[i][0].BroadcastBlock(body[i], header[i], pk)
 		consensusNodes[i][0].CommitBlock(body[i], header[i])
 	}
 

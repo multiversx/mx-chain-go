@@ -159,11 +159,11 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		ccf.coreComponents.Hasher(),
 		ccf.networkComponents.NetworkMessenger(),
 		ccf.processComponents.ShardCoordinator(),
-		ccf.cryptoComponents.PrivateKey(),
 		ccf.cryptoComponents.PeerSignatureHandler(),
 		ccf.dataComponents.Datapool().Headers(),
 		ccf.processComponents.InterceptorsContainer(),
 		ccf.coreComponents.AlarmScheduler(),
+		ccf.cryptoComponents.KeysHandler(),
 	)
 	if err != nil {
 		return nil, err
@@ -361,11 +361,16 @@ func (ccf *consensusComponentsFactory) createConsensusState(epoch uint32, consen
 		return nil, err
 	}
 
-	roundConsensus := spos.NewRoundConsensus(
+	roundConsensus, err := spos.NewRoundConsensus(
 		eligibleNodesPubKeys,
 		// TODO: move the consensus data from nodesSetup json to config
 		consensusGroupSize,
-		string(selfId))
+		string(selfId),
+		ccf.cryptoComponents.KeysHandler(),
+	)
+	if err != nil {
+		return nil, err
+	}
 
 	roundConsensus.ResetRoundState()
 

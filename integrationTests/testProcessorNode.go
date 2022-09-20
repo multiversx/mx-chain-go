@@ -697,11 +697,14 @@ func (tpn *TestProcessorNode) initTestNodeWithArgs(args ArgTestProcessorNode) {
 		TestHasher,
 		tpn.Messenger,
 		tpn.ShardCoordinator,
-		tpn.OwnAccount.SkTxSign,
 		tpn.OwnAccount.PeerSigHandler,
 		tpn.DataPool.Headers(),
 		tpn.InterceptorsContainer,
 		&testscommon.AlarmSchedulerStub{},
+		testscommon.NewKeysHandlerSingleSignerMock(
+			tpn.NodeKeys.Sk,
+			tpn.Messenger.ID(),
+		),
 	)
 
 	if args.WithSync {
@@ -876,11 +879,14 @@ func (tpn *TestProcessorNode) InitializeProcessors(gasMap map[string]map[string]
 		TestHasher,
 		tpn.Messenger,
 		tpn.ShardCoordinator,
-		tpn.OwnAccount.SkTxSign,
 		tpn.OwnAccount.PeerSigHandler,
 		tpn.DataPool.Headers(),
 		tpn.InterceptorsContainer,
 		&testscommon.AlarmSchedulerStub{},
+		testscommon.NewKeysHandlerSingleSignerMock(
+			tpn.NodeKeys.Sk,
+			tpn.Messenger.ID(),
+		),
 	)
 	tpn.setGenesisBlock()
 	tpn.initNode()
@@ -2455,14 +2461,16 @@ func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.Bod
 }
 
 // BroadcastBlock broadcasts the block and body to the connected peers
-func (tpn *TestProcessorNode) BroadcastBlock(body data.BodyHandler, header data.HeaderHandler) {
+func (tpn *TestProcessorNode) BroadcastBlock(body data.BodyHandler, header data.HeaderHandler, publicKey crypto.PublicKey) {
 	_ = tpn.BroadcastMessenger.BroadcastBlock(body, header)
 
 	time.Sleep(tpn.WaitTime)
 
+	pkBytes, _ := publicKey.ToByteArray()
+
 	miniBlocks, transactions, _ := tpn.BlockProcessor.MarshalizedDataToBroadcast(header, body)
-	_ = tpn.BroadcastMessenger.BroadcastMiniBlocks(miniBlocks)
-	_ = tpn.BroadcastMessenger.BroadcastTransactions(transactions)
+	_ = tpn.BroadcastMessenger.BroadcastMiniBlocks(miniBlocks, pkBytes)
+	_ = tpn.BroadcastMessenger.BroadcastTransactions(transactions, pkBytes)
 }
 
 // WhiteListBody will whitelist all miniblocks from the given body for all the given nodes
@@ -3073,6 +3081,7 @@ func GetDefaultCryptoComponents() *mock.CryptoComponentsStub {
 		BlKeyGen:        &mock.KeyGenMock{},
 		TxKeyGen:        &mock.KeyGenMock{},
 		MsgSigVerifier:  &testscommon.MessageSignVerifierMock{},
+		KeysHolderField: &testscommon.KeysHolderStub{},
 	}
 }
 

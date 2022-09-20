@@ -130,7 +130,7 @@ type WorkerHandler interface {
 	DisplayStatistics()
 	// ReceivedHeader method is a wired method through which worker will receive headers from network
 	ReceivedHeader(headerHandler data.HeaderHandler, headerHash []byte)
-	//  ResetConsensusMessages resets at the start of each round all the previous consensus messages received
+	// ResetConsensusMessages resets at the start of each round all the previous consensus messages received
 	ResetConsensusMessages()
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool

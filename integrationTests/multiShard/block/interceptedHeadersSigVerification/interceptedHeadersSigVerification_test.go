@@ -62,7 +62,8 @@ func TestInterceptedShardBlockHeaderVerifiedWithCorrectConsensusGroup(t *testing
 	header, err = fillHeaderFields(nodesMap[0][0], header, singleSigner)
 	assert.Nil(t, err)
 
-	nodesMap[0][0].BroadcastBlock(body, header)
+	pk := nodesMap[0][0].NodeKeys.Pk
+	nodesMap[0][0].BroadcastBlock(body, header, pk)
 
 	time.Sleep(broadcastDelay)
 
@@ -131,7 +132,8 @@ func TestInterceptedMetaBlockVerifiedWithCorrectConsensusGroup(t *testing.T) {
 		0,
 	)
 
-	nodesMap[core.MetachainShardId][0].BroadcastBlock(body, header)
+	pk := nodesMap[core.MetachainShardId][0].NodeKeys.Pk
+	nodesMap[core.MetachainShardId][0].BroadcastBlock(body, header, pk)
 
 	time.Sleep(broadcastDelay)
 
@@ -204,7 +206,8 @@ func TestInterceptedShardBlockHeaderWithLeaderSignatureAndRandSeedChecks(t *test
 	header, err = fillHeaderFields(nodeToSendFrom, header, singleSigner)
 	assert.Nil(t, err)
 
-	nodeToSendFrom.BroadcastBlock(body, header)
+	pk := nodeToSendFrom.NodeKeys.Pk
+	nodeToSendFrom.BroadcastBlock(body, header, pk)
 
 	time.Sleep(broadcastDelay)
 
@@ -268,7 +271,8 @@ func TestInterceptedShardHeaderBlockWithWrongPreviousRandSeedShouldNotBeAccepted
 	nonce := uint64(2)
 	body, header, _, _ := integrationTests.ProposeBlockWithConsensusSignature(0, nodesMap, round, nonce, wrongRandomness, 0)
 
-	nodesMap[0][0].BroadcastBlock(body, header)
+	pk := nodesMap[0][0].NodeKeys.Pk
+	nodesMap[0][0].BroadcastBlock(body, header, pk)
 
 	time.Sleep(broadcastDelay)
 

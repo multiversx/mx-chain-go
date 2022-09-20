@@ -85,7 +85,8 @@ type cryptoComponents struct {
 	blockSignKeyGen     crypto.KeyGenerator
 	txSignKeyGen        crypto.KeyGenerator
 	messageSignVerifier vm.MessageSignVerifier
-	keysHolder          heartbeat.KeysHolder
+	keysHolder          heartbeat.KeysHolder // TODO (next PR) rename this to ManagedKeysHolder
+	keysHandler         consensus.KeysHandler
 	cryptoParams
 }
 
@@ -203,6 +204,7 @@ func (ccf *cryptoComponentsFactory) Create() (*cryptoComponents, error) {
 		txSignKeyGen:        txSignKeyGen,
 		messageSignVerifier: messageSignVerifier,
 		keysHolder:          keysHolder,
+		keysHandler:         keysManagement.NewKeysHandler(),
 		cryptoParams:        *cp,
 	}, nil
 }

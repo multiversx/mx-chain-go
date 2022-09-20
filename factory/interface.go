@@ -163,6 +163,7 @@ type CryptoComponentsHolder interface {
 	TxSignKeyGen() crypto.KeyGenerator
 	MessageSignVerifier() vm.MessageSignVerifier
 	KeysHolder() heartbeat.KeysHolder
+	KeysHandler() consensus.KeysHandler
 	Clone() interface{}
 	IsInterfaceNil() bool
 }

@@ -1,24 +1,28 @@
 package broadcast_test
 
 import (
+	"bytes"
 	"sync"
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/consensus/broadcast"
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
+var nodePkBytes = []byte("node public key bytes")
+
 func createDefaultMetaChainArgs() broadcast.MetaChainMessengerArgs {
 	marshalizerMock := &mock.MarshalizerMock{}
 	messengerMock := &mock.MessengerStub{}
-	privateKeyMock := &mock.PrivateKeyMock{}
 	shardCoordinatorMock := &mock.ShardCoordinatorMock{}
 	singleSignerMock := &mock.SingleSignerMock{}
 	hasher := &hashingMocks.HasherMock{}
@@ -32,7 +36,6 @@ func createDefaultMetaChainArgs() broadcast.MetaChainMessengerArgs {
 			Marshalizer:                marshalizerMock,
 			Hasher:                     hasher,
 			Messenger:                  messengerMock,
-			PrivateKey:                 privateKeyMock,
 			ShardCoordinator:           shardCoordinatorMock,
 			PeerSignatureHandler:       peerSigHandler,
 			HeadersSubscriber:          headersSubscriber,
@@ -40,6 +43,7 @@ func createDefaultMetaChainArgs() broadcast.MetaChainMessengerArgs {
 			MaxValidatorDelayCacheSize: 2,
 			MaxDelayCacheSize:          2,
 			AlarmScheduler:             alarmScheduler,
+			KeysHandler:                &testscommon.KeysHandlerStub{},
 		},
 	}
 }
@@ -62,15 +66,6 @@ func TestMetaChainMessenger_NewMetaChainMessengerNilMessengerShouldFail(t *testi
 	assert.Equal(t, spos.ErrNilMessenger, err)
 }
 
-func TestMetaChainMessenger_NewMetaChainMessengerNilPrivateKeyShouldFail(t *testing.T) {
-	args := createDefaultMetaChainArgs()
-	args.PrivateKey = nil
-	mcm, err := broadcast.NewMetaChainMessenger(args)
-
-	assert.Nil(t, mcm)
-	assert.Equal(t, spos.ErrNilPrivateKey, err)
-}
-
 func TestMetaChainMessenger_NewMetaChainMessengerNilShardCoordinatorShouldFail(t *testing.T) {
 	args := createDefaultMetaChainArgs()
 	args.ShardCoordinator = nil
@@ -87,6 +82,15 @@ func TestMetaChainMessenger_NewMetaChainMessengerNilPeerSignatureHandlerShouldFa
 
 	assert.Nil(t, mcm)
 	assert.Equal(t, spos.ErrNilPeerSignatureHandler, err)
+}
+
+func TestMetaChainMessenger_NilKeysHandlerShouldError(t *testing.T) {
+	args := createDefaultMetaChainArgs()
+	args.KeysHandler = nil
+	mcm, err := broadcast.NewMetaChainMessenger(args)
+
+	assert.Nil(t, mcm)
+	assert.Equal(t, broadcast.ErrNilKeysHandler, err)
 }
 
 func TestMetaChainMessenger_NewMetaChainMessengerShouldWork(t *testing.T) {
@@ -135,7 +139,7 @@ func TestMetaChainMessenger_BroadcastMiniBlocksShouldWork(t *testing.T) {
 	args := createDefaultMetaChainArgs()
 	mcm, _ := broadcast.NewMetaChainMessenger(args)
 
-	err := mcm.BroadcastMiniBlocks(nil)
+	err := mcm.BroadcastMiniBlocks(nil, []byte("pk bytes"))
 	assert.Nil(t, err)
 }
 
@@ -143,7 +147,7 @@ func TestMetaChainMessenger_BroadcastTransactionsShouldWork(t *testing.T) {
 	args := createDefaultMetaChainArgs()
 	mcm, _ := broadcast.NewMetaChainMessenger(args)
 
-	err := mcm.BroadcastTransactions(nil)
+	err := mcm.BroadcastTransactions(nil, []byte("pk bytes"))
 	assert.Nil(t, err)
 }
 
@@ -151,19 +155,28 @@ func TestMetaChainMessenger_BroadcastHeaderNilHeaderShouldErr(t *testing.T) {
 	args := createDefaultMetaChainArgs()
 	mcm, _ := broadcast.NewMetaChainMessenger(args)
 
-	err := mcm.BroadcastHeader(nil)
+	err := mcm.BroadcastHeader(nil, []byte("pk bytes"))
 	assert.Equal(t, spos.ErrNilHeader, err)
 }
 
 func TestMetaChainMessenger_BroadcastHeaderOkHeaderShouldWork(t *testing.T) {
-	channelCalled := make(chan bool, 1)
+	channelBroadcastCalled := make(chan bool, 1)
+	channelBroadcastUsingPrivateKeyCalled := make(chan bool, 1)
 
 	messenger := &mock.MessengerStub{
 		BroadcastCalled: func(topic string, buff []byte) {
-			channelCalled <- true
+			channelBroadcastCalled <- true
+		},
+		BroadcastUsingPrivateKeyCalled: func(topic string, buff []byte, pid core.PeerID, skBytes []byte) {
+			channelBroadcastUsingPrivateKeyCalled <- true
 		},
 	}
 	args := createDefaultMetaChainArgs()
+	args.KeysHandler = &testscommon.KeysHandlerStub{
+		IsOriginalPublicKeyOfTheNodeCalled: func(pkBytes []byte) bool {
+			return bytes.Equal(pkBytes, nodePkBytes)
+		},
+	}
 	args.Messenger = messenger
 	mcm, _ := broadcast.NewMetaChainMessenger(args)
 
@@ -171,18 +184,35 @@ func TestMetaChainMessenger_BroadcastHeaderOkHeaderShouldWork(t *testing.T) {
 		Nonce: 10,
 	}
 
-	err := mcm.BroadcastHeader(&hdr)
-	assert.Nil(t, err)
+	t.Run("original public key of the node", func(t *testing.T) {
+		err := mcm.BroadcastHeader(&hdr, nodePkBytes)
+		assert.Nil(t, err)
 
-	wasCalled := false
-	select {
-	case <-channelCalled:
-		wasCalled = true
-	case <-time.After(time.Millisecond * 100):
-	}
+		wasCalled := false
+		select {
+		case <-channelBroadcastCalled:
+			wasCalled = true
+		case <-time.After(time.Millisecond * 100):
+		}
 
-	assert.Nil(t, err)
-	assert.True(t, wasCalled)
+		assert.Nil(t, err)
+		assert.True(t, wasCalled)
+	})
+	t.Run("managed key", func(t *testing.T) {
+		err := mcm.BroadcastHeader(&hdr, []byte("managed key"))
+		assert.Nil(t, err)
+
+		wasCalled := false
+		select {
+		case <-channelBroadcastUsingPrivateKeyCalled:
+			wasCalled = true
+		case <-time.After(time.Millisecond * 100):
+		}
+
+		assert.Nil(t, err)
+		assert.True(t, wasCalled)
+	})
+
 }
 
 func TestMetaChainMessenger_BroadcastBlockDataLeader(t *testing.T) {
@@ -192,28 +222,72 @@ func TestMetaChainMessenger_BroadcastBlockDataLeader(t *testing.T) {
 	messengerMock := &mock.MessengerStub{
 		BroadcastCalled: func(topic string, buff []byte) {
 			mutCounters.Lock()
-			countersBroadcast[topic]++
+			countersBroadcast[broadcastMethodPrefix+topic]++
+			mutCounters.Unlock()
+		},
+		BroadcastUsingPrivateKeyCalled: func(topic string, buff []byte, pid core.PeerID, skBytes []byte) {
+			mutCounters.Lock()
+			countersBroadcast[broadcastUsingPrivateKeyCalledMethodPrefix+topic]++
 			mutCounters.Unlock()
 		},
 	}
 
 	args := createDefaultMetaChainArgs()
+	args.KeysHandler = &testscommon.KeysHandlerStub{
+		IsOriginalPublicKeyOfTheNodeCalled: func(pkBytes []byte) bool {
+			return bytes.Equal(pkBytes, nodePkBytes)
+		},
+	}
 	args.Messenger = messengerMock
 	mcm, _ := broadcast.NewMetaChainMessenger(args)
 
 	miniBlocks := map[uint32][]byte{0: []byte("mbs data1"), 1: []byte("mbs data2")}
 	transactions := map[string][][]byte{"topic1": {[]byte("txdata1"), []byte("txdata2")}, "topic2": {[]byte("txdata3")}}
 
-	err := mcm.BroadcastBlockDataLeader(nil, miniBlocks, transactions)
-	require.Nil(t, err)
-	sleepTime := common.ExtraDelayBetweenBroadcastMbsAndTxs +
-		common.ExtraDelayForBroadcastBlockInfo +
-		time.Millisecond*100
-	time.Sleep(sleepTime)
+	t.Run("original public key of the node", func(t *testing.T) {
+		mutCounters.Lock()
+		countersBroadcast = make(map[string]int)
+		mutCounters.Unlock()
 
-	mutCounters.Lock()
-	defer mutCounters.Unlock()
+		err := mcm.BroadcastBlockDataLeader(nil, miniBlocks, transactions, nodePkBytes)
+		require.Nil(t, err)
+		sleepTime := common.ExtraDelayBetweenBroadcastMbsAndTxs +
+			common.ExtraDelayForBroadcastBlockInfo +
+			time.Millisecond*100
+		time.Sleep(sleepTime)
 
-	assert.Equal(t, len(miniBlocks), countersBroadcast["txBlockBodies_0"]+countersBroadcast["txBlockBodies_0_1"])
-	assert.Equal(t, len(transactions), countersBroadcast["topic1"]+countersBroadcast["topic2"])
+		mutCounters.Lock()
+		defer mutCounters.Unlock()
+
+		numBroadcast := countersBroadcast[broadcastMethodPrefix+"txBlockBodies_0"]
+		numBroadcast += countersBroadcast[broadcastMethodPrefix+"txBlockBodies_0_1"]
+		assert.Equal(t, len(miniBlocks), numBroadcast)
+
+		numBroadcast = countersBroadcast[broadcastMethodPrefix+"topic1"]
+		numBroadcast += countersBroadcast[broadcastMethodPrefix+"topic2"]
+		assert.Equal(t, len(transactions), numBroadcast)
+	})
+	t.Run("managed key", func(t *testing.T) {
+		mutCounters.Lock()
+		countersBroadcast = make(map[string]int)
+		mutCounters.Unlock()
+
+		err := mcm.BroadcastBlockDataLeader(nil, miniBlocks, transactions, []byte("pk bytes"))
+		require.Nil(t, err)
+		sleepTime := common.ExtraDelayBetweenBroadcastMbsAndTxs +
+			common.ExtraDelayForBroadcastBlockInfo +
+			time.Millisecond*100
+		time.Sleep(sleepTime)
+
+		mutCounters.Lock()
+		defer mutCounters.Unlock()
+
+		numBroadcast := countersBroadcast[broadcastUsingPrivateKeyCalledMethodPrefix+"txBlockBodies_0"]
+		numBroadcast += countersBroadcast[broadcastUsingPrivateKeyCalledMethodPrefix+"txBlockBodies_0_1"]
+		assert.Equal(t, len(miniBlocks), numBroadcast)
+
+		numBroadcast = countersBroadcast[broadcastUsingPrivateKeyCalledMethodPrefix+"topic1"]
+		numBroadcast += countersBroadcast[broadcastUsingPrivateKeyCalledMethodPrefix+"topic2"]
+		assert.Equal(t, len(transactions), numBroadcast)
+	})
 }

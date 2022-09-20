@@ -13,9 +13,6 @@ var ErrEmptyConsensusGroup = errors.New("consensusGroup is empty")
 // ErrNotFoundInConsensus is raised when self expected in consensus group but not found
 var ErrNotFoundInConsensus = errors.New("self not found in consensus group")
 
-// ErrNilPrivateKey is raised when a valid private key was expected but nil was used
-var ErrNilPrivateKey = errors.New("private key is nil")
-
 // ErrNilSignature is raised when a valid signature was expected but nil was used
 var ErrNilSignature = errors.New("signature is nil")
 
@@ -219,3 +216,6 @@ var ErrNilNodeRedundancyHandler = errors.New("nil node redundancy handler")
 
 // ErrNilScheduledProcessor signals that the provided scheduled processor is nil
 var ErrNilScheduledProcessor = errors.New("nil scheduled processor")
+
+// ErrNilKeysHandler signals that a nil keys handler was provided
+var ErrNilKeysHandler = errors.New("nil keys handler")

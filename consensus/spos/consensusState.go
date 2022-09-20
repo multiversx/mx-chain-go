@@ -5,11 +5,15 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 )
+
+// IndexOfLeaderInConsensusGroup represents the index of the leader in the consensus group
+const IndexOfLeaderInConsensusGroup = 0
 
 var log = logger.GetOrCreate("consensus/spos")
 
@@ -98,7 +102,7 @@ func (cns *ConsensusState) GetReceivedHeaders() []data.HeaderHandler {
 func (cns *ConsensusState) IsNodeLeaderInCurrentRound(node string) bool {
 	leader, err := cns.GetLeader()
 	if err != nil {
-		log.Debug("GetLeader", "error", err.Error())
+		log.Debug("IsNodeLeaderInCurrentRound.GetLeader", "error", err.Error())
 		return false
 	}
 
@@ -120,7 +124,7 @@ func (cns *ConsensusState) GetLeader() (string, error) {
 		return "", ErrEmptyConsensusGroup
 	}
 
-	return cns.consensusGroup[0], nil
+	return cns.consensusGroup[IndexOfLeaderInConsensusGroup], nil
 }
 
 // GetNextConsensusGroup gets the new consensus group for the current round based on current eligible list and a random
@@ -220,7 +224,16 @@ func (cns *ConsensusState) CanDoSubroundJob(currentSubroundId int) bool {
 		return false
 	}
 
-	if cns.IsSelfJobDone(currentSubroundId) {
+	selfJobDone := true
+	if cns.IsNodeInConsensusGroup(cns.SelfPubKey()) {
+		selfJobDone = cns.IsSelfJobDone(currentSubroundId)
+	}
+	multiKeyJobDone := true
+	if cns.IsMultiKeyInConsensusGroup() {
+		multiKeyJobDone = cns.IsMultiKeyJobDone(currentSubroundId)
+	}
+
+	if selfJobDone && multiKeyJobDone {
 		return false
 	}
 
@@ -299,4 +312,48 @@ func (cns *ConsensusState) SetProcessingBlock(processingBlock bool) {
 // GetData gets the Data of the consensusState
 func (cns *ConsensusState) GetData() []byte {
 	return cns.Data
+}
+
+// IsMultiKeyLeaderInCurrentRound method checks if one of the nodes which are controlled by this instance
+// is leader in the current round
+func (cns *ConsensusState) IsMultiKeyLeaderInCurrentRound() bool {
+	leader, err := cns.GetLeader()
+	if err != nil {
+		log.Debug("IsMultiKeyLeaderInCurrentRound.GetLeader", "error", err.Error())
+		return false
+	}
+
+	return cns.IsKeyManagedByCurrentNode([]byte(leader))
+}
+
+// IsLeaderJobDone method returns true if the leader job for the current subround is done and false otherwise
+func (cns *ConsensusState) IsLeaderJobDone(currentSubroundId int) bool {
+	leader, err := cns.GetLeader()
+	if err != nil {
+		log.Debug("GetLeader", "error", err.Error())
+		return false
+	}
+
+	return cns.IsJobDone(leader, currentSubroundId)
+}
+
+// IsMultiKeyJobDone method returns true if all the nodes controlled by this instance finished the current job for
+// the current subround and false otherwise
+func (cns *ConsensusState) IsMultiKeyJobDone(currentSubroundId int) bool {
+	for _, validator := range cns.consensusGroup {
+		if !cns.keysHandler.IsKeyManagedByCurrentNode([]byte(validator)) {
+			continue
+		}
+
+		if !cns.IsJobDone(validator, currentSubroundId) {
+			return false
+		}
+	}
+
+	return true
+}
+
+// UpdatePublicKeyLiveness will update the public key's liveness in the network
+func (cns *ConsensusState) UpdatePublicKeyLiveness(pkBytes []byte, pid core.PeerID) {
+	cns.keysHandler.UpdatePublicKeyLiveness(pkBytes, pid)
 }

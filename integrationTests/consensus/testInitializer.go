@@ -415,6 +415,11 @@ func createConsensusOnlyNode(
 		},
 	}
 
+	networkComponents := integrationTests.GetDefaultNetworkComponents()
+	networkComponents.Messenger = messenger
+	networkComponents.InputAntiFlood = &mock.NilAntifloodHandler{}
+	networkComponents.PeerHonesty = &mock.PeerHonestyHandlerStub{}
+
 	cryptoComponents := integrationTests.GetDefaultCryptoComponents()
 	cryptoComponents.PrivKey = privKey
 	cryptoComponents.PubKey = privKey.GeneratePublic()
@@ -423,6 +428,10 @@ func createConsensusOnlyNode(
 	cryptoComponents.MultiSig = testMultiSig
 	cryptoComponents.BlKeyGen = testKeyGen
 	cryptoComponents.PeerSignHandler = peerSigHandler
+	cryptoComponents.KeysHandlerField = testscommon.NewKeysHandlerSingleSignerMock(
+		cryptoComponents.PrivKey,
+		networkComponents.Messenger.ID(),
+	)
 
 	processComponents := integrationTests.GetDefaultProcessComponents()
 	processComponents.ForkDetect = forkDetector
@@ -452,11 +461,6 @@ func createConsensusOnlyNode(
 	stateComponents := integrationTests.GetDefaultStateComponents()
 	stateComponents.Accounts = accntAdapter
 	stateComponents.AccountsAPI = accntAdapter
-
-	networkComponents := integrationTests.GetDefaultNetworkComponents()
-	networkComponents.Messenger = messenger
-	networkComponents.InputAntiFlood = &mock.NilAntifloodHandler{}
-	networkComponents.PeerHonesty = &mock.PeerHonestyHandlerStub{}
 
 	n, err := node.NewNode(
 		node.WithCoreComponents(coreComponents),

@@ -974,7 +974,7 @@ func (netMes *networkMessenger) BroadcastOnChannelUsingPrivateKey(
 	go func() {
 		err := netMes.BroadcastOnChannelBlockingUsingPrivateKey(channel, topic, buff, pid, skBytes)
 		if err != nil {
-			log.Warn("p2p broadcast", "error", err.Error())
+			log.Warn("p2p broadcast using private key", "error", err.Error())
 		}
 	}()
 }
