@@ -3,6 +3,7 @@ package libp2p_test
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
 	"errors"
 	"fmt"
 	"runtime"
@@ -27,6 +28,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	pubsub "github.com/ElrondNetwork/go-libp2p-pubsub"
 	pb "github.com/ElrondNetwork/go-libp2p-pubsub/pb"
+	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/peerstore"
@@ -222,6 +224,50 @@ func TestNewNetworkMessenger_WithDeactivatedKadDiscovererShouldWork(t *testing.T
 	assert.Nil(t, err)
 
 	_ = messenger.Close()
+}
+
+func TestNewNetworkMessenger_PrivateKeyBytes(t *testing.T) {
+	t.Parallel()
+
+	t.Run("with empty private key bytes, should work", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockNetworkArgs()
+		arg.P2pPrivKeyBytes = []byte{}
+		messenger, err := libp2p.NewNetworkMessenger(arg)
+
+		assert.NotNil(t, messenger)
+		assert.Nil(t, err)
+
+		_ = messenger.Close()
+	})
+
+	t.Run("with invalid private key bytes", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockNetworkArgs()
+		arg.P2pPrivKeyBytes = []byte("invalid pk bytes")
+		messenger, err := libp2p.NewNetworkMessenger(arg)
+
+		assert.Nil(t, messenger)
+		assert.NotNil(t, err)
+	})
+
+	t.Run("valid private key bytes, should work", func(t *testing.T) {
+		t.Parallel()
+
+		pk, _, _ := crypto.GenerateSecp256k1Key(rand.Reader)
+		pkBytes, _ := pk.Raw()
+
+		arg := createMockNetworkArgs()
+		arg.P2pPrivKeyBytes = pkBytes
+		messenger, err := libp2p.NewNetworkMessenger(arg)
+
+		assert.NotNil(t, messenger)
+		assert.Nil(t, err)
+
+		_ = messenger.Close()
+	})
 }
 
 func TestNewNetworkMessenger_WithKadDiscovererListsSharderInvalidTargetConnShouldErr(t *testing.T) {

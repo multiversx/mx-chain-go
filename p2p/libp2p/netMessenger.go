@@ -262,7 +262,12 @@ func setupExternalP2PLoggers() {
 func createP2PPrivKey(p2pPrivKeyBytes []byte) (libp2pCrypto.PrivKey, error) {
 	if len(p2pPrivKeyBytes) == 0 {
 		randReader := cryptoRand.Reader
-		prvKey, _ := ecdsa.GenerateKey(btcec.S256(), randReader)
+		prvKey, err := ecdsa.GenerateKey(btcec.S256(), randReader)
+		if err != nil {
+			return nil, err
+		}
+
+		log.Info("createP2PPrivKey: generated a new private key for p2p signing")
 
 		return (*libp2pCrypto.Secp256k1PrivateKey)(prvKey), nil
 	}

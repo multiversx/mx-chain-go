@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+
 	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/peer"
 )
@@ -19,7 +21,7 @@ func (p *p2pConverter) Len() int {
 
 // Decode does nothing
 func (p *p2pConverter) Decode(humanReadable string) ([]byte, error) {
-	return nil, nil
+	return nil, fmt.Errorf("not implemented")
 }
 
 // Encode encodes a byte array representing public key as peer ID string
