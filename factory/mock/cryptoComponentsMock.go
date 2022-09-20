@@ -11,21 +11,21 @@ import (
 
 // CryptoComponentsMock -
 type CryptoComponentsMock struct {
-	PubKey           crypto.PublicKey
-	PrivKey          crypto.PrivateKey
-	PubKeyString     string
-	PrivKeyBytes     []byte
-	PubKeyBytes      []byte
-	BlockSig         crypto.SingleSigner
-	TxSig            crypto.SingleSigner
-	MultiSig         crypto.MultiSigner
-	PeerSignHandler  crypto.PeerSignatureHandler
-	BlKeyGen         crypto.KeyGenerator
-	TxKeyGen         crypto.KeyGenerator
-	MsgSigVerifier   vm.MessageSignVerifier
-	KeysHolderField  heartbeat.KeysHolder
-	KeysHandlerField consensus.KeysHandler
-	mutMultiSig      sync.RWMutex
+	PubKey                  crypto.PublicKey
+	PrivKey                 crypto.PrivateKey
+	PubKeyString            string
+	PrivKeyBytes            []byte
+	PubKeyBytes             []byte
+	BlockSig                crypto.SingleSigner
+	TxSig                   crypto.SingleSigner
+	MultiSig                crypto.MultiSigner
+	PeerSignHandler         crypto.PeerSignatureHandler
+	BlKeyGen                crypto.KeyGenerator
+	TxKeyGen                crypto.KeyGenerator
+	MsgSigVerifier          vm.MessageSignVerifier
+	ManagedPeersHolderField heartbeat.ManagedPeersHolder
+	KeysHandlerField        consensus.KeysHandler
+	mutMultiSig             sync.RWMutex
 }
 
 // PublicKey -
@@ -103,9 +103,9 @@ func (ccm *CryptoComponentsMock) MessageSignVerifier() vm.MessageSignVerifier {
 	return ccm.MsgSigVerifier
 }
 
-// KeysHolder -
-func (ccm *CryptoComponentsMock) KeysHolder() heartbeat.KeysHolder {
-	return ccm.KeysHolderField
+// ManagedPeersHolder -
+func (ccm *CryptoComponentsMock) ManagedPeersHolder() heartbeat.ManagedPeersHolder {
+	return ccm.ManagedPeersHolderField
 }
 
 // KeysHandler -
@@ -116,21 +116,21 @@ func (ccm *CryptoComponentsMock) KeysHandler() consensus.KeysHandler {
 // Clone -
 func (ccm *CryptoComponentsMock) Clone() interface{} {
 	return &CryptoComponentsMock{
-		PubKey:           ccm.PubKey,
-		PrivKey:          ccm.PrivKey,
-		PubKeyString:     ccm.PubKeyString,
-		PrivKeyBytes:     ccm.PrivKeyBytes,
-		PubKeyBytes:      ccm.PubKeyBytes,
-		BlockSig:         ccm.BlockSig,
-		TxSig:            ccm.TxSig,
-		MultiSig:         ccm.MultiSig,
-		PeerSignHandler:  ccm.PeerSignHandler,
-		BlKeyGen:         ccm.BlKeyGen,
-		TxKeyGen:         ccm.TxKeyGen,
-		MsgSigVerifier:   ccm.MsgSigVerifier,
-		KeysHolderField:  ccm.KeysHolderField,
-		KeysHandlerField: ccm.KeysHandlerField,
-		mutMultiSig:      sync.RWMutex{},
+		PubKey:                  ccm.PubKey,
+		PrivKey:                 ccm.PrivKey,
+		PubKeyString:            ccm.PubKeyString,
+		PrivKeyBytes:            ccm.PrivKeyBytes,
+		PubKeyBytes:             ccm.PubKeyBytes,
+		BlockSig:                ccm.BlockSig,
+		TxSig:                   ccm.TxSig,
+		MultiSig:                ccm.MultiSig,
+		PeerSignHandler:         ccm.PeerSignHandler,
+		BlKeyGen:                ccm.BlKeyGen,
+		TxKeyGen:                ccm.TxKeyGen,
+		MsgSigVerifier:          ccm.MsgSigVerifier,
+		ManagedPeersHolderField: ccm.ManagedPeersHolderField,
+		KeysHandlerField:        ccm.KeysHandlerField,
+		mutMultiSig:             sync.RWMutex{},
 	}
 }
 

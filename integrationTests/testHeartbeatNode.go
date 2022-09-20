@@ -416,7 +416,7 @@ func (thn *TestHeartbeatNode) initSender() {
 		HardforkTrigger:         &testscommon.HardforkTriggerStub{},
 		HardforkTriggerPubKey:   []byte(providedHardforkPubKey),
 		PeerTypeProvider:        &mock.PeerTypeProviderStub{},
-		KeysHolder:              &testscommon.KeysHolderStub{},
+		ManagedPeersHolder:      &testscommon.ManagedPeersHolderStub{},
 		ShardCoordinator:        thn.ShardCoordinator,
 
 		PeerAuthenticationTimeBetweenSends:          timeBetweenPeerAuths,

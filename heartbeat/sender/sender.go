@@ -35,7 +35,7 @@ type ArgSender struct {
 	HardforkTimeBetweenSends                    time.Duration
 	HardforkTriggerPubKey                       []byte
 	PeerTypeProvider                            heartbeat.PeerTypeProviderHandler
-	KeysHolder                                  heartbeat.KeysHolder
+	ManagedPeersHolder                          heartbeat.ManagedPeersHolder
 	PeerAuthenticationTimeBetweenChecks         time.Duration
 	ShardCoordinator                            heartbeat.ShardCoordinator
 }
@@ -69,7 +69,7 @@ func NewSender(args ArgSender) (*sender, error) {
 		hardforkTrigger:          args.HardforkTrigger,
 		hardforkTimeBetweenSends: args.HardforkTimeBetweenSends,
 		hardforkTriggerPubKey:    args.HardforkTriggerPubKey,
-		keysHolder:               args.KeysHolder,
+		managedPeersHolder:       args.ManagedPeersHolder,
 		timeBetweenChecks:        args.PeerAuthenticationTimeBetweenChecks,
 		shardCoordinator:         args.ShardCoordinator,
 	})
@@ -95,7 +95,7 @@ func NewSender(args ArgSender) (*sender, error) {
 		peerSubType:          args.PeerSubType,
 		currentBlockProvider: args.CurrentBlockProvider,
 		peerTypeProvider:     args.PeerTypeProvider,
-		keysHolder:           args.KeysHolder,
+		managedPeersHolder:   args.ManagedPeersHolder,
 		shardCoordinator:     args.ShardCoordinator,
 		nodesCoordinator:     args.NodesCoordinator,
 	})
@@ -140,7 +140,7 @@ func checkSenderArgs(args ArgSender) error {
 		hardforkTrigger:          args.HardforkTrigger,
 		hardforkTimeBetweenSends: args.HardforkTimeBetweenSends,
 		hardforkTriggerPubKey:    args.HardforkTriggerPubKey,
-		keysHolder:               args.KeysHolder,
+		managedPeersHolder:       args.ManagedPeersHolder,
 		timeBetweenChecks:        args.PeerAuthenticationTimeBetweenChecks,
 		shardCoordinator:         args.ShardCoordinator,
 	}
@@ -190,7 +190,7 @@ func checkSenderArgs(args ArgSender) error {
 		identity:             args.Identity,
 		peerSubType:          args.PeerSubType,
 		currentBlockProvider: args.CurrentBlockProvider,
-		keysHolder:           args.KeysHolder,
+		managedPeersHolder:   args.ManagedPeersHolder,
 		shardCoordinator:     args.ShardCoordinator,
 	}
 

@@ -15,13 +15,13 @@ type argPeerAuthenticationSenderFactory struct {
 	hardforkTrigger          heartbeat.HardforkTrigger
 	hardforkTimeBetweenSends time.Duration
 	hardforkTriggerPubKey    []byte
-	keysHolder               heartbeat.KeysHolder
+	managedPeersHolder       heartbeat.ManagedPeersHolder
 	timeBetweenChecks        time.Duration
 	shardCoordinator         heartbeat.ShardCoordinator
 }
 
 func createPeerAuthenticationSender(args argPeerAuthenticationSenderFactory) (peerAuthenticationSenderHandler, error) {
-	isMultikey, err := isMultikeyMode(args.privKey, args.keysHolder, args.nodesCoordinator)
+	isMultikey, err := isMultikeyMode(args.privKey, args.managedPeersHolder, args.nodesCoordinator)
 	if err != nil {
 		return nil, fmt.Errorf("%w while creating peer authentication sender", err)
 	}

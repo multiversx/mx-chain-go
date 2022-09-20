@@ -44,7 +44,7 @@ func createMockSenderArgs() ArgSender {
 		HardforkTimeBetweenSends:                    time.Second,
 		HardforkTriggerPubKey:                       providedHardforkPubKey,
 		PeerTypeProvider:                            &mock.PeerTypeProviderStub{},
-		KeysHolder:                                  &testscommon.KeysHolderStub{},
+		ManagedPeersHolder:                          &testscommon.ManagedPeersHolderStub{},
 		PeerAuthenticationTimeBetweenChecks:         time.Second,
 		ShardCoordinator:                            createShardCoordinatorInShard(0),
 	}
@@ -264,15 +264,15 @@ func TestNewSender(t *testing.T) {
 		assert.Nil(t, senderInstance)
 		assert.Equal(t, heartbeat.ErrNilPeerTypeProvider, err)
 	})
-	t.Run("nil keys holder should error", func(t *testing.T) {
+	t.Run("nil managed peers holder should error", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockSenderArgs()
-		args.KeysHolder = nil
+		args.ManagedPeersHolder = nil
 		senderInstance, err := NewSender(args)
 
 		assert.Nil(t, senderInstance)
-		assert.True(t, errors.Is(err, heartbeat.ErrNilKeysHolder))
+		assert.True(t, errors.Is(err, heartbeat.ErrNilManagedPeersHolder))
 	})
 	t.Run("invalid time between checks should error", func(t *testing.T) {
 		t.Parallel()

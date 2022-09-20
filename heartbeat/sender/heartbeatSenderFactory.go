@@ -18,13 +18,13 @@ type argHeartbeatSenderFactory struct {
 	peerSubType          core.P2PPeerSubType
 	currentBlockProvider heartbeat.CurrentBlockProvider
 	peerTypeProvider     heartbeat.PeerTypeProviderHandler
-	keysHolder           heartbeat.KeysHolder
+	managedPeersHolder   heartbeat.ManagedPeersHolder
 	shardCoordinator     process.ShardCoordinator
 	nodesCoordinator     heartbeat.NodesCoordinator
 }
 
 func createHeartbeatSender(args argHeartbeatSenderFactory) (heartbeatSenderHandler, error) {
-	isMultikey, err := isMultikeyMode(args.privKey, args.keysHolder, args.nodesCoordinator)
+	isMultikey, err := isMultikeyMode(args.privKey, args.managedPeersHolder, args.nodesCoordinator)
 	if err != nil {
 		return nil, fmt.Errorf("%w while creating heartbeat sender", err)
 	}
@@ -78,21 +78,21 @@ func createMultikeyHeartbeatSender(args argHeartbeatSenderFactory) (*multikeyHea
 		identity:             args.identity,
 		peerSubType:          args.peerSubType,
 		currentBlockProvider: args.currentBlockProvider,
-		keysHolder:           args.keysHolder,
+		managedPeersHolder:   args.managedPeersHolder,
 		shardCoordinator:     args.shardCoordinator,
 	}
 
 	return newMultikeyHeartbeatSender(argsSender)
 }
 
-func isMultikeyMode(privKey crypto.PrivateKey, keysHolder heartbeat.KeysHolder, nodesCoordinator heartbeat.NodesCoordinator) (bool, error) {
+func isMultikeyMode(privKey crypto.PrivateKey, managedPeersHolder heartbeat.ManagedPeersHolder, nodesCoordinator heartbeat.NodesCoordinator) (bool, error) {
 	pk := privKey.GeneratePublic()
 	pkBytes, err := pk.ToByteArray()
 	if err != nil {
 		return false, err
 	}
 
-	keysMap := keysHolder.GetManagedKeysByCurrentNode()
+	keysMap := managedPeersHolder.GetManagedKeysByCurrentNode()
 	isMultikey := len(keysMap) > 0
 
 	_, _, err = nodesCoordinator.GetValidatorWithPublicKey(pkBytes)

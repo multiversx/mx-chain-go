@@ -42,7 +42,7 @@ func createMockMultikeyPeerAuthenticationSenderArgs(argBase argBaseSender) argMu
 		hardforkTimeBetweenSends: time.Second,
 		hardforkTriggerPubKey:    providedHardforkPubKey,
 		timeBetweenChecks:        time.Second,
-		keysHolder: &testscommon.KeysHolderStub{
+		managedPeersHolder: &testscommon.ManagedPeersHolderStub{
 			IsKeyManagedByCurrentNodeCalled: func(pkBytes []byte) bool {
 				return true
 			},
@@ -79,7 +79,7 @@ func createMockMultikeyPeerAuthenticationSenderArgsSemiIntegrationTests(
 
 	mutTimeMap := sync.RWMutex{}
 	peerAuthTimeMap := make(map[string]time.Time)
-	keysHolder := &testscommon.KeysHolderStub{
+	managedPeersHolder := &testscommon.ManagedPeersHolderStub{
 		GetP2PIdentityCalled: func(pkBytes []byte) ([]byte, core.PeerID, error) {
 			return p2pSkPkMap[string(pkBytes)], peerIdPkMap[string(pkBytes)], nil
 		},
@@ -126,7 +126,7 @@ func createMockMultikeyPeerAuthenticationSenderArgsSemiIntegrationTests(
 		hardforkTimeBetweenSends: time.Second,
 		hardforkTriggerPubKey:    providedHardforkPubKey,
 		timeBetweenChecks:        time.Second,
-		keysHolder:               keysHolder,
+		managedPeersHolder:       managedPeersHolder,
 		shardCoordinator:         createShardCoordinatorInShard(0),
 	}
 
@@ -277,15 +277,15 @@ func TestNewMultikeyPeerAuthenticationSender(t *testing.T) {
 		assert.True(t, errors.Is(err, heartbeat.ErrInvalidTimeDuration))
 		assert.True(t, strings.Contains(err.Error(), "hardforkTimeBetweenSends"))
 	})
-	t.Run("nil keys holder should error", func(t *testing.T) {
+	t.Run("nil managed peers holder should error", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockMultikeyPeerAuthenticationSenderArgs(createMockBaseArgs())
-		args.keysHolder = nil
+		args.managedPeersHolder = nil
 		senderInstance, err := newMultikeyPeerAuthenticationSender(args)
 
 		assert.True(t, check.IfNil(senderInstance))
-		assert.Equal(t, heartbeat.ErrNilKeysHolder, err)
+		assert.Equal(t, heartbeat.ErrNilManagedPeersHolder, err)
 	})
 	t.Run("invalid time between checks should error", func(t *testing.T) {
 		t.Parallel()
@@ -416,12 +416,12 @@ func TestNewMultikeyPeerAuthenticationSender_Execute(t *testing.T) {
 		args.timeBetweenSends = time.Second * 3
 		args.thresholdBetweenSends = 0.20
 		firstKeyFound := ""
-		pkSkMap := args.keysHolder.GetManagedKeysByCurrentNode()
+		pkSkMap := args.managedPeersHolder.GetManagedKeysByCurrentNode()
 		for key := range pkSkMap {
 			firstKeyFound = key
 			break
 		}
-		stub := args.keysHolder.(*testscommon.KeysHolderStub)
+		stub := args.managedPeersHolder.(*testscommon.ManagedPeersHolderStub)
 		stub.IsKeyManagedByCurrentNodeCalled = func(pkBytes []byte) bool {
 			return firstKeyFound != string(pkBytes)
 		}
@@ -475,7 +475,7 @@ func TestNewMultikeyPeerAuthenticationSender_Execute(t *testing.T) {
 		args.timeBetweenSends = time.Second * 3
 		args.thresholdBetweenSends = 0.20
 		firstKeyFound := ""
-		pkSkMap := args.keysHolder.GetManagedKeysByCurrentNode()
+		pkSkMap := args.managedPeersHolder.GetManagedKeysByCurrentNode()
 		for key := range pkSkMap {
 			firstKeyFound = key
 			break
@@ -538,7 +538,7 @@ func TestNewMultikeyPeerAuthenticationSender_Execute(t *testing.T) {
 		args.timeBetweenSends = time.Second * 3
 		args.thresholdBetweenSends = 0.20
 		firstKeyFound := ""
-		pkSkMap := args.keysHolder.GetManagedKeysByCurrentNode()
+		pkSkMap := args.managedPeersHolder.GetManagedKeysByCurrentNode()
 		for key := range pkSkMap {
 			firstKeyFound = key
 			break
@@ -684,7 +684,7 @@ func testSingleMessage(
 	err = args.marshaller.Unmarshal(recoveredMessage, recoveredBatch.Data[0])
 	assert.Nil(tb, err)
 
-	_, correspondingPid, err := args.keysHolder.GetP2PIdentity(recoveredMessage.Pubkey)
+	_, correspondingPid, err := args.managedPeersHolder.GetP2PIdentity(recoveredMessage.Pubkey)
 	assert.Nil(tb, err)
 	assert.Equal(tb, correspondingPid.Pretty(), core.PeerID(recoveredMessage.Pid).Pretty())
 	assert.Equal(tb, correspondingPid, pid)

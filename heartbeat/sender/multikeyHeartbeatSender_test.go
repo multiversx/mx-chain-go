@@ -35,7 +35,7 @@ func createMockMultikeyHeartbeatSenderArgs(argBase argBaseSender) argMultikeyHea
 				return &testscommon.HeaderHandlerStub{}
 			},
 		},
-		keysHolder: &testscommon.KeysHolderStub{
+		managedPeersHolder: &testscommon.ManagedPeersHolderStub{
 			IsKeyManagedByCurrentNodeCalled: func(pkBytes []byte) bool {
 				return true
 			},
@@ -192,15 +192,15 @@ func TestNewMultikeyHeartbeatSender(t *testing.T) {
 		assert.True(t, check.IfNil(senderInstance))
 		assert.Equal(t, heartbeat.ErrNilCurrentBlockProvider, err)
 	})
-	t.Run("nil keys holder should error", func(t *testing.T) {
+	t.Run("nil managed peers holder should error", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockMultikeyHeartbeatSenderArgs(createMockBaseArgs())
-		args.keysHolder = nil
+		args.managedPeersHolder = nil
 		senderInstance, err := newMultikeyHeartbeatSender(args)
 
 		assert.True(t, check.IfNil(senderInstance))
-		assert.Equal(t, heartbeat.ErrNilKeysHolder, err)
+		assert.Equal(t, heartbeat.ErrNilManagedPeersHolder, err)
 	})
 	t.Run("nil shard coordinator should error", func(t *testing.T) {
 		t.Parallel()
@@ -318,7 +318,7 @@ func TestMultikeyHeartbeatSender_execute(t *testing.T) {
 				recordedMessages[pid] = append(recordedMessages[pid], buff)
 			},
 		}
-		args.keysHolder = &testscommon.KeysHolderStub{
+		args.managedPeersHolder = &testscommon.ManagedPeersHolderStub{
 			IsKeyManagedByCurrentNodeCalled: func(pkBytes []byte) bool {
 				return string(pkBytes) != "dd"
 			},

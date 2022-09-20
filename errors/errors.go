@@ -482,5 +482,5 @@ var ErrDBIsClosed = errors.New("DB is closed")
 // ErrNilEnableEpochsHandler signals that a nil enable epochs handler was provided
 var ErrNilEnableEpochsHandler = errors.New("nil enable epochs handler")
 
-// ErrNilKeysHolder signals that a nil keys holder has been provided
-var ErrNilKeysHolder = errors.New("nil keys holder")
+// ErrNilManagedPeersHolder signals that a nil managed peers holder has been provided
+var ErrNilManagedPeersHolder = errors.New("nil managed peers holder")

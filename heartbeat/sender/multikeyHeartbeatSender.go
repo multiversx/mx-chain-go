@@ -20,15 +20,15 @@ type argMultikeyHeartbeatSender struct {
 	identity             string
 	peerSubType          core.P2PPeerSubType
 	currentBlockProvider heartbeat.CurrentBlockProvider
-	keysHolder           heartbeat.KeysHolder
+	managedPeersHolder   heartbeat.ManagedPeersHolder
 	shardCoordinator     process.ShardCoordinator
 }
 
 type multikeyHeartbeatSender struct {
 	commonHeartbeatSender
-	baseVersionNumber string
-	keysHolder        heartbeat.KeysHolder
-	shardCoordinator  process.ShardCoordinator
+	baseVersionNumber  string
+	managedPeersHolder heartbeat.ManagedPeersHolder
+	shardCoordinator   process.ShardCoordinator
 }
 
 // newMultikeyHeartbeatSender creates a new instance of type multikeyHeartbeatSender
@@ -48,9 +48,9 @@ func newMultikeyHeartbeatSender(args argMultikeyHeartbeatSender) (*multikeyHeart
 			identity:             args.identity,
 			peerSubType:          args.peerSubType,
 		},
-		baseVersionNumber: args.baseVersionNumber,
-		keysHolder:        args.keysHolder,
-		shardCoordinator:  args.shardCoordinator,
+		baseVersionNumber:  args.baseVersionNumber,
+		managedPeersHolder: args.managedPeersHolder,
+		shardCoordinator:   args.shardCoordinator,
 	}, nil
 }
 
@@ -81,8 +81,8 @@ func checkMultikeyHeartbeatSenderArgs(args argMultikeyHeartbeatSender) error {
 	if check.IfNil(args.currentBlockProvider) {
 		return heartbeat.ErrNilCurrentBlockProvider
 	}
-	if check.IfNil(args.keysHolder) {
-		return heartbeat.ErrNilKeysHolder
+	if check.IfNil(args.managedPeersHolder) {
+		return heartbeat.ErrNilManagedPeersHolder
 	}
 	if check.IfNil(args.shardCoordinator) {
 		return heartbeat.ErrNilShardCoordinator
@@ -129,7 +129,7 @@ func (sender *multikeyHeartbeatSender) execute() error {
 }
 
 func (sender *multikeyHeartbeatSender) sendMultiKeysInfo() error {
-	managedKeys := sender.keysHolder.GetManagedKeysByCurrentNode()
+	managedKeys := sender.managedPeersHolder.GetManagedKeysByCurrentNode()
 	for pk := range managedKeys {
 		pkBytes := []byte(pk)
 		shouldSend := sender.processIfShouldSend(pkBytes)
@@ -149,12 +149,12 @@ func (sender *multikeyHeartbeatSender) sendMultiKeysInfo() error {
 func (sender *multikeyHeartbeatSender) sendMessageForKey(pkBytes []byte) error {
 	time.Sleep(delayedBroadcast)
 
-	name, identity, err := sender.keysHolder.GetNameAndIdentity(pkBytes)
+	name, identity, err := sender.managedPeersHolder.GetNameAndIdentity(pkBytes)
 	if err != nil {
 		return err
 	}
 
-	machineID, err := sender.keysHolder.GetMachineID(pkBytes)
+	machineID, err := sender.managedPeersHolder.GetMachineID(pkBytes)
 	if err != nil {
 		return err
 	}
@@ -171,7 +171,7 @@ func (sender *multikeyHeartbeatSender) sendMessageForKey(pkBytes []byte) error {
 		return err
 	}
 
-	p2pSk, pid, err := sender.keysHolder.GetP2PIdentity(pkBytes)
+	p2pSk, pid, err := sender.managedPeersHolder.GetP2PIdentity(pkBytes)
 	if err != nil {
 		return err
 	}
@@ -182,7 +182,7 @@ func (sender *multikeyHeartbeatSender) sendMessageForKey(pkBytes []byte) error {
 }
 
 func (sender *multikeyHeartbeatSender) processIfShouldSend(pk []byte) bool {
-	if !sender.keysHolder.IsKeyManagedByCurrentNode(pk) {
+	if !sender.managedPeersHolder.IsKeyManagedByCurrentNode(pk) {
 		return false
 	}
 	_, shardID, err := sender.peerTypeProvider.ComputeForPubKey(pk)

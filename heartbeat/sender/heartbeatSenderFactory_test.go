@@ -30,7 +30,7 @@ func createMockHeartbeatSenderFactoryArgs() argHeartbeatSenderFactory {
 		peerSubType:          core.RegularPeer,
 		currentBlockProvider: &mock.CurrentBlockProviderStub{},
 		peerTypeProvider:     &mock.PeerTypeProviderStub{},
-		keysHolder:           &testscommon.KeysHolderStub{},
+		managedPeersHolder:   &testscommon.ManagedPeersHolderStub{},
 		shardCoordinator:     createShardCoordinatorInShard(0),
 		nodesCoordinator:     &shardingMocks.NodesCoordinatorStub{},
 	}
@@ -65,7 +65,7 @@ func TestHeartbeatSenderFactory_createHeartbeatSender(t *testing.T) {
 				return nil, 0, nil
 			},
 		}
-		args.keysHolder = &testscommon.KeysHolderStub{
+		args.managedPeersHolder = &testscommon.ManagedPeersHolderStub{
 			GetManagedKeysByCurrentNodeCalled: func() map[string]crypto.PrivateKey {
 				keygen := signing.NewKeyGenerator(&mcl.SuiteBLS12{})
 				sk, pk := keygen.GeneratePair()
@@ -104,7 +104,7 @@ func TestHeartbeatSenderFactory_createHeartbeatSender(t *testing.T) {
 				return nil, 0, errors.New("not validator")
 			},
 		}
-		args.keysHolder = &testscommon.KeysHolderStub{
+		args.managedPeersHolder = &testscommon.ManagedPeersHolderStub{
 			GetManagedKeysByCurrentNodeCalled: func() map[string]crypto.PrivateKey {
 				return make(map[string]crypto.PrivateKey)
 			},
@@ -123,7 +123,7 @@ func TestHeartbeatSenderFactory_createHeartbeatSender(t *testing.T) {
 				return nil, 0, errors.New("not validator")
 			},
 		}
-		args.keysHolder = &testscommon.KeysHolderStub{
+		args.managedPeersHolder = &testscommon.ManagedPeersHolderStub{
 			GetManagedKeysByCurrentNodeCalled: func() map[string]crypto.PrivateKey {
 				keygen := signing.NewKeyGenerator(&mcl.SuiteBLS12{})
 				sk1, pk1 := keygen.GeneratePair()

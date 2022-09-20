@@ -85,7 +85,7 @@ type cryptoComponents struct {
 	blockSignKeyGen     crypto.KeyGenerator
 	txSignKeyGen        crypto.KeyGenerator
 	messageSignVerifier vm.MessageSignVerifier
-	keysHolder          heartbeat.KeysHolder // TODO (next PR) rename this to ManagedKeysHolder
+	managedPeersHolder  heartbeat.ManagedPeersHolder
 	keysHandler         consensus.KeysHandler
 	cryptoParams
 }
@@ -181,14 +181,14 @@ func (ccf *cryptoComponentsFactory) Create() (*cryptoComponents, error) {
 	// TODO: refactor the logic for isMainMachine
 	redundancyLevel := int(ccf.prefsConfig.Preferences.RedundancyLevel)
 	isMainMachine := redundancyLevel == mainMachineRedundancyLevel
-	argsKeysHolder := keysManagement.ArgsVirtualPeersHolder{
+	argsManagedPeersHolder := keysManagement.ArgsManagedPeersHolder{
 		KeyGenerator:                     blockSignKeyGen,
 		P2PIdentityGenerator:             p2pCrypto.NewIdentityGenerator(),
 		IsMainMachine:                    isMainMachine,
 		MaxRoundsWithoutReceivedMessages: redundancyLevel,
 		PrefsConfig:                      ccf.prefsConfig,
 	}
-	keysHolder, err := keysManagement.NewVirtualPeersHolder(argsKeysHolder)
+	managedPeersHolder, err := keysManagement.NewManagedPeersHolder(argsManagedPeersHolder)
 	if err != nil {
 		return nil, err
 	}
@@ -203,7 +203,7 @@ func (ccf *cryptoComponentsFactory) Create() (*cryptoComponents, error) {
 		blockSignKeyGen:     blockSignKeyGen,
 		txSignKeyGen:        txSignKeyGen,
 		messageSignVerifier: messageSignVerifier,
-		keysHolder:          keysHolder,
+		managedPeersHolder:  managedPeersHolder,
 		keysHandler:         keysManagement.NewKeysHandler(),
 		cryptoParams:        *cp,
 	}, nil
