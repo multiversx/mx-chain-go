@@ -23,7 +23,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
@@ -101,7 +101,7 @@ func createMockSmartContractProcessorArguments() ArgsNewSmartContractProcessor {
 		GasHandler: &testscommon.GasHandlerStub{
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
-		GasSchedule:       testscommon.NewGasScheduleNotifierMock(gasSchedule),
+		GasSchedule: testscommon.NewGasScheduleNotifierMock(gasSchedule),
 		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
 			IsSCDeployFlagEnabledField: true,
 		},
@@ -1602,8 +1602,8 @@ func TestScProcessor_ExecuteSmartContractTransactionGasConsumedChecksError(t *te
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
 	arguments.AccountsDB = accntState
-	arguments.VMOutputCacher, _ = storageUnit.NewCache(storageUnit.CacheConfig{
-		Type:     storageUnit.LRUCache,
+	arguments.VMOutputCacher, _ = storageunit.NewCache(storageunit.CacheConfig{
+		Type:     storageunit.LRUCache,
 		Capacity: 10000,
 	})
 

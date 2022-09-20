@@ -41,9 +41,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
+	"github.com/ElrondNetwork/elrond-go/storage/cache"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
-	"github.com/ElrondNetwork/elrond-go/storage/timecache"
+	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 	"github.com/ElrondNetwork/elrond-go/update/trigger"
 	"github.com/google/gops/agent"
 )
@@ -1022,7 +1022,7 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 		return nil, err
 	}
 
-	whiteListCache, err := storageUnit.NewCache(storageFactory.GetCacherFromConfig(configs.GeneralConfig.WhiteListPool))
+	whiteListCache, err := storageunit.NewCache(storageFactory.GetCacherFromConfig(configs.GeneralConfig.WhiteListPool))
 	if err != nil {
 		return nil, err
 	}
@@ -1042,7 +1042,7 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 	}
 
 	log.Trace("creating time cache for requested items components")
-	requestedItemsHandler := timecache.NewTimeCache(
+	requestedItemsHandler := cache.NewTimeCache(
 		time.Duration(uint64(time.Millisecond) * coreComponents.GenesisNodesSetup().GetRoundDuration()))
 
 	processArgs := mainFactory.ProcessComponentsFactoryArgs{
@@ -1514,7 +1514,7 @@ func decodePreferredPeers(prefConfig config.Preferences, validatorPubKeyConverte
 }
 
 func createWhiteListerVerifiedTxs(generalConfig *config.Config) (process.WhiteListHandler, error) {
-	whiteListCacheVerified, err := storageUnit.NewCache(storageFactory.GetCacherFromConfig(generalConfig.WhiteListerVerifiedTxs))
+	whiteListCacheVerified, err := storageunit.NewCache(storageFactory.GetCacherFromConfig(generalConfig.WhiteListerVerifiedTxs))
 	if err != nil {
 		return nil, err
 	}

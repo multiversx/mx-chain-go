@@ -7,7 +7,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/common"
-	elrondErrors "github.com/ElrondNetwork/elrond-go/errors"
+	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 const (
@@ -104,7 +104,7 @@ func (ps *triePruningStorer) GetFromOldEpochsWithoutAddingToCache(key []byte) ([
 	for idx := 1; idx < len(ps.activePersisters); idx++ {
 		val, err := ps.activePersisters[idx].persister.Get(key)
 		if err != nil {
-			if err == elrondErrors.ErrDBIsClosed {
+			if err == storage.ErrDBIsClosed {
 				numClosedDbs++
 			}
 
@@ -119,7 +119,7 @@ func (ps *triePruningStorer) GetFromOldEpochsWithoutAddingToCache(key []byte) ([
 	}
 
 	if numClosedDbs+1 == len(ps.activePersisters) && len(ps.activePersisters) > 1 {
-		return nil, core.OptionalUint32{}, elrondErrors.ErrDBIsClosed
+		return nil, core.OptionalUint32{}, storage.ErrDBIsClosed
 	}
 
 	return nil, core.OptionalUint32{}, fmt.Errorf("key %s not found in %s", hex.EncodeToString(key), ps.identifier)

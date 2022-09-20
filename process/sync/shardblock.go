@@ -158,7 +158,7 @@ func isErrGetNodeFromDB(err error) bool {
 		return false
 	}
 
-	if strings.Contains(err.Error(), errors.ErrDBIsClosed.Error()) {
+	if strings.Contains(err.Error(), storage.ErrDBIsClosed.Error()) {
 		return false
 	}
 

@@ -26,7 +26,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/factory/peerSignatureHandler"
 	"github.com/ElrondNetwork/elrond-go/genesis/process/disabled"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	systemVM "github.com/ElrondNetwork/elrond-go/vm/process"
 )
@@ -157,7 +157,7 @@ func (ccf *cryptoComponentsFactory) Create() (*cryptoComponents, error) {
 	}
 
 	cacheConfig := ccf.config.PublicKeyPIDSignature
-	cachePkPIDSignature, err := storageUnit.NewCache(storageFactory.GetCacherFromConfig(cacheConfig))
+	cachePkPIDSignature, err := storageunit.NewCache(storageFactory.GetCacherFromConfig(cacheConfig))
 	if err != nil {
 		return nil, err
 	}
