@@ -2,11 +2,13 @@ package notifier_test
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/outport/notifier"
 	"github.com/stretchr/testify/require"
 )
@@ -15,21 +17,37 @@ type testStruct struct {
 	Hash string `json:"hash"`
 }
 
-func createMockHTTPClientArgs() notifier.HttpClientArgs {
-	return notifier.HttpClientArgs{
-		UseAuthorization: false,
-		Username:         "user",
-		Password:         "pass",
-		BaseUrl:          "http://localhost:8080",
+func createMockHTTPClientArgs() notifier.HTTPClientWrapperArgs {
+	return notifier.HTTPClientWrapperArgs{
+		UseAuthorization:  false,
+		Username:          "user",
+		Password:          "pass",
+		BaseUrl:           "http://localhost:8080",
+		RequestTimeoutSec: 60,
 	}
 }
 
 func TestNewHTTPClient(t *testing.T) {
 	t.Parallel()
 
-	args := createMockHTTPClientArgs()
-	client := notifier.NewHttpClient(args)
-	require.NotNil(t, client)
+	t.Run("invalid request timeout, should fail", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockHTTPClientArgs()
+		args.RequestTimeoutSec = 0
+		client, err := notifier.NewHTTPWrapperClient(args)
+		require.True(t, check.IfNil(client))
+		require.True(t, errors.Is(err, notifier.ErrInvalidValue))
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockHTTPClientArgs()
+		client, err := notifier.NewHTTPWrapperClient(args)
+		require.Nil(t, err)
+		require.False(t, check.IfNil(client))
+	})
 }
 
 func TestPOST(t *testing.T) {
@@ -51,10 +69,11 @@ func TestPOST(t *testing.T) {
 	args := createMockHTTPClientArgs()
 	args.BaseUrl = ws.URL
 
-	client := notifier.NewHttpClient(args)
+	client, err := notifier.NewHTTPWrapperClient(args)
+	require.Nil(t, err)
 	require.NotNil(t, client)
 
-	err := client.Post("/events/push", testPayload, nil)
+	err = client.Post("/events/push", testPayload)
 	require.Nil(t, err)
 
 	require.True(t, wasCalled)
@@ -82,10 +101,11 @@ func TestPOSTShouldFail(t *testing.T) {
 	args := createMockHTTPClientArgs()
 	args.BaseUrl = ws.URL
 
-	client := notifier.NewHttpClient(args)
+	client, err := notifier.NewHTTPWrapperClient(args)
+	require.Nil(t, err)
 	require.NotNil(t, client)
 
-	err := client.Post("/events/push", testPayload, nil)
+	err = client.Post("/events/push", testPayload)
 	require.True(t, strings.Contains(err.Error(), http.StatusText(statusCode)))
 
 	require.True(t, wasCalled)
