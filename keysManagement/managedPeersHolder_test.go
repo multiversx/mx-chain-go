@@ -31,8 +31,8 @@ var (
 	defaultIdentity = "default node identity"
 )
 
-func createMockArgsVirtualPeersHolder() ArgsVirtualPeersHolder {
-	return ArgsVirtualPeersHolder{
+func createMockArgsManagedPeersHolder() ArgsManagedPeersHolder {
+	return ArgsManagedPeersHolder{
 		KeyGenerator: createMockKeyGenerator(),
 		P2PIdentityGenerator: &mock.IdentityGeneratorStub{
 			CreateRandomP2PIdentityCalled: func() ([]byte, core.PeerID, error) {
@@ -82,15 +82,15 @@ func testManagedKeys(tb testing.TB, result map[string]crypto.PrivateKey, pkBytes
 	}
 }
 
-func TestNewVirtualPeersHolder(t *testing.T) {
+func TestNewManagedPeersHolder(t *testing.T) {
 	t.Parallel()
 
 	t.Run("nil key generator should error", func(t *testing.T) {
 		t.Parallel()
 
-		args := createMockArgsVirtualPeersHolder()
+		args := createMockArgsManagedPeersHolder()
 		args.KeyGenerator = nil
-		holder, err := NewVirtualPeersHolder(args)
+		holder, err := NewManagedPeersHolder(args)
 
 		assert.Equal(t, errNilKeyGenerator, err)
 		assert.True(t, check.IfNil(holder))
@@ -98,9 +98,9 @@ func TestNewVirtualPeersHolder(t *testing.T) {
 	t.Run("nil identity generator should error", func(t *testing.T) {
 		t.Parallel()
 
-		args := createMockArgsVirtualPeersHolder()
+		args := createMockArgsManagedPeersHolder()
 		args.P2PIdentityGenerator = nil
-		holder, err := NewVirtualPeersHolder(args)
+		holder, err := NewManagedPeersHolder(args)
 
 		assert.Equal(t, errNilP2PIdentityGenerator, err)
 		assert.True(t, check.IfNil(holder))
@@ -108,9 +108,9 @@ func TestNewVirtualPeersHolder(t *testing.T) {
 	t.Run("invalid MaxRoundsWithoutReceivedMessages should error", func(t *testing.T) {
 		t.Parallel()
 
-		args := createMockArgsVirtualPeersHolder()
+		args := createMockArgsManagedPeersHolder()
 		args.MaxRoundsWithoutReceivedMessages = -2
-		holder, err := NewVirtualPeersHolder(args)
+		holder, err := NewManagedPeersHolder(args)
 
 		assert.True(t, errors.Is(err, errInvalidValue))
 		assert.True(t, strings.Contains(err.Error(), "MaxRoundsWithoutReceivedMessages"))
@@ -120,13 +120,13 @@ func TestNewVirtualPeersHolder(t *testing.T) {
 		t.Parallel()
 
 		providedInvalidKey := "invalid key"
-		args := createMockArgsVirtualPeersHolder()
+		args := createMockArgsManagedPeersHolder()
 		args.PrefsConfig.NamedIdentity = []config.NamedIdentity{
 			{
 				BLSKeys: []string{providedInvalidKey},
 			},
 		}
-		holder, err := NewVirtualPeersHolder(args)
+		holder, err := NewManagedPeersHolder(args)
 
 		assert.True(t, errors.Is(err, errInvalidKey))
 		assert.True(t, strings.Contains(err.Error(), providedInvalidKey))
@@ -135,33 +135,33 @@ func TestNewVirtualPeersHolder(t *testing.T) {
 	t.Run("valid arguments should work", func(t *testing.T) {
 		t.Parallel()
 
-		args := createMockArgsVirtualPeersHolder()
-		holder, err := NewVirtualPeersHolder(args)
+		args := createMockArgsManagedPeersHolder()
+		holder, err := NewManagedPeersHolder(args)
 
 		assert.Nil(t, err)
 		assert.False(t, check.IfNil(holder))
 	})
 }
 
-func TestVirtualPeersHolder_AddVirtualPeer(t *testing.T) {
+func TestManagedPeersHolder_AddManagedPeer(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("expected error")
 	t.Run("private key from byte array errors", func(t *testing.T) {
-		args := createMockArgsVirtualPeersHolder()
+		args := createMockArgsManagedPeersHolder()
 		args.KeyGenerator = &cryptoMocks.KeyGenStub{
 			PrivateKeyFromByteArrayStub: func(b []byte) (crypto.PrivateKey, error) {
 				return nil, expectedErr
 			},
 		}
 
-		holder, _ := NewVirtualPeersHolder(args)
-		err := holder.AddVirtualPeer([]byte("private key"))
+		holder, _ := NewManagedPeersHolder(args)
+		err := holder.AddManagedPeer([]byte("private key"))
 
 		assert.True(t, errors.Is(err, expectedErr))
 	})
 	t.Run("public key from byte array errors", func(t *testing.T) {
-		args := createMockArgsVirtualPeersHolder()
+		args := createMockArgsManagedPeersHolder()
 
 		pk := &cryptoMocks.PublicKeyStub{
 			ToByteArrayStub: func() ([]byte, error) {
@@ -181,29 +181,29 @@ func TestVirtualPeersHolder_AddVirtualPeer(t *testing.T) {
 			},
 		}
 
-		holder, _ := NewVirtualPeersHolder(args)
-		err := holder.AddVirtualPeer([]byte("private key"))
+		holder, _ := NewManagedPeersHolder(args)
+		err := holder.AddManagedPeer([]byte("private key"))
 
 		assert.True(t, errors.Is(err, expectedErr))
 	})
 	t.Run("identity creation errors", func(t *testing.T) {
-		args := createMockArgsVirtualPeersHolder()
+		args := createMockArgsManagedPeersHolder()
 		args.P2PIdentityGenerator = &mock.IdentityGeneratorStub{
 			CreateRandomP2PIdentityCalled: func() ([]byte, core.PeerID, error) {
 				return nil, "", expectedErr
 			},
 		}
 
-		holder, _ := NewVirtualPeersHolder(args)
-		err := holder.AddVirtualPeer([]byte("private key"))
+		holder, _ := NewManagedPeersHolder(args)
+		err := holder.AddManagedPeer([]byte("private key"))
 
 		assert.True(t, errors.Is(err, expectedErr))
 	})
 	t.Run("should work for a new pk", func(t *testing.T) {
-		args := createMockArgsVirtualPeersHolder()
+		args := createMockArgsManagedPeersHolder()
 
-		holder, _ := NewVirtualPeersHolder(args)
-		err := holder.AddVirtualPeer(skBytes0)
+		holder, _ := NewManagedPeersHolder(args)
+		err := holder.AddManagedPeer(skBytes0)
 		assert.Nil(t, err)
 
 		pInfo := holder.getPeerInfo(pkBytes0)
@@ -221,7 +221,7 @@ func TestVirtualPeersHolder_AddVirtualPeer(t *testing.T) {
 		providedHex := hex.EncodeToString(providedAddress)
 		providedName := "provided name"
 		providedIdentity := "provided identity"
-		args := createMockArgsVirtualPeersHolder()
+		args := createMockArgsManagedPeersHolder()
 		args.KeyGenerator = &cryptoMocks.KeyGenStub{
 			PrivateKeyFromByteArrayStub: func(b []byte) (crypto.PrivateKey, error) {
 				return &cryptoMocks.PrivateKeyStub{
@@ -246,8 +246,8 @@ func TestVirtualPeersHolder_AddVirtualPeer(t *testing.T) {
 			},
 		}
 
-		holder, _ := NewVirtualPeersHolder(args)
-		err := holder.AddVirtualPeer(skBytes0)
+		holder, _ := NewManagedPeersHolder(args)
+		err := holder.AddManagedPeer(skBytes0)
 		assert.Nil(t, err)
 
 		pInfo := holder.getPeerInfo(providedAddress)
@@ -261,23 +261,23 @@ func TestVirtualPeersHolder_AddVirtualPeer(t *testing.T) {
 		assert.Equal(t, providedName, pInfo.nodeName)
 	})
 	t.Run("should error when trying to add the same pk", func(t *testing.T) {
-		args := createMockArgsVirtualPeersHolder()
+		args := createMockArgsManagedPeersHolder()
 
-		holder, _ := NewVirtualPeersHolder(args)
-		err := holder.AddVirtualPeer(skBytes0)
+		holder, _ := NewManagedPeersHolder(args)
+		err := holder.AddManagedPeer(skBytes0)
 		assert.Nil(t, err)
 
-		err = holder.AddVirtualPeer(skBytes0)
+		err = holder.AddManagedPeer(skBytes0)
 		assert.True(t, errors.Is(err, errDuplicatedKey))
 	})
 	t.Run("should work for 2 new public keys", func(t *testing.T) {
-		args := createMockArgsVirtualPeersHolder()
+		args := createMockArgsManagedPeersHolder()
 
-		holder, _ := NewVirtualPeersHolder(args)
-		err := holder.AddVirtualPeer(skBytes0)
+		holder, _ := NewManagedPeersHolder(args)
+		err := holder.AddManagedPeer(skBytes0)
 		assert.Nil(t, err)
 
-		err = holder.AddVirtualPeer(skBytes1)
+		err = holder.AddManagedPeer(skBytes1)
 		assert.Nil(t, err)
 
 		pInfo0 := holder.getPeerInfo(pkBytes0)
@@ -304,13 +304,13 @@ func TestVirtualPeersHolder_AddVirtualPeer(t *testing.T) {
 	})
 }
 
-func TestVirtualPeersHolder_GetPrivateKey(t *testing.T) {
+func TestManagedPeersHolder_GetPrivateKey(t *testing.T) {
 	t.Parallel()
 
-	args := createMockArgsVirtualPeersHolder()
+	args := createMockArgsManagedPeersHolder()
 
-	holder, _ := NewVirtualPeersHolder(args)
-	_ = holder.AddVirtualPeer(skBytes0)
+	holder, _ := NewManagedPeersHolder(args)
+	_ = holder.AddManagedPeer(skBytes0)
 	t.Run("public key not added should error", func(t *testing.T) {
 		skRecovered, err := holder.GetPrivateKey(pkBytes1)
 		assert.Nil(t, skRecovered)
@@ -325,13 +325,13 @@ func TestVirtualPeersHolder_GetPrivateKey(t *testing.T) {
 	})
 }
 
-func TestVirtualPeersHolder_GetP2PIdentity(t *testing.T) {
+func TestManagedPeersHolder_GetP2PIdentity(t *testing.T) {
 	t.Parallel()
 
-	args := createMockArgsVirtualPeersHolder()
+	args := createMockArgsManagedPeersHolder()
 
-	holder, _ := NewVirtualPeersHolder(args)
-	_ = holder.AddVirtualPeer(skBytes0)
+	holder, _ := NewManagedPeersHolder(args)
+	_ = holder.AddManagedPeer(skBytes0)
 	t.Run("public key not added should error", func(t *testing.T) {
 		p2pPrivateKeyRecovered, pidRecovered, err := holder.GetP2PIdentity(pkBytes1)
 		assert.Nil(t, p2pPrivateKeyRecovered)
@@ -346,12 +346,12 @@ func TestVirtualPeersHolder_GetP2PIdentity(t *testing.T) {
 	})
 }
 
-func TestVirtualPeersHolder_GetMachineID(t *testing.T) {
+func TestManagedPeersHolder_GetMachineID(t *testing.T) {
 	t.Parallel()
 
-	args := createMockArgsVirtualPeersHolder()
-	holder, _ := NewVirtualPeersHolder(args)
-	_ = holder.AddVirtualPeer(skBytes0)
+	args := createMockArgsManagedPeersHolder()
+	holder, _ := NewManagedPeersHolder(args)
+	_ = holder.AddManagedPeer(skBytes0)
 	t.Run("public key not added should error", func(t *testing.T) {
 		machineIDRecovered, err := holder.GetMachineID(pkBytes1)
 		assert.Empty(t, machineIDRecovered)
@@ -364,14 +364,14 @@ func TestVirtualPeersHolder_GetMachineID(t *testing.T) {
 	})
 }
 
-func TestVirtualPeersHolder_IncrementRoundsWithoutReceivedMessages(t *testing.T) {
+func TestManagedPeersHolder_IncrementRoundsWithoutReceivedMessages(t *testing.T) {
 	t.Parallel()
 
 	t.Run("is main machine should ignore the call", func(t *testing.T) {
-		args := createMockArgsVirtualPeersHolder()
+		args := createMockArgsManagedPeersHolder()
 		args.IsMainMachine = true
-		holder, _ := NewVirtualPeersHolder(args)
-		_ = holder.AddVirtualPeer(skBytes0)
+		holder, _ := NewManagedPeersHolder(args)
+		_ = holder.AddManagedPeer(skBytes0)
 
 		t.Run("missing public key should not panic", func(t *testing.T) {
 			defer func() {
@@ -393,10 +393,10 @@ func TestVirtualPeersHolder_IncrementRoundsWithoutReceivedMessages(t *testing.T)
 		})
 	})
 	t.Run("is secondary machine should increment, if existing", func(t *testing.T) {
-		args := createMockArgsVirtualPeersHolder()
+		args := createMockArgsManagedPeersHolder()
 		args.IsMainMachine = false
-		holder, _ := NewVirtualPeersHolder(args)
-		_ = holder.AddVirtualPeer(skBytes0)
+		holder, _ := NewManagedPeersHolder(args)
+		_ = holder.AddManagedPeer(skBytes0)
 
 		t.Run("missing public key should not panic", func(t *testing.T) {
 			defer func() {
@@ -427,14 +427,14 @@ func TestVirtualPeersHolder_IncrementRoundsWithoutReceivedMessages(t *testing.T)
 	})
 }
 
-func TestVirtualPeersHolder_ResetRoundsWithoutReceivedMessages(t *testing.T) {
+func TestManagedPeersHolder_ResetRoundsWithoutReceivedMessages(t *testing.T) {
 	t.Parallel()
 
 	t.Run("is main machine should ignore the call", func(t *testing.T) {
-		args := createMockArgsVirtualPeersHolder()
+		args := createMockArgsManagedPeersHolder()
 		args.IsMainMachine = true
-		holder, _ := NewVirtualPeersHolder(args)
-		_ = holder.AddVirtualPeer(skBytes0)
+		holder, _ := NewManagedPeersHolder(args)
+		_ = holder.AddManagedPeer(skBytes0)
 
 		t.Run("missing public key should not panic", func(t *testing.T) {
 			defer func() {
@@ -454,10 +454,10 @@ func TestVirtualPeersHolder_ResetRoundsWithoutReceivedMessages(t *testing.T) {
 		})
 	})
 	t.Run("is secondary machine should reset, if existing", func(t *testing.T) {
-		args := createMockArgsVirtualPeersHolder()
+		args := createMockArgsManagedPeersHolder()
 		args.IsMainMachine = false
-		holder, _ := NewVirtualPeersHolder(args)
-		_ = holder.AddVirtualPeer(skBytes0)
+		holder, _ := NewManagedPeersHolder(args)
+		_ = holder.AddManagedPeer(skBytes0)
 
 		t.Run("missing public key should not panic", func(t *testing.T) {
 			defer func() {
@@ -496,15 +496,15 @@ func TestVirtualPeersHolder_ResetRoundsWithoutReceivedMessages(t *testing.T) {
 	})
 }
 
-func TestVirtualPeersHolder_GetManagedKeysByCurrentNode(t *testing.T) {
+func TestManagedPeersHolder_GetManagedKeysByCurrentNode(t *testing.T) {
 	t.Parallel()
 
 	t.Run("main machine should return all keys, always", func(t *testing.T) {
-		args := createMockArgsVirtualPeersHolder()
+		args := createMockArgsManagedPeersHolder()
 		args.IsMainMachine = true
-		holder, _ := NewVirtualPeersHolder(args)
-		_ = holder.AddVirtualPeer(skBytes0)
-		_ = holder.AddVirtualPeer(skBytes1)
+		holder, _ := NewManagedPeersHolder(args)
+		_ = holder.AddManagedPeer(skBytes0)
+		_ = holder.AddManagedPeer(skBytes1)
 
 		for i := 0; i < 10; i++ {
 			holder.IncrementRoundsWithoutReceivedMessages(pkBytes0)
@@ -514,12 +514,12 @@ func TestVirtualPeersHolder_GetManagedKeysByCurrentNode(t *testing.T) {
 		testManagedKeys(t, result, pkBytes0, pkBytes1)
 	})
 	t.Run("is secondary machine should return managed keys", func(t *testing.T) {
-		args := createMockArgsVirtualPeersHolder()
+		args := createMockArgsManagedPeersHolder()
 		args.IsMainMachine = false
 		args.MaxRoundsWithoutReceivedMessages = 2
-		holder, _ := NewVirtualPeersHolder(args)
-		_ = holder.AddVirtualPeer(skBytes0)
-		_ = holder.AddVirtualPeer(skBytes1)
+		holder, _ := NewManagedPeersHolder(args)
+		_ = holder.AddManagedPeer(skBytes0)
+		_ = holder.AddManagedPeer(skBytes1)
 
 		t.Run("MaxRoundsWithoutReceivedMessages not reached should return none", func(t *testing.T) {
 			result := holder.GetManagedKeysByCurrentNode()
@@ -543,14 +543,14 @@ func TestVirtualPeersHolder_GetManagedKeysByCurrentNode(t *testing.T) {
 	})
 }
 
-func TestVirtualPeersHolder_IsKeyManagedByCurrentNode(t *testing.T) {
+func TestManagedPeersHolder_IsKeyManagedByCurrentNode(t *testing.T) {
 	t.Parallel()
 
 	t.Run("main machine", func(t *testing.T) {
-		args := createMockArgsVirtualPeersHolder()
+		args := createMockArgsManagedPeersHolder()
 		args.IsMainMachine = true
-		holder, _ := NewVirtualPeersHolder(args)
-		_ = holder.AddVirtualPeer(skBytes0)
+		holder, _ := NewManagedPeersHolder(args)
+		_ = holder.AddManagedPeer(skBytes0)
 
 		t.Run("foreign public key should return false", func(t *testing.T) {
 			isManaged := holder.IsKeyManagedByCurrentNode(pkBytes1)
@@ -562,11 +562,11 @@ func TestVirtualPeersHolder_IsKeyManagedByCurrentNode(t *testing.T) {
 		})
 	})
 	t.Run("secondary machine", func(t *testing.T) {
-		args := createMockArgsVirtualPeersHolder()
+		args := createMockArgsManagedPeersHolder()
 		args.IsMainMachine = false
 		args.MaxRoundsWithoutReceivedMessages = 2
-		holder, _ := NewVirtualPeersHolder(args)
-		_ = holder.AddVirtualPeer(skBytes0)
+		holder, _ := NewManagedPeersHolder(args)
+		_ = holder.AddManagedPeer(skBytes0)
 
 		t.Run("foreign public key should return false", func(t *testing.T) {
 			isManaged := holder.IsKeyManagedByCurrentNode(pkBytes1)
@@ -591,14 +591,14 @@ func TestVirtualPeersHolder_IsKeyManagedByCurrentNode(t *testing.T) {
 	})
 }
 
-func TestVirtualPeersHolder_IsKeyRegistered(t *testing.T) {
+func TestManagedPeersHolder_IsKeyRegistered(t *testing.T) {
 	t.Parallel()
 
 	t.Run("main machine", func(t *testing.T) {
-		args := createMockArgsVirtualPeersHolder()
+		args := createMockArgsManagedPeersHolder()
 		args.IsMainMachine = true
-		holder, _ := NewVirtualPeersHolder(args)
-		_ = holder.AddVirtualPeer(skBytes0)
+		holder, _ := NewManagedPeersHolder(args)
+		_ = holder.AddManagedPeer(skBytes0)
 
 		t.Run("foreign public key should return false", func(t *testing.T) {
 			isManaged := holder.IsKeyRegistered(pkBytes1)
@@ -610,10 +610,10 @@ func TestVirtualPeersHolder_IsKeyRegistered(t *testing.T) {
 		})
 	})
 	t.Run("secondary machine", func(t *testing.T) {
-		args := createMockArgsVirtualPeersHolder()
+		args := createMockArgsManagedPeersHolder()
 		args.IsMainMachine = false
-		holder, _ := NewVirtualPeersHolder(args)
-		_ = holder.AddVirtualPeer(skBytes0)
+		holder, _ := NewManagedPeersHolder(args)
+		_ = holder.AddManagedPeer(skBytes0)
 
 		t.Run("foreign public key should return false", func(t *testing.T) {
 			isManaged := holder.IsKeyRegistered(pkBytes1)
@@ -626,19 +626,19 @@ func TestVirtualPeersHolder_IsKeyRegistered(t *testing.T) {
 	})
 }
 
-func TestVirtualPeersHolder_IsPidManagedByCurrentNode(t *testing.T) {
+func TestManagedPeersHolder_IsPidManagedByCurrentNode(t *testing.T) {
 	t.Parallel()
 
-	args := createMockArgsVirtualPeersHolder()
+	args := createMockArgsManagedPeersHolder()
 	args.IsMainMachine = true
-	holder, _ := NewVirtualPeersHolder(args)
+	holder, _ := NewManagedPeersHolder(args)
 
 	t.Run("empty holder should return false", func(t *testing.T) {
 		isManaged := holder.IsPidManagedByCurrentNode(pid)
 		assert.False(t, isManaged)
 	})
 
-	_ = holder.AddVirtualPeer(skBytes0)
+	_ = holder.AddManagedPeer(skBytes0)
 
 	t.Run("pid not managed by current should return false", func(t *testing.T) {
 		isManaged := holder.IsPidManagedByCurrentNode("other pid")
@@ -650,17 +650,17 @@ func TestVirtualPeersHolder_IsPidManagedByCurrentNode(t *testing.T) {
 	})
 }
 
-func TestVirtualPeersHolder_IsKeyValidator(t *testing.T) {
+func TestManagedPeersHolder_IsKeyValidator(t *testing.T) {
 	t.Parallel()
 
-	holder, _ := NewVirtualPeersHolder(createMockArgsVirtualPeersHolder())
+	holder, _ := NewManagedPeersHolder(createMockArgsManagedPeersHolder())
 
 	t.Run("missing key should return false", func(t *testing.T) {
 		isValidator := holder.IsKeyValidator(pkBytes0)
 		assert.False(t, isValidator)
 	})
 
-	_ = holder.AddVirtualPeer(skBytes0)
+	_ = holder.AddManagedPeer(skBytes0)
 
 	t.Run("key found, but not validator should return false", func(t *testing.T) {
 		isValidator := holder.IsKeyValidator(pkBytes0)
@@ -673,10 +673,10 @@ func TestVirtualPeersHolder_IsKeyValidator(t *testing.T) {
 	})
 }
 
-func TestVirtualPeersHolder_GetNextPeerAuthenticationTime(t *testing.T) {
+func TestManagedPeersHolder_GetNextPeerAuthenticationTime(t *testing.T) {
 	t.Parallel()
 
-	holder, _ := NewVirtualPeersHolder(createMockArgsVirtualPeersHolder())
+	holder, _ := NewManagedPeersHolder(createMockArgsManagedPeersHolder())
 
 	t.Run("missing key should return error", func(t *testing.T) {
 		timeBefore := time.Now()
@@ -689,7 +689,7 @@ func TestVirtualPeersHolder_GetNextPeerAuthenticationTime(t *testing.T) {
 		assert.Greater(t, nextTime, timeBefore)
 	})
 
-	_ = holder.AddVirtualPeer(skBytes0)
+	_ = holder.AddManagedPeer(skBytes0)
 
 	t.Run("key found should work", func(t *testing.T) {
 		expectedNextTime := time.Now().Add(time.Hour)
@@ -700,7 +700,7 @@ func TestVirtualPeersHolder_GetNextPeerAuthenticationTime(t *testing.T) {
 	})
 }
 
-func TestVirtualPeersHolder_ParallelOperationsShouldNotPanic(t *testing.T) {
+func TestManagedPeersHolder_ParallelOperationsShouldNotPanic(t *testing.T) {
 	defer func() {
 		r := recover()
 		if r != nil {
@@ -708,8 +708,8 @@ func TestVirtualPeersHolder_ParallelOperationsShouldNotPanic(t *testing.T) {
 		}
 	}()
 
-	args := createMockArgsVirtualPeersHolder()
-	holder, _ := NewVirtualPeersHolder(args)
+	args := createMockArgsManagedPeersHolder()
+	holder, _ := NewManagedPeersHolder(args)
 
 	numOperations := 1500
 	wg := sync.WaitGroup{}
@@ -722,7 +722,7 @@ func TestVirtualPeersHolder_ParallelOperationsShouldNotPanic(t *testing.T) {
 			case 0:
 				randomBytes := make([]byte, 32)
 				_, _ = rand.Read(randomBytes)
-				_ = holder.AddVirtualPeer(randomBytes)
+				_ = holder.AddManagedPeer(randomBytes)
 			case 1:
 				_, _ = holder.GetMachineID(pkBytes1)
 			case 2:

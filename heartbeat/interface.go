@@ -124,9 +124,9 @@ type NodesCoordinator interface {
 	IsInterfaceNil() bool
 }
 
-// KeysHolder defines the operations of an entity that holds virtual identities for a node
-type KeysHolder interface {
-	AddVirtualPeer(privateKeyBytes []byte) error
+// ManagedPeersHolder defines the operations of an entity that holds managed identities for a node
+type ManagedPeersHolder interface {
+	AddManagedPeer(privateKeyBytes []byte) error
 	GetPrivateKey(pkBytes []byte) (crypto.PrivateKey, error)
 	GetP2PIdentity(pkBytes []byte) ([]byte, core.PeerID, error)
 	GetMachineID(pkBytes []byte) (string, error)

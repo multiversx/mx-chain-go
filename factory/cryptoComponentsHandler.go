@@ -106,8 +106,8 @@ func (mcc *managedCryptoComponents) CheckSubcomponents() error {
 	if check.IfNil(mcc.cryptoComponents.messageSignVerifier) {
 		return errors.ErrNilMessageSignVerifier
 	}
-	if check.IfNil(mcc.cryptoComponents.keysHolder) {
-		return errors.ErrNilKeysHolder
+	if check.IfNil(mcc.cryptoComponents.managedPeersHolder) {
+		return errors.ErrNilManagedPeersHolder
 	}
 
 	return nil
@@ -270,9 +270,8 @@ func (mcc *managedCryptoComponents) MessageSignVerifier() vm.MessageSignVerifier
 	return mcc.cryptoComponents.messageSignVerifier
 }
 
-// KeysHolder returns the managed keys holder
-// TODO (next PR) rename this to ManagedKeysHolder
-func (mcc *managedCryptoComponents) KeysHolder() heartbeat.KeysHolder {
+// ManagedPeersHolder returns the managed peers holder
+func (mcc *managedCryptoComponents) ManagedPeersHolder() heartbeat.ManagedPeersHolder {
 	mcc.mutCryptoComponents.RLock()
 	defer mcc.mutCryptoComponents.RUnlock()
 
@@ -280,7 +279,7 @@ func (mcc *managedCryptoComponents) KeysHolder() heartbeat.KeysHolder {
 		return nil
 	}
 
-	return mcc.cryptoComponents.keysHolder
+	return mcc.cryptoComponents.managedPeersHolder
 }
 
 // KeysHandler returns the handler that manages keys either in single sign mode or multi key mode
@@ -307,7 +306,7 @@ func (mcc *managedCryptoComponents) Clone() interface{} {
 			blockSignKeyGen:     mcc.BlockSignKeyGen(),
 			txSignKeyGen:        mcc.TxSignKeyGen(),
 			messageSignVerifier: mcc.MessageSignVerifier(),
-			keysHolder:          mcc.KeysHolder(),
+			managedPeersHolder:  mcc.ManagedPeersHolder(),
 			keysHandler:         mcc.KeysHandler(),
 			cryptoParams:        mcc.cryptoParams,
 		}

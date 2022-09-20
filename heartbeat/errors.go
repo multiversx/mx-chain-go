@@ -144,8 +144,8 @@ var ErrNilHeartbeatMonitor = errors.New("nil heartbeat monitor")
 // ErrNilHeartbeatSenderInfoProvider signals that a nil heartbeat sender info provider was provided
 var ErrNilHeartbeatSenderInfoProvider = errors.New("nil heartbeat sender info provider")
 
-// ErrNilKeysHolder signals that a nil keys holder has been provided
-var ErrNilKeysHolder = errors.New("nil keys holder")
+// ErrNilManagedPeersHolder signals that a nil managed peers holder has been provided
+var ErrNilManagedPeersHolder = errors.New("nil managed peers holder")
 
 // ErrInvalidConfiguration signals that an invalid configuration has been provided
 var ErrInvalidConfiguration = errors.New("invalid configuration")

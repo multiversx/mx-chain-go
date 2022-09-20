@@ -7,9 +7,9 @@ import (
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 )
 
-// KeysHolderStub -
-type KeysHolderStub struct {
-	AddVirtualPeerCalled                         func(privateKeyBytes []byte) error
+// ManagedPeersHolderStub -
+type ManagedPeersHolderStub struct {
+	AddManagedPeerCalled                         func(privateKeyBytes []byte) error
 	GetPrivateKeyCalled                          func(pkBytes []byte) (crypto.PrivateKey, error)
 	GetP2PIdentityCalled                         func(pkBytes []byte) ([]byte, core.PeerID, error)
 	GetMachineIDCalled                           func(pkBytes []byte) (string, error)
@@ -26,16 +26,16 @@ type KeysHolderStub struct {
 	SetNextPeerAuthenticationTimeCalled          func(pkBytes []byte, nextTime time.Time)
 }
 
-// AddVirtualPeer -
-func (stub *KeysHolderStub) AddVirtualPeer(privateKeyBytes []byte) error {
-	if stub.AddVirtualPeerCalled != nil {
-		return stub.AddVirtualPeerCalled(privateKeyBytes)
+// AddManagedPeer -
+func (stub *ManagedPeersHolderStub) AddManagedPeer(privateKeyBytes []byte) error {
+	if stub.AddManagedPeerCalled != nil {
+		return stub.AddManagedPeerCalled(privateKeyBytes)
 	}
 	return nil
 }
 
 // GetPrivateKey -
-func (stub *KeysHolderStub) GetPrivateKey(pkBytes []byte) (crypto.PrivateKey, error) {
+func (stub *ManagedPeersHolderStub) GetPrivateKey(pkBytes []byte) (crypto.PrivateKey, error) {
 	if stub.GetPrivateKeyCalled != nil {
 		return stub.GetPrivateKeyCalled(pkBytes)
 	}
@@ -43,7 +43,7 @@ func (stub *KeysHolderStub) GetPrivateKey(pkBytes []byte) (crypto.PrivateKey, er
 }
 
 // GetP2PIdentity -
-func (stub *KeysHolderStub) GetP2PIdentity(pkBytes []byte) ([]byte, core.PeerID, error) {
+func (stub *ManagedPeersHolderStub) GetP2PIdentity(pkBytes []byte) ([]byte, core.PeerID, error) {
 	if stub.GetP2PIdentityCalled != nil {
 		return stub.GetP2PIdentityCalled(pkBytes)
 	}
@@ -51,7 +51,7 @@ func (stub *KeysHolderStub) GetP2PIdentity(pkBytes []byte) ([]byte, core.PeerID,
 }
 
 // GetMachineID -
-func (stub *KeysHolderStub) GetMachineID(pkBytes []byte) (string, error) {
+func (stub *ManagedPeersHolderStub) GetMachineID(pkBytes []byte) (string, error) {
 	if stub.GetMachineIDCalled != nil {
 		return stub.GetMachineIDCalled(pkBytes)
 	}
@@ -59,7 +59,7 @@ func (stub *KeysHolderStub) GetMachineID(pkBytes []byte) (string, error) {
 }
 
 // GetNameAndIdentity -
-func (stub *KeysHolderStub) GetNameAndIdentity(pkBytes []byte) (string, string, error) {
+func (stub *ManagedPeersHolderStub) GetNameAndIdentity(pkBytes []byte) (string, string, error) {
 	if stub.GetNameAndIdentityCalled != nil {
 		return stub.GetNameAndIdentityCalled(pkBytes)
 	}
@@ -67,21 +67,21 @@ func (stub *KeysHolderStub) GetNameAndIdentity(pkBytes []byte) (string, string, 
 }
 
 // IncrementRoundsWithoutReceivedMessages -
-func (stub *KeysHolderStub) IncrementRoundsWithoutReceivedMessages(pkBytes []byte) {
+func (stub *ManagedPeersHolderStub) IncrementRoundsWithoutReceivedMessages(pkBytes []byte) {
 	if stub.IncrementRoundsWithoutReceivedMessagesCalled != nil {
 		stub.IncrementRoundsWithoutReceivedMessagesCalled(pkBytes)
 	}
 }
 
 // ResetRoundsWithoutReceivedMessages -
-func (stub *KeysHolderStub) ResetRoundsWithoutReceivedMessages(pkBytes []byte) {
+func (stub *ManagedPeersHolderStub) ResetRoundsWithoutReceivedMessages(pkBytes []byte) {
 	if stub.ResetRoundsWithoutReceivedMessagesCalled != nil {
 		stub.ResetRoundsWithoutReceivedMessagesCalled(pkBytes)
 	}
 }
 
 // GetManagedKeysByCurrentNode -
-func (stub *KeysHolderStub) GetManagedKeysByCurrentNode() map[string]crypto.PrivateKey {
+func (stub *ManagedPeersHolderStub) GetManagedKeysByCurrentNode() map[string]crypto.PrivateKey {
 	if stub.GetManagedKeysByCurrentNodeCalled != nil {
 		return stub.GetManagedKeysByCurrentNodeCalled()
 	}
@@ -89,7 +89,7 @@ func (stub *KeysHolderStub) GetManagedKeysByCurrentNode() map[string]crypto.Priv
 }
 
 // IsKeyManagedByCurrentNode -
-func (stub *KeysHolderStub) IsKeyManagedByCurrentNode(pkBytes []byte) bool {
+func (stub *ManagedPeersHolderStub) IsKeyManagedByCurrentNode(pkBytes []byte) bool {
 	if stub.IsKeyManagedByCurrentNodeCalled != nil {
 		return stub.IsKeyManagedByCurrentNodeCalled(pkBytes)
 	}
@@ -97,7 +97,7 @@ func (stub *KeysHolderStub) IsKeyManagedByCurrentNode(pkBytes []byte) bool {
 }
 
 // IsKeyRegistered -
-func (stub *KeysHolderStub) IsKeyRegistered(pkBytes []byte) bool {
+func (stub *ManagedPeersHolderStub) IsKeyRegistered(pkBytes []byte) bool {
 	if stub.IsKeyRegisteredCalled != nil {
 		return stub.IsKeyRegisteredCalled(pkBytes)
 	}
@@ -105,7 +105,7 @@ func (stub *KeysHolderStub) IsKeyRegistered(pkBytes []byte) bool {
 }
 
 // IsPidManagedByCurrentNode -
-func (stub *KeysHolderStub) IsPidManagedByCurrentNode(pid core.PeerID) bool {
+func (stub *ManagedPeersHolderStub) IsPidManagedByCurrentNode(pid core.PeerID) bool {
 	if stub.IsPidManagedByCurrentNodeCalled != nil {
 		return stub.IsPidManagedByCurrentNodeCalled(pid)
 	}
@@ -113,7 +113,7 @@ func (stub *KeysHolderStub) IsPidManagedByCurrentNode(pid core.PeerID) bool {
 }
 
 // IsKeyValidator -
-func (stub *KeysHolderStub) IsKeyValidator(pkBytes []byte) bool {
+func (stub *ManagedPeersHolderStub) IsKeyValidator(pkBytes []byte) bool {
 	if stub.IsKeyValidatorCalled != nil {
 		return stub.IsKeyValidatorCalled(pkBytes)
 	}
@@ -121,14 +121,14 @@ func (stub *KeysHolderStub) IsKeyValidator(pkBytes []byte) bool {
 }
 
 // SetValidatorState -
-func (stub *KeysHolderStub) SetValidatorState(pkBytes []byte, state bool) {
+func (stub *ManagedPeersHolderStub) SetValidatorState(pkBytes []byte, state bool) {
 	if stub.SetValidatorStateCalled != nil {
 		stub.SetValidatorStateCalled(pkBytes, state)
 	}
 }
 
 // GetNextPeerAuthenticationTime -
-func (stub *KeysHolderStub) GetNextPeerAuthenticationTime(pkBytes []byte) (time.Time, error) {
+func (stub *ManagedPeersHolderStub) GetNextPeerAuthenticationTime(pkBytes []byte) (time.Time, error) {
 	if stub.GetNextPeerAuthenticationTimeCalled != nil {
 		return stub.GetNextPeerAuthenticationTimeCalled(pkBytes)
 	}
@@ -136,13 +136,13 @@ func (stub *KeysHolderStub) GetNextPeerAuthenticationTime(pkBytes []byte) (time.
 }
 
 // SetNextPeerAuthenticationTime -
-func (stub *KeysHolderStub) SetNextPeerAuthenticationTime(pkBytes []byte, nextTime time.Time) {
+func (stub *ManagedPeersHolderStub) SetNextPeerAuthenticationTime(pkBytes []byte, nextTime time.Time) {
 	if stub.SetNextPeerAuthenticationTimeCalled != nil {
 		stub.SetNextPeerAuthenticationTimeCalled(pkBytes, nextTime)
 	}
 }
 
 // IsInterfaceNil -
-func (stub *KeysHolderStub) IsInterfaceNil() bool {
+func (stub *ManagedPeersHolderStub) IsInterfaceNil() bool {
 	return stub == nil
 }

@@ -26,7 +26,7 @@ func createMockPeerAuthenticationSenderFactoryArgs() argPeerAuthenticationSender
 		hardforkTrigger:          &testscommon.HardforkTriggerStub{},
 		hardforkTimeBetweenSends: time.Second,
 		hardforkTriggerPubKey:    providedHardforkPubKey,
-		keysHolder:               &testscommon.KeysHolderStub{},
+		managedPeersHolder:       &testscommon.ManagedPeersHolderStub{},
 		timeBetweenChecks:        time.Second,
 		shardCoordinator:         createShardCoordinatorInShard(0),
 	}
@@ -61,7 +61,7 @@ func TestPeerAuthenticationSenderFactory_createPeerAuthenticationSender(t *testi
 				return nil, 0, nil
 			},
 		}
-		args.keysHolder = &testscommon.KeysHolderStub{
+		args.managedPeersHolder = &testscommon.ManagedPeersHolderStub{
 			GetManagedKeysByCurrentNodeCalled: func() map[string]crypto.PrivateKey {
 				keygen := signing.NewKeyGenerator(&mcl.SuiteBLS12{})
 				sk, pk := keygen.GeneratePair()
@@ -99,7 +99,7 @@ func TestPeerAuthenticationSenderFactory_createPeerAuthenticationSender(t *testi
 				return nil, 0, errors.New("not validator")
 			},
 		}
-		args.keysHolder = &testscommon.KeysHolderStub{
+		args.managedPeersHolder = &testscommon.ManagedPeersHolderStub{
 			GetManagedKeysByCurrentNodeCalled: func() map[string]crypto.PrivateKey {
 				return make(map[string]crypto.PrivateKey)
 			},
@@ -118,7 +118,7 @@ func TestPeerAuthenticationSenderFactory_createPeerAuthenticationSender(t *testi
 				return nil, 0, errors.New("not validator")
 			},
 		}
-		args.keysHolder = &testscommon.KeysHolderStub{
+		args.managedPeersHolder = &testscommon.ManagedPeersHolderStub{
 			GetManagedKeysByCurrentNodeCalled: func() map[string]crypto.PrivateKey {
 				keygen := signing.NewKeyGenerator(&mcl.SuiteBLS12{})
 				sk1, pk1 := keygen.GeneratePair()

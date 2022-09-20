@@ -160,7 +160,7 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 		HardforkTimeBetweenSends:                    time.Second * time.Duration(cfg.HardforkTimeBetweenSendsInSec),
 		HardforkTriggerPubKey:                       hcf.coreComponents.HardforkTriggerPubKey(),
 		PeerTypeProvider:                            peerTypeProvider,
-		KeysHolder:                                  hcf.cryptoComponents.KeysHolder(),
+		ManagedPeersHolder:                          hcf.cryptoComponents.ManagedPeersHolder(),
 		PeerAuthenticationTimeBetweenChecks:         time.Second * time.Duration(cfg.PeerAuthenticationTimeBetweenChecksInSec),
 		ShardCoordinator:                            hcf.processComponents.ShardCoordinator(),
 	}
