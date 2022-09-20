@@ -149,8 +149,15 @@ func GetCoreArgs() coreComp.CoreComponentsFactoryArgs {
 				TopRatedCacheCapacity: 1000,
 				BadRatedCacheCapacity: 1000,
 			},
+			PoolsCleanersConfig: config.PoolsCleanersConfig{
+				MaxRoundsToKeepUnprocessedMiniBlocks:   50,
+				MaxRoundsToKeepUnprocessedTransactions: 50,
+			},
 			Hardfork: config.HardforkConfig{
 				PublicKeyToListenFrom: DummyPk,
+			},
+			HeartbeatV2: config.HeartbeatV2Config{
+				HeartbeatExpiryTimespanInSec: 10,
 			},
 		},
 		ConfigPathsHolder: config.ConfigurationPathsHolder{
@@ -169,6 +176,13 @@ func GetCoreArgs() coreComp.CoreComponentsFactoryArgs {
 						StartEpoch: 0,
 						FileName:   "gasScheduleV1.toml",
 					},
+				},
+			},
+		},
+		RoundConfig: config.RoundConfig{
+			RoundActivations: map[string]config.ActivationRoundByName{
+				"Example": {
+					Round: "18446744073709551615",
 				},
 			},
 		},
@@ -324,10 +338,9 @@ func GetHeartbeatFactoryArgs(shardCoordinator sharding.Coordinator) heartbeatCom
 				CacheRefreshIntervalInSec: uint32(100),
 			},
 		},
-		HeartbeatDisableEpoch: 10,
-		Prefs:                 config.Preferences{},
-		AppVersion:            "test",
-		GenesisTime:           time.Time{},
+		Prefs:       config.Preferences{},
+		AppVersion:  "test",
+		GenesisTime: time.Time{},
 		RedundancyHandler: &mock.RedundancyHandlerStub{
 			ObserverPrivateKeyCalled: func() crypto.PrivateKey {
 				return &mock.PrivateKeyStub{
@@ -391,6 +404,10 @@ func GetNetworkFactoryArgs() networkComp.NetworkComponentsFactoryArgs {
 		PeersRatingConfig: config.PeersRatingConfig{
 			TopRatedCacheCapacity: 1000,
 			BadRatedCacheCapacity: 1000,
+		},
+		PoolsCleanersConfig: config.PoolsCleanersConfig{
+			MaxRoundsToKeepUnprocessedMiniBlocks:   50,
+			MaxRoundsToKeepUnprocessedTransactions: 50,
 		},
 	}
 

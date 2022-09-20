@@ -103,7 +103,7 @@ func NewCryptoComponentsFactory(args CryptoComponentsFactoryArgs) (*cryptoCompon
 		keyLoader:                            args.KeyLoader,
 		isInImportMode:                       args.IsInImportMode,
 		importModeNoSigCheck:                 args.ImportModeNoSigCheck,
-		enableEpochs:                         args.      EnableEpochs,
+		enableEpochs:                         args.EnableEpochs,
 		noKeyProvided:                        args.NoKeyProvided,
 	}
 

@@ -30,7 +30,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	vic "github.com/ElrondNetwork/elrond-go/testscommon/validatorInfoCacher"
@@ -345,7 +344,7 @@ func CreateNode(
 		txSignPrivKeyShardId = 0
 	}
 
-	multiSigner, err := createMultiSigner(*cp, shardId, keyIndex)
+	multiSigner, err := createMultiSigner(*cp)
 	if err != nil {
 		log.Error("error generating multisigner: %s\n", err)
 		return nil
@@ -457,7 +456,7 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 		}
 
 		for i := range validatorList {
-			multiSigner, err := createMultiSigner(*cp, shardId, i)
+			multiSigner, err := createMultiSigner(*cp)
 			if err != nil {
 				log.Error("error generating multisigner: %s\n", err)
 				return nil
@@ -581,7 +580,7 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 
 			headerSig, _ := headerCheck.NewHeaderSigVerifier(&args)
 
-			multiSigner, err := createMultiSigner(*cp, shardId, i)
+			multiSigner, err := createMultiSigner(*cp)
 			if err != nil {
 				log.Error("error generating multisigner: %s\n", err)
 				return nil
@@ -790,17 +789,11 @@ func SyncAllShardsWithRoundBlock(
 	time.Sleep(4 * StepDelay)
 }
 
-func createMultiSigner(cp CryptoParams, shardId uint32, ownKeyIndex int) (crypto.MultiSigner, error) {
+func createMultiSigner(cp CryptoParams) (crypto.MultiSigner, error) {
 	blsHasher, _ := blake2b.NewBlake2bWithSize(hashing.BlsHashSize)
 	llsig := &mclmultisig.BlsMultiSigner{Hasher: blsHasher}
-
-	pubKeysMap := PubKeysMapFromKeysMap(cp.Keys)
-
 	return multisig.NewBLSMultisig(
 		llsig,
-		pubKeysMap[shardId],
-		cp.Keys[shardId][ownKeyIndex].Sk,
 		cp.KeyGen,
-		0,
 	)
 }

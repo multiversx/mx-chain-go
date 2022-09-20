@@ -176,10 +176,10 @@ func TestCryptoComponentsFactory_CreateWithAutoGenerateKey(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	coreComponents := getCoreComponents()
-	args := getCryptoArgs(coreComponents)
+	coreComponents := componentsMock.GetCoreComponents()
+	args := componentsMock.GetCryptoArgs(coreComponents)
 	args.NoKeyProvided = true
-	ccf, _ := factory.NewCryptoComponentsFactory(args)
+	ccf, _ := cryptoComp.NewCryptoComponentsFactory(args)
 
 	cc, err := ccf.Create()
 	require.NoError(t, err)

@@ -179,7 +179,7 @@ func (tcn *TestConsensusNode) initNode(
 
 	tcn.initResolverFinder()
 
-	testMultiSig := cryptoMocks.NewMultiSigner(uint32(consensusSize))
+	testMultiSig := cryptoMocks.NewMultiSigner()
 
 	peerSigCache, _ := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 1000})
 	peerSigHandler, _ := peerSignatureHandler.NewPeerSignatureHandler(peerSigCache, TestSingleBlsSigner, keyGen)
@@ -210,7 +210,7 @@ func (tcn *TestConsensusNode) initNode(
 	cryptoComponents.PubKey = tcn.NodeKeys.Sk.GeneratePublic()
 	cryptoComponents.BlockSig = TestSingleBlsSigner
 	cryptoComponents.TxSig = TestSingleSigner
-	cryptoComponents.MultiSig = testMultiSig
+	cryptoComponents.MultiSigContainer = cryptoMocks.NewMultiSignerContainerMock(testMultiSig)
 	cryptoComponents.BlKeyGen = keyGen
 	cryptoComponents.PeerSignHandler = peerSigHandler
 

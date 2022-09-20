@@ -161,7 +161,7 @@ func (dcf *dataComponentsFactory) createDataStoreFromConfig() (dataRetriever.Sto
 		dcf.core.NodeTypeProvider(),
 		dcf.currentEpoch,
 		dcf.createTrieEpochRootHashStorer,
-		factory.ProcessStorageService,
+		storageFactory.ProcessStorageService,
 	)
 	if err != nil {
 		return nil, err

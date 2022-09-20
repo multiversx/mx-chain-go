@@ -508,6 +508,7 @@ type ReceiptsRepository interface {
 	IsInterfaceNil() bool
 }
 
-type processDebuggerSetter interface {
+// ProcessDebuggerSetter allows setting a debugger on the process component
+type ProcessDebuggerSetter interface {
 	SetProcessDebugger(debugger process.Debugger) error
 }

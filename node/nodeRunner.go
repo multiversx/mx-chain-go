@@ -1323,7 +1323,7 @@ func (nr *nodeRunner) CreateManagedCryptoComponents(
 		KeyLoader:                            &core.KeyLoader{},
 		ImportModeNoSigCheck:                 configs.ImportDbConfig.ImportDbNoSigCheckFlag,
 		IsInImportMode:                       configs.ImportDbConfig.IsImportDBMode,
-		EnableEpochs:                         //configs.EpochConfig.EnableEpochs,
+		EnableEpochs:                         configs.EpochConfig.EnableEpochs,
 		NoKeyProvided:                        configs.FlagsConfig.NoKeyProvided,
 	}
 

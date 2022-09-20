@@ -879,7 +879,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 }
 
 func (pcf *processComponentsFactory) attachProcessDebugger(
-	processor processDebuggerSetter,
+	processor mainFactory.ProcessDebuggerSetter,
 	configs config.ProcessDebugConfig,
 ) error {
 	processDebugger, err := debugFactory.CreateProcessDebugger(configs)
@@ -1205,7 +1205,7 @@ func (pcf *processComponentsFactory) createBuiltInFunctionContainer(
 		ShardCoordinator:          pcf.bootstrapComponents.ShardCoordinator(),
 		EpochNotifier:             pcf.coreData.EpochNotifier(),
 		EnableEpochsHandler:       pcf.coreData.EnableEpochsHandler(),
-		AutomaticCrawlerAddresses:                convertedAddresses,
+		AutomaticCrawlerAddresses: convertedAddresses,
 		MaxNumNodesInTransferRole: pcf.config.BuiltInFunctions.MaxNumAddressesInTransferRole,
 	}
 
