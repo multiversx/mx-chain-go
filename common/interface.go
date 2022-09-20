@@ -291,6 +291,7 @@ type EnableEpochsHandler interface {
 	IsSetSenderInEeiOutputTransferFlagEnabled() bool
 	IsChangeDelegationOwnerFlagEnabled() bool
 	IsRefactorPeersMiniBlocksFlagEnabled() bool
+	IsFixAsyncCallBackArgsListFlagEnabled() bool
 
 	IsInterfaceNil() bool
 }
