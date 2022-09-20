@@ -1751,7 +1751,6 @@ func TestNetworkMessenger_Bootstrap(t *testing.T) {
 		P2pConfig: config.P2PConfig{
 			Node: config.NodeConfig{
 				Port:                       "0",
-				Seed:                       "",
 				MaximumExpectedPeerCount:   1,
 				ThresholdMinConnectedPeers: 1,
 			},

@@ -63,12 +63,6 @@ VERSION:
 			"To bind to all available interfaces, set this flag to :8080. If set to `off` then the API won't be available",
 		Value: facade.DefaultRestInterface,
 	}
-	// p2pSeed defines a flag to be used as a seed when generating P2P credentials. Useful for seed nodes.
-	p2pSeed = cli.StringFlag{
-		Name:  "p2p-seed",
-		Usage: "P2P seed will be used when generating credentials for p2p component. Can be any string.",
-		Value: "seed",
-	}
 	// logLevel defines the logger level
 	logLevel = cli.StringFlag{
 		Name: "log-level",
@@ -110,7 +104,6 @@ func main() {
 	app.Flags = []cli.Flag{
 		port,
 		restApiInterfaceFlag,
-		p2pSeed,
 		logLevel,
 		logSaveFile,
 		configurationFile,
@@ -193,9 +186,6 @@ func startNode(ctx *cli.Context) error {
 	)
 	if ctx.IsSet(port.Name) {
 		p2pConfig.Node.Port = ctx.GlobalString(port.Name)
-	}
-	if ctx.IsSet(p2pSeed.Name) {
-		p2pConfig.Node.Seed = ctx.GlobalString(p2pSeed.Name)
 	}
 
 	err = checkExpectedPeerCount(*p2pConfig)
