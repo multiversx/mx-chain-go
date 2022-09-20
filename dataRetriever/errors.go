@@ -13,8 +13,11 @@ var ErrSendRequest = errors.New("cannot send request: peer list is empty or erro
 // ErrNilValue signals the value is nil
 var ErrNilValue = errors.New("nil value")
 
-// ErrTxNotFoundInBlockPool signals the value is nil
-var ErrTxNotFoundInBlockPool = errors.New("cannot find tx in current block pool")
+// ErrTxNotFoundInBlockPool signals that transaction was not found in the current block pool
+var ErrTxNotFoundInBlockPool = errors.New("transaction was not found in the current block pool")
+
+// ErrValidatorInfoNotFoundInEpochPool signals that validator info was not found in the current epoch pool
+var ErrValidatorInfoNotFoundInEpochPool = errors.New("validator info was not found in the current epoch pool")
 
 // ErrNilMarshalizer signals that an operation has been attempted to or with a nil Marshalizer implementation
 var ErrNilMarshalizer = errors.New("nil Marshalizer")
@@ -146,8 +149,11 @@ var ErrNilPeersRatingHandler = errors.New("nil peers rating handler")
 // ErrNilTrieDataGetter signals that a nil trie data getter has been provided
 var ErrNilTrieDataGetter = errors.New("nil trie data getter provided")
 
-// ErrNilCurrBlockTxs signals that nil current blocks txs holder was provided
+// ErrNilCurrBlockTxs signals that nil current block txs holder was provided
 var ErrNilCurrBlockTxs = errors.New("nil current block txs holder")
+
+// ErrNilCurrentEpochValidatorInfo signals that nil current epoch validator info holder was provided
+var ErrNilCurrentEpochValidatorInfo = errors.New("nil current epoch validator info holder")
 
 // ErrNilRequestedItemsHandler signals that a nil requested items handler was provided
 var ErrNilRequestedItemsHandler = errors.New("nil requested items handler")
@@ -242,5 +248,20 @@ var InvalidChunkIndex = errors.New("invalid chunk index")
 // ErrInvalidNumOfPeerAuthentication signals that an invalid number of peer authentication was provided
 var ErrInvalidNumOfPeerAuthentication = errors.New("invalid num of peer authentication")
 
-// ErrNilPeerShardMapper signals that a nil peer shard mapper has been provided
-var ErrNilPeerShardMapper = errors.New("nil peer shard mapper")
+// ErrNilPayloadValidator signals that a nil payload validator was provided
+var ErrNilPayloadValidator = errors.New("nil payload validator")
+
+// ErrWrongTypeAssertion signals that an type assertion failed
+var ErrWrongTypeAssertion = errors.New("wrong type assertion")
+
+// ErrStorerNotFound signals that the storer was not found
+var ErrStorerNotFound = errors.New("storer not found")
+
+// ErrNilValidatorInfoPool signals that a nil validator info pool has been provided
+var ErrNilValidatorInfoPool = errors.New("nil validator info pool")
+
+// ErrNilValidatorInfoStorage signals that a nil validator info storage has been provided
+var ErrNilValidatorInfoStorage = errors.New("nil validator info storage")
+
+// ErrValidatorInfoNotFound signals that no validator info was found
+var ErrValidatorInfoNotFound = errors.New("validator info not found")

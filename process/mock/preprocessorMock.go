@@ -19,7 +19,7 @@ type PreProcessorMock struct {
 	SaveTxsToStorageCalled                func(body *block.Body) error
 	ProcessBlockTransactionsCalled        func(header data.HeaderHandler, body *block.Body, haveTime func() bool) error
 	RequestBlockTransactionsCalled        func(body *block.Body) int
-	CreateMarshalizedDataCalled           func(txHashes [][]byte) ([][]byte, error)
+	CreateMarshalledDataCalled            func(txHashes [][]byte) ([][]byte, error)
 	RequestTransactionsForMiniBlockCalled func(miniBlock *block.MiniBlock) int
 	ProcessMiniBlockCalled                func(miniBlock *block.MiniBlock, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool, partialMbExecutionMode bool, indexOfLastTxProcessed int, preProcessorExecutionInfoHandler process.PreProcessorExecutionInfoHandler) ([][]byte, int, bool, error)
 	CreateAndProcessMiniBlocksCalled      func(haveTime func() bool) (block.MiniBlockSlice, error)
@@ -92,12 +92,12 @@ func (ppm *PreProcessorMock) RequestBlockTransactions(body *block.Body) int {
 	return ppm.RequestBlockTransactionsCalled(body)
 }
 
-// CreateMarshalizedData -
-func (ppm *PreProcessorMock) CreateMarshalizedData(txHashes [][]byte) ([][]byte, error) {
-	if ppm.CreateMarshalizedDataCalled == nil {
+// CreateMarshalledData -
+func (ppm *PreProcessorMock) CreateMarshalledData(txHashes [][]byte) ([][]byte, error) {
+	if ppm.CreateMarshalledDataCalled == nil {
 		return nil, nil
 	}
-	return ppm.CreateMarshalizedDataCalled(txHashes)
+	return ppm.CreateMarshalledDataCalled(txHashes)
 }
 
 // RequestTransactionsForMiniBlock -

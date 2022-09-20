@@ -1,11 +1,12 @@
-# Since we do not have yet any round based enable flag, this file is empty for now.
-# Below, there is an example of how a new flag shall be defined. Please notice the following:
-# 1. It is mandatory that each flag is a separate table, e.g.: [ActivationDummyFlag1]
-# 2. It is mandatory that each table contains Name and Round keys ONLY
-# 3. It is NOT mandatory for table name to be the same as key Name, e.g.: [ActivationDummyFlag1] & Name = "Fix1" is fine
+# All activation rounds need to be declared as strings containing valid uint64 numbers. All values will be checked in the
+# enableRoundsHandler for correctness. The toml parser library can not correctly parse uint64, currently.
 
-# Example:
-#[ActivationDummyFlag1]
-#   Name = "Fix1"
-#   Round = 444
+# Each activation round definition contains an optional slice of strings. These are useful, for example, when we have
+# some exceptions to process in a different manner at a special round (say a block, a transaction, a smart contract result and such)
 
+[RoundActivations]
+    # RoundActivations.Example represents an example how to use the round activation
+    # mechanism. Replace this with the first real use case
+    [RoundActivations.Example]
+        Options = ["test string1", "test string 2"]
+        Round = "18446744073709551614"

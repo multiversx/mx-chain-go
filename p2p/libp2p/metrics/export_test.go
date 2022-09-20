@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go/storage/timecache"
+	"github.com/ElrondNetwork/elrond-go/storage/cache"
 )
 
 // NewPrintConnectionsWatcherWithHandler -
@@ -17,7 +17,7 @@ func NewPrintConnectionsWatcherWithHandler(timeToLive time.Duration, handler fun
 
 	pcw := &printConnectionsWatcher{
 		timeToLive:   timeToLive,
-		timeCacher:   timecache.NewTimeCache(timeToLive),
+		timeCacher:   cache.NewTimeCache(timeToLive),
 		printHandler: handler,
 	}
 

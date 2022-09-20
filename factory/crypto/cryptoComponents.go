@@ -23,7 +23,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/factory/peerSignatureHandler"
 	"github.com/ElrondNetwork/elrond-go/genesis/process/disabled"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	systemVM "github.com/ElrondNetwork/elrond-go/vm/process"
 )
@@ -37,10 +37,11 @@ type CryptoComponentsFactoryArgs struct {
 	Config                               config.Config
 	EnableEpochs                         config.EnableEpochs
 	CoreComponentsHolder                 factory.CoreComponentsHolder
-	ActivateBLSPubKeyMessageVerification bool
 	KeyLoader                            factory.KeyLoaderHandler
+	ActivateBLSPubKeyMessageVerification bool
 	IsInImportMode                       bool
 	ImportModeNoSigCheck                 bool
+	NoKeyProvided                        bool
 }
 
 type cryptoComponentsFactory struct {
@@ -54,6 +55,7 @@ type cryptoComponentsFactory struct {
 	keyLoader                            factory.KeyLoaderHandler
 	isInImportMode                       bool
 	importModeNoSigCheck                 bool
+	noKeyProvided                        bool
 }
 
 // cryptoParams holds the node public/private key data
@@ -101,7 +103,8 @@ func NewCryptoComponentsFactory(args CryptoComponentsFactoryArgs) (*cryptoCompon
 		keyLoader:                            args.KeyLoader,
 		isInImportMode:                       args.IsInImportMode,
 		importModeNoSigCheck:                 args.ImportModeNoSigCheck,
-		enableEpochs:                         args.EnableEpochs,
+		enableEpochs:                         args.      EnableEpochs,
+		noKeyProvided:                        args.NoKeyProvided,
 	}
 
 	return ccf, nil
@@ -151,7 +154,7 @@ func (ccf *cryptoComponentsFactory) Create() (*cryptoComponents, error) {
 	}
 
 	cacheConfig := ccf.config.PublicKeyPIDSignature
-	cachePkPIDSignature, err := storageUnit.NewCache(storageFactory.GetCacherFromConfig(cacheConfig))
+	cachePkPIDSignature, err := storageunit.NewCache(storageFactory.GetCacherFromConfig(cacheConfig))
 	if err != nil {
 		return nil, err
 	}
@@ -222,7 +225,8 @@ func (ccf *cryptoComponentsFactory) createCryptoParams(
 	keygen crypto.KeyGenerator,
 ) (*cryptoParams, error) {
 
-	if ccf.isInImportMode {
+	shouldGenerateCryptoParams := ccf.isInImportMode || ccf.noKeyProvided
+	if shouldGenerateCryptoParams {
 		return ccf.generateCryptoParams(keygen)
 	}
 
@@ -260,7 +264,14 @@ func (ccf *cryptoComponentsFactory) readCryptoParams(keygen crypto.KeyGenerator)
 }
 
 func (ccf *cryptoComponentsFactory) generateCryptoParams(keygen crypto.KeyGenerator) (*cryptoParams, error) {
-	log.Warn("the node is in import mode! Will generate a fresh new BLS key")
+	var message string
+	if ccf.noKeyProvided {
+		message = "with no-key flag enabled"
+	} else {
+		message = "in import mode"
+	}
+
+	log.Warn(fmt.Sprintf("the node is %s! Will generate a fresh new BLS key", message))
 	cp := &cryptoParams{}
 	cp.privateKey, cp.publicKey = keygen.GeneratePair()
 

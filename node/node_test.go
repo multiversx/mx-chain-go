@@ -53,6 +53,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
+	"github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	"github.com/ElrondNetwork/elrond-go/testscommon/txsSenderMock"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
@@ -241,6 +242,37 @@ func TestGetUsername(t *testing.T) {
 	username, _, err := n.GetUsername(testscommon.TestAddressAlice, api.AccountQueryOptions{})
 	assert.Nil(t, err)
 	assert.Equal(t, string(expectedUsername), username)
+}
+
+func TestGetCodeHash(t *testing.T) {
+	expectedCodeHash := []byte("hash")
+
+	testAccount, _ := state.NewUserAccount(testscommon.TestPubKeyAlice)
+	testAccount.CodeHash = expectedCodeHash
+	accountsRepository := &stateMock.AccountsRepositoryStub{
+		GetAccountWithBlockInfoCalled: func(address []byte, options api.AccountQueryOptions) (vmcommon.AccountHandler, common.BlockInfo, error) {
+			return testAccount, nil, nil
+		},
+	}
+
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.IntMarsh = getMarshalizer()
+	coreComponents.VmMarsh = getMarshalizer()
+	coreComponents.Hash = getHasher()
+
+	dataComponents := getDefaultDataComponents()
+	stateComponents := getDefaultStateComponents()
+	stateComponents.AccountsRepo = accountsRepository
+
+	n, _ := node.NewNode(
+		node.WithDataComponents(dataComponents),
+		node.WithCoreComponents(coreComponents),
+		node.WithStateComponents(stateComponents),
+	)
+
+	codeHash, _, err := n.GetCodeHash(testscommon.TestAddressAlice, api.AccountQueryOptions{})
+	assert.Nil(t, err)
+	assert.Equal(t, expectedCodeHash, codeHash)
 }
 
 func TestNode_GetKeyValuePairs(t *testing.T) {
@@ -2526,8 +2558,8 @@ func TestCreateShardedStores_NilHeaderDataPoolShouldError(t *testing.T) {
 func TestCreateShardedStores_ReturnsSuccessfully(t *testing.T) {
 	messenger := getMessenger()
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
-	nrOfShards := uint32(2)
-	shardCoordinator.SetNoShards(nrOfShards)
+	numOfShards := uint32(2)
+	shardCoordinator.SetNoShards(numOfShards)
 
 	dataPool := dataRetrieverMock.NewPoolsHolderStub()
 	dataPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
@@ -3949,7 +3981,7 @@ func getDefaultDataComponents() *nodeMockFactory.DataComponentsMock {
 
 	return &nodeMockFactory.DataComponentsMock{
 		BlockChain: chainHandler,
-		Store:      &mock.ChainStorerStub{},
+		Store:      &storage.ChainStorerStub{},
 		DataPool:   &dataRetrieverMock.PoolsHolderMock{},
 		MbProvider: &mock.MiniBlocksProviderStub{},
 	}

@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/fallback"
 	"github.com/ElrondNetwork/elrond-go/fallback/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
@@ -19,7 +20,7 @@ func TestNewFallbackHeaderValidator_ShouldErrNilHeadersDataPool(t *testing.T) {
 	t.Parallel()
 
 	marshalizer := &mock.MarshalizerStub{}
-	storageService := &mock.ChainStorerStub{}
+	storageService := &storage.ChainStorerStub{}
 
 	fhv, err := fallback.NewFallbackHeaderValidator(nil, marshalizer, storageService)
 	assert.Nil(t, fhv)
@@ -30,7 +31,7 @@ func TestNewFallbackHeaderValidator_ShouldErrNilMarshalizer(t *testing.T) {
 	t.Parallel()
 
 	headersPool := &mock.HeadersCacherStub{}
-	storageService := &mock.ChainStorerStub{}
+	storageService := &storage.ChainStorerStub{}
 
 	fhv, err := fallback.NewFallbackHeaderValidator(headersPool, nil, storageService)
 	assert.Nil(t, fhv)
@@ -53,7 +54,7 @@ func TestNewFallbackHeaderValidator_ShouldWork(t *testing.T) {
 
 	headersPool := &mock.HeadersCacherStub{}
 	marshalizer := &mock.MarshalizerStub{}
-	storageService := &mock.ChainStorerStub{}
+	storageService := &storage.ChainStorerStub{}
 
 	fhv, err := fallback.NewFallbackHeaderValidator(headersPool, marshalizer, storageService)
 	assert.False(t, check.IfNil(fhv))
@@ -65,7 +66,7 @@ func TestShouldApplyFallbackConsensus_ShouldReturnFalseWhenHeaderIsNil(t *testin
 
 	headersPool := &mock.HeadersCacherStub{}
 	marshalizer := &mock.MarshalizerStub{}
-	storageService := &mock.ChainStorerStub{}
+	storageService := &storage.ChainStorerStub{}
 
 	fhv, _ := fallback.NewFallbackHeaderValidator(headersPool, marshalizer, storageService)
 	assert.False(t, fhv.ShouldApplyFallbackValidation(nil))
@@ -76,7 +77,7 @@ func TestShouldApplyFallbackConsensus_ShouldReturnFalseWhenIsNotMetachainBlock(t
 
 	headersPool := &mock.HeadersCacherStub{}
 	marshalizer := &mock.MarshalizerStub{}
-	storageService := &mock.ChainStorerStub{}
+	storageService := &storage.ChainStorerStub{}
 	header := &block.Header{}
 
 	fhv, _ := fallback.NewFallbackHeaderValidator(headersPool, marshalizer, storageService)
@@ -88,7 +89,7 @@ func TestShouldApplyFallbackConsensus_ShouldReturnFalseWhenIsNotStartOfEpochMeta
 
 	headersPool := &mock.HeadersCacherStub{}
 	marshalizer := &mock.MarshalizerStub{}
-	storageService := &mock.ChainStorerStub{}
+	storageService := &storage.ChainStorerStub{}
 	metaBlock := &block.MetaBlock{}
 
 	fhv, _ := fallback.NewFallbackHeaderValidator(headersPool, marshalizer, storageService)
@@ -100,7 +101,7 @@ func TestShouldApplyFallbackConsensus_ShouldReturnFalseWhenPreviousHeaderIsNotFo
 
 	headersPool := &mock.HeadersCacherStub{}
 	marshalizer := &mock.MarshalizerStub{}
-	storageService := &mock.ChainStorerStub{}
+	storageService := &storage.ChainStorerStub{}
 	epochStartShardData := block.EpochStartShardData{}
 	metaBlock := &block.MetaBlock{
 		EpochStart: block.EpochStart{
@@ -127,7 +128,7 @@ func TestShouldApplyFallbackConsensus_ShouldReturnFalseWhenRoundIsNotTooOld(t *t
 		},
 	}
 	marshalizer := &mock.MarshalizerStub{}
-	storageService := &mock.ChainStorerStub{}
+	storageService := &storage.ChainStorerStub{}
 	epochStartShardData := block.EpochStartShardData{}
 	metaBlock := &block.MetaBlock{
 		Round: common.MaxRoundsWithoutCommittedStartInEpochBlock - 1,
@@ -156,7 +157,7 @@ func TestShouldApplyFallbackConsensus_ShouldReturnTrue(t *testing.T) {
 		},
 	}
 	marshalizer := &mock.MarshalizerStub{}
-	storageService := &mock.ChainStorerStub{}
+	storageService := &storage.ChainStorerStub{}
 	epochStartShardData := block.EpochStartShardData{}
 	metaBlock := &block.MetaBlock{
 		Round: common.MaxRoundsWithoutCommittedStartInEpochBlock,

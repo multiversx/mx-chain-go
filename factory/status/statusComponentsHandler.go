@@ -426,9 +426,9 @@ func (msc *managedStatusComponents) String() string {
 
 func (msc *managedStatusComponents) attachEpochGoRoutineAnalyser() {
 	currentConfig := msc.statusComponentsFactory.config
-	enabledEpochDebug := currentConfig.Debug.EpochStart.GoRoutineAnalyserEnabled
-	log.Debug("attachEpochGoRoutineAnalyser", "GoRoutineAnalyserEnabled", enabledEpochDebug)
-	if enabledEpochDebug {
+	enableEpochDebug := currentConfig.Debug.EpochStart.GoRoutineAnalyserEnabled
+	log.Debug("attachEpochGoRoutineAnalyser", "GoRoutineAnalyserEnabled", enableEpochDebug)
+	if enableEpochDebug {
 		analyser, err := goroutine.NewGoRoutinesAnalyser(goroutine.NewGoRoutinesProcessor())
 
 		if err != nil {

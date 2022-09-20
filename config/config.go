@@ -111,7 +111,6 @@ type HeartbeatV2Config struct {
 	HeartbeatTimeBetweenSendsInSec                   int64
 	HeartbeatTimeBetweenSendsWhenErrorInSec          int64
 	HeartbeatThresholdBetweenSends                   float64
-	MaxNumOfPeerAuthenticationInResponse             int
 	HeartbeatExpiryTimespanInSec                     int64
 	MinPeersThreshold                                float32
 	DelayBetweenRequestsInSec                        int64
@@ -120,15 +119,9 @@ type HeartbeatV2Config struct {
 	MaxMissingKeysInRequest                          uint32
 	MaxDurationPeerUnresponsiveInSec                 int64
 	HideInactiveValidatorIntervalInSec               int64
-	PeerAuthenticationPool                           PeerAuthenticationPoolConfig
 	HeartbeatPool                                    CacheConfig
 	HardforkTimeBetweenSendsInSec                    int64
-}
-
-// PeerAuthenticationPoolConfig will hold the configuration for peer authentication pool
-type PeerAuthenticationPoolConfig struct {
-	DefaultSpanInSec int
-	CacheExpiryInSec int
+	TimeBetweenConnectionsMetricsUpdateInSec         int64
 }
 
 // Config will hold the entire application configuration parameters
@@ -170,6 +163,7 @@ type Config struct {
 	WhiteListPool               CacheConfig
 	WhiteListerVerifiedTxs      CacheConfig
 	SmartContractDataPool       CacheConfig
+	ValidatorInfoPool           CacheConfig
 	TrieSyncStorage             TrieSyncStorageConfig
 	EpochStartConfig            EpochStartConfig
 	AddressPubkeyConverter      PubkeyConfig
@@ -215,7 +209,8 @@ type Config struct {
 	Resolvers             ResolverConfig
 	VMOutputCacher        CacheConfig
 
-	PeersRatingConfig PeersRatingConfig
+	PeersRatingConfig   PeersRatingConfig
+	PoolsCleanersConfig PoolsCleanersConfig
 }
 
 // PeersRatingConfig will hold settings related to peers rating
@@ -476,6 +471,7 @@ type DebugConfig struct {
 	Antiflood           AntifloodDebugConfig
 	ShuffleOut          ShuffleOutDebugConfig
 	EpochStart          EpochStartDebugConfig
+	Process             ProcessDebugConfig
 }
 
 // HealthServiceConfig will hold health service (monitoring) configuration
@@ -517,6 +513,14 @@ type ShuffleOutDebugConfig struct {
 type EpochStartDebugConfig struct {
 	GoRoutineAnalyserEnabled     bool
 	ProcessDataTrieOnCommitEpoch bool
+}
+
+// ProcessDebugConfig will hold the process debug configuration
+type ProcessDebugConfig struct {
+	Enabled              bool
+	GoRoutinesDump       bool
+	DebuggingLogLevel    string
+	PollingTimeInSeconds int
 }
 
 // ApiRoutesConfig holds the configuration related to Rest API routes
@@ -604,4 +608,10 @@ type ResolverConfig struct {
 	NumCrossShardPeers  uint32
 	NumTotalPeers       uint32
 	NumFullHistoryPeers uint32
+}
+
+// PoolsCleanersConfig represents the config options to be used by the pools cleaners
+type PoolsCleanersConfig struct {
+	MaxRoundsToKeepUnprocessedMiniBlocks   int64
+	MaxRoundsToKeepUnprocessedTransactions int64
 }

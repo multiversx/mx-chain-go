@@ -10,12 +10,10 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
-	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/mock"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
-	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -39,7 +37,10 @@ func createMockArgumentsForDelegationManager() ArgsNewDelegationManager {
 		ConfigChangeAddress:    configChangeAddress,
 		GasCost:                vm.GasCost{MetaChainSystemSCsCost: vm.MetaChainSystemSCsCost{ESDTIssue: 10}},
 		Marshalizer:            &mock.MarshalizerMock{},
-		EpochNotifier:          &mock.EpochNotifierStub{},
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
+			IsDelegationManagerFlagEnabledField:     true,
+			IsValidatorToDelegationFlagEnabledField: true,
+		},
 	}
 }
 
@@ -130,15 +131,15 @@ func TestNewDelegationManagerSystemSC_NilMarshalizerShouldErr(t *testing.T) {
 	assert.Equal(t, vm.ErrNilMarshalizer, err)
 }
 
-func TestNewDelegationManagerSystemSC_NilEpochNotifierShouldErr(t *testing.T) {
+func TestNewDelegationManagerSystemSC_NilEnableEpochsHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForDelegationManager()
-	args.EpochNotifier = nil
+	args.EnableEpochsHandler = nil
 
 	dm, err := NewDelegationManagerSystemSC(args)
 	assert.Nil(t, dm)
-	assert.Equal(t, vm.ErrNilEpochNotifier, err)
+	assert.Equal(t, vm.ErrNilEnableEpochsHandler, err)
 }
 
 func TestNewDelegationManagerSystemSC_InvalidMinCreationDepositShouldErr(t *testing.T) {
@@ -166,17 +167,9 @@ func TestNewDelegationManagerSystemSC_InvalidMinStakeAmountShouldErr(t *testing.
 func TestNewDelegationManagerSystemSC(t *testing.T) {
 	t.Parallel()
 
-	registerNotifyHandlerCalled := false
-	args := createMockArgumentsForDelegationManager()
-	args.EpochNotifier = &mock.EpochNotifierStub{
-		RegisterNotifyHandlerCalled: func(handler vmcommon.EpochSubscriberHandler) {
-			registerNotifyHandlerCalled = true
-		}}
-
-	dm, err := NewDelegationManagerSystemSC(args)
+	dm, err := NewDelegationManagerSystemSC(createMockArgumentsForDelegationManager())
 	assert.Nil(t, err)
 	assert.NotNil(t, dm)
-	assert.True(t, registerNotifyHandlerCalled)
 }
 
 func TestDelegationManagerSystemSC_ExecuteWithNilArgsShouldErr(t *testing.T) {
@@ -193,17 +186,12 @@ func TestDelegationManagerSystemSC_ExecuteWithDelegationManagerDisabled(t *testi
 	t.Parallel()
 
 	args := createMockArgumentsForDelegationManager()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	eei := createDefaultEei()
 	args.Eei = eei
+	enableEpochsHandler, _ := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
 
 	dm, _ := NewDelegationManagerSystemSC(args)
-	dm.delegationMgrEnabled.Reset()
+	enableEpochsHandler.IsDelegationManagerFlagEnabledField = false
 	vmInput := getDefaultVmInputForDelegationManager("createNewDelegationContract", [][]byte{})
 
 	output := dm.Execute(vmInput)
@@ -215,13 +203,7 @@ func TestDelegationManagerSystemSC_ExecuteInvalidFunction(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForDelegationManager()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	dm, _ := NewDelegationManagerSystemSC(args)
@@ -236,13 +218,7 @@ func TestDelegationManagerSystemSC_ExecuteInit(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForDelegationManager()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	dm, _ := NewDelegationManagerSystemSC(args)
@@ -273,13 +249,7 @@ func TestDelegationManagerSystemSC_ExecuteCreateNewDelegationContractUserErrors(
 	t.Parallel()
 
 	args := createMockArgumentsForDelegationManager()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	dm, _ := NewDelegationManagerSystemSC(args)
@@ -365,13 +335,7 @@ func TestDelegationManagerSystemSC_ExecuteCreateNewDelegationContract(t *testing
 	maxDelegationCap := []byte{250}
 	serviceFee := []byte{10}
 	args := createMockArgumentsForDelegationManager()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		parsers.NewCallArgsParser(),
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	eei := createDefaultEei()
 	_ = eei.SetSystemSCContainer(
 		createSystemSCContainer(eei),
 	)
@@ -441,13 +405,7 @@ func TestDelegationManagerSystemSC_ExecuteGetAllContractAddresses(t *testing.T) 
 	addr1 := []byte("addr1")
 	addr2 := []byte("addr2")
 	args := createMockArgumentsForDelegationManager()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	dm, _ := NewDelegationManagerSystemSC(args)
@@ -475,13 +433,7 @@ func TestDelegationManagerSystemSC_ExecuteChangeMinDepositUserErrors(t *testing.
 	t.Parallel()
 
 	args := createMockArgumentsForDelegationManager()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	dm, _ := NewDelegationManagerSystemSC(args)
@@ -513,13 +465,7 @@ func TestDelegationManagerSystemSC_ExecuteChangeMinDeposit(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForDelegationManager()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	dm, _ := NewDelegationManagerSystemSC(args)
@@ -539,13 +485,7 @@ func TestDelegationManager_ChangeMinDelegationAmountInvalidCallerShouldError(t *
 	t.Parallel()
 
 	args := createMockArgumentsForDelegationManager()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	dm, _ := NewDelegationManagerSystemSC(args)
@@ -585,13 +525,7 @@ func TestDelegationManager_ChangeMinDelegationMarhalizingFailsShouldError(t *tes
 
 	expectedErr := errors.New("expected error")
 	args := createMockArgumentsForDelegationManager()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	dm, _ := NewDelegationManagerSystemSC(args)
@@ -620,13 +554,7 @@ func TestDelegationManager_ChangeMinDelegationShouldWork(t *testing.T) {
 	newMinDelegationAmount := big.NewInt(224)
 	existingMinDelegationAmount := big.NewInt(25)
 	args := createMockArgumentsForDelegationManager()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	dm, _ := NewDelegationManagerSystemSC(args)
@@ -686,13 +614,7 @@ func TestDelegationManager_GetContractConfigErrors(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForDelegationManager()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	dm, _ := NewDelegationManagerSystemSC(args)
@@ -714,13 +636,7 @@ func TestDelegationManager_GetContractConfigShouldWork(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForDelegationManager()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	eei := createDefaultEei()
 	args.Eei = eei
 
 	dm, _ := NewDelegationManagerSystemSC(args)
@@ -756,28 +672,23 @@ func TestDelegationManagerSystemSC_checkValidatorToDelegationInput(t *testing.T)
 	maxDelegationCap := []byte{250}
 	serviceFee := []byte{10}
 	args := createMockArgumentsForDelegationManager()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		parsers.NewCallArgsParser(),
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	eei := createDefaultEei()
 	_ = eei.SetSystemSCContainer(
 		createSystemSCContainer(eei),
 	)
 
 	args.Eei = eei
 	args.GasCost.MetaChainSystemSCsCost.ValidatorToDelegation = 100
+	enableEpochsHandler, _ := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
 	d, _ := NewDelegationManagerSystemSC(args)
 	vmInput := getDefaultVmInputForDelegationManager("createNewDelegationContract", [][]byte{maxDelegationCap, serviceFee})
 
-	d.flagValidatorToDelegation.Reset()
+	enableEpochsHandler.IsValidatorToDelegationFlagEnabledField = false
 	returnCode := d.checkValidatorToDelegationInput(vmInput)
 	assert.Equal(t, vmcommon.UserError, returnCode)
 	assert.Equal(t, eei.returnMessage, "invalid function to call")
 
-	_ = d.flagValidatorToDelegation.SetReturningPrevious()
+	enableEpochsHandler.IsValidatorToDelegationFlagEnabledField = true
 	eei.returnMessage = ""
 	vmInput.CallValue.SetUint64(10)
 	returnCode = d.checkValidatorToDelegationInput(vmInput)
@@ -803,29 +714,24 @@ func TestDelegationManagerSystemSC_MakeNewContractFromValidatorData(t *testing.T
 	maxDelegationCap := []byte{250}
 	serviceFee := []byte{10}
 	args := createMockArgumentsForDelegationManager()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		parsers.NewCallArgsParser(),
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	eei := createDefaultEei()
 	_ = eei.SetSystemSCContainer(
 		createSystemSCContainer(eei),
 	)
 
 	args.Eei = eei
 	args.GasCost.MetaChainSystemSCsCost.ValidatorToDelegation = 100
+	enableEpochsHandler, _ := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
 	d, _ := NewDelegationManagerSystemSC(args)
 	vmInput := getDefaultVmInputForDelegationManager("makeNewContractFromValidatorData", [][]byte{maxDelegationCap, serviceFee})
 	_ = d.init(&vmcommon.ContractCallInput{VMInput: vmcommon.VMInput{CallValue: big.NewInt(0)}})
 
-	d.flagValidatorToDelegation.Reset()
+	enableEpochsHandler.IsValidatorToDelegationFlagEnabledField = false
 	returnCode := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, returnCode)
 	assert.Equal(t, eei.returnMessage, "invalid function to call")
 
-	_ = d.flagValidatorToDelegation.SetReturningPrevious()
+	enableEpochsHandler.IsValidatorToDelegationFlagEnabledField = true
 
 	eei.returnMessage = ""
 	vmInput.CallValue.SetUint64(0)
@@ -847,29 +753,24 @@ func TestDelegationManagerSystemSC_mergeValidatorToDelegationSameOwner(t *testin
 	maxDelegationCap := []byte{250}
 	serviceFee := []byte{10}
 	args := createMockArgumentsForDelegationManager()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		parsers.NewCallArgsParser(),
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	eei := createDefaultEei()
 	_ = eei.SetSystemSCContainer(
 		createSystemSCContainer(eei),
 	)
 
 	args.Eei = eei
 	args.GasCost.MetaChainSystemSCsCost.ValidatorToDelegation = 100
+	enableEpochsHandler, _ := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
 	d, _ := NewDelegationManagerSystemSC(args)
 	vmInput := getDefaultVmInputForDelegationManager("mergeValidatorToDelegationSameOwner", [][]byte{maxDelegationCap, serviceFee})
 	_ = d.init(&vmcommon.ContractCallInput{VMInput: vmcommon.VMInput{CallValue: big.NewInt(0)}})
 
-	d.flagValidatorToDelegation.Reset()
+	enableEpochsHandler.IsValidatorToDelegationFlagEnabledField = false
 	returnCode := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, returnCode)
 	assert.Equal(t, eei.returnMessage, "invalid function to call")
 
-	_ = d.flagValidatorToDelegation.SetReturningPrevious()
+	enableEpochsHandler.IsValidatorToDelegationFlagEnabledField = true
 
 	eei.returnMessage = ""
 	vmInput.CallValue.SetUint64(0)
@@ -924,13 +825,7 @@ func TestDelegationManagerSystemSC_mergeValidatorToDelegationSameOwner(t *testin
 
 func createTestEEIAndDelegationFormMergeValidator() (*delegationManager, *vmContext) {
 	args := createMockArgumentsForDelegationManager()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		parsers.NewCallArgsParser(),
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	eei := createDefaultEei()
 	_ = eei.SetSystemSCContainer(
 		createSystemSCContainer(eei),
 	)
@@ -950,7 +845,8 @@ func TestDelegationManagerSystemSC_mergeValidatorToDelegationWithWhiteListInvali
 	serviceFee := []byte{10}
 	eei.returnMessage = ""
 	vmInput := getDefaultVmInputForDelegationManager("mergeValidatorToDelegationWithWhitelist", [][]byte{maxDelegationCap, serviceFee})
-	d.flagValidatorToDelegation.Reset()
+	enableEpochsHandler, _ := d.enableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
+	enableEpochsHandler.IsValidatorToDelegationFlagEnabledField = false
 	returnCode := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, returnCode)
 	assert.Equal(t, eei.returnMessage, "invalid function to call")
@@ -958,7 +854,6 @@ func TestDelegationManagerSystemSC_mergeValidatorToDelegationWithWhiteListInvali
 
 func TestDelegationManagerSystemSC_mergeValidatorToDelegationWithWhiteListInvalidNumArgs(t *testing.T) {
 	d, eei := createTestEEIAndDelegationFormMergeValidator()
-	_ = d.flagValidatorToDelegation.SetReturningPrevious()
 
 	maxDelegationCap := []byte{250}
 	serviceFee := []byte{10}
@@ -1013,7 +908,6 @@ func TestDelegationManagerSystemSC_mergeValidatorToDelegationWithWhiteListMissin
 
 func prepareVmInputContextAndDelegationManager(d *delegationManager, eei *vmContext) *vmcommon.ContractCallInput {
 	eei.returnMessage = ""
-	_ = d.flagValidatorToDelegation.SetReturningPrevious()
 	vmInput := getDefaultVmInputForDelegationManager("mergeValidatorToDelegationWithWhitelist", make([][]byte, 0))
 	vmInput.Arguments = [][]byte{vmInput.CallerAddr}
 	vmInput.CallValue.SetUint64(0)
@@ -1101,13 +995,7 @@ func TestDelegationManagerSystemSC_MakeNewContractFromValidatorDataWithJailedNod
 	maxDelegationCap := []byte{0}
 	serviceFee := []byte{10}
 	args := createMockArgumentsForDelegationManager()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		parsers.NewCallArgsParser(),
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	eei := createDefaultEei()
 	_ = eei.SetSystemSCContainer(
 		createSystemSCContainer(eei),
 	)
@@ -1157,13 +1045,7 @@ func TestDelegationManagerSystemSC_MakeNewContractFromValidatorDataCallerAlready
 	maxDelegationCap := []byte{0}
 	serviceFee := []byte{10}
 	args := createMockArgumentsForDelegationManager()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		parsers.NewCallArgsParser(),
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
+	eei := createDefaultEei()
 	_ = eei.SetSystemSCContainer(
 		createSystemSCContainer(eei),
 	)

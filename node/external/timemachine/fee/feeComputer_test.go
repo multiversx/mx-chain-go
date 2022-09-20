@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/require"
@@ -37,10 +38,12 @@ func TestNewFeeComputer(t *testing.T) {
 
 func TestFeeComputer_ComputeTransactionFeeShouldWorkForDifferentEpochs(t *testing.T) {
 	arguments := ArgsNewFeeComputer{
-		BuiltInFunctionsCostHandler:    &testscommon.BuiltInCostHandlerStub{},
-		EconomicsConfig:                testscommon.GetEconomicsConfig(),
-		PenalizedTooMuchGasEnableEpoch: 124,
-		GasPriceModifierEnableEpoch:    180,
+		BuiltInFunctionsCostHandler: &testscommon.BuiltInCostHandlerStub{},
+		EconomicsConfig:             testscommon.GetEconomicsConfig(),
+		EnableEpochsConfig: config.EnableEpochs{
+			PenalizedTooMuchGasEnableEpoch: 124,
+			GasPriceModifierEnableEpoch:    180,
+		},
 	}
 
 	contract, _ := hex.DecodeString("000000000000000000010000000000000000000000000000000000000000abba")

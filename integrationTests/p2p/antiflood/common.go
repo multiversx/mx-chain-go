@@ -7,7 +7,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/floodPreventers"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 )
 
 // DurationBootstrapingTime -
@@ -41,8 +41,8 @@ func CreateTopicsAndMockInterceptors(
 			return nil, fmt.Errorf("%w, pid: %s", err, p.ID())
 		}
 
-		cacherCfg := storageUnit.CacheConfig{Capacity: 100, Type: storageUnit.LRUCache, Shards: 1}
-		antifloodPool, _ := storageUnit.NewCache(cacherCfg)
+		cacherCfg := storageunit.CacheConfig{Capacity: 100, Type: storageunit.LRUCache, Shards: 1}
+		antifloodPool, _ := storageunit.NewCache(cacherCfg)
 
 		interceptors[idx] = newMessageProcessor()
 		statusHandlers := []floodPreventers.QuotaStatusHandler{&nilQuotaStatusHandler{}}

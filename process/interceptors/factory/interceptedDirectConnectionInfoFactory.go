@@ -15,7 +15,7 @@ type interceptedDirectConnectionInfoFactory struct {
 
 // NewInterceptedDirectConnectionInfoFactory creates an instance of interceptedDirectConnectionInfoFactory
 func NewInterceptedDirectConnectionInfoFactory(args ArgInterceptedDataFactory) (*interceptedDirectConnectionInfoFactory, error) {
-	err := checkArgs(args)
+	err := checkInterceptedDirectConnectionInfoFactoryArgs(args)
 	if err != nil {
 		return nil, err
 	}
@@ -26,7 +26,7 @@ func NewInterceptedDirectConnectionInfoFactory(args ArgInterceptedDataFactory) (
 	}, nil
 }
 
-func checkArgs(args ArgInterceptedDataFactory) error {
+func checkInterceptedDirectConnectionInfoFactoryArgs(args ArgInterceptedDataFactory) error {
 	if check.IfNil(args.CoreComponents) {
 		return process.ErrNilCoreComponentsHolder
 	}
