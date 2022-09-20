@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	covalentFactory "github.com/ElrondNetwork/covalent-indexer-go/factory"
 	indexerFactory "github.com/ElrondNetwork/elastic-indexer-go/factory"
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
@@ -208,10 +207,9 @@ func (pc *statusComponents) Close() error {
 func (scf *statusComponentsFactory) createOutportDriver() (outport.OutportHandler, error) {
 
 	outportFactoryArgs := &outportDriverFactory.OutportFactoryArgs{
-		RetrialInterval:            common.RetrialIntervalForOutportDriver,
-		ElasticIndexerFactoryArgs:  scf.makeElasticIndexerArgs(),
-		EventNotifierFactoryArgs:   scf.makeEventNotifierArgs(),
-		CovalentIndexerFactoryArgs: scf.makeCovalentIndexerArgs(),
+		RetrialInterval:           common.RetrialIntervalForOutportDriver,
+		ElasticIndexerFactoryArgs: scf.makeElasticIndexerArgs(),
+		EventNotifierFactoryArgs:  scf.makeEventNotifierArgs(),
 	}
 
 	return outportDriverFactory.CreateOutport(outportFactoryArgs)
@@ -251,20 +249,6 @@ func (scf *statusComponentsFactory) makeEventNotifierArgs() *outportDriverFactor
 		Marshaller:       scf.coreComponents.InternalMarshalizer(),
 		Hasher:           scf.coreComponents.Hasher(),
 		PubKeyConverter:  scf.coreComponents.AddressPubKeyConverter(),
-	}
-}
-
-func (scf *statusComponentsFactory) makeCovalentIndexerArgs() *covalentFactory.ArgsCovalentIndexerFactory {
-	return &covalentFactory.ArgsCovalentIndexerFactory{
-		Enabled:              scf.externalConfig.CovalentConnector.Enabled,
-		URL:                  scf.externalConfig.CovalentConnector.URL,
-		RouteSendData:        scf.externalConfig.CovalentConnector.RouteSendData,
-		RouteAcknowledgeData: scf.externalConfig.CovalentConnector.RouteAcknowledgeData,
-		PubKeyConverter:      scf.coreComponents.AddressPubKeyConverter(),
-		Accounts:             scf.stateComponents.AccountsAdapter(),
-		Hasher:               scf.coreComponents.Hasher(),
-		Marshaller:           scf.coreComponents.InternalMarshalizer(),
-		ShardCoordinator:     scf.shardCoordinator,
 	}
 }
 

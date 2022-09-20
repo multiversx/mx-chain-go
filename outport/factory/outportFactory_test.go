@@ -5,32 +5,27 @@ import (
 	"testing"
 	"time"
 
-	covalentFactory "github.com/ElrondNetwork/covalent-indexer-go/factory"
 	indexerFactory "github.com/ElrondNetwork/elastic-indexer-go/factory"
 	"github.com/ElrondNetwork/elrond-go/outport"
 	"github.com/ElrondNetwork/elrond-go/outport/factory"
 	notifierFactory "github.com/ElrondNetwork/elrond-go/outport/factory"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
-	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/stretchr/testify/require"
 )
 
-func createMockArgsOutportHandler(indexerEnabled, notifierEnabled, covalentEnabled bool) *factory.OutportFactoryArgs {
+func createMockArgsOutportHandler(indexerEnabled, notifierEnabled bool) *factory.OutportFactoryArgs {
 	mockElasticArgs := &indexerFactory.ArgsIndexerFactory{
 		Enabled: indexerEnabled,
 	}
 	mockNotifierArgs := &notifierFactory.EventNotifierFactoryArgs{
 		Enabled: notifierEnabled,
 	}
-	mockCovalentArgs := &covalentFactory.ArgsCovalentIndexerFactory{
-		Enabled: covalentEnabled,
-	}
+
 	return &factory.OutportFactoryArgs{
-		RetrialInterval:            time.Second,
-		ElasticIndexerFactoryArgs:  mockElasticArgs,
-		EventNotifierFactoryArgs:   mockNotifierArgs,
-		CovalentIndexerFactoryArgs: mockCovalentArgs,
+		RetrialInterval:           time.Second,
+		ElasticIndexerFactoryArgs: mockElasticArgs,
+		EventNotifierFactoryArgs:  mockNotifierArgs,
 	}
 }
 
@@ -51,7 +46,7 @@ func TestNewIndexerFactory(t *testing.T) {
 		{
 			name: "invalid retrial duration",
 			argsFunc: func() *factory.OutportFactoryArgs {
-				args := createMockArgsOutportHandler(false, false, false)
+				args := createMockArgsOutportHandler(false, false)
 				args.RetrialInterval = 0
 				return args
 			},
@@ -60,7 +55,7 @@ func TestNewIndexerFactory(t *testing.T) {
 		{
 			name: "AllOkShouldWork",
 			argsFunc: func() *factory.OutportFactoryArgs {
-				return createMockArgsOutportHandler(false, false, false)
+				return createMockArgsOutportHandler(false, false)
 			},
 			exError: nil,
 		},
@@ -81,17 +76,12 @@ func TestCreateOutport_EnabledDriversNilMockArgsExpectErrorSubscribingDrivers(t 
 	}{
 		{
 			argsFunc: func() *factory.OutportFactoryArgs {
-				return createMockArgsOutportHandler(true, false, false)
+				return createMockArgsOutportHandler(true, false)
 			},
 		},
 		{
 			argsFunc: func() *factory.OutportFactoryArgs {
-				return createMockArgsOutportHandler(false, true, false)
-			},
-		},
-		{
-			argsFunc: func() *factory.OutportFactoryArgs {
-				return createMockArgsOutportHandler(false, false, true)
+				return createMockArgsOutportHandler(false, true)
 			},
 		},
 	}
@@ -102,27 +92,8 @@ func TestCreateOutport_EnabledDriversNilMockArgsExpectErrorSubscribingDrivers(t 
 	}
 }
 
-func TestCreateOutport_SubscribeCovalentDriver(t *testing.T) {
-	args := createMockArgsOutportHandler(false, false, true)
-
-	args.CovalentIndexerFactoryArgs.Hasher = &hashingMocks.HasherMock{}
-	args.CovalentIndexerFactoryArgs.ShardCoordinator = &mock.ShardCoordinatorStub{}
-	args.CovalentIndexerFactoryArgs.Marshaller = &mock.MarshalizerMock{}
-	args.CovalentIndexerFactoryArgs.Accounts = &stateMock.AccountsStub{}
-	args.CovalentIndexerFactoryArgs.PubKeyConverter = &mock.PubkeyConverterStub{}
-
-	outPort, err := factory.CreateOutport(args)
-
-	defer func(c outport.OutportHandler) {
-		_ = c.Close()
-	}(outPort)
-
-	require.True(t, outPort.HasDrivers())
-	require.Nil(t, err)
-}
-
 func TestCreateOutport_SubscribeNotifierDriver(t *testing.T) {
-	args := createMockArgsOutportHandler(false, true, false)
+	args := createMockArgsOutportHandler(false, true)
 
 	args.EventNotifierFactoryArgs.Marshaller = &mock.MarshalizerMock{}
 	args.EventNotifierFactoryArgs.Hasher = &hashingMocks.HasherMock{}
@@ -133,6 +104,6 @@ func TestCreateOutport_SubscribeNotifierDriver(t *testing.T) {
 		_ = c.Close()
 	}(outPort)
 
-	require.True(t, outPort.HasDrivers())
 	require.Nil(t, err)
+	require.True(t, outPort.HasDrivers())
 }
