@@ -6,54 +6,69 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"time"
 )
 
 const (
-	contentTypeKey   = "Content-Type"
-	contentTypeValue = "application/json"
+	minRequestTimeoutSec = 1
+	contentTypeKey       = "Content-Type"
+	contentTypeValue     = "application/json"
 )
 
-type httpClientHandler interface {
-	Post(route string, payload interface{}, response interface{}) error
-}
-
-type httpClient struct {
+type httpClientWrapper struct {
+	httpClient       *http.Client
 	useAuthorization bool
 	username         string
 	password         string
 	baseUrl          string
 }
 
-// HttpClientArgs defines the arguments needed for http client creation
-type HttpClientArgs struct {
-	UseAuthorization bool
-	Username         string
-	Password         string
-	BaseUrl          string
+// HTTPClientWrapperArgs defines the arguments needed for http client creation
+type HTTPClientWrapperArgs struct {
+	UseAuthorization  bool
+	Username          string
+	Password          string
+	BaseUrl           string
+	RequestTimeoutSec int
 }
 
-// NewHttpClient creates an instance of httpClient which is a wrapper for http.Client
-func NewHttpClient(args HttpClientArgs) *httpClient {
-	return &httpClient{
+// NewHTTPWrapperClient creates an instance of httpClient which is a wrapper for http.Client
+func NewHTTPWrapperClient(args HTTPClientWrapperArgs) (*httpClientWrapper, error) {
+	err := checkArgs(args)
+	if err != nil {
+		return nil, err
+	}
+
+	httpClient := &http.Client{}
+	httpClient.Timeout = time.Duration(args.RequestTimeoutSec) * time.Second
+
+	return &httpClientWrapper{
+		httpClient:       httpClient,
 		useAuthorization: args.UseAuthorization,
 		username:         args.Username,
 		password:         args.Password,
 		baseUrl:          args.BaseUrl,
+	}, nil
+}
+
+func checkArgs(args HTTPClientWrapperArgs) error {
+	if args.RequestTimeoutSec < minRequestTimeoutSec {
+		return fmt.Errorf("%w, provided: %v, minimum: %v", ErrInvalidValue, args.RequestTimeoutSec, minRequestTimeoutSec)
 	}
+
+	return nil
 }
 
 // Post can be used to send POST requests. It handles marshalling to/from json
-func (h *httpClient) Post(
+func (h *httpClientWrapper) Post(
 	route string,
 	payload interface{},
-	response interface{},
 ) error {
 	jsonData, err := json.Marshal(payload)
 	if err != nil {
 		return err
 	}
 
-	client := &http.Client{}
 	url := fmt.Sprintf("%s%s", h.baseUrl, route)
 	req, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(jsonData))
 	if err != nil {
@@ -66,7 +81,7 @@ func (h *httpClient) Post(
 		req.SetBasicAuth(h.username, h.password)
 	}
 
-	resp, err := client.Do(req)
+	resp, err := h.httpClient.Do(req)
 	if err != nil {
 		return err
 	}
@@ -89,5 +104,10 @@ func (h *httpClient) Post(
 		return fmt.Errorf("HTTP status code: %d, %s", resp.StatusCode, http.StatusText(resp.StatusCode))
 	}
 
-	return json.Unmarshal(resBody, &response)
+	return nil
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (h *httpClientWrapper) IsInterfaceNil() bool {
+	return h == nil
 }
