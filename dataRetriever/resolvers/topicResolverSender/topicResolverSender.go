@@ -12,7 +12,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	resolverDebug "github.com/ElrondNetwork/elrond-go/debug/resolver"
 	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/p2p/message"
 )
 
 const (
@@ -282,7 +281,7 @@ func (trs *topicResolverSender) Send(buff []byte, peer core.PeerID) error {
 }
 
 func (trs *topicResolverSender) sendToConnectedPeer(topic string, buff []byte, peer core.PeerID) error {
-	msg := &message.Message{
+	msg := &p2p.Message{
 		DataField:  buff,
 		PeerField:  peer,
 		TopicField: topic,

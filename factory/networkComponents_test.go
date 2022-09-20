@@ -10,7 +10,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/factory/mock"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	p2pConfig "github.com/ElrondNetwork/elrond-go/p2p/config"
-	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/require"
 )
@@ -78,7 +77,7 @@ func TestNetworkComponentsFactory_CreateShouldWork(t *testing.T) {
 
 	args := getNetworkArgs()
 	ncf, _ := factory.NewNetworkComponentsFactory(args)
-	ncf.SetListenAddress(libp2p.ListenLocalhostAddrWithIp4AndTcp)
+	ncf.SetListenAddress(p2p.ListenLocalhostAddrWithIp4AndTcp)
 
 	nc, err := ncf.Create()
 	require.NoError(t, err)
@@ -173,7 +172,7 @@ func getNetworkArgs() factory.NetworkComponentsFactoryArgs {
 				UnitValue:                    1.0,
 			},
 		},
-		Syncer:                &libp2p.LocalSyncTimer{},
+		Syncer:                &p2p.LocalSyncTimer{},
 		NodeOperationMode:     p2p.NormalOperation,
 		ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
 	}

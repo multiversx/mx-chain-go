@@ -7,7 +7,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	p2pConfig "github.com/ElrondNetwork/elrond-go/p2p/config"
-	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	mocknet "github.com/libp2p/go-libp2p/p2p/net/mock"
@@ -49,8 +48,8 @@ func TestSeedersDisconnectionWith2AdvertiserAnd3Peers(t *testing.T) {
 	p2pCfg.KadDhtPeerDiscovery.InitialPeerList = seedersList
 	peers := make([]p2p.Messenger, numOfPeers)
 	for i := 0; i < numOfPeers; i++ {
-		arg := libp2p.ArgsNetworkMessenger{
-			ListenAddress:         libp2p.ListenLocalhostAddrWithIp4AndTcp,
+		arg := p2p.ArgsNetworkMessenger{
+			ListenAddress:         p2p.ListenLocalhostAddrWithIp4AndTcp,
 			P2pConfig:             p2pCfg,
 			PreferredPeersHolder:  &p2pmocks.PeersHolderStub{},
 			NodeOperationMode:     p2p.NormalOperation,
@@ -59,7 +58,7 @@ func TestSeedersDisconnectionWith2AdvertiserAnd3Peers(t *testing.T) {
 			PeersRatingHandler:    &p2pmocks.PeersRatingHandlerStub{},
 			ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
 		}
-		node, err := libp2p.NewMockMessenger(arg, netw)
+		node, err := p2p.NewMockMessenger(arg, netw)
 		require.Nil(t, err)
 		peers[i] = node
 	}
@@ -123,8 +122,8 @@ func createBootstrappedSeeders(baseP2PConfig p2pConfig.P2PConfig, numSeeders int
 	seedersAddresses := make([]string, numSeeders)
 
 	p2pConfigSeeder := baseP2PConfig
-	argSeeder := libp2p.ArgsNetworkMessenger{
-		ListenAddress:         libp2p.ListenLocalhostAddrWithIp4AndTcp,
+	argSeeder := p2p.ArgsNetworkMessenger{
+		ListenAddress:         p2p.ListenLocalhostAddrWithIp4AndTcp,
 		P2pConfig:             p2pConfigSeeder,
 		PreferredPeersHolder:  &p2pmocks.PeersHolderStub{},
 		NodeOperationMode:     p2p.NormalOperation,
@@ -133,15 +132,15 @@ func createBootstrappedSeeders(baseP2PConfig p2pConfig.P2PConfig, numSeeders int
 		PeersRatingHandler:    &p2pmocks.PeersRatingHandlerStub{},
 		ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
 	}
-	seeders[0], _ = libp2p.NewMockMessenger(argSeeder, netw)
+	seeders[0], _ = p2p.NewMockMessenger(argSeeder, netw)
 	_ = seeders[0].Bootstrap()
 	seedersAddresses[0] = integrationTests.GetConnectableAddress(seeders[0])
 
 	for i := 1; i < numSeeders; i++ {
 		p2pConfigSeeder = baseP2PConfig
 		p2pConfigSeeder.KadDhtPeerDiscovery.InitialPeerList = []string{integrationTests.GetConnectableAddress(seeders[0])}
-		argSeeder = libp2p.ArgsNetworkMessenger{
-			ListenAddress:         libp2p.ListenLocalhostAddrWithIp4AndTcp,
+		argSeeder = p2p.ArgsNetworkMessenger{
+			ListenAddress:         p2p.ListenLocalhostAddrWithIp4AndTcp,
 			P2pConfig:             p2pConfigSeeder,
 			PreferredPeersHolder:  &p2pmocks.PeersHolderStub{},
 			NodeOperationMode:     p2p.NormalOperation,
@@ -150,7 +149,7 @@ func createBootstrappedSeeders(baseP2PConfig p2pConfig.P2PConfig, numSeeders int
 			PeersRatingHandler:    &p2pmocks.PeersRatingHandlerStub{},
 			ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
 		}
-		seeders[i], _ = libp2p.NewMockMessenger(argSeeder, netw)
+		seeders[i], _ = p2p.NewMockMessenger(argSeeder, netw)
 		_ = netw.LinkAll()
 		_ = seeders[i].Bootstrap()
 		seedersAddresses[i] = integrationTests.GetConnectableAddress(seeders[i])

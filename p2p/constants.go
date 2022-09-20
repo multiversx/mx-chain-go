@@ -2,6 +2,7 @@ package p2p
 
 import (
 	p2p "github.com/ElrondNetwork/elrond-go-p2p"
+	"github.com/ElrondNetwork/elrond-go-p2p/libp2p"
 )
 
 // NodeOperation defines the p2p node operation
@@ -21,3 +22,9 @@ const NilListSharder = p2p.NilListSharder
 
 // ConnectionWatcherTypePrint - new connection found will be printed in the log file
 const ConnectionWatcherTypePrint = p2p.ConnectionWatcherTypePrint
+
+// ListenAddrWithIp4AndTcp defines the listening address with ip v.4 and TCP
+const ListenAddrWithIp4AndTcp = libp2p.ListenAddrWithIp4AndTcp
+
+// ListenLocalhostAddrWithIp4AndTcp defines the local host listening ip v.4 address and TCP
+const ListenLocalhostAddrWithIp4AndTcp = libp2p.ListenLocalhostAddrWithIp4AndTcp

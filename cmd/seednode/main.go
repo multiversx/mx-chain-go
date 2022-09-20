@@ -24,7 +24,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/facade"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	p2pConfig "github.com/ElrondNetwork/elrond-go/p2p/config"
-	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
 	"github.com/urfave/cli"
 )
 
@@ -242,18 +241,18 @@ func loadMainConfig(filepath string) (*config.Config, error) {
 }
 
 func createNode(p2pConfig p2pConfig.P2PConfig, marshalizer marshal.Marshalizer) (p2p.Messenger, error) {
-	arg := libp2p.ArgsNetworkMessenger{
+	arg := p2p.ArgsNetworkMessenger{
 		Marshalizer:           marshalizer,
-		ListenAddress:         libp2p.ListenAddrWithIp4AndTcp,
+		ListenAddress:         p2p.ListenAddrWithIp4AndTcp,
 		P2pConfig:             p2pConfig,
-		SyncTimer:             &libp2p.LocalSyncTimer{},
+		SyncTimer:             &p2p.LocalSyncTimer{},
 		PreferredPeersHolder:  disabled.NewPreferredPeersHolder(),
 		NodeOperationMode:     p2p.NormalOperation,
 		PeersRatingHandler:    disabled.NewDisabledPeersRatingHandler(),
 		ConnectionWatcherType: "disabled",
 	}
 
-	return libp2p.NewNetworkMessenger(arg)
+	return p2p.NewNetworkMessenger(arg)
 }
 
 func displayMessengerInfo(messenger p2p.Messenger) {
