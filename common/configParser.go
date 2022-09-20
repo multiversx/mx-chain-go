@@ -5,11 +5,12 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/config"
+	p2pConfig "github.com/ElrondNetwork/elrond-go/p2p/config"
 )
 
 // LoadP2PConfig returns a P2PConfig by reading the config file provided
-func LoadP2PConfig(filepath string) (*config.P2PConfig, error) {
-	cfg := &config.P2PConfig{}
+func LoadP2PConfig(filepath string) (*p2pConfig.P2PConfig, error) {
+	cfg := &p2pConfig.P2PConfig{}
 	err := core.LoadTomlFile(cfg, filepath)
 	if err != nil {
 		return nil, err

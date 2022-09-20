@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/debug/antiflood"
 	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	p2pConfig "github.com/ElrondNetwork/elrond-go/p2p/config"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/peersHolder"
 	"github.com/ElrondNetwork/elrond-go/p2p/rating"
@@ -26,7 +27,7 @@ import (
 
 // NetworkComponentsFactoryArgs holds the arguments to create a network component handler instance
 type NetworkComponentsFactoryArgs struct {
-	P2pConfig             config.P2PConfig
+	P2pConfig             p2pConfig.P2PConfig
 	MainConfig            config.Config
 	RatingsConfig         config.RatingsConfig
 	StatusHandler         core.AppStatusHandler
@@ -39,7 +40,7 @@ type NetworkComponentsFactoryArgs struct {
 }
 
 type networkComponentsFactory struct {
-	p2pConfig             config.P2PConfig
+	p2pConfig             p2pConfig.P2PConfig
 	mainConfig            config.Config
 	ratingsConfig         config.RatingsConfig
 	statusHandler         core.AppStatusHandler

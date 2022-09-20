@@ -4,9 +4,9 @@ import (
 	"testing"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	p2pConfig "github.com/ElrondNetwork/elrond-go/p2p/config"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
@@ -23,10 +23,10 @@ func TestSeedersDisconnectionWith2AdvertiserAnd3Peers(t *testing.T) {
 	}
 
 	netw := mocknet.New()
-	p2pConfig := createDefaultConfig()
-	p2pConfig.KadDhtPeerDiscovery.RefreshIntervalInSec = 1
+	p2pCfg := createDefaultConfig()
+	p2pCfg.KadDhtPeerDiscovery.RefreshIntervalInSec = 1
 
-	p2pConfig.Sharding = config.ShardingConfig{
+	p2pCfg.Sharding = p2pConfig.ShardingConfig{
 		TargetPeerCount:         100,
 		MaxIntraShardValidators: 40,
 		MaxCrossShardValidators: 40,
@@ -34,24 +34,24 @@ func TestSeedersDisconnectionWith2AdvertiserAnd3Peers(t *testing.T) {
 		MaxCrossShardObservers:  1,
 		MaxSeeders:              3,
 		Type:                    p2p.ListsSharder,
-		AdditionalConnections: config.AdditionalConnectionsConfig{
+		AdditionalConnections: p2pConfig.AdditionalConnectionsConfig{
 			MaxFullHistoryObservers: 0,
 		},
 	}
-	p2pConfig.Node.ThresholdMinConnectedPeers = 3
+	p2pCfg.Node.ThresholdMinConnectedPeers = 3
 
 	numOfPeers := 3
-	seeders, seedersList := createBootstrappedSeeders(p2pConfig, 2, netw)
+	seeders, seedersList := createBootstrappedSeeders(p2pCfg, 2, netw)
 
 	integrationTests.WaitForBootstrapAndShowConnected(seeders, integrationTests.P2pBootstrapDelay)
 
 	// Step 2. Create noOfPeers instances of messenger type and call bootstrap
-	p2pConfig.KadDhtPeerDiscovery.InitialPeerList = seedersList
+	p2pCfg.KadDhtPeerDiscovery.InitialPeerList = seedersList
 	peers := make([]p2p.Messenger, numOfPeers)
 	for i := 0; i < numOfPeers; i++ {
 		arg := libp2p.ArgsNetworkMessenger{
 			ListenAddress:         libp2p.ListenLocalhostAddrWithIp4AndTcp,
-			P2pConfig:             p2pConfig,
+			P2pConfig:             p2pCfg,
 			PreferredPeersHolder:  &p2pmocks.PeersHolderStub{},
 			NodeOperationMode:     p2p.NormalOperation,
 			Marshalizer:           &testscommon.MarshalizerMock{},
@@ -118,7 +118,7 @@ func TestSeedersDisconnectionWith2AdvertiserAnd3Peers(t *testing.T) {
 	}
 }
 
-func createBootstrappedSeeders(baseP2PConfig config.P2PConfig, numSeeders int, netw mocknet.Mocknet) ([]p2p.Messenger, []string) {
+func createBootstrappedSeeders(baseP2PConfig p2pConfig.P2PConfig, numSeeders int, netw mocknet.Mocknet) ([]p2p.Messenger, []string) {
 	seeders := make([]p2p.Messenger, numSeeders)
 	seedersAddresses := make([]string, numSeeders)
 

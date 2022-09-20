@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	p2pConfig "github.com/ElrondNetwork/elrond-go/p2p/config"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
@@ -16,10 +16,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func createDefaultConfig() config.P2PConfig {
-	return config.P2PConfig{
-		Node: config.NodeConfig{},
-		KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
+func createDefaultConfig() p2pConfig.P2PConfig {
+	return p2pConfig.P2PConfig{
+		Node: p2pConfig.NodeConfig{},
+		KadDhtPeerDiscovery: p2pConfig.KadDhtPeerDiscoveryConfig{
 			Enabled:                          true,
 			Type:                             "optimized",
 			RefreshIntervalInSec:             1,
@@ -32,8 +32,8 @@ func createDefaultConfig() config.P2PConfig {
 }
 
 func TestPeerDisconnectionWithOneAdvertiserWithShardingWithLists(t *testing.T) {
-	p2pConfig := createDefaultConfig()
-	p2pConfig.Sharding = config.ShardingConfig{
+	p2pCfg := createDefaultConfig()
+	p2pCfg.Sharding = p2pConfig.ShardingConfig{
 		TargetPeerCount:         100,
 		MaxIntraShardValidators: 40,
 		MaxCrossShardValidators: 40,
@@ -41,16 +41,16 @@ func TestPeerDisconnectionWithOneAdvertiserWithShardingWithLists(t *testing.T) {
 		MaxCrossShardObservers:  1,
 		MaxSeeders:              1,
 		Type:                    p2p.ListsSharder,
-		AdditionalConnections: config.AdditionalConnectionsConfig{
+		AdditionalConnections: p2pConfig.AdditionalConnectionsConfig{
 			MaxFullHistoryObservers: 1,
 		},
 	}
-	p2pConfig.Node.ThresholdMinConnectedPeers = 3
+	p2pCfg.Node.ThresholdMinConnectedPeers = 3
 
-	testPeerDisconnectionWithOneAdvertiser(t, p2pConfig)
+	testPeerDisconnectionWithOneAdvertiser(t, p2pCfg)
 }
 
-func testPeerDisconnectionWithOneAdvertiser(t *testing.T, p2pConfig config.P2PConfig) {
+func testPeerDisconnectionWithOneAdvertiser(t *testing.T, p2pConfig p2pConfig.P2PConfig) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}

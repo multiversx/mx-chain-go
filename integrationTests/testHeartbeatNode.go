@@ -29,6 +29,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/heartbeat/sender"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	p2pConfig "github.com/ElrondNetwork/elrond-go/p2p/config"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/heartbeat/validator"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
@@ -109,7 +110,7 @@ func NewTestHeartbeatNode(
 	maxShards uint32,
 	nodeShardId uint32,
 	minPeersWaiting int,
-	p2pConfig config.P2PConfig,
+	p2pConfig p2pConfig.P2PConfig,
 	heartbeatExpiryTimespanInSec int64,
 ) *TestHeartbeatNode {
 	keygen := signing.NewKeyGenerator(mcl.NewSuiteBLS12())
@@ -201,7 +202,7 @@ func NewTestHeartbeatNode(
 func NewTestHeartbeatNodeWithCoordinator(
 	maxShards uint32,
 	nodeShardId uint32,
-	p2pConfig config.P2PConfig,
+	p2pConfig p2pConfig.P2PConfig,
 	coordinator nodesCoordinator.NodesCoordinator,
 	keys TestKeyPair,
 ) *TestHeartbeatNode {
@@ -270,7 +271,7 @@ func CreateNodesWithTestHeartbeatNode(
 	shardConsensusGroupSize int,
 	metaConsensusGroupSize int,
 	numObserversOnShard int,
-	p2pConfig config.P2PConfig,
+	p2pConfig p2pConfig.P2PConfig,
 ) map[uint32][]*TestHeartbeatNode {
 
 	cp := CreateCryptoParams(nodesPerShard, numMetaNodes, uint32(numShards))

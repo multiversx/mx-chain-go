@@ -21,6 +21,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	p2pConfig "github.com/ElrondNetwork/elrond-go/p2p/config"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/networksharding"
@@ -61,7 +62,7 @@ type TestP2PNode struct {
 func NewTestP2PNode(
 	maxShards uint32,
 	nodeShardId uint32,
-	p2pConfig config.P2PConfig,
+	p2pConfig p2pConfig.P2PConfig,
 	coordinator nodesCoordinator.NodesCoordinator,
 	keys TestKeyPair,
 ) *TestP2PNode {
@@ -321,7 +322,7 @@ func CreateNodesWithTestP2PNodes(
 	shardConsensusGroupSize int,
 	metaConsensusGroupSize int,
 	numObserversOnShard int,
-	p2pConfig config.P2PConfig,
+	p2pConfig p2pConfig.P2PConfig,
 ) map[uint32][]*TestP2PNode {
 
 	cp := CreateCryptoParams(nodesPerShard, numMetaNodes, uint32(numShards))

@@ -23,6 +23,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
 	"github.com/ElrondNetwork/elrond-go/facade"
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	p2pConfig "github.com/ElrondNetwork/elrond-go/p2p/config"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
 	"github.com/urfave/cli"
 )
@@ -176,7 +177,7 @@ func startNode(ctx *cli.Context) error {
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
-	p2pConfig, err := common.LoadP2PConfig(p2pConfigurationFile)
+	p2pCfg, err := common.LoadP2PConfig(p2pConfigurationFile)
 	if err != nil {
 		return err
 	}
@@ -184,18 +185,18 @@ func startNode(ctx *cli.Context) error {
 		"filename", p2pConfigurationFile,
 	)
 	if ctx.IsSet(port.Name) {
-		p2pConfig.Node.Port = ctx.GlobalString(port.Name)
+		p2pCfg.Node.Port = ctx.GlobalString(port.Name)
 	}
 	if ctx.IsSet(p2pSeed.Name) {
-		p2pConfig.Node.Seed = ctx.GlobalString(p2pSeed.Name)
+		p2pCfg.Node.Seed = ctx.GlobalString(p2pSeed.Name)
 	}
 
-	err = checkExpectedPeerCount(*p2pConfig)
+	err = checkExpectedPeerCount(*p2pCfg)
 	if err != nil {
 		return err
 	}
 
-	messenger, err := createNode(*p2pConfig, internalMarshalizer)
+	messenger, err := createNode(*p2pCfg, internalMarshalizer)
 	if err != nil {
 		return err
 	}
@@ -240,7 +241,7 @@ func loadMainConfig(filepath string) (*config.Config, error) {
 	return cfg, nil
 }
 
-func createNode(p2pConfig config.P2PConfig, marshalizer marshal.Marshalizer) (p2p.Messenger, error) {
+func createNode(p2pConfig p2pConfig.P2PConfig, marshalizer marshal.Marshalizer) (p2p.Messenger, error) {
 	arg := libp2p.ArgsNetworkMessenger{
 		Marshalizer:           marshalizer,
 		ListenAddress:         libp2p.ListenAddrWithIp4AndTcp,
@@ -295,7 +296,7 @@ func getWorkingDir(log logger.Logger) string {
 	return workingDir
 }
 
-func checkExpectedPeerCount(p2pConfig config.P2PConfig) error {
+func checkExpectedPeerCount(p2pConfig p2pConfig.P2PConfig) error {
 	maxExpectedPeerCount := p2pConfig.Node.MaximumExpectedPeerCount
 
 	var rLimit syscall.Rlimit
