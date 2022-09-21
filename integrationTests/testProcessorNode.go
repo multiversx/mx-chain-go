@@ -721,13 +721,13 @@ func (tpn *TestProcessorNode) createFullSCQueryService(gasMap map[string]map[str
 
 	gasSchedule := mock.NewGasScheduleNotifierMock(gasMap)
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:               gasSchedule,
-		MapDNSAddresses:           make(map[string]struct{}),
-		Marshalizer:               TestMarshalizer,
-		Accounts:                  tpn.AccntState,
-		ShardCoordinator:          tpn.ShardCoordinator,
-		EpochNotifier:             tpn.EpochNotifier,
-		EnableEpochsHandler:       tpn.EnableEpochsHandler,
+		GasSchedule:         gasSchedule,
+		MapDNSAddresses:     make(map[string]struct{}),
+		Marshalizer:         TestMarshalizer,
+		Accounts:            tpn.AccntState,
+		ShardCoordinator:    tpn.ShardCoordinator,
+		EpochNotifier:       tpn.EpochNotifier,
+		EnableEpochsHandler: tpn.EnableEpochsHandler,
 
 		MaxNumNodesInTransferRole: 100,
 	}
@@ -1358,13 +1358,13 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 
 	gasSchedule := mock.NewGasScheduleNotifierMock(gasMap)
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:               gasSchedule,
-		MapDNSAddresses:           mapDNSAddresses,
-		Marshalizer:               TestMarshalizer,
-		Accounts:                  tpn.AccntState,
-		ShardCoordinator:          tpn.ShardCoordinator,
-		EpochNotifier:             tpn.EpochNotifier,
-		EnableEpochsHandler:       tpn.EnableEpochsHandler,
+		GasSchedule:         gasSchedule,
+		MapDNSAddresses:     mapDNSAddresses,
+		Marshalizer:         TestMarshalizer,
+		Accounts:            tpn.AccntState,
+		ShardCoordinator:    tpn.ShardCoordinator,
+		EpochNotifier:       tpn.EpochNotifier,
+		EnableEpochsHandler: tpn.EnableEpochsHandler,
 
 		MaxNumNodesInTransferRole: 100,
 	}
@@ -1571,13 +1571,13 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 
 	gasSchedule := mock.NewGasScheduleNotifierMock(gasMap)
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:               gasSchedule,
-		MapDNSAddresses:           make(map[string]struct{}),
-		Marshalizer:               TestMarshalizer,
-		Accounts:                  tpn.AccntState,
-		ShardCoordinator:          tpn.ShardCoordinator,
-		EpochNotifier:             tpn.EpochNotifier,
-		EnableEpochsHandler:       tpn.EnableEpochsHandler,
+		GasSchedule:         gasSchedule,
+		MapDNSAddresses:     make(map[string]struct{}),
+		Marshalizer:         TestMarshalizer,
+		Accounts:            tpn.AccntState,
+		ShardCoordinator:    tpn.ShardCoordinator,
+		EpochNotifier:       tpn.EpochNotifier,
+		EnableEpochsHandler: tpn.EnableEpochsHandler,
 
 		MaxNumNodesInTransferRole: 100,
 	}
@@ -2615,7 +2615,7 @@ func (tpn *TestProcessorNode) syncShardNode(nonce uint64) error {
 		return err
 	}
 
-	err = tpn.BlockProcessor.ProcessBlock(
+	_, _, err = tpn.BlockProcessor.ProcessBlock(
 		header,
 		body,
 		func() time.Duration {
@@ -2645,7 +2645,7 @@ func (tpn *TestProcessorNode) syncMetaNode(nonce uint64) error {
 		return err
 	}
 
-	err = tpn.BlockProcessor.ProcessBlock(
+	_, _, err = tpn.BlockProcessor.ProcessBlock(
 		header,
 		body,
 		func() time.Duration {

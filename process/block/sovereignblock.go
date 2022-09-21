@@ -101,13 +101,9 @@ func (s *sovereignBlockProcessor) CreateBlock(initialHdr data.HeaderHandler, hav
 }
 
 // ProcessBlock actually processes the selected transaction and will create the final block body
-func (s *sovereignBlockProcessor) ProcessBlock(
-	headerHandler data.HeaderHandler,
-	bodyHandler data.BodyHandler,
-	haveTime func() time.Duration,
-) error {
+func (s *sovereignBlockProcessor) ProcessBlock(headerHandler data.HeaderHandler, bodyHandler data.BodyHandler, haveTime func() time.Duration) (data.HeaderHandler, data.BodyHandler, error) {
 	if haveTime == nil {
-		return process.ErrNilHaveTimeHandler
+		return nil, nil, process.ErrNilHaveTimeHandler
 	}
 
 	s.processStatusHandler.SetBusy("sovereignBlockProcessor.ProcessBlock")
@@ -119,29 +115,29 @@ func (s *sovereignBlockProcessor) ProcessBlock(
 			go s.requestHandler.RequestShardHeader(headerHandler.GetShardID(), headerHandler.GetPrevHash())
 		}
 
-		return err
+		return nil, nil, err
 	}
 
 	blockBody, ok := bodyHandler.(*block.Body)
 	if !ok {
-		return process.ErrWrongTypeAssertion
+		return nil, nil, process.ErrWrongTypeAssertion
 	}
 
 	err = s.createBlockStarted()
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	s.txCoordinator.RequestBlockTransactions(blockBody)
 	err = s.txCoordinator.IsDataPreparedForProcessing(haveTime)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	for _, accounts := range s.accountsDB {
 		if accounts.JournalLen() != 0 {
 			log.Error("metaProcessor.CreateBlock first entry", "stack", accounts.GetStackDebugFirstEntry())
-			return process.ErrAccountStateDirty
+			return nil, nil, process.ErrAccountStateDirty
 		}
 	}
 
@@ -158,18 +154,18 @@ func (s *sovereignBlockProcessor) ProcessBlock(
 		"time [s]", elapsedTime,
 	)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	s.prepareBlockHeaderInternalMapForValidatorProcessor()
 	_, err = s.validatorStatisticsProcessor.UpdatePeerState(headerHandler, makeCommonHeaderHandlerHashMap(s.hdrsForCurrBlock.getHdrHashMap()))
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	blockBody, err = s.applyBodyToHeader(headerHandler, blockBody)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	listMiniBlockHandlers := make([]data.MiniBlockHandler, len(blockBody.MiniBlocks))
@@ -179,10 +175,10 @@ func (s *sovereignBlockProcessor) ProcessBlock(
 
 	err = bodyHandler.SetMiniBlocks(listMiniBlockHandlers)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
-	return nil
+	return nil, nil, nil
 }
 
 // applyBodyToHeader creates a miniblock header list given a block body

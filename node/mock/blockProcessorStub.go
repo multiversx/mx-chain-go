@@ -37,8 +37,8 @@ func (bps *BlockProcessorStub) SetNumProcessedObj(_ uint64) {
 }
 
 // ProcessBlock mocks processing a block
-func (bps *BlockProcessorStub) ProcessBlock(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
-	return bps.ProcessBlockCalled(header, body, haveTime)
+func (bps *BlockProcessorStub) ProcessBlock(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) (data.HeaderHandler, data.BodyHandler, error) {
+	return nil, nil, bps.ProcessBlockCalled(header, body, haveTime)
 }
 
 // ProcessScheduledBlock mocks processing a scheduled block

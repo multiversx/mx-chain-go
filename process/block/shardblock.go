@@ -150,13 +150,9 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 }
 
 // ProcessBlock processes a block. It returns nil if all ok or the specific error
-func (sp *shardProcessor) ProcessBlock(
-	headerHandler data.HeaderHandler,
-	bodyHandler data.BodyHandler,
-	haveTime func() time.Duration,
-) error {
+func (sp *shardProcessor) ProcessBlock(headerHandler data.HeaderHandler, bodyHandler data.BodyHandler, haveTime func() time.Duration) (data.HeaderHandler, data.BodyHandler, error) {
 	if haveTime == nil {
-		return process.ErrNilHaveTimeHandler
+		return nil, nil, process.ErrNilHaveTimeHandler
 	}
 
 	sp.processStatusHandler.SetBusy("shardProcessor.ProcessBlock")
@@ -173,7 +169,7 @@ func (sp *shardProcessor) ProcessBlock(
 			go sp.requestHandler.RequestShardHeader(headerHandler.GetShardID(), headerHandler.GetPrevHash())
 		}
 
-		return err
+		return nil, nil, err
 	}
 
 	sp.enableRoundsHandler.CheckRound(headerHandler.GetRound())
@@ -182,7 +178,7 @@ func (sp *shardProcessor) ProcessBlock(
 
 	err = sp.checkScheduledRootHash(headerHandler)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	log.Debug("started processing block",
@@ -194,24 +190,24 @@ func (sp *shardProcessor) ProcessBlock(
 
 	header, ok := headerHandler.(data.ShardHeaderHandler)
 	if !ok {
-		return process.ErrWrongTypeAssertion
+		return nil, nil, process.ErrWrongTypeAssertion
 	}
 
 	body, ok := bodyHandler.(*block.Body)
 	if !ok {
-		return process.ErrWrongTypeAssertion
+		return nil, nil, process.ErrWrongTypeAssertion
 	}
 
 	go getMetricsFromBlockBody(body, sp.marshalizer, sp.appStatusHandler)
 
 	err = sp.checkHeaderBodyCorrelation(header.GetMiniBlockHeaderHandlers(), body)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	err = sp.checkScheduledMiniBlocksValidity(headerHandler)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	txCounts, rewardCounts, unsignedCounts := sp.txCounter.getPoolCounts(sp.dataPool)
@@ -223,7 +219,7 @@ func (sp *shardProcessor) ProcessBlock(
 
 	err = sp.createBlockStarted()
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	sp.blockChainHook.SetCurrentHeader(header)
@@ -232,12 +228,12 @@ func (sp *shardProcessor) ProcessBlock(
 	requestedMetaHdrs, requestedFinalityAttestingMetaHdrs := sp.requestMetaHeaders(header)
 
 	if haveTime() < 0 {
-		return process.ErrTimeIsOut
+		return nil, nil, process.ErrTimeIsOut
 	}
 
 	err = sp.txCoordinator.IsDataPreparedForProcessing(haveTime)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	haveMissingMetaHeaders := requestedMetaHdrs > 0 || requestedFinalityAttestingMetaHdrs > 0
@@ -268,18 +264,18 @@ func (sp *shardProcessor) ProcessBlock(
 		}
 
 		if err != nil {
-			return err
+			return nil, nil, err
 		}
 	}
 
 	err = sp.requestEpochStartInfo(header, haveTime)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	if sp.accountsDB[state.UserAccountsState].JournalLen() != 0 {
 		log.Error("shardProcessor.ProcessBlock first entry", "stack", string(sp.accountsDB[state.UserAccountsState].GetStackDebugFirstEntry()))
-		return process.ErrAccountStateDirty
+		return nil, nil, process.ErrAccountStateDirty
 	}
 
 	defer func() {
@@ -288,22 +284,22 @@ func (sp *shardProcessor) ProcessBlock(
 
 	err = sp.checkEpochCorrectnessCrossChain()
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	err = sp.checkEpochCorrectness(header)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	err = sp.checkMetaHeadersValidityAndFinality()
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	err = sp.verifyCrossShardMiniBlockDstMe(header)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	defer func() {
@@ -322,30 +318,30 @@ func (sp *shardProcessor) ProcessBlock(
 		"time [s]", elapsedTime,
 	)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	err = sp.txCoordinator.VerifyCreatedBlockTransactions(header, &block.Body{MiniBlocks: miniBlocks})
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	err = sp.txCoordinator.VerifyCreatedMiniBlocks(header, body)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	err = sp.verifyFees(header)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	if !sp.verifyStateRoot(header.GetRootHash()) {
 		err = process.ErrRootStateDoesNotMatch
-		return err
+		return nil, nil, err
 	}
 
-	return nil
+	return nil, nil, nil
 }
 
 func (sp *shardProcessor) requestEpochStartInfo(header data.ShardHeaderHandler, haveTime func() time.Duration) error {
