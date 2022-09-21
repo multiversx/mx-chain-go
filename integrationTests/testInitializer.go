@@ -1279,6 +1279,25 @@ func CreateNodes(
 	nodesPerShard int,
 	numMetaChainNodes int,
 ) []*TestProcessorNode {
+	return createNodesWithEpochsConfig(numOfShards, nodesPerShard, numMetaChainNodes, GetDefaultEnableEpochsConfig())
+}
+
+// CreateNodesWithEnableEpochsConfig creates multiple nodes in different shards but with custom enable epochs config
+func CreateNodesWithEnableEpochsConfig(
+	numOfShards int,
+	nodesPerShard int,
+	numMetaChainNodes int,
+	enableEpochsConfig *config.EnableEpochs,
+) []*TestProcessorNode {
+	return createNodesWithEpochsConfig(numOfShards, nodesPerShard, numMetaChainNodes, enableEpochsConfig)
+}
+
+func createNodesWithEpochsConfig(
+	numOfShards int,
+	nodesPerShard int,
+	numMetaChainNodes int,
+	enableEpochsConfig *config.EnableEpochs,
+) []*TestProcessorNode {
 	nodes := make([]*TestProcessorNode, numOfShards*nodesPerShard+numMetaChainNodes)
 	connectableNodes := make([]Connectable, len(nodes))
 
@@ -1289,6 +1308,7 @@ func CreateNodes(
 				MaxShards:            uint32(numOfShards),
 				NodeShardId:          shardId,
 				TxSignPrivKeyShardId: shardId,
+				EpochsConfig:         enableEpochsConfig,
 			})
 			nodes[idx] = n
 			connectableNodes[idx] = n
@@ -1301,6 +1321,7 @@ func CreateNodes(
 			MaxShards:            uint32(numOfShards),
 			NodeShardId:          core.MetachainShardId,
 			TxSignPrivKeyShardId: 0,
+			EpochsConfig:         enableEpochsConfig,
 		})
 		idx = i + numOfShards*nodesPerShard
 		nodes[idx] = metaNode
@@ -1442,7 +1463,7 @@ func CreateNodesWithFullGenesis(
 	nodes := make([]*TestProcessorNode, numOfShards*nodesPerShard+numMetaChainNodes)
 	connectableNodes := make([]Connectable, len(nodes))
 
-	enableEpochsConfig := getDefaultEnableEpochsConfig()
+	enableEpochsConfig := GetDefaultEnableEpochsConfig()
 	enableEpochsConfig.StakingV2EnableEpoch = UnreachableEpoch
 
 	economicsConfig := createDefaultEconomicsConfig()
@@ -1510,7 +1531,7 @@ func CreateNodesWithCustomStateCheckpointModulus(
 	nodes := make([]*TestProcessorNode, numOfShards*nodesPerShard+numMetaChainNodes)
 	connectableNodes := make([]Connectable, len(nodes))
 
-	enableEpochsConfig := getDefaultEnableEpochsConfig()
+	enableEpochsConfig := GetDefaultEnableEpochsConfig()
 	enableEpochsConfig.StakingV2EnableEpoch = UnreachableEpoch
 
 	scm := &IntWrapper{
