@@ -37,6 +37,7 @@ import (
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
+	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	vic "github.com/ElrondNetwork/elrond-go/testscommon/validatorInfoCacher"
 )
@@ -174,7 +175,7 @@ func (tcn *TestConsensusNode) initNode(
 		roundHandler,
 		cache.NewTimeCache(time.Second),
 		&mock.BlockTrackerStub{},
-		0,
+		startTime,
 	)
 
 	tcn.initResolverFinder()
@@ -376,7 +377,12 @@ func (tcn *TestConsensusNode) initResolverFinder() {
 }
 
 func (tcn *TestConsensusNode) initAccountsDB() {
-	trieStorage, _ := CreateTrieStorageManager(CreateMemUnit())
+	storer, _, err := stateMock.CreateTestingTriePruningStorer(tcn.ShardCoordinator, notifier.NewEpochStartSubscriptionHandler())
+	if err != nil {
+		log.Error("initAccountsDB", "error", err.Error())
+	}
+	trieStorage, _ := CreateTrieStorageManager(storer)
+
 	tcn.AccountsDB, _ = CreateAccountsDB(UserAccount, trieStorage)
 }
 
