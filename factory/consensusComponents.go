@@ -21,6 +21,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state/syncer"
 	"github.com/ElrondNetwork/elrond-go/trie/factory"
+	"github.com/ElrondNetwork/elrond-go/trie/storageMarker"
 	"github.com/ElrondNetwork/elrond-go/update"
 )
 
@@ -489,6 +490,7 @@ func (ccf *consensusComponentsFactory) createArgsBaseAccountsSyncer(trieStorageM
 		MaxHardCapForMissingNodes: ccf.config.TrieSync.MaxHardCapForMissingNodes,
 		TrieSyncerVersion:         ccf.config.TrieSync.TrieSyncerVersion,
 		CheckNodesOnDisk:          ccf.config.TrieSync.CheckNodesOnDisk,
+		StorageMarker:             storageMarker.NewTrieStorageMarker(),
 	}
 }
 

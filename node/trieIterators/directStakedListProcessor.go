@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/trie/keyBuilder"
 	"github.com/ElrondNetwork/elrond-go/vm"
 )
 
@@ -54,7 +55,7 @@ func (dslp *directStakedListProcessor) getAllStakedAccounts(validatorAccount sta
 	}
 
 	chLeaves := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
-	err = validatorAccount.DataTrie().GetAllLeavesOnChannel(chLeaves, ctx, rootHash)
+	err = validatorAccount.DataTrie().GetAllLeavesOnChannel(chLeaves, ctx, rootHash, keyBuilder.NewKeyBuilder())
 	if err != nil {
 		return nil, err
 	}
