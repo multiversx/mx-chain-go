@@ -111,6 +111,7 @@ type EnableEpochsHandlerStub struct {
 	IsSetSenderInEeiOutputTransferFlagEnabledField               bool
 	IsChangeDelegationOwnerFlagEnabledField                      bool
 	IsRefactorPeersMiniBlocksFlagEnabledField                    bool
+	IsFixAsyncCallBackArgsListFlagEnabledField                   bool
 }
 
 // ResetPenalizedTooMuchGasFlag -
@@ -958,6 +959,14 @@ func (stub *EnableEpochsHandlerStub) IsRefactorPeersMiniBlocksFlagEnabled() bool
 	defer stub.RUnlock()
 
 	return stub.IsRefactorPeersMiniBlocksFlagEnabledField
+}
+
+// IsFixAsyncCallBackArgsListFlagEnabled -
+func (stub *EnableEpochsHandlerStub) IsFixAsyncCallBackArgsListFlagEnabled() bool {
+	stub.RLock()
+	defer stub.RUnlock()
+
+	return stub.IsFixAsyncCallBackArgsListFlagEnabledField
 }
 
 // IsInterfaceNil -
