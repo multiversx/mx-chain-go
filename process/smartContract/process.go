@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
@@ -20,7 +19,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
@@ -55,66 +53,25 @@ const (
 var zero = big.NewInt(0)
 
 type scProcessor struct {
-	accounts                                    state.AccountsAdapter
-	blockChainHook                              process.BlockChainHookHandler
-	pubkeyConv                                  core.PubkeyConverter
-	hasher                                      hashing.Hasher
-	marshalizer                                 marshal.Marshalizer
-	shardCoordinator                            sharding.Coordinator
-	vmContainer                                 process.VirtualMachinesContainer
-	argsParser                                  process.ArgumentsParser
-	esdtTransferParser                          vmcommon.ESDTTransferParser
-	builtInFunctions                            vmcommon.BuiltInFunctionContainer
-	deployEnableEpoch                           uint32
-	builtinEnableEpoch                          uint32
-	penalizedTooMuchGasEnableEpoch              uint32
-	repairCallBackEnableEpoch                   uint32
-	stakingV2EnableEpoch                        uint32
-	returnDataToLastTransferEnableEpoch         uint32
-	senderInOutTransferEnableEpoch              uint32
-	incrementSCRNonceInMultiTransferEnableEpoch uint32
-	builtInFunctionOnMetachainEnableEpoch       uint32
-	scrSizeInvariantCheckEnableEpoch            uint32
-	backwardCompSaveKeyValueEnableEpoch         uint32
-	createdCallBackCrossShardOnlyEnableEpoch    uint32
-	optimizeGasUsedInCrossMiniBlocksEnableEpoch uint32
-	saveKeyValueUnderProtectedErrorEnableEpoch  uint32
-	optimizeNFTStoreEnableEpoch                 uint32
-	cleanUpInformativeSCRsEnableEpoch           uint32
-	isPayableBySCEnableEpoch                    uint32
-	fixCodeMetadataOnUpgradeContract            uint32
-	scrSizeInvariantOnBuiltInResultEnableEpoch  uint32
-	deleteWrongArgAsyncAfterBuiltInEnableEpoch  uint32
-	fixAsyncCallBackArgParserEnableEpoch        uint32
-	flagStakingV2                               atomic.Flag
-	flagDeploy                                  atomic.Flag
-	flagBuiltin                                 atomic.Flag
-	flagPenalizedTooMuchGas                     atomic.Flag
-	flagRepairCallBackData                      atomic.Flag
-	flagReturnDataToLastTransfer                atomic.Flag
-	flagSenderInOutTransfer                     atomic.Flag
-	flagIncrementSCRNonceInMultiTransfer        atomic.Flag
-	flagBuiltInFunctionOnMetachain              atomic.Flag
-	flagSCRSizeInvariantCheck                   atomic.Flag
-	flagBackwardCompOnSaveKeyValue              atomic.Flag
-	flagCreatedCallBackCrossShardOnly           atomic.Flag
-	arwenChangeLocker                           common.Locker
-	flagOptimizeGasUsedInCrossMiniBlocks        atomic.Flag
-	flagSaveKeyValueUnderProtectedError         atomic.Flag
-	flagOptimizeNFTStore                        atomic.Flag
-	flagCleanUpInformativeSCRs                  atomic.Flag
-	flagIsPayableBySC                           atomic.Flag
-	flagFixCodeMetadataOnUpgradeContract        atomic.Flag
-	flagSCRSizeInvariantOnBuiltInResult         atomic.Flag
-	flagDeleteWrongArgAsyncAfterBuiltIn         atomic.Flag
-	flagFixAsyncCallBackArgumentsParser         atomic.Flag
+	accounts           state.AccountsAdapter
+	blockChainHook     process.BlockChainHookHandler
+	pubkeyConv         core.PubkeyConverter
+	hasher             hashing.Hasher
+	marshalizer        marshal.Marshalizer
+	shardCoordinator   sharding.Coordinator
+	vmContainer        process.VirtualMachinesContainer
+	argsParser         process.ArgumentsParser
+	esdtTransferParser vmcommon.ESDTTransferParser
+	builtInFunctions   vmcommon.BuiltInFunctionContainer
+	arwenChangeLocker  common.Locker
 
-	badTxForwarder process.IntermediateTransactionHandler
-	scrForwarder   process.IntermediateTransactionHandler
-	txFeeHandler   process.TransactionFeeHandler
-	economicsFee   process.FeeHandler
-	txTypeHandler  process.TxTypeHandler
-	gasHandler     process.GasHandler
+	enableEpochsHandler common.EnableEpochsHandler
+	badTxForwarder      process.IntermediateTransactionHandler
+	scrForwarder        process.IntermediateTransactionHandler
+	txFeeHandler        process.TransactionFeeHandler
+	economicsFee        process.FeeHandler
+	txTypeHandler       process.TxTypeHandler
+	gasHandler          process.GasHandler
 
 	builtInGasCosts     map[string]uint64
 	persistPerByte      uint64
@@ -143,9 +100,8 @@ type ArgsNewSmartContractProcessor struct {
 	GasHandler          process.GasHandler
 	GasSchedule         core.GasScheduleNotifier
 	TxLogsProcessor     process.TransactionLogProcessor
+	EnableEpochsHandler common.EnableEpochsHandler
 	BadTxForwarder      process.IntermediateTransactionHandler
-	EnableEpochs        config.EnableEpochs
-	EpochNotifier       process.EpochNotifier
 	VMOutputCacher      storage.Cacher
 	ArwenChangeLocker   common.Locker
 	IsGenesisProcessing bool
@@ -198,11 +154,11 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 	if check.IfNil(args.TxLogsProcessor) {
 		return nil, process.ErrNilTxLogsProcessor
 	}
+	if check.IfNil(args.EnableEpochsHandler) {
+		return nil, process.ErrNilEnableEpochsHandler
+	}
 	if check.IfNil(args.BadTxForwarder) {
 		return nil, process.ErrNilBadTxHandler
-	}
-	if check.IfNil(args.EpochNotifier) {
-		return nil, process.ErrNilEpochNotifier
 	}
 	if check.IfNilReflect(args.ArwenChangeLocker) {
 		return nil, process.ErrNilLocker
@@ -217,49 +173,29 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 	builtInFuncCost := args.GasSchedule.LatestGasSchedule()[common.BuiltInCost]
 	baseOperationCost := args.GasSchedule.LatestGasSchedule()[common.BaseOperationCost]
 	sc := &scProcessor{
-		vmContainer:                           args.VmContainer,
-		argsParser:                            args.ArgsParser,
-		hasher:                                args.Hasher,
-		marshalizer:                           args.Marshalizer,
-		accounts:                              args.AccountsDB,
-		blockChainHook:                        args.BlockChainHook,
-		pubkeyConv:                            args.PubkeyConv,
-		shardCoordinator:                      args.ShardCoordinator,
-		scrForwarder:                          args.ScrForwarder,
-		txFeeHandler:                          args.TxFeeHandler,
-		economicsFee:                          args.EconomicsFee,
-		txTypeHandler:                         args.TxTypeHandler,
-		gasHandler:                            args.GasHandler,
-		builtInGasCosts:                       builtInFuncCost,
-		txLogsProcessor:                       args.TxLogsProcessor,
-		badTxForwarder:                        args.BadTxForwarder,
-		builtInFunctions:                      args.BuiltInFunctions,
-		deployEnableEpoch:                     args.EnableEpochs.SCDeployEnableEpoch,
-		builtinEnableEpoch:                    args.EnableEpochs.BuiltInFunctionsEnableEpoch,
-		repairCallBackEnableEpoch:             args.EnableEpochs.RepairCallbackEnableEpoch,
-		penalizedTooMuchGasEnableEpoch:        args.EnableEpochs.PenalizedTooMuchGasEnableEpoch,
-		isGenesisProcessing:                   args.IsGenesisProcessing,
-		stakingV2EnableEpoch:                  args.EnableEpochs.StakingV2EnableEpoch,
-		returnDataToLastTransferEnableEpoch:   args.EnableEpochs.ReturnDataToLastTransferEnableEpoch,
-		senderInOutTransferEnableEpoch:        args.EnableEpochs.SenderInOutTransferEnableEpoch,
-		builtInFunctionOnMetachainEnableEpoch: args.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch,
-		scrSizeInvariantCheckEnableEpoch:      args.EnableEpochs.SCRSizeInvariantCheckEnableEpoch,
-		backwardCompSaveKeyValueEnableEpoch:   args.EnableEpochs.BackwardCompSaveKeyValueEnableEpoch,
-		arwenChangeLocker:                     args.ArwenChangeLocker,
-		vmOutputCacher:                        args.VMOutputCacher,
-		storePerByte:                          baseOperationCost["StorePerByte"],
-		persistPerByte:                        baseOperationCost["PersistPerByte"],
-		incrementSCRNonceInMultiTransferEnableEpoch: args.EnableEpochs.IncrementSCRNonceInMultiTransferEnableEpoch,
-		createdCallBackCrossShardOnlyEnableEpoch:    args.EnableEpochs.MultiESDTTransferFixOnCallBackOnEnableEpoch,
-		optimizeGasUsedInCrossMiniBlocksEnableEpoch: args.EnableEpochs.OptimizeGasUsedInCrossMiniBlocksEnableEpoch,
-		saveKeyValueUnderProtectedErrorEnableEpoch:  args.EnableEpochs.RemoveNonUpdatedStorageEnableEpoch,
-		optimizeNFTStoreEnableEpoch:                 args.EnableEpochs.OptimizeNFTStoreEnableEpoch,
-		cleanUpInformativeSCRsEnableEpoch:           args.EnableEpochs.CleanUpInformativeSCRsEnableEpoch,
-		isPayableBySCEnableEpoch:                    args.EnableEpochs.IsPayableBySCEnableEpoch,
-		fixCodeMetadataOnUpgradeContract:            args.EnableEpochs.IsPayableBySCEnableEpoch,
-		scrSizeInvariantOnBuiltInResultEnableEpoch:  args.EnableEpochs.SCRSizeInvariantOnBuiltInResultEnableEpoch,
-		deleteWrongArgAsyncAfterBuiltInEnableEpoch:  args.EnableEpochs.ManagedCryptoAPIsEnableEpoch,
-		fixAsyncCallBackArgParserEnableEpoch:        args.EnableEpochs.ESDTMetadataContinuousCleanupEnableEpoch,
+		vmContainer:         args.VmContainer,
+		argsParser:          args.ArgsParser,
+		hasher:              args.Hasher,
+		marshalizer:         args.Marshalizer,
+		accounts:            args.AccountsDB,
+		blockChainHook:      args.BlockChainHook,
+		pubkeyConv:          args.PubkeyConv,
+		shardCoordinator:    args.ShardCoordinator,
+		scrForwarder:        args.ScrForwarder,
+		txFeeHandler:        args.TxFeeHandler,
+		economicsFee:        args.EconomicsFee,
+		txTypeHandler:       args.TxTypeHandler,
+		gasHandler:          args.GasHandler,
+		builtInGasCosts:     builtInFuncCost,
+		txLogsProcessor:     args.TxLogsProcessor,
+		enableEpochsHandler: args.EnableEpochsHandler,
+		badTxForwarder:      args.BadTxForwarder,
+		builtInFunctions:    args.BuiltInFunctions,
+		isGenesisProcessing: args.IsGenesisProcessing,
+		arwenChangeLocker:   args.ArwenChangeLocker,
+		vmOutputCacher:      args.VMOutputCacher,
+		storePerByte:        baseOperationCost["StorePerByte"],
+		persistPerByte:      baseOperationCost["PersistPerByte"],
 	}
 
 	var err error
@@ -268,26 +204,6 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 		return nil, err
 	}
 
-	log.Debug("smartContract/process: enable epoch for sc deploy", "epoch", sc.deployEnableEpoch)
-	log.Debug("smartContract/process: enable epoch for built in functions", "epoch", sc.builtinEnableEpoch)
-	log.Debug("smartContract/process: enable epoch for repair callback", "epoch", sc.repairCallBackEnableEpoch)
-	log.Debug("smartContract/process: enable epoch for penalized too much gas", "epoch", sc.penalizedTooMuchGasEnableEpoch)
-	log.Debug("smartContract/process: enable epoch for staking v2", "epoch", sc.stakingV2EnableEpoch)
-	log.Debug("smartContract/process: enable epoch for increment SCR nonce in multi transfer", "epoch", sc.incrementSCRNonceInMultiTransferEnableEpoch)
-	log.Debug("smartContract/process: enable epoch for built in functions on metachain", "epoch", sc.builtInFunctionOnMetachainEnableEpoch)
-	log.Debug("smartContract/process: enable epoch for scr size invariant check", "epoch", sc.scrSizeInvariantCheckEnableEpoch)
-	log.Debug("smartContract/process: disable epoch for backward compatibility check on save key value error", "epoch", sc.scrSizeInvariantCheckEnableEpoch)
-	log.Debug("smartContract/process: enable epoch for created async callback on cross shard only", "epoch", sc.createdCallBackCrossShardOnlyEnableEpoch)
-	log.Debug("smartContract/process: enable epoch for optimize gas used in cross mini blocks", "epoch", sc.optimizeGasUsedInCrossMiniBlocksEnableEpoch)
-	log.Debug("smartContract/process: enable epoch for return as failure when saving under protected key", "epoch", sc.saveKeyValueUnderProtectedErrorEnableEpoch)
-	log.Debug("smartContract/process: enable epoch for cleaning up created scrs that are informative only", "epoch", sc.cleanUpInformativeSCRsEnableEpoch)
-	log.Debug("smartContract/process: enable epoch for payable by SC", "epoch", sc.isPayableBySCEnableEpoch)
-	log.Debug("smartContract/process: enable epoch for fix code metadata on upgrade contract", "epoch", sc.fixCodeMetadataOnUpgradeContract)
-	log.Debug("smartContract/process: enable epoch for scr size invariant on built in", "epoch", sc.scrSizeInvariantOnBuiltInResultEnableEpoch)
-	log.Debug("smartContract/process: enable epoch for delete wrong arg on async callback after built in", "epoch", sc.deleteWrongArgAsyncAfterBuiltInEnableEpoch)
-	log.Debug("smartContract/process: enable epoch for async callback argument parser", "epoch", sc.fixAsyncCallBackArgParserEnableEpoch)
-
-	args.EpochNotifier.RegisterNotifyHandler(sc)
 	args.GasSchedule.RegisterNotifyHandler(sc)
 
 	return sc, nil
@@ -304,7 +220,8 @@ func (sc *scProcessor) GasScheduleChange(gasSchedule map[string]map[string]uint6
 	}
 
 	sc.builtInGasCosts = builtInFuncCost
-	if sc.flagFixAsyncCallBackArgumentsParser.IsSet() {
+	isFixAsyncCallBackArgumentsParserFlagSet := sc.enableEpochsHandler.IsESDTMetadataContinuousCleanupFlagEnabled()
+	if isFixAsyncCallBackArgumentsParserFlagSet {
 		sc.builtInGasCosts[core.BuiltInFunctionMultiESDTNFTTransfer] = builtInFuncCost["ESDTNFTMultiTransfer"]
 	}
 	sc.storePerByte = gasSchedule[common.BaseOperationCost]["StorePerByte"]
@@ -345,7 +262,8 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 	duration := sw.GetMeasurement("execute")
 
 	if duration > executeDurationAlarmThreshold {
-		log.Debug(fmt.Sprintf("scProcessor.ExecuteSmartContractTransaction(): execution took > %s", executeDurationAlarmThreshold), "sc", tx.GetRcvAddr(), "duration", duration, "returnCode", returnCode, "err", err, "data", string(tx.GetData()))
+		txHash := sc.computeTxHashUnsafe(tx)
+		log.Debug(fmt.Sprintf("scProcessor.ExecuteSmartContractTransaction(): execution took > %s", executeDurationAlarmThreshold), "tx hash", txHash, "sc", tx.GetRcvAddr(), "duration", duration, "returnCode", returnCode, "err", err, "data", string(tx.GetData()))
 	} else {
 		log.Trace("scProcessor.ExecuteSmartContractTransaction()", "sc", tx.GetRcvAddr(), "duration", duration, "returnCode", returnCode, "err", err, "data", string(tx.GetData()))
 	}
@@ -518,7 +436,7 @@ func (sc *scProcessor) cleanInformativeOnlySCRs(scrs []data.TransactionHandler) 
 		cleanedUPSCrs = append(cleanedUPSCrs, scr)
 	}
 
-	if !sc.flagCleanUpInformativeSCRs.IsSet() {
+	if !sc.enableEpochsHandler.IsCleanUpInformativeSCRsFlagEnabled() {
 		return scrs, logsFromSCRs
 	}
 
@@ -617,7 +535,7 @@ func (sc *scProcessor) updateDeveloperRewardsV2(
 	}
 
 	moveBalanceGasLimit := sc.economicsFee.ComputeGasLimit(tx)
-	if !sc.flagDeploy.IsSet() && !sc.isSelfShard(tx.GetSndAddr()) {
+	if !sc.enableEpochsHandler.IsSCDeployFlagEnabled() && !sc.isSelfShard(tx.GetSndAddr()) {
 		usedGasByMainSC, err = core.SafeSubUint64(usedGasByMainSC, moveBalanceGasLimit)
 		if err != nil {
 			return err
@@ -644,7 +562,7 @@ func (sc *scProcessor) addToDevRewardsV2(address []byte, gasUsed uint64, tx data
 
 	consumedFee := sc.economicsFee.ComputeFeeForProcessing(tx, gasUsed)
 	var devRwd *big.Int
-	if sc.flagStakingV2.IsSet() {
+	if sc.enableEpochsHandler.IsStakingV2FlagEnabledForActivationEpochCompleted() {
 		devRwd = core.GetIntTrimmedPercentageOfValue(consumedFee, sc.economicsFee.DeveloperPercentage())
 	} else {
 		devRwd = core.GetApproximatePercentageOfValue(consumedFee, sc.economicsFee.DeveloperPercentage())
@@ -669,7 +587,7 @@ func (sc *scProcessor) addToDevRewardsV2(address []byte, gasUsed uint64, tx data
 
 func (sc *scProcessor) isSelfShard(address []byte) bool {
 	addressShardID := sc.shardCoordinator.ComputeId(address)
-	if !sc.flagCleanUpInformativeSCRs.IsSet() && core.IsEmptyAddress(address) {
+	if !sc.enableEpochsHandler.IsCleanUpInformativeSCRsFlagEnabled() && core.IsEmptyAddress(address) {
 		addressShardID = 0
 	}
 
@@ -805,7 +723,7 @@ func (sc *scProcessor) computeTotalConsumedFeeAndDevRwd(
 	totalFeeMinusBuiltIn := sc.economicsFee.ComputeFeeForProcessing(tx, consumedGasWithoutBuiltin)
 
 	var totalDevRwd *big.Int
-	if sc.flagStakingV2.IsSet() {
+	if sc.enableEpochsHandler.IsStakingV2FlagEnabledForActivationEpochCompleted() {
 		totalDevRwd = core.GetIntTrimmedPercentageOfValue(totalFeeMinusBuiltIn, sc.economicsFee.DeveloperPercentage())
 	} else {
 		totalDevRwd = core.GetApproximatePercentageOfValue(totalFeeMinusBuiltIn, sc.economicsFee.DeveloperPercentage())
@@ -815,7 +733,7 @@ func (sc *scProcessor) computeTotalConsumedFeeAndDevRwd(
 		totalFee.Add(totalFee, sc.economicsFee.ComputeMoveBalanceFee(tx))
 	}
 
-	if !sc.flagDeploy.IsSet() {
+	if !sc.enableEpochsHandler.IsSCDeployFlagEnabled() {
 		totalDevRwd = core.GetApproximatePercentageOfValue(totalFee, sc.economicsFee.DeveloperPercentage())
 	}
 
@@ -894,7 +812,8 @@ func (sc *scProcessor) computeBuiltInFuncGasUsed(
 		return core.SafeSubUint64(gasProvided, gasRemaining)
 	}
 
-	if sc.flagFixAsyncCallBackArgumentsParser.IsSet() && isCrossShard {
+	isFixAsyncCallBackArgumentsParserFlagSet := sc.enableEpochsHandler.IsESDTMetadataContinuousCleanupFlagEnabled()
+	if isFixAsyncCallBackArgumentsParserFlagSet && isCrossShard {
 		return 0, nil
 	}
 
@@ -917,7 +836,8 @@ func (sc *scProcessor) ExecuteBuiltInFunction(
 	duration := sw.GetMeasurement("executeBuiltIn")
 
 	if duration > executeDurationAlarmThreshold {
-		log.Debug(fmt.Sprintf("scProcessor.ExecuteBuiltInFunction(): execution took > %s", executeDurationAlarmThreshold), "sc", tx.GetRcvAddr(), "duration", duration, "returnCode", returnCode, "err", err, "data", string(tx.GetData()))
+		txHash := sc.computeTxHashUnsafe(tx)
+		log.Debug(fmt.Sprintf("scProcessor.ExecuteBuiltInFunction(): execution took > %s", executeDurationAlarmThreshold), "tx hash", txHash, "sc", tx.GetRcvAddr(), "duration", duration, "returnCode", returnCode, "err", err, "data", string(tx.GetData()))
 	} else {
 		log.Trace("scProcessor.ExecuteBuiltInFunction()", "sc", tx.GetRcvAddr(), "duration", duration, "returnCode", returnCode, "err", err, "data", string(tx.GetData()))
 	}
@@ -935,7 +855,7 @@ func (sc *scProcessor) doExecuteBuiltInFunction(
 	}
 
 	snapshot := sc.accounts.JournalLen()
-	if !sc.flagBuiltin.IsSet() {
+	if !sc.enableEpochsHandler.IsBuiltInFunctionsFlagEnabled() {
 		return vmcommon.UserError, sc.resolveFailedTransaction(acntSnd, tx, txHash, process.ErrBuiltInFunctionsAreDisabled.Error(), snapshot)
 	}
 
@@ -1008,7 +928,7 @@ func (sc *scProcessor) doExecuteBuiltInFunction(
 			return vmcommon.ExecutionFailed, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte("gas consumed exceeded"), snapshot, vmInput.GasLocked)
 		}
 
-		if sc.flagRepairCallBackData.IsSet() {
+		if sc.enableEpochsHandler.IsRepairCallbackFlagEnabled() {
 			sc.penalizeUserIfNeeded(tx, txHash, newVMInput.CallType, newVMInput.GasProvided, newVMOutput)
 		}
 
@@ -1030,7 +950,7 @@ func (sc *scProcessor) doExecuteBuiltInFunction(
 
 	isSCCallCrossShard := !isSCCallSelfShard && txTypeOnDst == process.SCInvoking
 	if !isSCCallCrossShard {
-		if sc.flagRepairCallBackData.IsSet() {
+		if sc.enableEpochsHandler.IsRepairCallbackFlagEnabled() {
 			sc.penalizeUserIfNeeded(tx, txHash, newVMInput.CallType, newVMInput.GasProvided, newVMOutput)
 		}
 
@@ -1053,7 +973,7 @@ func (sc *scProcessor) doExecuteBuiltInFunction(
 		}
 	}
 
-	if sc.flagSCRSizeInvariantOnBuiltInResult.IsSet() {
+	if sc.enableEpochsHandler.IsSCRSizeInvariantOnBuiltInResultFlagEnabled() {
 		errCheck := sc.checkSCRSizeInvariant(scrResults)
 		if errCheck != nil {
 			return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, errCheck.Error(), []byte(errCheck.Error()), snapshot, vmInput.GasLocked)
@@ -1202,7 +1122,7 @@ func (sc *scProcessor) isSCExecutionAfterBuiltInFunc(
 	}
 
 	scExecuteOutTransfer := outAcc.OutputTransfers[0]
-	if !sc.flagIncrementSCRNonceInMultiTransfer.IsSet() {
+	if !sc.enableEpochsHandler.IsIncrementSCRNonceInMultiTransferFlagEnabled() {
 		_, _, err = sc.argsParser.ParseCallData(string(scExecuteOutTransfer.Data))
 		if err != nil {
 			return true, nil, err
@@ -1241,13 +1161,15 @@ func (sc *scProcessor) createVMInputWithAsyncCallBackAfterBuiltIn(
 
 	outAcc, ok := vmOutput.OutputAccounts[string(vmInput.RecipientAddr)]
 	if ok && len(outAcc.OutputTransfers) == 1 {
-		if sc.flagDeleteWrongArgAsyncAfterBuiltIn.IsSet() {
+		isDeleteWrongArgAsyncAfterBuiltInFlagEnabled := sc.enableEpochsHandler.IsManagedCryptoAPIsFlagEnabled()
+		if isDeleteWrongArgAsyncAfterBuiltInFlagEnabled {
 			arguments = [][]byte{}
 		}
 
 		gasLimit = outAcc.OutputTransfers[0].GasLimit
 
-		if sc.flagFixAsyncCallBackArgumentsParser.IsSet() {
+		isFixAsyncCallBackArgumentsParserFlagSet := sc.enableEpochsHandler.IsESDTMetadataContinuousCleanupFlagEnabled()
+		if isFixAsyncCallBackArgumentsParserFlagSet {
 			args, err := sc.argsParser.ParseArguments(string(outAcc.OutputTransfers[0].Data))
 			log.LogIfError(err, "function", "createVMInputWithAsyncCallBackAfterBuiltIn.ParseArguments")
 			arguments = append(arguments, args...)
@@ -1402,7 +1324,7 @@ func (sc *scProcessor) processIfErrorWithAddedLogs(acntSnd state.UserAccountHand
 		return err
 	}
 
-	if len(returnMessage) == 0 && sc.flagDeploy.IsSet() {
+	if len(returnMessage) == 0 && sc.enableEpochsHandler.IsSCDeployFlagEnabled() {
 		returnMessage = []byte(returnCode)
 	}
 
@@ -1421,7 +1343,7 @@ func (sc *scProcessor) processIfErrorWithAddedLogs(acntSnd state.UserAccountHand
 
 	userErrorLog := createNewLogFromSCRIfError(scrIfError)
 
-	if !sc.flagCleanUpInformativeSCRs.IsSet() || !sc.isInformativeTxHandler(scrIfError) {
+	if !sc.enableEpochsHandler.IsCleanUpInformativeSCRsFlagEnabled() || !sc.isInformativeTxHandler(scrIfError) {
 		err = sc.scrForwarder.AddIntermediateTransactions([]data.TransactionHandler{scrIfError})
 		if err != nil {
 			return err
@@ -1450,14 +1372,14 @@ func (sc *scProcessor) processIfErrorWithAddedLogs(acntSnd state.UserAccountHand
 
 	txType, _ := sc.txTypeHandler.ComputeTransactionType(tx)
 	isCrossShardMoveBalance := txType == process.MoveBalance && check.IfNil(acntSnd)
-	if isCrossShardMoveBalance && sc.flagDeploy.IsSet() {
+	if isCrossShardMoveBalance && sc.enableEpochsHandler.IsSCDeployFlagEnabled() {
 		// move balance was already consumed in sender shard
 		return nil
 	}
 
 	sc.txFeeHandler.ProcessTransactionFee(consumedFee, big.NewInt(0), txHash)
 
-	if sc.flagOptimizeNFTStore.IsSet() {
+	if sc.enableEpochsHandler.IsOptimizeNFTStoreFlagEnabled() {
 		err = sc.blockChainHook.SaveNFTMetaDataToSystemAccount(tx)
 		if err != nil {
 			return err
@@ -1468,7 +1390,7 @@ func (sc *scProcessor) processIfErrorWithAddedLogs(acntSnd state.UserAccountHand
 }
 
 func (sc *scProcessor) setEmptyRoothashOnErrorIfSaveKeyValue(tx data.TransactionHandler, account state.UserAccountHandler) {
-	if !sc.flagBackwardCompOnSaveKeyValue.IsSet() {
+	if !sc.enableEpochsHandler.IsBackwardCompSaveKeyValueFlagEnabled() {
 		return
 	}
 	if sc.shardCoordinator.SelfId() == core.MetachainShardId {
@@ -1551,7 +1473,7 @@ func (sc *scProcessor) processForRelayerWhenError(
 		ReturnMessage:  returnMessage,
 	}
 
-	if !sc.flagCleanUpInformativeSCRs.IsSet() || scrForRelayer.Value.Cmp(zero) > 0 {
+	if !sc.enableEpochsHandler.IsCleanUpInformativeSCRsFlagEnabled() || scrForRelayer.Value.Cmp(zero) > 0 {
 		err = sc.scrForwarder.AddIntermediateTransactions([]data.TransactionHandler{scrForRelayer})
 		if err != nil {
 			return nil, err
@@ -1632,7 +1554,7 @@ func (sc *scProcessor) addBackTxValues(
 		scrIfError.Value = big.NewInt(0).Set(valueForSnd)
 	}
 
-	isOriginalTxAsyncCallBack := sc.flagSenderInOutTransfer.IsSet() &&
+	isOriginalTxAsyncCallBack := sc.enableEpochsHandler.IsSenderInOutTransferFlagEnabled() &&
 		determineCallType(originalTx) == vmData.AsynchronousCallBack &&
 		sc.shardCoordinator.SelfId() == sc.shardCoordinator.ComputeId(originalTx.GetRcvAddr())
 	if isOriginalTxAsyncCallBack {
@@ -1680,7 +1602,8 @@ func (sc *scProcessor) DeploySmartContract(tx data.TransactionHandler, acntSnd s
 	duration := sw.GetMeasurement("deploy")
 
 	if duration > executeDurationAlarmThreshold {
-		log.Debug(fmt.Sprintf("scProcessor.DeploySmartContract(): execution took > %s", executeDurationAlarmThreshold), "sc", tx.GetRcvAddr(), "duration", duration, "returnCode", returnCode, "err", err, "data", string(tx.GetData()))
+		txHash := sc.computeTxHashUnsafe(tx)
+		log.Debug(fmt.Sprintf("scProcessor.DeploySmartContract(): execution took > %s", executeDurationAlarmThreshold), "tx hash", txHash, "sc", tx.GetRcvAddr(), "duration", duration, "returnCode", returnCode, "err", err, "data", string(tx.GetData()))
 	} else {
 		log.Trace("scProcessor.DeploySmartContract()", "sc", tx.GetRcvAddr(), "duration", duration, "returnCode", returnCode, "err", err, "data", string(tx.GetData()))
 	}
@@ -1717,7 +1640,7 @@ func (sc *scProcessor) doDeploySmartContract(
 
 	var vmOutput *vmcommon.VMOutput
 	snapshot := sc.accounts.JournalLen()
-	shouldAllowDeploy := sc.flagDeploy.IsSet() || sc.isGenesisProcessing
+	shouldAllowDeploy := sc.enableEpochsHandler.IsSCDeployFlagEnabled() || sc.isGenesisProcessing
 	if !shouldAllowDeploy {
 		log.Trace("deploy is disabled")
 		return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, process.ErrSmartContractDeploymentIsDisabled.Error(), []byte(""), snapshot, 0)
@@ -1806,7 +1729,7 @@ func (sc *scProcessor) updateDeveloperRewardsProxy(
 	vmOutput *vmcommon.VMOutput,
 	builtInFuncGasUsed uint64,
 ) error {
-	if !sc.flagDeploy.IsSet() {
+	if !sc.enableEpochsHandler.IsSCDeployFlagEnabled() {
 		return sc.updateDeveloperRewardsV1(tx, vmOutput, builtInFuncGasUsed)
 	}
 
@@ -1847,7 +1770,7 @@ func (sc *scProcessor) processSCPayment(tx data.TransactionHandler, acntSnd stat
 	}
 
 	cost := sc.economicsFee.ComputeTxFee(tx)
-	if !sc.flagPenalizedTooMuchGas.IsSet() {
+	if !sc.enableEpochsHandler.IsPenalizedTooMuchGasFlagEnabled() {
 		cost = core.SafeMul(tx.GetGasLimit(), tx.GetGasPrice())
 	}
 	cost = cost.Add(cost, tx.GetValue())
@@ -1922,7 +1845,7 @@ func (sc *scProcessor) processVMOutput(
 }
 
 func (sc *scProcessor) checkSCRSizeInvariant(scrTxs []data.TransactionHandler) error {
-	if !sc.flagSCRSizeInvariantCheck.IsSet() {
+	if !sc.enableEpochsHandler.IsSCRSizeInvariantCheckFlagEnabled() {
 		return nil
 	}
 
@@ -1951,7 +1874,7 @@ func (sc *scProcessor) addGasRefundIfInShard(address []byte, value *big.Int) err
 		return nil
 	}
 
-	if sc.flagDeploy.IsSet() && core.IsSmartContractAddress(address) {
+	if sc.enableEpochsHandler.IsSCDeployFlagEnabled() && core.IsSmartContractAddress(address) {
 		userAcc.AddToDeveloperReward(value)
 	} else {
 		err = userAcc.AddToBalance(value)
@@ -1970,7 +1893,7 @@ func (sc *scProcessor) penalizeUserIfNeeded(
 	gasProvidedForProcessing uint64,
 	vmOutput *vmcommon.VMOutput,
 ) {
-	if !sc.flagPenalizedTooMuchGas.IsSet() {
+	if !sc.enableEpochsHandler.IsPenalizedTooMuchGasFlagEnabled() {
 		return
 	}
 	if callType == vmData.AsynchronousCall {
@@ -1998,18 +1921,18 @@ func (sc *scProcessor) penalizeUserIfNeeded(
 		"return message", vmOutput.ReturnMessage,
 	)
 
-	if sc.flagDeploy.IsSet() {
+	if sc.enableEpochsHandler.IsSCDeployFlagEnabled() {
 		vmOutput.ReturnMessage += "@"
 		if !isSmartContractResult(tx) {
 			gasUsed += sc.economicsFee.ComputeGasLimit(tx)
 		}
 	}
 
-	if sc.flagOptimizeGasUsedInCrossMiniBlocks.IsSet() {
+	if sc.enableEpochsHandler.IsOptimizeGasUsedInCrossMiniBlocksFlagEnabled() {
 		sc.gasHandler.SetGasPenalized(vmOutput.GasRemaining, txHash)
 	}
 
-	if !sc.flagCleanUpInformativeSCRs.IsSet() {
+	if !sc.enableEpochsHandler.IsCleanUpInformativeSCRsFlagEnabled() {
 		vmOutput.ReturnMessage += fmt.Sprintf("%s: gas needed = %d, gas remained = %d",
 			TooMuchGasProvidedMessage, gasUsed, vmOutput.GasRemaining)
 	} else {
@@ -2059,11 +1982,11 @@ func (sc *scProcessor) createSCRsWhenError(
 	}
 
 	consumedFee := sc.economicsFee.ComputeTxFee(tx)
-	if !sc.flagPenalizedTooMuchGas.IsSet() {
+	if !sc.enableEpochsHandler.IsPenalizedTooMuchGasFlagEnabled() {
 		consumedFee = core.SafeMul(tx.GetGasLimit(), tx.GetGasPrice())
 	}
 
-	if !sc.flagDeploy.IsSet() {
+	if !sc.enableEpochsHandler.IsSCDeployFlagEnabled() {
 		accumulatedSCRData += "@" + hex.EncodeToString([]byte(returnCode)) + "@" + hex.EncodeToString(txHash)
 		if check.IfNil(acntSnd) {
 			moveBalanceCost := sc.economicsFee.ComputeMoveBalanceFee(tx)
@@ -2078,7 +2001,7 @@ func (sc *scProcessor) createSCRsWhenError(
 				consumedFee = sc.economicsFee.ComputeFeeForProcessing(tx, tx.GetGasLimit()-gasLocked)
 			}
 			accumulatedSCRData += "@" + core.ConvertToEvenHex(int(vmcommon.UserError))
-			if sc.flagRepairCallBackData.IsSet() {
+			if sc.enableEpochsHandler.IsRepairCallbackFlagEnabled() {
 				accumulatedSCRData += "@" + hex.EncodeToString(returnMessage)
 			}
 		} else {
@@ -2163,7 +2086,7 @@ func (sc *scProcessor) addVMOutputResultsToSCR(vmOutput *vmcommon.VMOutput, resu
 	result.GasLimit = vmOutput.GasRemaining
 	result.Data = []byte("@" + core.ConvertToEvenHex(int(vmOutput.ReturnCode)))
 
-	if vmOutput.ReturnCode != vmcommon.Ok && sc.flagRepairCallBackData.IsSet() {
+	if vmOutput.ReturnCode != vmcommon.Ok && sc.enableEpochsHandler.IsRepairCallbackFlagEnabled() {
 		encodedReturnMessage := "@" + hex.EncodeToString([]byte(vmOutput.ReturnMessage))
 		result.Data = append(result.Data, encodedReturnMessage...)
 	}
@@ -2225,7 +2148,7 @@ func (sc *scProcessor) createSCRIfNoOutputTransfer(
 		return true, []data.TransactionHandler{result}
 	}
 
-	if !sc.flagDeploy.IsSet() {
+	if !sc.enableEpochsHandler.IsSCDeployFlagEnabled() {
 		result := createBaseSCR(outAcc, tx, txHash, 0)
 		result.Code = outAcc.Code
 		result.Value.Set(outAcc.BalanceDelta)
@@ -2247,7 +2170,7 @@ func (sc *scProcessor) preprocessOutTransferToSCR(
 	txHash []byte,
 ) *smartContractResult.SmartContractResult {
 	transferNonce := uint64(0)
-	if sc.flagIncrementSCRNonceInMultiTransfer.IsSet() {
+	if sc.enableEpochsHandler.IsIncrementSCRNonceInMultiTransferFlagEnabled() {
 		transferNonce = uint64(index)
 	}
 	result := createBaseSCR(outAcc, tx, txHash, transferNonce)
@@ -2290,14 +2213,15 @@ func (sc *scProcessor) createSmartContractResults(
 
 		isCrossShard := sc.shardCoordinator.ComputeId(outAcc.Address) != sc.shardCoordinator.SelfId()
 		if result.CallType == vmData.AsynchronousCallBack {
-			if !sc.flagCreatedCallBackCrossShardOnly.IsSet() || isCrossShard {
+			isCreatedCallBackCrossShardOnlyFlagSet := sc.enableEpochsHandler.IsMultiESDTTransferFixOnCallBackFlagEnabled()
+			if !isCreatedCallBackCrossShardOnlyFlagSet || isCrossShard {
 				// backward compatibility
 				createdAsyncCallBack = true
 				result.GasLimit, _ = core.SafeAddUint64(result.GasLimit, vmOutput.GasRemaining)
 			}
 		}
 
-		useSenderAddressFromOutTransfer := sc.flagSenderInOutTransfer.IsSet() &&
+		useSenderAddressFromOutTransfer := sc.enableEpochsHandler.IsSenderInOutTransferFlagEnabled() &&
 			len(outputTransfer.SenderAddress) == len(tx.GetSndAddr()) &&
 			sc.shardCoordinator.ComputeId(outputTransfer.SenderAddress) == sc.shardCoordinator.SelfId()
 		if useSenderAddressFromOutTransfer {
@@ -2313,7 +2237,8 @@ func (sc *scProcessor) createSmartContractResults(
 		}
 
 		if result.CallType == vmData.AsynchronousCall {
-			if !sc.flagCreatedCallBackCrossShardOnly.IsSet() || isCrossShard {
+			isCreatedCallBackCrossShardOnlyFlagSet := sc.enableEpochsHandler.IsMultiESDTTransferFixOnCallBackFlagEnabled()
+			if !isCreatedCallBackCrossShardOnlyFlagSet || isCrossShard {
 				result.GasLimit += outputTransfer.GasLocked
 				lastArgAsGasLocked := "@" + hex.EncodeToString(big.NewInt(0).SetUint64(outputTransfer.GasLocked).Bytes())
 				result.Data = append(result.Data, []byte(lastArgAsGasLocked)...)
@@ -2335,7 +2260,7 @@ func (sc *scProcessor) useLastTransferAsAsyncCallBackWhenNeeded(
 	result *smartContractResult.SmartContractResult,
 	isCrossShard bool,
 ) bool {
-	if len(vmOutput.ReturnData) > 0 && !sc.flagReturnDataToLastTransfer.IsSet() {
+	if len(vmOutput.ReturnData) > 0 && !sc.enableEpochsHandler.IsReturnDataToLastTransferFlagEnabled() {
 		return false
 	}
 
@@ -2345,7 +2270,8 @@ func (sc *scProcessor) useLastTransferAsAsyncCallBackWhenNeeded(
 		return false
 	}
 
-	if sc.flagCreatedCallBackCrossShardOnly.IsSet() && !isCrossShard {
+	isCreatedCallBackCrossShardOnlyFlagSet := sc.enableEpochsHandler.IsMultiESDTTransferFixOnCallBackFlagEnabled()
+	if isCreatedCallBackCrossShardOnlyFlagSet && !isCrossShard {
 		return false
 	}
 
@@ -2407,7 +2333,7 @@ func (sc *scProcessor) createSCRForSenderAndRelayer(
 	// backward compatibility - there should be no refund as the storage pay was already distributed among validators
 	// this would only create additional inflation
 	// backward compatibility - direct smart contract results were created with gasLimit - there is no need for them
-	if !sc.flagDeploy.IsSet() {
+	if !sc.enableEpochsHandler.IsSCDeployFlagEnabled() {
 		storageFreeRefund = big.NewInt(0).Mul(vmOutput.GasRefund, big.NewInt(0).SetUint64(sc.economicsFee.MinGasPrice()))
 		gasRemaining = vmOutput.GasRemaining
 	}
@@ -2457,7 +2383,8 @@ func (sc *scProcessor) createSCRForSenderAndRelayer(
 	scTx.CallType = vmData.DirectCall
 	setOriginalTxHash(scTx, txHash, tx)
 	scTx.Data = []byte("@" + hex.EncodeToString([]byte(vmOutput.ReturnCode.String())))
-	if sc.flagDeleteWrongArgAsyncAfterBuiltIn.IsSet() && callType == vmData.AsynchronousCall {
+	isDeleteWrongArgAsyncAfterBuiltInFlagEnabled := sc.enableEpochsHandler.IsManagedCryptoAPIsFlagEnabled()
+	if isDeleteWrongArgAsyncAfterBuiltInFlagEnabled && callType == vmData.AsynchronousCall {
 		scTx.Data = []byte("@" + core.ConvertToEvenHex(int(vmOutput.ReturnCode)))
 	}
 
@@ -2515,7 +2442,8 @@ func (sc *scProcessor) processSCOutputAccounts(
 		for _, storeUpdate := range outAcc.StorageUpdates {
 			if !process.IsAllowedToSaveUnderKey(storeUpdate.Offset) {
 				log.Trace("storeUpdate is not allowed", "acc", outAcc.Address, "key", storeUpdate.Offset, "data", storeUpdate.Data)
-				if sc.flagSaveKeyValueUnderProtectedError.IsSet() {
+				isSaveKeyValueUnderProtectedErrorFlagSet := sc.enableEpochsHandler.IsRemoveNonUpdatedStorageFlagEnabled()
+				if isSaveKeyValueUnderProtectedErrorFlagSet {
 					return false, nil, process.ErrNotAllowedToWriteUnderProtectedKey
 				}
 
@@ -2748,7 +2676,7 @@ func (sc *scProcessor) ProcessSmartContractResult(scr *smartContractResult.Smart
 		returnCode, err = sc.ExecuteSmartContractTransaction(scr, sndAcc, dstAcc)
 		return returnCode, err
 	case process.BuiltInFunctionCall:
-		if sc.shardCoordinator.SelfId() == core.MetachainShardId && !sc.flagBuiltInFunctionOnMetachain.IsSet() {
+		if sc.shardCoordinator.SelfId() == core.MetachainShardId && !sc.enableEpochsHandler.IsBuiltInFunctionOnMetaFlagEnabled() {
 			returnCode, err = sc.ExecuteSmartContractTransaction(scr, sndAcc, dstAcc)
 			return returnCode, err
 		}
@@ -2879,75 +2807,16 @@ func isReturnOKTxHandler(
 	return bytes.HasPrefix(resultTx.GetData(), []byte(returnOkData))
 }
 
+// this function should only be called for logging reasons, since it does not perform sanity checks
+func (sc *scProcessor) computeTxHashUnsafe(tx data.TransactionHandler) []byte {
+	txHash, _ := core.CalculateHash(sc.marshalizer, sc.hasher, tx)
+
+	return txHash
+}
+
 // IsPayable returns if address is payable, smart contract ca set to false
 func (sc *scProcessor) IsPayable(sndAddress []byte, recvAddress []byte) (bool, error) {
 	return sc.blockChainHook.IsPayable(sndAddress, recvAddress)
-}
-
-// EpochConfirmed is called whenever a new epoch is confirmed
-func (sc *scProcessor) EpochConfirmed(epoch uint32, _ uint64) {
-	sc.flagDeploy.SetValue(epoch >= sc.deployEnableEpoch)
-	log.Debug("scProcessor: deployment of SC", "enabled", sc.flagDeploy.IsSet())
-
-	sc.flagBuiltin.SetValue(epoch >= sc.builtinEnableEpoch)
-	log.Debug("scProcessor: built in functions", "enabled", sc.flagBuiltin.IsSet())
-
-	sc.flagPenalizedTooMuchGas.SetValue(epoch >= sc.penalizedTooMuchGasEnableEpoch)
-	log.Debug("scProcessor: penalized too much gas", "enabled", sc.flagPenalizedTooMuchGas.IsSet())
-
-	sc.flagRepairCallBackData.SetValue(epoch >= sc.repairCallBackEnableEpoch)
-	log.Debug("scProcessor: repair call back", "enabled", sc.flagRepairCallBackData.IsSet())
-
-	sc.flagStakingV2.SetValue(epoch > sc.stakingV2EnableEpoch)
-	log.Debug("scProcessor: staking v2", "enabled", sc.flagStakingV2.IsSet())
-
-	sc.flagReturnDataToLastTransfer.SetValue(epoch > sc.returnDataToLastTransferEnableEpoch)
-	log.Debug("scProcessor: return data to last transfer", "enabled", sc.flagReturnDataToLastTransfer.IsSet())
-
-	sc.flagSenderInOutTransfer.SetValue(epoch >= sc.senderInOutTransferEnableEpoch)
-	log.Debug("scProcessor: sender in output transfer", "enabled", sc.flagSenderInOutTransfer.IsSet())
-
-	sc.flagIncrementSCRNonceInMultiTransfer.SetValue(epoch >= sc.incrementSCRNonceInMultiTransferEnableEpoch)
-	log.Debug("scProcessor: increment SCR nonce in multi transfer", "enabled", sc.flagIncrementSCRNonceInMultiTransfer.IsSet())
-
-	sc.flagBuiltInFunctionOnMetachain.SetValue(epoch >= sc.builtInFunctionOnMetachainEnableEpoch)
-	log.Debug("scProcessor: built in functions on metachain", "enabled", sc.flagBuiltInFunctionOnMetachain.IsSet())
-
-	sc.flagSCRSizeInvariantCheck.SetValue(epoch >= sc.scrSizeInvariantCheckEnableEpoch)
-	log.Debug("scProcessor: scr size invariant check", "enabled", sc.flagSCRSizeInvariantCheck.IsSet())
-
-	sc.flagBackwardCompOnSaveKeyValue.SetValue(epoch < sc.backwardCompSaveKeyValueEnableEpoch)
-	log.Debug("scProcessor: backward compatibility on save key value", "enabled", sc.flagBackwardCompOnSaveKeyValue.IsSet())
-
-	sc.flagCreatedCallBackCrossShardOnly.SetValue(epoch >= sc.createdCallBackCrossShardOnlyEnableEpoch)
-	log.Debug("scProcessor: created callback cross shard only", "enabled", sc.flagCreatedCallBackCrossShardOnly.IsSet())
-
-	sc.flagOptimizeGasUsedInCrossMiniBlocks.SetValue(epoch >= sc.optimizeGasUsedInCrossMiniBlocksEnableEpoch)
-	log.Debug("scProcessor: optimize gas used in cross mini blocks", "enabled", sc.flagOptimizeGasUsedInCrossMiniBlocks.IsSet())
-
-	sc.flagSaveKeyValueUnderProtectedError.SetValue(epoch >= sc.saveKeyValueUnderProtectedErrorEnableEpoch)
-	log.Debug("scProcessor: return failure when saving under protected key", "enabled", sc.flagSaveKeyValueUnderProtectedError.IsSet())
-
-	sc.flagOptimizeNFTStore.SetValue(epoch >= sc.optimizeNFTStoreEnableEpoch)
-	log.Debug("scProcessor: optimize nft store", "enabled", sc.flagOptimizeNFTStore.IsSet())
-
-	sc.flagCleanUpInformativeSCRs.SetValue(epoch >= sc.cleanUpInformativeSCRsEnableEpoch)
-	log.Debug("scProcessor: cleanup scr data", "enabled", sc.flagCleanUpInformativeSCRs.IsSet())
-
-	sc.flagFixCodeMetadataOnUpgradeContract.SetValue(epoch >= sc.fixCodeMetadataOnUpgradeContract)
-	log.Debug("scProcessor: fix code metadata on upgrade contract", "enabled", sc.flagFixCodeMetadataOnUpgradeContract.IsSet())
-
-	sc.flagIsPayableBySC.SetValue(epoch >= sc.isPayableBySCEnableEpoch)
-	log.Debug("smartContract: enable epoch for payable by SC", "enabled", sc.flagIsPayableBySC.IsSet())
-
-	sc.flagSCRSizeInvariantOnBuiltInResult.SetValue(epoch >= sc.scrSizeInvariantOnBuiltInResultEnableEpoch)
-	log.Debug("scProcessor: scr size invariant check on build in result", "enabled", sc.flagSCRSizeInvariantOnBuiltInResult.IsSet())
-
-	sc.flagDeleteWrongArgAsyncAfterBuiltIn.SetValue(epoch >= sc.deleteWrongArgAsyncAfterBuiltInEnableEpoch)
-	log.Debug("scProcessor: delete wrong argument on async callback after builtin", "enabled", sc.flagDeleteWrongArgAsyncAfterBuiltIn.IsSet())
-
-	sc.flagFixAsyncCallBackArgumentsParser.SetValue(epoch >= sc.fixAsyncCallBackArgParserEnableEpoch)
-	log.Debug("scProcessor: fix async callback arguments parser", "enabled", sc.flagFixAsyncCallBackArgumentsParser.IsSet())
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

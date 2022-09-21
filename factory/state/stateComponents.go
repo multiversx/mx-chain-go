@@ -22,23 +22,23 @@ import (
 
 // StateComponentsFactoryArgs holds the arguments needed for creating a state components factory
 type StateComponentsFactoryArgs struct {
-	Config           config.Config
-	EnableEpochs     config.EnableEpochs
-	ShardCoordinator sharding.Coordinator
-	Core             factory.CoreComponentsHolder
-	StorageService   dataRetriever.StorageService
-	ProcessingMode   common.NodeProcessingMode
-	ChainHandler     chainData.ChainHandler
+	Config                   config.Config
+	ShardCoordinator         sharding.Coordinator
+	Core                     factory.CoreComponentsHolder
+	StorageService           dataRetriever.StorageService
+	ProcessingMode           common.NodeProcessingMode
+	ShouldSerializeSnapshots bool
+	ChainHandler             chainData.ChainHandler
 }
 
 type stateComponentsFactory struct {
-	config           config.Config
-	shardCoordinator sharding.Coordinator
-	core             factory.CoreComponentsHolder
-	storageService   dataRetriever.StorageService
-	enableEpochs     config.EnableEpochs
-	processingMode   common.NodeProcessingMode
-	chainHandler     chainData.ChainHandler
+	config                   config.Config
+	shardCoordinator         sharding.Coordinator
+	core                     factory.CoreComponentsHolder
+	storageService           dataRetriever.StorageService
+	processingMode           common.NodeProcessingMode
+	shouldSerializeSnapshots bool
+	chainHandler             chainData.ChainHandler
 }
 
 // stateComponents struct holds the state components of the Elrond protocol
@@ -76,13 +76,13 @@ func NewStateComponentsFactory(args StateComponentsFactoryArgs) (*stateComponent
 	}
 
 	return &stateComponentsFactory{
-		config:           args.Config,
-		shardCoordinator: args.ShardCoordinator,
-		core:             args.Core,
-		storageService:   args.StorageService,
-		enableEpochs:     args.EnableEpochs,
+		config:                   args.Config,
+		shardCoordinator:         args.ShardCoordinator,
+		core:                     args.Core,
+		storageService:           args.StorageService,
 		processingMode:   args.ProcessingMode,
-		chainHandler:     args.ChainHandler,
+		shouldSerializeSnapshots: args.ShouldSerializeSnapshots,
+		chainHandler:             args.ChainHandler,
 	}, nil
 }
 
@@ -126,13 +126,14 @@ func (scf *stateComponentsFactory) createAccountsAdapters(triesContainer common.
 	}
 
 	argsProcessingAccountsDB := state.ArgsAccountsDB{
-		Trie:                  merkleTrie,
-		Hasher:                scf.core.Hasher(),
-		Marshaller:            scf.core.InternalMarshalizer(),
-		AccountFactory:        accountFactory,
-		StoragePruningManager: storagePruning,
-		ProcessingMode:        scf.processingMode,
-		ProcessStatusHandler:  scf.core.ProcessStatusHandler(),
+		Trie:                     merkleTrie,
+		Hasher:                   scf.core.Hasher(),
+		Marshaller:               scf.core.InternalMarshalizer(),
+		AccountFactory:           accountFactory,
+		StoragePruningManager:    storagePruning,
+		ProcessingMode:           scf.processingMode,
+		ShouldSerializeSnapshots: scf.shouldSerializeSnapshots,
+		ProcessStatusHandler:     scf.core.ProcessStatusHandler(),
 	}
 	accountsAdapter, err := state.NewAccountsDB(argsProcessingAccountsDB)
 	if err != nil {
@@ -187,13 +188,14 @@ func (scf *stateComponentsFactory) createPeerAdapter(triesContainer common.Tries
 	}
 
 	argsProcessingPeerAccountsDB := state.ArgsAccountsDB{
-		Trie:                  merkleTrie,
-		Hasher:                scf.core.Hasher(),
-		Marshaller:            scf.core.InternalMarshalizer(),
-		AccountFactory:        accountFactory,
-		StoragePruningManager: storagePruning,
-		ProcessingMode:        scf.processingMode,
-		ProcessStatusHandler:  scf.core.ProcessStatusHandler(),
+		Trie:                     merkleTrie,
+		Hasher:                   scf.core.Hasher(),
+		Marshaller:               scf.core.InternalMarshalizer(),
+		AccountFactory:           accountFactory,
+		StoragePruningManager:    storagePruning,
+		ProcessingMode:           scf.processingMode,
+		ShouldSerializeSnapshots: scf.shouldSerializeSnapshots,
+		ProcessStatusHandler:     scf.core.ProcessStatusHandler(),
 	}
 	peerAdapter, err := state.NewPeerAccountsDB(argsProcessingPeerAccountsDB)
 	if err != nil {

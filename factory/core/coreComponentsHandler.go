@@ -147,6 +147,9 @@ func (mcc *managedCoreComponents) CheckSubcomponents() error {
 	if check.IfNil(mcc.processStatusHandler) {
 		return errors.ErrNilProcessStatusHandler
 	}
+	if check.IfNil(mcc.enableEpochsHandler) {
+		return errors.ErrNilEnableEpochsHandler
+	}
 	if len(mcc.chainID) == 0 {
 		return errors.ErrInvalidChainID
 	}
@@ -495,8 +498,8 @@ func (mcc *managedCoreComponents) EpochNotifier() process.EpochNotifier {
 	return mcc.coreComponents.epochNotifier
 }
 
-// RoundNotifier returns the round notifier
-func (mcc *managedCoreComponents) RoundNotifier() process.RoundNotifier {
+// EnableRoundsHandler returns the rounds activation handler
+func (mcc *managedCoreComponents) EnableRoundsHandler() process.EnableRoundsHandler {
 	mcc.mutCoreComponents.RLock()
 	defer mcc.mutCoreComponents.RUnlock()
 
@@ -504,7 +507,7 @@ func (mcc *managedCoreComponents) RoundNotifier() process.RoundNotifier {
 		return nil
 	}
 
-	return mcc.coreComponents.roundNotifier
+	return mcc.coreComponents.enableRoundsHandler
 }
 
 // EpochStartNotifierWithConfirm returns the epoch notifier with confirm
@@ -577,6 +580,18 @@ func (mcc *managedCoreComponents) HardforkTriggerPubKey() []byte {
 	}
 
 	return mcc.coreComponents.hardforkTriggerPubKey
+}
+
+// EnableEpochsHandler returns the enable epochs handler
+func (mcc *managedCoreComponents) EnableEpochsHandler() common.EnableEpochsHandler {
+	mcc.mutCoreComponents.RLock()
+	defer mcc.mutCoreComponents.RUnlock()
+
+	if mcc.coreComponents == nil {
+		return nil
+	}
+
+	return mcc.coreComponents.enableEpochsHandler
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

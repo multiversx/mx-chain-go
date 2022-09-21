@@ -49,7 +49,7 @@ type CoreComponentsMock struct {
 	NodesConfig                  sharding.GenesisNodesSetupHandler
 	Shuffler                     nodesCoordinator.NodesShuffler
 	EpochChangeNotifier          process.EpochNotifier
-	RoundChangeNotifier          process.RoundNotifier
+	EnableRoundsHandlerField     process.EnableRoundsHandler
 	EpochNotifierWithConfirm     factory.EpochStartNotifierWithConfirm
 	TxVersionCheckHandler        process.TxVersionCheckerHandler
 	ChanStopProcess              chan endProcess.ArgEndProcess
@@ -57,7 +57,8 @@ type CoreComponentsMock struct {
 	NodeTypeProviderField        core.NodeTypeProviderHandler
 	ArwenChangeLockerInternal    common.Locker
 	ProcessStatusHandlerInternal common.ProcessStatusHandler
-	HardforkTriggerPubKeyField  []byte
+	HardforkTriggerPubKeyField   []byte
+	EnableEpochsHandlerField     common.EnableEpochsHandler
 }
 
 // InternalMarshalizer -
@@ -219,9 +220,9 @@ func (ccm *CoreComponentsMock) EpochNotifier() process.EpochNotifier {
 	return ccm.EpochChangeNotifier
 }
 
-// RoundNotifier -
-func (ccm *CoreComponentsMock) RoundNotifier() process.RoundNotifier {
-	return ccm.RoundChangeNotifier
+// EnableRoundsHandler -
+func (ccm *CoreComponentsMock) EnableRoundsHandler() process.EnableRoundsHandler {
+	return ccm.EnableRoundsHandlerField
 }
 
 // EpochStartNotifierWithConfirm -
@@ -252,6 +253,11 @@ func (ccm *CoreComponentsMock) ProcessStatusHandler() common.ProcessStatusHandle
 // HardforkTriggerPubKey -
 func (ccm *CoreComponentsMock) HardforkTriggerPubKey() []byte {
 	return ccm.HardforkTriggerPubKeyField
+}
+
+// EnableEpochsHandler -
+func (ccm *CoreComponentsMock) EnableEpochsHandler() common.EnableEpochsHandler {
+	return ccm.EnableEpochsHandlerField
 }
 
 // IsInterfaceNil -

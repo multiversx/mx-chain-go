@@ -16,14 +16,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
-	peersHolder "github.com/ElrondNetwork/elrond-go/p2p/peersHolder"
+	"github.com/ElrondNetwork/elrond-go/p2p/peersHolder"
 	"github.com/ElrondNetwork/elrond-go/p2p/rating"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/rating/peerHonesty"
 	antifloodFactory "github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/factory"
+	"github.com/ElrondNetwork/elrond-go/storage/cache"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
-	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 )
 
 // NetworkComponentsFactoryArgs holds the arguments to create a network component handler instance
@@ -108,11 +108,11 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 		return nil, err
 	}
 
-	topRatedCache, err := lrucache.NewCache(ncf.mainConfig.PeersRatingConfig.TopRatedCacheCapacity)
+	topRatedCache, err := cache.NewLRUCache(ncf.mainConfig.PeersRatingConfig.TopRatedCacheCapacity)
 	if err != nil {
 		return nil, err
 	}
-	badRatedCache, err := lrucache.NewCache(ncf.mainConfig.PeersRatingConfig.BadRatedCacheCapacity)
+	badRatedCache, err := cache.NewLRUCache(ncf.mainConfig.PeersRatingConfig.BadRatedCacheCapacity)
 	if err != nil {
 		return nil, err
 	}
@@ -224,12 +224,12 @@ func (ncf *networkComponentsFactory) createPeerHonestyHandler(
 	pkTimeCache process.TimeCacher,
 ) (consensus.PeerHonestyHandler, error) {
 
-	cache, err := storageUnit.NewCache(storageFactory.GetCacherFromConfig(config.PeerHonesty))
+	suCache, err := storageunit.NewCache(storageFactory.GetCacherFromConfig(config.PeerHonesty))
 	if err != nil {
 		return nil, err
 	}
 
-	return peerHonesty.NewP2pPeerHonesty(ratingConfig.PeerHonesty, pkTimeCache, cache)
+	return peerHonesty.NewP2pPeerHonesty(ratingConfig.PeerHonesty, pkTimeCache, suCache)
 }
 
 // Close closes all underlying components that need closing

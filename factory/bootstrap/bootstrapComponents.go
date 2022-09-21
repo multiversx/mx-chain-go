@@ -14,16 +14,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/factory/block"
-	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/headerCheck"
-	"github.com/ElrondNetwork/elrond-go/process/roundActivation"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/directoryhandler"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
-	"github.com/ElrondNetwork/elrond-go/storage/factory/directoryhandler"
 	"github.com/ElrondNetwork/elrond-go/storage/latestData"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 )
 
 var log = logger.GetOrCreate("factory")
@@ -31,7 +29,6 @@ var log = logger.GetOrCreate("factory")
 // BootstrapComponentsFactoryArgs holds the arguments needed to create a botstrap components factory
 type BootstrapComponentsFactoryArgs struct {
 	Config            config.Config
-	EpochConfig       config.EpochConfig
 	RoundConfig       config.RoundConfig
 	PrefConfig        config.Preferences
 	ImportDbConfig    config.ImportDbConfig
@@ -44,8 +41,6 @@ type BootstrapComponentsFactoryArgs struct {
 
 type bootstrapComponentsFactory struct {
 	config            config.Config
-	epochConfig       config.EpochConfig
-	roundConfig       config.RoundConfig
 	prefConfig        config.Preferences
 	importDbConfig    config.ImportDbConfig
 	flagsConfig       config.ContextFlagsConfig
@@ -63,7 +58,6 @@ type bootstrapComponents struct {
 	headerVersionHandler    nodeFactory.HeaderVersionHandler
 	versionedHeaderFactory  nodeFactory.VersionedHeaderFactory
 	headerIntegrityVerifier nodeFactory.HeaderIntegrityVerifierHandler
-	roundActivationHandler  process.RoundActivationHandler
 }
 
 // NewBootstrapComponentsFactory creates an instance of bootstrapComponentsFactory
@@ -83,8 +77,6 @@ func NewBootstrapComponentsFactory(args BootstrapComponentsFactoryArgs) (*bootst
 
 	return &bootstrapComponentsFactory{
 		config:            args.Config,
-		epochConfig:       args.EpochConfig,
-		roundConfig:       args.RoundConfig,
 		prefConfig:        args.PrefConfig,
 		importDbConfig:    args.ImportDbConfig,
 		flagsConfig:       args.FlagsConfig,
@@ -102,7 +94,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		return nil, err
 	}
 
-	versionsCache, err := storageUnit.NewCache(storageFactory.GetCacherFromConfig(bcf.config.Versions.Cache))
+	versionsCache, err := storageunit.NewCache(storageFactory.GetCacherFromConfig(bcf.config.Versions.Cache))
 	if err != nil {
 		return nil, err
 	}
@@ -148,8 +140,8 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		bootstrapDataProvider,
 		bcf.config,
 		parentDir,
-		common.DefaultEpochString,
-		common.DefaultShardString,
+		storage.DefaultEpochString,
+		storage.DefaultShardString,
 	)
 	if err != nil {
 		return nil, err
@@ -158,8 +150,8 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 	unitOpener, err := createUnitOpener(
 		bootstrapDataProvider,
 		latestStorageDataProvider,
-		common.DefaultEpochString,
-		common.DefaultShardString,
+		storage.DefaultEpochString,
+		storage.DefaultShardString,
 	)
 	if err != nil {
 		return nil, err
@@ -173,7 +165,6 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		Messenger:                  bcf.networkComponents.NetworkMessenger(),
 		GeneralConfig:              bcf.config,
 		PrefsConfig:                bcf.prefConfig.Preferences,
-		EnableEpochs:               bcf.epochConfig.EnableEpochs,
 		FlagsConfig:                bcf.flagsConfig,
 		EconomicsData:              bcf.coreComponents.EconomicsData(),
 		GenesisNodesConfig:         bcf.coreComponents.GenesisNodesSetup(),
@@ -229,14 +220,6 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		return nil, err
 	}
 
-	roundActivationHandler, err := roundActivation.NewRoundActivation(bcf.roundConfig)
-	if err != nil {
-		return nil, err
-	}
-
-	roundNotifier := bcf.coreComponents.RoundNotifier()
-	roundNotifier.RegisterNotifyHandler(roundActivationHandler)
-
 	versionedHeaderFactory, err := bcf.createHeaderFactory(headerVersionHandler, bootstrapParameters.SelfShardId)
 	if err != nil {
 		return nil, err
@@ -252,7 +235,6 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		headerVersionHandler:    headerVersionHandler,
 		headerIntegrityVerifier: headerIntegrityVerifier,
 		versionedHeaderFactory:  versionedHeaderFactory,
-		roundActivationHandler:  roundActivationHandler,
 	}, nil
 }
 

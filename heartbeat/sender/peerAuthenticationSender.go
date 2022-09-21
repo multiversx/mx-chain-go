@@ -37,7 +37,7 @@ func newPeerAuthenticationSender(args argPeerAuthenticationSender) (*peerAuthent
 		return nil, err
 	}
 
-	sender := &peerAuthenticationSender{
+	senderInstance := &peerAuthenticationSender{
 		baseSender:               createBaseSender(args.argBaseSender),
 		nodesCoordinator:         args.nodesCoordinator,
 		peerSignatureHandler:     args.peerSignatureHandler,
@@ -46,7 +46,7 @@ func newPeerAuthenticationSender(args argPeerAuthenticationSender) (*peerAuthent
 		hardforkTriggerPubKey:    args.hardforkTriggerPubKey,
 	}
 
-	return sender, nil
+	return senderInstance, nil
 }
 
 func checkPeerAuthenticationSenderArgs(args argPeerAuthenticationSender) error {
@@ -153,6 +153,9 @@ func (sender *peerAuthenticationSender) execute() (error, bool) {
 		return err, isTriggered
 	}
 
+	log.Debug("sending peer authentication message",
+		"public key", msg.Pubkey, "pid", sender.messenger.ID().Pretty(),
+		"timestamp", payload.Timestamp)
 	sender.messenger.Broadcast(sender.topic, data)
 
 	return nil, isTriggered

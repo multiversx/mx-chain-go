@@ -121,7 +121,7 @@ type CoreComponentsHolder interface {
 	GenesisNodesSetup() sharding.GenesisNodesSetupHandler
 	NodesShuffler() nodesCoordinator.NodesShuffler
 	EpochNotifier() process.EpochNotifier
-	RoundNotifier() process.RoundNotifier
+	EnableRoundsHandler() process.EnableRoundsHandler
 	EpochStartNotifierWithConfirm() EpochStartNotifierWithConfirm
 	ChanStopNodeProcess() chan endProcess.ArgEndProcess
 	GenesisTime() time.Time
@@ -133,6 +133,7 @@ type CoreComponentsHolder interface {
 	ArwenChangeLocker() common.Locker
 	ProcessStatusHandler() common.ProcessStatusHandler
 	HardforkTriggerPubKey() []byte
+	EnableEpochsHandler() common.EnableEpochsHandler
 	IsInterfaceNil() bool
 }
 
@@ -449,7 +450,6 @@ type EpochStartBootstrapper interface {
 
 // BootstrapComponentsHolder holds the bootstrap components
 type BootstrapComponentsHolder interface {
-	RoundActivationHandler() process.RoundActivationHandler
 	EpochStartBootstrapper() EpochStartBootstrapper
 	EpochBootstrapParams() BootstrapParamsHolder
 	NodeType() core.NodeType
@@ -506,4 +506,9 @@ type ReceiptsRepository interface {
 	SaveReceipts(holder common.ReceiptsHolder, header data.HeaderHandler, headerHash []byte) error
 	LoadReceipts(header data.HeaderHandler, headerHash []byte) (common.ReceiptsHolder, error)
 	IsInterfaceNil() bool
+}
+
+// ProcessDebuggerSetter allows setting a debugger on the process component
+type ProcessDebuggerSetter interface {
+	SetProcessDebugger(debugger process.Debugger) error
 }

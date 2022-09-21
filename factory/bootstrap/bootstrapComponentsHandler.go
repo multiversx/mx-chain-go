@@ -7,7 +7,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/factory"
-	"github.com/ElrondNetwork/elrond-go/process"
 )
 
 var _ factory.ComponentHandler = (*managedBootstrapComponents)(nil)
@@ -104,18 +103,6 @@ func (mbf *managedBootstrapComponents) EpochBootstrapParams() factory.BootstrapP
 	}
 
 	return mbf.bootstrapComponents.bootstrapParamsHolder
-}
-
-// RoundActivationHandler returns the round activation handler
-func (mbf *managedBootstrapComponents) RoundActivationHandler() process.RoundActivationHandler {
-	mbf.mutBootstrapComponents.RLock()
-	defer mbf.mutBootstrapComponents.RUnlock()
-
-	if mbf.bootstrapComponents == nil {
-		return nil
-	}
-
-	return mbf.bootstrapComponents.roundActivationHandler
 }
 
 // IsInterfaceNil returns true if the underlying object is nil

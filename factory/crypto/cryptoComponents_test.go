@@ -170,6 +170,22 @@ func TestCryptoComponentsFactory_CreateWithDisabledSig(t *testing.T) {
 	require.NotNil(t, cc)
 }
 
+func TestCryptoComponentsFactory_CreateWithAutoGenerateKey(t *testing.T) {
+	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	coreComponents := componentsMock.GetCoreComponents()
+	args := componentsMock.GetCryptoArgs(coreComponents)
+	args.NoKeyProvided = true
+	ccf, _ := cryptoComp.NewCryptoComponentsFactory(args)
+
+	cc, err := ccf.Create()
+	require.NoError(t, err)
+	require.NotNil(t, cc)
+}
+
 func TestCryptoComponentsFactory_CreateSingleSignerInvalidConsensusTypeShouldErr(t *testing.T) {
 	t.Parallel()
 	if testing.Short() {

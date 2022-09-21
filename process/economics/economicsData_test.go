@@ -10,6 +10,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/common/enablers"
+	"github.com/ElrondNetwork/elrond-go/common/forking"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
@@ -90,10 +92,12 @@ func feeSettingsReal() config.FeeSettings {
 func createArgsForEconomicsData(gasModifier float64) economics.ArgsNewEconomicsData {
 	feeSettings := feeSettingsDummy(gasModifier)
 	args := economics.ArgsNewEconomicsData{
-		Economics:                      createDummyEconomicsConfig(feeSettings),
-		PenalizedTooMuchGasEnableEpoch: 0,
-		EpochNotifier:                  &epochNotifier.EpochNotifierStub{},
-		BuiltInFunctionsCostHandler:    &mock.BuiltInCostHandlerStub{},
+		Economics:     createDummyEconomicsConfig(feeSettings),
+		EpochNotifier: &epochNotifier.EpochNotifierStub{},
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
+			IsGasPriceModifierFlagEnabledField: true,
+		},
+		BuiltInFunctionsCostHandler: &mock.BuiltInCostHandlerStub{},
 	}
 	return args
 }
@@ -101,10 +105,12 @@ func createArgsForEconomicsData(gasModifier float64) economics.ArgsNewEconomicsD
 func createArgsForEconomicsDataRealFees(handler economics.BuiltInFunctionsCostHandler) economics.ArgsNewEconomicsData {
 	feeSettings := feeSettingsReal()
 	args := economics.ArgsNewEconomicsData{
-		Economics:                      createDummyEconomicsConfig(feeSettings),
-		PenalizedTooMuchGasEnableEpoch: 0,
-		EpochNotifier:                  &epochNotifier.EpochNotifierStub{},
-		BuiltInFunctionsCostHandler:    handler,
+		Economics:     createDummyEconomicsConfig(feeSettings),
+		EpochNotifier: &epochNotifier.EpochNotifierStub{},
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
+			IsGasPriceModifierFlagEnabledField: true,
+		},
+		BuiltInFunctionsCostHandler: handler,
 	}
 	return args
 }
@@ -411,8 +417,11 @@ func TestEconomicsData_ComputeTxFeeShouldWork(t *testing.T) {
 	minGasLimit := uint64(10)
 	args.Economics.FeeSettings.GasLimitSettings[0].MinGasLimit = strconv.FormatUint(minGasLimit, 10)
 	args.Economics.FeeSettings.GasPriceModifier = 0.01
-	args.PenalizedTooMuchGasEnableEpoch = 1
-	args.GasPriceModifierEnableEpoch = 2
+	args.EpochNotifier = forking.NewGenericEpochNotifier()
+	args.EnableEpochsHandler, _ = enablers.NewEnableEpochsHandler(config.EnableEpochs{
+		PenalizedTooMuchGasEnableEpoch: 1,
+		GasPriceModifierEnableEpoch:    2,
+	}, args.EpochNotifier)
 	economicsData, _ := economics.NewEconomicsData(args)
 	tx := &transaction.Transaction{
 		GasPrice: gasPrice,
@@ -423,13 +432,13 @@ func TestEconomicsData_ComputeTxFeeShouldWork(t *testing.T) {
 	expectedCost := core.SafeMul(minGasLimit, gasPrice)
 	assert.Equal(t, expectedCost, cost)
 
-	economicsData.EpochConfirmed(1, 0)
+	args.EpochNotifier.CheckEpoch(&testscommon.HeaderHandlerStub{EpochField: 1, TimestampField: 0})
 
 	cost = economicsData.ComputeTxFee(tx)
 	expectedCost = core.SafeMul(gasLimit, gasPrice)
 	assert.Equal(t, expectedCost, cost)
 
-	economicsData.EpochConfirmed(2, 0)
+	args.EpochNotifier.CheckEpoch(&testscommon.HeaderHandlerStub{EpochField: 2, TimestampField: 0})
 	cost = economicsData.ComputeTxFee(tx)
 	assert.Equal(t, big.NewInt(5050), cost)
 }
@@ -1017,8 +1026,11 @@ func TestEconomicsData_ComputeGasUsedAndFeeBasedOnRefundValueStakeTx(t *testing.
 	expectedFee, _ := big.NewInt(0).SetString("39378847000000000", 10)
 
 	args := createArgsForEconomicsDataRealFees(builtInCostHandler)
-	args.PenalizedTooMuchGasEnableEpoch = 1000
-	args.GasPriceModifierEnableEpoch = 1000
+	args.EpochNotifier = forking.NewGenericEpochNotifier()
+	args.EnableEpochsHandler, _ = enablers.NewEnableEpochsHandler(config.EnableEpochs{
+		PenalizedTooMuchGasEnableEpoch: 1000,
+		GasPriceModifierEnableEpoch:    1000,
+	}, args.EpochNotifier)
 	economicData, _ := economics.NewEconomicsData(args)
 
 	refundValueStake, _ := big.NewInt(0).SetString("210621153000000000", 10)
@@ -1079,7 +1091,10 @@ func TestEconomicsData_ComputeGasLimitBasedOnBalance(t *testing.T) {
 	t.Parallel()
 
 	args := createArgsForEconomicsDataRealFees(&mock.BuiltInCostHandlerStub{})
-	args.GasPriceModifierEnableEpoch = 1
+	args.EpochNotifier = forking.NewGenericEpochNotifier()
+	args.EnableEpochsHandler, _ = enablers.NewEnableEpochsHandler(config.EnableEpochs{
+		GasPriceModifierEnableEpoch: 1,
+	}, args.EpochNotifier)
 	economicData, _ := economics.NewEconomicsData(args)
 	txData := []byte("0061736d0100000001150460037f7f7e017f60027f7f017e60017e0060000002420303656e7611696e74363473746f7261676553746f7265000003656e7610696e74363473746f726167654c6f6164000103656e760b696e74363466696e6973680002030504030303030405017001010105030100020608017f01419088040b072f05066d656d6f7279020004696e6974000309696e6372656d656e7400040964656372656d656e7400050367657400060a8a01041300418088808000410742011080808080001a0b2e01017e4180888080004107418088808000410710818080800042017c22001080808080001a20001082808080000b2e01017e41808880800041074180888080004107108180808000427f7c22001080808080001a20001082808080000b160041808880800041071081808080001082808080000b0b0f01004180080b08434f554e54455200@0500@0100")
 	tx := &transaction.Transaction{
@@ -1103,7 +1118,8 @@ func TestEconomicsData_ComputeGasLimitBasedOnBalance(t *testing.T) {
 	require.Equal(t, uint64(120000000), gasLimit)
 
 	senderBalance, _ = big.NewInt(0).SetString("120000000000000010", 10)
-	economicData.EpochConfirmed(10, 10)
+
+	args.EpochNotifier.CheckEpoch(&testscommon.HeaderHandlerStub{EpochField: 10, TimestampField: 10})
 	gasLimit, err = economicData.ComputeGasLimitBasedOnBalance(tx, senderBalance)
 	require.Nil(t, err)
 	require.Equal(t, uint64(11894070000), gasLimit)

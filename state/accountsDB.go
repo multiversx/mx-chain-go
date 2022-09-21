@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
@@ -74,15 +75,17 @@ type AccountsDB struct {
 	storagePruningManager  StoragePruningManager
 	obsoleteDataTrieHashes map[string][][]byte
 
-	lastSnapshot *snapshotInfo
-	lastRootHash []byte
-	dataTries    common.TriesHolder
-	entries      []JournalEntry
+	isSnapshotInProgress atomic.Flag
+	lastSnapshot         *snapshotInfo
+	lastRootHash         []byte
+	dataTries            common.TriesHolder
+	entries              []JournalEntry
 	// TODO use mutOp only for critical sections, and refactor to parallelize as much as possible
-	mutOp                sync.RWMutex
-	processingMode       common.NodeProcessingMode
-	loadCodeMeasurements *loadingMeasurements
-	processStatusHandler common.ProcessStatusHandler
+	mutOp                    sync.RWMutex
+	processingMode           common.NodeProcessingMode
+	shouldSerializeSnapshots bool
+	loadCodeMeasurements     *loadingMeasurements
+	processStatusHandler     common.ProcessStatusHandler
 
 	stackDebug []byte
 }
@@ -91,13 +94,14 @@ var log = logger.GetOrCreate("state")
 
 // ArgsAccountsDB is the arguments DTO for the AccountsDB instance
 type ArgsAccountsDB struct {
-	Trie                  common.Trie
-	Hasher                hashing.Hasher
-	Marshaller            marshal.Marshalizer
-	AccountFactory        AccountFactory
-	StoragePruningManager StoragePruningManager
-	ProcessingMode        common.NodeProcessingMode
-	ProcessStatusHandler  common.ProcessStatusHandler
+	Trie                     common.Trie
+	Hasher                   hashing.Hasher
+	Marshaller               marshal.Marshalizer
+	AccountFactory           AccountFactory
+	StoragePruningManager    StoragePruningManager
+	ProcessingMode           common.NodeProcessingMode
+	ShouldSerializeSnapshots bool
+	ProcessStatusHandler     common.ProcessStatusHandler
 }
 
 // NewAccountsDB creates a new account manager
@@ -107,7 +111,20 @@ func NewAccountsDB(args ArgsAccountsDB) (*AccountsDB, error) {
 		return nil, err
 	}
 
-	adb := &AccountsDB{
+	adb := createAccountsDb(args)
+
+	trieStorageManager := adb.mainTrie.GetStorageManager()
+	val, err := trieStorageManager.GetFromCurrentEpoch([]byte(common.ActiveDBKey))
+	isActiveDBVal := bytes.Equal(val, []byte(common.ActiveDBVal))
+	if err != nil || !isActiveDBVal {
+		startSnapshotAfterRestart(adb, args)
+	}
+
+	return adb, nil
+}
+
+func createAccountsDb(args ArgsAccountsDB) *AccountsDB {
+	return &AccountsDB{
 		mainTrie:               args.Trie,
 		hasher:                 args.Hasher,
 		marshaller:             args.Marshaller,
@@ -120,18 +137,12 @@ func NewAccountsDB(args ArgsAccountsDB) (*AccountsDB, error) {
 		loadCodeMeasurements: &loadingMeasurements{
 			identifier: "load code",
 		},
-		processingMode:       args.ProcessingMode,
-		lastSnapshot:         &snapshotInfo{},
-		processStatusHandler: args.ProcessStatusHandler,
+		processingMode:           args.ProcessingMode,
+		shouldSerializeSnapshots: args.ShouldSerializeSnapshots,
+		lastSnapshot:             &snapshotInfo{},
+		processStatusHandler:     args.ProcessStatusHandler,
+		isSnapshotInProgress:     atomic.Flag{},
 	}
-
-	trieStorageManager := adb.mainTrie.GetStorageManager()
-	val, err := trieStorageManager.GetFromCurrentEpoch([]byte(common.ActiveDBKey))
-	if err != nil || !bytes.Equal(val, []byte(common.ActiveDBVal)) {
-		startSnapshotAfterRestart(adb, args)
-	}
-
-	return adb, nil
 }
 
 func checkArgsAccountsDB(args ArgsAccountsDB) error {
@@ -1005,13 +1016,10 @@ func (adb *AccountsDB) RecreateAllTries(rootHash []byte) (map[string]common.Trie
 		return nil, err
 	}
 
-	recreatedTrie, err := adb.mainTrie.Recreate(rootHash)
+	allTries, err := adb.recreateMainTrie(rootHash)
 	if err != nil {
 		return nil, err
 	}
-
-	allTries := make(map[string]common.Trie)
-	allTries[string(rootHash)] = recreatedTrie
 
 	for leaf := range leavesChannel {
 		account := &userAccount{}
@@ -1030,6 +1038,18 @@ func (adb *AccountsDB) RecreateAllTries(rootHash []byte) (map[string]common.Trie
 			allTries[string(account.RootHash)] = dataTrie
 		}
 	}
+
+	return allTries, nil
+}
+
+func (adb *AccountsDB) recreateMainTrie(rootHash []byte) (map[string]common.Trie, error) {
+	recreatedTrie, err := adb.mainTrie.Recreate(rootHash)
+	if err != nil {
+		return nil, err
+	}
+
+	allTries := make(map[string]common.Trie)
+	allTries[string(rootHash)] = recreatedTrie
 
 	return allTries, nil
 }
@@ -1089,33 +1109,12 @@ func (adb *AccountsDB) SnapshotState(rootHash []byte) {
 	adb.mutOp.Lock()
 	defer adb.mutOp.Unlock()
 
-	trieStorageManager := adb.mainTrie.GetStorageManager()
-	epoch, err := trieStorageManager.GetLatestStorageEpoch()
-	if err != nil {
-		log.Error("snapshotState error", "err", err.Error())
+	trieStorageManager, epoch, shouldTakeSnapshot := adb.prepareSnapshot(rootHash)
+	if !shouldTakeSnapshot {
 		return
 	}
 
-	snapshotAlreadyTaken := bytes.Equal(adb.lastSnapshot.rootHash, rootHash) && adb.lastSnapshot.epoch == epoch
-	if !trieStorageManager.ShouldTakeSnapshot() || snapshotAlreadyTaken {
-		log.Debug("skipping snapshot",
-			"last snapshot rootHash", adb.lastSnapshot.rootHash,
-			"rootHash", rootHash,
-			"last snapshot epoch", adb.lastSnapshot.epoch,
-			"epoch", epoch,
-		)
-		return
-	}
-
-	log.Info("starting snapshot", "rootHash", rootHash, "epoch", epoch)
-
-	adb.lastSnapshot.rootHash = rootHash
-	adb.lastSnapshot.epoch = epoch
-	err = trieStorageManager.Put([]byte(lastSnapshotStarted), rootHash)
-	handleLoggingWhenError("could not set lastSnapshotStarted", err, "rootHash", rootHash)
-
-	trieStorageManager.EnterPruningBufferingMode()
-
+	log.Info("starting snapshot user trie", "rootHash", rootHash, "epoch", epoch)
 	errChan := make(chan error, 1)
 	stats := newSnapshotStatistics(1)
 	go func() {
@@ -1128,13 +1127,66 @@ func (adb *AccountsDB) SnapshotState(rootHash []byte) {
 		stats.wg.Done()
 	}()
 
-	go adb.markActiveDBAfterSnapshot(stats, errChan, rootHash, "snapshotState user trie", epoch)
+	go adb.processSnapshotCompletion(stats, errChan, rootHash, "snapshotState user trie", epoch)
 
-	adb.waitForCompletionIfRunningInImportDB(stats)
+	adb.waitForCompletionIfAppropriate(stats)
 }
 
-func (adb *AccountsDB) markActiveDBAfterSnapshot(stats *snapshotStatistics, errChan chan error, rootHash []byte, message string, epoch uint32) {
+func (adb *AccountsDB) prepareSnapshot(rootHash []byte) (common.StorageManager, uint32, bool) {
+	trieStorageManager, epoch, err := adb.getTrieStorageManagerAndLatestEpoch()
+	if err != nil {
+		log.Error("snapshot user state error", "err", err.Error())
+		return nil, 0, false
+	}
+
+	if !adb.shouldTakeSnapshot(trieStorageManager, rootHash, epoch) {
+		log.Debug("skipping snapshot",
+			"last snapshot rootHash", adb.lastSnapshot.rootHash,
+			"rootHash", rootHash,
+			"last snapshot epoch", adb.lastSnapshot.epoch,
+			"epoch", epoch,
+			"isSnapshotInProgress", adb.isSnapshotInProgress.IsSet(),
+		)
+		return nil, 0, false
+	}
+
+	adb.isSnapshotInProgress.SetValue(true)
+	adb.lastSnapshot.rootHash = rootHash
+	adb.lastSnapshot.epoch = epoch
+	err = trieStorageManager.Put([]byte(lastSnapshotStarted), rootHash)
+	handleLoggingWhenError("could not set lastSnapshotStarted", err, "rootHash", rootHash)
+	trieStorageManager.EnterPruningBufferingMode()
+
+	return trieStorageManager, epoch, true
+}
+
+func (adb *AccountsDB) getTrieStorageManagerAndLatestEpoch() (common.StorageManager, uint32, error) {
+	trieStorageManager := adb.mainTrie.GetStorageManager()
+	epoch, err := trieStorageManager.GetLatestStorageEpoch()
+	if err != nil {
+		return nil, 0, fmt.Errorf("%w while getting the latest storage epoch", err)
+	}
+
+	return trieStorageManager, epoch, nil
+}
+
+func (adb *AccountsDB) shouldTakeSnapshot(trieStorageManager common.StorageManager, rootHash []byte, epoch uint32) bool {
+	snapshotAlreadyTaken := bytes.Equal(adb.lastSnapshot.rootHash, rootHash) && adb.lastSnapshot.epoch == epoch
+	if snapshotAlreadyTaken {
+		return false
+	}
+
+	if adb.isSnapshotInProgress.IsSet() {
+		return false
+	}
+
+	return trieStorageManager.ShouldTakeSnapshot()
+}
+
+func (adb *AccountsDB) processSnapshotCompletion(stats *snapshotStatistics, errChan chan error, rootHash []byte, message string, epoch uint32) {
 	stats.PrintStats(message, rootHash)
+
+	defer adb.isSnapshotInProgress.Reset()
 
 	trieStorageManager := adb.mainTrie.GetStorageManager()
 	containsErrorDuringSnapshot := emptyErrChanReturningHadContained(errChan)
@@ -1227,11 +1279,12 @@ func (adb *AccountsDB) setStateCheckpoint(rootHash []byte) {
 	//  that will be present in the errChan var
 	go stats.PrintStats("setStateCheckpoint user trie", rootHash)
 
-	adb.waitForCompletionIfRunningInImportDB(stats)
+	adb.waitForCompletionIfAppropriate(stats)
 }
 
-func (adb *AccountsDB) waitForCompletionIfRunningInImportDB(stats common.SnapshotStatisticsHandler) {
-	if adb.processingMode != common.ImportDb {
+func (adb *AccountsDB) waitForCompletionIfAppropriate(stats common.SnapshotStatisticsHandler) {
+	shouldSerializeSnapshots := adb.shouldSerializeSnapshots || adb.processingMode == common.ImportDb
+	if !shouldSerializeSnapshots {
 		return
 	}
 

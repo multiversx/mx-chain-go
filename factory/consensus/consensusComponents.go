@@ -31,31 +31,33 @@ var log = logger.GetOrCreate("factory")
 
 // ConsensusComponentsFactoryArgs holds the arguments needed to create a consensus components factory
 type ConsensusComponentsFactoryArgs struct {
-	Config              config.Config
-	BootstrapRoundIndex uint64
-	CoreComponents      factory.CoreComponentsHolder
-	NetworkComponents   factory.NetworkComponentsHolder
-	CryptoComponents    factory.CryptoComponentsHolder
-	DataComponents      factory.DataComponentsHolder
-	ProcessComponents   factory.ProcessComponentsHolder
-	StateComponents     factory.StateComponentsHolder
-	StatusComponents    factory.StatusComponentsHolder
-	ScheduledProcessor  consensus.ScheduledProcessor
-	IsInImportMode      bool
+	Config                config.Config
+	BootstrapRoundIndex   uint64
+	CoreComponents        factory.CoreComponentsHolder
+	NetworkComponents     factory.NetworkComponentsHolder
+	CryptoComponents      factory.CryptoComponentsHolder
+	DataComponents        factory.DataComponentsHolder
+	ProcessComponents     factory.ProcessComponentsHolder
+	StateComponents       factory.StateComponentsHolder
+	StatusComponents      factory.StatusComponentsHolder
+	ScheduledProcessor    consensus.ScheduledProcessor
+	IsInImportMode        bool
+	ShouldDisableWatchdog bool
 }
 
 type consensusComponentsFactory struct {
-	config              config.Config
-	bootstrapRoundIndex uint64
-	coreComponents      factory.CoreComponentsHolder
-	networkComponents   factory.NetworkComponentsHolder
-	cryptoComponents    factory.CryptoComponentsHolder
-	dataComponents      factory.DataComponentsHolder
-	processComponents   factory.ProcessComponentsHolder
-	stateComponents     factory.StateComponentsHolder
-	statusComponents    factory.StatusComponentsHolder
-	scheduledProcessor  consensus.ScheduledProcessor
-	isInImportMode      bool
+	config                config.Config
+	bootstrapRoundIndex   uint64
+	coreComponents        factory.CoreComponentsHolder
+	networkComponents     factory.NetworkComponentsHolder
+	cryptoComponents      factory.CryptoComponentsHolder
+	dataComponents        factory.DataComponentsHolder
+	processComponents     factory.ProcessComponentsHolder
+	stateComponents       factory.StateComponentsHolder
+	statusComponents      factory.StatusComponentsHolder
+	scheduledProcessor    consensus.ScheduledProcessor
+	isInImportMode        bool
+	shouldDisableWatchdog bool
 }
 
 type consensusComponents struct {
@@ -95,17 +97,18 @@ func NewConsensusComponentsFactory(args ConsensusComponentsFactoryArgs) (*consen
 	}
 
 	return &consensusComponentsFactory{
-		config:              args.Config,
-		bootstrapRoundIndex: args.BootstrapRoundIndex,
-		coreComponents:      args.CoreComponents,
-		networkComponents:   args.NetworkComponents,
-		cryptoComponents:    args.CryptoComponents,
-		dataComponents:      args.DataComponents,
-		processComponents:   args.ProcessComponents,
-		stateComponents:     args.StateComponents,
-		statusComponents:    args.StatusComponents,
-		scheduledProcessor:  args.ScheduledProcessor,
-		isInImportMode:      args.IsInImportMode,
+		config:                args.Config,
+		bootstrapRoundIndex:   args.BootstrapRoundIndex,
+		coreComponents:        args.CoreComponents,
+		networkComponents:     args.NetworkComponents,
+		cryptoComponents:      args.CryptoComponents,
+		dataComponents:        args.DataComponents,
+		processComponents:     args.ProcessComponents,
+		stateComponents:       args.StateComponents,
+		statusComponents:      args.StatusComponents,
+		scheduledProcessor:    args.ScheduledProcessor,
+		isInImportMode:        args.IsInImportMode,
+		shouldDisableWatchdog: args.ShouldDisableWatchdog,
 	}, nil
 }
 
@@ -317,6 +320,10 @@ func (ccf *consensusComponentsFactory) createChronology() (consensus.ChronologyH
 	if ccf.isInImportMode {
 		log.Warn("node is running in import mode. Chronology watchdog will be turned off as " +
 			"it is incompatible with the import-db process.")
+		wd = &watchdog.DisabledWatchdog{}
+	}
+	if ccf.shouldDisableWatchdog {
+		log.Warn("Chronology watchdog will be turned off (explicitly).")
 		wd = &watchdog.DisabledWatchdog{}
 	}
 

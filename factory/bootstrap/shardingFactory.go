@@ -19,7 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
+	"github.com/ElrondNetwork/elrond-go/storage/cache"
 )
 
 // CreateShardCoordinator is the shard coordinator factory
@@ -103,9 +103,10 @@ func CreateNodesCoordinator(
 	currentShardID uint32,
 	bootstrapParameters factory.BootstrapParamsHolder,
 	startEpoch uint32,
-	waitingListFixEnabledEpoch uint32,
 	chanNodeStop chan endProcess.ArgEndProcess,
 	nodeTypeProvider core.NodeTypeProviderHandler,
+	enableEpochsHandler common.EnableEpochsHandler,
+	validatorInfoCacher epochStart.ValidatorInfoCacher,
 ) (nodesCoordinator.NodesCoordinator, error) {
 	if chanNodeStop == nil {
 		return nil, nodesCoordinator.ErrNilNodeStopChannel
@@ -164,7 +165,7 @@ func CreateNodesCoordinator(
 		return nil, err
 	}
 
-	consensusGroupCache, err := lrucache.NewCache(25000)
+	consensusGroupCache, err := cache.NewLRUCache(25000)
 	if err != nil {
 		return nil, err
 	}
@@ -175,26 +176,27 @@ func CreateNodesCoordinator(
 	}
 
 	argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
-		ShardConsensusGroupSize:    shardConsensusGroupSize,
-		MetaConsensusGroupSize:     metaConsensusGroupSize,
-		Marshalizer:                marshalizer,
-		Hasher:                     hasher,
-		Shuffler:                   nodeShuffler,
-		EpochStartNotifier:         epochStartNotifier,
-		BootStorer:                 bootStorer,
-		ShardIDAsObserver:          shardIDAsObserver,
-		NbShards:                   nbShards,
-		EligibleNodes:              eligibleValidators,
-		WaitingNodes:               waitingValidators,
-		SelfPublicKey:              pubKeyBytes,
-		ConsensusGroupCache:        consensusGroupCache,
-		ShuffledOutHandler:         shuffledOutHandler,
-		Epoch:                      currentEpoch,
-		StartEpoch:                 startEpoch,
-		WaitingListFixEnabledEpoch: waitingListFixEnabledEpoch,
-		ChanStopNode:               chanNodeStop,
-		NodeTypeProvider:           nodeTypeProvider,
-		IsFullArchive:              prefsConfig.FullArchive,
+		ShardConsensusGroupSize: shardConsensusGroupSize,
+		MetaConsensusGroupSize:  metaConsensusGroupSize,
+		Marshalizer:             marshalizer,
+		Hasher:                  hasher,
+		Shuffler:                nodeShuffler,
+		EpochStartNotifier:      epochStartNotifier,
+		BootStorer:              bootStorer,
+		ShardIDAsObserver:       shardIDAsObserver,
+		NbShards:                nbShards,
+		EligibleNodes:           eligibleValidators,
+		WaitingNodes:            waitingValidators,
+		SelfPublicKey:           pubKeyBytes,
+		ConsensusGroupCache:     consensusGroupCache,
+		ShuffledOutHandler:      shuffledOutHandler,
+		Epoch:                   currentEpoch,
+		StartEpoch:              startEpoch,
+		ChanStopNode:            chanNodeStop,
+		NodeTypeProvider:        nodeTypeProvider,
+		IsFullArchive:           prefsConfig.FullArchive,
+		EnableEpochsHandler:     enableEpochsHandler,
+		ValidatorInfoCacher:     validatorInfoCacher,
 	}
 
 	baseNodesCoordinator, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)

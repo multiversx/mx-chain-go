@@ -1,6 +1,8 @@
 package factory_test
 
 import (
+	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -61,9 +63,9 @@ func TestHistoryRepositoryFactory_CreateShouldCreateDisabledRepository(t *testin
 func TestHistoryRepositoryFactory_CreateShouldCreateRegularRepository(t *testing.T) {
 	args := getArgs()
 	args.Config.Enabled = true
-	args.Store = &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return &storageStubs.StorerStub{}
+	args.Store = &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+			return &storageStubs.StorerStub{}, nil
 		},
 	}
 
@@ -75,11 +77,46 @@ func TestHistoryRepositoryFactory_CreateShouldCreateRegularRepository(t *testing
 	require.True(t, repository.IsEnabled())
 }
 
+func TestHistoryRepositoryFactory_CreateMissingStorersReturnsError(t *testing.T) {
+	t.Parallel()
+
+	t.Run("missing ESDTSuppliesUnit", testWithMissingStorer(dataRetriever.ESDTSuppliesUnit))
+	t.Run("missing TxLogsUnit", testWithMissingStorer(dataRetriever.TxLogsUnit))
+	t.Run("missing RoundHdrHashDataUnit", testWithMissingStorer(dataRetriever.RoundHdrHashDataUnit))
+	t.Run("missing MiniblocksMetadataUnit", testWithMissingStorer(dataRetriever.MiniblocksMetadataUnit))
+	t.Run("missing EpochByHashUnit", testWithMissingStorer(dataRetriever.EpochByHashUnit))
+	t.Run("missing MiniblockHashByTxHashUnit", testWithMissingStorer(dataRetriever.MiniblockHashByTxHashUnit))
+	t.Run("missing ResultsHashesByTxHashUnit", testWithMissingStorer(dataRetriever.ResultsHashesByTxHashUnit))
+}
+
+func testWithMissingStorer(missingUnit dataRetriever.UnitType) func(t *testing.T) {
+	return func(t *testing.T) {
+		t.Parallel()
+
+		args := getArgs()
+		args.Config.Enabled = true
+		args.Store = &storageStubs.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+				if unitType == missingUnit {
+					return nil, fmt.Errorf("%w for %s", storage.ErrKeyNotFound, missingUnit.String())
+				}
+				return &storageStubs.StorerStub{}, nil
+			},
+		}
+		hrf, _ := factory.NewHistoryRepositoryFactory(args)
+		repository, err := hrf.Create()
+		require.NotNil(t, err)
+		require.True(t, strings.Contains(err.Error(), storage.ErrKeyNotFound.Error()))
+		require.True(t, strings.Contains(err.Error(), missingUnit.String()))
+		require.True(t, check.IfNil(repository))
+	}
+}
+
 func getArgs() *factory.ArgsHistoryRepositoryFactory {
 	return &factory.ArgsHistoryRepositoryFactory{
 		SelfShardID:              0,
 		Config:                   config.DbLookupExtensionsConfig{},
-		Store:                    &mock.ChainStorerMock{},
+		Store:                    &storageStubs.ChainStorerStub{},
 		Marshalizer:              &mock.MarshalizerMock{},
 		Hasher:                   &hashingMocks.HasherMock{},
 		Uint64ByteSliceConverter: &processMock.Uint64ByteSliceConverterMock{},
