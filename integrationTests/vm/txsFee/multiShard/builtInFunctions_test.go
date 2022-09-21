@@ -43,6 +43,7 @@ func TestBuiltInFunctionExecuteOnSourceAndDestinationShouldWork(t *testing.T) {
 		0,
 		config.EnableEpochs{
 			PenalizedTooMuchGasEnableEpoch: integrationTests.UnreachableEpoch,
+			SCProcessorV2EnableEpoch:       integrationTests.UnreachableEpoch,
 		})
 	require.Nil(t, err)
 	defer testContextSource.Close()
@@ -51,6 +52,7 @@ func TestBuiltInFunctionExecuteOnSourceAndDestinationShouldWork(t *testing.T) {
 		1,
 		config.EnableEpochs{
 			PenalizedTooMuchGasEnableEpoch: integrationTests.UnreachableEpoch,
+			SCProcessorV2EnableEpoch:       integrationTests.UnreachableEpoch,
 		})
 	require.Nil(t, err)
 	defer testContextDst.Close()

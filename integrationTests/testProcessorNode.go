@@ -80,6 +80,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/processorV2"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/scrCommon"
 	processSync "github.com/ElrondNetwork/elrond-go/process/sync"
 	"github.com/ElrondNetwork/elrond-go/process/track"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
@@ -303,7 +305,7 @@ type TestProcessorNode struct {
 	BlockchainHook         *hooks.BlockChainHookImpl
 	VMContainer            process.VirtualMachinesContainer
 	ArgsParser             process.ArgumentsParser
-	ScProcessor            *smartContract.TestScProcessor
+	ScProcessor            process.SmartContractProcessorFull
 	RewardsProcessor       process.RewardTransactionProcessor
 	PreProcessorsContainer process.PreProcessorsContainer
 	GasHandler             process.GasHandler
@@ -1438,7 +1440,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 	tpn.GasHandler, _ = preprocess.NewGasComputation(tpn.EconomicsData, txTypeHandler, tpn.EnableEpochsHandler)
 	badBlocksHandler, _ := tpn.InterimProcContainer.Get(dataBlock.InvalidBlock)
 
-	argsNewScProcessor := smartContract.ArgsNewSmartContractProcessor{
+	argsNewScProcessor := scrCommon.ArgsNewSmartContractProcessor{
 		VmContainer:         tpn.VMContainer,
 		ArgsParser:          tpn.ArgsParser,
 		Hasher:              TestHasher,
@@ -1460,8 +1462,14 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		VMOutputCacher:      txcache.NewDisabledCache(),
 		ArwenChangeLocker:   tpn.ArwenChangeLocker,
 	}
-	sc, _ := smartContract.NewSmartContractProcessor(argsNewScProcessor)
-	tpn.ScProcessor = smartContract.NewTestScProcessor(sc)
+
+	if tpn.EnableEpochs.SCProcessorV2EnableEpoch == 0 {
+		sc, _ := processorV2.NewSmartContractProcessorV2(argsNewScProcessor)
+		tpn.ScProcessor = processorV2.NewTestScProcessor(sc)
+	} else {
+		sc, _ := smartContract.NewSmartContractProcessor(argsNewScProcessor)
+		tpn.ScProcessor = smartContract.NewTestScProcessor(sc)
+	}
 
 	receiptsHandler, _ := tpn.InterimProcContainer.Get(dataBlock.ReceiptBlock)
 	argsNewTxProcessor := transaction.ArgsNewTxProcessor{
@@ -1684,7 +1692,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	tpn.GasHandler, _ = preprocess.NewGasComputation(tpn.EconomicsData, txTypeHandler, tpn.EnableEpochsHandler)
 	badBlocksHandler, _ := tpn.InterimProcContainer.Get(dataBlock.InvalidBlock)
-	argsNewScProcessor := smartContract.ArgsNewSmartContractProcessor{
+	argsNewScProcessor := scrCommon.ArgsNewSmartContractProcessor{
 		VmContainer:         tpn.VMContainer,
 		ArgsParser:          tpn.ArgsParser,
 		Hasher:              TestHasher,
@@ -1706,8 +1714,18 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 		VMOutputCacher:      txcache.NewDisabledCache(),
 		ArwenChangeLocker:   tpn.ArwenChangeLocker,
 	}
-	scProcessor, _ := smartContract.NewSmartContractProcessor(argsNewScProcessor)
-	tpn.ScProcessor = smartContract.NewTestScProcessor(scProcessor)
+
+	var scProcessor process.SmartContractResultProcessor
+	if tpn.EnableEpochs.SCProcessorV2EnableEpoch == 0 {
+		sc, _ := processorV2.NewSmartContractProcessorV2(argsNewScProcessor)
+		tpn.ScProcessor = processorV2.NewTestScProcessor(sc)
+		scProcessor = sc
+	} else {
+		sc, _ := smartContract.NewSmartContractProcessor(argsNewScProcessor)
+		tpn.ScProcessor = smartContract.NewTestScProcessor(sc)
+		scProcessor = sc
+	}
+
 	argsNewMetaTxProc := transaction.ArgsNewMetaTxProcessor{
 		Hasher:              TestHasher,
 		Marshalizer:         TestMarshalizer,

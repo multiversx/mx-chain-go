@@ -42,6 +42,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/processorV2"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/scrCommon"
 	syncDisabled "github.com/ElrondNetwork/elrond-go/process/sync/disabled"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/process/transactionLog"
@@ -105,7 +107,7 @@ type VMTestAccount struct {
 // VMTestContext -
 type VMTestContext struct {
 	TxProcessor         process.TransactionProcessor
-	ScProcessor         *smartContract.TestScProcessor
+	ScProcessor         scrCommon.TestSmartContractProcessor
 	Accounts            state.AccountsAdapter
 	BlockchainHook      vmcommon.BlockchainHook
 	VMContainer         process.VirtualMachinesContainer
@@ -467,7 +469,7 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 		return nil, err
 	}
 
-	argsNewSCProcessor := smartContract.ArgsNewSmartContractProcessor{
+	argsNewSCProcessor := scrCommon.ArgsNewSmartContractProcessor{
 		VmContainer:      vmContainer,
 		ArgsParser:       smartContract.NewArgumentParser(),
 		Hasher:           testHasher,
@@ -491,7 +493,13 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 		VMOutputCacher:      txcache.NewDisabledCache(),
 		ArwenChangeLocker:   arwenChangeLocker,
 	}
-	scProcessor, _ := smartContract.NewSmartContractProcessor(argsNewSCProcessor)
+
+	var scProcessor process.SmartContractProcessor
+	if enableEpochsConfig.SCProcessorV2EnableEpoch == 0 {
+		scProcessor, _ = processorV2.NewSmartContractProcessorV2(argsNewSCProcessor)
+	} else {
+		scProcessor, _ = smartContract.NewSmartContractProcessor(argsNewSCProcessor)
+	}
 
 	argsNewTxProcessor := transaction.ArgsNewTxProcessor{
 		Accounts:            accnts,
@@ -766,7 +774,7 @@ func createDefaultVMConfig() *config.VirtualMachineConfig {
 // ResultsCreateTxProcessor is the struct that will hold all needed processor instances
 type ResultsCreateTxProcessor struct {
 	TxProc             process.TransactionProcessor
-	SCProc             *smartContract.TestScProcessor
+	SCProc             scrCommon.TestSmartContractProcessor
 	IntermediateTxProc process.IntermediateTransactionHandler
 	EconomicsHandler   process.EconomicsDataHandler
 	CostHandler        external.TransactionCostHandler
@@ -820,7 +828,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 	})
 
 	intermediateTxHandler := &mock.IntermediateTransactionHandlerMock{}
-	argsNewSCProcessor := smartContract.ArgsNewSmartContractProcessor{
+	argsNewSCProcessor := scrCommon.ArgsNewSmartContractProcessor{
 		VmContainer:         vmContainer,
 		ArgsParser:          smartContract.NewArgumentParser(),
 		Hasher:              testHasher,
@@ -843,11 +851,17 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		VMOutputCacher:      txcache.NewDisabledCache(),
 	}
 
-	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewSCProcessor)
-	if err != nil {
-		return nil, err
+	var scProcessor process.SmartContractProcessor
+	var testScProcessor scrCommon.TestSmartContractProcessor
+	if enableEpochsConfig.SCProcessorV2EnableEpoch == 0 {
+		sc, _ := processorV2.NewSmartContractProcessorV2(argsNewSCProcessor)
+		testScProcessor = processorV2.NewTestScProcessor(sc)
+		scProcessor = sc
+	} else {
+		sc, _ := smartContract.NewSmartContractProcessor(argsNewSCProcessor)
+		testScProcessor = smartContract.NewTestScProcessor(sc)
+		scProcessor = sc
 	}
-	testScProcessor := smartContract.NewTestScProcessor(scProcessor)
 
 	argsNewTxProcessor := transaction.ArgsNewTxProcessor{
 		Accounts:            accnts,
@@ -934,7 +948,12 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 
 	argsNewSCProcessor.VMOutputCacher = txSimulatorProcessorArgs.VMOutputCacher
 
-	scProcessorTxSim, err := smartContract.NewSmartContractProcessor(argsNewSCProcessor)
+	var scProcessorTxSim process.SmartContractProcessor
+	if enableEpochsConfig.SCProcessorV2EnableEpoch == 0 {
+		scProcessorTxSim, err = processorV2.NewSmartContractProcessorV2(argsNewSCProcessor)
+	} else {
+		scProcessorTxSim, err = smartContract.NewSmartContractProcessor(argsNewSCProcessor)
+	}
 	if err != nil {
 		return nil, err
 	}

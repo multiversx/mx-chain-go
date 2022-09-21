@@ -28,6 +28,7 @@ func TestBuildInFunctionChangeOwnerCallShouldWork(t *testing.T) {
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(
 		config.EnableEpochs{
 			PenalizedTooMuchGasEnableEpoch: integrationTests.UnreachableEpoch,
+			SCProcessorV2EnableEpoch:       integrationTests.UnreachableEpoch,
 		})
 	require.Nil(t, err)
 	defer testContext.Close()
@@ -245,7 +246,8 @@ func TestBuildInFunctionSaveKeyValue_WrongDestination(t *testing.T) {
 
 	testContext, err := vm.CreatePreparedTxProcessorWithVMsWithShardCoordinator(
 		config.EnableEpochs{
-			CleanUpInformativeSCRsEnableEpoch: 10,
+			CleanUpInformativeSCRsEnableEpoch: integrationTests.UnreachableEpoch,
+			SCProcessorV2EnableEpoch:          integrationTests.UnreachableEpoch,
 		}, shardCoord)
 	require.Nil(t, err)
 	defer testContext.Close()

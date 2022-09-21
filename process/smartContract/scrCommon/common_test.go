@@ -1,4 +1,4 @@
-package smartContract
+package scrCommon
 
 import (
 	"encoding/hex"

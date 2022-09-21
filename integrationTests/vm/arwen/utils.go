@@ -38,6 +38,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/processorV2"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/scrCommon"
 	"github.com/ElrondNetwork/elrond-go/process/sync/disabled"
 	processTransaction "github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/process/transactionLog"
@@ -95,7 +97,7 @@ type TestContext struct {
 	ScCodeMetadata   vmcommon.CodeMetadata
 	Accounts         *state.AccountsDB
 	TxProcessor      process.TransactionProcessor
-	ScProcessor      *smartContract.TestScProcessor
+	ScProcessor      scrCommon.TestSmartContractProcessor
 	QueryService     external.SCQueryService
 	VMContainer      process.VirtualMachinesContainer
 	BlockchainHook   *hooks.BlockChainHookImpl
@@ -328,7 +330,7 @@ func (context *TestContext) initTxProcessorWithOneSCExecutorWithVMs() {
 	argsLogProcessor := transactionLog.ArgTxLogProcessor{Marshalizer: marshalizer}
 	logsProcessor, _ := transactionLog.NewTxLogProcessor(argsLogProcessor)
 	context.SCRForwarder = &mock.IntermediateTransactionHandlerMock{}
-	argsNewSCProcessor := smartContract.ArgsNewSmartContractProcessor{
+	argsNewSCProcessor := scrCommon.ArgsNewSmartContractProcessor{
 		VmContainer:      context.VMContainer,
 		ArgsParser:       smartContract.NewArgumentParser(),
 		Hasher:           hasher,
@@ -352,6 +354,15 @@ func (context *TestContext) initTxProcessorWithOneSCExecutorWithVMs() {
 		ArwenChangeLocker:   context.ArwenChangeLocker,
 		VMOutputCacher:      txcache.NewDisabledCache(),
 	}
+
+	if context.EnableEpochsHandler.IsSCProcessorV2FlagEnabled() {
+		sc, _ := processorV2.NewSmartContractProcessorV2(argsNewSCProcessor)
+		context.ScProcessor = processorV2.NewTestScProcessor(sc)
+	} else {
+		sc, _ := smartContract.NewSmartContractProcessor(argsNewSCProcessor)
+		context.ScProcessor = smartContract.NewTestScProcessor(sc)
+	}
+
 	sc, err := smartContract.NewSmartContractProcessor(argsNewSCProcessor)
 	context.ScProcessor = smartContract.NewTestScProcessor(sc)
 	require.Nil(context.T, err)

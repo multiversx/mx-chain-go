@@ -13,6 +13,7 @@ import (
 	vmData "github.com/ElrondNetwork/elrond-go-core/data/vm"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/scrCommon"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 )
@@ -134,7 +135,7 @@ func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice ui
 	service.blockChainHook.SetCurrentHeader(service.blockChain.GetCurrentBlockHeader())
 
 	service.arwenChangeLocker.RLock()
-	vm, _, err := findVMByScAddress(service.vmContainer, query.ScAddress)
+	vm, _, err := scrCommon.FindVMByScAddress(service.vmContainer, query.ScAddress)
 	if err != nil {
 		service.arwenChangeLocker.RUnlock()
 		return nil, err

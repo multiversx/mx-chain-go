@@ -161,6 +161,7 @@ func TestSCMoveBalanceBeforeSCDeploy(t *testing.T) {
 		ownerBalance,
 		config.EnableEpochs{
 			PenalizedTooMuchGasEnableEpoch: integrationTests.UnreachableEpoch,
+			SCProcessorV2EnableEpoch:       integrationTests.UnreachableEpoch,
 		},
 	)
 	require.Nil(t, err)
@@ -252,6 +253,7 @@ func TestWASMMetering(t *testing.T) {
 		ownerBalance,
 		config.EnableEpochs{
 			PenalizedTooMuchGasEnableEpoch: integrationTests.UnreachableEpoch,
+			SCProcessorV2EnableEpoch:       integrationTests.UnreachableEpoch,
 		},
 	)
 	require.Nil(t, err)
