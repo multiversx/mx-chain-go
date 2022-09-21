@@ -24,5 +24,10 @@
    #    "127.0.0.10",
    #    "16Uiu2HAm6yvbp1oZ6zjnWsn9FdRqBSaQkbhELyaThuq48ybdorrr"
    # ]
-
    PreferredConnections = []
+
+   # ConnectionWatcherType represents the type of a connection watcher needed.
+   # possible options:
+   #  - "disabled" - no connection watching should be made
+   #  - "print" - new connection found will be printed in the log file
+   ConnectionWatcherType = "disabled"

@@ -1,0 +1,63 @@
+package logging
+
+import (
+	"errors"
+	"testing"
+
+	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/stretchr/testify/assert"
+)
+
+func TestLogErrAsLevelExceptAsDebugIfClosingError(t *testing.T) {
+	testError := errors.New("test error")
+	dbError := errors.New("DB is closed")
+
+	t.Run("not a closing error", func(t *testing.T) {
+		logCalled := false
+		log := &testscommon.LoggerStub{
+			LogCalled: func(logLevel logger.LogLevel, message string, args ...interface{}) {
+				assert.Equal(t, logger.LogWarning, logLevel)
+				assert.Equal(t, "test", message)
+				assert.Equal(t, []interface{}{"a", 7, "b", []byte("hash"), "err", testError.Error()}, args)
+
+				logCalled = true
+			},
+		}
+
+		logErrAsLevelExceptAsDebugIfClosingError(log, logger.LogWarning, testError, "test",
+			"a", 7,
+			"b", []byte("hash"),
+			"err", testError.Error(),
+		)
+		assert.True(t, logCalled)
+	})
+
+	t.Run("a closing error", func(t *testing.T) {
+		logCalled := false
+		log := &testscommon.LoggerStub{
+			LogCalled: func(logLevel logger.LogLevel, message string, args ...interface{}) {
+				assert.Equal(t, logger.LogDebug, logLevel)
+				assert.Equal(t, "test", message)
+				assert.Equal(t, []interface{}{"a", 7, "b", []byte("hash"), "err", dbError.Error()}, args)
+
+				logCalled = true
+			},
+		}
+
+		logErrAsLevelExceptAsDebugIfClosingError(log, logger.LogWarning, dbError, "test",
+			"a", 7,
+			"b", []byte("hash"),
+			"err", dbError.Error(),
+		)
+		assert.True(t, logCalled)
+	})
+
+	t.Run("no panic on bad input", func(t *testing.T) {
+		log := logger.GetOrCreate("test")
+
+		logErrAsLevelExceptAsDebugIfClosingError(log, logger.LogError, testError, "", "a", nil)
+		logErrAsLevelExceptAsDebugIfClosingError(log, logger.LogError, nil, "", "a", nil)
+		logErrAsLevelExceptAsDebugIfClosingError(nil, logger.LogError, testError, "")
+	})
+}

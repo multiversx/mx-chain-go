@@ -20,6 +20,7 @@ type CoreComponentsMock struct {
 	Marsh                        marshal.Marshalizer
 	Hash                         hashing.Hasher
 	EpochNotifierField           process.EpochNotifier
+	EnableEpochsHandlerField     common.EnableEpochsHandler
 	TxSignHasherField            hashing.Hasher
 	UInt64ByteSliceConv          typeConverters.Uint64ByteSliceConverter
 	AddrPubKeyConv               core.PubkeyConverter
@@ -130,6 +131,11 @@ func (ccm *CoreComponentsMock) TxVersionChecker() process.TxVersionCheckerHandle
 // EpochNotifier -
 func (ccm *CoreComponentsMock) EpochNotifier() process.EpochNotifier {
 	return ccm.EpochNotifierField
+}
+
+// EnableEpochsHandler -
+func (ccm *CoreComponentsMock) EnableEpochsHandler() common.EnableEpochsHandler {
+	return ccm.EnableEpochsHandlerField
 }
 
 // StatusHandler -

@@ -1,13 +1,18 @@
 package factory_test
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
+	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/trie/factory"
 	"github.com/stretchr/testify/assert"
@@ -29,6 +34,7 @@ func getCreateArgs() factory.TrieCreateArgs {
 		CheckpointsStorer:  testscommon.CreateMemUnit(),
 		PruningEnabled:     false,
 		CheckpointsEnabled: false,
+		SnapshotsEnabled:   true,
 		MaxTrieLevelInMem:  5,
 		IdleProvider:       &testscommon.ProcessStatusHandlerStub{},
 	}
@@ -101,6 +107,20 @@ func TestTrieCreator_CreateWithPruningShouldWork(t *testing.T) {
 	require.NotNil(t, tr)
 }
 
+func TestTrieCreator_CreateWithoutSnapshotsShouldWork(t *testing.T) {
+	t.Parallel()
+
+	args := getArgs()
+	tf, _ := factory.NewTrieFactory(args)
+
+	createArgs := getCreateArgs()
+	createArgs.PruningEnabled = true
+	createArgs.SnapshotsEnabled = false
+	_, tr, err := tf.Create(createArgs)
+	require.Nil(t, err)
+	require.NotNil(t, tr)
+}
+
 func TestTrieCreator_CreateWithoutCheckpointShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -141,4 +161,40 @@ func TestTrieCreator_CreateWithNilCheckpointsStorerShouldErr(t *testing.T) {
 	_, tr, err := tf.Create(createArgs)
 	require.Nil(t, tr)
 	require.True(t, strings.Contains(err.Error(), trie.ErrNilStorer.Error()))
+}
+
+func TestTrieCreator_CreateTriesComponentsForShardIdMissingStorer(t *testing.T) {
+	t.Parallel()
+
+	t.Run("missing UserAccountsUnit", testWithMissingStorer(dataRetriever.UserAccountsUnit))
+	t.Run("missing UserAccountsCheckpointsUnit", testWithMissingStorer(dataRetriever.UserAccountsCheckpointsUnit))
+	t.Run("missing PeerAccountsUnit", testWithMissingStorer(dataRetriever.PeerAccountsUnit))
+	t.Run("missing PeerAccountsCheckpointsUnit", testWithMissingStorer(dataRetriever.PeerAccountsCheckpointsUnit))
+}
+
+func testWithMissingStorer(missingUnit dataRetriever.UnitType) func(t *testing.T) {
+	return func(t *testing.T) {
+		t.Parallel()
+
+		holder, storageManager, err := factory.CreateTriesComponentsForShardId(
+			testscommon.GetGeneralConfig(),
+			&mock.CoreComponentsStub{
+				InternalMarshalizerField:     &testscommon.MarshalizerMock{},
+				HasherField:                  &hashingMocks.HasherMock{},
+				PathHandlerField:             &testscommon.PathManagerStub{},
+				ProcessStatusHandlerInternal: &testscommon.ProcessStatusHandlerStub{},
+			},
+			&storageStubs.ChainStorerStub{
+				GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+					if unitType == missingUnit {
+						return nil, fmt.Errorf("%w for %s", storage.ErrKeyNotFound, missingUnit.String())
+					}
+					return &storageStubs.StorerStub{}, nil
+				},
+			})
+		require.True(t, check.IfNil(holder))
+		require.Nil(t, storageManager)
+		require.True(t, strings.Contains(err.Error(), storage.ErrKeyNotFound.Error()))
+		require.True(t, strings.Contains(err.Error(), missingUnit.String()))
+	}
 }

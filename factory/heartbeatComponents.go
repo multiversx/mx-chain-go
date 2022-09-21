@@ -22,31 +22,29 @@ import (
 
 // HeartbeatComponentsFactoryArgs holds the arguments needed to create a heartbeat components factory
 type HeartbeatComponentsFactoryArgs struct {
-	Config                config.Config
-	Prefs                 config.Preferences
-	AppVersion            string
-	GenesisTime           time.Time
-	RedundancyHandler     heartbeat.NodeRedundancyHandler
-	CoreComponents        CoreComponentsHolder
-	DataComponents        DataComponentsHolder
-	NetworkComponents     NetworkComponentsHolder
-	CryptoComponents      CryptoComponentsHolder
-	ProcessComponents     ProcessComponentsHolder
-	HeartbeatDisableEpoch uint32
+	Config            config.Config
+	Prefs             config.Preferences
+	AppVersion        string
+	GenesisTime       time.Time
+	RedundancyHandler heartbeat.NodeRedundancyHandler
+	CoreComponents    CoreComponentsHolder
+	DataComponents    DataComponentsHolder
+	NetworkComponents NetworkComponentsHolder
+	CryptoComponents  CryptoComponentsHolder
+	ProcessComponents ProcessComponentsHolder
 }
 
 type heartbeatComponentsFactory struct {
-	config                config.Config
-	prefs                 config.Preferences
-	version               string
-	GenesisTime           time.Time
-	redundancyHandler     heartbeat.NodeRedundancyHandler
-	coreComponents        CoreComponentsHolder
-	dataComponents        DataComponentsHolder
-	networkComponents     NetworkComponentsHolder
-	cryptoComponents      CryptoComponentsHolder
-	processComponents     ProcessComponentsHolder
-	heartbeatDisableEpoch uint32
+	config            config.Config
+	prefs             config.Preferences
+	version           string
+	GenesisTime       time.Time
+	redundancyHandler heartbeat.NodeRedundancyHandler
+	coreComponents    CoreComponentsHolder
+	dataComponents    DataComponentsHolder
+	networkComponents NetworkComponentsHolder
+	cryptoComponents  CryptoComponentsHolder
+	processComponents ProcessComponentsHolder
 }
 
 type heartbeatComponents struct {
@@ -84,17 +82,16 @@ func NewHeartbeatComponentsFactory(args HeartbeatComponentsFactoryArgs) (*heartb
 	}
 
 	return &heartbeatComponentsFactory{
-		config:                args.Config,
-		prefs:                 args.Prefs,
-		version:               args.AppVersion,
-		GenesisTime:           args.GenesisTime,
-		redundancyHandler:     args.RedundancyHandler,
-		coreComponents:        args.CoreComponents,
-		dataComponents:        args.DataComponents,
-		networkComponents:     args.NetworkComponents,
-		cryptoComponents:      args.CryptoComponents,
-		processComponents:     args.ProcessComponents,
-		heartbeatDisableEpoch: args.HeartbeatDisableEpoch,
+		config:            args.Config,
+		prefs:             args.Prefs,
+		version:           args.AppVersion,
+		GenesisTime:       args.GenesisTime,
+		redundancyHandler: args.RedundancyHandler,
+		coreComponents:    args.CoreComponents,
+		dataComponents:    args.DataComponents,
+		networkComponents: args.NetworkComponents,
+		cryptoComponents:  args.CryptoComponents,
+		processComponents: args.ProcessComponents,
 	}, nil
 }
 
@@ -139,23 +136,22 @@ func (hcf *heartbeatComponentsFactory) Create() (*heartbeatComponents, error) {
 	hardforkTrigger := hcf.processComponents.HardforkTrigger()
 
 	argSender := heartbeatProcess.ArgHeartbeatSender{
-		PeerSubType:           peerSubType,
-		PeerMessenger:         hcf.networkComponents.NetworkMessenger(),
-		PeerSignatureHandler:  hcf.cryptoComponents.PeerSignatureHandler(),
-		PrivKey:               hcf.cryptoComponents.PrivateKey(),
-		Marshalizer:           hcf.coreComponents.InternalMarshalizer(),
-		Topic:                 common.HeartbeatTopic,
-		ShardCoordinator:      hcf.processComponents.ShardCoordinator(),
-		PeerTypeProvider:      peerTypeProvider,
-		StatusHandler:         hcf.coreComponents.StatusHandler(),
-		VersionNumber:         hcf.version,
-		NodeDisplayName:       hcf.prefs.Preferences.NodeDisplayName,
-		KeyBaseIdentity:       hcf.prefs.Preferences.Identity,
-		HardforkTrigger:       hardforkTrigger,
-		CurrentBlockProvider:  hcf.dataComponents.Blockchain(),
-		RedundancyHandler:     hcf.redundancyHandler,
-		EpochNotifier:         hcf.coreComponents.EpochNotifier(),
-		HeartbeatDisableEpoch: hcf.heartbeatDisableEpoch,
+		PeerSubType:          peerSubType,
+		PeerMessenger:        hcf.networkComponents.NetworkMessenger(),
+		PeerSignatureHandler: hcf.cryptoComponents.PeerSignatureHandler(),
+		PrivKey:              hcf.cryptoComponents.PrivateKey(),
+		Marshalizer:          hcf.coreComponents.InternalMarshalizer(),
+		Topic:                common.HeartbeatTopic,
+		ShardCoordinator:     hcf.processComponents.ShardCoordinator(),
+		PeerTypeProvider:     peerTypeProvider,
+		StatusHandler:        hcf.coreComponents.StatusHandler(),
+		VersionNumber:        hcf.version,
+		NodeDisplayName:      hcf.prefs.Preferences.NodeDisplayName,
+		KeyBaseIdentity:      hcf.prefs.Preferences.Identity,
+		HardforkTrigger:      hardforkTrigger,
+		CurrentBlockProvider: hcf.dataComponents.Blockchain(),
+		RedundancyHandler:    hcf.redundancyHandler,
+		EnableEpochsHandler:  hcf.coreComponents.EnableEpochsHandler(),
 	}
 
 	hbc.sender, err = heartbeatProcess.NewSender(argSender)
@@ -173,7 +169,11 @@ func (hcf *heartbeatComponentsFactory) Create() (*heartbeatComponents, error) {
 	if err != nil {
 		return nil, err
 	}
-	storer := hcf.dataComponents.StorageService().GetStorer(dataRetriever.HeartbeatUnit)
+	storer, err := hcf.dataComponents.StorageService().GetStorer(dataRetriever.HeartbeatUnit)
+	if err != nil {
+		return nil, err
+	}
+
 	marshalizer := hcf.coreComponents.InternalMarshalizer()
 	heartbeatStorer, err := heartbeatStorage.NewHeartbeatDbStorer(storer, marshalizer)
 	if err != nil {
@@ -211,8 +211,7 @@ func (hcf *heartbeatComponentsFactory) Create() (*heartbeatComponents, error) {
 		HeartbeatRefreshIntervalInSec:      hcf.config.Heartbeat.HeartbeatRefreshIntervalInSec,
 		HideInactiveValidatorIntervalInSec: hcf.config.Heartbeat.HideInactiveValidatorIntervalInSec,
 		AppStatusHandler:                   hcf.coreComponents.StatusHandler(),
-		EpochNotifier:                      hcf.coreComponents.EpochNotifier(),
-		HeartbeatDisableEpoch:              hcf.heartbeatDisableEpoch,
+		EnableEpochsHandler:                hcf.coreComponents.EnableEpochsHandler(),
 	}
 	hbc.monitor, err = heartbeatProcess.NewMonitor(argMonitor)
 	if err != nil {
