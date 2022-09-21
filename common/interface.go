@@ -53,7 +53,7 @@ type KeyBuilder interface {
 // DataTrie is an interface that declares the methods used for dataTries
 type DataTrie interface {
 	RootHash() ([]byte, error)
-	GetAllLeavesOnChannel(leavesChannel chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error
+	GetAllLeavesOnChannel(leavesChannel chan core.KeyValueHolder, ctx context.Context, rootHash []byte, keyBuilder KeyBuilder) error
 	IsInterfaceNil() bool
 }
 
