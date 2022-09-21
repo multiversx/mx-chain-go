@@ -27,6 +27,7 @@ func (tsm *trieStorageManagerWithoutCheckpoints) SetCheckpoint(
 	_ []byte,
 	_ []byte,
 	chLeaves chan core.KeyValueHolder,
+	_ chan []byte,
 	_ chan error,
 	stats common.SnapshotStatisticsHandler,
 ) {

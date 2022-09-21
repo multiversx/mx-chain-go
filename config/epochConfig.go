@@ -85,6 +85,7 @@ type EnableEpochs struct {
 	HeartbeatDisableEpoch                             uint32
 	MiniBlockPartialExecutionEnableEpoch              uint32
 	ESDTMetadataContinuousCleanupEnableEpoch          uint32
+	FixAsyncCallBackArgsListEnableEpoch               uint32
 	SetSenderInEeiOutputTransferEnableEpoch           uint32
 	RefactorPeersMiniBlocksEnableEpoch                uint32
 	BLSMultiSignerEnableEpoch                         []MultiSignerConfig

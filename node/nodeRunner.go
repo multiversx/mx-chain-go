@@ -16,6 +16,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/closing"
+	"github.com/ElrondNetwork/elrond-go-core/core/throttler"
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/api/gin"
@@ -52,9 +53,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
+	"github.com/ElrondNetwork/elrond-go/state/syncer"
 	"github.com/ElrondNetwork/elrond-go/storage/cache"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
+	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
+	"github.com/ElrondNetwork/elrond-go/trie/storageMarker"
 	"github.com/ElrondNetwork/elrond-go/update/trigger"
 	"github.com/google/gops/agent"
 )
@@ -193,6 +197,7 @@ func printEnableEpochs(configs *config.Configs) {
 	log.Debug(readEpochFor("refactor contexts"), "epoch", enableEpochs.RefactorContextEnableEpoch)
 	log.Debug(readEpochFor("disable heartbeat v1"), "epoch", enableEpochs.HeartbeatDisableEpoch)
 	log.Debug(readEpochFor("mini block partial execution"), "epoch", enableEpochs.MiniBlockPartialExecutionEnableEpoch)
+	log.Debug(readEpochFor("fix async callback arguments list"), "epoch", enableEpochs.FixAsyncCallBackArgsListEnableEpoch)
 	log.Debug(readEpochFor("set sender in eei output transfer"), "epoch", enableEpochs.SetSenderInEeiOutputTransferEnableEpoch)
 	log.Debug(readEpochFor("refactor peers mini blocks"), "epoch", enableEpochs.RefactorPeersMiniBlocksEnableEpoch)
 	gasSchedule := configs.EpochConfig.GasSchedule
@@ -402,6 +407,18 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		return true, err
 	}
 
+	err = addSyncersToAccountsDB(
+		configs.GeneralConfig,
+		managedCoreComponents,
+		managedDataComponents,
+		managedStateComponents,
+		managedBootstrapComponents,
+		managedProcessComponents,
+	)
+	if err != nil {
+		return true, err
+	}
+
 	hardforkTrigger := managedProcessComponents.HardforkTrigger()
 	err = hardforkTrigger.AddCloser(nodesShufflerOut)
 	if err != nil {
@@ -520,6 +537,139 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	}
 
 	return false, nil
+}
+
+func addSyncersToAccountsDB(
+	config *config.Config,
+	coreComponents mainFactory.CoreComponentsHolder,
+	dataComponents mainFactory.DataComponentsHolder,
+	stateComponents mainFactory.StateComponentsHolder,
+	bootstrapComponents mainFactory.BootstrapComponentsHolder,
+	processComponents mainFactory.ProcessComponentsHolder,
+) error {
+	selfId := bootstrapComponents.ShardCoordinator().SelfId()
+	if selfId == core.MetachainShardId {
+		stateSyncer, err := getValidatorAccountSyncer(
+			config,
+			coreComponents,
+			dataComponents,
+			stateComponents,
+			processComponents,
+		)
+		if err != nil {
+			return err
+		}
+
+		err = stateComponents.PeerAccounts().SetSyncer(stateSyncer)
+		if err != nil {
+			return err
+		}
+
+		err = stateComponents.PeerAccounts().StartSnapshotIfNeeded()
+		if err != nil {
+			return err
+		}
+	}
+
+	stateSyncer, err := getUserAccountSyncer(
+		config,
+		coreComponents,
+		dataComponents,
+		stateComponents,
+		bootstrapComponents,
+		processComponents,
+	)
+	if err != nil {
+		return err
+	}
+	err = stateComponents.AccountsAdapter().SetSyncer(stateSyncer)
+	if err != nil {
+		return err
+	}
+
+	return stateComponents.AccountsAdapter().StartSnapshotIfNeeded()
+}
+
+func getUserAccountSyncer(
+	config *config.Config,
+	coreComponents mainFactory.CoreComponentsHolder,
+	dataComponents mainFactory.DataComponentsHolder,
+	stateComponents mainFactory.StateComponentsHolder,
+	bootstrapComponents mainFactory.BootstrapComponentsHolder,
+	processComponents mainFactory.ProcessComponentsHolder,
+) (process.AccountsDBSyncer, error) {
+	maxTrieLevelInMemory := config.StateTriesConfig.MaxStateTrieLevelInMemory
+	userTrie := stateComponents.TriesContainer().Get([]byte(trieFactory.UserAccountTrie))
+	storageManager := userTrie.GetStorageManager()
+
+	thr, err := throttler.NewNumGoRoutinesThrottler(int32(config.TrieSync.NumConcurrentTrieSyncers))
+	if err != nil {
+		return nil, err
+	}
+
+	args := syncer.ArgsNewUserAccountsSyncer{
+		ArgsNewBaseAccountsSyncer: getBaseAccountSyncerArgs(
+			config,
+			coreComponents,
+			dataComponents,
+			processComponents,
+			storageManager,
+			maxTrieLevelInMemory,
+		),
+		ShardId:                bootstrapComponents.ShardCoordinator().SelfId(),
+		Throttler:              thr,
+		AddressPubKeyConverter: coreComponents.AddressPubKeyConverter(),
+	}
+
+	return syncer.NewUserAccountsSyncer(args)
+}
+
+func getValidatorAccountSyncer(
+	config *config.Config,
+	coreComponents mainFactory.CoreComponentsHolder,
+	dataComponents mainFactory.DataComponentsHolder,
+	stateComponents mainFactory.StateComponentsHolder,
+	processComponents mainFactory.ProcessComponentsHolder,
+) (process.AccountsDBSyncer, error) {
+	maxTrieLevelInMemory := config.StateTriesConfig.MaxPeerTrieLevelInMemory
+	peerTrie := stateComponents.TriesContainer().Get([]byte(trieFactory.PeerAccountTrie))
+	storageManager := peerTrie.GetStorageManager()
+
+	args := syncer.ArgsNewValidatorAccountsSyncer{
+		ArgsNewBaseAccountsSyncer: getBaseAccountSyncerArgs(
+			config,
+			coreComponents,
+			dataComponents,
+			processComponents,
+			storageManager,
+			maxTrieLevelInMemory,
+		),
+	}
+
+	return syncer.NewValidatorAccountsSyncer(args)
+}
+
+func getBaseAccountSyncerArgs(
+	config *config.Config,
+	coreComponents mainFactory.CoreComponentsHolder,
+	dataComponents mainFactory.DataComponentsHolder,
+	processComponents mainFactory.ProcessComponentsHolder,
+	storageManager common.StorageManager,
+	maxTrieLevelInMemory uint,
+) syncer.ArgsNewBaseAccountsSyncer {
+	return syncer.ArgsNewBaseAccountsSyncer{
+		Hasher:                    coreComponents.Hasher(),
+		Marshalizer:               coreComponents.InternalMarshalizer(),
+		TrieStorageManager:        storageManager,
+		RequestHandler:            processComponents.RequestHandler(),
+		Timeout:                   common.TimeoutGettingTrieNodes,
+		Cacher:                    dataComponents.Datapool().TrieNodes(),
+		MaxTrieLevelInMemory:      maxTrieLevelInMemory,
+		MaxHardCapForMissingNodes: config.TrieSync.MaxHardCapForMissingNodes,
+		TrieSyncerVersion:         config.TrieSync.TrieSyncerVersion,
+		StorageMarker:             storageMarker.NewDisabledStorageMarker(),
+		CheckNodesOnDisk:          true,
+	}
 }
 
 func (nr *nodeRunner) createApiFacade(

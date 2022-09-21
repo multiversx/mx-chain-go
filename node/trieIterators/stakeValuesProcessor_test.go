@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/keyValStorage"
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/state"
@@ -192,7 +193,7 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue_ContextShouldTimeout(t *t
 
 	acc, _ := state.NewUserAccount([]byte("newaddress"))
 	acc.SetDataTrie(&trieMock.TrieStub{
-		GetAllLeavesOnChannelCalled: func(chLeaves chan core.KeyValueHolder, _ context.Context, _ []byte) error {
+		GetAllLeavesOnChannelCalled: func(chLeaves chan core.KeyValueHolder, _ context.Context, _ []byte, _ common.KeyBuilder) error {
 			time.Sleep(time.Second)
 			close(chLeaves)
 			return nil
@@ -227,7 +228,7 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue_CannotGetAllLeaves(t *tes
 	expectedErr := errors.New("expected error")
 	acc, _ := state.NewUserAccount([]byte("newaddress"))
 	acc.SetDataTrie(&trieMock.TrieStub{
-		GetAllLeavesOnChannelCalled: func(_ chan core.KeyValueHolder, _ context.Context, _ []byte) error {
+		GetAllLeavesOnChannelCalled: func(_ chan core.KeyValueHolder, _ context.Context, _ []byte, _ common.KeyBuilder) error {
 			return expectedErr
 		},
 		RootCalled: func() ([]byte, error) {
@@ -275,7 +276,7 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue(t *testing.T) {
 		RootCalled: func() ([]byte, error) {
 			return rootHash, nil
 		},
-		GetAllLeavesOnChannelCalled: func(ch chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error {
+		GetAllLeavesOnChannelCalled: func(ch chan core.KeyValueHolder, ctx context.Context, rootHash []byte, _ common.KeyBuilder) error {
 			go func() {
 				leaf1 := keyValStorage.NewKeyValStorage(rootHash, append(marshalledData, suffix...))
 				ch <- leaf1

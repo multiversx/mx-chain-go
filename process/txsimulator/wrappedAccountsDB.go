@@ -24,6 +24,16 @@ func NewReadOnlyAccountsDB(accountsDB state.AccountsAdapter) (*readOnlyAccountsD
 	return &readOnlyAccountsDB{originalAccounts: accountsDB}, nil
 }
 
+// SetSyncer returns nil for this implementation
+func (r *readOnlyAccountsDB) SetSyncer(_ state.AccountsDBSyncer) error {
+	return nil
+}
+
+// StartSnapshotIfNeeded returns nil for this implementation
+func (r *readOnlyAccountsDB) StartSnapshotIfNeeded() error {
+	return nil
+}
+
 // GetCode returns the code for the given account
 func (r *readOnlyAccountsDB) GetCode(codeHash []byte) []byte {
 	return r.originalAccounts.GetCode(codeHash)
