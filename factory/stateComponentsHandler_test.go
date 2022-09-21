@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/factory/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	"github.com/stretchr/testify/require"
 )
 
@@ -105,7 +106,7 @@ func TestManagedStateComponents_Setters(t *testing.T) {
 	err := managedStateComponents.Create()
 	require.NoError(t, err)
 
-	triesContainer := &mock.TriesHolderStub{}
+	triesContainer := &trieMock.TriesHolderStub{}
 	triesStorageManagers := map[string]common.StorageManager{"a": &testscommon.StorageManagerStub{}}
 
 	err = managedStateComponents.SetTriesContainer(triesContainer)

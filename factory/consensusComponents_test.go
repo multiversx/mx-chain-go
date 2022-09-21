@@ -24,6 +24,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
+	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
 	"github.com/stretchr/testify/require"
 )
@@ -484,7 +485,7 @@ func getDefaultStateComponents() *testscommon.StateComponentsMock {
 	return &testscommon.StateComponentsMock{
 		PeersAcc: &stateMock.AccountsStub{},
 		Accounts: &stateMock.AccountsStub{},
-		Tries:    &mock.TriesHolderStub{},
+		Tries:    &trieMock.TriesHolderStub{},
 		StorageManagers: map[string]common.StorageManager{
 			"0":                         &testscommon.StorageManagerStub{},
 			trieFactory.UserAccountTrie: &testscommon.StorageManagerStub{},

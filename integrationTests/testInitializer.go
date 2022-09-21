@@ -2514,7 +2514,7 @@ func SaveDelegationManagerConfig(nodes []*TestProcessorNode) {
 			MinDelegationAmount: big.NewInt(1),
 		}
 		marshaledData, _ := TestMarshalizer.Marshal(managementData)
-		_ = userAcc.DataTrieTracker().SaveKeyValue([]byte(delegationManagementKey), marshaledData)
+		_ = userAcc.SaveKeyValue([]byte(delegationManagementKey), marshaledData)
 		_ = n.AccntState.SaveAccount(userAcc)
 		_, _ = n.AccntState.Commit()
 	}
@@ -2534,7 +2534,7 @@ func SaveDelegationContractsList(nodes []*TestProcessorNode) {
 			Addresses: [][]byte{[]byte("addr")},
 		}
 		marshaledData, _ := TestMarshalizer.Marshal(managementData)
-		_ = userAcc.DataTrieTracker().SaveKeyValue([]byte(delegationContractsList), marshaledData)
+		_ = userAcc.SaveKeyValue([]byte(delegationContractsList), marshaledData)
 		_ = n.AccntState.SaveAccount(userAcc)
 		_, _ = n.AccntState.Commit()
 	}

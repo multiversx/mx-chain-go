@@ -25,7 +25,7 @@ func (ba *baseAccount) SetCode(code []byte) {
 }
 
 // DataTrie returns the trie that holds the current account's data
-func (ba *baseAccount) DataTrie() common.Trie {
+func (ba *baseAccount) DataTrie() common.DataTrie {
 	return ba.dataTrieTracker.DataTrie()
 }
 
@@ -34,18 +34,31 @@ func (ba *baseAccount) SetDataTrie(trie common.Trie) {
 	ba.dataTrieTracker.SetDataTrie(trie)
 }
 
-// DataTrieTracker returns the trie wrapper used in managing the SC data
-func (ba *baseAccount) DataTrieTracker() DataTrieTracker {
-	return ba.dataTrieTracker
-}
-
-// RetrieveValueFromDataTrieTracker  fetches the value from a particular key searching the account data store in the data trie tracker
-func (ba *baseAccount) RetrieveValueFromDataTrieTracker(key []byte) ([]byte, error) {
+// RetrieveValue fetches the value from a particular key searching the account data store in the data trie tracker
+func (ba *baseAccount) RetrieveValue(key []byte) ([]byte, error) {
 	if check.IfNil(ba.dataTrieTracker) {
 		return nil, ErrNilTrackableDataTrie
 	}
 
 	return ba.dataTrieTracker.RetrieveValue(key)
+}
+
+// SaveKeyValue adds the given key and value to the underlying trackable data trie
+func (ba *baseAccount) SaveKeyValue(key []byte, value []byte) error {
+	if check.IfNil(ba.dataTrieTracker) {
+		return ErrNilTrackableDataTrie
+	}
+
+	return ba.dataTrieTracker.SaveKeyValue(key, value)
+}
+
+// SaveDirtyData triggers SaveDirtyData form the underlying trackableDataTrie
+func (ba *baseAccount) SaveDirtyData(trie common.Trie) (map[string][]byte, error) {
+	if check.IfNil(ba.dataTrieTracker) {
+		return nil, ErrNilTrackableDataTrie
+	}
+
+	return ba.dataTrieTracker.SaveDirtyData(trie)
 }
 
 // AccountDataHandler returns the account data handler

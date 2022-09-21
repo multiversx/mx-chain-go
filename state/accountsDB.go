@@ -469,44 +469,12 @@ func (adb *AccountsDB) loadDataTrie(accountHandler baseAccountHandler) error {
 // SaveDataTrie is used to save the data trie (not committing it) and to recompute the new Root value
 // If data is not dirtied, method will not create its JournalEntries to keep track of data modification
 func (adb *AccountsDB) saveDataTrie(accountHandler baseAccountHandler) error {
-	if check.IfNil(accountHandler.DataTrieTracker()) {
-		return ErrNilTrackableDataTrie
+	oldValues, err := accountHandler.SaveDirtyData(adb.mainTrie)
+	if err != nil {
+		return err
 	}
-	if len(accountHandler.DataTrieTracker().DirtyData()) == 0 {
+	if len(oldValues) == 0 {
 		return nil
-	}
-
-	log.Trace("accountsDB.SaveDataTrie",
-		"address", hex.EncodeToString(accountHandler.AddressBytes()),
-		"nonce", accountHandler.GetNonce(),
-	)
-
-	if check.IfNil(accountHandler.DataTrie()) {
-		newDataTrie, err := adb.mainTrie.Recreate(make([]byte, 0))
-		if err != nil {
-			return err
-		}
-
-		accountHandler.SetDataTrie(newDataTrie)
-		adb.dataTries.Put(accountHandler.AddressBytes(), newDataTrie)
-	}
-
-	trackableDataTrie := accountHandler.DataTrieTracker()
-	dataTrie := trackableDataTrie.DataTrie()
-	oldValues := make(map[string][]byte)
-
-	for k, v := range trackableDataTrie.DirtyData() {
-		val, err := dataTrie.Get([]byte(k))
-		if err != nil {
-			return err
-		}
-
-		oldValues[k] = val
-
-		err = dataTrie.Update([]byte(k), v)
-		if err != nil {
-			return err
-		}
 	}
 
 	entry, err := NewJournalEntryDataTrieUpdates(oldValues, accountHandler)
@@ -515,21 +483,20 @@ func (adb *AccountsDB) saveDataTrie(accountHandler baseAccountHandler) error {
 	}
 	adb.journalize(entry)
 
-	rootHash, err := trackableDataTrie.DataTrie().RootHash()
+	rootHash, err := accountHandler.DataTrie().RootHash()
 	if err != nil {
 		return err
 	}
-
 	accountHandler.SetRootHash(rootHash)
-	trackableDataTrie.ClearDataCaches()
-
-	log.Trace("accountsDB.SaveDataTrie",
-		"address", hex.EncodeToString(accountHandler.AddressBytes()),
-		"new root hash", accountHandler.GetRootHash(),
-	)
 
 	if check.IfNil(adb.dataTries.Get(accountHandler.AddressBytes())) {
-		adb.dataTries.Put(accountHandler.AddressBytes(), accountHandler.DataTrie())
+		trie, ok := accountHandler.DataTrie().(common.Trie)
+		if !ok {
+			log.Warn("wrong type conversion", "trie type", fmt.Sprintf("%T", accountHandler.DataTrie()))
+			return nil
+		}
+
+		adb.dataTries.Put(accountHandler.AddressBytes(), trie)
 	}
 
 	return nil

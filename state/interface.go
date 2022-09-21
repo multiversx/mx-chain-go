@@ -72,9 +72,9 @@ type UserAccountHandler interface {
 	SetRootHash([]byte)
 	GetRootHash() []byte
 	SetDataTrie(trie common.Trie)
-	DataTrie() common.Trie
-	DataTrieTracker() DataTrieTracker
-	RetrieveValueFromDataTrieTracker(key []byte) ([]byte, error)
+	DataTrie() common.DataTrie
+	RetrieveValue(key []byte) ([]byte, error)
+	SaveKeyValue(key []byte, value []byte) error
 	AddToBalance(value *big.Int) error
 	SubFromBalance(value *big.Int) error
 	GetBalance() *big.Int
@@ -91,12 +91,11 @@ type UserAccountHandler interface {
 
 // DataTrieTracker models what how to manipulate data held by a SC account
 type DataTrieTracker interface {
-	ClearDataCaches()
-	DirtyData() map[string][]byte
 	RetrieveValue(key []byte) ([]byte, error)
 	SaveKeyValue(key []byte, value []byte) error
 	SetDataTrie(tr common.Trie)
-	DataTrie() common.Trie
+	DataTrie() common.DataTrie
+	SaveDirtyData(common.Trie) (map[string][]byte, error)
 	IsInterfaceNil() bool
 }
 
@@ -157,8 +156,8 @@ type baseAccountHandler interface {
 	SetRootHash([]byte)
 	GetRootHash() []byte
 	SetDataTrie(trie common.Trie)
-	DataTrie() common.Trie
-	DataTrieTracker() DataTrieTracker
+	DataTrie() common.DataTrie
+	SaveDirtyData(trie common.Trie) (map[string][]byte, error)
 	IsInterfaceNil() bool
 }
 

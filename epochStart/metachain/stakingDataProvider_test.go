@@ -450,7 +450,7 @@ func saveOutputAccounts(t *testing.T, accountsDB state.AccountsAdapter, vmOutput
 
 		userAccount, _ := account.(state.UserAccountHandler)
 		for _, storeUpdate := range outputAccount.StorageUpdates {
-			_ = userAccount.DataTrieTracker().SaveKeyValue(storeUpdate.Offset, storeUpdate.Data)
+			_ = userAccount.SaveKeyValue(storeUpdate.Offset, storeUpdate.Data)
 		}
 
 		err := accountsDB.SaveAccount(account)

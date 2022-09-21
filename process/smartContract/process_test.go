@@ -2934,7 +2934,7 @@ func TestScProcessor_ProcessSmartContractResultBadAccType(t *testing.T) {
 
 	accountsDB := &stateMock.AccountsStub{
 		LoadAccountCalled: func(address []byte) (handler vmcommon.AccountHandler, e error) {
-			return &mock.AccountWrapMock{}, nil
+			return &stateMock.AccountWrapMock{}, nil
 		},
 	}
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
