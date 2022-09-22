@@ -170,10 +170,6 @@ func (sr *subroundSignature) receivedSignature(_ context.Context, cnsDta *consen
 		return false
 	}
 
-<<<<<<< HEAD
-	currentMultiSigner := sr.MultiSigner()
-	err = currentMultiSigner.StoreSignatureShare(uint16(index), cnsDta.SignatureShare)
-=======
 	if check.IfNil(sr.Header) {
 		log.Error("receivedSignature", "error", spos.ErrNilHeader)
 		return false
@@ -189,7 +185,6 @@ func (sr *subroundSignature) receivedSignature(_ context.Context, cnsDta *consen
 	}
 
 	err = sr.SignatureHandler().StoreSignatureShare(uint16(index), cnsDta.SignatureShare)
->>>>>>> rc/v1.4.0
 	if err != nil {
 		log.Debug("receivedSignature.StoreSignatureShare",
 			"node", pkForLogs,

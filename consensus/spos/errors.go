@@ -223,13 +223,11 @@ var ErrNilNodeRedundancyHandler = errors.New("nil node redundancy handler")
 // ErrNilScheduledProcessor signals that the provided scheduled processor is nil
 var ErrNilScheduledProcessor = errors.New("nil scheduled processor")
 
-<<<<<<< HEAD
 // ErrInvalidNumSigShares signals that an invalid number of signature shares has been provided
 var ErrInvalidNumSigShares = errors.New("invalid number of sig shares")
 
 // ErrNilSignatureOnP2PMessage signals that a p2p message without signature was received
 var ErrNilSignatureOnP2PMessage = errors.New("nil signature on the p2p message")
-=======
+
 // ErrNilSignatureHandler signals that provided signature handler is nil
 var ErrNilSignatureHandler = errors.New("nil signature handler")
->>>>>>> rc/v1.4.0

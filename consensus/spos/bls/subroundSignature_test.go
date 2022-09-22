@@ -360,72 +360,6 @@ func TestSubroundSignature_ReceivedSignature(t *testing.T) {
 	assert.True(t, r)
 }
 
-<<<<<<< HEAD
-func TestSubroundSignature_ReceivedSignatureStoreShareFailed(t *testing.T) {
-	t.Parallel()
-
-	errStore := errors.New("signature share store failed")
-	multiSigner := cryptoMocks.NewMultiSigner(21)
-	storeSigShareCalled := false
-	multiSigner.StoreSignatureShareCalled = func(index uint16, sig []byte) error {
-		storeSigShareCalled = true
-		return errStore
-	}
-
-	container := mock.InitConsensusCoreWithMultiSigner(multiSigner)
-	sr := *initSubroundSignatureWithContainer(container)
-
-	signature := []byte("signature")
-	cnsMsg := consensus.NewConsensusMessage(
-		sr.Data,
-		signature,
-		nil,
-		nil,
-		[]byte(sr.ConsensusGroup()[1]),
-		[]byte("sig"),
-		int(bls.MtSignature),
-		0,
-		chainID,
-		nil,
-		nil,
-		nil,
-		currentPid,
-	)
-
-	sr.Data = nil
-	r := sr.ReceivedSignature(cnsMsg)
-	assert.False(t, r)
-
-	sr.Data = []byte("Y")
-	r = sr.ReceivedSignature(cnsMsg)
-	assert.False(t, r)
-
-	sr.Data = []byte("X")
-	r = sr.ReceivedSignature(cnsMsg)
-	assert.False(t, r)
-
-	sr.SetSelfPubKey(sr.ConsensusGroup()[0])
-
-	cnsMsg.PubKey = []byte("X")
-	r = sr.ReceivedSignature(cnsMsg)
-	assert.False(t, r)
-
-	cnsMsg.PubKey = []byte(sr.ConsensusGroup()[1])
-	maxCount := len(sr.ConsensusGroup()) * 2 / 3
-	count := 0
-	for i := 0; i < len(sr.ConsensusGroup()); i++ {
-		if sr.ConsensusGroup()[i] != string(cnsMsg.PubKey) {
-			_ = sr.SetJobDone(sr.ConsensusGroup()[i], bls.SrSignature, true)
-			count++
-			if count == maxCount {
-				break
-			}
-		}
-	}
-	r = sr.ReceivedSignature(cnsMsg)
-	assert.False(t, r)
-	assert.True(t, storeSigShareCalled)
-=======
 func TestSubroundSignature_ReceivedSignatureVerifyShareFailed(t *testing.T) {
 	t.Parallel()
 
@@ -494,7 +428,6 @@ func TestSubroundSignature_ReceivedSignatureVerifyShareFailed(t *testing.T) {
 	r = sr.ReceivedSignature(cnsMsg)
 	assert.False(t, r)
 	assert.True(t, verifyCalled)
->>>>>>> rc/v1.4.0
 }
 
 func TestSubroundSignature_SignaturesCollected(t *testing.T) {
