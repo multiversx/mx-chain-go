@@ -81,7 +81,7 @@ func (tdaw *trackableDataTrie) SetDataTrie(tr common.Trie) {
 }
 
 // DataTrie sets the internal data trie
-func (tdaw *trackableDataTrie) DataTrie() common.DataTrie {
+func (tdaw *trackableDataTrie) DataTrie() common.DataTrieHandler {
 	return tdaw.tr
 }
 
@@ -94,7 +94,7 @@ func (tdaw *trackableDataTrie) SaveDirtyData(mainTrie common.Trie) (map[string][
 	if check.IfNil(tdaw.tr) {
 		newDataTrie, err := mainTrie.Recreate(make([]byte, 0))
 		if err != nil {
-			return map[string][]byte{}, err
+			return nil, err
 		}
 
 		tdaw.tr = newDataTrie

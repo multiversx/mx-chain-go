@@ -65,7 +65,7 @@ func (uam *UserAccountMock) SetDataTrie(_ common.Trie) {
 }
 
 // DataTrie -
-func (uam *UserAccountMock) DataTrie() common.DataTrie {
+func (uam *UserAccountMock) DataTrie() common.DataTrieHandler {
 	return nil
 }
 

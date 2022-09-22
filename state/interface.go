@@ -72,7 +72,7 @@ type UserAccountHandler interface {
 	SetRootHash([]byte)
 	GetRootHash() []byte
 	SetDataTrie(trie common.Trie)
-	DataTrie() common.DataTrie
+	DataTrie() common.DataTrieHandler
 	RetrieveValue(key []byte) ([]byte, error)
 	SaveKeyValue(key []byte, value []byte) error
 	AddToBalance(value *big.Int) error
@@ -94,7 +94,7 @@ type DataTrieTracker interface {
 	RetrieveValue(key []byte) ([]byte, error)
 	SaveKeyValue(key []byte, value []byte) error
 	SetDataTrie(tr common.Trie)
-	DataTrie() common.DataTrie
+	DataTrie() common.DataTrieHandler
 	SaveDirtyData(common.Trie) (map[string][]byte, error)
 	IsInterfaceNil() bool
 }
@@ -164,7 +164,7 @@ type baseAccountHandler interface {
 	SetRootHash([]byte)
 	GetRootHash() []byte
 	SetDataTrie(trie common.Trie)
-	DataTrie() common.DataTrie
+	DataTrie() common.DataTrieHandler
 	SaveDirtyData(trie common.Trie) (map[string][]byte, error)
 	IsInterfaceNil() bool
 }

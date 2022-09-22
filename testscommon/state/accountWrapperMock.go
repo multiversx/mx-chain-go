@@ -156,7 +156,7 @@ func (awm *AccountWrapMock) AddressBytes() []byte {
 }
 
 // DataTrie -
-func (awm *AccountWrapMock) DataTrie() common.DataTrie {
+func (awm *AccountWrapMock) DataTrie() common.DataTrieHandler {
 	return awm.trackableDataTrie.DataTrie()
 }
 

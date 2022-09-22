@@ -39,7 +39,7 @@ func (dtts *DataTrieTrackerStub) SetDataTrie(tr common.Trie) {
 }
 
 // DataTrie -
-func (dtts *DataTrieTrackerStub) DataTrie() common.DataTrie {
+func (dtts *DataTrieTrackerStub) DataTrie() common.DataTrieHandler {
 	if dtts.DataTrieCalled != nil {
 		return dtts.DataTrieCalled()
 	}

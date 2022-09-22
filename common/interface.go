@@ -50,8 +50,8 @@ type KeyBuilder interface {
 	Clone() KeyBuilder
 }
 
-// DataTrie is an interface that declares the methods used for dataTries
-type DataTrie interface {
+// DataTrieHandler is an interface that declares the methods used for dataTries
+type DataTrieHandler interface {
 	RootHash() ([]byte, error)
 	GetAllLeavesOnChannel(leavesChannel chan core.KeyValueHolder, ctx context.Context, rootHash []byte, keyBuilder KeyBuilder) error
 	IsInterfaceNil() bool

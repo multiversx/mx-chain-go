@@ -133,7 +133,7 @@ func (u *UserAccountStub) SetDataTrie(_ common.Trie) {
 }
 
 // DataTrie -
-func (u *UserAccountStub) DataTrie() common.DataTrie {
+func (u *UserAccountStub) DataTrie() common.DataTrieHandler {
 	return nil
 }
 

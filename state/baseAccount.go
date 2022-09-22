@@ -25,7 +25,7 @@ func (ba *baseAccount) SetCode(code []byte) {
 }
 
 // DataTrie returns the trie that holds the current account's data
-func (ba *baseAccount) DataTrie() common.DataTrie {
+func (ba *baseAccount) DataTrie() common.DataTrieHandler {
 	return ba.dataTrieTracker.DataTrie()
 }
 
