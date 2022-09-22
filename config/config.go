@@ -593,6 +593,7 @@ type ConfigurationPathsHolder struct {
 	ValidatorKey             string
 	Epoch                    string
 	RoundActivation          string
+	P2pKey                   string
 }
 
 // TrieSyncConfig represents the trie synchronization configuration area

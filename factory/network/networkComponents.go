@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/debug/antiflood"
@@ -38,6 +39,7 @@ type NetworkComponentsFactoryArgs struct {
 	BootstrapWaitTime     time.Duration
 	NodeOperationMode     p2p.NodeOperation
 	ConnectionWatcherType string
+	P2pKeyPemFileName     string
 }
 
 type networkComponentsFactory struct {
@@ -52,6 +54,7 @@ type networkComponentsFactory struct {
 	bootstrapWaitTime     time.Duration
 	nodeOperationMode     p2p.NodeOperation
 	connectionWatcherType string
+	p2pKeyPemFileName     string
 }
 
 // networkComponents struct holds the network components
@@ -98,6 +101,7 @@ func NewNetworkComponentsFactory(
 		preferredPeersSlices:  args.PreferredPeersSlices,
 		nodeOperationMode:     args.NodeOperationMode,
 		connectionWatcherType: args.ConnectionWatcherType,
+		p2pKeyPemFileName:     args.P2pKeyPemFileName,
 	}, nil
 }
 
@@ -125,6 +129,11 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 		return nil, err
 	}
 
+	p2pPrivKeyBytes, err := common.GetSkBytesFromP2pKey(ncf.p2pKeyPemFileName)
+	if err != nil {
+		return nil, err
+	}
+
 	arg := libp2p.ArgsNetworkMessenger{
 		Marshalizer:           ncf.marshalizer,
 		ListenAddress:         ncf.listenAddress,
@@ -134,6 +143,7 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 		NodeOperationMode:     ncf.nodeOperationMode,
 		PeersRatingHandler:    peersRatingHandler,
 		ConnectionWatcherType: ncf.connectionWatcherType,
+		P2pPrivKeyBytes:       p2pPrivKeyBytes,
 	}
 	netMessenger, err := libp2p.NewNetworkMessenger(arg)
 	if err != nil {

@@ -434,14 +434,12 @@ func TestP2pConfig(t *testing.T) {
 	initialPeersList := "/ip4/127.0.0.1/tcp/9999/p2p/16Uiu2HAkw5SNNtSvH1zJiQ6Gc3WoGNSxiyNueRKe6fuAuh57G3Bk"
 	protocolID := "test protocol id"
 	shardingType := "ListSharder"
-	seed := "test seed"
 	port := "37373-38383"
 
 	testString := `
 #P2P config file
 [Node]
     Port = "` + port + `"
-    Seed = "` + seed + `"
     ThresholdMinConnectedPeers = 0
 
 [KadDhtPeerDiscovery]
@@ -472,7 +470,6 @@ func TestP2pConfig(t *testing.T) {
 	expectedCfg := P2PConfig{
 		Node: NodeConfig{
 			Port: port,
-			Seed: seed,
 		},
 		KadDhtPeerDiscovery: KadDhtPeerDiscoveryConfig{
 			ProtocolID:      protocolID,
