@@ -217,7 +217,6 @@ func CreateP2PConfigWithNoDiscovery() p2pConfig.P2PConfig {
 	return p2pConfig.P2PConfig{
 		Node: p2pConfig.NodeConfig{
 			Port: "0",
-			Seed: "",
 		},
 		KadDhtPeerDiscovery: p2pConfig.KadDhtPeerDiscoveryConfig{
 			Enabled: false,
@@ -240,7 +239,6 @@ func CreateMessengerWithNoDiscoveryAndPeersRatingHandler(peersRatingHanlder p2p.
 	p2pCfg := p2pConfig.P2PConfig{
 		Node: p2pConfig.NodeConfig{
 			Port: "0",
-			Seed: "",
 		},
 		KadDhtPeerDiscovery: p2pConfig.KadDhtPeerDiscoveryConfig{
 			Enabled: false,

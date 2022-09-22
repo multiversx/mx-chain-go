@@ -435,14 +435,12 @@ func TestP2pConfig(t *testing.T) {
 	initialPeersList := "/ip4/127.0.0.1/tcp/9999/p2p/16Uiu2HAkw5SNNtSvH1zJiQ6Gc3WoGNSxiyNueRKe6fuAuh57G3Bk"
 	protocolID := "test protocol id"
 	shardingType := "ListSharder"
-	seed := "test seed"
 	port := "37373-38383"
 
 	testString := `
 #P2P config file
 [Node]
     Port = "` + port + `"
-    Seed = "` + seed + `"
     ThresholdMinConnectedPeers = 0
 
 [KadDhtPeerDiscovery]
@@ -473,7 +471,6 @@ func TestP2pConfig(t *testing.T) {
 	expectedCfg := p2pConfig.P2PConfig{
 		Node: p2pConfig.NodeConfig{
 			Port: port,
-			Seed: seed,
 		},
 		KadDhtPeerDiscovery: p2pConfig.KadDhtPeerDiscoveryConfig{
 			ProtocolID:      protocolID,
@@ -678,6 +675,11 @@ func TestEnableEpochConfig(t *testing.T) {
         { EpochEnable = 45, MaxNumNodes = 3200, NodesToShufflePerShard = 80 }
     ]
 
+	BLSMultiSignerEnableEpoch = [
+		{EnableEpoch = 0, Type = "no-KOSK"},
+		{EnableEpoch = 3, Type = "KOSK"}
+	]
+
 [GasSchedule]
     GasScheduleByEpochs = [
         { StartEpoch = 46, FileName = "gasScheduleV1.toml" },
@@ -757,7 +759,18 @@ func TestEnableEpochConfig(t *testing.T) {
 			ESDTMetadataContinuousCleanupEnableEpoch:    56,
 			FixAsyncCallBackArgsListEnableEpoch:         57,
 			SetSenderInEeiOutputTransferEnableEpoch:     58,
+			BLSMultiSignerEnableEpoch: []MultiSignerConfig{
+				{
+					EnableEpoch: 0,
+					Type:        "no-KOSK",
+				},
+				{
+					EnableEpoch: 3,
+					Type:        "KOSK",
+				},
+			},
 		},
+
 		GasSchedule: GasScheduleConfig{
 			GasScheduleByEpochs: []GasScheduleByEpochs{
 				{

@@ -63,12 +63,6 @@ VERSION:
 			"To bind to all available interfaces, set this flag to :8080. If set to `off` then the API won't be available",
 		Value: facade.DefaultRestInterface,
 	}
-	// p2pSeed defines a flag to be used as a seed when generating P2P credentials. Useful for seed nodes.
-	p2pSeed = cli.StringFlag{
-		Name:  "p2p-seed",
-		Usage: "P2P seed will be used when generating credentials for p2p component. Can be any string.",
-		Value: "seed",
-	}
 	// logLevel defines the logger level
 	logLevel = cli.StringFlag{
 		Name: "log-level",
@@ -90,6 +84,13 @@ VERSION:
 			"configurations such as the marshalizer type",
 		Value: "./config/config.toml",
 	}
+	// p2pKeyPemFile defines the flag for the path to the key pem file used for p2p signing
+	p2pKeyPemFile = cli.StringFlag{
+		Name:  "p2p-key-pem-file",
+		Usage: "The `filepath` for the PEM file which contains the secret keys for the p2p key. If this is not specified a new key will be generated (internally) by default.",
+		Value: "./config/p2pKey.pem",
+	}
+
 	p2pConfigurationFile = "./config/p2p.toml"
 )
 
@@ -103,10 +104,10 @@ func main() {
 	app.Flags = []cli.Flag{
 		port,
 		restApiInterfaceFlag,
-		p2pSeed,
 		logLevel,
 		logSaveFile,
 		configurationFile,
+		p2pKeyPemFile,
 	}
 	app.Version = "v0.0.1"
 	app.Authors = []cli.Author{
@@ -186,16 +187,19 @@ func startNode(ctx *cli.Context) error {
 	if ctx.IsSet(port.Name) {
 		p2pCfg.Node.Port = ctx.GlobalString(port.Name)
 	}
-	if ctx.IsSet(p2pSeed.Name) {
-		p2pCfg.Node.Seed = ctx.GlobalString(p2pSeed.Name)
-	}
 
 	err = checkExpectedPeerCount(*p2pCfg)
 	if err != nil {
 		return err
 	}
 
-	messenger, err := createNode(*p2pCfg, internalMarshalizer)
+	p2pKeyPemFileName := ctx.GlobalString(p2pKeyPemFile.Name)
+	p2pKeyBytes, err := common.GetSkBytesFromP2pKey(p2pKeyPemFileName)
+	if err != nil {
+		return err
+	}
+
+	messenger, err := createNode(*p2pCfg, internalMarshalizer, p2pKeyBytes)
 	if err != nil {
 		return err
 	}
@@ -240,7 +244,7 @@ func loadMainConfig(filepath string) (*config.Config, error) {
 	return cfg, nil
 }
 
-func createNode(p2pConfig p2pConfig.P2PConfig, marshalizer marshal.Marshalizer) (p2p.Messenger, error) {
+func createNode(p2pConfig p2pConfig.P2PConfig, marshalizer marshal.Marshalizer, p2pKeyBytes []byte) (p2p.Messenger, error) {
 	arg := p2p.ArgsNetworkMessenger{
 		Marshalizer:           marshalizer,
 		ListenAddress:         p2p.ListenAddrWithIp4AndTcp,
@@ -250,6 +254,7 @@ func createNode(p2pConfig p2pConfig.P2PConfig, marshalizer marshal.Marshalizer) 
 		NodeOperationMode:     p2p.NormalOperation,
 		PeersRatingHandler:    disabled.NewDisabledPeersRatingHandler(),
 		ConnectionWatcherType: "disabled",
+		P2pPrivKeyBytes:       p2pKeyBytes,
 	}
 
 	return p2p.NewNetworkMessenger(arg)
