@@ -9,7 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/factory/mock"
 	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
+	p2pConfig "github.com/ElrondNetwork/elrond-go/p2p/config"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/require"
 )
@@ -60,7 +60,7 @@ func TestNetworkComponentsFactory_CreateShouldErrDueToBadConfig(t *testing.T) {
 
 	args := getNetworkArgs()
 	args.MainConfig = config.Config{}
-	args.P2pConfig = config.P2PConfig{}
+	args.P2pConfig = p2pConfig.P2PConfig{}
 
 	ncf, _ := factory.NewNetworkComponentsFactory(args)
 
@@ -77,7 +77,7 @@ func TestNetworkComponentsFactory_CreateShouldWork(t *testing.T) {
 
 	args := getNetworkArgs()
 	ncf, _ := factory.NewNetworkComponentsFactory(args)
-	ncf.SetListenAddress(libp2p.ListenLocalhostAddrWithIp4AndTcp)
+	ncf.SetListenAddress(p2p.ListenLocalhostAddrWithIp4AndTcp)
 
 	nc, err := ncf.Create()
 	require.NoError(t, err)
@@ -101,12 +101,12 @@ func TestNetworkComponents_CloseShouldWork(t *testing.T) {
 }
 
 func getNetworkArgs() factory.NetworkComponentsFactoryArgs {
-	p2pConfig := config.P2PConfig{
-		Node: config.NodeConfig{
+	p2pCfg := p2pConfig.P2PConfig{
+		Node: p2pConfig.NodeConfig{
 			Port: "0",
 			Seed: "seed",
 		},
-		KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
+		KadDhtPeerDiscovery: p2pConfig.KadDhtPeerDiscoveryConfig{
 			Enabled:                          false,
 			Type:                             "optimized",
 			RefreshIntervalInSec:             10,
@@ -115,7 +115,7 @@ func getNetworkArgs() factory.NetworkComponentsFactoryArgs {
 			BucketSize:                       10,
 			RoutingTableRefreshIntervalInSec: 5,
 		},
-		Sharding: config.ShardingConfig{
+		Sharding: p2pConfig.ShardingConfig{
 			TargetPeerCount:         10,
 			MaxIntraShardValidators: 10,
 			MaxCrossShardValidators: 10,
@@ -123,7 +123,7 @@ func getNetworkArgs() factory.NetworkComponentsFactoryArgs {
 			MaxCrossShardObservers:  10,
 			MaxSeeders:              2,
 			Type:                    "NilListSharder",
-			AdditionalConnections: config.AdditionalConnectionsConfig{
+			AdditionalConnections: p2pConfig.AdditionalConnectionsConfig{
 				MaxFullHistoryObservers: 10,
 			},
 		},
@@ -155,7 +155,7 @@ func getNetworkArgs() factory.NetworkComponentsFactoryArgs {
 	appStatusHandler := statusHandlerMock.NewAppStatusHandlerMock()
 
 	return factory.NetworkComponentsFactoryArgs{
-		P2pConfig:     p2pConfig,
+		P2pConfig:     p2pCfg,
 		MainConfig:    mainConfig,
 		StatusHandler: appStatusHandler,
 		Marshalizer:   &mock.MarshalizerMock{},
@@ -172,7 +172,7 @@ func getNetworkArgs() factory.NetworkComponentsFactoryArgs {
 				UnitValue:                    1.0,
 			},
 		},
-		Syncer:                &libp2p.LocalSyncTimer{},
+		Syncer:                &p2p.LocalSyncTimer{},
 		NodeOperationMode:     p2p.NormalOperation,
 		ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
 	}
