@@ -37,6 +37,7 @@ import (
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
+	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	vic "github.com/ElrondNetwork/elrond-go/testscommon/validatorInfoCacher"
 )
@@ -174,12 +175,12 @@ func (tcn *TestConsensusNode) initNode(
 		roundHandler,
 		cache.NewTimeCache(time.Second),
 		&mock.BlockTrackerStub{},
-		0,
+		startTime,
 	)
 
 	tcn.initResolverFinder()
 
-	testMultiSig := cryptoMocks.NewMultiSigner(uint32(consensusSize))
+	testMultiSig := cryptoMocks.NewMultiSigner()
 
 	peerSigCache, _ := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 1000})
 	peerSigHandler, _ := peerSignatureHandler.NewPeerSignatureHandler(peerSigCache, TestSingleBlsSigner, keyGen)
@@ -210,7 +211,7 @@ func (tcn *TestConsensusNode) initNode(
 	cryptoComponents.PubKey = tcn.NodeKeys.Sk.GeneratePublic()
 	cryptoComponents.BlockSig = TestSingleBlsSigner
 	cryptoComponents.TxSig = TestSingleSigner
-	cryptoComponents.MultiSig = testMultiSig
+	cryptoComponents.MultiSigContainer = cryptoMocks.NewMultiSignerContainerMock(testMultiSig)
 	cryptoComponents.BlKeyGen = keyGen
 	cryptoComponents.PeerSignHandler = peerSigHandler
 
@@ -376,7 +377,12 @@ func (tcn *TestConsensusNode) initResolverFinder() {
 }
 
 func (tcn *TestConsensusNode) initAccountsDB() {
-	trieStorage, _ := CreateTrieStorageManager(CreateMemUnit())
+	storer, _, err := stateMock.CreateTestingTriePruningStorer(tcn.ShardCoordinator, notifier.NewEpochStartSubscriptionHandler())
+	if err != nil {
+		log.Error("initAccountsDB", "error", err.Error())
+	}
+	trieStorage, _ := CreateTrieStorageManager(storer)
+
 	tcn.AccountsDB, _ = CreateAccountsDB(UserAccount, trieStorage)
 }
 

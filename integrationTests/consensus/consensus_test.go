@@ -11,7 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/factory"
+	consensusComp "github.com/ElrondNetwork/elrond-go/factory/consensus"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/process"
 	consensusMocks "github.com/ElrondNetwork/elrond-go/testscommon/consensus"
@@ -110,7 +110,7 @@ func startNodesWithCommitBlock(nodes []*integrationTests.TestConsensusNode, mute
 
 		statusComponents := integrationTests.GetDefaultStatusComponents()
 
-		consensusArgs := factory.ConsensusComponentsFactoryArgs{
+		consensusArgs := consensusComp.ConsensusComponentsFactoryArgs{
 			Config: config.Config{
 				Consensus: config.ConsensusConfig{
 					Type: blsConsensusType,
@@ -142,12 +142,12 @@ func startNodesWithCommitBlock(nodes []*integrationTests.TestConsensusNode, mute
 			IsInImportMode:      n.Node.IsInImportMode(),
 		}
 
-		consensusFactory, err := factory.NewConsensusComponentsFactory(consensusArgs)
+		consensusFactory, err := consensusComp.NewConsensusComponentsFactory(consensusArgs)
 		if err != nil {
 			return fmt.Errorf("NewConsensusComponentsFactory failed: %w", err)
 		}
 
-		managedConsensusComponents, err := factory.NewManagedConsensusComponents(consensusFactory)
+		managedConsensusComponents, err := consensusComp.NewManagedConsensusComponents(consensusFactory)
 		if err != nil {
 			return err
 		}

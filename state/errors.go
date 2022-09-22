@@ -152,3 +152,6 @@ var ErrNilBlockInfoProvider = errors.New("nil block info provider")
 
 // ErrFunctionalityNotImplemented signals that the functionality has not been implemented yet
 var ErrFunctionalityNotImplemented = errors.New("functionality not implemented yet")
+
+// ErrNilTrieSyncer signals that the trie syncer is nil
+var ErrNilTrieSyncer = errors.New("trie syncer is nil")

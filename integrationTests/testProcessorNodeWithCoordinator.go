@@ -82,7 +82,7 @@ func CreateProcessorNodesWithNodesCoordinator(
 				fmt.Println("error creating node coordinator")
 			}
 
-			multiSigner, err := createMultiSigner(*cp, shardId, i)
+			multiSigner, err := createMultiSigner(*cp)
 			if err != nil {
 				log.Error("error generating multisigner: %s\n", err)
 				return nil, 0

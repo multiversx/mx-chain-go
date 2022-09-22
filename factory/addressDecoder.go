@@ -6,7 +6,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/errors"
 )
 
-func decodeAddresses(pkConverter core.PubkeyConverter, stringAddresses []string) ([][]byte, error) {
+// DecodeAddresses will decode the provided string addresses
+func DecodeAddresses(pkConverter core.PubkeyConverter, stringAddresses []string) ([][]byte, error) {
 	if check.IfNil(pkConverter) {
 		return nil, errors.ErrNilPubKeyConverter
 	}
