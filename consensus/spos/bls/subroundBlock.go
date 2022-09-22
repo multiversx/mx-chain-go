@@ -531,7 +531,8 @@ func (sr *subroundBlock) processReceivedBlock(ctx context.Context, cnsDta *conse
 	metricStatTime := time.Now()
 	defer sr.computeSubroundProcessingMetric(metricStatTime, common.MetricProcessedProposedBlock)
 
-	_, _, err := sr.BlockProcessor().ProcessBlock(
+	var err error
+	sr.Header, sr.Body, err = sr.BlockProcessor().ProcessBlock(
 		sr.Header,
 		sr.Body,
 		remainingTimeInCurrentRound,

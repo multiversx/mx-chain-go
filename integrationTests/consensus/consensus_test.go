@@ -64,14 +64,14 @@ func initNodesAndTest(
 				header data.HeaderHandler,
 				body data.BodyHandler,
 				haveTime func() time.Duration,
-			) error {
+			) (data.HeaderHandler, data.BodyHandler, error) {
 				fmt.Println(
 					"process block invalid ",
 					header.GetRound(),
 					header.GetNonce(),
 					getPkEncoded(nodes[0][iCopy].pk),
 				)
-				return process.ErrBlockHashDoesNotMatch
+				return nil, nil, process.ErrBlockHashDoesNotMatch
 			}
 			nodes[0][i].blkProcessor.CreateBlockCalled = func(
 				header data.HeaderHandler,

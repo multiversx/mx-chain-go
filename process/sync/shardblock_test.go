@@ -109,9 +109,9 @@ func createFullStore() dataRetriever.StorageService {
 
 func createBlockProcessor(blk data.ChainHandler) *mock.BlockProcessorMock {
 	blockProcessorMock := &mock.BlockProcessorMock{
-		ProcessBlockCalled: func(hdr data.HeaderHandler, bdy data.BodyHandler, haveTime func() time.Duration) error {
+		ProcessBlockCalled: func(hdr data.HeaderHandler, bdy data.BodyHandler, haveTime func() time.Duration) (data.HeaderHandler, data.BodyHandler, error) {
 			_ = blk.SetCurrentBlockHeaderAndRootHash(hdr.(*block.Header), hdr.GetRootHash())
-			return nil
+			return hdr, bdy, nil
 		},
 		RevertCurrentBlockCalled: func() {
 		},
@@ -853,8 +853,8 @@ func TestBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testing.T
 	args.ChainHandler = blkc
 
 	blockProcessor := createBlockProcessor(args.ChainHandler)
-	blockProcessor.ProcessBlockCalled = func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
-		return process.ErrBlockHashDoesNotMatch
+	blockProcessor.ProcessBlockCalled = func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) (data.HeaderHandler, data.BodyHandler, error) {
+		return nil, nil, process.ErrBlockHashDoesNotMatch
 	}
 	args.BlockProcessor = blockProcessor
 
@@ -2060,8 +2060,8 @@ func TestShardBootstrap_SyncBlockGetNodeDBErrorShouldSync(t *testing.T) {
 
 	errGetNodeFromDB := errors.New(common.GetNodeFromDBErrorString)
 	blockProcessor := createBlockProcessor(args.ChainHandler)
-	blockProcessor.ProcessBlockCalled = func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
-		return errGetNodeFromDB
+	blockProcessor.ProcessBlockCalled = func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) (data.HeaderHandler, data.BodyHandler, error) {
+		return nil, nil, errGetNodeFromDB
 	}
 	args.BlockProcessor = blockProcessor
 
