@@ -662,14 +662,22 @@ func TestEnableEpochConfig(t *testing.T) {
 	# ESDTMetadataContinuousCleanupEnableEpoch represents the epoch when esdt metadata is automatically deleted according to inshard liquidity
 	ESDTMetadataContinuousCleanupEnableEpoch = 56
 
+    # FixAsyncCallBackArgsListEnableEpoch represents the epoch when the async callback arguments lists fix will be enabled
+    FixAsyncCallBackArgsListEnableEpoch = 57
+
 	# SetSenderInEeiOutputTransferEnableEpoch represents the epoch when setting the sender in eei output transfers will be enabled
-    SetSenderInEeiOutputTransferEnableEpoch = 57
+    SetSenderInEeiOutputTransferEnableEpoch = 58
 
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 44, MaxNumNodes = 2169, NodesToShufflePerShard = 80 },
         { EpochEnable = 45, MaxNumNodes = 3200, NodesToShufflePerShard = 80 }
     ]
+
+	BLSMultiSignerEnableEpoch = [
+		{EnableEpoch = 0, Type = "no-KOSK"},
+		{EnableEpoch = 3, Type = "KOSK"}
+	]
 
 [GasSchedule]
     GasScheduleByEpochs = [
@@ -748,8 +756,20 @@ func TestEnableEpochConfig(t *testing.T) {
 			ManagedCryptoAPIsEnableEpoch:                54,
 			HeartbeatDisableEpoch:                       55,
 			ESDTMetadataContinuousCleanupEnableEpoch:    56,
-			SetSenderInEeiOutputTransferEnableEpoch:     57,
+			FixAsyncCallBackArgsListEnableEpoch:         57,
+			SetSenderInEeiOutputTransferEnableEpoch:     58,
+			BLSMultiSignerEnableEpoch: []MultiSignerConfig{
+				{
+					EnableEpoch: 0,
+					Type:        "no-KOSK",
+				},
+				{
+					EnableEpoch: 3,
+					Type:        "KOSK",
+				},
+			},
 		},
+
 		GasSchedule: GasScheduleConfig{
 			GasScheduleByEpochs: []GasScheduleByEpochs{
 				{

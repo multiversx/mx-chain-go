@@ -47,8 +47,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart/metachain"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/epochStart/shardchain"
-	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
 	hdrFactory "github.com/ElrondNetwork/elrond-go/factory/block"
+	heartbeatComp "github.com/ElrondNetwork/elrond-go/factory/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/factory/peerSignatureHandler"
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/genesis/parsing"
@@ -109,6 +109,7 @@ import (
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
+	"github.com/ElrondNetwork/elrond-go/trie/keyBuilder"
 	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/update/trigger"
 	"github.com/ElrondNetwork/elrond-go/vm"
@@ -144,7 +145,7 @@ var TestAddressPubkeyConverter, _ = pubkeyConverter.NewBech32PubkeyConverter(32,
 var TestValidatorPubkeyConverter, _ = pubkeyConverter.NewHexPubkeyConverter(96)
 
 // TestMultiSig represents a mock multisig
-var TestMultiSig = cryptoMocks.NewMultiSigner(1)
+var TestMultiSig = cryptoMocks.NewMultiSigner()
 
 // TestKeyGenForAccounts represents a mock key generator for balances
 var TestKeyGenForAccounts = signing.NewKeyGenerator(ed25519.NewEd25519())
@@ -416,7 +417,7 @@ func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 	genericEpochNotifier := forking.NewGenericEpochNotifier()
 	epochsConfig := args.EpochsConfig
 	if epochsConfig == nil {
-		epochsConfig = getDefaultEnableEpochsConfig()
+		epochsConfig = GetDefaultEnableEpochsConfig()
 	}
 	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(*epochsConfig, genericEpochNotifier)
 
@@ -729,14 +730,13 @@ func (tpn *TestProcessorNode) createFullSCQueryService(gasMap map[string]map[str
 
 	gasSchedule := mock.NewGasScheduleNotifierMock(gasMap)
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:         gasSchedule,
-		MapDNSAddresses:     make(map[string]struct{}),
-		Marshalizer:         TestMarshalizer,
-		Accounts:            tpn.AccntState,
-		ShardCoordinator:    tpn.ShardCoordinator,
-		EpochNotifier:       tpn.EpochNotifier,
-		EnableEpochsHandler: tpn.EnableEpochsHandler,
-
+		GasSchedule:               gasSchedule,
+		MapDNSAddresses:           make(map[string]struct{}),
+		Marshalizer:               TestMarshalizer,
+		Accounts:                  tpn.AccntState,
+		ShardCoordinator:          tpn.ShardCoordinator,
+		EpochNotifier:             tpn.EpochNotifier,
+		EnableEpochsHandler:       tpn.EnableEpochsHandler,
 		MaxNumNodesInTransferRole: 100,
 	}
 	argsBuiltIn.AutomaticCrawlerAddresses = GenerateOneAddressPerShard(argsBuiltIn.ShardCoordinator)
@@ -1097,7 +1097,7 @@ func (tpn *TestProcessorNode) initInterceptors(heartbeatPk string) {
 	cryptoComponents.PubKey = nil
 	cryptoComponents.BlockSig = tpn.OwnAccount.BlockSingleSigner
 	cryptoComponents.TxSig = tpn.OwnAccount.SingleSigner
-	cryptoComponents.MultiSig = TestMultiSig
+	cryptoComponents.MultiSigContainer = cryptoMocks.NewMultiSignerContainerMock(TestMultiSig)
 	cryptoComponents.BlKeyGen = tpn.OwnAccount.KeygenBlockSign
 	cryptoComponents.TxKeyGen = tpn.OwnAccount.KeygenTxSign
 
@@ -1365,14 +1365,13 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 
 	gasSchedule := mock.NewGasScheduleNotifierMock(gasMap)
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:         gasSchedule,
-		MapDNSAddresses:     mapDNSAddresses,
-		Marshalizer:         TestMarshalizer,
-		Accounts:            tpn.AccntState,
-		ShardCoordinator:    tpn.ShardCoordinator,
-		EpochNotifier:       tpn.EpochNotifier,
-		EnableEpochsHandler: tpn.EnableEpochsHandler,
-
+		GasSchedule:               gasSchedule,
+		MapDNSAddresses:           mapDNSAddresses,
+		Marshalizer:               TestMarshalizer,
+		Accounts:                  tpn.AccntState,
+		ShardCoordinator:          tpn.ShardCoordinator,
+		EpochNotifier:             tpn.EpochNotifier,
+		EnableEpochsHandler:       tpn.EnableEpochsHandler,
 		MaxNumNodesInTransferRole: 100,
 	}
 	argsBuiltIn.AutomaticCrawlerAddresses = GenerateOneAddressPerShard(argsBuiltIn.ShardCoordinator)
@@ -1578,14 +1577,13 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 
 	gasSchedule := mock.NewGasScheduleNotifierMock(gasMap)
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:         gasSchedule,
-		MapDNSAddresses:     make(map[string]struct{}),
-		Marshalizer:         TestMarshalizer,
-		Accounts:            tpn.AccntState,
-		ShardCoordinator:    tpn.ShardCoordinator,
-		EpochNotifier:       tpn.EpochNotifier,
-		EnableEpochsHandler: tpn.EnableEpochsHandler,
-
+		GasSchedule:               gasSchedule,
+		MapDNSAddresses:           make(map[string]struct{}),
+		Marshalizer:               TestMarshalizer,
+		Accounts:                  tpn.AccntState,
+		ShardCoordinator:          tpn.ShardCoordinator,
+		EpochNotifier:             tpn.EpochNotifier,
+		EnableEpochsHandler:       tpn.EnableEpochsHandler,
 		MaxNumNodesInTransferRole: 100,
 	}
 	argsBuiltIn.AutomaticCrawlerAddresses = GenerateOneAddressPerShard(argsBuiltIn.ShardCoordinator)
@@ -2218,7 +2216,7 @@ func (tpn *TestProcessorNode) initNode() {
 	cryptoComponents.PubKey = tpn.NodeKeys.Pk
 	cryptoComponents.TxSig = tpn.OwnAccount.SingleSigner
 	cryptoComponents.BlockSig = tpn.OwnAccount.SingleSigner
-	cryptoComponents.MultiSig = tpn.MultiSigner
+	cryptoComponents.MultiSigContainer = cryptoMocks.NewMultiSignerContainerMock(tpn.MultiSigner)
 	cryptoComponents.BlKeyGen = tpn.OwnAccount.KeygenTxSign
 	cryptoComponents.TxKeyGen = TestKeyGenForAccounts
 
@@ -2396,8 +2394,7 @@ func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.Bod
 		log.Warn("blockHeader.SetPrevRandSeed", "error", err.Error())
 		return nil, nil, nil
 	}
-
-	sig, _ := TestMultiSig.AggregateSigs(nil)
+	sig := []byte("aggregated signature")
 	err = blockHeader.SetSignature(sig)
 	if err != nil {
 		log.Warn("blockHeader.SetSignature", "error", err.Error())
@@ -2763,7 +2760,7 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger() {
 	cryptoComponents.PubKey = tpn.NodeKeys.Pk
 	cryptoComponents.TxSig = tpn.OwnAccount.SingleSigner
 	cryptoComponents.BlockSig = tpn.OwnAccount.SingleSigner
-	cryptoComponents.MultiSig = tpn.MultiSigner
+	cryptoComponents.MultiSigContainer = cryptoMocks.NewMultiSignerContainerMock(tpn.MultiSigner)
 	cryptoComponents.BlKeyGen = tpn.OwnAccount.KeygenTxSign
 	cryptoComponents.TxKeyGen = TestKeyGenForAccounts
 	cryptoComponents.PeerSignHandler = psh
@@ -2816,7 +2813,7 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger() {
 		HideInactiveValidatorIntervalInSec:  600,
 	}
 
-	hbFactoryArgs := mainFactory.HeartbeatComponentsFactoryArgs{
+	hbFactoryArgs := heartbeatComp.HeartbeatComponentsFactoryArgs{
 		Config: config.Config{
 			Heartbeat: hbConfig,
 		},
@@ -2829,10 +2826,10 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger() {
 		ProcessComponents: tpn.Node.GetProcessComponents(),
 	}
 
-	heartbeatFactory, err := mainFactory.NewHeartbeatComponentsFactory(hbFactoryArgs)
+	heartbeatFactory, err := heartbeatComp.NewHeartbeatComponentsFactory(hbFactoryArgs)
 	log.LogIfError(err)
 
-	managedHeartbeatComponents, err := mainFactory.NewManagedHeartbeatComponents(heartbeatFactory)
+	managedHeartbeatComponents, err := heartbeatComp.NewManagedHeartbeatComponents(heartbeatFactory)
 	log.LogIfError(err)
 
 	err = managedHeartbeatComponents.Create()
@@ -2868,7 +2865,7 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger() {
 		},
 	}
 
-	hbv2FactoryArgs := mainFactory.ArgHeartbeatV2ComponentsFactory{
+	hbv2FactoryArgs := heartbeatComp.ArgHeartbeatV2ComponentsFactory{
 		Config: config.Config{
 			HeartbeatV2: hbv2Config,
 			Hardfork: config.HardforkConfig{
@@ -2883,10 +2880,10 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger() {
 		ProcessComponents:  tpn.Node.GetProcessComponents(),
 	}
 
-	heartbeatV2Factory, err := mainFactory.NewHeartbeatV2ComponentsFactory(hbv2FactoryArgs)
+	heartbeatV2Factory, err := heartbeatComp.NewHeartbeatV2ComponentsFactory(hbv2FactoryArgs)
 	log.LogIfError(err)
 
-	managedHeartbeatV2Components, err := mainFactory.NewManagedHeartbeatV2Components(heartbeatV2Factory)
+	managedHeartbeatV2Components, err := heartbeatComp.NewManagedHeartbeatV2Components(heartbeatV2Factory)
 	log.LogIfError(err)
 
 	err = managedHeartbeatV2Components.Create()
@@ -3067,18 +3064,18 @@ func GetDefaultDataComponents() *mock.DataComponentsStub {
 // GetDefaultCryptoComponents -
 func GetDefaultCryptoComponents() *mock.CryptoComponentsStub {
 	return &mock.CryptoComponentsStub{
-		PubKey:          &mock.PublicKeyMock{},
-		PrivKey:         &mock.PrivateKeyMock{},
-		PubKeyString:    "pubKey",
-		PrivKeyBytes:    []byte("privKey"),
-		PubKeyBytes:     []byte("pubKey"),
-		BlockSig:        &mock.SignerMock{},
-		TxSig:           &mock.SignerMock{},
-		MultiSig:        TestMultiSig,
-		PeerSignHandler: &mock.PeerSignatureHandler{},
-		BlKeyGen:        &mock.KeyGenMock{},
-		TxKeyGen:        &mock.KeyGenMock{},
-		MsgSigVerifier:  &testscommon.MessageSignVerifierMock{},
+		PubKey:            &mock.PublicKeyMock{},
+		PrivKey:           &mock.PrivateKeyMock{},
+		PubKeyString:      "pubKey",
+		PrivKeyBytes:      []byte("privKey"),
+		PubKeyBytes:       []byte("pubKey"),
+		BlockSig:          &mock.SignerMock{},
+		TxSig:             &mock.SignerMock{},
+		MultiSigContainer: cryptoMocks.NewMultiSignerContainerMock(TestMultiSig),
+		PeerSignHandler:   &mock.PeerSignatureHandler{},
+		BlKeyGen:          &mock.KeyGenMock{},
+		TxKeyGen:          &mock.KeyGenMock{},
+		MsgSigVerifier:    &testscommon.MessageSignVerifierMock{},
 	}
 }
 
@@ -3159,7 +3156,7 @@ func GetTokenIdentifier(nodes []*TestProcessorNode, ticker []byte) []byte {
 
 		rootHash, _ := userAcc.DataTrie().RootHash()
 		chLeaves := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
-		_ = userAcc.DataTrie().GetAllLeavesOnChannel(chLeaves, context.Background(), rootHash)
+		_ = userAcc.DataTrie().GetAllLeavesOnChannel(chLeaves, context.Background(), rootHash, keyBuilder.NewKeyBuilder())
 		for leaf := range chLeaves {
 			if !bytes.HasPrefix(leaf.Key(), ticker) {
 				continue
@@ -3247,7 +3244,8 @@ func getDefaultNodesCoordinator(maxShards uint32, pksBytes map[uint32][]byte) no
 	}
 }
 
-func getDefaultEnableEpochsConfig() *config.EnableEpochs {
+// GetDefaultEnableEpochsConfig returns a default EnableEpochs config
+func GetDefaultEnableEpochsConfig() *config.EnableEpochs {
 	return &config.EnableEpochs{
 		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: UnreachableEpoch,
 		ScheduledMiniBlocksEnableEpoch:              UnreachableEpoch,

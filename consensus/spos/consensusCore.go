@@ -5,6 +5,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
+	cryptoCommon "github.com/ElrondNetwork/elrond-go/common/crypto"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/ntp"
@@ -25,7 +26,7 @@ type ConsensusCore struct {
 	marshalizer                   marshal.Marshalizer
 	blsPrivateKey                 crypto.PrivateKey
 	blsSingleSigner               crypto.SingleSigner
-	multiSigner                   crypto.MultiSigner
+	multiSignerContainer          cryptoCommon.MultiSignerContainer
 	roundHandler                  consensus.RoundHandler
 	shardCoordinator              sharding.Coordinator
 	nodesCoordinator              nodesCoordinator.NodesCoordinator
@@ -37,6 +38,7 @@ type ConsensusCore struct {
 	fallbackHeaderValidator       consensus.FallbackHeaderValidator
 	nodeRedundancyHandler         consensus.NodeRedundancyHandler
 	scheduledProcessor            consensus.ScheduledProcessor
+	signatureHandler              consensus.SignatureHandler
 }
 
 // ConsensusCoreArgs store all arguments that are needed to create a ConsensusCore object
@@ -50,7 +52,7 @@ type ConsensusCoreArgs struct {
 	Marshalizer                   marshal.Marshalizer
 	BlsPrivateKey                 crypto.PrivateKey
 	BlsSingleSigner               crypto.SingleSigner
-	MultiSigner                   crypto.MultiSigner
+	MultiSignerContainer          cryptoCommon.MultiSignerContainer
 	RoundHandler                  consensus.RoundHandler
 	ShardCoordinator              sharding.Coordinator
 	NodesCoordinator              nodesCoordinator.NodesCoordinator
@@ -62,6 +64,7 @@ type ConsensusCoreArgs struct {
 	FallbackHeaderValidator       consensus.FallbackHeaderValidator
 	NodeRedundancyHandler         consensus.NodeRedundancyHandler
 	ScheduledProcessor            consensus.ScheduledProcessor
+	SignatureHandler              consensus.SignatureHandler
 }
 
 // NewConsensusCore creates a new ConsensusCore instance
@@ -78,7 +81,7 @@ func NewConsensusCore(
 		marshalizer:                   args.Marshalizer,
 		blsPrivateKey:                 args.BlsPrivateKey,
 		blsSingleSigner:               args.BlsSingleSigner,
-		multiSigner:                   args.MultiSigner,
+		multiSignerContainer:          args.MultiSignerContainer,
 		roundHandler:                  args.RoundHandler,
 		shardCoordinator:              args.ShardCoordinator,
 		nodesCoordinator:              args.NodesCoordinator,
@@ -90,6 +93,7 @@ func NewConsensusCore(
 		fallbackHeaderValidator:       args.FallbackHeaderValidator,
 		nodeRedundancyHandler:         args.NodeRedundancyHandler,
 		scheduledProcessor:            args.ScheduledProcessor,
+		signatureHandler:              args.SignatureHandler,
 	}
 
 	err := ValidateConsensusCore(consensusCore)
@@ -140,9 +144,9 @@ func (cc *ConsensusCore) Marshalizer() marshal.Marshalizer {
 	return cc.marshalizer
 }
 
-// MultiSigner gets the MultiSigner stored in the ConsensusCore
-func (cc *ConsensusCore) MultiSigner() crypto.MultiSigner {
-	return cc.multiSigner
+// MultiSignerContainer gets the MultiSignerContainer stored in the ConsensusCore
+func (cc *ConsensusCore) MultiSignerContainer() cryptoCommon.MultiSignerContainer {
+	return cc.multiSignerContainer
 }
 
 //RoundHandler gets the RoundHandler stored in the ConsensusCore
@@ -203,6 +207,11 @@ func (cc *ConsensusCore) NodeRedundancyHandler() consensus.NodeRedundancyHandler
 // ScheduledProcessor will return the scheduled processor
 func (cc *ConsensusCore) ScheduledProcessor() consensus.ScheduledProcessor {
 	return cc.scheduledProcessor
+}
+
+// SignatureHandler will return the signature handler component
+func (cc *ConsensusCore) SignatureHandler() consensus.SignatureHandler {
+	return cc.signatureHandler
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
