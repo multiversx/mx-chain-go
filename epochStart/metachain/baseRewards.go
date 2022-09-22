@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
@@ -37,9 +38,8 @@ type BaseRewardsCreatorArgs struct {
 	DataPool                      dataRetriever.PoolsHolder
 	ProtocolSustainabilityAddress string
 	NodesConfigProvider           epochStart.NodesConfigProvider
-	DelegationSystemSCEnableEpoch uint32
 	UserAccountsDB                state.AccountsAdapter
-	RewardsFix1EpochEnable        uint32
+	EnableEpochsHandler           common.EnableEpochsHandler
 }
 
 type baseRewardsCreator struct {
@@ -57,10 +57,9 @@ type baseRewardsCreator struct {
 	accumulatedRewards                 *big.Int
 	protocolSustainabilityValue        *big.Int
 	flagDelegationSystemSCEnabled      atomic.Flag //nolint
-	delegationSystemSCEnableEpoch      uint32
 	userAccountsDB                     state.AccountsAdapter
+	enableEpochsHandler                common.EnableEpochsHandler
 	mutRewardsData                     sync.RWMutex
-	rewardsFix1EnableEpoch             uint32
 }
 
 // NewBaseRewardsCreator will create a new base rewards creator instance
@@ -81,7 +80,7 @@ func NewBaseRewardsCreator(args BaseRewardsCreatorArgs) (*baseRewardsCreator, er
 		return nil, epochStart.ErrProtocolSustainabilityAddressInMetachain
 	}
 
-	currTxsCache := dataPool.NewCurrentBlockPool()
+	currTxsCache := dataPool.NewCurrentBlockTransactionsPool()
 	brc := &baseRewardsCreator{
 		currTxs:                            currTxsCache,
 		shardCoordinator:                   args.ShardCoordinator,
@@ -95,10 +94,9 @@ func NewBaseRewardsCreator(args BaseRewardsCreatorArgs) (*baseRewardsCreator, er
 		nodesConfigProvider:                args.NodesConfigProvider,
 		accumulatedRewards:                 big.NewInt(0),
 		protocolSustainabilityValue:        big.NewInt(0),
-		delegationSystemSCEnableEpoch:      args.DelegationSystemSCEnableEpoch,
 		userAccountsDB:                     args.UserAccountsDB,
 		mapBaseRewardsPerBlockPerValidator: make(map[uint32]*big.Int),
-		rewardsFix1EnableEpoch:             args.RewardsFix1EpochEnable,
+		enableEpochsHandler:                args.EnableEpochsHandler,
 	}
 
 	return brc, nil
@@ -117,13 +115,13 @@ func (brc *baseRewardsCreator) GetLocalTxCache() epochStart.TransactionCacher {
 	return brc.currTxs
 }
 
-// CreateMarshalizedData creates the marshalized data to be sent to shards
-func (brc *baseRewardsCreator) CreateMarshalizedData(body *block.Body) map[string][][]byte {
+// CreateMarshalledData creates the marshalled data to be sent to shards
+func (brc *baseRewardsCreator) CreateMarshalledData(body *block.Body) map[string][][]byte {
 	if check.IfNil(body) {
 		return nil
 	}
 
-	mrsTxs := make(map[string][][]byte)
+	marshalledRewardsTxs := make(map[string][][]byte)
 
 	for _, miniBlock := range body.MiniBlocks {
 		if miniBlock.Type != block.RewardsBlock {
@@ -135,35 +133,35 @@ func (brc *baseRewardsCreator) CreateMarshalizedData(body *block.Body) map[strin
 		}
 
 		broadcastTopic := createBroadcastTopic(brc.shardCoordinator, miniBlock.ReceiverShardID)
-		if _, ok := mrsTxs[broadcastTopic]; !ok {
-			mrsTxs[broadcastTopic] = make([][]byte, 0, len(miniBlock.TxHashes))
+		if _, ok := marshalledRewardsTxs[broadcastTopic]; !ok {
+			marshalledRewardsTxs[broadcastTopic] = make([][]byte, 0, len(miniBlock.TxHashes))
 		}
 
 		for _, txHash := range miniBlock.TxHashes {
 			rwdTx, err := brc.currTxs.GetTx(txHash)
 			if err != nil {
-				log.Error("rewardsCreator.CreateMarshalizedData.GetTx", "hash", txHash, "error", err)
+				log.Error("rewardsCreator.CreateMarshalledData.GetTx", "hash", txHash, "error", err)
 				continue
 			}
 
-			marshalizedData, err := brc.marshalizer.Marshal(rwdTx)
+			marshalledData, err := brc.marshalizer.Marshal(rwdTx)
 			if err != nil {
-				log.Error("rewardsCreator.CreateMarshalizedData.Marshal", "hash", txHash, "error", err)
+				log.Error("rewardsCreator.CreateMarshalledData.Marshal", "hash", txHash, "error", err)
 				continue
 			}
 
-			mrsTxs[broadcastTopic] = append(mrsTxs[broadcastTopic], marshalizedData)
+			marshalledRewardsTxs[broadcastTopic] = append(marshalledRewardsTxs[broadcastTopic], marshalledData)
 		}
 
-		if len(mrsTxs[broadcastTopic]) == 0 {
-			delete(mrsTxs, broadcastTopic)
+		if len(marshalledRewardsTxs[broadcastTopic]) == 0 {
+			delete(marshalledRewardsTxs, broadcastTopic)
 		}
 	}
 
-	return mrsTxs
+	return marshalledRewardsTxs
 }
 
-// GetRewardsTxs will return rewards txs MUST be called before SaveTxBlockToStorage
+// GetRewardsTxs returns rewards txs for the current block
 func (brc *baseRewardsCreator) GetRewardsTxs(body *block.Body) map[string]data.TransactionHandler {
 	rewardsTxs := make(map[string]data.TransactionHandler)
 	for _, miniBlock := range body.MiniBlocks {
@@ -184,8 +182,8 @@ func (brc *baseRewardsCreator) GetRewardsTxs(body *block.Body) map[string]data.T
 	return rewardsTxs
 }
 
-// SaveTxBlockToStorage saves created data to storage
-func (brc *baseRewardsCreator) SaveTxBlockToStorage(_ data.MetaHeaderHandler, body *block.Body) {
+// SaveBlockDataToStorage saves block data to storage
+func (brc *baseRewardsCreator) SaveBlockDataToStorage(_ data.MetaHeaderHandler, body *block.Body) {
 	if check.IfNil(body) {
 		return
 	}
@@ -219,8 +217,8 @@ func (brc *baseRewardsCreator) SaveTxBlockToStorage(_ data.MetaHeaderHandler, bo
 	}
 }
 
-// DeleteTxsFromStorage deletes data from storage
-func (brc *baseRewardsCreator) DeleteTxsFromStorage(metaBlock data.MetaHeaderHandler, body *block.Body) {
+// DeleteBlockDataFromStorage deletes block data from storage
+func (brc *baseRewardsCreator) DeleteBlockDataFromStorage(metaBlock data.MetaHeaderHandler, body *block.Body) {
 	if check.IfNil(metaBlock) || check.IfNil(body) {
 		return
 	}
@@ -242,7 +240,7 @@ func (brc *baseRewardsCreator) DeleteTxsFromStorage(metaBlock data.MetaHeaderHan
 	}
 }
 
-// RemoveBlockDataFromPools removes block info from pools
+// RemoveBlockDataFromPools removes block data from pools
 func (brc *baseRewardsCreator) RemoveBlockDataFromPools(metaBlock data.MetaHeaderHandler, body *block.Body) {
 	if check.IfNil(metaBlock) || check.IfNil(body) {
 		return
@@ -306,6 +304,9 @@ func checkBaseArgs(args BaseRewardsCreatorArgs) error {
 	}
 	if check.IfNil(args.UserAccountsDB) {
 		return epochStart.ErrNilAccountsDB
+	}
+	if check.IfNil(args.EnableEpochsHandler) {
+		return epochStart.ErrNilEnableEpochsHandler
 	}
 
 	return nil

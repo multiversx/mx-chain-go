@@ -1,13 +1,18 @@
 package cryptoMocks
 
 import (
+<<<<<<< HEAD
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
+=======
+	"bytes"
+>>>>>>> rc/v1.4.0
 )
 
 const signatureSize = 48
 
 // MultisignerMock is used to mock the multisignature scheme
 type MultisignerMock struct {
+<<<<<<< HEAD
 	aggSig  []byte
 	sigs    [][]byte
 	pubkeys []string
@@ -82,78 +87,51 @@ func (mm *MultisignerMock) SetAggregatedSig(aggSig []byte) error {
 	mm.aggSig = aggSig
 
 	return nil
+=======
+	CreateSignatureShareCalled func(privateKeyBytes []byte, message []byte) ([]byte, error)
+	VerifySignatureShareCalled func(publicKey []byte, message []byte, sig []byte) error
+	AggregateSigsCalled        func(pubKeysSigners [][]byte, signatures [][]byte) ([]byte, error)
+	VerifyAggregatedSigCalled  func(pubKeysSigners [][]byte, message []byte, aggSig []byte) error
 }
 
-// Verify -
-func (mm *MultisignerMock) Verify(msg []byte, bitmap []byte) error {
-	if mm.VerifyCalled != nil {
-		return mm.VerifyCalled(msg, bitmap)
-	}
-
-	return nil
+// NewMultiSigner -
+func NewMultiSigner() *MultisignerMock {
+	return &MultisignerMock{}
+>>>>>>> rc/v1.4.0
 }
 
-// CreateSignatureShare creates a partial signature
-func (mm *MultisignerMock) CreateSignatureShare(msg []byte, bitmap []byte) ([]byte, error) {
+// CreateSignatureShare -
+func (mm *MultisignerMock) CreateSignatureShare(privateKeyBytes []byte, message []byte) ([]byte, error) {
 	if mm.CreateSignatureShareCalled != nil {
-		return mm.CreateSignatureShareCalled(msg, bitmap)
+		return mm.CreateSignatureShareCalled(privateKeyBytes, message)
 	}
 
-	return mm.aggSig, nil
-}
-
-// StoreSignatureShare -
-func (mm *MultisignerMock) StoreSignatureShare(index uint16, sig []byte) error {
-	if mm.StoreSignatureShareCalled != nil {
-		return mm.StoreSignatureShareCalled(index, sig)
-	}
-
-	if index >= uint16(len(mm.pubkeys)) {
-		return crypto.ErrIndexOutOfBounds
-	}
-
-	mm.sigs[index] = sig
-	return nil
+	return bytes.Repeat([]byte{0xAA}, signatureSize), nil
 }
 
 // VerifySignatureShare -
-func (mm *MultisignerMock) VerifySignatureShare(index uint16, sig []byte, msg []byte, bitmap []byte) error {
+func (mm *MultisignerMock) VerifySignatureShare(publicKey []byte, message []byte, sig []byte) error {
 	if mm.VerifySignatureShareCalled != nil {
-		return mm.VerifySignatureShareCalled(index, sig, msg, bitmap)
+		return mm.VerifySignatureShareCalled(publicKey, message, sig)
 	}
-
 	return nil
 }
 
 // AggregateSigs -
-func (mm *MultisignerMock) AggregateSigs(bitmap []byte) ([]byte, error) {
+func (mm *MultisignerMock) AggregateSigs(pubKeysSigners [][]byte, signatures [][]byte) ([]byte, error) {
 	if mm.AggregateSigsCalled != nil {
-		return mm.AggregateSigsCalled(bitmap)
+		return mm.AggregateSigsCalled(pubKeysSigners, signatures)
 	}
 
-	return mm.aggSig, nil
+	return bytes.Repeat([]byte{0xAA}, signatureSize), nil
 }
 
-// SignatureShare -
-func (mm *MultisignerMock) SignatureShare(index uint16) ([]byte, error) {
-	if mm.SignatureShareCalled != nil {
-		return mm.SignatureShareCalled(index)
+// VerifyAggregatedSig -
+func (mm *MultisignerMock) VerifyAggregatedSig(pubKeysSigners [][]byte, message []byte, aggSig []byte) error {
+	if mm.VerifyAggregatedSigCalled != nil {
+		return mm.VerifyAggregatedSigCalled(pubKeysSigners, message, aggSig)
 	}
-
-	if index >= uint16(len(mm.sigs)) {
-		return nil, crypto.ErrIndexOutOfBounds
-	}
-
-	return mm.sigs[index], nil
-}
-
-// CreateAndAddSignatureShareForKey -
-func (mm *MultisignerMock) CreateAndAddSignatureShareForKey(message []byte, privateKey crypto.PrivateKey, pubKeyBytes []byte) ([]byte, error) {
-	if mm.CreateAndAddSignatureShareForKeyCalled != nil {
-		return mm.CreateAndAddSignatureShareForKeyCalled(message, privateKey, pubKeyBytes)
-	}
-
-	return nil, nil
+	return nil
 }
 
 // IsInterfaceNil -

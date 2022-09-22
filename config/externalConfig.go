@@ -21,11 +21,12 @@ type ElasticSearchConfig struct {
 
 // EventNotifierConfig will hold the configuration for the events notifier driver
 type EventNotifierConfig struct {
-	Enabled          bool
-	UseAuthorization bool
-	ProxyUrl         string
-	Username         string
-	Password         string
+	Enabled           bool
+	UseAuthorization  bool
+	ProxyUrl          string
+	Username          string
+	Password          string
+	RequestTimeoutSec int
 }
 
 // CovalentConfig will hold the configurations for covalent indexer

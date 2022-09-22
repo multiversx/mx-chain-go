@@ -23,6 +23,7 @@ type ContextFlagsConfig struct {
 	ForceStartFromNetwork        bool
 	DisableConsensusWatchdog     bool
 	SerializeSnapshots           bool
+	NoKeyProvided                bool
 }
 
 // ImportDbConfig will hold the import-db parameters

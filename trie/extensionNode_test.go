@@ -8,7 +8,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/common"
 	elrondErrors "github.com/ElrondNetwork/elrond-go/errors"
-	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
+	"github.com/ElrondNetwork/elrond-go/storage/cache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
@@ -806,7 +806,7 @@ func TestExtensionNode_loadChildren(t *testing.T) {
 	_ = tr.Update([]byte("ddog"), []byte("cat"))
 	_ = tr.root.setRootHash()
 	nodes, _ := getEncodedTrieNodesAndHashes(tr)
-	nodesCacher, _ := lrucache.NewCache(100)
+	nodesCacher, _ := cache.NewLRUCache(100)
 	for i := range nodes {
 		n, _ := NewInterceptedTrieNode(nodes[i], marsh, hasher)
 		nodesCacher.Put(n.hash, n, len(n.GetSerialized()))
@@ -902,7 +902,7 @@ func TestExtensionNode_printShouldNotPanicEvenIfNodeIsCollapsed(t *testing.T) {
 	db := testscommon.NewMemDbMock()
 	en, collapsedEn := getEnAndCollapsedEn()
 	_ = en.commitDirty(0, 5, db, db)
-	_ = collapsedEn.commitSnapshot(db, nil, context.Background(), &trieMock.MockStatistics{}, &testscommon.ProcessStatusHandlerStub{})
+	_ = collapsedEn.commitSnapshot(db, nil, nil, context.Background(), &trieMock.MockStatistics{}, &testscommon.ProcessStatusHandlerStub{})
 
 	en.print(enWriter, 0, db)
 	collapsedEn.print(collapsedEnWriter, 0, db)
@@ -915,7 +915,7 @@ func TestExtensionNode_getDirtyHashesFromCleanNode(t *testing.T) {
 
 	db := testscommon.NewMemDbMock()
 	en, _ := getEnAndCollapsedEn()
-	_ = en.commitSnapshot(db, nil, context.Background(), &trieMock.MockStatistics{}, &testscommon.ProcessStatusHandlerStub{})
+	_ = en.commitSnapshot(db, nil, nil, context.Background(), &trieMock.MockStatistics{}, &testscommon.ProcessStatusHandlerStub{})
 	dirtyHashes := make(common.ModifiedHashes)
 
 	err := en.getDirtyHashes(dirtyHashes)
@@ -940,7 +940,7 @@ func TestExtensionNode_getAllHashesResolvesCollapsed(t *testing.T) {
 	trieNodes := 5
 	db := testscommon.NewMemDbMock()
 	en, collapsedEn := getEnAndCollapsedEn()
-	_ = en.commitSnapshot(db, nil, context.Background(), &trieMock.MockStatistics{}, &testscommon.ProcessStatusHandlerStub{})
+	_ = en.commitSnapshot(db, nil, nil, context.Background(), &trieMock.MockStatistics{}, &testscommon.ProcessStatusHandlerStub{})
 
 	hashes, err := collapsedEn.getAllHashes(db)
 	assert.Nil(t, err)
@@ -1025,7 +1025,7 @@ func TestExtensionNode_commitContextDone(t *testing.T) {
 	err := en.commitCheckpoint(db, db, nil, nil, ctx, &trieMock.MockStatistics{}, &testscommon.ProcessStatusHandlerStub{})
 	assert.Equal(t, elrondErrors.ErrContextClosing, err)
 
-	err = en.commitSnapshot(db, nil, ctx, &trieMock.MockStatistics{}, &testscommon.ProcessStatusHandlerStub{})
+	err = en.commitSnapshot(db, nil, nil, ctx, &trieMock.MockStatistics{}, &testscommon.ProcessStatusHandlerStub{})
 	assert.Equal(t, elrondErrors.ErrContextClosing, err)
 }
 

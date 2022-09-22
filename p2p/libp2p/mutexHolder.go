@@ -4,7 +4,7 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
+	"github.com/ElrondNetwork/elrond-go/storage/cache"
 )
 
 // MutexHolder holds a cache of mutexes: pairs of (key, *sync.Mutex)
@@ -18,7 +18,7 @@ type MutexHolder struct {
 func NewMutexHolder(mutexesCapacity int) (*MutexHolder, error) {
 	mh := &MutexHolder{}
 	var err error
-	mh.mutexes, err = lrucache.NewCache(mutexesCapacity)
+	mh.mutexes, err = cache.NewLRUCache(mutexesCapacity)
 	if err != nil {
 		return nil, err
 	}
