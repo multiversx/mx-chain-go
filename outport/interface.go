@@ -14,7 +14,7 @@ type Driver interface {
 	SaveRoundsInfo(roundsInfos []*outportcore.RoundInfo) error
 	SaveValidatorsPubKeys(validatorsPubKeys map[uint32][][]byte, epoch uint32) error
 	SaveValidatorsRating(indexID string, infoRating []*outportcore.ValidatorRatingInfo) error
-	SaveAccounts(blockTimestamp uint64, acc map[string]*outportcore.AlteredAccount) error
+	SaveAccounts(blockTimestamp uint64, acc map[string]*outportcore.AlteredAccount, shardID uint32) error
 	FinalizedBlock(headerHash []byte) error
 	Close() error
 	IsInterfaceNil() bool
@@ -28,7 +28,7 @@ type OutportHandler interface {
 	SaveRoundsInfo(roundsInfos []*outportcore.RoundInfo)
 	SaveValidatorsPubKeys(validatorsPubKeys map[uint32][][]byte, epoch uint32)
 	SaveValidatorsRating(indexID string, infoRating []*outportcore.ValidatorRatingInfo)
-	SaveAccounts(blockTimestamp uint64, acc map[string]*outportcore.AlteredAccount)
+	SaveAccounts(blockTimestamp uint64, acc map[string]*outportcore.AlteredAccount, shardID uint32)
 	FinalizedBlock(headerHash []byte)
 	SubscribeDriver(driver Driver) error
 	HasDrivers() bool

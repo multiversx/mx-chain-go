@@ -63,7 +63,7 @@ func (d *DriverStub) SaveValidatorsRating(indexID string, infoRating []*outportc
 }
 
 // SaveAccounts -
-func (d *DriverStub) SaveAccounts(timestamp uint64, acc map[string]*outportcore.AlteredAccount) error {
+func (d *DriverStub) SaveAccounts(timestamp uint64, acc map[string]*outportcore.AlteredAccount, _ uint32) error {
 	if d.SaveAccountsCalled != nil {
 		return d.SaveAccountsCalled(timestamp, acc)
 	}

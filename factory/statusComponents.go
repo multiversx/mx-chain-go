@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	covalentFactory "github.com/ElrondNetwork/covalent-indexer-go/factory"
-	indexerFactory "github.com/ElrondNetwork/elastic-indexer-go/factory"
+	indexerFactory "github.com/ElrondNetwork/elastic-indexer-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	nodeData "github.com/ElrondNetwork/elrond-go-core/data"
@@ -234,7 +234,6 @@ func (scf *statusComponentsFactory) makeElasticIndexerArgs() *indexerFactory.Arg
 		Enabled:                  elasticSearchConfig.Enabled,
 		IndexerCacheSize:         elasticSearchConfig.IndexerCacheSize,
 		BulkRequestMaxSize:       elasticSearchConfig.BulkRequestMaxSizeInBytes,
-		ShardCoordinator:         scf.shardCoordinator,
 		Url:                      elasticSearchConfig.URL,
 		UserName:                 elasticSearchConfig.Username,
 		Password:                 elasticSearchConfig.Password,
@@ -245,7 +244,6 @@ func (scf *statusComponentsFactory) makeElasticIndexerArgs() *indexerFactory.Arg
 		EnabledIndexes:           elasticSearchConfig.EnabledIndexes,
 		Denomination:             scf.economicsConfig.GlobalSettings.Denomination,
 		UseKibana:                elasticSearchConfig.UseKibana,
-		IsInImportDBMode:         scf.isInImportMode,
 	}
 }
 

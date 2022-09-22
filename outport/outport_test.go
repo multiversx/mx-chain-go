@@ -54,11 +54,11 @@ func TestOutport_SaveAccounts(t *testing.T) {
 		},
 	}
 	outportHandler, _ := NewOutport(minimumRetrialInterval)
-	outportHandler.SaveAccounts(0, map[string]*outportcore.AlteredAccount{})
+	outportHandler.SaveAccounts(0, map[string]*outportcore.AlteredAccount{}, 0)
 	_ = outportHandler.SubscribeDriver(driver1)
 	_ = outportHandler.SubscribeDriver(driver2)
 
-	outportHandler.SaveAccounts(0, map[string]*outportcore.AlteredAccount{})
+	outportHandler.SaveAccounts(0, map[string]*outportcore.AlteredAccount{}, 0)
 	assert.Equal(t, 10, numCalled1)
 	assert.Equal(t, 1, numCalled2)
 }
@@ -340,7 +340,7 @@ func TestOutport_CloseWhileDriverIsStuckInContinuousErrors(t *testing.T) {
 	wg := &sync.WaitGroup{}
 	wg.Add(9)
 	go func() {
-		outportHandler.SaveAccounts(0, nil)
+		outportHandler.SaveAccounts(0, nil, 0)
 		wg.Done()
 	}()
 	go func() {
@@ -364,7 +364,7 @@ func TestOutport_CloseWhileDriverIsStuckInContinuousErrors(t *testing.T) {
 		wg.Done()
 	}()
 	go func() {
-		outportHandler.SaveAccounts(0, nil)
+		outportHandler.SaveAccounts(0, nil, 0)
 		wg.Done()
 	}()
 	go func() {

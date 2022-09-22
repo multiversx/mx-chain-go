@@ -196,7 +196,7 @@ func TestMockFunctions(t *testing.T) {
 	err = en.SaveValidatorsPubKeys(nil, 0)
 	require.Nil(t, err)
 
-	err = en.SaveAccounts(0, nil)
+	err = en.SaveAccounts(0, nil, 0)
 	require.Nil(t, err)
 
 	err = en.Close()

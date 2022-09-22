@@ -892,7 +892,8 @@ func (pcf *processComponentsFactory) indexAndReturnGenesisAccounts() (map[string
 		}
 	}
 
-	pcf.statusComponents.OutportHandler().SaveAccounts(uint64(pcf.coreData.GenesisNodesSetup().GetStartTime()), genesisAccounts)
+	shardID := pcf.bootstrapComponents.ShardCoordinator().SelfId()
+	pcf.statusComponents.OutportHandler().SaveAccounts(uint64(pcf.coreData.GenesisNodesSetup().GetStartTime()), genesisAccounts, shardID)
 	return genesisAccounts, nil
 }
 
