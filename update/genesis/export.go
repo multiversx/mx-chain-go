@@ -20,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/trie/keyBuilder"
 	"github.com/ElrondNetwork/elrond-go/update"
 )
 
@@ -293,7 +294,7 @@ func (se *stateExport) exportTrie(key string, trie common.Trie) error {
 	}
 
 	leavesChannel := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
-	err = trie.GetAllLeavesOnChannel(leavesChannel, context.Background(), rootHash)
+	err = trie.GetAllLeavesOnChannel(leavesChannel, context.Background(), rootHash, keyBuilder.NewKeyBuilder())
 	if err != nil {
 		return err
 	}

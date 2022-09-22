@@ -2749,6 +2749,10 @@ func TestScProcessor_CreateCrossShardTransactionsWithAsyncCalls(t *testing.T) {
 	}
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
 	arguments := createMockSmartContractProcessorArguments()
+	enableEpochsHandler := &testscommon.EnableEpochsHandlerStub{
+		IsFixAsyncCallBackArgsListFlagEnabledField: false,
+	}
+	arguments.EnableEpochsHandler = enableEpochsHandler
 	arguments.AccountsDB = accountsDB
 	arguments.ShardCoordinator = shardCoordinator
 	sc, err := NewSmartContractProcessor(arguments)
@@ -2797,9 +2801,23 @@ func TestScProcessor_CreateCrossShardTransactionsWithAsyncCalls(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, len(outputAccounts), len(scTxs))
 	require.True(t, createdAsyncSCR)
-
 	lastScTx := scTxs[len(scTxs)-1].(*smartContractResult.SmartContractResult)
-	require.Equal(t, vmData.AsynchronousCallBack, lastScTx.CallType)
+
+	t.Run("backwards compatibility", func(t *testing.T) {
+		require.Equal(t, vmData.AsynchronousCallBack, lastScTx.CallType)
+		require.Equal(t, []byte(nil), lastScTx.Data)
+	})
+	enableEpochsHandler.IsFixAsyncCallBackArgsListFlagEnabledField = true
+
+	_, scTxs, err = sc.processSCOutputAccounts(&vmcommon.VMOutput{GasRemaining: 1000}, vmData.AsynchronousCall, outputAccounts, tx, txHash)
+	require.Nil(t, err)
+	require.Equal(t, len(outputAccounts), len(scTxs))
+	require.True(t, createdAsyncSCR)
+	lastScTx = scTxs[len(scTxs)-1].(*smartContractResult.SmartContractResult)
+	t.Run("fix enabled, data field is correctly populated", func(t *testing.T) {
+		require.Equal(t, vmData.AsynchronousCallBack, lastScTx.CallType)
+		require.Equal(t, []byte("@"+core.ConvertToEvenHex(int(vmcommon.Ok))), lastScTx.Data)
+	})
 
 	tx.Value = big.NewInt(0)
 	scTxs, err = sc.processVMOutput(&vmcommon.VMOutput{GasRemaining: 1000}, txHash, tx, vmData.AsynchronousCall, 10000)

@@ -25,7 +25,7 @@ func (mm *MultisignerMock) CreateSignatureShare(privateKeyBytes []byte, message 
 		return mm.CreateSignatureShareCalled(privateKeyBytes, message)
 	}
 
-	return bytes.Repeat([]byte("0xAA"), signatureSize), nil
+	return bytes.Repeat([]byte{0xAA}, signatureSize), nil
 }
 
 // VerifySignatureShare -
@@ -42,7 +42,7 @@ func (mm *MultisignerMock) AggregateSigs(pubKeysSigners [][]byte, signatures [][
 		return mm.AggregateSigsCalled(pubKeysSigners, signatures)
 	}
 
-	return bytes.Repeat([]byte("0xAA"), signatureSize), nil
+	return bytes.Repeat([]byte{0xAA}, signatureSize), nil
 }
 
 // VerifyAggregatedSig -

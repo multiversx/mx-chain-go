@@ -41,6 +41,7 @@ import (
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
 	"github.com/ElrondNetwork/elrond-go/trie/factory"
+	"github.com/ElrondNetwork/elrond-go/trie/storageMarker"
 	"github.com/ElrondNetwork/elrond-go/update"
 	updateSync "github.com/ElrondNetwork/elrond-go/update/sync"
 )
@@ -1044,6 +1045,7 @@ func (e *epochStartBootstrap) syncUserAccountsState(rootHash []byte) error {
 			MaxHardCapForMissingNodes: e.maxHardCapForMissingNodes,
 			TrieSyncerVersion:         e.trieSyncerVersion,
 			CheckNodesOnDisk:          e.checkNodesOnDisk,
+			StorageMarker:             storageMarker.NewTrieStorageMarker(),
 		},
 		ShardId:                e.shardCoordinator.SelfId(),
 		Throttler:              thr,
@@ -1109,6 +1111,7 @@ func (e *epochStartBootstrap) syncValidatorAccountsState(rootHash []byte) error 
 			MaxHardCapForMissingNodes: e.maxHardCapForMissingNodes,
 			TrieSyncerVersion:         e.trieSyncerVersion,
 			CheckNodesOnDisk:          e.checkNodesOnDisk,
+			StorageMarker:             storageMarker.NewTrieStorageMarker(),
 		},
 	}
 	accountsDBSyncer, err := syncer.NewValidatorAccountsSyncer(argsValidatorAccountsSyncer)
