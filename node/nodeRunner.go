@@ -1393,6 +1393,7 @@ func (nr *nodeRunner) CreateManagedNetworkComponents(
 		BootstrapWaitTime:     common.TimeToWaitForP2PBootstrap,
 		NodeOperationMode:     p2p.NormalOperation,
 		ConnectionWatcherType: nr.configs.PreferencesConfig.Preferences.ConnectionWatcherType,
+		P2pKeyPemFileName:     nr.configs.ConfigurationPathsHolder.P2pKey,
 	}
 	if nr.configs.ImportDbConfig.IsImportDBMode {
 		networkComponentsFactoryArgs.BootstrapWaitTime = 0
