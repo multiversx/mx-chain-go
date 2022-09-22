@@ -164,31 +164,6 @@ func CreateMessengerWithKadDht(initialAddr string) p2p.Messenger {
 	return libP2PMes
 }
 
-// CreateMessengerWithKadDhtAndProtocolID creates a new libp2p messenger with kad-dht peer discovery and peer ID
-func CreateMessengerWithKadDhtAndProtocolID(initialAddr string, protocolID string) p2p.Messenger {
-	initialAddresses := make([]string, 0)
-	if len(initialAddr) > 0 {
-		initialAddresses = append(initialAddresses, initialAddr)
-	}
-	p2pCfg := createP2PConfig(initialAddresses)
-	p2pCfg.KadDhtPeerDiscovery.ProtocolID = protocolID
-	arg := p2p.ArgsNetworkMessenger{
-		Marshalizer:           TestMarshalizer,
-		ListenAddress:         p2p.ListenLocalhostAddrWithIp4AndTcp,
-		P2pConfig:             p2pCfg,
-		SyncTimer:             &p2p.LocalSyncTimer{},
-		PreferredPeersHolder:  &p2pmocks.PeersHolderStub{},
-		NodeOperationMode:     p2p.NormalOperation,
-		PeersRatingHandler:    &p2pmocks.PeersRatingHandlerStub{},
-		ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
-	}
-
-	libP2PMes, err := p2p.NewNetworkMessenger(arg)
-	log.LogIfError(err)
-
-	return libP2PMes
-}
-
 // CreateMessengerFromConfig creates a new libp2p messenger with provided configuration
 func CreateMessengerFromConfig(p2pConfig p2pConfig.P2PConfig) p2p.Messenger {
 	arg := p2p.ArgsNetworkMessenger{
@@ -2183,20 +2158,6 @@ func ProposeAndSyncOneBlock(
 	nonce++
 
 	return round, nonce
-}
-
-// WaitForBootstrapAndShowConnected will delay a given duration in order to wait for bootstraping  and print the
-// number of peers that each node is connected to
-func WaitForBootstrapAndShowConnected(peers []p2p.Messenger, durationBootstrapingTime time.Duration) {
-	log.Info("Waiting for peer discovery...", "time", durationBootstrapingTime)
-	time.Sleep(durationBootstrapingTime)
-
-	strs := []string{"Connected peers:"}
-	for _, peer := range peers {
-		strs = append(strs, fmt.Sprintf("Peer %s is connected to %d peers", peer.ID().Pretty(), len(peer.ConnectedPeers())))
-	}
-
-	log.Info(strings.Join(strs, "\n"))
 }
 
 // PubKeysMapFromKeysMap returns a map of public keys per shard from the key pairs per shard map.
