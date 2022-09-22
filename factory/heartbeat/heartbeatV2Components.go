@@ -1,6 +1,7 @@
 package heartbeat
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -113,6 +114,11 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 		}
 	}
 
+	cfg := hcf.config.HeartbeatV2
+	if cfg.HeartbeatExpiryTimespanInSec <= cfg.PeerAuthenticationTimeBetweenSendsInSec {
+		return nil, fmt.Errorf("%w, HeartbeatExpiryTimespanInSec must be greater than PeerAuthenticationTimeBetweenSendsInSec", errors.ErrInvalidHeartbeatV2Config)
+	}
+
 	peerSubType := core.RegularPeer
 	if hcf.prefs.Preferences.FullArchive {
 		peerSubType = core.FullHistoryObserver
@@ -120,8 +126,6 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 
 	shardC := hcf.boostrapComponents.ShardCoordinator()
 	heartbeatTopic := common.HeartbeatV2Topic + shardC.CommunicationIdentifier(shardC.SelfId())
-
-	cfg := hcf.config.HeartbeatV2
 
 	argPeerTypeProvider := peer.ArgPeerTypeProvider{
 		NodesCoordinator:        hcf.processComponents.NodesCoordinator(),
