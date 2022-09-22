@@ -127,7 +127,7 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 		return nil, err
 	}
 
-	p2pPrivKeyBytes, err := common.GetSkBytesFromP2pKey(ncf.p2pKeyPemFileName)
+	p2pPrivateKeyBytes, err := common.GetSkBytesFromP2pKey(ncf.p2pKeyPemFileName)
 	if err != nil {
 		return nil, err
 	}
@@ -141,7 +141,7 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 		NodeOperationMode:     ncf.nodeOperationMode,
 		PeersRatingHandler:    peersRatingHandler,
 		ConnectionWatcherType: ncf.connectionWatcherType,
-		P2pPrivKeyBytes:       p2pPrivKeyBytes,
+		P2pPrivateKeyBytes:    p2pPrivateKeyBytes,
 	}
 	netMessenger, err := p2p.NewNetworkMessenger(arg)
 	if err != nil {

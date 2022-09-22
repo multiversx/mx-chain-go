@@ -254,7 +254,7 @@ func createNode(p2pConfig p2pConfig.P2PConfig, marshalizer marshal.Marshalizer, 
 		NodeOperationMode:     p2p.NormalOperation,
 		PeersRatingHandler:    disabled.NewDisabledPeersRatingHandler(),
 		ConnectionWatcherType: "disabled",
-		P2pPrivKeyBytes:       p2pKeyBytes,
+		P2pPrivateKeyBytes:    p2pKeyBytes,
 	}
 
 	return p2p.NewNetworkMessenger(arg)
