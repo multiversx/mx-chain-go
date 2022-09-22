@@ -9,9 +9,9 @@ require (
 	github.com/ElrondNetwork/covalent-indexer-go v1.0.6
 	github.com/ElrondNetwork/elastic-indexer-go v1.2.41
 	github.com/ElrondNetwork/elrond-go-core v1.1.19
-	github.com/ElrondNetwork/elrond-go-crypto v1.0.1
+	github.com/ElrondNetwork/elrond-go-crypto v1.2.1
 	github.com/ElrondNetwork/elrond-go-logger v1.0.7
-	github.com/ElrondNetwork/elrond-go-p2p v0.0.0-20220921135804-d7d1df508584
+	github.com/ElrondNetwork/elrond-go-p2p v0.0.0-20220922154302-6ae387450717
 	github.com/ElrondNetwork/elrond-go-storage v1.0.1
 	github.com/ElrondNetwork/elrond-vm-common v1.3.17
 	github.com/beevik/ntp v0.3.0
@@ -24,6 +24,7 @@ require (
 	github.com/gogo/protobuf v1.3.2
 	github.com/google/gops v0.3.18
 	github.com/gorilla/websocket v1.5.0
+	github.com/libp2p/go-libp2p-core v0.15.1
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/pelletier/go-toml v1.9.3
 	github.com/pkg/errors v0.9.1

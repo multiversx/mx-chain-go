@@ -267,6 +267,12 @@ type MaxNodesChangeConfig struct {
 	NodesToShufflePerShard uint32
 }
 
+// MultiSignerConfig defines a config tuple for a BLS multi-signer that activates in a certain epoch
+type MultiSignerConfig struct {
+	EnableEpoch uint32
+	Type        string
+}
+
 // GeneralSettingsConfig will hold the general settings for a node
 type GeneralSettingsConfig struct {
 	StatusPollingIntervalSec             int
@@ -589,6 +595,7 @@ type ConfigurationPathsHolder struct {
 	ValidatorKey             string
 	Epoch                    string
 	RoundActivation          string
+	P2pKey                   string
 }
 
 // TrieSyncConfig represents the trie synchronization configuration area

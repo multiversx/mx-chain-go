@@ -77,6 +77,9 @@ var ErrNilBlockTracker = errors.New("trying to set nil block tracker")
 // ErrNilBootStorer signals that the provided boot storer is nil
 var ErrNilBootStorer = errors.New("nil boot storer")
 
+// ErrNilBootstrapComponents signals that the provided instance of bootstrap components is nil
+var ErrNilBootstrapComponents = errors.New("nil bootstrap components")
+
 // ErrNilBootstrapComponentsHolder signals that the provided bootstrap components holder is nil
 var ErrNilBootstrapComponentsHolder = errors.New("nil bootstrap components holder")
 
@@ -478,3 +481,36 @@ var ErrNilProcessStatusHandler = errors.New("nil process status handler")
 
 // ErrNilEnableEpochsHandler signals that a nil enable epochs handler was provided
 var ErrNilEnableEpochsHandler = errors.New("nil enable epochs handler")
+
+// ErrSignerNotSupported signals that a not supported signer was provided
+var ErrSignerNotSupported = errors.New("signer not supported")
+
+// ErrMissingMultiSignerConfig signals that the multisigner config is missing
+var ErrMissingMultiSignerConfig = errors.New("multisigner configuration missing")
+
+// ErrMissingMultiSigner signals that there is no multisigner instance available
+var ErrMissingMultiSigner = errors.New("multisigner instance missing")
+
+// ErrMissingEpochZeroMultiSignerConfig signals that the multisigner config for epoch zero is missing
+var ErrMissingEpochZeroMultiSignerConfig = errors.New("multisigner configuration missing for epoch zero")
+
+// ErrNilMultiSignerContainer signals that the multisigner container is nil
+var ErrNilMultiSignerContainer = errors.New("multisigner container is nil")
+
+// ErrNilCacher signals that a nil cacher has been provided
+var ErrNilCacher = errors.New("nil cacher")
+
+// ErrNilSingleSigner is raised when a valid singleSigner is expected but nil used
+var ErrNilSingleSigner = errors.New("singleSigner is nil")
+
+// ErrPIDMismatch signals that the pid from the message is different from the cached pid associated to a certain pk
+var ErrPIDMismatch = errors.New("pid mismatch")
+
+// ErrSignatureMismatch signals that the signature from the message is different from the cached signature associated to a certain pk
+var ErrSignatureMismatch = errors.New("signature mismatch")
+
+// ErrInvalidPID signals that given PID is invalid
+var ErrInvalidPID = errors.New("invalid PID")
+
+// ErrInvalidSignature signals that the given signature is invalid
+var ErrInvalidSignature = errors.New("invalid signature")
