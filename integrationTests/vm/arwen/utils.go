@@ -38,7 +38,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract/processorV2"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/processProxy"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/scrCommon"
 	"github.com/ElrondNetwork/elrond-go/process/sync/disabled"
 	processTransaction "github.com/ElrondNetwork/elrond-go/process/transaction"
@@ -355,16 +355,7 @@ func (context *TestContext) initTxProcessorWithOneSCExecutorWithVMs() {
 		VMOutputCacher:      txcache.NewDisabledCache(),
 	}
 
-	if context.EnableEpochsHandler.IsSCProcessorV2FlagEnabled() {
-		sc, _ := processorV2.NewSmartContractProcessorV2(argsNewSCProcessor)
-		context.ScProcessor = processorV2.NewTestScProcessor(sc)
-	} else {
-		sc, _ := smartContract.NewSmartContractProcessor(argsNewSCProcessor)
-		context.ScProcessor = smartContract.NewTestScProcessor(sc)
-	}
-
-	sc, err := smartContract.NewSmartContractProcessor(argsNewSCProcessor)
-	context.ScProcessor = smartContract.NewTestScProcessor(sc)
+	context.ScProcessor, _ = processProxy.NewSmartContractProcessorProxy(argsNewSCProcessor, context.EpochNotifier)
 	require.Nil(context.T, err)
 
 	argsNewTxProcessor := processTransaction.ArgsNewTxProcessor{

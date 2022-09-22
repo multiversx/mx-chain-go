@@ -57,38 +57,17 @@ const (
 var zero = big.NewInt(0)
 
 type scProcessor struct {
-	accounts                                    state.AccountsAdapter
-	blockChainHook                              process.BlockChainHookHandler
-	pubkeyConv                                  core.PubkeyConverter
-	hasher                                      hashing.Hasher
-	marshalizer                                 marshal.Marshalizer
-	shardCoordinator                            sharding.Coordinator
-	vmContainer                                 process.VirtualMachinesContainer
-	argsParser                                  process.ArgumentsParser
-	esdtTransferParser                          vmcommon.ESDTTransferParser
-	builtInFunctions                            vmcommon.BuiltInFunctionContainer
-	deployEnableEpoch                           uint32
-	builtinEnableEpoch                          uint32
-	penalizedTooMuchGasEnableEpoch              uint32
-	repairCallBackEnableEpoch                   uint32
-	stakingV2EnableEpoch                        uint32
-	returnDataToLastTransferEnableEpoch         uint32
-	senderInOutTransferEnableEpoch              uint32
-	incrementSCRNonceInMultiTransferEnableEpoch uint32
-	builtInFunctionOnMetachainEnableEpoch       uint32
-	scrSizeInvariantCheckEnableEpoch            uint32
-	backwardCompSaveKeyValueEnableEpoch         uint32
-	createdCallBackCrossShardOnlyEnableEpoch    uint32
-	optimizeGasUsedInCrossMiniBlocksEnableEpoch uint32
-	saveKeyValueUnderProtectedErrorEnableEpoch  uint32
-	optimizeNFTStoreEnableEpoch                 uint32
-	cleanUpInformativeSCRsEnableEpoch           uint32
-	isPayableBySCEnableEpoch                    uint32
-	fixCodeMetadataOnUpgradeContract            uint32
-	scrSizeInvariantOnBuiltInResultEnableEpoch  uint32
-	deleteWrongArgAsyncAfterBuiltInEnableEpoch  uint32
-	fixAsyncCallBackArgParserEnableEpoch        uint32
-	arwenChangeLocker                           common.Locker
+	accounts           state.AccountsAdapter
+	blockChainHook     process.BlockChainHookHandler
+	pubkeyConv         core.PubkeyConverter
+	hasher             hashing.Hasher
+	marshalizer        marshal.Marshalizer
+	shardCoordinator   sharding.Coordinator
+	vmContainer        process.VirtualMachinesContainer
+	argsParser         process.ArgumentsParser
+	esdtTransferParser vmcommon.ESDTTransferParser
+	builtInFunctions   vmcommon.BuiltInFunctionContainer
+	arwenChangeLocker  common.Locker
 
 	badTxForwarder process.IntermediateTransactionHandler
 	scrForwarder   process.IntermediateTransactionHandler
@@ -169,49 +148,28 @@ func NewSmartContractProcessorV2(args scrCommon.ArgsNewSmartContractProcessor) (
 	builtInFuncCost := args.GasSchedule.LatestGasSchedule()[common.BuiltInCost]
 	baseOperationCost := args.GasSchedule.LatestGasSchedule()[common.BaseOperationCost]
 	sc := &scProcessor{
-		vmContainer:                           args.VmContainer,
-		argsParser:                            args.ArgsParser,
-		hasher:                                args.Hasher,
-		marshalizer:                           args.Marshalizer,
-		accounts:                              args.AccountsDB,
-		blockChainHook:                        args.BlockChainHook,
-		pubkeyConv:                            args.PubkeyConv,
-		shardCoordinator:                      args.ShardCoordinator,
-		scrForwarder:                          args.ScrForwarder,
-		txFeeHandler:                          args.TxFeeHandler,
-		economicsFee:                          args.EconomicsFee,
-		txTypeHandler:                         args.TxTypeHandler,
-		gasHandler:                            args.GasHandler,
-		builtInGasCosts:                       builtInFuncCost,
-		txLogsProcessor:                       args.TxLogsProcessor,
-		badTxForwarder:                        args.BadTxForwarder,
-		builtInFunctions:                      args.BuiltInFunctions,
-		deployEnableEpoch:                     args.EnableEpochs.SCDeployEnableEpoch,
-		builtinEnableEpoch:                    args.EnableEpochs.BuiltInFunctionsEnableEpoch,
-		repairCallBackEnableEpoch:             args.EnableEpochs.RepairCallbackEnableEpoch,
-		penalizedTooMuchGasEnableEpoch:        args.EnableEpochs.PenalizedTooMuchGasEnableEpoch,
-		isGenesisProcessing:                   args.IsGenesisProcessing,
-		stakingV2EnableEpoch:                  args.EnableEpochs.StakingV2EnableEpoch,
-		returnDataToLastTransferEnableEpoch:   args.EnableEpochs.ReturnDataToLastTransferEnableEpoch,
-		senderInOutTransferEnableEpoch:        args.EnableEpochs.SenderInOutTransferEnableEpoch,
-		builtInFunctionOnMetachainEnableEpoch: args.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch,
-		scrSizeInvariantCheckEnableEpoch:      args.EnableEpochs.SCRSizeInvariantCheckEnableEpoch,
-		backwardCompSaveKeyValueEnableEpoch:   args.EnableEpochs.BackwardCompSaveKeyValueEnableEpoch,
-		arwenChangeLocker:                     args.ArwenChangeLocker,
-		vmOutputCacher:                        args.VMOutputCacher,
-		storePerByte:                          baseOperationCost["StorePerByte"],
-		persistPerByte:                        baseOperationCost["PersistPerByte"],
-		incrementSCRNonceInMultiTransferEnableEpoch: args.EnableEpochs.IncrementSCRNonceInMultiTransferEnableEpoch,
-		createdCallBackCrossShardOnlyEnableEpoch:    args.EnableEpochs.MultiESDTTransferFixOnCallBackOnEnableEpoch,
-		optimizeGasUsedInCrossMiniBlocksEnableEpoch: args.EnableEpochs.OptimizeGasUsedInCrossMiniBlocksEnableEpoch,
-		saveKeyValueUnderProtectedErrorEnableEpoch:  args.EnableEpochs.RemoveNonUpdatedStorageEnableEpoch,
-		optimizeNFTStoreEnableEpoch:                 args.EnableEpochs.OptimizeNFTStoreEnableEpoch,
-		cleanUpInformativeSCRsEnableEpoch:           args.EnableEpochs.CleanUpInformativeSCRsEnableEpoch,
-		isPayableBySCEnableEpoch:                    args.EnableEpochs.IsPayableBySCEnableEpoch,
-		fixCodeMetadataOnUpgradeContract:            args.EnableEpochs.IsPayableBySCEnableEpoch,
-		scrSizeInvariantOnBuiltInResultEnableEpoch:  args.EnableEpochs.SCRSizeInvariantOnBuiltInResultEnableEpoch,
-		deleteWrongArgAsyncAfterBuiltInEnableEpoch:  args.EnableEpochs.ManagedCryptoAPIsEnableEpoch,
-		fixAsyncCallBackArgParserEnableEpoch:        args.EnableEpochs.ESDTMetadataContinuousCleanupEnableEpoch,
+		vmContainer:         args.VmContainer,
+		argsParser:          args.ArgsParser,
+		hasher:              args.Hasher,
+		marshalizer:         args.Marshalizer,
+		accounts:            args.AccountsDB,
+		blockChainHook:      args.BlockChainHook,
+		pubkeyConv:          args.PubkeyConv,
+		shardCoordinator:    args.ShardCoordinator,
+		scrForwarder:        args.ScrForwarder,
+		txFeeHandler:        args.TxFeeHandler,
+		economicsFee:        args.EconomicsFee,
+		txTypeHandler:       args.TxTypeHandler,
+		gasHandler:          args.GasHandler,
+		builtInGasCosts:     builtInFuncCost,
+		txLogsProcessor:     args.TxLogsProcessor,
+		badTxForwarder:      args.BadTxForwarder,
+		builtInFunctions:    args.BuiltInFunctions,
+		isGenesisProcessing: args.IsGenesisProcessing,
+		arwenChangeLocker:   args.ArwenChangeLocker,
+		vmOutputCacher:      args.VMOutputCacher,
+		storePerByte:        baseOperationCost["StorePerByte"],
+		persistPerByte:      baseOperationCost["PersistPerByte"],
 	}
 
 	var err error
@@ -219,25 +177,6 @@ func NewSmartContractProcessorV2(args scrCommon.ArgsNewSmartContractProcessor) (
 	if err != nil {
 		return nil, err
 	}
-
-	log.Debug("smartContract/process: enable epoch for sc deploy", "epoch", sc.deployEnableEpoch)
-	log.Debug("smartContract/process: enable epoch for built in functions", "epoch", sc.builtinEnableEpoch)
-	log.Debug("smartContract/process: enable epoch for repair callback", "epoch", sc.repairCallBackEnableEpoch)
-	log.Debug("smartContract/process: enable epoch for penalized too much gas", "epoch", sc.penalizedTooMuchGasEnableEpoch)
-	log.Debug("smartContract/process: enable epoch for staking v2", "epoch", sc.stakingV2EnableEpoch)
-	log.Debug("smartContract/process: enable epoch for increment SCR nonce in multi transfer", "epoch", sc.incrementSCRNonceInMultiTransferEnableEpoch)
-	log.Debug("smartContract/process: enable epoch for built in functions on metachain", "epoch", sc.builtInFunctionOnMetachainEnableEpoch)
-	log.Debug("smartContract/process: enable epoch for scr size invariant check", "epoch", sc.scrSizeInvariantCheckEnableEpoch)
-	log.Debug("smartContract/process: disable epoch for backward compatibility check on save key value error", "epoch", sc.scrSizeInvariantCheckEnableEpoch)
-	log.Debug("smartContract/process: enable epoch for created async callback on cross shard only", "epoch", sc.createdCallBackCrossShardOnlyEnableEpoch)
-	log.Debug("smartContract/process: enable epoch for optimize gas used in cross mini blocks", "epoch", sc.optimizeGasUsedInCrossMiniBlocksEnableEpoch)
-	log.Debug("smartContract/process: enable epoch for return as failure when saving under protected key", "epoch", sc.saveKeyValueUnderProtectedErrorEnableEpoch)
-	log.Debug("smartContract/process: enable epoch for cleaning up created scrs that are informative only", "epoch", sc.cleanUpInformativeSCRsEnableEpoch)
-	log.Debug("smartContract/process: enable epoch for payable by SC", "epoch", sc.isPayableBySCEnableEpoch)
-	log.Debug("smartContract/process: enable epoch for fix code metadata on upgrade contract", "epoch", sc.fixCodeMetadataOnUpgradeContract)
-	log.Debug("smartContract/process: enable epoch for scr size invariant on built in", "epoch", sc.scrSizeInvariantOnBuiltInResultEnableEpoch)
-	log.Debug("smartContract/process: enable epoch for delete wrong arg on async callback after built in", "epoch", sc.deleteWrongArgAsyncAfterBuiltInEnableEpoch)
-	log.Debug("smartContract/process: enable epoch for async callback argument parser", "epoch", sc.fixAsyncCallBackArgParserEnableEpoch)
 
 	args.GasSchedule.RegisterNotifyHandler(sc)
 
@@ -577,7 +516,7 @@ func (sc *scProcessor) updateDeveloperRewards(
 	}
 
 	moveBalanceGasLimit := sc.economicsFee.ComputeGasLimit(tx)
-	if !IsSmartContractResult(tx) {
+	if !isSmartContractResult(tx) {
 		usedGasByMainSC, err = core.SafeSubUint64(usedGasByMainSC, moveBalanceGasLimit)
 		if err != nil {
 			return err
@@ -718,7 +657,7 @@ func (sc *scProcessor) computeTotalConsumedFeeAndDevRwd(
 	}
 
 	moveBalanceGasLimit := sc.economicsFee.ComputeGasLimit(tx)
-	if !IsSmartContractResult(tx) {
+	if !isSmartContractResult(tx) {
 		displayConsumedGas := consumedGas
 		consumedGas, err = core.SafeSubUint64(consumedGas, moveBalanceGasLimit)
 		log.LogIfError(err,
@@ -751,7 +690,7 @@ func (sc *scProcessor) computeTotalConsumedFeeAndDevRwd(
 	totalFeeMinusBuiltIn := sc.economicsFee.ComputeFeeForProcessing(tx, consumedGasWithoutBuiltin)
 	totalDevRwd := core.GetIntTrimmedPercentageOfValue(totalFeeMinusBuiltIn, sc.economicsFee.DeveloperPercentage())
 
-	if !IsSmartContractResult(tx) && senderInSelfShard {
+	if !isSmartContractResult(tx) && senderInSelfShard {
 		totalFee.Add(totalFee, sc.economicsFee.ComputeMoveBalanceFee(tx))
 	}
 
@@ -1104,7 +1043,7 @@ func (sc *scProcessor) isSameShardSCExecutionAfterBuiltInFunc(
 		return false, 0, nil, nil, nil
 	}
 
-	callType := DetermineCallType(tx)
+	callType := determineCallType(tx)
 	if callType == vmData.AsynchronousCallBack {
 		return true, callType, parsedTransfer, nil, nil
 	}
@@ -1559,7 +1498,7 @@ func (sc *scProcessor) addBackTxValues(
 	}
 
 	isOriginalTxAsyncCallBack :=
-		DetermineCallType(originalTx) == vmData.AsynchronousCallBack &&
+		determineCallType(originalTx) == vmData.AsynchronousCallBack &&
 			sc.shardCoordinator.SelfId() == sc.shardCoordinator.ComputeId(originalTx.GetRcvAddr())
 	if isOriginalTxAsyncCallBack {
 		destAcc, err := sc.getAccountFromAddress(originalTx.GetRcvAddr())
@@ -1961,7 +1900,7 @@ func (sc *scProcessor) createSCRsWhenError(
 	gasLocked uint64,
 ) (*smartContractResult.SmartContractResult, *big.Int) {
 	rcvAddress := tx.GetSndAddr()
-	callType := DetermineCallType(tx)
+	callType := determineCallType(tx)
 	if callType == vmData.AsynchronousCallBack {
 		rcvAddress = tx.GetRcvAddr()
 	}

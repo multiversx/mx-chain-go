@@ -30,7 +30,7 @@ func TestScDeploy(t *testing.T) {
 	relayedTxEnableEpoch := uint32(0)
 	penalizedTooMuchGasEnableEpoch := uint32(0)
 	roundsPerEpoch := uint64(10)
-	scV2EnableEpoch := uint32(10000000)
+	scV2EnableEpoch := integrationTests.UnreachableEpoch
 
 	enableEpochs := integrationTests.CreateEnableEpochsConfig()
 	enableEpochs.BuiltInFunctionOnMetaEnableEpoch = builtinEnableEpoch

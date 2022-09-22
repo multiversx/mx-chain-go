@@ -42,7 +42,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract/processorV2"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/processProxy"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/scrCommon"
 	syncDisabled "github.com/ElrondNetwork/elrond-go/process/sync/disabled"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
@@ -494,12 +494,7 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 		ArwenChangeLocker:   arwenChangeLocker,
 	}
 
-	var scProcessor process.SmartContractProcessor
-	if enableEpochsConfig.SCProcessorV2EnableEpoch == 0 {
-		scProcessor, _ = processorV2.NewSmartContractProcessorV2(argsNewSCProcessor)
-	} else {
-		scProcessor, _ = smartContract.NewSmartContractProcessor(argsNewSCProcessor)
-	}
+	scProcessor, _ := processProxy.NewSmartContractProcessorProxy(argsNewSCProcessor, genericEpochNotifier)
 
 	argsNewTxProcessor := transaction.ArgsNewTxProcessor{
 		Accounts:            accnts,
@@ -851,17 +846,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		VMOutputCacher:      txcache.NewDisabledCache(),
 	}
 
-	var scProcessor process.SmartContractProcessor
-	var testScProcessor scrCommon.TestSmartContractProcessor
-	if enableEpochsConfig.SCProcessorV2EnableEpoch == 0 {
-		sc, _ := processorV2.NewSmartContractProcessorV2(argsNewSCProcessor)
-		testScProcessor = processorV2.NewTestScProcessor(sc)
-		scProcessor = sc
-	} else {
-		sc, _ := smartContract.NewSmartContractProcessor(argsNewSCProcessor)
-		testScProcessor = smartContract.NewTestScProcessor(sc)
-		scProcessor = sc
-	}
+	scProcessor, _ := processProxy.NewSmartContractProcessorProxy(argsNewSCProcessor, epochNotifierInstance)
 
 	argsNewTxProcessor := transaction.ArgsNewTxProcessor{
 		Accounts:            accnts,
@@ -947,18 +932,8 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 	}
 
 	argsNewSCProcessor.VMOutputCacher = txSimulatorProcessorArgs.VMOutputCacher
-
-	var scProcessorTxSim process.SmartContractProcessor
-	if enableEpochsConfig.SCProcessorV2EnableEpoch == 0 {
-		scProcessorTxSim, err = processorV2.NewSmartContractProcessorV2(argsNewSCProcessor)
-	} else {
-		scProcessorTxSim, err = smartContract.NewSmartContractProcessor(argsNewSCProcessor)
-	}
-	if err != nil {
-		return nil, err
-	}
-	argsNewTxProcessor.ScProcessor = scProcessorTxSim
-
+	proxyProcessor, _ := processProxy.NewSmartContractProcessorProxy(argsNewSCProcessor, epochNotifierInstance)
+	argsNewTxProcessor.ScProcessor = proxyProcessor
 	argsNewTxProcessor.Accounts = readOnlyAccountsDB
 
 	txSimulatorProcessorArgs.TransactionProcessor, err = transaction.NewTxProcessor(argsNewTxProcessor)
@@ -987,7 +962,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 
 	return &ResultsCreateTxProcessor{
 		TxProc:             txProcessor,
-		SCProc:             testScProcessor,
+		SCProc:             proxyProcessor,
 		IntermediateTxProc: intermediateTxHandler,
 		EconomicsHandler:   economicsData,
 		CostHandler:        txCostEstimator,

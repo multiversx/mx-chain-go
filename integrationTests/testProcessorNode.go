@@ -80,7 +80,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract/processorV2"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/processProxy"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/scrCommon"
 	processSync "github.com/ElrondNetwork/elrond-go/process/sync"
 	"github.com/ElrondNetwork/elrond-go/process/track"
@@ -1463,13 +1463,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		ArwenChangeLocker:   tpn.ArwenChangeLocker,
 	}
 
-	if tpn.EnableEpochs.SCProcessorV2EnableEpoch == 0 {
-		sc, _ := processorV2.NewSmartContractProcessorV2(argsNewScProcessor)
-		tpn.ScProcessor = processorV2.NewTestScProcessor(sc)
-	} else {
-		sc, _ := smartContract.NewSmartContractProcessor(argsNewScProcessor)
-		tpn.ScProcessor = smartContract.NewTestScProcessor(sc)
-	}
+	tpn.ScProcessor, _ = processProxy.NewSmartContractProcessorProxy(argsNewScProcessor, tpn.EpochNotifier)
 
 	receiptsHandler, _ := tpn.InterimProcContainer.Get(dataBlock.ReceiptBlock)
 	argsNewTxProcessor := transaction.ArgsNewTxProcessor{
@@ -1715,16 +1709,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 		ArwenChangeLocker:   tpn.ArwenChangeLocker,
 	}
 
-	var scProcessor process.SmartContractResultProcessor
-	if tpn.EnableEpochs.SCProcessorV2EnableEpoch == 0 {
-		sc, _ := processorV2.NewSmartContractProcessorV2(argsNewScProcessor)
-		tpn.ScProcessor = processorV2.NewTestScProcessor(sc)
-		scProcessor = sc
-	} else {
-		sc, _ := smartContract.NewSmartContractProcessor(argsNewScProcessor)
-		tpn.ScProcessor = smartContract.NewTestScProcessor(sc)
-		scProcessor = sc
-	}
+	tpn.ScProcessor, _ = processProxy.NewSmartContractProcessorProxy(argsNewScProcessor, tpn.EpochNotifier)
 
 	argsNewMetaTxProc := transaction.ArgsNewMetaTxProcessor{
 		Hasher:              TestHasher,
@@ -1757,7 +1742,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 		tpn.AccntState,
 		tpn.RequestHandler,
 		tpn.TxProcessor,
-		scProcessor,
+		tpn.ScProcessor,
 		tpn.EconomicsData,
 		tpn.GasHandler,
 		tpn.BlockTracker,
@@ -2977,6 +2962,7 @@ func CreateEnableEpochsConfig() config.EnableEpochs {
 		HeartbeatDisableEpoch:                             UnreachableEpoch,
 		MiniBlockPartialExecutionEnableEpoch:              UnreachableEpoch,
 		RefactorPeersMiniBlocksEnableEpoch:                UnreachableEpoch,
+		SCProcessorV2EnableEpoch:                          UnreachableEpoch,
 	}
 }
 

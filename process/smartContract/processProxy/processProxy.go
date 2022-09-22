@@ -16,7 +16,7 @@ import (
 
 var log = logger.GetOrCreate("processProxy")
 
-var _ process.SmartContractProcessorFull = (*SCProcessorProxy)(nil)
+var _ scrCommon.TestSmartContractProcessor = (*SCProcessorProxy)(nil)
 
 type configuredProcessor string
 
@@ -26,9 +26,12 @@ const (
 )
 
 type SCProcessorProxy struct {
-	processor           process.SmartContractProcessorFull
-	args                scrCommon.ArgsNewSmartContractProcessor
 	configuredProcessor configuredProcessor
+	args                scrCommon.ArgsNewSmartContractProcessor
+	processor           process.SmartContractProcessorFull
+	processorsCache     map[configuredProcessor]process.SmartContractProcessorFull
+	testScProcessor     scrCommon.TestSmartContractProcessor
+	testProcessorsCache map[configuredProcessor]scrCommon.TestSmartContractProcessor
 	mutRc               sync.Mutex
 }
 
@@ -38,31 +41,52 @@ func NewSmartContractProcessorProxy(args scrCommon.ArgsNewSmartContractProcessor
 		args: args,
 	}
 
+	scProcessorProxy.processorsCache = make(map[configuredProcessor]process.SmartContractProcessorFull)
+	scProcessorProxy.testProcessorsCache = make(map[configuredProcessor]scrCommon.TestSmartContractProcessor)
+
 	var err error
-	scProcessorProxy.processor, err = scProcessorProxy.createProcessorV1()
-	if err != nil {
-		return nil, err
-	}
-	scProcessorProxy.configuredProcessor = procV1
-
-	_, err = scProcessorProxy.createProcessorV2()
+	err = scProcessorProxy.createProcessorV1()
 	if err != nil {
 		return nil, err
 	}
 
-	log.Info("processorProxy", "configured", procV1)
+	err = scProcessorProxy.createProcessorV2()
+	if err != nil {
+		return nil, err
+	}
 
 	epochNotifier.RegisterNotifyHandler(scProcessorProxy)
 
 	return scProcessorProxy, nil
 }
 
-func (scPProxy *SCProcessorProxy) createProcessorV1() (process.SmartContractProcessorFull, error) {
-	return smartContract.NewSmartContractProcessor(scPProxy.args)
+func (scPProxy *SCProcessorProxy) createProcessorV1() error {
+	processor, err := smartContract.NewSmartContractProcessor(scPProxy.args)
+	scPProxy.processorsCache[procV1] = processor
+	scPProxy.testProcessorsCache[procV1] = smartContract.NewTestScProcessor(processor)
+	return err
 }
 
-func (scPProxy *SCProcessorProxy) createProcessorV2() (process.SmartContractProcessorFull, error) {
-	return processorV2.NewSmartContractProcessorV2(scPProxy.args)
+func (scPProxy *SCProcessorProxy) createProcessorV2() error {
+	processor, err := processorV2.NewSmartContractProcessorV2(scPProxy.args)
+	scPProxy.processorsCache[procV2] = processor
+	scPProxy.testProcessorsCache[procV2] = processorV2.NewTestScProcessor(processor)
+	return err
+}
+
+func (scPProxy *SCProcessorProxy) setActiveProcessorV1() {
+	scPProxy.setActiveProcessor(procV1)
+}
+
+func (scPProxy *SCProcessorProxy) setActiveProcessorV2() {
+	scPProxy.setActiveProcessor(procV2)
+}
+
+func (scPProxy *SCProcessorProxy) setActiveProcessor(version configuredProcessor) {
+	log.Info("processorProxy", "configured", version)
+	scPProxy.configuredProcessor = version
+	scPProxy.processor = scPProxy.processorsCache[version]
+	scPProxy.testScProcessor = scPProxy.testProcessorsCache[version]
 }
 
 func (scPProxy *SCProcessorProxy) ExecuteSmartContractTransaction(tx data.TransactionHandler, acntSrc, acntDst state.UserAccountHandler) (vmcommon.ReturnCode, error) {
@@ -99,16 +123,30 @@ func (scPProxy *SCProcessorProxy) EpochConfirmed(epoch uint32, _ uint64) {
 	scPProxy.mutRc.Lock()
 	defer scPProxy.mutRc.Unlock()
 
-	if epoch > scPProxy.args.EnableEpochs.SCProcessorV2EnableEpoch {
-		if scPProxy.configuredProcessor != procV2 {
-			// what to do with the possible error ?
-			scPProxy.processor, _ = scPProxy.createProcessorV2()
-		}
+	if scPProxy.args.EnableEpochsHandler.IsSCProcessorV2FlagEnabled() {
+		scPProxy.setActiveProcessorV2()
 		return
 	}
 
-	if scPProxy.configuredProcessor != procV1 {
-		// what to do with the possible error ?
-		scPProxy.processor, _ = scPProxy.createProcessorV1()
-	}
+	scPProxy.setActiveProcessorV1()
+}
+
+// GetCompositeTestError -
+func (scPProxy *SCProcessorProxy) GetCompositeTestError() error {
+	return scPProxy.testScProcessor.GetCompositeTestError()
+}
+
+// GetGasRemaining -
+func (scPProxy *SCProcessorProxy) GetGasRemaining() uint64 {
+	return scPProxy.testScProcessor.GetGasRemaining()
+}
+
+// GetAllSCRs -
+func (scPProxy *SCProcessorProxy) GetAllSCRs() []data.TransactionHandler {
+	return scPProxy.testScProcessor.GetAllSCRs()
+}
+
+// CleanGasRefunded -
+func (scPProxy *SCProcessorProxy) CleanGasRefunded() {
+	scPProxy.testScProcessor.CleanGasRefunded()
 }

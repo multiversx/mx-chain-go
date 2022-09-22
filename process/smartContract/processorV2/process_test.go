@@ -368,7 +368,6 @@ func TestNewSmartContractProcessorVerifyAllMembers(t *testing.T) {
 	assert.Equal(t, arguments.TxTypeHandler, sc.txTypeHandler)
 	assert.Equal(t, arguments.TxLogsProcessor, sc.txLogsProcessor)
 	assert.Equal(t, arguments.BadTxForwarder, sc.badTxForwarder)
-	assert.Equal(t, arguments.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch, sc.builtInFunctionOnMetachainEnableEpoch)
 }
 
 // ===================== TestGasScheduleChange =====================
@@ -3268,25 +3267,6 @@ func TestScProcessor_isTooMuchGasProvidedShouldWork(t *testing.T) {
 
 	isTooMuchGas = isTooMuchGasProvided(gasProvided, maxGasToRemain+1)
 	assert.True(t, isTooMuchGas)
-}
-
-func TestScProcessor_penalizeUserIfNeededShouldWorkOnFlagActivation(t *testing.T) {
-	arguments := createMockSmartContractProcessorArguments()
-	sc, _ := NewSmartContractProcessorV2(arguments)
-
-	gasProvided := uint64(1000)
-	maxGasToRemain := gasProvided - (gasProvided / process.MaxGasFeeHigherFactorAccepted)
-
-	callType := vmData.DirectCall
-	vmOutput := &vmcommon.VMOutput{
-		GasRemaining: maxGasToRemain + 1,
-	}
-
-	sc.penalizedTooMuchGasEnableEpoch = 1
-
-	sc.EpochConfirmed(1, 0)
-	sc.penalizeUserIfNeeded(&transaction.Transaction{}, []byte("txHash"), callType, gasProvided, vmOutput)
-	assert.Equal(t, uint64(0), vmOutput.GasRemaining)
 }
 
 func TestSCProcessor_createSCRWhenError(t *testing.T) {

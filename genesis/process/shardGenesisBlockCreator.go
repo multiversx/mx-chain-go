@@ -126,6 +126,7 @@ func createGenesisConfig() config.EnableEpochs {
 		MiniBlockPartialExecutionEnableEpoch:              unreachableEpoch,
 		ESDTMetadataContinuousCleanupEnableEpoch:          unreachableEpoch,
 		RefactorPeersMiniBlocksEnableEpoch:                unreachableEpoch,
+		SCProcessorV2EnableEpoch:                          unreachableEpoch,
 	}
 }
 

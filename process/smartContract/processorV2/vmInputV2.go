@@ -47,13 +47,13 @@ func (sc *scProcessor) initializeVMInputFromTx(vmInput *vmcommon.VMInput, tx dat
 	return nil
 }
 
-func IsSmartContractResult(tx data.TransactionHandler) bool {
+func isSmartContractResult(tx data.TransactionHandler) bool {
 	_, isScr := tx.(*smartContractResult.SmartContractResult)
 	return isScr
 }
 
 func (sc *scProcessor) prepareGasProvided(tx data.TransactionHandler) (uint64, error) {
-	if IsSmartContractResult(tx) {
+	if isSmartContractResult(tx) {
 		return tx.GetGasLimit(), nil
 	}
 
@@ -74,7 +74,7 @@ func (sc *scProcessor) createVMCallInput(
 	txHash []byte,
 	builtInFuncCall bool,
 ) (*vmcommon.ContractCallInput, error) {
-	callType := DetermineCallType(tx)
+	callType := determineCallType(tx)
 	txData := string(tx.GetData())
 	if !builtInFuncCall {
 		txData = string(prependLegacyCallbackFunctionNameToTxDataIfAsyncCallBack(tx.GetData(), callType))
@@ -186,7 +186,7 @@ func buildAsyncArgumentsObject(callType vm.CallType, asyncArguments [][]byte) *v
 	}
 }
 
-func DetermineCallType(tx data.TransactionHandler) vm.CallType {
+func determineCallType(tx data.TransactionHandler) vm.CallType {
 	scr, isSCR := tx.(*smartContractResult.SmartContractResult)
 	if isSCR {
 		return scr.CallType
